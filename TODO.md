@@ -17,7 +17,10 @@
     http://r6.ca/blog/20140210T181244Z.html
 - Freer Monads
 - Operational Monads
-- Is anything similar available in Haskell?
+- see the paper references in the README to freer-simple!  (There are a few)
+- Haskell stuff
+    - e.g., freer-simple (and a few other libraries with the same interface)
+    - BUT they don't have to have Tau (so the technicalities are easier)us)
 
 - For Paco: Gil's POPL 2013 paper
 
