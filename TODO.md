@@ -16,11 +16,14 @@
 - van Laarhoven Free Monad (Mauro Jaskelioff, Russell O'Connor)
     http://r6.ca/blog/20140210T181244Z.html
 - Freer Monads
+  http://okmij.org/ftp/Computation/free-monad.html
+  http://okmij.org/ftp/Haskell/extensible/
 - Operational Monads
+  https://apfelmus.nfshost.com/articles/operational-monad.html
 - see the paper references in the README to freer-simple!  (There are a few)
 - Haskell stuff
     - e.g., freer-simple (and a few other libraries with the same interface)
-    - BUT they don't have to have Tau (so the technicalities are easier)us)
+    - BUT they don't have to have Tau (so the technicalities are easier)
 
 - For Paco: Gil's POPL 2013 paper
 
