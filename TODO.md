@@ -3,12 +3,23 @@
 - common infrastructure for Vellvm and DeepWeb
     - move stuff from DW and Vellvm repos
 - should we use Paco?
+- which monad library (if any!)
 
-# Research issues
+# Research issues / topics
 
+- trace inclusion / bisimulation (is there actually any role for
+  bisimulation?)
+- careful comparison with an alternative "set of traces" presentation
 - should we do up-to tau equivalence?  or something more general?
 - generalizing the Event combinators
 - using ITrees to support both verification and testing
+- what about Fork?  (or internal nondeterminism / branching time?)
+
+# Contributions
+
+- Proofs
+- Haskell libraries don't need Tau (so the technicalities are easier)
+- Extraction
 
 # Reading / related work
 
@@ -26,4 +37,3 @@
     - BUT they don't have to have Tau (so the technicalities are easier)
 
 - For Paco: Gil's POPL 2013 paper
-
