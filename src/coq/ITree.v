@@ -4,80 +4,101 @@ Import ListNotations.
 Set Implicit Arguments.
 Set Contextual Implicit.
 
-(** An [M E X] is the denotation of a program as coinductive (possibly
-    infinite) tree where the leaves are labeled with [X] and every node
-    is either a [Tau] node with one child, or a branching node [Vis]
-    with a visible effect [E Y] that branches on the values of [Y]. *)
-CoInductive M (Effect : Type -> Type) X :=
-| Ret (x:X)
-| Vis {Y: Type} (e : Effect Y) (k : Y -> M Effect X)
-| Tau (k: M Effect X)
+(* Naming conventions:
+   - [python_case] definitions
+   - [CamelCase] constructors and classes
+
+   Variables:
+   - [E E1 E2 F F1 F2 : Type -> Type] effect types
+   - [X Y Z : Type] effect output types
+   - [e : E X] effects
+   - [R S : Type] return/result types ([Ret : R -> itree E R])
+   - [t u : itree E R] itrees
+   - [k h : R -> itree E S] itree continuations (iforests?)
+ *)
+
+(** An [itree E R] is the denotation of a program as coinductive
+    (possibly infinite) tree where the leaves [Ret] are labeled with
+    [R] and every node is either a [Tau] node with one child, or a
+    branching node [Vis] with a visible effect [E X] that branches
+    on the values of [X]. *)
+CoInductive itree (E : Type -> Type) (R : Type) :=
+| Ret (r : R)
+| Vis {X : Type} (e : E X) (k : X -> itree E R)
+| Tau (t : itree E R)
 .
 
-Arguments Ret {Effect X}.
-Arguments Vis {Effect X Y}.
-Arguments Tau {Effect X}.
+Arguments Ret {E R}.
+Arguments Vis {E R X}.
+Arguments Tau {E R}.
 
-(* [idM] as a notation makes it easier to [rewrite <- matchM]. *)
-Notation idM i :=
-  match i with 
-  | Ret x => Ret x
+(* [id_itree] as a notation makes it easier to
+   [rewrite <- match_itree]. *)
+Notation id_itree t :=
+  match t with
+  | Ret r => Ret r
   | Vis e k => Vis e k
-  | Tau k => Tau k
+  | Tau t => Tau t
   end.
 
-Lemma matchM : forall {E X} (i: M E X), i = idM i.
-Proof. destruct i; auto. Qed.
+Lemma match_itree : forall E R (t : itree E R), t = id_itree t.
+Proof. destruct t; auto. Qed.
 
+(* [itree] is a monad, with the monadic [Core.bind] defined
+   by substitution of [Ret] leaves. However, many generic
+   recursive constructions fail the productivity checker,
+   hence we will wrap [Core.bind] to work around those issues. *)
 Module Core.
-(** [M E] forms a [Monad] *)
-Definition bind_body {E X Y}
-           (s : M E X)
-           (go : M E X -> M E Y)
-           (t : X -> M E Y) : M E Y :=
-  match s with
-  | Ret x => t x
-  | Vis e k => Vis e (fun y => go (k y))
-  | Tau s' => Tau (go s')
+(** [itree E] forms a [Monad] *)
+Definition bind_body {E R S}
+           (t : itree E R)
+           (go : itree E R -> itree E S)
+           (k : R -> itree E S) : itree E S :=
+  match t with
+  | Ret r => k r
+  | Vis e h => Vis e (fun x => go (h x))
+  | Tau t => Tau (go t)
   end.
 
-Definition bind {E X Y} (s : M E X) (t : X -> M E Y) : M E Y :=
-  (cofix bind_ (s : M E X) :=
-      bind_body s bind_ t) s.
+Definition bind {E R S} (t : itree E R) (k : R -> itree E S) :
+  itree E S :=
+  (cofix bind_ (t : itree E R) :=
+      bind_body t bind_ k) t.
 
-Lemma bind_def_core : forall {E X Y} s (t : X -> M E Y),
-    bind s t = bind_body s (fun s => bind s t) t.
+Lemma bind_def_core : forall {E R S} t (k : R -> itree E S),
+    bind t k = bind_body t (fun t' => bind t' k) k.
 Proof.
   intros.
-  rewrite matchM.
-  destruct s; auto.
+  rewrite match_itree.
+  destruct t; auto.
   simpl.
-  rewrite (@matchM _ _ (t x)) at 2.
+  rewrite (@match_itree _ _ (k r)) at 2.
   auto.
 Qed.
 
 End Core.
 
-Definition liftE (Effect : Type -> Type) (X : Type)
-           (e : Effect X) : M Effect X :=
+Definition liftE (E : Type -> Type) (X : Type)
+           (e : E X) : itree E X :=
   Vis e Ret.
 
 (** Monadic return *)
-Definition ret {Effect X} (x : X) : M Effect X := Ret x.
+Definition ret {E R} (r : R) : itree E R := Ret r.
 
 (** Monadic bind *)
-(* We insert a Tau in the Ret case to make programs/specifications
-   neater. This makes [M] no longer a monad structurally,
-   but it remains one in a looser sense as long as Tau is
+(* We insert a [Tau] in the [Ret] case to make programs/specifications
+   neater. This makes [itree] no longer a monad structurally,
+   but it remains one in a looser sense as long as [Tau] is
    interpreted as the identity. *)
-Definition bind {E X Y} (t : M E X) (k : X -> M E Y) : M E Y :=
-  Core.bind t (fun x => Tau (k x)).
+Definition bind {E R S}
+           (t : itree E R) (k : R -> itree E S) : itree E S :=
+  Core.bind t (fun r => Tau (k r)).
 
 (* A lemma to unfold [bind]. *)
-Lemma bind_def E X Y :
-  forall t (k : X -> M E Y),
+Lemma bind_def E R S :
+  forall t (k : R -> itree E S),
     bind t k =
-    Core.bind_body t (fun t' => bind t' k) (fun x => Tau (k x)).
+    Core.bind_body t (fun t' => bind t' k) (fun r => Tau (k r)).
 Proof.
   unfold bind.
   intros s k.
@@ -85,39 +106,37 @@ Proof.
   auto.
 Qed.
 
-Definition sequ {E X Y} (s : M E X) (t : M E Y) : M E Y :=
-  bind s (fun _ => t).
+Definition sequ {E R S}
+           (t : itree E R) (u : itree E S) : itree E S :=
+  bind t (fun _ => u).
 
 (** Functorial map ([fmap]) *)
-Definition map {E X Y} (f : X -> Y) : M E X -> M E Y :=
-  cofix go (t : M E X) :=
+Definition map {E R S} (f : R -> S) : itree E R -> itree E S :=
+  cofix go t :=
     match t with
-    | Ret x => Ret (f x)
-    | Vis e k => Vis e (fun y => go (k y))
+    | Ret r => Ret (f r)
+    | Vis e k => Vis e (fun x => go (k x))
     | Tau t => Tau (go t)
     end.
 
 (** Ignore the result of a tree. *)
-Definition ignore {E X} : M E X -> M E unit := map (fun _ => tt).
+Definition ignore {E R} : itree E R -> itree E unit :=
+  map (fun _ => tt).
 
 (** Infinite taus. *)
-CoFixpoint spin {E} {X} : M E X := Tau spin.
+CoFixpoint spin {E R} : itree E R := Tau spin.
 
-(** The void type is useful as a return type to [M] to enforce
-    infinite programs *)
-Inductive void : Type := .
-
-CoFixpoint forever {E} {X} (x : M E X) : M E void :=
-  sequ x (forever x).
+Definition forever {E R S} (t : itree E R) : itree E S :=
+  cofix forever_t := sequ t forever_t.
 
 (** If we can interpret the effects of a tree as computations in
     another, we can extend that interpretation to the whole tree. *)
-Definition hom {E F : Type -> Type} {X : Type}
-           (f : forall Z, E Z -> M F Z) :
-  M E X -> M F X :=
+Definition hom {E F : Type -> Type} {R : Type}
+           (f : forall X, E X -> itree F X) :
+  itree E R -> itree F R :=
   cofix hom_f t :=
     match t with
-    | Ret x => Ret x
+    | Ret r => Ret r
     | Vis e k => bind (f _ e) (fun x => hom_f (k x))
     | Tau t => Tau (hom_f t)
     end.
@@ -125,18 +144,18 @@ Definition hom {E F : Type -> Type} {X : Type}
 (** With a mapping from one effect to one single other effect,
     a more economical mapping is possible, using [Vis] instead
     of [bind]. *)
-Definition hoist {E F X}
-           (f : forall Z, E Z -> F Z) :
-  M E X -> M F X :=
+Definition hoist {E F R}
+           (f : forall X, E X -> F X) :
+  itree E R -> itree F R :=
   cofix hoist_f m :=
     match m with
-    | Ret x => Ret x
-    | Vis e k => Vis (f _ e) (fun z => hoist_f (k z))
+    | Ret r => Ret r
+    | Vis e k => Vis (f _ e) (fun x => hoist_f (k x))
     | Tau n => Tau (hoist_f n)
     end.
 
-Definition when {E} (b : bool) (body : M E unit)
-  : M E unit :=
+Definition when {E}
+           (b : bool) (body : itree E unit) : itree E unit :=
   if b then body else ret tt.
 
 Module ItreeNotations.
