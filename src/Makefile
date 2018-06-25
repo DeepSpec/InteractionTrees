@@ -1,3 +1,5 @@
+.PHONY: all coq
+
 # Coq sources
 COQDIR = coq
 COQLIBDIR = ../lib
