@@ -21,31 +21,13 @@ VFILES := $(COQFILES:%=coq/%.v)
 VOFILES := $(COQFILES:%=coq/%.vo)
 
 all:
-	@test -f .depend || $(MAKE) depend
 	$(MAKE) coq
-#	$(MAKE) extracted
 
-coq: $(VOFILES)
+coq: Makefile.coq
+	$(MAKE) -f Makefile.coq
 
-extracted: $(EXTRACTDIR)/STAMP
-
-$(EXTRACTDIR)/STAMP: $(VOFILES) $(EXTRACTDIR)/Extract.v
-	@echo "Extracting"
-	rm -f $(EXTRACTDIR)/*.ml $(EXTRACTDIR)/*.mli
-	$(COQEXEC) $(EXTRACTDIR)/Extract.v
-	touch $(EXTRACTDIR)/STAMP
-
-
-%.vo: %.v
-	@rm -f doc/$(*F).glob
-	@echo "COQC $*.v"
-	@$(COQC) -dump-glob doc/$(*F).glob $*.v
-
-depend: $(VFILES) 
-	@echo "Analyzing Coq dependencies"
-	@$(COQDEP) $^ > .depend
-
-
+Makefile.coq: _CoqProject
+	coq_makefile -f _CoqProject -o Makefile.coq
 
 # Directories containing plain Caml code
 OCAMLDIRS= $(EXTRACTDIR) $(MLDIR) 
