@@ -36,4 +36,6 @@
     - e.g., freer-simple (and a few other libraries with the same interface)
     - BUT they don't have to have Tau (so the technicalities are easier)
 
+- Other work on free monads in Coq: coq-io, FreeSpec
+
 - For Paco: Gil's POPL 2013 paper
