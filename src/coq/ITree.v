@@ -44,6 +44,8 @@ Notation id_itree t :=
 Lemma match_itree : forall E R (t : itree E R), t = id_itree t.
 Proof. destruct t; auto. Qed.
 
+Arguments match_itree {E R} t.
+
 (* [itree] is a monad, with the monadic [Core.bind] defined
    by substitution of [Ret] leaves. However, many generic
    recursive constructions fail the productivity checker,
@@ -69,10 +71,10 @@ Lemma bind_def_core : forall {E R S} t (k : R -> itree E S),
     bind t k = bind_body t (fun t' => bind t' k) k.
 Proof.
   intros.
-  rewrite match_itree.
+  rewrite (match_itree (bind _ _)).
   destruct t; auto.
   simpl.
-  rewrite (@match_itree _ _ (k r)) at 2.
+  rewrite (match_itree (k r)) at 2.
   auto.
 Qed.
 
