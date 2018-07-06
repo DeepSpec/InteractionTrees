@@ -177,7 +177,7 @@ Proof.
   - subst. inversion I1.
 Qed.    
 
-Lemma untaus_tau_tau : forall (E : Type -> Type) (R : Type) (t1 t2 : itree E R),
+Lemma untaus_tau_tau1 : forall (E : Type -> Type) (R : Type) (t1 t2 : itree E R),
     untaus t1 t2 -> untaus (Tau t1) t2.
 Proof.
   intros E R t1 t2 H.
@@ -187,8 +187,17 @@ Proof.
   - apply OneTau. assumption.
 Qed.    
 
+Lemma untaus_tau_tau2 : forall (E : Type -> Type) (R : Type) (t1 t2 : itree E R),
+    untaus (Tau t1) t2 -> untaus t1 t2.
+Proof.
+  intros E R t1 t2 H.
+  destruct H as [I1 H1].
+  inversion H1; subst.
+  - split. assumption. assumption.
+  - inversion I1. 
+Qed.    
 
-Lemma equiv_tau : forall (E : Type -> Type) (R : Type) (t1 t2 : itree E R),
+Lemma equiv_tau1 : forall (E : Type -> Type) (R : Type) (t1 t2 : itree E R),
     Tau t1 ~ t2 -> t1 ~ t2.
 Proof.
   intros E R.
@@ -201,9 +210,31 @@ Proof.
     + intros. apply finite_taus_tau2. apply H0. assumption.
   - intros t1' t2' H2 H3.
     eapply H1.
-    + apply untaus_tau_tau. assumption.
+    + apply untaus_tau_tau1. assumption.
     + assumption.
 Qed.  
+
+Lemma equiv_tau2 : forall (E : Type -> Type) (R : Type) (t1 t2 : itree E R),
+    t1 ~ t2 -> Tau t1 ~ t2.
+Proof.
+  intros E R.
+  intros t1 t2 H.
+  pfold.
+  pinversion H.
+  split.
+  - split.
+    + intros. apply H0. apply finite_taus_tau2. assumption.
+    + intros. apply finite_taus_tau1. apply H0. assumption.
+  - intros t1' t2' H2 H3.
+    eapply H1.
+    + apply untaus_tau_tau2. assumption.
+    + assumption.
+Qed.  
+
+Lemma untaus_equiv : forall (E : Type -> Type) (R : Type) (t t' : itree E R), untaus t t' -> t ~ t'.
+Proof.
+  intros E R.
+Admitted.  
 
 Lemma finite_taus_equiv : forall (E : Type -> Type) (R : Type) (t1 t2 : itree E R),
     t1 ~ t2 -> finite_taus t1 -> finite_taus t2.
@@ -212,7 +243,7 @@ Proof.
   destruct H2 as [t1' [I H]].
   generalize dependent t2.
   induction H; intros t2 H1. 
-  - apply IHuntaus'. apply equiv_tau. assumption.
+  - apply IHuntaus'. apply equiv_tau1. assumption.
   - pinversion H1.
     apply H.
     destruct t1'.
@@ -228,6 +259,7 @@ Proof.
   assert (finite_taus t1). eapply finite_taus_bind_inv1. apply Hfin.
   assert (finite_taus t2). eapply finite_taus_equiv; eauto.
 Admitted.  
+
 
   
 
