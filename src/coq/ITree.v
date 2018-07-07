@@ -1,6 +1,3 @@
-Require Import List.
-Import ListNotations.
-
 Set Implicit Arguments.
 Set Contextual Implicit.
 
@@ -74,8 +71,8 @@ Proof.
   rewrite (match_itree (bind _ _)).
   destruct t; auto.
   simpl.
-  rewrite (match_itree (k r)) at 2.
-  auto.
+  rewrite <- (match_itree (k r)).
+  reflexivity.
 Qed.
 
 End Core.
@@ -85,7 +82,7 @@ Definition liftE (E : Type -> Type) (X : Type)
   Vis e Ret.
 
 (** Monadic return *)
-Definition ret {E R} (r : R) : itree E R := Ret r.
+Definition ret : forall {E R}, R -> itree E R := @Ret.
 
 (** Monadic bind *)
 (* We insert a [Tau] in the [Ret] case to make programs/specifications

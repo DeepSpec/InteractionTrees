@@ -1,5 +1,6 @@
-Require Import Relations.
-Require Import Eqdep.
+Require Import Coq.Classes.RelationClasses.
+Require Import Coq.Relations.Relations.
+(* Require Import Eqdep. *)
 Require Import Paco.paco.
 
 Require Import ITree.ITree.
@@ -93,6 +94,23 @@ Proof.
     + destruct (untaus_notau _ _ H1).
 Qed.
 
+Lemma eutt_0_inj_Vis : forall {T} rel e (k : T -> itree E R) z,
+    eutt_0 rel (Vis e k) z ->
+    exists k', z = Vis e k' /\ (forall x, rel (k x) (k' x)).
+Proof.
+  intros.
+  refine match H in eutt_0 _ X Z
+               return match X return Prop with
+                      | Vis e k => _
+                      | _ => True
+                      end
+         with
+         | Eutt_Ret _ _ => I
+         | Eutt_Vis _ _ _ _ _ _ => _
+         end; simpl.
+  eexists; split. reflexivity. assumption.
+Defined.
+
 Definition transitive_eutt : transitive _ eutt.
 Proof.
   pcofix transitive_eutt.
@@ -108,19 +126,17 @@ Proof.
     destruct (proj1 I12 (ex_intro _ _ H1)) as [t2' H2].
     specialize (H12 _ _ H1 H2).
     specialize (H23 _ _ H2 H3).
-    inversion H12; inversion H23; subst; try discriminate.
-    + inversion H4. constructor.
-    + inversion H6; subst.
-      apply inj_pair2 in H7; subst.
+    inversion H12.
+    + subst. inversion H23. constructor.
+    + subst. eapply eutt_0_inj_Vis in H23.
+      destruct H23 as [ k' [ ? ? ] ].
+      subst.
       constructor.
       * intro x.
-        specialize (H x); specialize (H5 x); pclearbot.
+        specialize (H x); specialize (H4 x); pclearbot.
         right; eapply transitive_eutt; eauto.
-        apply inj_pair2 in H8. (* Boo *)
-        subst.
-        auto.
 Qed.
-  
+
 End EUTT.
 
 Arguments finite_taus {E R}.
@@ -134,7 +150,7 @@ Proof.
   intros E R S t f.
   rewrite bind_def.
   simpl. reflexivity.
-Qed.  
+Qed.
 
 
 Lemma finite_taus_bind_inv1 : forall {E R S} (t : itree E R) (f : R -> itree E S),
@@ -165,7 +181,7 @@ Proof.
   intros E R t H.
   destruct H as [t' [I1 H1]].
   exists t'. split. assumption. apply OneTau. assumption.
-Qed.  
+Qed.
 
 Lemma finite_taus_tau2: forall (E : Type -> Type) (R : Type) (t : itree E R),
     finite_taus (Tau t) -> finite_taus t.
@@ -175,7 +191,7 @@ Proof.
   inversion H1.
   - subst. exists t'. split; assumption.
   - subst. inversion I1.
-Qed.    
+Qed.
 
 Lemma untaus_tau_tau1 : forall (E : Type -> Type) (R : Type) (t1 t2 : itree E R),
     untaus t1 t2 -> untaus (Tau t1) t2.
@@ -185,7 +201,7 @@ Proof.
   split.
   - assumption.
   - apply OneTau. assumption.
-Qed.    
+Qed.
 
 Lemma untaus_tau_tau2 : forall (E : Type -> Type) (R : Type) (t1 t2 : itree E R),
     untaus (Tau t1) t2 -> untaus t1 t2.
@@ -194,8 +210,8 @@ Proof.
   destruct H as [I1 H1].
   inversion H1; subst.
   - split. assumption. assumption.
-  - inversion I1. 
-Qed.    
+  - inversion I1.
+Qed.
 
 Lemma equiv_tau1 : forall (E : Type -> Type) (R : Type) (t1 t2 : itree E R),
     Tau t1 ~ t2 -> t1 ~ t2.
@@ -212,7 +228,7 @@ Proof.
     eapply H1.
     + apply untaus_tau_tau1. assumption.
     + assumption.
-Qed.  
+Qed.
 
 Lemma equiv_tau2 : forall (E : Type -> Type) (R : Type) (t1 t2 : itree E R),
     t1 ~ t2 -> Tau t1 ~ t2.
@@ -229,20 +245,20 @@ Proof.
     eapply H1.
     + apply untaus_tau_tau2. assumption.
     + assumption.
-Qed.  
+Qed.
 
 Lemma untaus_equiv : forall (E : Type -> Type) (R : Type) (t t' : itree E R), untaus t t' -> t ~ t'.
 Proof.
   intros E R.
-Admitted.  
+Admitted.
 
 Lemma finite_taus_equiv : forall (E : Type -> Type) (R : Type) (t1 t2 : itree E R),
     t1 ~ t2 -> finite_taus t1 -> finite_taus t2.
 Proof.
-  intros E R t1 t2 H1 H2. 
+  intros E R t1 t2 H1 H2.
   destruct H2 as [t1' [I H]].
   generalize dependent t2.
-  induction H; intros t2 H1. 
+  induction H; intros t2 H1.
   - apply IHuntaus'. apply equiv_tau1. assumption.
   - pinversion H1.
     apply H.
@@ -250,7 +266,7 @@ Proof.
     + exists (Ret r). split. simpl; auto. apply NoTau.
     + exists (Vis e k). split. simpl; auto. apply NoTau.
     + inversion I.
-Qed.      
+Qed.
 
 Lemma finite_taus_bind : forall E R S (t1 t2 : itree E R) (f : R -> itree E S),
     t1 ~ t2 -> finite_taus (bind t1 f) -> finite_taus (bind t2 f).
@@ -258,15 +274,13 @@ Proof.
   intros E R S t1 t2 f Hequiv Hfin.
   assert (finite_taus t1). eapply finite_taus_bind_inv1. apply Hfin.
   assert (finite_taus t2). eapply finite_taus_equiv; eauto.
-Admitted.  
+Admitted.
 
 
-  
+
 
 
 Lemma eutt_bind_hom1 : forall {E R S} (t1 t2 : itree E R) (f : R -> itree E S),
     t1 ~ t2 -> (bind t1 f) ~ (bind t2 f).
 Proof.
-Admitted.  
-
-
+Admitted.
