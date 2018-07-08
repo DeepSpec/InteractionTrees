@@ -107,3 +107,5 @@ Module FixImpl : FixSig.
     End mfixP.
   End Fix.
 End FixImpl.
+
+Export FixImpl.
