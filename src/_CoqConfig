@@ -1,6 +1,0 @@
--Q coq ITree
-
-coq/ITree.v
-coq/Effect.v
-coq/Equivalence.v
-coq/Fix.v
