@@ -4,3 +4,5 @@ coq/Effect.v
 coq/Equivalence.v
 # coq/Loop.v
 # coq/Misc.v
+
+coq/Fix.v
