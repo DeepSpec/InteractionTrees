@@ -1,3 +1,4 @@
+-Q ../lib/paco/src/ Paco
 -Q coq ITree
 coq/ITree.v
 coq/Effect.v
