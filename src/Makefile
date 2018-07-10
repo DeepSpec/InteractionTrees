@@ -1,4 +1,4 @@
-.PHONY: all coq
+.PHONY: all coq clean
 
 # Coq sources
 COQDIR = coq
@@ -61,10 +61,10 @@ print-includes:
 	@echo $(COQINCLUDES)
 
 clean:
-	rm -f .depend
-	rm -f $(VOFILES)
-	rm -rf doc/*.glob
-	rm -f $(EXTRACTDIR)/STAMP $(EXTRACTDIR)/*.ml $(EXTRACTDIR)/*.mli
-	ocamlbuild -clean
+	$(RM) -f .depend
+ifneq ($(wildcard Makefile.coq),)
+	$(MAKE) -f Makefile.coq clean
+endif
+	$(RM) -f Makefile.coq Makefile.coq.conf _CoqProject
 
 -include .depend
