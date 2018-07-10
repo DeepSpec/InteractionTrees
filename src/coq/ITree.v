@@ -140,6 +140,18 @@ Definition hom {E F : Type -> Type} {R : Type}
     | Tau t => Tau (hom_f t)
     end.
 
+(* todo: We should probably export this using a state transformer.
+ *)
+Definition homState {E F : Type -> Type} {S R : Type}
+           (f : forall X, E X -> S -> itree F (S * X)) :
+  itree E R -> S -> itree F (S * R) :=
+  cofix homState_f t s :=
+    match t with
+    | Ret r => Ret (s, r)
+    | Vis e k => bind (f _ e s) (fun '(s',x) => homState_f (k x) s')
+    | Tau t => Tau (homState_f t s)
+    end.
+
 (** With a mapping from one effect to one single other effect,
     a more economical mapping is possible, using [Vis] instead
     of [bind]. *)
