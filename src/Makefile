@@ -1,4 +1,4 @@
-.PHONY: all coq
+.PHONY: all coq clean
 
 # Coq sources
 COQDIR = coq
@@ -31,6 +31,20 @@ coq: Makefile.coq
 Makefile.coq: _CoqProject
 	coq_makefile -f _CoqProject -o Makefile.coq
 
+_CoqProject: _CoqPath _CoqConfig Makefile
+	@ echo "# Generating _CoqProject"
+	@ rm -f _CoqProject
+ifneq ("$(wildcard _CoqPath)","")
+	@ echo "# including: _CoqPath"
+	@ cp _CoqPath _CoqProject
+	@ echo >> _CoqProject
+endif
+	@ echo "# including: _CoqConfig"
+	@ cat _CoqConfig >> _CoqProject
+
+_CoqPath:
+	@ echo > /dev/null
+
 # Directories containing plain Caml code
 OCAMLDIRS= $(EXTRACTDIR) $(MLDIR) 
 
@@ -47,10 +61,10 @@ print-includes:
 	@echo $(COQINCLUDES)
 
 clean:
-	rm -f .depend
-	rm -f $(VOFILES)
-	rm -rf doc/*.glob
-	rm -f $(EXTRACTDIR)/STAMP $(EXTRACTDIR)/*.ml $(EXTRACTDIR)/*.mli
-	ocamlbuild -clean
+	$(RM) -f .depend
+ifneq ($(wildcard Makefile.coq),)
+	$(MAKE) -f Makefile.coq clean
+endif
+	$(RM) -f Makefile.coq Makefile.coq.conf _CoqProject
 
 -include .depend
