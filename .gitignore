@@ -20,7 +20,10 @@
 examples.mli
 *.mli
 *.gz
-src/ml/extracted/*.ml
-src/ml/extracted/STAMP
-src/.depend
 output
+
+.coqdeps.d
+Makefile.coq
+Makefile.coq.conf
+_CoqProject
+_CoqPath
