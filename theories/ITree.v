@@ -128,29 +128,39 @@ CoFixpoint spin {E R} : itree E R := Tau spin.
 Definition forever {E R S} (t : itree E R) : itree E S :=
   cofix forever_t := sequ t forever_t.
 
+(* Homomorphisms between effects *)
+Definition eff_hom (E E' : Type -> Type) : Type :=
+  forall t, E t -> itree E' t.
+
+(* Stateful homomorphisms between effects *)
+Definition eff_hom_s (s : Type) (E E' : Type -> Type) : Type :=
+  forall t, E t -> s -> itree E' (s * t).
+
 (** If we can interpret the effects of a tree as computations in
     another, we can extend that interpretation to the whole tree. *)
-Definition hom {E F : Type -> Type} {R : Type}
-           (f : forall X, E X -> itree F X) :
-  itree E R -> itree F R :=
+Definition hom {E F : Type -> Type}
+           (f : eff_hom E F) (R : Type)
+: itree E R -> itree F R :=
   cofix hom_f t :=
     match t with
     | Ret r => Ret r
     | Vis e k => bind (f _ e) (fun x => hom_f (k x))
     | Tau t => Tau (hom_f t)
     end.
+Arguments hom {E F} _ [R] _.
 
 (* todo: We should probably export this using a state transformer.
  *)
-Definition homState {E F : Type -> Type} {S R : Type}
-           (f : forall X, E X -> S -> itree F (S * X)) :
-  itree E R -> S -> itree F (S * R) :=
+Definition hom_state {E F : Type -> Type} {S : Type}
+           (f : eff_hom_s S E F) (R : Type)
+: itree E R -> S -> itree F (S * R) :=
   cofix homState_f t s :=
     match t with
     | Ret r => Ret (s, r)
     | Vis e k => bind (f _ e s) (fun '(s',x) => homState_f (k x) s')
     | Tau t => Tau (homState_f t s)
     end.
+Arguments hom_state {_ _} _ [_] _.
 
 (** With a mapping from one effect to one single other effect,
     a more economical mapping is possible, using [Vis] instead

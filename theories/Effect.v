@@ -136,14 +136,15 @@ Definition vis {E F R X} `{F -< E}
            (e : F X) (k : X -> itree E R) : itree E R :=
   Vis (convert e) k.
 
-Definition run {E F X} (run_ : forall X, E X -> itree F X)
-  : itree (E +' F) X -> itree F X :=
+Definition run {E F} (run_ : eff_hom E F)
+: forall X, itree (E +' F) X -> itree F X :=
   let run' Y (e : (E +' F) Y) :=
       match e with
       | (| f' ) => liftE f'
       | ( e' |) => run_ _ e'
       end
   in hom run'.
+Arguments run {_ _} _ [_] _.
 
 Section Failure.
 
