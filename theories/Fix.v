@@ -7,6 +7,8 @@
 Require Import ITree.ITree.
 Require Import ITree.Effect.
 
+Require Import ExtLib.Structures.Monad.
+
 Module Type FixSig.
   Section Fix.
     (* the ambient effects *)
@@ -16,14 +18,15 @@ Module Type FixSig.
     Variable codom : dom -> Type.
 
     Definition fix_body : Type :=
-      forall m, (forall t, itree E t -> m t) ->
+      forall m, Monad m ->
+           (forall t, itree E t -> m t) ->
            (forall x : dom, m (codom x)) ->
            forall x : dom, m (codom x).
 
     Parameter mfix : fix_body -> forall x : dom, itree E (codom x).
 
     Axiom mfix_unfold : forall (body : fix_body) (x : dom),
-        mfix body x = body (itree E) (fun t => id) (mfix body) x.
+        mfix body x = body (itree E) _ (fun t => id) (mfix body) x.
 
   End Fix.
 End FixSig.
@@ -89,7 +92,8 @@ Module FixImpl : FixSig.
        * complex, though one could argue that it is a more abstract encoding.
        *)
       Definition fix_body : Type :=
-        forall m, (forall t, itree E t -> m t) ->
+        forall m, Monad m ->
+             (forall t, itree E t -> m t) ->
              (forall x : dom, m (codom x)) ->
              forall x : dom, m (codom x).
 
@@ -98,11 +102,11 @@ Module FixImpl : FixSig.
       Definition mfix
       : forall x : dom, itree E (codom x) :=
         _mfix
-          (body (itree (E +' fixpoint)) (fun t : Type => hoist (fun X : Type => inl))
+          (body (itree (E +' fixpoint)) _ (fun t : Type => hoist (fun X : Type => inl))
                 (fun x0 : dom => Vis (inr (call x0)) Ret)).
 
       Theorem mfix_unfold : forall x,
-          mfix x = body (itree E) (fun t => id) mfix x.
+          mfix x = body (itree E) _ (fun t => id) mfix x.
       Proof. Admitted.
     End mfixP.
   End Fix.

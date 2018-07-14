@@ -1,3 +1,5 @@
+Require Import ExtLib.Structures.Monad.
+
 Set Implicit Arguments.
 Set Contextual Implicit.
 
@@ -77,21 +79,19 @@ Qed.
 
 End Core.
 
-Definition liftE (E : Type -> Type) (X : Type)
-           (e : E X) : itree E X :=
-  Vis e Ret.
-
-(** Monadic return *)
-Definition ret : forall {E R}, R -> itree E R := @Ret.
-
 (** Monadic bind *)
 (* We insert a [Tau] in the [Ret] case to make programs/specifications
    neater. This makes [itree] no longer a monad structurally,
    but it remains one in a looser sense as long as [Tau] is
    interpreted as the identity. *)
-Definition bind {E R S}
+Definition bind' {E R S}
            (t : itree E R) (k : R -> itree E S) : itree E S :=
   Core.bind t (fun r => Tau (k r)).
+
+Global Instance Monad_itree {E} : Monad (itree E) :=
+{ ret := @Ret E
+; bind := @bind' E
+}.
 
 (* A lemma to unfold [bind]. *)
 Lemma bind_def E R S :
@@ -99,11 +99,16 @@ Lemma bind_def E R S :
     bind t k =
     Core.bind_body t (fun t' => bind t' k) (fun r => Tau (k r)).
 Proof.
-  unfold bind.
+  simpl bind; unfold bind'.
   intros s k.
   rewrite Core.bind_def_core.
-  auto.
+  reflexivity.
 Qed.
+
+
+Definition liftE (E : Type -> Type) (X : Type)
+           (e : E X) : itree E X :=
+  Vis e Ret.
 
 Definition sequ {E R S}
            (t : itree E R) (u : itree E S) : itree E S :=
@@ -144,7 +149,7 @@ Definition hom {E F : Type -> Type}
   cofix hom_f t :=
     match t with
     | Ret r => Ret r
-    | Vis e k => bind (f _ e) (fun x => hom_f (k x))
+    | Vis e k => bind' (f _ e) (fun x => hom_f (k x))
     | Tau t => Tau (hom_f t)
     end.
 Arguments hom {E F} _ [R] _.
@@ -157,7 +162,7 @@ Definition hom_state {E F : Type -> Type} {S : Type}
   cofix homState_f t s :=
     match t with
     | Ret r => Ret (s, r)
-    | Vis e k => bind (f _ e s) (fun '(s',x) => homState_f (k x) s')
+    | Vis e k => bind' (f _ e s) (fun '(s',x) => homState_f (k x) s')
     | Tau t => Tau (homState_f t s)
     end.
 Arguments hom_state {_ _} _ [_] _.
@@ -178,23 +183,3 @@ Definition hoist {E F R}
 Definition when {E}
            (b : bool) (body : itree E unit) : itree E unit :=
   if b then body else ret tt.
-
-Module ItreeNotations.
-
-Delimit Scope itree_scope with itree.
-
-Notation "c >>= f" := (bind c f)
-(at level 50, left associativity) : itree_scope.
-
-Notation "f =<< c" := (bind c f)
-(at level 51, right associativity) : itree_scope.
-
-Notation "x <- c1 ;; c2" := (bind c1 (fun x => c2))
-(at level 100, c1 at next level, right associativity) : itree_scope.
-
-Notation "e1 ;; e2" := (_ <- e1%itree ;; e2%itree)%itree
-(at level 100, right associativity) : itree_scope.
-
-Open Scope itree_scope.
-
-End ItreeNotations.

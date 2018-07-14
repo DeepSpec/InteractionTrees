@@ -27,3 +27,4 @@ Makefile.coq
 Makefile.coq.conf
 _CoqProject
 _CoqPath
+lib/
