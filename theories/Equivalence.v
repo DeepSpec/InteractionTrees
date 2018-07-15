@@ -1,4 +1,5 @@
 Require Import Coq.Classes.RelationClasses.
+Require Import Coq.Setoids.Setoid.
 Require Import Coq.Relations.Relations.
 
 Require Import Paco.paco.
@@ -146,11 +147,13 @@ Hint Resolve monotone_eutt_0 : paco.
 Hint Resolve monotone_eutt_ : paco.
 Infix "~" := (@eutt _ _) (at level 80).
 
-Lemma bind_tau : forall {E R S} (t : itree E R) (f : R -> itree E S) , bind (Tau t) f = Tau (bind t f).
+
+Lemma bind_tau : forall {E R S} (t : itree E R) (f : R -> itree E S) ,
+    bind (Tau t) f = Tau (bind t f).
 Proof.
   intros E R S t f.
-  rewrite bind_def.
-  simpl. reflexivity.
+  rewrite match_itree at 1.
+  reflexivity.
 Qed.
 
 

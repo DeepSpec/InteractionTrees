@@ -45,65 +45,41 @@ Proof. destruct t; auto. Qed.
 
 Arguments match_itree {E R} t.
 
-(* [itree] is a monad, with the monadic [Core.bind] defined
-   by substitution of [Ret] leaves. However, many generic
-   recursive constructions fail the productivity checker,
-   hence we will wrap [Core.bind] to work around those issues. *)
 Module Core.
-(** [itree E] forms a [Monad] *)
-Definition bind_body {E R S}
-           (t : itree E R)
-           (go : itree E R -> itree E S)
-           (k : R -> itree E S) : itree E S :=
-  match t with
-  | Ret r => k r
-  | Vis e h => Vis e (fun x => go (h x))
-  | Tau t => Tau (go t)
-  end.
 
-Definition bind {E R S} (t : itree E R) (k : R -> itree E S) :
-  itree E S :=
-  (cofix bind_ (t : itree E R) :=
-      bind_body t bind_ k) t.
+  Section bind.
+    Context {E : Type -> Type} {T U : Type}.
+    Variable k : T -> itree E U.
 
-Lemma bind_def_core : forall {E R S} t (k : R -> itree E S),
-    bind t k = bind_body t (fun t' => bind t' k) k.
-Proof.
-  intros.
-  rewrite (match_itree (bind _ _)).
-  destruct t; auto.
-  simpl.
-  rewrite <- (match_itree (k r)).
-  reflexivity.
-Qed.
+    CoFixpoint bind' (c : itree E T) : itree E U :=
+      match c with
+      | Ret r => k r
+      | Vis e k' => Vis e (fun x => bind' (k' x))
+      | Tau t => Tau (bind' t)
+      end.
+  End bind.
+
+  Definition bind {E T U}
+             (c : itree E T) (k : T -> itree E U)
+  : itree E U :=
+    bind' k c.
+
+  Definition bindTau {E T U}
+             (c : itree E T) (k : T -> itree E U)
+  : itree E U :=
+    match c with
+    | Ret r => Tau (k r)
+    | Vis e k' => Vis e (fun x => bind (k' x) k)
+    | Tau x => Tau (bind x k)
+    end.
 
 End Core.
 
-(** Monadic bind *)
-(* We insert a [Tau] in the [Ret] case to make programs/specifications
-   neater. This makes [itree] no longer a monad structurally,
-   but it remains one in a looser sense as long as [Tau] is
-   interpreted as the identity. *)
-Definition bind' {E R S}
-           (t : itree E R) (k : R -> itree E S) : itree E S :=
-  Core.bind t (fun r => Tau (k r)).
 
 Global Instance Monad_itree {E} : Monad (itree E) :=
 { ret := @Ret E
-; bind := @bind' E
+; bind := @Core.bind E
 }.
-
-(* A lemma to unfold [bind]. *)
-Lemma bind_def E R S :
-  forall t (k : R -> itree E S),
-    bind t k =
-    Core.bind_body t (fun t' => bind t' k) (fun r => Tau (k r)).
-Proof.
-  simpl bind; unfold bind'.
-  intros s k.
-  rewrite Core.bind_def_core.
-  reflexivity.
-Qed.
 
 
 Definition liftE (E : Type -> Type) (X : Type)
@@ -131,7 +107,7 @@ Definition ignore {E R} : itree E R -> itree E unit :=
 CoFixpoint spin {E R} : itree E R := Tau spin.
 
 Definition forever {E R S} (t : itree E R) : itree E S :=
-  cofix forever_t := sequ t forever_t.
+  cofix forever_t := Core.bindTau t (fun _ => forever_t).
 
 (* Homomorphisms between effects *)
 Definition eff_hom (E E' : Type -> Type) : Type :=
@@ -149,7 +125,7 @@ Definition hom {E F : Type -> Type}
   cofix hom_f t :=
     match t with
     | Ret r => Ret r
-    | Vis e k => bind' (f _ e) (fun x => hom_f (k x))
+    | Vis e k => Core.bindTau (f _ e) (fun x => hom_f (k x))
     | Tau t => Tau (hom_f t)
     end.
 Arguments hom {E F} _ [R] _.
@@ -162,7 +138,7 @@ Definition hom_state {E F : Type -> Type} {S : Type}
   cofix homState_f t s :=
     match t with
     | Ret r => Ret (s, r)
-    | Vis e k => bind' (f _ e s) (fun '(s',x) => homState_f (k x) s')
+    | Vis e k => Core.bindTau (f _ e s) (fun '(s',x) => homState_f (k x) s')
     | Tau t => Tau (homState_f t s)
     end.
 Arguments hom_state {_ _} _ [_] _.
