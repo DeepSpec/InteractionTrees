@@ -1,7 +1,6 @@
 # InteractionTrees
 Formalization of the Interaction Tree Datatype in Coq
 
-
 ## Installation instructions
 
 We recommend using [opam](http://coq.io/opam/) to install our dependencies. The one-liner for installing the dependencies is:
@@ -28,3 +27,4 @@ Once you do this, you can run `make _CoqProject` and it will build a `_CoqProjec
 git clone https://github.com/DeepSpec/InteractionTrees.git && \
       cd InteractionTrees/lib/ && ./setup.sh && cd src && make
 ```
+
