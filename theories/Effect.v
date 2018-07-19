@@ -10,6 +10,7 @@ Import ListNotations.
 Require Import String.
 
 Require Import ITree.ITree.
+Require Import ITree.Morphisms.
 
 Inductive void : Type := .
 
@@ -117,6 +118,7 @@ End SumNotations.
 
 Open Scope sum_scope.
 
+(*
 Definition lift {E F R} `{Convertible E F} : itree E R -> itree F R :=
   hoist (@convert _ _ _).
 
@@ -131,10 +133,16 @@ Instance Embed_eff E F R `{Convertible E F} :
   { embed := fun e => liftE (convert e) }.
 
 Arguments embed {A B _} e.
+*)
 
 Definition vis {E F R X} `{F -< E}
            (e : F X) (k : X -> itree E R) : itree E R :=
   Vis (convert e) k.
+
+Definition do {E F X} `{F -< E}
+           (e : F X) : itree E X :=
+  Vis (convert e) Ret.
+
 
 Definition run {E F} (run_ : eff_hom E F)
 : forall X, itree (E +' F) X -> itree F X :=
@@ -143,7 +151,7 @@ Definition run {E F} (run_ : eff_hom E F)
       | (| f' ) => liftE f'
       | ( e' |) => run_ _ e'
       end
-  in hom run'.
+  in interp run'.
 Arguments run {_ _} _ [_] _.
 
 Section Failure.
@@ -227,23 +235,19 @@ Inductive stateE : Type -> Type :=
 | Get : stateE S
 | Put : S -> stateE unit.
 
-Definition get {E} `{stateE -< E} : itree E S := embed Get.
+Definition get {E} `{stateE -< E} : itree E S := do Get.
 Definition put {E} `{stateE -< E} (s : S) : itree E unit :=
-  embed Put s.
+  do (Put s).
 
-CoFixpoint run_state' {E R} (s : S) (t : itree (stateE +' E) R)
-  : itree E (S * R) :=
-  match t with
-  | Ret r => Ret (s, r)
-  | Tau t => Tau (run_state' s t)
-  | Vis ( e |) k =>
-    match e in stateE X return (X -> _) -> _ with
-    | Get => fun k => Tau (run_state' s (k s))
-    | Put s' => fun k => Tau (run_state' s' (k tt))
-    end k
-  | Vis (| e ) k => Vis e (fun x => run_state' s (k x))
-  end.
 
+Definition eval_state : eff_hom_s S stateE emptyE :=
+  fun _ e s =>
+    match e with
+    | Get => Ret (s, s)
+    | Put s' => Ret (s', tt)
+    end.
+
+(*
 Definition run_state {E F : Type -> Type}
            `{Convertible E (stateE +' F)} {R}
            (s : S) (m : itree E R) : itree F (S * R) :=
@@ -258,6 +262,7 @@ Definition eval_state {E F : Type -> Type}
            `{Convertible E (stateE +' F)} {R}
            (s : S) (m : itree E R) : itree F R :=
   map snd (run_state s m).
+*)
 
 End State.
 
@@ -284,8 +289,9 @@ Inductive counterE (N : Type) : Type -> Type :=
 | Incr : counterE N N.
 
 Definition incr {N E} `{counterE N -< E} : itree E N :=
-  embed Incr.
+  do Incr.
 
+(* todo(gmm): define in terms of `eff_hom` *)
 CoFixpoint run_counter_from' {N E} `{Countable N} {R}
            (c : N) (t : itree (counterE N +' E) R)
   : itree E R :=
@@ -320,7 +326,7 @@ Inductive writerE : Type -> Type :=
 | Tell : W -> writerE unit.
 
 Definition tell {E} `{writerE -< E} (w : W) : itree E unit :=
-  embed Tell w.
+  do (Tell w).
 
 End Writer.
 
@@ -344,9 +350,10 @@ Section Trace.
 Inductive traceE : Type -> Type :=
 | Trace : string -> traceE unit.
 
-Definition trace {E} `{traceE -< E} : string -> itree E unit :=
-  embed Trace.
+Definition trace {E} `{traceE -< E} (msg : string) : itree E unit :=
+  do (Trace msg).
 
+(* todo(gmm): define in terms of `eff_hom` *)
 CoFixpoint ignore_trace {E R} (t : itree (traceE +' E) R) :
   itree E R :=
   match t with
