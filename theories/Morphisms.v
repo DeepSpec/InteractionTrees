@@ -53,3 +53,24 @@ Definition interp_state {E F : Type -> Type} {S : Type}
     | Tau t => Tau (homState_f t s)
     end.
 Arguments interp_state {_ _ _} _ [_] _.
+
+(* A propositional "interpreter"
+ * This can be useful for non-determinism.
+ *)
+Section interp_prop.
+  Context {E F : Type -> Type}.
+
+  Definition eff_hom_prop : Type :=
+    forall t, E t -> itree F t -> Prop.
+
+  CoInductive interp_prop (f : eff_hom_prop) (R : Type)
+  : itree E R -> itree F R -> Prop :=
+  | ipRet : forall x, interp_prop f R (Ret x) (Ret x)
+  | ipVis : forall T (e : E T) (e' : itree F T) (k : _ -> itree E R) (k' : T -> itree F R),
+      f _ e e' ->
+      (forall x, interp_prop f R (k x) (k' x)) ->
+      interp_prop f R (Vis e k) (Core.bind e' k')
+  | ipDelay : forall a b, interp_prop f R a b ->
+                     interp_prop f R (Tau a) (Tau b).
+
+End interp_prop.
