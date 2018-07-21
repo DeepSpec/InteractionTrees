@@ -8,8 +8,6 @@ Require Import ITree.ITree.
 Require Import ITree.Morphisms.
 Require Import ITree.Effect.
 
-Require Import ExtLib.Structures.Monad.
-
 Module Type FixSig.
   Section Fix.
     (* the ambient effects *)
@@ -58,7 +56,7 @@ Module FixImpl : FixSig.
         | Vis (inr e) k =>
           match e in fixpoint X return (X -> _) -> _ with
           | call x => fun k =>
-                       Tau (homFix (bind (f x) k))
+                       Tau (homFix (Core.bind (f x) k))
           end k
         | Tau x => Tau (homFix x)
         end.
