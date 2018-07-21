@@ -5,9 +5,8 @@
  *   https://gmalecha.github.io/reflections/2018/compositional-coinductive-recursion-in-coq
  *)
 Require Import ITree.ITree.
+Require Import ITree.Morphisms.
 Require Import ITree.Effect.
-
-Require Import ExtLib.Structures.Monad.
 
 Module Type FixSig.
   Section Fix.
@@ -57,7 +56,7 @@ Module FixImpl : FixSig.
         | Vis (inr e) k =>
           match e in fixpoint X return (X -> _) -> _ with
           | call x => fun k =>
-                       Tau (homFix (bind (f x) k))
+                       Tau (homFix (Core.bind (f x) k))
           end k
         | Tau x => Tau (homFix x)
         end.
@@ -74,9 +73,10 @@ Module FixImpl : FixSig.
           end
         end.
 
-      Theorem homFix_is_hom : forall {T} (c : itree _ T),
-          homFix c = hom eval_fixpoint c.
-      Proof. Admitted.
+      Theorem homFix_is_interp : forall {T} (c : itree _ T),
+          homFix c = interp eval_fixpoint c.
+      Proof.
+      Admitted.
 
       Theorem _mfix_unroll : forall x, _mfix x = homFix (f x).
       Proof. reflexivity. Qed.
@@ -103,7 +103,7 @@ Module FixImpl : FixSig.
       : forall x : dom, itree E (codom x) :=
         _mfix
           (body (E +' fixpoint)
-                (fun t : Type => hoist (fun X : Type => inl))
+                (fun t => @interp _ _ (fun _ e => do e) _)
                 (fun x0 : dom => Vis (inr (call x0)) Ret)).
 
       Theorem mfix_unfold : forall x,
