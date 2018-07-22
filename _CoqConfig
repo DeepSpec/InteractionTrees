@@ -4,3 +4,4 @@ theories/ITree.v
 theories/Effect.v
 theories/Equivalence.v
 theories/Fix.v
+theories/UpTo.v
