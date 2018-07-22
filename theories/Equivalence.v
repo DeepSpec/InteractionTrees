@@ -1,7 +1,9 @@
 Require Import Coq.Classes.RelationClasses.
+Require Import Coq.Setoids.Setoid.
 Require Import Coq.Relations.Relations.
-(* Require Import Eqdep. *)
+
 Require Import Paco.paco.
+Require Import ExtLib.Structures.Monad.
 
 Require Import ITree.ITree.
 
@@ -145,14 +147,17 @@ Hint Resolve monotone_eutt_0 : paco.
 Hint Resolve monotone_eutt_ : paco.
 Infix "~" := (@eutt _ _) (at level 80).
 
-Lemma bind_tau : forall {E R S} (t : itree E R) (f : R -> itree E S) , bind (Tau t) f = Tau (bind t f).
+
+Lemma bind_tau : forall {E R S} (t : itree E R) (f : R -> itree E S) ,
+    bind (Tau t) f = Tau (bind t f).
 Proof.
   intros E R S t f.
-  rewrite bind_def.
-  simpl. reflexivity.
+  rewrite match_itree at 1.
+  reflexivity.
 Qed.
 
 
+(*
 Lemma finite_taus_bind_inv1 : forall {E R S} (t : itree E R) (f : R -> itree E S),
     finite_taus (bind t f) -> finite_taus t.
 Proof.
@@ -174,6 +179,7 @@ Proof.
     + exists (Vis e k). split. simpl; auto. apply NoTau.
     + inversion I1.
 Qed.
+*)
 
 Lemma finite_taus_tau1: forall (E : Type -> Type) (R : Type) (t : itree E R),
     finite_taus t -> finite_taus (Tau t).
@@ -268,6 +274,7 @@ Proof.
     + inversion I.
 Qed.
 
+(*
 Lemma finite_taus_bind : forall E R S (t1 t2 : itree E R) (f : R -> itree E S),
     t1 ~ t2 -> finite_taus (bind t1 f) -> finite_taus (bind t2 f).
 Proof.
@@ -284,3 +291,4 @@ Lemma eutt_bind_hom1 : forall {E R S} (t1 t2 : itree E R) (f : R -> itree E S),
     t1 ~ t2 -> (bind t1 f) ~ (bind t2 f).
 Proof.
 Admitted.
+*)

@@ -10,10 +10,12 @@ Import ListNotations.
 Require Import String.
 
 Require Import ITree.ITree.
+Require Import ITree.Morphisms.
+
+Require Import ExtLib.Structures.Functor.
+Require Import ExtLib.Structures.Monoid.
 
 Inductive void : Type := .
-
-Section Extensible.
 
 (** Sums for extensible event types. *)
 
@@ -40,6 +42,46 @@ Definition bimap_sum1 {A B C D : Type -> Type} {X Y : Type}
   | inr b => inr (g b)
   end.
 
+Notation "E1 +' E2" := (sum1 E1 E2)
+(at level 50, left associativity) : type_scope.
+
+Section into.
+  Context {E F : Type -> Type}.
+
+  Definition into (h : eff_hom E F) : eff_hom (E +' F) F :=
+    fun _ e =>
+      match e with
+      | inl e => h _ e
+      | inr e => Vis e Ret
+      end.
+
+  Definition into_state {s} (h : eff_hom_s s E F) : eff_hom_s s (E +' F) F :=
+    fun _ e s =>
+      match e with
+      | inl e => h _ e s
+      | inr e => Vis e (fun x => Ret (s, x))
+      end.
+
+  Definition into_reader {s} (h : eff_hom_r s E F) : eff_hom_r s (E +' F) F :=
+    fun _ e s =>
+      match e with
+      | inl e => h _ e s
+      | inr e => Vis e Ret
+      end.
+
+  Definition into_writer {s} `{Monoid_s : Monoid s} (h : eff_hom_w s E F)
+  : eff_hom_w s (E +' F) F :=
+    fun _ e =>
+      match e with
+      | inl e => h _ e
+      | inr e => Vis e (fun x => Ret (monoid_unit Monoid_s, x))
+      end.
+
+  (* todo(gmm): is the a corresponding definition for `eff_hom_p`? *)
+
+End into.
+
+
 (* Automatic application of commutativity and associativity for sums.
    TODO: This is still quite fragile and prone to
    infinite instance resolution loops.
@@ -54,7 +96,7 @@ Global Instance fluid_id A : Convertible A A | 0 :=
 
 (* Destructure sums. *)
 Global Instance fluid_sum A B C `{Convertible A C} `{Convertible B C}
-  : Convertible (sum1 A B) C | 7 :=
+: Convertible (sum1 A B) C | 7 :=
   { convert X ab :=
       match ab with
       | inl a => convert a
@@ -63,21 +105,16 @@ Global Instance fluid_sum A B C `{Convertible A C} `{Convertible B C}
 
 (* Lean right by default for no reason. *)
 Global Instance fluid_left A B `{Convertible A B} C
-  : Convertible A (sum1 B C) | 9 :=
+: Convertible A (sum1 B C) | 9 :=
   { convert X a := inl (convert a) }.
 
 (* Very incoherent instances. *)
 Global Instance fluid_right A C `{Convertible A C} B
-  : Convertible A (sum1 B C) | 8 :=
+: Convertible A (sum1 B C) | 8 :=
   { convert X a := inr (convert a) }.
 
 Global Instance fluid_empty A : Convertible emptyE A :=
   { convert X v := match v with end }.
-
-End Extensible.
-
-Notation "E1 +' E2" := (sum1 E1 E2)
-(at level 50, left associativity) : type_scope.
 
 Notation "EE ++' E" := (List.fold_right sum1 EE E)
 (at level 50, left associativity) : type_scope.
@@ -117,6 +154,7 @@ End SumNotations.
 
 Open Scope sum_scope.
 
+(*
 Definition lift {E F R} `{Convertible E F} : itree E R -> itree F R :=
   hoist (@convert _ _ _).
 
@@ -131,20 +169,16 @@ Instance Embed_eff E F R `{Convertible E F} :
   { embed := fun e => liftE (convert e) }.
 
 Arguments embed {A B _} e.
+*)
 
 Definition vis {E F R X} `{F -< E}
            (e : F X) (k : X -> itree E R) : itree E R :=
   Vis (convert e) k.
 
-Definition run {E F} (run_ : eff_hom E F)
-: forall X, itree (E +' F) X -> itree F X :=
-  let run' Y (e : (E +' F) Y) :=
-      match e with
-      | (| f' ) => liftE f'
-      | ( e' |) => run_ _ e'
-      end
-  in hom run'.
-Arguments run {_ _} _ [_] _.
+Definition do {E F X} `{F -< E}
+           (e : F X) : itree E X :=
+  Vis (convert e) Ret.
+
 
 Section Failure.
 
@@ -195,55 +229,54 @@ End NonDeterminism.
 
 Section Reader.
 
-Variable (env : Type).
+  Variable (env : Type).
 
-Inductive readerE : Type -> Type :=
-| Ask : readerE env.
+  Inductive readerE : Type -> Type :=
+  | Ask : readerE env.
 
-Definition ask {E} `{Convertible readerE E} : itree E env :=
-  liftE (convert Ask).
+  Definition ask {E} `{Convertible readerE E} : itree E env :=
+    liftE (convert Ask).
 
-CoFixpoint run_reader {E R} (v : env) (t : itree (readerE +' E) R)
+  Definition eval_reader {E} : eff_hom_r env readerE E :=
+    fun _ e r =>
+      match e with
+      | Ask => Ret r
+      end.
+
+  Definition run_reader {E} R (v : env) (t : itree (readerE +' E) R)
   : itree E R :=
-  match t with
-  | Ret r => Ret r
-  | Vis ( e |) k =>
-    match e in readerE X return (X -> _) -> _ with
-    | Ask => fun k => Tau (run_reader v (k v))
-    end k
-  | Vis (| e ) k => Vis e (fun x => run_reader v (k x))
-  | Tau t => Tau (run_reader v t)
-  end.
+    interp_reader (into_reader eval_reader) t v.
 
 End Reader.
 
 Arguments ask {env E _}.
+Arguments run_reader {_ _} [_] _ _.
 
 Section State.
 
-Variable (S : Type).
+  Variable (S : Type).
 
-Inductive stateE : Type -> Type :=
-| Get : stateE S
-| Put : S -> stateE unit.
+  Inductive stateE : Type -> Type :=
+  | Get : stateE S
+  | Put : S -> stateE unit.
 
-Definition get {E} `{stateE -< E} : itree E S := embed Get.
-Definition put {E} `{stateE -< E} (s : S) : itree E unit :=
-  embed Put s.
+  Definition get {E} `{stateE -< E} : itree E S := do Get.
+  Definition put {E} `{stateE -< E} (s : S) : itree E unit :=
+    do (Put s).
 
-CoFixpoint run_state' {E R} (s : S) (t : itree (stateE +' E) R)
+
+  Definition eval_state {E} : eff_hom_s S stateE E :=
+    fun _ e s =>
+      match e with
+      | Get => Ret (s, s)
+      | Put s' => Ret (s', tt)
+      end.
+
+  Definition run_state {E R} (v : S) (t : itree (stateE +' E) R)
   : itree E (S * R) :=
-  match t with
-  | Ret r => Ret (s, r)
-  | Tau t => Tau (run_state' s t)
-  | Vis ( e |) k =>
-    match e in stateE X return (X -> _) -> _ with
-    | Get => fun k => Tau (run_state' s (k s))
-    | Put s' => fun k => Tau (run_state' s' (k tt))
-    end k
-  | Vis (| e ) k => Vis e (fun x => run_state' s (k x))
-  end.
+    interp_state (into_state eval_state) t v.
 
+(*
 Definition run_state {E F : Type -> Type}
            `{Convertible E (stateE +' F)} {R}
            (s : S) (m : itree E R) : itree F (S * R) :=
@@ -258,69 +291,68 @@ Definition eval_state {E F : Type -> Type}
            `{Convertible E (stateE +' F)} {R}
            (s : S) (m : itree E R) : itree F R :=
   map snd (run_state s m).
+*)
 
 End State.
 
 Arguments get {S E _}.
 Arguments put {S E _}.
+Arguments run_state {_ _} [_] _ _.
+
+Section Tagged.
+  Variable E : Type -> Type.
+
+  Record Tagged (tag : Set) (t : Type) : Type := mkTagged
+  { unTag : E t }.
+
+  Definition atTag (tag : Set) {t} (e : E t) : Tagged tag t :=
+  {| unTag := e |}.
+
+  Definition eval_tagged {tag} : eff_hom (Tagged tag) E :=
+    fun _ e => Vis e.(unTag) Ret.
+
+End Tagged.
+
 
 Section Counter.
 
-Class Countable (N : Type) := { zero : N; succ : N -> N }.
+  Class Countable (N : Type) := { zero : N; succ : N -> N }.
 
-Global Instance Countable_nat : Countable nat | 0 :=
+  Global Instance Countable_nat : Countable nat | 0 :=
   { zero := O; succ := S }.
 
-Inductive nat' {T} (tag : T) : Type :=
-| Tagged : nat -> nat' tag.
-
-Global Instance Countable_nat' T (tag : T)
-  : Countable (nat' tag) :=
-  { zero := Tagged O; succ := fun '(Tagged n) => Tagged (S n) }.
-
-(* Parameterizing by the type of counters makes it easier
+  (* Parameterizing by the type of counters makes it easier
    to have more than one counter at once. *)
-Inductive counterE (N : Type) : Type -> Type :=
-| Incr : counterE N N.
+  Inductive counterE (N : Type) : Type -> Type :=
+  | Incr : counterE N N.
 
-Definition incr {N E} `{counterE N -< E} : itree E N :=
-  embed Incr.
+  Definition incr {N E} `{counterE N -< E} : itree E N :=
+    do Incr.
 
-CoFixpoint run_counter_from' {N E} `{Countable N} {R}
-           (c : N) (t : itree (counterE N +' E) R)
+  Definition eval_counter {N E} `{Countable N}
+  : eff_hom_s N (counterE N) E :=
+    fun _ e s =>
+      match e with
+      | Incr => Ret (succ s, s)
+      end.
+
+  Definition run_counter {N} `{Countable N} {E R} (t : itree (counterE N +' E) R)
   : itree E R :=
-  match t with
-  | Ret r => Ret r
-  | Tau t => Tau (run_counter_from' c t)
-  | Vis ( e |) k =>
-    match e in counterE _ X return (X -> _) -> _ with
-    | Incr => fun k => Tau (run_counter_from' (succ c) (k c))
-    end k
-  | Vis (| e ) k =>
-    Vis e (fun x => run_counter_from' c (k x))
-  end.
-
-Definition run_counter' {N} `{Countable N} {E R}
-  : itree (counterE N +' E) R -> itree E R :=
-  run_counter_from' zero.
-
-Definition run_counter_for {T} (tag : T) {E R}
-  : itree (counterE (nat' tag) +' E) R -> itree E R :=
-  run_counter'.
+    fmap snd (interp_state (into_state eval_counter) t zero).
 
 End Counter.
 
-Arguments run_counter_for {T} tag {_ _} t.
+Arguments run_counter {_ _ _} [_] _.
 
 Section Writer.
 
-Variable (W : Type).
+  Variable (W : Type).
 
-Inductive writerE : Type -> Type :=
-| Tell : W -> writerE unit.
+  Inductive writerE : Type -> Type :=
+  | Tell : W -> writerE unit.
 
-Definition tell {E} `{writerE -< E} (w : W) : itree E unit :=
-  embed Tell w.
+  Definition tell {E} `{writerE -< E} (w : W) : itree E unit :=
+    do (Tell w).
 
 End Writer.
 
@@ -341,22 +373,23 @@ Arguments stop {E S R _}.
 
 Section Trace.
 
-Inductive traceE : Type -> Type :=
-| Trace : string -> traceE unit.
+  Inductive traceE : Type -> Type :=
+  | Trace : string -> traceE unit.
 
-Definition trace {E} `{traceE -< E} : string -> itree E unit :=
-  embed Trace.
+  Definition trace {E} `{traceE -< E} (msg : string) : itree E unit :=
+    do (Trace msg).
 
-CoFixpoint ignore_trace {E R} (t : itree (traceE +' E) R) :
-  itree E R :=
-  match t with
-  | Ret r => Ret r
-  | Tau t => Tau (ignore_trace t)
-  | Vis ( e |) k =>
-    match e in traceE T return (T -> _) -> _ with
-    | Trace _ => fun k => Tau (ignore_trace (k tt))
-    end k
-  | Vis (| e ) k => Vis e (fun x => ignore_trace (k x))
-  end.
+  (* todo(gmm): define in terms of `eff_hom` *)
+  CoFixpoint ignore_trace {E R} (t : itree (traceE +' E) R) :
+    itree E R :=
+    match t with
+    | Ret r => Ret r
+    | Tau t => Tau (ignore_trace t)
+    | Vis ( e |) k =>
+      match e in traceE T return (T -> _) -> _ with
+      | Trace _ => fun k => Tau (ignore_trace (k tt))
+      end k
+    | Vis (| e ) k => Vis e (fun x => ignore_trace (k x))
+    end.
 
 End Trace.
