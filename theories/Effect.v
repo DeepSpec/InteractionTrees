@@ -15,14 +15,14 @@ Require Import ITree.Morphisms.
 Require Import ExtLib.Structures.Functor.
 Require Import ExtLib.Structures.Monoid.
 
-Inductive void : Type := .
+Variant void : Type := .
 
 (** Sums for extensible event types. *)
 
 Definition sum1 (E1 E2 : Type -> Type) (X : Type) : Type :=
   E1 X + E2 X.
 
-Inductive emptyE : Type -> Type := .
+Variant emptyE : Type -> Type := .
 
 (* Just for this section, [A B C D : Type -> Type] are more
    effect types. *)
@@ -182,7 +182,7 @@ Definition do {E F X} `{F -< E}
 
 Section Failure.
 
-Inductive failureE : Type -> Type :=
+Variant failureE : Type -> Type :=
 | Fail : string -> failureE void.
 
 Definition fail {E : Type -> Type} `{failureE -< E} {X}
@@ -194,7 +194,7 @@ End Failure.
 
 Section NonDeterminism.
 
-Inductive nondetE : Type -> Type :=
+Variant nondetE : Type -> Type :=
 | Or : nondetE bool.
 
 Definition or {E} `{nondetE -< E} {R} (k1 k2 : itree E R)
@@ -231,7 +231,7 @@ Section Reader.
 
   Variable (env : Type).
 
-  Inductive readerE : Type -> Type :=
+  Variant readerE : Type -> Type :=
   | Ask : readerE env.
 
   Definition ask {E} `{Convertible readerE E} : itree E env :=
@@ -256,7 +256,7 @@ Section State.
 
   Variable (S : Type).
 
-  Inductive stateE : Type -> Type :=
+  Variant stateE : Type -> Type :=
   | Get : stateE S
   | Put : S -> stateE unit.
 
@@ -323,7 +323,7 @@ Section Counter.
 
   (* Parameterizing by the type of counters makes it easier
    to have more than one counter at once. *)
-  Inductive counterE (N : Type) : Type -> Type :=
+  Variant counterE (N : Type) : Type -> Type :=
   | Incr : counterE N N.
 
   Definition incr {N E} `{counterE N -< E} : itree E N :=
@@ -348,7 +348,7 @@ Section Writer.
 
   Variable (W : Type).
 
-  Inductive writerE : Type -> Type :=
+  Variant writerE : Type -> Type :=
   | Tell : W -> writerE unit.
 
   Definition tell {E} `{writerE -< E} (w : W) : itree E unit :=
@@ -359,7 +359,7 @@ End Writer.
 Section Stop.
   (* "Return" as an effect. *)
 
-  Inductive stopE (S : Type) : Type -> Type :=
+  Variant stopE (S : Type) : Type -> Type :=
   | Stop : S -> stopE S void.
 
   Definition stop {E S R} `{stopE S -< E} : S -> itree E R :=
@@ -373,7 +373,7 @@ Arguments stop {E S R _}.
 
 Section Trace.
 
-  Inductive traceE : Type -> Type :=
+  Variant traceE : Type -> Type :=
   | Trace : string -> traceE unit.
 
   Definition trace {E} `{traceE -< E} (msg : string) : itree E unit :=

@@ -78,7 +78,7 @@ Definition liftE {E : Type -> Type} {X : Type}
   Vis e Ret.
 
 (** Functorial map ([fmap]) *)
-Definition map {E R S} (f : R -> S) : itree E R -> itree E S :=
+Local Definition map {E R S} (f : R -> S) : itree E R -> itree E S :=
   cofix go t :=
     match t with
     | Ret r => Ret (f r)

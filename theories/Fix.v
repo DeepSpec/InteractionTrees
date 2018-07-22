@@ -39,7 +39,7 @@ Module FixImpl : FixSig.
     Variable codom : dom -> Type.
 
     (* the fixpoint effect, used for representing recursive calls *)
-    Inductive fixpoint : Type -> Type :=
+    Variant fixpoint : Type -> Type :=
     | call : forall x : dom, fixpoint (codom x).
 
     Section mfix.
