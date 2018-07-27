@@ -146,3 +146,29 @@ Section interp_prop.
 
 End interp_prop.
 Arguments eff_hom_prop _ _ : clear implicits.
+
+(* * An extensional effect morphism
+ *)
+Section eff_hom_e.
+  Context {E F : Type -> Type}.
+
+  (* note(gmm): you should be able to add effects here
+   * using a monad transformer. In that case, the type
+   * of `eval` is:
+   *
+   *   forall t, E t -> m (itree F) (t * eff_hom_e)
+   *
+   * but you have the usual conditions on strictly positive uses
+   *)
+  CoInductive eff_hom_e : Type :=
+  { eval : forall t, E t -> itree F (t * eff_hom_e) }.
+
+  CoFixpoint interp_e (f : eff_hom_e) {t} (tr : itree E t)
+  : itree F t :=
+    match tr with
+    | Ret v => Ret v
+    | Vis e k =>
+      Core.bindTau (f.(eval) _ e) (fun '(x, f') => interp_e f' (k x))
+    | Tau tr => Tau (interp_e f tr)
+    end.
+End eff_hom_e.
