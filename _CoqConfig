@@ -6,3 +6,4 @@ theories/Equivalence.v
 theories/Morphisms.v
 theories/Fix.v
 theories/UpTo.v
+theories/MutFix.v
