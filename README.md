@@ -2,14 +2,16 @@
 
 Formalization of the Interaction Tree Datatype in Coq
 
-## Dependencies.
+## Dependencies
 
 - [coq-paco](https://github.com/snu-sf/paco)
 - [coq-ext-lib](https://github.com/coq-ext-lib/coq-ext-lib)
 
 ## Build instructions
 
-### Build everything locally
+Choose one of the following methods.
+
+### 1. Build everything locally
 
 Run `setup.sh` from the root directory to download dependencies (in `lib/`) and build the project.
 
@@ -19,7 +21,7 @@ Run `setup.sh` from the root directory to download dependencies (in `lib/`) and 
 git clone https://github.com/DeepSpec/InteractionTrees.git && cd InteractionTrees && ./setup.sh
 ```
 
-### Install dependencies with OPAM
+### 2. Install dependencies with OPAM
 
 ```
 opam install coq-paco coq-ext-lib
@@ -31,7 +33,7 @@ Now you can build the project with :
 make
 ```
 
-### Use dependencies installed elsewhere
+### 3. Use dependencies installed elsewhere
 
 If you would like to use local versions of some of the dependencies, create a
 `_CoqPath` file with the paths to the libraries that you would like to include.
