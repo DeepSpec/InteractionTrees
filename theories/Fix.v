@@ -30,7 +30,7 @@ Module Type FixSig.
   End Fix.
 End FixSig.
 
-Module FixImpl : FixSig.
+Module FixImpl <: FixSig.
   Section Fix.
     (* the ambient effects *)
     Variable E : Type -> Type.
@@ -114,3 +114,4 @@ Module FixImpl : FixSig.
 End FixImpl.
 
 Export FixImpl.
+Arguments mfix {_ _} _ _ _.
