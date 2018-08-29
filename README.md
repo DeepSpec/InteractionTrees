@@ -8,7 +8,7 @@ Run `setup.sh` from the root directory to setup dependencies and build the proje
 If you would like to use local versions of some of the dependencies, create a `_CoqPath` file and include the include paths for the libraries that you would like to include. For example,
 
 ```
--Q ...path/to/paco Paco
+-Q ...path/to/paco/src Paco
 ```
 
 Once you do this, you can run `make _CoqProject` and it will build a `_CoqProject` that contains your local paths and the repository-specific paths. This target is built automatically with `make` so you don't need to run it manually.
