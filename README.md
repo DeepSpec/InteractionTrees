@@ -27,7 +27,7 @@ git clone https://github.com/DeepSpec/InteractionTrees.git && cd InteractionTree
 opam install coq-paco coq-ext-lib
 ```
 
-Now you can build the project with :
+Now you can build the project with:
 
 ```
 make
@@ -45,7 +45,7 @@ For example,
 
 Once you do this, you can run `make _CoqProject` and it will build a `_CoqProject` that contains your local paths and the repository-specific paths. This target is built automatically with `make` so you don't need to run it manually.
 
-Now you can build the project with :
+Now you can build the project with:
 
 ```
 make
