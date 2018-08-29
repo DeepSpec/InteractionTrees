@@ -219,6 +219,27 @@ Proof.
   - inversion I1.
 Qed.
 
+Lemma notau_finite_taus : forall (E : Type -> Type) (R : Type) (t : itree E R),
+    notau E R t -> finite_taus t.
+Proof.
+  intros E R t H. exists t. split. assumption. constructor.
+Qed.
+
+Lemma untaus'_finite_taus : forall (E : Type -> Type) (R : Type) (t t' : itree E R),
+    untaus' E R t t' -> (finite_taus t <-> finite_taus t').
+Proof.
+  intros E R t t' H. induction H.
+  - intuition. apply finite_taus_tau1; assumption.
+    apply finite_taus_tau2 in H2. auto.
+  - reflexivity.
+Qed.
+
+Lemma untaus_finite_taus :  forall (E : Type -> Type) (R : Type) (t t' : itree E R),
+    untaus t t' -> (finite_taus t <-> finite_taus t').
+Proof.
+  intros E R t t' [H1 H2]. symmetry. apply untaus'_finite_taus; assumption.
+Qed.
+
 Lemma equiv_tau1 : forall (E : Type -> Type) (R : Type) (t1 t2 : itree E R),
     Tau t1 ~ t2 -> t1 ~ t2.
 Proof.
@@ -253,10 +274,22 @@ Proof.
     + assumption.
 Qed.
 
-Lemma untaus_equiv : forall (E : Type -> Type) (R : Type) (t t' : itree E R), untaus t t' -> t ~ t'.
+Lemma untaus_equiv : forall (E : Type -> Type) (R : Type) (t t' : itree E R),
+    untaus t t' -> t ~ t'.
 Proof.
-  intros E R.
-Admitted.
+  intros E R t t' H.
+  pfold. split.
+  - apply untaus_finite_taus; assumption.
+  - destruct H. induction H0.
+    + intros t1' t2' H1 H2. apply IHuntaus'.
+      apply untaus_tau_tau2; assumption. assumption.
+    + intros t1' t2' H1 H2.
+      rewrite (untaus_injective _ _ _ _ _ H1 H2).
+      destruct t1'.
+      * constructor.
+      * do 2 constructor. apply reflexive_eutt.
+      * destruct (untaus_notau _ _ _ _ H1).
+Qed.
 
 Lemma finite_taus_equiv : forall (E : Type -> Type) (R : Type) (t1 t2 : itree E R),
     t1 ~ t2 -> finite_taus t1 -> finite_taus t2.
