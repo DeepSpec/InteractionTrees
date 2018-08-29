@@ -12,4 +12,6 @@ git clone https://github.com/coq-ext-lib/coq-ext-lib.git
 
 cd ../ # at /
 
-make -C src
+printf -- '-Q lib/paco/ Paco\n-Q lib/coq-ext-lib/theories/ ExtLib\n' > _CoqPath
+
+make
