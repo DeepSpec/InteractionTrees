@@ -17,5 +17,5 @@ Once you do this, you can run `make _CoqProject` and it will build a `_CoqProjec
 **one liner**
 
 ```
-git clone https://github.com/DeepSpec/InteractionTrees.git && ./setup.sh
+git clone https://github.com/DeepSpec/InteractionTrees.git && cd InteractionTrees && ./setup.sh
 ```

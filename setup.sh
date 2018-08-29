@@ -3,8 +3,8 @@
 cd lib/
 
 # Set up paco
-git clone https://github.com/coq-contribs/paco.git
-(cd paco; make)
+git clone https://github.com/snu-sf/paco.git
+(cd paco && git checkout v1.2.8 && cd src && make)
 
 # Set up ExtLib
 git clone https://github.com/coq-ext-lib/coq-ext-lib.git
