@@ -47,3 +47,10 @@ Interactive Programs in Dependent Type Theory
 Peter Hancock and Anton Setzer
 http://www.cs.swan.ac.uk/~csetzer/articles/ioconf.pdf
 
+Adequacy for algebraic effects
+Gordon Plotkin and John Power
+https://www.era.lib.ed.ac.uk/bitstream/handle/1842/187/Op_Sem_Comp_Lam.pdf?sequence=1
+
+A generic operational metatheory for algebraic effects
+Patricia Johann, Alex Simpson and Janis Voigtländer
+http://strathprints.strath.ac.uk/34343/1/genpar.pdf
