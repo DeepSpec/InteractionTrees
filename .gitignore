@@ -21,6 +21,8 @@ examples.mli
 *.mli
 *.gz
 output
+deps.jpg
+deps.dot
 
 .coqdeps.d
 Makefile.coq
