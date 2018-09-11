@@ -43,8 +43,6 @@ For example,
 -Q path/to/paco/src Paco
 ```
 
-Once you do this, you can run `make _CoqProject` and it will build a `_CoqProject` that contains your local paths and the repository-specific paths. This target is built automatically with `make` so you don't need to run it manually.
-
 Now you can build the project with:
 
 ```
