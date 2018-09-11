@@ -89,13 +89,16 @@ Local Definition map {E R S} (f : R -> S) : itree E R -> itree E S :=
 Instance Functor_itree {E} : Functor (itree E) :=
 { fmap := @map E }.
 
+(* Instead of [pure := @Ret E], [ret := @Ret E], we eta-expand
+   [pure] and [ret] to make the extracted code respect OCaml's
+   value restriction. *)
 Instance Applicative_itree {E} : Applicative (itree E) :=
-{ pure := @Ret E
+{ pure _ := Ret
 ; ap _ _ f x := Core.bind f (fun f => Core.bind x (fun x => Ret (f x)))
 }.
 
 Global Instance Monad_itree {E} : Monad (itree E) :=
-{ ret  := @Ret E
+{ ret _ := Ret
 ; bind := @Core.bind E
 }.
 
