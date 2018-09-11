@@ -18,7 +18,6 @@
 *.fls
 *.ml~
 examples.mli
-*.mli
 *.gz
 output
 deps.jpg
@@ -30,3 +29,6 @@ Makefile.coq.conf
 _CoqProject
 _CoqPath
 lib/
+
+tests/extraction/*.ml
+tests/extraction/*.mli
