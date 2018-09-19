@@ -38,11 +38,20 @@ with hv_to_term (hv : headvar) : term :=
   | VApp hv v => App (hv_to_term hv) (to_term v)
   end.
 
+Fixpoint shift (n m : nat) (s : term) :=
+  match s with
+  | Var p =>
+    if p <? m then Var (n + p)
+    else Var p
+  | App t1 t2 => App (shift n m t1) (shift n m t2)
+  | Lam t => Lam (shift n (S m) t)
+  end.
+
 Fixpoint subst (n : nat) (s t : term) :=
   match t with
   | Var m =>
     if m <? n then Var m
-    else if m =? n then s
+    else if m =? n then shift n O s
     else Var (pred m)
   | App t1 t2 => App (subst n s t1) (subst n s t2)
   | Lam t => Lam (subst (S n) s t)
