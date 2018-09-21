@@ -3,78 +3,81 @@
 (* TODO Swap sums (changed associativity). *)
 (* TODO Split framework for extensible effects from concrete effect definitions *)
 
-Set Implicit Arguments.
-Set Contextual Implicit.
-
-Require Import List.
+From Coq Require Import
+     List String.
 Import ListNotations.
-Require Import String.
 
-Require Import ITree.ITree.
-Require Import ITree.Morphisms.
+From ExtLib.Structures Require Import
+     Functor Monoid.
 
-Require Import ExtLib.Structures.Functor.
-Require Import ExtLib.Structures.Monoid.
-
-Variant void : Type := .
+From ITree Require Import
+     ITree Morphisms.
 
 (** Sums for extensible event types. *)
 
-Definition sum1 (E1 E2 : Type -> Type) (X : Type) : Type :=
-  E1 X + E2 X.
+Definition sumE (E1 E2 : Effect) : Effect := {|
+    action := action E1 + action E2;
+    reaction := fun e => match e with
+                         | inl e1 => reaction e1
+                         | inr e2 => reaction e2
+                         end;
+  |}.
 
-Variant emptyE : Type -> Type := .
+Notation "E1 +' E2" := (sumE E1 E2)
+(at level 50, left associativity) : type_scope.
+
+Definition emptyE : Effect := {|
+    action := Empty_set;
+    reaction := fun e => match e with end;
+  |}.
 
 (* Just for this section, [A B C D : Type -> Type] are more
    effect types. *)
 
-Definition swap1 {A B : Type -> Type} {X : Type}
-           (ab : sum1 A B X) : sum1 B A X :=
+Definition swap1 {A B : Effect}
+           (ab : A +' B) : B +' A :=
   match ab with
   | inl a => inr a
   | inr b => inl b
   end.
 
-Definition bimap_sum1 {A B C D : Type -> Type} {X Y : Type}
-           (f : A X -> C Y) (g : B X -> D Y)
-           (ab : sum1 A B X) : sum1 C D Y :=
+Definition bimap_sum1 {A B C D : Effect}
+           (f : A -> C) (g : B -> D)
+           (ab : sumE A B) : sumE C D :=
   match ab with
   | inl a => inl (f a)
   | inr b => inr (g b)
   end.
 
-Notation "E1 +' E2" := (sum1 E1 E2)
-(at level 50, left associativity) : type_scope.
-
 Section into.
-  Context {E F : Type -> Type}.
+  Context {E F : Effect}.
 
   Definition into (h : eff_hom E F) : eff_hom (E +' F) F :=
-    fun _ e =>
+    fun e =>
       match e with
-      | inl e => h _ e
+      | inl e => h e
       | inr e => Vis e Ret
       end.
 
   Definition into_state {s} (h : eff_hom_s s E F) : eff_hom_s s (E +' F) F :=
-    fun _ e s =>
+    fun e s =>
       match e with
-      | inl e => h _ e s
+      | inl e => h e s
       | inr e => Vis e (fun x => Ret (s, x))
       end.
 
   Definition into_reader {s} (h : eff_hom_r s E F) : eff_hom_r s (E +' F) F :=
-    fun _ e s =>
+    fun e s =>
       match e with
-      | inl e => h _ e s
+      | inl e => h e s
       | inr e => Vis e Ret
       end.
 
   Definition into_writer {s} `{Monoid_s : Monoid s} (h : eff_hom_w s E F)
   : eff_hom_w s (E +' F) F :=
-    fun _ e =>
+    fun e =>
       match e with
-      | inl e => h _ e
+      | inl e => h e
       | inr e => Vis e (fun x => Ret (monoid_unit Monoid_s, x))
       end.
 
@@ -88,36 +91,55 @@ End into.
    infinite instance resolution loops.
  *)
 
-Class Convertible (A B : Type -> Type) :=
-  { convert : forall {X}, A X -> B X }.
+Class Convertible (A B : Effect) := {
+    convert_action : A -> B;
+    convert_reaction : forall a : A,
+        reaction (convert_action a) -> reaction a;
+  }.
 
 (* Don't try to guess. *)
-Global Instance fluid_id A : Convertible A A | 0 :=
-  { convert X a := a }.
+Global Instance fluid_id A : Convertible A A | 0 := {
+    convert_action a := a;
+    convert_reaction _ x := x;
+  }.
 
 (* Destructure sums. *)
 Global Instance fluid_sum A B C `{Convertible A C} `{Convertible B C}
-: Convertible (sum1 A B) C | 7 :=
-  { convert X ab :=
+  : Convertible (A +' B) C | 7 := {
+    convert_action ab :=
       match ab with
-      | inl a => convert a
-      | inr b => convert b
-      end }.
+      | inl a => convert_action a
+      | inr b => convert_action b
+      end;
+    convert_reaction ab :=
+      match ab with
+      | inl a => convert_reaction a
+      | inr b => convert_reaction b
+      end;
+  }.
 
 (* Lean right by default for no reason. *)
 Global Instance fluid_left A B `{Convertible A B} C
-: Convertible A (sum1 B C) | 9 :=
-  { convert X a := inl (convert a) }.
+  : Convertible A (B +' C) | 9 := {
+    convert_action a := inl (convert_action a);
+    convert_reaction := convert_reaction;
+  }.
 
 (* Very incoherent instances. *)
 Global Instance fluid_right A C `{Convertible A C} B
-: Convertible A (sum1 B C) | 8 :=
-  { convert X a := inr (convert a) }.
+  : Convertible A (B +' C) | 8 := {
+    convert_action a := inr (convert_action a);
+    convert_reaction := convert_reaction;
+  }.
 
-Global Instance fluid_empty A : Convertible emptyE A :=
-  { convert X v := match v with end }.
+Global Instance fluid_empty A : Convertible emptyE A := {
+    convert_action v := match v with end;
+    convert_reaction v := match v with end;
+  }.
 
-Notation "EE ++' E" := (List.fold_right sum1 EE E)
+Arguments convert_reaction {_ _ _ a}.
+
+Notation "EE ++' E" := (List.fold_right sumE EE E)
 (at level 50, left associativity) : type_scope.
 
 Notation "E -< F" := (Convertible E F)
@@ -128,7 +150,7 @@ Module Import SumNotations.
 (* Is this readable? *)
 
 Delimit Scope sum_scope with sum.
-Bind Scope sum_scope with sum1.
+Bind Scope sum_scope with sumE.
 
 Notation "(| x )" := (inr x) : sum_scope.
 Notation "( x |)" := (inl x) : sum_scope.
@@ -172,31 +194,40 @@ Instance Embed_eff E F R `{Convertible E F} :
 Arguments embed {A B _} e.
 *)
 
-Definition vis {E F R X} `{F -< E}
-           (e : F X) (k : X -> itree E R) : itree E R :=
-  Vis (convert e) k.
+Notation compose f g := (fun x => f (g x)).
 
-Definition do {E F X} `{F -< E}
-           (e : F X) : itree E X :=
-  Vis (convert e) Ret.
+Definition vis {E F R} `{F -< E}
+           (e : F) (k : reaction e -> itree E R) : itree E R :=
+  Vis (convert_action e) (compose k convert_reaction).
 
+Definition do {E F} `{F -< E} (e : F) : itree E (reaction e) :=
+  Vis (convert_action e) (compose Ret convert_reaction).
 
 Section Failure.
 
-Variant failureE : Type -> Type :=
-| Fail : string -> failureE void.
+Variant failure : Type :=
+| Fail : string -> failure.
 
-Definition fail {E : Type -> Type} `{failureE -< E} {X}
+Definition failureE : Effect := {|
+    action := failure;
+    reaction := fun _ => Empty_set;
+  |}.
+
+Definition fail {E : Effect} `{failureE -< E} {X : Type}
            (reason : string)
   : itree E X :=
-  vis (Fail reason) (fun v : void => match v with end).
+  vis (Fail reason) (fun v : Empty_set => match v with end).
 
 End Failure.
 
 Section NonDeterminism.
 
-Variant nondetE : Type -> Type :=
-| Or : nondetE bool.
+Variant nondet : Type := Or.
+
+Definition nondetE : Effect := {|
+    action := nondet;
+    reaction := fun _ => bool;
+  |}.
 
 Definition or {E} `{nondetE -< E} {R} (k1 k2 : itree E R)
   : itree E R :=
@@ -232,14 +263,19 @@ Section Reader.
 
   Variable (env : Type).
 
-  Variant readerE : Type -> Type :=
-  | Ask : readerE env.
+  Variant reader : Type :=
+  | Ask : reader.
+
+  Definition readerE : Effect := {|
+      action := reader;
+      reaction := fun _ => env;
+    |}.
 
   Definition ask {E} `{Convertible readerE E} : itree E env :=
-    liftE (convert Ask).
+    vis Ask Ret.
 
   Definition eval_reader {E} : eff_hom_r env readerE E :=
-    fun _ e r =>
+    fun e r =>
       match e with
       | Ask => Ret r
       end.
@@ -257,9 +293,17 @@ Section State.
 
   Variable (S : Type).
 
-  Variant stateE : Type -> Type :=
-  | Get : stateE S
-  | Put : S -> stateE unit.
+  Variant state : Type :=
+  | Get : state
+  | Put : S -> state.
+
+  Definition stateE : Effect := {|
+      action := state;
+      reaction e := match e with
+                    | Get => S
+                    | Put _ => unit
+                    end;
+    |}.
 
   Definition get {E} `{stateE -< E} : itree E S := do Get.
   Definition put {E} `{stateE -< E} (s : S) : itree E unit :=
@@ -267,7 +311,7 @@ Section State.
 
 
   Definition eval_state {E} : eff_hom_s S stateE E :=
-    fun _ e s =>
+    fun e s =>
       match e with
       | Get => Ret (s, s)
       | Put s' => Ret (s', tt)
@@ -301,16 +345,23 @@ Arguments put {S E _}.
 Arguments run_state {_ _} [_] _ _.
 
 Section Tagged.
-  Variable E : Type -> Type.
+  Variable E : Effect.
 
-  Record Tagged (tag : Set) (t : Type) : Type := mkTagged
-  { unTag : E t }.
+  Record Tagged (tag : Set) : Type := mkTagged
+  { unTag : E }.
 
-  Definition atTag (tag : Set) {t} (e : E t) : Tagged tag t :=
+  Global Arguments unTag {tag}.
+
+  Definition atTag (tag : Set) (e : E) : Tagged tag :=
   {| unTag := e |}.
 
-  Definition eval_tagged {tag} : eff_hom (Tagged tag) E :=
-    fun _ e => Vis e.(unTag) Ret.
+  Definition taggedE tag : Effect := {|
+      action := Tagged tag;
+      reaction e := reaction (unTag e);
+    |}.
+
+  Definition eval_tagged {tag} : eff_hom (taggedE tag) E :=
+    fun e => Vis (unTag e) Ret.
 
 End Tagged.
 
@@ -324,15 +375,22 @@ Section Counter.
 
   (* Parameterizing by the type of counters makes it easier
    to have more than one counter at once. *)
-  Variant counterE (N : Type) : Type -> Type :=
-  | Incr : counterE N N.
+  Variant counter (N : Type) : Type :=
+  | Incr : counter N.
+
+  Global Arguments Incr {N}.
+
+  Definition counterE N : Effect := {|
+      action := counter N;
+      reaction _ := N;
+    |}.
 
   Definition incr {N E} `{counterE N -< E} : itree E N :=
     do Incr.
 
   Definition eval_counter {N E} `{Countable N}
   : eff_hom_s N (counterE N) E :=
-    fun _ e s =>
+    fun e s =>
       match e with
       | Incr => Ret (succ s, s)
       end.
@@ -349,8 +407,13 @@ Section Writer.
 
   Variable (W : Type).
 
-  Variant writerE : Type -> Type :=
-  | Tell : W -> writerE unit.
+  Variant writer : Type :=
+  | Tell : W -> writer.
+
+  Definition writerE : Effect := {|
+      action := writer;
+      reaction _ := unit;
+    |}.
 
   Definition tell {E} `{writerE -< E} (w : W) : itree E unit :=
     do (Tell w).
@@ -360,22 +423,33 @@ End Writer.
 Section Stop.
   (* "Return" as an effect. *)
 
-  Variant stopE (S : Type) : Type -> Type :=
-  | Stop : S -> stopE S void.
+  Variant stop_ (S : Type) : Type :=
+  | Stop : S -> stop_ S.
+
+  Global Arguments Stop {S}.
+
+  Definition stopE S : Effect := {|
+      action := stop_ S;
+      reaction _ := Empty_set;
+    |}.
 
   Definition stop {E S R} `{stopE S -< E} : S -> itree E R :=
     fun s =>
-      vis (Stop s) (fun v : void => match v with end).
+      vis (Stop s) (fun v : Empty_set => match v with end).
 
 End Stop.
 
-Arguments stopE S X.
 Arguments stop {E S R _}.
 
 Section Trace.
 
-  Variant traceE : Type -> Type :=
-  | Trace : string -> traceE unit.
+  Variant trace_ : Type :=
+  | Trace : string -> trace_.
+
+  Definition traceE : Effect := {|
+      action := trace_;
+      reaction _ := unit;
+    |}.
 
   Definition trace {E} `{traceE -< E} (msg : string) : itree E unit :=
     do (Trace msg).
@@ -386,11 +460,11 @@ Section Trace.
     match t with
     | Ret r => Ret r
     | Tau t => Tau (ignore_trace t)
-    | Vis ( e |) k =>
-      match e in traceE T return (T -> _) -> _ with
-      | Trace _ => fun k => Tau (ignore_trace (k tt))
+    | Vis e k =>
+      match e return (@reaction (_ +' _) e -> _) -> _ with
+      | ( Trace _ |) => fun k => Tau (ignore_trace (k tt))
+      | (| e ) => fun k => Vis e (fun x => ignore_trace (k x))
       end k
-    | Vis (| e ) k => Vis e (fun x => ignore_trace (k x))
     end.
 
 End Trace.

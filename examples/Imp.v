@@ -7,10 +7,10 @@ Require Import ExtLib.Structures.Monad.
 Require Import ExtLib.Structures.Traversable.
 Require Import ExtLib.Data.List.
 
-Require ITree.ITree.
+Require Import ITree.ITree.
 Require Import ITree.Morphisms.
 Require Import ITree.Fix.
-Require Import ITree.Effect.
+Require Import ITree.OpenSum.
 
 Import MonadNotation.
 Local Open Scope monad_scope.
@@ -46,20 +46,35 @@ Inductive stmt : Set :=
 .
 
 (* the "effect" to track local variables *)
-Inductive Locals : Type -> Type :=
-| GetVar (x : var) : Locals value
-| SetVar (x : var) (v : value) : Locals unit.
+Inductive Locals : Type :=
+| GetVar (x : var)
+| SetVar (x : var) (v : value)
+.
 
-(* the "effect to track errors *)
-Inductive Error : Type -> Type :=
-| RuntimeError (_ : string) : Error Empty_set.
+Definition localsE : Effect := {|
+    action := Locals;
+    reaction e := match e with
+                  | GetVar _ => value
+                  | SetVar _ _ => unit
+                  end;
+  |}.
 
-Definition error {eff} `{Error -< eff} (msg : string) {a} : ITree.itree eff a :=
+(* the "effect to track errors" *)
+Inductive Error : Type :=
+| RuntimeError (_ : string)
+.
+
+Definition errorE : Effect := {|
+    action := Error;
+    reaction _ := Empty_set;
+  |}.
+
+Definition error {eff} `{errorE -< eff} (msg : string) {a} : ITree.itree eff a :=
   x <- do (RuntimeError msg) ;;
   match x : Empty_set with end.
 
 
-Definition ImpEff : Type -> Type := Locals +' Error.
+Definition ImpEff : Effect := localsE +' errorE.
 
 (* For Calls *********
 Inductive External : Type -> Type :=
@@ -69,23 +84,29 @@ Definition ImpEff : Type -> Type := Locals +' (External +' Error).
 *)
 
 Section assignMany.
-  Context {eff : Type -> Type}.
-  Context {HasLocals : Locals -< eff}.
-  Context {HasError : Error -< eff}.
+  Context {eff : Effect}.
+  Context `{HasLocals : localsE -< eff}.
+  Context `{HasError : errorE -< eff}.
 
   Fixpoint assignMany (ls : list var) (vs : list value) : ITree.itree eff unit :=
     match ls , vs with
     | nil , nil => ret tt
-    | x :: xs , v :: vs => do (SetVar x v) ;; assignMany xs vs
-    | nil , _ :: _ => do (RuntimeError "insufficient binders") ;; ret tt
-    | _ :: _ , nil => do (RuntimeError "too many binders") ;; ret tt
+    | x :: xs , v :: vs =>
+      @do _ localsE _ (SetVar x v) ;;
+      assignMany xs vs
+    | nil , _ :: _ =>
+      do (RuntimeError "insufficient binders") ;;
+      ret tt
+    | _ :: _ , nil =>
+      do (RuntimeError "too many binders") ;;
+      ret tt
     end.
 End assignMany.
 
 (* The meaning of an expression *)
 Fixpoint denoteExpr (e : expr) : ITree.itree ImpEff value :=
   match e with
-  | Var v => do (GetVar v)
+  | Var v => @do _ localsE _ (GetVar v)
   | Lit n => ret n
   | Plus a b => l <- denoteExpr a ;; r <- denoteExpr b ;; ret (l + r)
   end.
@@ -101,7 +122,7 @@ Fixpoint denoteStmt (s : stmt) : ITree.itree ImpEff unit :=
   match s with
   | Assign x e =>
     v <- denoteExpr e ;;
-    do (SetVar x v)
+    @do _ localsE _ (SetVar x v)
   | Seq a b =>
     denoteStmt a ;; denoteStmt b
   | If i t e =>
@@ -138,8 +159,8 @@ Module ImplicitInit.
    * variables are implicitly initialized to some default value.
    * This mirrors the semantics of Imp.
    *)
-  Definition evalLocals {eff} : eff_hom_s (var -> value) Locals eff :=
-    fun _ e st =>
+  Definition evalLocals {eff} : eff_hom_s (var -> value) localsE eff :=
+    fun e st =>
       match e with
       | GetVar x =>
         ret (st, st x)
@@ -175,8 +196,9 @@ Module ExplicitInit.
    * variables must be explicitly initialized.
    * This mirrors the semantics of C.
    *)
-  Definition evalLocals {eff} `{Error -< eff}: eff_hom_s env Locals eff :=
-    fun _ e st =>
+  Definition evalLocals {eff} `{errorE -< eff}:
+    eff_hom_s env localsE eff :=
+    fun e st =>
       match e with
       | GetVar x =>
         match lookup st x with

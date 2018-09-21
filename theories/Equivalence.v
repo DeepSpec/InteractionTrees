@@ -9,13 +9,13 @@ Require Import ITree.ITree.
 
 Section EUTT.
 
-Variable E : Type -> Type.
+Variable E : Effect.
 Variable R : Type.
 
 Inductive eutt_0 (eutt : relation (itree E R)) :
   relation (itree E R) :=
 | Eutt_Ret : forall r, eutt_0 eutt (Ret r) (Ret r)
-| Eutt_Vis : forall X (e : E X) k1 k2,
+| Eutt_Vis : forall (e : E) k1 k2,
     (forall x, eutt (k1 x) (k2 x)) ->
     eutt_0 eutt (Vis e k1) (Vis e k2).
 Hint Constructors eutt_0.
@@ -115,7 +115,7 @@ Proof.
       auto.
 Qed.
 
-Lemma eutt_0_inj_Vis : forall {T} rel e (k : T -> itree E R) z,
+Lemma eutt_0_inj_Vis : forall rel e (k : reaction e -> itree E R) z,
     eutt_0 rel (Vis e k) z ->
     exists k', z = Vis e k' /\ (forall x, rel (k x) (k' x)).
 Proof.
@@ -127,7 +127,7 @@ Proof.
                       end
          with
          | Eutt_Ret _ _ => I
-         | Eutt_Vis _ _ _ _ _ _ => _
+         | Eutt_Vis _ _ _ _ _ => _
          end; simpl.
   eexists; split. reflexivity. assumption.
 Defined.
@@ -205,7 +205,7 @@ Proof.
 Qed.
 *)
 
-Lemma finite_taus_tau1: forall (E : Type -> Type) (R : Type) (t : itree E R),
+Lemma finite_taus_tau1: forall (E : Effect) (R : Type) (t : itree E R),
     finite_taus t -> finite_taus (Tau t).
 Proof.
   intros E R t H.
@@ -213,7 +213,7 @@ Proof.
   exists t'. split. assumption. apply OneTau. assumption.
 Qed.
 
-Lemma finite_taus_tau2: forall (E : Type -> Type) (R : Type) (t : itree E R),
+Lemma finite_taus_tau2: forall (E : Effect) (R : Type) (t : itree E R),
     finite_taus (Tau t) -> finite_taus t.
 Proof.
   intros E R t H.
@@ -223,7 +223,7 @@ Proof.
   - subst. inversion I1.
 Qed.
 
-Lemma untaus_tau_tau1 : forall (E : Type -> Type) (R : Type) (t1 t2 : itree E R),
+Lemma untaus_tau_tau1 : forall (E : Effect) (R : Type) (t1 t2 : itree E R),
     untaus t1 t2 -> untaus (Tau t1) t2.
 Proof.
   intros E R t1 t2 H.
@@ -233,7 +233,7 @@ Proof.
   - apply OneTau. assumption.
 Qed.
 
-Lemma untaus_tau_tau2 : forall (E : Type -> Type) (R : Type) (t1 t2 : itree E R),
+Lemma untaus_tau_tau2 : forall (E : Effect) (R : Type) (t1 t2 : itree E R),
     untaus (Tau t1) t2 -> untaus t1 t2.
 Proof.
   intros E R t1 t2 H.
@@ -243,13 +243,13 @@ Proof.
   - inversion I1.
 Qed.
 
-Lemma notau_finite_taus : forall (E : Type -> Type) (R : Type) (t : itree E R),
+Lemma notau_finite_taus : forall (E : Effect) (R : Type) (t : itree E R),
     notau E R t -> finite_taus t.
 Proof.
   intros E R t H. exists t. split. assumption. constructor.
 Qed.
 
-Lemma untaus'_finite_taus : forall (E : Type -> Type) (R : Type) (t t' : itree E R),
+Lemma untaus'_finite_taus : forall (E : Effect) (R : Type) (t t' : itree E R),
     untaus' E R t t' -> (finite_taus t <-> finite_taus t').
 Proof.
   intros E R t t' H. induction H.
@@ -258,13 +258,13 @@ Proof.
   - reflexivity.
 Qed.
 
-Lemma untaus_finite_taus :  forall (E : Type -> Type) (R : Type) (t t' : itree E R),
+Lemma untaus_finite_taus :  forall (E : Effect) (R : Type) (t t' : itree E R),
     untaus t t' -> (finite_taus t <-> finite_taus t').
 Proof.
   intros E R t t' [H1 H2]. symmetry. apply untaus'_finite_taus; assumption.
 Qed.
 
-Lemma equiv_tau1 : forall (E : Type -> Type) (R : Type) (t1 t2 : itree E R),
+Lemma equiv_tau1 : forall (E : Effect) (R : Type) (t1 t2 : itree E R),
     Tau t1 ~ t2 -> t1 ~ t2.
 Proof.
   intros E R.
@@ -281,7 +281,7 @@ Proof.
     + assumption.
 Qed.
 
-Lemma equiv_tau2 : forall (E : Type -> Type) (R : Type) (t1 t2 : itree E R),
+Lemma equiv_tau2 : forall (E : Effect) (R : Type) (t1 t2 : itree E R),
     t1 ~ t2 -> Tau t1 ~ t2.
 Proof.
   intros E R.
@@ -298,7 +298,7 @@ Proof.
     + assumption.
 Qed.
 
-Lemma untaus_equiv : forall (E : Type -> Type) (R : Type) (t t' : itree E R),
+Lemma untaus_equiv : forall (E : Effect) (R : Type) (t t' : itree E R),
     untaus t t' -> t ~ t'.
 Proof.
   intros E R t t' H.
@@ -315,7 +315,7 @@ Proof.
       * destruct (untaus_notau _ _ _ _ H1).
 Qed.
 
-Lemma finite_taus_equiv : forall (E : Type -> Type) (R : Type) (t1 t2 : itree E R),
+Lemma finite_taus_equiv : forall (E : Effect) (R : Type) (t1 t2 : itree E R),
     t1 ~ t2 -> finite_taus t1 -> finite_taus t2.
 Proof.
   intros E R t1 t2 H1 H2.

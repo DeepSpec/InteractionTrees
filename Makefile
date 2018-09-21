@@ -13,6 +13,14 @@ install: Makefile.coq all
 uninstall: Makefile.coq
 	$(MAKE) -f $< $@
 
+examples: example-imp example-lc
+
+example-imp: examples/Imp.v
+	coqc -Q theories/ ITree examples/Imp.v
+
+example-lc: examples/stlc.v
+	coqc -Q theories/ ITree examples/stlc.v
+
 Makefile.coq: _CoqProject
 	coq_makefile -f _CoqProject -o Makefile.coq
 
