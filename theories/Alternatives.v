@@ -242,6 +242,11 @@ End FUNCTOR_ITREE.
   
 (* Games? *)
 
+  (* Possible place to find out more about game semantics: *)
+
+  (* Paul-Andre Mellies work on asynchronous games *)
+  (* http://www.irif.fr/~mellies/papers/ag4-lics.pdf *)
+  
 (* Other axes:
 - Computable vs. logical?
 * extractability
