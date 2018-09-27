@@ -96,6 +96,25 @@ Proof.
     + destruct (untaus_notau _ _ H1).
 Qed.
 
+Lemma symmetric_eutt : symmetric _ eutt.
+Proof.
+  pcofix symmetric_eutt.
+  intros t1 t2 H12.
+  punfold H12.
+  pfold.
+  destruct H12 as [I12 H12].
+  split.
+  - symmetry; assumption.
+  - intros t1' t2' H21' H12'.
+    specialize (H12 _ _ H12' H21').
+    inversion H12.
+    + constructor.
+    + constructor.
+      intro x.
+      specialize (H x); pclearbot.
+      auto.
+Qed.
+
 Lemma eutt_0_inj_Vis : forall {T} rel e (k : T -> itree E R) z,
     eutt_0 rel (Vis e k) z ->
     exists k', z = Vis e k' /\ (forall x, rel (k x) (k' x)).
@@ -147,6 +166,11 @@ Hint Resolve monotone_eutt_0 : paco.
 Hint Resolve monotone_eutt_ : paco.
 Infix "~" := (@eutt _ _) (at level 80).
 
+Add Parametric Relation E R : (itree E R) (eutt _ _)
+  reflexivity proved by (reflexive_eutt _ _)
+  symmetry proved by (symmetric_eutt _ _)
+  transitivity proved by (transitive_eutt _ _)
+    as eutt_equiv.
 
 Lemma bind_tau : forall {E R S} (t : itree E R) (f : R -> itree E S) ,
     bind (Tau t) f = Tau (bind t f).
