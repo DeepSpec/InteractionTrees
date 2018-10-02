@@ -10,6 +10,8 @@ Set Contextual Implicit.
     [R] and every node is either a [Tau] node with one child, or a
     branching node [Vis] with a visible effect [E X] that branches
     on the values of [X]. *)
+
+(** This is almost exactly the kind of more powerful free monad I needed *)
 CoInductive itree (E : Type -> Type) (R : Type) :=
 | Ret (r : R)
 | Vis {X : Type} (e : E X) (k : X -> itree E R)
