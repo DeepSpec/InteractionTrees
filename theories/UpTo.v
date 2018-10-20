@@ -8,7 +8,7 @@
 Require Import Coq.Classes.RelationClasses.
 
 Require Import ITree.ITree.
-Require Import ITree.Effect.
+Require Import ITree.OpenSum.
 
 Section with_effects.
   Variable E : Type -> Type.

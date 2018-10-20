@@ -1,7 +1,7 @@
 -Q theories ITree
 
 theories/ITree.v
-theories/Effect.v
+theories/OpenSum.v
 theories/Equivalence.v
 theories/Morphisms.v
 theories/Fix.v

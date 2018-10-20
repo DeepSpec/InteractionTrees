@@ -1,6 +1,7 @@
 (** Common effects *)
 
 (* TODO Swap sums (changed associativity). *)
+(* TODO Split framework for extensible effects from concrete effect definitions *)
 
 Set Implicit Arguments.
 Set Contextual Implicit.

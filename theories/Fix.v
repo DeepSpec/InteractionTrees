@@ -6,7 +6,7 @@
  *)
 Require Import ITree.ITree.
 Require Import ITree.Morphisms.
-Require Import ITree.Effect.
+Require Import ITree.OpenSum.
 
 Module Type FixSig.
   Section Fix.
