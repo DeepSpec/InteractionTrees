@@ -1,6 +1,7 @@
-Require Import ExtLib.Structures.Functor.
-Require Import ExtLib.Structures.Applicative.
-Require Import ExtLib.Structures.Monad.
+From ExtLib.Structures Require Import
+     Functor Applicative Monad.
+
+From ITree Require Export Effect.
 
 Set Implicit Arguments.
 Set Contextual Implicit.
@@ -10,14 +11,14 @@ Set Contextual Implicit.
     [R] and every node is either a [Tau] node with one child, or a
     branching node [Vis] with a visible effect [E X] that branches
     on the values of [X]. *)
-CoInductive itree (E : Type -> Type) (R : Type) :=
+CoInductive itree (E : Effect) (R : Type) :=
 | Ret (r : R)
-| Vis {X : Type} (e : E X) (k : X -> itree E R)
+| Vis (e : E) (k : reaction e -> itree E R)
 | Tau (t : itree E R)
 .
 
 Arguments Ret {E R}.
-Arguments Vis {E R X}.
+Arguments Vis {E R}.
 Arguments Tau {E R}.
 
 (* [id_itree] as a notation makes it easier to
@@ -37,7 +38,7 @@ Arguments match_itree {E R} t.
 Module Core.
 
   Section bind.
-    Context {E : Type -> Type} {T U : Type}.
+    Context {E : Effect} {T U : Type}.
     Variable k : T -> itree E U.
 
     CoFixpoint bind' (c : itree E T) : itree E U :=
@@ -73,8 +74,7 @@ End Core.
  *)
 
 
-Definition liftE {E : Type -> Type} {X : Type}
-           (e : E X) : itree E X :=
+Definition liftE {E : Effect} (e : E) : itree E (reaction e) :=
   Vis e Ret.
 
 (** Functorial map ([fmap]) *)

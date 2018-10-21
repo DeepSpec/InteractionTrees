@@ -11,11 +11,11 @@ Require Import ITree.ITree.
 Require Import ITree.OpenSum.
 
 Section with_effects.
-  Variable E : Type -> Type.
+  Variable E : Effect.
 
   Inductive Eff {t : Type} : Type :=
   | Ret (_ : t)
-  | Vis {u} (_ : E u) (_ : u -> Eff)
+  | Vis (e : E) (_ : reaction e -> Eff)
   | Unknown.
   Arguments Eff _ : clear implicits.
 
@@ -24,7 +24,7 @@ Section with_effects.
   Inductive EffLe {t} : Eff t -> Eff t -> Prop :=
   | EffLe_Any : forall b, EffLe Unknown b
   | EffLe_Ret : forall a, EffLe (Ret a) (Ret a)
-  | EffLe_Vis : forall u (e : E u) k1 k2,
+  | EffLe_Vis : forall (e : E) k1 k2,
       (forall x, EffLe (k1 x) (k2 x)) ->
       EffLe (Vis e k1) (Vis e k2).
 
@@ -32,11 +32,11 @@ Section with_effects.
   Proof. compute. induction x; constructor; eauto. Qed.
 
   Lemma EffLe_inj_Vis:
-    forall (t : Type) (z : Eff t) (u : Type) (e : E u) (k2 : u -> Eff t),
+    forall (t : Type) (z : Eff t) (e : E) (k2 : reaction e -> Eff t),
       EffLe (Vis e k2) z ->
-      exists k : u -> Eff t, z = Vis e k /\ (forall x : u, EffLe (k2 x) (k x)).
+      exists k : reaction e -> Eff t, z = Vis e k /\ (forall x : reaction e, EffLe (k2 x) (k x)).
   Proof.
-    intros t z u e k2 H1.
+    intros t z e k2 H1.
     refine
       match H1 in EffLe a b
             return match a  return Prop with
@@ -44,7 +44,7 @@ Section with_effects.
                    | _ => True
                    end
       with
-      | EffLe_Vis _ _ _ _ keq =>
+      | EffLe_Vis _ _ _ keq =>
         ex_intro _ _ (conj eq_refl keq)
       | _ => I
       end.
@@ -63,17 +63,17 @@ End with_effects.
 
 Arguments Eff _ _ : clear implicits.
 Arguments Ret {_} [_] _.
-Arguments Vis {_ _ _} _ _.
+Arguments Vis {_ _} _ _.
 Arguments Unknown {_ _}.
 Arguments EffLe {_ _} _ _.
 
 Section upto.
-  Variable E : Type -> Type.
+  Variable E : Effect.
 
   Inductive Approx {t} : itree E t -> Eff E t -> Prop :=
   | A_Unknown : forall it, Approx it Unknown
   | A_Ret     : forall v, Approx (ITree.Ret v) (Ret v)
-  | A_Vis     : forall {u} (e : E u) k1 k2, (forall x, Approx (k1 x) (k2 x)) ->
+  | A_Vis     : forall (e : E) k1 k2, (forall x, Approx (k1 x) (k2 x)) ->
                                        Approx (ITree.Vis e k1) (Vis e k2)
   | A_Tau     : forall it e, Approx it e -> Approx (ITree.Tau it) e.
 

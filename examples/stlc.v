@@ -7,7 +7,7 @@ Open Scope monad_scope.
 
 From ITree Require Import
      ITree
-     Effect
+     OpenSum
      Fix.
 
 Inductive term : Type :=
