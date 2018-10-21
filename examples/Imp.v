@@ -51,12 +51,16 @@ Inductive Locals : Type :=
 | SetVar (x : var) (v : value)
 .
 
-Definition localsE : Effect := {|
+Definition Locals_reaction : Locals -> Type :=
+  fun e =>
+    match e with
+    | GetVar _ => value
+    | SetVar _ _ => unit
+    end.
+
+Canonical Structure localsE : Effect := {|
     action := Locals;
-    reaction e := match e with
-                  | GetVar _ => value
-                  | SetVar _ _ => unit
-                  end;
+    reaction := Locals_reaction;
   |}.
 
 (* the "effect to track errors" *)
@@ -64,9 +68,12 @@ Inductive Error : Type :=
 | RuntimeError (_ : string)
 .
 
-Definition errorE : Effect := {|
+Definition Error_reaction : Error -> Type :=
+  fun _ => Empty_set.
+
+Canonical Structure errorE : Effect := {|
     action := Error;
-    reaction _ := Empty_set;
+    reaction := Error_reaction;
   |}.
 
 Definition error {eff} `{errorE -< eff} (msg : string) {a} : ITree.itree eff a :=
@@ -92,7 +99,7 @@ Section assignMany.
     match ls , vs with
     | nil , nil => ret tt
     | x :: xs , v :: vs =>
-      @do _ localsE _ (SetVar x v) ;;
+      do (SetVar x v) ;;
       assignMany xs vs
     | nil , _ :: _ =>
       do (RuntimeError "insufficient binders") ;;

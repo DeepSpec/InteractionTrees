@@ -15,20 +15,27 @@ From ITree Require Import
 
 (** Sums for extensible event types. *)
 
-Definition sumE (E1 E2 : Effect) : Effect := {|
-    action := action E1 + action E2;
-    reaction := fun e => match e with
-                         | inl e1 => reaction e1
-                         | inr e2 => reaction e2
-                         end;
+Definition sum_reaction (E1 E2 : Effect) : E1 + E2 -> Type :=
+  fun e =>
+    match e with
+    | inl e1 => reaction e1
+    | inr e2 => reaction e2
+    end.
+
+Canonical Structure sumE (E1 E2 : Effect) : Effect := {|
+    action := E1 + E2;
+    reaction := sum_reaction E1 E2;
   |}.
 
 Notation "E1 +' E2" := (sumE E1 E2)
 (at level 50, left associativity) : type_scope.
 
-Definition emptyE : Effect := {|
+Definition empty_reaction : Empty_set -> Type :=
+  fun e => match e with end.
+
+Canonical Structure emptyE : Effect := {|
     action := Empty_set;
-    reaction := fun e => match e with end;
+    reaction := empty_reaction;
   |}.
 
 (* Just for this section, [A B C D : Type -> Type] are more
@@ -208,9 +215,12 @@ Section Failure.
 Variant failure : Type :=
 | Fail : string -> failure.
 
-Definition failureE : Effect := {|
+Definition failure_reaction : failure -> Type :=
+  fun _ => Empty_set.
+
+Canonical Structure failureE : Effect := {|
     action := failure;
-    reaction := fun _ => Empty_set;
+    reaction := failure_reaction;
   |}.
 
 Definition fail {E : Effect} `{failureE -< E} {X : Type}
@@ -224,9 +234,12 @@ Section NonDeterminism.
 
 Variant nondet : Type := Or.
 
-Definition nondetE : Effect := {|
+Definition nondet_reaction : nondet -> Type :=
+  fun _ => bool.
+
+Canonical Structure nondetE : Effect := {|
     action := nondet;
-    reaction := fun _ => bool;
+    reaction := nondet_reaction;
   |}.
 
 Definition or {E} `{nondetE -< E} {R} (k1 k2 : itree E R)
@@ -266,9 +279,12 @@ Section Reader.
   Variant reader : Type :=
   | Ask : reader.
 
-  Definition readerE : Effect := {|
+  Definition reader_reaction : reader -> Type :=
+    fun _ => env.
+
+  Canonical Structure readerE : Effect := {|
       action := reader;
-      reaction := fun _ => env;
+      reaction := reader_reaction;
     |}.
 
   Definition ask {E} `{Convertible readerE E} : itree E env :=
@@ -297,18 +313,21 @@ Section State.
   | Get : state
   | Put : S -> state.
 
-  Definition stateE : Effect := {|
+  Definition state_reaction : state -> Type :=
+    fun e =>
+      match e with
+      | Get => S
+      | Put _ => unit
+      end.
+
+  Canonical Structure stateE : Effect := {|
       action := state;
-      reaction e := match e with
-                    | Get => S
-                    | Put _ => unit
-                    end;
+      reaction := state_reaction;
     |}.
 
   Definition get {E} `{stateE -< E} : itree E S := do Get.
   Definition put {E} `{stateE -< E} (s : S) : itree E unit :=
     do (Put s).
-
 
   Definition eval_state {E} : eff_hom_s S stateE E :=
     fun e s =>
@@ -347,24 +366,24 @@ Arguments run_state {_ _} [_] _ _.
 Section Tagged.
   Variable E : Effect.
 
-  Record Tagged (tag : Set) : Type := mkTagged
-  { unTag : E }.
+  Record tagged (tag : Type) : Type := Tag
+    { unTag : E }.
 
-  Global Arguments unTag {tag}.
+  Definition tagged_reaction (tag : Type) : tagged tag -> Type :=
+    fun e => reaction (unTag _ e).
 
-  Definition atTag (tag : Set) (e : E) : Tagged tag :=
-  {| unTag := e |}.
-
-  Definition taggedE tag : Effect := {|
-      action := Tagged tag;
-      reaction e := reaction (unTag e);
+  Canonical Structure taggedE (tag : Type) : Effect := {|
+      action := tagged tag;
+      reaction := tagged_reaction tag;
     |}.
 
-  Definition eval_tagged {tag} : eff_hom (taggedE tag) E :=
-    fun e => Vis (unTag e) Ret.
+  Definition eval_tagged (tag : Type) : eff_hom (taggedE tag) E :=
+    fun e => Vis (unTag _ e) Ret.
 
 End Tagged.
 
+Arguments unTag {E tag}.
+Arguments Tag {E} tag.
 
 Section Counter.
 
@@ -380,9 +399,12 @@ Section Counter.
 
   Global Arguments Incr {N}.
 
-  Definition counterE N : Effect := {|
+  Definition counter_reaction {N} : counter N -> Type :=
+    fun _ => N.
+
+  Canonical Structure counterE N : Effect := {|
       action := counter N;
-      reaction _ := N;
+      reaction := counter_reaction;
     |}.
 
   Definition incr {N E} `{counterE N -< E} : itree E N :=
@@ -410,9 +432,12 @@ Section Writer.
   Variant writer : Type :=
   | Tell : W -> writer.
 
-  Definition writerE : Effect := {|
+  Definition writer_reaction : writer -> Type :=
+    fun _ => unit.
+
+  Canonical Structure writerE : Effect := {|
       action := writer;
-      reaction _ := unit;
+      reaction := writer_reaction;
     |}.
 
   Definition tell {E} `{writerE -< E} (w : W) : itree E unit :=
@@ -428,9 +453,12 @@ Section Stop.
 
   Global Arguments Stop {S}.
 
-  Definition stopE S : Effect := {|
+  Definition stop_reaction {S} : stop_ S -> Type :=
+    fun _ => Empty_set.
+
+  Canonical Structure stopE S : Effect := {|
       action := stop_ S;
-      reaction _ := Empty_set;
+      reaction := stop_reaction;
     |}.
 
   Definition stop {E S R} `{stopE S -< E} : S -> itree E R :=
@@ -446,9 +474,11 @@ Section Trace.
   Variant trace_ : Type :=
   | Trace : string -> trace_.
 
-  Definition traceE : Effect := {|
+  Definition trace_reaction : trace_ -> Type := fun _ => unit.
+
+  Canonical Structure traceE : Effect := {|
       action := trace_;
-      reaction _ := unit;
+      reaction := trace_reaction;
     |}.
 
   Definition trace {E} `{traceE -< E} (msg : string) : itree E unit :=
