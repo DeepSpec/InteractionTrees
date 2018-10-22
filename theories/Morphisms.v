@@ -21,7 +21,7 @@ Definition interp {E F : Effect}
   cofix hom_f t :=
     match t with
     | Ret r => Ret r
-    | Vis e k => Core.bindTau (f e) (fun x => hom_f (k x))
+    | Vis e k => bind (f e) (fun x => Tau (hom_f (k x)))
     | Tau t => Tau (hom_f t)
     end.
 Arguments interp {E F} _ [R] _.
@@ -64,7 +64,7 @@ Section eff_hom_state.
   : itree E' (s * R) :=
     match t with
     | Ret r => Ret (st, r)
-    | Vis e k => Core.bindTau (f e st) (fun '(s',x) => interp_state _ (k x) s')
+    | Vis e k => bind (f e st) (fun '(s',x) => Tau (interp_state _ (k x) s'))
     | Tau t => Tau (interp_state _ t st)
     end.
 End eff_hom_state.
@@ -82,7 +82,7 @@ Section eff_hom_reader.
   CoFixpoint interp_reader (R : Type) (t : itree E R) (st : s) : itree E' R :=
     match t with
     | Ret r => Ret r
-    | Vis e k => Core.bindTau (f e st) (fun x => interp_reader _ (k x) st)
+    | Vis e k => bind (f e st) (fun x => Tau (interp_reader _ (k x) st))
     | Tau t => Tau (interp_reader _ t st)
     end.
 
@@ -140,7 +140,7 @@ Section interp_prop.
               (k : _ -> itree E R) (k' : reaction e -> itree F R),
       f e e' ->
       (forall x, interp_prop f R (k x) (k' x)) ->
-      interp_prop f R (Vis e k) (Core.bind e' k')
+      interp_prop f R (Vis e k) (bind e' k')
   | ipDelay : forall a b, interp_prop f R a b ->
                      interp_prop f R (Tau a) (Tau b).
 
@@ -168,7 +168,7 @@ Section eff_hom_e.
     match tr with
     | Ret v => Ret v
     | Vis e k =>
-      Core.bindTau (f.(eval) e) (fun '(x, f') => interp_e f' (k x))
+      bind (f.(eval) e) (fun '(x, f') => Tau (interp_e f' (k x)))
     | Tau tr => Tau (interp_e f tr)
     end.
 End eff_hom_e.

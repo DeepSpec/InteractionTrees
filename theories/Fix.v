@@ -59,7 +59,7 @@ Module FixImpl <: FixSig.
         | Vis e k =>
           match e return (@reaction (_ +' _) e -> _) -> _ with
           | inl (call x) => fun k =>
-            Tau (homFix (Core.bind (f x) k))
+            Tau (homFix (bind (f x) k))
           | inr e => fun k =>
             Vis e (fun x => homFix (k x))
           end k

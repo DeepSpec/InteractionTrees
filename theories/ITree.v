@@ -35,35 +35,22 @@ Proof. destruct t; auto. Qed.
 
 Arguments match_itree {E R} t.
 
-Module Core.
+Section bind.
+  Context {E : Effect} {T U : Type}.
+  Variable k : T -> itree E U.
 
-  Section bind.
-    Context {E : Effect} {T U : Type}.
-    Variable k : T -> itree E U.
-
-    CoFixpoint bind' (c : itree E T) : itree E U :=
-      match c with
-      | Ret r => k r
-      | Vis e k' => Vis e (fun x => bind' (k' x))
-      | Tau t => Tau (bind' t)
-      end.
-  End bind.
-
-  Definition bind {E T U}
-             (c : itree E T) (k : T -> itree E U)
-  : itree E U :=
-    bind' k c.
-
-  Definition bindTau {E T U}
-             (c : itree E T) (k : T -> itree E U)
-  : itree E U :=
+  CoFixpoint bind' (c : itree E T) : itree E U :=
     match c with
-    | Ret r => Tau (k r)
-    | Vis e k' => Vis e (fun x => bind (k' x) k)
-    | Tau x => Tau (bind x k)
+    | Ret r => k r
+    | Vis e k' => Vis e (fun x => bind' (k' x))
+    | Tau t => Tau (bind' t)
     end.
+End bind.
 
-End Core.
+Definition bind {E T U}
+           (c : itree E T) (k : T -> itree E U)
+  : itree E U :=
+  bind' k c.
 
 (* note(gmm): There needs to be generic automation for monads to simplify
  * using the monad laws up to a setoid.
@@ -72,7 +59,6 @@ End Core.
  * this will be especially important for this project because coinductives
  * don't simplify very nicely.
  *)
-
 
 Definition liftE {E : Effect} (e : E) : itree E (reaction e) :=
   Vis e Ret.
@@ -94,14 +80,13 @@ Instance Functor_itree {E} : Functor (itree E) :=
    value restriction. *)
 Instance Applicative_itree {E} : Applicative (itree E) :=
 { pure _ := Ret
-; ap _ _ f x := Core.bind f (fun f => Core.bind x (fun x => Ret (f x)))
+; ap _ _ f x := bind f (fun f => bind x (fun x => Ret (f x)))
 }.
 
 Global Instance Monad_itree {E} : Monad (itree E) :=
 { ret _ := Ret
-; bind := @Core.bind E
+; bind := @bind E
 }.
-
 
 (** Ignore the result of a tree. *)
 Definition ignore {E R} : itree E R -> itree E unit :=
@@ -110,9 +95,9 @@ Definition ignore {E R} : itree E R -> itree E unit :=
 (** Infinite taus. *)
 CoFixpoint spin {E R} : itree E R := Tau spin.
 
+(** Repeat a computation infinitely. *)
 Definition forever {E R S} (t : itree E R) : itree E S :=
-  cofix forever_t := Core.bindTau t (fun _ => forever_t).
-
+  cofix forever_t := bind t (fun _ => Tau forever_t).
 
 (* this definition exists in ExtLib (or should because it is
  * generic to Monads)
