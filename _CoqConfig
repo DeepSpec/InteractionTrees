@@ -5,6 +5,8 @@ theories/OpenSum.v
 
 theories/ITree.v
 
+theories/Eq/Eq.v
+
 theories/CoAlgebra.v
 theories/Machine.v
 

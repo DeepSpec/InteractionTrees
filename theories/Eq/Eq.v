@@ -22,7 +22,7 @@ CoInductive eq_itree {E : Effect} {R} : relation (itree E R) :=
 .
 
 Delimit Scope eq_itree_scope with eq_itree.
-Infix "=" := eq_itree : eq_itree_scope.
+Notation "t1 = t2" := (eq_itree t1%itree t2%itree) : eq_itree_scope.
 
 (* Axiom EqM_eq : forall a b, EqM a b -> a = b. *)
 
@@ -95,7 +95,7 @@ Proof.
   - intro y. apply bind_ret.
 Qed.
 
-Lemma core_bind_bind {E R S T} :
+Lemma bind_bind {E R S T} :
   forall (s : itree E R) (k : R -> itree E S) (h : S -> itree E T),
     ( (s >>= k) >>= h
       =
@@ -104,30 +104,16 @@ Lemma core_bind_bind {E R S T} :
 Proof.
   cofix bind_bind.
   intros s k h.
-  do 2 rewrite (core_bind_def s).
-  destruct s.
+  do 2 rewrite (match_bind s).
+  destruct s; simpl; auto.
   - reflexivity.
-  - rewrite core_bind_def. constructor. intro; apply bind_bind.
-  - rewrite core_bind_def. constructor. apply bind_bind.
+  - rewrite (match_bind (Tau _)).
+    constructor. apply bind_bind.
+  - rewrite (match_bind (Vis _ _)).
+    constructor. intro y. apply bind_bind.
 Qed.
 
-Lemma bind_bind {E R S T} :
-  forall (s : itree E R) (k : R -> itree E S) (h : S -> itree E T),
-    (((s >>= k) >>= h)
-     =
-     (s >>= (fun x => k x >>= h)))%eq_itree.
-Proof.
-  intros.
-  unfold bind_itree.
-  etransitivity.
-  - apply core_bind_bind.
-  - apply core_bind_mor.
-    + reflexivity.
-    + intro.
-      rewrite (core_bind_def (Tau _)).
-      reflexivity.
-Qed.
-
+(*
 Import Hom.
 
 Lemma hom_bind {E1 E2 R S} (f : E1 ~> itree E2)
@@ -205,3 +191,4 @@ Proof.
       apply bind_hom.
   - rewrite hom_def; constructor.
 Qed.
+*)
