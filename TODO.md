@@ -39,3 +39,8 @@
 - Other work on free monads in Coq: coq-io, FreeSpec
 
 - For Paco: Gil's POPL 2013 paper
+
+- The new definition of itree is similar to W-types. This
+  blogpost by Conor McBride raises some issues about the metatheory
+  of W-types, that itrees definitely inherit:
+  https://mazzo.li/epilogue/index.html%3Fp=324.html
