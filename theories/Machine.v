@@ -23,6 +23,8 @@ From ExtLib.Structures Require Import
 From ITree Require Import
      CoAlgebra Effect.
 
+From ITree Require ITree.
+
 Set Implicit Arguments.
 Set Contextual Implicit.
 
@@ -147,3 +149,35 @@ Global Instance Monad_machine {E} : Monad (machine E) := {|
 |}.
 
 End Machine.
+
+Module ITreeEquivalence.
+
+Definition to_itree {E R} (m : machine E R) : ITree.itree E R :=
+  match m with
+  | Nu s t =>
+    (cofix ana s :=
+       match t s with
+       | Ret r => ITree.Ret r
+       | Tau s' => ITree.Tau (ana s')
+       | Vis e k => ITree.Vis e (fun x => ana (k x))
+       end) s
+  end.
+
+(* universe inconsistency :(
+CoFixpoint to_itree {E R} (m : machine E R) : ITree.itree E R :=
+  match Machine.run m with
+  | Ret r => ITree.Ret r
+  | Tau m' => ITree.Tau (to_itree m')
+  | Vis e k => ITree.Vis e (fun x => to_itree (k x))
+  end.
+*)
+
+Definition from_itree {E R} (t : ITree.itree E R) : machine E R :=
+  Nu t (fun t =>
+          match t with
+          | ITree.Ret r => Ret r
+          | ITree.Tau t' => Tau t'
+          | ITree.Vis e k => Vis e k
+          end).
+
+End ITreeEquivalence.
