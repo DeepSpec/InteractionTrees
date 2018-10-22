@@ -13,21 +13,21 @@ Set Contextual Implicit.
     on the values of [X]. *)
 CoInductive itree (E : Effect) (R : Type) :=
 | Ret (r : R)
-| Vis (e : E) (k : reaction e -> itree E R)
 | Tau (t : itree E R)
+| Vis (e : E) (k : reaction e -> itree E R)
 .
 
 Arguments Ret {E R}.
-Arguments Vis {E R}.
 Arguments Tau {E R}.
+Arguments Vis {E R}.
 
 (* [id_itree] as a notation makes it easier to
    [rewrite <- match_itree]. *)
 Notation id_itree t :=
   match t with
   | Ret r => Ret r
+  | Tau t' => Tau t'
   | Vis e k => Vis e k
-  | Tau t => Tau t
   end.
 
 Lemma match_itree : forall E R (t : itree E R), t = id_itree t.
@@ -39,14 +39,22 @@ Section bind.
   Context {E : Effect} {T U : Type}.
   Variable k : T -> itree E U.
 
-  CoFixpoint bind' (c : itree E T) : itree E U :=
+  (* The [match] in the definition of bind. *)
+  Definition bind_match
+             (bind : itree E T -> itree E U)
+             (c : itree E T) : itree E U :=
     match c with
     | Ret r => k r
-    | Vis e k' => Vis e (fun x => bind' (k' x))
-    | Tau t => Tau (bind' t)
+    | Tau t => Tau (bind t)
+    | Vis e h => Vis e (fun x => bind (h x))
     end.
+
+  CoFixpoint bind' : itree E T -> itree E U :=
+    bind_match bind'.
+
 End bind.
 
+(* Monadic [>>=]: tree substitution, sequencing of computations. *)
 Definition bind {E T U}
            (c : itree E T) (k : T -> itree E U)
   : itree E U :=
@@ -60,17 +68,38 @@ Definition bind {E T U}
  * don't simplify very nicely.
  *)
 
-Definition liftE {E : Effect} (e : E) : itree E (reaction e) :=
-  Vis e Ret.
-
 (** Functorial map ([fmap]) *)
-Local Definition map {E R S} (f : R -> S) : itree E R -> itree E S :=
+Definition map {E R S} (f : R -> S) : itree E R -> itree E S :=
   cofix go t :=
     match t with
     | Ret r => Ret (f r)
-    | Vis e k => Vis e (fun x => go (k x))
     | Tau t => Tau (go t)
+    | Vis e k => Vis e (fun x => go (k x))
     end.
+
+(* Sometimes it's more convenient to work without the type classes
+   Monad, etc. When functions using type classes are specialized,
+   they simplify easily, so lemmas without classes are easier
+   to apply than lemmas with.
+
+   We can also make ExtLib's [bind] opaque, in which case it still
+   doesn't hurt to have these notations around.
+ *)
+Bind Scope itree_scope with itree.
+Delimit Scope itree_scope with itree.
+
+Notation "t1 >>= k2" := (bind t1 k2)
+  (at level 50, left associativity) : itree_scope.
+Notation "x <- t1 ;; t2" := (bind t1 (fun x => t2))
+  (at level 100, t1 at next level, right associativity) : itree_scope.
+Notation "t1 ;; t2" := (bind t1 (fun _ => t2))
+  (at level 100, right associativity) : itree_scope.
+Notation "' p <- t1 ;; t2" :=
+  (bind t1 (fun x_ => match x_ with p => t2 end))
+  (at level 100, t1 at next level, p pattern, right associativity) : itree_scope.
+
+Definition liftE {E : Effect} (e : E) : itree E (reaction e) :=
+  Vis e Ret.
 
 Instance Functor_itree {E} : Functor (itree E) :=
 { fmap := @map E }.
@@ -105,3 +134,17 @@ Definition forever {E R S} (t : itree E R) : itree E S :=
 Definition when {E}
            (b : bool) (body : itree E unit) : itree E unit :=
   if b then body else ret tt.
+
+(* Basic facts *)
+
+(* Force [bind] for one step. This has the advantage over
+   [match_itree] of not leaving an extra [id_itree] in the bind
+   case.
+ *)
+Lemma match_bind {E R S} (t : itree E R) (k : R -> itree E S) :
+  (t >>= k)%itree = bind_match k (fun t' => bind t' k) t.
+Proof.
+  rewrite (match_itree (bind _ _)); simpl;
+    destruct t; auto.
+  - rewrite <- match_itree; auto.
+Qed.

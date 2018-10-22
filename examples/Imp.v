@@ -113,7 +113,7 @@ End assignMany.
 (* The meaning of an expression *)
 Fixpoint denoteExpr (e : expr) : ITree.itree ImpEff value :=
   match e with
-  | Var v => @do _ localsE _ (GetVar v)
+  | Var v => do (GetVar v)
   | Lit n => ret n
   | Plus a b => l <- denoteExpr a ;; r <- denoteExpr b ;; ret (l + r)
   end.
@@ -129,7 +129,7 @@ Fixpoint denoteStmt (s : stmt) : ITree.itree ImpEff unit :=
   match s with
   | Assign x e =>
     v <- denoteExpr e ;;
-    @do _ localsE _ (SetVar x v)
+    do (SetVar x v) : itree _ unit
   | Seq a b =>
     denoteStmt a ;; denoteStmt b
   | If i t e =>

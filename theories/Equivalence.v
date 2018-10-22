@@ -92,8 +92,8 @@ Proof.
     erewrite (untaus_injective _ _ _ H1 H2).
     destruct t1.
     + constructor.
-    + constructor; auto.
     + destruct (untaus_notau _ _ H1).
+    + constructor; auto.
 Qed.
 
 Lemma symmetric_eutt : symmetric _ eutt.
@@ -311,8 +311,8 @@ Proof.
       rewrite (untaus_injective _ _ _ _ _ H1 H2).
       destruct t1'.
       * constructor.
-      * do 2 constructor. apply reflexive_eutt.
       * destruct (untaus_notau _ _ _ _ H1).
+      * do 2 constructor. apply reflexive_eutt.
 Qed.
 
 Lemma finite_taus_equiv : forall (E : Effect) (R : Type) (t1 t2 : itree E R),
@@ -327,8 +327,8 @@ Proof.
     apply H.
     destruct t1'.
     + exists (Ret r). split. simpl; auto. apply NoTau.
-    + exists (Vis e k). split. simpl; auto. apply NoTau.
     + inversion I.
+    + exists (Vis e k). split. simpl; auto. apply NoTau.
 Qed.
 
 (*
