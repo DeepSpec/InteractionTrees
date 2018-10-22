@@ -1,6 +1,9 @@
 (* A theory of final coalgebras. *)
 (* Someone probably already wrote a better version of this. *)
 
+From Coq Require Import
+     Relations RelationClasses.
+
 From ExtLib.Structures Require Import
      Functor Applicative Monad.
 
@@ -104,3 +107,53 @@ Theorem nu_final {F} `{Functor F} {A B : coalgebra F}
 Proof.
 Abort.
 *)
+
+Module Type FunctorSig.
+Parameter F : Type -> Type.
+Declare Instance Functor_F : Functor F.
+Parameter eq_F : forall A, relation A -> relation (F A).
+End FunctorSig.
+
+Module CoAlgebra (F : FunctorSig).
+Import F.
+
+Definition morphism (A B : Type) (eq_A : relation A) (eq_B : relation B)
+           (m : A -> B) :=
+  forall a a', eq_A a a' -> eq_B (m a) (m a').
+
+Definition coalgebra (A : Type) (eq_A : relation A)
+           (f_A : A -> F A) := morphism eq_A (eq_F eq_A) f_A.
+
+Definition ca_morphism (A B : Type) (eq_A : relation A) (eq_B : relation B)
+           (f_A : A -> F A) (f_B : B -> F B)
+           (m : A -> B) :=
+  forall a a', eq_A a a' -> eq_F eq_B (f_B (m a)) (fmap m (f_A a')).
+
+End CoAlgebra.
+
+Module Type FinalCoAlgebraSig (F : FunctorSig).
+Import F.
+Module CA := CoAlgebra F.
+Parameter nu_F : Type.
+Parameter eq_nu_F : relation nu_F.
+Parameter f_nu : nu_F -> F nu_F.
+Parameter f_nu_morphism : CA.morphism eq_nu_F (eq_F eq_nu_F) f_nu.
+Parameter ana : forall A, (A -> F A) -> A -> nu_F.
+Parameter ana_morphism :
+  forall A (eq_A : relation A) (f_A : A -> F A),
+    CA.coalgebra eq_A f_A ->
+    CA.morphism eq_A eq_nu_F (ana f_A).
+Parameter ana_ca_morphism :
+  forall A (eq_A : relation A) (f_A : A -> F A),
+    CA.coalgebra eq_A f_A ->
+    CA.ca_morphism eq_A eq_nu_F f_A f_nu (ana f_A).
+Parameter ana_universal :
+  forall A (eq_A : relation A)
+         (Refl_A : Reflexive eq_A) (Sym_A : Symmetric eq_A)
+         (f_A : A -> F A)
+         (m : A -> nu_F),
+    CA.coalgebra eq_A f_A ->
+    CA.morphism eq_A eq_nu_F m ->
+    CA.ca_morphism eq_A eq_nu_F f_A f_nu m ->
+    forall a a', eq_A a a' -> eq_nu_F (m a) (ana f_A a').
+End FinalCoAlgebraSig.

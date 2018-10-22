@@ -17,11 +17,14 @@
    A basic theory of final coalgebras is in the module
    [ITree.CoAlgebra]. *)
 
+From Coq Require Import
+     Relations RelationClasses ProofIrrelevance.
+
 From ExtLib.Structures Require Import
      Functor Applicative Monad.
 
 From ITree Require Import
-     CoAlgebra Effect.
+     CoAlgebra Effect Eq.Eq.
 
 From ITree Require ITree.
 
@@ -76,6 +79,15 @@ Inductive eq {E : Effect} {R : Type} (St1 St2 : Type)
 Global Instance Functor_output {E R} : Functor (output E R) := {|
   fmap _ _ := map;
 |}.
+
+Module Functor <: CoAlgebra.FunctorSig.
+Parameter E : Effect.
+Parameter R : Type.
+Definition F : Type -> Type := output E R.
+Instance Functor_F : Functor F := Functor_output.
+Definition eq_F {St} : relation St -> relation (output E R St) :=
+  fun eq_St => eq eq_St.
+End Functor.
 
 End Output.
 
@@ -181,3 +193,128 @@ Definition from_itree {E R} (t : ITree.itree E R) : machine E R :=
           end).
 
 End ITreeEquivalence.
+
+(* ITree as the final [output]-coalgebra. *)
+Module ITreeFinalCoAlgebra <: FinalCoAlgebraSig (Output.Functor).
+Import Output.Functor.
+Module CA := CoAlgebra (Output.Functor).
+
+Definition nu_F : Type := ITree.itree E R.
+
+Definition eq_nu_F : relation nu_F := eq_itree.
+
+Definition f_nu : nu_F -> F nu_F := fun t =>
+  match t with
+  | ITree.Ret r => Ret r
+  | ITree.Tau t' => Tau t'
+  | ITree.Vis e k => Vis e k
+  end.
+
+Definition f_nu' : F nu_F -> nu_F := fun t =>
+  match t with
+  | Ret r => ITree.Ret r
+  | Tau t' => ITree.Tau t'
+  | Vis e k => ITree.Vis e k
+  end.
+
+Lemma f_nu_morphism : CA.morphism eq_nu_F (eq_F eq_nu_F) f_nu.
+Proof.
+  intros a a' Eaa'; inversion Eaa'; constructor; auto.
+Qed.
+
+Definition ana {A} (f_A : A -> F A) :=
+  cofix ana (a : A) :=
+    match f_A a with
+    | Ret r => ITree.Ret r
+    | Tau a' => ITree.Tau (ana a')
+    | Vis e k => ITree.Vis e (fun x => ana (k x))
+    end.
+(* cofix ana a := f_nu' (Output.map ana (f_A a)) *)
+
+Lemma ana_morphism A (eq_A : relation A) (f_A : A -> F A)
+      (f_A_coalgebra : CA.coalgebra eq_A f_A) :
+  CA.morphism eq_A eq_nu_F (ana f_A).
+Proof.
+  cofix self.
+  intros a a' Eaa'.
+  rewrite (ITree.match_itree (ana _ a)).
+  rewrite (ITree.match_itree (ana _ a')).
+  simpl.
+  specialize (f_A_coalgebra a a' Eaa').
+  inversion f_A_coalgebra; constructor.
+  - apply self; auto.
+  - intro x; apply self; auto.
+Qed.
+
+Lemma ana_ca_morphism A (eq_A : relation A) (f_A : A -> F A)
+      (f_A_coalgebra : CA.coalgebra eq_A f_A) :
+  CA.ca_morphism eq_A eq_nu_F f_A f_nu (ana f_A).
+Proof.
+  intros a a' Eaa'.
+  simpl.
+  unfold Output.map.
+  unfold Output.bind.
+  pose proof (f_A_coalgebra a a' Eaa') as fac.
+  inversion fac; constructor.
+  - apply (ana_morphism f_A_coalgebra); auto.
+  - intro x. apply (ana_morphism f_A_coalgebra); auto.
+Qed.
+
+Lemma ana_universal' A (eq_A : relation A)
+      (Refl_A : Reflexive eq_A) (Sym_A : Symmetric eq_A)
+      (f_A : A -> F A)
+      (m : A -> nu_F)
+      (f_A_coalgebra : CA.coalgebra eq_A f_A)
+      (m_morphism : CA.morphism eq_A eq_nu_F m)
+      (m_ca_morphism : CA.ca_morphism eq_A eq_nu_F f_A f_nu m) :
+  forall (a a' : A) (Eaa' : eq_A a a') n,
+    eq_nu_F n (m a) ->
+    eq_nu_F n (ana f_A a').
+Proof.
+  cofix self.
+  intros a a' Eaa' n Hn.
+  unfold CA.morphism in m_morphism.
+  rewrite (ITree.match_itree (ana _ _)).
+  simpl.
+  pose proof (f_A_coalgebra a a' Eaa') as faa'.
+  specialize (m_ca_morphism a a' Eaa').
+  symmetry in Eaa'.
+  pose proof (f_A_coalgebra a' a Eaa') as fa'a.
+  destruct (m a);
+    inversion Hn;
+    destruct (f_A a');
+    inversion m_ca_morphism;
+    destruct (f_A a);
+    inversion faa';
+    inversion fa'a;
+    subst; constructor.
+  - eapply self; eauto.
+    etransitivity; eauto.
+    etransitivity; eauto.
+  - intro y.
+    inversion m_ca_morphism.
+    repeat match goal with
+           | [ H : existT _ _ _ = existT _ _ _ |- _ ] =>
+             apply inj_pair2 in H
+           | [H : _ |- _ ] => specialize (H y)
+           end; subst.
+    eapply self; eauto.
+    etransitivity; eauto.
+    etransitivity; eauto.
+Qed.
+
+Lemma ana_universal A (eq_A : relation A)
+      (Refl_A : Reflexive eq_A) (Sym_A : Symmetric eq_A)
+      (f_A : A -> F A)
+      (m : A -> nu_F)
+      (f_A_coalgebra : CA.coalgebra eq_A f_A)
+      (m_morphism : CA.morphism eq_A eq_nu_F m)
+      (m_ca_morphism : CA.ca_morphism eq_A eq_nu_F f_A f_nu m) :
+  forall (a a' : A) (Eaa' : eq_A a a'),
+    eq_nu_F (m a) (ana f_A a').
+Proof.
+  intros.
+  eapply ana_universal'; eauto.
+Qed.
+
+End ITreeFinalCoAlgebra.
