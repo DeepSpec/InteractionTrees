@@ -154,21 +154,6 @@ Record ca_morphism (A B : coalgebra) := {
 Infix "~~>" := ca_morphism (at level 40) : cat_scope.
 End CoAlgebra.
 
-(*
-
-Definition morphism (A B : Type) (eq_A : relation A) (eq_B : relation B)
-           (m : A -> B) :=
-  forall a a', eq_A a a' -> eq_B (m a) (m a').
-
-Definition coalgebra (A : Type) (eq_A : relation A)
-           (f_A : A -> F A) := morphism eq_A (eq_F eq_A) f_A.
-
-Definition ca_morphism (A B : Type) (eq_A : relation A) (eq_B : relation B)
-           (f_A : A -> F A) (f_B : B -> F B)
-           (m : A -> B) :=
-  forall a a', eq_A a a' -> eq_F eq_B (f_B (m a)) (fmap m (f_A a')).
-*)
-
 Module Type FinalCoAlgebra (Cat : Category) (Fun : EndoFunctor Cat).
 Import Cat Fun.
 Module Import CA := CoAlgebra Cat Fun.
