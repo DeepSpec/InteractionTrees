@@ -108,14 +108,53 @@ Proof.
 Abort.
 *)
 
-Module Type FunctorSig.
-Parameter F : Type -> Type.
-Declare Instance Functor_F : Functor F.
-Parameter eq_F : forall A, relation A -> relation (F A).
-End FunctorSig.
+Module Type Category.
+Parameter object : Type.
+Parameter arrow : object -> object -> Type.
+Delimit Scope cat_scope with cat.
+Open Scope cat.
+Infix "-->" := arrow (at level 40) : cat_scope.
+Parameter eq_arrow : forall A B,
+    (A --> B) -> (A --> B) -> Prop.
+Parameter compose : forall A B C,
+    (A --> B) -> (B --> C) -> (A --> C).
+Infix "*" := compose : cat_scope.
+Infix "=~" := eq_arrow (at level 60) : cat_scope.
+Parameter id : forall A, A --> A.
+Parameter left_id : forall A B (a : A --> B), id * a =~ a.
+Parameter right_id : forall A B (a : A --> B), a * id =~ a.
+Parameter compose_assoc :
+  forall A B C D
+         (a : A --> B) (b : B --> C) (c : C --> D),
+    (a * b) * c =~ a * (b * c).
+End Category.
 
-Module CoAlgebra (F : FunctorSig).
-Import F.
+Module Type EndoFunctor (Cat : Category).
+Import Cat.
+Parameter F : object -> object.
+Parameter F_map : forall A B, (A --> B) -> (F A --> F B).
+Parameter F_id : forall A, F_map (@id A) =~ id.
+Parameter F_compose : forall A B C (a : A --> B) (b : B --> C),
+    F_map (a * b) =~ F_map a * F_map b.
+End EndoFunctor.
+
+Module CoAlgebra (Cat : Category) (Fun : EndoFunctor Cat).
+Import Cat Fun.
+
+Record coalgebra : Type := {
+  carrier :> object;
+  ops : carrier --> F carrier;
+}.
+
+Record ca_morphism (A B : coalgebra) := {
+  morphism :> A --> B;
+  comm : ops A * F_map morphism =~ morphism * ops B;
+}.
+
+Infix "~~>" := ca_morphism (at level 40) : cat_scope.
+End CoAlgebra.
+
+(*
 
 Definition morphism (A B : Type) (eq_A : relation A) (eq_B : relation B)
            (m : A -> B) :=
@@ -128,32 +167,76 @@ Definition ca_morphism (A B : Type) (eq_A : relation A) (eq_B : relation B)
            (f_A : A -> F A) (f_B : B -> F B)
            (m : A -> B) :=
   forall a a', eq_A a a' -> eq_F eq_B (f_B (m a)) (fmap m (f_A a')).
+*)
 
-End CoAlgebra.
+Module Type FinalCoAlgebra (Cat : Category) (Fun : EndoFunctor Cat).
+Import Cat Fun.
+Module Import CA := CoAlgebra Cat Fun.
+Parameter nu_F : coalgebra.
+Parameter ana : forall (A : coalgebra), A ~~> nu_F.
+Parameter ana_final : forall A (m : A ~~> nu_F), m =~ ana.
+End FinalCoAlgebra.
 
-Module Type FinalCoAlgebraSig (F : FunctorSig).
-Import F.
-Module CA := CoAlgebra F.
-Parameter nu_F : Type.
-Parameter eq_nu_F : relation nu_F.
-Parameter f_nu : nu_F -> F nu_F.
-Parameter f_nu_morphism : CA.morphism eq_nu_F (eq_F eq_nu_F) f_nu.
-Parameter ana : forall A, (A -> F A) -> A -> nu_F.
-Parameter ana_morphism :
-  forall A (eq_A : relation A) (f_A : A -> F A),
-    CA.coalgebra eq_A f_A ->
-    CA.morphism eq_A eq_nu_F (ana f_A).
-Parameter ana_ca_morphism :
-  forall A (eq_A : relation A) (f_A : A -> F A),
-    CA.coalgebra eq_A f_A ->
-    CA.ca_morphism eq_A eq_nu_F f_A f_nu (ana f_A).
-Parameter ana_universal :
-  forall A (eq_A : relation A)
-         (Refl_A : Reflexive eq_A) (Sym_A : Symmetric eq_A)
-         (f_A : A -> F A)
-         (m : A -> nu_F),
-    CA.coalgebra eq_A f_A ->
-    CA.morphism eq_A eq_nu_F m ->
-    CA.ca_morphism eq_A eq_nu_F f_A f_nu m ->
-    forall a a', eq_A a a' -> eq_nu_F (m a) (ana f_A a').
-End FinalCoAlgebraSig.
+Module SetoidCategory <: Category.
+
+Module Import Types.
+
+Record object : Type := {
+  carrier :> Type;
+  equiv : relation carrier;
+  equiv_equiv : Equivalence equiv;
+}.
+
+Notation "a == b" := (equiv _ a b) (at level 50).
+
+Record arrow (A B : object) : Type := {
+  apply :> A -> B;
+  equiv_apply : forall a a' : A, a == a' -> apply a == apply a';
+}.
+
+End Types.
+
+Definition object := object.
+Definition arrow := arrow.
+
+Delimit Scope cat_scope with cat.
+Open Scope cat.
+Infix "-->" := arrow (at level 40) : cat_scope.
+
+Definition eq_arrow (A B : object)
+           (f : A --> B) (g : A --> B) : Prop :=
+  forall a a', a == a' -> f a == g a'.
+
+Definition compose (A B C : object)
+           (f : A --> B) (g : B --> C) : A --> C := {|
+    apply := fun a => g (f a);
+    equiv_apply := fun _ _ Eaa' =>
+      equiv_apply _ _ _ (equiv_apply _ _ _ Eaa');
+  |}.
+
+Infix "*" := compose : cat_scope.
+Infix "=~" := eq_arrow (at level 60) : cat_scope.
+
+Definition id A : A --> A := {|
+    apply := fun a => a;
+    equiv_apply := fun _ _ Eaa' => Eaa';
+  |}.
+
+Lemma left_id A B (a : A --> B) : id * a =~ a.
+Proof.
+  intros x x'; simpl; apply a; auto.
+Qed.
+
+Lemma right_id A B (a : A --> B) : a * id =~ a.
+Proof.
+  intros x x'; simpl; apply a; auto.
+Qed.
+
+Lemma compose_assoc A B C D
+      (a : A --> B) (b : B --> C) (c : C --> D) :
+    (a * b) * c =~ a * (b * c).
+Proof.
+  intros x x' Exx'; simpl; apply c, b, a; auto.
+Qed.
+
+End SetoidCategory.

@@ -80,13 +80,64 @@ Global Instance Functor_output {E R} : Functor (output E R) := {|
   fmap _ _ := map;
 |}.
 
-Module Functor <: CoAlgebra.FunctorSig.
+Module Functor <: CoAlgebra.EndoFunctor CoAlgebra.SetoidCategory.
+Import CoAlgebra.SetoidCategory CoAlgebra.SetoidCategory.Types.
+
 Parameter E : Effect.
 Parameter R : Type.
-Definition F : Type -> Type := output E R.
-Instance Functor_F : Functor F := Functor_output.
+
 Definition eq_F {St} : relation St -> relation (output E R St) :=
   fun eq_St => eq eq_St.
+
+Ltac inj_pairs :=
+  repeat (
+    match goal with
+    | [ H : existT _ _ _ = existT _ _ _ |- _ ] =>
+      apply inj_pair2 in H
+    end; subst).
+
+Instance Equivalence_eq St (eq_St : relation St)
+         `{Equivalence _ eq_St} :
+  Equivalence (eq eq_St : relation (output E R St)).
+Proof.
+  constructor.
+  - intros []; constructor; reflexivity.
+  - intros [] [] E; inversion E; subst; inj_pairs;
+      constructor; intros; symmetry; auto.
+  - intros [] [] [] E1 E2; inversion E1; subst; inj_pairs;
+      inversion E2; subst; inj_pairs;
+        constructor; intros; etransitivity;
+        eauto.
+Qed.
+
+Canonical Structure F (St : object) : object := {|
+    carrier := output E R (carrier St);
+    equiv := eq_F (equiv St);
+    equiv_equiv := @Equivalence_eq _ _ (equiv_equiv St);
+  |}.
+
+Lemma equiv_map A B (a : A --> B) (x x' : F A) :
+  x == x' -> map a x == map a x'.
+Proof.
+  intros []; constructor; intros; apply a; auto.
+Qed.
+
+Definition F_map A B (a : A --> B) : F A --> F B := {|
+    apply := map (apply a);
+    equiv_apply := @equiv_map _ _ _;
+  |}.
+
+Lemma F_id A : F_map (@id A) =~ id.
+Proof.
+  intros x x' []; simpl; constructor; auto.
+Qed.
+
+Lemma F_compose A B C (a : A --> B) (b : B --> C) :
+  F_map (a * b) =~ F_map a * F_map b.
+Proof.
+  intros x x' []; simpl; constructor; intros; apply b, a; auto.
+Qed.
+
 End Functor.
 
 End Output.
@@ -195,34 +246,55 @@ Definition from_itree {E R} (t : ITree.itree E R) : machine E R :=
 End ITreeEquivalence.
 
 (* ITree as the final [output]-coalgebra. *)
-Module ITreeFinalCoAlgebra <: FinalCoAlgebraSig (Output.Functor).
-Import Output.Functor.
-Module CA := CoAlgebra (Output.Functor).
+Module ITreeFinalCoAlgebra <:
+  FinalCoAlgebra SetoidCategory Output.Functor.
+Import SetoidCategory Output.Functor.
+Module Import CA := CoAlgebra SetoidCategory Output.Functor.
 
-Definition nu_F : Type := ITree.itree E R.
+Section Object.
+Import Types.
 
-Definition eq_nu_F : relation nu_F := eq_itree.
+Canonical Structure nu_F_obj : object := {|
+    carrier := ITree.itree E R;
+  |}.
 
-Definition f_nu : nu_F -> F nu_F := fun t =>
-  match t with
-  | ITree.Ret r => Ret r
-  | ITree.Tau t' => Tau t'
-  | ITree.Vis e k => Vis e k
-  end.
+Definition f_nu_apply : nu_F_obj -> F nu_F_obj :=
+  fun t =>
+    match t with
+    | ITree.Ret r => Ret r
+    | ITree.Tau t' => Tau t'
+    | ITree.Vis e k => Vis e k
+    end.
 
-Definition f_nu' : F nu_F -> nu_F := fun t =>
+Definition f_nu_apply' : F nu_F_obj -> nu_F_obj := fun t =>
   match t with
   | Ret r => ITree.Ret r
   | Tau t' => ITree.Tau t'
   | Vis e k => ITree.Vis e k
   end.
 
-Lemma f_nu_morphism : CA.morphism eq_nu_F (eq_F eq_nu_F) f_nu.
+Lemma equiv_f_nu (a a' : nu_F_obj) :
+  a == a' -> f_nu_apply a == f_nu_apply a'.
 Proof.
-  intros a a' Eaa'; inversion Eaa'; constructor; auto.
+  intros []; constructor; auto.
 Qed.
 
-Definition ana {A} (f_A : A -> F A) :=
+Definition f_nu : nu_F_obj --> F nu_F_obj := {|
+    apply := f_nu_apply;
+    equiv_apply := equiv_f_nu;
+  |}.
+
+End Object.
+
+Definition nu_F : coalgebra := {|
+    carrier := nu_F_obj;
+    ops := f_nu;
+  |}.
+
+Section Ana.
+Import Types.
+
+Definition ana_apply (A : object) (f_A : A -> F A) :=
   cofix ana (a : A) :=
     match f_A a with
     | Ret r => ITree.Ret r
@@ -231,90 +303,96 @@ Definition ana {A} (f_A : A -> F A) :=
     end.
 (* cofix ana a := f_nu' (Output.map ana (f_A a)) *)
 
-Lemma ana_morphism A (eq_A : relation A) (f_A : A -> F A)
-      (f_A_coalgebra : CA.coalgebra eq_A f_A) :
-  CA.morphism eq_A eq_nu_F (ana f_A).
+Lemma equiv_ana_apply (A : coalgebra) :
+  forall a a',
+    a == a' -> ana_apply (ops A) a == ana_apply (ops A) a'.
 Proof.
   cofix self.
   intros a a' Eaa'.
-  rewrite (ITree.match_itree (ana _ a)).
-  rewrite (ITree.match_itree (ana _ a')).
+  rewrite (ITree.match_itree (ana_apply _ a)).
+  rewrite (ITree.match_itree (ana_apply _ a')).
   simpl.
-  specialize (f_A_coalgebra a a' Eaa').
-  inversion f_A_coalgebra; constructor.
+  pose proof (equiv_apply (ops A) a a' Eaa') as equiv.
+  inversion equiv; constructor.
   - apply self; auto.
   - intro x; apply self; auto.
 Qed.
 
-Lemma ana_ca_morphism A (eq_A : relation A) (f_A : A -> F A)
-      (f_A_coalgebra : CA.coalgebra eq_A f_A) :
-  CA.ca_morphism eq_A eq_nu_F f_A f_nu (ana f_A).
+Definition ana_morphism (A : coalgebra) :
+  CA.carrier A --> CA.carrier nu_F := {|
+    apply := ana_apply _;
+    equiv_apply := equiv_ana_apply _;
+  |}.
+
+Lemma comm_ana_morphism (A : coalgebra) :
+      ops A * F_map (ana_morphism A) =~ ana_morphism A * ops nu_F.
 Proof.
   intros a a' Eaa'.
   simpl.
   unfold Output.map.
   unfold Output.bind.
-  pose proof (f_A_coalgebra a a' Eaa') as fac.
+  pose proof (equiv_apply (ops A) a a' Eaa') as fac.
   inversion fac; constructor.
-  - apply (ana_morphism f_A_coalgebra); auto.
-  - intro x. apply (ana_morphism f_A_coalgebra); auto.
+  - apply (ana_morphism A); auto.
+  - intro x. apply (ana_morphism A); auto.
 Qed.
 
-Lemma ana_universal' A (eq_A : relation A)
-      (Refl_A : Reflexive eq_A) (Sym_A : Symmetric eq_A)
-      (f_A : A -> F A)
-      (m : A -> nu_F)
-      (f_A_coalgebra : CA.coalgebra eq_A f_A)
-      (m_morphism : CA.morphism eq_A eq_nu_F m)
-      (m_ca_morphism : CA.ca_morphism eq_A eq_nu_F f_A f_nu m) :
-  forall (a a' : A) (Eaa' : eq_A a a') n,
-    eq_nu_F n (m a) ->
-    eq_nu_F n (ana f_A a').
+Definition ana (A : coalgebra) : A ~~> nu_F := {|
+    morphism := ana_morphism A;
+    comm := comm_ana_morphism A;
+  |}.
+
+Lemma ana_final' (A : coalgebra) (m : A ~~> nu_F) :
+  forall (a a' : CA.carrier A) (Eaa' : a == a') n,
+    n == morphism m a ->
+    n == morphism ana a'.
 Proof.
   cofix self.
   intros a a' Eaa' n Hn.
-  unfold CA.morphism in m_morphism.
-  rewrite (ITree.match_itree (ana _ _)).
+  pose proof (equiv_apply (morphism m)) as m_morphism.
+  rewrite (ITree.match_itree (morphism ana _)).
   simpl.
-  pose proof (f_A_coalgebra a a' Eaa') as faa'.
-  specialize (m_ca_morphism a a' Eaa').
+  pose proof (equiv_apply (ops A) a a' Eaa') as faa'.
+  pose proof (comm m a a' Eaa') as m_ca_morphism.
+  pose proof (equiv_equiv (CA.carrier A)) as EquivA.
+  pose proof (m_morphism _ _ Eaa') as Emaa'.
+  simpl in *.
   symmetry in Eaa'.
-  pose proof (f_A_coalgebra a' a Eaa') as fa'a.
-  destruct (m a);
-    inversion Hn;
-    destruct (f_A a');
-    inversion m_ca_morphism;
-    destruct (f_A a);
+  pose proof (equiv_apply (ops A) a' a Eaa') as fa'a.
+  simpl in *. unfold Output.map, Output.bind in *. simpl in *.
+  destruct (ops A a');
+    destruct (ops A a);
     inversion faa';
     inversion fa'a;
-    subst; constructor.
+    destruct (@apply _ nu_F_obj (morphism m) a);
+    inversion Hn;
+    destruct (@apply _ nu_F_obj (morphism m) a'); simpl in *;
+    inversion Emaa';
+    inversion m_ca_morphism;
+    inj_pairs;
+    constructor.
   - eapply self; eauto.
     etransitivity; eauto.
     etransitivity; eauto.
+    symmetry; auto.
   - intro y.
     inversion m_ca_morphism.
+    inversion Emaa'.
+    inj_pairs;
     repeat match goal with
-           | [ H : existT _ _ _ = existT _ _ _ |- _ ] =>
-             apply inj_pair2 in H
            | [H : _ |- _ ] => specialize (H y)
            end; subst.
     eapply self; eauto.
     etransitivity; eauto.
     etransitivity; eauto.
+    symmetry; auto.
 Qed.
 
-Lemma ana_universal A (eq_A : relation A)
-      (Refl_A : Reflexive eq_A) (Sym_A : Symmetric eq_A)
-      (f_A : A -> F A)
-      (m : A -> nu_F)
-      (f_A_coalgebra : CA.coalgebra eq_A f_A)
-      (m_morphism : CA.morphism eq_A eq_nu_F m)
-      (m_ca_morphism : CA.ca_morphism eq_A eq_nu_F f_A f_nu m) :
-  forall (a a' : A) (Eaa' : eq_A a a'),
-    eq_nu_F (m a) (ana f_A a').
+Lemma ana_final A (m : A ~~> nu_F) : m =~ ana.
 Proof.
-  intros.
-  eapply ana_universal'; eauto.
+  intros a a' Eaa'; eapply ana_final'; eauto. reflexivity.
 Qed.
+
+End Ana.
 
 End ITreeFinalCoAlgebra.
