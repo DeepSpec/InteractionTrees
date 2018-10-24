@@ -49,8 +49,8 @@ Section bind.
     | Vis e h => Vis e (fun x => bind (h x))
     end.
 
-  CoFixpoint bind' : itree E T -> itree E U :=
-    bind_match bind'.
+  CoFixpoint bind' (t : itree E T) : itree E U :=
+    bind_match bind' t.
 
 End bind.
 
