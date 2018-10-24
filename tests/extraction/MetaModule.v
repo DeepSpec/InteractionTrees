@@ -7,5 +7,4 @@ Module Type Dummy.
 End Dummy.
 
 Module ITree : Dummy := ITree.
-Module MutFix : Dummy := MutFix.
-
+(* Module MutFix : Dummy := MutFix. *) (* TODO: uncomment this (this currently runs into an extraction bug) *)
