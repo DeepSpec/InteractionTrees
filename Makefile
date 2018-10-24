@@ -13,13 +13,18 @@ install: Makefile.coq all
 uninstall: Makefile.coq
 	$(MAKE) -f $< $@
 
-examples: example-imp example-lc
+examples: example-imp example-lc example-io
 
 example-imp: examples/Imp.v
 	coqc -Q theories/ ITree examples/Imp.v
 
 example-lc: examples/stlc.v
 	coqc -Q theories/ ITree examples/stlc.v
+
+example-io: examples/IO.v
+	cd examples && \
+	  coqc -Q ../theories/ ITree IO.v && \
+	  ocamlbuild io.native && ./io.native
 
 Makefile.coq: _CoqProject
 	coq_makefile -f _CoqProject -o Makefile.coq
