@@ -177,10 +177,7 @@ Lemma reflexive_eutt_0 eutt t :
   Reflexive eutt -> notau t -> eutt_0 eutt t t.
 Proof.
   intros Hrefl Ht.
-  destruct t.
-  + constructor.
-  + inversion Ht.
-  + constructor; auto.
+  destruct t; inversion Ht + constructor; auto.
 Qed.
 
 (* [eutt] is an equivalence relation. *)
@@ -250,7 +247,7 @@ Proof.
     specialize (H12 _ _ H1 H2).
     specialize (H23 _ _ H2 H3).
     inversion H12.
-    + subst. inversion H23. constructor.
+    + subst. now inversion H23.
     + subst. eapply eutt_0_inj_Vis in H23.
       destruct H23 as [ k' [ ? ? ] ].
       subst.
@@ -277,10 +274,11 @@ Lemma unalltaus_equiv (t t' : itree E R) : unalltaus t t' -> t ~ t'.
 Proof.
   intros H.
   pfold. split.
-  - apply unalltaus_finite_taus; assumption.
+  - now apply unalltaus_finite_taus.
   - destruct H. induction H0.
-    + intros t1' t2' H1 H2. apply IHuntaus.
-      apply unalltaus_tau; assumption. assumption.
+    + intros t1' t2' H1 H2.
+      apply IHuntaus; auto.
+      now apply unalltaus_tau.
     + intros t1' t2' H1 H2.
       rewrite (unalltaus_injective _ _ _ H1 H2).
       apply reflexive_eutt_0.
@@ -306,9 +304,9 @@ Proof.
   generalize dependent t.
   induction Hunalltaus; intros t' Etf;
     rewrite match_bind in Etf; destruct t'; inversion Etf;
-    try (apply finite_taus_notau; constructor).
+    try now apply finite_taus_notau.
   - apply finite_taus_Tau.
-    apply IHHunalltaus; auto.
+    now apply IHHunalltaus.
   - subst tf'; inversion Hnotau.
 Qed.
 
@@ -345,8 +343,7 @@ Qed.
 Lemma notau_bind {E R S} t (k : R -> itree E S) :
   notau (t >>= k) -> notau t.
 Proof.
-  rewrite match_bind.
-  destruct t; constructor + contradiction.
+  rewrite match_bind; now destruct t.
 Qed.
 
 Lemma unalltaus_bind {E R S} (t : itree E R) (k : R -> itree E S) tk' :
@@ -362,8 +359,7 @@ Proof.
     + exists (Ret r). split.
       * do 2 constructor.
       * rewrite match_bind; simpl; rewrite <- Etk'.
-        rewrite unalltaus_tau.
-        split; auto.
+        now rewrite unalltaus_tau.
     + edestruct IHHunalltaus as [t2 [Ht2 Htk2]]; eauto.
       eexists; split; eauto.
       rewrite unalltaus_tau; auto.
@@ -380,8 +376,7 @@ Proof.
   intros t1 t2 Ht Hk.
   pfold.
   split.
-  - split; apply finite_taus_bind; auto;
-      intros; symmetry; auto.
+  - split; now apply finite_taus_bind.
   - intros tk1' tk2' H1' H2'.
     pose proof (unalltaus_bind _ _ _ H1') as [t1' [Ht1 Htk1]].
     pose proof (unalltaus_bind _ _ _ H2') as [t2' [Ht2 Htk2]].
@@ -395,7 +390,7 @@ Proof.
       destruct Hk as [_ Hk].
       eapply monotone_eutt_0; eauto.
       intros ? ? [ | []].
-      left; eapply paco2_mon; eauto; intros ? ? [].
+      now left; eapply paco2_mon; eauto.
     + rewrite match_bind in Htk1;
         destruct Htk1 as [Hnotau1 Huntau1]; inversion Huntau1.
       rewrite match_bind in Htk2;
