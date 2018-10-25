@@ -63,7 +63,9 @@ Qed.
 
 Hint Resolve monotone_eutt_ : paco.
 
-Definition eutt := paco2 eutt_ bot2.
+Definition eutt : relation (itree E R) := paco2 eutt_ bot2.
+
+Global Arguments eutt t1%itree t2%itree.
 
 Infix "~" := eutt
   (at level 80).
@@ -379,7 +381,7 @@ Proof.
   pfold.
   split.
   - split; apply finite_taus_bind; auto;
-      intros; apply Symmetric_eutt; auto.
+      intros; symmetry; auto.
   - intros tk1' tk2' H1' H2'.
     pose proof (untaus_bind _ _ _ H1') as [t1' [Ht1 Htk1]].
     pose proof (untaus_bind _ _ _ H2') as [t2' [Ht2 Htk2]].
