@@ -13,18 +13,33 @@ Require Import ExtLib.Structures.Functor.
 Definition eff_hom (E E' : Effect) : Type :=
   forall e : E, itree E' (reaction e).
 
-(* An `eff_hom` can be used to transport itrees between different effects.
+Definition interp_match {E F R}
+           (f : eff_hom E F) (hom : itree E R -> itree F R)
+           (t : itree E R) :=
+  match t with
+  | Ret r => Ret r
+  | Vis e k => bind (f e) (fun x => Tau (hom (k x)))
+  | Tau t' => Tau (hom t')
+  end.
+
+(* An `eff_hom` can be used to transport itrees between different
+   effects.
  *)
+(* N.B.: the guardedness of this definition relies on implementation
+   details of [bind]. *)
 Definition interp {E F : Effect}
            (f : eff_hom E F) (R : Type)
 : itree E R -> itree F R :=
-  cofix hom_f t :=
-    match t with
-    | Ret r => Ret r
-    | Vis e k => bind (f e) (fun x => Tau (hom_f (k x)))
-    | Tau t => Tau (hom_f t)
-    end.
+  cofix hom_f t := interp_match f hom_f t.
 Arguments interp {E F} _ [R] _.
+
+Lemma match_interp {E F R} {f : eff_hom E F} (t : itree E R) :
+  interp f t = interp_match f (fun t' => interp f t') t.
+Proof.
+  rewrite (match_itree (interp _ _)).
+  simpl; rewrite <- match_itree.
+  reflexivity.
+Qed.
 
 (* * Effects form a category
  * The objects are effects: i.e. `Type -> Type`

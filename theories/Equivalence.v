@@ -7,10 +7,13 @@ Require Import ExtLib.Structures.Monad.
 
 Require Import ITree.ITree.
 
+Lemma iff_or_and {P Q : Prop} :
+  P <-> Q -> P \/ Q -> P /\ Q.
+Proof. firstorder. Qed.
+
 Section EUTT.
 
-Variable E : Effect.
-Variable R : Type.
+Context {E : Effect} {R : Type}.
 
 Inductive eutt_0 (eutt : relation (itree E R)) :
   relation (itree E R) :=
@@ -20,9 +23,9 @@ Inductive eutt_0 (eutt : relation (itree E R)) :
     eutt_0 eutt (Vis e k1) (Vis e k2).
 Hint Constructors eutt_0.
 
-Inductive untaus' t' : itree E R -> Prop :=
-| OneTau : forall t, untaus' t' t -> untaus' t' (Tau t)
-| NoTau : untaus' t' t'
+Inductive untaus t' : itree E R -> Prop :=
+| OneTau : forall t, untaus t' t -> untaus t' (Tau t)
+| NoTau : untaus t' t'
 .
 
 Definition notau (t : itree E R) :=
@@ -31,16 +34,16 @@ Definition notau (t : itree E R) :=
   | _ => True
   end.
 
-Definition untaus t t' := notau t' /\ untaus' t' t.
+Definition unalltaus t t' := notau t' /\ untaus t' t.
 
-Definition finite_taus t := exists t', untaus t t'.
+Definition finite_taus t := exists t', unalltaus t t'.
 
 Definition is_spin (t : itree E R) := t = spin.
 
 Definition eutt_ eutt : relation _ := fun t1 t2 =>
   (finite_taus t1 <-> finite_taus t2) /\
   forall t1' t2',
-    untaus t1 t1' -> untaus t2 t2' ->
+    unalltaus t1 t1' -> unalltaus t2 t2' ->
     eutt_0 eutt t1' t2'.
 
 Lemma monotone_eutt_0 : monotone2 eutt_0.
@@ -60,15 +63,24 @@ Qed.
 
 Hint Resolve monotone_eutt_ : paco.
 
-Definition eutt := paco2 eutt_ bot2.
+Definition eutt : relation (itree E R) := paco2 eutt_ bot2.
+
+Global Arguments eutt t1%itree t2%itree.
 
 Infix "~" := eutt
   (at level 80).
 
 (**)
 
-Lemma untaus_injective : forall t t1 t2,
-    untaus t t1 -> untaus t t2 -> t2 = t1.
+Lemma notau_unalltaus (t : itree E R) : notau t -> unalltaus t t.
+Proof. split; [ auto | constructor ]. Qed.
+
+Lemma unalltaus_untaus (t t' : itree E R) :
+  unalltaus t t' -> untaus t' t.
+Proof. firstorder. Qed.
+
+Lemma unalltaus_injective : forall t t1 t2,
+    unalltaus t t1 -> unalltaus t t2 -> t2 = t1.
 Proof.
   intros t t1 t2 [I1 H1] [I2 H2].
   induction H1 as [t1_ H1 IH1| ];
@@ -76,29 +88,139 @@ Proof.
       subst; contradiction.
 Qed.
 
-Lemma untaus_notau : forall t t', ~untaus t (Tau t').
+Lemma unalltaus_notau : forall t t', ~unalltaus t (Tau t').
 Proof.
   intros t t' [I H]; auto.
 Qed.
 
-Definition reflexive_eutt : reflexive _ eutt.
+Lemma unalltaus_tau (t1 t2 : itree E R) :
+  unalltaus (Tau t1) t2 <-> unalltaus t1 t2.
 Proof.
-  pcofix reflexive_eutt.
-  intro t.
-  pfold.
+  split; intros [I1 H1].
+  - inversion H1; subst.
+    + split; assumption.
+    + inversion I1.
+  - split; [ | apply OneTau ]; assumption.
+Qed.
+
+Lemma finite_taus_notau (t : itree E R) : notau t -> finite_taus t.
+Proof.
+  eexists; split; [ eauto | econstructor ].
+Qed.
+
+Lemma notau_finite_taus (t : itree E R) : notau t -> finite_taus t.
+Proof.
+  exists t. split. assumption. constructor.
+Qed.
+
+Lemma finite_taus_Ret (r : R) : finite_taus (Ret r).
+Proof.
+  apply finite_taus_notau; constructor.
+Qed.
+
+Lemma finite_taus_Vis (e : E) (k : reaction e -> itree E R) :
+  finite_taus (Vis e k).
+Proof.
+  apply finite_taus_notau; constructor.
+Qed.
+
+Lemma finite_taus_Tau (t : itree E R) :
+    finite_taus (Tau t) <-> finite_taus t.
+Proof.
+  split; intros [t' [I1 H1]].
+  - inversion H1; subst.
+    + exists t'; split; assumption.
+    + inversion I1.
+  - exists t'; split; [ | apply OneTau ]; assumption.
+Qed.
+
+Lemma untaus_finite_taus (t t' : itree E R) :
+    untaus t t' -> (finite_taus t <-> finite_taus t').
+Proof.
+  induction 1.
+  - rewrite finite_taus_Tau; assumption.
+  - reflexivity.
+Qed.
+
+Lemma unalltaus_finite_taus (t t' : itree E R) :
+    unalltaus t t' -> (finite_taus t <-> finite_taus t').
+Proof.
+  intros []. symmetry. apply untaus_finite_taus; assumption.
+Qed.
+
+(**)
+
+Lemma eutt_finite_taus (t1 t2 : itree E R) :
+  t1 ~ t2 -> finite_taus t1 <-> finite_taus t2.
+Proof. intro H; punfold H; apply H. Qed.
+
+Lemma eutt_unalltaus_1 (t1 t2 : itree E R) :
+  t1 ~ t2 -> finite_taus t1 ->
+  exists t1' t2',
+    unalltaus t1 t1' /\ unalltaus t2 t2' /\ eutt_0 eutt t1' t2'.
+Proof.
+  intros Heutt Ht1. punfold Heutt.
+  destruct Heutt as [Hfinite Heutt0].
+  assert (Ht2 : finite_taus t2).
+  { apply Hfinite; auto. }
+  destruct Ht1 as [t1' Ht1'].
+  destruct Ht2 as [t2' Ht2'].
+  exists t1'.
+  exists t2'.
+  do 2 (split; auto).
+  eapply monotone_eutt_0; eauto.
+  (* No idea what's going on. Paco magic *)
+  intros ? ? PR; pfold. destruct PR; [ punfold H | inversion H ].
+Qed.
+
+Lemma reflexive_eutt_0 eutt t :
+  Reflexive eutt -> notau t -> eutt_0 eutt t t.
+Proof.
+  intros Hrefl Ht.
+  destruct t; inversion Ht; auto.
+Qed.
+
+(**)
+
+Lemma unalltaus_notau_id t t' :
+  unalltaus t t' -> notau t -> t' = t.
+Proof. now intros [? []]. Qed.
+
+Lemma eutt_Vis_ (r : relation (itree E R)) e k1 k2 :
+  (forall x, r (k1 x) (k2 x)) -> eutt_ r (Vis e k1) (Vis e k2).
+Proof.
+  split.
+  - split; intros; now apply notau_finite_taus.
+  - intros t1' t2' H1 H2.
+    apply unalltaus_notau_id in H1; [ | constructor ].
+    apply unalltaus_notau_id in H2; [ | constructor ].
+    now subst; constructor.
+Qed.
+
+Lemma Reflexive_eutt_ (r : relation (itree E R)) t :
+  (forall t', r t' t') -> eutt_ r t t.
+Proof.
   split.
   - reflexivity.
   - intros t1 t2 H1 H2.
-    erewrite (untaus_injective _ _ _ H1 H2).
-    destruct t1.
-    + constructor.
-    + destruct (untaus_notau _ _ H1).
-    + constructor; auto.
+    erewrite (unalltaus_injective _ _ _ H1 H2).
+    apply reflexive_eutt_0; auto.
+    firstorder.
 Qed.
 
-Lemma symmetric_eutt : symmetric _ eutt.
+(* [eutt] is an equivalence relation. *)
+
+Global Instance Reflexive_eutt : Reflexive eutt.
 Proof.
-  pcofix symmetric_eutt.
+  pcofix Reflexive_eutt.
+  intro t.
+  pfold.
+  apply Reflexive_eutt_; auto.
+Qed.
+
+Global Instance Symmetric_eutt : Symmetric eutt.
+Proof.
+  pcofix Symmetric_eutt.
   intros t1 t2 H12.
   punfold H12.
   pfold.
@@ -132,9 +254,9 @@ Proof.
   eexists; split. reflexivity. assumption.
 Defined.
 
-Definition transitive_eutt : transitive _ eutt.
+Global Instance Transitive_eutt : Transitive eutt.
 Proof.
-  pcofix transitive_eutt.
+  pcofix Transitive_eutt.
   intros t1 t2 t3 H12 H23.
   punfold H12.
   punfold H23.
@@ -148,204 +270,170 @@ Proof.
     specialize (H12 _ _ H1 H2).
     specialize (H23 _ _ H2 H3).
     inversion H12.
-    + subst. inversion H23. constructor.
+    + subst. now inversion H23.
     + subst. eapply eutt_0_inj_Vis in H23.
       destruct H23 as [ k' [ ? ? ] ].
       subst.
       constructor.
       * intro x.
         specialize (H x); specialize (H4 x); pclearbot.
-        right; eapply transitive_eutt; eauto.
+        right; eapply Transitive_eutt; eauto.
+Qed.
+
+Lemma equiv_tau (t : itree E R) : Tau t ~ t.
+Proof.
+  pfold.
+  split.
+  - apply finite_taus_Tau.
+  - intros t1' t2' H1 H2.
+    rewrite unalltaus_tau in H1.
+    pose proof (unalltaus_injective _ _ _ H1 H2); subst.
+    apply reflexive_eutt_0.
+    { left; apply Reflexive_eutt. }
+    { apply H1. }
+Qed.
+
+Lemma unalltaus_equiv (t t' : itree E R) : unalltaus t t' -> t ~ t'.
+Proof.
+  intros H.
+  pfold. split.
+  - now apply unalltaus_finite_taus.
+  - destruct H. induction H0.
+    + intros t1' t2' H1 H2.
+      apply IHuntaus; auto.
+      now apply unalltaus_tau.
+    + intros t1' t2' H1 H2.
+      rewrite (unalltaus_injective _ _ _ H1 H2).
+      apply reflexive_eutt_0.
+      { left; apply Reflexive_eutt. }
+      { apply H1. }
 Qed.
 
 End EUTT.
 
-Arguments finite_taus {E R}.
-Arguments untaus {E R}.
 Hint Resolve monotone_eutt_0 : paco.
 Hint Resolve monotone_eutt_ : paco.
-Infix "~" := (@eutt _ _) (at level 80).
+Infix "~" := eutt (at level 80).
 
-Add Parametric Relation E R : (itree E R) (eutt _ _)
-  reflexivity proved by (reflexive_eutt _ _)
-  symmetry proved by (symmetric_eutt _ _)
-  transitivity proved by (transitive_eutt _ _)
+Add Parametric Relation E R : (itree E R) eutt
     as eutt_equiv.
 
-Lemma bind_tau : forall {E R S} (t : itree E R) (f : R -> itree E S) ,
-    bind (Tau t) f = Tau (bind t f).
+Lemma finite_taus_bind_fst {E R S}
+      (t : itree E R) (f : R -> itree E S) :
+  finite_taus (t >>= f) -> finite_taus t.
 Proof.
-  intros E R S t f.
-  rewrite match_itree at 1.
-  reflexivity.
-Qed.
-
-
-(*
-Lemma finite_taus_bind_inv1 : forall {E R S} (t : itree E R) (f : R -> itree E S),
-    finite_taus (bind t f) -> finite_taus t.
-Proof.
-  intros E R S t f H.
-  unfold finite_taus in *.
-  destruct H as [t' [I1 H1]].
-  remember (bind t f) as u eqn:Heq.
+  intros [tf' [Hnotau Hunalltaus]].
+  remember (t >>= f)%itree as tf eqn:Etf.
   generalize dependent t.
-  induction H1; intros t1 Heq.
-  - rewrite bind_def in Heq. destruct t1; inversion Heq; subst.
-    + exists (Ret r). split. simpl. auto. apply NoTau.
-    + destruct (@IHuntaus' t1 eq_refl).
-      exists x. destruct H as [Hx1 Hx2].
-      split. assumption. apply OneTau. assumption.
-  - subst.
-    rewrite bind_def in I1.
-    destruct t1; simpl in *.
-    + inversion I1.
-    + exists (Vis e k). split. simpl; auto. apply NoTau.
-    + inversion I1.
-Qed.
-*)
-
-Lemma finite_taus_tau1: forall (E : Effect) (R : Type) (t : itree E R),
-    finite_taus t -> finite_taus (Tau t).
-Proof.
-  intros E R t H.
-  destruct H as [t' [I1 H1]].
-  exists t'. split. assumption. apply OneTau. assumption.
+  induction Hunalltaus; intros t' Etf;
+    rewrite match_bind in Etf; destruct t'; inversion Etf;
+    try now apply finite_taus_notau.
+  - apply finite_taus_Tau.
+    now apply IHHunalltaus.
+  - subst tf'; inversion Hnotau.
 Qed.
 
-Lemma finite_taus_tau2: forall (E : Effect) (R : Type) (t : itree E R),
-    finite_taus (Tau t) -> finite_taus t.
+Lemma finite_taus_bind_unalltaus {E R S}
+      (t t' : itree E R) (k : R -> itree E S) :
+  untaus t' t ->
+  finite_taus (t >>= k) <-> finite_taus (t' >>= k).
 Proof.
-  intros E R t H.
-  destruct H as [t' [I1 H1]].
-  inversion H1.
-  - subst. exists t'. split; assumption.
-  - subst. inversion I1.
-Qed.
-
-Lemma untaus_tau_tau1 : forall (E : Effect) (R : Type) (t1 t2 : itree E R),
-    untaus t1 t2 -> untaus (Tau t1) t2.
-Proof.
-  intros E R t1 t2 H.
-  destruct H as [I1 H1].
-  split.
-  - assumption.
-  - apply OneTau. assumption.
-Qed.
-
-Lemma untaus_tau_tau2 : forall (E : Effect) (R : Type) (t1 t2 : itree E R),
-    untaus (Tau t1) t2 -> untaus t1 t2.
-Proof.
-  intros E R t1 t2 H.
-  destruct H as [I1 H1].
-  inversion H1; subst.
-  - split. assumption. assumption.
-  - inversion I1.
-Qed.
-
-Lemma notau_finite_taus : forall (E : Effect) (R : Type) (t : itree E R),
-    notau E R t -> finite_taus t.
-Proof.
-  intros E R t H. exists t. split. assumption. constructor.
-Qed.
-
-Lemma untaus'_finite_taus : forall (E : Effect) (R : Type) (t t' : itree E R),
-    untaus' E R t t' -> (finite_taus t <-> finite_taus t').
-Proof.
-  intros E R t t' H. induction H.
-  - intuition. apply finite_taus_tau1; assumption.
-    apply finite_taus_tau2 in H2. auto.
+  induction 1.
+  - rewrite (match_bind (Tau _)); simpl.
+    rewrite finite_taus_Tau; auto.
   - reflexivity.
 Qed.
 
-Lemma untaus_finite_taus :  forall (E : Effect) (R : Type) (t t' : itree E R),
-    untaus t t' -> (finite_taus t <-> finite_taus t').
+Lemma finite_taus_bind {E R S}
+      (t1 t2 : itree E R) (k1 k2 : R -> itree E S) :
+    t1 ~ t2 -> (forall x, k1 x ~ k2 x) ->
+    finite_taus (t1 >>= k1) -> finite_taus (t2 >>= k2).
 Proof.
-  intros E R t t' [H1 H2]. symmetry. apply untaus'_finite_taus; assumption.
+  intros Ht Hk Hfin.
+  destruct (eutt_unalltaus_1 t1 t2) as [t1' [t2' [Ht1' [Ht2' Ht12']]]].
+  { auto. }
+  { eapply finite_taus_bind_fst; eauto. }
+  rewrite finite_taus_bind_unalltaus
+    by eauto using unalltaus_untaus.
+  rewrite finite_taus_bind_unalltaus in Hfin
+    by eauto using unalltaus_untaus.
+  rewrite match_bind in Hfin; rewrite match_bind.
+  inversion Ht12'; subst; simpl in *.
+  - rewrite <- eutt_finite_taus; eauto.
+  - apply finite_taus_notau; constructor.
 Qed.
 
-Lemma equiv_tau1 : forall (E : Effect) (R : Type) (t1 t2 : itree E R),
-    Tau t1 ~ t2 -> t1 ~ t2.
+Lemma notau_bind {E R S} t (k : R -> itree E S) :
+  notau (t >>= k) -> notau t.
 Proof.
-  intros E R.
-  intros t1 t2 H.
+  rewrite match_bind; now destruct t.
+Qed.
+
+Lemma unalltaus_bind {E R S} (t : itree E R) (k : R -> itree E S) tk' :
+  unalltaus (t >>= k) tk' ->
+  (exists t', unalltaus t t' /\ unalltaus (t' >>= k) tk').
+Proof.
+  intros [Hnotau Hunalltaus].
+  remember (t >>= k)%itree as tk eqn:Etk.
+  generalize dependent t.
+  induction Hunalltaus; intros t' Etk'; subst.
+  - rewrite match_bind in Etk'.
+    destruct t'; simpl in Etk'; inversion Etk'; subst.
+    + exists (Ret r). split.
+      * do 2 constructor.
+      * rewrite match_bind; simpl; rewrite <- Etk'.
+        now rewrite unalltaus_tau.
+    + edestruct IHHunalltaus as [t2 [Ht2 Htk2]]; eauto.
+      eexists; split; eauto.
+      rewrite unalltaus_tau; auto.
+  - exists t'. split.
+    + eapply notau_unalltaus, notau_bind; eauto.
+    + apply notau_unalltaus; auto.
+Qed.
+
+Lemma eutt_bind {E R S} (t1 t2 : itree E R) (k1 k2 : R -> itree E S) :
+    t1 ~ t2 -> (forall x, k1 x ~ k2 x) -> (t1 >>= k1) ~ (t2 >>= k2).
+Proof.
+  revert t1 t2.
+  pcofix eutt_bind.
+  intros t1 t2 Ht Hk.
   pfold.
-  pinversion H.
   split.
-  - split.
-    + intros. apply H0. apply finite_taus_tau1. assumption.
-    + intros. apply finite_taus_tau2. apply H0. assumption.
-  - intros t1' t2' H2 H3.
-    eapply H1.
-    + apply untaus_tau_tau1. assumption.
-    + assumption.
+  - split; now apply finite_taus_bind.
+  - intros tk1' tk2' H1' H2'.
+    pose proof (unalltaus_bind _ _ _ H1') as [t1' [Ht1 Htk1]].
+    pose proof (unalltaus_bind _ _ _ H2') as [t2' [Ht2 Htk2]].
+    punfold Ht.
+    destruct Ht as [_ Ht].
+    destruct (Ht _ _ Ht1 Ht2).
+    + rewrite match_bind in Htk1; rewrite match_bind in Htk2;
+        simpl in *.
+      specialize (Hk r0).
+      punfold Hk.
+      destruct Hk as [_ Hk].
+      eapply monotone_eutt_0; eauto.
+      intros ? ? [ | []].
+      now left; eapply paco2_mon; eauto.
+    + rewrite match_bind in Htk1;
+        destruct Htk1 as [Hnotau1 Huntau1]; inversion Huntau1.
+      rewrite match_bind in Htk2;
+        destruct Htk2 as [Hnotau2 Huntau2]; inversion Huntau2.
+      constructor.
+      intro x. right. apply eutt_bind; auto.
+      destruct (H x) as [ | []]; auto.
 Qed.
 
-Lemma equiv_tau2 : forall (E : Effect) (R : Type) (t1 t2 : itree E R),
-    t1 ~ t2 -> Tau t1 ~ t2.
+(* Failed naive attempt *)
+Lemma eutt_bind_bind_fail {E R S T}
+      (t : itree E R) (k : R -> itree E S) (h : S -> itree E T) :
+    (t >>= k >>= h) ~ (t >>= fun r => k r >>= h)%itree.
 Proof.
-  intros E R.
-  intros t1 t2 H.
-  pfold.
-  pinversion H.
-  split.
-  - split.
-    + intros. apply H0. apply finite_taus_tau2. assumption.
-    + intros. apply finite_taus_tau1. apply H0. assumption.
-  - intros t1' t2' H2 H3.
-    eapply H1.
-    + apply untaus_tau_tau2. assumption.
-    + assumption.
-Qed.
-
-Lemma untaus_equiv : forall (E : Effect) (R : Type) (t t' : itree E R),
-    untaus t t' -> t ~ t'.
-Proof.
-  intros E R t t' H.
-  pfold. split.
-  - apply untaus_finite_taus; assumption.
-  - destruct H. induction H0.
-    + intros t1' t2' H1 H2. apply IHuntaus'.
-      apply untaus_tau_tau2; assumption. assumption.
-    + intros t1' t2' H1 H2.
-      rewrite (untaus_injective _ _ _ _ _ H1 H2).
-      destruct t1'.
-      * constructor.
-      * destruct (untaus_notau _ _ _ _ H1).
-      * do 2 constructor. apply reflexive_eutt.
-Qed.
-
-Lemma finite_taus_equiv : forall (E : Effect) (R : Type) (t1 t2 : itree E R),
-    t1 ~ t2 -> finite_taus t1 -> finite_taus t2.
-Proof.
-  intros E R t1 t2 H1 H2.
-  destruct H2 as [t1' [I H]].
-  generalize dependent t2.
-  induction H; intros t2 H1.
-  - apply IHuntaus'. apply equiv_tau1. assumption.
-  - pinversion H1.
-    apply H.
-    destruct t1'.
-    + exists (Ret r). split. simpl; auto. apply NoTau.
-    + inversion I.
-    + exists (Vis e k). split. simpl; auto. apply NoTau.
-Qed.
-
-(*
-Lemma finite_taus_bind : forall E R S (t1 t2 : itree E R) (f : R -> itree E S),
-    t1 ~ t2 -> finite_taus (bind t1 f) -> finite_taus (bind t2 f).
-Proof.
-  intros E R S t1 t2 f Hequiv Hfin.
-  assert (finite_taus t1). eapply finite_taus_bind_inv1. apply Hfin.
-  assert (finite_taus t2). eapply finite_taus_equiv; eauto.
-Admitted.
-
-
-
-
-
-Lemma eutt_bind_hom1 : forall {E R S} (t1 t2 : itree E R) (f : R -> itree E S),
-    t1 ~ t2 -> (bind t1 f) ~ (bind t2 f).
-Proof.
-Admitted.
-*)
+  revert t; pcofix eutt_bind_bind; intros t.
+  do 2 rewrite (match_bind t).
+  destruct t; simpl.
+  - now eapply paco2_mon; [ eapply Reflexive_eutt | ].
+  - rewrite (match_bind (Tau _)); simpl. admit. (* Stuck? *)
+  - rewrite (match_bind (Vis _ _)); simpl.
+    pfold.
+    apply eutt_Vis_; auto.
+Abort.
