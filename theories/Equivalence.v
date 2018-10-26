@@ -422,3 +422,18 @@ Proof.
       intro x. right. apply eutt_bind; auto.
       destruct (H x) as [ | []]; auto.
 Qed.
+
+(* Failed naive attempt *)
+Lemma eutt_bind_bind_fail {E R S T}
+      (t : itree E R) (k : R -> itree E S) (h : S -> itree E T) :
+    (t >>= k >>= h) ~ (t >>= fun r => k r >>= h)%itree.
+Proof.
+  revert t; pcofix eutt_bind_bind; intros t.
+  do 2 rewrite (match_bind t).
+  destruct t; simpl.
+  - now eapply paco2_mon; [ eapply Reflexive_eutt | ].
+  - rewrite (match_bind (Tau _)); simpl. admit. (* Stuck? *)
+  - rewrite (match_bind (Vis _ _)); simpl.
+    pfold.
+    apply eutt_Vis_; auto.
+Abort.
