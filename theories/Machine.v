@@ -393,6 +393,51 @@ Proof.
   intros a a' Eaa'; eapply ana_final'; eauto. reflexivity.
 Qed.
 
+(* Failed naive attempt. *)
+Lemma ana_final_failed A (m : A ~~> nu_F) : m =~ ana.
+Proof.
+  cofix self.
+  intros a a' Eaa'.
+  pose proof (equiv_apply (morphism m)) as m_morphism.
+  rewrite (ITree.match_itree (morphism ana _)).
+  simpl.
+  pose proof (equiv_apply (ops A) a a' Eaa') as faa'.
+  pose proof (comm m a a' Eaa') as m_ca_morphism.
+  pose proof (equiv_equiv (CA.carrier A)) as EquivA.
+  pose proof (m_morphism _ _ Eaa') as Emaa'.
+  simpl in *.
+  symmetry in Eaa'.
+  pose proof (equiv_apply (ops A) a' a Eaa') as fa'a.
+  simpl in *. unfold Output.map, Output.bind in *. simpl in *.
+  destruct (ops A a');
+    destruct (ops A a);
+    inversion faa';
+    inversion fa'a;
+    destruct (@apply _ nu_F_obj (morphism m) a);
+    destruct (@apply _ nu_F_obj (morphism m) a'); simpl in *;
+    inversion Emaa';
+    inversion m_ca_morphism;
+    inj_pairs;
+    constructor.
+  - subst.
+    etransitivity; eauto.
+    symmetry in H10; etransitivity; eauto.
+    apply self; auto.
+    (* Unguarded: Coinductive hypothesis as an argument
+       to transitivity lemma. *)
+  - intro y.
+    inversion m_ca_morphism.
+    inversion Emaa'.
+    inj_pairs;
+    repeat match goal with
+           | [H : _ |- _ ] => specialize (H y)
+           end; subst.
+    etransitivity; eauto.
+    symmetry in H1; etransitivity; eauto.
+    apply self; auto. (* Unguarded. *)
+(* Fail Qed. *)
+Abort.
+
 End Ana.
 
 End ITreeFinalCoAlgebra.
