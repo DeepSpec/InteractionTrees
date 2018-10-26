@@ -138,7 +138,7 @@ Definition when {E}
 (* Basic facts *)
 
 (* Force [bind] for one step. This has the advantage over
-   [match_itree] of not leaving an extra [id_itree] in the bind
+   [match_itree] of not leaving an extra [id_itree] in the [Ret]
    case.
  *)
 Lemma match_bind {E R S} (t : itree E R) (k : R -> itree E S) :
