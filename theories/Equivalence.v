@@ -177,7 +177,35 @@ Lemma reflexive_eutt_0 eutt t :
   Reflexive eutt -> notau t -> eutt_0 eutt t t.
 Proof.
   intros Hrefl Ht.
-  destruct t; inversion Ht + constructor; auto.
+  destruct t; inversion Ht; auto.
+Qed.
+
+(**)
+
+Lemma unalltaus_notau_id t t' :
+  unalltaus t t' -> notau t -> t' = t.
+Proof. now intros [? []]. Qed.
+
+Lemma eutt_Vis_ (r : relation (itree E R)) e k1 k2 :
+  (forall x, r (k1 x) (k2 x)) -> eutt_ r (Vis e k1) (Vis e k2).
+Proof.
+  split.
+  - split; intros; now apply notau_finite_taus.
+  - intros t1' t2' H1 H2.
+    apply unalltaus_notau_id in H1; [ | constructor ].
+    apply unalltaus_notau_id in H2; [ | constructor ].
+    now subst; constructor.
+Qed.
+
+Lemma Reflexive_eutt_ (r : relation (itree E R)) t :
+  (forall t', r t' t') -> eutt_ r t t.
+Proof.
+  split.
+  - reflexivity.
+  - intros t1 t2 H1 H2.
+    erewrite (unalltaus_injective _ _ _ H1 H2).
+    apply reflexive_eutt_0; auto.
+    firstorder.
 Qed.
 
 (* [eutt] is an equivalence relation. *)
@@ -187,12 +215,7 @@ Proof.
   pcofix Reflexive_eutt.
   intro t.
   pfold.
-  split.
-  - reflexivity.
-  - intros t1 t2 H1 H2.
-    erewrite (unalltaus_injective _ _ _ H1 H2).
-    apply reflexive_eutt_0; auto.
-    firstorder.
+  apply Reflexive_eutt_; auto.
 Qed.
 
 Global Instance Symmetric_eutt : Symmetric eutt.
