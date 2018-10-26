@@ -12,6 +12,7 @@ theories/Machine.v
 
 theories/Equivalence.v
 theories/Morphisms.v
+theories/MorphismsFacts.v
 theories/Fix.v
 theories/UpTo.v
 theories/MutFix.v
