@@ -32,12 +32,96 @@
 ## Yale Version
    - Vilhelm knows something about it...
 
+# Discussions
 
-## Related reading
 
+# Challenges
+- without paco, run into guardedness problems
+
+- CoInductive proofs about interaction trees that use other lemmas. e.g. use
+  transitivity of equivalence in some other lemma
+  - e.g. interp distributes over bind: needs associativity / transitivity of
+  equiv, but can't use it in Paco
+  - potentially addressed by nat-indexing? (see Abishek's)
+  - General question: connection of step indexing with coinduction
+    (where to read more about this?)
+
+# Paper Outline
+
+# Introduction / Motivation
+
+- basic definitions
+   Q:   E : Type -> Type vs. action/reaction style
+
+- McBride's treatment of effects:  _not_ E : Type -> Type, but rather S and
+  S -> Type might be nicer for connecting to trace semantics
+
+- bind / ret
+
+- small example for exposition / comparison
+
+# Effects : Kinds of Interactions
+- examples
+  * state
+  * nondeterminism
+   Q:   internal choice / fork   
+  * failure
+  * IO
+  * Concurrency (??)
+    Q: - Both constructor ?
+     Interleaving
+  * recursion 
+
+- Effect handler composition / algebra 
+
+# Reasoning Principles
+- simulation / eutt
+- laws etc.
+- Paco
+
+##  trace equivalence
+Q: step-indexing ? / unwinding
+
+- Gregory pointed out that the traces from the DeepWeb development can't
+  express effects that "don't return" i.e.
+    Exit : E Void
+
+
+# Comparisons 
+
+- FreeSpec
+  * also a coq library
+  * aimed at low-level hardware/state machines
+
+- Yale "Game" semantics (?)
+
+- Conventional inductive / trace based
+  * extraction / executability ?
+  Q: what is a good experiment we can do?
+
+  * infinite behaviors (e.g. input a nat) work
+    better with itrees (?)
+
+# Extended Example / Application
+to demonstrate programmability
+& applications of reasoning techniques
+
+- Imp + procedures + effects
+  * compiler?
+
+- Nondeterminism and Refinement
+
+- or: Lambda calculus + effects
+  * "standard" PL metatheory
+  * program equivalence / contextual equivalences?
+
+# Related Work
 Freer Monads, More Extensible Effects
 Oleg Kiselyov and Hiromi Ishii
 http://okmij.org/ftp/Haskell/extensible/more.pdf
+
+- point to comment on: performance of the underlying implementation using
+  the "list" representation of continuations
 
 Turing-Completeness Totally Free
 Conor McBride
@@ -56,27 +140,7 @@ Patricia Johann, Alex Simpson and Janis Voigtländer
 http://strathprints.strath.ac.uk/34343/1/genpar.pdf
 
 
-# Discussions
 
-- McBride's treatment of effects:  _not_ E : Type -> Type, but rather S and
-  S -> Type might be nicer for connecting to trace semantics
 
-- Gregory pointed out that the traces from the DeepWeb development can't
-  express effects that "don't return" i.e.
-    Exit : E Void
 
-# Challenges
-- without paco, run into guardedness problems
-
-- CoInductive proofs about interaction trees that use other lemmas. e.g. use
-  transitivity of equivalence in some other lemma
-  - e.g. interp distributes over bind: needs associativity / transitivity of
-  equiv, but can't use it in Paco
-  - potentially addressed by nat-indexing? (see Abishek's)
-  - General question: connection of step indexing with coinduction
-    (where to read more about this?)
-
-# What would make a good ITrees paper?
-- demonstration of programmability + reasoning techniques
-- how does it relate to other techniques?
 
