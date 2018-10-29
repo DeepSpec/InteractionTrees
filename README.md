@@ -25,6 +25,10 @@ git clone https://github.com/DeepSpec/InteractionTrees.git && cd InteractionTree
 
 ```
 opam install coq-paco coq-ext-lib
+git clone https://github.com/aa755/SquiggleEq
+cd SquiggleEq
+make -j5
+make install
 ```
 
 Now you can build the project with:

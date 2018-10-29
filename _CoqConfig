@@ -8,3 +8,6 @@ theories/Fix.v
 theories/UpTo.v
 theories/MutFix.v
 theories/Trace.v
+theories/inversion.v
+theories/natCoind.v
+theories/euttC.v
