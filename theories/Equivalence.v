@@ -1,3 +1,21 @@
+(* Equivalence up to taus *)
+(* We consider tau as an "internal step", that should not be
+   visible to the outside world, so adding or removing [Tau]
+   constructors from an itree should produce an equivalent itree.
+
+   We must be careful because there may be infinite sequences of
+   taus (i.e., [spin]). Here we shall only allow inserting finitely
+   many taus between any two visible steps ([Ret] or [Vis]), so that
+   [spin] is only related to itself. The main consequence of this
+   choice is that equivalence up to taus is an equivalence relation.
+ *)
+
+(* TODO:
+   - relate to Eq.Eq.eq_itree
+   - prove monad laws (see [eutt_bind_bind_fail])
+   - make [eutt] easier to work with ([eutt_bind] is already a mess)
+ *)
+
 Require Import Coq.Classes.RelationClasses.
 Require Import Coq.Setoids.Setoid.
 Require Import Coq.Relations.Relations.
@@ -15,6 +33,9 @@ Section EUTT.
 
 Context {E : Effect} {R : Type}.
 
+(* Equivalence between visible steps of computation (i.e., [Vis] or
+   [Ret], parameterized by a relation [eutt] between continuations
+   in the [Vis] case. *)
 Inductive eutt_0 (eutt : relation (itree E R)) :
   relation (itree E R) :=
 | Eutt_Ret : forall r, eutt_0 eutt (Ret r) (Ret r)
@@ -23,34 +44,54 @@ Inductive eutt_0 (eutt : relation (itree E R)) :
     eutt_0 eutt (Vis e k1) (Vis e k2).
 Hint Constructors eutt_0.
 
+(* [untaus t' t] holds when [t = Tau (... Tau t' ...)]:
+   [t] steps to [t'] by "peeling off" a finite number of [Tau].
+   "Peel off" means to remove only taus at the root of the tree,
+   not any behind a [Vis] step). *)
 Inductive untaus t' : itree E R -> Prop :=
 | OneTau : forall t, untaus t' t -> untaus t' (Tau t)
 | NoTau : untaus t' t'
 .
 
-Definition notau (t : itree E R) :=
+(* [notau t] holds when [t] does not start with a [Tau]. *)
+Definition notau (t : itree E R) : Prop :=
   match t with
   | Tau _ => False
   | _ => True
   end.
 
+(* [unalltaus t t'] holds when [t] steps to [t'] by peeling off
+   all of its taus, of which there must be a finite number. *)
 Definition unalltaus t t' := notau t' /\ untaus t' t.
 
-Definition finite_taus t := exists t', unalltaus t t'.
+(* [finite_taus t] holds when [t] has a finite number of taus
+   to peel. *)
+Definition finite_taus t : Prop := exists t', unalltaus t t'.
 
-Definition is_spin (t : itree E R) := t = spin.
+(* [eutt_ eutt t1 t2] means that, if [t1] or [t2] ever takes a
+   visible step ([Vis] or [Ret]), then the other takes the same
+   step, and the subsequent continuations (in the [Vis] case) are
+   related by [eutt]. In particular, [(t1 = spin)%eq_itree] if
+   and only if [(t2 = spin)%eq_itree]. Note also that in that
+   case, the parameter [eutt] is irrelevant.
 
-Definition eutt_ eutt : relation _ := fun t1 t2 =>
+   This is the relation we will take a fixpoint of. *)
+Definition eutt_ (eutt : relation _) : relation _ := fun t1 t2 =>
   (finite_taus t1 <-> finite_taus t2) /\
   forall t1' t2',
     unalltaus t1 t1' -> unalltaus t2 t2' ->
     eutt_0 eutt t1' t2'.
 
+(* Paco takes the greatest fixpoints of monotone relations. *)
+
+(* [eutt_0] is monotone: if a binary relation [eutt] implies [eutt'],
+   then [eutt_0 eutt] implies [eutt_0 eutt']. *)
 Lemma monotone_eutt_0 : monotone2 eutt_0.
 Proof. pmonauto. Qed.
 
 Hint Resolve monotone_eutt_0 : paco.
 
+(* [eutt_] is monotone. *)
 Lemma monotone_eutt_ : monotone2 eutt_.
 Proof.
   unfold monotone2.
@@ -63,22 +104,41 @@ Qed.
 
 Hint Resolve monotone_eutt_ : paco.
 
+(* We now take the greatest fixpoint of [eutt_]. *)
+
+(* [eutt t1 t2]: [t1] is equivalent to [t2] up to taus. *)
 Definition eutt : relation (itree E R) := paco2 eutt_ bot2.
 
 Global Arguments eutt t1%itree t2%itree.
 
-Infix "~" := eutt
-  (at level 80).
+Delimit Scope eutt_scope with eutt.
+Local Open Scope eutt_scope.
 
-(**)
+Infix "~" := eutt (at level 70) : eutt_scope.
 
+(* Lemmas about the auxiliary relations. *)
+
+(* Many have a name [X_Y] to represent an implication
+   [X _ -> Y _] (possibly with more arguments on either side). *)
+
+(* If a tree [t] does not start with a [Tau], then peeling off
+   all [Tau] does nothing to it. *)
 Lemma notau_unalltaus (t : itree E R) : notau t -> unalltaus t t.
 Proof. split; [ auto | constructor ]. Qed.
 
+(* If [t] does not start with [Tau], removing all [Tau] does
+   nothing. Can be thought of as [notau_unalltaus] composed with
+   [unalltaus_injective] (below). *)
+Lemma unalltaus_notau_id t t' :
+  unalltaus t t' -> notau t -> t' = t.
+Proof. now intros [? []]. Qed.
+
+(* "Peel off all taus" is a special case of "peel off taus". *)
 Lemma unalltaus_untaus (t t' : itree E R) :
   unalltaus t t' -> untaus t' t.
 Proof. firstorder. Qed.
 
+(* There is only one way to peel off all taus. *)
 Lemma unalltaus_injective : forall t t1 t2,
     unalltaus t t1 -> unalltaus t t2 -> t2 = t1.
 Proof.
@@ -88,11 +148,8 @@ Proof.
       subst; contradiction.
 Qed.
 
-Lemma unalltaus_notau : forall t t', ~unalltaus t (Tau t').
-Proof.
-  intros t t' [I H]; auto.
-Qed.
-
+(* Adding a [Tau] to [t1] then peeling them all off produces
+   the same result as peeling them all off from [t1]. *)
 Lemma unalltaus_tau (t1 t2 : itree E R) :
   unalltaus (Tau t1) t2 <-> unalltaus t1 t2.
 Proof.
@@ -103,27 +160,26 @@ Proof.
   - split; [ | apply OneTau ]; assumption.
 Qed.
 
-Lemma finite_taus_notau (t : itree E R) : notau t -> finite_taus t.
-Proof.
-  eexists; split; [ eauto | econstructor ].
-Qed.
-
+(* If [t] does not start with [Tau], then it starts with finitely
+   many [Tau]. *)
 Lemma notau_finite_taus (t : itree E R) : notau t -> finite_taus t.
 Proof.
   exists t. split. assumption. constructor.
 Qed.
 
+(* [Vis] and [Ret] start with no taus, of course. *)
 Lemma finite_taus_Ret (r : R) : finite_taus (Ret r).
 Proof.
-  apply finite_taus_notau; constructor.
+  apply notau_finite_taus; constructor.
 Qed.
 
 Lemma finite_taus_Vis (e : E) (k : reaction e -> itree E R) :
   finite_taus (Vis e k).
 Proof.
-  apply finite_taus_notau; constructor.
+  apply notau_finite_taus; constructor.
 Qed.
 
+(* [finite_taus] is preserved by removing or adding one [Tau]. *)
 Lemma finite_taus_Tau (t : itree E R) :
     finite_taus (Tau t) <-> finite_taus t.
 Proof.
@@ -134,6 +190,8 @@ Proof.
   - exists t'; split; [ | apply OneTau ]; assumption.
 Qed.
 
+(* [finite_taus] is preserved by removing or adding any finite
+   number of [Tau]. *)
 Lemma untaus_finite_taus (t t' : itree E R) :
     untaus t t' -> (finite_taus t <-> finite_taus t').
 Proof.
@@ -142,6 +200,7 @@ Proof.
   - reflexivity.
 Qed.
 
+(* [finite_taus] is preserved by removing all taus. *)
 Lemma unalltaus_finite_taus (t t' : itree E R) :
     unalltaus t t' -> (finite_taus t <-> finite_taus t').
 Proof.
@@ -150,10 +209,15 @@ Qed.
 
 (**)
 
+(* If [t1] and [t2] are equivalent, then either both start with
+   finitely many taus, or both [spin]. *)
 Lemma eutt_finite_taus (t1 t2 : itree E R) :
   t1 ~ t2 -> finite_taus t1 <-> finite_taus t2.
 Proof. intro H; punfold H; apply H. Qed.
 
+(* If [t1] and [t2] are equivalent, and one starts with finitely many
+   taus, then both do, and the peeled off [t1'] and [t2'] take
+   the same visible step. *)
 Lemma eutt_unalltaus_1 (t1 t2 : itree E R) :
   t1 ~ t2 -> finite_taus t1 ->
   exists t1' t2',
@@ -173,6 +237,7 @@ Proof.
   intros ? ? PR; pfold. destruct PR; [ punfold H | inversion H ].
 Qed.
 
+(* Reflexivity of [eutt_0], modulo a few assumptions. *)
 Lemma reflexive_eutt_0 eutt t :
   Reflexive eutt -> notau t -> eutt_0 eutt t t.
 Proof.
@@ -181,10 +246,6 @@ Proof.
 Qed.
 
 (**)
-
-Lemma unalltaus_notau_id t t' :
-  unalltaus t t' -> notau t -> t' = t.
-Proof. now intros [? []]. Qed.
 
 Lemma eutt_Vis_ (r : relation (itree E R)) e k1 k2 :
   (forall x, r (k1 x) (k2 x)) -> eutt_ r (Vis e k1) (Vis e k2).
@@ -237,6 +298,8 @@ Proof.
       auto.
 Qed.
 
+(* Inversion of an [eutt_0] assumption that doesn't produce
+   heterogeneous equalities ([existT _ _ _ = existT _ _ _]). *)
 Lemma eutt_0_inj_Vis : forall rel e (k : reaction e -> itree E R) z,
     eutt_0 rel (Vis e k) z ->
     exists k', z = Vis e k' /\ (forall x, rel (k x) (k' x)).
@@ -280,7 +343,10 @@ Proof.
         right; eapply Transitive_eutt; eauto.
 Qed.
 
-Lemma equiv_tau (t : itree E R) : Tau t ~ t.
+(**)
+
+(* [eutt] is preserved by removing one [Tau]. *)
+Lemma eutt_tau (t : itree E R) : Tau t ~ t.
 Proof.
   pfold.
   split.
@@ -293,7 +359,8 @@ Proof.
     { apply H1. }
 Qed.
 
-Lemma unalltaus_equiv (t t' : itree E R) : unalltaus t t' -> t ~ t'.
+(* [eutt] is preserved by removing all [Tau]. *)
+Lemma unalltaus_eutt (t t' : itree E R) : unalltaus t t' -> t ~ t'.
 Proof.
   intros H.
   pfold. split.
@@ -315,8 +382,11 @@ Hint Resolve monotone_eutt_0 : paco.
 Hint Resolve monotone_eutt_ : paco.
 Infix "~" := eutt (at level 80).
 
+(* We can now rewrite with [eutt] equalities. *)
 Add Parametric Relation E R : (itree E R) eutt
     as eutt_equiv.
+
+(* Lemmas about [bind]. *)
 
 Lemma finite_taus_bind_fst {E R S}
       (t : itree E R) (f : R -> itree E S) :
@@ -327,7 +397,7 @@ Proof.
   generalize dependent t.
   induction Hunalltaus; intros t' Etf;
     rewrite match_bind in Etf; destruct t'; inversion Etf;
-    try now apply finite_taus_notau.
+    try now apply notau_finite_taus.
   - apply finite_taus_Tau.
     now apply IHHunalltaus.
   - subst tf'; inversion Hnotau.
@@ -360,7 +430,7 @@ Proof.
   rewrite match_bind in Hfin; rewrite match_bind.
   inversion Ht12'; subst; simpl in *.
   - rewrite <- eutt_finite_taus; eauto.
-  - apply finite_taus_notau; constructor.
+  - apply notau_finite_taus; constructor.
 Qed.
 
 Lemma notau_bind {E R S} t (k : R -> itree E S) :
@@ -391,6 +461,7 @@ Proof.
     + apply notau_unalltaus; auto.
 Qed.
 
+(* [eutt] is a congruence wrt. [bind] *)
 Lemma eutt_bind {E R S} (t1 t2 : itree E R) (k1 k2 : R -> itree E S) :
     t1 ~ t2 -> (forall x, k1 x ~ k2 x) -> (t1 >>= k1) ~ (t2 >>= k2).
 Proof.
