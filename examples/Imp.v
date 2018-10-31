@@ -50,7 +50,7 @@ Inductive Locals : Type -> Type :=
 | GetVar (x : var) : Locals value
 | SetVar (x : var) (v : value) : Locals unit.
 
-(* the "effect to track errors *)
+(* the "effect" to track errors *)
 Inductive Error : Type -> Type :=
 | RuntimeError (_ : string) : Error Empty_set.
 

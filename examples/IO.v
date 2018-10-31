@@ -1,29 +1,20 @@
 From Coq Require Import Arith.
 From ITree Require Import ITree.
 
-Inductive IO : Type := Read | Write (n : nat).
+Inductive IO : Type -> Type :=
+| Read : IO nat
+| Write : nat -> IO unit.
 
-Definition IO_reaction : IO -> Type := fun e =>
-    match e with
-    | Read => nat
-    | Write _ => unit
-    end.
-
-Canonical Structure IOE : Effect := {|
-  action := IO;
-  reaction := IO_reaction;
-  |}.
-
-Definition example : itree IOE unit :=
+Definition example : itree IO unit :=
   n <- liftE Read;;
-  (liftE (Write n) : itree _ unit).
+  liftE (Write n).
 
 Definition SOME_NUMBER := 13.
 
-Definition test_interp : itree IOE unit -> bool := fun t =>
+Definition test_interp : itree IO unit -> bool := fun t =>
   match t with
   | Vis e k =>
-    match e return (reaction e -> _) -> _ with
+    match e in IO X return (X -> _) -> _ with
     | Read => fun id =>
       match k (id SOME_NUMBER) with
       | Vis (Write n) _ => n =? SOME_NUMBER
