@@ -11,7 +11,7 @@ Require Import ITree.OpenSum.
 Module Type FixSig.
   Section Fix.
     (* the ambient effects *)
-    Context {E : Effect}.
+    Context {E : Type -> Type}.
 
     Context {dom : Type}.
     Variable codom : dom -> Type.
@@ -33,35 +33,30 @@ End FixSig.
 Module FixImpl <: FixSig.
   Section Fix.
     (* the ambient effects *)
-    Variable E : Effect.
+    Variable E : Type -> Type.
 
     Variable dom : Type.
     Variable codom : dom -> Type.
 
     (* the fixpoint effect, used for representing recursive calls *)
-    Variant fixpoint : Type :=
-    | call : forall x : dom, fixpoint.
-
-    Definition fixpointE : Effect := {|
-        action := fixpoint;
-        reaction := fun '(call x) => codom x;
-      |}.
+    Variant fixpoint : Type -> Type :=
+    | call : forall x : dom, fixpoint (codom x).
 
     Section mfix.
       (* this is the body of the fixpoint. *)
-      Variable f : forall x : dom, itree (fixpointE +' E) (codom x).
+      Variable f : forall x : dom, itree (sum1 E fixpoint) (codom x).
 
       Local CoFixpoint homFix {T : Type}
-            (c : itree (fixpointE +' E) T)
+            (c : itree (sum1 E fixpoint) T)
         : itree E T :=
         match c with
         | Ret x => Ret x
-        | Vis e k =>
-          match e return (@reaction (_ +' _) e -> _) -> _ with
-          | inl (call x) => fun k =>
-            Tau (homFix (bind (f x) k))
-          | inr e => fun k =>
-            Vis e (fun x => homFix (k x))
+        | Vis (inl e) k =>
+          Vis e (fun x => homFix (k x))
+        | Vis (inr e) k =>
+          match e in fixpoint X return (X -> _) -> _ with
+          | call x => fun k =>
+                       Tau (homFix (bind (f x) k))
           end k
         | Tau x => Tau (homFix x)
         end.
@@ -69,11 +64,10 @@ Module FixImpl <: FixSig.
       Definition _mfix (x : dom) : itree E (codom x) :=
         homFix (f x).
 
-      Definition eval_fixpoint (x : fixpointE +' E) :
-        itree E (reaction x) :=
-        match x with
-        | inr e => Vis e Ret
-        | inl f0 =>
+      Definition eval_fixpoint T (X : sum1 E fixpoint T) : itree E T :=
+        match X with
+        | inl e => Vis e Ret
+        | inr f0 =>
           match f0 with
           | call x => Tau (_mfix x)
           end
@@ -108,9 +102,9 @@ Module FixImpl <: FixSig.
       Definition mfix
       : forall x : dom, itree E (codom x) :=
         _mfix
-          (body (fixpointE +' E)
-                (fun t => @interp _ _ (fun e => do e) _)
-                (fun x0 : dom => @Vis (fixpointE +' _) _ (inl (call x0)) Ret)).
+          (body (E +' fixpoint)
+                (fun t => @interp _ _ (fun _ e => do e) _)
+                (fun x0 : dom => Vis (inr (call x0)) Ret)).
 
       Theorem mfix_unfold : forall x,
           mfix x = body E (fun t => id) mfix x.

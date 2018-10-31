@@ -10,13 +10,13 @@ From Coq Require Import
      ProofIrrelevance.
 
 From ITree Require Import
-     Effect ITree.
+     ITree.
 
-CoInductive eq_itree {E : Effect} {R} : relation (itree E R) :=
+CoInductive eq_itree {E : Type -> Type} {R} : relation (itree E R) :=
 | EqRet : forall x, eq_itree (Ret x) (Ret x)
 | EqTau : forall m1 m2,
     eq_itree m1 m2 -> eq_itree (Tau m1) (Tau m2)
-| EqVis : forall (e : E) k1 k2,
+| EqVis : forall {u} (e : E u) k1 k2,
     (forall y, eq_itree (k1 y) (k2 y)) ->
     eq_itree (Vis e k1) (Vis e k2)
 .
@@ -45,6 +45,8 @@ Proof.
   - constructor.
   - constructor; eapply self; eauto.
   - apply inj_pair2 in H2.
+    subst.
+    apply inj_pair2 in H3.
     subst.
     constructor.
     intro y'.

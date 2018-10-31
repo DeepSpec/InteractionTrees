@@ -6,10 +6,10 @@ Section mutual_fixpoints.
   Record ftype : Type :=
   { dom : Type
   ; codom : dom -> Type }.
-  Definition ftypeD (eff : Effect) (ft : ftype) : Type :=
+  Definition ftypeD (eff : Type -> Type) (ft : ftype) : Type :=
     forall x : ft.(dom), itree eff (ft.(codom) x).
 
-  Context {eff : Effect}.
+  Context {eff : Type -> Type}.
 
   Context {name : Type}.
   Variable type_of : name -> ftype.

@@ -31,7 +31,7 @@ Proof. firstorder. Qed.
 
 Section EUTT.
 
-Context {E : Effect} {R : Type}.
+Context {E : Type -> Type} {R : Type}.
 
 (* Equivalence between visible steps of computation (i.e., [Vis] or
    [Ret], parameterized by a relation [eutt] between continuations
@@ -39,7 +39,7 @@ Context {E : Effect} {R : Type}.
 Inductive eutt_0 (eutt : relation (itree E R)) :
   relation (itree E R) :=
 | Eutt_Ret : forall r, eutt_0 eutt (Ret r) (Ret r)
-| Eutt_Vis : forall (e : E) k1 k2,
+| Eutt_Vis : forall {u} (e : E u) k1 k2,
     (forall x, eutt (k1 x) (k2 x)) ->
     eutt_0 eutt (Vis e k1) (Vis e k2).
 Hint Constructors eutt_0.
@@ -173,7 +173,7 @@ Proof.
   apply notau_finite_taus; constructor.
 Qed.
 
-Lemma finite_taus_Vis (e : E) (k : reaction e -> itree E R) :
+Lemma finite_taus_Vis {u} (e : E u) (k : u -> itree E R) :
   finite_taus (Vis e k).
 Proof.
   apply notau_finite_taus; constructor.
@@ -247,7 +247,7 @@ Qed.
 
 (**)
 
-Lemma eutt_Vis_ (r : relation (itree E R)) e k1 k2 :
+Lemma eutt_Vis_ {u} (r : relation (itree E R)) (e : _ u) k1 k2 :
   (forall x, r (k1 x) (k2 x)) -> eutt_ r (Vis e k1) (Vis e k2).
 Proof.
   split.
@@ -300,7 +300,7 @@ Qed.
 
 (* Inversion of an [eutt_0] assumption that doesn't produce
    heterogeneous equalities ([existT _ _ _ = existT _ _ _]). *)
-Lemma eutt_0_inj_Vis : forall rel e (k : reaction e -> itree E R) z,
+Lemma eutt_0_inj_Vis : forall {u} rel e (k : u -> itree E R) z,
     eutt_0 rel (Vis e k) z ->
     exists k', z = Vis e k' /\ (forall x, rel (k x) (k' x)).
 Proof.

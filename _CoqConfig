@@ -1,6 +1,5 @@
 -Q theories ITree
 
-theories/Effect.v
 theories/OpenSum.v
 
 theories/ITree.v

@@ -10,15 +10,15 @@ Require Import ITree.ITree.
 Require Import ExtLib.Structures.Functor.
 
 (* * Homomorphisms between effects *)
-Definition eff_hom (E E' : Effect) : Type :=
-  forall e : E, itree E' (reaction e).
+Definition eff_hom (E E' : Type -> Type) : Type :=
+  forall t, E t -> itree E' t.
 
 Definition interp_match {E F R}
            (f : eff_hom E F) (hom : itree E R -> itree F R)
            (t : itree E R) :=
   match t with
   | Ret r => Ret r
-  | Vis e k => bind (f e) (fun x => Tau (hom (k x)))
+  | Vis e k => bind (f _ e) (fun x => Tau (hom (k x)))
   | Tau t' => Tau (hom t')
   end.
 
@@ -27,7 +27,7 @@ Definition interp_match {E F R}
  *)
 (* N.B.: the guardedness of this definition relies on implementation
    details of [bind]. *)
-Definition interp {E F : Effect}
+Definition interp {E F : Type -> Type}
            (f : eff_hom E F) (R : Type)
 : itree E R -> itree F R :=
   cofix hom_f t := interp_match f hom_f t.
@@ -52,19 +52,19 @@ Qed.
  *)
 Definition eh_compose {A B C} (g : eff_hom B C) (f : eff_hom A B)
 : eff_hom A C :=
-  fun e =>
-    interp g (f e).
+  fun _ e =>
+    interp g (f _ e).
 
 Definition eh_id {A} : eff_hom A A :=
-  fun e => Vis e Ret.
+  fun _ e => Vis e Ret.
 
 Section eff_hom_state.
   Variable s : Type.
-  Variable E E' : Effect.
+  Variable E E' : Type -> Type.
 
   (* * Stateful homomorphisms between effects *)
   Definition eff_hom_s : Type :=
-    forall e : E, s -> itree E' (s * reaction e).
+    forall t, E t -> s -> itree E' (s * t).
 
   (* question(gmm): Should we export this using `stateT`? That is,
    *
@@ -79,7 +79,7 @@ Section eff_hom_state.
   : itree E' (s * R) :=
     match t with
     | Ret r => Ret (st, r)
-    | Vis e k => bind (f e st) (fun '(s',x) => Tau (interp_state _ (k x) s'))
+    | Vis e k => bind (f _ e st) (fun '(s',x) => Tau (interp_state _ (k x) s'))
     | Tau t => Tau (interp_state _ t st)
     end.
 End eff_hom_state.
@@ -88,16 +88,16 @@ Arguments interp_state {_ _ _} _ [_] _ _.
 (* * Reader homomorphisms between effects *)
 Section eff_hom_reader.
   Variable s : Type.
-  Variable E E' : Effect.
+  Variable E E' : Type -> Type.
 
   Definition eff_hom_r : Type :=
-    forall e : E, s -> itree E' (reaction e).
+    forall t, E t -> s -> itree E' t.
 
   Variable f : eff_hom_r.
   CoFixpoint interp_reader (R : Type) (t : itree E R) (st : s) : itree E' R :=
     match t with
     | Ret r => Ret r
-    | Vis e k => bind (f e st) (fun x => Tau (interp_reader _ (k x) st))
+    | Vis e k => bind (f _ e st) (fun x => Tau (interp_reader _ (k x) st))
     | Tau t => Tau (interp_reader _ t st)
     end.
 
@@ -110,10 +110,10 @@ Require Import ExtLib.Structures.Monoid.
 (* * Writer homomorphisms between effects *)
 Section eff_hom_writer.
   Variable s : Type.
-  Variable E E' : Effect.
+  Variable E E' : Type -> Type.
 
   Definition eff_hom_w : Type :=
-    forall e : E, itree E' (s * reaction e).
+    forall t, E t -> itree E' (s * t).
 
   Context {Monoid_s : Monoid s}.
   Variable f : eff_hom_w.
@@ -132,7 +132,7 @@ Section eff_hom_writer.
    *)
   Definition interp_writer (R : Type) (t : itree E R) : itree E' (s * R) :=
     interp_state
-      (fun e s => fmap (fun '(s',x) => (monoid_plus Monoid_s s s', x)) (f e))
+      (fun _ e s => fmap (fun '(s',x) => (monoid_plus Monoid_s s s', x)) (f _ e))
       t (monoid_unit Monoid_s).
 
 End eff_hom_writer.
@@ -143,17 +143,17 @@ Arguments interp_writer {_ _ _ _} _ [_] _.
  * This can be useful for non-determinism.
  *)
 Section interp_prop.
-  Context {E F : Effect}.
+  Context {E F : Type -> Type}.
 
   Definition eff_hom_prop : Type :=
-    forall e : E, itree F (reaction e) -> Prop.
+    forall t, E t -> itree F t -> Prop.
 
   CoInductive interp_prop (f : eff_hom_prop) (R : Type)
   : itree E R -> itree F R -> Prop :=
   | ipRet : forall x, interp_prop f R (Ret x) (Ret x)
-  | ipVis : forall {e : E} {e' : itree F (reaction e)}
-              (k : _ -> itree E R) (k' : reaction e -> itree F R),
-      f e e' ->
+  | ipVis : forall {T} {e : E T} {e' : itree F T}
+              (k : _ -> itree E R) (k' : T -> itree F R),
+      f _ e e' ->
       (forall x, interp_prop f R (k x) (k' x)) ->
       interp_prop f R (Vis e k) (bind e' k')
   | ipDelay : forall a b, interp_prop f R a b ->
@@ -165,7 +165,7 @@ Arguments eff_hom_prop _ _ : clear implicits.
 (* * An extensional effect morphism
  *)
 Section eff_hom_e.
-  Context {E F : Effect}.
+  Context {E F : Type -> Type}.
 
   (* note(gmm): you should be able to add effects here
    * using a monad transformer. In that case, the type
@@ -176,14 +176,14 @@ Section eff_hom_e.
    * but you have the usual conditions on strictly positive uses
    *)
   CoInductive eff_hom_e : Type :=
-  { eval : forall e : E, itree F (reaction e * eff_hom_e) }.
+  { eval : forall t, E t -> itree F (t * eff_hom_e) }.
 
   CoFixpoint interp_e (f : eff_hom_e) {t} (tr : itree E t)
   : itree F t :=
     match tr with
     | Ret v => Ret v
     | Vis e k =>
-      bind (f.(eval) e) (fun '(x, f') => Tau (interp_e f' (k x)))
+      bind (f.(eval) _ e) (fun '(x, f') => Tau (interp_e f' (k x)))
     | Tau tr => Tau (interp_e f tr)
     end.
 End eff_hom_e.
