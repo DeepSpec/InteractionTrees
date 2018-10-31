@@ -81,10 +81,10 @@ Section upto.
   : Eff E t :=
     match n with
     | 0 => Unknown
-    | S n => match i with
-            | ITree.Ret t => Ret t
-            | ITree.Vis e k => Vis e (fun x => upto n (k x))
-            | ITree.Tau k => upto n k
+    | S n => match i.(observe) with
+            | ITree.RetF t => Ret t
+            | ITree.VisF e k => Vis e (fun x => upto n (k x))
+            | ITree.TauF k => upto n k
             end
     end.
 
@@ -93,7 +93,7 @@ Section upto.
   Proof.
     induction n; simpl.
     - constructor.
-    - destruct it; try constructor; eauto.
+    - intro it; eapply (itree_rect it); simpl; try constructor; eauto.
   Qed.
 
   Lemma EffLe_upto : forall n t (a : itree E t),
@@ -101,7 +101,7 @@ Section upto.
   Proof.
     induction n; simpl; intros.
     - constructor.
-    - destruct a; try constructor; eauto.
+    - destruct (observe a); try constructor; eauto.
   Qed.
 
   Lemma EffLe_upto_strong

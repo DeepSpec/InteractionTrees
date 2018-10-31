@@ -49,6 +49,7 @@ Module FixImpl <: FixSig.
       Local CoFixpoint homFix {T : Type}
             (c : itree (sum1 E fixpoint) T)
         : itree E T :=
+<<<<<<< HEAD
         match c with
         | Ret x => Ret x
         | Vis (inl e) k =>
@@ -57,8 +58,18 @@ Module FixImpl <: FixSig.
           match e in fixpoint X return (X -> _) -> _ with
           | call x => fun k =>
                        Tau (homFix (bind (f x) k))
+=======
+        match c.(observe) with
+        | RetF x => Ret x
+        | VisF e k =>
+          match e return (@reaction (_ +' _) e -> _) -> _ with
+          | inl (call x) => fun k =>
+            Tau (homFix (bind (f x) k))
+          | inr e => fun k =>
+            Vis e (fun x => homFix (k x))
+>>>>>>> converting itree to a record.
           end k
-        | Tau x => Tau (homFix x)
+        | TauF x => Tau (homFix x)
         end.
 
       Definition _mfix (x : dom) : itree E (codom x) :=

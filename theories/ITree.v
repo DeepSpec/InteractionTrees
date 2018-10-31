@@ -4,35 +4,69 @@ Require Import ExtLib.Structures.Monad.
 
 Set Implicit Arguments.
 Set Contextual Implicit.
+(* note(gmm): this seems to prevent us from doing `destruct t`
+Set Primitive Projections.
+*)
 
-(** An [itree E R] is the denotation of a program as coinductive
+Section itree.
+
+  Context {E : Type -> Type} {R : Type}.
+
+  Inductive itreeF {itree : Type} :=
+  | RetF (r : R)
+  | TauF (t : itree)
+  | VisF {u} (e : E u) (k : u -> itree)
+  .
+  Arguments itreeF _ : clear implicits.
+
+  (** An [itree E R] is the denotation of a program as coinductive
     (possibly infinite) tree where the leaves [Ret] are labeled with
     [R] and every node is either a [Tau] node with one child, or a
     branching node [Vis] with a visible effect [E X] that branches
     on the values of [X]. *)
-CoInductive itree (E : Type -> Type) (R : Type) :=
-| Ret (r : R)
-| Tau (t : itree E R)
-| Vis {X : Type} (e : E X) (k : X -> itree E R)
-.
+  CoInductive itree : Type := do
+  { observe : itreeF itree }.
 
-Arguments Ret {E R}.
-Arguments Tau {E R}.
-Arguments Vis {E R X}.
+  Definition Ret (x : R) : itree := do (RetF x).
+  Definition Vis {u} (e : E u) (k : u -> itree) : itree :=
+    do (VisF e k).
+  Definition Tau (t : itree) : itree := do (TauF t).
 
-(* [id_itree] as a notation makes it easier to
+
+(*
+  Lemma itree_rect (it : itree)
+    : forall (P : itree -> Type),
+      (forall x, P (Ret x)) ->
+      (forall u e k, P (@Vis u e k)) ->
+      (forall t, P (Tau t)) ->
+      P it.
+  Proof.
+    intros.
+    destruct it; destruct observe0; simpl; eauto.
+  Defined.
+
+  (* [id_itree] as a notation makes it easier to
    [rewrite <- match_itree]. *)
-Notation id_itree t :=
-  match t with
-  | Ret r => Ret r
-  | Tau t' => Tau t'
-  | Vis e k => Vis e k
-  end.
+  Notation id_itree t :=
+    match match t with
+          | do o => o
+          end with
+    | RetF r => Ret r
+    | TauF t' => Tau t'
+    | VisF e k => Vis e k
+    end.
 
-Lemma match_itree : forall E R (t : itree E R), t = id_itree t.
-Proof. destruct t; auto. Qed.
+  Lemma match_itree : forall (t : itree), t = id_itree t.
+  Proof.
+    intros. eapply (itree_rect t); simpl; auto.
+  Qed.
+*)
 
-Arguments match_itree {E R} t.
+End itree.
+
+Arguments itree _ _ : clear implicits.
+(* Arguments match_itree {_ _} _.
+*)
 
 Section bind.
   Context {E : Type -> Type} {T U : Type}.
@@ -42,10 +76,10 @@ Section bind.
   Definition bind_match
              (bind : itree E T -> itree E U)
              (c : itree E T) : itree E U :=
-    match c with
-    | Ret r => k r
-    | Tau t => Tau (bind t)
-    | Vis e h => Vis e (fun x => bind (h x))
+    match c.(observe) with
+    | RetF r => k r
+    | TauF t => Tau (bind t)
+    | VisF e h => Vis e (fun x => bind (h x))
     end.
 
   CoFixpoint bind' (t : itree E T) : itree E U :=
@@ -70,10 +104,10 @@ Definition bind {E T U}
 (** Functorial map ([fmap]) *)
 Definition map {E R S} (f : R -> S) : itree E R -> itree E S :=
   cofix go t :=
-    match t with
-    | Ret r => Ret (f r)
-    | Tau t => Tau (go t)
-    | Vis e k => Vis e (fun x => go (k x))
+    match t.(observe) with
+    | RetF r => Ret (f r)
+    | TauF t => Tau (go t)
+    | VisF e k => Vis e (fun x => go (k x))
     end.
 
 (* Sometimes it's more convenient to work without the type classes
@@ -135,6 +169,7 @@ Definition when {E}
            (b : bool) (body : itree E unit) : itree E unit :=
   if b then body else ret tt.
 
+(*
 (* Basic facts *)
 
 (* Force [bind] for one step. This has the advantage over
@@ -144,7 +179,8 @@ Definition when {E}
 Lemma match_bind {E R S} (t : itree E R) (k : R -> itree E S) :
   (t >>= k)%itree = bind_match k (fun t' => bind t' k) t.
 Proof.
-  rewrite (match_itree (bind _ _)); simpl;
-    destruct t; auto.
-  - rewrite <- match_itree; auto.
+  rewrite (@match_itree _ _ (bind _ _)); simpl;
+    eapply (itree_rect t); simpl; eauto.
+  - intros. rewrite <- match_itree. reflexivity.
 Qed.
+*)

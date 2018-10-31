@@ -12,16 +12,26 @@ From Coq Require Import
 From ITree Require Import
      ITree.
 
-CoInductive eq_itree {E : Type -> Type} {R} : relation (itree E R) :=
-| EqRet : forall x, eq_itree (Ret x) (Ret x)
-| EqTau : forall m1 m2,
-    eq_itree m1 m2 -> eq_itree (Tau m1) (Tau m2)
-| EqVis : forall {u} (e : E u) k1 k2,
-    (forall y, eq_itree (k1 y) (k2 y)) ->
-    eq_itree (Vis e k1) (Vis e k2)
-.
+Section eq_itree.
+  Context {E : Type -> Type} {R : Type}.
+
+  Inductive eq_itreeF {t} (sim : t -> t -> Prop) : relation (@itreeF E R t) :=
+  | EqRet : forall x, eq_itreeF sim (RetF x) (RetF x)
+  | EqTau : forall m1 m2,
+      sim m1 m2 -> eq_itreeF sim (TauF m1) (TauF m2)
+  | EqVis : forall {u} (e : E u) k1 k2,
+      (forall y, sim (k1 y) (k2 y)) ->
+      eq_itreeF sim (VisF e k1) (VisF e k2)
+  .
+
+  CoInductive eq_itree (l r : itree E R) : Prop :=
+  { observe_eq : eq_itreeF eq_itree l.(observe) r.(observe) }.
+
+End eq_itree.
+
 
 Delimit Scope eq_itree_scope with eq_itree.
+(* note(gmm): overriding `=` seems like a bad idea *)
 Notation "t1 = t2" := (eq_itree t1%itree t2%itree) : eq_itree_scope.
 
 (* Axiom EqM_eq : forall a b, EqM a b -> a = b. *)
@@ -29,28 +39,45 @@ Notation "t1 = t2" := (eq_itree t1%itree t2%itree) : eq_itree_scope.
 Instance Reflexive_eq_itree {E R} : Reflexive (@eq_itree E R).
 Proof.
   cofix self.
-  intros []; constructor; auto.
+  intro.
+  constructor.
+  destruct (observe x).
+  - constructor.
+  - constructor. eapply self.
+  - constructor. intros. eapply self.
 Qed.
 
 Instance Symmetric_eq_itree {E R} : Symmetric (@eq_itree E R).
 Proof.
   cofix self.
-  intros x y []; constructor; auto.
+  intros x y H.
+  constructor. eapply observe_eq in H.
+  destruct H; constructor.
+  - apply self. assumption.
+  - intros. eapply self. eapply H.
 Qed.
 
 Instance Transitive_eq_itree {E R} : Transitive (@eq_itree E R).
 Proof.
   cofix self.
-  intros x y z [] Hyz; inversion Hyz.
-  - constructor.
-  - constructor; eapply self; eauto.
-  - apply inj_pair2 in H2.
-    subst.
-    apply inj_pair2 in H3.
-    subst.
+  intros x y z; intros.
+  eapply observe_eq in H.
+  eapply observe_eq in H0.
+  constructor.
+  generalize dependent (observe x); generalize dependent (observe y);
+    generalize dependent (observe z).
+  inversion 1; subst.
+  - clear. eauto.
+  - inversion 1. subst.
     constructor.
-    intro y'.
-    eapply self; auto.
+    eapply self. eassumption. eassumption.
+  - inversion 1.
+    subst.
+    eapply inj_pair2 in H5. subst.
+    eapply inj_pair2 in H6. subst.
+    constructor.
+    intros.
+    eapply self. eapply H4. eapply H.
 Qed.
 
 Instance Equivalence_eq_itree {E R} :
@@ -92,9 +119,9 @@ Proof.
   cofix bind_ret.
   intros s.
   rewrite (match_itree (s >>= _)).
-  destruct s; constructor; auto.
-  - apply bind_ret.
-  - intro y. apply bind_ret.
+  eapply (itree_rect s); constructor; auto.
+  - intros; apply bind_ret.
+  - exact (bind_ret t).
 Qed.
 
 Lemma bind_bind {E R S T} :
@@ -107,12 +134,14 @@ Proof.
   cofix bind_bind.
   intros s k h.
   do 2 rewrite (match_bind s).
-  destruct s; simpl; auto.
+  eapply (itree_rect s); simpl; intros.
   - reflexivity.
-  - rewrite (match_bind (Tau _)).
-    constructor. apply bind_bind.
-  - rewrite (match_bind (Vis _ _)).
+  - unfold bind_match. simpl.
+    rewrite (match_bind (Vis _ _)).
     constructor. intro y. apply bind_bind.
+  - unfold bind_match. simpl.
+    rewrite (match_bind (Tau _)).
+    constructor. apply bind_bind.
 Qed.
 
 (*

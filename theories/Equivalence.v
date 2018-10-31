@@ -55,8 +55,8 @@ Inductive untaus t' : itree E R -> Prop :=
 
 (* [notau t] holds when [t] does not start with a [Tau]. *)
 Definition notau (t : itree E R) : Prop :=
-  match t with
-  | Tau _ => False
+  match t.(observe) with
+  | TauF _ => False
   | _ => True
   end.
 
@@ -242,7 +242,9 @@ Lemma reflexive_eutt_0 eutt t :
   Reflexive eutt -> notau t -> eutt_0 eutt t t.
 Proof.
   intros Hrefl Ht.
-  destruct t; inversion Ht; auto.
+  revert Ht.
+  eapply (itree_rect t); simpl; eauto.
+  unfold notau. simpl. tauto.
 Qed.
 
 (**)
@@ -306,8 +308,8 @@ Lemma eutt_0_inj_Vis : forall {u} rel e (k : u -> itree E R) z,
 Proof.
   intros.
   refine match H in eutt_0 _ X Z
-               return match X return Prop with
-                      | Vis e k => _
+               return match X.(observe) return Prop with
+                      | VisF e k => _
                       | _ => True
                       end
          with
@@ -395,11 +397,13 @@ Proof.
   intros [tf' [Hnotau Hunalltaus]].
   remember (t >>= f)%itree as tf eqn:Etf.
   generalize dependent t.
+  (* todo(gmm): this doesn't port well. *)
   induction Hunalltaus; intros t' Etf;
     rewrite match_bind in Etf; destruct t'; inversion Etf;
     try now apply notau_finite_taus.
   - apply finite_taus_Tau.
-    now apply IHHunalltaus.
+    apply IHHunalltaus.
+    unfold bind. unfold bind'. unfold Tau. simpl.
   - subst tf'; inversion Hnotau.
 Qed.
 

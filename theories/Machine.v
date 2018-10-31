@@ -237,10 +237,10 @@ CoFixpoint to_itree {E R} (m : machine E R) : ITree.itree E R :=
 
 Definition from_itree {E R} (t : ITree.itree E R) : machine E R :=
   Nu t (fun t =>
-          match t with
-          | ITree.Ret r => Ret r
-          | ITree.Tau t' => Tau t'
-          | ITree.Vis e k => Vis e k
+          match t.(ITree.observe) with
+          | ITree.RetF r => Ret r
+          | ITree.TauF t' => Tau t'
+          | ITree.VisF e k => Vis e k
           end).
 
 End ITreeEquivalence.
@@ -260,10 +260,10 @@ Canonical Structure nu_F_obj : object := {|
 
 Definition f_nu_apply : nu_F_obj -> F nu_F_obj :=
   fun t =>
-    match t with
-    | ITree.Ret r => Ret r
-    | ITree.Tau t' => Tau t'
-    | ITree.Vis e k => Vis e k
+    match t.(ITree.observe) with
+    | ITree.RetF r => Ret r
+    | ITree.TauF t' => Tau t'
+    | ITree.VisF e k => Vis e k
     end.
 
 Definition f_nu_apply' : F nu_F_obj -> nu_F_obj := fun t =>
@@ -324,6 +324,7 @@ Definition ana_morphism (A : coalgebra) :
     equiv_apply := equiv_ana_apply _;
   |}.
 
+(* note(gmm): i don't understand the definitions that these are built on.
 Lemma comm_ana_morphism (A : coalgebra) :
       ops A * F_map (ana_morphism A) =~ ana_morphism A * ops nu_F.
 Proof.
@@ -332,9 +333,15 @@ Proof.
   unfold Output.map.
   unfold Output.bind.
   pose proof (equiv_apply (ops A) a a' Eaa') as fac.
-  inversion fac; constructor.
+  inversion fac; simpl.
+  - red. simpl. unfold f_nu_apply. unfold ana_apply. simpl.
+    rewrite <- H. simpl. constructor.
+  - Print f_nu_apply. unfold f_nu_apply; simpl.
+    rewrite <- H0. simpl.
+    Print nu_F.
+    Check (ana_morphism A).
+    apply (ana_morphism A _ _ H1); auto.
   - apply (ana_morphism A); auto.
-  - intro x. apply (ana_morphism A); auto.
 Qed.
 
 Definition ana (A : coalgebra) : A ~~> nu_F := {|
@@ -437,7 +444,7 @@ Proof.
     apply self; auto. (* Unguarded. *)
 (* Fail Qed. *)
 Abort.
-
+*)
 End Ana.
 
 End ITreeFinalCoAlgebra.
