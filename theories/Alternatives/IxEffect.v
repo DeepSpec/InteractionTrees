@@ -9,16 +9,19 @@ Set Implicit Arguments.
 Set Contextual Implicit.
 Set Maximal Implicit Insertion.
 
-From ITree Require Effect ITree Morphisms.
+From ITree Require ITree Morphisms.
 
 Module X.
 
 Local Notation IxEffect := (Type -> Type).
+Record RecEffect : Type :=
+{ action : Type
+; reaction : action -> Type }.
 
-CoInductive itree (E : IxEffect) (R : Type) : Type :=
+CoInductive itree (E : RecEffect) (R : Type) : Type :=
 | Ret (r : R)
 | Tau (t : itree E R)
-| Vis (X : Type) (e : E X) (k : X -> itree E R)
+| Vis (e : E.(action)) (k : E.(reaction) e -> itree E R)
 .
 
 (* [id_itree] as a notation makes it easier to
@@ -71,22 +74,22 @@ Proof.
   - rewrite <- match_itree; auto.
 Qed.
 
-Notation "F ~> G" := (forall X, F X -> G X)
+Notation "F ~> G" := (forall x : F.(action), G (F.(reaction) x))
   (at level 80, right associativity).
 
-Definition interp_match {E F : IxEffect} {R}
+Definition interp_match {E F : RecEffect} {R}
            (f : E ~> itree F) (hom : itree E R -> itree F R)
            (t : itree E R) :=
   match t with
   | Ret r => Ret r
-  | Vis e k => bind (f _ e) (fun x => Tau (hom (k x)))
+  | Vis e k => bind (f e) (fun x => Tau (hom (k x)))
   | Tau t' => Tau (hom t')
   end.
 
-Definition interp {E F : IxEffect}
-           (f : E ~> itree F) : itree E ~> itree F :=
+Definition interp {E F : RecEffect}
+           (f : E ~> itree F) : forall t, itree E t -> itree F t :=
   fun _X => cofix hom_f t := interp_match f hom_f t.
-Arguments interp {E F} _ [X] _.
+Arguments interp {E F} _ [_] _.
 
 Lemma match_interp {E F R} {f : E ~> itree F} (t : itree E R) :
   interp f t = interp_match f (fun t' => interp f t') t.
@@ -99,18 +102,16 @@ Qed.
 End X.
 
 Module T.
-Include Effect.
 Include ITree.
 Include Morphisms.
 End T.
 
 Module XT.
-Import Effect.
 Local Notation IxEffect := (Type -> Type).
 
 (* From [Effect] to [IxEffect] *)
-Variant ix (E : Effect) : IxEffect :=
-| MkIx : forall e : E, ix E (reaction e).
+Variant ix (E : X.RecEffect) : IxEffect :=
+| MkIx : forall e : E.(X.action), ix E (E.(X.reaction) e).
 
 Definition xi_action (E : IxEffect) : Type :=
   { X : Type & E X }.
@@ -119,13 +120,13 @@ Definition xi_reaction (E : IxEffect) (e : xi_action E) : Type :=
   projT1 e.
 
 (* From [IxEffect] to [Effect] *)
-Canonical Structure xi (E : Type -> Type) : Effect := {|
-  action := xi_action E;
-  reaction := xi_reaction;
+Canonical Structure xi (E : Type -> Type) : X.RecEffect := {|
+  X.action := xi_action E;
+  X.reaction := xi_reaction;
 |}.
 
 (*         xi ix                   xi  ix *)
-Definition xi_ix (E : Effect) (e : xi (ix E)) : E :=
+Definition xi_ix (E : X.RecEffect) (e : (xi (ix E)).(X.action)) : E.(X.action) :=
   match e with
   | existT _ _ (MkIx e') => e'
   end.
@@ -136,21 +137,21 @@ Definition ix_xi (E : IxEffect) (X : Type) (e : ix (xi E) X) : E X :=
   | MkIx (existT _ _ e') => e'
   end.
 
-CoFixpoint XtoT (E : IxEffect) (R : Type)
-           (t : X.itree E R) : T.itree (xi E) R :=
+CoFixpoint XtoT (E : Type -> Type) (R : Type)
+           (t : ITree.itree E R) : X.itree (xi E) R :=
   match t with
-  | X.Ret r => T.Ret r
-  | X.Tau t => T.Tau (XtoT t)
-  | X.Vis e k => T.Vis (existT _ _ e : xi_action E)
+  | ITree.Ret r => X.Ret r
+  | ITree.Tau t => X.Tau (XtoT t)
+  | ITree.Vis e k => X.Vis (existT _ _ e : xi_action E)
                        (fun x => XtoT (k x))
   end.
 
-CoFixpoint TtoX (E : Effect) (R : Type)
-           (t : T.itree E R) : X.itree (ix E) R :=
+CoFixpoint TtoX (E : X.RecEffect) (R : Type)
+           (t : X.itree E R) : T.itree (ix E) R :=
   match t with
-  | T.Ret r => X.Ret r
-  | T.Tau t => X.Tau (TtoX t)
-  | T.Vis e k => X.Vis (MkIx e)
+  | X.Ret r => T.Ret r
+  | X.Tau t => T.Tau (TtoX t)
+  | X.Vis e k => T.Vis (MkIx e)
                        (fun x => TtoX (k x))
   end.
 
