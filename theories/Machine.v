@@ -24,7 +24,7 @@ From ExtLib.Structures Require Import
      Functor Applicative Monad.
 
 From ITree Require Import
-     CoAlgebra Effect Eq.Eq.
+     CoAlgebra Eq.Eq.
 
 From ITree Require ITree.
 
@@ -32,15 +32,15 @@ Set Implicit Arguments.
 Set Contextual Implicit.
 
 (* [St]: State type ([S] is already used by [nat].) *)
-Variant output (E : Effect) (R : Type) (St : Type) : Type :=
+Variant output (E : Type -> Type) (R : Type) (St : Type) : Type :=
 | Ret : R -> output E R St
 | Tau : St -> output E R St
-| Vis : forall e : E, (reaction e -> St) -> output E R St
+| Vis : forall {u} (e : E u), (u -> St) -> output E R St
 .
 
 Arguments Ret {E R St}.
 Arguments Tau {E R St}.
-Arguments Vis {E R St}.
+Arguments Vis {E R St _}.
 
 Module Output.
 
@@ -64,15 +64,15 @@ Definition map {St1 St2 E R}
   bind f o Ret.
 
 (* Equivalence of outputs, lifting equivalence of states. *)
-Inductive eq {E : Effect} {R : Type} (St1 St2 : Type)
+Inductive eq {E : Type -> Type} {R : Type} (St1 St2 : Type)
           (eq_St : St1 -> St2 -> Prop) :
   output E R St1 -> output E R St2 -> Prop :=
 | eq_Ret : forall r, eq eq_St (Ret r) (Ret r)
 | eq_Tau : forall s1 s2,
     eq_St s1 s2 ->
     eq eq_St (Tau s1) (Tau s2)
-| eq_Vis : forall e k1 k2,
-    (forall x : reaction e, eq_St (k1 x) (k2 x)) ->
+| eq_Vis : forall {u} e k1 k2,
+    (forall x : u, eq_St (k1 x) (k2 x)) ->
     eq eq_St (Vis e k1) (Vis e k2)
 .
 
@@ -83,7 +83,7 @@ Global Instance Functor_output {E R} : Functor (output E R) := {|
 Module Functor <: CoAlgebra.EndoFunctor CoAlgebra.SetoidCategory.
 Import CoAlgebra.SetoidCategory CoAlgebra.SetoidCategory.Types.
 
-Parameter E : Effect.
+Parameter E : Type -> Type.
 Parameter R : Type.
 
 Definition eq_F {St} : relation St -> relation (output E R St) :=
@@ -143,7 +143,7 @@ End Functor.
 End Output.
 
 (* Alternative to [itrees]. *)
-Definition machine (E : Effect) (R : Type) : Type := nu (output E R).
+Definition machine (E : Type -> Type) (R : Type) : Type := nu (output E R).
 
 Module Machine.
 

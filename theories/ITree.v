@@ -1,7 +1,6 @@
-From ExtLib.Structures Require Import
-     Functor Applicative Monad.
-
-From ITree Require Export Effect.
+Require Import ExtLib.Structures.Functor.
+Require Import ExtLib.Structures.Applicative.
+Require Import ExtLib.Structures.Monad.
 
 Set Implicit Arguments.
 Set Contextual Implicit.
@@ -11,15 +10,15 @@ Set Contextual Implicit.
     [R] and every node is either a [Tau] node with one child, or a
     branching node [Vis] with a visible effect [E X] that branches
     on the values of [X]. *)
-CoInductive itree (E : Effect) (R : Type) :=
+CoInductive itree (E : Type -> Type) (R : Type) :=
 | Ret (r : R)
 | Tau (t : itree E R)
-| Vis (e : E) (k : reaction e -> itree E R)
+| Vis {X : Type} (e : E X) (k : X -> itree E R)
 .
 
 Arguments Ret {E R}.
 Arguments Tau {E R}.
-Arguments Vis {E R}.
+Arguments Vis {E R X}.
 
 (* [id_itree] as a notation makes it easier to
    [rewrite <- match_itree]. *)
@@ -36,7 +35,7 @@ Proof. destruct t; auto. Qed.
 Arguments match_itree {E R} t.
 
 Section bind.
-  Context {E : Effect} {T U : Type}.
+  Context {E : Type -> Type} {T U : Type}.
   Variable k : T -> itree E U.
 
   (* The [match] in the definition of bind. *)
@@ -57,7 +56,7 @@ End bind.
 (* Monadic [>>=]: tree substitution, sequencing of computations. *)
 Definition bind {E T U}
            (c : itree E T) (k : T -> itree E U)
-  : itree E U :=
+: itree E U :=
   bind' k c.
 
 (* note(gmm): There needs to be generic automation for monads to simplify
@@ -98,7 +97,8 @@ Notation "' p <- t1 ;; t2" :=
   (bind t1 (fun x_ => match x_ with p => t2 end))
   (at level 100, t1 at next level, p pattern, right associativity) : itree_scope.
 
-Definition liftE {E : Effect} (e : E) : itree E (reaction e) :=
+Definition liftE {E : Type -> Type} {X : Type}
+           (e : E X) : itree E X :=
   Vis e Ret.
 
 Instance Functor_itree {E} : Functor (itree E) :=
