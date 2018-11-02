@@ -139,6 +139,13 @@ End eff_hom_writer.
 
 Arguments interp_writer {_ _ _ _} _ [_] _.
 
+(* todo(gmm): this can be stronger if we allow for a `can_returnE` *)
+Inductive can_return {E : Type -> Type} {t : Type} : itree E t -> t -> Prop :=
+| can_return_Ret {x} : can_return (Ret x) x
+| can_return_Tau {tr x} (_ : can_return tr x) : can_return (Tau tr) x
+| can_return_Vis {u e k} {x: u} {res} (_ : can_return (k x) res)
+  : can_return (Vis e k) res.
+
 (* A propositional "interpreter"
  * This can be useful for non-determinism.
  *)
@@ -154,7 +161,9 @@ Section interp_prop.
   | ipVis : forall {T} {e : E T} {e' : itree F T}
               (k : _ -> itree E R) (k' : T -> itree F R),
       f _ e e' ->
-      (forall x, interp_prop f R (k x) (k' x)) ->
+      (forall x,
+          can_return e' x ->
+          interp_prop f R (k x) (k' x)) ->
       interp_prop f R (Vis e k) (bind e' k')
   | ipDelay : forall a b, interp_prop f R a b ->
                      interp_prop f R (Tau a) (Tau b).
