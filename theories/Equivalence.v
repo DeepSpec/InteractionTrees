@@ -114,6 +114,7 @@ Global Arguments eutt t1%itree t2%itree.
 Delimit Scope eutt_scope with eutt.
 Local Open Scope eutt_scope.
 
+(* note: overlaps with [not] *)
 Infix "~" := eutt (at level 70) : eutt_scope.
 
 (* Lemmas about the auxiliary relations. *)
