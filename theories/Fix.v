@@ -111,7 +111,43 @@ Module FixImpl <: FixSig.
       Proof. Admitted.
     End mfixP.
   End Fix.
+
+  (* [mfix] with singleton domain. *)
+  Section Fix0.
+    Variable E : Type -> Type.
+    Variable codom : Type.
+
+    Definition fix_body0 : Type :=
+      forall E',
+        (forall t, itree E t -> itree E' t) ->
+        itree E' codom ->
+        itree E' codom.
+
+    Definition mfix0 (body : fix_body0) : itree E codom :=
+      mfix E unit (fun _ => codom)
+           (fun E' lift self (_ : unit) =>
+              body E' lift (self tt)) tt.
+  End Fix0.
+
+  (* [mfix] with constant codomain. *)
+  Section Fix1.
+    Variable E : Type -> Type.
+    Variable dom : Type.
+    Variable codom : Type.
+
+    Definition fix_body1 : Type :=
+      forall E',
+        (forall t, itree E t -> itree E' t) ->
+        (dom -> itree E' codom) ->
+        (dom -> itree E' codom).
+
+    Definition mfix1 : fix_body1 -> dom -> itree E codom :=
+      mfix E dom (fun _ => codom).
+  End Fix1.
+
 End FixImpl.
 
 Export FixImpl.
 Arguments mfix {_ _} _ _ _.
+Arguments mfix0 {E codom} body.
+Arguments mfix1 {E dom codom} body _.
