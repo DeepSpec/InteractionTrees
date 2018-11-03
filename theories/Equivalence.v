@@ -381,7 +381,9 @@ End EUTT.
 
 Hint Resolve monotone_eutt_0 : paco.
 Hint Resolve monotone_eutt_ : paco.
-Infix "~" := eutt (at level 80).
+Infix "~" := eutt (at level 80) : eutt_scope.
+Delimit Scope eutt_scope with eutt.
+Local Open Scope eutt_scope.
 
 (* We can now rewrite with [eutt] equalities. *)
 Add Parametric Relation E R : (itree E R) eutt
