@@ -136,7 +136,8 @@ Section M.
       run (handler e) r ->
       run (Vis e k) (bind r k)
  *)
-    
+
+End M.
 
 
     
