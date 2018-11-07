@@ -1,4 +1,6 @@
-.PHONY: clean all coq test tests examples example-imp example-lc example-io install uninstall depgraph
+.PHONY: clean all coq test tests examples install uninstall depgraph \
+  example-imp example-lc example-io example-nimp
+
 
 COQPATHFILE=$(wildcard _CoqPath)
 
@@ -18,13 +20,16 @@ test: examples tests
 tests:
 	make -C tests
 
-examples: example-imp example-lc example-io
+examples: example-imp example-lc example-io example-nimp
 
 example-imp: examples/Imp.v
 	coqc -Q theories/ ITree examples/Imp.v
 
 example-lc: examples/stlc.v
 	coqc -Q theories/ ITree examples/stlc.v
+
+example-lc: examples/stlc.v
+	coqc -Q theories/ ITree examples/Nimp.v
 
 example-io: examples/IO.v
 	cd examples && \

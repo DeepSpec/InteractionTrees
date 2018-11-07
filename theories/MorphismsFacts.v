@@ -3,6 +3,8 @@ From Paco Require Import paco.
 From ITree Require Import
      ITree Morphisms Equivalence.
 
+Local Open Scope eutt_scope.
+
 (* Proof of
    [interp f (t >>= k) ~ (interp f t >>= fun r => interp f (k r))]
 

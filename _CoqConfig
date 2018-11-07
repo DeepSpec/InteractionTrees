@@ -16,5 +16,6 @@ theories/Fix.v
 theories/UpTo.v
 theories/MutFix.v
 theories/Trace.v
+theories/MFixITree.v
 
 theories/Alternatives/IxEffect.v
