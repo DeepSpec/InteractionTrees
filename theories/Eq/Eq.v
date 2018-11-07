@@ -122,6 +122,7 @@ Add Parametric Relation {E R} : (itree E R) eq_itree
   transitivity proved by Transitive_eq_itree
     as eq_itree_rel.
 
+
 Add Parametric Morphism {E R S} : (@bind E R S)
     with signature
     (eq_itree ==> pointwise_relation _ eq_itree ==> eq_itree)
@@ -134,6 +135,7 @@ Proof.
   intros.
   constructor. simpl. unfold bind_match.
   inversion Hs.
+  do 2 rewrite observe_bind.
   inversion observe_eq0.
   { eapply Hk. }
   { constructor.
@@ -151,11 +153,10 @@ Proof.
   cofix bind_ret.
   intros s.
   constructor.
-  simpl. unfold bind_match.
-  destruct (observe s).
-  - simpl. constructor.
-  - simpl. constructor. eapply bind_ret.
-  - simpl. constructor. intros. eapply bind_ret.
+  rewrite observe_bind.
+  destruct (observe s); constructor.
+  - eapply bind_ret.
+  - intros. eapply bind_ret.
 Qed.
 
 Lemma bind_bind {E R S T} :
@@ -168,11 +169,9 @@ Proof.
   cofix bind_bind.
   intros s k h.
   constructor; simpl.
-  unfold bind, bind', bind_match. simpl.
+  repeat rewrite observe_bind.
   destruct (observe s).
-  - simpl.
-    change (let (observe) := k r in observe) with (observe (k r)).
-    reflexivity.
+  - rewrite observe_bind. reflexivity.
   - constructor.
     eapply (bind_bind t k h).
   - constructor.

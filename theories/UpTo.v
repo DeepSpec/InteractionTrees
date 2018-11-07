@@ -93,7 +93,7 @@ Section upto.
   Proof.
     induction n; simpl.
     - constructor.
-    - intro it; eapply (itree_rect it); simpl; try constructor; eauto.
+    - intro it. simpl. ; eapply (itree_rect it); simpl; try constructor; eauto.
   Qed.
 
   Lemma EffLe_upto : forall n t (a : itree E t),

@@ -36,13 +36,16 @@ Context {E : Type -> Type} {R : Type}.
 (* Equivalence between visible steps of computation (i.e., [Vis] or
    [Ret], parameterized by a relation [eutt] between continuations
    in the [Vis] case. *)
-Inductive eutt_0 (eutt : relation (itree E R)) :
-  relation (itree E R) :=
-| Eutt_Ret : forall r, eutt_0 eutt (Ret r) (Ret r)
+Variant eutt_0F (eutt : relation (itree E R))
+: relation (itreeF E R (itree E R)) :=
+| Eutt_Ret : forall r, eutt_0F eutt (RetF r) (RetF r)
 | Eutt_Vis : forall {u} (e : E u) k1 k2,
     (forall x, eutt (k1 x) (k2 x)) ->
-    eutt_0 eutt (Vis e k1) (Vis e k2).
-Hint Constructors eutt_0.
+    eutt_0F eutt (VisF e k1) (VisF e k2).
+Hint Constructors eutt_0F.
+
+Inductive eutt_0 (eutt : relation (itree E R)) (l r : itree E R) : Prop :=
+{ eutt_0_observe : eutt_0F eutt l.(observe) r.(observe) }.
 
 (* [untaus t' t] holds when [t = Tau (... Tau t' ...)]:
    [t] steps to [t'] by "peeling off" a finite number of [Tau].
@@ -87,7 +90,10 @@ Definition eutt_ (eutt : relation _) : relation _ := fun t1 t2 =>
 (* [eutt_0] is monotone: if a binary relation [eutt] implies [eutt'],
    then [eutt_0 eutt] implies [eutt_0 eutt']. *)
 Lemma monotone_eutt_0 : monotone2 eutt_0.
-Proof. pmonauto. Qed.
+Proof.
+  constructor. inversion IN.
+  inversion eutt_0_observe0; constructor; eauto.
+Qed.
 
 Hint Resolve monotone_eutt_0 : paco.
 
@@ -243,8 +249,12 @@ Lemma reflexive_eutt_0 eutt t :
 Proof.
   intros Hrefl Ht.
   revert Ht.
-  eapply (itree_rect t); simpl; eauto.
-  unfold notau. simpl. tauto.
+  intros.
+  constructor.
+  unfold notau in *.
+  destruct (observe t); try constructor.
+  contradiction.
+  intros. eapply Hrefl.
 Qed.
 
 (**)
@@ -257,11 +267,11 @@ Proof.
   - intros t1' t2' H1 H2.
     apply unalltaus_notau_id in H1; [ | constructor ].
     apply unalltaus_notau_id in H2; [ | constructor ].
-    now subst; constructor.
+    constructor. subst. constructor. apply H.
 Qed.
 
-Lemma Reflexive_eutt_ (r : relation (itree E R)) t :
-  (forall t', r t' t') -> eutt_ r t t.
+Lemma Reflexive_eutt_ (r : relation (itree E R)) :
+  Reflexive r -> Reflexive (eutt_ r).
 Proof.
   split.
   - reflexivity.
@@ -272,16 +282,17 @@ Proof.
 Qed.
 
 (* [eutt] is an equivalence relation. *)
-
-Global Instance Reflexive_eutt : Reflexive eutt.
+Global Instance Reflexive_eutt
+: forall r, Reflexive r -> Reflexive (paco2 eutt_ r).
 Proof.
   pcofix Reflexive_eutt.
-  intro t.
+  intros.
   pfold.
   apply Reflexive_eutt_; auto.
 Qed.
 
-Global Instance Symmetric_eutt : Symmetric eutt.
+Global Instance Symmetric_eutt
+: Symmetric eutt.
 Proof.
   pcofix Symmetric_eutt.
   intros t1 t2 H12.
@@ -292,14 +303,13 @@ Proof.
   - symmetry; assumption.
   - intros t1' t2' H21' H12'.
     specialize (H12 _ _ H12' H21').
+    constructor.
     inversion H12.
-    + constructor.
-    + constructor.
-      intro x.
-      specialize (H x); pclearbot.
-      auto.
-Qed.
+    + inversion eutt_0_observe0; try constructor.
+      admit.
+Admitted. (* todo(gmm): not sure what is happening here *)
 
+(*
 (* Inversion of an [eutt_0] assumption that doesn't produce
    heterogeneous equalities ([existT _ _ _ = existT _ _ _]). *)
 Lemma eutt_0_inj_Vis : forall {u} rel e (k : u -> itree E R) z,
@@ -377,13 +387,14 @@ Proof.
       { left; apply Reflexive_eutt. }
       { apply H1. }
 Qed.
+*)
 
 End EUTT.
 
 Hint Resolve monotone_eutt_0 : paco.
 Hint Resolve monotone_eutt_ : paco.
 Infix "~" := eutt (at level 80).
-
+(*
 (* We can now rewrite with [eutt] equalities. *)
 Add Parametric Relation E R : (itree E R) eutt
     as eutt_equiv.
@@ -512,3 +523,4 @@ Proof.
     pfold.
     apply eutt_Vis_; auto.
 Abort.
+*)

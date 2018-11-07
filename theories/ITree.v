@@ -4,9 +4,7 @@ Require Import ExtLib.Structures.Monad.
 
 Set Implicit Arguments.
 Set Contextual Implicit.
-(* note(gmm): this seems to prevent us from doing `destruct t`
 Set Primitive Projections.
-*)
 
 Section itree.
 
@@ -32,41 +30,10 @@ Section itree.
     do (VisF e k).
   Definition Tau (t : itree) : itree := do (TauF t).
 
-
-(*
-  Lemma itree_rect (it : itree)
-    : forall (P : itree -> Type),
-      (forall x, P (Ret x)) ->
-      (forall u e k, P (@Vis u e k)) ->
-      (forall t, P (Tau t)) ->
-      P it.
-  Proof.
-    intros.
-    destruct it; destruct observe0; simpl; eauto.
-  Defined.
-
-  (* [id_itree] as a notation makes it easier to
-   [rewrite <- match_itree]. *)
-  Notation id_itree t :=
-    match match t with
-          | do o => o
-          end with
-    | RetF r => Ret r
-    | TauF t' => Tau t'
-    | VisF e k => Vis e k
-    end.
-
-  Lemma match_itree : forall (t : itree), t = id_itree t.
-  Proof.
-    intros. eapply (itree_rect t); simpl; auto.
-  Qed.
-*)
-
 End itree.
 
+Arguments itreeF _ _ : clear implicits.
 Arguments itree _ _ : clear implicits.
-(* Arguments match_itree {_ _} _.
-*)
 
 Section bind.
   Context {E : Type -> Type} {T U : Type}.
@@ -168,3 +135,58 @@ Definition forever {E R S} (t : itree E R) : itree E S :=
 Definition when {E}
            (b : bool) (body : itree E unit) : itree E unit :=
   if b then body else ret tt.
+
+Lemma observe_bind : forall {E T U} c (k : T -> itree E U),
+    observe (bind c k) = match c.(observe) with
+                         | RetF r => (k r).(observe)
+                         | TauF t => TauF (bind t k)
+                         | VisF e h => VisF e (fun x => bind (h x) k)
+                         end.
+Proof.
+  unfold bind, bind', bind_match. unfold observe.
+  intros.
+  (* note(gmm): i wasn't able to find any way to pattern match on this goal. *)
+  change (let z := observe c in
+          observe match z with
+                  | RetF r => k r
+                  | TauF t =>
+                    Tau
+                      ((cofix bind' (t0 : itree E T) : itree E U :=
+                          match observe t0 with
+                          | RetF r => k r
+                          | TauF t1 => Tau (bind' t1)
+                          | @VisF _ _ _ u e h => Vis e (fun x : u => bind' (h x))
+                          end) t)
+                  | @VisF _ _ _ u e h =>
+                    Vis e
+                        (fun x : u =>
+                           (cofix bind' (t : itree E T) : itree E U :=
+                              match observe t with
+                              | RetF r => k r
+                              | TauF t0 => Tau (bind' t0)
+                              | @VisF _ _ _ u0 e0 h0 => Vis e0 (fun x0 : u0 => bind' (h0 x0))
+                              end) (h x))
+                  end =
+          match z with
+          | RetF r => observe (k r)
+          | TauF t =>
+            TauF
+              ((cofix bind' (t0 : itree E T) : itree E U :=
+                  match observe t0 with
+                  | RetF r => k r
+                  | TauF t1 => Tau (bind' t1)
+                  | @VisF _ _ _ u e h => Vis e (fun x : u => bind' (h x))
+                  end) t)
+          | @VisF _ _ _ u e h =>
+            VisF e
+                 (fun x : u =>
+                    (cofix bind' (t : itree E T) : itree E U :=
+                       match observe t with
+                       | RetF r => k r
+                       | TauF t0 => Tau (bind' t0)
+                       | @VisF _ _ _ u0 e0 h0 => Vis e0 (fun x0 : u0 => bind' (h0 x0))
+                       end) (h x))
+          end
+         ).
+  destruct z; try reflexivity.
+Defined.

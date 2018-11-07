@@ -29,12 +29,9 @@ Lemma interp_bind_failed {E F R S}
    (interp f  t >>= fun r => interp f (k r))).
 Proof.
   revert t; pcofix interp_bind; rename r into e; intro t.
-  destruct t.
-  - (* Ret *) shelve.
-  - (* Tau *)
-    do 2 rewrite match_interp; do 2 rewrite match_bind; simpl.
-    shelve.
-  - (* Vis *) shelve.
+  pfold. constructor.
+  { admit. }
+  { admit. }
 Abort.
 
 Lemma interp_bind {E F R S}
