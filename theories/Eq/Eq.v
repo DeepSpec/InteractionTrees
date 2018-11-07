@@ -24,6 +24,37 @@ Section eq_itree.
       eq_itreeF sim (VisF e k1) (VisF e k2)
   .
 
+  Global Instance Reflexive_eq_itreeF {t} {sim : t -> t -> Prop}
+  : Reflexive sim -> Reflexive (@eq_itreeF t sim).
+  Proof.
+    red. destruct x.
+    - constructor.
+    - constructor. reflexivity.
+    - constructor. intro; eapply H.
+  Qed.
+
+  Global Instance Symmetric_eq_itreeF {t} {sim : t -> t -> Prop}
+  : Symmetric sim -> Symmetric (@eq_itreeF t sim).
+  Proof.
+    red. inversion 2.
+    - constructor.
+    - constructor. eauto.
+    - constructor. intros; eapply H. eapply H1.
+  Qed.
+
+  Global Instance Transitive_eq_itreeF {t} {sim : t -> t -> Prop}
+  : Transitive sim -> Transitive (@eq_itreeF t sim).
+  Proof.
+    red. inversion 2.
+    - inversion 1. constructor.
+    - inversion 1. constructor. eauto.
+    - inversion 1.
+      (* todo(gmm): i don't think these are strictly necessary *)
+      eapply inj_pair2 in H7.
+      eapply inj_pair2 in H8.
+      subst. constructor. eauto.
+  Qed.
+
   CoInductive eq_itree (l r : itree E R) : Prop :=
   { observe_eq : eq_itreeF eq_itree l.(observe) r.(observe) }.
 
@@ -32,9 +63,8 @@ End eq_itree.
 
 Delimit Scope eq_itree_scope with eq_itree.
 (* note(gmm): overriding `=` seems like a bad idea *)
-Notation "t1 = t2" := (eq_itree t1%itree t2%itree) : eq_itree_scope.
-
-(* Axiom EqM_eq : forall a b, EqM a b -> a = b. *)
+Notation "t1 ≅ t2" := (eq_itree t1%itree t2%itree) (at level 70).
+(* you can write ≅ using \cong in tex-mode *)
 
 Instance Reflexive_eq_itree {E R} : Reflexive (@eq_itree E R).
 Proof.
@@ -102,46 +132,52 @@ Proof.
   generalize dependent s1.
   cofix core_bind_mor.
   intros.
-  rewrite (match_itree (s1 >>= _)).
-  rewrite (match_itree (s2 >>= _)).
-  destruct Hs; simpl.
-  - do 2 rewrite <- match_itree; apply (Hk x).
-  - constructor; apply core_bind_mor; auto.
-  - constructor; intro y; apply core_bind_mor; auto.
+  constructor. simpl. unfold bind_match.
+  inversion Hs.
+  inversion observe_eq0.
+  { eapply Hk. }
+  { constructor.
+    eapply core_bind_mor. eapply H1. }
+  { constructor; intros.
+    eapply core_bind_mor. eapply H1. }
 Defined.
 
 (* [ret_bind] in basics *)
 
 Lemma bind_ret {E R} :
   forall s : itree E R,
-    (s >>= Ret = s)%eq_itree.
+    (s >>= Ret) ≅ s.
 Proof.
   cofix bind_ret.
   intros s.
-  rewrite (match_itree (s >>= _)).
-  eapply (itree_rect s); constructor; auto.
-  - intros; apply bind_ret.
-  - exact (bind_ret t).
+  constructor.
+  simpl. unfold bind_match.
+  destruct (observe s).
+  - simpl. constructor.
+  - simpl. constructor. eapply bind_ret.
+  - simpl. constructor. intros. eapply bind_ret.
 Qed.
 
 Lemma bind_bind {E R S T} :
   forall (s : itree E R) (k : R -> itree E S) (h : S -> itree E T),
     ( (s >>= k) >>= h
-      =
+      ≅
       s >>= (fun r => k r >>= h)
-    )%eq_itree.
+    ).
 Proof.
   cofix bind_bind.
   intros s k h.
-  do 2 rewrite (match_bind s).
-  eapply (itree_rect s); simpl; intros.
-  - reflexivity.
-  - unfold bind_match. simpl.
-    rewrite (match_bind (Vis _ _)).
-    constructor. intro y. apply bind_bind.
-  - unfold bind_match. simpl.
-    rewrite (match_bind (Tau _)).
-    constructor. apply bind_bind.
+  constructor; simpl.
+  unfold bind, bind', bind_match. simpl.
+  destruct (observe s).
+  - simpl.
+    change (let (observe) := k r in observe) with (observe (k r)).
+    reflexivity.
+  - constructor.
+    eapply (bind_bind t k h).
+  - constructor.
+    intros.
+    apply (bind_bind (k0 y) k h).
 Qed.
 
 (*

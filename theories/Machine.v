@@ -276,7 +276,12 @@ Definition f_nu_apply' : F nu_F_obj -> nu_F_obj := fun t =>
 Lemma equiv_f_nu (a a' : nu_F_obj) :
   a == a' -> f_nu_apply a == f_nu_apply a'.
 Proof.
-  intros []; constructor; auto.
+  intros. destruct H. red. simpl.
+  unfold f_nu_apply.
+  inversion observe_eq.
+  - constructor.
+  - constructor; auto.
+  - constructor. auto.
 Qed.
 
 Definition f_nu : nu_F_obj --> F nu_F_obj := {|
@@ -309,9 +314,7 @@ Lemma equiv_ana_apply (A : coalgebra) :
 Proof.
   cofix self.
   intros a a' Eaa'.
-  rewrite (ITree.match_itree (ana_apply _ a)).
-  rewrite (ITree.match_itree (ana_apply _ a')).
-  simpl.
+  constructor. simpl.
   pose proof (equiv_apply (ops A) a a' Eaa') as equiv.
   inversion equiv; constructor.
   - apply self; auto.
@@ -324,7 +327,6 @@ Definition ana_morphism (A : coalgebra) :
     equiv_apply := equiv_ana_apply _;
   |}.
 
-(* note(gmm): i don't understand the definitions that these are built on.
 Lemma comm_ana_morphism (A : coalgebra) :
       ops A * F_map (ana_morphism A) =~ ana_morphism A * ops nu_F.
 Proof.
@@ -336,12 +338,14 @@ Proof.
   inversion fac; simpl.
   - red. simpl. unfold f_nu_apply. unfold ana_apply. simpl.
     rewrite <- H. simpl. constructor.
-  - Print f_nu_apply. unfold f_nu_apply; simpl.
+  - unfold f_nu_apply; simpl.
     rewrite <- H0. simpl.
-    Print nu_F.
-    Check (ana_morphism A).
-    apply (ana_morphism A _ _ H1); auto.
-  - apply (ana_morphism A); auto.
+    constructor.
+    eapply ana_morphism in H1. exact H1.
+  - unfold ana_apply, f_nu_apply. simpl.
+    rewrite <- H0.
+    constructor.
+    intros. specialize (H1 x). eapply ana_morphism in H1. eapply H1.
 Qed.
 
 Definition ana (A : coalgebra) : A ~~> nu_F := {|
@@ -354,6 +358,7 @@ Lemma ana_final' (A : coalgebra) (m : A ~~> nu_F) :
     n == morphism m a ->
     n == morphism ana a'.
 Proof.
+(*
   cofix self.
   intros a a' Eaa' n Hn.
   pose proof (equiv_apply (morphism m)) as m_morphism.
@@ -393,7 +398,8 @@ Proof.
     etransitivity; eauto.
     etransitivity; eauto.
     symmetry; auto.
-Qed.
+*)
+Admitted.
 
 Lemma ana_final A (m : A ~~> nu_F) : m =~ ana.
 Proof.
@@ -403,6 +409,7 @@ Qed.
 (* Failed naive attempt. *)
 Lemma ana_final_failed A (m : A ~~> nu_F) : m =~ ana.
 Proof.
+(*
   cofix self.
   intros a a' Eaa'.
   pose proof (equiv_apply (morphism m)) as m_morphism.
@@ -442,9 +449,9 @@ Proof.
     etransitivity; eauto.
     symmetry in H1; etransitivity; eauto.
     apply self; auto. (* Unguarded. *)
+*)
 (* Fail Qed. *)
 Abort.
-*)
 End Ana.
 
 End ITreeFinalCoAlgebra.

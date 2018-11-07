@@ -168,19 +168,3 @@ Definition forever {E R S} (t : itree E R) : itree E S :=
 Definition when {E}
            (b : bool) (body : itree E unit) : itree E unit :=
   if b then body else ret tt.
-
-(*
-(* Basic facts *)
-
-(* Force [bind] for one step. This has the advantage over
-   [match_itree] of not leaving an extra [id_itree] in the [Ret]
-   case.
- *)
-Lemma match_bind {E R S} (t : itree E R) (k : R -> itree E S) :
-  (t >>= k)%itree = bind_match k (fun t' => bind t' k) t.
-Proof.
-  rewrite (@match_itree _ _ (bind _ _)); simpl;
-    eapply (itree_rect t); simpl; eauto.
-  - intros. rewrite <- match_itree. reflexivity.
-Qed.
-*)
