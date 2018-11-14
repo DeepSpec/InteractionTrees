@@ -19,10 +19,14 @@
 Require Import Coq.Classes.RelationClasses.
 Require Import Coq.Setoids.Setoid.
 Require Import Coq.Relations.Relations.
+From Coq Require Import
+     Logic.JMeq Logic.EqdepFacts.
 
 Require Import Paco.paco.
 
 Require Import ITree.ITree.
+
+Set Bullet Behavior "Strict Subproofs".
 
 Lemma iff_or_and {P Q : Prop} :
   P <-> Q -> P \/ Q -> P /\ Q.
@@ -32,15 +36,22 @@ Section EUTT.
 
 Context {E : Type -> Type} {R : Type}.
 
+(* note(LY): maybe we should use equalities instead of type indices.
+   In the transitivity proof at least, it is a bit annoying to
+   rewrite the goal from
+   [eutt_0F eutt (t1.(observe)) (t2.(observe))] to
+   [eutt_0F eutt (RetF r) (RetF r)]. *)
+
 (* Equivalence between visible steps of computation (i.e., [Vis] or
    [Ret], parameterized by a relation [eutt] between continuations
    in the [Vis] case. *)
 Variant eutt_0F (eutt : relation (itree E R))
 : relation (itreeF E R (itree E R)) :=
 | Eutt_Ret : forall r, eutt_0F eutt (RetF r) (RetF r)
-| Eutt_Vis : forall {u} (e : E u) k1 k2,
-    (forall x, eutt (k1 x) (k2 x)) ->
-    eutt_0F eutt (VisF e k1) (VisF e k2).
+| Eutt_Vis : forall {u1 u2} (e1 : E u1) (e2 : E u2) k1 k2,
+    eq_dep _ E _ e1 _ e2 ->
+    (forall x1 x2, JMeq x1 x2 -> eutt (k1 x1) (k2 x2)) ->
+    eutt_0F eutt (VisF e1 k1) (VisF e2 k2).
 Hint Constructors eutt_0F.
 
 Inductive eutt_0 (eutt : relation (itree E R)) (l r : itree E R) : Prop :=
@@ -51,7 +62,7 @@ Inductive eutt_0 (eutt : relation (itree E R)) (l r : itree E R) : Prop :=
    "Peel off" means to remove only taus at the root of the tree,
    not any behind a [Vis] step). *)
 Inductive untaus (t t' : itree E R) : Prop :=
-| NoTau : t = t' -> untaus t t'
+| NoTau : t' = t -> untaus t t'
 | OneTau : forall t_,
     t.(observe) = TauF t_ -> untaus t_ t' -> untaus t t'
 .
@@ -64,16 +75,22 @@ Definition notau (t : itree E R) : Prop :=
   | _ => True
   end.
 
+Lemma notau_Tau t t' : t.(observe) = TauF t' -> notau t -> False.
+Proof.
+  unfold notau; intros Hobs; rewrite Hobs; auto.
+Qed.
+
 (* [unalltaus t t'] holds when [t] steps to [t'] by peeling off
    all of its taus, of which there must be a finite number. *)
 Definition unalltaus t t' := notau t' /\ untaus t t'.
 
-Lemma unalltaus_Tau_ t t' : notau t' -> untaus (Tau t) t' -> untaus t t'.
+Lemma unalltaus_Tau_ t t_ t' :
+  notau t' -> t.(observe) = TauF t_ -> untaus t t' -> untaus t_ t'.
 Proof.
-  intros Hnotau Huntaus.
+  intros Hnotau Hobs Huntaus.
   inversion Huntaus.
-  + subst; contradiction.
-  + inversion H; auto.
+  + subst; edestruct notau_Tau; eauto.
+  + rewrite Hobs in H; inversion H; auto.
 Qed.
 
 (* [finite_taus t] holds when [t] has a finite number of taus
@@ -142,11 +159,6 @@ Infix "~" := eutt (at level 70) : eutt_scope.
 Lemma notau_unalltaus (t : itree E R) : notau t -> unalltaus t t.
 Proof. split; auto. Qed.
 
-Lemma notau_Tau t t' : t.(observe) = TauF t' -> notau t -> False.
-Proof.
-  unfold notau; intros Hobs; rewrite Hobs; auto.
-Qed.
-
 (* If [t] does not start with [Tau], removing all [Tau] does
    nothing. Can be thought of as [notau_unalltaus] composed with
    [unalltaus_injective] (below). *)
@@ -178,18 +190,17 @@ Qed.
 
 (* Adding a [Tau] to [t1] then peeling them all off produces
    the same result as peeling them all off from [t1]. *)
-Lemma unalltaus_tau (t1 t2 : itree E R) :
-  unalltaus (Tau t1) t2 <-> unalltaus t1 t2.
+Lemma unalltaus_tau (t1 t1_ t2 : itree E R) :
+  t1.(observe) = TauF t1_ ->
+  unalltaus t1 t2 <-> unalltaus t1_ t2.
 Proof.
   split; intros [I1 H1].
   - split; auto.
     inversion H1; subst.
-    + contradiction.
-    + inversion H; subst; auto.
+    + edestruct notau_Tau; eauto.
+    + rewrite H in H0; inversion H0; auto.
   - split; auto.
-    eapply OneTau.
-    + reflexivity.
-    + auto.
+    eapply OneTau; eauto.
 Qed.
 
 (* If [t] does not start with [Tau], then it starts with finitely
@@ -283,21 +294,27 @@ Proof.
   constructor.
   unfold notau in *.
   destruct (observe t); try constructor.
-  contradiction.
-  intros. eapply Hrefl.
+  - contradiction.
+  - constructor.
+  - intros.
+    erewrite (JMeq_congr k) by apply H.
+    eapply Hrefl.
 Qed.
 
 (**)
 
 Lemma eutt_Vis_ {u} (r : relation (itree E R)) (e : _ u) k1 k2 :
-  (forall x, r (k1 x) (k2 x)) -> eutt_ r (Vis e k1) (Vis e k2).
+  (forall x1 x2, JMeq x1 x2 -> r (k1 x1) (k2 x2)) ->
+  eutt_ r (Vis e k1) (Vis e k2).
 Proof.
   split.
   - split; intros; now apply notau_finite_taus.
   - intros t1' t2' H1 H2.
     apply unalltaus_notau_id in H1; [ | constructor ].
     apply unalltaus_notau_id in H2; [ | constructor ].
-    constructor. subst. constructor. apply H.
+    constructor. subst. constructor.
+    + constructor.
+    + apply H.
 Qed.
 
 Lemma Reflexive_eutt_ (r : relation (itree E R)) :
@@ -313,7 +330,7 @@ Qed.
 
 (* [eutt] is an equivalence relation. *)
 Global Instance Reflexive_eutt
-: forall r, Reflexive r -> Reflexive (paco2 eutt_ r).
+: forall r, Reflexive (paco2 eutt_ r).
 Proof.
   pcofix Reflexive_eutt.
   intros.
@@ -336,8 +353,9 @@ Proof.
     constructor.
     inversion H12.
     + inversion eutt_0_observe0; try constructor.
-      intros x.
-      destruct (H1 x) as [ | []]; auto.
+      * apply eq_dep_sym; auto.
+      * intros x2 x1 ex12.
+        destruct (H2 x1 x2) as [ | []]; auto.
 Qed.
 
 (*
@@ -359,6 +377,49 @@ Proof.
          end; simpl.
   eexists; split. reflexivity. assumption.
 Defined.
+*)
+
+Definition VisF_eq_dep {u1 u2}
+      (e1 : E u1) (e2 : E u2)
+      (k1 : _ -> itree E R) (k2 : _ -> itree E R) :
+  @VisF E R _ _ e1 k1 = VisF e2 k2 -> eq_dep _ E _ e1 _ e2 :=
+  fun H =>
+    match H in _ = t
+          return match t with
+                 | VisF e2 _ => eq_dep _ _ _ e1 _ e2
+                 | _ => True
+                 end
+    with
+    | eq_refl => eq_dep_intro _ _ _ _
+    end.
+
+Definition VisF_f_eq_dep {u1 u2}
+           (e1 : E u1) (e2 : E u2)
+           (k1 : _ -> itree E R) (k2 : _ -> itree E R)
+           (x1 : u1) (x2 : u2) :
+  @VisF E R _ _ e1 k1 = VisF e2 k2 ->
+  JMeq x1 x2 ->
+  k1 x1 = k2 x2 :=
+  fun Hk =>
+    match Hk in _ = t
+          return match t with
+                 | VisF _ k2 => forall x2, JMeq x1 x2 -> k1 x1 = k2 x2
+                 | _ => True
+                 end
+    with
+    | eq_refl =>
+      JMeq_congr k1
+    end x2.
+
+Lemma eq_dep_eq U (P : U -> Type) p x q y :
+  eq_dep U P p x q y -> p = q.
+Proof. now intros []. Qed.
+
+Definition coerce_eq_JMeq u1 u2 (x1 : u1) (e : u1 = u2) :
+  exists x2 : u2, JMeq x1 x2 :=
+  match e with
+  | eq_refl => ex_intro _ x1 JMeq_refl
+  end.
 
 Global Instance Transitive_eutt : Transitive eutt.
 Proof.
@@ -375,27 +436,52 @@ Proof.
     destruct (proj1 I12 (ex_intro _ _ H1)) as [t2' H2].
     specialize (H12 _ _ H1 H2).
     specialize (H23 _ _ H2 H3).
-    inversion H12.
-    + subst. now inversion H23.
-    + subst. eapply eutt_0_inj_Vis in H23.
-      destruct H23 as [ k' [ ? ? ] ].
-      subst.
+    destruct H12 as [H12], H23 as [H23].
+    inversion H12; inversion H23.
+    + constructor.
+      rewrite <- H in H5; inversion H5; subst.
+      rewrite <- H0, <- H6.
+      apply Eutt_Ret.
+    + rewrite <- H in H4; discriminate.
+    + rewrite <- H0 in H7; discriminate.
+    + constructor.
+      rewrite <- H, <- H7.
+      assert (ee20 : eq_dep _ _ u2 e2 u0 e0).
+      { eapply VisF_eq_dep.
+        transitivity (observe t2'); eauto.
+      }
       constructor.
-      * intro x.
-        specialize (H x); specialize (H4 x); pclearbot.
-        right; eapply Transitive_eutt; eauto.
+      * eapply eq_dep_trans; [eassumption|].
+        eapply eq_dep_trans; eassumption.
+      * intros x1 x3 ex13.
+        assert (Hx2 : exists (x0 : u0) (x2 : u2),
+                   JMeq x1 x2 /\ JMeq x2 x0 /\ JMeq x0 x3).
+        { inversion ee20.
+          apply eq_dep_eq in H4.
+          destruct (coerce_eq_JMeq _ u2 x1 H4) as [x2 e12].
+          do 2 exists x2.
+          repeat constructor; auto.
+          apply JMeq_trans with (y := x1); auto.
+        }
+        destruct Hx2 as [x0 [x2 [ex12 [ex20 ex03]]]].
+        specialize (H5 _ _ ex12); specialize (H9 _ _ ex03); pclearbot.
+        right.
+        eapply Transitive_eutt; eauto.
+        erewrite VisF_f_eq_dep; eauto.
+        etransitivity; eauto.
 Qed.
 
 (**)
 
 (* [eutt] is preserved by removing one [Tau]. *)
-Lemma eutt_tau (t : itree E R) : Tau t ~ t.
+Lemma eutt_tau (t t_ : itree E R) : t.(observe) = TauF t_ -> t ~ t_.
 Proof.
+  intros Ht.
   pfold.
   split.
-  - apply finite_taus_Tau.
+  - apply finite_taus_Tau; auto.
   - intros t1' t2' H1 H2.
-    rewrite unalltaus_tau in H1.
+    rewrite unalltaus_tau in H1 by eauto.
     pose proof (unalltaus_injective _ _ _ H1 H2); subst.
     apply reflexive_eutt_0.
     { left; apply Reflexive_eutt. }
@@ -408,17 +494,17 @@ Proof.
   intros H.
   pfold. split.
   - now apply unalltaus_finite_taus.
-  - destruct H. induction H0.
-    + intros t1' t2' H1 H2.
-      apply IHuntaus; auto.
-      now apply unalltaus_tau.
-    + intros t1' t2' H1 H2.
+  - destruct H as [ Hnotau Huntaus ].
+    induction Huntaus as [ | t t' t_ Hobs Huntau IHuntaus ].
+    + subst. intros t1' t2' H1 H2.
       rewrite (unalltaus_injective _ _ _ H1 H2).
       apply reflexive_eutt_0.
       { left; apply Reflexive_eutt. }
       { apply H1. }
+    + intros t1' t2' H1 H2.
+      apply IHuntaus; auto.
+      eapply unalltaus_tau with (t1 := t); eauto.
 Qed.
-*)
 
 End EUTT.
 
