@@ -510,7 +510,7 @@ End EUTT.
 
 Hint Resolve monotone_eutt_0 : paco.
 Hint Resolve monotone_eutt_ : paco.
-(*
+
 Infix "~" := eutt (at level 80) : eutt_scope.
 Delimit Scope eutt_scope with eutt.
 Local Open Scope eutt_scope.
@@ -525,19 +525,29 @@ Lemma finite_taus_bind_fst {E R S}
       (t : itree E R) (f : R -> itree E S) :
   finite_taus (t >>= f) -> finite_taus t.
 Proof.
-  intros [tf' [Hnotau Hunalltaus]].
   remember (t >>= f)%itree as tf eqn:Etf.
+  intros [tf' [Hnotau Huntaus]].
   generalize dependent t.
-  (* todo(gmm): this doesn't port well. *)
-  induction Hunalltaus; intros t' Etf;
-    rewrite match_bind in Etf; destruct t'; inversion Etf;
-    try now apply notau_finite_taus.
-  - apply finite_taus_Tau.
-    apply IHHunalltaus.
-    unfold bind. unfold bind'. unfold Tau. simpl.
-  - subst tf'; inversion Hnotau.
+  induction Huntaus as [ tf tf' | tf tf' tf_]; intros t Etf.
+  - subst. unfold notau in Hnotau. cbn in Hnotau.
+    destruct (t.(observe)) eqn:et;
+      try contradiction;
+      exists t;
+      (split; [unfold notau; rewrite et; constructor
+              |constructor; reflexivity]).
+  - subst. cbn in H.
+    destruct (t.(observe)) eqn:et; try discriminate.
+    + exists t; split.
+      * unfold notau; rewrite et; constructor.
+      * constructor; reflexivity.
+    + inversion H.
+      symmetry in H1.
+      destruct (IHHuntaus Hnotau t0 H1) as [t' [Hnotau' Huntaus']].
+      exists t'; split; auto.
+      eapply OneTau; eauto.
 Qed.
 
+(*
 Lemma finite_taus_bind_unalltaus {E R S}
       (t t' : itree E R) (k : R -> itree E S) :
   untaus t' t ->

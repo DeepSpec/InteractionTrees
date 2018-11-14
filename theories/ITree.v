@@ -54,6 +54,8 @@ Section bind.
 
 End bind.
 
+Arguments bind_match _ _ /.
+
 (* Monadic [>>=]: tree substitution, sequencing of computations. *)
 Definition bind {E T U}
            (c : itree E T) (k : T -> itree E U)
