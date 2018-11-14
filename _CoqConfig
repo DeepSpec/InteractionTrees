@@ -5,11 +5,11 @@ theories/OpenSum.v
 theories/ITree.v
 
 theories/Eq/Eq.v
+theories/Eq/UpToTaus.v
 
 theories/CoAlgebra.v
 theories/Machine.v
 
-theories/Equivalence.v
 theories/Morphisms.v
 theories/MorphismsFacts.v
 theories/Fix.v
