@@ -21,7 +21,6 @@ Require Import Coq.Setoids.Setoid.
 Require Import Coq.Relations.Relations.
 
 Require Import Paco.paco.
-Require Import ExtLib.Structures.Monad.
 
 Require Import ITree.ITree.
 
@@ -51,10 +50,12 @@ Inductive eutt_0 (eutt : relation (itree E R)) (l r : itree E R) : Prop :=
    [t] steps to [t'] by "peeling off" a finite number of [Tau].
    "Peel off" means to remove only taus at the root of the tree,
    not any behind a [Vis] step). *)
-Inductive untaus t' : itree E R -> Prop :=
-| OneTau : forall t, untaus t' t -> untaus t' (Tau t)
-| NoTau : untaus t' t'
+Inductive untaus (t t' : itree E R) : Prop :=
+| NoTau : t = t' -> untaus t t'
+| OneTau : forall t_,
+    t.(observe) = TauF t_ -> untaus t_ t' -> untaus t t'
 .
+Hint Constructors untaus.
 
 (* [notau t] holds when [t] does not start with a [Tau]. *)
 Definition notau (t : itree E R) : Prop :=
@@ -65,7 +66,15 @@ Definition notau (t : itree E R) : Prop :=
 
 (* [unalltaus t t'] holds when [t] steps to [t'] by peeling off
    all of its taus, of which there must be a finite number. *)
-Definition unalltaus t t' := notau t' /\ untaus t' t.
+Definition unalltaus t t' := notau t' /\ untaus t t'.
+
+Lemma unalltaus_Tau_ t t' : notau t' -> untaus (Tau t) t' -> untaus t t'.
+Proof.
+  intros Hnotau Huntaus.
+  inversion Huntaus.
+  + subst; contradiction.
+  + inversion H; auto.
+Qed.
 
 (* [finite_taus t] holds when [t] has a finite number of taus
    to peel. *)
@@ -131,18 +140,27 @@ Infix "~" := eutt (at level 70) : eutt_scope.
 (* If a tree [t] does not start with a [Tau], then peeling off
    all [Tau] does nothing to it. *)
 Lemma notau_unalltaus (t : itree E R) : notau t -> unalltaus t t.
-Proof. split; [ auto | constructor ]. Qed.
+Proof. split; auto. Qed.
+
+Lemma notau_Tau t t' : t.(observe) = TauF t' -> notau t -> False.
+Proof.
+  unfold notau; intros Hobs; rewrite Hobs; auto.
+Qed.
 
 (* If [t] does not start with [Tau], removing all [Tau] does
    nothing. Can be thought of as [notau_unalltaus] composed with
    [unalltaus_injective] (below). *)
 Lemma unalltaus_notau_id t t' :
   unalltaus t t' -> notau t -> t' = t.
-Proof. now intros [? []]. Qed.
+Proof.
+  intros [? []] Hnotau.
+  - auto.
+  - edestruct notau_Tau; eauto.
+Qed.
 
 (* "Peel off all taus" is a special case of "peel off taus". *)
 Lemma unalltaus_untaus (t t' : itree E R) :
-  unalltaus t t' -> untaus t' t.
+  unalltaus t t' -> untaus t t'.
 Proof. firstorder. Qed.
 
 (* There is only one way to peel off all taus. *)
@@ -150,9 +168,12 @@ Lemma unalltaus_injective : forall t t1 t2,
     unalltaus t t1 -> unalltaus t t2 -> t2 = t1.
 Proof.
   intros t t1 t2 [I1 H1] [I2 H2].
-  induction H1 as [t1_ H1 IH1| ];
-    inversion H2 as [t2_ H2' H2'' | H2' ]; auto;
-      subst; contradiction.
+  induction H1 as [ | t t1 t_1 Hobs1 H1 IH1 ];
+    inversion H2 as [ H2' | t2_ Hobs2 H2' ];
+    subst; auto;
+      try solve [edestruct notau_Tau; eauto].
+  apply IH1; auto.
+  rewrite Hobs1 in Hobs2; inversion Hobs2; auto.
 Qed.
 
 (* Adding a [Tau] to [t1] then peeling them all off produces
@@ -161,17 +182,21 @@ Lemma unalltaus_tau (t1 t2 : itree E R) :
   unalltaus (Tau t1) t2 <-> unalltaus t1 t2.
 Proof.
   split; intros [I1 H1].
-  - inversion H1; subst.
-    + split; assumption.
-    + inversion I1.
-  - split; [ | apply OneTau ]; assumption.
+  - split; auto.
+    inversion H1; subst.
+    + contradiction.
+    + inversion H; subst; auto.
+  - split; auto.
+    eapply OneTau.
+    + reflexivity.
+    + auto.
 Qed.
 
 (* If [t] does not start with [Tau], then it starts with finitely
    many [Tau]. *)
 Lemma notau_finite_taus (t : itree E R) : notau t -> finite_taus t.
 Proof.
-  exists t. split. assumption. constructor.
+  exists t; split; auto.
 Qed.
 
 (* [Vis] and [Ret] start with no taus, of course. *)
@@ -187,14 +212,18 @@ Proof.
 Qed.
 
 (* [finite_taus] is preserved by removing or adding one [Tau]. *)
-Lemma finite_taus_Tau (t : itree E R) :
-    finite_taus (Tau t) <-> finite_taus t.
+Lemma finite_taus_Tau (t t' : itree E R) :
+  t.(observe) = TauF t' ->
+  finite_taus t <-> finite_taus t'.
 Proof.
-  split; intros [t' [I1 H1]].
+  intro Hobs.
+  split; intros [t1 [I1 H1]].
   - inversion H1; subst.
-    + exists t'; split; assumption.
-    + inversion I1.
-  - exists t'; split; [ | apply OneTau ]; assumption.
+    + edestruct notau_Tau; eauto.
+    + exists t1; split; auto.
+      rewrite Hobs in H; inversion_clear H; auto.
+  - exists t1; split; auto.
+    eapply OneTau; eauto.
 Qed.
 
 (* [finite_taus] is preserved by removing or adding any finite
@@ -203,15 +232,15 @@ Lemma untaus_finite_taus (t t' : itree E R) :
     untaus t t' -> (finite_taus t <-> finite_taus t').
 Proof.
   induction 1.
-  - rewrite finite_taus_Tau; assumption.
-  - reflexivity.
+  - subst; reflexivity.
+  - erewrite finite_taus_Tau; eassumption.
 Qed.
 
 (* [finite_taus] is preserved by removing all taus. *)
 Lemma unalltaus_finite_taus (t t' : itree E R) :
     unalltaus t t' -> (finite_taus t <-> finite_taus t').
 Proof.
-  intros []. symmetry. apply untaus_finite_taus; assumption.
+  intros []. apply untaus_finite_taus; assumption.
 Qed.
 
 (**)
