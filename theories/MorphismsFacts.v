@@ -1,7 +1,7 @@
 From Paco Require Import paco.
 
 From ITree Require Import
-     ITree Morphisms Equivalence.
+     ITree Morphisms Eq.UpToTaus.
 
 Local Open Scope eutt_scope.
 

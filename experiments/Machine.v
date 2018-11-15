@@ -24,9 +24,12 @@ From ExtLib.Structures Require Import
      Functor Applicative Monad.
 
 From ITree Require Import
-     CoAlgebra Eq.Eq.
+     Eq.Eq.
 
 From ITree Require ITree.
+
+From ITree.Experiments Require Import
+     CoAlgebra.
 
 Set Implicit Arguments.
 Set Contextual Implicit.

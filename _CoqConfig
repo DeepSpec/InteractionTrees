@@ -7,9 +7,6 @@ theories/ITree.v
 theories/Eq/Eq.v
 theories/Eq/UpToTaus.v
 
-theories/CoAlgebra.v
-theories/Machine.v
-
 theories/Morphisms.v
 theories/MorphismsFacts.v
 theories/Fix.v
@@ -17,5 +14,3 @@ theories/UpTo.v
 theories/MutFix.v
 theories/Trace.v
 theories/MFixITree.v
-
-theories/Alternatives/IxEffect.v

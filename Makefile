@@ -1,7 +1,6 @@
 .PHONY: clean all coq test tests examples install uninstall depgraph \
   example-imp example-lc example-io example-nimp
 
-
 COQPATHFILE=$(wildcard _CoqPath)
 
 all: coq
@@ -37,7 +36,7 @@ example-io: examples/IO.v
 	  ocamlbuild io.native && ./io.native
 
 Makefile.coq: _CoqProject
-	coq_makefile -f _CoqProject -o Makefile.coq
+	coq_makefile -f $< -o $@
 
 clean: Makefile.coq
 	$(MAKE) -f Makefile.coq clean
