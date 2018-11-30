@@ -552,3 +552,24 @@ Lemma eutt_bind {E R S} (t1 t2 : itree E R) (k1 k2 : R -> itree E S) :
     t1 ~ t2 -> (forall x, k1 x ~ k2 x) -> (t1 >>= k1) ~ (t2 >>= k2).
 Proof.
 Admitted.
+
+Lemma eutt_map {E R S} (f : R -> S) (t1 t2 : itree E R) :
+  t1 ~ t2 -> map f t1 ~ map f t2.
+Proof.
+Admitted.
+
+Lemma eutt_map_map {E R S T}
+      (f : R -> S) (g : S -> T) (t : itree E R) :
+  map g (map f t) ~ map (fun x => g (f x)) t.
+Proof.
+Admitted.
+
+Lemma eutt_forever {E R S} (t1 t2 : itree E R) :
+  t1 ~ t2 -> @forever _ _ S t1 ~ forever t2.
+Proof.
+Admitted.
+
+Lemma eutt_when {E} (b : bool) (t1 t2 : itree E unit) :
+  t1 ~ t2 -> when b t1 ~ when b t2.
+Proof.
+Admitted.
