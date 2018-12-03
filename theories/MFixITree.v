@@ -14,7 +14,7 @@ Section M.
   Variable m : Monad M.
 
   (* A monadic "handler" for some effects E is just a mapping from
-     the actions to monadic computations that return values of the 
+     the actions to monadic computations that return values of the
      right type. *)
   Variable handler : forall {X} (e:IO X), M X.
 
@@ -23,13 +23,13 @@ Section M.
   Variable mfix : mfix_weak.
 
   Definition run_weak {X} (t : itree IO X) : M X :=
-            mfix (itree IO X) X 
+            mfix (itree IO X) X
                    ( fun (f : (itree IO X -> M X)) =>
                        (fun (u : itree IO X) =>
-                          match u with
-                          | Ret x => ret x
-                          | Tau w => f w
-                          | Vis e k =>
+                          match u.(observe) with
+                          | RetF x => ret x
+                          | TauF w => f w
+                          | VisF e k =>
                             bind (handler _ e) (fun a => f (k a))
                           end)
                      ) t.
@@ -39,13 +39,13 @@ Section M.
   Variable mfix_parametric : mfix_type.
 
   Definition run_parametric {X} (t : itree IO X) : M X :=
-            mfix_parametric (itree IO X) X 
+            mfix_parametric (itree IO X) X
                    ( fun N _ inc (f : (itree IO X -> N X)) =>
                        (fun (u : itree IO X) =>
-                          match u with
-                          | Ret x => ret x
-                          | Tau w => f w
-                          | Vis e k =>
+                          match u.(observe) with
+                          | RetF x => ret x
+                          | TauF w => f w
+                          | VisF e k =>
                             bind (inc _ (handler _ e)) (fun a => f (k a))
                           end)
                      ) t.
@@ -66,13 +66,13 @@ Section P.
       ret := @ret_P ;
       bind := @bind_P ;
     }.
-  
+
   Definition mfix_P {a b:Type} (f : ((a -> P b) -> (a -> P b))) : a -> P b :=
     @paco2 a (fun _ => b) f bot2.
 
   Lemma mfix_law1 : forall (a b : Type) f (x:a) (y:b), (@monotone2 a (fun _ => b) f) -> (mfix_P f x y) -> f (mfix_P f) x y.
   Proof.
-    intros a b f x y Hm H. 
+    intros a b f x y Hm H.
     punfold H. unfold mfix_P. unfold upaco2 in H. unfold monotone2 in Hm.
     eapply Hm. apply H.
     intros. inversion PR. exact H0. inversion H0.
@@ -87,10 +87,9 @@ Section P.
     left. exact PR.
   Qed.
 
-  Check run_weak.
   Definition run_P IO (handler : forall X, IO X -> P X) : forall X: Type, itree IO X -> P X :=
     @run_weak IO P _ handler (@mfix_P).
-  
+
 End P.
 
 Section EX.
@@ -104,10 +103,10 @@ Section EX.
     | Out n => fun _ => True
     | In => fun n => True
     end.
-  
+
   Definition run := run_P IO (@handle_IO).
 
-End EX.  
+End EX.
 
 Section SP.
   Variable state : Type.
@@ -128,7 +127,7 @@ Section SP.
 
   Lemma mfix_SP_law1 : forall (a b : Type) f (x:a) (y : state * b) st, monotone3 f -> (mfix_SP f x st y) -> f (mfix_SP f) x st y.
   Proof.
-    intros a b f x y st Hm H. 
+    intros a b f x y st Hm H.
     punfold H. unfold mfix_P. unfold upaco3 in H. unfold monotone3 in Hm.
     eapply Hm. apply H.
     intros. inversion PR. exact H0. inversion H0.
@@ -136,17 +135,16 @@ Section SP.
 
   Lemma mfix_SP_law2 : forall (a b : Type) f (x:a) (y:state * b) st, monotone3 f -> f (mfix_SP f) x st y -> (mfix_SP f x st y).
   Proof.
-    intros a b f x y st Hm H. 
+    intros a b f x y st Hm H.
     unfold mfix_SP.
     pfold. unfold mfix_SP in H. unfold monotone3 in Hm. eapply Hm. apply H.
-    intros x0 x1 x2 PR. 
+    intros x0 x1 x2 PR.
     left. exact PR.
   Qed.
 
-  Check run_weak.
   Definition run_SP IO (handler : forall X, IO X -> SP X) : forall X: Type, itree IO X -> SP X :=
     @run_weak IO SP _ handler (@mfix_SP).
-  
+
 End SP.
 
 Section EX2.
@@ -163,22 +161,22 @@ Section EX2.
     | Load => fun (st:nat) => fun '(st', a) => st = st' /\ st = a
     | Undef => fun (st:nat) => fun '(st', a) => st = st'
     end.
-  
+
   Definition interp_SIO := run_SP _ (@SIO) (@handle_SIO).
 
   (* This could probably be factored out somehow *)
-  Lemma monotone_body : 
+  Lemma monotone_body :
     monotone3
    (fun (f : itree SIO nat -> SP nat nat) (u : itree SIO nat) =>
-    match u with
-    | Ret x => ret x
-    | Tau w => f w
-    | @Vis _ _ X e k => bind (handle_SIO e) (fun a : X => f (k a))
+    match u.(observe) with
+    | RetF x => ret x
+    | TauF w => f w
+    | VisF e k => bind (handle_SIO e) (fun a => f (k a))
     end).
   Proof.
     unfold monotone3.
     intros x0 x1 x2 r r' IN LE.
-    destruct x0.
+    destruct x0.(observe).
     - apply IN.
     - apply LE. apply IN.
     - unfold bind in *. unfold Monad_SP in *. unfold bind_SP in *.
@@ -188,7 +186,7 @@ Section EX2.
   Qed.
   Hint Resolve monotone_body.
 
-  
+
   Definition undef := Vis Undef Ret.
   Definition store x := Vis (Store x) Ret.
   Definition load := Vis Load Ret.
@@ -201,9 +199,9 @@ Section EX2.
   Definition prog2 : itree SIO nat  :=
     store 3 ;;
     x <- load ;;
-    ret x.      
+    ret x.
 
-  
+
   Lemma las : forall st st' a, interp_SIO nat prog2 st (st', a) -> a = 3.
   Proof.
     intros st st' a H.
@@ -224,12 +222,11 @@ Section EX2.
     inversion H3.
     inversion H0.
   Qed.
-   
-End EX2.  
+
+End EX2.
 
 
-    
-
+(*
 Variable E: Type -> Type.
 
 Check Fix.FixImpl.mfix.
@@ -239,5 +236,4 @@ Print mfix_type.
 Print Monad_itree.
 Definition mfix_itree : mfix_type (itree E) :=
   fun A B f => Fix.FixImpl.mfix (fun _ => B) (fun E' inc rec => f (itree E') (Monad_itree) inc rec).
-
-      
+*)

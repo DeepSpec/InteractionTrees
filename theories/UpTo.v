@@ -70,21 +70,28 @@ Arguments EffLe {_ _} _ _.
 Section upto.
   Variable E : Type -> Type.
 
-  Inductive Approx {t} : itree E t -> Eff E t -> Prop :=
-  | A_Unknown : forall it, Approx it Unknown
-  | A_Ret     : forall v, Approx (ITree.Ret v) (Ret v)
-  | A_Vis     : forall {u} (e : E u) k1 k2, (forall x, Approx (k1 x) (k2 x)) ->
-                                       Approx (ITree.Vis e k1) (Vis e k2)
-  | A_Tau     : forall it e, Approx it e -> Approx (ITree.Tau it) e.
+  Inductive Approx {t} (it : itree E t) : Eff E t -> Prop :=
+  | A_Unknown : Approx it Unknown
+  | A_Ret     : forall v z,
+      it.(observe) = RetF v ->
+      Approx it z
+  | A_Vis     : forall {u} (e : E u) k1 k2,
+      it.(observe) = ITree.VisF e k1 ->
+      (forall x, Approx (k1 x) (k2 x)) ->
+      Approx it (Vis e k2)
+  | A_Tau     : forall it' e,
+      it.(observe) = TauF it' ->
+      Approx it' e ->
+      Approx it e.
 
   Fixpoint upto {t} (n : nat) (i : itree E t) {struct n}
   : Eff E t :=
     match n with
     | 0 => Unknown
-    | S n => match i with
-            | ITree.Ret t => Ret t
-            | ITree.Vis e k => Vis e (fun x => upto n (k x))
-            | ITree.Tau k => upto n k
+    | S n => match i.(observe) with
+            | ITree.RetF t => Ret t
+            | ITree.VisF e k => Vis e (fun x => upto n (k x))
+            | ITree.TauF k => upto n k
             end
     end.
 
@@ -93,7 +100,10 @@ Section upto.
   Proof.
     induction n; simpl.
     - constructor.
-    - destruct it; try constructor; eauto.
+    - intro it. simpl. destruct (observe it) eqn:Heq.
+      + eapply A_Ret. eassumption.
+      + eapply A_Tau. eassumption. eapply IHn.
+      + eapply A_Vis; [ eassumption | ]. eauto.
   Qed.
 
   Lemma EffLe_upto : forall n t (a : itree E t),
@@ -101,7 +111,7 @@ Section upto.
   Proof.
     induction n; simpl; intros.
     - constructor.
-    - destruct a; try constructor; eauto.
+    - destruct (observe a); try constructor; eauto.
   Qed.
 
   Lemma EffLe_upto_strong

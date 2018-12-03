@@ -12,45 +12,102 @@ From Coq Require Import
 From ITree Require Import
      ITree.
 
-CoInductive eq_itree {E : Type -> Type} {R} : relation (itree E R) :=
-| EqRet : forall x, eq_itree (Ret x) (Ret x)
-| EqTau : forall m1 m2,
-    eq_itree m1 m2 -> eq_itree (Tau m1) (Tau m2)
-| EqVis : forall {u} (e : E u) k1 k2,
-    (forall y, eq_itree (k1 y) (k2 y)) ->
-    eq_itree (Vis e k1) (Vis e k2)
-.
+Section eq_itree.
+  Context {E : Type -> Type} {R : Type}.
+
+  Inductive eq_itreeF {t} (sim : t -> t -> Prop) : relation (@itreeF E R t) :=
+  | EqRet : forall x, eq_itreeF sim (RetF x) (RetF x)
+  | EqTau : forall m1 m2,
+      sim m1 m2 -> eq_itreeF sim (TauF m1) (TauF m2)
+  | EqVis : forall {u} (e : E u) k1 k2,
+      (forall y, sim (k1 y) (k2 y)) ->
+      eq_itreeF sim (VisF e k1) (VisF e k2)
+  .
+
+  Global Instance Reflexive_eq_itreeF {t} {sim : t -> t -> Prop}
+  : Reflexive sim -> Reflexive (@eq_itreeF t sim).
+  Proof.
+    red. destruct x.
+    - constructor.
+    - constructor. reflexivity.
+    - constructor. intro; eapply H.
+  Qed.
+
+  Global Instance Symmetric_eq_itreeF {t} {sim : t -> t -> Prop}
+  : Symmetric sim -> Symmetric (@eq_itreeF t sim).
+  Proof.
+    red. inversion 2.
+    - constructor.
+    - constructor. eauto.
+    - constructor. intros; eapply H. eapply H1.
+  Qed.
+
+  Global Instance Transitive_eq_itreeF {t} {sim : t -> t -> Prop}
+  : Transitive sim -> Transitive (@eq_itreeF t sim).
+  Proof.
+    red. inversion 2.
+    - inversion 1. constructor.
+    - inversion 1. constructor. eauto.
+    - inversion 1.
+      (* todo(gmm): i don't think these are strictly necessary *)
+      eapply inj_pair2 in H7.
+      eapply inj_pair2 in H8.
+      subst. constructor. eauto.
+  Qed.
+
+  CoInductive eq_itree (l r : itree E R) : Prop :=
+  { observe_eq : eq_itreeF eq_itree l.(observe) r.(observe) }.
+
+End eq_itree.
+
 
 Delimit Scope eq_itree_scope with eq_itree.
-Notation "t1 = t2" := (eq_itree t1%itree t2%itree) : eq_itree_scope.
-
-(* Axiom EqM_eq : forall a b, EqM a b -> a = b. *)
+(* note(gmm): overriding `=` seems like a bad idea *)
+Notation "t1 ≅ t2" := (eq_itree t1%itree t2%itree) (at level 70).
+(* you can write ≅ using \cong in tex-mode *)
 
 Instance Reflexive_eq_itree {E R} : Reflexive (@eq_itree E R).
 Proof.
   cofix self.
-  intros []; constructor; auto.
+  intro.
+  constructor.
+  destruct (observe x).
+  - constructor.
+  - constructor. eapply self.
+  - constructor. intros. eapply self.
 Qed.
 
 Instance Symmetric_eq_itree {E R} : Symmetric (@eq_itree E R).
 Proof.
   cofix self.
-  intros x y []; constructor; auto.
+  intros x y H.
+  constructor. eapply observe_eq in H.
+  destruct H; constructor.
+  - apply self. assumption.
+  - intros. eapply self. eapply H.
 Qed.
 
 Instance Transitive_eq_itree {E R} : Transitive (@eq_itree E R).
 Proof.
   cofix self.
-  intros x y z [] Hyz; inversion Hyz.
-  - constructor.
-  - constructor; eapply self; eauto.
-  - apply inj_pair2 in H2.
-    subst.
-    apply inj_pair2 in H3.
-    subst.
+  intros x y z; intros.
+  eapply observe_eq in H.
+  eapply observe_eq in H0.
+  constructor.
+  generalize dependent (observe x); generalize dependent (observe y);
+    generalize dependent (observe z).
+  inversion 1; subst.
+  - clear. eauto.
+  - inversion 1. subst.
     constructor.
-    intro y'.
-    eapply self; auto.
+    eapply self. eassumption. eassumption.
+  - inversion 1.
+    subst.
+    eapply inj_pair2 in H5. subst.
+    eapply inj_pair2 in H6. subst.
+    constructor.
+    intros.
+    eapply self. eapply H4. eapply H.
 Qed.
 
 Instance Equivalence_eq_itree {E R} :
@@ -65,6 +122,7 @@ Add Parametric Relation {E R} : (itree E R) eq_itree
   transitivity proved by Transitive_eq_itree
     as eq_itree_rel.
 
+
 Add Parametric Morphism {E R S} : (@bind E R S)
     with signature
     (eq_itree ==> pointwise_relation _ eq_itree ==> eq_itree)
@@ -75,44 +133,50 @@ Proof.
   generalize dependent s1.
   cofix core_bind_mor.
   intros.
-  rewrite (match_itree (s1 >>= _)).
-  rewrite (match_itree (s2 >>= _)).
-  destruct Hs; simpl.
-  - do 2 rewrite <- match_itree; apply (Hk x).
-  - constructor; apply core_bind_mor; auto.
-  - constructor; intro y; apply core_bind_mor; auto.
+  constructor. simpl. unfold bind_match.
+  inversion Hs.
+  do 2 rewrite observe_bind.
+  inversion observe_eq0.
+  { eapply Hk. }
+  { constructor.
+    eapply core_bind_mor. eapply H1. }
+  { constructor; intros.
+    eapply core_bind_mor. eapply H1. }
 Defined.
 
 (* [ret_bind] in basics *)
 
 Lemma bind_ret {E R} :
   forall s : itree E R,
-    (s >>= Ret = s)%eq_itree.
+    (s >>= Ret) ≅ s.
 Proof.
   cofix bind_ret.
   intros s.
-  rewrite (match_itree (s >>= _)).
-  destruct s; constructor; auto.
-  - apply bind_ret.
-  - intro y. apply bind_ret.
+  constructor.
+  rewrite observe_bind.
+  destruct (observe s); constructor.
+  - eapply bind_ret.
+  - intros. eapply bind_ret.
 Qed.
 
 Lemma bind_bind {E R S T} :
   forall (s : itree E R) (k : R -> itree E S) (h : S -> itree E T),
     ( (s >>= k) >>= h
-      =
+      ≅
       s >>= (fun r => k r >>= h)
-    )%eq_itree.
+    ).
 Proof.
   cofix bind_bind.
   intros s k h.
-  do 2 rewrite (match_bind s).
-  destruct s; simpl; auto.
-  - reflexivity.
-  - rewrite (match_bind (Tau _)).
-    constructor. apply bind_bind.
-  - rewrite (match_bind (Vis _ _)).
-    constructor. intro y. apply bind_bind.
+  constructor; simpl.
+  repeat rewrite observe_bind.
+  destruct (observe s).
+  - rewrite observe_bind. reflexivity.
+  - constructor.
+    eapply (bind_bind t k h).
+  - constructor.
+    intros.
+    apply (bind_bind (k0 y) k h).
 Qed.
 
 (*

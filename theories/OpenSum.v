@@ -20,8 +20,9 @@ Variant void : Type := .
 
 (** Sums for extensible event types. *)
 
-Definition sum1 (E1 E2 : Type -> Type) (X : Type) : Type :=
-  E1 X + E2 X.
+Variant sum1 (E1 E2 : Type -> Type) (X : Type) : Type :=
+| inlE (_ : E1 X)
+| inrE (_ : E2 X).
 
 Variant emptyE : Type -> Type := .
 
@@ -31,16 +32,16 @@ Variant emptyE : Type -> Type := .
 Definition swap1 {A B : Type -> Type} {X : Type}
            (ab : sum1 A B X) : sum1 B A X :=
   match ab with
-  | inl a => inr a
-  | inr b => inl b
+  | inlE a => inrE a
+  | inrE b => inlE b
   end.
 
 Definition bimap_sum1 {A B C D : Type -> Type} {X Y : Type}
            (f : A X -> C Y) (g : B X -> D Y)
            (ab : sum1 A B X) : sum1 C D Y :=
   match ab with
-  | inl a => inl (f a)
-  | inr b => inr (g b)
+  | inlE a => inlE (f a)
+  | inrE b => inrE (g b)
   end.
 
 Notation "E1 +' E2" := (sum1 E1 E2)
@@ -52,30 +53,30 @@ Section into.
   Definition into (h : eff_hom E F) : eff_hom (E +' F) F :=
     fun _ e =>
       match e with
-      | inl e => h _ e
-      | inr e => Vis e Ret
+      | inlE e => h _ e
+      | inrE e => Vis e Ret
       end.
 
   Definition into_state {s} (h : eff_hom_s s E F) : eff_hom_s s (E +' F) F :=
     fun _ e s =>
       match e with
-      | inl e => h _ e s
-      | inr e => Vis e (fun x => Ret (s, x))
+      | inlE e => h _ e s
+      | inrE e => Vis e (fun x => Ret (s, x))
       end.
 
   Definition into_reader {s} (h : eff_hom_r s E F) : eff_hom_r s (E +' F) F :=
     fun _ e s =>
       match e with
-      | inl e => h _ e s
-      | inr e => Vis e Ret
+      | inlE e => h _ e s
+      | inrE e => Vis e Ret
       end.
 
   Definition into_writer {s} `{Monoid_s : Monoid s} (h : eff_hom_w s E F)
   : eff_hom_w s (E +' F) F :=
     fun _ e =>
       match e with
-      | inl e => h _ e
-      | inr e => Vis e (fun x => Ret (monoid_unit Monoid_s, x))
+      | inlE e => h _ e
+      | inrE e => Vis e (fun x => Ret (monoid_unit Monoid_s, x))
       end.
 
   (* todo(gmm): is the a corresponding definition for `eff_hom_p`? *)
@@ -100,19 +101,19 @@ Global Instance fluid_sum A B C `{Convertible A C} `{Convertible B C}
 : Convertible (sum1 A B) C | 7 :=
   { convert X ab :=
       match ab with
-      | inl a => convert a
-      | inr b => convert b
+      | inlE a => convert a
+      | inrE b => convert b
       end }.
 
 (* Lean right by default for no reason. *)
 Global Instance fluid_left A B `{Convertible A B} C
 : Convertible A (sum1 B C) | 9 :=
-  { convert X a := inl (convert a) }.
+  { convert X a := inlE (convert a) }.
 
 (* Very incoherent instances. *)
 Global Instance fluid_right A C `{Convertible A C} B
 : Convertible A (sum1 B C) | 8 :=
-  { convert X a := inr (convert a) }.
+  { convert X a := inrE (convert a) }.
 
 Global Instance fluid_empty A : Convertible emptyE A :=
   { convert X v := match v with end }.
@@ -130,26 +131,26 @@ Module Import SumNotations.
 Delimit Scope sum_scope with sum.
 Bind Scope sum_scope with sum1.
 
-Notation "(| x )" := (inr x) : sum_scope.
-Notation "( x |)" := (inl x) : sum_scope.
-Notation "(| x |)" := (inl (inr x)) : sum_scope.
-Notation "(|| x )" := (inr (inr x)) : sum_scope.
-Notation "(|| x |)" := (inr (inr (inl x))) : sum_scope.
-Notation "(||| x )" := (inr (inr (inr x))) : sum_scope.
-Notation "(||| x |)" := (inr (inr (inr (inl x)))) : sum_scope.
-Notation "(|||| x )" := (inr (inr (inr (inr x)))) : sum_scope.
+Notation "(| x )" := (inrE x) : sum_scope.
+Notation "( x |)" := (inlE x) : sum_scope.
+Notation "(| x |)" := (inlE (inrE x)) : sum_scope.
+Notation "(|| x )" := (inrE (inrE x)) : sum_scope.
+Notation "(|| x |)" := (inrE (inrE (inlE x))) : sum_scope.
+Notation "(||| x )" := (inrE (inrE (inrE x))) : sum_scope.
+Notation "(||| x |)" := (inrE (inrE (inrE (inlE x)))) : sum_scope.
+Notation "(|||| x )" := (inrE (inrE (inrE (inrE x)))) : sum_scope.
 Notation "(|||| x |)" :=
-  (inr (inr (inr (inr (inl x))))) : sum_scope.
+  (inrE (inrE (inrE (inrE (inlE x))))) : sum_scope.
 Notation "(||||| x )" :=
-  (inr (inr (inr (inr (inr x))))) : sum_scope.
+  (inrE (inrE (inrE (inrE (inrE x))))) : sum_scope.
 Notation "(||||| x |)" :=
-  (inr (inr (inr (inr (inr (inl x)))))) : sum_scope.
+  (inrE (inrE (inrE (inrE (inrE (inlE x)))))) : sum_scope.
 Notation "(|||||| x )" :=
-  (inr (inr (inr (inr (inr (inr x)))))) : sum_scope.
+  (inrE (inrE (inrE (inrE (inrE (inrE x)))))) : sum_scope.
 Notation "(|||||| x |)" :=
-  (inr (inr (inr (inr (inr (inr (inl x))))))) : sum_scope.
+  (inrE (inrE (inrE (inrE (inrE (inrE (inlE x))))))) : sum_scope.
 Notation "(||||||| x )" :=
-  (inr (inr (inr (inr (inr (inr (inr x))))))) : sum_scope.
+  (inrE (inrE (inrE (inrE (inrE (inrE (inrE x))))))) : sum_scope.
 
 End SumNotations.
 
@@ -382,16 +383,18 @@ Section Trace.
     do (Trace msg).
 
   (* todo(gmm): define in terms of `eff_hom` *)
-  CoFixpoint ignore_trace {E R} (t : itree (traceE +' E) R) :
-    itree E R :=
-    match t with
-    | Ret r => Ret r
-    | Tau t => Tau (ignore_trace t)
-    | Vis ( e |) k =>
-      match e in traceE T return (T -> _) -> _ with
-      | Trace _ => fun k => Tau (ignore_trace (k tt))
+  CoFixpoint ignore_trace {E R} (t : itree (traceE +' E) R)
+  : itree E R :=
+    match t.(observe) with
+    | RetF r => Ret r
+    | TauF t => Tau (ignore_trace t)
+    | @VisF _ _ _ u e k =>
+      match e return (u -> _) -> _ with
+      | inlE e => match e with
+                 | Trace _ => fun k => Tau (ignore_trace (k tt))
+                 end
+      | inrE e => fun k => Vis e (fun x => ignore_trace (k x))
       end k
-    | Vis (| e ) k => Vis e (fun x => ignore_trace (k x))
     end.
 
 End Trace.

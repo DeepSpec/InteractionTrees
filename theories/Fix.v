@@ -48,17 +48,20 @@ Module FixImpl <: FixSig.
 
       Local CoFixpoint homFix {T : Type}
             (c : itree (sum1 E fixpoint) T)
-        : itree E T :=
-        match c with
-        | Ret x => Ret x
-        | Vis (inl e) k =>
-          Vis e (fun x => homFix (k x))
-        | Vis (inr e) k =>
-          match e in fixpoint X return (X -> _) -> _ with
-          | call x => fun k =>
-                       Tau (homFix (bind (f x) k))
-          end k
-        | Tau x => Tau (homFix x)
+      : itree E T :=
+        match c.(observe) with
+        | RetF x => Ret x
+        | @VisF _ _ _ u ee k =>
+          match ee with
+          | inrE e =>
+            match e in fixpoint u return (u -> _) -> _ with
+            | call x => fun k =>
+              Tau (homFix (bind (f x) k))
+            end k
+          | inlE e' =>
+            Vis e' (fun x => homFix (k x))
+          end
+        | TauF x => Tau (homFix x)
         end.
 
       Definition _mfix (x : dom) : itree E (codom x) :=
@@ -66,8 +69,8 @@ Module FixImpl <: FixSig.
 
       Definition eval_fixpoint T (X : sum1 E fixpoint T) : itree E T :=
         match X with
-        | inl e => Vis e Ret
-        | inr f0 =>
+        | inlE e => Vis e Ret
+        | inrE f0 =>
           match f0 with
           | call x => Tau (_mfix x)
           end
@@ -104,7 +107,7 @@ Module FixImpl <: FixSig.
         _mfix
           (body (E +' fixpoint)
                 (fun t => @interp _ _ (fun _ e => do e) _)
-                (fun x0 : dom => Vis (inr (call x0)) Ret)).
+                (fun x0 : dom => Vis (inrE (call x0)) Ret)).
 
       Theorem mfix_unfold : forall x,
           mfix x = body E (fun t => id) mfix x.

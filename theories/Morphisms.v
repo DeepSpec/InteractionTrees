@@ -16,10 +16,10 @@ Definition eff_hom (E E' : Type -> Type) : Type :=
 Definition interp_match {E F R}
            (f : eff_hom E F) (hom : itree E R -> itree F R)
            (t : itree E R) :=
-  match t with
-  | Ret r => Ret r
-  | Vis e k => bind (f _ e) (fun x => Tau (hom (k x)))
-  | Tau t' => Tau (hom t')
+  match t.(observe) with
+  | RetF r => Ret r
+  | VisF e k => bind (f _ e) (fun x => Tau (hom (k x)))
+  | TauF t' => Tau (hom t')
   end.
 
 (* An `eff_hom` can be used to transport itrees between different
@@ -33,6 +33,7 @@ Definition interp {E F : Type -> Type}
   cofix hom_f t := interp_match f hom_f t.
 Arguments interp {E F} _ [R] _.
 
+(*
 Lemma match_interp {E F R} {f : eff_hom E F} (t : itree E R) :
   interp f t = interp_match f (fun t' => interp f t') t.
 Proof.
@@ -40,6 +41,7 @@ Proof.
   simpl; rewrite <- match_itree.
   reflexivity.
 Qed.
+*)
 
 (* * Effects form a category
  * The objects are effects: i.e. `Type -> Type`
@@ -77,10 +79,10 @@ Section eff_hom_state.
   Variable f : eff_hom_s.
   CoFixpoint interp_state (R : Type) (t : itree E R) (st : s)
   : itree E' (s * R) :=
-    match t with
-    | Ret r => Ret (st, r)
-    | Vis e k => bind (f _ e st) (fun '(s',x) => Tau (interp_state _ (k x) s'))
-    | Tau t => Tau (interp_state _ t st)
+    match t.(observe) with
+    | RetF r => Ret (st, r)
+    | VisF e k => bind (f _ e st) (fun '(s',x) => Tau (interp_state _ (k x) s'))
+    | TauF t => Tau (interp_state _ t st)
     end.
 End eff_hom_state.
 Arguments interp_state {_ _ _} _ [_] _ _.
@@ -95,10 +97,10 @@ Section eff_hom_reader.
 
   Variable f : eff_hom_r.
   CoFixpoint interp_reader (R : Type) (t : itree E R) (st : s) : itree E' R :=
-    match t with
-    | Ret r => Ret r
-    | Vis e k => bind (f _ e st) (fun x => Tau (interp_reader _ (k x) st))
-    | Tau t => Tau (interp_reader _ t st)
+    match t.(observe) with
+    | RetF r => Ret r
+    | VisF e k => bind (f _ e st) (fun x => Tau (interp_reader _ (k x) st))
+    | TauF t => Tau (interp_reader _ t st)
     end.
 
 End eff_hom_reader.
@@ -189,10 +191,10 @@ Section eff_hom_e.
 
   CoFixpoint interp_e (f : eff_hom_e) {t} (tr : itree E t)
   : itree F t :=
-    match tr with
-    | Ret v => Ret v
-    | Vis e k =>
+    match tr.(observe) with
+    | RetF v => Ret v
+    | VisF e k =>
       bind (f.(eval) _ e) (fun '(x, f') => Tau (interp_e f' (k x)))
-    | Tau tr => Tau (interp_e f tr)
+    | TauF tr => Tau (interp_e f tr)
     end.
 End eff_hom_e.
