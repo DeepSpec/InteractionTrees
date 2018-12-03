@@ -87,7 +87,6 @@ Section P.
     left. exact PR.
   Qed.
 
-  Check run_weak.
   Definition run_P IO (handler : forall X, IO X -> P X) : forall X: Type, itree IO X -> P X :=
     @run_weak IO P _ handler (@mfix_P).
 
@@ -143,7 +142,6 @@ Section SP.
     left. exact PR.
   Qed.
 
-  Check run_weak.
   Definition run_SP IO (handler : forall X, IO X -> SP X) : forall X: Type, itree IO X -> SP X :=
     @run_weak IO SP _ handler (@mfix_SP).
 

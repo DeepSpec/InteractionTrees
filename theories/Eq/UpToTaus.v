@@ -16,10 +16,11 @@
    - make [eutt] easier to work with ([eutt_bind] is already a mess)
  *)
 
-Require Import Coq.Classes.RelationClasses.
-Require Import Coq.Setoids.Setoid.
-Require Import Coq.Relations.Relations.
 From Coq Require Import
+     Classes.RelationClasses
+     Classes.Morphisms
+     Setoids.Setoid
+     Relations.Relations
      Logic.JMeq Logic.EqdepFacts.
 
 Require Import Paco.paco.
@@ -511,10 +512,6 @@ End EUTT.
 Hint Resolve monotone_eutt_0 : paco.
 Hint Resolve monotone_eutt_ : paco.
 
-Infix "~" := eutt (at level 80) : eutt_scope.
-Delimit Scope eutt_scope with eutt.
-Local Open Scope eutt_scope.
-
 (* We can now rewrite with [eutt] equalities. *)
 Add Parametric Relation E R : (itree E R) eutt
     as eutt_equiv.
@@ -548,28 +545,31 @@ Proof.
 Qed.
 
 (* [eutt] is a congruence wrt. [bind] *)
-Lemma eutt_bind {E R S} (t1 t2 : itree E R) (k1 k2 : R -> itree E S) :
-    t1 ~ t2 -> (forall x, k1 x ~ k2 x) -> (t1 >>= k1) ~ (t2 >>= k2).
+Instance eutt_bind {E R S} :
+  Proper (@eutt E R ==>
+          pointwise_relation _ eutt ==>
+          @eutt E S) bind.
 Proof.
 Admitted.
 
-Lemma eutt_map {E R S} (f : R -> S) (t1 t2 : itree E R) :
-  t1 ~ t2 -> map f t1 ~ map f t2.
+Instance eutt_map {E R S} :
+  Proper (pointwise_relation _ eq ==> @eutt E R ==> @eutt E S) map.
 Proof.
 Admitted.
 
 Lemma eutt_map_map {E R S T}
       (f : R -> S) (g : S -> T) (t : itree E R) :
-  map g (map f t) ~ map (fun x => g (f x)) t.
+  eutt (map g (map f t))
+       (map (fun x => g (f x)) t).
 Proof.
 Admitted.
 
-Lemma eutt_forever {E R S} (t1 t2 : itree E R) :
-  t1 ~ t2 -> @forever _ _ S t1 ~ forever t2.
+Instance eutt_forever {E R S} :
+  Proper (@eutt E R ==> @eutt E S) forever.
 Proof.
 Admitted.
 
-Lemma eutt_when {E} (b : bool) (t1 t2 : itree E unit) :
-  t1 ~ t2 -> when b t1 ~ when b t2.
+Instance eutt_when {E} (b : bool) :
+  Proper (@eutt E unit ==> @eutt E unit) (when b).
 Proof.
 Admitted.

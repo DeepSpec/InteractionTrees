@@ -3,8 +3,6 @@ From Paco Require Import paco.
 From ITree Require Import
      ITree Morphisms Eq.UpToTaus.
 
-Local Open Scope eutt_scope.
-
 (* Proof of
    [interp f (t >>= k) ~ (interp f t >>= fun r => interp f (k r))]
 
@@ -27,8 +25,8 @@ Local Open Scope eutt_scope.
 (* Failed naive attempt. (The [Tau] case is the interesting one.) *)
 Lemma interp_bind_failed {E F R S}
       (f : eff_hom E F) (t : itree E R) (k : R -> itree E S) :
-  ( interp f (t >>= k) ~
-   (interp f  t >>= fun r => interp f (k r))).
+  eutt (interp f (t >>= k))
+       (interp f  t >>= fun r => interp f (k r)).
 Proof.
   revert t; pcofix interp_bind; rename r into e; intro t.
   pfold. constructor.
@@ -38,8 +36,8 @@ Abort.
 
 Lemma interp_bind {E F R S}
       (f : eff_hom E F) (t : itree E R) (k : R -> itree E S) :
-  ( interp f (t >>= k) ~
-   (interp f  t >>= fun r => interp f (k r))).
+  eutt (interp f (t >>= k))
+       (interp f  t >>= fun r => interp f (k r)).
 Proof.
   revert t; pcofix interp_bind; rename r into e; intro t.
   pfold.
