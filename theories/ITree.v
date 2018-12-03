@@ -28,12 +28,21 @@ Section itree.
   Definition Ret (x : R) : itree := do (RetF x).
   Definition Vis {u} (e : E u) (k : u -> itree) : itree :=
     do (VisF e k).
-  Definition Tau (t : itree) : itree := do (TauF t).
 
 End itree.
 
 Arguments itreeF _ _ : clear implicits.
 Arguments itree _ _ : clear implicits.
+
+(** We could use a definition for [Tau] as with [Ret] and [Vis] above, but
+    notation works better for extraction.  (The [spin] definition, given below
+    does not extract correctly if [Tau] is a definition.
+*)
+Bind Scope itree_scope with itree.
+Delimit Scope itree_scope with itree.
+Local Open Scope itree_scope.
+(* SAZ: What is the right precedence for [Tau]? *)
+Notation "'Tau' t" := (do (TauF t)) (at level 100, right associativity) : itree_scope.
 
 Section bind.
   Context {E : Type -> Type} {T U : Type}.
@@ -87,8 +96,6 @@ Definition map {E R S} (f : R -> S) : itree E R -> itree E S :=
    We can also make ExtLib's [bind] opaque, in which case it still
    doesn't hurt to have these notations around.
  *)
-Bind Scope itree_scope with itree.
-Delimit Scope itree_scope with itree.
 
 Notation "t1 >>= k2" := (bind t1 k2)
   (at level 50, left associativity) : itree_scope.

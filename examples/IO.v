@@ -12,12 +12,12 @@ Definition example : itree IO unit :=
 Definition SOME_NUMBER := 13.
 
 Definition test_interp : itree IO unit -> bool := fun t =>
-  match t with
-  | Vis e k =>
+  match t.(observe) with
+  | VisF e k =>
     match e in IO X return (X -> _) -> _ with
     | Read => fun id =>
-      match k (id SOME_NUMBER) with
-      | Vis (Write n) _ => n =? SOME_NUMBER
+      match (k (id SOME_NUMBER)).(observe) with
+      | VisF (Write n) _ => n =? SOME_NUMBER
       | _ => false
       end
     | _ => fun _ => false

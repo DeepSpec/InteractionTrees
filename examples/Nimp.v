@@ -4,7 +4,7 @@ From Coq Require Import
      Relations.
 
 From ITree Require Import
-     ITree Equivalence Fix.
+     ITree Eq.UpToTaus Fix.
 
 Inductive com : Type :=
 | loop : com -> com (* Nondeterministically, continue or stop. *)
@@ -137,7 +137,9 @@ Definition one_loop_tree : itree nd unit :=
     else
       Ret tt)%itree.
 
-Lemma eval_one_loop : (eval one_loop ~ one_loop_tree)%eutt.
+
+(* SAZ: the [~] notation for eutt wasn't working here. *)
+Lemma eval_one_loop : eutt (eval one_loop) (one_loop_tree).
 Proof.
 Abort.
 

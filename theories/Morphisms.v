@@ -9,6 +9,8 @@
 Require Import ITree.ITree.
 Require Import ExtLib.Structures.Functor.
 
+Open Scope itree_scope.
+
 (* * Homomorphisms between effects *)
 Definition eff_hom (E E' : Type -> Type) : Type :=
   forall t, E t -> itree E' t.
