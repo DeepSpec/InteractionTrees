@@ -54,7 +54,7 @@ Section into.
     fun _ e =>
       match e with
       | inlE e => h _ e
-      | inrE e => Vis e Ret
+      | inrE e => Vis e (fun x => Ret x)
       end.
 
   Definition into_state {s} (h : eff_hom_s s E F) : eff_hom_s s (E +' F) F :=
@@ -68,7 +68,7 @@ Section into.
     fun _ e s =>
       match e with
       | inlE e => h _ e s
-      | inrE e => Vis e Ret
+      | inrE e => Vis e (fun x => Ret x)
       end.
 
   Definition into_writer {s} `{Monoid_s : Monoid s} (h : eff_hom_w s E F)
@@ -179,7 +179,7 @@ Definition vis {E F R X} `{F -< E}
 
 Definition do {E F X} `{F -< E}
            (e : F X) : itree E X :=
-  Vis (convert e) Ret.
+  Vis (convert e) (fun x => Ret x).
 
 
 Section Failure.
@@ -310,7 +310,7 @@ Section Tagged.
   {| unTag := e |}.
 
   Definition eval_tagged {tag} : eff_hom (Tagged tag) E :=
-    fun _ e => Vis e.(unTag) Ret.
+    fun _ e => Vis e.(unTag) (fun x => Ret x).
 
 End Tagged.
 

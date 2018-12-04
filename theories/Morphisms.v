@@ -60,7 +60,7 @@ Definition eh_compose {A B C} (g : eff_hom B C) (f : eff_hom A B)
     interp g (f _ e).
 
 Definition eh_id {A} : eff_hom A A :=
-  fun _ e => Vis e Ret.
+  fun _ e => Vis e (fun x => Ret x).
 
 Section eff_hom_state.
   Variable s : Type.

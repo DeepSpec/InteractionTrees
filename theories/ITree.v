@@ -25,24 +25,25 @@ Section itree.
   CoInductive itree : Type := do
   { observe : itreeF itree }.
 
-  Definition Ret (x : R) : itree := do (RetF x).
-  Definition Vis {u} (e : E u) (k : u -> itree) : itree :=
-    do (VisF e k).
-
 End itree.
 
 Arguments itreeF _ _ : clear implicits.
 Arguments itree _ _ : clear implicits.
 
-(** We could use a definition for [Tau] as with [Ret] and [Vis] above, but
-    notation works better for extraction.  (The [spin] definition, given below
-    does not extract correctly if [Tau] is a definition.
+(** We introduce notation for the [Tau], [Ret], and [Vis] constructors. Using
+    notation rather than definitions works better for extraction.  (The [spin]
+    definition, given below does not extract correctly if [Tau] is a definition.)
+
+    Using this notation means that we occasionally have to eta expand, e.g.
+    writing [Vis e (fun x => Ret x)] instead of [Vis e Ret].
 *)
 Bind Scope itree_scope with itree.
 Delimit Scope itree_scope with itree.
 Local Open Scope itree_scope.
-(* SAZ: What is the right precedence for [Tau]? *)
-Notation "'Tau' t" := (do (TauF t)) (at level 100, right associativity) : itree_scope.
+
+Notation Ret x := (do (RetF x)).
+Notation Tau t := (do (TauF t)).
+Notation Vis e k := (do (VisF e k)).
 
 Section bind.
   Context {E : Type -> Type} {T U : Type}.
@@ -109,7 +110,7 @@ Notation "' p <- t1 ;; t2" :=
 
 Definition liftE {E : Type -> Type} {X : Type}
            (e : E X) : itree E X :=
-  Vis e Ret.
+  Vis e (fun x => Ret x).
 
 Instance Functor_itree {E} : Functor (itree E) :=
 { fmap := @map E }.
@@ -118,12 +119,12 @@ Instance Functor_itree {E} : Functor (itree E) :=
    [pure] and [ret] to make the extracted code respect OCaml's
    value restriction. *)
 Instance Applicative_itree {E} : Applicative (itree E) :=
-{ pure _ := Ret
+{ pure _ := fun x => Ret x
 ; ap _ _ f x := bind f (fun f => bind x (fun x => Ret (f x)))
 }.
 
 Global Instance Monad_itree {E} : Monad (itree E) :=
-{ ret _ := Ret
+{ ret _ := fun x => Ret x
 ; bind := @bind E
 }.
 
