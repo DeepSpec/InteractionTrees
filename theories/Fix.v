@@ -69,7 +69,7 @@ Module FixImpl <: FixSig.
 
       Definition eval_fixpoint T (X : sum1 E fixpoint T) : itree E T :=
         match X with
-        | inlE e => Vis e (fun x => Ret x)
+        | inlE e => liftE e
         | inrE f0 =>
           match f0 with
           | call x => Tau (_mfix x)
@@ -107,7 +107,7 @@ Module FixImpl <: FixSig.
         _mfix
           (body (E +' fixpoint)
                 (fun t => @interp _ _ (fun _ e => do e) _)
-                (fun x0 : dom => Vis (inrE (call x0)) (fun x => Ret x))).
+                (fun x0 : dom => liftE (inrE (call x0)))).
 
       Theorem mfix_unfold : forall x,
           mfix x = body E (fun t => id) mfix x.
