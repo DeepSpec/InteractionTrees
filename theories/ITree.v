@@ -25,15 +25,25 @@ Section itree.
   CoInductive itree : Type := do
   { observe : itreeF itree }.
 
-  Definition Ret (x : R) : itree := do (RetF x).
-  Definition Vis {u} (e : E u) (k : u -> itree) : itree :=
-    do (VisF e k).
-  Definition Tau (t : itree) : itree := do (TauF t).
-
 End itree.
 
 Arguments itreeF _ _ : clear implicits.
 Arguments itree _ _ : clear implicits.
+
+(** We introduce notation for the [Tau], [Ret], and [Vis] constructors. Using
+    notation rather than definitions works better for extraction.  (The [spin]
+    definition, given below does not extract correctly if [Tau] is a definition.)
+
+    Using this notation means that we occasionally have to eta expand, e.g.
+    writing [Vis e (fun x => Ret x)] instead of [Vis e Ret].
+*)
+Bind Scope itree_scope with itree.
+Delimit Scope itree_scope with itree.
+Local Open Scope itree_scope.
+
+Notation Ret x := (do (RetF x)).
+Notation Tau t := (do (TauF t)).
+Notation Vis e k := (do (VisF e k)).
 
 Section bind.
   Context {E : Type -> Type} {T U : Type}.
@@ -87,8 +97,6 @@ Definition map {E R S} (f : R -> S) : itree E R -> itree E S :=
    We can also make ExtLib's [bind] opaque, in which case it still
    doesn't hurt to have these notations around.
  *)
-Bind Scope itree_scope with itree.
-Delimit Scope itree_scope with itree.
 
 Notation "t1 >>= k2" := (bind t1 k2)
   (at level 50, left associativity) : itree_scope.
@@ -102,7 +110,7 @@ Notation "' p <- t1 ;; t2" :=
 
 Definition liftE {E : Type -> Type} {X : Type}
            (e : E X) : itree E X :=
-  Vis e Ret.
+  Vis e (fun x => Ret x).
 
 Instance Functor_itree {E} : Functor (itree E) :=
 { fmap := @map E }.
@@ -111,12 +119,12 @@ Instance Functor_itree {E} : Functor (itree E) :=
    [pure] and [ret] to make the extracted code respect OCaml's
    value restriction. *)
 Instance Applicative_itree {E} : Applicative (itree E) :=
-{ pure _ := Ret
+{ pure _ := fun x => Ret x
 ; ap _ _ f x := bind f (fun f => bind x (fun x => Ret (f x)))
 }.
 
 Global Instance Monad_itree {E} : Monad (itree E) :=
-{ ret _ := Ret
+{ ret _ := fun x => Ret x
 ; bind := @bind E
 }.
 

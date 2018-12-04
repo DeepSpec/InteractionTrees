@@ -148,7 +148,7 @@ Defined.
 
 Lemma bind_ret {E R} :
   forall s : itree E R,
-    (s >>= Ret) ≅ s.
+    (s >>= (fun x => Ret x)) ≅ s.
 Proof.
   cofix bind_ret.
   intros s.

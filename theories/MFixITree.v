@@ -187,9 +187,9 @@ Section EX2.
   Hint Resolve monotone_body.
 
 
-  Definition undef := Vis Undef Ret.
-  Definition store x := Vis (Store x) Ret.
-  Definition load := Vis Load Ret.
+  Definition undef := Vis Undef (fun x => Ret x).
+  Definition store x := Vis (Store x) (fun x => Ret x).
+  Definition load := Vis Load (fun x => Ret x).
 
   Definition prog1 : itree SIO nat  :=
     x <- undef ;;
