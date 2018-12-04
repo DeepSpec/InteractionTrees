@@ -1,0 +1,27 @@
+opam-version: "1.2"
+name: "coq-itree"
+version: "dev"
+maintainer: "Li-yao Xia <lysxia@gmail.com>"
+synopsis: "Formalization of the Interaction Tree Datatype in Coq"
+
+homepage: "https://github.com/DeepSpec/InteractionTrees"
+dev-repo: "git+https://github.com/DeepSpec/InteractionTrees"
+bug-reports: "https://github.com/DeepSpec/InteractionTrees/issues"
+license: "MIT"
+
+build: [ make "-j%{jobs}%" ]
+install: [ make "install" ]
+remove: [ "rm" "-rf" "%{lib}%/coq/user-contrib/ITree" ]
+
+depends: [
+  "coq-ext-lib"
+  "coq-paco"
+]
+
+authors: [
+  "Li-yao Xia <lysxia@gmail.com>"
+  "Gregory Malecha <gmalecha@gmail.com>"
+  "Steve Zdancewic <stevez@cis.upenn.edu>"
+]
+
+tags: "org:deepspec"
