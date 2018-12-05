@@ -179,6 +179,25 @@ Proof.
     apply (bind_bind (k0 y) k h).
 Qed.
 
+Lemma map_map : forall {E R S T} (f : R -> S) (g : S -> T) (t : itree E R),
+    map g (map f t) ≅ map (fun x => g ( f x)) t.
+Proof.
+  intros E R S T f g.
+  cofix ch.
+  intros t.
+  econstructor.
+  cbn.
+  unfold bind_match.
+  cbn.
+  unfold bind_match.
+  destruct (observe t).
+  - simpl. econstructor.
+  - simpl. econstructor. apply ch.
+  - simpl. econstructor. intros. apply ch.
+Qed.
+  
+
+
 (*
 Import Hom.
 

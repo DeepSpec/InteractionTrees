@@ -25,6 +25,25 @@ Section itree.
   CoInductive itree : Type := do
   { observe : itreeF itree }.
 
+  (** Notes about using [itree]:
+
+     - You should simplify using [cbn] rather than [simpl] when working
+       with terms of the form [observe e] where [e] is defined by
+       [CoFixpoint] (as in [bind] and [map] below).  [simpl] does not
+       unfold the definition properly to expose the [observe t] term.
+
+     - Once you have [observe t] as the subject of [match], you can 
+       [destruct (observe t)] to do the case split.
+
+   [[  - TODO: add more documentation about the ways  to define functions
+       by splitting them into the "_match" body and the [CoFixpoint] 
+
+       - TODO: paco?
+
+   ]]
+
+  *)
+  
 End itree.
 
 Arguments itreeF _ _ : clear implicits.
@@ -81,13 +100,21 @@ Definition bind {E T U}
  *)
 
 (** Functorial map ([fmap]) *)
-Definition map {E R S} (f : R -> S) : itree E R -> itree E S :=
-  cofix go t :=
-    match t.(observe) with
-    | RetF r => Ret (f r)
-    | TauF t => Tau (go t)
-    | VisF e k => Vis e (fun x => go (k x))
-    end.
+(*
+Definition map_match {E R S}
+           (f : R -> S)
+           (map : itree E R -> itree E S)
+           (c : itree E R) : itree E S :=
+  match c.(observe) with
+  | RetF r => Ret (f r)
+  | TauF t => Tau (map t)
+  | VisF e h => Vis e (fun x => map (h x))
+  end.
+*)
+
+Definition map {E R S} (f : R -> S)  (t : itree E R) : itree E S :=
+  bind t (fun x => Ret (f x)).
+
 
 (* Sometimes it's more convenient to work without the type classes
    Monad, etc. When functions using type classes are specialized,
