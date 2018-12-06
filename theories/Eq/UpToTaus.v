@@ -25,7 +25,7 @@ From Coq Require Import
 
 Require Import Paco.paco.
 
-Require Import ITree.ITree.
+From ITree Require Import ITree Eq.Eq.
 
 Set Bullet Behavior "Strict Subproofs".
 
@@ -571,5 +571,9 @@ Admitted.
 
 Instance eutt_when {E} (b : bool) :
   Proper (@eutt E unit ==> @eutt E unit) (when b).
+Proof.
+Admitted.
+
+Instance subrelation_eq_eutt {E R} : subrelation (@eq_itree E R) eutt.
 Proof.
 Admitted.
