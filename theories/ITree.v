@@ -22,7 +22,7 @@ Section itree.
     [R] and every node is either a [Tau] node with one child, or a
     branching node [Vis] with a visible effect [E X] that branches
     on the values of [X]. *)
-  CoInductive itree : Type := do
+  CoInductive itree : Type := go
   { observe : itreeF itree }.
 
   (** Notes about using [itree]:
@@ -60,9 +60,9 @@ Bind Scope itree_scope with itree.
 Delimit Scope itree_scope with itree.
 Local Open Scope itree_scope.
 
-Notation Ret x := (do (RetF x)).
-Notation Tau t := (do (TauF t)).
-Notation Vis e k := (do (VisF e k)).
+Notation Ret x := (go (RetF x)).
+Notation Tau t := (go (TauF t)).
+Notation Vis e k := (go (VisF e k)).
 
 Section bind.
   Context {E : Type -> Type} {T U : Type}.

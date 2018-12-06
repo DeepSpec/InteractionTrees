@@ -177,7 +177,7 @@ Definition vis {E F R X} `{F -< E}
            (e : F X) (k : X -> itree E R) : itree E R :=
   Vis (convert e) k.
 
-Definition do {E F X} `{F -< E}
+Definition lift {E F X} `{F -< E}
            (e : F X) : itree E X :=
   liftE (convert e).
 
@@ -262,9 +262,9 @@ Section State.
   | Get : stateE S
   | Put : S -> stateE unit.
 
-  Definition get {E} `{stateE -< E} : itree E S := do Get.
+  Definition get {E} `{stateE -< E} : itree E S := lift Get.
   Definition put {E} `{stateE -< E} (s : S) : itree E unit :=
-    do (Put s).
+    lift (Put s).
 
   Definition eval_state {E} : eff_hom_s S stateE E :=
     fun _ e s =>
@@ -330,7 +330,7 @@ Section Counter.
   | Incr : counterE N N.
 
   Definition incr {N E} `{counterE N -< E} : itree E N :=
-    do Incr.
+    lift Incr.
 
   Definition eval_counter {N E} `{Countable N}
   : eff_hom_s N (counterE N) E :=
@@ -355,7 +355,7 @@ Section Writer.
   | Tell : W -> writerE unit.
 
   Definition tell {E} `{writerE -< E} (w : W) : itree E unit :=
-    do (Tell w).
+    lift (Tell w).
 
 End Writer.
 
@@ -380,7 +380,7 @@ Section Trace.
   | Trace : string -> traceE unit.
 
   Definition trace {E} `{traceE -< E} (msg : string) : itree E unit :=
-    do (Trace msg).
+    lift (Trace msg).
 
   (* todo(gmm): define in terms of `eff_hom` *)
   CoFixpoint ignore_trace {E R} (t : itree (traceE +' E) R)

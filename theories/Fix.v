@@ -106,7 +106,7 @@ Module FixImpl <: FixSig.
       : forall x : dom, itree E (codom x) :=
         _mfix
           (body (E +' fixpoint)
-                (fun t => @interp _ _ (fun _ e => do e) _)
+                (fun t => @interp _ _ (fun _ e => lift e) _)
                 (fun x0 : dom => liftE (inrE (call x0)))).
 
       Theorem mfix_unfold : forall x,

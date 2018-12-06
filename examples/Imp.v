@@ -55,7 +55,7 @@ Inductive Error : Type -> Type :=
 | RuntimeError (_ : string) : Error Empty_set.
 
 Definition error {eff} `{Error -< eff} (msg : string) {a} : ITree.itree eff a :=
-  x <- do (RuntimeError msg) ;;
+  x <- lift (RuntimeError msg) ;;
   match x : Empty_set with end.
 
 
@@ -76,16 +76,16 @@ Section assignMany.
   Fixpoint assignMany (ls : list var) (vs : list value) : ITree.itree eff unit :=
     match ls , vs with
     | nil , nil => ret tt
-    | x :: xs , v :: vs => do (SetVar x v) ;; assignMany xs vs
-    | nil , _ :: _ => do (RuntimeError "insufficient binders") ;; ret tt
-    | _ :: _ , nil => do (RuntimeError "too many binders") ;; ret tt
+    | x :: xs , v :: vs => lift (SetVar x v) ;; assignMany xs vs
+    | nil , _ :: _ => lift (RuntimeError "insufficient binders") ;; ret tt
+    | _ :: _ , nil => lift (RuntimeError "too many binders") ;; ret tt
     end.
 End assignMany.
 
 (* The meaning of an expression *)
 Fixpoint denoteExpr (e : expr) : ITree.itree ImpEff value :=
   match e with
-  | Var v => do (GetVar v)
+  | Var v => lift (GetVar v)
   | Lit n => ret n
   | Plus a b => l <- denoteExpr a ;; r <- denoteExpr b ;; ret (l + r)
   end.
@@ -101,7 +101,7 @@ Fixpoint denoteStmt (s : stmt) : ITree.itree ImpEff unit :=
   match s with
   | Assign x e =>
     v <- denoteExpr e ;;
-    do (SetVar x v)
+    lift (SetVar x v)
   | Seq a b =>
     denoteStmt a ;; denoteStmt b
   | If i t e =>
@@ -116,7 +116,7 @@ Fixpoint denoteStmt (s : stmt) : ITree.itree ImpEff unit :=
 (* For Calls ********
   | Call xs f args =>
     vals <- mapT denoteExpr args ;;
-    results <- do (CallExternal f vals) ;;
+    results <- lift (CallExternal f vals) ;;
     assignMany xs results
 *)
   end.
