@@ -513,8 +513,8 @@ Hint Resolve monotone_eutt_0 : paco.
 Hint Resolve monotone_eutt_ : paco.
 
 (* We can now rewrite with [eutt] equalities. *)
-Add Parametric Relation E R : (itree E R) eutt
-    as eutt_equiv.
+Instance Equivalence_eutt E R : @Equivalence (itree E R) eutt.
+Proof. constructor; typeclasses eauto. Qed.
 
 (* Lemmas about [bind]. *)
 
