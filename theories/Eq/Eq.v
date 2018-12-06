@@ -116,17 +116,9 @@ Proof.
   constructor; typeclasses eauto.
 Qed.
 
-Add Parametric Relation {E R} : (itree E R) eq_itree
-  reflexivity proved by Reflexive_eq_itree
-  symmetry proved by Symmetric_eq_itree
-  transitivity proved by Transitive_eq_itree
-    as eq_itree_rel.
-
-
-Add Parametric Morphism {E R S} : (@bind E R S)
-    with signature
-    (eq_itree ==> pointwise_relation _ eq_itree ==> eq_itree)
-      as core_bind_mor.
+Instance Proper_bind {E R S} :
+  Proper (eq_itree ==> pointwise_relation _ eq_itree ==> eq_itree)
+         (@bind E R S).
 Proof.
   intros s1 s2 Hs k1 k2 Hk.
   generalize dependent s2.
@@ -144,19 +136,20 @@ Proof.
     eapply core_bind_mor. eapply H1. }
 Defined.
 
-(* [ret_bind] in basics *)
+Lemma ret_bind {E R S} (r : R) :
+  forall k : R -> itree E S,
+    eq_itree (Ret r >>= k) (k r).
+Proof.
+  constructor; cbn; reflexivity.
+Qed.
 
 Lemma bind_ret {E R} :
   forall s : itree E R,
     (s >>= (fun x => Ret x)) ≅ s.
 Proof.
   cofix bind_ret.
-  intros s.
-  constructor.
-  rewrite observe_bind.
-  destruct (observe s); constructor.
-  - eapply bind_ret.
-  - intros. eapply bind_ret.
+  intros s; constructor; cbn.
+  destruct (observe s); constructor; eauto.
 Qed.
 
 Lemma bind_bind {E R S T} :
@@ -168,10 +161,9 @@ Lemma bind_bind {E R S T} :
 Proof.
   cofix bind_bind.
   intros s k h.
-  constructor; simpl.
-  repeat rewrite observe_bind.
+  constructor; cbn.
   destruct (observe s).
-  - rewrite observe_bind. reflexivity.
+  - reflexivity.
   - constructor.
     eapply (bind_bind t k h).
   - constructor.
@@ -185,18 +177,9 @@ Proof.
   intros E R S T f g.
   cofix ch.
   intros t.
-  econstructor.
-  cbn.
-  unfold bind_match.
-  cbn.
-  unfold bind_match.
-  destruct (observe t).
-  - simpl. econstructor.
-  - simpl. econstructor. apply ch.
-  - simpl. econstructor. intros. apply ch.
+  econstructor; cbn.
+  destruct (observe t); cbn; econstructor; eauto.
 Qed.
-  
-
 
 (*
 Import Hom.
