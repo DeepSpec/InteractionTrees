@@ -46,3 +46,13 @@ Proof.
   - intros tk1' tk2' Htk1 Htk2.
     shelve.
 Abort.
+
+Lemma interp_state_bind {E F : Type -> Type} {A B S : Type}
+      (f : forall T, E T -> S -> itree F (S * T)%type)
+      (t : itree E A) (k : A -> itree E B)
+      (s : S) :
+  eutt (interp_state f (t >>= k) s)
+       (interp_state f t s >>= fun st =>
+        interp_state f (k (snd st)) (fst st)).
+Proof.
+Admitted.
