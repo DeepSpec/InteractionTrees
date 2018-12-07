@@ -136,6 +136,19 @@ Proof.
     eapply core_bind_mor. eapply H1. }
 Defined.
 
+Definition bind_unfold {E R S}
+           (t : itree E R) (k : R -> itree E S) :
+  eq_itree (bind t k) (bind_match k (bind' k) t).
+Proof.
+  revert t.
+  cofix bind_unfold.
+  constructor; cbn.
+  destruct (observe t); auto.
+  - reflexivity.
+  - constructor. reflexivity.
+  - constructor. reflexivity.
+Qed.
+
 Lemma ret_bind {E R S} (r : R) :
   forall k : R -> itree E S,
     eq_itree (Ret r >>= k) (k r).
