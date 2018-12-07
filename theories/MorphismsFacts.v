@@ -47,6 +47,13 @@ Proof.
     shelve.
 Abort.
 
+Lemma interp_state_liftE {E F : Type -> Type} {R S : Type}
+      (f : forall T, E T -> S -> itree F (S * T)%type)
+      (s : S) (e : E R) :
+  eutt (interp_state f (liftE e) s) (f _ e s).
+Proof.
+Admitted.
+
 Lemma interp_state_bind {E F : Type -> Type} {A B S : Type}
       (f : forall T, E T -> S -> itree F (S * T)%type)
       (t : itree E A) (k : A -> itree E B)
@@ -54,5 +61,12 @@ Lemma interp_state_bind {E F : Type -> Type} {A B S : Type}
   eutt (interp_state f (t >>= k) s)
        (interp_state f t s >>= fun st =>
         interp_state f (k (snd st)) (fst st)).
+Proof.
+Admitted.
+
+Lemma interp_state_ret {E F : Type -> Type} {R S : Type}
+      (f : forall T, E T -> S -> itree F (S * T)%type)
+      (s : S) (r : R) :
+  eutt (interp_state f (Ret r) s) (Ret (s, r)).
 Proof.
 Admitted.
