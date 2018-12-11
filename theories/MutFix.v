@@ -1,5 +1,5 @@
-Require Import ITree.ITree.
-Require Import ITree.Fix.
+From ITree Require Import
+     Core Fix.
 
 (* Mutual fixpoints *)
 Section mutual_fixpoints.

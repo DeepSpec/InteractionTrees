@@ -5,15 +5,15 @@
 Set Implicit Arguments.
 Set Contextual Implicit.
 
-Require Import List.
+From Coq Require Import
+     String List.
 Import ListNotations.
-Require Import String.
 
-Require Import ITree.ITree.
-Require Import ITree.Morphisms.
+From ExtLib.Structures Require Import
+     Monoid.
 
-Require Import ExtLib.Structures.Functor.
-Require Import ExtLib.Structures.Monoid.
+From ITree Require Import
+     Core Morphisms.
 
 Variant void : Type := .
 
@@ -53,7 +53,7 @@ Section into.
     fun _ e =>
       match e with
       | inlE e => h _ e
-      | inrE e => liftE e 
+      | inrE e => ITree.liftE e 
       end.
 
   Definition into_state {s} (h : eff_hom_s s E F) : eff_hom_s s (E +' F) F :=
@@ -67,7 +67,7 @@ Section into.
     fun _ e s =>
       match e with
       | inlE e => h _ e s
-      | inrE e => liftE e
+      | inrE e => ITree.liftE e
       end.
 
   Definition into_writer {s} `{Monoid_s : Monoid s} (h : eff_hom_w s E F)
@@ -161,7 +161,7 @@ Definition vis {E F R X} `{F -< E}
 
 Definition lift {E F X} `{F -< E}
            (e : F X) : itree E X :=
-  liftE (convert e).
+  ITree.liftE (convert e).
 
 (* Embedding effects into trees.
 

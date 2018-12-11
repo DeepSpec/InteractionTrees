@@ -10,7 +10,7 @@ From Coq Require Import
      ProofIrrelevance.
 
 From ITree Require Import
-     ITree.
+     Core.
 
 Section eq_itree.
   Context {E : Type -> Type} {R : Type}.
@@ -118,16 +118,16 @@ Qed.
 
 Instance Proper_bind {E R S} :
   Proper (eq_itree ==> pointwise_relation _ eq_itree ==> eq_itree)
-         (@bind E R S).
+         (@ITree.bind E R S).
 Proof.
   intros s1 s2 Hs k1 k2 Hk.
   generalize dependent s2.
   generalize dependent s1.
   cofix core_bind_mor.
   intros.
-  constructor. simpl. unfold bind_match.
+  constructor. simpl. unfold ITree.bind_match.
   inversion Hs.
-  do 2 rewrite observe_bind.
+  do 2 rewrite ITree.observe_bind.
   inversion observe_eq0.
   { eapply Hk. }
   { constructor.
@@ -138,7 +138,7 @@ Defined.
 
 Definition bind_unfold {E R S}
            (t : itree E R) (k : R -> itree E S) :
-  eq_itree (bind t k) (bind_match k (bind' k) t).
+  eq_itree (ITree.bind t k) (ITree.bind_match k (ITree.bind' k) t).
 Proof.
   revert t.
   cofix bind_unfold.
@@ -158,9 +158,9 @@ Qed.
 
 Lemma bind_ret {E R} :
   forall s : itree E R,
-    (s >>= (fun x => Ret x)) ≅ s.
+    (s >>= (fun x => Ret x))%itree ≅ s.
 Proof.
-  cofix bind_ret.
+  cbn; cofix bind_ret.
   intros s; constructor; cbn.
   destruct (observe s); constructor; eauto.
 Qed.
@@ -185,7 +185,7 @@ Proof.
 Qed.
 
 Lemma map_map : forall {E R S T} (f : R -> S) (g : S -> T) (t : itree E R),
-    map g (map f t) ≅ map (fun x => g ( f x)) t.
+    ITree.map g (ITree.map f t) ≅ ITree.map (fun x => g (f x)) t.
 Proof.
   intros E R S T f g.
   cofix ch.

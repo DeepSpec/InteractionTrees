@@ -7,10 +7,8 @@ Require Import ExtLib.Structures.Monad.
 Require Import ExtLib.Structures.Traversable.
 Require Import ExtLib.Data.List.
 
-Require ITree.ITree.
-Require Import ITree.Morphisms.
-Require Import ITree.Fix.
-Require Import ITree.OpenSum.
+From ITree Require Import
+     ITree.
 
 Import MonadNotation.
 Local Open Scope monad_scope.
@@ -54,7 +52,7 @@ Inductive Locals : Type -> Type :=
 Inductive Error : Type -> Type :=
 | RuntimeError (_ : string) : Error Empty_set.
 
-Definition error {eff} `{Error -< eff} (msg : string) {a} : ITree.itree eff a :=
+Definition error {eff} `{Error -< eff} (msg : string) {a} : itree eff a :=
   x <- lift (RuntimeError msg) ;;
   match x : Empty_set with end.
 
@@ -73,7 +71,7 @@ Section assignMany.
   Context {HasLocals : Locals -< eff}.
   Context {HasError : Error -< eff}.
 
-  Fixpoint assignMany (ls : list var) (vs : list value) : ITree.itree eff unit :=
+  Fixpoint assignMany (ls : list var) (vs : list value) : itree eff unit :=
     match ls , vs with
     | nil , nil => ret tt
     | x :: xs , v :: vs => lift (SetVar x v) ;; assignMany xs vs
@@ -83,21 +81,21 @@ Section assignMany.
 End assignMany.
 
 (* The meaning of an expression *)
-Fixpoint denoteExpr (e : expr) : ITree.itree ImpEff value :=
+Fixpoint denoteExpr (e : expr) : itree ImpEff value :=
   match e with
   | Var v => lift (GetVar v)
   | Lit n => ret n
   | Plus a b => l <- denoteExpr a ;; r <- denoteExpr b ;; ret (l + r)
   end.
 
-Definition while {eff} (t : ITree.itree eff bool) : ITree.itree eff unit :=
+Definition while {eff} (t : itree eff bool) : itree eff unit :=
   mfix (fun _ : unit => unit)
        (fun _ inj rec _ =>
           continue <- inj _ t ;;
           if continue : bool then rec tt else Monad.ret tt) tt.
 
 (* the meaning of a statement *)
-Fixpoint denoteStmt (s : stmt) : ITree.itree ImpEff unit :=
+Fixpoint denoteStmt (s : stmt) : itree ImpEff unit :=
   match s with
   | Assign x e =>
     v <- denoteExpr e ;;

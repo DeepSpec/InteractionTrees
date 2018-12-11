@@ -21,7 +21,7 @@ From ExtLib.Structures Require Import
      Functor Monoid.
 
 From ITree Require Import
-     ITree Morphisms OpenSum.
+     Core Morphisms OpenSum.
 
 Section Failure.
 
@@ -84,7 +84,7 @@ Section Reader.
   | Ask : readerE env.
 
   Definition ask {E} `{Convertible readerE E} : itree E env :=
-    liftE (convert Ask).
+    embed Ask.
 
   Definition eval_reader {E} : eff_hom_r env readerE E :=
     fun _ e r =>
@@ -109,9 +109,8 @@ Section State.
   | Get : stateE S
   | Put : S -> stateE unit.
 
-  Definition get {E} `{stateE -< E} : itree E S := lift Get.
-  Definition put {E} `{stateE -< E} (s : S) : itree E unit :=
-    lift (Put s).
+  Definition get {E} `{stateE -< E} : itree E S := embed Get.
+  Definition put {E} `{stateE -< E} : S -> itree E unit := embed Put.
 
   Definition eval_state {E} : eff_hom_s S stateE E :=
     fun _ e s =>
@@ -137,8 +136,8 @@ Section Writer.
   Variant writerE : Type -> Type :=
   | Tell : W -> writerE unit.
 
-  Definition tell {E} `{writerE -< E} (w : W) : itree E unit :=
-    lift (Tell w).
+  Definition tell {E} `{writerE -< E} : W -> itree E unit :=
+    embed Tell.
 
 End Writer.
 

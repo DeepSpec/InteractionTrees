@@ -1,6 +1,6 @@
 -Q theories ITree
 
-theories/ITree.v
+theories/Core.v
 
 theories/Eq/Eq.v
 theories/Eq/UpToTaus.v
@@ -17,3 +17,5 @@ theories/UpTo.v
 theories/MutFix.v
 theories/Trace.v
 theories/MFixITree.v
+
+theories/ITree.v

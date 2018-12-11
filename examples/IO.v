@@ -5,9 +5,12 @@ Inductive IO : Type -> Type :=
 | Read : IO nat
 | Write : nat -> IO unit.
 
+Definition read : itree IO nat := embed Read.
+Definition write : nat -> itree IO unit := embed Write.
+
 Definition example : itree IO unit :=
-  n <- liftE Read;;
-  liftE (Write n).
+  n <- read;;
+  write n.
 
 Definition SOME_NUMBER := 13.
 

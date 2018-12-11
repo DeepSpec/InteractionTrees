@@ -6,8 +6,12 @@
  * Some morphisms interpret effects using additional structure.
  * In general, this additional structure is monadic in nature.
  *)
-Require Import ITree.ITree.
-Require Import ExtLib.Structures.Functor.
+
+From ExtLib.Structures Require Import
+     Functor.
+
+From ITree Require Import
+     Core.
 
 Open Scope itree_scope.
 
@@ -20,7 +24,7 @@ Definition interp_match {E F R}
            (t : itree E R) :=
   match t.(observe) with
   | RetF r => Ret r
-  | VisF e k => bind (f _ e) (fun x => Tau (hom (k x)))
+  | VisF e k => ITree.bind (f _ e) (fun x => Tau (hom (k x)))
   | TauF t' => Tau (hom t')
   end.
 
@@ -59,7 +63,7 @@ Definition eh_compose {A B C} (g : eff_hom B C) (f : eff_hom A B)
   fun _ e =>
     interp g (f _ e).
 
-Definition eh_id {A} : eff_hom A A := @liftE A.
+Definition eh_id {A} : eff_hom A A := @ITree.liftE A.
 
 Section eff_hom_state.
   Variable s : Type.
@@ -82,7 +86,7 @@ Section eff_hom_state.
   : itree E' (s * R) :=
     match t.(observe) with
     | RetF r => Ret (st, r)
-    | VisF e k => bind (f _ e st) (fun '(s',x) => Tau (interp_state _ (k x) s'))
+    | VisF e k => ITree.bind (f _ e st) (fun '(s',x) => Tau (interp_state _ (k x) s'))
     | TauF t => Tau (interp_state _ t st)
     end.
 End eff_hom_state.
@@ -100,7 +104,7 @@ Section eff_hom_reader.
   CoFixpoint interp_reader (R : Type) (t : itree E R) (st : s) : itree E' R :=
     match t.(observe) with
     | RetF r => Ret r
-    | VisF e k => bind (f _ e st) (fun x => Tau (interp_reader _ (k x) st))
+    | VisF e k => ITree.bind (f _ e st) (fun x => Tau (interp_reader _ (k x) st))
     | TauF t => Tau (interp_reader _ t st)
     end.
 
@@ -167,7 +171,7 @@ Section interp_prop.
       (forall x,
           can_return e' x ->
           interp_prop f R (k x) (k' x)) ->
-      interp_prop f R (Vis e k) (bind e' k')
+      interp_prop f R (Vis e k) (ITree.bind e' k')
   | ipDelay : forall a b, interp_prop f R a b ->
                      interp_prop f R (Tau a) (Tau b).
 
@@ -195,7 +199,7 @@ Section eff_hom_e.
     match tr.(observe) with
     | RetF v => Ret v
     | VisF e k =>
-      bind (f.(eval) _ e) (fun '(x, f') => Tau (interp_e f' (k x)))
+      ITree.bind (f.(eval) _ e) (fun '(x, f') => Tau (interp_e f' (k x)))
     | TauF tr => Tau (interp_e f tr)
     end.
 End eff_hom_e.

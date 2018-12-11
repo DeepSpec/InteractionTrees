@@ -1,7 +1,8 @@
 Require Import List.
 Import ListNotations.
 
-Require Import ITree.ITree.
+From ITree Require Import
+     Core.
 
 Inductive event (E : Type -> Type) : Type :=
 | Event : forall X, E X -> X -> event E.

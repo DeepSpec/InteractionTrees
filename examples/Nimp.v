@@ -4,7 +4,7 @@ From Coq Require Import
      Relations.
 
 From ITree Require Import
-     ITree Eq.UpToTaus Fix.
+     ITree.
 
 Inductive com : Type :=
 | loop : com -> com (* Nondeterministically, continue or stop. *)
@@ -110,7 +110,7 @@ Definition or {R : Type} (t1 t2 : itree nd R) : itree nd R :=
   Vis Or (fun b : bool => if b then t1 else t2).
 
 (* Flip a coin *)
-Definition choice : itree nd bool := liftE Or.
+Definition choice : itree nd bool := ITree.liftE Or.
 
 Definition eval : com -> itree nd unit :=
   mfix1 (fun _ lift eval (c : com) =>
@@ -118,10 +118,10 @@ Definition eval : com -> itree nd unit :=
     | loop c =>
       (* note: [or] is not allowed under [mfix]. *)
       (b <- lift _ choice;;
-      if b then Ret tt else (eval c;; eval (loop c)))%itree
+      if b : bool then Ret tt else (eval c;; eval (loop c)))%itree
     | choose c1 c2 =>
       (b <- lift _ choice;;
-      if b then eval c1 else eval c2)%itree
+      if b : bool then eval c1 else eval c2)%itree
     | (t1 ;; t2)%com => (eval t1;; eval t2)%itree
     | skip => Ret tt
     end
@@ -132,7 +132,7 @@ Definition one_loop_tree : itree nd unit :=
   mfix0 (fun _ lift self  =>
     (* note: [or] is not allowed under [mfix]. *)
     b <- lift _ choice;;
-    if b then
+    if b : bool then
       self
     else
       Ret tt)%itree.
