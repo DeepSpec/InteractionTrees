@@ -1,0 +1,177 @@
+(* Common effects *)
+
+(* In this module:
+   - [failureE]
+   - [nondetE]
+   - [readerE]
+   - [stateE]
+   - [writerE]
+   - [stopE]  ([Ret] as an effect)
+   - [traceE] (for debugging)
+ *)
+
+Set Implicit Arguments.
+Set Contextual Implicit.
+
+From Coq Require Import
+     String List.
+Import ListNotations.
+
+From ExtLib.Structures Require Import
+     Functor Monoid.
+
+From ITree Require Import
+     ITree Morphisms OpenSum.
+
+Section Failure.
+
+Variant failureE : Type -> Type :=
+| Fail : string -> failureE void.
+
+Definition fail {E : Type -> Type} `{failureE -< E} {X}
+           (reason : string)
+  : itree E X :=
+  vis (Fail reason) (fun v : void => match v with end).
+
+End Failure.
+
+Section NonDeterminism.
+
+Variant nondetE : Type -> Type :=
+| Or : nondetE bool.
+
+Definition or {E} `{nondetE -< E} {R} (k1 k2 : itree E R)
+  : itree E R :=
+  vis Or (fun b : bool => if b then k1 else k2).
+
+(* This can fail if the list is empty. *)
+Definition choose {E} `{nondetE -< E} `{failureE -< E} {X}
+  : list X -> itree E X := fix choose' xs : itree E X :=
+  match xs with
+  | [] => fail "choose: No choice left"
+  | x :: xs =>
+    or (Ret x) (choose' xs)
+  end.
+
+(* Choose an element from a nonempty list (with the head and tail
+   as separate arguments), so it cannot fail. *)
+Definition choose1 {E} `{nondetE -< E} {X}
+  : X -> list X -> itree E X := fix choose1' x xs : itree E X :=
+  match xs with
+  | [] => Ret x
+  | x' :: xs => or (Ret x) (choose1' x' xs)
+  end.
+
+(* All ways of picking one element in a list apart
+   from the others. *)
+Definition select {X} : list X -> list (X * list X) :=
+  let fix select' pre xs :=
+      match xs with
+      | [] => []
+      | x :: xs' => (x, pre ++ xs') :: select' (pre ++ [x]) xs'
+      end in
+  select' [].
+
+End NonDeterminism.
+
+(* TODO Another nondet with Or indexed by Fin. *)
+
+Section Reader.
+
+  Variable (env : Type).
+
+  Variant readerE : Type -> Type :=
+  | Ask : readerE env.
+
+  Definition ask {E} `{Convertible readerE E} : itree E env :=
+    liftE (convert Ask).
+
+  Definition eval_reader {E} : eff_hom_r env readerE E :=
+    fun _ e r =>
+      match e with
+      | Ask => Ret r
+      end.
+
+  Definition run_reader {E} R (v : env) (t : itree (readerE +' E) R)
+  : itree E R :=
+    interp_reader (into_reader eval_reader) t v.
+
+End Reader.
+
+Arguments ask {env E _}.
+Arguments run_reader {_ _} [_] _ _.
+
+Section State.
+
+  Variable (S : Type).
+
+  Variant stateE : Type -> Type :=
+  | Get : stateE S
+  | Put : S -> stateE unit.
+
+  Definition get {E} `{stateE -< E} : itree E S := lift Get.
+  Definition put {E} `{stateE -< E} (s : S) : itree E unit :=
+    lift (Put s).
+
+  Definition eval_state {E} : eff_hom_s S stateE E :=
+    fun _ e s =>
+      match e with
+      | Get => Ret (s, s)
+      | Put s' => Ret (s', tt)
+      end.
+
+  Definition run_state {E R} (v : S) (t : itree (stateE +' E) R)
+  : itree E (S * R) :=
+    interp_state (into_state eval_state) t v.
+
+End State.
+
+Arguments get {S E _}.
+Arguments put {S E _}.
+Arguments run_state {_ _} [_] _ _.
+
+Section Writer.
+
+  Variable (W : Type).
+
+  Variant writerE : Type -> Type :=
+  | Tell : W -> writerE unit.
+
+  Definition tell {E} `{writerE -< E} (w : W) : itree E unit :=
+    lift (Tell w).
+
+End Writer.
+
+Section Stop.
+  (* "Return" as an effect. *)
+
+  Variant stopE (S : Type) : Type -> Type :=
+  | Stop : S -> stopE S void.
+
+  Definition stop {E S R} `{stopE S -< E} : S -> itree E R :=
+    fun s =>
+      vis (Stop s) (fun v : void => match v with end).
+
+End Stop.
+
+Arguments stopE S X.
+Arguments stop {E S R _}.
+
+Section Trace.
+
+  Variant traceE : Type -> Type :=
+  | Trace : string -> traceE unit.
+
+  Definition trace {E} `{traceE -< E} (msg : string) : itree E unit :=
+    lift (Trace msg).
+
+  Definition trace_hom {E} (R : Type) (e : traceE R) : itree E R :=
+    match e with
+    | Trace _ => Ret tt
+    end.
+
+  Definition ignore_trace {E R} (t : itree (traceE +' E) R)
+  : itree E R :=
+    interp (into trace_hom) t.
+
+End Trace.
