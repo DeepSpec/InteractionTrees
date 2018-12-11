@@ -162,3 +162,25 @@ Definition vis {E F R X} `{F -< E}
 Definition lift {E F X} `{F -< E}
            (e : F X) : itree E X :=
   liftE (convert e).
+
+(* Embedding effects into trees.
+
+   For example:
+[[
+   embed :
+     (forall x y z,       E (f x y z)) ->
+     (forall x y z, itree E (f x y z))
+]]
+ *)
+Class Embeddable U V :=
+  embed : U -> V.
+
+Instance Embeddable_forall {A : Type} {U : A -> Type} {V : A -> Type}
+         `(forall a, Embeddable (U a) (V a)) :
+  Embeddable (forall a, U a) (forall a, V a) :=
+  fun u a => embed (u a).
+
+Instance Embeddable_itree {E F : Type -> Type} {R : Type}
+         `(Convertible E F) :
+  Embeddable (E R) (itree F R) :=
+  lift.
