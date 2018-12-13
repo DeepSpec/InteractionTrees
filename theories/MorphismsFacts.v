@@ -1,7 +1,7 @@
 From Paco Require Import paco.
 
 From ITree Require Import
-     ITree Morphisms Eq.UpToTaus.
+     Core Morphisms Eq.UpToTaus.
 
 (* Proof of
    [interp f (t >>= k) ~ (interp f t >>= fun r => interp f (k r))]
@@ -50,7 +50,7 @@ Abort.
 Lemma interp_state_liftE {E F : Type -> Type} {R S : Type}
       (f : forall T, E T -> S -> itree F (S * T)%type)
       (s : S) (e : E R) :
-  eutt (interp_state f (liftE e) s) (f _ e s).
+  eutt (interp_state f (ITree.liftE e) s) (f _ e s).
 Proof.
 Admitted.
 

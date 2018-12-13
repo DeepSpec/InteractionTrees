@@ -1,10 +1,11 @@
-Require Import ITree.ITree.
-Require Import ITree.Fix.
 Require Import ExtLib.Structures.Monads.
 Require Import Paco.paco.
 
 Import MonadNotation.
 Open Scope monad_scope.
+
+From ITree Require Import
+     Core Fix.
 
 Section M.
   (* The effects interface *)
@@ -187,9 +188,9 @@ Section EX2.
   Hint Resolve monotone_body.
 
 
-  Definition undef := liftE Undef.
-  Definition store x := liftE (Store x).
-  Definition load := liftE Load.
+  Definition undef := ITree.liftE Undef.
+  Definition store x := ITree.liftE (Store x).
+  Definition load := ITree.liftE Load.
 
   Definition prog1 : itree SIO nat  :=
     x <- undef ;;

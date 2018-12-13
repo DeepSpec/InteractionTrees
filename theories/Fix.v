@@ -4,9 +4,9 @@
  * The implementation is based on the discussion here
  *   https://gmalecha.github.io/reflections/2018/compositional-coinductive-recursion-in-coq
  *)
-Require Import ITree.ITree.
-Require Import ITree.Morphisms.
-Require Import ITree.OpenSum.
+
+From ITree Require Import
+     Core Morphisms OpenSum.
 
 Module Type FixSig.
   Section Fix.
@@ -56,7 +56,7 @@ Module FixImpl <: FixSig.
           | inrE e =>
             match e in fixpoint u return (u -> _) -> _ with
             | call x => fun k =>
-              Tau (homFix (bind (f x) k))
+              Tau (homFix (ITree.bind (f x) k))
             end k
           | inlE e' =>
             Vis e' (fun x => homFix (k x))
@@ -69,7 +69,7 @@ Module FixImpl <: FixSig.
 
       Definition eval_fixpoint T (X : sum1 E fixpoint T) : itree E T :=
         match X with
-        | inlE e => liftE e
+        | inlE e => ITree.liftE e
         | inrE f0 =>
           match f0 with
           | call x => Tau (_mfix x)
@@ -107,7 +107,7 @@ Module FixImpl <: FixSig.
         _mfix
           (body (E +' fixpoint)
                 (fun t => @interp _ _ (fun _ e => lift e) _)
-                (fun x0 : dom => liftE (inrE (call x0)))).
+                (fun x0 : dom => ITree.liftE (inrE (call x0)))).
 
       Theorem mfix_unfold : forall x,
           mfix x = body E (fun t => id) mfix x.

@@ -25,7 +25,7 @@ From Coq Require Import
 
 Require Import Paco.paco.
 
-From ITree Require Import ITree Eq.Eq.
+From ITree Require Import Core Eq.Eq.
 
 Set Bullet Behavior "Strict Subproofs".
 
@@ -548,29 +548,29 @@ Qed.
 Instance eutt_bind {E R S} :
   Proper (@eutt E R ==>
           pointwise_relation _ eutt ==>
-          @eutt E S) bind.
+          @eutt E S) ITree.bind.
 Proof.
 Admitted.
 
 Instance eutt_map {E R S} :
-  Proper (pointwise_relation _ eq ==> @eutt E R ==> @eutt E S) map.
+  Proper (pointwise_relation _ eq ==> @eutt E R ==> @eutt E S) ITree.map.
 Proof.
 Admitted.
 
 Lemma eutt_map_map {E R S T}
       (f : R -> S) (g : S -> T) (t : itree E R) :
-  eutt (map g (map f t))
-       (map (fun x => g (f x)) t).
+  eutt (ITree.map g (ITree.map f t))
+       (ITree.map (fun x => g (f x)) t).
 Proof.
 Admitted.
 
 Instance eutt_forever {E R S} :
-  Proper (@eutt E R ==> @eutt E S) forever.
+  Proper (@eutt E R ==> @eutt E S) ITree.forever.
 Proof.
 Admitted.
 
 Instance eutt_when {E} (b : bool) :
-  Proper (@eutt E unit ==> @eutt E unit) (when b).
+  Proper (@eutt E unit ==> @eutt E unit) (ITree.when b).
 Proof.
 Admitted.
 

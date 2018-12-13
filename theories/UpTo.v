@@ -7,8 +7,8 @@
  *)
 Require Import Coq.Classes.RelationClasses.
 
-Require Import ITree.ITree.
-Require Import ITree.OpenSum.
+From ITree Require Import
+     Core OpenSum.
 
 Section with_effects.
   Variable E : Type -> Type.
@@ -76,7 +76,7 @@ Section upto.
       it.(observe) = RetF v ->
       Approx it z
   | A_Vis     : forall {u} (e : E u) k1 k2,
-      it.(observe) = ITree.VisF e k1 ->
+      it.(observe) = VisF e k1 ->
       (forall x, Approx (k1 x) (k2 x)) ->
       Approx it (Vis e k2)
   | A_Tau     : forall it' e,
@@ -89,9 +89,9 @@ Section upto.
     match n with
     | 0 => Unknown
     | S n => match i.(observe) with
-            | ITree.RetF t => Ret t
-            | ITree.VisF e k => Vis e (fun x => upto n (k x))
-            | ITree.TauF k => upto n k
+            | ITree.Core.RetF t => Ret t
+            | ITree.Core.VisF e k => Vis e (fun x => upto n (k x))
+            | ITree.Core.TauF k => upto n k
             end
     end.
 
