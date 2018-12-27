@@ -1,6 +1,6 @@
 From Coq Require Import
-(*     Program *)
-     Relations.Relations.
+     Relations.Relations
+     Classes.RelationClasses.
 
 From Paco Require Import paco2.
 
@@ -75,14 +75,52 @@ Proof.
   destruct PR. apply H0. destruct H0.
 Qed.
 
-Require Import Coq.Classes.RelationClasses.
-
 Global Instance bisim_refl {E R} : Reflexive (@bisim E R).
 Proof.
   pcofix CIH; intros.
   pfold. constructor. destruct (observe x); constructor; eauto.
 Qed.
 
+(* these aren't general enough to work when doing co-induction.
+ *)
+Global Instance bisim_sym {E R} : Symmetric (@bisim E R).
+Proof.
+  pcofix CIH; intros.
+  pfold. constructor. punfold H0.
+  inversion H0; clear H0; subst.
+  inversion H; constructor.
+  { destruct REL; [ | contradiction ].
+    right. eauto. }
+  { intros.
+    destruct (REL v); [ | contradiction ].
+    right. eauto. }
+Qed.
+
+Global Instance bisim_trans {E R} : Transitive (@bisim E R).
+Proof.
+  pcofix CIH. intros.
+  pfold. punfold H0. punfold H1.
+  inversion H0; clear H0.
+  inversion H1; clear H1; subst.
+  constructor.
+  inversion H; clear H; subst.
+  { destruct H3. inversion H0. constructor. }
+  { destruct H3. inversion H0; subst. constructor.
+    right.
+    destruct REL; [ | contradiction ].
+    destruct REL0; [ | contradiction ].
+    eauto. }
+  { destruct H3.
+    inversion H0; subst.
+    (* todo(gmm): remove the axioms *)
+    eapply Eqdep.EqdepTheory.inj_pair2 in H3.
+    eapply Eqdep.EqdepTheory.inj_pair2 in H4.
+    subst. constructor; intros.
+    right.
+    destruct (REL v); [ | contradiction ].
+    destruct (REL0 v); [ | contradiction ].
+    eauto. }
+Qed.
 
 Goal forall {E T} (a : itree E T), bisim a a.
 Proof.
@@ -100,7 +138,6 @@ Proof.
   clear - SIM.
   inversion SIM. constructor. apply H.
 Qed.
-
 
 Lemma bisim_force_R {E T} r(a b : itree E T)
 : paco2 bisimF r a {| observe := b.(observe) |} ->
@@ -130,8 +167,6 @@ Ltac by_forcing :=
 Lemma interp_unfold {E F R} {f : eff_hom E F} (t : itree E R) :
   bisim (interp f t) (interp_match f (fun t' => interp f t') t).
 Proof. by_forcing. Qed.
-
-
 
 Lemma interp_ret {E F R} {f : eff_hom E F} (x: R):
   bisim (interp f (Ret x)) (Ret x).
