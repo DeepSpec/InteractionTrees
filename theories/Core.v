@@ -4,7 +4,14 @@ Require Import ExtLib.Structures.Monad.
 
 Set Implicit Arguments.
 Set Contextual Implicit.
-Set Primitive Projections.
+(* Set Primitive Projections. *)
+
+(* Move the following tactic somewhere appropriate *)
+Lemma hexploit_mp: forall P Q: Type, P -> (P -> Q) -> Q.
+Proof. intuition. Defined.
+Ltac hexploit x := eapply hexploit_mp; [eapply x|].
+
+Ltac inv H := inversion H; clear H; subst.
 
 Section itree.
 
@@ -42,12 +49,18 @@ Section itree.
 
    ]]
 
-  *)
+   *)
+
+  Lemma itree_unfold : forall s:itree, s = go (s.(observe)).
+  Proof.
+    intros. destruct s; auto.
+  Qed.
   
 End itree.
 
 Arguments itreeF _ _ : clear implicits.
 Arguments itree _ _ : clear implicits.
+Arguments itree_unfold {E R} s.
 
 (** We introduce notation for the [Tau], [Ret], and [Vis] constructors. Using
     notation rather than definitions works better for extraction.  (The [spin]
