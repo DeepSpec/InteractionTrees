@@ -4,7 +4,7 @@ Require Import ExtLib.Structures.Monad.
 
 Set Implicit Arguments.
 Set Contextual Implicit.
-(* Set Primitive Projections. *)
+Set Primitive Projections.
 
 (* Move the following tactic somewhere appropriate *)
 Lemma hexploit_mp: forall P Q: Type, P -> (P -> Q) -> Q.
@@ -32,6 +32,8 @@ Section itree.
   CoInductive itree : Type := go
   { observe : itreeF itree }.
 
+  Axiom itree_eta : forall s, s = go (s.(observe)).
+
   (** Notes about using [itree]:
 
      - You should simplify using [cbn] rather than [simpl] when working
@@ -51,16 +53,11 @@ Section itree.
 
    *)
 
-  Lemma itree_unfold : forall s:itree, s = go (s.(observe)).
-  Proof.
-    intros. destruct s; auto.
-  Qed.
-  
 End itree.
 
 Arguments itreeF _ _ : clear implicits.
 Arguments itree _ _ : clear implicits.
-Arguments itree_unfold {E R} s.
+Arguments itree_eta {E R} s.
 
 (** We introduce notation for the [Tau], [Ret], and [Vis] constructors. Using
     notation rather than definitions works better for extraction.  (The [spin]
@@ -232,3 +229,9 @@ Global Instance Monad_itree {E} : Monad (itree E) :=
 {| ret := fun _ x => Ret x
 ;  bind := @ITree.bind E
 |}.
+
+Lemma bind'_to_bind {E R U} : forall (t: itree E U) (k: U -> itree E R),
+    ITree.bind' k t = ITree.bind t k.
+Proof. reflexivity. Qed.
+
+Ltac fold_bind := rewrite !bind'_to_bind in *.

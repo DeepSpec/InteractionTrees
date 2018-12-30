@@ -25,8 +25,8 @@ From ITree Require Import
 Lemma interp_unfold {E F R} {f : eff_hom E F} (t : itree E R) :
   interp f t = interp_match f (fun t' => interp f t') t.
 Proof.
-  setoid_rewrite (itree_unfold (interp f t)). simpl.
-  setoid_rewrite <-itree_unfold. eauto.
+  setoid_rewrite (itree_eta (interp f t)). cbn.
+  setoid_rewrite <-itree_eta. eauto.
 Qed.
 
 Lemma ret_interp {E F R} {f : eff_hom E F} (x: R):
@@ -54,16 +54,17 @@ Proof.
   pupto2_init.
   revert R t k.
   pcofix CIH. intros.
-  destruct t, observe.
+  absobs t ot. destruct ot.
   - rewrite ret_interp, !ret_bind. pupto2_final.
     eapply paco2_mon; [apply Reflexive_eq_itree | contradiction].
   - rewrite tau_interp, !tau_bind, tau_interp.
-    pupto2_final.
+    pupto2_final. pfold. cbn. eauto.
   - rewrite vis_interp, !vis_bind, vis_interp.
     pupto2 (eq_itree_clo_trans F S). econstructor; [reflexivity| |].
     { simpl. rewrite bind_bind. reflexivity. }
     pupto2 (eq_itree_clo_bind F S). econstructor; [reflexivity|].
-    setoid_rewrite tau_bind. intros. pupto2_final.
+    setoid_rewrite tau_bind. intros.
+    pupto2_final. pfold. cbn. eauto.
 Qed.
 
 Lemma interp_state_liftE {E F : Type -> Type} {R S : Type}

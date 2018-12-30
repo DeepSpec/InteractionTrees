@@ -241,8 +241,8 @@ Lemma eq_unalltaus :
 Proof.
   intros. revert t2 EQV.
   induction FT; intros; punfold EQV.
-  - inv EQV; cbn; eauto.
-  - inv EQV. pclearbot.
+  - absobs t ot. absobs t2 ot2. inv EQV; cbn; eauto.
+  - simpl in EQV. absobs t2 ot2. inv EQV. pclearbot.
     edestruct IHFT; eauto.
 Qed.
 
@@ -255,8 +255,8 @@ Proof.
   intros. revert s EQV.
   induction UNTAUS; intros.
   - exists s. split; eauto.
-    punfold EQV. inv EQV; eauto.
-  - punfold EQV. inv EQV. pclearbot.
+    punfold EQV. absobs s os. absobs t ot. inv EQV; eauto.
+  - punfold EQV. absobs s os. inv EQV. pclearbot.
     edestruct IHUNTAUS as [s' [? ?]]; eauto.
 Qed.
 
@@ -284,7 +284,7 @@ Qed.
 Lemma reflexive_euttF0 eutt t :
   Reflexive eutt -> notau t -> euttF0 eutt t t.
 Proof.
-  intros. destruct t, observe; try contradiction; econstructor; intros; subst; eauto.
+  intros. absobs t ot. destruct ot; try contradiction; econstructor; intros; subst; eauto.
 Qed.
 
 Lemma euttF_tau r t1 t2 :
@@ -430,8 +430,8 @@ Proof.
   intros [n [tf' TAUS]].
   generalize dependent t.
   induction TAUS; intros; subst.
-  - destruct t0, observe; try contradiction; eauto using finite_taus_ret, finite_taus_vis.
-  - destruct t0, observe; eauto using finite_taus_ret, finite_taus_vis.
+  - absobs t0 ot0; destruct ot0; try contradiction; eauto using finite_taus_ret, finite_taus_vis.
+  - absobs t0 ot0; destruct ot0; eauto using finite_taus_ret, finite_taus_vis.
     setoid_rewrite tau_bind in Etf.
     inv Etf.
     apply finite_taus_tau.
@@ -605,7 +605,7 @@ Proof.
   intros. eapply eq_unalltaus_eq in H0; eauto. destruct H0 as [s' [UNTAUS' EQV']].
   hexploit @unalltaus_injective; [apply UNTAUS' | apply UNTAUS2 | intro X]; subst.
 
-  punfold EQV'. inv EQV'; eauto.
+  punfold EQV'. absobs t1' ot1'. absobs s' os'. inv EQV'; eauto.
   - eapply untaus_prop in UNTAUS1. contradiction.
   - econstructor. intros. specialize (REL x0). pclearbot. eauto.
 Qed.
