@@ -210,7 +210,8 @@ Instance eq_itree_vis {E R u} (e: E u) :
   Proper (pointwise_relation _ eq_itree ==>
           @eq_itree E R) (fun k => Vis e k).
 Proof.
-  repeat intro. econstructor; [| econstructor; apply H]; eauto.
+  repeat intro. pfold. econstructor.
+  intros. left. apply H.
 Qed.
 
 Lemma bind_ret {E R} :
