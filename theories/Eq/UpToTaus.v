@@ -465,8 +465,8 @@ Lemma eutt_strengthen {E R}:
               (UNT2: unalltaus m2 t2 t2')
               (LEn: m1 < n1)
               (LEm: m2 < n2),
-         paco2 (euttF ∘ grespectful2 euttF) r t1' t2'),
-    paco2 (euttF ∘ grespectful2 euttF) r t1 t2.
+         paco2 (euttF ∘ gres2 euttF) r t1' t2'),
+    paco2 (euttF ∘ gres2 euttF) r t1 t2.
 Proof.
   intros. pfold. econstructor; eauto.
   intros. hexploit (EQV (S (max n m))); eauto with arith. intro EQV'.

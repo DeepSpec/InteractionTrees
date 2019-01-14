@@ -28,13 +28,13 @@ Section Respectful2.
   }.
   Hint Constructors respectful2.
 
-  Inductive grespectful2 (r: rel) e1 e2: Prop :=
-  | grespectful2_intro
+  Inductive gres2 (r: rel) e1 e2: Prop :=
+  | gres2_intro
       clo
       (RES: respectful2 clo)
       (CLO: clo r e1 e2)
   .
-  Hint Constructors grespectful2.
+  Hint Constructors gres2.
 
   Lemma gfclo2_mon: forall clo, sound2 clo -> monotone2 (compose gf clo).
   Proof. intros; destruct H; eauto using gf_mon. Qed.
@@ -83,39 +83,39 @@ Section Respectful2.
       + intros. eapply RESPECTFUL1; eauto.
   Qed.
 
-  Lemma grespectful2_respectful2: respectful2 grespectful2.
+  Lemma grespectful2_respectful2: respectful2 gres2.
   Proof.
     econstructor; repeat intro.
     - destruct IN; destruct RES; exists clo; eauto.
     - destruct PR; destruct RES; eapply gf_mon with (r:=clo r); eauto.
   Qed.
 
-  Lemma gfgres2_mon: monotone2 (compose gf grespectful2).
+  Lemma gfgres2_mon: monotone2 (compose gf gres2).
   Proof.
     destruct grespectful2_respectful2; eauto using gf_mon.
   Qed.
   Hint Resolve gfgres2_mon : paco.
 
-  Lemma grespectful2_greatest: forall clo (RES: respectful2 clo), clo <3= grespectful2.
+  Lemma grespectful2_greatest: forall clo (RES: respectful2 clo), clo <3= gres2.
   Proof.
     eauto.
   Qed.
 
-  Lemma grespectful2_incl: forall r, r <2= grespectful2 r.
+  Lemma grespectful2_incl: forall r, r <2= gres2 r.
   Proof.
     intros; eexists (fun x => x); eauto.
   Qed.
   Hint Resolve grespectful2_incl.
 
   Lemma grespectful2_compose: forall clo (RES: respectful2 clo) r,
-      clo (grespectful2 r) <2= grespectful2 r.
+      clo (gres2 r) <2= gres2 r.
   Proof.
-    intros; eapply grespectful2_greatest with (clo := compose clo grespectful2);
+    intros; eapply grespectful2_greatest with (clo := compose clo gres2);
       eauto using respectful2_compose, grespectful2_respectful2.
   Qed.
 
   Lemma grespectful2_incl_rev: forall r,
-      grespectful2 (paco2 (compose gf grespectful2) r) <2= paco2 (compose gf grespectful2) r.
+      gres2 (paco2 (compose gf gres2) r) <2= paco2 (compose gf gres2) r.
   Proof.
     intro r; pcofix CIH; intros; pfold.
     eapply gf_mon, grespectful2_compose, grespectful2_respectful2.
@@ -196,7 +196,7 @@ Section Respectful2.
   Qed.
 
   Lemma upto2_init:
-      paco2 (compose gf grespectful2) bot2 <2= paco2 gf bot2.
+      paco2 (compose gf gres2) bot2 <2= paco2 gf bot2.
   Proof.
     apply sound2_is_gf; eauto.
     apply respectful2_is_sound2.
@@ -204,7 +204,7 @@ Section Respectful2.
   Qed.
 
   Lemma upto2_final:
-    paco2 gf <3= paco2 (compose gf grespectful2).
+    paco2 gf <3= paco2 (compose gf gres2).
   Proof.
     pcofix CIH. intros. punfold PR. pfold.
     eapply gf_mon; [|apply grespectful2_incl].
@@ -213,7 +213,7 @@ Section Respectful2.
 
   Lemma upto2_step
         r clo (RES: weak_respectful2 clo):
-    clo (paco2 (compose gf grespectful2) r) <2= paco2 (compose gf grespectful2) r.
+    clo (paco2 (compose gf gres2) r) <2= paco2 (compose gf gres2) r.
   Proof.
     intros. apply grespectful2_incl_rev.
     assert (RES' := weak_respectful2_respectful2 RES).
@@ -224,7 +224,7 @@ Section Respectful2.
 
   Lemma upto2_step_under
      r clo (RES: weak_respectful2 clo):
-   clo (grespectful2 r) <2= grespectful2 r.
+   clo (gres2 r) <2= gres2 r.
 Proof.
   intros. apply weak_respectful2_respectful2 in RES; eauto.
   eapply grespectful2_compose; eauto. eauto using rclo2.
@@ -234,7 +234,7 @@ End Respectful2.
 
 Hint Constructors sound2.
 Hint Constructors respectful2.
-Hint Constructors grespectful2.
+Hint Constructors gres2.
 Hint Resolve gfclo2_mon : paco.
 Hint Resolve gfgres2_mon : paco.
 Hint Resolve grespectful2_incl.
