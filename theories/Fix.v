@@ -91,7 +91,7 @@ Module FixImpl <: FixSig.
       Proof.
         pcofix CIH. intros.
         rewrite (itree_eta (homFix x)), (itree_eta (homFix y)).
-        pfold. punfold H0. absobs x ox. absobs y oy.
+        pfold. punfold H0. unfold_eq_itree. absobs x ox. absobs y oy.
         inv H0; pclearbot; [| |destruct e; [|destruct f0]]; cbn; eauto.
         - econstructor. intros. specialize (REL v). pclearbot. eauto.
         - econstructor. right. eapply CIH.
@@ -110,14 +110,14 @@ Module FixImpl <: FixSig.
           pupto2_final.
           eapply paco2_mon; [apply Reflexive_eq_itree | contradiction].
         - rewrite tau_bind. repeat (rewrite (itree_eta (homFix (Tau _))); cbn). rewrite tau_bind.
-          pupto2_final. pfold. cbn. eauto.
+          pupto2_final. pfold. unfold_eq_itree. cbn. eauto.
         - rewrite vis_bind; repeat (rewrite (itree_eta (homFix (Vis _ _))); cbn).
           destruct e; [|destruct f0]; cbn.
-          + pupto2_final. rewrite vis_bind. pfold. cbn. eauto.
+          + pupto2_final. rewrite vis_bind. pfold. unfold_eq_itree. cbn. eauto.
           + rewrite tau_bind.
             pupto2 (eq_itree_clo_trans E T). econstructor; [|reflexivity|].
             { eapply eq_itree_tau, eq_itree_homfix. rewrite <-bind_bind. reflexivity. }
-            pupto2_final. pfold. cbn. eauto.
+            pupto2_final. pfold. unfold_eq_itree. cbn. eauto.
       Qed.
 
       Lemma homfix_interp_finite : forall {T} (c : itree _ T),

@@ -240,7 +240,7 @@ Lemma eq_unalltaus :
   exists t2', unalltaus n t2 t2'.
 Proof.
   intros. revert t2 EQV.
-  induction FT; intros; punfold EQV.
+  induction FT; intros; punfold EQV; unfold_eq_itree.
   - absobs t ot. absobs t2 ot2. inv EQV; cbn; eauto.
   - simpl in EQV. absobs t2 ot2. inv EQV. pclearbot.
     edestruct IHFT; eauto.
@@ -253,10 +253,10 @@ Lemma eq_unalltaus_eq :
   exists s', unalltaus n s s' /\ t' ≅ s'.
 Proof.
   intros. revert s EQV.
-  induction UNTAUS; intros.
+  induction UNTAUS; intros; punfold EQV; unfold_eq_itree.
   - exists s. split; eauto.
-    punfold EQV. absobs s os. absobs t ot. inv EQV; eauto.
-  - punfold EQV. absobs s os. inv EQV. pclearbot.
+    absobs s os. absobs t ot. inv EQV; eauto.
+  - absobs s os. inv EQV. pclearbot.
     edestruct IHUNTAUS as [s' [? ?]]; eauto.
 Qed.
 
@@ -605,7 +605,7 @@ Proof.
   intros. eapply eq_unalltaus_eq in H0; eauto. destruct H0 as [s' [UNTAUS' EQV']].
   hexploit @unalltaus_injective; [apply UNTAUS' | apply UNTAUS2 | intro X]; subst.
 
-  punfold EQV'. absobs t1' ot1'. absobs s' os'. inv EQV'; eauto.
+  punfold EQV'. unfold_eq_itree. absobs t1' ot1'. absobs s' os'. inv EQV'; eauto.
   - eapply untaus_prop in UNTAUS1. contradiction.
   - econstructor. intros. specialize (REL x0). pclearbot. eauto.
 Qed.

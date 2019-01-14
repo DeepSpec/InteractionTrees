@@ -58,13 +58,13 @@ Proof.
   - rewrite ret_interp, !ret_bind. pupto2_final.
     eapply paco2_mon; [apply Reflexive_eq_itree | contradiction].
   - rewrite tau_interp, !tau_bind, tau_interp.
-    pupto2_final. pfold. cbn. eauto.
+    pupto2_final. pfold. unfold_eq_itree. cbn. eauto.
   - rewrite vis_interp, !vis_bind, vis_interp.
     pupto2 (eq_itree_clo_trans F S). econstructor; [reflexivity| |].
     { simpl. rewrite bind_bind. reflexivity. }
     pupto2 (eq_itree_clo_bind F S). econstructor; [reflexivity|].
     setoid_rewrite tau_bind. intros.
-    pupto2_final. pfold. cbn. eauto.
+    pupto2_final. pfold. unfold_eq_itree. cbn. eauto.
 Qed.
 
 Lemma interp_state_liftE {E F : Type -> Type} {R S : Type}
