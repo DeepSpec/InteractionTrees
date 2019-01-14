@@ -222,7 +222,7 @@ Section Respectful2.
     inversion RES. auto.
   Qed.
 
-  Lemma upto2_low_step
+  Lemma upto2_step_under
      r clo (RES: weak_respectful2 clo):
    clo (grespectful2 r) <2= grespectful2 r.
 Proof.
@@ -242,7 +242,5 @@ Hint Resolve rclo2_mon: paco.
 Hint Constructors weak_respectful2.
 
 Ltac pupto2_init := eapply upto2_init; eauto with paco.
-Ltac pupto2_final := eapply upto2_final; eauto with paco.
-Ltac pupto2 H := eapply upto2_step; [|exact H|]; eauto with paco.
-Ltac upto2_low_step H := eapply upto2_low_step; [|exact H|]; eauto with paco.
-Ltac upto2_low_final := eapply grespectful2_incl.
+Ltac pupto2_final := first [eapply upto2_final; eauto with paco | eapply grespectful2_incl].
+Ltac pupto2 H := first [eapply upto2_step|eapply upto2_step_under]; [|exact H|]; eauto with paco.

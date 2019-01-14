@@ -216,9 +216,9 @@ Module FixImpl <: FixSig.
             pfold. econstructor; [split; eauto|].
             intros. inv UNTAUS1. inv UNTAUS2.
             econstructor. intros.
-            upto2_low_step (eutt_clo_bind E T). econstructor.
+            pupto2 (eutt_clo_bind E T). econstructor.
             { reflexivity. }
-            intros. upto2_low_final. eauto.
+            intros. pupto2_final. eauto.
           + rewrite ret_bind in TAUS4, TAUS5.
             hexploit @untaus_unalltus_rev; try apply TAUS4; eauto. intros TAUS6.
             hexploit @untaus_unalltus_rev; try apply TAUS5; eauto. intros TAUS7.
