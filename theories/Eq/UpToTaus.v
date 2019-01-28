@@ -617,3 +617,32 @@ Lemma eutt_map_map {E R S T}
 Proof.
   rewrite map_map. reflexivity.
 Qed.
+
+Notation itree' E R := (itreeF E R (itree E R)).
+
+Definition observing {E R}
+           (f : itree' E R -> itree' E R -> Prop)
+           (x y : itree E R) :=
+  f x.(observe) y.(observe).
+
+Inductive euttF1' {E R} (r : itree E R -> itree E R -> Prop) :
+  itree' E R -> itree' E R -> Prop :=
+| euttF1_Tau_L : forall t1 t2,
+    euttF1' r t1.(observe) t2 ->
+    euttF1' r (TauF t1) t2
+| euttF1_Tau_R : forall t1 t2,
+    euttF1' r t1 t2.(observe) ->
+    euttF1' r t1 (TauF t2)
+| euttF1_euttF0 : forall t1 t2,
+    euttF0 r (go t1) (go t2) ->
+    euttF1' r t1 t2
+.
+
+Definition euttF1 {E R} (r : relation (itree E R)) :
+  relation (itree E R) := observing (euttF1' r).
+
+Lemma euttF1_euttF {E R} (r : relation (itree E R)) :
+  forall t1 t2,
+    euttF1 r t1 t2 -> euttF r t1 t2.
+Proof.
+Admitted.

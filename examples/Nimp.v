@@ -101,6 +101,10 @@ Qed.
 
 End Labeled.
 
+From Paco Require Import paco.
+From ITree Require Import
+     paco2_respectful.
+
 Module Tree.
 
 Variant nd : Type -> Type :=
@@ -133,14 +137,56 @@ Definition one_loop_tree : itree nd unit :=
     (* note: [or] is not allowed under [mfix]. *)
     b <- lift _ choice;;
     if b : bool then
-      self
+      Ret tt
     else
-      Ret tt)%itree.
-
+      self)%itree.
+Locate pointwise_relation.
+Import Coq.Classes.Morphisms.
 
 (* SAZ: the [~] notation for eutt wasn't working here. *)
 Lemma eval_one_loop : eutt (eval one_loop) (one_loop_tree).
 Proof.
-Abort.
+  pupto2_init.
+  pcofix self.
+  pupto2 (eutt_clo_trans nd unit). econstructor.
+  { unfold eval, mfix1.
+    rewrite (mfix_unfold nd com (fun _ => unit)); cbn.
+    unfold id, choice, ITree.liftE. rewrite vis_bind. reflexivity.
+  }
+  { unfold one_loop_tree, mfix0.
+    rewrite (mfix_unfold nd unit (fun _ => unit)); cbn.
+    unfold id, choice, ITree.liftE. rewrite vis_bind. reflexivity.
+  }
+  cbn.
+  pfold.
+  apply euttF1_euttF.
+  constructor.
+  constructor.
+  intros b.
+  pupto2 (eutt_clo_trans nd unit). econstructor.
+  { rewrite ret_bind; reflexivity. }
+  { rewrite ret_bind; reflexivity. }
+  destruct b.
+  (* true *)
+  { apply grespectful2_incl. left.
+    pfold. apply euttF1_euttF; repeat constructor. }
+  (* false *)
+  pupto2 (eutt_clo_trans nd unit). econstructor.
+  { match goal with
+    | [ |- eutt (ITree.bind ?t1 _) _ ] =>
+      assert (Ht1 : eutt t1 (Ret tt))
+    end.
+    { pfold.
+      apply euttF1_euttF.
+      repeat (constructor; cbn).
+    }
+    rewrite Ht1.
+    rewrite ret_bind.
+    reflexivity.
+  }
+  { reflexivity. }
+  apply grespectful2_incl. right.
+  exact self.
+Qed.
 
 End Tree.

@@ -34,7 +34,7 @@ Module Type FixSig.
     Parameter mfix : fix_body -> forall x : dom, itree E (codom x).
 
     Axiom mfix_unfold : forall (body : fix_body) (x : dom),
-        mfix body x = body E (fun t => id) (mfix body) x.
+        eutt (mfix body x) (body E (fun t => id) (mfix body) x).
 
   End Fix.
 End FixSig.
@@ -252,7 +252,7 @@ Module FixImpl <: FixSig.
                 (fun x0 : dom => ITree.liftE (inrE (call x0)))).
 
       Theorem mfix_unfold : forall x,
-          mfix x = body E (fun t => id) mfix x.
+          eutt (mfix x) (body E (fun t => id) mfix x).
       Proof. Admitted.
     End mfixP.
   End Fix.
