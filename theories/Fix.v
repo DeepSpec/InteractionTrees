@@ -5,8 +5,7 @@
  *   https://gmalecha.github.io/reflections/2018/compositional-coinductive-recursion-in-coq
  *)
 
-From ITree Require Import
-     paco2_respectful Core Morphisms MorphismsFacts OpenSum Eq.Eq Eq.UpToTaus.
+Require Import Paco.paco.
 
 From Coq Require Import
      Program
@@ -15,7 +14,8 @@ From Coq Require Import
      Morphisms
      RelationClasses.
 
-Require Import Paco.paco.
+From ITree Require Import
+     paco2_upto Core Morphisms MorphismsFacts OpenSum Eq.Eq Eq.UpToTaus.
 
 Module Type FixSig.
   Section Fix.
@@ -55,10 +55,8 @@ Module FixImpl <: FixSig.
       (* this is the body of the fixpoint. *)
       Variable f : forall x : dom, itree (sum1 E fixpoint) (codom x).
 
-      Local CoFixpoint homFix {T : Type}
-            (c : itree (sum1 E fixpoint) T)
-      : itree E T :=
-        match c.(observe) with
+      Definition homFix_match {T} (homFix: itree (sum1 E fixpoint) T -> itree E T) oc : itree E T :=
+        match oc with
         | RetF x => Ret x
         | @VisF _ _ _ u ee k =>
           match ee with
@@ -73,8 +71,12 @@ Module FixImpl <: FixSig.
         | TauF x => Tau (homFix x)
         end.
 
-      Definition _mfix (x : dom) : itree E (codom x) :=
-        homFix (f x).
+      Local CoFixpoint homFix {T : Type}
+            (c : itree (sum1 E fixpoint) T)
+      : itree E T :=
+        homFix_match homFix (observe c).
+
+      Definition _mfix x := homFix (f x).
 
       Definition eval_fixpoint T (X : sum1 E fixpoint T) : itree E T :=
         match X with
@@ -84,20 +86,45 @@ Module FixImpl <: FixSig.
           | call x => _mfix x
           end
         end.
-      
+
+      Lemma homfix_unfold {T} (t: itree _ T) :
+        observe (homFix t) = observe (homFix_match homFix (observe t)).
+      Proof. cbn. eauto. Qed.
+
+      Lemma unfold_homfix {T} (t: itree _ T) :
+        homFix t ≅ homFix_match homFix (observe t).
+      Proof. rewrite itree_eta, homfix_unfold, <-itree_eta. reflexivity. Qed.
+
+      Lemma ret_homfix {T} (x: T) :
+        homFix (Ret x) ≅ Ret x.
+      Proof. rewrite unfold_homfix. reflexivity. Qed.
+
+      Lemma tau_homfix {T} (t: itree _ T) :
+        homFix (Tau t) ≅ Tau (homFix t).
+      Proof. rewrite unfold_homfix. reflexivity. Qed.
+
+      Lemma vis_homfix_left {T U} (e: _ U) (k: U -> itree _ T) :
+        homFix (Vis (inlE e) k) ≅ Vis e (fun x => homFix (k x)).
+      Proof. rewrite unfold_homfix. reflexivity. Qed.
+
+      Lemma vis_homfix_right {T} x (k: _ -> itree _ T) :
+        homFix (Vis (inrE (call x)) k) ≅ Tau (homFix (ITree.bind (f x) k)).
+      Proof. rewrite unfold_homfix. reflexivity. Qed.
+
       Instance eq_itree_homfix {T} :
         Proper (@eq_itree _ T ==>
                 @eq_itree _ T) (@homFix T).
       Proof.
+        repeat intro. pupto2_init. revert_until T.
         pcofix CIH. intros.
-        rewrite (itree_eta (homFix x)), (itree_eta (homFix y)).
-        pfold. punfold H0. unfold_eq_itree. absobs x ox. absobs y oy.
-        inv H0; pclearbot; [| |destruct e; [|destruct f0]]; cbn; eauto.
-        - econstructor. intros. specialize (REL v). pclearbot. eauto.
-        - econstructor. right. eapply CIH.
-          eapply eq_itree_bind.
-          + reflexivity.
-          + intro. specialize (REL a). pclearbot. eauto.
+        rewrite (itree_eta (homFix x)), (itree_eta (homFix y)). pupto2_final.
+        rewrite !homfix_unfold.
+        punfold H0. inv H0; pclearbot; [| |destruct e; [|destruct f0]].
+        - eapply eq_itree_refl.
+        - pfold. econstructor. eauto.
+        - pfold. econstructor. eauto 7.
+        - pfold. econstructor. apply pointwise_relation_fold in REL.
+          right. eapply CIH. rewrite REL. reflexivity.
       Qed.
 
       Theorem homfix_bind {U T}: forall t k,
@@ -105,71 +132,80 @@ Module FixImpl <: FixSig.
       Proof.
         intros. pupto2_init. revert t k.
         pcofix CIH. intros.
-        absobs t ot. destruct ot.
-        - rewrite (itree_eta (homFix (Ret _))). cbn. rewrite !ret_bind.
-          pupto2_final.
-          eapply paco2_mon; [apply Reflexive_eq_itree | contradiction].
-        - rewrite tau_bind. repeat (rewrite (itree_eta (homFix (Tau _))); cbn). rewrite tau_bind.
-          pupto2_final. pfold. unfold_eq_itree. cbn. eauto.
-        - rewrite vis_bind; repeat (rewrite (itree_eta (homFix (Vis _ _))); cbn).
-          destruct e; [|destruct f0]; cbn.
-          + pupto2_final. rewrite vis_bind. pfold. unfold_eq_itree. cbn. eauto.
-          + rewrite tau_bind.
-            pupto2 (eq_itree_clo_trans E T). econstructor; [|reflexivity|].
-            { eapply eq_itree_tau, eq_itree_homfix. rewrite <-bind_bind. reflexivity. }
-            pupto2_final. pfold. unfold_eq_itree. cbn. eauto.
+        rewrite (itree_eta t). destruct (observe t); [| |destruct e; [|destruct f0]].
+        - rewrite ret_bind, !ret_homfix, ret_bind. pupto2_final. apply eq_itree_refl.
+        - rewrite tau_bind, !tau_homfix, tau_bind. pupto2_final.
+          pfold. econstructor. eauto.
+        - rewrite vis_bind, !vis_homfix_left, vis_bind. pupto2_final.
+          pfold. econstructor. eauto.
+        - rewrite vis_bind, !vis_homfix_right, tau_bind, <-bind_bind. pupto2_final.
+          pfold. econstructor. eauto.
       Qed.
 
       Lemma homfix_interp_finite : forall {T} (c : itree _ T),
-          finite_taus (homFix c) <-> finite_taus (interp eval_fixpoint c).
+          finite_taus (observe (homFix c)) <-> finite_taus (observe (interp eval_fixpoint c)).
       Proof.
         split; intros.
         { destruct H as [n [t FIN]]. move n before f. revert_until n.
           generalize (PeanoNat.Nat.lt_succ_diag_r n); generalize (S n) at 1; intro m; revert n.
           induction m; intros; [nia|].
-          rewrite (itree_eta (homFix c)) in FIN.
-          absobs c oc. destruct oc; [| |destruct e; [|destruct f0]]
-          ; simpl; try (inversion FIN; subst; try contradiction; eauto; fail).
-          - rewrite tau_interp.
-            eapply finite_taus_tau. simpl in FIN. inv FIN; try contradiction.
-            eauto with arith.
-          - rewrite vis_interp. simpl.
-            cbn in FIN. inv FIN; try contradiction.
-            hexploit @eq_unalltaus; try apply TAUS; eauto using homfix_bind. intros [t2 TAUS2].
-            hexploit @finite_taus_bind_fst; eauto. intros [n3 [t3 TAUS3]].
-            hexploit @untaus_prop; eauto. intros NOTAU.
-            hexploit untaus_bind; eauto. intros TAUS4.
-            hexploit untaus_bind; try apply TAUS3. intros TAUS5.
-            absobs t3 ot3; destruct ot3; try contradiction; cycle 1.
-            + do 2 eexists. eapply untaus_change_prop; eauto.
-            + rewrite ret_bind in TAUS4, TAUS5.
-              hexploit @untaus_unalltus_rev; try apply TAUS4; eauto. intros TAUS6.
-              eapply IHm in TAUS6; try nia.
+          rewrite interp_unfold.
+          genobs c oc. destruct oc; [| |destruct e; [|destruct f0]]; simpl.
+          - eauto using finite_taus_ret.
+          - rewrite homfix_unfold in FIN. simpobs. cbn in FIN.
+            eapply finite_taus_tau; eauto.
+            destruct n; [inv FIN; contradiction|].
+            eapply unalltaus_tau in FIN; cycle 1; eauto with arith.
+          - cbn. eauto using finite_taus_vis.
+          - rewrite homfix_unfold in FIN. simpobs. simpl in FIN.
+            destruct n; [inv FIN; contradiction|].
+            eapply unalltaus_tau in FIN; cycle 1; eauto. simpl in FIN.
+            eapply eq_unalltaus in FIN; [|apply homfix_bind].
+            destruct FIN as [s' FIN].
+            hexploit @finite_taus_bind_fst; eauto. intros [n' [t' TAUS']].
+            hexploit untaus_bind; eauto. intros UTAUS.
+            genobs t' ot'. destruct ot'; swap 1 3.
+            + do 2 eexists. eapply untaus_all; [apply UTAUS|].
+              rewrite !bind_unfold. simpobs. simpl. auto.
+            + eapply unalltaus_notau in TAUS'. exfalso; eauto.
+            + hexploit untaus_bind.
+              { instantiate (1:= go _). simpl. apply TAUS'. } intros UTAUS'.
+              hexploit untaus_unalltus_rev; [apply UTAUS' | apply FIN|]. intros UTAUS''.
+              rewrite bind_unfold in UTAUS''. simpl in UTAUS''.
+              eapply IHm in UTAUS''; try nia.
               eapply untaus_finite_taus; eauto.
+              rewrite bind_unfold. simpobs. cbn.
               eapply finite_taus_tau; eauto.
         }
         { destruct H as [n [t FIN]]. move n before f. revert_until n.
           generalize (PeanoNat.Nat.lt_succ_diag_r n); generalize (S n) at 1; intro m; revert n.
           induction m; intros; [nia|].
-          rewrite (itree_eta (homFix _)).
-          absobs c oc; destruct oc; [| |destruct e; [|destruct f0]]
-          ; try (inversion FIN; subst; cbn; try contradiction; eauto; fail).
-          - rewrite tau_interp in FIN. cbn. eapply finite_taus_tau.
-            inversion FIN; subst; try contradiction; cbn; eauto with arith.
-          - rewrite vis_interp in FIN. cbn. eapply finite_taus_tau.
-            eapply @finite_taus_eutt; [rewrite homfix_bind; reflexivity|].
-            simpl in FIN.
-            hexploit @finite_taus_bind_fst; eauto. intros [n3 [t3 TAUS3]].
-            hexploit @untaus_prop; eauto. intros NOTAU.
-            hexploit untaus_bind; eauto. intros TAUS4.
-            hexploit untaus_bind; try apply TAUS3. intros TAUS5.
-            absobs t3 ot3; destruct ot3; try contradiction; cycle 1.
-            + do 2 eexists. eapply untaus_change_prop; eauto.
-            + rewrite ret_bind in TAUS4, TAUS5.
-              hexploit @untaus_unalltus_rev; try apply TAUS4; eauto. intros TAUS6.
-              inversion TAUS6; try contradiction; subst.
-              hexploit IHm; eauto; try nia. intros TAUS7.
+          rewrite homfix_unfold.
+          genobs c oc. destruct oc; [| |destruct e; [|destruct f0]]; cbn; simpobs; simpl.
+          - eauto using finite_taus_ret.
+          - rewrite interp_unfold in FIN. simpobs. cbn in FIN.
+            eapply finite_taus_tau; eauto.
+            destruct n; [inv FIN; contradiction|].
+            eapply unalltaus_tau in FIN; cycle 1; eauto with arith.
+          - eauto using finite_taus_vis.
+          - rewrite interp_unfold in FIN. simpobs. simpl in FIN.
+            eapply finite_taus_tau; eauto.
+            rewrite homfix_bind.
+            hexploit @finite_taus_bind_fst; eauto. intros [n' [t' TAUS']].
+            hexploit untaus_bind; eauto. intros UTAUS.
+            genobs t' ot'. destruct ot'; swap 1 3.
+            + do 2 eexists. eapply untaus_all; [apply UTAUS|].
+              rewrite !bind_unfold. simpobs. simpl. auto.
+            + eapply unalltaus_notau in TAUS'. exfalso; eauto.
+            + hexploit untaus_bind.
+              { instantiate (1:= go _). simpl. apply TAUS'. } intros UTAUS'.
+              hexploit untaus_unalltus_rev; [apply UTAUS' | apply FIN|]. intros UTAUS''.
+              rewrite bind_unfold in UTAUS''. simpl in UTAUS''.
+              destruct n; [inv UTAUS''; contradiction|].
+              eapply unalltaus_tau in UTAUS''; try reflexivity.
+              eapply IHm in UTAUS''; try nia.
               eapply untaus_finite_taus; eauto.
+              rewrite bind_unfold. simpobs. simpl. eauto.
         }
       Qed.
 
@@ -180,49 +216,47 @@ Module FixImpl <: FixSig.
         pcofix CIH. intros.
         eapply eutt_strengthen; eauto using homfix_interp_finite.
         intro n. revert c. induction n; intros; try nia.
-        rewrite (itree_eta (homFix _)) in UNT1.
-        absobs c oc; destruct oc; [| |destruct e; [|destruct f0]]; cbn in *.
-        - inv UNT1. rewrite ret_interp in UNT2. inv UNT2.
-          pupto2_final. eapply paco2_mon; [apply Reflexive_eutt | contradiction].
-        - inv UNT1; try contradiction.
-          rewrite tau_interp in UNT2. apply unalltaus_tau in UNT2.
-          eapply IHn; eauto; nia.
-        - inv UNT1. rewrite vis_interp in UNT2. setoid_rewrite vis_bind in UNT2. inv UNT2.
-          pupto2 (eutt_clo_trans E T). econstructor; [reflexivity| |].
-          { eapply eutt_vis. intro v. rewrite ret_bind. apply eutt_tau1. }
-          pupto2_final. pfold.
-          simpl. econstructor; [split; eauto|].
-          intros. inv UNTAUS1. inv UNTAUS2.
-          econstructor. intros. eauto.
-        - simpl in UNT1. rewrite vis_interp in UNT2. simpl in UNT2.
-          inv UNT1; try contradiction.
-          hexploit @eq_unalltaus_eq; [eauto | apply homfix_bind | ..]. intros [s' [UNT' EQV']].
-          pupto2 (eutt_clo_trans E T). econstructor; [|reflexivity|].
-          { rewrite EQV'. reflexivity. }
+        rewrite homfix_unfold in UNT1.
+        rewrite interp_unfold in UNT2.
+        genobs c oc; destruct oc; [| |destruct e; [|destruct f0]]; cbn in UNT1; simpobs.
+        - dependent destruction UNT1. dependent destruction UNT2.
+          rewrite (itree_eta t1'), (itree_eta t2'). simpobs. simpl.
+          pupto2_final. apply eutt_refl.
+        - dependent destruction UNT1; try contradiction.
+          eapply unalltaus_tau in UNT2; try reflexivity.
+          eapply IHn; eauto. nia.
+        - dependent destruction UNT1. cbn in UNT2. dependent destruction UNT2.
+          rewrite (itree_eta t1'), (itree_eta t2'); simpobs.
+          pfold. econstructor; [split; eauto|].
+          intros. dependent destruction UNTAUS1. dependent destruction UNTAUS2. simpobs.
+          econstructor. intros.
+          fold_bind. rewrite ret_bind, tau_eutt; try reflexivity.
+          pupto2_final. eauto.
+        - simpl in UNT2. dependent destruction UNT1; try contradiction.
+          hexploit @eq_unalltaus_eq; [apply UNT1 | apply homfix_bind |]. intros [s' [UNT' EQV']].
+          rewrite EQV'.
           hexploit @finite_taus_bind_fst; eauto. intros [n3 [t3 TAUS3]].
-          hexploit @untaus_prop; eauto. intros NOTAU.
+          hexploit @unalltaus_notau; eauto. intros NOTAU.
           hexploit untaus_bind; eauto. intros TAUS4.
           hexploit untaus_bind; try apply TAUS3. intros TAUS5.
-          absobs t3 ot3; destruct ot3; try contradiction; cycle 1; cbn in *.
-          + rewrite vis_bind in TAUS4. rewrite vis_bind in TAUS5.
-            eapply (untaus_change_prop notau) in TAUS4; eauto.
-            eapply (untaus_change_prop notau) in TAUS5; eauto.
-            hexploit @unalltaus_injective; [apply UNT' | apply TAUS4 |]. intros X; subst.
-            hexploit @unalltaus_injective; [apply UNT2 | apply TAUS5 |]. intros X; subst.
-            pupto2 (eutt_clo_trans E T). econstructor; [reflexivity| |].
-            { eapply eutt_vis. intro v.
-              eapply eutt_bind; [reflexivity|].
-              intro w. apply eutt_tau1. }
+          setoid_rewrite bind_unfold in TAUS4 at 2.
+          setoid_rewrite bind_unfold in TAUS5 at 2.
+          genobs t3 ot3; destruct ot3; try contradiction; cycle 1; fold_bind.
+          + eapply untaus_all in TAUS4; eauto.
+            eapply untaus_all in TAUS5; eauto.
+            hexploit @unalltaus_injective; [apply TAUS4 | apply UNT' |]. intros OBS1.
+            hexploit @unalltaus_injective; [apply TAUS5 | apply UNT2 |]. intros OBS2.
+            simpl in OBS1, OBS2. fold_bind.
+            rewrite (itree_eta s'), (itree_eta t2'). simpobs.
+            setoid_rewrite tau_eutt.
             pfold. econstructor; [split; eauto|].
-            intros. inv UNTAUS1. inv UNTAUS2.
+            intros. dependent destruction UNTAUS1. dependent destruction UNTAUS2. simpobs.
             econstructor. intros.
-            pupto2 (eutt_clo_bind E T). econstructor.
-            { reflexivity. }
+            pupto2 (eutt_clo_bind E T). econstructor; [reflexivity|].
             intros. pupto2_final. eauto.
-          + rewrite ret_bind in TAUS4, TAUS5.
-            hexploit @untaus_unalltus_rev; try apply TAUS4; eauto. intros TAUS6.
+          + hexploit @untaus_unalltus_rev; try apply TAUS4; eauto. intros TAUS6.
             hexploit @untaus_unalltus_rev; try apply TAUS5; eauto. intros TAUS7.
-            eapply unalltaus_tau in TAUS7.
+            eapply unalltaus_tau in TAUS7; [|reflexivity].
             hexploit IHn; eauto; try nia.
       Qed.
 
@@ -248,7 +282,7 @@ Module FixImpl <: FixSig.
       : forall x : dom, itree E (codom x) :=
         _mfix
           (body (E +' fixpoint)
-                (fun t => @interp _ _ (fun _ e => lift e) _)
+                (fun t => interp (fun _ e => lift e))
                 (fun x0 : dom => ITree.liftE (inrE (call x0)))).
 
       Theorem mfix_unfold : forall x,

@@ -13,16 +13,23 @@ Ltac hexploit x := eapply hexploit_mp; [eapply x|].
 
 Ltac inv H := inversion H; clear H; subst.
 
+Ltac rewrite_everywhere lem :=
+  progress ((repeat match goal with [H: _ |- _] => rewrite lem in H end); repeat rewrite lem).
+
+Ltac rewrite_everywhere_except lem X :=
+  progress ((repeat match goal with [H: _ |- _] =>
+                 match H with X => fail 1 | _ => rewrite lem in H end
+             end); repeat rewrite lem).
+
 Section itree.
 
   Context {E : Type -> Type} {R : Type}.
 
-  Variant itreeF {itree : Type} :=
+  Variant itreeF (itree : Type) :=
   | RetF (r : R)
   | TauF (t : itree)
   | VisF {u} (e : E u) (k : u -> itree)
   .
-  Arguments itreeF _ : clear implicits.
 
   (** An [itree E R] is the denotation of a program as coinductive
     (possibly infinite) tree where the leaves [Ret] are labeled with
@@ -30,9 +37,7 @@ Section itree.
     branching node [Vis] with a visible effect [E X] that branches
     on the values of [X]. *)
   CoInductive itree : Type := go
-  { observe : itreeF itree }.
-
-  Axiom itree_eta : forall s, s = go (s.(observe)).
+  { _observe : itreeF itree }.
 
   (** Notes about using [itree]:
 
@@ -55,9 +60,20 @@ Section itree.
 
 End itree.
 
-Arguments itreeF _ _ : clear implicits.
 Arguments itree _ _ : clear implicits.
-Arguments itree_eta {E R} s.
+Arguments itreeF _ _ : clear implicits.
+
+Definition observe {E R} := @_observe E R.
+
+Ltac fold_observe := change @_observe with @observe in *.
+Ltac unfold_observe := unfold observe in *.
+
+Ltac genobs x ox := remember (observe x) as ox; simpl observe.
+
+Ltac simpobs := fold_observe;
+                repeat match goal with [H: _ = observe _ |- _] =>
+                    rewrite_everywhere_except (@eq_sym _ _ _ H) H
+                end.
 
 (** We introduce notation for the [Tau], [Ret], and [Vis] constructors. Using
     notation rather than definitions works better for extraction.  (The [spin]
@@ -83,15 +99,15 @@ Section bind.
   (* The [match] in the definition of bind. *)
   Definition bind_match
              (bind : itree E T -> itree E U)
-             (c : itree E T) : itree E U :=
-    match c.(observe) with
+             (oc : itreeF E T (itree E T)) : itree E U :=
+    match oc with
     | RetF r => k r
     | TauF t => Tau (bind t)
     | VisF e h => Vis e (fun x => bind (h x))
     end.
 
   CoFixpoint bind' (t : itree E T) : itree E U :=
-    bind_match bind' t.
+    bind_match bind' (observe t).
 
 End bind.
 
@@ -137,19 +153,6 @@ Definition when {E}
            (b : bool) (body : itree E unit) : itree E unit :=
   if b then body else Ret tt.
 
-Lemma observe_bind : forall {E T U} c (k : T -> itree E U),
-    observe (bind c k) = match c.(observe) with
-                         | RetF r => (k r).(observe)
-                         | TauF t => TauF (bind t k)
-                         | VisF e h => VisF e (fun x => bind (h x) k)
-                         end.
-Proof.
-  unfold bind, bind', bind_match. unfold observe.
-  intros.
-  (* [destruct c] doesn't work here, I don't know why. (Coq 8.8) *)
-  symmetry; destruct (observe _); auto.
-Qed.
-
 End ITree.
 
 (* Sometimes it's more convenient to work without the type classes
@@ -188,8 +191,5 @@ Global Instance Monad_itree {E} : Monad (itree E) :=
 ;  bind := @ITree.bind E
 |}.
 
-Lemma bind'_to_bind {E R U} : forall (t: itree E U) (k: U -> itree E R),
-    ITree.bind' k t = ITree.bind t k.
-Proof. reflexivity. Qed.
-
-Ltac fold_bind := rewrite !bind'_to_bind in *.
+Ltac fold_bind := (change @ITree.bind' with (fun E T U k t => @ITree.bind E T U t k) in *; simpl in *).
+Ltac unfold_bind := unfold ITree.bind in *.
