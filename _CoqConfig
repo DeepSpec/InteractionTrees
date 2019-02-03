@@ -1,6 +1,6 @@
 -Q theories ITree
 
-theories/paco2_respectful.v
+theories/paco2_upto.v
 
 theories/Core.v
 

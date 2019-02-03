@@ -21,8 +21,8 @@ Definition eff_hom (E E' : Type -> Type) : Type :=
 
 Definition interp_match {E F R}
            (f : eff_hom E F) (hom : itree E R -> itree F R)
-           (t : itree E R) :=
-  match t.(observe) with
+           (ot : itreeF E R _) :=
+  match ot with
   | RetF r => Ret r
   | VisF e k => ITree.bind (f _ e) (fun x => Tau (hom (k x)))
   | TauF t' => Tau (hom t')
@@ -33,11 +33,10 @@ Definition interp_match {E F R}
  *)
 (* N.B.: the guardedness of this definition relies on implementation
    details of [bind]. *)
-Definition interp {E F : Type -> Type}
-           (f : eff_hom E F) (R : Type)
+Definition interp {E F : Type -> Type} {R : Type}
+           (f : eff_hom E F)
 : itree E R -> itree F R :=
-  cofix hom_f t := interp_match f hom_f t.
-Arguments interp {E F} _ [R] _.
+  cofix hom_f t := interp_match f hom_f (observe t).
 
 (*
 Lemma match_interp {E F R} {f : eff_hom E F} (t : itree E R) :
