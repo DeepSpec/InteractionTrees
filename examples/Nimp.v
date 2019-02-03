@@ -103,7 +103,7 @@ End Labeled.
 
 From Paco Require Import paco.
 From ITree Require Import
-     paco2_respectful.
+     paco2_upto.
 
 Module Tree.
 
@@ -140,7 +140,7 @@ Definition one_loop_tree : itree nd unit :=
       Ret tt
     else
       self)%itree.
-Locate pointwise_relation.
+
 Import Coq.Classes.Morphisms.
 
 (* SAZ: the [~] notation for eutt wasn't working here. *)
