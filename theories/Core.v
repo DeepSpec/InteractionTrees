@@ -146,51 +146,9 @@ Lemma observe_bind : forall {E T U} c (k : T -> itree E U),
 Proof.
   unfold bind, bind', bind_match. unfold observe.
   intros.
-  (* note(gmm): i wasn't able to find any way to pattern match on this goal. *)
-  change (let z := observe c in
-          observe match z with
-                  | RetF r => k r
-                  | TauF t =>
-                    Tau
-                      ((cofix bind' (t0 : itree E T) : itree E U :=
-                          match observe t0 with
-                          | RetF r => k r
-                          | TauF t1 => Tau (bind' t1)
-                          | @VisF _ _ _ u e h => Vis e (fun x : u => bind' (h x))
-                          end) t)
-                  | @VisF _ _ _ u e h =>
-                    Vis e
-                        (fun x : u =>
-                           (cofix bind' (t : itree E T) : itree E U :=
-                              match observe t with
-                              | RetF r => k r
-                              | TauF t0 => Tau (bind' t0)
-                              | @VisF _ _ _ u0 e0 h0 => Vis e0 (fun x0 : u0 => bind' (h0 x0))
-                              end) (h x))
-                  end =
-          match z with
-          | RetF r => observe (k r)
-          | TauF t =>
-            TauF
-              ((cofix bind' (t0 : itree E T) : itree E U :=
-                  match observe t0 with
-                  | RetF r => k r
-                  | TauF t1 => Tau (bind' t1)
-                  | @VisF _ _ _ u e h => Vis e (fun x : u => bind' (h x))
-                  end) t)
-          | @VisF _ _ _ u e h =>
-            VisF e
-                 (fun x : u =>
-                    (cofix bind' (t : itree E T) : itree E U :=
-                       match observe t with
-                       | RetF r => k r
-                       | TauF t0 => Tau (bind' t0)
-                       | @VisF _ _ _ u0 e0 h0 => Vis e0 (fun x0 : u0 => bind' (h0 x0))
-                       end) (h x))
-          end
-         ).
-  destruct z; try reflexivity.
-Defined.
+  (* [destruct c] doesn't work here, I don't know why. (Coq 8.8) *)
+  symmetry; destruct (observe _); auto.
+Qed.
 
 End ITree.
 
