@@ -183,7 +183,7 @@ Section eq_itree.
   Definition eq_itree' (sim: relation (itree E R)) : relation (itree E R) :=
     fun t1 t2 => eq_itreeF sim (observe t1) (observe t2).
   Hint Unfold eq_itree'.
-
+(*
   Lemma eq_itree'_mono : forall x0 x1 r r'
     (IN: @eq_itree' r x0 x1) (LE: forall x2 x3, (r x2 x3 : Prop) -> r' x2 x3 : Prop), eq_itree' r' x0 x1.
   Proof. pmonauto.
@@ -194,6 +194,6 @@ Section eq_itree.
   Definition peq_itree r := paco2 eq_itreeF r.
 
   Definition eq_itree : relation (itree E R) := peq_itree bot2.
-
+*)
 End eq_itree.
 
