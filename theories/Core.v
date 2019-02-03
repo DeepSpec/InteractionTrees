@@ -17,7 +17,7 @@ Section itree.
 
   Context {E : Type -> Type} {R : Type}.
 
-  Inductive itreeF {itree : Type} :=
+  Variant itreeF {itree : Type} :=
   | RetF (r : R)
   | TauF (t : itree)
   | VisF {u} (e : E u) (k : u -> itree)

@@ -186,7 +186,7 @@ Section eq_itree.
 
   Lemma eq_itree'_mono : forall x0 x1 r r'
     (IN: @eq_itree' r x0 x1) (LE: forall x2 x3, (r x2 x3 : Prop) -> r' x2 x3 : Prop), eq_itree' r' x0 x1.
-  Proof. intuition. 
+  Proof. pmonauto.
 
   Lemma eq_itreeF_mono : monotone2 eq_itreeF.
   Proof. do 2 red. pmonauto. Qed.
