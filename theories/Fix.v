@@ -143,7 +143,7 @@ Module FixImpl <: FixSig.
       Qed.
 
       Lemma homfix_interp_finite : forall {T} (c : itree _ T),
-          finite_taus (observe (homFix c)) <-> finite_taus (observe (interp eval_fixpoint c)).
+          finite_tausF (observe (homFix c)) <-> finite_tausF (observe (interp eval_fixpoint c)).
       Proof.
         split; intros.
         { destruct H as [n [t FIN]]. move n before f. revert_until n.
@@ -163,13 +163,12 @@ Module FixImpl <: FixSig.
             eapply eq_unalltaus in FIN; [|apply homfix_bind].
             destruct FIN as [s' FIN].
             hexploit @finite_taus_bind_fst; eauto. intros [n' [t' TAUS']].
-            hexploit untaus_bind; eauto. intros UTAUS.
-            genobs t' ot'. destruct ot'; swap 1 3.
+            hexploit untaus_bindF; [ eapply TAUS' |]. intros UTAUS.
+            destruct t'; swap 1 3.
             + do 2 eexists. eapply untaus_all; [apply UTAUS|].
               rewrite !bind_unfold. simpobs. simpl. auto.
             + eapply unalltaus_notau in TAUS'. exfalso; eauto.
-            + hexploit untaus_bind.
-              { instantiate (1:= go _). simpl. apply TAUS'. } intros UTAUS'.
+            + hexploit untaus_bindF; [ eapply TAUS' |]. intros UTAUS'.
               hexploit untaus_unalltus_rev; [apply UTAUS' | apply FIN|]. intros UTAUS''.
               rewrite bind_unfold in UTAUS''. simpl in UTAUS''.
               eapply IHm in UTAUS''; try nia.
@@ -192,8 +191,8 @@ Module FixImpl <: FixSig.
             eapply finite_taus_tau; eauto.
             rewrite homfix_bind.
             hexploit @finite_taus_bind_fst; eauto. intros [n' [t' TAUS']].
-            hexploit untaus_bind; eauto. intros UTAUS.
-            genobs t' ot'. destruct ot'; swap 1 3.
+            hexploit untaus_bindF; [ eapply TAUS' |]. intros UTAUS.
+            destruct t'; swap 1 3.
             + do 2 eexists. eapply untaus_all; [apply UTAUS|].
               rewrite !bind_unfold. simpobs. simpl. auto.
             + eapply unalltaus_notau in TAUS'. exfalso; eauto.
@@ -205,7 +204,6 @@ Module FixImpl <: FixSig.
               eapply unalltaus_tau in UTAUS''; try reflexivity.
               eapply IHm in UTAUS''; try nia.
               eapply untaus_finite_taus; eauto.
-              rewrite bind_unfold. simpobs. simpl. eauto.
         }
       Qed.
 
@@ -237,11 +235,11 @@ Module FixImpl <: FixSig.
           rewrite EQV'.
           hexploit @finite_taus_bind_fst; eauto. intros [n3 [t3 TAUS3]].
           hexploit @unalltaus_notau; eauto. intros NOTAU.
-          hexploit untaus_bind; eauto. intros TAUS4.
-          hexploit untaus_bind; try apply TAUS3. intros TAUS5.
+          hexploit untaus_bindF; eauto. intros TAUS4.
+          hexploit untaus_bindF; [ eapply TAUS3 |]. intros TAUS5.
           setoid_rewrite bind_unfold in TAUS4 at 2.
           setoid_rewrite bind_unfold in TAUS5 at 2.
-          genobs t3 ot3; destruct ot3; try contradiction; cycle 1; fold_bind.
+          destruct t3; try contradiction; cycle 1; fold_bind.
           + eapply untaus_all in TAUS4; eauto.
             eapply untaus_all in TAUS5; eauto.
             hexploit @unalltaus_injective; [apply TAUS4 | apply UNT' |]. intros OBS1.
