@@ -11,7 +11,7 @@ From ExtLib.Structures Require Import
      Functor.
 
 From ITree Require Import
-     Core.
+     Core OpenSum.
 
 Open Scope itree_scope.
 
@@ -202,3 +202,39 @@ Section eff_hom_e.
     | TauF tr => Tau (interp_e f tr)
     end.
 End eff_hom_e.
+
+Section into.
+  Context {E F : Type -> Type}.
+
+  Definition into (h : eff_hom E F) : eff_hom (E +' F) F :=
+    fun _ e =>
+      match e with
+      | inlE e => h _ e
+      | inrE e => ITree.liftE e
+      end.
+
+  Definition into_state {s} (h : eff_hom_s s E F) : eff_hom_s s (E +' F) F :=
+    fun _ e s =>
+      match e with
+      | inlE e => h _ e s
+      | inrE e => Vis e (fun x => Ret (s, x))
+      end.
+
+  Definition into_reader {s} (h : eff_hom_r s E F) : eff_hom_r s (E +' F) F :=
+    fun _ e s =>
+      match e with
+      | inlE e => h _ e s
+      | inrE e => ITree.liftE e
+      end.
+
+  Definition into_writer {s} `{Monoid_s : Monoid s} (h : eff_hom_w s E F)
+  : eff_hom_w s (E +' F) F :=
+    fun _ e =>
+      match e with
+      | inlE e => h _ e
+      | inrE e => Vis e (fun x => Ret (monoid_unit Monoid_s, x))
+      end.
+
+  (* todo(gmm): is the a corresponding definition for `eff_hom_p`? *)
+
+End into.
