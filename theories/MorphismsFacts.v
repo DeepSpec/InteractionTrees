@@ -7,7 +7,7 @@ From Coq Require Import
 From Paco Require Import paco.
 
 From ITree Require Import
-     paco2_upto Core Morphisms Eq.Eq Eq.UpToTaus.
+     paco2_upto Core OpenSum Morphisms Eq.Eq Eq.UpToTaus.
 
 (* Proof of
    [interp f (t >>= k) ~ (interp f t >>= fun r => interp f (k r))]
@@ -42,6 +42,25 @@ Proof. eauto. Qed.
 Lemma unfold_interp {E F R} {f : eff_hom E F} (t : itree E R) :
   interp f t ≅ interp_u f (observe t).
 Proof. rewrite itree_eta, interp_unfold, <-itree_eta. reflexivity. Qed.
+
+(* Unfolding of [interp1]. *)
+Definition interp1_u {E F R} (h : eff_hom E F) :
+  itreeF (E +' F) R _ -> itree F R :=
+  handleF (interp1 h)
+          (fun _ ef k =>
+             match ef with
+             | inlE e => Tau (ITree.bind (h _ e)
+                                         (fun x => interp1 h (k x)))
+             | inrE f => Vis f (fun x => interp1 h (k x))
+             end).
+
+Lemma interp1_unfold {E F R} {f : eff_hom E F} (t : itree (E +' F) R) :
+  observe (interp1 f t) = observe (interp1_u f (observe t)).
+Proof. eauto. Qed.
+
+Lemma unfold_interp1 {E F R} {f : eff_hom E F} (t : itree (E +' F) R) :
+  interp1 f t ≅ interp1_u f (observe t).
+Proof. rewrite itree_eta, interp1_unfold, <-itree_eta. reflexivity. Qed.
 
 Lemma ret_interp {E F R} {f : eff_hom E F} (x: R):
   interp f (Ret x) ≅ Ret x.

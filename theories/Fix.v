@@ -53,38 +53,34 @@ Module FixImpl <: FixSig.
 
     Section mfix.
       (* this is the body of the fixpoint. *)
-      Variable f : forall x : dom, itree (sum1 E fixpoint) (codom x).
+      Variable f : forall x : dom, itree (sum1 fixpoint E) (codom x).
 
-      Definition homFix_match {T} (homFix: itree (sum1 E fixpoint) T -> itree E T) oc : itree E T :=
+      Definition homFix_match {T} (homFix: itree (sum1 fixpoint E) T -> itree E T) oc : itree E T :=
         match oc with
         | RetF x => Ret x
         | @VisF _ _ _ u ee k =>
           match ee with
-          | inlE e' =>
-            Vis e' (fun x => homFix (k x))
-          | inrE e =>
+          | inlE e =>
             match e in fixpoint u return (u -> _) -> _ with
             | call x => fun k =>
               Tau (homFix (ITree.bind (f x) k))
             end k
+          | inrE e' =>
+            Vis e' (fun x => homFix (k x))
           end
         | TauF x => Tau (homFix x)
         end.
 
       Local CoFixpoint homFix {T : Type}
-            (c : itree (sum1 E fixpoint) T)
+            (c : itree (sum1 fixpoint E) T)
       : itree E T :=
         homFix_match homFix (observe c).
 
       Definition _mfix x := homFix (f x).
 
-      Definition eval_fixpoint T (X : sum1 E fixpoint T) : itree E T :=
-        match X with
-        | inlE e => ITree.liftE e
-        | inrE f0 =>
-          match f0 with
-          | call x => _mfix x
-          end
+      Definition eval_fixpoint T (e_fix : fixpoint T) : itree E T :=
+        match e_fix with
+        | call x => _mfix x
         end.
 
       Lemma homfix_unfold {T} (t: itree _ T) :
@@ -104,11 +100,11 @@ Module FixImpl <: FixSig.
       Proof. rewrite unfold_homfix. reflexivity. Qed.
 
       Lemma vis_homfix_left {T U} (e: _ U) (k: U -> itree _ T) :
-        homFix (Vis (inlE e) k) ≅ Vis e (fun x => homFix (k x)).
+        homFix (Vis (inrE e) k) ≅ Vis e (fun x => homFix (k x)).
       Proof. rewrite unfold_homfix. reflexivity. Qed.
 
       Lemma vis_homfix_right {T} x (k: _ -> itree _ T) :
-        homFix (Vis (inrE (call x)) k) ≅ Tau (homFix (ITree.bind (f x) k)).
+        homFix (Vis (inlE (call x)) k) ≅ Tau (homFix (ITree.bind (f x) k)).
       Proof. rewrite unfold_homfix. reflexivity. Qed.
 
       Instance eq_itree_homfix {T} :
@@ -119,12 +115,12 @@ Module FixImpl <: FixSig.
         pcofix CIH. intros.
         rewrite (itree_eta (homFix x)), (itree_eta (homFix y)). pupto2_final.
         rewrite !homfix_unfold.
-        punfold H0. inv H0; pclearbot; [| |destruct e; [|destruct f0]].
+        punfold H0. inv H0; pclearbot; [| |destruct e; [destruct f0|]].
         - eapply eq_itree_refl.
         - pfold. econstructor. eauto.
-        - pfold. econstructor. eauto 7.
         - pfold. econstructor. apply pointwise_relation_fold in REL.
           right. eapply CIH. rewrite REL. reflexivity.
+        - pfold. econstructor. eauto 7.
       Qed.
 
       Theorem homfix_bind {U T}: forall t k,
@@ -132,13 +128,13 @@ Module FixImpl <: FixSig.
       Proof.
         intros. pupto2_init. revert t k.
         pcofix CIH. intros.
-        rewrite (itree_eta t). destruct (observe t); [| |destruct e; [|destruct f0]].
+        rewrite (itree_eta t). destruct (observe t); [| |destruct e; [destruct f0|]].
         - rewrite ret_bind, !ret_homfix, ret_bind. pupto2_final. apply eq_itree_refl.
         - rewrite tau_bind, !tau_homfix, tau_bind. pupto2_final.
           pfold. econstructor. eauto.
-        - rewrite vis_bind, !vis_homfix_left, vis_bind. pupto2_final.
-          pfold. econstructor. eauto.
         - rewrite vis_bind, !vis_homfix_right, tau_bind, <-bind_bind. pupto2_final.
+          pfold. econstructor. eauto.
+        - rewrite vis_bind, !vis_homfix_left, vis_bind. pupto2_final.
           pfold. econstructor. eauto.
       Qed.
 
@@ -146,12 +142,12 @@ Module FixImpl <: FixSig.
       | homFix_main (d1 d2 : _ U)
                     (Ed : eq_itree d1 d2)
                     (Ec1 : eq_itree c1 (homFix d1))
-                    (Ec2 : eq_itree c2 (interp eval_fixpoint d2)) :
+                    (Ec2 : eq_itree c2 (interp1 eval_fixpoint d2)) :
           homFix_invariant c1 c2
-      | homFix_interp T (d : _ T) k1 k2
+      | homFix_interp1 T (d : _ T) k1 k2
           (Ek : forall x, eq_itree (k1 x) (k2 x))
           (Ec1 : eq_itree c1 (homFix (d >>= k1)))
-          (Ec2 : eq_itree c2 (homFix d >>= fun x => interp eval_fixpoint (k2 x))) :
+          (Ec2 : eq_itree c2 (homFix d >>= fun x => interp1 eval_fixpoint (k2 x))) :
           homFix_invariant c1 c2
       .
 
@@ -161,11 +157,11 @@ Module FixImpl <: FixSig.
             (Ec : eq_itree c1 c2) :
         paco2 (compose eq_itreeF (gres2 eq_itreeF)) r
               (homFix c1)
-              (interp eval_fixpoint c2).
+              (interp1 eval_fixpoint c2).
       Proof.
         pupto2 (eq_itree_clo_trans E U); econstructor.
         eapply unfold_homfix.
-        eapply unfold_interp.
+        eapply unfold_interp1.
         punfold Ec.
         inversion Ec; cbn.
         + pupto2_final. eapply eq_itree_refl. (* This should be reflexivity. *)
@@ -173,27 +169,24 @@ Module FixImpl <: FixSig.
           pfold; constructor. pupto2_final. right; apply INV.
           eapply homFix_main; [ eapply H1 | |]; reflexivity.
         + destruct e. cbn. unfold ITree.liftE.
+          { destruct f0.
+            pupto2_final; pfold; constructor; cbn; right. unfold _mfix.
+            apply INV. eapply homFix_interp1.
+            - reflexivity.
+            - cbn. reflexivity.
+            - cbn. (* Proper lemmas needed *) admit.
+          }
           { pupto2 (eq_itree_clo_trans E U); econstructor.
             * reflexivity.
-            * rewrite vis_bind.
-              assert (TODO : forall t : _ E U, eq_itree (Tau t) t).
-              { admit. }
-              apply TODO; clear TODO.
+            * reflexivity.
             * pfold; constructor; intros x.
               destruct (REL x) as [ | []].
               pupto2 (eq_itree_clo_trans E U); econstructor.
               { reflexivity. }
-              { apply ret_bind. }
+              { reflexivity. }
               pupto2_final. right.
               apply INV.
               eapply homFix_main; [ eassumption | | ]; reflexivity.
-          }
-          { destruct f0.
-            pupto2_final; pfold; constructor; cbn; right. unfold _mfix.
-            apply INV. eapply homFix_interp.
-            - reflexivity.
-            - cbn. reflexivity.
-            - cbn. (* Proper lemmas needed *) admit.
           }
       Admitted.
 
@@ -216,17 +209,11 @@ Module FixImpl <: FixSig.
             apply homFix_invariant_init; auto.
           + pupto2_final; pfold; constructor; right.
             apply self.
-            eapply homFix_interp.
+            eapply homFix_interp1.
             * eapply Ek.
             * cbn; unfold ITree.bind; reflexivity.
             * cbn; unfold ITree.bind; reflexivity.
           + destruct e; cbn.
-            * pupto2_final; pfold; constructor; right.
-              apply self.
-              eapply homFix_interp.
-              ++ eapply Ek.
-              ++ cbn; unfold ITree.bind; reflexivity.
-              ++ cbn; unfold ITree.bind; reflexivity.
             * destruct f0; cbn.
               pfold; constructor.
               pupto2 (eq_itree_clo_trans E U). econstructor.
@@ -238,14 +225,20 @@ Module FixImpl <: FixSig.
               ++ reflexivity.
               ++ pupto2_final; right.
                  apply self.
-                 eapply homFix_interp.
+                 eapply homFix_interp1.
                  ** apply Ek.
                  ** cbn; unfold ITree.bind; reflexivity.
                  ** cbn; unfold ITree.bind; reflexivity.
+            * pupto2_final; pfold; constructor; right.
+              apply self.
+              eapply homFix_interp1.
+              ++ eapply Ek.
+              ++ cbn; unfold ITree.bind; reflexivity.
+              ++ cbn; unfold ITree.bind; reflexivity.
       Qed.
 
       Theorem homFix_is_interp : forall {T} (c : itree _ T),
-          eq_itree (homFix c) (interp eval_fixpoint c).
+          eq_itree (homFix c) (interp1 eval_fixpoint c).
       Proof.
         intros.
         apply homfix_interp_itree.
@@ -273,9 +266,9 @@ Module FixImpl <: FixSig.
       Definition mfix
       : forall x : dom, itree E (codom x) :=
         _mfix
-          (body (E +' fixpoint)
+          (body (fixpoint +' E)
                 (fun t => interp (fun _ e => lift e))
-                (fun x0 : dom => ITree.liftE (inrE (call x0)))).
+                (fun x0 : dom => ITree.liftE (inlE (call x0)))).
 
       Theorem mfix_unfold : forall x,
           eutt (mfix x) (body E (fun t => id) mfix x).
