@@ -28,12 +28,19 @@ From ITree Require Import
 
  *)
 
+(* Unfolding of [interp]. *)
+Definition interp_u {E F R} (f : eff_hom E F) :
+  itreeF E R _ -> itree F R :=
+  handleF (interp f)
+          (fun _ e k => Tau (ITree.bind (f _ e)
+                                        (fun x => interp f (k x)))).
+
 Lemma interp_unfold {E F R} {f : eff_hom E F} (t : itree E R) :
-  observe (interp f t) = observe (interp_match f (interp f (R:=R)) (observe t)).
-Proof. cbn. eauto. Qed.
+  observe (interp f t) = observe (interp_u f (observe t)).
+Proof. eauto. Qed.
 
 Lemma unfold_interp {E F R} {f : eff_hom E F} (t : itree E R) :
-  interp f t ≅ interp_match f (interp f (R:=R)) (observe t).
+  interp f t ≅ interp_u f (observe t).
 Proof. rewrite itree_eta, interp_unfold, <-itree_eta. reflexivity. Qed.
 
 Lemma ret_interp {E F R} {f : eff_hom E F} (x: R):
