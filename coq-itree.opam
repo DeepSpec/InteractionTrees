@@ -15,7 +15,7 @@ remove: [ "rm" "-rf" "%{lib}%/coq/user-contrib/ITree" ]
 
 depends: [
   "coq-ext-lib"
-  "coq-paco"
+  "coq-paco" {>= "2.0.0" & < "2.1"}
 ]
 
 authors: [
