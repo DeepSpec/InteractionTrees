@@ -11,6 +11,7 @@ theories/MorphismsFacts.v
 theories/OpenSum.v
 
 theories/StdEffects.v
+theories/EnvEffect.v
 
 theories/Fix.v
 theories/UpTo.v

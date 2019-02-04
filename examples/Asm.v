@@ -178,7 +178,3 @@ Definition run (p:program) : itree emptyE _ :=
 
 (* SAZ: Note: we should be able to prove that run produces trees that are equivalent
    to run' where run' interprets memory and locals in a different order *)
-
-
-
-
