@@ -24,7 +24,7 @@ Definition interp_match {E F R}
            (ot : itreeF E R _) :=
   match ot with
   | RetF r => Ret r
-  | VisF e k => ITree.bind (f _ e) (fun x => Tau (hom (k x)))
+  | VisF e k => Tau (ITree.bind (f _ e) (fun x => hom (k x)))
   | TauF t' => Tau (hom t')
   end.
 
