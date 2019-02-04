@@ -214,14 +214,12 @@ Section EX2.
     destruct H0 as [a0 [H1 H2]].
     simpl in H1.
     inversion H2.
-    pinversion H0.
-    destruct H3 as [a1 [[H31 H32] H4]].
+    pinversion H2.
+    destruct H0 as [a1 [[H31 H32] H4]].
     inversion H4.
-    pinversion H3.
+    pinversion H4.
     simpl in H3. subst.
     reflexivity.
-    inversion H3.
-    inversion H0.
   Qed.
 
 End EX2.
