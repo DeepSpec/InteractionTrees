@@ -14,6 +14,7 @@ install: [ make "install" ]
 remove: [ "rm" "-rf" "%{lib}%/coq/user-contrib/ITree" ]
 
 depends: [
+  "coq" {>= "8.8" & < "8.10~"}
   "coq-ext-lib"
   "coq-paco" {>= "2.0.0" & < "2.1"}
 ]
