@@ -80,19 +80,19 @@ Qed.
    [t] steps to [t'] by "peeling off" a finite number of [Tau].
    "Peel off" means to remove only taus at the root of the tree,
    not any behind a [Vis] step). *)
-(* TODO: remove the bool and nat,
-   [unalltausF n t1 t2 = untausF n t1 t2 /\ notauF t2] *)
-Inductive untausF (all: bool) : nat -> relation (itreeF E R _) :=
-| NoTau ot0 (PROP: if all then notauF ot0 else True) : untausF all 0 ot0 ot0
-| OneTau n ot t' ot0 (OBS: TauF t' = ot) (TAUS: untausF all n (observe t') ot0): untausF all (S n) ot ot0
+Inductive untausF : relation (itreeF E R _) :=
+| NoTau ot0 : untausF ot0 ot0
+| OneTau ot t' ot0 (OBS: TauF t' = ot) (TAUS: untausF (observe t') ot0): untausF ot ot0
 .
 Hint Constructors untausF.
 
-Notation unalltausF := (untausF true).
+Definition unalltausF ot ot0 := untausF ot ot0 /\ notauF ot0.
+Hint Unfold unalltausF.
+
 
 (* [finite_taus t] holds when [t] has a finite number of taus
    to peel. *)
-Definition finite_tausF ot : Prop := exists n ot', unalltausF n ot ot'.
+Definition finite_tausF ot : Prop := exists ot', unalltausF ot ot'.
 Hint Unfold finite_tausF.
 
 (* [eutt_ eutt t1 t2] means that, if [t1] or [t2] ever takes a
@@ -105,9 +105,9 @@ Hint Unfold finite_tausF.
    This is the relation we will take a fixpoint of. *)
 Inductive euttF (eutt : relation (itree E R)) (ot1 ot2: itreeF E R (itree E R)) : Prop :=
 | euttF_ (FIN: finite_tausF ot1 <-> finite_tausF ot2)
-         (EQV: forall n m ot1' ot2'
-                  (UNTAUS1: unalltausF n ot1 ot1')
-                  (UNTAUS2: unalltausF m ot2 ot2'),
+         (EQV: forall ot1' ot2'
+                  (UNTAUS1: unalltausF ot1 ot1')
+                  (UNTAUS2: unalltausF ot2 ot2'),
                eq_notauF eutt ot1' ot2')
 .
 Hint Constructors euttF.
@@ -146,11 +146,11 @@ Infix "~~" := eutt (at level 70) : itree_scope.
 (* Many have a name [X_Y] to represent an implication
    [X _ -> Y _] (possibly with more arguments on either side). *)
 
-Lemma untaus_all  n ot ot' :
-  untausF false n ot ot' -> notauF ot' -> unalltausF n ot ot'.
+Lemma untaus_all ot ot' :
+  untausF ot ot' -> notauF ot' -> unalltausF ot ot'.
 Proof. induction 1; eauto. Qed.
 
-Lemma unalltaus_notau n ot ot' : unalltausF n ot ot' -> notauF ot'.
+Lemma unalltaus_notau ot ot' : unalltausF ot ot' -> notauF ot'.
 Proof. intros. induction H; eauto. Qed.
 
 Lemma notau_tau I (ot : itreeF E R I) (t0 : I)
@@ -170,33 +170,100 @@ Hint Resolve notau_vis.
 (* If [t] does not start with [Tau], removing all [Tau] does
    nothing. Can be thought of as [notau_unalltaus] composed with
    [unalltaus_injective] (below). *)
-Lemma unalltaus_notau_id n ot ot' :
-  unalltausF n ot ot' -> notauF ot -> ot = ot'.
+Lemma unalltaus_notau_id ot ot' :
+  unalltausF ot ot' -> notauF ot -> ot = ot'.
 Proof.
-  intros. destruct H; eauto. exfalso; eauto.
+  intros [[ | ]] ?; eauto. exfalso; eauto.
 Qed.
 
 (* There is only one way to peel off all taus. *)
-Lemma unalltaus_injective : forall n m ot ot1 ot2,
-    unalltausF n ot ot1 -> unalltausF m ot ot2 -> ot1 = ot2.
+Lemma unalltaus_injective ot ot1 ot2 :
+    unalltausF ot ot1 -> unalltausF ot ot2 -> ot1 = ot2.
 Proof.
-  intros. revert m ot2 H0.
-  induction H; intros; eauto using unalltaus_notau_id.
-  inv H0.
-  - exfalso. eauto.
-  - inv OBS0. eauto.
+  intros [Huntaus Hnotau]. revert ot2 Hnotau.
+  induction Huntaus; intros; eauto using unalltaus_notau_id.
+  eapply IHHuntaus; eauto.
+  destruct H as [Huntaus' Hnotau'].
+  destruct Huntaus'.
+  + exfalso; eauto.
+  + subst. inversion OBS0; subst; eauto.
 Qed.
 
 (* Adding a [Tau] to [t1] then peeling them all off produces
    the same result as peeling them all off from [t1]. *)
-Lemma unalltaus_tau n t ot1 ot2
+Lemma unalltaus_tau t ot1 ot2
     (OBS: TauF t = ot1)
-    (TAUS: unalltausF n ot1 ot2):
-  unalltausF (pred n) (observe t) ot2.
+    (TAUS: unalltausF ot1 ot2):
+  unalltausF (observe t) ot2.
 Proof.
-  inv TAUS.
+  destruct TAUS as [Huntaus Hnotau].
+  destruct Huntaus.
   - exfalso; eauto.
-  - inv OBS0. eauto.
+  - subst; inversion OBS0; subst; eauto.
+Qed.
+
+Lemma notauF_untausF ot1 ot2
+      (NOTAU : notauF ot1)
+      (UNTAUS : untausF ot1 ot2) : ot1 = ot2.
+Proof.
+  destruct UNTAUS; eauto.
+  exfalso; eauto.
+Qed.
+
+Definition untausF_shift (t1 t2 : itree E R) :
+  untausF (TauF t1) (TauF t2) -> untausF (observe t1) (observe t2).
+Proof.
+  intros H.
+  inversion H; subst.
+  { constructor. }
+  clear H.
+  inversion OBS; subst; clear OBS.
+  remember (observe t1) as ot1.
+  remember (TauF t2) as tt2.
+  generalize dependent t1.
+  generalize dependent t2.
+  induction TAUS; intros; subst; econstructor; eauto.
+Qed.
+
+Definition untausF_trans (t1 t2 t3 : itreeF E R _) :
+  untausF t1 t2 -> untausF t2 t3 -> untausF t1 t3.
+Proof.
+  induction 1; auto.
+  subst; econstructor; auto.
+Qed.
+
+Definition untausF_strong_ind
+           (P : itreeF E R _ -> Prop)
+           (ot1 ot2 : itreeF E R _)
+           (Huntaus : untausF ot1 ot2)
+           (Hnotau : notauF ot2)
+           (BASE : P ot2)
+           (STEP : forall t1',
+               (forall oti,
+                   untausF (observe t1') oti ->
+                   untausF oti ot2 ->
+                   P oti) ->
+               untausF ot1 (TauF t1') ->
+               untausF (observe t1') ot2 ->
+               P (TauF t1')) : P ot1.
+Proof.
+  enough (H : forall oti,
+             untausF ot1 oti ->
+             untausF oti ot2 ->
+             P oti
+         ).
+  { apply H; eauto. }
+  revert BASE STEP.
+  induction Huntaus; auto.
+  - intros. erewrite <- notauF_untausF; eauto.
+  - intros; subst.
+    destruct H0; auto.
+    subst. apply STEP; eauto.
+    intros. eapply IHHuntaus; eauto 10.
+    inversion H; subst; eauto.
+    inversion OBS; subst; eauto.
+    apply untausF_shift in H.
+    eapply untausF_trans; eauto.
 Qed.
 
 (* If [t] does not start with [Tau], then it starts with finitely
@@ -217,16 +284,16 @@ Lemma finite_taus_tau ot t'
       (OBS: TauF t' = ot):
   finite_tausF ot <-> finite_tausF (observe t').
 Proof.
-  split; intros [? [? H]]; eauto.
-  destruct H as [| ? ? ? ? OBS0]; subst.
+  split; intros [? [Huntaus Hnotau]]; eauto 10.
+  destruct Huntaus as [| ? ? ? OBS0]; subst.
   - contradiction.
   - inversion OBS0; subst; eauto.
 Qed.
 
 (* (* [finite_taus] is preserved by removing or adding any finite *)
 (*    number of [Tau]. *) *)
-Lemma untaus_finite_taus P n ot ot':
-    untausF P n ot ot' -> (finite_tausF ot <-> finite_tausF ot').
+Lemma untaus_finite_taus ot ot':
+    untausF ot ot' -> (finite_tausF ot <-> finite_tausF ot').
 Proof.
   induction 1; intros; subst.
   - reflexivity.
@@ -235,49 +302,45 @@ Qed.
 
 (**)
 
-Lemma eq_unalltaus :
-  forall n (t1 t2 : itree E R) ot1'
-    (FT: unalltausF n (observe t1) ot1')
-    (EQV: t1 ≅ t2),
-  exists ot2', unalltausF n (observe t2) ot2'.
+Lemma eq_unalltaus (t1 t2 : itree E R) ot1'
+    (FT: unalltausF (observe t1) ot1')
+    (EQV: t1 ≅ t2) :
+  exists ot2', unalltausF (observe t2) ot2'.
 Proof.
-  intros. genobs t1 ot1. revert t1 Heqot1 t2 EQV.
-  induction FT; intros; punfold EQV; unfold_eq_itree; subst.
-  - eexists. econstructor. inv EQV; simpl; eauto.
+  genobs t1 ot1. revert t1 Heqot1 t2 EQV.
+  destruct FT as [Huntaus Hnotau].
+  induction Huntaus; intros; punfold EQV; unfold_eq_itree; subst.
+  - eexists. constructor; eauto. inv EQV; simpl; eauto.
   - inv EQV; simpobs; try inv Heqot1.
-    pclearbot. edestruct IHFT; eauto.
+    pclearbot. edestruct IHHuntaus as [? []]; eauto.
 Qed.
 
-
-Lemma eq_unalltaus_eqF :
-  forall n (t s : itree E R) ot'
-    (UNTAUS : unalltausF n (observe t) ot')
-    (EQV: t ≅ s),
-  exists os', unalltausF n (observe s) os' /\ eq_itreeF' eq_itree ot' os'.
+Lemma eq_unalltaus_eqF (t s : itree E R) ot'
+    (UNTAUS : unalltausF (observe t) ot')
+    (EQV: t ≅ s) :
+  exists os', unalltausF (observe s) os' /\ eq_itreeF' eq_itree ot' os'.
 Proof.
-  intros. remember (observe t) as ot. revert s t Heqot EQV.
-  induction UNTAUS; intros; punfold EQV; unfold_eq_itree.
-  - eexists (observe s). split; eauto.
-    constructor. inv EQV; simpobs; eauto.
+  destruct UNTAUS as [Huntaus Hnotau].
+  remember (observe t) as ot. revert s t Heqot EQV.
+  induction Huntaus; intros; punfold EQV; unfold_eq_itree.
+  - eexists (observe s). split.
+    inv EQV; simpobs; eauto.
     subst; eauto.
     eapply eq_itreeF'_mono; eauto.
     intros ? ? [| []]; eauto.
   - inv EQV; rewrite <- H0 in Heqot; inversion Heqot; subst.
     destruct REL as [| []].
-    edestruct IHUNTAUS as [? []]; eauto.
+    edestruct IHHuntaus as [? [[]]]; eauto 10.
 Qed.
 
-Lemma eq_unalltaus_eq :
-  forall n (t s : itree E R) t'
-    (UNTAUS : unalltausF n (observe t) (observe t'))
-    (EQV: t ≅ s),
-  exists s', unalltausF n (observe s) (observe s') /\ t' ≅ s'.
+Lemma eq_unalltaus_eq (t s : itree E R) t'
+    (UNTAUS : unalltausF (observe t) (observe t'))
+    (EQV: t ≅ s) :
+  exists s', unalltausF (observe s) (observe s') /\ t' ≅ s'.
 Proof.
-  intros. genobs t ot; genobs t' ot'. revert t Heqot t' Heqot' s EQV.
-  induction UNTAUS; intros; punfold EQV; unfold_eq_itree.
-  - eexists. inv EQV; simpobs; split; eauto; pfold; red; simpobs; eauto.
-  - inv EQV; simpobs; inv Heqot.
-    pclearbot. edestruct IHUNTAUS as [s' [? ?]]; eauto.
+  eapply eq_unalltaus_eqF in UNTAUS; try eassumption.
+  destruct UNTAUS as [os' []]. eexists (go os'); split; eauto.
+  pfold. eapply eq_itreeF'_mono; eauto.
 Qed.
 
 (* Reflexivity of [eutt_0], modulo a few assumptions. *)
@@ -320,7 +383,7 @@ Proof.
   split.
   - reflexivity.
   - intros.
-    erewrite (unalltaus_injective _ _ _ _ _ UNTAUS1 UNTAUS2).
+    erewrite (unalltaus_injective _ _ _ UNTAUS1 UNTAUS2).
     apply reflexive_euttF0; eauto using unalltaus_notau.
 Qed.
 
@@ -362,7 +425,7 @@ Proof.
   destruct H23 as [I23 H23].
   split.
   - etransitivity; eauto.
-  - intros n m t1' t3' H1 H3.
+  - intros t1' t3' H1 H3.
     destruct I12 as [I1 I2].
     destruct I1 as [n2' [t2' TAUS2]]; eauto.
     hexploit H12; eauto. intros REL1.
@@ -379,9 +442,9 @@ Lemma tauF_eutt (t t': itree E R) (OBS: TauF t' = observe t): t ~~ t'.
 Proof.
   pfold. split.
   - apply finite_taus_tau; auto.
-  - intros n m t1' t2' H1 H2.
+  - intros t1' t2' H1 H2.
     eapply unalltaus_tau in H1; eauto.
-    assert (X := unalltaus_injective _ _ _ _ _ H1 H2).
+    assert (X := unalltaus_injective _ _ _ H1 H2).
     subst; apply reflexive_euttF0; eauto using unalltaus_notau.
     left. apply Reflexive_eutt.
 Qed.
@@ -392,13 +455,13 @@ Proof.
 Qed.
 
 (* [eutt] is preserved by removing all [Tau]. *)
-Lemma untaus_eutt P n (t t' : itree E R) : untausF P n (observe t) (observe t') -> t ~~ t'.
+Lemma untaus_eutt (t t' : itree E R) : untausF (observe t) (observe t') -> t ~~ t'.
 Proof.
   intros H.
   pfold. split.
   - eapply untaus_finite_taus; eauto.
   - induction H; intros.
-    + rewrite (unalltaus_injective _ _ _ _ _ UNTAUS1 UNTAUS2).
+    + rewrite (unalltaus_injective _ _ _ UNTAUS1 UNTAUS2).
       apply reflexive_euttF0; eauto using unalltaus_notau.
       left; apply Reflexive_eutt.
     + eapply unalltaus_tau in UNTAUS1; eauto.
@@ -406,11 +469,10 @@ Qed.
 
 End EUTT.
 
-Notation unalltausF := (untausF true).
-
 Hint Constructors eq_notauF.
 Hint Constructors eq_notauF'.
 Hint Constructors untausF.
+Hint Unfold unalltausF.
 Hint Unfold finite_tausF.
 Hint Constructors euttF.
 Hint Resolve monotone_euttF : paco.
@@ -471,8 +533,12 @@ Instance eutt_VisF {E R u} (e: E u) :
 Proof.
   repeat intro. red in H. pfold. econstructor.
   - repeat econstructor.
-  - intros. dependent destruction UNTAUS1. dependent destruction UNTAUS2. simpobs.
-    econstructor. intros. left. apply H.
+  - intros.
+    destruct UNTAUS1 as [UNTAUS1 Hnotau1].
+    destruct UNTAUS2 as [UNTAUS2 Hnotau2].
+    dependent destruction UNTAUS1.
+    dependent destruction UNTAUS2. simpobs.
+    econstructor; intros; left; apply H.
 Qed.
 
 Instance eq_itree_notauF {E R} :
@@ -491,9 +557,9 @@ Qed.
 
 (* Lemmas about [bind]. *)
 
-Lemma untaus_bind P {E S R} : forall n t t' (k: S -> itree E R)
-      (UNTAUS: untausF P n (observe t) (observe t')),
-  untausF false n (observe (ITree.bind t k)) (observe (ITree.bind t' k)).
+Lemma untaus_bind {E S R} : forall t t' (k: S -> itree E R)
+      (UNTAUS: untausF (observe t) (observe t')),
+  untausF (observe (ITree.bind t k)) (observe (ITree.bind t' k)).
 Proof.
   intros. genobs t ot; genobs t' ot'. revert t Heqot t' Heqot'.
   induction UNTAUS; intros; subst.
@@ -501,9 +567,9 @@ Proof.
   - rewrite bind_unfold. simpobs. cbn. eauto.
 Qed.
 
-Lemma untaus_bindF P {E S R} : forall n t t' (k: S -> itree E R)
-      (UNTAUS: untausF P n (observe t) t'),
-  untausF false n (observe (ITree.bind t k)) (observe (ITree.bind (go t') k)).
+Lemma untaus_bindF {E S R} : forall t t' (k: S -> itree E R)
+      (UNTAUS: untausF (observe t) t'),
+  untausF (observe (ITree.bind t k)) (observe (ITree.bind (go t') k)).
 Proof.
   intros; eapply untaus_bind; eauto.
 Qed.
@@ -512,7 +578,7 @@ Lemma finite_taus_bind_fst {E R S}
       (t : itree E R) (f : R -> itree E S) :
   finite_tausF (observe (ITree.bind t f)) -> finite_tausF (observe t).
 Proof.
-  intros [n [tf' TAUS]].
+  intros [tf' [TAUS PROP]].
   genobs (ITree.bind t f) obtf. move TAUS at top. revert_until TAUS.
   induction TAUS; intros; subst.
   - rewrite bind_unfold in PROP.
@@ -522,44 +588,43 @@ Proof.
     eapply finite_taus_tau; eauto.
 Qed.
 
-Lemma untaus_eq_idx P E R: forall n m (ot1 ot2: itreeF E R _),
-    n = m -> untausF P n ot1 ot2 -> untausF P m ot1 ot2.
+Lemma untaus_eq_idx E R: forall (ot1 ot2: itreeF E R _),
+    untausF ot1 ot2 -> untausF ot1 ot2.
 Proof. intros; subst; eauto. Qed.
 
-Lemma untaus_untaus P Q E R: forall n m (ot1 ot2 ot3: itreeF E R _),
-    untausF P n ot1 ot2 -> untausF Q m ot2 ot3 -> untausF Q (n+m) ot1 ot3.
+Lemma untaus_untaus E R: forall (ot1 ot2 ot3: itreeF E R _),
+    untausF ot1 ot2 -> untausF ot2 ot3 -> untausF ot1 ot3.
 Proof.
-  intros n m t1 t2 t3. induction 1; simpl; eauto.
+  intros t1 t2 t3. induction 1; simpl; eauto.
 Qed.
 
-Lemma untaus_unalltus_rev all E R: forall n m (ot1 ot2 ot3: itreeF E R _),
-    untausF all n ot1 ot2 -> unalltausF m ot1 ot3 -> unalltausF (m-n) ot2 ot3.
+Lemma untaus_unalltus_rev E R (ot1 ot2 ot3: itreeF E R _) :
+    untausF ot1 ot2 -> unalltausF ot1 ot3 -> unalltausF ot2 ot3.
 Proof.
-  intros. revert m ot3 H0.
+  intros H. revert ot3.
   induction H; intros.
   - eauto using untaus_eq_idx with arith.
-  - inversion H0; subst.
-    + exfalso. eauto.
-    + inv OBS0. eauto.
+  - destruct H0 as [Huntaus Hnotau].
+    destruct Huntaus.
+    + exfalso; eauto.
+    + inv OBS0. inversion H0; subst; eauto.
 Qed.
 
 Lemma eutt_strengthen {E R}:
   forall r (t1 t2: itree E R)
      (FIN: finite_tausF (observe t1) <-> finite_tausF (observe t2))
-     (EQV: forall n1 n2 m1 m2 t1' t2'
-              (UNT1: unalltausF m1 (observe t1) (observe t1'))
-              (UNT2: unalltausF m2 (observe t2) (observe t2'))
-              (LEn: m1 < n1)
-              (LEm: m2 < n2),
+     (EQV: forall t1' t2'
+              (UNT1: unalltausF (observe t1) (observe t1'))
+              (UNT2: unalltausF (observe t2) (observe t2')),
          paco2 (eutt_ ∘ gres2 eutt_) r t1' t2'),
     paco2 (eutt_ ∘ gres2 eutt_) r t1 t2.
 Proof.
   intros. pfold. econstructor; eauto.
   intros.
-  hexploit (EQV (S (max n m)) (S m) n m (go ot1') (go ot2')); eauto.
-  auto with arith.
+  hexploit (EQV (go ot1') (go ot2')); eauto.
   intros EQV'. punfold EQV'. destruct EQV'.
-  eauto 7 using unalltaus_notau.
+  eapply EQV0;
+    repeat constructor; eauto. eapply UNTAUS1. eapply UNTAUS2.
 Qed.
 
 Inductive eutt_trans_clo {E R} (r: relation (itree E R)) : relation (itree E R) :=
@@ -603,12 +668,13 @@ Proof.
   - split; intros.
     + assert (FT1 := H). apply finite_taus_bind_fst in FT1.
       assert (FT2 := FT1). apply FIN in FT2.
-      destruct FT1 as [n [a FT1]], FT2 as [m [b FT2]].
+      destruct FT1 as [a FT1], FT2 as [b FT2].
       hexploit EQV; eauto. intros EQV'.
-      edestruct @untaus_finite_taus; [eapply untaus_bind | apply H0 in H].
-      { replace a with (observe (go a)) in FT1; eauto. }
+      edestruct @untaus_finite_taus; [eapply untaus_bindF | apply H0 in H].
+      eapply FT1.
       remember (observe t2) as ot2.
       revert a t1 t2 FIN EQV Heqot2 FT1 EQV' H H0 H1 .
+      destruct FT2 as [FT2 Hnotau2].
       induction FT2; intros.
       * subst.
         unfold observe, _observe; cbn.
@@ -622,14 +688,19 @@ Proof.
         eapply finite_taus_tau; eauto.
         eapply IHFT2; eauto.
         rewrite FIN. eapply finite_taus_tau; eauto.
+        { intros; eapply EQV; eauto.
+          repeat constructor. econstructor. reflexivity.
+          eapply UNTAUS2.
+          eapply UNTAUS2. }
     + assert (FT1 := H). apply finite_taus_bind_fst in FT1.
       assert (FT2 := FT1). apply FIN in FT2.
-      destruct FT1 as [n [a FT1]], FT2 as [m [b FT2]].
+      destruct FT1 as [a FT1], FT2 as [b FT2].
       hexploit EQV; eauto. intros EQV'.
       edestruct @untaus_finite_taus;
         [eapply untaus_bindF, FT1 | apply H0 in H].
       remember (observe t1) as ot1.
       revert a t1 t2 FIN EQV Heqot1 FT1 EQV' H H0 H1.
+      destruct FT2 as [FT2 Hnotau].
       induction FT2; intros.
       * subst.
         unfold observe, _observe; cbn.
@@ -643,21 +714,27 @@ Proof.
         eapply finite_taus_tau; eauto.
         eapply IHFT2; eauto.
         rewrite <- FIN. symmetry; eapply finite_taus_tau; eauto.
+        { intros; eapply EQV; eauto.
+          repeat constructor. econstructor. reflexivity.
+          eapply UNTAUS1.
+          eapply UNTAUS1. }
   - intros.
-    hexploit (@finite_taus_bind_fst E); [do 2 eexists; apply UNTAUS1|]. intros [n' [a FT1]].
-    hexploit (@finite_taus_bind_fst E); [do 2 eexists; apply UNTAUS2|]. intros [m' [b FT2]].
+    hexploit (@finite_taus_bind_fst E); [do 2 eexists; apply UNTAUS1|]. intros [a FT1].
+    hexploit (@finite_taus_bind_fst E); [do 2 eexists; apply UNTAUS2|]. intros [b FT2].
+    specialize (EQV _ _ FT1 FT2).
+    destruct FT1 as [FT1 Hnotau1]. destruct FT2 as [FT2 Hnotau2].
     hexploit @untaus_bindF; [ eapply FT1 | ]. intros UT1.
     hexploit @untaus_bindF; [ eapply FT2 | ]. intros UT2.
-    specialize (EQV _ _ _ _ FT1 FT2).
-    hexploit untaus_unalltus_rev; [apply UT1| |]; eauto. intros UAT1.
+    hexploit untaus_unalltus_rev; [apply UT1| |]. eauto. intros UAT1.
     hexploit untaus_unalltus_rev; [apply UT2| |]; eauto. intros UAT2.
     inv EQV.
     + rewrite bind_unfold in UAT1, UAT2. simpobs. cbn in *.
       eapply GF in REL. destruct REL.
       eapply monotone_euttF0; eauto using rclo2.
     + rewrite bind_unfold in UAT1, UAT2. simpobs. cbn in *.
+      destruct UAT1 as [UAT1 _]. destruct UAT2 as [UAT2 _].
       dependent destruction UAT1. dependent destruction UAT2. simpobs.
-      econstructor. intros. specialize (H x1). pclearbot. fold_bind. eauto using rclo2.
+      econstructor. intros. specialize (H x). pclearbot. fold_bind. eauto using rclo2.
 Qed.
 
 (* [eutt] is a congruence wrt. [bind] *)
