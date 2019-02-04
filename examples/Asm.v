@@ -119,3 +119,70 @@ Section with_effect.
           end)
        p.(main) tt.
 End with_effect.
+
+
+(* SAZ: Everything from here down can probably be polished *)
+
+(* Implementations of the local enviroment and memory effects *)
+
+From ITree Require Import
+     Morphisms.
+
+From Coq Require Import
+     List.
+
+Import ListNotations.
+Open Scope list_scope.
+
+Section interp_locals.
+
+  Definition env := list (var * value).
+  Definition init_env : env := [].
+  Fixpoint lookup (l:env) (x:var) : value :=
+    match l with
+    | [] => 0
+    | (y,v)::rest => if string_dec x y then v else lookup rest x
+    end.
+
+  Definition insert (l:env) (x:var) (v:value) := (x,v)::l.
+
+  Definition eval_locals {E} : eff_hom_s env Locals E :=
+    fun _ e l =>
+      match e with
+      | GetVar x => Ret (l, lookup l x)
+      | SetVar x v => Ret (insert l x v, tt)
+      end.
+
+  Definition run_locals {E R} (l : env) (t : itree (Locals +' E) R)
+  : itree E (env * R) :=
+    interp_state (into_state eval_locals) t l.
+
+End interp_locals.
+
+Section interp_memory.
+
+  Definition mem := value -> value.
+  Definition init_mem : mem := fun _ => 0.
+  Definition load (m:mem) (a:value) : value := m a.
+  Definition store (m:mem) (a:value) (v:value) : mem :=
+    fun x => if  Nat.eqb a x then v else m x.
+
+  Definition eval_mem {E} : eff_hom_s mem Memory E :=
+    fun _ e m =>
+      match e with
+      | Load x => Ret (m, load m x)
+      | Store x v => Ret (store m x v, tt)
+      end.
+
+  Definition run_mem {E R} (m : mem) (t : itree (Memory +' E) R)
+  : itree E (mem * R) :=
+    interp_state (into_state eval_mem) t m.
+
+End interp_memory.
+
+Section toplevel.
+
+  Definition run (p:program) : itree emptyE (mem * (env * unit)) :=
+    run_mem init_mem (run_locals init_env (denote_program _ p)).
+
+End toplevel.
