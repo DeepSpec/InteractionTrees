@@ -102,8 +102,6 @@ Qed.
 End Labeled.
 
 From Paco Require Import paco.
-From ITree Require Import
-     paco2_upto.
 
 Module Tree.
 

@@ -27,7 +27,7 @@ From Coq Require Import
      Relations.Relations
      Logic.JMeq Logic.EqdepFacts.
 
-From ITree Require Import paco2_upto Core Eq.Eq.
+From ITree Require Import Core Eq.Eq.
 
 Set Bullet Behavior "Strict Subproofs".
 

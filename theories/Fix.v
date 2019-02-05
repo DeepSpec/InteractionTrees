@@ -15,7 +15,7 @@ From Coq Require Import
      RelationClasses.
 
 From ITree Require Import
-     paco2_upto Core Morphisms MorphismsFacts OpenSum Eq.Eq Eq.UpToTaus.
+     Core Morphisms MorphismsFacts OpenSum Eq.Eq Eq.UpToTaus.
 
 Module Type FixSig.
   Section Fix.
