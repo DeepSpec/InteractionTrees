@@ -1,2 +1,9 @@
 From ITree Require Export
-     Core OpenSum Morphisms Fix Eq.Eq Eq.UpToTaus.
+     Basics
+     Core
+     Effect.Sum
+     Effect.Fix
+     OpenSum
+     Morphisms
+     Eq.Eq
+     Eq.UpToTaus.

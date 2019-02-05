@@ -15,7 +15,84 @@ From Coq Require Import
      RelationClasses.
 
 From ITree Require Import
-     Core Morphisms MorphismsFacts OpenSum Eq.Eq Eq.UpToTaus.
+     Basics
+     Core
+     Morphisms
+     MorphismsFacts
+     Effect.Sum
+     Eq.Eq Eq.UpToTaus.
+
+(* The indexed type [D : Type -> Type] gives the signature of
+   a set of functions. For example, a pair of mutually recursive
+   [even : nat -> bool] and [odd : nat -> bool] can be declared
+   as follows:
+
+[[
+   Inductive D : Type -> Type :=
+   | Even : nat -> D bool
+   | Odd  : nat -> D bool.
+]]
+
+   Their mutually recursive definition can then be written finitely
+   (without [Fixpoint]):
+
+[[
+   Definition def : mutfix_itree_body D emptyE := fun _ d =>
+     match d with
+     | Even n => match n with
+                 | O => ret true
+                 | S m => liftE (Odd m)
+                 end
+     | Odd n => match n with
+                | O => ret false
+                | S m => liftE (Even m)
+                end
+     end.
+]]
+
+   The function [mutfix_itree] below then ties the knot.
+
+[[
+   Definition f : forall R, D R -> itree emptyE R :=
+     mutfix_itree def.
+
+   Definition even (n : nat) : itree emptyE bool := f _ (Even n).
+   Definition odd  (n : nat) : itree emptyE bool := f _ (Odd n).
+]]
+
+   The result is still in the [itree] monad of possibly divergent
+   computations, because [mutfix_itree] doesn't care whether
+   the mutually recursive definition is well-founded.
+
+ *)
+
+(* Interpret a mutually recursive definition. *)
+Definition mutfix_itree {D E : Type -> Type}
+           (body : D ~> itree (D +' E)) : D ~> itree E :=
+  fun R d =>
+    let cofix mutfix_ (t : itree (D +' E) R) : itree E R :=
+          handleF mutfix_ (fun _ e k =>
+            match e with
+            | inl1 d => Tau (mutfix_ (body _ d >>= k))
+            | inr1 e => Vis e (fun x => mutfix_ (k x))
+            end) (observe t) in
+    mutfix_ (body _ d).
+
+Inductive callE (A B : Type) : Type -> Type :=
+| Call : A -> callE A B B.
+
+Arguments Call {A B}.
+
+(* Interpret a single recursive definition. *)
+Definition fix_itree {E : Type -> Type} {A B : Type}
+           (body : A -> itree (callE A B +' E) B) :
+  A -> itree E B :=
+  fun a => mutfix_itree (fun _ call =>
+    match call in callE _ _ T return itree (_ +' E) T with
+    | Call a => body a
+    end) _ (Call a).
+
+(*
 
 Module Type FixSig.
   Section Fix.
@@ -293,3 +370,4 @@ Export FixImpl.
 Arguments mfix {_ _} _ _ _.
 Arguments mfix0 {E codom} body.
 Arguments mfix1 {E dom codom} body _.
+*)
