@@ -40,6 +40,7 @@ Makefile.coq: _CoqProject
 
 clean: Makefile.coq
 	$(MAKE) -f Makefile.coq clean
+	$(RM) {*,*/*}/*.{vo,glob} {*,*/*}/.*.aux
 	$(RM) _CoqProject Makefile.coq*
 
 _CoqProject: $(COQPATHFILE) _CoqConfig Makefile
