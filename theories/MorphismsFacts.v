@@ -7,7 +7,11 @@ From Coq Require Import
 From Paco Require Import paco.
 
 From ITree Require Import
-     Core OpenSum Morphisms Eq.Eq Eq.UpToTaus.
+     Basics
+     Core
+     Effect.Sum
+     Morphisms
+     Eq.Eq Eq.UpToTaus.
 
 (* Proof of
    [interp f (t >>= k) ~ (interp f t >>= fun r => interp f (k r))]
@@ -29,58 +33,58 @@ From ITree Require Import
  *)
 
 (* Unfolding of [interp]. *)
-Definition interp_u {E F R} (f : eff_hom E F) :
+Definition interp_u {E F} (f : E ~> itree F) R :
   itreeF E R _ -> itree F R :=
-  handleF (interp f)
+  handleF (interp f _)
           (fun _ e k => Tau (ITree.bind (f _ e)
-                                        (fun x => interp f (k x)))).
+                                        (fun x => interp f _ (k x)))).
 
-Lemma interp_unfold {E F R} {f : eff_hom E F} (t : itree E R) :
-  observe (interp f t) = observe (interp_u f (observe t)).
+Lemma interp_unfold {E F R} {f : E ~> itree F} (t : itree E R) :
+  observe (interp f _ t) = observe (interp_u f _ (observe t)).
 Proof. eauto. Qed.
 
-Lemma unfold_interp {E F R} {f : eff_hom E F} (t : itree E R) :
-  interp f t ≅ interp_u f (observe t).
+Lemma unfold_interp {E F R} {f : E ~> itree F} (t : itree E R) :
+  interp f _ t ≅ interp_u f _ (observe t).
 Proof. rewrite itree_eta, interp_unfold, <-itree_eta. reflexivity. Qed.
 
 (* Unfolding of [interp1]. *)
-Definition interp1_u {E F R} (h : eff_hom E F) :
+Definition interp1_u {E F} (h : E ~> itree F) R :
   itreeF (E +' F) R _ -> itree F R :=
-  handleF (interp1 h)
+  handleF (interp1 h _)
           (fun _ ef k =>
              match ef with
-             | inlE e => Tau (ITree.bind (h _ e)
-                                         (fun x => interp1 h (k x)))
-             | inrE f => Vis f (fun x => interp1 h (k x))
+             | inl1 e => Tau (ITree.bind (h _ e)
+                                         (fun x => interp1 h _ (k x)))
+             | inr1 f => Vis f (fun x => interp1 h _ (k x))
              end).
 
-Lemma interp1_unfold {E F R} {f : eff_hom E F} (t : itree (E +' F) R) :
-  observe (interp1 f t) = observe (interp1_u f (observe t)).
+Lemma interp1_unfold {E F R} {f : E ~> itree F} (t : itree (E +' F) R) :
+  observe (interp1 f _ t) = observe (interp1_u f _ (observe t)).
 Proof. eauto. Qed.
 
-Lemma unfold_interp1 {E F R} {f : eff_hom E F} (t : itree (E +' F) R) :
-  interp1 f t ≅ interp1_u f (observe t).
+Lemma unfold_interp1 {E F R} {f : E ~> itree F} (t : itree (E +' F) R) :
+  interp1 f _ t ≅ interp1_u f _ (observe t).
 Proof. rewrite itree_eta, interp1_unfold, <-itree_eta. reflexivity. Qed.
 
-Lemma ret_interp {E F R} {f : eff_hom E F} (x: R):
-  interp f (Ret x) ≅ Ret x.
+Lemma ret_interp {E F R} {f : E ~> itree F} (x: R):
+  interp f _ (Ret x) ≅ Ret x.
 Proof. rewrite unfold_interp. reflexivity. Qed.
 
-Lemma tau_interp {E F R} {f : eff_hom E F} (t: itree E R):
-  interp f (Tau t) ≅ Tau (interp f t).
+Lemma tau_interp {E F R} {f : E ~> itree F} (t: itree E R):
+  interp f _ (Tau t) ≅ Tau (interp f _ t).
 Proof. rewrite unfold_interp. reflexivity. Qed.
 
-Lemma vis_interp {E F R} {f : eff_hom E F} U (e: E U) (k: U -> itree E R) :
-  interp f (Vis e k) ≅ Tau (ITree.bind (f _ e) (fun x => interp f (k x))).
+Lemma vis_interp {E F R} {f : E ~> itree F} U (e: E U) (k: U -> itree E R) :
+  interp f _ (Vis e k) ≅ Tau (ITree.bind (f _ e) (fun x => interp f _ (k x))).
 Proof. rewrite unfold_interp. reflexivity. Qed.
 
 Instance eq_itree_interp {E F R} f :
   Proper (@eq_itree E R ==>
-          @eq_itree F R) (interp f).
+          @eq_itree F R) (interp f _).
 Proof.
   repeat intro. pupto2_init. revert_until R.
   pcofix CIH. intros.
-  rewrite itree_eta, (itree_eta (interp f y)), !interp_unfold.
+  rewrite itree_eta, (itree_eta (interp f _ y)), !interp_unfold.
   punfold H0; red in H0.
   genobs x ox; destruct ox; simpobs; dependent destruction H0; simpobs; pclearbot.
   - pupto2_final. pfold. red. cbn. eauto.
@@ -93,11 +97,11 @@ Qed.
 
 Instance eq_itree_interp1 {E F R} f :
   Proper (@eq_itree (E +' F) R ==>
-          @eq_itree F R) (interp1 f).
+          @eq_itree F R) (interp1 f _).
 Proof.
   repeat intro. pupto2_init. revert_until R.
   pcofix CIH. intros.
-  rewrite itree_eta, (itree_eta (interp1 f y)), !interp1_unfold.
+  rewrite itree_eta, (itree_eta (interp1 f _ y)), !interp1_unfold.
   punfold H0; red in H0.
   genobs x ox; destruct ox; simpobs; dependent destruction H0; simpobs; pclearbot.
   - pupto2_final. pfold. red. cbn. eauto.
@@ -111,8 +115,8 @@ Proof.
 Qed.
 
 Lemma interp_bind {E F R S}
-      (f : eff_hom E F) (t : itree E R) (k : R -> itree E S) :
-   (interp f (ITree.bind t k)) ≅ (ITree.bind (interp f t) (fun r => interp f (k r))).
+      (f : E ~> itree F) (t : itree E R) (k : R -> itree E S) :
+   (interp f _ (ITree.bind t k)) ≅ (ITree.bind (interp f _ t) (fun r => interp f _ (k r))).
 Proof.
   pupto2_init.
   revert R t k.
@@ -131,7 +135,7 @@ Qed.
 Lemma interp_state_liftE {E F : Type -> Type} {R S : Type}
       (f : forall T, E T -> S -> itree F (S * T)%type)
       (s : S) (e : E R) :
-  (interp_state f (ITree.liftE e) s) ≅ (f _ e s).
+  (interp_state f _ (ITree.liftE e) s) ≅ (f _ e s).
 Proof.
 Admitted.
 
@@ -139,15 +143,15 @@ Lemma interp_state_bind {E F : Type -> Type} {A B S : Type}
       (f : forall T, E T -> S -> itree F (S * T)%type)
       (t : itree E A) (k : A -> itree E B)
       (s : S) :
-  (interp_state f (t >>= k) s)
+  (interp_state f _ (t >>= k) s)
     ≅
-  (interp_state f t s >>= fun st => interp_state f (k (snd st)) (fst st)).
+  (interp_state f _ t s >>= fun st => interp_state f _ (k (snd st)) (fst st)).
 Proof.
 Admitted.
 
 Lemma interp_state_ret {E F : Type -> Type} {R S : Type}
       (f : forall T, E T -> S -> itree F (S * T)%type)
       (s : S) (r : R) :
-  (interp_state f (Ret r) s) ≅ (Ret (s, r)).
+  (interp_state f _ (Ret r) s) ≅ (Ret (s, r)).
 Proof.
 Admitted.

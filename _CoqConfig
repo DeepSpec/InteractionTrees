@@ -1,5 +1,6 @@
 -Q theories ITree
 
+theories/Basics.v
 theories/Core.v
 
 theories/Eq/Eq.v
@@ -8,6 +9,7 @@ theories/Eq/UpToTaus.v
 theories/Morphisms.v
 theories/MorphismsFacts.v
 
+theories/Effect/Sum.v
 theories/OpenSum.v
 
 theories/StdEffects.v
