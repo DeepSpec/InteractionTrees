@@ -45,9 +45,12 @@ clean: Makefile.coq
 _CoqProject: $(COQPATHFILE) _CoqConfig Makefile
 	@ echo "# Generating _CoqProject"
 	@ rm -f _CoqProject
+	@ echo "# THIS IS AN AUTOMATICALLY GENERATED FILE" >> _CoqProject
+	@ echo "# PLEASE EDIT _CoqConfig INSTEAD" >> _CoqProject
+	@ echo >> _CoqProject
 ifneq ("$(COQPATHFILE)","")
 	@ echo "# including: _CoqPath"
-	@ cp _CoqPath _CoqProject
+	@ cat _CoqPath >> _CoqProject
 	@ echo >> _CoqProject
 endif
 	@ echo "# including: _CoqConfig"
