@@ -15,7 +15,7 @@ From ITree Require Import
      Core Morphisms OpenSum.
 
 
-(* Environments ------------------------------------------------------------- *)
+(* Environment Effects ------------------------------------------------------ *)
 
 
 Section Env.
@@ -60,37 +60,4 @@ Arguments env_lookupDefault {K V E _}.
 Arguments env_remove {K V E _}.
 Arguments run_env {K V map M _ _}.
 
-
-
-Module FunMap.
-
-  Variables (K V : Type).
-  Context {RD : RelDec (@eq K)}.
-  Definition map := K -> option V.
-  
-  Definition fun_empty : map := fun _ => None.
-
-  Definition fun_add (k:K) (v:V) (m:map) :=
-    fun k' => if eq_dec k k' then Some v else m k'.
-
-  Definition fun_remove (k:K) (m:map) :=
-    fun k' => if eq_dec k k' then None else m k'.
-
-  Definition fun_lookup (k:K) (m:map) := m k.
-
-  Definition fun_union (m1 m2:map) :=
-    fun k => match fun_lookup k m1 with
-          | None => fun_lookup k m2
-          | Some v => Some v
-          end.
-  
-  Global Instance Map_fun : Map K V map := 
-    { empty  := fun_empty 
-    ; add    := @fun_add 
-    ; remove := fun_remove
-    ; lookup := fun_lookup
-    ; union  := fun_union
-    }.
-    
-End FunMap.
 
