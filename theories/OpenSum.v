@@ -13,7 +13,7 @@ From ExtLib.Structures Require Import
      Monoid.
 
 From ITree Require Import
-     Core Morphisms.
+     Core.
 
 Variant void : Type := .
 
@@ -45,42 +45,6 @@ Definition bimap_sum1 {A B C D : Type -> Type} {X Y : Type}
 
 Notation "E1 +' E2" := (sum1 E1 E2)
 (at level 50, left associativity) : type_scope.
-
-Section into.
-  Context {E F : Type -> Type}.
-
-  Definition into (h : eff_hom E F) : eff_hom (E +' F) F :=
-    fun _ e =>
-      match e with
-      | inlE e => h _ e
-      | inrE e => ITree.liftE e 
-      end.
-
-  Definition into_state {s} (h : eff_hom_s s E F) : eff_hom_s s (E +' F) F :=
-    fun _ e s =>
-      match e with
-      | inlE e => h _ e s
-      | inrE e => Vis e (fun x => Ret (s, x))
-      end.
-
-  Definition into_reader {s} (h : eff_hom_r s E F) : eff_hom_r s (E +' F) F :=
-    fun _ e s =>
-      match e with
-      | inlE e => h _ e s
-      | inrE e => ITree.liftE e
-      end.
-
-  Definition into_writer {s} `{Monoid_s : Monoid s} (h : eff_hom_w s E F)
-  : eff_hom_w s (E +' F) F :=
-    fun _ e =>
-      match e with
-      | inlE e => h _ e
-      | inrE e => Vis e (fun x => Ret (monoid_unit Monoid_s, x))
-      end.
-
-  (* todo(gmm): is the a corresponding definition for `eff_hom_p`? *)
-
-End into.
 
 
 (* Automatic application of commutativity and associativity for sums.

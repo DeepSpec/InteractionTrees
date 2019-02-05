@@ -7,7 +7,7 @@ From Coq Require Import
 From Paco Require Import paco.
 
 From ITree Require Import
-     paco2_upto Core Morphisms Eq.Eq Eq.UpToTaus.
+     paco2_upto Core OpenSum Morphisms Eq.Eq Eq.UpToTaus.
 
 (* Proof of
    [interp f (t >>= k) ~ (interp f t >>= fun r => interp f (k r))]
@@ -28,13 +28,39 @@ From ITree Require Import
 
  *)
 
+(* Unfolding of [interp]. *)
+Definition interp_u {E F R} (f : eff_hom E F) :
+  itreeF E R _ -> itree F R :=
+  handleF (interp f)
+          (fun _ e k => Tau (ITree.bind (f _ e)
+                                        (fun x => interp f (k x)))).
+
 Lemma interp_unfold {E F R} {f : eff_hom E F} (t : itree E R) :
-  observe (interp f t) = observe (interp_match f (interp f (R:=R)) (observe t)).
-Proof. cbn. eauto. Qed.
+  observe (interp f t) = observe (interp_u f (observe t)).
+Proof. eauto. Qed.
 
 Lemma unfold_interp {E F R} {f : eff_hom E F} (t : itree E R) :
-  interp f t ≅ interp_match f (interp f (R:=R)) (observe t).
+  interp f t ≅ interp_u f (observe t).
 Proof. rewrite itree_eta, interp_unfold, <-itree_eta. reflexivity. Qed.
+
+(* Unfolding of [interp1]. *)
+Definition interp1_u {E F R} (h : eff_hom E F) :
+  itreeF (E +' F) R _ -> itree F R :=
+  handleF (interp1 h)
+          (fun _ ef k =>
+             match ef with
+             | inlE e => Tau (ITree.bind (h _ e)
+                                         (fun x => interp1 h (k x)))
+             | inrE f => Vis f (fun x => interp1 h (k x))
+             end).
+
+Lemma interp1_unfold {E F R} {f : eff_hom E F} (t : itree (E +' F) R) :
+  observe (interp1 f t) = observe (interp1_u f (observe t)).
+Proof. eauto. Qed.
+
+Lemma unfold_interp1 {E F R} {f : eff_hom E F} (t : itree (E +' F) R) :
+  interp1 f t ≅ interp1_u f (observe t).
+Proof. rewrite itree_eta, interp1_unfold, <-itree_eta. reflexivity. Qed.
 
 Lemma ret_interp {E F R} {f : eff_hom E F} (x: R):
   interp f (Ret x) ≅ Ret x.
@@ -45,7 +71,7 @@ Lemma tau_interp {E F R} {f : eff_hom E F} (t: itree E R):
 Proof. rewrite unfold_interp. reflexivity. Qed.
 
 Lemma vis_interp {E F R} {f : eff_hom E F} U (e: E U) (k: U -> itree E R) :
-  interp f (Vis e k) ≅ ITree.bind (f _ e) (fun x => Tau (interp f (k x))).
+  interp f (Vis e k) ≅ Tau (ITree.bind (f _ e) (fun x => interp f (k x))).
 Proof. rewrite unfold_interp. reflexivity. Qed.
 
 Instance eq_itree_interp {E F R} f :
@@ -59,10 +85,29 @@ Proof.
   genobs x ox; destruct ox; simpobs; dependent destruction H0; simpobs; pclearbot.
   - pupto2_final. pfold. red. cbn. eauto.
   - pupto2_final. pfold. red. cbn. eauto.
-  - simpl. rewrite <- !itree_eta.
-    pupto2 (eq_itree_clo_bind F R). econstructor; try reflexivity.
-    intros. specialize (REL v). pclearbot.
-    pupto2_final. pfold. econstructor. eauto.
+  - pfold. econstructor. pupto2 (eq_itree_clo_bind F R).
+    constructor.
+    + reflexivity.
+    + eauto. intros; pupto2_final; right; eauto.
+Qed.
+
+Instance eq_itree_interp1 {E F R} f :
+  Proper (@eq_itree (E +' F) R ==>
+          @eq_itree F R) (interp1 f).
+Proof.
+  repeat intro. pupto2_init. revert_until R.
+  pcofix CIH. intros.
+  rewrite itree_eta, (itree_eta (interp1 f y)), !interp1_unfold.
+  punfold H0; red in H0.
+  genobs x ox; destruct ox; simpobs; dependent destruction H0; simpobs; pclearbot.
+  - pupto2_final. pfold. red. cbn. eauto.
+  - pupto2_final. pfold. red. cbn. eauto.
+  - pfold. destruct e; cbn; econstructor.
+    + pupto2 (eq_itree_clo_bind F R).
+      constructor.
+      * reflexivity.
+      * intros; pupto2_final; eauto.
+    + intros. pupto2_final. eauto.
 Qed.
 
 Lemma interp_bind {E F R S}
@@ -76,10 +121,11 @@ Proof.
   - rewrite ret_interp, !ret_bind. pupto2_final. apply eq_itree_refl.
   - rewrite tau_interp, !tau_bind, tau_interp.
     pupto2_final. pfold. econstructor. eauto.
-  - rewrite vis_interp, !vis_bind, vis_interp, bind_bind.
-    pupto2 (eq_itree_clo_bind F S). econstructor; [reflexivity|]. intros.
-    rewrite tau_bind.
-    pupto2_final. pfold. econstructor. eauto.
+  - rewrite vis_interp, tau_bind, bind_bind.
+    pfold. do 2 red; cbn. constructor.
+    pupto2 (eq_itree_clo_bind F S). econstructor.
+    + reflexivity.
+    + intros; specialize (CIH _ (k0 v) k); auto.
 Qed.
 
 Lemma interp_state_liftE {E F : Type -> Type} {R S : Type}

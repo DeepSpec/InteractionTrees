@@ -11,42 +11,67 @@ From ExtLib.Structures Require Import
      Functor.
 
 From ITree Require Import
-     Core.
+     Core OpenSum.
 
 Open Scope itree_scope.
+
+(* [itreeF] eliminator, where the codomain is in the [itree]
+   monad, a building block for itree monad morphisms. *)
+Definition handleF {E F : Type -> Type} {I R : Type}
+           (tau : I -> itree F R)
+           (vis : forall U, E U -> (U -> I) -> itree F R)
+           (ot : itreeF E R I) : itree F R :=
+  match ot with
+  | RetF r => Ret r
+  | TauF t' => Tau (tau t')
+  | VisF e k => vis _ e k
+  end.
+Hint Unfold handleF.
+
+(* Shallow effect handling: pass the first [Vis] node to the
+   given handler [h]. *)
+Definition handle {E F : Type -> Type} {R : Type}
+           (h : forall U, E U -> (U -> itree E R) -> itree F R) :
+  itree E R -> itree F R :=
+  cofix handle_ t := handleF handle_ h (observe t).
+Hint Unfold handle.
 
 (* * Homomorphisms between effects *)
 Definition eff_hom (E E' : Type -> Type) : Type :=
   forall t, E t -> itree E' t.
 
-Definition interp_match {E F R}
-           (f : eff_hom E F) (hom : itree E R -> itree F R)
-           (ot : itreeF E R _) :=
-  match ot with
-  | RetF r => Ret r
-  | VisF e k => ITree.bind (f _ e) (fun x => Tau (hom (k x)))
-  | TauF t' => Tau (hom t')
-  end.
-
-(* An `eff_hom` can be used to transport itrees between different
-   effects.
- *)
-(* N.B.: the guardedness of this definition relies on implementation
-   details of [bind]. *)
+(* An [eff_hom] can be used to transport itrees between different
+   effects. *)
 Definition interp {E F : Type -> Type} {R : Type}
            (f : eff_hom E F)
 : itree E R -> itree F R :=
-  cofix hom_f t := interp_match f hom_f (observe t).
+  cofix interp_ t :=
+    handleF interp_
+            (fun _ e k => Tau (ITree.bind (f _ e)
+                                          (fun x => interp_ (k x))))
+            (observe t).
+(* N.B.: the guardedness of this definition relies on implementation
+   details of [bind]. *)
 
-(*
-Lemma match_interp {E F R} {f : eff_hom E F} (t : itree E R) :
-  interp f t = interp_match f (fun t' => interp f t') t.
-Proof.
-  rewrite (match_itree (interp _ _)).
-  simpl; rewrite <- match_itree.
-  reflexivity.
-Qed.
-*)
+(* Interpret the first effect [E] in a sum [E +' F] into
+   the rest of the sum [F].
+
+   Compared to [interp], this inserts fewer [Tau] nodes, which
+   allows a few equations to be bisimularities ([eq_itree]) instead
+   of up-to-tau equivalences ([eutt]).
+ *)
+Definition interp1 {E F : Type -> Type} {R : Type}
+           (f : eff_hom E F) :
+  itree (E +' F) R -> itree F R :=
+  cofix interp1_ t :=
+    handleF interp1_
+            (fun _ ef k =>
+               match ef with
+               | inlE e => Tau (ITree.bind (f _ e)
+                                           (fun x => interp1_ (k x)))
+               | inrE f => Vis f (fun x => interp1_ (k x))
+               end)
+            (observe t).
 
 (* * Effects form a category
  * The objects are effects: i.e. `Type -> Type`
@@ -202,3 +227,39 @@ Section eff_hom_e.
     | TauF tr => Tau (interp_e f tr)
     end.
 End eff_hom_e.
+
+Section into.
+  Context {E F : Type -> Type}.
+
+  Definition into (h : eff_hom E F) : eff_hom (E +' F) F :=
+    fun _ e =>
+      match e with
+      | inlE e => h _ e
+      | inrE e => ITree.liftE e
+      end.
+
+  Definition into_state {s} (h : eff_hom_s s E F) : eff_hom_s s (E +' F) F :=
+    fun _ e s =>
+      match e with
+      | inlE e => h _ e s
+      | inrE e => Vis e (fun x => Ret (s, x))
+      end.
+
+  Definition into_reader {s} (h : eff_hom_r s E F) : eff_hom_r s (E +' F) F :=
+    fun _ e s =>
+      match e with
+      | inlE e => h _ e s
+      | inrE e => ITree.liftE e
+      end.
+
+  Definition into_writer {s} `{Monoid_s : Monoid s} (h : eff_hom_w s E F)
+  : eff_hom_w s (E +' F) F :=
+    fun _ e =>
+      match e with
+      | inlE e => h _ e
+      | inrE e => Vis e (fun x => Ret (monoid_unit Monoid_s, x))
+      end.
+
+  (* todo(gmm): is the a corresponding definition for `eff_hom_p`? *)
+
+End into.
