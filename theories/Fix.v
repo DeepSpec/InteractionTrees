@@ -159,9 +159,7 @@ Module FixImpl <: FixSig.
               (homFix c1)
               (interp1 eval_fixpoint c2).
       Proof.
-        pupto2 (eq_itree_clo_trans E U); econstructor.
-        eapply unfold_homfix.
-        eapply unfold_interp1.
+        rewrite unfold_homfix, unfold_interp1.
         punfold Ec.
         inversion Ec; cbn.
         + pupto2_final. eapply eq_itree_refl. (* This should be reflexivity. *)
@@ -174,34 +172,23 @@ Module FixImpl <: FixSig.
             apply INV. eapply homFix_interp1.
             - reflexivity.
             - cbn. reflexivity.
-            - cbn. (* Proper lemmas needed *) admit.
+            - cbn. pclearbot. setoid_rewrite REL. reflexivity.
           }
-          { pupto2 (eq_itree_clo_trans E U); econstructor.
-            * reflexivity.
-            * reflexivity.
-            * pfold; constructor; intros x.
-              destruct (REL x) as [ | []].
-              pupto2 (eq_itree_clo_trans E U); econstructor.
-              { reflexivity. }
-              { reflexivity. }
-              pupto2_final. right.
-              apply INV.
-              eapply homFix_main; [ eassumption | | ]; reflexivity.
+          { pclearbot. pupto2_final.
+            pfold; econstructor.
+            intros. right. apply INV.
+            eapply homFix_main; eauto; reflexivity.
           }
-      Admitted.
+      Qed.
 
       Lemma homfix_interp_itree {U} (c1 c2 : itree _ U) :
           homFix_invariant c1 c2 -> eq_itree c1 c2.
       Proof.
         intro H; pupto2_init; revert c1 c2 H. pcofix self.
         intros c1 c2 [d1 d2 Ed Ec1 Ec2 | T d k1 k2 Ek Ec1 Ec2].
-        - pupto2 (eq_itree_clo_trans E U). econstructor.
-          + apply Ec1. + apply Ec2.
-          + apply homFix_invariant_init; auto.
-        - pupto2 (eq_itree_clo_trans E U). econstructor.
-          { apply Ec1. } { apply Ec2. }
-          clear Ec1 Ec2.
-          cbn.
+        - rewrite Ec1, Ec2.
+          apply homFix_invariant_init; auto.
+        - rewrite Ec1, Ec2. cbn.
           rewrite unfold_homfix. rewrite (unfold_bind (homFix d)).
           unfold observe, _observe; cbn.
           destruct (observe d); fold_observe; cbn.
@@ -211,30 +198,23 @@ Module FixImpl <: FixSig.
             apply self.
             eapply homFix_interp1.
             * eapply Ek.
-            * cbn; unfold ITree.bind; reflexivity.
-            * cbn; unfold ITree.bind; reflexivity.
+            * cbn; fold_bind; reflexivity.
+            * cbn; fold_bind; reflexivity.
           + destruct e; cbn.
             * destruct f0; cbn.
-              pfold; constructor.
-              pupto2 (eq_itree_clo_trans E U). econstructor.
-              ++ pose proof @bind_bind as bb.
-                 unfold ITree.bind in bb.
-                 unfold ITree.bind.
-                 rewrite <- bb; clear bb.
-                 reflexivity.
-              ++ reflexivity.
-              ++ pupto2_final; right.
-                 apply self.
-                 eapply homFix_interp1.
-                 ** apply Ek.
-                 ** cbn; unfold ITree.bind; reflexivity.
-                 ** cbn; unfold ITree.bind; reflexivity.
+              fold_bind. rewrite <-bind_bind.
+              pupto2_final. pfold. econstructor. right.
+              apply self.
+              eapply homFix_interp1.
+              ** apply Ek.
+              ** cbn. reflexivity.
+              ** cbn. reflexivity.
             * pupto2_final; pfold; constructor; right.
               apply self.
               eapply homFix_interp1.
               ++ eapply Ek.
-              ++ cbn; unfold ITree.bind; reflexivity.
-              ++ cbn; unfold ITree.bind; reflexivity.
+              ++ cbn; fold_bind; reflexivity.
+              ++ cbn; fold_bind; reflexivity.
       Qed.
 
       Theorem homFix_is_interp : forall {T} (c : itree _ T),

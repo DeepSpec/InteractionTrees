@@ -91,6 +91,25 @@ Proof.
     + eauto. intros; pupto2_final; right; eauto.
 Qed.
 
+Instance eq_itree_interp1 {E F R} f :
+  Proper (@eq_itree (E +' F) R ==>
+          @eq_itree F R) (interp1 f).
+Proof.
+  repeat intro. pupto2_init. revert_until R.
+  pcofix CIH. intros.
+  rewrite itree_eta, (itree_eta (interp1 f y)), !interp1_unfold.
+  punfold H0; red in H0.
+  genobs x ox; destruct ox; simpobs; dependent destruction H0; simpobs; pclearbot.
+  - pupto2_final. pfold. red. cbn. eauto.
+  - pupto2_final. pfold. red. cbn. eauto.
+  - pfold. destruct e; cbn; econstructor.
+    + pupto2 (eq_itree_clo_bind F R).
+      constructor.
+      * reflexivity.
+      * intros; pupto2_final; eauto.
+    + intros. pupto2_final. eauto.
+Qed.
+
 Lemma interp_bind {E F R S}
       (f : eff_hom E F) (t : itree E R) (k : R -> itree E S) :
    (interp f (ITree.bind t k)) ≅ (ITree.bind (interp f t) (fun r => interp f (k r))).

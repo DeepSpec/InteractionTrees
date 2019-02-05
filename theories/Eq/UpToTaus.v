@@ -237,15 +237,14 @@ Definition untausF_strong_ind
            (ot1 ot2 : itreeF E R _)
            (Huntaus : untausF ot1 ot2)
            (Hnotau : notauF ot2)
-           (BASE : P ot2)
-           (STEP : forall t1',
-               (forall oti,
-                   untausF (observe t1') oti ->
-                   untausF oti ot2 ->
-                   P oti) ->
-               untausF ot1 (TauF t1') ->
-               untausF (observe t1') ot2 ->
-               P (TauF t1')) : P ot1.
+           (STEP : forall ot1
+               (Huntaus : untausF ot1 ot2)
+               (IH: forall t1' oti
+                     (NEXT: ot1 = TauF t1')
+                     (UNTAUS: untausF (observe t1') oti),
+                   P oti),
+               P ot1)
+  : P ot1.
 Proof.
   enough (H : forall oti,
              untausF ot1 oti ->
@@ -253,17 +252,23 @@ Proof.
              P oti
          ).
   { apply H; eauto. }
-  revert BASE STEP.
-  induction Huntaus; auto.
-  - intros. erewrite <- notauF_untausF; eauto.
-  - intros; subst.
-    destruct H0; auto.
+  revert STEP.
+  induction Huntaus; intros; subst.
+  - eapply STEP; eauto.
+    intros; subst. dependent destruction H; inv Hnotau.
+  - destruct H0; auto.
     subst. apply STEP; eauto.
-    intros. eapply IHHuntaus; eauto 10.
-    inversion H; subst; eauto.
-    inversion OBS; subst; eauto.
-    apply untausF_shift in H.
-    eapply untausF_trans; eauto.
+    intros. inv NEXT.
+    apply IHHuntaus; eauto.
+    + clear -H UNTAUS.
+      remember (TauF t') as ott'. remember (TauF t1') as ott1'.
+      move H at top. revert_until H. induction H; intros; subst.
+      * inv Heqott1'. eauto.
+      * inv Heqott'. dependent destruction H; eauto.
+    + genobs t1' ot1'. revert UNTAUS. clear -Hnotau H0. induction H0; intros.
+      * dependent destruction UNTAUS; eauto.
+        subst. simpobs. inv Hnotau.
+      * subst. dependent destruction UNTAUS; eauto.
 Qed.
 
 (* If [t] does not start with [Tau], then it starts with finitely
