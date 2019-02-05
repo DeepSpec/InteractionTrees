@@ -51,6 +51,22 @@ Definition handleF {E F : Type -> Type} {I R : Type}
   end.
 Hint Unfold handleF.
 
+(** A variant of [handleF] that treats [inr1] effects like [Tau]. *)
+Definition handleF1 {E F : Type -> Type} {I R : Type}
+           (tau : I -> itree F R)
+           (vis : forall U, E U -> (U -> I) -> itree F R)
+           (ot : itreeF (E +' F) R I) : itree F R :=
+  match ot with
+  | RetF r => Ret r
+  | TauF t' => Tau (tau t')
+  | VisF ef k =>
+    match ef with
+    | inl1 e => vis _ e k
+    | inr1 f => Vis f (fun x => tau (k x))
+    end
+  end.
+Hint Unfold handleF1.
+
 (** Shallow effect handling: pass the first [Vis] node to the
     given handler [h]. *)
 Definition handle {E F : Type -> Type} {R : Type}

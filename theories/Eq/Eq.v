@@ -352,3 +352,8 @@ Proof.
   - rewrite hom_def; constructor.
 Qed.
 *)
+
+Hint Rewrite @ret_bind : itree.
+Hint Rewrite @tau_bind : itree.
+Hint Rewrite @vis_bind : itree.
+Hint Rewrite @bind_ret : itree.

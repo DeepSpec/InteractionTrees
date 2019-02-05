@@ -2,6 +2,8 @@ Require Import ExtLib.Structures.Functor.
 Require Import ExtLib.Structures.Applicative.
 Require Import ExtLib.Structures.Monad.
 
+From ITree Require Import Basics.
+
 Set Implicit Arguments.
 Set Contextual Implicit.
 Set Primitive Projections.
@@ -131,9 +133,8 @@ Definition bind {E T U}
 Definition map {E R S} (f : R -> S)  (t : itree E R) : itree E S :=
   bind t (fun x => Ret (f x)).
 
-Definition liftE {E : Type -> Type} {X : Type}
-           (e : E X) : itree E X :=
-  Vis e (fun x => Ret x).
+Definition liftE {E : Type -> Type} : E ~> itree E :=
+  fun R e => Vis e (fun x => Ret x).
 
 (** Ignore the result of a tree. *)
 Definition ignore {E R} : itree E R -> itree E unit :=

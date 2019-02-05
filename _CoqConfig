@@ -10,10 +10,10 @@ theories/Morphisms.v
 theories/MorphismsFacts.v
 
 theories/Effect/Sum.v
-theories/Effect/Fix.v
 
 theories/OpenSum.v
 
+theories/Fix.v
 theories/StdEffects.v
 
 theories/UpTo.v
