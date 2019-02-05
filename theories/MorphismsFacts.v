@@ -11,7 +11,8 @@ From ITree Require Import
      Core
      Effect.Sum
      Morphisms
-     Eq.Eq Eq.UpToTaus.
+     Eq.Eq
+     Eq.UpToTaus.
 
 (* Proof of
    [interp f (t >>= k) ~ (interp f t >>= fun r => interp f (k r))]

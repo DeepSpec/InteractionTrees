@@ -23,7 +23,8 @@ From ExtLib.Structures Require Import
 From ITree Require Import
      Basics
      Core Morphisms
-     Effect.Sum OpenSum.
+     Effect.Sum
+     OpenSum.
 
 Section Failure.
 

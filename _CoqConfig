@@ -6,15 +6,14 @@ theories/Core.v
 theories/Eq/Eq.v
 theories/Eq/UpToTaus.v
 
-theories/Morphisms.v
-theories/MorphismsFacts.v
-
 theories/Effect/Sum.v
+theories/Effect/Std.v
 
 theories/OpenSum.v
-
 theories/Fix.v
-theories/StdEffects.v
+
+theories/Morphisms.v
+theories/MorphismsFacts.v
 
 theories/UpTo.v
 theories/Trace.v
