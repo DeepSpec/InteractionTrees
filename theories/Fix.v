@@ -161,21 +161,19 @@ Module FixImpl <: FixSig.
       Proof.
         rewrite unfold_homfix, unfold_interp1.
         punfold Ec.
-        inversion Ec; cbn.
-        + pupto2_final. eapply eq_itree_refl. (* This should be reflexivity. *)
-        + destruct REL as [ | [] ].
-          pfold; constructor. pupto2_final. right; apply INV.
-          eapply homFix_main; [ eapply H1 | |]; reflexivity.
-        + destruct e. cbn. unfold ITree.liftE.
+        inversion Ec; cbn; pclearbot; pupto2_final.
+        + eapply eq_itree_refl. (* This should be reflexivity. *)
+        + pfold; constructor. right; apply INV.
+          eapply homFix_main; [ eapply REL | |]; reflexivity.
+        + destruct e.
           { destruct f0.
-            pupto2_final; pfold; constructor; cbn; right. unfold _mfix.
+            pfold; constructor; cbn; right.
             apply INV. eapply homFix_interp1.
             - reflexivity.
             - cbn. reflexivity.
-            - cbn. pclearbot. setoid_rewrite REL. reflexivity.
+            - cbn. setoid_rewrite REL. reflexivity.
           }
-          { pclearbot. pupto2_final.
-            pfold; econstructor.
+          { pfold; econstructor.
             intros. right. apply INV.
             eapply homFix_main; eauto; reflexivity.
           }
