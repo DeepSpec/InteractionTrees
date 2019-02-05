@@ -1,7 +1,5 @@
 -Q theories ITree
 
-theories/paco2_upto.v
-
 theories/Core.v
 
 theories/Eq/Eq.v

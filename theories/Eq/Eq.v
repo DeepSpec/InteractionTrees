@@ -14,19 +14,7 @@ From Coq Require Import
 From Paco Require Import paco.
 
 From ITree Require Import
-     paco2_upto
      Core.
-
-(* The following code is taken from Paco 2.0 *)
-
-Lemma paco_clear_bot: forall P:Prop, P \/ False <-> P.
-Proof. tauto. Qed.
-
-Ltac pclearbot :=
-  let X := fresh "_X" in
-  repeat match goal with
-  | [H: context[pacoid] |- _] => try red in H; setoid_rewrite paco_clear_bot in H
-  end.
 
 Lemma pointwise_relation_fold {A B} {r: relation B} f g: (forall v:A, r (f v) (g v)) -> pointwise_relation _ r f g.
   Proof. red. eauto. Qed.
