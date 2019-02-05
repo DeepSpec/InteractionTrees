@@ -16,6 +16,9 @@ Set Universe Polymorphism.
 Notation "E ~> F" := (forall T, E T -> F T)
   (at level 99, right associativity) : type_scope.
 
+(** Identity morphism. *)
+Definition idM {E : Type -> Type} : E ~> E := fun _ e => e.
+
 (** A universe polymorphic empty type.
     Similar to [Empty_set : Set] and [False : Prop].
     Defined as an [Inductive] to get the usual eliminators. *)
