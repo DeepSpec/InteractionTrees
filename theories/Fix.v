@@ -175,22 +175,24 @@ Qed.
 
 Let h_mutrec : D ~> itree E := fix_mutrec ctx.
 
-Inductive mutrec_invariant {U} (c1 c2 : itree _ U) : Prop :=
-| mutrec_main (d1 d2 : _ U)
-    (Ed : eq_itree d1 d2)
-    (Ec1 : eq_itree c1 (interp_mutrec ctx _ d1))
-    (Ec2 : eq_itree c2 (interp1 (fix_mutrec ctx) _ d2)) :
-    mutrec_invariant c1 c2
+Inductive mutrec_invariant {U} : relation (itree _ U) :=
+| mutrec_main (d1 d2 : _ U) (Ed : eq_itree d1 d2) :
+    mutrec_invariant (interp_mutrec ctx _ d1)
+                     (interp1 (fix_mutrec ctx) _ d2)
 | mutrec_bind T (d : _ T) (k1 k2 : T -> itree _ U)
-    (Ek : forall x, eq_itree (k1 x) (k2 x))
-    (Ec1 : eq_itree c1 (interp_mutrec ctx _ (d >>= k1)))
-    (Ec2 : eq_itree c2 (interp_mutrec ctx _ d >>= fun x =>
-                        interp1 h_mutrec _ (k2 x))) :
-    mutrec_invariant c1 c2
+    (Ek : forall x, eq_itree (k1 x) (k2 x)) :
+    mutrec_invariant (interp_mutrec ctx _ (d >>= k1))
+                     (interp_mutrec ctx _ d >>= fun x =>
+                        interp1 h_mutrec _ (k2 x))
 .
 
-Lemma mutrec_invariant_init {U} (r : relation _)
-      (INV : forall t1 t2, mutrec_invariant t1 t2 -> r t1 t2)
+Notation mi_holds r :=
+  (forall c1 c2 d1 d2,
+      mutrec_invariant d1 d2 ->
+      eq_itree c1 d1 -> eq_itree c2 d2 -> r c1 c2).
+
+Lemma mutrec_invariant_init {U} (r : relation (itree _ U))
+      (INV : mi_holds r)
       (c1 c2 : itree _ U)
       (Ec : eq_itree c1 c2) :
   paco2 (compose eq_itreeF (gres2 eq_itreeF)) r
@@ -201,28 +203,28 @@ Proof.
   punfold Ec.
   inversion Ec; cbn; pclearbot; pupto2_final.
   + eapply eq_itree_refl. (* This should be reflexivity. *)
-  + pfold; constructor. right; apply INV.
-    eapply mutrec_main; [ eapply REL | |]; reflexivity.
+  + pfold; constructor. right; eapply INV.
+    1: apply mutrec_main; eassumption.
+    all: reflexivity.
   + destruct e.
-    { pfold; constructor; cbn; right.
-      apply INV. eapply mutrec_bind.
-      - reflexivity.
-      - cbn. reflexivity.
-      - cbn. setoid_rewrite REL. reflexivity.
+    { pfold; constructor; cbn; right. eapply INV.
+      1: apply mutrec_bind; eassumption.
+      all: cbn; reflexivity.
     }
     { pfold; econstructor.
-      intros. right. apply INV.
-      eapply mutrec_main; eauto; reflexivity.
+      intros; right. eapply INV.
+      1: apply mutrec_main; eapply REL.
+      all: reflexivity.
     }
 Qed.
 
-Lemma mutrec_invariant_eq {U} (c1 c2 : itree _ U) :
-  mutrec_invariant c1 c2 -> eq_itree c1 c2.
+Lemma mutrec_invariant_eq {U} : mi_holds (@eq_itree _ U).
 Proof.
-  intro H; pupto2_init; revert c1 c2 H. pcofix self.
-  intros c1 c2 [d1 d2 Ed Ec1 Ec2 | T d k1 k2 Ek Ec1 Ec2].
+  intros d1 d2 c1 c2 Ec1 Ec2 H.
+  pupto2_init; revert d1 d2 c1 c2 Ec1 Ec2 H; pcofix self.
+  intros _d1 _d2 c1 c2 [d1 d2 Ed | T d k1 k2 Ek] Ec1 Ec2.
   - rewrite Ec1, Ec2.
-    apply mutrec_invariant_init; auto.
+    apply mutrec_invariant_init; auto 10.
   - rewrite Ec1, Ec2. cbn.
     rewrite unfold_interp_mutrec.
     rewrite (unfold_bind (interp_mutrec _ _ d)).
@@ -231,33 +233,26 @@ Proof.
     + rewrite <- unfold_interp_mutrec.
       apply mutrec_invariant_init; auto.
     + pupto2_final; pfold; constructor; right.
-      apply self.
-      eapply mutrec_bind.
-      * eapply Ek.
-      * cbn; fold_bind; reflexivity.
-      * cbn; fold_bind; reflexivity.
+      eapply self.
+      1: apply mutrec_bind; eassumption.
+      all: cbn; fold_bind; reflexivity.
     + destruct e; cbn.
       * fold_bind. rewrite <-bind_bind.
         pupto2_final. pfold. econstructor. right.
-        apply self.
-        eapply mutrec_bind.
-        ** apply Ek.
-        ** cbn. reflexivity.
-        ** cbn. reflexivity.
+        eapply self.
+        1: apply mutrec_bind; eassumption.
+        all: cbn; reflexivity.
       * pupto2_final; pfold; constructor; right.
-        apply self.
-        eapply mutrec_bind.
-        ++ eapply Ek.
-        ++ cbn; fold_bind; reflexivity.
-        ++ cbn; fold_bind; reflexivity.
+        eapply self.
+        1: apply mutrec_bind; eassumption.
+        all: cbn; fold_bind; reflexivity.
 Qed.
 
 Theorem interp_mutrec_is_interp : forall {T} (c : itree _ T),
     eq_itree (interp_mutrec ctx _ c) (interp1 h_mutrec _ c).
 Proof.
-  intros.
-  apply mutrec_invariant_eq.
-  eapply mutrec_main; reflexivity.
+  intros; eapply mutrec_invariant_eq;
+    try eapply mutrec_main; reflexivity.
 Qed.
 
 End Facts.
