@@ -112,38 +112,42 @@ Definition or {R : Type} (t1 t2 : itree nd R) : itree nd R :=
   Vis Or (fun b : bool => if b then t1 else t2).
 
 (* Flip a coin *)
-Definition choice : itree nd bool := ITree.liftE Or.
+Definition choice {E} `{nd -< E} : itree E bool := lift Or.
 
 Definition eval : com -> itree nd unit :=
-  mfix1 (fun _ lift eval (c : com) =>
+  rec (fun (c : com) =>
     match c with
     | loop c =>
-      (* note: [or] is not allowed under [mfix]. *)
-      (b <- lift _ choice;;
-      if b : bool then Ret tt else (eval c;; eval (loop c)))%itree
+      (b <- choice;;
+      if b : bool
+      then Ret tt
+      else (lift (Call c);; lift (Call (loop c))))%itree
     | choose c1 c2 =>
-      (b <- lift _ choice;;
-      if b : bool then eval c1 else eval c2)%itree
-    | (t1 ;; t2)%com => (eval t1;; eval t2)%itree
+      (b <- choice;;
+      if b : bool
+      then lift (Call c1)
+      else lift (Call c2))%itree
+    | (t1 ;; t2)%com => (lift (Call t1);; lift (Call t2))%itree
     | skip => Ret tt
     end
   ).
 
 (* [itree] semantics of [one_loop]. *)
 Definition one_loop_tree : itree nd unit :=
-  mfix0 (fun _ lift self  =>
+  rec (fun _ : unit =>
     (* note: [or] is not allowed under [mfix]. *)
-    b <- lift _ choice;;
+    b <- choice;;
     if b : bool then
       Ret tt
     else
-      self)%itree.
+      lift (Call tt))%itree tt.
 
 Import Coq.Classes.Morphisms.
 
 (* SAZ: the [~] notation for eutt wasn't working here. *)
 Lemma eval_one_loop : eutt (eval one_loop) (one_loop_tree).
 Proof.
+(*
   pupto2_init.
   pcofix self.
   pupto2 (eutt_clo_trans nd unit). econstructor.
@@ -186,5 +190,7 @@ Proof.
   apply grespectful2_incl. right.
   exact self.
 Qed.
+*)
+Abort.
 
 End Tree.

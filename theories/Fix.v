@@ -15,281 +15,244 @@ From Coq Require Import
      RelationClasses.
 
 From ITree Require Import
-     Core Morphisms MorphismsFacts OpenSum Eq.Eq Eq.UpToTaus.
+     Basics
+     Core
+     Morphisms
+     MorphismsFacts
+     Effect.Sum
+     Eq.Eq Eq.UpToTaus.
 
-Module Type FixSig.
-  Section Fix.
-    (* the ambient effects *)
-    Context {E : Type -> Type}.
+(* The indexed type [D : Type -> Type] gives the signature of
+   a set of functions. For example, a pair of mutually recursive
+   [even : nat -> bool] and [odd : nat -> bool] can be declared
+   as follows:
 
-    Context {dom : Type}.
-    Variable codom : dom -> Type.
+[[
+   Inductive D : Type -> Type :=
+   | Even : nat -> D bool
+   | Odd  : nat -> D bool.
+]]
 
-    Definition fix_body : Type :=
-      forall E',
-        (forall t, itree E t -> itree E' t) ->
-        (forall x : dom, itree E' (codom x)) ->
-        forall x : dom, itree E' (codom x).
+   Their mutually recursive definition can then be written finitely
+   (without [Fixpoint]):
 
-    Parameter mfix : fix_body -> forall x : dom, itree E (codom x).
+[[
+   Definition def : D ~> itree (D +' emptyE) := fun _ d =>
+     match d with
+     | Even n => match n with
+                 | O => ret true
+                 | S m => liftE (Odd m)
+                 end
+     | Odd n => match n with
+                | O => ret false
+                | S m => liftE (Even m)
+                end
+     end.
+]]
 
-    Axiom mfix_unfold : forall (body : fix_body) (x : dom),
-        eutt (mfix body x) (body E (fun t => id) (mfix body) x).
+   The function [interp_mrec] below then ties the knot.
 
-  End Fix.
-End FixSig.
+[[
+   Definition f : D ~> itree emptyE :=
+     interp_mrec def.
 
-Module FixImpl <: FixSig.
-  Section Fix.
-    (* the ambient effects *)
-    Variable E : Type -> Type.
+   Definition even (n : nat) : itree emptyE bool := f _ (Even n).
+   Definition odd  (n : nat) : itree emptyE bool := f _ (Odd n).
+]]
 
-    Variable dom : Type.
-    Variable codom : dom -> Type.
+   The result is still in the [itree] monad of possibly divergent
+   computations, because [mutfix_itree] doesn't care whether
+   the mutually recursive definition is well-founded.
 
-    (* the fixpoint effect, used for representing recursive calls *)
-    Variant fixpoint : Type -> Type :=
-    | call : forall x : dom, fixpoint (codom x).
+ *)
 
-    Section mfix.
-      (* this is the body of the fixpoint. *)
-      Variable f : forall x : dom, itree (sum1 fixpoint E) (codom x).
+(** Interpret an itree in the context of a mutually recursive
+    definition ([ctx]). *)
+Definition interp_mrec {D E : Type -> Type}
+           (ctx : D ~> itree (D +' E)) : itree (D +' E) ~> itree E :=
+  fun R =>
+    cofix mutfix_ (t : itree (D +' E) R) : itree E R :=
+      handleF1 mutfix_
+               (fun _ d k => Tau (mutfix_ (ctx _ d >>= k)))
+               (observe t).
 
-      Definition homFix_match {T} (homFix: itree (sum1 fixpoint E) T -> itree E T) oc : itree E T :=
-        match oc with
-        | RetF x => Ret x
-        | @VisF _ _ _ u ee k =>
-          match ee with
-          | inlE e =>
-            match e in fixpoint u return (u -> _) -> _ with
-            | call x => fun k =>
-              Tau (homFix (ITree.bind (f x) k))
-            end k
-          | inrE e' =>
-            Vis e' (fun x => homFix (k x))
-          end
-        | TauF x => Tau (homFix x)
-        end.
+(** Unfold a mutually recursive definition into separate trees,
+    resolving the mutual references. *)
+Definition mrec {D E : Type -> Type}
+           (ctx : D ~> itree (D +' E)) : D ~> itree E :=
+  fun R d => interp_mrec ctx _ (ctx _ d).
 
-      Local CoFixpoint homFix {T : Type}
-            (c : itree (sum1 fixpoint E) T)
-      : itree E T :=
-        homFix_match homFix (observe c).
+Inductive callE (A B : Type) : Type -> Type :=
+| Call : A -> callE A B B.
 
-      Definition _mfix x := homFix (f x).
+Arguments Call {A B}.
 
-      Definition eval_fixpoint T (e_fix : fixpoint T) : itree E T :=
-        match e_fix with
-        | call x => _mfix x
-        end.
+(* Interpret a single recursive definition. *)
+Definition rec {E : Type -> Type} {A B : Type}
+           (body : A -> itree (callE A B +' E) B) :
+  A -> itree E B :=
+  fun a => mrec (fun _ call =>
+    match call in callE _ _ T return itree (_ +' E) T with
+    | Call a => body a
+    end) _ (Call a).
 
-      Lemma homfix_unfold {T} (t: itree _ T) :
-        observe (homFix t) = observe (homFix_match homFix (observe t)).
-      Proof. cbn. eauto. Qed.
+(** Properties of [interp_mrec] and [mrec]. *)
+Section Facts.
 
-      Lemma unfold_homfix {T} (t: itree _ T) :
-        homFix t ≅ homFix_match homFix (observe t).
-      Proof. rewrite itree_eta, homfix_unfold, <-itree_eta. reflexivity. Qed.
+Context {D E : Type -> Type} (ctx : D ~> itree (D +' E)).
 
-      Lemma ret_homfix {T} (x: T) :
-        homFix (Ret x) ≅ Ret x.
-      Proof. rewrite unfold_homfix. reflexivity. Qed.
+(** Unfolding of [interp_mrec]. *)
+Definition interp_mrecF R :
+  itreeF (D +' E) R _ -> itree E R :=
+  handleF1 (interp_mrec ctx R)
+           (fun _ d k => Tau (interp_mrec ctx _ (ctx _ d >>= k))).
 
-      Lemma tau_homfix {T} (t: itree _ T) :
-        homFix (Tau t) ≅ Tau (homFix t).
-      Proof. rewrite unfold_homfix. reflexivity. Qed.
+Lemma unfold_interp_mrecF R (t : itree (D +' E) R) :
+  observe (interp_mrec ctx _ t) = observe (interp_mrecF _ (observe t)).
+Proof. reflexivity. Qed.
 
-      Lemma vis_homfix_left {T U} (e: _ U) (k: U -> itree _ T) :
-        homFix (Vis (inrE e) k) ≅ Vis e (fun x => homFix (k x)).
-      Proof. rewrite unfold_homfix. reflexivity. Qed.
+Lemma unfold_interp_mrec R (t : itree (D +' E) R) :
+  eq_itree (interp_mrec ctx _ t)
+           (interp_mrecF _ (observe t)).
+Proof.
+  rewrite itree_eta, unfold_interp_mrecF, <-itree_eta.
+  reflexivity.
+Qed.
 
-      Lemma vis_homfix_right {T} x (k: _ -> itree _ T) :
-        homFix (Vis (inlE (call x)) k) ≅ Tau (homFix (ITree.bind (f x) k)).
-      Proof. rewrite unfold_homfix. reflexivity. Qed.
+Lemma ret_mrec {T} (x: T) :
+  interp_mrec ctx _ (Ret x) ≅ Ret x.
+Proof. rewrite unfold_interp_mrec; reflexivity. Qed.
 
-      Instance eq_itree_homfix {T} :
-        Proper (@eq_itree _ T ==>
-                @eq_itree _ T) (@homFix T).
-      Proof.
-        repeat intro. pupto2_init. revert_until T.
-        pcofix CIH. intros.
-        rewrite (itree_eta (homFix x)), (itree_eta (homFix y)). pupto2_final.
-        rewrite !homfix_unfold.
-        punfold H0. inv H0; pclearbot; [| |destruct e; [destruct f0|]].
-        - eapply eq_itree_refl.
-        - pfold. econstructor. eauto.
-        - pfold. econstructor. apply pointwise_relation_fold in REL.
-          right. eapply CIH. rewrite REL. reflexivity.
-        - pfold. econstructor. eauto 7.
-      Qed.
+Lemma tau_mrec {T} (t: itree _ T) :
+  interp_mrec ctx _ (Tau t) ≅ Tau (interp_mrec ctx _ t).
+Proof. rewrite unfold_interp_mrec. reflexivity. Qed.
 
-      Theorem homfix_bind {U T}: forall t k,
-          @homFix T (ITree.bind t k) ≅ ITree.bind (@homFix U t) (fun x => homFix (k x)).
-      Proof.
-        intros. pupto2_init. revert t k.
-        pcofix CIH. intros.
-        rewrite (itree_eta t). destruct (observe t); [| |destruct e; [destruct f0|]].
-        - rewrite ret_bind, !ret_homfix, ret_bind. pupto2_final. apply eq_itree_refl.
-        - rewrite tau_bind, !tau_homfix, tau_bind. pupto2_final.
-          pfold. econstructor. eauto.
-        - rewrite vis_bind, !vis_homfix_right, tau_bind, <-bind_bind. pupto2_final.
-          pfold. econstructor. eauto.
-        - rewrite vis_bind, !vis_homfix_left, vis_bind. pupto2_final.
-          pfold. econstructor. eauto.
-      Qed.
+Lemma vis_mrec_right {T U} (e : E U) (k : U -> itree (D +' E) T) :
+  interp_mrec ctx _ (Vis (inr1 e) k) ≅
+  Vis e (fun x => interp_mrec ctx _ (k x)).
+Proof. rewrite unfold_interp_mrec. reflexivity. Qed.
 
-      Inductive homFix_invariant {U} (c1 c2 : itree _ U) : Prop :=
-      | homFix_main (d1 d2 : _ U)
-                    (Ed : eq_itree d1 d2)
-                    (Ec1 : eq_itree c1 (homFix d1))
-                    (Ec2 : eq_itree c2 (interp1 eval_fixpoint d2)) :
-          homFix_invariant c1 c2
-      | homFix_interp1 T (d : _ T) k1 k2
-          (Ek : forall x, eq_itree (k1 x) (k2 x))
-          (Ec1 : eq_itree c1 (homFix (d >>= k1)))
-          (Ec2 : eq_itree c2 (homFix d >>= fun x => interp1 eval_fixpoint (k2 x))) :
-          homFix_invariant c1 c2
-      .
+Lemma vis_mrec_left {T U} (d : D U) (k : U -> itree (D +' E) T) :
+  interp_mrec ctx _ (Vis (inl1 d) k) ≅
+  Tau (interp_mrec ctx _ (ITree.bind (ctx _ d) k)).
+Proof. rewrite unfold_interp_mrec. reflexivity. Qed.
 
-      Lemma homFix_invariant_init {U} (r : relation _)
-            (INV : forall t1 t2, homFix_invariant t1 t2 -> r t1 t2)
-            (c1 c2 : itree _ U)
-            (Ec : eq_itree c1 c2) :
-        paco2 (compose eq_itreeF (gres2 eq_itreeF)) r
-              (homFix c1)
-              (interp1 eval_fixpoint c2).
-      Proof.
-        rewrite unfold_homfix, unfold_interp1.
-        punfold Ec.
-        inversion Ec; cbn; pclearbot; pupto2_final.
-        + eapply eq_itree_refl. (* This should be reflexivity. *)
-        + pfold; constructor. right; apply INV.
-          eapply homFix_main; [ eapply REL | |]; reflexivity.
-        + destruct e.
-          { destruct f0.
-            pfold; constructor; cbn; right.
-            apply INV. eapply homFix_interp1.
-            - reflexivity.
-            - cbn. reflexivity.
-            - cbn. setoid_rewrite REL. reflexivity.
-          }
-          { pfold; econstructor.
-            intros. right. apply INV.
-            eapply homFix_main; eauto; reflexivity.
-          }
-      Qed.
+Hint Rewrite @ret_mrec : itree.
+Hint Rewrite @vis_mrec_left : itree.
+Hint Rewrite @vis_mrec_right : itree.
+Hint Rewrite @tau_mrec : itree.
 
-      Lemma homfix_interp_itree {U} (c1 c2 : itree _ U) :
-          homFix_invariant c1 c2 -> eq_itree c1 c2.
-      Proof.
-        intro H; pupto2_init; revert c1 c2 H. pcofix self.
-        intros c1 c2 [d1 d2 Ed Ec1 Ec2 | T d k1 k2 Ek Ec1 Ec2].
-        - rewrite Ec1, Ec2.
-          apply homFix_invariant_init; auto.
-        - rewrite Ec1, Ec2. cbn.
-          rewrite unfold_homfix. rewrite (unfold_bind (homFix d)).
-          unfold observe, _observe; cbn.
-          destruct (observe d); fold_observe; cbn.
-          + rewrite <- unfold_homfix.
-            apply homFix_invariant_init; auto.
-          + pupto2_final; pfold; constructor; right.
-            apply self.
-            eapply homFix_interp1.
-            * eapply Ek.
-            * cbn; fold_bind; reflexivity.
-            * cbn; fold_bind; reflexivity.
-          + destruct e; cbn.
-            * destruct f0; cbn.
-              fold_bind. rewrite <-bind_bind.
-              pupto2_final. pfold. econstructor. right.
-              apply self.
-              eapply homFix_interp1.
-              ** apply Ek.
-              ** cbn. reflexivity.
-              ** cbn. reflexivity.
-            * pupto2_final; pfold; constructor; right.
-              apply self.
-              eapply homFix_interp1.
-              ++ eapply Ek.
-              ++ cbn; fold_bind; reflexivity.
-              ++ cbn; fold_bind; reflexivity.
-      Qed.
+Instance eq_itree_mrec {R} :
+  Proper (@eq_itree _ R ==> @eq_itree _ R) (interp_mrec ctx R).
+Proof.
+  repeat intro. pupto2_init. revert_until R.
+  pcofix CIH. intros.
+  rewrite !unfold_interp_mrec.
+  pupto2_final.
+  punfold H0. inv H0; pclearbot; [| |destruct e].
+  - eapply eq_itree_refl.
+  - pfold. econstructor. eauto.
+  - pfold. econstructor. apply pointwise_relation_fold in REL.
+    right. eapply CIH. rewrite REL. reflexivity.
+  - pfold. econstructor. eauto 7.
+Qed.
 
-      Theorem homFix_is_interp : forall {T} (c : itree _ T),
-          eq_itree (homFix c) (interp1 eval_fixpoint c).
-      Proof.
-        intros.
-        apply homfix_interp_itree.
-        eapply homFix_main; reflexivity.
-      Qed.
+Theorem interp_mrec_bind {U T} (t : itree _ U) (k : U -> itree _ T) :
+  interp_mrec ctx _ (ITree.bind t k) ≅
+  ITree.bind (interp_mrec ctx _ t) (fun x => interp_mrec ctx _ (k x)).
+Proof.
+  intros. pupto2_init. revert t k.
+  pcofix CIH. intros.
+  rewrite (itree_eta t).
+  destruct (observe t);
+    [| |destruct e];
+    autorewrite with itree;
+    try rewrite <- bind_bind;
+    pupto2_final.
+  1: { apply eq_itree_refl. }
+  all: try (pfold; econstructor; eauto).
+Qed.
 
-    End mfix.
+Let h_mrec : D ~> itree E := mrec ctx.
 
-    Section mfixP.
-      (* The parametric representation allows us to avoid reasoning about
-       * `homFix` and `eval_fixpoint`. They are (essentially) replaced by
-       * beta reduction.
-       *
-       * The downside, is that the type of the body is a little bit more
-       * complex, though one could argue that it is a more abstract encoding.
-       *)
-      Definition fix_body : Type :=
-        forall E',
-          (forall t, itree E t -> itree E' t) ->
-          (forall x : dom, itree E' (codom x)) ->
-          forall x : dom, itree E' (codom x).
+Inductive mrec_invariant {U} : relation (itree _ U) :=
+| mrec_main (d1 d2 : _ U) (Ed : eq_itree d1 d2) :
+    mrec_invariant (interp_mrec ctx _ d1)
+                     (interp1 (mrec ctx) _ d2)
+| mrec_bind T (d : _ T) (k1 k2 : T -> itree _ U)
+    (Ek : forall x, eq_itree (k1 x) (k2 x)) :
+    mrec_invariant (interp_mrec ctx _ (d >>= k1))
+                     (interp_mrec ctx _ d >>= fun x =>
+                        interp1 h_mrec _ (k2 x))
+.
 
-      Variable body : fix_body.
+Notation mi_holds r :=
+  (forall c1 c2 d1 d2,
+      mrec_invariant d1 d2 ->
+      eq_itree c1 d1 -> eq_itree c2 d2 -> r c1 c2).
 
-      Definition mfix
-      : forall x : dom, itree E (codom x) :=
-        _mfix
-          (body (fixpoint +' E)
-                (fun t => interp (fun _ e => lift e))
-                (fun x0 : dom => ITree.liftE (inlE (call x0)))).
+Lemma mrec_invariant_init {U} (r : relation (itree _ U))
+      (INV : mi_holds r)
+      (c1 c2 : itree _ U)
+      (Ec : eq_itree c1 c2) :
+  paco2 (compose eq_itreeF (gres2 eq_itreeF)) r
+        (interp_mrec ctx _ c1)
+        (interp1 h_mrec _ c2).
+Proof.
+  rewrite unfold_interp_mrec, unfold_interp1.
+  punfold Ec.
+  inversion Ec; cbn; pclearbot; pupto2_final.
+  + eapply eq_itree_refl. (* This should be reflexivity. *)
+  + pfold; constructor. right; eapply INV.
+    1: apply mrec_main; eassumption.
+    all: reflexivity.
+  + destruct e.
+    { pfold; constructor; cbn; right. eapply INV.
+      1: apply mrec_bind; eassumption.
+      all: cbn; reflexivity.
+    }
+    { pfold; econstructor.
+      intros; right. eapply INV.
+      1: apply mrec_main; eapply REL.
+      all: reflexivity.
+    }
+Qed.
 
-      Theorem mfix_unfold : forall x,
-          eutt (mfix x) (body E (fun t => id) mfix x).
-      Proof. Admitted.
-    End mfixP.
-  End Fix.
+Lemma mrec_invariant_eq {U} : mi_holds (@eq_itree _ U).
+Proof.
+  intros d1 d2 c1 c2 Ec1 Ec2 H.
+  pupto2_init; revert d1 d2 c1 c2 Ec1 Ec2 H; pcofix self.
+  intros _d1 _d2 c1 c2 [d1 d2 Ed | T d k1 k2 Ek] Ec1 Ec2.
+  - rewrite Ec1, Ec2.
+    apply mrec_invariant_init; auto 10.
+  - rewrite Ec1, Ec2. cbn.
+    rewrite unfold_interp_mrec.
+    rewrite (unfold_bind (interp_mrec _ _ d)).
+    unfold observe, _observe; cbn.
+    destruct (observe d); fold_observe; cbn.
+    + rewrite <- unfold_interp_mrec.
+      apply mrec_invariant_init; auto.
+    + pupto2_final; pfold; constructor; right.
+      eapply self.
+      1: apply mrec_bind; eassumption.
+      all: cbn; fold_bind; reflexivity.
+    + destruct e; cbn.
+      * fold_bind. rewrite <-bind_bind.
+        pupto2_final. pfold. econstructor. right.
+        eapply self.
+        1: apply mrec_bind; eassumption.
+        all: cbn; reflexivity.
+      * pupto2_final; pfold; constructor; right.
+        eapply self.
+        1: apply mrec_bind; eassumption.
+        all: cbn; fold_bind; reflexivity.
+Qed.
 
-  (* [mfix] with singleton domain. *)
-  Section Fix0.
-    Variable E : Type -> Type.
-    Variable codom : Type.
+Theorem interp_mrec_is_interp : forall {T} (c : itree _ T),
+    eq_itree (interp_mrec ctx _ c) (interp1 h_mrec _ c).
+Proof.
+  intros; eapply mrec_invariant_eq;
+    try eapply mrec_main; reflexivity.
+Qed.
 
-    Definition fix_body0 : Type :=
-      forall E',
-        (forall t, itree E t -> itree E' t) ->
-        itree E' codom ->
-        itree E' codom.
-
-    Definition mfix0 (body : fix_body0) : itree E codom :=
-      mfix E unit (fun _ => codom)
-           (fun E' lift self (_ : unit) =>
-              body E' lift (self tt)) tt.
-  End Fix0.
-
-  (* [mfix] with constant codomain. *)
-  Section Fix1.
-    Variable E : Type -> Type.
-    Variable dom : Type.
-    Variable codom : Type.
-
-    Definition fix_body1 : Type :=
-      forall E',
-        (forall t, itree E t -> itree E' t) ->
-        (dom -> itree E' codom) ->
-        (dom -> itree E' codom).
-
-    Definition mfix1 : fix_body1 -> dom -> itree E codom :=
-      mfix E dom (fun _ => codom).
-  End Fix1.
-
-End FixImpl.
-
-Export FixImpl.
-Arguments mfix {_ _} _ _ _.
-Arguments mfix0 {E codom} body.
-Arguments mfix1 {E dom codom} body _.
+End Facts.

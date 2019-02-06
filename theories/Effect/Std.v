@@ -21,7 +21,10 @@ From ExtLib.Structures Require Import
      Functor Monoid.
 
 From ITree Require Import
-     Core Morphisms OpenSum.
+     Basics
+     Core Morphisms
+     Effect.Sum
+     OpenSum.
 
 Section Failure.
 
@@ -83,23 +86,24 @@ Section Reader.
   Variant readerE : Type -> Type :=
   | Ask : readerE env.
 
-  Definition ask {E} `{Convertible readerE E} : itree E env :=
+  Definition ask {E} `{readerE -< E} : itree E env :=
     embed Ask.
 
-  Definition eval_reader {E} : eff_hom_r env readerE E :=
-    fun _ e r =>
+  Definition eval_reader {E} : env -> readerE ~> itree E :=
+    fun r _ e =>
       match e with
       | Ask => Ret r
       end.
 
-  Definition run_reader {E} R (v : env) (t : itree (readerE +' E) R)
-  : itree E R :=
-    interp_reader (into_reader eval_reader) t v.
+  Definition run_reader {E} : env -> itree (readerE +' E) ~> itree E :=
+    interp_reader (into_reader eval_reader).
 
 End Reader.
 
 Arguments ask {env E _}.
-Arguments run_reader {_ _} [_] _ _.
+Arguments run_reader {_ _} _ _ _.
+
+Import ITree.Basics.Monads.
 
 Section State.
 
@@ -112,16 +116,16 @@ Section State.
   Definition get {E} `{stateE -< E} : itree E S := embed Get.
   Definition put {E} `{stateE -< E} : S -> itree E unit := embed Put.
 
-  Definition eval_state {E} : eff_hom_s S stateE E :=
+  Definition eval_state {E} : stateE ~> stateT S (itree E) :=
     fun _ e s =>
       match e with
       | Get => Ret (s, s)
       | Put s' => Ret (s', tt)
       end.
 
-  Definition run_state {E R} (v : S) (t : itree (stateE +' E) R)
-  : itree E (S * R) :=
-    interp_state (into_state eval_state) t v.
+  Definition run_state {E} :
+    itree (stateE +' E) ~> stateT S (itree E) :=
+    interp_state (into_state eval_state).
 
 End State.
 
@@ -169,8 +173,7 @@ Section Trace.
     | Trace _ => Ret tt
     end.
 
-  Definition ignore_trace {E R} (t : itree (traceE +' E) R)
-  : itree E R :=
-    interp (into trace_hom) t.
+  Definition ignore_trace {E} : itree (traceE +' E) ~> itree E :=
+    interp (into trace_hom).
 
 End Trace.

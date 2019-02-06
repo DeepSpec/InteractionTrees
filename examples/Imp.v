@@ -8,6 +8,7 @@ Require Import ExtLib.Structures.Traversable.
 Require Import ExtLib.Data.List.
 
 From ITree Require Import
+     Basics
      ITree.
 
 Import MonadNotation.
@@ -89,10 +90,9 @@ Fixpoint denoteExpr (e : expr) : itree ImpEff value :=
   end.
 
 Definition while {eff} (t : itree eff bool) : itree eff unit :=
-  mfix (fun _ : unit => unit)
-       (fun _ inj rec _ =>
-          continue <- inj _ t ;;
-          if continue : bool then rec tt else Monad.ret tt) tt.
+  rec (fun _ : unit =>
+    continue <- translate (fun _ x => inr1 x) _ t ;;
+    if continue : bool then lift (Call tt) else Monad.ret tt) tt.
 
 (* the meaning of a statement *)
 Fixpoint denoteStmt (s : stmt) : itree ImpEff unit :=
@@ -131,12 +131,13 @@ Eval simpl in
 (* Two interpretations of local variable environments
  *)
 Module ImplicitInit.
+  Import ITree.Basics.Monads.
 
   (* Interpretation of the `Locals` effects using total maps, i.e.
    * variables are implicitly initialized to some default value.
    * This mirrors the semantics of Imp.
    *)
-  Definition evalLocals {eff} : eff_hom_s (var -> value) Locals eff :=
+  Definition evalLocals {eff} : Locals ~> stateT (var -> value) (itree eff) :=
     fun _ e st =>
       match e with
       | GetVar x =>
@@ -152,6 +153,7 @@ End ImplicitInit.
 
 
 Module ExplicitInit.
+  Import ITree.Basics.Monads.
 
   Definition env := list (var * value).
 
@@ -173,7 +175,7 @@ Module ExplicitInit.
    * variables must be explicitly initialized.
    * This mirrors the semantics of C.
    *)
-  Definition evalLocals {eff} `{Error -< eff}: eff_hom_s env Locals eff :=
+  Definition evalLocals {eff} `{Error -< eff}: Locals ~> stateT env (itree eff) :=
     fun _ e st =>
       match e with
       | GetVar x =>
@@ -191,7 +193,7 @@ Module ExplicitInit.
 End ExplicitInit.
 
 Definition evalLocals stmt :=
-  interp_state (into_state ExplicitInit.evalLocals) (denoteStmt stmt) ExplicitInit.init.
+  interp_state (into_state ExplicitInit.evalLocals) _ (denoteStmt stmt) ExplicitInit.init.
 
 (* For Calls ************
 Definition evalLocals stmt :=

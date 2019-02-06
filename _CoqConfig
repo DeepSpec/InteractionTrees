@@ -1,20 +1,21 @@
 -Q theories ITree
 
+theories/Basics.v
 theories/Core.v
 
 theories/Eq/Eq.v
 theories/Eq/UpToTaus.v
 
+theories/Effect/Sum.v
+theories/Effect/Std.v
+
+theories/OpenSum.v
+theories/Fix.v
+
 theories/Morphisms.v
 theories/MorphismsFacts.v
 
-theories/OpenSum.v
-
-theories/StdEffects.v
-
-theories/Fix.v
 theories/UpTo.v
-theories/MutFix.v
 theories/Trace.v
 theories/MFixITree.v
 

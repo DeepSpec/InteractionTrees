@@ -1,6 +1,5 @@
 Require Import Coq.Strings.String.
 
-
 Definition var : Set := string.
 Definition value : Set := nat. (* this should change *)
 
@@ -38,8 +37,7 @@ Record program : Type :=
 (* now define a semantics *)
 
 From ITree Require Import
-     ITree OpenSum
-     MutFix.
+     ITree OpenSum Fix.
 
 Require Import ExtLib.Structures.Monad.
 Import MonadNotation.
@@ -107,15 +105,14 @@ Section with_effect.
         denote_branch b
       end.
   End with_labels.
-
-  Definition denote_program (p : program) : itree e unit :=
-    @mut_mfix e p.(label)
-       (fun _ => {| dom := unit ; codom := fun _ => unit |})
-       (fun _ embed rec lbl _ =>
-          next <- embed _ (denote_block (p.(blocks) lbl)) ;;
-          match next with
-          | None => ret tt
-          | Some next => rec next tt
-          end)
-       p.(main) tt.
 End with_effect.
+
+Definition denote_program {e} `{Locals -< e} `{Memory -< e}
+           (p : program) : itree e unit :=
+  rec (fun lbl : p.(label) =>
+      next <- denote_block (_ +' e) (p.(blocks) lbl) ;;
+      match next with
+      | None => ret tt
+      | Some next => lift (Call next)
+      end)
+    p.(main).
