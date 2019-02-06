@@ -177,3 +177,23 @@ Section Trace.
     interp (into trace_hom).
 
 End Trace.
+
+(** Dependently typed effect *)
+Section Dep.
+
+  Variant depE (I : Type) (F : I -> Type) : Type -> Type :=
+  | Dep (i : I) : depE F (F i).
+
+  Arguments Dep {I F}.
+
+  Definition dep {I F E} `{depE F -< E} (i : I) : itree E (F i) :=
+    lift (Dep i).
+
+  Definition undep {I F} (f : forall i : I, F i) :
+    depE F ~> identity :=
+    fun _ d =>
+      match d with
+      | Dep i => f i
+      end.
+
+End Dep.
