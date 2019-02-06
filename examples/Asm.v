@@ -109,7 +109,7 @@ End with_effect.
 
 Definition denote_program {e} `{Locals -< e} `{Memory -< e}
            (p : program) : itree e unit :=
-  fix_rec (fun lbl : p.(label) =>
+  rec (fun lbl : p.(label) =>
       next <- denote_block (_ +' e) (p.(blocks) lbl) ;;
       match next with
       | None => ret tt

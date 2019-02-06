@@ -90,7 +90,7 @@ Fixpoint denoteExpr (e : expr) : itree ImpEff value :=
   end.
 
 Definition while {eff} (t : itree eff bool) : itree eff unit :=
-  fix_rec (fun _ : unit =>
+  rec (fun _ : unit =>
     continue <- translate (fun _ x => inr1 x) _ t ;;
     if continue : bool then lift (Call tt) else Monad.ret tt) tt.
 

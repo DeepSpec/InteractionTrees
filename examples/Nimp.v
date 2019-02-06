@@ -115,7 +115,7 @@ Definition or {R : Type} (t1 t2 : itree nd R) : itree nd R :=
 Definition choice {E} `{nd -< E} : itree E bool := lift Or.
 
 Definition eval : com -> itree nd unit :=
-  fix_rec (fun (c : com) =>
+  rec (fun (c : com) =>
     match c with
     | loop c =>
       (b <- choice;;
@@ -134,7 +134,7 @@ Definition eval : com -> itree nd unit :=
 
 (* [itree] semantics of [one_loop]. *)
 Definition one_loop_tree : itree nd unit :=
-  fix_rec (fun _ : unit =>
+  rec (fun _ : unit =>
     (* note: [or] is not allowed under [mfix]. *)
     b <- choice;;
     if b : bool then
