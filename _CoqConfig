@@ -9,6 +9,7 @@ theories/Eq/UpToTaus.v
 theories/Effect/Sum.v
 theories/Effect/Std.v
 theories/Effect/Spawn.v
+theories/EnvEffect.v
 
 theories/OpenSum.v
 theories/Fix.v

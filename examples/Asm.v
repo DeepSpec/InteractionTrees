@@ -116,3 +116,60 @@ Definition denote_program {e} `{Locals -< e} `{Memory -< e}
       | Some next => lift (Call next)
       end)
     p.(main).
+
+(* SAZ: Everything from here down can probably be polished.
+
+   In particular, I'm still not completely happy with how all the different parts
+   fit together in run.  
+
+ *)
+
+
+(* Interpretation ----------------------------------------------------------- *)
+
+From ITree Require Import
+     EnvEffect.
+
+From ExtLib Require Import
+     Core.RelDec
+     Structures.Maps
+     Data.Map.FMapAList.
+
+(* Both environments and memory effects can be interpreted as "map" effects. *)
+
+Definition interpret_Locals {E : Type -> Type} `{envE var value -< E} :
+  Locals ~> itree E :=
+  fun _ e =>
+    match e with
+    | GetVar x => env_lookupDefault x 0
+    | SetVar x v => env_add x v
+    end.
+
+Definition interpret_Memory {E : Type -> Type} `{envE value value -< E} :
+  Memory ~> itree E :=
+  fun _ e =>
+    match e with
+    | Load x => env_lookupDefault x 0
+    | Store x v => env_add x v
+    end.
+
+(* Our Map implementation uses a simple association list *)
+Definition env := alist var value.
+Definition memory := alist value value.
+
+(* Enable typeclass instances for Maps keyed by strings and values *)
+Instance RelDec_string : RelDec (@eq string) :=
+  { rel_dec := fun s1 s2 => if String.string_dec s1 s2 then true else false}.
+
+Instance RelDec_value : RelDec (@eq value) := { rel_dec := Nat.eqb }.
+
+(* SAZ: Is this the nicest way to present this? *)
+Definition run (p: program) : itree emptyE _ :=
+  let p1 := interp1 interpret_Memory _ (denote_program p) in
+  let p2 := interp1 interpret_Locals _ p1 in
+  let p3 := run_env _ p2 empty in
+  let p4 := run_env _ p3 empty in
+  p4.
+
+(* SAZ: Note: we should be able to prove that run produces trees that are equivalent
+   to run' where run' interprets memory and locals in a different order *)
