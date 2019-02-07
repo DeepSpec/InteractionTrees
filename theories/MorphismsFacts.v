@@ -133,6 +133,55 @@ Proof.
     + intros; specialize (CIH _ (k0 v) k); auto.
 Qed.
 
+Definition interp_match {E F} (f: E ~> itree F) : (E +' F) ~> itree F :=
+  fun _ ef => match ef with inl1 e => f _ e | inr1 e => Vis e (fun r => Ret r) end.
+
+Inductive interp_inv {E F R} (f: E ~> itree F) : relation (itree' F R) :=
+| _interp_inv_main t:
+    interp_inv f
+      (observe (interp (interp_match f) _ t)) (observe (interp1 f _ t))
+| _interp_inv_bind u t (k: u -> _):
+    interp_inv f
+      (observe (ITree.bind t (fun x => interp (interp_match f) _ (k x))))
+      (observe (ITree.bind t (fun x => interp1 f _ (k x))))
+.
+Hint Constructors interp_inv.
+
+Lemma interp_inv_main_step E F R (f: E ~> itree F) (t: itree _ R) :
+  euttF' (fun x y => interp_inv f (observe x) (observe y)) (interp_inv f)
+         (observe (interp (interp_match f) _ t)) (observe (interp1 f _ t)).
+Proof.
+  rewrite interp_unfold, interp1_unfold.
+  genobs t ot. clear Heqot t.
+  destruct ot; simpl; eauto.
+  destruct e; simpl; eauto.
+  econstructor. rewrite bind_unfold.
+  econstructor. intros.
+  fold_bind. rewrite bind_unfold. simpl. eauto.
+Qed.
+
+Lemma interp_is_interp1 E F R (f: E ~> itree F) (t: itree _ R) :
+  interp (interp_match f) _ t ~~ interp1 f _ t.
+Proof.
+  revert t.
+  cut (forall (t1 t2: itree _ R) (REL: interp_inv f (observe t1) (observe t2)), t1 ~~ t2).
+  { eauto. }
+
+  intros. apply eutt_is_eutt'.
+  revert t1 t2 REL. pcofix CIH. intros. pfold.
+  revert t1 t2 REL. pcofix CIH'. intros.
+  destruct REL.
+  - pfold. eapply euttF'_mon; eauto using interp_inv_main_step; intros.
+    eapply upaco2_mon; eauto. intros.
+    eapply (CIH' (go x2) (go x3)); eauto.
+  - rewrite !bind_unfold. fold_bind.
+    genobs t ot. clear Heqot t.
+    destruct ot; simpl; eauto 10 using gres2.
+    pfold. eapply euttF'_mon; eauto using interp_inv_main_step; intros.
+    eapply upaco2_mon; eauto. intros.
+    eapply (CIH' (go x2) (go x3)); eauto.
+Qed.
+
 Lemma interp_state_liftE {E F : Type -> Type} {R S : Type}
       (f : forall T, E T -> S -> itree F (S * T)%type)
       (s : S) (e : E R) :
