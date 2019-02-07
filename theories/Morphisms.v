@@ -103,15 +103,15 @@ Definition interp {E F : Type -> Type} (h : E ~> itree F) :
     allows a few equations to be bisimularities ([eq_itree]) instead
     of up-to-tau equivalences ([eutt]).
  *)
-Definition interp1 {E F : Type -> Type} (h : E ~> itree F) :
-  itree (E +' F) ~> itree F := fun R =>
+Definition interp1 {E F G : Type -> Type} `{F -< G} (h : E ~> itree G) :
+  itree (E +' F) ~> itree G := fun R =>
   cofix interp1_ t :=
     handleF interp1_
             (fun _ ef k =>
                match ef with
                | inl1 e => Tau (ITree.bind (h _ e)
                                            (fun x => interp1_ (k x)))
-               | inr1 f => Vis f (fun x => interp1_ (k x))
+               | inr1 f => Vis (subeffect _ f) (fun x => interp1_ (k x))
                end)
             (observe t).
 

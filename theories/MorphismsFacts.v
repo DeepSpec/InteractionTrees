@@ -10,6 +10,7 @@ From ITree Require Import
      Basics
      Core
      Effect.Sum
+     OpenSum
      Morphisms
      Eq.Eq
      Eq.UpToTaus.
@@ -49,14 +50,14 @@ Lemma unfold_interp {E F R} {f : E ~> itree F} (t : itree E R) :
 Proof. rewrite itree_eta, interp_unfold, <-itree_eta. reflexivity. Qed.
 
 (* Unfolding of [interp1]. *)
-Definition interp1_u {E F} (h : E ~> itree F) R :
-  itreeF (E +' F) R _ -> itree F R :=
+Definition interp1_u {E F G} `{F -< G} (h : E ~> itree G) R :
+  itreeF (E +' F) R _ -> itree G R :=
   handleF (interp1 h _)
           (fun _ ef k =>
              match ef with
              | inl1 e => Tau (ITree.bind (h _ e)
                                          (fun x => interp1 h _ (k x)))
-             | inr1 f => Vis f (fun x => interp1 h _ (k x))
+             | inr1 f => Vis (subeffect _ f) (fun x => interp1 h _ (k x))
              end).
 
 Lemma interp1_unfold {E F R} {f : E ~> itree F} (t : itree (E +' F) R) :
