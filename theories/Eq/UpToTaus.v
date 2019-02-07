@@ -878,6 +878,9 @@ Hint Constructors euttF'.
 Definition eutt'_ {E R} eutt t1 t2 := paco2 (@euttF' E R eutt) bot2 (* (fun x y => eutt (go x) (go y)) *) (observe t1) (observe t2).
 Hint Unfold eutt'_.
 
+Definition eutt' {E R} := paco2 (@eutt'_ E R) bot2.
+Hint Unfold eutt'.
+
 Lemma euttF'_mon {E R} r r' s s' x y
     (EUTT: @euttF' E R r s x y)
     (LEr: r <2= r')
