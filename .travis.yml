@@ -10,7 +10,7 @@ env:
   - OCAML_VERSION=4.07 PINS="coq.8.9.0 coq-paco.2.0.0"
 os:
   - linux
-  - osx
+    # - osx
 matrix:
   fast_finish: true
   allow_failures:
