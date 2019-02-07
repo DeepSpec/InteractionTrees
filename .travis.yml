@@ -6,11 +6,11 @@ env:
   global:
   - EXTRA_REMOTES="https://coq.inria.fr/opam/released https://coq.inria.fr/opam/extra-dev"
   matrix:
-  - OCAML_VERSION=4.07 PINS=coq.8.8.2
-  - OCAML_VERSION=4.07 PINS=coq.8.9.0
+  - OCAML_VERSION=4.07 PINS="coq.8.8.2 coq-paco.2.0.0"
+  - OCAML_VERSION=4.07 PINS="coq.8.9.0 coq-paco.2.0.0"
 os:
   - linux
-  - osx
+    # - osx
 matrix:
   fast_finish: true
   allow_failures:

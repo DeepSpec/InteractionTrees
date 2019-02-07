@@ -1,6 +1,5 @@
 Require Import Coq.Strings.String.
 
-
 Definition var : Set := string.
 Definition value : Set := nat. (* this should change *)
 
@@ -38,8 +37,7 @@ Record program : Type :=
 (* now define a semantics *)
 
 From ITree Require Import
-     ITree OpenSum
-     MutFix.
+     ITree OpenSum Fix.
 
 Require Import ExtLib.Structures.Monad.
 Import MonadNotation.
@@ -107,19 +105,17 @@ Section with_effect.
         denote_branch b
       end.
   End with_labels.
-
-  Definition denote_program (p : program) : itree e unit :=
-    @mut_mfix e p.(label)
-       (fun _ => {| dom := unit ; codom := fun _ => unit |})
-       (fun _ embed rec lbl _ =>
-          next <- embed _ (denote_block (p.(blocks) lbl)) ;;
-          match next with
-          | None => ret tt
-          | Some next => rec next tt
-          end)
-       p.(main) tt.
 End with_effect.
 
+Definition denote_program {e} `{Locals -< e} `{Memory -< e}
+           (p : program) : itree e unit :=
+  rec (fun lbl : p.(label) =>
+      next <- denote_block (_ +' e) (p.(blocks) lbl) ;;
+      match next with
+      | None => ret tt
+      | Some next => lift (Call next)
+      end)
+    p.(main).
 
 (* SAZ: Everything from here down can probably be polished.
 
@@ -141,22 +137,21 @@ From ExtLib Require Import
 
 (* Both environments and memory effects can be interpreted as "map" effects. *)
 
-Definition interpret_Locals (E:Type->Type) `{envE var value -< E} : eff_hom Locals E :=
+Definition interpret_Locals {E : Type -> Type} `{envE var value -< E} :
+  Locals ~> itree E :=
   fun _ e =>
     match e with
     | GetVar x => env_lookupDefault x 0
     | SetVar x v => env_add x v
     end.
-Arguments interpret_Locals {E}.
 
-Definition interpret_Memory (E:Type -> Type) `{envE value value -< E} : eff_hom Memory E :=
+Definition interpret_Memory {E : Type -> Type} `{envE value value -< E} :
+  Memory ~> itree E :=
   fun _ e =>
     match e with
     | Load x => env_lookupDefault x 0
     | Store x v => env_add x v
     end.
-Arguments interpret_Memory {E}.
-
 
 (* Our Map implementation uses a simple association list *)
 Definition env := alist var value.
@@ -169,11 +164,11 @@ Instance RelDec_string : RelDec (@eq string) :=
 Instance RelDec_value : RelDec (@eq value) := { rel_dec := Nat.eqb }.
 
 (* SAZ: Is this the nicest way to present this? *)
-Definition run (p:program) : itree emptyE _ :=
-  let p1 := interp1 (interpret_Memory _) (denote_program _ p) in
-  let p2 := interp1 (interpret_Locals _) p1 in
-  let p3 := run_env empty p2 in
-  let p4 := run_env empty p3 in
+Definition run (p: program) : itree emptyE _ :=
+  let p1 := interp1 interpret_Memory _ (denote_program p) in
+  let p2 := interp1 interpret_Locals _ p1 in
+  let p3 := run_env _ p2 empty in
+  let p4 := run_env _ p3 empty in
   p4.
 
 (* SAZ: Note: we should be able to prove that run produces trees that are equivalent

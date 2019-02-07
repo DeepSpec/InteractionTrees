@@ -210,15 +210,14 @@ Section EX2.
     unfold run_SP in H.
     unfold run_weak in H.
     unfold mfix_SP in H.
-    pinversion H.
+    punfold H; inv H.
     destruct H0 as [a0 [H1 H2]].
     simpl in H1.
-    inversion H2.
-    pinversion H2.
-    destruct H0 as [a1 [[H31 H32] H4]].
-    inversion H4.
-    pinversion H4.
-    simpl in H3. subst.
+    pclearbot.
+    punfold H2; inv H2.
+    destruct H as [a1 [[H31 H32] H4]].
+    pclearbot.
+    punfold H4; inv H4.
     reflexivity.
   Qed.
 

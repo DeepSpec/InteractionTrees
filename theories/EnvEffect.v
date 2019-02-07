@@ -12,7 +12,11 @@ From ExtLib.Structures Require Import
      Functor Monoid Maps.
 
 From ITree Require Import
-     Core Morphisms OpenSum.
+     Basics
+     Core Morphisms
+     Effect.Sum
+     OpenSum.
+Import ITree.Basics.Monads.
 
 
 (* Environment Effects ------------------------------------------------------ *)
@@ -39,7 +43,7 @@ Section Env.
   Context {map : Type}.
   Context {M:Map K V map}.
   
-  Definition eval_env {E} : eff_hom_s map envE E := 
+  Definition eval_env {E} : envE ~> stateT map (itree E) :=
     fun _ e env =>
       match e with
       | addE k v => Ret (add k v env, tt)
@@ -48,9 +52,8 @@ Section Env.
       | removeE k => Ret (remove k env, tt)
       end.
 
-  Definition run_env {E R} (env : map) (t : itree (envE +' E) R)
-  : itree E (map * R) :=
-    interp_state (into_state eval_env) t env.
+  Definition run_env {E} : itree (envE +' E) ~> stateT map (itree E) :=
+    interp_state (into_state eval_env).
 
 End Env.
 
@@ -58,6 +61,5 @@ Arguments env_add {K V E _}.
 Arguments env_lookup {K V E _}.
 Arguments env_lookupDefault {K V E _}.
 Arguments env_remove {K V E _}.
-Arguments run_env {K V map M _ _}.
-
+Arguments run_env {K V map M _}.
 

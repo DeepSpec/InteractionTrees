@@ -1,5 +1,5 @@
 From ITree Require Import
-     ITree Eq.Eq Eq.UpToTaus MutFix.
+     ITree Eq.Eq Eq.UpToTaus.
 
 (* Coq extraction seems to have problem with module synonyms.
    We just make these synonyms abstract for now. *)
