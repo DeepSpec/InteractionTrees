@@ -128,7 +128,7 @@ Definition denote_program {e} `{Locals -< e} `{Memory -< e}
 (* Interpretation ----------------------------------------------------------- *)
 
 From ITree Require Import
-     EnvEffect.
+     Effect.Env.
 
 From ExtLib Require Import
      Core.RelDec
