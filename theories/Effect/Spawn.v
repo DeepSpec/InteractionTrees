@@ -18,6 +18,9 @@ Inductive spawnE E : Type -> Type :=
 | Spawn : forall (t: itree E unit), spawnE E unit.
 
 
+Definition spawn {F E} `{(spawnE F) -< E} (t:itree F unit) : itree E unit :=
+    lift (Spawn t).
+
 (* A simple round-robin scheduler:
 
    This scheduler runs a queue of threads that contain Spawn events.  Each such
