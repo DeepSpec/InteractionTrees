@@ -34,7 +34,8 @@ From ExtLib Require
 From ITree Require Import
      Basics
      Core
-     Effect.Sum.
+     Effect.Sum
+     OpenSum.
 
 Open Scope itree_scope.
 
@@ -52,17 +53,18 @@ Definition handleF {E F : Type -> Type} {I R : Type}
 Hint Unfold handleF.
 
 (** A variant of [handleF] that treats [inr1] effects like [Tau]. *)
-Definition handleF1 {E F : Type -> Type} {I R : Type}
-           (tau : I -> itree F R)
-           (vis : forall U, E U -> (U -> I) -> itree F R)
-           (ot : itreeF (E +' F) R I) : itree F R :=
+Definition handleF1 {E F G : Type -> Type} {I R : Type}
+           `{F -< G}
+           (tau : I -> itree G R)
+           (vis : forall U, E U -> (U -> I) -> itree G R)
+           (ot : itreeF (E +' F) R I) : itree G R :=
   match ot with
   | RetF r => Ret r
   | TauF t' => Tau (tau t')
   | VisF ef k =>
     match ef with
     | inl1 e => vis _ e k
-    | inr1 f => Vis f (fun x => tau (k x))
+    | inr1 f => Vis (subeffect _ f) (fun x => tau (k x))
     end
   end.
 Hint Unfold handleF1.
@@ -74,6 +76,13 @@ Definition handle {E F : Type -> Type} {R : Type}
   itree E R -> itree F R :=
   cofix handle_ t := handleF handle_ h (observe t).
 Hint Unfold handle.
+
+Definition handle1 {E F G : Type -> Type} {R : Type}
+           `{F -< G}
+           (h : forall U, E U -> (U -> itree (E +' F) R) -> itree G R) :
+  itree (E +' F) R -> itree G R :=
+  cofix handle1_ t := handleF1 handle1_ h (observe t).
+Hint Unfold handle1.
 
 (** An itree effect handler [E ~> itree F] defines an
     itree morphism [itree E ~> itree F]. *)
