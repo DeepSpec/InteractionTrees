@@ -414,6 +414,28 @@ Proof.
   - intros. eapply EQV; eapply unalltaus_tau; eauto.
 Qed.
 
+Lemma euttF_tau_left r t1 t2 t1'
+    (OBS: TauF t1 = observe t1')
+    (REL: eutt_ r t1' t2):
+  eutt_ r t1 t2.
+Proof.
+  intros. destruct REL. econstructor.
+  - rewrite <- FIN. symmetry. rewrite finite_taus_tau; eauto. reflexivity.
+  - intros. eapply EQV; eauto. rewrite <- OBS. inversion UNTAUS1. constructor; auto.
+    econstructor; eauto.
+Qed.
+
+Lemma euttF_tau_right r t1 t2 t2'
+    (OBS: TauF t2 = observe t2')
+    (REL: eutt_ r t1 t2'):
+  eutt_ r t1 t2.
+Proof.
+  intros. destruct REL. econstructor.
+  - rewrite FIN. rewrite finite_taus_tau; eauto. reflexivity.
+  - intros. eapply EQV; eauto. rewrite <- OBS. inversion UNTAUS2. constructor; auto.
+    econstructor; eauto.
+Qed.
+
 Lemma euttF_vis {u} (r : relation (itree E R)) t1 t2 (e : _ u) k1 k2
     (OBS1: VisF e k1 = observe t1)
     (OBS2: VisF e k2 = observe t2)
