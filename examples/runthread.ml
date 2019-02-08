@@ -1,5 +1,8 @@
 ;; open MultiThreadedPrinting
 
+
+(* Taken from Xavier Leroy's Camlcoq library, which is part of CompCert under
+   Gnu Public License version 2 or later.  *)
 let camlstring_of_coqstring (s: char list) =
   let r = Bytes.create (List.length s) in
   let rec fill pos = function
@@ -7,6 +10,11 @@ let camlstring_of_coqstring (s: char list) =
   | c :: s -> Bytes.set r pos c; fill (pos + 1) s
   in Bytes.to_string (fill 0 s)
 
+
+
+
+
+(* The driver loop ---------------------------------------------------------- *)
 
 let rec step m : unit =
   match Core0.observe m with
