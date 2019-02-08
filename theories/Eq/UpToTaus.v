@@ -420,7 +420,7 @@ Lemma euttF_tau_left r t1 t2 t1'
   eutt_ r t1 t2.
 Proof.
   intros. destruct REL. econstructor.
-  - rewrite <- FIN. symmetry. rewrite finite_taus_tau; eauto. reflexivity.
+  - rewrite <- FIN. symmetry. rewrite <- OBS. rewrite <- finite_taus_tau; eauto. reflexivity.
   - intros. eapply EQV; eauto. rewrite <- OBS. inversion UNTAUS1. constructor; auto.
     econstructor; eauto.
 Qed.
@@ -431,7 +431,7 @@ Lemma euttF_tau_right r t1 t2 t2'
   eutt_ r t1 t2.
 Proof.
   intros. destruct REL. econstructor.
-  - rewrite FIN. rewrite finite_taus_tau; eauto. reflexivity.
+  - rewrite FIN. rewrite <- OBS. rewrite <- finite_taus_tau; eauto. reflexivity.
   - intros. eapply EQV; eauto. rewrite <- OBS. inversion UNTAUS2. constructor; auto.
     econstructor; eauto.
 Qed.

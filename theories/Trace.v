@@ -3,7 +3,6 @@ Import ListNotations.
 
 From ITree Require Import
      Core
-     Eq.Eq
      Eq.UpToTaus.
 
 From Paco Require Import
