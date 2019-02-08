@@ -1,4 +1,7 @@
-Require Import List.
+From Coq Require Import
+     List
+     ProofIrrelevance.
+
 Import ListNotations.
 
 From ITree Require Import
@@ -47,15 +50,13 @@ Definition trace_eq {E : Type -> Type} {R : Type} : itree E R -> itree E R -> Pr
   fun t1 t2 =>
     trace_incl t1 t2 /\ trace_incl t2 t1.
 
-Require Import ProofIrrelevance.
-
 Ltac invert_existTs :=
   repeat match goal with
          | [ H : existT ?P ?p _ = existT ?P ?p _ |- _ ] => apply inj_pair2 in H
          end; subst.
 
 (* A trace is still valid after removing taus *)
-Lemma is_traceF_unalltaus: forall {E R} (t1 t2 : itreeF E R (itree E R)) tr r,
+Lemma is_traceF_unalltaus_remove: forall {E R} (t1 t2 : itreeF E R (itree E R)) tr r,
     unalltausF t1 t2 ->
     is_traceF t1 tr r ->
     is_traceF t2 tr r.
@@ -63,14 +64,14 @@ Proof.
   intros. inv H. induction H1; subst; auto.
   apply IHuntausF; auto. inversion H0; subst; auto; constructor.
 Qed.
-Lemma is_trace_unalltaus: forall {E R} (t1 t2 : itree E R) tr r,
+Lemma is_trace_unalltaus_remove: forall {E R} (t1 t2 : itree E R) tr r,
     unalltausF (observe t1) (observe t2) ->
     is_trace t1 tr r ->
     is_trace t2 tr r.
-Proof. intros. eapply is_traceF_unalltaus; eauto. Qed.
+Proof. intros. eapply is_traceF_unalltaus_remove; eauto. Qed.
 
 (* A trace is still valid after adding taus *)
-Lemma is_traceF_unalltaus': forall {E R} (t1 t2 : itreeF E R (itree E R)) tr r,
+Lemma is_traceF_unalltaus_add: forall {E R} (t1 t2 : itreeF E R (itree E R)) tr r,
     unalltausF t1 t2 ->
     is_traceF t2 tr r ->
     is_traceF t1 tr r.
@@ -79,11 +80,11 @@ Proof.
   induction H1; auto.
   rewrite <- OBS. constructor. auto.
 Qed.
-Lemma is_trace_unalltaus': forall {E R} (t1 t2 : itree E R) tr r,
+Lemma is_trace_unalltaus_add: forall {E R} (t1 t2 : itree E R) tr r,
     unalltausF (observe t1) (observe t2) ->
     is_trace t2 tr r ->
     is_trace t1 tr r.
-Proof. intros. eapply is_traceF_unalltaus'; eauto. Qed.
+Proof. intros. eapply is_traceF_unalltaus_add; eauto. Qed.
 
 Lemma eutt_trace_incl : forall {E R} (t1 t2 : itree E R),
     t1 ~~ t2 -> trace_incl t1 t2.
@@ -99,7 +100,7 @@ Proof.
     assert (FIN2: finite_tausF (observe t1)) by (eexists; apply Hunall).
     rewrite FIN in FIN2. inv FIN2.
     specialize (EQV _ _ Hunall H0). inv EQV. red.
-    eapply is_trace_unalltaus'.
+    eapply is_trace_unalltaus_add.
     + simpobs. auto.
     + red. rewrite <- Heqi. constructor.
   - apply IHis_traceF with (t1:=t); auto.
@@ -196,10 +197,10 @@ Proof.
     assert (Heq' : forall tr r, is_traceF ot1' tr r <-> is_traceF ot2' tr r).
     {
       intros. split; intros.
-      - pose proof (is_traceF_unalltaus' _ _ _ _ UNTAUS1 H).
-        eapply is_traceF_unalltaus; eauto.
-      - pose proof (is_traceF_unalltaus' _ _ _ _ UNTAUS2 H).
-        eapply is_traceF_unalltaus; eauto.
+      - pose proof (is_traceF_unalltaus_add _ _ _ _ UNTAUS1 H).
+        eapply is_traceF_unalltaus_remove; eauto.
+      - pose proof (is_traceF_unalltaus_add _ _ _ _ UNTAUS2 H).
+        eapply is_traceF_unalltaus_remove; eauto.
     }
     destruct ot1', ot2';
       try solve [inv UNTAUS1; inv H0];
