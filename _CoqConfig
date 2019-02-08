@@ -23,7 +23,3 @@ theories/MFixITree.v
 
 theories/ITree.v
 
--Q examples Examples
-
-examples/MultiThreadedPrinting.v
-examples/extracted/Extract.v

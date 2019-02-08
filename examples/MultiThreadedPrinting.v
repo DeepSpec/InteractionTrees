@@ -1,24 +1,23 @@
 Set Implicit Arguments.
 Set Contextual Implicit.
 
-
 From Coq Require Import
-     String List.
-Import ListNotations.
-
-From ExtLib.Structures Require Import
-     Monoid.
+     String.
 
 From ITree Require Import
      ITree
      Effect.Spawn.
 
+
+(* An OCaml-interpreted event that just prints the given string. *)
 Variant printE : Type -> Type :=
   Print : string -> printE unit.
 
+(* A thread that loops, printing [s] forever. *)
 Definition thread (s:string) : itree printE unit :=
   ITree.forever (lift (Print s)).
 
+(* Run three threads. *)
 Definition main_thread : itree (spawnE printE +' printE) unit :=
   spawn (thread "Thread 1") ;;
   spawn (thread "Thread 2") ;;

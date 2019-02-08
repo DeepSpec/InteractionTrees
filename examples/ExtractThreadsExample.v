@@ -2,11 +2,14 @@ Require ExtrOcamlBasic.
 Require ExtrOcamlString.
 From Examples Require Import MultiThreadedPrinting.
 
-Extraction Language Ocaml.
+Extraction Language OCaml.
 Extraction Blacklist String List Char Core Z.
 
 Set Extraction AccessOpaque.
 (* NOTE: assumes that this file is compiled from / *)
-Cd "example/extracted".
+Cd "examples/extracted".
 
 Recursive Extraction Library MultiThreadedPrinting.
+
+(* This is needed for the makefile to succeed for some reason. *)
+Cd "../..".
