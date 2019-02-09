@@ -14,7 +14,7 @@ Variant printE : Type -> Type :=
   Print : string -> printE unit.
 
 (* A thread that loops, printing [s] forever. *)
-Definition thread (s:string) : itree printE unit :=
+Definition thread {E} `{printE -< E} (s:string) : itree E unit :=
   ITree.forever (lift (Print s)).
 
 (* Run three threads. *)

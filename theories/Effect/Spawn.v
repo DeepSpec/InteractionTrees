@@ -15,10 +15,9 @@ From ITree Require Import
 
 (* An event that spawns a unit-producing thread with effects in E.   *)
 Inductive spawnE E : Type -> Type :=
-| Spawn : forall (t: itree E unit), spawnE E unit.
+| Spawn : forall (t: itree (spawnE E +' E) unit), spawnE E unit.
 
-
-Definition spawn {F E} `{(spawnE F) -< E} (t:itree F unit) : itree E unit :=
+Definition spawn {F E} `{(spawnE F) -< E} (t:itree (spawnE F +' F) unit) : itree E unit :=
     lift (Spawn t).
 
 (* A simple round-robin scheduler:
@@ -55,7 +54,7 @@ Definition rr_match {E} (rr : list (itree ((spawnE E) +' E) unit) -> itree E uni
         | inl1 s =>
           match s in spawnE _ Y return X = Y -> itree E unit with
           | (Spawn u) => fun pf => Tau (rr (ts
-                                    ++ [translate (@inr1 (spawnE E) E) _ u]
+                                    ++ [u]
                                     ++ [k (eq_rect_r (fun T => T) tt pf)]))
           end eq_refl
         | inr1 o => Vis o (fun x => rr (ts ++ [k x]))
