@@ -33,46 +33,6 @@ Set Bullet Behavior "Strict Subproofs".
 
 Local Open Scope itree.
 
-(* BEGIN: Taken from Paco 2.0.1. Remove it after upgrading to Paco 2.0.1. *)
-Lemma paco2_mon_gen (T0: Type) (T1: T0 -> Type) gf gf' r r' x0 x1
-    (PR: @paco2 T0 T1 gf r x0 x1)
-    (LEgf: gf <3= gf')
-    (LEr: r <2= r'):
-  paco2 gf' r' x0 x1.
-Proof. Admitted.
-
-Lemma grespectful2_mon (T0: Type) (T1: T0 -> Type) gf : monotone2 (@gres2 T0 T1 gf).
-Proof. Admitted.
-
-Lemma upaco2_mon_gen (T0: Type) (T1: T0 -> Type) gf gf' r r' x0 x1
-    (PR: @upaco2 T0 T1 gf r x0 x1)
-    (LEgf: gf <3= gf')
-    (LEr: r <2= r'):
-  upaco2 gf' r' x0 x1.
-Proof. Admitted.
-
-Lemma grespectful2_impl T0 T1 gf gf' r x y
-    (PR: @gres2 T0 T1 gf r x y)
-    (EQ: forall r x y, gf r x y <-> gf' r x y):
-  gres2 gf' r x y.
-Proof. Admitted.
-
-Lemma grespectful2_iff T0 T1 gf gf' r x y
-    (EQ: forall r x y, gf r x y <-> gf' r x y):
- @gres2 T0 T1 gf r x y <-> gres2 gf' r x y.
-Proof. Admitted.
-
-Ltac pupto2 H := first [eapply upto2_step|eapply upto2_step_under]; [|eapply H|]; [eauto with paco|].
-
-(* END *)
-
-
-
-
-
-
-
-
 (* [notau t] holds when [t] does not start with a [Tau]. *)
 Definition notauF {E R I} (t : itreeF E R I) : Prop :=
   match t with
