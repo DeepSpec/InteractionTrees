@@ -36,7 +36,7 @@ example-io: examples/IO.v
 	  ocamlbuild io.native && ./io.native
 
 THREADSV=examples/MultiThreadedPrinting.v examples/ExtractThreadsExample.v
-THREADSML=examples/runthread.ml examples/Camlcoq.ml
+THREADSML=examples/runthread.ml
 example-threads: $(THREADSV) $(THREADSML)
 	coqc -Q theories/ ITree -Q examples/ Examples $(THREADSV) && \
 	cd examples && \
