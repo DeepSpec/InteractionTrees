@@ -19,7 +19,7 @@ test: examples tests
 tests:
 	make -C tests
 
-examples: example-imp example-lc example-io example-nimp
+examples: example-imp example-lc example-io example-nimp example-threads
 
 example-imp: examples/Imp.v
 	coqc -Q theories/ ITree examples/Imp.v
@@ -35,6 +35,14 @@ example-io: examples/IO.v
 	  coqc -Q ../theories/ ITree IO.v && \
 	  ocamlbuild io.native && ./io.native
 
+THREADSV=examples/MultiThreadedPrinting.v examples/ExtractThreadsExample.v
+THREADSML=examples/runthread.ml
+example-threads: $(THREADSV) $(THREADSML)
+	coqc -Q theories/ ITree -Q examples/ Examples $(THREADSV) && \
+	cd examples && \
+	ocamlbuild -I extracted runthread.native && \
+	./runthread.native
+
 Makefile.coq: _CoqProject
 	coq_makefile -f $< -o $@
 
@@ -42,6 +50,8 @@ clean: Makefile.coq
 	$(MAKE) -f Makefile.coq clean
 	$(RM) {*,*/*}/*.{vo,glob} {*,*/*}/.*.aux
 	$(RM) _CoqProject Makefile.coq*
+	$(RM) examples/extracted/*.*
+	cd examples && ocamlbuild -clean
 
 _CoqProject: $(COQPATHFILE) _CoqConfig Makefile
 	@ echo "# Generating _CoqProject"
