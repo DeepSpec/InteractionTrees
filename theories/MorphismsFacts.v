@@ -241,15 +241,14 @@ Qed.
 Lemma interp_state_liftE {E F : Type -> Type} {R S : Type}
       (f : forall T, E T -> S -> itree F (S * T)%type)
       (s : S) (e : E R) :
-  (interp_state f _ (ITree.liftE e) s) ~~ (f _ e s).
+  (interp_state f _ (ITree.liftE e) s) ≅ Tau (f _ e s).
 Proof.
   unfold ITree.liftE. rewrite interp_state_vis.  
-  rewrite tau_eutt.
   assert (pointwise_relation _ eq_itree (fun sx : S * R => interp_state f R (Ret (snd sx)) (fst sx)) (fun sx => Ret sx)).
   { intros sx. destruct sx. simpl.
     rewrite itree_eta. cbn. reflexivity. }
   rewrite H.
-  cbn. rewrite bind_ret.
+  rewrite bind_ret.
   reflexivity.
 Qed.  
 
