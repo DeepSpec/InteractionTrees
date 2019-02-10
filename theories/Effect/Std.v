@@ -125,7 +125,7 @@ Section State.
 
   Definition run_state {E} :
     itree (stateE +' E) ~> stateT S (itree E) :=
-    interp_state (into_state eval_state).
+    interp_state (into_state eval_state) .
 
 End State.
 

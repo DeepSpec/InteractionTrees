@@ -149,6 +149,25 @@ Import ITree.Basics.Monads.
    [E ~> state S] define stateful itree morphisms
    [itree E ~> stateT S (itree F)]. *)
 
+
+Definition interp_state_match {E F S R} (h : E ~> stateT S (itree F))
+  (rec : itree E R -> stateT S (itree F) R)
+  (t:itree E R) : stateT S (itree F) R :=
+  fun s =>
+      match t.(observe) with
+      | RetF r => Ret (s, r)
+      | VisF e k => 
+        Tau (ITree.bind (h _ e s) (fun sx =>
+               rec (k (snd sx)) (fst sx)))
+      | TauF t => Tau (rec t s)
+      end.
+
+CoFixpoint interp_state {E F S} (h : E ~> stateT S (itree F)) :
+  itree E ~> stateT S (itree F) :=
+  fun R => interp_state_match h (interp_state h R).
+
+
+(*
 Definition interp_state {E F S} (h : E ~> stateT S (itree F)) :
   itree E ~> stateT S (itree F) :=
   fun R =>
@@ -160,6 +179,7 @@ Definition interp_state {E F S} (h : E ~> stateT S (itree F)) :
                interp_state_ (k (snd sx)) (fst sx)))
       | TauF t => Tau (interp_state_ t s)
       end.
+*)
 
 Definition interp1_state {E F S} (h : E ~> stateT S (itree F)) :
   itree (E +' F) ~> stateT S (itree F) :=

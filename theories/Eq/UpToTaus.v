@@ -684,6 +684,31 @@ Proof.
   econstructor. intros. specialize (H x). specialize (H0 x). pclearbot. eauto using rclo2.
 Qed.
 
+Inductive eutt_tau_clo {E R} (r: relation (itree E R)) : relation (itree E R) :=
+| eutt_tau_clo_intro (t1 t2: itree E R)
+                     (REL: r t1 t2) : eutt_tau_clo r (Tau t1) (Tau t2).
+Hint Constructors eutt_tau_clo.
+
+Lemma eutt_clo_tau E R: weak_respectful2 (@eutt_ E R) eutt_tau_clo.
+Proof.
+  econstructor; [pmonauto|].
+  intros l r LE GF x0 x1 PR.
+  inv PR.
+  hexploit LE; eauto; intros H.
+  hexploit GF; eauto; intros EUTT.
+  dependent destruction EUTT.
+  econstructor. 
+  - rewrite <- finite_taus_tau in FIN.
+    rewrite <- finite_taus_tau in FIN.
+    assumption.
+  - intros. 
+    apply unalltaus_tau with (t:=t1) in UNTAUS1; auto.
+    apply unalltaus_tau with (t:=t2) in UNTAUS2; auto.
+    eapply EQV in UNTAUS1; eauto.
+    eapply monotone_eq_notauF. apply UNTAUS1.
+    intros. apply rclo2_incl. assumption.
+Qed.
+
 Inductive eutt_bind_clo {E R} (r: relation (itree E R)) : relation (itree E R) :=
 | eutt_bind_clo_intro U (t1 t2: itree E U) k1 k2
       (EQV: t1 ~~ t2)
@@ -848,6 +873,12 @@ Lemma euttF'_mon {E R} r r' s s' x y
   euttF' r' s' x y.
 Proof.
   induction EUTT; eauto.
+Qed.
+
+Lemma reflexive_euttF' {E R} eutt eqtaus (r1:Reflexive eutt) (r:Reflexive eqtaus) : Reflexive (@euttF' E R eutt eqtaus).
+Proof.
+  unfold Reflexive. intros x.
+  destruct x; eauto.
 Qed.
 
 Lemma monotone_euttF' {E R} eutt : monotone2 (@euttF' E R eutt).
