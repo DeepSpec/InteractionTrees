@@ -250,7 +250,7 @@ Proof.
   rewrite H.
   rewrite bind_ret.
   reflexivity.
-Qed.  
+Qed.
 
 Lemma interp_state_bind {E F : Type -> Type} {A B S : Type}
       (f : forall T, E T -> S -> itree F (S * T)%type)
