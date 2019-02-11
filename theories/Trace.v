@@ -39,6 +39,29 @@ Inductive is_traceF {E : Type -> Type} {R : Type} :
 
 Definition is_trace {E R} (t : itree E R) := is_traceF (observe t).
 
+Inductive trace' {E : Type -> Type} {R : Type} : Type :=
+| TEnd : trace'
+| TRet : R -> trace'
+| TEventEnd : forall {X}, E X -> trace'
+| TEventResponse : forall {X}, E X -> X -> trace' -> trace'
+.
+
+Inductive is_traceF' {E R} :
+  itreeF E R (itree E R) -> @trace' E R -> Prop :=
+| TraceEmpty' : forall t, is_traceF' t TEnd
+| TraceRet' : forall r, is_traceF' (RetF r) (TRet r)
+| TraceTau' : forall t tr,
+    is_traceF' (observe t) tr ->
+    is_traceF' (TauF t) tr
+| TraceVisEnd' : forall X (e : E X) k,
+    is_traceF' (VisF e k) (TEventEnd e)
+| TraceVisContinue' : forall X (e : E X) (x : X) k tr,
+    is_traceF' (observe (k x)) tr ->
+    is_traceF' (VisF e k) (TEventResponse e x tr)
+.
+
+Definition is_trace' {E R} (t : itree E R) := is_traceF' (observe t).
+
 (* t1 ⊑ t2 *)
 Definition trace_incl {E : Type -> Type} {R : Type} :
   itree E R -> itree E R -> Prop :=
