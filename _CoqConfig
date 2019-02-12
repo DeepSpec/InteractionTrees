@@ -12,7 +12,9 @@ theories/Effect/Spawn.v
 theories/Effect/Env.v
 
 theories/OpenSum.v
+
 theories/Fix.v
+theories/FixFacts.v
 
 theories/Morphisms.v
 theories/MorphismsFacts.v
