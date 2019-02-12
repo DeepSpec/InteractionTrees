@@ -29,8 +29,6 @@ From Coq Require Import
 
 From ITree Require Import Core Eq.Eq.
 
-Set Bullet Behavior "Strict Subproofs".
-
 Local Open Scope itree.
 
 (* [notau t] holds when [t] does not start with a [Tau]. *)
@@ -443,9 +441,10 @@ Proof.
     destruct I1 as [n2' [t2' TAUS2]]; eauto.
     hexploit H12; eauto. intros REL1.
     hexploit H23; eauto. intros REL2.
-    dependent destruction REL1; dependent destruction REL2; eauto.
+    destruct REL1; inversion REL2; clear REL2; eauto.
+    auto_inj_pair2; subst.
     econstructor. intros.
-    specialize (H x); specialize (H0 x). pclearbot. eauto.
+    specialize (H x); specialize (H6 x). pclearbot. eauto.
 Qed.
 
 (**)
@@ -680,8 +679,16 @@ Proof.
   hexploit EQV0; eauto. intros EUTT2.
   apply GF in REL. destruct REL.
   hexploit EQV1; eauto. intros EUTT3.
-  dependent destruction EUTT1; dependent destruction EUTT2; dependent destruction EUTT3; eauto.
-  econstructor. intros. specialize (H x). specialize (H0 x). pclearbot. eauto using rclo2.
+  destruct EUTT1; destruct EUTT2;
+    try (solve [inversion EUTT3; auto]).
+  remember (VisF _ _) as o2 in EUTT3.
+  remember (VisF _ _) as o3 in EUTT3.
+  inversion EUTT3; subst; try discriminate.
+  inversion H2; clear H2; inversion H3; clear H3.
+  subst; auto_inj_pair2; subst.
+  econstructor. intros.
+  specialize (H x); specialize (H0 x); specialize (H1 x).
+  pclearbot. eauto using rclo2.
 Qed.
 
 Inductive eutt_bind_clo {E R} (r: relation (itree E R)) : relation (itree E R) :=

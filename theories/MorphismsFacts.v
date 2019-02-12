@@ -88,7 +88,7 @@ Proof.
   pcofix CIH. intros.
   rewrite itree_eta, (itree_eta (interp f _ y)), !interp_unfold.
   punfold H0; red in H0.
-  genobs x ox; destruct ox; simpobs; dependent destruction H0; simpobs; pclearbot.
+  destruct H0; pclearbot.
   - pupto2_final. pfold. red. cbn. eauto.
   - pupto2_final. pfold. red. cbn. eauto.
   - pfold. econstructor. pupto2 (eq_itree_clo_bind F R).
@@ -105,7 +105,7 @@ Proof.
   pcofix CIH. intros.
   rewrite itree_eta, (itree_eta (interp1 f _ y)), !interp1_unfold.
   punfold H0; red in H0.
-  genobs x ox; destruct ox; simpobs; dependent destruction H0; simpobs; pclearbot.
+  destruct H0; pclearbot.
   - pupto2_final. pfold. red. cbn. eauto.
   - pupto2_final. pfold. red. cbn. eauto.
   - pfold. destruct e; cbn; econstructor.

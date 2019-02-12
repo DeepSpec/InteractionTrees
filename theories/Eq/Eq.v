@@ -16,6 +16,11 @@ From Paco Require Import paco.
 From ITree Require Import
      Core.
 
+Ltac auto_inj_pair2 :=
+  repeat (match goal with
+          | [ H : _ |- _ ] => apply inj_pair2 in H
+          end).
+
 Lemma pointwise_relation_fold {A B} {r: relation B} f g: (forall v:A, r (f v) (g v)) -> pointwise_relation _ r f g.
   Proof. red. eauto. Qed.
 
@@ -108,9 +113,12 @@ Proof.
   pcofix CIH. intros.
   pfold. punfold H0. punfold H1. unfold_eq_itree.
   genobs x ox; genobs y oy; genobs z oz.
-  destruct H0; dependent destruction H1; cbn; eauto.
-  - pclearbot. eauto.
-  - econstructor. intros. specialize (REL v). specialize (REL0 v). pclearbot. eauto.
+  remember oy as oy' in H1.
+  destruct H0, H1; inversion Heqoy'; subst; auto.
+  - pclearbot; eauto.
+  - apply inj_pair2 in H1.
+    apply inj_pair2 in H2.
+    subst; econstructor. intros. specialize (REL v). specialize (REL0 v). pclearbot. eauto.
 Qed.
 
 Global Instance Equivalence_eq_itree {E R} :
@@ -201,11 +209,19 @@ Proof.
   apply GF in RELATED.
   punfold EQVl. punfold EQVr. unfold_eq_itree.
   genobs t1 ot1; genobs t2 ot2; genobs t3 ot3; genobs t4 ot4.
-  dependent destruction EQVl; dependent destruction EQVr; pclearbot
-  ; dependent destruction RELATED; cbn; eauto using rclo2.
+  destruct EQVl;
+    inversion EQVr; clear EQVr;
+    inversion RELATED; clear RELATED;
+      subst; simpobs; try discriminate.
 
-  econstructor. intros. specialize (REL v). specialize (REL0 v). pclearbot. eauto using rclo2.
+  - inversion H0; auto.
+  - inversion H0; subst; pclearbot; eauto using rclo2.
+
+  - inversion H0; subst; auto_inj_pair2; subst.
+    pclearbot.
+    econstructor. intros. specialize (REL v). specialize (REL0 v). pclearbot. eauto using rclo2.
 Qed.
+
 
 Inductive eq_itree_bind_clo {E R} (r: relation (itree E R)) : relation (itree E R) :=
 | pbc_intro U t1 t2 (k1 k2: U -> _)
