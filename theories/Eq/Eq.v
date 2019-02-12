@@ -69,6 +69,18 @@ Section eq_itree.
 
   Definition eq_itree : relation (itree E R) := paco2 eq_itreeF bot2.
 
+  Global Instance Reflexive_eq_itreeF sim
+  : Reflexive sim -> Reflexive (eq_itreeF sim).
+  Proof. red; red; reflexivity. Qed.
+
+  Global Instance Symmetric_eq_itreeF sim
+  : Symmetric sim -> Symmetric (eq_itreeF sim).
+  Proof. red; red; symmetry; auto. Qed.
+
+  Global Instance Transitive_eq_itreeF sim
+  : Transitive sim -> Transitive (eq_itreeF sim).
+  Proof. red; red; etransitivity; eauto. Qed.
+
 End eq_itree.
 
 Hint Constructors eq_itreeF'.
