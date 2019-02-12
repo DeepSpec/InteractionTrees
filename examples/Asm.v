@@ -164,12 +164,9 @@ Instance RelDec_string : RelDec (@eq string) :=
 Instance RelDec_value : RelDec (@eq value) := { rel_dec := Nat.eqb }.
 
 (* SAZ: Is this the nicest way to present this? *)
-Definition run (p: program) : itree emptyE _ :=
-  let p1 := interp1 interpret_Memory _ (denote_program p) in
-  let p2 := interp1 interpret_Locals _ p1 in
-  let p3 := run_env _ p2 empty in
-  let p4 := run_env _ p3 empty in
-  p4.
+Definition run (p: program) : itree emptyE (env * (memory * unit)) :=
+  let eval := Sum1.elim interpret_Locals interpret_Memory in
+  run_env _ (run_env _ (interp eval _ (denote_program p)) empty) empty.
 
 (* SAZ: Note: we should be able to prove that run produces trees that are equivalent
    to run' where run' interprets memory and locals in a different order *)

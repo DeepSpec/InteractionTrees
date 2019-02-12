@@ -1,5 +1,5 @@
 .PHONY: clean all coq test tests examples install uninstall depgraph \
-  example-imp example-lc example-io example-nimp
+  example-imp example-lc example-io example-nimp example-asm
 
 COQPATHFILE=$(wildcard _CoqPath)
 
@@ -34,6 +34,11 @@ example-io: examples/IO.v
 	cd examples && \
 	  coqc -Q ../theories/ ITree IO.v && \
 	  ocamlbuild io.native && ./io.native
+
+example-asm: examples/Asm.v
+	cd examples && \
+	  coqc -Q ../theories/ ITree Asm.v
+
 
 THREADSV=examples/MultiThreadedPrinting.v examples/ExtractThreadsExample.v
 THREADSML=examples/runthread.ml
