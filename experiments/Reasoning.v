@@ -69,7 +69,7 @@ End State.
 
   Definition run_state {E S} :
     itree (stateE S +' E) ~> Monads.stateT S (itree E) :=
-    interp_state (into_state eval_state').
+    interp1_state eval_state'.
 
   
 Lemma eq_run_state {E S R} :
@@ -94,50 +94,44 @@ Definition example2 {E} : itree (stateE nat +' E) nat :=
   ret y.
 
 
-Lemma interp_state_get : forall {E:Type -> Type} S s,
-    interp_state (into_state (eval_state' (S:=S))) S get s ≅ Tau (Ret (s, s) : itree E (S * S)).
+Lemma interp1_state_get : forall {E:Type -> Type} S s,
+    interp1_state (eval_state' (S:=S)) S get s ≅ Tau (Ret (s, s) : itree E (S * S)).
 Proof.
   intros E S s.
-  unfold get. unfold MS_itree. unfold embed.
-  unfold Embeddable_itree. unfold lift.
-  rewrite interp_state_liftE.
+  unfold get. unfold MS_itree. 
+  rewrite interp1_state_liftE1.
   simpl.
   reflexivity.
 Qed.
 
-Lemma interp_state_put : forall {E :Type -> Type} S s s',
-    interp_state (into_state (eval_state' (S:=S))) unit (put s') s ≅ Tau (Ret (s', tt) : itree E (S * unit)).
+Lemma interp1_state_put : forall {E :Type -> Type} S s s',
+    interp1_state (eval_state' (S:=S)) unit (put s') s ≅ Tau (Ret (s', tt) : itree E (S * unit)).
 Proof.
   intros E S s s'.
-  unfold put. unfold MS_itree. unfold embed.
-  unfold Embeddable_itree. unfold lift. unfold Embeddable_forall. unfold embed.
-  rewrite interp_state_liftE.
+  unfold put. unfold MS_itree.
+  rewrite interp1_state_liftE1.
   simpl.
   reflexivity.
 Qed.
 
-
-
-Lemma interp_state_E : forall {E F:Type -> Type} S (s:S) (f : E ~> Monads.stateT S (itree F)) (X:Type) (e:F X),
-    interp_state (into_state f) X (embed e) s ≅ Tau (Vis e (fun x => ret (s, x))).
+Lemma interp1_state_E : forall {E F:Type -> Type} S (s:S) (f : E ~> Monads.stateT S (itree F)) (X:Type) (e:F X),
+    interp1_state f X (embed e) s ≅ (Vis e (fun x => ret (s, x))).
 Proof.
   intros E F S s f X e.
-  unfold embed. unfold Embeddable_itree. unfold lift.
-  rewrite interp_state_liftE.
-  simpl. reflexivity.
+  unfold embed. unfold Embeddable_itree. unfold lift. simpl.
+  rewrite interp1_state_liftE2.
+  reflexivity.
 Qed.  
 
 
 Lemma run_state_E_right : forall {E} S (s:S) (R T:Type) (e:E R) (k : R -> itree (stateE S +' E) T),
-    run_state (x <- (ITree.liftE (inr1 e)) ;; k x) s ≅ Tau (x <- (ITree.liftE e) ;; run_state (k x) s).
+    run_state (x <- (ITree.liftE (inr1 e)) ;; k x) s ≅ (x <- (ITree.liftE e) ;; run_state (k x) s).
 Proof.
   intros E S s R T e k. 
   unfold run_state.
-  rewrite interp_state_bind. cbn. rewrite interp_state_liftE.
-  rewrite tau_bind. cbn.
+  rewrite interp1_state_bind. cbn. rewrite interp1_state_liftE2.
+  cbn.
   rewrite vis_bind. unfold ITree.liftE. rewrite vis_bind.
-  
-  apply itree_eq_tau.
   apply itree_eq_vis.
   intros.
   rewrite !ret_bind. cbn. reflexivity.
@@ -145,7 +139,7 @@ Qed.
 
 
 Lemma run_state_E0_right : forall {E:Type -> Type} S (s:S) (T:Type) (e:E unit) (k : itree (stateE S +' E) T),
-    run_state ((ITree.liftE (inr1 e)) ;; k) s ≅ Tau ((ITree.liftE e) ;; run_state k s).
+    run_state ((ITree.liftE (inr1 e)) ;; k) s ≅ ((ITree.liftE e) ;; run_state k s).
 Proof.
   intros E S s T e k.
   apply run_state_E_right.
@@ -156,7 +150,7 @@ Lemma run_state_tau : forall {E:Type -> Type} S {T : Type} (t:itree (stateE S +'
     run_state (Tau t) s ≅ Tau (run_state t s).
 Proof.
   intros E S T t s.
-  unfold run_state. rewrite interp_state_tau. reflexivity.
+  unfold run_state. rewrite interp1_state_tau. reflexivity.
 Qed.  
 
 Lemma run_state_get : forall {E:Type -> Type} S {T : Type} (k : S -> itree (stateE S +' E) T) (s:S),
@@ -164,8 +158,8 @@ Lemma run_state_get : forall {E:Type -> Type} S {T : Type} (k : S -> itree (stat
 Proof.
   intros E S T k s.
   unfold run_state.
-  rewrite interp_state_bind.
-  rewrite interp_state_get.
+  rewrite interp1_state_bind.
+  rewrite interp1_state_get.
   cbn. rewrite tau_bind.
   rewrite ret_bind. cbn. reflexivity.
 Qed.  
@@ -176,8 +170,8 @@ Lemma run_state_put : forall {E:Type -> Type} S {T : Type} (k : itree (stateE S 
 Proof.
   intros E S T k s s'.
   unfold run_state.
-  rewrite interp_state_bind.
-  rewrite interp_state_put.
+  rewrite interp1_state_bind.
+  rewrite interp1_state_put.
   cbn. rewrite tau_bind.
   rewrite ret_bind. cbn. reflexivity.
 Qed.  
@@ -275,13 +269,13 @@ Qed.
 
 
 Lemma runboth_put2 : forall {E R} s1 s2 s2' (k : itree (state2E E) R),
-    runboth (put2 s2' ;; k) s1 s2 ≅ Tau (Tau (runboth k s1 s2')).
+    runboth (put2 s2' ;; k) s1 s2 ≅ Tau (runboth k s1 s2').
 Proof.
   intros E R s1 s2 s2' k. 
   unfold runboth.
   unfold put2.
   rewrite run_state_E0_right.
-  rewrite run_state_tau. replace (ITree.liftE (inl1 (Put s2'))) with (put s2') by reflexivity.
+  replace (ITree.liftE (inl1 (Put s2'))) with (put s2') by reflexivity.
   rewrite run_state_put. reflexivity.
 Qed.
 
@@ -297,13 +291,13 @@ Proof.
 Qed.  
 
 Lemma runboth_get2 : forall {E:Type -> Type} {T : Type} (k : S2 -> itree (state2E E) T) (s1:S1) (s2:S2),
-    runboth (x1 <- get2 ;; k x1) s1 s2 ≅ Tau (Tau (runboth (k s2) s1 s2)).
+    runboth (x1 <- get2 ;; k x1) s1 s2 ≅ Tau (runboth (k s2) s1 s2).
 Proof.
   intros E T k s1 s2.
   unfold runboth.
   unfold get2.
   rewrite run_state_E_right.
-  rewrite run_state_tau. replace (ITree.liftE (inl1 Get)) with (get (T:=S2)) by reflexivity.
+  replace (ITree.liftE (inl1 Get)) with (get (T:=S2)) by reflexivity.
   rewrite run_state_get.
   reflexivity.
 Qed.

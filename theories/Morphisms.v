@@ -167,36 +167,27 @@ CoFixpoint interp_state {E F S} (h : E ~> stateT S (itree F)) :
   fun R => interp_state_match h (interp_state h R).
 
 
-(*
-Definition interp_state {E F S} (h : E ~> stateT S (itree F)) :
-  itree E ~> stateT S (itree F) :=
-  fun R =>
-    cofix interp_state_ t s :=
-      match t.(observe) with
-      | RetF r => Ret (s, r)
-      | VisF e k =>
-        Tau (ITree.bind (h _ e s) (fun sx =>
-               interp_state_ (k (snd sx)) (fst sx)))
-      | TauF t => Tau (interp_state_ t s)
-      end.
-*)
-
-Definition interp1_state {E F S} (h : E ~> stateT S (itree F)) :
-  itree (E +' F) ~> stateT S (itree F) :=
-  fun R =>
-    cofix interp1_state_ t s :=
-      match t.(observe) with
+Definition interp1_state_match {E F S R} (h : E ~> stateT S (itree F))
+           (rec : itree (E +' F) R -> stateT S (itree F) R)
+           (t : itree (E +' F) R) : stateT S (itree F) R :=
+  fun s =>
+    match t.(observe) with
       | RetF r => Ret (s, r)
       | VisF ef k =>
         match ef with
         | inl1 e =>
           let sx := h _ e s in
           Tau (ITree.bind (h _ e s) (fun sx =>
-                 interp1_state_ (k (snd sx)) (fst sx)))
-        | inr1 f => Vis f (fun x => interp1_state_ (k x) s)
+                 rec (k (snd sx)) (fst sx)))
+        | inr1 f => Vis f (fun x => rec (k x) s)
         end
-      | TauF t => Tau (interp1_state_ t s)
-      end.
+      | TauF t => Tau (rec t s)
+    end.
+
+CoFixpoint interp1_state {E F S} (h : E ~> stateT S (itree F)) :
+  itree (E +' F) ~> stateT S (itree F) :=
+  fun R => interp1_state_match h (interp1_state h R).
+    
 
 Definition translate1_state {E F S} (h : E ~> state S) :
   itree (E +' F) ~> stateT S (itree F) :=

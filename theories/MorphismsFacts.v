@@ -49,6 +49,11 @@ Lemma unfold_interp {E F R} {f : E ~> itree F} (t : itree E R) :
   interp f _ t ≅ interp_u f _ (observe t).
 Proof. rewrite itree_eta, interp_unfold, <-itree_eta. reflexivity. Qed.
 
+(* SAZ: If we need to introduce these auxilliar definitions to prove 
+   properties about functions like interp1, I think that we shoul
+   _define_ interp1 in terms of its unfolding.  I have experimented
+   with porting interp_state and interp1_state to this form.
+*)
 (* Unfolding of [interp1]. *)
 Definition interp1_u {E F G} `{F -< G} (h : E ~> itree G) R :
   itreeF (E +' F) R _ -> itree G R :=
@@ -212,10 +217,51 @@ Proof.
 Qed.
 
 
+Lemma unfold_interp1_state : forall {E F S R} (h : E ~> Monads.stateT S (itree F)) t s,
+    observe (interp1_state h _ t s) =
+    observe (interp1_state_match h (interp1_state h R) t s).
+Proof.
+  intros E F S R h t s. 
+  econstructor.
+Qed.  
+
+Instance eq_itree_interp1_state {E F S R} (h : E ~> Monads.stateT S (itree F)) :
+  Proper (@eq_itree (E +' F) R ==> @eq S ==>
+          @eq_itree F (S * R)) (interp1_state h _).
+Proof.
+  repeat intro.
+  pupto2_init. revert_until R.
+  pcofix CIH. intros h x y H0 x2 y0 H1. 
+  rewrite itree_eta, (itree_eta (interp1_state h _ y y0)), !unfold_interp1_state.
+  unfold interp1_state_match.
+  punfold H0; red in H0.
+  genobs x ox; destruct ox; simpobs; dependent destruction H0; simpobs; pclearbot. 
+  - pupto2_final. pfold. red. cbn. subst. eauto.
+  - pupto2_final. pfold. red. cbn. subst. eauto.
+  - pfold.
+    destruct e.
+    * econstructor. pupto2 (eq_itree_clo_bind F (S * R)).
+      constructor. 
+      + subst. reflexivity.
+      + intros. pupto2_final. right. eauto.
+    * econstructor. intros. pupto2_final. right.
+      eauto.
+Qed.
+  
+
 Lemma interp_state_ret {E F : Type -> Type} {R S : Type}
       (f : forall T, E T -> S -> itree F (S * T)%type)
       (s : S) (r : R) :
   (interp_state f _ (Ret r) s) ≅ (Ret (s, r)).
+Proof.
+  rewrite itree_eta. reflexivity.
+Qed.
+
+
+Lemma interp1_state_ret {E F : Type -> Type} {R S : Type}
+      (f : forall T, E T -> S -> itree F (S * T)%type)
+      (s : S) (r : R) :
+  (interp1_state f _ (Ret r) s) ≅ (Ret (s, r)).
 Proof.
   rewrite itree_eta. reflexivity.
 Qed.
@@ -230,6 +276,24 @@ Proof.
   reflexivity.
 Qed.
 
+Lemma interp1_state_vis1 : forall {E F:Type -> Type} {S T U : Type} (s:S) e k
+                           (h : E ~> Monads.stateT S (itree F)),
+    interp1_state h U (Vis (inl1 e) k) s ≅ Tau (ITree.bind (h T e s) (fun sx => interp1_state h _ (k (snd sx)) (fst sx))).
+Proof.
+  intros E F S T U s e k h.
+  rewrite itree_eta.
+  reflexivity.
+Qed.
+
+Lemma interp1_state_vis2 : forall {E F:Type -> Type} {S T U : Type} (s:S) (e : F T) k
+                           (h : E ~> Monads.stateT S (itree F)),
+    interp1_state h U (Vis (inr1 e) k) s ≅ (Vis e (fun x => interp1_state h _ (k x) s)).
+Proof.
+  intros E F S T U s e k h.
+  rewrite itree_eta.
+  reflexivity.
+Qed.
+
 Lemma interp_state_tau : forall {E F:Type -> Type} S {T : Type} (t:itree E T) (s:S)
                            (h : E ~> Monads.stateT S (itree F)),
     interp_state h _ (Tau t) s ≅ Tau (interp_state h _ t s).
@@ -238,8 +302,16 @@ Proof.
   rewrite itree_eta. reflexivity.
 Qed.
 
+Lemma interp1_state_tau : forall {E F:Type -> Type} S {T : Type} (t:itree (E +' F) T) (s:S)
+                           (h : E ~> Monads.stateT S (itree F)),
+    interp1_state h _ (Tau t) s ≅ Tau (interp1_state h _ t s).
+Proof.
+  intros E F S T t s h. 
+  rewrite itree_eta. reflexivity.
+Qed.
+
 Lemma interp_state_liftE {E F : Type -> Type} {R S : Type}
-      (f : forall T, E T -> S -> itree F (S * T)%type)
+      (f : E ~> Monads.stateT S (itree F))
       (s : S) (e : E R) :
   (interp_state f _ (ITree.liftE e) s) ≅ Tau (f _ e s).
 Proof.
@@ -251,6 +323,31 @@ Proof.
   rewrite bind_ret.
   reflexivity.
 Qed.
+
+Lemma interp1_state_liftE1 {E F : Type -> Type} {R S : Type}
+      (f : E ~> Monads.stateT S (itree F))
+      (s : S) (e : E R) :
+  (interp1_state f _ (ITree.liftE (inl1 e)) s) ≅ Tau (f _ e s).
+Proof.
+  unfold ITree.liftE. rewrite interp1_state_vis1.  
+  assert (pointwise_relation _ eq_itree (fun sx : S * R => interp1_state f R (Ret (snd sx)) (fst sx)) (fun sx => Ret sx)).
+  { intros sx. destruct sx. simpl.
+    rewrite itree_eta. cbn. reflexivity. }
+  rewrite H.
+  rewrite bind_ret.
+  reflexivity.
+Qed.
+
+Lemma interp1_state_liftE2 {E F : Type -> Type} {R S : Type}
+      (f : E ~> Monads.stateT S (itree F))
+      (s : S) (e : F R) :
+  (interp1_state f _ (ITree.liftE (inr1 e)) s) ≅ Vis e (fun x => Ret (s, x)).
+Proof.
+  unfold ITree.liftE. rewrite interp1_state_vis2.
+  apply itree_eq_vis. intros.
+  rewrite interp1_state_ret. reflexivity.
+Qed.
+
 
 Lemma interp_state_bind {E F : Type -> Type} {A B S : Type}
       (f : forall T, E T -> S -> itree F (S * T)%type)
@@ -276,4 +373,33 @@ Proof.
     + reflexivity.
     + intros. specialize (CIH _ (k0 (snd v)) k (fst v)). auto.
 Qed.      
+
+Lemma interp1_state_bind {E F : Type -> Type} {A B S : Type}
+      (f : forall T, E T -> S -> itree F (S * T)%type)
+      (t : itree (E +' F) A) (k : A -> itree (E +' F) B)
+      (s : S) :
+  (interp1_state f _ (t >>= k) s)
+    ≅
+  (interp1_state f _ t s >>= fun st => interp1_state f _ (k (snd st)) (fst st)).
+Proof.
+  pupto2_init.
+  revert A t k s.
+  pcofix CIH.
+  intros A t k s.
+  rewrite (itree_eta t).
+  destruct (observe t).
+  - cbn. rewrite interp1_state_ret. rewrite !ret_bind. simpl.
+    pupto2_final. apply eq_itree_refl.
+  - cbn. rewrite interp1_state_tau, !tau_bind, interp1_state_tau.
+    pupto2_final. pfold. econstructor. right. apply CIH.
+  - cbn. destruct e.
+    * rewrite interp1_state_vis1, tau_bind, vis_bind, bind_bind, interp1_state_vis1.
+      pfold. red. constructor.
+      pupto2 (eq_itree_clo_bind F (S * B)). econstructor.
+      + reflexivity.
+      + intros. specialize (CIH _ (k0 (snd v)) k (fst v)). auto.
+   * rewrite interp1_state_vis2, !vis_bind. rewrite itree_eta. rewrite unfold_interp1_state.
+     cbn. pfold. constructor. intros.
+     specialize (CIH _ (k0 v) k s). auto.
+Qed.     
 
