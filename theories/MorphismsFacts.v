@@ -162,10 +162,10 @@ Proof.
 Qed.
 
 Lemma interp_is_interp1 E F R (f: E ~> itree F) (t: itree _ R) :
-  interp (interp_match f) _ t ~~ interp1 f _ t.
+  interp (interp_match f) _ t ≈ interp1 f _ t.
 Proof.
   revert t.
-  cut (forall (t1 t2: itree _ R) (REL: interp_inv f (observe t1) (observe t2)), t1 ~~ t2).
+  cut (forall (t1 t2: itree _ R) (REL: interp_inv f (observe t1) (observe t2)), t1 ≈ t2).
   { eauto. }
 
   intros. apply eutt_is_eutt'.

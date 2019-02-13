@@ -119,7 +119,7 @@ Definition eutt : relation (itree E R) := paco2 eutt_ bot2.
 
 Global Arguments eutt t1%itree t2%itree.
 
-Infix "~~" := eutt (at level 70) : itree_scope.
+Infix "≈" := eutt (at level 70) : itree_scope.
 
 (* Lemmas about the auxiliary relations. *)
 
@@ -454,7 +454,7 @@ Qed.
 (**)
 
 (* [eutt] is preserved by removing one [Tau]. *)
-Lemma tauF_eutt (t t': itree E R) (OBS: TauF t' = observe t): t ~~ t'.
+Lemma tauF_eutt (t t': itree E R) (OBS: TauF t' = observe t): t ≈ t'.
 Proof.
   pfold. split.
   - simpobs. rewrite finite_taus_tau. reflexivity.
@@ -465,13 +465,13 @@ Proof.
     left. apply Reflexive_eutt.
 Qed.
 
-Lemma tau_eutt (t: itree E R) : Tau t ~~ t.
+Lemma tau_eutt (t: itree E R) : Tau t ≈ t.
 Proof.
   eapply tauF_eutt. eauto.
 Qed.
 
 (* [eutt] is preserved by removing all [Tau]. *)
-Lemma untaus_eutt (t t' : itree E R) : untausF (observe t) (observe t') -> t ~~ t'.
+Lemma untaus_eutt (t t' : itree E R) : untausF (observe t) (observe t') -> t ≈ t'.
 Proof.
   intros H.
   pfold. split.
@@ -497,7 +497,7 @@ Hint Resolve notau_tau.
 
 Delimit Scope eutt_scope with eutt.
 
-Infix "~~" := eutt (at level 70).
+Infix "≈" := eutt (at level 70).
 
 Notation finite_taus t := (finite_tausF (observe t)).
 Notation untaus t t' := (untausF (observe t) (observe t')).
@@ -662,8 +662,8 @@ Qed.
 
 Inductive eutt_trans_clo {E R} (r: relation (itree E R)) : relation (itree E R) :=
 | eutt_pre_clo_intro (t1 t2 t3 t4: itree E R)
-      (EQVl: t1 ~~ t2)
-      (EQVr: t4 ~~ t3)
+      (EQVl: t1 ≈ t2)
+      (EQVr: t4 ≈ t3)
       (REL: r t2 t3)
   : eutt_trans_clo r t1 t4
 .
@@ -696,7 +696,7 @@ Qed.
 
 Inductive eutt_bind_clo {E R} (r: relation (itree E R)) : relation (itree E R) :=
 | eutt_bind_clo_intro U (t1 t2: itree E U) k1 k2
-      (EQV: t1 ~~ t2)
+      (EQV: t1 ≈ t2)
       (REL: forall v, r (k1 v) (k2 v))
   : eutt_bind_clo r (ITree.bind t1 k1) (ITree.bind t2 k2)
 .
@@ -705,7 +705,7 @@ Hint Constructors eutt_bind_clo.
 Lemma bind_clo_finite_taus E U R (t1 t2: itree E U) (k1 k2: U -> itree E R)
     (FT: finite_taus (ITree.bind t1 k1))
     (FTk: forall v, finite_taus (k1 v) -> finite_taus (k2 v))
-    (EQV: t1 ~~ t2):
+    (EQV: t1 ≈ t2):
   finite_taus (ITree.bind t2 k2).
 Proof.
   punfold EQV. destruct EQV as [[FTt _] EQV].

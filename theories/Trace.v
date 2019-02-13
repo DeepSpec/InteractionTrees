@@ -110,7 +110,7 @@ Lemma is_trace_unalltaus_add: forall {E R} (t1 t2 : itree E R) tr r,
 Proof. intros. eapply is_traceF_unalltaus_add; eauto. Qed.
 
 Lemma eutt_trace_incl : forall {E R} (t1 t2 : itree E R),
-    t1 ~~ t2 -> trace_incl t1 t2.
+    t1 ≈ t2 -> trace_incl t1 t2.
 Proof.
   red. intros. red in H0. remember (observe t1).
   generalize dependent t1. generalize dependent t2.
@@ -166,7 +166,7 @@ Proof.
 Qed.
 
 Lemma eutt_trace_eq : forall {E R} (t1 t2 : itree E R),
-    t1 ~~ t2 -> trace_eq t1 t2.
+    t1 ≈ t2 -> trace_eq t1 t2.
 Proof.
   split.
   - apply eutt_trace_incl; auto.
@@ -212,7 +212,7 @@ Proof.
 Qed.
 
 Lemma trace_eq_eutt : forall {E R} (t1 t2 : itree E R),
-    trace_eq t1 t2 -> t1 ~~ t2.
+    trace_eq t1 t2 -> t1 ≈ t2.
 Proof.
   intros E R. pcofix CIH. intros t1 t2 Heq. pfold. constructor.
   - destruct Heq. split; intros; eapply trace_incl_finite_taus; eauto.
@@ -246,7 +246,7 @@ Proof.
 Qed.
 
 Theorem trace_eq_iff_eutt : forall {E R} (t1 t2 : itree E R),
-    t1 ~~ t2 <-> trace_eq t1 t2.
+    t1 ≈ t2 <-> trace_eq t1 t2.
 Proof.
   split.
   - apply eutt_trace_eq.
