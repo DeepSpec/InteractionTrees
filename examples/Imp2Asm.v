@@ -6,8 +6,9 @@ Import ListNotations.
 Section compile_assign.
 
   (* YZ: How to handle locals used to compute a composed expression? *)
-  (* Simply reserve the prefix "local", carry how many have been created, and generate "local_n"?
-     Rough invariant: instrs = compile_expr_aux k e -> [instrs]σ = σ' -> σ'(gen_local k) = [e]
+  (*
+    Simply reserve the prefix "local", carry how many have been created, and generate "local_n"?
+    Rough invariant: instrs = compile_expr_aux k e -> [instrs]σ = σ' -> σ'(gen_local k) = [e]
    *)
 
   (* YZ: Ascii.ascii_of_nat is not what we want, unreadable *)
@@ -59,17 +60,6 @@ Section fmap_block.
     end.
 End fmap_block.
 
-(* CR essentially corresponds to an open (asm) program.
- /imports/ encodes the set of external labels to which the program can jump.
- c_main is the current entry point.
- *)
-Record CR {imports : Type} : Type :=
-  { c_label  : Type                                    (* Internal labels *) 
-    ; c_main   : block (c_label + imports)             (* Entry point     *)
-    ; c_blocks : c_label -> block (c_label + imports)   (* Other blocks    *)
-  }.
-Arguments CR _ : clear implicits.
-
 Variant WhileBlocks : Set :=
 | WhileTop
 | WhileBottom.
@@ -82,21 +72,21 @@ Variant WhileBlocks : Set :=
    To double check.
  *)
 Open Scope string_scope.
-Fixpoint compileCR (s : stmt) {L} (k : block L) {struct s} : CR L.
+Fixpoint compile (s : stmt) {L} (k : block L) {struct s} : program L.
   refine
     match s with
 
     | Skip =>
 
-      {| c_label  := Empty_set
-         ; c_blocks := fun x => match x with end
-         ; c_main   := fmap_block inr k |}
+      {| label  := Empty_set
+         ; blocks := fun x => match x with end
+         ; main   := fmap_block inr k |}
 
     | Assign x e =>
 
-      {| c_label  := Empty_set
-         ; c_blocks := fun x => match x with end
-         ; c_main   := after (compile_assign x e)
+      {| label  := Empty_set
+         ; blocks := fun x => match x with end
+         ; main   := after (compile_assign x e)
                              (fmap_block inr k) |}
 
     | Seq l r =>
@@ -114,17 +104,17 @@ Fixpoint compileCR (s : stmt) {L} (k : block L) {struct s} : CR L.
                  end)
       in
 
-      let rc := @compileCR r L k in
-      let lc := @compileCR l (sum rc.(c_label) L) rc.(c_main) in
+      let rc := @compile r L k in
+      let lc := @compile l (sum rc.(label) L) rc.(main) in
 
-      {| c_label  := lc.(c_label) + rc.(c_label)
-         ; c_blocks := fun x =>
+      {| label  := lc.(label) + rc.(label)
+         ; blocks := fun x =>
                          match x with
-                         | inl x => fmap_block reassoc (lc.(c_blocks) x)
-                         | inr x => fmap_block to_right (rc.(c_blocks) x)
+                         | inl x => fmap_block reassoc (lc.(blocks) x)
+                         | inr x => fmap_block to_right (rc.(blocks) x)
                          end
-         ; c_main   :=
-             fmap_block reassoc lc.(c_main) |}
+         ; main   :=
+             fmap_block reassoc lc.(main) |}
 
     | If e l r =>
       let to_right := (fun x =>
@@ -139,22 +129,22 @@ Fixpoint compileCR (s : stmt) {L} (k : block L) {struct s} : CR L.
                         | inr y => inr y
                         end)
       in
-      let lc := @compileCR l L k in
-      let rc := @compileCR r L k in
+      let lc := @compile l L k in
+      let rc := @compile r L k in
       
-      {| c_label  := option lc.(c_label) + option rc.(c_label)
-         ; c_blocks := fun x =>
+      {| label  := option lc.(label) + option rc.(label)
+         ; blocks := fun x =>
                          match x with
                          | inl None =>
-                           fmap_block to_left lc.(c_main)
+                           fmap_block to_left lc.(main)
                          | inl (Some x) =>
-                           fmap_block to_left (lc.(c_blocks) x)
+                           fmap_block to_left (lc.(blocks) x)
                          | inr None =>
-                           fmap_block to_right rc.(c_main)
+                           fmap_block to_right rc.(main)
                          | inr (Some x) =>
-                           fmap_block to_right (rc.(c_blocks) x)
+                           fmap_block to_right (rc.(blocks) x)
                          end
-         ; c_main   :=
+         ; main   :=
              after (compile_assign "_jump_var" e)
                    (bbb (Bbrz "_jump_var"
                               (inl (inl None))
@@ -162,10 +152,10 @@ Fixpoint compileCR (s : stmt) {L} (k : block L) {struct s} : CR L.
       |}
 
     | While e b =>
-      let bc := compileCR b unit (bbb (Bjmp tt)) in
-      {| c_label := WhileBlocks
-                    + option bc.(c_label)
-         ; c_blocks :=
+      let bc := compile b unit (bbb (Bjmp tt)) in
+      {| label := WhileBlocks
+                    + option bc.(label)
+         ; blocks :=
              let convert x :=
                  match x with
                  | inl x => inl (inr (Some x))
@@ -181,31 +171,15 @@ Fixpoint compileCR (s : stmt) {L} (k : block L) {struct s} : CR L.
                   | inl WhileBottom => (* after the loop exits *)
                     fmap_block inr k
                   | inr None =>
-                    fmap_block convert bc.(c_main)
+                    fmap_block convert bc.(main)
                   | inr (Some x) =>
-                    fmap_block convert (bc.(c_blocks) x)
+                    fmap_block convert (bc.(blocks) x)
                   end
-         ; c_main := bbb (Bjmp (inl (inl WhileTop)))
+         ; main := bbb (Bjmp (inl (inl WhileTop)))
       |}
 
     end.
 Defined.
-
-Definition compile (s : stmt) : program :=
-  let cr := @compileCR s Empty_set (bbb Bhalt) in
-  {| label := option cr.(c_label)
-     ; main := None
-     ; blocks :=
-         let convert (x : _ + Empty_set) :=
-             match x with
-             | inl x => Some x
-             | inr x => match x with end
-             end in
-         fun x =>
-           match x with
-           | None => fmap_block convert cr.(c_main)
-           | Some l => fmap_block convert (cr.(c_blocks) l)
-           end |}.
 
 Section tests.
 
@@ -232,9 +206,30 @@ From ITree Require Import
 
 Section Correctness.
 
+  (*
+ If the source level is non-deterministic, for instance order of add, the compiler could pick an order and the correctness would be a refinement.
+     How to define it? In term of interpreters?
+     In term of oracle
+   *)
+
+  (* Add a print effect? *)
+
+  (*
+ Change languages to map two notions of state at the source down to a single one at the target?
+ Make the keys of the second env monad as the sum of the two initial ones.
+   *)
+
   (* Missing a Locals -< ImpEff instance, got me confused, I'll get back to it later. *)
-  Fail Theorem compile_correct:
-    forall s, denote_program (compile s) ~~ denoteStmt s.
+
+  Lemma compile_correct_program:
+    forall s L b imports l,
+      @denote_program _ _ _ L (compile s b) imports l ~~ (denoteStmt s;; denote_block _ b;; Ret tt).
+    Admitted.
+
+  Theorem compile_correct:
+    forall s, @denote_main _ _ _ Empty_set (compile s (bbb Bhalt)) (fun x => match x with end) ~~ denoteStmt s.
+  Proof.
+  Admitted. 
 
 End Correctness.
 

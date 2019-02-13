@@ -29,11 +29,12 @@ Inductive block {label : Type} : Type :=
 | bbb (_ : branch label).
 Arguments block _ : clear implicits.
 
-Record program : Type :=
-{ label : Type
-; blocks : label -> block label
-; main : label
-}.
+Record program {imports : Type} : Type :=
+  { label  : Type                                    (* Internal labels *) 
+    ; main   : block (label + imports)             (* Entry point     *)
+    ; blocks : label -> block (label + imports)   (* Other blocks    *)
+  }.
+Arguments program _ : clear implicits.
 
 Module AsmNotations.
 
@@ -58,10 +59,7 @@ Require Import ExtLib.Structures.Monad.
 Import MonadNotation.
 Local Open Scope monad_scope.
 
-(* the "effect" to track local variables *)
-Inductive Locals : Type -> Type :=
-| GetVar (x : var) : Locals value
-| SetVar (x : var) (v : value) : Locals unit.
+Require Import Imp.
 
 Inductive Memory : Type -> Type :=
 | Load (addr : value) : Memory value
@@ -122,16 +120,25 @@ Section with_effect.
   End with_labels.
 End with_effect.
 
-Definition denote_program {e} `{Locals -< e} `{Memory -< e}
-           (p : program) : itree e unit :=
+Definition denote_program {e} `{Locals -< e} `{Memory -< e} {L}
+           (p : program L) (imports: L -> itree e unit) : p.(label) -> itree e unit :=
   rec (fun lbl : p.(label) =>
-      next <- denote_block (_ +' e) (p.(blocks) lbl) ;;
-      match next with
-      | None => ret tt
-      | Some next => lift (Call next)
-      end)
-    p.(main).
+         next <- denote_block (_ +' e) (p.(blocks) lbl) ;;
+              match next with
+              | None => ret tt
+              | Some (inl next) => lift (Call next)
+              | Some (inr next) => translate (@inr1 _ _) _ (imports next)
+              end).
 
+Definition denote_main {e} `{Locals -< e} `{Memory -< e} {L}
+           (p : program L) (imports: L -> itree e unit) : itree e unit :=
+  next <- denote_block e p.(main) ;;
+   match next with
+   | None => ret tt
+   | Some (inl next) => denote_program p imports next
+   | Some (inr next) => imports next
+   end.
+ 
 (* SAZ: Everything from here down can probably be polished.
 
    In particular, I'm still not completely happy with how all the different parts
@@ -179,9 +186,9 @@ Instance RelDec_string : RelDec (@eq string) :=
 Instance RelDec_value : RelDec (@eq value) := { rel_dec := Nat.eqb }.
 
 (* SAZ: Is this the nicest way to present this? *)
-Definition run (p: program) : itree emptyE (env * (memory * unit)) :=
+Definition run (p: program Empty_set) : itree emptyE (env * (memory * unit)) :=
   let eval := Sum1.elim interpret_Locals interpret_Memory in
-  run_env _ (run_env _ (interp eval _ (denote_program p)) empty) empty.
+  run_env _ (run_env _ (interp eval _ (denote_main p (fun x => match x with end))) empty) empty.
 
 (* SAZ: Note: we should be able to prove that run produces trees that are equivalent
    to run' where run' interprets memory and locals in a different order *)

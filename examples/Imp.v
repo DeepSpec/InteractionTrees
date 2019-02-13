@@ -80,51 +80,56 @@ Inductive Locals : Type -> Type :=
 | GetVar (x : var) : Locals value
 | SetVar (x : var) (v : value) : Locals unit.
 
-Definition ImpEff : Type -> Type := Locals.
+Section Denote.
 
-(* The meaning of an expression *)
-Fixpoint denoteExpr (e : expr) : itree ImpEff value :=
-  match e with
-  | Var v => lift (GetVar v)
-  | Lit n => ret n
-  | Plus a b => l <- denoteExpr a ;; r <- denoteExpr b ;; ret (l + r)
-  end.
+  Context {eff : Type -> Type}.
+  Context {HasLocals : Locals -< eff}.
 
-Definition while {eff} (t : itree eff bool) : itree eff unit :=
-  rec (fun _ : unit =>
-    continue <- translate (fun _ x => inr1 x) _ t ;;
-    if continue : bool then lift (Call tt) else Monad.ret tt) tt.
+  (* The meaning of an expression *)
+  Fixpoint denoteExpr (e : expr) : itree eff value :=
+    match e with
+    | Var v => lift (GetVar v)
+    | Lit n => ret n
+    | Plus a b => l <- denoteExpr a ;; r <- denoteExpr b ;; ret (l + r)
+    end.
 
-(* the meaning of a statement *)
-Fixpoint denoteStmt (s : stmt) : itree ImpEff unit :=
-  match s with
-  | Assign x e =>
-    v <- denoteExpr e ;;
-      lift (SetVar x v)
-  | Seq a b =>
-    denoteStmt a ;; denoteStmt b
-  | If i t e =>
-    v <- denoteExpr i ;;
-      if is_true v then denoteStmt t else denoteStmt e
-  | While t b =>
-    while (v <- denoteExpr t ;;
-	           if is_true v
-             then denoteStmt b ;; ret true
-             else ret false)
-  | Skip => ret tt
-  end.
+  Definition while {eff} (t : itree eff bool) : itree eff unit :=
+    rec (fun _ : unit =>
+           continue <- translate (fun _ x => inr1 x) _ t ;;
+                    if continue : bool then lift (Call tt) else Monad.ret tt) tt.
 
-(* some simple examples *)
-Definition ex1: stmt :=
-  "x" ← 1 ;;;
-  "y" ← "x".
-Eval simpl in denoteStmt ex1.
+  (* the meaning of a statement *)
+  Fixpoint denoteStmt (s : stmt) : itree eff unit :=
+    match s with
+    | Assign x e =>
+      v <- denoteExpr e ;;
+        lift (SetVar x v)
+    | Seq a b =>
+      denoteStmt a ;; denoteStmt b
+    | If i t e =>
+      v <- denoteExpr i ;;
+        if is_true v then denoteStmt t else denoteStmt e
+    | While t b =>
+      while (v <- denoteExpr t ;;
+	             if is_true v
+               then denoteStmt b ;; ret true
+               else ret false)
+    | Skip => ret tt
+    end.
 
-Definition ex2: stmt :=
-  "x" ← 1 ;;;
-  WHILE "x" DO
-    "x" ← "x".
-Eval simpl in denoteStmt ex2.
+End Denote.
+
+  (* some simple examples *)
+  Definition ex1: stmt :=
+    "x" ← 1 ;;;
+    "y" ← "x".
+  Eval simpl in denoteStmt ex1.
+
+  Definition ex2: stmt :=
+    "x" ← 1 ;;;
+    WHILE "x" DO
+      "x" ← "x".
+  Eval simpl in denoteStmt ex2.
 
 From ITree Require Import
      Effect.Env.
