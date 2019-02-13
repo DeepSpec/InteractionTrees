@@ -1,4 +1,6 @@
 Require Import Coq.Strings.String.
+Require Import ZArith.
+Typeclasses eauto := 5.
 
 Definition var : Set := string.
 Definition value : Set := nat. (* this should change *)
@@ -33,6 +35,19 @@ Record program : Type :=
 ; main : label
 }.
 
+Module AsmNotations.
+
+  (* TODO *)
+  Notation "▿ i0 ; .. ; i ; br △" :=
+    (bbi i0 .. (bbi i (bbb br)) ..)
+      (right associativity).
+
+  Open Scope string_scope.
+  Definition bar  := Imov "x" (Ovar "x").
+  Definition foo {label: Type}: @block label :=
+    ▿ bar ; bar ; bar ; Bhalt △.
+
+End AsmNotations.
 
 (* now define a semantics *)
 
@@ -170,3 +185,62 @@ Definition run (p: program) : itree emptyE (env * (memory * unit)) :=
 
 (* SAZ: Note: we should be able to prove that run produces trees that are equivalent
    to run' where run' interprets memory and locals in a different order *)
+
+
+
+(*
+Definition dummy_blk {label: Type}: block label := bbb Bhalt.
+Definition arg: string := "arg".
+Definition res: string := "res".
+
+Definition local: string := "R0".
+
+Section Odd_Even.
+
+
+  (* Need to work over Z *)
+
+  Definition even_entry {label: Type}: block label :=
+    bbi (Iload local (Ovar arg))
+        (bbb (Bbrz local Eend Ebody)).
+  Definition even_body {label: Type}: block label :=
+    bbi (Iload local (Ovar arg))
+        (bbb (Bbrz local Eend Ebody)).
+
+
+
+
+End Odd_Even.
+
+Section Fact.
+  Definition Fentry := 1.
+  Definition Fbody := 2.
+  Definition Fend := 3.
+
+  (* Need to work over Z *)
+  Definition fact_entry {label: Type} (Fend Fbody: label): block label :=
+    bbi (Iload local (Ovar arg))
+        (bbi (Iadd arg arg (Oimm -1)
+                   (bbi (Istore res (Oimm 0))
+                        (bbb (Bbrz local Fend Fbody))).
+
+              Definition fact_body {label: Type} (Fbody: label): block label :=
+                bbi (Iload local (Ovar arg))
+                    (bbb (Bbrz local Fend Fbody)).
+
+
+
+              Definition fact (n: nat): program :=
+                {|
+                  label:= nat;
+                  blocks := fun n => match n with
+                                  | 0 => bbi (Istore arg (Oimm n)) (bbb (Bjmp 1))
+                                  | 1 => dummy_blk
+                                  | _ => dummy_blk
+                                  end;
+                  main := 0
+                |}.
+
+End Fact.
+*)
+

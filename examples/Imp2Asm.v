@@ -1,42 +1,27 @@
-From ITree.examples Require Import
-     Imp Asm.
+Require Import Imp Asm.
 
 Require Import Coq.Strings.String.
 Local Open Scope string_scope.
+Import ListNotations.
 
+Section compile_assign.
 
+  Fixpoint compile_expr (e: expr): list instr :=
+    match e with
+    | Var x => [Imov "fixme" (Ovar x)]
+    | Lit n => [Imov "fixme" (Oimm n)] 
+    | Plus e1 e2 =>
+      compile_expr e1 ++
+      compile_expr e2 ++
+      [Iadd "fixme" "fixme" (Ovar "fixme")]
+    end.
 
+  Definition compile_assign (x: Imp.var) (e: expr): list instr :=
+    let instrs := compile_expr e in
+    instrs ++ [Imov x (Ovar "fixme")].
 
-
-(*
-Print stmt.
-
-Fixpoint blocks (s : stmt) (k : Type) : Type :=
-  match s with
-  | Skip => k
-  | Assign _ _ => k
-  | Seq a b => blocks a (blocks b k)
-  | If e l r =>
-      option (blocks l Empty_set) (* then branch *)
-    + option (blocks r Empty_set) (* else branch *)
-    + k                           (* join point *)
-  | While e b =>
-      unit (* top of the evaluation of e *)
-    + option (blocks b Empty_set) (* top of the body *)
-    + k (* end of the loop *)
-  end.
-
-Compute fun e => blocks (Seq (Assign "x" e) (Assign "x" e)) Empty_set.
-Compute fun e =>
-   blocks (Seq (Assign "x" e) (If e Skip Skip)) Empty_set.
-Compute fun e =>
-   blocks (Seq (Assign "x" e) (If e (While e Skip) Skip)) Empty_set.
-Compute fun e => blocks (Seq (Assign "x" e) (Seq (If e (While e Skip) Skip) Skip)) Empty_set.
-*)
-
-Parameter compile_expr   : expr -> list instr.
-Parameter compile_assign : Imp.var -> expr -> list instr.
-
+End compile_assign.
+  
 Section after.
   Context {a : Type}.
   Fixpoint after (is : list instr) (blk : block a) : block a :=
@@ -48,14 +33,13 @@ End after.
 
 Section fmap_block.
   Context {a b : Type} (f : a -> b).
-  Print branch.
+
   Definition fmap_branch (blk : branch a) : branch b :=
     match blk with
     | Bjmp x => Bjmp (f x)
     | Bbrz v a b => Bbrz v (f a) (f b)
     | Bhalt => Bhalt
     end.
-
 
   Fixpoint fmap_block (blk : block a) : block b :=
     match blk with
@@ -64,30 +48,39 @@ Section fmap_block.
     end.
 End fmap_block.
 
+(* CR essentially corresponds to an open (asm) program.
+ /imports/ encodes the set of external labels to which the program can jump.
+ c_main is the current entry point.
+ *)
 Record CR {imports : Type} : Type :=
-{ c_label  : Type
-; c_main   : block (c_label + imports)
-; c_blocks : c_label -> block (c_label + imports)
-}.
+  { c_label  : Type                                    (* Internal labels *) 
+    ; c_main   : block (c_label + imports)             (* Entry point     *)
+    ; c_blocks : c_label -> block (c_label + imports)   (* Other blocks    *)
+  }.
 Arguments CR _ : clear implicits.
 
 Variant WhileBlocks : Set :=
 | WhileTop
 | WhileBottom.
 
-Fixpoint compileCR (s : stmt) {L} (k : block L) {struct s}
-: CR L.
+(*
+  Compiles a statement given a partially built continuation 'k' expressed as a block.
+ *)
+Fixpoint compileCR (s : stmt) {L} (k : block L) {struct s} : CR L.
 refine
   match s with
+
   | Skip =>
     {| c_label  := Empty_set
      ; c_blocks := fun x => match x with end
      ; c_main   := fmap_block inr k |}
+
   | Assign x e =>
     {| c_label  := Empty_set
      ; c_blocks := fun x => match x with end
      ; c_main   := after (compile_assign x e)
                          (fmap_block inr k) |}
+
   | Seq l r =>
     let rc := @compileCR r L k in
     let lc := @compileCR l (sum rc.(c_label) L) rc.(c_main) in
@@ -99,6 +92,7 @@ refine
        end
      ; c_main   :=
          fmap_block _ lc.(c_main) |}
+
   | If e l r =>
     let lc := @compileCR l L k in
     let rc := @compileCR r L k in
@@ -161,7 +155,6 @@ refine
 all: clear; tauto.
 Defined.
 
-
 Definition compile (s : stmt) : program :=
   let cr := @compileCR s Empty_set (bbb Bhalt) in
   {| label := option cr.(c_label)
@@ -178,14 +171,24 @@ Definition compile (s : stmt) : program :=
        | Some l => fmap_block convert (cr.(c_blocks) l)
        end |}.
 
+Section tests.
+
+  Import ImpNotations.
+
+  Definition ex1: stmt :=
+    "x" ← 1.
+
+Compute (compile ex1).
+
+End tests.
+
+
 (* something like this...
 Lemma compileCR_correct : forall s,
     @denote_program ImpEff _ _ (@compile s) = denoteStmt s.
 Proof.
 *)
 
-
-Compute (compile (Assign "x" (Lit 1))).
 
 (*
 l: x = phi(l1: a, l2: b) ; ...
