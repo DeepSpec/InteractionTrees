@@ -24,8 +24,7 @@ From Coq Require Import
      Classes.RelationClasses
      Classes.Morphisms
      Setoids.Setoid
-     Relations.Relations
-     Logic.JMeq Logic.EqdepFacts.
+     Relations.Relations.
 
 From ITree Require Import Core Eq.Eq.
 
@@ -56,23 +55,6 @@ Variant eq_notauF {I} (eutt : relation I)
     eq_notauF eutt (VisF e k1) (VisF e k2).
 Hint Constructors eq_notauF.
 
-Variant eq_notauF' {I} (eutt : relation I)
-: relation (itreeF E R I) :=
-| Eutt_ret' : forall r, eq_notauF' eutt (RetF r) (RetF r)
-| Eutt_vis' : forall {u1 u2} (e1 : E u1) (e2 : E u2) k1 k2,
-    eq_dep _ E _ e1 _ e2 ->
-    (forall x1 x2, JMeq x1 x2 -> eutt (k1 x1) (k2 x2)) ->
-    eq_notauF' eutt (VisF e1 k1) (VisF e2 k2).
-Hint Constructors eq_notauF'.
-
-Lemma eq_notauF_eq_eq_notauF': forall I (eutt : relation I) t s,
-  eq_notauF eutt t s <-> eq_notauF' eutt t s.
-Proof.
-  split; intros EUTT; destruct EUTT; eauto.
-  - econstructor; intros; subst; eauto.
-  - assert (u1 = u2) by (inv H; eauto).
-    subst. apply eq_dep_eq in H. subst. eauto.
-Qed.
 
 (* [untaus t' t] holds when [t = Tau (... Tau t' ...)]:
    [t] steps to [t'] by "peeling off" a finite number of [Tau].
@@ -504,7 +486,6 @@ Qed.
 End EUTT.
 
 Hint Constructors eq_notauF.
-Hint Constructors eq_notauF'.
 Hint Constructors untausF.
 Hint Unfold unalltausF.
 Hint Unfold finite_tausF.
