@@ -152,13 +152,13 @@ Definition env := alist var value.
 Instance RelDec_string : RelDec (@eq string) :=
   { rel_dec := fun s1 s2 => if String.string_dec s1 s2 then true else false}.
 
-Definition eval (s: stmt): itree emptyE (env * unit) :=
+Definition ImpEval (s: stmt): itree emptyE (env * unit) :=
   let p := interp evalLocals _ (denoteStmt s) in
   run_env _ p empty.
 
 (* some simple examples. Dumb right now, nothing computes *)
-Eval unfold ex1 in eval ex1.
+Eval unfold ex1 in ImpEval ex1.
 
-Eval simpl in eval ex2.
+Eval simpl in ImpEval ex2.
 
 
