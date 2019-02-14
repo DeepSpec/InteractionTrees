@@ -187,9 +187,9 @@ Ltac run_state_tac :=
 
 Ltac strip_taus :=
   repeat match goal with
-         | [ |- ?T1 ~~ ?T1] => reflexivity
-         | [ |- Tau ?T1 ~~ ?T2 ] => rewrite tau_eutt
-         | [ |- ?T1 ~~ Tau ?T2 ] => rewrite tau_eutt
+         | [ |- ?T1 ≈ ?T1] => reflexivity
+         | [ |- Tau ?T1 ≈ ?T2 ] => rewrite tau_eutt
+         | [ |- ?T1 ≈ Tau ?T2 ] => rewrite tau_eutt
          end.
 
 (* Delete the second [get] *)
@@ -219,7 +219,7 @@ Proof.
 Qed.  
   
 
-Lemma examples_equiv : forall s (E:Type->Type), run_state (@example1 E) s ~~ run_state example2 s.
+Lemma examples_equiv : forall s (E:Type->Type), run_state (@example1 E) s ≈ run_state example2 s.
 Proof.
   intros s E.
   unfold example1.
@@ -233,8 +233,8 @@ Qed.
 (* Commuting Effects across different monads -------------------------------- *)
   
 (* Two different instances of the state monad don't interfere in the sense that
-   - get1 ;; get2 ~~ get2 ;; get1 
-   - write1 ;; write1 ~~ write2 ;; write1 
+   - get1 ;; get2 ≈ get2 ;; get1 
+   - write1 ;; write1 ≈ write2 ;; write1 
  *)
 
 Section TwoStates.
@@ -320,7 +320,7 @@ Definition example4 {E} : itree (@state2E E nat nat) nat :=
 
 
 Lemma examples_equiv2 : forall s1 s2 {E},
-    runboth (@example3 E) s1 s2 ~~ runboth (@example4 E) s1 s2.
+    runboth (@example3 E) s1 s2 ≈ runboth (@example4 E) s1 s2.
 Proof.
   intros s1 s2 E.
   unfold example3. unfold example4.

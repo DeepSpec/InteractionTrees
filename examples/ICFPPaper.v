@@ -146,6 +146,11 @@ Proof. reflexivity. Qed.
 Ltac fold_bind := rewrite !bind'_to_bind in *.
 
 
+Definition input := liftE Input.
+Definition output x := liftE (Output x).
+
+Definition echo2 : itree IO void :=
+  Monad.forever (x <- input ;; output x).
 
 
 Section eq_itree.
@@ -197,3 +202,45 @@ Section eq_itree.
 *)
 End eq_itree.
 
+
+(* This definition -- a.k.a. the classic Haskell "Free Monad"
+   is not accepted by Coq 
+
+Inductive Free (F : Type -> Type) (a:Type) :=
+| RET : a -> Free F a
+| WRAP : (F (Free F a)) -> Free F a.
+
+ *)
+
+
+Module eq_itree.
+
+  Context {E : Type -> Type} {R : Type}.
+
+  Inductive eq_itreeF' (sim : relation (itree E R)) : relation (itreeF E R (itree E R)) :=
+  | EqRet : forall x, eq_itreeF' sim (RetF x) (RetF x)
+  | EqTau : forall m1 m2
+      (REL: sim m1 m2), eq_itreeF' sim (TauF m1) (TauF m2)
+  | EqVis : forall {u} (e : E u) k1 k2
+      (REL: forall v, sim (k1 v) (k2 v)),
+      eq_itreeF' sim (VisF e k1) (VisF e k2)
+  .
+  Hint Constructors eq_itreeF'.
+
+  Definition eq_itreeF (sim: relation (itree E R)) : relation (itree E R) :=
+    fun t1 t2 => eq_itreeF' sim (observe t1) (observe t2).
+  Hint Unfold eq_itreeF.
+
+  Lemma eq_itreeF'_mono : forall x0 x1 r r'
+    (IN: eq_itreeF' r x0 x1) (LE: forall x2 x3, (r x2 x3 : Prop) -> r' x2 x3 : Prop), eq_itreeF' r' x0 x1.
+  Proof. pmonauto. Qed.
+
+  Lemma eq_itreeF_mono : monotone2 eq_itreeF.
+  Proof. do 2 red. pmonauto. Qed.
+
+
+  Definition ν {X} (F:relation X -> relation X) : relation X := paco2 F bot2.
+  Definition eq_itree : relation (itree E R) := ν eq_itreeF.
+
+  Notation "t1 ≅ t2" := (eq_itree t1 t2) (at level 70).
+End eq_itree.
