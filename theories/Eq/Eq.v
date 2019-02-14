@@ -100,6 +100,24 @@ Delimit Scope eq_itree_scope with eq_itree.
 Notation "t1 ≅ t2" := (eq_itree t1%itree t2%itree) (at level 70).
 (* you can write ≅ using \cong in tex-mode *)
 
+
+(* Some simple congruences -------------------------------------------------- *)
+
+Lemma itree_eq_tau : forall {E R} (t1 t2 : itree E R),
+    t1 ≅ t2 -> Tau t1 ≅ Tau t2.
+Proof.
+  intros E R t1 t2 H.
+  pfold. econstructor. left. assumption.
+Qed.
+
+Lemma itree_eq_vis : forall {E R S} (e : E R) (k1 k2 : R -> itree E S)
+    (h : forall (r:R), (k1 r) ≅ (k2 r)),  Vis e k1 ≅ Vis e k2.
+Proof.
+  intros E R S e k1 k2 h. 
+  pfold. econstructor. intros v. left. apply h.
+Qed.  
+
+
 Lemma eq_itree_refl {E R} r x : paco2 (@eq_itreeF E R) r x x.
 Proof.
   revert x. pcofix CIH; intros.
