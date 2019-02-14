@@ -17,7 +17,7 @@ Variant sum1 (E1 E2 : Type -> Type) (X : Type) : Type :=
 | inr1 (_ : E2 X).
 
 Notation "E1 +' E2" := (sum1 E1 E2)
-  (at level 50, left associativity) : type_scope.
+  (at level 60, right associativity) : type_scope.
 
 Notation "EE ++' E" := (List.fold_right sum1 EE E)
   (at level 50, left associativity) : type_scope.
