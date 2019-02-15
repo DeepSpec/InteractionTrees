@@ -43,19 +43,20 @@ Notation notau t := (notauF (observe t)).
 
 Section EUTT.
 
-Context {E : Type -> Type} {R : Type}.
+Context {E : Type -> Type} {R : Type} (RR : R -> R -> Prop).
 
 (* Equivalence between visible steps of computation (i.e., [Vis] or
    [Ret], parameterized by a relation [eutt] between continuations
    in the [Vis] case. *)
 Variant eq_notauF {I} (eutt : relation I)
 : relation (itreeF E R I) :=
-| Eutt_ret : forall r, eq_notauF eutt (RetF r) (RetF r)
+| Eutt_ret : forall r r', RR r r' -> eq_notauF eutt (RetF r) (RetF r')
 | Eutt_vis : forall u (e : E u) k1 k2,
     (forall x, eutt (k1 x) (k2 x)) ->
     eq_notauF eutt (VisF e k1) (VisF e k2).
 Hint Constructors eq_notauF.
 
+(*
 Variant eq_notauF' {I} (eutt : relation I)
 : relation (itreeF E R I) :=
 | Eutt_ret' : forall r, eq_notauF' eutt (RetF r) (RetF r)
@@ -73,6 +74,8 @@ Proof.
   - assert (u1 = u2) by (inv H; eauto).
     subst. apply eq_dep_eq in H. subst. eauto.
 Qed.
+*)
+
 
 (* [untaus t' t] holds when [t = Tau (... Tau t' ...)]:
    [t] steps to [t'] by "peeling off" a finite number of [Tau].
@@ -356,6 +359,7 @@ Qed.
 
 (* Reflexivity of [eutt_0], modulo a few assumptions. *)
 Lemma reflexive_euttF0 I (eutt : relation I) ot :
+  Reflexive RR ->
   Reflexive eutt -> notauF ot -> eq_notauF eutt ot ot.
 Proof.
   intros. destruct ot; try contradiction; econstructor; intros; subst; eauto.
@@ -411,6 +415,7 @@ Qed.
 (**)
 
 Lemma Reflexive_euttF (r : relation (itree E R)) :
+  Reflexive RR ->
   Reflexive r -> Reflexive (euttF r).
 Proof.
   split.
@@ -420,10 +425,13 @@ Proof.
     apply reflexive_euttF0; eauto using unalltaus_notau.
 Qed.
 
+Context {Reflexive_RR : Reflexive RR}.
+
 Lemma eutt_refl r x : paco2 eutt_ r x x.
 Proof.
   revert x. pcofix CIH.
   intros. pfold. apply Reflexive_euttF. eauto.
+  right. eauto.
 Qed.
 
 (* [eutt] is an equivalence relation. *)
@@ -432,8 +440,8 @@ Proof.
   repeat intro. apply eutt_refl.
 Qed.
 
-Global Instance Symmetric_eutt
-: Symmetric eutt.
+Global Instance Symmetric_eutt (SRR : Symmetric RR)
+:  Symmetric eutt.
 Proof.
   pcofix Symmetric_eutt.
   intros t1 t2 H12.
@@ -447,7 +455,7 @@ Proof.
     econstructor. intros. specialize (H0 x). pclearbot. eauto.
 Qed.
 
-Global Instance Transitive_eutt : Transitive eutt.
+Global Instance Transitive_eutt (TRR : Transitive RR) : Transitive eutt.
 Proof.
   pcofix Transitive_eutt.
   intros t1 t2 t3 H12 H23.
@@ -504,7 +512,7 @@ Qed.
 End EUTT.
 
 Hint Constructors eq_notauF.
-Hint Constructors eq_notauF'.
+(* Hint Constructors eq_notauF'. *)
 Hint Constructors untausF.
 Hint Unfold unalltausF.
 Hint Unfold finite_tausF.
@@ -516,17 +524,20 @@ Hint Resolve notau_tau.
 
 Delimit Scope eutt_scope with eutt.
 
-Infix "~~" := eutt (at level 70).
+Infix "~~" := (@eutt _ _ eq)  (at level 70).
+Infix "~[ RR ]~" := (@eutt _ _ RR)  (at level 70).
 
 Notation finite_taus t := (finite_tausF (observe t)).
 Notation untaus t t' := (untausF (observe t) (observe t')).
 Notation unalltaus t t' := (unalltausF (observe t) (observe t')).
 
 (* We can now rewrite with [eutt] equalities. *)
-Instance Equivalence_eutt E R : @Equivalence (itree E R) eutt.
+Instance Equivalence_eutt E R RR (ERR : Equivalence RR) 
+: @Equivalence (itree E R) (eutt RR).
 Proof. constructor; typeclasses eauto. Qed.
 
-Instance subrelation_eq_eutt {E R} : subrelation (@eq_itree E R) eutt.
+Instance subrelation_eq_eutt {E R RR} (RRR : Reflexive RR)
+: subrelation (@eq_itree E R) (eutt RR).
 Proof.
   pcofix CIH. intros.
   pfold. econstructor.
@@ -538,25 +549,26 @@ Proof.
   eapply unalltaus_notau in UNTAUS1. simpobs. contradiction.
 Qed.
 
-Instance subrelation_go_sim_eq_eutt {E R} : subrelation (go_sim (@eq_itree E R)) (go_sim (@eutt E R)).
+Instance subrelation_go_sim_eq_eutt {E R RR} {RRR : Reflexive RR}
+: subrelation (go_sim (@eq_itree E R)) (go_sim (@eutt E R RR)).
 Proof.
-  repeat intro. red. red in H. rewrite H. reflexivity.
+  repeat intro. red. red in H. eapply subrelation_eq_eutt; eauto.
 Qed.
 
-Instance eutt_go {E R} :
-  Proper (go_sim (@eutt E R) ==> @eutt E R) (@go E R).
+Instance eutt_go {E R RR} :
+  Proper (go_sim (@eutt E R RR) ==> @eutt E R RR) (@go E R).
 Proof.
   repeat intro. eauto.
 Qed.
 
-Instance eutt_observe {E R} :
-  Proper (@eutt E R ==> go_sim (@eutt E R)) (@observe E R).
+Instance eutt_observe {E R RR} :
+  Proper (@eutt E R RR ==> go_sim (@eutt E R RR)) (@observe E R).
 Proof.
   repeat intro. punfold H. pfold. destruct H. econstructor; eauto.
 Qed.
 
-Instance eutt_tauF {E R} :
-  Proper (@eutt E R ==> go_sim (@eutt E R)) (@TauF E R _).
+Instance eutt_tauF {E R RR} :
+  Proper (@eutt E R RR ==> go_sim (@eutt E R RR)) (@TauF E R _).
 Proof.
   repeat intro. pfold. punfold H.
   destruct H. econstructor.
@@ -566,8 +578,8 @@ Proof.
   - intros. eapply EQV; eapply unalltaus_tau; eauto.
 Qed.
 
-Instance eutt_VisF {E R u} (e: E u) :
-  Proper (pointwise_relation _ eutt ==> go_sim (@eutt E R)) (VisF e).
+Instance eutt_VisF {E R RR u} (e: E u) :
+  Proper (pointwise_relation _ (eutt RR) ==> go_sim (@eutt E R RR)) (VisF e).
 Proof.
   repeat intro. red in H. pfold. econstructor.
   - repeat econstructor.
@@ -587,8 +599,8 @@ Qed.
 
 (* If [t1] and [t2] are equivalent, then either both start with
    finitely many taus, or both [spin]. *)
-Instance eutt_finite_taus {E R} :
-  Proper (go_sim (@eutt E R) ==> flip impl) (@finite_tausF E R).
+Instance eutt_finite_taus {E R RR} :
+  Proper (go_sim (@eutt E R RR) ==> flip impl) (@finite_tausF E R).
 Proof.
   repeat intro. punfold H. eapply H. eauto.
 Qed.
@@ -662,14 +674,14 @@ Proof.
     + inv OBS0. inversion H0; subst; eauto.
 Qed.
 
-Lemma eutt_strengthen {E R}:
+Lemma eutt_strengthen {E R RR}:
   forall r (t1 t2: itree E R)
      (FIN: finite_taus t1 <-> finite_taus t2)
      (EQV: forall t1' t2'
               (UNT1: unalltaus t1 t1')
               (UNT2: unalltaus t2 t2'),
-         paco2 (eutt_ ∘ gres2 eutt_) r t1' t2'),
-    paco2 (eutt_ ∘ gres2 eutt_) r t1 t2.
+         paco2 (eutt_ RR ∘ gres2 (eutt_ RR)) r t1' t2'),
+    paco2 (eutt_ RR ∘ gres2 (eutt_ RR)) r t1 t2.
 Proof.
   intros. pfold. econstructor; eauto.
   intros.
@@ -679,16 +691,17 @@ Proof.
     repeat constructor; eauto. eapply UNTAUS1. eapply UNTAUS2.
 Qed.
 
-Inductive eutt_trans_clo {E R} (r: relation (itree E R)) : relation (itree E R) :=
+Inductive eutt_trans_clo {E R} RR (r: relation (itree E R)) : relation (itree E R) :=
 | eutt_pre_clo_intro (t1 t2 t3 t4: itree E R)
-      (EQVl: t1 ~~ t2)
-      (EQVr: t4 ~~ t3)
+      (EQVl: t1 ~[RR]~ t2)
+      (EQVr: t4 ~[RR]~ t3)
       (REL: r t2 t3)
-  : eutt_trans_clo r t1 t4
+  : eutt_trans_clo RR r t1 t4
 .
 Hint Constructors eutt_trans_clo.
 
-Lemma eutt_clo_trans E R: weak_respectful2 (@eutt_ E R) eutt_trans_clo.
+Lemma eutt_clo_trans {E R RR} {ERR : Equivalence RR}
+: weak_respectful2 (@eutt_ E R RR) (eutt_trans_clo RR).
 Proof.
   econstructor; [pmonauto|].
   intros. inv PR.
@@ -703,6 +716,8 @@ Proof.
   hexploit EQV1; eauto. intros EUTT3.
   destruct EUTT1; destruct EUTT2;
     try (solve [inversion EUTT3; auto]).
+  { constructor. inversion EUTT3. subst.
+    etransitivity; eauto. etransitivity; eauto. symmetry. eauto. }
   remember (VisF _ _) as o2 in EUTT3.
   remember (VisF _ _) as o3 in EUTT3.
   inversion EUTT3; subst; try discriminate.
@@ -714,9 +729,9 @@ Proof.
 Qed.
 
 Inductive eutt_bind_clo {E R} (r: relation (itree E R)) : relation (itree E R) :=
-| eutt_bind_clo_intro U (t1 t2: itree E U) k1 k2
-      (EQV: t1 ~~ t2)
-      (REL: forall v, r (k1 v) (k2 v))
+| eutt_bind_clo_intro U RU (t1 t2: itree E U) k1 k2
+      (EQV: t1 ~[RU]~ t2)
+      (REL: forall v1 v2, RU v1 v2 -> r (k1 v1) (k2 v2))
   : eutt_bind_clo r (ITree.bind t1 k1) (ITree.bind t2 k2)
 .
 Hint Constructors eutt_bind_clo.
@@ -741,7 +756,7 @@ Proof.
     eapply IHFT2; eauto using unalltaus_tau'.
 Qed.
 
-Lemma eutt_clo_bind E R: weak_respectful2 (@eutt_ E R) eutt_bind_clo.
+Lemma eutt_clo_bind E R {RR} {ERR : Equivalence RR} : weak_respectful2 (@eutt_ E R RR) eutt_bind_clo.
 Proof.
   econstructor; [pmonauto|].
   intros. destruct PR. split.
