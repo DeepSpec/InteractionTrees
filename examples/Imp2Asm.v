@@ -16,24 +16,22 @@ Section compile_assign.
     "local_" ++ (String (Ascii.ascii_of_nat n) "").
 
   (* Compiling mindlessly everything to the stack. Do we want to use asm's heap? *)
-  Fixpoint compile_expr_aux (l: nat) (e: expr): (list instr * nat) :=
+  Fixpoint compile_expr (l: nat) (e: expr): list instr :=
     match e with
-    | Var x => ([Imov (gen_local l) (Ovar x)], S l)
-    | Lit n => ([Imov (gen_local l) (Oimm n)], S l) 
+    | Var x => [Imov (gen_local l) (Ovar x)]
+    | Lit n => [Imov (gen_local l) (Oimm n)]
     | Plus e1 e2 =>
-      let (instrs1, l1) := compile_expr_aux (S l) e1 in
-      let (instrs2, l2) := compile_expr_aux l1 e2 in
-      (instrs1 ++ instrs2 ++ [Iadd (gen_local l) (gen_local (S l)) (Ovar (gen_local l1))], S l2)
+      let instrs1 := compile_expr l e1 in
+      let instrs2 := compile_expr (S l) e2 in
+      instrs1 ++ instrs2 ++ [Iadd (gen_local l) (gen_local l) (Ovar (gen_local (S l)))]
     end.
 
-  Definition compile_expr e := fst (compile_expr_aux 0 e).
-
   Definition compile_assign (x: Imp.var) (e: expr): list instr :=
-    let instrs := compile_expr e in
+    let instrs := compile_expr 0 e in
     instrs ++ [Imov x (Ovar (gen_local 0))].
 
 End compile_assign.
-  
+
 Section after.
   Context {a : Type}.
   Fixpoint after (is : list instr) (blk : block a) : block a :=
@@ -72,6 +70,12 @@ Variant WhileBlocks : Set :=
    To double check.
  *)
 Open Scope string_scope.
+(* we could change this to `stmt -> program unit` and then compile the subterms
+ * and then replace some of the jumps to do the actual linking.
+ *
+ * the type of `program` can not be printed because the type of labels is
+ * exitentially quantified. it could be replaced with a finite map.
+ *)
 Fixpoint compile (s : stmt) {L} (k : block L) {struct s} : program L.
   refine
     match s with
@@ -90,6 +94,7 @@ Fixpoint compile (s : stmt) {L} (k : block L) {struct s} : program L.
                              (fmap_block inr k) |}
 
     | Seq l r =>
+
       let reassoc :=
           (fun x => match x with
                  | inl x => inl (inl x)
@@ -116,6 +121,20 @@ Fixpoint compile (s : stmt) {L} (k : block L) {struct s} : program L.
          ; main   :=
              fmap_block reassoc lc.(main) |}
 
+(*
+      let lc := @compile l unit (bbb (Bjmp tt)) in
+      let rc := @compile r L k in
+
+      {| label  := option (lc.(label) + rc.(label))
+       ; blocks := fun x =>
+                     match x with
+                     | None => fmap_block _ rc.(main)
+                     | Some (inl x) => fmap_block _ (lc.(blocks) x)
+                     | Some (inr x) => fmap_block _ (rc.(blocks) x)
+                     end
+       ; main   :=
+           fmap_block _ lc.(main) |}
+*)
     | If e l r =>
       let to_right := (fun x =>
                          match x with
@@ -131,7 +150,7 @@ Fixpoint compile (s : stmt) {L} (k : block L) {struct s} : program L.
       in
       let lc := @compile l L k in
       let rc := @compile r L k in
-      
+
       {| label  := option lc.(label) + option rc.(label)
          ; blocks := fun x =>
                          match x with
@@ -203,7 +222,33 @@ End tests.
 
 From ITree Require Import
      ITree.
+  Require Import ExtLib.Structures.Monad.
+  From ITree Require Import
+       Effect.Env.
 
+  Section denote_list.
+  Definition traverse_ {A: Type} {M: Type -> Type} `{Monad M} (f: A -> M unit): list A -> M unit :=
+    fix traverse__ l: M unit :=
+      match l with
+      | [] => ret tt
+      | a::l => f a;; traverse__ l
+      end.
+  Context {E} {EL : Locals -< E} {EM : Memory -< E}.
+
+  Definition denote_list: list instr -> itree E unit :=
+    traverse_ (denote_instr E).
+
+  Lemma denote_after_denote_list:
+    forall {label: Type} instrs (b: block label),
+      denote_block E (after instrs b) ~~ (denote_list instrs ;; denote_block E b).
+  Proof.
+    induction instrs as [| i instrs IH]; intros b.
+    - simpl; rewrite ret_bind; reflexivity.
+    - simpl; rewrite bind_bind.
+      eapply eutt_bind; [reflexivity | intros []; apply IH].
+  Qed.
+
+  End  denote_list.
 Section Correctness.
 
   (*
@@ -233,42 +278,21 @@ Section Correctness.
       eapply eutt_bind; [reflexivity | intros []; apply IHb].
     - simpl.
       destruct br; simpl.
-      + unfold ITree.map; rewrite ret_bind; reflexivity. 
+      + unfold ITree.map; rewrite ret_bind; reflexivity.
       + unfold ITree.map; rewrite bind_bind.
         eapply eutt_bind; [reflexivity | intros []; rewrite ret_bind; reflexivity].
       + unfold ITree.map; rewrite ret_bind; reflexivity.
   Qed.
 
-  Require Import ExtLib.Structures.Monad.
-  From ITree Require Import
-       Effect.Env.
 
-  Definition traverse_ {A: Type} {M: Type -> Type} `{Monad M} (f: A -> M unit): list A -> M unit :=
-    fix traverse__ l: M unit :=
-      match l with
-      | [] => ret tt
-      | a::l => f a;; traverse__ l
-      end.
 
-  Definition denote_list: list instr -> itree E unit :=
-    traverse_ (denote_instr E).
-
-  Lemma denote_after_denote_list:
-    forall {label: Type} instrs (b: block label),
-      denote_block E (after instrs b) ~~ (denote_list instrs ;; denote_block E b).
-  Proof.
-    induction instrs as [| i instrs IH]; intros b.
-    - simpl; rewrite ret_bind; reflexivity.
-    - simpl; rewrite bind_bind.
-      eapply eutt_bind; [reflexivity | intros []; apply IH].
-  Qed.
 
   Lemma denote_compile_assign :
     forall x e,
       denote_list (compile_assign x e) ~~ ITree.bind (denoteExpr e) (fun v : Imp.value => lift (SetVar x v)).
   Proof.
-    (* induction e. 
-     - simpl; rewrite bind_bind. 
+    (* induction e.
+     - simpl; rewrite bind_bind.
      eapply eutt_bind; [reflexivity | intros ?]. *)
   (**
      YZ: This lemma is wrong. They are not eutt since of course the compiled program does more SetVar actions than
@@ -287,25 +311,98 @@ From ExtLib Require Import
      Core.RelDec
      Structures.Maps
      Data.Map.FMapAList.
- 
+
+Definition varOf (s : var) : var := "_local" ++ s.
+
+Variant Rvar : var -> var -> Prop :=
+| Rvar_var v : Rvar (varOf v) v.
+
+Definition Renv (g_asm g_imp : alist var value) : Prop :=
+  forall k_asm k_imp, Rvar k_asm k_imp ->
+           forall v, In (k_imp,v) g_imp -> In (k_asm, v) g_asm.
+
+
+CoInductive euttG {a b : Type} (R : a -> b -> Prop)
+: itree E a -> itree E b -> Prop := .
+
+
+Lemma compile_expr_correct : forall e g_imp g_asm n,
+    Renv g_asm g_imp ->
+    euttG (fun '(g_asm', _) '(g_imp',v) =>
+             Renv g_asm' g_imp' /\ (* we don't corrupt any of the imp variables *)
+             In (gen_local n, v) g_asm' /\ (* we get the right value *)
+             (forall m, m < n -> forall v, (* we don't mess with anything on the "stack" *)
+                   In (gen_local m, v) g_asm <-> In (gen_local m, v) g_asm'))
+          (run_env unit (denote_list (compile_expr n e)) g_asm)
+          (run_env value (denoteExpr e) g_imp).
+Proof.
+  induction e; simpl; intros.
+  { admit. }
+  { admit. }
+  { admit. (* obviously the most complex of them. *) }
+Admitted.
+
+Print stmt.
+
+(*
+Seq a b
+a :: itree _ Empty_set
+[[Skip]] = Vis Halt ...
+[[Seq Skip b]] = Vis Halt ...
+
+
+[[s]] :: itree _ unit
+[[a]] :: itree _ L (* if closed *)
+*)
+
+(*
+Definition denote_program {e} `{Locals -< e} `{Memory -< e} {L}
+           (p : program L) : p.(label) -> itree e (option L) :=
+  rec (fun lbl : p.(label) =>
+         next <- denote_block (_ +' e) (p.(blocks) lbl) ;;
+              match next with
+              | None => ret None
+              | Some (inl next) => lift (Call next)
+              | Some (inr next) => ret (Some next)
+              end).
+
+Definition denote_main {e} `{Locals -< e} `{Memory -< e} {L}
+           (p : program L) : itree e (option L) :=
+  next <- denote_block e p.(main) ;;
+   match next with
+   | None => ret None
+   | Some (inl next) => denote_program p next
+   | Some (inr next) => ret (Some next)
+   end.
+
+Lemma true_compile_correct_program:
+    forall s L (b: block L) (g_imp g_asm : alist var value),
+      Renv g_asm g_imp ->
+      euttG (fun a b => Renv (fst a) (fst b) /\ snd a = snd b)
+            (run_env _ (denote_main (compile s b)) g_asm)
+            (run_env _ (denoteStmt s;; denote_block _ b) g_imp).
+Proof.
+  induction s.
+  { admit. }
+  { simpl.
+    unfold denote_main. simpl.
+    intros.
+*)
+
+        Arguments denote_program {_ _ _ _} _ _.
+        Arguments denote_block {_ _ _ _} _.
+
+
   (*
     This statement does not hold. We need to handle the environment.
     We want something closer to this kind:
 
-Lemma true_compile_correct_program:
-    forall s L (b: block L) imports,
-      run_env unit (denote_main (compile s b) imports) empty ~~
-      run_env unit (denoteStmt s;; ml <- denote_block _ b;;
-                              (match ml with
-                               | None => Ret tt
-                               | Some l => imports l
-                               end)) empty.
- 
+
    *)
   Lemma compile_correct_program:
     forall s L (b: block L) imports,
       denote_main (compile s b) imports ~~
-                  (denoteStmt s;; ml <- denote_block _ b;;
+                  (denoteStmt s;; ml <- denote_block b;;
                               (match ml with
                                | None => Ret tt
                                | Some l => imports l
@@ -313,9 +410,9 @@ Lemma true_compile_correct_program:
   Proof.
     simpl.
     induction s; intros L b imports.
-    
+
     - unfold denote_main; simpl.
-      rewrite denote_after_denote_list; simpl. 
+      rewrite denote_after_denote_list; simpl.
       rewrite bind_bind.
       eapply eutt_bind.
       + apply denote_compile_assign.
@@ -323,7 +420,7 @@ Lemma true_compile_correct_program:
         rewrite fmap_block_map, map_bind; simpl.
         eapply eutt_bind; [reflexivity|].
         intros [?|]; simpl; reflexivity.
-        
+
     - simpl denoteStmt.
       specialize (IHs2 L b imports).
       unfold denote_main; simpl denote_block; rewrite fmap_block_map.
@@ -338,7 +435,7 @@ Lemma true_compile_correct_program:
       unfold denote_main.
       set (imports' := (fun l => match l with
                               | inr l => imports l
-                              | inl l => denote_program _ (compile s2 b) imports l
+                              | inl l => denote_program (compile s2 b) imports l
                               end)).
       specialize (IHs1 _ (main (compile s2 b)) imports').
       rewrite <- IHs1.
@@ -347,7 +444,9 @@ Lemma true_compile_correct_program:
       intros [?|]; [| reflexivity].
       simpl option_map.
       destruct s as [s | [s | s]]; [| | reflexivity].
-      + admit.
+      + clear. subst imports'.
+        simpl.
+        unfold denote_program. simpl.
       + admit.
 
     - specialize (IHs1 L b imports).
@@ -364,11 +463,15 @@ Lemma true_compile_correct_program:
       rewrite ret_bind, fmap_block_map, map_bind.
       eapply eutt_bind; [reflexivity |].
       intros [? |]; simpl; reflexivity.
- 
+
 Admitted.
 
+  (* note: because local temporaries also modify the environment, they have to be
+   * interpreted here.
+   *)
     Theorem compile_correct:
-    forall s, @denote_main _ _ _ Empty_set (compile s (bbb Bhalt)) (fun x => match x with end) ~~ denoteStmt s.
+    forall s, @denote_main _ _ _ Empty_set (compile s (bbb Bhalt))
+                      (fun x => match x with end) ~~ denoteStmt s.
   Proof.
 (*    intros stmt.
     unfold denote_main.
@@ -378,7 +481,7 @@ Admitted.
       simpl.
 *)
 
-  Admitted. 
+  Admitted.
 
 End Correctness.
 
