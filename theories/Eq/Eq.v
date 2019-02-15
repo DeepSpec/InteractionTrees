@@ -289,6 +289,16 @@ Proof.
   pupto2_final. eauto with refl.
 Qed.
 
+Lemma map_bind {E R S T}: forall (f : R -> S) (k: S -> itree E T) (t : itree E R),
+    ITree.bind (ITree.map f t) k ≅ ITree.bind t (fun x => k (f x)).
+Proof.
+  unfold ITree.map. intros.
+  pupto2_init. rewrite bind_bind.
+  pupto2 eq_itree_clo_bind. econstructor; eauto with refl.
+  intros. rewrite ret_bind.
+  pupto2_final. eauto with refl.
+Qed.
+
 (*
 Import Hom.
 
