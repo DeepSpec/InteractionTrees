@@ -240,6 +240,8 @@ Section Correctness.
   Qed.
 
   Require Import ExtLib.Structures.Monad.
+  From ITree Require Import
+       Effect.Env.
 
   Definition traverse_ {A: Type} {M: Type -> Type} `{Monad M} (f: A -> M unit): list A -> M unit :=
     fix traverse__ l: M unit :=
@@ -265,11 +267,11 @@ Section Correctness.
     forall x e,
       denote_list (compile_assign x e) ~~ ITree.bind (denoteExpr e) (fun v : Imp.value => lift (SetVar x v)).
   Proof.
-    (* induction e. *)
-    (* - simpl; rewrite bind_bind. *)
-      (* eapply eutt_bind; [reflexivity | intros ?]. *)
-      (**
-         This is wrong. They are not eutt since of course the compiled program does more SetVar actions than
+    (* induction e. 
+     - simpl; rewrite bind_bind. 
+     eapply eutt_bind; [reflexivity | intros ?]. *)
+  (**
+     YZ: This lemma is wrong. They are not eutt since of course the compiled program does more SetVar actions than
 the source.
        **)
   Admitted.
@@ -277,6 +279,29 @@ the source.
   (* NB: I think that notations defined in Core are binding the monadic bind instead of the itree one,
    hence why they do not show up here *)
 
+  (* Lemma denote_conditional: *)
+  (*   forall i, *)
+  (*     denote_block E (after (compile_assign "_jump_var" i) (bbb (Bbrz "_jump_var" (inl (inl None)) (inl (inr None))))) ~~ denoteExpr i. *)
+
+From ExtLib Require Import
+     Core.RelDec
+     Structures.Maps
+     Data.Map.FMapAList.
+ 
+  (*
+    This statement does not hold. We need to handle the environment.
+    We want something closer to this kind:
+
+Lemma true_compile_correct_program:
+    forall s L (b: block L) imports,
+      run_env unit (denote_main (compile s b) imports) empty ~~
+      run_env unit (denoteStmt s;; ml <- denote_block _ b;;
+                              (match ml with
+                               | None => Ret tt
+                               | Some l => imports l
+                               end)) empty.
+ 
+   *)
   Lemma compile_correct_program:
     forall s L (b: block L) imports,
       denote_main (compile s b) imports ~~
@@ -286,114 +311,60 @@ the source.
                                | Some l => imports l
                                end)).
   Proof.
-(*    simpl.
+    simpl.
     induction s; intros L b imports.
-    5:{
-      unfold denote_main; simpl.
-      rewrite ret_bind, fmap_block_map, map_bind.
-      eapply eutt_bind; [reflexivity |].
-      intros [? |]; simpl; reflexivity.
-    }      
-    {
-      unfold denote_main; simpl.
+    
+    - unfold denote_main; simpl.
       rewrite denote_after_denote_list; simpl. 
       rewrite bind_bind.
       eapply eutt_bind.
-      - apply denote_compile_assign.
-      - intros ?; simpl.
+      + apply denote_compile_assign.
+      + intros ?; simpl.
         rewrite fmap_block_map, map_bind; simpl.
         eapply eutt_bind; [reflexivity|].
         intros [?|]; simpl; reflexivity.
-    }      
-    {
-     simpl denoteStmt.
-     specialize (IHs2 L b imports).
-     match goal with
-     | |- _ ~~ ?x => generalize x
-     end.
-     intros t.
-     match goal with
-     | h: _ ~~ ?x |-  _ => revert h; generalize x
-     end; intros t' h.
-     unfold denote_main in *.
-*)
-
-
-(*
-     simpl in IHs2.
-
-     simpl bind.
-     intro p; subst p.
-     rewrite bind_bind.
-     denote_main (compile (Seq s1 s2) b) imports =
-     denote_main (compile s1 ?) ?;; denote_main (compile s2 b) imports
-     rewrite <- IHs2.
-     unfold denote_main. simpl.
-     rewrite bind_bind.
-     rewrite fmap_block_map, map_bind; simpl.
-     match goal with
-     | |- ITree.bind _ ?x ~~ ITree.bind _ ?y => set (goal1 := x); set (goal2 := y)
-     end.
-     (main (compile s2 b))).
-     specialize (IHs1 _ (main (compile s2 b))).
-     unfold denote_main in IHs1; simpl in IHs1.
-     eapply eutt_bind.
-     assert (
-(fun next : option (label (compile s1 (main (compile s2 b))) + label (compile s2 b) + L) =>
-     match next with
-     | Some (inl next0) =>
-         denote_program L
-           {|
-           label := label (compile s1 (main (compile s2 b))) + label (compile s2 b);
-           main := fmap_block
-                     (fun x : label (compile s1 (main (compile s2 b))) + (label (compile s2 b) + L) =>
-                      match x with
-                      | inl x0 => inl (inl x0)
-                      | inr (inl x0) => inl (inr x0)
-                      | inr (inr x0) => inr x0
-                      end) (main (compile s1 (main (compile s2 b))));
-           blocks := fun x : label (compile s1 (main (compile s2 b))) + label (compile s2 b) =>
-                     match x with
-                     | inl x0 =>
-                         fmap_block
-                           (fun x1 : label (compile s1 (main (compile s2 b))) + (label (compile s2 b) + L) =>
-                            match x1 with
-                            | inl x2 => inl (inl x2)
-                            | inr (inl x2) => inl (inr x2)
-                            | inr (inr x2) => inr x2
-                            end) (blocks (compile s1 (main (compile s2 b))) x0)
-                     | inr x0 =>
-                         fmap_block
-                           (fun x1 : label (compile s2 b) + L =>
-                            match x1 with
-                            | inl x2 => inl (inr x2)
-                            | inr x2 => inr x2
-                            end) (blocks (compile s2 b) x0)
-                     end |} imports next0
-     | Some (inr next0) => imports next0
-     | None => Ret tt
-     end) = 2).
-
-
-    - simpl.
-      unfold denote_main. 
-      simpl denoteStmt.
-      simpl main; simpl compile_assign.
-      
-    -
-      unfold denote_main. simpl in *.
-      simpl.
-
-    intros.
-    unfold denote_main.
-    induction s; intros L b imports l; simpl in * |-.
-    - elim l.
+        
     - simpl denoteStmt.
-      
+      specialize (IHs2 L b imports).
+      unfold denote_main; simpl denote_block; rewrite fmap_block_map.
+      unfold bind at 1, Monad_itree; rewrite map_bind.
+      rewrite bind_bind.
+      etransitivity.
+      2:{
+        eapply eutt_bind; [reflexivity |].
+        intros ?; apply IHs2.
+      }
+      clear IHs2.
+      unfold denote_main.
+      set (imports' := (fun l => match l with
+                              | inr l => imports l
+                              | inl l => denote_program _ (compile s2 b) imports l
+                              end)).
+      specialize (IHs1 _ (main (compile s2 b)) imports').
+      rewrite <- IHs1.
+      unfold denote_main.
+      apply eutt_bind; [reflexivity | ].
+      intros [?|]; [| reflexivity].
+      simpl option_map.
+      destruct s as [s | [s | s]]; [| | reflexivity].
+      + admit.
+      + admit.
 
-      simpl compile.
+    - specialize (IHs1 L b imports).
+      specialize (IHs2 L b imports).
+      simpl denoteStmt.
+      rewrite bind_bind.
+      unfold denote_main.
+      simpl.
+      admit.
 
-*)
+    - admit.
+
+    - unfold denote_main; simpl.
+      rewrite ret_bind, fmap_block_map, map_bind.
+      eapply eutt_bind; [reflexivity |].
+      intros [? |]; simpl; reflexivity.
+ 
 Admitted.
 
     Theorem compile_correct:
