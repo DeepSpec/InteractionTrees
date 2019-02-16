@@ -589,7 +589,7 @@ Proof. constructor; typeclasses eauto. Qed.
 
 (**)
 
-Instance subrelation_eq_eutt : subrelation (@eq_itree E R) eutt.
+Global Instance subrelation_eq_eutt : subrelation (@eq_itree E R) eutt.
 Proof.
   pcofix CIH. intros.
   pfold. econstructor.
@@ -601,20 +601,20 @@ Proof.
   eapply unalltaus_notau in UNTAUS1. simpobs. contradiction.
 Qed.
 
-Instance subrelation_go_sim_eq_eutt : subrelation (go_sim (@eq_itree E R)) (go_sim eutt).
+Global Instance subrelation_go_sim_eq_eutt : subrelation (go_sim (@eq_itree E R)) (go_sim eutt).
 Proof.
   repeat intro. red. red in H. rewrite H. reflexivity.
 Qed.
 
-Instance eutt_go : Proper (go_sim eutt ==> eutt) go.
+Global Instance eutt_go : Proper (go_sim eutt ==> eutt) go.
 Proof. repeat intro; eauto. Qed.
 
-Instance eutt_observe : Proper (eutt ==> go_sim eutt) observe.
+Global Instance eutt_observe : Proper (eutt ==> go_sim eutt) observe.
 Proof.
   repeat intro. punfold H. pfold. destruct H. econstructor; eauto.
 Qed.
 
-Instance eutt_tauF : Proper (eutt ==> go_sim eutt) (fun t => TauF t).
+Global Instance eutt_tauF : Proper (eutt ==> go_sim eutt) (fun t => TauF t).
 Proof.
   repeat intro. pfold. punfold H.
   destruct H. econstructor.
@@ -624,7 +624,7 @@ Proof.
   - intros. eapply EQV; eapply unalltaus_tau; eauto.
 Qed.
 
-Instance eutt_VisF {u} (e: E u) :
+Global Instance eutt_VisF {u} (e: E u) :
   Proper (pointwise_relation _ eutt ==> go_sim eutt) (VisF e).
 Proof.
   repeat intro. red in H. pfold. econstructor.
@@ -637,7 +637,7 @@ Proof.
     econstructor; intros; left; apply H.
 Qed.
 
-Instance eq_itree_notauF :
+Global Instance eq_itree_notauF :
   Proper (go_sim (@eq_itree E R) ==> flip impl) notauF.
 Proof.
   repeat intro. punfold H. inv H; simpl in *; subst; eauto.
@@ -645,7 +645,7 @@ Qed.
 
 (* If [t1] and [t2] are equivalent, then either both start with
    finitely many taus, or both [spin]. *)
-Instance eutt_finite_taus :
+Global Instance eutt_finite_taus :
   Proper (go_sim eutt ==> flip impl) finite_tausF.
 Proof.
   repeat intro. punfold H. eapply H. eauto.
