@@ -91,17 +91,17 @@ End SumNotations.
 Local Open Scope sum_scope.
 
 (** A polymorphic version of [vis]. *)
-Definition vis {E F X R} `{F -< E}
-           (e : F X) (k : X -> itree E R) : itree E R :=
+Definition vis {E F X R} `{E -< F}
+           (e : E X) (k : X -> itree F R) : itree F R :=
   Vis (subeffect _ e) k.
 
 (* Called [send] in Haskell freer. *)
-Definition lift {E F} `{F -< E} : F ~> itree E :=
+Definition lift {E F} `{E -< F} : E ~> itree F :=
   fun T e => ITree.liftE (subeffect _ e).
 
 Arguments lift {E F _ T}.
 
-Lemma lift_is_vis_ret {E F R} `{F -< E} (e : F R) :
+Lemma lift_is_vis_ret {E F R} `{E -< F} (e : E R) :
   lift e = vis e (fun r => Ret r).
 Proof. reflexivity. Qed.
 
