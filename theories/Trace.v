@@ -229,7 +229,7 @@ Proof.
       try solve [inv UNTAUS1; inv H0];
       try solve [inv UNTAUS2; inv H0].
     + assert (is_traceF (RetF r0 : itreeF E R (itree E R)) [] (Some r0)) by constructor.
-      rewrite Heq' in H. inv H. constructor.
+      rewrite Heq' in H. inv H. constructor; auto.
     + assert (is_traceF (RetF r0 : itreeF E R (itree E R)) [] (Some r0)) by constructor.
       rewrite Heq' in H. inv H.
     + assert (is_traceF (VisF e k) [EventOut e] None) by constructor.
