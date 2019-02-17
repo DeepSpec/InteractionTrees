@@ -281,6 +281,29 @@ Lemma vis_bind {E R} U V (e: E V) (ek: V -> itree E U) (k: U -> itree E R) :
   ITree.bind (Vis e ek) k ≅ Vis e (fun x => ITree.bind (ek x) k).
 Proof. apply @unfold_bind. Qed.
 
+Inductive eq_itree_bind_clo_h {E R1 R2} (RR : R1 -> R2 -> Prop)
+          (r : itree E R1 -> itree E R2 -> Prop) :
+  itree E R1 -> itree E R2 -> Prop :=
+| pbc_intro_h U1 U2 (RU : U1 -> U2 -> Prop) t1 t2 k1 k2
+      (EQV: eq_itree RU t1 t2)
+      (REL: forall u1 u2, RU u1 u2 -> r (k1 u1) (k2 u2))
+  : eq_itree_bind_clo_h RR r (ITree.bind t1 k1) (ITree.bind t2 k2)
+.
+Hint Constructors eq_itree_bind_clo_h.
+
+Lemma eq_itree_clo_bind_h E R1 R2 (RR : R1 -> R2 -> Prop) :
+  weak_respectful2 (eq_itree_ RR) (@eq_itree_bind_clo_h E _ _ RR).
+Proof.
+  econstructor; try pmonauto.
+  intros. dependent destruction PR.
+  punfold EQV. unfold_eq_itree.
+  rewrite !bind_unfold; inv EQV; simpobs.
+  - eapply eq_itreeF_mono; [eapply GF |]; eauto using rclo2.
+  - simpl. fold_bind. pclearbot. eauto 7 using rclo2.
+  - econstructor.
+    intros x. specialize (REL0 x). fold_bind. pclearbot. eauto 7 using rclo2.
+Qed.
+
 Inductive eq_itree_bind_clo {E R} (r: relation (itree E R)) : relation (itree E R) :=
 | pbc_intro U t1 t2 (k1 k2: U -> _)
       (EQV: t1 ≅ t2)
@@ -301,14 +324,25 @@ Proof.
     intros x. specialize (REL0 x). fold_bind. pclearbot. eauto 7 using rclo2.
 Qed.
 
-Instance eq_itree_bind {E R S} :
+Lemma eq_itree_bind {E R1 R2 S1 S2} (RR : R1 -> R2 -> Prop)
+      (RS : S1 -> S2 -> Prop)
+      t1 t2 k1 k2 :
+  eq_itree RR t1 t2 ->
+  (forall r1 r2, RR r1 r2 -> eq_itree RS (k1 r1) (k2 r2)) ->
+  @eq_itree E _ _ RS (ITree.bind t1 k1) (ITree.bind t2 k2).
+Proof.
+  repeat intro. pupto2_init.
+  pupto2 eq_itree_clo_bind_h. econstructor; eauto.
+  intros. pupto2_final; apply H0; auto.
+Qed.
+
+Instance eq_itree_eq_bind {E R S} :
   Proper (eq_itree eq ==>
           pointwise_relation _ (eq_itree eq) ==>
           eq_itree eq) (@ITree.bind E R S).
 Proof.
-  repeat intro. pupto2_init.
-  pupto2 eq_itree_clo_bind. econstructor; eauto.
-  intros. pupto2_final. apply H0.
+  repeat intro; eapply eq_itree_bind; eauto.
+  intros; subst; auto.
 Qed.
 
 Instance eq_itree_paco {E R} r:
