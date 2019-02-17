@@ -165,14 +165,14 @@ End ITree.
    doesn't hurt to have these notations around.
  *)
 
-Notation "t1 >>= k2" := (bind t1 k2)
+Notation "t1 >>= k2" := (ITree.bind t1 k2)
   (at level 50, left associativity) : itree_scope.
-Notation "x <- t1 ;; t2" := (bind t1 (fun x => t2))
+Notation "x <- t1 ;; t2" := (ITree.bind t1 (fun x => t2))
   (at level 100, t1 at next level, right associativity) : itree_scope.
-Notation "t1 ;; t2" := (bind t1 (fun _ => t2))
+Notation "t1 ;; t2" := (ITree.bind t1 (fun _ => t2))
   (at level 100, right associativity) : itree_scope.
 Notation "' p <- t1 ;; t2" :=
-  (bind t1 (fun x_ => match x_ with p => t2 end))
+  (ITree.bind t1 (fun x_ => match x_ with p => t2 end))
   (at level 100, t1 at next level, p pattern, right associativity) : itree_scope.
 
 Instance Functor_itree {E} : Functor (itree E) :=
