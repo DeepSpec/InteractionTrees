@@ -822,7 +822,10 @@ Qed.
 Instance eutt_map {E R S} :
   Proper (pointwise_relation _ eq ==> eutt eq ==> eutt eq) (@ITree.map E R S).
 Proof.
-Admitted.
+  unfold ITree.map. repeat red.
+  intros; eapply eutt_bind; eauto.
+  intro. rewrite H. reflexivity.
+Qed.
 
 Instance eutt_forever {E R S} :
   Proper (eutt eq ==> eutt eq) (@ITree.forever E R S).
