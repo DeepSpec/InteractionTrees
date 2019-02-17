@@ -102,6 +102,29 @@ Proof.
   destruct euv; pclearbot; auto 10.
 Qed.
 
+Delimit Scope eq_itree_scope with eq_itree.
+(* note(gmm): overriding `=` seems like a bad idea *)
+Notation "t1 ≅ t2" := (eq_itree eq t1%itree t2%itree) (at level 70).
+(* you can write ≅ using \cong in tex-mode *)
+
+Section eq_itree_h.
+
+Lemma itree_eq_tau {E R1 R2 RR} (t1 : itree E R1) (t2 : itree E R2) :
+  eq_itree RR t1 t2 -> eq_itree RR (Tau t1) (Tau t2).
+Proof.
+  intro; pfold. econstructor. left. assumption.
+Qed.
+
+Lemma itree_eq_vis {E U R1 R2 RR} (e : E U)
+      (k1 : U -> itree E R1) (k2 : U -> itree E R2) :
+  (forall u, eq_itree RR (k1 u) (k2 u)) ->
+  eq_itree RR (Vis e k1) (Vis e k2).
+Proof.
+  intro H; pfold. econstructor. intros v. left. eapply H.
+Qed.
+
+End eq_itree_h.
+
 Section eq_itree_eq.
   Context {E : Type -> Type} {R : Type}.
 
@@ -126,6 +149,18 @@ Section eq_itree_eq.
   Proof.
     red. inversion 2; inversion 1; subst; repeat auto_inj_pair2; subst; constructor; eauto.
   Qed.
+
+  Global Instance Reflexive_eq_itree_ sim
+  : Reflexive sim -> Reflexive (eq_itree_ sim).
+  Proof. repeat red. reflexivity. Qed.
+
+  Global Instance Symmetric_eq_itree_ sim
+  : Symmetric sim -> Symmetric (eq_itree_ sim).
+  Proof. repeat red; symmetry; auto. Qed.
+
+  Global Instance Transitive_eq_itree_ sim
+  : Transitive sim -> Transitive (eq_itree_ sim).
+  Proof. repeat red; etransitivity; eauto. Qed.
 
 Global Instance Reflexive_eq_itree r : Reflexive (paco2 eq_itree_ r).
 Proof.
@@ -223,11 +258,6 @@ End eq_itree_eq.
 Arguments eq_itree_clo_trans : clear implicits.
 
 Hint Constructors eq_itree_trans_clo.
-
-Delimit Scope eq_itree_scope with eq_itree.
-(* note(gmm): overriding `=` seems like a bad idea *)
-Notation "t1 ≅ t2" := (eq_itree eq t1%itree t2%itree) (at level 70).
-(* you can write ≅ using \cong in tex-mode *)
 
 Lemma bind_unfold {E R S}
            (t : itree E R) (k : R -> itree E S) :

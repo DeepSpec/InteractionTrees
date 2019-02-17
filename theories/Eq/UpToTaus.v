@@ -24,8 +24,7 @@ From Coq Require Import
      Classes.RelationClasses
      Classes.Morphisms
      Setoids.Setoid
-     Relations.Relations
-     Logic.JMeq Logic.EqdepFacts.
+     Relations.Relations.
 
 From ITree Require Import Core Eq.Eq.
 
@@ -349,7 +348,7 @@ Definition eutt : itree E R1 -> itree E R2 -> Prop := paco2 eutt_ bot2.
 
 Global Arguments eutt t1%itree t2%itree.
 
-Infix "~~" := eutt (at level 70) : itree_scope.
+Infix "≈" := eutt (at level 70) : itree_scope.
 
 (* Lemmas about the auxiliary relations. *)
 
@@ -507,7 +506,7 @@ Context {E : Type -> Type} {R : Type}.
 
 Let eutt : itree E R -> itree E R -> Prop := eutt eq.
 
-Infix "~~" := eutt (at level 70).
+Infix "≈" := eutt (at level 70) : itree_scope.
 
 Instance Reflexive_euttF (r : itree E R -> itree E R -> Prop) :
   Reflexive r -> Reflexive (euttF eq r).
@@ -568,7 +567,7 @@ Qed.
 (**)
 
 (* [eutt] is preserved by removing one [Tau]. *)
-Lemma tauF_eutt (t t': itree E R) (OBS: TauF t' = observe t): t ~~ t'.
+Lemma tauF_eutt (t t': itree E R) (OBS: TauF t' = observe t): t ≈ t'.
 Proof.
   pfold. split.
   - simpobs. rewrite finite_taus_tau. reflexivity.
@@ -579,13 +578,13 @@ Proof.
     left. apply Reflexive_eutt.
 Qed.
 
-Lemma tau_eutt (t: itree E R) : Tau t ~~ t.
+Lemma tau_eutt (t: itree E R) : Tau t ≈ t.
 Proof.
   eapply tauF_eutt. eauto.
 Qed.
 
 (* [eutt] is preserved by removing all [Tau]. *)
-Lemma untaus_eutt (t t' : itree E R) : untausF (observe t) (observe t') -> t ~~ t'.
+Lemma untaus_eutt (t t' : itree E R) : untausF (observe t) (observe t') -> t ≈ t'.
 Proof.
   intros H.
   pfold. split.
@@ -651,8 +650,8 @@ Qed.
 Inductive eutt_trans_clo (r: itree E R -> itree E R -> Prop) :
   itree E R -> itree E R -> Prop :=
 | eutt_pre_clo_intro (t1 t2 t3 t4: itree E R)
-      (EQVl: t1 ~~ t2)
-      (EQVr: t4 ~~ t3)
+      (EQVl: t1 ≈ t2)
+      (EQVr: t4 ≈ t3)
       (REL: r t2 t3)
   : eutt_trans_clo r t1 t4
 .
@@ -689,7 +688,7 @@ Arguments eutt_clo_trans : clear implicits.
 
 Hint Constructors eutt_trans_clo.
 
-Infix "~~" := (eutt eq) (at level 70).
+Infix "≈" := (eutt eq) (at level 70) : itree_scope.
 
 (* Lemmas about [bind]. *)
 
@@ -740,7 +739,7 @@ Qed.
 
 Inductive eutt_bind_clo {E R} (r: relation (itree E R)) : relation (itree E R) :=
 | eutt_bind_clo_intro U (t1 t2: itree E U) k1 k2
-      (EQV: t1 ~~ t2)
+      (EQV: t1 ≈ t2)
       (REL: forall v, r (k1 v) (k2 v))
   : eutt_bind_clo r (ITree.bind t1 k1) (ITree.bind t2 k2)
 .
@@ -749,7 +748,7 @@ Hint Constructors eutt_bind_clo.
 Lemma bind_clo_finite_taus E U R (t1 t2: itree E U) (k1 k2: U -> itree E R)
     (FT: finite_taus (ITree.bind t1 k1))
     (FTk: forall v, finite_taus (k1 v) -> finite_taus (k2 v))
-    (EQV: t1 ~~ t2):
+    (EQV: t1 ≈ t2):
   finite_taus (ITree.bind t2 k2).
 Proof.
   punfold EQV. destruct EQV as [[FTt _] EQV].
@@ -903,6 +902,12 @@ Lemma euttF'_mon {E R} r r' s s' x y
   euttF' r' s' x y.
 Proof.
   induction EUTT; eauto.
+Qed.
+
+Lemma reflexive_euttF' {E R} eutt eqtaus (r1:Reflexive eutt) (r:Reflexive eqtaus) : Reflexive (@euttF' E R eutt eqtaus).
+Proof.
+  unfold Reflexive. intros x.
+  destruct x; eauto.
 Qed.
 
 Lemma monotone_euttF' {E R} eutt : monotone2 (@euttF' E R eutt).
