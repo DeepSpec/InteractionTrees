@@ -1,8 +1,5 @@
-(* Coinductively defined equality on itrees,
-   also called: strong bisimulation, extensional equality.
- *)
-
-(* TODO: paco-fy this *)
+(* Coinductively defined equality on itrees, also called: strong bisimulation,
+   extensional equality.  *)
 
 From Coq Require Import
      Program
@@ -16,14 +13,18 @@ From Paco Require Import paco.
 From ITree Require Import
      Core.
 
+
+(* TODO: move to tactics area / document *)
 Ltac auto_inj_pair2 :=
   repeat (match goal with
           | [ H : _ |- _ ] => apply inj_pair2 in H
           end).
 
+(* SAZ: Move elsewhere? Add to Coq standard library? *)
 Lemma pointwise_relation_fold {A B} {r: relation B} f g: (forall v:A, r (f v) (g v)) -> pointwise_relation _ r f g.
   Proof. red. eauto. Qed.
 
+  
 Section eq_itree.
   Context {E : Type -> Type} {R : Type}.
 

@@ -8,58 +8,44 @@ Set Implicit Arguments.
 Set Contextual Implicit.
 Set Primitive Projections.
 
-(* Move the following tactic somewhere appropriate *)
-Lemma hexploit_mp: forall P Q: Type, P -> (P -> Q) -> Q.
-Proof. intuition. Defined.
-Ltac hexploit x := eapply hexploit_mp; [eapply x|].
-
-Ltac inv H := inversion H; clear H; subst.
-
-Ltac rewrite_everywhere lem :=
-  progress ((repeat match goal with [H: _ |- _] => rewrite lem in H end); repeat rewrite lem).
-
-Ltac rewrite_everywhere_except lem X :=
-  progress ((repeat match goal with [H: _ |- _] =>
-                 match H with X => fail 1 | _ => rewrite lem in H end
-             end); repeat rewrite lem).
 
 Section itree.
+  (** An [itree E R] is the denotation of a computation as a coinductive (possibly
+    infinite) tree where the leaves [Ret] are labeled with [R] and every node is
+    either a [Tau] node with one child, or a branching node [Vis] with a visible
+    effect [E A] that branches on the values of [A]. *)
 
-  Context {E : Type -> Type} {R : Type}.
+  Context {E : Type -> Type}   (** External interactions *)
+          {R : Type}.         (** Return type *)
 
-  Variant itreeF (itree : Type) :=
-  | RetF (r : R)
-  | TauF (t : itree)
-  | VisF {u} (e : E u) (k : u -> itree)
+  (** Nodes of an itree *)
+  Variant itreeF (T : Type) :=
+  | RetF (r : R)                     (** computation terminating with value r *)
+  | TauF (t : T)                     (** "silent" tau transition with child t *)
+  | VisF {A} (e : E A) (k : A -> T)  (** visible effect e yielding answer of type A *)
   .
 
-  (** An [itree E R] is the denotation of a program as coinductive
-    (possibly infinite) tree where the leaves [Ret] are labeled with
-    [R] and every node is either a [Tau] node with one child, or a
-    branching node [Vis] with a visible effect [E X] that branches
-    on the values of [X]. *)
-  CoInductive itree : Type := go
-  { _observe : itreeF itree }.
+  CoInductive itree : Type := go { _observe : itreeF itree }.
 
   (** Notes about using [itree]:
 
-     - You should simplify using [cbn] rather than [simpl] when working
-       with terms of the form [observe e] where [e] is defined by
-       [CoFixpoint] (as in [bind] and [map] below).  [simpl] does not
-       unfold the definition properly to expose the [observe t] term.
+     - You should simplify using [cbn] rather than [simpl] when working with
+       terms of the form [observe e] where [e] is defined by [CoFixpoint] (as in
+       [bind] and [map] below).  [simpl] does not unfold the definition properly
+       to expose the [observe t] term.
 
-     - Once you have [observe t] as the subject of [match], you can 
-       [destruct (observe t)] to do the case split.
+     - Once you have [observe t] as the subject of [match], you can [destruct
+       (observe t)] to do the case split.
 
-   [[  - TODO: add more documentation about the ways  to define functions
-       by splitting them into the "_match" body and the [CoFixpoint] 
+     - See the /examples directory for some uses, particularly ITreePredicatesExample.v
 
-       - TODO: paco?
+   [[ - TODO: add more documentation about the ways to define functions by
+       splitting them into the "_match" body and the [CoFixpoint]
+
+       - TODO: notes about how to use paco with itrees?
 
    ]]
-
    *)
-
 End itree.
 
 Arguments itree _ _ : clear implicits.
@@ -67,15 +53,7 @@ Arguments itreeF _ _ : clear implicits.
 
 Definition observe {E R} := @_observe E R.
 
-Ltac fold_observe := change @_observe with @observe in *.
-Ltac unfold_observe := unfold observe in *.
 
-Ltac genobs x ox := remember (observe x) as ox; simpl observe.
-
-Ltac simpobs := fold_observe;
-                repeat match goal with [H: _ = observe _ |- _] =>
-                    rewrite_everywhere_except (@eq_sym _ _ _ H) H
-                end.
 
 (** We introduce notation for the [Tau], [Ret], and [Vis] constructors. Using
     notation rather than definitions works better for extraction.  (The [spin]
@@ -91,6 +69,8 @@ Local Open Scope itree_scope.
 Notation Ret x := (go (RetF x)).
 Notation Tau t := (go (TauF t)).
 Notation Vis e k := (go (VisF e k)).
+
+
 
 Module ITree.
 
@@ -114,6 +94,7 @@ Section bind.
 End bind.
 
 Arguments bind_match _ _ /.
+
 
 (* Monadic [>>=]: tree substitution, sequencing of computations. *)
 Definition bind {E T U}
@@ -143,6 +124,9 @@ Definition ignore {E R} : itree E R -> itree E unit :=
 (** Infinite taus. *)
 CoFixpoint spin {E R} : itree E R := Tau spin.
 
+(* SAZ: We can't move definitions like [forever] out of the ITree  
+   module because cofix must be able to see (syntactically) that the
+   guardedness checks work out.  *)
 (** Repeat a computation infinitely. *)
 Definition forever {E R S} (t : itree E R) : itree E S :=
   cofix forever_t := bind t (fun _ => Tau forever_t).
@@ -156,14 +140,15 @@ Definition when {E}
 
 End ITree.
 
-(* Sometimes it's more convenient to work without the type classes
-   Monad, etc. When functions using type classes are specialized,
-   they simplify easily, so lemmas without classes are easier
-   to apply than lemmas with.
 
-   We can also make ExtLib's [bind] opaque, in which case it still
-   doesn't hurt to have these notations around.
- *)
+(* Monad Notation ----------------------------------------------------------- *)
+
+(* Sometimes it's more convenient to work without the type classes Monad,
+   etc. When functions using type classes are specialized, they simplify easily,
+   so lemmas without classes are easier to apply than lemmas with.
+
+   We can also make ExtLib's [bind] opaque, in which case it still doesn't hurt
+   to have these notations around.  *)
 
 Notation "t1 >>= k2" := (ITree.bind t1 k2)
   (at level 50, left associativity) : itree_scope.
@@ -174,6 +159,8 @@ Notation "t1 ;; t2" := (ITree.bind t1 (fun _ => t2))
 Notation "' p <- t1 ;; t2" :=
   (ITree.bind t1 (fun x_ => match x_ with p => t2 end))
   (at level 100, t1 at next level, p pattern, right associativity) : itree_scope.
+
+(* ExtLib Typeclass Instances ----------------------------------------------- *)
 
 Instance Functor_itree {E} : Functor (itree E) :=
 { fmap := @ITree.map E }.
@@ -191,6 +178,40 @@ Global Instance Monad_itree {E} : Monad (itree E) :=
 {| ret := fun _ x => Ret x
 ;  bind := @ITree.bind E
 |}.
+
+(* Tactics ------------------------------------------------------------------ *)
+
+(* SAZ: How should we organize tactics? *)
+(* TODO: 
+    - Move the following tactic somewhere appropriate 
+    - Document these tactcs
+*)
+Lemma hexploit_mp: forall P Q: Type, P -> (P -> Q) -> Q.
+Proof. intuition. Defined.
+Ltac hexploit x := eapply hexploit_mp; [eapply x|].
+
+Ltac inv H := inversion H; clear H; subst.
+
+Ltac rewrite_everywhere lem :=
+  progress ((repeat match goal with [H: _ |- _] => rewrite lem in H end); repeat rewrite lem).
+
+Ltac rewrite_everywhere_except lem X :=
+  progress ((repeat match goal with [H: _ |- _] =>
+                 match H with X => fail 1 | _ => rewrite lem in H end
+             end); repeat rewrite lem).
+
+
+
+Ltac fold_observe := change @_observe with @observe in *.
+Ltac unfold_observe := unfold observe in *.
+
+Ltac genobs x ox := remember (observe x) as ox; simpl observe.
+
+Ltac simpobs := fold_observe;
+                repeat match goal with [H: _ = observe _ |- _] =>
+                    rewrite_everywhere_except (@eq_sym _ _ _ H) H
+                end.
+
 
 Ltac fold_bind := (change @ITree.bind' with (fun E T U k t => @ITree.bind E T U t k) in *; simpl in *).
 Ltac unfold_bind := unfold ITree.bind in *.

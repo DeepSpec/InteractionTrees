@@ -39,6 +39,7 @@ From ITree Require Import
 
 Open Scope itree_scope.
 
+
 (** [itreeF] eliminator, where the codomain is in the [itree]
     monad, a building block for itree monad morphisms. *)
 Definition handleF {E F : Type -> Type} {I R : Type}
@@ -150,11 +151,11 @@ Import ITree.Basics.Monads.
    [itree E ~> stateT S (itree F)]. *)
 
 
-Definition interp_state_match {E F S R} (h : E ~> stateT S (itree F))
+Definition interp_stateF {E F S R} (h : E ~> stateT S (itree F))
   (rec : itree E R -> stateT S (itree F) R)
-  (t:itree E R) : stateT S (itree F) R :=
+  (ot:itreeF E R (itree E R)) : stateT S (itree F) R :=
   fun s =>
-      match t.(observe) with
+      match ot with
       | RetF r => Ret (s, r)
       | VisF e k => 
         Tau (ITree.bind (h _ e s) (fun sx =>
@@ -164,14 +165,14 @@ Definition interp_state_match {E F S R} (h : E ~> stateT S (itree F))
 
 CoFixpoint interp_state {E F S} (h : E ~> stateT S (itree F)) :
   itree E ~> stateT S (itree F) :=
-  fun R => interp_state_match h (interp_state h R).
+  fun R t => interp_stateF h (interp_state h R) (observe t).
 
 
-Definition interp1_state_match {E F S R} (h : E ~> stateT S (itree F))
+Definition interp1_stateF {E F S R} (h : E ~> stateT S (itree F))
            (rec : itree (E +' F) R -> stateT S (itree F) R)
-           (t : itree (E +' F) R) : stateT S (itree F) R :=
+           (ot : itreeF (E +' F) R (itree (E +' F) R)) : stateT S (itree F) R :=
   fun s =>
-    match t.(observe) with
+    match ot with
       | RetF r => Ret (s, r)
       | VisF ef k =>
         match ef with
@@ -186,7 +187,7 @@ Definition interp1_state_match {E F S R} (h : E ~> stateT S (itree F))
 
 CoFixpoint interp1_state {E F S} (h : E ~> stateT S (itree F)) :
   itree (E +' F) ~> stateT S (itree F) :=
-  fun R => interp1_state_match h (interp1_state h R).
+  fun R t => interp1_stateF h (interp1_state h R) (observe t).
     
 
 Definition translate1_state {E F S} (h : E ~> state S) :
@@ -248,6 +249,7 @@ Section interp_prop.
   Definition eff_hom_prop : Type :=
     forall t, E t -> itree F t -> Prop.
 
+  (* SAZ: Should probably do this via paco instead *)
   CoInductive interp_prop (f : eff_hom_prop) (R : Type)
   : itree E R -> itree F R -> Prop :=
   | ipRet : forall x, interp_prop f R (Ret x) (Ret x)
@@ -258,7 +260,7 @@ Section interp_prop.
           can_return e' x ->
           interp_prop f R (k x) (k' x)) ->
       interp_prop f R (Vis e k) (ITree.bind e' k')
-  | ipDelay : forall a b, interp_prop f R a b ->
+  | ipTau : forall a b, interp_prop f R a b ->
                      interp_prop f R (Tau a) (Tau b).
 
 End interp_prop.

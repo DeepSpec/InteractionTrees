@@ -1,19 +1,17 @@
 (* Equivalence up to taus *)
-(* We consider tau as an "internal step", that should not be
-   visible to the outside world, so adding or removing [Tau]
-   constructors from an itree should produce an equivalent itree.
 
-   We must be careful because there may be infinite sequences of
-   taus (i.e., [spin]). Here we shall only allow inserting finitely
-   many taus between any two visible steps ([Ret] or [Vis]), so that
-   [spin] is only related to itself. The main consequence of this
-   choice is that equivalence up to taus is an equivalence relation.
- *)
+(* We consider tau as an "internal step", that should not be visible to the
+   outside world, so adding or removing [Tau] constructors from an itree should
+   produce an equivalent itree.
+
+   We must be careful because there may be infinite sequences of taus (i.e.,
+   [spin]). Here we shall only allow inserting finitely many taus between any
+   two visible steps ([Ret] or [Vis]), so that [spin] is only related to
+   itself. The main consequence of this choice is that equivalence up to taus is
+   an equivalence relation.  *)
 
 (* TODO:
    - relate to Eq.Eq.eq_itree
-   - prove monad laws (see [eutt_bind_bind_fail])
-   - make [eutt] easier to work with ([eutt_bind] is already a mess)
  *)
 
 Require Import Paco.paco.
@@ -30,6 +28,9 @@ From ITree Require Import Core Eq.Eq.
 
 Local Open Scope itree.
 
+
+
+
 (* [notau t] holds when [t] does not start with a [Tau]. *)
 Definition notauF {E R I} (t : itreeF E R I) : Prop :=
   match t with
@@ -44,9 +45,9 @@ Section EUTT.
 
 Context {E : Type -> Type} {R : Type}.
 
-(* Equivalence between visible steps of computation (i.e., [Vis] or
-   [Ret], parameterized by a relation [eutt] between continuations
-   in the [Vis] case. *)
+(* Equivalence between visible steps of computation (i.e., [Vis] or [Ret],
+   parameterized by a relation [eutt] between continuations in the [Vis]
+   case. *)
 Variant eq_notauF {I} (eutt : relation I)
 : relation (itreeF E R I) :=
 | Eutt_ret : forall r, eq_notauF eutt (RetF r) (RetF r)

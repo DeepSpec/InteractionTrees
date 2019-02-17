@@ -191,7 +191,7 @@ Qed.
 
 Lemma unfold_interp_state : forall {E F S R} (h : E ~> Monads.stateT S (itree F)) t s,
     observe (interp_state h _ t s) =
-    observe (interp_state_match h (interp_state h R) t s).
+    observe (interp_stateF h (interp_state h R) (observe t) s).
 Proof.
   intros E F S R h t s.
   econstructor.
@@ -205,7 +205,7 @@ Proof.
   repeat intro. pupto2_init. revert_until R.
   pcofix CIH. intros h x y H0 x2 y0 H1. 
   rewrite itree_eta, (itree_eta (interp_state h _ y y0)), !unfold_interp_state.
-  unfold interp_state_match.
+  unfold interp_stateF.
   punfold H0; red in H0.
   genobs x ox; destruct ox; simpobs; dependent destruction H0; simpobs; pclearbot.
   - pupto2_final. pfold. red. cbn. subst. eauto.
@@ -219,7 +219,7 @@ Qed.
 
 Lemma unfold_interp1_state : forall {E F S R} (h : E ~> Monads.stateT S (itree F)) t s,
     observe (interp1_state h _ t s) =
-    observe (interp1_state_match h (interp1_state h R) t s).
+    observe (interp1_stateF h (interp1_state h R) (observe t) s).
 Proof.
   intros E F S R h t s. 
   econstructor.
@@ -233,7 +233,7 @@ Proof.
   pupto2_init. revert_until R.
   pcofix CIH. intros h x y H0 x2 y0 H1. 
   rewrite itree_eta, (itree_eta (interp1_state h _ y y0)), !unfold_interp1_state.
-  unfold interp1_state_match.
+  unfold interp1_stateF.
   punfold H0; red in H0.
   genobs x ox; destruct ox; simpobs; dependent destruction H0; simpobs; pclearbot. 
   - pupto2_final. pfold. red. cbn. subst. eauto.
