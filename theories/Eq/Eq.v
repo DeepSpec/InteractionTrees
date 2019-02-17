@@ -331,34 +331,24 @@ Lemma bind_bind {E R S T} :
   forall (s : itree E R) (k : R -> itree E S) (h : S -> itree E T),
     ITree.bind (ITree.bind s k) h ≅ ITree.bind s (fun r => ITree.bind (k r) h).
 Proof.
-  revert R S. pcofix CIH. intros.
+  pcofix CIH. intros.
   pfold. unfold_eq_itree. rewrite !bind_unfold.
-  genobs s os; destruct os; unfold_bind; simpl; eauto.
-  eapply Reflexive_eq_itreeF. auto using reflexivity.
+  genobs s os; destruct os; unfold_bind; simpl; auto.
+  apply Reflexive_eq_itreeF. auto using reflexivity.
 Qed.
 
 Lemma map_map {E R S T}: forall (f : R -> S) (g : S -> T) (t : itree E R),
     ITree.map g (ITree.map f t) ≅ ITree.map (fun x => g (f x)) t.
 Proof.
   unfold ITree.map. intros.
-  pupto2_init. rewrite bind_bind.
-  pupto2 eq_itree_clo_bind.
-  econstructor.
-  - reflexivity.
-  - intros. rewrite ret_bind.
-    pupto2_final. apply reflexivity.
+  rewrite bind_bind. setoid_rewrite ret_bind. reflexivity.
 Qed.
 
 Lemma map_bind {E R S T}: forall (f : R -> S) (k: S -> itree E T) (t : itree E R),
     ITree.bind (ITree.map f t) k ≅ ITree.bind t (fun x => k (f x)).
 Proof.
   unfold ITree.map. intros.
-  pupto2_init. rewrite bind_bind.
-  pupto2 eq_itree_clo_bind.
-  econstructor.
-  - reflexivity.
-  - intros. rewrite ret_bind.
-    pupto2_final. apply reflexivity.
+  rewrite bind_bind. setoid_rewrite ret_bind. reflexivity.
 Qed.
 
 (*
