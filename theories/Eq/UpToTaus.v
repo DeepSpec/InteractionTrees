@@ -57,6 +57,14 @@ Hint Constructors untausF.
 Definition unalltausF ot ot0 := untausF ot ot0 /\ notauF ot0.
 Hint Unfold unalltausF.
 
+Lemma unalltausF_untausF ot ot0 : unalltausF ot ot0 -> untausF ot ot0.
+Proof. intros []; auto. Qed.
+Hint Resolve unalltausF_untausF.
+
+Lemma unalltausF_notauF ot ot0 : unalltausF ot ot0 -> notauF ot0.
+Proof. intros []; auto. Qed.
+Hint Resolve unalltausF_notauF.
+
 (* [finite_taus t] holds when [t] has a finite number of taus
    to peel. *)
 Definition finite_tausF ot : Prop := exists ot', unalltausF ot ot'.
@@ -253,6 +261,9 @@ End FiniteTaus.
 
 Arguments untaus_unalltaus_rev : clear implicits.
 
+Hint Resolve unalltausF_notauF.
+Hint Resolve unalltausF_untausF.
+
 Hint Constructors untausF.
 Hint Unfold unalltausF.
 Hint Unfold finite_tausF.
@@ -420,7 +431,7 @@ Proof.
   hexploit (EQV (go ot1') (go ot2')); eauto.
   intros EQV'. punfold EQV'. destruct EQV'.
   eapply EQV0;
-    repeat constructor; eauto. eapply UNTAUS1. eapply UNTAUS2.
+    repeat constructor; eauto.
 Qed.
 
 (**)
@@ -495,7 +506,7 @@ Proof.
   intros. eapply eq_unalltaus_eqF in H0; eauto. destruct H0 as [s' [UNTAUS' EQV']].
   hexploit @unalltaus_injective; [apply UNTAUS' | apply UNTAUS2 | intro X]; subst.
   inv EQV'; simpobs; eauto.
-  eapply unalltaus_notau in UNTAUS1. simpobs. contradiction.
+  eapply unalltaus_notau in UNTAUS1. contradiction.
 Qed.
 
 End EUTT_rel.
@@ -515,7 +526,7 @@ Proof.
   - reflexivity.
   - intros.
     erewrite (unalltaus_injective _ _ _ UNTAUS1 UNTAUS2).
-    apply Reflexive_eq_notauF; eauto using unalltaus_notau.
+    apply Reflexive_eq_notauF; eauto.
 Qed.
 
 Instance Reflexive_eutt (r : itree E R -> itree E R -> Prop) :
@@ -574,7 +585,7 @@ Proof.
   - intros t1' t2' H1 H2.
     eapply unalltaus_tau in H1; eauto.
     assert (X := unalltaus_injective _ _ _ H1 H2).
-    subst; apply Reflexive_eq_notauF; eauto using unalltaus_notau.
+    subst; apply Reflexive_eq_notauF; eauto.
     left. apply Reflexive_eutt.
 Qed.
 
@@ -591,7 +602,7 @@ Proof.
   - eapply untaus_finite_taus; eauto.
   - induction H; intros.
     + rewrite (unalltaus_injective _ _ _ UNTAUS1 UNTAUS2).
-      apply Reflexive_eq_notauF; eauto using unalltaus_notau.
+      apply Reflexive_eq_notauF; eauto.
       left; apply Reflexive_eutt.
     + eapply unalltaus_tau in UNTAUS1; eauto.
 Qed.
