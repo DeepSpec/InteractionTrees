@@ -30,7 +30,7 @@ Variant stateE (S:Type) : Type -> Type :=
 | Get : stateE S S
 | Put : S -> stateE S unit.
 
-(* We can define an interpretation of the [stateE] effeect into an itree with
+(* We can define an interpretation of the [stateE] effect into an itree with
    empty effects as follows. Note that we split out the "node functor", which is
    parameterized by the interpreter on the recursive calls, separating it from
    the CoFixpoint.  This structure mirrors the way that we define predicates
@@ -135,7 +135,7 @@ Section Proper.
 
    In this case, [NoGets] is a _unary_ predicate, so all of our "relation
    transformers" are "unary predicate transformers".  For more sophisticated
-   examples of binary predicates, see the defintiions of [eq_itree] and
+   examples of binary predicates, see the definitions of [eq_itree] and
    [eutt]. *)
 
 
@@ -170,7 +170,7 @@ Definition NoGets_ {S R} (rec : itree (stateE S) R -> Prop) (t : itree (stateE S
 
 (* Next, we need to prove that [NoGets_] is a monotone function on relations,
    which means that paco can take its greatest fixpoint.  Monotonicity of 
-   [NoGets_] depends on montonicity of [NoGetsF].
+   [NoGets_] depends on monotonicity of [NoGetsF].
 
    Fortunately, paco provides the tactic [pmonauto] which almost always discharges
    these proofs.  It also provides the definitions monotone1, monotone2, etc. 
@@ -259,7 +259,7 @@ Qed.
 
 
 (* More or less the same proof also works for any continuation [k] that ignores the state.
-   This proof illustrates the use of paco2_mon -- montonicity means that if we assume
+   This proof illustrates the use of paco2_mon -- monotonicity means that if we assume
    that [k (s, x) ≅ k (s', x))] then [k (s, x)] is related to [k (s', x)] at any "later"
    step of the cofixpoint.  e.g. in the proof below we need them related at [r].
 *) 
@@ -306,9 +306,3 @@ Proof.
   intros.
   reflexivity.
 Qed.  
-  
-
-
-
-
-   
