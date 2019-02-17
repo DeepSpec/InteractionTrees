@@ -112,8 +112,8 @@ Lemma unfold_interp_mrecF R (t : itree (D +' E) R) :
 Proof. reflexivity. Qed.
 
 Lemma unfold_interp_mrec R (t : itree (D +' E) R) :
-  eq_itree (interp_mrec ctx _ t)
-           (interp_mrecF _ (observe t)).
+  eq_itree eq (interp_mrec ctx _ t)
+              (interp_mrecF _ (observe t)).
 Proof.
   rewrite itree_eta, unfold_interp_mrecF, <-itree_eta.
   reflexivity.
@@ -143,14 +143,14 @@ Hint Rewrite @vis_mrec_right : itree.
 Hint Rewrite @tau_mrec : itree.
 
 Instance eq_itree_mrec {R} :
-  Proper (@eq_itree _ R ==> @eq_itree _ R) (interp_mrec ctx R).
+  Proper (eq_itree eq ==> eq_itree eq) (interp_mrec ctx R).
 Proof.
   repeat intro. pupto2_init. revert_until R.
   pcofix CIH. intros.
   rewrite !unfold_interp_mrec.
   pupto2_final.
   punfold H0. inv H0; pclearbot; [| |destruct e].
-  - eapply eq_itree_refl.
+  - apply reflexivity.
   - pfold. econstructor. eauto.
   - pfold. econstructor. apply pointwise_relation_fold in REL.
     right. eapply CIH. rewrite REL. reflexivity.
@@ -169,18 +169,18 @@ Proof.
     autorewrite with itree;
     try rewrite <- bind_bind;
     pupto2_final.
-  1: { apply eq_itree_refl. }
+  1: { apply reflexivity. }
   all: try (pfold; econstructor; eauto).
 Qed.
 
 Let h_mrec : D ~> itree E := mrec ctx.
 
 Inductive mrec_invariant {U} : relation (itree _ U) :=
-| mrec_main (d1 d2 : _ U) (Ed : eq_itree d1 d2) :
+| mrec_main (d1 d2 : _ U) (Ed : eq_itree eq d1 d2) :
     mrec_invariant (interp_mrec ctx _ d1)
                      (interp1 (mrec ctx) _ d2)
 | mrec_bind T (d : _ T) (k1 k2 : T -> itree _ U)
-    (Ek : forall x, eq_itree (k1 x) (k2 x)) :
+    (Ek : forall x, eq_itree eq (k1 x) (k2 x)) :
     mrec_invariant (interp_mrec ctx _ (d >>= k1))
                      (interp_mrec ctx _ d >>= fun x =>
                         interp1 h_mrec _ (k2 x))
@@ -189,20 +189,20 @@ Inductive mrec_invariant {U} : relation (itree _ U) :=
 Notation mi_holds r :=
   (forall c1 c2 d1 d2,
       mrec_invariant d1 d2 ->
-      eq_itree c1 d1 -> eq_itree c2 d2 -> r c1 c2).
+      eq_itree eq c1 d1 -> eq_itree eq c2 d2 -> r c1 c2).
 
 Lemma mrec_invariant_init {U} (r : relation (itree _ U))
       (INV : mi_holds r)
       (c1 c2 : itree _ U)
-      (Ec : eq_itree c1 c2) :
-  paco2 (compose eq_itreeF (gres2 eq_itreeF)) r
+      (Ec : eq_itree eq c1 c2) :
+  paco2 (compose (eq_itree_ eq) (gres2 (eq_itree_ eq))) r
         (interp_mrec ctx _ c1)
         (interp1 h_mrec _ c2).
 Proof.
   rewrite unfold_interp_mrec, unfold_interp1.
   punfold Ec.
   inversion Ec; cbn; pclearbot; pupto2_final.
-  + eapply eq_itree_refl. (* This should be reflexivity. *)
+  + subst r1; apply reflexivity.
   + pfold; constructor. right; eapply INV.
     1: apply mrec_main; eassumption.
     all: reflexivity.
@@ -218,7 +218,7 @@ Proof.
     }
 Qed.
 
-Lemma mrec_invariant_eq {U} : mi_holds (@eq_itree _ U).
+Lemma mrec_invariant_eq {U} : mi_holds (@eq_itree _ U _ eq).
 Proof.
   intros d1 d2 c1 c2 Ec1 Ec2 H.
   pupto2_init; revert d1 d2 c1 c2 Ec1 Ec2 H; pcofix self.
@@ -249,7 +249,7 @@ Proof.
 Qed.
 
 Theorem interp_mrec_is_interp : forall {T} (c : itree _ T),
-    eq_itree (interp_mrec ctx _ c) (interp1 h_mrec _ c).
+    eq_itree eq (interp_mrec ctx _ c) (interp1 h_mrec _ c).
 Proof.
   intros; eapply mrec_invariant_eq;
     try eapply mrec_main; reflexivity.

@@ -80,9 +80,8 @@ Lemma vis_interp {E F R} {f : E ~> itree F} U (e: E U) (k: U -> itree E R) :
   interp f _ (Vis e k) ≅ Tau (ITree.bind (f _ e) (fun x => interp f _ (k x))).
 Proof. rewrite unfold_interp. reflexivity. Qed.
 
-Instance eq_itree_interp {E F R} f :
-  Proper (@eq_itree E R ==>
-          @eq_itree F R) (interp f _).
+Instance eq_itree_interp {E F R} (f : E ~> itree F) :
+  Proper (eq_itree eq ==> eq_itree eq) (interp f R).
 Proof.
   repeat intro. pupto2_init. revert_until R.
   pcofix CIH. intros.
@@ -97,13 +96,12 @@ Proof.
     + eauto. intros; pupto2_final; right; eauto.
 Qed.
 
-Instance eq_itree_interp1 {E F R} f :
-  Proper (@eq_itree (E +' F) R ==>
-          @eq_itree F R) (interp1 f _).
+Instance eq_itree_interp1 {E F R} (h : E ~> itree F) :
+  Proper (@eq_itree (E +' F) _ _ eq ==> eq_itree eq) (interp1 h R).
 Proof.
   repeat intro. pupto2_init. revert_until R.
   pcofix CIH. intros.
-  rewrite itree_eta, (itree_eta (interp1 f _ y)), !interp1_unfold.
+  rewrite !unfold_interp1.
   punfold H0; red in H0.
   destruct H0; pclearbot.
   - pupto2_final. pfold. red. cbn. eauto.
@@ -124,10 +122,10 @@ Proof.
   revert R t k.
   pcofix CIH. intros.
   rewrite (itree_eta t). destruct (observe t).
-  - rewrite ret_interp, !ret_bind. pupto2_final. apply eq_itree_refl.
+  - rewrite ret_interp, !ret_bind. pupto2_final. apply reflexivity.
   - rewrite tau_interp, !tau_bind, tau_interp.
     pupto2_final. pfold. econstructor. eauto.
-  - rewrite vis_interp, tau_bind, bind_bind.
+  - rewrite vis_interp, tau_bind. rewrite bind_bind.
     pfold. do 2 red; cbn. constructor.
     pupto2 (eq_itree_clo_bind F S). econstructor.
     + reflexivity.

@@ -424,25 +424,11 @@ Proof.
     repeat constructor; eauto. eapply UNTAUS1. eapply UNTAUS2.
 Qed.
 
-End EUTT.
+(**)
 
-Hint Constructors eq_notauF.
-Hint Constructors euttF.
-Hint Resolve monotone_eutt_ : paco.
-
-Delimit Scope eutt_scope with eutt.
-
-Section EUTT_eq.
-
-Context {E : Type -> Type} {R : Type}.
-
-Let eutt : itree E R -> itree E R -> Prop := eutt eq.
-
-Infix "~~" := eutt (at level 70).
-
-Lemma eq_unalltaus (t1 t2 : itree E R) ot1'
+Lemma eq_unalltaus (t1 : itree E R1) (t2 : itree E R2) ot1'
     (FT: unalltausF (observe t1) ot1')
-    (EQV: t1 ≅ t2) :
+    (EQV: eq_itree RR t1 t2) :
   exists ot2', unalltausF (observe t2) ot2'.
 Proof.
   genobs t1 ot1. revert t1 Heqot1 t2 EQV.
@@ -453,10 +439,10 @@ Proof.
     pclearbot. edestruct IHHuntaus as [? []]; eauto.
 Qed.
 
-Lemma eq_unalltaus_eqF (t s : itree E R) ot'
+Lemma eq_unalltaus_eqF (t : itree E R1) (s : itree E R2) ot'
     (UNTAUS : unalltausF (observe t) ot')
-    (EQV: t ≅ s) :
-  exists os', unalltausF (observe s) os' /\ eq_itreeF' eq_itree ot' os'.
+    (EQV: eq_itree RR t s) :
+  exists os', unalltausF (observe s) os' /\ eq_itreeF RR (eq_itree RR) ot' os'.
 Proof.
   destruct UNTAUS as [Huntaus Hnotau].
   remember (observe t) as ot. revert s t Heqot EQV.
@@ -464,22 +450,34 @@ Proof.
   - eexists (observe s). split.
     inv EQV; simpobs; eauto.
     subst; eauto.
-    eapply eq_itreeF'_mono; eauto.
+    eapply eq_itreeF_mono; eauto.
     intros ? ? [| []]; eauto.
-  - inv EQV; rewrite <- H0 in Heqot; inversion Heqot; subst.
+  - inv EQV; simpobs; inversion Heqot; subst.
     destruct REL as [| []].
     edestruct IHHuntaus as [? [[]]]; eauto 10.
 Qed.
 
-Lemma eq_unalltaus_eq (t s : itree E R) t'
+Lemma eq_unalltaus_eq (t : itree E R1) (s : itree E R2) t'
     (UNTAUS : unalltausF (observe t) (observe t'))
-    (EQV: t ≅ s) :
-  exists s', unalltausF (observe s) (observe s') /\ t' ≅ s'.
+    (EQV: eq_itree RR t s) :
+  exists s', unalltausF (observe s) (observe s') /\ eq_itree RR t' s'.
 Proof.
   eapply eq_unalltaus_eqF in UNTAUS; try eassumption.
   destruct UNTAUS as [os' []]. eexists (go os'); split; eauto.
-  pfold. eapply eq_itreeF'_mono; eauto.
+  pfold. eapply eq_itreeF_mono; eauto.
 Qed.
+
+End EUTT.
+
+Hint Constructors eq_notauF.
+Hint Constructors euttF.
+Hint Resolve monotone_eutt_ : paco.
+
+Delimit Scope eutt_scope with eutt.
+
+Section EUTT_rel.
+
+Context {E : Type -> Type} {R : Type} (RR : R -> R -> Prop).
 
 (* Reflexivity of [eq_notauF], modulo a few assumptions. *)
 Lemma Reflexive_eq_notauF I (eq_ : I -> I -> Prop) (ot : itreeF E R I) :
@@ -487,6 +485,29 @@ Lemma Reflexive_eq_notauF I (eq_ : I -> I -> Prop) (ot : itreeF E R I) :
 Proof.
   intros. destruct ot; try contradiction; econstructor; intros; subst; eauto.
 Qed.
+
+Global Instance subrelation_eq_eutt :
+  @subrelation (itree E R) (eq_itree RR) (eutt RR).
+Proof.
+  pcofix CIH. intros.
+  pfold. econstructor.
+  { split; [|apply flip_eq_itree in H0]; intros; destruct H as [n [? ?]]; eauto using eq_unalltaus. }
+
+  intros. eapply eq_unalltaus_eqF in H0; eauto. destruct H0 as [s' [UNTAUS' EQV']].
+  hexploit @unalltaus_injective; [apply UNTAUS' | apply UNTAUS2 | intro X]; subst.
+  inv EQV'; simpobs; eauto.
+  eapply unalltaus_notau in UNTAUS1. simpobs. contradiction.
+Qed.
+
+End EUTT_rel.
+
+Section EUTT_eq.
+
+Context {E : Type -> Type} {R : Type}.
+
+Let eutt : itree E R -> itree E R -> Prop := eutt eq.
+
+Infix "~~" := eutt (at level 70).
 
 Instance Reflexive_euttF (r : itree E R -> itree E R -> Prop) :
   Reflexive r -> Reflexive (euttF eq r).
@@ -576,35 +597,11 @@ Proof.
     + eapply unalltaus_tau in UNTAUS1; eauto.
 Qed.
 
-(* TODO: Send to paco *)
-Global Instance Symmetric_bot2 (A : Type) : @Symmetric A bot2.
-Proof. auto. Qed.
-
-Global Instance Transitive_bot2 (A : Type) : @Transitive A bot2.
-Proof. auto. Qed.
-
 (* We can now rewrite with [eutt] equalities. *)
 Global Instance Equivalence_eutt : @Equivalence (itree E R) eutt.
 Proof. constructor; typeclasses eauto. Qed.
 
 (**)
-
-Global Instance subrelation_eq_eutt : subrelation (@eq_itree E R) eutt.
-Proof.
-  pcofix CIH. intros.
-  pfold. econstructor.
-  { split; [|symmetry in H0]; intros; destruct H as [n [? ?]]; eauto using eq_unalltaus. }
-
-  intros. eapply eq_unalltaus_eqF in H0; eauto. destruct H0 as [s' [UNTAUS' EQV']].
-  hexploit @unalltaus_injective; [apply UNTAUS' | apply UNTAUS2 | intro X]; subst.
-  inv EQV'; simpobs; eauto.
-  eapply unalltaus_notau in UNTAUS1. simpobs. contradiction.
-Qed.
-
-Global Instance subrelation_go_sim_eq_eutt : subrelation (go_sim (@eq_itree E R)) (go_sim eutt).
-Proof.
-  repeat intro. red. red in H. rewrite H. reflexivity.
-Qed.
 
 Global Instance eutt_go : Proper (go_sim eutt ==> eutt) go.
 Proof. repeat intro; eauto. Qed.
@@ -638,7 +635,7 @@ Proof.
 Qed.
 
 Global Instance eq_itree_notauF :
-  Proper (go_sim (@eq_itree E R) ==> flip impl) notauF.
+  Proper (go_sim (@eq_itree E R _ eq) ==> flip impl) notauF.
 Proof.
   repeat intro. punfold H. inv H; simpl in *; subst; eauto.
 Qed.
