@@ -145,7 +145,7 @@ Definition one_loop_tree : itree nd unit :=
 Import Coq.Classes.Morphisms.
 
 (* SAZ: the [~] notation for eutt wasn't working here. *)
-Lemma eval_one_loop : eutt (eval one_loop) (one_loop_tree).
+Lemma eval_one_loop : eutt eq (eval one_loop) (one_loop_tree).
 Proof.
 (*
   pupto2_init.
