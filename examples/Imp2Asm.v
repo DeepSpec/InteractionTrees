@@ -1,5 +1,7 @@
 Require Import Imp Asm.
 
+Require Import Psatz.
+
 From Coq Require Import
      Strings.String
      Morphisms
@@ -14,37 +16,32 @@ From ExtLib Require Import
      Core.RelDec
      Structures.Monad
      Structures.Maps
+     Programming.Show
      Data.Map.FMapAList.
 
-
 Import ListNotations.
+Open Scope string_scope.
 
 Section compile_assign.
 
-  (* YZ: How to handle locals used to compute a composed expression? *)
-  (*
-    Simply reserve the prefix "local", carry how many have been created, and generate "local_n"?
-    Rough invariant: instrs = compile_expr_aux k e -> [instrs]σ = σ' -> σ'(gen_local k) = [e]
-   *)
+  Definition gen_tmp (n: nat): string :=
+    "temp_" ++ to_string n.
 
-  (* YZ: Ascii.ascii_of_nat is not what we want, unreadable *)
-  Definition gen_local (n: nat): string :=
-    "local_" ++ (String (Ascii.ascii_of_nat n) "").
-
-  (* Compiling mindlessly everything to the stack. Do we want to use asm's heap? *)
+  Definition varOf (s : var) : var := "local_" ++ s.
+ 
   Fixpoint compile_expr (l: nat) (e: expr): list instr :=
     match e with
-    | Var x => [Imov (gen_local l) (Ovar x)]
-    | Lit n => [Imov (gen_local l) (Oimm n)]
+    | Var x => [Imov (gen_tmp l) (Ovar (varOf x))]
+    | Lit n => [Imov (gen_tmp l) (Oimm n)]
     | Plus e1 e2 =>
       let instrs1 := compile_expr l e1 in
       let instrs2 := compile_expr (S l) e2 in
-      instrs1 ++ instrs2 ++ [Iadd (gen_local l) (gen_local l) (Ovar (gen_local (S l)))]
+      instrs1 ++ instrs2 ++ [Iadd (gen_tmp l) (gen_tmp l) (Ovar (gen_tmp (S l)))]
     end.
 
   Definition compile_assign (x: Imp.var) (e: expr): list instr :=
     let instrs := compile_expr 0 e in
-    instrs ++ [Imov x (Ovar (gen_local 0))].
+    instrs ++ [Imov (varOf x) (Ovar (gen_tmp 0))].
 
 End compile_assign.
 
@@ -85,7 +82,7 @@ Variant WhileBlocks : Set :=
    Though they should never be reused if I'm not mistaken, so a unique reserved id as currently is might actually simply do the trick.
    To double check.
  *)
-Open Scope string_scope.
+
 (* we could change this to `stmt -> program unit` and then compile the subterms
  * and then replace some of the jumps to do the actual linking.
  *
@@ -236,14 +233,17 @@ Section tests.
 
 End tests.
 
-Import MonadNotation.
-  Section denote_list.
+Section denote_list.
+
+  Import MonadNotation.
+
   Definition traverse_ {A: Type} {M: Type -> Type} `{Monad M} (f: A -> M unit): list A -> M unit :=
     fix traverse__ l: M unit :=
       match l with
       | [] => ret tt
       | a::l => (f a;; traverse__ l)%monad
       end.
+
   Context {E} {EL : Locals -< E} {EM : Memory -< E}.
 
   Definition denote_list: list instr -> itree E unit :=
@@ -259,7 +259,15 @@ Import MonadNotation.
       eapply eq_itree_eq_bind; [reflexivity | intros []; apply IH].
   Qed.
 
-  End  denote_list.
+  Lemma denote_list_app:
+    forall is1 is2,
+      @denote_list (is1 ++ is2) ≅
+                   (@denote_list is1;; denote_list is2).
+  Proof.
+  Admitted.
+  
+End  denote_list.
+
 Section Correctness.
 
   (*
@@ -295,26 +303,24 @@ Section Correctness.
       + unfold ITree.map; rewrite ret_bind; reflexivity.
   Qed.
 
-Definition varOf (s : var) : var := "_local" ++ s.
+  Variant Rvar : var -> var -> Prop :=
+  | Rvar_var v : Rvar (varOf v) v.
 
-Variant Rvar : var -> var -> Prop :=
-| Rvar_var v : Rvar (varOf v) v.
+  Definition Renv (g_asm g_imp : alist var value) : Prop :=
+    forall k_asm k_imp, Rvar k_asm k_imp ->
+                   forall v, In (k_imp,v) g_imp -> In (k_asm, v) g_asm.
 
-Definition Renv (g_asm g_imp : alist var value) : Prop :=
-  forall k_asm k_imp, Rvar k_asm k_imp ->
-           forall v, In (k_imp,v) g_imp -> In (k_asm, v) g_asm.
-
-(* Let's not unfold this inside of the main proof *)
-Definition sim_rel g_asm n: alist var value * unit -> alist var value * value -> Prop :=
-  fun '(g_asm', _) '(g_imp',v) =>
-    Renv g_asm' g_imp' /\ (* we don't corrupt any of the imp variables *)
-    In (gen_local n, v) g_asm' /\ (* we get the right value *)
-    (forall m, m < n -> forall v, (* we don't mess with anything on the "stack" *)
-          In (gen_local m, v) g_asm <-> In (gen_local m, v) g_asm').
+  (* Let's not unfold this inside of the main proof *)
+  Definition sim_rel g_asm n: alist var value * unit -> alist var value * value -> Prop :=
+    fun '(g_asm', _) '(g_imp',v) =>
+      Renv g_asm' g_imp' /\ (* we don't corrupt any of the imp variables *)
+      In (gen_tmp n, v) g_asm' /\ (* we get the right value *)
+      (forall m, m < n -> forall v, (* we don't mess with anything on the "stack" *)
+            In (gen_tmp m, v) g_asm <-> In (gen_tmp m, v) g_asm').
 
 End Correctness.
 
-Section TOMOVE.
+Section EUTT.
 
   Context {E: Type -> Type}.
   Lemma Vis_eutt: forall {R1 R2 RR} {U} (e: E U) k k',
@@ -324,11 +330,6 @@ Section TOMOVE.
   Lemma Ret_eutt: forall {R1 R2} {RR: R1 -> R2 -> Prop} x y, 
       RR x y -> @eutt E R1 R2 RR (Ret x) (Ret y).
   Admitted.
-
-
-  (*
-    This is sufficient to rewrite (eq_itree eq) under (eutt RR) through the fact that (eutt eq) is a subrelation of (eq_itree eq).
-   *)
 
   Global Instance eutt_eq_under_rr {R1 R2 : Type} (RR: R1 -> R2 -> Prop):
     Proper (@eutt E _ _ eq ==> @eutt _ _ _ eq ==> iff) (eutt RR).
@@ -344,31 +345,27 @@ Section TOMOVE.
   Proof.
   Admitted.
 
-
-  (* Instance subrelation_eq_eutt {E R} {RR} {SRR: Reflexive RR}: subrelation (@eq_itree E R) (@eutt _ _ _ RR). *)
-  (*   Proof. *)
-  (*   Admitted. *)
-
   Lemma interp1_eq_eutt {F: Type -> Type} (h: E ~> itree F) R:
     @Proper (itree (E +' F) R -> itree F R) (eutt eq ==> eutt eq) (interp1 h R).
   Admitted.
 
-End TOMOVE.
+End EUTT.
 
-Section TOORG.
+Section GEN_TMP.
 
-  Context {E: Type -> Type}.
-  Context {HasMemory: Memory -< E}.
-  Context {HasLocals: Locals -< E}.
-
-  Lemma denote_list_app:
-    forall is1 is2,
-      @denote_list E _ _ (is1 ++ is2) ≅
-      (@denote_list E _ _ is1;; denote_list is2).
-  Proof.
+  Lemma to_string_inj: forall (n m: nat), to_string n = to_string m -> n = m.
   Admitted.
- 
-End TOORG.
+
+  Lemma gen_tmp_inj: forall n m, m <> n -> gen_tmp m <> gen_tmp n.
+  Proof.
+    intros n m ineq; intros abs; apply ineq.
+    apply to_string_inj; inversion abs; auto. 
+  Qed.    
+
+End GEN_TMP.
+
+Opaque gen_tmp.
+Opaque varOf.
 
 Section Real_correctness.
 
@@ -400,125 +397,135 @@ Section Real_correctness.
                @eutt E _ _ SS (ITree.bind t1 s1) (ITree.bind t2 s2).
   Admitted.
 
+  Ltac force_left :=
+    match goal with
+    | |- eutt _ ?x _ => rewrite (itree_eta x); cbn
+    end.
+  
+  Ltac force_right :=
+    match goal with
+    | |- eutt _ _ ?x => rewrite (itree_eta x); cbn
+    end.
 
-Typeclasses eauto := 5.
-Lemma compile_expr_correct : forall e g_imp g_asm n,
-    Renv g_asm g_imp ->
-    eutt (sim_rel g_asm n)
-         (interp_locals (denote_list (compile_expr n e)) g_asm)
-         (interp_locals (denoteExpr e) g_imp).
-Proof.
-  induction e; simpl; intros.
-  {
-    Opaque gen_local.
-    rewrite itree_eta.
-    match goal with
-    | |- eutt _ _ ?x => 
-      rewrite (itree_eta x)
-    end.
-    cbn. 
-    do 2 rewrite tau_eutt.
-    rewrite itree_eta.
-    match goal with
-    | |- eutt _ _ ?x => 
-      rewrite (itree_eta x)
-    end.
-    cbn.
-    rewrite itree_eta.
-    match goal with
-    | |- eutt _ _ ?x => 
-      rewrite (itree_eta x)
-    end.
-    cbn.
-    rewrite tau_eutt.
-    rewrite tau_eutt.
-     rewrite itree_eta.
-    match goal with
-    | |- eutt _ _ ?x => 
-      rewrite (itree_eta x)
-    end.
-    cbn.
-    rewrite tau_eutt.
-    rewrite itree_eta.
-    cbn.
-    rewrite tau_eutt.
-    rewrite itree_eta.
-    cbn.
-    apply Ret_eutt. 
-    red.
-    split; [| split].
-    {
-      red.
-      repeat intro.
-      admit.
-    }
-    {
-      admit.
-    }
-    {
-      repeat intro.
-      admit.
-    }
-  }
-  {
-    do 3 (rewrite itree_eta;
-            match goal with
-            | |- eutt _ _ ?x => 
-              rewrite (itree_eta x)
-            end;
-            cbn;
-            repeat rewrite tau_eutt
-         ).
-    apply Ret_eutt. 
-    split; [| split].
-   { admit. }
-   { admit. }
-   { admit. }
-  }
-  {
-    eapply eutt_eq_under_rr.
-    eapply eq_itree_interp_locals.
-    rewrite denote_list_app.
-    setoid_rewrite denote_list_app.
-    reflexivity.
-    reflexivity.
-    rewrite interp_locals_bind. 
-    setoid_rewrite interp_locals_bind. 
-    reflexivity.
-    rewrite interp_locals_bind.
-    eapply eutt_bind_gen.
-    eapply IHe1.
-    auto.
+  Ltac untau_left := force_left; rewrite tau_eutt.
+  Ltac untau_right := force_right; rewrite tau_eutt.
+
+  Arguments alist_add {_ _ _ _}.
+  Arguments alist_find {_ _ _ _}.
+  
+  Lemma Renv_add: forall g_asm g_imp n v,
+      Renv g_asm g_imp -> Renv (alist_add (gen_tmp n) v g_asm) g_imp.
+  Admitted.
+
+  Lemma In_alist_add {K V: Type} `{RelDec _ (@eq K)}:
+    forall k v (m: alist K V),
+      In (k,v) (alist_add k v m).
+  Admitted.
+
+  Lemma alist_find_In_iff {K V: Type} `{RR: RelDec _ (@eq K)} `{@RelDec_Correct _ _ RR}:
+    forall k v (m: alist K V),
+      In (k,v) m <-> alist_find k m = Some v.
+  Admitted.
+
+  Lemma alist_find_None {K V: Type} `{RR: RelDec _ (@eq K)} `{@RelDec_Correct _ _ RR}:
+    forall k (m: alist K V),
+      (forall v, ~ In (k,v) m) <-> alist_find k m = None.
+  Admitted.
+
+  Lemma In_add_ineq {K V: Type} `{RR: RelDec _ (@eq K)} `{@RelDec_Correct _ _ RR}:
+    forall m (v v' : V) (k k' : K),
+      k <> k' ->
+      In (k, v) m <-> In (k, v) (alist_add k' v' m).
+  Proof.
+  Admitted.
+
+  Lemma alist_unique_key {K V: Type} `{RR: RelDec _ (@eq K)} `{@RelDec_Correct _ _ RR}:
+    forall k v v' (m: alist K V),
+      In (k,v) m -> In (k, v') m -> v = v'.
+  Proof.
+  Admitted.
+
+  Lemma Renv_find:
+    forall g_asm g_imp x,
+      Renv g_asm g_imp ->
+      alist_find x g_imp = alist_find (varOf x) g_asm.
+  Proof.
     intros.
-    rewrite interp_locals_bind.
-    eapply eutt_bind_gen.
-    eapply IHe2.
-    destruct r1, r2, H0 as (H1 & H2 & H3); auto. 
+    destruct (alist_find x g_imp) eqn:LUL, (alist_find (varOf x) g_asm) eqn:LUR; auto.
+    - rewrite <- alist_find_In_iff in LUL,LUR.
+      eapply H in LUL; [| constructor].
+      f_equal; eapply alist_unique_key; eassumption.
+    - rewrite <- alist_find_In_iff in LUL.
+      eapply H in LUL; [| constructor].
+      rewrite <- alist_find_None in LUR.
+      exfalso; eapply LUR; eauto.
+    - rewrite <- alist_find_None in LUL.
+      rewrite <- alist_find_In_iff in LUR.
+      (* YZ: does not hold, the invariant does not prevent the assembly stack to have more non temp variables defined than the source.
+         Reinforce the invariant, or weaken this lemma.
+       *)
+  Admitted.
+
+  Lemma sim_rel_add: forall g_asm g_imp n v,
+      Renv g_asm g_imp ->
+      sim_rel g_asm n (alist_add (gen_tmp n) v g_asm, tt) (g_imp, v).
+  Proof.
     intros.
-    rewrite itree_eta;
-      match goal with
-      | |- eutt _ _ ?x => 
-        rewrite (itree_eta x)
-      end.
-    cbn.
-    rewrite tau_eutt.
-    rewrite itree_eta; cbn; rewrite tau_eutt.
-    (* Make a fairly pretty tactic(s) out of this *)
-    repeat (rewrite itree_eta; cbn; rewrite tau_eutt).
-    rewrite itree_eta; cbn.
-    apply Ret_eutt.
     split; [| split].
-    {
-      destruct r0, r3; simpl.
-      admit.
-    }
-    {
-      admit.
-    }
-    {
-      admit.
-    }
-Admitted.
+    - apply Renv_add; assumption.
+    - apply In_alist_add.  
+    - intros m LT v'.
+      apply In_add_ineq, gen_tmp_inj; lia.
+  Qed.     
+
+  Lemma sim_rel_Renv: forall g_asm n sv1 sv2,
+      sim_rel g_asm n sv1 sv2 -> Renv (fst sv1) (fst sv2).
+  Proof.
+    intros ? ? ? ? H; destruct sv1, sv2; apply H.
+  Qed.
+  
+  Lemma compile_expr_correct : forall e g_imp g_asm n,
+      Renv g_asm g_imp ->
+      eutt (sim_rel g_asm n)
+           (interp_locals (denote_list (compile_expr n e)) g_asm)
+           (interp_locals (denoteExpr e) g_imp).
+  Proof.
+    induction e; simpl; intros.
+    - repeat untau_left.
+      repeat untau_right.
+      force_left; force_right.
+      apply Ret_eutt.
+      erewrite <- Renv_find; [| eassumption].
+      apply sim_rel_add; assumption.
+    - repeat untau_left.
+      force_left.
+      force_right.
+      apply Ret_eutt.
+      apply sim_rel_add; assumption.
+    - do 2 setoid_rewrite denote_list_app.
+      do 2 setoid_rewrite interp_locals_bind.
+      eapply eutt_bind_gen.
+      + eapply IHe1; assumption. 
+      + intros.
+        eapply eutt_bind_gen.
+        eapply IHe2.
+        eapply sim_rel_Renv; eassumption.
+        intros.
+        repeat untau_left.
+        force_left; force_right.
+        apply Ret_eutt.
+        split; [| split].
+        {
+          destruct r0, r3; simpl.
+          admit.
+        }
+        {
+          admit.
+        }
+        {
+          admit.
+        }
+  Admitted.
 
 (*
 Seq a b
