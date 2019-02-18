@@ -478,11 +478,24 @@ Section Real_correctness.
       apply In_add_ineq, gen_tmp_inj; lia.
   Qed.     
 
-  Lemma sim_rel_Renv: forall g_asm n sv1 sv2,
-      sim_rel g_asm n sv1 sv2 -> Renv (fst sv1) (fst sv2).
+  Lemma sim_rel_Renv: forall g_asm n s1 v1 s2 v2,
+      sim_rel g_asm n (s1,v1) (s2,v2) -> Renv s1 s2.
   Proof.
-    intros ? ? ? ? H; destruct sv1, sv2; apply H.
+    intros ? ? ? ? ? ? H; apply H.
   Qed.
+  
+  Lemma sim_rel_find_tmp_n:
+    forall g_asm n g_asm' g_imp' v,
+      sim_rel g_asm n (g_asm', tt) (g_imp',v) ->
+      alist_find (gen_tmp n) g_asm' = Some v.
+  Admitted.
+
+  Lemma sim_rel_find_tmp_lt_n:
+    forall g_asm n m g_asm' g_imp' v,
+      m < n ->
+      sim_rel g_asm n (g_asm', tt) (g_imp',v) ->
+      alist_find (gen_tmp m) g_asm = alist_find (gen_tmp m) g_asm'.
+  Admitted.
   
   Lemma compile_expr_correct : forall e g_imp g_asm n,
       Renv g_asm g_imp ->
@@ -506,26 +519,34 @@ Section Real_correctness.
       do 2 setoid_rewrite interp_locals_bind.
       eapply eutt_bind_gen.
       + eapply IHe1; assumption. 
-      + intros.
+      + intros [g_asm' []] [g_imp' v] HSIM.
         eapply eutt_bind_gen.
         eapply IHe2.
         eapply sim_rel_Renv; eassumption.
-        intros.
+        intros [g_asm'' []] [g_imp'' v'] HSIM'.
         repeat untau_left.
         force_left; force_right.
         apply Ret_eutt.
         split; [| split].
         {
-          destruct r0, r3; simpl.
-          admit.
+          eapply Renv_add, sim_rel_Renv; eassumption.
         }
         {
-          admit.
+          generalize HSIM'; intros HSIM'2; apply sim_rel_find_tmp_n in HSIM'.
+          setoid_rewrite HSIM'; clear HSIM'.
+          eapply sim_rel_find_tmp_lt_n with (m := n) in HSIM'2; [simpl fst in HSIM'2| auto with arith].
+          apply sim_rel_find_tmp_n in HSIM; rewrite HSIM'2 in HSIM.
+          setoid_rewrite HSIM.
+          apply In_alist_add.
         }
         {
+          simpl fst in *.
+          intros m LT v''.
+          rewrite <- In_add_ineq; [| apply gen_tmp_inj; lia].
           admit.
         }
-  Admitted.
+  Admitted. 
+
 
 (*
 Seq a b
