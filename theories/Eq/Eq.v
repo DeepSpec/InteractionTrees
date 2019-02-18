@@ -1,6 +1,3 @@
-(* Coinductively defined equality on itrees, also called: strong bisimulation,
-   extensional equality.  *)
-
 From Coq Require Import
      Program
      Setoid
@@ -25,67 +22,69 @@ Lemma pointwise_relation_fold {A B} {r: relation B} f g: (forall v:A, r (f v) (g
   Proof. red. eauto. Qed.
 
   
+(* Coinductively defined equality on itrees, also called: strong bisimulation,
+   extensional equality.  *)
 Section eq_itree.
   Context {E : Type -> Type} {R : Type}.
 
-  Inductive eq_itreeF' (sim : relation (itree E R)) : relation (itreeF E R (itree E R)) :=
-  | EqRet : forall x, eq_itreeF' sim (RetF x) (RetF x)
+  Inductive eq_itreeF (sim : relation (itree E R)) : relation (itreeF E R (itree E R)) :=
+  | EqRet : forall x, eq_itreeF sim (RetF x) (RetF x)
   | EqTau : forall m1 m2
-      (REL: sim m1 m2), eq_itreeF' sim (TauF m1) (TauF m2)
+      (REL: sim m1 m2), eq_itreeF sim (TauF m1) (TauF m2)
   | EqVis : forall {u} (e : E u) k1 k2
       (REL: forall v, sim (k1 v) (k2 v)),
-      eq_itreeF' sim (VisF e k1) (VisF e k2)
+      eq_itreeF sim (VisF e k1) (VisF e k2)
   .
-  Hint Constructors eq_itreeF'.
+  Hint Constructors eq_itreeF.
 
-  Global Instance Reflexive_eq_itreeF' sim
-  : Reflexive sim -> Reflexive (eq_itreeF' sim).
+  Global Instance Reflexive_eq_itreeF sim
+  : Reflexive sim -> Reflexive (eq_itreeF sim).
   Proof.
     red. destruct x; eauto.
   Qed.
 
-  Global Instance Symmetric_eq_itreeF' sim 
-  : Symmetric sim -> Symmetric (eq_itreeF' sim).
+  Global Instance Symmetric_eq_itreeF sim 
+  : Symmetric sim -> Symmetric (eq_itreeF sim).
   Proof.
     red. inversion 2; eauto.
   Qed.
 
-  Global Instance Transitive_eq_itreeF' sim
-  : Transitive sim -> Transitive (eq_itreeF' sim).
+  Global Instance Transitive_eq_itreeF sim
+  : Transitive sim -> Transitive (eq_itreeF sim).
   Proof.
     red. inversion 2; inversion 1; eauto.
     subst. dependent destruction H6. dependent destruction H7. eauto.
   Qed.
 
-  Definition eq_itreeF (sim: relation (itree E R)) : relation (itree E R) :=
-    fun t1 t2 => eq_itreeF' sim (observe t1) (observe t2).
-  Hint Unfold eq_itreeF.
+  Definition eq_itree_ (sim: relation (itree E R)) : relation (itree E R) :=
+    fun t1 t2 => eq_itreeF sim (observe t1) (observe t2).
+  Hint Unfold eq_itree_.
 
-  Lemma eq_itreeF'_mono : forall x0 x1 r r'
-    (IN: eq_itreeF' r x0 x1) (LE: forall x2 x3, (r x2 x3 : Prop) -> r' x2 x3 : Prop), eq_itreeF' r' x0 x1.
+  Lemma eq_itreeF_mono : forall x0 x1 r r'
+    (IN: eq_itreeF r x0 x1) (LE: forall x2 x3, (r x2 x3 : Prop) -> r' x2 x3 : Prop), eq_itreeF r' x0 x1.
   Proof. pmonauto. Qed.
 
-  Lemma eq_itreeF_mono : monotone2 eq_itreeF.
+  Lemma eq_itreeF__mono : monotone2 eq_itree_.
   Proof. do 2 red. pmonauto. Qed.
 
-  Definition eq_itree : relation (itree E R) := paco2 eq_itreeF bot2.
+  Definition eq_itree : relation (itree E R) := paco2 eq_itree_ bot2.
 
-  Global Instance Reflexive_eq_itreeF sim
-  : Reflexive sim -> Reflexive (eq_itreeF sim).
+  Global Instance Reflexive_eq_itree_ sim
+  : Reflexive sim -> Reflexive (eq_itree_ sim).
   Proof. red; red; reflexivity. Qed.
 
-  Global Instance Symmetric_eq_itreeF sim
-  : Symmetric sim -> Symmetric (eq_itreeF sim).
+  Global Instance Symmetric_eq_itree_ sim
+  : Symmetric sim -> Symmetric (eq_itree_ sim).
   Proof. red; red; symmetry; auto. Qed.
 
-  Global Instance Transitive_eq_itreeF sim
-  : Transitive sim -> Transitive (eq_itreeF sim).
+  Global Instance Transitive_eq_itree_ sim
+  : Transitive sim -> Transitive (eq_itree_ sim).
   Proof. red; red; etransitivity; eauto. Qed.
 
 End eq_itree.
 
-Hint Constructors eq_itreeF'.
-Hint Unfold eq_itreeF.
+Hint Constructors eq_itreeF.
+Hint Unfold eq_itree_.
 Hint Resolve eq_itreeF_mono : paco.
 Hint Unfold eq_itree.
 
@@ -93,13 +92,13 @@ Definition go_sim {E R} (r: relation (itree E R)) : relation (itreeF E R (itree 
   fun ot1 ot2 => r (go ot1) (go ot2).
 
 Ltac unfold_eq_itree :=
-  (try match goal with [|- eq_itreeF _ _ _ ] => red end);
-  (repeat match goal with [H: eq_itreeF _ _ _ |- _ ] => red in H end).
+  (try match goal with [|- eq_itree_ _ _ _ ] => red end);
+  (repeat match goal with [H: eq_itree_ _ _ _ |- _ ] => red in H end).
 
 Delimit Scope eq_itree_scope with eq_itree.
-(* note(gmm): overriding `=` seems like a bad idea *)
 Notation "t1 ≅ t2" := (eq_itree t1%itree t2%itree) (at level 70).
 (* you can write ≅ using \cong in tex-mode *)
+
 
 
 (* Some simple congruences -------------------------------------------------- *)
@@ -119,7 +118,9 @@ Proof.
 Qed.  
 
 
-Lemma eq_itree_refl {E R} r x : paco2 (@eq_itreeF E R) r x x.
+(* eq_itree is an equivalence ----------------------------------------------- *)
+
+Lemma eq_itree_refl {E R} r x : paco2 (@eq_itree_ E R) r x x.
 Proof.
   revert x. pcofix CIH; intros.
   pfold. unfold_eq_itree. destruct (observe x); eauto.
@@ -166,6 +167,10 @@ Proof.
   - etransitivity; eauto.
 Qed.
 
+
+
+
+
 Instance eq_itree_go {E R} :
   Proper (go_sim (@eq_itree E R) ==> @eq_itree E R) (@go E R).
 Proof.
@@ -192,7 +197,7 @@ Qed.
 
 Lemma itree_eta {E R} (t: itree E R): t ≅ go (observe t).
 Proof.
-  pfold. red. cbn. eapply Reflexive_eq_itreeF'; eauto with refl.
+  pfold. red. cbn. eapply Reflexive_eq_itreeF; eauto with refl.
 Qed.
 
 Lemma bind_unfold {E R S}
@@ -233,7 +238,7 @@ Inductive eq_itree_trans_clo {E R} (r: relation (itree E R)) : relation (itree E
 .
 Hint Constructors eq_itree_trans_clo.
 
-Lemma eq_itree_clo_trans E R: weak_respectful2 eq_itreeF (@eq_itree_trans_clo E R).
+Lemma eq_itree_clo_trans E R: weak_respectful2 eq_itree_ (@eq_itree_trans_clo E R).
 Proof.
   econstructor; [pmonauto|].
   intros. dependent destruction PR.
@@ -262,13 +267,13 @@ Inductive eq_itree_bind_clo {E R} (r: relation (itree E R)) : relation (itree E 
 .
 Hint Constructors eq_itree_bind_clo.
 
-Lemma eq_itree_clo_bind E R: weak_respectful2 eq_itreeF (@eq_itree_bind_clo E R).
+Lemma eq_itree_clo_bind E R: weak_respectful2 eq_itree_ (@eq_itree_bind_clo E R).
 Proof.
   econstructor; try pmonauto.
   intros. dependent destruction PR.
   punfold EQV. unfold_eq_itree.
   rewrite !bind_unfold; inv EQV; simpobs.
-  - eapply eq_itreeF_mono; eauto using rclo2.
+  - eapply eq_itreeF__mono; eauto using rclo2.
   - simpl. fold_bind. pclearbot. eauto 7 using rclo2.
   - econstructor.
     intros x. specialize (REL0 x). fold_bind. pclearbot. eauto 7 using rclo2.
@@ -286,7 +291,7 @@ Qed.
 
 Instance eq_itree_paco {E R} r:
   Proper (@eq_itree E R ==> @eq_itree E R ==> flip impl)
-         (paco2 (eq_itreeF ∘ gres2 eq_itreeF) r).
+         (paco2 (eq_itree_ ∘ gres2 eq_itree_) r).
 Proof.
   repeat intro. pupto2 eq_itree_clo_trans. eauto.
 Qed.
@@ -307,7 +312,7 @@ Proof.
   revert R S. pcofix CIH. intros.
   pfold. unfold_eq_itree. rewrite !bind_unfold.
   genobs s os; destruct os; unfold_bind; simpl; eauto.
-  eapply Reflexive_eq_itreeF'. eauto with refl.
+  eapply Reflexive_eq_itreeF. eauto with refl.
 Qed.
 
 Lemma map_map {E R S T}: forall (f : R -> S) (g : S -> T) (t : itree E R),
@@ -320,85 +325,6 @@ Proof.
   pupto2_final. eauto with refl.
 Qed.
 
-(*
-Import Hom.
-
-Lemma hom_bind {E1 E2 R S} (f : E1 ~> itree E2)
-      (s : itree E1 R) (k : R -> itree E1 S) :
-  ((hom f _ (s >>= k))
-   =
-   (hom f _ s >>= fun x => hom f _ (k x)))%eq_itree.
-Proof.
-  simpl.
-  generalize dependent s.
-  cofix hom_bind.
-  intros s.
-  do 2 rewrite hom_def.
-  destruct s.
-  - do 2 rewrite bind_def.
-    constructor. reflexivity.
-  - rewrite bind_def.
-    simpl.
-    remember (f _ e) as t0 eqn:foo.
-    clear foo.
-    generalize dependent t0.
-    (* nested cofix... *)
-    cofix bind_assoc.
-    intros t0.
-    rewrite (bind_def t0).
-    rewrite (bind_def (bind_itree _ _)).
-    destruct t0; constructor.
-    + apply hom_bind.
-    + intros x0.
-      apply bind_assoc.
-    + apply bind_assoc.
-  - do 2 rewrite bind_def.
-    constructor.
-    apply hom_bind.
-Defined.
-
-Lemma hom_ret {E1 E2 R} (f : E1 ~> itree E2) (r : R) :
-  hom f _ (Ret r) = Ret r.
-Proof.
-  rewrite hom_def.
-  constructor.
-Defined.
-
-Lemma hom_while {E1 E2 S} (phi : E1 ~> itree E2)
-      (f : S -> bool) (body : S -> itree E1 S) : forall (s : S),
-    (hom phi _ (while f body s)
-     =
-     while f (fun s' => hom phi _ (body s')) s)%eq_itree.
-Proof.
-  cofix hom_while.
-  intros s.
-  do 2 rewrite while_loop_unfold.
-  destruct (f s); simpl.
-  - remember (body s) as t eqn:Et; clear Et; generalize dependent t.
-    cofix bind_hom.
-    intros t.
-    rewrite hom_def.
-    destruct t.
-    + rewrite (bind_def (hom _ _ _)).
-      constructor.
-      apply hom_while.
-    + rewrite hom_def.
-      rewrite (bind_def (Vis _ _)).
-      simpl.
-      remember (phi _ _) as u eqn:Eu; clear Eu; generalize dependent u.
-      cofix bind_phi.
-      intros u.
-      do 2 rewrite bind_def.
-      destruct u;
-        constructor;
-        [ auto | | ];
-        try intro; apply bind_phi.
-    + rewrite (bind_def (hom _ _ _)).
-      constructor.
-      apply bind_hom.
-  - rewrite hom_def; constructor.
-Qed.
-*)
 
 Hint Rewrite @ret_bind : itree.
 Hint Rewrite @tau_bind : itree.

@@ -312,7 +312,7 @@ Qed.
 Lemma eq_unalltaus_eqF (t s : itree E R) ot'
     (UNTAUS : unalltausF (observe t) ot')
     (EQV: t ≅ s) :
-  exists os', unalltausF (observe s) os' /\ eq_itreeF' eq_itree ot' os'.
+  exists os', unalltausF (observe s) os' /\ eq_itreeF eq_itree ot' os'.
 Proof.
   destruct UNTAUS as [Huntaus Hnotau].
   remember (observe t) as ot. revert s t Heqot EQV.
@@ -320,7 +320,7 @@ Proof.
   - eexists (observe s). split.
     inv EQV; simpobs; eauto.
     subst; eauto.
-    eapply eq_itreeF'_mono; eauto.
+    eapply eq_itreeF_mono; eauto.
     intros ? ? [| []]; eauto.
   - inv EQV; rewrite <- H0 in Heqot; inversion Heqot; subst.
     destruct REL as [| []].
@@ -334,7 +334,7 @@ Lemma eq_unalltaus_eq (t s : itree E R) t'
 Proof.
   eapply eq_unalltaus_eqF in UNTAUS; try eassumption.
   destruct UNTAUS as [os' []]. eexists (go os'); split; eauto.
-  pfold. eapply eq_itreeF'_mono; eauto.
+  pfold. eapply eq_itreeF_mono; eauto.
 Qed.
 
 (* Reflexivity of [eutt_0], modulo a few assumptions. *)

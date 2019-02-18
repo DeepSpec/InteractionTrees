@@ -116,7 +116,7 @@ Lemma mrec_invariant_init {U} (r : relation (itree _ U))
       (INV : mi_holds r)
       (c1 c2 : itree _ U)
       (Ec : eq_itree c1 c2) :
-  paco2 (compose eq_itreeF (gres2 eq_itreeF)) r
+  paco2 (compose eq_itree_ (gres2 eq_itree_)) r
         (interp_mrec ctx _ c1)
         (interp1 h_mrec _ c2).
 Proof.
