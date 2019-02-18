@@ -124,9 +124,6 @@ Definition ignore {E R} : itree E R -> itree E unit :=
 (** Infinite taus. *)
 CoFixpoint spin {E R} : itree E R := Tau spin.
 
-(* SAZ: We can't move definitions like [forever] out of the ITree  
-   module because cofix must be able to see (syntactically) that the
-   guardedness checks work out.  *)
 (** Repeat a computation infinitely. *)
 Definition forever {E R S} (t : itree E R) : itree E S :=
   cofix forever_t := bind t (fun _ => Tau forever_t).
