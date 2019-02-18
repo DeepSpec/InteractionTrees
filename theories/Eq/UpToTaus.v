@@ -519,7 +519,7 @@ Let eutt : itree E R -> itree E R -> Prop := eutt eq.
 
 Infix "≈" := eutt (at level 70) : itree_scope.
 
-Instance Reflexive_euttF (r : itree E R -> itree E R -> Prop) :
+Global Instance Reflexive_euttF (r : itree E R -> itree E R -> Prop) :
   Reflexive r -> Reflexive (euttF eq r).
 Proof.
   split.
@@ -529,14 +529,14 @@ Proof.
     apply Reflexive_eq_notauF; eauto.
 Qed.
 
-Instance Reflexive_eutt (r : itree E R -> itree E R -> Prop) :
+Global Instance Reflexive_eutt (r : itree E R -> itree E R -> Prop) :
   Reflexive (paco2 (eutt_ eq) r).
 Proof.
   pcofix CIH.
   intros. pfold. apply Reflexive_euttF. eauto.
 Qed.
 
-Instance Symmetric_eutt (r : itree E R -> itree E R -> Prop)
+Global Instance Symmetric_eutt (r : itree E R -> itree E R -> Prop)
          (Sr : Symmetric r) :
   Symmetric (paco2 (eutt_ eq) r).
 Proof.
@@ -806,7 +806,7 @@ Qed.
 
 (* [eutt] is a congruence wrt. [bind] *)
 
-Instance eutt_bind {E R S} :
+Global Instance eutt_bind {E R S} :
   Proper (eutt eq ==>
           pointwise_relation _ (eutt eq) ==>
           eutt eq) (@ITree.bind E R S).
@@ -816,21 +816,21 @@ Proof.
   intros. pupto2_final. apply H0.
 Qed.
 
-Instance eutt_paco {E R} r:
+Global Instance eutt_paco {E R} r:
   Proper (eutt eq ==> eutt eq ==> flip impl)
          (paco2 (@eutt_ E R _ eq ∘ gres2 (eutt_ eq)) r).
 Proof.
   repeat intro. pupto2 eutt_clo_trans. eauto.
 Qed.
 
-Instance eutt_gres {E R} r:
+Global Instance eutt_gres {E R} r:
   Proper (eutt eq ==> eutt eq ==> flip impl)
          (gres2 (@eutt_ E R _ eq) r).
 Proof.
   repeat intro. pupto2 eutt_clo_trans. eauto.
 Qed.
 
-Instance eutt_map {E R S} :
+Global Instance eutt_map {E R S} :
   Proper (pointwise_relation _ eq ==> eutt eq ==> eutt eq) (@ITree.map E R S).
 Proof.
   unfold ITree.map. repeat red.
@@ -838,12 +838,12 @@ Proof.
   intro. rewrite H. reflexivity.
 Qed.
 
-Instance eutt_forever {E R S} :
+Global Instance eutt_forever {E R S} :
   Proper (eutt eq ==> eutt eq) (@ITree.forever E R S).
 Proof.
 Admitted.
 
-Instance eutt_when {E} (b : bool) :
+Global Instance eutt_when {E} (b : bool) :
   Proper (eutt eq ==> eutt eq) (@ITree.when E b).
 Proof.
 Admitted.
@@ -1028,7 +1028,7 @@ Proof.
     rewrite eutt__is_eutt'_. reflexivity.
 Qed.
 
-Instance eutt'_paco {E R} r:
+Global Instance eutt'_paco {E R} r:
   Proper (eutt eq ==> eutt eq ==> flip impl)
          (paco2 (@eutt'_ E R ∘ gres2 eutt'_) r).
 Proof.
@@ -1038,7 +1038,7 @@ Proof.
   rewrite H, H0. eauto.
 Qed.
 
-Instance eutt'_gres {E R} r:
+Global Instance eutt'_gres {E R} r:
   Proper (eutt eq ==> eutt eq ==> flip impl)
          (gres2 (@eutt'_ E R) r).
 Proof.

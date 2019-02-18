@@ -1,6 +1,22 @@
 Require Import Imp Asm.
 
-Require Import Coq.Strings.String.
+From Coq Require Import
+     Strings.String
+     Morphisms
+     Setoid
+     RelationClasses.
+
+From ITree Require Import
+     Effect.Env
+     ITree.
+
+From ExtLib Require Import
+     Core.RelDec
+     Structures.Monad
+     Structures.Maps
+     Data.Map.FMapAList.
+
+
 Import ListNotations.
 
 Section compile_assign.
@@ -220,18 +236,13 @@ Section tests.
 
 End tests.
 
-From ITree Require Import
-     ITree.
-  Require Import ExtLib.Structures.Monad.
-  From ITree Require Import
-       Effect.Env.
-
+Import MonadNotation.
   Section denote_list.
   Definition traverse_ {A: Type} {M: Type -> Type} `{Monad M} (f: A -> M unit): list A -> M unit :=
     fix traverse__ l: M unit :=
       match l with
       | [] => ret tt
-      | a::l => f a;; traverse__ l
+      | a::l => (f a;; traverse__ l)%monad
       end.
   Context {E} {EL : Locals -< E} {EM : Memory -< E}.
 
@@ -240,12 +251,12 @@ From ITree Require Import
 
   Lemma denote_after_denote_list:
     forall {label: Type} instrs (b: block label),
-      denote_block E (after instrs b) ~~ (denote_list instrs ;; denote_block E b).
+      denote_block E (after instrs b) ≅ (denote_list instrs ;; denote_block E b).
   Proof.
     induction instrs as [| i instrs IH]; intros b.
     - simpl; rewrite ret_bind; reflexivity.
     - simpl; rewrite bind_bind.
-      eapply eutt_bind; [reflexivity | intros []; apply IH].
+      eapply eq_itree_eq_bind; [reflexivity | intros []; apply IH].
   Qed.
 
   End  denote_list.
@@ -270,47 +281,19 @@ Section Correctness.
 
   Lemma fmap_block_map:
     forall  {L L'} b (f: L -> L'),
-      denote_block E (fmap_block f b) ~~ ITree.map (option_map f) (denote_block E b).
+      denote_block E (fmap_block f b) ≅ ITree.map (option_map f) (denote_block E b).
   Proof.
     induction b as [i b | br]; intros f.
     - simpl.
       unfold ITree.map; rewrite bind_bind.
-      eapply eutt_bind; [reflexivity | intros []; apply IHb].
+      eapply eq_itree_eq_bind; [reflexivity | intros []; apply IHb].
     - simpl.
       destruct br; simpl.
       + unfold ITree.map; rewrite ret_bind; reflexivity.
       + unfold ITree.map; rewrite bind_bind.
-        eapply eutt_bind; [reflexivity | intros []; rewrite ret_bind; reflexivity].
+        eapply eq_itree_eq_bind; [reflexivity | intros []; rewrite ret_bind; reflexivity].
       + unfold ITree.map; rewrite ret_bind; reflexivity.
   Qed.
-
-
-
-
-  Lemma denote_compile_assign :
-    forall x e,
-      denote_list (compile_assign x e) ~~ ITree.bind (denoteExpr e) (fun v : Imp.value => lift (SetVar x v)).
-  Proof.
-    (* induction e.
-     - simpl; rewrite bind_bind.
-     eapply eutt_bind; [reflexivity | intros ?]. *)
-  (**
-     YZ: This lemma is wrong. They are not eutt since of course the compiled program does more SetVar actions than
-the source.
-       **)
-  Admitted.
-
-  (* NB: I think that notations defined in Core are binding the monadic bind instead of the itree one,
-   hence why they do not show up here *)
-
-  (* Lemma denote_conditional: *)
-  (*   forall i, *)
-  (*     denote_block E (after (compile_assign "_jump_var" i) (bbb (Bbrz "_jump_var" (inl (inl None)) (inl (inr None))))) ~~ denoteExpr i. *)
-
-From ExtLib Require Import
-     Core.RelDec
-     Structures.Maps
-     Data.Map.FMapAList.
 
 Definition varOf (s : var) : var := "_local" ++ s.
 
@@ -321,28 +304,221 @@ Definition Renv (g_asm g_imp : alist var value) : Prop :=
   forall k_asm k_imp, Rvar k_asm k_imp ->
            forall v, In (k_imp,v) g_imp -> In (k_asm, v) g_asm.
 
+(* Let's not unfold this inside of the main proof *)
+Definition sim_rel g_asm n: alist var value * unit -> alist var value * value -> Prop :=
+  fun '(g_asm', _) '(g_imp',v) =>
+    Renv g_asm' g_imp' /\ (* we don't corrupt any of the imp variables *)
+    In (gen_local n, v) g_asm' /\ (* we get the right value *)
+    (forall m, m < n -> forall v, (* we don't mess with anything on the "stack" *)
+          In (gen_local m, v) g_asm <-> In (gen_local m, v) g_asm').
 
-CoInductive euttG {a b : Type} (R : a -> b -> Prop)
-: itree E a -> itree E b -> Prop := .
+End Correctness.
+
+Section TOMOVE.
+
+  Context {E: Type -> Type}.
+  Lemma Vis_eutt: forall {R1 R2 RR} {U} (e: E U) k k',
+      (forall x, @eutt E R1 R2 RR (k x) (k' x)) -> eutt RR (Vis e k) (Vis e k').
+  Admitted.
+
+  Lemma Ret_eutt: forall {R1 R2} {RR: R1 -> R2 -> Prop} x y, 
+      RR x y -> @eutt E R1 R2 RR (Ret x) (Ret y).
+  Admitted.
 
 
+  (*
+    This is sufficient to rewrite (eq_itree eq) under (eutt RR) through the fact that (eutt eq) is a subrelation of (eq_itree eq).
+   *)
+
+  Global Instance eutt_eq_under_rr {R1 R2 : Type} (RR: R1 -> R2 -> Prop):
+    Proper (@eutt E _ _ eq ==> @eutt _ _ _ eq ==> iff) (eutt RR).
+  Admitted.
+
+  Global Instance reflexive_eutt {R} RR `{Reflexive _ RR}:
+    Reflexive (@eutt E R R RR).
+  Admitted.
+
+  Instance eq_itree_run_env {E R} {K V map} {Mmap: Maps.Map K V map}:
+    Proper (@eutt (envE K V +' E) R R eq ==> eq ==> @eutt E (prod map R) (prod map R) eq)
+           (run_env R).
+  Proof.
+  Admitted.
+
+
+  (* Instance subrelation_eq_eutt {E R} {RR} {SRR: Reflexive RR}: subrelation (@eq_itree E R) (@eutt _ _ _ RR). *)
+  (*   Proof. *)
+  (*   Admitted. *)
+
+  Lemma interp1_eq_eutt {F: Type -> Type} (h: E ~> itree F) R:
+    @Proper (itree (E +' F) R -> itree F R) (eutt eq ==> eutt eq) (interp1 h R).
+  Admitted.
+
+End TOMOVE.
+
+Section TOORG.
+
+  Context {E: Type -> Type}.
+  Context {HasMemory: Memory -< E}.
+  Context {HasLocals: Locals -< E}.
+
+  Lemma denote_list_app:
+    forall is1 is2,
+      @denote_list E _ _ (is1 ++ is2) ≅
+      (@denote_list E _ _ is1;; denote_list is2).
+  Proof.
+  Admitted.
+ 
+End TOORG.
+
+Section Real_correctness.
+
+  Context {E': Type -> Type}.
+  Context {HasMemory: Memory -< E'}.
+  Definition E := Locals +' E'.
+
+  Definition interp_locals {R: Type} (t: itree E R) (s: alist var value): itree E' (alist var value * R) :=
+    run_env _ (interp1 evalLocals _ t) s.  
+
+  Instance eq_itree_interp_locals {R}:
+    Proper (@eutt E R R eq ==> eq ==> @eutt E' (prod (alist var value) R) (prod _ R) eq)
+           interp_locals.
+  Proof.
+  Admitted.
+
+  Lemma interp_locals_bind: forall {R S} (t: itree E R) (k: R -> itree _ S) (s: alist var value),
+      @eutt E' _ _ eq
+            (interp_locals (ITree.bind t k) s)
+            (ITree.bind (interp_locals t s) (fun s' => interp_locals (k (snd s')) (fst s'))).
+  Admitted.
+
+  Set Nested Proofs Allowed.
+
+  Lemma eutt_bind_gen {E R1 R2 S1 S2} {RR: R1 -> R2 -> Prop} {SS: S1 -> S2 -> Prop}:
+    forall t1 t2,
+      eutt RR t1 t2 ->
+      forall s1 s2, (forall r1 r2, RR r1 r2 -> eutt SS (s1 r1) (s2 r2)) ->
+               @eutt E _ _ SS (ITree.bind t1 s1) (ITree.bind t2 s2).
+  Admitted.
+
+
+Typeclasses eauto := 5.
 Lemma compile_expr_correct : forall e g_imp g_asm n,
     Renv g_asm g_imp ->
-    euttG (fun '(g_asm', _) '(g_imp',v) =>
-             Renv g_asm' g_imp' /\ (* we don't corrupt any of the imp variables *)
-             In (gen_local n, v) g_asm' /\ (* we get the right value *)
-             (forall m, m < n -> forall v, (* we don't mess with anything on the "stack" *)
-                   In (gen_local m, v) g_asm <-> In (gen_local m, v) g_asm'))
-          (run_env unit (denote_list (compile_expr n e)) g_asm)
-          (run_env value (denoteExpr e) g_imp).
+    eutt (sim_rel g_asm n)
+         (interp_locals (denote_list (compile_expr n e)) g_asm)
+         (interp_locals (denoteExpr e) g_imp).
 Proof.
   induction e; simpl; intros.
-  { admit. }
-  { admit. }
-  { admit. (* obviously the most complex of them. *) }
+  {
+    Opaque gen_local.
+    rewrite itree_eta.
+    match goal with
+    | |- eutt _ _ ?x => 
+      rewrite (itree_eta x)
+    end.
+    cbn. 
+    do 2 rewrite tau_eutt.
+    rewrite itree_eta.
+    match goal with
+    | |- eutt _ _ ?x => 
+      rewrite (itree_eta x)
+    end.
+    cbn.
+    rewrite itree_eta.
+    match goal with
+    | |- eutt _ _ ?x => 
+      rewrite (itree_eta x)
+    end.
+    cbn.
+    rewrite tau_eutt.
+    rewrite tau_eutt.
+     rewrite itree_eta.
+    match goal with
+    | |- eutt _ _ ?x => 
+      rewrite (itree_eta x)
+    end.
+    cbn.
+    rewrite tau_eutt.
+    rewrite itree_eta.
+    cbn.
+    rewrite tau_eutt.
+    rewrite itree_eta.
+    cbn.
+    apply Ret_eutt. 
+    red.
+    split; [| split].
+    {
+      red.
+      repeat intro.
+      admit.
+    }
+    {
+      admit.
+    }
+    {
+      repeat intro.
+      admit.
+    }
+  }
+  {
+    do 3 (rewrite itree_eta;
+            match goal with
+            | |- eutt _ _ ?x => 
+              rewrite (itree_eta x)
+            end;
+            cbn;
+            repeat rewrite tau_eutt
+         ).
+    apply Ret_eutt. 
+    split; [| split].
+   { admit. }
+   { admit. }
+   { admit. }
+  }
+  {
+    eapply eutt_eq_under_rr.
+    eapply eq_itree_interp_locals.
+    rewrite denote_list_app.
+    setoid_rewrite denote_list_app.
+    reflexivity.
+    reflexivity.
+    rewrite interp_locals_bind. 
+    setoid_rewrite interp_locals_bind. 
+    reflexivity.
+    rewrite interp_locals_bind.
+    eapply eutt_bind_gen.
+    eapply IHe1.
+    auto.
+    intros.
+    rewrite interp_locals_bind.
+    eapply eutt_bind_gen.
+    eapply IHe2.
+    destruct r1, r2, H0 as (H1 & H2 & H3); auto. 
+    intros.
+    rewrite itree_eta;
+      match goal with
+      | |- eutt _ _ ?x => 
+        rewrite (itree_eta x)
+      end.
+    cbn.
+    rewrite tau_eutt.
+    rewrite itree_eta; cbn; rewrite tau_eutt.
+    (* Make a fairly pretty tactic(s) out of this *)
+    repeat (rewrite itree_eta; cbn; rewrite tau_eutt).
+    rewrite itree_eta; cbn.
+    apply Ret_eutt.
+    split; [| split].
+    {
+      destruct r0, r3; simpl.
+      admit.
+    }
+    {
+      admit.
+    }
+    {
+      admit.
+    }
 Admitted.
-
-Print stmt.
 
 (*
 Seq a b
@@ -396,19 +572,19 @@ Proof.
   (*
     This statement does not hold. We need to handle the environment.
     We want something closer to this kind:
-
-
    *)
+
+        (* TODO: parameterize by REnv *)
   Lemma compile_correct_program:
     forall s L (b: block L) imports,
-      denote_main (compile s b) imports ~~
+      denote_main (compile s b) imports ≈
                   (denoteStmt s;; ml <- denote_block b;;
                               (match ml with
                                | None => Ret tt
                                | Some l => imports l
                                end)).
   Proof.
-    simpl.
+(*    simpl.
     induction s; intros L b imports.
 
     - unfold denote_main; simpl.
@@ -463,7 +639,7 @@ Proof.
       rewrite ret_bind, fmap_block_map, map_bind.
       eapply eutt_bind; [reflexivity |].
       intros [? |]; simpl; reflexivity.
-
+*)
 Admitted.
 
   (* note: because local temporaries also modify the environment, they have to be
@@ -471,7 +647,7 @@ Admitted.
    *)
     Theorem compile_correct:
     forall s, @denote_main _ _ _ Empty_set (compile s (bbb Bhalt))
-                      (fun x => match x with end) ~~ denoteStmt s.
+                      (fun x => match x with end) ≈ denoteStmt s.
   Proof.
 (*    intros stmt.
     unfold denote_main.
@@ -483,7 +659,7 @@ Admitted.
 
   Admitted.
 
-End Correctness.
+End Real_correctness.
 
 
 (*
