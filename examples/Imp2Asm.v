@@ -109,10 +109,6 @@ refine
   |}).
 Defined.
 
-
-
-
-
 Definition link_if (b : block bool) (p1 : program unit) (p2 : program unit)
 : program unit.
 refine
@@ -496,14 +492,14 @@ Section Correctness.
 
   Definition Renv (g_asm g_imp : alist var value) : Prop :=
     forall k_asm k_imp, Rvar k_asm k_imp ->
-                   forall v, alist_In k_imp g_imp v -> alist_In k_asm g_asm v.
+                   forall v, alist_In k_imp g_imp v <-> alist_In k_asm g_asm v.
 
   (* Let's not unfold this inside of the main proof *)
   Definition sim_rel g_asm n: alist var value * unit -> alist var value * value -> Prop :=
     fun '(g_asm', _) '(g_imp',v) =>
-      Renv g_asm' g_imp' /\ (* we don't corrupt any of the imp variables *)
+      Renv g_asm' g_imp' /\            (* we don't corrupt any of the imp variables *)
       alist_In (gen_tmp n) g_asm' v /\ (* we get the right value *)
-      (forall m, m < n -> forall v, (* we don't mess with anything on the "stack" *)
+      (forall m, m < n -> forall v,              (* we don't mess with anything on the "stack" *)
             alist_In (gen_tmp m) g_asm v <-> alist_In (gen_tmp m) g_asm' v).
 
 End Correctness.
@@ -528,13 +524,18 @@ End EUTT.
 
 Section GEN_TMP.
 
-  Lemma to_string_inj: forall (n m: nat), to_string n = to_string m -> n = m.
+  Lemma to_string_inj: forall (n m: nat), n <> m -> to_string n <> to_string m.
   Admitted.
 
   Lemma gen_tmp_inj: forall n m, m <> n -> gen_tmp m <> gen_tmp n.
   Proof.
     intros n m ineq; intros abs; apply ineq.
-    apply to_string_inj; inversion abs; auto.
+    apply to_string_inj in ineq; inversion abs; easy.
+  Qed.
+
+  Lemma varOf_inj: forall n m, m <> n -> varOf m <> varOf n.
+  Proof.
+    intros n m ineq abs; inv abs; easy.
   Qed.
 
 End GEN_TMP.
@@ -715,23 +716,6 @@ Section Real_correctness.
       intros [EQ | abs]; [inv EQ; rewrite <- neg_rel_dec_correct in Heq; tauto | apply (H v); assumption]. 
   Qed.
 
-  (* A key is stored at most once in the map *)
-  (* Oopsy daisy, though all alist operations preserve this invariant, its type does not state so *)
-  (* To avoid using if possible *)
-  (* Lemma alist_unique_key {K V: Type} `{RR: RelDec _ (@eq K)} `{RRC:@RelDec_Correct _ _ RR}: *)
-  (*   forall k (m: alist K V) v v', *)
-  (*     In (k,v) m -> In (k,v') m -> v = v'. *)
-  (* Proof. *)
-  (* Admitted. *)
-
-  (* alist_find succeeds iff the same value is associated to the key in the map *)
-  (* Same here, the value found is always the same only with respect to a global invariant over alist *)
-  (* Lemma alist_find_In_iff {K V: Type} `{RR: RelDec _ (@eq K)} `{RRC:@RelDec_Correct _ _ RR}: *)
-  (*   forall k v (m: alist K V), *)
-  (*     alist_In k m v <-> alist_find k m = Some v. *)
-  (* Proof. *)
-  (* Admitted. *)
-
   Lemma Renv_add: forall g_asm g_imp n v,
       Renv g_asm g_imp -> Renv (alist_add (gen_tmp n) v g_asm) g_imp.
   Proof.
@@ -739,7 +723,7 @@ Section Real_correctness.
     destruct (k_asm ?[ eq ] (gen_tmp n)) eqn:EQ.
     rewrite rel_dec_correct in EQ; subst; inv H0.
     rewrite <- neg_rel_dec_correct in EQ.
-    eapply H in H1; [| eassumption].
+    rewrite (H _ _ H0).
     apply In_add_ineq_iff; auto.
   Qed.
 
@@ -754,10 +738,9 @@ Section Real_correctness.
       rewrite LUL in LUR; auto.
     - eapply H in LUL; [| constructor].
       rewrite LUL in LUR; auto.
-    - (* YZ: does not hold, the invariant does not prevent the assembly stack to have more non temp variables defined than the source.
-         Reinforce the invariant, or weaken this lemma.
-       *)
-  Admitted.
+    - erewrite <- (H (varOf x) x (Rvar_var x) v) in LUR.
+      rewrite LUR in LUL; inv LUL.
+  Qed.      
 
   Lemma sim_rel_add: forall g_asm g_imp n v,
       Renv g_asm g_imp ->
@@ -780,15 +763,30 @@ Section Real_correctness.
   Lemma sim_rel_find_tmp_n:
     forall g_asm n g_asm' g_imp' v,
       sim_rel g_asm n (g_asm', tt) (g_imp',v) ->
-      alist_find (gen_tmp n) g_asm' = Some v.
-  Admitted.
+      alist_In (gen_tmp n) g_asm' v.
+  Proof.
+    intros ? ? ? ? ? [_ [H _]]; exact H. 
+  Qed.
 
   Lemma sim_rel_find_tmp_lt_n:
     forall g_asm n m g_asm' g_imp' v,
       m < n ->
       sim_rel g_asm n (g_asm', tt) (g_imp',v) ->
       alist_find (gen_tmp m) g_asm = alist_find (gen_tmp m) g_asm'.
-  Admitted.
+  Proof.
+    intros ? ? ? ? ? ? ineq [_ [_ H]].
+    match goal with
+    | |- _ = ?x => destruct x eqn:EQ
+    end.
+    setoid_rewrite (H _ ineq); auto.
+    match goal with
+    | |- ?x = _ => destruct x eqn:EQ'
+    end; [| reflexivity].
+    setoid_rewrite (H _ ineq) in EQ'.
+    rewrite EQ' in EQ; easy.
+  Qed.
+
+  Notation "(% x )" := (gen_tmp x) (at level 1).
 
   Lemma compile_expr_correct : forall e g_imp g_asm n,
       Renv g_asm g_imp ->
@@ -819,36 +817,52 @@ Section Real_correctness.
         intros [g_asm'' []] [g_imp'' v'] HSIM'.
         repeat untau_left.
         force_left; force_right.
+        simpl fst in *.
         apply eutt_Ret.
-        split; [| split].
         {
-          eapply Renv_add, sim_rel_Renv; eassumption.
+          generalize HSIM; intros LU; apply sim_rel_find_tmp_n in LU.
+          unfold alist_In in LU; erewrite sim_rel_find_tmp_lt_n in LU; eauto; fold (alist_In (%n) g_asm'' v) in LU.
+          generalize HSIM'; intros LU'; apply sim_rel_find_tmp_n in LU'.
+          rewrite LU,LU'.
+          split; [| split].
+          {
+            eapply Renv_add, sim_rel_Renv; eassumption.
+          }
+          {
+            apply In_add_eq.
+          }
+          {
+            intros m LT v''.
+            rewrite <- In_add_ineq_iff; [| apply gen_tmp_inj; lia].
+            destruct HSIM as [_ [_ HSIM]].
+            destruct HSIM' as [_ [_ HSIM']].
+            rewrite HSIM; [| auto with arith].
+            rewrite HSIM'; [| auto with arith].
+            reflexivity.
+          }
         }
-        {
-          generalize HSIM'; intros HSIM'2; apply sim_rel_find_tmp_n in HSIM'.
-          setoid_rewrite HSIM'; clear HSIM'.
-          eapply sim_rel_find_tmp_lt_n with (m := n) in HSIM'2; [simpl fst in HSIM'2| auto with arith].
-          apply sim_rel_find_tmp_n in HSIM; rewrite HSIM'2 in HSIM.
-          setoid_rewrite HSIM.
-          apply In_add_eq.
-        }
-        {
-          simpl fst in *.
-          intros m LT v''.
-          rewrite <- In_add_ineq_iff; [| apply gen_tmp_inj; lia].
-          admit.
-        }
-  Admitted.
+  Qed.
 
   Lemma Renv_write_local:
     forall (x : Imp.var) (a a0 : alist var value) (v : Imp.value),
       Renv a a0 -> Renv (alist_add (varOf x) v a) (alist_add x v a0).
   Proof.
-    intros x a a0 v H0.
-    red in H0. red.
-    intros.
-    (* this should mostly come from ExtLib *)
-  Admitted.
+    intros k m m' v.
+    repeat intro.
+    red in H.
+    specialize (H k_asm k_imp H0 v0).
+    inv H0.
+    unfold alist_add, alist_In; simpl.
+    do 2 flatten_goal;
+      repeat match goal with
+             | h: _ = true |- _ => rewrite rel_dec_correct in h
+             | h: _ = false |- _ => rewrite <- neg_rel_dec_correct in h
+             end; try subst.
+    - tauto.
+    - tauto.
+    - apply varOf_inj in Heq; easy.
+    - setoid_rewrite In_remove_In_ineq_iff; eauto using RelDec_string_Correct.
+Qed.
 
   Lemma compile_assign_correct : forall e g_imp g_asm x,
       Renv g_asm g_imp ->

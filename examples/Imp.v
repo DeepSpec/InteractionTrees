@@ -3,6 +3,7 @@
  *)
 Require Import Coq.Lists.List.
 Require Import Coq.Strings.String.
+Require Import ExtLib.Data.String.
 Require Import ExtLib.Structures.Monad.
 Require Import ExtLib.Structures.Traversable.
 Require Import ExtLib.Data.List.
@@ -155,7 +156,16 @@ Definition env := alist var value.
 
 (* Enable typeclass instances for Maps keyed by strings and values *)
 Instance RelDec_string : RelDec (@eq string) :=
-  { rel_dec := fun s1 s2 => if String.string_dec s1 s2 then true else false}.
+  { rel_dec := fun s1 s2 => if string_dec s1 s2 then true else false}.
+
+Instance RelDec_string_Correct: RelDec_Correct RelDec_string.
+Proof.
+  constructor; intros x y.
+  split.
+  - unfold rel_dec; simpl.
+    destruct (string_dec x y) eqn:EQ; [intros _; apply string_dec_sound; assumption | intros abs; inversion abs].
+  - intros EQ; apply string_dec_sound in EQ; unfold rel_dec; simpl; rewrite EQ; reflexivity.
+Qed.
 
 Definition ImpEval (s: stmt): itree emptyE (env * unit) :=
   let p := interp evalLocals _ (denoteStmt s) in
