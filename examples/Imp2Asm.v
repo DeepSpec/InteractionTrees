@@ -146,8 +146,7 @@ refine
                            | false => inl (inr None)
                            end) b
       |}).
-
-Admitted.
+Defined.
 
 Definition link_while (b : block bool) (p1 : program unit)
 : program unit.
@@ -975,6 +974,27 @@ match x with
 end.
 Proof. destruct x; reflexivity. Qed.
 
+Lemma translate_match_sum : forall {A B U} (x : A + B) {E F} (h : E ~> F) (Z : _ -> itree _ U) Y,
+    translate h _ match x with
+             | inl x => Z x
+             | inr x => Y x
+             end =
+match x with
+| inl x => translate h _ (Z x)
+| inr x => translate h _ (Y x)
+end.
+Proof. destruct x; reflexivity. Qed.
+Lemma translate_match_option : forall {B U} (x : option B) {E F} (h : E ~> F) (Z : itree _ U) Y,
+    translate h _ match x with
+             | None => Z
+             | Some x => Y x
+             end =
+match x with
+| None => translate h _ Z
+| Some x => translate h _ (Y x)
+end.
+Proof. destruct x; reflexivity. Qed.
+
 (*
 Proper (.. ==> eutt _) (rec _)
 
@@ -1011,7 +1031,217 @@ Lemma link_ok : forall p1 p2 l,
  * bonus: break & continue
  *)
 
+About rec.
 
+Variant Fused {d1 d2 c1 c2 : Type} : Type -> Type :=
+| Entry : Fused c2
+| EnterL (_ : d1) : Fused c1
+| EnterR (_ : d2) : Fused c2.
+Arguments Fused : clear implicits.
+
+Lemma rec_fuse : forall {E : Type -> Type} {dom1 codom1 dom2 codom2 : Type}
+                   (f : dom1 -> itree (callE dom1 codom1 +' E) codom1)
+                   (g : dom2 -> itree (callE dom2 codom2 +' E) codom2)
+                   (x : dom1) (y : codom1 -> dom2),
+  (l <- rec f x ;;
+  rec g (y l))
+  ≈
+  @mrec (Fused dom1 dom2 codom1 codom2) E
+  (fun _ elr =>
+     match elr with
+     | Entry => l <- lift (EnterL x) ;; lift (EnterR (y l))
+     | EnterL x =>
+       translate (fun Z x =>
+                    match x with
+                    | inl1 x =>
+                      match x in callE _ _ z return (Fused _ _ _ _ +' _) z with
+                      | Call x => inl1 (EnterL x)
+                      end
+                    | inr1 x => inr1 x
+                    end) _ (f x)
+     | EnterR x =>
+       translate (fun Z x =>
+                    match x with
+                    | inl1 x =>
+                      match x in callE _ _ z return (Fused _ _ _ _ +' _) z with
+                      | Call x => inl1 (EnterR x)
+                      end
+                    | inr1 x => inr1 x
+                    end) _ (g x)
+     end) _ Entry.
+Proof.
+Admitted.
+
+Variant Incl {d1 c1 T : Type} : Type -> Type :=
+| EnterI : Incl T
+| EnterF (_ : d1) : Incl c1.
+Arguments Incl : clear implicits.
+
+
+Lemma rec_fuse' : forall {E : Type -> Type} {dom1 codom1 T : Type}
+                    (f : dom1 -> itree (callE dom1 codom1 +' E) codom1)
+                    (k : codom1 -> itree E T)
+                    (x : dom1),
+  (l <- rec f x ;; k l)
+  ≈
+  @mrec (Incl dom1 codom1 T) E
+  (fun _ elr =>
+     match elr with
+     | EnterI => l <- ITree.liftE (inl1 (EnterF x)) ;;
+                 translate (fun _ x => inr1 x) _ (k l)
+     | EnterF x =>
+       translate (fun Z x =>
+                    match x with
+                    | inl1 x =>
+                      match x in callE _ _ z return (Incl _ _ _ +' _) z with
+                      | Call x => inl1 (EnterF x)
+                      end
+                    | inr1 x => inr1 x
+                    end) _ (f x)
+     end) _ EnterI.
+Proof.
+Admitted.
+
+    (* 1. push translate over a match-option
+     * 2. pull a rec from a continuation above the bind
+     * 3. pull translate over a match-Incl
+     * 4. fuse two adjacent mrec
+     *)
+
+(*
+Lemma rec_k : forall {E : Type -> Type} {dom1 codom1 T : Type}
+                    (f : dom1 -> itree (callE dom1 codom1 +' E) codom1)
+                    (c : itree E T)
+                    (k : T -> dom1),
+  (l <- c ;; rec f (k l))
+  ≈
+  @mrec (Incl dom1 codom1 T) E
+  (fun _ elr =>
+     match elr with
+     | EnterI => l <- translate (fun _ x => inr1 x) _ c ;;
+                 ITree.liftE (inl1 (EnterF (k l)))
+     | EnterF x =>
+       translate (fun Z x =>
+                    match x with
+                    | inl1 x =>
+                      match x in callE _ _ z return (Incl _ _ _ +' _) z with
+                      | Call x => inl1 (EnterF x)
+                      end
+                    | inr1 x => inr1 x
+                    end) _ (f x)
+     end) _ EnterI.
+Proof.
+Admitted.
+*)
+About translate.
+About mrec.
+
+
+Lemma lem : forall {E : Type -> Type} {dom1 codom1 U : Type}
+              (f : dom1 -> itree (Incl dom1 codom1 U +' E) codom1)
+              (Z : itree (callE dom1 codom1 +' E) U)
+              (l : dom1)
+              ,
+  @mrec (callE dom1 codom1) _
+        (fun _ x =>
+           match x with
+           | Call x =>
+             interp (E:=Incl dom1 codom1 U +' E) (F:=callE dom1 codom1 +' E)
+                    (fun _ z =>
+                       match z with
+                       | inl1 x =>
+                         match x with
+                         | EnterI => Z
+                         | EnterF x => ITree.liftE (inl1 (Call x))
+                         end
+                       | inr1 x => ITree.liftE (inr1 x)
+                       end) (f x)
+           end) _ (Call l)
+  ≈
+  @mrec (Incl dom1 codom1 U) _
+        (fun _ x =>
+          match x with
+          | EnterI => translate (fun _ x =>
+                                  match x with
+                                  | inl1 x =>
+                                    match x in callE _ _ X return (Incl dom1 codom1 U +' E) X with
+                                    | Call x => inl1 (EnterF x)
+                                    end
+                                  | inr1 x => inr1 x
+                                  end) _ Z
+          | EnterF x => f x
+          end) _ (EnterF l).
+Abort.
+
+(* rec_fuse' : `l <- rec ... ;; k` = rec ... *)
+(* rec_k     : `l <- c ;; rec ...` = rec ... *)
+
+(*
+rec_rec : @rec T (fun x => @rec U ...) = @rec (T + U) (fun ...)
+*)
+
+Lemma lift_sum_rec : forall {A B C : Type} {E}
+                    (L : A -> itree E C)
+                    (R : B -> itree E C)
+                    (l : A + B),
+  match l with
+  | inl x => L x
+  | inr x => R x
+  end =
+  rec (A:=A + B)%type
+       (fun x =>
+          match x with
+          | inl x => translate (fun _ x => inr1 x) _ (L x)
+          | inr x => translate (fun _ x => inr1 x) _ (R x)
+          end) l.
+Proof. Admitted.
+
+Variant With (T : Type) (E : Type -> Type) (t : Type) : Type :=
+| WithIt (_ : T) (_ : E t) : With T E t.
+Arguments WithIt {_ _ _} _ _.
+
+Lemma lift_sum_rec_left
+  : forall {B T u : Type} {D : Type -> Type} {E}
+      (L : T -> D ~> itree (D +' E))
+      (R : B -> itree E u)
+      (f : T -> D u)
+      (l : T + B),
+  match l with
+  | inl x => mrec (L x) _ (f x)
+  | inr x => R x
+  end =
+  mrec (D:=(With T D +' callE B u))%type
+      (fun _ x =>
+         match x with
+         | inl1 (WithIt t y) =>
+           translate (fun _ x =>
+                        match x with
+                        | inl1 x => inl1 (inl1 (WithIt t x))
+                        | inr1 x => inr1 x
+                        end) _ (L t _ y)
+         | inr1 x =>
+           match x with
+           | Call x => translate (fun _ x => inr1 x) _ (R x)
+           end
+         end) _ match l with
+                | inl x => inl1 (WithIt x (f x))
+                | inr x => inr1 (Call x)
+                end.
+Proof. Admitted.
+
+Lemma Proper_match : forall {T U V : Type} R (f f' : T -> V) (g g' : U -> V) x,
+    ((pointwise_relation _ R) f f') ->
+    ((pointwise_relation _ R) g g') ->
+    R
+    match x with
+    | inl x => f x
+    | inr x => g x
+    end
+    match x with
+    | inl x => f' x
+    | inr x => g' x
+    end.
+Proof. destruct x; compute; eauto. Qed.
 
 Lemma link_seq_ok : forall p1 p2 l,
     denote_program (link_seq p1 p2) l ≈
@@ -1027,6 +1257,35 @@ Lemma link_seq_ok : forall p1 p2 l,
     end.
 Proof.
   intros.
+  unfold denote_program.
+  rewrite Proper_match.
+  2:{ red; intros.
+      eapply rec_fuse'. }
+  2:{ red. intros.
+      instantiate (1:=fun a => match a with
+  | Some l0 =>
+      rec
+        (fun lbl : label p2 =>
+         next <- denote_block (blocks p2 lbl);;
+         match next with
+         | Some (inl next0) => lift (Call next0)
+         | Some (inr next0) => ret (Some next0)
+         | None => ret None
+         end) l0
+  | None => denote_main p2
+  end).
+      reflexivity. }
+  simpl.
+  rewrite lift_sum_rec_left with (f:=fun _ => EnterI).
+      SearchAbout rec.
+  rewrite lift_sum_rec.
+  
+
+  destruct l.
+  { setoid_rewrite rec_fuse'. 
+    simpl.
+    setoid_rewrite translate_match_option.
+
   destruct l.
   { (* in the left *)
     unfold denote_program.
