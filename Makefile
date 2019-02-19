@@ -35,10 +35,13 @@ example-io: examples/IO.v
 	  coqc -Q ../theories/ ITree IO.v && \
 	  ocamlbuild io.native && ./io.native
 
-example-asm: examples/Asm.v
+example-asm: example-imp examples/Asm.v
 	cd examples && \
 	  coqc -Q ../theories/ ITree Asm.v
 
+example-imp2asm: example-asm examples/Imp2Asm.v
+	cd examples && \
+	  coqc -Q ../theories/ ITree Imp2Asm.v
 
 THREADSV=examples/MultiThreadedPrinting.v examples/ExtractThreadsExample.v
 THREADSML=examples/runthread.ml

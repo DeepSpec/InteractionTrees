@@ -514,54 +514,6 @@ Section EUTT.
 
   Context {E: Type -> Type}.
 
-  Lemma unalltausF_ret {R}: forall x (t: itree' E R),
-      unalltausF (RetF x) t -> t = RetF x.
-  Proof.
-    intros x t [UNT NOT]; inversion UNT; subst; clear UNT; [reflexivity | easy]. 
-  Qed.
-
-  Lemma unalltausF_vis {R S}: forall e (k: S -> itree E R) (t: itree' E R),
-      unalltausF (VisF e k) t -> t = VisF e k.
-  Proof.
-    intros e k t [UNT NOT]; inversion UNT; subst; clear UNT; [reflexivity | easy].
-  Qed.
-
-  Lemma Ret_eutt: forall {R1 R2} {RR: R1 -> R2 -> Prop} x y,
-      RR x y -> @eutt E R1 R2 RR (Ret x) (Ret y).
-  Proof.
-    intros.
-    pfold.
-    constructor.
-    split; intros; eapply finite_taus_ret; reflexivity.
-    intros.
-    apply unalltausF_ret in UNTAUS1.
-    apply unalltausF_ret in UNTAUS2.
-    subst; constructor; assumption.
-  Qed.
-
-  Lemma Vis_eutt: forall {R1 R2 RR} {U} (e: E U) k k',
-      (forall x, @eutt E R1 R2 RR (k x) (k' x)) -> eutt RR (Vis e k) (Vis e k').
-  Proof.
-    intros.
-    pfold; constructor.
-    split; intros; eapply finite_taus_vis; reflexivity.
-    intros.
-    cbn in *.
-    apply unalltausF_vis in UNTAUS1.
-    apply unalltausF_vis in UNTAUS2.
-    subst; constructor.
-    intros x; specialize (H x).
-    punfold H.
-  Qed.
-
-  Global Instance eutt_eq_under_rr {R1 R2 : Type} (RR: R1 -> R2 -> Prop):
-    Proper (@eutt E _ _ eq ==> @eutt _ _ _ eq ==> iff) (eutt RR).
-  Admitted.
-
-  Global Instance reflexive_eutt {R} RR `{Reflexive _ RR}:
-    Reflexive (@eutt E R R RR).
-  Admitted.
-
   Instance eq_itree_run_env {E R} {K V map} {Mmap: Maps.Map K V map}:
     Proper (@eutt (envE K V +' E) R R eq ==> eq ==> @eutt E (prod map R) (prod map R) eq)
            (run_env R).
@@ -612,13 +564,6 @@ Section Real_correctness.
   Admitted.
 
   Set Nested Proofs Allowed.
-
-  Lemma eutt_bind_gen {E R1 R2 S1 S2} {RR: R1 -> R2 -> Prop} {SS: S1 -> S2 -> Prop}:
-    forall t1 t2,
-      eutt RR t1 t2 ->
-      forall s1 s2, (forall r1 r2, RR r1 r2 -> eutt SS (s1 r1) (s2 r2)) ->
-               @eutt E _ _ SS (ITree.bind t1 s1) (ITree.bind t2 s2).
-  Admitted.
 
   Ltac force_left :=
     match goal with
@@ -855,13 +800,13 @@ Section Real_correctness.
     - repeat untau_left.
       repeat untau_right.
       force_left; force_right.
-      apply Ret_eutt.
+      apply eutt_Ret.
       erewrite <- Renv_find; [| eassumption].
       apply sim_rel_add; assumption.
     - repeat untau_left.
       force_left.
       force_right.
-      apply Ret_eutt.
+      apply eutt_Ret.
       apply sim_rel_add; assumption.
     - do 2 setoid_rewrite denote_list_app.
       do 2 setoid_rewrite interp_locals_bind.
@@ -874,7 +819,7 @@ Section Real_correctness.
         intros [g_asm'' []] [g_imp'' v'] HSIM'.
         repeat untau_left.
         force_left; force_right.
-        apply Ret_eutt.
+        apply eutt_Ret.
         split; [| split].
         {
           eapply Renv_add, sim_rel_Renv; eassumption.
@@ -921,7 +866,7 @@ Section Real_correctness.
     repeat untau_left.
     force_left.
     repeat untau_right; force_right.
-    eapply Ret_eutt; simpl.
+    eapply eutt_Ret; simpl.
     destruct r1, r2.
     erewrite sim_rel_find_tmp_n; eauto; simpl.
     destruct H0.

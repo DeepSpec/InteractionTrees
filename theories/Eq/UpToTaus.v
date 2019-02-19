@@ -257,6 +257,18 @@ Proof.
     + inv OBS0. inversion H0; subst; eauto.
 Qed.
 
+Lemma unalltausF_ret : forall x (t: itree' E R),
+    unalltausF (RetF x) t -> t = RetF x.
+Proof.
+  intros x t [UNT NOT]; inversion UNT; subst; clear UNT; [reflexivity | easy].
+Qed.
+
+Lemma unalltausF_vis {S}: forall e (k: S -> itree E R) (t: itree' E R),
+    unalltausF (VisF e k) t -> t = VisF e k.
+Proof.
+  intros e k t [UNT NOT]; inversion UNT; subst; clear UNT; [reflexivity | easy].
+Qed.
+
 End FiniteTaus.
 
 Arguments untaus_unalltaus_rev : clear implicits.
@@ -477,6 +489,34 @@ Proof.
   pfold. eapply eq_itreeF_mono; eauto.
 Qed.
 
+Lemma eutt_Ret x y :
+  RR x y -> eutt (Ret x) (Ret y).
+Proof.
+  intros; pfold.
+  constructor.
+  split; intros; eapply finite_taus_ret; reflexivity.
+  intros.
+  apply unalltausF_ret in UNTAUS1.
+  apply unalltausF_ret in UNTAUS2.
+  subst; constructor; assumption.
+Qed.
+
+Lemma eutt_Vis {U} (e: E U) k k' :
+  (forall x, eutt (k x) (k' x)) ->
+  eutt (Vis e k) (Vis e k').
+Proof.
+  intros.
+  pfold; constructor.
+  split; intros; eapply finite_taus_vis; reflexivity.
+  intros.
+  cbn in *.
+  apply unalltausF_vis in UNTAUS1.
+  apply unalltausF_vis in UNTAUS2.
+  subst; constructor.
+  intros x; specialize (H x).
+  punfold H.
+Qed.
+
 End EUTT.
 
 Hint Constructors eq_notauF.
@@ -490,8 +530,8 @@ Section EUTT_rel.
 Context {E : Type -> Type} {R : Type} (RR : R -> R -> Prop).
 
 (* Reflexivity of [eq_notauF], modulo a few assumptions. *)
-Lemma Reflexive_eq_notauF I (eq_ : I -> I -> Prop) (ot : itreeF E R I) :
-  Reflexive eq_ -> notauF ot -> eq_notauF eq eq_ ot ot.
+Lemma Reflexive_eq_notauF `{Reflexive _ RR} I (eq_ : I -> I -> Prop) (ot : itreeF E R I) :
+  Reflexive eq_ -> notauF ot -> eq_notauF RR eq_ ot ot.
 Proof.
   intros. destruct ot; try contradiction; econstructor; intros; subst; eauto.
 Qed.
@@ -515,12 +555,10 @@ Section EUTT_eq.
 
 Context {E : Type -> Type} {R : Type}.
 
-Let eutt : itree E R -> itree E R -> Prop := eutt eq.
-
-Infix "≈" := eutt (at level 70) : itree_scope.
-
-Global Instance Reflexive_euttF (r : itree E R -> itree E R -> Prop) :
-  Reflexive r -> Reflexive (euttF eq r).
+Global Instance Reflexive_euttF
+       {RR : R -> R -> Prop} `{Reflexive _ RR}
+       (r : itree E R -> itree E R -> Prop) :
+  Reflexive r -> Reflexive (euttF RR r).
 Proof.
   split.
   - reflexivity.
@@ -529,12 +567,18 @@ Proof.
     apply Reflexive_eq_notauF; eauto.
 Qed.
 
-Global Instance Reflexive_eutt (r : itree E R -> itree E R -> Prop) :
-  Reflexive (paco2 (eutt_ eq) r).
+Global Instance Reflexive_eutt
+       {RR : R -> R -> Prop} `{Reflexive _ RR}
+       (r : itree E R -> itree E R -> Prop) :
+  Reflexive (paco2 (eutt_ RR) r).
 Proof.
   pcofix CIH.
-  intros. pfold. apply Reflexive_euttF. eauto.
+  intros. pfold. red. apply Reflexive_euttF; eauto.
 Qed.
+
+Let eutt : itree E R -> itree E R -> Prop := eutt eq.
+
+Infix "≈" := eutt (at level 70) : itree_scope.
 
 Global Instance Symmetric_eutt (r : itree E R -> itree E R -> Prop)
          (Sr : Symmetric r) :
@@ -856,8 +900,6 @@ Proof.
   apply subrelation_eq_eutt, map_map.
 Qed.
 
-Notation itree' E R := (itreeF E R (itree E R)).
-
 Definition observing {E R}
            (f : itree' E R -> itree' E R -> Prop)
            (x y : itree E R) :=
@@ -1047,3 +1089,16 @@ Proof.
   rewrite grespectful2_iff in H1; [|intros; erewrite eutt__is_eutt'_; reflexivity].
   rewrite H, H0. eauto.
 Qed.
+
+Global Instance eutt_eq_under_rr {E : Type -> Type}
+       {R1 R2 : Type} (RR: R1 -> R2 -> Prop):
+  Proper (@eutt E _ _ eq ==> @eutt _ _ _ eq ==> iff) (eutt RR).
+Admitted.
+
+(** Generalized heterogeneous version of [eutt_bind] *)
+Lemma eutt_bind_gen {E R1 R2 S1 S2} {RR: R1 -> R2 -> Prop} {SS: S1 -> S2 -> Prop}:
+  forall t1 t2,
+    eutt RR t1 t2 ->
+    forall s1 s2, (forall r1 r2, RR r1 r2 -> eutt SS (s1 r1) (s2 r2)) ->
+                  @eutt E _ _ SS (ITree.bind t1 s1) (ITree.bind t2 s2).
+Admitted.

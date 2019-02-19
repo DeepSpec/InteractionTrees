@@ -65,6 +65,8 @@ End itree.
 Arguments itree _ _ : clear implicits.
 Arguments itreeF _ _ : clear implicits.
 
+Notation itree' E R := (itreeF E R (itree E R)).
+
 Definition observe {E R} := @_observe E R.
 
 Ltac fold_observe := change @_observe with @observe in *.
