@@ -28,7 +28,7 @@ Section compile_assign.
     "temp_" ++ to_string n.
 
   Definition varOf (s : var) : var := "local_" ++ s.
- 
+
   Fixpoint compile_expr (l: nat) (e: expr): list instr :=
     match e with
     | Var x => [Imov (gen_tmp l) (Ovar (varOf x))]
@@ -82,6 +82,188 @@ Variant WhileBlocks : Set :=
    Though they should never be reused if I'm not mistaken, so a unique reserved id as currently is might actually simply do the trick.
    To double check.
  *)
+
+(* this is what we need for seq *)
+Definition link_seq (p1 : program unit) (p2 : program unit) : program unit.
+refine
+  (let transL l :=
+      match l with
+      | inl l => inl (inl l)
+      | inr tt => inl (inr None) (* *)
+      end
+  in
+   let transR l :=
+       match l with
+       | inl l => inl (inr (Some l))
+       | inr tt => inr tt
+       end
+   in
+  {| label := p1.(label) + option p2.(label)
+   ; main := fmap_block transL p1.(main)
+   ; blocks l :=
+       match l with
+       | inl l => fmap_block transL (p1.(blocks) l)
+       | inr None => fmap_block transR p2.(main)
+       | inr (Some l) => fmap_block transR (p2.(blocks) l)
+       end
+  |}).
+Defined.
+
+
+
+
+
+Definition link_if (b : block bool) (p1 : program unit) (p2 : program unit)
+: program unit.
+refine
+  (let to_right x :=
+          match x with
+          | inl y => inl (inr (Some y))
+          | inr y => inr y
+          end
+      in
+      let to_left x :=
+          match x with
+          | inl y => inl (inl (Some y))
+          | inr y => inr y
+          end
+      in
+      let lc := p1 in
+      let rc := p2 in
+
+      {| label  := option lc.(label) + option rc.(label)
+       ; blocks := fun x =>
+                     match x with
+                     | inl None =>
+                       fmap_block to_left lc.(main)
+                     | inl (Some x) =>
+                       fmap_block to_left (lc.(blocks) x)
+                     | inr None =>
+                       fmap_block to_right rc.(main)
+                     | inr (Some x) =>
+                       fmap_block to_right (rc.(blocks) x)
+                     end
+         ; main   :=
+             fmap_block (fun l =>
+                           match l with
+                           | true => inl (inl None)
+                           | false => inl (inr None)
+                           end) b
+      |}).
+
+Admitted.
+
+Definition link_while (b : block bool) (p1 : program unit)
+: program unit.
+Admitted.
+
+
+(*
+Record program2 (exports imports : Type) : Type :=
+  { internal2 : Type
+  ; names : exports -> internal2
+  ; blocks2 : internal2 -> block (internal2 + imports) }.
+
+Definition link2 {A B C} (p1 : program2 A (B + C)) (p2 : program2 B (A + C))
+: program2 (A + B) C.
+
+rec : program2 a (a + b) -> program a b
+*)
+
+(* we could change this to `stmt -> program unit` and then compile the subterms
+ * and then replace some of the jumps to do the actual linking.
+ *
+ * the type of `program` can not be printed because the type of labels is
+ * exitentially quantified. it could be replaced with a finite map.
+ *)
+Fixpoint compile2 (s : stmt) {struct s} : program unit.
+  refine
+    match s with
+
+    | Skip =>
+
+      {| label  := Empty_set
+       ; blocks := fun x => match x with end
+       ; main   := bbb (Bjmp (inr tt)) |}
+
+    | Assign x e =>
+
+      {| label  := Empty_set
+         ; blocks := fun x => match x with end
+         ; main   := after (compile_assign x e)
+                             (bbb (Bjmp (inr tt))) |}
+
+    | Seq l r =>
+
+      link_seq (compile2 l) (compile2 r)
+
+    | If e l r =>
+
+      let to_right x :=
+          match x with
+          | inl y => inl (inr (Some y))
+          | inr y => inr y
+          end
+      in
+      let to_left x :=
+          match x with
+          | inl y => inl (inl (Some y))
+          | inr y => inr y
+          end
+      in
+      let lc := compile2 l in
+      let rc := compile2 r in
+
+      {| label  := option lc.(label) + option rc.(label)
+       ; blocks := fun x =>
+                     match x with
+                     | inl None =>
+                       fmap_block to_left lc.(main)
+                     | inl (Some x) =>
+                       fmap_block to_left (lc.(blocks) x)
+                     | inr None =>
+                       fmap_block to_right rc.(main)
+                     | inr (Some x) =>
+                       fmap_block to_right (rc.(blocks) x)
+                     end
+         ; main   :=
+             after (compile_expr 0 e)
+                   (bbb (Bbrz (gen_tmp 0)
+                              (inl (inl None))
+                              (inl (inr None))))
+      |}
+
+    | While e b =>
+      let bc := compile2 b in
+      {| label := WhileBlocks
+                    + option bc.(label)
+         ; blocks :=
+             let convert x :=
+                 match x with
+                 | inl x => inl (inr (Some x))
+                 | inr x => inl (inl WhileTop)
+                 end
+             in fun x =>
+                  match x with
+                  | inl WhileTop => (* before evaluating e *)
+                    after (compile_expr 0 e)
+                          (bbb (Bbrz (gen_tmp 0)
+                                     (inl (inr None))
+                                     (inl (inl WhileBottom))))
+                  | inl WhileBottom => (* after the loop exits *)
+                    bbb (Bjmp (inr tt))
+                  | inr None =>
+                    fmap_block convert bc.(main)
+                  | inr (Some x) =>
+                    fmap_block convert (bc.(blocks) x)
+                  end
+         ; main := bbb (Bjmp (inl (inl WhileTop)))
+      |}
+
+    end.
+Defined.
+
+
 
 (* we could change this to `stmt -> program unit` and then compile the subterms
  * and then replace some of the jumps to do the actual linking.
@@ -138,12 +320,12 @@ Fixpoint compile (s : stmt) {L} (k : block L) {struct s} : program L.
       let lc := @compile l unit (bbb (Bjmp tt)) in
       let rc := @compile r L k in
 
-      {| label  := option (lc.(label) + rc.(label))
+      {| label  := lc.(label) + option rc.(label)
        ; blocks := fun x =>
                      match x with
-                     | None => fmap_block _ rc.(main)
-                     | Some (inl x) => fmap_block _ (lc.(blocks) x)
-                     | Some (inr x) => fmap_block _ (rc.(blocks) x)
+                     | inr None => fmap_block _ rc.(main)
+                     | inl x => fmap_block _ (lc.(blocks) x)
+                     | inr (Some x) => fmap_block _ (rc.(blocks) x)
                      end
        ; main   :=
            fmap_block _ lc.(main) |}
@@ -265,7 +447,7 @@ Section denote_list.
                    (@denote_list is1;; denote_list is2).
   Proof.
   Admitted.
-  
+
 End  denote_list.
 
 Section Correctness.
@@ -327,7 +509,7 @@ Section EUTT.
       (forall x, @eutt E R1 R2 RR (k x) (k' x)) -> eutt RR (Vis e k) (Vis e k').
   Admitted.
 
-  Lemma Ret_eutt: forall {R1 R2} {RR: R1 -> R2 -> Prop} x y, 
+  Lemma Ret_eutt: forall {R1 R2} {RR: R1 -> R2 -> Prop} x y,
       RR x y -> @eutt E R1 R2 RR (Ret x) (Ret y).
   Admitted.
 
@@ -359,8 +541,8 @@ Section GEN_TMP.
   Lemma gen_tmp_inj: forall n m, m <> n -> gen_tmp m <> gen_tmp n.
   Proof.
     intros n m ineq; intros abs; apply ineq.
-    apply to_string_inj; inversion abs; auto. 
-  Qed.    
+    apply to_string_inj; inversion abs; auto.
+  Qed.
 
 End GEN_TMP.
 
@@ -374,7 +556,7 @@ Section Real_correctness.
   Definition E := Locals +' E'.
 
   Definition interp_locals {R: Type} (t: itree E R) (s: alist var value): itree E' (alist var value * R) :=
-    run_env _ (interp1 evalLocals _ t) s.  
+    run_env _ (interp1 evalLocals _ t) s.
 
   Instance eq_itree_interp_locals {R}:
     Proper (@eutt E R R eq ==> eq ==> @eutt E' (prod (alist var value) R) (prod _ R) eq)
@@ -401,7 +583,7 @@ Section Real_correctness.
     match goal with
     | |- eutt _ ?x _ => rewrite (itree_eta x); cbn
     end.
-  
+
   Ltac force_right :=
     match goal with
     | |- eutt _ _ ?x => rewrite (itree_eta x); cbn
@@ -412,7 +594,7 @@ Section Real_correctness.
 
   Arguments alist_add {_ _ _ _}.
   Arguments alist_find {_ _ _ _}.
-  
+
   Lemma Renv_add: forall g_asm g_imp n v,
       Renv g_asm g_imp -> Renv (alist_add (gen_tmp n) v g_asm) g_imp.
   Admitted.
@@ -473,17 +655,17 @@ Section Real_correctness.
     intros.
     split; [| split].
     - apply Renv_add; assumption.
-    - apply In_alist_add.  
+    - apply In_alist_add.
     - intros m LT v'.
       apply In_add_ineq, gen_tmp_inj; lia.
-  Qed.     
+  Qed.
 
   Lemma sim_rel_Renv: forall g_asm n s1 v1 s2 v2,
       sim_rel g_asm n (s1,v1) (s2,v2) -> Renv s1 s2.
   Proof.
     intros ? ? ? ? ? ? H; apply H.
   Qed.
-  
+
   Lemma sim_rel_find_tmp_n:
     forall g_asm n g_asm' g_imp' v,
       sim_rel g_asm n (g_asm', tt) (g_imp',v) ->
@@ -496,7 +678,7 @@ Section Real_correctness.
       sim_rel g_asm n (g_asm', tt) (g_imp',v) ->
       alist_find (gen_tmp m) g_asm = alist_find (gen_tmp m) g_asm'.
   Admitted.
-  
+
   Lemma compile_expr_correct : forall e g_imp g_asm n,
       Renv g_asm g_imp ->
       eutt (sim_rel g_asm n)
@@ -518,7 +700,7 @@ Section Real_correctness.
     - do 2 setoid_rewrite denote_list_app.
       do 2 setoid_rewrite interp_locals_bind.
       eapply eutt_bind_gen.
-      + eapply IHe1; assumption. 
+      + eapply IHe1; assumption.
       + intros [g_asm' []] [g_imp' v] HSIM.
         eapply eutt_bind_gen.
         eapply IHe2.
@@ -545,8 +727,40 @@ Section Real_correctness.
           rewrite <- In_add_ineq; [| apply gen_tmp_inj; lia].
           admit.
         }
-  Admitted. 
+  Admitted.
 
+  Lemma Renv_write_local:
+    forall (x : Imp.var) (a a0 : alist var value) (v : Imp.value),
+      Renv a a0 -> Renv (alist_add (varOf x) v a) (alist_add x v a0).
+  Proof.
+    intros x a a0 v H0.
+    red in H0. red.
+    intros.
+    (* this should mostly come from ExtLib *)
+  Admitted.
+
+  Lemma compile_assign_correct : forall e g_imp g_asm x,
+      Renv g_asm g_imp ->
+      eutt (fun a b => Renv (fst a) (fst b))
+           (interp_locals (denote_list (compile_assign x e)) g_asm)
+           (interp_locals (v <- denoteExpr e ;; lift (SetVar x v)) g_imp).
+  Proof.
+    simpl; intros.
+    unfold compile_assign.
+    rewrite denote_list_app.
+    do 2 rewrite interp_locals_bind.
+    eapply eutt_bind_gen.
+    eapply compile_expr_correct; eauto.
+    intros.
+    repeat untau_left.
+    force_left.
+    repeat untau_right; force_right.
+    eapply Ret_eutt; simpl.
+    destruct r1, r2.
+    erewrite sim_rel_find_tmp_n; eauto; simpl.
+    destruct H0.
+    eapply Renv_write_local; eauto.
+  Qed.
 
 (*
 Seq a b
@@ -559,7 +773,7 @@ a :: itree _ Empty_set
 [[a]] :: itree _ L (* if closed *)
 *)
 
-(*
+
 Definition denote_program {e} `{Locals -< e} `{Memory -< e} {L}
            (p : program L) : p.(label) -> itree e (option L) :=
   rec (fun lbl : p.(label) =>
@@ -570,6 +784,40 @@ Definition denote_program {e} `{Locals -< e} `{Memory -< e} {L}
               | Some (inr next) => ret (Some next)
               end).
 
+    Require Import ITree.MorphismsFacts.
+    Require Import ITree.FixFacts.
+
+    Lemma rec_unfold {E A B} (f : A -> itree (callE A B +' E) B) (x : A)
+      : rec f x ≈ interp (fun _ e => match e with
+                                  | inl1 e =>
+                                    match e in callE _ _ t return _ with
+                                    | Call x => rec f x
+                                    end
+                                  | inr1 e => lift e
+                                  end) _ (f x).
+    Proof.
+      unfold rec. unfold mrec.
+      rewrite interp_mrec_is_interp.
+      repeat rewrite <- MorphismsFacts.interp_is_interp1.
+      unfold MorphismsFacts.interp_match.
+      unfold mrec.
+      SearchAbout interp Proper.
+      Definition Rhom {E F : Type -> Type} : relation (E ~> F) :=
+        fun l r =>
+          forall x (e : E x), l _ e = r _ e.
+      Lemma eq_itree_interp:
+  forall (E F : Type -> Type) (R : Type),
+    Proper (@Rhom E (itree F) ==> eutt eq ==> eutt eq)
+           (fun f => interp f R).
+      Proof. Admitted.
+      eapply eq_itree_interp.
+      { red. destruct e; try reflexivity.
+        destruct c.
+        reflexivity. }
+      reflexivity.
+    Qed.
+
+
 Definition denote_main {e} `{Locals -< e} `{Memory -< e} {L}
            (p : program L) : itree e (option L) :=
   next <- denote_block e p.(main) ;;
@@ -579,19 +827,218 @@ Definition denote_main {e} `{Locals -< e} `{Memory -< e} {L}
    | Some (inr next) => ret (Some next)
    end.
 
-Lemma true_compile_correct_program:
+Arguments denote_block {_ _ _ _} _.
+Arguments interp {_ _} _ {_} _.
+Lemma interp_match_option : forall {T U} (x : option T) {E F} (h : E ~> itree F) (Z : itree _ U) Y,
+    interp h match x with
+             | None => Z
+             | Some y => Y y
+             end =
+match x with
+| None => interp h Z
+| Some y => interp h (Y y)
+end.
+Proof. destruct x; reflexivity. Qed.
+Lemma interp_match_sum : forall {A B U} (x : A + B) {E F} (h : E ~> itree F) (Z : _ -> itree _ U) Y,
+    interp h match x with
+             | inl x => Z x
+             | inr x => Y x
+             end =
+match x with
+| inl x => interp h (Z x)
+| inr x => interp h (Y x)
+end.
+Proof. destruct x; reflexivity. Qed.
+
+(*
+Proper (.. ==> eutt _) (rec _)
+
+let rec F := ... in
+let rec G := ... in
+
+let rec F := let G := ... in ... in
+*)
+
+(*
+Lemma link_ok : forall p1 p2 l,
+    denote_program (link_seq p1 p2) l ≈
+    rec (fun l => 
+           match l with
+           | inl l =>
+             l' <- denote_program p1 l ;;
+                match l' with
+                | None => Ret None
+                | Some _ => denote_main p2
+                end
+           | inr None => denote_main p2
+           | inr (Some l) => denote_program p2 l
+           end) l.
+*)
+
+(* things to do?
+ * 1. change the compiler to not compress basic blocks.
+ *    - ideally we would write a separate pass that does that
+ *    - split out each of the structures as separate definitions and lemmas
+ * 2. need to prove `interp F (denote_block ...) = denote_block ...`
+ * 3. link_seq_ok should be a proof by co-induction.
+ * 4. clean up this file *a lot*
+ * bonus: block fusion
+ * bonus: break & continue
+ *)
+
+
+
+Lemma link_seq_ok : forall p1 p2 l,
+    denote_program (link_seq p1 p2) l ≈
+    match l with
+    | inl l =>
+      l' <- denote_program p1 l ;;
+      match l' with
+      | None => Ret None
+      | Some _ => denote_main p2
+      end
+    | inr None => denote_main p2
+    | inr (Some l) => denote_program p2 l
+    end.
+Proof.
+  intros.
+  destruct l.
+  { (* in the left *)
+    unfold denote_program.
+    rewrite rec_unfold at 1.
+    repeat rewrite interp_bind.
+    match goal with
+    | |- ITree.bind ?X _ ≈ _ =>
+      assert (X = (denote_block (blocks (link_seq p1 p2) (inl l))))
+    end.
+    admit.
+    rewrite H.
+    rewrite rec_unfold.
+    repeat rewrite interp_bind.
+    repeat rewrite bind_bind.
+    match goal with
+    | |- _ ≈ ITree.bind ?X _ =>
+      assert (X = (denote_block (blocks p1 l)))
+    end.
+    admit.
+    rewrite H0.
+    simpl.
+    rewrite fmap_block_map.
+    unfold ITree.map.
+    rewrite bind_bind.
+    setoid_rewrite ret_bind.
+    eapply eutt_bind_gen.
+    { instantiate (1:=eq). reflexivity. }
+    intros; subst.
+    repeat rewrite interp_match_option.
+    unfold option_map.
+    destruct r2.
+    { destruct s.
+      - admit. 
+      - destruct u. admit. }
+    { admit. } }
+  { unfold denote_program.
+    simpl.
+
+}
+    
+
+
+    Lemma denote_block_no_calls :
+      interp (hBoth L id) (liftR id) = interp id e.
+
+    Print denote_program.
+    Print denote_block.
+    simpl denote_block.
+    Eval simpl in (denote_block (blocks (link_seq p1 p2) (inl l))).
+    simpl.
+   
+    simpl.
+    unfold denote_block at 2.
+    simpl.
+About denote_block.
+setoid_rewrite interp_match_option.
+
+    eapply eutt_bind_gen.
+    Show Existentials.
+    eapply eq_itree_interp.
+    
+
+
+    
+
+
+
+    do 2 rewrite rec_unfold.
+
+Admitted.
+
+  Lemma true_compile_correct_program:
+    forall s (g_imp g_asm : alist var value),
+      Renv g_asm g_imp ->
+      eutt (fun a b => Renv (fst a) (fst b) /\ snd a = snd b)
+            (interp_locals (denote_main (compile s)) g_asm)
+            (interp_locals (denoteStmt s;; Ret (Some tt)) g_imp).
+
+
+
+
+
+
+
+
+  Lemma true_compile_correct_program:
     forall s L (b: block L) (g_imp g_asm : alist var value),
       Renv g_asm g_imp ->
-      euttG (fun a b => Renv (fst a) (fst b) /\ snd a = snd b)
-            (run_env _ (denote_main (compile s b)) g_asm)
-            (run_env _ (denoteStmt s;; denote_block _ b) g_imp).
-Proof.
-  induction s.
-  { admit. }
-  { simpl.
-    unfold denote_main. simpl.
-    intros.
-*)
+      eutt (fun a b => Renv (fst a) (fst b) /\ snd a = snd b)
+            (interp_locals (denote_main (compile s b)) g_asm)
+            (interp_locals (denoteStmt s;; denote_block _ b) g_imp).
+  Proof.
+    induction s; intros.
+    { (* assign *)
+      simpl.
+      unfold denote_main. simpl. unfold denote_program.
+      simpl.
+      rewrite denote_after_denote_list.
+      rewrite bind_bind.
+      rewrite interp_locals_bind.
+      rewrite interp_locals_bind.
+      eapply eutt_bind_gen.
+      eapply compile_assign_correct; eauto.
+      simpl; intros.
+      clear - H0.
+      rewrite fmap_block_map.
+      unfold ITree.map.
+      rewrite bind_bind.
+      setoid_rewrite ret_bind.
+      rewrite <- (bind_ret (interp_locals _ (fst r2))).
+      rewrite interp_locals_bind.
+      eapply eutt_bind_gen.
+      { SearchAbout denote_block.
+        instantiate (1 := fun a b => Renv (fst a) (fst b) /\ snd a = snd b).
+        admit. }
+      { simpl.
+        intros.
+        destruct r0, r3; simpl in *.
+        destruct H; subst.
+        destruct o0; simpl.
+        { force_left.
+          eapply Ret_eutt.
+          simpl. tauto. }
+        { force_left. eapply Ret_eutt; simpl. tauto. } } }
+    { (* seq *)
+      simpl.
+      specialize (IHs1 _ (main (compile s2 b)) _ _ H).
+      rewrite bind_bind.
+      unfold denote_main; simpl.
+      unfold denote_main in IHs1.
+      rewrite fmap_block_map.
+      unfold ITree.map. rewrite bind_bind.
+      setoid_rewrite ret_bind.
+
+
+
+
 
         Arguments denote_program {_ _ _ _} _ _.
         Arguments denote_block {_ _ _ _} _.
@@ -604,13 +1051,16 @@ Proof.
 
         (* TODO: parameterize by REnv *)
   Lemma compile_correct_program:
-    forall s L (b: block L) imports,
-      denote_main (compile s b) imports ≈
-                  (denoteStmt s;; ml <- denote_block b;;
-                              (match ml with
-                               | None => Ret tt
-                               | Some l => imports l
-                               end)).
+    forall s L (b: block L) imports g_asm g_imp,
+      Renv g_asm g_imp ->
+      eutt (fun a b => Renv (fst a) (fst b))
+           (interp_locals (denote_main (compile s b) imports) g_asm)
+           (interp_locals (denoteStmt s;;
+                           ml <- denote_block b;;
+                           match ml with
+                           | None => Ret tt
+                           | Some l => imports l
+                           end) g_imp).
   Proof.
 (*    simpl.
     induction s; intros L b imports.
