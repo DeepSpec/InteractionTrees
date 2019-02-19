@@ -900,6 +900,19 @@ Proof.
   apply subrelation_eq_eutt, map_map.
 Qed.
 
+Global Instance eutt_eq_under_rr {E : Type -> Type}
+       {R1 R2 : Type} (RR: R1 -> R2 -> Prop):
+  Proper (@eutt E _ _ eq ==> @eutt _ _ _ eq ==> iff) (eutt RR).
+Admitted.
+
+(** Generalized heterogeneous version of [eutt_bind] *)
+Lemma eutt_bind_gen {E R1 R2 S1 S2} {RR: R1 -> R2 -> Prop} {SS: S1 -> S2 -> Prop}:
+  forall t1 t2,
+    eutt RR t1 t2 ->
+    forall s1 s2, (forall r1 r2, RR r1 r2 -> eutt SS (s1 r1) (s2 r2)) ->
+                  @eutt E _ _ SS (ITree.bind t1 s1) (ITree.bind t2 s2).
+Admitted.
+
 Definition observing {E R}
            (f : itree' E R -> itree' E R -> Prop)
            (x y : itree E R) :=
@@ -1089,16 +1102,3 @@ Proof.
   rewrite grespectful2_iff in H1; [|intros; erewrite eutt__is_eutt'_; reflexivity].
   rewrite H, H0. eauto.
 Qed.
-
-Global Instance eutt_eq_under_rr {E : Type -> Type}
-       {R1 R2 : Type} (RR: R1 -> R2 -> Prop):
-  Proper (@eutt E _ _ eq ==> @eutt _ _ _ eq ==> iff) (eutt RR).
-Admitted.
-
-(** Generalized heterogeneous version of [eutt_bind] *)
-Lemma eutt_bind_gen {E R1 R2 S1 S2} {RR: R1 -> R2 -> Prop} {SS: S1 -> S2 -> Prop}:
-  forall t1 t2,
-    eutt RR t1 t2 ->
-    forall s1 s2, (forall r1 r2, RR r1 r2 -> eutt SS (s1 r1) (s2 r2)) ->
-                  @eutt E _ _ SS (ITree.bind t1 s1) (ITree.bind t2 s2).
-Admitted.
