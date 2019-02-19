@@ -490,17 +490,21 @@ Section Correctness.
   Variant Rvar : var -> var -> Prop :=
   | Rvar_var v : Rvar (varOf v) v.
 
+  Arguments alist_find {_ _ _ _}.
+
+  Definition alist_In {K R RD V} k m v := @alist_find K R RD V k m = Some v.
+
   Definition Renv (g_asm g_imp : alist var value) : Prop :=
     forall k_asm k_imp, Rvar k_asm k_imp ->
-                   forall v, In (k_imp,v) g_imp -> In (k_asm, v) g_asm.
+                   forall v, alist_In k_imp g_imp v -> alist_In k_asm g_asm v.
 
   (* Let's not unfold this inside of the main proof *)
   Definition sim_rel g_asm n: alist var value * unit -> alist var value * value -> Prop :=
     fun '(g_asm', _) '(g_imp',v) =>
       Renv g_asm' g_imp' /\ (* we don't corrupt any of the imp variables *)
-      In (gen_tmp n, v) g_asm' /\ (* we get the right value *)
+      alist_In (gen_tmp n) g_asm' v /\ (* we get the right value *)
       (forall m, m < n -> forall v, (* we don't mess with anything on the "stack" *)
-            In (gen_tmp m, v) g_asm <-> In (gen_tmp m, v) g_asm').
+            alist_In (gen_tmp m) g_asm v <-> alist_In (gen_tmp m) g_asm' v).
 
 End Correctness.
 
@@ -632,13 +636,6 @@ Section Real_correctness.
   Arguments alist_add {_ _ _ _}.
   Arguments alist_find {_ _ _ _}.
 
-  Lemma In_add_eq {K V: Type} `{RelDec _ (@eq K)}:
-    forall k v (m: alist K V),
-      In (k,v) (alist_add k v m).
-  Proof.
-    intros; left; reflexivity.
-  Qed.
-
   Ltac flatten_goal :=
     match goal with
     | |- context[match ?x with | _ => _ end] => let Heq := fresh "Heq" in destruct x eqn:Heq
@@ -656,20 +653,29 @@ Section Real_correctness.
     end.
 
   Ltac inv h := inversion h; subst; clear h.
+  Arguments alist_remove {_ _ _ _}. 
+
+  Lemma In_add_eq {K V: Type} {RR:RelDec eq} {RRC:@RelDec_Correct _ _ RR}:
+    forall k v (m: alist K V),
+      alist_In k (alist_add k v m) v.
+  Proof.
+    intros; unfold alist_add, alist_In; simpl; flatten_goal; [reflexivity | rewrite <- neg_rel_dec_correct in Heq; tauto]. 
+  Qed.
 
   (* A removed key is not contained in the resulting map *)
-  Lemma not_In_remove_ineq:
+  Lemma not_In_remove:
     forall (K V : Type) {RR: RelDec eq} {RRC:@RelDec_Correct _ _ RR}
       (m : alist K V) (k : K) (v: V),
-      ~ In (k, v) (alist_remove _ k m).
+      ~ alist_In k (alist_remove k m) v.
   Proof.
-    induction m as [| [k1 v1] m IH]; intros; auto.
-    simpl.
-    flatten_goal.
-    - rewrite Bool.negb_true_iff, <- neg_rel_dec_correct in Heq.
-      intros [EQ | IN]; [inv EQ; easy | eapply IH; eauto].
-    - rewrite Bool.negb_false_iff, rel_dec_correct in Heq; subst.
-      intros abs; eapply IH; eauto. 
+    induction m as [| [k1 v1] m IH]; intros.
+    - simpl; intros abs; inv abs. 
+    - simpl; flatten_goal.
+      + unfold alist_In; simpl.
+        rewrite Bool.negb_true_iff in Heq; rewrite Heq.
+        intros abs; eapply IH; eassumption.
+      + rewrite Bool.negb_false_iff, rel_dec_correct in Heq; subst.
+        intros abs; eapply IH; eauto. 
   Qed.
 
   (* Removing a key does not alter other keys *)
@@ -677,38 +683,44 @@ Section Real_correctness.
     forall (K V : Type) {RR: RelDec eq} {RRC:@RelDec_Correct _ _ RR}
       (m : alist K V) (k : K) (v : V) (k' : K),
       k <> k' ->
-      In (k,v) m ->
-      In (k, v) (alist_remove _ k' m).
+      alist_In k m v ->
+      alist_In k (alist_remove k' m) v.
   Proof.
     induction m as [| [? ?] m IH]; intros ?k ?v ?k' ineq IN; [inversion IN |].
     simpl.
     flatten_goal.
-    - rewrite Bool.negb_true_iff, <- neg_rel_dec_correct in Heq.
-      destruct IN as [EQ | IN]; [inv EQ; left; auto | right; eapply IH; eauto]. 
-    - rewrite Bool.negb_false_iff, rel_dec_correct in Heq; subst.
-      destruct IN as [EQ | IN]; [inv EQ; tauto | eapply IH; eauto]. 
+    - unfold alist_In in *; simpl in *.
+      rewrite Bool.negb_true_iff, <- neg_rel_dec_correct in Heq.
+      flatten_goal; auto.
+    - unfold alist_In in *; simpl in *.
+      rewrite Bool.negb_false_iff, rel_dec_correct in Heq; subst.
+      flatten_hyp IN; [rewrite rel_dec_correct in Heq; subst; tauto | eapply IH; eauto].
   Qed.       
 
   Lemma In_remove_In_ineq:
     forall (K V : Type) {RR: RelDec eq} {RRC:@RelDec_Correct _ _ RR}
       (m : alist K V) (k : K) (v : V) (k' : K),
-      In (k, v) (alist_remove _ k' m) ->
-      In (k,v) m.
+      alist_In k (alist_remove k' m) v ->
+      alist_In k m v.
   Proof.
     induction m as [| [? ?] m IH]; intros ?k ?v ?k' IN; [inversion IN |].
     simpl in IN; flatten_hyp IN.
-    - rewrite Bool.negb_true_iff, <- neg_rel_dec_correct in Heq.
-      destruct IN as [EQ | IN]; [inv EQ; left; auto | right; eapply IH; eauto]. 
-    - rewrite Bool.negb_false_iff, rel_dec_correct in Heq; subst.
-      right; eapply IH; eauto.
+    - unfold alist_In in *; simpl in *.
+      flatten_all; auto.
+      eapply IH; eauto.
+    -rewrite Bool.negb_false_iff, rel_dec_correct in Heq; subst.
+     unfold alist_In; simpl. 
+     flatten_goal; [rewrite rel_dec_correct in Heq; subst |].
+     exfalso; eapply not_In_remove; eauto.
+     eapply IH; eauto.
   Qed.       
 
   Lemma In_remove_In_ineq_iff:
     forall (K V : Type) {RR: RelDec eq} {RRC:@RelDec_Correct _ _ RR}
       (m : alist K V) (k : K) (v : V) (k' : K),
       k <> k' ->
-      In (k, v) (alist_remove _ k' m) <->
-      In (k,v) m.
+      alist_In k (alist_remove k' m) v <->
+      alist_In k m v.
   Proof.
     intros; split; eauto using In_In_remove_ineq, In_remove_In_ineq.
   Qed.       
@@ -717,27 +729,29 @@ Section Real_correctness.
   Lemma In_In_add_ineq {K V: Type} {RR: RelDec eq} `{RRC:@RelDec_Correct _ _ RR}:
     forall k v k' v' (m: alist K V),
       k <> k' ->
-      In (k,v) m ->
-      In (k,v) (alist_add k' v' m).
+      alist_In k m v ->
+      alist_In k (alist_add k' v' m) v.
   Proof.
-    intros; right.
+    intros.
+    unfold alist_In; simpl; flatten_goal; [rewrite rel_dec_correct in Heq; subst; tauto |].
     apply In_In_remove_ineq; auto.
   Qed.
 
   Lemma In_add_In_ineq {K V: Type} {RR: RelDec eq} `{RRC:@RelDec_Correct _ _ RR}:
     forall k v k' v' (m: alist K V),
       k <> k' ->
-      In (k,v) (alist_add k' v' m) ->
-      In (k,v) m. 
+      alist_In k (alist_add k' v' m) v ->
+      alist_In k m v. 
   Proof.
-    intros k v k' v' m ineq [EQ | IN]; [inv EQ; tauto |].
+    intros k v k' v' m ineq IN.
+    unfold alist_In in IN; simpl in IN; flatten_hyp IN; [rewrite rel_dec_correct in Heq; subst; tauto |].
     eapply In_remove_In_ineq; eauto.
   Qed.
 
   Lemma In_add_ineq_iff {K V: Type} `{RR: RelDec _ (@eq K)} `{RRC:@RelDec_Correct _ _ RR}:
     forall m (v v' : V) (k k' : K),
       k <> k' ->
-      In (k, v) m <-> In (k, v) (alist_add k' v' m).
+      alist_In k m v <-> alist_In k (alist_add k' v' m) v.
   Proof.
     intros; split; eauto using In_In_add_ineq, In_add_In_ineq.
   Qed.
@@ -759,19 +773,19 @@ Section Real_correctness.
   (* A key is stored at most once in the map *)
   (* Oopsy daisy, though all alist operations preserve this invariant, its type does not state so *)
   (* To avoid using if possible *)
-  Lemma alist_unique_key {K V: Type} `{RR: RelDec _ (@eq K)} `{RRC:@RelDec_Correct _ _ RR}:
-    forall k (m: alist K V) v v',
-      In (k,v) m -> In (k,v') m -> v = v'.
-  Proof.
-  Admitted.
+  (* Lemma alist_unique_key {K V: Type} `{RR: RelDec _ (@eq K)} `{RRC:@RelDec_Correct _ _ RR}: *)
+  (*   forall k (m: alist K V) v v', *)
+  (*     In (k,v) m -> In (k,v') m -> v = v'. *)
+  (* Proof. *)
+  (* Admitted. *)
 
   (* alist_find succeeds iff the same value is associated to the key in the map *)
   (* Same here, the value found is always the same only with respect to a global invariant over alist *)
-  Lemma alist_find_In_iff {K V: Type} `{RR: RelDec _ (@eq K)} `{RRC:@RelDec_Correct _ _ RR}:
-    forall k v (m: alist K V),
-      In (k,v) m <-> alist_find k m = Some v.
-  Proof.
-  Admitted.
+  (* Lemma alist_find_In_iff {K V: Type} `{RR: RelDec _ (@eq K)} `{RRC:@RelDec_Correct _ _ RR}: *)
+  (*   forall k v (m: alist K V), *)
+  (*     alist_In k m v <-> alist_find k m = Some v. *)
+  (* Proof. *)
+  (* Admitted. *)
 
   Lemma Renv_add: forall g_asm g_imp n v,
       Renv g_asm g_imp -> Renv (alist_add (gen_tmp n) v g_asm) g_imp.
@@ -791,16 +805,11 @@ Section Real_correctness.
   Proof.
     intros.
     destruct (alist_find x g_imp) eqn:LUL, (alist_find (varOf x) g_asm) eqn:LUR; auto.
-    - rewrite <- alist_find_In_iff in LUL,LUR.
-      eapply H in LUL; [| constructor].
-      f_equal; eapply alist_unique_key; eassumption.
-    - rewrite <- alist_find_In_iff in LUL.
-      eapply H in LUL; [| constructor].
-      rewrite <- alist_find_None in LUR.
-      exfalso; eapply LUR; eauto.
-    - rewrite <- alist_find_None in LUL.
-      rewrite <- alist_find_In_iff in LUR.
-      (* YZ: does not hold, the invariant does not prevent the assembly stack to have more non temp variables defined than the source.
+    - eapply H in LUL; [| constructor].
+      rewrite LUL in LUR; auto.
+    - eapply H in LUL; [| constructor].
+      rewrite LUL in LUR; auto.
+    - (* YZ: does not hold, the invariant does not prevent the assembly stack to have more non temp variables defined than the source.
          Reinforce the invariant, or weaken this lemma.
        *)
   Admitted.
