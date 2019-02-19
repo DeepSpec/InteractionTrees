@@ -43,7 +43,7 @@ Definition notauF {I} (t : itreeF E R I) : Prop :=
 
 Notation notau t := (notauF (observe t)).
 
-(* [untaus t' t] holds when [t = Tau (... Tau t' ...)]:
+(* [untaus t t'] holds when [t = Tau (... Tau t' ...)]:
    [t] steps to [t'] by "peeling off" a finite number of [Tau].
    "Peel off" means to remove only taus at the root of the tree,
    not any behind a [Vis] step). *)
