@@ -15,6 +15,8 @@ From ITree Require Import
      Eq.Eq
      Eq.UpToTaus.
 
+(** * [interp] *)
+
 (* Proof of
    [interp f (t >>= k) ~ (interp f t >>= fun r => interp f (k r))]
 
@@ -49,7 +51,59 @@ Lemma unfold_interp {E F R} {f : E ~> itree F} (t : itree E R) :
   interp f _ t ≅ interp_u f _ (observe t).
 Proof. rewrite itree_eta, interp_unfold, <-itree_eta. reflexivity. Qed.
 
-(* SAZ: If we need to introduce these auxilliar definitions to prove 
+(** ** [interp] and constructors *)
+
+Lemma ret_interp {E F R} {f : E ~> itree F} (x: R):
+  interp f _ (Ret x) ≅ Ret x.
+Proof. rewrite unfold_interp. reflexivity. Qed.
+
+Lemma tau_interp {E F R} {f : E ~> itree F} (t: itree E R):
+  interp f _ (Tau t) ≅ Tau (interp f _ t).
+Proof. rewrite unfold_interp. reflexivity. Qed.
+
+Lemma vis_interp {E F R} {f : E ~> itree F} U (e: E U) (k: U -> itree E R) :
+  interp f _ (Vis e k) ≅ Tau (ITree.bind (f _ e) (fun x => interp f _ (k x))).
+Proof. rewrite unfold_interp. reflexivity. Qed.
+
+(** ** [interp] properness *)
+
+Instance eq_itree_interp {E F R} (f : E ~> itree F) :
+  Proper (eq_itree eq ==> eq_itree eq) (interp f R).
+Proof.
+  repeat intro. pupto2_init. revert_until R.
+  pcofix CIH. intros.
+  rewrite itree_eta, (itree_eta (interp f _ y)), !interp_unfold.
+  punfold H0; red in H0.
+  destruct H0; pclearbot.
+  - pupto2_final. pfold. red. cbn. eauto.
+  - pupto2_final. pfold. red. cbn. eauto.
+  - pfold. econstructor. pupto2 (eq_itree_clo_bind F R).
+    constructor.
+    + reflexivity.
+    + eauto. intros; pupto2_final; right; eauto.
+Qed.
+
+Lemma interp_bind {E F R S}
+      (f : E ~> itree F) (t : itree E R) (k : R -> itree E S) :
+   (interp f _ (ITree.bind t k)) ≅ (ITree.bind (interp f _ t) (fun r => interp f _ (k r))).
+Proof.
+  pupto2_init.
+  revert R t k.
+  pcofix CIH. intros.
+  rewrite (itree_eta t). destruct (observe t).
+  - rewrite ret_interp, !ret_bind. pupto2_final. apply reflexivity.
+  - rewrite tau_interp, !tau_bind, tau_interp.
+    pupto2_final. pfold. econstructor. eauto.
+  - rewrite vis_interp, tau_bind. rewrite bind_bind.
+    pfold. do 2 red; cbn. constructor.
+    pupto2 (eq_itree_clo_bind F S). econstructor.
+    + reflexivity.
+    + intros; specialize (CIH _ (k0 v) k); auto.
+Qed.
+
+(** * [interp1] *)
+
+(* SAZ: If we need to introduce these auxilliar definitions to prove
    properties about functions like interp1, I think that we shoul
    _define_ interp1 in terms of its unfolding.  I have experimented
    with porting interp_state and interp1_state to this form.
@@ -73,69 +127,7 @@ Lemma unfold_interp1 {E F R} {f : E ~> itree F} (t : itree (E +' F) R) :
   interp1 f _ t ≅ interp1_u f _ (observe t).
 Proof. rewrite itree_eta, interp1_unfold, <-itree_eta. reflexivity. Qed.
 
-Lemma ret_interp {E F R} {f : E ~> itree F} (x: R):
-  interp f _ (Ret x) ≅ Ret x.
-Proof. rewrite unfold_interp. reflexivity. Qed.
-
-Lemma tau_interp {E F R} {f : E ~> itree F} (t: itree E R):
-  interp f _ (Tau t) ≅ Tau (interp f _ t).
-Proof. rewrite unfold_interp. reflexivity. Qed.
-
-Lemma vis_interp {E F R} {f : E ~> itree F} U (e: E U) (k: U -> itree E R) :
-  interp f _ (Vis e k) ≅ Tau (ITree.bind (f _ e) (fun x => interp f _ (k x))).
-Proof. rewrite unfold_interp. reflexivity. Qed.
-
-Instance eq_itree_interp {E F R} (f : E ~> itree F) :
-  Proper (eq_itree eq ==> eq_itree eq) (interp f R).
-Proof.
-  repeat intro. pupto2_init. revert_until R.
-  pcofix CIH. intros.
-  rewrite itree_eta, (itree_eta (interp f _ y)), !interp_unfold.
-  punfold H0; red in H0.
-  destruct H0; pclearbot.
-  - pupto2_final. pfold. red. cbn. eauto.
-  - pupto2_final. pfold. red. cbn. eauto.
-  - pfold. econstructor. pupto2 (eq_itree_clo_bind F R).
-    constructor.
-    + reflexivity.
-    + eauto. intros; pupto2_final; right; eauto.
-Qed.
-
-Instance eq_itree_interp1 {E F R} (h : E ~> itree F) :
-  Proper (@eq_itree (E +' F) _ _ eq ==> eq_itree eq) (interp1 h R).
-Proof.
-  repeat intro. pupto2_init. revert_until R.
-  pcofix CIH. intros.
-  rewrite !unfold_interp1.
-  punfold H0; red in H0.
-  destruct H0; pclearbot.
-  - pupto2_final. pfold. red. cbn. eauto.
-  - pupto2_final. pfold. red. cbn. eauto.
-  - pfold. destruct e; cbn; econstructor.
-    + pupto2 (eq_itree_clo_bind F R).
-      constructor.
-      * reflexivity.
-      * intros; pupto2_final; eauto.
-    + intros. pupto2_final. eauto.
-Qed.
-
-Lemma interp_bind {E F R S}
-      (f : E ~> itree F) (t : itree E R) (k : R -> itree E S) :
-   (interp f _ (ITree.bind t k)) ≅ (ITree.bind (interp f _ t) (fun r => interp f _ (k r))).
-Proof.
-  pupto2_init.
-  revert R t k.
-  pcofix CIH. intros.
-  rewrite (itree_eta t). destruct (observe t).
-  - rewrite ret_interp, !ret_bind. pupto2_final. apply reflexivity.
-  - rewrite tau_interp, !tau_bind, tau_interp.
-    pupto2_final. pfold. econstructor. eauto.
-  - rewrite vis_interp, tau_bind. rewrite bind_bind.
-    pfold. do 2 red; cbn. constructor.
-    pupto2 (eq_itree_clo_bind F S). econstructor.
-    + reflexivity.
-    + intros; specialize (CIH _ (k0 v) k); auto.
-Qed.
+(** ** [interp1] is equivalent to [interp] *)
 
 Definition interp_match {E F} (f: E ~> itree F) : (E +' F) ~> itree F :=
   fun _ ef => match ef with inl1 e => f _ e | inr1 e => Vis e (fun r => Ret r) end.
@@ -186,6 +178,25 @@ Proof.
     eapply (CIH' (go x2) (go x3)); eauto.
 Qed.
 
+Instance eq_itree_interp1 {E F R} (h : E ~> itree F) :
+  Proper (@eq_itree (E +' F) _ _ eq ==> eq_itree eq) (interp1 h R).
+Proof.
+  repeat intro. pupto2_init. revert_until R.
+  pcofix CIH. intros.
+  rewrite !unfold_interp1.
+  punfold H0; red in H0.
+  destruct H0; pclearbot.
+  - pupto2_final. pfold. red. cbn. eauto.
+  - pupto2_final. pfold. red. cbn. eauto.
+  - pfold. destruct e; cbn; econstructor.
+    + pupto2 (eq_itree_clo_bind F R).
+      constructor.
+      * reflexivity.
+      * intros; pupto2_final; eauto.
+    + intros. pupto2_final. eauto.
+Qed.
+
+(** * [interp_state] *)
 
 Lemma unfold_interp_state : forall {E F S R} (h : E ~> Monads.stateT S (itree F)) t s,
     observe (interp_state h _ t s) =
