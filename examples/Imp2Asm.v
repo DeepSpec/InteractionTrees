@@ -446,7 +446,9 @@ Section denote_list.
       @denote_list (is1 ++ is2) ≅
                    (@denote_list is1;; denote_list is2).
   Proof.
-  Admitted.
+    intros is1 is2; induction is1 as [| i is1 IH]; simpl; intros; [rewrite ret_bind; reflexivity |].
+    rewrite bind_bind; setoid_rewrite IH; reflexivity.
+  Qed.
 
 End  denote_list.
 
@@ -504,14 +506,49 @@ End Correctness.
 
 Section EUTT.
 
+  Require Import Paco.paco.
+
   Context {E: Type -> Type}.
-  Lemma Vis_eutt: forall {R1 R2 RR} {U} (e: E U) k k',
-      (forall x, @eutt E R1 R2 RR (k x) (k' x)) -> eutt RR (Vis e k) (Vis e k').
-  Admitted.
+
+  Lemma unalltausF_ret {R}: forall x (t: itree' E R),
+      unalltausF (RetF x) t -> t = RetF x.
+  Proof.
+    intros x t [UNT NOT]; inversion UNT; subst; clear UNT; [reflexivity | easy]. 
+  Qed.
+
+  Lemma unalltausF_vis {R S}: forall e (k: S -> itree E R) (t: itree' E R),
+      unalltausF (VisF e k) t -> t = VisF e k.
+  Proof.
+    intros e k t [UNT NOT]; inversion UNT; subst; clear UNT; [reflexivity | easy].
+  Qed.
 
   Lemma Ret_eutt: forall {R1 R2} {RR: R1 -> R2 -> Prop} x y,
       RR x y -> @eutt E R1 R2 RR (Ret x) (Ret y).
-  Admitted.
+  Proof.
+    intros.
+    pfold.
+    constructor.
+    split; intros; eapply finite_taus_ret; reflexivity.
+    intros.
+    apply unalltausF_ret in UNTAUS1.
+    apply unalltausF_ret in UNTAUS2.
+    subst; constructor; assumption.
+  Qed.
+
+  Lemma Vis_eutt: forall {R1 R2 RR} {U} (e: E U) k k',
+      (forall x, @eutt E R1 R2 RR (k x) (k' x)) -> eutt RR (Vis e k) (Vis e k').
+  Proof.
+    intros.
+    pfold; constructor.
+    split; intros; eapply finite_taus_vis; reflexivity.
+    intros.
+    cbn in *.
+    apply unalltausF_vis in UNTAUS1.
+    apply unalltausF_vis in UNTAUS2.
+    subst; constructor.
+    intros x; specialize (H x).
+    punfold H.
+  Qed.
 
   Global Instance eutt_eq_under_rr {R1 R2 : Type} (RR: R1 -> R2 -> Prop):
     Proper (@eutt E _ _ eq ==> @eutt _ _ _ eq ==> iff) (eutt RR).
