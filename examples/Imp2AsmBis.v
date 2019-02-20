@@ -1,4 +1,3 @@
-
 From Coq Require Import
      Program
      Lia
@@ -6,195 +5,33 @@ From Coq Require Import
      Morphisms
      RelationClasses.
 
-
 From ITree Require Import ITree FixFacts.
 
 Require Import Program.Basics. (* ∘ *)
 
-  Set Nested Proofs Allowed.
+Require Import sum.
+Require Import Asm.
 
-(** * The Category of Functions *)
+Variable E0 : Type -> Type.
+Notation den := (@den E0).
 
-(* id : A -> A
-   compose : (B -> C) -> (A -> B) -> (A -> C)
-   Infix "∘" = compose
-
-   compose_id_right : f ∘ id = f
-   compose_id_left : id ∘ f = f
-   compose_assoc : (f ∘ g) ∘ h = f ∘ (g ∘ h)
- *)
-
-Hint Rewrite @compose_id_left : cat.
-Hint Rewrite @compose_id_right : cat.
-
-(** Extensional function equality *)
-Definition eqeq {A B} := (@eq A ==> @eq B)%signature.
-
-Instance Equivalence_eqeq {A B} : Equivalence (@eqeq A B).
-Proof.
-  constructor; cbv; intros; subst; auto.
-  - symmetry; auto.
-  - etransitivity; auto.
-Qed.
-
-Instance eq_compose {A B C} :
-  Proper (eqeq ==> eqeq ==> eqeq) (@compose A B C).
-Proof. cbv; auto. Qed.
-
-(** * Diagramatic/categorical sum combinators. *)
-
-Definition sum_elim {A B C} (f : A -> C) (g : B -> C) : A + B -> C :=
-  fun x =>
-    match x with
-    | inl a => f a
-    | inr b => g b
-    end.
-
-Definition sum_bimap {A B C D} (f : A -> B) (g : C -> D) :
-  A + C -> B + D :=
-  sum_elim (inl ∘ f) (inr ∘ g).
-
-Definition sum_map_l {A B C} (f : A -> B) : A + C -> B + C :=
-  sum_bimap f id.
-
-Definition sum_map_r {A B C} (f : A -> B) : C + A -> C + B :=
-  sum_bimap id f.
-
-Definition sum_assoc_r {A B C} (abc : (A + B) + C) : A + (B + C) :=
-  match abc with
-  | inl (inl a) => inl a
-  | inl (inr b) => inr (inl b)
-  | inr c => inr (inr c)
-  end.
-
-Definition sum_comm {A B} : A + B -> B + A :=
-  sum_elim inr inl.
-
-Definition sum_assoc_l {A B C} (abc : A + (B + C)) : (A + B) + C :=
-  match abc with
-  | inl a => inl (inl a)
-  | inr (inl b) => inl (inr b)
-  | inr (inr c) => inr c
-  end.
-
-Definition sum_merge {A} : A + A -> A := sum_elim id id.
-
-(** ** Equational theory *)
-
-Lemma compose_sum_elim {A B C D} (ac : A -> C) (bc : B -> C) (cd : C -> D) :
-  eqeq (cd ∘ sum_elim ac bc)
-       (sum_elim (cd ∘ ac) (cd ∘ bc)).
-Proof.
-  intros [] ? []; auto.
-Qed.
-
-Lemma sum_elim_inl {A B C} (f : A -> C) (g : B -> C) :
-  sum_elim f g ∘ inl = f.
-Proof. reflexivity. Qed.
-
-Lemma sum_elim_inr {A B C} (f : A -> C) (g : B -> C) :
-  sum_elim f g ∘ inr = g.
-Proof. reflexivity. Qed.
-
-Lemma sum_elim_inl' {A B C D} (f : A -> C) (g : B -> C) (h : D -> A) :
-  sum_elim f g ∘ (inl ∘ h) = f ∘ h.
-Proof. reflexivity. Qed.
-
-Lemma sum_elim_inr' {A B C D} (f : A -> C) (g : B -> C) (h : D -> B) :
-  sum_elim f g ∘ (inr ∘ h) = g ∘ h.
-Proof. reflexivity. Qed.
-
-Lemma unfold_sum_assoc_r {A B C} :
-  @sum_assoc_r A B C = sum_elim (sum_elim inl (inr ∘ inl)) (inr ∘ inr).
-Proof. cbv; auto. Qed.
-
-Instance eqeq_sum_elim {A B C} :
-  Proper (eqeq ==> eqeq ==> eqeq) (@sum_elim A B C).
-Proof. cbv; intros; subst; destruct _; auto. Qed.
-
-Hint Rewrite @sum_elim_inl : sum_elim.
-Hint Rewrite @sum_elim_inr : sum_elim.
-Hint Rewrite @sum_elim_inl' : sum_elim.
-Hint Rewrite @sum_elim_inr' : sum_elim.
-
-(** ** Automatic solver of reassociating sums *)
-
-Class ReSum (A B : Type) :=
-  resum : A -> B.
-
-Instance ReSum_id A : ReSum A A := id.
-Instance ReSum_sum A B C `{ReSum A C} `{ReSum B C} : ReSum (A + B) C :=
-  sum_elim resum resum.
-Instance ReSum_inl A B C `{ReSum A B} : ReSum A (B + C) :=
-  inl ∘ resum.
-Instance ReSum_inr A B C `{ReSum A B} : ReSum A (C + B) :=
-  inr ∘ resum.
-
-(* Usage template:
-
-[[
-Opaque compose.
-Opaque id.
-Opaque sum_elim.
-
-Definition f {X Y Z} : complex_sum -> another_complex_sum :=
-  Eval compute in resum.
-
-Transparent compose.
-Transparent id.
-Transparent sum_elim.
-]]
-*)
-
-(** * Bijections *)
-
-Class Iso {A B} (f : A -> B) (f' : B -> A) : Type :=
-  { iso_ff' : forall a, f' (f a) = a;
-    iso_f'f : forall b, f (f' b) = b;
-  }.
-
-Instance Iso_sum_assoc_l {A B C} : Iso (@sum_assoc_l A B C) sum_assoc_r := {}.
-Proof.
-  - destruct 0 as [| []]; auto.
-  - destruct 0 as [[] |]; auto.
-Qed.
-
-Instance Iso_sum_assoc_r {A B C} : Iso (@sum_assoc_r A B C) sum_assoc_l := {}.
-Proof.
-  - destruct 0 as [[] |]; auto.
-  - destruct 0 as [| []]; auto.
-Qed.
-
-(* ASM definition *)
-
-(* Blocks are indexed by type of jump labels. *)
-Axiom block : Type -> Type.
-(* Collection of blocks labeled by [A], with jumps in [B]. *)
-Definition bks A B := A -> block B.
-Axiom E0 : Type -> Type.
-
-Axiom cat_b : forall {A B C D},
+Definition cat_b {A B C D}:
     (bks A B) ->
     (bks C D) ->
-    (bks (A + C) (B + D)).
+    (bks (A + C) (B + D)) :=
+  fun ab cd oac =>
+    match oac with
+    | inl a => fmap_block inl (ab a)
+    | inr c => fmap_block inr (cd c)
+    end.
 
-Axiom rewire_b : forall {A B C D},
-    (C -> A) ->
-    (B -> D) ->
-    (bks A B) ->
-    (bks C D).
-
-(* ASM: linked blocks, can jump to themselves *)
-Record asm A B : Type := {
-  internal : Type;
-  code : bks (A + internal) ((A + internal) + B)
-}.
-Arguments internal {A B}.
-Arguments code {A B}.
-
-(* Denotations as itrees *)
-Definition den A B : Type := A -> itree E0 B.
-(* den can represent both blocks (A -> block B) and asm (asm A B). *)
+Definition rewire_b {A B C D}:
+  (C -> A) ->
+  (B -> D) ->
+  (bks A B) ->
+  (bks C D) :=
+  fun f g ab c =>
+    fmap_block g (ab (f c)).
 
 Notation eq_den_ d1 d2 := (forall a, eutt eq (d1 a) (d2 a)).
 
@@ -302,7 +139,9 @@ Definition seq_asm {A B C} (ab : asm A B) (bc : asm B C) : asm A C :=
 Instance eutt_loop {E A B} :
   Proper ((eq ==> eutt eq) ==> eq ==> eutt eq) (@loop E A B).
 Proof.
-Admitted.
+  repeat intro.
+  subst.
+Admitted. 
 
 Instance eutt_loop' {E A B} :
   Proper (eq_den ==> eq_den) (@loop E A B).
@@ -419,6 +258,7 @@ Admitted.
 Instance eq_lift_den {A B} :
   Proper (eqeq ==> eq_den) (@lift_den A B).
 Proof.
+  repeat intro.
 Admitted.
 
 Lemma seq_sum_elim {A B C D} (ac : den A C) (bc : den B C) (cd : den C D) :
@@ -437,6 +277,23 @@ Proof. intros []; reflexivity. Qed.
 Hint Rewrite @lift_sum_elim : lift_den.
 Hint Rewrite @seq_lift_den : lift_den.
 
+Lemma lift_den_lift_den: forall {A B C} (f: A -> B) (g: B -> C),
+      eq_den (lift_den f >=> lift_den g) (lift_den (g ∘ f)).
+Proof.
+  intros; intros a. 
+  unfold lift_den, seq_den.
+  rewrite ret_bind.
+  reflexivity.
+Qed.
+
+Lemma lift_den_assoc: forall {A B C D} (f: A -> B) (g: B -> C) (k: den C D),
+      eq_den (lift_den f >=> (lift_den g >=> k)) (lift_den f >=> lift_den g >=> k).
+Proof.
+  intros; intros a.
+  unfold lift_den, seq_den.
+  repeat rewrite ret_bind; reflexivity.
+Qed.
+
 Theorem seq_correct {A B C} (ab : asm A B) (bc : asm B C) :
   eq_den (denote_asm (seq_asm ab bc))
          (seq_den (denote_asm ab) (denote_asm bc)).
@@ -449,12 +306,14 @@ Proof.
   rewrite unfold_rewire_den.
   rewrite (seq_den_assoc (_ inl)).
   rewrite seq_loop_l.
+  rewrite lift_den_assoc, lift_den_lift_den.
   unfold den_sum_bimap.
   rewrite (seq_den_assoc (_ inl)).
   rewrite seq_loop_l_seq.
   unfold den_sum_map_r.
   rewrite sum_elim_loop.
   rewrite loop_loop.
+  rewrite lift_den_assoc, lift_den_lift_den.
   rewrite (loop_relabel sum_assoc_r).
   repeat (rewrite seq_lift_den + rewrite <- (seq_den_assoc (lift_den _) (lift_den _))).
   apply eutt_seq_den.
