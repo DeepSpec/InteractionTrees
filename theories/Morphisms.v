@@ -240,8 +240,6 @@ Definition eh_left {A B} : A ~> itree (A +' B) :=
 Definition eh_right {A B} : B ~> itree (A +' B) :=
   fun _ e => Vis (inr1 e) (fun x => Ret x).
 
-Definition eh_eq {A B : Type -> Type} := forall X, pointwise_relation (A X) (@eutt B X).
-
 (** Standard interpreters *)
 
 Import ITree.Basics.Monads.
