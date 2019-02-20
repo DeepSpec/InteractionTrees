@@ -101,6 +101,56 @@ Proof.
     + intros; specialize (CIH _ (k0 v) k); auto.
 Qed.
 
+(** ** Composition of [interp] *)
+
+Inductive interp_inv0 {E F R}
+          (ff : itree E ~> itree F) (gg : itree E ~> itree F) :
+  relation (itree F R) :=
+| interp_inv_main t : interp_inv0 ff gg (ff _ t) (gg _ t)
+| interp_inv_bind u t (k: u -> _) :
+    interp_inv0 ff gg
+      (ITree.bind t (fun x => ff _ (k x)))
+      (ITree.bind t (fun x => gg _ (k x)))
+.
+Hint Constructors interp_inv0.
+
+Inductive iinv {E F R} (ff gg : itree E ~> itree F) (t1 t2 : itree F R) : Prop :=
+| iinv_intros t1' t2' :
+    t1 ≈ t1' ->
+    t2 ≈ t2' ->
+    interp_inv0 ff gg t1' t2' ->
+    iinv ff gg t1 t2
+.
+Hint Constructors iinv.
+
+Polymorphic Definition II_MAIN_STEP {E F R} (ff gg : itree E ~> itree F) :
+  Prop :=
+  forall (t : itree _ R),
+  euttF' (iinv ff gg) (fun x y => iinv ff gg (go x) (go y))
+         (observe (ff _ t)) (observe (gg _ t)).
+
+Theorem interp_interp {E F G R} (f : E ~> itree F) (g : F ~> itree G) :
+  forall t : itree E R,
+      interp g _ (interp f _ t)
+    ≈ interp (fun _ e => interp g _ (f _ e)) _ t.
+Proof.
+  intros.
+  assert (H : @II_MAIN_STEP _ _ R
+                          (fun _ t => interp g _ (interp f _ t))
+                          (fun _ t => interp (fun _ e => interp g _ (f _ e)) _ t)).
+  { red; intros. repeat rewrite interp_unfold; cbn.
+    destruct (observe t0); cbn.
+    - constructor.
+    - constructor. econstructor;
+        try eapply interp_inv_main;
+        (rewrite <- itree_eta; reflexivity).
+    - constructor. econstructor;
+        try eapply interp_inv_bind;
+        (rewrite <- itree_eta; try reflexivity).
+      rewrite interp_bind; reflexivity. }
+  eapply eutt_is_eutt'.
+Admitted.
+
 (** * [interp1] *)
 
 (* SAZ: If we need to introduce these auxilliar definitions to prove
