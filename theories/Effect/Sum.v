@@ -39,7 +39,7 @@ Definition swap {A B : Type -> Type} : A +' B ~> B +' A :=
 
 (** [Sum1.bimap] *)
 Definition bimap {A B C D : Type -> Type}
-           (f : A ~> B) (g : B ~> D) : A +' B ~> B +' D :=
+           (f : A ~> B) (g : C ~> D) : A +' C ~> B +' D :=
   fun _ ab =>
     match ab with
     | inl1 a => inl1 (f _ a)
