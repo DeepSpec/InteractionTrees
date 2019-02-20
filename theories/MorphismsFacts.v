@@ -94,6 +94,15 @@ Instance eutt_interp :
            (fun f => interp f R).
 Proof. Admitted.
 
+Lemma interp_ret : forall {E F R} x
+      (f : E ~> itree F),
+   (interp f R (Ret x)) ≅ Ret x.
+Proof.
+  intros. rewrite (itree_eta (Ret x)).
+  rewrite unfold_interp. unfold interp_u. unfold handleF.
+  cbn. reflexivity.
+Qed.
+
 Lemma interp_bind {E F R S}
       (f : E ~> itree F) (t : itree E R) (k : R -> itree E S) :
    (interp f _ (ITree.bind t k)) ≅ (ITree.bind (interp f _ t) (fun r => interp f _ (k r))).
@@ -112,17 +121,20 @@ Proof.
     + intros; specialize (CIH _ (k0 v) k); auto.
 Qed.
 
-Lemma interp_liftE {E F} (f : E ~> itree F) {R} (e : E R) :
-  interp f _ (ITree.liftE e) ≈ f _ e.
+
+Lemma interp_liftE {E F : Type -> Type} {R : Type}
+      (f : E ~> (itree F))
+      (e : E R) :
+  interp f _ (ITree.liftE e) ≅ Tau (f _ e).
 Proof.
-  rewrite itree_eta; cbn.
-  rewrite tau_eutt.
-  rewrite <- (bind_ret (f _ e)) at 2.
-  eapply eutt_bind; [reflexivity | ].
-  intro r.
-  rewrite ret_interp.
+  unfold ITree.liftE. rewrite vis_interp.
+  apply itree_eq_tau.
+  assert (pointwise_relation _ (@eq_itree _ _ _ (@eq R)) (fun x : R => interp f R (Ret x)) (fun x => Ret x)).
+  {red. intros. apply ret_interp. }
+  rewrite H. rewrite bind_ret.
   reflexivity.
-Qed.
+Qed.  
+
 
 (** ** Composition of [interp] *)
 
@@ -489,9 +501,108 @@ Proof.
      specialize (CIH _ (k0 v) k s). auto.
 Qed.
 
+
 (* Commuting interpreters *)
 
 Lemma interp_translate {E F G} (f : E ~> F) (g : F ~> itree G) {R} (t : itree E R) :
   interp g _ (translate f _ t) ≅ interp (fun _ e => g _ (f _ e)) _ t.
 Proof.
 Admitted.
+
+
+  
+
+
+(* Morphism Category -------------------------------------------------------- *)
+
+Definition eh_eq {A B : Type -> Type} f g := forall X, pointwise_relation (A X) (@eutt B X _ (@eq X)) (f X) (g X).
+
+Notation "f ≡ g" := (eh_eq f g) (at level 70).
+
+
+Lemma eh_compose_id_left_strong :
+  forall A R (t : itree A R), interp eh_id R t ≈ t.
+Proof.
+  intros A R. 
+  intros t.
+  pupto2_init.
+  revert t.
+  pcofix CIH.
+  intros t.
+  rewrite unfold_interp. unfold interp_u. unfold handleF.
+  rewrite eutt_is_eutt'_gres.
+  pfold. revert t. pcofix CIH'.
+  intros t.
+  destruct (observe t); cbn.
+  - pfold. econstructor.
+  - pfold. econstructor.
+    right. rewrite interp_unfold. unfold interp_u. unfold handleF.
+    apply CIH'.
+  - pfold. econstructor. cbn. econstructor. intros. 
+    assert (ITree.bind' (fun x0 : u => interp eh_id R (k x0)) (Ret x) = (x0 <- Ret x ;; interp eh_id R (k x0))).
+    { intros; reflexivity. }
+    rewrite H. rewrite ret_bind.
+    pupto2_final. right. apply CIH.
+Qed.  
+  
+
+Lemma eh_compose_id_left :
+  forall A B (f : A ~> itree B), eh_compose eh_id f ≡ f.
+Proof.
+  intros A B f X e.
+  unfold eh_compose. apply eh_compose_id_left_strong.
+Qed.  
+
+
+Lemma eh_compose_id_right :
+  forall A B (f : A ~> itree B), eh_compose f eh_id ≡ f.
+Proof.
+  intros B A f X e.
+  unfold eh_compose.
+  unfold eh_id. unfold ITree.liftE.
+  rewrite unfold_interp. unfold interp_u.
+  unfold handleF.
+  cbn. eapply transitivity. apply tau_eutt.
+  assert (pointwise_relation _ (eq_itree eq) (fun x : X => interp f X (Ret x)) (fun x => Ret x)).
+  { red. intros. apply interp_ret. }
+  rewrite H. rewrite bind_ret.
+  reflexivity.
+Qed.  
+  
+Lemma eh_both_left_right_id : forall A B X e,  eh_both eh_left eh_right X e = (@eh_id (A +' B)) X e.
+Proof.
+  intros A B X e.
+  unfold eh_both.
+  unfold eh_id. unfold ITree.liftE.
+  destruct e.
+  - unfold eh_left. reflexivity.
+  - unfold eh_right. reflexivity.
+Qed.
+
+Lemma eh_compose_assoc : forall A B C D (h : C ~> itree D) (g : B ~> itree C) (f : A ~> itree B),
+    eh_compose h (eh_compose g f) ≡ (eh_compose (eh_compose h g) f).
+Proof.
+(*  
+  intros A B C D h g f X e.
+  pupto2_init.
+  revert h g f.
+  pcofix CIH.
+  intros h g f.
+  rewrite eutt_is_eutt'_gres.
+  unfold eh_compose.
+  rewrite unfold_interp. unfold interp_u. unfold handleF.
+  rewrite interp_unfold. unfold interp_u. unfold handleF.
+  rewrite (itree_eta (interp (fun (T : Type) (e0 : B T) => interp h T (g T e0)) X (f X e))).
+  rewrite interp_unfold. unfold interp_u. unfold handleF.
+  pfold. 
+  revert h g f.
+  pcofix CIH'.
+  intros h g f.
+  destruct (observe (f X e)); cbn.
+  - pfold. econstructor.
+  - pfold.  econstructor. right. repeat rewrite interp_unfold.
+    unfold interp_u. unfold handleF. apply CIH'.
+    econstructor.
+ *)
+Admitted.
+

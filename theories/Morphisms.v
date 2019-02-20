@@ -39,6 +39,59 @@ From ITree Require Import
 
 Open Scope itree_scope.
 
+(*
+
+(*  ------------------------------------------------------------------------- *)
+
+A Monad Transformer MT is given by:
+  MT : (type -> type) -> (type -> type)
+  lift : `{Monad m} {a}, m a -> MT m a
+
+such that:
+  Monad (MT m)
+
+  lift o return = return 
+  lift o (bind t1 k) = 
+
+EXAMPLE:
+   stateT S m a :=    S -> m (S * a)
+   lift : m `{Monad m} {a}, fun (c: m a) (s:S) => y <- c ;; ret (s, y)
+
+operations 
+  get : m `{Monad m} stateT S m S := fun s => ret_m (s, s)
+  put : m `{Monad m}, S -> stateT S m unit := fun s' => fun s => ret_m (s', tt)  
+
+(* category *)
+id : A ~> MT (itree A)
+compose : (B ~> MT2 (itree C)) ~> (A ~> MT1 (itree B)) -> (A ~> (MT2 o MT1) (itree C))
+
+(* co-cartesian *)
+par  : (A ~> MT1 (itree B)) -> (C ~> MT2 (itree D)) -> (A + C ~> (MT1 ** MT2) (itree (B + D)))
+both : (A ~> MT (itree B)) -> (C ~> (MT itree B)) -> (A + C ~> MT (itree B))
+
+swap : (A ~> MT1 (itree B)) -> (C ~> MT2 (itree D)) -> (A + C ~> (MT2 ** MT1) (itree (D + B)))
+
+
+left : A ~> MT (itree (A + B))
+right : B ~> MT (itree (A + B))
+
+left : (A ~> MT (itree B)) -> (A ~> MT (itree (B + C)))
+right : (C ~> MT (itree D)) -> (C ~> MT (itree (A + D)))
+
+
+
+(*  ------------------------------------------------------------------------- *)
+Algebraic effects handlers
+
+Definition sig (E:Type -> Type) m `{Monad m} := forall X, E X -> m x
+
+
+
+
+
+*)
+
+
 (** [itreeF] eliminator, where the codomain is in the [itree]
     monad, a building block for itree monad morphisms. *)
 Definition handleF {E F : Type -> Type} {I R : Type}
@@ -93,6 +146,12 @@ Definition interp {E F : Type -> Type} (h : E ~> itree F) :
             (fun _ e k => Tau (ITree.bind (h _ e)
                                           (fun x => interp_ (k x))))
             (observe t).
+
+
+
+
+
+
 (* N.B.: the guardedness of this definition relies on implementation
    details of [bind]. *)
 
@@ -126,18 +185,46 @@ Definition translate {E F : Type -> Type} (h : E ~> F) :
 
 (** Effects [E, F : Type -> Type] and itree [E ~> itree F] form a
     category. *)
-(* TODO: check that [itree] is a monad, so that category is its
-   Kleisli category. *)
-
 (* todo(gmm): it would be good to have notation for this.
  * - if there was a "category" class like in Haskell, then we could
  *   get composition from something like that.
  *)
+
+(* Morphism Category -------------------------------------------------------- *)
+
 Definition eh_compose {A B C} (g : B ~> itree C) (f : A ~> itree B) :
   A ~> itree C :=
   fun _ e => interp g _ (f _ e).
 
 Definition eh_id {A} : A ~> itree A := @ITree.liftE A.
+
+Definition eh_par {A B C D} (f : A ~> itree B) (g : C ~> itree D) : (A +' C) ~> itree (B +' D) :=
+  fun _ e =>
+    match e with
+    | inl1 e1 => translate (@inl1 _ _) _ (f _ e1)
+    | inr1 e2 => translate (@inr1 _ _) _ (g _ e2)
+    end.
+
+Definition eh_swap {A B C D} (f : A ~> itree B) (g : C ~> itree D) : (A +' C) ~> itree (D +' B) :=
+  fun _ e =>
+    match e with
+    | inl1 e1 => translate (@inr1 _ _) _ (f _ e1)
+    | inr1 e2 => translate (@inl1 _ _) _ (g _ e2)
+    end.
+
+
+Definition eh_both {A B C} (f : A ~> itree B) (g : C ~> itree B) : (A +' C) ~> itree B :=
+  fun _ e =>
+    match e with
+    | inl1 e1 => f _ e1
+    | inr1 e2 => g _ e2
+    end.
+
+Definition eh_left {A B} : A ~> itree (A +' B) :=
+  fun _ e => Vis (inl1 e) (fun x => Ret x).
+
+Definition eh_right {A B} : B ~> itree (A +' B) :=
+  fun _ e => Vis (inr1 e) (fun x => Ret x).
 
 (** Standard interpreters *)
 
