@@ -85,11 +85,43 @@ Inductive callE (A B : Type) : Type -> Type :=
 
 Arguments Call {A B}.
 
+(** Get the [A] contained in a [callE A B]. *)
+Definition unCall {A B T} (e : callE A B T) : A :=
+  match e with
+  | Call a => a
+  end.
+
+(** Lift a function on [A] to a morphism on [callE]. *)
+Definition calling {A B} {F : Type -> Type}
+           (f : A -> F B) : callE A B ~> F :=
+  fun _ e =>
+    match e with
+    | Call a => f a
+    end.
+
+(* This is identical to [callWith] but [rec] finds a universe
+   inconsistency with [callWith], and not with [callWith']. *)
+Definition calling' {A B} {F : Type -> Type}
+           (f : A -> itree F B) : callE A B ~> itree F :=
+  fun _ e =>
+    match e with
+    | Call a => f a
+    end.
+
 (* Interpret a single recursive definition. *)
 Definition rec {E : Type -> Type} {A B : Type}
            (body : A -> itree (callE A B +' E) B) :
   A -> itree E B :=
-  fun a => mrec (fun _ call =>
-    match call in callE _ _ T return itree (_ +' E) T with
-    | Call a => body a
-    end) _ (Call a).
+  fun a => mrec (calling' body) _ (Call a).
+
+(* Iterate a function updating an accumulator [A],
+   until it produces an output [B]. *)
+Definition loop {E : Type -> Type} {A B : Type}
+           (body : A -> itree E (A + B)) :
+  A -> itree E B :=
+  rec (fun a =>
+    ac <- translate (fun _ x => inr1 x) _ (body a) ;;
+    match ac with
+    | inl a => ITree.liftE (inl1 (Call a))
+    | inr b => Ret b
+    end).
