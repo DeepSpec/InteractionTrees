@@ -44,8 +44,13 @@ Definition sum_assoc_r {A B C} (abc : (A + B) + C) : A + (B + C) :=
 Definition sum_comm {A B} : A + B -> B + A :=
   sum_elim inr inl.
 
-Definition sum_assoc_l {A B C} (abc : A + (B + C)) : (A + B) + C.
-Admitted.
+Definition sum_assoc_l {A B C} (abc : A + (B + C)) : (A + B) + C :=
+  match abc with
+  | inl a => inl (inl a)
+  | inr (inl b) => inl (inr b)
+  | inr (inr c) => inr c
+  end.
+
 
 Definition sum_merge {A} : A + A -> A := sum_elim id id.
 
@@ -166,12 +171,31 @@ Definition seq_bks {A B C} (ab : bks A (A + B)) (bc : bks B (B + C)) : bks (A + 
   rewire_b rw (cat_b ab bc).
 *)
 
-Definition rw {A I B J C} : ((A + I) + B) + ((B + J) + C) ->
-      ((A + (I + (B + J))) + C).
-Admitted.
+Class ReSum (A B : Type) :=
+  resum : A -> B.
 
-Definition corw {A I B J} : (A + (I + (B + J))) -> (A + I) + (B + J).
-Admitted.
+Instance ReSum_id A : ReSum A A := id.
+Instance ReSum_sum A B C `{ReSum A C} `{ReSum B C} : ReSum (A + B) C :=
+  sum_elim resum resum.
+Instance ReSum_inl A B C `{ReSum A B} : ReSum A (B + C) :=
+  inl ∘ resum.
+Instance ReSum_inr A B C `{ReSum A B} : ReSum A (C + B) :=
+  inr ∘ resum.
+
+Opaque compose.
+Opaque id.
+Opaque sum_elim.
+
+Definition rw {A I B J C} : ((A + I) + B) + ((B + J) + C) ->
+      ((A + (I + (B + J))) + C) :=
+  Eval compute in resum.
+
+Transparent compose.
+Transparent id.
+Transparent sum_elim.
+
+Definition corw {A I B J} : (A + (I + (B + J))) -> (A + I) + (B + J) :=
+  sum_assoc_l.
 
 (* Sequential composition of bks. *)
 Definition seq_bks {A I B J C}
@@ -287,6 +311,118 @@ Lemma sum_elim_loop {A B C BD}
 Proof.
 Admitted.
 
+Class Iso {A B} (f : A -> B) (f' : B -> A) : Type :=
+  { iso_ff' : forall a, f' (f a) = a;
+    iso_f'f : forall b, f (f' b) = b;
+  }.
+
+Instance Iso_sum_assoc_l {A B C} : Iso (@sum_assoc_l A B C) sum_assoc_r := {}.
+Proof.
+  - destruct 0 as [| []]; auto.
+  - destruct 0 as [[] |]; auto.
+Qed.
+
+Instance Iso_sum_assoc_r {A B C} : Iso (@sum_assoc_r A B C) sum_assoc_l := {}.
+Proof.
+  - destruct 0 as [[] |]; auto.
+  - destruct 0 as [| []]; auto.
+Qed.
+
+Lemma loop_relabel {A B C}
+      (f : A -> B) {f' : B -> A}
+      {ISO_f : Iso f f'}
+      (ac : den A (A + C)) :
+  eq_den (loop ac)
+         (lift_den f >=> loop (lift_den f' >=> ac >=> lift_den (sum_map_l f))).
+Proof.
+Admitted.
+
+Lemma seq_lift_den {A B C} (ab : A -> B) (bc : B -> C) :
+  eq_den (lift_den ab >=> lift_den bc)
+         (lift_den (bc ∘ ab)).
+Proof.
+Admitted.
+
+Lemma compose_id_l {A B} (f : A -> B) : id ∘ f = f.
+Proof. reflexivity. Qed.
+
+Lemma compose_id_r {A B} (f : A -> B) : f ∘ id = f.
+Proof. reflexivity. Qed.
+
+Definition eqeq {A B} := (@eq A ==> @eq B)%signature.
+
+Instance Equivalence_eqeq {A B} : Equivalence (@eqeq A B).
+Proof.
+  constructor; cbv; intros; subst; auto.
+  - symmetry; auto.
+  - etransitivity; auto.
+Qed.
+
+Instance eq_lift_den {A B} :
+  Proper (eqeq ==> eq_den) (@lift_den A B).
+Proof.
+Admitted.
+
+Lemma seq_sum_elim {A B C D} (ac : den A C) (bc : den B C) (cd : den C D) :
+  eq_den (sum_elim ac bc >=> cd)
+         (sum_elim (ac >=> cd) (bc >=> cd)).
+Proof.
+Admitted.
+
+Lemma compose_sum_elim {A B C D} (ac : A -> C) (bc : B -> C) (cd : C -> D) :
+  eqeq (cd ∘ sum_elim ac bc)
+       (sum_elim (cd ∘ ac) (cd ∘ bc)).
+Proof.
+  intros [] ? []; auto.
+Qed.
+
+Instance eq_compose {A B C} :
+  Proper (eqeq ==> eqeq ==> eqeq)
+         (@compose A B C).
+Proof. cbv; auto. Qed.
+
+Lemma sum_elim_inl {A B C} (f : A -> C) (g : B -> C) :
+  sum_elim f g ∘ inl = f.
+Proof. reflexivity. Qed.
+
+Lemma sum_elim_inr {A B C} (f : A -> C) (g : B -> C) :
+  sum_elim f g ∘ inr = g.
+Proof. reflexivity. Qed.
+
+Lemma sum_elim_inl' {A B C D} (f : A -> C) (g : B -> C) (h : D -> A) :
+  sum_elim f g ∘ (inl ∘ h) = f ∘ h.
+Proof. reflexivity. Qed.
+
+Lemma sum_elim_inr' {A B C D} (f : A -> C) (g : B -> C) (h : D -> B) :
+  sum_elim f g ∘ (inr ∘ h) = g ∘ h.
+Proof. reflexivity. Qed.
+
+Lemma unfold_sum_assoc_r {A B C} :
+  @sum_assoc_r A B C = sum_elim (sum_elim inl (inr ∘ inl)) (inr ∘ inr).
+Proof. cbv; auto. Qed.
+
+Opaque eutt.
+
+Lemma lift_sum_elim {A B C} (ac : A -> C) (bc : B -> C) :
+  eq_den (sum_elim (lift_den ac) (lift_den bc))
+         (lift_den (sum_elim ac bc)).
+Proof. intros []; reflexivity. Qed.
+
+Instance eqeq_sum_elim {A B C} :
+  Proper (eqeq ==> eqeq ==> eqeq) (@sum_elim A B C).
+Proof. cbv; intros; subst; destruct _; auto. Qed.
+
+Hint Rewrite @compose_id_l : cat.
+Hint Rewrite @compose_id_r : cat.
+
+Hint Rewrite @sum_elim_inl : sum_elim.
+Hint Rewrite @sum_elim_inr : sum_elim.
+Hint Rewrite @sum_elim_inl' : sum_elim.
+Hint Rewrite @sum_elim_inr' : sum_elim.
+
+Hint Rewrite @lift_sum_elim : lift_den.
+Hint Rewrite @seq_lift_den : lift_den.
+
 Theorem seq_correct {A B C} (ab : asm A B) (bc : asm B C) :
   eq_den (denote_asm (seq_asm ab bc))
          (seq_den (denote_asm ab) (denote_asm bc)).
@@ -305,8 +441,32 @@ Proof.
   unfold den_sum_map_r.
   rewrite sum_elim_loop.
   rewrite loop_loop.
-
-Arguments loop : clear implicits.
-
+  rewrite (loop_relabel sum_assoc_r).
+  repeat (rewrite seq_lift_den + rewrite <- (seq_den_assoc (lift_den _) (lift_den _))).
+  apply eutt_seq_den.
+  { apply eq_lift_den.
+    cbv; congruence. }
+  apply eutt_loop'.
+  unfold corw.
+  repeat rewrite seq_den_assoc + rewrite seq_lift_den.
+  eapply eutt_seq_den.
+  { reflexivity. }
+  repeat rewrite seq_sum_elim.
+  repeat rewrite seq_den_assoc + rewrite seq_lift_den.
+  unfold sum_map_r, sum_map_l, sum_bimap.
+  rewrite unfold_sum_assoc_r.
+  unfold rw.
+  autorewrite with cat.
+  repeat rewrite compose_assoc.
+  autorewrite with sum_elim.
+  autorewrite with lift_den.
+  eapply eutt_elim.
+  - eapply eutt_seq_den.
+    + reflexivity.
+    + eapply eq_lift_den.
+      intros a ? []. destruct a as [[] | ]; auto.
+  - eapply eutt_seq_den.
+    + reflexivity.
+    + eapply eq_lift_den.
+      intros a ? []; destruct a as [[] | ]; auto.
 Qed.
-Admitted.
