@@ -205,14 +205,6 @@ Definition eh_par {A B C D} (f : A ~> itree B) (g : C ~> itree D) : (A +' C) ~> 
     | inr1 e2 => translate (@inr1 _ _) _ (g _ e2)
     end.
 
-Definition eh_swap {A B C D} (f : A ~> itree B) (g : C ~> itree D) : (A +' C) ~> itree (D +' B) :=
-  fun _ e =>
-    match e with
-    | inl1 e1 => translate (@inr1 _ _) _ (f _ e1)
-    | inr1 e2 => translate (@inl1 _ _) _ (g _ e2)
-    end.
-
-
 Definition eh_both {A B C} (f : A ~> itree B) (g : C ~> itree B) : (A +' C) ~> itree B :=
   fun _ e =>
     match e with

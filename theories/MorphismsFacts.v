@@ -510,9 +510,37 @@ Proof.
 Admitted.
 
 
+(* Translate facts ---------------------------------------------------------- *)
+
+Instance translate_Proper : forall {A B R} (h : A ~> B), Proper ( (eq_itree (@eq R)) ==> eq_itree eq) (translate h _).
+Proof.
+Admitted.
   
+  
+Lemma translate_ret : forall {A B R} (h : A ~> B) (r:R),
+    translate h _ (Ret r) ≅ Ret r.
+Proof.
+  intros A B R h r.
+  rewrite itree_eta.
+  cbn. reflexivity.
+Qed.
 
+Lemma translate_tau : forall {A B R} (h : A ~> B) (t: itree A R),
+    translate h _ (Tau t) ≅ Tau (translate h _ t).
+Proof.
+  intros A B R h t.
+  rewrite itree_eta.
+  cbn. reflexivity.
+Qed.
 
+Lemma translate_vis : forall {A B R} (h : A ~> B) X (e : A X) (k: X -> itree A R),
+    translate h _ (Vis e k) ≅ Vis (h _ e) (fun x => translate h _ (k x)).
+Proof.
+  intros A B R h X e k.
+  rewrite itree_eta.
+  cbn. reflexivity.
+Qed.
+  
 (* Morphism Category -------------------------------------------------------- *)
 
 Definition eh_eq {A B : Type -> Type} f g := forall X, pointwise_relation (A X) (@eutt B X _ (@eq X)) (f X) (g X).
@@ -586,5 +614,23 @@ Proof.
   unfold eh_compose. rewrite interp_interp. reflexivity.
 Qed.
 
+Lemma eh_par_id : forall A B, eh_par eh_id eh_id ≡ (@eh_id (A +' B)).
+Proof.
+  intros A B X e.
+  unfold eh_par.
+  unfold eh_id.
+  destruct e.
+  - unfold ITree.liftE.
+    rewrite translate_vis.
+    assert (pointwise_relation X (@eq_itree (A +' B) _ _ eq) (fun x : X => translate (inl1 (E2:=B)) X (Ret x)) (fun x : X => Ret x)).
+    { intros x. rewrite translate_ret. reflexivity. }
+    rewrite H. reflexivity.
+  - unfold ITree.liftE.
+    rewrite translate_vis.
+    assert (pointwise_relation X (@eq_itree (A +' B) _ _ eq) (fun x : X => translate (inr1 (E2:=B)) X (Ret x)) (fun x : X => Ret x)).
+    { intros x. rewrite translate_ret. reflexivity. }
+    rewrite H. reflexivity.
+Qed.
 
+    
 
