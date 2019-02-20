@@ -83,6 +83,17 @@ Proof.
     + eauto. intros; pupto2_final; right; eauto.
 Qed.
 
+Definition Rhom {E F : Type -> Type} : relation (E ~> F) :=
+  fun l r =>
+    forall x (e : E x), l _ e = r _ e.
+
+(* Note that this allows rewriting of handlers. *)
+Instance eutt_interp :
+  forall (E F : Type -> Type) (R : Type),
+    Proper (@Rhom E (itree F) ==> eutt eq ==> eutt eq)
+           (fun f => interp f R).
+Proof. Admitted.
+
 Lemma interp_bind {E F R S}
       (f : E ~> itree F) (t : itree E R) (k : R -> itree E S) :
    (interp f _ (ITree.bind t k)) ≅ (ITree.bind (interp f _ t) (fun r => interp f _ (k r))).
@@ -101,7 +112,24 @@ Proof.
     + intros; specialize (CIH _ (k0 v) k); auto.
 Qed.
 
+Lemma interp_liftE {E F} (f : E ~> itree F) {R} (e : E R) :
+  interp f _ (ITree.liftE e) ≈ f _ e.
+Proof.
+  rewrite itree_eta; cbn.
+  rewrite tau_eutt.
+  rewrite <- (bind_ret (f _ e)) at 2.
+  eapply eutt_bind; [reflexivity | ].
+  intro r.
+  rewrite ret_interp.
+  reflexivity.
+Qed.
+
 (** ** Composition of [interp] *)
+
+Lemma interp_id_liftE {E R} (t : itree E R) :
+  interp (fun _ e => ITree.liftE e) _ t ≈ t.
+Proof.
+Admitted.
 
 Inductive interp_inv0 {E F R}
           (ff : itree E ~> itree F) (gg : itree E ~> itree F) :
@@ -459,5 +487,11 @@ Proof.
    * rewrite interp1_state_vis2, !vis_bind. rewrite itree_eta. rewrite unfold_interp1_state.
      cbn. pfold. constructor. intros.
      specialize (CIH _ (k0 v) k s). auto.
-Qed.     
+Qed.
 
+(* Commuting interpreters *)
+
+Lemma interp_translate {E F G} (f : E ~> F) (g : F ~> itree G) {R} (t : itree E R) :
+  interp g _ (translate f _ t) ≅ interp (fun _ e => g _ (f _ e)) _ t.
+Proof.
+Admitted.

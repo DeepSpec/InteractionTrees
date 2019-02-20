@@ -911,37 +911,6 @@ Definition denote_program {e} `{Locals -< e} `{Memory -< e} {L}
     Require Import ITree.MorphismsFacts.
     Require Import ITree.FixFacts.
 
-    Lemma rec_unfold {E A B} (f : A -> itree (callE A B +' E) B) (x : A)
-      : rec f x ≈ interp (fun _ e => match e with
-                                  | inl1 e =>
-                                    match e in callE _ _ t return _ with
-                                    | Call x => rec f x
-                                    end
-                                  | inr1 e => lift e
-                                  end) _ (f x).
-    Proof.
-      unfold rec. unfold mrec.
-      rewrite interp_mrec_is_interp.
-      repeat rewrite <- MorphismsFacts.interp_is_interp1.
-      unfold MorphismsFacts.interp_match.
-      unfold mrec.
-      SearchAbout interp Proper.
-      Definition Rhom {E F : Type -> Type} : relation (E ~> F) :=
-        fun l r =>
-          forall x (e : E x), l _ e = r _ e.
-      Lemma eq_itree_interp:
-  forall (E F : Type -> Type) (R : Type),
-    Proper (@Rhom E (itree F) ==> eutt eq ==> eutt eq)
-           (fun f => interp f R).
-      Proof. Admitted.
-      eapply eq_itree_interp.
-      { red. destruct e; try reflexivity.
-        destruct c.
-        reflexivity. }
-      reflexivity.
-    Qed.
-
-
 Definition denote_main {e} `{Locals -< e} `{Memory -< e} {L}
            (p : program L) : itree e (option L) :=
   next <- denote_block e p.(main) ;;
