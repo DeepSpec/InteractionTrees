@@ -582,27 +582,9 @@ Qed.
 Lemma eh_compose_assoc : forall A B C D (h : C ~> itree D) (g : B ~> itree C) (f : A ~> itree B),
     eh_compose h (eh_compose g f) ≡ (eh_compose (eh_compose h g) f).
 Proof.
-(*  
   intros A B C D h g f X e.
-  pupto2_init.
-  revert h g f.
-  pcofix CIH.
-  intros h g f.
-  rewrite eutt_is_eutt'_gres.
-  unfold eh_compose.
-  rewrite unfold_interp. unfold interp_u. unfold handleF.
-  rewrite interp_unfold. unfold interp_u. unfold handleF.
-  rewrite (itree_eta (interp (fun (T : Type) (e0 : B T) => interp h T (g T e0)) X (f X e))).
-  rewrite interp_unfold. unfold interp_u. unfold handleF.
-  pfold. 
-  revert h g f.
-  pcofix CIH'.
-  intros h g f.
-  destruct (observe (f X e)); cbn.
-  - pfold. econstructor.
-  - pfold.  econstructor. right. repeat rewrite interp_unfold.
-    unfold interp_u. unfold handleF. apply CIH'.
-    econstructor.
- *)
-Admitted.
+  unfold eh_compose. rewrite interp_interp. reflexivity.
+Qed.
+
+
 

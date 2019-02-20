@@ -212,6 +212,7 @@ Proof.
   eapply eutt_bind; [ reflexivity |].
   intros [a | b].
   - rewrite interp_liftE; cbn.
+    rewrite tau_eutt.
     reflexivity.
   - rewrite ret_interp.
     reflexivity.
