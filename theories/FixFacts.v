@@ -216,3 +216,18 @@ Proof.
   - rewrite ret_interp.
     reflexivity.
 Qed.
+
+Definition sum_map1 {A B C} (f : A -> B) (ac : A + C) : B + C :=
+  match ac with
+  | inl a => inl (f a)
+  | inr c => inr c
+  end.
+
+Lemma bind_loop {E A B C} (f : A -> itree E (A + B)) (g : B -> itree E (B + C)) (x : A) :
+    (loop f x >>= loop g)
+  ≈ loop (fun ab =>
+       match ab with
+       | inl a => ITree.map inl (f a)
+       | inr b => ITree.map (sum_map1 inr) (g b)
+       end) (inl x).
+Admitted.
