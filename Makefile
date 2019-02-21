@@ -21,27 +21,29 @@ tests:
 
 examples: example-imp example-lc example-io example-nimp example-threads
 
-example-imp: examples/Imp.v
-	coqc -Q theories/ ITree examples/Imp.v
-
-example-lc: examples/stlc.v
-	coqc -Q theories/ ITree examples/stlc.v
-
-example-lc: examples/stlc.v
-	coqc -Q theories/ ITree examples/Nimp.v
-
-example-io: examples/IO.v
+examples/%.vo: examples/%.v
 	cd examples && \
-	  coqc -Q ../theories/ ITree IO.v && \
+	  coqc -Q ../theories/ ITree $*.v
+
+example-imp: examples/Imp.vo
+
+example-lc: examples/stlc.vo
+
+example-lc: examples/stlc.vo
+
+example-io: examples/IO.vo
+	cd examples && \
 	  ocamlbuild io.native && ./io.native
 
-example-asm: example-imp examples/Asm.v
-	cd examples && \
-	  coqc -Q ../theories/ ITree Asm.v
+examples/Asm.vo: examples/sum.vo examples/Imp.vo
+examples/Imp2Asm.vo: examples/Asm.vo
+examples/Imp2AsmBis.vo: examples/sum.vo
 
-example-imp2asm: example-asm examples/Imp2Asm.v
-	cd examples && \
-	  coqc -Q ../theories/ ITree Imp2Asm.v
+example-asm: examples/Asm.vo
+
+example-imp2asm: examples/Imp2Asm.vo
+
+example-imp2asm2: examples/Imp2AsmBis.vo
 
 THREADSV=examples/MultiThreadedPrinting.v examples/ExtractThreadsExample.v
 THREADSML=examples/runthread.ml

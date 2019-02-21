@@ -24,12 +24,12 @@ Section Syntax.
   | Bbrz (_ : var) (yes no : label) (* conditional jump *)
   | Bhalt
   .
-  Arguments branch _ : clear implicits.
+  Global Arguments branch _ : clear implicits.
 
   Inductive block {label : Type} : Type :=
   | bbi (_ : instr) (_ : block)
   | bbb (_ : branch label).
-  Arguments block _ : clear implicits.
+  Global Arguments block _ : clear implicits.
 
   Definition fmap_branch {A B : Type} (f: A -> B): branch A -> branch B :=
     fun b =>
@@ -168,7 +168,9 @@ Section Semantics.
   (* Denotation of [asm] *)
 
   Definition denote_asm {e} `{Locals -< e} `{Memory -< e} {A B} : asm A B -> @den e A (B + done) :=
-    fun s => seq_den (lift_den inl) (loop (fun a => ITree.map sum_assoc_r (denote_b e (code s) a))).
+    fun s =>
+      seq_den (lift_den inl)
+              (aloop (fun a => ITree.map sum_assoc_r (denote_b e (code s) a))).
 
 End Semantics.
 (* SAZ: Everything from here down can probably be polished.

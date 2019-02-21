@@ -114,9 +114,22 @@ Definition rec {E : Type -> Type} {A B : Type}
   A -> itree E B :=
   fun a => mrec (calling' body) _ (Call a).
 
-(* Iterate a function updating an accumulator [A],
+(* Iterate a function updating an accumulator [C],
    until it produces an output [B]. *)
-Definition loop {E : Type -> Type} {A B : Type}
+Definition loop {E : Type -> Type} {A B C : Type}
+           (body : (C + A) -> itree E (C + B)) :
+  A -> itree E B :=
+  rec (fun a =>
+    bc <- translate (fun _ x => inr1 x) _ (body a) ;;
+    match bc with
+    | inl c => ITree.liftE (inl1 (Call a))
+    | inr b => Ret b
+    end) ∘ inr.
+
+(* Iterate a function updating an accumulator [A], until it produces
+   an output [B]. It's an Asymmetric variant of [loop], and it looks
+   similar to an Anamorphism, hence the name [aloop]. *)
+Definition aloop {E : Type -> Type} {A B : Type}
            (body : A -> itree E (A + B)) :
   A -> itree E B :=
   rec (fun a =>

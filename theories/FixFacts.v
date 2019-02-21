@@ -198,13 +198,14 @@ Proof.
 Qed.
 
 Lemma loop_unfold {E A B} (f : A -> itree E (A + B)) (x : A) :
-  loop f x ≈ (ab <- f x ;;
-              match ab with
-              | inl a => loop f a
-              | inr b => Ret b
-              end).
+    aloop f x
+  ≈ (ab <- f x ;;
+     match ab with
+     | inl a => aloop f a
+     | inr b => Ret b
+     end).
 Proof.
-  unfold loop at 1.
+  unfold aloop at 1.
   rewrite rec_unfold.
   rewrite interp_bind.
   rewrite interp_translate.
@@ -225,8 +226,8 @@ Definition sum_map1 {A B C} (f : A -> B) (ac : A + C) : B + C :=
   end.
 
 Lemma bind_loop {E A B C} (f : A -> itree E (A + B)) (g : B -> itree E (B + C)) (x : A) :
-    (loop f x >>= loop g)
-  ≈ loop (fun ab =>
+    (aloop f x >>= aloop g)
+  ≈ aloop (fun ab =>
        match ab with
        | inl a => ITree.map inl (f a)
        | inr b => ITree.map (sum_map1 inr) (g b)

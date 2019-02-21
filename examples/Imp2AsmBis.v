@@ -60,7 +60,7 @@ Axiom denote_b : forall {A B}, bks A B -> den A B.
 
 (* Denotation of [asm] *)
 Definition denote_asm {A B} : asm A B -> den A B :=
-  fun s => seq_den (lift_den inl) (loop (denote_b (code s))).
+  fun s => seq_den (lift_den inl) (aloop (denote_b (code s))).
 
 (* A denotation of an asm program can be viewed as a circuit/diagram
    where wires correspond to jumps/program links.
@@ -137,14 +137,14 @@ Definition seq_asm {A B C} (ab : asm A B) (bc : asm B C) : asm A C :=
 
 (* Unused but should go to FixFacts *)
 Instance eutt_loop {E A B} :
-  Proper ((eq ==> eutt eq) ==> eq ==> eutt eq) (@loop E A B).
+  Proper ((eq ==> eutt eq) ==> eq ==> eutt eq) (@aloop E A B).
 Proof.
   repeat intro.
   subst.
 Admitted. 
 
 Instance eutt_loop' {E A B} :
-  Proper (eq_den ==> eq_den) (@loop E A B).
+  Proper (eq_den ==> eq_den) (@aloop E A B).
 Proof.
 Admitted.
 
@@ -172,15 +172,15 @@ Admitted.
 
 Lemma seq_loop_l {A B C}
       (ab : den A (A + B)) (bc : den B C) :
-  eq_den (loop ab >=> bc)
-         (lift_den inl >=> loop (den_sum_bimap ab bc)).
+  eq_den (aloop ab >=> bc)
+         (lift_den inl >=> aloop (den_sum_bimap ab bc)).
 Proof.
 Admitted.
 
 Lemma seq_loop_l_seq {A B C}
       (ab : den A (A + B)) (bc : den B C) :
-  eq_den (loop ab >=> bc)
-         (loop (ab >=> den_sum_map_r bc)).
+  eq_den (aloop ab >=> bc)
+         (aloop (ab >=> den_sum_map_r bc)).
 Proof.
 Admitted.
 
@@ -223,9 +223,9 @@ Can be rewired as:
 *)
 Lemma loop_loop {A B C}
       (f : A -> B) (bc : den B (B + (A + C))) :
-  eq_den (loop (lift_den f >=> loop bc))
+  eq_den (aloop (lift_den f >=> aloop bc))
          (lift_den f
-             >=> loop (bc >=> lift_den (sum_elim inl (sum_elim (inl ∘ f) inr)))).
+             >=> aloop (bc >=> lift_den (sum_elim inl (sum_elim (inl ∘ f) inr)))).
 Proof.
 Admitted.
 
@@ -233,10 +233,10 @@ Lemma sum_elim_loop {A B C BD}
       (f : B -> BD)
       (ac : den A C) (bc : den BD (BD + C)) :
   eq_den (sum_elim ac
-                   (lift_den f >=> loop bc))
+                   (lift_den f >=> aloop bc))
          (lift_den (sum_map_r f)
-            >=> loop (sum_elim (ac >=> lift_den inr)
-                               (bc >=> lift_den (sum_map_l inr)))).
+            >=> aloop (sum_elim (ac >=> lift_den inr)
+                                (bc >=> lift_den (sum_map_l inr)))).
 Proof.
 Admitted.
 
@@ -244,8 +244,8 @@ Lemma loop_relabel {A B C}
       (f : A -> B) {f' : B -> A}
       {ISO_f : Iso f f'}
       (ac : den A (A + C)) :
-  eq_den (loop ac)
-         (lift_den f >=> loop (lift_den f' >=> ac >=> lift_den (sum_map_l f))).
+  eq_den (aloop ac)
+         (lift_den f >=> aloop (lift_den f' >=> ac >=> lift_den (sum_map_l f))).
 Proof.
 Admitted.
 
