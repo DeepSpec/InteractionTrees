@@ -92,10 +92,115 @@ Definition rewire_den {A B C D} (f : C -> A) (g : B -> D)
            (ab : den A B) : den C D :=
   fun a => ITree.map g (ab (f a)).
 
+Lemma lift_den_lift_den: forall {A B C} (f: A -> B) (g: B -> C),
+      eq_den (lift_den f >=> lift_den g) (lift_den (g ∘ f)).
+Proof.
+  intros; intros a. 
+  unfold lift_den, seq_den.
+  rewrite ret_bind.
+  reflexivity.
+Qed.
+
+Lemma lift_den_assoc: forall {A B C D} (f: A -> B) (g: B -> C) (k: den C D),
+      eq_den (lift_den f >=> (lift_den g >=> k)) (lift_den f >=> lift_den g >=> k).
+Proof.
+  intros; intros a.
+  unfold lift_den, seq_den.
+  repeat rewrite ret_bind; reflexivity.
+Qed.
+
+Lemma lift_seq_den {A B C}: forall (f:A -> B) (bc: den B C),
+      eq_den (lift_den f >=> bc) (fun a => bc (f a)).
+Proof.
+  intros; intro a.
+  unfold lift_den, seq_den.
+  rewrite ret_bind; reflexivity.
+Qed.
+
+Lemma seq_den_lift {A B C}: forall (ab: den A B) (g:B -> C),
+      eq_den (ab >=> lift_den g) (fun a => ITree.map g (ab a)).
+Proof.
+  intros; intro a.
+  reflexivity.
+Qed.
+
+Lemma seq_den_assoc {A B C D}
+      (ab : den A B) (bc : den B C) (cd : den C D) :
+  eq_den ((ab >=> bc) >=> cd)
+         (ab >=> (bc >=> cd)).
+Proof.
+  unfold seq_den; intro a.
+  rewrite bind_bind; reflexivity.
+Qed.
+
+Instance eutt_seq_den {A B C} :
+  Proper (eq_den ==> eq_den ==> eq_den) (@seq_den A B C).
+Proof.
+  intros ab ab' eqAB bc bc' eqBC.
+  intro a.
+  unfold seq_den.
+  rewrite (eqAB a).
+  apply eutt_bind; [reflexivity | intro b].
+  rewrite (eqBC b); reflexivity.
+Qed.
+
+Instance Equivalence_eq_den {E A B} : Equivalence (@eq_den E A B).
+Proof.
+  split.
+  - intros ab a; reflexivity.
+  - intros ab ab' eqAB a; symmetry; auto.
+  - intros ab ab' ab'' eqAB eqAB' a; etransitivity; eauto.
+Qed.
+
 Lemma unfold_rewire_den {A B C D} (f : C -> A) (g : B -> D)
       (ab : den A B) :
   eq_den (rewire_den f g ab)
          (lift_den f >=> ab >=> lift_den g).
+Proof.
+  rewrite lift_seq_den, seq_den_lift.
+  reflexivity.
+Qed.
+
+Instance lift_den_respectful {A B} :
+  Proper ((eq ==> eq) ==> eq_den)
+         (@lift_den A B).
+Proof.
+  repeat intro.
+  unfold lift_den.
+  erewrite (H a); reflexivity.
+Qed.
+
+Instance eutt_rewire_den {A B C D} :
+  Proper ((eq ==> eq) ==> (eq ==> eq) ==> eq_den ==> eq_den)
+         (@rewire_den A B C D).
+Proof.
+  intros f f' eqf g g' eqg ab ab' eqAB.
+  do 2 rewrite unfold_rewire_den.
+  rewrite eqf, eqg, eqAB; reflexivity. 
+Qed.
+
+(* Unused but should go to FixFacts *)
+Instance eutt_loop {E A B} :
+  Proper ((eq ==> eutt eq) ==> eq ==> eutt eq) (@aloop E A B).
+Proof.
+Admitted. 
+
+Instance eutt_loop' {E A B} :
+  Proper (eq_den ==> eq_den) (@aloop E A B).
+Proof.
+Admitted.
+
+Lemma seq_loop_l {A B C}
+      (ab : den A (A + B)) (bc : den B C) :
+  eq_den (aloop ab >=> bc)
+         (lift_den inl >=> aloop (den_sum_bimap ab bc)).
+Proof.
+Admitted.
+
+Lemma seq_loop_l_seq {A B C}
+      (ab : den A (A + B)) (bc : den B C) :
+  eq_den (aloop ab >=> bc)
+         (aloop (ab >=> den_sum_map_r bc)).
 Proof.
 Admitted.
 
@@ -134,55 +239,6 @@ Definition seq_bks {A I B J C}
 (* Sequential composition of asm. *)
 Definition seq_asm {A B C} (ab : asm A B) (bc : asm B C) : asm A C :=
   {| code := seq_bks (code ab) (code bc) |}.
-
-(* Unused but should go to FixFacts *)
-Instance eutt_loop {E A B} :
-  Proper ((eq ==> eutt eq) ==> eq ==> eutt eq) (@aloop E A B).
-Proof.
-  repeat intro.
-  subst.
-Admitted. 
-
-Instance eutt_loop' {E A B} :
-  Proper (eq_den ==> eq_den) (@aloop E A B).
-Proof.
-Admitted.
-
-Instance eutt_rewire_den {A B C D} :
-  Proper ((eq ==> eq) ==> (eq ==> eq) ==> eq_den ==> eq_den)
-         (@rewire_den A B C D).
-Proof.
-Admitted.
-
-Instance eutt_seq_den {A B C} :
-  Proper (eq_den ==> eq_den ==> eq_den) (@seq_den A B C).
-Proof.
-Admitted.
-
-Instance Equivalence_eq_den {E A B} : Equivalence (@eq_den E A B).
-Proof.
-Admitted.
-
-Lemma seq_den_assoc {A B C D}
-      (ab : den A B) (bc : den B C) (cd : den C D) :
-  eq_den ((ab >=> bc) >=> cd)
-         (ab >=> (bc >=> cd)).
-Proof.
-Admitted.
-
-Lemma seq_loop_l {A B C}
-      (ab : den A (A + B)) (bc : den B C) :
-  eq_den (aloop ab >=> bc)
-         (lift_den inl >=> aloop (den_sum_bimap ab bc)).
-Proof.
-Admitted.
-
-Lemma seq_loop_l_seq {A B C}
-      (ab : den A (A + B)) (bc : den B C) :
-  eq_den (aloop ab >=> bc)
-         (aloop (ab >=> den_sum_map_r bc)).
-Proof.
-Admitted.
 
 (*
 Lemma seq_loop_r {A B C}
@@ -276,23 +332,6 @@ Proof. intros []; reflexivity. Qed.
 
 Hint Rewrite @lift_sum_elim : lift_den.
 Hint Rewrite @seq_lift_den : lift_den.
-
-Lemma lift_den_lift_den: forall {A B C} (f: A -> B) (g: B -> C),
-      eq_den (lift_den f >=> lift_den g) (lift_den (g ∘ f)).
-Proof.
-  intros; intros a. 
-  unfold lift_den, seq_den.
-  rewrite ret_bind.
-  reflexivity.
-Qed.
-
-Lemma lift_den_assoc: forall {A B C D} (f: A -> B) (g: B -> C) (k: den C D),
-      eq_den (lift_den f >=> (lift_den g >=> k)) (lift_den f >=> lift_den g >=> k).
-Proof.
-  intros; intros a.
-  unfold lift_den, seq_den.
-  repeat rewrite ret_bind; reflexivity.
-Qed.
 
 Theorem seq_correct {A B C} (ab : asm A B) (bc : asm B C) :
   eq_den (denote_asm (seq_asm ab bc))
