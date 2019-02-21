@@ -197,6 +197,18 @@ Proof.
   reflexivity.
 Qed.
 
+Lemma loop_unfold' {E A B} (f : A -> itree E (A + B)) (x : A) :
+    aloop f x
+  ≅ (ab <- f x ;;
+     match ab with
+     | inl a => Tau (aloop f a)
+     | inr b => Ret b
+     end).
+Proof.
+  rewrite (itree_eta (aloop _ _)), (itree_eta (ITree.bind _ _)).
+  reflexivity.
+Qed.
+
 Lemma loop_unfold {E A B} (f : A -> itree E (A + B)) (x : A) :
     aloop f x
   ≈ (ab <- f x ;;
@@ -205,18 +217,10 @@ Lemma loop_unfold {E A B} (f : A -> itree E (A + B)) (x : A) :
      | inr b => Ret b
      end).
 Proof.
-  unfold aloop at 1.
-  rewrite rec_unfold.
-  rewrite interp_bind.
-  rewrite interp_translate.
-  rewrite interp_id_liftE.
-  eapply eutt_bind; [ reflexivity |].
-  intros [a | b].
-  - rewrite interp_liftE; cbn.
-    rewrite tau_eutt.
-    reflexivity.
-  - rewrite ret_interp.
-    reflexivity.
+  rewrite loop_unfold'.
+  apply eutt_bind; try reflexivity.
+  intros []; try reflexivity.
+  apply tau_eutt.
 Qed.
 
 Definition sum_map1 {A B C} (f : A -> B) (ac : A + C) : B + C :=
