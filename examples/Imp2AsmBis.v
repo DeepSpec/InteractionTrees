@@ -92,7 +92,7 @@ Definition rewire_den {A B C D} (f : C -> A) (g : B -> D)
            (ab : den A B) : den C D :=
   fun a => ITree.map g (ab (f a)).
 
-Lemma lift_den_lift_den: forall {A B C} (f: A -> B) (g: B -> C),
+Lemma seq_lift_den: forall {A B C} (f: A -> B) (g: B -> C),
       eq_den (lift_den f >=> lift_den g) (lift_den (g ∘ f)).
 Proof.
   intros; intros a. 
@@ -161,7 +161,7 @@ Proof.
   reflexivity.
 Qed.
 
-Instance lift_den_respectful {A B} :
+Instance eq_lift_den {A B} :
   Proper ((eq ==> eq) ==> eq_den)
          (@lift_den A B).
 Proof.
@@ -204,7 +204,9 @@ Lemma seq_loop_l_seq {A B C}
 Proof.
 Admitted.
 
-(* Correctness of [cat_b] and [rewire_b] (easy) *)
+(* Correctness of [cat_b] and [rewire_b] (easy)
+   YZ: Those depend on the implementation. Should they be assumed by the theory?
+ *)
 
 Lemma cat_correct {A B C D} (ab : bks A B) (cd : bks C D) :
   eq_den (denote_b (cat_b ab cd)) (cat_den (denote_b ab) (denote_b cd)).
@@ -305,18 +307,6 @@ Lemma loop_relabel {A B C}
 Proof.
 Admitted.
 
-Lemma seq_lift_den {A B C} (ab : A -> B) (bc : B -> C) :
-  eq_den (lift_den ab >=> lift_den bc)
-         (lift_den (bc ∘ ab)).
-Proof.
-Admitted.
-
-Instance eq_lift_den {A B} :
-  Proper (eqeq ==> eq_den) (@lift_den A B).
-Proof.
-  repeat intro.
-Admitted.
-
 Lemma seq_sum_elim {A B C D} (ac : den A C) (bc : den B C) (cd : den C D) :
   eq_den (sum_elim ac bc >=> cd)
          (sum_elim (ac >=> cd) (bc >=> cd)).
@@ -345,14 +335,14 @@ Proof.
   rewrite unfold_rewire_den.
   rewrite (seq_den_assoc (_ inl)).
   rewrite seq_loop_l.
-  rewrite lift_den_assoc, lift_den_lift_den.
+  rewrite lift_den_assoc, seq_lift_den.
   unfold den_sum_bimap.
   rewrite (seq_den_assoc (_ inl)).
   rewrite seq_loop_l_seq.
   unfold den_sum_map_r.
   rewrite sum_elim_loop.
   rewrite loop_loop.
-  rewrite lift_den_assoc, lift_den_lift_den.
+  rewrite lift_den_assoc, seq_lift_den.
   rewrite (loop_relabel sum_assoc_r).
   repeat (rewrite seq_lift_den + rewrite <- (seq_den_assoc (lift_den _) (lift_den _))).
   apply eutt_seq_den.
