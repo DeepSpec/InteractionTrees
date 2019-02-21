@@ -233,3 +233,10 @@ Lemma bind_loop {E A B C} (f : A -> itree E (A + B)) (g : B -> itree E (B + C)) 
        | inr b => ITree.map (sum_map1 inr) (g b)
        end) (inl x).
 Admitted.
+
+Instance eutt_loop {E A B C} :
+  Proper ((eq ==> eutt eq) ==> eq ==> eutt eq) (@loop E A B C).
+Proof.
+  repeat intro.
+  subst.
+Admitted.

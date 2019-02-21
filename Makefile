@@ -37,7 +37,7 @@ example-io: examples/IO.vo
 
 examples/Asm.vo: examples/sum.vo examples/Imp.vo
 examples/Imp2Asm.vo: examples/Asm.vo
-examples/Imp2AsmBis.vo: examples/sum.vo
+examples/Imp2AsmBis.vo: examples/sum.vo examples/Asm.vo
 
 example-asm: examples/Asm.vo
 

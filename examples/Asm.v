@@ -1,4 +1,6 @@
-Require Import Coq.Strings.String.
+From Coq Require Import
+     Strings.String
+     Program.Basics.
 Require Import ZArith.
 Typeclasses eauto := 5.
 
@@ -52,7 +54,7 @@ Section Syntax.
   (* ASM: linked blocks, can jump to themselves *)
   Record asm A B : Type := {
                             internal : Type;
-                            code : bks (A + internal) ((A + internal) + B)
+                            code : bks (internal + A) (internal + B)
                           }.
 
 End Syntax.
@@ -64,35 +66,47 @@ From ITree Require Import
      ITree OpenSum Fix.
 Require Import sum.
 
+Delimit Scope den_scope with den.
+Local Open Scope den_scope.
+
 Section Semantics.
   (* now define a semantics *)
 
+  Inductive done : Set := Done : done.
+
   (* Denotations as itrees *)
-  Definition den {E: Type -> Type} A B : Type := A -> itree E B.
+  Definition den {E: Type -> Type} A B : Type := A -> itree E (B + done).
   (* den can represent both blocks (A -> block B) and asm (asm A B). *)
+
+  Bind Scope den_scope with den.
 
   Section den_combinators.
 
     Context {E: Type -> Type }.
+    Let den := @den E.
 
     (* Sequential composition of den. *)
-    Definition seq_den {A B C} (ab : den A B) (bc : den B C) : @den E A C :=
-      fun a => ab a >>= bc.
+    Definition cat_den {A B C} (ab : den A B) (bc : den B C) : den A C :=
+      fun a => ob <- ab a ;;
+               match ob with
+               | inl b => bc b
+               | inr d => Ret (inr d)
+               end.
 
-    Infix ">=>" := seq_den (at level 40).
+    Infix ">=>" := cat_den (at level 50, left associativity).
 
-    Definition id_den {A} : @den E A A := fun a => Ret a.
+    Definition id_den {A} : den A A := fun a => Ret (inl a).
 
-    Definition lift_den {A B} (f : A -> B) : @den E A B := fun a => Ret (f a).
+    Definition lift_den {A B} (f : A -> B) : den A B := fun a => Ret (inl (f a)).
 
-    Definition den_sum_map_r {A B C} (ab : den A B) : den (C + A) (C + B) :=
-      sum_elim (lift_den inl) (ab >=> lift_den inr).
-
-    Definition den_sum_bimap {A B C D} (ab : den A B) (cd : den C D) :
+    Definition juxta_den {A B C D} (ab : den A B) (cd : den C D) :
       den (A + C) (B + D) :=
       sum_elim (ab >=> lift_den inl) (cd >=> lift_den inr).
 
   End den_combinators.
+
+  Definition eq_den {E A B} (d1 d2 : A -> itree E B) :=
+    (forall a, eutt eq (d1 a) (d2 a)).
 
   Require Import ExtLib.Structures.Monad.
   Import MonadNotation.
@@ -138,8 +152,6 @@ Section Semantics.
     Section with_labels.
       Context {A B : Type}.
 
-      Inductive done : Set := Done : done.
-
       Definition denote_branch (b : @branch B)
         : itree e (B + done) :=
         match b with
@@ -159,18 +171,39 @@ Section Semantics.
           denote_branch b
         end.
 
-      Definition denote_b: bks A B -> @den e A (B + done) :=
+      Definition denote_b: bks A B -> @den e A B :=
         fun bs a => denote_block (bs a).
 
     End with_labels.
   End with_effect.
 
-  (* Denotation of [asm] *)
+(* A denotation of an asm program can be viewed as a circuit/diagram
+   where wires correspond to jumps/program links.
 
-  Definition denote_asm {e} `{Locals -< e} `{Memory -< e} {A B} : asm A B -> @den e A (B + done) :=
-    fun s =>
-      seq_den (lift_den inl)
-              (aloop (fun a => ITree.map sum_assoc_r (denote_b e (code s) a))).
+   A [box : den (I + A) (I + B)] is a circuit, drawn below as ###,
+   with two input wires labeled by I and A, and two output wires
+   labeled by I and B.
+
+   The [loop_den : den (I + A) (I + B) -> den A B] combinator closes
+   the circuit, linking the box with itself by plugging the I output
+   back into the input.
+
+     +-----+
+     | ### |
+     +-###-+I
+  A----###----B
+       ###
+
+ *)
+
+  Definition loop_den {E I A B} :
+    (I + A -> itree E ((I + B) + done)) -> A -> itree E (B + done) :=
+    fun body => loop (compose (ITree.map sum_assoc_r) body).
+
+  (* Denotation of [asm] *)
+  Definition denote_asm {e} `{Locals -< e} `{Memory -< e} {A B} :
+    asm A B -> @den e A B :=
+    fun s => loop_den (denote_b e (code s)).
 
 End Semantics.
 (* SAZ: Everything from here down can probably be polished.
@@ -179,6 +212,8 @@ End Semantics.
    fit together in run.  
 
  *)
+
+Infix ">=>" := cat_den (at level 50, left associativity).
 
 
 (* Interpretation ----------------------------------------------------------- *)

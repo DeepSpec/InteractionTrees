@@ -123,6 +123,11 @@ Definition bind {E T U}
 : itree E U :=
   bind' k c.
 
+Definition cat {E T U V}
+           (k : T -> itree E U) (h : U -> itree E V) :
+  T -> itree E V :=
+  fun t => bind (k t) h.
+
 (* note(gmm): There needs to be generic automation for monads to simplify
  * using the monad laws up to a setoid.
  * this would be *really* useful to a lot of projects.
@@ -176,6 +181,7 @@ Notation "t1 ;; t2" := (ITree.bind t1 (fun _ => t2))
 Notation "' p <- t1 ;; t2" :=
   (ITree.bind t1 (fun x_ => match x_ with p => t2 end))
   (at level 100, t1 at next level, p pattern, right associativity) : itree_scope.
+Infix ">=>" := ITree.cat (at level 50, left associativity) : itree_scope.
 
 Instance Functor_itree {E} : Functor (itree E) :=
 { fmap := @ITree.map E }.

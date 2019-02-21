@@ -2,6 +2,8 @@ From Coq Require Import
      Morphisms
      Program.
 
+Set Universe Polymorphism.
+
 (* TODO: Move this in the library  *)
 
 (** * The Category of Functions *)
@@ -144,6 +146,9 @@ Class Iso {A B} (f : A -> B) (f' : B -> A) : Type :=
     iso_f'f : forall b, f (f' b) = b;
   }.
 
+Instance Iso_id {A} : Iso (@id A) id := {}.
+Proof. all: auto. Qed.
+
 Instance Iso_sum_assoc_l {A B C} : Iso (@sum_assoc_l A B C) sum_assoc_r := {}.
 Proof.
   - destruct 0 as [| []]; auto.
@@ -156,3 +161,20 @@ Proof.
   - destruct 0 as [| []]; auto.
 Qed.
 
+Instance Iso_compose {A B C} (f : A -> B) (g : B -> C)
+         {f' : B -> A} `{Iso _ _ f f'}
+         {g' : C -> B} `{Iso _ _ g g'} : Iso (compose g f) (compose f' g') := {}.
+Proof.
+  all: intro a; cbv; rewrite ?iso_ff', ?iso_f'f; auto.
+Qed.
+
+Instance Iso_sum_comm {A B} : @Iso (A + B) _ sum_comm sum_comm := {}.
+Proof. all: intros []; auto. Qed.
+
+Instance Iso_sum_bimap {A B C D} (f : A -> B) (g : C -> D)
+         {f' : B -> A} `{Iso _ _ f f'}
+         {g' : D -> C} `{Iso _ _ g g'} :
+  Iso (sum_bimap f g) (sum_bimap f' g') := {}.
+Proof.
+  all: intros []; cbv; rewrite ?iso_ff', ?iso_f'f; auto.
+Qed.
