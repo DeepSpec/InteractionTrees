@@ -11,6 +11,7 @@ From Coq Require Import
 
 From ITree Require Import
      Basics
+     Basics_Functions
      Core
      Morphisms
      MorphismsFacts
@@ -223,13 +224,89 @@ Proof.
   apply tau_eutt.
 Qed.
 
+(* Equations for a traced monoidal category *)
+
+Lemma loop_natural_l {E A A' B C} (f : A -> itree E A')
+      (body : C + A' -> itree E (C + B)) (a : A) :
+    ITree.bind (f a) (loop body)
+  ≅ loop (fun ca =>
+      match ca with
+      | inl c => Ret (inl c)
+      | inr a => ITree.map inr (f a)
+      end >>= body) a.
+Admitted.
+
+Lemma loop_natural_r {E A B B' C} (f : B -> itree E B')
+      (body : C + A -> itree E (C + B)) (a : A) :
+    loop body a >>= f
+  ≅ loop (fun ca => body ca >>= fun cb =>
+      match cb with
+      | inl c => Ret (inl c)
+      | inr b => ITree.map inr (f b)
+      end) a.
+Admitted.
+
+Lemma loop_dinatural {E A B C C'} (f : C -> itree E C')
+      (body : C' + A -> itree E (C + B)) (a : A) :
+    loop (fun c'a => body c'a >>= fun cb =>
+      match cb with
+      | inl c => ITree.map inl (f c)
+      | inr b => Ret (inr b)
+      end) a
+  ≅ loop (fun ca =>
+      match ca with
+      | inl c => ITree.map inl (f c)
+      | inr a => Ret (inr a)
+      end >>= body) a.
+Admitted.
+
+Lemma vanishing1 {E A B} (f : Empty_set + A -> itree E (Empty_set + B))
+      (a : A) :
+  loop f a ≅ ITree.map sum_empty_l (f (inr a)).
+Admitted.
+
+Lemma vanishing2 {E A B C D} (f : D + (C + A) -> itree E (D + (C + B)))
+      (a : A) :
+    loop (loop f) a
+  ≅ loop (fun dca => ITree.map sum_assoc_l (f (sum_assoc_r dca))) a.
+Admitted.
+
+Lemma superposing1 {E A B C D D'} (f : C + A -> itree E (C + B))
+      (g : D -> itree E D') (a : A) :
+    ITree.map inl (loop f a)
+  ≅ loop (fun cad =>
+      match cad with
+      | inl c => ITree.map (sum_bimap id inl) (f (inl c))
+      | inr (inl a) => ITree.map (sum_bimap id inl) (f (inr a))
+      | inr (inr d) => ITree.map (inr ∘ inr) (g d)
+      end) (inl a).
+Admitted.
+
+Lemma superposing2 {E A B C D D'} (f : C + A -> itree E (C + B))
+      (g : D -> itree E D') (d : D) :
+    ITree.map inr (g d)
+  ≅ loop (fun cad =>
+      match cad with
+      | inl c => ITree.map (sum_bimap id inl) (f (inl c))
+      | inr (inl a) => ITree.map (sum_bimap id inl) (f (inr a))
+      | inr (inr d) => ITree.map (inr ∘ inr) (g d)
+      end) (inr d).
+Admitted.
+
+Lemma yanking {E A} (a : A) :
+  @loop E _ _ _ (fun aa => Ret (sum_comm aa)) a ≅ Tau (Ret a).
+Proof.
+  rewrite itree_eta; cbn; apply eq_itree_tau.
+  rewrite itree_eta; reflexivity.
+Qed.
+
 Definition sum_map1 {A B C} (f : A -> B) (ac : A + C) : B + C :=
   match ac with
   | inl a => inl (f a)
   | inr c => inr c
   end.
 
-Lemma bind_loop {E A B C} (f : A -> itree E (A + B)) (g : B -> itree E (B + C)) (x : A) :
+Lemma bind_aloop {E A B C} (f : A -> itree E (A + B)) (g : B -> itree E (B + C)) (x : A) :
     (aloop f x >>= aloop g)
   ≈ aloop (fun ab =>
        match ab with

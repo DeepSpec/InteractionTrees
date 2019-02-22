@@ -259,6 +259,48 @@ Arguments eq_itree_clo_trans : clear implicits.
 
 Hint Constructors eq_itree_trans_clo.
 
+Lemma eq_itree_tau {E R1 R2} (RR : R1 -> R2 -> Prop)
+           (t1 : itree E R1) (t2 : itree E R2) :
+  eq_itree RR t1 t2 -> eq_itree RR (Tau t1) (Tau t2).
+Proof.
+  intros; pfold; constructor; auto.
+Qed.
+
+Lemma eq_itree_vis {E R1 R2} (RR : R1 -> R2 -> Prop)
+      {U} (e : E U) (k1 : U -> itree E R1) (k2 : U -> itree E R2) :
+  (forall u, eq_itree RR (k1 u) (k2 u)) ->
+  eq_itree RR (Vis e k1) (Vis e k2).
+Proof.
+  intros; pfold; constructor; left. apply H.
+Qed.
+
+Lemma eq_itree_ret {E R1 R2} (RR : R1 -> R2 -> Prop) r1 r2 :
+  RR r1 r2 -> @eq_itree E _ _ RR (Ret r1) (Ret r2).
+Proof.
+  intros; pfold; eauto; constructor; auto.
+Qed.
+
+Lemma eq_itree_tau_inv {E R1 R2} (RR : R1 -> R2 -> Prop)
+           (t1 : itree E R1) (t2 : itree E R2) :
+  eq_itree RR (Tau t1) (Tau t2) -> eq_itree RR t1 t2.
+Proof.
+  intros H; punfold H; inversion H; pclearbot; auto.
+Qed.
+
+Lemma eq_itree_vis_inv {E R1 R2} (RR : R1 -> R2 -> Prop)
+      {U} (e : E U) (k1 : U -> itree E R1) (k2 : U -> itree E R2) :
+  eq_itree RR (Vis e k1) (Vis e k2) ->
+  (forall u, eq_itree RR (k1 u) (k2 u)).
+Proof.
+  intros H; punfold H; inversion H; pclearbot; auto_inj_pair2; subst; auto.
+Qed.
+
+Lemma eq_itree_ret_inv {E R1 R2} (RR : R1 -> R2 -> Prop) r1 r2 :
+  @eq_itree E _ _ RR (Ret r1) (Ret r2) -> RR r1 r2.
+Proof.
+  intros H; punfold H; inversion H; pclearbot; auto_inj_pair2; subst; auto.
+Qed.
+
 Lemma bind_unfold {E R S}
            (t : itree E R) (k : R -> itree E S) :
   observe (ITree.bind t k) = observe (ITree.bind_match k (ITree.bind' k) (observe t)).

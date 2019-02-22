@@ -39,6 +39,12 @@ Instance eq_compose {A B C} :
   Proper (eeq ==> eeq ==> eeq) (@compose A B C).
 Proof. cbv; congruence. Qed.
 
+(** * [Empty_set] as an initial object. *)
+
+Notation from_Empty_set :=
+  (fun v : Empty_set => match v with end)
+  (only parsing).
+
 (** * [sum] as a tensor product. *)
 
 Definition sum_elim {A B C} (f : A -> C) (g : B -> C) : A + B -> C :=
@@ -74,6 +80,12 @@ Definition sum_assoc_l {A B C} (abc : A + (B + C)) : (A + B) + C :=
 
 Definition sum_comm {A B} : A + B -> B + A :=
   sum_elim inr inl.
+
+Definition sum_empty_l {A} : Empty_set + A -> A :=
+  sum_elim from_Empty_set id.
+
+Definition sum_empty_r {A} : A + Empty_set -> A :=
+  sum_elim id from_Empty_set.
 
 Definition sum_merge {A} : A + A -> A := sum_elim id id.
 
