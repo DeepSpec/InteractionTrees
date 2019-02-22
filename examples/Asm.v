@@ -65,7 +65,6 @@ Arguments code {A B}.
 
 From ITree Require Import
      ITree OpenSum Fix.
-Require Import sum.
 Require Import Den.
 
 Section Semantics.
