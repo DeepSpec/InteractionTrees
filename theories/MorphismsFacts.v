@@ -141,56 +141,54 @@ Qed.
 Lemma interp_id_liftE {E R} (t : itree E R) :
   interp (fun _ e => ITree.liftE e) _ t ≈ t.
 Proof.
-Admitted.
+  pupto2_init.
+  revert t.
+  pcofix CIH.
+  intros t.
+  rewrite unfold_interp. unfold interp_u. unfold handleF.
+  rewrite eutt_is_eutt'_gres.
+  pfold. revert t. pcofix CIH'.
+  intros t.
+  destruct (observe t); cbn.
+  - pfold. econstructor.
+  - pfold. econstructor.
+    right. rewrite interp_unfold. unfold interp_u. unfold handleF.
+    apply CIH'.
+  - pfold. econstructor. cbn. econstructor. intros.
+    assert (ITree.bind' (fun x0 : u => interp (fun (T : Type) (e0 : E T) => ITree.liftE e0) R (k x0)) (Ret x) = (x0 <- Ret x ;; interp (fun (T : Type) (e0 : E T) => ITree.liftE e0) R (k x0))).
+    { intros; reflexivity. }
+    rewrite H.
+    rewrite ret_bind.
+    pupto2_final. right. apply CIH.
+Qed.  
 
-Inductive interp_inv0 {E F R}
-          (ff : itree E ~> itree F) (gg : itree E ~> itree F) :
-  relation (itree F R) :=
-| interp_inv_main t : interp_inv0 ff gg (ff _ t) (gg _ t)
-| interp_inv_bind u t (k: u -> _) :
-    interp_inv0 ff gg
-      (ITree.bind t (fun x => ff _ (k x)))
-      (ITree.bind t (fun x => gg _ (k x)))
-.
-Hint Constructors interp_inv0.
-
-Inductive iinv {E F R} (ff gg : itree E ~> itree F) (t1 t2 : itree F R) : Prop :=
-| iinv_intros t1' t2' :
-    t1 ≈ t1' ->
-    t2 ≈ t2' ->
-    interp_inv0 ff gg t1' t2' ->
-    iinv ff gg t1 t2
-.
-Hint Constructors iinv.
-
-Polymorphic Definition II_MAIN_STEP {E F R} (ff gg : itree E ~> itree F) :
-  Prop :=
-  forall (t : itree _ R),
-  euttF' (iinv ff gg) (fun x y => iinv ff gg (go x) (go y))
-         (observe (ff _ t)) (observe (gg _ t)).
 
 Theorem interp_interp {E F G R} (f : E ~> itree F) (g : F ~> itree G) :
   forall t : itree E R,
       interp g _ (interp f _ t)
-    ≈ interp (fun _ e => interp g _ (f _ e)) _ t.
+    ≅ interp (fun _ e => interp g _ (f _ e)) _ t.
 Proof.
-  intros.
-  assert (H : @II_MAIN_STEP _ _ R
-                          (fun _ t => interp g _ (interp f _ t))
-                          (fun _ t => interp (fun _ e => interp g _ (f _ e)) _ t)).
-  { red; intros. repeat rewrite interp_unfold; cbn.
-    destruct (observe t0); cbn.
-    - constructor.
-    - constructor. econstructor;
-        try eapply interp_inv_main;
-        (rewrite <- itree_eta; reflexivity).
-    - constructor. econstructor;
-        try eapply interp_inv_bind;
-        (rewrite <- itree_eta; try reflexivity).
-      rewrite interp_bind; reflexivity. }
-  eapply eutt_is_eutt'.
-Admitted.
-
+  intros t.
+  pupto2_init.
+  revert t.
+  pcofix CIH.
+  intros t.
+  rewrite itree_eta.
+  rewrite (itree_eta t).
+  rewrite (itree_eta (interp (fun (T : Type) (e : E T) => interp g T (f T e)) R {| _observe := observe t|})).
+  rewrite unfold_interp.
+  destruct (observe t); cbn.
+  - pupto2_final. pfold. econstructor. reflexivity.
+  - pupto2_final. pfold. econstructor. right.  apply CIH.
+  - rewrite interp_bind.
+    pfold. econstructor.
+    pupto2 eq_itree_clo_bind_h.
+    apply pbc_intro_h with (RU := eq).  
+    + reflexivity.
+    + intros.
+      pupto2_final. right. subst. apply CIH.
+Qed.  
+  
 (** * [interp1] *)
 
 (* SAZ: If we need to introduce these auxilliar definitions to prove
