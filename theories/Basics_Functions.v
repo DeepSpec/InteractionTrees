@@ -1,14 +1,21 @@
+(** * The Category of Functions
+
+  Definitions to reason about Coq functions [A -> B] categorically.
+
+ *)
+
+(* begin hide *)
 From Coq Require Import
      Morphisms
-     Program.
+     Program.Basics
+     Program.Combinators.
 
 Set Universe Polymorphism.
+(* end hide *)
 
-(* TODO: Move this in the library  *)
+(* From [Program.Basics] and [Program.Combinators]:
 
-(** * The Category of Functions *)
-
-(* id : A -> A
+   id : A -> A  (* This one is from [Init.Datatypes] *)
    compose : (B -> C) -> (A -> B) -> (A -> C)
    Infix "∘" = compose
 
@@ -17,24 +24,22 @@ Set Universe Polymorphism.
    compose_assoc : (f ∘ g) ∘ h = f ∘ (g ∘ h)
  *)
 
-Hint Rewrite @compose_id_left : cat.
-Hint Rewrite @compose_id_right : cat.
-
 (** Extensional function equality *)
-Definition eqeq {A B} := (@eq A ==> @eq B)%signature.
+Definition eeq {A B} : (A -> B) -> (A -> B) -> Prop :=
+  fun f g => forall a : A, f a = g a.
 
-Instance Equivalence_eqeq {A B} : Equivalence (@eqeq A B).
-Proof.
-  constructor; cbv; intros; subst; auto.
-  - symmetry; auto.
-  - etransitivity; auto.
-Qed.
+Instance subrelation_eeq_eqeq {A B} :
+  @subrelation (A -> B) eeq (@eq A ==> @eq B)%signature := {}.
+Proof. congruence. Qed.
+
+Instance Equivalence_eeq {A B} : Equivalence (@eeq A B).
+Proof. constructor; congruence. Qed.
 
 Instance eq_compose {A B C} :
-  Proper (eqeq ==> eqeq ==> eqeq) (@compose A B C).
-Proof. cbv; auto. Qed.
+  Proper (eeq ==> eeq ==> eeq) (@compose A B C).
+Proof. cbv; congruence. Qed.
 
-(** * Diagramatic/categorical sum combinators. *)
+(** * [sum] as a tensor product. *)
 
 Definition sum_elim {A B C} (f : A -> C) (g : B -> C) : A + B -> C :=
   fun x =>
@@ -60,9 +65,6 @@ Definition sum_assoc_r {A B C} (abc : (A + B) + C) : A + (B + C) :=
   | inr c => inr (inr c)
   end.
 
-Definition sum_comm {A B} : A + B -> B + A :=
-  sum_elim inr inl.
-
 Definition sum_assoc_l {A B C} (abc : A + (B + C)) : (A + B) + C :=
   match abc with
   | inl a => inl (inl a)
@@ -70,16 +72,17 @@ Definition sum_assoc_l {A B C} (abc : A + (B + C)) : (A + B) + C :=
   | inr (inr c) => inr c
   end.
 
+Definition sum_comm {A B} : A + B -> B + A :=
+  sum_elim inr inl.
+
 Definition sum_merge {A} : A + A -> A := sum_elim id id.
 
 (** ** Equational theory *)
 
 Lemma compose_sum_elim {A B C D} (ac : A -> C) (bc : B -> C) (cd : C -> D) :
-  eqeq (cd ∘ sum_elim ac bc)
+  eeq (cd ∘ sum_elim ac bc)
        (sum_elim (cd ∘ ac) (cd ∘ bc)).
-Proof.
-  intros [] ? []; auto.
-Qed.
+Proof. intros []; auto. Qed.
 
 Lemma sum_elim_inl {A B C} (f : A -> C) (g : B -> C) :
   sum_elim f g ∘ inl = f.
@@ -101,8 +104,8 @@ Lemma unfold_sum_assoc_r {A B C} :
   @sum_assoc_r A B C = sum_elim (sum_elim inl (inr ∘ inl)) (inr ∘ inr).
 Proof. cbv; auto. Qed.
 
-Instance eqeq_sum_elim {A B C} :
-  Proper (eqeq ==> eqeq ==> eqeq) (@sum_elim A B C).
+Instance eeq_sum_elim {A B C} :
+  Proper (eeq ==> eeq ==> eeq) (@sum_elim A B C).
 Proof. cbv; intros; subst; destruct _; auto. Qed.
 
 Hint Rewrite @sum_elim_inl : sum_elim.
