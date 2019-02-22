@@ -14,7 +14,7 @@ Set Universe Polymorphism.
     - Monad morphisms
  *)
 Notation "E ~> F" := (forall T, E T -> F T)
-  (at level 99, right associativity) : type_scope.
+  (at level 99, right associativity, only parsing) : type_scope.
 
 (** Identity morphism. *)
 Definition idM {E : Type -> Type} : E ~> E := fun _ e => e.
