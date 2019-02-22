@@ -198,7 +198,28 @@ Proof.
   reflexivity.
 Qed.
 
-Lemma loop_unfold' {E A B} (f : A -> itree E (A + B)) (x : A) :
+Notation loop_once_ f loop_ :=
+  (loop_once f (fun cb => Tau (loop_ f%function cb))).
+
+Lemma unfold_loop' {E A B C} (f : C + A -> itree E (C + B)) (x : C + A) :
+    loop_ f x
+  ≅ loop_once f (fun cb => Tau (loop_ f cb)) x.
+Proof.
+  rewrite itree_eta, (itree_eta (loop_once _ _ _)).
+  reflexivity.
+Qed.
+
+Lemma unfold_loop {E A B C} (f : C + A -> itree E (C + B)) (x : C + A) :
+    loop_ f x
+  ≈ loop_once f (loop_ f) x.
+Proof.
+  rewrite unfold_loop'.
+  apply eutt_bind; try reflexivity.
+  intros []; try reflexivity.
+  rewrite tau_eutt; reflexivity.
+Qed.
+
+Lemma unfold_aloop' {E A B} (f : A -> itree E (A + B)) (x : A) :
     aloop f x
   ≅ (ab <- f x ;;
      match ab with
@@ -210,7 +231,7 @@ Proof.
   reflexivity.
 Qed.
 
-Lemma loop_unfold {E A B} (f : A -> itree E (A + B)) (x : A) :
+Lemma unfold_aloop {E A B} (f : A -> itree E (A + B)) (x : A) :
     aloop f x
   ≈ (ab <- f x ;;
      match ab with
@@ -218,7 +239,7 @@ Lemma loop_unfold {E A B} (f : A -> itree E (A + B)) (x : A) :
      | inr b => Ret b
      end).
 Proof.
-  rewrite loop_unfold'.
+  rewrite unfold_aloop'.
   apply eutt_bind; try reflexivity.
   intros []; try reflexivity.
   apply tau_eutt.
@@ -234,7 +255,26 @@ Lemma loop_natural_l {E A A' B C} (f : A -> itree E A')
       | inl c => Ret (inl c)
       | inr a => ITree.map inr (f a)
       end >>= body) a.
-Admitted.
+Proof.
+  unfold loop.
+  rewrite unfold_loop'; unfold loop_once.
+  unfold ITree.map. rewrite !bind_bind.
+  eapply eq_itree_bind; try reflexivity.
+  intros a' _ [].
+  rewrite ret_bind.
+  remember (inr a') as ca eqn:EQ; clear EQ a'.
+  pupto2_init. revert ca; clear; pcofix self; intro ca.
+  rewrite unfold_loop'; unfold loop_once.
+  pupto2 @eq_itree_clo_bind; constructor; try reflexivity.
+  intros [c | b].
+  - match goal with
+    | [ |- _ _ (Tau (loop_ ?f _)) ] => rewrite (unfold_loop' f)
+    end.
+    unfold loop_once_.
+    rewrite ret_bind.
+    pfold; constructor; auto.
+  - pfold; constructor; auto.
+Qed.
 
 Lemma loop_natural_r {E A B B' C} (f : B -> itree E B')
       (body : C + A -> itree E (C + B)) (a : A) :
@@ -244,18 +284,32 @@ Lemma loop_natural_r {E A B B' C} (f : B -> itree E B')
       | inl c => Ret (inl c)
       | inr b => ITree.map inr (f b)
       end) a.
-Admitted.
+Proof.
+  unfold loop.
+  remember (inr a) as ca eqn:EQ; clear EQ a.
+  pupto2_init. revert ca; clear; pcofix self; intro ca.
+  rewrite !unfold_loop'; unfold loop_once.
+  rewrite !bind_bind.
+  pupto2 @eq_itree_clo_bind; constructor; try reflexivity.
+  intros [c | b].
+  - rewrite ret_bind, tau_bind.
+    pfold; constructor; auto.
+  - rewrite ret_bind.
+    unfold ITree.map; rewrite bind_bind; setoid_rewrite ret_bind;
+      rewrite bind_ret.
+    pupto2_final; apply reflexivity.
+Qed.
 
 Lemma loop_dinatural {E A B C C'} (f : C -> itree E C')
       (body : C' + A -> itree E (C + B)) (a : A) :
     loop (fun c'a => body c'a >>= fun cb =>
       match cb with
-      | inl c => ITree.map inl (f c)
+      | inl c => Tau (ITree.map inl (f c))
       | inr b => Ret (inr b)
       end) a
   ≅ loop (fun ca =>
       match ca with
-      | inl c => ITree.map inl (f c)
+      | inl c => f c >>= fun c' => Tau (Ret (inl c'))
       | inr a => Ret (inr a)
       end >>= body) a.
 Admitted.
@@ -263,7 +317,12 @@ Admitted.
 Lemma vanishing1 {E A B} (f : Empty_set + A -> itree E (Empty_set + B))
       (a : A) :
   loop f a ≅ ITree.map sum_empty_l (f (inr a)).
-Admitted.
+Proof.
+  unfold loop.
+  rewrite unfold_loop'; unfold loop_once, ITree.map.
+  eapply eq_itree_bind; try reflexivity.
+  intros [[]| b] _ []; reflexivity.
+Qed.
 
 Lemma vanishing2 {E A B C D} (f : D + (C + A) -> itree E (D + (C + B)))
       (a : A) :

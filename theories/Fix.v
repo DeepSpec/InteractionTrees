@@ -114,6 +114,21 @@ Definition rec {E : Type -> Type} {A B : Type}
   A -> itree E B :=
   fun a => mrec (calling' body) _ (Call a).
 
+Definition loop_once {E : Type -> Type} {A B C : Type}
+           (body : C + A -> itree E (C + B))
+           (loop_ : C + A -> itree E B) : C + A -> itree E B :=
+  fun ca =>
+    cb <- body ca ;;
+    match cb with
+    | inl c => loop_ (inl c)
+    | inr b => Ret b
+    end.
+
+Definition loop_ {E : Type -> Type} {A B C : Type}
+           (body : C + A -> itree E (C + B)) :
+  C + A -> itree E B :=
+  cofix loop__ := loop_once body (fun cb => Tau (loop__ cb)).
+
 (** Iterate a function updating an accumulator [C],
     until it produces an output [B]. An encoding of tail recursive
     functions.
@@ -126,12 +141,7 @@ Definition rec {E : Type -> Type} {A B : Type}
 Definition loop {E : Type -> Type} {A B C : Type}
            (body : (C + A) -> itree E (C + B)) :
   A -> itree E B :=
-  (cofix loop_ ca :=
-    cb <- body ca ;;
-    match cb with
-    | inl c => Tau (loop_ (inl c))
-    | inr b => Ret b
-    end) ∘ inr.
+  fun a => loop_ body (inr a).
 
 (* Iterate a function updating an accumulator [A], until it produces
    an output [B]. It's an Asymmetric variant of [loop], and it looks
