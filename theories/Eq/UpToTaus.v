@@ -745,6 +745,29 @@ Hint Constructors eutt_trans_clo.
 
 Infix "≈" := (eutt eq) (at level 70) : itree_scope.
 
+(**)
+
+Lemma eutt_tau {E R1 R2} (RR : R1 -> R2 -> Prop)
+           (t1 : itree E R1) (t2 : itree E R2) :
+  eutt RR t1 t2 -> eutt RR (Tau t1) (Tau t2).
+Proof.
+  intros; pfold; constructor; auto.
+Admitted.
+
+Lemma eq_itree_vis {E R1 R2} (RR : R1 -> R2 -> Prop)
+      {U} (e : E U) (k1 : U -> itree E R1) (k2 : U -> itree E R2) :
+  (forall u, eq_itree RR (k1 u) (k2 u)) ->
+  eq_itree RR (Vis e k1) (Vis e k2).
+Proof.
+  intros; pfold; constructor; left. apply H.
+Qed.
+
+Lemma eq_itree_ret {E R1 R2} (RR : R1 -> R2 -> Prop) r1 r2 :
+  RR r1 r2 -> @eq_itree E _ _ RR (Ret r1) (Ret r2).
+Proof.
+  intros; pfold; eauto; constructor; auto.
+Qed.
+
 (* Lemmas about [bind]. *)
 
 Lemma untaus_bind {E S R} : forall t t' (k: S -> itree E R)

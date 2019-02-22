@@ -201,6 +201,11 @@ Qed.
 Notation loop_once_ f loop_ :=
   (loop_once f (fun cb => Tau (loop_ f%function cb))).
 
+Lemma unfold_loop'' {E A B C} (f : C + A -> itree E (C + B)) (x : C + A) :
+    observe (loop_ f x)
+  = observe (loop_once f (fun cb => Tau (loop_ f cb)) x).
+Proof. reflexivity. Qed.
+
 Lemma unfold_loop' {E A B C} (f : C + A -> itree E (C + B)) (x : C + A) :
     loop_ f x
   ≅ loop_once f (fun cb => Tau (loop_ f cb)) x.
@@ -454,9 +459,158 @@ Lemma bind_aloop {E A B C} (f : A -> itree E (A + B)) (g : B -> itree E (B + C))
        end) (inl x).
 Admitted.
 
+Instance eq_itree_loop {E A B C} :
+  Proper ((eq ==> eq_itree eq) ==> eq ==> eq_itree eq) (@loop E A B C).
+Proof.
+  repeat intro; subst.
+  unfold loop.
+  remember (inr _) as ca eqn:EQ; clear EQ y0.
+  pupto2_init. revert ca; pcofix self; intros.
+  rewrite 2 unfold_loop'; unfold loop_once.
+  pupto2 eq_itree_clo_bind; constructor; try auto.
+  intros [c | b]; pfold; constructor; auto.
+Qed.
+
+Section eutt_loop.
+
+Context {E : Type -> Type} {A B C : Type}.
+Variables f1 f2 : C + A -> itree E (C + B).
+Hypothesis eutt_f : forall ca, f1 ca ≈ f2 ca.
+
+Inductive loop_preinv (t1 t2 : itree E B) : Prop :=
+| loop_inv_main ca :
+    t1 ≅ loop_ f1 ca ->
+    t2 ≅ loop_ f2 ca ->
+    loop_preinv t1 t2
+| loop_inv_bind u1 u2 :
+    eutt eq u1 u2 ->
+    t1 ≅ (cb <- u1;;
+       match cb with
+       | inl c => Tau (loop_ f1 (inl c))
+       | inr b => Ret b
+       end) ->
+    t2 ≅ (cb <- u2;;
+       match cb with
+       | inl c => Tau (loop_ f2 (inl c))
+       | inr b => Ret b
+       end) ->
+    loop_preinv t1 t2
+.
+Hint Constructors loop_preinv.
+
+Lemma eutt_loop_inv_main_step (ca : C + A) t1 t2 :
+  t1 ≅ loop_ f1 ca ->
+  t2 ≅ loop_ f2 ca ->
+  euttF' loop_preinv
+         (fun ot1 ot2 => loop_preinv (go ot1) (go ot2))
+         (observe t1) (observe t2).
+Proof.
+  intros H1 H2.
+  rewrite unfold_loop' in H1.
+  rewrite unfold_loop' in H2.
+  unfold loop_once.
+  specialize (eutt_f ca).
+  punfold eutt_f.
+  destruct eutt_f.
+  unfold loop_once in H1.
+  rewrite unfold_bind in H1.
+  destruct (observe (f1 ca)) eqn:Ef1.
+  - assert (H1unalltaus : @unalltausF E _ (RetF r) (RetF r)).
+    { apply untaus_all; constructor. }
+    assert (H2unalltaus : finite_taus (f2 ca)).
+    { apply FIN; eauto. }
+    destruct H2unalltaus as [ot2 H2unalltaus].
+    specialize (EQV _ _ H1unalltaus H2unalltaus).
+    destruct H2unalltaus as [H2untaus _].
+    unfold loop_once in H2.
+    remember (f2 ca) as t2' eqn:Et2; clear Et2.
+    rewrite unfold_bind in H2.
+    genobs t2' ot2'.
+    induction H2untaus.
+    + inversion EQV; subst. rewrite <- H3 in H2; simpl in H1, H2.
+      destruct r2.
+      * apply eq_itree_tau_inv1 in H1.
+        apply eq_itree_tau_inv1 in H2.
+        destruct H1 as [t01 [Ht01 Ht01']].
+        destruct H2 as [t02 [Ht02 Ht02']].
+        rewrite Ht01, Ht02.
+        constructor.
+        econstructor.
+        { rewrite Ht01'. rewrite <- itree_eta. reflexivity. }
+        { rewrite Ht02'. rewrite <- itree_eta. reflexivity. }
+      * admit.
+    + admit.
+  - admit.
+  - admit.
+Admitted.
+
+Lemma eutt_loop_inv t1 t2 :
+  loop_preinv t1 t2 -> eutt eq t1 t2.
+Proof.
+  intros HH.
+  apply eutt_is_eutt'.
+  revert t1 t2 HH; pcofix self; intros. pfold.
+  revert t1 t2 HH; pcofix self_tau; intros.
+  destruct HH as [ca H1 H2 | u1 u2 Hu H1 H2].
+  - pfold. eapply euttF'_mon.
+    + eapply eutt_loop_inv_main_step; eauto.
+    + intros. right. eapply self; eauto; try reflexivity.
+    + simpl; intros. right.
+      replace x0 with (observe (go x0)) by reflexivity.
+      replace x1 with (observe (go x1)) by reflexivity.
+      eapply self_tau; eauto; try reflexivity.
+  - apply eutt_is_eutt' in Hu. punfold Hu. punfold Hu.
+    rewrite unfold_bind in H1.
+    rewrite unfold_bind in H2.
+    pfold.
+    genobs t1 ot1. genobs t2 ot2.
+    revert ot1 ot2 t1 t2 Heqot1 Heqot2 H1 H2.
+    induction Hu; intros; cbn in H1, H2; subst.
+    + destruct r1 as [ c | b ].
+      * apply eq_itree_tau_inv1 in H1.
+        apply eq_itree_tau_inv1 in H2.
+        destruct H1 as [t1'' [H1 H1']].
+        destruct H2 as [t2'' [H2 H2']].
+        rewrite H1, H2. constructor; eauto.
+      * apply eq_itree_ret_inv1 in H1. apply eq_itree_ret_inv1 in H2.
+        rewrite H1, H2. auto.
+    + apply eq_itree_vis_inv1 in H1. apply eq_itree_vis_inv1 in H2.
+      destruct H1 as [k1' [H1 H1']].
+      destruct H2 as [k2' [H2 H2']].
+      rewrite H1, H2. pclearbot. eauto.
+      constructor; intro z; right.
+      eapply self; eauto.
+      econstructor 2.
+      apply eutt_is_eutt'; apply EUTTK.
+      eauto. eauto.
+    + pclearbot.
+      apply eq_itree_tau_inv1 in H1. apply eq_itree_tau_inv1 in H2.
+      destruct H1 as [t1'' [H1 H1']].
+      destruct H2 as [t2'' [H2 H2']].
+      rewrite H1, H2. constructor. right.
+      eapply self_tau; eauto.
+      econstructor 2.
+      apply eutt_is_eutt'; eauto.
+      eauto. eauto.
+    + apply eq_itree_tau_inv1 in H1.
+      destruct H1 as [t1'' [H1 H1']].
+      rewrite H1. constructor.
+      eapply IHHu; eauto.
+      rewrite <- unfold_bind. auto.
+    + apply eq_itree_tau_inv1 in H2.
+      destruct H2 as [t2'' [H2 H2']].
+      rewrite H2. constructor.
+      eapply IHHu; eauto.
+      rewrite <- unfold_bind. auto.
+Qed.
+
+End eutt_loop.
+
 Instance eutt_loop {E A B C} :
   Proper ((eq ==> eutt eq) ==> eq ==> eutt eq) (@loop E A B C).
 Proof.
-  repeat intro.
-  subst.
-Admitted.
+  repeat intro; subst.
+  eapply eutt_loop_inv.
+  - eauto.
+  - unfold loop; econstructor; reflexivity.
+Qed.

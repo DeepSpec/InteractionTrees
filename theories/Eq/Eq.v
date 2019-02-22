@@ -301,6 +301,28 @@ Proof.
   intros H; punfold H; inversion H; pclearbot; auto_inj_pair2; subst; auto.
 Qed.
 
+(* One-sided inversion *)
+
+Lemma eq_itree_ret_inv1 {E R} (t : itree E R) r :
+  t ≅ Ret r -> observe t = RetF r.
+Proof.
+  intros; punfold H; inversion H; subst; auto.
+Qed.
+
+Lemma eq_itree_vis_inv1 {E R U} (t : itree E R) (e : E U) (k : U -> _) :
+  t ≅ Vis e k -> exists k', observe t = VisF e k' /\ forall u, k' u ≅ k u.
+Proof.
+  intros; punfold H; inversion H; subst; auto_inj_pair2; subst; pclearbot; eauto.
+Qed.
+
+Lemma eq_itree_tau_inv1 {E R} (t t' : itree E R) :
+  t ≅ Tau t' -> exists t0, observe t = TauF t0 /\ t0 ≅ t'.
+Proof.
+  intros; punfold H; inversion H; pclearbot; eauto.
+Qed.
+
+(**)
+
 Lemma bind_unfold {E R S}
            (t : itree E R) (k : R -> itree E S) :
   observe (ITree.bind t k) = observe (ITree.bind_match k (ITree.bind' k) (observe t)).
