@@ -387,6 +387,27 @@ Proof.
   intros; subst; auto.
 Qed.
 
+Lemma eq_itree_map {E R1 R2 S1 S2} (RR : R1 -> R2 -> Prop)
+      (RS : S1 -> S2 -> Prop)
+      f1 f2 t1 t2 :
+  (forall r1 r2, RR r1 r2 -> RS (f1 r1) (f2 r2)) ->
+  @eq_itree E _ _ RR t1 t2 ->
+  eq_itree RS (ITree.map f1 t1) (ITree.map f2 t2).
+Proof.
+  unfold ITree.map; intros.
+  eapply eq_itree_bind; eauto.
+  intros; pfold; constructor; auto.
+Qed.
+
+Instance eq_itree_eq_map {E R S} :
+  Proper (pointwise_relation _ eq ==>
+          eq_itree eq ==>
+          eq_itree eq) (@ITree.map E R S).
+Proof.
+  repeat intro; eapply eq_itree_map; eauto.
+  intros; subst; auto.
+Qed.
+
 Instance eq_itree_paco {E R} r:
   Proper (eq_itree eq ==> eq_itree eq ==> flip impl)
          (paco2 (@eq_itree_ E R _ eq ∘ gres2 (eq_itree_ eq)) r).
@@ -507,7 +528,9 @@ Proof.
 Qed.
 *)
 
+Hint Rewrite @map_bind : itree.
 Hint Rewrite @ret_bind : itree.
 Hint Rewrite @tau_bind : itree.
 Hint Rewrite @vis_bind : itree.
 Hint Rewrite @bind_ret : itree.
+Hint Rewrite @bind_bind : itree.

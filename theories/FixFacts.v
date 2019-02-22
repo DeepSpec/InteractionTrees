@@ -258,10 +258,9 @@ Lemma loop_natural_l {E A A' B C} (f : A -> itree E A')
 Proof.
   unfold loop.
   rewrite unfold_loop'; unfold loop_once.
-  unfold ITree.map. rewrite !bind_bind.
+  unfold ITree.map. autorewrite with itree.
   eapply eq_itree_bind; try reflexivity.
-  intros a' _ [].
-  rewrite ret_bind.
+  intros a' _ []. autorewrite with itree.
   remember (inr a') as ca eqn:EQ; clear EQ a'.
   pupto2_init. revert ca; clear; pcofix self; intro ca.
   rewrite unfold_loop'; unfold loop_once.
@@ -294,9 +293,7 @@ Proof.
   intros [c | b].
   - rewrite ret_bind, tau_bind.
     pfold; constructor; auto.
-  - rewrite ret_bind.
-    unfold ITree.map; rewrite bind_bind; setoid_rewrite ret_bind;
-      rewrite bind_ret.
+  - autorewrite with itree.
     pupto2_final; apply reflexivity.
 Qed.
 
@@ -312,7 +309,31 @@ Lemma loop_dinatural {E A B C C'} (f : C -> itree E C')
       | inl c => f c >>= fun c' => Tau (Ret (inl c'))
       | inr a => Ret (inr a)
       end >>= body) a.
-Admitted.
+Proof.
+  unfold loop.
+  do 2 rewrite unfold_loop'; unfold loop_once.
+  autorewrite with itree.
+  eapply eq_itree_bind; try reflexivity.
+  clear a; intros cb _ [].
+  pupto2_init. revert cb; pcofix self; intros.
+  destruct cb as [c | b].
+  - rewrite tau_bind.
+    pfold; constructor; pupto2_final; left.
+    rewrite map_bind.
+    rewrite (unfold_loop' _ (inl c)); unfold loop_once.
+    autorewrite with itree.
+    pupto2 eq_itree_clo_bind; constructor; try reflexivity.
+    intros c'.
+    rewrite tau_bind.
+    rewrite ret_bind.
+    rewrite unfold_loop'; unfold loop_once.
+    rewrite bind_bind.
+    pfold; constructor.
+    pupto2 eq_itree_clo_bind; constructor; try reflexivity.
+    auto.
+  - rewrite ret_bind.
+    pupto2_final; apply reflexivity.
+Qed.
 
 Lemma vanishing1 {E A B} (f : Empty_set + A -> itree E (Empty_set + B))
       (a : A) :
@@ -328,7 +349,34 @@ Lemma vanishing2 {E A B C D} (f : D + (C + A) -> itree E (D + (C + B)))
       (a : A) :
     loop (loop f) a
   ≅ loop (fun dca => ITree.map sum_assoc_l (f (sum_assoc_r dca))) a.
-Admitted.
+Proof.
+  unfold loop; rewrite 2 unfold_loop'; unfold loop_once.
+  rewrite map_bind.
+  rewrite unfold_loop'; unfold loop_once.
+  rewrite bind_bind.
+  eapply eq_itree_bind; try reflexivity.
+  clear a; intros dcb _ [].
+  pupto2_init. revert dcb; pcofix self; intros.
+  destruct dcb as [d | [c | b]]; simpl.
+  - (* d *)
+    rewrite tau_bind.
+    rewrite 2 unfold_loop'; unfold loop_once.
+    autorewrite with itree.
+    pfold; constructor.
+    pupto2 eq_itree_clo_bind; constructor; try reflexivity.
+    auto.
+  - (* c *)
+    rewrite ret_bind.
+    rewrite 2 unfold_loop'; unfold loop_once.
+    rewrite unfold_loop'; unfold loop_once.
+    autorewrite with itree.
+    pfold; constructor.
+    pupto2 eq_itree_clo_bind; constructor; try reflexivity.
+    auto.
+  - (* b *)
+    rewrite ret_bind.
+    pupto2_final; apply reflexivity.
+Qed.
 
 Lemma superposing1 {E A B C D D'} (f : C + A -> itree E (C + B))
       (g : D -> itree E D') (a : A) :
@@ -339,7 +387,34 @@ Lemma superposing1 {E A B C D D'} (f : C + A -> itree E (C + B))
       | inr (inl a) => ITree.map (sum_bimap id inl) (f (inr a))
       | inr (inr d) => ITree.map (inr ∘ inr) (g d)
       end) (inl a).
-Admitted.
+Proof.
+  unfold loop.
+  remember (inr a) as inra eqn:Hr.
+  remember (inr (inl a)) as inla eqn:Hl.
+  assert (Hlr : match inra with
+                | inl c => inl c
+                | inr a => inr (inl a)
+                end = inla).
+  { subst; auto. }
+  clear a Hl Hr.
+  unfold ITree.map.
+  pupto2_init. revert inla inra Hlr; pcofix self; intros.
+  rewrite 2 unfold_loop'; unfold loop_once.
+  rewrite bind_bind.
+  destruct inra as [c | a]; subst.
+  - rewrite bind_bind; setoid_rewrite ret_bind.
+    pupto2 eq_itree_clo_bind; constructor; try reflexivity.
+    intros [c' | b]; simpl.
+    + rewrite tau_bind. pfold; constructor.
+      pupto2_final. auto.
+    + rewrite ret_bind. pupto2_final; apply reflexivity.
+  - rewrite bind_bind; setoid_rewrite ret_bind.
+    pupto2 eq_itree_clo_bind; constructor; try reflexivity.
+    intros [c' | b]; simpl.
+    + rewrite tau_bind. pfold; constructor.
+      pupto2_final. auto.
+    + rewrite ret_bind. pupto2_final; apply reflexivity.
+Qed.
 
 Lemma superposing2 {E A B C D D'} (f : C + A -> itree E (C + B))
       (g : D -> itree E D') (d : D) :
@@ -350,7 +425,12 @@ Lemma superposing2 {E A B C D D'} (f : C + A -> itree E (C + B))
       | inr (inl a) => ITree.map (sum_bimap id inl) (f (inr a))
       | inr (inr d) => ITree.map (inr ∘ inr) (g d)
       end) (inr d).
-Admitted.
+Proof.
+  unfold loop; rewrite unfold_loop'; unfold loop_once.
+  rewrite map_bind; unfold ITree.map.
+  eapply eq_itree_bind; try reflexivity.
+  intros d' _ []. reflexivity.
+Qed.
 
 Lemma yanking {E A} (a : A) :
   @loop E _ _ _ (fun aa => Ret (sum_comm aa)) a ≅ Tau (Ret a).
