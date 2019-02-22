@@ -52,10 +52,11 @@ Section Syntax.
   Definition bks A B := A -> block B.
 
   (* ASM: linked blocks, can jump to themselves *)
-  Record asm A B : Type := {
-                            internal : Type;
-                            code : bks (internal + A) (internal + B)
-                          }.
+  Record asm A B : Type :=
+    {
+      internal : Type;
+      code : bks (internal + A) (internal + B)
+    }.
 
 End Syntax.
 
@@ -65,48 +66,11 @@ Arguments code {A B}.
 From ITree Require Import
      ITree OpenSum Fix.
 Require Import sum.
-
-Delimit Scope den_scope with den.
-Local Open Scope den_scope.
+Require Import Den.
 
 Section Semantics.
-  (* now define a semantics *)
 
-  Inductive done : Set := Done : done.
-
-  (* Denotations as itrees *)
-  Definition den {E: Type -> Type} A B : Type := A -> itree E (B + done).
-  (* den can represent both blocks (A -> block B) and asm (asm A B). *)
-
-  Bind Scope den_scope with den.
-
-  Section den_combinators.
-
-    Context {E: Type -> Type }.
-    Let den := @den E.
-
-    (* Sequential composition of den. *)
-    Definition cat_den {A B C} (ab : den A B) (bc : den B C) : den A C :=
-      fun a => ob <- ab a ;;
-               match ob with
-               | inl b => bc b
-               | inr d => Ret (inr d)
-               end.
-
-    Infix ">=>" := cat_den (at level 50, left associativity).
-
-    Definition id_den {A} : den A A := fun a => Ret (inl a).
-
-    Definition lift_den {A B} (f : A -> B) : den A B := fun a => Ret (inl (f a)).
-
-    Definition juxta_den {A B C D} (ab : den A B) (cd : den C D) :
-      den (A + C) (B + D) :=
-      sum_elim (ab >=> lift_den inl) (cd >=> lift_den inr).
-
-  End den_combinators.
-
-  Definition eq_den {E A B} (d1 d2 : A -> itree E B) :=
-    (forall a, eutt eq (d1 a) (d2 a)).
+  (* Denotation in terms of itrees *)
 
   Require Import ExtLib.Structures.Monad.
   Import MonadNotation.
@@ -177,28 +141,10 @@ Section Semantics.
     End with_labels.
   End with_effect.
 
-(* A denotation of an asm program can be viewed as a circuit/diagram
+  (* A denotation of an asm program can be viewed as a circuit/diagram
    where wires correspond to jumps/program links.
 
-   A [box : den (I + A) (I + B)] is a circuit, drawn below as ###,
-   with two input wires labeled by I and A, and two output wires
-   labeled by I and B.
-
-   The [loop_den : den (I + A) (I + B) -> den A B] combinator closes
-   the circuit, linking the box with itself by plugging the I output
-   back into the input.
-
-     +-----+
-     | ### |
-     +-###-+I
-  A----###----B
-       ###
-
- *)
-
-  Definition loop_den {E I A B} :
-    (I + A -> itree E ((I + B) + done)) -> A -> itree E (B + done) :=
-    fun body => loop (compose (ITree.map sum_assoc_r) body).
+   It is therefore denoted as a [dem] term *)
 
   (* Denotation of [asm] *)
   Definition denote_asm {e} `{Locals -< e} `{Memory -< e} {A B} :
@@ -212,9 +158,6 @@ End Semantics.
    fit together in run.  
 
  *)
-
-Infix ">=>" := cat_den (at level 50, left associativity).
-
 
 (* Interpretation ----------------------------------------------------------- *)
 
