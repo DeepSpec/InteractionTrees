@@ -500,20 +500,50 @@ Proof.
 Qed.
 
 
-(* Commuting interpreters *)
-
-Lemma interp_translate {E F G} (f : E ~> F) (g : F ~> itree G) {R} (t : itree E R) :
-  interp g _ (translate f _ t) ≅ interp (fun _ e => g _ (f _ e)) _ t.
-Proof.
-Admitted.
-
-
 (* Translate facts ---------------------------------------------------------- *)
+
+Definition translate_u {E F} (h : E ~> F) R :
+  itreeF E R _ -> itree F R :=
+      handleF (translate h _)
+            (fun _ e k => Vis (h _ e) (fun x => translate h _ (k x))).
+
+Lemma translate_unfold {E F R} {h : E ~> F} (t : itree E R) :
+  observe (translate h _ t) = observe (translate_u h _ (observe t)).
+Proof. eauto. Qed.
+
+Lemma unfold_translate {E F R} {h : E ~> F} (t : itree E R) :
+  translate h _ t ≅ translate_u h _ (observe t).
+Proof. rewrite itree_eta, translate_unfold, <-itree_eta. reflexivity. Qed.
+
 
 Instance translate_Proper : forall {A B R} (h : A ~> B), Proper ( (eq_itree (@eq R)) ==> eq_itree eq) (translate h _).
 Proof.
-Admitted.
-  
+  repeat red.
+  intros A B R h x y H.
+  pupto2_init.
+  revert x y H.
+  pcofix CIH.
+  intros x y H.
+  rewrite itree_eta.
+  rewrite (itree_eta (translate h R y)).
+  repeat rewrite translate_unfold. unfold translate_u.
+  rewrite (itree_eta x) in H.
+  rewrite (itree_eta y) in H.
+  destruct (observe x); destruct (observe y); pinversion H; subst; cbn.
+  - pupto2_final. apply Reflexive_eq_itree. (* SAZ: typeclass resolution not working *)
+  - pupto2_final. pfold. constructor.  right. apply CIH. eauto.
+  - pupto2_final. pfold.
+    repeat (match goal with
+          | [ H : _ |- _ ] => apply inj_pair2 in H
+            end). subst.
+    constructor.
+    inversion H.
+    repeat (match goal with
+          | [ H : _ |- _ ] => apply inj_pair2 in H
+            end). subst. 
+    right. apply CIH. 
+    eapply transitivity. pclearbot. apply REL0. reflexivity.
+Qed.
   
 Lemma translate_ret : forall {A B R} (h : A ~> B) (r:R),
     translate h _ (Ret r) ≅ Ret r.
@@ -538,7 +568,21 @@ Proof.
   rewrite itree_eta.
   cbn. reflexivity.
 Qed.
-  
+
+(* Commuting interpreters --------------------------------------------------- *)
+
+Lemma interp_translate {E F G} (f : E ~> F) (g : F ~> itree G) {R} (t : itree E R) :
+  interp g _ (translate f _ t) ≅ interp (fun _ e => g _ (f _ e)) _ t.
+Proof.
+  pupto2_init.
+  revert t.
+  pcofix CIH.
+  intros t.
+  rewrite (itree_eta).
+  rewrite (itree_eta (interp (fun (T : Type) (e : E T) => g T (f T e)) R t)).
+  rewrite !unfold_interp. unfold interp_u.
+Admitted.
+
 (* Morphism Category -------------------------------------------------------- *)
 
 Definition eh_eq {A B : Type -> Type} f g := forall X, pointwise_relation (A X) (@eutt B X _ (@eq X)) (f X) (g X).
