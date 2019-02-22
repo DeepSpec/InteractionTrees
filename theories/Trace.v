@@ -33,7 +33,8 @@ Fixpoint trace_ret {E R} (tr : @trace E R) : option R :=
   | _ => None
   end.
 
-Inductive is_traceF {E R} : itreeF E R (itree E R) -> @trace E R -> Prop :=
+Inductive is_traceF {E : Type -> Type} {R : Type} :
+  itreeF E R (itree E R) -> @trace E R -> Prop :=
 | TraceEmpty : forall t, is_traceF t TEnd
 | TraceRet : forall r, is_traceF (RetF r) (TRet r)
 | TraceTau : forall t tr,
@@ -46,7 +47,8 @@ Inductive is_traceF {E R} : itreeF E R (itree E R) -> @trace E R -> Prop :=
     is_traceF (VisF e k) (TEventResponse e x tr)
 .
 
-Definition is_trace {E R} (t : itree E R) := is_traceF (observe t).
+Definition is_trace {E : Type -> Type} {R : Type} (t : itree E R) :=
+  is_traceF (observe t).
 
 (* t1 ⊑ t2 *)
 Definition trace_incl {E : Type -> Type} {R : Type} :
@@ -55,7 +57,8 @@ Definition trace_incl {E : Type -> Type} {R : Type} :
     forall tr, is_trace t1 tr -> is_trace t2 tr.
 
 (* t1 ≡ t2 *)
-Definition trace_eq {E : Type -> Type} {R : Type} : itree E R -> itree E R -> Prop :=
+Definition trace_eq {E : Type -> Type} {R : Type} :
+  itree E R -> itree E R -> Prop :=
   fun t1 t2 =>
     trace_incl t1 t2 /\ trace_incl t2 t1.
 
@@ -235,24 +238,24 @@ Proof.
   - apply trace_eq_eutt.
 Qed.
 
-Inductive event {E : Type -> Type} : Type :=
-| Event : forall {X}, E X -> X -> event
+Inductive event (E : Type -> Type) : Type :=
+| Event : forall {X}, E X -> X -> event E
 .
 
 (* [step_ ev t' t] if [t] steps to [t'] (read right to left!)
    with visible event [ev]. *)
 Inductive step_ {E : Type -> Type} {R : Type}
-          (ev : event) (t' : itree E R) :
+          (ev : event E) (t' : itree E R) :
   itree E R -> Prop :=
 | StepTau : forall t, step_ ev t' t -> step_ ev t' (Tau t)
 | StepVis : forall X (e : E X) (x : X) k,
-    ev = Event e x ->
+    ev = Event _ e x ->
     t' = k x ->
     step_ ev t' (Vis e k)
 .
 
 Definition step {E : Type -> Type} {R : Type}
-           (ev : event) (t t' : itree E R) : Prop :=
+           (ev : event E) (t t' : itree E R) : Prop :=
   step_ ev t' t.
 
 CoInductive simulates {E : Type -> Type} {R : Type} :
