@@ -285,10 +285,6 @@ Section EUTT.
   Proof.
   Admitted.
 
-  Lemma interp1_eq_eutt {F: Type -> Type} (h: E ~> itree F) R:
-    @Proper (itree (E +' F) R -> itree F R) (eutt eq ==> eutt eq) (interp1 h R).
-  Admitted.
-
 End EUTT.
 
 Section GEN_TMP.

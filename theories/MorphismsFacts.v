@@ -284,6 +284,15 @@ Proof.
     + intros. pupto2_final. eauto.
 Qed.
 
+Instance eutt_interp1 {E F: Type -> Type} (h: E ~> itree F) R:
+  Proper (eutt eq ==> eutt eq) (@interp1 E F F _ h R).
+Proof.
+  repeat intro.
+  rewrite <- 2 interp_is_interp1.
+  eapply eutt_interp; auto.
+  red; reflexivity.
+Qed.
+
 (** * [interp_state] *)
 
 Lemma unfold_interp_state : forall {E F S R} (h : E ~> Monads.stateT S (itree F)) t s,
@@ -499,6 +508,11 @@ Proof.
      specialize (CIH _ (k0 v) k s). auto.
 Qed.
 
+Instance eutt_interp_state {E F: Type -> Type} {S : Type}
+         (h : E ~> Monads.stateT S (itree F)) R :
+  Proper (eutt eq ==> eq ==> eutt eq) (@interp_state E F S h R).
+Proof.
+Admitted.
 
 (* Translate facts ---------------------------------------------------------- *)
 
