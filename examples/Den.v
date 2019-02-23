@@ -9,6 +9,7 @@ From Coq Require Import
      Program
      Morphisms.
 
+Set Nested Proofs Allowed.
 (** * Category of denotations *)
 Inductive done : Set := Done : done.
 Definition den {E: Type -> Type} A B : Type := A -> itree E (B + done).
@@ -58,6 +59,7 @@ Section Den.
                end.
 
     (* Identities *)
+    Definition I: Type := Empty_set.
     Definition id_den {A} : denE A A := fun a => Ret (inl a).
 
     (* Utility function to lift a pure computation into den *)
@@ -68,6 +70,17 @@ Section Den.
     Definition tensor_den {A B C D}
                (ab : denE A B) (cd : denE C D) : den (A + C) (B + D) :=
       sum_elim (compose_den ab (lift_den inl)) (compose_den cd (lift_den inr)).
+
+    (* Left and right unitors *)
+    Definition λ_den {A: Type}: denE (I + A) A := lift_den sum_empty_l.
+    Definition ρ_den {A: Type}: denE (A + I) A := lift_den sum_empty_r.
+
+    (* Associator *)
+    Definition assoc_den_l {A B C: Type}: denE (A + (B + C)) ((A + B) + C) := lift_den sum_assoc_l.
+    Definition assoc_den_r {A B C: Type}: denE ((A + B) + C) (A + (B + C)) := lift_den sum_assoc_r.
+
+    (* Symmetry *)
+    Definition sym_den {A B: Type}: denE (A + B) (B + A) := lift_den sum_comm.
 
     (*
    A [box : den (I + A) (I + B)] is a circuit, drawn below as ###,
@@ -94,7 +107,7 @@ Section Den.
   Infix ">=>" := compose_den (at level 50, left associativity).
   Infix "⊗" := (tensor_den) (at level 30).
 
-  Section Facts.
+  Section Laws.
 
     (** *** [compose_den] respect eq_den *)
     Global Instance eq_den_compose {A B C} :
@@ -172,15 +185,6 @@ Section Den.
       reflexivity.
     Qed.
 
-    Fact lift_den_lift_den {A B C} (f: A -> B) (g: B -> C) :
-      lift_den f >=> lift_den g ⩰ lift_den (g ∘ f).
-    Proof.
-      intros a.
-      unfold lift_den, compose_den.
-      rewrite ret_bind.
-      reflexivity.
-    Qed.
-
     Fact lift_compose_den {A B C}: forall (f:A -> B) (bc: den B C),
         lift_den f >=> bc ⩰ fun a => bc (f a).
     Proof.
@@ -218,13 +222,12 @@ Section Den.
 
     (** *** [tensor] lemmas *)
 
-    Lemma tensor_swap {A B C D} (ab : den A B) (cd : den C D) :
-      ab ⊗ cd ⩰ (lift_den sum_comm >=> cd ⊗ ab >=> lift_den sum_comm).
+    Instance eq_den_tensor {A B C D}:
+      Proper (eq_den ==> eq_den ==> eq_den) (@tensor_den A B C D).
     Proof.
+      intros ac ac' eqac bd bd' eqbd. 
       unfold tensor_den.
-      rewrite !(compose_den_lift cd), !(compose_den_lift ab), !lift_compose_den, !compose_den_lift.
-      intros []; cbn; rewrite map_map; cbn;
-        apply eutt_map; try intros []; reflexivity.
+      rewrite eqac, eqbd; reflexivity.
     Qed.
 
     Fact tensor_id_lift {A B C} (f : B -> C) :
@@ -245,28 +248,136 @@ Section Den.
       reflexivity.
     Qed. 
 
+    Lemma assoc_I {A B}:
+      @assoc_den_r A I B >=> id_den ⊗ λ_den ⩰ ρ_den ⊗ id_den. 
+    Proof.
+      unfold ρ_den,λ_den.
+      rewrite tensor_lift_id, tensor_id_lift.
+      unfold assoc_den_r.
+      rewrite compose_lift_den.
+      apply eq_lift_den.
+      intros [[|]|]; compute; try reflexivity.
+      destruct i.
+    Qed.
+
+    Lemma lift_den_id {A: Type}: @id_den A ⩰ lift_den id.
+    Proof.
+      unfold id_den, lift_den; reflexivity.
+    Qed.
+
+    Lemma sum_elim_compose {A B C D F}:
+      forall (ac: denE A (C + D)) (bc: denE B (C + D)) (cf: denE C F) (df: denE D F),
+        sum_elim ac bc >=> sum_elim cf df ⩰
+        sum_elim (ac >=> (sum_elim cf df)) (bc >=> (sum_elim cf df)).
+    Proof.
+      intros.
+      unfold compose_den.
+      intros []; reflexivity.
+    Qed.
+
+    Lemma inl_sum_elim {A B C}:
+      forall (ac: denE A C) (bc: denE B C),
+        lift_den inl >=> sum_elim ac bc ⩰ ac.
+    Proof.
+      intros.
+      unfold compose_den, lift_den.
+      intros ?.
+      rewrite ret_bind.
+      reflexivity. 
+    Qed.
+
+    Lemma inr_sum_elim {A B C}:
+      forall (ac: denE A C) (bc: denE B C),
+        lift_den inr >=> sum_elim ac bc ⩰ bc.
+    Proof.
+      intros.
+      unfold compose_den, lift_den.
+      intros ?.
+      rewrite ret_bind.
+      reflexivity.
+    Qed.
+
+    Lemma tensor_den_slide {A B C D}:
+      forall (ac: @den E A C) (bd: den B D),
+        ac ⊗ bd ⩰ ac ⊗ id_den >=> id_den ⊗ bd.
+    Proof.
+      intros.
+      unfold tensor_den.
+      repeat rewrite id_den_left.
+      rewrite sum_elim_compose.
+      rewrite compose_den_assoc.
+      rewrite inl_sum_elim, inr_sum_elim.
+      reflexivity.
+    Qed.
+
+    Lemma assoc_coherent {A B C D}:
+      @assoc_den_r A B C ⊗ @id_den D >=> assoc_den_r >=> id_den ⊗ assoc_den_r ⩰ 
+       assoc_den_r >=> assoc_den_r.
+    Proof.
+      unfold tensor_den, assoc_den_r.
+      repeat rewrite id_den_left.
+      repeat rewrite compose_sum_elim.
+      repeat rewrite compose_lift_den.
+      rewrite lift_sum_elim.
+      repeat rewrite compose_lift_den.
+      rewrite lift_sum_elim.
+      apply eq_lift_den.
+      intros [[[|]|]|]; reflexivity.
+    Qed.
+
+    (** *** [sym] lemmas *)
+
+    Lemma sym_unit_den {A} :
+       sym_den >=> λ_den ⩰ @ρ_den A.
+    Proof.
+      unfold sym_den, ρ_den, λ_den.
+      rewrite lift_compose_den.
+      intros []; simpl; reflexivity.
+    Qed.
+
+    Lemma sym_assoc_den {A B C}:
+      @assoc_den_r A B C >=> sym_den >=> assoc_den_r ⩰
+      (sym_den ⊗ id_den) >=> assoc_den_r >=> (id_den ⊗ sym_den).
+    Proof.
+      unfold assoc_den_r, sym_den.
+      rewrite tensor_lift_id, tensor_id_lift.
+      repeat rewrite compose_lift_den.
+      apply eq_lift_den.
+      intros [[|]|]; compute; reflexivity.
+    Qed.
+
+    Lemma sym_nilpotent {A B: Type}:
+      sym_den >=> sym_den ⩰ @id_den (A + B).
+    Proof.
+      unfold sym_den, id_den.
+      rewrite compose_lift_den.
+      unfold compose.
+      unfold lift_den; intros a.
+      setoid_rewrite iso_ff'; reflexivity.
+    Qed. 
+
+    Lemma tensor_swap {A B C D} (ab : den A B) (cd : den C D) :
+      ab ⊗ cd ⩰ (sym_den >=> cd ⊗ ab >=> sym_den).
+    Proof.
+      unfold tensor_den.
+      unfold sym_den.
+      rewrite !(compose_den_lift cd), !(compose_den_lift ab), !lift_compose_den, !compose_den_lift.
+      intros []; cbn; rewrite map_map; cbn;
+        apply eutt_map; try intros []; reflexivity.
+    Qed.
+
     (** *** [loop] lemmas *)
 
     Global Instance eq_den_loop {I A B} :
       Proper (eq_den ==> eq_den) (@loop_den I A B).
     Proof.
-    Admitted.     
-
-    (* Should be a consequence of the others. *)
-    Lemma seq_loop_l_seq {A B C I}
-          (ab : den (I + A) (I + B)) (bc : den B C) :
-       loop_den ab >=> bc ⩰
-       loop_den (ab >=> tensor_den id_den bc).
-    Proof.
-    Admitted.
-
-    (* Should be a consequence of the others *)
-    Lemma seq_loop_r_seq {A B C I}
-          (ab : den A B) (bc : den (I + B) (I + C)) :
-      ab >=> loop_den bc ⩰
-      loop_den (tensor_den id_den ab >=> bc).
-    Proof.
-    Admitted.
+      repeat intro.
+      unfold loop_den.
+      apply eutt_loop; [| reflexivity].
+      intros ? z ->.
+      unfold compose.
+      rewrite (H z); reflexivity.
+    Qed.
 
     (* Naturality of (loop_den I A B) in A *)
     (* Or more diagrammatically:
@@ -288,11 +399,23 @@ A----B----###----C
 ]]
      *)
 
+    Lemma bind_map: forall {E X Y Z} (t: itree E X) (k: X -> itree E Y) (f: Y -> Z),
+        eq_itree eq (ITree.map f (x <- t;; k x)) (x <- t;; ITree.map f (k x)).
+    Proof.
+      intros.
+      unfold ITree.map.
+      rewrite bind_bind.
+      reflexivity.
+    Qed.
+
+
     Lemma compose_loop {I A B C}:
       forall (bc_: denE (I + B) (I + C)) (ab: denE A B),
         loop_den ((id_den ⊗ ab) >=> bc_) ⩰
                  ab >=> loop_den bc_.
+    Proof.
     Admitted.
+      
 
     (* Naturality of (loop_den I A B) in B *)
     (* Or more diagrammatically:
@@ -328,6 +451,7 @@ A----###----B----C
         loop_den ((ji ⊗ id_den) >=> ab_).
     Admitted.
 
+
     (* [loop_loop]:
 
 These two loops:
@@ -356,22 +480,21 @@ These two loops:
 
      *)
 
-    (* I do not see a way to avoid the use of lift_den. *)
-
-    Notation rewire_den f g ab :=
-      (lift_den f >=> ab >=> lift_den g) (only parsing).
-
     Lemma loop_loop {I J A B}:
       forall (ab__: denE (I + (J + A)) (I + (J + B))),
         loop_den (loop_den ab__) ⩰
-        loop_den (rewire_den sum_assoc_r sum_assoc_l ab__).
+                 loop_den (assoc_den_r >=> ab__ >=> assoc_den_l).
     Admitted.
 
     Lemma tensor_den_loop {I A B C D}
           (ab : denE (I + A) (I + B)) (cd : denE C D) :
-        (loop_den ab) ⊗ cd ⩰
-        loop_den (rewire_den sum_assoc_l sum_assoc_r (ab ⊗ cd)).
+      (loop_den ab) ⊗ cd ⩰
+                    loop_den (assoc_den_l >=> (ab ⊗ cd) >=> assoc_den_r).
     Proof.
+    Admitted.
+
+    Lemma yanking_den {A: Type}:
+      loop_den sym_den ⩰ @id_den A.
     Admitted.
 
     (* Lemma loop_relabel {I J A B} *)
@@ -383,7 +506,7 @@ These two loops:
     (* Proof. *)
     (* Admitted. *)
 
-  End Facts.
+  End Laws.
 End Den.
 
 Bind Scope den_scope with den.
@@ -392,11 +515,8 @@ Infix ">=>" := compose_den (at level 50, left associativity).
 Infix "⊗" := (tensor_den) (at level 30).
 
 Hint Rewrite @compose_den_assoc : lift_den.
-Hint Rewrite @lift_den_lift_den : lift_den.
-Hint Rewrite @compose_lift_den_l : lift_den.
 Hint Rewrite @tensor_id_lift : lift_den.
 Hint Rewrite @tensor_lift_id : lift_den.
 Hint Rewrite @lift_sum_elim : lift_den.
-Hint Rewrite @compose_lift_den : lift_den.
 
 
