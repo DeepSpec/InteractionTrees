@@ -1,13 +1,14 @@
 language: c
 sudo: required
-install: wget https://raw.githubusercontent.com/ocaml/ocaml-ci-scripts/master/.travis-opam.sh
-script: bash -ex .travis-opam.sh
 env:
   global:
-  - EXTRA_REMOTES="https://coq.inria.fr/opam/released https://coq.inria.fr/opam/extra-dev"
+  - OPAMVERBOSE=1
+  - OPAMYES=true
+  - OPAMKEEPBUILDDIR=true
+  - PACO_VERSION="2.0.2"
   matrix:
-  - OCAML_VERSION=4.07 PINS="coq.8.8.2 coq-paco.2.0.2"
-  - OCAML_VERSION=4.07 PINS="coq.8.9.0 coq-paco.2.0.2"
+  - OCAML_VERSION=4.07 COQ_VERSION="8.8.2"
+  - OCAML_VERSION=4.07 COQ_VERSION="8.9.0"
 os:
   - linux
     # - osx
@@ -20,3 +21,23 @@ cache:
   directories:
   - $HOME/.opam
   - $HOME/Library/Caches/Homebrew
+
+before_install:
+  # Install OCaml and opam
+  - curl -L https://raw.githubusercontent.com/ocaml/ocaml-ci-scripts/master/.travis-ocaml.sh | sh
+
+install:
+- eval $(opam config env)
+- opam repo add coq-released https://coq.inria.fr/opam/released
+- opam repo add coq-extra-dev https://coq.inria.fr/opam/extra-dev
+- opam pin add coq $COQ_VERSION
+- opam pin add coq-paco $PACO_VERSION
+- opam upgrade  # Upgrade dependencies if cached
+- opam pin add coq-itree --kind=path . -n
+- opam install coq-itree --deps-only -v
+- opam list
+
+script:
+- set -e
+- opam install coq-itree -v
+- opam remove coq-itree -v
