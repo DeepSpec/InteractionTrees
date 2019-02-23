@@ -49,7 +49,7 @@ Proof. eauto. Qed.
 
 Lemma unfold_interp {E F R} {f : E ~> itree F} (t : itree E R) :
   interp f _ t ≅ interp_u f _ (observe t).
-Proof. rewrite itree_eta, interp_unfold, <-itree_eta. reflexivity. Qed.
+Proof. rewrite itree_eta_, interp_unfold, <-itree_eta_. reflexivity. Qed.
 
 (** ** [interp] and constructors *)
 
@@ -111,8 +111,9 @@ Proof.
   revert R t k.
   pcofix CIH. intros.
   rewrite (itree_eta t). destruct (observe t).
-  - rewrite ret_interp, !ret_bind. pupto2_final. apply reflexivity.
-  - rewrite tau_interp, !tau_bind, tau_interp.
+  (* TODO: [ret_bind] (0.8s) is much slower than [ret_bind_] (0.02s) *)
+  - rewrite ret_interp. rewrite !ret_bind_. pupto2_final. apply reflexivity.
+  - rewrite tau_interp, !tau_bind_, tau_interp.
     pupto2_final. pfold. econstructor. eauto.
   - rewrite vis_interp, tau_bind. rewrite bind_bind.
     pfold. do 2 red; cbn. constructor.
@@ -158,7 +159,7 @@ Proof.
     assert (ITree.bind' (fun x0 : u => interp (fun (T : Type) (e0 : E T) => ITree.liftE e0) R (k x0)) (Ret x) = (x0 <- Ret x ;; interp (fun (T : Type) (e0 : E T) => ITree.liftE e0) R (k x0))).
     { intros; reflexivity. }
     rewrite H.
-    rewrite ret_bind.
+    rewrite ret_bind_. (* TODO: Why does [ret_bind] not work at all. *)
     pupto2_final. right. apply CIH.
 Qed.  
 
@@ -239,9 +240,9 @@ Proof.
   genobs t ot. clear Heqot t.
   destruct ot; simpl; eauto.
   destruct e; simpl; eauto.
-  econstructor. rewrite bind_unfold.
+  econstructor. rewrite unfold_bind.
   econstructor. intros.
-  fold_bind. rewrite bind_unfold. simpl. eauto.
+  fold_bind. rewrite unfold_bind. simpl. eauto.
 Qed.
 
 Lemma interp_is_interp1 E F R (f: E ~> itree F) (t: itree _ R) :
@@ -258,7 +259,7 @@ Proof.
   - pfold. eapply euttF'_mon; eauto using interp_inv_main_step; intros.
     eapply upaco2_mon; eauto. intros.
     eapply (CIH' (go x2) (go x3)); eauto.
-  - rewrite !bind_unfold. fold_bind.
+  - rewrite !unfold_bind. fold_bind.
     genobs t ot. clear Heqot t.
     destruct ot; simpl; eauto 10. 
     pfold. eapply euttF'_mon; eauto using interp_inv_main_step; intros.
@@ -468,11 +469,12 @@ Proof.
   intros A t k s.
   rewrite (itree_eta t).
   destruct (observe t).
-  - cbn. rewrite interp_state_ret. rewrite !ret_bind. simpl.
+  (* TODO: performance issues with [ret|tau|vis_bind] here too. *)
+  - cbn. rewrite interp_state_ret. rewrite !ret_bind_. simpl.
     pupto2_final. apply reflexivity.
-  - cbn. rewrite interp_state_tau, !tau_bind, interp_state_tau.
+  - cbn. rewrite interp_state_tau, !tau_bind_, interp_state_tau.
     pupto2_final. pfold. econstructor. right. apply CIH.
-  - cbn. rewrite interp_state_vis, tau_bind, vis_bind, bind_bind, interp_state_vis.
+  - cbn. rewrite interp_state_vis, tau_bind_, vis_bind_, bind_bind, interp_state_vis.
     pfold. red. constructor.
     pupto2 (eq_itree_clo_bind F (S * B)). econstructor.
     + reflexivity.
@@ -493,17 +495,17 @@ Proof.
   intros A t k s.
   rewrite (itree_eta t).
   destruct (observe t).
-  - cbn. rewrite interp1_state_ret. rewrite !ret_bind. simpl.
+  - cbn. rewrite interp1_state_ret. rewrite !ret_bind_. simpl.
     pupto2_final. apply reflexivity.
-  - cbn. rewrite interp1_state_tau, !tau_bind, interp1_state_tau.
+  - cbn. rewrite interp1_state_tau, !tau_bind_, interp1_state_tau.
     pupto2_final. pfold. econstructor. right. apply CIH.
   - cbn. destruct e.
-    * rewrite interp1_state_vis1, tau_bind, vis_bind, bind_bind, interp1_state_vis1.
+    * rewrite interp1_state_vis1, tau_bind_, vis_bind_, bind_bind, interp1_state_vis1.
       pfold. red. constructor.
       pupto2 (eq_itree_clo_bind F (S * B)). econstructor.
       + reflexivity.
       + intros. specialize (CIH _ (k0 (snd v)) k (fst v)). auto.
-   * rewrite interp1_state_vis2, !vis_bind. rewrite itree_eta. rewrite unfold_interp1_state.
+   * rewrite interp1_state_vis2, !vis_bind_. rewrite itree_eta. rewrite unfold_interp1_state.
      cbn. pfold. constructor. intros.
      specialize (CIH _ (k0 v) k s). auto.
 Qed.
@@ -625,7 +627,7 @@ Proof.
   - pfold. econstructor. cbn. econstructor. intros. 
     assert (ITree.bind' (fun x0 : u => interp eh_id R (k x0)) (Ret x) = (x0 <- Ret x ;; interp eh_id R (k x0))).
     { intros; reflexivity. }
-    rewrite H. rewrite ret_bind.
+    rewrite H. rewrite ret_bind_. (* TODO: [ret_bind] doesn't work *)
     pupto2_final. right. apply CIH.
 Qed.  
   

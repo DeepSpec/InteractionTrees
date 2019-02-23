@@ -275,7 +275,7 @@ Proof.
     | [ |- _ _ (Tau (loop_ ?f _)) ] => rewrite (unfold_loop' f)
     end.
     unfold loop_once_.
-    rewrite ret_bind.
+    rewrite ret_bind_. (* TODO: [ret_bind] doesn't work. *)
     pfold; constructor; auto.
   - pfold; constructor; auto.
 Qed.
@@ -296,7 +296,7 @@ Proof.
   rewrite !bind_bind.
   pupto2 @eq_itree_clo_bind; constructor; try reflexivity.
   intros [c | b].
-  - rewrite ret_bind, tau_bind.
+  - rewrite ret_bind_, tau_bind_.
     pfold; constructor; auto.
   - autorewrite with itree.
     pupto2_final; apply reflexivity.
@@ -330,7 +330,7 @@ Proof.
     pupto2 eq_itree_clo_bind; constructor; try reflexivity.
     intros c'.
     rewrite tau_bind.
-    rewrite ret_bind.
+    rewrite ret_bind_.
     rewrite unfold_loop'; unfold loop_once.
     rewrite bind_bind.
     pfold; constructor.
@@ -407,18 +407,18 @@ Proof.
   rewrite 2 unfold_loop'; unfold loop_once.
   rewrite bind_bind.
   destruct inra as [c | a]; subst.
-  - rewrite bind_bind; setoid_rewrite ret_bind.
+  - rewrite bind_bind; setoid_rewrite ret_bind_.
     pupto2 eq_itree_clo_bind; constructor; try reflexivity.
     intros [c' | b]; simpl.
     + rewrite tau_bind. pfold; constructor.
       pupto2_final. auto.
     + rewrite ret_bind. pupto2_final; apply reflexivity.
-  - rewrite bind_bind; setoid_rewrite ret_bind.
+  - rewrite bind_bind; setoid_rewrite ret_bind_.
     pupto2 eq_itree_clo_bind; constructor; try reflexivity.
     intros [c' | b]; simpl.
     + rewrite tau_bind. pfold; constructor.
       pupto2_final. auto.
-    + rewrite ret_bind. pupto2_final; apply reflexivity.
+    + rewrite ret_bind_. pupto2_final; apply reflexivity.
 Qed.
 
 Lemma superposing2 {E A B C D D'} (f : C + A -> itree E (C + B))

@@ -4,6 +4,7 @@ theories/Basics.v
 theories/Basics_Functions.v
 theories/Core.v
 
+theories/Eq/Shallow.v
 theories/Eq/Eq.v
 theories/Eq/UpToTaus.v
 

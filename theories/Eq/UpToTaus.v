@@ -26,7 +26,11 @@ From Coq Require Import
      Setoids.Setoid
      Relations.Relations.
 
-From ITree Require Import Core Eq.Eq.
+From ITree Require Import
+     Core.
+
+From ITree Require Export
+     Eq.Eq.
 
 Local Open Scope itree.
 
@@ -668,17 +672,17 @@ Proof. constructor; typeclasses eauto. Qed.
 
 (**)
 
-Global Instance eutt_go : Proper (go_sim eutt ==> eutt) go.
-Proof. repeat intro; eauto. Qed.
+Global Instance eutt_go : Proper (going eutt ==> eutt) go.
+Proof. intros ? ? []; eauto. Qed.
 
-Global Instance eutt_observe : Proper (eutt ==> go_sim eutt) observe.
+Global Instance eutt_observe : Proper (eutt ==> going eutt) observe.
 Proof.
-  repeat intro. punfold H. pfold. destruct H. econstructor; eauto.
+  constructor. punfold H. pfold. destruct H. econstructor; eauto.
 Qed.
 
-Global Instance eutt_tauF : Proper (eutt ==> go_sim eutt) (fun t => TauF t).
+Global Instance eutt_tauF : Proper (eutt ==> going eutt) (fun t => TauF t).
 Proof.
-  repeat intro. pfold. punfold H.
+  constructor; pfold. punfold H.
   destruct H. econstructor.
   - split; intros; simpl.
     + rewrite finite_taus_tau, <-FIN, <-finite_taus_tau; eauto.
@@ -687,9 +691,9 @@ Proof.
 Qed.
 
 Global Instance eutt_VisF {u} (e: E u) :
-  Proper (pointwise_relation _ eutt ==> go_sim eutt) (VisF e).
+  Proper (pointwise_relation _ eutt ==> going eutt) (VisF e).
 Proof.
-  repeat intro. red in H. pfold. econstructor.
+  constructor; pfold. red in H. econstructor.
   - repeat econstructor.
   - intros.
     destruct UNTAUS1 as [UNTAUS1 Hnotau1].
@@ -700,17 +704,17 @@ Proof.
 Qed.
 
 Global Instance eq_itree_notauF :
-  Proper (go_sim (@eq_itree E R _ eq) ==> flip impl) notauF.
+  Proper (going (@eq_itree E R _ eq) ==> flip impl) notauF.
 Proof.
-  repeat intro. punfold H. inv H; simpl in *; subst; eauto.
+  intros ? ? [] ?; punfold H. inv H; simpl in *; subst; eauto.
 Qed.
 
 (* If [t1] and [t2] are equivalent, then either both start with
    finitely many taus, or both [spin]. *)
 Global Instance eutt_finite_taus :
-  Proper (go_sim eutt ==> flip impl) finite_tausF.
+  Proper (going eutt ==> flip impl) finite_tausF.
 Proof.
-  repeat intro. punfold H. eapply H. eauto.
+  intros ? ? [] ?; punfold H. eapply H. eauto.
 Qed.
 
 Inductive eutt_trans_clo (r: itree E R -> itree E R -> Prop) :
@@ -788,8 +792,8 @@ Lemma untaus_bind {E S R} : forall t t' (k: S -> itree E R)
 Proof.
   intros. genobs t ot; genobs t' ot'. revert t Heqot t' Heqot'.
   induction UNTAUS; intros; subst.
-  - rewrite !bind_unfold; simpobs; eauto.
-  - rewrite bind_unfold. simpobs. cbn. eauto.
+  - rewrite !unfold_bind; simpobs; eauto.
+  - rewrite unfold_bind. simpobs. cbn. eauto.
 Qed.
 
 Lemma untaus_bindF {E S R} : forall t t' (k: S -> itree E R)
@@ -806,10 +810,10 @@ Proof.
   intros [tf' [TAUS PROP]].
   genobs (ITree.bind t f) obtf. move TAUS at top. revert_until TAUS.
   induction TAUS; intros; subst.
-  - rewrite bind_unfold in PROP.
+  - rewrite unfold_bind in PROP.
     genobs t ot; destruct ot; eauto using finite_taus_ret, finite_taus_vis.
   - genobs t ot; destruct ot; eauto using finite_taus_ret, finite_taus_vis.
-    rewrite bind_unfold in Heqobtf. simpobs. inv Heqobtf. unfold_bind.
+    rewrite unfold_bind in Heqobtf. simpobs. inv Heqobtf. unfold_bind.
     eapply finite_taus_tau; eauto.
 Qed.
 
@@ -819,7 +823,7 @@ Lemma finite_taus_bind {E R S}
       (FINk: forall v, finite_tausF (observe (f v))):
   finite_tausF (observe (ITree.bind t f)).
 Proof.
-  rewrite bind_unfold.
+  rewrite unfold_bind.
   genobs t ot. clear Heqot t.
   destruct FINt as [ot' [UNT NOTAU]].
   induction UNT; subst.
@@ -846,11 +850,11 @@ Proof.
   assert (FT2 := FT1). apply FTt in FT2.
   destruct FT1 as [a [FT1 NT1]], FT2 as [b [FT2 NT2]].
   rewrite @untaus_finite_taus in FT; [|eapply untaus_bindF, FT1].
-  rewrite bind_unfold. genobs t2 ot2. clear Heqot2 t2.
+  rewrite unfold_bind. genobs t2 ot2. clear Heqot2 t2.
   induction FT2.
   - destruct ot0; inv NT2; simpl; eauto 7.
     hexploit EQV; eauto. intros EQV'. inv EQV'.
-    rewrite bind_unfold in FT. eauto.
+    rewrite unfold_bind in FT. eauto.
   - subst. eapply finite_taus_tau; eauto.
     eapply IHFT2; eauto using unalltaus_tau'.
 Qed.
@@ -874,10 +878,10 @@ Proof.
     hexploit @untaus_unalltaus_rev; [apply UT1| |]. eauto. intros UAT1.
     hexploit @untaus_unalltaus_rev; [apply UT2| |]; eauto. intros UAT2.
     inv EQV.
-    + rewrite bind_unfold in UAT1, UAT2. simpobs. cbn in *.
+    + rewrite unfold_bind in UAT1, UAT2. simpobs. cbn in *.
       eapply GF in REL. destruct REL.
       eapply monotone_eq_notauF; eauto using rclo2.
-    + rewrite bind_unfold in UAT1, UAT2. simpobs. cbn in *.
+    + rewrite unfold_bind in UAT1, UAT2. simpobs. cbn in *.
       destruct UAT1 as [UAT1 _]. destruct UAT2 as [UAT2 _].
       dependent destruction UAT1. dependent destruction UAT2. simpobs.
       econstructor. intros. specialize (H x). pclearbot. fold_bind. eauto using rclo2.
@@ -947,11 +951,6 @@ Lemma eutt_bind_gen {E R1 R2 S1 S2} {RR: R1 -> R2 -> Prop} {SS: S1 -> S2 -> Prop
     forall s1 s2, (forall r1 r2, RR r1 r2 -> eutt SS (s1 r1) (s2 r2)) ->
                   @eutt E _ _ SS (ITree.bind t1 s1) (ITree.bind t2 s2).
 Admitted.
-
-Definition observing {E R}
-           (f : itree' E R -> itree' E R -> Prop)
-           (x y : itree E R) :=
-  f x.(observe) y.(observe).
 
 Inductive euttF1' {E R} (r : itree E R -> itree E R -> Prop) :
   itree' E R -> itree' E R -> Prop :=

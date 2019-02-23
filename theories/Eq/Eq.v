@@ -8,13 +8,15 @@ From Coq Require Import
      Program
      Setoid
      Morphisms
-     RelationClasses
-     ProofIrrelevance.
+     RelationClasses.
 
 From Paco Require Import paco.
 
 From ITree Require Import
      Core.
+
+From ITree Require Export
+     Eq.Shallow.
 
 (* TODO: Send to paco *)
 Global Instance Symmetric_bot2 (A : Type) : @Symmetric A bot2.
@@ -22,33 +24,6 @@ Proof. auto. Qed.
 
 Global Instance Transitive_bot2 (A : Type) : @Transitive A bot2.
 Proof. auto. Qed.
-
-Ltac auto_inj_pair2 :=
-  repeat (match goal with
-          | [ H : _ |- _ ] => apply inj_pair2 in H
-          end).
-
-Definition go_sim {E R1 R2} (r : itree E R1 -> itree E R2 -> Prop) :
-  itreeF E R1 (itree E R1) -> itreeF E R2 (itree E R2) -> Prop :=
-  fun ot1 ot2 => r (go ot1) (go ot2).
-
-Global Instance Equivalence_go_sim E R sim
-       (Esim : @Equivalence (itree E R) sim) :
-  Equivalence (go_sim sim).
-Proof.
-  constructor; red; unfold go_sim.
-  - reflexivity.
-  - symmetry; eauto.
-  - etransitivity; eauto.
-Qed.
-
-Global Instance subrelation_go_sim E R sim sim' :
-  @subrelation (itree E R) sim sim' ->
-  subrelation (go_sim sim) (go_sim sim').
-Proof. cbv; eauto. Qed.
-
-Lemma pointwise_relation_fold {A B} {r: relation B} f g: (forall v:A, r (f v) (g v)) -> pointwise_relation _ r f g.
-  Proof. red. eauto. Qed.
 
 Section eq_itree.
   Context {E : Type -> Type} {R1 R2 : Type} (RR : R1 -> R2 -> Prop).
@@ -194,34 +169,22 @@ Proof.
   constructor; typeclasses eauto.
 Qed.
 
-Global Instance eq_itree_go :
-  Proper (go_sim eq_itree ==> eq_itree) (@go E R).
-Proof.
-  repeat intro. eauto.
-Qed.
-
 Global Instance eq_itree_observe :
-  Proper (eq_itree ==> go_sim eq_itree) (@observe E R).
+  Proper (eq_itree ==> going eq_itree) (@observe E R).
 Proof.
-  repeat intro. punfold H. pfold. eapply eq_itreeF_mono; eauto.
+  constructor; punfold H. pfold. eapply eq_itreeF_mono; eauto.
 Qed.
 
 Global Instance eq_itree_tauF :
-  Proper (eq_itree ==> go_sim eq_itree) (@TauF E R _).
+  Proper (eq_itree ==> going eq_itree) (@TauF E R _).
 Proof.
-  repeat intro. pfold. econstructor. eauto.
+  constructor; pfold. econstructor. eauto.
 Qed.
 
 Global Instance eq_itree_VisF {u} (e: E u) :
-  Proper (pointwise_relation _ eq_itree ==> go_sim eq_itree) (VisF e).
+  Proper (pointwise_relation _ eq_itree ==> going eq_itree) (VisF e).
 Proof.
-  repeat intro. red in H. pfold. econstructor. left. apply H.
-Qed.
-
-Lemma itree_eta (t: itree E R): eq_itree t (go (observe t)).
-Proof.
-  pfold. red. cbn. apply Reflexive_eq_itreeF.
-  auto using reflexivity.
+  constructor; red in H. pfold; econstructor. left. apply H.
 Qed.
 
 Inductive eq_itree_trans_clo (r : itree E R -> itree E R -> Prop) :
@@ -252,6 +215,26 @@ Proof.
     pclearbot.
     econstructor. intros. specialize (REL v). specialize (REL0 v). pclearbot. eauto using rclo2.
 Qed.
+
+  Global Instance observing_eq_itree_eq_ r `{Reflexive _ r} :
+    subrelation (observing eq) (eq_itree_ r).
+  Proof.
+    repeat red; intros x _ [[]]; destruct observe; auto.
+  Qed.
+
+  Global Instance observing_eq_itree_eq :
+    subrelation (observing eq) eq_itree.
+  Proof.
+    repeat red; intros; pfold. apply observing_eq_itree_eq_; auto.
+    left; apply reflexivity.
+  Qed.
+
+(* TODO: This should follow from [itree_eta_] and [observing eq]
+   being a subrelation of [eq_itree], but at the moment instance
+   resolution is somehow slow for [observing eq].
+   (e.g., [interp_bind]) *)
+Lemma itree_eta (t: itree E R): eq_itree t (go (observe t)).
+Proof. rewrite <- itree_eta_. reflexivity. Qed.
 
 End eq_itree_eq.
 
@@ -323,27 +306,24 @@ Qed.
 
 (**)
 
-Lemma bind_unfold {E R S}
-           (t : itree E R) (k : R -> itree E S) :
-  observe (ITree.bind t k) = observe (ITree.bind_match k (ITree.bind' k) (observe t)).
-Proof. eauto. Qed.
-
-Lemma unfold_bind {E R S}
+(* TODO (LATER): I keep these [...bind_] lemmas around temporarily
+   in case I run some issues with slow typeclass resolution. *)
+Lemma unfold_bind_ {E R S}
            (t : itree E R) (k : R -> itree E S) :
   ITree.bind t k ≅ ITree.bind_match k (fun t => ITree.bind t k) (observe t).
-Proof. rewrite itree_eta, bind_unfold, <-itree_eta. reflexivity. Qed.
+Proof. rewrite unfold_bind. reflexivity. Qed.
 
-Lemma ret_bind {E R S} (r : R) (k : R -> itree E S) :
+Lemma ret_bind_ {E R S} (r : R) (k : R -> itree E S) :
   ITree.bind (Ret r) k ≅ (k r).
-Proof. apply unfold_bind. Qed.
+Proof. apply unfold_bind_. Qed.
 
-Lemma tau_bind {E R} U t (k: U -> itree E R) :
+Lemma tau_bind_ {E R} U t (k: U -> itree E R) :
   ITree.bind (Tau t) k ≅ Tau (ITree.bind t k).
-Proof. apply @unfold_bind. Qed.
+Proof. apply @unfold_bind_. Qed.
 
-Lemma vis_bind {E R} U V (e: E V) (ek: V -> itree E U) (k: U -> itree E R) :
+Lemma vis_bind_ {E R} U V (e: E V) (ek: V -> itree E U) (k: U -> itree E R) :
   ITree.bind (Vis e ek) k ≅ Vis e (fun x => ITree.bind (ek x) k).
-Proof. apply @unfold_bind. Qed.
+Proof. apply @unfold_bind_. Qed.
 
 Inductive eq_itree_bind_clo_h {E R1 R2} (RR : R1 -> R2 -> Prop)
           (r : itree E R1 -> itree E R2 -> Prop) :
@@ -361,7 +341,7 @@ Proof.
   econstructor; try pmonauto.
   intros. dependent destruction PR.
   punfold EQV. unfold_eq_itree.
-  rewrite !bind_unfold; inv EQV; simpobs.
+  rewrite !unfold_bind; inv EQV; simpobs.
   - eapply eq_itreeF_mono; [eapply GF |]; eauto using rclo2.
   - simpl. fold_bind. pclearbot. eauto 7 using rclo2.
   - econstructor.
@@ -381,7 +361,7 @@ Proof.
   econstructor; try pmonauto.
   intros. dependent destruction PR.
   punfold EQV. unfold_eq_itree.
-  rewrite !bind_unfold; inv EQV; simpobs.
+  rewrite !unfold_bind; inv EQV; simpobs.
   - eapply eq_itreeF_mono; [eapply GF |]; eauto using rclo2.
   - simpl. fold_bind. pclearbot. eauto 7 using rclo2.
   - econstructor.
@@ -442,7 +422,7 @@ Lemma bind_ret {E R} :
     ITree.bind s (fun x => Ret x) ≅ s.
 Proof.
   pcofix CIH. intros.
-  pfold. unfold_eq_itree. rewrite !bind_unfold. simpl.
+  pfold. unfold_eq_itree. rewrite !unfold_bind. simpl.
   genobs s os. destruct os; simpl; eauto.
 Qed.
 
@@ -451,7 +431,8 @@ Lemma bind_bind {E R S T} :
     ITree.bind (ITree.bind s k) h ≅ ITree.bind s (fun r => ITree.bind (k r) h).
 Proof.
   pcofix CIH. intros.
-  pfold. unfold_eq_itree. rewrite !bind_unfold.
+  pfold. unfold_eq_itree.
+  rewrite !unfold_bind. (* TODO: this is a bit slow (0.5s). *)
   genobs s os; destruct os; unfold_bind; simpl; auto.
   apply Reflexive_eq_itreeF. auto using reflexivity.
 Qed.
@@ -550,9 +531,9 @@ Proof.
 Qed.
 *)
 
+Hint Rewrite @ret_bind_ : itree.
+Hint Rewrite @tau_bind_ : itree.
+Hint Rewrite @vis_bind_ : itree.
 Hint Rewrite @map_bind : itree.
-Hint Rewrite @ret_bind : itree.
-Hint Rewrite @tau_bind : itree.
-Hint Rewrite @vis_bind : itree.
 Hint Rewrite @bind_ret : itree.
 Hint Rewrite @bind_bind : itree.
