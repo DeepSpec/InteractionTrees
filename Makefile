@@ -58,6 +58,7 @@ Makefile.coq: _CoqProject
 
 clean: Makefile.coq
 	$(MAKE) -f Makefile.coq clean
+	$(MAKE) -C tests clean
 	$(RM) {*,*/*}/*.{vo,glob} {*,*/*}/.*.aux
 	$(RM) _CoqProject Makefile.coq*
 	$(RM) examples/extracted/*.*
