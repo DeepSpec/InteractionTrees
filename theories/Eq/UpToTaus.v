@@ -304,6 +304,17 @@ Variant eq_notauF {I J} (eutt : I -> J -> Prop)
     eq_notauF eutt (VisF e k1) (VisF e k2).
 Hint Constructors eq_notauF.
 
+Lemma eq_notauF_vis_inv1 {I J} {eutt : I -> J -> Prop} {U}
+  ot (e : E U) k :
+  eq_notauF eutt ot (VisF e k) ->
+  exists k',
+    ot = VisF e k' /\ (forall x, eutt (k' x) (k x)).
+Proof.
+  intros. remember (VisF e k) as t.
+  inversion H; subst; try discriminate.
+  inversion H2; subst; auto_inj_pair2; subst; eauto.
+Qed.
+
 (*
 Variant eq_notauF' {I} (eutt : relation I)
 : relation (itreeF E R I) :=

@@ -330,7 +330,7 @@ Proof. eauto. Qed.
 
 Lemma unfold_bind {E R S}
            (t : itree E R) (k : R -> itree E S) :
-  ITree.bind t k ≅ ITree.bind_match k (ITree.bind' k) (observe t).
+  ITree.bind t k ≅ ITree.bind_match k (fun t => ITree.bind t k) (observe t).
 Proof. rewrite itree_eta, bind_unfold, <-itree_eta. reflexivity. Qed.
 
 Lemma ret_bind {E R S} (r : R) (k : R -> itree E S) :
