@@ -751,8 +751,9 @@ Lemma eutt_tau {E R1 R2} (RR : R1 -> R2 -> Prop)
            (t1 : itree E R1) (t2 : itree E R2) :
   eutt RR t1 t2 -> eutt RR (Tau t1) (Tau t2).
 Proof.
-  intros; pfold; constructor; auto.
-Admitted.
+  intros H. 
+  pfold. eapply euttF_tau. reflexivity. reflexivity. punfold H.
+Qed.
 
 Lemma eq_itree_vis {E R1 R2} (RR : R1 -> R2 -> Prop)
       {U} (e : E U) (k1 : U -> itree E R1) (k2 : U -> itree E R2) :
