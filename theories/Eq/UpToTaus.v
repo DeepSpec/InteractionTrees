@@ -573,15 +573,123 @@ Qed.
 
 Delimit Scope eutt_scope with eutt.
 
+(** ** Generalized symmetry and transitivity *)
+
+Lemma Symmetric_eq_notauF_ {E R1 R2}
+      (RR1 : R1 -> R2 -> Prop) (RR2 : R2 -> R1 -> Prop)
+      {I J} (r1 : I -> J -> Prop) (r2 : J -> I -> Prop)
+      (SYM_RR : forall r1 r2, RR1 r1 r2 -> RR2 r2 r1)
+      (SYM_r : forall i j, r1 i j -> r2 j i)
+      (ot1 : itreeF E R1 I) (ot2 : itreeF E R2 J) :
+  eq_notauF RR1 r1 ot1 ot2 ->
+  eq_notauF RR2 r2 ot2 ot1.
+Proof. intros []; auto. Qed.
+
+Lemma Transitive_eq_notauF_ {E R1 R2 R3}
+      (RR1 : R1 -> R2 -> Prop) (RR2 : R2 -> R3 -> Prop)
+      (RR3 : R1 -> R3 -> Prop)
+      {I J K} (r1 : I -> J -> Prop) (r2 : J -> K -> Prop)
+      (r3 : I -> K -> Prop)
+      (TRANS_RR : forall r1 r2 r3, RR1 r1 r2 -> RR2 r2 r3 -> RR3 r1 r3)
+      (TRANS_r : forall i j k, r1 i j -> r2 j k -> r3 i k)
+      (ot1 : itreeF E R1 I) ot2 ot3 :
+  eq_notauF RR1 r1 ot1 ot2 ->
+  eq_notauF RR2 r2 ot2 ot3 ->
+  eq_notauF RR3 r3 ot1 ot3.
+Proof.
+  intros [] I2; inversion I2; eauto.
+  auto_inj_pair2; subst; eauto.
+Qed.
+
+Lemma Symmetric_euttF_ {E R1 R2}
+      (RR1 : R1 -> R2 -> Prop) (RR2 : R2 -> R1 -> Prop)
+      (r1 : _ -> _ -> Prop) (r2 : _ -> _ -> Prop)
+      (SYM_RR : forall r1 r2, RR1 r1 r2 -> RR2 r2 r1)
+      (SYM_r : forall i j, r1 i j -> r2 j i)
+      (ot1 : itree' E R1) (ot2 : itree' E R2) :
+  euttF RR1 r1 ot1 ot2 ->
+  euttF RR2 r2 ot2 ot1.
+Proof.
+  intros []; split.
+  - split; apply FIN.
+  - intros. specialize (EQV _ _ UNTAUS2 UNTAUS1).
+    eapply Symmetric_eq_notauF_; eauto.
+Qed.
+
+Lemma Transitive_euttF_ {E R1 R2 R3}
+      (RR1 : R1 -> R2 -> Prop) (RR2 : R2 -> R3 -> Prop)
+      (RR3 : R1 -> R3 -> Prop)
+      (r1 : _ -> _ -> Prop) (r2 : _ -> _ -> Prop)
+      (r3 : _ -> _ -> Prop)
+      (TRANS_RR : forall r1 r2 r3, RR1 r1 r2 -> RR2 r2 r3 -> RR3 r1 r3)
+      (TRANS_r : forall i j k, r1 i j -> r2 j k -> r3 i k)
+      (ot1 : itree' E R1) ot2 ot3 :
+  euttF RR1 r1 ot1 ot2 ->
+  euttF RR2 r2 ot2 ot3 ->
+  euttF RR3 r3 ot1 ot3.
+Proof.
+  intros [] [].
+  constructor.
+  - etransitivity; eauto.
+  - intros t1' t3' H1 H3.
+    assert (FIN2 : finite_tausF ot2).
+    { apply FIN; eauto. }
+    destruct FIN2 as [t2' []].
+    eapply Transitive_eq_notauF_; eauto.
+Qed.
+
+Lemma Symmetric_eutt_ {E R1 R2}
+      (RR1 : R1 -> R2 -> Prop) (RR2 : R2 -> R1 -> Prop)
+      (r1 : _ -> _ -> Prop) (r2 : _ -> _ -> Prop)
+      (SYM_RR : forall r1 r2, RR1 r1 r2 -> RR2 r2 r1)
+      (SYM_r : forall i j, r1 i j -> r2 j i) :
+  forall (t1 : itree E R1) (t2 : itree E R2),
+    paco2 (eutt_ RR1) r1 t1 t2 -> paco2 (eutt_ RR2) r2 t2 t1.
+Proof.
+  pcofix self.
+  intros t1 t2 H12.
+  punfold H12.
+  pfold.
+  eapply Symmetric_euttF_; try eassumption.
+  intros ? ? []; auto.
+Qed.
+
+Lemma Transitive_eutt_ {E R1 R2 R3}
+      (RR1 : R1 -> R2 -> Prop) (RR2 : R2 -> R3 -> Prop)
+      (RR3 : R1 -> R3 -> Prop)
+      (TRANS_RR : forall r1 r2 r3, RR1 r1 r2 -> RR2 r2 r3 -> RR3 r1 r3) :
+  forall (t1 : itree E R1) t2 t3,
+    eutt RR1 t1 t2 -> eutt RR2 t2 t3 -> eutt RR3 t1 t3.
+Proof.
+  pcofix self.
+  intros t1 t2 t3 H12 H23.
+  punfold H12; punfold H23; pfold.
+  eapply Transitive_euttF_; try eassumption.
+  intros; pclearbot; eauto.
+Qed.
+
 Section EUTT_rel.
 
 Context {E : Type -> Type} {R : Type} (RR : R -> R -> Prop).
 
 (* Reflexivity of [eq_notauF], modulo a few assumptions. *)
-Lemma Reflexive_eq_notauF `{Reflexive _ RR} I (eq_ : I -> I -> Prop) (ot : itreeF E R I) :
-  Reflexive eq_ -> notauF ot -> eq_notauF RR eq_ ot ot.
+Lemma Reflexive_eq_notauF `{Reflexive _ RR} I (eq_ : I -> I -> Prop) :
+  Reflexive eq_ ->
+  forall (ot : itreeF E R I), notauF ot -> eq_notauF RR eq_ ot ot.
 Proof.
   intros. destruct ot; try contradiction; econstructor; intros; subst; eauto.
+Qed.
+
+Global Instance Symmetric_eq_notauF `{Symmetric _ RR} I (eq_ : I -> I -> Prop) :
+  Symmetric eq_ -> Symmetric (@eq_notauF E _ _ RR _ _ eq_).
+Proof.
+  repeat intro. eapply Symmetric_eq_notauF_; eauto.
+Qed.
+
+Global Instance Transitive_eq_notauF `{Transitive _ RR} I (eq_ : I -> I -> Prop) :
+  Transitive eq_ -> Transitive (@eq_notauF E _ _ RR _ _ eq_).
+Proof.
+  repeat intro. eapply Transitive_eq_notauF_; eauto.
 Qed.
 
 Global Instance subrelation_eq_eutt :
@@ -597,14 +705,7 @@ Proof.
   eapply unalltaus_notau in UNTAUS1. contradiction.
 Qed.
 
-End EUTT_rel.
-
-Section EUTT_eq.
-
-Context {E : Type -> Type} {R : Type}.
-
-Global Instance Reflexive_euttF
-       {RR : R -> R -> Prop} `{Reflexive _ RR}
+Global Instance Reflexive_euttF `{Reflexive _ RR}
        (r : itree E R -> itree E R -> Prop) :
   Reflexive r -> Reflexive (euttF RR r).
 Proof.
@@ -614,6 +715,26 @@ Proof.
     erewrite (unalltaus_injective _ _ _ UNTAUS1 UNTAUS2).
     apply Reflexive_eq_notauF; eauto.
 Qed.
+
+Global Instance Symmetric_euttF `{Symmetric _ RR}
+         (r : itree E R -> itree E R -> Prop) :
+  Symmetric r -> Symmetric (euttF RR r).
+Proof.
+  intros SYM x y. apply Symmetric_euttF_; auto.
+Qed.
+
+Global Instance Transitive_euttF `{Transitive _ RR}
+       (r : itree E R -> itree E R -> Prop) :
+  Transitive r -> Transitive (euttF RR r).
+Proof.
+  intros TRANS x y z. apply Transitive_euttF_; auto.
+Qed.
+
+End EUTT_rel.
+
+Section EUTT_eq.
+
+Context {E : Type -> Type} {R : Type}.
 
 Global Instance Reflexive_eutt
        {RR : R -> R -> Prop} `{Reflexive _ RR}
@@ -631,40 +752,12 @@ Infix "≈" := eutt (at level 70) : itree_scope.
 Global Instance Symmetric_eutt (r : itree E R -> itree E R -> Prop)
          (Sr : Symmetric r) :
   Symmetric (paco2 (eutt_ eq) r).
-Proof.
-  pcofix Symmetric_eutt.
-  intros t1 t2 H12.
-  punfold H12.
-  pfold.
-  destruct H12 as [I12 H12].
-  split.
-  - symmetry; assumption.
-  - intros. hexploit H12; eauto. intros.
-    inv H; eauto.
-    econstructor. intros. destruct (H0 x); eauto.
-Qed.
+Proof. red; eapply Symmetric_eutt_; eauto. Qed.
 
 Global Instance Transitive_eutt : Transitive eutt.
 Proof.
-  pcofix Transitive_eutt.
-  intros t1 t2 t3 H12 H23.
-  punfold H12.
-  punfold H23.
-  pfold.
-  destruct H12 as [I12 H12].
-  destruct H23 as [I23 H23].
-  split.
-  - etransitivity; eauto.
-  - intros t1' t3' H1 H3.
-    destruct I12 as [I1 I2].
-    destruct I1 as [n2' [t2' TAUS2]]; eauto.
-    hexploit H12; eauto. intros REL1.
-    hexploit H23; eauto. intros REL2.
-    destruct REL1; inversion REL2; clear REL2.
-    + subst; eauto.
-    + auto_inj_pair2; subst.
-      econstructor; auto. intros.
-      specialize (H x); specialize (H6 x). pclearbot. eauto.
+  red; eapply Transitive_eutt_; eauto.
+  intros; subst; eauto.
 Qed.
 
 (**)
