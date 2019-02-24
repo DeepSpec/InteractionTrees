@@ -291,6 +291,16 @@ Notation finite_taus t := (finite_tausF (observe t)).
 Notation untaus t t' := (untausF (observe t) (observe t')).
 Notation unalltaus t t' := (unalltausF (observe t) (observe t')).
 
+Ltac auto_untaus :=
+  repeat match goal with
+  | [ H1 : notauF ?X, H2 : unalltausF ?X ?Y |- _ ] =>
+    assert_fails (unify X Y);
+    replace Y with X in * by apply (unalltaus_notau_id _ _ H2 H1)
+  | [ H1 : unalltausF ?X ?Y, H2 : unalltausF ?X ?Z |- _ ] =>
+    assert_fails (unify Y Z);
+    replace Z with Y in * by apply (unalltaus_injective _ _ _ H1 H2)
+  end; auto.
+
 Section EUTT.
 
 Context {E : Type -> Type} {R1 R2 : Type} (RR : R1 -> R2 -> Prop).

@@ -44,6 +44,52 @@ Proof.
       eapply unalltaus_injective; eauto.
 Qed.
 
+Inductive suttF0 (eutt : itree E R1 -> itree E R2 -> Prop)
+          (ot1 : itreeF E R1 (itree E R1))
+          (ot2 : itreeF E R2 (itree E R2)) : Prop :=
+| suttF0_notau ot2' :
+    notauF ot1 ->
+    unalltausF ot2 ot2' ->
+    eq_notauF RR eutt ot1 ot2' ->
+    suttF0 eutt ot1 ot2
+| suttF0_tau t1 :
+    ot1 = TauF t1 ->
+    suttF eutt (observe t1) ot2 ->
+    suttF0 eutt ot1 ot2
+.
+Hint Constructors suttF0.
+
+Lemma sutt_inv eutt ot1 ot2 :
+  suttF eutt ot1 ot2 <->
+  suttF0 eutt ot1 ot2.
+Proof.
+  split; intros SUTT.
+  - destruct SUTT. destruct ot1.
+    + assert (Iuat1 : @unalltausF E _ (RetF r) (RetF r)).
+      { repeat constructor. }
+      edestruct FIN as [ot2' [Iuntaus Inotau]].
+      { eauto. }
+      eapply suttF0_notau; eauto.
+    + eapply suttF0_tau; auto.
+      constructor.
+      * rewrite finite_taus_tau in FIN; auto.
+      * intros. apply EQV; auto.
+        eapply unalltaus_tau'; auto.
+    + assert (Iuat1 : @unalltausF E _ (VisF e k) (VisF e k)).
+      { repeat constructor. }
+      edestruct FIN as [ot2' [Iuntaus Inotau]].
+      { eauto. }
+      eapply suttF0_notau; eauto.
+  - destruct SUTT.
+    + constructor; eauto.
+      intros; auto_untaus.
+    + subst; destruct H0; constructor.
+      * rewrite finite_taus_tau; auto.
+      * intros; auto_untaus.
+        eapply unalltaus_tau in UNTAUS1; auto.
+        apply EQV; auto.
+Qed.
+
 Definition sutt_ (eutt : itree E R1 -> itree E R2 -> Prop)
            (t1 : itree E R1) (t2 : itree E R2) : Prop :=
   suttF eutt (observe t1) (observe t2).
@@ -68,6 +114,8 @@ End SUTT.
 Hint Constructors suttF.
 Hint Unfold sutt_.
 Hint Resolve monotone_sutt_ : paco.
+
+Hint Constructors suttF0.
 
 Lemma monotone_eq_notauF_RR {E R1 R2} (RR1 RR2 : R1 -> R2 -> Prop)
       {I J} (r : I -> J -> Prop) :
@@ -120,24 +168,6 @@ Proof.
     intros; pclearbot; auto.
 Qed.
 
-Inductive suttF' {E R} (sutt: relation (itree E R)) :
-  relation (itree' E R) :=
-| suttF'_notau ot1 ot2 ot2' :
-    unalltausF ot2 ot2' ->
-    eq_notauF eq sutt ot1 ot2' ->
-    suttF' sutt ot1 ot2
-| suttF'_tau_left t1 ot2
-      (EQTAUS: suttF' sutt (observe t1) ot2):
-    suttF' sutt (TauF t1) ot2
-.
-Hint Constructors suttF'.
-
-Theorem suttF_suttF' {E R} (sutt : relation (itree E R)) :
-  forall ot1 ot2,
-    suttF eq sutt ot1 ot2 <-> suttF' sutt ot1 ot2.
-Proof.
-Admitted.
-
 Inductive suttF1 {E R} (sutt: itree' E R -> itree' E R -> Prop) :
   itree' E R -> itree' E R -> Prop :=
 | suttF1_ret r : suttF1 sutt (RetF r) (RetF r)
@@ -167,48 +197,53 @@ Lemma monotone_suttF1 {E R} : monotone2 (@suttF1 E R).
 Proof. repeat red; intros. induction IN; eauto. Qed.
 Hint Resolve monotone_suttF1 : paco.
 
-Lemma sutt_is_sutt1 {E R} (t1 t2: itree E R) :
+Lemma sutt_to_sutt1 {E R} :
+  forall (t1 t2: itree E R), sutt eq t1 t2 -> sutt1 t1 t2.
+Proof.
+  pcofix self; intros t1 t2 SUTT.
+  punfold SUTT. pfold.
+  apply sutt_inv in SUTT.
+  destruct SUTT.
+  - destruct H0 as [Huntaus Hnotau].
+    induction Huntaus.
+    + destruct H1; subst; auto.
+      pclearbot; constructor; right; apply self; apply H0.
+    + subst; auto.
+  - rewrite H; constructor. right; apply self. pfold; auto.
+Qed.
+
+Lemma sutt1_to_sutt {E R} :
+  forall (t1 t2: itree E R), sutt1 t1 t2 -> sutt eq t1 t2.
+Proof.
+  pcofix self; intros t1 t2 SUTT.
+  punfold SUTT. pfold. red.
+  induction SUTT.
+  - apply sutt_inv; eauto 7.
+  - pclearbot. apply sutt_inv; eapply suttF0_notau; eauto.
+    constructor; auto.
+  - destruct IHSUTT. constructor.
+    + rewrite finite_taus_tau; auto.
+    + intros. eapply unalltaus_tau in UNTAUS2; eauto.
+  - pclearbot. apply suttF_unpack.
+    intros. eapply unalltaus_tau in H; eauto.
+    destruct H as [Huntaus Hnotau].
+    revert ot2 EQTAUS; induction Huntaus; intros.
+    + punfold EQTAUS. induction EQTAUS.
+      * eauto 9.
+      * eexists; split.
+        { repeat constructor. }
+        { pclearbot; constructor; auto. }
+      * destruct IHEQTAUS as [? []]; auto.
+        eauto using unalltaus_tau'.
+      * contradiction.
+    + punfold EQTAUS. induction EQTAUS; try discriminate.
+      * destruct IHEQTAUS as [? []]; auto.
+        eauto using unalltaus_tau'.
+      * pclearbot; inv OBS. eauto.
+Qed.
+
+Lemma sutt_is_sutt1 {E R} (t1 t2 : itree E R) :
   sutt eq t1 t2 <-> sutt1 t1 t2.
 Proof.
-  split; revert t1 t2; pcofix self; intros t1 t2 SUTT.
-  - punfold SUTT. pfold.
-    apply suttF_suttF' in SUTT.
-    induction SUTT; auto.
-    destruct H as [Huntaus Hnotau].
-    induction Huntaus.
-    + inversion H0; subst; constructor.
-      pclearbot. right; apply self; red; auto.
-    + subst; auto.
-  - punfold SUTT. pfold.
-    red.
-    induction SUTT.
-    + constructor; eauto. intros.
-      apply unalltausF_ret in UNTAUS1.
-      apply unalltausF_ret in UNTAUS2.
-      subst; auto.
-    + constructor; eauto 7. intros.
-      apply unalltausF_vis in UNTAUS1.
-      apply unalltausF_vis in UNTAUS2.
-      pclearbot; subst; auto.
-      constructor. right; auto.
-    + destruct IHSUTT; constructor; intros.
-      * apply finite_taus_tau; auto.
-      * apply EQV. auto. eapply unalltaus_tau; eauto.
-    + pclearbot; punfold EQTAUS.
-      eapply suttF_unpack.
-      intros t0' Hunalltaus.
-      eapply unalltaus_tau in Hunalltaus; eauto.
-      destruct Hunalltaus as [Huntaus Hnotau].
-      revert ot2 EQTAUS.
-      induction Huntaus; intros.
-      * induction EQTAUS;
-          contradiction + eauto 6.
-        { pclearbot. econstructor. repeat (constructor; auto). }
-        { destruct IHEQTAUS as [ot2' []]; auto.
-          eexists; split; eauto using unalltaus_tau'. }
-      * induction EQTAUS;
-          discriminate + eauto 6.
-        { destruct IHEQTAUS as [? []]; auto.
-          eexists; eauto using unalltaus_tau'. }
-        { pclearbot. inv OBS. punfold EQTAUS; auto. }
+  split. apply sutt_to_sutt1. apply sutt1_to_sutt.
 Qed.
