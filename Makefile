@@ -1,5 +1,4 @@
-.PHONY: clean all coq test tests examples install uninstall depgraph \
-  example-imp example-lc example-io example-nimp example-asm
+.PHONY: clean all coq test tests examples install uninstall depgraph
 
 COQPATHFILE=$(wildcard _CoqPath)
 
@@ -17,41 +16,10 @@ uninstall: Makefile.coq
 test: examples tests
 
 tests:
-	make -C tests
+	$(MAKE) -C tests
 
-examples: example-imp example-lc example-io example-nimp example-threads
-
-examples/%.vo: examples/%.v
-	cd examples && \
-	  coqc -Q ../theories/ ITree $*.v
-
-example-imp: examples/Imp.vo
-
-example-lc: examples/stlc.vo
-
-example-lc: examples/stlc.vo
-
-example-io: examples/IO.vo
-	cd examples && \
-	  ocamlbuild io.native && ./io.native
-
-examples/Asm.vo: examples/sum.vo examples/Imp.vo
-examples/Imp2Asm.vo: examples/Asm.vo
-examples/Imp2AsmBis.vo: examples/sum.vo examples/Asm.vo
-
-example-asm: examples/Asm.vo
-
-example-imp2asm: examples/Imp2Asm.vo
-
-example-imp2asm2: examples/Imp2AsmBis.vo
-
-THREADSV=examples/MultiThreadedPrinting.v examples/ExtractThreadsExample.v
-THREADSML=examples/runthread.ml
-example-threads: $(THREADSV) $(THREADSML)
-	coqc -Q theories/ ITree -Q examples/ Examples $(THREADSV) && \
-	cd examples && \
-	ocamlbuild -I extracted runthread.native && \
-	./runthread.native
+examples:
+	$(MAKE) -C examples
 
 Makefile.coq: _CoqProject
 	coq_makefile -f $< -o $@
@@ -59,10 +27,9 @@ Makefile.coq: _CoqProject
 clean: Makefile.coq
 	$(MAKE) -f Makefile.coq clean
 	$(MAKE) -C tests clean
-	$(RM) {*,*/*}/*.{vo,glob} {*,*/*}/.*.aux
+	$(MAKE) -C examples clean
+	$(RM) theories/{*,*/*}/*.{vo,glob} theories/{*,*/*}/.*.aux
 	$(RM) _CoqProject Makefile.coq*
-	$(RM) examples/extracted/*.*
-	cd examples && ocamlbuild -clean
 
 _CoqProject: $(COQPATHFILE) _CoqConfig Makefile
 	@ echo "# Generating _CoqProject"

@@ -34,5 +34,6 @@ tests/extraction/*.ml
 tests/extraction/*.mli
 examples/io.ml
 examples/io.mli
+examples/extracted/
 
 *.native

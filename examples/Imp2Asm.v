@@ -9,6 +9,7 @@ From Coq Require Import
      RelationClasses.
 
 From ITree Require Import
+     Basics_Functions
      Effect.Env
      ITree.
 
@@ -237,7 +238,7 @@ Section Correctness.
 
   Lemma fmap_block_map:
     forall  {L L'} b (f: L -> L'),
-      denote_block E (fmap_block f b) ≅ ITree.map (option_map f) (denote_block E b).
+      denote_block E (fmap_block f b) ≅ ITree.map (sum_bimap f id) (denote_block E b).
   Proof.
     induction b as [i b | br]; intros f.
     - simpl.
