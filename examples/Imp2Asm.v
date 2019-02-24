@@ -71,344 +71,114 @@ Section fmap_block.
     end.
 End fmap_block.
 
+Definition link_seq (p1: asm unit Empty_set) (p2: asm unit Empty_set): asm unit Empty_set :=
+  let transL l :=
+      match l with
+      | inl l => inl (inl l)
+      | inr _ => inl (inr None)
+      end
+  in
+  let transR l :=
+      match l with
+      | inl l => inl (inr (Some l))
+      | inr l => inr l
+      end
+  in
+  {| internal := p1.(internal) + option p2.(internal)
+     ; code l :=
+         match l with
+         | inl (inl l) =>        (* p1's internal *)
+           fmap_block transL (p1.(code) (inl l))           
+         | inl (inr None) =>     (* p2's entry point *)
+           fmap_block transR (p2.(code) (inr tt))       
+         | inl (inr (Some l)) => (* p2's internal *)
+           fmap_block transR (p2.(code) (inl l))    
+         | inr tt =>             (* p1's entry point *)
+           fmap_block transL (p1.(code) (inr tt))               
+         end
+  |}.
+
+Definition link_if (e : list instr) (lp : asm unit Empty_set) (rp : asm unit Empty_set) : asm unit Empty_set :=
+  let to_left l :=
+      match l with
+      | inl l => inl (inl (Some l))
+      | inr l => inr l
+      end
+  in
+  let to_right l :=
+      match l with
+      | inl l => inl (inr (Some l))
+      | inr l => inr l
+      end
+  in
+
+  {| internal  := option lp.(internal) + option rp.(internal)
+     ; code l :=
+         match l with
+         | inr tt =>             (* Entry point to the conditional *)
+           after e (bbb (Bbrz (gen_tmp 0) (inl (inl None)) (inl (inr None))))
+         | inl (inl None) =>     (* Entry point to the left branch *)
+           fmap_block to_left (lp.(code) (inr tt))
+         | inl (inl (Some l)) => (* Inside the left branch *)
+           fmap_block to_left (lp.(code) (inl l))
+         | inl (inr None) =>     (* Entry point to the right branch *)
+           fmap_block to_right (rp.(code) (inr tt))
+         | inl (inr (Some l)) => (* Inside the right branch *)
+           fmap_block to_right (rp.(code) (inl l))
+         end
+  |}.
+
+
 Variant WhileBlocks : Set :=
 | WhileTop
 | WhileBottom.
 
-(*
-  Compiles a statement given a partially built continuation 'k' expressed as a block.
- *)
-(* YZ: Need another generator of fresh variables to store the result of conditionals.
-   Though they should never be reused if I'm not mistaken, so a unique reserved id as currently is might actually simply do the trick.
-   To double check.
- *)
-
-(* this is what we need for seq *)
-Definition link_seq (p1 : program unit) (p2 : program unit) : program unit.
-refine
-  (let transL l :=
+Definition link_loop (e : list instr) (bp : asm unit Empty_set): asm unit Empty_set :=
+  let to_body l :=
       match l with
-      | inl l => inl (inl l)
-      | inr tt => inl (inr None) (* *)
+      | inl l => inl (inr l)
+      | inr l => inr l
       end
   in
-   let transR l :=
-       match l with
-       | inl l => inl (inr (Some l))
-       | inr tt => inr tt
-       end
-   in
-  {| label := p1.(label) + option p2.(label)
-   ; main := fmap_block transL p1.(main)
-   ; blocks l :=
-       match l with
-       | inl l => fmap_block transL (p1.(blocks) l)
-       | inr None => fmap_block transR p2.(main)
-       | inr (Some l) => fmap_block transR (p2.(blocks) l)
-       end
-  |}).
-Defined.
 
-Definition link_if (b : block bool) (p1 : program unit) (p2 : program unit)
-: program unit.
-refine
-  (let to_right x :=
-          match x with
-          | inl y => inl (inr (Some y))
-          | inr y => inr y
-          end
-      in
-      let to_left x :=
-          match x with
-          | inl y => inl (inl (Some y))
-          | inr y => inr y
-          end
-      in
-      let lc := p1 in
-      let rc := p2 in
+  {| internal := WhileBlocks + bp.(internal)
+     ; code l :=
+         match l with
+         | inr tt =>                (* Entry point to the loop *)
+           after e (bbb (Bbrz (gen_tmp 0) (inl (inl WhileTop)) (inl (inl WhileBottom)))) 
+         | inl (inl WhileTop) =>    (* Entry point to the body *)
+           fmap_block to_body (bp.(code) (inr tt))                                       
+         | inl (inl WhileBottom) => (* Exit point *)
+           bbb Bhalt                                                                     
+         | inl (inr l) =>           (* Inside the body *)
+           fmap_block to_body (bp.(code) (inl l))                                        
+         end
+  |}.
 
-      {| label  := option lc.(label) + option rc.(label)
-       ; blocks := fun x =>
-                     match x with
-                     | inl None =>
-                       fmap_block to_left lc.(main)
-                     | inl (Some x) =>
-                       fmap_block to_left (lc.(blocks) x)
-                     | inr None =>
-                       fmap_block to_right rc.(main)
-                     | inr (Some x) =>
-                       fmap_block to_right (rc.(blocks) x)
-                     end
-         ; main   :=
-             fmap_block (fun l =>
-                           match l with
-                           | true => inl (inl None)
-                           | false => inl (inr None)
-                           end) b
-      |}).
-Defined.
+Set Nested Proofs Allowed.
 
-Definition link_while (b : block bool) (p1 : program unit)
-: program unit.
-Admitted.
+Fixpoint compile (s : stmt) {struct s} : asm unit Empty_set :=
+  match s with
+
+  | Skip =>
+
+    {| internal  := Empty_set
+       ; code := fun _ => bbb Bhalt |}
+
+  | Assign x e =>
+
+    {| internal  := Empty_set
+       ; code := fun _ => after (compile_assign x e)
+                             (bbb Bhalt) |}
+
+  | Seq l r => link_seq (compile l) (compile r)
 
 
-(*
-Record program2 (exports imports : Type) : Type :=
-  { internal2 : Type
-  ; names : exports -> internal2
-  ; blocks2 : internal2 -> block (internal2 + imports) }.
+  | If e l r => link_if (compile_expr 0 e) (compile l) (compile r)
 
-Definition link2 {A B C} (p1 : program2 A (B + C)) (p2 : program2 B (A + C))
-: program2 (A + B) C.
-
-rec : program2 a (a + b) -> program a b
-*)
-
-(* we could change this to `stmt -> program unit` and then compile the subterms
- * and then replace some of the jumps to do the actual linking.
- *
- * the type of `program` can not be printed because the type of labels is
- * exitentially quantified. it could be replaced with a finite map.
- *)
-Fixpoint compile2 (s : stmt) {struct s} : program unit.
-  refine
-    match s with
-
-    | Skip =>
-
-      {| label  := Empty_set
-       ; blocks := fun x => match x with end
-       ; main   := bbb (Bjmp (inr tt)) |}
-
-    | Assign x e =>
-
-      {| label  := Empty_set
-         ; blocks := fun x => match x with end
-         ; main   := after (compile_assign x e)
-                             (bbb (Bjmp (inr tt))) |}
-
-    | Seq l r =>
-
-      link_seq (compile2 l) (compile2 r)
-
-    | If e l r =>
-
-      let to_right x :=
-          match x with
-          | inl y => inl (inr (Some y))
-          | inr y => inr y
-          end
-      in
-      let to_left x :=
-          match x with
-          | inl y => inl (inl (Some y))
-          | inr y => inr y
-          end
-      in
-      let lc := compile2 l in
-      let rc := compile2 r in
-
-      {| label  := option lc.(label) + option rc.(label)
-       ; blocks := fun x =>
-                     match x with
-                     | inl None =>
-                       fmap_block to_left lc.(main)
-                     | inl (Some x) =>
-                       fmap_block to_left (lc.(blocks) x)
-                     | inr None =>
-                       fmap_block to_right rc.(main)
-                     | inr (Some x) =>
-                       fmap_block to_right (rc.(blocks) x)
-                     end
-         ; main   :=
-             after (compile_expr 0 e)
-                   (bbb (Bbrz (gen_tmp 0)
-                              (inl (inl None))
-                              (inl (inr None))))
-      |}
-
-    | While e b =>
-      let bc := compile2 b in
-      {| label := WhileBlocks
-                    + option bc.(label)
-         ; blocks :=
-             let convert x :=
-                 match x with
-                 | inl x => inl (inr (Some x))
-                 | inr x => inl (inl WhileTop)
-                 end
-             in fun x =>
-                  match x with
-                  | inl WhileTop => (* before evaluating e *)
-                    after (compile_expr 0 e)
-                          (bbb (Bbrz (gen_tmp 0)
-                                     (inl (inr None))
-                                     (inl (inl WhileBottom))))
-                  | inl WhileBottom => (* after the loop exits *)
-                    bbb (Bjmp (inr tt))
-                  | inr None =>
-                    fmap_block convert bc.(main)
-                  | inr (Some x) =>
-                    fmap_block convert (bc.(blocks) x)
-                  end
-         ; main := bbb (Bjmp (inl (inl WhileTop)))
-      |}
-
-    end.
-Defined.
-
-
-
-(* we could change this to `stmt -> program unit` and then compile the subterms
- * and then replace some of the jumps to do the actual linking.
- *
- * the type of `program` can not be printed because the type of labels is
- * exitentially quantified. it could be replaced with a finite map.
- *)
-Fixpoint compile (s : stmt) {L} (k : block L) {struct s} : program L.
-  refine
-    match s with
-
-    | Skip =>
-
-      {| label  := Empty_set
-         ; blocks := fun x => match x with end
-         ; main   := fmap_block inr k |}
-
-    | Assign x e =>
-
-      {| label  := Empty_set
-         ; blocks := fun x => match x with end
-         ; main   := after (compile_assign x e)
-                             (fmap_block inr k) |}
-
-    | Seq l r =>
-
-      let reassoc :=
-          (fun x => match x with
-                 | inl x => inl (inl x)
-                 | inr (inl x) => inl (inr x)
-                 | inr (inr x) => inr x
-                 end)
-      in
-      let to_right :=
-          (fun x => match x with
-                 | inl x => inl (inr x)
-                 | inr x => inr x
-                 end)
-      in
-
-      let rc := @compile r L k in
-      let lc := @compile l (sum rc.(label) L) rc.(main) in
-
-      {| label  := lc.(label) + rc.(label)
-         ; blocks := fun x =>
-                         match x with
-                         | inl x => fmap_block reassoc (lc.(blocks) x)
-                         | inr x => fmap_block to_right (rc.(blocks) x)
-                         end
-         ; main   :=
-             fmap_block reassoc lc.(main) |}
-
-(*
-      let lc := @compile l unit (bbb (Bjmp tt)) in
-      let rc := @compile r L k in
-
-      {| label  := lc.(label) + option rc.(label)
-       ; blocks := fun x =>
-                     match x with
-                     | inr None => fmap_block _ rc.(main)
-                     | inl x => fmap_block _ (lc.(blocks) x)
-                     | inr (Some x) => fmap_block _ (rc.(blocks) x)
-                     end
-       ; main   :=
-           fmap_block _ lc.(main) |}
-*)
-    | If e l r =>
-      let to_right := (fun x =>
-                         match x with
-                         | inl y => inl (inr (Some y))
-                         | inr y => inr y
-                         end)
-      in
-      let to_left := (fun x =>
-                        match x with
-                        | inl y => inl (inl (Some y))
-                        | inr y => inr y
-                        end)
-      in
-      let lc := @compile l L k in
-      let rc := @compile r L k in
-
-      {| label  := option lc.(label) + option rc.(label)
-         ; blocks := fun x =>
-                         match x with
-                         | inl None =>
-                           fmap_block to_left lc.(main)
-                         | inl (Some x) =>
-                           fmap_block to_left (lc.(blocks) x)
-                         | inr None =>
-                           fmap_block to_right rc.(main)
-                         | inr (Some x) =>
-                           fmap_block to_right (rc.(blocks) x)
-                         end
-         ; main   :=
-             after (compile_assign "_jump_var" e)
-                   (bbb (Bbrz "_jump_var"
-                              (inl (inl None))
-                              (inl (inr None))))
-      |}
-
-    | While e b =>
-      let bc := compile b unit (bbb (Bjmp tt)) in
-      {| label := WhileBlocks
-                    + option bc.(label)
-         ; blocks :=
-             let convert x :=
-                 match x with
-                 | inl x => inl (inr (Some x))
-                 | inr x => inl (inl WhileTop)
-                 end
-             in fun x =>
-                  match x with
-                  | inl WhileTop => (* before evaluating e *)
-                    after (compile_assign "_jump_var" e)
-                          (bbb (Bbrz "_jump_var"
-                                     (inl (inr None))
-                                     (inl (inl WhileBottom))))
-                  | inl WhileBottom => (* after the loop exits *)
-                    fmap_block inr k
-                  | inr None =>
-                    fmap_block convert bc.(main)
-                  | inr (Some x) =>
-                    fmap_block convert (bc.(blocks) x)
-                  end
-         ; main := bbb (Bjmp (inl (inl WhileTop)))
-      |}
-
-    end.
-Defined.
-
-Section tests.
-
-  Import ImpNotations.
-
-  Definition ex1: stmt :=
-    "x" ← 1.
-
-  (* The result is a bit annoying to read in that it keeps around absurd branches *)
-  Compute (compile ex1).
-
-  Definition ex_cond: stmt :=
-    "x" ← 1;;;
-    IF "x"
-    THEN "res" ← 2
-    ELSE "res" ← 3.
-
-  Compute (compile ex_cond).
-
-End tests.
+  | While e b => link_loop (compile_expr 0 e) (compile b)
+                          
+  end.
 
 Section denote_list.
 
@@ -1502,4 +1272,29 @@ l: [x]
    ....
 l1: ...; jmp[a]
 l2: ...; jmp[b]
+*)
+
+(*
+
+Section tests.
+
+  Import ImpNotations.
+
+  Definition ex1: stmt :=
+    "x" ← 1.
+
+  (* The result is a bit annoying to read in that it keeps around absurd branches *)
+  Compute (compile ex1).
+
+  Definition ex_cond: stmt :=
+    "x" ← 1;;;
+    IF "x"
+    THEN "res" ← 2
+    ELSE "res" ← 3.
+
+  Compute (compile ex_cond).
+
+End tests.
+
+
 *)
