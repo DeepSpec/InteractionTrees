@@ -1065,10 +1065,25 @@ Proof.
   apply subrelation_eq_eutt, map_map.
 Qed.
 
+Lemma eutt_eq_under_rr_impl {E : Type -> Type}
+       {R1 R2 : Type} (RR: R1 -> R2 -> Prop):
+  Proper (@eutt E _ _ eq ==> @eutt _ _ _ eq ==> impl) (eutt RR).
+Proof.
+  repeat intro.
+  symmetry in H.
+  eapply Transitive_eutt_; try eassumption.
+  2: eapply Transitive_eutt_; try eassumption.
+  all: intros; subst; eauto.
+Qed.
+
 Global Instance eutt_eq_under_rr {E : Type -> Type}
        {R1 R2 : Type} (RR: R1 -> R2 -> Prop):
   Proper (@eutt E _ _ eq ==> @eutt _ _ _ eq ==> iff) (eutt RR).
-Admitted.
+Proof.
+  repeat intro.
+  split; eapply eutt_eq_under_rr_impl; auto.
+  all: symmetry; auto.
+Qed.
 
 (** Generalized heterogeneous version of [eutt_bind] *)
 Lemma eutt_bind_gen {E R1 R2 S1 S2} {RR: R1 -> R2 -> Prop} {SS: S1 -> S2 -> Prop}:
