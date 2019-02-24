@@ -475,7 +475,7 @@ Section eutt_loop.
 
 Context {E : Type -> Type} {A B C : Type}.
 Variables f1 f2 : C + A -> itree E (C + B).
-Hypothesis eutt_f : forall ca, f1 ca ≈ f2 ca.
+Hypothesis eutt_f : forall ca, sutt eq (f1 ca) (f2 ca).
 
 Inductive loop_preinv (t1 t2 : itree E B) : Prop :=
 | loop_inv_main ca :
@@ -483,7 +483,7 @@ Inductive loop_preinv (t1 t2 : itree E B) : Prop :=
     t2 ≅ loop_ f2 ca ->
     loop_preinv t1 t2
 | loop_inv_bind u1 u2 :
-    eutt eq u1 u2 ->
+    sutt eq u1 u2 ->
     t1 ≅ (cb <- u1;;
        match cb with
        | inl c => Tau (loop_ f1 (inl c))
@@ -498,250 +498,161 @@ Inductive loop_preinv (t1 t2 : itree E B) : Prop :=
 .
 Hint Constructors loop_preinv.
 
-(* TODO: Make this proof less ugly. *)
 Lemma eutt_loop_inv_main_step (ca : C + A) t1 t2 :
   t1 ≅ loop_ f1 ca ->
   t2 ≅ loop_ f2 ca ->
-  euttF' loop_preinv
-         (fun ot1 ot2 => loop_preinv (go ot1) (go ot2))
-         (observe t1) (observe t2).
+  suttF1 (going loop_preinv) (observe t1) (observe t2).
 Proof.
   intros H1 H2.
   rewrite unfold_loop' in H1.
   rewrite unfold_loop' in H2.
   unfold loop_once.
   specialize (eutt_f ca).
+  apply sutt_is_sutt1 in eutt_f.
   punfold eutt_f.
-  destruct eutt_f.
   unfold loop_once in H1.
+  unfold loop_once in H2.
   rewrite unfold_bind in H1.
-  destruct (observe (f1 ca)) eqn:Ef1.
+  rewrite unfold_bind in H2.
 
-  1:{ (* f1 ca = Ret _ *)
-    assert (H1unalltaus : @unalltausF E _ (RetF r) (RetF r)).
-    { apply untaus_all; constructor. }
-    assert (H2unalltaus : finite_taus (f2 ca)).
-    { apply FIN; eauto. }
-    destruct H2unalltaus as [ot2 H2unalltaus].
-    specialize (EQV _ _ H1unalltaus H2unalltaus).
-    destruct H2unalltaus as [H2untaus _].
-    unfold loop_once in H2.
-    remember (f2 ca) as t2' eqn:Et2; clear Et2.
-    rewrite unfold_bind in H2.
-    genobs t2' ot2'.
-    revert t2 H2 t2' eutt_f Heqot2'.
-    induction H2untaus; intros.
-    + inversion EQV; subst. rewrite <- H3 in H2; simpl in H1, H2.
-      destruct r2.
-      * apply eq_itree_tau_inv1 in H1.
-        apply eq_itree_tau_inv1 in H2.
-        destruct H1 as [t01 [Ht01 Ht01']].
-        destruct H2 as [t02 [Ht02 Ht02']].
-        rewrite Ht01, Ht02.
-        constructor.
-        econstructor.
-        { rewrite Ht01'. rewrite <- itree_eta. reflexivity. }
-        { rewrite Ht02'. rewrite <- itree_eta. reflexivity. }
-      * apply eq_itree_ret_inv1 in H1.
-        apply eq_itree_ret_inv1 in H2.
-        rewrite H1, H2. auto.
-    + rewrite <- OBS in H2. apply eq_itree_tau_inv1 in H2.
-      destruct H2 as [t02 [Ht02 Ht02']].
-      rewrite Ht02.
-      constructor.
-      eapply IHH2untaus; auto.
-      erewrite <- (untaus_finite_taus _ (observe t')); eauto.
-      rewrite <- unfold_bind; auto.
-      eapply euttF_tau_right; subst; eauto. }
+  revert t1 t2 H1 H2.
+  induction eutt_f; intros z1 z2 H1 H2.
 
-  2:{ (* f1 ca = Vis _ _ *)
-    assert (H1unalltaus : @unalltausF E _ (VisF e k) (VisF e k)).
-    { apply untaus_all; constructor. }
-    assert (H2unalltaus : finite_taus (f2 ca)).
-    { apply FIN; eauto. }
-    destruct H2unalltaus as [ot2 H2unalltaus].
-    specialize (EQV _ _ H1unalltaus H2unalltaus).
-    destruct H2unalltaus as [H2untaus _].
-    unfold loop_once in H2.
-    remember (f2 ca) as t2' eqn:Et2; clear Et2.
-    rewrite unfold_bind in H2.
-    genobs t2' ot2'.
-    revert t2 H2 t2' eutt_f Heqot2'.
-    induction H2untaus; intros.
-    + inversion EQV; auto_inj_pair2; subst.
-      rewrite <- H0 in H2; simpl in H1, H2.
-      apply eq_itree_vis_inv1 in H1.
-      apply eq_itree_vis_inv1 in H2.
-      destruct H1 as [k01 [Hk1 Ht1]].
-      destruct H2 as [k02 [Hk2 Ht2]].
-      rewrite Hk1, Hk2.
-      pclearbot.
-      constructor.
-      intros; eapply loop_inv_bind; [ eapply H5 | | ]; eauto.
-    + rewrite <- OBS in H2. apply eq_itree_tau_inv1 in H2.
-      destruct H2 as [t02 [Ht02 Ht02']].
-      rewrite Ht02.
-      constructor.
-      eapply IHH2untaus; auto.
-      erewrite <- (untaus_finite_taus _ (observe t')); eauto.
-      rewrite <- unfold_bind; auto.
-      eapply euttF_tau_right; subst; eauto. }
+  - destruct r.
+    + apply eq_itree_tau_inv1 in H1.
+      destruct H1 as [t1' [Ht1 Ht1']].
+      apply eq_itree_tau_inv1 in H2.
+      destruct H2 as [t2' [Ht2 Ht2']].
+      rewrite Ht1, Ht2.
+      repeat constructor.
+      econstructor; try rewrite <- itree_eta; eassumption.
+    + apply eq_itree_ret_inv1 in H1.
+      apply eq_itree_ret_inv1 in H2.
+      rewrite H1, H2.
+      auto.
 
-  1:{ (* f1 ca = Tau _ *)
-    unfold loop_once in H2.
-    rewrite unfold_bind in H2.
-    destruct (observe (f2 ca)) eqn:Ef2.
+  - pclearbot. apply eq_itree_vis_inv1 in H1.
+    apply eq_itree_vis_inv1 in H2.
+    destruct H1 as [k01 [Hk1 Hk1']].
+    destruct H2 as [k02 [Hk2 Hk2']].
+    rewrite Hk1, Hk2.
+    constructor; intros.
+    repeat constructor.
+    eapply loop_inv_bind.
+    + apply sutt_is_sutt1, SUTTK.
+    + rewrite <- itree_eta; auto.
+    + rewrite <- itree_eta; auto.
 
-    1:{ (* f2 ca = Ret _ *)
-      rewrite <- Ef1 in *; clear Ef1 t.
-      assert (H2unalltaus : @unalltausF E _ (RetF r) (RetF r)).
-      { apply untaus_all; constructor. }
-      assert (H1unalltaus : finite_taus (f1 ca)).
-      { apply FIN; eauto. }
-      destruct H1unalltaus as [ot1 H1unalltaus].
-      specialize (EQV _ _ H1unalltaus H2unalltaus).
-      destruct H1unalltaus as [H1untaus _].
-      remember (f1 ca) as t1' eqn:Et1; clear Et1.
-      genobs t1' ot1'.
-      revert t1 H1 t1' eutt_f Heqot1'.
-      induction H1untaus; intros.
-      + inversion EQV; subst. rewrite <- H0 in H1; simpl in H1, H2.
-        destruct r.
-        * apply eq_itree_tau_inv1 in H1.
-          apply eq_itree_tau_inv1 in H2.
-          destruct H1 as [t01 [Ht01 Ht01']].
-          destruct H2 as [t02 [Ht02 Ht02']].
-          rewrite Ht01, Ht02.
-          constructor.
-          econstructor.
-          { rewrite Ht01'. rewrite <- itree_eta. reflexivity. }
-          { rewrite Ht02'. rewrite <- itree_eta. reflexivity. }
-        * apply eq_itree_ret_inv1 in H1.
-          apply eq_itree_ret_inv1 in H2.
-          rewrite H1, H2. auto.
-      + rewrite <- OBS in H1. apply eq_itree_tau_inv1 in H1.
-        destruct H1 as [t01 [Ht01 Ht01']].
-        rewrite Ht01.
-        constructor.
-        eapply IHH1untaus; auto.
-        erewrite <- (untaus_finite_taus _ (observe t')); eauto.
-        rewrite <- unfold_bind; auto.
-        eapply euttF_tau_left; subst; eauto. }
-
-  2:{ (* f2 ca = Vis _ _ *)
-    rewrite <- Ef1 in *; clear Ef1 t.
-    assert (H2unalltaus : @unalltausF E _ (VisF e k) (VisF e k)).
-    { apply untaus_all; constructor. }
-    assert (H1unalltaus : finite_taus (f1 ca)).
-    { apply FIN; eauto. }
-    destruct H1unalltaus as [ot1 H1unalltaus].
-    specialize (EQV _ _ H1unalltaus H2unalltaus).
-    destruct H1unalltaus as [H1untaus _].
-    remember (f1 ca) as t1' eqn:Et1; clear Et1.
-    genobs t1' ot1'.
-    revert t1 H1 t1' eutt_f Heqot1'.
-    apply eq_notauF_vis_inv1 in EQV.
-    destruct EQV as [k' [Hot0 Hk']].
-    induction H1untaus; intros.
-    + rewrite Hot0 in H1; simpl in H1, H2.
-      apply eq_itree_vis_inv1 in H1.
-      apply eq_itree_vis_inv1 in H2.
-      destruct H1 as [k01 [Hk1 Ht1]].
-      destruct H2 as [k02 [Hk2 Ht2]].
-      rewrite Hk1, Hk2.
-      pclearbot.
-      constructor.
-      intros; eapply loop_inv_bind; [ eapply Hk' | | ]; eauto.
-    + rewrite <- OBS in H1. apply eq_itree_tau_inv1 in H1.
-      destruct H1 as [t01 [Ht01 Ht01']].
-      rewrite Ht01.
-      constructor.
-      eapply IHH1untaus; auto.
-      erewrite <- (untaus_finite_taus _ (observe t')); eauto.
-      rewrite <- unfold_bind; auto.
-      eapply euttF_tau_left; subst; eauto. }
-
-  1:{ (* f2 ca = Tau _ *)
-    apply eq_itree_tau_inv1 in H1.
-    apply eq_itree_tau_inv1 in H2.
-    destruct H1 as [t01 [Ht01 Ht01']].
-    destruct H2 as [t02 [Ht02 Ht02']].
-    rewrite Ht01, Ht02.
+  - apply eq_itree_tau_inv1 in H2.
+    destruct H2 as [t2' [Ht2 Ht2']].
+    rewrite Ht2.
     constructor.
-    eapply loop_inv_bind; try (rewrite <- itree_eta; eauto).
-    + erewrite <- (tauF_eutt _ t), <- (tauF_eutt _ t0); try eauto.
-      pfold; auto. }
-  }
+    apply IHs; auto. rewrite <- unfold_bind; auto.
 
+  - pclearbot.
+    replace ot2 with (observe (go ot2)) in *.
+    rewrite <- unfold_bind in H2.
+    apply eq_itree_tau_inv1 in H1.
+    destruct H1 as [t1' [Ht1 Ht1']].
+    rewrite Ht1.
+    repeat constructor.
+    eapply loop_inv_bind.
+    + apply sutt_is_sutt1. eauto.
+    + rewrite <- itree_eta; auto.
+    + rewrite <- itree_eta; auto.
+    + auto.
 Qed.
 
-Lemma eutt_loop_inv t1 t2 :
-  loop_preinv t1 t2 -> eutt eq t1 t2.
+Lemma eutt_loop_inv ot1 ot2 :
+  loop_preinv (go ot1) (go ot2) -> paco2 suttF1 bot2 ot1 ot2.
 Proof.
   intros HH.
-  apply eutt_is_eutt'.
-  revert t1 t2 HH; pcofix self; intros. pfold.
-  revert t1 t2 HH; pcofix self_tau; intros.
+  revert ot1 ot2 HH; pcofix self; intros. pfold.
   destruct HH as [ca H1 H2 | u1 u2 Hu H1 H2].
-  - pfold. eapply euttF'_mon.
-    + eapply eutt_loop_inv_main_step; eauto.
-    + intros. right. eapply self; eauto; try reflexivity.
-    + simpl; intros. right.
-      replace x0 with (observe (go x0)) by reflexivity.
-      replace x1 with (observe (go x1)) by reflexivity.
-      eapply self_tau; eauto; try reflexivity.
-  - apply eutt_is_eutt' in Hu. punfold Hu. punfold Hu.
+  - eapply monotone_suttF1.
+    + eapply (eutt_loop_inv_main_step ca (go ot1) (go ot2)); eauto.
+    + intros ? ? []. right. eapply self; eauto.
+  - apply sutt_is_sutt1 in Hu.
+    punfold Hu.
     rewrite unfold_bind in H1.
     rewrite unfold_bind in H2.
-    pfold.
-    genobs t1 ot1. genobs t2 ot2.
-    revert ot1 ot2 t1 t2 Heqot1 Heqot2 H1 H2.
-    induction Hu; intros; cbn in H1, H2; subst.
-    + destruct r1 as [ c | b ].
+    revert ot1 ot2 H1 H2; induction Hu; intros.
+
+    + destruct r0.
       * apply eq_itree_tau_inv1 in H1.
         apply eq_itree_tau_inv1 in H2.
-        destruct H1 as [t1'' [H1 H1']].
-        destruct H2 as [t2'' [H2 H2']].
-        rewrite H1, H2. constructor; eauto.
-      * apply eq_itree_ret_inv1 in H1. apply eq_itree_ret_inv1 in H2.
-        rewrite H1, H2. auto.
-    + apply eq_itree_vis_inv1 in H1. apply eq_itree_vis_inv1 in H2.
-      destruct H1 as [k1' [H1 H1']].
-      destruct H2 as [k2' [H2 H2']].
-      rewrite H1, H2. pclearbot. eauto.
-      constructor; intro z; right.
-      eapply self; eauto.
-      econstructor 2.
-      apply eutt_is_eutt'; apply EUTTK.
-      eauto. eauto.
+        simpl in H1, H2.
+        destruct H1 as [? []], H2 as [? []].
+        subst.
+        do 2 constructor. right.
+        apply self.
+        eapply loop_inv_main; rewrite <- itree_eta; eauto.
+      * apply eq_itree_ret_inv1 in H1.
+        apply eq_itree_ret_inv1 in H2.
+        simpl in H1, H2. subst; constructor.
+
     + pclearbot.
-      apply eq_itree_tau_inv1 in H1. apply eq_itree_tau_inv1 in H2.
-      destruct H1 as [t1'' [H1 H1']].
-      destruct H2 as [t2'' [H2 H2']].
-      rewrite H1, H2. constructor. right.
-      eapply self_tau; eauto.
-      econstructor 2.
-      apply eutt_is_eutt'; eauto.
-      eauto. eauto.
-    + apply eq_itree_tau_inv1 in H1.
-      destruct H1 as [t1'' [H1 H1']].
-      rewrite H1. constructor.
-      eapply IHHu; eauto.
-      rewrite <- unfold_bind. auto.
+      apply eq_itree_vis_inv1 in H1.
+      apply eq_itree_vis_inv1 in H2.
+      simpl in H1, H2.
+      destruct H1 as [? []], H2 as [? []].
+      subst; constructor.
+      right. apply self.
+      eapply loop_inv_bind.
+      * apply sutt_is_sutt1. eapply SUTTK.
+      * rewrite <- itree_eta; auto.
+      * rewrite <- itree_eta; auto.
+
     + apply eq_itree_tau_inv1 in H2.
-      destruct H2 as [t2'' [H2 H2']].
-      rewrite H2. constructor.
-      eapply IHHu; eauto.
-      rewrite <- unfold_bind. auto.
+      simpl in H2.
+      destruct H2 as [t2' [Ht2 Ht2']].
+      rewrite Ht2.
+      constructor.
+      apply IHHu; auto.
+      rewrite <- itree_eta, <- unfold_bind; auto.
+
+    + pclearbot.
+      replace ot2 with (observe (go ot2)) in *.
+      rewrite <- unfold_bind in H2.
+      apply eq_itree_tau_inv1 in H1.
+      simpl in H1.
+      destruct H1 as [t1' [Ht1 Ht1']].
+      rewrite Ht1.
+      constructor.
+      right; apply self.
+      eapply loop_inv_bind.
+      * apply sutt_is_sutt1.
+        eapply EQTAUS.
+      * rewrite <- itree_eta; auto.
+      * auto.
+      * auto.
 Qed.
 
 End eutt_loop.
+
+Instance sutt_loop {E A B C} :
+  Proper ((eq ==> sutt eq) ==> eq ==> sutt eq) (@loop E A B C).
+Proof.
+  repeat intro; subst. apply sutt_is_sutt1.
+
+  eapply eutt_loop_inv.
+  - eauto.
+  - unfold loop; econstructor; rewrite <- itree_eta; reflexivity.
+Qed.
 
 Instance eutt_loop {E A B C} :
   Proper ((eq ==> eutt eq) ==> eq ==> eutt eq) (@loop E A B C).
 Proof.
   repeat intro; subst.
-  eapply eutt_loop_inv.
-  - eauto.
-  - unfold loop; econstructor; reflexivity.
+  eapply sutt_eutt.
+  - eapply sutt_loop; auto.
+    repeat intro; subst.
+    apply eutt_sutt; auto.
+  - eapply paco2_mon_gen.
+    + eapply sutt_loop; auto.
+      repeat intro.
+      apply eutt_sutt; symmetry; auto.
+    + intros. eapply monotone_sutt_RR; try eassumption.
+      red; auto.
+    + auto.
 Qed.
