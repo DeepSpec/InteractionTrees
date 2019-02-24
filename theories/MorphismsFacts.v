@@ -531,7 +531,49 @@ Proof.
   rewrite (itree_eta).
   rewrite (itree_eta (interp (fun (T : Type) (e : E T) => g T (f T e)) R t)).
   rewrite !unfold_interp. unfold interp_u.
-Admitted.
+  unfold handleF. rewrite unfold_translate. unfold translateF.
+  destruct (observe t); cbn.
+  - pupto2_final. apply Reflexive_eq_itree. (* SAZ: typeclass resolution failure? *)
+  - pfold. constructor. pupto2_final. right. apply CIH.
+  - pfold. constructor.
+    pupto2 eq_itree_clo_bind.
+    econstructor.
+    + reflexivity.
+    + intros. pupto2_final. right. apply CIH.
+Qed.
+
+Lemma translate_to_interp {E F R} (f : E ~> F) (t : itree E R) :
+  translate f t ≈ interp (fun _ e => ITree.liftE (f _ e)) _ t.
+Proof.
+  pupto2_init.
+  revert t.
+  pcofix CIH.
+  intros t.
+  rewrite itree_eta.
+  rewrite (itree_eta (interp (fun (T : Type) (e : E T) => ITree.liftE (f T e)) R t)).
+  rewrite unfold_translate.
+  rewrite unfold_interp.
+  unfold translateF, interp_u, handleF.
+  rewrite eutt_is_eutt'_gres.
+  pfold. revert t. pcofix CIH'.
+  intros t.
+  destruct (observe t).
+  - pfold. econstructor.
+  - pfold. econstructor.
+    right. rewrite unfold_translate. unfold translateF.
+    rewrite interp_unfold. unfold interp_u. apply CIH'.
+  - pfold. econstructor. unfold ITree.liftE. rewrite vis_bind.
+    econstructor. intros.
+    rewrite (itree_eta (x0 <- Ret x;; interp (fun (T : Type) (e0 : E T) => Vis (f T e0) (fun x1 : T => Ret x1)) R (k x0))).
+    assert ((observe (x0 <- Ret x;; interp (fun (T : Type) (e0 : E T) => Vis (f T e0) (fun x1 : T => Ret x1)) R (k x0)))
+            = observe (interp (fun (T : Type) (e0 : E T) => Vis (f T e0) (fun x1 : T => Ret x1)) R (k x))).
+    { reflexivity. }
+    rewrite H.
+    unfold ITree.liftE in CIH.
+    rewrite <- itree_eta.    
+    pupto2_final. right.
+    apply CIH.
+Qed.
 
 (* Morphism Category -------------------------------------------------------- *)
 
