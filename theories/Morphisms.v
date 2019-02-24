@@ -35,6 +35,7 @@ From ITree Require Import
      Basics
      Core
      Effect.Sum
+     Translate
      OpenSum.
 
 Open Scope itree_scope.
@@ -174,15 +175,6 @@ Definition interp1 {E F G : Type -> Type} `{F -< G} (h : E ~> itree G) :
                end)
             (observe t).
 
-(** A plain effect morphism [E ~> F] defines an itree morphism
-    [itree E ~> itree F]. *)
-Definition translate {E F : Type -> Type} (h : E ~> F) :
-  itree E ~> itree F := fun R =>
-  cofix translate_ t :=
-    handleF translate_
-            (fun _ e k => Vis (h _ e) (fun x => translate_ (k x)))
-            (observe t).
-
 (** Effects [E, F : Type -> Type] and itree [E ~> itree F] form a
     category. *)
 (* todo(gmm): it would be good to have notation for this.
@@ -201,8 +193,8 @@ Definition eh_id {A} : A ~> itree A := @ITree.liftE A.
 Definition eh_par {A B C D} (f : A ~> itree B) (g : C ~> itree D) : (A +' C) ~> itree (B +' D) :=
   fun _ e =>
     match e with
-    | inl1 e1 => translate (@inl1 _ _) _ (f _ e1)
-    | inr1 e2 => translate (@inr1 _ _) _ (g _ e2)
+    | inl1 e1 => translate (@inl1 _ _) (f _ e1)
+    | inr1 e2 => translate (@inr1 _ _) (g _ e2)
     end.
 
 Definition eh_both {A B C} (f : A ~> itree B) (g : C ~> itree B) : (A +' C) ~> itree B :=

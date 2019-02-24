@@ -132,14 +132,16 @@ Section Den.
       rewrite bind_bind.
       apply eutt_bind; try reflexivity.
       intros []; try reflexivity.
-      rewrite ret_bind; reflexivity.
+      rewrite itree_eta.
+      rewrite ret_bind. reflexivity.
     Qed.
 
     (** *** [id_den] respect identity laws *)
     Lemma id_den_left {A B}: forall (f: denE A B),
         id_den >=> f ⩰ f.
     Proof.
-      intros f a; unfold compose_den, id_den; rewrite ret_bind; reflexivity. 
+      intros f a; unfold compose_den, id_den.
+      rewrite itree_eta; rewrite ret_bind. rewrite <- itree_eta; reflexivity. 
     Qed.
 
     Lemma id_den_right {A B}: forall (f: denE A B),
@@ -165,6 +167,7 @@ Section Den.
     Proof.
       intros a.
       unfold lift_den, compose_den.
+      rewrite itree_eta.
       rewrite ret_bind.
       reflexivity.
     Qed.
@@ -190,7 +193,8 @@ Section Den.
     Proof.
       intros; intro a.
       unfold lift_den, compose_den.
-      rewrite ret_bind; reflexivity.
+      rewrite itree_eta.
+      rewrite ret_bind. rewrite <- itree_eta; reflexivity.
     Qed.
 
     Fact compose_den_lift {A B C}: forall (ab: den A B) (g:B -> C),
@@ -282,7 +286,9 @@ Section Den.
       intros.
       unfold compose_den, lift_den.
       intros ?.
+      rewrite itree_eta.
       rewrite ret_bind.
+      rewrite <- itree_eta.
       reflexivity. 
     Qed.
 
@@ -293,7 +299,9 @@ Section Den.
       intros.
       unfold compose_den, lift_den.
       intros ?.
+      rewrite itree_eta.
       rewrite ret_bind.
+      rewrite <- itree_eta.
       reflexivity.
     Qed.
 

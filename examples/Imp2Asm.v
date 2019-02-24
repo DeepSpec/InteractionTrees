@@ -229,7 +229,6 @@ Section Correctness.
       Make the keys of the second env monad as the sum of the two initial ones.
    *)
 
-  Arguments denote_program {_ _ _}.
 
   Import ITree.Core.
 
@@ -673,6 +672,7 @@ Definition denote_program {e} `{Locals -< e} `{Memory -< e} {L}
               | Some (inl next) => lift (Call next)
               | Some (inr next) => ret (Some next)
               end).
+  Arguments denote_program {_ _ _}.
 
     Require Import ITree.MorphismsFacts.
     Require Import ITree.FixFacts.
@@ -710,13 +710,13 @@ end.
 Proof. destruct x; reflexivity. Qed.
 
 Lemma translate_match_sum : forall {A B U} (x : A + B) {E F} (h : E ~> F) (Z : _ -> itree _ U) Y,
-    translate h _ match x with
+    translate h match x with
              | inl x => Z x
              | inr x => Y x
              end =
 match x with
-| inl x => translate h _ (Z x)
-| inr x => translate h _ (Y x)
+| inl x => translate h (Z x)
+| inr x => translate h (Y x)
 end.
 Proof. destruct x; reflexivity. Qed.
 Lemma translate_match_option : forall {B U} (x : option B) {E F} (h : E ~> F) (Z : itree _ U) Y,
@@ -725,8 +725,8 @@ Lemma translate_match_option : forall {B U} (x : option B) {E F} (h : E ~> F) (Z
              | Some x => Y x
              end =
 match x with
-| None => translate h _ Z
-| Some x => translate h _ (Y x)
+| None => translate h Z
+| Some x => translate h (Y x)
 end.
 Proof. destruct x; reflexivity. Qed.
 
@@ -793,7 +793,7 @@ Lemma rec_fuse : forall {E : Type -> Type} {dom1 codom1 dom2 codom2 : Type}
                       | Call x => inl1 (EnterL x)
                       end
                     | inr1 x => inr1 x
-                    end) _ (f x)
+                    end) (f x)
      | EnterR x =>
        translate (fun Z x =>
                     match x with
@@ -802,7 +802,7 @@ Lemma rec_fuse : forall {E : Type -> Type} {dom1 codom1 dom2 codom2 : Type}
                       | Call x => inl1 (EnterR x)
                       end
                     | inr1 x => inr1 x
-                    end) _ (g x)
+                    end) (g x)
      end) _ Entry.
 Proof.
 Admitted.
@@ -823,7 +823,7 @@ Lemma rec_fuse' : forall {E : Type -> Type} {dom1 codom1 T : Type}
   (fun _ elr =>
      match elr with
      | EnterI => l <- ITree.liftE (inl1 (EnterF x)) ;;
-                 translate (fun _ x => inr1 x) _ (k l)
+                 translate (fun _ x => inr1 x) (k l)
      | EnterF x =>
        translate (fun Z x =>
                     match x with
@@ -832,7 +832,7 @@ Lemma rec_fuse' : forall {E : Type -> Type} {dom1 codom1 T : Type}
                       | Call x => inl1 (EnterF x)
                       end
                     | inr1 x => inr1 x
-                    end) _ (f x)
+                    end) (f x)
      end) _ EnterI.
 Proof.
 Admitted.
@@ -903,7 +903,7 @@ Lemma lem : forall {E : Type -> Type} {dom1 codom1 U : Type}
                                     | Call x => inl1 (EnterF x)
                                     end
                                   | inr1 x => inr1 x
-                                  end) _ Z
+                                  end) Z
           | EnterF x => f x
           end) _ (EnterF l).
 Abort.
@@ -926,8 +926,8 @@ Lemma lift_sum_rec : forall {A B C : Type} {E}
   rec (A:=A + B)%type
        (fun x =>
           match x with
-          | inl x => translate (fun _ x => inr1 x) _ (L x)
-          | inr x => translate (fun _ x => inr1 x) _ (R x)
+          | inl x => translate (fun _ x => inr1 x) (L x)
+          | inr x => translate (fun _ x => inr1 x) (R x)
           end) l.
 Proof. Admitted.
 
@@ -953,10 +953,10 @@ Lemma lift_sum_rec_left
                         match x with
                         | inl1 x => inl1 (inl1 (WithIt t x))
                         | inr1 x => inr1 x
-                        end) _ (L t _ y)
+                        end) (L t _ y)
          | inr1 x =>
            match x with
-           | Call x => translate (fun _ x => inr1 x) _ (R x)
+           | Call x => translate (fun _ x => inr1 x) (R x)
            end
          end) _ match l with
                 | inl x => inl1 (WithIt x (f x))

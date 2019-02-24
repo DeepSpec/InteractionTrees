@@ -96,7 +96,7 @@ Section Denote.
 
   Definition while {eff} (t : itree eff bool) : itree eff unit :=
     rec (fun _ : unit =>
-           continue <- translate (fun _ x => inr1 x) _ t ;;
+           continue <- translate (fun _ x => inr1 x) t ;;
                     if continue : bool then lift (Call tt) else Monad.ret tt) tt.
 
   (* the meaning of a statement *)
