@@ -1,5 +1,18 @@
 (** * Simulation Up To Tau *)
 
+(** A preorder [sutt t1 t2], where every visible step
+  ([RetF] or [VisF]) on the left must be matched with a corresponding
+  step on the right, ignoring [TauF].
+
+  In particular, [spin := Tau spin] is less than everything.
+
+  The induced equivalence relation is [eutt].
+
+  Various [Proper] lemmas about [eutt] are more easily proved as
+  [Proper] lemmas about [sutt] first, and then symmetrizing using
+  [eutt_sutt] and [sutt_eutt].
+ *)
+
 Require Import Paco.paco.
 
 From Coq Require Import
