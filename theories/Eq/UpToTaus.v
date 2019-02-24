@@ -534,9 +534,32 @@ Qed.
 
 End EUTT.
 
+Hint Resolve monotone_eq_notauF.
 Hint Constructors eq_notauF.
 Hint Constructors euttF.
 Hint Resolve monotone_eutt_ : paco.
+
+(** *** [eq_notauF] lemmas *)
+
+Lemma eq_notauF_and {E R1 R2} (RR : R1 -> R2 -> Prop) {I J}
+        (eutt1 eutt2 eutt : I -> J -> Prop) :
+  (forall t1 t2, eutt1 t1 t2 -> eutt2 t1 t2 -> eutt t1 t2) ->
+  forall (ot1 : itreeF E R1 I) (ot2 : itreeF E R2 J),
+    eq_notauF RR eutt1 ot1 ot2 -> eq_notauF RR eutt2 ot1 ot2 ->
+    eq_notauF RR eutt ot1 ot2.
+Proof.
+  intros ? ? ? [] Hen2; inversion Hen2; auto.
+  auto_inj_pair2; subst; auto.
+Qed.
+
+Lemma eq_notauF_flip {E R1 R2} (RR : R1 -> R2 -> Prop) {I J}
+      (eutt : I -> J -> Prop) :
+  forall (ot1 : itreeF E R1 I) (ot2 : itreeF E R2 J),
+    eq_notauF (flip RR) (flip eutt) ot2 ot1 ->
+    eq_notauF RR eutt ot1 ot2.
+Proof.
+  intros ? ? []; auto.
+Qed.
 
 Delimit Scope eutt_scope with eutt.
 

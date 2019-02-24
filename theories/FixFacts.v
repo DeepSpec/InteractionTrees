@@ -17,7 +17,7 @@ From ITree Require Import
      MorphismsFacts
      Fix
      Effect.Sum
-     Eq.Eq Eq.UpToTaus.
+     Eq.Eq Eq.UpToTaus Eq.SimUpToTaus.
 
 Section Facts.
 
