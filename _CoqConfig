@@ -7,6 +7,7 @@ theories/Core.v
 theories/Eq/Shallow.v
 theories/Eq/Eq.v
 theories/Eq/UpToTaus.v
+theories/Eq/SimUpToTaus.v
 
 theories/Effect/Sum.v
 theories/Effect/Std.v
