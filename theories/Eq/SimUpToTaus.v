@@ -154,9 +154,9 @@ Proof.
       intros; pclearbot; auto.
 Qed.
 
-Theorem eutt_sutt {E R1 R2} (RR : R1 -> R2 -> Prop) :
+Theorem eutt_sutt {E R1 R2} (RR : R1 -> R2 -> Prop) r :
   forall (t1 : itree E R1) (t2 : itree E R2),
-    eutt RR t1 t2 -> sutt RR t1 t2.
+    paco2 (eutt_ RR) r t1 t2 -> paco2 (sutt_ RR) r t1 t2.
 Proof.
   pcofix self; intros t1 t2 H1.
   punfold H1.
@@ -165,12 +165,18 @@ Proof.
   - apply FIN1.
   - intros.
     eapply monotone_eq_notauF; eauto.
-    intros; pclearbot; auto.
+    intros ? ? []; auto.
 Qed.
 
-Inductive suttF1 {E R} (sutt: itree' E R -> itree' E R -> Prop) :
-  itree' E R -> itree' E R -> Prop :=
-| suttF1_ret r : suttF1 sutt (RetF r) (RetF r)
+Hint Resolve eutt_sutt.
+
+Section SUTT1.
+
+Context {E : Type -> Type} {R1 R2 : Type} (RR : R1 -> R2 -> Prop).
+
+Inductive suttF1 (sutt: itree' E R1 -> itree' E R2 -> Prop) :
+  itree' E R1 -> itree' E R2 -> Prop :=
+| suttF1_ret r1 r2 : RR r1 r2 -> suttF1 sutt (RetF r1) (RetF r2)
 | suttF1_vis u (e : E u) k1 k2
       (SUTTK: forall x, sutt (observe (k1 x)) (observe (k2 x))):
     suttF1 sutt (VisF e k1) (VisF e k2)
@@ -183,22 +189,39 @@ Inductive suttF1 {E R} (sutt: itree' E R -> itree' E R -> Prop) :
 .
 Hint Constructors suttF1.
 
-Definition sutt1 {E R} (t1 t2 : itree E R) :=
-  paco2 (@suttF1 E R) bot2 (observe t1) (observe t2).
+Definition sutt1 (t1 : itree E R1) (t2 : itree E R2) :=
+  paco2 suttF1 bot2 (observe t1) (observe t2).
 Hint Unfold sutt1.
 
-Lemma reflexive_suttF1 {E R} sutt (r1:Reflexive sutt) : Reflexive (@suttF1 E R sutt).
+End SUTT1.
+
+Hint Constructors suttF1.
+Hint Unfold sutt1.
+
+Section SUTT1_rel.
+
+Context {E : Type -> Type} {R : Type} (RR : R -> R -> Prop).
+
+Lemma reflexive_suttF1 `{Reflexive _ RR} sutt (r1:Reflexive sutt) : Reflexive (@suttF1 E _ _ RR sutt).
 Proof.
   unfold Reflexive. intros x.
   destruct x; eauto.
 Qed.
 
-Lemma monotone_suttF1 {E R} : monotone2 (@suttF1 E R).
+End SUTT1_rel.
+
+Section SUTT1_facts.
+
+Context {E : Type -> Type} {R1 R2 : Type} (RR : R1 -> R2 -> Prop).
+
+Lemma monotone_suttF1 : monotone2 (@suttF1 E _ _ RR).
 Proof. repeat red; intros. induction IN; eauto. Qed.
 Hint Resolve monotone_suttF1 : paco.
 
-Lemma sutt_to_sutt1 {E R} :
-  forall (t1 t2: itree E R), sutt eq t1 t2 -> sutt1 t1 t2.
+Lemma sutt_to_sutt1 (r : _ -> _ -> Prop) (r' : _ -> _ -> Prop)
+      (IMPL_rr' : forall t1 t2, r t1 t2 -> observing r' t1 t2) :
+  forall (t1 : itree E R1) (t2 : itree E R2),
+    paco2 (sutt_ RR) r t1 t2 -> paco2 (suttF1 RR) r' (observe t1) (observe t2).
 Proof.
   pcofix self; intros t1 t2 SUTT.
   punfold SUTT. pfold.
@@ -207,13 +230,15 @@ Proof.
   - destruct H0 as [Huntaus Hnotau].
     induction Huntaus.
     + destruct H1; subst; auto.
-      pclearbot; constructor; right; apply self; apply H0.
+      constructor. intros x; edestruct (H0 x).
+      * right; auto.
+      * right; auto. apply self0. apply IMPL_rr'; auto.
     + subst; auto.
   - rewrite H; constructor. right; apply self. pfold; auto.
 Qed.
 
-Lemma sutt1_to_sutt {E R} :
-  forall (t1 t2: itree E R), sutt1 t1 t2 -> sutt eq t1 t2.
+Lemma sutt1_to_sutt : forall (t1 : itree E R1) (t2 : itree E R2),
+    sutt1 RR t1 t2 -> sutt RR t1 t2.
 Proof.
   pcofix self; intros t1 t2 SUTT.
   punfold SUTT. pfold. red.
@@ -242,8 +267,59 @@ Proof.
       * pclearbot; inv OBS. eauto.
 Qed.
 
-Lemma sutt_is_sutt1 {E R} (t1 t2 : itree E R) :
-  sutt eq t1 t2 <-> sutt1 t1 t2.
+Lemma sutt_is_sutt1 (t1 : itree E R1) (t2 : itree E R2) :
+  sutt RR t1 t2 <-> sutt1 RR t1 t2.
 Proof.
-  split. apply sutt_to_sutt1. apply sutt1_to_sutt.
+  split.
+  - intros; eapply sutt_to_sutt1; try eassumption; auto.
+  - apply sutt1_to_sutt.
+Qed.
+
+End SUTT1_facts.
+
+Hint Resolve @monotone_suttF1 : paco.
+
+(** Generalized heterogeneous version of [eutt_bind] *)
+Lemma sutt_bind_gen {E R1 R2 S1 S2} {RR: R1 -> R2 -> Prop} {SS: S1 -> S2 -> Prop}:
+  forall t1 t2,
+    sutt RR t1 t2 ->
+    forall s1 s2, (forall r1 r2, RR r1 r2 -> sutt SS (s1 r1) (s2 r2)) ->
+                  @sutt E _ _ SS (ITree.bind t1 s1) (ITree.bind t2 s2).
+Proof.
+  intros; apply sutt_is_sutt1.
+  apply sutt_is_sutt1 in H.
+  revert t1 t2 H; pcofix self; intros.
+  punfold H1.
+  genobs t1 ot1. genobs t2 ot2.
+  revert t1 t2 Heqot1 Heqot2.
+  induction H1; intros.
+  - rewrite 2 unfold_bind, <- Heqot1, <- Heqot2; simpl.
+    eapply sutt_to_sutt1; [ | eapply H0; eauto]. intros ? ? [].
+  - rewrite 2 unfold_bind, <- Heqot1, <- Heqot2; simpl.
+    pclearbot. pfold; constructor. auto.
+  - rewrite (unfold_bind t0), <- Heqot2; simpl.
+    pfold; constructor.
+    apply paco2_unfold; [auto with paco |].
+    eapply IHsuttF1; auto.
+  - rewrite (unfold_bind t0), <- Heqot1; simpl.
+    pfold; constructor.
+    pclearbot; subst; auto.
+Qed.
+
+(** Generalized heterogeneous version of [eutt_bind] *)
+Lemma eutt_bind_gen {E R1 R2 S1 S2} {RR: R1 -> R2 -> Prop} {SS: S1 -> S2 -> Prop}:
+  forall t1 t2,
+    eutt RR t1 t2 ->
+    forall s1 s2, (forall r1 r2, RR r1 r2 -> eutt SS (s1 r1) (s2 r2)) ->
+                  @eutt E _ _ SS (ITree.bind t1 s1) (ITree.bind t2 s2).
+Proof.
+  intros. apply sutt_eutt; eapply sutt_bind_gen.
+  - apply eutt_sutt; eassumption.
+  - intros. apply eutt_sutt. apply H0; auto.
+  - apply eutt_sutt.
+    eapply Symmetric_eutt_; try eassumption; auto.
+    intros ? ? HH; apply HH.
+  - simpl. intros. apply eutt_sutt. eapply Symmetric_eutt_; try eassumption; eauto.
+    2: eapply H0; auto.
+    auto.
 Qed.

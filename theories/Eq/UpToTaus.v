@@ -730,14 +730,13 @@ Proof.
   intros TRANS x y z. apply Transitive_euttF_; auto.
 Qed.
 
-End EUTT_rel.
+Global Instance Symmetric_eutt `{Symmetric _ RR}
+       (r : itree E R -> itree E R -> Prop)
+       (Sr : Symmetric r) :
+  Symmetric (paco2 (eutt_ RR) r).
+Proof. red; eapply Symmetric_eutt_; eauto. Qed.
 
-Section EUTT_eq.
-
-Context {E : Type -> Type} {R : Type}.
-
-Global Instance Reflexive_eutt
-       {RR : R -> R -> Prop} `{Reflexive _ RR}
+Global Instance Reflexive_eutt `{Reflexive _ RR}
        (r : itree E R -> itree E R -> Prop) :
   Reflexive (paco2 (eutt_ RR) r).
 Proof.
@@ -745,14 +744,15 @@ Proof.
   intros. pfold. red. apply Reflexive_euttF; eauto.
 Qed.
 
+End EUTT_rel.
+
+Section EUTT_eq.
+
+Context {E : Type -> Type} {R : Type}.
+
 Let eutt : itree E R -> itree E R -> Prop := eutt eq.
 
 Infix "≈" := eutt (at level 70) : itree_scope.
-
-Global Instance Symmetric_eutt (r : itree E R -> itree E R -> Prop)
-         (Sr : Symmetric r) :
-  Symmetric (paco2 (eutt_ eq) r).
-Proof. red; eapply Symmetric_eutt_; eauto. Qed.
 
 Global Instance Transitive_eutt : Transitive eutt.
 Proof.
@@ -771,7 +771,7 @@ Proof.
     eapply unalltaus_tau in H1; eauto.
     assert (X := unalltaus_injective _ _ _ H1 H2).
     subst; apply Reflexive_eq_notauF; eauto.
-    left. apply Reflexive_eutt.
+    left. apply reflexivity.
 Qed.
 
 Lemma tau_eutt (t: itree E R) : Tau t ≈ t.
@@ -788,7 +788,7 @@ Proof.
   - induction H; intros.
     + rewrite (unalltaus_injective _ _ _ UNTAUS1 UNTAUS2).
       apply Reflexive_eq_notauF; eauto.
-      left; apply Reflexive_eutt.
+      left; apply reflexivity.
     + eapply unalltaus_tau in UNTAUS1; eauto.
 Qed.
 
@@ -1084,14 +1084,6 @@ Proof.
   split; eapply eutt_eq_under_rr_impl; auto.
   all: symmetry; auto.
 Qed.
-
-(** Generalized heterogeneous version of [eutt_bind] *)
-Lemma eutt_bind_gen {E R1 R2 S1 S2} {RR: R1 -> R2 -> Prop} {SS: S1 -> S2 -> Prop}:
-  forall t1 t2,
-    eutt RR t1 t2 ->
-    forall s1 s2, (forall r1 r2, RR r1 r2 -> eutt SS (s1 r1) (s2 r2)) ->
-                  @eutt E _ _ SS (ITree.bind t1 s1) (ITree.bind t2 s2).
-Admitted.
 
 Inductive euttF1' {E R} (r : itree E R -> itree E R -> Prop) :
   itree' E R -> itree' E R -> Prop :=

@@ -501,7 +501,7 @@ Hint Constructors loop_preinv.
 Lemma eutt_loop_inv_main_step (ca : C + A) t1 t2 :
   t1 ≅ loop_ f1 ca ->
   t2 ≅ loop_ f2 ca ->
-  suttF1 (going loop_preinv) (observe t1) (observe t2).
+  suttF1 eq (going loop_preinv) (observe t1) (observe t2).
 Proof.
   intros H1 H2.
   rewrite unfold_loop' in H1.
@@ -518,7 +518,7 @@ Proof.
   revert t1 t2 H1 H2.
   induction eutt_f; intros z1 z2 H1 H2.
 
-  - destruct r.
+  - subst; destruct r2.
     + apply eq_itree_tau_inv1 in H1.
       destruct H1 as [t1' [Ht1 Ht1']].
       apply eq_itree_tau_inv1 in H2.
@@ -564,7 +564,7 @@ Proof.
 Qed.
 
 Lemma eutt_loop_inv ot1 ot2 :
-  loop_preinv (go ot1) (go ot2) -> paco2 suttF1 bot2 ot1 ot2.
+  loop_preinv (go ot1) (go ot2) -> paco2 (suttF1 eq) bot2 ot1 ot2.
 Proof.
   intros HH.
   revert ot1 ot2 HH; pcofix self; intros. pfold.
@@ -578,7 +578,7 @@ Proof.
     rewrite unfold_bind in H2.
     revert ot1 ot2 H1 H2; induction Hu; intros.
 
-    + destruct r0.
+    + subst; destruct r2.
       * apply eq_itree_tau_inv1 in H1.
         apply eq_itree_tau_inv1 in H2.
         simpl in H1, H2.
@@ -589,7 +589,7 @@ Proof.
         eapply loop_inv_main; rewrite <- itree_eta; eauto.
       * apply eq_itree_ret_inv1 in H1.
         apply eq_itree_ret_inv1 in H2.
-        simpl in H1, H2. subst; constructor.
+        simpl in H1, H2. subst; auto.
 
     + pclearbot.
       apply eq_itree_vis_inv1 in H1.
@@ -644,6 +644,7 @@ Instance eutt_loop {E A B C} :
   Proper ((eq ==> eutt eq) ==> eq ==> eutt eq) (@loop E A B C).
 Proof.
   repeat intro; subst.
+  repeat red in H.
   eapply sutt_eutt.
   - eapply sutt_loop; auto.
     repeat intro; subst.
@@ -651,7 +652,7 @@ Proof.
   - eapply paco2_mon_gen.
     + eapply sutt_loop; auto.
       repeat intro.
-      apply eutt_sutt; symmetry; auto.
+      apply eutt_sutt. apply symmetry; auto.
     + intros. eapply monotone_sutt_RR; try eassumption.
       red; auto.
     + auto.
