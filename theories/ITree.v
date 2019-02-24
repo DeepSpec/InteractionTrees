@@ -3,6 +3,7 @@ From ITree Require Export
      Core
      Eq.Eq
      Eq.UpToTaus
+     Eq.SimUpToTaus
      Effect.Sum
      OpenSum
      Translate
