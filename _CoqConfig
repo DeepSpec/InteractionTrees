@@ -19,6 +19,8 @@ theories/OpenSum.v
 theories/Fix.v
 theories/FixFacts.v
 
+theories/Translate.v
+theories/TranslateFacts.v
 theories/Morphisms.v
 theories/MorphismsFacts.v
 
