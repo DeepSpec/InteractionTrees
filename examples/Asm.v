@@ -10,7 +10,7 @@ Section Syntax.
   Definition var : Set := string.
   Definition value : Set := nat. (* this should change *)
 
-  (* start with the syntax *)
+  (** ** Syntax *)
 
   Variant operand : Set :=
   | Oimm (_ : value)
@@ -29,10 +29,29 @@ Section Syntax.
   .
   Global Arguments branch _ : clear implicits.
 
+  (** A block is a sequence of straightline instructions followed
+      by a branch. *)
   Inductive block {label : Type} : Type :=
   | bbi (_ : instr) (_ : block)
   | bbb (_ : branch label).
   Global Arguments block _ : clear implicits.
+
+  (** Collection of blocks labeled by [A], with branches in [B]. *)
+  Definition bks A B := A -> block B.
+
+  (** Blocks with visible unlinked labels [A] and [B] and internal
+      linked labels, allowing blocks to explicitly jump to each other.
+      - [A]: entry points
+      - [B]: exit points
+      - [internal]: linked and hidden labels
+   *)
+  Record asm A B : Type :=
+    {
+      internal : Type;
+      code : bks (internal + A) (internal + B)
+    }.
+
+  (** ** Combinators *)
 
   Definition fmap_branch {A B : Type} (f: A -> B): branch A -> branch B :=
     fun b =>
@@ -49,20 +68,16 @@ Section Syntax.
       | bbi i b => bbi i (fmap b)
       end.
 
-  (* Collection of blocks labeled by [A], with jumps in [B]. *)
-  Definition bks A B := A -> block B.
+  Definition relabel_bks {A B C D : Type} (f : A -> B) (g : C -> D)
+    (b : bks B C) : bks A D :=
+    fun a => fmap_block g (b (f a)).
 
-  (* ASM: linked blocks, can jump to themselves *)
-  Record asm A B : Type :=
-    {
-      internal : Type;
-      code : bks (internal + A) (internal + B)
-    }.
+  Global Arguments internal {A B}.
+  Global Arguments code {A B}.
 
-  Arguments internal {A B}.
-  Arguments code {A B}.
-
-  Definition raw_asm {A B} (b : A -> block B) : asm A B :=
+  (** Any collection of blocks forms an [asm] program with
+      no hidden blocks. *)
+  Definition raw_asm {A B} (b : bks A B) : asm A B :=
     {| internal := Empty_set;
        code := fun a' =>
          match a' with
@@ -71,16 +86,19 @@ Section Syntax.
          end;
     |}.
 
-  Definition raw_asm' {A} (b : block A) : asm unit A :=
+  (** Wrap a single block as [asm]. *)
+  Definition raw_asm_block {A} (b : block A) : asm unit A :=
     raw_asm (fun _ => b).
 
+  (** An [asm] program made only of external jumps. This is
+      useful to connect programs with [app_asm]. *)
   Definition pure_asm {A B} (f : A -> B) : asm A B :=
     raw_asm (fun a => bbb (Bjmp (f a))).
 
   Definition id_asm {A} : asm A A := pure_asm id.
 
-  (* Relabeling functions for [app_asm] *)
-  Definition relabelAB {I J B D} :
+  (* Internal relabeling functions for [app_asm] *)
+  Definition _app_B {I J B D} :
     block (I + B) -> block ((I + J) + (B + D)) :=
     fmap_block (fun l =>
       match l with
@@ -88,7 +106,7 @@ Section Syntax.
       | inr b => inr (inl b)
       end).
 
-  Definition relabelCD {I J B D} :
+  Definition _app_D {I J B D} :
     block (J + D) -> block ((I + J) + (B + D)) :=
     fmap_block (fun l =>
       match l with
@@ -96,33 +114,29 @@ Section Syntax.
       | inr d => inr (inr d)
       end).
 
-  (* Append two asm programs, preserving their internal links. *)
+  (** Append two asm programs, preserving their internal links. *)
   Definition app_asm {A B C D} (ab : asm A B) (cd : asm C D) :
     asm (A + C) (B + D) :=
     {| internal := ab.(internal) + cd.(internal);
        code := fun l =>
          match l with
-         | inl (inl ia) => relabelAB (ab.(code) (inl ia))
-         | inl (inr ic) => relabelCD (cd.(code) (inl ic))
-         | inr (inl a) => relabelAB (ab.(code) (inr a))
-         | inr (inr c) => relabelCD (cd.(code) (inr c))
+         | inl (inl ia) => _app_B (ab.(code) (inl ia))
+         | inl (inr ic) => _app_D (cd.(code) (inl ic))
+         | inr (inl  a) => _app_B (ab.(code) (inr  a))
+         | inr (inr  c) => _app_D (cd.(code) (inr  c))
          end;
     |}.
 
-  (* Rename visible program labels. *)
+  (** Rename visible program labels. *)
   Definition relabel_asm {A B C D} (f : A -> B) (g : C -> D)
              (bc : asm B C) : asm A D :=
-    {| code := fun l =>
-         fmap_block (sum_bimap id g)
-           (bc.(code)
-              (sum_bimap id f l));
+    {| code := relabel_bks (sum_bimap id f) (sum_bimap id g) bc.(code);
     |}.
 
-  (* Link labels from two programs together. *)
+  (** Link labels from two programs together. *)
   Definition link_asm {I A B} (ab : asm (I + A) (I + B)) : asm A B :=
     {| internal := ab.(internal) + I;
-       code := fun l =>
-         fmap_block sum_assoc_l (ab.(code) (sum_assoc_r l));
+       code := relabel_bks sum_assoc_r sum_assoc_l ab.(code);
     |}.
 
 End Syntax.
