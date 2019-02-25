@@ -210,6 +210,9 @@ Definition eh_left {A B} : A ~> itree (A +' B) :=
 Definition eh_right {A B} : B ~> itree (A +' B) :=
   fun _ e => Vis (inr1 e) (fun x => Ret x).
 
+Definition eh_swap {A B} : A +' B ~> itree (B +' A) :=
+  eh_both eh_right eh_left.
+
 (** Standard interpreters *)
 
 Import ITree.Basics.Monads.

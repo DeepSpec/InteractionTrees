@@ -666,5 +666,35 @@ Proof.
     rewrite H. reflexivity.
 Qed.
 
-    
-
+Lemma bind_vis : forall {E R S T} e (k1 : R -> itree E S) (k2 : S -> itree E T),
+    (x <- (Vis e k1) ;; k2 x) ≅ Vis e (fun y => x <- (k1 y) ;; k2 x).
+Proof.
+  intros E R S T e k1 k2.
+  rewrite itree_eta.
+  unfold_bind. cbn. reflexivity.
+Qed.
+  
+Lemma eh_swap_swap_id : forall A B, eh_compose eh_swap eh_swap ≡ (eh_id : (A +' B) ~> itree (A +' B)).
+Proof.
+  intros A B X e.
+  unfold eh_compose. unfold eh_swap.
+  rewrite unfold_interp. unfold interp_u.
+  unfold handleF.
+  unfold eh_both. destruct e; cbn.
+  - eapply transitivity.  apply tau_eutt.
+    unfold eh_left.
+    rewrite bind_vis.
+    unfold eh_id. unfold ITree.liftE.
+    apply eutt_Vis.
+    intros x.
+    rewrite itree_eta. cbn.
+    reflexivity.
+  - eapply transitivity.  apply tau_eutt.
+    unfold eh_right.
+    rewrite bind_vis.
+    unfold eh_id. unfold ITree.liftE.
+    apply eutt_Vis.
+    intros x.
+    rewrite itree_eta. cbn.
+    reflexivity.
+Qed.
