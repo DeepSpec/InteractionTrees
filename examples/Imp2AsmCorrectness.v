@@ -497,7 +497,40 @@ Qed.
   Qed.
 
   Require Import Den.
-  
+
+  Lemma seq_asm_correct {A B C} (ab : asm A B) (bc : asm B C) :
+    eq_den (denote_asm (seq_asm ab bc))
+           (denote_asm ab >=> denote_asm bc).
+  Proof.
+  Admitted.
+
+(* (incomplete) eutt modulo interp_locals and Renv on states *)
+Axiom eq_den' : forall {A}, itree E A -> itree E A -> Prop.
+
+  Lemma if_asm_correct {A} (e : list instr) (tp fp : asm unit A) :
+    eq_den' (denote_asm (if_asm e tp fp) tt)
+            (denote_list e ;;
+             v <- lift (GetVar tmp_if) ;;
+             if v : value then denote_asm tp tt else denote_asm fp tt).
+  Proof.
+  Admitted.
+
+  Lemma while_asm_correct (e : list instr) (p : asm unit unit) :
+    eq_den' (denote_asm (while_asm e p) tt)
+            (loop_den (fun l =>
+               match l with
+               | inl tt =>
+                 denote_list e ;;
+                 v <- lift (GetVar tmp_if) ;;
+                 if v : value then
+                   denote_asm p tt;; Ret (inl (inl tt))
+                 else
+                   Ret (inl (inr tt))
+               | inr tt => Ret (inl (inl tt))
+               end) tt).
+  Proof.
+  Admitted.
+
   Lemma compile_correct:
     forall s (g_imp g_asm : alist var value),
       Renv g_asm g_imp ->
