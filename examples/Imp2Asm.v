@@ -1,4 +1,4 @@
-Require Import Imp Asm.
+Require Import Imp Asm AsmCombinators.
 
 Require Import Psatz.
 
@@ -46,15 +46,6 @@ Section compile_assign.
 
 End compile_assign.
 
-Section after.
-  Context {a : Type}.
-  Fixpoint after (is : list instr) (bch : branch a) : block a :=
-    match is with
-    | nil => bbb bch
-    | i :: is => bbi i (after is bch)
-    end.
-End after.
-
 (** Sequencing of blocks: the program [seq_asm ab bc] links the
     exit points of [ab] with the entry points of [bc].
 
@@ -81,7 +72,7 @@ Definition tmp_if := gen_tmp 0.
 
 (* Conditional *)
 Definition cond_asm (e : list instr) : asm unit (unit + unit) :=
-  raw_asm' (after e (Bbrz tmp_if (inl tt) (inr tt))).
+  raw_asm_block (after e (Bbrz tmp_if (inl tt) (inr tt))).
 
 (** [if_asm e tp fp]
 [[
@@ -118,7 +109,7 @@ Definition while_asm (e : list instr) (p : asm unit unit) :
 Fixpoint compile (s : stmt) {struct s} : asm unit unit :=
   match s with
   | Skip => id_asm
-  | Assign x e => raw_asm' (after (compile_assign x e) (Bjmp tt))
+  | Assign x e => raw_asm_block (after (compile_assign x e) (Bjmp tt))
   | Seq l r => seq_asm (compile l) (compile r)
   | If e l r => if_asm (compile_expr 0 e) (compile l) (compile r)
   | While e b => while_asm (compile_expr 0 e) (compile b)

@@ -1,4 +1,4 @@
-Require Import Imp Asm Imp2Asm.
+Require Import Imp Asm AsmCombinators Imp2Asm.
 
 Require Import Psatz.
 
@@ -23,43 +23,6 @@ From ExtLib Require Import
 Import ListNotations.
 Open Scope string_scope.
 
-Section denote_list.
-
-  Import MonadNotation.
-
-  Definition traverse_ {A: Type} {M: Type -> Type} `{Monad M} (f: A -> M unit): list A -> M unit :=
-    fix traverse__ l: M unit :=
-      match l with
-      | [] => ret tt
-      | a::l => (f a;; traverse__ l)%monad
-      end.
-
-  Context {E} {EL : Locals -< E} {EM : Memory -< E}.
-
-  Definition denote_list: list instr -> itree E unit :=
-    traverse_ (denote_instr E).
-
-  Lemma denote_after_denote_list:
-    forall {label: Type} instrs (b: branch label),
-      denote_block E (after instrs b) ≅ (denote_list instrs ;; denote_branch E b).
-  Proof.
-    induction instrs as [| i instrs IH]; intros b.
-    - simpl; rewrite ret_bind; reflexivity.
-    - simpl; rewrite bind_bind.
-      eapply eq_itree_eq_bind; [reflexivity | intros []; apply IH].
-  Qed.
-
-  Lemma denote_list_app:
-    forall is1 is2,
-      @denote_list (is1 ++ is2) ≅
-                   (@denote_list is1;; denote_list is2).
-  Proof.
-    intros is1 is2; induction is1 as [| i is1 IH]; simpl; intros; [rewrite ret_bind; reflexivity |].
-    rewrite bind_bind; setoid_rewrite IH; reflexivity.
-  Qed.
-
-End  denote_list.
-
 Section Correctness.
 
   (*
@@ -77,22 +40,6 @@ Section Correctness.
 
   Variable E: Type -> Type.
   Context {HasLocals: Locals -< E} {HasMemory: Memory -< E}.
-
-  Lemma fmap_block_map:
-    forall  {L L'} b (f: L -> L'),
-      denote_block E (fmap_block f b) ≅ ITree.map (sum_bimap f id) (denote_block E b).
-  Proof.
-    induction b as [i b | br]; intros f.
-    - simpl.
-      unfold ITree.map; rewrite bind_bind.
-      eapply eq_itree_eq_bind; [reflexivity | intros []; apply IHb].
-    - simpl.
-      destruct br; simpl.
-      + unfold ITree.map; rewrite ret_bind; reflexivity.
-      + unfold ITree.map; rewrite bind_bind.
-        eapply eq_itree_eq_bind; [reflexivity | intros []; rewrite ret_bind; reflexivity].
-      + unfold ITree.map; rewrite ret_bind; reflexivity.
-  Qed.
 
   Variant Rvar : var -> var -> Prop :=
   | Rvar_var v : Rvar (varOf v) v.
@@ -170,6 +117,16 @@ Section Real_correctness.
             (interp_locals (ITree.bind t k) s)
             (ITree.bind (interp_locals t s) (fun s' => interp_locals (k (snd s')) (fst s'))).
   Admitted.
+
+(* TODO: maybe some of the correctness lemmas/theorems could
+   be refactored with this relation on denotations (which needs
+   fixing).
+
+  Definition eq_locals {R} (t1 t2 : itree E R) : Prop :=
+    forall g1 g2,
+      Renv g1 g2 ->
+      eutt (sim_rel _ _) (interp_locals t1 g1) (interp_locals t2 g2).
+*)
 
   Set Nested Proofs Allowed.
 
@@ -504,19 +461,17 @@ Qed.
   Proof.
   Admitted.
 
-(* (incomplete) eutt modulo interp_locals and Renv on states *)
-Axiom eq_den' : forall {A}, itree E A -> itree E A -> Prop.
-
   Lemma if_asm_correct {A} (e : list instr) (tp fp : asm unit A) :
-    eq_den' (denote_asm (if_asm e tp fp) tt)
-            (denote_list e ;;
-             v <- lift (GetVar tmp_if) ;;
-             if v : value then denote_asm tp tt else denote_asm fp tt).
+    eutt eq
+      (denote_asm (if_asm e tp fp) tt)
+      (denote_list e ;;
+         v <- lift (GetVar tmp_if) ;;
+         if v : value then denote_asm tp tt else denote_asm fp tt).
   Proof.
   Admitted.
 
   Lemma while_asm_correct (e : list instr) (p : asm unit unit) :
-    eq_den' (denote_asm (while_asm e p) tt)
+    eutt eq (denote_asm (while_asm e p) tt)
             (loop_den (fun l =>
                match l with
                | inl tt =>
