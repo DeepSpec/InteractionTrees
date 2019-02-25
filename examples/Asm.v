@@ -1,6 +1,7 @@
 From Coq Require Import
      Strings.String
      Program.Basics.
+From ITree Require Import Basics_Functions.
 Require Import ZArith.
 Typeclasses eauto := 5.
 
@@ -57,6 +58,72 @@ Section Syntax.
       internal : Type;
       code : bks (internal + A) (internal + B)
     }.
+
+  Arguments internal {A B}.
+  Arguments code {A B}.
+
+  Definition raw_asm {A B} (b : A -> block B) : asm A B :=
+    {| internal := Empty_set;
+       code := fun a' =>
+         match a' with
+         | inl v => match v : Empty_set with end
+         | inr a => fmap_block inr (b a)
+         end;
+    |}.
+
+  Definition raw_asm' {A} (b : block A) : asm unit A :=
+    raw_asm (fun _ => b).
+
+  Definition pure_asm {A B} (f : A -> B) : asm A B :=
+    raw_asm (fun a => bbb (Bjmp (f a))).
+
+  Definition id_asm {A} : asm A A := pure_asm id.
+
+  (* Relabeling functions for [app_asm] *)
+  Definition relabelAB {I J B D} :
+    block (I + B) -> block ((I + J) + (B + D)) :=
+    fmap_block (fun l =>
+      match l with
+      | inl i => inl (inl i)
+      | inr b => inr (inl b)
+      end).
+
+  Definition relabelCD {I J B D} :
+    block (J + D) -> block ((I + J) + (B + D)) :=
+    fmap_block (fun l =>
+      match l with
+      | inl j => inl (inr j)
+      | inr d => inr (inr d)
+      end).
+
+  (* Append two asm programs, preserving their internal links. *)
+  Definition app_asm {A B C D} (ab : asm A B) (cd : asm C D) :
+    asm (A + C) (B + D) :=
+    {| internal := ab.(internal) + cd.(internal);
+       code := fun l =>
+         match l with
+         | inl (inl ia) => relabelAB (ab.(code) (inl ia))
+         | inl (inr ic) => relabelCD (cd.(code) (inl ic))
+         | inr (inl a) => relabelAB (ab.(code) (inr a))
+         | inr (inr c) => relabelCD (cd.(code) (inr c))
+         end;
+    |}.
+
+  (* Rename visible program labels. *)
+  Definition relabel_asm {A B C D} (f : A -> B) (g : C -> D)
+             (bc : asm B C) : asm A D :=
+    {| code := fun l =>
+         fmap_block (sum_bimap id g)
+           (bc.(code)
+              (sum_bimap id f l));
+    |}.
+
+  (* Link labels from two programs together. *)
+  Definition link_asm {I A B} (ab : asm (I + A) (I + B)) : asm A B :=
+    {| internal := ab.(internal) + I;
+       code := fun l =>
+         fmap_block sum_assoc_l (ab.(code) (sum_assoc_r l));
+    |}.
 
 End Syntax.
 

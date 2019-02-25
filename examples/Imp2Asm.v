@@ -55,130 +55,73 @@ Section after.
     end.
 End after.
 
-Section fmap_block.
-  Context {a b : Type} (f : a -> b).
+(** Sequencing of blocks: the program [seq_asm ab bc] links the
+    exit points of [ab] with the entry points of [bc].
 
-  Definition fmap_branch (blk : branch a) : branch b :=
-    match blk with
-    | Bjmp x => Bjmp (f x)
-    | Bbrz v a b => Bbrz v (f a) (f b)
-    | Bhalt => Bhalt
-    end.
+[[
+           B
+   A---ab-----bc---C
+]]
 
-  Fixpoint fmap_block (blk : block a) : block b :=
-    match blk with
-    | bbb x => bbb (fmap_branch x)
-    | bbi i blk => bbi i (fmap_block blk)
-    end.
-End fmap_block.
+   ... can be implemented using just [app_asm] and [link_asm].
 
-Definition link_seq (p1: asm unit Empty_set) (p2: asm unit Empty_set): asm unit Empty_set :=
-  let transL l :=
-      match l with
-      | inl l => inl (inl l)
-      | inr _ => inl (inr None)
-      end
-  in
-  let transR l :=
-      match l with
-      | inl l => inl (inr (Some l))
-      | inr l => inr l
-      end
-  in
-  {| internal := p1.(internal) + option p2.(internal)
-     ; code l :=
-         match l with
-         | inl (inl l) =>        (* p1's internal *)
-           fmap_block transL (p1.(code) (inl l))           
-         | inl (inr None) =>     (* p2's entry point *)
-           fmap_block transR (p2.(code) (inr tt))       
-         | inl (inr (Some l)) => (* p2's internal *)
-           fmap_block transR (p2.(code) (inl l))    
-         | inr tt =>             (* p1's entry point *)
-           fmap_block transL (p1.(code) (inr tt))               
-         end
-  |}.
+[[
+       +------+
+       |      |
+   A------ab--+B
+       |
+      B+--bc------C
+]]
+*)
+Definition seq_asm {A B C} (ab : asm A B) (bc : asm B C): asm A C :=
+  link_asm (relabel_asm sum_comm id (app_asm ab bc)).
 
-Definition link_if (e : list instr) (lp : asm unit Empty_set) (rp : asm unit Empty_set) : asm unit Empty_set :=
-  let to_left l :=
-      match l with
-      | inl l => inl (inl (Some l))
-      | inr l => inr l
-      end
-  in
-  let to_right l :=
-      match l with
-      | inl l => inl (inr (Some l))
-      | inr l => inr l
-      end
-  in
+(* Location of temporary for [if]. *)
+Definition tmp_if := gen_tmp 0.
 
-  {| internal  := option lp.(internal) + option rp.(internal)
-     ; code l :=
-         match l with
-         | inr tt =>             (* Entry point to the conditional *)
-           after e (bbb (Bbrz (gen_tmp 0) (inl (inl None)) (inl (inr None))))
-         | inl (inl None) =>     (* Entry point to the left branch *)
-           fmap_block to_left (lp.(code) (inr tt))
-         | inl (inl (Some l)) => (* Inside the left branch *)
-           fmap_block to_left (lp.(code) (inl l))
-         | inl (inr None) =>     (* Entry point to the right branch *)
-           fmap_block to_right (rp.(code) (inr tt))
-         | inl (inr (Some l)) => (* Inside the right branch *)
-           fmap_block to_right (rp.(code) (inl l))
-         end
-  |}.
+(* Conditional *)
+Definition cond_asm (e : list instr) : asm unit (unit + unit) :=
+  raw_asm' (after e (bbb (Bbrz tmp_if (inl tt) (inr tt)))).
 
+(** [if_asm e tp fp]
+[[
+           true
+        ee-------tp---C
+    1---ee-------fp---C
+           false
+]]
+ *)
+Definition if_asm {A}
+           (e : list instr) (tp : asm unit A) (fp : asm unit A) :
+  asm unit A :=
+  seq_asm (cond_asm e)
+          (relabel_asm id sum_merge (app_asm tp fp)).
 
-Variant WhileBlocks : Set :=
-| WhileTop
-| WhileBottom.
+(* [while_asm e p]
+[[
+      +-------------+
+      |             |
+      |    true     |
+      |  e-------p--+
+  1---+--e--------------1
+           false
+]]
+*)
+Definition while_asm (e : list instr) (p : asm unit unit) :
+  asm unit unit :=
+  link_asm (relabel_asm id sum_merge
+    (app_asm (if_asm e
+                (relabel_asm id inl p)
+                (pure_asm inr))
+            (pure_asm inl))).
 
-Definition link_loop (e : list instr) (bp : asm unit Empty_set): asm unit Empty_set :=
-  let to_body l :=
-      match l with
-      | inl l => inl (inr l)
-      | inr l => inr l
-      end
-  in
-
-  {| internal := WhileBlocks + bp.(internal)
-     ; code l :=
-         match l with
-         | inr tt =>                (* Entry point to the loop *)
-           after e (bbb (Bbrz (gen_tmp 0) (inl (inl WhileTop)) (inl (inl WhileBottom)))) 
-         | inl (inl WhileTop) =>    (* Entry point to the body *)
-           fmap_block to_body (bp.(code) (inr tt))                                       
-         | inl (inl WhileBottom) => (* Exit point *)
-           bbb Bhalt                                                                     
-         | inl (inr l) =>           (* Inside the body *)
-           fmap_block to_body (bp.(code) (inl l))                                        
-         end
-  |}.
-
-Set Nested Proofs Allowed.
-
-Fixpoint compile (s : stmt) {struct s} : asm unit Empty_set :=
+Fixpoint compile (s : stmt) {struct s} : asm unit unit :=
   match s with
-
-  | Skip =>
-
-    {| internal  := Empty_set
-       ; code := fun _ => bbb Bhalt |}
-
-  | Assign x e =>
-
-    {| internal  := Empty_set
-       ; code := fun _ => after (compile_assign x e)
-                             (bbb Bhalt) |}
-
-  | Seq l r => link_seq (compile l) (compile r)
-
-
-  | If e l r => link_if (compile_expr 0 e) (compile l) (compile r)
-
-  | While e b => link_loop (compile_expr 0 e) (compile b)
-                          
+  | Skip => id_asm
+  | Assign x e => raw_asm' (after (compile_assign x e) (bbb (Bjmp tt)))
+  | Seq l r => seq_asm (compile l) (compile r)
+  | If e l r => if_asm (compile_expr 0 e) (compile l) (compile r)
+  | While e b => while_asm (compile_expr 0 e) (compile b)
   end.
 
 Section denote_list.
