@@ -173,11 +173,37 @@ Proof.
   rewrite bind_bind; setoid_rewrite IH; reflexivity.
 Qed.
 
+(* TO MOVE *)
+Lemma map_ret {X Y: Type}:
+  forall (f: X -> Y) x,
+    @ITree.map E _ _ f (Ret x) ≅ Ret (f x).
+Proof.
+  intros.
+  unfold ITree.map.
+  rewrite ret_bind; reflexivity.
+Qed.
+
+Lemma raw_asm_block_correct_lifted {A} (b : block A) :
+   denote_asm (raw_asm_block b) ⩰
+          (fun _ => (denote_block _ b)).
+Proof.
+  unfold denote_asm.
+  rewrite vanishing_den.
+  rewrite elim_λ_den', elim_λ_den.
+  unfold denote_b; simpl.
+  intros [].
+  rewrite fmap_block_map, map_map.
+  unfold ITree.map.
+  rewrite <- (bind_ret (denote_block E b)) at 2. 
+  apply eutt_bind; [reflexivity | intros []; reflexivity].
+Qed.
+
 Lemma raw_asm_block_correct {A} (b : block A) :
   eutt eq (denote_asm (raw_asm_block b) tt)
           (denote_block _ b).
 Proof.
-Admitted.
+  apply raw_asm_block_correct_lifted.
+Qed.
 
 (** *** [asm] combinators *)
 
@@ -185,12 +211,20 @@ Theorem pure_asm_correct {A B} (f : A -> B) :
   eq_den (denote_asm (pure_asm f))
          (@lift_den E _ _ f).
 Proof.
-Admitted.
+  unfold denote_asm .
+  rewrite vanishing_den.
+  rewrite elim_λ_den', elim_λ_den.
+  unfold denote_b; simpl.
+  intros ?.
+  rewrite map_ret.
+  reflexivity.
+Qed.
 
 Definition id_asm_correct {A} :
   eq_den (denote_asm (pure_asm id)) (@id_den E A).
 Proof.
-Admitted.
+  rewrite pure_asm_correct; reflexivity.
+Defined.
 
 Definition app_asm_correct {A B C D} (ab : asm A B) (cd : asm C D) :
   @eq_den E _ _

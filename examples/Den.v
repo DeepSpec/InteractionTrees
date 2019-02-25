@@ -72,8 +72,10 @@ Section Den.
       sum_elim (compose_den ab (lift_den inl)) (compose_den cd (lift_den inr)).
 
     (* Left and right unitors *)
-    Definition λ_den {A: Type}: denE (I + A) A := lift_den sum_empty_l.
-    Definition ρ_den {A: Type}: denE (A + I) A := lift_den sum_empty_r.
+    Definition λ_den  {A: Type}: denE (I + A) A := lift_den sum_empty_l.
+    Definition λ_den' {A: Type}: denE A (I + A) := lift_den inr.
+    Definition ρ_den  {A: Type}: denE (A + I) A := lift_den sum_empty_r.
+    Definition ρ_den' {A: Type}: denE A (A + I) := lift_den inl.
 
     (* Associator *)
     Definition assoc_den_l {A B C: Type}: denE (A + (B + C)) ((A + B) + C) := lift_den sum_assoc_l.
@@ -222,6 +224,38 @@ Section Den.
       sum_elim (lift_den ac) (lift_den bc) ⩰ lift_den (sum_elim ac bc).
     Proof.
       intros []; reflexivity.
+    Qed.
+
+    (** *** [Unitors] lemmas *)
+
+    Lemma elim_λ_den {A B: Type}: 
+      forall (ab: @den E A (I + B)), ab >=> λ_den ⩰ (fun a: A => ITree.map (sum_bimap sum_empty_l id) (ab a)). 
+    Proof.
+      intros; apply compose_den_lift.
+    Qed.
+
+    Lemma elim_λ_den' {A B: Type}:
+      forall (f: @den E (I + A) (I + B)),
+        λ_den' >=> f ⩰ fun a => f (inr a).
+    Proof.
+      repeat intro.
+      unfold λ_den', compose_den, lift_den.
+      rewrite ret_bind_; reflexivity.
+    Qed.
+
+    Lemma elim_ρ_den' {A B: Type}:
+      forall (f: @den E (A + I) (B + I)),
+        ρ_den' >=> f ⩰ fun a => f (inl a).
+    Proof.
+      repeat intro.
+      unfold ρ_den', compose_den, lift_den.
+      rewrite ret_bind_; reflexivity.
+    Qed.
+
+    Lemma elim_ρ_den {A B: Type}: 
+      forall (ab: @den E A (B + I)), ab >=> ρ_den ⩰ (fun a: A => ITree.map (sum_bimap sum_empty_r id) (ab a)). 
+    Proof.
+      intros; apply compose_den_lift.
     Qed.
 
     (** *** [tensor] lemmas *)
@@ -387,6 +421,15 @@ Section Den.
       rewrite (H z); reflexivity.
     Qed.
 
+    Lemma bind_map: forall {E X Y Z} (t: itree E X) (k: X -> itree E Y) (f: Y -> Z),
+        eq_itree eq (ITree.map f (x <- t;; k x)) (x <- t;; ITree.map f (k x)).
+    Proof.
+      intros.
+      unfold ITree.map.
+      rewrite bind_bind.
+      reflexivity.
+    Qed.
+
     (* Naturality of (loop_den I A B) in A *)
     (* Or more diagrammatically:
 [[
@@ -406,16 +449,6 @@ A----B----###----C
 
 ]]
      *)
-
-    Lemma bind_map: forall {E X Y Z} (t: itree E X) (k: X -> itree E Y) (f: Y -> Z),
-        eq_itree eq (ITree.map f (x <- t;; k x)) (x <- t;; ITree.map f (k x)).
-    Proof.
-      intros.
-      unfold ITree.map.
-      rewrite bind_bind.
-      reflexivity.
-    Qed.
-
 
     Lemma compose_loop {I A B C}:
       forall (bc_: denE (I + B) (I + C)) (ab: denE A B),
@@ -459,6 +492,11 @@ A----###----B----C
         loop_den ((ji ⊗ id_den) >=> ab_).
     Admitted.
 
+    (* Loop over the empty set can be erased *)
+    Lemma vanishing_den {A B: Type}:
+      forall (f: denE (I + A) (I + B)),
+        loop_den f ⩰ λ_den' >=> f >=> λ_den.
+    Admitted.
 
     (* [loop_loop]:
 
@@ -504,7 +542,6 @@ These two loops:
     Lemma yanking_den {A: Type}:
       loop_den sym_den ⩰ @id_den A.
     Admitted.
-
     (* Lemma loop_relabel {I J A B} *)
     (*       (f : I -> J) {f' : J -> I} *)
     (*       {ISO_f : Iso f f'} *)
