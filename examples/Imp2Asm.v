@@ -595,468 +595,17 @@ Qed.
     eapply Renv_write_local; eauto.
   Qed.
 
-(*
-Seq a b
-a :: itree _ Empty_set
-[[Skip]] = Vis Halt ...
-[[Seq Skip b]] = Vis Halt ...
-
-
-[[s]] :: itree _ unit
-[[a]] :: itree _ L (* if closed *)
-*)
-
-
-Definition denote_program {e} `{Locals -< e} `{Memory -< e} {L}
-           (p : program L) : p.(label) -> itree e (option L) :=
-  rec (fun lbl : p.(label) =>
-         next <- denote_block (_ +' e) (p.(blocks) lbl) ;;
-              match next with
-              | None => ret None
-              | Some (inl next) => lift (Call next)
-              | Some (inr next) => ret (Some next)
-              end).
-  Arguments denote_program {_ _ _}.
-
-    Require Import ITree.MorphismsFacts.
-    Require Import ITree.FixFacts.
-
-Definition denote_main {e} `{Locals -< e} `{Memory -< e} {L}
-           (p : program L) : itree e (option L) :=
-  next <- denote_block e p.(main) ;;
-   match next with
-   | None => ret None
-   | Some (inl next) => denote_program p next
-   | Some (inr next) => ret (Some next)
-   end.
-
-Arguments denote_block {_ _ _ _} _.
-Arguments interp {_ _} _ {_} _.
-Lemma interp_match_option : forall {T U} (x : option T) {E F} (h : E ~> itree F) (Z : itree _ U) Y,
-    interp h match x with
-             | None => Z
-             | Some y => Y y
-             end =
-match x with
-| None => interp h Z
-| Some y => interp h (Y y)
-end.
-Proof. destruct x; reflexivity. Qed.
-Lemma interp_match_sum : forall {A B U} (x : A + B) {E F} (h : E ~> itree F) (Z : _ -> itree _ U) Y,
-    interp h match x with
-             | inl x => Z x
-             | inr x => Y x
-             end =
-match x with
-| inl x => interp h (Z x)
-| inr x => interp h (Y x)
-end.
-Proof. destruct x; reflexivity. Qed.
-
-Lemma translate_match_sum : forall {A B U} (x : A + B) {E F} (h : E ~> F) (Z : _ -> itree _ U) Y,
-    translate h match x with
-             | inl x => Z x
-             | inr x => Y x
-             end =
-match x with
-| inl x => translate h (Z x)
-| inr x => translate h (Y x)
-end.
-Proof. destruct x; reflexivity. Qed.
-Lemma translate_match_option : forall {B U} (x : option B) {E F} (h : E ~> F) (Z : itree _ U) Y,
-    translate h _ match x with
-             | None => Z
-             | Some x => Y x
-             end =
-match x with
-| None => translate h Z
-| Some x => translate h (Y x)
-end.
-Proof. destruct x; reflexivity. Qed.
-
-(*
-Proper (.. ==> eutt _) (rec _)
-
-let rec F := ... in
-let rec G := ... in
-
-let rec F := let G := ... in ... in
-*)
-
-(*
-Lemma link_ok : forall p1 p2 l,
-    denote_program (link_seq p1 p2) l ≈
-    rec (fun l => 
-           match l with
-           | inl l =>
-             l' <- denote_program p1 l ;;
-                match l' with
-                | None => Ret None
-                | Some _ => denote_main p2
-                end
-           | inr None => denote_main p2
-           | inr (Some l) => denote_program p2 l
-           end) l.
-*)
-
-(* things to do?
- * 1. change the compiler to not compress basic blocks.
- *    - ideally we would write a separate pass that does that
- *    - split out each of the structures as separate definitions and lemmas
- * 2. need to prove `interp F (denote_block ...) = denote_block ...`
- * 3. link_seq_ok should be a proof by co-induction.
- * 4. clean up this file *a lot*
- * bonus: block fusion
- * bonus: break & continue
- *)
-
-About rec.
-
-Variant Fused {d1 d2 c1 c2 : Type} : Type -> Type :=
-| Entry : Fused c2
-| EnterL (_ : d1) : Fused c1
-| EnterR (_ : d2) : Fused c2.
-Arguments Fused : clear implicits.
-
-Lemma rec_fuse : forall {E : Type -> Type} {dom1 codom1 dom2 codom2 : Type}
-                   (f : dom1 -> itree (callE dom1 codom1 +' E) codom1)
-                   (g : dom2 -> itree (callE dom2 codom2 +' E) codom2)
-                   (x : dom1) (y : codom1 -> dom2),
-  (l <- rec f x ;;
-  rec g (y l))
-  ≈
-  @mrec (Fused dom1 dom2 codom1 codom2) E
-  (fun _ elr =>
-     match elr with
-     | Entry => l <- lift (EnterL x) ;; lift (EnterR (y l))
-     | EnterL x =>
-       translate (fun Z x =>
-                    match x with
-                    | inl1 x =>
-                      match x in callE _ _ z return (Fused _ _ _ _ +' _) z with
-                      | Call x => inl1 (EnterL x)
-                      end
-                    | inr1 x => inr1 x
-                    end) (f x)
-     | EnterR x =>
-       translate (fun Z x =>
-                    match x with
-                    | inl1 x =>
-                      match x in callE _ _ z return (Fused _ _ _ _ +' _) z with
-                      | Call x => inl1 (EnterR x)
-                      end
-                    | inr1 x => inr1 x
-                    end) (g x)
-     end) _ Entry.
-Proof.
-Admitted.
-
-Variant Incl {d1 c1 T : Type} : Type -> Type :=
-| EnterI : Incl T
-| EnterF (_ : d1) : Incl c1.
-Arguments Incl : clear implicits.
-
-
-Lemma rec_fuse' : forall {E : Type -> Type} {dom1 codom1 T : Type}
-                    (f : dom1 -> itree (callE dom1 codom1 +' E) codom1)
-                    (k : codom1 -> itree E T)
-                    (x : dom1),
-  (l <- rec f x ;; k l)
-  ≈
-  @mrec (Incl dom1 codom1 T) E
-  (fun _ elr =>
-     match elr with
-     | EnterI => l <- ITree.liftE (inl1 (EnterF x)) ;;
-                 translate (fun _ x => inr1 x) (k l)
-     | EnterF x =>
-       translate (fun Z x =>
-                    match x with
-                    | inl1 x =>
-                      match x in callE _ _ z return (Incl _ _ _ +' _) z with
-                      | Call x => inl1 (EnterF x)
-                      end
-                    | inr1 x => inr1 x
-                    end) (f x)
-     end) _ EnterI.
-Proof.
-Admitted.
-
-    (* 1. push translate over a match-option
-     * 2. pull a rec from a continuation above the bind
-     * 3. pull translate over a match-Incl
-     * 4. fuse two adjacent mrec
-     *)
-
-(*
-Lemma rec_k : forall {E : Type -> Type} {dom1 codom1 T : Type}
-                    (f : dom1 -> itree (callE dom1 codom1 +' E) codom1)
-                    (c : itree E T)
-                    (k : T -> dom1),
-  (l <- c ;; rec f (k l))
-  ≈
-  @mrec (Incl dom1 codom1 T) E
-  (fun _ elr =>
-     match elr with
-     | EnterI => l <- translate (fun _ x => inr1 x) _ c ;;
-                 ITree.liftE (inl1 (EnterF (k l)))
-     | EnterF x =>
-       translate (fun Z x =>
-                    match x with
-                    | inl1 x =>
-                      match x in callE _ _ z return (Incl _ _ _ +' _) z with
-                      | Call x => inl1 (EnterF x)
-                      end
-                    | inr1 x => inr1 x
-                    end) _ (f x)
-     end) _ EnterI.
-Proof.
-Admitted.
-*)
-About translate.
-About mrec.
-
-
-Lemma lem : forall {E : Type -> Type} {dom1 codom1 U : Type}
-              (f : dom1 -> itree (Incl dom1 codom1 U +' E) codom1)
-              (Z : itree (callE dom1 codom1 +' E) U)
-              (l : dom1)
-              ,
-  @mrec (callE dom1 codom1) _
-        (fun _ x =>
-           match x with
-           | Call x =>
-             interp (E:=Incl dom1 codom1 U +' E) (F:=callE dom1 codom1 +' E)
-                    (fun _ z =>
-                       match z with
-                       | inl1 x =>
-                         match x with
-                         | EnterI => Z
-                         | EnterF x => ITree.liftE (inl1 (Call x))
-                         end
-                       | inr1 x => ITree.liftE (inr1 x)
-                       end) (f x)
-           end) _ (Call l)
-  ≈
-  @mrec (Incl dom1 codom1 U) _
-        (fun _ x =>
-          match x with
-          | EnterI => translate (fun _ x =>
-                                  match x with
-                                  | inl1 x =>
-                                    match x in callE _ _ X return (Incl dom1 codom1 U +' E) X with
-                                    | Call x => inl1 (EnterF x)
-                                    end
-                                  | inr1 x => inr1 x
-                                  end) Z
-          | EnterF x => f x
-          end) _ (EnterF l).
-Abort.
-
-(* rec_fuse' : `l <- rec ... ;; k` = rec ... *)
-(* rec_k     : `l <- c ;; rec ...` = rec ... *)
-
-(*
-rec_rec : @rec T (fun x => @rec U ...) = @rec (T + U) (fun ...)
-*)
-
-Lemma lift_sum_rec : forall {A B C : Type} {E}
-                    (L : A -> itree E C)
-                    (R : B -> itree E C)
-                    (l : A + B),
-  match l with
-  | inl x => L x
-  | inr x => R x
-  end =
-  rec (A:=A + B)%type
-       (fun x =>
-          match x with
-          | inl x => translate (fun _ x => inr1 x) (L x)
-          | inr x => translate (fun _ x => inr1 x) (R x)
-          end) l.
-Proof. Admitted.
-
-Variant With (T : Type) (E : Type -> Type) (t : Type) : Type :=
-| WithIt (_ : T) (_ : E t) : With T E t.
-Arguments WithIt {_ _ _} _ _.
-
-Lemma lift_sum_rec_left
-  : forall {B T u : Type} {D : Type -> Type} {E}
-      (L : T -> D ~> itree (D +' E))
-      (R : B -> itree E u)
-      (f : T -> D u)
-      (l : T + B),
-  match l with
-  | inl x => mrec (L x) _ (f x)
-  | inr x => R x
-  end =
-  mrec (D:=(With T D +' callE B u))%type
-      (fun _ x =>
-         match x with
-         | inl1 (WithIt t y) =>
-           translate (fun _ x =>
-                        match x with
-                        | inl1 x => inl1 (inl1 (WithIt t x))
-                        | inr1 x => inr1 x
-                        end) (L t _ y)
-         | inr1 x =>
-           match x with
-           | Call x => translate (fun _ x => inr1 x) (R x)
-           end
-         end) _ match l with
-                | inl x => inl1 (WithIt x (f x))
-                | inr x => inr1 (Call x)
-                end.
-Proof. Admitted.
-
-Lemma Proper_match : forall {T U V : Type} R (f f' : T -> V) (g g' : U -> V) x,
-    ((pointwise_relation _ R) f f') ->
-    ((pointwise_relation _ R) g g') ->
-    R
-    match x with
-    | inl x => f x
-    | inr x => g x
-    end
-    match x with
-    | inl x => f' x
-    | inr x => g' x
-    end.
-Proof. destruct x; compute; eauto. Qed.
-
-Lemma link_seq_ok : forall p1 p2 l,
-    denote_program (link_seq p1 p2) l ≈
-    match l with
-    | inl l =>
-      l' <- denote_program p1 l ;;
-      match l' with
-      | None => Ret None
-      | Some _ => denote_main p2
-      end
-    | inr None => denote_main p2
-    | inr (Some l) => denote_program p2 l
-    end.
-Proof.
-  intros.
-  unfold denote_program.
-  rewrite Proper_match.
-  2:{ red; intros.
-      eapply rec_fuse'. }
-  2:{ red. intros.
-      instantiate (1:=fun a => match a with
-  | Some l0 =>
-      rec
-        (fun lbl : label p2 =>
-         next <- denote_block (blocks p2 lbl);;
-         match next with
-         | Some (inl next0) => lift (Call next0)
-         | Some (inr next0) => ret (Some next0)
-         | None => ret None
-         end) l0
-  | None => denote_main p2
-  end).
-      reflexivity. }
-  simpl.
-  rewrite lift_sum_rec_left with (f:=fun _ => EnterI).
-      SearchAbout rec.
-  rewrite lift_sum_rec.
+  Require Import Den.
   
-
-  destruct l.
-  { setoid_rewrite rec_fuse'. 
-    simpl.
-    setoid_rewrite translate_match_option.
-
-  destruct l.
-  { (* in the left *)
-    unfold denote_program.
-    rewrite rec_unfold at 1.
-    repeat rewrite interp_bind.
-    match goal with
-    | |- ITree.bind ?X _ ≈ _ =>
-      assert (X = (denote_block (blocks (link_seq p1 p2) (inl l))))
-    end.
-    admit.
-    rewrite H.
-    rewrite rec_unfold.
-    repeat rewrite interp_bind.
-    repeat rewrite bind_bind.
-    match goal with
-    | |- _ ≈ ITree.bind ?X _ =>
-      assert (X = (denote_block (blocks p1 l)))
-    end.
-    admit.
-    rewrite H0.
-    simpl.
-    rewrite fmap_block_map.
-    unfold ITree.map.
-    rewrite bind_bind.
-    setoid_rewrite ret_bind.
-    eapply eutt_bind_gen.
-    { instantiate (1:=eq). reflexivity. }
-    intros; subst.
-    repeat rewrite interp_match_option.
-    unfold option_map.
-    destruct r2.
-    { destruct s.
-      - admit. 
-      - destruct u. admit. }
-    { admit. } }
-  { unfold denote_program.
-    simpl.
-
-}
-    
-
-
-    Lemma denote_block_no_calls :
-      interp (hBoth L id) (liftR id) = interp id e.
-
-    Print denote_program.
-    Print denote_block.
-    simpl denote_block.
-    Eval simpl in (denote_block (blocks (link_seq p1 p2) (inl l))).
-    simpl.
-   
-    simpl.
-    unfold denote_block at 2.
-    simpl.
-About denote_block.
-setoid_rewrite interp_match_option.
-
-    eapply eutt_bind_gen.
-    Show Existentials.
-    eapply eq_itree_interp.
-    
-
-
-    
-
-
-
-    do 2 rewrite rec_unfold.
-
-Admitted.
-
-  Lemma true_compile_correct_program:
+  Lemma compile_correct:
     forall s (g_imp g_asm : alist var value),
       Renv g_asm g_imp ->
       eutt (fun a b => Renv (fst a) (fst b) /\ snd a = snd b)
-            (interp_locals (denote_main (compile s)) g_asm)
-            (interp_locals (denoteStmt s;; Ret (Some tt)) g_imp).
+           (interp_locals (denote_asm (compile s) tt) g_asm)
+           (interp_locals (denoteStmt s;; Ret (inr Done)) g_imp).
+    Proof.
 
-
-
-
-
-
-
-
-  Lemma true_compile_correct_program:
-    forall s L (b: block L) (g_imp g_asm : alist var value),
-      Renv g_asm g_imp ->
-      eutt (fun a b => Renv (fst a) (fst b) /\ snd a = snd b)
-            (interp_locals (denote_main (compile s b)) g_asm)
-            (interp_locals (denoteStmt s;; denote_block _ b) g_imp).
-  Proof.
+      (*  Proof sketched on the old version of the theorem, mostly obsolete
     induction s; intros.
     { (* assign *)
       simpl.
@@ -1098,124 +647,101 @@ Admitted.
       rewrite fmap_block_map.
       unfold ITree.map. rewrite bind_bind.
       setoid_rewrite ret_bind.
-
-
-
-
-
-        Arguments denote_program {_ _ _ _} _ _.
-        Arguments denote_block {_ _ _ _} _.
-
-
-  (*
-    This statement does not hold. We need to handle the environment.
-    We want something closer to this kind:
-   *)
-
-        (* TODO: parameterize by REnv *)
-  Lemma compile_correct_program:
-    forall s L (b: block L) imports g_asm g_imp,
-      Renv g_asm g_imp ->
-      eutt (fun a b => Renv (fst a) (fst b))
-           (interp_locals (denote_main (compile s b) imports) g_asm)
-           (interp_locals (denoteStmt s;;
-                           ml <- denote_block b;;
-                           match ml with
-                           | None => Ret tt
-                           | Some l => imports l
-                           end) g_imp).
-  Proof.
-(*    simpl.
-    induction s; intros L b imports.
-
-    - unfold denote_main; simpl.
-      rewrite denote_after_denote_list; simpl.
-      rewrite bind_bind.
-      eapply eutt_bind.
-      + apply denote_compile_assign.
-      + intros ?; simpl.
-        rewrite fmap_block_map, map_bind; simpl.
-        eapply eutt_bind; [reflexivity|].
-        intros [?|]; simpl; reflexivity.
-
-    - simpl denoteStmt.
-      specialize (IHs2 L b imports).
-      unfold denote_main; simpl denote_block; rewrite fmap_block_map.
-      unfold bind at 1, Monad_itree; rewrite map_bind.
-      rewrite bind_bind.
-      etransitivity.
-      2:{
-        eapply eutt_bind; [reflexivity |].
-        intros ?; apply IHs2.
-      }
-      clear IHs2.
-      unfold denote_main.
-      set (imports' := (fun l => match l with
-                              | inr l => imports l
-                              | inl l => denote_program (compile s2 b) imports l
-                              end)).
-      specialize (IHs1 _ (main (compile s2 b)) imports').
-      rewrite <- IHs1.
-      unfold denote_main.
-      apply eutt_bind; [reflexivity | ].
-      intros [?|]; [| reflexivity].
-      simpl option_map.
-      destruct s as [s | [s | s]]; [| | reflexivity].
-      + clear. subst imports'.
-        simpl.
-        unfold denote_program. simpl.
-      + admit.
-
-    - specialize (IHs1 L b imports).
-      specialize (IHs2 L b imports).
-      simpl denoteStmt.
-      rewrite bind_bind.
-      unfold denote_main.
-      simpl.
-      admit.
-
-    - admit.
-
-    - unfold denote_main; simpl.
-      rewrite ret_bind, fmap_block_map, map_bind.
-      eapply eutt_bind; [reflexivity |].
-      intros [? |]; simpl; reflexivity.
-*)
-Admitted.
-
-  (* note: because local temporaries also modify the environment, they have to be
-   * interpreted here.
-   *)
-    Theorem compile_correct:
-    forall s, @denote_main _ _ _ Empty_set (compile s (bbb Bhalt))
-                      (fun x => match x with end) ≈ denoteStmt s.
-  Proof.
-(*    intros stmt.
-    unfold denote_main.
-    transitivity (@denoteStmt (Locals +' Memory) _ stmt;; Ret tt).
-    {
-      eapply eutt_bind; [reflexivity | intros []].
-      simpl.
 *)
 
   Admitted.
+     
+
+(*
+Seq a b
+a :: itree _ Empty_set
+[[Skip]] = Vis Halt ...
+[[Seq Skip b]] = Vis Halt ...
+
+
+[[s]] :: itree _ unit
+[[a]] :: itree _ L (* if closed *)
+*)
+
+
+  (*
+
+OBSOLETE?
+
+Lemma interp_match_option : forall {T U} (x : option T) {E F} (h : E ~> itree F) (Z : itree _ U) Y,
+    interp h match x with
+             | None => Z
+             | Some y => Y y
+             end =
+match x with
+| None => interp h Z
+| Some y => interp h (Y y)
+end.
+Proof. destruct x; reflexivity. Qed.
+Lemma interp_match_sum : forall {A B U} (x : A + B) {E F} (h : E ~> itree F) (Z : _ -> itree _ U) Y,
+    interp h match x with
+             | inl x => Z x
+             | inr x => Y x
+             end =
+match x with
+| inl x => interp h (Z x)
+| inr x => interp h (Y x)
+end.
+Proof. destruct x; reflexivity. Qed.
+
+Lemma translate_match_sum : forall {A B U} (x : A + B) {E F} (h : E ~> F) (Z : _ -> itree _ U) Y,
+    translate h match x with
+             | inl x => Z x
+             | inr x => Y x
+             end =
+match x with
+| inl x => translate h (Z x)
+| inr x => translate h (Y x)
+end.
+Proof. destruct x; reflexivity. Qed.
+Lemma translate_match_option : forall {B U} (x : option B) {E F} (h : E ~> F) (Z : itree _ U) Y,
+    translate h _ match x with
+             | None => Z
+             | Some x => Y x
+             end =
+match x with
+| None => translate h Z
+| Some x => translate h (Y x)
+end.
+Proof. destruct x; reflexivity. Qed.
+*)
+
+
+
+(* things to do?
+ * 1. change the compiler to not compress basic blocks.
+ *    - ideally we would write a separate pass that does that
+ *    - split out each of the structures as separate definitions and lemmas
+ * 2. need to prove `interp F (denote_block ...) = denote_block ...`
+ * 3. link_seq_ok should be a proof by co-induction.
+ * 4. clean up this file *a lot*
+ * bonus: block fusion
+ * bonus: break & continue
+ *)
+
+Lemma Proper_match : forall {T U V : Type} R (f f' : T -> V) (g g' : U -> V) x,
+    ((pointwise_relation _ R) f f') ->
+    ((pointwise_relation _ R) g g') ->
+    R
+    match x with
+    | inl x => f x
+    | inr x => g x
+    end
+    match x with
+    | inl x => f' x
+    | inr x => g' x
+    end.
+Proof. destruct x; compute; eauto. Qed.
+
 
 End Real_correctness.
 
-
 (*
-l: x = phi(l1: a, l2: b) ; ...
-l1: ... ; jmp l
-l2: ... ; jmp l
-
-l: [x]
-   ....
-l1: ...; jmp[a]
-l2: ...; jmp[b]
-*)
-
-(*
-
 Section tests.
 
   Import ImpNotations.
