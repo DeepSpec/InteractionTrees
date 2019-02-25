@@ -226,11 +226,72 @@ Proof.
   rewrite pure_asm_correct; reflexivity.
 Defined.
 
+Lemma tensor_den_slide_right {A B C D}:
+  forall (ac: @den E A C) (bd: den B D),
+    ac ⊗ bd ⩰ id_den ⊗ bd >=> ac ⊗ id_den.
+Proof.
+  intros.
+  unfold tensor_den.
+  repeat rewrite id_den_left.
+  rewrite sum_elim_compose.
+  rewrite compose_den_assoc.
+  rewrite inl_sum_elim, inr_sum_elim.
+  reflexivity.
+Qed.
+
+Lemma local_rewrite1 {A B C: Type}:
+  id_den ⊗ sym_den >=> assoc_den_l >=> sym_den ⩰
+         @assoc_den_l E A B C >=> sym_den ⊗ id_den >=> assoc_den_r.
+Proof.
+  unfold id_den, tensor_den,sym_den, assoc_den_l, compose_den, assoc_den_r, lift_den.
+  intros [| []]; simpl;
+    repeat (rewrite bind_bind; simpl) || (rewrite ret_bind_; simpl); reflexivity.
+Qed.
+
+Lemma local_rewrite2 {A B C: Type}:
+  sym_den >=> assoc_den_r >=> id_den ⊗ sym_den ⩰
+          @assoc_den_l E A B C >=> sym_den ⊗ id_den >=> assoc_den_r.
+Proof.
+  unfold id_den, tensor_den,sym_den, assoc_den_l, compose_den, assoc_den_r, lift_den.
+  intros [| []]; simpl;
+    repeat (rewrite bind_bind; simpl) || (rewrite ret_bind_; simpl); reflexivity.
+Qed.
+
+Lemma loop_tensor_den {I A B C D}
+      (ab : @den E A B) (cd : @den E (I + C) (I + D)) :
+  ab ⊗ loop_den cd ⩰
+     loop_den (assoc_den_l >=> sym_den ⊗ id_den >=> assoc_den_r
+                           >=> ab ⊗ cd
+                           >=> assoc_den_l >=> sym_den ⊗ id_den >=> assoc_den_r).
+Proof.
+  rewrite tensor_swap, tensor_den_loop.
+  rewrite <- compose_loop.
+  rewrite <- loop_compose.
+  rewrite (tensor_swap cd ab).
+  repeat rewrite <- compose_den_assoc.
+  rewrite local_rewrite1.
+  do 2 rewrite compose_den_assoc.
+  rewrite <- (compose_den_assoc sym_den assoc_den_r _).
+  rewrite local_rewrite2.
+  repeat rewrite <- compose_den_assoc.
+  reflexivity.
+Qed.
+
 Definition app_asm_correct {A B C D} (ab : asm A B) (cd : asm C D) :
   @eq_den E _ _
-     (denote_asm (app_asm ab cd))
-     (tensor_den (denote_asm ab) (denote_asm cd)).
+          (denote_asm (app_asm ab cd))
+          (tensor_den (denote_asm ab) (denote_asm cd)).
 Proof.
+  unfold denote_asm.
+  match goal with | |- ?x ⩰ _ => set (lhs := x) end.
+  rewrite tensor_den_loop.
+  rewrite loop_tensor_den.
+  rewrite <- compose_loop.
+  rewrite <- loop_compose.
+  rewrite loop_loop.
+  subst lhs.
+  unfold app_asm.
+  simpl.
 Admitted.
 
 Definition relabel_asm_correct {A B C D} (f : A -> B) (g : C -> D)
