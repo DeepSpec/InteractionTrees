@@ -1,6 +1,7 @@
 .PHONY: example-imp example-lc example-io example-nimp example-asm example-threads
 
 examples: Makefile.coq
+	mkdir -p extracted
 	$(MAKE) -f Makefile.coq
 
 Makefile.coq: _CoqProject
@@ -30,6 +31,7 @@ example-threads: Makefile.coq $(THREADSML)
 	ocamlbuild -I extracted runthread.native
 	./runthread.native
 
-clean:
+clean: _CoqProject
+	$(MAKE) -f Makefile.coq clean
 	ocamlbuild -clean
-	$(RM) extracted/*.*
+	$(RM) -rf extracted
