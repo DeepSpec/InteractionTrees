@@ -493,52 +493,29 @@ Qed.
            (interp_locals (denote_asm (compile s) tt) g_asm)
            (interp_locals (denoteStmt s ;; Ret (inl tt)) g_imp).
     Proof.
-
-      (*  Proof sketched on the old version of the theorem, mostly obsolete
-    induction s; intros.
-    { (* assign *)
-      simpl.
-      unfold denote_main. simpl. unfold denote_program.
-      simpl.
-      rewrite denote_after_denote_list.
-      rewrite bind_bind.
-      rewrite interp_locals_bind.
-      rewrite interp_locals_bind.
-      eapply eutt_bind_gen.
-      eapply compile_assign_correct; eauto.
-      simpl; intros.
-      clear - H0.
-      rewrite fmap_block_map.
-      unfold ITree.map.
-      rewrite bind_bind.
-      setoid_rewrite ret_bind.
-      rewrite <- (bind_ret (interp_locals _ (fst r2))).
-      rewrite interp_locals_bind.
-      eapply eutt_bind_gen.
-      { SearchAbout denote_block.
-        instantiate (1 := fun a b => Renv (fst a) (fst b) /\ snd a = snd b).
-        admit. }
-      { simpl.
-        intros.
-        destruct r0, r3; simpl in *.
-        destruct H; subst.
-        destruct o0; simpl.
-        { force_left.
-          eapply Ret_eutt.
-          simpl. tauto. }
-        { force_left. eapply Ret_eutt; simpl. tauto. } } }
-    { (* seq *)
-      simpl.
-      specialize (IHs1 _ (main (compile s2 b)) _ _ H).
-      rewrite bind_bind.
-      unfold denote_main; simpl.
-      unfold denote_main in IHs1.
-      rewrite fmap_block_map.
-      unfold ITree.map. rewrite bind_bind.
-      setoid_rewrite ret_bind.
-*)
-
-  Admitted.
+      induction s; intros.
+      - (* Assign *)
+        simpl.
+        rewrite raw_asm_block_correct.
+        rewrite after_correct.
+        rewrite 2 interp_locals_bind.
+        eapply eutt_bind_gen.
+        { eapply compile_assign_correct; auto. }
+        intros. simpl.
+        rewrite (itree_eta (_ (fst r1))), (itree_eta (_ (fst r2))).
+        cbn.
+        apply eutt_Ret; auto.
+      - (* Seq *)
+        admit.
+      - (* If *)
+        admit.
+      - (* While *)
+        admit.
+      - (* Skip *)
+        rewrite (itree_eta (_ _ g_imp)), (itree_eta (_ _ g_asm)).
+        cbn.
+        apply eutt_Ret; auto.
+    Admitted.
      
 
 (*

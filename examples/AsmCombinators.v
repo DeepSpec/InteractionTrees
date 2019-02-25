@@ -154,7 +154,7 @@ Definition traverse_ {A: Type} {M: Type -> Type} `{Monad M} (f: A -> M unit): li
 Definition denote_list: list instr -> itree E unit :=
   traverse_ (denote_instr E).
 
-Lemma denote_after_denote_list:
+Lemma after_correct :
   forall {label: Type} instrs (b: branch label),
     denote_block E (after instrs b) ≅ (denote_list instrs ;; denote_branch E b).
 Proof.
@@ -172,6 +172,12 @@ Proof.
   intros is1 is2; induction is1 as [| i is1 IH]; simpl; intros; [rewrite ret_bind; reflexivity |].
   rewrite bind_bind; setoid_rewrite IH; reflexivity.
 Qed.
+
+Lemma raw_asm_block_correct {A} (b : block A) :
+  eutt eq (denote_asm (raw_asm_block b) tt)
+          (denote_block _ b).
+Proof.
+Admitted.
 
 (** *** [asm] combinators *)
 
