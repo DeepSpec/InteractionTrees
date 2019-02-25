@@ -486,30 +486,60 @@ Qed.
   Proof.
   Admitted.
 
+    Global Instance subrelation_eq_den {E A B} :
+      subrelation (@eq_den E A B) (pointwise_relation _ (eutt eq))%signature.
+    Proof.
+    Admitted.
+
+(* a trick to allow rewriting with eq_den *)
+Definition ff (f : @den E unit unit) : itree E (unit + done) := f tt.
+
+Global Instance Proper_ff : Proper (eq_den ==> eutt eq) ff.
+Admitted.
+
+Lemma fold_ff f : f tt = ff f.
+Proof. reflexivity. Qed.
+
   Lemma compile_correct:
     forall s (g_imp g_asm : alist var value),
       Renv g_asm g_imp ->
-      eutt (fun a b => Renv (fst a) (fst b) /\ snd a = snd b)
+      eutt (fun a b => Renv (fst a) (fst b) /\ snd a = inl (snd b))
            (interp_locals (denote_asm (compile s) tt) g_asm)
-           (interp_locals (denoteStmt s ;; Ret (inl tt)) g_imp).
+           (interp_locals (denoteStmt s) g_imp).
     Proof.
       induction s; intros.
       - (* Assign *)
         simpl.
         rewrite raw_asm_block_correct.
         rewrite after_correct.
+        rewrite <- (bind_ret (ITree.bind (denoteExpr e) _)).
         rewrite 2 interp_locals_bind.
         eapply eutt_bind_gen.
         { eapply compile_assign_correct; auto. }
         intros. simpl.
         rewrite (itree_eta (_ (fst r1))), (itree_eta (_ (fst r2))).
         cbn.
-        apply eutt_Ret; auto.
+        apply eutt_Ret. destruct (snd r2). auto.
       - (* Seq *)
-        admit.
+        rewrite fold_ff; simpl.
+        rewrite seq_asm_correct. unfold ff.
+        unfold compose_den.
+        rewrite 2 interp_locals_bind.
+        eapply eutt_bind_gen.
+        { auto. }
+        intros. destruct H0. destruct (snd r2). rewrite H1.
+        auto.
       - (* If *)
+        simpl; rewrite if_asm_correct.
+        rewrite 2 interp_locals_bind.
+        eapply eutt_bind_gen.
+        { apply compile_expr_correct. auto. }
+        intros.
         admit.
       - (* While *)
+        simpl; rewrite while_asm_correct. rewrite fold_ff.
+        (* TODO: Should use some loop_den lemmas to make the two loops
+           line up. *)
         admit.
       - (* Skip *)
         rewrite (itree_eta (_ _ g_imp)), (itree_eta (_ _ g_asm)).
