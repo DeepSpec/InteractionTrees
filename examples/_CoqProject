@@ -10,6 +10,7 @@ Den.v
 Imp.v
 Linking.v
 Imp2Asm.v
+Imp2AsmCorrectness.v
 
 Nimp.v
 stlc.v
