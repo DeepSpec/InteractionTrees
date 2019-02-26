@@ -17,6 +17,22 @@ From ITree Require Import
      Eq.UpToTaus
      TranslateFacts.
 
+(** * Morphism equivalence *)
+Definition Rhom {A B : Type -> Type} (R : forall t, B t -> B t -> Prop)
+           (f g : A ~> B) : Prop :=
+  forall X, pointwise_relation (A X) (R X) (f X) (g X).
+
+Definition eh_eq {A B : Type -> Type}
+: (A ~> itree B) -> (A ~> itree B) -> Prop :=
+  Rhom (fun t => @eq_itree B _ t eq).
+
+Definition eh_eutt {A B : Type -> Type}
+: (A ~> itree B) -> (A ~> itree B) -> Prop :=
+  Rhom (fun t => @eutt B _ t eq).
+
+Notation "f ≡ g" := (eh_eutt f g) (at level 70).
+
+
 (** * [interp] *)
 
 (* Proof of
@@ -68,16 +84,9 @@ Lemma vis_interp {E F R} {f : E ~> itree F} U (e: E U) (k: U -> itree E R) :
 Proof. rewrite unfold_interp. reflexivity. Qed.
 
 (** ** [interp] properness *)
-
-(* todo(gmm): unify with eh_eq *)
-Definition Rhom {E F : Type -> Type} (R : forall t, F t -> F t -> Prop)
-: relation (E ~> F) :=
-  fun f g =>
-    forall X, pointwise_relation (E X) (R X) (f X) (g X).
-
 Instance eq_itree_interp {E F R}:
-  Proper (@Rhom E (itree F) (fun _ => eq_itree eq) ==> eq_itree eq ==> eq_itree eq)
-         (fun f => interp f R).
+  Proper (Rhom (fun _ => eq_itree eq) ==> eq_itree eq ==> eq_itree eq)
+         (fun f => @interp E F f R).
 Proof.
   intros f g Hfg.
   intros l r Hlr.
@@ -106,8 +115,8 @@ Qed.
 
 (* Note that this allows rewriting of handlers. *)
 Instance eutt_interp (E F : Type -> Type) (R : Type) :
-  Proper (@Rhom E (itree F) (fun _ => eutt eq) ==> eutt eq ==> eutt eq)
-         (fun f => interp f R).
+  Proper (Rhom (fun _ => eutt eq) ==> eutt eq ==> eutt eq)
+         (fun f => @interp E F f R).
 Proof.
   (* this is going to be a terrible proof. *)
 Admitted.
@@ -593,9 +602,6 @@ Qed.
 
 (* Morphism Category -------------------------------------------------------- *)
 
-Definition eh_eq {A B : Type -> Type} f g := forall X, pointwise_relation (A X) (@eutt B X _ (@eq X)) (f X) (g X).
-
-Notation "f ≡ g" := (eh_eq f g) (at level 70).
 
 
 Lemma eh_compose_id_left_strong :
