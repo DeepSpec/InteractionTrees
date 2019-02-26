@@ -653,14 +653,14 @@ Proof.
   reflexivity.
 Qed.
 
-Lemma eh_both_left_right_id : forall A B X e,  eh_both eh_left eh_right X e = (@eh_id (A +' B)) X e.
+Lemma eh_both_left_right_id : forall A B X e,  eh_both eh_inl eh_inr X e = (@eh_id (A +' B)) X e.
 Proof.
   intros A B X e.
   unfold eh_both.
   unfold eh_id. unfold ITree.liftE.
   destruct e.
-  - unfold eh_left. reflexivity.
-  - unfold eh_right. reflexivity.
+  - unfold eh_inl. reflexivity.
+  - unfold eh_inr. reflexivity.
 Qed.
 
 Lemma eh_cmp_assoc : forall A B C D (h : C ~> itree D) (g : B ~> itree C) (f : A ~> itree B),
@@ -692,56 +692,31 @@ Qed.
 Lemma eh_swap_swap_id : forall A B, eh_cmp eh_swap eh_swap ≡ (eh_id : (A +' B) ~> itree (A +' B)).
 Proof.
   intros A B X e.
-  unfold eh_cmp. unfold eh_swap.
-  rewrite unfold_interp. unfold interp_u.
-  unfold handleF.
-  unfold eh_both. destruct e; cbn.
-  - eapply transitivity.  apply tau_eutt.
-    unfold eh_left.
-    rewrite vis_bind_.
-    unfold eh_id. unfold ITree.liftE.
-    apply eutt_Vis.
-    intros x. 
-    rewrite itree_eta. cbn.
-    reflexivity.
-  - eapply transitivity.  apply tau_eutt.
-    unfold eh_right.
-    rewrite vis_bind_.
-    unfold eh_id. unfold ITree.liftE.
-    apply eutt_Vis.
-    intros x. 
-    rewrite itree_eta. cbn.
-    reflexivity.
-Qed.
+  unfold eh_cmp. unfold eh_swap. unfold eh_lift.
+  rewrite interp_liftE. rewrite tau_eutt. destruct e; simpl; reflexivity.
+Qed.                                                               
 
-Lemma eh_empty_unit_l : forall A, eh_cmp eh_empty_r eh_left ≡ (eh_id : A ~> itree A).
+Lemma eh_empty_unit_l : forall A, eh_cmp eh_empty_right eh_inl ≡ (eh_id : A ~> itree A).
 Proof.
   intros A X e.
   unfold eh_cmp.
-  unfold eh_empty_r.
-  unfold eh_both. unfold eh_left.
-  rewrite vis_interp.
+  unfold eh_empty_right.
+  unfold eh_inl.
+  unfold eh_lift.
+  rewrite interp_liftE.
   rewrite tau_eutt.
-  assert (pointwise_relation _ (@eq_itree _ _ _ eq) (fun x => interp (fun (T : Type) (e0 : (A +' emptyE) T) => match e0 with
-                                                                     | inl1 e1 => eh_id T e1
-                                                                     | inr1 e2 => eh_empty T e2
-                                                                   end) X (Ret x)) (fun x => Ret x)).
-  { intros x. rewrite interp_ret. reflexivity. }
-  rewrite H. rewrite bind_ret. reflexivity.
+  simpl. unfold Sum1.idE. reflexivity.
 Qed.
 
-Lemma eh_empty_unit_r : forall A, eh_cmp eh_empty_l eh_right ≡ (eh_id : A ~> itree A).
+Lemma eh_empty_unit_r : forall A, eh_cmp eh_empty_left eh_inr ≡ (eh_id : A ~> itree A).
 Proof.
   intros A X e.
   unfold eh_cmp.
-  unfold eh_empty_l.
-  unfold eh_both. unfold eh_right.
-  rewrite vis_interp.
+  unfold eh_empty_left.
+  unfold eh_inr.
+  unfold eh_lift.
+  rewrite interp_liftE.
   rewrite tau_eutt.
-  assert (pointwise_relation _ (@eq_itree _ _ _ eq) (fun x => interp (fun (T : Type) (e0 : (emptyE +' A) T) => match e0 with
-                                                                     | inl1 e1 => eh_empty T e1
-                                                                     | inr1 e2 => eh_id T e2
-                                                                     end) X (Ret x)) (fun x => Ret x)).
-  { intros x. rewrite interp_ret. reflexivity. }
-  rewrite H. rewrite bind_ret. reflexivity.
+  simpl. unfold Sum1.idE. reflexivity.
 Qed.
+

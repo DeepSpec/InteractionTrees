@@ -204,23 +204,31 @@ Definition eh_both {A B C} (f : A ~> itree B) (g : C ~> itree B) : (A +' C) ~> i
     | inr1 e2 => g _ e2
     end.
 
-Definition eh_left {A B} : A ~> itree (A +' B) :=
-  fun _ e => Vis (inl1 e) (fun x => Ret x).
+Definition eh_lift {A B} (m : A ~> B)  : A ~> itree B :=
+  fun _ e => ITree.liftE (m _ e).
 
-Definition eh_right {A B} : B ~> itree (A +' B) :=
-  fun _ e => Vis (inr1 e) (fun x => Ret x).
+Definition eh_inl {A B} : A ~> itree (A +' B) :=
+  eh_lift (fun _ e => inl1 e).
+
+Definition eh_inr {A B} : B ~> itree (A +' B) :=
+  eh_lift (fun _ e => inr1 e).
 
 Definition eh_swap {A B} : A +' B ~> itree (B +' A) :=
-  eh_both eh_right eh_left.
+  eh_lift Sum1.swap.
 
-Definition eh_empty {A} : emptyE ~> itree A :=
-  fun _ e => match e with end.
+Definition eh_elim_empty {A} : emptyE ~> itree A :=
+  eh_lift Sum1.elim_emptyE.
 
-Definition eh_empty_l {B} : emptyE +' B ~> itree B :=
-  eh_both eh_empty eh_id.
+Definition eh_empty_left {B} : emptyE +' B ~> itree B :=
+  eh_lift Sum1.emptyE_left.
 
-Definition eh_empty_r {A} : A +' emptyE ~> itree A :=
-  eh_both eh_id eh_empty.
+Definition eh_empty_right {A} : A +' emptyE ~> itree A :=
+  eh_lift Sum1.emptyE_right.
+
+(* SAZ: do we need the assoc2 too -- add to Sum.v ? *)
+Definition eh_assoc {A B C} : (A +' (B +' C)) ~> itree ((A +' B) +' C) :=
+  eh_lift Sum1.assoc.
+                            
 
 
 (** Standard interpreters *)
