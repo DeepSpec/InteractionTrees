@@ -101,6 +101,7 @@ Section Real_correctness.
 
   Context {E': Type -> Type}.
   Context {HasMemory: Memory -< E'}.
+  Context {HasExit: Exit -< E'}.
   Definition E := Locals +' E'.
 
   Definition interp_locals {R: Type} (t: itree E R) (s: alist var value): itree E' (alist var value * R) :=
@@ -489,16 +490,18 @@ Qed.
 
   (* YZ: Things get wonky once in the two subgoals. eq_den lemmas cannot be rewritten inside of terms anymore since it's specialized to a specific eutt *)
   Lemma if_asm_correct {A} (e : list instr) (tp fp : asm unit A) :
-    eutt eq
-      (denote_asm (if_asm e tp fp) tt)
-      (denote_list e ;;
+    eq_den
+      (denote_asm (if_asm e tp fp))
+      (fun _ =>
+         denote_list e ;;
          v <- lift (GetVar tmp_if) ;;
          if v : value then denote_asm tp tt else denote_asm fp tt).
   Proof.
     unfold if_asm.
-    rewrite (seq_asm_correct _ _ tt).
+    rewrite seq_asm_correct.
     unfold cond_asm.
-    unfold compose_den; rewrite raw_asm_block_correct.
+    rewrite raw_asm_block_correct_lifted.
+    intros []; unfold ITree.cat at 1; simpl.
     rewrite after_correct.
     simpl.
     repeat setoid_rewrite bind_bind.
@@ -506,77 +509,75 @@ Qed.
     apply eutt_bind; [reflexivity | intros []].
     - rewrite ret_bind_.
       rewrite (relabel_asm_correct _ _ _ (inl tt)).
-      unfold compose_den; simpl.
+      unfold ITree.cat; simpl.
       rewrite bind_bind.
       unfold lift_den; rewrite ret_bind_.
       setoid_rewrite (app_asm_correct tp fp (inl tt)).
       setoid_rewrite bind_bind.
       rewrite <- (bind_ret (denote_asm tp tt)) at 2.
-      eapply eutt_bind; [reflexivity | intros []].
+      eapply eutt_bind; [ reflexivity | intros ? ].
       unfold lift_den; rewrite ret_bind_; reflexivity.
-      rewrite ret_bind_; reflexivity.
     - rewrite ret_bind_.
       rewrite (relabel_asm_correct _ _ _ (inr tt)).
-      unfold compose_den; simpl.
+      unfold ITree.cat; simpl.
       rewrite bind_bind.
       unfold lift_den; rewrite ret_bind_.
       setoid_rewrite (app_asm_correct tp fp (inr tt)).
       setoid_rewrite bind_bind.
       rewrite <- (bind_ret (denote_asm fp tt)) at 2.
-      eapply eutt_bind; [reflexivity | intros []].
+      eapply eutt_bind; [reflexivity | intros ?].
       unfold lift_den; rewrite ret_bind_; reflexivity.
-      rewrite ret_bind_; reflexivity.
   Qed.
 
   Lemma while_asm_correct (e : list instr) (p : asm unit unit) :
-    eutt eq (denote_asm (while_asm e p) tt)
-            (loop_den (fun l =>
-               match l with
-               | inl tt =>
-                 denote_list e ;;
-                 v <- lift (GetVar tmp_if) ;;
-                 if v : value then
-                   denote_asm p tt;; Ret (inl (inl tt))
-                 else
-                   Ret (inl (inr tt))
-               | inr tt => Ret (inl (inl tt))
-               end) tt).
+    eq_den
+      (denote_asm (while_asm e p))
+      (loop_den (fun l =>
+         match l with
+         | inl tt =>
+           denote_list e ;;
+           v <- lift (GetVar tmp_if) ;;
+           if v : value then
+             denote_asm p tt;; Ret (inl tt)
+           else
+             Ret (inr tt)
+         | inr tt => Ret (inl tt)
+         end)).
   Proof.
     unfold while_asm.
-    rewrite (link_asm_correct _ tt).
+    rewrite link_asm_correct.
     apply eq_den_loop.
     rewrite relabel_asm_correct, id_den_left.
-    rewrite app_asm_correct. 
+    rewrite app_asm_correct.
+    rewrite if_asm_correct.
     intros [[] |[]].
-    - unfold compose_den. 
+    - unfold ITree.cat. 
       simpl; setoid_rewrite bind_bind.
-      rewrite if_asm_correct.
       rewrite bind_bind.
       apply eutt_bind; [reflexivity | intros []].
       rewrite bind_bind.
       apply eutt_bind; [reflexivity | intros []].
       + rewrite (relabel_asm_correct _ _ _  tt).
-        unfold compose_den. 
+        unfold ITree.cat. 
         simpl; repeat setoid_rewrite bind_bind.
         unfold lift_den; rewrite ret_bind_.
-        apply eutt_bind; [reflexivity | intros [[]|]].
-        * repeat rewrite ret_bind_; reflexivity.
-        * repeat rewrite ret_bind_.
-        (* Buggy, to fix *)
-        admit.
+        apply eutt_bind; [reflexivity | intros []].
+        repeat rewrite ret_bind_; reflexivity.
       + rewrite (pure_asm_correct _ tt).
         unfold lift_den.
         repeat rewrite ret_bind_.
         reflexivity.
-  Admitted.
+    - rewrite itree_eta; cbn; reflexivity.
+  Qed.
 
+(*
     Global Instance subrelation_eq_den {E A B} :
       subrelation (@eq_den E A B) (pointwise_relation _ (eutt eq))%signature.
     Proof.
     Admitted.
-
+*)
 (* a trick to allow rewriting with eq_den *)
-Definition ff (f : @den E unit unit) : itree E (unit + done) := f tt.
+Definition ff (f : @den E unit unit) : itree E unit := f tt.
 
 Global Instance Proper_ff : Proper (eq_den ==> eutt eq) ff.
 Admitted.
@@ -587,7 +588,7 @@ Proof. reflexivity. Qed.
 Lemma compile_correct:
   forall s (g_imp g_asm : alist var value),
     Renv g_asm g_imp ->
-    eutt (fun a b => Renv (fst a) (fst b) /\ snd a = inl (snd b))
+    eutt (fun a b => Renv (fst a) (fst b) /\ snd a = snd b)
          (interp_locals (denote_asm (compile s) tt) g_asm)
          (interp_locals (denoteStmt s) g_imp).
 Proof.
@@ -607,23 +608,26 @@ Proof.
   - (* Seq *)
     rewrite fold_ff; simpl.
     rewrite seq_asm_correct. unfold ff.
-    unfold compose_den.
+    unfold ITree.cat.
     rewrite 2 interp_locals_bind.
     eapply eutt_bind_gen.
     { auto. }
     intros. destruct H0. destruct (snd r2). rewrite H1.
     auto.
   - (* If *)
-    simpl; rewrite if_asm_correct.
+    rewrite fold_ff; simpl.
+    rewrite if_asm_correct.
+    unfold ff.
     rewrite 2 interp_locals_bind.
     eapply eutt_bind_gen.
     { apply compile_expr_correct. auto. }
     intros.
     admit.
   - (* While *)
-    simpl; rewrite while_asm_correct. rewrite fold_ff.
+    simpl; rewrite fold_ff.
+    rewrite while_asm_correct.
     (* TODO: Should use some loop_den lemmas to make the two loops
-           line up. *)
+             line up. *)
     admit.
   - (* Skip *)
     rewrite (itree_eta (_ _ g_imp)), (itree_eta (_ _ g_asm)).

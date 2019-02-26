@@ -77,19 +77,26 @@ Section Semantics.
   | Load (addr : value) : Memory value
   | Store (addr val : value) : Memory unit.
 
+  Inductive Exit : Type -> Type :=
+  | Done : Exit Empty_set.
+
+  Definition done {E A} `{Exit -< E} : itree E A :=
+    Vis (subeffect _ Done) (fun v => match v : Empty_set with end).
+
   (* Denotation of blocks *)
   Section with_effect.
-    Variable e : Type -> Type.
-    Context {HasLocals : Locals -< e}.
-    Context {HasMemory : Memory -< e}.
+    Context {E : Type -> Type}.
+    Context {HasLocals : Locals -< E}.
+    Context {HasMemory : Memory -< E}.
+    Context {HasExit : Exit -< E}.
 
-    Definition denote_operand (o : operand) : itree e value :=
+    Definition denote_operand (o : operand) : itree E value :=
       match o with
       | Oimm v => Ret v
       | Ovar v => lift (GetVar v)
       end.
 
-    Definition denote_instr (i : instr) : itree e unit :=
+    Definition denote_instr (i : instr) : itree E unit :=
       match i with
       | Imov d s =>
         v <- denote_operand s ;;
@@ -111,18 +118,16 @@ Section Semantics.
     Section with_labels.
       Context {A B : Type}.
 
-      Definition denote_branch (b : @branch B)
-        : itree e (B + done) :=
+      Definition denote_branch (b : branch B) : itree E B :=
         match b with
-        | Bjmp l => ret (inl l)
+        | Bjmp l => ret l
         | Bbrz v y n =>
           val <- lift (GetVar v) ;;
-          if val : value then ret (inl y) else ret (inl n)
-        | Bhalt => ret (inr Done) 
+          if val : value then ret y else ret n
+        | Bhalt => done
         end.
 
-      Fixpoint denote_block (b : @block B)
-        : itree e (B + done) :=
+      Fixpoint denote_block (b : block B) : itree E B :=
         match b with
         | bbi i b =>
           denote_instr i ;; denote_block b
@@ -130,22 +135,21 @@ Section Semantics.
           denote_branch b
         end.
 
-      Definition denote_b: bks A B -> @den e A B :=
+      Definition denote_b : bks A B -> @den E A B :=
         fun bs a => denote_block (bs a).
 
     End with_labels.
-  End with_effect.
 
   (* A denotation of an asm program can be viewed as a circuit/diagram
    where wires correspond to jumps/program links.
 
-   It is therefore denoted as a [dem] term *)
+   It is therefore denoted as a [den] term *)
 
-  (* Denotation of [asm] *)
-  Definition denote_asm {e} `{Locals -< e} `{Memory -< e} {A B} :
-    asm A B -> @den e A B :=
-    fun s => loop_den (denote_b e (code s)).
+    (* Denotation of [asm] *)
+    Definition denote_asm {A B} : asm A B -> @den E A B :=
+      fun s => loop_den (denote_b (code s)).
 
+  End with_effect.
 End Semantics.
 (* SAZ: Everything from here down can probably be polished.
 

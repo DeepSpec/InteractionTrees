@@ -125,12 +125,13 @@ Section Correctness.
 Context {E : Type -> Type}.
 Context {HasLocals : Locals -< E}.
 Context {HasMemory : Memory -< E}.
+Context {HasExit : Exit -< E}.
 
 (** *** Internal structures *)
 
 Lemma fmap_block_map:
   forall  {L L'} b (f: L -> L'),
-    denote_block E (fmap_block f b) ≅ ITree.map (sum_bimap f id) (denote_block E b).
+    denote_block (fmap_block f b) ≅ ITree.map f (denote_block b).
 Proof.
   induction b as [i b | br]; intros f.
   - simpl.
@@ -141,7 +142,8 @@ Proof.
     + unfold ITree.map; rewrite ret_bind; reflexivity.
     + unfold ITree.map; rewrite bind_bind.
       eapply eq_itree_eq_bind; [reflexivity | intros []; rewrite ret_bind; reflexivity].
-    + unfold ITree.map; rewrite ret_bind; reflexivity.
+    + rewrite (itree_eta (ITree.map _ _)).
+      cbn. apply eq_itree_vis. intros [].
 Qed.
 
 Definition traverse_ {A: Type} {M: Type -> Type} `{Monad M} (f: A -> M unit): list A -> M unit :=
@@ -152,11 +154,11 @@ Definition traverse_ {A: Type} {M: Type -> Type} `{Monad M} (f: A -> M unit): li
     end.
 
 Definition denote_list: list instr -> itree E unit :=
-  traverse_ (denote_instr E).
+  traverse_ denote_instr.
 
 Lemma after_correct :
   forall {label: Type} instrs (b: branch label),
-    denote_block E (after instrs b) ≅ (denote_list instrs ;; denote_branch E b).
+    denote_block (after instrs b) ≅ (denote_list instrs ;; denote_branch b).
 Proof.
   induction instrs as [| i instrs IH]; intros b.
   - simpl; rewrite ret_bind; reflexivity.
@@ -185,7 +187,7 @@ Qed.
 
 Lemma raw_asm_block_correct_lifted {A} (b : block A) :
    denote_asm (raw_asm_block b) ⩰
-          (fun _ => (denote_block _ b)).
+          (fun _ => denote_block b).
 Proof.
   unfold denote_asm.
   rewrite vanishing_den.
@@ -194,13 +196,13 @@ Proof.
   intros [].
   rewrite fmap_block_map, map_map.
   unfold ITree.map.
-  rewrite <- (bind_ret (denote_block E b)) at 2. 
-  apply eutt_bind; [reflexivity | intros []; reflexivity].
+  rewrite <- (bind_ret (denote_block b)) at 2.
+  reflexivity.
 Qed.
 
 Lemma raw_asm_block_correct {A} (b : block A) :
   eutt eq (denote_asm (raw_asm_block b) tt)
-          (denote_block _ b).
+          (denote_block b).
 Proof.
   apply raw_asm_block_correct_lifted.
 Qed.
@@ -243,7 +245,7 @@ Lemma local_rewrite1 {A B C: Type}:
   id_den ⊗ sym_den >=> assoc_den_l >=> sym_den ⩰
          @assoc_den_l E A B C >=> sym_den ⊗ id_den >=> assoc_den_r.
 Proof.
-  unfold id_den, tensor_den,sym_den, assoc_den_l, compose_den, assoc_den_r, lift_den.
+  unfold id_den, tensor_den,sym_den, assoc_den_l, ITree.cat, assoc_den_r, lift_den.
   intros [| []]; simpl;
     repeat (rewrite bind_bind; simpl) || (rewrite ret_bind_; simpl); reflexivity.
 Qed.
@@ -252,7 +254,7 @@ Lemma local_rewrite2 {A B C: Type}:
   sym_den >=> assoc_den_r >=> id_den ⊗ sym_den ⩰
           @assoc_den_l E A B C >=> sym_den ⊗ id_den >=> assoc_den_r.
 Proof.
-  unfold id_den, tensor_den,sym_den, assoc_den_l, compose_den, assoc_den_r, lift_den.
+  unfold id_den, tensor_den,sym_den, assoc_den_l, ITree.cat, assoc_den_r, lift_den.
   intros [| []]; simpl;
     repeat (rewrite bind_bind; simpl) || (rewrite ret_bind_; simpl); reflexivity.
 Qed.
@@ -279,13 +281,13 @@ Qed.
 
 Lemma foo {A B C: Type}:
   forall (f: bks A C) (g: bks B C),
-    denote_b E (fun a => match a with
+    denote_b (fun a => match a with
                       | inl x => f x
                       | inr x => g x
                       end) ⩰
              fun a => match a with
-                   | inl x => denote_block E (f x)
-                   | inr x => denote_block E (g x)
+                   | inl x => denote_block (f x)
+                   | inr x => denote_block (g x)
                    end.
 Proof.
   intros.
@@ -294,13 +296,13 @@ Qed.
 
 Lemma bar {A B C: Type}:
   forall (f: bks A C) (g: bks B C) a,
-    denote_block E match a with
+    denote_block match a with
                    | inl x => f x
                    | inr x => g x
                    end ≈ 
      match a with
-     | inl x => denote_block E (f x)
-     | inr x => denote_block E (g x)
+     | inl x => denote_block (f x)
+     | inr x => denote_block (g x)
      end.
 Proof.
   intros.
@@ -329,7 +331,7 @@ Proof.
   match goal with | |- _ ⩰ ?x => set (lhs := x) end.
   simpl code.
   cut (
-      (denote_b E
+      (denote_b
                 (fun l : internal ab + internal cd + (A + C) =>
                    match l with
                    | inl (inl ia) => _app_B (code ab (inl ia))
@@ -339,10 +341,10 @@ Proof.
                    end)) ⩰
      (fun l : internal ab + internal cd + (A + C) =>
         match l with
-        | inl (inl ia) => denote_block E (_app_B (code ab (inl ia)))
-        | inl (inr ic) => denote_block E (_app_D (code cd (inl ic)))
-        | inr (inl a) => denote_block E (_app_B (code ab (inr a)))
-        | inr (inr c) => denote_block E (_app_D (code cd (inr c)))
+        | inl (inl ia) => denote_block (_app_B (code ab (inl ia)))
+        | inl (inr ic) => denote_block (_app_D (code cd (inl ic)))
+        | inr (inl a) => denote_block (_app_B (code ab (inr a)))
+        | inr (inr c) => denote_block (_app_D (code cd (inr c)))
         end)); [intros EQ; rewrite EQ; clear EQ | intros [[]|[]]; reflexivity].
 
 Admitted.

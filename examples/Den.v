@@ -11,8 +11,8 @@ From Coq Require Import
 
 Set Nested Proofs Allowed.
 (** * Category of denotations *)
-Inductive done : Set := Done : done.
-Definition den {E: Type -> Type} A B : Type := A -> itree E (B + done).
+
+Definition den {E: Type -> Type} A B : Type := A -> itree E B.
 (* den can represent both blocks (A -> block B) and asm (asm A B). *)
 
 Section Den.
@@ -51,19 +51,14 @@ Section Den.
   Section Structure.
 
     (* Composition *)
-    Definition compose_den {A B C} (ab : denE A B) (bc : denE B C) : @denE A C :=
-      fun a => ob <- ab a ;;
-               match ob with
-               | inl b => bc b
-               | inr d => Ret (inr d)
-               end.
+    Notation compose_den := ITree.cat.
 
     (* Identities *)
     Definition I: Type := Empty_set.
-    Definition id_den {A} : denE A A := fun a => Ret (inl a).
+    Definition id_den {A} : denE A A := fun a => Ret a.
 
     (* Utility function to lift a pure computation into den *)
-    Definition lift_den {A B} (f : A -> B) : denE A B := fun a => Ret (inl (f a)).
+    Definition lift_den {A B} (f : A -> B) : denE A B := fun a => Ret (f a).
 
     (* Tensor product *)
     (* Tensoring on objects is simply the sum type constructor *)
@@ -101,27 +96,24 @@ Section Den.
 
      *)
     Definition loop_den {I A B} :
-      (I + A -> itree E ((I + B) + done)) -> A -> itree E (B + done) :=
-      fun body => loop (compose (ITree.map sum_assoc_r) body).
+      (I + A -> itree E (I + B)) -> A -> itree E B := loop.
 
   End Structure.
 
-  Infix ">=>" := compose_den (at level 50, left associativity).
   Infix "⊗" := (tensor_den) (at level 30).
 
   Section Laws.
 
     (** *** [compose_den] respect eq_den *)
     Global Instance eq_den_compose {A B C} :
-      Proper (eq_den ==> eq_den ==> eq_den) (@compose_den A B C).
+      Proper (eq_den ==> eq_den ==> eq_den) (@ITree.cat _ A B C).
     Proof.
       intros ab ab' eqAB bc bc' eqBC.
       intro a.
-      unfold compose_den.
+      unfold ITree.cat.
       rewrite (eqAB a).
       apply eutt_bind; try reflexivity.
-      intros []; try reflexivity.
-      rewrite (eqBC b); reflexivity.
+      intro b; rewrite (eqBC b); reflexivity.
     Qed.
 
     (** *** [compose_den] is associative *)
@@ -130,28 +122,25 @@ Section Den.
       ((ab >=> bc) >=> cd) ⩰ (ab >=> (bc >=> cd)).
     Proof.
       intros a.
-      unfold compose_den.
+      unfold ITree.cat.
       rewrite bind_bind.
       apply eutt_bind; try reflexivity.
-      intros []; try reflexivity.
-      rewrite itree_eta.
-      rewrite ret_bind. reflexivity.
     Qed.
 
     (** *** [id_den] respect identity laws *)
     Lemma id_den_left {A B}: forall (f: denE A B),
         id_den >=> f ⩰ f.
     Proof.
-      intros f a; unfold compose_den, id_den.
+      intros f a; unfold ITree.cat, id_den.
       rewrite itree_eta; rewrite ret_bind. rewrite <- itree_eta; reflexivity. 
     Qed.
 
     Lemma id_den_right {A B}: forall (f: denE A B),
         f >=> id_den ⩰ f.
     Proof.
-      intros f a; unfold compose_den, id_den.
+      intros f a; unfold ITree.cat, id_den.
       rewrite <- (bind_ret (f a)) at 2.
-      apply eutt_bind; [reflexivity | intros []; reflexivity].
+      reflexivity.
     Qed.
 
     (** *** [lift_den] is well-behaved *)
@@ -168,9 +157,8 @@ Section Den.
       (lift_den ab >=> lift_den bc) ⩰ (lift_den (bc ∘ ab)).
     Proof.
       intros a.
-      unfold lift_den, compose_den.
-      rewrite itree_eta.
-      rewrite ret_bind.
+      unfold lift_den, ITree.cat.
+      rewrite ret_bind_.
       reflexivity.
     Qed.
 
@@ -194,21 +182,19 @@ Section Den.
         lift_den f >=> bc ⩰ fun a => bc (f a).
     Proof.
       intros; intro a.
-      unfold lift_den, compose_den.
-      rewrite itree_eta.
-      rewrite ret_bind. rewrite <- itree_eta; reflexivity.
+      unfold lift_den, ITree.cat.
+      rewrite ret_bind_. reflexivity.
     Qed.
 
     Fact compose_den_lift {A B C}: forall (ab: den A B) (g:B -> C),
         eq_den (ab >=> lift_den g)
-               (fun a => ITree.map (sum_bimap g id) (ab a)).
+               (fun a => ITree.map g (ab a)).
     Proof.
       intros; intro a.
-      unfold compose_den.
       unfold ITree.map.
       apply eutt_bind.
       reflexivity.
-      intros []; reflexivity.
+      intro; reflexivity.
     Qed.
 
     (** *** [sum_elim] lemmas *)
@@ -217,7 +203,7 @@ Section Den.
       sum_elim ac bc >=> cd ⩰ sum_elim (ac >=> cd) (bc >=> cd).
     Proof.
       intros; intros []; 
-        (unfold compose_den; simpl; apply eutt_bind; [reflexivity | intros []; reflexivity]).
+        (unfold ITree.map; simpl; apply eutt_bind; reflexivity).
     Qed.      
 
     Fact lift_sum_elim {A B C} (ac : A -> C) (bc : B -> C) :
@@ -229,7 +215,7 @@ Section Den.
     (** *** [Unitors] lemmas *)
 
     Lemma elim_λ_den {A B: Type}: 
-      forall (ab: @den E A (I + B)), ab >=> λ_den ⩰ (fun a: A => ITree.map (sum_bimap sum_empty_l id) (ab a)). 
+      forall (ab: @den E A (I + B)), ab >=> λ_den ⩰ (fun a: A => ITree.map sum_empty_l (ab a)).
     Proof.
       intros; apply compose_den_lift.
     Qed.
@@ -239,7 +225,7 @@ Section Den.
         λ_den' >=> f ⩰ fun a => f (inr a).
     Proof.
       repeat intro.
-      unfold λ_den', compose_den, lift_den.
+      unfold λ_den', ITree.cat, lift_den.
       rewrite ret_bind_; reflexivity.
     Qed.
 
@@ -248,19 +234,19 @@ Section Den.
         ρ_den' >=> f ⩰ fun a => f (inl a).
     Proof.
       repeat intro.
-      unfold ρ_den', compose_den, lift_den.
+      unfold ρ_den', ITree.cat, lift_den.
       rewrite ret_bind_; reflexivity.
     Qed.
 
     Lemma elim_ρ_den {A B: Type}: 
-      forall (ab: @den E A (B + I)), ab >=> ρ_den ⩰ (fun a: A => ITree.map (sum_bimap sum_empty_r id) (ab a)). 
+      forall (ab: @den E A (B + I)), ab >=> ρ_den ⩰ (fun a: A => ITree.map sum_empty_r (ab a)).
     Proof.
       intros; apply compose_den_lift.
     Qed.
 
     (** *** [tensor] lemmas *)
 
-    Instance eq_den_tensor {A B C D}:
+    Global Instance eq_den_tensor {A B C D}:
       Proper (eq_den ==> eq_den ==> eq_den) (@tensor_den A B C D).
     Proof.
       intros ac ac' eqac bd bd' eqbd. 
@@ -309,7 +295,7 @@ Section Den.
         sum_elim (ac >=> (sum_elim cf df)) (bc >=> (sum_elim cf df)).
     Proof.
       intros.
-      unfold compose_den.
+      unfold ITree.map.
       intros []; reflexivity.
     Qed.
 
@@ -318,11 +304,9 @@ Section Den.
         lift_den inl >=> sum_elim ac bc ⩰ ac.
     Proof.
       intros.
-      unfold compose_den, lift_den.
+      unfold ITree.cat, lift_den.
       intros ?.
-      rewrite itree_eta.
-      rewrite ret_bind.
-      rewrite <- itree_eta.
+      rewrite ret_bind_.
       reflexivity. 
     Qed.
 
@@ -331,11 +315,9 @@ Section Den.
         lift_den inr >=> sum_elim ac bc ⩰ bc.
     Proof.
       intros.
-      unfold compose_den, lift_den.
+      unfold ITree.cat, lift_den.
       intros ?.
-      rewrite itree_eta.
-      rewrite ret_bind.
-      rewrite <- itree_eta.
+      rewrite ret_bind_.
       reflexivity.
     Qed.
 
@@ -556,7 +538,6 @@ End Den.
 
 Bind Scope den_scope with den.
 Infix "⩰" := eq_den (at level 70).
-Infix ">=>" := compose_den (at level 50, left associativity).
 Infix "⊗" := (tensor_den) (at level 30).
 
 Hint Rewrite @compose_den_assoc : lift_den.
