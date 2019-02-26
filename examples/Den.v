@@ -153,6 +153,11 @@ Section Den.
       erewrite (H a); reflexivity.
     Qed.
 
+    Lemma lift_den_id {A: Type}: @id_den A ⩰ lift_den id.
+    Proof.
+      unfold id_den, lift_den; reflexivity.
+    Qed.
+
     Fact compose_lift_den {A B C} (ab : A -> B) (bc : B -> C) :
       (lift_den ab >=> lift_den bc) ⩰ (lift_den (bc ∘ ab)).
     Proof.
@@ -195,6 +200,23 @@ Section Den.
       apply eutt_bind.
       reflexivity.
       intro; reflexivity.
+    Qed.
+
+    (** *** [associators]  *)
+    Lemma assoc_lr {A B C} :
+      @assoc_den_l A B C >=> assoc_den_r ⩰ id_den.
+    Proof.
+      unfold assoc_den_l, assoc_den_r.
+      rewrite compose_lift_den.
+      intros [| []]; reflexivity.
+    Qed.
+
+    Lemma assoc_rl {A B C} :
+      @assoc_den_r A B C >=> assoc_den_l ⩰ id_den.
+    Proof.
+      unfold assoc_den_l, assoc_den_r.
+      rewrite compose_lift_den.
+      intros [[]|]; reflexivity.
     Qed.
 
     (** *** [sum_elim] lemmas *)
@@ -272,6 +294,13 @@ Section Den.
       reflexivity.
     Qed. 
 
+    Lemma tensor_id {A B} :
+      id_den ⊗ id_den ⩰ @id_den (A + B).
+    Proof.
+      unfold tensor_den, ITree.cat, id_den.
+      intros []; cbn; rewrite ret_bind_; reflexivity.
+    Qed.
+
     Lemma assoc_I {A B}:
       @assoc_den_r A I B >=> id_den ⊗ λ_den ⩰ ρ_den ⊗ id_den. 
     Proof.
@@ -284,9 +313,14 @@ Section Den.
       destruct i.
     Qed.
 
-    Lemma lift_den_id {A: Type}: @id_den A ⩰ lift_den id.
+    Lemma cat_tensor {A1 A2 A3 B1 B2 B3}
+          (f1 : @den E A1 A2) (f2 : den A2 A3)
+          (g1 : den B1 B2) (g2 : den B2 B3) :
+      (f1 ⊗ g1) >=> (f2 ⊗ g2) ⩰ (f1 >=> f2) ⊗ (g1 >=> g2).
     Proof.
-      unfold id_den, lift_den; reflexivity.
+      unfold tensor_den, ITree.cat, lift_den; simpl.
+      intros []; simpl;
+        rewrite !bind_bind; setoid_rewrite ret_bind_; reflexivity.
     Qed.
 
     Lemma sum_elim_compose {A B C D F}:
@@ -413,9 +447,7 @@ Section Den.
       repeat intro.
       unfold loop_den.
       apply eutt_loop; [| reflexivity].
-      intros ? z ->.
-      unfold compose.
-      rewrite (H z); reflexivity.
+      auto.
     Qed.
 
     Lemma bind_map: forall {E X Y Z} (t: itree E X) (k: X -> itree E Y) (f: Y -> Z),
@@ -452,8 +484,15 @@ A----B----###----C
         loop_den ((id_den ⊗ ab) >=> bc_) ⩰
                  ab >=> loop_den bc_.
     Proof.
-    Admitted.
-      
+      intros bc_ ab a.
+      rewrite (loop_natural_l ab bc_ a).
+      unfold loop_den.
+      apply eutt_loop; [intros [] | reflexivity].
+      all: unfold tensor_den, sym_den, ITree.cat, assoc_den_l, assoc_den_r, id_den, lift_den; simpl.
+      - rewrite bind_bind, ret_bind_; reflexivity.
+      - rewrite bind_bind, map_bind.
+        setoid_rewrite ret_bind_; reflexivity.
+    Qed.     
 
     (* Naturality of (loop_den I A B) in B *)
     (* Or more diagrammatically:
@@ -479,7 +518,18 @@ A----###----B----C
       forall (ab_: denE (I + A) (I + B)) (bc: denE B B'),
         loop_den (ab_ >=> (id_den ⊗ bc)) ⩰
                  loop_den ab_ >=> bc.
-    Admitted.
+      intros bc_ ab a.
+      rewrite (loop_natural_r ab bc_ a).
+      unfold loop_den.
+      apply eutt_loop; [intros [] | reflexivity].
+      all: unfold tensor_den, sym_den, ITree.cat, assoc_den_l, assoc_den_r, id_den, lift_den; simpl.
+      - apply eutt_bind; [reflexivity | intros []; simpl].
+        rewrite ret_bind_; reflexivity.
+        reflexivity.
+      - apply eutt_bind; [reflexivity | intros []; simpl].
+        rewrite ret_bind_; reflexivity.
+        reflexivity.
+    Qed.     
 
     (* Dinaturality of (loop_den I A B) in I *)
 
@@ -487,13 +537,30 @@ A----###----B----C
       forall (ab_: denE (I + A) (J + B)) (ji: denE J I),
         loop_den (ab_ >=> (ji ⊗ id_den)) ⩰
         loop_den ((ji ⊗ id_den) >=> ab_).
+    Proof.
     Admitted.
+
+    Lemma map_is_cat {R S: Type}:
+      forall (f: R -> S) (t: itree E R),
+        ITree.map f t ≈ ITree.cat (fun _:unit => t) (fun x => Ret (f x)) tt.
+    Proof.
+      intros; reflexivity.
+    Qed.
 
     (* Loop over the empty set can be erased *)
     Lemma vanishing_den {A B: Type}:
       forall (f: denE (I + A) (I + B)),
         loop_den f ⩰ λ_den' >=> f >=> λ_den.
-    Admitted.
+    Proof.
+      intros f a.
+      unfold loop_den.
+      rewrite vanishing1.
+      unfold λ_den,λ_den'.
+      unfold ITree.cat, ITree.map, lift_den.
+      rewrite bind_bind.
+      rewrite ret_bind_.
+      reflexivity.
+    Qed.
 
     (* [loop_loop]:
 
@@ -527,60 +594,48 @@ These two loops:
       forall (ab__: denE (I + (J + A)) (I + (J + B))),
         loop_den (loop_den ab__) ⩰
                  loop_den (assoc_den_r >=> ab__ >=> assoc_den_l).
-    Admitted.
+    Proof.
+      intros ab_ a; unfold loop_den.
+      rewrite vanishing2.
+      apply eutt_loop; [intros [[]|] | reflexivity].
+      all: unfold ITree.map, ITree.cat, assoc_den_r, assoc_den_l, lift_den; cbn.
+      all: rewrite bind_bind.
+      all: rewrite ret_bind_.
+      all: reflexivity.
+    Qed.
 
+    Lemma fold_map {R S}:
+      forall (f: R -> S) (t: itree E R),
+        (x <- t;; Ret (f x)) ≅ (ITree.map f t).
+    Proof.
+      intros; reflexivity.
+    Qed.
+    
     Lemma tensor_den_loop {I A B C D}
           (ab : denE (I + A) (I + B)) (cd : denE C D) :
       (loop_den ab) ⊗ cd ⩰
                     loop_den (assoc_den_l >=> (ab ⊗ cd) >=> assoc_den_r).
     Proof.
-    Admitted.
+      unfold loop_den, tensor_den, ITree.cat, assoc_den_l, assoc_den_r, lift_den, sum_elim.
+      intros []; simpl.
+      all:setoid_rewrite bind_bind.
+      all:setoid_rewrite ret_bind_.
+      all:rewrite fold_map.
+      1:rewrite (@superposing1 E A B I C D).
+      2:rewrite (@superposing2 E A B I C D).
+      all:unfold sum_bimap, ITree.map, sum_assoc_r,sum_elim; cbn.
+      all:apply eutt_loop; [intros [| []]; cbn | reflexivity].
+      all: setoid_rewrite bind_bind.
+      all:setoid_rewrite ret_bind_.
+      all:reflexivity.
+    Qed.       
 
     Lemma yanking_den {A: Type}:
       loop_den sym_den ⩰ @id_den A.
-    Admitted.
-    (* Lemma loop_relabel {I J A B} *)
-    (*       (f : I -> J) {f' : J -> I} *)
-    (*       {ISO_f : Iso f f'} *)
-    (*       (ab : den (I + A) (I + B)) : *)
-    (*   eq_den (loop_den ab) *)
-    (*          (loop_den (rewire_den' (sum_bimap f' id) (sum_bimap f id) ab)). *)
-    (* Proof. *)
-    (* Admitted. *)
-
-    (* TODO: Find the right place for these *)
-
-    Lemma cat_tensor {A1 A2 A3 B1 B2 B3}
-          (f1 : @den E A1 A2) (f2 : den A2 A3)
-          (g1 : den B1 B2) (g2 : den B2 B3) :
-      (f1 ⊗ g1) >=> (f2 ⊗ g2) ⩰ (f1 >=> f2) ⊗ (g1 >=> g2).
     Proof.
-      unfold tensor_den, ITree.cat, lift_den; simpl.
-      intros []; simpl;
-        rewrite !bind_bind; setoid_rewrite ret_bind_; reflexivity.
-    Qed.
-
-    Lemma assoc_lr {A B C} :
-      @assoc_den_l A B C >=> assoc_den_r ⩰ id_den.
-    Proof.
-      unfold assoc_den_l, assoc_den_r.
-      rewrite compose_lift_den.
-      intros [| []]; reflexivity.
-    Qed.
-
-    Lemma assoc_rl {A B C} :
-      @assoc_den_r A B C >=> assoc_den_l ⩰ id_den.
-    Proof.
-      unfold assoc_den_l, assoc_den_r.
-      rewrite compose_lift_den.
-      intros [[]|]; reflexivity.
-    Qed.
-
-    Lemma tensor_id {A B} :
-      id_den ⊗ id_den ⩰ @id_den (A + B).
-    Proof.
-      unfold tensor_den, ITree.cat, id_den.
-      intros []; cbn; rewrite ret_bind_; reflexivity.
+      unfold loop_den, sym_den, lift_den.
+      intros ?; rewrite yanking.
+      apply tau_eutt.
     Qed.
 
     Lemma loop_rename_internal' {I J A B} (ij : den I J) (ji: den J I)
@@ -611,5 +666,4 @@ Hint Rewrite @compose_den_assoc : lift_den.
 Hint Rewrite @tensor_id_lift : lift_den.
 Hint Rewrite @tensor_lift_id : lift_den.
 Hint Rewrite @lift_sum_elim : lift_den.
-
 
