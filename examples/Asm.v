@@ -1,11 +1,14 @@
 From Coq Require Import
      Strings.String
-     Program.Basics.
+     Program.Basics
+     ZArith.ZArith.
 From ITree Require Import Basics_Functions.
-Require Import ZArith.
+From ExtLib Require Structures.Monad.
+Require Import Imp.
+
 Typeclasses eauto := 5.
 
-Section Syntax. 
+Section Syntax.
 
   Definition var : Set := string.
   Definition value : Set := nat. (* this should change *)
@@ -67,11 +70,11 @@ Section Semantics.
 
   (* Denotation in terms of itrees *)
 
-  Require Import ExtLib.Structures.Monad.
+  Import ExtLib.Structures.Monad.
   Import MonadNotation.
   Local Open Scope monad_scope.
 
-  Require Import Imp.
+  Import Imp.
 
   Inductive Memory : Type -> Type :=
   | Load (addr : value) : Memory value
@@ -154,7 +157,7 @@ End Semantics.
 (* SAZ: Everything from here down can probably be polished.
 
    In particular, I'm still not completely happy with how all the different parts
-   fit together in run.  
+   fit together in run.
 
  *)
 
