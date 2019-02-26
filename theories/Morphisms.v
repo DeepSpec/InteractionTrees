@@ -184,7 +184,7 @@ Definition interp1 {E F G : Type -> Type} `{F -< G} (h : E ~> itree G) :
 
 (* Morphism Category -------------------------------------------------------- *)
 
-Definition eh_compose {A B C} (g : B ~> itree C) (f : A ~> itree B) :
+Definition eh_cmp {A B C} (g : B ~> itree C) (f : A ~> itree B) :
   A ~> itree C :=
   fun _ e => interp g _ (f _ e).
 
@@ -212,6 +212,16 @@ Definition eh_right {A B} : B ~> itree (A +' B) :=
 
 Definition eh_swap {A B} : A +' B ~> itree (B +' A) :=
   eh_both eh_right eh_left.
+
+Definition eh_empty {A} : emptyE ~> itree A :=
+  fun _ e => match e with end.
+
+Definition eh_empty_l {B} : emptyE +' B ~> itree B :=
+  eh_both eh_empty eh_id.
+
+Definition eh_empty_r {A} : A +' emptyE ~> itree A :=
+  eh_both eh_id eh_empty.
+
 
 (** Standard interpreters *)
 

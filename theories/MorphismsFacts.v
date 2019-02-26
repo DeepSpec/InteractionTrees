@@ -582,7 +582,7 @@ Definition eh_eq {A B : Type -> Type} f g := forall X, pointwise_relation (A X) 
 Notation "f ≡ g" := (eh_eq f g) (at level 70).
 
 
-Lemma eh_compose_id_left_strong :
+Lemma eh_cmp_id_left_strong :
   forall A R (t : itree A R), interp eh_id R t ≈ t.
 Proof.
   intros A R. 
@@ -608,19 +608,19 @@ Proof.
 Qed.  
   
 
-Lemma eh_compose_id_left :
-  forall A B (f : A ~> itree B), eh_compose eh_id f ≡ f.
+Lemma eh_cmp_id_left :
+  forall A B (f : A ~> itree B), eh_cmp eh_id f ≡ f.
 Proof.
   intros A B f X e.
-  unfold eh_compose. apply eh_compose_id_left_strong.
+  unfold eh_cmp. apply eh_cmp_id_left_strong.
 Qed.  
 
 
-Lemma eh_compose_id_right :
-  forall A B (f : A ~> itree B), eh_compose f eh_id ≡ f.
+Lemma eh_cmp_id_right :
+  forall A B (f : A ~> itree B), eh_cmp f eh_id ≡ f.
 Proof.
   intros B A f X e.
-  unfold eh_compose.
+  unfold eh_cmp.
   unfold eh_id. unfold ITree.liftE.
   rewrite unfold_interp. unfold interp_u.
   unfold handleF.
@@ -641,11 +641,11 @@ Proof.
   - unfold eh_right. reflexivity.
 Qed.
 
-Lemma eh_compose_assoc : forall A B C D (h : C ~> itree D) (g : B ~> itree C) (f : A ~> itree B),
-    eh_compose h (eh_compose g f) ≡ (eh_compose (eh_compose h g) f).
+Lemma eh_cmp_assoc : forall A B C D (h : C ~> itree D) (g : B ~> itree C) (f : A ~> itree B),
+    eh_cmp h (eh_cmp g f) ≡ (eh_cmp (eh_cmp h g) f).
 Proof.
   intros A B C D h g f X e.
-  unfold eh_compose. rewrite interp_interp. reflexivity.
+  unfold eh_cmp. rewrite interp_interp. reflexivity.
 Qed.
 
 Lemma eh_par_id : forall A B, eh_par eh_id eh_id ≡ (@eh_id (A +' B)).
@@ -665,36 +665,60 @@ Proof.
     { intros x. rewrite translate_ret. reflexivity. }
     rewrite H. reflexivity.
 Qed.
-
-Lemma bind_vis : forall {E R S T} e (k1 : R -> itree E S) (k2 : S -> itree E T),
-    (x <- (Vis e k1) ;; k2 x) ≅ Vis e (fun y => x <- (k1 y) ;; k2 x).
-Proof.
-  intros E R S T e k1 k2.
-  rewrite itree_eta.
-  unfold_bind. cbn. reflexivity.
-Qed.
   
-Lemma eh_swap_swap_id : forall A B, eh_compose eh_swap eh_swap ≡ (eh_id : (A +' B) ~> itree (A +' B)).
+Lemma eh_swap_swap_id : forall A B, eh_cmp eh_swap eh_swap ≡ (eh_id : (A +' B) ~> itree (A +' B)).
 Proof.
   intros A B X e.
-  unfold eh_compose. unfold eh_swap.
+  unfold eh_cmp. unfold eh_swap.
   rewrite unfold_interp. unfold interp_u.
   unfold handleF.
   unfold eh_both. destruct e; cbn.
   - eapply transitivity.  apply tau_eutt.
     unfold eh_left.
-    rewrite bind_vis.
+    rewrite vis_bind_.
     unfold eh_id. unfold ITree.liftE.
     apply eutt_Vis.
-    intros x.
+    intros x. 
     rewrite itree_eta. cbn.
     reflexivity.
   - eapply transitivity.  apply tau_eutt.
     unfold eh_right.
-    rewrite bind_vis.
+    rewrite vis_bind_.
     unfold eh_id. unfold ITree.liftE.
     apply eutt_Vis.
-    intros x.
+    intros x. 
     rewrite itree_eta. cbn.
     reflexivity.
+Qed.
+
+Lemma eh_empty_unit_l : forall A, eh_cmp eh_empty_r eh_left ≡ (eh_id : A ~> itree A).
+Proof.
+  intros A X e.
+  unfold eh_cmp.
+  unfold eh_empty_r.
+  unfold eh_both. unfold eh_left.
+  rewrite vis_interp.
+  rewrite tau_eutt.
+  assert (pointwise_relation _ (@eq_itree _ _ _ eq) (fun x => interp (fun (T : Type) (e0 : (A +' emptyE) T) => match e0 with
+                                                                     | inl1 e1 => eh_id T e1
+                                                                     | inr1 e2 => eh_empty T e2
+                                                                                                         end) X (Ret x)) (fun x => Ret x)).
+  { intros x. rewrite interp_ret. reflexivity. }
+  rewrite H. rewrite bind_ret. reflexivity.
+Qed.
+
+Lemma eh_empty_unit_r : forall A, eh_cmp eh_empty_l eh_right ≡ (eh_id : A ~> itree A).
+Proof.
+  intros A X e.
+  unfold eh_cmp.
+  unfold eh_empty_l.
+  unfold eh_both. unfold eh_right.
+  rewrite vis_interp.
+  rewrite tau_eutt.
+  assert (pointwise_relation _ (@eq_itree _ _ _ eq) (fun x => interp (fun (T : Type) (e0 : (emptyE +' A) T) => match e0 with
+                                                                     | inl1 e1 => eh_empty T e1
+                                                                     | inr1 e2 => eh_id T e2
+                                                                                                         end) X (Ret x)) (fun x => Ret x)).
+  { intros x. rewrite interp_ret. reflexivity. }
+  rewrite H. rewrite bind_ret. reflexivity.
 Qed.
