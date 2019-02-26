@@ -31,7 +31,7 @@ Section SUTT.
 
 Context {E : Type -> Type} {R1 R2 : Type} (RR : R1 -> R2 -> Prop).
 
-Inductive suttF (eutt : itree E R1 -> itree E R2 -> Prop)
+Variant suttF (eutt : itree E R1 -> itree E R2 -> Prop)
           (ot1 : itreeF E R1 (itree E R1))
           (ot2 : itreeF E R2 (itree E R2)) : Prop :=
 | suttF_ (FIN: finite_tausF ot1 -> finite_tausF ot2)
@@ -57,7 +57,7 @@ Proof.
       eapply unalltaus_injective; eauto.
 Qed.
 
-Inductive suttF0 (eutt : itree E R1 -> itree E R2 -> Prop)
+Variant suttF0 (eutt : itree E R1 -> itree E R2 -> Prop)
           (ot1 : itreeF E R1 (itree E R1))
           (ot2 : itreeF E R2 (itree E R2)) : Prop :=
 | suttF0_notau ot2' :
@@ -317,6 +317,152 @@ Proof.
   - rewrite (unfold_bind t0), <- Heqot1; simpl.
     pfold; constructor.
     pclearbot; subst; auto.
+Qed.
+
+Require Import ITree.MorphismsFacts ITree.Morphisms.
+
+Require Import Coq.Relations.Relations.
+
+Lemma eq_itree_vis_l {E R1 R2} {RR : R1 -> R2 -> Prop} {C1 C2 RC T}
+      (e : E T) (k : _ -> _)
+      (it : itreeF E _ _)
+      (H : @eq_itreeF E R1 R2 RR C1 C2 RC (VisF e k) it)
+      :
+        exists k', it = VisF e k' /\
+                 (forall x, RC (k x) (k' x)).
+Proof.
+  refine
+    match H in eq_itreeF _ _ x y
+          return
+          match x return Prop with
+          | @VisF _ _ _ u e k =>
+            exists k' : _ -> C2, y = VisF e k' /\ (forall x : u, RC (k x) (k' x))
+          | _ => True
+          end
+    with
+    | EqVis _ _ _ _ _ Ek => ltac:(eexists; split; [ reflexivity | eassumption ])
+    | _ => I
+    end.
+Qed.
+
+(* todo: this could be made stronger with eutt rather than eq_itree
+ *)
+Instance Proper_sutt {E : Type -> Type} {R1 R2 : Type}
+: Proper (pointwise_relation _ (pointwise_relation _ Basics.impl) ==>
+          eq_itree eq ==> eq_itree eq ==> Basics.impl)
+       (@sutt E R1 R2).
+Proof.
+  red. red.
+  unfold pointwise_relation.
+  intros x y Hxy.
+  unfold impl.
+  red. red.
+  do 5 intro. do 2 rewrite sutt_is_sutt1.
+  revert x0 y0 H x1 y1.
+  pcofix CIH.
+  intros.
+  punfold H0.
+  punfold H1.
+  red in H0. red in H1.
+  pfold.
+  punfold H2.
+  revert H0 H1.
+  generalize dependent (observe y0).
+  generalize dependent (observe y1).
+  generalize dependent (observe x2).
+  generalize dependent (observe x3).
+  induction 1; eauto.
+  { inversion 1; subst.
+    inversion 1; subst.
+    constructor. eapply Hxy.
+    assumption. }
+  { intros.
+    eapply eq_itree_vis_l in H0.
+    eapply eq_itree_vis_l in H1.
+    destruct H0 as [ ? [ ? ? ] ].
+    destruct H1 as [ ? [ ? ? ] ].
+    rewrite H. rewrite H1.
+    constructor.
+    intros.
+    right.
+    specialize (H0 x4).
+    specialize (H2 x4).
+    pclearbot.
+    eapply CIH; eauto. }
+  { intros.
+    inversion H1; clear H1; subst.
+    constructor.
+    eapply IHsuttF1; eauto.
+    pclearbot.
+    punfold REL. }
+  { intros.
+    inversion H0; clear H0; subst.
+    constructor.
+    right.
+    change i with (observe {| _observe := i |}).
+    pclearbot.
+    eapply CIH.
+    - eassumption.
+    - instantiate (1:={| _observe := ot2 |}).
+      pfold. red. eapply H1.
+    - eapply EQTAUS. }
+Qed.
+
+Instance sutt_interp (E F : Type -> Type) (R : Type) :
+  Proper (Rhom (fun _ => sutt eq) ==> sutt eq ==> sutt eq)
+         (fun f => @interp E F f R).
+Proof.
+  (* note(gmm): this theorem needs to do up-to reasoning *)
+  red. red. red.
+  intros x y Hxy.
+  intros l r.
+  do 2 rewrite sutt_is_sutt1.
+  pcofix CIH.
+  intros.
+  eapply sutt_to_sutt1.
+  { intros; eapply H. }
+  punfold H0.
+  pfold. red.
+  do 2 rewrite interp_unfold.
+  induction H0; eauto.
+  { subst.
+    cbn. constructor. admit. intros.
+    eapply unalltausF_ret in UNTAUS1.
+    eapply unalltausF_ret in UNTAUS2.
+    subst. constructor. reflexivity. }
+  { cbn.
+    admit. }
+  { admit. }
+  { admit. }
+Admitted.
+
+Instance eutt_interp (E F : Type -> Type) (R : Type) :
+  Proper (Rhom (fun _ => eutt eq) ==> eutt eq ==> eutt eq)
+         (fun f => @interp E F f R).
+Proof.
+  do 3 red. intros.
+  eapply sutt_eutt.
+  { eapply sutt_interp.
+    { clear - H.
+      unfold Rhom in *.
+      intros; red.
+      intros. eapply eutt_sutt.
+      eapply H. }
+    { eapply eutt_sutt. eapply H0. } }
+  { eapply Proper_sutt.
+    { instantiate (1:=eq).
+      compute. intros. congruence. }
+    { reflexivity. }
+    { reflexivity. }
+    eapply sutt_interp.
+    { clear - H.
+      unfold Rhom in *.
+      intros; red.
+      intros. eapply eutt_sutt.
+      eapply Symmetric_eutt; eauto.
+      eapply H. }
+    { eapply eutt_sutt.
+      eapply Symmetric_eutt; eauto. } }
 Qed.
 
 (** Generalized heterogeneous version of [eutt_bind] *)

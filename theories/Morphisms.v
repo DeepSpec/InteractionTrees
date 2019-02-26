@@ -122,6 +122,7 @@ Definition handleF1 {E F G : Type -> Type} {I R : Type}
     end
   end.
 Hint Unfold handleF1.
+(* note(gmm): i'd propose to remove handleF1 *)
 
 (** Shallow effect handling: pass the first [Vis] node to the
     given handler [h]. *)
@@ -137,6 +138,7 @@ Definition handle1 {E F G : Type -> Type} {R : Type}
   itree (E +' F) R -> itree G R :=
   cofix handle1_ t := handleF1 handle1_ h (observe t).
 Hint Unfold handle1.
+(* note(gmm): i'd propose to remove handle1 *)
 
 (** An itree effect handler [E ~> itree F] defines an
     itree morphism [itree E ~> itree F]. *)
@@ -177,10 +179,7 @@ Definition interp1 {E F G : Type -> Type} `{F -< G} (h : E ~> itree G) :
 
 (** Effects [E, F : Type -> Type] and itree [E ~> itree F] form a
     category. *)
-(* todo(gmm): it would be good to have notation for this.
- * - if there was a "category" class like in Haskell, then we could
- *   get composition from something like that.
- *)
+
 
 (* Morphism Category -------------------------------------------------------- *)
 
@@ -190,14 +189,16 @@ Definition eh_cmp {A B C} (g : B ~> itree C) (f : A ~> itree B) :
 
 Definition eh_id {A} : A ~> itree A := @ITree.liftE A.
 
-Definition eh_par {A B C D} (f : A ~> itree B) (g : C ~> itree D) : (A +' C) ~> itree (B +' D) :=
+Definition eh_par {A B C D} (f : A ~> itree B) (g : C ~> itree D)
+: (A +' C) ~> itree (B +' D) :=
   fun _ e =>
     match e with
     | inl1 e1 => translate (@inl1 _ _) (f _ e1)
     | inr1 e2 => translate (@inr1 _ _) (g _ e2)
     end.
 
-Definition eh_both {A B C} (f : A ~> itree B) (g : C ~> itree B) : (A +' C) ~> itree B :=
+Definition eh_both {A B C} (f : A ~> itree B) (g : C ~> itree B)
+: (A +' C) ~> itree B :=
   fun _ e =>
     match e with
     | inl1 e1 => f _ e1
