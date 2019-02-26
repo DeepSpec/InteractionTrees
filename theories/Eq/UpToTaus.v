@@ -769,7 +769,7 @@ Proof.
   - simpobs. rewrite finite_taus_tau. reflexivity.
   - intros t1' t2' H1 H2.
     eapply unalltaus_tau in H1; eauto.
-    assert (X := unalltaus_injective _ _ _ H1 H2).
+    pose proof (unalltaus_injective _ _ _ H1 H2).
     subst; apply Reflexive_eq_notauF; eauto.
     left. apply reflexivity.
 Qed.
@@ -892,7 +892,7 @@ Lemma eutt_tau {E R1 R2} (RR : R1 -> R2 -> Prop)
            (t1 : itree E R1) (t2 : itree E R2) :
   eutt RR t1 t2 -> eutt RR (Tau t1) (Tau t2).
 Proof.
-  intros H. 
+  intros H.
   pfold. eapply euttF_tau. reflexivity. reflexivity. punfold H.
 Qed.
 
