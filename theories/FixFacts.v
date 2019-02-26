@@ -29,36 +29,36 @@ Definition interp_mrecF R :
   handleF1 (interp_mrec ctx R)
            (fun _ d k => Tau (interp_mrec ctx _ (ctx _ d >>= k))).
 
-Lemma unfold_interp_mrecF R (t : itree (D +' E) R) :
+Lemma observe_interp_mrecF R (t : itree (D +' E) R) :
   observe (interp_mrec ctx _ t) = observe (interp_mrecF _ (observe t)).
 Proof. reflexivity. Qed.
 
-Lemma unfold_interp_mrec R (t : itree (D +' E) R) :
+Lemma observe_interp_mrec R (t : itree (D +' E) R) :
   eq_itree eq
            (interp_mrec ctx _ t)
            (interp_mrecF _ (observe t)).
 Proof.
-  rewrite itree_eta, unfold_interp_mrecF, <-itree_eta.
+  rewrite itree_eta, observe_interp_mrecF, <-itree_eta.
   reflexivity.
 Qed.
 
 Lemma ret_mrec {T} (x: T) :
   interp_mrec ctx _ (Ret x) ≅ Ret x.
-Proof. rewrite unfold_interp_mrec; reflexivity. Qed.
+Proof. rewrite observe_interp_mrec; reflexivity. Qed.
 
 Lemma tau_mrec {T} (t: itree _ T) :
   interp_mrec ctx _ (Tau t) ≅ Tau (interp_mrec ctx _ t).
-Proof. rewrite unfold_interp_mrec. reflexivity. Qed.
+Proof. rewrite observe_interp_mrec. reflexivity. Qed.
 
 Lemma vis_mrec_right {T U} (e : E U) (k : U -> itree (D +' E) T) :
   interp_mrec ctx _ (Vis (inr1 e) k) ≅
   Vis e (fun x => interp_mrec ctx _ (k x)).
-Proof. rewrite unfold_interp_mrec. reflexivity. Qed.
+Proof. rewrite observe_interp_mrec. reflexivity. Qed.
 
 Lemma vis_mrec_left {T U} (d : D U) (k : U -> itree (D +' E) T) :
   interp_mrec ctx _ (Vis (inl1 d) k) ≅
   Tau (interp_mrec ctx _ (ITree.bind (ctx _ d) k)).
-Proof. rewrite unfold_interp_mrec. reflexivity. Qed.
+Proof. rewrite observe_interp_mrec. reflexivity. Qed.
 
 Hint Rewrite @ret_mrec : itree.
 Hint Rewrite @vis_mrec_left : itree.
@@ -70,7 +70,7 @@ Instance eq_itree_mrec {R} :
 Proof.
   repeat intro. pupto2_init. revert_until R.
   pcofix CIH. intros.
-  rewrite !unfold_interp_mrec.
+  rewrite !observe_interp_mrec.
   pupto2_final.
   punfold H0. inv H0; pclearbot; [| |destruct e].
   - apply reflexivity.
@@ -122,7 +122,7 @@ Lemma mrec_invariant_init {U} (r : relation (itree _ U))
         (interp_mrec ctx _ c1)
         (interp1 h_mrec _ c2).
 Proof.
-  rewrite unfold_interp_mrec, unfold_interp1.
+  rewrite observe_interp_mrec, unfold_interp1.
   punfold Ec.
   inversion Ec; cbn; pclearbot; pupto2_final.
   + subst; apply reflexivity.
@@ -149,11 +149,11 @@ Proof.
   - rewrite Ec1, Ec2.
     apply mrec_invariant_init; auto 10.
   - rewrite Ec1, Ec2. cbn.
-    rewrite unfold_interp_mrec.
+    rewrite observe_interp_mrec.
     rewrite (unfold_bind (interp_mrec _ _ d)).
     unfold observe, _observe; cbn.
     destruct (observe d); fold_observe; cbn.
-    + rewrite <- unfold_interp_mrec.
+    + rewrite <- observe_interp_mrec.
       apply mrec_invariant_init; auto.
     + pupto2_final; pfold; constructor; right.
       eapply self.
@@ -171,11 +171,17 @@ Proof.
         all: cbn; fold_bind; reflexivity.
 Qed.
 
-Theorem interp_mrec_is_interp : forall {T} (c : itree _ T),
-    eq_itree eq (interp_mrec ctx _ c) (interp1 h_mrec _ c).
+Theorem unfold_interp_mrec {T} (c : itree _ T) :
+  interp_mrec ctx _ c ≅ interp1 h_mrec _ c.
 Proof.
-  intros; eapply mrec_invariant_eq;
+  eapply mrec_invariant_eq;
     try eapply mrec_main; reflexivity.
+Qed.
+
+Theorem unfold_mrec {T} (d : D T) :
+  mrec ctx _ d ≅ interp1 (mrec ctx) _ (ctx _ d).
+Proof.
+  apply unfold_interp_mrec.
 Qed.
 
 End Facts.
@@ -187,7 +193,7 @@ Lemma rec_unfold {E A B} (f : A -> itree (callE A B +' E) B) (x : A) :
                                end) _ (f x).
 Proof.
   unfold rec. unfold mrec.
-  rewrite interp_mrec_is_interp.
+  rewrite unfold_interp_mrec.
   repeat rewrite <- interp_is_interp1.
   unfold interp_match.
   unfold mrec.
