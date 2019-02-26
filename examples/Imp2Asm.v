@@ -72,7 +72,7 @@ Definition tmp_if := gen_tmp 0.
 
 (* Conditional *)
 Definition cond_asm (e : list instr) : asm unit (unit + unit) :=
-  raw_asm_block (after e (Bbrz tmp_if (inl tt) (inr tt))).
+  raw_asm_block (after e (Bbrz tmp_if (inr tt) (inl tt))).
 
 (** [if_asm e tp fp]
 [[
