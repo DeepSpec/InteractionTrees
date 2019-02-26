@@ -538,7 +538,35 @@ A----###----B----C
         loop_den (ab_ >=> (ji ⊗ id_den)) ⩰
         loop_den ((ji ⊗ id_den) >=> ab_).
     Proof.
-    Admitted.
+      intros; unfold loop_den.
+      unfold tensor_den, ITree.cat, lift_den, sum_elim.
+
+      assert (EQ:forall (x: J + B),
+                 match x with
+                 | inl a => a0 <- ji a;; Ret (inl a0)
+                 | inr b => a <- id_den b;; Ret (inr a)
+                 end ≈
+                     match x with
+                     | inl a => Tau (ITree.map (@inl I B) (ji a))
+                     | inr b => Ret (inr b)
+                     end).
+      {      
+        intros [].
+        symmetry; apply tau_eutt.
+        unfold id_den.
+        rewrite ret_bind_; reflexivity.
+      }
+      intros ?.
+      setoid_rewrite EQ.
+      rewrite loop_dinatural.
+      apply eutt_loop; [intros [] | reflexivity].
+      all: unfold id_den.
+      all: repeat rewrite bind_bind.
+      2: repeat rewrite ret_bind_; reflexivity.
+      apply eutt_bind; [reflexivity | intros ?].
+      apply eutt_bind; [| intros ?; reflexivity].
+      apply tau_eutt.
+    Qed.
 
     Lemma map_is_cat {R S: Type}:
       forall (f: R -> S) (t: itree E R),
