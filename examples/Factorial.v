@@ -59,9 +59,8 @@ Proof.
     cbn. 
     rewrite tau_eutt.
     rewrite IHn.
-    rewrite itree_eta.
-    rewrite ret_bind.
+    rewrite ret_bind_.
     fold_bind. rewrite interp_bind.
-    rewrite interp_ret. rewrite ret_bind.
+    rewrite interp_ret. rewrite ret_bind_.
     rewrite interp_ret. reflexivity.
 Qed.
