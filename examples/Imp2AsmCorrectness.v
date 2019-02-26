@@ -455,12 +455,39 @@ Qed.
 
   Require Import Den.
 
+  Lemma sym_den_unfold {E} {A B}:
+    lift_den sum_comm ⩰ @sym_den E A B.
+  Proof.
+    reflexivity.
+  Qed.
+
+  Lemma seq_linking_den {E} {A B C} (ab : @den E A B) (bc : den B C) :
+    loop_den (sym_den >=> ab ⊗ bc) ⩰ ab >=> bc.
+  Proof.
+    rewrite tensor_den_slide.
+    rewrite <- compose_den_assoc.
+    rewrite loop_compose.
+    rewrite tensor_swap.
+    repeat rewrite <- compose_den_assoc.
+    rewrite sym_nilpotent, id_den_left.
+    rewrite compose_loop.
+    erewrite yanking_den.
+    rewrite id_den_right.
+    reflexivity.
+  Qed.
+
   Lemma seq_asm_correct {A B C} (ab : asm A B) (bc : asm B C) :
     eq_den (denote_asm (seq_asm ab bc))
            (denote_asm ab >=> denote_asm bc).
   Proof.
-  Admitted.
+    unfold seq_asm. 
+    rewrite link_asm_correct, relabel_asm_correct, app_asm_correct.
+    rewrite id_den_right.
+    rewrite sym_den_unfold.
+    apply seq_linking_den.
+  Qed.
 
+  (* YZ: Things get wonky once in the two subgoals. eq_den lemmas cannot be rewritten inside of terms anymore since it's specialized to a specific eutt *)
   Lemma if_asm_correct {A} (e : list instr) (tp fp : asm unit A) :
     eutt eq
       (denote_asm (if_asm e tp fp) tt)
@@ -468,7 +495,38 @@ Qed.
          v <- lift (GetVar tmp_if) ;;
          if v : value then denote_asm tp tt else denote_asm fp tt).
   Proof.
-  Admitted.
+    unfold if_asm.
+    rewrite (seq_asm_correct _ _ tt).
+    unfold cond_asm.
+    unfold compose_den; rewrite raw_asm_block_correct.
+    rewrite after_correct.
+    simpl.
+    repeat setoid_rewrite bind_bind.
+    apply eutt_bind; [reflexivity | intros ?].
+    apply eutt_bind; [reflexivity | intros []].
+    - rewrite ret_bind_.
+      rewrite (relabel_asm_correct _ _ _ (inl tt)).
+      unfold compose_den; simpl.
+      rewrite bind_bind.
+      unfold lift_den; rewrite ret_bind_.
+      setoid_rewrite (app_asm_correct tp fp (inl tt)).
+      setoid_rewrite bind_bind.
+      rewrite <- (bind_ret (denote_asm tp tt)) at 2.
+      eapply eutt_bind; [reflexivity | intros []].
+      unfold lift_den; rewrite ret_bind_; reflexivity.
+      rewrite ret_bind_; reflexivity.
+    - rewrite ret_bind_.
+      rewrite (relabel_asm_correct _ _ _ (inr tt)).
+      unfold compose_den; simpl.
+      rewrite bind_bind.
+      unfold lift_den; rewrite ret_bind_.
+      setoid_rewrite (app_asm_correct tp fp (inr tt)).
+      setoid_rewrite bind_bind.
+      rewrite <- (bind_ret (denote_asm fp tt)) at 2.
+      eapply eutt_bind; [reflexivity | intros []].
+      unfold lift_den; rewrite ret_bind_; reflexivity.
+      rewrite ret_bind_; reflexivity.
+  Qed.
 
   Lemma while_asm_correct (e : list instr) (p : asm unit unit) :
     eutt eq (denote_asm (while_asm e p) tt)
@@ -484,6 +542,32 @@ Qed.
                | inr tt => Ret (inl (inl tt))
                end) tt).
   Proof.
+    unfold while_asm.
+    rewrite (link_asm_correct _ tt).
+    apply eq_den_loop.
+    rewrite relabel_asm_correct, id_den_left.
+    rewrite app_asm_correct. 
+    intros [[] |[]].
+    - unfold compose_den. 
+      simpl; setoid_rewrite bind_bind.
+      rewrite if_asm_correct.
+      rewrite bind_bind.
+      apply eutt_bind; [reflexivity | intros []].
+      rewrite bind_bind.
+      apply eutt_bind; [reflexivity | intros []].
+      + rewrite (relabel_asm_correct _ _ _  tt).
+        unfold compose_den. 
+        simpl; repeat setoid_rewrite bind_bind.
+        unfold lift_den; rewrite ret_bind_.
+        apply eutt_bind; [reflexivity | intros [[]|]].
+        * repeat rewrite ret_bind_; reflexivity.
+        * repeat rewrite ret_bind_.
+        (* Buggy, to fix *)
+        admit.
+      + rewrite (pure_asm_correct _ tt).
+        unfold lift_den.
+        repeat rewrite ret_bind_.
+        reflexivity.
   Admitted.
 
     Global Instance subrelation_eq_den {E A B} :
@@ -500,53 +584,53 @@ Admitted.
 Lemma fold_ff f : f tt = ff f.
 Proof. reflexivity. Qed.
 
-  Lemma compile_correct:
-    forall s (g_imp g_asm : alist var value),
-      Renv g_asm g_imp ->
-      eutt (fun a b => Renv (fst a) (fst b) /\ snd a = inl (snd b))
-           (interp_locals (denote_asm (compile s) tt) g_asm)
-           (interp_locals (denoteStmt s) g_imp).
-    Proof.
-      induction s; intros.
-      - (* Assign *)
-        simpl.
-        rewrite raw_asm_block_correct.
-        rewrite after_correct.
-        rewrite <- (bind_ret (ITree.bind (denoteExpr e) _)).
-        rewrite 2 interp_locals_bind.
-        eapply eutt_bind_gen.
-        { eapply compile_assign_correct; auto. }
-        intros. simpl.
-        rewrite (itree_eta (_ (fst r1))), (itree_eta (_ (fst r2))).
-        cbn.
-        apply eutt_Ret. destruct (snd r2). auto.
-      - (* Seq *)
-        rewrite fold_ff; simpl.
-        rewrite seq_asm_correct. unfold ff.
-        unfold compose_den.
-        rewrite 2 interp_locals_bind.
-        eapply eutt_bind_gen.
-        { auto. }
-        intros. destruct H0. destruct (snd r2). rewrite H1.
-        auto.
-      - (* If *)
-        simpl; rewrite if_asm_correct.
-        rewrite 2 interp_locals_bind.
-        eapply eutt_bind_gen.
-        { apply compile_expr_correct. auto. }
-        intros.
-        admit.
-      - (* While *)
-        simpl; rewrite while_asm_correct. rewrite fold_ff.
-        (* TODO: Should use some loop_den lemmas to make the two loops
+Lemma compile_correct:
+  forall s (g_imp g_asm : alist var value),
+    Renv g_asm g_imp ->
+    eutt (fun a b => Renv (fst a) (fst b) /\ snd a = inl (snd b))
+         (interp_locals (denote_asm (compile s) tt) g_asm)
+         (interp_locals (denoteStmt s) g_imp).
+Proof.
+  induction s; intros.
+  - (* Assign *)
+    simpl.
+    rewrite raw_asm_block_correct.
+    rewrite after_correct.
+    rewrite <- (bind_ret (ITree.bind (denoteExpr e) _)).
+    rewrite 2 interp_locals_bind.
+    eapply eutt_bind_gen.
+    { eapply compile_assign_correct; auto. }
+    intros. simpl.
+    rewrite (itree_eta (_ (fst r1))), (itree_eta (_ (fst r2))).
+    cbn.
+    apply eutt_Ret. destruct (snd r2). auto.
+  - (* Seq *)
+    rewrite fold_ff; simpl.
+    rewrite seq_asm_correct. unfold ff.
+    unfold compose_den.
+    rewrite 2 interp_locals_bind.
+    eapply eutt_bind_gen.
+    { auto. }
+    intros. destruct H0. destruct (snd r2). rewrite H1.
+    auto.
+  - (* If *)
+    simpl; rewrite if_asm_correct.
+    rewrite 2 interp_locals_bind.
+    eapply eutt_bind_gen.
+    { apply compile_expr_correct. auto. }
+    intros.
+    admit.
+  - (* While *)
+    simpl; rewrite while_asm_correct. rewrite fold_ff.
+    (* TODO: Should use some loop_den lemmas to make the two loops
            line up. *)
-        admit.
-      - (* Skip *)
-        rewrite (itree_eta (_ _ g_imp)), (itree_eta (_ _ g_asm)).
-        cbn.
-        apply eutt_Ret; auto.
-    Admitted.
-     
+    admit.
+  - (* Skip *)
+    rewrite (itree_eta (_ _ g_imp)), (itree_eta (_ _ g_asm)).
+    cbn.
+    apply eutt_Ret; auto.
+Admitted.
+
 
 (*
 Seq a b

@@ -277,12 +277,45 @@ Proof.
   reflexivity.
 Qed.
 
+Lemma foo {A B C: Type}:
+  forall (f: bks A C) (g: bks B C),
+    denote_b E (fun a => match a with
+                      | inl x => f x
+                      | inr x => g x
+                      end) ⩰
+             fun a => match a with
+                   | inl x => denote_block E (f x)
+                   | inr x => denote_block E (g x)
+                   end.
+Proof.
+  intros.
+  unfold denote_b; intros []; reflexivity.
+Qed.  
+
+Lemma bar {A B C: Type}:
+  forall (f: bks A C) (g: bks B C) a,
+    denote_block E match a with
+                   | inl x => f x
+                   | inr x => g x
+                   end ≈ 
+     match a with
+     | inl x => denote_block E (f x)
+     | inr x => denote_block E (g x)
+     end.
+Proof.
+  intros.
+  destruct a; reflexivity.
+Qed.
+
+Set Nested Proofs Allowed.
+
 Definition app_asm_correct {A B C D} (ab : asm A B) (cd : asm C D) :
   @eq_den E _ _
           (denote_asm (app_asm ab cd))
           (tensor_den (denote_asm ab) (denote_asm cd)).
 Proof.
   unfold denote_asm.
+
   match goal with | |- ?x ⩰ _ => set (lhs := x) end.
   rewrite tensor_den_loop.
   rewrite loop_tensor_den.
@@ -290,9 +323,31 @@ Proof.
   rewrite <- loop_compose.
   rewrite loop_loop.
   subst lhs.
-  unfold app_asm.
-  simpl.
+  (* match goal with *)
+  (* | |- loop_den ?x ⩰ loop_den ?y => set (a := x) ; set (b := y) end. *)
+
+  match goal with | |- _ ⩰ ?x => set (lhs := x) end.
+  simpl code.
+  cut (
+      (denote_b E
+                (fun l : internal ab + internal cd + (A + C) =>
+                   match l with
+                   | inl (inl ia) => _app_B (code ab (inl ia))
+                   | inl (inr ic) => _app_D (code cd (inl ic))
+                   | inr (inl a) => _app_B (code ab (inr a))
+                   | inr (inr c) => _app_D (code cd (inr c))
+                   end)) ⩰
+     (fun l : internal ab + internal cd + (A + C) =>
+        match l with
+        | inl (inl ia) => denote_block E (_app_B (code ab (inl ia)))
+        | inl (inr ic) => denote_block E (_app_D (code cd (inl ic)))
+        | inr (inl a) => denote_block E (_app_B (code ab (inr a)))
+        | inr (inr c) => denote_block E (_app_D (code cd (inr c)))
+        end)); [intros EQ; rewrite EQ; clear EQ | intros [[]|[]]; reflexivity].
+
 Admitted.
+
+
 
 Definition relabel_asm_correct {A B C D} (f : A -> B) (g : C -> D)
            (bc : asm B C) :
