@@ -334,7 +334,7 @@ Section Den.
       reflexivity.
     Qed.
 
-    Lemma assoc_coherent {A B C D}:
+    Lemma assoc_coherent_r {A B C D}:
       @assoc_den_r A B C ⊗ @id_den D >=> assoc_den_r >=> id_den ⊗ assoc_den_r ⩰ 
        assoc_den_r >=> assoc_den_r.
     Proof.
@@ -347,6 +347,21 @@ Section Den.
       rewrite lift_sum_elim.
       apply eq_lift_den.
       intros [[[|]|]|]; reflexivity.
+    Qed.
+
+    Lemma assoc_coherent_l {A B C D}:
+      @id_den A ⊗ @assoc_den_l B C D >=> assoc_den_l >=> assoc_den_l ⊗ id_den ⩰
+       assoc_den_l >=> assoc_den_l.
+    Proof.
+      unfold tensor_den, assoc_den_l.
+      repeat rewrite id_den_left.
+      repeat rewrite compose_sum_elim.
+      repeat rewrite compose_lift_den.
+      rewrite lift_sum_elim.
+      repeat rewrite compose_lift_den.
+      rewrite lift_sum_elim.
+      apply eq_lift_den.
+      intros [|[|[|]]]; reflexivity.
     Qed.
 
     (** *** [sym] lemmas *)
@@ -532,6 +547,58 @@ These two loops:
     (*          (loop_den (rewire_den' (sum_bimap f' id) (sum_bimap f id) ab)). *)
     (* Proof. *)
     (* Admitted. *)
+
+    (* TODO: Find the right place for these *)
+
+    Lemma cat_tensor {A1 A2 A3 B1 B2 B3}
+          (f1 : @den E A1 A2) (f2 : den A2 A3)
+          (g1 : den B1 B2) (g2 : den B2 B3) :
+      (f1 ⊗ g1) >=> (f2 ⊗ g2) ⩰ (f1 >=> f2) ⊗ (g1 >=> g2).
+    Proof.
+      unfold tensor_den, ITree.cat, lift_den; simpl.
+      intros []; simpl;
+        rewrite !bind_bind; setoid_rewrite ret_bind_; reflexivity.
+    Qed.
+
+    Lemma assoc_lr {A B C} :
+      @assoc_den_l A B C >=> assoc_den_r ⩰ id_den.
+    Proof.
+      unfold assoc_den_l, assoc_den_r.
+      rewrite compose_lift_den.
+      intros [| []]; reflexivity.
+    Qed.
+
+    Lemma assoc_rl {A B C} :
+      @assoc_den_r A B C >=> assoc_den_l ⩰ id_den.
+    Proof.
+      unfold assoc_den_l, assoc_den_r.
+      rewrite compose_lift_den.
+      intros [[]|]; reflexivity.
+    Qed.
+
+    Lemma tensor_id {A B} :
+      id_den ⊗ id_den ⩰ @id_den (A + B).
+    Proof.
+      unfold tensor_den, ITree.cat, id_den.
+      intros []; cbn; rewrite ret_bind_; reflexivity.
+    Qed.
+
+    Lemma loop_rename_internal' {I J A B} (ij : den I J) (ji: den J I)
+          (ab_: @den E (I + A) (I + B)) :
+        (ij >=> ji) ⩰ id_den ->
+        loop_den ((ji ⊗ id_den) >=> ab_ >=> (ij ⊗ id_den)) ⩰
+        loop_den ab_.
+    Proof.
+      intros Hij.
+      rewrite loop_rename_internal.
+      rewrite <- compose_den_assoc.
+      rewrite cat_tensor.
+      rewrite Hij.
+      rewrite id_den_left.
+      rewrite tensor_id.
+      rewrite id_den_left.
+      reflexivity.
+    Qed.
 
   End Laws.
 End Den.

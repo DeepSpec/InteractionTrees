@@ -309,6 +309,33 @@ Proof.
   destruct a; reflexivity.
 Qed.
 
+Lemma foo_assoc_l {A B C D D'} (f : den _ D') :
+    @id_den E A ⊗ @assoc_den_l E B C D >=> (assoc_den_l >=> f)
+   ⩰ assoc_den_l >=> (assoc_den_l >=> (assoc_den_r ⊗ id_den >=> f)).
+Proof.
+  rewrite <- !compose_den_assoc.
+  rewrite <- assoc_coherent_l.
+  rewrite (compose_den_assoc _ _ (_ ⊗ id_den)).
+  rewrite cat_tensor, id_den_left, assoc_lr, tensor_id.
+  rewrite id_den_right.
+  reflexivity.
+Qed.
+
+Lemma foo_assoc_r {A' A B C D} (f : den A' _) :
+    f >=> assoc_den_r >=> @id_den E A ⊗ @assoc_den_r E B C D
+  ⩰ f >=> assoc_den_l ⊗ id_den >=> assoc_den_r >=> assoc_den_r.
+Proof.
+  rewrite (compose_den_assoc _ _ assoc_den_r).
+  rewrite <- assoc_coherent_r.
+  rewrite (compose_den_assoc (tensor_den _ _)).
+  rewrite (compose_den_assoc _ (tensor_den _ _)).
+  rewrite <- (compose_den_assoc (tensor_den _ _)).
+  rewrite cat_tensor, id_den_left, assoc_lr, tensor_id.
+  rewrite id_den_left.
+  rewrite compose_den_assoc.
+  reflexivity.
+Qed.
+
 Set Nested Proofs Allowed.
 
 Definition app_asm_correct {A B C D} (ab : asm A B) (cd : asm C D) :
@@ -325,31 +352,35 @@ Proof.
   rewrite <- loop_compose.
   rewrite loop_loop.
   subst lhs.
-  (* match goal with *)
-  (* | |- loop_den ?x ⩰ loop_den ?y => set (a := x) ; set (b := y) end. *)
+  rewrite <- (loop_rename_internal' sym_den sym_den)
+    by apply sym_nilpotent.
+  apply eq_den_loop.
+  rewrite ! compose_den_assoc.
+  unfold tensor_den, sym_den, ITree.cat, assoc_den_l, assoc_den_r, id_den, lift_den.
+  intros [[|]|[|]]; cbn.
+  (* ... *)
+  all: repeat (rewrite ret_bind_; simpl).
+  all: rewrite bind_bind.
+  all: unfold _app_B, _app_D.
+  all: rewrite fmap_block_map.
+  all: unfold ITree.map.
+  all: apply eutt_bind; try reflexivity.
+  all: intros []; rewrite (itree_eta (ITree.bind _ _)); cbn; reflexivity.
+Qed.
 
-  match goal with | |- _ ⩰ ?x => set (lhs := x) end.
-  simpl code.
-  cut (
-      (denote_b
-                (fun l : internal ab + internal cd + (A + C) =>
-                   match l with
-                   | inl (inl ia) => _app_B (code ab (inl ia))
-                   | inl (inr ic) => _app_D (code cd (inl ic))
-                   | inr (inl a) => _app_B (code ab (inr a))
-                   | inr (inr c) => _app_D (code cd (inr c))
-                   end)) ⩰
-     (fun l : internal ab + internal cd + (A + C) =>
-        match l with
-        | inl (inl ia) => denote_block (_app_B (code ab (inl ia)))
-        | inl (inr ic) => denote_block (_app_D (code cd (inl ic)))
-        | inr (inl a) => denote_block (_app_B (code ab (inr a)))
-        | inr (inr c) => denote_block (_app_D (code cd (inr c)))
-        end)); [intros EQ; rewrite EQ; clear EQ | intros [[]|[]]; reflexivity].
-
-Admitted.
-
-
+Definition relabel_bks_correct {A B C D} (f : A -> B) (g : C -> D)
+           (bc : bks B C) :
+  @eq_den E _ _
+     (denote_b (relabel_bks f g bc))
+     (lift_den f >=> denote_b bc >=> lift_den g).
+Proof.
+  rewrite lift_compose_den.
+  rewrite compose_den_lift.
+  intro a.
+  unfold denote_b, relabel_bks.
+  rewrite fmap_block_map.
+  reflexivity.
+Qed.
 
 Definition relabel_asm_correct {A B C D} (f : A -> B) (g : C -> D)
            (bc : asm B C) :
@@ -357,13 +388,27 @@ Definition relabel_asm_correct {A B C D} (f : A -> B) (g : C -> D)
      (denote_asm (relabel_asm f g bc))
      (lift_den f >=> denote_asm bc >=> lift_den g).
 Proof.
-Admitted.
+  unfold denote_asm.
+  simpl.
+  rewrite relabel_bks_correct.
+  rewrite <- compose_loop.
+  rewrite <- loop_compose.
+  apply eq_den_loop.
+  rewrite !tensor_id_lift.
+  reflexivity.
+Qed.
 
 Definition link_asm_correct {I A B} (ab : asm (I + A) (I + B)) :
   @eq_den E _ _
      (denote_asm (link_asm ab))
      (loop_den (denote_asm ab)).
 Proof.
-Admitted.
+  unfold denote_asm.
+  rewrite loop_loop.
+  apply eq_den_loop.
+  simpl.
+  rewrite relabel_bks_correct.
+  reflexivity.
+Qed.
 
 End Correctness.
