@@ -17,6 +17,22 @@ From ITree Require Import
      Eq.UpToTaus
      TranslateFacts.
 
+(** * Morphism equivalence *)
+Definition Rhom {A B : Type -> Type} (R : forall t, B t -> B t -> Prop)
+           (f g : A ~> B) : Prop :=
+  forall X, pointwise_relation (A X) (R X) (f X) (g X).
+
+Definition eh_eq {A B : Type -> Type}
+: (A ~> itree B) -> (A ~> itree B) -> Prop :=
+  Rhom (fun t => @eq_itree B _ t eq).
+
+Definition eh_eutt {A B : Type -> Type}
+: (A ~> itree B) -> (A ~> itree B) -> Prop :=
+  Rhom (fun t => @eutt B _ t eq).
+
+Notation "f ≡ g" := (eh_eutt f g) (at level 70).
+
+
 (** * [interp] *)
 
 (* Proof of
@@ -68,33 +84,42 @@ Lemma vis_interp {E F R} {f : E ~> itree F} U (e: E U) (k: U -> itree E R) :
 Proof. rewrite unfold_interp. reflexivity. Qed.
 
 (** ** [interp] properness *)
-
-Instance eq_itree_interp {E F R} (f : E ~> itree F) :
-  Proper (eq_itree eq ==> eq_itree eq) (interp f R).
+Instance eq_itree_interp {E F R}:
+  Proper (Rhom (fun _ => eq_itree eq) ==> eq_itree eq ==> eq_itree eq)
+         (fun f => @interp E F f R).
 Proof.
-  repeat intro. pupto2_init. revert_until R.
-  pcofix CIH. intros.
-  rewrite itree_eta, (itree_eta (interp f _ y)), !interp_unfold.
-  punfold H0; red in H0.
-  destruct H0; pclearbot.
+  intros f g Hfg.
+  intros l r Hlr.
+  pupto2_init.
+  revert l r Hlr.
+  pcofix CIH.
+  rename r into rr.
+  intros l r Hlr.
+  rewrite itree_eta, (itree_eta (interp g _ r)), !interp_unfold.
+  punfold Hlr; red in Hlr.
+  destruct Hlr; pclearbot.
   - pupto2_final. pfold. red. cbn. eauto.
   - pupto2_final. pfold. red. cbn. eauto.
   - pfold. econstructor. pupto2 (eq_itree_clo_bind F R).
     constructor.
-    + reflexivity.
+    + eapply Hfg.
     + eauto. intros; pupto2_final; right; eauto.
 Qed.
 
-Definition Rhom {E F : Type -> Type} : relation (E ~> F) :=
-  fun l r =>
-    forall x (e : E x), l _ e = r _ e.
+Global Instance Proper_interp_eq_itree {E F R f}
+: Proper (eq_itree eq ==> eq_itree eq) (@interp E F f R).
+Proof.
+  eapply eq_itree_interp.
+  red. reflexivity.
+Qed.
 
 (* Note that this allows rewriting of handlers. *)
-Instance eutt_interp :
-  forall (E F : Type -> Type) (R : Type),
-    Proper (@Rhom E (itree F) ==> eutt eq ==> eutt eq)
-           (fun f => interp f R).
-Proof. Admitted.
+Instance eutt_interp (E F : Type -> Type) (R : Type) :
+  Proper (Rhom (fun _ => eutt eq) ==> eutt eq ==> eutt eq)
+         (fun f => @interp E F f R).
+Proof.
+  (* this is going to be a terrible proof. *)
+Admitted.
 
 Lemma interp_ret : forall {E F R} x
       (f : E ~> itree F),
@@ -136,7 +161,7 @@ Proof.
   {red. intros. apply ret_interp. }
   rewrite H. rewrite bind_ret.
   reflexivity.
-Qed.  
+Qed.
 
 
 (** ** Composition of [interp] *)
@@ -163,7 +188,7 @@ Proof.
     rewrite H.
     rewrite ret_bind_. (* TODO: Why does [ret_bind] not work at all. *)
     pupto2_final. right. apply CIH.
-Qed.  
+Qed.
 
 
 Theorem interp_interp {E F G R} (f : E ~> itree F) (g : F ~> itree G) :
@@ -186,16 +211,16 @@ Proof.
   - rewrite interp_bind.
     pfold. econstructor.
     pupto2 eq_itree_clo_bind_h.
-    apply pbc_intro_h with (RU := eq).  
+    apply pbc_intro_h with (RU := eq).
     + reflexivity.
     + intros.
       pupto2_final. right. subst. apply CIH.
-Qed.  
-  
+Qed.
+
 (** * [interp1] *)
 
 (* SAZ: If we need to introduce these auxilliar definitions to prove
-   properties about functions like interp1, I think that we shoul
+   properties about functions like interp1, I think that we should
    _define_ interp1 in terms of its unfolding.  I have experimented
    with porting interp_state and interp1_state to this form.
 *)
@@ -263,7 +288,7 @@ Proof.
     eapply (CIH' (go x2) (go x3)); eauto.
   - rewrite !unfold_bind. fold_bind.
     genobs t ot. clear Heqot t.
-    destruct ot; simpl; eauto 10. 
+    destruct ot; simpl; eauto 10.
     pfold. eapply euttF'_mon; eauto using interp_inv_main_step; intros.
     eapply upaco2_mon; eauto. intros.
     eapply (CIH' (go x2) (go x3)); eauto.
@@ -304,7 +329,7 @@ Lemma unfold_interp_state : forall {E F S R} (h : E ~> Monads.stateT S (itree F)
 Proof.
   intros E F S R h t s.
   econstructor.
-Qed.  
+Qed.
 
 
 Instance eq_itree_interp_state {E F S R} (h : E ~> Monads.stateT S (itree F)) :
@@ -312,7 +337,7 @@ Instance eq_itree_interp_state {E F S R} (h : E ~> Monads.stateT S (itree F)) :
          (interp_state h R).
 Proof.
   repeat intro. pupto2_init. revert_until R.
-  pcofix CIH. intros h x y H0 x2 y0 H1. 
+  pcofix CIH. intros h x y H0 x2 y0 H1.
   rewrite itree_eta, (itree_eta (interp_state h _ y y0)), !unfold_interp_state.
   unfold interp_state_match.
   punfold H0; red in H0.
@@ -330,32 +355,32 @@ Lemma unfold_interp1_state : forall {E F S R} (h : E ~> Monads.stateT S (itree F
     observe (interp1_state h _ t s) =
     observe (interp1_state_match h (interp1_state h R) t s).
 Proof.
-  intros E F S R h t s. 
+  intros E F S R h t s.
   econstructor.
-Qed.  
+Qed.
 
 Instance eq_itree_interp1_state {E F S R} (h : E ~> Monads.stateT S (itree F)) :
   Proper (eq_itree eq ==> eq ==> eq_itree eq) (interp1_state h R).
 Proof.
   repeat intro.
   pupto2_init. revert_until R.
-  pcofix CIH. intros h x y H0 x2 y0 H1. 
+  pcofix CIH. intros h x y H0 x2 y0 H1.
   rewrite itree_eta, (itree_eta (interp1_state h _ y y0)), !unfold_interp1_state.
   unfold interp1_state_match.
   punfold H0; red in H0.
-  genobs x ox; destruct ox; simpobs; dependent destruction H0; simpobs; pclearbot. 
+  genobs x ox; destruct ox; simpobs; dependent destruction H0; simpobs; pclearbot.
   - pupto2_final. pfold. red. cbn. subst. eauto.
   - pupto2_final. pfold. red. cbn. subst. eauto.
   - pfold.
     destruct e.
     * econstructor. pupto2 (eq_itree_clo_bind F (S * R)).
-      constructor. 
+      constructor.
       + subst. reflexivity.
       + intros. pupto2_final. right. eauto.
     * econstructor. intros. pupto2_final. right.
       eauto.
 Qed.
-  
+
 
 Lemma interp_state_ret {E F : Type -> Type} {R S : Type}
       (f : forall T, E T -> S -> itree F (S * T)%type)
@@ -406,7 +431,7 @@ Lemma interp_state_tau : forall {E F:Type -> Type} S {T : Type} (t:itree E T) (s
                            (h : E ~> Monads.stateT S (itree F)),
     interp_state h _ (Tau t) s ≅ Tau (interp_state h _ t s).
 Proof.
-  intros E F S T t s h. 
+  intros E F S T t s h.
   rewrite itree_eta. reflexivity.
 Qed.
 
@@ -414,7 +439,7 @@ Lemma interp1_state_tau : forall {E F:Type -> Type} S {T : Type} (t:itree (E +' 
                            (h : E ~> Monads.stateT S (itree F)),
     interp1_state h _ (Tau t) s ≅ Tau (interp1_state h _ t s).
 Proof.
-  intros E F S T t s h. 
+  intros E F S T t s h.
   rewrite itree_eta. reflexivity.
 Qed.
 
@@ -423,7 +448,7 @@ Lemma interp_state_liftE {E F : Type -> Type} {R S : Type}
       (s : S) (e : E R) :
   (interp_state f _ (ITree.liftE e) s) ≅ Tau (f _ e s).
 Proof.
-  unfold ITree.liftE. rewrite interp_state_vis.  
+  unfold ITree.liftE. rewrite interp_state_vis.
   assert (pointwise_relation _ (eq_itree eq) (fun sx : S * R => interp_state f R (Ret (snd sx)) (fst sx)) (fun sx => Ret sx)).
   { intros sx. destruct sx. simpl.
     rewrite itree_eta. cbn. reflexivity. }
@@ -437,7 +462,7 @@ Lemma interp1_state_liftE1 {E F : Type -> Type} {R S : Type}
       (s : S) (e : E R) :
   (interp1_state f _ (ITree.liftE (inl1 e)) s) ≅ Tau (f _ e s).
 Proof.
-  unfold ITree.liftE. rewrite interp1_state_vis1.  
+  unfold ITree.liftE. rewrite interp1_state_vis1.
   assert (pointwise_relation _ (eq_itree eq) (fun sx : S * R => interp1_state f R (Ret (snd sx)) (fst sx)) (fun sx => Ret sx)).
   { intros sx. destruct sx. simpl.
     rewrite itree_eta. cbn. reflexivity. }
@@ -481,7 +506,7 @@ Proof.
     pupto2 (eq_itree_clo_bind F (S * B)). econstructor.
     + reflexivity.
     + intros. specialize (CIH _ (k0 (snd v)) k (fst v)). auto.
-Qed.      
+Qed.
 
 Lemma interp1_state_bind {E F : Type -> Type} {A B S : Type}
       (f : forall T, E T -> S -> itree F (S * T)%type)
@@ -570,22 +595,19 @@ Proof.
     { reflexivity. }
     rewrite H.
     unfold ITree.liftE in CIH.
-    rewrite <- itree_eta.    
+    rewrite <- itree_eta.
     pupto2_final. right.
     apply CIH.
 Qed.
 
 (* Morphism Category -------------------------------------------------------- *)
 
-Definition eh_eq {A B : Type -> Type} f g := forall X, pointwise_relation (A X) (@eutt B X _ (@eq X)) (f X) (g X).
-
-Notation "f ≡ g" := (eh_eq f g) (at level 70).
 
 
 Lemma eh_cmp_id_left_strong :
   forall A R (t : itree A R), interp eh_id R t ≈ t.
 Proof.
-  intros A R. 
+  intros A R.
   intros t.
   pupto2_init.
   revert t.
@@ -600,13 +622,13 @@ Proof.
   - pfold. econstructor.
     right. rewrite interp_unfold. unfold interp_u. unfold handleF.
     apply CIH'.
-  - pfold. econstructor. cbn. econstructor. intros. 
+  - pfold. econstructor. cbn. econstructor. intros.
     assert (ITree.bind' (fun x0 : u => interp eh_id R (k x0)) (Ret x) = (x0 <- Ret x ;; interp eh_id R (k x0))).
     { intros; reflexivity. }
     rewrite H. rewrite ret_bind_. (* TODO: [ret_bind] doesn't work *)
     pupto2_final. right. apply CIH.
-Qed.  
-  
+Qed.
+
 
 Lemma eh_cmp_id_left :
   forall A B (f : A ~> itree B), eh_cmp eh_id f ≡ f.
@@ -629,8 +651,8 @@ Proof.
   { red. intros. apply interp_ret. }
   rewrite H. rewrite bind_ret.
   reflexivity.
-Qed.  
-  
+Qed.
+
 Lemma eh_both_left_right_id : forall A B X e,  eh_both eh_left eh_right X e = (@eh_id (A +' B)) X e.
 Proof.
   intros A B X e.
@@ -665,6 +687,7 @@ Proof.
     { intros x. rewrite translate_ret. reflexivity. }
     rewrite H. reflexivity.
 Qed.
+
   
 Lemma eh_swap_swap_id : forall A B, eh_cmp eh_swap eh_swap ≡ (eh_id : (A +' B) ~> itree (A +' B)).
 Proof.
@@ -702,7 +725,7 @@ Proof.
   assert (pointwise_relation _ (@eq_itree _ _ _ eq) (fun x => interp (fun (T : Type) (e0 : (A +' emptyE) T) => match e0 with
                                                                      | inl1 e1 => eh_id T e1
                                                                      | inr1 e2 => eh_empty T e2
-                                                                                                         end) X (Ret x)) (fun x => Ret x)).
+                                                                   end) X (Ret x)) (fun x => Ret x)).
   { intros x. rewrite interp_ret. reflexivity. }
   rewrite H. rewrite bind_ret. reflexivity.
 Qed.
@@ -718,7 +741,7 @@ Proof.
   assert (pointwise_relation _ (@eq_itree _ _ _ eq) (fun x => interp (fun (T : Type) (e0 : (emptyE +' A) T) => match e0 with
                                                                      | inl1 e1 => eh_empty T e1
                                                                      | inr1 e2 => eh_id T e2
-                                                                                                         end) X (Ret x)) (fun x => Ret x)).
+                                                                     end) X (Ret x)) (fun x => Ret x)).
   { intros x. rewrite interp_ret. reflexivity. }
   rewrite H. rewrite bind_ret. reflexivity.
 Qed.

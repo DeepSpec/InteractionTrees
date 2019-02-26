@@ -198,7 +198,7 @@ Proof.
   unfold interp_match.
   unfold mrec.
   eapply eutt_interp.
-  { red. destruct e; try reflexivity.
+  { red. intro. red. destruct a; try reflexivity.
     destruct c.
     reflexivity. }
   reflexivity.
@@ -637,7 +637,7 @@ Qed.
 End eutt_loop.
 
 Instance sutt_loop {E A B C} :
-  Proper ((eq ==> sutt eq) ==> eq ==> sutt eq) (@loop E A B C).
+  Proper (pointwise_relation _ (sutt eq) ==> eq ==> sutt eq) (@loop E A B C).
 Proof.
   repeat intro; subst. apply sutt_is_sutt1.
 
@@ -647,7 +647,7 @@ Proof.
 Qed.
 
 Instance eutt_loop {E A B C} :
-  Proper ((eq ==> eutt eq) ==> eq ==> eutt eq) (@loop E A B C).
+  Proper (pointwise_relation _ (eutt eq) ==> eq ==> eutt eq) (@loop E A B C).
 Proof.
   repeat intro; subst.
   repeat red in H.

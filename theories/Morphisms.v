@@ -51,16 +51,16 @@ A Monad Transformer MT is given by:
 such that:
   Monad (MT m)
 
-  lift o return = return 
-  lift o (bind t1 k) = 
+  lift o return = return
+  lift o (bind t1 k) =
 
 EXAMPLE:
    stateT S m a :=    S -> m (S * a)
    lift : m `{Monad m} {a}, fun (c: m a) (s:S) => y <- c ;; ret (s, y)
 
-operations 
+operations
   get : m `{Monad m} stateT S m S := fun s => ret_m (s, s)
-  put : m `{Monad m}, S -> stateT S m unit := fun s' => fun s => ret_m (s', tt)  
+  put : m `{Monad m}, S -> stateT S m unit := fun s' => fun s => ret_m (s', tt)
 
 (* category *)
 id : A ~> MT (itree A)
@@ -240,7 +240,7 @@ Definition interp_state_match {E F S R} (h : E ~> stateT S (itree F))
   fun s =>
       match t.(observe) with
       | RetF r => Ret (s, r)
-      | VisF e k => 
+      | VisF e k =>
         Tau (ITree.bind (h _ e s) (fun sx =>
                rec (k (snd sx)) (fst sx)))
       | TauF t => Tau (rec t s)
@@ -271,7 +271,7 @@ Definition interp1_state_match {E F S R} (h : E ~> stateT S (itree F))
 CoFixpoint interp1_state {E F S} (h : E ~> stateT S (itree F)) :
   itree (E +' F) ~> stateT S (itree F) :=
   fun R => interp1_state_match h (interp1_state h R).
-    
+
 
 Definition translate1_state {E F S} (h : E ~> state S) :
   itree (E +' F) ~> stateT S (itree F) :=
