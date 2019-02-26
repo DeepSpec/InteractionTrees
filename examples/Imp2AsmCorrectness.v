@@ -64,15 +64,14 @@ End Correctness.
 
 Section EUTT.
 
-  Require Import Paco.paco.
-
   Context {E: Type -> Type}.
 
   Instance eq_itree_run_env {E R} {K V map} {Mmap: Maps.Map K V map}:
     Proper (@eutt (envE K V +' E) R R eq ==> eq ==> @eutt E (prod map R) (prod map R) eq)
            (run_env R).
   Proof.
-  Admitted.
+    eapply MorphismsFacts.eutt_interp_state.
+  Qed.
 
 End EUTT.
 
@@ -104,7 +103,8 @@ Section Real_correctness.
   Context {HasExit: Exit -< E'}.
   Definition E := Locals +' E'.
 
-  Definition interp_locals {R: Type} (t: itree E R) (s: alist var value): itree E' (alist var value * R) :=
+  Definition interp_locals {R: Type} (t: itree E R) (s: alist var value)
+  : itree E' (alist var value * R) :=
     run_env _ (interp1 evalLocals _ t) s.
 
   Instance eq_itree_interp_locals {R}:
