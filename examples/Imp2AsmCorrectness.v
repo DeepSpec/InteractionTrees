@@ -117,7 +117,14 @@ Section Real_correctness.
       @eutt E' _ _ eq
             (interp_locals (ITree.bind t k) s)
             (ITree.bind (interp_locals t s) (fun s' => interp_locals (k (snd s')) (fst s'))).
-  Admitted.
+  Proof.
+    intros.
+    unfold interp_locals.
+    unfold run_env.
+    rewrite interp1_bind.
+    rewrite interp_state_bind.
+    reflexivity.
+  Qed.
 
 Definition eq_locals {R1 R2} (RR : R1 -> R2 -> Prop)
            (Renv_ : _ -> _ -> Prop)

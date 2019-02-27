@@ -181,34 +181,6 @@ Eval simpl in ImpEval ex2.
 From ITree Require Import FixFacts MorphismsFacts.
 Require Import Paco.paco.
 
-Lemma interp1_bind {E F R S} (h : E ~> itree F) (t : _ R) (k : _ -> itree (E +' F) S) :
-  interp1 h _ (t >>= k) ≅ interp1 h _ t >>= fun x => interp1 h _ (k x).
-Proof.
-  pupto2_init.
-  revert t; pcofix self; intros.
-  rewrite 2 unfold_interp1. rewrite unfold_bind.
-  destruct (observe t); cbn.
-  - rewrite ret_bind_. rewrite <- unfold_interp1.
-    pupto2_final. apply RelationClasses.reflexivity.
-  - rewrite tau_bind_. pfold; constructor; auto.
-  - destruct e.
-    + rewrite tau_bind_. rewrite bind_bind. pfold; constructor.
-      pupto2 eq_itree_clo_bind. constructor.
-      reflexivity. auto.
-    + rewrite vis_bind_. pfold; constructor; auto.
-Qed.
-
-Lemma translate_interp1 {E F R} (h : F ~> itree E) :
-  forall (t : itree E R),
-    interp1 h _ (translate (fun _ e => inr1 e) t) ≅ t.
-Proof.
-  pcofix self; intros.
-  pfold; red.
-  rewrite interp1_unfold.
-  rewrite TranslateFacts.unfold_translate.
-  destruct (observe t); cbn; auto.
-Qed.
-
 Lemma while_is_loop {E} (body : itree E bool) :
     while body
   ≈ loop (fun l : unit + unit =>

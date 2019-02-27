@@ -235,11 +235,11 @@ Definition interp1_u {E F G} `{F -< G} (h : E ~> itree G) R :
              | inr1 f => Vis (subeffect _ f) (fun x => interp1 h _ (k x))
              end).
 
-Lemma interp1_unfold {E F R} {f : E ~> itree F} (t : itree (E +' F) R) :
+Lemma interp1_unfold {E F G} `{F -< G} {R} {f : E ~> itree G} (t : itree (E +' F) R) :
   observe (interp1 f _ t) = observe (interp1_u f _ (observe t)).
 Proof. eauto. Qed.
 
-Lemma unfold_interp1 {E F R} {f : E ~> itree F} (t : itree (E +' F) R) :
+Lemma unfold_interp1 {E F G} `{F -< G} {R} {f : E ~> itree G} (t : itree (E +' F) R) :
   interp1 f _ t ≅ interp1_u f _ (observe t).
 Proof. rewrite itree_eta, interp1_unfold, <-itree_eta. reflexivity. Qed.
 
@@ -731,3 +731,30 @@ Proof.
   simpl. unfold Sum1.idE. reflexivity.
 Qed.
 
+Lemma interp1_bind {E F G} `{F -< G} {R S} (h : E ~> itree G) (t : _ R) (k : _ -> itree (E +' F) S) :
+  interp1 h _ (t >>= k) ≅ interp1 h _ t >>= fun x => interp1 h _ (k x).
+Proof.
+  pupto2_init.
+  revert t; pcofix self; intros.
+  rewrite 2 unfold_interp1. rewrite unfold_bind.
+  destruct (observe t); cbn.
+  - rewrite ret_bind_. rewrite <- unfold_interp1.
+    pupto2_final. apply RelationClasses.reflexivity.
+  - rewrite tau_bind_. pfold; constructor; auto.
+  - destruct e.
+    + rewrite tau_bind_. rewrite bind_bind. pfold; constructor.
+      pupto2 eq_itree_clo_bind. constructor.
+      reflexivity. auto.
+    + rewrite vis_bind_. pfold; constructor; auto.
+Qed.
+
+Lemma translate_interp1 {E F R} (h : F ~> itree E) :
+  forall (t : itree E R),
+    interp1 h _ (translate (fun _ e => inr1 e) t) ≅ t.
+Proof.
+  pcofix self; intros.
+  pfold; red.
+  rewrite interp1_unfold.
+  rewrite TranslateFacts.unfold_translate.
+  destruct (observe t); cbn; auto.
+Qed.
