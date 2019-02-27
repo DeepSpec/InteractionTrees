@@ -695,3 +695,15 @@ Hint Rewrite @tensor_id_lift : lift_den.
 Hint Rewrite @tensor_lift_id : lift_den.
 Hint Rewrite @lift_sum_elim : lift_den.
 
+(* A trick to allow rewriting with eq_den in pointful contexts. *)
+Definition to_itree {E} (f : @den E unit unit) : itree E unit := f tt.
+
+Global Instance Proper_to_itree {E} :
+  Proper (eq_den ==> eutt eq) (@to_itree E).
+Proof.
+  repeat intro.
+  apply H.
+Qed.
+
+Lemma fold_to_itree {E} (f : @den E unit unit) : f tt = to_itree f.
+Proof. reflexivity. Qed.

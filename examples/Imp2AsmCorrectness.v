@@ -618,23 +618,6 @@ Qed.
     - rewrite itree_eta; cbn; reflexivity.
   Qed.
 
-(*
-    Global Instance subrelation_eq_den {E A B} :
-      subrelation (@eq_den E A B) (pointwise_relation _ (eutt eq))%signature.
-    Proof.
-    Admitted.
-*)
-(* a trick to allow rewriting with eq_den *)
-Definition ff (f : @den E unit unit) : itree E unit := f tt.
-
-Global Instance Proper_ff : Proper (eq_den ==> eutt eq) ff.
-Proof.
-  repeat intro; unfold ff; auto.
-Qed. 
-
-Lemma fold_ff f : f tt = ff f.
-Proof. reflexivity. Qed.
-
 Lemma interp1_liftE {E F G: Type -> Type} `{F -< G}:
   forall (h: forall T: Type, E T -> itree G T) T (e : E T),
     @interp1 E F G _ h T (lift e) ≈ h T e.
@@ -683,8 +666,8 @@ Proof.
     reflexivity.
 
   - (* Seq *)
-    rewrite fold_ff; simpl.
-    rewrite seq_asm_correct. unfold ff.
+    rewrite fold_to_itree; simpl.
+    rewrite seq_asm_correct. unfold to_itree.
     unfold ITree.cat.
     eapply eq_locals_bind_gen.
     { eauto. }
@@ -692,9 +675,9 @@ Proof.
 
   - (* If *)
     repeat intro.
-    rewrite fold_ff. simpl.
+    rewrite fold_to_itree. simpl.
     rewrite if_asm_correct.
-    unfold ff.
+    unfold to_itree.
     rewrite 2 interp_locals_bind.
     eapply eutt_bind_gen.
     { apply compile_expr_correct; auto. }
@@ -710,10 +693,10 @@ Proof.
     destruct v; simpl; auto. 
 
   - (* While *)
-    simpl; rewrite fold_ff.
+    simpl; rewrite fold_to_itree.
     rewrite while_asm_correct.
     rewrite while_is_loop.
-    unfold ff, loop_den.
+    unfold to_itree, loop_den.
     apply eq_locals_loop.
     intros [[]|[]]; try reflexivity.
     unfold ITree.map. rewrite bind_bind.
