@@ -148,6 +148,35 @@ Definition eq_locals_bind_gen (Renv_ : _ -> _ -> Prop)
 Proof.
 Admitted.
 
+Instance subrelation_eutt_eq_locals {R} (RR : R -> R -> Prop)
+  : subrelation (eutt RR) (eq_locals RR Renv).
+Proof.
+Admitted.
+
+Instance Reflexive_eq_locals {R} (RR : R -> R -> Prop) :
+  Reflexive RR -> Reflexive (eq_locals RR Renv).
+Proof.
+  repeat intro; apply subrelation_eutt_eq_locals;
+    auto; reflexivity.
+Qed.
+
+Lemma while_is_loop (body : itree E bool) :
+    while body
+  ≈ loop (fun l : unit + unit =>
+      match l with
+      | inl _ => ITree.map (fun b => if b : bool then inl tt else inr tt)
+                            body
+      | inr _ => Ret (inl tt)   (* Enter loop *)
+      end) tt.
+Proof.
+Admitted.
+
+Lemma eq_locals_loop {A B C} x (t1 t2 : C + A -> itree E (C + B)) :
+  (forall l, eq_locals eq Renv (t1 l) (t2 l)) ->
+  eq_locals eq Renv (loop t1 x) (loop t2 x).
+Proof.
+Admitted.
+
   Set Nested Proofs Allowed.
 
   Ltac force_left :=
@@ -636,18 +665,6 @@ Proof.
   apply tau_eutt.
 Qed.
 
-Instance subrelation_eutt_eq_locals {R} (RR : R -> R -> Prop)
-  : subrelation (eutt RR) (eq_locals RR Renv).
-Proof.
-Admitted.
-
-Instance Reflexive_eq_locals {R} (RR : R -> R -> Prop) :
-  Reflexive RR -> Reflexive (eq_locals RR Renv).
-Proof.
-  repeat intro; apply subrelation_eutt_eq_locals;
-    auto; reflexivity.
-Qed.
-
 Lemma compile_correct (s : stmt) :
   eq_locals eq Renv
     (denote_asm (compile s) tt)
@@ -695,39 +712,40 @@ Proof.
   - (* While *)
     simpl; rewrite fold_ff.
     rewrite while_asm_correct.
-    (* This is kinda silly *)
-    assert (
-        (fun l : unit + unit =>
-           match l with
-           | inl tt =>
-             denote_list (compile_expr 0 t);; v <- lift (GetVar tmp_if);; (if (v: value) then Ret (inr tt) else denote_asm (compile s) tt;; Ret (inl tt))
-           | inr tt => Ret (inl tt)
-           end) ⩰
-                ((fun _ => denote_list (compile_expr 0 t))
-                   ⊗
-                   id_den) >=>
-                (fun l: unit + unit => match l with
-                                    | inl tt => v <- lift (GetVar tmp_if);; (if (v: value) then Ret (inr tt) else denote_asm (compile s)tt;; Ret (inl tt))
-                                    | inr tt => Ret (inl tt)
-                                    end)
-      )
-      .
-      {unfold tensor_den, id_den, lift_den, sum_elim, ITree.cat.
-       intros [[]|[]]. 
-       repeat rewrite bind_bind.
-       apply eutt_bind; [reflexivity | intros []].
-       repeat rewrite ret_bind_; reflexivity.
-       repeat rewrite ret_bind_; reflexivity. 
-      }
-      rewrite H.
-      admit.
-    (* TODO: Should use some loop_den lemmas to make the two loops
-             line up. *)
+    rewrite while_is_loop.
+    unfold ff, loop_den.
+    apply eq_locals_loop.
+    intros [[]|[]]; try reflexivity.
+    unfold ITree.map. rewrite bind_bind.
+
+    repeat intro.
+    rewrite 2 interp_locals_bind.
+    eapply eutt_bind_gen.
+    { apply compile_expr_correct; auto. }
+    intros.
+    destruct r2 as [g_imp' v]; simpl.
+    rewrite interp_locals_bind.
+    destruct r1 as [g_asm' []].
+    generalize H0; intros EQ. apply sim_rel_get_tmp0 in EQ.
+    rewrite interp_locals_bind.
+    setoid_rewrite EQ; clear EQ.
+    rewrite ret_bind_.
+    simpl.
+    apply sim_rel_Renv in H0.
+    destruct v; simpl; auto.
+    + rewrite itree_eta, (itree_eta (_ >>= _)); cbn.
+      apply eutt_Ret. auto.
+    + rewrite 2 interp_locals_bind, bind_bind.
+      eapply eutt_bind_gen.
+      { eapply IHs; auto. }
+      intros.
+      rewrite itree_eta, (itree_eta (_ >>= _)); cbn.
+      apply eutt_Ret. destruct H1; auto.
 
   - (* Skip *)
     rewrite (itree_eta (denote_asm _ _)), (itree_eta (denoteStmt _)).
     reflexivity.
-Admitted.
+Qed.
 
 
 (*
