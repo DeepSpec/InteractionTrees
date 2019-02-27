@@ -119,15 +119,34 @@ Section Real_correctness.
             (ITree.bind (interp_locals t s) (fun s' => interp_locals (k (snd s')) (fst s'))).
   Admitted.
 
-(* TODO: maybe some of the correctness lemmas/theorems could
-   be refactored with this relation on denotations (which needs
-   fixing).
+Definition eq_locals {R1 R2} (RR : R1 -> R2 -> Prop)
+           (Renv_ : _ -> _ -> Prop)
+           t1 t2 :=
+  forall g1 g2,
+    Renv_ g1 g2 ->
+    eutt (fun a (b : alist var value * R2) => Renv_ (fst a) (fst b) /\ RR (snd a) (snd b))
+         (interp_locals t1 g1)
+         (interp_locals t2 g2).
 
-  Definition eq_locals {R} (t1 t2 : itree E R) : Prop :=
-    forall g1 g2,
-      Renv g1 g2 ->
-      eutt (sim_rel _ _) (interp_locals t1 g1) (interp_locals t2 g2).
-*)
+Instance eutt_eq_locals (Renv_ : _ -> _ -> Prop) {R} RR :
+  Proper (eutt eq ==> eutt eq ==> iff) (@eq_locals R R RR Renv_).
+Proof.
+  repeat intro.
+  split; repeat intro.
+  - rewrite <- H, <- H0; auto.
+  - rewrite H, H0; auto.
+Qed.
+
+Definition eq_locals_bind_gen (Renv_ : _ -> _ -> Prop)
+           {R1 R2 S1 S2} (RR : R1 -> R2 -> Prop)
+           (RS : S1 -> S2 -> Prop) :
+  forall t1 t2,
+    eq_locals RR Renv_ t1 t2 ->
+    forall k1 k2,
+      (forall r1 r2, RR r1 r2 -> eq_locals RS Renv_ (k1 r1) (k2 r2)) ->
+      eq_locals RS Renv_ (t1 >>= k1) (t2 >>= k2).
+Proof.
+Admitted.
 
   Set Nested Proofs Allowed.
 
@@ -431,13 +450,12 @@ Qed.
 
 (** Correctness of compilation *)
 
-  Lemma compile_assign_correct : forall e g_imp g_asm x,
-      Renv g_asm g_imp ->
-      eutt (fun a b => Renv (fst a) (fst b))
-           (interp_locals (denote_list (compile_assign x e)) g_asm)
-           (interp_locals (v <- denoteExpr e ;; lift (SetVar x v)) g_imp).
+  Lemma compile_assign_correct : forall e x,
+      eq_locals eq Renv
+        (denote_list (compile_assign x e))
+        (v <- denoteExpr e ;; lift (SetVar x v)).
   Proof.
-    simpl; intros.
+    red; intros.
     unfold compile_assign.
     rewrite denote_list_app.
     do 2 rewrite interp_locals_bind.
@@ -451,6 +469,7 @@ Qed.
     destruct r1, r2.
     erewrite sim_rel_find_tmp_n; eauto; simpl.
     destruct H0.
+    split; auto.
     eapply Renv_write_local; eauto.
   Qed.
 
@@ -617,52 +636,62 @@ Proof.
   apply tau_eutt.
 Qed.
 
-Lemma compile_correct:
-  forall s (g_imp g_asm : alist var value),
-    Renv g_asm g_imp ->
-    eutt (fun a b => Renv (fst a) (fst b) /\ snd a = snd b)
-         (interp_locals (denote_asm (compile s) tt) g_asm)
-         (interp_locals (denoteStmt s) g_imp).
+Instance subrelation_eutt_eq_locals {R} (RR : R -> R -> Prop)
+  : subrelation (eutt RR) (eq_locals RR Renv).
 Proof.
-  induction s; intros g_imp g_asm Hsim.
+Admitted.
+
+Instance Reflexive_eq_locals {R} (RR : R -> R -> Prop) :
+  Reflexive RR -> Reflexive (eq_locals RR Renv).
+Proof.
+  repeat intro; apply subrelation_eutt_eq_locals;
+    auto; reflexivity.
+Qed.
+
+Lemma compile_correct (s : stmt) :
+  eq_locals eq Renv
+    (denote_asm (compile s) tt)
+    (denoteStmt s).
+Proof.
+  induction s.
+
   - (* Assign *)
     simpl.
     rewrite raw_asm_block_correct.
     rewrite after_correct.
     rewrite <- (bind_ret (ITree.bind (denoteExpr e) _)).
-    rewrite 2 interp_locals_bind.
-    eapply eutt_bind_gen.
+    eapply eq_locals_bind_gen.
     { eapply compile_assign_correct; auto. }
-    intros. simpl.
-    rewrite (itree_eta (_ (fst r1))), (itree_eta (_ (fst r2))).
-    cbn.
-    apply eutt_Ret. destruct (snd r2). auto.
+    intros [] [] []. simpl.
+    reflexivity.
+
   - (* Seq *)
     rewrite fold_ff; simpl.
     rewrite seq_asm_correct. unfold ff.
     unfold ITree.cat.
-    rewrite 2 interp_locals_bind.
-    eapply eutt_bind_gen.
-    { auto. }
-    intros. destruct H. destruct (snd r2). rewrite H0.
-    auto.
+    eapply eq_locals_bind_gen.
+    { eauto. }
+    intros [] [] []; auto.
+
   - (* If *)
+    repeat intro.
     rewrite fold_ff. simpl.
     rewrite if_asm_correct.
     unfold ff.
     rewrite 2 interp_locals_bind.
     eapply eutt_bind_gen.
-    { apply compile_expr_correct. auto. }
+    { apply compile_expr_correct; auto. }
     intros.
     destruct r2 as [g_imp' v]; simpl.
     rewrite interp_locals_bind.
     destruct r1 as [g_asm' []].
-    generalize H; intros EQ; apply sim_rel_get_tmp0 in EQ.
+    generalize H0; intros EQ. apply sim_rel_get_tmp0 in EQ.
     setoid_rewrite EQ; clear EQ.
     rewrite ret_bind_.
     simpl.
-    apply sim_rel_Renv in H.
+    apply sim_rel_Renv in H0.
     destruct v; simpl; auto. 
+
   - (* While *)
     simpl; rewrite fold_ff.
     rewrite while_asm_correct.
@@ -696,9 +725,8 @@ Proof.
              line up. *)
 
   - (* Skip *)
-    rewrite (itree_eta (_ _ g_imp)), (itree_eta (_ _ g_asm)).
-    cbn.
-    apply eutt_Ret; auto.
+    rewrite (itree_eta (denote_asm _ _)), (itree_eta (denoteStmt _)).
+    reflexivity.
 Admitted.
 
 
