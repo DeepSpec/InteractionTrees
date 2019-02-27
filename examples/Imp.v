@@ -171,9 +171,79 @@ Definition ImpEval (s: stmt): itree emptyE (env * unit) :=
   let p := interp evalLocals _ (denoteStmt s) in
   run_env _ p empty.
 
+(*
 (* some simple examples. Dumb right now, nothing computes *)
 Eval unfold ex1 in ImpEval ex1.
 
 Eval simpl in ImpEval ex2.
+*)
 
+From ITree Require Import FixFacts MorphismsFacts.
+Require Import Paco.paco.
 
+Lemma interp1_bind {E F R S} (h : E ~> itree F) (t : _ R) (k : _ -> itree (E +' F) S) :
+  interp1 h _ (t >>= k) ≅ interp1 h _ t >>= fun x => interp1 h _ (k x).
+Proof.
+  pupto2_init.
+  revert t; pcofix self; intros.
+  rewrite 2 unfold_interp1. rewrite unfold_bind.
+  destruct (observe t); cbn.
+  - rewrite ret_bind_. rewrite <- unfold_interp1.
+    pupto2_final. apply RelationClasses.reflexivity.
+  - rewrite tau_bind_. pfold; constructor; auto.
+  - destruct e.
+    + rewrite tau_bind_. rewrite bind_bind. pfold; constructor.
+      pupto2 eq_itree_clo_bind. constructor.
+      reflexivity. auto.
+    + rewrite vis_bind_. pfold; constructor; auto.
+Qed.
+
+Lemma translate_interp1 {E F R} (h : F ~> itree E) :
+  forall (t : itree E R),
+    interp1 h _ (translate (fun _ e => inr1 e) t) ≅ t.
+Proof.
+  pcofix self; intros.
+  pfold; red.
+  rewrite interp1_unfold.
+  rewrite TranslateFacts.unfold_translate.
+  destruct (observe t); cbn; auto.
+Qed.
+
+Lemma while_is_loop {E} (body : itree E bool) :
+    while body
+  ≈ loop (fun l : unit + unit =>
+      match l with
+      | inl _ => ITree.map (fun b => if b : bool then inl tt else inr tt)
+                            body
+      | inr _ => Ret (inl tt)   (* Enter loop *)
+      end) tt.
+Proof.
+  unfold while.
+  unfold loop.
+  rewrite unfold_loop'.
+  unfold loop_once_.
+  rewrite ret_bind_.
+  rewrite tau_eutt.
+  apply subrelation_eq_eutt.
+  pupto2_init; pcofix self.
+  rewrite rec_unfold', unfold_loop'.
+  unfold loop_once_; cbn.
+  rewrite interp1_bind, map_bind.
+  rewrite translate_interp1.
+  pupto2 eq_itree_clo_bind; constructor; try reflexivity.
+  intros [].
+  - rewrite itree_eta; cbn.
+    pupto2 eq_itree_clo_trans; econstructor.
+    apply eq_itree_tau.
+    eapply eq_itree_bind.
+    reflexivity.
+    intros [] ? [].
+    rewrite unfold_interp1; cbn.
+    instantiate (1 := fun x => Ret x).
+    reflexivity.
+    reflexivity. rewrite bind_ret.
+    pfold; constructor.
+    pupto2_final.
+    right; auto.
+  - rewrite itree_eta; cbn. pfold; constructor; auto.
+Qed.

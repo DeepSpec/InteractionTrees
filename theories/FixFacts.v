@@ -186,21 +186,25 @@ Qed.
 
 End Facts.
 
+Lemma rec_unfold' {E A B} (f : A -> itree (callE A B +' E) B) (x : A) :
+  rec f x ≅ interp1 (fun _ e => calling' (rec f) _ e) _ (f x).
+Proof.
+  unfold rec. unfold mrec.
+  rewrite unfold_interp_mrec.
+  unfold interp_match.
+  unfold mrec. eapply eq_itree_interp1_.
+  - intros ? []; reflexivity.
+  - reflexivity.
+Qed.
+
 Lemma rec_unfold {E A B} (f : A -> itree (callE A B +' E) B) (x : A) :
   rec f x ≈ interp (fun _ e => match e with
                                | inl1 e => calling' (rec f) _ e
                                | inr1 e => ITree.liftE e
                                end) _ (f x).
 Proof.
-  unfold rec. unfold mrec.
-  rewrite unfold_interp_mrec.
-  repeat rewrite <- interp_is_interp1.
-  unfold interp_match.
-  unfold mrec.
-  eapply eutt_interp.
-  { red. intro. red. destruct a; try reflexivity.
-    destruct c.
-    reflexivity. }
+  rewrite rec_unfold'.
+  rewrite <- interp_is_interp1.
   reflexivity.
 Qed.
 

@@ -153,17 +153,6 @@ Proof.
   intros. eapply H0; destruct H2; auto.
 Qed.
 
-Lemma while_is_loop (body : itree E bool) :
-    while body
-  ≈ loop (fun l : unit + unit =>
-      match l with
-      | inl _ => ITree.map (fun b => if b : bool then inl tt else inr tt)
-                            body
-      | inr _ => Ret (inl tt)   (* Enter loop *)
-      end) tt.
-Proof.
-Admitted.
-
 Lemma eq_locals_loop {A B C} x (t1 t2 : C + A -> itree E (C + B)) :
   (forall l, eq_locals eq Renv (t1 l) (t2 l)) ->
   eq_locals eq Renv (loop t1 x) (loop t2 x).

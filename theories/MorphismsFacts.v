@@ -294,22 +294,33 @@ Proof.
     eapply (CIH' (go x2) (go x3)); eauto.
 Qed.
 
-Instance eq_itree_interp1 {E F R} (h : E ~> itree F) :
-  Proper (@eq_itree (E +' F) _ _ eq ==> eq_itree eq) (interp1 h R).
+Lemma eq_itree_interp1_ {E F R} (h1 h2 : E ~> itree F) :
+  (forall T (e : E T), h1 _ e ≅ h2 _ e) ->
+  forall t1 t2 : itree (E +' F) R,
+    t1 ≅ t2 -> interp1 h1 _ t1 ≅ interp1 h2 _ t2.
 Proof.
-  repeat intro. pupto2_init. revert_until R.
+  intros Hh t1 t2 Ht.
+  pupto2_init. revert_until R.
   pcofix CIH. intros.
   rewrite !unfold_interp1.
-  punfold H0; red in H0.
-  destruct H0; pclearbot.
+  punfold Ht; red in Ht.
+  destruct Ht; pclearbot.
   - pupto2_final. pfold. red. cbn. eauto.
   - pupto2_final. pfold. red. cbn. eauto.
   - pfold. destruct e; cbn; econstructor.
     + pupto2 (eq_itree_clo_bind F R).
       constructor.
-      * reflexivity.
+      * auto.
       * intros; pupto2_final; eauto.
-    + intros. pupto2_final. eauto.
+    + intros; pupto2_final; eauto.
+Qed.
+
+Instance eq_itree_interp1 {E F R} (h : E ~> itree F) :
+  Proper (@eq_itree (E +' F) _ _ eq ==> eq_itree eq) (interp1 h R).
+Proof.
+  repeat intro.
+  eapply eq_itree_interp1_; auto.
+  reflexivity.
 Qed.
 
 Instance eutt_interp1 {E F: Type -> Type} (h: E ~> itree F) R:
