@@ -11,6 +11,7 @@ From Coq Require Import
 From ITree Require Import
      Basics_Functions
      Effect.Env
+     MorphismsFacts
      ITree.
 
 From ExtLib Require Import
@@ -495,7 +496,7 @@ Qed.
       (fun _ =>
          denote_list e ;;
          v <- lift (GetVar tmp_if) ;;
-         if v : value then denote_asm tp tt else denote_asm fp tt).
+         if v : value then denote_asm fp tt else denote_asm tp tt).
   Proof.
     unfold if_asm.
     rewrite seq_asm_correct.
@@ -508,16 +509,6 @@ Qed.
     apply eutt_bind; [reflexivity | intros ?].
     apply eutt_bind; [reflexivity | intros []].
     - rewrite ret_bind_.
-      rewrite (relabel_asm_correct _ _ _ (inl tt)).
-      unfold ITree.cat; simpl.
-      rewrite bind_bind.
-      unfold lift_den; rewrite ret_bind_.
-      setoid_rewrite (app_asm_correct tp fp (inl tt)).
-      setoid_rewrite bind_bind.
-      rewrite <- (bind_ret (denote_asm tp tt)) at 2.
-      eapply eutt_bind; [ reflexivity | intros ? ].
-      unfold lift_den; rewrite ret_bind_; reflexivity.
-    - rewrite ret_bind_.
       rewrite (relabel_asm_correct _ _ _ (inr tt)).
       unfold ITree.cat; simpl.
       rewrite bind_bind.
@@ -525,6 +516,16 @@ Qed.
       setoid_rewrite (app_asm_correct tp fp (inr tt)).
       setoid_rewrite bind_bind.
       rewrite <- (bind_ret (denote_asm fp tt)) at 2.
+      eapply eutt_bind; [ reflexivity | intros ? ].
+      unfold lift_den; rewrite ret_bind_; reflexivity.
+    - rewrite ret_bind_.
+      rewrite (relabel_asm_correct _ _ _ (inl tt)).
+      unfold ITree.cat; simpl.
+      rewrite bind_bind.
+      unfold lift_den; rewrite ret_bind_.
+      setoid_rewrite (app_asm_correct tp fp (inl tt)).
+      setoid_rewrite bind_bind.
+      rewrite <- (bind_ret (denote_asm tp tt)) at 2.
       eapply eutt_bind; [reflexivity | intros ?].
       unfold lift_den; rewrite ret_bind_; reflexivity.
   Qed.
@@ -538,9 +539,9 @@ Qed.
            denote_list e ;;
            v <- lift (GetVar tmp_if) ;;
            if v : value then
-             denote_asm p tt;; Ret (inl tt)
-           else
              Ret (inr tt)
+           else
+             denote_asm p tt;; Ret (inl tt)
          | inr tt => Ret (inl tt)
          end)).
   Proof.
@@ -557,16 +558,16 @@ Qed.
       apply eutt_bind; [reflexivity | intros []].
       rewrite bind_bind.
       apply eutt_bind; [reflexivity | intros []].
+      + rewrite (pure_asm_correct _ tt).
+        unfold lift_den.
+        repeat rewrite ret_bind_.
+        reflexivity.
       + rewrite (relabel_asm_correct _ _ _  tt).
         unfold ITree.cat. 
         simpl; repeat setoid_rewrite bind_bind.
         unfold lift_den; rewrite ret_bind_.
         apply eutt_bind; [reflexivity | intros []].
         repeat rewrite ret_bind_; reflexivity.
-      + rewrite (pure_asm_correct _ tt).
-        unfold lift_den.
-        repeat rewrite ret_bind_.
-        reflexivity.
     - rewrite itree_eta; cbn; reflexivity.
   Qed.
 
@@ -585,6 +586,17 @@ Admitted.
 Lemma fold_ff f : f tt = ff f.
 Proof. reflexivity. Qed.
 
+Lemma sim_rel_get_tmp0:
+  forall g_asm0 g_asm g_imp v,
+    sim_rel g_asm0 0 (g_asm,tt) (g_imp,v) ->
+    interp_locals (lift (GetVar (%0))) g_asm = Ret (g_asm,v).
+Proof.
+  intros.
+  destruct H as [_ [eq _]].
+  unfold interp_locals.
+  unfold run_env.
+Admitted.
+
 Lemma compile_correct:
   forall s (g_imp g_asm : alist var value),
     Renv g_asm g_imp ->
@@ -592,7 +604,7 @@ Lemma compile_correct:
          (interp_locals (denote_asm (compile s) tt) g_asm)
          (interp_locals (denoteStmt s) g_imp).
 Proof.
-  induction s; intros.
+  induction s; intros g_imp g_asm Hsim.
   - (* Assign *)
     simpl.
     rewrite raw_asm_block_correct.
@@ -612,23 +624,32 @@ Proof.
     rewrite 2 interp_locals_bind.
     eapply eutt_bind_gen.
     { auto. }
-    intros. destruct H0. destruct (snd r2). rewrite H1.
+    intros. destruct H. destruct (snd r2). rewrite H0.
     auto.
   - (* If *)
-    rewrite fold_ff; simpl.
+    rewrite fold_ff. simpl.
     rewrite if_asm_correct.
     unfold ff.
     rewrite 2 interp_locals_bind.
     eapply eutt_bind_gen.
     { apply compile_expr_correct. auto. }
     intros.
-    admit.
+    destruct r2 as [g_imp' v]; simpl.
+    rewrite interp_locals_bind.
+    destruct r1 as [g_asm' []].
+    generalize H; intros EQ; apply sim_rel_get_tmp0 in EQ.
+    setoid_rewrite EQ; clear EQ.
+    rewrite ret_bind_.
+    simpl.
+    apply sim_rel_Renv in H.
+    destruct v; simpl; auto. 
   - (* While *)
     simpl; rewrite fold_ff.
     rewrite while_asm_correct.
+    admit.
     (* TODO: Should use some loop_den lemmas to make the two loops
              line up. *)
-    admit.
+
   - (* Skip *)
     rewrite (itree_eta (_ _ g_imp)), (itree_eta (_ _ g_asm)).
     cbn.
