@@ -146,18 +146,11 @@ Definition eq_locals_bind_gen (Renv_ : _ -> _ -> Prop)
       (forall r1 r2, RR r1 r2 -> eq_locals RS Renv_ (k1 r1) (k2 r2)) ->
       eq_locals RS Renv_ (t1 >>= k1) (t2 >>= k2).
 Proof.
-Admitted.
-
-Instance subrelation_eutt_eq_locals {R} (RR : R -> R -> Prop)
-  : subrelation (eutt RR) (eq_locals RR Renv).
-Proof.
-Admitted.
-
-Instance Reflexive_eq_locals {R} (RR : R -> R -> Prop) :
-  Reflexive RR -> Reflexive (eq_locals RR Renv).
-Proof.
-  repeat intro; apply subrelation_eutt_eq_locals;
-    auto; reflexivity.
+  repeat intro.
+  rewrite 2 interp_locals_bind.
+  eapply eutt_bind_gen.
+  { eapply H; auto. }
+  intros. eapply H0; destruct H2; auto.
 Qed.
 
 Lemma while_is_loop (body : itree E bool) :
@@ -663,7 +656,9 @@ Proof.
     eapply eq_locals_bind_gen.
     { eapply compile_assign_correct; auto. }
     intros [] [] []. simpl.
-    reflexivity.
+    repeat intro.
+    rewrite itree_eta, (itree_eta (_ _ g2)); cbn.
+    apply eutt_Ret; auto.
 
   - (* Seq *)
     rewrite fold_to_itree; simpl.
@@ -698,7 +693,10 @@ Proof.
     rewrite while_is_loop.
     unfold to_itree, loop_den.
     apply eq_locals_loop.
-    intros [[]|[]]; try reflexivity.
+    intros [[]|[]].
+    2:{ repeat intro.
+        rewrite itree_eta, (itree_eta (_ _ g2)); cbn.
+        apply eutt_Ret; auto. }
     unfold ITree.map. rewrite bind_bind.
 
     repeat intro.
@@ -726,8 +724,11 @@ Proof.
       apply eutt_Ret. destruct H1; auto.
 
   - (* Skip *)
-    rewrite (itree_eta (denote_asm _ _)), (itree_eta (denoteStmt _)).
-    reflexivity.
+    repeat intro.
+    rewrite (itree_eta (_ (denote_asm _ _) _)),
+    (itree_eta (_ (denoteStmt _) _));
+      cbn.
+    apply eutt_Ret; auto.
 Qed.
 
 
