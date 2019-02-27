@@ -10,6 +10,7 @@ From Coq Require Import
 
 From ITree Require Import
      Basics_Functions
+     Core
      Effect.Env
      MorphismsFacts
      ITree.
@@ -36,8 +37,6 @@ Section Correctness.
       Make the keys of the second env monad as the sum of the two initial ones.
    *)
 
-
-  Import ITree.Core.
 
   Variable E: Type -> Type.
   Context {HasLocals: Locals -< E} {HasMemory: Memory -< E}.
@@ -581,21 +580,42 @@ Qed.
 Definition ff (f : @den E unit unit) : itree E unit := f tt.
 
 Global Instance Proper_ff : Proper (eq_den ==> eutt eq) ff.
-Admitted.
+Proof.
+  repeat intro; unfold ff; auto.
+Qed. 
 
 Lemma fold_ff f : f tt = ff f.
 Proof. reflexivity. Qed.
 
+Lemma interp1_liftE {E F G: Type -> Type} `{F -< G}:
+  forall (h: forall T: Type, E T -> itree G T) T (e : E T),
+    @interp1 E F G _ h T (lift e) ≈ h T e.
+Proof.
+Admitted.
+ 
+Definition env_lookupDefault_is_lift {K V : Type} {E: Type -> Type} `{envE K V -< E} (x: K) (v: V):
+  env_lookupDefault x v = lift (lookupDefaultE x v).
+Proof.
+  reflexivity.
+Qed.
+
 Lemma sim_rel_get_tmp0:
   forall g_asm0 g_asm g_imp v,
     sim_rel g_asm0 0 (g_asm,tt) (g_imp,v) ->
-    interp_locals (lift (GetVar (%0))) g_asm = Ret (g_asm,v).
+    interp_locals (lift (GetVar (%0))) g_asm ≈ Ret (g_asm,v).
 Proof.
   intros.
   destruct H as [_ [eq _]].
   unfold interp_locals.
+  rewrite interp1_liftE.
+  cbn.
   unfold run_env.
-Admitted.
+  rewrite env_lookupDefault_is_lift.
+  unfold lift; rewrite interp_state_liftE.
+  cbn.
+  rewrite eq.
+  apply tau_eutt.
+Qed.
 
 Lemma compile_correct:
   forall s (g_imp g_asm : alist var value),
@@ -646,7 +666,32 @@ Proof.
   - (* While *)
     simpl; rewrite fold_ff.
     rewrite while_asm_correct.
-    admit.
+    (* This is kinda silly *)
+    assert (
+        (fun l : unit + unit =>
+           match l with
+           | inl tt =>
+             denote_list (compile_expr 0 t);; v <- lift (GetVar tmp_if);; (if (v: value) then Ret (inr tt) else denote_asm (compile s) tt;; Ret (inl tt))
+           | inr tt => Ret (inl tt)
+           end) ⩰
+                ((fun _ => denote_list (compile_expr 0 t))
+                   ⊗
+                   id_den) >=>
+                (fun l: unit + unit => match l with
+                                    | inl tt => v <- lift (GetVar tmp_if);; (if (v: value) then Ret (inr tt) else denote_asm (compile s)tt;; Ret (inl tt))
+                                    | inr tt => Ret (inl tt)
+                                    end)
+      )
+      .
+      {unfold tensor_den, id_den, lift_den, sum_elim, ITree.cat.
+       intros [[]|[]]. 
+       repeat rewrite bind_bind.
+       apply eutt_bind; [reflexivity | intros []].
+       repeat rewrite ret_bind_; reflexivity.
+       repeat rewrite ret_bind_; reflexivity. 
+      }
+      rewrite H.
+      admit.
     (* TODO: Should use some loop_den lemmas to make the two loops
              line up. *)
 
