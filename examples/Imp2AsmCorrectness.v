@@ -107,11 +107,16 @@ Section Real_correctness.
   : itree E' (alist var value * R) :=
     run_env _ (interp1 evalLocals _ t) s.
 
-  Instance eq_itree_interp_locals {R}:
+  Instance eutt_interp_locals {R}:
     Proper (@eutt E R R eq ==> eq ==> @eutt E' (prod (alist var value) R) (prod _ R) eq)
            interp_locals.
   Proof.
-  Admitted.
+    repeat intro.
+    unfold interp_locals.
+    unfold run_env.
+    rewrite H0. rewrite H.
+    reflexivity.
+  Qed.
 
   Lemma interp_locals_bind: forall {R S} (t: itree E R) (k: R -> itree _ S) (s: alist var value),
       @eutt E' _ _ eq
@@ -606,12 +611,6 @@ Qed.
         repeat rewrite ret_bind_; reflexivity.
     - rewrite itree_eta; cbn; reflexivity.
   Qed.
-
-Lemma interp1_liftE {E F G: Type -> Type} `{F -< G}:
-  forall (h: forall T: Type, E T -> itree G T) T (e : E T),
-    @interp1 E F G _ h T (lift e) ≈ h T e.
-Proof.
-Admitted.
  
 Definition env_lookupDefault_is_lift {K V : Type} {E: Type -> Type} `{envE K V -< E} (x: K) (v: V):
   env_lookupDefault x v = lift (lookupDefaultE x v).
