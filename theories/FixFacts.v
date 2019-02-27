@@ -667,3 +667,25 @@ Proof.
       red; auto.
     + auto.
 Qed.
+
+Lemma interp_state_loop {E F S A B C} (RS : S -> S -> Prop)
+      (h : E ~> Monads.stateT S (itree F))
+      (t1 t2 : C + A -> itree E (C + B)) :
+  (forall ca s1 s2, RS s1 s2 ->
+     eutt (fun a b => RS (fst a) (fst b) /\ snd a = snd b)
+          (interp_state h _ (t1 ca) s1)
+          (interp_state h _ (t2 ca) s2)) ->
+  (forall a s1 s2, RS s1 s2 ->
+     eutt (fun a b => RS (fst a) (fst b) /\ snd a = snd b)
+          (interp_state h _ (loop t1 a) s1)
+          (interp_state h _ (loop t2 a) s2)).
+Proof.
+Admitted.
+
+Require Import ITree.OpenSum.
+
+Lemma interp1_loop {E F G} `{F -< G} (f : E ~> itree G) {A B C}
+      (t : C + A -> itree (E +' F) (C + B)) a :
+  interp1 f _ (loop t a) ≅ loop (fun ca => interp1 f _ (t ca)) a.
+Proof.
+Admitted.

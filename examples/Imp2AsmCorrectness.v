@@ -13,6 +13,7 @@ From ITree Require Import
      Core
      Effect.Env
      MorphismsFacts
+     FixFacts
      ITree.
 
 From ExtLib Require Import
@@ -169,7 +170,11 @@ Lemma eq_locals_loop {A B C} x (t1 t2 : C + A -> itree E (C + B)) :
   (forall l, eq_locals eq Renv (t1 l) (t2 l)) ->
   eq_locals eq Renv (loop t1 x) (loop t2 x).
 Proof.
-Admitted.
+  unfold eq_locals, interp_locals, run_env.
+  intros.
+  rewrite 2 interp1_loop.
+  eapply interp_state_loop; auto.
+Qed.
 
   Set Nested Proofs Allowed.
 
