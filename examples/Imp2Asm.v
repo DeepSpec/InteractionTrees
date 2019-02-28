@@ -4,8 +4,11 @@ Require Import Psatz.
 
 From Coq Require Import
      Strings.String
+     Strings.OctalString
      Morphisms
      Setoid
+     Decimal
+     Numbers.DecimalString
      RelationClasses.
 
 From ITree Require Import
@@ -25,8 +28,14 @@ Open Scope string_scope.
 
 Section compile_assign.
 
+  Fixpoint nat_to_string (n: nat): string :=
+    match n with
+    | O => ""
+    | S n => String (ascii_of_nat 49) (nat_to_string n)
+    end.
+
   Definition gen_tmp (n: nat): string :=
-    "temp_" ++ to_string n.
+    "temp_" ++ nat_to_string n.
 
   Definition varOf (s : var) : var := "local_" ++ s.
 

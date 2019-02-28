@@ -77,14 +77,21 @@ Section EUTT.
 End EUTT.
 
 Section GEN_TMP.
- 
-  Lemma to_string_inj: forall (n m: nat), n <> m -> to_string n <> to_string m.
-  Admitted.
+
+  Lemma nat_to_string_inj:
+    forall (n m: nat), n <> m -> nat_to_string n <> nat_to_string m.
+  Proof.
+    induction n as [| n IH]; simpl; intros m ineq.
+    - destruct m as [| m]; [lia | intros abs; inversion abs].
+    - destruct m as [| m]; [intros abs; inversion abs |].
+      simpl; intros abs; inversion abs; subst; clear abs.
+      apply (IH m); auto.
+  Qed.
 
   Lemma gen_tmp_inj: forall n m, m <> n -> gen_tmp m <> gen_tmp n.
   Proof.
     intros n m ineq; intros abs; apply ineq.
-    apply to_string_inj in ineq; inversion abs; easy.
+    apply nat_to_string_inj in ineq; inversion abs; easy.
   Qed.
 
   Lemma varOf_inj: forall n m, m <> n -> varOf m <> varOf n.
