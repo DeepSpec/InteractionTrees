@@ -66,12 +66,6 @@ Proof.
   - intros ? ? ? [] []; eauto.
 Qed.
 
-(* TODO: Ideally, this should subsume [Eq.Eq.itree_eta],
-   see note over there. *)
-Lemma itree_eta_ (t : itree E R) :
-  observing eq t (go (observe t)).
-Proof. auto. Qed.
-
 End observing_relations.
 
 Lemma unfold_bind {E R S}
@@ -102,6 +96,10 @@ Lemma vis_bind {E R U V} (e: E V) (ek: V -> itree E U) (k: U -> itree E R) :
     (ITree.bind (Vis e ek) k)
     (Vis e (fun x => ITree.bind (ek x) k)).
 Proof. apply @unfold_bind. Qed.
+
+Lemma unfold_forever {E R S} (t: itree E R):
+  observing eq (@ITree.forever E R S t) (Tau (ITree.bind t (fun _ => ITree.forever t))).
+Proof. econstructor. reflexivity. Qed.
 
 (** ** [going]: Lift relations through [go]. *)
 

@@ -72,8 +72,8 @@ Definition observe {E R} := @_observe E R.
 Ltac fold_observe := change @_observe with @observe in *.
 Ltac unfold_observe := unfold observe in *.
 
-Ltac genobs x ox := remember (observe x) as ox; simpl observe.
-
+Ltac genobs x ox := remember (observe x) as ox.
+Ltac genobs_clear x ox := genobs x ox; match goal with [H: ox = observe x |- _] => clear H x end.
 Ltac simpobs := fold_observe;
                 repeat match goal with [H: _ = observe _ |- _] =>
                     rewrite_everywhere_except (@eq_sym _ _ _ H) H
@@ -152,7 +152,7 @@ CoFixpoint spin {E R} : itree E R := Tau spin.
 
 (** Repeat a computation infinitely. *)
 Definition forever {E R S} (t : itree E R) : itree E S :=
-  cofix forever_t := bind t (fun _ => Tau forever_t).
+  cofix forever_t := Tau (bind t (fun _ => forever_t)).
 
 (* this definition exists in ExtLib (or should because it is
  * generic to Monads)

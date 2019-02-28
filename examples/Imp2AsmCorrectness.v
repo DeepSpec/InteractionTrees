@@ -115,7 +115,7 @@ Section Real_correctness.
     repeat intro.
     unfold interp_locals.
     unfold run_env.
-    rewrite H0. rewrite H.
+    rewrite H0. eapply eutt_interp_state; auto. rewrite H.
     reflexivity.
   Qed.
 
@@ -410,13 +410,13 @@ Qed.
     - repeat untau_left.
       repeat untau_right.
       force_left; force_right.
-      apply eutt_Ret.
+      apply eutt_ret.
       erewrite <- Renv_find; [| eassumption].
       apply sim_rel_add; assumption.
     - repeat untau_left.
       force_left.
       force_right.
-      apply eutt_Ret.
+      apply eutt_ret.
       apply sim_rel_add; assumption.
     - do 2 setoid_rewrite denote_list_app.
       do 2 setoid_rewrite interp_locals_bind.
@@ -430,7 +430,7 @@ Qed.
         repeat untau_left.
         force_left; force_right.
         simpl fst in *.
-        apply eutt_Ret.
+        apply eutt_ret.
         {
           generalize HSIM; intros LU; apply sim_rel_find_tmp_n in LU.
           unfold alist_In in LU; erewrite sim_rel_find_tmp_lt_n in LU; eauto; fold (alist_In (%n) g_asm'' v) in LU.
@@ -493,7 +493,7 @@ Qed.
     repeat untau_left.
     force_left.
     repeat untau_right; force_right.
-    eapply eutt_Ret; simpl.
+    eapply eutt_ret; simpl.
     destruct r1, r2.
     erewrite sim_rel_find_tmp_n; eauto; simpl.
     destruct H0.
@@ -658,7 +658,7 @@ Proof.
     intros [] [] []. simpl.
     repeat intro.
     rewrite itree_eta, (itree_eta (_ _ g2)); cbn.
-    apply eutt_Ret; auto.
+    apply eutt_ret; auto.
 
   - (* Seq *)
     rewrite fold_to_itree; simpl.
@@ -696,7 +696,7 @@ Proof.
     intros [[]|[]].
     2:{ repeat intro.
         rewrite itree_eta, (itree_eta (_ _ g2)); cbn.
-        apply eutt_Ret; auto. }
+        apply eutt_ret; auto. }
     unfold ITree.map. rewrite bind_bind.
 
     repeat intro.
@@ -715,20 +715,20 @@ Proof.
     apply sim_rel_Renv in H0.
     destruct v; simpl; auto.
     + rewrite itree_eta, (itree_eta (_ >>= _)); cbn.
-      apply eutt_Ret. auto.
+      apply eutt_ret. auto.
     + rewrite 2 interp_locals_bind, bind_bind.
       eapply eutt_bind_gen.
       { eapply IHs; auto. }
       intros.
       rewrite itree_eta, (itree_eta (_ >>= _)); cbn.
-      apply eutt_Ret. destruct H1; auto.
+      apply eutt_ret. destruct H1; auto.
 
   - (* Skip *)
     repeat intro.
     rewrite (itree_eta (_ (denote_asm _ _) _)),
     (itree_eta (_ (denoteStmt _) _));
       cbn.
-    apply eutt_Ret; auto.
+    apply eutt_ret; auto.
 Qed.
 
 

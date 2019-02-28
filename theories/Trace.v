@@ -6,6 +6,7 @@ Import ListNotations.
 
 From ITree Require Import
      Core
+     Eq.Untaus
      Eq.UpToTaus
      Eq.SimUpToTaus.
 

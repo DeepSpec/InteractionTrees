@@ -150,11 +150,6 @@ Definition interp {E F : Type -> Type} (h : E ~> itree F) :
                                           (fun x => interp_ (k x))))
             (observe t).
 
-
-
-
-
-
 (* N.B.: the guardedness of this definition relies on implementation
    details of [bind]. *)
 
@@ -165,6 +160,7 @@ Definition interp {E F : Type -> Type} (h : E ~> itree F) :
     allows a few equations to be bisimularities ([eq_itree]) instead
     of up-to-tau equivalences ([eutt]).
  *)
+
 Definition interp1 {E F G : Type -> Type} `{F -< G} (h : E ~> itree G) :
   itree (E +' F) ~> itree G := fun R =>
   cofix interp1_ t :=
@@ -179,7 +175,6 @@ Definition interp1 {E F G : Type -> Type} `{F -< G} (h : E ~> itree G) :
 
 (** Effects [E, F : Type -> Type] and itree [E ~> itree F] form a
     category. *)
-
 
 (* Morphism Category -------------------------------------------------------- *)
 
@@ -281,7 +276,6 @@ CoFixpoint interp1_state {E F S} (h : E ~> stateT S (itree F)) :
   itree (E +' F) ~> stateT S (itree F) :=
   fun R => interp1_state_match h (interp1_state h R).
 
-
 Definition translate1_state {E F S} (h : E ~> state S) :
   itree (E +' F) ~> stateT S (itree F) :=
   fun R =>
@@ -305,13 +299,9 @@ Definition interp_reader {E F R} (h : R -> E ~> itree F) :
   R -> itree E ~> itree F :=
   fun r => interp (h r).
 
-Definition interp1_reader {E F R} (h : R -> E ~> itree F) :
-  R -> itree (E +' F) ~> itree F :=
-  fun r => interp1 (h r).
-
-Definition translate1_reader {E F R} (h : R -> E ~> identity) :
-  R -> itree (E +' F) ~> itree F :=
-  fun r => interp1 (fun _ e => Ret (h r _ e)).
+Definition translate_reader {E F R} (h : R -> E ~> identity) :
+  R -> itree E ~> itree F :=
+  fun r => interp (fun _ e => Ret (h r _ e)).
 
 Import ExtLib.Structures.Monoid.
 
