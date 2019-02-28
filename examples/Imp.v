@@ -124,18 +124,6 @@ Section Denote.
 
 End Denote.
 
-  (* some simple examples *)
-  Definition ex1: stmt :=
-    "x" ← 1 ;;;
-    "y" ← "x".
-  Eval simpl in denoteStmt ex1.
-
-  Definition ex2: stmt :=
-    "x" ← 1 ;;;
-    WHILE "x" DO
-      "x" ← "x".
-  Eval simpl in denoteStmt ex2.
-
 From ITree Require Import
      Effect.Env.
 
@@ -143,11 +131,6 @@ From ExtLib Require Import
      Core.RelDec
      Structures.Maps
      Data.Map.FMapAList.
-
-(*
-    Note: this is the simple Imp semantics, compared to the C-like semantics: interpretations in term of total maps instead of partial ones.
-    Make it simpler to map to asm for now.
- *)
 
 Definition evalLocals {E: Type -> Type} `{envE var value -< E}: Locals ~> itree E :=
   fun _ e =>

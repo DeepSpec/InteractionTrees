@@ -1,4 +1,4 @@
-Require Import Imp Asm AsmCombinators Imp2Asm.
+Require Import Imp Asm AsmCombinators Den Imp2Asm.
 
 Require Import Psatz.
 
@@ -500,8 +500,6 @@ Qed.
     split; auto.
     eapply Renv_write_local; eauto.
   Qed.
-
-  Require Import Den.
 
   Lemma sym_den_unfold {E} {A B}:
     lift_den sum_comm ⩯ @sym_den E A B.
