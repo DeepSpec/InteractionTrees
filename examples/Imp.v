@@ -95,9 +95,13 @@ Section Denote.
     end.
 
   Definition while {eff} (t : itree eff bool) : itree eff unit :=
-    rec (fun _ : unit =>
-           continue <- translate (fun _ x => inr1 x) t ;;
-                    if continue : bool then lift (Call tt) else Monad.ret tt) tt.
+    @loop eff unit unit unit
+          (fun l : unit + unit =>
+             match l with
+             | inr _ => ret (inl tt)
+             | inl _ => continue <- t ;;
+                       if continue : bool then ret (inl tt) else ret (inr tt)
+             end) tt.
 
   (* the meaning of a statement *)
   Fixpoint denoteStmt (s : stmt) : itree eff unit :=
@@ -171,51 +175,21 @@ Definition ImpEval (s: stmt): itree emptyE (env * unit) :=
   let p := interp evalLocals _ (denoteStmt s) in
   run_env _ p empty.
 
-(*
-(* some simple examples. Dumb right now, nothing computes *)
-Eval unfold ex1 in ImpEval ex1.
-
-Eval simpl in ImpEval ex2.
-*)
-
 From ITree Require Import FixFacts MorphismsFacts.
-Require Import Paco.paco.
 
 Lemma while_is_loop {E} (body : itree E bool) :
-    while body
-  ≈ loop (fun l : unit + unit =>
-      match l with
-      | inl _ => ITree.map (fun b => if b : bool then inl tt else inr tt)
-                            body
-      | inr _ => Ret (inl tt)   (* Enter loop *)
-      end) tt.
+  while body
+        ≈ loop (fun l : unit + unit =>
+                  match l with
+                  | inl _ => ITree.map (fun b => if b : bool then inl tt else inr tt)
+                                      body
+                  | inr _ => Ret (inl tt)   (* Enter loop *)
+                  end) tt.
 Proof.
   unfold while.
-  unfold loop.
-  rewrite unfold_loop'.
-  unfold loop_once_.
-  rewrite ret_bind_.
-  rewrite tau_eutt.
-  apply subrelation_eq_eutt.
-  pupto2_init; pcofix self.
-  rewrite rec_unfold', unfold_loop'.
-  unfold loop_once_; cbn.
-  rewrite interp1_bind, map_bind.
-  rewrite translate_interp1.
-  pupto2 eq_itree_clo_bind; constructor; try reflexivity.
-  intros [].
-  - rewrite itree_eta; cbn.
-    pupto2 eq_itree_clo_trans; econstructor.
-    apply eq_itree_tau.
-    eapply eq_itree_bind.
-    reflexivity.
-    intros [] ? [].
-    rewrite unfold_interp1; cbn.
-    instantiate (1 := fun x => Ret x).
-    reflexivity.
-    reflexivity. rewrite bind_ret.
-    pfold; constructor.
-    pupto2_final.
-    right; auto.
-  - rewrite itree_eta; cbn. pfold; constructor; auto.
+  apply eutt_loop; [intros [[]|[]]; simpl | reflexivity].
+  2: reflexivity.
+  unfold ITree.map.
+  apply eutt_bind; [reflexivity | intros []; reflexivity].
 Qed.
+

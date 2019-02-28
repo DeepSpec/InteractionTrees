@@ -25,9 +25,9 @@ Section TranslateFacts.
   Context (h : E ~> F).
 
 Lemma unfold_translate : forall (t : itree E R),
-    observe (translate h t) = observe (translateF h (translate h) (observe t)).
+    observing eq (translate h t) (translateF h (translate h) (observe t)).
 Proof.
-  intros t. reflexivity.
+  intros t. econstructor. reflexivity.
 Qed.
 
 Lemma translate_ret : forall (r:R), translate h (Ret r) ≅ Ret r.
@@ -52,7 +52,8 @@ Proof.
   rewrite unfold_translate. cbn. reflexivity.
 Qed.
 
-Global Instance translate_Proper : Proper ( (eq_itree (@eq R)) ==> eq_itree eq) (translate h).
+Global Instance translate_Proper :
+  Proper (eq_itree (@eq R) ==> eq_itree eq) (translate h).
 Proof.
   repeat red.
   intros x y H. 
@@ -80,6 +81,17 @@ Proof.
     right. apply CIH. 
     eapply transitivity. pclearbot. apply REL0. reflexivity.
 Qed.
+
+Global Instance translateF_Proper :
+  Proper (going (eq_itree eq) ==> eq_itree (@eq R)) (translateF h (translate h)).
+Proof.
+  repeat red. intros.
+  replace x with (observe (go x)) by auto.
+  replace y with (observe (go y)) by auto.
+  rewrite <- !unfold_translate.
+  rewrite H. apply reflexivity.
+Qed.  
+
 End TranslateFacts.
 
 Lemma translate_bind : forall {E F R S} (h : E ~> F) (t : itree E S) (k : S -> itree E R),
@@ -90,18 +102,12 @@ Proof.
   revert S t k.
   pcofix CIH.
   intros s t k.
-  rewrite itree_eta.
-  rewrite (itree_eta (x <- translate h t;; translate h (k x))).
-  rewrite unfold_translate.
-  rewrite !unfold_bind.
-  rewrite unfold_translate.
-  unfold translateF.
-  unfold ITree.bind_match.
-  destruct (observe t); cbn.
-  - rewrite unfold_translate. unfold translateF.
+  rewrite !unfold_translate, !unfold_bind.
+  genobs_clear t ot. destruct ot; cbn.
+  - rewrite unfold_translate.
     pupto2_final. apply Reflexive_eq_itree.
   - pfold. econstructor. pupto2_final. right. apply CIH.
-  - pfold. econstructor. intros.  pupto2_final. right.  apply CIH.
+  - pfold. econstructor. intros.  pupto2_final. right. apply CIH.
 Qed.
 
 (* categorical properties --------------------------------------------------- *)
@@ -133,12 +139,9 @@ Proof.
   revert t.
   pcofix CIH.
   intros t.
-  rewrite itree_eta.
-  rewrite (itree_eta (translate g (translate f t))).
-  repeat rewrite unfold_translate.
-  unfold translateF.
-  destruct (observe t); cbn.
-  - pupto2_final. apply Reflexive_eq_itree.
+  rewrite !unfold_translate.
+  genobs_clear t ot. destruct ot; cbn.
+  - pupto2_final. apply reflexivity.
   - pfold. econstructor. pupto2_final. right.  apply CIH.
   - pfold. econstructor. intros.  pupto2_final. right.  apply CIH.
 Qed.

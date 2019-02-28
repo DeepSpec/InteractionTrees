@@ -19,12 +19,14 @@ From Coq Require Import
      Classes.RelationClasses
      Classes.Morphisms
      Setoids.Setoid
+     Program
      Relations.Relations.
 
 From ITree Require Import
      Core.
 
 From ITree Require Import
+     Eq.UpToTausExplicit
      Eq.UpToTaus.
 
 Section SUTT.
@@ -151,6 +153,7 @@ Theorem sutt_eutt {E R1 R2} (RR : R1 -> R2 -> Prop) :
   forall (t1 : itree E R1) (t2 : itree E R2),
     sutt RR t1 t2 -> sutt (flip RR) t2 t1 -> eutt RR t1 t2.
 Proof.
+  intros. apply euttE_impl_eutt. revert_until RR.
   pcofix self; intros t1 t2 H1 H2.
   punfold H1. punfold H2.
   destruct H1 as [FIN1 EQV1], H2 as [FIN2 EQV2].
@@ -171,6 +174,7 @@ Theorem eutt_sutt {E R1 R2} (RR : R1 -> R2 -> Prop) r :
   forall (t1 : itree E R1) (t2 : itree E R2),
     paco2 (eutt_ RR) r t1 t2 -> paco2 (sutt_ RR) r t1 t2.
 Proof.
+  intros. apply eutt_impl_euttE in H. revert_until r.
   pcofix self; intros t1 t2 H1.
   punfold H1.
   destruct H1 as [FIN1 EQV1].
@@ -423,7 +427,7 @@ Proof.
   { intros; eapply H. }
   punfold H0.
   pfold. red.
-  do 2 rewrite interp_unfold.
+  do 2 rewrite unfold_interp.
   induction H0; eauto.
   { subst.
     cbn. constructor. admit. intros.
@@ -468,17 +472,16 @@ Qed.
 (** Generalized heterogeneous version of [eutt_bind] *)
 Lemma eutt_bind_gen {E R1 R2 S1 S2} {RR: R1 -> R2 -> Prop} {SS: S1 -> S2 -> Prop}:
   forall t1 t2,
-    eutt RR t1 t2 ->
-    forall s1 s2, (forall r1 r2, RR r1 r2 -> eutt SS (s1 r1) (s2 r2)) ->
+    euttE RR t1 t2 ->
+    forall s1 s2, (forall r1 r2, RR r1 r2 -> euttE SS (s1 r1) (s2 r2)) ->
                   @eutt E _ _ SS (ITree.bind t1 s1) (ITree.bind t2 s2).
 Proof.
-  intros. apply sutt_eutt; eapply sutt_bind_gen.
-  - apply eutt_sutt; eassumption.
+  intros. apply euttE_impl_eutt in H. setoid_rewrite <-eutt_is_euttE in H0.
+  apply sutt_eutt; eapply sutt_bind_gen.
+  - apply eutt_sutt. eassumption.
   - intros. apply eutt_sutt. apply H0; auto.
   - apply eutt_sutt.
     eapply Symmetric_eutt_; try eassumption; auto.
     intros ? ? HH; apply HH.
-  - simpl. intros. apply eutt_sutt. eapply Symmetric_eutt_; try eassumption; eauto.
-    2: eapply H0; auto.
-    auto.
+  - simpl. intros. apply eutt_sutt. eapply Symmetric_eutt_; eauto; auto.
 Qed.

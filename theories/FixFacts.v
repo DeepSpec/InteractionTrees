@@ -24,6 +24,7 @@ Section Facts.
 Context {D E : Type -> Type} (ctx : D ~> itree (D +' E)).
 
 (** Unfolding of [interp_mrec]. *)
+
 Definition interp_mrecF R :
   itreeF (D +' E) R _ -> itree E R :=
   handleF1 (interp_mrec ctx R)
@@ -96,116 +97,63 @@ Proof.
   all: try (pfold; econstructor; eauto).
 Qed.
 
-Let h_mrec : D ~> itree E := mrec ctx.
-
-Inductive mrec_invariant {U} : relation (itree _ U) :=
-| mrec_main (d1 d2 : _ U) (Ed : eq_itree eq d1 d2) :
-    mrec_invariant (interp_mrec ctx _ d1)
-                   (interp1 (mrec ctx) _ d2)
-| mrec_bind T (d : _ T) (k1 k2 : T -> itree _ U)
-    (Ek : forall x, eq_itree eq (k1 x) (k2 x)) :
-    mrec_invariant (interp_mrec ctx _ (d >>= k1))
-                   (interp_mrec ctx _ d >>= fun x =>
-                        interp1 h_mrec _ (k2 x))
-.
-
-Notation mi_holds r :=
-  (forall c1 c2 d1 d2,
-      mrec_invariant d1 d2 ->
-      eq_itree eq c1 d1 -> eq_itree eq c2 d2 -> r c1 c2).
-
-Lemma mrec_invariant_init {U} (r : relation (itree _ U))
-      (INV : mi_holds r)
-      (c1 c2 : itree _ U)
-      (Ec : eq_itree eq c1 c2) :
-  paco2 (compose (eq_itree_ eq) (gres2 (eq_itree_ eq))) r
-        (interp_mrec ctx _ c1)
-        (interp1 h_mrec _ c2).
-Proof.
-  rewrite observe_interp_mrec, unfold_interp1.
-  punfold Ec.
-  inversion Ec; cbn; pclearbot; pupto2_final.
-  + subst; apply reflexivity.
-  + pfold; constructor. right; eapply INV.
-    1: apply mrec_main; eassumption.
-    all: reflexivity.
-  + destruct e.
-    { pfold; constructor; cbn; right. eapply INV.
-      1: apply mrec_bind; eassumption.
-      all: cbn; reflexivity.
-    }
-    { pfold; econstructor.
-      intros; right. eapply INV.
-      1: apply mrec_main; eapply REL.
-      all: reflexivity.
-    }
-Qed.
-
-Lemma mrec_invariant_eq {U} : mi_holds (@eq_itree _ U _ eq).
-Proof.
-  intros d1 d2 c1 c2 Ec1 Ec2 H.
-  pupto2_init; revert d1 d2 c1 c2 Ec1 Ec2 H; pcofix self.
-  intros _d1 _d2 c1 c2 [d1 d2 Ed | T d k1 k2 Ek] Ec1 Ec2.
-  - rewrite Ec1, Ec2.
-    apply mrec_invariant_init; auto 10.
-  - rewrite Ec1, Ec2. cbn.
-    rewrite observe_interp_mrec.
-    rewrite (unfold_bind (interp_mrec _ _ d)).
-    unfold observe, _observe; cbn.
-    destruct (observe d); fold_observe; cbn.
-    + rewrite <- observe_interp_mrec.
-      apply mrec_invariant_init; auto.
-    + pupto2_final; pfold; constructor; right.
-      eapply self.
-      1: apply mrec_bind; eassumption.
-      all: cbn; fold_bind; reflexivity.
-    + destruct e; cbn.
-      * fold_bind. rewrite <-bind_bind.
-        pupto2_final. pfold. econstructor. right.
-        eapply self.
-        1: apply mrec_bind; eassumption.
-        all: cbn; reflexivity.
-      * pupto2_final; pfold; constructor; right.
-        eapply self.
-        1: apply mrec_bind; eassumption.
-        all: cbn; fold_bind; reflexivity.
-Qed.
-
 Theorem unfold_interp_mrec {T} (c : itree _ T) :
-  interp_mrec ctx _ c ≅ interp1 h_mrec _ c.
+  interp_mrec ctx _ c ≈ interp (Sum1.elim (C:=itree E) (mrec ctx) ITree.liftE) _ c.
 Proof.
-  eapply mrec_invariant_eq;
-    try eapply mrec_main; reflexivity.
+  revert_until ctx.
+  cut (forall T R (t: itree E R) k,
+         ITree.bind t (fun x => interp_mrec ctx T (k x)) ≈
+         ITree.bind t (fun x => interp (Sum1.elim (C:=itree E) (mrec ctx) ITree.liftE) T (k x))).
+  { intros. specialize (H _ _ (Ret ()) (fun _ => c)).
+    rewrite !ret_bind in H. auto.
+  }    
+
+  intros. pupto2_init. revert_until T. pcofix CIH.
+  intros. pfold. pupto2_init. revert_until CIH. pcofix CIH'.
+  intros. rewrite (itree_eta t). genobs_clear t ot.
+  destruct ot.
+  - rewrite !ret_bind.
+    generalize (k r1) as t. clear R k r1.
+    intros. rewrite (itree_eta t). genobs_clear t ot.
+    destruct ot.
+    + rewrite ret_mrec, ret_interp. simpl. eauto.
+    + rewrite tau_mrec, tau_interp. simpl.
+      pfold. econstructor. pupto2_final. right.
+      apply (CIH' _ (Ret tt) (fun _ => t)).
+    + destruct e.
+      * rewrite vis_mrec_left, vis_interp. simpl.
+        rewrite interp_mrec_bind.
+        pfold. econstructor. pupto2_final. eauto.
+      * rewrite vis_mrec_right, vis_interp. simpl.
+        setoid_rewrite vis_bind_. setoid_rewrite ret_bind_.
+        pfold. econstructor. econstructor. intros.
+        rewrite <- (ret_bind () (fun _ => interp_mrec _ _ _)).
+        rewrite <- (ret_bind () (fun _ => interp _ _ _)).
+        pupto2_final. eauto.
+  - rewrite !tau_bind.
+    pfold. econstructor. pupto2_final. eauto.
+  - rewrite !vis_bind.
+    pfold. econstructor. intros. pupto2_final. eauto.
 Qed.
 
 Theorem unfold_mrec {T} (d : D T) :
-  mrec ctx _ d ≅ interp1 (mrec ctx) _ (ctx _ d).
+  mrec ctx _ d ≈ interp (Sum1.elim (C:=itree E) (mrec ctx) ITree.liftE) _ (ctx _ d).
 Proof.
   apply unfold_interp_mrec.
 Qed.
 
 End Facts.
 
-Lemma rec_unfold' {E A B} (f : A -> itree (callE A B +' E) B) (x : A) :
-  rec f x ≅ interp1 (fun _ e => calling' (rec f) _ e) _ (f x).
+Lemma rec_unfold {E A B} (f : A -> itree (callE A B +' E) B) (x : A) :
+  rec f x ≈ interp (Sum1.elim (C:=itree E) (calling' (rec f)) ITree.liftE) _ (f x).
 Proof.
   unfold rec. unfold mrec.
   rewrite unfold_interp_mrec.
-  unfold interp_match.
-  unfold mrec. eapply eq_itree_interp1_.
-  - intros ? []; reflexivity.
+  eapply eutt_interp.
+  - red. intro. red. destruct a; try reflexivity.
+    destruct c.
+    reflexivity.
   - reflexivity.
-Qed.
-
-Lemma rec_unfold {E A B} (f : A -> itree (callE A B +' E) B) (x : A) :
-  rec f x ≈ interp (fun _ e => match e with
-                               | inl1 e => calling' (rec f) _ e
-                               | inr1 e => ITree.liftE e
-                               end) _ (f x).
-Proof.
-  rewrite rec_unfold'.
-  rewrite <- interp_is_interp1.
-  reflexivity.
 Qed.
 
 Notation loop_once_ f loop_ :=
@@ -279,8 +227,8 @@ Proof.
   remember (inr a') as ca eqn:EQ; clear EQ a'.
   pupto2_init. revert ca; clear; pcofix self; intro ca.
   rewrite unfold_loop'; unfold loop_once.
-  pupto2 @eq_itree_clo_bind; constructor; try reflexivity.
-  intros [c | b].
+  pupto2 @eq_itree_clo_bind; econstructor; try reflexivity.
+  intros [c | b]; intros; subst.
   - match goal with
     | [ |- _ _ (Tau (loop_ ?f _)) ] => rewrite (unfold_loop' f)
     end.
@@ -304,8 +252,8 @@ Proof.
   pupto2_init. revert ca; clear; pcofix self; intro ca.
   rewrite !unfold_loop'; unfold loop_once.
   rewrite !bind_bind.
-  pupto2 @eq_itree_clo_bind; constructor; try reflexivity.
-  intros [c | b].
+  pupto2 @eq_itree_clo_bind; econstructor; try reflexivity.
+  intros [c | b]; intros; subst.
   - rewrite ret_bind_, tau_bind_.
     pfold; constructor; auto.
   - autorewrite with itree.
@@ -337,15 +285,15 @@ Proof.
     rewrite map_bind.
     rewrite (unfold_loop' _ (inl c)); unfold loop_once.
     autorewrite with itree.
-    pupto2 eq_itree_clo_bind; constructor; try reflexivity.
-    intros c'.
+    pupto2 eq_itree_clo_bind; econstructor; try reflexivity.
+    intros c'; intros; subst.
     rewrite tau_bind.
     rewrite ret_bind_.
     rewrite unfold_loop'; unfold loop_once.
     rewrite bind_bind.
     pfold; constructor.
-    pupto2 eq_itree_clo_bind; constructor; try reflexivity.
-    auto.
+    pupto2 eq_itree_clo_bind; econstructor; try reflexivity.
+    intros; subst. eauto.
   - rewrite ret_bind.
     pupto2_final; apply reflexivity.
 Qed.
@@ -378,16 +326,16 @@ Proof.
     rewrite 2 unfold_loop'; unfold loop_once.
     autorewrite with itree.
     pfold; constructor.
-    pupto2 eq_itree_clo_bind; constructor; try reflexivity.
-    auto.
+    pupto2 eq_itree_clo_bind; econstructor; try reflexivity.
+    intros; subst. auto.
   - (* c *)
     rewrite ret_bind.
     rewrite 2 unfold_loop'; unfold loop_once.
     rewrite unfold_loop'; unfold loop_once.
     autorewrite with itree.
     pfold; constructor.
-    pupto2 eq_itree_clo_bind; constructor; try reflexivity.
-    auto.
+    pupto2 eq_itree_clo_bind; econstructor; try reflexivity.
+    intros; subst. auto.
   - (* b *)
     rewrite ret_bind.
     pupto2_final; apply reflexivity.
@@ -418,14 +366,14 @@ Proof.
   rewrite bind_bind.
   destruct inra as [c | a]; subst.
   - rewrite bind_bind; setoid_rewrite ret_bind_.
-    pupto2 eq_itree_clo_bind; constructor; try reflexivity.
-    intros [c' | b]; simpl.
+    pupto2 eq_itree_clo_bind; econstructor; try reflexivity.
+    intros [c' | b]; simpl; intros; subst.
     + rewrite tau_bind. pfold; constructor.
       pupto2_final. auto.
     + rewrite ret_bind. pupto2_final; apply reflexivity.
   - rewrite bind_bind; setoid_rewrite ret_bind_.
-    pupto2 eq_itree_clo_bind; constructor; try reflexivity.
-    intros [c' | b]; simpl.
+    pupto2 eq_itree_clo_bind; econstructor; try reflexivity.
+    intros [c' | b]; simpl; intros; subst.
     + rewrite tau_bind. pfold; constructor.
       pupto2_final. auto.
     + rewrite ret_bind_. pupto2_final; apply reflexivity.
@@ -477,8 +425,8 @@ Proof.
   remember (inr _) as ca eqn:EQ; clear EQ y0.
   pupto2_init. revert ca; pcofix self; intros.
   rewrite 2 unfold_loop'; unfold loop_once.
-  pupto2 eq_itree_clo_bind; constructor; try auto.
-  intros [c | b]; pfold; constructor; auto.
+  pupto2 eq_itree_clo_bind; econstructor; try auto.
+  intros [c | b]; intros; subst; pfold; constructor; auto.
 Qed.
 
 Section eutt_loop.

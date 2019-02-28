@@ -84,13 +84,15 @@ Notation "t1 ≅ t2" := (eq_itree eq t1%itree t2%itree) (at level 70).
 
 Section eq_itree_h.
 
-Lemma itree_eq_tau {E R1 R2 RR} (t1 : itree E R1) (t2 : itree E R2) :
+Context {E : Type -> Type} {R1 R2 : Type} (RR : R1 -> R2 -> Prop).
+
+Lemma itree_eq_tau (t1 : itree E R1) (t2 : itree E R2) :
   eq_itree RR t1 t2 -> eq_itree RR (Tau t1) (Tau t2).
 Proof.
   intro; pfold. econstructor. left. assumption.
 Qed.
 
-Lemma itree_eq_vis {E U R1 R2 RR} (e : E U)
+Lemma itree_eq_vis {U} (e : E U)
       (k1 : U -> itree E R1) (k2 : U -> itree E R2) :
   (forall u, eq_itree RR (k1 u) (k2 u)) ->
   eq_itree RR (Vis e k1) (Vis e k2).
@@ -98,7 +100,64 @@ Proof.
   intro H; pfold. econstructor. intros v. left. eapply H.
 Qed.
 
+Inductive eq_itree_trans_clo (r : itree E R1 -> itree E R2 -> Prop) :
+  itree E R1 -> itree E R2 -> Prop :=
+| eq_itree_trans_clo_intro t1 t2 t3 t4
+      (EQVl: eq_itree eq t1 t2)
+      (EQVr: eq_itree eq t4 t3)
+      (RELATED: r t2 t3)
+  : eq_itree_trans_clo r t1 t4
+.
+Hint Constructors eq_itree_trans_clo.
+
+Lemma eq_itree_clo_trans : weak_respectful2 (eq_itree_ RR) eq_itree_trans_clo.
+Proof.
+  econstructor; [pmonauto|].
+  intros. dependent destruction PR.
+  apply GF in RELATED.
+  punfold EQVl. punfold EQVr. red in RELATED. red. unfold_eq_itree.
+  inversion EQVl; clear EQVl;
+    inversion EQVr; clear EQVr;
+    inversion RELATED; clear RELATED;
+      subst; simpobs; try discriminate.
+
+  - inversion H0; inversion H3; auto.
+  - inversion H; inversion H3; subst; pclearbot; eauto using rclo2.
+
+  - inversion H; inversion H3; subst; auto_inj_pair2; subst.
+    pclearbot.
+    econstructor. intros. specialize (REL v). specialize (REL0 v). pclearbot. eauto using rclo2.
+Qed.
+
+Inductive eq_itree_bind_clo (r : itree E R1 -> itree E R2 -> Prop) :
+  itree E R1 -> itree E R2 -> Prop :=
+| pbc_intro_h U1 U2 (RU : U1 -> U2 -> Prop) t1 t2 k1 k2
+      (EQV: eq_itree RU t1 t2)
+      (REL: forall u1 u2, RU u1 u2 -> r (k1 u1) (k2 u2))
+  : eq_itree_bind_clo r (ITree.bind t1 k1) (ITree.bind t2 k2)
+.
+Hint Constructors eq_itree_bind_clo.
+
+Lemma eq_itree_clo_bind :
+  weak_respectful2 (eq_itree_ RR) eq_itree_bind_clo.
+Proof.
+  econstructor; try pmonauto.
+  intros. dependent destruction PR.
+  punfold EQV. unfold_eq_itree.
+  rewrite !unfold_bind; inv EQV; simpobs.
+  - eapply eq_itreeF_mono; [eapply GF |]; eauto using rclo2.
+  - simpl. fold_bind. pclearbot. eauto 7 using rclo2.
+  - econstructor.
+    intros x. specialize (REL0 x). fold_bind. pclearbot. eauto 7 using rclo2.
+Qed.
+
 End eq_itree_h.
+
+Arguments eq_itree_clo_trans : clear implicits.
+Arguments eq_itree_clo_bind : clear implicits.
+
+Hint Constructors eq_itree_trans_clo.
+Hint Constructors eq_itree_bind_clo.
 
 Section eq_itree_eq.
   Context {E : Type -> Type} {R : Type}.
@@ -187,35 +246,6 @@ Proof.
   constructor; red in H. pfold; econstructor. left. apply H.
 Qed.
 
-Inductive eq_itree_trans_clo (r : itree E R -> itree E R -> Prop) :
-  itree E R -> itree E R -> Prop :=
-| eq_itree_trans_clo_intro (t1 t2 t3 t4: itree E R)
-      (EQVl: eq_itree t1 t2)
-      (EQVr: eq_itree t4 t3)
-      (RELATED: r t2 t3)
-  : eq_itree_trans_clo r t1 t4
-.
-Hint Constructors eq_itree_trans_clo.
-
-Lemma eq_itree_clo_trans : weak_respectful2 eq_itree_ eq_itree_trans_clo.
-Proof.
-  econstructor; [pmonauto|].
-  intros. dependent destruction PR.
-  apply GF in RELATED.
-  punfold EQVl. punfold EQVr. red in RELATED. red. unfold_eq_itree.
-  inversion EQVl; clear EQVl;
-    inversion EQVr; clear EQVr;
-    inversion RELATED; clear RELATED;
-      subst; simpobs; try discriminate.
-
-  - inversion H0; inversion H3; auto.
-  - inversion H; inversion H3; subst; pclearbot; eauto using rclo2.
-
-  - inversion H; inversion H3; subst; auto_inj_pair2; subst.
-    pclearbot.
-    econstructor. intros. specialize (REL v). specialize (REL0 v). pclearbot. eauto using rclo2.
-Qed.
-
   Global Instance observing_eq_itree_eq_ r `{Reflexive _ r} :
     subrelation (observing eq) (eq_itree_ r).
   Proof.
@@ -229,18 +259,14 @@ Qed.
     left; apply reflexivity.
   Qed.
 
-(* TODO: This should follow from [itree_eta_] and [observing eq]
-   being a subrelation of [eq_itree], but at the moment instance
-   resolution is somehow slow for [observing eq].
-   (e.g., [interp_bind]) *)
-Lemma itree_eta (t: itree E R): eq_itree t (go (observe t)).
-Proof. rewrite <- itree_eta_. reflexivity. Qed.
+Lemma itree_eta (t : itree E R) : t ≅ go (observe t).
+Proof. apply observing_eq_itree_eq. econstructor. reflexivity. Qed.
+
+Lemma itree_eta' (ot : itree' E R) : ot = observe (go ot).
+Proof. reflexivity. Qed.
 
 End eq_itree_eq.
 
-Arguments eq_itree_clo_trans : clear implicits.
-
-Hint Constructors eq_itree_trans_clo.
 
 Lemma eq_itree_tau {E R1 R2} (RR : R1 -> R2 -> Prop)
            (t1 : itree E R1) (t2 : itree E R2) :
@@ -308,6 +334,7 @@ Qed.
 
 (* TODO (LATER): I keep these [...bind_] lemmas around temporarily
    in case I run some issues with slow typeclass resolution. *)
+
 Lemma unfold_bind_ {E R S}
            (t : itree E R) (k : R -> itree E S) :
   ITree.bind t k ≅ ITree.bind_match k (fun t => ITree.bind t k) (observe t).
@@ -315,58 +342,15 @@ Proof. rewrite unfold_bind. reflexivity. Qed.
 
 Lemma ret_bind_ {E R S} (r : R) (k : R -> itree E S) :
   ITree.bind (Ret r) k ≅ (k r).
-Proof. apply unfold_bind_. Qed.
+Proof. rewrite ret_bind. reflexivity. Qed.
 
 Lemma tau_bind_ {E R} U t (k: U -> itree E R) :
   ITree.bind (Tau t) k ≅ Tau (ITree.bind t k).
-Proof. apply @unfold_bind_. Qed.
+Proof. rewrite tau_bind. reflexivity. Qed.
 
 Lemma vis_bind_ {E R} U V (e: E V) (ek: V -> itree E U) (k: U -> itree E R) :
   ITree.bind (Vis e ek) k ≅ Vis e (fun x => ITree.bind (ek x) k).
-Proof. apply @unfold_bind_. Qed.
-
-Inductive eq_itree_bind_clo_h {E R1 R2} (RR : R1 -> R2 -> Prop)
-          (r : itree E R1 -> itree E R2 -> Prop) :
-  itree E R1 -> itree E R2 -> Prop :=
-| pbc_intro_h U1 U2 (RU : U1 -> U2 -> Prop) t1 t2 k1 k2
-      (EQV: eq_itree RU t1 t2)
-      (REL: forall u1 u2, RU u1 u2 -> r (k1 u1) (k2 u2))
-  : eq_itree_bind_clo_h RR r (ITree.bind t1 k1) (ITree.bind t2 k2)
-.
-Hint Constructors eq_itree_bind_clo_h.
-
-Lemma eq_itree_clo_bind_h E R1 R2 (RR : R1 -> R2 -> Prop) :
-  weak_respectful2 (eq_itree_ RR) (@eq_itree_bind_clo_h E _ _ RR).
-Proof.
-  econstructor; try pmonauto.
-  intros. dependent destruction PR.
-  punfold EQV. unfold_eq_itree.
-  rewrite !unfold_bind; inv EQV; simpobs.
-  - eapply eq_itreeF_mono; [eapply GF |]; eauto using rclo2.
-  - simpl. fold_bind. pclearbot. eauto 7 using rclo2.
-  - econstructor.
-    intros x. specialize (REL0 x). fold_bind. pclearbot. eauto 7 using rclo2.
-Qed.
-
-Inductive eq_itree_bind_clo {E R} (r: relation (itree E R)) : relation (itree E R) :=
-| pbc_intro U t1 t2 (k1 k2: U -> _)
-      (EQV: t1 ≅ t2)
-      (REL: forall v, r (k1 v) (k2 v))
-  : eq_itree_bind_clo r (ITree.bind t1 k1) (ITree.bind t2 k2)
-.
-Hint Constructors eq_itree_bind_clo.
-
-Lemma eq_itree_clo_bind E R: weak_respectful2 (eq_itree_ eq) (@eq_itree_bind_clo E R).
-Proof.
-  econstructor; try pmonauto.
-  intros. dependent destruction PR.
-  punfold EQV. unfold_eq_itree.
-  rewrite !unfold_bind; inv EQV; simpobs.
-  - eapply eq_itreeF_mono; [eapply GF |]; eauto using rclo2.
-  - simpl. fold_bind. pclearbot. eauto 7 using rclo2.
-  - econstructor.
-    intros x. specialize (REL0 x). fold_bind. pclearbot. eauto 7 using rclo2.
-Qed.
+Proof. rewrite vis_bind. reflexivity. Qed.
 
 Lemma eq_itree_bind {E R1 R2 S1 S2} (RR : R1 -> R2 -> Prop)
       (RS : S1 -> S2 -> Prop)
@@ -376,7 +360,7 @@ Lemma eq_itree_bind {E R1 R2 S1 S2} (RR : R1 -> R2 -> Prop)
   @eq_itree E _ _ RS (ITree.bind t1 k1) (ITree.bind t2 k2).
 Proof.
   repeat intro. pupto2_init.
-  pupto2 eq_itree_clo_bind_h. econstructor; eauto.
+  pupto2 eq_itree_clo_bind. econstructor; eauto.
   intros. pupto2_final; apply H0; auto.
 Qed.
 
