@@ -649,26 +649,30 @@ Proof. rewrite itree_eta, unfold_interp1, <-itree_eta. reflexivity. Qed.
 
 (** ** [interp1] is equivalent to [interp] *)
 
-Definition interp_match {E F} (f: E ~> itree F) : (E +' F) ~> itree F :=
-  fun _ ef => match ef with inl1 e => f _ e | inr1 e => Vis e (fun r => Ret r) end.
+Section interp1_is_interp.
 
-Inductive interp_inv {E F R} (f: E ~> itree F) : relation (itree' F R) :=
+Context {E F G : Type -> Type} `{F -< G} (f : E ~> itree G).
+
+Definition interp_match : (E +' F) ~> itree G :=
+  fun _ ef => match ef with inl1 e => f _ e | inr1 e => Vis (subeffect _ e) (fun r => Ret r) end.
+
+Inductive interp_inv {R} : relation (itree' G R) :=
 | _interp_inv_main t:
-    interp_inv f
-      (observe (interp (interp_match f) _ t)) (observe (interp1 f _ t))
+    interp_inv
+      (observe (interp interp_match _ t)) (observe (interp1 f _ t))
 | _interp_inv_bind u t (k: u -> _):
-    interp_inv f
-      (observe (ITree.bind t (fun x => interp (interp_match f) _ (k x))))
+    interp_inv
+      (observe (ITree.bind t (fun x => interp interp_match _ (k x))))
       (observe (ITree.bind t (fun x => interp1 f _ (k x))))
 .
 Hint Constructors interp_inv.
 
-Lemma interp_inv_main_step E F R (f: E ~> itree F) (t: itree _ R) :
-  euttF eq (fun x y => interp_inv f (observe x) (observe y)) (interp_inv f)
-           (observe (interp (interp_match f) _ t)) (observe (interp1 f _ t)).
+Lemma interp_inv_main_step R (t: itree _ R) :
+  euttF eq (fun x y => interp_inv (observe x) (observe y)) interp_inv
+         (observe (interp interp_match _ t)) (observe (interp1 f _ t)).
 Proof.
   rewrite unfold_interp, unfold_interp1.
-  genobs_clear t ot.
+  genobs t ot. clear Heqot t.
   destruct ot; simpl; eauto.
   destruct e; simpl; eauto.
   econstructor. rewrite unfold_bind.
@@ -676,14 +680,14 @@ Proof.
   fold_bind. rewrite unfold_bind. simpl. eauto.
 Qed.
 
-Lemma interp_is_interp1 E F R (f: E ~> itree F) (t: itree _ R) :
-  interp (interp_match f) _ t ≈ interp1 f _ t.
+Lemma interp_is_interp1 R (t : itree _ R) :
+  interp interp_match _ t ≈ interp1 f _ t.
 Proof.
   revert t.
-  cut (forall (t1 t2: itree _ R) (REL: interp_inv f (observe t1) (observe t2)), t1 ≈ t2).
+  cut (forall (t1 t2: itree _ R) (REL: interp_inv (observe t1) (observe t2)), t1 ≈ t2).
   { eauto. }
 
-  intros. revert_until f. pcofix CIH. intros.
+  intros. revert_until R. pcofix CIH. intros.
   pfold. revert_until CIH. pcofix CIH'. intros.
   destruct REL.
   - pfold. eapply euttF_mon; eauto using interp_inv_main_step; intros.
@@ -697,26 +701,38 @@ Proof.
     eapply (CIH' (go x2) (go x3)); eauto.
 Qed.
 
-Instance eq_itree_interp1 {E F R} (h : E ~> itree F) :
-  Proper (@eq_itree (E +' F) _ _ eq ==> eq_itree eq) (interp1 h R).
+End interp1_is_interp.
+
+Lemma eq_itree_interp1_ {E F R} (h1 h2 : E ~> itree F) :
+  (forall T (e : E T), h1 _ e ≅ h2 _ e) ->
+  forall t1 t2 : itree (E +' F) R,
+    t1 ≅ t2 -> interp1 h1 _ t1 ≅ interp1 h2 _ t2.
 Proof.
   repeat intro. pupto2_init. revert_until R.
   pcofix CIH. intros.
   rewrite !unfold_interp1_.
-  punfold H0; red in H0.
-  destruct H0; pclearbot.
+  punfold H1; red in H1.
+  destruct H1; pclearbot.
   - pupto2_final. pfold. red. cbn. eauto.
   - pupto2_final. pfold. red. cbn. eauto.
   - pfold. destruct e; cbn; econstructor.
     + pupto2 (eq_itree_clo_bind F R).
       econstructor.
-      * reflexivity.
+      * eauto.
       * intros; subst. pupto2_final; eauto.
     + intros. pupto2_final. eauto.
 Qed.
 
-Instance eutt_interp1 {E F: Type -> Type} (h: E ~> itree F) R:
-  Proper (eutt eq ==> eutt eq) (@interp1 E F F _ h R).
+Instance eq_itree_interp1 {E F G} `{F -< G} {R} (h : E ~> itree F) :
+  Proper (@eq_itree (E +' F) _ _ eq ==> eq_itree eq) (interp1 h R).
+Proof.
+  repeat intro.
+  eapply eq_itree_interp1_; auto.
+  reflexivity.
+Qed.
+
+Instance eutt_interp1 {E F G: Type -> Type} `{F -< G} (h: E ~> itree G) R:
+  Proper (eutt eq ==> eutt eq) (@interp1 E F G _ h R).
 Proof.
   repeat intro.
   rewrite <- 2 interp_is_interp1.

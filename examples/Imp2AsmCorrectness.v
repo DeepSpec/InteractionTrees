@@ -115,7 +115,7 @@ Section Real_correctness.
     repeat intro.
     unfold interp_locals.
     unfold run_env.
-    rewrite H0. rewrite H.
+    rewrite H0. eapply eutt_interp_state. rewrite H.
     reflexivity.
   Qed.
 
