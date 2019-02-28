@@ -4,7 +4,6 @@ Require Import Psatz.
 
 From Coq Require Import
      Strings.String
-     Strings.OctalString
      Morphisms
      Setoid
      Decimal
