@@ -117,8 +117,8 @@ From ExtLib Require Import
      Structures.Monad.
 Import MonadNotation.
 From ITree Require Import
-     ITree OpenSum Fix.
-Require Import Imp Den.
+     ITree KTree.
+Require Import Imp.
 
 Section Correctness.
 
@@ -190,8 +190,8 @@ Lemma raw_asm_block_correct_lifted {A} (b : block A) :
           (fun _ => denote_block b).
 Proof.
   unfold denote_asm.
-  rewrite vanishing_den.
-  rewrite elim_λ_den', elim_λ_den.
+  rewrite vanishing_ktree.
+  rewrite elim_l_ktree', elim_l_ktree.
   unfold denote_b; simpl.
   intros [].
   rewrite fmap_block_map, map_map.
@@ -210,12 +210,12 @@ Qed.
 (** *** [asm] combinators *)
 
 Theorem pure_asm_correct {A B} (f : A -> B) :
-  eq_den (denote_asm (pure_asm f))
-         (@lift_den E _ _ f).
+    denote_asm (pure_asm f)
+  ⩯ @lift_ktree E _ _ f.
 Proof.
   unfold denote_asm .
-  rewrite vanishing_den.
-  rewrite elim_λ_den', elim_λ_den.
+  rewrite vanishing_ktree.
+  rewrite elim_l_ktree', elim_l_ktree.
   unfold denote_b; simpl.
   intros ?.
   rewrite map_ret.
@@ -223,59 +223,60 @@ Proof.
 Qed.
 
 Definition id_asm_correct {A} :
-  eq_den (denote_asm (pure_asm id)) (@id_den E A).
+    denote_asm (pure_asm id)
+  ⩯ @id_ktree E A.
 Proof.
   rewrite pure_asm_correct; reflexivity.
 Defined.
 
-Lemma tensor_den_slide_right {A B C D}:
-  forall (ac: @den E A C) (bd: den B D),
-    ac ⊗ bd ⩯ id_den ⊗ bd >=> ac ⊗ id_den.
+Lemma tensor_ktree_slide_right {A B C D}:
+  forall (ac: ktree E A C) (bd: ktree E B D),
+    ac ⊗ bd ⩯ id_ktree ⊗ bd >=> ac ⊗ id_ktree.
 Proof.
   intros.
-  unfold tensor_den.
-  repeat rewrite id_den_left.
+  unfold tensor_ktree.
+  repeat rewrite id_ktree_left.
   rewrite sum_elim_compose.
-  rewrite compose_den_assoc.
+  rewrite compose_ktree_assoc.
   rewrite inl_sum_elim, inr_sum_elim.
   reflexivity.
 Qed.
 
 Lemma local_rewrite1 {A B C: Type}:
-  id_den ⊗ sym_den >=> assoc_den_l >=> sym_den ⩯
-         @assoc_den_l E A B C >=> sym_den ⊗ id_den >=> assoc_den_r.
+  id_ktree ⊗ sym_ktree >=> assoc_ktree_l >=> sym_ktree ⩯
+         @assoc_ktree_l E A B C >=> sym_ktree ⊗ id_ktree >=> assoc_ktree_r.
 Proof.
-  unfold id_den, tensor_den,sym_den, assoc_den_l, ITree.cat, assoc_den_r, lift_den.
+  unfold id_ktree, tensor_ktree,sym_ktree, assoc_ktree_l, ITree.cat, assoc_ktree_r, lift_ktree.
   intros [| []]; simpl;
     repeat (rewrite bind_bind; simpl) || (rewrite ret_bind_; simpl); reflexivity.
 Qed.
 
 Lemma local_rewrite2 {A B C: Type}:
-  sym_den >=> assoc_den_r >=> id_den ⊗ sym_den ⩯
-          @assoc_den_l E A B C >=> sym_den ⊗ id_den >=> assoc_den_r.
+  sym_ktree >=> assoc_ktree_r >=> id_ktree ⊗ sym_ktree ⩯
+          @assoc_ktree_l E A B C >=> sym_ktree ⊗ id_ktree >=> assoc_ktree_r.
 Proof.
-  unfold id_den, tensor_den,sym_den, assoc_den_l, ITree.cat, assoc_den_r, lift_den.
+  unfold id_ktree, tensor_ktree,sym_ktree, assoc_ktree_l, ITree.cat, assoc_ktree_r, lift_ktree.
   intros [| []]; simpl;
     repeat (rewrite bind_bind; simpl) || (rewrite ret_bind_; simpl); reflexivity.
 Qed.
 
-Lemma loop_tensor_den {I A B C D}
-      (ab : @den E A B) (cd : @den E (I + C) (I + D)) :
-  ab ⊗ loop_den cd ⩯
-     loop_den (assoc_den_l >=> sym_den ⊗ id_den >=> assoc_den_r
+Lemma loop_tensor_ktree {I A B C D}
+      (ab : ktree E A B) (cd : ktree E (I + C) (I + D)) :
+  ab ⊗ loop cd ⩯
+     loop (assoc_ktree_l >=> sym_ktree ⊗ id_ktree >=> assoc_ktree_r
                            >=> ab ⊗ cd
-                           >=> assoc_den_l >=> sym_den ⊗ id_den >=> assoc_den_r).
+                           >=> assoc_ktree_l >=> sym_ktree ⊗ id_ktree >=> assoc_ktree_r).
 Proof.
-  rewrite tensor_swap, tensor_den_loop.
+  rewrite tensor_swap, tensor_ktree_loop.
   rewrite <- compose_loop.
   rewrite <- loop_compose.
   rewrite (tensor_swap cd ab).
-  repeat rewrite <- compose_den_assoc.
+  repeat rewrite <- compose_ktree_assoc.
   rewrite local_rewrite1.
-  do 2 rewrite compose_den_assoc.
-  rewrite <- (compose_den_assoc sym_den assoc_den_r _).
+  do 2 rewrite compose_ktree_assoc.
+  rewrite <- (compose_ktree_assoc sym_ktree assoc_ktree_r _).
   rewrite local_rewrite2.
-  repeat rewrite <- compose_den_assoc.
+  repeat rewrite <- compose_ktree_assoc.
   reflexivity.
 Qed.
 
@@ -309,57 +310,55 @@ Proof.
   destruct a; reflexivity.
 Qed.
 
-Lemma foo_assoc_l {A B C D D'} (f : den _ D') :
-    @id_den E A ⊗ @assoc_den_l E B C D >=> (assoc_den_l >=> f)
-   ⩯ assoc_den_l >=> (assoc_den_l >=> (assoc_den_r ⊗ id_den >=> f)).
+Lemma foo_assoc_l {A B C D D'} (f : ktree E _ D') :
+    @id_ktree E A ⊗ @assoc_ktree_l E B C D >=> (assoc_ktree_l >=> f)
+   ⩯ assoc_ktree_l >=> (assoc_ktree_l >=> (assoc_ktree_r ⊗ id_ktree >=> f)).
 Proof.
-  rewrite <- !compose_den_assoc.
+  rewrite <- !compose_ktree_assoc.
   rewrite <- assoc_coherent_l.
-  rewrite (compose_den_assoc _ _ (_ ⊗ id_den)).
-  rewrite cat_tensor, id_den_left, assoc_lr, tensor_id.
-  rewrite id_den_right.
+  rewrite (compose_ktree_assoc _ _ (_ ⊗ id_ktree)).
+  rewrite cat_tensor, id_ktree_left, assoc_lr, tensor_id.
+  rewrite id_ktree_right.
   reflexivity.
 Qed.
 
-Lemma foo_assoc_r {A' A B C D} (f : den A' _) :
-    f >=> assoc_den_r >=> @id_den E A ⊗ @assoc_den_r E B C D
-  ⩯ f >=> assoc_den_l ⊗ id_den >=> assoc_den_r >=> assoc_den_r.
+Lemma foo_assoc_r {A' A B C D} (f : ktree E A' _) :
+    f >=> assoc_ktree_r >=> @id_ktree E A ⊗ @assoc_ktree_r E B C D
+  ⩯ f >=> assoc_ktree_l ⊗ id_ktree >=> assoc_ktree_r >=> assoc_ktree_r.
 Proof.
-  rewrite (compose_den_assoc _ _ assoc_den_r).
+  rewrite (compose_ktree_assoc _ _ assoc_ktree_r).
   rewrite <- assoc_coherent_r.
-  rewrite (compose_den_assoc (tensor_den _ _)).
-  rewrite (compose_den_assoc _ (tensor_den _ _)).
-  rewrite <- (compose_den_assoc (tensor_den _ _)).
-  rewrite cat_tensor, id_den_left, assoc_lr, tensor_id.
-  rewrite id_den_left.
-  rewrite compose_den_assoc.
+  rewrite (compose_ktree_assoc (tensor_ktree _ _)).
+  rewrite (compose_ktree_assoc _ (tensor_ktree _ _)).
+  rewrite <- (compose_ktree_assoc (tensor_ktree _ _)).
+  rewrite cat_tensor, id_ktree_left, assoc_lr, tensor_id.
+  rewrite id_ktree_left.
+  rewrite compose_ktree_assoc.
   reflexivity.
 Qed.
-
-Set Nested Proofs Allowed.
 
 Definition app_asm_correct {A B C D} (ab : asm A B) (cd : asm C D) :
-  @eq_den E _ _
+  @eq_ktree E _ _
           (denote_asm (app_asm ab cd))
-          (tensor_den (denote_asm ab) (denote_asm cd)).
+          (tensor_ktree (denote_asm ab) (denote_asm cd)).
 Proof.
   unfold denote_asm.
 
   match goal with | |- ?x ⩯ _ => set (lhs := x) end.
-  rewrite tensor_den_loop.
-  rewrite loop_tensor_den.
+  rewrite tensor_ktree_loop.
+  rewrite loop_tensor_ktree.
   rewrite <- compose_loop.
   rewrite <- loop_compose.
   rewrite loop_loop.
   subst lhs.
-  rewrite <- (loop_rename_internal' sym_den sym_den)
+  rewrite <- (loop_rename_internal' sym_ktree sym_ktree)
     by apply sym_nilpotent.
-  apply eq_den_loop.
-  rewrite ! compose_den_assoc.
-  unfold tensor_den, sym_den, ITree.cat, assoc_den_l, assoc_den_r, id_den, lift_den.
+  apply eq_ktree_loop.
+  rewrite ! compose_ktree_assoc.
+  unfold tensor_ktree, sym_ktree, ITree.cat, assoc_ktree_l, assoc_ktree_r, id_ktree, lift_ktree.
   intros [[|]|[|]]; cbn.
   (* ... *)
-  all: repeat (rewrite ret_bind_; simpl).
+  all: repeat (rewrite ret_bind; simpl).
   all: rewrite bind_bind.
   all: unfold _app_B, _app_D.
   all: rewrite fmap_block_map.
@@ -370,12 +369,12 @@ Qed.
 
 Definition relabel_bks_correct {A B C D} (f : A -> B) (g : C -> D)
            (bc : bks B C) :
-  @eq_den E _ _
+  @eq_ktree E _ _
      (denote_b (relabel_bks f g bc))
-     (lift_den f >=> denote_b bc >=> lift_den g).
+     (lift_ktree f >=> denote_b bc >=> lift_ktree g).
 Proof.
-  rewrite lift_compose_den.
-  rewrite compose_den_lift.
+  rewrite lift_compose_ktree.
+  rewrite compose_ktree_lift.
   intro a.
   unfold denote_b, relabel_bks.
   rewrite fmap_block_map.
@@ -384,28 +383,28 @@ Qed.
 
 Definition relabel_asm_correct {A B C D} (f : A -> B) (g : C -> D)
            (bc : asm B C) :
-  @eq_den E _ _
+  @eq_ktree E _ _
      (denote_asm (relabel_asm f g bc))
-     (lift_den f >=> denote_asm bc >=> lift_den g).
+     (lift_ktree f >=> denote_asm bc >=> lift_ktree g).
 Proof.
   unfold denote_asm.
   simpl.
   rewrite relabel_bks_correct.
   rewrite <- compose_loop.
   rewrite <- loop_compose.
-  apply eq_den_loop.
+  apply eq_ktree_loop.
   rewrite !tensor_id_lift.
   reflexivity.
 Qed.
 
 Definition link_asm_correct {I A B} (ab : asm (I + A) (I + B)) :
-  @eq_den E _ _
+  @eq_ktree E _ _
      (denote_asm (link_asm ab))
-     (loop_den (denote_asm ab)).
+     (loop (denote_asm ab)).
 Proof.
   unfold denote_asm.
   rewrite loop_loop.
-  apply eq_den_loop.
+  apply eq_ktree_loop.
   simpl.
   rewrite relabel_bks_correct.
   reflexivity.

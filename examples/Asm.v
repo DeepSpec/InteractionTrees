@@ -63,8 +63,7 @@ Arguments internal {A B}.
 Arguments code {A B}.
 
 From ITree Require Import
-     ITree OpenSum Fix.
-Require Import Den.
+     ITree OpenSum KTree.
 
 Section Semantics.
 
@@ -138,7 +137,7 @@ Section Semantics.
           denote_branch b
         end.
 
-      Definition denote_b : bks A B -> @den E A B :=
+      Definition denote_b : bks A B -> ktree E A B :=
         fun bs a => denote_block (bs a).
 
     End with_labels.
@@ -149,8 +148,8 @@ Section Semantics.
    It is therefore denoted as a [den] term *)
 
     (* Denotation of [asm] *)
-    Definition denote_asm {A B} : asm A B -> @den E A B :=
-      fun s => loop_den (denote_b (code s)).
+    Definition denote_asm {A B} : asm A B -> ktree E A B :=
+      fun s => loop (denote_b (code s)).
 
   End with_effect.
 End Semantics.

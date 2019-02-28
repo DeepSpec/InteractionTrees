@@ -5,11 +5,9 @@ IO.v
 MultiThreadedPrinting.v
 ExtractThreadsExample.v
 
-Den.v
 Imp.v
 Asm.v
 AsmCombinators.v
-Linking.v
 Imp2Asm.v
 Imp2AsmCorrectness.v
 

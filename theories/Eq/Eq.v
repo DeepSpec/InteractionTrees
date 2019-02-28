@@ -435,6 +435,23 @@ Proof.
   rewrite bind_bind. setoid_rewrite ret_bind. reflexivity.
 Qed.
 
+Lemma bind_map {E X Y Z} (t: itree E X) (k: X -> itree E Y) (f: Y -> Z) :
+  (ITree.map f (x <- t;; k x)) ≅ (x <- t;; ITree.map f (k x)).
+Proof.
+  intros.
+  unfold ITree.map.
+  rewrite bind_bind.
+  reflexivity.
+Qed.
+
+(* Used in KTree *)
+Lemma map_is_cat {E} {R S: Type} (f: R -> S) (t: itree E R) :
+    ITree.map f t
+  ≅ ITree.cat (fun _:unit => t) (fun x => Ret (f x)) tt.
+Proof.
+  intros; reflexivity.
+Qed.
+
 (*
 Import Hom.
 

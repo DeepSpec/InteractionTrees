@@ -1,4 +1,4 @@
-Require Import Imp Asm AsmCombinators Den Imp2Asm.
+Require Import Imp Asm AsmCombinators Imp2Asm.
 
 Require Import Psatz.
 
@@ -10,11 +10,11 @@ From Coq Require Import
 
 From ITree Require Import
      Basics_Functions
-     Core
+     ITree
      Effect.Env
      MorphismsFacts
      FixFacts
-     ITree.
+     KTree.
 
 From ExtLib Require Import
      Core.RelDec
@@ -522,40 +522,19 @@ Section Correctness.
     eapply Renv_write_local; eauto.
   Qed.
 
-  Lemma sym_den_unfold {E} {A B}:
-    lift_den sum_comm ⩯ @sym_den E A B.
-  Proof.
-    reflexivity.
-  Qed.
-
-  Lemma seq_linking_den {E} {A B C} (ab : @den E A B) (bc : den B C) :
-    loop_den (sym_den >=> ab ⊗ bc) ⩯ ab >=> bc.
-  Proof.
-    rewrite tensor_den_slide.
-    rewrite <- compose_den_assoc.
-    rewrite loop_compose.
-    rewrite tensor_swap.
-    repeat rewrite <- compose_den_assoc.
-    rewrite sym_nilpotent, id_den_left.
-    rewrite compose_loop.
-    erewrite yanking_den.
-    rewrite id_den_right.
-    reflexivity.
-  Qed.
-
   Lemma seq_asm_correct {A B C} (ab : asm A B) (bc : asm B C) :
-    eq_den (denote_asm (seq_asm ab bc))
+    eq_ktree (denote_asm (seq_asm ab bc))
            (denote_asm ab >=> denote_asm bc).
   Proof.
     unfold seq_asm. 
     rewrite link_asm_correct, relabel_asm_correct, app_asm_correct.
-    rewrite id_den_right.
-    rewrite sym_den_unfold.
-    apply seq_linking_den.
+    rewrite id_ktree_right.
+    rewrite sym_ktree_unfold.
+    apply cat_from_loop.
   Qed.
 
   Lemma if_asm_correct {A} (e : list instr) (tp fp : asm unit A) :
-    eq_den
+    eq_ktree
       (denote_asm (if_asm e tp fp))
       (fun _ =>
          denote_list e ;;
@@ -576,43 +555,43 @@ Section Correctness.
       rewrite (relabel_asm_correct _ _ _ (inr tt)).
       unfold ITree.cat; simpl.
       rewrite bind_bind.
-      unfold lift_den; rewrite ret_bind_.
+      unfold lift_ktree; rewrite ret_bind_.
       setoid_rewrite (app_asm_correct tp fp (inr tt)).
       setoid_rewrite bind_bind.
       rewrite <- (bind_ret (denote_asm fp tt)) at 2.
       eapply eutt_bind; [ reflexivity | intros ? ].
-      unfold lift_den; rewrite ret_bind_; reflexivity.
+      unfold lift_ktree; rewrite ret_bind_; reflexivity.
     - rewrite ret_bind_.
       rewrite (relabel_asm_correct _ _ _ (inl tt)).
       unfold ITree.cat; simpl.
       rewrite bind_bind.
-      unfold lift_den; rewrite ret_bind_.
+      unfold lift_ktree; rewrite ret_bind_.
       setoid_rewrite (app_asm_correct tp fp (inl tt)).
       setoid_rewrite bind_bind.
       rewrite <- (bind_ret (denote_asm tp tt)) at 2.
       eapply eutt_bind; [reflexivity | intros ?].
-      unfold lift_den; rewrite ret_bind_; reflexivity.
+      unfold lift_ktree; rewrite ret_bind_; reflexivity.
   Qed.
 
   Lemma while_asm_correct (e : list instr) (p : asm unit unit) :
-    eq_den
+    eq_ktree
       (denote_asm (while_asm e p))
-      (loop_den (fun l =>
-                   match l with
-                   | inl tt =>
-                     denote_list e ;;
-                                 v <- lift (GetVar tmp_if) ;;
-                                 if v : value then
-                                   Ret (inr tt)
-                                 else
-                                   denote_asm p tt;; Ret (inl tt)
-                   | inr tt => Ret (inl tt)
-                   end)).
+      (loop (fun l =>
+         match l with
+         | inl tt =>
+           denote_list e ;;
+           v <- lift (GetVar tmp_if) ;;
+           if v : value then
+             Ret (inr tt)
+           else
+             denote_asm p tt;; Ret (inl tt)
+         | inr tt => Ret (inl tt)
+         end)).
   Proof.
     unfold while_asm.
     rewrite link_asm_correct.
-    apply eq_den_loop.
-    rewrite relabel_asm_correct, id_den_left.
+    apply eq_ktree_loop.
+    rewrite relabel_asm_correct, id_ktree_left.
     rewrite app_asm_correct.
     rewrite if_asm_correct.
     intros [[] |[]].
@@ -623,13 +602,13 @@ Section Correctness.
       rewrite bind_bind.
       apply eutt_bind; [reflexivity | intros []].
       + rewrite (pure_asm_correct _ tt).
-        unfold lift_den.
+        unfold lift_ktree.
         repeat rewrite ret_bind_.
         reflexivity.
       + rewrite (relabel_asm_correct _ _ _  tt).
         unfold ITree.cat. 
         simpl; repeat setoid_rewrite bind_bind.
-        unfold lift_den; rewrite ret_bind_.
+        unfold lift_ktree; rewrite ret_bind_.
         apply eutt_bind; [reflexivity | intros []].
         repeat rewrite ret_bind_; reflexivity.
     - rewrite itree_eta; cbn; reflexivity.
@@ -709,7 +688,7 @@ Section Correctness.
       simpl; rewrite fold_to_itree.
       rewrite while_asm_correct.
       rewrite while_is_loop.
-      unfold to_itree, loop_den.
+      unfold to_itree.
       apply eq_locals_loop.
       intros [[]|[]].
       2:{ repeat intro.

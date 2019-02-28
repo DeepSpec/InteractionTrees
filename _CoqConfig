@@ -26,6 +26,8 @@ theories/TranslateFacts.v
 theories/Morphisms.v
 theories/MorphismsFacts.v
 
+theories/KTree.v
+
 theories/UpTo.v
 theories/Trace.v
 theories/MFixITree.v
