@@ -26,9 +26,7 @@ From ExtLib Require Import
 Import ListNotations.
 Open Scope string_scope.
 
-Section Correctness.
-
-  (*
+(*
     Potential extensions for later:
     - Add some non-determinism at the source level, for instance order of evaluation in add, and have the compiler  an order.
     The correctness would then be a refinement.
@@ -36,32 +34,17 @@ Section Correctness.
     - Add a print effect?
     - Change languages to map two notions of state at the source down to a single one at the target?
       Make the keys of the second env monad as the sum of the two initial ones.
-   *)
 
-
-  Variable E: Type -> Type.
-  Context {HasLocals: Locals -< E} {HasMemory: Memory -< E}.
-
-  Variant Rvar : var -> var -> Prop :=
-  | Rvar_var v : Rvar (varOf v) v.
-
-  Arguments alist_find {_ _ _ _}.
-
-  Definition alist_In {K R RD V} k m v := @alist_find K R RD V k m = Some v.
-
-  Definition Renv (g_asm g_imp : alist var value) : Prop :=
-    forall k_asm k_imp, Rvar k_asm k_imp ->
-                   forall v, alist_In k_imp g_imp v <-> alist_In k_asm g_asm v.
-
-  (* Let's not unfold this inside of the main proof *)
-  Definition sim_rel g_asm n: alist var value * unit -> alist var value * value -> Prop :=
-    fun '(g_asm', _) '(g_imp',v) =>
-      Renv g_asm' g_imp' /\            (* we don't corrupt any of the imp variables *)
-      alist_In (gen_tmp n) g_asm' v /\ (* we get the right value *)
-      (forall m, m < n -> forall v,              (* we don't mess with anything on the "stack" *)
-            alist_In (gen_tmp m) g_asm v <-> alist_In (gen_tmp m) g_asm' v).
-
-End Correctness.
+ things to do?
+ * 1. change the compiler to not compress basic blocks.
+ *    - ideally we would write a separate pass that does that
+ *    - split out each of the structures as separate definitions and lemmas
+ * 2. need to prove `interp F (denote_block ...) = denote_block ...`
+ * 3. link_seq_ok should be a proof by co-induction.
+ * 4. clean up this file *a lot*
+ * bonus: block fusion
+ * bonus: break & continue
+ *)
 
 Section EUTT.
 
@@ -104,133 +87,49 @@ End GEN_TMP.
 Opaque gen_tmp.
 Opaque varOf.
 
-Section Real_correctness.
+Ltac flatten_goal :=
+  match goal with
+  | |- context[match ?x with | _ => _ end] => let Heq := fresh "Heq" in destruct x eqn:Heq
+  end.
 
-  Context {E': Type -> Type}.
-  Context {HasMemory: Memory -< E'}.
-  Context {HasExit: Exit -< E'}.
-  Definition E := Locals +' E'.
+Ltac flatten_hyp h :=
+  match type of h with
+  | context[match ?x with | _ => _ end] => let Heq := fresh "Heq" in destruct x eqn:Heq
+  end.
 
-  Definition interp_locals {R: Type} (t: itree E R) (s: alist var value)
-  : itree E' (alist var value * R) :=
-    run_env _ (interp1 evalLocals _ t) s.
+Ltac flatten_all :=
+  match goal with
+  | h: context[match ?x with | _ => _ end] |- _ => let Heq := fresh "Heq" in destruct x eqn:Heq
+  | |- context[match ?x with | _ => _ end] => let Heq := fresh "Heq" in destruct x eqn:Heq
+  end.
 
-  Instance eutt_interp_locals {R}:
-    Proper (@eutt E R R eq ==> eq ==> @eutt E' (prod (alist var value) R) (prod _ R) eq)
-           interp_locals.
-  Proof.
-    repeat intro.
-    unfold interp_locals.
-    unfold run_env.
-    rewrite H0. eapply eutt_interp_state; auto. rewrite H.
-    reflexivity.
-  Qed.
+Ltac inv h := inversion h; subst; clear h.
 
-  Lemma interp_locals_bind: forall {R S} (t: itree E R) (k: R -> itree _ S) (s: alist var value),
-      @eutt E' _ _ eq
-            (interp_locals (ITree.bind t k) s)
-            (ITree.bind (interp_locals t s) (fun s' => interp_locals (k (snd s')) (fst s'))).
-  Proof.
-    intros.
-    unfold interp_locals.
-    unfold run_env.
-    rewrite interp1_bind.
-    rewrite interp_state_bind.
-    reflexivity.
-  Qed.
+Section alistFacts.
 
-Definition eq_locals {R1 R2} (RR : R1 -> R2 -> Prop)
-           (Renv_ : _ -> _ -> Prop)
-           t1 t2 :=
-  forall g1 g2,
-    Renv_ g1 g2 ->
-    eutt (fun a (b : alist var value * R2) => Renv_ (fst a) (fst b) /\ RR (snd a) (snd b))
-         (interp_locals t1 g1)
-         (interp_locals t2 g2).
+  Arguments alist_find {_ _ _ _}.
 
-Instance eutt_eq_locals (Renv_ : _ -> _ -> Prop) {R} RR :
-  Proper (eutt eq ==> eutt eq ==> iff) (@eq_locals R R RR Renv_).
-Proof.
-  repeat intro.
-  split; repeat intro.
-  - rewrite <- H, <- H0; auto.
-  - rewrite H, H0; auto.
-Qed.
-
-Definition eq_locals_bind_gen (Renv_ : _ -> _ -> Prop)
-           {R1 R2 S1 S2} (RR : R1 -> R2 -> Prop)
-           (RS : S1 -> S2 -> Prop) :
-  forall t1 t2,
-    eq_locals RR Renv_ t1 t2 ->
-    forall k1 k2,
-      (forall r1 r2, RR r1 r2 -> eq_locals RS Renv_ (k1 r1) (k2 r2)) ->
-      eq_locals RS Renv_ (t1 >>= k1) (t2 >>= k2).
-Proof.
-  repeat intro.
-  rewrite 2 interp_locals_bind.
-  eapply eutt_bind_gen.
-  { eapply H; auto. }
-  intros. eapply H0; destruct H2; auto.
-Qed.
-
-Lemma eq_locals_loop {A B C} x (t1 t2 : C + A -> itree E (C + B)) :
-  (forall l, eq_locals eq Renv (t1 l) (t2 l)) ->
-  eq_locals eq Renv (loop t1 x) (loop t2 x).
-Proof.
-  unfold eq_locals, interp_locals, run_env.
-  intros.
-  rewrite 2 interp1_loop.
-  eapply interp_state_loop; auto.
-Qed.
-
-  Set Nested Proofs Allowed.
-
-  Ltac force_left :=
-    match goal with
-    | |- eutt _ ?x _ => rewrite (itree_eta x); cbn
-    end.
-
-  Ltac force_right :=
-    match goal with
-    | |- eutt _ _ ?x => rewrite (itree_eta x); cbn
-    end.
-
-  Ltac untau_left := force_left; rewrite tau_eutt.
-  Ltac untau_right := force_right; rewrite tau_eutt.
+  Definition alist_In {K R RD V} k m v := @alist_find K R RD V k m = Some v.
 
   Arguments alist_add {_ _ _ _}.
   Arguments alist_find {_ _ _ _}.
-
-  Ltac flatten_goal :=
-    match goal with
-    | |- context[match ?x with | _ => _ end] => let Heq := fresh "Heq" in destruct x eqn:Heq
-    end.
-
-  Ltac flatten_hyp h :=
-    match type of h with
-    | context[match ?x with | _ => _ end] => let Heq := fresh "Heq" in destruct x eqn:Heq
-    end.
-
-  Ltac flatten_all :=
-    match goal with
-    | h: context[match ?x with | _ => _ end] |- _ => let Heq := fresh "Heq" in destruct x eqn:Heq
-    | |- context[match ?x with | _ => _ end] => let Heq := fresh "Heq" in destruct x eqn:Heq
-    end.
-
-  Ltac inv h := inversion h; subst; clear h.
   Arguments alist_remove {_ _ _ _}. 
 
-  Lemma In_add_eq {K V: Type} {RR:RelDec eq} {RRC:@RelDec_Correct _ _ RR}:
+  Context {K V: Type}.
+  Context {RR : @RelDec K (@eq K)}.
+  Context {RRC : @RelDec_Correct K (@eq K) RR}.
+  
+  Lemma In_add_eq:
     forall k v (m: alist K V),
       alist_In k (alist_add k v m) v.
   Proof.
+    Set Printing Implicit.
     intros; unfold alist_add, alist_In; simpl; flatten_goal; [reflexivity | rewrite <- neg_rel_dec_correct in Heq; tauto]. 
   Qed.
 
   (* A removed key is not contained in the resulting map *)
   Lemma not_In_remove:
-    forall (K V : Type) {RR: RelDec eq} {RRC:@RelDec_Correct _ _ RR}
-      (m : alist K V) (k : K) (v: V),
+    forall (m : alist K V) (k : K) (v: V),
       ~ alist_In k (alist_remove k m) v.
   Proof.
     induction m as [| [k1 v1] m IH]; intros.
@@ -245,8 +144,7 @@ Qed.
 
   (* Removing a key does not alter other keys *)
   Lemma In_In_remove_ineq:
-    forall (K V : Type) {RR: RelDec eq} {RRC:@RelDec_Correct _ _ RR}
-      (m : alist K V) (k : K) (v : V) (k' : K),
+    forall (m : alist K V) (k : K) (v : V) (k' : K),
       k <> k' ->
       alist_In k m v ->
       alist_In k (alist_remove k' m) v.
@@ -263,8 +161,7 @@ Qed.
   Qed.       
 
   Lemma In_remove_In_ineq:
-    forall (K V : Type) {RR: RelDec eq} {RRC:@RelDec_Correct _ _ RR}
-      (m : alist K V) (k : K) (v : V) (k' : K),
+    forall (m : alist K V) (k : K) (v : V) (k' : K),
       alist_In k (alist_remove k' m) v ->
       alist_In k m v.
   Proof.
@@ -281,8 +178,7 @@ Qed.
   Qed.       
 
   Lemma In_remove_In_ineq_iff:
-    forall (K V : Type) {RR: RelDec eq} {RRC:@RelDec_Correct _ _ RR}
-      (m : alist K V) (k : K) (v : V) (k' : K),
+    forall (m : alist K V) (k : K) (v : V) (k' : K),
       k <> k' ->
       alist_In k (alist_remove k' m) v <->
       alist_In k m v.
@@ -291,7 +187,7 @@ Qed.
   Qed.       
 
   (* Adding a value to a key does not alter other keys *)
-  Lemma In_In_add_ineq {K V: Type} {RR: RelDec eq} `{RRC:@RelDec_Correct _ _ RR}:
+  Lemma In_In_add_ineq:
     forall k v k' v' (m: alist K V),
       k <> k' ->
       alist_In k m v ->
@@ -302,7 +198,7 @@ Qed.
     apply In_In_remove_ineq; auto.
   Qed.
 
-  Lemma In_add_In_ineq {K V: Type} {RR: RelDec eq} `{RRC:@RelDec_Correct _ _ RR}:
+  Lemma In_add_In_ineq:
     forall k v k' v' (m: alist K V),
       k <> k' ->
       alist_In k (alist_add k' v' m) v ->
@@ -313,7 +209,7 @@ Qed.
     eapply In_remove_In_ineq; eauto.
   Qed.
 
-  Lemma In_add_ineq_iff {K V: Type} `{RR: RelDec _ (@eq K)} `{RRC:@RelDec_Correct _ _ RR}:
+  Lemma In_add_ineq_iff: 
     forall m (v v' : V) (k k' : K),
       k <> k' ->
       alist_In k m v <-> alist_In k (alist_add k' v' m) v.
@@ -322,7 +218,7 @@ Qed.
   Qed.
 
   (* alist_find fails iff no value is associated to the key in the map *)
-  Lemma alist_find_None {K V: Type} `{RR: RelDec _ (@eq K)} `{RRC:@RelDec_Correct _ _ RR}:
+  Lemma alist_find_None:
     forall k (m: alist K V),
       (forall v, ~ In (k,v) m) <-> alist_find k m = None.
   Proof.
@@ -334,6 +230,31 @@ Qed.
     - intros v; flatten_hyp H; [inv H | rewrite <- IH in H].
       intros [EQ | abs]; [inv EQ; rewrite <- neg_rel_dec_correct in Heq; tauto | apply (H v); assumption]. 
   Qed.
+
+End alistFacts.
+Arguments alist_find {_ _ _ _}.
+Arguments alist_add {_ _ _ _}.
+Arguments alist_find {_ _ _ _}.
+Arguments alist_remove {_ _ _ _}. 
+
+Section Simulation_Relation.
+
+  Variable E: Type -> Type.
+  Context {HasLocals: Locals -< E} {HasMemory: Memory -< E}.
+
+  Variant Rvar : var -> var -> Prop :=
+  | Rvar_var v : Rvar (varOf v) v.
+
+  Definition Renv (g_asm g_imp : alist var value) : Prop :=
+    forall k_asm k_imp, Rvar k_asm k_imp ->
+                   forall v, alist_In k_imp g_imp v <-> alist_In k_asm g_asm v.
+
+  Definition sim_rel g_asm n: alist var value * unit -> alist var value * value -> Prop :=
+    fun '(g_asm', _) '(g_imp',v) =>
+      Renv g_asm' g_imp' /\            (* we don't corrupt any of the imp variables *)
+      alist_In (gen_tmp n) g_asm' v /\ (* we get the right value *)
+      (forall m, m < n -> forall v,              (* we don't mess with anything on the "stack" *)
+            alist_In (gen_tmp m) g_asm v <-> alist_In (gen_tmp m) g_asm' v).
 
   Lemma Renv_add: forall g_asm g_imp n v,
       Renv g_asm g_imp -> Renv (alist_add (gen_tmp n) v g_asm) g_imp.
@@ -405,6 +326,122 @@ Qed.
     rewrite EQ' in EQ; easy.
   Qed.
 
+  Lemma Renv_write_local:
+    forall (x : Imp.var) (a a0 : alist var value) (v : Imp.value),
+      Renv a a0 -> Renv (alist_add (varOf x) v a) (alist_add x v a0).
+  Proof.
+    intros k m m' v.
+    repeat intro.
+    red in H.
+    specialize (H k_asm k_imp H0 v0).
+    inv H0.
+    unfold alist_add, alist_In; simpl.
+    do 2 flatten_goal;
+      repeat match goal with
+             | h: _ = true |- _ => rewrite rel_dec_correct in h
+             | h: _ = false |- _ => rewrite <- neg_rel_dec_correct in h
+             end; try subst.
+    - tauto.
+    - tauto.
+    - apply varOf_inj in Heq; easy.
+    - setoid_rewrite In_remove_In_ineq_iff; eauto using RelDec_string_Correct.
+  Qed.
+
+End Simulation_Relation.
+
+Section Correctness.
+
+  Context {E': Type -> Type}.
+  Context {HasMemory: Memory -< E'}.
+  Context {HasExit: Exit -< E'}.
+  Notation E := (Locals +' E').
+
+  Definition interp_locals {R: Type} (t: itree E R) (s: alist var value)
+    : itree E' (alist var value * R) :=
+    run_env _ (interp1 evalLocals _ t) s.
+
+  Instance eutt_interp_locals {R}:
+    Proper (@eutt E R R eq ==> eq ==> @eutt E' (prod (alist var value) R) (prod _ R) eq)
+           interp_locals.
+  Proof.
+    repeat intro.
+    unfold interp_locals.
+    unfold run_env.
+    rewrite H0. eapply eutt_interp_state; auto. rewrite H.
+    reflexivity.
+  Qed.
+
+  Lemma interp_locals_bind: forall {R S} (t: itree E R) (k: R -> itree _ S) (s: alist var value),
+      @eutt E' _ _ eq
+            (interp_locals (ITree.bind t k) s)
+            (ITree.bind (interp_locals t s) (fun s' => interp_locals (k (snd s')) (fst s'))).
+  Proof.
+    intros.
+    unfold interp_locals.
+    unfold run_env.
+    rewrite interp1_bind.
+    rewrite interp_state_bind.
+    reflexivity.
+  Qed.
+
+  Definition eq_locals {R1 R2} (RR : R1 -> R2 -> Prop)
+             (Renv_ : _ -> _ -> Prop)
+             t1 t2 :=
+    forall g1 g2,
+      Renv_ g1 g2 ->
+      eutt (fun a (b : alist var value * R2) => Renv_ (fst a) (fst b) /\ RR (snd a) (snd b))
+           (interp_locals t1 g1)
+           (interp_locals t2 g2).
+
+  Instance eutt_eq_locals (Renv_ : _ -> _ -> Prop) {R} RR :
+    Proper (eutt eq ==> eutt eq ==> iff) (@eq_locals R R RR Renv_).
+  Proof.
+    repeat intro.
+    split; repeat intro.
+    - rewrite <- H, <- H0; auto.
+    - rewrite H, H0; auto.
+  Qed.
+
+  Definition eq_locals_bind_gen (Renv_ : _ -> _ -> Prop)
+             {R1 R2 S1 S2} (RR : R1 -> R2 -> Prop)
+             (RS : S1 -> S2 -> Prop) :
+    forall t1 t2,
+      eq_locals RR Renv_ t1 t2 ->
+      forall k1 k2,
+        (forall r1 r2, RR r1 r2 -> eq_locals RS Renv_ (k1 r1) (k2 r2)) ->
+        eq_locals RS Renv_ (t1 >>= k1) (t2 >>= k2).
+  Proof.
+    repeat intro.
+    rewrite 2 interp_locals_bind.
+    eapply eutt_bind_gen.
+    { eapply H; auto. }
+    intros. eapply H0; destruct H2; auto.
+  Qed.
+
+  Lemma eq_locals_loop {A B C} x (t1 t2 : C + A -> itree E (C + B)) :
+    (forall l, eq_locals eq Renv (t1 l) (t2 l)) ->
+    eq_locals eq Renv (loop t1 x) (loop t2 x).
+  Proof.
+    unfold eq_locals, interp_locals, run_env.
+    intros.
+    rewrite 2 interp1_loop.
+    eapply interp_state_loop; auto.
+  Qed.
+
+  Ltac force_left :=
+    match goal with
+    | |- eutt _ ?x _ => rewrite (itree_eta x); cbn
+    end.
+
+  Ltac force_right :=
+    match goal with
+    | |- eutt _ _ ?x => rewrite (itree_eta x); cbn
+    end.
+
+  Ltac untau_left := force_left; rewrite tau_eutt.
+  Ltac untau_right := force_right; rewrite tau_eutt.
+
+
   Notation "(% x )" := (gen_tmp x) (at level 1).
 
   Lemma compile_expr_correct : forall e g_imp g_asm n,
@@ -462,33 +499,10 @@ Qed.
         }
   Qed.
 
-  Lemma Renv_write_local:
-    forall (x : Imp.var) (a a0 : alist var value) (v : Imp.value),
-      Renv a a0 -> Renv (alist_add (varOf x) v a) (alist_add x v a0).
-  Proof.
-    intros k m m' v.
-    repeat intro.
-    red in H.
-    specialize (H k_asm k_imp H0 v0).
-    inv H0.
-    unfold alist_add, alist_In; simpl.
-    do 2 flatten_goal;
-      repeat match goal with
-             | h: _ = true |- _ => rewrite rel_dec_correct in h
-             | h: _ = false |- _ => rewrite <- neg_rel_dec_correct in h
-             end; try subst.
-    - tauto.
-    - tauto.
-    - apply varOf_inj in Heq; easy.
-    - setoid_rewrite In_remove_In_ineq_iff; eauto using RelDec_string_Correct.
-Qed.
-
-(** Correctness of compilation *)
-
   Lemma compile_assign_correct : forall e x,
       eq_locals eq Renv
-        (denote_list (compile_assign x e))
-        (v <- denoteExpr e ;; lift (SetVar x v)).
+                (denote_list (compile_assign x e))
+                (v <- denoteExpr e ;; lift (SetVar x v)).
   Proof.
     red; intros.
     unfold compile_assign.
@@ -540,14 +554,13 @@ Qed.
     apply seq_linking_den.
   Qed.
 
-  (* YZ: Things get wonky once in the two subgoals. eq_den lemmas cannot be rewritten inside of terms anymore since it's specialized to a specific eutt *)
   Lemma if_asm_correct {A} (e : list instr) (tp fp : asm unit A) :
     eq_den
       (denote_asm (if_asm e tp fp))
       (fun _ =>
          denote_list e ;;
-         v <- lift (GetVar tmp_if) ;;
-         if v : value then denote_asm fp tt else denote_asm tp tt).
+                     v <- lift (GetVar tmp_if) ;;
+                     if v : value then denote_asm fp tt else denote_asm tp tt).
   Proof.
     unfold if_asm.
     rewrite seq_asm_correct.
@@ -585,16 +598,16 @@ Qed.
     eq_den
       (denote_asm (while_asm e p))
       (loop_den (fun l =>
-         match l with
-         | inl tt =>
-           denote_list e ;;
-           v <- lift (GetVar tmp_if) ;;
-           if v : value then
-             Ret (inr tt)
-           else
-             denote_asm p tt;; Ret (inl tt)
-         | inr tt => Ret (inl tt)
-         end)).
+                   match l with
+                   | inl tt =>
+                     denote_list e ;;
+                                 v <- lift (GetVar tmp_if) ;;
+                                 if v : value then
+                                   Ret (inr tt)
+                                 else
+                                   denote_asm p tt;; Ret (inl tt)
+                   | inr tt => Ret (inl tt)
+                   end)).
   Proof.
     unfold while_asm.
     rewrite link_asm_correct.
@@ -621,231 +634,119 @@ Qed.
         repeat rewrite ret_bind_; reflexivity.
     - rewrite itree_eta; cbn; reflexivity.
   Qed.
- 
-Definition env_lookupDefault_is_lift {K V : Type} {E: Type -> Type} `{envE K V -< E} (x: K) (v: V):
-  env_lookupDefault x v = lift (lookupDefaultE x v).
-Proof.
-  reflexivity.
-Qed.
+  
+  Definition env_lookupDefault_is_lift {K V : Type} {E: Type -> Type} `{envE K V -< E} (x: K) (v: V):
+    env_lookupDefault x v = lift (lookupDefaultE x v).
+  Proof.
+    reflexivity.
+  Qed.
 
-Lemma sim_rel_get_tmp0:
-  forall g_asm0 g_asm g_imp v,
-    sim_rel g_asm0 0 (g_asm,tt) (g_imp,v) ->
-    interp_locals (lift (GetVar (%0))) g_asm ≈ Ret (g_asm,v).
-Proof.
-  intros.
-  destruct H as [_ [eq _]].
-  unfold interp_locals.
-  rewrite interp1_liftE.
-  cbn.
-  unfold run_env.
-  rewrite env_lookupDefault_is_lift.
-  unfold lift; rewrite interp_state_liftE.
-  cbn.
-  rewrite eq.
-  apply tau_eutt.
-Qed.
-
-Lemma compile_correct (s : stmt) :
-  eq_locals eq Renv
-    (denote_asm (compile s) tt)
-    (denoteStmt s).
-Proof.
-  induction s.
-
-  - (* Assign *)
-    simpl.
-    rewrite raw_asm_block_correct.
-    rewrite after_correct.
-    rewrite <- (bind_ret (ITree.bind (denoteExpr e) _)).
-    eapply eq_locals_bind_gen.
-    { eapply compile_assign_correct; auto. }
-    intros [] [] []. simpl.
-    repeat intro.
-    rewrite itree_eta, (itree_eta (_ _ g2)); cbn.
-    apply eutt_ret; auto.
-
-  - (* Seq *)
-    rewrite fold_to_itree; simpl.
-    rewrite seq_asm_correct. unfold to_itree.
-    unfold ITree.cat.
-    eapply eq_locals_bind_gen.
-    { eauto. }
-    intros [] [] []; auto.
-
-  - (* If *)
-    repeat intro.
-    rewrite fold_to_itree. simpl.
-    rewrite if_asm_correct.
-    unfold to_itree.
-    rewrite 2 interp_locals_bind.
-    eapply eutt_bind_gen.
-    { apply compile_expr_correct; auto. }
+  Lemma sim_rel_get_tmp0:
+    forall g_asm0 g_asm g_imp v,
+      sim_rel g_asm0 0 (g_asm,tt) (g_imp,v) ->
+      interp_locals (lift (GetVar (%0))) g_asm ≈ Ret (g_asm,v).
+  Proof.
     intros.
-    destruct r2 as [g_imp' v]; simpl.
-    rewrite interp_locals_bind.
-    destruct r1 as [g_asm' []].
-    generalize H0; intros EQ. apply sim_rel_get_tmp0 in EQ.
-    setoid_rewrite EQ; clear EQ.
-    rewrite ret_bind_.
-    simpl.
-    apply sim_rel_Renv in H0.
-    destruct v; simpl; auto. 
+    destruct H as [_ [eq _]].
+    unfold interp_locals.
+    rewrite interp1_liftE.
+    cbn.
+    unfold run_env.
+    rewrite env_lookupDefault_is_lift.
+    unfold lift; rewrite interp_state_liftE.
+    cbn.
+    rewrite eq.
+    apply tau_eutt.
+  Qed.
 
-  - (* While *)
-    simpl; rewrite fold_to_itree.
-    rewrite while_asm_correct.
-    rewrite while_is_loop.
-    unfold to_itree, loop_den.
-    apply eq_locals_loop.
-    intros [[]|[]].
-    2:{ repeat intro.
-        rewrite itree_eta, (itree_eta (_ _ g2)); cbn.
-        apply eutt_ret; auto. }
-    unfold ITree.map. rewrite bind_bind.
+  Lemma compile_correct (s : stmt) :
+    eq_locals eq Renv
+              (denote_asm (compile s) tt)
+              (denoteStmt s).
+  Proof.
+    induction s.
 
-    repeat intro.
-    rewrite 2 interp_locals_bind.
-    eapply eutt_bind_gen.
-    { apply compile_expr_correct; auto. }
-    intros.
-    destruct r2 as [g_imp' v]; simpl.
-    rewrite interp_locals_bind.
-    destruct r1 as [g_asm' []].
-    generalize H0; intros EQ. apply sim_rel_get_tmp0 in EQ.
-    rewrite interp_locals_bind.
-    setoid_rewrite EQ; clear EQ.
-    rewrite ret_bind_.
-    simpl.
-    apply sim_rel_Renv in H0.
-    destruct v; simpl; auto.
-    + rewrite itree_eta, (itree_eta (_ >>= _)); cbn.
-      apply eutt_ret. auto.
-    + rewrite 2 interp_locals_bind, bind_bind.
+    - (* Assign *)
+      simpl.
+      rewrite raw_asm_block_correct.
+      rewrite after_correct.
+      rewrite <- (bind_ret (ITree.bind (denoteExpr e) _)).
+      eapply eq_locals_bind_gen.
+      { eapply compile_assign_correct; auto. }
+      intros [] [] []. simpl.
+      repeat intro.
+      rewrite itree_eta, (itree_eta (_ _ g2)); cbn.
+      apply eutt_ret; auto.
+
+    - (* Seq *)
+      rewrite fold_to_itree; simpl.
+      rewrite seq_asm_correct. unfold to_itree.
+      unfold ITree.cat.
+      eapply eq_locals_bind_gen.
+      { eauto. }
+      intros [] [] []; auto.
+
+    - (* If *)
+      repeat intro.
+      rewrite fold_to_itree. simpl.
+      rewrite if_asm_correct.
+      unfold to_itree.
+      rewrite 2 interp_locals_bind.
       eapply eutt_bind_gen.
-      { eapply IHs; auto. }
+      { apply compile_expr_correct; auto. }
       intros.
-      rewrite itree_eta, (itree_eta (_ >>= _)); cbn.
-      apply eutt_ret. destruct H1; auto.
+      destruct r2 as [g_imp' v]; simpl.
+      rewrite interp_locals_bind.
+      destruct r1 as [g_asm' []].
+      generalize H0; intros EQ. apply sim_rel_get_tmp0 in EQ.
+      setoid_rewrite EQ; clear EQ.
+      rewrite ret_bind_.
+      simpl.
+      apply sim_rel_Renv in H0.
+      destruct v; simpl; auto. 
 
-  - (* Skip *)
-    repeat intro.
-    rewrite (itree_eta (_ (denote_asm _ _) _)),
-    (itree_eta (_ (denoteStmt _) _));
-      cbn.
-    apply eutt_ret; auto.
-Qed.
+    - (* While *)
+      simpl; rewrite fold_to_itree.
+      rewrite while_asm_correct.
+      rewrite while_is_loop.
+      unfold to_itree, loop_den.
+      apply eq_locals_loop.
+      intros [[]|[]].
+      2:{ repeat intro.
+          rewrite itree_eta, (itree_eta (_ _ g2)); cbn.
+          apply eutt_ret; auto. }
+      unfold ITree.map. rewrite bind_bind.
 
+      repeat intro.
+      rewrite 2 interp_locals_bind.
+      eapply eutt_bind_gen.
+      { apply compile_expr_correct; auto. }
+      intros.
+      destruct r2 as [g_imp' v]; simpl.
+      rewrite interp_locals_bind.
+      destruct r1 as [g_asm' []].
+      generalize H0; intros EQ. apply sim_rel_get_tmp0 in EQ.
+      rewrite interp_locals_bind.
+      setoid_rewrite EQ; clear EQ.
+      rewrite ret_bind_.
+      simpl.
+      apply sim_rel_Renv in H0.
+      destruct v; simpl; auto.
+      + rewrite itree_eta, (itree_eta (_ >>= _)); cbn.
+        apply eutt_ret. auto.
+      + rewrite 2 interp_locals_bind, bind_bind.
+        eapply eutt_bind_gen.
+        { eapply IHs; auto. }
+        intros.
+        rewrite itree_eta, (itree_eta (_ >>= _)); cbn.
+        apply eutt_ret. destruct H1; auto.
 
-(*
-Seq a b
-a :: itree _ Empty_set
-[[Skip]] = Vis Halt ...
-[[Seq Skip b]] = Vis Halt ...
+    - (* Skip *)
+      repeat intro.
+      rewrite (itree_eta (_ (denote_asm _ _) _)),
+      (itree_eta (_ (denoteStmt _) _));
+        cbn.
+      apply eutt_ret; auto.
+  Qed.
 
-
-[[s]] :: itree _ unit
-[[a]] :: itree _ L (* if closed *)
-*)
-
-
-  (*
-
-OBSOLETE?
-
-Lemma interp_match_option : forall {T U} (x : option T) {E F} (h : E ~> itree F) (Z : itree _ U) Y,
-    interp h match x with
-             | None => Z
-             | Some y => Y y
-             end =
-match x with
-| None => interp h Z
-| Some y => interp h (Y y)
-end.
-Proof. destruct x; reflexivity. Qed.
-Lemma interp_match_sum : forall {A B U} (x : A + B) {E F} (h : E ~> itree F) (Z : _ -> itree _ U) Y,
-    interp h match x with
-             | inl x => Z x
-             | inr x => Y x
-             end =
-match x with
-| inl x => interp h (Z x)
-| inr x => interp h (Y x)
-end.
-Proof. destruct x; reflexivity. Qed.
-
-Lemma translate_match_sum : forall {A B U} (x : A + B) {E F} (h : E ~> F) (Z : _ -> itree _ U) Y,
-    translate h match x with
-             | inl x => Z x
-             | inr x => Y x
-             end =
-match x with
-| inl x => translate h (Z x)
-| inr x => translate h (Y x)
-end.
-Proof. destruct x; reflexivity. Qed.
-Lemma translate_match_option : forall {B U} (x : option B) {E F} (h : E ~> F) (Z : itree _ U) Y,
-    translate h _ match x with
-             | None => Z
-             | Some x => Y x
-             end =
-match x with
-| None => translate h Z
-| Some x => translate h (Y x)
-end.
-Proof. destruct x; reflexivity. Qed.
-*)
-
-
-
-(* things to do?
- * 1. change the compiler to not compress basic blocks.
- *    - ideally we would write a separate pass that does that
- *    - split out each of the structures as separate definitions and lemmas
- * 2. need to prove `interp F (denote_block ...) = denote_block ...`
- * 3. link_seq_ok should be a proof by co-induction.
- * 4. clean up this file *a lot*
- * bonus: block fusion
- * bonus: break & continue
- *)
-
-Lemma Proper_match : forall {T U V : Type} R (f f' : T -> V) (g g' : U -> V) x,
-    ((pointwise_relation _ R) f f') ->
-    ((pointwise_relation _ R) g g') ->
-    R
-    match x with
-    | inl x => f x
-    | inr x => g x
-    end
-    match x with
-    | inl x => f' x
-    | inr x => g' x
-    end.
-Proof. destruct x; compute; eauto. Qed.
-
-
-End Real_correctness.
-
-(*
-Section tests.
-
-  Import ImpNotations.
-
-  Definition ex1: stmt :=
-    "x" ← 1.
-
-  (* The result is a bit annoying to read in that it keeps around absurd branches *)
-  Compute (compile ex1).
-
-  Definition ex_cond: stmt :=
-    "x" ← 1;;;
-    IF "x"
-    THEN "res" ← 2
-    ELSE "res" ← 3.
-
-  Compute (compile ex_cond).
-
-End tests.
-
-
-*)
+End Correctness.
