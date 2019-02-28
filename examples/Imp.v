@@ -95,13 +95,13 @@ Section Denote.
     end.
 
   Definition while {eff} (t : itree eff bool) : itree eff unit :=
-    @loop eff unit unit unit
-          (fun l : unit + unit =>
-             match l with
-             | inr _ => ret (inl tt)
-             | inl _ => continue <- t ;;
-                       if continue : bool then ret (inl tt) else ret (inr tt)
-             end) tt.
+    loop 
+      (fun l : unit + unit =>
+         match l with
+         | inr _ => ret (inl tt)
+         | inl _ => continue <- t ;;
+                   if continue : bool then ret (inl tt) else ret (inr tt)
+         end) tt.
 
   (* the meaning of a statement *)
   Fixpoint denoteStmt (s : stmt) : itree eff unit :=

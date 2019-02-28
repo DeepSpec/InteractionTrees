@@ -77,7 +77,7 @@ Section EUTT.
 End EUTT.
 
 Section GEN_TMP.
-
+ 
   Lemma to_string_inj: forall (n m: nat), n <> m -> to_string n <> to_string m.
   Admitted.
 
@@ -504,13 +504,13 @@ Qed.
   Require Import Den.
 
   Lemma sym_den_unfold {E} {A B}:
-    lift_den sum_comm ⩰ @sym_den E A B.
+    lift_den sum_comm ⩯ @sym_den E A B.
   Proof.
     reflexivity.
   Qed.
 
   Lemma seq_linking_den {E} {A B C} (ab : @den E A B) (bc : den B C) :
-    loop_den (sym_den >=> ab ⊗ bc) ⩰ ab >=> bc.
+    loop_den (sym_den >=> ab ⊗ bc) ⩯ ab >=> bc.
   Proof.
     rewrite tensor_den_slide.
     rewrite <- compose_den_assoc.

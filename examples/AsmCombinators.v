@@ -186,7 +186,7 @@ Proof.
 Qed.
 
 Lemma raw_asm_block_correct_lifted {A} (b : block A) :
-   denote_asm (raw_asm_block b) ⩰
+   denote_asm (raw_asm_block b) ⩯
           (fun _ => denote_block b).
 Proof.
   unfold denote_asm.
@@ -230,7 +230,7 @@ Defined.
 
 Lemma tensor_den_slide_right {A B C D}:
   forall (ac: @den E A C) (bd: den B D),
-    ac ⊗ bd ⩰ id_den ⊗ bd >=> ac ⊗ id_den.
+    ac ⊗ bd ⩯ id_den ⊗ bd >=> ac ⊗ id_den.
 Proof.
   intros.
   unfold tensor_den.
@@ -242,7 +242,7 @@ Proof.
 Qed.
 
 Lemma local_rewrite1 {A B C: Type}:
-  id_den ⊗ sym_den >=> assoc_den_l >=> sym_den ⩰
+  id_den ⊗ sym_den >=> assoc_den_l >=> sym_den ⩯
          @assoc_den_l E A B C >=> sym_den ⊗ id_den >=> assoc_den_r.
 Proof.
   unfold id_den, tensor_den,sym_den, assoc_den_l, ITree.cat, assoc_den_r, lift_den.
@@ -251,7 +251,7 @@ Proof.
 Qed.
 
 Lemma local_rewrite2 {A B C: Type}:
-  sym_den >=> assoc_den_r >=> id_den ⊗ sym_den ⩰
+  sym_den >=> assoc_den_r >=> id_den ⊗ sym_den ⩯
           @assoc_den_l E A B C >=> sym_den ⊗ id_den >=> assoc_den_r.
 Proof.
   unfold id_den, tensor_den,sym_den, assoc_den_l, ITree.cat, assoc_den_r, lift_den.
@@ -261,7 +261,7 @@ Qed.
 
 Lemma loop_tensor_den {I A B C D}
       (ab : @den E A B) (cd : @den E (I + C) (I + D)) :
-  ab ⊗ loop_den cd ⩰
+  ab ⊗ loop_den cd ⩯
      loop_den (assoc_den_l >=> sym_den ⊗ id_den >=> assoc_den_r
                            >=> ab ⊗ cd
                            >=> assoc_den_l >=> sym_den ⊗ id_den >=> assoc_den_r).
@@ -284,7 +284,7 @@ Lemma foo {A B C: Type}:
     denote_b (fun a => match a with
                       | inl x => f x
                       | inr x => g x
-                      end) ⩰
+                      end) ⩯
              fun a => match a with
                    | inl x => denote_block (f x)
                    | inr x => denote_block (g x)
@@ -311,7 +311,7 @@ Qed.
 
 Lemma foo_assoc_l {A B C D D'} (f : den _ D') :
     @id_den E A ⊗ @assoc_den_l E B C D >=> (assoc_den_l >=> f)
-   ⩰ assoc_den_l >=> (assoc_den_l >=> (assoc_den_r ⊗ id_den >=> f)).
+   ⩯ assoc_den_l >=> (assoc_den_l >=> (assoc_den_r ⊗ id_den >=> f)).
 Proof.
   rewrite <- !compose_den_assoc.
   rewrite <- assoc_coherent_l.
@@ -323,7 +323,7 @@ Qed.
 
 Lemma foo_assoc_r {A' A B C D} (f : den A' _) :
     f >=> assoc_den_r >=> @id_den E A ⊗ @assoc_den_r E B C D
-  ⩰ f >=> assoc_den_l ⊗ id_den >=> assoc_den_r >=> assoc_den_r.
+  ⩯ f >=> assoc_den_l ⊗ id_den >=> assoc_den_r >=> assoc_den_r.
 Proof.
   rewrite (compose_den_assoc _ _ assoc_den_r).
   rewrite <- assoc_coherent_r.
@@ -345,7 +345,7 @@ Definition app_asm_correct {A B C D} (ab : asm A B) (cd : asm C D) :
 Proof.
   unfold denote_asm.
 
-  match goal with | |- ?x ⩰ _ => set (lhs := x) end.
+  match goal with | |- ?x ⩯ _ => set (lhs := x) end.
   rewrite tensor_den_loop.
   rewrite loop_tensor_den.
   rewrite <- compose_loop.
