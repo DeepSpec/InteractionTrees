@@ -39,50 +39,6 @@ Section EUTT.
 
 Context {E : Type -> Type} {R1 R2 : Type} (RR : R1 -> R2 -> Prop).
 
-(* Equivalence between visible steps of computation (i.e., [Vis] or
-   [Ret], parameterized by a relation [euttE] between continuations
-   in the [Vis] case. *)
-Variant eq_notauF {I J} (euttE : I -> J -> Prop)
-: itreeF E R1 I -> itreeF E R2 J -> Prop :=
-| Eutt_ret : forall r1 r2,
-    RR r1 r2 ->
-    eq_notauF euttE (RetF r1) (RetF r2)
-| Eutt_vis : forall u (e : E u) k1 k2,
-    (forall x, euttE (k1 x) (k2 x)) ->
-    eq_notauF euttE (VisF e k1) (VisF e k2).
-Hint Constructors eq_notauF.
-
-Lemma eq_notauF_vis_inv1 {I J} {euttE : I -> J -> Prop} {U}
-  ot (e : E U) k :
-  eq_notauF euttE ot (VisF e k) ->
-  exists k',
-    ot = VisF e k' /\ (forall x, euttE (k' x) (k x)).
-Proof.
-  intros. remember (VisF e k) as t.
-  inversion H; subst; try discriminate.
-  inversion H2; subst; auto_inj_pair2; subst; eauto.
-Qed.
-
-(*
-Variant eq_notauF' {I} (euttE : relation I)
-: relation (itreeF E R I) :=
-| Eutt_ret' : forall r, eq_notauF' euttE (RetF r) (RetF r)
-| Eutt_vis' : forall {u1 u2} (e1 : E u1) (e2 : E u2) k1 k2,
-    eq_dep _ E _ e1 _ e2 ->
-    (forall x1 x2, JMeq x1 x2 -> euttE (k1 x1) (k2 x2)) ->
-    eq_notauF' euttE (VisF e1 k1) (VisF e2 k2).
-Hint Constructors eq_notauF'.
-
-Lemma eq_notauF_eq_eq_notauF': forall I (euttE : relation I) t s,
-  eq_notauF euttE t s <-> eq_notauF' euttE t s.
-Proof.
-  split; intros EUTT; destruct EUTT; eauto.
-  - econstructor; intros; subst; eauto.
-  - assert (u1 = u2) by (inv H; eauto).
-    subst. apply eq_dep_eq in H. subst. eauto.
-Qed.
-*)
-
 (* [euttE_ euttE t1 t2] means that, if [t1] or [t2] ever takes a
    visible step ([Vis] or [Ret]), then the other takes the same
    step, and the subsequent continuations (in the [Vis] case) are
@@ -98,7 +54,7 @@ Inductive euttEF (euttE : itree E R1 -> itree E R2 -> Prop)
          (EQV: forall ot1' ot2'
                   (UNTAUS1: unalltausF ot1 ot1')
                   (UNTAUS2: unalltausF ot2 ot2'),
-               eq_notauF euttE ot1' ot2')
+               eq_notauF RR euttE ot1' ot2')
 .
 Hint Constructors euttEF.
 
@@ -106,15 +62,6 @@ Definition euttE_ (euttE : itree E R1 -> itree E R2 -> Prop)
            (t1 : itree E R1) (t2 : itree E R2) : Prop :=
   euttEF euttE (observe t1) (observe t2).
 Hint Unfold euttE_.
-
-(* Paco takes the greatest fixpoints of monotone relations. *)
-
-Lemma monotone_eq_notauF : forall I J (r r' : I -> J -> Prop) x1 x2
-      (IN: eq_notauF r x1 x2)
-      (LE: r <2= r'),
-    eq_notauF r' x1 x2.
-Proof. pmonauto. Qed.
-Hint Resolve monotone_eq_notauF.
 
 (* [euttE_] is monotone. *)
 Lemma monotone_euttE_ : monotone2 euttE_.
@@ -206,47 +153,6 @@ Qed.
 
 (**)
 
-Lemma eq_unalltaus (t1 : itree E R1) (t2 : itree E R2) ot1'
-    (FT: unalltausF (observe t1) ot1')
-    (EQV: eq_itree RR t1 t2) :
-  exists ot2', unalltausF (observe t2) ot2'.
-Proof.
-  genobs t1 ot1. revert t1 Heqot1 t2 EQV.
-  destruct FT as [Huntaus Hnotau].
-  induction Huntaus; intros; punfold EQV; unfold_eq_itree; subst.
-  - eexists. constructor; eauto. inv EQV; simpl; eauto.
-  - inv EQV; simpobs; try inv Heqot1.
-    pclearbot. edestruct IHHuntaus as [? []]; eauto.
-Qed.
-
-Lemma eq_unalltaus_eqF (t : itree E R1) (s : itree E R2) ot'
-    (UNTAUS : unalltausF (observe t) ot')
-    (EQV: eq_itree RR t s) :
-  exists os', unalltausF (observe s) os' /\ eq_itreeF RR (eq_itree RR) ot' os'.
-Proof.
-  destruct UNTAUS as [Huntaus Hnotau].
-  remember (observe t) as ot. revert s t Heqot EQV.
-  induction Huntaus; intros; punfold EQV; unfold_eq_itree.
-  - eexists (observe s). split.
-    inv EQV; simpobs; eauto.
-    subst; eauto.
-    eapply eq_itreeF_mono; eauto.
-    intros ? ? [| []]; eauto.
-  - inv EQV; simpobs; inversion Heqot; subst.
-    destruct REL as [| []].
-    edestruct IHHuntaus as [? [[]]]; eauto 10.
-Qed.
-
-Lemma eq_unalltaus_eq (t : itree E R1) (s : itree E R2) t'
-    (UNTAUS : unalltausF (observe t) (observe t'))
-    (EQV: eq_itree RR t s) :
-  exists s', unalltausF (observe s) (observe s') /\ eq_itree RR t' s'.
-Proof.
-  eapply eq_unalltaus_eqF in UNTAUS; try eassumption.
-  destruct UNTAUS as [os' []]. eexists (go os'); split; eauto.
-  pfold. eapply eq_itreeF_mono; eauto.
-Qed.
-
 Lemma euttE_Ret x y :
   RR x y -> euttE (Ret x) (Ret y).
 Proof.
@@ -279,62 +185,8 @@ End EUTT.
 
 Hint Unfold euttE_.
 Hint Unfold euttE.
-Hint Resolve monotone_eq_notauF.
-Hint Constructors eq_notauF.
 Hint Constructors euttEF.
 Hint Resolve monotone_euttE_ : paco.
-
-(** *** [eq_notauF] lemmas *)
-
-Lemma eq_notauF_and {E R1 R2} (RR : R1 -> R2 -> Prop) {I J}
-        (euttE1 euttE2 euttE : I -> J -> Prop) :
-  (forall t1 t2, euttE1 t1 t2 -> euttE2 t1 t2 -> euttE t1 t2) ->
-  forall (ot1 : itreeF E R1 I) (ot2 : itreeF E R2 J),
-    eq_notauF RR euttE1 ot1 ot2 -> eq_notauF RR euttE2 ot1 ot2 ->
-    eq_notauF RR euttE ot1 ot2.
-Proof.
-  intros ? ? ? [] Hen2; inversion Hen2; auto.
-  auto_inj_pair2; subst; auto.
-Qed.
-
-Lemma eq_notauF_flip {E R1 R2} (RR : R1 -> R2 -> Prop) {I J}
-      (euttE : I -> J -> Prop) :
-  forall (ot1 : itreeF E R1 I) (ot2 : itreeF E R2 J),
-    eq_notauF (flip RR) (flip euttE) ot2 ot1 ->
-    eq_notauF RR euttE ot1 ot2.
-Proof.
-  intros ? ? []; auto.
-Qed.
-
-Delimit Scope euttE_scope with euttE.
-
-(** ** Generalized symmetry and transitivity *)
-
-Lemma Symmetric_eq_notauF_ {E R1 R2}
-      (RR1 : R1 -> R2 -> Prop) (RR2 : R2 -> R1 -> Prop)
-      {I J} (r1 : I -> J -> Prop) (r2 : J -> I -> Prop)
-      (SYM_RR : forall r1 r2, RR1 r1 r2 -> RR2 r2 r1)
-      (SYM_r : forall i j, r1 i j -> r2 j i)
-      (ot1 : itreeF E R1 I) (ot2 : itreeF E R2 J) :
-  eq_notauF RR1 r1 ot1 ot2 ->
-  eq_notauF RR2 r2 ot2 ot1.
-Proof. intros []; auto. Qed.
-
-Lemma Transitive_eq_notauF_ {E R1 R2 R3}
-      (RR1 : R1 -> R2 -> Prop) (RR2 : R2 -> R3 -> Prop)
-      (RR3 : R1 -> R3 -> Prop)
-      {I J K} (r1 : I -> J -> Prop) (r2 : J -> K -> Prop)
-      (r3 : I -> K -> Prop)
-      (TRANS_RR : forall r1 r2 r3, RR1 r1 r2 -> RR2 r2 r3 -> RR3 r1 r3)
-      (TRANS_r : forall i j k, r1 i j -> r2 j k -> r3 i k)
-      (ot1 : itreeF E R1 I) ot2 ot3 :
-  eq_notauF RR1 r1 ot1 ot2 ->
-  eq_notauF RR2 r2 ot2 ot3 ->
-  eq_notauF RR3 r3 ot1 ot3.
-Proof.
-  intros [] I2; inversion I2; eauto.
-  auto_inj_pair2; subst; eauto.
-Qed.
 
 Lemma Symmetric_euttEF_ {E R1 R2}
       (RR1 : R1 -> R2 -> Prop) (RR2 : R2 -> R1 -> Prop)
@@ -406,26 +258,6 @@ Qed.
 Section EUTT_rel.
 
 Context {E : Type -> Type} {R : Type} (RR : R -> R -> Prop).
-
-(* Reflexivity of [eq_notauF], modulo a few assumptions. *)
-Lemma Reflexive_eq_notauF `{Reflexive _ RR} I (eq_ : I -> I -> Prop) :
-  Reflexive eq_ ->
-  forall (ot : itreeF E R I), notauF ot -> eq_notauF RR eq_ ot ot.
-Proof.
-  intros. destruct ot; try contradiction; econstructor; intros; subst; eauto.
-Qed.
-
-Global Instance Symmetric_eq_notauF `{Symmetric _ RR} I (eq_ : I -> I -> Prop) :
-  Symmetric eq_ -> Symmetric (@eq_notauF E _ _ RR _ _ eq_).
-Proof.
-  repeat intro. eapply Symmetric_eq_notauF_; eauto.
-Qed.
-
-Global Instance Transitive_eq_notauF `{Transitive _ RR} I (eq_ : I -> I -> Prop) :
-  Transitive eq_ -> Transitive (@eq_notauF E _ _ RR _ _ eq_).
-Proof.
-  repeat intro. eapply Transitive_eq_notauF_; eauto.
-Qed.
 
 Global Instance subrelation_eq_euttE :
   @subrelation (itree E R) (eq_itree RR) (euttE RR).
@@ -562,12 +394,6 @@ Proof.
     econstructor; intros; left; apply H.
 Qed.
 
-Global Instance eq_itree_notauF :
-  Proper (going (@eq_itree E R _ eq) ==> flip impl) notauF.
-Proof.
-  intros ? ? [] ?; punfold H. inv H; simpl in *; subst; eauto.
-Qed.
-
 (* If [t1] and [t2] are equivalent, then either both start with
    finitely many taus, or both [spin]. *)
 Global Instance euttE_finite_taus :
@@ -588,66 +414,7 @@ Proof.
   pfold. eapply euttEF_tau. reflexivity. reflexivity. punfold H.
 Qed.
 
-Lemma eq_itree_vis {E R1 R2} (RR : R1 -> R2 -> Prop)
-      {U} (e : E U) (k1 : U -> itree E R1) (k2 : U -> itree E R2) :
-  (forall u, eq_itree RR (k1 u) (k2 u)) ->
-  eq_itree RR (Vis e k1) (Vis e k2).
-Proof.
-  intros; pfold; constructor; left. apply H.
-Qed.
-
-Lemma eq_itree_ret {E R1 R2} (RR : R1 -> R2 -> Prop) r1 r2 :
-  RR r1 r2 -> @eq_itree E _ _ RR (Ret r1) (Ret r2).
-Proof.
-  intros; pfold; eauto; constructor; auto.
-Qed.
-
 (* Lemmas about [bind]. *)
-
-Lemma untaus_bind {E S R} : forall t t' (k: S -> itree E R)
-      (UNTAUS: untausF (observe t) (observe t')),
-  untausF (observe (ITree.bind t k)) (observe (ITree.bind t' k)).
-Proof.
-  intros. genobs t ot; genobs t' ot'. revert t Heqot t' Heqot'.
-  induction UNTAUS; intros; subst.
-  - rewrite !unfold_bind; simpobs; eauto.
-  - rewrite unfold_bind. simpobs. cbn. eauto.
-Qed.
-
-Lemma untaus_bindF {E S R} : forall t t' (k: S -> itree E R)
-      (UNTAUS: untausF (observe t) t'),
-  untausF (observe (ITree.bind t k)) (observe (ITree.bind (go t') k)).
-Proof.
-  intros; eapply untaus_bind; eauto.
-Qed.
-
-Lemma finite_taus_bind_fst {E R S}
-      (t : itree E R) (f : R -> itree E S) :
-  finite_taus (ITree.bind t f) -> finite_taus t.
-Proof.
-  intros [tf' [TAUS PROP]].
-  genobs (ITree.bind t f) obtf. move TAUS at top. revert_until TAUS.
-  induction TAUS; intros; subst.
-  - rewrite unfold_bind in PROP.
-    genobs t ot; destruct ot; eauto using finite_taus_ret, finite_taus_vis.
-  - genobs t ot; destruct ot; eauto using finite_taus_ret, finite_taus_vis.
-    rewrite unfold_bind in Heqobtf. simpobs. inv Heqobtf. unfold_bind.
-    eapply finite_taus_tau; eauto.
-Qed.
-
-Lemma finite_taus_bind {E R S}
-      (t : itree E R) (f : R -> itree E S)
-      (FINt: finite_tausF (observe t))
-      (FINk: forall v, finite_tausF (observe (f v))):
-  finite_tausF (observe (ITree.bind t f)).
-Proof.
-  rewrite unfold_bind.
-  genobs t ot. clear Heqot t.
-  destruct FINt as [ot' [UNT NOTAU]].
-  induction UNT; subst.
-  - destruct ot0; inv NOTAU; simpl; eauto 7.
-  - apply finite_taus_tau. eauto.
-Qed.
 
 Inductive euttE_bind_clo {E R1 R2} (r: itree E R1 -> itree E R2 -> Prop) : itree E R1 -> itree E R2 -> Prop :=
 | euttE_bind_clo_intro U (t1 t2: itree E U) k1 k2
