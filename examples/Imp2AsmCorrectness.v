@@ -107,6 +107,8 @@ Ltac inv h := inversion h; subst; clear h.
 
 Section alistFacts.
 
+  (* Generic facts about alists. To eventually move to ExtLib. *)
+
   Arguments alist_find {_ _ _ _}.
 
   Definition alist_In {K R RD V} k m v := @alist_find K R RD V k m = Some v.
@@ -123,7 +125,6 @@ Section alistFacts.
     forall k v (m: alist K V),
       alist_In k (alist_add k v m) v.
   Proof.
-    Set Printing Implicit.
     intros; unfold alist_add, alist_In; simpl; flatten_goal; [reflexivity | rewrite <- neg_rel_dec_correct in Heq; tauto]. 
   Qed.
 
