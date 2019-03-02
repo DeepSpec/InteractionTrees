@@ -98,7 +98,7 @@ Lemma vis_bind {E R U V} (e: E V) (ek: V -> itree E U) (k: U -> itree E R) :
 Proof. apply @unfold_bind. Qed.
 
 Lemma unfold_forever {E R S} (t: itree E R):
-  observing eq (@ITree.forever E R S t) (Tau (ITree.bind t (fun _ => ITree.forever t))).
+  observing eq (@ITree.forever E R S t) (ITree.bind t (fun _ => Tau (ITree.forever t))).
 Proof. econstructor. reflexivity. Qed.
 
 (** ** [going]: Lift relations through [go]. *)

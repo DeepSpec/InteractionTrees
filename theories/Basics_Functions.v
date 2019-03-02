@@ -166,14 +166,14 @@ Proof. all: auto. Qed.
 
 Instance Iso_sum_assoc_l {A B C} : Iso (@sum_assoc_l A B C) sum_assoc_r := {}.
 Proof.
-  - destruct 0 as [| []]; auto.
-  - destruct 0 as [[] |]; auto.
+  - intros. destruct a as [| []]; auto.
+  - intros. destruct b as [[] |]; auto.
 Qed.
 
 Instance Iso_sum_assoc_r {A B C} : Iso (@sum_assoc_r A B C) sum_assoc_l := {}.
 Proof.
-  - destruct 0 as [[] |]; auto.
-  - destruct 0 as [| []]; auto.
+  - intros. destruct a as [[] |]; auto.
+  - intros. destruct b as [| []]; auto.
 Qed.
 
 Instance Iso_compose {A B C} (f : A -> B) (g : B -> C)
