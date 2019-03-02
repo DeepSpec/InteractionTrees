@@ -356,7 +356,8 @@ Inductive eutt_bind_clo {E R1 R2} (r: itree E R1 -> itree E R2 -> Prop) : itree 
 | eutt_bind_clo_intro U1 U2 RU t1 t2 k1 k2
       (EQV: @eutt E U1 U2 RU t1 t2)
       (REL: forall v1 v2 (RELv: RU v1 v2), r (k1 v1) (k2 v2))
-  : eutt_bind_clo r (ITree.bind t1 k1) (ITree.bind t2 k2)
+  : @eutt_bind_clo E R1 R2 r (ITree.bind t1 k1) (ITree.bind t2 k2)
+    (* TODO: 8.8 doesn't like the implicit arguments *)
 .
 Hint Constructors eutt_bind_clo.
 
