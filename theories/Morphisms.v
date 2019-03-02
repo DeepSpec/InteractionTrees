@@ -240,9 +240,9 @@ Import ITree.Basics.Monads.
 
 Definition interp_state_match {E F S R} (h : E ~> stateT S (itree F))
   (rec : itree E R -> stateT S (itree F) R)
-  (t:itree E R) : stateT S (itree F) R :=
+  (ot:itree' E R) : stateT S (itree F) R :=
   fun s =>
-      match t.(observe) with
+      match ot with
       | RetF r => Ret (s, r)
       | VisF e k =>
         Tau (ITree.bind (h _ e s) (fun sx =>
@@ -252,14 +252,14 @@ Definition interp_state_match {E F S R} (h : E ~> stateT S (itree F))
 
 CoFixpoint interp_state {E F S} (h : E ~> stateT S (itree F)) :
   itree E ~> stateT S (itree F) :=
-  fun R => interp_state_match h (interp_state h R).
+  fun R t => interp_state_match h (interp_state h R) (observe t).
 
 
 Definition interp1_state_match {E F S R} (h : E ~> stateT S (itree F))
            (rec : itree (E +' F) R -> stateT S (itree F) R)
-           (t : itree (E +' F) R) : stateT S (itree F) R :=
+           (ot : itree' (E +' F) R) : stateT S (itree F) R :=
   fun s =>
-    match t.(observe) with
+    match ot with
       | RetF r => Ret (s, r)
       | VisF ef k =>
         match ef with
@@ -274,7 +274,7 @@ Definition interp1_state_match {E F S R} (h : E ~> stateT S (itree F))
 
 CoFixpoint interp1_state {E F S} (h : E ~> stateT S (itree F)) :
   itree (E +' F) ~> stateT S (itree F) :=
-  fun R => interp1_state_match h (interp1_state h R).
+  fun R t => interp1_state_match h (interp1_state h R) (observe t).
 
 Definition translate1_state {E F S} (h : E ~> state S) :
   itree (E +' F) ~> stateT S (itree F) :=

@@ -12,6 +12,7 @@ From Coq Require Import
 From ITree Require Import
      Basics
      Basics_Functions
+     OpenSum
      Core
      Morphisms
      MorphismsFacts
@@ -100,40 +101,19 @@ Qed.
 Theorem unfold_interp_mrec {T} (c : itree _ T) :
   interp_mrec ctx _ c ≈ interp (Sum1.elim (C:=itree E) (mrec ctx) ITree.liftE) _ c.
 Proof.
-  revert_until ctx.
-  cut (forall T R (t: itree E R) k,
-         ITree.bind t (fun x => interp_mrec ctx T (k x)) ≈
-         ITree.bind t (fun x => interp (Sum1.elim (C:=itree E) (mrec ctx) ITree.liftE) T (k x))).
-  { intros. specialize (H _ _ (Ret ()) (fun _ => c)).
-    rewrite !ret_bind in H. auto.
-  }    
-
-  intros. pupto2_init. revert_until T. pcofix CIH.
-  intros. pfold. pupto2_init. revert_until CIH. pcofix CIH'.
-  intros. rewrite (itree_eta t). genobs_clear t ot.
-  destruct ot.
-  - rewrite !ret_bind.
-    generalize (k r1) as t. clear R k r1.
-    intros. rewrite (itree_eta t). genobs_clear t ot.
-    destruct ot.
-    + rewrite ret_mrec, ret_interp. simpl. eauto.
-    + rewrite tau_mrec, tau_interp. simpl.
-      pfold. econstructor. pupto2_final. right.
-      apply (CIH' _ (Ret tt) (fun _ => t)).
-    + destruct e.
-      * rewrite vis_mrec_left, vis_interp. simpl.
-        rewrite interp_mrec_bind.
-        pfold. econstructor. pupto2_final. eauto.
-      * rewrite vis_mrec_right, vis_interp. simpl.
-        setoid_rewrite vis_bind_. setoid_rewrite ret_bind_.
-        pfold. econstructor. econstructor. intros.
-        rewrite <- (ret_bind () (fun _ => interp_mrec _ _ _)).
-        rewrite <- (ret_bind () (fun _ => interp _ _ _)).
-        pupto2_final. eauto.
-  - rewrite !tau_bind.
-    pfold. econstructor. pupto2_final. eauto.
-  - rewrite !vis_bind.
-    pfold. econstructor. intros. pupto2_final. eauto.
+  repeat intro. pupto2_init. revert_until T. pcofix CIH. intros.
+  pfold. pupto2_init. revert_until CIH. pcofix CIH'. intros.
+  rewrite observe_interp_mrecF, unfold_interp.
+  destruct (observe c); [| |destruct e]; simpl; eauto 7.
+  - rewrite interp_mrec_bind.
+    pfold. econstructor.
+    pupto2 eutt_nested_clo_bind.
+    econstructor; [reflexivity|].
+    intros; subst. eauto.
+  - unfold ITree.liftE. rewrite vis_bind_.
+    pfold. econstructor. econstructor. intros. left.
+    rewrite ret_bind.
+    pupto2_final. eauto.
 Qed.
 
 Theorem unfold_mrec {T} (d : D T) :
@@ -415,7 +395,21 @@ Lemma bind_aloop {E A B C} (f : A -> itree E (A + B)) (g : B -> itree E (B + C))
        | inl a => ITree.map inl (f a)
        | inr b => ITree.map (sum_map1 inr) (g b)
        end) (inl x).
-Admitted.
+Proof.
+  pupto2_init. revert_until g. pcofix CIH. intros.
+  pfold. pupto2_init. revert_until CIH. pcofix CIH'. intros.
+
+  rewrite !unfold_aloop', bind_bind, map_bind.
+  pupto2 eutt_nested_clo_bind. econstructor; [reflexivity|].
+  intros; subst. destruct v2; simpl.
+  - rewrite tau_bind_.
+    pfold. econstructor. eauto.
+  - rewrite ret_bind_. pfold. econstructor. pfold_reverse.
+    revert_until x. pcofix CIH''. intros.
+    rewrite !unfold_aloop', map_bind.
+    pupto2 eutt_nested_clo_bind. econstructor; [reflexivity|].
+    intros. subst. destruct v2; simpl; eauto 7.
+Qed.
 
 Instance eq_itree_loop {E A B C} :
   Proper ((eq ==> eq_itree eq) ==> eq ==> eq_itree eq) (@loop E A B C).
@@ -621,19 +615,33 @@ Lemma interp_state_loop {E F S A B C} (RS : S -> S -> Prop)
       (t1 t2 : C + A -> itree E (C + B)) :
   (forall ca s1 s2, RS s1 s2 ->
      eutt (fun a b => RS (fst a) (fst b) /\ snd a = snd b)
-          (interp_state h _ (t1 ca) s1)
-          (interp_state h _ (t2 ca) s2)) ->
-  (forall a s1 s2, RS s1 s2 ->
+          (interp_state h (C+B) (t1 ca) s1)
+          (interp_state h (C+B) (t2 ca) s2)) ->
+  (forall ca s1 s2, RS s1 s2 ->
      eutt (fun a b => RS (fst a) (fst b) /\ snd a = snd b)
-          (interp_state h _ (loop t1 a) s1)
-          (interp_state h _ (loop t2 a) s2)).
+          (interp_state h B (loop_ t1 ca) s1)
+          (interp_state h B (loop_ t2 ca) s2)).
 Proof.
-Admitted.
+  repeat intro. pupto2_init. revert_until H. pcofix CIH. intros.
+  pfold. pupto2_init. revert_until CIH. pcofix CIH'. intros.
 
-Require Import ITree.OpenSum.
+  rewrite (itree_eta (loop_ t1 ca)), (itree_eta (loop_ t2 ca)), !unfold_loop''.
+  unfold loop_once. rewrite <- !itree_eta, !interp_state_bind.
+  pupto2 eutt_nested_clo_bind. econstructor; eauto.
+  intros. destruct RELv. rewrite H2. destruct (snd v2).
+  - rewrite !interp_state_tau.
+    pfold. econstructor. pupto2_final. eauto.
+  - rewrite !interp_state_ret. simpl. eauto 7.
+Qed.
 
 Lemma interp1_loop {E F G} `{F -< G} (f : E ~> itree G) {A B C}
-      (t : C + A -> itree (E +' F) (C + B)) a :
-  interp1 f _ (loop t a) ≅ loop (fun ca => interp1 f _ (t ca)) a.
+      (t : C + A -> itree (E +' F) (C + B)) ca :
+  interp1 f _ (loop_ t ca) ≅ loop_ (fun ca => interp1 f _ (t ca)) ca.
 Proof.
-Admitted.
+  pupto2_init. revert ca. pcofix CIH. intros.
+  unfold loop. rewrite !unfold_loop'. unfold loop_once.
+  rewrite interp1_bind.
+  pupto2 eq_itree_clo_bind. econstructor; [reflexivity|]. 
+  intros. subst. rewrite unfold_interp1. pupto2_final. pfold. red.
+  destruct u2; simpl; eauto.
+Qed.

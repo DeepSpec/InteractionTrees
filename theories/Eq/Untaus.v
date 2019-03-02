@@ -16,41 +16,6 @@ From ITree Require Export
 
 Local Open Scope itree.
 
-(* Taken from paco-v2.0.3: BEGIN *)
-
-Lemma paco2_mon_bot {T0 T1} (gf gf': rel2 T0 T1 -> rel2 T0 T1) r' x0 x1
-    (REL: paco2 gf bot2 x0 x1)
-    (LEgf: gf <3= gf'):
-  paco2 gf' r' x0 x1.
-Proof.
-  eapply paco2_mon_gen; [apply REL | apply LEgf | intros; contradiction PR].
-Qed.
-
-Lemma upaco2_mon_bot {T0 T1} (gf gf': rel2 T0 T1 -> rel2 T0 T1) r' x0 x1
-    (REL: upaco2 gf bot2 x0 x1)
-    (LEgf: gf <3= gf'):
-  upaco2 gf' r' x0 x1.
-Proof.
-  eapply upaco2_mon_gen; [apply REL | apply LEgf | intros; contradiction PR].
-Qed.
-
-Lemma rclo2_mon_gen {T0 T1} gf gf' (clo clo': rel2 T0 T1 -> rel2 T0 T1) r r' e0 e1
-      (REL: rclo2 gf clo r e0 e1)
-      (LEgf: gf <3= gf')
-      (LEclo: clo <3= clo')
-      (LEr: r <2= r') :
-  rclo2 gf' clo' r' e0 e1.
-Proof.
-  induction REL.
-  - econstructor 1. apply LEr, R.
-  - econstructor 2; [intros; eapply H, PR| apply LEclo, CLOR'].
-  - econstructor 3; [intros; eapply H, PR| apply LEgf, CLOR'].
-Qed.
-
-(* Taken from paco-v2.0.3: END*)
-
-
-
 Section FiniteTaus.
 
 Context {E : Type -> Type} {R : Type}.

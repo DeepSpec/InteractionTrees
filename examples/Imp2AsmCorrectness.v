@@ -87,6 +87,7 @@ Ltac inv h := inversion h; subst; clear h.
 
 Section alistFacts.
 
+
   (* Generic facts about alists. To eventually move to ExtLib. *)
 
   Arguments alist_find {_ _ _ _}.
@@ -404,7 +405,7 @@ Section Correctness.
     eq_locals eq Renv (loop t1 x) (loop t2 x).
   Proof.
     unfold eq_locals, interp_locals, run_env.
-    intros.
+    intros. unfold loop.
     rewrite 2 interp1_loop.
     eapply interp_state_loop; auto.
   Qed.
