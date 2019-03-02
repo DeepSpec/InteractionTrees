@@ -89,54 +89,6 @@ Section alistFacts.
 
 
   (* Generic facts about alists. To eventually move to ExtLib. *)
-(* STASHED
-
-Definition eq_locals {R1 R2} (RR : R1 -> R2 -> Prop)
-           (Renv_ : _ -> _ -> Prop)
-           t1 t2 :=
-  forall g1 g2,
-    Renv_ g1 g2 ->
-    eutt (fun a (b : alist var value * R2) => Renv_ (fst a) (fst b) /\ RR (snd a) (snd b))
-         (interp_locals t1 g1)
-         (interp_locals t2 g2).
-
-Instance eutt_eq_locals (Renv_ : _ -> _ -> Prop) {R} RR :
-  Proper (eutt eq ==> eutt eq ==> iff) (@eq_locals R R RR Renv_).
-Proof.
-  repeat intro.
-  split; repeat intro.
-  - rewrite <- H, <- H0; auto.
-  - rewrite H, H0; auto.
-Qed.
-
-Definition eq_locals_bind_gen (Renv_ : _ -> _ -> Prop)
-           {R1 R2 S1 S2} (RR : R1 -> R2 -> Prop)
-           (RS : S1 -> S2 -> Prop) :
-  forall t1 t2,
-    eq_locals RR Renv_ t1 t2 ->
-    forall k1 k2,
-      (forall r1 r2, RR r1 r2 -> eq_locals RS Renv_ (k1 r1) (k2 r2)) ->
-      eq_locals RS Renv_ (t1 >>= k1) (t2 >>= k2).
-Proof.
-  repeat intro.
-  rewrite 2 interp_locals_bind.
-  eapply eutt_bind_gen.
-  { eapply H; auto. }
-  intros. eapply H0; destruct H2; auto.
-Qed.
-
-Lemma eq_locals_loop {A B C} x (t1 t2 : C + A -> itree E (C + B)) :
-  (forall l, eq_locals eq Renv (t1 l) (t2 l)) ->
-  eq_locals eq Renv (loop t1 x) (loop t2 x).
-Proof.
-  unfold eq_locals, interp_locals, run_env.
-  intros. unfold loop.
-  rewrite 2 interp1_loop.
-  eapply interp_state_loop; auto.
-Qed.
-
-  Set Nested Proofs Allowed.
-*)
 
   Arguments alist_find {_ _ _ _}.
 
@@ -551,30 +503,6 @@ Section Correctness.
     split; auto.
     eapply Renv_write_local; eauto.
   Qed.
-
-(* STASHED
-
-  Lemma sym_den_unfold {E} {A B}:
-    lift_den sum_comm ⩰ @sym_den E A B.
-  Proof.
-    reflexivity.
-  Qed.
-
-  Lemma seq_linking_den {E} {A B C} (ab : @den E A B) (bc : den B C) :
-    loop_den (sym_den >=> ab ⊗ bc) ⩰ ab >=> bc.
-  Proof.
-    rewrite tensor_den_slide.
-    rewrite <- compose_den_assoc.
-    rewrite loop_compose.
-    rewrite tensor_swap.
-    repeat rewrite <- compose_den_assoc.
-    rewrite sym_nilpotent, id_den_left.
-    rewrite compose_loop.
-    erewrite yanking_den.
-    rewrite id_den_right.
-    reflexivity.
-  Qed.
-*)
 
   Lemma seq_asm_correct {A B C} (ab : asm A B) (bc : asm B C) :
     eq_ktree (denote_asm (seq_asm ab bc))
