@@ -7,9 +7,9 @@ Extraction Blacklist String List Char Core Z.
 
 Set Extraction AccessOpaque.
 (* NOTE: assumes that this file is compiled from / *)
-Cd "examples/extracted".
+Cd "extracted".
 
 Recursive Extraction Library MultiThreadedPrinting.
 
 (* This is needed for the makefile to succeed for some reason. *)
-Cd "../..".
+Cd "..".

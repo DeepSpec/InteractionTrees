@@ -65,13 +65,15 @@ End itree.
 Arguments itree _ _ : clear implicits.
 Arguments itreeF _ _ : clear implicits.
 
+Notation itree' E R := (itreeF E R (itree E R)).
+
 Definition observe {E R} := @_observe E R.
 
 Ltac fold_observe := change @_observe with @observe in *.
 Ltac unfold_observe := unfold observe in *.
 
-Ltac genobs x ox := remember (observe x) as ox; simpl observe.
-
+Ltac genobs x ox := remember (observe x) as ox.
+Ltac genobs_clear x ox := genobs x ox; match goal with [H: ox = observe x |- _] => clear H x end.
 Ltac simpobs := fold_observe;
                 repeat match goal with [H: _ = observe _ |- _] =>
                     rewrite_everywhere_except (@eq_sym _ _ _ H) H
@@ -121,6 +123,11 @@ Definition bind {E T U}
 : itree E U :=
   bind' k c.
 
+Definition cat {E T U V}
+           (k : T -> itree E U) (h : U -> itree E V) :
+  T -> itree E V :=
+  fun t => bind (k t) h.
+
 (* note(gmm): There needs to be generic automation for monads to simplify
  * using the monad laws up to a setoid.
  * this would be *really* useful to a lot of projects.
@@ -145,7 +152,7 @@ CoFixpoint spin {E R} : itree E R := Tau spin.
 
 (** Repeat a computation infinitely. *)
 Definition forever {E R S} (t : itree E R) : itree E S :=
-  cofix forever_t := bind t (fun _ => Tau forever_t).
+  cofix forever_t := bind t (fun _ => Tau (forever_t)).
 
 (* this definition exists in ExtLib (or should because it is
  * generic to Monads)
@@ -174,6 +181,7 @@ Notation "t1 ;; t2" := (ITree.bind t1 (fun _ => t2))
 Notation "' p <- t1 ;; t2" :=
   (ITree.bind t1 (fun x_ => match x_ with p => t2 end))
   (at level 100, t1 at next level, p pattern, right associativity) : itree_scope.
+Infix ">=>" := ITree.cat (at level 50, left associativity) : itree_scope.
 
 Instance Functor_itree {E} : Functor (itree E) :=
 { fmap := @ITree.map E }.

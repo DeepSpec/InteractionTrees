@@ -1,4 +1,4 @@
-.PHONY: all extraction
+.PHONY: all extraction clean
 
 all: extraction
 
@@ -7,10 +7,15 @@ all: extraction
 #   ITree library
 # - Extract.v contains the extraction command for
 #   MetaModule (and recursively its dependencies)
+COQC=coqc -Q ../../theories ITree -Q . TestExtraction
+
 extraction:
 	cd extraction; \
-	  coqc -Q ../../theories ITree \
-	    -Q . TestExtraction \
-	    ./MetaModule.v \
-	    ./Extract.v
+	    $(COQC) ./MetaModule.v; \
+	    $(COQC) ./Extract.v
 	ocamlbuild extraction/MetaModule.native -no-links
+
+clean:
+	$(RM) {*,*/*}/*.{vo,glob} {*,*/*}/.*.aux
+	$(RM) -rf _build/
+	$(RM) extraction/*.ml{i,}

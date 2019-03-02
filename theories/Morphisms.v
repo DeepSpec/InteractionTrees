@@ -35,9 +35,63 @@ From ITree Require Import
      Basics
      Core
      Effect.Sum
+     Translate
      OpenSum.
 
 Open Scope itree_scope.
+
+(*
+
+(*  ------------------------------------------------------------------------- *)
+
+A Monad Transformer MT is given by:
+  MT : (type -> type) -> (type -> type)
+  lift : `{Monad m} {a}, m a -> MT m a
+
+such that:
+  Monad (MT m)
+
+  lift o return = return
+  lift o (bind t1 k) =
+
+EXAMPLE:
+   stateT S m a :=    S -> m (S * a)
+   lift : m `{Monad m} {a}, fun (c: m a) (s:S) => y <- c ;; ret (s, y)
+
+operations
+  get : m `{Monad m} stateT S m S := fun s => ret_m (s, s)
+  put : m `{Monad m}, S -> stateT S m unit := fun s' => fun s => ret_m (s', tt)
+
+(* category *)
+id : A ~> MT (itree A)
+compose : (B ~> MT2 (itree C)) ~> (A ~> MT1 (itree B)) -> (A ~> (MT2 o MT1) (itree C))
+
+(* co-cartesian *)
+par  : (A ~> MT1 (itree B)) -> (C ~> MT2 (itree D)) -> (A + C ~> (MT1 ** MT2) (itree (B + D)))
+both : (A ~> MT (itree B)) -> (C ~> (MT itree B)) -> (A + C ~> MT (itree B))
+
+swap : (A ~> MT1 (itree B)) -> (C ~> MT2 (itree D)) -> (A + C ~> (MT2 ** MT1) (itree (D + B)))
+
+
+left : A ~> MT (itree (A + B))
+right : B ~> MT (itree (A + B))
+
+left : (A ~> MT (itree B)) -> (A ~> MT (itree (B + C)))
+right : (C ~> MT (itree D)) -> (C ~> MT (itree (A + D)))
+
+
+
+(*  ------------------------------------------------------------------------- *)
+Algebraic effects handlers
+
+Definition sig (E:Type -> Type) m `{Monad m} := forall X, E X -> m x
+
+
+
+
+
+*)
+
 
 (** [itreeF] eliminator, where the codomain is in the [itree]
     monad, a building block for itree monad morphisms. *)
@@ -68,6 +122,7 @@ Definition handleF1 {E F G : Type -> Type} {I R : Type}
     end
   end.
 Hint Unfold handleF1.
+(* note(gmm): i'd propose to remove handleF1 *)
 
 (** Shallow effect handling: pass the first [Vis] node to the
     given handler [h]. *)
@@ -83,6 +138,7 @@ Definition handle1 {E F G : Type -> Type} {R : Type}
   itree (E +' F) R -> itree G R :=
   cofix handle1_ t := handleF1 handle1_ h (observe t).
 Hint Unfold handle1.
+(* note(gmm): i'd propose to remove handle1 *)
 
 (** An itree effect handler [E ~> itree F] defines an
     itree morphism [itree E ~> itree F]. *)
@@ -93,6 +149,7 @@ Definition interp {E F : Type -> Type} (h : E ~> itree F) :
             (fun _ e k => Tau (ITree.bind (h _ e)
                                           (fun x => interp_ (k x))))
             (observe t).
+
 (* N.B.: the guardedness of this definition relies on implementation
    details of [bind]. *)
 
@@ -103,6 +160,7 @@ Definition interp {E F : Type -> Type} (h : E ~> itree F) :
     allows a few equations to be bisimularities ([eq_itree]) instead
     of up-to-tau equivalences ([eutt]).
  *)
+
 Definition interp1 {E F G : Type -> Type} `{F -< G} (h : E ~> itree G) :
   itree (E +' F) ~> itree G := fun R =>
   cofix interp1_ t :=
@@ -115,29 +173,59 @@ Definition interp1 {E F G : Type -> Type} `{F -< G} (h : E ~> itree G) :
                end)
             (observe t).
 
-(** A plain effect morphism [E ~> F] defines an itree morphism
-    [itree E ~> itree F]. *)
-Definition translate {E F : Type -> Type} (h : E ~> F) :
-  itree E ~> itree F := fun R =>
-  cofix translate_ t :=
-    handleF translate_
-            (fun _ e k => Vis (h _ e) (fun x => translate_ (k x)))
-            (observe t).
-
 (** Effects [E, F : Type -> Type] and itree [E ~> itree F] form a
     category. *)
-(* TODO: check that [itree] is a monad, so that category is its
-   Kleisli category. *)
 
-(* todo(gmm): it would be good to have notation for this.
- * - if there was a "category" class like in Haskell, then we could
- *   get composition from something like that.
- *)
-Definition eh_compose {A B C} (g : B ~> itree C) (f : A ~> itree B) :
+(* Morphism Category -------------------------------------------------------- *)
+
+Definition eh_cmp {A B C} (g : B ~> itree C) (f : A ~> itree B) :
   A ~> itree C :=
   fun _ e => interp g _ (f _ e).
 
 Definition eh_id {A} : A ~> itree A := @ITree.liftE A.
+
+Definition eh_par {A B C D} (f : A ~> itree B) (g : C ~> itree D)
+: (A +' C) ~> itree (B +' D) :=
+  fun _ e =>
+    match e with
+    | inl1 e1 => translate (@inl1 _ _) (f _ e1)
+    | inr1 e2 => translate (@inr1 _ _) (g _ e2)
+    end.
+
+Definition eh_both {A B C} (f : A ~> itree B) (g : C ~> itree B)
+: (A +' C) ~> itree B :=
+  fun _ e =>
+    match e with
+    | inl1 e1 => f _ e1
+    | inr1 e2 => g _ e2
+    end.
+
+Definition eh_lift {A B} (m : A ~> B)  : A ~> itree B :=
+  fun _ e => ITree.liftE (m _ e).
+
+Definition eh_inl {A B} : A ~> itree (A +' B) :=
+  eh_lift (fun _ e => inl1 e).
+
+Definition eh_inr {A B} : B ~> itree (A +' B) :=
+  eh_lift (fun _ e => inr1 e).
+
+Definition eh_swap {A B} : A +' B ~> itree (B +' A) :=
+  eh_lift Sum1.swap.
+
+Definition eh_elim_empty {A} : emptyE ~> itree A :=
+  eh_lift Sum1.elim_emptyE.
+
+Definition eh_empty_left {B} : emptyE +' B ~> itree B :=
+  eh_lift Sum1.emptyE_left.
+
+Definition eh_empty_right {A} : A +' emptyE ~> itree A :=
+  eh_lift Sum1.emptyE_right.
+
+(* SAZ: do we need the assoc2 too -- add to Sum.v ? *)
+Definition eh_assoc {A B C} : (A +' (B +' C)) ~> itree ((A +' B) +' C) :=
+  eh_lift Sum1.assoc.
+                            
+
 
 (** Standard interpreters *)
 
@@ -152,11 +240,11 @@ Import ITree.Basics.Monads.
 
 Definition interp_state_match {E F S R} (h : E ~> stateT S (itree F))
   (rec : itree E R -> stateT S (itree F) R)
-  (t:itree E R) : stateT S (itree F) R :=
+  (ot:itree' E R) : stateT S (itree F) R :=
   fun s =>
-      match t.(observe) with
+      match ot with
       | RetF r => Ret (s, r)
-      | VisF e k => 
+      | VisF e k =>
         Tau (ITree.bind (h _ e s) (fun sx =>
                rec (k (snd sx)) (fst sx)))
       | TauF t => Tau (rec t s)
@@ -164,14 +252,14 @@ Definition interp_state_match {E F S R} (h : E ~> stateT S (itree F))
 
 CoFixpoint interp_state {E F S} (h : E ~> stateT S (itree F)) :
   itree E ~> stateT S (itree F) :=
-  fun R => interp_state_match h (interp_state h R).
+  fun R t => interp_state_match h (interp_state h R) (observe t).
 
 
 Definition interp1_state_match {E F S R} (h : E ~> stateT S (itree F))
            (rec : itree (E +' F) R -> stateT S (itree F) R)
-           (t : itree (E +' F) R) : stateT S (itree F) R :=
+           (ot : itree' (E +' F) R) : stateT S (itree F) R :=
   fun s =>
-    match t.(observe) with
+    match ot with
       | RetF r => Ret (s, r)
       | VisF ef k =>
         match ef with
@@ -186,8 +274,7 @@ Definition interp1_state_match {E F S R} (h : E ~> stateT S (itree F))
 
 CoFixpoint interp1_state {E F S} (h : E ~> stateT S (itree F)) :
   itree (E +' F) ~> stateT S (itree F) :=
-  fun R => interp1_state_match h (interp1_state h R).
-    
+  fun R t => interp1_state_match h (interp1_state h R) (observe t).
 
 Definition translate1_state {E F S} (h : E ~> state S) :
   itree (E +' F) ~> stateT S (itree F) :=
@@ -212,13 +299,9 @@ Definition interp_reader {E F R} (h : R -> E ~> itree F) :
   R -> itree E ~> itree F :=
   fun r => interp (h r).
 
-Definition interp1_reader {E F R} (h : R -> E ~> itree F) :
-  R -> itree (E +' F) ~> itree F :=
-  fun r => interp1 (h r).
-
-Definition translate1_reader {E F R} (h : R -> E ~> identity) :
-  R -> itree (E +' F) ~> itree F :=
-  fun r => interp1 (fun _ e => Ret (h r _ e)).
+Definition translate_reader {E F R} (h : R -> E ~> identity) :
+  R -> itree E ~> itree F :=
+  fun r => interp (fun _ e => Ret (h r _ e)).
 
 Import ExtLib.Structures.Monoid.
 

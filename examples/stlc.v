@@ -59,17 +59,16 @@ Fixpoint subst (n : nat) (s t : term) :=
 
 (* big-step call-by-value *)
 Definition big_step : term -> itree emptyE value :=
-  mfix (fun _ => value)
-       (fun _ lift big_step t =>
+  rec (fun t =>
     match t with
     | Var n => ret (VHead (VVar n))
     | App t1 t2 =>
-      t2' <- big_step t2;;
-      t1' <- big_step t1;;
+      t2' <- lift (Call t2);;
+      t1' <- lift (Call t1);;
       match t1' with
       | VHead hv => ret (VHead (VApp hv t2'))
       | VLam t1'' =>
-        big_step (subst O (to_term t2') t1'')
+        lift (Call (subst O (to_term t2') t1''))
       end
     | Lam t => ret (VLam t)
     end).

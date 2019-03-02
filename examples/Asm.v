@@ -1,129 +1,158 @@
-Require Import Coq.Strings.String.
+From Coq Require Import
+     Strings.String
+     Program.Basics
+     ZArith.ZArith.
+From ITree Require Import Basics_Functions.
+From ExtLib Require Structures.Monad.
+Require Import Imp.
 
-Definition var : Set := string.
-Definition value : Set := nat. (* this should change *)
+Typeclasses eauto := 5.
 
-(* start with the syntax *)
+Section Syntax.
 
-Variant operand : Set :=
-| Oimm (_ : value)
-| Ovar (_ : var).
+  Definition var : Set := string.
+  Definition value : Set := nat. 
 
-Variant instr : Set :=
-| Imov (dest : var) (src : operand)
-| Iadd (dest : var) (src : var) (o : operand)
-| Iload (dest : var) (addr : operand)
-| Istore (addr : var) (val : operand).
+  (** ** Syntax *)
 
-Variant branch {label : Type} : Type :=
-| Bjmp (_ : label) (* jump to label *)
-| Bbrz (_ : var) (yes no : label) (* conditional jump *)
-| Bhalt
-.
-Arguments branch _ : clear implicits.
+  Variant operand : Set :=
+  | Oimm (_ : value)
+  | Ovar (_ : var).
 
-Inductive block {label : Type} : Type :=
-| bbi (_ : instr) (_ : block)
-| bbb (_ : branch label).
-Arguments block _ : clear implicits.
+  Variant instr : Set :=
+  | Imov (dest : var) (src : operand)
+  | Iadd (dest : var) (src : var) (o : operand)
+  | Iload (dest : var) (addr : operand)
+  | Istore (addr : var) (val : operand).
 
-Record program : Type :=
-{ label : Type
-; blocks : label -> block label
-; main : label
-}.
+  Variant branch {label : Type} : Type :=
+  | Bjmp (_ : label) (* jump to label *)
+  | Bbrz (_ : var) (yes no : label) (* conditional jump *)
+  | Bhalt
+  .
+  Global Arguments branch _ : clear implicits.
 
+  (** A block is a sequence of straightline instructions followed
+      by a branch. *)
+  Inductive block {label : Type} : Type :=
+  | bbi (_ : instr) (_ : block)
+  | bbb (_ : branch label).
+  Global Arguments block _ : clear implicits.
 
-(* now define a semantics *)
+  (** Collection of blocks labeled by [A], with branches in [B]. *)
+  Definition bks A B := A -> block B.
+
+  (** Blocks with visible unlinked labels [A] and [B] and internal
+      linked labels, allowing blocks to explicitly jump to each other.
+      - [A]: entry points
+      - [B]: exit points
+      - [internal]: linked and hidden labels
+   *)
+  Record asm A B : Type :=
+    {
+      internal : Type;
+      code : bks (internal + A) (internal + B)
+    }.
+
+  Global Arguments internal {A B}.
+  Global Arguments code {A B}.
+
+End Syntax.
+
+Arguments internal {A B}.
+Arguments code {A B}.
 
 From ITree Require Import
-     ITree OpenSum Fix.
+     ITree OpenSum KTree.
 
-Require Import ExtLib.Structures.Monad.
-Import MonadNotation.
-Local Open Scope monad_scope.
+Section Semantics.
 
-(* the "effect" to track local variables *)
-Inductive Locals : Type -> Type :=
-| GetVar (x : var) : Locals value
-| SetVar (x : var) (v : value) : Locals unit.
+  (* Denotation in terms of itrees *)
 
-Inductive Memory : Type -> Type :=
-| Load (addr : value) : Memory value
-| Store (addr val : value) : Memory unit.
+  Import ExtLib.Structures.Monad.
+  Import MonadNotation.
+  Local Open Scope monad_scope.
 
-Section with_effect.
-  Variable e : Type -> Type.
-  Context {HasLocals : Locals -< e}.
-  Context {HasMemory : Memory -< e}.
+  Import Imp.
 
-  Definition denote_operand (o : operand) : itree e value :=
-    match o with
-    | Oimm v => Ret v
-    | Ovar v => lift (GetVar v)
-    end.
+  Inductive Memory : Type -> Type :=
+  | Load (addr : value) : Memory value
+  | Store (addr val : value) : Memory unit.
 
-  Definition denote_instr (i : instr) : itree e unit :=
-    match i with
-    | Imov d s =>
-      v <- denote_operand s ;;
-      lift (SetVar d v)
-    | Iadd d l r =>
-      lv <- lift (GetVar l) ;;
-      rv <- denote_operand r ;;
-      lift (SetVar d (lv + rv))
-    | Iload d a =>
-      addr <- denote_operand a ;;
-      val <- lift (Load addr) ;;
-      lift (SetVar d val)
-    | Istore a v =>
-      addr <- lift (GetVar a) ;;
-      val <- denote_operand v ;;
-      lift (Store addr val)
-    end.
+  Inductive Exit : Type -> Type :=
+  | Done : Exit Empty_set.
 
-  Section with_labels.
-    Context {label : Type}.
+  Definition done {E A} `{Exit -< E} : itree E A :=
+    Vis (subeffect _ Done) (fun v => match v : Empty_set with end).
 
-    Definition denote_branch (b : branch label)
-    : itree e (option label) :=
-      match b with
-      | Bjmp l => ret (Some l)
-      | Bbrz v y n =>
-        val <- lift (GetVar v) ;;
-        if val : value then ret (Some y) else ret (Some n)
-      | Bhalt => ret None
+  (* Denotation of blocks *)
+  Section with_effect.
+    Context {E : Type -> Type}.
+    Context {HasLocals : Locals -< E}.
+    Context {HasMemory : Memory -< E}.
+    Context {HasExit : Exit -< E}.
+
+    Definition denote_operand (o : operand) : itree E value :=
+      match o with
+      | Oimm v => Ret v
+      | Ovar v => lift (GetVar v)
       end.
 
-    Fixpoint denote_block (b : block label)
-    : itree e (option label) :=
-      match b with
-      | bbi i b =>
-        denote_instr i ;;
-        denote_block b
-      | bbb b =>
-        denote_branch b
+    Definition denote_instr (i : instr) : itree E unit :=
+      match i with
+      | Imov d s =>
+        v <- denote_operand s ;;
+          lift (SetVar d v)
+      | Iadd d l r =>
+        lv <- lift (GetVar l) ;;
+           rv <- denote_operand r ;;
+           lift (SetVar d (lv + rv))
+      | Iload d a =>
+        addr <- denote_operand a ;;
+             val <- lift (Load addr) ;;
+             lift (SetVar d val)
+      | Istore a v =>
+        addr <- lift (GetVar a) ;;
+             val <- denote_operand v ;;
+             lift (Store addr val)
       end.
-  End with_labels.
-End with_effect.
 
-Definition denote_program {e} `{Locals -< e} `{Memory -< e}
-           (p : program) : itree e unit :=
-  rec (fun lbl : p.(label) =>
-      next <- denote_block (_ +' e) (p.(blocks) lbl) ;;
-      match next with
-      | None => ret tt
-      | Some next => lift (Call next)
-      end)
-    p.(main).
+    Section with_labels.
+      Context {A B : Type}.
 
-(* SAZ: Everything from here down can probably be polished.
+      Definition denote_branch (b : branch B) : itree E B :=
+        match b with
+        | Bjmp l => ret l
+        | Bbrz v y n =>
+          val <- lift (GetVar v) ;;
+          if val : value then ret y else ret n
+        | Bhalt => done
+        end.
 
-   In particular, I'm still not completely happy with how all the different parts
-   fit together in run.  
+      Fixpoint denote_block (b : block B) : itree E B :=
+        match b with
+        | bbi i b =>
+          denote_instr i ;; denote_block b
+        | bbb b =>
+          denote_branch b
+        end.
 
- *)
+      Definition denote_b : bks A B -> ktree E A B :=
+        fun bs a => denote_block (bs a).
 
+    End with_labels.
+
+  (* A denotation of an asm program can be viewed as a circuit/diagram
+   where wires correspond to jumps/program links.
+
+   It is therefore denoted as a [den] term *)
+
+    (* Denotation of [asm] *)
+    Definition denote_asm {A B} : asm A B -> ktree E A B :=
+      fun s => loop (denote_b (code s)).
+
+  End with_effect.
+End Semantics.
 
 (* Interpretation ----------------------------------------------------------- *)
 
@@ -163,13 +192,3 @@ Instance RelDec_string : RelDec (@eq string) :=
 
 Instance RelDec_value : RelDec (@eq value) := { rel_dec := Nat.eqb }.
 
-(* SAZ: Is this the nicest way to present this? *)
-Definition run (p: program) : itree emptyE _ :=
-  let p1 := interp1 interpret_Memory _ (denote_program p) in
-  let p2 := interp1 interpret_Locals _ p1 in
-  let p3 := run_env _ p2 empty in
-  let p4 := run_env _ p3 empty in
-  p4.
-
-(* SAZ: Note: we should be able to prove that run produces trees that are equivalent
-   to run' where run' interprets memory and locals in a different order *)

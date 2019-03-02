@@ -6,7 +6,11 @@ Import ListNotations.
 
 From ITree Require Import
      Core
-     Eq.UpToTaus.
+     Eq.Untaus
+     Eq.UpToTaus
+     Eq.SimUpToTaus.
+
+Local Open Scope itree.
 
 From Paco Require Import
      paco.
@@ -98,8 +102,42 @@ Lemma is_trace_unalltaus_add: forall {E R} (t1 t2 : itree E R) tr,
     is_trace t1 tr.
 Proof. intros. eapply is_traceF_unalltaus_add; eauto. Qed.
 
-Lemma eutt_trace_incl : forall {E R} (t1 t2 : itree E R),
-    t1 ≈ t2 -> trace_incl t1 t2.
+Lemma is_trace_tau : forall {E R} (t : itree E R) tr,
+    is_trace t tr <->
+    is_trace (Tau t) tr.
+Proof.
+  intros. split; intros.
+  - constructor. unfold is_trace in *. remember (observe t).
+    generalize dependent t.
+    induction H; intros; subst; constructor; eapply IHis_traceF; auto.
+  - inversion H; subst; try constructor; auto.
+Qed.
+
+Lemma tauF_sutt_eq : forall {E R} (t1 t2 t : itree E R),
+    sutt eq t1 t2 ->
+    TauF t = observe t1 ->
+    sutt eq t t2.
+Proof.
+  intros. pinversion H. pfold. constructor; simpobs.
+  - intros. apply FIN. rewrite finite_taus_tau. assumption.
+  - intros t1' t2' H1 H2.
+    apply EQV; auto.
+    eapply unalltaus_tau'; auto.
+Qed.
+
+Lemma suttF_tau_right {E R} r (t1 t2 t2' : itree E R)
+      (OBS: TauF t2 = observe t2')
+      (REL: sutt_ eq r t1 t2'):
+  sutt_ eq r t1 t2.
+Proof.
+  intros. destruct REL. constructor.
+  - intros. apply FIN in H. simpobs. rewrite <- finite_taus_tau. auto.
+  - intros. eapply EQV; eauto. rewrite <- OBS. inversion UNTAUS2. constructor; auto.
+    econstructor; eauto.
+Qed.
+
+Lemma sutt_trace_incl : forall {E R} (t1 t2 : itree E R),
+    sutt eq t1 t2 -> trace_incl t1 t2.
 Proof.
   red. intros. red in H0. remember (observe t1).
   generalize dependent t1. generalize dependent t2.
@@ -110,35 +148,35 @@ Proof.
       rewrite Heqi. constructor; auto. red. rewrite <- Heqi. auto.
     }
     assert (FIN2: finite_tausF (observe t1)) by (eexists; apply Hunall).
-    rewrite FIN in FIN2. inv FIN2.
+    apply FIN in FIN2. inv FIN2.
     specialize (EQV _ _ Hunall H0). inv EQV. red.
     eapply is_trace_unalltaus_add.
     + simpobs. auto.
     + red. rewrite <- Heqi. constructor.
   - apply IHis_traceF with (t1:=t); auto.
-    rewrite <- H. symmetry. apply tauF_eutt. assumption.
+    eapply tauF_sutt_eq; eauto.
   - pinversion H.
     assert (Hunall: unalltausF (observe t1) (VisF e k)).
     {
       rewrite Heqi. constructor; auto. red. rewrite <- Heqi. auto.
     }
     assert (FIN2: finite_tausF (observe t1)) by (eexists; apply Hunall).
-    rewrite FIN in FIN2. inv FIN2.
+    apply FIN in FIN2. inv FIN2.
     specialize (EQV _ _ Hunall H0). inv EQV.
     invert_existTs. inv H0.
     red. remember (VisF _ _) in H1. remember (observe t2).
     generalize dependent t2.
     induction H1; intros; subst; constructor.
     eapply IHuntausF; auto.
-    + rewrite FIN. apply finite_taus_tau; auto.
-    + eapply euttF_tau_right; eauto.
+    + rewrite finite_taus_tau in FIN; auto.
+    + eapply suttF_tau_right; eauto.
   - pinversion H.
     assert (Hunall: unalltausF (observe t1) (VisF e k)).
     {
       rewrite Heqi. constructor; auto. red. rewrite <- Heqi. auto.
     }
     assert (FIN2: finite_tausF (observe t1)) by (eexists; apply Hunall).
-    rewrite FIN in FIN2. inv FIN2.
+    apply FIN in FIN2. inv FIN2.
     specialize (EQV _ _ Hunall H1). inv EQV.
     invert_existTs. inv H1. specialize (H6 x).
     red. remember (VisF _ _) in H2. remember (observe t2).
@@ -148,27 +186,16 @@ Proof.
       pfold. inversion H6.
       pinversion H1. inversion H1.
     + eapply IHuntausF; auto.
-      * rewrite FIN. apply finite_taus_tau; auto.
-      * eapply euttF_tau_right; eauto.
+      * rewrite finite_taus_tau in FIN; auto.
+      * eapply suttF_tau_right; eauto.
 Qed.
 
 Lemma eutt_trace_eq : forall {E R} (t1 t2 : itree E R),
     t1 ≈ t2 -> trace_eq t1 t2.
 Proof.
   split.
-  - apply eutt_trace_incl; auto.
-  - symmetry in H. apply eutt_trace_incl; auto.
-Qed.
-
-Lemma is_trace_tau : forall {E R} (t : itree E R) tr,
-    is_trace t tr <->
-    is_trace (Tau t) tr.
-Proof.
-  intros. split; intros.
-  - constructor. unfold is_trace in *. remember (observe t).
-    generalize dependent t.
-    induction H; intros; subst; constructor; eapply IHis_traceF; auto.
-  - inversion H; subst; try constructor; auto.
+  - apply sutt_trace_incl; apply eutt_sutt; auto.
+  - symmetry in H. apply sutt_trace_incl; apply eutt_sutt; auto.
 Qed.
 
 Lemma trace_incl_finite_taus : forall {E R} (t1 t2 : itree E R),
@@ -197,37 +224,53 @@ Proof.
     intros. apply H. red. rewrite <- Heqi. apply is_trace_tau; auto.
 Qed.
 
-Lemma trace_eq_eutt : forall {E R} (t1 t2 : itree E R),
-    trace_eq t1 t2 -> t1 ≈ t2.
+Lemma trace_incl_sutt : forall {E R} (t1 t2 : itree E R),
+    trace_incl t1 t2 -> sutt eq t1 t2.
 Proof.
-  intros E R. pcofix CIH. intros t1 t2 Heq. pfold. constructor.
-  - destruct Heq. split; intros; eapply trace_incl_finite_taus; eauto.
-  - intros. destruct Heq as [H12 H21]. unfold trace_incl in *. unfold is_trace in *.
-    assert (Heq' : forall tr, is_traceF ot1' tr <-> is_traceF ot2' tr).
-    {
-      intros. split; intros.
+  intros E R. pcofix CIH. intros t1 t2 Hincl. pfold. constructor.
+  - apply trace_incl_finite_taus; auto.
+  - intros. unfold trace_incl in *. unfold is_trace in *.
+    assert (Heq' : forall tr, is_traceF ot1' tr -> is_traceF ot2' tr).
+    { intros.
       - pose proof (is_traceF_unalltaus_add _ _ _ UNTAUS1 H).
-        eapply is_traceF_unalltaus_remove; eauto.
-      - pose proof (is_traceF_unalltaus_add _ _ _ UNTAUS2 H).
         eapply is_traceF_unalltaus_remove; eauto.
     }
     destruct ot1', ot2';
       try solve [inv UNTAUS1; inv H0];
       try solve [inv UNTAUS2; inv H0].
     + assert (is_traceF (RetF r0 : itreeF E R (itree E R)) (TRet r0)) by constructor.
-      rewrite Heq' in H. inv H. constructor.
+      apply Heq' in H. inv H; auto.
     + assert (is_traceF (RetF r0 : itreeF E R (itree E R)) (TRet r0)) by constructor.
-      rewrite Heq' in H. inv H.
+      apply Heq' in H. inv H.
     + assert (is_traceF (VisF e k) (TEventEnd e)) by constructor.
-      rewrite Heq' in H. inv H.
+      apply Heq' in H. inv H.
     + assert (is_traceF (VisF e k) (TEventEnd e)) by constructor.
-      rewrite Heq' in H. inv H. invert_existTs.
+      apply Heq' in H. inv H. invert_existTs.
       constructor. intros. right. apply CIH.
-      red. split; red; intros.
-      * assert (is_traceF (VisF e k) (TEventResponse e x tr)) by (constructor; auto).
-        rewrite Heq' in H0. inv H0. invert_existTs. auto.
-      * assert (is_traceF (VisF e k0) (TEventResponse e x tr)) by (constructor; auto).
-        rewrite <- Heq' in H0. inv H0. invert_existTs. auto.
+      intros.
+      assert (is_traceF (VisF e k) (TEventResponse e x tr)) by (constructor; auto).
+      apply Heq' in H0. inv H0. invert_existTs. auto.
+Qed.
+
+Theorem trace_incl_iff_sutt : forall {E R} (t1 t2 : itree E R),
+    sutt eq t1 t2 <-> trace_incl t1 t2.
+Proof.
+  split.
+  - apply sutt_trace_incl.
+  - apply trace_incl_sutt.
+Qed.
+
+Lemma trace_eq_eutt : forall {E R} (t1 t2 : itree E R),
+    trace_eq t1 t2 -> t1 ≈ t2.
+Proof.
+  intros E R t1 t2 [? ?]. apply sutt_eutt.
+  - apply trace_incl_sutt; auto.
+  - apply trace_incl_sutt in H0. clear H.
+    generalize dependent t1. generalize dependent t2. pcofix CIH; intros.
+    pinversion H0. pfold. constructor; auto. intros.
+    specialize (EQV _ _ UNTAUS1 UNTAUS2). destruct EQV; constructor; auto.
+    + rewrite H. reflexivity.
+    + intros. right. apply CIH. pclearbot. apply H.
 Qed.
 
 Theorem trace_eq_iff_eutt : forall {E R} (t1 t2 : itree E R),

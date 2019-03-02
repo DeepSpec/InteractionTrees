@@ -85,11 +85,73 @@ Inductive callE (A B : Type) : Type -> Type :=
 
 Arguments Call {A B}.
 
+(** Get the [A] contained in a [callE A B]. *)
+Definition unCall {A B T} (e : callE A B T) : A :=
+  match e with
+  | Call a => a
+  end.
+
+(** Lift a function on [A] to a morphism on [callE]. *)
+Definition calling {A B} {F : Type -> Type}
+           (f : A -> F B) : callE A B ~> F :=
+  fun _ e =>
+    match e with
+    | Call a => f a
+    end.
+
+(* This is identical to [callWith] but [rec] finds a universe
+   inconsistency with [callWith], and not with [callWith']. *)
+Definition calling' {A B} {F : Type -> Type}
+           (f : A -> itree F B) : callE A B ~> itree F :=
+  fun _ e =>
+    match e with
+    | Call a => f a
+    end.
+
 (* Interpret a single recursive definition. *)
 Definition rec {E : Type -> Type} {A B : Type}
            (body : A -> itree (callE A B +' E) B) :
   A -> itree E B :=
-  fun a => mrec (fun _ call =>
-    match call in callE _ _ T return itree (_ +' E) T with
-    | Call a => body a
-    end) _ (Call a).
+  fun a => mrec (calling' body) _ (Call a).
+
+Definition loop_once {E : Type -> Type} {A B C : Type}
+           (body : C + A -> itree E (C + B))
+           (loop_ : C + A -> itree E B) : C + A -> itree E B :=
+  fun ca =>
+    cb <- body ca ;;
+    match cb with
+    | inl c => loop_ (inl c)
+    | inr b => Ret b
+    end.
+
+Definition loop_ {E : Type -> Type} {A B C : Type}
+           (body : C + A -> itree E (C + B)) :
+  C + A -> itree E B :=
+  cofix loop__ := loop_once body (fun cb => Tau (loop__ cb)).
+
+(** Iterate a function updating an accumulator [C],
+    until it produces an output [B]. An encoding of tail recursive
+    functions.
+
+    The Kleisli category for the [itree] monad is a traced
+    monoidal category, with [loop] as its trace.
+ *)
+(* We use explicit recursion instead of relying on [rec] to
+   make the definition properly tail recursive. *)
+Definition loop {E : Type -> Type} {A B C : Type}
+           (body : (C + A) -> itree E (C + B)) :
+  A -> itree E B :=
+  fun a => loop_ body (inr a).
+
+(* Iterate a function updating an accumulator [A], until it produces
+   an output [B]. It's an Asymmetric variant of [loop], and it looks
+   similar to an Anamorphism, hence the name [aloop]. *)
+Definition aloop {E : Type -> Type} {A B : Type}
+           (body : A -> itree E (A + B)) :
+  A -> itree E B :=
+  cofix aloop_ a :=
+    ab <- body a ;;
+    match ab with
+    | inl a => Tau (aloop_ a)
+    | inr b => Ret b
+    end.
