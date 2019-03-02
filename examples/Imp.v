@@ -157,22 +157,3 @@ Qed.
 Definition ImpEval (s: stmt): itree emptyE (env * unit) :=
   let p := interp evalLocals _ (denoteStmt s) in
   run_env _ p empty.
-
-From ITree Require Import FixFacts MorphismsFacts.
-
-Lemma while_is_loop {E} (body : itree E bool) :
-  while body
-        ≈ loop (fun l : unit + unit =>
-                  match l with
-                  | inl _ => ITree.map (fun b => if b : bool then inl tt else inr tt)
-                                      body
-                  | inr _ => Ret (inl tt)   (* Enter loop *)
-                  end) tt.
-Proof.
-  unfold while.
-  apply eutt_loop; [intros [[]|[]]; simpl | reflexivity].
-  2: reflexivity.
-  unfold ITree.map.
-  apply eutt_bind; [reflexivity | intros []; reflexivity].
-Qed.
-

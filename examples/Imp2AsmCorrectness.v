@@ -26,26 +26,6 @@ From ExtLib Require Import
 Import ListNotations.
 Open Scope string_scope.
 
-(*
-    Potential extensions for later:
-    - Add some non-determinism at the source level, for instance order of evaluation in add, and have the compiler  an order.
-    The correctness would then be a refinement.
-     How to define it? Likely with respect to an oracle.
-    - Add a print effect?
-    - Change languages to map two notions of state at the source down to a single one at the target?
-      Make the keys of the second env monad as the sum of the two initial ones.
-
- things to do?
- * 1. change the compiler to not compress basic blocks.
- *    - ideally we would write a separate pass that does that
- *    - split out each of the structures as separate definitions and lemmas
- * 2. need to prove `interp F (denote_block ...) = denote_block ...`
- * 3. link_seq_ok should be a proof by co-induction.
- * 4. clean up this file *a lot*
- * bonus: block fusion
- * bonus: break & continue
- *)
-
 Section EUTT.
 
   Context {E: Type -> Type}.
@@ -614,7 +594,23 @@ Section Correctness.
         repeat rewrite ret_bind_; reflexivity.
     - rewrite itree_eta; cbn; reflexivity.
   Qed.
-  
+
+  Lemma while_is_loop {E} (body : itree E bool) :
+    while body
+          ≈ loop (fun l : unit + unit =>
+                    match l with
+                    | inl _ => ITree.map (fun b => if b : bool then inl tt else inr tt)
+                                        body
+                    | inr _ => Ret (inl tt)   (* Enter loop *)
+                    end) tt.
+  Proof.
+    unfold while.
+    apply eutt_loop; [intros [[]|[]]; simpl | reflexivity].
+    2: reflexivity.
+    unfold ITree.map.
+    apply eutt_bind; [reflexivity | intros []; reflexivity].
+  Qed.
+
   Definition env_lookupDefault_is_lift {K V : Type} {E: Type -> Type} `{envE K V -< E} (x: K) (v: V):
     env_lookupDefault x v = lift (lookupDefaultE x v).
   Proof.

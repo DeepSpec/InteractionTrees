@@ -11,7 +11,7 @@ Typeclasses eauto := 5.
 Section Syntax.
 
   Definition var : Set := string.
-  Definition value : Set := nat. (* this should change *)
+  Definition value : Set := nat. 
 
   (** ** Syntax *)
 
@@ -153,12 +153,6 @@ Section Semantics.
 
   End with_effect.
 End Semantics.
-(* SAZ: Everything from here down can probably be polished.
-
-   In particular, I'm still not completely happy with how all the different parts
-   fit together in run.
-
- *)
 
 (* Interpretation ----------------------------------------------------------- *)
 
@@ -198,88 +192,3 @@ Instance RelDec_string : RelDec (@eq string) :=
 
 Instance RelDec_value : RelDec (@eq value) := { rel_dec := Nat.eqb }.
 
-(*
-TODO: FIX
-
-Definition run (p: asm unit done) : itree emptyE (env * (memory * unit)) :=
-  let eval := Sum1.elim interpret_Locals interpret_Memory in
-  run_env _ (run_env _ (interp eval _ (denote_asm p tt)) empty) empty.
-
-*)
-
-(* SAZ: Note: we should be able to prove that run produces trees that are equivalent
-   to run' where run' interprets memory and locals in a different order *)
-
-
-
-(*
-Definition dummy_blk {label: Type}: block label := bbb Bhalt.
-Definition arg: string := "arg".
-Definition res: string := "res".
-
-Definition local: string := "R0".
-
-Section Odd_Even.
-
-
-  (* Need to work over Z *)
-
-  Definition even_entry {label: Type}: block label :=
-    bbi (Iload local (Ovar arg))
-        (bbb (Bbrz local Eend Ebody)).
-  Definition even_body {label: Type}: block label :=
-    bbi (Iload local (Ovar arg))
-        (bbb (Bbrz local Eend Ebody)).
-
-
-
-
-End Odd_Even.
-
-Section Fact.
-  Definition Fentry := 1.
-  Definition Fbody := 2.
-  Definition Fend := 3.
-
-  (* Need to work over Z *)
-  Definition fact_entry {label: Type} (Fend Fbody: label): block label :=
-    bbi (Iload local (Ovar arg))
-        (bbi (Iadd arg arg (Oimm -1)
-                   (bbi (Istore res (Oimm 0))
-                        (bbb (Bbrz local Fend Fbody))).
-
-              Definition fact_body {label: Type} (Fbody: label): block label :=
-                bbi (Iload local (Ovar arg))
-                    (bbb (Bbrz local Fend Fbody)).
-
-
-
-              Definition fact (n: nat): program :=
-                {|
-                  label:= nat;
-                  blocks := fun n => match n with
-                                  | 0 => bbi (Istore arg (Oimm n)) (bbb (Bjmp 1))
-                                  | 1 => dummy_blk
-                                  | _ => dummy_blk
-                                  end;
-                  main := 0
-                |}.
-
-End Fact.
-*)
-(*
-Module AsmNotations.
-
-  (* TODO *)
-  Notation "▿ i0 ; .. ; i ; br △" :=
-    (bbi i0 .. (bbi i (bbb br)) ..)
-      (right associativity).
-
-  Open Scope string_scope.
-  Definition bar  := Imov "x" (Ovar "x").
-  Definition foo {label: Type}: @block label :=
-    ▿ bar ; bar ; bar ; Bhalt △.
-
-End AsmNotations.
-
-*)
