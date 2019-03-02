@@ -15,6 +15,9 @@ From ITree Require Import
 Variant sum1 (E1 E2 : Type -> Type) (X : Type) : Type :=
 | inl1 (_ : E1 X)
 | inr1 (_ : E2 X).
+Arguments inr1 {_ _} [_] _.
+Arguments inl1 {_ _} [_] _.
+
 
 Notation "E1 +' E2" := (sum1 E1 E2)
   (at level 60, right associativity) : type_scope.
