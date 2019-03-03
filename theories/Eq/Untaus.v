@@ -316,9 +316,18 @@ Lemma eq_notauF_vis_inv1 {I J} {euttE : I -> J -> Prop} {U}
   exists k',
     ot = VisF e k' /\ (forall x, euttE (k' x) (k x)).
 Proof.
-  intros. remember (VisF e k) as t.
-  inversion H; subst; try discriminate.
-  inversion H2; subst; auto_inj_pair2; subst; eauto.
+  refine (fun H =>
+            match H in eq_notauF _ L R
+                  return match R return Prop with
+                         | VisF e'' k'' =>
+                           exists k', L = VisF e'' k' /\ (forall x, euttE (k' x) (k'' x))
+                         | _ => True
+                         end
+            with
+            | Eutt_vis _ _ _ _ _ _ => _
+            | _ => Logic.I
+            end).
+  eexists; split; eauto.
 Qed.
 
 
@@ -377,9 +386,8 @@ Lemma eq_notauF_and {E R1 R2} (RR : R1 -> R2 -> Prop) {I J}
     eq_notauF RR euttE1 ot1 ot2 -> eq_notauF RR euttE2 ot1 ot2 ->
     eq_notauF RR euttE ot1 ot2.
 Proof.
-  intros ? ? ? [] Hen2; inversion Hen2; auto.
-  auto_inj_pair2; subst; auto.
-Qed.
+  intros ? ? ? [] Hen2; inversion Hen2; auto_inj_pair2; subst; auto.
+Qed. (* I don't believe that we can get rid of proof-irrelevance here *)
 
 Lemma eq_notauF_flip {E R1 R2} (RR : R1 -> R2 -> Prop) {I J}
       (euttE : I -> J -> Prop) :
@@ -416,8 +424,8 @@ Lemma Transitive_eq_notauF_ {E R1 R2 R3}
   eq_notauF RR2 r2 ot2 ot3 ->
   eq_notauF RR3 r3 ot1 ot3.
 Proof.
-  intros [] I2; inversion I2; eauto.
-  auto_inj_pair2; subst; eauto.
+  intros [] I2; try solve [ inversion I2; eauto ].
+  inversion I2; auto_inj_pair2; subst; eauto.
 Qed.
 
 Section NOTAU_rel.
