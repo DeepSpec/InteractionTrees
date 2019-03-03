@@ -10,6 +10,8 @@ From Coq Require Import
      Morphisms
      RelationClasses.
 
+Require Import ExtLib.Tactics.Injection.
+
 From Paco Require Import paco.
 
 From ITree Require Import
@@ -95,6 +97,13 @@ Section eq_itree.
     fun t1 t2 => eq_itreeF sim (observe t1) (observe t2).
   Hint Unfold eq_itree_.
 
+  Lemma eq_itree__inj sim a b :
+    eq_itree_ sim (go a) (go b) ->
+    eq_itreeF sim a b.
+  Proof.
+    inversion 1; simpl in *; intros; subst; eauto.
+  Qed.
+
   Lemma eq_itreeF_mono I J x0 x1 (r r' : I -> J -> Prop) :
     forall
       (IN: eq_itreeF r x0 x1)
@@ -108,12 +117,65 @@ Section eq_itree.
   Definition eq_itree : itree E R1 -> itree E R2 -> Prop :=
     paco2 eq_itree_ bot2.
 
+  Lemma eq_itreeF_vis_injL
+  : forall X Y (sim : X -> Y -> Prop) A (e : E A) k it,
+      eq_itreeF sim (VisF e k) it ->
+      exists k', it = VisF e k' /\ forall x, sim (k x) (k' x).
+  Proof.
+    refine (fun _ _ sim _ e k it H =>
+              match H in eq_itreeF _ L R
+                    return match L return Prop  with
+                           | VisF e'' k'' =>
+                             exists k', R = VisF e'' k' /\ forall x,
+                                 sim (k'' x) (k' x)
+                           | _ => True
+                           end
+              with
+              | EqVis _ _ _ _ R => _
+              | _ => I
+              end).
+    eexists; split; eauto.
+  Qed.
+
+  Lemma eq_itreeF_vis_injR
+  : forall X Y (sim : X -> Y -> Prop) A (e : E A) k it,
+      eq_itreeF sim it (VisF e k) ->
+      exists k', it = VisF e k' /\ forall x, sim (k' x) (k x).
+  Proof.
+    refine (fun _ _ sim _ e k it H =>
+              match H in eq_itreeF _ L R
+                    return match R return Prop  with
+                           | VisF e'' k'' =>
+                             exists k', L = VisF e'' k' /\ forall x,
+                                 sim (k' x) (k'' x)
+                           | _ => True
+                           end
+              with
+              | EqVis _ _ _ _ R => _
+              | _ => I
+              end).
+    eexists; split; eauto.
+  Qed.
+
+  Global Instance Injective_eq_itree_vis_L
+         X Y (sim : X -> Y -> Prop) A (e : E A) k it
+  : Injective (eq_itreeF sim (VisF e k) it) :=
+  { result := _
+  ; injection := @eq_itreeF_vis_injL X Y sim A e k it }.
+
+  Global Instance Injective_eq_itree_vis_R
+         X Y (sim : X -> Y -> Prop) A (e : E A) k it
+  : Injective (eq_itreeF sim it (VisF e k)) :=
+  { result := _
+  ; injection := @eq_itreeF_vis_injR X Y sim A e k it }.
+
 End eq_itree.
 
 Hint Constructors eq_itreeF.
 Hint Unfold eq_itree_.
 Hint Resolve eq_itree__mono : paco.
 Hint Unfold eq_itree.
+
 
 Ltac unfold_eq_itree :=
   (try match goal with [|- eq_itree_ _ _ _ _ ] => red end);
@@ -167,17 +229,25 @@ Proof.
   intros. dependent destruction PR.
   apply GF in RELATED.
   punfold EQVl. punfold EQVr. red in RELATED. red. unfold_eq_itree.
-  inversion EQVl; clear EQVl;
-    inversion EQVr; clear EQVr;
-    inversion RELATED; clear RELATED;
-      subst; simpobs; try discriminate.
-
-  - inversion H0; inversion H3; auto.
-  - inversion H; inversion H3; subst; pclearbot; eauto using rclo2.
-
-  - inversion H; inversion H3; subst; auto_inj_pair2; subst.
+  generalize dependent (observe t1);
+  generalize dependent (observe t2);
+  generalize dependent (observe t3);
+  generalize dependent (observe t4); intros; subst.
+  inversion EQVl; clear EQVl; subst.
+  { inversion RELATED; clear RELATED; subst.
+    inversion EQVr; clear EQVr; subst.
+    constructor; eauto. }
+  { inversion RELATED; clear RELATED; subst.
+    inversion EQVr; clear EQVr; subst.
     pclearbot.
-    econstructor. intros. specialize (REL v). specialize (REL0 v). pclearbot. eauto using rclo2.
+    eauto using rclo2. }
+  - inv_all. subst.
+    inv_all. subst.
+    constructor.
+    intros.
+    specialize (H2 v); specialize (H1 v); specialize (REL v).
+    pclearbot.
+    eauto using rclo2.
 Qed.
 
 Inductive eq_itree_bind_clo (r : itree E R1 -> itree E R2 -> Prop) :
@@ -232,7 +302,12 @@ Section eq_itree_eq.
   Global Instance Transitive_eq_itreeF I (sim : I -> I -> Prop)
   : Transitive sim -> Transitive (eq_itreeF sim).
   Proof.
-    red. inversion 2; inversion 1; subst; repeat auto_inj_pair2; subst; constructor; eauto.
+    red. inversion 2; try solve [ inversion 1; subst; subst; constructor; eauto ].
+    subst. inv_all.
+    intros. eapply eq_itreeF_vis_injL in H1.
+    destruct H1 as [ ? [ ? ? ] ].
+    subst.
+    constructor. eauto.
   Qed.
 
   Global Instance Reflexive_eq_itree_ sim
@@ -247,55 +322,61 @@ Section eq_itree_eq.
   : Transitive sim -> Transitive (eq_itree_ sim).
   Proof. repeat red; etransitivity; eauto. Qed.
 
-Global Instance Reflexive_eq_itree r : Reflexive (paco2 eq_itree_ r).
-Proof.
-  pcofix CIH; intros.
-  pfold. do 2 red. destruct (observe x); eauto.
-Qed.
+  Global Instance Reflexive_eq_itree r : Reflexive (paco2 eq_itree_ r).
+  Proof.
+    pcofix CIH; intros.
+    pfold. do 2 red. destruct (observe x); eauto.
+  Qed.
 
-Global Instance Symmetric_eq_itree r (SYMr : Symmetric r) :
-  Symmetric (paco2 eq_itree_ r).
-Proof.
-  pcofix CIH; intros.
-  pfold. do 2 red. punfold H0. inv H0; eauto.
-  - constructor; destruct REL; eauto.
-  - constructor. intros. destruct (REL v); eauto.
-Qed.
+  Global Instance Symmetric_eq_itree r (SYMr : Symmetric r) :
+    Symmetric (paco2 eq_itree_ r).
+  Proof.
+    pcofix CIH; intros.
+    pfold. do 2 red. punfold H0. inv H0; eauto.
+    - constructor; destruct REL; eauto.
+    - constructor. intros. destruct (REL v); eauto.
+  Qed.
 
-Global Instance Transitive_eq_itree : Transitive eq_itree.
-Proof.
-  pcofix CIH. intros.
-  pfold. red.
-  punfold H0; red in H0.
-  punfold H1; red in H1.
-  destruct H0; inversion H1; subst; eauto.
-  - pclearbot; eauto.
-  - auto_inj_pair2; subst.
-    subst; econstructor. intros. specialize (REL v). specialize (REL0 v). pclearbot. eauto.
-Qed.
+  Global Instance Transitive_eq_itree : Transitive eq_itree.
+  Proof.
+    pcofix CIH. intros.
+    pfold. red.
+    punfold H0; red in H0.
+    punfold H1; red in H1.
+    generalize dependent (observe x); generalize dependent (observe y);
+      generalize dependent (observe z).
+    inversion 1; try solve [ inversion 1; subst; eauto ].
+    - inversion 1; subst. pclearbot. eauto.
+    - subst. intros.
+      inv_all. subst.
+      constructor.
+      intros.
+      specialize (H3 v); specialize (REL v); specialize (H2 v); pclearbot.
+      eauto.
+  Qed.
 
-Global Instance Equivalence_eq_itree : Equivalence eq_itree.
-Proof.
-  constructor; typeclasses eauto.
-Qed.
+  Global Instance Equivalence_eq_itree : Equivalence eq_itree.
+  Proof.
+    constructor; typeclasses eauto.
+  Qed.
 
-Global Instance eq_itree_observe :
-  Proper (eq_itree ==> going eq_itree) (@observe E R).
-Proof.
-  constructor; punfold H. pfold. eapply eq_itreeF_mono; eauto.
-Qed.
+  Global Instance eq_itree_observe :
+    Proper (eq_itree ==> going eq_itree) (@observe E R).
+  Proof.
+    constructor; punfold H. pfold. eapply eq_itreeF_mono; eauto.
+  Qed.
 
-Global Instance eq_itree_tauF :
-  Proper (eq_itree ==> going eq_itree) (@TauF E R _).
-Proof.
-  constructor; pfold. econstructor. eauto.
-Qed.
+  Global Instance eq_itree_tauF :
+    Proper (eq_itree ==> going eq_itree) (@TauF E R _).
+  Proof.
+    constructor; pfold. econstructor. eauto.
+  Qed.
 
-Global Instance eq_itree_VisF {u} (e: E u) :
-  Proper (pointwise_relation _ eq_itree ==> going eq_itree) (VisF e).
-Proof.
-  constructor; red in H. pfold; econstructor. left. apply H.
-Qed.
+  Global Instance eq_itree_VisF {u} (e: E u) :
+    Proper (pointwise_relation _ eq_itree ==> going eq_itree) (VisF e).
+  Proof.
+    constructor; red in H. pfold; econstructor. left. apply H.
+  Qed.
 
   Global Instance observing_eq_itree_eq_ r `{Reflexive _ r} :
     subrelation (observing eq) (eq_itree_ r).
@@ -310,11 +391,11 @@ Qed.
     left; apply reflexivity.
   Qed.
 
-Lemma itree_eta (t : itree E R) : t ≅ go (observe t).
-Proof. apply observing_eq_itree_eq. econstructor. reflexivity. Qed.
+  Lemma itree_eta (t : itree E R) : t ≅ go (observe t).
+  Proof. apply observing_eq_itree_eq. econstructor. reflexivity. Qed.
 
-Lemma itree_eta' (ot : itree' E R) : ot = observe (go ot).
-Proof. reflexivity. Qed.
+  Lemma itree_eta' (ot : itree' E R) : ot = observe (go ot).
+  Proof. reflexivity. Qed.
 
 End eq_itree_eq.
 
@@ -347,6 +428,7 @@ Proof.
   intros H; punfold H; inversion H; pclearbot; auto.
 Qed.
 
+(*
 Lemma eq_itree_vis_inv {E R1 R2} (RR : R1 -> R2 -> Prop)
       {U} (e : E U) (k1 : U -> itree E R1) (k2 : U -> itree E R2) :
   eq_itree RR (Vis e k1) (Vis e k2) ->
@@ -354,11 +436,13 @@ Lemma eq_itree_vis_inv {E R1 R2} (RR : R1 -> R2 -> Prop)
 Proof.
   intros H; punfold H; inversion H; pclearbot; auto_inj_pair2; subst; auto.
 Qed.
+(* note(gmm): this requires `proof_irrelevance`. *)
+*)
 
 Lemma eq_itree_ret_inv {E R1 R2} (RR : R1 -> R2 -> Prop) r1 r2 :
   @eq_itree E _ _ RR (Ret r1) (Ret r2) -> RR r1 r2.
 Proof.
-  intros H; punfold H; inversion H; pclearbot; auto_inj_pair2; subst; auto.
+  intros H; punfold H; inversion H; pclearbot; subst; auto.
 Qed.
 
 (* One-sided inversion *)
@@ -372,7 +456,13 @@ Qed.
 Lemma eq_itree_vis_inv1 {E R U} (t : itree E R) (e : E U) (k : U -> _) :
   t ≅ Vis e k -> exists k', observe t = VisF e k' /\ forall u, k' u ≅ k u.
 Proof.
-  intros; punfold H; inversion H; subst; auto_inj_pair2; subst; pclearbot; eauto.
+  intros; punfold H.
+  red in H; simpl in *.
+  inv_all.
+  generalize dependent (observe t).
+  intros; subst.
+  eexists; split; eauto. intros.
+  specialize (H1 u). pclearbot. eapply H1.
 Qed.
 
 Lemma eq_itree_tau_inv1 {E R} (t t' : itree E R) :
