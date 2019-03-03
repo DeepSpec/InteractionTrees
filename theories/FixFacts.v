@@ -404,7 +404,7 @@ Proof.
   intros; subst. destruct v2; simpl.
   - rewrite tau_bind_.
     pfold. econstructor. eauto.
-  - rewrite ret_bind_. pfold. econstructor. pfold_reverse.
+  - rewrite ret_bind_. pfold. econstructor. pfold2_reverse.
     revert_until x. pcofix CIH''. intros.
     rewrite !unfold_aloop', map_bind.
     pupto2 eutt_nested_clo_bind. econstructor; [reflexivity|].

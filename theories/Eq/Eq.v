@@ -18,57 +18,6 @@ From ITree Require Import
 From ITree Require Export
      Eq.Shallow.
 
-(* Taken from paco-v2.0.3: BEGIN *)
-
-Lemma paco2_mon_bot {T0 T1} (gf gf': rel2 T0 T1 -> rel2 T0 T1) r' x0 x1
-    (REL: paco2 gf bot2 x0 x1)
-    (LEgf: gf <3= gf'):
-  paco2 gf' r' x0 x1.
-Proof.
-  eapply paco2_mon_gen; [apply REL | apply LEgf | intros; contradiction PR].
-Qed.
-
-Lemma upaco2_mon_bot {T0 T1} (gf gf': rel2 T0 T1 -> rel2 T0 T1) r' x0 x1
-    (REL: upaco2 gf bot2 x0 x1)
-    (LEgf: gf <3= gf'):
-  upaco2 gf' r' x0 x1.
-Proof.
-  eapply upaco2_mon_gen; [apply REL | apply LEgf | intros; contradiction PR].
-Qed.
-
-Lemma rclo2_mon_gen {T0 T1} gf gf' (clo clo': rel2 T0 T1 -> rel2 T0 T1) r r' e0 e1
-      (REL: rclo2 gf clo r e0 e1)
-      (LEgf: gf <3= gf')
-      (LEclo: clo <3= clo')
-      (LEr: r <2= r') :
-  rclo2 gf' clo' r' e0 e1.
-Proof.
-  induction REL.
-  - econstructor 1. apply LEr, R.
-  - econstructor 2; [intros; eapply H, PR| apply LEclo, CLOR'].
-  - econstructor 3; [intros; eapply H, PR| apply LEgf, CLOR'].
-Qed.
-
-Arguments paco2_fold {T0 T1} gf.
-Arguments paco2_unfold {T0 T1} gf.
-
-Ltac pfold_reverse :=
-    match goal with
-    | [|- ?gf (upaco2 _ _) _ _] => eapply (paco2_unfold gf)
-    | [|- ?gf (?gres (upaco2 _ _)) _ _] => eapply (paco2_unfold (compose gf gres))
-    end; eauto with paco.
-
-Ltac punfold_reverse H :=
-  let PP := type of H in
-  match PP with
-  | ?gf (upaco2 _ _) _ _ => eapply (paco2_fold gf) in H
-  | ?gf (?gres (upaco2 _ _)) _ _ => eapply (paco2_fold (compose gf gres)) in H
-  end; eauto with paco.
-
-(* Taken from paco-v2.0.3: END*)
-
-
-
 (* TODO: Send to paco *)
 Global Instance Symmetric_bot2 (A : Type) : @Symmetric A bot2.
 Proof. auto. Qed.
