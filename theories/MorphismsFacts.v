@@ -173,21 +173,13 @@ Qed.
 Lemma interp_id_liftE {E R} (t : itree E R) :
   interp (fun _ e => ITree.liftE e) _ t ≈ t.
 Proof.
-  pupto2_init.
-  revert t.
-  pcofix CIH.
-  intros t.
-  rewrite unfold_interp. unfold interp_u. unfold handleF.
-  pfold. revert t. pcofix CIH'.
-  intros t.
+  pupto2_init. revert t. pcofix CIH. intros.
+  pfold. pupto2_init. revert t. pcofix CIH'. intros.
+  rewrite unfold_interp. unfold interp_u, handleF.
   destruct (observe t); cbn; eauto.
-  - pfold. econstructor.
-    right. rewrite unfold_interp. unfold interp_u. unfold handleF.
-    apply CIH'.
+  - pfold. econstructor. pupto2_final. right. eauto.
   - pfold. econstructor. cbn. econstructor. intros.
-    assert (ITree.bind' (fun x0 : u => interp (fun (T : Type) (e0 : E T) => ITree.liftE e0) R (k x0)) (Ret x) = (x0 <- Ret x ;; interp (fun (T : Type) (e0 : E T) => ITree.liftE e0) R (k x0))).
-    { intros; reflexivity. }
-    left. rewrite H, ret_bind.
+    left. fold_bind. rewrite ret_bind.
     pupto2_final. eauto.
 Qed.
 
@@ -475,33 +467,15 @@ Qed.
 Lemma translate_to_interp {E F R} (f : E ~> F) (t : itree E R) :
   translate f t ≈ interp (fun _ e => ITree.liftE (f _ e)) _ t.
 Proof.
-  pupto2_init.
-  revert t.
-  pcofix CIH.
-  intros t.
-  rewrite itree_eta.
-  rewrite (itree_eta (interp (fun (T : Type) (e : E T) => ITree.liftE (f T e)) R t)).
-  rewrite unfold_translate.
-  rewrite unfold_interp.
+  pupto2_init. revert t. pcofix CIH. intros.
+  pfold. pupto2_init. revert t. pcofix CIH'. intros.
+  rewrite unfold_translate, unfold_interp.
   unfold translateF, interp_u, handleF.
-  pfold. revert t. pcofix CIH'.
-  intros t.
   destruct (observe t); cbn; simpl in *; eauto.
-  - pfold. econstructor.
-    right. rewrite unfold_translate. unfold translateF.
-    rewrite unfold_interp. unfold interp_u. apply CIH'.
+  - pfold. econstructor. pupto2_final. eauto.
   - pfold. econstructor. unfold ITree.liftE. rewrite vis_bind.
-    econstructor. intros.
-    left.
-    rewrite (itree_eta (x0 <- Ret x;; interp (fun (T : Type) (e0 : E T) => Vis (f T e0) (fun x1 : T => Ret x1)) R (k x0))).
-    assert ((observe (x0 <- Ret x;; interp (fun (T : Type) (e0 : E T) => Vis (f T e0) (fun x1 : T => Ret x1)) R (k x0)))
-            = observe (interp (fun (T : Type) (e0 : E T) => Vis (f T e0) (fun x1 : T => Ret x1)) R (k x))).
-    { reflexivity. }
-    rewrite H.
-    unfold ITree.liftE in CIH.
-    rewrite <- itree_eta.
-    pupto2_final. right.
-    apply CIH.
+    econstructor. intros. left.
+    rewrite ret_bind. eauto.
 Qed.
 
 (* Morphism Category -------------------------------------------------------- *)
@@ -511,25 +485,13 @@ Qed.
 Lemma eh_cmp_id_left_strong :
   forall A R (t : itree A R), interp eh_id R t ≈ t.
 Proof.
-  intros A R.
-  intros t.
-  pupto2_init.
-  revert t.
-  pcofix CIH.
-  intros t.
-  rewrite unfold_interp. unfold interp_u. unfold handleF.
-  pfold. revert t. pcofix CIH'.
-  intros t.
+  intros. pupto2_init. revert t. pcofix CIH. intros.
+  pfold. pupto2_init. revert t. pcofix CIH'. intros.
+  rewrite unfold_interp. unfold interp_u, handleF.
   destruct (observe t); cbn; eauto.
-  - pfold. econstructor.
-    right. rewrite unfold_interp. unfold interp_u. unfold handleF.
-    apply CIH'.
+  - pfold. econstructor. pupto2_final. eauto.
   - pfold. econstructor. cbn. econstructor. intros.
-    assert (ITree.bind' (fun x0 : u => interp eh_id R (k x0)) (Ret x) = (x0 <- Ret x ;; interp eh_id R (k x0))).
-    { intros; reflexivity. }
-    left.
-    rewrite H. rewrite ret_bind. (* TODO: [ret_bind] doesn't work *)
-    pupto2_final. right. apply CIH.
+    left. fold_bind. rewrite ret_bind. eauto.
 Qed.
 
 
