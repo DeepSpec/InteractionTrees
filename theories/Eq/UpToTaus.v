@@ -384,7 +384,7 @@ Qed.
 
 Global Instance eutt_cong_eutt r :
   Proper (eutt eq ==> eutt eq ==> flip impl)
-         (paco2 (@eutt_ E R1 R2 RR ∘ gres2 (eutt_ RR)) r).
+         (paco2 (cgres2 (@eutt_ E R1 R2 RR)) r).
 Proof.
   repeat intro.
   pupto2 eutt_clo_trans_left. econstructor; eauto.
@@ -442,7 +442,7 @@ Inductive eutt_nested_trans_clo (r: itree' E R1 -> itree' E R2 -> Prop) :
 Hint Constructors eutt_nested_trans_clo.
 
 Lemma eutt_nested_clo_trans r :
-  weak_respectful2 (euttF RR (gres2 (eutt_ RR) (upaco2 (eutt_ RR ∘ gres2 (eutt_ RR)) r)))
+  weak_respectful2 (euttF RR (gres2 (eutt_ RR) (upaco2 (cgres2 (eutt_ RR)) r)))
                     eutt_nested_trans_clo.
 Proof.
   econstructor; [pmonauto|].
@@ -471,8 +471,7 @@ Qed.
 
 Global Instance eq_cong_nested_euttF r r0 :
   Proper (going (eq_itree eq) ==> going (eq_itree eq) ==> flip impl)
-         (paco2 (@euttF E R1 R2 RR (gres2 (eutt_ RR) (upaco2 (eutt_ RR ∘ gres2 (eutt_ RR)) r))
-                 ∘ gres2 (euttF RR (gres2 (eutt_ RR) (upaco2 (eutt_ RR ∘ gres2 (eutt_ RR)) r)))) r0).
+         (paco2 (cgres2 (@euttF E R1 R2 RR (gres2 (eutt_ RR) (upaco2 (cgres2 (eutt_ RR)) r)))) r0).
 Proof.
   repeat intro. destruct H, H0.
   pupto2 eutt_nested_clo_trans. econstructor; eauto.
@@ -487,12 +486,12 @@ Inductive eutt_nested_bind_clo (r: itree' E R1 -> itree' E R2 -> Prop) : itree' 
 Hint Constructors eutt_nested_bind_clo.
 
 Lemma eutt_nested_clo_bind r :
-  weak_respectful2 (euttF RR (gres2 (eutt_ RR) (upaco2 (eutt_ RR ∘ gres2 (eutt_ RR)) r)))
+  weak_respectful2 (euttF RR (gres2 (eutt_ RR) (upaco2 (cgres2 (eutt_ RR)) r)))
                     eutt_nested_bind_clo.
 Proof.
   econstructor; [pmonauto|].
   intros. destruct PR.
-  assert (RELk: forall v1 v2, RU v1 v2 -> euttF RR (gres2 (eutt_ RR) (upaco2 (eutt_ RR ∘ gres2 (eutt_ RR)) r)) r0 (observe (k1 v1)) (observe (k2 v2))) by eauto.
+  assert (RELk: forall v1 v2, RU v1 v2 -> euttF RR (gres2 (eutt_ RR) (upaco2 (cgres2 (eutt_ RR)) r)) r0 (observe (k1 v1)) (observe (k2 v2))) by eauto.
   clear l LE GF REL.
   do 2 punfold EQV.
   rewrite !unfold_bind.

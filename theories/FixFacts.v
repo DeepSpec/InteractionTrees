@@ -104,7 +104,7 @@ Proof.
   repeat intro. pupto2_init. revert_until T. pcofix CIH. intros.
   pfold. pupto2_init. revert_until CIH. pcofix CIH'. intros.
   rewrite observe_interp_mrecF, unfold_interp.
-  destruct (observe c); [| |destruct e]; simpl; eauto 7.
+  destruct (observe c); [| |destruct e]; simpl; eauto 8.
   - rewrite interp_mrec_bind.
     pfold. econstructor.
     pupto2 eutt_nested_clo_bind.
@@ -408,7 +408,7 @@ Proof.
     revert_until x. pcofix CIH''. intros.
     rewrite !unfold_aloop', map_bind.
     pupto2 eutt_nested_clo_bind. econstructor; [reflexivity|].
-    intros. subst. destruct v2; simpl; eauto 7.
+    intros. subst. destruct v2; simpl; eauto 8.
 Qed.
 
 Instance eq_itree_loop {E A B C} :

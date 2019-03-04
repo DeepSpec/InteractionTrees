@@ -148,7 +148,7 @@ Proof.
   - rewrite tau_interp, !tau_bind, tau_interp.
     pupto2_final. pfold. econstructor. eauto.
   - rewrite vis_interp, tau_bind. rewrite bind_bind.
-    pfold. do 2 red; cbn. constructor.
+    pfold. repeat red; cbn. constructor.
     pupto2 (eq_itree_clo_bind F S). econstructor.
     + reflexivity.
     + intros; subst. specialize (CIH _ (k0 u2) k); auto.

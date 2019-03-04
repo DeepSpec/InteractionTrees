@@ -141,7 +141,7 @@ Hint Constructors eq_itree_bind_clo.
 Lemma eq_itree_clo_bind :
   weak_respectful2 (eq_itree_ RR) eq_itree_bind_clo.
 Proof.
-  econstructor; try pmonauto.
+  econstructor; [pmonauto|].
   intros. dependent destruction PR.
   punfold EQV. unfold_eq_itree.
   rewrite !unfold_bind; inv EQV; simpobs.
@@ -396,7 +396,7 @@ Qed.
 
 Instance eq_itree_paco {E R} r:
   Proper (eq_itree eq ==> eq_itree eq ==> flip impl)
-         (paco2 (@eq_itree_ E R _ eq ∘ gres2 (eq_itree_ eq)) r).
+         (paco2 (cgres2 (@eq_itree_ E R _ eq)) r).
 Proof.
   repeat intro. pupto2 eq_itree_clo_trans. eauto.
 Qed.
