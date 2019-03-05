@@ -41,6 +41,10 @@ Section itree.
   CoInductive itree : Type := go
   { _observe : itreeF itree }.
 
+  (* A primitive projection, such as [_observe], must always be
+     applied. To be used as a function, wrap it explicitly:
+     [fun x => _observe x] or [observe] (defined below). *)
+
   (** Notes about using [itree]:
 
      - You should simplify using [cbn] rather than [simpl] when working
@@ -67,15 +71,11 @@ Arguments itreeF _ _ : clear implicits.
 
 Notation itree' E R := (itreeF E R (itree E R)).
 
-Definition observe {E R} := @_observe E R.
-
-Ltac fold_observe := change @_observe with @observe in *.
-Ltac unfold_observe := unfold observe in *.
+Definition observe {E R} (t : itree E R) : itree' E R := @_observe E R t.
 
 Ltac genobs x ox := remember (observe x) as ox.
 Ltac genobs_clear x ox := genobs x ox; match goal with [H: ox = observe x |- _] => clear H x end.
-Ltac simpobs := fold_observe;
-                repeat match goal with [H: _ = observe _ |- _] =>
+Ltac simpobs := repeat match goal with [H: _ = observe _ |- _] =>
                     rewrite_everywhere_except (@eq_sym _ _ _ H) H
                 end.
 
@@ -199,6 +199,3 @@ Global Instance Monad_itree {E} : Monad (itree E) :=
 {| ret := fun _ x => Ret x
 ;  bind := @ITree.bind E
 |}.
-
-Ltac fold_bind := (change @ITree.bind' with (fun E T U k t => @ITree.bind E T U t k) in *; simpl in *).
-Ltac unfold_bind := unfold ITree.bind in *.

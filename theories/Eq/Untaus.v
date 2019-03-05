@@ -479,7 +479,7 @@ Proof.
   - rewrite unfold_bind in PROP.
     genobs t ot; destruct ot; eauto using finite_taus_ret, finite_taus_vis.
   - genobs t ot; destruct ot; eauto using finite_taus_ret, finite_taus_vis.
-    rewrite unfold_bind in Heqobtf. simpobs. inv Heqobtf. unfold_bind.
+    rewrite unfold_bind in Heqobtf. simpobs. inv Heqobtf.
     eapply finite_taus_tau; eauto.
 Qed.
 

@@ -204,7 +204,7 @@ Proof.
   intros t.
   rewrite itree_eta.
   rewrite (itree_eta t).
-  rewrite (itree_eta (interp (fun (T : Type) (e : E T) => interp g T (f T e)) R {| _observe := observe t|})).
+  rewrite (itree_eta (interp (fun (T : Type) (e : E T) => interp g T (f T e)) R (go (observe t)))).
   rewrite unfold_interp.
   destruct (observe t); cbn.
   - pupto2_final. pfold. econstructor. reflexivity.

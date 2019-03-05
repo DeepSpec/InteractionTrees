@@ -197,9 +197,9 @@ Proof.
   punfold EQV. unfold_eq_itree.
   rewrite !unfold_bind; inv EQV; simpobs.
   - eapply eq_itreeF_mono; [eapply GF |]; eauto using rclo2.
-  - simpl. fold_bind. pclearbot. eauto 7 using rclo2.
+  - simpl. pclearbot. eauto 7 using rclo2.
   - econstructor.
-    intros x. specialize (REL0 x). fold_bind. pclearbot. eauto 7 using rclo2.
+    intros x. specialize (REL0 x). pclearbot. eauto 7 using rclo2.
 Qed.
 
 End eq_itree_h.
@@ -468,7 +468,7 @@ Proof.
   pcofix CIH. intros.
   pfold. unfold_eq_itree.
   rewrite !unfold_bind. (* TODO: this is a bit slow (0.5s). *)
-  genobs s os; destruct os; unfold_bind; simpl; auto.
+  genobs s os; destruct os; simpl; auto.
   apply Reflexive_eq_itreeF. auto using reflexivity.
 Qed.
 
