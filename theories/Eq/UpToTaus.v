@@ -27,9 +27,8 @@ From Coq Require Import
      Relations.Relations.
 
 From ITree Require Import
-     Core.
-
-From ITree Require Export
+     Basics_Functions
+     Core
      Eq.Eq.
 
 Local Open Scope itree.
@@ -634,4 +633,56 @@ Lemma eutt_bind_gen {E R1 R2 S1 S2} {RR: R1 -> R2 -> Prop} {SS: S1 -> S2 -> Prop
 Proof.
   intros. red in H0. pupto2_init. pupto2 eutt_clo_bind. econstructor; eauto.
   intros. pupto2_final. eauto.
+Qed.
+
+Lemma unfold_aloop' {E A B} (f : A -> itree E A + B) (x : A) :
+  observing eq
+    (ITree.aloop f x)
+    (ITree._aloop (fun t => Tau t) (ITree.aloop f) (f x)).
+Proof.
+  constructor; reflexivity.
+Qed.
+
+Lemma unfold_aloop {E A B} (f : A -> itree E A + B) (x : A) :
+    ITree.aloop f x
+  ≈ ITree._aloop id (ITree.aloop f) (f x).
+Proof.
+  rewrite unfold_aloop'; unfold ITree._aloop.
+  destruct f.
+  - rewrite tau_eutt; reflexivity.
+  - reflexivity.
+Qed.
+
+Lemma bind_aloop {E A B C} (f : A -> itree E A + B) (g : B -> itree E B + C) (x : A) :
+    (ITree.aloop f x >>= ITree.aloop g)
+  ≈ ITree.aloop (fun ab =>
+       match ab with
+       | inl a => inl (ITree._aloop id (fun a => Ret (inl a)) (sum_map_r inr (f a)))
+       | inr b => sum_map_l (ITree.map inr) (g b)
+       end) (inl x).
+Proof.
+  pupto2_init. revert_until g. pcofix CIH. intros.
+  pfold. pupto2_init. revert_until CIH. pcofix CIH'. intros.
+  rewrite !unfold_aloop'. unfold ITree._aloop.
+  destruct (f x) as [t | b]; cbn.
+  - match goal with
+    | [ |- context foo [ITree.bind' ?k ?t] ] => fold (ITree.bind t k)
+    end.
+    unfold id; rewrite 2 bind_bind.
+    pfold; constructor.
+    pupto2 eutt_nested_clo_bind. econstructor.
+    { reflexivity. }
+    intros ? _ [].
+    rewrite ret_bind.
+    pupto2_final. auto.
+  - rewrite ret_bind.
+    pfold; constructor. pfold_reverse.
+    rewrite ret_bind.
+    revert_until x. pcofix CIH''. intros.
+    rewrite !unfold_aloop'. unfold ITree._aloop.
+    destruct (g b) as [t' | c]; cbn.
+    + rewrite map_bind. pfold; constructor.
+      pupto2 eutt_nested_clo_bind. econstructor; [reflexivity|].
+      intros ? _ []. auto.
+    + eauto.
 Qed.
