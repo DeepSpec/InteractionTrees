@@ -31,6 +31,7 @@ From ITree Require Import
      Core
      Eq.Eq.
 
+Import ITreeNotations.
 Local Open Scope itree.
 
 
