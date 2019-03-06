@@ -20,6 +20,8 @@ From ITree Require Import
      Morphisms
      Effect.Sum.
 
+Import ITreeNotations.
+
 (* The indexed type [D : Type -> Type] gives the signature of
    a set of functions. For example, a pair of mutually recursive
    [even : nat -> bool] and [odd : nat -> bool] can be declared

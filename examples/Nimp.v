@@ -6,6 +6,8 @@ From Coq Require Import
 From ITree Require Import
      ITree.
 
+Import ITreeNotations.
+
 Inductive com : Type :=
 | loop : com -> com (* Nondeterministically, continue or stop. *)
 | choose : com -> com -> com

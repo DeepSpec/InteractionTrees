@@ -163,6 +163,7 @@ Definition when {E}
 
 End ITree.
 
+Module ITreeNotations.
 (* Sometimes it's more convenient to work without the type classes
    Monad, etc. When functions using type classes are specialized,
    they simplify easily, so lemmas without classes are easier
@@ -182,6 +183,7 @@ Notation "' p <- t1 ;; t2" :=
   (ITree.bind t1 (fun x_ => match x_ with p => t2 end))
   (at level 100, t1 at next level, p pattern, right associativity) : itree_scope.
 Infix ">=>" := ITree.cat (at level 50, left associativity) : itree_scope.
+End ITreeNotations.
 
 Instance Functor_itree {E} : Functor (itree E) :=
 { fmap := @ITree.map E }.

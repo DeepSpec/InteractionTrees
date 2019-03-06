@@ -18,6 +18,8 @@ From ITree Require Import
 From ITree Require Export
      Eq.Shallow.
 
+Import ITreeNotations.
+
 (* Taken from paco-v2.0.3: BEGIN *)
 
 Lemma paco2_mon_bot {T0 T1} (gf gf': rel2 T0 T1 -> rel2 T0 T1) r' x0 x1

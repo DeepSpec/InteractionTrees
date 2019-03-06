@@ -20,6 +20,8 @@ From ITree Require Import
      Effect.Sum
      Eq.Eq Eq.UpToTaus Eq.SimUpToTaus.
 
+Import ITreeNotations.
+
 Section Facts.
 
 Context {D E : Type -> Type} (ctx : D ~> itree (D +' E)).

@@ -16,6 +16,8 @@ From ITree Require Import
      FixFacts
      KTree.
 
+Import ITreeNotations.
+
 From ExtLib Require Import
      Core.RelDec
      Structures.Monad

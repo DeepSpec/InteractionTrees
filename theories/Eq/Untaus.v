@@ -14,6 +14,7 @@ From ITree Require Import
 From ITree Require Export
      Eq.Eq.
 
+Import ITreeNotations.
 Local Open Scope itree.
 
 Section FiniteTaus.

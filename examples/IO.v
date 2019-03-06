@@ -1,5 +1,6 @@
 From Coq Require Import Arith.
 From ITree Require Import ITree.
+Import ITreeNotations.
 
 Inductive IO : Type -> Type :=
 | Read : IO nat

@@ -17,6 +17,8 @@ From ITree Require Import
      Eq.UpToTaus
      TranslateFacts.
 
+Import ITreeNotations.
+
 (** * Morphism equivalence *)
 Definition Rhom {A B : Type -> Type} (R : forall t, B t -> B t -> Prop)
            (f g : A ~> B) : Prop :=
