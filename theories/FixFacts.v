@@ -142,10 +142,8 @@ Lemma rec_unfold {E A B} (f : A -> itree (callE A B +' E) B) (x : A) :
 Proof.
   unfold rec.
   rewrite mrec_as_interp.
-  eapply eutt_interp.
-  - red. intro. red. destruct a; try reflexivity.
-    destruct c.
-    reflexivity.
+  eapply eutt_interp_gen.
+  - do 2 red. intros ? [[] | ]; reflexivity.
   - reflexivity.
 Qed.
 
@@ -598,16 +596,14 @@ Proof.
   - rewrite !interp_state_ret. simpl. eauto 7.
 Qed.
 
-(*
-Lemma interp1_loop {E F G} `{F -< G} (f : E ~> itree G) {A B C}
-      (t : C + A -> itree (E +' F) (C + B)) ca :
-  interp1 f _ (loop_ t ca) ≅ loop_ (fun ca => interp1 f _ (t ca)) ca.
+Lemma interp_loop {E F} (f : E ~> itree F) {A B C}
+      (t : C + A -> itree E (C + B)) ca :
+  interp f _ (loop_ t ca) ≅ loop_ (fun ca => interp f _ (t ca)) ca.
 Proof.
   pupto2_init. revert ca. pcofix CIH. intros.
   unfold loop. rewrite !unfold_loop'. unfold loop_once.
-  rewrite interp1_bind.
+  rewrite interp_bind.
   pupto2 eq_itree_clo_bind. econstructor; [reflexivity|]. 
-  intros. subst. rewrite unfold_interp1. pupto2_final. pfold. red.
+  intros. subst. rewrite unfold_interp. pupto2_final. pfold. red.
   destruct u2; simpl; eauto.
 Qed.
-*)

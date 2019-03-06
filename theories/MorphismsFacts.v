@@ -120,7 +120,7 @@ Proof.
 Qed.
 
 (* Note that this allows rewriting of handlers. *)
-Instance eutt_interp (E F : Type -> Type) (R : Type) :
+Definition eutt_interp_gen (E F : Type -> Type) (R : Type) :
   Proper (Rhom (fun _ => eutt eq) ==> eutt eq ==> eutt eq)
          (fun f => @interp E F f R).
 Proof.
@@ -138,6 +138,14 @@ Proof.
   - pfold; constructor. pfold_reverse. rewrite unfold_interp.
     auto.
   - pfold; constructor. pfold_reverse. rewrite unfold_interp. auto.
+Qed.
+
+Instance eutt_interp (E F : Type -> Type) f (R : Type) :
+  Proper (eutt eq ==> eutt eq)
+         (@interp E F f R).
+Proof.
+  apply eutt_interp_gen.
+  red; reflexivity.
 Qed.
 
 Lemma interp_ret : forall {E F R} x
