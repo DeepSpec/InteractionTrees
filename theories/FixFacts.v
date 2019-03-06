@@ -28,41 +28,50 @@ Context {D E : Type -> Type} (ctx : D ~> itree (D +' E)).
 
 (** Unfolding of [interp_mrec]. *)
 
-Definition interp_mrecF R :
-  itreeF (D +' E) R _ -> itree E R :=
-  handleF1 (interp_mrec ctx R)
-           (fun _ d k => Tau (interp_mrec ctx _ (ctx _ d >>= k))).
+Definition interp_mrecF R (ot : itreeF (D +' E) R _) : itree E R :=
+  match ot with
+  | RetF r => Ret r
+  | TauF t => Tau (interp_mrec ctx _ t)
+  | VisF e k => Tau
+    match e with
+    | inl1 d => interp_mrec ctx _ (ctx _ d >>= k)
+    | inr1 e => Vis e (fun x => interp_mrec ctx _ (k x))
+    end
+  end.
 
-Lemma observe_interp_mrecF R (t : itree (D +' E) R) :
-  observe (interp_mrec ctx _ t) = observe (interp_mrecF _ (observe t)).
-Proof. reflexivity. Qed.
-
-Lemma observe_interp_mrec R (t : itree (D +' E) R) :
-  eq_itree eq
-           (interp_mrec ctx _ t)
-           (interp_mrecF _ (observe t)).
+Lemma unfold_interp_mrec R (t : itree (D +' E) R) :
+  interp_mrec ctx _ t ≅ interp_mrecF _ (observe t).
 Proof.
-  rewrite itree_eta, observe_interp_mrecF, <-itree_eta.
-  reflexivity.
+  unfold interp_mrec.
+  rewrite unfold_aloop'.
+  destruct observe; cbn.
+  - reflexivity.
+  - rewrite ret_bind_; reflexivity. (* TODO: ret_bind, vis_bind are sloooow *)
+  - destruct e; cbn.
+    + rewrite ret_bind_; reflexivity.
+    + rewrite vis_bind_. pfold; constructor. left.
+      pfold; constructor.
+      left. rewrite ret_bind.
+      apply reflexivity.
 Qed.
 
 Lemma ret_mrec {T} (x: T) :
   interp_mrec ctx _ (Ret x) ≅ Ret x.
-Proof. rewrite observe_interp_mrec; reflexivity. Qed.
+Proof. rewrite unfold_interp_mrec; reflexivity. Qed.
 
 Lemma tau_mrec {T} (t: itree _ T) :
   interp_mrec ctx _ (Tau t) ≅ Tau (interp_mrec ctx _ t).
-Proof. rewrite observe_interp_mrec. reflexivity. Qed.
+Proof. rewrite unfold_interp_mrec. reflexivity. Qed.
 
 Lemma vis_mrec_right {T U} (e : E U) (k : U -> itree (D +' E) T) :
   interp_mrec ctx _ (Vis (inr1 e) k) ≅
-  Vis e (fun x => interp_mrec ctx _ (k x)).
-Proof. rewrite observe_interp_mrec. reflexivity. Qed.
+  Tau (Vis e (fun x => interp_mrec ctx _ (k x))).
+Proof. rewrite unfold_interp_mrec. reflexivity. Qed.
 
 Lemma vis_mrec_left {T U} (d : D U) (k : U -> itree (D +' E) T) :
   interp_mrec ctx _ (Vis (inl1 d) k) ≅
   Tau (interp_mrec ctx _ (ITree.bind (ctx _ d) k)).
-Proof. rewrite observe_interp_mrec. reflexivity. Qed.
+Proof. rewrite unfold_interp_mrec. reflexivity. Qed.
 
 Hint Rewrite @ret_mrec : itree.
 Hint Rewrite @vis_mrec_left : itree.
@@ -74,54 +83,56 @@ Instance eq_itree_mrec {R} :
 Proof.
   repeat intro. pupto2_init. revert_until R.
   pcofix CIH. intros.
-  rewrite !observe_interp_mrec.
+  rewrite !unfold_interp_mrec.
   pupto2_final.
   punfold H0. inv H0; pclearbot; [| |destruct e].
   - apply reflexivity.
   - pfold. econstructor. eauto.
   - pfold. econstructor. apply pointwise_relation_fold in REL.
     right. eapply CIH. rewrite REL. reflexivity.
-  - pfold. econstructor. eauto 7.
+  - pfold. econstructor. left; pfold; constructor. auto.
 Qed.
 
 Theorem interp_mrec_bind {U T} (t : itree _ U) (k : U -> itree _ T) :
   interp_mrec ctx _ (ITree.bind t k) ≅
   ITree.bind (interp_mrec ctx _ t) (fun x => interp_mrec ctx _ (k x)).
 Proof.
-  intros. pupto2_init. revert t k.
-  pcofix CIH. intros.
-  rewrite (itree_eta t).
-  destruct (observe t);
+  intros. pupto2_init; revert t k; pcofix CIH; intros.
+  rewrite (unfold_interp_mrec _ t), (unfold_bind t).
+  destruct (observe t); cbn;
     [| |destruct e];
     autorewrite with itree;
-    try rewrite <- bind_bind;
-    pupto2_final.
-  1: { apply reflexivity. }
+    try rewrite <- bind_bind.
+  1: { pupto2_final; apply reflexivity. }
   all: try (pfold; econstructor; eauto).
+  intros.
+  pupto2_final. left; pfold; constructor. auto.
 Qed.
 
-Theorem unfold_interp_mrec {T} (c : itree _ T) :
+Theorem interp_mrec_as_interp {T} (c : itree _ T) :
   interp_mrec ctx _ c ≈ interp (Sum1.elim (C:=itree E) (mrec ctx) ITree.liftE) _ c.
 Proof.
   repeat intro. pupto2_init. revert_until T. pcofix CIH. intros.
   pfold. pupto2_init. revert_until CIH. pcofix CIH'. intros.
-  rewrite observe_interp_mrecF, unfold_interp.
+  rewrite unfold_interp_mrec, unfold_interp.
   destruct (observe c); [| |destruct e]; simpl; eauto 7.
   - rewrite interp_mrec_bind.
-    pfold. econstructor.
-    pupto2 eutt_nested_clo_bind.
-    econstructor; [reflexivity|].
-    intros; subst. eauto.
+    pfold; constructor.
+    pupto2 eutt_nested_clo_bind; econstructor; [reflexivity|].
+    intros ? _ []; eauto.
+
   - unfold ITree.liftE. rewrite vis_bind_.
-    pfold. econstructor. econstructor. intros. left.
-    rewrite ret_bind.
-    pupto2_final. eauto.
+    pfold; constructor.
+    pupto2_final.
+    left; pfold; econstructor.
+    left.
+    rewrite ret_bind_. auto.
 Qed.
 
-Theorem unfold_mrec {T} (d : D T) :
+Theorem mrec_as_interp {T} (d : D T) :
   mrec ctx _ d ≈ interp (Sum1.elim (C:=itree E) (mrec ctx) ITree.liftE) _ (ctx _ d).
 Proof.
-  apply unfold_interp_mrec.
+  apply interp_mrec_as_interp.
 Qed.
 
 End Facts.
@@ -129,12 +140,10 @@ End Facts.
 Lemma rec_unfold {E A B} (f : A -> itree (callE A B +' E) B) (x : A) :
   rec f x ≈ interp (Sum1.elim (C:=itree E) (calling' (rec f)) ITree.liftE) _ (f x).
 Proof.
-  unfold rec. unfold mrec.
-  rewrite unfold_interp_mrec.
-  eapply eutt_interp.
-  - red. intro. red. destruct a; try reflexivity.
-    destruct c.
-    reflexivity.
+  unfold rec.
+  rewrite mrec_as_interp.
+  eapply eutt_interp_gen.
+  - do 2 red. intros ? [[] | ]; reflexivity.
   - reflexivity.
 Qed.
 
@@ -162,32 +171,6 @@ Proof.
   apply eutt_bind; try reflexivity.
   intros []; try reflexivity.
   rewrite tau_eutt; reflexivity.
-Qed.
-
-Lemma unfold_aloop' {E A B} (f : A -> itree E (A + B)) (x : A) :
-    aloop f x
-  ≅ (ab <- f x ;;
-     match ab with
-     | inl a => Tau (aloop f a)
-     | inr b => Ret b
-     end).
-Proof.
-  rewrite (itree_eta (aloop _ _)), (itree_eta (ITree.bind _ _)).
-  reflexivity.
-Qed.
-
-Lemma unfold_aloop {E A B} (f : A -> itree E (A + B)) (x : A) :
-    aloop f x
-  ≈ (ab <- f x ;;
-     match ab with
-     | inl a => aloop f a
-     | inr b => Ret b
-     end).
-Proof.
-  rewrite unfold_aloop'.
-  apply eutt_bind; try reflexivity.
-  intros []; try reflexivity.
-  apply tau_eutt.
 Qed.
 
 (* Equations for a traced monoidal category *)
@@ -389,29 +372,6 @@ Definition sum_map1 {A B C} (f : A -> B) (ac : A + C) : B + C :=
   | inl a => inl (f a)
   | inr c => inr c
   end.
-
-Lemma bind_aloop {E A B C} (f : A -> itree E (A + B)) (g : B -> itree E (B + C)) (x : A) :
-    (aloop f x >>= aloop g)
-  ≈ aloop (fun ab =>
-       match ab with
-       | inl a => ITree.map inl (f a)
-       | inr b => ITree.map (sum_map1 inr) (g b)
-       end) (inl x).
-Proof.
-  pupto2_init. revert_until g. pcofix CIH. intros.
-  pfold. pupto2_init. revert_until CIH. pcofix CIH'. intros.
-
-  rewrite !unfold_aloop', bind_bind, map_bind.
-  pupto2 eutt_nested_clo_bind. econstructor; [reflexivity|].
-  intros; subst. destruct v2; simpl.
-  - rewrite tau_bind_.
-    pfold. econstructor. eauto.
-  - rewrite ret_bind_. pfold. econstructor. pfold_reverse.
-    revert_until x. pcofix CIH''. intros.
-    rewrite !unfold_aloop', map_bind.
-    pupto2 eutt_nested_clo_bind. econstructor; [reflexivity|].
-    intros. subst. destruct v2; simpl; eauto 7.
-Qed.
 
 Instance eq_itree_loop {E A B C} :
   Proper ((eq ==> eq_itree eq) ==> eq ==> eq_itree eq) (@loop E A B C).
@@ -636,14 +596,14 @@ Proof.
   - rewrite !interp_state_ret. simpl. eauto 7.
 Qed.
 
-Lemma interp1_loop {E F G} `{F -< G} (f : E ~> itree G) {A B C}
-      (t : C + A -> itree (E +' F) (C + B)) ca :
-  interp1 f _ (loop_ t ca) ≅ loop_ (fun ca => interp1 f _ (t ca)) ca.
+Lemma interp_loop {E F} (f : E ~> itree F) {A B C}
+      (t : C + A -> itree E (C + B)) ca :
+  interp f _ (loop_ t ca) ≅ loop_ (fun ca => interp f _ (t ca)) ca.
 Proof.
   pupto2_init. revert ca. pcofix CIH. intros.
   unfold loop. rewrite !unfold_loop'. unfold loop_once.
-  rewrite interp1_bind.
+  rewrite interp_bind.
   pupto2 eq_itree_clo_bind. econstructor; [reflexivity|]. 
-  intros. subst. rewrite unfold_interp1. pupto2_final. pfold. red.
+  intros. subst. rewrite unfold_interp. pupto2_final. pfold. red.
   destruct u2; simpl; eauto.
 Qed.

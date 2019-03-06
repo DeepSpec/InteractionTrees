@@ -128,6 +128,22 @@ Definition cat {E T U V}
   T -> itree E V :=
   fun t => bind (k t) h.
 
+Definition _aloop {E : Type -> Type} {R I : Type}
+           (tau : _)
+           (aloop_ : I -> itree E R)
+           (step_i : itree E I + R) : itree E R :=
+  match step_i with
+  | inl cont => tau (ITree.bind cont aloop_)
+  | inr r => Ret r
+  end.
+
+(* Iterate a function updating an accumulator [A], until it produces
+   an output [B]. It's an Asymmetric variant of [loop], and it looks
+   similar to an Anamorphism, hence the name [aloop]. *)
+Definition aloop {E : Type -> Type} {R I: Type}
+           (step : I -> itree E I + R) : I -> itree E R :=
+  cofix aloop_ i := _aloop (fun t => Tau t) aloop_ (step i).
+
 (* note(gmm): There needs to be generic automation for monads to simplify
  * using the monad laws up to a setoid.
  * this would be *really* useful to a lot of projects.

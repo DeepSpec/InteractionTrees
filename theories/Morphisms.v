@@ -92,86 +92,19 @@ Definition sig (E:Type -> Type) m `{Monad m} := forall X, E X -> m x
 
 *)
 
-
-(** [itreeF] eliminator, where the codomain is in the [itree]
-    monad, a building block for itree monad morphisms. *)
-Definition handleF {E F : Type -> Type} {I R : Type}
-           (tau : I -> itree F R)
-           (vis : forall U, E U -> (U -> I) -> itree F R)
-           (ot : itreeF E R I) : itree F R :=
-  match ot with
-  | RetF r => Ret r
-  | TauF t' => Tau (tau t')
-  | VisF e k => vis _ e k
-  end.
-Hint Unfold handleF.
-
-(** A variant of [handleF] that treats [inr1] effects like [Tau]. *)
-Definition handleF1 {E F G : Type -> Type} {I R : Type}
-           `{F -< G}
-           (tau : I -> itree G R)
-           (vis : forall U, E U -> (U -> I) -> itree G R)
-           (ot : itreeF (E +' F) R I) : itree G R :=
-  match ot with
-  | RetF r => Ret r
-  | TauF t' => Tau (tau t')
-  | VisF ef k =>
-    match ef with
-    | inl1 e => vis _ e k
-    | inr1 f => Vis (subeffect _ f) (fun x => tau (k x))
-    end
-  end.
-Hint Unfold handleF1.
-(* note(gmm): i'd propose to remove handleF1 *)
-
-(** Shallow effect handling: pass the first [Vis] node to the
-    given handler [h]. *)
-Definition handle {E F : Type -> Type} {R : Type}
-           (h : forall U, E U -> (U -> itree E R) -> itree F R) :
-  itree E R -> itree F R :=
-  cofix handle_ t := handleF handle_ h (observe t).
-Hint Unfold handle.
-
-Definition handle1 {E F G : Type -> Type} {R : Type}
-           `{F -< G}
-           (h : forall U, E U -> (U -> itree (E +' F) R) -> itree G R) :
-  itree (E +' F) R -> itree G R :=
-  cofix handle1_ t := handleF1 handle1_ h (observe t).
-Hint Unfold handle1.
-(* note(gmm): i'd propose to remove handle1 *)
-
 (** An itree effect handler [E ~> itree F] defines an
     itree morphism [itree E ~> itree F]. *)
 Definition interp {E F : Type -> Type} (h : E ~> itree F) :
   itree E ~> itree F := fun R =>
-  cofix interp_ t :=
-    handleF interp_
-            (fun _ e k => Tau (ITree.bind (h _ e)
-                                          (fun x => interp_ (k x))))
-            (observe t).
-
-(* N.B.: the guardedness of this definition relies on implementation
-   details of [bind]. *)
-
-(** Interpret the first effect [E] in a sum [E +' F] into
-    the rest of the sum [F].
-
-    Compared to [interp], this inserts fewer [Tau] nodes, which
-    allows a few equations to be bisimularities ([eq_itree]) instead
-    of up-to-tau equivalences ([eutt]).
- *)
-
-Definition interp1 {E F G : Type -> Type} `{F -< G} (h : E ~> itree G) :
-  itree (E +' F) ~> itree G := fun R =>
-  cofix interp1_ t :=
-    handleF interp1_
-            (fun _ ef k =>
-               match ef with
-               | inl1 e => Tau (ITree.bind (h _ e)
-                                           (fun x => interp1_ (k x)))
-               | inr1 f => Vis (subeffect _ f) (fun x => interp1_ (k x))
-               end)
-            (observe t).
+  ITree.aloop (fun t =>
+    match observe t with
+    | RetF r => inr r
+    | TauF t => inl (Ret t)
+    | VisF e k => inl (ITree.map k (h _ e))
+    end).
+(* TODO: this does a map, and aloop does a bind. We could fuse those
+   by giving aloop a continuation to compose its bind with.
+   (coyoneda...) *)
 
 (** Effects [E, F : Type -> Type] and itree [E ~> itree F] form a
     category. *)
@@ -238,58 +171,16 @@ Import ITree.Basics.Monads.
    [itree E ~> stateT S (itree F)]. *)
 
 
-Definition interp_state_match {E F S R} (h : E ~> stateT S (itree F))
-  (rec : itree E R -> stateT S (itree F) R)
-  (ot:itree' E R) : stateT S (itree F) R :=
-  fun s =>
-      match ot with
-      | RetF r => Ret (s, r)
-      | VisF e k =>
-        Tau (ITree.bind (h _ e s) (fun sx =>
-               rec (k (snd sx)) (fst sx)))
-      | TauF t => Tau (rec t s)
-      end.
-
-CoFixpoint interp_state {E F S} (h : E ~> stateT S (itree F)) :
+Definition interp_state {E F S} (h : E ~> stateT S (itree F)) :
   itree E ~> stateT S (itree F) :=
-  fun R t => interp_state_match h (interp_state h R) (observe t).
-
-
-Definition interp1_state_match {E F S R} (h : E ~> stateT S (itree F))
-           (rec : itree (E +' F) R -> stateT S (itree F) R)
-           (ot : itree' (E +' F) R) : stateT S (itree F) R :=
-  fun s =>
-    match ot with
-      | RetF r => Ret (s, r)
-      | VisF ef k =>
-        match ef with
-        | inl1 e =>
-          let sx := h _ e s in
-          Tau (ITree.bind (h _ e s) (fun sx =>
-                 rec (k (snd sx)) (fst sx)))
-        | inr1 f => Vis f (fun x => rec (k x) s)
-        end
-      | TauF t => Tau (rec t s)
-    end.
-
-CoFixpoint interp1_state {E F S} (h : E ~> stateT S (itree F)) :
-  itree (E +' F) ~> stateT S (itree F) :=
-  fun R t => interp1_state_match h (interp1_state h R) (observe t).
-
-Definition translate1_state {E F S} (h : E ~> state S) :
-  itree (E +' F) ~> stateT S (itree F) :=
-  fun R =>
-    cofix translate1_state_ t s :=
+  fun R t0 s0 =>
+    ITree.aloop (fun st =>
+      let s := fst st in let t := snd st in
       match t.(observe) with
-      | RetF r => Ret (s, r)
-      | VisF ef k =>
-        match ef with
-        | inl1 e => let sx := h _ e s in
-                    Tau (translate1_state_ (k (snd sx)) (fst sx))
-        | inr1 f => Vis f (fun x => translate1_state_ (k x) s)
-        end
-      | TauF t => Tau (translate1_state_ t s)
-      end.
+      | RetF r => inr (s, r)
+      | TauF t => inl (Ret (s, t))
+      | VisF e k => inl (ITree.map (fun '(s, x) => (s, k x)) (h _ e s))
+      end) (s0, t0).
 
 (** The "reader" and "writer" variants are specializations
     of the above stateful morphisms when the state cannot
@@ -362,12 +253,13 @@ Section eff_hom_e.
   CoInductive eff_hom_e : Type :=
   { eval : forall t, E t -> itree F (eff_hom_e * t) }.
 
-  CoFixpoint interp_e (h : eff_hom_e) : itree E ~> itree F :=
-    fun R t =>
-      handleF (interp_e h _)
-              (fun _ e k => ITree.bind (h.(eval) _ e)
-                     (fun '(h', x) => Tau (interp_e h' _ (k x))))
-              (observe t).
+  Definition interp_e (h : eff_hom_e) : itree E ~> itree F := fun R t =>
+    ITree.aloop (fun '(s, t) =>
+      match t.(observe) with
+      | RetF r => inr r
+      | TauF t => inl (Ret (s, t))
+      | VisF e k => inl (ITree.map (fun '(s, x) => (s, k x)) (h.(eval) _ e))
+      end) (h, t).
 
 End eff_hom_e.
 
