@@ -9,7 +9,7 @@ Require Import ExtLib.Structures.Traversable.
 Require Import ExtLib.Data.List.
 
 From ITree Require Import
-     Basics
+     Basics.Basics
      ITree.
 
 Import MonadNotation.

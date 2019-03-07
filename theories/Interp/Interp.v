@@ -180,32 +180,3 @@ Definition rec {E : Type -> Type} {A B : Type}
            (body : A -> itree (callE A B +' E) B) :
   A -> itree E B :=
   fun a => mrec (calling' body) _ (Call a).
-
-Definition loop_once {E : Type -> Type} {A B C : Type}
-           (body : C + A -> itree E (C + B))
-           (loop_ : C + A -> itree E B) : C + A -> itree E B :=
-  fun ca =>
-    cb <- body ca ;;
-    match cb with
-    | inl c => loop_ (inl c)
-    | inr b => Ret b
-    end.
-
-Definition loop_ {E : Type -> Type} {A B C : Type}
-           (body : C + A -> itree E (C + B)) :
-  C + A -> itree E B :=
-  cofix loop__ := loop_once body (fun cb => Tau (loop__ cb)).
-
-(** Iterate a function updating an accumulator [C],
-    until it produces an output [B]. An encoding of tail recursive
-    functions.
-
-    The Kleisli category for the [itree] monad is a traced
-    monoidal category, with [loop] as its trace.
- *)
-(* We use explicit recursion instead of relying on [rec] to
-   make the definition properly tail recursive. *)
-Definition loop {E : Type -> Type} {A B C : Type}
-           (body : (C + A) -> itree E (C + B)) :
-  A -> itree E B :=
-  fun a => loop_ body (inr a).

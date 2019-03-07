@@ -119,7 +119,7 @@ From ExtLib Require Import
      Structures.Monad.
 Import MonadNotation.
 From ITree Require Import
-     ITree KTree.
+     ITree KTree KTreeFacts.
 Import ITreeNotations.
 
 Require Import Imp. (* TODO: remove this *)

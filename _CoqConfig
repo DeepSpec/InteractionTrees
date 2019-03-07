@@ -5,6 +5,7 @@ theories/Basics/Functions.v
 
 theories/Core/ITree.v
 theories/Core/KTree.v
+theories/Core/KTreeFacts.v
 
 theories/Eq/Shallow.v
 theories/Eq/Eq.v
