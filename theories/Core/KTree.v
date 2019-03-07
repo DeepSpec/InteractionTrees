@@ -4,13 +4,15 @@
 
 (* begin hide *)
 From ITree Require Import
-     ITree
-     OpenSum
-     Fix
-     FixFacts
-     Basics_Functions.
+     Basics.Functions
+     Core.ITree
+     Eq.UpToTaus
+     Indexed.OpenSum
+     Interp.Fix
+     Interp.FixFacts.
 
 Import ITreeNotations.
+Local Open Scope itree_scope.
 
 From Coq Require Import
      Program

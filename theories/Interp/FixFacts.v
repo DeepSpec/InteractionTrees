@@ -10,15 +10,17 @@ From Coq Require Import
      RelationClasses.
 
 From ITree Require Import
-     Basics
-     Basics_Functions
-     OpenSum
-     Core
-     Morphisms
-     MorphismsFacts
-     Fix
-     Effect.Sum
-     Eq.Eq Eq.UpToTaus Eq.SimUpToTaus.
+     Basics.Basics
+     Basics.Functions
+     Core.ITree
+     Eq.Eq
+     Eq.UpToTaus
+     Eq.SimUpToTaus
+     Indexed.Sum
+     Indexed.OpenSum
+     Interp.Morphisms
+     Interp.MorphismsFacts
+     Interp.Fix.
 
 Import ITreeNotations.
 
@@ -603,7 +605,7 @@ Proof.
   pupto2_init. revert ca. pcofix CIH. intros.
   unfold loop. rewrite !unfold_loop'. unfold loop_once.
   rewrite interp_bind.
-  pupto2 eq_itree_clo_bind. econstructor; [reflexivity|]. 
+  pupto2 eq_itree_clo_bind. econstructor; [reflexivity|].
   intros. subst. rewrite unfold_interp. pupto2_final. pfold. red.
   destruct u2; simpl; eauto.
 Qed.

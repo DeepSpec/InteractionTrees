@@ -125,7 +125,7 @@ Section Denote.
 End Denote.
 
 From ITree Require Import
-     Effect.Env.
+     Effects.Env.
 
 From ExtLib Require Import
      Core.RelDec

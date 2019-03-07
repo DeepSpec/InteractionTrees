@@ -32,11 +32,11 @@ From ExtLib Require
      Structures.Monoid.
 
 From ITree Require Import
-     Basics
-     Core
-     Effect.Sum
-     Translate
-     OpenSum.
+     Basics.Basics
+     Core.ITree
+     Indexed.Sum
+     Indexed.OpenSum
+     Interp.Translate.
 
 Open Scope itree_scope.
 
@@ -157,12 +157,12 @@ Definition eh_empty_right {A} : A +' emptyE ~> itree A :=
 (* SAZ: do we need the assoc2 too -- add to Sum.v ? *)
 Definition eh_assoc {A B C} : (A +' (B +' C)) ~> itree ((A +' B) +' C) :=
   eh_lift Sum1.assoc.
-                            
+
 
 
 (** Standard interpreters *)
 
-Import ITree.Basics.Monads.
+Import ITree.Basics.Basics.Monads.
 
 (* TODO: refactor these three... *)
 

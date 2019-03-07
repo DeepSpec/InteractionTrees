@@ -1,7 +1,7 @@
 From ITree Require Import
-     Basics
-     Core
-     Effect.Sum.
+     Basics.Basics
+     Core.ITree
+     Indexed.Sum.
 
 (** Automatic application of commutativity and associativity for
     sums types constructed with [sum1].

@@ -7,8 +7,8 @@ From Coq Require Import
      Lists.List.
 
 From ITree Require Import
-     Basics
-     Core.
+     Basics.Basics
+     Core.ITree.
 
 (** Sums for extensible event types. *)
 
@@ -41,7 +41,7 @@ Definition idE {A : Type -> Type} : A ~> A :=
 Definition cmpE {A B C : Type -> Type} : (B ~> C) -> (A ~> B) -> (A ~> C) :=
   fun g f X a => g X (f X a).
 
-               
+
 (** [Sum1.swap] *)
 Definition swap {A B : Type -> Type} : A +' B ~> B +' A :=
   fun _ ab =>

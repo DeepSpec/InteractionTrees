@@ -9,12 +9,12 @@ From Coq Require Import
      RelationClasses.
 
 From ITree Require Import
-     Basics_Functions
+     Basics.Functions
+     Core.KTree
      ITree
-     Effect.Env
-     MorphismsFacts
-     FixFacts
-     KTree.
+     Effects.Env
+     Interp.MorphismsFacts
+     Interp.FixFacts.
 
 Import ITreeNotations.
 

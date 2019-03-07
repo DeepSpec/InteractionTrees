@@ -9,7 +9,7 @@ From Coq Require Import
      Relations.Relations.
 
 From ITree Require Import
-     Core.
+     Core.ITree.
 
 From ITree Require Export
      Eq.Eq.

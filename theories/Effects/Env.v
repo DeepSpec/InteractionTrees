@@ -12,11 +12,13 @@ From ExtLib.Structures Require Import
      Functor Monoid Maps.
 
 From ITree Require Import
-     Basics
-     Core Morphisms
-     Effect.Sum
-     OpenSum.
-Import ITree.Basics.Monads.
+     Basics.Basics
+     Core.ITree
+     Indexed.Sum
+     Indexed.OpenSum
+     Interp.Morphisms.
+
+Import ITree.Basics.Basics.Monads.
 
 
 (* Environment Effects ------------------------------------------------------ *)
@@ -42,7 +44,7 @@ Section Env.
 
   Context {map : Type}.
   Context {M:Map K V map}.
-  
+
   Definition eval_env {E} : envE ~> stateT map (itree E) :=
     fun _ e env =>
       match e with
@@ -62,4 +64,3 @@ Arguments env_lookup {K V E _}.
 Arguments env_lookupDefault {K V E _}.
 Arguments env_remove {K V E _}.
 Arguments run_env {K V map M _}.
-

@@ -15,10 +15,10 @@ From Coq Require Import
      RelationClasses.
 
 From ITree Require Import
-     Basics
-     Core
-     Morphisms
-     Effect.Sum.
+     Basics.Basics
+     Core.ITree
+     Interp.Morphisms
+     Indexed.Sum.
 
 Import ITreeNotations.
 

@@ -7,15 +7,15 @@ From Coq Require Import
 From Paco Require Import paco.
 
 From ITree Require Import
-     Basics
-     Core
-     Effect.Sum
-     OpenSum
-     Translate
-     Morphisms
+     Basics.Basics
+     Core.ITree
      Eq.Eq
      Eq.UpToTaus
-     TranslateFacts.
+     Indexed.Sum
+     Indexed.OpenSum
+     Interp.Translate
+     Interp.Morphisms
+     Interp.TranslateFacts.
 
 Import ITreeNotations.
 
@@ -414,7 +414,7 @@ Lemma eh_cmp_id_left :
 Proof.
   intros A B f X e.
   unfold eh_cmp. apply eh_cmp_id_left_strong.
-Qed.  
+Qed.
 
 
 Lemma eh_cmp_id_right :
@@ -463,7 +463,7 @@ Proof.
     rewrite H. reflexivity.
 Qed.
 
-  
+
 Lemma eh_swap_swap_id : forall A B, eh_cmp eh_swap eh_swap ≡ (eh_id : (A +' B) ~> itree (A +' B)).
 Proof.
   intros A B X e.
@@ -471,7 +471,7 @@ Proof.
   rewrite interp_liftE.
   setoid_rewrite tau_eutt. rewrite bind_ret.
   destruct e; simpl; reflexivity.
-Qed.                                                               
+Qed.
 
 Lemma eh_empty_unit_l : forall A, eh_cmp eh_empty_right eh_inl ≡ (eh_id : A ~> itree A).
 Proof.

@@ -5,7 +5,7 @@ From Coq Require Import
 Import ListNotations.
 
 From ITree Require Import
-     Core
+     Core.ITree
      Eq.Untaus
      Eq.UpToTaus
      Eq.SimUpToTaus.

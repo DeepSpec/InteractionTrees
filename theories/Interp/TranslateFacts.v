@@ -4,12 +4,12 @@ From ExtLib Require
      Structures.Monoid.
 
 From ITree Require Import
-     Basics
-     Core
-     Effect.Sum
-     Translate
-     Eq
-     UpToTaus.
+     Basics.Basics
+     Core.ITree
+     Eq.Eq
+     Eq.UpToTaus
+     Indexed.Sum
+     Interp.Translate.
 
 Import ITreeNotations.
 
@@ -49,7 +49,7 @@ Qed.
 Lemma translate_vis : forall X (e:E X) (k : X -> itree E R),
     translate h (Vis e k) ≅ Vis (h _ e) (fun x => translate h (k x)).
 Proof.
-  intros X e k. 
+  intros X e k.
   rewrite itree_eta.
   rewrite unfold_translate. cbn. reflexivity.
 Qed.
@@ -58,7 +58,7 @@ Global Instance translate_Proper :
   Proper (eq_itree (@eq R) ==> eq_itree eq) (translate h).
 Proof.
   repeat red.
-  intros x y H. 
+  intros x y H.
   pupto2_init.
   revert x y H.
   pcofix CIH.
@@ -79,8 +79,8 @@ Proof.
     inversion H.
     repeat (match goal with
           | [ H : _ |- _ ] => apply inj_pair2 in H
-            end). subst. 
-    right. apply CIH. 
+            end). subst.
+    right. apply CIH.
     eapply transitivity. pclearbot. apply REL0. reflexivity.
 Qed.
 
@@ -92,14 +92,14 @@ Proof.
   replace y with (observe (go y)) by auto.
   rewrite <- !unfold_translate.
   rewrite H. apply reflexivity.
-Qed.  
+Qed.
 
 End TranslateFacts.
 
 Lemma translate_bind : forall {E F R S} (h : E ~> F) (t : itree E S) (k : S -> itree E R),
     translate h (x <- t ;; k x) ≅ (x <- (translate h t) ;; translate h (k x)).
 Proof.
-  intros E F R S h t k. 
+  intros E F R S h t k.
   pupto2_init.
   revert S t k.
   pcofix CIH.

@@ -27,8 +27,10 @@ From Coq Require Import
      Relations.Relations.
 
 From ITree Require Import
-     Basics_Functions
-     Core
+     Basics.Functions
+     Core.ITree.
+
+From ITree Require Export
      Eq.Eq.
 
 Import ITreeNotations.

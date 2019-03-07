@@ -2,7 +2,7 @@ From Coq Require Import
      Strings.String
      Program.Basics
      ZArith.ZArith.
-From ITree Require Import Basics_Functions.
+From ITree Require Import Basics.Functions.
 From ExtLib Require Structures.Monad.
 Require Import Imp.
 
@@ -157,7 +157,7 @@ End Semantics.
 (* Interpretation ----------------------------------------------------------- *)
 
 From ITree Require Import
-     Effect.Env.
+     Effects.Env.
 
 From ExtLib Require Import
      Core.RelDec

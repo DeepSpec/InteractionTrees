@@ -9,7 +9,7 @@ From Coq Require Import
      ZArith.
 Import ListNotations.
 
-From ITree Require Import Basics_Functions.
+From ITree Require Import Basics.Functions.
 
 Typeclasses eauto := 5.
 

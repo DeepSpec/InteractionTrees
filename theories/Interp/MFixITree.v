@@ -5,7 +5,8 @@ Import MonadNotation.
 Open Scope monad_scope.
 
 From ITree Require Import
-     Core Fix.
+     Core.ITree
+     Interp.Fix.
 
 Section M.
   (* The effects interface *)
@@ -222,16 +223,3 @@ Section EX2.
   Qed.
 
 End EX2.
-
-
-(*
-Variable E: Type -> Type.
-
-Check Fix.FixImpl.mfix.
-Locate MonadFix.
-Set Printing Universes.
-Print mfix_type.
-Print Monad_itree.
-Definition mfix_itree : mfix_type (itree E) :=
-  fun A B f => Fix.FixImpl.mfix (fun _ => B) (fun E' inc rec => f (itree E') (Monad_itree) inc rec).
-*)

@@ -11,8 +11,8 @@ From Coq Require Import
      RelationClasses.
 
 From ITree Require Import
-     Basics_Functions
-     Effect.Env
+     Basics.Functions
+     Effects.Env
      ITree.
 
 From ExtLib Require Import

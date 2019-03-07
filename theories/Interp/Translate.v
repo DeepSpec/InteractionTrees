@@ -2,21 +2,21 @@
     by mapping the event morphism across each visible event.  We call this
     process _event translation_.
 
-    
+
     Translate is defined separately from the itree Morphisms because it is
     conceptually at a different level: translation always yields strong
     bisimulations.  We can relate translation and interpretation via the law:
 
-    translate h t ≈ interp (liftE ∘ h) t 
+    translate h t ≈ interp (liftE ∘ h) t
 *)
 
 From ExtLib Require
      Structures.Monoid.
 
 From ITree Require Import
-     Basics
-     Core
-     Effect.Sum.
+     Basics.Basics
+     Core.ITree
+     Indexed.Sum.
 
 Open Scope itree_scope.
 
@@ -31,4 +31,3 @@ Definition translateF {E F R} (h : E ~> F) (rec: itree E R -> itree F R) (t : it
 
 CoFixpoint translate {E F R} (h : E ~> F) (t : itree E R) : itree F R
   := translateF h (translate h) (observe t).
-

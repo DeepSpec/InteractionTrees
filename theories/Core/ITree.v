@@ -52,11 +52,11 @@ Section itree.
        [CoFixpoint] (as in [bind] and [map] below).  [simpl] does not
        unfold the definition properly to expose the [observe t] term.
 
-     - Once you have [observe t] as the subject of [match], you can 
+     - Once you have [observe t] as the subject of [match], you can
        [destruct (observe t)] to do the case split.
 
    [[  - TODO: add more documentation about the ways  to define functions
-       by splitting them into the "_match" body and the [CoFixpoint] 
+       by splitting them into the "_match" body and the [CoFixpoint]
 
        - TODO: paco?
 
