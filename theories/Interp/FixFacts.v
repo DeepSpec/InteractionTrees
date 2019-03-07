@@ -18,9 +18,8 @@ From ITree Require Import
      Eq.SimUpToTaus
      Indexed.Sum
      Indexed.OpenSum
-     Interp.Morphisms
-     Interp.MorphismsFacts
-     Interp.Fix.
+     Interp.Interp
+     Interp.MorphismsFacts.
 
 Import ITreeNotations.
 
@@ -572,30 +571,6 @@ Proof.
     + intros. eapply monotone_sutt_RR; try eassumption.
       red; auto.
     + auto.
-Qed.
-
-Lemma interp_state_loop {E F S A B C} (RS : S -> S -> Prop)
-      (h : E ~> Monads.stateT S (itree F))
-      (t1 t2 : C + A -> itree E (C + B)) :
-  (forall ca s1 s2, RS s1 s2 ->
-     eutt (fun a b => RS (fst a) (fst b) /\ snd a = snd b)
-          (interp_state h (C+B) (t1 ca) s1)
-          (interp_state h (C+B) (t2 ca) s2)) ->
-  (forall ca s1 s2, RS s1 s2 ->
-     eutt (fun a b => RS (fst a) (fst b) /\ snd a = snd b)
-          (interp_state h B (loop_ t1 ca) s1)
-          (interp_state h B (loop_ t2 ca) s2)).
-Proof.
-  repeat intro. pupto2_init. revert_until H. pcofix CIH. intros.
-  pfold. pupto2_init. revert_until CIH. pcofix CIH'. intros.
-
-  rewrite (itree_eta (loop_ t1 ca)), (itree_eta (loop_ t2 ca)), !unfold_loop''.
-  unfold loop_once. rewrite <- !itree_eta, !interp_state_bind.
-  pupto2 eutt_nested_clo_bind. econstructor; eauto.
-  intros. destruct RELv. rewrite H2. destruct (snd v2).
-  - rewrite !interp_state_tau.
-    pfold. econstructor. pupto2_final. eauto.
-  - rewrite !interp_state_ret. simpl. eauto 7.
 Qed.
 
 Lemma interp_loop {E F} (f : E ~> itree F) {A B C}

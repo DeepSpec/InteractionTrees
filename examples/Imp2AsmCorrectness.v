@@ -14,7 +14,8 @@ From ITree Require Import
      ITree
      Effects.Env
      Interp.MorphismsFacts
-     Interp.FixFacts.
+     Interp.FixFacts
+     Effects.StateFacts.
 
 Import ITreeNotations.
 
@@ -36,7 +37,7 @@ Section EUTT.
     Proper (@eutt (envE K V +' E) R R eq ==> eq ==> @eutt E (prod map R) (prod map R) eq)
            (run_env R).
   Proof.
-    eapply MorphismsFacts.eutt_interp_state.
+    eapply eutt_interp_state.
   Qed.
 
 End EUTT.

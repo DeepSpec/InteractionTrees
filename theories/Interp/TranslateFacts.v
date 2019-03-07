@@ -9,7 +9,7 @@ From ITree Require Import
      Eq.Eq
      Eq.UpToTaus
      Indexed.Sum
-     Interp.Translate.
+     Interp.Interp.
 
 Import ITreeNotations.
 

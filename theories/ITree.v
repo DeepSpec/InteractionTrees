@@ -6,7 +6,6 @@ From ITree Require Export
      Eq.SimUpToTaus
      Indexed.Sum
      Indexed.OpenSum
-     Interp.Translate
-     Interp.Morphisms
-     Interp.Fix
+     Interp.Interp
+     Interp.Handler
      .

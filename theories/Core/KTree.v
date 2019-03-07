@@ -8,7 +8,7 @@ From ITree Require Import
      Core.ITree
      Eq.UpToTaus
      Indexed.OpenSum
-     Interp.Fix
+     Interp.Interp
      Interp.FixFacts.
 
 Import ITreeNotations.

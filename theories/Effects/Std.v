@@ -25,7 +25,8 @@ From ITree Require Import
      Core.ITree
      Indexed.Sum
      Indexed.OpenSum
-     Interp.Morphisms.
+     Interp.Interp
+     Effects.State.
 
 Section Failure.
 

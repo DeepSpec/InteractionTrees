@@ -6,9 +6,7 @@ Import MonadNotation.
 Open Scope monad_scope.
 
 From ITree Require Import
-     ITree
-     OpenSum
-     Fix.
+     ITree.
 
 Inductive term : Type :=
 | Var : nat -> term

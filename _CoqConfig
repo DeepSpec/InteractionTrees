@@ -12,21 +12,24 @@ theories/Eq/UpToTaus.v
 theories/Eq/UpToTausExplicit.v
 theories/Eq/Untaus.v
 theories/Eq/SimUpToTaus.v
+theories/Eq.v
 
 theories/Indexed/Sum.v
 theories/Indexed/OpenSum.v
 
-theories/Effects/Std.v
-theories/Effects/Spawn.v
-theories/Effects/Env.v
-
-theories/Interp/Fix.v
+theories/Interp/Interp.v
+theories/Interp/Handler.v
+theories/Interp/HandlerFacts.v
 theories/Interp/FixFacts.v
-theories/Interp/Translate.v
 theories/Interp/TranslateFacts.v
-theories/Interp/Morphisms.v
 theories/Interp/MorphismsFacts.v
 theories/Interp/Traces.v
 theories/Interp/MFixITree.v
+
+theories/Effects/State.v
+theories/Effects/StateFacts.v
+theories/Effects/Std.v
+theories/Effects/Spawn.v
+theories/Effects/Env.v
 
 theories/ITree.v

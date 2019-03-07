@@ -6,7 +6,7 @@ Open Scope monad_scope.
 
 From ITree Require Import
      Core.ITree
-     Interp.Fix.
+     Interp.Interp.
 
 Section M.
   (* The effects interface *)
