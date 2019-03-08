@@ -2,7 +2,7 @@ From Coq Require Import
      Strings.String
      Program.Basics
      ZArith.ZArith.
-From ITree Require Import Basics.Functions.
+From ITree Require Import Basics.Function.
 From ExtLib Require Structures.Monad.
 Require Import Imp.
 
@@ -80,10 +80,10 @@ Section Semantics.
   | Store (addr val : value) : Memory unit.
 
   Inductive Exit : Type -> Type :=
-  | Done : Exit Empty_set.
+  | Done : Exit void.
 
   Definition done {E A} `{Exit -< E} : itree E A :=
-    Vis (subeffect _ Done) (fun v => match v : Empty_set with end).
+    Vis (subeffect _ Done) (fun v => match v : void with end).
 
   (* Denotation of blocks *)
   Section with_effect.

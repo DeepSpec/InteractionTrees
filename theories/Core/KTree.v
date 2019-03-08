@@ -4,7 +4,8 @@
 
 (* begin hide *)
 From ITree Require Import
-     Basics.Functions
+     Basics.Category
+     Basics.Function
      Core.ITree
      Eq.UpToTaus
      Indexed.OpenSum.
@@ -12,8 +13,9 @@ From ITree Require Import
 Import ITreeNotations.
 Local Open Scope itree_scope.
 
+Set Universe Polymorphism.
+
 From Coq Require Import
-     Program
      Morphisms.
 (* end hide *)
 
@@ -45,9 +47,9 @@ Proof.
 Qed.
 
 Global Instance eq_ktree_elim {A B C} :
-  Proper (eq_ktree ==> eq_ktree ==> eq_ktree) (@sum_elim A B (itree E C)).
+  Proper (eq_ktree ==> eq_ktree ==> eq_ktree) (@elim _ Fun sum _ A B (itree E C)).
 Proof.
-  repeat intro. destruct a; unfold sum_elim; auto.
+  repeat intro. destruct a; unfold elim, sum_elim; auto.
 Qed.
 
 End Equivalence.
@@ -89,27 +91,29 @@ Definition id_ktree {A} : ktree E A A := fun a => Ret a.
 (** *** Symmetric monoidal category *)
 
 (** Monoidal unit *)
-Definition I: Type := Empty_set.
+Local Notation I := Basics.void.
 
 (** Tensor product *)
 (* Tensoring on objects is given by the coproduct *)
 Definition tensor_ktree {A B C D}
            (ab : ktree E A B) (cd : ktree E C D)
   : ktree E (A + C) (B + D)
-  := sum_elim (ab >=> lift_ktree inl) (cd >=> lift_ktree inr).
+  := @elim _ Fun _ _ _ _ _
+           (ab >=> lift_ktree inl)
+           (cd >=> lift_ktree inr).
 
 (* Left and right unitors *)
-Definition λ_ktree  {A: Type}: ktree E (I + A) A := lift_ktree sum_empty_l.
+Definition λ_ktree  {A: Type}: ktree E (I + A) A := lift_ktree unit_l.
 Definition λ_ktree' {A: Type}: ktree E A (I + A) := lift_ktree inr.
-Definition ρ_ktree  {A: Type}: ktree E (A + I) A := lift_ktree sum_empty_r.
+Definition ρ_ktree  {A: Type}: ktree E (A + I) A := lift_ktree unit_r.
 Definition ρ_ktree' {A: Type}: ktree E A (A + I) := lift_ktree inl.
 
 (* Associators *)
-Definition assoc_ktree_l {A B C: Type}: ktree E (A + (B + C)) ((A + B) + C) := lift_ktree sum_assoc_l.
-Definition assoc_ktree_r {A B C: Type}: ktree E ((A + B) + C) (A + (B + C)) := lift_ktree sum_assoc_r.
+Definition assoc_ktree_l {A B C: Type}: ktree E (A + (B + C)) ((A + B) + C) := lift_ktree assoc_l.
+Definition assoc_ktree_r {A B C: Type}: ktree E ((A + B) + C) (A + (B + C)) := lift_ktree assoc_r.
 
 (* Symmetry *)
-Definition sym_ktree {A B: Type}: ktree E (A + B) (B + A) := lift_ktree sum_comm.
+Definition sym_ktree {A B: Type}: ktree E (A + B) (B + A) := lift_ktree swap.
 
 (** Traced monoidal category *)
 

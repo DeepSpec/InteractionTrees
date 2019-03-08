@@ -1,7 +1,8 @@
 -Q theories ITree
 
 theories/Basics/Basics.v
-theories/Basics/Functions.v
+theories/Basics/Category.v
+theories/Basics/Function.v
 
 theories/Core/ITree.v
 theories/Core/KTree.v

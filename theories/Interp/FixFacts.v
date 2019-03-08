@@ -11,7 +11,7 @@ From Coq Require Import
 
 From ITree Require Import
      Basics.Basics
-     Basics.Functions
+     Basics.Function
      Core.ITree
      Core.KTree
      Core.KTreeFacts

@@ -6,13 +6,15 @@ From Paco Require Import paco.
 
 From ITree Require Import
      Basics.Basics
-     Basics.Functions
+     Basics.Category
+     Basics.Function
      Core.ITree
      Core.KTree
      Eq.UpToTaus
      Eq.SimUpToTaus
      Indexed.OpenSum.
 
+Import CatNotations.
 Import ITreeNotations.
 Local Open Scope itree_scope.
 (* end hide *)
@@ -135,9 +137,9 @@ Proof.
     pupto2_final; apply reflexivity.
 Qed.
 
-Lemma vanishing1 {E A B} (f : Empty_set + A -> itree E (Empty_set + B))
+Lemma vanishing1 {E A B} (f : void + A -> itree E (void + B))
       (a : A) :
-  loop f a ≅ ITree.map sum_empty_l (f (inr a)).
+  loop f a ≅ ITree.map (apply unit_l) (f (inr a)).
 Proof.
   unfold loop.
   rewrite unfold_loop'; unfold loop_once, ITree.map.
@@ -148,7 +150,7 @@ Qed.
 Lemma vanishing2 {E A B C D} (f : D + (C + A) -> itree E (D + (C + B)))
       (a : A) :
     loop (loop f) a
-  ≅ loop (fun dca => ITree.map sum_assoc_l (f (sum_assoc_r dca))) a.
+  ≅ loop (fun dca => ITree.map assoc_l (f (assoc_r dca))) a.
 Proof.
   unfold loop; rewrite 2 unfold_loop'; unfold loop_once.
   rewrite map_bind.
@@ -183,9 +185,9 @@ Lemma superposing1 {E A B C D D'} (f : C + A -> itree E (C + B))
     ITree.map inl (loop f a)
   ≅ loop (fun cad =>
       match cad with
-      | inl c => ITree.map (sum_bimap id inl) (f (inl c))
-      | inr (inl a) => ITree.map (sum_bimap id inl) (f (inr a))
-      | inr (inr d) => ITree.map (inr ∘ inr) (g d)
+      | inl c => ITree.map (bimap id inl) (f (inl c))
+      | inr (inl a) => ITree.map (bimap id inl) (f (inr a))
+      | inr (inr d) => ITree.map (inr >=> inr)%cat (g d)
       end) (inl a).
 Proof.
   unfold loop.
@@ -221,9 +223,9 @@ Lemma superposing2 {E A B C D D'} (f : C + A -> itree E (C + B))
     ITree.map inr (g d)
   ≅ loop (fun cad =>
       match cad with
-      | inl c => ITree.map (sum_bimap id inl) (f (inl c))
-      | inr (inl a) => ITree.map (sum_bimap id inl) (f (inr a))
-      | inr (inr d) => ITree.map (inr ∘ inr) (g d)
+      | inl c => ITree.map (bimap id inl) (f (inl c))
+      | inr (inl a) => ITree.map (bimap id inl) (f (inr a))
+      | inr (inr d) => ITree.map (inr >=> inr)%cat (g d)
       end) (inr d).
 Proof.
   unfold loop; rewrite unfold_loop'; unfold loop_once.
@@ -233,7 +235,7 @@ Proof.
 Qed.
 
 Lemma yanking {E A} (a : A) :
-  @loop E _ _ _ (fun aa => Ret (sum_comm aa)) a ≅ Tau (Ret a).
+  @loop E _ _ _ (fun aa => Ret (swap aa)) a ≅ Tau (Ret a).
 Proof.
   rewrite itree_eta; cbn; apply eq_itree_tau.
   rewrite itree_eta; reflexivity.
@@ -500,7 +502,7 @@ Context {E : Type -> Type}.
 (** *** [lift_ktree] is well-behaved *)
 
 Global Instance eq_lift_ktree {A B} :
-  Proper (eeq ==> eq_ktree) (@lift_ktree E A B).
+  Proper (eq2 ==> eq_ktree) (@lift_ktree E A B).
 Proof.
   repeat intro.
   unfold lift_ktree.
@@ -557,7 +559,7 @@ Proof.
 Qed.
 
 Lemma sym_ktree_unfold {A B}:
-  lift_ktree sum_comm ⩯ @sym_ktree E A B.
+  lift_ktree swap ⩯ @sym_ktree E A B.
 Proof.
   reflexivity.
 Qed.
@@ -588,15 +590,15 @@ Qed.
 (** *** [sum_elim] lemmas *)
 
 Fact compose_sum_elim {A B C D} (ac : ktree E A C) (bc : ktree E B C) (cd : ktree E C D) :
-  sum_elim ac bc >=> cd ⩯ sum_elim (ac >=> cd) (bc >=> cd).
+  elim_ Fun ac bc >=> cd ⩯ elim_ Fun (ac >=> cd)%itree (bc >=> cd)%itree.
 Proof.
   intros; intros [];
     (unfold ITree.map; simpl; apply eutt_bind; reflexivity).
 Qed.
 
 Fact lift_sum_elim {A B C} (ac : A -> C) (bc : B -> C) :
-    sum_elim (@lift_ktree E _ _ ac) (lift_ktree bc)
-  ⩯ lift_ktree (sum_elim ac bc).
+    elim_ Fun (@lift_ktree E _ _ ac) (lift_ktree bc)
+  ⩯ lift_ktree (elim ac bc).
 Proof.
   intros []; reflexivity.
 Qed.
@@ -604,13 +606,13 @@ Qed.
 (** *** [Unitors] lemmas *)
 
 (* TODO: replacing l by λ breaks PG (retracts like crazy, or if you go too far it can't retract at all from the second lemma) (ρ is fine, interestingly) *)
-Lemma elim_l_ktree {A B: Type} (ab: @ktree E A (I + B)) :
-  ab >=> λ_ktree ⩯ (fun a: A => ITree.map sum_empty_l (ab a)).
+Lemma elim_l_ktree {A B: Type} (ab: @ktree E A (void + B)) :
+  ab >=> λ_ktree ⩯ (fun a: A => ITree.map unit_l (ab a)).
 Proof.
   intros; apply compose_ktree_lift.
 Qed.
 
-Lemma elim_l_ktree' {A B: Type} (f: @ktree E (I + A) (I + B)) :
+Lemma elim_l_ktree' {A B: Type} (f: @ktree E (void + A) (void + B)) :
   λ_ktree' >=> f ⩯ fun a => f (inr a).
 Proof.
   repeat intro.
@@ -618,7 +620,7 @@ Proof.
   rewrite ret_bind_; reflexivity.
 Qed.
 
-Lemma elim_ρ_ktree' {A B: Type} (f: @ktree E (A + I) (B + I)) :
+Lemma elim_ρ_ktree' {A B: Type} (f: @ktree E (A + void) (B + void)) :
   ρ_ktree' >=> f ⩯ fun a => f (inl a).
 Proof.
   repeat intro.
@@ -626,8 +628,8 @@ Proof.
   rewrite ret_bind_; reflexivity.
 Qed.
 
-Lemma elim_ρ_ktree {A B: Type} (ab: @ktree E A (B + I)) :
-  ab >=> ρ_ktree ⩯ (fun a: A => ITree.map sum_empty_r (ab a)).
+Lemma elim_ρ_ktree {A B: Type} (ab: @ktree E A (B + void)) :
+  ab >=> ρ_ktree ⩯ (fun a: A => ITree.map unit_r (ab a)).
 Proof.
   intros; apply compose_ktree_lift.
 Qed.
@@ -643,7 +645,7 @@ Proof.
 Qed.
 
 Fact tensor_id_lift {A B C} (f : B -> C) :
-  (@id_ktree E A) ⊗ (lift_ktree f) ⩯ lift_ktree (sum_bimap id f).
+  (@id_ktree E A) ⊗ (lift_ktree f) ⩯ lift_ktree (bimap id f).
 Proof.
   unfold tensor_ktree.
   rewrite compose_lift_ktree, id_ktree_left.
@@ -652,7 +654,7 @@ Proof.
 Qed.
 
 Fact tensor_lift_id {A B C} (f : A -> B) :
-  (lift_ktree f) ⊗ (@id_ktree E C) ⩯ lift_ktree (sum_bimap f id).
+  (lift_ktree f) ⊗ (@id_ktree E C) ⩯ lift_ktree (bimap f id).
 Proof.
   unfold tensor_ktree.
   rewrite compose_lift_ktree, id_ktree_left.
@@ -668,7 +670,7 @@ Proof.
 Qed.
 
 Lemma assoc_I {A B}:
-  @assoc_ktree_r E A I B >=> id_ktree ⊗ λ_ktree ⩯ ρ_ktree ⊗ id_ktree.
+  @assoc_ktree_r E A void B >=> id_ktree ⊗ λ_ktree ⩯ ρ_ktree ⊗ id_ktree.
 Proof.
   unfold ρ_ktree,λ_ktree.
   rewrite tensor_lift_id, tensor_id_lift.
@@ -676,7 +678,7 @@ Proof.
   rewrite compose_lift_ktree.
   apply eq_lift_ktree.
   intros [[|]|]; compute; try reflexivity.
-  destruct i.
+  destruct v.
 Qed.
 
 Lemma cat_tensor {A1 A2 A3 B1 B2 B3}
@@ -685,15 +687,15 @@ Lemma cat_tensor {A1 A2 A3 B1 B2 B3}
   (f1 ⊗ g1) >=> (f2 ⊗ g2) ⩯ (f1 >=> f2) ⊗ (g1 >=> g2).
 Proof.
   unfold tensor_ktree, ITree.cat, lift_ktree; simpl.
-  intros []; simpl;
+  intros []; unfold elim, sum_elim; simpl;
     rewrite !bind_bind; setoid_rewrite ret_bind_; reflexivity.
 Qed.
 
 Lemma sum_elim_compose {A B C D F}
       (ac: ktree E A (C + D)) (bc: ktree E B (C + D))
       (cf: ktree E C F) (df: ktree E D F) :
-    sum_elim ac bc >=> sum_elim cf df
-  ⩯ sum_elim (ac >=> (sum_elim cf df)) (bc >=> (sum_elim cf df)).
+    elim_ Fun ac bc >=> elim_ Fun cf df
+  ⩯ elim_ Fun (ac >=> elim_ Fun cf df) (bc >=> elim_ Fun cf df).
 Proof.
   intros.
   unfold ITree.map.
@@ -701,7 +703,7 @@ Proof.
 Qed.
 
 Lemma inl_sum_elim {A B C} (ac: ktree E A C) (bc: ktree E B C) :
-  lift_ktree inl >=> sum_elim ac bc ⩯ ac.
+  lift_ktree inl >=> elim_ Fun ac bc ⩯ ac.
 Proof.
   intros.
   unfold ITree.cat, lift_ktree.
@@ -711,7 +713,7 @@ Proof.
 Qed.
 
 Lemma inr_sum_elim {A B C} (ac: ktree E A C) (bc: ktree E B C) :
-  lift_ktree inr >=> sum_elim ac bc ⩯ bc.
+  lift_ktree inr >=> elim_ Fun ac bc ⩯ bc.
 Proof.
   intros.
   unfold ITree.cat, lift_ktree.
@@ -851,7 +853,7 @@ Proof.
   intros a.
   rewrite (loop_natural_l ab bc_ a).
   apply eutt_loop; [intros [] | reflexivity].
-  all: unfold tensor_ktree, sym_ktree, ITree.cat, assoc_ktree_l, assoc_ktree_r, id_ktree, lift_ktree; simpl.
+  all: unfold tensor_ktree, elim, sym_ktree, ITree.cat, assoc_ktree_l, assoc_ktree_r, id_ktree, lift_ktree; simpl.
   - rewrite bind_bind, ret_bind_; reflexivity.
   - rewrite bind_bind, map_bind.
     setoid_rewrite ret_bind_; reflexivity.
@@ -885,7 +887,7 @@ Proof.
   intros a.
   rewrite (loop_natural_r bc ab_ a).
   apply eutt_loop; [intros [] | reflexivity].
-  all: unfold tensor_ktree, sym_ktree, ITree.cat, assoc_ktree_l, assoc_ktree_r, id_ktree, lift_ktree; simpl.
+  all: unfold tensor_ktree, elim, sym_ktree, ITree.cat, assoc_ktree_l, assoc_ktree_r, id_ktree, lift_ktree; simpl.
   - apply eutt_bind; [reflexivity | intros []; simpl].
     rewrite ret_bind_; reflexivity.
     reflexivity.
@@ -901,7 +903,7 @@ Lemma loop_rename_internal {I J A B}
     loop (ab_ >=> (ji ⊗ id_ktree))
   ⩯ loop ((ji ⊗ id_ktree) >=> ab_).
 Proof.
-  unfold tensor_ktree, ITree.cat, lift_ktree, sum_elim.
+  unfold tensor_ktree, elim, ITree.cat, lift_ktree, sum_elim.
 
   assert (EQ:forall (x: J + B),
              match x with
@@ -931,7 +933,7 @@ Proof.
 Qed.
 
 (* Loop over the empty set can be erased *)
-Lemma vanishing_ktree {A B: Type} (f: ktree E (I + A) (I + B)) :
+Lemma vanishing_ktree {A B: Type} (f: ktree E (void + A) (void + B)) :
   loop f ⩯ λ_ktree' >=> f >=> λ_ktree.
 Proof.
   intros a.
@@ -996,14 +998,14 @@ Lemma tensor_ktree_loop {I A B C D}
     (loop ab) ⊗ cd
   ⩯ loop (assoc_ktree_l >=> (ab ⊗ cd) >=> assoc_ktree_r).
 Proof.
-  unfold tensor_ktree, ITree.cat, assoc_ktree_l, assoc_ktree_r, lift_ktree, sum_elim.
+  unfold tensor_ktree, elim, ITree.cat, assoc_ktree_l, assoc_ktree_r, lift_ktree, sum_elim.
   intros []; simpl.
   all:setoid_rewrite bind_bind.
   all:setoid_rewrite ret_bind_.
   all:rewrite fold_map.
   1:rewrite (@superposing1 E A B I C D).
   2:rewrite (@superposing2 E A B I C D).
-  all:unfold sum_bimap, ITree.map, sum_assoc_r,sum_elim; cbn.
+  all:unfold bimap, ITree.map, assoc_r,sum_elim; cbn.
   all:apply eutt_loop; [intros [| []]; cbn | reflexivity].
   all: setoid_rewrite bind_bind.
   all:setoid_rewrite ret_bind_.

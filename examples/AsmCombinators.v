@@ -9,7 +9,10 @@ From Coq Require Import
      ZArith.
 Import ListNotations.
 
-From ITree Require Import Basics.Functions.
+From ITree Require Import
+     Basics.Basics
+     Basics.Function
+     Basics.Category.
 
 Typeclasses eauto := 5.
 
@@ -48,10 +51,10 @@ End after.
 (** Any collection of blocks forms an [asm] program with
       no hidden blocks. *)
 Definition raw_asm {A B} (b : bks A B) : asm A B :=
-  {| internal := Empty_set;
+  {| internal := void;
      code := fun a' =>
                match a' with
-               | inl v => match v : Empty_set with end
+               | inl v => match v : void with end
                | inr a => fmap_block inr (b a)
                end;
   |}.
@@ -102,13 +105,13 @@ Definition app_asm {A B C D} (ab : asm A B) (cd : asm C D) :
 (** Rename visible program labels. *)
 Definition relabel_asm {A B C D} (f : A -> B) (g : C -> D)
            (bc : asm B C) : asm A D :=
-  {| code := relabel_bks (sum_bimap id f) (sum_bimap id g) bc.(code);
+  {| code := relabel_bks (bimap id f) (bimap id g) bc.(code);
   |}.
 
 (** Link labels from two programs together. *)
 Definition link_asm {I A B} (ab : asm (I + A) (I + B)) : asm A B :=
   {| internal := ab.(internal) + I;
-     code := relabel_bks sum_assoc_r sum_assoc_l ab.(code);
+     code := relabel_bks assoc_r assoc_l ab.(code);
   |}.
 
 (** ** Correctness *)
@@ -251,7 +254,7 @@ Lemma local_rewrite1 {A B C: Type}:
   id_ktree ⊗ sym_ktree >=> assoc_ktree_l >=> sym_ktree ⩯
          @assoc_ktree_l E A B C >=> sym_ktree ⊗ id_ktree >=> assoc_ktree_r.
 Proof.
-  unfold id_ktree, tensor_ktree,sym_ktree, assoc_ktree_l, ITree.cat, assoc_ktree_r, lift_ktree.
+  unfold id_ktree, tensor_ktree, elim, sym_ktree, assoc_ktree_l, ITree.cat, assoc_ktree_r, lift_ktree.
   intros [| []]; simpl;
     repeat (rewrite bind_bind; simpl) || (rewrite ret_bind_; simpl); reflexivity.
 Qed.
@@ -260,7 +263,7 @@ Lemma local_rewrite2 {A B C: Type}:
   sym_ktree >=> assoc_ktree_r >=> id_ktree ⊗ sym_ktree ⩯
           @assoc_ktree_l E A B C >=> sym_ktree ⊗ id_ktree >=> assoc_ktree_r.
 Proof.
-  unfold id_ktree, tensor_ktree,sym_ktree, assoc_ktree_l, ITree.cat, assoc_ktree_r, lift_ktree.
+  unfold id_ktree, tensor_ktree, elim, sym_ktree, assoc_ktree_l, ITree.cat, assoc_ktree_r, lift_ktree.
   intros [| []]; simpl;
     repeat (rewrite bind_bind; simpl) || (rewrite ret_bind_; simpl); reflexivity.
 Qed.
@@ -360,7 +363,7 @@ Proof.
     by apply sym_nilpotent.
   apply eq_ktree_loop.
   rewrite ! compose_ktree_assoc.
-  unfold tensor_ktree, sym_ktree, ITree.cat, assoc_ktree_l, assoc_ktree_r, id_ktree, lift_ktree.
+  unfold tensor_ktree, elim, sym_ktree, ITree.cat, assoc_ktree_l, assoc_ktree_r, id_ktree, lift_ktree.
   intros [[|]|[|]]; cbn.
   (* ... *)
   all: repeat (rewrite ret_bind; simpl).

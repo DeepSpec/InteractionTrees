@@ -10,7 +10,8 @@ From Coq Require Import
 
 From ITree Require Import
      ITree
-     Basics.Functions
+     Basics.Category
+     Basics.Function
      Core.KTreeFacts
      Effects.Env
      Interp.MorphismsFacts
@@ -575,11 +576,15 @@ Section Correctness.
   Proof.
     unfold while_asm.
     rewrite link_asm_correct.
-    apply eq_ktree_loop.
+    (* TODO: this is a hack it should just be
+     apply eq_ktree_loop. *)
+    match goal with
+    | [ |- _ (loop ?x) (loop ?y) ] => apply (eq_ktree_loop x y)
+    end.
     rewrite relabel_asm_correct, id_ktree_left.
     rewrite app_asm_correct.
     rewrite if_asm_correct.
-    intros [[] |[]].
+    intros [[] | []].
     - unfold ITree.cat. 
       simpl; setoid_rewrite bind_bind.
       rewrite bind_bind.
@@ -609,8 +614,12 @@ Section Correctness.
                     end) tt.
   Proof.
     unfold while.
-    apply eutt_loop; [intros [[]|[]]; simpl | reflexivity].
-    2: reflexivity.
+    (* another hack, should be [apply eutt_loop]. *)
+    match goal with
+    | [ |- _ (loop ?x _) (loop ?y _) ] =>
+    apply (eutt_loop x y)
+    end;
+      [intros [[]|[]]; simpl |]; try reflexivity.
     unfold ITree.map.
     apply eutt_bind; [reflexivity | intros []; reflexivity].
   Qed.
@@ -696,7 +705,11 @@ Section Correctness.
       rewrite while_asm_correct.
       rewrite while_is_loop.
       unfold to_itree.
-      apply eq_locals_loop.
+      (* TODO: [apply eq_locals_loop] *)
+      match goal with
+      | [ |- _ (loop ?x _) (loop ?y _) ] =>
+        apply (eq_locals_loop _ x y)
+      end.
       intros [[]|[]].
       2:{ repeat intro.
           rewrite itree_eta, (itree_eta (_ _ g2)); cbn.

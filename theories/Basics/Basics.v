@@ -22,7 +22,10 @@ Definition idM {E : Type -> Type} : E ~> E := fun _ e => e.
 (** A universe polymorphic empty type.
     Similar to [Empty_set : Set] and [False : Prop].
     Defined as an [Inductive] to get the usual eliminators. *)
-(* TODO: Is this any better than [Definition void = Empty_set.]? *)
+(* There are actually universe polymorphism problems with [Empty_set].
+   Not sure about [False]. Something breaks when you use [Empty_set]
+   as the initial object of the [Fun] category (see
+   [Basics.Function.Initial_void])*)
 Inductive void : Type := .
 
 (** Common monads and transformers. *)
