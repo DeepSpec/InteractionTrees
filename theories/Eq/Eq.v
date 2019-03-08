@@ -2,8 +2,6 @@
    also called: strong bisimulation, extensional equality.
  *)
 
-(* TODO: paco-fy this *)
-
 From Coq Require Import
      Program
      Setoid

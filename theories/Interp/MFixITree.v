@@ -8,6 +8,8 @@ From ITree Require Import
      Core.ITree
      Interp.Interp.
 
+Set Universe Polymorphism.
+
 Section M.
   (* The effects interface *)
   Variable IO : Type -> Type.

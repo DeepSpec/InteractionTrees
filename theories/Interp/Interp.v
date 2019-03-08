@@ -50,6 +50,8 @@ Import ITree.Basics.Basics.Monads.
 Import ITreeNotations.
 
 Open Scope itree_scope.
+
+Set Universe Polymorphism.
 (* end hide *)
 
 (** A plain effect morphism [E ~> F] defines an itree morphism
@@ -99,7 +101,7 @@ Definition interp {E F : Type -> Type} (h : E ~> itree F) :
    (without [Fixpoint]):
 
 [[
-   Definition def : D ~> itree (D +' emptyE) := fun _ d =>
+   Definition def : D ~> itree (D +' void1) := fun _ d =>
      match d with
      | Even n => match n with
                  | O => ret true
@@ -115,11 +117,11 @@ Definition interp {E F : Type -> Type} (h : E ~> itree F) :
    The function [interp_mrec] below then ties the knot.
 
 [[
-   Definition f : D ~> itree emptyE :=
+   Definition f : D ~> itree void1 :=
      interp_mrec def.
 
-   Definition even (n : nat) : itree emptyE bool := f _ (Even n).
-   Definition odd  (n : nat) : itree emptyE bool := f _ (Odd n).
+   Definition even (n : nat) : itree void1 bool := f _ (Even n).
+   Definition odd  (n : nat) : itree void1 bool := f _ (Odd n).
 ]]
 
    The result is still in the [itree] monad of possibly divergent

@@ -29,6 +29,8 @@ From ITree Require Import
      Eq.UpToTausExplicit
      Eq.UpToTaus.
 
+Set Universe Polymorphism.
+
 Section SUTT.
 
 Context {E : Type -> Type} {R1 R2 : Type} (RR : R1 -> R2 -> Prop).

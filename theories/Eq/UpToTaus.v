@@ -37,6 +37,7 @@ From ITree Require Export
 Import ITreeNotations.
 Local Open Scope itree.
 
+Set Universe Polymorphism.
 
 Section EUTT.
 
@@ -670,9 +671,10 @@ Proof.
   rewrite !unfold_aloop'. unfold ITree._aloop.
   destruct (f x) as [t | b]; cbn.
   - match goal with
-    | [ |- context foo [ITree.bind' ?k ?t] ] => fold (ITree.bind t k)
+    | [ |- context [ITree.bind' ?k ?t] ] =>
+      replace (ITree.bind' k t) with (ITree.bind t k); [ | reflexivity ]
     end.
-    unfold id; rewrite 2 bind_bind.
+    unfold id. rewrite 2 bind_bind.
     pfold; constructor.
     pupto2 eutt_nested_clo_bind. econstructor.
     { reflexivity. }

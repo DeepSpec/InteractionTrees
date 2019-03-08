@@ -21,6 +21,8 @@ Import ITree.Basics.Basics.Monads.
 Import ITreeNotations.
 
 Open Scope itree_scope.
+
+Set Universe Polymorphism.
 (* end hide *)
 
 (* Morphism Category -------------------------------------------------------- *)
@@ -97,17 +99,20 @@ Proof.
     rewrite H. reflexivity.
 Qed.
 
-
 Lemma eh_swap_swap_id : forall A B, eh_cmp eh_swap eh_swap ≡ (eh_id : (A +' B) ~> itree (A +' B)).
 Proof.
   intros A B X e.
   unfold eh_cmp. unfold eh_swap. unfold eh_lift.
-  rewrite interp_liftE.
-  setoid_rewrite tau_eutt. rewrite bind_ret.
+  (* TODO: Why does [rewrite interp_liftE.] not work? *)
+  match goal with
+  | [ |- _ (interp ?f ?X (ITree.liftE ?e)) _ ] =>
+    rewrite (interp_liftE f e)
+  end.
+  rewrite tau_eutt.
   destruct e; simpl; reflexivity.
 Qed.
 
-Lemma eh_empty_unit_l : forall A, eh_cmp eh_empty_right eh_inl ≡ (eh_id : A ~> itree A).
+Lemma eh_empty_unit_l : forall (A : Type -> Type), eh_cmp eh_empty_right eh_inl ≡ (eh_id : A ~> itree A).
 Proof.
   intros A X e.
   unfold eh_cmp.
@@ -116,7 +121,7 @@ Proof.
   unfold eh_lift.
   rewrite interp_liftE.
   setoid_rewrite tau_eutt. rewrite bind_ret.
-  simpl. unfold Sum1.idE. reflexivity.
+  reflexivity.
 Qed.
 
 Lemma eh_empty_unit_r : forall A, eh_cmp eh_empty_left eh_inr ≡ (eh_id : A ~> itree A).
@@ -128,5 +133,5 @@ Proof.
   unfold eh_lift.
   rewrite interp_liftE.
   setoid_rewrite tau_eutt. rewrite bind_ret.
-  simpl. unfold Sum1.idE. reflexivity.
+  reflexivity.
 Qed.

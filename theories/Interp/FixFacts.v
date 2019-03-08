@@ -3,13 +3,13 @@
 Require Import Paco.paco.
 
 From Coq Require Import
-     Program
-     Lia
+     Program.Tactics
      Setoid
      Morphisms
      RelationClasses.
 
 From ITree Require Import
+     Basics.Category
      Basics.Basics
      Basics.Function
      Core.ITree
@@ -19,6 +19,7 @@ From ITree Require Import
      Eq.UpToTaus
      Eq.SimUpToTaus
      Indexed.Sum
+     Indexed.Function
      Indexed.OpenSum
      Interp.Interp
      Interp.MorphismsFacts.
@@ -88,7 +89,7 @@ Proof.
   pcofix CIH. intros.
   rewrite !unfold_interp_mrec.
   pupto2_final.
-  punfold H0. inv H0; pclearbot; [| |destruct e].
+  punfold H0. inv H0; simpobs; pclearbot; [| |destruct e].
   - apply reflexivity.
   - pfold. econstructor. eauto.
   - pfold. econstructor. apply pointwise_relation_fold in REL.
@@ -113,7 +114,7 @@ Proof.
 Qed.
 
 Theorem interp_mrec_as_interp {T} (c : itree _ T) :
-  interp_mrec ctx _ c ≈ interp (Sum1.elim (C:=itree E) (mrec ctx) ITree.liftE) _ c.
+  interp_mrec ctx _ c ≈ interp (elim (mrec ctx) ITree.liftE) _ c.
 Proof.
   repeat intro. pupto2_init. revert_until T. pcofix CIH. intros.
   pfold. pupto2_init. revert_until CIH. pcofix CIH'. intros.
@@ -124,7 +125,7 @@ Proof.
     pupto2 eutt_nested_clo_bind; econstructor; [reflexivity|].
     intros ? _ []; eauto.
 
-  - unfold ITree.liftE. rewrite vis_bind_.
+  - unfold ITree.liftE, elim; simpl. rewrite vis_bind_.
     pfold; constructor.
     pupto2_final.
     left; pfold; econstructor.
@@ -133,7 +134,7 @@ Proof.
 Qed.
 
 Theorem mrec_as_interp {T} (d : D T) :
-  mrec ctx _ d ≈ interp (Sum1.elim (C:=itree E) (mrec ctx) ITree.liftE) _ (ctx _ d).
+  mrec ctx _ d ≈ interp (elim (mrec ctx) ITree.liftE) _ (ctx _ d).
 Proof.
   apply interp_mrec_as_interp.
 Qed.
@@ -141,12 +142,12 @@ Qed.
 End Facts.
 
 Lemma rec_unfold {E A B} (f : A -> itree (callE A B +' E) B) (x : A) :
-  rec f x ≈ interp (Sum1.elim (C:=itree E) (calling' (rec f)) ITree.liftE) _ (f x).
+  rec f x ≈ interp (elim (calling' (rec f)) ITree.liftE) _ (f x).
 Proof.
   unfold rec.
   rewrite mrec_as_interp.
   eapply eutt_interp_gen.
-  - do 2 red. intros ? [[] | ]; reflexivity.
+  - red. unfold elim; intros ? [[] | ]; reflexivity.
   - reflexivity.
 Qed.
 

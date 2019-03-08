@@ -2,19 +2,42 @@
     category. *)
 
 (* begin hide *)
+From Coq Require Import
+     Morphisms.
+
 From ITree Require Import
      Basics.Basics
+     Basics.Category
      Core.ITree
+     Eq.UpToTaus
      Indexed.Sum
+     Indexed.Function
      Interp.Interp.
 
 Import ITree.Basics.Basics.Monads.
 Import ITreeNotations.
 
 Open Scope itree_scope.
+
+Set Universe Polymorphism.
 (* end hide *)
 
 (* Morphism Category -------------------------------------------------------- *)
+
+(** * Morphism equivalence *)
+Definition Rhom {A B : Type -> Type} (R : forall t, B t -> B t -> Prop)
+           (f g : A ~> B) : Prop :=
+  forall X (a : A X), (R X) (f X a) (g X a).
+
+Definition eh_eq {A B : Type -> Type}
+: (A ~> itree B) -> (A ~> itree B) -> Prop :=
+  Rhom (fun t => @eq_itree B _ t eq).
+
+Definition eh_eutt {A B : Type -> Type}
+: (A ~> itree B) -> (A ~> itree B) -> Prop :=
+  Rhom (fun t => @eutt B _ t eq).
+
+Notation "f ≡ g" := (eh_eutt f g) (at level 70).
 
 Definition eh_cmp {A B C} (g : B ~> itree C) (f : A ~> itree B) :
   A ~> itree C :=
@@ -48,20 +71,20 @@ Definition eh_inr {A B} : B ~> itree (A +' B) :=
   eh_lift (fun _ e => inr1 e).
 
 Definition eh_swap {A B} : A +' B ~> itree (B +' A) :=
-  eh_lift Sum1.swap.
+  eh_lift swap.
 
-Definition eh_elim_empty {A} : emptyE ~> itree A :=
-  eh_lift Sum1.elim_emptyE.
+Definition eh_elim_empty {A} : void1 ~> itree A :=
+  eh_lift empty.
 
-Definition eh_empty_left {B} : emptyE +' B ~> itree B :=
-  eh_lift Sum1.emptyE_left.
+Definition eh_empty_left {B} : void1 +' B ~> itree B :=
+  eh_lift unit_l.
 
-Definition eh_empty_right {A} : A +' emptyE ~> itree A :=
-  eh_lift Sum1.emptyE_right.
+Definition eh_empty_right {A} : A +' void1 ~> itree A :=
+  eh_lift unit_r.
 
 (* SAZ: do we need the assoc2 too -- add to Sum.v ? *)
 Definition eh_assoc {A B C} : (A +' (B +' C)) ~> itree ((A +' B) +' C) :=
-  eh_lift Sum1.assoc.
+  eh_lift assoc_l.
 
 
 

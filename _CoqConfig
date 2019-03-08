@@ -17,6 +17,7 @@ theories/Eq/SimUpToTaus.v
 theories/Eq.v
 
 theories/Indexed/Sum.v
+theories/Indexed/Function.v
 theories/Indexed/OpenSum.v
 
 theories/Interp/Interp.v

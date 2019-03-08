@@ -18,6 +18,8 @@ From Coq Require Import
      Relations.Relations
      ProofIrrelevance.
 
+Set Universe Polymorphism.
+
 (** ** Misc *)
 
 (** Rewrite all heterogeneous equalities with the axiom

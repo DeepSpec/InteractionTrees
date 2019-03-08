@@ -19,20 +19,7 @@ From ITree Require Import
 
 Import ITreeNotations.
 
-(** * Morphism equivalence *)
-Definition Rhom {A B : Type -> Type} (R : forall t, B t -> B t -> Prop)
-           (f g : A ~> B) : Prop :=
-  forall X, pointwise_relation (A X) (R X) (f X) (g X).
-
-Definition eh_eq {A B : Type -> Type}
-: (A ~> itree B) -> (A ~> itree B) -> Prop :=
-  Rhom (fun t => @eq_itree B _ t eq).
-
-Definition eh_eutt {A B : Type -> Type}
-: (A ~> itree B) -> (A ~> itree B) -> Prop :=
-  Rhom (fun t => @eutt B _ t eq).
-
-Notation "f ≡ g" := (eh_eutt f g) (at level 70).
+Set Universe Polymorphism.
 
 
 (** * [interp] *)
@@ -176,11 +163,12 @@ Qed.
 Lemma interp_liftE {E F : Type -> Type} {R : Type}
       (f : E ~> (itree F))
       (e : E R) :
-  interp f _ (ITree.liftE e) ≅ Tau (f _ e >>= fun x => Ret x).
+  interp f _ (ITree.liftE e) ≅ Tau (f _ e).
 Proof.
   unfold ITree.liftE. rewrite vis_interp.
   apply eq_itree_tau.
   setoid_rewrite ret_interp.
+  rewrite bind_ret.
   reflexivity.
 Qed.
 

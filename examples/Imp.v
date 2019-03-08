@@ -154,6 +154,6 @@ Proof.
   - intros EQ; apply string_dec_sound in EQ; unfold rel_dec; simpl; rewrite EQ; reflexivity.
 Qed.
 
-Definition ImpEval (s: stmt): itree emptyE (env * unit) :=
+Definition ImpEval (s: stmt): itree void1 (env * unit) :=
   let p := interp evalLocals _ (denoteStmt s) in
   run_env _ p empty.

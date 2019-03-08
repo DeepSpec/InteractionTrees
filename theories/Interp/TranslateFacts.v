@@ -5,10 +5,12 @@ From ExtLib Require
 
 From ITree Require Import
      Basics.Basics
+     Basics.Category
      Core.ITree
      Eq.Eq
      Eq.UpToTaus
      Indexed.Sum
+     Indexed.Function
      Interp.Interp.
 
 Import ITreeNotations.
@@ -20,6 +22,8 @@ From Coq Require Import
      Setoid
      Morphisms
      RelationClasses.
+
+Set Universe Polymorphism.
 
 Section TranslateFacts.
   Context {E F : Type -> Type}.
@@ -114,9 +118,7 @@ Qed.
 
 (* categorical properties --------------------------------------------------- *)
 
-Import Sum1.
-
-Lemma translate_id : forall E R (t : itree E R), translate idE t ≅ t.
+Lemma translate_id : forall E R (t : itree E R), translate (id_ _) t ≅ t.
 Proof.
   intros E R t.
   pupto2_init.
@@ -133,8 +135,10 @@ Proof.
   - pfold. econstructor. intros.  pupto2_final. right.  apply CIH.
 Qed.
 
+Import CatNotations.
+
 Lemma translate_cmpE : forall E F G R (g : F ~> G) (f : E ~> F) (t : itree E R),
-    translate (cmpE g f) t ≅ translate g (translate f t).
+    translate (f >=> g)%cat t ≅ translate g (translate f t).
 Proof.
   intros E F G R g f t.
   pupto2_init.

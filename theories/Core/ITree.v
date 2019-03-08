@@ -7,6 +7,7 @@ From ITree Require Import Basics.
 Set Implicit Arguments.
 Set Contextual Implicit.
 Set Primitive Projections.
+Set Universe Polymorphism.
 
 (* Move the following tactic somewhere appropriate *)
 Lemma hexploit_mp: forall P Q: Type, P -> (P -> Q) -> Q.
