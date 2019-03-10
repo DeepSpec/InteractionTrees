@@ -7,6 +7,7 @@ Require Import ExtLib.Data.String.
 Require Import ExtLib.Structures.Monad.
 Require Import ExtLib.Structures.Traversable.
 Require Import ExtLib.Data.List.
+Require Import ZArith.ZArith.
 
 From ITree Require Import
      Basics
@@ -23,14 +24,15 @@ Definition var : Set := string.
 Inductive expr : Set :=
 | Var (_ : var)
 | Lit (_ : nat)
+| Minus (_ _ : expr)
 | Plus (_ _ : expr).
 
 Definition value : Type := nat.
 
 Definition is_true (v : value) : bool :=
   match v with
-  | 0   => false
-  | S _ => true
+  | O   => false
+  | _ => true
   end.
 
 (* representation of statements *)
@@ -91,6 +93,7 @@ Section Denote.
     match e with
     | Var v => lift (GetVar v)
     | Lit n => ret n
+    | Minus a b => l <- denoteExpr a ;; r <- denoteExpr b ;; ret (l - r)
     | Plus a b => l <- denoteExpr a ;; r <- denoteExpr b ;; ret (l + r)
     end.
 

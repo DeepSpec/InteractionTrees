@@ -22,6 +22,7 @@ Section Syntax.
   Variant instr : Set :=
   | Imov (dest : var) (src : operand)
   | Iadd (dest : var) (src : var) (o : operand)
+  | Isub (dest : var) (src : var) (o : operand)
   | Iload (dest : var) (addr : operand)
   | Istore (addr : var) (val : operand).
 
@@ -102,15 +103,19 @@ Section Semantics.
       match i with
       | Imov d s =>
         v <- denote_operand s ;;
-          lift (SetVar d v)
+        lift (SetVar d v)
       | Iadd d l r =>
         lv <- lift (GetVar l) ;;
-           rv <- denote_operand r ;;
-           lift (SetVar d (lv + rv))
+        rv <- denote_operand r ;;
+        lift (SetVar d (lv + rv))
+       | Isub d l r =>
+        lv <- lift (GetVar l) ;;
+        rv <- denote_operand r ;;
+        lift (SetVar d (lv - rv))
       | Iload d a =>
         addr <- denote_operand a ;;
-             val <- lift (Load addr) ;;
-             lift (SetVar d val)
+        val <- lift (Load addr) ;;
+        lift (SetVar d val)
       | Istore a v =>
         addr <- lift (GetVar a) ;;
              val <- denote_operand v ;;
@@ -125,7 +130,7 @@ Section Semantics.
         | Bjmp l => ret l
         | Bbrz v y n =>
           val <- lift (GetVar v) ;;
-          if val : value then ret y else ret n
+          if val:nat then ret y else ret n
         | Bhalt => done
         end.
 

@@ -1,10 +1,11 @@
-Require Import Imp Asm AsmCombinators Imp2Asm.
+Require Import Imp Asm Utils_tutorial AsmCombinators Imp2Asm.
 
 Require Import Psatz.
 
 From Coq Require Import
      Strings.String
      Morphisms
+     ZArith
      Setoid
      RelationClasses.
 
@@ -41,20 +42,10 @@ End EUTT.
 
 Section GEN_TMP.
 
-  Lemma nat_to_string_inj:
-    forall (n m: nat), n <> m -> nat_to_string n <> nat_to_string m.
-  Proof.
-    induction n as [| n IH]; simpl; intros m ineq.
-    - destruct m as [| m]; [lia | intros abs; inversion abs].
-    - destruct m as [| m]; [intros abs; inversion abs |].
-      simpl; intros abs; inversion abs; subst; clear abs.
-      apply (IH m); auto.
-  Qed.
-
   Lemma gen_tmp_inj: forall n m, m <> n -> gen_tmp m <> gen_tmp n.
   Proof.
     intros n m ineq; intros abs; apply ineq.
-    apply nat_to_string_inj in ineq; inversion abs; easy.
+    apply string_of_nat_inj in ineq; inversion abs; easy.
   Qed.
 
   Lemma varOf_inj: forall n m, m <> n -> varOf m <> varOf n.
@@ -66,158 +57,6 @@ End GEN_TMP.
 
 Opaque gen_tmp.
 Opaque varOf.
-
-Ltac flatten_goal :=
-  match goal with
-  | |- context[match ?x with | _ => _ end] => let Heq := fresh "Heq" in destruct x eqn:Heq
-  end.
-
-Ltac flatten_hyp h :=
-  match type of h with
-  | context[match ?x with | _ => _ end] => let Heq := fresh "Heq" in destruct x eqn:Heq
-  end.
-
-Ltac flatten_all :=
-  match goal with
-  | h: context[match ?x with | _ => _ end] |- _ => let Heq := fresh "Heq" in destruct x eqn:Heq
-  | |- context[match ?x with | _ => _ end] => let Heq := fresh "Heq" in destruct x eqn:Heq
-  end.
-
-Ltac inv h := inversion h; subst; clear h.
-
-Section alistFacts.
-
-
-  (* Generic facts about alists. To eventually move to ExtLib. *)
-
-  Arguments alist_find {_ _ _ _}.
-
-  Definition alist_In {K R RD V} k m v := @alist_find K R RD V k m = Some v.
-
-  Arguments alist_add {_ _ _ _}.
-  Arguments alist_find {_ _ _ _}.
-  Arguments alist_remove {_ _ _ _}. 
-
-  Context {K V: Type}.
-  Context {RR : @RelDec K (@eq K)}.
-  Context {RRC : @RelDec_Correct K (@eq K) RR}.
-  
-  Lemma In_add_eq:
-    forall k v (m: alist K V),
-      alist_In k (alist_add k v m) v.
-  Proof.
-    intros; unfold alist_add, alist_In; simpl; flatten_goal; [reflexivity | rewrite <- neg_rel_dec_correct in Heq; tauto]. 
-  Qed.
-
-  (* A removed key is not contained in the resulting map *)
-  Lemma not_In_remove:
-    forall (m : alist K V) (k : K) (v: V),
-      ~ alist_In k (alist_remove k m) v.
-  Proof.
-    induction m as [| [k1 v1] m IH]; intros.
-    - simpl; intros abs; inv abs. 
-    - simpl; flatten_goal.
-      + unfold alist_In; simpl.
-        rewrite Bool.negb_true_iff in Heq; rewrite Heq.
-        intros abs; eapply IH; eassumption.
-      + rewrite Bool.negb_false_iff, rel_dec_correct in Heq; subst.
-        intros abs; eapply IH; eauto. 
-  Qed.
-
-  (* Removing a key does not alter other keys *)
-  Lemma In_In_remove_ineq:
-    forall (m : alist K V) (k : K) (v : V) (k' : K),
-      k <> k' ->
-      alist_In k m v ->
-      alist_In k (alist_remove k' m) v.
-  Proof.
-    induction m as [| [? ?] m IH]; intros ?k ?v ?k' ineq IN; [inversion IN |].
-    simpl.
-    flatten_goal.
-    - unfold alist_In in *; simpl in *.
-      rewrite Bool.negb_true_iff, <- neg_rel_dec_correct in Heq.
-      flatten_goal; auto.
-    - unfold alist_In in *; simpl in *.
-      rewrite Bool.negb_false_iff, rel_dec_correct in Heq; subst.
-      flatten_hyp IN; [rewrite rel_dec_correct in Heq; subst; tauto | eapply IH; eauto].
-  Qed.       
-
-  Lemma In_remove_In_ineq:
-    forall (m : alist K V) (k : K) (v : V) (k' : K),
-      alist_In k (alist_remove k' m) v ->
-      alist_In k m v.
-  Proof.
-    induction m as [| [? ?] m IH]; intros ?k ?v ?k' IN; [inversion IN |].
-    simpl in IN; flatten_hyp IN.
-    - unfold alist_In in *; simpl in *.
-      flatten_all; auto.
-      eapply IH; eauto.
-    -rewrite Bool.negb_false_iff, rel_dec_correct in Heq; subst.
-     unfold alist_In; simpl. 
-     flatten_goal; [rewrite rel_dec_correct in Heq; subst |].
-     exfalso; eapply not_In_remove; eauto.
-     eapply IH; eauto.
-  Qed.       
-
-  Lemma In_remove_In_ineq_iff:
-    forall (m : alist K V) (k : K) (v : V) (k' : K),
-      k <> k' ->
-      alist_In k (alist_remove k' m) v <->
-      alist_In k m v.
-  Proof.
-    intros; split; eauto using In_In_remove_ineq, In_remove_In_ineq.
-  Qed.       
-
-  (* Adding a value to a key does not alter other keys *)
-  Lemma In_In_add_ineq:
-    forall k v k' v' (m: alist K V),
-      k <> k' ->
-      alist_In k m v ->
-      alist_In k (alist_add k' v' m) v.
-  Proof.
-    intros.
-    unfold alist_In; simpl; flatten_goal; [rewrite rel_dec_correct in Heq; subst; tauto |].
-    apply In_In_remove_ineq; auto.
-  Qed.
-
-  Lemma In_add_In_ineq:
-    forall k v k' v' (m: alist K V),
-      k <> k' ->
-      alist_In k (alist_add k' v' m) v ->
-      alist_In k m v. 
-  Proof.
-    intros k v k' v' m ineq IN.
-    unfold alist_In in IN; simpl in IN; flatten_hyp IN; [rewrite rel_dec_correct in Heq; subst; tauto |].
-    eapply In_remove_In_ineq; eauto.
-  Qed.
-
-  Lemma In_add_ineq_iff: 
-    forall m (v v' : V) (k k' : K),
-      k <> k' ->
-      alist_In k m v <-> alist_In k (alist_add k' v' m) v.
-  Proof.
-    intros; split; eauto using In_In_add_ineq, In_add_In_ineq.
-  Qed.
-
-  (* alist_find fails iff no value is associated to the key in the map *)
-  Lemma alist_find_None:
-    forall k (m: alist K V),
-      (forall v, ~ In (k,v) m) <-> alist_find k m = None.
-  Proof.
-    induction m as [| [k1 v1] m IH]; [simpl; easy |].
-    simpl; split; intros H. 
-    - flatten_goal; [rewrite rel_dec_correct in Heq; subst; exfalso | rewrite <- neg_rel_dec_correct in Heq].
-      apply (H v1); left; reflexivity.
-      apply IH; intros v abs; apply (H v); right; assumption.
-    - intros v; flatten_hyp H; [inv H | rewrite <- IH in H].
-      intros [EQ | abs]; [inv EQ; rewrite <- neg_rel_dec_correct in Heq; tauto | apply (H v); assumption]. 
-  Qed.
-
-End alistFacts.
-Arguments alist_find {_ _ _ _}.
-Arguments alist_add {_ _ _ _}.
-Arguments alist_find {_ _ _ _}.
-Arguments alist_remove {_ _ _ _}. 
 
 Section Simulation_Relation.
 
@@ -456,6 +295,43 @@ Section Correctness.
         repeat untau_left.
         force_left; force_right.
         simpl fst in *.
+        (* TODO: Simplify this *)
+        apply eutt_ret.
+        {
+          generalize HSIM; intros LU; apply sim_rel_find_tmp_n in LU.
+          unfold alist_In in LU; erewrite sim_rel_find_tmp_lt_n in LU; eauto; fold (alist_In (%n) g_asm'' v) in LU.
+          generalize HSIM'; intros LU'; apply sim_rel_find_tmp_n in LU'.
+          rewrite LU,LU'.
+          split; [| split].
+          {
+            eapply Renv_add, sim_rel_Renv; eassumption.
+          }
+          {
+            apply In_add_eq.
+          }
+          {
+            intros m LT v''.
+            rewrite <- In_add_ineq_iff; [| apply gen_tmp_inj; lia].
+            destruct HSIM as [_ [_ HSIM]].
+            destruct HSIM' as [_ [_ HSIM']].
+            rewrite HSIM; [| auto with arith].
+            rewrite HSIM'; [| auto with arith].
+            reflexivity.
+          }
+        }
+    - do 2 setoid_rewrite denote_list_app.
+      do 2 setoid_rewrite interp_locals_bind.
+      eapply eutt_bind_gen.
+      + eapply IHe1; assumption.
+      + intros [g_asm' []] [g_imp' v] HSIM.
+        eapply eutt_bind_gen.
+        eapply IHe2.
+        eapply sim_rel_Renv; eassumption.
+        intros [g_asm'' []] [g_imp'' v'] HSIM'.
+        repeat untau_left.
+        force_left; force_right.
+        simpl fst in *.
+        (* TODO: Simplify this *)
         apply eutt_ret.
         {
           generalize HSIM; intros LU; apply sim_rel_find_tmp_n in LU.
