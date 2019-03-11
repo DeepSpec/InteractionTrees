@@ -120,7 +120,7 @@ Proof.
   unfold eh_inl.
   unfold eh_lift.
   rewrite interp_liftE.
-  setoid_rewrite tau_eutt. rewrite bind_ret.
+  setoid_rewrite tau_eutt.
   reflexivity.
 Qed.
 
@@ -132,6 +132,6 @@ Proof.
   unfold eh_inr.
   unfold eh_lift.
   rewrite interp_liftE.
-  setoid_rewrite tau_eutt. rewrite bind_ret.
+  setoid_rewrite tau_eutt.
   reflexivity.
 Qed.
