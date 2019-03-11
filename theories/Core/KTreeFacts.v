@@ -17,6 +17,7 @@ From ITree Require Import
 Import CatNotations.
 Import ITreeNotations.
 Local Open Scope itree_scope.
+Local Opaque paco2.
 (* end hide *)
 
 (* Facts about [loop] *)
@@ -150,33 +151,40 @@ Qed.
 Lemma vanishing2 {E A B C D} (f : D + (C + A) -> itree E (D + (C + B)))
       (a : A) :
     loop (loop f) a
-  ≅ loop (fun dca => ITree.map assoc_l (f (assoc_r dca))) a.
+  ≅ loop (assoc_r >=> f >=> assoc_l) a.
 Proof.
   unfold loop; rewrite 2 unfold_loop'; unfold loop_once.
-  rewrite map_bind.
+  unfold ITree.cat.
+  cbn. unfold coprod_inr, Inr_ktree.
+  unfold cat, Cat_ktree, ITree.cat, lift_ktree.
+  rewrite !ret_bind.
   rewrite unfold_loop'; unfold loop_once.
-  rewrite bind_bind.
+  rewrite !bind_bind.
   eapply eq_itree_bind; try reflexivity.
   clear a; intros dcb _ [].
   pupto2_init. revert dcb; pcofix self; intros.
-  destruct dcb as [d | [c | b]]; simpl.
+  destruct dcb as [d | [c | b]]; cbn.
+  all: unfold cat, coprod_inl, coprod_inr, Inl_ktree, lift_ktree; cbn.
+  all: rewrite !ret_bind_.
   - (* d *)
     rewrite tau_bind.
     rewrite 2 unfold_loop'; unfold loop_once.
     autorewrite with itree.
+    cbn; unfold cat, coprod_inl, Inl_ktree, lift_ktree.
+    rewrite ret_bind_.
     pfold; constructor.
-    pupto2 eq_itree_clo_bind; econstructor; try reflexivity.
+    pupto2 eq_itree_clo_bind; econstructor. reflexivity.
     intros; subst. auto.
   - (* c *)
-    rewrite ret_bind.
     rewrite 2 unfold_loop'; unfold loop_once.
     rewrite unfold_loop'; unfold loop_once.
     autorewrite with itree.
+    cbn; unfold cat, coprod_inl, coprod_inr, Inl_ktree, lift_ktree.
+    rewrite !ret_bind_.
     pfold; constructor.
     pupto2 eq_itree_clo_bind; econstructor; try reflexivity.
     intros; subst. auto.
   - (* b *)
-    rewrite ret_bind.
     pupto2_final; apply reflexivity.
 Qed.
 
@@ -235,17 +243,11 @@ Proof.
 Qed.
 
 Lemma yanking {E A} (a : A) :
-  @loop E _ _ _ (fun aa => Ret (swap aa)) a ≅ Tau (Ret a).
+  @loop E _ _ _ swap a ≅ Tau (Ret a).
 Proof.
   rewrite itree_eta; cbn; apply eq_itree_tau.
   rewrite itree_eta; reflexivity.
 Qed.
-
-Definition sum_map1 {A B C} (f : A -> B) (ac : A + C) : B + C :=
-  match ac with
-  | inl a => inl (f a)
-  | inr c => inr c
-  end.
 
 Instance eq_itree_loop {E A B C} :
   Proper ((eq ==> eq_itree eq) ==> eq ==> eq_itree eq) (@loop E A B C).
@@ -454,41 +456,42 @@ Context {E : Type -> Type}.
 
 (** *** [compose_ktree] respect eq_ktree *)
 Global Instance eq_ktree_compose {A B C} :
-  Proper (eq_ktree ==> eq_ktree ==> eq_ktree) (@ITree.cat E A B C).
+  @Proper (ktree E A B -> ktree E B C -> _) (eq2 ==> eq2 ==> eq2) cat.
 Proof.
   intros ab ab' eqAB bc bc' eqBC.
   intro a.
-  unfold ITree.cat.
+  unfold cat, Cat_ktree, ITree.cat.
   rewrite (eqAB a).
   apply eutt_bind; try reflexivity.
   intro b; rewrite (eqBC b); reflexivity.
 Qed.
 
 (** *** [compose_ktree] is associative *)
-Lemma compose_ktree_assoc {A B C D}
-      (ab : ktree E A B) (bc : ktree E B C) (cd : ktree E C D) :
-  ((ab >=> bc) >=> cd) ⩯ (ab >=> (bc >=> cd)).
+Global Instance AssocCat_ktree : AssocCat (ktree E).
 Proof.
-  intros a.
-  unfold ITree.cat.
+  intros A B C D f g h a.
+  unfold cat, Cat_ktree, ITree.cat.
   rewrite bind_bind.
-  apply eutt_bind; try reflexivity.
+  reflexivity.
 Qed.
 
 (** *** [id_ktree] respect identity laws *)
-Lemma id_ktree_left {A B}: forall (f: ktree E A B),
-    id_ktree >=> f ⩯ f.
+Global Instance CatIdL_ktree : CatIdL (ktree E).
 Proof.
-  intros f a; unfold ITree.cat, id_ktree.
-  rewrite itree_eta; rewrite ret_bind. rewrite <- itree_eta; reflexivity.
+  intros A B f a; unfold cat, Cat_ktree, ITree.cat, id_, Id_ktree.
+  rewrite ret_bind. reflexivity.
 Qed.
 
-Lemma id_ktree_right {A B}: forall (f: ktree E A B),
-    f >=> id_ktree ⩯ f.
+Global Instance CatIdR_ktree : CatIdR (ktree E).
 Proof.
-  intros f a; unfold ITree.cat, id_ktree.
+  intros A B f a; unfold cat, Cat_ktree, ITree.cat, id_, Id_ktree.
   rewrite <- (bind_ret (f a)) at 2.
   reflexivity.
+Qed.
+
+Global Instance Category_ktree : Category (ktree E).
+Proof.
+  constructor; typeclasses eauto.
 Qed.
 
 End CategoryLaws.
@@ -499,69 +502,69 @@ Section LiftLaws.
 
 Context {E : Type -> Type}.
 
+Local Open Scope cat.
+
 (** *** [lift_ktree] is well-behaved *)
 
 Global Instance eq_lift_ktree {A B} :
-  Proper (eq2 ==> eq_ktree) (@lift_ktree E A B).
+  Proper (eq2 ==> eq2) (@lift_ktree E A B).
 Proof.
   repeat intro.
   unfold lift_ktree.
   erewrite (H a); reflexivity.
 Qed.
 
-Lemma lift_ktree_id {A: Type}: @id_ktree E A ⩯ lift_ktree id.
+Lemma lift_ktree_id {A: Type}: (id_ A ⩯ @lift_ktree E A A (id_ A))%cat.
 Proof.
-  unfold id_ktree, lift_ktree; reflexivity.
+  reflexivity.
 Qed.
 
 Fact compose_lift_ktree {A B C} (ab : A -> B) (bc : B -> C) :
-  (@lift_ktree E _ _ ab >=> lift_ktree bc) ⩯ (lift_ktree (bc ∘ ab)).
+  (@lift_ktree E _ _ ab >=> lift_ktree bc ⩯ lift_ktree (ab >=> bc))%cat.
 Proof.
   intros a.
-  unfold lift_ktree, ITree.cat.
+  unfold lift_ktree, cat, Cat_ktree, ITree.cat.
   rewrite ret_bind_.
   reflexivity.
 Qed.
 
 Fact compose_lift_ktree_l {A B C D} (f: A -> B) (g: B -> C) (k: ktree E C D) :
-  (lift_ktree f >=> (lift_ktree g >=> k)) ⩯ (lift_ktree (g ∘ f) >=> k).
+  (lift_ktree f >=> (lift_ktree g >=> k) ⩯ lift_ktree (g ∘ f) >=> k)%cat.
 Proof.
-  rewrite <- compose_ktree_assoc.
+  rewrite <- assoc_cat.
   rewrite compose_lift_ktree.
   reflexivity.
+  typeclasses eauto.
 Qed.
 
 Fact compose_lift_ktree_r {A B C D} (f: B -> C) (g: C -> D) (k: ktree E A B) :
-  ((k >=> lift_ktree f) >=> lift_ktree g) ⩯ (k >=> lift_ktree (g ∘ f)).
+  ((k >=> lift_ktree f) >=> lift_ktree g ⩯ k >=> lift_ktree (g ∘ f))%cat.
 Proof.
-  rewrite compose_ktree_assoc.
+  rewrite assoc_cat.
   rewrite compose_lift_ktree.
   reflexivity.
+  typeclasses eauto.
 Qed.
 
 Fact lift_compose_ktree {A B C}: forall (f:A -> B) (bc: ktree E B C),
     lift_ktree f >=> bc ⩯ fun a => bc (f a).
 Proof.
   intros; intro a.
-  unfold lift_ktree, ITree.cat.
+  unfold lift_ktree, cat, Cat_ktree, ITree.cat.
   rewrite ret_bind_. reflexivity.
 Qed.
 
 Fact compose_ktree_lift {A B C}: forall (ab: ktree E A B) (g:B -> C),
-    eq_ktree (ab >=> lift_ktree g)
-             (fun a => ITree.map g (ab a)).
+    (ab >=> lift_ktree g)
+  ⩯ (fun a => ITree.map g (ab a)).
 Proof.
-  intros; intro a.
-  unfold ITree.map.
-  apply eutt_bind.
   reflexivity.
-  intro; reflexivity.
 Qed.
 
 Lemma sym_ktree_unfold {A B}:
-  lift_ktree swap ⩯ @sym_ktree E A B.
+  @lift_ktree E (A + B) (B + A) swap ⩯ swap.
 Proof.
-  reflexivity.
+  intros []; reflexivity.
 Qed.
 
 End LiftLaws.
@@ -570,34 +573,10 @@ Section MonoidalCategoryLaws.
 
 Context {E : Type -> Type}.
 
-(** *** [associators]  *)
-Lemma assoc_lr {A B C} :
-  @assoc_ktree_l E A B C >=> assoc_ktree_r ⩯ id_ktree.
-Proof.
-  unfold assoc_ktree_l, assoc_ktree_r.
-  rewrite compose_lift_ktree.
-  intros [| []]; reflexivity.
-Qed.
-
-Lemma assoc_rl {A B C} :
-  @assoc_ktree_r E A B C >=> assoc_ktree_l ⩯ id_ktree.
-Proof.
-  unfold assoc_ktree_l, assoc_ktree_r.
-  rewrite compose_lift_ktree.
-  intros [[]|]; reflexivity.
-Qed.
-
-(** *** [sum_elim] lemmas *)
-
-Fact compose_sum_elim {A B C D} (ac : ktree E A C) (bc : ktree E B C) (cd : ktree E C D) :
-  elim_ Fun ac bc >=> cd ⩯ elim_ Fun (ac >=> cd)%itree (bc >=> cd)%itree.
-Proof.
-  intros; intros [];
-    (unfold ITree.map; simpl; apply eutt_bind; reflexivity).
-Qed.
+Local Open Scope cat.
 
 Fact lift_sum_elim {A B C} (ac : A -> C) (bc : B -> C) :
-    elim_ Fun (@lift_ktree E _ _ ac) (lift_ktree bc)
+    elim (@lift_ktree E _ _ ac) (lift_ktree bc)
   ⩯ lift_ktree (elim ac bc).
 Proof.
   intros []; reflexivity.
@@ -605,208 +584,100 @@ Qed.
 
 (** *** [Unitors] lemmas *)
 
-(* TODO: replacing l by λ breaks PG (retracts like crazy, or if you go too far it can't retract at all from the second lemma) (ρ is fine, interestingly) *)
-Lemma elim_l_ktree {A B: Type} (ab: @ktree E A (void + B)) :
-  ab >=> λ_ktree ⩯ (fun a: A => ITree.map unit_l (ab a)).
+(* This is probably generalizable into [Basics.Category]. *)
+
+Lemma unit_l_ktree (A : Type) :
+  unit_l ⩯ @lift_ktree E _ A unit_l.
 Proof.
-  intros; apply compose_ktree_lift.
+  intros [[]|]. reflexivity.
+Qed.
+
+Lemma unit_l'_ktree (A : Type) :
+  unit_l' ⩯ @lift_ktree E A (void + A) unit_l'.
+Proof.
+  reflexivity.
+Qed.
+
+Lemma unit_r_ktree (A : Type) :
+  unit_r ⩯ @lift_ktree E _ A unit_r.
+Proof.
+  intros [|[]]. reflexivity.
+Qed.
+
+Lemma unit_r'_ktree (A : Type) :
+  unit_r' ⩯ @lift_ktree E A (A + void) unit_r'.
+Proof.
+  reflexivity.
+Qed.
+
+Lemma elim_l_ktree {A B: Type} (ab: @ktree E A (void + B)) :
+  ab >=> unit_l ⩯ (fun a: A => ITree.map unit_l (ab a)).
+Proof.
+  rewrite unit_l_ktree.
+  reflexivity.
 Qed.
 
 Lemma elim_l_ktree' {A B: Type} (f: @ktree E (void + A) (void + B)) :
-  λ_ktree' >=> f ⩯ fun a => f (inr a).
+  unit_l' >=> f ⩯ fun a => f (inr a).
 Proof.
-  repeat intro.
-  unfold λ_ktree', ITree.cat, lift_ktree.
+  rewrite unit_l'_ktree.
+  intro. unfold cat, Cat_ktree, ITree.cat, lift_ktree.
   rewrite ret_bind_; reflexivity.
 Qed.
 
-Lemma elim_ρ_ktree' {A B: Type} (f: @ktree E (A + void) (B + void)) :
-  ρ_ktree' >=> f ⩯ fun a => f (inl a).
+Lemma elim_r_ktree' {A B: Type} (f: @ktree E (A + void) (B + void)) :
+  unit_r' >=> f ⩯ fun a => f (inl a).
 Proof.
-  repeat intro.
-  unfold ρ_ktree', ITree.cat, lift_ktree.
+  rewrite unit_r'_ktree.
+  intro. unfold cat, Cat_ktree, ITree.cat, lift_ktree.
   rewrite ret_bind_; reflexivity.
 Qed.
 
-Lemma elim_ρ_ktree {A B: Type} (ab: @ktree E A (B + void)) :
-  ab >=> ρ_ktree ⩯ (fun a: A => ITree.map unit_r (ab a)).
+Lemma elim_r_ktree {A B: Type} (ab: @ktree E A (B + void)) :
+  ab >=> unit_r ⩯ (fun a: A => ITree.map unit_r (ab a)).
 Proof.
-  intros; apply compose_ktree_lift.
+  rewrite unit_r_ktree.
+  reflexivity.
 Qed.
 
 (** *** [tensor] lemmas *)
 
-Global Instance eq_ktree_tensor {A B C D}:
-  Proper (eq_ktree ==> eq_ktree ==> eq_ktree) (@tensor_ktree E A B C D).
-Proof.
-  intros ac ac' eqac bd bd' eqbd.
-  unfold tensor_ktree.
-  rewrite eqac, eqbd; reflexivity.
-Qed.
-
 Fact tensor_id_lift {A B C} (f : B -> C) :
-  (@id_ktree E A) ⊗ (lift_ktree f) ⩯ lift_ktree (bimap id f).
+  bimap (id_ A) (@lift_ktree E _ _ f) ⩯ lift_ktree (bimap (id_ A) f).
 Proof.
-  unfold tensor_ktree.
-  rewrite compose_lift_ktree, id_ktree_left.
-  rewrite lift_sum_elim.
+  unfold bimap, Bimap_Coproduct.
+  rewrite !cat_id_l, <- lift_sum_elim, <- compose_lift_ktree.
   reflexivity.
+  all: typeclasses eauto.
 Qed.
 
 Fact tensor_lift_id {A B C} (f : A -> B) :
-  (lift_ktree f) ⊗ (@id_ktree E C) ⩯ lift_ktree (bimap f id).
+  bimap (@lift_ktree E _ _ f) (id_ C) ⩯ lift_ktree (bimap f id).
 Proof.
-  unfold tensor_ktree.
-  rewrite compose_lift_ktree, id_ktree_left.
-  rewrite lift_sum_elim.
+  unfold bimap, Bimap_Coproduct.
+  rewrite !cat_id_l, <- lift_sum_elim, <- compose_lift_ktree.
   reflexivity.
+  all: typeclasses eauto.
 Qed.
 
-Lemma tensor_id {A B} :
-  id_ktree ⊗ id_ktree ⩯ @id_ktree E (A + B).
+Global Instance Coproduct_ktree : Coproduct (ktree E) sum.
 Proof.
-  unfold tensor_ktree, ITree.cat, id_ktree.
-  intros []; cbn; rewrite ret_bind_; reflexivity.
-Qed.
-
-Lemma assoc_I {A B}:
-  @assoc_ktree_r E A void B >=> id_ktree ⊗ λ_ktree ⩯ ρ_ktree ⊗ id_ktree.
-Proof.
-  unfold ρ_ktree,λ_ktree.
-  rewrite tensor_lift_id, tensor_id_lift.
-  unfold assoc_ktree_r.
-  rewrite compose_lift_ktree.
-  apply eq_lift_ktree.
-  intros [[|]|]; compute; try reflexivity.
-  destruct v.
-Qed.
-
-Lemma cat_tensor {A1 A2 A3 B1 B2 B3}
-      (f1 : ktree E A1 A2) (f2 : ktree E A2 A3)
-      (g1 : ktree E B1 B2) (g2 : ktree E B2 B3) :
-  (f1 ⊗ g1) >=> (f2 ⊗ g2) ⩯ (f1 >=> f2) ⊗ (g1 >=> g2).
-Proof.
-  unfold tensor_ktree, ITree.cat, lift_ktree; simpl.
-  intros []; unfold elim, sum_elim; simpl;
-    rewrite !bind_bind; setoid_rewrite ret_bind_; reflexivity.
-Qed.
-
-Lemma sum_elim_compose {A B C D F}
-      (ac: ktree E A (C + D)) (bc: ktree E B (C + D))
-      (cf: ktree E C F) (df: ktree E D F) :
-    elim_ Fun ac bc >=> elim_ Fun cf df
-  ⩯ elim_ Fun (ac >=> elim_ Fun cf df) (bc >=> elim_ Fun cf df).
-Proof.
-  intros.
-  unfold ITree.map.
-  intros []; reflexivity.
-Qed.
-
-Lemma inl_sum_elim {A B C} (ac: ktree E A C) (bc: ktree E B C) :
-  lift_ktree inl >=> elim_ Fun ac bc ⩯ ac.
-Proof.
-  intros.
-  unfold ITree.cat, lift_ktree.
-  intros ?.
-  rewrite ret_bind_.
-  reflexivity.
-Qed.
-
-Lemma inr_sum_elim {A B C} (ac: ktree E A C) (bc: ktree E B C) :
-  lift_ktree inr >=> elim_ Fun ac bc ⩯ bc.
-Proof.
-  intros.
-  unfold ITree.cat, lift_ktree.
-  intros ?.
-  rewrite ret_bind_.
-  reflexivity.
-Qed.
-
-Lemma tensor_ktree_slide {A B C D} (ac: ktree E A C) (bd: ktree E B D) :
-  ac ⊗ bd ⩯ ac ⊗ id_ktree >=> id_ktree ⊗ bd.
-Proof.
-  intros.
-  unfold tensor_ktree.
-  repeat rewrite id_ktree_left.
-  rewrite sum_elim_compose.
-  rewrite compose_ktree_assoc.
-  rewrite inl_sum_elim, inr_sum_elim.
-  reflexivity.
-Qed.
-
-Lemma assoc_coherent_r {A B C D}:
-    @assoc_ktree_r E A B C ⊗ @id_ktree E D
-      >=> assoc_ktree_r
-      >=> id_ktree ⊗ assoc_ktree_r
-  ⩯ assoc_ktree_r >=> assoc_ktree_r.
-Proof.
-  unfold tensor_ktree, assoc_ktree_r.
-  repeat rewrite id_ktree_left.
-  repeat rewrite compose_sum_elim.
-  repeat rewrite compose_lift_ktree.
-  rewrite lift_sum_elim.
-  repeat rewrite compose_lift_ktree.
-  rewrite lift_sum_elim.
-  apply eq_lift_ktree.
-  intros [[[|]|]|]; reflexivity.
-Qed.
-
-Lemma assoc_coherent_l {A B C D}:
-    @id_ktree E A ⊗ @assoc_ktree_l E B C D
-      >=> assoc_ktree_l
-      >=> assoc_ktree_l ⊗ id_ktree
-  ⩯ assoc_ktree_l >=> assoc_ktree_l.
-Proof.
-  unfold tensor_ktree, assoc_ktree_l.
-  repeat rewrite id_ktree_left.
-  repeat rewrite compose_sum_elim.
-  repeat rewrite compose_lift_ktree.
-  rewrite lift_sum_elim.
-  repeat rewrite compose_lift_ktree.
-  rewrite lift_sum_elim.
-  apply eq_lift_ktree.
-  intros [|[|[|]]]; reflexivity.
-Qed.
-
-(** *** [sym] lemmas *)
-
-Lemma sym_unit_ktree {A} :
-  sym_ktree >=> λ_ktree ⩯ @ρ_ktree E A.
-Proof.
-  unfold sym_ktree, ρ_ktree, λ_ktree.
-  rewrite lift_compose_ktree.
-  intros []; simpl; reflexivity.
-Qed.
-
-Lemma sym_assoc_ktree {A B C}:
-    @assoc_ktree_r E A B C >=> sym_ktree >=> assoc_ktree_r
-  ⩯ (sym_ktree ⊗ id_ktree) >=> assoc_ktree_r >=> (id_ktree ⊗ sym_ktree).
-Proof.
-  unfold assoc_ktree_r, sym_ktree.
-  rewrite tensor_lift_id, tensor_id_lift.
-  repeat rewrite compose_lift_ktree.
-  apply eq_lift_ktree.
-  intros [[|]|]; compute; reflexivity.
-Qed.
-
-Lemma sym_nilpotent {A B: Type}:
-  sym_ktree >=> sym_ktree ⩯ @id_ktree E (A + B).
-Proof.
-  unfold sym_ktree, id_ktree.
-  rewrite compose_lift_ktree.
-  unfold compose.
-  unfold lift_ktree; intros a.
-  setoid_rewrite iso_ff'; reflexivity.
-Qed.
-
-Lemma tensor_swap {A B C D} (ab : ktree E A B) (cd : ktree E C D) :
-  ab ⊗ cd ⩯ (sym_ktree >=> cd ⊗ ab >=> sym_ktree).
-Proof.
-  unfold tensor_ktree.
-  unfold sym_ktree.
-  rewrite !(compose_ktree_lift cd), !(compose_ktree_lift ab), !lift_compose_ktree, !compose_ktree_lift.
-  intros []; cbn; rewrite map_map; cbn;
-    apply eutt_map; try intros []; reflexivity.
+  constructor.
+  - intros a b c f g.
+    unfold coprod_inl, Inl_ktree.
+    rewrite lift_compose_ktree.
+    reflexivity.
+  - intros a b c f g.
+    unfold coprod_inr, Inr_ktree.
+    rewrite lift_compose_ktree.
+    reflexivity.
+  - intros a b c f g fg Hf Hg [x | y].
+    + unfold coprod_inl, Inl_ktree in Hf.
+      rewrite lift_compose_ktree in Hf.
+      specialize (Hf x). simpl in Hf. rewrite Hf. reflexivity.
+    + unfold coprod_inr, Inr_ktree in Hg.
+      rewrite lift_compose_ktree in Hg.
+      specialize (Hg y). simpl in Hg. rewrite Hg. reflexivity.
 Qed.
 
 End MonoidalCategoryLaws.
@@ -817,10 +688,12 @@ Section TraceLaws.
 
 Context {E : Type -> Type}.
 
+Local Open Scope cat.
+
 (** *** [loop] lemmas *)
 
 Global Instance eq_ktree_loop {I A B} :
-  Proper (eq_ktree ==> eq_ktree) (@loop E I A B).
+  Proper (eq2 ==> eq2) (@loop E I A B).
 Proof.
   repeat intro; apply eutt_loop; auto.
 Qed.
@@ -847,13 +720,13 @@ A----B----###----C
 
 Lemma compose_loop {I A B C}
       (bc_: ktree E (I + B) (I + C)) (ab: ktree E A B) :
-    loop ((id_ktree ⊗ ab) >=> bc_)
+    loop ((bimap (id_ _) ab) >=> bc_)
   ⩯ ab >=> loop bc_.
 Proof.
   intros a.
   rewrite (loop_natural_l ab bc_ a).
   apply eutt_loop; [intros [] | reflexivity].
-  all: unfold tensor_ktree, elim, sym_ktree, ITree.cat, assoc_ktree_l, assoc_ktree_r, id_ktree, lift_ktree; simpl.
+  all: unfold bimap, Bimap_Coproduct, elim, Elim_ktree, cat, Cat_ktree, ITree.cat, id_, Id_ktree; cbn.
   - rewrite bind_bind, ret_bind_; reflexivity.
   - rewrite bind_bind, map_bind.
     setoid_rewrite ret_bind_; reflexivity.
@@ -881,13 +754,14 @@ A----###----B----C
 
 Lemma loop_compose {I A B B'}
       (ab_: ktree E (I + A) (I + B)) (bc: ktree E B B') :
-    loop (ab_ >=> (id_ktree ⊗ bc))
+    loop (ab_ >=> bimap (id_ _) bc)
   ⩯ loop ab_ >=> bc.
 Proof.
   intros a.
   rewrite (loop_natural_r bc ab_ a).
   apply eutt_loop; [intros [] | reflexivity].
-  all: unfold tensor_ktree, elim, sym_ktree, ITree.cat, assoc_ktree_l, assoc_ktree_r, id_ktree, lift_ktree; simpl.
+  all: unfold bimap, Bimap_Coproduct, elim, Elim_ktree,
+       cat, Cat_ktree, ITree.cat, id_, Id_ktree; cbn.
   - apply eutt_bind; [reflexivity | intros []; simpl].
     rewrite ret_bind_; reflexivity.
     reflexivity.
@@ -900,15 +774,13 @@ Qed.
 
 Lemma loop_rename_internal {I J A B}
       (ab_: ktree E (I + A) (J + B)) (ji: ktree E J I) :
-    loop (ab_ >=> (ji ⊗ id_ktree))
-  ⩯ loop ((ji ⊗ id_ktree) >=> ab_).
+    loop (ab_ >=> bimap ji (id_ _))
+  ⩯ loop (bimap ji (id_ _) >=> ab_).
 Proof.
-  unfold tensor_ktree, elim, ITree.cat, lift_ktree, sum_elim.
-
   assert (EQ:forall (x: J + B),
              match x with
              | inl a => a0 <- ji a;; Ret (inl a0)
-             | inr b => a <- id_ktree b;; Ret (inr a)
+             | inr b => a <- Ret b;; Ret (inr a)
              end ≈
                  match x with
                  | inl a => Tau (ITree.map (@inl I B) (ji a))
@@ -917,14 +789,16 @@ Proof.
   {
     intros [].
     symmetry; apply tau_eutt.
-    unfold id_ktree.
     rewrite ret_bind_; reflexivity.
   }
+
+  unfold bimap, Bimap_Coproduct, elim, Elim_ktree, sum_elim, cat, Cat_ktree,
+  ITree.cat, id_, Id_ktree, coprod_inr, Inr_ktree, coprod_inl, Inl_ktree, lift_ktree; cbn.
+
   intros ?.
   setoid_rewrite EQ.
   rewrite loop_dinatural.
   apply eutt_loop; [intros [] | reflexivity].
-  all: unfold id_ktree.
   all: repeat rewrite bind_bind.
   2: repeat rewrite ret_bind_; reflexivity.
   apply eutt_bind; [reflexivity | intros ?].
@@ -934,15 +808,17 @@ Qed.
 
 (* Loop over the empty set can be erased *)
 Lemma vanishing_ktree {A B: Type} (f: ktree E (void + A) (void + B)) :
-  loop f ⩯ λ_ktree' >=> f >=> λ_ktree.
+  loop f ⩯ unit_l' >=> f >=> unit_l.
 Proof.
   intros a.
   rewrite vanishing1.
-  unfold λ_ktree,λ_ktree'.
-  unfold ITree.cat, ITree.map, lift_ktree.
+  unfold unit_l, UnitL_Coproduct, unit_l', UnitL'_Coproduct, elim, Elim_ktree, coprod_inr, Inr_ktree.
+  unfold cat, Cat_ktree, ITree.cat, ITree.map, lift_ktree.
   rewrite bind_bind.
   rewrite ret_bind_.
-  reflexivity.
+  apply eutt_bind.
+  - reflexivity.
+  - intros [[] | ]. reflexivity.
 Qed.
 
 (* [loop_loop]:
@@ -975,14 +851,14 @@ These two loops:
 
 Lemma loop_loop {I J A B} (ab__: ktree E (I + (J + A)) (I + (J + B))) :
     loop (loop ab__)
-  ⩯ loop (assoc_ktree_r >=> ab__ >=> assoc_ktree_l).
+  ⩯ loop (assoc_r >=> ab__ >=> assoc_l).
 Proof.
   intros a.
   rewrite vanishing2.
-  apply eutt_loop; [intros [[]|] | reflexivity].
-  all: unfold ITree.map, ITree.cat, assoc_ktree_r, assoc_ktree_l, lift_ktree; cbn.
-  all: rewrite bind_bind.
-  all: rewrite ret_bind_.
+  unfold ITree.map, cat, Cat_ktree, ITree.cat, assoc_r, AssocR_Coproduct, assoc_l, AssocL_Coproduct, coprod_inl, Inl_ktree, coprod_inr, Inr_ktree, elim, Elim_ktree, lift_ktree; cbn.
+  apply eutt_loop; [intros [[]|] | reflexivity]; cbn.
+  all: rewrite !bind_bind.
+  all: try rewrite !ret_bind_.
   all: reflexivity.
 Qed.
 
@@ -993,53 +869,71 @@ Proof.
   intros; reflexivity.
 Qed.
 
+Lemma assoc_l_ktree {A B C} :
+  assoc_l ⩯ @lift_ktree E (A + (B + C)) _ assoc_l.
+Proof.
+Admitted.
+
+Lemma assoc_r_ktree {A B C} :
+  assoc_r ⩯ @lift_ktree E ((A + B) + C) _ assoc_r.
+Proof.
+Admitted.
+
 Lemma tensor_ktree_loop {I A B C D}
       (ab : ktree E (I + A) (I + B)) (cd : ktree E C D) :
-    (loop ab) ⊗ cd
-  ⩯ loop (assoc_ktree_l >=> (ab ⊗ cd) >=> assoc_ktree_r).
+    bimap (loop ab) cd
+  ⩯ loop (assoc_l >=> bimap ab cd >=> assoc_r).
 Proof.
-  unfold tensor_ktree, elim, ITree.cat, assoc_ktree_l, assoc_ktree_r, lift_ktree, sum_elim.
+  rewrite assoc_l_ktree, assoc_r_ktree.
+  rewrite lift_compose_ktree, compose_ktree_lift.
+  unfold bimap, Bimap_Coproduct, cat, Cat_ktree, ITree.cat, elim, Elim_ktree, sum_elim.
+  unfold coprod_inl, Inl_ktree, coprod_inr, Inr_ktree, lift_ktree.
   intros []; simpl.
-  all:setoid_rewrite bind_bind.
-  all:setoid_rewrite ret_bind_.
-  all:rewrite fold_map.
-  1:rewrite (@superposing1 E A B I C D).
-  2:rewrite (@superposing2 E A B I C D).
-  all:unfold bimap, ITree.map, assoc_r,sum_elim; cbn.
-  all:apply eutt_loop; [intros [| []]; cbn | reflexivity].
-  all: setoid_rewrite bind_bind.
-  all:setoid_rewrite ret_bind_.
-  all:reflexivity.
+  - rewrite fold_map.
+    rewrite (@superposing1 E A B I C D).
+    apply eutt_loop; try reflexivity.
+    intros [|[]]; cbn.
+    all: symmetry. (* protect the existential. *)
+    all: rewrite fold_map.
+    all: rewrite map_map.
+    all: reflexivity.
+  - unfold loop; rewrite unfold_loop.
+    unfold loop_once; cbn.
+    rewrite map_bind.
+    rewrite bind_bind.
+    apply eutt_bind; [ reflexivity | ].
+    intros d.
+    rewrite ret_bind; cbn.
+    reflexivity.
 Qed.
 
 Lemma yanking_ktree {A: Type}:
-  loop sym_ktree ⩯ @id_ktree E A.
+  @loop E _ _ _ swap ⩯ id_ A.
 Proof.
-  unfold sym_ktree, lift_ktree.
   intros ?; rewrite yanking.
   apply tau_eutt.
 Qed.
 
 Lemma loop_rename_internal' {I J A B} (ij : ktree E I J) (ji: ktree E J I)
       (ab_: @ktree E (I + A) (I + B)) :
-  (ij >=> ji) ⩯ id_ktree ->
-    loop ((ji ⊗ id_ktree) >=> ab_ >=> (ij ⊗ id_ktree))
+  (ij >=> ji) ⩯ id_ _ ->
+    loop (bimap ji (id_ _) >=> ab_ >=> bimap ij (id_ _))
   ⩯ loop ab_.
 Proof.
   intros Hij.
   rewrite loop_rename_internal.
-  rewrite <- compose_ktree_assoc.
-  rewrite cat_tensor.
+  rewrite <- assoc_cat.
+  rewrite <- bimap_cat.
   rewrite Hij.
-  rewrite id_ktree_left.
-  rewrite tensor_id.
-  rewrite id_ktree_left.
+  rewrite cat_id_l.
+  rewrite bimap_id.
+  rewrite cat_id_l.
   reflexivity.
+  all: try typeclasses eauto.
 Qed.
 
 End TraceLaws.
 
-Hint Rewrite @compose_ktree_assoc : lift_ktree.
 Hint Rewrite @tensor_id_lift : lift_ktree.
 Hint Rewrite @tensor_lift_id : lift_ktree.
 Hint Rewrite @lift_sum_elim : lift_ktree.
@@ -1051,19 +945,22 @@ Section CatFromLoop.
 
 Variable E : Type -> Type.
 
+Local Open Scope cat.
+
 Theorem cat_from_loop {A B C} (ab : ktree E A B) (bc : ktree E B C) :
-  loop (sym_ktree >=> ab ⊗ bc) ⩯ ab >=> bc.
+  loop (swap >=> bimap ab bc) ⩯ ab >=> bc.
 Proof.
-  rewrite tensor_ktree_slide.
-  rewrite <- compose_ktree_assoc.
+  rewrite bimap_slide.
+  rewrite <- assoc_cat.
   rewrite loop_compose.
-  rewrite tensor_swap.
-  repeat rewrite <- compose_ktree_assoc.
-  rewrite sym_nilpotent, id_ktree_left.
+  rewrite swap_bimap.
+  rewrite <- !assoc_cat.
+  rewrite swap_involutive, cat_id_l.
   rewrite compose_loop.
   erewrite yanking_ktree.
-  rewrite id_ktree_right.
+  rewrite cat_id_r.
   reflexivity.
+  all: typeclasses eauto.
 Qed.
 
 End CatFromLoop.

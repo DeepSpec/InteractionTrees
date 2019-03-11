@@ -35,10 +35,12 @@ Section Equivalence.
 Context {E : Type -> Type}.
 
 (* We work up to pointwise eutt *)
-Definition eq_ktree {A B} (d1 d2 : ktree E A B) :=
+Definition eutt_ktree {A B} (d1 d2 : ktree E A B) :=
   (forall a, eutt eq (d1 a) (d2 a)).
 
-Global Instance Equivalence_eq_ktree {A B} : Equivalence (@eq_ktree A B).
+Global Instance Eq2_ktree : Eq2 (ktree E) := @eutt_ktree.
+
+Global Instance Equivalence_eq_ktree {A B} : @Equivalence (ktree E A B) eq2.
 Proof.
   split.
   - intros ab a; reflexivity.
@@ -46,23 +48,15 @@ Proof.
   - intros ab ab' ab'' eqAB eqAB' a; etransitivity; eauto.
 Qed.
 
-Global Instance eq_ktree_elim {A B C} :
-  Proper (eq_ktree ==> eq_ktree ==> eq_ktree) (@elim _ Fun sum _ A B (itree E C)).
-Proof.
-  repeat intro. destruct a; unfold elim, sum_elim; auto.
-Qed.
-
 End Equivalence.
-
-Infix "⩯" := eq_ktree (at level 70).
 
 (** *** Conversion to [itree] *)
 (** A trick to allow rewriting with eq_ktree in pointful contexts. *)
 
-Definition to_itree {E} (f : @ktree E unit unit) : itree E unit := f tt.
+Definition to_itree {E A} (f : @ktree E unit A) : itree E A := f tt.
 
-Global Instance Proper_to_itree {E} :
-  Proper (eq_ktree ==> eutt eq) (@to_itree E).
+Global Instance Proper_to_itree {E A} :
+  Proper (eq2 ==> eutt eq) (@to_itree E A).
 Proof.
   repeat intro.
   apply H.
@@ -78,42 +72,47 @@ Section Operations.
 
 Context {E : Type -> Type}.
 
+Let ktree := ktree E.
+
 (* Utility function to lift a pure computation into ktree *)
-Definition lift_ktree {A B} (f : A -> B) : ktree E A B := fun a => Ret (f a).
+Definition lift_ktree {A B} (f : A -> B) : ktree A B := fun a => Ret (f a).
 
 (** *** Category *)
 
 (** Identity morphism *)
-Definition id_ktree {A} : ktree E A A := fun a => Ret a.
+Global Instance Id_ktree : Id_ ktree :=
+  fun A a => Ret a.
 
 (** Composition is [ITree.cat], denoted as [>=>]. *)
+Global Instance Cat_ktree : Cat ktree := @ITree.cat E.
 
 (** *** Symmetric monoidal category *)
 
-(** Monoidal unit *)
+(** Initial object, monoidal unit *)
 Local Notation I := Basics.void.
 
-(** Tensor product *)
-(* Tensoring on objects is given by the coproduct *)
-Definition tensor_ktree {A B C D}
-           (ab : ktree E A B) (cd : ktree E C D)
-  : ktree E (A + C) (B + D)
-  := @elim _ Fun _ _ _ _ _
-           (ab >=> lift_ktree inl)
-           (cd >=> lift_ktree inr).
+Global Instance Initial_void_ktree : Initial ktree I :=
+  fun _ v => match v : I with end.
 
-(* Left and right unitors *)
-Definition λ_ktree  {A: Type}: ktree E (I + A) A := lift_ktree unit_l.
-Definition λ_ktree' {A: Type}: ktree E A (I + A) := lift_ktree inr.
-Definition ρ_ktree  {A: Type}: ktree E (A + I) A := lift_ktree unit_r.
-Definition ρ_ktree' {A: Type}: ktree E A (A + I) := lift_ktree inl.
+(** The tensor product is given by the coproduct *)
 
-(* Associators *)
-Definition assoc_ktree_l {A B C: Type}: ktree E (A + (B + C)) ((A + B) + C) := lift_ktree assoc_l.
-Definition assoc_ktree_r {A B C: Type}: ktree E ((A + B) + C) (A + (B + C)) := lift_ktree assoc_r.
+Global Instance Elim_ktree : CoprodElim ktree sum :=
+  fun _ _ _ => @sum_elim _ _ _.
 
-(* Symmetry *)
-Definition sym_ktree {A B: Type}: ktree E (A + B) (B + A) := lift_ktree swap.
+Local Opaque eutt.
+
+Global Instance Proper_elim {A B C} :
+  @Proper (ktree A C -> ktree B C -> _)
+          (eq2 ==> eq2 ==> eq2) elim.
+Proof.
+  repeat intro; destruct a; cbv; auto.
+Qed.
+
+Global Instance Inl_ktree : CoprodInl ktree sum :=
+  fun _ _ => lift_ktree inl.
+
+Global Instance Inr_ktree : CoprodInr ktree sum :=
+  fun _ _ => lift_ktree inr.
 
 (** Traced monoidal category *)
 
@@ -136,8 +135,6 @@ Definition sym_ktree {A B: Type}: ktree E (A + B) (B + A) := lift_ktree swap.
  *)
 
 End Operations.
-
-Infix "⊗" := (tensor_ktree) (at level 30).
 
 Definition loop_once {E : Type -> Type} {A B C : Type}
            (body : C + A -> itree E (C + B))
