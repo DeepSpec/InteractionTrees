@@ -23,7 +23,6 @@ Import ITreeNotations.
 
 Open Scope itree_scope.
 
-Set Universe Polymorphism.
 (* end hide *)
 
 Lemma eh_cmp_id_left_strong {A R} (t : itree A R)

@@ -9,7 +9,6 @@ From ITree Require Import
 
 Set Implicit Arguments.
 Set Contextual Implicit.
-Set Universe Polymorphism.
 
 (** Sums for extensible event types. *)
 

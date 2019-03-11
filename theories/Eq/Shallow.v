@@ -18,7 +18,6 @@ From Coq Require Import
      Relations.Relations
      ProofIrrelevance.
 
-Set Universe Polymorphism.
 
 (** ** Misc *)
 

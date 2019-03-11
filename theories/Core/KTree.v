@@ -13,7 +13,6 @@ From ITree Require Import
 Import ITreeNotations.
 Local Open Scope itree_scope.
 
-Set Universe Polymorphism.
 
 From Coq Require Import
      Morphisms.

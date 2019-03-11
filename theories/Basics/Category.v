@@ -1,7 +1,6 @@
 From Coq Require Import
      Setoid Morphisms.
 
-Set Universe Polymorphism.
 
 Local Notation Hom obj := (obj -> obj -> Type).
 Local Notation binop obj := (obj -> obj -> obj).

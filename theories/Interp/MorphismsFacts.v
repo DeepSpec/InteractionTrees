@@ -19,7 +19,6 @@ From ITree Require Import
 
 Import ITreeNotations.
 
-Set Universe Polymorphism.
 
 
 (** * [interp] *)

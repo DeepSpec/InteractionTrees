@@ -37,7 +37,6 @@ From ITree Require Export
 Import ITreeNotations.
 Local Open Scope itree.
 
-Set Universe Polymorphism.
 
 Section EUTT.
 

@@ -23,7 +23,6 @@ From Coq Require Import
      Morphisms
      RelationClasses.
 
-Set Universe Polymorphism.
 
 Section TranslateFacts.
   Context {E F : Type -> Type}.

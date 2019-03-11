@@ -3,6 +3,7 @@ From ITree Require Import
      Core.ITree
      Indexed.Sum.
 
+
 (** Automatic application of commutativity and associativity for
     sums types constructed with [sum1].
 

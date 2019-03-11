@@ -1,7 +1,6 @@
 (** General-purpose definitions, not specific to itrees *)
 
 (* begin hide *)
-Set Universe Polymorphism.
 (* end hide *)
 
 (** A notation for a certain class of parametric functions.
@@ -32,7 +31,6 @@ Inductive void : Type := .
 
 Module Monads.
 
-Set Universe Polymorphism.
 
 Definition identity (a : Type) : Type := a.
 

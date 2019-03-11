@@ -51,7 +51,6 @@ Import ITreeNotations.
 
 Open Scope itree_scope.
 
-Set Universe Polymorphism.
 (* end hide *)
 
 (** A plain effect morphism [E ~> F] defines an itree morphism

@@ -29,7 +29,6 @@ From ITree Require Import
      Eq.UpToTausExplicit
      Eq.UpToTaus.
 
-Set Universe Polymorphism.
 
 Section SUTT.
 

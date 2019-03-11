@@ -15,7 +15,6 @@ From ITree Require Import
 Import CatNotations.
 Local Open Scope cat_scope.
 
-Set Universe Polymorphism.
 (* end hide *)
 
 Definition Fun (A B : Type) : Type := A -> B.

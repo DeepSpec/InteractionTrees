@@ -1,7 +1,6 @@
 Set Implicit Arguments.
 Set Contextual Implicit.
 
-
 From Coq Require Import
      String List.
 Import ListNotations.
