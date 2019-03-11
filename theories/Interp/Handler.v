@@ -22,69 +22,46 @@ Open Scope itree_scope.
 Set Universe Polymorphism.
 (* end hide *)
 
-(* Morphism Category -------------------------------------------------------- *)
-
-(** * Morphism equivalence *)
-Definition Rhom {A B : Type -> Type} (R : forall t, B t -> B t -> Prop)
+(** * Lifting relation on indexed functions *)
+(** This is an indexed generalization of the standard [respectful]
+    relation ([==>]). *)
+(* TODO: should also take a relation on [A]. *)
+Definition i_respectful {A B : Type -> Type} (R : forall t, B t -> B t -> Prop)
            (f g : A ~> B) : Prop :=
   forall X (a : A X), (R X) (f X a) (g X a).
-
-Definition eh_eq {A B : Type -> Type}
-: (A ~> itree B) -> (A ~> itree B) -> Prop :=
-  Rhom (fun t => @eq_itree B _ t eq).
-
-Definition eh_eutt {A B : Type -> Type}
-: (A ~> itree B) -> (A ~> itree B) -> Prop :=
-  Rhom (fun t => @eutt B _ t eq).
-
-Notation "f ≡ g" := (eh_eutt f g) (at level 70).
-
-Definition eh_cmp {A B C} (g : B ~> itree C) (f : A ~> itree B) :
-  A ~> itree C :=
-  fun _ e => interp g _ (f _ e).
-
-Definition eh_id {A} : A ~> itree A := @ITree.liftE A.
-
-Definition eh_par {A B C D} (f : A ~> itree B) (g : C ~> itree D)
-: (A +' C) ~> itree (B +' D) :=
-  fun _ e =>
-    match e with
-    | inl1 e1 => translate (@inl1 _ _) (f _ e1)
-    | inr1 e2 => translate (@inr1 _ _) (g _ e2)
-    end.
-
-Definition eh_both {A B C} (f : A ~> itree B) (g : C ~> itree B)
-: (A +' C) ~> itree B :=
-  fun _ e =>
-    match e with
-    | inl1 e1 => f _ e1
-    | inr1 e2 => g _ e2
-    end.
 
 Definition eh_lift {A B} (m : A ~> B)  : A ~> itree B :=
   fun _ e => ITree.liftE (m _ e).
 
-Definition eh_inl {A B} : A ~> itree (A +' B) :=
-  eh_lift (fun _ e => inl1 e).
+Definition Handler (E F : Type -> Type) := E ~> itree F.
 
-Definition eh_inr {A B} : B ~> itree (A +' B) :=
-  eh_lift (fun _ e => inr1 e).
+Definition eq_Handler {E F : Type -> Type}
+  : Handler E F -> Handler E F -> Prop
+  := @i_respectful E (itree F) (fun R => @eq_itree _ _ R eq).
 
-Definition eh_swap {A B} : A +' B ~> itree (B +' A) :=
-  eh_lift swap.
+(** The default handler equivalence is [eutt]. *)
+Instance Eq2_Handler : Eq2 Handler
+  := fun E F
+     => @i_respectful E (itree F) (fun R => @eutt _ _ R eq).
 
-Definition eh_elim_empty {A} : void1 ~> itree A :=
-  eh_lift empty.
+Instance Id_Handler : Id_ Handler
+  := fun E => @ITree.liftE E.
 
-Definition eh_empty_left {B} : void1 +' B ~> itree B :=
-  eh_lift unit_l.
+Instance Cat_Handler : Cat Handler
+  := fun E F G (f : E ~> itree F) (g : F ~> itree G) _ e
+     => interp g _ (f _ e).
 
-Definition eh_empty_right {A} : A +' void1 ~> itree A :=
-  eh_lift unit_r.
+Instance Elim_sum1_Handler : CoprodElim Handler sum1
+  := fun E F G => @case_sum1 E F (itree G).
 
-(* SAZ: do we need the assoc2 too -- add to Sum.v ? *)
-Definition eh_assoc {A B C} : (A +' (B +' C)) ~> itree ((A +' B) +' C) :=
-  eh_lift assoc_l.
+Instance Inl_sum1_Handler : CoprodInl Handler sum1
+  := fun E F => eh_lift (fun _ e => inl1 e).
+
+Instance Inr_sum1_Handler : CoprodInr Handler sum1
+  := fun E F => eh_lift (fun _ e => inr1 e).
+
+Instance Initial_void1_Handler : Initial Handler void1
+  := fun _ _ v => match v : void1 _ with end.
 
 
 

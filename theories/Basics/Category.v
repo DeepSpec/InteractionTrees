@@ -97,8 +97,10 @@ Module Import CatNotations.
 
 Infix "⩯" := eq2 (at level 70) : cat_scope.
 Infix ">=>" := cat (at level 50, left associativity) : cat_scope.
-Notation "f ⊗ x g" := (@bimap _ x _ _ _ _ _ f g)
+Notation "f ⊗ x g" := (@bimap _ x _ _ _ _ _ _ f g)
   (at level 40) : cat_scope.
+(* TODO: this bimap notation hides the bifunctor, which may be
+   ambiguous. *)
 
 End CatNotations.
 
@@ -177,11 +179,38 @@ Class InitialObject (i : obj) {Initial_i : Initial C i} : Prop :=
 
 End CatLaws.
 
+Arguments initial_object : clear implicits.
+Arguments initial_object {obj} C {Eq2C} i {Initial_i InitialObject}.
+
+Section BifunctorLaws.
+
+Context {obj : Type} (C : Hom obj).
+Context {Eq2_C : Eq2 C} {Id_C : Id_ C} {Cat_C : Cat C}.
+Context (bif : binop obj).
+Context {Bimap_bif : Bimap C bif}.
+
+Class BimapId : Prop :=
+  bimap_id : forall a b,
+    bimap (id_ a) (id_ b) ⩯ id_ (bif a b).
+
+Class BimapCat : Prop :=
+  bimap_cat : forall a1 a2 b1 b2 c1 c2
+                     (f1 : C a1 b1) (g1 : C b1 c1)
+                     (f2 : C a2 b2) (g2 : C b2 c2),
+    bimap (f1 >=> g1) (f2 >=> g2) ⩯ bimap f1 f2 >=> bimap g1 g2.
+
+Class Bifunctor : Prop := {
+  bifunctor_bimap_id :> BimapId;
+  bifunctor_bimap_cat :> BimapCat;
+}.
+
+End BifunctorLaws.
+
 Section CoproductLaws.
 
 Context {obj : Type} (C : Hom obj).
 Context {Eq2_C : Eq2 C} {Id_C : Id_ C} {Cat_C : Cat C}.
-Context {bif : binop obj}.
+Context (bif : binop obj).
 Context {CoprodElim_C : CoprodElim C bif}
         {CoprodInl_C : CoprodInl C bif}
         {CoprodInr_C : CoprodInr C bif}.
@@ -209,6 +238,51 @@ Class Coproduct : Prop := {
 
 End CoproductLaws.
 
+Section MonoidalLaws.
+
+Context {obj : Type} (C : Hom obj).
+Context {Eq2_C : Eq2 C} {Id_C : Id_ C} {Cat_C : Cat C}.
+Context (bif : binop obj).
+Context (I : obj).
+Context {UnitL_bif  : UnitL  C bif I}.
+Context {UnitL'_bif : UnitL' C bif I}.
+Context {UnitR_bif  : UnitR  C bif I}.
+Context {UnitR'_bif : UnitR' C bif I}.
+
+(** [unit_l] is a split monomorphism, i.e., a left-inverse,
+    [unit_l'] is its retraction. *)
+Class UnitLMono : Prop :=
+  unit_l_mono : forall a,
+    unit_l >=> unit_l' ⩯ id_ (bif I a).
+
+(** [unit_l] is a split epimorphism, [unit_l'] is its section. *)
+Class UnitLEpi : Prop :=
+  unit_l_epi : forall a,
+    unit_l' >=> unit_l ⩯ id_ a.
+
+Class UnitRMono : Prop :=
+  unit_r_mono : forall a,
+    unit_r >=> unit_r' ⩯ id_ (bif a I).
+
+Class UnitREpi : Prop :=
+  unit_r_epi : forall a,
+    unit_r' >=> unit_r ⩯ id_ a.
+
+End MonoidalLaws.
+
+Section SymmetricLaws.
+
+Context {obj : Type} (C : Hom obj).
+Context {Eq2_C : Eq2 C} {Id_C : Id_ C} {Cat_C : Cat C}.
+Context (bif : binop obj).
+Context {Swap_bif : Swap C bif}.
+
+Class SwapInvolutive : Prop :=
+  swap_involutive : forall a b,
+    swap >=> swap ⩯ id_ (bif a b).
+
+End SymmetricLaws.
+
 Section CoproductFacts.
 
 Context {obj : Type} (C : Hom obj).
@@ -226,19 +300,85 @@ Context (bif : binop obj).
 Context {CoprodElim_C : CoprodElim C bif}
         {CoprodInl_C : CoprodInl C bif}
         {CoprodInr_C : CoprodInr C bif}.
-Context {Coproduct_C : Coproduct C}.
+Context {Coproduct_C : Coproduct C bif}.
+Context {Proper_elim : forall a b c,
+            @Proper (C a c -> C b c -> C _ c) (eq2 ==> eq2 ==> eq2) elim}.
 
 Lemma cat_elim
       {a b c d} (ac : C a c) (bc : C b c) (cd : C c d)
   : elim ac bc >=> cd ⩯ elim (ac >=> cd) (bc >=> cd).
 Proof.
-  apply (elim_universal _).
+  eapply elim_universal; [ typeclasses eauto | | ].
   - rewrite <- assoc_cat; [ | typeclasses eauto ].
     rewrite elim_inl; [ | typeclasses eauto ].
     reflexivity.
   - rewrite <- assoc_cat; [ | typeclasses eauto ].
     rewrite elim_inr; [ | typeclasses eauto ].
     reflexivity.
+Qed.
+
+Corollary elim_eta {a b} : id_ (bif a b) ⩯ elim coprod_inl coprod_inr.
+Proof.
+  eapply elim_universal; [ typeclasses eauto | | ].
+  all: rewrite cat_id_r; [ reflexivity | typeclasses eauto ].
+Qed.
+
+(** The coproduct is a bifunctor. *)
+
+Instance BimapId_Coproduct : BimapId C bif.
+Proof.
+  intros A B.
+  symmetry. unfold bimap, Bimap_Coproduct.
+  rewrite 2 cat_id_l.
+  apply elim_eta.
+  all: typeclasses eauto.
+Qed.
+
+Instance SwapInvolutive_Coproduct : SwapInvolutive C bif.
+Proof.
+  intros a b.
+  unfold swap, Swap_Coproduct.
+  rewrite cat_elim, elim_inl, elim_inr.
+  symmetry; apply elim_eta.
+  all: typeclasses eauto.
+Qed.
+
+Context (I : obj).
+Context {Initial_I : Initial C I}.
+Context {InitialObject_I : InitialObject C I}.
+
+Lemma UnitLMono_Coproduct : UnitLMono C bif I.
+Proof.
+  intros a.
+  unfold unit_l, unit_l', UnitL_Coproduct, UnitL'_Coproduct.
+  rewrite cat_elim, cat_id_l, (initial_object C I).
+  rewrite <- initial_object.
+  symmetry; apply elim_eta.
+  all: typeclasses eauto.
+Qed.
+
+Lemma UnitRMono_Coproduct : UnitRMono C bif I.
+Proof.
+  intros a.
+  unfold unit_r, unit_r', UnitR_Coproduct, UnitR'_Coproduct.
+  rewrite cat_elim, cat_id_l, (initial_object C I).
+  rewrite <- initial_object.
+  symmetry; apply elim_eta.
+  all: typeclasses eauto.
+Qed.
+
+Lemma UnitLEpi_Coproduct : UnitLEpi C bif I.
+Proof.
+  intros a.
+  unfold unit_l, unit_l', UnitL_Coproduct, UnitL'_Coproduct.
+  rewrite elim_inr. reflexivity. typeclasses eauto.
+Qed.
+
+Lemma UnitREpi_Coproduct : UnitREpi C bif I.
+Proof.
+  intros a.
+  unfold unit_r, unit_r', UnitR_Coproduct, UnitR'_Coproduct.
+  rewrite elim_inl. reflexivity. typeclasses eauto.
 Qed.
 
 End CoproductFacts.

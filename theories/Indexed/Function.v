@@ -21,12 +21,14 @@ Instance Cat_IFun : Cat IFun :=
 Instance Initial_void1 : Initial IFun void1 :=
   fun _ _ v => match v : void1 _ with end.
 
-Instance Elim_sum1 : CoprodElim IFun sum1 :=
-  fun {A B C : Type -> Type} (f : A ~> C) (g : B ~> C) _ ab =>
-    match ab with
-    | inl1 a => f _ a
-    | inr1 b => g _ b
-    end.
+Definition case_sum1 {A B C : Type -> Type} (f : A ~> C) (g : B ~> C)
+  : A +' B ~> C
+  := fun _ ab =>
+       match ab with
+       | inl1 a => f _ a
+       | inr1 b => g _ b
+       end.
 
+Instance Elim_sum1 : CoprodElim IFun sum1 := @case_sum1.
 Instance Inl_sum1 : CoprodInl IFun sum1 := @inl1.
 Instance Inr_sum1 : CoprodInr IFun sum1 := @inr1.

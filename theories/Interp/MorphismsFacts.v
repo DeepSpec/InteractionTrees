@@ -80,7 +80,7 @@ Proof. rewrite unfold_interp. reflexivity. Qed.
 
 (** ** [interp] properness *)
 Instance eq_itree_interp {E F R}:
-  Proper (Rhom (fun _ => eq_itree eq) ==> eq_itree eq ==> eq_itree eq)
+  Proper (i_respectful (fun _ => eq_itree eq) ==> eq_itree eq ==> eq_itree eq)
          (fun f => @interp E F f R).
 Proof.
   intros f g Hfg.
@@ -108,7 +108,7 @@ Qed.
 
 (* Note that this allows rewriting of handlers. *)
 Definition eutt_interp_gen (E F : Type -> Type) (R : Type) :
-  Proper (Rhom (fun _ => eutt eq) ==> eutt eq ==> eutt eq)
+  Proper (i_respectful (fun _ => eutt eq) ==> eutt eq ==> eutt eq)
          (fun f => @interp E F f R).
 Proof.
   repeat intro. pupto2_init. revert_until H. pcofix CIH. intros.
