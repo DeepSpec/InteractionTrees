@@ -94,14 +94,14 @@ Global Instance Initial_void_ktree : Initial ktree I :=
 
 (** The tensor product is given by the coproduct *)
 
-Global Instance Elim_ktree : CoprodElim ktree sum :=
-  fun _ _ _ => @sum_elim _ _ _.
+Global Instance Case_ktree : CoprodCase ktree sum :=
+  fun _ _ _ => @case_sum _ _ _.
 
 Local Opaque eutt.
 
-Global Instance Proper_elim {A B C} :
+Global Instance Proper_case_ {A B C} :
   @Proper (ktree A C -> ktree B C -> _)
-          (eq2 ==> eq2 ==> eq2) elim.
+          (eq2 ==> eq2 ==> eq2) case_.
 Proof.
   repeat intro; destruct a; cbv; auto.
 Qed.

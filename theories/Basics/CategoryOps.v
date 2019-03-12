@@ -39,14 +39,14 @@ Class Bimap :=
 
 (** *** Coproduct *)
 
-Class CoprodElim :=
-  elim : forall a b c, C a c -> C b c -> C (bif a b) c.
+Class CoprodCase :=
+  case_ : forall a b c, C a c -> C b c -> C (bif a b) c.
 
 Class CoprodInl :=
-  coprod_inl : forall a b, C a (bif a b).
+  inl_ : forall a b, C a (bif a b).
 
 Class CoprodInr :=
-  coprod_inr : forall a b, C b (bif a b).
+  inr_ : forall a b, C b (bif a b).
 
 (** *** Tensor (monoidal) *)
 
@@ -76,9 +76,9 @@ Class Swap :=
 End CocartesianOps.
 
 Arguments bimap {obj C bif Bimap a b c d}.
-Arguments elim {obj C bif CoprodElim a b c}.
-Arguments coprod_inl {obj C bif CoprodInl a b}.
-Arguments coprod_inr {obj C bif CoprodInr a b}.
+Arguments case_ {obj C bif CoprodCase a b c}.
+Arguments inl_ {obj C bif CoprodInl a b}.
+Arguments inr_ {obj C bif CoprodInr a b}.
 Arguments assoc_r {obj C bif AssocR a b c}.
 Arguments assoc_l {obj C bif AssocL a b c}.
 Arguments unit_l  {obj C bif i UnitL a}.
@@ -95,7 +95,7 @@ Notation unit_r_  i a := (@unit_r  _ _ _ i _ a) (only parsing).
 Notation unit_r'_ i a := (@unit_r' _ _ _ i _ a) (only parsing).
 Notation swap_ a b := (@swap _ _ _ _ a b) (only parsing).
 
-Notation elim_ C := (@elim _ C _ _ _ _ _)
+Notation case__ C := (@case_ _ C _ _ _ _ _)
   (only parsing).
 
 Module Import CatNotations.
@@ -110,45 +110,45 @@ Local Open Scope cat.
 (** ** Derived constructions *)
 
 Definition merge {obj : Type} {C : Hom obj} {bif : binop obj}
-           {Id_C : Id_ C} {Coproduct_C : CoprodElim C bif}
+           {Id_C : Id_ C} {Coproduct_C : CoprodCase C bif}
   : forall {a : obj}, C (bif a a) a :=
-  fun a => elim (id_ a) (id_ a).
+  fun a => case_ (id_ a) (id_ a).
 
 Section CocartesianConstruct.
 
 Context {obj : Type} (C : Hom obj) (Cat_C : Cat C).
-Variables (SUM : binop obj) (Coprod_SUM : CoprodElim C SUM)
+Variables (SUM : binop obj) (Coprod_SUM : CoprodCase C SUM)
           (CoprodInl_SUM : CoprodInl C SUM)
           (CoprodInr_SUM : CoprodInr C SUM).
 
 Global Instance Bimap_Coproduct : Bimap C SUM :=
   fun a b c d (f : C a c) (g : C b d) =>
-    elim (f >=> coprod_inl) (g >=> coprod_inr).
+    case_ (f >=> inl_) (g >=> inr_).
 
 Global Instance Swap_Coproduct : Swap C SUM :=
-  fun a b => elim coprod_inr coprod_inl.
+  fun a b => case_ inr_ inl_.
 
 Global Instance AssocR_Coproduct : AssocR C SUM :=
-  fun a b c => elim (elim coprod_inl (coprod_inl >=> coprod_inr))
-                    (coprod_inr >=> coprod_inr).
+  fun a b c => case_ (case_ inl_ (inl_ >=> inr_))
+                    (inr_ >=> inr_).
 
 Global Instance AssocL_Coproduct : AssocL C SUM :=
-  fun a b c => elim (coprod_inl >=> coprod_inl)
-                    (elim (coprod_inr >=> coprod_inl) coprod_inr).
+  fun a b c => case_ (inl_ >=> inl_)
+                    (case_ (inr_ >=> inl_) inr_).
 
 Variables (Id_C : Id_ C) (I : obj) (Initial_I : Initial C I).
 
 Global Instance UnitL_Coproduct : UnitL C SUM I :=
-  fun a => elim empty (id_ a).
+  fun a => case_ empty (id_ a).
 
 Global Instance UnitL'_Coproduct : UnitL' C SUM I :=
-  fun a => coprod_inr.
+  fun a => inr_.
 
 Global Instance UnitR_Coproduct : UnitR C SUM I :=
-  fun a => elim (id_ a) empty.
+  fun a => case_ (id_ a) empty.
 
 Global Instance UnitR'_Coproduct : UnitR' C SUM I :=
-  fun a => coprod_inl.
+  fun a => inl_.
 
 End CocartesianConstruct.
 
@@ -158,7 +158,7 @@ Section RESUM.
 
 Context {obj : Type} (C : Hom obj) (bif : binop obj).
 Context `{Id_ _ C} `{Cat _ C}.
-Context `{CoprodElim _ C bif} `{CoprodInl _ C bif} `{CoprodInr _ C bif}.
+Context `{CoprodCase _ C bif} `{CoprodInl _ C bif} `{CoprodInr _ C bif}.
 
 Class ReSum (a b : obj) :=
   resum : C a b.
@@ -166,20 +166,20 @@ Class ReSum (a b : obj) :=
 Global Instance ReSum_id `{Id_ _ C} a : ReSum a a := { resum := id_ a }.
 Global Instance ReSum_sum a b c
          `{ReSum a c} `{ReSum b c} : ReSum (bif a b) c :=
-  { resum := elim resum resum }.
+  { resum := case_ resum resum }.
 Global Instance ReSum_inl a b c `{ReSum a b} : ReSum a (bif b c) :=
-  { resum := resum >=> coprod_inl }.
+  { resum := resum >=> inl_ }.
 Global Instance ReSum_inr a b c `{ReSum a b} : ReSum a (bif c b) :=
-  { resum := resum >=> coprod_inr }.
+  { resum := resum >=> inr_ }.
 
 (* Usage template:
 
 [[
 Opaque cat.
 Opaque id.
-Opaque elim.
-Opaque coprod_inl.
-Opaque coprod_inr.
+Opaque case_.
+Opaque inl_.
+Opaque inr_.
 
     (* where the category is (->)  vv *)
 Definition f {X Y Z} : complex_sum -> another_complex_sum :=
@@ -187,9 +187,9 @@ Definition f {X Y Z} : complex_sum -> another_complex_sum :=
 
 Transparent cat.
 Transparent id.
-Transparent elim.
-Transparent coprod_inl.
-Transparent coprod_inr.
+Transparent case_.
+Transparent inl_.
+Transparent inr_.
 ]]
 *)
 

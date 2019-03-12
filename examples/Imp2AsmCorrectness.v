@@ -551,7 +551,7 @@ Section Correctness.
       setoid_rewrite bind_bind.
       rewrite <- (bind_ret (denote_asm fp tt)) at 2.
       eapply eutt_bind; [ reflexivity | intros ? ].
-      unfold coprod_inr, Inr_ktree, lift_ktree; rewrite ret_bind_; reflexivity.
+      unfold inr_, Inr_ktree, lift_ktree; rewrite ret_bind_; reflexivity.
     - rewrite ret_bind_.
       rewrite (relabel_asm_correct _ _ _ (inl tt)).
       unfold CategoryOps.cat, Cat_ktree, ITree.cat; simpl.
@@ -561,7 +561,7 @@ Section Correctness.
       setoid_rewrite bind_bind.
       rewrite <- (bind_ret (denote_asm tp tt)) at 2.
       eapply eutt_bind; [reflexivity | intros ?].
-      unfold coprod_inl, Inl_ktree, lift_ktree;
+      unfold inl_, Inl_ktree, lift_ktree;
         rewrite ret_bind_; reflexivity.
   Qed.
 
@@ -599,13 +599,13 @@ Section Correctness.
       rewrite bind_bind.
       apply eutt_bind; [reflexivity | intros []].
       + rewrite (pure_asm_correct _ tt).
-        unfold coprod_inl, Inl_ktree, lift_ktree.
+        unfold inl_, Inl_ktree, lift_ktree.
         repeat rewrite ret_bind_.
         reflexivity.
       + rewrite (relabel_asm_correct _ _ _  tt).
         unfold CategoryOps.cat, Cat_ktree, ITree.cat.
         simpl; repeat setoid_rewrite bind_bind.
-        unfold coprod_inl, Inl_ktree, lift_ktree; rewrite ret_bind_.
+        unfold inl_, Inl_ktree, lift_ktree; rewrite ret_bind_.
         apply eutt_bind; [reflexivity | intros []].
         repeat rewrite ret_bind_; reflexivity.
     - rewrite itree_eta; cbn; reflexivity.
@@ -658,7 +658,7 @@ Section Correctness.
     rewrite map_bind.
     setoid_rewrite ret_interp.
     setoid_rewrite bind_ret.
-    unfold coprod_inl, Inl_sum1_Handler, eh_lift.
+    unfold inl_, Inl_sum1_Handler, eh_lift.
     rewrite interp_state_liftE.
     rewrite bind_ret.
     cbn.

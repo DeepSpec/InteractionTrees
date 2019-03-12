@@ -29,6 +29,6 @@ Definition case_sum1 {A B C : Type -> Type} (f : A ~> C) (g : B ~> C)
        | inr1 b => g _ b
        end.
 
-Instance Elim_sum1 : CoprodElim IFun sum1 := @case_sum1.
+Instance Case_sum1 : CoprodCase IFun sum1 := @case_sum1.
 Instance Inl_sum1 : CoprodInl IFun sum1 := @inl1.
 Instance Inr_sum1 : CoprodInr IFun sum1 := @inr1.

@@ -99,29 +99,29 @@ Section CoproductLaws.
 Context {obj : Type} (C : Hom obj).
 Context {Eq2_C : Eq2 C} {Id_C : Id_ C} {Cat_C : Cat C}.
 Context (bif : binop obj).
-Context {CoprodElim_C : CoprodElim C bif}
+Context {CoprodCase_C : CoprodCase C bif}
         {CoprodInl_C : CoprodInl C bif}
         {CoprodInr_C : CoprodInr C bif}.
 
-Class ElimInl : Prop :=
-  elim_inl : forall a b c (f : C a c) (g : C b c),
-    coprod_inl >=> elim f g ⩯ f.
+Class CaseInl : Prop :=
+  case_inl : forall a b c (f : C a c) (g : C b c),
+    inl_ >=> case_ f g ⩯ f.
 
-Class ElimInr : Prop :=
-  elim_inr : forall a b c (f : C a c) (g : C b c),
-    coprod_inr >=> elim f g ⩯ g.
+Class CaseInr : Prop :=
+  case_inr : forall a b c (f : C a c) (g : C b c),
+    inr_ >=> case_ f g ⩯ g.
 
-Class ElimUniversal : Prop :=
-  elim_universal :
+Class CaseUniversal : Prop :=
+  case_universal :
     forall a b c (f : C a c) (g : C b c) (fg : C (bif a b) c),
-      (coprod_inl >=> fg ⩯ f) ->
-      (coprod_inr >=> fg ⩯ g) ->
-      fg ⩯ elim f g.
+      (inl_ >=> fg ⩯ f) ->
+      (inr_ >=> fg ⩯ g) ->
+      fg ⩯ case_ f g.
 
 Class Coproduct : Prop := {
-  coproduct_elim_inl :> ElimInl;
-  coproduct_elim_inr :> ElimInr;
-  coproduct_elim_universal :> ElimUniversal;
+  coproduct_case_inl :> CaseInl;
+  coproduct_case_inr :> CaseInr;
+  coproduct_case_universal :> CaseUniversal;
 }.
 
 End CoproductLaws.

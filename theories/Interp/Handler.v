@@ -50,7 +50,7 @@ Instance Cat_Handler : Cat Handler
   := fun E F G (f : E ~> itree F) (g : F ~> itree G) _ e
      => interp g _ (f _ e).
 
-Instance Elim_sum1_Handler : CoprodElim Handler sum1
+Instance Case_sum1_Handler : CoprodCase Handler sum1
   := fun E F G => @case_sum1 E F (itree G).
 
 Instance Inl_sum1_Handler : CoprodInl Handler sum1

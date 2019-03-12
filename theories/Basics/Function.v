@@ -36,7 +36,7 @@ Instance Initial_void : Initial Fun void :=
 
 (** ** Coproduct elimination *)
 
-Instance sum_elim : CoprodElim Fun sum :=
+Instance case_sum : CoprodCase Fun sum :=
   fun {A B C} (f : A -> C) (g : B -> C) (x : A + B) =>
     match x with
     | inl a => f a

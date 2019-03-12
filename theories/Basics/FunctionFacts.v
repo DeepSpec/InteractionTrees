@@ -37,7 +37,7 @@ Instance InitialObject_void : InitialObject Fun void :=
 
 (** ** Equational theory *)
 
-Instance eeq_sum_elim {A B C} :
+Instance eeq_case_sum {A B C} :
   @Proper (Fun A C -> Fun B C -> Fun (A + B) C)
-          (eq2 ==> eq2 ==> eq2) elim.
+          (eq2 ==> eq2 ==> eq2) case_.
 Proof. cbv; intros; subst; destruct _; auto. Qed.

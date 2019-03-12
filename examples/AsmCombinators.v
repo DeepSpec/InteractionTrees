@@ -201,7 +201,7 @@ Lemma raw_asm_block_correct_lifted {A} (b : block A) :
 Proof.
   unfold denote_asm.
   rewrite vanishing_ktree.
-  rewrite elim_l_ktree', elim_l_ktree.
+  rewrite case_l_ktree', case_l_ktree.
   unfold denote_b; simpl.
   intros [].
   rewrite fmap_block_map, map_map.
@@ -225,7 +225,7 @@ Theorem pure_asm_correct {A B} (f : A -> B) :
 Proof.
   unfold denote_asm .
   rewrite vanishing_ktree.
-  rewrite elim_l_ktree', elim_l_ktree.
+  rewrite case_l_ktree', case_l_ktree.
   unfold denote_b; simpl.
   intros ?.
   rewrite map_ret.
