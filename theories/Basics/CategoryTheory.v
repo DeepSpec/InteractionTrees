@@ -1,16 +1,25 @@
+(** * Category theory *)
+
+(** While [Basics.CategoryOps] gives the _signatures_ of categorical
+    operations, this module describes their properties. *)
+
+(* begin hide *)
 From ITree.Basics Require Import
      CategoryOps.
 
 Import Carrier.
 Import CatNotations.
 Local Open Scope cat.
+(* end hide *)
 
-(** * Laws *)
+(** ** Categories *)
 
 Section CatLaws.
 
 Context {obj : Type} (C : Hom obj).
 Context {Eq2C : Eq2 C} {IdC : Id_ C} {CatC : Cat C}.
+
+(** [cat] must have units and be associative. *)
 
 Class CatIdL : Prop :=
   cat_id_l : forall a b (f : C a b), id_ _ >=> f ⩯ f.
@@ -28,6 +37,10 @@ Class Category : Prop := {
   category_cat_assoc :> CatAssoc;
 }.
 
+(** *** Initial object *)
+
+(** There is only one morphism between the initial object and
+    any other object. *)
 Class InitialObject (i : obj) {Initial_i : Initial C i} : Prop :=
   initial_object : forall a (f : C i a), f ⩯ empty.
 
@@ -37,16 +50,19 @@ Arguments cat_assoc {obj} C {Eq2C CatC CatAssoc} [a b c d].
 Arguments initial_object : clear implicits.
 Arguments initial_object {obj} C {Eq2C} i {Initial_i InitialObject}.
 
-(** * Mono-, Epi-, Iso- morphisms *)
+(** ** Mono-, Epi-, Iso- morphisms *)
 
 (** _Semi-isomorphisms_ are morphisms which compose to the identity.
-    _Isomorphisms_ are those that compose _both ways_ to the identity.
     If [f >=> f' = id_ _], we also say that [f] is a _section_, or
     _split monomorphism_ and [f'] is a _retraction_, or
-    _split epimorphism_. *)
+    _split epimorphism_.
+    _Isomorphisms_ are those that compose _both ways_ to the identity.
+ *)
+
 (** The most common example is in the category of functions: sections
     are injective functions, retractions are surjective functions.
-    Remember traditional function composition is denoted backwards:
+    A minor detail to mention regarding that example is that
+    traditional function composition is denoted backwards:
     [(f >=> f') x = (f' ∘ f) x = f' (f x)].
  *)
 
@@ -60,6 +76,7 @@ Context {Eq2C : Eq2 C} {IdC : Id_ C} {CatC : Cat C}.
 Class SemiIso {a b : obj} (f : C a b) (f' : C b a) : Type :=
   semi_iso : f >=> f' ⩯ id_ _.
 
+(** The class of isomorphisms *)
 Class Iso {a b : obj} (f : C a b) (f' : C b a) : Type := {
   iso_mono :> SemiIso f f';
   iso_epi :> SemiIso f' f;
@@ -70,12 +87,17 @@ End SemiIso.
 Arguments semi_iso : clear implicits.
 Arguments semi_iso {obj C Eq2C IdC CatC a b} f f'.
 
+(** ** Bifunctors *)
+
 Section BifunctorLaws.
 
 Context {obj : Type} (C : Hom obj).
 Context {Eq2_C : Eq2 C} {Id_C : Id_ C} {Cat_C : Cat C}.
 Context (bif : binop obj).
 Context {Bimap_bif : Bimap C bif}.
+
+(** Vertical composition ([bimap]) must be compatible with horizontal
+    composition ([cat]). *)
 
 Class BimapId : Prop :=
   bimap_id : forall a b,
@@ -94,6 +116,10 @@ Class Bifunctor : Prop := {
 
 End BifunctorLaws.
 
+(** ** Coproducts *)
+
+(** These laws capture the essence of sums. *)
+
 Section CoproductLaws.
 
 Context {obj : Type} (C : Hom obj).
@@ -111,6 +137,7 @@ Class CaseInr : Prop :=
   case_inr : forall a b c (f : C a c) (g : C b c),
     inr_ >=> case_ f g ⩯ g.
 
+(** Uniqueness of coproducts *)
 Class CaseUniversal : Prop :=
   case_universal :
     forall a b c (f : C a c) (g : C b c) (fg : C (bif a b) c),
@@ -126,6 +153,8 @@ Class Coproduct : Prop := {
 
 End CoproductLaws.
 
+(** ** Monoidal categories *)
+
 Section MonoidalLaws.
 
 Context {obj : Type} (C : Hom obj).
@@ -134,6 +163,8 @@ Context (bif : binop obj).
 
 Context {AssocR_bif : AssocR C bif}.
 Context {AssocL_bif : AssocL C bif}.
+
+(** *** Associators and unitors are isomorphisms *)
 
 (** [assoc_r] and [assoc_l] are mutual inverses. *)
 Notation AssocIso :=
@@ -199,6 +230,8 @@ Qed.
 
 Context {Bimap_bif : Bimap C bif}.
 
+(** *** Coherence laws *)
+
 (** The Triangle Diagram *)
 Class AssocRUnit : Prop :=
   assoc_r_unit : forall a b,
@@ -238,6 +271,8 @@ Class AssocLAssocL : Prop :=
 
 End MonoidalLaws.
 
+(** ** Symmetric monoidal categories *)
+
 Section SymmetricLaws.
 
 Context {obj : Type} (C : Hom obj).
@@ -245,6 +280,7 @@ Context {Eq2_C : Eq2 C} {Id_C : Id_ C} {Cat_C : Cat C}.
 Context (bif : binop obj).
 Context {Swap_bif : Swap C bif}.
 
+(** [swap] is an involution *)
 Notation SwapInvolutive :=
   (forall a b, SemiIso C (swap_ a b) swap) (only parsing).
 
@@ -260,6 +296,7 @@ Context {UnitL'_i : UnitL' C bif i}.
 Context {UnitR_i  : UnitR  C bif i}.
 Context {UnitR'_i : UnitR' C bif i}.
 
+(** Coherence between [swap] and unitors. *)
 Class SwapUnitL : Prop :=
   swap_unit_l : forall a, swap >=> unit_l ⩯ unit_r_ _ a.
 
@@ -267,6 +304,7 @@ Context {Bimap_bif : Bimap C bif}.
 Context {AssocR_bif : AssocR C bif}.
 Context {AssocL_bif : AssocL C bif}.
 
+(** Coherence between [swap] and associators. *)
 Class SwapAssocR : Prop :=
   swap_assoc_r : forall a b c,
     @assoc_r _ _ _ _ a _ _ >=> swap >=> assoc_r

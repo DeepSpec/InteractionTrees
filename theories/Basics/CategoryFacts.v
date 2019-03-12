@@ -1,3 +1,6 @@
+(** * General facts about categories *)
+
+(* begin hide *)
 From Coq Require Import
      Setoid Morphisms.
 
@@ -7,6 +10,9 @@ From ITree.Basics Require Import
 Import Carrier.
 Import CatNotations.
 Local Open Scope cat.
+(* end hide *)
+
+(** ** Isomorphisms *)
 
 Section IsoFacts.
 
@@ -15,6 +21,7 @@ Context {Eq2C : Eq2 C} {IdC : Id_ C} {CatC : Cat C}.
 
 Context {CatIdL_C : CatIdL C}.
 
+(** [id_] is an isomorphism. *)
 Global Instance SemiIso_Id {a} : SemiIso C (id_ a) (id_ a) := {}.
 Proof. apply cat_id_l; assumption. Qed.
 
@@ -26,6 +33,7 @@ Context {CatAssoc_C : CatAssoc C}.
 Context {Proper_Cat_C : forall a b c,
             @Proper (C a b -> C b c -> _) (eq2 ==> eq2 ==> eq2) cat}.
 
+(** Isomorphisms are closed under [cat]. *)
 Global Instance SemiIso_Cat {a b c}
        (f : C a b) {f' : C b a} {SemiIso_f : SemiIso C f f'}
        (g : C b c) {g' : C c b} {SemiIso_g : SemiIso C g g'}
@@ -47,6 +55,7 @@ Context {BimapCat_bif : BimapCat C bif}.
 Context {Proper_Bimap_bif : forall a b c d,
             @Proper (C a b -> C c d -> _) (eq2 ==> eq2 ==> eq2) bimap}.
 
+(** Isomorphisms are closed under [bimap]. *)
 Global Instance SemiIso_Bimap {a b c d} (f : C a b) (g : C c d)
          {f' : C b a} {SemiIso_f : SemiIso C f f'}
          {g' : C d c} {SemiIso_g : SemiIso C g g'} :
@@ -59,6 +68,8 @@ Qed.
 End IsoBimap.
 
 End IsoFacts.
+
+(** ** Categories *)
 
 Section CategoryFacts.
 
@@ -73,6 +84,7 @@ Context (i : obj).
 Context {Initial_i : Initial C i}.
 Context {InitialObject_i : InitialObject C i}.
 
+(** The initial morphism is unique. *)
 Lemma initial_unique :
   forall a (f g : C i a), f ⩯ g.
 Proof.
@@ -82,6 +94,8 @@ Proof.
 Qed.
 
 End CategoryFacts.
+
+(** ** Bifunctors *)
 
 Section BifunctorFacts.
 
@@ -112,6 +126,8 @@ Qed.
 
 End BifunctorFacts.
 
+(** ** Coproducts *)
+
 Section CoproductFacts.
 
 Context {obj : Type} (C : Hom obj).
@@ -133,6 +149,7 @@ Context {Coproduct_C : Coproduct C bif}.
 Context {Proper_case_ : forall a b c,
             @Proper (C a c -> C b c -> C _ c) (eq2 ==> eq2 ==> eq2) case_}.
 
+(** Commute [cat] and [case_]. *)
 Lemma cat_case
       {a b c d} (ac : C a c) (bc : C b c) (cd : C c d)
   : case_ ac bc >=> cd ⩯ case_ (ac >=> cd) (bc >=> cd).
@@ -146,6 +163,7 @@ Proof.
     reflexivity.
 Qed.
 
+(** Case analysis with projections is the identity. *)
 Corollary case_eta {a b} : id_ (bif a b) ⩯ case_ inl_ inr_.
 Proof.
   eapply case_universal; [ typeclasses eauto | | ].
@@ -158,6 +176,8 @@ Proof.
   eapply case_universal; [ typeclasses eauto | | ]; reflexivity.
 Qed.
 
+(** We can prove the equivalence of morphisms on coproducts
+    by case analysis. *)
 Lemma coprod_split {a b c} (f g : C (bif a b) c) :
   (inl_ >=> f ⩯ inl_ >=> g) ->
   (inr_ >=> f ⩯ inr_ >=> g) ->
@@ -206,7 +226,7 @@ Proof.
   constructor; typeclasses eauto.
 Qed.
 
-(** It is commutative *)
+(** The coproduct is commutative *)
 
 Global Instance SwapInvolutive_Coproduct {a b : obj}
   : SemiIso C (swap_ a b) swap.
@@ -217,7 +237,7 @@ Proof.
   all: typeclasses eauto.
 Qed.
 
-(** It is associative *)
+(** The coproduct is associative *)
 
 Global Instance AssocRMono_Coproduct {a b c : obj}
   : SemiIso C (assoc_r_ a b c) assoc_l.
@@ -244,6 +264,8 @@ Qed.
 Context (i : obj).
 Context {Initial_i : Initial C i}.
 Context {InitialObject_i : InitialObject C i}.
+
+(** The coproduct has units. *)
 
 Global Instance UnitLMono_Coproduct {a : obj}
   : SemiIso C (unit_l_ i a) unit_l'.
@@ -289,6 +311,8 @@ Lemma inl_unit_r {a} : inl_ >=> unit_r ⩯ id_ a.
 Proof.
   apply semi_iso; typeclasses eauto.
 Qed.
+
+(** The coproduct satisfies the monoidal coherence laws. *)
 
 Global Instance AssocRUnit_Coproduct : AssocRUnit C bif i.
 Proof.
@@ -408,6 +432,8 @@ Proof.
         reflexivity.
         all: typeclasses eauto.
 Qed.
+
+(** The coproduct satisfies the symmetric monoidal laws. *)
 
 Global Instance SwapUnitL_Coproduct : SwapUnitL C bif i.
 Proof.
