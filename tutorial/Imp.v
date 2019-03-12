@@ -1,42 +1,47 @@
-(* Simple semantics for the Imp programming language (with function calls)
- * using interaction trees.
+(** We demonstrate how to use [itrees] in the context of verified compilation.
+    To this end, we start in this file by introduceing a simplified variant of
+    Software Foundations' [Imp] language.
+    The language's semantics is expressed in terms of [itrees].
+    The resulting semantics can be run through provided interpreters.
  *)
-Require Import Coq.Lists.List.
-Require Import Coq.Strings.String.
-Require Import ExtLib.Data.String.
-Require Import ExtLib.Structures.Monad.
-Require Import ExtLib.Structures.Traversable.
-Require Import ExtLib.Data.List.
-Require Import ZArith.ZArith.
+
+From Coq Require Import
+     Lists.List
+     Strings.String.
+
+From ExtLib Require Import
+     Data.String
+     Structures.Monad
+     Structures.Traversable
+     Data.List.
 
 From ITree Require Import
      Basics
      ITree.
 
-Import MonadNotation.
-Local Open Scope monad_scope.
 Local Open Scope string_scope.
 
-(* representation of variables *)
+(* ================================================================= *)
+(** ** Syntax *)
+
+(** Imp manipulates a countable set of variables represented as [string]s: *)
 Definition var : Set := string.
 
-(* representation of expressions *)
-Inductive expr : Set :=
-| Var (_ : var)
-| Lit (_ : nat)
-| Minus (_ _ : expr)
-| Plus (_ _ : expr).
-
+(** For simplicity, the language manipulates [nat]s as values. *)
 Definition value : Type := nat.
 
-Definition is_true (v : value) : bool :=
-  match v with
-  | O   => false
-  | _ => true
-  end.
+(** Expressions are made of variables, constant litterals, additions and substractions. *)
+Inductive expr : Type :=
+| Var (_ : var)
+| Lit (_ : value)
+| Plus (_ _ : expr)
+| Minus (_ _ : expr)
+| Mult (_ _ : expr).
 
-(* representation of statements *)
-Inductive stmt : Set :=
+(** _Imp_ statements: *)
+Definition is_true (v : value) : bool := if v then false else true.
+
+Inductive stmt : Type :=
 | Assign (x : var) (e : expr)    (* x = e *)
 | Seq    (a b : stmt)            (* a ; b *)
 | If     (i : expr) (t e : stmt) (* if (i) then { t } else { e } *)
@@ -44,66 +49,124 @@ Inductive stmt : Set :=
 | Skip                           (* ; *)
 .
 
+(* ================================================================= *)
+(** ** Notations *)
+
 Module ImpNotations.
 
-  Notation "x '←' e" :=
-    (Assign x e) (at level 60, e at level 50).
-
-  Notation "a ;;; b" :=
-    (Seq a b)
-      (at level 80, right associativity,
-       format
-         "'[v ' a  ';;;' '/' '[' b ']' ']'"
-      ).
-
-  Notation "'IF' i 'THEN' t 'ELSE' e" :=
-    (If i t e)
-      (at level 200,
-       right associativity,
-       format
-         "'[v ' 'IF'  i '/' '[' 'THEN'  t  ']' '/' '[' 'ELSE'  e ']' ']'").
-
-  Notation "'WHILE' t 'DO' b" :=
-    (While t b)
-      (at level 200,
-       right associativity,
-       format
-         "'[v ' 'WHILE'  t '/' '[' 'DO'  b  ']' ']'").
-
-  Coercion Lit: nat >-> expr.
+  (* YZ: TODO Improve notations.
+     And also, understand why overloaded notations seem to require to share the same level.
+   *)
   Definition Var_coerce: string -> expr := Var.
+  Definition Lit_coerce: nat -> expr := Lit.
   Coercion Var_coerce: string >-> expr.
+  Coercion Lit_coerce: nat >-> expr.
+
+  Bind Scope expr_scope with expr.
+
+  Infix "+" := Plus : expr_scope.
+  Infix "-" := Minus : expr_scope.
+  Infix "*" := Mult : expr_scope.
+
+  Bind Scope stmt_scope with stmt.
+
+  Notation "x '←' e" :=
+    (Assign x e) (at level 60, e at level 50): stmt_scope.
+  
+  Notation "a ;; b" :=
+    (Seq a b)
+      (at level 100, right associativity,
+       format
+         "'[v ' a  ';;' '/' '[' b ']' ']'"
+      ): stmt_scope.
+
+  Notation "'IF' i 'THEN' t 'ELSE' e 'FI'" :=
+    (If i t e)
+      (at level 100,
+       right associativity,
+       format
+         "'[v ' 'IF'  i '/' '[' 'THEN'  t  ']' '/' '[' 'ELSE'  e ']' 'FI' ']'").
+
+  Notation "'WHILE' t 'DO' b 'DONE'" :=
+    (While t b)
+      (at level 100,
+       right associativity,
+       format
+         "'[v ' 'WHILE'  t '/' '[' 'DO'  b  ']' DONE ']'").
 
 End ImpNotations.
 
+(* ================================================================= *)
+(** ** Semantics *)
+
 Import ImpNotations.
 
-(* the "effect" to track local variables *)
+(** _Imp_ produces effects by manipulating its variables.
+    To account for this, we define a type of _external interactions_
+    [Locals] modelling reads and writes to variables.
+    A read, [GetVar], takes a variable as an argument and expects
+    the environment to answer with a value, hence defining an effect
+    of type [Locals value].
+    Similarly, [SetVar] is a write effect parameterized by both a variable
+    and a value to be written, and defines an effect of type [Locals unit],
+    no informative answer being expected from the environment.
+ *)
 Inductive Locals : Type -> Type :=
 | GetVar (x : var) : Locals value
 | SetVar (x : var) (v : value) : Locals unit.
 
 Section Denote.
 
+  (* YZ: TODO get a clear sense of what we want to qualify of:
+     * meaning
+     * semantics
+     * denotation
+     and be consistent about it.
+   *)
+  (** We now proceed to denote _Imp_ expressions and statements.
+      We could simply fix in stone the universe of effects to be considered,
+      taking as a semantic domain for _Imp_ [itree eff X].
+      That would be sufficient to give meaning to _Imp_, but is inconvenient to
+      relate this meaning to [itree]s stemmed from other entities.
+      We therefore parameterize the denotation of _Imp_ by a larger universe of
+      effects [eff] of which [Locals] is a subeffect.
+   *)
+  (* YZ: TODO think some more about where exactly we take advantage of this approach.
+         Had initially in mind obviously when relating the denotations of imp and asm
+         to prove the compiler correct. However we actually first interpret away all
+         effects, hence it's not so clear.
+   *)
+
   Context {eff : Type -> Type}.
   Context {HasLocals : Locals -< eff}.
 
-  (* The meaning of an expression *)
+  (** _Imp_ expressions are denoted as [itree eff value], where the returned value
+      in the tree is the value computed by the expression.
+      In the [Var] case, the [lift] operator allows to smoothly lift a single effect to
+      an [itree] performing the corresponding [Vis] event and returning immediately the
+      environment's answer.
+      Usual monadic notations are used in the other cases. A constant is simply returned,
+      while we can [bind] recursive computations in the case of operators as one would
+      expect.
+   *)
+
   Fixpoint denoteExpr (e : expr) : itree eff value :=
     match e with
     | Var v => lift (GetVar v)
     | Lit n => ret n
-    | Minus a b => l <- denoteExpr a ;; r <- denoteExpr b ;; ret (l - r)
     | Plus a b => l <- denoteExpr a ;; r <- denoteExpr b ;; ret (l + r)
+    | Minus a b => l <- denoteExpr a ;; r <- denoteExpr b ;; ret (l - r)
+    | Mult a b => l <- denoteExpr a ;; r <- denoteExpr b ;; ret (l * r)
     end.
 
+  
   Definition while {eff} (t : itree eff bool) : itree eff unit :=
     loop 
       (fun l : unit + unit =>
          match l with
          | inr _ => ret (inl tt)
          | inl _ => continue <- t ;;
-                   if continue : bool then ret (inl tt) else ret (inr tt)
+                            if continue : bool then ret (inl tt) else ret (inr tt)
          end) tt.
 
   (* the meaning of a statement *)
@@ -126,6 +189,23 @@ Section Denote.
     end.
 
 End Denote.
+
+Section Fact.
+
+  Open Scope expr_scope.
+  Open Scope stmt_scope.
+  Variable input: var.
+  Variable output: var.
+
+  Definition fact (n:nat) :=
+    input ← n;;
+    output ← 1;;
+    WHILE input
+    DO output ← output * input;;
+       input  ← input - 1
+    DONE.
+
+End Fact.
 
 From ITree Require Import
      Effect.Env.
