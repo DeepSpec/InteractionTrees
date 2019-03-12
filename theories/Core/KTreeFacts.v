@@ -644,9 +644,9 @@ Proof.
   reflexivity.
 Qed.
 
-(** *** [tensor] lemmas *)
+(** *** [bimap] lemmas *)
 
-Fact tensor_id_lift {A B C} (f : B -> C) :
+Fact bimap_id_lift {A B C} (f : B -> C) :
   bimap (id_ A) (@lift_ktree E _ _ f) ⩯ lift_ktree (bimap (id_ A) f).
 Proof.
   unfold bimap, Bimap_Coproduct.
@@ -655,7 +655,7 @@ Proof.
   all: typeclasses eauto.
 Qed.
 
-Fact tensor_lift_id {A B C} (f : A -> B) :
+Fact bimap_lift_id {A B C} (f : A -> B) :
   bimap (@lift_ktree E _ _ f) (id_ C) ⩯ lift_ktree (bimap f id).
 Proof.
   unfold bimap, Bimap_Coproduct.
@@ -888,7 +888,7 @@ Proof.
   cbv; intros [ [] | ]; try rewrite ret_bind; reflexivity.
 Qed.
 
-Lemma tensor_ktree_loop {I A B C D}
+Lemma bimap_ktree_loop {I A B C D}
       (ab : ktree E (I + A) (I + B)) (cd : ktree E C D) :
     bimap (loop ab) cd
   ⩯ loop (assoc_l >=> bimap ab cd >=> assoc_r).
@@ -943,12 +943,12 @@ Qed.
 
 End TraceLaws.
 
-Hint Rewrite @tensor_id_lift : lift_ktree.
-Hint Rewrite @tensor_lift_id : lift_ktree.
+Hint Rewrite @bimap_id_lift : lift_ktree.
+Hint Rewrite @bimap_lift_id : lift_ktree.
 Hint Rewrite @lift_sum_elim : lift_ktree.
 
 (* Here we show that we can implement [ITree.cat] using
-   [tensor_ktree], [loop], and composition with the monoidal
+   [bimap], [loop], and composition with the monoidal
    natural isomorphisms. *)
 Section CatFromLoop.
 

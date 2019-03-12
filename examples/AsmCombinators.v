@@ -294,7 +294,7 @@ Proof.
   all: try typeclasses eauto.
 Qed.
 
-Lemma loop_tensor_ktree {I A B C D}
+Lemma loop_bimap_ktree {I A B C D}
       (ab : ktree E A B) (cd : ktree E (I + C) (I + D)) :
     bimap ab (loop cd)
   ⩯ loop (assoc_l >=> bimap swap (id_ _)
@@ -302,7 +302,7 @@ Lemma loop_tensor_ktree {I A B C D}
                   >=> bimap ab cd
                   >=> assoc_l >=> bimap swap (id_ _) >=> assoc_r).
 Proof.
-  rewrite swap_bimap, tensor_ktree_loop.
+  rewrite swap_bimap, bimap_ktree_loop.
   rewrite <- compose_loop, <- loop_compose.
   rewrite (swap_bimap _ _ cd ab).
   rewrite <- !assoc_cat.
@@ -378,8 +378,8 @@ Proof.
   unfold denote_asm.
 
   match goal with | |- ?x ⩯ _ => set (lhs := x) end.
-  rewrite tensor_ktree_loop.
-  rewrite loop_tensor_ktree.
+  rewrite bimap_ktree_loop.
+  rewrite loop_bimap_ktree.
   rewrite <- compose_loop.
   rewrite <- loop_compose.
   rewrite loop_loop.
@@ -388,7 +388,7 @@ Proof.
   2: apply swap_involutive; typeclasses eauto.
   apply eq_ktree_loop.
   rewrite !assoc_cat.
-  rewrite <- !sym_ktree_unfold, !assoc_l_ktree, !assoc_r_ktree, !tensor_lift_id, !tensor_id_lift, !compose_lift_ktree_l, compose_lift_ktree.
+  rewrite <- !sym_ktree_unfold, !assoc_l_ktree, !assoc_r_ktree, !bimap_lift_id, !bimap_id_lift, !compose_lift_ktree_l, compose_lift_ktree.
   unfold cat, Cat_ktree, ITree.cat, lift_ktree.
   intro x. rewrite ret_bind; simpl.
   destruct x as [[|]|[|]]; cbn.
@@ -427,7 +427,7 @@ Proof.
   rewrite <- compose_loop.
   rewrite <- loop_compose.
   apply eq_ktree_loop.
-  rewrite !tensor_id_lift.
+  rewrite !bimap_id_lift.
   reflexivity.
 Qed.
 
