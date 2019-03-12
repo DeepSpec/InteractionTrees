@@ -19,6 +19,7 @@ theories/Eq/UpToTausExplicit.v
 theories/Eq/Untaus.v
 theories/Eq/SimUpToTaus.v
 theories/Eq.v
+theories/Eq/EqAxiom.v
 
 theories/Indexed/Sum.v
 theories/Indexed/Function.v
