@@ -5,10 +5,11 @@ Require Import Asm.
 From Coq Require Import
      List
      Strings.String
-     Program.Basics.
+     Program.Basics
+     ZArith.
 Import ListNotations.
+
 From ITree Require Import Basics_Functions.
-Require Import ZArith.
 
 Typeclasses eauto := 5.
 
@@ -113,12 +114,15 @@ Definition link_asm {I A B} (ab : asm (I + A) (I + B)) : asm A B :=
 (** ** Correctness *)
 (** The combinators above map to their denotational counterparts. *)
 
+(* TODO: don't import stuff in the middle of modules *)
 From ExtLib Require Import
      Structures.Monad.
 Import MonadNotation.
 From ITree Require Import
      ITree KTree.
-Require Import Imp.
+Import ITreeNotations.
+
+Require Import Imp. (* TODO: remove this *)
 
 Section Correctness.
 
@@ -146,6 +150,7 @@ Proof.
       cbn. apply eq_itree_vis. intros [].
 Qed.
 
+(* TODO: send to ext-lib *)
 Definition traverse_ {A: Type} {M: Type -> Type} `{Monad M} (f: A -> M unit): list A -> M unit :=
   fix traverse__ l: M unit :=
     match l with

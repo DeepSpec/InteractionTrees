@@ -1,6 +1,6 @@
 # Interaction Trees
 
-Formalization of the Interaction Tree Datatype in Coq
+A Library for Representing Recursive and Impure Programs in Coq
 
 **NOTE: This library is currently in a pre-alpha stage, the interfaces currently exposed by the repository are undergoing a great deal of exploration and there will likely be substantial changes in the future. Backwards compatibility will not be a priority as this library evolves, so dependencies should be wary of this.**
 

@@ -16,6 +16,8 @@ From ITree Require Import
      FixFacts
      KTree.
 
+Import ITreeNotations.
+
 From ExtLib Require Import
      Core.RelDec
      Structures.Monad
@@ -340,7 +342,7 @@ Section Correctness.
 
   Definition interp_locals {R: Type} (t: itree E R) (s: alist var value)
     : itree E' (alist var value * R) :=
-    run_env _ (interp1 evalLocals _ t) s.
+    run_env _ (interp (eh_both evalLocals eh_inr) _ t) s.
 
   Instance eutt_interp_locals {R}:
     Proper (@eutt E R R eq ==> eq ==> @eutt E' (prod (alist var value) R) (prod _ R) eq)
@@ -349,8 +351,8 @@ Section Correctness.
     repeat intro.
     unfold interp_locals.
     unfold run_env.
-    rewrite H0. eapply eutt_interp_state; auto. rewrite H.
-    reflexivity.
+    rewrite H0. eapply eutt_interp_state; auto.
+    rewrite H; reflexivity.
   Qed.
 
   Lemma interp_locals_bind: forall {R S} (t: itree E R) (k: R -> itree _ S) (s: alist var value),
@@ -361,7 +363,7 @@ Section Correctness.
     intros.
     unfold interp_locals.
     unfold run_env.
-    rewrite interp1_bind.
+    rewrite interp_bind.
     rewrite interp_state_bind.
     reflexivity.
   Qed.
@@ -406,7 +408,7 @@ Section Correctness.
   Proof.
     unfold eq_locals, interp_locals, run_env.
     intros. unfold loop.
-    rewrite 2 interp1_loop.
+    rewrite 2 interp_loop.
     eapply interp_state_loop; auto.
   Qed.
 
@@ -626,14 +628,20 @@ Section Correctness.
     intros.
     destruct H as [_ [eq _]].
     unfold interp_locals.
-    rewrite interp1_liftE.
+    unfold lift.
+    rewrite interp_liftE.
     cbn.
     unfold run_env.
     rewrite env_lookupDefault_is_lift.
-    unfold lift; rewrite interp_state_liftE.
+    unfold lift.
+    rewrite unfold_interp_state; cbn.
+    rewrite bind_ret.
+    rewrite interp_state_liftE.
+    rewrite bind_ret.
     cbn.
     rewrite eq.
-    apply tau_eutt.
+    rewrite !tau_eutt.
+    reflexivity.
   Qed.
 
   Lemma compile_correct (s : stmt) :

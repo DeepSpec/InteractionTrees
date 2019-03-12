@@ -471,7 +471,7 @@ Proof.
     + rewrite unfold_bind in UAT1. rewrite unfold_bind in UAT2. cbn in *.
       destruct UAT1 as [UAT1 _]. destruct UAT2 as [UAT2 _].
       dependent destruction UAT1. dependent destruction UAT2. simpobs.
-      econstructor. intros. specialize (H x). pclearbot. fold_bind. eauto using rclo2.
+      econstructor. intros. specialize (H x). pclearbot. eauto using rclo2.
 Qed.
 
 Inductive euttE_trans_clo {E R1 R2} (r: itree E R1 -> itree E R2 -> Prop) :

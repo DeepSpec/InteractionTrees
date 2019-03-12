@@ -10,6 +10,8 @@ From ITree Require Import
      FixFacts
      Basics_Functions.
 
+Import ITreeNotations.
+
 From Coq Require Import
      Program
      Morphisms.

@@ -8,6 +8,7 @@ From ITree Require Import
      ITree
      Effect.Spawn.
 
+Import ITreeNotations.
 
 (* An OCaml-interpreted event that just prints the given string. *)
 Variant printE : Type -> Type :=

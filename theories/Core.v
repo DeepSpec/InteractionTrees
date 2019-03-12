@@ -41,6 +41,10 @@ Section itree.
   CoInductive itree : Type := go
   { _observe : itreeF itree }.
 
+  (* A primitive projection, such as [_observe], must always be
+     applied. To be used as a function, wrap it explicitly:
+     [fun x => _observe x] or [observe] (defined below). *)
+
   (** Notes about using [itree]:
 
      - You should simplify using [cbn] rather than [simpl] when working
@@ -67,15 +71,11 @@ Arguments itreeF _ _ : clear implicits.
 
 Notation itree' E R := (itreeF E R (itree E R)).
 
-Definition observe {E R} := @_observe E R.
-
-Ltac fold_observe := change @_observe with @observe in *.
-Ltac unfold_observe := unfold observe in *.
+Definition observe {E R} (t : itree E R) : itree' E R := @_observe E R t.
 
 Ltac genobs x ox := remember (observe x) as ox.
 Ltac genobs_clear x ox := genobs x ox; match goal with [H: ox = observe x |- _] => clear H x end.
-Ltac simpobs := fold_observe;
-                repeat match goal with [H: _ = observe _ |- _] =>
+Ltac simpobs := repeat match goal with [H: _ = observe _ |- _] =>
                     rewrite_everywhere_except (@eq_sym _ _ _ H) H
                 end.
 
@@ -128,6 +128,22 @@ Definition cat {E T U V}
   T -> itree E V :=
   fun t => bind (k t) h.
 
+Definition _aloop {E : Type -> Type} {R I : Type}
+           (tau : _)
+           (aloop_ : I -> itree E R)
+           (step_i : itree E I + R) : itree E R :=
+  match step_i with
+  | inl cont => tau (ITree.bind cont aloop_)
+  | inr r => Ret r
+  end.
+
+(* Iterate a function updating an accumulator [A], until it produces
+   an output [B]. It's an Asymmetric variant of [loop], and it looks
+   similar to an Anamorphism, hence the name [aloop]. *)
+Definition aloop {E : Type -> Type} {R I: Type}
+           (step : I -> itree E I + R) : I -> itree E R :=
+  cofix aloop_ i := _aloop (fun t => Tau t) aloop_ (step i).
+
 (* note(gmm): There needs to be generic automation for monads to simplify
  * using the monad laws up to a setoid.
  * this would be *really* useful to a lot of projects.
@@ -163,6 +179,7 @@ Definition when {E}
 
 End ITree.
 
+Module ITreeNotations.
 (* Sometimes it's more convenient to work without the type classes
    Monad, etc. When functions using type classes are specialized,
    they simplify easily, so lemmas without classes are easier
@@ -182,6 +199,7 @@ Notation "' p <- t1 ;; t2" :=
   (ITree.bind t1 (fun x_ => match x_ with p => t2 end))
   (at level 100, t1 at next level, p pattern, right associativity) : itree_scope.
 Infix ">=>" := ITree.cat (at level 50, left associativity) : itree_scope.
+End ITreeNotations.
 
 Instance Functor_itree {E} : Functor (itree E) :=
 { fmap := @ITree.map E }.
@@ -199,6 +217,3 @@ Global Instance Monad_itree {E} : Monad (itree E) :=
 {| ret := fun _ x => Ret x
 ;  bind := @ITree.bind E
 |}.
-
-Ltac fold_bind := (change @ITree.bind' with (fun E T U k t => @ITree.bind E T U t k) in *; simpl in *).
-Ltac unfold_bind := unfold ITree.bind in *.

@@ -403,11 +403,11 @@ Proof.
     inversion H0; clear H0; subst.
     constructor.
     right.
-    change i with (observe {| _observe := i |}).
+    change i with (observe (go i)).
     pclearbot.
     eapply CIH.
     - eassumption.
-    - instantiate (1:={| _observe := ot2 |}).
+    - instantiate (1:= go ot2).
       pfold. red. eapply H1.
     - eapply EQTAUS. }
 Qed.

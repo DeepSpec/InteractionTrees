@@ -11,6 +11,8 @@ From ITree Require Import
      Eq
      UpToTaus.
 
+Import ITreeNotations.
+
 From Paco Require Import paco.
 
 From Coq Require Import

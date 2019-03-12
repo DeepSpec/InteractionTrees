@@ -20,6 +20,8 @@ From ITree Require Import
      Morphisms
      Effect.Sum.
 
+Import ITreeNotations.
+
 (* The indexed type [D : Type -> Type] gives the signature of
    a set of functions. For example, a pair of mutually recursive
    [even : nat -> bool] and [odd : nat -> bool] can be declared
@@ -69,10 +71,13 @@ From ITree Require Import
 Definition interp_mrec {D E : Type -> Type}
            (ctx : D ~> itree (D +' E)) : itree (D +' E) ~> itree E :=
   fun R =>
-    cofix mutfix_ (t : itree (D +' E) R) : itree E R :=
-      handleF1 mutfix_
-               (fun _ d k => Tau (mutfix_ (ctx _ d >>= k)))
-               (observe t).
+    ITree.aloop (fun t : itree (D +' E) R =>
+      match observe t with
+      | RetF r => inr r
+      | TauF t => inl (Ret t)
+      | VisF (inl1 d) k => inl (Ret (ctx _ d >>= k))
+      | VisF (inr1 e) k => inl (Vis e (fun x => Ret (k x)))
+      end).
 
 (** Unfold a mutually recursive definition into separate trees,
     resolving the mutual references. *)
@@ -142,16 +147,3 @@ Definition loop {E : Type -> Type} {A B C : Type}
            (body : (C + A) -> itree E (C + B)) :
   A -> itree E B :=
   fun a => loop_ body (inr a).
-
-(* Iterate a function updating an accumulator [A], until it produces
-   an output [B]. It's an Asymmetric variant of [loop], and it looks
-   similar to an Anamorphism, hence the name [aloop]. *)
-Definition aloop {E : Type -> Type} {A B : Type}
-           (body : A -> itree E (A + B)) :
-  A -> itree E B :=
-  cofix aloop_ a :=
-    ab <- body a ;;
-    match ab with
-    | inl a => Tau (aloop_ a)
-    | inr b => Ret b
-    end.
