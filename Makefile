@@ -33,8 +33,6 @@ COQDOCFLAGS:= \
 ifdef COQDOCJS_DIR
 COQDOCFLAGS+=--with-header $(COQDOCJS_DIR)/extra/header.html --with-footer $(COQDOCJS_DIR)/extra/footer.html
 
-echo "COQDOCJS_DIR" = @(COQDOCJS_DIR)
-
 html: Makefile.coq coq
 	rm -rf html
 	$(MAKE) -f Makefile.coq html
