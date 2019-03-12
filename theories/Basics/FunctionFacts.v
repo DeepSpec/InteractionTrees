@@ -29,7 +29,7 @@ Proof. red; reflexivity. Qed.
 Instance cat_Fun_CatIdR : CatIdR Fun.
 Proof. red; reflexivity. Qed.
 
-Instance cat_Fun_assoc : AssocCat Fun.
+Instance cat_Fun_assoc : CatAssoc Fun.
 Proof. red; reflexivity. Qed.
 
 Instance InitialObject_void : InitialObject Fun void :=

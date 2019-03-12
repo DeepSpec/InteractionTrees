@@ -22,7 +22,7 @@ Context {Equivalence_Eq2_C : forall a b, @Equivalence (C a b) eq2}.
 
 Section IsoCat.
 
-Context {AssocCat_C : AssocCat C}.
+Context {CatAssoc_C : CatAssoc C}.
 Context {Proper_Cat_C : forall a b c,
             @Proper (C a b -> C b c -> _) (eq2 ==> eq2 ==> eq2) cat}.
 
@@ -31,7 +31,7 @@ Global Instance SemiIso_Cat {a b c}
        (g : C b c) {g' : C c b} {SemiIso_g : SemiIso C g g'}
   : SemiIso C (f >=> g) (g' >=> f') := {}.
 Proof.
-  rewrite assoc_cat, <- (assoc_cat _ g), (semi_iso g), cat_id_l,
+  rewrite cat_assoc, <- (cat_assoc _ g), (semi_iso g), cat_id_l,
   (semi_iso f).
   reflexivity. all: typeclasses eauto.
 Qed.
@@ -138,10 +138,10 @@ Lemma cat_elim
   : elim ac bc >=> cd ⩯ elim (ac >=> cd) (bc >=> cd).
 Proof.
   eapply elim_universal; [ typeclasses eauto | | ].
-  - rewrite <- assoc_cat; [ | typeclasses eauto ].
+  - rewrite <- cat_assoc; [ | typeclasses eauto ].
     rewrite elim_inl; [ | typeclasses eauto ].
     reflexivity.
-  - rewrite <- assoc_cat; [ | typeclasses eauto ].
+  - rewrite <- cat_assoc; [ | typeclasses eauto ].
     rewrite elim_inr; [ | typeclasses eauto ].
     reflexivity.
 Qed.
@@ -193,10 +193,10 @@ Proof.
   red; intros.
   unfold bimap, Bimap_Coproduct.
   apply coprod_split.
-  - rewrite <- assoc_cat, !elim_inl, !assoc_cat, elim_inl.
+  - rewrite <- cat_assoc, !elim_inl, !cat_assoc, elim_inl.
     reflexivity.
     all: typeclasses eauto.
-  - rewrite <- assoc_cat, !elim_inr, !assoc_cat, elim_inr.
+  - rewrite <- cat_assoc, !elim_inr, !cat_assoc, elim_inr.
     reflexivity.
     all: typeclasses eauto.
 Qed.
@@ -224,7 +224,7 @@ Global Instance AssocRMono_Coproduct {a b c : obj}
 Proof.
   red; unfold assoc_r, assoc_l, AssocR_Coproduct, AssocL_Coproduct.
   rewrite !cat_elim.
-  rewrite !assoc_cat, !elim_inr, !elim_inl.
+  rewrite !cat_assoc, !elim_inr, !elim_inl.
   rewrite <- cat_elim, <- elim_eta, cat_id_l, <- elim_eta.
   reflexivity.
   all: typeclasses eauto.
@@ -235,7 +235,7 @@ Global Instance AssocLMono_Coproduct {a b c : obj}
 Proof.
   red; unfold assoc_r, assoc_l, AssocR_Coproduct, AssocL_Coproduct.
   rewrite !cat_elim.
-  rewrite !assoc_cat, !elim_inl, !elim_inr.
+  rewrite !cat_assoc, !elim_inl, !elim_inr.
   rewrite <- cat_elim, <- elim_eta, cat_id_l, <- elim_eta.
   reflexivity.
   all: typeclasses eauto.
@@ -297,7 +297,7 @@ Proof.
   rewrite !cat_id_l.
   eapply elim_universal.
   all: try typeclasses eauto.
-  - rewrite <- assoc_cat, elim_inl.
+  - rewrite <- cat_assoc, elim_inl.
     rewrite cat_elim, elim_inl.
     unfold unit_r, UnitR_Coproduct.
     rewrite cat_elim, cat_id_l.
@@ -305,9 +305,9 @@ Proof.
     reflexivity.
     eapply initial_unique; auto.
     all: typeclasses eauto.
-  - rewrite <- assoc_cat, elim_inr.
-    rewrite assoc_cat, elim_inr.
-    rewrite <- assoc_cat, coprod_inr_unit_l, cat_id_l.
+  - rewrite <- cat_assoc, elim_inr.
+    rewrite cat_assoc, elim_inr.
+    rewrite <- cat_assoc, coprod_inr_unit_l, cat_id_l.
     reflexivity.
     all: typeclasses eauto.
 Qed.
@@ -322,37 +322,37 @@ Proof.
   unfold assoc_r, AssocR_Coproduct.
   apply coprod_split. all: try typeclasses eauto.
   - rewrite elim_inl.
-    rewrite <- (assoc_cat _ coprod_inl).
+    rewrite <- (cat_assoc _ coprod_inl).
     rewrite elim_inl.
-    rewrite !assoc_cat.
+    rewrite !cat_assoc.
     apply coprod_split. all: try typeclasses eauto.
-    + repeat (rewrite <- (assoc_cat _ coprod_inl), !elim_inl).
+    + repeat (rewrite <- (cat_assoc _ coprod_inl), !elim_inl).
       apply coprod_split. all: try typeclasses eauto.
-      * repeat (rewrite <- (assoc_cat _ coprod_inl), !elim_inl).
+      * repeat (rewrite <- (cat_assoc _ coprod_inl), !elim_inl).
         reflexivity.
         all: typeclasses eauto.
-      * repeat (rewrite <- (assoc_cat _ coprod_inr), !elim_inr).
-        rewrite assoc_cat.
-        rewrite <- (assoc_cat _ coprod_inr), !elim_inr.
-        rewrite assoc_cat.
+      * repeat (rewrite <- (cat_assoc _ coprod_inr), !elim_inr).
+        rewrite cat_assoc.
+        rewrite <- (cat_assoc _ coprod_inr), !elim_inr.
+        rewrite cat_assoc.
         rewrite elim_inr.
-        rewrite <- (assoc_cat _ coprod_inl _ coprod_inr), elim_inl.
-        rewrite <- assoc_cat, elim_inl.
+        rewrite <- (cat_assoc _ coprod_inl _ coprod_inr), elim_inl.
+        rewrite <- cat_assoc, elim_inl.
         reflexivity.
         all: typeclasses eauto.
-    + repeat (rewrite <- (assoc_cat _ coprod_inr), !elim_inr).
-      rewrite <- (assoc_cat _ coprod_inl), !elim_inl.
-      rewrite !assoc_cat.
-      rewrite <- (assoc_cat _ coprod_inr (elim _ _) _), !elim_inr.
-      rewrite assoc_cat, elim_inr.
-      rewrite <- (assoc_cat _ coprod_inl (elim _ _)), elim_inl.
-      rewrite <- !assoc_cat, elim_inr.
+    + repeat (rewrite <- (cat_assoc _ coprod_inr), !elim_inr).
+      rewrite <- (cat_assoc _ coprod_inl), !elim_inl.
+      rewrite !cat_assoc.
+      rewrite <- (cat_assoc _ coprod_inr (elim _ _) _), !elim_inr.
+      rewrite cat_assoc, elim_inr.
+      rewrite <- (cat_assoc _ coprod_inl (elim _ _)), elim_inl.
+      rewrite <- !cat_assoc, elim_inr.
       reflexivity.
       all: typeclasses eauto.
   - rewrite !elim_inr.
-    rewrite !assoc_cat.
-    repeat (rewrite <- (assoc_cat _ coprod_inr (elim _ _)), !elim_inr).
-    rewrite !assoc_cat, elim_inr.
+    rewrite !cat_assoc.
+    repeat (rewrite <- (cat_assoc _ coprod_inr (elim _ _)), !elim_inr).
+    rewrite !cat_assoc, elim_inr.
     reflexivity.
     all: typeclasses eauto.
 Qed.
@@ -374,37 +374,37 @@ Proof.
   unfold assoc_l, AssocL_Coproduct.
   apply coprod_split. all: try typeclasses eauto.
   - rewrite !elim_inl.
-    rewrite !assoc_cat.
-    repeat (rewrite <- (assoc_cat _ coprod_inl (elim _ _)), !elim_inl).
-    rewrite !assoc_cat, elim_inl.
+    rewrite !cat_assoc.
+    repeat (rewrite <- (cat_assoc _ coprod_inl (elim _ _)), !elim_inl).
+    rewrite !cat_assoc, elim_inl.
     reflexivity.
     all: typeclasses eauto.
   - rewrite elim_inr.
-    rewrite <- (assoc_cat _ coprod_inr).
+    rewrite <- (cat_assoc _ coprod_inr).
     rewrite elim_inr.
-    rewrite !assoc_cat.
+    rewrite !cat_assoc.
     apply coprod_split. all: try typeclasses eauto.
-    + repeat (rewrite <- (assoc_cat _ coprod_inl), !elim_inl).
-      rewrite <- (assoc_cat _ coprod_inr), !elim_inr.
-      rewrite !assoc_cat.
-      rewrite <- (assoc_cat _ coprod_inl (elim _ _) _), !elim_inl.
-      rewrite assoc_cat, elim_inl.
-      rewrite <- (assoc_cat _ coprod_inr (elim _ _)), elim_inr.
-      rewrite <- !assoc_cat, elim_inl.
+    + repeat (rewrite <- (cat_assoc _ coprod_inl), !elim_inl).
+      rewrite <- (cat_assoc _ coprod_inr), !elim_inr.
+      rewrite !cat_assoc.
+      rewrite <- (cat_assoc _ coprod_inl (elim _ _) _), !elim_inl.
+      rewrite cat_assoc, elim_inl.
+      rewrite <- (cat_assoc _ coprod_inr (elim _ _)), elim_inr.
+      rewrite <- !cat_assoc, elim_inl.
       reflexivity.
       all: typeclasses eauto.
-    + repeat (rewrite <- (assoc_cat _ coprod_inr), !elim_inr).
+    + repeat (rewrite <- (cat_assoc _ coprod_inr), !elim_inr).
       apply coprod_split. all: try typeclasses eauto.
-      * repeat (rewrite <- (assoc_cat _ coprod_inl), !elim_inl).
-        rewrite assoc_cat.
-        rewrite <- (assoc_cat _ coprod_inl), !elim_inl.
-        rewrite assoc_cat.
+      * repeat (rewrite <- (cat_assoc _ coprod_inl), !elim_inl).
+        rewrite cat_assoc.
+        rewrite <- (cat_assoc _ coprod_inl), !elim_inl.
+        rewrite cat_assoc.
         rewrite elim_inl.
-        rewrite <- (assoc_cat _ coprod_inr _ coprod_inl), elim_inr.
-        rewrite <- assoc_cat, elim_inr.
+        rewrite <- (cat_assoc _ coprod_inr _ coprod_inl), elim_inr.
+        rewrite <- cat_assoc, elim_inr.
         reflexivity.
         all: typeclasses eauto.
-      * repeat (rewrite <- (assoc_cat _ coprod_inr), !elim_inr).
+      * repeat (rewrite <- (cat_assoc _ coprod_inr), !elim_inr).
         reflexivity.
         all: typeclasses eauto.
 Qed.
@@ -414,10 +414,10 @@ Proof.
   intros a.
   unfold swap, Swap_Coproduct, unit_l, UnitL_Coproduct, unit_r, UnitR_Coproduct.
   apply coprod_split.
-  - rewrite <- assoc_cat, !elim_inl, elim_inr.
+  - rewrite <- cat_assoc, !elim_inl, elim_inr.
     reflexivity.
     all: typeclasses eauto.
-  - rewrite <- assoc_cat, !elim_inr, elim_inl.
+  - rewrite <- cat_assoc, !elim_inr, elim_inl.
     reflexivity.
     all: typeclasses eauto.
 Qed.
@@ -428,32 +428,32 @@ Proof.
   intros a b c.
   unfold assoc_r, AssocR_Coproduct, swap, Swap_Coproduct, bimap, Bimap_Coproduct.
   apply coprod_split.
-  - rewrite !assoc_cat.
-    rewrite <- 2 (assoc_cat _ coprod_inl), !elim_inl.
-    rewrite !assoc_cat.
-    rewrite <- (assoc_cat _ coprod_inl), !elim_inl.
+  - rewrite !cat_assoc.
+    rewrite <- 2 (cat_assoc _ coprod_inl), !elim_inl.
+    rewrite !cat_assoc.
+    rewrite <- (cat_assoc _ coprod_inl), !elim_inl.
     all: try typeclasses eauto.
     apply coprod_split.
-    + rewrite <- 2 (assoc_cat _ coprod_inl), !elim_inl.
-      rewrite <- assoc_cat. rewrite elim_inl.
-      rewrite <- assoc_cat, !elim_inr.
-      rewrite assoc_cat, elim_inr.
-      rewrite <- assoc_cat, elim_inl.
+    + rewrite <- 2 (cat_assoc _ coprod_inl), !elim_inl.
+      rewrite <- cat_assoc. rewrite elim_inl.
+      rewrite <- cat_assoc, !elim_inr.
+      rewrite cat_assoc, elim_inr.
+      rewrite <- cat_assoc, elim_inl.
       reflexivity.
       all: typeclasses eauto.
-    + rewrite <- 2 (assoc_cat _ coprod_inr), !elim_inr.
-      rewrite assoc_cat.
-      rewrite <- (assoc_cat _ coprod_inr), elim_inr, !elim_inl.
-      rewrite <- assoc_cat, !elim_inl.
+    + rewrite <- 2 (cat_assoc _ coprod_inr), !elim_inr.
+      rewrite cat_assoc.
+      rewrite <- (cat_assoc _ coprod_inr), elim_inr, !elim_inl.
+      rewrite <- cat_assoc, !elim_inl.
       rewrite cat_id_l.
       reflexivity.
       all: typeclasses eauto.
-  - rewrite !assoc_cat.
-    rewrite <- 2 (assoc_cat _ coprod_inr), !elim_inr.
+  - rewrite !cat_assoc.
+    rewrite <- 2 (cat_assoc _ coprod_inr), !elim_inr.
     rewrite cat_id_l.
-    rewrite assoc_cat, <- (assoc_cat _ coprod_inr (elim _ _) _), !elim_inr, elim_inl, elim_inr.
-    rewrite <- assoc_cat.
-    rewrite elim_inr, assoc_cat, elim_inr, <- assoc_cat, elim_inr.
+    rewrite cat_assoc, <- (cat_assoc _ coprod_inr (elim _ _) _), !elim_inr, elim_inl, elim_inr.
+    rewrite <- cat_assoc.
+    rewrite elim_inr, cat_assoc, elim_inr, <- cat_assoc, elim_inr.
     reflexivity.
     all: typeclasses eauto.
 Qed.
@@ -463,32 +463,32 @@ Proof.
   intros a b c.
   unfold assoc_l, AssocL_Coproduct, swap, Swap_Coproduct, bimap, Bimap_Coproduct.
   apply coprod_split.
-  - rewrite !assoc_cat.
-    rewrite <- 2 (assoc_cat _ coprod_inl), !elim_inl.
+  - rewrite !cat_assoc.
+    rewrite <- 2 (cat_assoc _ coprod_inl), !elim_inl.
     rewrite cat_id_l.
-    rewrite assoc_cat, <- (assoc_cat _ coprod_inl (elim _ _) _), !elim_inl, elim_inr, elim_inl.
-    rewrite <- assoc_cat.
-    rewrite elim_inl, assoc_cat, elim_inl, <- assoc_cat, elim_inl.
+    rewrite cat_assoc, <- (cat_assoc _ coprod_inl (elim _ _) _), !elim_inl, elim_inr, elim_inl.
+    rewrite <- cat_assoc.
+    rewrite elim_inl, cat_assoc, elim_inl, <- cat_assoc, elim_inl.
     reflexivity.
     all: typeclasses eauto.
-  - rewrite !assoc_cat.
-    rewrite <- 2 (assoc_cat _ coprod_inr), !elim_inr.
-    rewrite !assoc_cat.
-    rewrite <- (assoc_cat _ coprod_inr), !elim_inr.
+  - rewrite !cat_assoc.
+    rewrite <- 2 (cat_assoc _ coprod_inr), !elim_inr.
+    rewrite !cat_assoc.
+    rewrite <- (cat_assoc _ coprod_inr), !elim_inr.
     all: try typeclasses eauto.
     apply coprod_split.
-    + rewrite <- 2 (assoc_cat _ coprod_inl), !elim_inl.
-      rewrite assoc_cat.
-      rewrite <- (assoc_cat _ coprod_inl), elim_inl, !elim_inr.
-      rewrite <- assoc_cat, !elim_inr.
+    + rewrite <- 2 (cat_assoc _ coprod_inl), !elim_inl.
+      rewrite cat_assoc.
+      rewrite <- (cat_assoc _ coprod_inl), elim_inl, !elim_inr.
+      rewrite <- cat_assoc, !elim_inr.
       rewrite cat_id_l.
       reflexivity.
       all: typeclasses eauto.
-    + rewrite <- 2 (assoc_cat _ coprod_inr), !elim_inr.
-      rewrite <- assoc_cat. rewrite elim_inr.
-      rewrite <- assoc_cat, !elim_inl.
-      rewrite assoc_cat, elim_inl.
-      rewrite <- assoc_cat, elim_inr.
+    + rewrite <- 2 (cat_assoc _ coprod_inr), !elim_inr.
+      rewrite <- cat_assoc. rewrite elim_inr.
+      rewrite <- cat_assoc, !elim_inl.
+      rewrite cat_assoc, elim_inl.
+      rewrite <- cat_assoc, elim_inr.
       reflexivity.
       all: typeclasses eauto.
 Qed.
@@ -505,15 +505,15 @@ Proof.
   unfold bimap, Bimap_Coproduct, swap, Swap_Coproduct.
   apply coprod_split.
   - rewrite elim_inl.
-    rewrite assoc_cat, <- assoc_cat, elim_inl.
-    rewrite <- assoc_cat, elim_inr.
-    rewrite assoc_cat, elim_inr.
+    rewrite cat_assoc, <- cat_assoc, elim_inl.
+    rewrite <- cat_assoc, elim_inr.
+    rewrite cat_assoc, elim_inr.
     reflexivity.
     all: typeclasses eauto.
   - rewrite elim_inr.
-    rewrite assoc_cat, <- assoc_cat, elim_inr.
-    rewrite <- assoc_cat, elim_inl.
-    rewrite assoc_cat, elim_inl.
+    rewrite cat_assoc, <- cat_assoc, elim_inr.
+    rewrite <- cat_assoc, elim_inl.
+    rewrite cat_assoc, elim_inl.
     reflexivity.
     all: typeclasses eauto.
 Qed.

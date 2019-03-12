@@ -517,7 +517,7 @@ Section Correctness.
   Proof.
     unfold seq_asm. 
     rewrite link_asm_correct, relabel_asm_correct, app_asm_correct.
-    rewrite <- lift_ktree_id, assoc_cat.
+    rewrite <- lift_ktree_id, cat_assoc.
     rewrite cat_id_r.
     rewrite sym_ktree_unfold.
     apply cat_from_loop.

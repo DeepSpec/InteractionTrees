@@ -52,7 +52,7 @@ Proof.
   reflexivity.
 Qed.
 
-Instance AssocCat_Handler : AssocCat Handler.
+Instance CatAssoc_Handler : CatAssoc Handler.
 Proof.
   red; intros A B C D f g h X e.
   unfold cat, Cat_Handler.

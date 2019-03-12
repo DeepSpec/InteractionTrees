@@ -18,15 +18,14 @@ Class CatIdL : Prop :=
 Class CatIdR : Prop :=
   cat_id_r : forall a b (f : C a b), f >=> id_ _ ⩯ f.
 
-(* TODO: In the end I find CatAssoc much more natural. *)
-Class AssocCat : Prop :=
-  assoc_cat : forall a b c d (f : C a b) (g : C b c) (h : C c d),
+Class CatAssoc : Prop :=
+  cat_assoc : forall a b c d (f : C a b) (g : C b c) (h : C c d),
       (f >=> g) >=> h ⩯ f >=> (g >=> h).
 
 Class Category : Prop := {
   category_cat_id_l :> CatIdL;
   category_cat_id_r :> CatIdR;
-  category_assoc_cat :> AssocCat;
+  category_cat_assoc :> CatAssoc;
 }.
 
 Class InitialObject (i : obj) {Initial_i : Initial C i} : Prop :=
@@ -34,7 +33,7 @@ Class InitialObject (i : obj) {Initial_i : Initial C i} : Prop :=
 
 End CatLaws.
 
-Arguments assoc_cat {obj} C {Eq2C CatC AssocCat} [a b c d].
+Arguments cat_assoc {obj} C {Eq2C CatC CatAssoc} [a b c d].
 Arguments initial_object : clear implicits.
 Arguments initial_object {obj} C {Eq2C} i {Initial_i InitialObject}.
 

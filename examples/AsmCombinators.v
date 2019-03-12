@@ -264,15 +264,15 @@ Proof.
   symmetry.
   apply fwd_eqn; intros h Eq.
   do 2 apply (cat_eq2_l (bimap (id_ _) swap)) in Eq.
-  rewrite <- assoc_cat, <- bimap_cat, swap_involutive, cat_id_l,
+  rewrite <- cat_assoc, <- bimap_cat, swap_involutive, cat_id_l,
     bimap_id, cat_id_l in Eq.
-  rewrite <- (assoc_cat _ _ _ assoc_r), <- (assoc_cat _ _ assoc_l _)
+  rewrite <- (cat_assoc _ _ _ assoc_r), <- (cat_assoc _ _ assoc_l _)
     in Eq.
   rewrite <- swap_assoc_l in Eq.
-  rewrite (assoc_cat _ _ _ assoc_r) in Eq.
+  rewrite (cat_assoc _ _ _ assoc_r) in Eq.
   rewrite assoc_l_mono in Eq.
   rewrite cat_id_r in Eq.
-  rewrite assoc_cat.
+  rewrite cat_assoc.
   assumption.
   all: typeclasses eauto.
 Qed.
@@ -284,11 +284,11 @@ Proof.
   symmetry.
   apply fwd_eqn; intros h Eq.
   do 2 apply (cat_eq2_r (bimap (id_ _) swap)) in Eq.
-  rewrite assoc_cat, <- bimap_cat, swap_involutive, cat_id_l,
+  rewrite cat_assoc, <- bimap_cat, swap_involutive, cat_id_l,
     bimap_id, cat_id_r in Eq.
-  rewrite 2 (assoc_cat _ assoc_l) in Eq.
+  rewrite 2 (cat_assoc _ assoc_l) in Eq.
   rewrite <- swap_assoc_r in Eq.
-  rewrite <- 2 (assoc_cat _ assoc_l) in Eq.
+  rewrite <- 2 (cat_assoc _ assoc_l) in Eq.
   rewrite assoc_l_mono, cat_id_l in Eq.
   assumption.
   all: try typeclasses eauto.
@@ -305,12 +305,12 @@ Proof.
   rewrite swap_bimap, bimap_ktree_loop.
   rewrite <- compose_loop, <- loop_compose.
   rewrite (swap_bimap _ _ cd ab).
-  rewrite <- !assoc_cat.
+  rewrite <- !cat_assoc.
   rewrite local_rewrite1.
-  rewrite 2 assoc_cat.
-  rewrite <- (assoc_cat _ swap assoc_r).
+  rewrite 2 cat_assoc.
+  rewrite <- (cat_assoc _ swap assoc_r).
   rewrite local_rewrite2.
-  rewrite <- !assoc_cat.
+  rewrite <- !cat_assoc.
   reflexivity.
   all: typeclasses eauto.
 Qed.
@@ -349,9 +349,9 @@ Lemma foo_assoc_l {A B C D D'} (f : ktree E _ D') :
     bimap (id_ A) (@assoc_l _ _ _ _ B C D) >=> (assoc_l >=> f)
    ⩯ assoc_l >=> (assoc_l >=> (bimap assoc_r (id_ _) >=> f)).
 Proof.
-  rewrite <- !assoc_cat.
+  rewrite <- !cat_assoc.
   rewrite <- assoc_l_assoc_l.
-  rewrite (assoc_cat _ _ _ (bimap _ (id_ _))).
+  rewrite (cat_assoc _ _ _ (bimap _ (id_ _))).
   rewrite <- bimap_cat, cat_id_l, assoc_l_mono, bimap_id, cat_id_r.
   reflexivity.
   all: typeclasses eauto.
@@ -361,12 +361,12 @@ Lemma foo_assoc_r {A' A B C D} (f : ktree E A' _) :
     f >=> assoc_r >=> bimap (id_ A) (@assoc_r _ _ _ _ B C D)
   ⩯ f >=> bimap assoc_l (id_ _) >=> assoc_r >=> assoc_r.
 Proof.
-  rewrite (assoc_cat _ _ _ assoc_r).
+  rewrite (cat_assoc _ _ _ assoc_r).
   rewrite <- assoc_r_assoc_r.
-  rewrite (assoc_cat _ (bimap _ _)), (assoc_cat _ _ (bimap _ _)).
-  rewrite <- (assoc_cat _ (bimap _ _)).
+  rewrite (cat_assoc _ (bimap _ _)), (cat_assoc _ _ (bimap _ _)).
+  rewrite <- (cat_assoc _ (bimap _ _)).
   rewrite <- bimap_cat, cat_id_l, assoc_l_mono, bimap_id, cat_id_l.
-  rewrite assoc_cat.
+  rewrite cat_assoc.
   reflexivity.
   all: typeclasses eauto.
 Qed.
@@ -387,7 +387,7 @@ Proof.
   rewrite <- (loop_rename_internal' swap swap).
   2: apply swap_involutive; typeclasses eauto.
   apply eq_ktree_loop.
-  rewrite !assoc_cat.
+  rewrite !cat_assoc.
   rewrite <- !sym_ktree_unfold, !assoc_l_ktree, !assoc_r_ktree, !bimap_lift_id, !bimap_id_lift, !compose_lift_ktree_l, compose_lift_ktree.
   unfold cat, Cat_ktree, ITree.cat, lift_ktree.
   intro x. rewrite ret_bind; simpl.

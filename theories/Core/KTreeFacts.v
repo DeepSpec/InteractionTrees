@@ -468,7 +468,7 @@ Proof.
 Qed.
 
 (** *** [compose_ktree] is associative *)
-Global Instance AssocCat_ktree : AssocCat (ktree E).
+Global Instance CatAssoc_ktree : CatAssoc (ktree E).
 Proof.
   intros A B C D f g h a.
   unfold cat, Cat_ktree, ITree.cat.
@@ -535,7 +535,7 @@ Qed.
 Fact compose_lift_ktree_l {A B C D} (f: A -> B) (g: B -> C) (k: ktree E C D) :
   (lift_ktree f >=> (lift_ktree g >=> k) ⩯ lift_ktree (g ∘ f) >=> k)%cat.
 Proof.
-  rewrite <- assoc_cat.
+  rewrite <- cat_assoc.
   rewrite compose_lift_ktree.
   reflexivity.
   typeclasses eauto.
@@ -544,7 +544,7 @@ Qed.
 Fact compose_lift_ktree_r {A B C D} (f: B -> C) (g: C -> D) (k: ktree E A B) :
   ((k >=> lift_ktree f) >=> lift_ktree g ⩯ k >=> lift_ktree (g ∘ f))%cat.
 Proof.
-  rewrite assoc_cat.
+  rewrite cat_assoc.
   rewrite compose_lift_ktree.
   reflexivity.
   typeclasses eauto.
@@ -931,7 +931,7 @@ Lemma loop_rename_internal' {I J A B} (ij : ktree E I J) (ji: ktree E J I)
 Proof.
   intros Hij.
   rewrite loop_rename_internal.
-  rewrite <- assoc_cat.
+  rewrite <- cat_assoc.
   rewrite <- bimap_cat.
   rewrite Hij.
   rewrite cat_id_l.
@@ -960,10 +960,10 @@ Theorem cat_from_loop {A B C} (ab : ktree E A B) (bc : ktree E B C) :
   loop (swap >=> bimap ab bc) ⩯ ab >=> bc.
 Proof.
   rewrite bimap_slide.
-  rewrite <- assoc_cat.
+  rewrite <- cat_assoc.
   rewrite loop_compose.
   rewrite swap_bimap.
-  rewrite <- !assoc_cat.
+  rewrite <- !cat_assoc.
   rewrite swap_involutive, cat_id_l.
   rewrite compose_loop.
   erewrite yanking_ktree.
