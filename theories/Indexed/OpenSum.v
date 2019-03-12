@@ -1,7 +1,8 @@
 From ITree Require Import
-     Basics
-     Core
-     Effect.Sum.
+     Basics.Basics
+     Core.ITree
+     Indexed.Sum.
+
 
 (** Automatic application of commutativity and associativity for
     sums types constructed with [sum1].
@@ -56,7 +57,7 @@ Instance Subeffect_right {A B C} `(A -< C) : A -< B +' C | 9 :=
     for the inclusion [E -< E +' E +' F]. *)
 
 (** Initial object of the [Subeffect] category. *)
-Instance Subeffect_empty A : emptyE -< A :=
+Instance Subeffect_empty A : void1 -< A :=
   { subeffect _ v := match v with end }.
 
 (** Notations to construct and pattern-match on nested sums. *)

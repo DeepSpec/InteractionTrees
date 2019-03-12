@@ -9,7 +9,7 @@
   We actually define a more general relation transformer
   [observing] to lift arbitrary relations through [observe]. *)
 
-From ITree Require Import Core.
+From ITree Require Import Core.ITree.
 
 From Coq Require Import
      Classes.RelationClasses
@@ -17,6 +17,7 @@ From Coq Require Import
      Setoids.Setoid
      Relations.Relations
      ProofIrrelevance.
+
 
 (** ** Misc *)
 

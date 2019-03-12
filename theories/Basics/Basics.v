@@ -1,7 +1,6 @@
 (** General-purpose definitions, not specific to itrees *)
 
 (* begin hide *)
-Set Universe Polymorphism.
 (* end hide *)
 
 (** A notation for a certain class of parametric functions.
@@ -19,17 +18,13 @@ Notation "E ~> F" := (forall T, E T -> F T)
 (** Identity morphism. *)
 Definition idM {E : Type -> Type} : E ~> E := fun _ e => e.
 
-(** A universe polymorphic empty type.
-    Similar to [Empty_set : Set] and [False : Prop].
-    Defined as an [Inductive] to get the usual eliminators. *)
-(* TODO: Is this any better than [Definition void = Empty_set.]? *)
-Inductive void : Type := .
+(** [void] is a shorthand for [Empty_set]. *)
+Notation void := Empty_set.
 
 (** Common monads and transformers. *)
 
 Module Monads.
 
-Set Universe Polymorphism.
 
 Definition identity (a : Type) : Type := a.
 

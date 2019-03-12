@@ -21,10 +21,12 @@ From ExtLib.Structures Require Import
      Functor Monoid.
 
 From ITree Require Import
-     Basics
-     Core Morphisms
-     Effect.Sum
-     OpenSum.
+     Basics.Basics
+     Core.ITree
+     Indexed.Sum
+     Indexed.OpenSum
+     Interp.Interp
+     Effects.State.
 
 Section Failure.
 
@@ -103,7 +105,7 @@ End Reader.
 Arguments ask {env E _}.
 Arguments run_reader {_ _} _ _ _.
 
-Import ITree.Basics.Monads.
+Import ITree.Basics.Basics.Monads.
 
 Section State.
 

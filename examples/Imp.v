@@ -9,7 +9,7 @@ Require Import ExtLib.Structures.Traversable.
 Require Import ExtLib.Data.List.
 
 From ITree Require Import
-     Basics
+     Basics.Basics
      ITree.
 
 Import MonadNotation.
@@ -89,7 +89,7 @@ Section Denote.
   (* The meaning of an expression *)
   Fixpoint denoteExpr (e : expr) : itree eff value :=
     match e with
-    | Var v => lift (GetVar v)
+    | Var v => ITree.liftE (subeffect _ (GetVar v))
     | Lit n => ret n
     | Plus a b => l <- denoteExpr a ;; r <- denoteExpr b ;; ret (l + r)
     end.
@@ -108,7 +108,7 @@ Section Denote.
     match s with
     | Assign x e =>
       v <- denoteExpr e ;;
-        lift (SetVar x v)
+      lift (SetVar x v)
     | Seq a b =>
       denoteStmt a ;; denoteStmt b
     | If i t e =>
@@ -116,7 +116,7 @@ Section Denote.
         if is_true v then denoteStmt t else denoteStmt e
     | While t b =>
       while (v <- denoteExpr t ;;
-	             if is_true v
+	     if is_true v
                then denoteStmt b ;; ret true
                else ret false)
     | Skip => ret tt
@@ -125,7 +125,7 @@ Section Denote.
 End Denote.
 
 From ITree Require Import
-     Effect.Env.
+     Effects.Env.
 
 From ExtLib Require Import
      Core.RelDec
@@ -154,6 +154,6 @@ Proof.
   - intros EQ; apply string_dec_sound in EQ; unfold rel_dec; simpl; rewrite EQ; reflexivity.
 Qed.
 
-Definition ImpEval (s: stmt): itree emptyE (env * unit) :=
+Definition ImpEval (s: stmt): itree void1 (env * unit) :=
   let p := interp evalLocals _ (denoteStmt s) in
   run_env _ p empty.

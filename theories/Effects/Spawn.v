@@ -1,7 +1,6 @@
 Set Implicit Arguments.
 Set Contextual Implicit.
 
-
 From Coq Require Import
      String List.
 Import ListNotations.
@@ -10,8 +9,9 @@ From ExtLib.Structures Require Import
      Monoid.
 
 From ITree Require Import
-     ITree.
-
+     Core.ITree
+     Indexed.Sum
+     OpenSum.
 
 (* An event that spawns a unit-producing thread with effects in E.   *)
 Inductive spawnE E : Type -> Type :=

@@ -23,11 +23,12 @@ From Coq Require Import
      Relations.Relations.
 
 From ITree Require Import
-     Core.
+     Core.ITree.
 
 From ITree Require Import
      Eq.UpToTausExplicit
      Eq.UpToTaus.
+
 
 Section SUTT.
 
@@ -323,8 +324,6 @@ Proof.
     pclearbot; subst; auto.
 Qed.
 
-Require Import ITree.MorphismsFacts ITree.Morphisms.
-
 Require Import Coq.Relations.Relations.
 
 Lemma eq_itree_vis_l {E R1 R2} {RR : R1 -> R2 -> Prop} {C1 C2 RC T}
@@ -411,8 +410,3 @@ Proof.
       pfold. red. eapply H1.
     - eapply EQTAUS. }
 Qed.
-
-(* Instance sutt_interp (E F : Type -> Type) (R : Type) : *)
-(*   Proper (Rhom (fun _ => sutt eq) ==> sutt eq ==> sutt eq) *)
-(*          (fun f => @interp E F f R). *)
-

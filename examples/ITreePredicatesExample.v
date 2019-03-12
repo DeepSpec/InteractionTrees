@@ -42,8 +42,8 @@ Variant stateE (S:Type) : Type -> Type :=
 Definition stateT (S:Type) (M:Type -> Type) (R:Type) := S -> M (S * R)%type.
 
 Definition interpret_stateF (S:Type) {R}
-           (rec : itree (stateE S) R -> stateT S (itree emptyE) R)
-           (t : itree (stateE S) R) : stateT S (itree emptyE) R :=
+           (rec : itree (stateE S) R -> stateT S (itree void1) R)
+           (t : itree (stateE S) R) : stateT S (itree void1) R :=
   fun s => match observe t with
         | RetF r => ret (s, r)
         | TauF t =>  Tau (rec t s)
@@ -51,7 +51,7 @@ Definition interpret_stateF (S:Type) {R}
         | VisF (Put s') k => Tau (rec (k tt) s')
         end.
 
-CoFixpoint interpret_state {S R:Type} (t:itree (stateE S) R) : stateT S (itree emptyE) R :=
+CoFixpoint interpret_state {S R:Type} (t:itree (stateE S) R) : stateT S (itree void1) R :=
   interpret_stateF interpret_state t.
 
 Lemma unfold_interpret_state : forall {S R} (t : itree (stateE S) R) (s:S),
@@ -89,7 +89,7 @@ Section Proper.
      (see the eq_itree_paco instance in Eq), which means we have to introduce names, start the upto proof,
      do the rewrite, and then regeneralize for the CIH.  It would be nicer if we could rewrite under (paco2 _ r).
    *)
-  Instance proper_interpret_state {S R} : Proper ((@eq_itree (stateE S) R) ==> (@eq S) ==> (@eq_itree emptyE (S * R))) interpret_state.
+  Instance proper_interpret_state {S R} : Proper ((@eq_itree (stateE S) R) ==> (@eq S) ==> (@eq_itree void1 (S * R))) interpret_state.
   Proof.
     repeat red.
     intros x y H0 x2 y0 H1.
@@ -265,7 +265,7 @@ Qed.
 *) 
 Lemma state_independent_k : forall {S R U} (t:itree (stateE S) R) 
                             (H: NoGets t)
-                            (k: (S * R) -> itree emptyE U)
+                            (k: (S * R) -> itree void1 U)
     (INV: forall s s' x, k (s, x) ≅ k (s', x)),
     forall s s', (sx <- interpret_state t s ;; (k sx)) ≅ (sx <- interpret_state t s' ;; (k sx)).
 Proof.

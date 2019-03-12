@@ -27,8 +27,11 @@ From Coq Require Import
      Relations.Relations.
 
 From ITree Require Import
-     Basics_Functions
-     Core
+     Basics.CategoryOps
+     Basics.Function
+     Core.ITree.
+
+From ITree Require Export
      Eq.Eq.
 
 Import ITreeNotations.
@@ -657,8 +660,9 @@ Lemma bind_aloop {E A B C} (f : A -> itree E A + B) (g : B -> itree E B + C) (x 
     (ITree.aloop f x >>= ITree.aloop g)
   ≈ ITree.aloop (fun ab =>
        match ab with
-       | inl a => inl (ITree._aloop id (fun a => Ret (inl a)) (sum_map_r inr (f a)))
-       | inr b => sum_map_l (ITree.map inr) (g b)
+       | inl a => inl (ITree._aloop id (fun a => Ret (inl a))
+                                    (bimap (id_ _) inr (f a)))
+       | inr b => bimap (ITree.map inr) (id_ _) (g b)
        end) (inl x).
 Proof.
   pupto2_init. revert_until g. pcofix CIH. intros.
@@ -666,9 +670,10 @@ Proof.
   rewrite !unfold_aloop'. unfold ITree._aloop.
   destruct (f x) as [t | b]; cbn.
   - match goal with
-    | [ |- context foo [ITree.bind' ?k ?t] ] => fold (ITree.bind t k)
+    | [ |- context [ITree.bind' ?k ?t] ] =>
+      replace (ITree.bind' k t) with (ITree.bind t k); [ | reflexivity ]
     end.
-    unfold id; rewrite 2 bind_bind.
+    unfold id. rewrite 2 bind_bind.
     pfold; constructor.
     pupto2 eutt_nested_clo_bind. econstructor.
     { reflexivity. }

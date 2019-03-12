@@ -11,8 +11,9 @@ From Coq Require Import
      RelationClasses.
 
 From ITree Require Import
-     Basics_Functions
-     Effect.Env
+     Basics.Category
+     Basics.Function
+     Effects.Env
      ITree.
 
 From ExtLib Require Import
@@ -73,7 +74,7 @@ End compile_assign.
 ]]
 *)
 Definition seq_asm {A B C} (ab : asm A B) (bc : asm B C): asm A C :=
-  link_asm (relabel_asm sum_comm id (app_asm ab bc)).
+  link_asm (relabel_asm swap (id_ _) (app_asm ab bc)).
 
 (* Location of temporary for [if]. *)
 Definition tmp_if := gen_tmp 0.
@@ -94,7 +95,7 @@ Definition if_asm {A}
            (e : list instr) (tp : asm unit A) (fp : asm unit A) :
   asm unit A :=
   seq_asm (cond_asm e)
-          (relabel_asm id sum_merge (app_asm tp fp)).
+          (relabel_asm (id_ _) merge (app_asm tp fp)).
 
 (* [while_asm e p]
 [[
@@ -108,7 +109,7 @@ Definition if_asm {A}
 *)
 Definition while_asm (e : list instr) (p : asm unit unit) :
   asm unit unit :=
-  link_asm (relabel_asm id sum_merge
+  link_asm (relabel_asm (id_ _) merge
     (app_asm (if_asm e
                 (relabel_asm id inl p)
                 (pure_asm inr))

@@ -9,7 +9,10 @@ From Coq Require Import
      ZArith.
 Import ListNotations.
 
-From ITree Require Import Basics_Functions.
+From ITree Require Import
+     Basics.Basics
+     Basics.Function
+     Basics.Category.
 
 Typeclasses eauto := 5.
 
@@ -48,10 +51,10 @@ End after.
 (** Any collection of blocks forms an [asm] program with
       no hidden blocks. *)
 Definition raw_asm {A B} (b : bks A B) : asm A B :=
-  {| internal := Empty_set;
+  {| internal := void;
      code := fun a' =>
                match a' with
-               | inl v => match v : Empty_set with end
+               | inl v => match v : void with end
                | inr a => fmap_block inr (b a)
                end;
   |}.
@@ -102,13 +105,13 @@ Definition app_asm {A B C D} (ab : asm A B) (cd : asm C D) :
 (** Rename visible program labels. *)
 Definition relabel_asm {A B C D} (f : A -> B) (g : C -> D)
            (bc : asm B C) : asm A D :=
-  {| code := relabel_bks (sum_bimap id f) (sum_bimap id g) bc.(code);
+  {| code := relabel_bks (bimap id f) (bimap id g) bc.(code);
   |}.
 
 (** Link labels from two programs together. *)
 Definition link_asm {I A B} (ab : asm (I + A) (I + B)) : asm A B :=
   {| internal := ab.(internal) + I;
-     code := relabel_bks sum_assoc_r sum_assoc_l ab.(code);
+     code := relabel_bks assoc_r assoc_l ab.(code);
   |}.
 
 (** ** Correctness *)
@@ -119,8 +122,10 @@ From ExtLib Require Import
      Structures.Monad.
 Import MonadNotation.
 From ITree Require Import
-     ITree KTree.
+     ITree KTree KTreeFacts.
 Import ITreeNotations.
+Import CatNotations.
+Local Open Scope cat.
 
 Require Import Imp. (* TODO: remove this *)
 
@@ -192,11 +197,11 @@ Qed.
 
 Lemma raw_asm_block_correct_lifted {A} (b : block A) :
    denote_asm (raw_asm_block b) ⩯
-          (fun _ => denote_block b).
+          ((fun _ : unit => denote_block b) : ktree _ _ _).
 Proof.
   unfold denote_asm.
   rewrite vanishing_ktree.
-  rewrite elim_l_ktree', elim_l_ktree.
+  rewrite case_l_ktree', case_l_ktree.
   unfold denote_b; simpl.
   intros [].
   rewrite fmap_block_map, map_map.
@@ -220,7 +225,7 @@ Theorem pure_asm_correct {A B} (f : A -> B) :
 Proof.
   unfold denote_asm .
   rewrite vanishing_ktree.
-  rewrite elim_l_ktree', elim_l_ktree.
+  rewrite case_l_ktree', case_l_ktree.
   unfold denote_b; simpl.
   intros ?.
   rewrite map_ret.
@@ -229,60 +234,85 @@ Qed.
 
 Definition id_asm_correct {A} :
     denote_asm (pure_asm id)
-  ⩯ @id_ktree E A.
+  ⩯ id_ A.
 Proof.
   rewrite pure_asm_correct; reflexivity.
 Defined.
 
-Lemma tensor_ktree_slide_right {A B C D}:
-  forall (ac: ktree E A C) (bd: ktree E B D),
-    ac ⊗ bd ⩯ id_ktree ⊗ bd >=> ac ⊗ id_ktree.
+Lemma fwd_eqn {a b : Type} (f g : ktree E a b) :
+  (forall h, h ⩯ f -> h ⩯ g) -> f ⩯ g.
 Proof.
-  intros.
-  unfold tensor_ktree.
-  repeat rewrite id_ktree_left.
-  rewrite sum_elim_compose.
-  rewrite compose_ktree_assoc.
-  rewrite inl_sum_elim, inr_sum_elim.
-  reflexivity.
+  intro H; apply H; reflexivity.
 Qed.
 
-Lemma local_rewrite1 {A B C: Type}:
-  id_ktree ⊗ sym_ktree >=> assoc_ktree_l >=> sym_ktree ⩯
-         @assoc_ktree_l E A B C >=> sym_ktree ⊗ id_ktree >=> assoc_ktree_r.
+Lemma cat_eq2_l {a b c : Type} (h : ktree E a b) (f g : ktree E b c) :
+  f ⩯ g -> h >=> f ⩯ h >=> g.
 Proof.
-  unfold id_ktree, tensor_ktree,sym_ktree, assoc_ktree_l, ITree.cat, assoc_ktree_r, lift_ktree.
-  intros [| []]; simpl;
-    repeat (rewrite bind_bind; simpl) || (rewrite ret_bind_; simpl); reflexivity.
+  intros H; rewrite H; reflexivity.
 Qed.
 
-Lemma local_rewrite2 {A B C: Type}:
-  sym_ktree >=> assoc_ktree_r >=> id_ktree ⊗ sym_ktree ⩯
-          @assoc_ktree_l E A B C >=> sym_ktree ⊗ id_ktree >=> assoc_ktree_r.
+Lemma cat_eq2_r {a b c : Type} (h : ktree E b c) (f g : ktree E a b) :
+  f ⩯ g -> f >=> h ⩯ g >=> h.
 Proof.
-  unfold id_ktree, tensor_ktree,sym_ktree, assoc_ktree_l, ITree.cat, assoc_ktree_r, lift_ktree.
-  intros [| []]; simpl;
-    repeat (rewrite bind_bind; simpl) || (rewrite ret_bind_; simpl); reflexivity.
+  intros H; rewrite H; reflexivity.
 Qed.
 
-Lemma loop_tensor_ktree {I A B C D}
+Lemma local_rewrite1 {a b c : Type}:
+    bimap (id_ a) (@swap _ (ktree E) _ _ b c) >=> assoc_l >=> swap
+  ⩯ assoc_l >=> bimap swap (id_ c) >=> assoc_r.
+Proof.
+  symmetry.
+  apply fwd_eqn; intros h Eq.
+  do 2 apply (cat_eq2_l (bimap (id_ _) swap)) in Eq.
+  rewrite <- cat_assoc, bimap_cat, swap_involutive, cat_id_l,
+    bimap_id, cat_id_l in Eq.
+  rewrite <- (cat_assoc _ _ _ assoc_r), <- (cat_assoc _ _ assoc_l _)
+    in Eq.
+  rewrite <- swap_assoc_l in Eq.
+  rewrite (cat_assoc _ _ _ assoc_r) in Eq.
+  rewrite assoc_l_mono in Eq.
+  rewrite cat_id_r in Eq.
+  rewrite cat_assoc.
+  assumption.
+  all: typeclasses eauto.
+Qed.
+
+Lemma local_rewrite2 {a b c : Type}:
+    swap >=> assoc_r >=> bimap (id_ _) swap
+  ⩯ @assoc_l _ (ktree E) _ _ a b c >=> bimap swap (id_ _) >=> assoc_r.
+Proof.
+  symmetry.
+  apply fwd_eqn; intros h Eq.
+  do 2 apply (cat_eq2_r (bimap (id_ _) swap)) in Eq.
+  rewrite cat_assoc, bimap_cat, swap_involutive, cat_id_l,
+    bimap_id, cat_id_r in Eq.
+  rewrite 2 (cat_assoc _ assoc_l) in Eq.
+  rewrite <- swap_assoc_r in Eq.
+  rewrite <- 2 (cat_assoc _ assoc_l) in Eq.
+  rewrite assoc_l_mono, cat_id_l in Eq.
+  assumption.
+  all: try typeclasses eauto.
+Qed.
+
+Lemma loop_bimap_ktree {I A B C D}
       (ab : ktree E A B) (cd : ktree E (I + C) (I + D)) :
-  ab ⊗ loop cd ⩯
-     loop (assoc_ktree_l >=> sym_ktree ⊗ id_ktree >=> assoc_ktree_r
-                           >=> ab ⊗ cd
-                           >=> assoc_ktree_l >=> sym_ktree ⊗ id_ktree >=> assoc_ktree_r).
+    bimap ab (loop cd)
+  ⩯ loop (assoc_l >=> bimap swap (id_ _)
+                  >=> assoc_r
+                  >=> bimap ab cd
+                  >=> assoc_l >=> bimap swap (id_ _) >=> assoc_r).
 Proof.
-  rewrite tensor_swap, tensor_ktree_loop.
-  rewrite <- compose_loop.
-  rewrite <- loop_compose.
-  rewrite (tensor_swap cd ab).
-  repeat rewrite <- compose_ktree_assoc.
+  rewrite swap_bimap, bimap_ktree_loop.
+  rewrite <- compose_loop, <- loop_compose.
+  rewrite (swap_bimap _ _ cd ab).
+  rewrite <- !cat_assoc.
   rewrite local_rewrite1.
-  do 2 rewrite compose_ktree_assoc.
-  rewrite <- (compose_ktree_assoc sym_ktree assoc_ktree_r _).
+  rewrite 2 cat_assoc.
+  rewrite <- (cat_assoc _ swap assoc_r).
   rewrite local_rewrite2.
-  repeat rewrite <- compose_ktree_assoc.
+  rewrite <- !cat_assoc.
   reflexivity.
+  all: typeclasses eauto.
 Qed.
 
 Lemma foo {A B C: Type}:
@@ -316,55 +346,56 @@ Proof.
 Qed.
 
 Lemma foo_assoc_l {A B C D D'} (f : ktree E _ D') :
-    @id_ktree E A ⊗ @assoc_ktree_l E B C D >=> (assoc_ktree_l >=> f)
-   ⩯ assoc_ktree_l >=> (assoc_ktree_l >=> (assoc_ktree_r ⊗ id_ktree >=> f)).
+    bimap (id_ A) (@assoc_l _ _ _ _ B C D) >=> (assoc_l >=> f)
+   ⩯ assoc_l >=> (assoc_l >=> (bimap assoc_r (id_ _) >=> f)).
 Proof.
-  rewrite <- !compose_ktree_assoc.
-  rewrite <- assoc_coherent_l.
-  rewrite (compose_ktree_assoc _ _ (_ ⊗ id_ktree)).
-  rewrite cat_tensor, id_ktree_left, assoc_lr, tensor_id.
-  rewrite id_ktree_right.
+  rewrite <- !cat_assoc.
+  rewrite <- assoc_l_assoc_l.
+  rewrite (cat_assoc _ _ _ (bimap _ (id_ _))).
+  rewrite bimap_cat, cat_id_l, assoc_l_mono, bimap_id, cat_id_r.
   reflexivity.
+  all: typeclasses eauto.
 Qed.
 
 Lemma foo_assoc_r {A' A B C D} (f : ktree E A' _) :
-    f >=> assoc_ktree_r >=> @id_ktree E A ⊗ @assoc_ktree_r E B C D
-  ⩯ f >=> assoc_ktree_l ⊗ id_ktree >=> assoc_ktree_r >=> assoc_ktree_r.
+    f >=> assoc_r >=> bimap (id_ A) (@assoc_r _ _ _ _ B C D)
+  ⩯ f >=> bimap assoc_l (id_ _) >=> assoc_r >=> assoc_r.
 Proof.
-  rewrite (compose_ktree_assoc _ _ assoc_ktree_r).
-  rewrite <- assoc_coherent_r.
-  rewrite (compose_ktree_assoc (tensor_ktree _ _)).
-  rewrite (compose_ktree_assoc _ (tensor_ktree _ _)).
-  rewrite <- (compose_ktree_assoc (tensor_ktree _ _)).
-  rewrite cat_tensor, id_ktree_left, assoc_lr, tensor_id.
-  rewrite id_ktree_left.
-  rewrite compose_ktree_assoc.
+  rewrite (cat_assoc _ _ _ assoc_r).
+  rewrite <- assoc_r_assoc_r.
+  rewrite (cat_assoc _ (bimap _ _)), (cat_assoc _ _ (bimap _ _)).
+  rewrite <- (cat_assoc _ (bimap _ _)).
+  rewrite bimap_cat, cat_id_l, assoc_l_mono, bimap_id, cat_id_l.
+  rewrite cat_assoc.
   reflexivity.
+  all: typeclasses eauto.
 Qed.
 
 Definition app_asm_correct {A B C D} (ab : asm A B) (cd : asm C D) :
-  @eq_ktree E _ _
-          (denote_asm (app_asm ab cd))
-          (tensor_ktree (denote_asm ab) (denote_asm cd)).
+     denote_asm (app_asm ab cd)
+  ⩯ bimap (denote_asm ab) (denote_asm cd).
 Proof.
   unfold denote_asm.
 
   match goal with | |- ?x ⩯ _ => set (lhs := x) end.
-  rewrite tensor_ktree_loop.
-  rewrite loop_tensor_ktree.
+  rewrite bimap_ktree_loop.
+  rewrite loop_bimap_ktree.
   rewrite <- compose_loop.
   rewrite <- loop_compose.
   rewrite loop_loop.
   subst lhs.
-  rewrite <- (loop_rename_internal' sym_ktree sym_ktree)
-    by apply sym_nilpotent.
+  rewrite <- (loop_rename_internal' swap swap).
+  2: apply swap_involutive; typeclasses eauto.
   apply eq_ktree_loop.
-  rewrite ! compose_ktree_assoc.
-  unfold tensor_ktree, sym_ktree, ITree.cat, assoc_ktree_l, assoc_ktree_r, id_ktree, lift_ktree.
-  intros [[|]|[|]]; cbn.
+  rewrite !cat_assoc.
+  rewrite <- !sym_ktree_unfold, !assoc_l_ktree, !assoc_r_ktree, !bimap_lift_id, !bimap_id_lift, !compose_lift_ktree_l, compose_lift_ktree.
+  unfold cat, Cat_ktree, ITree.cat, lift_ktree.
+  intro x. rewrite ret_bind; simpl.
+  destruct x as [[|]|[|]]; cbn.
   (* ... *)
-  all: repeat (rewrite ret_bind; simpl).
-  all: rewrite bind_bind.
+  all: unfold cat, Cat_ktree, ITree.cat.
+  all: try typeclasses eauto.
+  all: try rewrite bind_bind.
   all: unfold _app_B, _app_D.
   all: rewrite fmap_block_map.
   all: unfold ITree.map.
@@ -374,9 +405,8 @@ Qed.
 
 Definition relabel_bks_correct {A B C D} (f : A -> B) (g : C -> D)
            (bc : bks B C) :
-  @eq_ktree E _ _
-     (denote_b (relabel_bks f g bc))
-     (lift_ktree f >=> denote_b bc >=> lift_ktree g).
+    denote_b (relabel_bks f g bc)
+  ⩯ lift_ktree f >=> denote_b bc >=> lift_ktree g.
 Proof.
   rewrite lift_compose_ktree.
   rewrite compose_ktree_lift.
@@ -388,9 +418,8 @@ Qed.
 
 Definition relabel_asm_correct {A B C D} (f : A -> B) (g : C -> D)
            (bc : asm B C) :
-  @eq_ktree E _ _
-     (denote_asm (relabel_asm f g bc))
-     (lift_ktree f >=> denote_asm bc >=> lift_ktree g).
+    denote_asm (relabel_asm f g bc)
+  ⩯ lift_ktree f >=> denote_asm bc >=> lift_ktree g.
 Proof.
   unfold denote_asm.
   simpl.
@@ -398,20 +427,19 @@ Proof.
   rewrite <- compose_loop.
   rewrite <- loop_compose.
   apply eq_ktree_loop.
-  rewrite !tensor_id_lift.
+  rewrite !bimap_id_lift.
   reflexivity.
 Qed.
 
 Definition link_asm_correct {I A B} (ab : asm (I + A) (I + B)) :
-  @eq_ktree E _ _
-     (denote_asm (link_asm ab))
-     (loop (denote_asm ab)).
+    denote_asm (link_asm ab) ⩯ loop (denote_asm ab).
 Proof.
   unfold denote_asm.
   rewrite loop_loop.
   apply eq_ktree_loop.
   simpl.
   rewrite relabel_bks_correct.
+  rewrite <- assoc_l_ktree, <- assoc_r_ktree.
   reflexivity.
 Qed.
 

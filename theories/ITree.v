@@ -1,12 +1,12 @@
 From ITree Require Export
-     Basics
-     Core
+     Basics.Basics
+     Core.ITree
+     Core.KTree
      Eq.Eq
      Eq.UpToTaus
      Eq.SimUpToTaus
-     Effect.Sum
-     OpenSum
-     Translate
-     Morphisms
-     Fix
+     Indexed.Sum
+     Indexed.OpenSum
+     Interp.Interp
+     Interp.Handler
      .

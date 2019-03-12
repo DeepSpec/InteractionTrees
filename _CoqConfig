@@ -1,8 +1,16 @@
 -Q theories ITree
 
-theories/Basics.v
-theories/Basics_Functions.v
-theories/Core.v
+theories/Basics/Basics.v
+theories/Basics/CategoryOps.v
+theories/Basics/CategoryTheory.v
+theories/Basics/CategoryFacts.v
+theories/Basics/Category.v
+theories/Basics/Function.v
+theories/Basics/FunctionFacts.v
+
+theories/Core/ITree.v
+theories/Core/KTree.v
+theories/Core/KTreeFacts.v
 
 theories/Eq/Shallow.v
 theories/Eq/Eq.v
@@ -10,26 +18,26 @@ theories/Eq/UpToTaus.v
 theories/Eq/UpToTausExplicit.v
 theories/Eq/Untaus.v
 theories/Eq/SimUpToTaus.v
+theories/Eq.v
+theories/Eq/EqAxiom.v
 
-theories/Effect/Sum.v
-theories/Effect/Std.v
-theories/Effect/Spawn.v
-theories/Effect/Env.v
+theories/Indexed/Sum.v
+theories/Indexed/Function.v
+theories/Indexed/OpenSum.v
 
-theories/OpenSum.v
+theories/Interp/Interp.v
+theories/Interp/Handler.v
+theories/Interp/HandlerFacts.v
+theories/Interp/FixFacts.v
+theories/Interp/TranslateFacts.v
+theories/Interp/MorphismsFacts.v
+theories/Interp/Traces.v
+theories/Interp/MFixITree.v
 
-theories/Fix.v
-theories/FixFacts.v
-
-theories/Translate.v
-theories/TranslateFacts.v
-theories/Morphisms.v
-theories/MorphismsFacts.v
-
-theories/KTree.v
-
-theories/UpTo.v
-theories/Trace.v
-theories/MFixITree.v
+theories/Effects/State.v
+theories/Effects/StateFacts.v
+theories/Effects/Std.v
+theories/Effects/Spawn.v
+theories/Effects/Env.v
 
 theories/ITree.v

@@ -6,9 +6,7 @@ Import MonadNotation.
 Open Scope monad_scope.
 
 From ITree Require Import
-     ITree
-     OpenSum
-     Fix.
+     ITree.
 
 Inductive term : Type :=
 | Var : nat -> term
@@ -58,7 +56,7 @@ Fixpoint subst (n : nat) (s t : term) :=
   end.
 
 (* big-step call-by-value *)
-Definition big_step : term -> itree emptyE value :=
+Definition big_step : term -> itree void1 value :=
   rec (fun t =>
     match t with
     | Var n => ret (VHead (VVar n))
