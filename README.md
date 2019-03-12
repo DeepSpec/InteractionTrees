@@ -40,3 +40,33 @@ Now you can build the project with:
 ```
 make
 ```
+
+## Building the Documentation
+
+### 1. Basic Documention
+
+You can build the `coqdoc` generated html files by doing:
+
+```
+make html
+```
+Then visit `html/toc.html` in your web browser.
+
+### 2. coqdocjs Documentation
+
+For a much nicer presentation of the documentation, you can use
+[coqdocjs](https://github.com/tebbi/coqdocjs).
+
+1. Download
+  [coqdoc-master.zip](https://github.com/tebbi/coqdocjs/archive/master.zip) into
+  the Interaction Trees root directory and unzip it.  (It should create the
+  `coqdocjs-master` folder.)
+
+2. Run
+```
+make COQDOCJS_DIR=coqdocjs-master html
+```
+
+Note: If you opt to clone the `coqdocjs` git project rather than download the zip
+file, set the `COQDOCJS_DIR` appropriately.  (It will probably just be
+`coqdocjs` not `coqdocjs-master`.

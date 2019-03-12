@@ -30,6 +30,7 @@ _CoqProject
 _CoqPath
 lib/
 html/
+coqdocjs*
 
 tests/extraction/*.ml
 tests/extraction/*.mli
