@@ -89,7 +89,7 @@ Section Denote.
   (* The meaning of an expression *)
   Fixpoint denoteExpr (e : expr) : itree eff value :=
     match e with
-    | Var v => lift (GetVar v)
+    | Var v => ITree.liftE (subeffect _ (GetVar v))
     | Lit n => ret n
     | Plus a b => l <- denoteExpr a ;; r <- denoteExpr b ;; ret (l + r)
     end.
@@ -108,7 +108,7 @@ Section Denote.
     match s with
     | Assign x e =>
       v <- denoteExpr e ;;
-        lift (SetVar x v)
+      lift (SetVar x v)
     | Seq a b =>
       denoteStmt a ;; denoteStmt b
     | If i t e =>
@@ -116,7 +116,7 @@ Section Denote.
         if is_true v then denoteStmt t else denoteStmt e
     | While t b =>
       while (v <- denoteExpr t ;;
-	             if is_true v
+	     if is_true v
                then denoteStmt b ;; ret true
                else ret false)
     | Skip => ret tt
