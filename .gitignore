@@ -29,6 +29,7 @@ Makefile.coq.conf
 _CoqProject
 _CoqPath
 lib/
+html/
 
 tests/extraction/*.ml
 tests/extraction/*.mli

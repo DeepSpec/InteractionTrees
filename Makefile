@@ -24,6 +24,19 @@ examples:
 Makefile.coq: _CoqProject
 	coq_makefile -f $< -o $@
 
+
+## Use coqdocjs
+EXTRA_DIR:=coqdocjs/extra
+COQDOCFLAGS:= \
+  --toc --toc-depth 2 --html --interpolate \
+  --index indexpage --no-lib-name --parse-comments \
+  --with-header $(EXTRA_DIR)/header.html --with-footer $(EXTRA_DIR)/footer.html
+
+html: Makefile.coq coq
+	rm -rf html
+	$(MAKE) -f Makefile.coq html
+	cp $(EXTRA_DIR)/resources/* html
+
 clean: Makefile.coq
 	$(MAKE) -f Makefile.coq clean
 	$(MAKE) -C tests clean
