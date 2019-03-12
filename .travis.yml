@@ -5,7 +5,6 @@ env:
   - OPAMVERBOSE=1
   - OPAMYES=true
   - OPAMKEEPBUILDDIR=true
-  - PACO_VERSION="2.0.2"
   matrix:
   - OCAML_VERSION=4.07 COQ_VERSION="8.8.2"
   - OCAML_VERSION=4.07 COQ_VERSION="8.9.0"
@@ -31,7 +30,6 @@ install:
 - opam repo add coq-released https://coq.inria.fr/opam/released
 - opam repo add coq-extra-dev https://coq.inria.fr/opam/extra-dev
 - opam pin add coq $COQ_VERSION
-- opam pin add coq-paco $PACO_VERSION
 - opam upgrade  # Upgrade dependencies if cached
 - opam pin add coq-itree --kind=path . -n
 - opam install coq-itree --deps-only -v
