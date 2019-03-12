@@ -52,7 +52,7 @@ make html
 ```
 Then visit `html/toc.html` in your web browser.
 
-### 2. coqdocjs Documentation
+### 2. Prettier Documentation
 
 For a much nicer presentation of the documentation, you can use
 [coqdocjs](https://github.com/tebbi/coqdocjs).
