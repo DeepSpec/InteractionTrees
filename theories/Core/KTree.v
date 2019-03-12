@@ -4,7 +4,7 @@
 
 (* begin hide *)
 From ITree Require Import
-     Basics.Category
+     Basics.CategoryOps
      Basics.Function
      Core.ITree
      Eq.UpToTaus
@@ -12,7 +12,6 @@ From ITree Require Import
 
 Import ITreeNotations.
 Local Open Scope itree_scope.
-
 
 From Coq Require Import
      Morphisms.

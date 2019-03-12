@@ -27,7 +27,7 @@ From Coq Require Import
      Relations.Relations.
 
 From ITree Require Import
-     Basics.Category
+     Basics.CategoryOps
      Basics.Function
      Core.ITree.
 

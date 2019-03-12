@@ -8,6 +8,7 @@ From ITree Require Import
      Basics.Basics
      Basics.Category
      Basics.Function
+     Basics.FunctionFacts
      Core.ITree
      Core.KTree
      Eq.UpToTaus
@@ -494,6 +495,9 @@ Proof.
   constructor; typeclasses eauto.
 Qed.
 
+Global Instance InitialObject_ktree : InitialObject (ktree E) void.
+Proof. intros A f []. Qed.
+
 End CategoryLaws.
 
 (** *** [lift] properties *)
@@ -869,15 +873,20 @@ Proof.
   intros; reflexivity.
 Qed.
 
+Local Opaque ITree.bind.
+Local Opaque eutt.
+
 Lemma assoc_l_ktree {A B C} :
   assoc_l ⩯ @lift_ktree E (A + (B + C)) _ assoc_l.
 Proof.
-Admitted.
+  cbv; intros [ | [] ]; try rewrite ret_bind; reflexivity.
+Qed.
 
 Lemma assoc_r_ktree {A B C} :
   assoc_r ⩯ @lift_ktree E ((A + B) + C) _ assoc_r.
 Proof.
-Admitted.
+  cbv; intros [ [] | ]; try rewrite ret_bind; reflexivity.
+Qed.
 
 Lemma tensor_ktree_loop {I A B C D}
       (ab : ktree E (I + A) (I + B)) (cd : ktree E C D) :

@@ -536,7 +536,7 @@ Section Correctness.
     unfold cond_asm.
     rewrite raw_asm_block_correct_lifted.
     intros [].
-    unfold Category.cat, Cat_ktree, ITree.cat; simpl.
+    unfold CategoryOps.cat, Cat_ktree, ITree.cat; simpl.
     rewrite after_correct.
     simpl.
     repeat setoid_rewrite bind_bind.
@@ -544,7 +544,7 @@ Section Correctness.
     apply eutt_bind; [reflexivity | intros []].
     - rewrite ret_bind_.
       rewrite (relabel_asm_correct _ _ _ (inr tt)).
-      unfold Category.cat, Cat_ktree, ITree.cat; simpl.
+      unfold CategoryOps.cat, Cat_ktree, ITree.cat; simpl.
       rewrite bind_bind.
       unfold lift_ktree; rewrite ret_bind_.
       setoid_rewrite (app_asm_correct tp fp (inr tt)).
@@ -554,7 +554,7 @@ Section Correctness.
       unfold coprod_inr, Inr_ktree, lift_ktree; rewrite ret_bind_; reflexivity.
     - rewrite ret_bind_.
       rewrite (relabel_asm_correct _ _ _ (inl tt)).
-      unfold Category.cat, Cat_ktree, ITree.cat; simpl.
+      unfold CategoryOps.cat, Cat_ktree, ITree.cat; simpl.
       rewrite bind_bind.
       unfold lift_ktree; rewrite ret_bind_.
       setoid_rewrite (app_asm_correct tp fp (inl tt)).
@@ -603,7 +603,7 @@ Section Correctness.
         repeat rewrite ret_bind_.
         reflexivity.
       + rewrite (relabel_asm_correct _ _ _  tt).
-        unfold Category.cat, Cat_ktree, ITree.cat.
+        unfold CategoryOps.cat, Cat_ktree, ITree.cat.
         simpl; repeat setoid_rewrite bind_bind.
         unfold coprod_inl, Inl_ktree, lift_ktree; rewrite ret_bind_.
         apply eutt_bind; [reflexivity | intros []].
@@ -650,7 +650,7 @@ Section Correctness.
     rewrite tau_eutt.
     cbn.
     unfold run_env.
-    unfold evalLocals, Category.cat, Cat_Handler.
+    unfold evalLocals, CategoryOps.cat, Cat_Handler.
     rewrite env_lookupDefault_is_lift.
     unfold lift.
     rewrite unfold_interp_state; cbn.
