@@ -6,10 +6,10 @@ A Library for Representing Recursive and Impure Programs in Coq
 
 ## Organization
 
-Modules under `Core`, `Indexed`, and `Interp` keep theorems separated into
-`*Facts` modules, to allow parallel compilation, and to contain potential
-universe inconsistencies, so the computational content may still be
-usable for testing.
+We keep most theorems separated into `*Facts` modules,
+to allow parallel compilation,
+and to contain potential universe inconsistencies,
+so the computational definitions may still be usable for testing.
 
 - `Basics`: General-purpose definitions not tied to interaction trees.
 
