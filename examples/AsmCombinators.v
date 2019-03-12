@@ -264,7 +264,7 @@ Proof.
   symmetry.
   apply fwd_eqn; intros h Eq.
   do 2 apply (cat_eq2_l (bimap (id_ _) swap)) in Eq.
-  rewrite <- cat_assoc, <- bimap_cat, swap_involutive, cat_id_l,
+  rewrite <- cat_assoc, bimap_cat, swap_involutive, cat_id_l,
     bimap_id, cat_id_l in Eq.
   rewrite <- (cat_assoc _ _ _ assoc_r), <- (cat_assoc _ _ assoc_l _)
     in Eq.
@@ -284,7 +284,7 @@ Proof.
   symmetry.
   apply fwd_eqn; intros h Eq.
   do 2 apply (cat_eq2_r (bimap (id_ _) swap)) in Eq.
-  rewrite cat_assoc, <- bimap_cat, swap_involutive, cat_id_l,
+  rewrite cat_assoc, bimap_cat, swap_involutive, cat_id_l,
     bimap_id, cat_id_r in Eq.
   rewrite 2 (cat_assoc _ assoc_l) in Eq.
   rewrite <- swap_assoc_r in Eq.
@@ -352,7 +352,7 @@ Proof.
   rewrite <- !cat_assoc.
   rewrite <- assoc_l_assoc_l.
   rewrite (cat_assoc _ _ _ (bimap _ (id_ _))).
-  rewrite <- bimap_cat, cat_id_l, assoc_l_mono, bimap_id, cat_id_r.
+  rewrite bimap_cat, cat_id_l, assoc_l_mono, bimap_id, cat_id_r.
   reflexivity.
   all: typeclasses eauto.
 Qed.
@@ -365,7 +365,7 @@ Proof.
   rewrite <- assoc_r_assoc_r.
   rewrite (cat_assoc _ (bimap _ _)), (cat_assoc _ _ (bimap _ _)).
   rewrite <- (cat_assoc _ (bimap _ _)).
-  rewrite <- bimap_cat, cat_id_l, assoc_l_mono, bimap_id, cat_id_l.
+  rewrite bimap_cat, cat_id_l, assoc_l_mono, bimap_id, cat_id_l.
   rewrite cat_assoc.
   reflexivity.
   all: typeclasses eauto.

@@ -81,12 +81,11 @@ Class BimapId : Prop :=
   bimap_id : forall a b,
     bimap (id_ a) (id_ b) ⩯ id_ (bif a b).
 
-(* TODO: it's much more useful to me in the other direction. *)
 Class BimapCat : Prop :=
   bimap_cat : forall a1 a2 b1 b2 c1 c2
                      (f1 : C a1 b1) (g1 : C b1 c1)
                      (f2 : C a2 b2) (g2 : C b2 c2),
-    bimap (f1 >=> g1) (f2 >=> g2) ⩯ bimap f1 f2 >=> bimap g1 g2.
+    bimap f1 f2 >=> bimap g1 g2 ⩯ bimap (f1 >=> g1) (f2 >=> g2).
 
 Class Bifunctor : Prop := {
   bifunctor_bimap_id :> BimapId;

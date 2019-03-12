@@ -932,7 +932,7 @@ Proof.
   intros Hij.
   rewrite loop_rename_internal.
   rewrite <- cat_assoc.
-  rewrite <- bimap_cat.
+  rewrite bimap_cat.
   rewrite Hij.
   rewrite cat_id_l.
   rewrite bimap_id.

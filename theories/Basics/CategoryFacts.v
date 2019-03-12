@@ -52,7 +52,7 @@ Global Instance SemiIso_Bimap {a b c d} (f : C a b) (g : C c d)
          {g' : C d c} {SemiIso_g : SemiIso C g g'} :
   SemiIso C (bimap f g) (bimap f' g') := {}.
 Proof.
-  rewrite <- bimap_cat, (semi_iso f), (semi_iso g), bimap_id.
+  rewrite bimap_cat, (semi_iso f), (semi_iso g), bimap_id.
   reflexivity. all: typeclasses eauto.
 Qed.
 
@@ -105,7 +105,7 @@ Context {Proper_bimap : forall a b c d,
 Lemma bimap_slide {a b c d} (ac: C a c) (bd: C b d) :
   bimap ac bd ⩯ bimap ac (id_ _) >=> bimap (id_ _) bd.
 Proof.
-  rewrite <- bimap_cat, cat_id_l, cat_id_r.
+  rewrite bimap_cat, cat_id_l, cat_id_r.
   reflexivity.
   all: typeclasses eauto.
 Qed.
