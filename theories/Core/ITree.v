@@ -1,3 +1,6 @@
+(** * Interaction trees: core definitions *)
+
+(* begin hide *)
 Require Import ExtLib.Structures.Functor.
 Require Import ExtLib.Structures.Applicative.
 Require Import ExtLib.Structures.Monad.
@@ -8,7 +11,7 @@ Set Implicit Arguments.
 Set Contextual Implicit.
 Set Primitive Projections.
 
-(* Move the following tactic somewhere appropriate *)
+(* TODO: Move the following tactic somewhere appropriate *)
 Lemma hexploit_mp: forall P Q: Type, P -> (P -> Q) -> Q.
 Proof. intuition. Defined.
 Ltac hexploit x := eapply hexploit_mp; [eapply x|].
@@ -22,6 +25,12 @@ Ltac rewrite_everywhere_except lem X :=
   progress ((repeat match goal with [H: _ |- _] =>
                  match H with X => fail 1 | _ => rewrite lem in H end
              end); repeat rewrite lem).
+(* end hide *)
+
+(** ** The type of interaction trees *)
+
+(** The type [itree] is defined as the final coalgebra ("greatest
+    fixed point") of the functor [itreeF]. *)
 
 Section itree.
 
@@ -71,7 +80,18 @@ Arguments itreeF _ _ : clear implicits.
 
 Notation itree' E R := (itreeF E R (itree E R)).
 
+(** We wrap the primitive projection [_observe] in a function
+    [observe]. *)
 Definition observe {E R} (t : itree E R) : itree' E R := @_observe E R t.
+
+(** Note that when [_observe] appears unapplied in an expression,
+    it is implicitly wrapped in a function. However, there is no
+    way to distinguish whether such wrapping took place, so relying
+    on this behavior can lead to confusion.
+
+    We recommend to always use a primitive projection applied,
+    and wrap it in a function explicitly like the above to pass
+    around as a first-order function. *)
 
 Ltac genobs x ox := remember (observe x) as ox.
 Ltac genobs_clear x ox := genobs x ox; match goal with [H: ox = observe x |- _] => clear H x end.
