@@ -6,7 +6,7 @@ A Library for Representing Recursive and Impure Programs in Coq
 
 ## Dependencies
 
-- [coq-paco](https://github.com/snu-sf/paco) (2.0.2 or later)
+- [coq-paco](https://github.com/snu-sf/paco) (2.0.3 or later)
 - [coq-ext-lib](https://github.com/coq-ext-lib/coq-ext-lib) (0.10.0 or later)
 
 ## Build instructions
