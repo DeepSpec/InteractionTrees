@@ -135,9 +135,8 @@ Proof.
     intros; subst. pupto2_final.
     right. eapply CIH'. edestruct EUTTK; pclearbot; eauto.
   - pfold; econstructor. pupto2_final. eauto 7.
-  - pfold; constructor. pfold_reverse. rewrite unfold_interp.
-    auto.
-  - pfold; constructor. pfold_reverse. rewrite unfold_interp. auto.
+  - pfold; constructor. pfold2_reverse. rewrite unfold_interp. auto.
+  - pfold; constructor. pfold2_reverse. rewrite unfold_interp. auto.
 Qed.
 
 Instance eutt_interp (E F : Type -> Type) f (R : Type) :
@@ -349,9 +348,9 @@ Proof.
     intros; subst. pupto2_final.
     right. eapply CIH'. edestruct EUTTK; pclearbot; eauto.
   - econstructor. pupto2_final. eauto 9.
-  - pfold; constructor. pfold_reverse.
+  - pfold; constructor. pfold2_reverse.
     rewrite unfold_interp_state; auto.
-  - pfold; constructor. pfold_reverse.
+  - pfold; constructor. pfold2_reverse.
     rewrite unfold_interp_state; auto.
 Qed.
 

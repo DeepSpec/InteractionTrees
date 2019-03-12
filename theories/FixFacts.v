@@ -115,7 +115,7 @@ Proof.
   repeat intro. pupto2_init. revert_until T. pcofix CIH. intros.
   pfold. pupto2_init. revert_until CIH. pcofix CIH'. intros.
   rewrite unfold_interp_mrec, unfold_interp.
-  destruct (observe c); [| |destruct e]; simpl; eauto 7.
+  destruct (observe c); [| |destruct e]; simpl; eauto 8.
   - rewrite interp_mrec_bind.
     pfold; constructor.
     pupto2 eutt_nested_clo_bind; econstructor; [reflexivity|].
