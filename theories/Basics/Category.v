@@ -255,8 +255,8 @@ Class AssocRMono : Prop :=
 
 (** [assoc_r] is a split epimorphism, i.e., a right-inverse,
     [assoc_l] is its section. *)
-Class AssocREpi : Prop :=
-  assoc_r_epi : forall a b c,
+Class AssocLMono : Prop :=
+  assoc_l_mono : forall a b c,
     assoc_l >=> assoc_r ⩯ id_ (bif a (bif b c)).
 
 Context (I : obj).
@@ -334,6 +334,11 @@ Class SwapAssocR : Prop :=
   swap_assoc_r : forall a b c,
     @assoc_r _ _ _ _ a _ _ >=> swap >=> assoc_r
   ⩯ bimap swap (id_ c) >=> assoc_r >=> bimap (id_ b) swap.
+
+Class SwapAssocL : Prop :=
+  swap_assoc_l : forall a b c,
+    @assoc_l _ _ _ _ _ _ c >=> swap >=> assoc_l
+  ⩯ bimap (id_ a) swap >=> assoc_l >=> bimap swap (id_ b).
 
 End SymmetricLaws.
 
@@ -507,7 +512,7 @@ Proof.
   all: typeclasses eauto.
 Qed.
 
-Global Instance AssocREpi_Coproduct : AssocREpi C bif.
+Global Instance AssocLMono_Coproduct : AssocLMono C bif.
 Proof.
   intros a b c.
   unfold assoc_r, assoc_l, AssocR_Coproduct, AssocL_Coproduct.
@@ -692,7 +697,7 @@ Proof.
 Qed.
 
 (* TODO: automate *)
-Lemma SwapAssocR_Coproduct : SwapAssocR C bif.
+Global Instance SwapAssocR_Coproduct : SwapAssocR C bif.
 Proof.
   intros a b c.
   unfold assoc_r, AssocR_Coproduct, swap, Swap_Coproduct, bimap, Bimap_Coproduct.
@@ -725,6 +730,41 @@ Proof.
     rewrite elim_inr, assoc_cat, elim_inr, <- assoc_cat, elim_inr.
     reflexivity.
     all: typeclasses eauto.
+Qed.
+
+Global Instance SwapAssocL_Coproduct : SwapAssocL C bif.
+Proof.
+  intros a b c.
+  unfold assoc_l, AssocL_Coproduct, swap, Swap_Coproduct, bimap, Bimap_Coproduct.
+  apply coprod_split.
+  - rewrite !assoc_cat.
+    rewrite <- 2 (assoc_cat _ coprod_inl), !elim_inl.
+    rewrite cat_id_l.
+    rewrite assoc_cat, <- (assoc_cat _ coprod_inl (elim _ _) _), !elim_inl, elim_inr, elim_inl.
+    rewrite <- assoc_cat.
+    rewrite elim_inl, assoc_cat, elim_inl, <- assoc_cat, elim_inl.
+    reflexivity.
+    all: typeclasses eauto.
+  - rewrite !assoc_cat.
+    rewrite <- 2 (assoc_cat _ coprod_inr), !elim_inr.
+    rewrite !assoc_cat.
+    rewrite <- (assoc_cat _ coprod_inr), !elim_inr.
+    all: try typeclasses eauto.
+    apply coprod_split.
+    + rewrite <- 2 (assoc_cat _ coprod_inl), !elim_inl.
+      rewrite assoc_cat.
+      rewrite <- (assoc_cat _ coprod_inl), elim_inl, !elim_inr.
+      rewrite <- assoc_cat, !elim_inr.
+      rewrite cat_id_l.
+      reflexivity.
+      all: typeclasses eauto.
+    + rewrite <- 2 (assoc_cat _ coprod_inr), !elim_inr.
+      rewrite <- assoc_cat. rewrite elim_inr.
+      rewrite <- assoc_cat, !elim_inl.
+      rewrite assoc_cat, elim_inl.
+      rewrite <- assoc_cat, elim_inr.
+      reflexivity.
+      all: typeclasses eauto.
 Qed.
 
 Lemma swap_bimap {a b c d} (ab : C a b) (cd : C c d) :
