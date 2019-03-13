@@ -1,5 +1,7 @@
 -Q theories ITree
 
+theories/Simple.v
+
 theories/Basics/Basics.v
 theories/Basics/CategoryOps.v
 theories/Basics/CategoryTheory.v
