@@ -1,21 +1,16 @@
-(* Equivalence up to taus *)
-(* We consider tau as an "internal step", that should not be
+(** * Equivalence up to taus *)
+(** We consider tau as an "internal step", that should not be
    visible to the outside world, so adding or removing [Tau]
    constructors from an itree should produce an equivalent itree.
 
    We must be careful because there may be infinite sequences of
    taus (i.e., [spin]). Here we shall only allow inserting finitely
    many taus between any two visible steps ([Ret] or [Vis]), so that
-   [spin] is only related to itself. The main consequence of this
-   choice is that equivalence up to taus is an equivalence relation.
+   [spin] is only related to itself. This ensures that equivalence
+   up to taus is transitive (and in fact an equivalence relation).
  *)
 
-(* TODO:
-   - Generalize Reflexivity, Symmetry, Transitivity to heterogeneous
-     eutt.
-   - Make eutt a notation instead of a definition?
- *)
-
+(* begin hide *)
 Require Import Paco.paco.
 
 From Coq Require Import
@@ -36,7 +31,7 @@ From ITree Require Export
 
 Import ITreeNotations.
 Local Open Scope itree.
-
+(* end hide *)
 
 Section EUTT.
 
