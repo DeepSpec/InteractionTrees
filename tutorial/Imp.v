@@ -19,6 +19,8 @@ From ITree Require Import
      Basics
      ITree.
 
+Import MonadNotation.
+Open Scope monad_scope.
 Local Open Scope string_scope.
 
 (* ================================================================= *)
@@ -111,7 +113,7 @@ Import ImpNotations.
     and a value to be written, and defines an effect of type [Locals unit],
     no informative answer being expected from the environment.
  *)
-Inductive Locals : Type -> Type :=
+Variant Locals : Type -> Type :=
 | GetVar (x : var) : Locals value
 | SetVar (x : var) (v : value) : Locals unit.
 
@@ -149,7 +151,6 @@ Section Denote.
       while we can [bind] recursive computations in the case of operators as one would
       expect.
    *)
-
   Fixpoint denoteExpr (e : expr) : itree eff value :=
     match e with
     | Var v => lift (GetVar v)
@@ -241,7 +242,7 @@ Section Denote_Fact.
 End Denote_Fact.
 
 From ITree Require Import
-     Effect.Env.
+     Effects.Env.
 
 From ExtLib Require Import
      Core.RelDec
@@ -292,6 +293,6 @@ Qed.
 (* YZ NOTE: Here, we actually constrain the [eff] argument in [denoteStmt] to be
    exactly [Locals] rather than any universe of effect containing it.
  *)
-Definition ImpEval (s: stmt): itree emptyE (env * unit) :=
+Definition ImpEval (s: stmt): itree void1 (env * unit) :=
   let p := interp evalLocals _ (denoteStmt s) in
   run_env _ p empty.
