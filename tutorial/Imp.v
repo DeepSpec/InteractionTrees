@@ -143,7 +143,7 @@ Section Denote.
   (** _Imp_ expressions are denoted as [itree eff value], where the returned value
       in the tree is the value computed by the expression.
       In the [Var] case, the [lift] operator allows to smoothly lift a single effect to
-      an [itree] performing the corresponding [Vis] event and returning immediately the
+      a [itree] performing the corresponding [Vis] event and returning immediately the
       environment's answer.
       Usual monadic notations are used in the other cases. A constant is simply returned,
       while we can [bind] recursive computations in the case of operators as one would
@@ -159,27 +159,47 @@ Section Denote.
     | Mult a b => l <- denoteExpr a ;; r <- denoteExpr b ;; ret (l * r)
     end.
 
-  
+  (** We turn to the denotation of statements. As opposed to expressions, statements
+      do not return any value: their semantic domain is therefore [itree eff unit].
+      The most interesting construct is naturally the [while].
+
+      To define its meaning, we make use of the [loop] combinator provided by
+      the [itree] library: [loop : (C + A -> itree E (C + B)) -> A -> itree E B].
+      The combinator takes as argument the body of the loop, i.e. a function
+      that maps to inputs of type [C + A] a [itree], a computation, returning
+      either a [C] that can be fed back to the loop, or a return value of type
+      [B], and builds the fixpoint of the body, hiding away the [C] argument.
+      
+   (* YZ NOTE: Insert a reference here to Factorial directly defined over trees  *) 
+
+      We use [loop] to first build a new combinator [while] that takes a boolean
+      computation, runs it and loops if it is true, exits otherwise.
+   *)
+
   Definition while {eff} (t : itree eff bool) : itree eff unit :=
     loop 
       (fun l : unit + unit =>
          match l with
          | inr _ => ret (inl tt)
          | inl _ => continue <- t ;;
-                            if continue : bool then ret (inl tt) else ret (inr tt)
+                   if continue : bool then ret (inl tt) else ret (inr tt)
          end) tt.
 
-  (* the meaning of a statement *)
+  (** The meaning of statements can now be defined.
+      They are all straightforward, except for [While] that uses our new
+      [while] combinator over the computation that evaluates the conditional,
+      and then the body if it were true.
+   *)
   Fixpoint denoteStmt (s : stmt) : itree eff unit :=
     match s with
     | Assign x e =>
       v <- denoteExpr e ;;
-        lift (SetVar x v)
+      lift (SetVar x v)
     | Seq a b =>
       denoteStmt a ;; denoteStmt b
     | If i t e =>
       v <- denoteExpr i ;;
-        if is_true v then denoteStmt t else denoteStmt e
+      if is_true v then denoteStmt t else denoteStmt e
     | While t b =>
       while (v <- denoteExpr t ;;
 	             if is_true v
@@ -190,14 +210,16 @@ Section Denote.
 
 End Denote.
 
-Section Fact.
+Section Denote_Fact.
+
+  (** We illustrate the language by writing the traditional factorial. *)
 
   Open Scope expr_scope.
   Open Scope stmt_scope.
   Variable input: var.
   Variable output: var.
 
-  Definition fact (n:nat) :=
+  Definition fact (n:nat): stmt :=
     input ← n;;
     output ← 1;;
     WHILE input
@@ -205,7 +227,18 @@ Section Fact.
        input  ← input - 1
     DONE.
 
-End Fact.
+  (* YZ NOTE: For tutorial purpose, it could be good to be able to show /some/
+   representation of the tree inside of Coq. Can we have anything better than the
+   following?
+   *)
+  Eval simpl in denoteStmt (fact 6).
+
+  (** We have so far given meaning to [Imp] in terms of [itree]s. In order to
+      actually run the computation, we now need to /handle/ the events contained
+      in the trees, i.e. give a concrete interpretation of the environment.
+   *)
+
+End Denote_Fact.
 
 From ITree Require Import
      Effect.Env.
@@ -215,6 +248,17 @@ From ExtLib Require Import
      Structures.Maps
      Data.Map.FMapAList.
 
+(** We provide an /ITree event handler/ to interpret away [Locals] events.
+    We use an /environment effect/ to do so, modelling the environment as
+    a 0-initialized environment.
+ *)
+
+(* YZ NOTE: Here also we assume some global [E] that contains [envE] events.
+   We could instead have had [Locals ~> itree (envE var value)]?
+   Why chose this parameterized approach? It forces at the top level to instantiate
+   things with some kind of static global [E] containing everything: does it have any
+   drawbacks?
+ *)
 Definition evalLocals {E: Type -> Type} `{envE var value -< E}: Locals ~> itree E :=
   fun _ e =>
     match e with
@@ -222,6 +266,7 @@ Definition evalLocals {E: Type -> Type} `{envE var value -< E}: Locals ~> itree 
     | SetVar x v => env_add x v
     end.
 
+(** We specifically implement this environment using ExtLib's finite maps. *)
 Definition env := alist var value.
 
 (* Enable typeclass instances for Maps keyed by strings and values *)
@@ -237,6 +282,16 @@ Proof.
   - intros EQ; apply string_dec_sound in EQ; unfold rel_dec; simpl; rewrite EQ; reflexivity.
 Qed.
 
+(* Finally, we can define an evaluator for our statements.
+   To do so, we first denote them, leading to a [itree Locals unit].
+   We then [interp]ret [Locals] into [envE] using [evalLocals], leading to
+   a [itree (envE var value) unit].
+   Finally, [run_env] interprets the [itree] into the state monad, resulting into
+   a an [itree] free of any effect, but returning an environment.
+ *)
+(* YZ NOTE: Here, we actually constrain the [eff] argument in [denoteStmt] to be
+   exactly [Locals] rather than any universe of effect containing it.
+ *)
 Definition ImpEval (s: stmt): itree emptyE (env * unit) :=
   let p := interp evalLocals _ (denoteStmt s) in
   run_env _ p empty.
