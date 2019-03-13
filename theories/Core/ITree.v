@@ -14,24 +14,24 @@ Set Primitive Projections.
 
 (** ** The type of interaction trees *)
 
-(** The type [itree] is defined as the final coalgebra ("greatest
-    fixed point") of the functor [itreeF]. *)
+(** An [itree E R] is the denotation of a program as coinductive
+    (possibly infinite) tree where the leaves [Ret] are labeled with
+    [R] and every node is either a [Tau] node with one child, or a
+    branching node [Vis] with a visible effect [E X] that branches
+    on the values of [X]. *)
 
 Section itree.
 
   Context {E : Type -> Type} {R : Type}.
 
+  (** The type [itree] is defined as the final coalgebra ("greatest
+      fixed point") of the functor [itreeF]. *)
   Variant itreeF (itree : Type) :=
   | RetF (r : R)
   | TauF (t : itree)
-  | VisF {u} (e : E u) (k : u -> itree)
+  | VisF {X : Type} (e : E X) (k : X -> itree)
   .
 
-  (** An [itree E R] is the denotation of a program as coinductive
-    (possibly infinite) tree where the leaves [Ret] are labeled with
-    [R] and every node is either a [Tau] node with one child, or a
-    branching node [Vis] with a visible effect [E X] that branches
-    on the values of [X]. *)
   CoInductive itree : Type := go
   { _observe : itreeF itree }.
 
