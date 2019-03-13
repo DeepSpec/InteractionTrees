@@ -58,7 +58,7 @@ Proof.
   destruct (observe t); cbn.
   - reflexivity.
   - rewrite ret_bind; reflexivity. (* TODO: Incredibly slow *)
-  - rewrite map_bind. apply eq_itree_tau. eapply eq_itree_bind.
+  - rewrite map_bind. apply eq_itree_Tau. eapply eq_itree_bind.
     reflexivity.
     intros ? _ []; reflexivity.
 Qed.
@@ -165,7 +165,7 @@ Lemma interp_liftE {E F : Type -> Type} {R : Type}
   interp f _ (ITree.lift e) ≅ Tau (f _ e).
 Proof.
   unfold ITree.lift. rewrite vis_interp.
-  apply eq_itree_tau.
+  apply eq_itree_Tau.
   setoid_rewrite ret_interp.
   rewrite bind_ret.
   reflexivity.

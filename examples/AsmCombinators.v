@@ -152,7 +152,7 @@ Proof.
     + unfold ITree.map; rewrite bind_bind.
       eapply eq_itree_eq_bind; [reflexivity | intros []; rewrite ret_bind; reflexivity].
     + rewrite (itree_eta (ITree.map _ _)).
-      cbn. apply eq_itree_vis. intros [].
+      cbn. apply eq_itree_Vis. intros [].
 Qed.
 
 (* TODO: send to ext-lib *)
@@ -183,16 +183,6 @@ Lemma denote_list_app:
 Proof.
   intros is1 is2; induction is1 as [| i is1 IH]; simpl; intros; [rewrite ret_bind; reflexivity |].
   rewrite bind_bind; setoid_rewrite IH; reflexivity.
-Qed.
-
-(* TO MOVE *)
-Lemma map_ret {X Y: Type}:
-  forall (f: X -> Y) x,
-    @ITree.map E _ _ f (Ret x) ≅ Ret (f x).
-Proof.
-  intros.
-  unfold ITree.map.
-  rewrite ret_bind; reflexivity.
 Qed.
 
 Lemma raw_asm_block_correct_lifted {A} (b : block A) :

@@ -246,7 +246,7 @@ Qed.
 Lemma yanking {E A} (a : A) :
   @loop E _ _ _ swap a ≅ Tau (Ret a).
 Proof.
-  rewrite itree_eta; cbn; apply eq_itree_tau.
+  rewrite itree_eta; cbn; apply eq_itree_Tau.
   rewrite itree_eta; reflexivity.
 Qed.
 

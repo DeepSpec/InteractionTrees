@@ -52,7 +52,7 @@ Proof.
   - reflexivity.
   - rewrite ret_bind_.
     reflexivity.
-  - rewrite map_bind. eapply eq_itree_tau.
+  - rewrite map_bind. eapply eq_itree_Tau.
     eapply eq_itree_bind.
     + reflexivity.
     + intros [] _ []; reflexivity.
@@ -104,7 +104,7 @@ Lemma interp_state_liftE {E F : Type -> Type} {R S : Type}
   (interp_state f _ (ITree.lift e) s) ≅ Tau (f _ e s >>= fun i => Ret i).
 Proof.
   unfold ITree.lift. rewrite interp_state_vis.
-  apply eq_itree_tau.
+  apply eq_itree_Tau.
   eapply eq_itree_bind.
   - reflexivity.
   - intros [] _ []; rewrite interp_state_ret. reflexivity.
