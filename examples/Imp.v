@@ -89,7 +89,7 @@ Section Denote.
   (* The meaning of an expression *)
   Fixpoint denoteExpr (e : expr) : itree eff value :=
     match e with
-    | Var v => ITree.liftE (subeffect _ (GetVar v))
+    | Var v => ITree.lift (subeffect _ (GetVar v))
     | Lit n => ret n
     | Plus a b => l <- denoteExpr a ;; r <- denoteExpr b ;; ret (l + r)
     end.

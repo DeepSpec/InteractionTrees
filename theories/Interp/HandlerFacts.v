@@ -33,7 +33,7 @@ Proof.
   rewrite unfold_interp. unfold interp_u.
   destruct (observe t); cbn; eauto.
   - pfold. econstructor. auto.
-  - unfold id_, Id_Handler, ITree.liftE. rewrite vis_bind_.
+  - unfold id_, Id_Handler, ITree.lift. rewrite vis_bind_.
     pfold; do 2 constructor.
     left; rewrite ret_bind; auto.
 Qed.

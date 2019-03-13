@@ -337,7 +337,7 @@ Qed.
 
 Lemma unfold_bind_ {E R S}
            (t : itree E R) (k : R -> itree E S) :
-  ITree.bind t k ≅ ITree.bind_match k (fun t => ITree.bind t k) (observe t).
+  ITree.bind t k ≅ ITree._bind k (fun t => ITree.bind t k) (observe t).
 Proof. rewrite unfold_bind. reflexivity. Qed.
 
 Lemma ret_bind_ {E R S} (r : R) (k : R -> itree E S) :

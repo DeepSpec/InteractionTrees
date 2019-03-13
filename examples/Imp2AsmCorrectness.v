@@ -571,7 +571,7 @@ Section Correctness.
          match l with
          | inl tt =>
            denote_list e ;;
-           v <- ITree.liftE (inl1 (GetVar tmp_if)) ;;
+           v <- ITree.lift (inl1 (GetVar tmp_if)) ;;
            if v : value then
              Ret (inr tt)
            else

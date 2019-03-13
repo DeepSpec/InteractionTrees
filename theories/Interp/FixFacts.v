@@ -114,7 +114,7 @@ Proof.
 Qed.
 
 Theorem interp_mrec_as_interp {T} (c : itree _ T) :
-  interp_mrec ctx _ c ≈ interp (case_ (mrec ctx) ITree.liftE) _ c.
+  interp_mrec ctx _ c ≈ interp (case_ (mrec ctx) ITree.lift) _ c.
 Proof.
   repeat intro. pupto2_init. revert_until T. pcofix CIH. intros.
   pfold. pupto2_init. revert_until CIH. pcofix CIH'. intros.
@@ -125,7 +125,7 @@ Proof.
     pupto2 eutt_nested_clo_bind; econstructor; [reflexivity|].
     intros ? _ []; eauto.
 
-  - unfold ITree.liftE, case_; simpl. rewrite vis_bind_.
+  - unfold ITree.lift, case_; simpl. rewrite vis_bind_.
     pfold; constructor.
     pupto2_final.
     left; pfold; econstructor.
@@ -134,7 +134,7 @@ Proof.
 Qed.
 
 Theorem mrec_as_interp {T} (d : D T) :
-  mrec ctx _ d ≈ interp (case_ (mrec ctx) ITree.liftE) _ (ctx _ d).
+  mrec ctx _ d ≈ interp (case_ (mrec ctx) ITree.lift) _ (ctx _ d).
 Proof.
   apply interp_mrec_as_interp.
 Qed.
@@ -142,7 +142,7 @@ Qed.
 End Facts.
 
 Lemma rec_unfold {E A B} (f : A -> itree (callE A B +' E) B) (x : A) :
-  rec f x ≈ interp (case_ (calling' (rec f)) ITree.liftE) _ (f x).
+  rec f x ≈ interp (case_ (calling' (rec f)) ITree.lift) _ (f x).
 Proof.
   unfold rec.
   rewrite mrec_as_interp.

@@ -50,11 +50,11 @@ Section itree.
   CoInductive itree : Type := go
   { _observe : itreeF itree }.
 
-  (* A primitive projection, such as [_observe], must always be
-     applied. To be used as a function, wrap it explicitly:
-     [fun x => _observe x] or [observe] (defined below). *)
+  (** A primitive projection, such as [_observe], must always be
+      applied. To be used as a function, wrap it explicitly:
+      [fun x => _observe x] or [observe] (defined below). *)
 
-  (** Notes about using [itree]:
+  (* Notes about using [itree]:
 
      - You should simplify using [cbn] rather than [simpl] when working
        with terms of the form [observe e] where [e] is defined by
@@ -63,14 +63,6 @@ Section itree.
 
      - Once you have [observe t] as the subject of [match], you can
        [destruct (observe t)] to do the case split.
-
-   [[  - TODO: add more documentation about the ways  to define functions
-       by splitting them into the "_match" body and the [CoFixpoint]
-
-       - TODO: paco?
-
-   ]]
-
    *)
 
 End itree.
@@ -99,29 +91,78 @@ Ltac simpobs := repeat match goal with [H: _ = observe _ |- _] =>
                     rewrite_everywhere_except (@eq_sym _ _ _ H) H
                 end.
 
+Bind Scope itree_scope with itree.
+Delimit Scope itree_scope with itree.
+Local Open Scope itree_scope.
+
 (** We introduce notation for the [Tau], [Ret], and [Vis] constructors. Using
     notation rather than definitions works better for extraction.  (The [spin]
     definition, given below does not extract correctly if [Tau] is a definition.)
 
     Using this notation means that we occasionally have to eta expand, e.g.
-    writing [Vis e (fun x => Ret x)] instead of [Vis e Ret].
+    writing [Vis e (fun x => Ret x)] instead of [Vis e Ret]. (In this
+    particular case, this is [ITree.lift].)
 *)
-Bind Scope itree_scope with itree.
-Delimit Scope itree_scope with itree.
-Local Open Scope itree_scope.
-
 Notation Ret x := (go (RetF x)).
 Notation Tau t := (go (TauF t)).
 Notation Vis e k := (go (VisF e k)).
 
+(** ** Main operations on [itree] *)
+
+(** The core definitions are wrapped in a module for namespacing.
+    They are meant to be used qualified (e.g., ITree.bind) or
+    via notations (e.g., [>>=]). *)
+
+(** *** How to write cofixpoints *)
+
+(** We define cofixpoints in two steps: first a plain definition
+    (prefixed with an [_], e.g., [_bind], [_aloop]) defines the body
+    of the function:
+
+    - it takes the recursive call ([bind]) as a parameter;
+    - if we are deconstructing an itree, this body takes
+      the unwrapped [itreeF];
+
+    second the actual [CoFixpoint] (or, equivalently, [cofix]) ties
+    the knot, applying [observe] to any [itree] parameters. *)
+
+(** This style allows us to keep [cofix] from ever appearing in
+    proofs, which could otherwise get quite unwieldly.
+    For every [CoFixpoint] (such as [bind]), we prove an unfolding
+    lemma to rewrite it as a term whose head is [_bind], without
+    any [cofix] above it.
+[[
+    unfold_bind : observe (bind t k)
+                = observe (_bind (fun t' => bind t' k) t)
+]]
+    Note that this is an equality "up to" [observe]. It would not be
+    provable if it were a plain equality:
+[[
+    bind t k = _bind (...) t  (* unfold the definition of [bind]... *)
+    (cofix bind' t1 := _bind (...) t1) t = _bind (...) t1
+]]
+    The [cofix] is stuck, and can only be unstuck under the primitive
+    projection [_observe] (which is wrapped by [observe]).
+ *)
+
+(** *** Definitions *)
+
 Module ITree.
+
+(** [bind]: monadic composition, tree substitution, sequencing of
+    computations. [bind t k] is also denoted by [t >>= k] and using
+    "do-notation" [x <- t ;; k x]. *)
 
 Section bind.
   Context {E : Type -> Type} {T U : Type}.
+  (* We can keep the continuation outside the cofixpoint.
+     In particular, this allows us to nest [bind] in other cofixpoints,
+     as long as the recursive occurences are in the continuation
+     (i.e., this makes it easy to define tail-recursive functions).
+   *)
   Variable k : T -> itree E U.
 
-  (* The [match] in the definition of bind. *)
-  Definition bind_match
+  Definition _bind
              (bind : itree E T -> itree E U)
              (oc : itreeF E T (itree E T)) : itree E U :=
     match oc with
@@ -131,22 +172,28 @@ Section bind.
     end.
 
   CoFixpoint bind' (t : itree E T) : itree E U :=
-    bind_match bind' (observe t).
+    _bind bind' (observe t).
 
 End bind.
 
-Arguments bind_match _ _ /.
+Arguments _bind _ _ /.
 
-(* Monadic [>>=]: tree substitution, sequencing of computations. *)
-Definition bind {E T U}
-           (c : itree E T) (k : T -> itree E U)
-: itree E U :=
-  bind' k c.
+Definition bind {E T U} (c : itree E T) (k : T -> itree E U)
+  : itree E U
+  := bind' k c.
 
+(** Monadic composition of continuations (i.e., Kleisli composition).
+ *)
 Definition cat {E T U V}
            (k : T -> itree E U) (h : U -> itree E V) :
   T -> itree E V :=
   fun t => bind (k t) h.
+
+(** [aloop]: A primitive for general recursion.
+    Iterate a function updating an accumulator [A], until it produces
+    an output [B]. It's an Asymmetric variant of [loop], and it looks
+    similar to an Anamorphism, hence the name [aloop].
+ *)
 
 Definition _aloop {E : Type -> Type} {R I : Type}
            (tau : _)
@@ -157,9 +204,6 @@ Definition _aloop {E : Type -> Type} {R I : Type}
   | inr r => Ret r
   end.
 
-(* Iterate a function updating an accumulator [A], until it produces
-   an output [B]. It's an Asymmetric variant of [loop], and it looks
-   similar to an Anamorphism, hence the name [aloop]. *)
 Definition aloop {E : Type -> Type} {R I: Type}
            (step : I -> itree E I + R) : I -> itree E R :=
   cofix aloop_ i := _aloop (fun t => Tau t) aloop_ (step i).
@@ -176,7 +220,8 @@ Definition aloop {E : Type -> Type} {R I: Type}
 Definition map {E R S} (f : R -> S)  (t : itree E R) : itree E S :=
   bind t (fun x => Ret (f x)).
 
-Definition liftE {E : Type -> Type} : E ~> itree E :=
+(** Atomic itrees performing a single effect. *)
+Definition lift {E : Type -> Type} : E ~> itree E :=
   fun R e => Vis e (fun x => Ret x).
 
 (** Ignore the result of a tree. *)
@@ -199,16 +244,18 @@ Definition when {E}
 
 End ITree.
 
-Module ITreeNotations.
-(* Sometimes it's more convenient to work without the type classes
-   Monad, etc. When functions using type classes are specialized,
-   they simplify easily, so lemmas without classes are easier
-   to apply than lemmas with.
+(** ** Notations *)
 
-   We can also make ExtLib's [bind] opaque, in which case it still
-   doesn't hurt to have these notations around.
+(** Sometimes it's more convenient to work without the type classes
+    [Monad], etc. When functions using type classes are specialized,
+    they simplify easily, so lemmas without classes are easier
+    to apply than lemmas with.
+
+    We can also make ExtLib's [bind] opaque, in which case it still
+    doesn't hurt to have these notations around.
  *)
 
+Module ITreeNotations.
 Notation "t1 >>= k2" := (ITree.bind t1 k2)
   (at level 50, left associativity) : itree_scope.
 Notation "x <- t1 ;; t2" := (ITree.bind t1 (fun x => t2))
@@ -220,6 +267,8 @@ Notation "' p <- t1 ;; t2" :=
   (at level 100, t1 at next level, p pattern, right associativity) : itree_scope.
 Infix ">=>" := ITree.cat (at level 50, left associativity) : itree_scope.
 End ITreeNotations.
+
+(** ** Instances *)
 
 Instance Functor_itree {E} : Functor (itree E) :=
 { fmap := @ITree.map E }.

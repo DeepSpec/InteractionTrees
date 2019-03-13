@@ -101,9 +101,9 @@ Qed.
 Lemma interp_state_liftE {E F : Type -> Type} {R S : Type}
       (f : E ~> Monads.stateT S (itree F))
       (s : S) (e : E R) :
-  (interp_state f _ (ITree.liftE e) s) ≅ Tau (f _ e s >>= fun i => Ret i).
+  (interp_state f _ (ITree.lift e) s) ≅ Tau (f _ e s >>= fun i => Ret i).
 Proof.
-  unfold ITree.liftE. rewrite interp_state_vis.
+  unfold ITree.lift. rewrite interp_state_vis.
   apply eq_itree_tau.
   eapply eq_itree_bind.
   - reflexivity.

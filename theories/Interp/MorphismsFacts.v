@@ -162,9 +162,9 @@ Qed.
 Lemma interp_liftE {E F : Type -> Type} {R : Type}
       (f : E ~> (itree F))
       (e : E R) :
-  interp f _ (ITree.liftE e) ≅ Tau (f _ e).
+  interp f _ (ITree.lift e) ≅ Tau (f _ e).
 Proof.
-  unfold ITree.liftE. rewrite vis_interp.
+  unfold ITree.lift. rewrite vis_interp.
   apply eq_itree_tau.
   setoid_rewrite ret_interp.
   rewrite bind_ret.
@@ -175,14 +175,14 @@ Qed.
 (** ** Composition of [interp] *)
 
 Lemma interp_id_liftE {E R} (t : itree E R) :
-  interp (fun _ e => ITree.liftE e) _ t ≈ t.
+  interp (fun _ e => ITree.lift e) _ t ≈ t.
 Proof.
   pupto2_init; revert t; pcofix CIH; intros t.
   pfold. pupto2_init; revert t; pcofix CIH'; intros t.
   rewrite unfold_interp.
   destruct (observe t); cbn; eauto.
   - pfold. constructor. pupto2_final; auto.
-  - unfold ITree.liftE. rewrite vis_bind; cbn.
+  - unfold ITree.lift. rewrite vis_bind; cbn.
     pfold; constructor; constructor.
     left. rewrite ret_bind.
     auto.
@@ -233,7 +233,7 @@ Proof.
 Qed.
 
 Lemma translate_to_interp {E F R} (f : E ~> F) (t : itree E R) :
-  translate f t ≈ interp (fun _ e => ITree.liftE (f _ e)) _ t.
+  translate f t ≈ interp (fun _ e => ITree.lift (f _ e)) _ t.
 Proof.
   pupto2_init; revert t; pcofix CIH; intros t.
   pfold. pupto2_init; revert t; pcofix CIH'; intros t.
@@ -242,7 +242,7 @@ Proof.
   unfold translateF, interp_u.
   destruct (observe t); cbn; simpl in *; eauto.
   - pfold. constructor. auto.
-  - unfold ITree.liftE. rewrite vis_bind.
+  - unfold ITree.lift. rewrite vis_bind.
     pfold. do 2 constructor.
     left. rewrite ret_bind. auto.
 Qed.

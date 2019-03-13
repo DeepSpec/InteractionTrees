@@ -98,7 +98,7 @@ Definition vis {E F X R} `{E -< F}
 
 (* Called [send] in Haskell freer. *)
 Definition lift {E F} `{E -< F} : E ~> itree F :=
-  fun T e => ITree.liftE (subeffect _ e).
+  fun T e => ITree.lift (subeffect _ e).
 
 Arguments lift {E F _ T}.
 

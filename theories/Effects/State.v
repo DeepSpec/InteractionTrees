@@ -115,7 +115,7 @@ Section into.
     fun _ e =>
       match e with
       | inl1 e => h _ e
-      | inr1 e => ITree.liftE e
+      | inr1 e => ITree.lift e
       end.
 
   Definition into_state {s} (h : E ~> stateT s (itree F)) :
@@ -131,7 +131,7 @@ Section into.
     fun r _ e =>
       match e with
       | inl1 e => h r _ e
-      | inr1 e => ITree.liftE e
+      | inr1 e => ITree.lift e
       end.
 
   Definition into_writer {W} (Monoid_W : Monoid W)

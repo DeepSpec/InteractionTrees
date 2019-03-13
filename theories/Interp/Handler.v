@@ -30,7 +30,7 @@ Definition i_respectful {A B : Type -> Type} (R : forall t, B t -> B t -> Prop)
   forall X (a : A X), (R X) (f X a) (g X a).
 
 Definition eh_lift {A B} (m : A ~> B)  : A ~> itree B :=
-  fun _ e => ITree.liftE (m _ e).
+  fun _ e => ITree.lift (m _ e).
 
 Definition Handler (E F : Type -> Type) := E ~> itree F.
 
@@ -44,7 +44,7 @@ Instance Eq2_Handler : Eq2 Handler
      => @i_respectful E (itree F) (fun R => @eutt _ _ R eq).
 
 Instance Id_Handler : Id_ Handler
-  := fun E => @ITree.liftE E.
+  := fun E => @ITree.lift E.
 
 Instance Cat_Handler : Cat Handler
   := fun E F G (f : E ~> itree F) (g : F ~> itree G) _ e

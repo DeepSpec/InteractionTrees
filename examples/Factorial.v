@@ -39,7 +39,7 @@ Open Scope monad_scope.
     event.
  *)
 (* SAZ: TODO - we should probably add this (suitably renamed) to Interp.v *)
-Definition factC {E} n : itree (callE nat nat +' E) nat := ITree.liftE (inl1 (Call n)).
+Definition factC {E} n : itree (callE nat nat +' E) nat := ITree.lift (inl1 (Call n)).
 
 (** We write the body of the function monadically, using events rather than recursive calls. *)
 Definition fact_body {E}  : nat -> itree (callE nat nat +' E) nat :=

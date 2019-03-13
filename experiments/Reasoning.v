@@ -58,7 +58,7 @@ End State.
   Arguments Put {S} _.
 
   Global Instance MS_itree {E S} : MonadState S (itree (stateE S +' E)) :=
-    Build_MonadState S _ (ITree.liftE (inl1 Get)) (fun s => ITree.liftE (inl1 (Put s))).
+    Build_MonadState S _ (ITree.lift (inl1 Get)) (fun s => ITree.lift (inl1 (Put s))).
 
   Definition eval_state' {E S} : stateE S ~> Monads.stateT S (itree E) :=
     fun _ e =>
@@ -125,13 +125,13 @@ Qed.
 
 
 Lemma run_state_E_right : forall {E} S (s:S) (R T:Type) (e:E R) (k : R -> itree (stateE S +' E) T),
-    run_state (x <- (ITree.liftE (inr1 e)) ;; k x) s ≅ (x <- (ITree.liftE e) ;; run_state (k x) s).
+    run_state (x <- (ITree.lift (inr1 e)) ;; k x) s ≅ (x <- (ITree.lift e) ;; run_state (k x) s).
 Proof.
   intros E S s R T e k. 
   unfold run_state.
   rewrite interp1_state_bind. cbn. rewrite interp1_state_liftE2.
   cbn.
-  rewrite vis_bind. unfold ITree.liftE. rewrite vis_bind.
+  rewrite vis_bind. unfold ITree.lift. rewrite vis_bind.
   apply itree_eq_vis.
   intros.
   rewrite !ret_bind. cbn. reflexivity.
@@ -139,7 +139,7 @@ Qed.
 
 
 Lemma run_state_E0_right : forall {E:Type -> Type} S (s:S) (T:Type) (e:E unit) (k : itree (stateE S +' E) T),
-    run_state ((ITree.liftE (inr1 e)) ;; k) s ≅ ((ITree.liftE e) ;; run_state k s).
+    run_state ((ITree.lift (inr1 e)) ;; k) s ≅ ((ITree.lift e) ;; run_state k s).
 Proof.
   intros E S s T e k.
   apply run_state_E_right.
@@ -248,8 +248,8 @@ Definition state2E := ((stateE S1) +' ((stateE S2) +' E)).
 
 Definition get1 : itree state2E S1 := get.
 Definition put1 (s:S1) : itree state2E unit := (put s).
-Definition get2 : itree state2E S2 := ITree.liftE (inr1 (inl1 Get)).
-Definition put2 (s:S2) : itree state2E unit := ITree.liftE (inr1 (inl1 (Put s))).
+Definition get2 : itree state2E S2 := ITree.lift (inr1 (inl1 Get)).
+Definition put2 (s:S2) : itree state2E unit := ITree.lift (inr1 (inl1 (Put s))).
 
 End TwoStates.
 
@@ -275,7 +275,7 @@ Proof.
   unfold runboth.
   unfold put2.
   rewrite run_state_E0_right.
-  replace (ITree.liftE (inl1 (Put s2'))) with (put s2') by reflexivity.
+  replace (ITree.lift (inl1 (Put s2'))) with (put s2') by reflexivity.
   rewrite run_state_put. reflexivity.
 Qed.
 
@@ -297,7 +297,7 @@ Proof.
   unfold runboth.
   unfold get2.
   rewrite run_state_E_right.
-  replace (ITree.liftE (inl1 Get)) with (get (T:=S2)) by reflexivity.
+  replace (ITree.lift (inl1 Get)) with (get (T:=S2)) by reflexivity.
   rewrite run_state_get.
   reflexivity.
 Qed.

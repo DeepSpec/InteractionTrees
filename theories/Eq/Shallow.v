@@ -73,7 +73,7 @@ Lemma unfold_bind {E R S}
       (t : itree E R) (k : R -> itree E S) :
   observing eq
     (ITree.bind t k)
-    (ITree.bind_match k (fun t => ITree.bind t k) (observe t)).
+    (ITree._bind k (fun t => ITree.bind t k) (observe t)).
 Proof. eauto. Qed.
 
 Instance observing_bind {E R S} :

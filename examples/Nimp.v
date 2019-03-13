@@ -155,11 +155,11 @@ Proof.
   pupto2 (eutt_clo_trans nd unit). econstructor.
   { unfold eval, mfix1.
     rewrite (mfix_unfold nd com (fun _ => unit)); cbn.
-    unfold id, choice, ITree.liftE. rewrite vis_bind. reflexivity.
+    unfold id, choice, ITree.lift. rewrite vis_bind. reflexivity.
   }
   { unfold one_loop_tree, mfix0.
     rewrite (mfix_unfold nd unit (fun _ => unit)); cbn.
-    unfold id, choice, ITree.liftE. rewrite vis_bind. reflexivity.
+    unfold id, choice, ITree.lift. rewrite vis_bind. reflexivity.
   }
   cbn.
   pfold.
