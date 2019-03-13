@@ -96,9 +96,9 @@ Class Bimap :=
 
 (** *** Coproducts *)
 
-(** Coproducts are a generalization of sum types and pattern-matching. *)
+(** Coproducts are a generalization of sum types and case analysis. *)
 
-(** Pattern-matching on a sum. *)
+(** Case analysis on a sum. *)
 Class CoprodCase :=
   case_ : forall a b c, C a c -> C b c -> C (bif a b) c.
 
