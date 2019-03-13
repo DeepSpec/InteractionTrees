@@ -1,4 +1,4 @@
-Require Import Imp Asm AsmCombinators.
+Require Import Imp Asm Utils_tutorial AsmCombinators.
 
 Require Import Psatz.
 
@@ -8,6 +8,7 @@ From Coq Require Import
      Setoid
      Decimal
      Numbers.DecimalString
+     ZArith
      RelationClasses.
 
 From ITree Require Import
@@ -28,14 +29,8 @@ Open Scope string_scope.
 
 Section compile_assign.
 
-  Fixpoint nat_to_string (n: nat): string :=
-    match n with
-    | O => ""
-    | S n => String (ascii_of_nat 49) (nat_to_string n)
-    end.
-
   Definition gen_tmp (n: nat): string :=
-    "temp_" ++ nat_to_string n.
+    "temp_" ++ string_of_nat n.
 
   Definition varOf (s : var) : var := "local_" ++ s.
 
@@ -45,9 +40,13 @@ Section compile_assign.
     | Lit n => [Imov (gen_tmp l) (Oimm n)]
     | Plus e1 e2 =>
       let instrs1 := compile_expr l e1 in
-      let instrs2 := compile_expr (S l) e2 in
-      instrs1 ++ instrs2 ++ [Iadd (gen_tmp l) (gen_tmp l) (Ovar (gen_tmp (S l)))]
-    end.
+      let instrs2 := compile_expr (1 + l) e2 in
+      instrs1 ++ instrs2 ++ [Iadd (gen_tmp l) (gen_tmp l) (Ovar (gen_tmp (1 + l)))]
+    | Minus e1 e2 =>
+      let instrs1 := compile_expr l e1 in
+      let instrs2 := compile_expr (1 + l) e2 in
+      instrs1 ++ instrs2 ++ [Isub (gen_tmp l) (gen_tmp l) (Ovar (gen_tmp (1 + l)))]
+     end.
 
   Definition compile_assign (x: Imp.var) (e: expr): list instr :=
     let instrs := compile_expr 0 e in

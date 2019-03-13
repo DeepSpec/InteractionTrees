@@ -1,7 +1,7 @@
 (** * Composition of [asm] programs *)
 
 Require Import Asm.
-
+Require Import Utils_tutorial.
 From Coq Require Import
      List
      Strings.String
@@ -149,8 +149,9 @@ Proof.
   - simpl.
     destruct br; simpl.
     + unfold ITree.map; rewrite ret_bind; reflexivity.
-    + unfold ITree.map; rewrite bind_bind.
-      eapply eq_itree_eq_bind; [reflexivity | intros []; rewrite ret_bind; reflexivity].
+    + unfold ITree.map; rewrite bind_bind. 
+      eapply eq_itree_eq_bind; [reflexivity | intros ?].
+      flatten_goal; rewrite ret_bind; reflexivity.
     + rewrite (itree_eta (ITree.map _ _)).
       cbn. apply eq_itree_Vis. intros [].
 Qed.
