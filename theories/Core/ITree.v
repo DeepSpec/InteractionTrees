@@ -10,21 +10,6 @@ From ITree Require Import Basics.
 Set Implicit Arguments.
 Set Contextual Implicit.
 Set Primitive Projections.
-
-(* TODO: Move the following tactic somewhere appropriate *)
-Lemma hexploit_mp: forall P Q: Type, P -> (P -> Q) -> Q.
-Proof. intuition. Defined.
-Ltac hexploit x := eapply hexploit_mp; [eapply x|].
-
-Ltac inv H := inversion H; clear H; subst.
-
-Ltac rewrite_everywhere lem :=
-  progress ((repeat match goal with [H: _ |- _] => rewrite lem in H end); repeat rewrite lem).
-
-Ltac rewrite_everywhere_except lem X :=
-  progress ((repeat match goal with [H: _ |- _] =>
-                 match H with X => fail 1 | _ => rewrite lem in H end
-             end); repeat rewrite lem).
 (* end hide *)
 
 (** ** The type of interaction trees *)
@@ -67,9 +52,17 @@ Section itree.
 
 End itree.
 
+(* begin hide *)
+Bind Scope itree_scope with itree.
+Delimit Scope itree_scope with itree.
+Local Open Scope itree_scope.
+
 Arguments itree _ _ : clear implicits.
 Arguments itreeF _ _ : clear implicits.
+(* end hide *)
 
+(** An [itree'] is a "forced" [itree]. It is the type of inputs
+    of [go], and outputs of [observe]. *)
 Notation itree' E R := (itreeF E R (itree E R)).
 
 (** We wrap the primitive projection [_observe] in a function
@@ -84,16 +77,6 @@ Definition observe {E R} (t : itree E R) : itree' E R := @_observe E R t.
     We recommend to always use a primitive projection applied,
     and wrap it in a function explicitly like the above to pass
     around as a first-order function. *)
-
-Ltac genobs x ox := remember (observe x) as ox.
-Ltac genobs_clear x ox := genobs x ox; match goal with [H: ox = observe x |- _] => clear H x end.
-Ltac simpobs := repeat match goal with [H: _ = observe _ |- _] =>
-                    rewrite_everywhere_except (@eq_sym _ _ _ H) H
-                end.
-
-Bind Scope itree_scope with itree.
-Delimit Scope itree_scope with itree.
-Local Open Scope itree_scope.
 
 (** We introduce notation for the [Tau], [Ret], and [Vis] constructors. Using
     notation rather than definitions works better for extraction.  (The [spin]
@@ -286,3 +269,29 @@ Global Instance Monad_itree {E} : Monad (itree E) :=
 {| ret := fun _ x => Ret x
 ;  bind := @ITree.bind E
 |}.
+
+(** ** Tactics *)
+
+(* begin hide *)
+(* TODO: Remove this tactic when UpToTausExplicit disappears *)
+Lemma hexploit_mp: forall P Q: Type, P -> (P -> Q) -> Q.
+Proof. intuition. Defined.
+Ltac hexploit x := eapply hexploit_mp; [eapply x|].
+(* end hide *)
+
+(* [inv], [rewrite_everywhere], [..._except] are general purpose *)
+Ltac inv H := inversion H; clear H; subst.
+
+Ltac rewrite_everywhere lem :=
+  progress ((repeat match goal with [H: _ |- _] => rewrite lem in H end); repeat rewrite lem).
+
+Ltac rewrite_everywhere_except lem X :=
+  progress ((repeat match goal with [H: _ |- _] =>
+                 match H with X => fail 1 | _ => rewrite lem in H end
+             end); repeat rewrite lem).
+
+Ltac genobs x ox := remember (observe x) as ox.
+Ltac genobs_clear x ox := genobs x ox; match goal with [H: ox = observe x |- _] => clear H x end.
+Ltac simpobs := repeat match goal with [H: _ = observe _ |- _] =>
+                    rewrite_everywhere_except (@eq_sym _ _ _ H) H
+                end.
