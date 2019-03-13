@@ -2,14 +2,19 @@
 
 A Library for Representing Recursive and Impure Programs in Coq
 
-**NOTE: This library is currently in a pre-alpha stage, the interfaces currently exposed by the repository are undergoing a great deal of exploration and there will likely be substantial changes in the future. Backwards compatibility will not be a priority as this library evolves, so dependencies should be wary of this.**
+** WARNING: This library is currently in a pre-alpha stage; the
+  interfaces currently exposed by the repository are undergoing a
+  great deal of exploration and there will likely be substantial
+  changes in the future. Backwards compatibility will not be a
+  priority as this library evolves, so dependencies should be wary of
+  this. **
 
 ## Organization
 
-We keep most theorems separated into `*Facts` modules,
-to allow parallel compilation,
-and to contain potential universe inconsistencies,
-so the computational definitions may still be usable for testing.
+We keep most theorems separated into `*Facts` modules, to allow
+parallel compilation and to contain potential universe
+inconsistencies, so the computational definitions may still be usable
+for testing.
 
 - `Basics`: General-purpose definitions not tied to interaction trees.
 
@@ -114,7 +119,7 @@ Then visit `html/toc.html` in your web browser.
 
 ### 2. Prettier Documentation
 
-For a much nicer presentation of the documentation, you can use
+For a (much) nicer presentation of the documentation, you can use
 [coqdocjs](https://github.com/tebbi/coqdocjs).
 
 1. Download
@@ -127,6 +132,6 @@ For a much nicer presentation of the documentation, you can use
 make COQDOCJS_DIR=coqdocjs-master html
 ```
 
-Note: If you opt to clone the `coqdocjs` git project rather than download the zip
-file, set the `COQDOCJS_DIR` appropriately.  (It will probably just be
-`coqdocjs` not `coqdocjs-master`.
+Note: If you opt to clone the `coqdocjs` git project rather than
+download the zip file, set the `COQDOCJS_DIR` appropriately.  (It will
+probably just be `coqdocjs` not `coqdocjs-master`.)
