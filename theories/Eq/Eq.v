@@ -1,7 +1,8 @@
-(* Coinductively defined equality on itrees,
-   also called: strong bisimulation, extensional equality.
- *)
+(** * Strong bisimulation *)
 
+(** Coinductive extensional equality on interaction trees. *)
+
+(* begin hide *)
 From Coq Require Import
      Program
      Setoid
@@ -24,9 +25,39 @@ Proof. auto. Qed.
 
 Global Instance Transitive_bot2 (A : Type) : @Transitive A bot2.
 Proof. auto. Qed.
+(* end hide *)
+
+(** ** Coinductive reasoning with Paco *)
+
+(** Similarly to the way we deal with cofixpoints explained in
+    [Core.ITree], and also similarly to the definition of [itree]
+    itself, coinductive properties are defined in two steps,
+    as greatest fixed points of monotone relation transformers.
+
+    - a _relation transformer_, a.k.a. _generating function_,
+      is a function mapping relations to relations;
+    - _monotonicity_ is with respect to relations ordered by
+      set inclusion (a.k.a. implication, when viewed as predicates);
+    - the Paco library provides a combinator defining the greatest
+      fixed point when that function is indeed monotone.
+
+    By thus avoiding [CoInductive] to define coinductive properties,
+    Paco spares us from thinking about guardedness of proof terms,
+    instead encoding a form of productivity visibly in types.
+ *)
 
 Section eq_itree.
   Context {E : Type -> Type} {R1 R2 : Type} (RR : R1 -> R2 -> Prop).
+
+  (** We also need to do some gymnastics to work around the
+      two-layered definition of [itree]. We first define a
+      relation transformer [eq_itreeF] as an indexed inductive type
+      on [itreeF], which is then lifted to a relation transformer
+      [eq_itree_] on [itree] by composition with [observe].
+
+      In short, this is necessitated by the fact that dependent
+      pattern-matching is not allowed on [itree].
+   *)
 
   Inductive eq_itreeF {I J} (sim : I -> J -> Prop) :
     itreeF E R1 I -> itreeF E R2 J -> Prop :=
