@@ -6,7 +6,8 @@ Import MonadNotation.
 Open Scope monad_scope.
 
 From ITree Require Import
-     ITree.
+     ITree
+     Interp.Recursion.
 
 Inductive term : Type :=
 | Var : nat -> term

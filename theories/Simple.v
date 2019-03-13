@@ -8,6 +8,7 @@ From Coq Require Import
 From ITree Require
      Core.ITree
      Eq.UpToTaus
+     Indexed.Sum
      Interp.Interp.
 
 From ITree Require Import
@@ -25,6 +26,7 @@ Module Type SimpleInterface.
 
 Include ITree.Core.ITree.
 Import ITreeNotations.
+Open Scope itree_scope.
 
 Include ITree.Interp.Interp.
 

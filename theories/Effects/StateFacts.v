@@ -19,7 +19,7 @@ From ITree Require Import
      Indexed.Sum
      Interp.Interp
      Interp.MorphismsFacts
-     Interp.FixFacts
+     Interp.RecursionFacts
      Effects.State.
 
 Import ITree.Basics.Basics.Monads.

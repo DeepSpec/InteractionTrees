@@ -4,7 +4,8 @@ From Coq Require Import
      Relations.
 
 From ITree Require Import
-     ITree.
+     ITree
+     Interp.Recursion.
 
 Import ITreeNotations.
 
