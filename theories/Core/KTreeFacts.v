@@ -766,10 +766,10 @@ Proof.
   apply eutt_loop; [intros [] | reflexivity].
   all: unfold bimap, Bimap_Coproduct, case_, Case_ktree,
        cat, Cat_ktree, ITree.cat, id_, Id_ktree; cbn.
-  - apply eutt_bind; [reflexivity | intros []; simpl].
+  - apply eutt_bind; [intros []; simpl | reflexivity ].
     rewrite ret_bind_; reflexivity.
     reflexivity.
-  - apply eutt_bind; [reflexivity | intros []; simpl].
+  - apply eutt_bind; [intros []; simpl | reflexivity].
     rewrite ret_bind_; reflexivity.
     reflexivity.
 Qed.
@@ -805,8 +805,8 @@ Proof.
   apply eutt_loop; [intros [] | reflexivity].
   all: repeat rewrite bind_bind.
   2: repeat rewrite ret_bind_; reflexivity.
-  apply eutt_bind; [reflexivity | intros ?].
-  apply eutt_bind; [| intros ?; reflexivity].
+  apply eutt_bind; [intros ? | reflexivity ].
+  apply eutt_bind; [intros ?; reflexivity| ].
   apply tau_eutt.
 Qed.
 
@@ -821,8 +821,8 @@ Proof.
   rewrite bind_bind.
   rewrite ret_bind_.
   apply eutt_bind.
-  - reflexivity.
   - intros [[] | ]. reflexivity.
+  - reflexivity.
 Qed.
 
 (* [loop_loop]:
@@ -873,7 +873,7 @@ Proof.
   intros; reflexivity.
 Qed.
 
-Local Opaque ITree.bind.
+Local Opaque ITree.bind'.
 Local Opaque eutt.
 
 Lemma assoc_l_ktree {A B C} :
@@ -910,7 +910,7 @@ Proof.
     unfold loop_once; cbn.
     rewrite map_bind.
     rewrite bind_bind.
-    apply eutt_bind; [ reflexivity | ].
+    apply eutt_bind; [ | reflexivity ].
     intros d.
     rewrite ret_bind; cbn.
     reflexivity.
