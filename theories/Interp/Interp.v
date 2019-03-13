@@ -1,3 +1,5 @@
+(** * Monadic interpretations of interaction trees *)
+
 (** An event morphism [E ~> F] lifts to an itree morphism [itree E ~> itree F]
     by mapping the event morphism across each visible event.  We call this
     process _event translation_.
@@ -53,6 +55,8 @@ Open Scope itree_scope.
 
 (* end hide *)
 
+(** ** Translate *)
+
 (** A plain effect morphism [E ~> F] defines an itree morphism
     [itree E ~> itree F]. *)
 Definition translateF {E F R} (h : E ~> F) (rec: itree E R -> itree F R) (t : itreeF E R _) : itree F R  :=
@@ -64,6 +68,8 @@ Definition translateF {E F R} (h : E ~> F) (rec: itree E R -> itree F R) (t : it
 
 CoFixpoint translate {E F R} (h : E ~> F) (t : itree E R) : itree F R
   := translateF h (translate h) (observe t).
+
+(** ** Interpret *)
 
 (** An itree effect handler [E ~> itree F] defines an
     itree morphism [itree E ~> itree F]. *)
@@ -78,6 +84,11 @@ Definition interp {E F : Type -> Type} (h : E ~> itree F) :
 (* TODO: this does a map, and aloop does a bind. We could fuse those
    by giving aloop a continuation to compose its bind with.
    (coyoneda...) *)
+
+(** ** General recursion *)
+
+(** *** Mutual recursion *)
+
 (* Implementation of the fixpoint combinator over interaction
  * trees.
  *
@@ -148,6 +159,8 @@ Definition mrec {D E : Type -> Type}
            (ctx : D ~> itree (D +' E)) : D ~> itree E :=
   fun R d => interp_mrec ctx _ (ctx _ d).
 
+(** *** Simple recursion *)
+
 Inductive callE (A B : Type) : Type -> Type :=
 | Call : A -> callE A B B.
 
@@ -167,8 +180,9 @@ Definition calling {A B} {F : Type -> Type}
     | Call a => f a
     end.
 
-(* This is identical to [callWith] but [rec] finds a universe
-   inconsistency with [callWith], and not with [callWith']. *)
+(* TODO: This is identical to [callWith] but [rec] finds a universe
+   inconsistency with [calling], and not with [calling'].
+   The inconsistency now pops up later (currently in [Effects.Env]) *)
 Definition calling' {A B} {F : Type -> Type}
            (f : A -> itree F B) : callE A B ~> itree F :=
   fun _ e =>
