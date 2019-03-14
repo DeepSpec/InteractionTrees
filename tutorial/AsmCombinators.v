@@ -145,12 +145,14 @@ Proof.
   induction b as [i b | br]; intros f.
   - simpl.
     unfold ITree.map; rewrite bind_bind.
-    eapply eq_itree_eq_bind; [reflexivity | intros []; apply IHb].
+    eapply eq_itree_eq_bind; try reflexivity.
+    intros []; apply IHb.
   - simpl.
     destruct br; simpl.
     + unfold ITree.map; rewrite ret_bind; reflexivity.
     + unfold ITree.map; rewrite bind_bind. 
-      eapply eq_itree_eq_bind; [reflexivity | intros ?].
+      eapply eq_itree_eq_bind; try reflexivity.
+      intros ?.
       flatten_goal; rewrite ret_bind; reflexivity.
     + rewrite (itree_eta (ITree.map _ _)).
       cbn. apply eq_itree_Vis. intros [].
@@ -174,7 +176,8 @@ Proof.
   induction instrs as [| i instrs IH]; intros b.
   - simpl; rewrite ret_bind; reflexivity.
   - simpl; rewrite bind_bind.
-    eapply eq_itree_eq_bind; [reflexivity | intros []; apply IH].
+    eapply eq_itree_eq_bind; try reflexivity.
+    intros []; apply IH.
 Qed.
 
 Lemma denote_list_app:
