@@ -554,7 +554,7 @@ Section Correctness.
 
 
   Lemma interp_locals_out: forall s g,
-      interp_locals (lift (Out s)) g ≈ (Vis (subeffect unit (Out s)) (fun x => Ret (g, x))).
+      interp_locals (lift (Out s)) g ≈ (vis (Out s) (fun x => Ret (g, x))).
   Proof.
     intros. unfold interp_locals. unfold lift.
     rewrite interp_lift.
