@@ -114,6 +114,12 @@ Proof.
   pupto2_final. left; pfold; constructor. auto.
 Qed.
 
+(** [mrec ctx] is equivalent to [interp (mrecursive ctx)],
+    where [mrecursive] is defined as follows. *)
+Definition mrecursive (f : D ~> itree (D +' E))
+  : (D +' E) ~> itree E :=
+  case_ (mrec f) ITree.lift.
+
 Theorem interp_mrec_as_interp {T} (c : itree _ T) :
   interp_mrec ctx _ c ≈ interp (mrecursive ctx) _ c.
 Proof.
@@ -135,14 +141,26 @@ Proof.
 Qed.
 
 Theorem mrec_as_interp {T} (d : D T) :
-  mrec ctx _ d ≈ interp (case_ (mrec ctx) ITree.lift) _ (ctx _ d).
+  mrec ctx _ d ≈ interp (mrecursive ctx) _ (ctx _ d).
 Proof.
   apply interp_mrec_as_interp.
 Qed.
 
+Lemma interp_mrecursive {T} (d : D T) :
+  interp (mrecursive ctx) _ (lift_inl1 _ d) ≈ mrec ctx _ d.
+Proof.
+  unfold mrecursive. unfold lift_inl1.
+  rewrite interp_lift. cbn. apply tau_eutt.
+Qed.
+
 End Facts.
 
-Lemma rec_unfold {E A B} (f : A -> itree (callE A B +' E) B) (x : A) :
+(** [rec body] is equivalent to [interp (recursive body)],
+    where [recursive] is defined as follows. *)
+Definition recursive {E A B} (f : A -> itree (callE A B +' E) B) : (callE A B +' E) ~> itree E :=
+  case_ (calling' (rec f)) ITree.lift.
+
+Lemma rec_as_interp {E A B} (f : A -> itree (callE A B +' E) B) (x : A) :
   rec f x ≈ interp (recursive f) _ (f x).
 Proof.
   unfold rec.

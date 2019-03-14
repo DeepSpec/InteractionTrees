@@ -24,8 +24,6 @@ Open Scope monad_scope.
 
 (** * Factorial Example *)
 
-(* end hide *)
-
 (** * Factorial *)
 
 (** This file gives and example of defining a recursive version of the "factorial" 
@@ -82,8 +80,8 @@ Lemma factorial_correct : forall {E} n, (factorial n : itree E nat) ≈ Ret (fac
 Proof.
   intros E n.
   induction n; intros; subst.
-  - unfold factorial. rewrite rec_unfold. simpl. rewrite ret_interp. reflexivity.
-  - unfold factorial. rewrite rec_unfold. simpl.
+  - unfold factorial. rewrite rec_as_interp. simpl. rewrite ret_interp. reflexivity.
+  - unfold factorial. rewrite rec_as_interp. simpl.
     rewrite interp_bind.
     rewrite interp_recursive_call.
     rewrite IHn.
@@ -141,11 +139,11 @@ Proof.
   intros E n.
   induction n; intros; subst.
   - apply Le.le_n_0_eq in H. subst. 
-    unfold fib.  rewrite rec_unfold. simpl. rewrite ret_interp.  reflexivity.
+    unfold fib.  rewrite rec_as_interp. simpl. rewrite ret_interp.  reflexivity.
   - induction m; intros; subst.
-    + unfold fib. rewrite rec_unfold. simpl. rewrite ret_interp. reflexivity.
+    + unfold fib. rewrite rec_as_interp. simpl. rewrite ret_interp. reflexivity.
     + unfold fib.
-      rewrite rec_unfold. simpl.
+      rewrite rec_as_interp. simpl.
       destruct m.
       * rewrite ret_interp. reflexivity.
       * rewrite interp_bind. rewrite interp_recursive_call. rewrite IHm.
@@ -155,5 +153,3 @@ Proof.
         omega. omega. 
 Qed.
 (* STUBWITH Admitted. *)
-
-

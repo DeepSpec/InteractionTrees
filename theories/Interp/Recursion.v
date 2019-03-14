@@ -86,9 +86,11 @@ Definition mrec {D E : Type -> Type}
            (ctx : D ~> itree (D +' E)) : D ~> itree E :=
   fun R d => interp_mrec ctx _ (ctx _ d).
 
-Definition mrecursive {D E} (f : D ~> itree (D +' E))
-  : (D +' E) ~> itree E :=
-  case_ (mrec f) ITree.lift.
+(** Make a recursive call in the handler argument of [mrec]. *)
+Definition lift_inl1 {D E : Type -> Type} : D ~> itree (D +' E)
+  := fun _ d => ITree.lift (inl1 d).
+
+(** Here's some syntactic sugar with a notation [mrec-fix]. *)
 
 (** Short for endofunctions, used in [mrec_fix] and [rec_fix]. *)
 Local Notation endo T := (T -> T).
@@ -96,10 +98,10 @@ Local Notation endo T := (T -> T).
 Definition mrec_fix {D E : Type -> Type} {A B : Type}
            (ctx : endo (D ~> itree (D +' E)))
   : D ~> itree E
-  := mrec (ctx (fun _ d => ITree.lift (inl1 d))).
+  := mrec (ctx lift_inl1).
 
-Notation "'mrec-fix' f a := g" := (mrec_fix (fun f _ a => g))
-  (at level 200, f ident, a pattern).
+Notation "'mrec-fix' f d := g" := (mrec_fix (fun f _ d => g))
+  (at level 200, f ident, d pattern).
 (* No idea what a good level would be. *)
 
 (** *** Simple recursion *)
@@ -146,13 +148,12 @@ Definition rec {E : Type -> Type} {A B : Type}
 *)
 Definition call {E A B} (a:A) : itree (callE A B +' E) B := ITree.lift (inl1 (Call a)).
 
-Definition recursive {E A B} (f : A -> itree (callE A B +' E) B) : (callE A B +' E) ~> itree E :=
-  case_ (calling' (rec f)) ITree.lift.
+(** Here's some syntactic sugar with a notation [mrec-fix]. *)
 
 Definition rec_fix {E : Type -> Type} {A B : Type}
            (body : endo (A -> itree (callE A B +' E) B))
   : A -> itree E B
-  := rec (body (fun a => ITree.lift (inl1 (Call a)))).
+  := rec (body call).
 
 Notation "'rec-fix' f a := g" := (rec_fix (fun f a => g))
   (at level 200, f ident, a pattern).

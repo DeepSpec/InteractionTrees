@@ -5,36 +5,79 @@ From Coq Require Import
      Setoid
      Morphisms.
 
-From ITree Require
-     Core.ITree
-     Eq.UpToTaus
-     Indexed.Sum
-     Interp.Interp.
-
 From ITree Require Import
+     Basics.Category
      Basics.Basics
      Eq.Shallow.
-
-Set Primitive Projections.
 (* end hide *)
-
-Module Type SimpleInterface.
-(** This interface is implemented by the module
-    [ITree.Simple.Simple]. *)
 
 (** ** Core definitions *)
 
-Include ITree.Core.ITree.
+(** Reexported from the library. *)
+
+Require Export ITree.Core.ITree.
 Import ITreeNotations.
 Open Scope itree_scope.
+(**
+   - [itree : (Type -> Type) -> Type -> Type] type
+   - [Ret], [Tau], [Vis] notations
+   - [ITree.bind : itree E R -> (R -> itree E S) -> itree E S]
+   - [ITree.map : (R -> S) -> itree E R -> itree E S]
+   - [ITree.lift : E R -> itree E R]
+   - Notations for [bind t k]: ["t >>= k"], ["x <- t ;; k x"]
+ *)
 
-Include ITree.Interp.Interp.
+(** Indexed types *)
+Require Export ITree.Basics.Basics.
+(**
+   - Notation ["E ~> F" := (forall T, E T -> F T)]
+ *)
 
-Include ITree.Indexed.Sum.
+Require Export ITree.Indexed.Sum.
+(**
+   - [sum1] ([_ +' _]), [inl1 : E ~> E +' F], [inr1 : F ~> E +' F]
+   - [void1] (empty type)
+ *)
+
+(** ** Interpreters, handlers *)
+
+Require Export ITree.Interp.Interp.
+(**
+   - [interp : (E ~> itree F) -> (itree E ~> itree F)]
+ *)
+
+Require Export ITree.Interp.Recursion.
+(**
+   - [mrec : (D ~> itree (D +' E)) -> (D ~> itree E)]
+     and the notation [mrec-fix]
+   - [lift_inl1 : D ~> itree (D +' E)]
+   - [rec : (A -> itree (callE A B +' E) B -> A -> itree E B]
+     and the notation [rec-fix]
+   - [call : A -> itree (callE A B +' E) B]
+ *)
+
+(** We compose _effect handlers_ [E ~> itree F] using a set of
+    general-purpose combinators from this little category theory
+    library. *)
+
+Require Export ITree.Basics.Category.
+(** Types specialized to effect handlers:
+
+   - [case_ : (E ~> itree G) -> (F ~> itree G) -> (E +' F ~> itree G)]
+   - [bimap : (E ~> itree G) -> (F ~> itree H) -> (E +' F ~> itree (G +' H))]
+   - [inl1_ : E ~> itree (E +' F)]
+   - [inr1_ : F ~> itree (E +' F)]
+   - [cat : (E ~> itree F) -> (F ~> itree G) -> (E ~> itree G)]
+     (also denoted [>=>])
+ *)
 
 (** ** Equational theory *)
 
-Section General.
+Module Type SimpleInterface.
+(** This interface is implemented by the module
+    [ITree.Simple.Simple] below. *)
+
+Section EquivalenceUpToTaus.
 
 Context {E : Type -> Type} {R : Type}.
 
@@ -61,7 +104,7 @@ Parameter eutt_ret : forall (r1 r2 : R),
 Parameter eutt_vis : forall {U : Type} (e : E U) (k1 k2 : U -> itree E R),
     (forall u, k1 u ≈ k2 u) <-> Vis e k1 ≈ Vis e k2.
 
-End General.
+End EquivalenceUpToTaus.
 
 Infix "≈" := eutt (at level 40).
 
@@ -90,11 +133,6 @@ Parameter bind_bind
     ITree.bind (ITree.bind s k) h
   ≈ ITree.bind s (fun r => ITree.bind (k r) h).
 
-Parameter unfold_aloop
-  : forall {E A B} (f : A -> itree E A + B) (x : A),
-    ITree.aloop f x
-  ≈ ITree._aloop id (ITree.aloop f) (f x).
-
 Hint Rewrite @eutt_tau : itree.
 Hint Rewrite @ret_bind : itree.
 Hint Rewrite @tau_bind : itree.
@@ -102,7 +140,7 @@ Hint Rewrite @vis_bind : itree.
 Hint Rewrite @bind_ret : itree.
 Hint Rewrite @bind_bind : itree.
 
-(** **** Interp *)
+(** **** Monadic interpretation: [interp] *)
 
 Definition _interp {E F} (f : E ~> itree F) R (ot : itreeF E R _)
   : itree F R
@@ -134,6 +172,40 @@ Parameter interp_bind : forall {E F R S}
       (f : E ~> itree F) (t : itree E R) (k : R -> itree E S),
     interp f _ (ITree.bind t k)
   ≈ ITree.bind (interp f _ t) (fun r => interp f _ (k r)).
+
+(** **** Simple recursion: [rec] *)
+
+(** [rec body] is equivalent to [interp (recursive body)],
+    where [recursive] is defined as follows. *)
+Definition recursive {E A B} (f : A -> itree (callE A B +' E) B)
+  : (callE A B +' E) ~> itree E
+  := case_ (calling' (rec f)) ITree.lift.
+
+Parameter rec_as_interp
+  : forall {E A B} (f : A -> itree (callE A B +' E) B) (a : A),
+    rec f a
+  ≈ interp (recursive f) _ (f a).
+
+Parameter interp_recursive_call
+  : forall {E A B} (f : A -> itree (callE A B +' E) B) (x : A),
+    interp (recursive f) _ (call x)
+  ≈ rec f x.
+
+(** [mrec ctx] is equivalent to [interp (mrecursive ctx)],
+    where [mrecursive] is defined as follows. *)
+Definition mrecursive {D E} (f : D ~> itree (D +' E))
+  : (D +' E) ~> itree E :=
+  case_ (mrec f) ITree.lift.
+
+Parameter mrec_as_interp
+  : forall {D E T} (ctx : D ~> itree (D +' E)) (d : D T),
+    mrec ctx _ d
+  ≈ interp (mrecursive ctx) _ (ctx _ d).
+
+Parameter interp_mrecursive
+  : forall {D E T} (ctx : D ~> itree (D +' E)) (d : D T),
+    interp (mrecursive ctx) _ (lift_inl1 _ d)
+  ≈ mrec ctx _ d.
 
 (** *** [Proper] lemmas *)
 
