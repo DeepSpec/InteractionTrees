@@ -78,13 +78,13 @@ Lemma factorial_correct : forall {E} n, (factorial n : itree E nat) ≈ Ret (fac
 Proof.
   intros E n.
   induction n; intros; subst.
-  - unfold factorial. rewrite rec_unfold. simpl. rewrite interp_ret. reflexivity.
+  - unfold factorial. rewrite rec_unfold. simpl. rewrite ret_interp. reflexivity.
   - unfold factorial. rewrite rec_unfold. simpl.
     rewrite interp_bind.
     rewrite interp_recursive_call.
     rewrite IHn.
     rewrite ret_bind.
-    rewrite interp_ret.
+    rewrite ret_interp.
     reflexivity.
 Qed.
 
