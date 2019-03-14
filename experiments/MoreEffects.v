@@ -21,7 +21,7 @@ Section Tagged.
   {| unTag := e |}.
 
   Definition eval_tagged {tag} : eff_hom (Tagged tag) E :=
-    fun _ e => liftE e.(unTag).
+    fun _ e => lift e.(unTag).
 
 End Tagged.
 

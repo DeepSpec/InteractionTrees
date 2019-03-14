@@ -522,7 +522,7 @@ Section Correctness.
     destruct H as [_ [eq _]].
     unfold interp_locals.
     unfold lift.
-    rewrite interp_liftE.
+    rewrite interp_lift.
     rewrite tau_eutt.
     cbn.
     unfold run_env.
@@ -535,7 +535,7 @@ Section Correctness.
     setoid_rewrite ret_interp.
     setoid_rewrite bind_ret.
     unfold inl_, Inl_sum1_Handler, eh_lift.
-    rewrite interp_state_liftE.
+    rewrite interp_state_lift.
     rewrite bind_ret.
     cbn.
     rewrite eq.

@@ -32,7 +32,7 @@ Context {D E : Type -> Type} (ctx : D ~> itree (D +' E)).
 
 (** Unfolding of [interp_mrec]. *)
 
-Definition interp_mrecF R (ot : itreeF (D +' E) R _) : itree E R :=
+Definition _interp_mrec R (ot : itreeF (D +' E) R _) : itree E R :=
   match ot with
   | RetF r => Ret r
   | TauF t => Tau (interp_mrec ctx _ t)
@@ -44,7 +44,7 @@ Definition interp_mrecF R (ot : itreeF (D +' E) R _) : itree E R :=
   end.
 
 Lemma unfold_interp_mrec R (t : itree (D +' E) R) :
-  interp_mrec ctx _ t ≅ interp_mrecF _ (observe t).
+  interp_mrec ctx _ t ≅ _interp_mrec _ (observe t).
 Proof.
   unfold interp_mrec.
   rewrite unfold_aloop'.

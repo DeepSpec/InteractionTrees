@@ -9,7 +9,7 @@
     conceptually at a different level: translation always yields strong
     bisimulations.  We can relate translation and interpretation via the law:
 
-    translate h t ≈ interp (liftE ∘ h) t
+    translate h t ≈ interp (lift ∘ h) t
 *)
 
 (** The semantics of an interaction tree [itree E ~> M] can be
@@ -115,11 +115,11 @@ Definition interp {E F : Type -> Type} (h : E ~> itree F) :
      match d with
      | Even n => match n with
                  | O => ret true
-                 | S m => liftE (Odd m)
+                 | S m => lift (Odd m)
                  end
      | Odd n => match n with
                 | O => ret false
-                | S m => liftE (Even m)
+                | S m => lift (Even m)
                 end
      end.
 ]]

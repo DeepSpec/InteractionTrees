@@ -43,7 +43,7 @@ Import ITreeNotations.
  *)
 
 (* Unfolding of [interp]. *)
-Definition interp_u {E F} (f : E ~> itree F) R (ot : itreeF E R _)
+Definition _interp {E F} (f : E ~> itree F) R (ot : itreeF E R _)
   : itree F R :=
   match ot with
   | RetF r => Ret r
@@ -52,7 +52,7 @@ Definition interp_u {E F} (f : E ~> itree F) R (ot : itreeF E R _)
   end.
 
 Lemma unfold_interp {E F R} {f : E ~> itree F} (t : itree E R) :
-  interp f _ t ≅ (interp_u f _ (observe t)).
+  interp f _ t ≅ (_interp f _ (observe t)).
 Proof.
   unfold interp. rewrite unfold_aloop'.
   destruct (observe t); cbn.
@@ -133,14 +133,6 @@ Proof.
   red; reflexivity.
 Qed.
 
-Lemma interp_ret : forall {E F R} x
-      (f : E ~> itree F),
-   (interp f R (Ret x)) ≅ Ret x.
-Proof.
-  intros. apply observing_eq_itree_eq.
-  constructor. reflexivity.
-Qed.
-
 Lemma interp_bind {E F R S}
       (f : E ~> itree F) (t : itree E R) (k : R -> itree E S) :
    (interp f _ (ITree.bind t k)) ≅ (ITree.bind (interp f _ t) (fun r => interp f _ (k r))).
@@ -159,7 +151,7 @@ Proof.
     + intros; subst. pupto2_final. auto.
 Qed.
 
-Lemma interp_liftE {E F : Type -> Type} {R : Type}
+Lemma interp_lift {E F : Type -> Type} {R : Type}
       (f : E ~> (itree F))
       (e : E R) :
   interp f _ (ITree.lift e) ≅ Tau (f _ e).
@@ -174,7 +166,7 @@ Qed.
 
 (** ** Composition of [interp] *)
 
-Lemma interp_id_liftE {E R} (t : itree E R) :
+Lemma interp_id_lift {E R} (t : itree E R) :
   interp (fun _ e => ITree.lift e) _ t ≈ t.
 Proof.
   pupto2_init; revert t; pcofix CIH; intros t.
@@ -221,7 +213,7 @@ Proof.
   revert t.
   pcofix CIH.
   intros t.
-  rewrite !unfold_interp. unfold interp_u.
+  rewrite !unfold_interp. unfold _interp.
   rewrite unfold_translate. unfold translateF.
   destruct (observe t); cbn.
   - pupto2_final. apply Reflexive_eq_itree. (* SAZ: typeclass resolution failure? *)
@@ -239,7 +231,7 @@ Proof.
   pfold. pupto2_init; revert t; pcofix CIH'; intros t.
   rewrite unfold_translate.
   rewrite unfold_interp.
-  unfold translateF, interp_u.
+  unfold translateF, _interp.
   destruct (observe t); cbn; simpl in *; eauto.
   - pfold. constructor. auto.
   - unfold ITree.lift. rewrite vis_bind.

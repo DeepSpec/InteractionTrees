@@ -99,7 +99,7 @@ Lemma interp1_state_get : forall {E:Type -> Type} S s,
 Proof.
   intros E S s.
   unfold get. unfold MS_itree. 
-  rewrite interp1_state_liftE1.
+  rewrite interp1_state_lift1.
   simpl.
   reflexivity.
 Qed.
@@ -109,7 +109,7 @@ Lemma interp1_state_put : forall {E :Type -> Type} S s s',
 Proof.
   intros E S s s'.
   unfold put. unfold MS_itree.
-  rewrite interp1_state_liftE1.
+  rewrite interp1_state_lift1.
   simpl.
   reflexivity.
 Qed.
@@ -119,7 +119,7 @@ Lemma interp1_state_E : forall {E F:Type -> Type} S (s:S) (f : E ~> Monads.state
 Proof.
   intros E F S s f X e.
   unfold embed. unfold Embeddable_itree. unfold lift. simpl.
-  rewrite interp1_state_liftE2.
+  rewrite interp1_state_lift2.
   reflexivity.
 Qed.  
 
@@ -129,7 +129,7 @@ Lemma run_state_E_right : forall {E} S (s:S) (R T:Type) (e:E R) (k : R -> itree 
 Proof.
   intros E S s R T e k. 
   unfold run_state.
-  rewrite interp1_state_bind. cbn. rewrite interp1_state_liftE2.
+  rewrite interp1_state_bind. cbn. rewrite interp1_state_lift2.
   cbn.
   rewrite vis_bind. unfold ITree.lift. rewrite vis_bind.
   apply itree_eq_vis.

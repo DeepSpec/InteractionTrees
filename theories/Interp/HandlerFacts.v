@@ -30,7 +30,7 @@ Lemma eh_cmp_id_left_strong {A R} (t : itree A R)
 Proof.
   pupto2_init; revert t; pcofix CIH; intros t.
   pfold; pupto2_init; revert t; pcofix CIH'; intros.
-  rewrite unfold_interp. unfold interp_u.
+  rewrite unfold_interp. unfold _interp.
   destruct (observe t); cbn; eauto.
   - pfold. econstructor. auto.
   - unfold id_, Id_Handler, ITree.lift. rewrite vis_bind_.
@@ -48,7 +48,7 @@ Instance CatIdL_Handler : CatIdL Handler.
 Proof.
   red; intros A B f X e.
   unfold cat, Cat_Handler, id_, Id_Handler.
-  rewrite interp_liftE, tau_eutt.
+  rewrite interp_lift, tau_eutt.
   reflexivity.
 Qed.
 
