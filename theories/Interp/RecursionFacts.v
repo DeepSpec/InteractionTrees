@@ -115,7 +115,7 @@ Proof.
 Qed.
 
 Theorem interp_mrec_as_interp {T} (c : itree _ T) :
-  interp_mrec ctx _ c ≈ interp (case_ (mrec ctx) ITree.lift) _ c.
+  interp_mrec ctx _ c ≈ interp (mrecursive ctx) _ c.
 Proof.
   repeat intro. pupto2_init. revert_until T. pcofix CIH. intros.
   pfold. pupto2_init. revert_until CIH. pcofix CIH'. intros.
