@@ -46,7 +46,11 @@ Section compile_assign.
       let instrs1 := compile_expr l e1 in
       let instrs2 := compile_expr (1 + l) e2 in
       instrs1 ++ instrs2 ++ [Isub (gen_tmp l) (gen_tmp l) (Ovar (gen_tmp (1 + l)))]
-     end.
+    | Mult e1 e2 =>
+      let instrs1 := compile_expr l e1 in
+      let instrs2 := compile_expr (1 + l) e2 in
+      instrs1 ++ instrs2 ++ [Imul (gen_tmp l) (gen_tmp l) (Ovar (gen_tmp (1 + l)))]
+      end.
 
   Definition compile_assign (x: Imp.var) (e: expr): list instr :=
     let instrs := compile_expr 0 e in

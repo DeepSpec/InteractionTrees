@@ -362,6 +362,42 @@ Section Correctness.
             reflexivity.
           }
         }
+    - do 2 setoid_rewrite denote_list_app.
+      do 2 setoid_rewrite interp_locals_bind.
+      eapply eutt_bind_gen.
+      + eapply IHe1; assumption.
+      + intros [g_asm' []] [g_imp' v] HSIM.
+        eapply eutt_bind_gen.
+        eapply IHe2.
+        eapply sim_rel_Renv; eassumption.
+        intros [g_asm'' []] [g_imp'' v'] HSIM'.
+        repeat untau_left.
+        force_left; force_right.
+        simpl fst in *.
+        (* TODO: Simplify this *)
+        apply eutt_ret.
+        {
+          generalize HSIM; intros LU; apply sim_rel_find_tmp_n in LU.
+          unfold alist_In in LU; erewrite sim_rel_find_tmp_lt_n in LU; eauto; fold (alist_In (%n) g_asm'' v) in LU.
+          generalize HSIM'; intros LU'; apply sim_rel_find_tmp_n in LU'.
+          rewrite LU,LU'.
+          split; [| split].
+          {
+            eapply Renv_add, sim_rel_Renv; eassumption.
+          }
+          {
+            apply In_add_eq.
+          }
+          {
+            intros m LT v''.
+            rewrite <- In_add_ineq_iff; [| apply gen_tmp_inj; lia].
+            destruct HSIM as [_ [_ HSIM]].
+            destruct HSIM' as [_ [_ HSIM']].
+            rewrite HSIM; [| auto with arith].
+            rewrite HSIM'; [| auto with arith].
+            reflexivity.
+          }
+        }
   Qed.
 
   Lemma compile_assign_correct : forall e x,

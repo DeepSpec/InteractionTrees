@@ -20,7 +20,7 @@ From ITree Require Import
      ITree.
 
 Import MonadNotation.
-Open Scope monad_scope.
+Local Open Scope monad_scope.
 Local Open Scope string_scope.
 
 (* ================================================================= *)
