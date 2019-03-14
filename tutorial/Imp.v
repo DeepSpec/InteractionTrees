@@ -280,6 +280,13 @@ Definition evalLocals {E: Type -> Type} `{envE var value -< E}:
     | SetVar x v => env_add x v
     end.
 
+Definition evalPrint {E : Type -> Type} `{envE var value -< E}:
+  PrintE ~> itree E :=
+  fun _ e =>
+    match e with
+    | Out s => ret tt
+    end.
+
 (** We specifically implement this environment using ExtLib's finite maps. *)
 Definition env := alist var value.
 
@@ -307,6 +314,6 @@ Qed.
    exactly [Locals] rather than any universe of effect containing it.
  *)
 
-(* Definition ImpEval (s: stmt) : itree void1 (env * unit):= *)
-(*   let p := interp evalLocals _ (denoteStmt s) in *)
-(*   run_env _ p empty. *)
+Definition ImpEval (s: stmt) : itree void1 (env * unit):=
+  let p := interp (Case_sum1_Handler _ _ _ evalLocals evalPrint) _ (denoteStmt s) in
+  run_env _ p empty.
