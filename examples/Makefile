@@ -1,4 +1,4 @@
-.PHONY: example-imp example-lc example-io example-nimp example-asm example-threads
+.PHONY: example-lc example-io example-nimp example-threads
 
 examples: Makefile.coq
 	mkdir -p extracted
@@ -6,12 +6,6 @@ examples: Makefile.coq
 
 Makefile.coq: _CoqProject
 	coq_makefile -f $< -o $@
-
-example-imp:
-	$(MAKE) -f Makefile.coq Imp.vo
-
-example-asm:
-	$(MAKE) -f Makefile.coq Asm.vo
 
 example-lc:
 	$(MAKE) -f Makefile.coq stlc.vo
