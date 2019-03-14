@@ -133,6 +133,7 @@ Section Correctness.
 
 Context {E : Type -> Type}.
 Context {HasLocals : Locals -< E}.
+Context {HasPrint : PrintE -< E}.
 Context {HasMemory : Memory -< E}.
 Context {HasExit : Exit -< E}.
 
@@ -149,7 +150,7 @@ Proof.
   - simpl.
     destruct br; simpl.
     + unfold ITree.map; rewrite ret_bind; reflexivity.
-    + unfold ITree.map; rewrite bind_bind. 
+    + unfold ITree.map; rewrite bind_bind.
       eapply eq_itree_eq_bind; [reflexivity | intros ?].
       flatten_goal; rewrite ret_bind; reflexivity.
     + rewrite (itree_eta (ITree.map _ _)).
@@ -319,14 +320,14 @@ Lemma foo {A B C: Type}:
 Proof.
   intros.
   unfold denote_b; intros []; reflexivity.
-Qed.  
+Qed.
 
 Lemma bar {A B C: Type}:
   forall (f: bks A C) (g: bks B C) a,
     denote_block match a with
                    | inl x => f x
                    | inr x => g x
-                   end ≈ 
+                   end ≈
      match a with
      | inl x => denote_block (f x)
      | inr x => denote_block (g x)

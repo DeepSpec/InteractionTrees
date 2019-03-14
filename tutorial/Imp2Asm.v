@@ -125,4 +125,5 @@ Fixpoint compile (s : stmt) {struct s} : asm unit unit :=
   | Seq l r => seq_asm (compile l) (compile r)
   | If e l r => if_asm (compile_expr 0 e) (compile l) (compile r)
   | While e b => while_asm (compile_expr 0 e) (compile b)
+  | Print s => raw_asm_block (after [Iprint s] (Bjmp tt))
   end.

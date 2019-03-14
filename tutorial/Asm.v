@@ -3,15 +3,17 @@ From Coq Require Import
      Program.Basics
      ZArith.ZArith.
 From ITree Require Import Basics.Function.
-From ExtLib Require Structures.Monad.
+From ExtLib Require Import Structures.Monad.
 Require Import Imp.
+
+Import MonadNotation.
 
 Typeclasses eauto := 5.
 
 Section Syntax.
 
   Definition var : Set := string.
-  Definition value : Set := nat. 
+  Definition value : Set := nat.
 
   (** ** Syntax *)
 
@@ -25,7 +27,9 @@ Section Syntax.
   | Isub (dest : var) (src : var) (o : operand)
   | Imul (dest : var) (src : var) (o : operand)
   | Iload (dest : var) (addr : operand)
-  | Istore (addr : var) (val : operand).
+  | Istore (addr : var) (val : operand)
+  | Iprint (s : string)
+  .
 
   Variant branch {label : Type} : Type :=
   | Bjmp (_ : label) (* jump to label *)
@@ -91,6 +95,7 @@ Section Semantics.
   Section with_effect.
     Context {E : Type -> Type}.
     Context {HasLocals : Locals -< E}.
+    Context {HasPrint : PrintE -< E}.
     Context {HasMemory : Memory -< E}.
     Context {HasExit : Exit -< E}.
 
@@ -125,6 +130,8 @@ Section Semantics.
         addr <- lift (GetVar a) ;;
              val <- denote_operand v ;;
              lift (Store addr val)
+      | Iprint s =>
+        lift (Out s)
       end.
 
     Section with_labels.
@@ -192,6 +199,13 @@ Definition interpret_Memory {E : Type -> Type} `{envE value value -< E} :
     | Store x v => env_add x v
     end.
 
+Definition interpret_Print {E : Type -> Type} `{envE value value -< E} :
+  PrintE ~> itree E :=
+  fun _ e =>
+    match e with
+    | Out s => ret tt
+    end.
+
 (* Our Map implementation uses a simple association list *)
 Definition env := alist var value.
 Definition memory := alist value value.
@@ -201,4 +215,3 @@ Instance RelDec_string : RelDec (@eq string) :=
   { rel_dec := fun s1 s2 => if String.string_dec s1 s2 then true else false}.
 
 Instance RelDec_value : RelDec (@eq value) := { rel_dec := Nat.eqb }.
-

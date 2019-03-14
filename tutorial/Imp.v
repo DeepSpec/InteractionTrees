@@ -49,6 +49,7 @@ Inductive stmt : Type :=
 | If     (i : expr) (t e : stmt) (* if (i) then { t } else { e } *)
 | While  (t : expr) (b : stmt)   (* while (t) { b } *)
 | Skip                           (* ; *)
+| Print  (s : string)
 .
 
 (* ================================================================= *)
@@ -74,7 +75,7 @@ Module ImpNotations.
 
   Notation "x '←' e" :=
     (Assign x e) (at level 60, e at level 50): stmt_scope.
-  
+
   Notation "a ;; b" :=
     (Seq a b)
       (at level 100, right associativity,
@@ -96,6 +97,11 @@ Module ImpNotations.
        format
          "'[v ' 'WHILE'  t '/' '[' 'DO'  b  ']' DONE ']'").
 
+  Notation "'PRINT' s" :=
+    (Print s)
+      (at level 100,
+       right associativity): stmt_scope.
+
 End ImpNotations.
 
 (* ================================================================= *)
@@ -116,6 +122,9 @@ Import ImpNotations.
 Variant Locals : Type -> Type :=
 | GetVar (x : var) : Locals value
 | SetVar (x : var) (v : value) : Locals unit.
+
+Variant PrintE : Type -> Type :=
+| Out (s : string) : PrintE unit.
 
 Section Denote.
 
@@ -141,6 +150,7 @@ Section Denote.
 
   Context {eff : Type -> Type}.
   Context {HasLocals : Locals -< eff}.
+  Context {HasPrint : PrintE -< eff}.
 
   (** _Imp_ expressions are denoted as [itree eff value], where the returned value
       in the tree is the value computed by the expression.
@@ -170,15 +180,15 @@ Section Denote.
       that maps to inputs of type [C + A] a [itree], a computation, returning
       either a [C] that can be fed back to the loop, or a return value of type
       [B], and builds the fixpoint of the body, hiding away the [C] argument.
-      
-   (* YZ NOTE: Insert a reference here to Factorial directly defined over trees  *) 
+
+   (* YZ NOTE: Insert a reference here to Factorial directly defined over trees  *)
 
       We use [loop] to first build a new combinator [while] that takes a boolean
       computation, runs it and loops if it is true, exits otherwise.
    *)
 
   Definition while {eff} (t : itree eff bool) : itree eff unit :=
-    loop 
+    loop
       (fun l : unit + unit =>
          match l with
          | inr _ => ret (inl tt)
@@ -207,6 +217,7 @@ Section Denote.
                then denoteStmt b ;; ret true
                else ret false)
     | Skip => ret tt
+    | Print s => lift (Out s)
     end.
 
 End Denote.
@@ -260,11 +271,19 @@ From ExtLib Require Import
    things with some kind of static global [E] containing everything: does it have any
    drawbacks?
  *)
-Definition evalLocals {E: Type -> Type} `{envE var value -< E}: Locals ~> itree E :=
+Definition evalLocals {E: Type -> Type} `{envE var value -< E}:
+  Locals ~> itree E :=
   fun _ e =>
-    match e with
-    | GetVar x => env_lookupDefault x 0
-    | SetVar x v => env_add x v
+    (* match e with *)
+    (* | inl1 e => *)
+      match e with
+      | GetVar x => env_lookupDefault x 0
+      | SetVar x v => env_add x v
+    (*   end *)
+    (* | inr1 e => *)
+    (*   match e with *)
+    (*   | Out s => ret tt *)
+    (*   end *)
     end.
 
 (** We specifically implement this environment using ExtLib's finite maps. *)
@@ -293,6 +312,6 @@ Qed.
 (* YZ NOTE: Here, we actually constrain the [eff] argument in [denoteStmt] to be
    exactly [Locals] rather than any universe of effect containing it.
  *)
-Definition ImpEval (s: stmt): itree void1 (env * unit) :=
-  let p := interp evalLocals _ (denoteStmt s) in
-  run_env _ p empty.
+(* Definition ImpEval (s: stmt) : itree void1 (env * unit):= *)
+(*   let p := interp evalLocals _ (denoteStmt s) in *)
+(*   run_env _ p empty. *)

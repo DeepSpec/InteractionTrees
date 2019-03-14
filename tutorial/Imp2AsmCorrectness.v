@@ -68,7 +68,10 @@ Opaque varOf.
 Section Simulation_Relation.
 
   Variable E: Type -> Type.
-  Context {HasLocals: Locals -< E} {HasMemory: Memory -< E}.
+  Context {HasLocals: Locals -< E}
+          {HasMemory: Memory -< E}
+          (* {HasPrint: PrintE -< E} *)
+  .
 
   Variant Rvar : var -> var -> Prop :=
   | Rvar_var v : Rvar (varOf v) v.
@@ -108,7 +111,7 @@ Section Simulation_Relation.
       rewrite LUL in LUR; auto.
     - erewrite <- (H (varOf x) x (Rvar_var x) v) in LUR.
       rewrite LUR in LUL; inv LUL.
-  Qed.      
+  Qed.
 
   Lemma sim_rel_add: forall g_asm g_imp n v,
       Renv g_asm g_imp ->
@@ -133,7 +136,7 @@ Section Simulation_Relation.
       sim_rel g_asm n (g_asm', tt) (g_imp',v) ->
       alist_In (gen_tmp n) g_asm' v.
   Proof.
-    intros ? ? ? ? ? [_ [H _]]; exact H. 
+    intros ? ? ? ? ? [_ [H _]]; exact H.
   Qed.
 
   Lemma sim_rel_find_tmp_lt_n:
@@ -182,6 +185,7 @@ Section Correctness.
   Context {E': Type -> Type}.
   Context {HasMemory: Memory -< E'}.
   Context {HasExit: Exit -< E'}.
+  Context {HasPrint: PrintE -< E'}.
   Notation E := (Locals +' E').
 
   Definition interp_locals {R: Type} (t: itree E R) (s: alist var value)
@@ -427,7 +431,7 @@ Section Correctness.
       denote_asm (seq_asm ab bc)
     ⩯ denote_asm ab >=> denote_asm bc.
   Proof.
-    unfold seq_asm. 
+    unfold seq_asm.
     rewrite link_asm_correct, relabel_asm_correct, app_asm_correct.
     rewrite <- lift_ktree_id, cat_assoc.
     rewrite cat_id_r.
@@ -504,7 +508,7 @@ Section Correctness.
     rewrite if_asm_correct.
     all: try typeclasses eauto.
     intros [[] | []].
-    - unfold ITree.cat. 
+    - unfold ITree.cat.
       simpl; setoid_rewrite bind_bind.
       rewrite bind_bind.
       apply eutt_bind; [reflexivity | intros []].
@@ -601,7 +605,6 @@ Section Correctness.
     - (* Seq *)
       rewrite fold_to_itree; simpl.
       rewrite seq_asm_correct. unfold to_itree.
-      unfold ITree.cat.
       eapply eq_locals_bind_gen.
       { eauto. }
       intros [] [] []; auto.
@@ -623,7 +626,7 @@ Section Correctness.
       rewrite ret_bind_.
       simpl.
       apply sim_rel_Renv in H0.
-      destruct v; simpl; auto. 
+      destruct v; simpl; auto.
 
     - (* While *)
       simpl; rewrite fold_to_itree.
@@ -670,6 +673,26 @@ Section Correctness.
       rewrite (itree_eta (_ (denote_asm _ _) _)),
       (itree_eta (_ (denoteStmt _) _));
         cbn.
+      apply eutt_ret; auto.
+    - (* Print *)
+      simpl. rewrite raw_asm_block_correct. simpl.
+      rewrite <- (bind_ret (lift _)) at 2.
+      eapply eq_locals_bind_gen.
+      {
+        Set Nested Proofs Allowed.
+        Lemma test : forall s,
+            eq_locals eq Renv (lift (Out s)) (lift (Out s)).
+        Proof.
+          unfold eq_locals. intros.
+          unfold interp_locals. unfold run_env. unfold lift.
+          rewrite interp_lift.
+          do 2 (rewrite interp_state_tau; rewrite tau_eutt).
+          (* help *)
+        Admitted.
+        apply test.
+      }
+      intros [] []. repeat intro.
+      rewrite itree_eta, (itree_eta (_ _ g2)); cbn.
       apply eutt_ret; auto.
   Qed.
 

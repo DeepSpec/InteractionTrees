@@ -1,4 +1,5 @@
 -Q theories ITree
+-R tutorial ""
 
 theories/Simple.v
 
@@ -44,3 +45,10 @@ theories/Effects/Spawn.v
 theories/Effects/Env.v
 
 theories/ITree.v
+
+tutorial/Imp.v
+tutorial/Asm.v
+tutorial/Utils_tutorial.v
+tutorial/AsmCombinators.v
+tutorial/Imp2Asm.v
+tutorial/Imp2AsmCorrectness.v
