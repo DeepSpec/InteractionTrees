@@ -66,17 +66,17 @@ Proof.
   eapply eq_itree_bind; try reflexivity.
   intros a' _ []. autorewrite with itree.
   remember (inr a') as ca eqn:EQ; clear EQ a'.
-  pupto2_init. revert ca; clear; pcofix self; intro ca.
+  uinit. revert ca; clear; ucofix self; intro ca.
   rewrite unfold_loop'; unfold loop_once.
-  pupto2 @eq_itree_clo_bind; econstructor; try reflexivity.
+  uclo eq_itree_clo_bind; econstructor; try reflexivity.
   intros [c | b]; intros; subst.
   - match goal with
     | [ |- _ _ (Tau (loop_ ?f _)) ] => rewrite (unfold_loop' f)
     end.
     unfold loop_once_.
     rewrite ret_bind_. (* TODO: [ret_bind] doesn't work. *)
-    pfold; constructor; auto.
-  - pfold; constructor; auto.
+    constructor; eauto with paco.
+  - constructor; eauto.
 Qed.
 
 Lemma loop_natural_r {E A B B' C} (f : B -> itree E B')
@@ -90,15 +90,15 @@ Lemma loop_natural_r {E A B B' C} (f : B -> itree E B')
 Proof.
   unfold loop.
   remember (inr a) as ca eqn:EQ; clear EQ a.
-  pupto2_init. revert ca; clear; pcofix self; intro ca.
+  uinit. revert ca; clear; ucofix self; intro ca.
   rewrite !unfold_loop'; unfold loop_once.
   rewrite !bind_bind.
-  pupto2 @eq_itree_clo_bind; econstructor; try reflexivity.
+  uclo eq_itree_clo_bind; econstructor; try reflexivity.
   intros [c | b]; intros; subst.
   - rewrite ret_bind_, tau_bind_.
-    pfold; constructor; auto.
+    constructor; auto with paco.
   - autorewrite with itree.
-    pupto2_final; apply reflexivity.
+    ufinal; apply reflexivity.
 Qed.
 
 Lemma loop_dinatural {E A B C C'} (f : C -> itree E C')
@@ -119,24 +119,24 @@ Proof.
   autorewrite with itree.
   eapply eq_itree_bind; try reflexivity.
   clear a; intros cb _ [].
-  pupto2_init. revert cb; pcofix self; intros.
+  uinit. revert cb; ucofix self; intros.
   destruct cb as [c | b].
   - rewrite tau_bind.
-    pfold; constructor; pupto2_final; left.
+    constructor. 
     rewrite map_bind.
     rewrite (unfold_loop' _ (inl c)); unfold loop_once.
     autorewrite with itree.
-    pupto2 eq_itree_clo_bind; econstructor; try reflexivity.
+    uclo eq_itree_clo_bind; econstructor; try reflexivity.
     intros c'; intros; subst.
     rewrite tau_bind.
     rewrite ret_bind_.
     rewrite unfold_loop'; unfold loop_once.
     rewrite bind_bind.
-    pfold; constructor.
-    pupto2 eq_itree_clo_bind; econstructor; try reflexivity.
-    intros; subst. eauto.
+    ustep; constructor.
+    uclo eq_itree_clo_bind; econstructor; try reflexivity.
+    intros; subst. eauto with paco.
   - rewrite ret_bind.
-    pupto2_final; apply reflexivity.
+    ufinal; apply reflexivity.
 Qed.
 
 Lemma vanishing1 {E A B} (f : void + A -> itree E (void + B))
@@ -163,7 +163,7 @@ Proof.
   rewrite !bind_bind.
   eapply eq_itree_bind; try reflexivity.
   clear a; intros dcb _ [].
-  pupto2_init. revert dcb; pcofix self; intros.
+  uinit. revert dcb; ucofix self; intros.
   destruct dcb as [d | [c | b]]; cbn.
   all: unfold cat, inl_, inr_, Inl_ktree, lift_ktree; cbn.
   all: rewrite !ret_bind_.
@@ -173,20 +173,20 @@ Proof.
     autorewrite with itree.
     cbn; unfold cat, inl_, Inl_ktree, lift_ktree.
     rewrite ret_bind_.
-    pfold; constructor.
-    pupto2 eq_itree_clo_bind; econstructor. reflexivity.
-    intros; subst. auto.
+    constructor.
+    uclo eq_itree_clo_bind; econstructor. reflexivity.
+    intros; subst. auto with paco.
   - (* c *)
     rewrite 2 unfold_loop'; unfold loop_once.
     rewrite unfold_loop'; unfold loop_once.
     autorewrite with itree.
     cbn; unfold cat, inl_, inr_, Inl_ktree, lift_ktree.
     rewrite !ret_bind_.
-    pfold; constructor.
-    pupto2 eq_itree_clo_bind; econstructor; try reflexivity.
-    intros; subst. auto.
+    constructor.
+    uclo eq_itree_clo_bind; econstructor; try reflexivity.
+    intros; subst. auto with paco.
   - (* b *)
-    pupto2_final; apply reflexivity.
+    ufinal; apply reflexivity.
 Qed.
 
 Lemma superposing1 {E A B C D D'} (f : C + A -> itree E (C + B))
@@ -209,22 +209,22 @@ Proof.
   { subst; auto. }
   clear a Hl Hr.
   unfold ITree.map.
-  pupto2_init. revert inla inra Hlr; pcofix self; intros.
+  uinit. revert inla inra Hlr; ucofix self; intros.
   rewrite 2 unfold_loop'; unfold loop_once.
   rewrite bind_bind.
   destruct inra as [c | a]; subst.
   - rewrite bind_bind; setoid_rewrite ret_bind_.
-    pupto2 eq_itree_clo_bind; econstructor; try reflexivity.
+    uclo eq_itree_clo_bind; econstructor; try reflexivity.
     intros [c' | b]; simpl; intros; subst.
-    + rewrite tau_bind. pfold; constructor.
-      pupto2_final. auto.
-    + rewrite ret_bind. pupto2_final; apply reflexivity.
+    + rewrite tau_bind. constructor.
+      ufinal. auto.
+    + rewrite ret_bind. ufinal; apply reflexivity.
   - rewrite bind_bind; setoid_rewrite ret_bind_.
-    pupto2 eq_itree_clo_bind; econstructor; try reflexivity.
+    uclo eq_itree_clo_bind; econstructor; try reflexivity.
     intros [c' | b]; simpl; intros; subst.
-    + rewrite tau_bind. pfold; constructor.
-      pupto2_final. auto.
-    + rewrite ret_bind_. pupto2_final; apply reflexivity.
+    + rewrite tau_bind. constructor.
+      ufinal. auto.
+    + rewrite ret_bind_. ufinal; apply reflexivity.
 Qed.
 
 Lemma superposing2 {E A B C D D'} (f : C + A -> itree E (C + B))
@@ -256,10 +256,10 @@ Proof.
   repeat intro; subst.
   unfold loop.
   remember (inr _) as ca eqn:EQ; clear EQ y0.
-  pupto2_init. revert ca; pcofix self; intros.
+  uinit. revert ca; ucofix self; intros.
   rewrite 2 unfold_loop'; unfold loop_once.
-  pupto2 eq_itree_clo_bind; econstructor; try auto.
-  intros [c | b]; intros; subst; pfold; constructor; auto.
+  uclo eq_itree_clo_bind; econstructor; try auto.
+  intros [c | b]; intros; subst; constructor; auto with paco.
 Qed.
 
 Section eutt_loop.

@@ -135,25 +135,6 @@ Qed.
 
 (**)
 
-Lemma euttE_strengthen :
-  forall r (t1 : itree E R1) (t2 : itree E R2)
-     (FIN: finite_taus t1 <-> finite_taus t2)
-     (EQV: forall t1' t2'
-              (UNT1: unalltaus t1 t1')
-              (UNT2: unalltaus t2 t2'),
-         paco2 (euttE_ ∘ gres2 euttE_) r t1' t2'),
-    paco2 (euttE_ ∘ gres2 euttE_) r t1 t2.
-Proof.
-  intros. pfold. econstructor; eauto.
-  intros.
-  hexploit (EQV (go ot1') (go ot2')); eauto.
-  intros EQV'. punfold EQV'. destruct EQV'.
-  eapply EQV0;
-    repeat constructor; eauto.
-Qed.
-
-(**)
-
 Lemma euttE_Ret x y :
   RR x y -> euttE (Ret x) (Ret y).
 Proof.
@@ -445,15 +426,15 @@ Proof.
     eapply IHFT2; eauto using unalltaus_tau'.
 Qed.
 
-Lemma euttE_clo_bind {E R1 R2} RR : weak_respectful2 (@euttE_ E R1 R2 RR) euttE_bind_clo.
+Lemma euttE_clo_bind {E R1 R2} RR : euttE_bind_clo <3= cpn2 (@euttE_ E R1 R2 RR).
 Proof.
-  econstructor; [pmonauto|].
+  ucompat. econstructor; [pmonauto|].
   intros. destruct PR. split.
   - assert (EQV':=EQV).
     eapply (Symmetric_euttE_ RU (flip RU) bot2 bot2) in EQV'; eauto.
     split; intros; eapply bind_clo_finite_taus; eauto; intros.
-    + edestruct GF; eauto. apply FIN. eauto.
-    + edestruct GF; eauto. apply FIN. eauto.
+    + eapply REL; eauto.
+    + eapply REL; eauto.
   - punfold EQV. destruct EQV.
     intros.
     hexploit (@finite_taus_bind_fst E); [do 2 eexists; apply UNTAUS1|]. intros [a FT1].
@@ -466,12 +447,12 @@ Proof.
     hexploit @untaus_unalltaus_rev; [apply UT2| |]; eauto. intros UAT2.
     inv EQV.
     + rewrite unfold_bind in UAT1. rewrite unfold_bind in UAT2. cbn in *.
-      eapply GF in REL; eauto. destruct REL.
-      eapply monotone_eq_notauF; eauto using rclo2.
+      edestruct REL; eauto.
+      eapply monotone_eq_notauF; eauto with rclo.
     + rewrite unfold_bind in UAT1. rewrite unfold_bind in UAT2. cbn in *.
       destruct UAT1 as [UAT1 _]. destruct UAT2 as [UAT2 _].
       dependent destruction UAT1. dependent destruction UAT2. simpobs.
-      econstructor. intros. specialize (H x). pclearbot. eauto using rclo2.
+      econstructor. intros. specialize (H x). pclearbot. eauto with rclo.
 Qed.
 
 Inductive euttE_trans_clo {E R1 R2} (r: itree E R1 -> itree E R2 -> Prop) :
@@ -484,19 +465,18 @@ Inductive euttE_trans_clo {E R1 R2} (r: itree E R1 -> itree E R2 -> Prop) :
 .
 Hint Constructors euttE_trans_clo.
 
-Lemma euttE_clo_trans {E R1 R2} RR :
-  weak_respectful2 (@euttE_ E R1 R2 RR) euttE_trans_clo.
+Lemma euttE_clo_trans {E R1 R2} RR : euttE_trans_clo <3= cpn2 (@euttE_ E R1 R2 RR).
 Proof.
-  econstructor; [pmonauto|].
+  ucompat. econstructor; [pmonauto|].
   intros. inv PR.
   punfold EQVl. punfold EQVr. destruct EQVl, EQVr. split.
-  { rewrite FIN, FIN0. apply GF in REL. destruct REL. eauto. }
+  { rewrite FIN, FIN0. destruct REL. eauto. }
 
   intros. apply proj1 in FIN. edestruct FIN as [n'' [t2'' TAUS'']]; [eexists; eauto|].
   hexploit EQV; eauto. intros EUTT1.
   apply proj1 in FIN0. edestruct FIN0 as [n''' [t2''' TAUS''']]; [eexists; eauto|].
   hexploit EQV0; eauto. intros EUTT2.
-  apply GF in REL. destruct REL.
+  destruct REL.
   hexploit EQV1; eauto. intros EUTT3.
   destruct EUTT1; destruct EUTT2;
     try (solve [subst; inversion EUTT3; auto]).
@@ -507,7 +487,7 @@ Proof.
   subst; auto_inj_pair2; subst.
   econstructor. intros.
   specialize (H x); specialize (H0 x); specialize (H1 x).
-  pclearbot. eauto using rclo2.
+  pclearbot. eauto with rclo.
 Qed.
 
 Arguments euttE_clo_trans : clear implicits.

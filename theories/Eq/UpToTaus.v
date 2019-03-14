@@ -88,6 +88,11 @@ Hint Resolve monotone_eutt_ : paco.
 Definition eutt : itree E R1 -> itree E R2 -> Prop := paco2 eutt_ bot2.
 Hint Unfold eutt.
 
+Lemma eutt_fold :
+  eutt <2= paco2 eutt_ bot2.
+Proof. intros. apply PR. Qed.
+Hint Resolve eutt_fold.
+
 Global Arguments eutt t1%itree t2%itree.
 
 End EUTT.
@@ -97,6 +102,7 @@ Hint Unfold eutt_.
 Hint Resolve monotone_euttF : paco.
 Hint Resolve monotone_eutt_ : paco.
 Hint Unfold eutt.
+Hint Resolve eutt_fold.
 
 Infix "≈" := (eutt eq) (at level 70) : itree_scope.
 
@@ -251,22 +257,20 @@ Inductive eutt_trans_left_clo (r: itree E R1 -> itree E R2 -> Prop) :
 .
 Hint Constructors eutt_trans_left_clo.
 
-Lemma eutt_clo_trans_left :
-  weak_respectful2 (@eutt_ E R1 R2 RR) eutt_trans_left_clo.
+Lemma eutt_clo_trans_left : eutt_trans_left_clo <3= cpn2 (@eutt_ E R1 R2 RR).
 Proof.
-  econstructor; [pmonauto|].
+  ucompat. econstructor; [pmonauto|].
   intros. destruct PR.
-  eapply GF in REL. clear l LE GF.
   revert_until r. pcofix CIH. intros.
   pfold. punfold REL. do 2 punfold EQV.
   genobs_clear t1 ot1. genobs_clear t2 ot2. genobs_clear t3 ot3.
   move EQV before CIH. revert_until EQV.
-  induction EQV; intros; subst; pclearbot; eauto 7 using euttF_mon, upaco2_mon_bot, rclo2.
+  induction EQV; intros; subst; pclearbot; eauto 7 using euttF_mon, upaco2_mon_bot with rclo.
   - remember (VisF e k2) as o.
     move REL before CIH. revert_until REL.
     induction REL; intros; subst; try dependent destruction Heqo; pclearbot; eauto 7.
     econstructor. intros.
-    edestruct EUTTK, EUTTK0; pclearbot; eauto 7 using rclo2.
+    edestruct EUTTK, EUTTK0; pclearbot; eauto 7 with rclo.
   - destruct (isb_tau ot3) eqn: ISTAU.
     + destruct ot3; inv ISTAU.
       econstructor. right. eapply CIH. eauto.
@@ -286,7 +290,7 @@ Proof.
         move EQTAUS before CIH. revert_until EQTAUS.
         induction EQTAUS; intros; subst; try dependent destruction Heqo; pclearbot; eauto 7.
         econstructor. intros.
-        edestruct EUTTK, EUTTK0; pclearbot; eauto 7 using rclo2.
+        edestruct EUTTK, EUTTK0; pclearbot; eauto 7 with rclo.
       * eapply IHREL; eauto.
         punfold EQTAUS. pfold.
         eapply euttF_elim_tau_right in EQTAUS. eauto.
@@ -305,22 +309,20 @@ Inductive eutt_trans_right_clo (r: itree E R1 -> itree E R2 -> Prop) :
 .
 Hint Constructors eutt_trans_right_clo.
 
-Lemma eutt_clo_trans_right :
-  weak_respectful2 (@eutt_ E R1 R2 RR) eutt_trans_right_clo.
+Lemma eutt_clo_trans_right : eutt_trans_right_clo <3= cpn2 (@eutt_ E R1 R2 RR).
 Proof.
-  econstructor; [pmonauto|].
+  ucompat. econstructor; [pmonauto|].
   intros. destruct PR.
-  eapply GF in REL. clear l LE GF.
   revert_until r. pcofix CIH. intros.
   pfold. punfold REL. do 2 punfold EQV.
   genobs_clear t1 ot1. genobs_clear t2 ot2. genobs_clear t3 ot3.
   move EQV before CIH. revert_until EQV.
-  induction EQV; intros; subst; pclearbot; eauto 7 using euttF_mon, upaco2_mon_bot, rclo2.
+  induction EQV; intros; subst; pclearbot; eauto 7 using euttF_mon, upaco2_mon_bot with rclo.
   - remember (VisF e k2) as o.
     move REL before CIH. revert_until REL.
     induction REL; intros; subst; try dependent destruction Heqo; pclearbot; eauto 7.
     econstructor. intros.
-    edestruct EUTTK, EUTTK0; pclearbot; eauto 7 using rclo2.
+    edestruct EUTTK, EUTTK0; pclearbot; eauto 7 with rclo.
   - destruct (isb_tau ot1) eqn: ISTAU.
     + destruct ot1; inv ISTAU.
       econstructor. right. eapply CIH. eauto.
@@ -340,7 +342,7 @@ Proof.
         move EQTAUS before CIH. revert_until EQTAUS.
         induction EQTAUS; intros; subst; try dependent destruction Heqo; pclearbot; eauto 7.
         econstructor. intros.
-        edestruct EUTTK, EUTTK0; pclearbot; eauto 7 using rclo2.
+        edestruct EUTTK, EUTTK0; pclearbot; eauto 7 with rclo.
       * eapply IHREL; eauto.
         punfold EQTAUS. pfold.
         eapply euttF_elim_tau_right in EQTAUS. eauto.
@@ -359,12 +361,11 @@ Inductive eutt_bind_clo {E R1 R2} (r: itree E R1 -> itree E R2 -> Prop) : itree 
 .
 Hint Constructors eutt_bind_clo.
 
-Lemma eutt_clo_bind : weak_respectful2 (@eutt_ E R1 R2 RR) eutt_bind_clo.
+Lemma eutt_clo_bind : eutt_bind_clo <3= cpn2 (@eutt_ E R1 R2 RR).
 Proof.
-  econstructor; [pmonauto|].
+  ucompat. econstructor; [pmonauto|].
   intros. destruct PR.
   assert (RELk: forall v1 v2, RU v1 v2 -> eutt_ RR r (k1 v1) (k2 v2)) by eauto.
-  clear l LE GF REL.
   revert_until r. pcofix CIH. intros.
   pfold. do 2 punfold EQV.
   rewrite !unfold_bind.
@@ -372,36 +373,36 @@ Proof.
   move EQV before CIH. revert_until EQV.
   induction EQV; intros; subst; pclearbot.
   - specialize (RELk _ _ RBASE). punfold RELk.
-    eauto 7 using euttF_mon, upaco2_mon_bot, rclo2.
+    eauto 7 using euttF_mon, upaco2_mon_bot with rclo.
   - econstructor. intros.
-    edestruct EUTTK; pclearbot; eauto 7 using rclo2.
+    edestruct EUTTK; pclearbot; eauto 7 with rclo.
   - simpl. eauto 7.
   - econstructor. rewrite unfold_bind. eauto.
   - econstructor. rewrite unfold_bind. eauto.
 Qed.
 
-Global Instance eutt_cong_eutt r :
+Global Instance eutt_cong_cpn r :
   Proper (eutt eq ==> eutt eq ==> flip impl)
-         (paco2 (cgres2 (@eutt_ E R1 R2 RR)) r).
+         (cpn2 (@eutt_ E R1 R2 RR) r).
 Proof.
   repeat intro.
-  pupto2 eutt_clo_trans_left. econstructor; eauto.
-  pupto2 eutt_clo_trans_right. econstructor; eauto.
+  uclo eutt_clo_trans_left. econstructor; eauto.
+  uclo eutt_clo_trans_right. econstructor; eauto.
 Qed.
 
-Global Instance eutt_cong_gres_eutt_ r :
+Global Instance eutt_cong_gcpn r :
   Proper (eutt eq ==> eutt eq ==> flip impl)
-         (gres2 (@eutt_ E R1 R2 RR) r).
+         (gcpn2 (@eutt_ E R1 R2 RR) r).
 Proof.
   repeat intro.
-  pupto2 eutt_clo_trans_left. econstructor; eauto.
-  pupto2 eutt_clo_trans_right. econstructor; eauto.
+  uclo eutt_clo_trans_left. econstructor; eauto.
+  uclo eutt_clo_trans_right. econstructor; eauto.
 Qed.
 
 Global Instance eutt_eq_under_rr_impl :
   Proper (@eutt E _ _ eq ==> @eutt _ _ _ eq ==> flip impl) (eutt RR).
 Proof.
-  repeat red. intros. pupto2_init. rewrite H, H0. pupto2_final. eauto.
+  repeat red. intros. uinit. rewrite H, H0. eauto with paco.
 Qed.
 
 End EUTT_upto.
@@ -420,9 +421,8 @@ Global Instance eutt_bind {E U R} :
           pointwise_relation _ (eutt eq) ==>
           eutt eq) (@ITree.bind E U R).
 Proof.
-  repeat intro.
-  pupto2_init. pupto2 eutt_clo_bind. econstructor; eauto.
-  intros. subst. pupto2_final. apply H0.
+  uinit. uclo eutt_clo_bind. econstructor; eauto.
+  intros. subst. eauto with paco.
 Qed.
 
 Section EUTT_nested.
@@ -440,39 +440,45 @@ Inductive eutt_nested_trans_clo (r: itree' E R1 -> itree' E R2 -> Prop) :
 Hint Constructors eutt_nested_trans_clo.
 
 Lemma eutt_nested_clo_trans r :
-  weak_respectful2 (euttF RR (gres2 (eutt_ RR) (upaco2 (cgres2 (eutt_ RR)) r)))
-                    eutt_nested_trans_clo.
+  eutt_nested_trans_clo <3= cpn2 (euttF RR (cpn2 (eutt_ RR) r)).
 Proof.
-  econstructor; [pmonauto|].
+  ucompat. econstructor; [pmonauto|].
   intros. destruct PR.
-  apply GF in REL. clear l LE GF.
   punfold EQVl; red in EQVl. punfold EQVr; red in EQVr. simpl in *.
   move REL before r0. revert_until REL.
   induction REL; intros; subst;
-    try (dependent destruction EQVl; dependent destruction EQVr; [ idtac ]; pclearbot).
+    try (dependent destruction EQVl; dependent destruction EQVr; []; pclearbot).
   - eauto.
   - econstructor. intros.
     edestruct EUTTK.
     + left. rewrite REL, REL0. eauto.
-    + right. eapply rclo2_step.
+    + right. eapply rclo2_clo.
       econstructor.
       * instantiate (1:= observe(k1 x)). rewrite <- !itree_eta. eauto.
       * instantiate (1:= observe(k2 x)). rewrite <- !itree_eta. eauto.
-      * eauto using rclo2.
-  - econstructor. eapply rclo2_step. econstructor.
+      * eauto with rclo.
+  - econstructor. eapply rclo2_clo. econstructor.
     + rewrite REL. reflexivity.
     + rewrite REL0. reflexivity.
-    + eauto using rclo2.
+    + eauto with rclo.
   - dependent destruction EQVl; pclearbot. punfold REL0.
   - dependent destruction EQVr; pclearbot. punfold REL0.
 Qed.
 
-Global Instance eq_cong_nested_euttF r r0 :
+Global Instance eq_cong_nested_cpn r r0 :
   Proper (going (eq_itree eq) ==> going (eq_itree eq) ==> flip impl)
-         (paco2 (cgres2 (@euttF E R1 R2 RR (gres2 (eutt_ RR) (upaco2 (cgres2 (eutt_ RR)) r)))) r0).
+         (cpn2 (@euttF E R1 R2 RR (cpn2 (eutt_ RR) r)) r0).
 Proof.
   repeat intro. destruct H, H0.
-  pupto2 eutt_nested_clo_trans. econstructor; eauto.
+  uclo eutt_nested_clo_trans. econstructor; eauto.
+Qed.
+
+Global Instance eq_cong_nested_gcpn r r0 :
+  Proper (going (eq_itree eq) ==> going (eq_itree eq) ==> flip impl)
+         (gcpn2 (@euttF E R1 R2 RR (cpn2 (eutt_ RR) r)) r0).
+Proof.
+  repeat intro. destruct H, H0.
+  uclo eutt_nested_clo_trans. econstructor; eauto.
 Qed.
 
 Inductive eutt_nested_bind_clo (r: itree' E R1 -> itree' E R2 -> Prop) : itree' E R1 -> itree' E R2 -> Prop :=
@@ -484,23 +490,21 @@ Inductive eutt_nested_bind_clo (r: itree' E R1 -> itree' E R2 -> Prop) : itree' 
 Hint Constructors eutt_nested_bind_clo.
 
 Lemma eutt_nested_clo_bind r :
-  weak_respectful2 (euttF RR (gres2 (eutt_ RR) (upaco2 (cgres2 (eutt_ RR)) r)))
-                    eutt_nested_bind_clo.
+  eutt_nested_bind_clo <3= cpn2 (euttF RR (cpn2 (eutt_ RR) r)).
 Proof.
-  econstructor; [pmonauto|].
+  ucompat. econstructor; [pmonauto|].
   intros. destruct PR.
-  assert (RELk: forall v1 v2, RU v1 v2 -> euttF RR (gres2 (eutt_ RR) (upaco2 (cgres2 (eutt_ RR)) r)) r0 (observe (k1 v1)) (observe (k2 v2))) by eauto.
-  clear l LE GF REL.
+  assert (RELk: forall v1 v2, RU v1 v2 -> euttF RR (cpn2 (eutt_ RR) r) (* euttF RR (gres2 (eutt_ RR) (upaco2 (cgres2 (eutt_ RR)) r)) *) r0 (observe (k1 v1)) (observe (k2 v2))) by eauto.
   do 2 punfold EQV.
   rewrite !unfold_bind.
   genobs_clear t1 ot1. genobs_clear t2 ot2.
   move EQV before RU. revert_until EQV.
   induction EQV; intros; subst; pclearbot.
   - specialize (RELk _ _ RBASE). 
-    eauto 7 using euttF_mon, upaco2_mon_bot, rclo2.
+    eauto 7 using euttF_mon, upaco2_mon_bot with rclo.
   - econstructor. intros.
-    edestruct EUTTK; pclearbot; eauto 8 using rclo2.
-  - simpl. eauto 9 using rclo2.
+    edestruct EUTTK; pclearbot; eauto 9 with rclo.
+  - simpl. eauto 9 with rclo.
   - econstructor. rewrite unfold_bind. eauto.
   - econstructor. rewrite unfold_bind. eauto.
 Qed.
@@ -533,8 +537,8 @@ Proof. apply Symmetric_eutt_gen; eauto. Qed.
 
 Global Instance Transitive_eutt : Transitive eutt.
 Proof.
-  unfold eutt. repeat intro. pupto2_init.
-  rewrite H, H0. pupto2_final. apply Reflexive_eutt.
+  repeat intro. uinit.
+  rewrite H, H0. ufinal. left. apply Reflexive_eutt.
 Qed.
 
 (* We can now rewrite with [eutt] equalities. *)
@@ -596,11 +600,10 @@ Qed.
 Global Instance eutt_forever {E R S} :
   Proper (eutt eq ==> eutt eq) (@ITree.forever E R S).
 Proof.
-  repeat intro. pupto2_init. revert_until S. pcofix CIH. intros.
-  pfold. pupto2_init. revert_until CIH. pcofix CIH'. intros.
+  uinit. ucofix CIH. uinit. ucofix CIH'. intros.
   rewrite (unfold_forever x), (unfold_forever y).
-  pupto2 eutt_nested_clo_bind. econstructor; eauto.
-  intros. subst. pupto2_final. pfold. simpl. eauto.
+  uclo eutt_nested_clo_bind. econstructor; eauto.
+  intros. subst. simpl. eauto 7 with paco.
 Qed.
 
 Global Instance eutt_when {E} (b : bool) :
@@ -629,8 +632,7 @@ Lemma eutt_bind_gen {E R1 R2 S1 S2} {RR: R1 -> R2 -> Prop} {SS: S1 -> S2 -> Prop
     forall s1 s2, (forall r1 r2, RR r1 r2 -> eutt SS (s1 r1) (s2 r2)) ->
                   @eutt E _ _ SS (ITree.bind t1 s1) (ITree.bind t2 s2).
 Proof.
-  intros. red in H0. pupto2_init. pupto2 eutt_clo_bind. econstructor; eauto.
-  intros. pupto2_final. eauto.
+  uinit. uclo eutt_clo_bind. eauto 7 with paco.
 Qed.
 
 Lemma unfold_aloop' {E A B} (f : A -> itree E A + B) (x : A) :
@@ -651,7 +653,7 @@ Proof.
   - reflexivity.
 Qed.
 
-Lemma bind_aloop {E A B C} (f : A -> itree E A + B) (g : B -> itree E B + C) (x : A) :
+Lemma bind_aloop {E A B C} (f : A -> itree E A + B) (g : B -> itree E B + C): forall x,
     (ITree.aloop f x >>= ITree.aloop g)
   ≈ ITree.aloop (fun ab =>
        match ab with
@@ -660,29 +662,24 @@ Lemma bind_aloop {E A B C} (f : A -> itree E A + B) (g : B -> itree E B + C) (x 
        | inr b => bimap (ITree.map inr) (id_ _) (g b)
        end) (inl x).
 Proof.
-  pupto2_init. revert_until g. pcofix CIH. intros.
-  pfold. pupto2_init. revert_until CIH. pcofix CIH'. intros.
+  uinit. ucofix CIH. uinit. ucofix CIH'. intros.
   rewrite !unfold_aloop'. unfold ITree._aloop.
   destruct (f x) as [t | b]; cbn.
-  - match goal with
-    | [ |- context [ITree.bind' ?k ?t] ] =>
-      replace (ITree.bind' k t) with (ITree.bind t k); [ | reflexivity ]
-    end.
-    unfold id. rewrite 2 bind_bind.
-    pfold; constructor.
-    pupto2 eutt_nested_clo_bind. econstructor.
+  - bind_fold. unfold id. rewrite 2 bind_bind.
+    constructor.
+    uclo eutt_nested_clo_bind. econstructor.
     { reflexivity. }
     intros ? _ [].
     rewrite ret_bind.
-    pupto2_final. auto.
+    eauto with paco.
   - rewrite ret_bind.
-    pfold; constructor. pfold2_reverse.
+    constructor. gcpn_fold.
     rewrite ret_bind.
-    revert_until x. pcofix CIH''. intros.
+    revert b. ucofix CIH''. intros.
     rewrite !unfold_aloop'. unfold ITree._aloop.
     destruct (g b) as [t' | c]; cbn.
-    + rewrite map_bind. pfold; constructor.
-      pupto2 eutt_nested_clo_bind. econstructor; [reflexivity|].
-      intros ? _ []. auto.
-    + eauto.
+    + rewrite map_bind. constructor.
+      uclo eutt_nested_clo_bind. econstructor; [reflexivity|].
+      intros. subst. eauto with paco.
+    + eauto with paco.
 Qed.

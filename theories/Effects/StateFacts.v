@@ -62,17 +62,17 @@ Instance eq_itree_interp_state {E F S R} (h : E ~> Monads.stateT S (itree F)) :
   Proper (eq_itree eq ==> eq ==> eq_itree eq)
          (interp_state h R).
 Proof.
-  repeat intro. pupto2_init. revert_until R.
-  pcofix CIH. intros h x y H0 x2 y0 H1.
+  uinit. revert_until R.
+  ucofix CIH. intros h x y H0 x2 y0 H1.
   rewrite !unfold_interp_state.
   unfold _interp_state.
   punfold H0; red in H0.
   genobs x ox; destruct ox; simpobs; dependent destruction H0; simpobs; pclearbot.
-  - pupto2_final. pfold. red. cbn. subst. eauto.
-  - pupto2_final. pfold. red. cbn. subst. eauto.
-  - subst. pfold; constructor. pupto2 eq_itree_clo_bind. econstructor.
+  - ufinal. pfold. red. cbn. subst. eauto.
+  - ufinal. pfold. red. cbn. subst. eauto.
+  - subst. constructor. uclo eq_itree_clo_bind. econstructor.
     + reflexivity.
-    + intros [] _ []. pupto2_final. auto.
+    + intros [] _ []. ufinal. auto.
 Qed.
 
 Lemma interp_state_ret {E F : Type -> Type} {R S : Type}
@@ -118,42 +118,42 @@ Lemma interp_state_bind {E F : Type -> Type} {A B S : Type}
     ≅
   (interp_state f _ t s >>= fun st => interp_state f _ (k (snd st)) (fst st)).
 Proof.
-  pupto2_init.
+  uinit.
   revert A t k s.
-  pcofix CIH.
+  ucofix CIH.
   intros A t k s.
   rewrite unfold_bind, (unfold_interp_state f t).
   destruct (observe t).
   (* TODO: performance issues with [ret|tau|vis_bind] here too. *)
   - cbn. rewrite !ret_bind. simpl.
-    pupto2_final. apply reflexivity.
+    ufinal. apply reflexivity.
   - cbn. rewrite !tau_bind, interp_state_tau.
-    pupto2_final. pfold. econstructor. right. apply CIH.
+    ufinal. pfold. econstructor. right. apply CIH.
   - cbn. rewrite interp_state_vis, tau_bind, bind_bind.
-    pfold; constructor.
-    pupto2 eq_itree_clo_bind. econstructor.
+    constructor.
+    uclo eq_itree_clo_bind. econstructor.
     + reflexivity.
     + intros u2 ? []. specialize (CIH _ (k0 (snd u2)) k (fst u2)).
-      auto.
+      auto with paco.
 Qed.
 
 Instance eutt_interp_state {E F: Type -> Type} {S : Type}
          (h : E ~> Monads.stateT S (itree F)) R :
   Proper (eutt eq ==> eq ==> eutt eq) (@interp_state E F S h R).
 Proof.
-  repeat intro. subst. pupto2_init. revert_until R. pcofix CIH. intros.
-  pfold. pupto2_init. revert_until CIH. pcofix CIH'. intros.
+  repeat intro. subst. revert_until R.
+  uinit. ucofix CIH. uinit. ucofix CIH'. intros.
 
   rewrite !unfold_interp_state. do 2 punfold H0.
-  induction H0; intros; subst; simpl; pclearbot; eauto.
-  - pfold; constructor.
-    pupto2 eutt_nested_clo_bind; econstructor; [reflexivity|].
-    intros; subst. pupto2_final.
+  induction H0; intros; subst; simpl; pclearbot; eauto with paco.
+  - constructor.
+    uclo eutt_nested_clo_bind; econstructor; [reflexivity|].
+    intros; subst. ufinal.
     right. eapply CIH'. edestruct EUTTK; pclearbot; eauto.
-  - econstructor. pupto2_final. eauto 9.
-  - pfold; constructor. pfold2_reverse.
+  - econstructor. ufinal. eauto 9.
+  - constructor. gcpn_fold.
     rewrite unfold_interp_state; auto.
-  - pfold; constructor. pfold2_reverse.
+  - constructor. gcpn_fold.
     rewrite unfold_interp_state; auto.
 Qed.
 
@@ -169,14 +169,13 @@ Lemma interp_state_loop {E F S A B C} (RS : S -> S -> Prop)
           (interp_state h B (loop_ t1 ca) s1)
           (interp_state h B (loop_ t2 ca) s2)).
 Proof.
-  repeat intro. pupto2_init. revert_until H. pcofix CIH. intros.
-  pfold. pupto2_init. revert_until CIH. pcofix CIH'. intros.
+  uinit. ucofix CIH. uinit. ucofix CIH'. intros.
 
   rewrite (itree_eta (loop_ t1 ca)), (itree_eta (loop_ t2 ca)), !unfold_loop''.
   unfold loop_once. rewrite <- !itree_eta, !interp_state_bind.
-  pupto2 eutt_nested_clo_bind. econstructor; eauto.
+  uclo eutt_nested_clo_bind. econstructor; eauto.
   intros. destruct RELv. rewrite H2. destruct (snd v2).
   - rewrite !interp_state_tau.
-    pfold. econstructor. pupto2_final. eauto.
-  - rewrite !interp_state_ret. simpl. eauto 7.
+    econstructor. ufinal. eauto.
+  - rewrite !interp_state_ret. simpl. eauto 7 with paco.
 Qed.

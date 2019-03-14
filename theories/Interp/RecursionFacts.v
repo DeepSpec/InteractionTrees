@@ -86,10 +86,10 @@ Hint Rewrite @tau_mrec : itree.
 Instance eq_itree_mrec {R} :
   Proper (eq_itree eq ==> eq_itree eq) (interp_mrec ctx R).
 Proof.
-  repeat intro. pupto2_init. revert_until R.
-  pcofix CIH. intros.
+  repeat intro. uinit. revert_until R.
+  ucofix CIH. intros.
   rewrite !unfold_interp_mrec.
-  pupto2_final.
+  ufinal.
   punfold H0. inv H0; simpobs; pclearbot; [| |destruct e].
   - apply reflexivity.
   - pfold. econstructor. eauto.
@@ -102,36 +102,35 @@ Theorem interp_mrec_bind {U T} (t : itree _ U) (k : U -> itree _ T) :
   interp_mrec ctx _ (ITree.bind t k) ≅
   ITree.bind (interp_mrec ctx _ t) (fun x => interp_mrec ctx _ (k x)).
 Proof.
-  intros. pupto2_init; revert t k; pcofix CIH; intros.
+  intros. uinit; revert t k; ucofix CIH; intros.
   rewrite (unfold_interp_mrec _ t), (unfold_bind t).
   destruct (observe t); cbn;
     [| |destruct e];
     autorewrite with itree;
     try rewrite <- bind_bind.
-  1: { pupto2_final; apply reflexivity. }
-  all: try (pfold; econstructor; eauto).
+  1: { ufinal; apply reflexivity. }
+  all: try (econstructor; eauto with paco).
   intros.
-  pupto2_final. left; pfold; constructor. auto.
+  ufinal. left; pfold; constructor. auto.
 Qed.
 
 Theorem interp_mrec_as_interp {T} (c : itree _ T) :
   interp_mrec ctx _ c ≈ interp (case_ (mrec ctx) ITree.lift) _ c.
 Proof.
-  repeat intro. pupto2_init. revert_until T. pcofix CIH. intros.
-  pfold. pupto2_init. revert_until CIH. pcofix CIH'. intros.
+  revert_until T. uinit. ucofix CIH. uinit. ucofix CIH'. intros.
   rewrite unfold_interp_mrec, unfold_interp.
-  destruct (observe c); [| |destruct e]; simpl; eauto 8.
+  destruct (observe c); [| |destruct e]; simpl; eauto 8 with paco.
   - rewrite interp_mrec_bind.
-    pfold; constructor.
-    pupto2 eutt_nested_clo_bind; econstructor; [reflexivity|].
-    intros ? _ []; eauto.
+    constructor.
+    uclo eutt_nested_clo_bind; econstructor; [reflexivity|].
+    intros ? _ []; eauto with paco.
 
   - unfold ITree.lift, case_; simpl. rewrite vis_bind_.
-    pfold; constructor.
-    pupto2_final.
+    constructor.
+    ufinal.
     left; pfold; econstructor.
     left.
-    rewrite ret_bind_. auto.
+    rewrite ret_bind_. auto with paco.
 Qed.
 
 Theorem mrec_as_interp {T} (d : D T) :
@@ -163,10 +162,10 @@ Lemma interp_loop {E F} (f : E ~> itree F) {A B C}
       (t : C + A -> itree E (C + B)) ca :
   interp f _ (loop_ t ca) ≅ loop_ (fun ca => interp f _ (t ca)) ca.
 Proof.
-  pupto2_init. revert ca. pcofix CIH. intros.
+  uinit. revert ca. ucofix CIH. intros.
   unfold loop. rewrite !unfold_loop'. unfold loop_once.
   rewrite interp_bind.
-  pupto2 eq_itree_clo_bind. econstructor; [reflexivity|].
-  intros. subst. rewrite unfold_interp. pupto2_final. pfold. red.
+  uclo eq_itree_clo_bind. econstructor; [reflexivity|].
+  intros. subst. rewrite unfold_interp. ufinal. pfold. red.
   destruct u2; simpl; eauto.
 Qed.
