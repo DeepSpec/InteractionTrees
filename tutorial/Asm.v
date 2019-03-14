@@ -23,6 +23,7 @@ Section Syntax.
   | Imov (dest : var) (src : operand)
   | Iadd (dest : var) (src : var) (o : operand)
   | Isub (dest : var) (src : var) (o : operand)
+  | Imul (dest : var) (src : var) (o : operand)
   | Iload (dest : var) (addr : operand)
   | Istore (addr : var) (val : operand).
 
@@ -108,10 +109,14 @@ Section Semantics.
         lv <- lift (GetVar l) ;;
         rv <- denote_operand r ;;
         lift (SetVar d (lv + rv))
-       | Isub d l r =>
+      | Isub d l r =>
         lv <- lift (GetVar l) ;;
         rv <- denote_operand r ;;
         lift (SetVar d (lv - rv))
+      | Imul d l r =>
+        lv <- lift (GetVar l) ;;
+        rv <- denote_operand r ;;
+        lift (SetVar d (lv * rv))
       | Iload d a =>
         addr <- denote_operand a ;;
         val <- lift (Load addr) ;;
