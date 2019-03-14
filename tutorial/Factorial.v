@@ -22,6 +22,8 @@ Import MonadNotation.
 Open Scope monad_scope.
 (* end hide *)
 
+Definition E := void1.
+
 (** * Factorial Example *)
 
 (** * Factorial *)
@@ -47,33 +49,33 @@ Open Scope monad_scope.
  *)
 
 (** We write the body of the function monadically, using events rather than recursive calls. *)
-Definition fact_body {E}  : nat -> itree (callE nat nat +' E) nat :=
-  fun x => match x with
-        | 0 => Ret 1
-        | S m => y <- call m ;; Ret (x * y)
-        end.
+Definition fact_body (x : nat) : itree (callE nat nat +' E) nat :=
+  match x with
+  | 0 => Ret 1
+  | S m => y <- call m ;; Ret (x * y)
+  end.
 
 (** The factorial function itself is defined as an itree by 'tying the knot' using [rec]. 
 
     (Aside: Note that [factorial] is actually a [KTree] of type [ktree nat nat].)
 *)
-Definition factorial {E} (n:nat) : itree E nat :=
+Definition factorial (n:nat) : itree E nat :=
   rec fact_body n.
 
 (** An equivalent definition with a [rec-fix] notation looking like [fix].
  *)
-Definition factorial' {E} : nat -> itree E nat :=
+Definition factorial' : nat -> itree E nat :=
   rec-fix fact x :=
     match x with
     | 0 => Ret 1
     | S m => y <- fact m ;; Ret (x * y)
     end.
 
-Lemma factorial_same {E} : @factorial E = factorial'.
+Lemma factorial_same : factorial = factorial'.
 Proof. reflexivity. Qed.
 
 (** This is the Coq specification -- the usual mathematical definition. *)
-Fixpoint factorial_spec (n:nat) : nat :=
+Fixpoint factorial_spec (n : nat) : nat :=
   match n with
   | 0 => 1
   | S m => n * factorial_spec m
@@ -88,9 +90,9 @@ Fixpoint factorial_spec (n:nat) : nat :=
 
     In this proof, we do all of the rewriting steps explicitly.
 *)
-Lemma factorial_correct : forall {E} n, (factorial n : itree E nat) ≈ Ret (factorial_spec n).
+Lemma factorial_correct : forall n, factorial n ≈ Ret (factorial_spec n).
 Proof.
-  intros E n.
+  intros n.
   induction n; intros; subst.
   - unfold factorial. rewrite rec_as_interp. simpl. rewrite ret_interp. reflexivity.
   - unfold factorial. rewrite rec_as_interp. simpl.
@@ -108,7 +110,7 @@ Qed.
 (** Carry out the analogous proof of correctness for the Fibonacci function, whose
     naturally recursive coq definition is given below. *)
 
-Fixpoint fib_spec (n:nat) : nat :=
+Fixpoint fib_spec (n : nat) : nat :=
   match n with
   | 0 => 1
   | S m =>
@@ -119,7 +121,7 @@ Fixpoint fib_spec (n:nat) : nat :=
   end.
 
 (** We write the body of the fib monadically, using events rather than recursive calls. *)
-Definition fib_body {E}  : nat -> itree (callE nat nat +' E) nat :=
+Definition fib_body : nat -> itree (callE nat nat +' E) nat :=
 (* SOLN *)  
   fun x => match x with
         | 0 => Ret 1
@@ -135,18 +137,18 @@ Definition fib_body {E}  : nat -> itree (callE nat nat +' E) nat :=
 
 Require Import Omega.
 
-Definition fib {E} n : itree E nat :=
+Definition fib n : itree E nat :=
   rec fib_body n.
 
 (** Since fib uses two recursive calls, we need to strengthen the induction hypothesis.  One way
    to do that is to prove the property for all [m <= n]. *)
 (* SAZ: is this a good example? The stronger induction hypothesis is kind of orthogonal to the 
    point we're trying to make. *)
-Lemma fib_correct : forall {E} n m, m <= n ->
-    (fib m : itree E nat ) ≈ Ret (fib_spec m).
+Lemma fib_correct : forall n m, m <= n ->
+    fib m ≈ Ret (fib_spec m).
 Proof.
 (* SOLN *)  
-  intros E n.
+  intros n.
   induction n; intros; subst.
   - apply Le.le_n_0_eq in H. subst. 
     unfold fib.  rewrite rec_as_interp. simpl. rewrite ret_interp.  reflexivity.
@@ -163,3 +165,12 @@ Proof.
         omega. omega. 
 Qed.
 (* STUBWITH Admitted. *)
+
+(** Logarithm *)
+
+Definition log_ (b : nat) : nat -> itree E nat :=
+  rec-fix log_b n :=
+    if n =? O then
+      Ret O
+    else
+      y <- log_b (n / b) ;; Ret (S y).
