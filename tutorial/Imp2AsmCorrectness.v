@@ -70,7 +70,6 @@ Section Simulation_Relation.
   Variable E: Type -> Type.
   Context {HasLocals: Locals -< E}
           {HasMemory: Memory -< E}
-          (* {HasPrint: PrintE -< E} *)
   .
 
   Variant Rvar : var -> var -> Prop :=
@@ -553,6 +552,30 @@ Section Correctness.
     reflexivity.
   Qed.
 
+
+  Lemma interp_locals_out: forall s g,
+      interp_locals (lift (Out s)) g ≈ (Vis (subeffect unit (Out s)) (fun x => Ret (g, x))).
+  Proof.
+    intros. unfold interp_locals. unfold lift.
+    rewrite interp_lift.
+    rewrite tau_eutt.
+    cbn.
+    unfold run_env.
+    unfold evalLocals, CategoryOps.cat, Cat_Handler.
+    rewrite unfold_interp_state; cbn.
+    rewrite tau_eutt.
+    rewrite map_bind.
+    setoid_rewrite ret_interp.
+    rewrite bind_ret.
+    unfold inr_. unfold Inr_sum1_Handler, eh_lift.
+    rewrite interp_state_lift.
+    rewrite tau_eutt.
+    rewrite bind_ret.
+    cbn.
+
+    reflexivity.
+  Qed.
+
   Lemma sim_rel_get_tmp0:
     forall g_asm0 g_asm g_imp v,
       sim_rel g_asm0 0 (g_asm,tt) (g_imp,v) ->
@@ -679,17 +702,9 @@ Section Correctness.
       rewrite <- (bind_ret (lift _)) at 2.
       eapply eq_locals_bind_gen.
       {
-        Set Nested Proofs Allowed.
-        Lemma test : forall s,
-            eq_locals eq Renv (lift (Out s)) (lift (Out s)).
-        Proof.
-          unfold eq_locals. intros.
-          unfold interp_locals. unfold run_env. unfold lift.
-          rewrite interp_lift.
-          do 2 (rewrite interp_state_tau; rewrite tau_eutt).
-          (* help *)
-        Admitted.
-        apply test.
+        repeat intro.
+        do 2 rewrite interp_locals_out.
+        apply eutt_Vis. intros. apply eutt_Ret. split; eauto. reflexivity.
       }
       intros [] []. repeat intro.
       rewrite itree_eta, (itree_eta (_ _ g2)); cbn.

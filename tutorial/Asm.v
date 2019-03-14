@@ -95,9 +95,9 @@ Section Semantics.
   Section with_effect.
     Context {E : Type -> Type}.
     Context {HasLocals : Locals -< E}.
-    Context {HasPrint : PrintE -< E}.
     Context {HasMemory : Memory -< E}.
     Context {HasExit : Exit -< E}.
+    Context {HasPrint : PrintE -< E}.
 
     Definition denote_operand (o : operand) : itree E value :=
       match o with
@@ -197,13 +197,6 @@ Definition interpret_Memory {E : Type -> Type} `{envE value value -< E} :
     match e with
     | Load x => env_lookupDefault x 0
     | Store x v => env_add x v
-    end.
-
-Definition interpret_Print {E : Type -> Type} `{envE value value -< E} :
-  PrintE ~> itree E :=
-  fun _ e =>
-    match e with
-    | Out s => ret tt
     end.
 
 (* Our Map implementation uses a simple association list *)

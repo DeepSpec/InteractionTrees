@@ -99,7 +99,7 @@ Module ImpNotations.
 
   Notation "'PRINT' s" :=
     (Print s)
-      (at level 100,
+      (at level 60,
        right associativity): stmt_scope.
 
 End ImpNotations.
@@ -234,6 +234,7 @@ Section Denote_Fact.
   Definition fact (n:nat): stmt :=
     input ← n;;
     output ← 1;;
+    PRINT "";;
     WHILE input
     DO output ← output * input;;
        input  ← input - 1
@@ -274,16 +275,9 @@ From ExtLib Require Import
 Definition evalLocals {E: Type -> Type} `{envE var value -< E}:
   Locals ~> itree E :=
   fun _ e =>
-    (* match e with *)
-    (* | inl1 e => *)
-      match e with
-      | GetVar x => env_lookupDefault x 0
-      | SetVar x v => env_add x v
-    (*   end *)
-    (* | inr1 e => *)
-    (*   match e with *)
-    (*   | Out s => ret tt *)
-    (*   end *)
+    match e with
+    | GetVar x => env_lookupDefault x 0
+    | SetVar x v => env_add x v
     end.
 
 (** We specifically implement this environment using ExtLib's finite maps. *)
@@ -312,6 +306,7 @@ Qed.
 (* YZ NOTE: Here, we actually constrain the [eff] argument in [denoteStmt] to be
    exactly [Locals] rather than any universe of effect containing it.
  *)
+
 (* Definition ImpEval (s: stmt) : itree void1 (env * unit):= *)
 (*   let p := interp evalLocals _ (denoteStmt s) in *)
 (*   run_env _ p empty. *)
