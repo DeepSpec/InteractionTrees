@@ -19,6 +19,7 @@
 *.ml~
 examples.mli
 *.gz
+.lia.cache
 output
 deps.jpg
 deps.dot
@@ -26,7 +27,7 @@ deps.dot
 .coqdeps.d
 Makefile.coq
 Makefile.coq.conf
-_CoqProject
+./_CoqProject
 _CoqPath
 lib/
 html/

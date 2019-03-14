@@ -20,6 +20,9 @@ From ITree Require Import
 
 Import MonadNotation.
 Open Scope monad_scope.
+(* end hide *)
+
+(** * Factorial Example *)
 
 (* end hide *)
 
@@ -90,6 +93,7 @@ Proof.
 Qed.
 
 
+
 (** * Fibonacci *)
 
 (** Exercise *)
@@ -151,161 +155,5 @@ Proof.
         omega. omega. 
 Qed.
 (* STUBWITH Admitted. *)
-
-
-Inductive tree (X:Type) :=
-| Empty
-| Node (t1 : tree X) (x:X) (t2 : tree X)
-.
-
-
-Require Import Lists.List.
-Require Import Paco.paco.
-Open Scope list_scope.
-
-
-
-
-Definition bfs_body {E} (n:nat) (q : list (tree nat)) : itree (callE (list (tree nat)) bool +' E) bool :=
-  match q with
-  | [] => Ret false
-  | t::ts => match t with
-           | Empty => call ts
-           | Node t1 x t2 =>
-             if Nat.eqb n x then Ret true else call (ts ++ [t1; t2])
-           end
-  end.
-
-Definition bfs {E} n (t:tree nat) : itree E bool :=
-  rec (bfs_body n) [t].
-
-Definition dfs_body {E} (n:nat) (q : list (tree nat)) : itree (callE (list (tree nat)) bool +' E) bool :=
-  match q with
-  | [] => Ret false
-  | t::ts => match t with
-           | Empty => call ts
-           | Node t1 x t2 =>
-             if Nat.eqb n x then Ret true else call ([t1 ; t2] ++ ts)
-           end
-  end.
-
-Definition dfs {E} n (t:tree nat) : itree E bool :=
-  rec (bfs_body n) [t].
-
-
-
-Lemma bfs_dfs : forall {E} n q, rec (bfs_body n) q ≈ (rec (dfs_body n) q : itree E bool).
-Proof.
-  intros E n q.
-  pupto2_init.
-  revert q.
-  pcofix CIH.
-  intros q.
-  do 2 rewrite rec_unfold.
-  induction q; simpl.
-  - rewrite ret_interp. rewrite ret_interp.  pupto2_final.  pfold.  pfold. econstructor. reflexivity.  (* SAZ This reflexivity proof is annoyting .*)
-  - destruct a.
-    + rewrite interp_recursive_call.  rewrite interp_recursive_call.
-      rewrite rec_unfold. rewrite rec_unfold. assumption.
-    + destruct (n =? x).
-      * rewrite ret_interp. rewrite ret_interp. pupto2_final.  pfold.  pfold. econstructor. reflexivity.  (* SAZ This reflexivity proof is annoyting .*)
-      * rewrite interp_recursive_call.  rewrite interp_recursive_call.
-        
-      
-                              
-
-Lemma bfs_q : forall {E:Type->Type} n t ts,
-                  (rec (bfs_body n) (t::ts) : itree E bool) ≈ match t with
-                                 | Empty => rec (bfs_body n) ts
-                                 | Node t1 x t2 =>
-                                   if Nat.eqb n x then Ret true else rec (bfs_body n) (ts ++ [t1; t2])
-                                                          end.
-Proof.
-  intros.
-  rewrite rec_unfold. simpl.
-  destruct t.
-  rewrite interp_recursive_call. reflexivity.
-  destruct (n =? x).
-  rewrite ret_interp. reflexivity.
-  rewrite interp_recursive_call. reflexivity.
-Qed.
-
-Require Import Lists.List.
-Require Import Paco.paco.
-
-Fixpoint contains n (t:tree nat) : bool :=
-  match t with
-  | Empty => false
-  | Node t1 x t2 => if Nat.eqb n x then true else orb (contains n t1) (contains n t2)
-  end.
-
-Lemma fold_orb_true : forall l : list bool, 
-    fold_left (fun x y => orb x y) l true = true.
-Proof.
-  induction l; auto.
-Qed.
-
-Lemma bfs_contains : forall E n (q : list (tree nat)),
-    (rec (bfs_body n) q : itree E bool) ≈
-        (Ret (List.fold_left (fun x y => orb x y) (List.map (contains n) q) false)).
-Proof.
-  intros E n q.
-  pupto2_init.
-  revert q.
-  pcofix CIH.
-  intros q.
-  induction q; simpl.
-  - rewrite rec_unfold. simpl.  rewrite ret_interp. pupto2_final.  pfold. pfold. econstructor. reflexivity.
-  - rewrite rec_unfold. simpl. destruct a; simpl.
-    + rewrite interp_recursive_call.  assumption.
-    + destruct (n =? x); simpl.
-      * rewrite fold_orb_true.
-        rewrite ret_interp. pupto2_final. pfold. pfold. econstructor. reflexivity.
-      * rewrite interp_recursive_call.
-        
-
-
-Lemma bfs_q2 : forall {E:Type->Type} n q1 q2,
-    (rec (bfs_body n) (q1 ++ q2) : itree E bool) ≈ 
-                                              (y1 <- rec (bfs_body n) q1 ;;
-                                               y2 <- rec (bfs_body n) q2 ;;
-                                               Ret (orb y1 y2)).
-Proof.
-  intros E n.
-  induction q1; intros q2; simpl.
-  - rewrite rec_unfold. rewrite rec_unfold.
-    simpl.  rewrite ret_interp. rewrite ret_bind.
-    rewrite rec_unfold.  simpl. rewrite bind_ret. reflexivity.
-  - do 2 rewrite rec_unfold.
-    simpl.
-    destruct a.
-    + rewrite interp_recursive_call.
-      rewrite IHq1.
-      rewrite interp_recursive_call.
-      reflexivity.
-    + destruct (n =? x).
-      rewrite ret_interp.
-      rewrite ret_bind. simpl. 
-    
-
-  
-
-
-
-Lemma contains_bfs: forall {E} n t, (bfs n t : itree E bool) ≈ Ret (contains t n).
-Proof.
-  intros E n t.
-  pupto2_init.
-  revert n t.
-  pcofix CIH.
-  intros n t.
-  unfold bfs.
-  rewrite bfs_q.
-  destruct t; simpl.
-  - rewrite rec_unfold.  simpl. rewrite ret_interp. pupto2_final. pfold.  pfold. econstructor. reflexivity.
-  - destruct (n=?x).
-    pfold. pfold. econstructor. reflexivity.
-    
-  
 
 

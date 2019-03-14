@@ -416,13 +416,13 @@ Arguments eutt_clo_bind : clear implicits.
 Hint Constructors eutt_bind_clo.
 
 Global Instance eutt_bind {E U R} :
-  Proper (eutt eq ==>
-          pointwise_relation _ (eutt eq) ==>
-          eutt eq) (@ITree.bind E U R).
+  Proper (pointwise_relation _ (eutt eq) ==>
+          eutt eq ==>
+          eutt eq) (@ITree.bind' E U R).
 Proof.
   repeat intro.
   pupto2_init. pupto2 eutt_clo_bind. econstructor; eauto.
-  intros. subst. pupto2_final. apply H0.
+  intros. subst. pupto2_final. apply H.
 Qed.
 
 Section EUTT_nested.
@@ -664,11 +664,7 @@ Proof.
   pfold. pupto2_init. revert_until CIH. pcofix CIH'. intros.
   rewrite !unfold_aloop'. unfold ITree._aloop.
   destruct (f x) as [t | b]; cbn.
-  - match goal with
-    | [ |- context [ITree.bind' ?k ?t] ] =>
-      replace (ITree.bind' k t) with (ITree.bind t k); [ | reflexivity ]
-    end.
-    unfold id. rewrite 2 bind_bind.
+  - unfold id. rewrite 2 bind_bind.
     pfold; constructor.
     pupto2 eutt_nested_clo_bind. econstructor.
     { reflexivity. }
