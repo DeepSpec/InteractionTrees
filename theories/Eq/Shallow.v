@@ -77,10 +77,10 @@ Lemma unfold_bind {E R S}
 Proof. eauto. Qed.
 
 Instance observing_bind {E R S} :
-  Proper (observing eq ==> eq ==> observing eq) (@ITree.bind E R S).
+  Proper (eq ==> observing eq ==> observing eq) (@ITree.bind' E R S).
 Proof.
   repeat intro; subst.
-  do 2 rewrite unfold_bind; rewrite H.
+  do 2 rewrite unfold_bind; rewrite H0.
   reflexivity.
 Qed.
 

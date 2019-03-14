@@ -452,8 +452,8 @@ Section Correctness.
     rewrite after_correct.
     simpl.
     repeat setoid_rewrite bind_bind.
-    apply eutt_bind; [reflexivity | intros ?].
-    apply eutt_bind; [reflexivity | intros []].
+    apply eutt_bind; try reflexivity. intros [].
+    apply eutt_bind; try reflexivity. intros [].
     - rewrite ret_bind_.
       rewrite (relabel_asm_correct _ _ _ (inr tt)).
       unfold CategoryOps.cat, Cat_ktree, ITree.cat; simpl.
@@ -462,7 +462,7 @@ Section Correctness.
       setoid_rewrite (app_asm_correct tp fp (inr tt)).
       setoid_rewrite bind_bind.
       rewrite <- (bind_ret (denote_asm fp tt)) at 2.
-      eapply eutt_bind; [ reflexivity | intros ? ].
+      eapply eutt_bind; try reflexivity. intros ?.
       unfold inr_, Inr_ktree, lift_ktree; rewrite ret_bind_; reflexivity.
     - rewrite ret_bind_.
       rewrite (relabel_asm_correct _ _ _ (inl tt)).
@@ -472,7 +472,7 @@ Section Correctness.
       setoid_rewrite (app_asm_correct tp fp (inl tt)).
       setoid_rewrite bind_bind.
       rewrite <- (bind_ret (denote_asm tp tt)) at 2.
-      eapply eutt_bind; [reflexivity | intros ?].
+      eapply eutt_bind; try reflexivity. intros ?.
       unfold inl_, Inl_ktree, lift_ktree;
         rewrite ret_bind_; reflexivity.
   Qed.
@@ -507,9 +507,9 @@ Section Correctness.
     - unfold ITree.cat. 
       simpl; setoid_rewrite bind_bind.
       rewrite bind_bind.
-      apply eutt_bind; [reflexivity | intros []].
+      apply eutt_bind; try reflexivity. intros [].
       rewrite bind_bind.
-      apply eutt_bind; [reflexivity | intros []].
+      apply eutt_bind; try reflexivity. intros [].
       + rewrite (pure_asm_correct _ tt).
         unfold inl_, Inl_ktree, lift_ktree.
         repeat rewrite ret_bind_.
@@ -518,7 +518,7 @@ Section Correctness.
         unfold CategoryOps.cat, Cat_ktree, ITree.cat.
         simpl; repeat setoid_rewrite bind_bind.
         unfold inl_, Inl_ktree, lift_ktree; rewrite ret_bind_.
-        apply eutt_bind; [reflexivity | intros []].
+        apply eutt_bind; try reflexivity. intros [].
         repeat rewrite ret_bind_; reflexivity.
     - rewrite itree_eta; cbn; reflexivity.
   Qed.
@@ -540,7 +540,8 @@ Section Correctness.
     end;
       [intros [[]|[]]; simpl |]; try reflexivity.
     unfold ITree.map.
-    apply eutt_bind; [reflexivity | intros []; reflexivity].
+    apply eutt_bind; try reflexivity.
+    intros []; reflexivity.
   Qed.
 
   Definition env_lookupDefault_is_lift {K V : Type} {E: Type -> Type} `{envE K V -< E} (x: K) (v: V):

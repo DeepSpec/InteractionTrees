@@ -411,9 +411,9 @@ Proof.
 Qed.
 
 Instance eq_itree_eq_bind {E R S} :
-  Proper (eq_itree eq ==>
-          pointwise_relation _ (eq_itree eq) ==>
-          eq_itree eq) (@ITree.bind E R S).
+  Proper (pointwise_relation _ (eq_itree eq) ==>
+          eq_itree eq ==>
+          eq_itree eq) (@ITree.bind' E R S).
 Proof.
   repeat intro; eapply eq_itree_bind; eauto.
   intros; subst; auto.

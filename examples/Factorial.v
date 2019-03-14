@@ -1,3 +1,4 @@
+(* begin hide *)
 Set Implicit Arguments.
 Set Contextual Implicit.
 
@@ -19,6 +20,9 @@ From ITree Require Import
 
 Import MonadNotation.
 Open Scope monad_scope.
+(* end hide *)
+
+(** * Factorial Example *)
 
 (** This file gives and example of defining a recursive version of the "factorial" 
     function using ITrees. It demonstrates
@@ -88,8 +92,7 @@ Proof.
     reflexivity.
 Qed.
 
-
-(* HIDE *)
+(* begin hide *)
 (* SAZ: we might experiment with automating monadic rewriting according to the equational reasoning, 
    something like: *)
 Ltac simpl_monad :=
@@ -97,8 +100,7 @@ Ltac simpl_monad :=
            | [ |- context[Tau ?T] ] => progress rewrite tau_eutt
            | [ |- context[ITree.bind (Ret ?X) ?K] ] => progress rewrite ret_bind
            | [ |- context[interp_mrec _ _ (ITree.bind ?T ?K)] ] => progress rewrite interp_mrec_bind
-           | [ |- context[interp_mrec _ _ (Ret ?X)] ] => progress rewrite ret_mrec                                                                         
-           end.
+           | [ |- context[interp_mrec _ _ (Ret ?X)] ] => progress rewrite ret_mrec                                            end.
                      
 (* Then the proof above becomes: 
 
@@ -107,5 +109,5 @@ Ltac simpl_monad :=
     simpl_monad.
     reflexivity.
 *)
-(* /HIDE *)
+(* end hide *)
 

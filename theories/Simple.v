@@ -150,8 +150,8 @@ Declare Instance eutt_VisF {E R X} (e: E X) :
   Proper (pointwise_relation _ (@eutt E R) ==> going eutt) (VisF e).
 
 Declare Instance eutt_bind {E R S} :
-  Proper (eutt ==> pointwise_relation _ eutt ==> eutt)
-         (@ITree.bind E R S).
+  Proper (pointwise_relation _ eutt ==> eutt ==> eutt)
+         (@ITree.bind' E R S).
 
 Declare Instance eutt_map {E R S} :
   Proper (pointwise_relation _ eq ==> eutt ==> eutt)
