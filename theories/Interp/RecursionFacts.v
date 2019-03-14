@@ -22,7 +22,8 @@ From ITree Require Import
      Indexed.Function
      Indexed.OpenSum
      Interp.Interp
-     Interp.MorphismsFacts.
+     Interp.MorphismsFacts
+     Interp.Recursion.
 
 Import ITreeNotations.
 
@@ -142,13 +143,20 @@ Qed.
 End Facts.
 
 Lemma rec_unfold {E A B} (f : A -> itree (callE A B +' E) B) (x : A) :
-  rec f x ≈ interp (case_ (calling' (rec f)) ITree.lift) _ (f x).
+  rec f x ≈ interp (recursive f) _ (f x).
 Proof.
   unfold rec.
   rewrite mrec_as_interp.
   eapply eutt_interp_gen.
   - red. unfold case_; intros ? [[] | ]; reflexivity.
   - reflexivity.
+Qed.
+
+Lemma interp_recursive_call {E A B} (f : A -> itree (callE A B +' E) B) (x:A) :
+   interp (recursive f) _ (call x) ≈ rec f x.
+Proof.
+  unfold recursive. unfold call.
+  rewrite interp_lift. cbn. apply tau_eutt.
 Qed.
 
 Lemma interp_loop {E F} (f : E ~> itree F) {A B C}

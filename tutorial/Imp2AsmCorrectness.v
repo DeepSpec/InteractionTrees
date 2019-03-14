@@ -16,7 +16,7 @@ From ITree Require Import
      Core.KTreeFacts
      Effects.Env
      Interp.MorphismsFacts
-     Interp.FixFacts
+     Interp.RecursionFacts
      Effects.StateFacts.
 
 Import ITreeNotations.

@@ -13,8 +13,9 @@ From ExtLib Require Import
 
 From ITree Require Import
      ITree
-     FixFacts
-     MorphismsFacts.
+     MorphismsFacts
+     Recursion
+     RecursionFacts.
 
 Import MonadNotation.
 Open Scope monad_scope.
@@ -38,14 +39,12 @@ Open Scope monad_scope.
     type [(callE nat nat +' E)].  [factC] simply injects the argument [n] into the 
     event.
  *)
-(* SAZ: TODO - we should probably add this (suitably renamed) to Interp.v *)
-Definition factC {E} n : itree (callE nat nat +' E) nat := ITree.lift (inl1 (Call n)).
 
 (** We write the body of the function monadically, using events rather than recursive calls. *)
 Definition fact_body {E}  : nat -> itree (callE nat nat +' E) nat :=
   (fun x => match x with
          | 0 => Ret 1
-         | S m => y <- factC m ;; Ret (x * y)
+         | S m => y <- call m ;; Ret (x * y)
          end).
 
 (** The factorial function itself is defined as an itree by 'tying the knot' using [rec]. 
@@ -55,18 +54,12 @@ Definition fact_body {E}  : nat -> itree (callE nat nat +' E) nat :=
 Definition factorial {E} (n:nat) : itree E nat :=
   rec fact_body n.
 
-
-
 (** This is the Coq specification -- the usual mathematical definition. *)
 Fixpoint factspec (n:nat) : nat :=
   match n with
   | 0 => 1
   | S m => n * factspec m
   end.
-
-(* SAZ: Why was this removed from the library? *)
-Ltac fold_bind := (change @ITree.bind' with (fun E T U k t => @ITree.bind E T U t k) in *; simpl in *).
-
 
 (** We can prove that the ITrees version [factorial] is "equivalent" to the
     [factspec] version.  The proof goes by induction on n and uses only
@@ -85,18 +78,13 @@ Lemma factorial_correct : forall {E} n, (factorial n : itree E nat) ≈ Ret (fac
 Proof.
   intros E n.
   induction n; intros; subst.
-  - rewrite itree_eta. cbn. reflexivity.
-  - rewrite itree_eta.
-    cbn; fold_bind.    
-    rewrite tau_eutt.
-    rewrite ret_bind.
-    rewrite interp_mrec_bind.
+  - unfold factorial. rewrite rec_unfold. simpl. rewrite interp_ret. reflexivity.
+  - unfold factorial. rewrite rec_unfold. simpl.
+    rewrite interp_bind.
+    rewrite interp_recursive_call.
     rewrite IHn.
     rewrite ret_bind.
-    rewrite interp_mrec_bind.
-    rewrite ret_mrec.
-    rewrite ret_bind.
-    rewrite ret_mrec.
+    rewrite interp_ret.
     reflexivity.
 Qed.
 
