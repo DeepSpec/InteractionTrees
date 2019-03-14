@@ -60,6 +60,18 @@ Definition fact_body {E}  : nat -> itree (callE nat nat +' E) nat :=
 Definition factorial {E} (n:nat) : itree E nat :=
   rec fact_body n.
 
+(** An equivalent definition with a [rec-fix] notation looking like [fix].
+ *)
+Definition factorial' {E} : nat -> itree E nat :=
+  rec-fix fact x :=
+    match x with
+    | 0 => Ret 1
+    | S m => y <- fact m ;; Ret (x * y)
+    end.
+
+Lemma factorial_same {E} : @factorial E = factorial'.
+Proof. reflexivity. Qed.
+
 (** This is the Coq specification -- the usual mathematical definition. *)
 Fixpoint factorial_spec (n:nat) : nat :=
   match n with
@@ -89,8 +101,6 @@ Proof.
     rewrite ret_interp.
     reflexivity.
 Qed.
-
-
 
 (** * Fibonacci *)
 
