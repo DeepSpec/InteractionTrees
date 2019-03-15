@@ -17,6 +17,7 @@ From ExtLib Require Import
 
 From ITree Require Import
      Basics
+     Basics.Category
      ITree.
 
 Import MonadNotation.
@@ -315,5 +316,5 @@ Qed.
  *)
 
 Definition ImpEval (s: stmt) : itree void1 (env * unit):=
-  let p := interp (Case_sum1_Handler _ _ _ evalLocals evalPrint) _ (denoteStmt s) in
+  let p := interp (case_ evalLocals evalPrint) _ (denoteStmt s) in
   run_env _ p empty.
