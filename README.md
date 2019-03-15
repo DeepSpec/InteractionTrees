@@ -54,11 +54,13 @@ for testing.
 
 - `Interp`: Interaction tree transformations.
 
-    + `Interp`: `translate`, `interp`, `mrec`.
+    + `Interp`: Interpret itrees (`translate`, `interp`)
     + `InterpFacts`
     + `Handlers`: Effect handlers `E ~> itree F`, the second Kleisli category
       of `itree` (traced symmetric monoidal).
     + `HandlerFacts`
+    + `Recursion`: Recursion combinators (`mrec`, `rec`)
+    + `RecursionFacts`
     + `Traces`: Interpretation of itrees as sets of traces.
 
 - `Effects`:
