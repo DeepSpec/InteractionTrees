@@ -1,10 +1,12 @@
 (** We demonstrate how to use [itrees] in the context of verified compilation.
-    To this end, we start in this file by introduceing a simplified variant of
+    To this end, we start by introducing a simplified variant of
     Software Foundations' [Imp] language.
-    The language's semantics is expressed in terms of [itrees].
-    The resulting semantics can be run through provided interpreters.
+    The language's semantics is first expressed in terms of [itrees].
+    The denotation of the program can then be obtained by
+    interpreting the events contained in the trees.
  *)
 
+(* begin hide *)
 From Coq Require Import
      Lists.List
      Strings.String.
@@ -22,6 +24,8 @@ From ITree Require Import
 Import MonadNotation.
 Local Open Scope monad_scope.
 Local Open Scope string_scope.
+
+(* end hide *)
 
 (* ================================================================= *)
 (** ** Syntax *)
@@ -56,9 +60,7 @@ Inductive stmt : Type :=
 
 Module ImpNotations.
 
-  (* YZ: TODO Improve notations.
-     And also, understand why overloaded notations seem to require to share the same level.
-   *)
+  (* YZ: TODO Improve notations? *)
   Definition Var_coerce: string -> expr := Var.
   Definition Lit_coerce: nat -> expr := Lit.
   Coercion Var_coerce: string >-> expr.
@@ -75,11 +77,11 @@ Module ImpNotations.
   Notation "x '←' e" :=
     (Assign x e) (at level 60, e at level 50): stmt_scope.
   
-  Notation "a ;; b" :=
+  Notation "a ';;;' b" :=
     (Seq a b)
       (at level 100, right associativity,
        format
-         "'[v ' a  ';;' '/' '[' b ']' ']'"
+         "'[v' a  ';;;' '/' '[' b ']' ']'"
       ): stmt_scope.
 
   Notation "'IF' i 'THEN' t 'ELSE' e 'FI'" :=
@@ -89,19 +91,19 @@ Module ImpNotations.
        format
          "'[v ' 'IF'  i '/' '[' 'THEN'  t  ']' '/' '[' 'ELSE'  e ']' 'FI' ']'").
 
-  Notation "'WHILE' t 'DO' b 'DONE'" :=
+  Notation "'WHILE' t 'DO' b" :=
     (While t b)
       (at level 100,
        right associativity,
        format
-         "'[v ' 'WHILE'  t '/' '[' 'DO'  b  ']' DONE ']'").
+         "'[v  ' 'WHILE'  t  'DO' '/' '[v' b  ']' ']'").
 
 End ImpNotations.
 
+Import ImpNotations.
+
 (* ================================================================= *)
 (** ** Semantics *)
-
-Import ImpNotations.
 
 (** _Imp_ produces effects by manipulating its variables.
     To account for this, we define a type of _external interactions_
@@ -189,7 +191,7 @@ Section Denote.
   (** The meaning of statements can now be defined.
       They are all straightforward, except for [While] that uses our new
       [while] combinator over the computation that evaluates the conditional,
-      and then the body if it were true.
+      and then the body if the former was true.
    *)
   Fixpoint denoteStmt (s : stmt) : itree eff unit :=
     match s with
@@ -221,12 +223,12 @@ Section Denote_Fact.
   Variable output: var.
 
   Definition fact (n:nat): stmt :=
-    input ← n;;
-    output ← 1;;
+    input ← n;;;
+    output ← 1;;;
     WHILE input
-    DO output ← output * input;;
+    DO output ← output * input;;;
        input  ← input - 1
-    DONE.
+  .
 
   (* YZ NOTE: For tutorial purpose, it could be good to be able to show /some/
    representation of the tree inside of Coq. Can we have anything better than the
@@ -270,7 +272,7 @@ Definition evalLocals {E: Type -> Type} `{envE var value -< E}: Locals ~> itree 
 (** We specifically implement this environment using ExtLib's finite maps. *)
 Definition env := alist var value.
 
-(* Enable typeclass instances for Maps keyed by strings and values *)
+(** Enable typeclass instances for Maps keyed by strings and values *)
 Instance RelDec_string : RelDec (@eq string) :=
   { rel_dec := fun s1 s2 => if string_dec s1 s2 then true else false}.
 
@@ -283,7 +285,7 @@ Proof.
   - intros EQ; apply string_dec_sound in EQ; unfold rel_dec; simpl; rewrite EQ; reflexivity.
 Qed.
 
-(* Finally, we can define an evaluator for our statements.
+(** Finally, we can define an evaluator for our statements.
    To do so, we first denote them, leading to a [itree Locals unit].
    We then [interp]ret [Locals] into [envE] using [evalLocals], leading to
    a [itree (envE var value) unit].
@@ -296,3 +298,6 @@ Qed.
 Definition ImpEval (s: stmt): itree void1 (env * unit) :=
   let p := interp evalLocals _ (denoteStmt s) in
   run_env _ p empty.
+
+
+(** We now turn to our target language, in file [Asm].v *)

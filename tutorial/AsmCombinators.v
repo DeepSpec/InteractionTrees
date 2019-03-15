@@ -1,7 +1,21 @@
 (** * Composition of [asm] programs *)
 
-Require Import Asm.
-Require Import Utils_tutorial.
+(** We develop in this file a theory of linking for [asm] programs.
+    To this end, we will equip them with four main combinators:
+    - [par_asm], linking them vertically
+    - [loop_asm], hiding internal links
+    - [relable_asm], allowing to rename labels
+    - [pure_asm], casting pure functions into [asm]. 
+    Viewing [asm] units as diagrams, this theory can be seen in particular
+    as showing that they enjoy a structure of _traced monoidal category_ by
+    interpreting [ktree]s as a theory of linking at the denotational level.
+    Each linking combinator is therefore proved correct by showing that its
+    denotation can be swapped with the corresponding [ktree] combinator.
+ *)
+
+(* begin hide *)
+Require Import Asm Utils_tutorial.
+
 From Coq Require Import
      List
      Strings.String
@@ -15,6 +29,7 @@ From ITree Require Import
      Basics.Category.
 
 Typeclasses eauto := 5.
+(* end hide *)
 
 (** ** Internal structures *)
 
@@ -37,19 +52,15 @@ Definition relabel_bks {A B C D : Type} (f : A -> B) (g : C -> D)
            (b : bks B C) : bks A D :=
   fun a => fmap_block g (b (f a)).
 
-Section after.
-Context {A : Type}.
-Fixpoint after (is : list instr) (bch : branch A) : block A :=
+Fixpoint after {A: Type} (is : list instr) (bch : branch A) : block A :=
   match is with
   | nil => bbb bch
   | i :: is => bbi i (after is bch)
   end.
-End after.
 
 (** ** Low-level interface with [asm] *)
 
-(** Any collection of blocks forms an [asm] program with
-      no hidden blocks. *)
+(** Any collection of blocks forms an [asm] program with no hidden blocks. *)
 Definition raw_asm {A B} (b : bks A B) : asm A B :=
   {| internal := void;
      code := fun a' =>
@@ -157,14 +168,6 @@ Proof.
     + rewrite (itree_eta (ITree.map _ _)).
       cbn. apply eq_itree_Vis. intros [].
 Qed.
-
-(* TODO: send to ext-lib *)
-Definition traverse_ {A: Type} {M: Type -> Type} `{Monad M} (f: A -> M unit): list A -> M unit :=
-  fix traverse__ l: M unit :=
-    match l with
-    | [] => ret tt
-    | a::l => (f a;; traverse__ l)%monad
-    end.
 
 Definition denote_list: list instr -> itree E unit :=
   traverse_ denote_instr.

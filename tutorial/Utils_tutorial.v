@@ -553,3 +553,16 @@ Section nat_Show.
   Qed.
 
 End nat_Show.
+
+From ExtLib Require Import
+     Structures.Monad.
+Import MonadNotation.
+
+(* Should go ext-lib *)
+Definition traverse_ {A: Type} {M: Type -> Type} `{Monad M} (f: A -> M unit): list A -> M unit :=
+  fix traverse__ l: M unit :=
+    match l with
+    | nil => ret tt
+    | a::l => (f a;; traverse__ l)%monad
+    end.
+
