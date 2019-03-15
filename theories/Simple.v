@@ -7,11 +7,6 @@ From Coq Require Import
 
 From ITree Require Import
      Eq.Shallow.
-
-From ITree Require
-     Eq.UpToTaus
-     Interp.MorphismsFacts
-     Interp.RecursionFacts.
 (* end hide *)
 
 (** ** Core definitions *)
@@ -138,7 +133,7 @@ Hint Rewrite @bind_vis : itree.
 Hint Rewrite @bind_ret2 : itree.
 Hint Rewrite @bind_bind : itree.
 
-(** **** Monadic interpretation: [interp] *)
+(** *** Monadic interpretation: [interp] *)
 
 Definition _interp {E F} (f : E ~> itree F) R (ot : itreeF E R _)
   : itree F R
@@ -176,7 +171,7 @@ Hint Rewrite @interp_vis : itree.
 Hint Rewrite @interp_lift : itree.
 Hint Rewrite @interp_bind : itree.
 
-(** **** Simple recursion: [rec] *)
+(** *** Simple recursion: [rec] *)
 
 (** [rec body] is equivalent to [interp (recursive body)],
     where [recursive] is defined as follows. *)
@@ -249,7 +244,13 @@ Ltac tau_steps :=
 
 End SimpleInterface.
 
+(* begin hide *)
 (** * Implementation *)
+
+From ITree Require
+     Eq.UpToTaus
+     Interp.MorphismsFacts
+     Interp.RecursionFacts.
 
 Module Export Simple.
 (** This interface is implemented by the module
@@ -468,3 +469,4 @@ Ltac tau_steps :=
       end).
 
 End Simple.
+(* end hide *)
