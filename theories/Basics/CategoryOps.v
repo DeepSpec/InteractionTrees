@@ -69,8 +69,7 @@ Class Id_ : Type :=
 (** Morphism composition. Con(cat)enation. *)
 Class Cat : Type :=
   cat : forall a b c, C a b -> C b c -> C a c.
-(* Example usage: [cat f g], or [f >=> g]. *)
-(* TODO: [>=>] should be Kleisli composition. [>>>] perhaps? *)
+(* Example usage: [cat f g], or [f >>> g]. *)
 
 (** Initial object [i] and its initial morphisms [empty : C i a]. *)
 Class Initial (i : obj) :=
@@ -187,7 +186,7 @@ Notation case__ C := (@case_ _ C _ _ _ _ _)
 Module Import CatNotations.
 
 Infix "⩯" := eq2 (at level 70) : cat_scope.
-Infix ">=>" := cat (at level 50, left associativity) : cat_scope.
+Infix ">>>" := cat (at level 50, left associativity) : cat_scope.
 
 End CatNotations.
 
@@ -218,7 +217,7 @@ Variables (SUM : binop obj) (Coprod_SUM : CoprodCase C SUM)
 (** Coproducts are bifunctors. *)
 Global Instance Bimap_Coproduct : Bimap C SUM :=
   fun a b c d (f : C a c) (g : C b d) =>
-    case_ (f >=> inl_) (g >=> inr_).
+    case_ (f >>> inl_) (g >>> inr_).
 
 (** Coproducts are symmetric. *)
 
@@ -228,12 +227,12 @@ Global Instance Swap_Coproduct : Swap C SUM :=
 (** Coproducts are associative. *)
 
 Global Instance AssocR_Coproduct : AssocR C SUM :=
-  fun a b c => case_ (case_ inl_ (inl_ >=> inr_))
-                    (inr_ >=> inr_).
+  fun a b c => case_ (case_ inl_ (inl_ >>> inr_))
+                    (inr_ >>> inr_).
 
 Global Instance AssocL_Coproduct : AssocL C SUM :=
-  fun a b c => case_ (inl_ >=> inl_)
-                    (case_ (inr_ >=> inl_) inr_).
+  fun a b c => case_ (inl_ >>> inl_)
+                    (case_ (inr_ >>> inl_) inr_).
 
 Variables (Id_C : Id_ C) (I : obj) (Initial_I : Initial C I).
 
@@ -269,9 +268,9 @@ Global Instance ReSum_sum a b c
          `{ReSum a c} `{ReSum b c} : ReSum (bif a b) c :=
   { resum := case_ resum resum }.
 Global Instance ReSum_inl a b c `{ReSum a b} : ReSum a (bif b c) :=
-  { resum := resum >=> inl_ }.
+  { resum := resum >>> inl_ }.
 Global Instance ReSum_inr a b c `{ReSum a b} : ReSum a (bif c b) :=
-  { resum := resum >=> inr_ }.
+  { resum := resum >>> inr_ }.
 
 (* Usage template:
 

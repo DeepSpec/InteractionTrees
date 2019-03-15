@@ -425,7 +425,7 @@ Section Correctness.
 
   Lemma seq_asm_correct {A B C} (ab : asm A B) (bc : asm B C) :
       denote_asm (seq_asm ab bc)
-    ⩯ denote_asm ab >=> denote_asm bc.
+    ⩯ denote_asm ab >>> denote_asm bc.
   Proof.
     unfold seq_asm. 
     rewrite link_asm_correct, relabel_asm_correct, app_asm_correct.

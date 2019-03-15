@@ -243,20 +243,20 @@ Proof.
 Qed.
 
 Lemma cat_eq2_l {a b c : Type} (h : ktree E a b) (f g : ktree E b c) :
-  f ⩯ g -> h >=> f ⩯ h >=> g.
+  f ⩯ g -> h >>> f ⩯ h >>> g.
 Proof.
   intros H; rewrite H; reflexivity.
 Qed.
 
 Lemma cat_eq2_r {a b c : Type} (h : ktree E b c) (f g : ktree E a b) :
-  f ⩯ g -> f >=> h ⩯ g >=> h.
+  f ⩯ g -> f >>> h ⩯ g >>> h.
 Proof.
   intros H; rewrite H; reflexivity.
 Qed.
 
 Lemma local_rewrite1 {a b c : Type}:
-    bimap (id_ a) (@swap _ (ktree E) _ _ b c) >=> assoc_l >=> swap
-  ⩯ assoc_l >=> bimap swap (id_ c) >=> assoc_r.
+    bimap (id_ a) (@swap _ (ktree E) _ _ b c) >>> assoc_l >>> swap
+  ⩯ assoc_l >>> bimap swap (id_ c) >>> assoc_r.
 Proof.
   symmetry.
   apply fwd_eqn; intros h Eq.
@@ -275,8 +275,8 @@ Proof.
 Qed.
 
 Lemma local_rewrite2 {a b c : Type}:
-    swap >=> assoc_r >=> bimap (id_ _) swap
-  ⩯ @assoc_l _ (ktree E) _ _ a b c >=> bimap swap (id_ _) >=> assoc_r.
+    swap >>> assoc_r >>> bimap (id_ _) swap
+  ⩯ @assoc_l _ (ktree E) _ _ a b c >>> bimap swap (id_ _) >>> assoc_r.
 Proof.
   symmetry.
   apply fwd_eqn; intros h Eq.
@@ -294,10 +294,10 @@ Qed.
 Lemma loop_bimap_ktree {I A B C D}
       (ab : ktree E A B) (cd : ktree E (I + C) (I + D)) :
     bimap ab (loop cd)
-  ⩯ loop (assoc_l >=> bimap swap (id_ _)
-                  >=> assoc_r
-                  >=> bimap ab cd
-                  >=> assoc_l >=> bimap swap (id_ _) >=> assoc_r).
+  ⩯ loop (assoc_l >>> bimap swap (id_ _)
+                  >>> assoc_r
+                  >>> bimap ab cd
+                  >>> assoc_l >>> bimap swap (id_ _) >>> assoc_r).
 Proof.
   rewrite swap_bimap, bimap_ktree_loop.
   rewrite <- compose_loop, <- loop_compose.
@@ -343,8 +343,8 @@ Proof.
 Qed.
 
 Lemma foo_assoc_l {A B C D D'} (f : ktree E _ D') :
-    bimap (id_ A) (@assoc_l _ _ _ _ B C D) >=> (assoc_l >=> f)
-   ⩯ assoc_l >=> (assoc_l >=> (bimap assoc_r (id_ _) >=> f)).
+    bimap (id_ A) (@assoc_l _ _ _ _ B C D) >>> (assoc_l >>> f)
+   ⩯ assoc_l >>> (assoc_l >>> (bimap assoc_r (id_ _) >>> f)).
 Proof.
   rewrite <- !cat_assoc.
   rewrite <- assoc_l_assoc_l.
@@ -355,8 +355,8 @@ Proof.
 Qed.
 
 Lemma foo_assoc_r {A' A B C D} (f : ktree E A' _) :
-    f >=> assoc_r >=> bimap (id_ A) (@assoc_r _ _ _ _ B C D)
-  ⩯ f >=> bimap assoc_l (id_ _) >=> assoc_r >=> assoc_r.
+    f >>> assoc_r >>> bimap (id_ A) (@assoc_r _ _ _ _ B C D)
+  ⩯ f >>> bimap assoc_l (id_ _) >>> assoc_r >>> assoc_r.
 Proof.
   rewrite (cat_assoc _ _ _ assoc_r).
   rewrite <- assoc_r_assoc_r.
@@ -403,7 +403,7 @@ Qed.
 Definition relabel_bks_correct {A B C D} (f : A -> B) (g : C -> D)
            (bc : bks B C) :
     denote_b (relabel_bks f g bc)
-  ⩯ lift_ktree f >=> denote_b bc >=> lift_ktree g.
+  ⩯ lift_ktree f >>> denote_b bc >>> lift_ktree g.
 Proof.
   rewrite lift_compose_ktree.
   rewrite compose_ktree_lift.
@@ -416,7 +416,7 @@ Qed.
 Definition relabel_asm_correct {A B C D} (f : A -> B) (g : C -> D)
            (bc : asm B C) :
     denote_asm (relabel_asm f g bc)
-  ⩯ lift_ktree f >=> denote_asm bc >=> lift_ktree g.
+  ⩯ lift_ktree f >>> denote_asm bc >>> lift_ktree g.
 Proof.
   unfold denote_asm.
   simpl.

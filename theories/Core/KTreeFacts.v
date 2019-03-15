@@ -152,7 +152,7 @@ Qed.
 Lemma vanishing2 {E A B C D} (f : D + (C + A) -> itree E (D + (C + B)))
       (a : A) :
     loop (loop f) a
-  ≅ loop (assoc_r >=> f >=> assoc_l) a.
+  ≅ loop (assoc_r >>> f >>> assoc_l) a.
 Proof.
   unfold loop; rewrite 2 unfold_loop'; unfold loop_once.
   unfold ITree.cat.
@@ -196,7 +196,7 @@ Lemma superposing1 {E A B C D D'} (f : C + A -> itree E (C + B))
       match cad with
       | inl c => ITree.map (bimap id inl) (f (inl c))
       | inr (inl a) => ITree.map (bimap id inl) (f (inr a))
-      | inr (inr d) => ITree.map (inr >=> inr)%cat (g d)
+      | inr (inr d) => ITree.map (inr >>> inr)%cat (g d)
       end) (inl a).
 Proof.
   unfold loop.
@@ -234,7 +234,7 @@ Lemma superposing2 {E A B C D D'} (f : C + A -> itree E (C + B))
       match cad with
       | inl c => ITree.map (bimap id inl) (f (inl c))
       | inr (inl a) => ITree.map (bimap id inl) (f (inr a))
-      | inr (inr d) => ITree.map (inr >=> inr)%cat (g d)
+      | inr (inr d) => ITree.map (inr >>> inr)%cat (g d)
       end) (inr d).
 Proof.
   unfold loop; rewrite unfold_loop'; unfold loop_once.
@@ -524,7 +524,7 @@ Proof.
 Qed.
 
 Fact compose_lift_ktree {A B C} (ab : A -> B) (bc : B -> C) :
-  (@lift_ktree E _ _ ab >=> lift_ktree bc ⩯ lift_ktree (ab >=> bc))%cat.
+  (@lift_ktree E _ _ ab >>> lift_ktree bc ⩯ lift_ktree (ab >>> bc))%cat.
 Proof.
   intros a.
   unfold lift_ktree, cat, Cat_ktree, ITree.cat.
@@ -533,7 +533,7 @@ Proof.
 Qed.
 
 Fact compose_lift_ktree_l {A B C D} (f: A -> B) (g: B -> C) (k: ktree E C D) :
-  (lift_ktree f >=> (lift_ktree g >=> k) ⩯ lift_ktree (g ∘ f) >=> k)%cat.
+  (lift_ktree f >>> (lift_ktree g >>> k) ⩯ lift_ktree (g ∘ f) >>> k)%cat.
 Proof.
   rewrite <- cat_assoc.
   rewrite compose_lift_ktree.
@@ -542,7 +542,7 @@ Proof.
 Qed.
 
 Fact compose_lift_ktree_r {A B C D} (f: B -> C) (g: C -> D) (k: ktree E A B) :
-  ((k >=> lift_ktree f) >=> lift_ktree g ⩯ k >=> lift_ktree (g ∘ f))%cat.
+  ((k >>> lift_ktree f) >>> lift_ktree g ⩯ k >>> lift_ktree (g ∘ f))%cat.
 Proof.
   rewrite cat_assoc.
   rewrite compose_lift_ktree.
@@ -551,7 +551,7 @@ Proof.
 Qed.
 
 Fact lift_compose_ktree {A B C}: forall (f:A -> B) (bc: ktree E B C),
-    lift_ktree f >=> bc ⩯ fun a => bc (f a).
+    lift_ktree f >>> bc ⩯ fun a => bc (f a).
 Proof.
   intros; intro a.
   unfold lift_ktree, cat, Cat_ktree, ITree.cat.
@@ -559,7 +559,7 @@ Proof.
 Qed.
 
 Fact compose_ktree_lift {A B C}: forall (ab: ktree E A B) (g:B -> C),
-    (ab >=> lift_ktree g)
+    (ab >>> lift_ktree g)
   ⩯ (fun a => ITree.map g (ab a)).
 Proof.
   reflexivity.
@@ -615,14 +615,14 @@ Proof.
 Qed.
 
 Lemma case_l_ktree {A B: Type} (ab: @ktree E A (void + B)) :
-  ab >=> unit_l ⩯ (fun a: A => ITree.map unit_l (ab a)).
+  ab >>> unit_l ⩯ (fun a: A => ITree.map unit_l (ab a)).
 Proof.
   rewrite unit_l_ktree.
   reflexivity.
 Qed.
 
 Lemma case_l_ktree' {A B: Type} (f: @ktree E (void + A) (void + B)) :
-  unit_l' >=> f ⩯ fun a => f (inr a).
+  unit_l' >>> f ⩯ fun a => f (inr a).
 Proof.
   rewrite unit_l'_ktree.
   intro. unfold cat, Cat_ktree, ITree.cat, lift_ktree.
@@ -630,7 +630,7 @@ Proof.
 Qed.
 
 Lemma case_r_ktree' {A B: Type} (f: @ktree E (A + void) (B + void)) :
-  unit_r' >=> f ⩯ fun a => f (inl a).
+  unit_r' >>> f ⩯ fun a => f (inl a).
 Proof.
   rewrite unit_r'_ktree.
   intro. unfold cat, Cat_ktree, ITree.cat, lift_ktree.
@@ -638,7 +638,7 @@ Proof.
 Qed.
 
 Lemma case_r_ktree {A B: Type} (ab: @ktree E A (B + void)) :
-  ab >=> unit_r ⩯ (fun a: A => ITree.map unit_r (ab a)).
+  ab >>> unit_r ⩯ (fun a: A => ITree.map unit_r (ab a)).
 Proof.
   rewrite unit_r_ktree.
   reflexivity.
@@ -724,8 +724,8 @@ A----B----###----C
 
 Lemma compose_loop {I A B C}
       (bc_: ktree E (I + B) (I + C)) (ab: ktree E A B) :
-    loop ((bimap (id_ _) ab) >=> bc_)
-  ⩯ ab >=> loop bc_.
+    loop ((bimap (id_ _) ab) >>> bc_)
+  ⩯ ab >>> loop bc_.
 Proof.
   intros a.
   rewrite (loop_natural_l ab bc_ a).
@@ -758,8 +758,8 @@ A----###----B----C
 
 Lemma loop_compose {I A B B'}
       (ab_: ktree E (I + A) (I + B)) (bc: ktree E B B') :
-    loop (ab_ >=> bimap (id_ _) bc)
-  ⩯ loop ab_ >=> bc.
+    loop (ab_ >>> bimap (id_ _) bc)
+  ⩯ loop ab_ >>> bc.
 Proof.
   intros a.
   rewrite (loop_natural_r bc ab_ a).
@@ -778,8 +778,8 @@ Qed.
 
 Lemma loop_rename_internal {I J A B}
       (ab_: ktree E (I + A) (J + B)) (ji: ktree E J I) :
-    loop (ab_ >=> bimap ji (id_ _))
-  ⩯ loop (bimap ji (id_ _) >=> ab_).
+    loop (ab_ >>> bimap ji (id_ _))
+  ⩯ loop (bimap ji (id_ _) >>> ab_).
 Proof.
   assert (EQ:forall (x: J + B),
              match x with
@@ -812,7 +812,7 @@ Qed.
 
 (* Loop over the empty set can be erased *)
 Lemma vanishing_ktree {A B: Type} (f: ktree E (void + A) (void + B)) :
-  loop f ⩯ unit_l' >=> f >=> unit_l.
+  loop f ⩯ unit_l' >>> f >>> unit_l.
 Proof.
   intros a.
   rewrite vanishing1.
@@ -855,7 +855,7 @@ These two loops:
 
 Lemma loop_loop {I J A B} (ab__: ktree E (I + (J + A)) (I + (J + B))) :
     loop (loop ab__)
-  ⩯ loop (assoc_r >=> ab__ >=> assoc_l).
+  ⩯ loop (assoc_r >>> ab__ >>> assoc_l).
 Proof.
   intros a.
   rewrite vanishing2.
@@ -891,7 +891,7 @@ Qed.
 Lemma bimap_ktree_loop {I A B C D}
       (ab : ktree E (I + A) (I + B)) (cd : ktree E C D) :
     bimap (loop ab) cd
-  ⩯ loop (assoc_l >=> bimap ab cd >=> assoc_r).
+  ⩯ loop (assoc_l >>> bimap ab cd >>> assoc_r).
 Proof.
   rewrite assoc_l_ktree, assoc_r_ktree.
   rewrite lift_compose_ktree, compose_ktree_lift.
@@ -925,8 +925,8 @@ Qed.
 
 Lemma loop_rename_internal' {I J A B} (ij : ktree E I J) (ji: ktree E J I)
       (ab_: @ktree E (I + A) (I + B)) :
-  (ij >=> ji) ⩯ id_ _ ->
-    loop (bimap ji (id_ _) >=> ab_ >=> bimap ij (id_ _))
+  (ij >>> ji) ⩯ id_ _ ->
+    loop (bimap ji (id_ _) >>> ab_ >>> bimap ij (id_ _))
   ⩯ loop ab_.
 Proof.
   intros Hij.
@@ -957,7 +957,7 @@ Variable E : Type -> Type.
 Local Open Scope cat.
 
 Theorem cat_from_loop {A B C} (ab : ktree E A B) (bc : ktree E B C) :
-  loop (swap >=> bimap ab bc) ⩯ ab >=> bc.
+  loop (swap >>> bimap ab bc) ⩯ ab >>> bc.
 Proof.
   rewrite bimap_slide.
   rewrite <- cat_assoc.
