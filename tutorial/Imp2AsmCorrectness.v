@@ -454,27 +454,27 @@ Section Correctness.
     repeat setoid_rewrite bind_bind.
     apply eutt_bind; try reflexivity. intros [].
     apply eutt_bind; try reflexivity. intros [].
-    - rewrite ret_bind_.
+    - rewrite bind_ret_.
       rewrite (relabel_asm_correct _ _ _ (inr tt)).
       unfold CategoryOps.cat, Cat_ktree, ITree.cat; simpl.
       rewrite bind_bind.
-      unfold lift_ktree; rewrite ret_bind_.
+      unfold lift_ktree; rewrite bind_ret_.
       setoid_rewrite (app_asm_correct tp fp (inr tt)).
       setoid_rewrite bind_bind.
-      rewrite <- (bind_ret (denote_asm fp tt)) at 2.
+      rewrite <- (bind_ret2 (denote_asm fp tt)) at 2.
       eapply eutt_bind; try reflexivity. intros ?.
-      unfold inr_, Inr_ktree, lift_ktree; rewrite ret_bind_; reflexivity.
-    - rewrite ret_bind_.
+      unfold inr_, Inr_ktree, lift_ktree; rewrite bind_ret_; reflexivity.
+    - rewrite bind_ret_.
       rewrite (relabel_asm_correct _ _ _ (inl tt)).
       unfold CategoryOps.cat, Cat_ktree, ITree.cat; simpl.
       rewrite bind_bind.
-      unfold lift_ktree; rewrite ret_bind_.
+      unfold lift_ktree; rewrite bind_ret_.
       setoid_rewrite (app_asm_correct tp fp (inl tt)).
       setoid_rewrite bind_bind.
-      rewrite <- (bind_ret (denote_asm tp tt)) at 2.
+      rewrite <- (bind_ret2 (denote_asm tp tt)) at 2.
       eapply eutt_bind; try reflexivity. intros ?.
       unfold inl_, Inl_ktree, lift_ktree;
-        rewrite ret_bind_; reflexivity.
+        rewrite bind_ret_; reflexivity.
   Qed.
 
   Lemma while_asm_correct (e : list instr) (p : asm unit unit) :
@@ -512,14 +512,14 @@ Section Correctness.
       apply eutt_bind; try reflexivity. intros [].
       + rewrite (pure_asm_correct _ tt).
         unfold inl_, Inl_ktree, lift_ktree.
-        repeat rewrite ret_bind_.
+        repeat rewrite bind_ret_.
         reflexivity.
       + rewrite (relabel_asm_correct _ _ _  tt).
         unfold CategoryOps.cat, Cat_ktree, ITree.cat.
         simpl; repeat setoid_rewrite bind_bind.
-        unfold inl_, Inl_ktree, lift_ktree; rewrite ret_bind_.
+        unfold inl_, Inl_ktree, lift_ktree; rewrite bind_ret_.
         apply eutt_bind; try reflexivity. intros [].
-        repeat rewrite ret_bind_; reflexivity.
+        repeat rewrite bind_ret_; reflexivity.
     - rewrite itree_eta; cbn; reflexivity.
   Qed.
 
@@ -569,11 +569,11 @@ Section Correctness.
     rewrite unfold_interp_state; cbn.
     rewrite tau_eutt.
     rewrite map_bind.
-    setoid_rewrite ret_interp.
-    setoid_rewrite bind_ret.
+    setoid_rewrite interp_ret.
+    setoid_rewrite bind_ret2.
     unfold inl_, Inl_sum1_Handler, eh_lift.
     rewrite interp_state_lift.
-    rewrite bind_ret.
+    rewrite bind_ret2.
     cbn.
     rewrite eq.
     rewrite !tau_eutt.
@@ -591,7 +591,7 @@ Section Correctness.
       simpl.
       rewrite raw_asm_block_correct.
       rewrite after_correct.
-      rewrite <- (bind_ret (ITree.bind (denoteExpr e) _)).
+      rewrite <- (bind_ret2 (ITree.bind (denoteExpr e) _)).
       eapply eq_locals_bind_gen.
       { eapply compile_assign_correct; auto. }
       intros [] [] []. simpl.
@@ -621,7 +621,7 @@ Section Correctness.
       destruct r1 as [g_asm' []].
       generalize H0; intros EQ. apply sim_rel_get_tmp0 in EQ.
       setoid_rewrite EQ; clear EQ.
-      rewrite ret_bind_.
+      rewrite bind_ret_.
       simpl.
       apply sim_rel_Renv in H0.
       destruct v; simpl; auto. 
@@ -653,7 +653,7 @@ Section Correctness.
       generalize H0; intros EQ. apply sim_rel_get_tmp0 in EQ.
       rewrite interp_locals_bind.
       setoid_rewrite EQ; clear EQ.
-      rewrite ret_bind_.
+      rewrite bind_ret_.
       simpl.
       apply sim_rel_Renv in H0.
       destruct v; simpl; auto.

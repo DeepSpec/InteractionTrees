@@ -149,11 +149,11 @@ Proof.
     intros []; apply IHb.
   - simpl.
     destruct br; simpl.
-    + unfold ITree.map; rewrite ret_bind; reflexivity.
+    + unfold ITree.map; rewrite bind_ret; reflexivity.
     + unfold ITree.map; rewrite bind_bind. 
       eapply eq_itree_eq_bind; try reflexivity.
       intros ?.
-      flatten_goal; rewrite ret_bind; reflexivity.
+      flatten_goal; rewrite bind_ret; reflexivity.
     + rewrite (itree_eta (ITree.map _ _)).
       cbn. apply eq_itree_Vis. intros [].
 Qed.
@@ -174,7 +174,7 @@ Lemma after_correct :
     denote_block (after instrs b) ≅ (denote_list instrs ;; denote_branch b).
 Proof.
   induction instrs as [| i instrs IH]; intros b.
-  - simpl; rewrite ret_bind; reflexivity.
+  - simpl; rewrite bind_ret; reflexivity.
   - simpl; rewrite bind_bind.
     eapply eq_itree_eq_bind; try reflexivity.
     intros []; apply IH.
@@ -185,7 +185,7 @@ Lemma denote_list_app:
     @denote_list (is1 ++ is2) ≅
                  (@denote_list is1;; denote_list is2).
 Proof.
-  intros is1 is2; induction is1 as [| i is1 IH]; simpl; intros; [rewrite ret_bind; reflexivity |].
+  intros is1 is2; induction is1 as [| i is1 IH]; simpl; intros; [rewrite bind_ret; reflexivity |].
   rewrite bind_bind; setoid_rewrite IH; reflexivity.
 Qed.
 
@@ -200,7 +200,7 @@ Proof.
   intros [].
   rewrite fmap_block_map, map_map.
   unfold ITree.map.
-  rewrite <- (bind_ret (denote_block b)) at 2.
+  rewrite <- (bind_ret2 (denote_block b)) at 2.
   reflexivity.
 Qed.
 
@@ -384,7 +384,7 @@ Proof.
   rewrite !cat_assoc.
   rewrite <- !sym_ktree_unfold, !assoc_l_ktree, !assoc_r_ktree, !bimap_lift_id, !bimap_id_lift, !compose_lift_ktree_l, compose_lift_ktree.
   unfold cat, Cat_ktree, ITree.cat, lift_ktree.
-  intro x. rewrite ret_bind; simpl.
+  intro x. rewrite bind_ret; simpl.
   destruct x as [[|]|[|]]; cbn.
   (* ... *)
   all: unfold cat, Cat_ktree, ITree.cat.
