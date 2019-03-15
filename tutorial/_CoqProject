@@ -1,4 +1,5 @@
 -Q ../theories/ ITree
+-R . tutorial
 
 Factorial.v
 

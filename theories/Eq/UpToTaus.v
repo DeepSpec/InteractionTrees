@@ -574,16 +574,23 @@ Qed.
 
 Lemma eutt_vis {E R1 R2} (RR : R1 -> R2 -> Prop)
       {U} (e : E U) (k1 : U -> itree E R1) (k2 : U -> itree E R2) :
-  (forall u, eutt RR (k1 u) (k2 u)) ->
+  (forall u, eutt RR (k1 u) (k2 u)) <->
   eutt RR (Vis e k1) (Vis e k2).
 Proof.
-  intros. pfold. pfold. econstructor. intros. specialize (H x). punfold H.
+  split.
+  - intros. pfold; pfold; econstructor.
+    intros x; specialize (H x). punfold H.
+  - intros H x.
+    punfold H; punfold H; inversion H; auto_inj_pair2; subst.
+    edestruct EUTTK; pclearbot; eauto.
 Qed.
 
 Lemma eutt_ret {E R1 R2} (RR : R1 -> R2 -> Prop) r1 r2 :
-  RR r1 r2 -> @eutt E R1 R2 RR (Ret r1) (Ret r2).
+  @eutt E R1 R2 RR (Ret r1) (Ret r2) <-> RR r1 r2.
 Proof.
-  intros. pfold. pfold. econstructor. eauto.
+  split.
+  - intros H. punfold H; punfold H; inversion H; auto.
+  - intros. pfold; pfold; econstructor. auto.
 Qed.
 
 Global Instance eutt_map {E R S} :
