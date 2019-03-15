@@ -13,10 +13,7 @@ From ExtLib Require Import
      Monad.
 
 From ITree Require Import
-     ITree
-     MorphismsFacts
-     Recursion
-     RecursionFacts.
+     Simple.
 
 Import MonadNotation.
 Open Scope monad_scope.
@@ -59,8 +56,15 @@ Definition fact_body (x : nat) : itree (callE nat nat +' E) nat :=
 
     (Aside: Note that [factorial] is actually a [KTree] of type [ktree nat nat].)
 *)
-Definition factorial (n:nat) : itree E nat :=
+Definition factorial (n : nat) : itree E nat :=
   rec fact_body n.
+
+Example fact_5 : exists y, factorial 5 ≈ Ret y.
+Proof.
+  eexists.
+  tau_steps.
+  reflexivity.
+Qed.
 
 (** An equivalent definition with a [rec-fix] notation looking like [fix].
  *)
@@ -174,3 +178,10 @@ Definition log_ (b : nat) : nat -> itree E nat :=
       Ret O
     else
       y <- log_b (n / b) ;; Ret (S y).
+
+Example log_2_100 : exists y, log_ 2 100 ≈ Ret y.
+Proof.
+  eexists.
+  tau_steps.
+  reflexivity.
+Qed.
