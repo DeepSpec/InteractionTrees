@@ -67,7 +67,7 @@ Export ITree.Interp.Handler.Handler.
 
 (** ** Equational theory *)
 
-Module Type SimpleInterface.
+Module Type SimpleTheory.
 (** This interface is implemented by the module
     [ITree.Simple.Simple] below (exported by default). *)
 
@@ -242,7 +242,7 @@ Ltac tau_steps :=
       | _ => try rewrite tau_eutt
       end).
 
-End SimpleInterface.
+End SimpleTheory.
 
 (* begin hide *)
 (** * Implementation *)
