@@ -228,7 +228,7 @@ Declare Instance eutt_map {E R S} :
          (@ITree.map E R S).
 
 Declare Instance eutt_interp (E F : Type -> Type) f (R : Type) :
-  Proper (eutt ==> eutt) (@interp E F f R).
+  Proper (eutt ==> eutt) (@interp E (itree F) _ _ _ f R).
 
 (** *** Tactics *)
 
@@ -457,7 +457,7 @@ Instance eutt_map {E R S} :
 Proof. apply ITree.Eq.UpToTaus.eutt_map. Qed.
 
 Instance eutt_interp (E F : Type -> Type) f (R : Type) :
-  Proper (eutt ==> eutt) (@interp E F f R).
+  Proper (eutt ==> eutt) (@interp E (itree F) _ _ _ f R).
 Proof. apply ITree.Interp.MorphismsFacts.eutt_interp. Qed.
 
 Ltac tau_steps :=

@@ -46,7 +46,7 @@ Lemma unfold_interp_state {E F S R} (h : E ~> Monads.stateT S (itree F)) t s :
       (interp_state h _ t s)
       (_interp_state h R (observe t) s).
 Proof.
-  unfold interp_state.
+  unfold interp_state, interp, aloop, ALoop_stateT0, aloop, ALoop_itree.
   rewrite unfold_aloop'.
   destruct observe; cbn.
   - reflexivity.
@@ -139,7 +139,7 @@ Qed.
 
 Instance eutt_interp_state {E F: Type -> Type} {S : Type}
          (h : E ~> Monads.stateT S (itree F)) R :
-  Proper (eutt eq ==> eq ==> eutt eq) (@interp_state E F S h R).
+  Proper (eutt eq ==> eq ==> eutt eq) (@interp_state E (itree F) S _ _ _ h R).
 Proof.
   repeat intro. subst. pupto2_init. revert_until R. pcofix CIH. intros.
   pfold. pupto2_init. revert_until CIH. pcofix CIH'. intros.
