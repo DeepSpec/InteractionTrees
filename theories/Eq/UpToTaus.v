@@ -676,11 +676,11 @@ Proof.
     pupto2 eutt_nested_clo_bind. econstructor.
     { reflexivity. }
     intros ? _ [].
-    rewrite ret_bind.
+    rewrite bind_ret.
     pupto2_final. auto.
-  - rewrite ret_bind.
+  - rewrite bind_ret.
     pfold; constructor. pfold2_reverse.
-    rewrite ret_bind.
+    rewrite bind_ret.
     revert_until x. pcofix CIH''. intros.
     rewrite !unfold_aloop'. unfold ITree._aloop.
     destruct (g b) as [t' | c]; cbn.

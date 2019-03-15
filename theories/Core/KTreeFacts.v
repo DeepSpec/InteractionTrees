@@ -74,7 +74,7 @@ Proof.
     | [ |- _ _ (Tau (loop_ ?f _)) ] => rewrite (unfold_loop' f)
     end.
     unfold loop_once_.
-    rewrite ret_bind_. (* TODO: [ret_bind] doesn't work. *)
+    rewrite bind_ret_. (* TODO: [bind_ret] doesn't work. *)
     pfold; constructor; auto.
   - pfold; constructor; auto.
 Qed.
@@ -95,7 +95,7 @@ Proof.
   rewrite !bind_bind.
   pupto2 @eq_itree_clo_bind; econstructor; try reflexivity.
   intros [c | b]; intros; subst.
-  - rewrite ret_bind_, tau_bind_.
+  - rewrite bind_ret_, bind_tau_.
     pfold; constructor; auto.
   - autorewrite with itree.
     pupto2_final; apply reflexivity.
@@ -121,21 +121,21 @@ Proof.
   clear a; intros cb _ [].
   pupto2_init. revert cb; pcofix self; intros.
   destruct cb as [c | b].
-  - rewrite tau_bind.
+  - rewrite bind_tau.
     pfold; constructor; pupto2_final; left.
     rewrite map_bind.
     rewrite (unfold_loop' _ (inl c)); unfold loop_once.
     autorewrite with itree.
     pupto2 eq_itree_clo_bind; econstructor; try reflexivity.
     intros c'; intros; subst.
-    rewrite tau_bind.
-    rewrite ret_bind_.
+    rewrite bind_tau.
+    rewrite bind_ret_.
     rewrite unfold_loop'; unfold loop_once.
     rewrite bind_bind.
     pfold; constructor.
     pupto2 eq_itree_clo_bind; econstructor; try reflexivity.
     intros; subst. eauto.
-  - rewrite ret_bind.
+  - rewrite bind_ret.
     pupto2_final; apply reflexivity.
 Qed.
 
@@ -158,7 +158,7 @@ Proof.
   unfold ITree.cat.
   cbn. unfold inr_, Inr_ktree.
   unfold cat, Cat_ktree, ITree.cat, lift_ktree.
-  rewrite !ret_bind.
+  rewrite !bind_ret.
   rewrite unfold_loop'; unfold loop_once.
   rewrite !bind_bind.
   eapply eq_itree_bind; try reflexivity.
@@ -166,13 +166,13 @@ Proof.
   pupto2_init. revert dcb; pcofix self; intros.
   destruct dcb as [d | [c | b]]; cbn.
   all: unfold cat, inl_, inr_, Inl_ktree, lift_ktree; cbn.
-  all: rewrite !ret_bind_.
+  all: rewrite !bind_ret_.
   - (* d *)
-    rewrite tau_bind.
+    rewrite bind_tau.
     rewrite 2 unfold_loop'; unfold loop_once.
     autorewrite with itree.
     cbn; unfold cat, inl_, Inl_ktree, lift_ktree.
-    rewrite ret_bind_.
+    rewrite bind_ret_.
     pfold; constructor.
     pupto2 eq_itree_clo_bind; econstructor. reflexivity.
     intros; subst. auto.
@@ -181,7 +181,7 @@ Proof.
     rewrite unfold_loop'; unfold loop_once.
     autorewrite with itree.
     cbn; unfold cat, inl_, inr_, Inl_ktree, lift_ktree.
-    rewrite !ret_bind_.
+    rewrite !bind_ret_.
     pfold; constructor.
     pupto2 eq_itree_clo_bind; econstructor; try reflexivity.
     intros; subst. auto.
@@ -213,18 +213,18 @@ Proof.
   rewrite 2 unfold_loop'; unfold loop_once.
   rewrite bind_bind.
   destruct inra as [c | a]; subst.
-  - rewrite bind_bind; setoid_rewrite ret_bind_.
+  - rewrite bind_bind; setoid_rewrite bind_ret_.
     pupto2 eq_itree_clo_bind; econstructor; try reflexivity.
     intros [c' | b]; simpl; intros; subst.
-    + rewrite tau_bind. pfold; constructor.
+    + rewrite bind_tau. pfold; constructor.
       pupto2_final. auto.
-    + rewrite ret_bind. pupto2_final; apply reflexivity.
-  - rewrite bind_bind; setoid_rewrite ret_bind_.
+    + rewrite bind_ret. pupto2_final; apply reflexivity.
+  - rewrite bind_bind; setoid_rewrite bind_ret_.
     pupto2 eq_itree_clo_bind; econstructor; try reflexivity.
     intros [c' | b]; simpl; intros; subst.
-    + rewrite tau_bind. pfold; constructor.
+    + rewrite bind_tau. pfold; constructor.
       pupto2_final. auto.
-    + rewrite ret_bind_. pupto2_final; apply reflexivity.
+    + rewrite bind_ret_. pupto2_final; apply reflexivity.
 Qed.
 
 Lemma superposing2 {E A B C D D'} (f : C + A -> itree E (C + B))
@@ -480,13 +480,13 @@ Qed.
 Global Instance CatIdL_ktree : CatIdL (ktree E).
 Proof.
   intros A B f a; unfold cat, Cat_ktree, ITree.cat, id_, Id_ktree.
-  rewrite ret_bind. reflexivity.
+  rewrite bind_ret. reflexivity.
 Qed.
 
 Global Instance CatIdR_ktree : CatIdR (ktree E).
 Proof.
   intros A B f a; unfold cat, Cat_ktree, ITree.cat, id_, Id_ktree.
-  rewrite <- (bind_ret (f a)) at 2.
+  rewrite <- (bind_ret2 (f a)) at 2.
   reflexivity.
 Qed.
 
@@ -528,7 +528,7 @@ Fact compose_lift_ktree {A B C} (ab : A -> B) (bc : B -> C) :
 Proof.
   intros a.
   unfold lift_ktree, cat, Cat_ktree, ITree.cat.
-  rewrite ret_bind_.
+  rewrite bind_ret_.
   reflexivity.
 Qed.
 
@@ -555,7 +555,7 @@ Fact lift_compose_ktree {A B C}: forall (f:A -> B) (bc: ktree E B C),
 Proof.
   intros; intro a.
   unfold lift_ktree, cat, Cat_ktree, ITree.cat.
-  rewrite ret_bind_. reflexivity.
+  rewrite bind_ret_. reflexivity.
 Qed.
 
 Fact compose_ktree_lift {A B C}: forall (ab: ktree E A B) (g:B -> C),
@@ -626,7 +626,7 @@ Lemma case_l_ktree' {A B: Type} (f: @ktree E (void + A) (void + B)) :
 Proof.
   rewrite unit_l'_ktree.
   intro. unfold cat, Cat_ktree, ITree.cat, lift_ktree.
-  rewrite ret_bind_; reflexivity.
+  rewrite bind_ret_; reflexivity.
 Qed.
 
 Lemma case_r_ktree' {A B: Type} (f: @ktree E (A + void) (B + void)) :
@@ -634,7 +634,7 @@ Lemma case_r_ktree' {A B: Type} (f: @ktree E (A + void) (B + void)) :
 Proof.
   rewrite unit_r'_ktree.
   intro. unfold cat, Cat_ktree, ITree.cat, lift_ktree.
-  rewrite ret_bind_; reflexivity.
+  rewrite bind_ret_; reflexivity.
 Qed.
 
 Lemma case_r_ktree {A B: Type} (ab: @ktree E A (B + void)) :
@@ -731,9 +731,9 @@ Proof.
   rewrite (loop_natural_l ab bc_ a).
   apply eutt_loop; [intros [] | reflexivity].
   all: unfold bimap, Bimap_Coproduct, case_, Case_ktree, cat, Cat_ktree, ITree.cat, id_, Id_ktree; cbn.
-  - rewrite bind_bind, ret_bind_; reflexivity.
+  - rewrite bind_bind, bind_ret_; reflexivity.
   - rewrite bind_bind, map_bind.
-    setoid_rewrite ret_bind_; reflexivity.
+    setoid_rewrite bind_ret_; reflexivity.
 Qed.
 
 (* Naturality of (loop I A B) in B *)
@@ -767,10 +767,10 @@ Proof.
   all: unfold bimap, Bimap_Coproduct, case_, Case_ktree,
        cat, Cat_ktree, ITree.cat, id_, Id_ktree; cbn.
   - apply eutt_bind; [intros []; simpl | reflexivity ].
-    rewrite ret_bind_; reflexivity.
+    rewrite bind_ret_; reflexivity.
     reflexivity.
   - apply eutt_bind; [intros []; simpl | reflexivity].
-    rewrite ret_bind_; reflexivity.
+    rewrite bind_ret_; reflexivity.
     reflexivity.
 Qed.
 
@@ -793,7 +793,7 @@ Proof.
   {
     intros [].
     symmetry; apply tau_eutt.
-    rewrite ret_bind_; reflexivity.
+    rewrite bind_ret_; reflexivity.
   }
 
   unfold bimap, Bimap_Coproduct, case_, Case_ktree, case_sum, cat, Cat_ktree,
@@ -804,7 +804,7 @@ Proof.
   rewrite loop_dinatural.
   apply eutt_loop; [intros [] | reflexivity].
   all: repeat rewrite bind_bind.
-  2: repeat rewrite ret_bind_; reflexivity.
+  2: repeat rewrite bind_ret_; reflexivity.
   apply eutt_bind; [intros ? | reflexivity ].
   apply eutt_bind; [intros ?; reflexivity| ].
   apply tau_eutt.
@@ -819,7 +819,7 @@ Proof.
   unfold unit_l, UnitL_Coproduct, unit_l', UnitL'_Coproduct, case_, Case_ktree, inr_, Inr_ktree.
   unfold cat, Cat_ktree, ITree.cat, ITree.map, lift_ktree.
   rewrite bind_bind.
-  rewrite ret_bind_.
+  rewrite bind_ret_.
   apply eutt_bind.
   - intros [[] | ]. reflexivity.
   - reflexivity.
@@ -862,7 +862,7 @@ Proof.
   unfold ITree.map, cat, Cat_ktree, ITree.cat, assoc_r, AssocR_Coproduct, assoc_l, AssocL_Coproduct, inl_, Inl_ktree, inr_, Inr_ktree, case_, Case_ktree, lift_ktree; cbn.
   apply eutt_loop; [intros [[]|] | reflexivity]; cbn.
   all: rewrite !bind_bind.
-  all: try rewrite !ret_bind_.
+  all: try rewrite !bind_ret_.
   all: reflexivity.
 Qed.
 
@@ -879,13 +879,13 @@ Local Opaque eutt.
 Lemma assoc_l_ktree {A B C} :
   assoc_l ⩯ @lift_ktree E (A + (B + C)) _ assoc_l.
 Proof.
-  cbv; intros [ | [] ]; try rewrite ret_bind; reflexivity.
+  cbv; intros [ | [] ]; try rewrite bind_ret; reflexivity.
 Qed.
 
 Lemma assoc_r_ktree {A B C} :
   assoc_r ⩯ @lift_ktree E ((A + B) + C) _ assoc_r.
 Proof.
-  cbv; intros [ [] | ]; try rewrite ret_bind; reflexivity.
+  cbv; intros [ [] | ]; try rewrite bind_ret; reflexivity.
 Qed.
 
 Lemma bimap_ktree_loop {I A B C D}
@@ -912,7 +912,7 @@ Proof.
     rewrite bind_bind.
     apply eutt_bind; [ | reflexivity ].
     intros d.
-    rewrite ret_bind; cbn.
+    rewrite bind_ret; cbn.
     reflexivity.
 Qed.
 

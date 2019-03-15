@@ -98,13 +98,13 @@ Lemma factorial_correct : forall n, factorial n ≈ Ret (factorial_spec n).
 Proof.
   intros n.
   induction n; intros; subst.
-  - unfold factorial. rewrite rec_as_interp. simpl. rewrite ret_interp. reflexivity.
+  - unfold factorial. rewrite rec_as_interp. simpl. rewrite interp_ret. reflexivity.
   - unfold factorial. rewrite rec_as_interp. simpl.
     rewrite interp_bind.
     rewrite interp_recursive_call.
     rewrite IHn.
-    rewrite ret_bind.
-    rewrite ret_interp.
+    rewrite bind_ret.
+    rewrite interp_ret.
     reflexivity.
 Qed.
 
@@ -155,17 +155,17 @@ Proof.
   intros n.
   induction n; intros; subst.
   - apply Le.le_n_0_eq in H. subst. 
-    unfold fib.  rewrite rec_as_interp. simpl. rewrite ret_interp.  reflexivity.
+    unfold fib.  rewrite rec_as_interp. simpl. rewrite interp_ret.  reflexivity.
   - induction m; intros; subst.
-    + unfold fib. rewrite rec_as_interp. simpl. rewrite ret_interp. reflexivity.
+    + unfold fib. rewrite rec_as_interp. simpl. rewrite interp_ret. reflexivity.
     + unfold fib.
       rewrite rec_as_interp. simpl.
       destruct m.
-      * rewrite ret_interp. reflexivity.
+      * rewrite interp_ret. reflexivity.
       * rewrite interp_bind. rewrite interp_recursive_call. rewrite IHm.
-        rewrite ret_bind. rewrite interp_bind. rewrite interp_recursive_call.
-        unfold fib in IHn. rewrite IHn. rewrite ret_bind.
-        rewrite ret_interp. reflexivity.
+        rewrite bind_ret. rewrite interp_bind. rewrite interp_recursive_call.
+        unfold fib in IHn. rewrite IHn. rewrite bind_ret.
+        rewrite interp_ret. reflexivity.
         omega. omega. 
 Qed.
 (* STUBWITH Admitted. *)

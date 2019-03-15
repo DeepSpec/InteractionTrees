@@ -51,12 +51,12 @@ Proof.
   rewrite unfold_aloop'.
   destruct observe; cbn.
   - reflexivity.
-  - rewrite ret_bind_; reflexivity. (* TODO: ret_bind, vis_bind are sloooow *)
+  - rewrite bind_ret_; reflexivity. (* TODO: bind_ret, bind_vis are sloooow *)
   - destruct e; cbn.
-    + rewrite ret_bind_; reflexivity.
-    + rewrite vis_bind_. pfold; constructor. left.
+    + rewrite bind_ret_; reflexivity.
+    + rewrite bind_vis_. pfold; constructor. left.
       pfold; constructor.
-      left. rewrite ret_bind.
+      left. rewrite bind_ret.
       apply reflexivity.
 Qed.
 
@@ -132,12 +132,12 @@ Proof.
     pupto2 eutt_nested_clo_bind; econstructor; [reflexivity|].
     intros ? _ []; eauto.
 
-  - unfold ITree.lift, case_; simpl. rewrite vis_bind_.
+  - unfold ITree.lift, case_; simpl. rewrite bind_vis_.
     pfold; constructor.
     pupto2_final.
     left; pfold; econstructor.
     left.
-    rewrite ret_bind_. auto.
+    rewrite bind_ret_. auto.
 Qed.
 
 Theorem mrec_as_interp {T} (d : D T) :

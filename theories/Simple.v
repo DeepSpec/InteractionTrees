@@ -119,15 +119,15 @@ Parameter unfold_bind
   ≈ ITree._bind k (fun t => ITree.bind t k) (observe t).
 
 (** The next two are immediate corollaries of [unfold_bind]. *)
-Parameter ret_bind : forall {E R S} (r : R) (k : R -> itree E S),
+Parameter bind_ret : forall {E R S} (r : R) (k : R -> itree E S),
     ITree.bind (Ret r) k ≈ k r.
 
-Parameter vis_bind
+Parameter bind_vis
   : forall {E R} U V (e: E V) (ek: V -> itree E U) (k: U -> itree E R),
     ITree.bind (Vis e ek) k
   ≈ Vis e (fun x => ITree.bind (ek x) k).
 
-Parameter bind_ret : forall {E R} (s : itree E R),
+Parameter bind_ret2 : forall {E R} (s : itree E R),
     ITree.bind s (fun x => Ret x) ≈ s.
 
 Parameter bind_bind
@@ -137,9 +137,9 @@ Parameter bind_bind
   ≈ ITree.bind s (fun r => ITree.bind (k r) h).
 
 Hint Rewrite @tau_eutt : itree.
-Hint Rewrite @ret_bind : itree.
-Hint Rewrite @vis_bind : itree.
 Hint Rewrite @bind_ret : itree.
+Hint Rewrite @bind_vis : itree.
+Hint Rewrite @bind_ret2 : itree.
 Hint Rewrite @bind_bind : itree.
 
 (** **** Monadic interpretation: [interp] *)
@@ -157,11 +157,11 @@ Parameter unfold_interp
     interp f _ t ≈ (_interp f _ (observe t)).
 
 (** The next three are immediate corollaries of [unfold_interp]. *)
-Parameter ret_interp
+Parameter interp_ret
   : forall {E F R} {f : E ~> itree F} (x: R),
     interp f _ (Ret x) ≈ Ret x.
 
-Parameter vis_interp
+Parameter interp_vis
   : forall {E F R} {f : E ~> itree F} U (e: E U) (k: U -> itree E R),
     interp f _ (Vis e k)
   ≈ Tau (ITree.bind (f _ e) (fun x => interp f _ (k x))).
@@ -174,6 +174,11 @@ Parameter interp_bind : forall {E F R S}
       (f : E ~> itree F) (t : itree E R) (k : R -> itree E S),
     interp f _ (ITree.bind t k)
   ≈ ITree.bind (interp f _ t) (fun r => interp f _ (k r)).
+
+Hint Rewrite @interp_ret : itree.
+Hint Rewrite @interp_vis : itree.
+Hint Rewrite @interp_lift : itree.
+Hint Rewrite @interp_bind : itree.
 
 (** **** Simple recursion: [rec] *)
 
@@ -301,19 +306,19 @@ Lemma unfold_bind
 Proof. intros; rewrite <- ITree.Eq.Shallow.unfold_bind; reflexivity. Qed.
 
 (** The next two are immediate corollaries of [unfold_bind]. *)
-Lemma ret_bind : forall {E R S} (r : R) (k : R -> itree E S),
+Lemma bind_ret : forall {E R S} (r : R) (k : R -> itree E S),
     ITree.bind (Ret r) k ≈ k r.
-Proof. intros; rewrite ITree.Eq.Shallow.ret_bind; reflexivity. Qed.
+Proof. intros; rewrite ITree.Eq.Shallow.bind_ret; reflexivity. Qed.
 
-Lemma vis_bind
+Lemma bind_vis
   : forall {E R} U V (e: E V) (ek: V -> itree E U) (k: U -> itree E R),
     ITree.bind (Vis e ek) k
   ≈ Vis e (fun x => ITree.bind (ek x) k).
-Proof. intros; rewrite ITree.Eq.Shallow.vis_bind; reflexivity. Qed.
+Proof. intros; rewrite ITree.Eq.Shallow.bind_vis; reflexivity. Qed.
 
-Lemma bind_ret : forall {E R} (s : itree E R),
+Lemma bind_ret2 : forall {E R} (s : itree E R),
     ITree.bind s (fun x => Ret x) ≈ s.
-Proof. intros; rewrite ITree.Eq.Eq.bind_ret; reflexivity. Qed.
+Proof. intros; rewrite ITree.Eq.Eq.bind_ret2; reflexivity. Qed.
 
 Lemma bind_bind
   : forall {E R S T}
@@ -323,10 +328,10 @@ Lemma bind_bind
 Proof. intros; rewrite ITree.Eq.Eq.bind_bind; reflexivity. Qed.
 
 Hint Rewrite @tau_eutt : itree.
-Hint Rewrite @ret_bind : itree.
-Hint Rewrite @tau_bind : itree.
-Hint Rewrite @vis_bind : itree.
 Hint Rewrite @bind_ret : itree.
+Hint Rewrite @bind_tau : itree.
+Hint Rewrite @bind_vis : itree.
+Hint Rewrite @bind_ret2 : itree.
 Hint Rewrite @bind_bind : itree.
 
 (** **** Monadic interpretation: [interp] *)
@@ -348,14 +353,14 @@ Proof.
 Qed.
 
 (** The next two are immediate corollaries of [unfold_interp]. *)
-Lemma ret_interp
+Lemma interp_ret
   : forall {E F R} {f : E ~> itree F} (x: R),
     interp f _ (Ret x) ≈ Ret x.
 Proof.
   intros; rewrite unfold_interp; reflexivity.
 Qed.
 
-Lemma vis_interp
+Lemma interp_vis
   : forall {E F R} {f : E ~> itree F} U (e: E U) (k: U -> itree E R),
     interp f _ (Vis e k)
   ≈ Tau (ITree.bind (f _ e) (fun x => interp f _ (k x))).

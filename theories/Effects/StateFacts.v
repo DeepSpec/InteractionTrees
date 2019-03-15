@@ -50,7 +50,7 @@ Proof.
   rewrite unfold_aloop'.
   destruct observe; cbn.
   - reflexivity.
-  - rewrite ret_bind_.
+  - rewrite bind_ret_.
     reflexivity.
   - rewrite map_bind. eapply eq_itree_Tau.
     eapply eq_itree_bind.
@@ -124,12 +124,12 @@ Proof.
   intros A t k s.
   rewrite unfold_bind, (unfold_interp_state f t).
   destruct (observe t).
-  (* TODO: performance issues with [ret|tau|vis_bind] here too. *)
-  - cbn. rewrite !ret_bind. simpl.
+  (* TODO: performance issues with [ret|tau|bind_vis] here too. *)
+  - cbn. rewrite !bind_ret. simpl.
     pupto2_final. apply reflexivity.
-  - cbn. rewrite !tau_bind, interp_state_tau.
+  - cbn. rewrite !bind_tau, interp_state_tau.
     pupto2_final. pfold. econstructor. right. apply CIH.
-  - cbn. rewrite interp_state_vis, tau_bind, bind_bind.
+  - cbn. rewrite interp_state_vis, bind_tau, bind_bind.
     pfold; constructor.
     pupto2 eq_itree_clo_bind. econstructor.
     + reflexivity.

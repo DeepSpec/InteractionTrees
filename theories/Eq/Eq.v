@@ -386,17 +386,17 @@ Lemma unfold_bind_ {E R S}
   ITree.bind t k ≅ ITree._bind k (fun t => ITree.bind t k) (observe t).
 Proof. rewrite unfold_bind. reflexivity. Qed.
 
-Lemma ret_bind_ {E R S} (r : R) (k : R -> itree E S) :
+Lemma bind_ret_ {E R S} (r : R) (k : R -> itree E S) :
   ITree.bind (Ret r) k ≅ (k r).
-Proof. rewrite ret_bind. reflexivity. Qed.
+Proof. rewrite bind_ret. reflexivity. Qed.
 
-Lemma tau_bind_ {E R} U t (k: U -> itree E R) :
+Lemma bind_tau_ {E R} U t (k: U -> itree E R) :
   ITree.bind (Tau t) k ≅ Tau (ITree.bind t k).
-Proof. rewrite tau_bind. reflexivity. Qed.
+Proof. rewrite bind_tau. reflexivity. Qed.
 
-Lemma vis_bind_ {E R} U V (e: E V) (ek: V -> itree E U) (k: U -> itree E R) :
+Lemma bind_vis_ {E R} U V (e: E V) (ek: V -> itree E U) (k: U -> itree E R) :
   ITree.bind (Vis e ek) k ≅ Vis e (fun x => ITree.bind (ek x) k).
-Proof. rewrite vis_bind. reflexivity. Qed.
+Proof. rewrite bind_vis. reflexivity. Qed.
 
 Lemma eq_itree_bind {E R1 R2 S1 S2} (RR : R1 -> R2 -> Prop)
       (RS : S1 -> S2 -> Prop)
@@ -447,7 +447,7 @@ Proof.
   repeat intro. pupto2 eq_itree_clo_trans. eauto.
 Qed.
 
-Lemma bind_ret {E R} :
+Lemma bind_ret2 {E R} :
   forall s : itree E R,
     ITree.bind s (fun x => Ret x) ≅ s.
 Proof.
@@ -471,14 +471,14 @@ Lemma map_map {E R S T}: forall (f : R -> S) (g : S -> T) (t : itree E R),
     ITree.map g (ITree.map f t) ≅ ITree.map (fun x => g (f x)) t.
 Proof.
   unfold ITree.map. intros.
-  rewrite bind_bind. setoid_rewrite ret_bind. reflexivity.
+  rewrite bind_bind. setoid_rewrite bind_ret. reflexivity.
 Qed.
 
 Lemma map_bind {E R S T}: forall (f : R -> S) (k: S -> itree E T) (t : itree E R),
     ITree.bind (ITree.map f t) k ≅ ITree.bind t (fun x => k (f x)).
 Proof.
   unfold ITree.map. intros.
-  rewrite bind_bind. setoid_rewrite ret_bind. reflexivity.
+  rewrite bind_bind. setoid_rewrite bind_ret. reflexivity.
 Qed.
 
 Lemma bind_map {E X Y Z} (t: itree E X) (k: X -> itree E Y) (f: Y -> Z) :
@@ -495,13 +495,13 @@ Lemma map_ret {E A B} (f : A -> B) (a : A) :
 Proof.
   intros.
   unfold ITree.map.
-  rewrite ret_bind; reflexivity.
+  rewrite bind_ret; reflexivity.
 Qed.
 
-Hint Rewrite @ret_bind_ : itree.
-Hint Rewrite @tau_bind_ : itree.
-Hint Rewrite @vis_bind_ : itree.
+Hint Rewrite @bind_ret_ : itree.
+Hint Rewrite @bind_tau_ : itree.
+Hint Rewrite @bind_vis_ : itree.
 Hint Rewrite @map_bind : itree.
 Hint Rewrite @map_ret : itree.
-Hint Rewrite @bind_ret : itree.
+Hint Rewrite @bind_ret2 : itree.
 Hint Rewrite @bind_bind : itree.
