@@ -689,3 +689,15 @@ Proof.
       intros ? _ []. auto.
     + eauto.
 Qed.
+
+(** ** Tactics *)
+
+(** Remove all taus from the left hand side of the goal
+    (assumed to be of the form [lhs ≈ rhs]). *)
+Ltac tau_steps :=
+  repeat (
+      rewrite itree_eta at 1; cbn;
+      match goal with
+      | [ |- go (observe _) ≈ _ ] => fail 1
+      | _ => try rewrite tau_eutt
+      end).
