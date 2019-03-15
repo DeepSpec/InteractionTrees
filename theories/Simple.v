@@ -59,19 +59,15 @@ Require Export ITree.Interp.Recursion.
    - [call : A -> itree (callE A B +' E) B]
  *)
 
-(** We compose _effect handlers_ [E ~> itree F] using a set of
-    general-purpose combinators from this little category theory
-    library. *)
-
-Require Export ITree.Basics.Category.
-(** Types specialized to effect handlers:
+Require ITree.Interp.Handler.
+Export ITree.Interp.Handler.Handler.
+(** Combinators for effect handlers:
 
    - [case_ : (E ~> itree G) -> (F ~> itree G) -> (E +' F ~> itree G)]
    - [bimap : (E ~> itree G) -> (F ~> itree H) -> (E +' F ~> itree (G +' H))]
    - [inl1_ : E ~> itree (E +' F)]
    - [inr1_ : F ~> itree (E +' F)]
    - [cat : (E ~> itree F) -> (F ~> itree G) -> (E ~> itree G)]
-     (also denoted [>=>])
  *)
 
 (** ** Equational theory *)

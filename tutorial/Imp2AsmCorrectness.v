@@ -563,7 +563,7 @@ Section Correctness.
     rewrite tau_eutt.
     cbn.
     unfold run_env.
-    unfold evalLocals, CategoryOps.cat, Cat_Handler.
+    unfold evalLocals, CategoryOps.cat, Cat_Handler, Handler.cat.
     rewrite env_lookupDefault_is_lift.
     unfold lift.
     rewrite unfold_interp_state; cbn.
@@ -571,7 +571,7 @@ Section Correctness.
     rewrite map_bind.
     setoid_rewrite interp_ret.
     setoid_rewrite bind_ret2.
-    unfold inl_, Inl_sum1_Handler, eh_lift.
+    unfold inl_, Inl_sum1_Handler, Handler.inl_, Handler.hlift.
     rewrite interp_state_lift.
     rewrite bind_ret2.
     cbn.

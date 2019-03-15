@@ -33,7 +33,7 @@ Proof.
   rewrite unfold_interp. unfold _interp.
   destruct (observe t); cbn; eauto.
   - pfold. econstructor. auto.
-  - unfold id_, Id_Handler, ITree.lift. rewrite bind_vis_.
+  - unfold id_, Id_Handler, Handler.id_, ITree.lift. rewrite bind_vis_.
     pfold; do 2 constructor.
     left; rewrite bind_ret; auto.
 Qed.
@@ -47,7 +47,7 @@ Qed.
 Instance CatIdL_Handler : CatIdL Handler.
 Proof.
   red; intros A B f X e.
-  unfold cat, Cat_Handler, id_, Id_Handler.
+  unfold cat, Cat_Handler, Handler.cat, id_, Id_Handler, Handler.id_.
   rewrite interp_lift, tau_eutt.
   reflexivity.
 Qed.
@@ -55,7 +55,7 @@ Qed.
 Instance CatAssoc_Handler : CatAssoc Handler.
 Proof.
   red; intros A B C D f g h X e.
-  unfold cat, Cat_Handler.
+  unfold cat, Cat_Handler, Handler.cat.
   rewrite interp_interp.
   reflexivity.
 Qed.
