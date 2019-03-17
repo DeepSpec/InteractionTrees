@@ -294,3 +294,17 @@ Ltac genobs_clear x ox := genobs x ox; match goal with [H: ox = observe x |- _] 
 Ltac simpobs := repeat match goal with [H: _ = observe _ |- _] =>
                     rewrite_everywhere_except (@eq_sym _ _ _ H) H
                 end.
+
+(** ** Compute with fuel *)
+
+(** Remove [Tau]s from the front of an [itree]. *)
+Fixpoint burn (n : nat) {E R} (t : itree E R) :=
+  match n with
+  | O => t
+  | S n =>
+    match observe t with
+    | RetF r => Ret r
+    | VisF e k => Vis e k
+    | TauF t' => burn n t'
+    end
+  end.
