@@ -27,7 +27,7 @@ deps.dot
 .coqdeps.d
 Makefile.coq
 Makefile.coq.conf
-./_CoqProject
+_CoqProject
 _CoqPath
 lib/
 html/

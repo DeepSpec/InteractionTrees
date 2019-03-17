@@ -8,5 +8,6 @@ Makefile.coq: _CoqProject
 
 clean:
 	if [ -e Makefile.coq ]; then $(MAKE) -f Makefile.coq clean; fi
+	$(RM) *.{vo,glob} .*.aux
 	# ocamlbuild -clean
 	$(RM) -rf extracted Makefile.coq*

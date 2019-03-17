@@ -54,10 +54,10 @@ Definition _interp {E F} (f : E ~> itree F) R (ot : itreeF E R _)
 Lemma unfold_interp {E F R} {f : E ~> itree F} (t : itree E R) :
   interp f _ t ≅ (_interp f _ (observe t)).
 Proof.
-  unfold interp. rewrite unfold_aloop'.
+  unfold interp. unfold aloop, ALoop_itree. rewrite unfold_aloop'.
   destruct (observe t); cbn.
   - reflexivity.
-  - rewrite bind_ret; reflexivity. (* TODO: Incredibly slow *)
+  - rewrite bind_ret_; reflexivity. (* TODO: [bind_ret] is incredibly slow *)
   - rewrite map_bind. apply eq_itree_Tau. eapply eq_itree_bind.
     reflexivity.
     intros ? _ []; reflexivity.
@@ -80,7 +80,7 @@ Proof. rewrite unfold_interp. reflexivity. Qed.
 (** ** [interp] properness *)
 Instance eq_itree_interp {E F R}:
   Proper (i_respectful (fun _ => eq_itree eq) ==> eq_itree eq ==> eq_itree eq)
-         (fun f => @interp E F f R).
+         (fun f => @interp E (itree F) _ _ _ f R).
 Proof.
   intros f g Hfg.
   intros l r Hlr.
@@ -99,7 +99,7 @@ Proof.
 Qed.
 
 Global Instance Proper_interp_eq_itree {E F R f}
-: Proper (eq_itree eq ==> eq_itree eq) (@interp E F f R).
+: Proper (eq_itree eq ==> eq_itree eq) (@interp E (itree F) _ _ _ f R).
 Proof.
   eapply eq_itree_interp.
   red. reflexivity.
@@ -108,7 +108,7 @@ Qed.
 (* Note that this allows rewriting of handlers. *)
 Definition eutt_interp_gen (E F : Type -> Type) (R : Type) :
   Proper (i_respectful (fun _ => eutt eq) ==> eutt eq ==> eutt eq)
-         (fun f => @interp E F f R).
+         (fun f => @interp E (itree F) _ _ _ f R).
 Proof.
   ucofix CIH. red. ucofix CIH'. intros.
 
@@ -126,7 +126,7 @@ Qed.
 
 Instance eutt_interp (E F : Type -> Type) f (R : Type) :
   Proper (eutt eq ==> eutt eq)
-         (@interp E F f R).
+         (@interp E (itree F) _ _ _ f R).
 Proof.
   apply eutt_interp_gen.
   red; reflexivity.

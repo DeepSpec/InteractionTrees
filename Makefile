@@ -8,7 +8,7 @@ all:
 	# Build the library before tests
 	$(MAKE) coq
 	$(MAKE) tutorial
-# TODO: add tests examples html (left out for speed while we develop tutorial)
+	$(MAKE) test
 
 coq: Makefile.coq
 	$(MAKE) -f Makefile.coq
@@ -66,7 +66,7 @@ clean: Makefile.coq
 	$(MAKE) -C tests clean
 	$(MAKE) -C examples clean
 	$(MAKE) -C tutorial clean
-	$(RM) theories/{*,*/*}/*.{vo,glob} theories/{*,*/*}/.*.aux
+	$(RM) theories/{.,*,*/*}/*.{vo,glob} theories/{.,*,*/*}/.*.aux
 	$(RM) _CoqProject Makefile.coq*
 
 _CoqProject: $(COQPATHFILE) _CoqConfig Makefile

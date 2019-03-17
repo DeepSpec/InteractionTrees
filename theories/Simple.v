@@ -205,6 +205,9 @@ Parameter interp_mrecursive
     interp (mrecursive ctx) _ (lift_inl1 _ d)
   ≈ mrec ctx _ d.
 
+Hint Rewrite @interp_recursive_call : itree.
+Hint Rewrite @interp_mrecursive : itree.
+
 (** *** [Proper] lemmas *)
 
 Declare Instance eutt_go {E R} :
@@ -228,7 +231,7 @@ Declare Instance eutt_map {E R S} :
          (@ITree.map E R S).
 
 Declare Instance eutt_interp (E F : Type -> Type) f (R : Type) :
-  Proper (eutt ==> eutt) (@interp E F f R).
+  Proper (eutt ==> eutt) (@interp E (itree F) _ _ _ f R).
 
 (** *** Tactics *)
 
@@ -382,6 +385,11 @@ Proof.
   reflexivity.
 Qed.
 
+Hint Rewrite @interp_ret : itree.
+Hint Rewrite @interp_vis : itree.
+Hint Rewrite @interp_lift : itree.
+Hint Rewrite @interp_bind : itree.
+
 (** **** Simple recursion: [rec] *)
 
 (** [rec body] is equivalent to [interp (recursive body)],
@@ -428,6 +436,9 @@ Proof.
   intros; rewrite ITree.Interp.RecursionFacts.interp_mrecursive. apply tau_eutt.
 Qed.
 
+Hint Rewrite @interp_recursive_call : itree.
+Hint Rewrite @interp_mrecursive : itree.
+
 (** *** [Proper] lemmas *)
 
 Instance eutt_go {E R} :
@@ -457,7 +468,7 @@ Instance eutt_map {E R S} :
 Proof. apply ITree.Eq.UpToTaus.eutt_map. Qed.
 
 Instance eutt_interp (E F : Type -> Type) f (R : Type) :
-  Proper (eutt ==> eutt) (@interp E F f R).
+  Proper (eutt ==> eutt) (@interp E (itree F) _ _ _ f R).
 Proof. apply ITree.Interp.MorphismsFacts.eutt_interp. Qed.
 
 Ltac tau_steps :=

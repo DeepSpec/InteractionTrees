@@ -31,6 +31,7 @@ example-threads: Makefile.coq $(THREADSML)
 clean:
 	if [ -e Makefile.coq ]; then $(MAKE) -f Makefile.coq clean; fi
 	ocamlbuild -clean
+	$(RM) *.{vo,glob} .*.aux
 	$(RM) -rf extracted Makefile.coq*
 
 

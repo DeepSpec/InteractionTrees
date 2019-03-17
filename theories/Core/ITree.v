@@ -172,11 +172,7 @@ Definition cat {E T U V}
   T -> itree E V :=
   fun t => bind' h (k t).
 
-(** [aloop]: A primitive for general recursion.
-    Iterate a function updating an accumulator [A], until it produces
-    an output [B]. It's an Asymmetric variant of [loop], and it looks
-    similar to an Anamorphism, hence the name [aloop].
- *)
+(** [aloop]: See [Basics.Basics.ALoop]. *)
 
 Definition _aloop {E : Type -> Type} {R I : Type}
            (tau : _)
@@ -267,10 +263,13 @@ Instance Applicative_itree {E} : Applicative (itree E) :=
           ITree.bind f (fun f => ITree.bind x (fun x => Ret (f x)))
 }.
 
-Global Instance Monad_itree {E} : Monad (itree E) :=
+Instance Monad_itree {E} : Monad (itree E) :=
 {| ret := fun _ x => Ret x
 ;  bind := fun T U t k => @ITree.bind' E T U k t
 |}.
+
+Instance ALoop_itree {E} : ALoop (itree E) :=
+  fun _ _ => ITree.aloop.
 
 (** ** Tactics *)
 
@@ -297,3 +296,17 @@ Ltac genobs_clear x ox := genobs x ox; match goal with [H: ox = observe x |- _] 
 Ltac simpobs := repeat match goal with [H: _ = observe _ |- _] =>
                     rewrite_everywhere_except (@eq_sym _ _ _ H) H
                 end.
+
+(** ** Compute with fuel *)
+
+(** Remove [Tau]s from the front of an [itree]. *)
+Fixpoint burn (n : nat) {E R} (t : itree E R) :=
+  match n with
+  | O => t
+  | S n =>
+    match observe t with
+    | RetF r => Ret r
+    | VisF e k => Vis e k
+    | TauF t' => burn n t'
+    end
+  end.

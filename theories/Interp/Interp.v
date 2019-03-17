@@ -43,6 +43,10 @@
  *)
 
 (* begin hide *)
+From ExtLib Require Import
+     Structures.Functor
+     Structures.Monad.
+
 From ITree Require Import
      Basics.Basics
      Core.ITree.
@@ -65,15 +69,18 @@ CoFixpoint translate {E F R} (h : E ~> F) (t : itree E R) : itree F R
 
 (** ** Interpret *)
 
-(** An itree effect handler [E ~> itree F] defines an
-    itree morphism [itree E ~> itree F]. *)
-Definition interp {E F : Type -> Type} (h : E ~> itree F) :
-  itree E ~> itree F := fun R =>
-  ITree.aloop (fun t =>
+(** An effect handler [E ~> M] defines a monad morphism
+    [itree E ~> M] for any monad [M] with a loop operator. *)
+
+Definition interp {E M : Type -> Type}
+           {FM : Functor M} {MM : Monad M} {LM : ALoop M}
+           (h : E ~> M) :
+  itree E ~> M := fun R =>
+  aloop (fun t =>
     match observe t with
     | RetF r => inr r
-    | TauF t => inl (Ret t)
-    | VisF e k => inl (ITree.map k (h _ e))
+    | TauF t => inl (ret t)
+    | VisF e k => inl (fmap k (h _ e))
     end).
 (* TODO: this does a map, and aloop does a bind. We could fuse those
    by giving aloop a continuation to compose its bind with.
