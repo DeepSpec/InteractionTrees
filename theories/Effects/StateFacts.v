@@ -144,15 +144,16 @@ Proof.
   ucofix CIH. red. ucofix CIH'. intros.
 
   rewrite !unfold_interp_state. do 2 uunfold H0.
-  induction H0; intros; subst; simpl; eauto with paco.
+  induction H0; intros; subst; simpl.
+  - constructor. eauto.
   - constructor.
-    uclo eutt_nested_clo_bind; econstructor; [reflexivity|].
+    uclo eutt0_clo_bind; econstructor; [reflexivity|].
     intros; subst.
     ubase. eapply CIH'. edestruct EUTTK; eauto with paco.
   - econstructor. eauto 9 with paco.
-  - constructor. gcpn_fold.
+  - constructor. eutt0_fold.
     rewrite unfold_interp_state; auto.
-  - constructor. gcpn_fold.
+  - constructor. eutt0_fold.
     rewrite unfold_interp_state; auto.
 Qed.
 
@@ -172,9 +173,9 @@ Proof.
 
   rewrite (itree_eta (loop_ t1 ca)), (itree_eta (loop_ t2 ca)), !unfold_loop''.
   unfold loop_once. rewrite <- !itree_eta, !interp_state_bind.
-  uclo eutt_nested_clo_bind. econstructor; eauto.
+  uclo eutt0_clo_bind. econstructor; eauto.
   intros. destruct RELv. rewrite H2. destruct (snd v2).
   - rewrite !interp_state_tau.
     econstructor. eauto with paco.
-  - rewrite !interp_state_ret. simpl. eauto 7 with paco.
+  - rewrite !interp_state_ret. econstructor. eauto.
 Qed.

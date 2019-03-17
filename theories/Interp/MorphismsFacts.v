@@ -113,15 +113,16 @@ Proof.
   ucofix CIH. red. ucofix CIH'. intros.
 
   rewrite !unfold_interp. do 2 uunfold H1.
-  induction H1; intros; subst; simpl; eauto with paco.
+  induction H1; intros; subst; simpl.
+  - econstructor. eauto.
   - constructor.
-    uclo eutt_nested_clo_bind.
+    uclo eutt0_clo_bind.
     econstructor; [apply H0|].
     intros; subst.
     ubase. eapply CIH'; edestruct (EUTTK v2); eauto with paco.
   - econstructor. eauto 7 with paco.
-  - constructor. gcpn_fold. rewrite unfold_interp. auto.
-  - constructor. gcpn_fold. rewrite unfold_interp. auto.
+  - constructor. eutt0_fold. rewrite unfold_interp. auto.
+  - constructor. eutt0_fold. rewrite unfold_interp. auto.
 Qed.
 
 Instance eutt_interp (E F : Type -> Type) f (R : Type) :
@@ -169,7 +170,7 @@ Lemma interp_id_lift {E R} (t : itree E R) :
   interp (fun _ e => ITree.lift e) _ t ≈ t.
 Proof.
   revert t. ucofix CIH. red. ucofix CIH'. intros.
-  rewrite unfold_interp.
+  rewrite unfold_interp. repeat red.
   destruct (observe t); cbn; eauto with paco.
   unfold ITree.lift. constructor. rewrite bind_vis.
   constructor.
@@ -222,7 +223,7 @@ Proof.
   revert t. ucofix CIH. red. ucofix CIH'. intros.
   rewrite unfold_translate.
   rewrite unfold_interp.
-  unfold translateF, _interp.
+  unfold translateF, _interp. repeat red.
   destruct (observe t); cbn; simpl in *; eauto 7 with paco.
   unfold ITree.lift. econstructor. rewrite bind_vis.
   do 2 constructor.

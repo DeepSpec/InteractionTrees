@@ -497,10 +497,10 @@ Section EUTT_eq_EUTTE.
 Context {E : Type -> Type} {R1 R2 : Type} (RR : R1 -> R2 -> Prop).
 
 Lemma euttE__impl_eutt_ r t1 t2 :
-  @euttE_ E R1 R2 RR r t1 t2 -> eutt_ RR r t1 t2.
+  @euttE_ E R1 R2 RR r t1 t2 -> eutt0 RR r t1 t2.
 Proof.
-  revert t1 t2. ucofix CIH'. intros. destruct H0.
-  genobs t1 ot1. genobs t2 ot2. clear Heqot1 t1 Heqot2 t2.
+  revert t1 t2. ucofix CIH'. intros. destruct H0. repeat red.
+  genobs_clear t1 ot1. genobs_clear t2 ot2.
   assert (EM: notauF ot1 \/ notauF ot2 \/ ~(notauF ot1 \/ notauF ot2))
     by (destruct ot1, ot2; simpl; tauto).
   destruct EM as [EM|[EM|EM]].
@@ -515,7 +515,6 @@ Proof.
       dependent destruction H; [|subst; contradiction].
       hexploit @unalltaus_injective; [|econstructor|]; eauto. intros; subst; eauto.
     }
-    intros EUTT. eauto with paco.
   - destruct FIN as [_ FIN].
     hexploit FIN; eauto 7. clear FIN; intro FIN.
     destruct FIN as [ot' [UNTAUS NOTAU]].
@@ -527,7 +526,6 @@ Proof.
       dependent destruction H; [|subst; contradiction].
       hexploit @unalltaus_injective; [|econstructor|]; eauto. intros; subst; eauto.
     }
-    intros EUTT. eauto with paco.
   - destruct ot1, ot2; simpl in *; try tauto.
     econstructor. ubase. apply CIH'.
     econstructor.
@@ -536,7 +534,7 @@ Proof.
 Qed.
 
 Lemma euttE_impl_eutt t1 t2 :
-  cpn2 (@euttE_ E R1 R2 RR) bot2 t1 t2 -> cpn2 (eutt_ RR) bot2 t1 t2.
+  cpn2 (@euttE_ E R1 R2 RR) bot2 t1 t2 -> cpn2 (eutt0 RR) bot2 t1 t2.
 Proof.
   intros. eapply cpn2_init in H; eauto with paco.
   eapply cpn2_final; eauto with paco.
@@ -544,10 +542,10 @@ Proof.
 Qed.
 
 Lemma eutt_impl_euttE t1 t2 :
-  cpn2 (@eutt_ E R1 R2 RR) bot2 t1 t2 -> cpn2 (euttE_ RR) bot2 t1 t2.
+  cpn2 (@eutt0 E R1 R2 RR) bot2 t1 t2 -> cpn2 (euttE_ RR) bot2 t1 t2.
 Proof.
   revert_until RR. ucofix CIH. intros.
-  rename H0 into H. do 2 uunfold H. econstructor; intros.
+  rename H0 into H. do 2 uunfold H. repeat red in H. econstructor; intros.
   - split; intros.
     + genobs_clear t1 ot1. genobs_clear t2 ot2.
       destruct H0 as [ot' [UNTAUS NOTAU]].
@@ -584,7 +582,7 @@ Proof.
 Qed.
 
 Lemma eutt_is_euttE t1 t2 :
-  cpn2 (@eutt_ E R1 R2 RR) bot2 t1 t2 <-> cpn2 (euttE_ RR) bot2 t1 t2.
+  cpn2 (@eutt0 E R1 R2 RR) bot2 t1 t2 <-> cpn2 (euttE_ RR) bot2 t1 t2.
 Proof. split; eauto using euttE_impl_eutt, eutt_impl_euttE. Qed.
 
 End EUTT_eq_EUTTE.

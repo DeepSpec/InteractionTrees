@@ -159,8 +159,8 @@ Lemma eval_one_loop : eval one_loop ≈ one_loop_tree.
 Proof.
   ucofix CIH. unfold eval, one_loop_tree.
   setoid_rewrite rec_as_interp; setoid_rewrite interp_bind.
-  ustep. cbn. econstructor.
-  ustep. cbn. econstructor.
+  ustep. repeat red. cbn. econstructor.
+  ustep. repeat red. cbn. econstructor.
   left. rewrite !bind_ret, !interp_ret, !bind_ret.
   destruct x.
   - rewrite !interp_ret. apply reflexivity.

@@ -29,9 +29,9 @@ Lemma eh_cmp_id_left_strong {A R} (t : itree A R)
   : interp (id_ A) R t ≈ t.
 Proof.
   revert t. ucofix CIH. red. ucofix CIH'. intros.
-  rewrite unfold_interp. unfold _interp.
-  destruct (observe t); cbn; eauto 7 with paco.
-  unfold id_, Id_Handler, Handler.id_, ITree.lift. rewrite bind_vis_.
+  rewrite unfold_interp. unfold _interp. repeat red.
+  destruct (observe t); cbn; eauto 8 with paco.
+  unfold id_, Id_Handler, Handler.id_, ITree.lift. eutt0_fold. rewrite bind_vis_.
   do 2 constructor.
   left; rewrite bind_ret; auto with paco.
 Qed.
