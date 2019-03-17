@@ -1,11 +1,12 @@
 .PHONY: example-lc example-io example-nimp example-factorial example-threads 
 
+build: coq
+
+include ../common.mk
+
 examples: Makefile.coq
 	mkdir -p extracted
 	$(MAKE) -f Makefile.coq
-
-Makefile.coq: _CoqProject
-	coq_makefile -f $< -o $@
 
 example-lc:
 	$(MAKE) -f Makefile.coq stlc.vo
@@ -33,28 +34,3 @@ clean:
 	ocamlbuild -clean
 	$(RM) *.{vo,glob} .*.aux
 	$(RM) -rf extracted Makefile.coq*
-
-
-## SAZ: This code is copied from ../Makefile -- deduplicate?
-## coqdoc -------------------------------------------------
-COQDOCFLAGS:= \
-  --toc --toc-depth 2 --html --interpolate \
-  --index indexpage --no-lib-name --parse-comments 
-
-ifdef COQDOCJS_DIR
-COQDOCFLAGS+=--with-header $(COQDOCJS_DIR)/extra/header.html --with-footer $(COQDOCJS_DIR)/extra/footer.html
-
-echo "COQDOCJS_DIR" = @(COQDOCJS_DIR)
-
-html: Makefile.coq 
-	rm -rf html
-	$(MAKE) -f Makefile.coq html
-	cp $(COQDOCJS_DIR)/extra/resources/* html
-else
-
-html: Makefile.coq 
-	rm -rf html
-	$(MAKE) -f Makefile.coq html
-endif
-
-## -------------------------------------------------------
