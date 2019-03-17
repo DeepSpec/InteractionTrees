@@ -121,7 +121,7 @@ Hint Resolve monotone_sutt_ : paco.
 (* Equivalence Up To Taus.
 
    [eutt t1 t2]: [t1] is equivalent to [t2] up to taus. *)
-Definition sutt : itree E R1 -> itree E R2 -> Prop := paco2 sutt_ bot2.
+Definition sutt : itree E R1 -> itree E R2 -> Prop := cpn2 sutt_ bot2.
 
 Global Arguments sutt t1%itree t2%itree.
 
@@ -155,35 +155,33 @@ Theorem sutt_eutt {E R1 R2} (RR : R1 -> R2 -> Prop) :
     sutt RR t1 t2 -> sutt (flip RR) t2 t1 -> eutt RR t1 t2.
 Proof.
   intros. apply euttE_impl_eutt. revert_until RR.
-  pcofix self; intros t1 t2 H1 H2.
-  punfold H1. punfold H2.
+  ucofix self; intros t1 t2 H1 H2.
+  uunfold H1. uunfold H2.
   destruct H1 as [FIN1 EQV1], H2 as [FIN2 EQV2].
-  pfold; constructor.
+  constructor.
   - split; auto.
   - intros.
     eapply eq_notauF_and.
-    + intros ? ? I1 I2; right.
+    + intros ? ? I1 I2; ubase.
       apply self; [ apply I1 | apply I2 ].
     + eapply monotone_eq_notauF; auto using EQV1.
-      intros; pclearbot; auto.
     + apply eq_notauF_flip.
       eapply monotone_eq_notauF; auto using EQV2.
-      intros; pclearbot; auto.
 Qed.
 
-Theorem eutt_sutt {E R1 R2} (RR : R1 -> R2 -> Prop) r :
+Theorem eutt_sutt {E R1 R2} (RR : R1 -> R2 -> Prop) :
   forall (t1 : itree E R1) (t2 : itree E R2),
-    paco2 (eutt_ RR) r t1 t2 -> paco2 (sutt_ RR) r t1 t2.
+    eutt RR t1 t2 -> sutt RR t1 t2.
 Proof.
-  intros. apply eutt_impl_euttE in H. revert_until r.
-  pcofix self; intros t1 t2 H1.
-  punfold H1.
+  intros. apply eutt_impl_euttE in H. revert_until RR.
+  ucofix self; intros t1 t2 H1.
+  uunfold H1.
   destruct H1 as [FIN1 EQV1].
-  pfold; constructor.
+  constructor.
   - apply FIN1.
   - intros.
     eapply monotone_eq_notauF; eauto.
-    intros ? ? []; auto.
+    eauto with paco.
 Qed.
 
 Hint Resolve eutt_sutt.
@@ -208,7 +206,7 @@ Inductive suttF1 (sutt: itree' E R1 -> itree' E R2 -> Prop) :
 Hint Constructors suttF1.
 
 Definition sutt1 (t1 : itree E R1) (t2 : itree E R2) :=
-  paco2 suttF1 bot2 (observe t1) (observe t2).
+  cpn2 suttF1 bot2 (observe t1) (observe t2).
 Hint Unfold sutt1.
 
 End SUTT1.
@@ -236,60 +234,57 @@ Lemma monotone_suttF1 : monotone2 (@suttF1 E _ _ RR).
 Proof. repeat red; intros. induction IN; eauto. Qed.
 Hint Resolve monotone_suttF1 : paco.
 
-Lemma sutt_to_sutt1 (r : _ -> _ -> Prop) (r' : _ -> _ -> Prop)
-      (IMPL_rr' : forall t1 t2, r t1 t2 -> observing r' t1 t2) :
+Lemma sutt_to_sutt1:
   forall (t1 : itree E R1) (t2 : itree E R2),
-    paco2 (sutt_ RR) r t1 t2 -> paco2 (suttF1 RR) r' (observe t1) (observe t2).
+    cpn2 (sutt_ RR) bot2 t1 t2 -> cpn2 (suttF1 RR) bot2 (observe t1) (observe t2).
 Proof.
-  pcofix self; intros t1 t2 SUTT.
-  punfold SUTT. pfold.
+  ucofix self; intros t1 t2 SUTT.
+  uunfold SUTT.
   apply sutt_inv in SUTT.
   destruct SUTT.
   - destruct H0 as [Huntaus Hnotau].
     induction Huntaus.
-    + destruct H1; subst; auto.
-      constructor. intros x; edestruct (H0 x).
-      * right; auto.
-      * right; auto. apply self0. apply IMPL_rr'; auto.
-    + subst; auto.
-  - rewrite H; constructor. right; apply self. pfold; auto.
+    + destruct H1; subst; auto with paco.
+      constructor. eauto with paco.
+    + subst. constructor. gcpn_fold. eauto.
+  - rewrite H; constructor. ubase; apply self. eauto with paco.
 Qed.
 
 Lemma sutt1_to_sutt : forall (t1 : itree E R1) (t2 : itree E R2),
     sutt1 RR t1 t2 -> sutt RR t1 t2.
 Proof.
-  pcofix self; intros t1 t2 SUTT.
-  punfold SUTT. pfold. red.
+  ucofix self; intros t1 t2 SUTT.
+  uunfold SUTT. repeat red.
   induction SUTT.
   - apply sutt_inv; eauto 7.
-  - pclearbot. apply sutt_inv; eapply suttF0_notau; eauto.
-    constructor; auto.
+  - apply sutt_inv; eapply suttF0_notau; eauto.
+    constructor; auto with paco.
   - destruct IHSUTT. constructor.
     + rewrite finite_taus_tau; auto.
     + intros. eapply unalltaus_tau in UNTAUS2; eauto.
-  - pclearbot. apply suttF_unpack.
+  - apply suttF_unpack.
     intros. eapply unalltaus_tau in H; eauto.
     destruct H as [Huntaus Hnotau].
     revert ot2 EQTAUS; induction Huntaus; intros.
-    + punfold EQTAUS. induction EQTAUS.
+    + uunfold EQTAUS. induction EQTAUS.
       * eauto 9.
       * eexists; split.
         { repeat constructor. }
-        { pclearbot; constructor; auto. }
+        { constructor; auto with paco. }
       * destruct IHEQTAUS as [? []]; auto.
         eauto using unalltaus_tau'.
       * contradiction.
-    + punfold EQTAUS. induction EQTAUS; try discriminate.
+    + uunfold EQTAUS. induction EQTAUS; try discriminate.
       * destruct IHEQTAUS as [? []]; auto.
         eauto using unalltaus_tau'.
-      * pclearbot; inv OBS. eauto.
+      * inv OBS. eauto.
 Qed.
 
 Lemma sutt_is_sutt1 (t1 : itree E R1) (t2 : itree E R2) :
   sutt RR t1 t2 <-> sutt1 RR t1 t2.
 Proof.
   split.
-  - intros; eapply sutt_to_sutt1; try eassumption; auto.
+  - intros. eapply sutt_to_sutt1. try eassumption; auto.
   - apply sutt1_to_sutt.
 Qed.
 
@@ -304,32 +299,31 @@ Lemma sutt_bind_gen {E R1 R2 S1 S2} {RR: R1 -> R2 -> Prop} {SS: S1 -> S2 -> Prop
     forall s1 s2, (forall r1 r2, RR r1 r2 -> sutt SS (s1 r1) (s2 r2)) ->
                   @sutt E _ _ SS (ITree.bind t1 s1) (ITree.bind t2 s2).
 Proof.
-  intros; apply sutt_is_sutt1.
+  intros.
+  apply sutt_is_sutt1.
   apply sutt_is_sutt1 in H.
-  revert t1 t2 H; pcofix self; intros.
-  punfold H1.
+  setoid_rewrite sutt_is_sutt1 in H0.
+  revert t1 t2 H; ucofix self; intros.
+  uunfold H1.
   genobs t1 ot1. genobs t2 ot2.
   revert t1 t2 Heqot1 Heqot2.
   induction H1; intros.
   - rewrite 2 unfold_bind, <- Heqot1, <- Heqot2; simpl.
-    eapply sutt_to_sutt1; [ | eapply H0; eauto]. intros ? ? [].
+    apply H0 in H. uunfold H. eapply gcpn2_mon; eauto with paco; contradiction.
   - rewrite 2 unfold_bind, <- Heqot1, <- Heqot2; simpl.
-    pclearbot. pfold; constructor. auto.
+    constructor. eauto with paco.
   - rewrite (unfold_bind t0), <- Heqot2; simpl.
-    pfold; constructor.
-    apply paco2_unfold; [auto with paco |].
-    eapply IHsuttF1; auto.
+    constructor. gcpn_fold. eauto with paco.
   - rewrite (unfold_bind t0), <- Heqot1; simpl.
-    pfold; constructor.
-    pclearbot; subst; auto.
+    constructor. subst. eauto with paco.
 Qed.
 
 Require Import Coq.Relations.Relations.
 
-Lemma eq_itree_vis_l {E R1 R2} {RR : R1 -> R2 -> Prop} {C1 C2 RC T}
+Lemma eq_itree_vis_l {E R1 R2} {RR : R1 -> R2 -> Prop} {RC T}
       (e : E T) (k : _ -> _)
       (it : itreeF E _ _)
-      (H : @eq_itreeF E R1 R2 RR C1 C2 RC (VisF e k) it)
+      (H : @eq_itreeF E R1 R2 RR RC (VisF e k) it)
       :
         exists k', it = VisF e k' /\
                  (forall x, RC (k x) (k' x)).
@@ -339,7 +333,7 @@ Proof.
           return
           match x return Prop with
           | @VisF _ _ _ u e k =>
-            exists k' : _ -> C2, y = VisF e k' /\ (forall x : u, RC (k x) (k' x))
+            exists k' : _ -> _, y = VisF e k' /\ (forall x : u, RC (k x) (k' x))
           | _ => True
           end
     with
@@ -357,56 +351,44 @@ Instance Proper_sutt {E : Type -> Type} {R1 R2 : Type}
 Proof.
   red. red.
   unfold pointwise_relation.
+  unfold impl.  
   intros x y Hxy.
-  unfold impl.
   red. red.
   do 5 intro. do 2 rewrite sutt_is_sutt1.
   revert x0 y0 H x1 y1.
-  pcofix CIH.
+  ucofix CIH.
   intros.
-  punfold H0.
-  punfold H1.
-  red in H0. red in H1.
-  pfold.
-  punfold H2.
+  uunfold H0.
+  uunfold H1.
+  uunfold H2.
+  repeat red in H0. repeat red in H1. repeat red in H2.
   revert H0 H1.
-  generalize dependent (observe y0).
-  generalize dependent (observe y1).
-  generalize dependent (observe x2).
-  generalize dependent (observe x3).
-  induction 1; eauto.
-  { inversion 1; subst.
-    inversion 1; subst.
-    constructor. eapply Hxy.
-    assumption. }
-  { intros.
-    eapply eq_itree_vis_l in H0.
+  genobs_clear y0 oy0. genobs_clear y1 oy1. genobs_clear x2 ox2. genobs_clear x3 ox3.
+  revert_until CIH.
+  induction 1; subst; intros.
+  { inv H0. inv H1. econstructor. eauto. }
+  { eapply eq_itree_vis_l in H0.
     eapply eq_itree_vis_l in H1.
     destruct H0 as [ ? [ ? ? ] ].
     destruct H1 as [ ? [ ? ? ] ].
     rewrite H. rewrite H1.
     constructor.
     intros.
-    right.
-    specialize (H0 x4).
-    specialize (H2 x4).
-    pclearbot.
+    ubase.
+    specialize (H0 x2).
+    specialize (H2 x2).
     eapply CIH; eauto. }
-  { intros.
-    inversion H1; clear H1; subst.
+  { inversion H1; clear H1; subst.
     constructor.
     eapply IHsuttF1; eauto.
-    pclearbot.
-    punfold REL. }
-  { intros.
-    inversion H0; clear H0; subst.
+    uunfold REL. eauto. }
+  { inversion H0; clear H0; subst.
     constructor.
-    right.
-    change i with (observe (go i)).
-    pclearbot.
+    ubase.
+    change oy1 with (observe (go oy1)).
     eapply CIH.
     - eassumption.
     - instantiate (1:= go ot2).
-      pfold. red. eapply H1.
+      ustep. eapply H1.
     - eapply EQTAUS. }
 Qed.

@@ -7,3 +7,5 @@ ExtractThreadsExample.v
 
 Nimp.v
 stlc.v
+
+ITreePredicatesExample.v

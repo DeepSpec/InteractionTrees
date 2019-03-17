@@ -71,23 +71,22 @@ Section P.
     }.
 
   Definition mfix_P {a b:Type} (f : ((a -> P b) -> (a -> P b))) : a -> P b :=
-    @paco2 a (fun _ => b) f bot2.
+    @cpn2 a (fun _ => b) f bot2.
 
   Lemma mfix_law1 : forall (a b : Type) f (x:a) (y:b), (@monotone2 a (fun _ => b) f) -> (mfix_P f x y) -> f (mfix_P f) x y.
   Proof.
     intros a b f x y Hm H.
-    punfold H. unfold mfix_P. unfold upaco2 in H. unfold monotone2 in Hm.
+    uunfold H. unfold mfix_P. unfold monotone2 in Hm.
     eapply Hm. apply H.
-    intros. inversion PR. exact H0. inversion H0.
+    intros. apply PR.
   Qed.
 
   Lemma mfix_law2 : forall (a b : Type) f (x:a) (y:b), (@monotone2 a (fun _ => b) f) -> f (mfix_P f) x y -> (mfix_P f x y).
   Proof.
     intros a b f x y Hm H.
     unfold mfix_P.
-    pfold. unfold mfix_P in H. unfold monotone2 in Hm. eapply Hm. apply H.
-    intros x0 x1 PR.
-    left. exact PR.
+    ustep. unfold mfix_P in H. unfold monotone2 in Hm. eapply Hm. apply H.
+    intros x0 x1 PR. apply PR.
   Qed.
 
   Definition run_P IO (handler : forall X, IO X -> P X) : forall X: Type, itree IO X -> P X :=
@@ -126,23 +125,22 @@ Section SP.
     }.
 
   Definition mfix_SP {a b:Type} (f : ((a -> SP b) -> (a -> SP b))) : a -> SP b :=
-    @paco3 a (fun _ => state) (fun _ _ => (state * b)%type) f bot3.
+    @cpn3 a (fun _ => state) (fun _ _ => (state * b)%type) f bot3.
 
   Lemma mfix_SP_law1 : forall (a b : Type) f (x:a) (y : state * b) st, monotone3 f -> (mfix_SP f x st y) -> f (mfix_SP f) x st y.
   Proof.
     intros a b f x y st Hm H.
-    punfold H. unfold mfix_P. unfold upaco3 in H. unfold monotone3 in Hm.
+    uunfold H. unfold mfix_P. unfold monotone3 in Hm.
     eapply Hm. apply H.
-    intros. inversion PR. exact H0. inversion H0.
+    intros. apply PR.
   Qed.
 
   Lemma mfix_SP_law2 : forall (a b : Type) f (x:a) (y:state * b) st, monotone3 f -> f (mfix_SP f) x st y -> (mfix_SP f x st y).
   Proof.
     intros a b f x y st Hm H.
     unfold mfix_SP.
-    pfold. unfold mfix_SP in H. unfold monotone3 in Hm. eapply Hm. apply H.
-    intros x0 x1 x2 PR.
-    left. exact PR.
+    ustep. unfold mfix_SP in H. unfold monotone3 in Hm. eapply Hm. apply H.
+    intros x0 x1 x2 PR. apply PR.
   Qed.
 
   Definition run_SP IO (handler : forall X, IO X -> SP X) : forall X: Type, itree IO X -> SP X :=
@@ -212,14 +210,12 @@ Section EX2.
     unfold run_SP in H.
     unfold run_weak in H.
     unfold mfix_SP in H.
-    punfold H; inv H.
+    uunfold H; inv H.
     destruct H0 as [a0 [H1 H2]].
     simpl in H1.
-    pclearbot.
-    punfold H2; inv H2.
+    uunfold H2; inv H2.
     destruct H as [a1 [[H31 H32] H4]].
-    pclearbot.
-    punfold H4; inv H4.
+    uunfold H4; inv H4.
     reflexivity.
   Qed.
 

@@ -334,7 +334,7 @@ Proof.
   eapply eq_itree_bind; try reflexivity.
   intros a' _ []. autorewrite with itree.
   remember (inr a') as ca eqn:EQ; clear EQ a'.
-  uinit. revert ca; clear; ucofix self; intro ca.
+  revert ca; clear; ucofix self; intro ca.
   rewrite unfold_loop'; unfold loop_once.
   uclo eq_itree_clo_bind; econstructor; try reflexivity.
   intros [c | b]; intros; subst.
@@ -358,7 +358,7 @@ Lemma loop_natural_r {E A B B' C} (f : B -> itree E B')
 Proof.
   unfold loop.
   remember (inr a) as ca eqn:EQ; clear EQ a.
-  uinit. revert ca; clear; ucofix self; intro ca.
+  revert ca; clear; ucofix self; intro ca.
   rewrite !unfold_loop'; unfold loop_once.
   rewrite !bind_bind.
   uclo eq_itree_clo_bind; econstructor; try reflexivity.
@@ -366,7 +366,7 @@ Proof.
   - rewrite bind_ret_, bind_tau_.
     constructor; auto with paco.
   - autorewrite with itree.
-    ufinal; apply reflexivity.
+    apply reflexivity.
 Qed.
 
 Lemma loop_dinatural {E A B C C'} (f : C -> itree E C')
@@ -387,7 +387,7 @@ Proof.
   autorewrite with itree.
   eapply eq_itree_bind; try reflexivity.
   clear a; intros cb _ [].
-  uinit. revert cb; ucofix self; intros.
+  revert cb; ucofix self; intros.
   destruct cb as [c | b].
   - rewrite bind_tau.
     constructor. 
@@ -404,7 +404,7 @@ Proof.
     uclo eq_itree_clo_bind; econstructor; try reflexivity.
     intros; subst. eauto with paco.
   - rewrite bind_ret.
-    ufinal; apply reflexivity.
+    apply reflexivity.
 Qed.
 
 Lemma vanishing1 {E A B} (f : void + A -> itree E (void + B))
@@ -432,7 +432,7 @@ Proof.
   rewrite !bind_bind.
   eapply eq_itree_bind; try reflexivity.
   clear a; intros dcb _ [].
-  uinit. revert dcb; ucofix self; intros.
+  revert dcb; ucofix self; intros.
   destruct dcb as [d | [c | b]]; cbn.
   all: unfold cat, inl_, inr_, Inl_ktree, lift_ktree; cbn.
   all: rewrite !bind_ret_.
@@ -455,7 +455,7 @@ Proof.
     uclo eq_itree_clo_bind; econstructor; try reflexivity.
     intros; subst. auto with paco.
   - (* b *)
-    ufinal; apply reflexivity.
+    apply reflexivity.
 Qed.
 
 Lemma superposing1 {E A B C D D'} (f : C + A -> itree E (C + B))
@@ -478,7 +478,7 @@ Proof.
   { subst; auto. }
   clear a Hl Hr.
   unfold ITree.map.
-  uinit. revert inla inra Hlr; ucofix self; intros.
+  revert inla inra Hlr; ucofix self; intros.
   rewrite 2 unfold_loop'; unfold loop_once.
   rewrite bind_bind.
   destruct inra as [c | a]; subst.
@@ -486,14 +486,14 @@ Proof.
     uclo eq_itree_clo_bind; econstructor; try reflexivity.
     intros [c' | b]; simpl; intros; subst.
     + rewrite bind_tau. constructor.
-      ufinal. auto.
-    + rewrite bind_ret. ufinal; apply reflexivity.
+      auto with paco.
+    + rewrite bind_ret. apply reflexivity.
   - rewrite bind_bind; setoid_rewrite bind_ret_.
     uclo eq_itree_clo_bind; econstructor; try reflexivity.
     intros [c' | b]; simpl; intros; subst.
     + rewrite bind_tau. constructor.
-      ufinal. auto.
-    + rewrite bind_ret_. ufinal; apply reflexivity.
+      auto with paco.
+    + rewrite bind_ret_. apply reflexivity.
 Qed.
 
 Lemma superposing2 {E A B C D D'} (f : C + A -> itree E (C + B))
@@ -525,7 +525,7 @@ Proof.
   repeat intro; subst.
   unfold loop.
   remember (inr _) as ca eqn:EQ; clear EQ y0.
-  uinit. revert ca; ucofix self; intros.
+  revert ca; ucofix self; intros.
   rewrite 2 unfold_loop'; unfold loop_once.
   uclo eq_itree_clo_bind; econstructor; try auto.
   intros [c | b]; intros; subst; constructor; auto with paco.
@@ -569,7 +569,7 @@ Proof.
   unfold loop_once.
   specialize (eutt_f ca).
   apply sutt_is_sutt1 in eutt_f.
-  punfold eutt_f.
+  uunfold eutt_f.
   unfold loop_once in H1.
   unfold loop_once in H2.
   rewrite unfold_bind in H1.
@@ -591,7 +591,7 @@ Proof.
       rewrite H1, H2.
       auto.
 
-  - pclearbot. apply eq_itree_vis_inv1 in H1.
+  - apply eq_itree_vis_inv1 in H1.
     apply eq_itree_vis_inv1 in H2.
     destruct H1 as [k01 [Hk1 Hk1']].
     destruct H2 as [k02 [Hk2 Hk2']].
@@ -607,10 +607,9 @@ Proof.
     destruct H2 as [t2' [Ht2 Ht2']].
     rewrite Ht2.
     constructor.
-    apply IHs; auto. rewrite <- unfold_bind; auto.
+    apply IHg; auto. rewrite <- unfold_bind; auto.
 
-  - pclearbot.
-    replace ot2 with (observe (go ot2)) in *.
+  - replace ot2 with (observe (go ot2)) in *.
     rewrite <- unfold_bind in H2.
     apply eq_itree_tau_inv1 in H1.
     destruct H1 as [t1' [Ht1 Ht1']].
@@ -624,16 +623,16 @@ Proof.
 Qed.
 
 Lemma eutt_loop_inv ot1 ot2 :
-  loop_preinv (go ot1) (go ot2) -> paco2 (suttF1 eq) bot2 ot1 ot2.
+  loop_preinv (go ot1) (go ot2) -> cpn2 (suttF1 eq) bot2 ot1 ot2.
 Proof.
   intros HH.
-  revert ot1 ot2 HH; pcofix self; intros. pfold.
+  revert ot1 ot2 HH; ucofix self; intros.
   destruct HH as [ca H1 H2 | u1 u2 Hu H1 H2].
   - eapply monotone_suttF1.
     + eapply (eutt_loop_inv_main_step ca (go ot1) (go ot2)); eauto.
-    + intros ? ? []. right. eapply self; eauto.
+    + intros ? ? []. ubase. eapply self; eauto.
   - apply sutt_is_sutt1 in Hu.
-    punfold Hu.
+    uunfold Hu.
     rewrite unfold_bind in H1.
     rewrite unfold_bind in H2.
     revert ot1 ot2 H1 H2; induction Hu; intros.
@@ -644,20 +643,19 @@ Proof.
         simpl in H1, H2.
         destruct H1 as [? []], H2 as [? []].
         subst.
-        do 2 constructor. right.
+        do 2 constructor. ubase.
         apply self.
         eapply loop_inv_main; rewrite <- itree_eta; eauto.
       * apply eq_itree_ret_inv1 in H1.
         apply eq_itree_ret_inv1 in H2.
-        simpl in H1, H2. subst; auto.
+        simpl in H1, H2. subst; auto with paco.
 
-    + pclearbot.
-      apply eq_itree_vis_inv1 in H1.
+    + apply eq_itree_vis_inv1 in H1.
       apply eq_itree_vis_inv1 in H2.
       simpl in H1, H2.
       destruct H1 as [? []], H2 as [? []].
       subst; constructor.
-      right. apply self.
+      ubase. intros. apply self.
       eapply loop_inv_bind.
       * apply sutt_is_sutt1. eapply SUTTK.
       * rewrite <- itree_eta; auto.
@@ -671,15 +669,14 @@ Proof.
       apply IHHu; auto.
       rewrite <- itree_eta, <- unfold_bind; auto.
 
-    + pclearbot.
-      replace ot2 with (observe (go ot2)) in *.
+    + replace ot2 with (observe (go ot2)) in *.
       rewrite <- unfold_bind in H2.
       apply eq_itree_tau_inv1 in H1.
       simpl in H1.
       destruct H1 as [t1' [Ht1 Ht1']].
       rewrite Ht1.
       constructor.
-      right; apply self.
+      ubase; apply self.
       eapply loop_inv_bind.
       * apply sutt_is_sutt1.
         eapply EQTAUS.
@@ -709,13 +706,14 @@ Proof.
   - eapply sutt_loop; auto.
     repeat intro; subst.
     apply eutt_sutt; auto.
-  - eapply paco2_mon_gen.
+  - eapply cpn2_mon_bot.
     + eapply sutt_loop; auto.
       repeat intro.
       apply eutt_sutt. apply symmetry; auto.
+    + eauto with paco.
+    + eauto with paco.
     + intros. eapply monotone_sutt_RR; try eassumption.
       red; auto.
-    + auto.
 Qed.
 
 (** *** Traced monoidal categories *)

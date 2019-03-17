@@ -5,7 +5,9 @@ From Coq Require Import
 
 From ITree Require Import
      ITree
-     Interp.Recursion.
+     Interp.Recursion
+     Interp.RecursionFacts
+     Interp.MorphismsFacts.
 
 Import ITreeNotations.
 
@@ -117,8 +119,7 @@ Definition or {R : Type} (t1 t2 : itree nd R) : itree nd R :=
 (* Flip a coin *)
 Definition choice {E} `{nd -< E} : itree E bool := lift Or.
 
-Definition eval : com -> itree nd unit :=
-  rec (fun (c : com) =>
+Definition eval_def := (fun (c : com) =>
     match c with
     | loop c =>
       (b <- choice;;
@@ -134,6 +135,7 @@ Definition eval : com -> itree nd unit :=
     | skip => Ret tt
     end
   ).
+Definition eval : com -> itree nd unit := rec eval_def.
 
 (* [itree] semantics of [one_loop]. *)
 Definition one_loop_tree : itree nd unit :=
@@ -147,53 +149,31 @@ Definition one_loop_tree : itree nd unit :=
 
 Import Coq.Classes.Morphisms.
 
+Lemma eval_skip: rec eval_def skip ≈ Ret tt.
+Proof.
+  rewrite rec_as_interp. cbn. rewrite interp_ret. reflexivity.
+Qed.
+
 (* SAZ: the [~] notation for eutt wasn't working here. *)
 Lemma eval_one_loop : eutt eq (eval one_loop) (one_loop_tree).
 Proof.
-(*
-  pupto2_init.
-  pcofix self.
-  pupto2 (eutt_clo_trans nd unit). econstructor.
-  { unfold eval, mfix1.
-    rewrite (mfix_unfold nd com (fun _ => unit)); cbn.
-    unfold id, choice, ITree.lift. rewrite bind_vis. reflexivity.
+  ucofix CIH. unfold eval, one_loop_tree. rewrite !rec_as_interp.
+  cbn. rewrite !interp_bind.
+  uclo eutt_clo_bind. econstructor.
+  { unfold choice. rewrite !lift_is_vis_ret. unfold vis.
+    rewrite !interp_vis. cbn.
+    apply eutt_tau.
+    uclo eutt_clo_bind. econstructor; [reflexivity|].
+    intros. subst. rewrite !interp_ret. apply reflexivity.
   }
-  { unfold one_loop_tree, mfix0.
-    rewrite (mfix_unfold nd unit (fun _ => unit)); cbn.
-    unfold id, choice, ITree.lift. rewrite bind_vis. reflexivity.
-  }
-  cbn.
-  pfold.
-  apply euttF1_euttF.
-  constructor.
-  constructor.
-  intros b.
-  pupto2 (eutt_clo_trans nd unit). econstructor.
-  { rewrite bind_ret; reflexivity. }
-  { rewrite bind_ret; reflexivity. }
-  destruct b.
-  (* true *)
-  { apply grespectful2_incl. left.
-    pfold. apply euttF1_euttF; repeat constructor. }
-  (* false *)
-  pupto2 (eutt_clo_trans nd unit). econstructor.
-  { match goal with
-    | [ |- eutt (ITree.bind ?t1 _) _ ] =>
-      assert (Ht1 : eutt t1 (Ret tt))
-    end.
-    { pfold.
-      apply euttF1_euttF.
-      repeat (constructor; cbn).
-    }
-    rewrite Ht1.
-    rewrite bind_ret.
-    reflexivity.
-  }
-  { reflexivity. }
-  apply grespectful2_incl. right.
-  exact self.
-Qed.
-*)
+
+  intros; subst.
+  destruct v2.
+  - rewrite !interp_ret. apply reflexivity.
+  - rewrite !lift_is_vis_ret. unfold vis. cbn. 
+    rewrite interp_bind. setoid_rewrite interp_recursive_call.
+    rewrite eval_skip. rewrite bind_ret.
+    (* Since there is no vis step, we should use strong bisimulation. *)
 Abort.
 
 End Tree.
