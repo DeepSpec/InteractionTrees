@@ -57,7 +57,7 @@ Proof.
   unfold interp. rewrite unfold_aloop'.
   destruct (observe t); cbn.
   - reflexivity.
-  - rewrite ret_bind; reflexivity. (* TODO: Incredibly slow *)
+  - rewrite bind_ret; reflexivity. (* TODO: Incredibly slow *)
   - rewrite map_bind. apply eq_itree_Tau. eapply eq_itree_bind.
     reflexivity.
     intros ? _ []; reflexivity.
@@ -65,15 +65,15 @@ Qed.
 
 (** ** [interp] and constructors *)
 
-Lemma ret_interp {E F R} {f : E ~> itree F} (x: R):
+Lemma interp_ret {E F R} {f : E ~> itree F} (x: R):
   interp f _ (Ret x) ≅ Ret x.
 Proof. rewrite unfold_interp. reflexivity. Qed.
 
-Lemma tau_interp {E F R} {f : E ~> itree F} (t: itree E R):
+Lemma interp_tau {E F R} {f : E ~> itree F} (t: itree E R):
   eq_itree eq (interp f _ (Tau t)) (Tau (interp f _ t)).
 Proof. rewrite unfold_interp. reflexivity. Qed.
 
-Lemma vis_interp {E F R} {f : E ~> itree F} U (e: E U) (k: U -> itree E R) :
+Lemma interp_vis {E F R} {f : E ~> itree F} U (e: E U) (k: U -> itree E R) :
   eq_itree eq (interp f _ (Vis e k)) (Tau (ITree.bind (f _ e) (fun x => interp f _ (k x)))).
 Proof. rewrite unfold_interp. reflexivity. Qed.
 
@@ -140,10 +140,10 @@ Proof.
   rewrite unfold_bind, (unfold_interp t).
   destruct (observe t); cbn.
   (* TODO: [ret_bind] (0.8s) is much slower than [ret_bind_] (0.02s) *)
-  - rewrite ret_bind. ufinal. apply reflexivity.
-  - rewrite tau_bind, !tau_interp.
+  - rewrite bind_ret. ufinal. apply reflexivity.
+  - rewrite bind_tau, !interp_tau.
     ufinal. pfold. econstructor. eauto.
-  - rewrite vis_interp, tau_bind. rewrite bind_bind.
+  - rewrite interp_vis, bind_tau. rewrite bind_bind.
     constructor.
     uclo (eq_itree_clo_bind F S). econstructor.
     + reflexivity.
@@ -155,10 +155,10 @@ Lemma interp_lift {E F : Type -> Type} {R : Type}
       (e : E R) :
   interp f _ (ITree.lift e) ≅ Tau (f _ e).
 Proof.
-  unfold ITree.lift. rewrite vis_interp.
+  unfold ITree.lift. rewrite interp_vis.
   apply eq_itree_Tau.
-  setoid_rewrite ret_interp.
-  rewrite bind_ret.
+  setoid_rewrite interp_ret.
+  rewrite bind_ret2.
   reflexivity.
 Qed.
 
@@ -171,11 +171,10 @@ Proof.
   revert t. uinit. ucofix CIH. uinit. ucofix CIH'. intros.
   rewrite unfold_interp.
   destruct (observe t); cbn; eauto with paco.
-  - constructor. ufinal. eauto.
-  - unfold ITree.lift. rewrite vis_bind; cbn.
-    constructor; constructor.
-    left. rewrite ret_bind.
-    auto with paco.
+  unfold ITree.lift. rewrite bind_vis; cbn.
+  constructor; constructor.
+  left. rewrite bind_ret.
+  auto with paco.
 Qed.
 
 
@@ -187,9 +186,9 @@ Proof.
   uinit. ucofix CIH. intros.
   rewrite 2 (unfold_interp t).
   destruct (observe t); cbn.
-  - rewrite ret_interp. ufinal. pfold. constructor. reflexivity.
-  - rewrite tau_interp. ufinal. pfold. constructor. auto.
-  - rewrite tau_interp, interp_bind.
+  - rewrite interp_ret. ufinal. pfold. constructor. reflexivity.
+  - rewrite interp_tau. ufinal. pfold. constructor. auto.
+  - rewrite interp_tau, interp_bind.
     constructor.
     uclo eq_itree_clo_bind.
     apply pbc_intro_h with (RU := eq).
@@ -226,7 +225,11 @@ Proof.
   rewrite unfold_interp.
   unfold translateF, _interp.
   destruct (observe t); cbn; simpl in *; eauto 7 with paco.
-  unfold ITree.lift. rewrite vis_bind.
-  do 2 constructor.
-  left. rewrite ret_bind. auto with paco.
+  unfold ITree.lift. constructor. rewrite bind_vis. constructor.
+  left. rewrite bind_ret. auto with paco.
 Qed.
+
+Hint Rewrite @interp_ret : itree.
+Hint Rewrite @interp_vis : itree.
+Hint Rewrite @interp_lift : itree.
+Hint Rewrite @interp_bind : itree.

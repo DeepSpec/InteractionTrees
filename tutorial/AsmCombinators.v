@@ -1,7 +1,21 @@
 (** * Composition of [asm] programs *)
 
-Require Import Asm.
-Require Import Utils_tutorial.
+(** We develop in this file a theory of linking for [asm] programs.
+    To this end, we will equip them with four main combinators:
+    - [par_asm], linking them vertically
+    - [loop_asm], hiding internal links
+    - [relable_asm], allowing to rename labels
+    - [pure_asm], casting pure functions into [asm]. 
+    Viewing [asm] units as diagrams, this theory can be seen in particular
+    as showing that they enjoy a structure of _traced monoidal category_ by
+    interpreting [ktree]s as a theory of linking at the denotational level.
+    Each linking combinator is therefore proved correct by showing that its
+    denotation can be swapped with the corresponding [ktree] combinator.
+ *)
+
+(* begin hide *)
+Require Import Asm Utils_tutorial.
+
 From Coq Require Import
      List
      Strings.String
@@ -15,6 +29,7 @@ From ITree Require Import
      Basics.Category.
 
 Typeclasses eauto := 5.
+(* end hide *)
 
 (** ** Internal structures *)
 
@@ -37,19 +52,15 @@ Definition relabel_bks {A B C D : Type} (f : A -> B) (g : C -> D)
            (b : bks B C) : bks A D :=
   fun a => fmap_block g (b (f a)).
 
-Section after.
-Context {A : Type}.
-Fixpoint after (is : list instr) (bch : branch A) : block A :=
+Fixpoint after {A: Type} (is : list instr) (bch : branch A) : block A :=
   match is with
   | nil => bbb bch
   | i :: is => bbi i (after is bch)
   end.
-End after.
 
 (** ** Low-level interface with [asm] *)
 
-(** Any collection of blocks forms an [asm] program with
-      no hidden blocks. *)
+(** Any collection of blocks forms an [asm] program with no hidden blocks. *)
 Definition raw_asm {A B} (b : bks A B) : asm A B :=
   {| internal := void;
      code := fun a' =>
@@ -145,24 +156,18 @@ Proof.
   induction b as [i b | br]; intros f.
   - simpl.
     unfold ITree.map; rewrite bind_bind.
-    eapply eq_itree_eq_bind; [reflexivity | intros []; apply IHb].
+    eapply eq_itree_eq_bind; try reflexivity.
+    intros []; apply IHb.
   - simpl.
     destruct br; simpl.
-    + unfold ITree.map; rewrite ret_bind; reflexivity.
+    + unfold ITree.map; rewrite bind_ret; reflexivity.
     + unfold ITree.map; rewrite bind_bind. 
-      eapply eq_itree_eq_bind; [reflexivity | intros ?].
-      flatten_goal; rewrite ret_bind; reflexivity.
+      eapply eq_itree_eq_bind; try reflexivity.
+      intros ?.
+      flatten_goal; rewrite bind_ret; reflexivity.
     + rewrite (itree_eta (ITree.map _ _)).
       cbn. apply eq_itree_Vis. intros [].
 Qed.
-
-(* TODO: send to ext-lib *)
-Definition traverse_ {A: Type} {M: Type -> Type} `{Monad M} (f: A -> M unit): list A -> M unit :=
-  fix traverse__ l: M unit :=
-    match l with
-    | [] => ret tt
-    | a::l => (f a;; traverse__ l)%monad
-    end.
 
 Definition denote_list: list instr -> itree E unit :=
   traverse_ denote_instr.
@@ -172,9 +177,10 @@ Lemma after_correct :
     denote_block (after instrs b) ≅ (denote_list instrs ;; denote_branch b).
 Proof.
   induction instrs as [| i instrs IH]; intros b.
-  - simpl; rewrite ret_bind; reflexivity.
+  - simpl; rewrite bind_ret; reflexivity.
   - simpl; rewrite bind_bind.
-    eapply eq_itree_eq_bind; [reflexivity | intros []; apply IH].
+    eapply eq_itree_eq_bind; try reflexivity.
+    intros []; apply IH.
 Qed.
 
 Lemma denote_list_app:
@@ -182,7 +188,7 @@ Lemma denote_list_app:
     @denote_list (is1 ++ is2) ≅
                  (@denote_list is1;; denote_list is2).
 Proof.
-  intros is1 is2; induction is1 as [| i is1 IH]; simpl; intros; [rewrite ret_bind; reflexivity |].
+  intros is1 is2; induction is1 as [| i is1 IH]; simpl; intros; [rewrite bind_ret; reflexivity |].
   rewrite bind_bind; setoid_rewrite IH; reflexivity.
 Qed.
 
@@ -197,7 +203,7 @@ Proof.
   intros [].
   rewrite fmap_block_map, map_map.
   unfold ITree.map.
-  rewrite <- (bind_ret (denote_block b)) at 2.
+  rewrite <- (bind_ret2 (denote_block b)) at 2.
   reflexivity.
 Qed.
 
@@ -237,20 +243,20 @@ Proof.
 Qed.
 
 Lemma cat_eq2_l {a b c : Type} (h : ktree E a b) (f g : ktree E b c) :
-  f ⩯ g -> h >=> f ⩯ h >=> g.
+  f ⩯ g -> h >>> f ⩯ h >>> g.
 Proof.
   intros H; rewrite H; reflexivity.
 Qed.
 
 Lemma cat_eq2_r {a b c : Type} (h : ktree E b c) (f g : ktree E a b) :
-  f ⩯ g -> f >=> h ⩯ g >=> h.
+  f ⩯ g -> f >>> h ⩯ g >>> h.
 Proof.
   intros H; rewrite H; reflexivity.
 Qed.
 
 Lemma local_rewrite1 {a b c : Type}:
-    bimap (id_ a) (@swap _ (ktree E) _ _ b c) >=> assoc_l >=> swap
-  ⩯ assoc_l >=> bimap swap (id_ c) >=> assoc_r.
+    bimap (id_ a) (@swap _ (ktree E) _ _ b c) >>> assoc_l >>> swap
+  ⩯ assoc_l >>> bimap swap (id_ c) >>> assoc_r.
 Proof.
   symmetry.
   apply fwd_eqn; intros h Eq.
@@ -269,8 +275,8 @@ Proof.
 Qed.
 
 Lemma local_rewrite2 {a b c : Type}:
-    swap >=> assoc_r >=> bimap (id_ _) swap
-  ⩯ @assoc_l _ (ktree E) _ _ a b c >=> bimap swap (id_ _) >=> assoc_r.
+    swap >>> assoc_r >>> bimap (id_ _) swap
+  ⩯ @assoc_l _ (ktree E) _ _ a b c >>> bimap swap (id_ _) >>> assoc_r.
 Proof.
   symmetry.
   apply fwd_eqn; intros h Eq.
@@ -288,10 +294,10 @@ Qed.
 Lemma loop_bimap_ktree {I A B C D}
       (ab : ktree E A B) (cd : ktree E (I + C) (I + D)) :
     bimap ab (loop cd)
-  ⩯ loop (assoc_l >=> bimap swap (id_ _)
-                  >=> assoc_r
-                  >=> bimap ab cd
-                  >=> assoc_l >=> bimap swap (id_ _) >=> assoc_r).
+  ⩯ loop (assoc_l >>> bimap swap (id_ _)
+                  >>> assoc_r
+                  >>> bimap ab cd
+                  >>> assoc_l >>> bimap swap (id_ _) >>> assoc_r).
 Proof.
   rewrite swap_bimap, bimap_ktree_loop.
   rewrite <- compose_loop, <- loop_compose.
@@ -337,8 +343,8 @@ Proof.
 Qed.
 
 Lemma foo_assoc_l {A B C D D'} (f : ktree E _ D') :
-    bimap (id_ A) (@assoc_l _ _ _ _ B C D) >=> (assoc_l >=> f)
-   ⩯ assoc_l >=> (assoc_l >=> (bimap assoc_r (id_ _) >=> f)).
+    bimap (id_ A) (@assoc_l _ _ _ _ B C D) >>> (assoc_l >>> f)
+   ⩯ assoc_l >>> (assoc_l >>> (bimap assoc_r (id_ _) >>> f)).
 Proof.
   rewrite <- !cat_assoc.
   rewrite <- assoc_l_assoc_l.
@@ -349,8 +355,8 @@ Proof.
 Qed.
 
 Lemma foo_assoc_r {A' A B C D} (f : ktree E A' _) :
-    f >=> assoc_r >=> bimap (id_ A) (@assoc_r _ _ _ _ B C D)
-  ⩯ f >=> bimap assoc_l (id_ _) >=> assoc_r >=> assoc_r.
+    f >>> assoc_r >>> bimap (id_ A) (@assoc_r _ _ _ _ B C D)
+  ⩯ f >>> bimap assoc_l (id_ _) >>> assoc_r >>> assoc_r.
 Proof.
   rewrite (cat_assoc _ _ _ assoc_r).
   rewrite <- assoc_r_assoc_r.
@@ -381,7 +387,7 @@ Proof.
   rewrite !cat_assoc.
   rewrite <- !sym_ktree_unfold, !assoc_l_ktree, !assoc_r_ktree, !bimap_lift_id, !bimap_id_lift, !compose_lift_ktree_l, compose_lift_ktree.
   unfold cat, Cat_ktree, ITree.cat, lift_ktree.
-  intro x. rewrite ret_bind; simpl.
+  intro x. rewrite bind_ret; simpl.
   destruct x as [[|]|[|]]; cbn.
   (* ... *)
   all: unfold cat, Cat_ktree, ITree.cat.
@@ -397,7 +403,7 @@ Qed.
 Definition relabel_bks_correct {A B C D} (f : A -> B) (g : C -> D)
            (bc : bks B C) :
     denote_b (relabel_bks f g bc)
-  ⩯ lift_ktree f >=> denote_b bc >=> lift_ktree g.
+  ⩯ lift_ktree f >>> denote_b bc >>> lift_ktree g.
 Proof.
   rewrite lift_compose_ktree.
   rewrite compose_ktree_lift.
@@ -410,7 +416,7 @@ Qed.
 Definition relabel_asm_correct {A B C D} (f : A -> B) (g : C -> D)
            (bc : asm B C) :
     denote_asm (relabel_asm f g bc)
-  ⩯ lift_ktree f >=> denote_asm bc >=> lift_ktree g.
+  ⩯ lift_ktree f >>> denote_asm bc >>> lift_ktree g.
 Proof.
   unfold denote_asm.
   simpl.

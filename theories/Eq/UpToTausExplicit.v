@@ -407,10 +407,10 @@ Inductive euttE_bind_clo {E R1 R2} (r: itree E R1 -> itree E R2 -> Prop) : itree
 Hint Constructors euttE_bind_clo.
 
 Lemma bind_clo_finite_taus {E U1 U2 RU R1 R2}  t1 t2 k1 k2
-    (FT: finite_taus (@ITree.bind E U1 R1 t1 k1))
+    (FT: finite_taus (@ITree.bind' E U1 R1 k1 t1))
     (FTk: forall v1 v2 (RELv: RU v1 v2 : Prop), finite_taus (k1 v1) -> finite_taus (k2 v2))
     (EQV: euttE RU t1 t2):
-  finite_taus (@ITree.bind E U2 R2 t2 k2).
+  finite_taus (@ITree.bind' E U2 R2 k2 t2).
 Proof.
   punfold EQV. destruct EQV as [[FTt _] EQV].
   assert (FT1 := FT). apply finite_taus_bind_fst in FT1.

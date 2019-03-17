@@ -1,3 +1,5 @@
+(** * Effect handlers *)
+
 (** Effects [E, F : Type -> Type] and itree [E ~> itree F] form a
     category. *)
 
@@ -21,16 +23,55 @@ Open Scope itree_scope.
 
 (* end hide *)
 
-(** * Lifting relation on indexed functions *)
+(** ** Handler combinators *)
+
+Module Handler.
+
+(** Lift an _effect morphism_ into an _effect handler_. *)
+Definition hlift {A B} (m : A ~> B) : A ~> itree B :=
+  fun _ e => ITree.lift (m _ e).
+
+(** This handler just wraps effects back into itrees, which is
+    a noop (modulo taus): [interp (id_ E) _ t ≈ t]. *)
+Definition id_ (E : Type -> Type) : E ~> itree E := ITree.lift.
+
+(** Chain handlers: [g] handles the effects produced by [f]. *)
+Definition cat {E F G : Type -> Type}
+           (f : E ~> itree F) (g : F ~> itree G)
+  : E ~> itree G
+  := fun R e => interp g R (f R e).
+
+(** Wrap effects to the left of a sum. *)
+Definition inl_ {E F : Type -> Type} : E ~> itree (E +' F)
+  := hlift inl1.
+
+(** Wrap effects to the right of a sum. *)
+Definition inr_ {E F : Type -> Type} : F ~> itree (E +' F)
+  := hlift inr1.
+
+(** Case analysis on sums of effects. *)
+Definition case_ {E F G : Type -> Type}
+           (f : E ~> itree G) (g : F ~> itree G)
+  : E +' F ~> itree G
+  := @case_sum1 E F (itree G) f g.
+(* TODO: why is there a universe inconsistency if this is before [inl_] and [inr_]? *)
+
+(** Handle independent effects. *)
+Definition bimap {E F G H : Type -> Type}
+           (f : E ~> itree G) (g : F ~> itree H)
+  : E +' F ~> itree (G +' H)
+  := case_ (Handler.cat f inl_) (Handler.cat g inr_).
+
+End Handler.
+
+(** ** Category instances *)
+
 (** This is an indexed generalization of the standard [respectful]
     relation ([==>]). *)
 (* TODO: should also take a relation on [A]. *)
 Definition i_respectful {A B : Type -> Type} (R : forall t, B t -> B t -> Prop)
            (f g : A ~> B) : Prop :=
   forall X (a : A X), (R X) (f X a) (g X a).
-
-Definition eh_lift {A B} (m : A ~> B)  : A ~> itree B :=
-  fun _ e => ITree.lift (m _ e).
 
 Definition Handler (E F : Type -> Type) := E ~> itree F.
 
@@ -44,20 +85,19 @@ Instance Eq2_Handler : Eq2 Handler
      => @i_respectful E (itree F) (fun R => @eutt _ _ R eq).
 
 Instance Id_Handler : Id_ Handler
-  := fun E => @ITree.lift E.
+  := @Handler.id_.
 
 Instance Cat_Handler : Cat Handler
-  := fun E F G (f : E ~> itree F) (g : F ~> itree G) _ e
-     => interp g _ (f _ e).
+  := @Handler.cat.
 
 Instance Case_sum1_Handler : CoprodCase Handler sum1
-  := fun E F G => @case_sum1 E F (itree G).
+  := @Handler.case_.
 
 Instance Inl_sum1_Handler : CoprodInl Handler sum1
-  := fun E F => eh_lift (fun _ e => inl1 e).
+  := @Handler.inl_.
 
 Instance Inr_sum1_Handler : CoprodInr Handler sum1
-  := fun E F => eh_lift (fun _ e => inr1 e).
+  := @Handler.inr_.
 
 Instance Initial_void1_Handler : Initial Handler void1
   := fun _ _ v => match v : void1 _ with end.

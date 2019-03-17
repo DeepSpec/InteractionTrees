@@ -161,16 +161,16 @@ End bind.
 
 Arguments _bind _ _ /.
 
-Definition bind {E T U} (c : itree E T) (k : T -> itree E U)
-  : itree E U
-  := bind' k c.
+
+Notation bind c k := (bind' k c).
+
 
 (** Monadic composition of continuations (i.e., Kleisli composition).
  *)
 Definition cat {E T U V}
            (k : T -> itree E U) (h : U -> itree E V) :
   T -> itree E V :=
-  fun t => bind (k t) h.
+  fun t => bind' h (k t).
 
 (** [aloop]: A primitive for general recursion.
     Iterate a function updating an accumulator [A], until it produces
@@ -269,7 +269,7 @@ Instance Applicative_itree {E} : Applicative (itree E) :=
 
 Global Instance Monad_itree {E} : Monad (itree E) :=
 {| ret := fun _ x => Ret x
-;  bind := @ITree.bind E
+;  bind := fun T U t k => @ITree.bind' E T U k t
 |}.
 
 (** ** Tactics *)

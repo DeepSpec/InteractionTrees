@@ -51,12 +51,12 @@ Proof.
   rewrite unfold_aloop'.
   destruct observe; cbn.
   - reflexivity.
-  - rewrite ret_bind_; reflexivity. (* TODO: ret_bind, vis_bind are sloooow *)
+  - rewrite bind_ret_; reflexivity. (* TODO: bind_ret, bind_vis are sloooow *)
   - destruct e; cbn.
-    + rewrite ret_bind_; reflexivity.
-    + rewrite vis_bind_. pfold; constructor. left.
+    + rewrite bind_ret_; reflexivity.
+    + rewrite bind_vis_. pfold; constructor. left.
       pfold; constructor.
-      left. rewrite ret_bind.
+      left. rewrite bind_ret.
       apply reflexivity.
 Qed.
 
@@ -114,8 +114,14 @@ Proof.
   ufinal. left; pfold; constructor. auto.
 Qed.
 
+(** [mrec ctx] is equivalent to [interp (mrecursive ctx)],
+    where [mrecursive] is defined as follows. *)
+Definition mrecursive (f : D ~> itree (D +' E))
+  : (D +' E) ~> itree E :=
+  case_ (mrec f) ITree.lift.
+
 Theorem interp_mrec_as_interp {T} (c : itree _ T) :
-  interp_mrec ctx _ c ≈ interp (case_ (mrec ctx) ITree.lift) _ c.
+  interp_mrec ctx _ c ≈ interp (mrecursive ctx) _ c.
 Proof.
   revert_until T. uinit. ucofix CIH. uinit. ucofix CIH'. intros.
   rewrite unfold_interp_mrec, unfold_interp.
@@ -125,23 +131,35 @@ Proof.
     uclo eutt_nested_clo_bind; econstructor; [reflexivity|].
     intros ? _ []; eauto with paco.
 
-  - unfold ITree.lift, case_; simpl. rewrite vis_bind_.
+  - unfold ITree.lift, case_; simpl. rewrite bind_vis_.
     constructor.
     ufinal.
     left; pfold; econstructor.
     left.
-    rewrite ret_bind_. auto with paco.
+    rewrite bind_ret_. auto with paco.
 Qed.
 
 Theorem mrec_as_interp {T} (d : D T) :
-  mrec ctx _ d ≈ interp (case_ (mrec ctx) ITree.lift) _ (ctx _ d).
+  mrec ctx _ d ≈ interp (mrecursive ctx) _ (ctx _ d).
 Proof.
   apply interp_mrec_as_interp.
 Qed.
 
+Lemma interp_mrecursive {T} (d : D T) :
+  interp (mrecursive ctx) _ (lift_inl1 _ d) ≈ mrec ctx _ d.
+Proof.
+  unfold mrecursive. unfold lift_inl1.
+  rewrite interp_lift. cbn. apply tau_eutt.
+Qed.
+
 End Facts.
 
-Lemma rec_unfold {E A B} (f : A -> itree (callE A B +' E) B) (x : A) :
+(** [rec body] is equivalent to [interp (recursive body)],
+    where [recursive] is defined as follows. *)
+Definition recursive {E A B} (f : A -> itree (callE A B +' E) B) : (callE A B +' E) ~> itree E :=
+  case_ (calling' (rec f)) ITree.lift.
+
+Lemma rec_as_interp {E A B} (f : A -> itree (callE A B +' E) B) (x : A) :
   rec f x ≈ interp (recursive f) _ (f x).
 Proof.
   unfold rec.

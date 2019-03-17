@@ -131,10 +131,10 @@ Proof.
   unfold run_state.
   rewrite interp1_state_bind. cbn. rewrite interp1_state_lift2.
   cbn.
-  rewrite vis_bind. unfold ITree.lift. rewrite vis_bind.
+  rewrite bind_vis. unfold ITree.lift. rewrite bind_vis.
   apply itree_eq_vis.
   intros.
-  rewrite !ret_bind. cbn. reflexivity.
+  rewrite !bind_ret. cbn. reflexivity.
 Qed.
 
 
@@ -160,8 +160,8 @@ Proof.
   unfold run_state.
   rewrite interp1_state_bind.
   rewrite interp1_state_get.
-  cbn. rewrite tau_bind.
-  rewrite ret_bind. cbn. reflexivity.
+  cbn. rewrite bind_tau.
+  rewrite bind_ret. cbn. reflexivity.
 Qed.  
 
 (* SAZ: this is the same exact proof as above -- think about automation. *)
@@ -172,8 +172,8 @@ Proof.
   unfold run_state.
   rewrite interp1_state_bind.
   rewrite interp1_state_put.
-  cbn. rewrite tau_bind.
-  rewrite ret_bind. cbn. reflexivity.
+  cbn. rewrite bind_tau.
+  rewrite bind_ret. cbn. reflexivity.
 Qed.  
 
 
