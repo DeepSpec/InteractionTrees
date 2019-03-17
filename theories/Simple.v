@@ -205,6 +205,9 @@ Parameter interp_mrecursive
     interp (mrecursive ctx) _ (lift_inl1 _ d)
   ≈ mrec ctx _ d.
 
+Hint Rewrite @interp_recursive_call : itree.
+Hint Rewrite @interp_mrecursive : itree.
+
 (** *** [Proper] lemmas *)
 
 Declare Instance eutt_go {E R} :
@@ -382,6 +385,11 @@ Proof.
   reflexivity.
 Qed.
 
+Hint Rewrite @interp_ret : itree.
+Hint Rewrite @interp_vis : itree.
+Hint Rewrite @interp_lift : itree.
+Hint Rewrite @interp_bind : itree.
+
 (** **** Simple recursion: [rec] *)
 
 (** [rec body] is equivalent to [interp (recursive body)],
@@ -427,6 +435,9 @@ Lemma interp_mrecursive
 Proof.
   intros; apply ITree.Interp.RecursionFacts.interp_mrecursive.
 Qed.
+
+Hint Rewrite @interp_recursive_call : itree.
+Hint Rewrite @interp_mrecursive : itree.
 
 (** *** [Proper] lemmas *)
 
