@@ -35,7 +35,6 @@ theories/Interp/MorphismsFacts.v
 theories/Interp/Recursion.v
 theories/Interp/RecursionFacts.v
 theories/Interp/Traces.v
-theories/Interp/MFixITree.v
 
 theories/Effects/State.v
 theories/Effects/StateFacts.v
