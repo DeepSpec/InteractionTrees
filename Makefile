@@ -66,7 +66,7 @@ clean: Makefile.coq
 	$(MAKE) -C tests clean
 	$(MAKE) -C examples clean
 	$(MAKE) -C tutorial clean
-	$(RM) theories/{*,*/*}/*.{vo,glob} theories/{*,*/*}/.*.aux
+	$(RM) theories/{.,*,*/*}/*.{vo,glob} theories/{.,*,*/*}/.*.aux
 	$(RM) _CoqProject Makefile.coq*
 
 _CoqProject: $(COQPATHFILE) _CoqConfig Makefile
