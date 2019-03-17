@@ -119,14 +119,16 @@ Definition mrecursive (f : D ~> itree (D +' E))
   case_ (mrec f) ITree.lift.
 
 Theorem interp_mrec_as_interp {T} (c : itree _ T) :
-  interp_mrec ctx _ c ≈ interp (mrecursive ctx) _ c.
+  interp_mrec ctx _ c ≅ interp (mrecursive ctx) _ c.
 Proof.
-  revert_until T. ucofix CIH. red. ucofix CIH'. intros.
+  revert_until T. ucofix CIH. intros.
   rewrite unfold_interp_mrec, unfold_interp.
-  destruct (observe c); [| |destruct e]; simpl; eauto 8 with paco.
+  destruct (observe c); [| |destruct e]; simpl; eauto with paco.
+  - econstructor. eauto.
+  - econstructor. eauto with paco.
   - rewrite interp_mrec_bind.
     constructor.
-    uclo eutt_nested_clo_bind; econstructor; [reflexivity|].
+    uclo eq_itree_clo_bind; econstructor; [reflexivity|].
     intros ? _ []; eauto with paco.
 
   - unfold ITree.lift, case_; simpl. rewrite bind_vis_.
@@ -136,16 +138,16 @@ Proof.
 Qed.
 
 Theorem mrec_as_interp {T} (d : D T) :
-  mrec ctx _ d ≈ interp (mrecursive ctx) _ (ctx _ d).
+  mrec ctx _ d ≅ interp (mrecursive ctx) _ (ctx _ d).
 Proof.
   apply interp_mrec_as_interp.
 Qed.
 
 Lemma interp_mrecursive {T} (d : D T) :
-  interp (mrecursive ctx) _ (lift_inl1 _ d) ≈ mrec ctx _ d.
+  interp (mrecursive ctx) _ (lift_inl1 _ d) ≅ Tau (mrec ctx _ d).
 Proof.
   unfold mrecursive. unfold lift_inl1.
-  rewrite interp_lift. cbn. apply tau_eutt.
+  rewrite interp_lift. cbn. reflexivity.
 Qed.
 
 End Facts.
@@ -156,20 +158,20 @@ Definition recursive {E A B} (f : A -> itree (callE A B +' E) B) : (callE A B +'
   case_ (calling' (rec f)) ITree.lift.
 
 Lemma rec_as_interp {E A B} (f : A -> itree (callE A B +' E) B) (x : A) :
-  rec f x ≈ interp (recursive f) _ (f x).
+  rec f x ≅ interp (recursive f) _ (f x).
 Proof.
   unfold rec.
   rewrite mrec_as_interp.
-  eapply eutt_interp_gen.
+  eapply eq_itree_interp.
   - red. unfold case_; intros ? [[] | ]; reflexivity.
   - reflexivity.
 Qed.
 
 Lemma interp_recursive_call {E A B} (f : A -> itree (callE A B +' E) B) (x:A) :
-   interp (recursive f) _ (call x) ≈ rec f x.
+   interp (recursive f) _ (call x) ≅ Tau (rec f x).
 Proof.
   unfold recursive. unfold call.
-  rewrite interp_lift. cbn. apply tau_eutt.
+  rewrite interp_lift. cbn. reflexivity.
 Qed.
 
 Lemma interp_loop {E F} (f : E ~> itree F) {A B C}

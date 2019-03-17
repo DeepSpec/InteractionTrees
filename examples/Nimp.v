@@ -155,25 +155,19 @@ Proof.
 Qed.
 
 (* SAZ: the [~] notation for eutt wasn't working here. *)
-Lemma eval_one_loop : eutt eq (eval one_loop) (one_loop_tree).
+Lemma eval_one_loop : eval one_loop ≈ one_loop_tree.
 Proof.
-  ucofix CIH. unfold eval, one_loop_tree. rewrite !rec_as_interp.
-  cbn. rewrite !interp_bind.
-  uclo eutt_clo_bind. econstructor.
-  { unfold choice. rewrite !lift_is_vis_ret. unfold vis.
-    rewrite !interp_vis. cbn.
-    apply eutt_tau.
-    uclo eutt_clo_bind. econstructor; [reflexivity|].
-    intros. subst. rewrite !interp_ret. apply reflexivity.
-  }
-
-  intros; subst.
-  destruct v2.
+  ucofix CIH. unfold eval, one_loop_tree.
+  setoid_rewrite rec_as_interp; setoid_rewrite interp_bind.
+  ustep. cbn. econstructor.
+  ustep. cbn. econstructor.
+  left. rewrite !bind_ret, !interp_ret, !bind_ret.
+  destruct x.
   - rewrite !interp_ret. apply reflexivity.
-  - rewrite !lift_is_vis_ret. unfold vis. cbn. 
-    rewrite interp_bind. setoid_rewrite interp_recursive_call.
-    rewrite eval_skip. rewrite bind_ret.
-    (* Since there is no vis step, we should use strong bisimulation. *)
-Abort.
+  - rewrite !lift_is_vis_ret, interp_bind.
+    setoid_rewrite interp_recursive_call.
+    rewrite eval_skip. rewrite bind_tau, bind_ret.
+    rewrite !tau_eutt. eauto with paco.
+Qed.
 
 End Tree.

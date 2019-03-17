@@ -395,7 +395,7 @@ Lemma rec_as_interp
     rec f a
   ≈ interp (recursive f) _ (f a).
 Proof.
-  intros; apply ITree.Interp.RecursionFacts.rec_as_interp.
+  intros. rewrite ITree.Interp.RecursionFacts.rec_as_interp. reflexivity.
 Qed.
 
 Lemma interp_recursive_call
@@ -403,7 +403,7 @@ Lemma interp_recursive_call
     interp (recursive f) _ (call x)
   ≈ rec f x.
 Proof.
-  intros; apply ITree.Interp.RecursionFacts.interp_recursive_call.
+  intros. rewrite ITree.Interp.RecursionFacts.interp_recursive_call. apply tau_eutt.
 Qed.
 
 (** [mrec ctx] is equivalent to [interp (mrecursive ctx)],
@@ -417,7 +417,7 @@ Lemma mrec_as_interp
     mrec ctx _ d
   ≈ interp (mrecursive ctx) _ (ctx _ d).
 Proof.
-  intros; apply ITree.Interp.RecursionFacts.mrec_as_interp.
+  intros; rewrite ITree.Interp.RecursionFacts.mrec_as_interp. reflexivity.
 Qed.
 
 Lemma interp_mrecursive
@@ -425,7 +425,7 @@ Lemma interp_mrecursive
     interp (mrecursive ctx) _ (lift_inl1 _ d)
   ≈ mrec ctx _ d.
 Proof.
-  intros; apply ITree.Interp.RecursionFacts.interp_mrecursive.
+  intros; rewrite ITree.Interp.RecursionFacts.interp_mrecursive. apply tau_eutt.
 Qed.
 
 (** *** [Proper] lemmas *)
