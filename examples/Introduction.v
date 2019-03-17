@@ -1,7 +1,19 @@
 (** * Introduction to interaction trees *)
 
-(** This file gives and example of defining recursive functions
-    using ITrees. It demonstrates
+(** This file contains exercises to get familiar with the
+    Interaction Trees library, via the simplified
+    interface of [theories/ITree/Simple.v].
+
+    The solutions can be found in [examples/Introduction.v].
+ *)
+
+(* HIDE *)
+(* This is actually the solutions file. To do the exercises, see
+   [tutorial/Introduction.v]. *)
+(* /HIDE *)
+
+(** We give examples of defining recursive functions using ITrees,
+    demonstrating:
     - [rec]
     - equational reasoning using [≈] ([\approx])
 *)
@@ -12,18 +24,18 @@ Set Contextual Implicit.
 
 From Coq Require Import
      Arith
-     Setoid
-     RelationClasses
-     Program
-     Morphisms
-     Lia.
+     Lia
+     List.
 
 From ExtLib Require Import
-     Monad.
+     Monad
+     Traversable
+     Data.List.
 
 From ITree Require Import
      Simple.
 
+Import ListNotations.
 Import ITreeNotations.
 Import MonadNotation.
 Open Scope monad_scope.
@@ -69,13 +81,14 @@ Definition fact_body (x : nat) : itree (callE nat nat +' E) nat :=
 Definition factorial (n : nat) : itree E nat :=
   rec fact_body n.
 
+(** *** Evaluation *)
+
 (** Contrary to definitions by [Fixpoint], there are no restrictions
     on the arguments of recursive calls: [rec] may thus produce
     diverging computations, and Coq will not naively reduce
     [factorial 5].
 
-    Of course, we can force the computation with fuel, e.g.,
-    using [burn]...
+    We can force the computation with fuel, e.g., using [burn]...
  *)
 Compute (burn 100 (factorial 5)).
 
@@ -83,9 +96,10 @@ Compute (burn 100 (factorial 5)).
     all taus from the left-hand side of an [≈] equation. *)
 Example fact_5 : factorial 5 ≈ Ret 120.
 Proof.
-  tau_steps.
-  reflexivity.
+  tau_steps. reflexivity.
 Qed.
+
+(** *** Alternative notation *)
 
 (** An equivalent definition with a [rec-fix] notation looking like
     [fix], where the recursive call can be given a more specific name.
@@ -100,6 +114,8 @@ Definition factorial' : nat -> itree E nat :=
 (** These two definitions are definitionally equal. *)
 Lemma factorial_same : factorial = factorial'.
 Proof. reflexivity. Qed.
+
+(** *** Correctness *)
 
 (** We can prove that the ITrees version [factorial] is "equivalent"
     to the [factorial_spec] version.  The proof goes by induction on
@@ -118,10 +134,13 @@ Proof.
   unfold factorial.
   induction n as [ | n' IH ].
   - (* n = 0 *)
+    (* ADMIT *)
     rewrite rec_as_interp. simpl.
     rewrite interp_ret.
     reflexivity.
+    (* /ADMIT *)
   - (* n = S n' *)
+    (* ADMIT *)
     rewrite rec_as_interp. simpl.
     rewrite interp_bind.
     rewrite interp_recursive_call.
@@ -129,8 +148,10 @@ Proof.
     rewrite bind_ret.
     rewrite interp_ret.
     reflexivity.
-Qed.
+    (* /ADMIT *)
+(* ADMITTED *) Qed. (* /ADMITTED *)
 
+(* HIDE *)
 (** The tactics [tau_steps] and [autorewrite with itree] offer
     a little automation to simplify monadic expressions. *)
 Lemma factorial_correct' : forall n,
@@ -150,10 +171,10 @@ Proof.
     autorewrite with itree.
     reflexivity.
 Qed.
+(* /HIDE *)
 
 (** ** Fibonacci *)
 
-(** Exercise *)
 (** Carry out the analogous proof of correctness for the Fibonacci
     function, whose naturally recursive coq definition is given below.
  *)
@@ -168,9 +189,9 @@ Fixpoint fib_spec (n : nat) : nat :=
     end
   end.
 
-Definition fib_body : nat -> itree (callE nat nat +' E) nat :=
-(* SOLN *)  
-  fun n =>
+Definition fib_body : nat -> itree (callE nat nat +' E) nat
+  (* ADMITDEF *)  
+  := fun n =>
     match n with
     | 0 => Ret 0
     | S n' =>
@@ -182,10 +203,17 @@ Definition fib_body : nat -> itree (callE nat nat +' E) nat :=
         Ret (y1 + y2)
       end
     end.
-(* STUBWITH (fun n => Ret 0) *)
+  (* /ADMITDEF *)
 
 Definition fib n : itree E nat :=
   rec fib_body n.
+
+Example fib_3_6 : mapT fib [4;5;6] ≈ Ret [3; 5; 8].
+Proof.
+  (* OPEN COMMENT WHEN HIDING SOLUTIONS *)
+  tau_steps. reflexivity.
+  (* CLOSE COMMENT WHEN HIDING SOLUTIONS *)
+(* ADMITTED *) Qed. (* /ADMITTED *)
 
 (** Since fib uses two recursive calls, we need to strengthen the
     induction hypothesis.  One way to do that is to prove the
@@ -199,24 +227,25 @@ Nat.le_succ_r : forall n m : nat, n <= S m <-> n <= m \/ n = S m
 ]]
  *)
 
-Lemma fib_correct : forall n m, m <= n ->
+Lemma fib_correct_aux : forall n m, m <= n ->
     fib m ≈ Ret (fib_spec m).
 Proof.
-(* SOLN *)  
   intros n.
   unfold fib.
   induction n as [ | n' IH ]; intros.
   - (* n = 0 *)
     apply Nat.le_0_r in H. subst m.
-    unfold fib.
+    (* ADMIT *)
     rewrite rec_as_interp. simpl.
     rewrite interp_ret.
     (* alternatively, [tau_steps], or [autorewrite with itree] *)
     reflexivity.
+    (* /ADMIT *)
   - (* n = S n' *)
     apply Nat.le_succ_r in H.
+    (* ADMIT *)
     destruct H.
-    + apply IH; auto.
+    + apply IH. auto.
     + rewrite rec_as_interp.
       subst m. simpl.
       destruct n' as [ | n'' ].
@@ -227,26 +256,35 @@ Proof.
         rewrite IH. 2: lia.
         autorewrite with itree.
         reflexivity.
-Qed.
-(* STUBWITH Admitted. *)
+    (* /ADMIT *)
+(* ADMITTED *) Qed. (* /ADMITTED. *)
+
+(** The final correctness result follows. *)
+Lemma fib_correct : forall n,
+    fib n ≈ Ret (fib_spec n).
+Proof. (* ADMITTED *)
+  intros n.
+  eapply fib_correct_aux.
+  reflexivity.
+Qed. (* /ADMITTED *)
 
 (** ** Logarithm *)
 
-(** An example of a function which is not structurally recursive:
-    logarithm in base [b].
+(** An example of a function which is not structurally recursive.
+    [log_ b n]: logarithm of [n] in base [b].
+    Note that this diverges if [n > 1] and [b = 0].
  *)
 
-Definition log_ (b : nat) : nat -> itree E nat :=
+Definition log (b : nat) : nat -> itree E nat :=
   rec-fix log_b n :=
     if n <=? 1 then
       Ret O
     else
       y <- log_b (n / b) ;; Ret (S y).
 
-Example log_2_64 : log_ 2 (2 ^ 6) ≈ Ret 6.
+Example log_2_64 : log 2 (2 ^ 6) ≈ Ret 6.
 Proof.
-  tau_steps.
-  reflexivity.
+  tau_steps. reflexivity.
 Qed.
 
 (** We can prove that [log_ b (b ^ y) ≈ Ret y] when [1 < b]. *)
@@ -270,15 +308,18 @@ Proof.
   intros; rewrite Nat.mul_comm, Nat.div_mul; lia.
 Qed.
 
-Lemma log_correct : forall b y, 1 < b -> log_ b (b ^ y) ≈ Ret y.
+Lemma log_correct : forall b y, 1 < b -> log b (b ^ y) ≈ Ret y.
 Proof.
   intros b y H.
-  unfold log_, rec_fix.
+  unfold log, rec_fix.
   induction y.
-  - rewrite rec_as_interp; cbn.
+  - (* ADMIT *)
+    rewrite rec_as_interp; cbn.
     autorewrite with itree.
     reflexivity.
-  - rewrite rec_as_interp; cbn.
+    (* /ADMIT *)
+  - (* ADMIT *)
+    rewrite rec_as_interp; cbn.
     (* (b * b ^ y <=? 1) = false *)
     rewrite log_correct_helper by auto.
     autorewrite with itree.
@@ -287,4 +328,5 @@ Proof.
     rewrite IHy.
     autorewrite with itree.
     reflexivity.
-Qed.
+    (* /ADMIT *)
+(* ADMITTED *) Qed. (* /ADMITTED *)

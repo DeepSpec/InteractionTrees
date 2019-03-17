@@ -1,6 +1,8 @@
 -Q ../theories ITree
 -R . Examples
 
+Introduction.v
+
 IO.v
 MultiThreadedPrinting.v
 ExtractThreadsExample.v
