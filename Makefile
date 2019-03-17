@@ -8,7 +8,7 @@ all:
 	# Build the library before tests
 	$(MAKE) coq
 	$(MAKE) tutorial
-# TODO: add tests examples html (left out for speed while we develop tutorial)
+	$(MAKE) test
 
 coq: Makefile.coq
 	$(MAKE) -f Makefile.coq
