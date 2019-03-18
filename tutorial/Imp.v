@@ -33,6 +33,7 @@
 
 (* begin hide *)
 From Coq Require Import
+     Arith.PeanoNat
      Lists.List
      Strings.String.
 
@@ -207,10 +208,9 @@ Section Denote.
                    if continue : bool then ret (inl tt) else ret (inr tt)
          end) tt.
 
-  (* SAZ: using Galina's [if] in this way is a bit confusing.  Maybe
-     make it [if v =? 0 then false else true] or something like that? *)
   (** Casting values into [bool]. *)
-  Definition is_true (v : value) : bool := if v then false else true.
+
+  Definition is_true (v : value) : bool := if (v =? 0)%nat then false else true.
 
   (** The meaning of statements is now easy to define.
       They are all straightforward, except for [While] that uses our new
