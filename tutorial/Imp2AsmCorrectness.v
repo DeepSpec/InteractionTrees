@@ -1,7 +1,48 @@
 (** * Functional correctness of the compiler *)
 
-(** We now turn to proving our compiler correct. 
+(** We finally turn to proving our compiler correct.
 
+    We express the result as a (weak) bisimulation between
+    the [itree] resulting from the denotation of the source
+    _Imp_ statement and the denotation of the compiled _Asm_
+    program. This weak bisimulation is a _up-to-tau_ bisimulation.
+    More specifically, we relate the itrees after having
+    interpreted the [Locals] events contained in the trees into
+    the state monad, and run them.
+
+    The proof is essentially structured as followed:
+    - a simulation relation is defined to relate the local
+    environments during the simulation. This relation is
+    strengthened into a second one used during the simulation
+    of expressions.
+    - the desired bisimulation is defined to carry out the
+    the simulation invariant into a up-to-tau after interpretation
+    of [Locals] relation. Once again a slightly different
+    bisimulation is defined when handling expressions.
+    - Linking is proved in isolation: the "high level" control
+    flow combinators for _Asm_ defined in [Imp2Asm.v] are
+    proved correct in the same style as the elemntary ones
+    from [AsmCombinators.v].
+    - Finally, all the pieces are tied together to prove the
+    correctness.
+
+    We strengthen the following aspects of the proof:
+    - Despite establishing a termination-sensitive correctness
+    result over Turing-complete languages, we have not written
+    a single [cofix]. All coinductive reasoning is internalized
+    into the [itree] library.
+    - We have separated the control-flow-related reasoning from
+    the functional correctness one. In particular, the low-level
+    [asm] combinators are entirely reusable, and the high-level
+    ones are only very loosely tied to _Imp_.
+    - All reasoning is equational. In particular, reasoning at the
+    level of [ktree]s rather than introducing the entry label and
+    trying to reason at the level of [itree]s ease sensibly the pain
+    by reducing the amount of binders under which we need to work.
+    - We transparently make use of the heterogenous bisimulation provided
+    by the [itree] library to relate computations of _Asm_ expressions
+    that return an environment and a [unit] value to ones of _Imp_
+    that return an environment and an [Imp.value].
 *)
 
 (* begin hide *)
@@ -326,7 +367,6 @@ Section Eq_Locals.
       In our case, we specialize [RR] to equality since both trees return [unit],
       and [Renv_] to [Renv].
    *)
-  (* YZ TODO: sim_rel shoudl be expressed in terms of eq_locals? *)
   Definition eq_locals {R1 R2} (RR : R1 -> R2 -> Prop)
              (Renv_ : _ -> _ -> Prop)
              (t1: itree E R1) (t2: itree E R2): Prop :=
