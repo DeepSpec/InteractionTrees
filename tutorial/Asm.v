@@ -18,7 +18,7 @@ From ITree Require Import
 
 From ExtLib Require Structures.Monad.
 
-Require Import Imp.
+Require Import Imp Label.
 
 Typeclasses eauto := 5.
 
@@ -69,7 +69,7 @@ Global Arguments block _ : clear implicits.
     jump to.
     To this end, [bks] represents a collection of blocks labeled
     by [A], with branches in [B]. *)
-Definition bks A B := A -> block B.
+Definition bks A B := Fin.t A -> block (Fin.t B).
 
 (** An [asm] program represents the control flow of the computation.
     It is a collection of labelled [blocks] such that its labels are
@@ -83,8 +83,8 @@ Definition bks A B := A -> block B.
  *)
 Record asm A B : Type :=
   {
-    internal : Type;
-    code : bks (internal + A) (internal + B)
+    internal : nat;
+    code     : bks (internal + A) (internal + B)
   }.
 
 Arguments internal {A B}.
@@ -172,14 +172,14 @@ Section Denote.
       end.
 
     Section with_labels.
-      Context {A B : Type}.
+      Context {A B : nat}.
 
       (** A [branch] returns the computed label whose set of possible
           values [B] is carried by the type of the branch.
           If the computation halts instead of branching,
           we return the [done] tree.
        *)
-      Definition denote_branch (b : branch B) : itree E B :=
+      Definition denote_branch (b : branch (Fin.t B)) : itree E (Fin.t B) :=
         match b with
         | Bjmp l => ret l
         | Bbrz v y n =>
@@ -192,7 +192,7 @@ Section Denote.
           returning the [label] of the next [block] it shall jump to.
           It recursively denote its instruction before that.
        *)
-      Fixpoint denote_block (b : block B) : itree E B :=
+      Fixpoint denote_block (b : block (Fin.t B)) : itree E (Fin.t B) :=
         match b with
         | bbi i b =>
           denote_instr i ;; denote_block b
@@ -206,7 +206,7 @@ Section Denote.
           whose structure will be heavily taken profit of in the proof
           of the compiler.
        *)
-      Definition denote_b (bs: bks A B): ktree E A B :=
+      Definition denote_b (bs: bks A B): ktree E (Fin.t A) (Fin.t B) :=
         fun a => denote_block (bs a).
 
     End with_labels.
@@ -226,8 +226,9 @@ Section Denote.
    *)
 
     (* Denotation of [asm] *)
-    Definition denote_asm {A B} : asm A B -> ktree E A B :=
-      fun s => loop (denote_b (code s)).
+
+    Definition denote_asm {A B} : asm A B -> ktree E (Fin.t A) (Fin.t B) :=
+      fun s => loop_Label (denote_b (code s)).
 
   End with_effect.
 End Denote.

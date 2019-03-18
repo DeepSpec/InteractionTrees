@@ -14,12 +14,13 @@
  *)
 
 (* begin hide *)
-Require Import Asm Utils_tutorial.
+Require Import Asm Utils_tutorial Label LabelFacts.
 
 From Coq Require Import
      List
      Strings.String
      Program.Basics
+     Vectors.Fin
      ZArith.
 Import ListNotations.
 
@@ -47,9 +48,9 @@ Definition fmap_block {A B: Type} (f: A -> B): block A -> block B :=
     | bbb a => bbb (fmap_branch f a)
     | bbi i b => bbi i (fmap b)
     end.
-
-Definition relabel_bks {A B C D : Type} (f : A -> B) (g : C -> D)
-           (b : bks B C) : bks A D :=
+         
+Definition relabel_bks {A B X D : nat} (f : FinC A B) (g : FinC X D)
+           (b : bks B X) : bks A D :=
   fun a => fmap_block g (b (f a)).
 
 Fixpoint after {A: Type} (is : list instr) (bch : branch A) : block A :=
@@ -62,42 +63,38 @@ Fixpoint after {A: Type} (is : list instr) (bch : branch A) : block A :=
 
 (** Any collection of blocks forms an [asm] program with no hidden blocks. *)
 Definition raw_asm {A B} (b : bks A B) : asm A B :=
-  {| internal := void;
-     code := fun a' =>
-               match a' with
-               | inl v => match v : void with end
-               | inr a => fmap_block inr (b a)
-               end;
+  {| internal := 0;
+     code := fun l => b l
   |}.
 
 (** Wrap a single block as [asm]. *)
-Definition raw_asm_block {A} (b : block A) : asm unit A :=
+Definition raw_asm_block {A: nat} (b : block (Fin.t A)) : asm 1 A :=
   raw_asm (fun _ => b).
 
 (** ** [asm] combinators *)
 
 (** An [asm] program made only of external jumps. This is
       useful to connect programs with [app_asm]. *)
-Definition pure_asm {A B} (f : A -> B) : asm A B :=
+Definition pure_asm {A B: nat} (f : Fin.t A -> Fin.t B) : asm A B :=
   raw_asm (fun a => bbb (Bjmp (f a))).
 
 Definition id_asm {A} : asm A A := pure_asm id.
 
 (* Internal relabeling functions for [app_asm] *)
-Definition _app_B {I J B D} :
-  block (I + B) -> block ((I + J) + (B + D)) :=
+Definition _app_B {I J B D: nat} :
+  block (Fin.t (I + B)) -> block (Fin.t ((I + J) + (B + D))) :=
   fmap_block (fun l =>
-                match l with
-                | inl i => inl (inl i)
-                | inr b => inr (inl b)
+                match split_fin_sum l with
+                | inl i => L _ (L _ i)
+                | inr b => R _ (L _ b)
                 end).
 
 Definition _app_D {I J B D} :
-  block (J + D) -> block ((I + J) + (B + D)) :=
+  block (Fin.t (J + D)) -> block (Fin.t ((I + J) + (B + D))) :=
   fmap_block (fun l =>
-                match l with
-                | inl j => inl (inr j)
-                | inr d => inr (inr d)
+                match split_fin_sum l with
+                | inl j => L _ (R _ j)
+                | inr d => R _ (R _ d)
                 end).
 
 (** Append two asm programs, preserving their internal links. *)
@@ -105,19 +102,22 @@ Definition app_asm {A B C D} (ab : asm A B) (cd : asm C D) :
   asm (A + C) (B + D) :=
   {| internal := ab.(internal) + cd.(internal);
      code := fun l =>
-               match l with
-               | inl (inl ia) => _app_B (ab.(code) (inl ia))
-               | inl (inr ic) => _app_D (cd.(code) (inl ic))
-               | inr (inl  a) => _app_B (ab.(code) (inr  a))
-               | inr (inr  c) => _app_D (cd.(code) (inr  c))
-               end;
+               match split_fin_sum l with
+               | inl iac => match split_fin_sum iac with
+                           | inl ia => _app_B (ab.(code) (L _ ia))
+                           | inr ic => _app_D (cd.(code) (L _ ic))
+                           end
+               | inr ac => match split_fin_sum ac with
+                          | inl a => _app_B (ab.(code) (R _ a))
+                          | inr c => _app_D (cd.(code) (R _ c))
+                          end
+               end
   |}.
 
 (** Rename visible program labels. *)
-Definition relabel_asm {A B C D} (f : A -> B) (g : C -> D)
+Definition relabel_asm {A B C D} (f : FinC A B) (g : FinC C D)
            (bc : asm B C) : asm A D :=
-  {| code := relabel_bks (bimap id f) (bimap id g) bc.(code);
-  |}.
+  {| code := relabel_bks (bimap id f) (bimap id g)  bc.(code); |}.
 
 (** Link labels from two programs together. *)
 Definition link_asm {I A B} (ab : asm (I + A) (I + B)) : asm A B :=
@@ -150,7 +150,7 @@ Context {HasExit : Exit -< E}.
 (** *** Internal structures *)
 
 Lemma fmap_block_map:
-  forall  {L L'} b (f: L -> L'),
+  forall  {L L'} b (f: FinC L L'),
     denote_block (fmap_block f b) ≅ ITree.map f (denote_block b).
 Proof.
   induction b as [i b | br]; intros f.
@@ -173,7 +173,7 @@ Definition denote_list: list instr -> itree E unit :=
   traverse_ denote_instr.
 
 Lemma after_correct :
-  forall {label: Type} instrs (b: branch label),
+  forall {label: nat} instrs (b: branch (Fin.t label)),
     denote_block (after instrs b) ≅ (denote_list instrs ;; denote_branch b).
 Proof.
   induction instrs as [| i instrs IH]; intros b.
@@ -192,23 +192,21 @@ Proof.
   rewrite bind_bind; setoid_rewrite IH; reflexivity.
 Qed.
 
-Lemma raw_asm_block_correct_lifted {A} (b : block A) :
+
+Lemma raw_asm_block_correct_lifted {A} (b : block (Fin.t A)) :
    denote_asm (raw_asm_block b) ⩯
-          ((fun _ : unit => denote_block b) : ktree _ _ _).
+          ((fun _ => denote_block b) : ktree _ _ _).
 Proof.
-  unfold denote_asm.
-  rewrite vanishing_ktree.
-  rewrite case_l_ktree', case_l_ktree.
+  unfold denote_asm. simpl.
+  rewrite vanishing_Label.
+  rewrite case_l_Label'.
+  setoid_rewrite case_l_Label .
   unfold denote_b; simpl.
-  intros [].
-  rewrite fmap_block_map, map_map.
-  unfold ITree.map.
-  rewrite <- (bind_ret2 (denote_block b)) at 2.
   reflexivity.
 Qed.
 
-Lemma raw_asm_block_correct {A} (b : block A) :
-  eutt eq (denote_asm (raw_asm_block b) tt)
+Lemma raw_asm_block_correct {A} (b : block (t A)) :
+  eutt eq (denote_asm (raw_asm_block b) F1)
           (denote_block b).
 Proof.
   apply raw_asm_block_correct_lifted.
@@ -216,16 +214,16 @@ Qed.
 
 (** *** [asm] combinators *)
 
-Theorem pure_asm_correct {A B} (f : A -> B) :
+Theorem pure_asm_correct {A B} (f : FinC A B) :
     denote_asm (pure_asm f)
   ⩯ @lift_ktree E _ _ f.
 Proof.
   unfold denote_asm .
-  rewrite vanishing_ktree.
-  rewrite case_l_ktree', case_l_ktree.
+  rewrite vanishing_Label.
+  rewrite case_l_Label'.
+  setoid_rewrite case_l_Label.
   unfold denote_b; simpl.
   intros ?.
-  rewrite map_ret.
   reflexivity.
 Qed.
 
@@ -312,62 +310,6 @@ Proof.
   all: typeclasses eauto.
 Qed.
 
-Lemma foo {A B C: Type}:
-  forall (f: bks A C) (g: bks B C),
-    denote_b (fun a => match a with
-                      | inl x => f x
-                      | inr x => g x
-                      end) ⩯
-             fun a => match a with
-                   | inl x => denote_block (f x)
-                   | inr x => denote_block (g x)
-                   end.
-Proof.
-  intros.
-  unfold denote_b; intros []; reflexivity.
-Qed.  
-
-Lemma bar {A B C: Type}:
-  forall (f: bks A C) (g: bks B C) a,
-    denote_block match a with
-                   | inl x => f x
-                   | inr x => g x
-                   end ≈ 
-     match a with
-     | inl x => denote_block (f x)
-     | inr x => denote_block (g x)
-     end.
-Proof.
-  intros.
-  destruct a; reflexivity.
-Qed.
-
-Lemma foo_assoc_l {A B C D D'} (f : ktree E _ D') :
-    bimap (id_ A) (@assoc_l _ _ _ _ B C D) >>> (assoc_l >>> f)
-   ⩯ assoc_l >>> (assoc_l >>> (bimap assoc_r (id_ _) >>> f)).
-Proof.
-  rewrite <- !cat_assoc.
-  rewrite <- assoc_l_assoc_l.
-  rewrite (cat_assoc _ _ _ (bimap _ (id_ _))).
-  rewrite bimap_cat, cat_id_l, assoc_l_mono, bimap_id, cat_id_r.
-  reflexivity.
-  all: typeclasses eauto.
-Qed.
-
-Lemma foo_assoc_r {A' A B C D} (f : ktree E A' _) :
-    f >>> assoc_r >>> bimap (id_ A) (@assoc_r _ _ _ _ B C D)
-  ⩯ f >>> bimap assoc_l (id_ _) >>> assoc_r >>> assoc_r.
-Proof.
-  rewrite (cat_assoc _ _ _ assoc_r).
-  rewrite <- assoc_r_assoc_r.
-  rewrite (cat_assoc _ (bimap _ _)), (cat_assoc _ _ (bimap _ _)).
-  rewrite <- (cat_assoc _ (bimap _ _)).
-  rewrite bimap_cat, cat_id_l, assoc_l_mono, bimap_id, cat_id_l.
-  rewrite cat_assoc.
-  reflexivity.
-  all: typeclasses eauto.
-Qed.
-
 Definition app_asm_correct {A B C D} (ab : asm A B) (cd : asm C D) :
      denote_asm (app_asm ab cd)
   ⩯ bimap (denote_asm ab) (denote_asm cd).
@@ -375,7 +317,8 @@ Proof.
   unfold denote_asm.
 
   match goal with | |- ?x ⩯ _ => set (lhs := x) end.
-  rewrite bimap_ktree_loop.
+  rewrite bimap_Label_loop.
+  (*
   rewrite loop_bimap_ktree.
   rewrite <- compose_loop.
   rewrite <- loop_compose.
@@ -399,12 +342,15 @@ Proof.
   all: apply eutt_bind; try reflexivity.
   all: intros []; rewrite (itree_eta (ITree.bind _ _)); cbn; reflexivity.
 Qed.
+*)
+Admitted.
 
-Definition relabel_bks_correct {A B C D} (f : A -> B) (g : C -> D)
+Definition relabel_bks_correct {A B C D} (f : FinC A B) (g : FinC C D)
            (bc : bks B C) :
     denote_b (relabel_bks f g bc)
   ⩯ lift_ktree f >>> denote_b bc >>> lift_ktree g.
 Proof.
+  (*
   rewrite lift_compose_ktree.
   rewrite compose_ktree_lift.
   intro a.
@@ -412,12 +358,15 @@ Proof.
   rewrite fmap_block_map.
   reflexivity.
 Qed.
+   *)
+Admitted.
 
-Definition relabel_asm_correct {A B C D} (f : A -> B) (g : C -> D)
+Definition relabel_asm_correct {A B C D} (f : FinC A B) (g : FinC C D)
            (bc : asm B C) :
     denote_asm (relabel_asm f g bc)
   ⩯ lift_ktree f >>> denote_asm bc >>> lift_ktree g.
 Proof.
+  (*
   unfold denote_asm.
   simpl.
   rewrite relabel_bks_correct.
@@ -427,11 +376,14 @@ Proof.
   rewrite !bimap_id_lift.
   reflexivity.
 Qed.
+   *)
+Admitted.
 
 Definition link_asm_correct {I A B} (ab : asm (I + A) (I + B)) :
-    denote_asm (link_asm ab) ⩯ loop (denote_asm ab).
+    denote_asm (link_asm ab) ⩯ loop_Label (denote_asm ab).
 Proof.
   unfold denote_asm.
+  (*
   rewrite loop_loop.
   apply eq_ktree_loop.
   simpl.
@@ -439,5 +391,7 @@ Proof.
   rewrite <- assoc_l_ktree, <- assoc_r_ktree.
   reflexivity.
 Qed.
+*)
+Admitted.
 
 End Correctness.
