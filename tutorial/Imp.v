@@ -189,7 +189,7 @@ Section Denote.
       builds the fixpoint of the body, hiding away the [C] argument.
       
       Compared to the [mrec] and [rec] combinators introduced in [Introduction.v], [loop]
-      is more restricted in that it naturally represents recursive terminal functions.
+      is more restricted in that it naturally represents tail recursive functions.
       It however enjoys a rich equational theory: its addition grants the type of
       _continuation trees_, named [ktree]s in the library, a structure of
       _traced monoidal category_.
