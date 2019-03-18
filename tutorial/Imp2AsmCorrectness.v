@@ -374,6 +374,45 @@ Section Eq_Locals.
     eapply interp_state_loop; auto.
   Qed.
 
+  Definition env_lookupDefault_is_lift {K V : Type} {E: Type -> Type} `{envE K V -< E} (x: K) (v: V):
+    env_lookupDefault x v = lift (lookupDefaultE x v).
+  Proof.
+    reflexivity.
+  Qed.
+
+  (** [sim_rel] at [n] entails that [GetVar (gen_tmp n)] gets interpreted
+      as returning the same value as the _Imp_ related one.
+   *)
+  Lemma sim_rel_get_tmp0:
+    forall n g_asm0 g_asm g_imp v,
+      sim_rel g_asm0 n (g_asm,tt) (g_imp,v) ->
+      interp_locals (lift (GetVar (gen_tmp n))) g_asm ≈ Ret (g_asm,v).
+  Proof.
+    intros.
+    destruct H as [_ [eq _]].
+    unfold interp_locals.
+    unfold lift.
+    rewrite interp_lift.
+    rewrite tau_eutt.
+    cbn.
+    unfold run_env.
+    unfold evalLocals, CategoryOps.cat, Cat_Handler, Handler.cat.
+    rewrite env_lookupDefault_is_lift.
+    unfold lift.
+    rewrite unfold_interp_state; cbn.
+    rewrite tau_eutt.
+    rewrite map_bind.
+    setoid_rewrite interp_ret.
+    setoid_rewrite bind_ret2.
+    unfold inl_, Inl_sum1_Handler, Handler.inl_, Handler.hlift.
+    rewrite interp_state_lift.
+    rewrite bind_ret2.
+    cbn.
+    rewrite eq.
+    rewrite !tau_eutt.
+    reflexivity.
+  Qed.
+
 End Eq_Locals.
 
 (* ================================================================= *)
@@ -522,7 +561,12 @@ Section Correctness.
   Ltac untau_right := force_right; rewrite tau_eutt.
 
   (** Correctness of expressions.
-      
+      We strengthen [eq_locals]: initial environments are still related by [Renv],
+      but intermediate ones must now satisfy [sim_rel].
+      Note that by doing so, we use a _heterogeneous bisimulation_: the trees
+      return values of different types ([alist var value * unit] for _Asm_,
+      [alist var value * value] for _Imp_). The differeence is nonetheless mostly
+      transparent for the user, except for the use of the more generale [eutt_bind_gen].
    *)
   
   Lemma compile_expr_correct : forall e g_imp g_asm n,
@@ -638,6 +682,10 @@ Section Correctness.
       eapply sim_rel_binary_op; eauto.
   Qed.
 
+  (** Correctness of the assign statement.
+      The resulting list of instruction is denoted as
+      denoting the expression followed by setting the variable.
+   *)
   Lemma compile_assign_correct : forall e x,
       eq_locals eq Renv
                 (denote_list (compile_assign x e))
@@ -645,79 +693,59 @@ Section Correctness.
   Proof.
     red; intros.
     unfold compile_assign.
+    (* We push interp_locals inside of the denotations *)
     rewrite denote_list_app.
     do 2 rewrite interp_locals_bind.
+
+    (* By correctness of the compilation of expressions,
+       we can match the head trees.
+     *)
     eapply eutt_bind_gen.
-    eapply compile_expr_correct; eauto.
-    intros.
+    { eapply compile_expr_correct; eauto. }
+
+    (* Once again, we get related environments *)
+    intros [g_asm' []] [g_imp' v] HSIM.
+    (* We can now reduce to Ret constructs *)
     repeat untau_left.
     force_left.
     repeat untau_right; force_right.
     eapply eutt_ret; simpl.
-    destruct r1, r2.
+
+    (* And remains to relate the results *)
     erewrite sim_rel_find_tmp_n; eauto; simpl.
-    destruct H0.
+    apply sim_rel_Renv in HSIM.
     split; auto.
     eapply Renv_write_local; eauto.
   Qed.
 
+  (* Utility: slight rephrasing of [while] to facilitate rewriting
+     in the main theorem.*)
   Lemma while_is_loop {E} (body : itree E bool) :
     while body
           ≈ loop (fun l : unit + unit =>
                     match l with
-                    | inl _ => ITree.map (fun b => if b : bool then inl tt else inr tt)
-                                        body
+                    | inl _ => ITree.map (fun b => if b : bool then inl tt else inr tt) body
                     | inr _ => Ret (inl tt)   (* Enter loop *)
                     end) tt.
   Proof.
     unfold while.
-    (* another hack, should be [apply eutt_loop]. *)
-    match goal with
-    | [ |- _ (loop ?x _) (loop ?y _) ] =>
-    apply (eutt_loop x y)
-    end;
-      [intros [[]|[]]; simpl |]; try reflexivity.
+    apply eutt_loop; [| reflexivity].
+    intros [[]|[]]; simpl; [| reflexivity].
     unfold ITree.map.
     apply eutt_bind; try reflexivity.
     intros []; reflexivity.
   Qed.
 
-  Definition env_lookupDefault_is_lift {K V : Type} {E: Type -> Type} `{envE K V -< E} (x: K) (v: V):
-    env_lookupDefault x v = lift (lookupDefaultE x v).
-  Proof.
-    reflexivity.
-  Qed.
-
-  Lemma sim_rel_get_tmp0:
-    forall g_asm0 g_asm g_imp v,
-      sim_rel g_asm0 0 (g_asm,tt) (g_imp,v) ->
-      interp_locals (E' := E') (lift (GetVar (gen_tmp 0))) g_asm ≈ Ret (g_asm,v).
-  Proof.
-    intros.
-    destruct H as [_ [eq _]].
-    unfold interp_locals.
-    unfold lift.
-    rewrite interp_lift.
-    rewrite tau_eutt.
-    cbn.
-    unfold run_env.
-    unfold evalLocals, CategoryOps.cat, Cat_Handler, Handler.cat.
-    rewrite env_lookupDefault_is_lift.
-    unfold lift.
-    rewrite unfold_interp_state; cbn.
-    rewrite tau_eutt.
-    rewrite map_bind.
-    setoid_rewrite interp_ret.
-    setoid_rewrite bind_ret2.
-    unfold inl_, Inl_sum1_Handler, Handler.inl_, Handler.hlift.
-    rewrite interp_state_lift.
-    rewrite bind_ret2.
-    cbn.
-    rewrite eq.
-    rewrite !tau_eutt.
-    reflexivity.
-  Qed.
-
+  (** Correctness of the compiler.
+      After interpretation of the [Locals], the source _Imp_ statement
+      denoted as an [itree] and the compiled _Asm_ program denoted
+      as an [itree] are equivalent up-to-taus.
+      The correctness is termination sensitive, but nonetheless a simple
+      induction on statements.
+      We only are left with reasoning about the functional correctness of
+      the compiler, all control-flow related reasoning having been handled
+      in isolation.
+   *)
   Theorem compile_correct (s : stmt) :
     eq_locals eq Renv
               (denote_asm (compile s) tt)
@@ -727,88 +755,109 @@ Section Correctness.
 
     - (* Assign *)
       simpl.
+      (* We push [denote_asm] inside of the combinators *)
       rewrite raw_asm_block_correct.
       rewrite after_correct.
+
+      (* The head trees match by correctness of assign *)
       rewrite <- (bind_ret2 (ITree.bind (denoteExpr e) _)).
       eapply eq_locals_bind_gen.
       { eapply compile_assign_correct; auto. }
-      intros [] [] []. simpl.
+
+      (* And remains to trivially relate the results *)
+      intros [] [] []; simpl.
       repeat intro.
-      rewrite itree_eta, (itree_eta (_ _ g2)); cbn.
+      force_left; force_right.
       apply eutt_ret; auto.
 
     - (* Seq *)
+      (* We commute [denote_asm] with [seq_asm] *)
       rewrite fold_to_itree; simpl.
       rewrite seq_asm_correct. unfold to_itree.
-      unfold ITree.cat.
+
+      (* And the result is immediate by indcution hypothesis *)
       eapply eq_locals_bind_gen.
       { eauto. }
       intros [] [] []; auto.
 
     - (* If *)
-      repeat intro.
+      (* We commute [denote_asm] with [if_asm] *)
       rewrite fold_to_itree. simpl.
       rewrite if_asm_correct.
       unfold to_itree.
+
+      (* We now need to line up the evaluation of the test,
+         and eliminate them by correctness of [compile_expr] *)
+      repeat intro.
       rewrite 2 interp_locals_bind.
       eapply eutt_bind_gen.
       { apply compile_expr_correct; auto. }
-      intros.
-      destruct r2 as [g_imp' v]; simpl.
+
+      (* We get in return [sim_rel] related environments *)
+      intros [g_asm []] [g_imp v] HSIM.
       rewrite interp_locals_bind.
-      destruct r1 as [g_asm' []].
-      generalize H0; intros EQ. apply sim_rel_get_tmp0 in EQ.
+      (* We know that interpreting [GetVar tmp_if] is eutt to [Ret (g_asm,v)] *)
+      generalize HSIM; intros EQ; eapply sim_rel_get_tmp0 in EQ.
       setoid_rewrite EQ; clear EQ.
-      rewrite bind_ret_.
-      simpl.
-      apply sim_rel_Renv in H0.
+      rewrite bind_ret_; simpl.
+      (* We can weaken [sim_rel] down to [Renv] *)
+      apply sim_rel_Renv in HSIM.
+      (* And finally conclude in both cases *)
       destruct v; simpl; auto. 
 
     - (* While *)
+      (* We commute [denote_asm] with [while_asm], and restructure the
+         _Imp_ [loop] with [while_is_loop] *)
       simpl; rewrite fold_to_itree.
       rewrite while_asm_correct.
       rewrite while_is_loop.
       unfold to_itree.
-      (* TODO: [apply eq_locals_loop] *)
-      match goal with
-      | [ |- _ (loop ?x _) (loop ?y _) ] =>
-        apply (eq_locals_loop _ x y)
-      end.
-      intros [[]|[]].
-      2:{ repeat intro.
-          rewrite itree_eta, (itree_eta (_ _ g2)); cbn.
-          apply eutt_ret; auto. }
-      unfold ITree.map. rewrite bind_bind.
 
+      (* We now have loops on both side, so we can just reason about their bodies *)
+      apply eq_locals_loop.
+      (* The two cases correspond to entering the loop, or exiting it*)
+      intros [[]|[]].
+
+      (* The exiting case is trivial *)
+      2:{ repeat intro.
+          force_left. force_right.
+          apply eutt_ret; auto. }
+
+      (* We now need to line up the evaluation of the test,
+         and eliminate them by correctness of [compile_expr] *)
+      unfold ITree.map. rewrite bind_bind.
       repeat intro.
       rewrite 2 interp_locals_bind.
       eapply eutt_bind_gen.
       { apply compile_expr_correct; auto. }
-      intros.
-      destruct r2 as [g_imp' v]; simpl.
-      rewrite interp_locals_bind.
-      destruct r1 as [g_asm' []].
-      generalize H0; intros EQ. apply sim_rel_get_tmp0 in EQ.
-      rewrite interp_locals_bind.
+
+      (* We get in return [sim_rel] related environments *)
+      intros [g_asm []] [g_imp v] HSIM.
+      rewrite 2 interp_locals_bind.
+      (* We know that interpreting [GetVar tmp_if] is eutt to [Ret (g_asm,v)] *)
+      generalize HSIM; intros EQ. eapply sim_rel_get_tmp0 in EQ.
       setoid_rewrite EQ; clear EQ.
-      rewrite bind_ret_.
-      simpl.
-      apply sim_rel_Renv in H0.
+      rewrite bind_ret_; simpl.
+
+      (* We can weaken [sim_rel] down to [Renv] *)
+      apply sim_rel_Renv in HSIM.
+      (* And now consider both cases *)
       destruct v; simpl; auto.
-      + rewrite itree_eta, (itree_eta (_ >>= _)); cbn.
-        apply eutt_ret. auto.
-      + rewrite 2 interp_locals_bind, bind_bind.
+      + (* The false case is trivial *)
+        force_left; force_right.
+        apply eutt_ret; auto.
+      + (* In the true case, we line up the body of the loop to use the induction hypothesis *)
+        rewrite 2 interp_locals_bind, bind_bind.
         eapply eutt_bind_gen.
         { eapply IHs; auto. }
+        intros [g_asm' []] [g_imp' v'] [HSIM' ?].
         intros.
-        rewrite itree_eta, (itree_eta (_ >>= _)); cbn.
-        apply eutt_ret. destruct H1; auto.
+        force_right; force_left.
+        apply eutt_ret; simpl; split; auto. 
 
     - (* Skip *)
       repeat intro.
-      rewrite (itree_eta (_ (denote_asm _ _) _)),
-      (itree_eta (_ (denoteStmt _) _));
-        cbn.
+      force_right; force_left.
       apply eutt_ret; auto.
   Qed.
 
