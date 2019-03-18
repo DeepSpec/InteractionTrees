@@ -1,7 +1,7 @@
 -Q ../theories/ ITree
 -R . tutorial
 
-# Introduction.v
+Introduction.v
 
 Utils_tutorial.v
 Imp.v
