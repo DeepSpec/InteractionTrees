@@ -585,7 +585,6 @@ Section Correctness.
   Context {HasExit: Exit -< E'}.
   Notation E := (Locals +' E').
 
-  (* SAZ: It's possible that the new [tau_steps] tactic can help simplify these proofs. *)
   (** We use a couple of tactics to step through itrees by eta expansion followed by reduction *)
   Ltac force_left :=
     match goal with
@@ -600,6 +599,11 @@ Section Correctness.
   (** Chain a reduction expected to exhibit a [Tau] step with its elimination *)
   Ltac untau_left := force_left; rewrite tau_eutt.
   Ltac untau_right := force_right; rewrite tau_eutt.
+
+  (** Fully reduce both sides *)
+  Ltac tau_steps :=
+    repeat (untau_left); force_left;
+    repeat (untau_right); force_right.
 
   (** Correctness of expressions.
       We strengthen [eq_locals]: initial environments are still related by [Renv],
@@ -619,9 +623,7 @@ Section Correctness.
     induction e; simpl; intros.
     - (* Var case *)
       (* We first compute and eliminate taus on both sides. *)
-      repeat untau_left.
-      repeat untau_right.
-      force_left; force_right.
+      tau_steps.
 
       (* We are left with [Ret] constructs on both sides, that remains to be related *)
       apply eutt_ret.
@@ -632,9 +634,7 @@ Section Correctness.
 
     - (* Literal case *)
       (* We reduce both sides to Ret constructs *)
-      repeat untau_left.
-      force_left.
-      force_right.
+      tau_steps.
 
       apply eutt_ret.
       (* _Asm_ bind the litteral to [gen_tmp n] while _Imp_ returns it *)
@@ -658,8 +658,7 @@ Section Correctness.
       (* And we once again get new related environments *)
       intros [g_asm'' []] [g_imp'' v'] HSIM'.
       (* We can now reduce down to Ret constructs that remains to be related *)
-      repeat untau_left.
-      force_left; force_right.
+      tau_steps.
       simpl fst in *.
       apply eutt_ret.
 
@@ -685,8 +684,7 @@ Section Correctness.
       (* And we once again get new related environments *)
       intros [g_asm'' []] [g_imp'' v'] HSIM'.
       (* We can now reduce down to Ret constructs that remains to be related *)
-      repeat untau_left.
-      force_left; force_right.
+      tau_steps. 
       simpl fst in *.
       apply eutt_ret.
 
@@ -712,8 +710,7 @@ Section Correctness.
       (* And we once again get new related environments *)
       intros [g_asm'' []] [g_imp'' v'] HSIM'.
       (* We can now reduce down to Ret constructs that remains to be related *)
-      repeat untau_left.
-      force_left; force_right.
+      tau_steps.
       simpl fst in *.
       apply eutt_ret.
 
@@ -747,9 +744,7 @@ Section Correctness.
     (* Once again, we get related environments *)
     intros [g_asm' []] [g_imp' v] HSIM.
     (* We can now reduce to Ret constructs *)
-    repeat untau_left.
-    force_left.
-    repeat untau_right; force_right.
+    tau_steps. 
     eapply eutt_ret; simpl.
 
     (* And remains to relate the results *)
