@@ -144,7 +144,7 @@ Definition app_asm {A B C D} (ab : asm A B) (cd : asm C D) :
 
 (** Rename visible program labels.
     Having chosen to represent labels as binary trees encoded in [Type],
-    we for instance typically need to rename our visible labels through
+    we, for instance, typically need to rename our visible labels through
     associators.
     The following generic combinator allow any relabelling. 
  *)
@@ -163,8 +163,8 @@ Definition link_asm {I A B} (ab : asm (I + A) (I + B)) : asm A B :=
 
 (* ================================================================= *)
 (** ** Correctness *)
-(** We show the combinator correct by proving that their denotation
-    map to the [ktree] counterparts.
+(** We show the combinators correct by proving that their denotation
+    map to their [ktree] counterparts.
     Since these combinators are the basic blocks we'll use in the
     compiler to link compiled subterms, these correctness lemmas
     will provide an equational theory sufficient to conduct
@@ -250,6 +250,8 @@ Section Correctness.
       [itree]s (block), the correctness is established at both
       level for convenience.
    *)
+  (* SAZ: I think that this point is the first place in the compiler tutorial where we use 
+     the category theory notation for equivalence... Maybe call that out? *)
   Lemma raw_asm_block_correct_lifted {A} (b : block A) :
     denote_asm (raw_asm_block b) ⩯
                ((fun _ : unit => denote_block b) : ktree _ _ _).
@@ -314,7 +316,7 @@ Section Correctness.
       line up.
      *)
 
-    (* We first work on the rhs to reduce it to a single loop. *)
+    (* We first work on the rhs to reduce it to a single loop. *)(* SAZ: I'm not sure that the comments here are that enlightening.  It would be good if, at some later point, we could point to pictures... *)
     match goal with | |- ?x ⩯ _ => set (lhs := x) end.
     rewrite bimap_ktree_loop. (* a loop superposed atop another diagram can englob the latter *)
     rewrite loop_bimap_ktree. (* as well as if the loop is under... But it takes a bit more rewiring! *)
@@ -397,7 +399,7 @@ End Correctness.
 
 (** We have defined four low-level combinators allowing us to combine [asm]
     programs together. These combinators are correct in the sense that
-    their denotation is bisimilar to their denotational pendent at the
+    their denotation is bisimilar to their denotational counterparts at the
     [ktree] level.
     This theory of linking is only tied to _Asm_, and can therefore be reused
     either for other compilers targetting Asm, or for optimizations over Asm. 

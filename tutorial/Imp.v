@@ -61,7 +61,7 @@ Definition var : Set := string.
 (** For simplicity, the language manipulates [nat]s as values. *)
 Definition value : Type := nat.
 
-(** Expressions are made of variables, constant litterals, and arithmetic operations. *)
+(** Expressions are made of variables, constant literals, and arithmetic operations. *)
 Inductive expr : Type :=
 | Var (_ : var)
 | Lit (_ : value)
@@ -178,7 +178,7 @@ Section Denote.
 
   (** We turn to the denotation of statements. As opposed to expressions, statements
       do not return any value: their semantic domain is therefore [itree eff unit].
-      The most interesting construct is naturally the [while].
+      The most interesting construct is naturally [while].
 
       To define its meaning, we make use of the [loop] combinator provided by
       the [itree] library:
@@ -207,7 +207,9 @@ Section Denote.
                    if continue : bool then ret (inl tt) else ret (inr tt)
          end) tt.
 
-  (* Casting values into [bool]. *)
+  (* SAZ: using Galina's [if] in this way is a bit confusing.  Maybe
+     make it [if v =? 0 then false else true] or something like that? *)
+  (** Casting values into [bool]. *)
   Definition is_true (v : value) : bool := if v then false else true.
 
   (** The meaning of statements is now easy to define.
@@ -277,9 +279,9 @@ From ExtLib Require Import
 (* end hide *)
 
 (** We provide an /ITree event handler/ to interpret away [Locals] events.
-    We use an /environment effect/ to do so, modelling the environment as
+    We use an /environment effect/ to do so, modeling the environment as
     a 0-initialized environment.
-    Recall from [Introduction.v] that an _handler_ for the effects [Locals]
+    Recall from [Introduction.v] that a _handler_ for the effects [Locals]
     is a function of type [forall R, Locals R -> M R] for some monad [M].
     Here we take for our monad the special case of [M = itree E] for some
     universe of effects [E] required to contain the environment effects [envE]

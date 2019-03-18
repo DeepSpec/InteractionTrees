@@ -26,7 +26,7 @@
     - Finally, all the pieces are tied together to prove the
     correctness.
 
-    We strengthen the following aspects of the proof:
+    We emphasize the following aspects of the proof:
     - Despite establishing a termination-sensitive correctness
     result over Turing-complete languages, we have not written
     a single [cofix]. All coinductive reasoning is internalized
@@ -110,8 +110,8 @@ Opaque varOf.
 (** ** Simulation relations *)
 
 (** The compiler is proved correct by constructing a (itree) bisimulation between
-    the source program and its compilee.
-    As is traditional, we define to this end a simulation relation [Renv]. Since the
+    the source program and its compilation.
+    As is traditional, we define, to this end, a simulation relation [Renv]. Since the
     bisimulation will take place after handling of the local environment, [Renv]
     relates two [alist var value] environments.
  *)
@@ -311,8 +311,8 @@ End Simulation_Relation.
     environment, we cannot hope to relate the trees containing [Locals] events,
     we first need to interpret them.
     However, since it does not introduce any manipulation of the heap, we
-    interestingly can prove the result without interpreting the [Memory] events.
-    Of course this example is rather contrieved, owing to the simplicity of the
+    _can_ prove the result without interpreting the [Memory] events.
+    Of course this example is rather contrived, owing to the simplicity of the
     compiler. Nonetheless, it makes a lot of sense when considering optimization:
     one can see the handling of events are bits of the memory model, and 
     therefore have a framework to prove some optimization correct with respect
@@ -585,6 +585,7 @@ Section Correctness.
   Context {HasExit: Exit -< E'}.
   Notation E := (Locals +' E').
 
+  (* SAZ: It's possible that the new [tau_steps] tactic can help simplify these proofs. *)
   (** We use a couple of tactics to step through itrees by eta expansion followed by reduction *)
   Ltac force_left :=
     match goal with
@@ -629,7 +630,7 @@ Section Correctness.
       erewrite <- Renv_find; [| eassumption].
       apply sim_rel_add; assumption.
 
-    - (* Litteral case *)
+    - (* Literal case *)
       (* We reduce both sides to Ret constructs *)
       repeat untau_left.
       force_left.
