@@ -249,9 +249,9 @@ Section Correctness.
       Since it is hybrid between the level of [ktree]s (asm) and
       [itree]s (block), the correctness is established at both
       level for convenience.
+      Note that the ⩯ notation in the scope of [ktree] desugars to [eutt_ktree],
+      i.e. pointwise [eutt eq].
    *)
-  (* SAZ: I think that this point is the first place in the compiler tutorial where we use 
-     the category theory notation for equivalence... Maybe call that out? *)
   Lemma raw_asm_block_correct_lifted {A} (b : block A) :
     denote_asm (raw_asm_block b) ⩯
                ((fun _ : unit => denote_block b) : ktree _ _ _).
@@ -301,8 +301,7 @@ Section Correctness.
 
   (** Correctness of the [app_asm] combinator.
       The resulting [asm] gets denoted to the bimap of its subcomponent.
-      The proof is a bit more complicated. It makes a lot more sense if
-      drawn.
+      The proof is a bit more complicated. It makes a lot more sense if drawn.
    *)
   Theorem app_asm_correct {A B C D} (ab : asm A B) (cd : asm C D) :
     denote_asm (app_asm ab cd)
@@ -316,7 +315,15 @@ Section Correctness.
       line up.
      *)
 
-    (* We first work on the rhs to reduce it to a single loop. *)(* SAZ: I'm not sure that the comments here are that enlightening.  It would be good if, at some later point, we could point to pictures... *)
+    (* We first work on the rhs to reduce it to a single loop.
+       The textual explanations are fairly cryptic. The key intuition comes
+       by drawing the state of the circuit and using the rewiring laws
+       the categorical structure provides, as represented for instance here:
+       https://en.wikipedia.org/wiki/Traced_monoidal_category
+       [bimap_ktree_loop] and [loop_bimap_ktree] are the _superposing_ laws.
+       [compose_loop] and [loop_compose] are the _naturality_ in _X_ and _Y_.
+       [loop_loop] is the second _vanishing_ law.
+     *)
     match goal with | |- ?x ⩯ _ => set (lhs := x) end.
     rewrite bimap_ktree_loop. (* a loop superposed atop another diagram can englob the latter *)
     rewrite loop_bimap_ktree. (* as well as if the loop is under... But it takes a bit more rewiring! *)
