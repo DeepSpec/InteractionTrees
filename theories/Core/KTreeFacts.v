@@ -933,6 +933,88 @@ Proof.
     reflexivity.
 Qed.
 
+(** Utility: lemma to ease working forward in an equational proof.
+      Make it more convenient to rewrite subterm only on one side of the equation.
+ *)
+Fact fwd_eqn {a b : Type} (f g : ktree E a b) :
+  (forall h, h ⩯ f -> h ⩯ g) -> f ⩯ g.
+Proof.
+  intro H; apply H; reflexivity.
+Qed.
+
+(** Utility: lemmas to ease forward reasoning *)
+Fact cat_eq2_l {a b c : Type} (h : ktree E a b) (f g : ktree E b c) :
+  f ⩯ g ->
+  h >>> f ⩯ h >>> g.
+Proof.
+  intros H; rewrite H; reflexivity.
+Qed.
+
+Fact cat_eq2_r {a b c : Type} (h : ktree E b c) (f g : ktree E a b) :
+  f ⩯ g ->
+  f >>> h ⩯ g >>> h.
+Proof.
+  intros H; rewrite H; reflexivity.
+Qed.
+
+Fact local_rewrite1 {a b c : Type}:
+  bimap (id_ a) (@swap _ (ktree E) _ _ b c) >>> assoc_l >>> swap
+        ⩯ assoc_l >>> bimap swap (id_ c) >>> assoc_r.
+Proof.
+  symmetry.
+  apply fwd_eqn; intros h Eq.
+  do 2 apply (cat_eq2_l (bimap (id_ _) swap)) in Eq.
+  rewrite <- cat_assoc, bimap_cat, swap_involutive, cat_id_l,
+  bimap_id, cat_id_l in Eq.
+  rewrite <- (cat_assoc _ _ _ assoc_r), <- (cat_assoc _ _ assoc_l _)
+    in Eq.
+  rewrite <- swap_assoc_l in Eq.
+  rewrite (cat_assoc _ _ _ assoc_r) in Eq.
+  rewrite assoc_l_mono in Eq.
+  rewrite cat_id_r in Eq.
+  rewrite cat_assoc.
+  assumption.
+  all: typeclasses eauto.
+Qed.
+
+Fact local_rewrite2 {a b c : Type}:
+  swap >>> assoc_r >>> bimap (id_ _) swap
+       ⩯ @assoc_l _ (ktree E) _ _ a b c >>> bimap swap (id_ _) >>> assoc_r.
+Proof.
+  symmetry.
+  apply fwd_eqn; intros h Eq.
+  do 2 apply (cat_eq2_r (bimap (id_ _) swap)) in Eq.
+  rewrite cat_assoc, bimap_cat, swap_involutive, cat_id_l,
+  bimap_id, cat_id_r in Eq.
+  rewrite 2 (cat_assoc _ assoc_l) in Eq.
+  rewrite <- swap_assoc_r in Eq.
+  rewrite <- 2 (cat_assoc _ assoc_l) in Eq.
+  rewrite assoc_l_mono, cat_id_l in Eq.
+  assumption.
+  all: try typeclasses eauto.
+Qed.
+
+Lemma loop_bimap_ktree {I A B C D}
+      (ab : ktree E A B) (cd : ktree E (I + C) (I + D)) :
+  bimap ab (loop cd)
+        ⩯ loop (assoc_l >>> bimap swap (id_ _)
+                        >>> assoc_r
+                        >>> bimap ab cd
+                        >>> assoc_l >>> bimap swap (id_ _) >>> assoc_r).
+Proof.
+  rewrite swap_bimap, bimap_ktree_loop.
+  rewrite <- compose_loop, <- loop_compose.
+  rewrite (swap_bimap _ _ cd ab).
+  rewrite <- !cat_assoc.
+  rewrite local_rewrite1.
+  rewrite 2 cat_assoc.
+  rewrite <- (cat_assoc _ swap assoc_r).
+  rewrite local_rewrite2.
+  rewrite <- !cat_assoc.
+  reflexivity.
+  all: typeclasses eauto.
+Qed.
+
 Lemma yanking_ktree {A: Type}:
   @loop E _ _ _ swap ⩯ id_ A.
 Proof.
