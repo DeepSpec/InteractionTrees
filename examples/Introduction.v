@@ -210,6 +210,7 @@ Lemma unfold_factorial : forall x,
 Proof.
   intros x.
   unfold factorial.
+  (* ADMITTED *)
   rewrite rec_as_interp; unfold fact_body at 2.
   destruct x.
   - rewrite interp_ret.
@@ -218,7 +219,7 @@ Proof.
     rewrite interp_recursive_call.
     setoid_rewrite interp_ret.
     reflexivity.
-Qed.
+Qed. (* /ADMITTED *)
 
 (** We can prove that the ITrees version [factorial] is "equivalent"
     to the [factorial_spec] version.  The proof goes by induction on
