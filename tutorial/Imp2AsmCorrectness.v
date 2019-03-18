@@ -1,3 +1,10 @@
+(** * Functional correctness of the compiler *)
+
+(** We now turn to proving our compiler correct. 
+
+*)
+
+(* begin hide *)
 Require Import Imp Asm Utils_tutorial AsmCombinators Imp2Asm.
 
 Require Import Psatz.
@@ -34,18 +41,7 @@ Open Scope string_scope.
 Import CatNotations.
 Local Open Scope cat.
 
-Section EUTT.
-
-  Context {E: Type -> Type}.
-
-  Instance eq_itree_run_env {E R} {K V map} {Mmap: Maps.Map K V map}:
-    Proper (@eutt (envE K V +' E) R R eq ==> eq ==> @eutt E (prod map R) (prod map R) eq)
-           (run_env R).
-  Proof.
-    eapply eutt_interp_state.
-  Qed.
-
-End EUTT.
+(* end hide *)
 
 Section GEN_TMP.
 
