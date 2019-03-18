@@ -903,3 +903,43 @@ Section Correctness.
   Qed.
 
 End Correctness.
+
+(* ================================================================= *)
+(** ** Closing word. *)
+
+(** Through this medium-sized exemple, we have seen how to use [itree]s to
+    denote two languages, how to run them and how to prove correct a compiler
+    between them both.
+    We have emphasized that the theory of [ktree]s allowed us to decouple
+    all reasoning about the control-flow from the proof of the compiler itself.
+    The resulting proof is entirely structurally inductive and equational. In
+    particular, we obtain a final theorem relating potentially infinite computations
+    without having to write any cofixpoint. 
+    
+    If this result is encouraging, one might always wonder how things scale.
+
+    A first good sanity check is to extend the languages with a _Print_ instruction.
+    It requires to add a new effect to the language and therefore makes the correctness
+    theorem relate trees actually still containing events.
+    This change, which a good exercise to try, turns out to be as straightforward as one
+    would hope.
+
+    More importantly, our compiler is fairly stupid and inefficient: it creates blocks
+    for each compiled statement! One would hope to easily write and prove an optimization
+    coalescing elementary blocks together.
+    This however raises for now a difficulty: our representation of labels as binary trees
+    encoded in [Type] is too unstructured to allow for the necessary introspectiion on
+    [asm] programs.
+    We therefore need to change our representation of labels, for instance to a [Fin] type.
+    But this change turns out to be more interesting that it might seem: it moves [bks]
+    from [fun (A B: Type) => A -> block B] to [fun (A B: nat) => Fin.t A -> block (Fin.t B)].
+    Correspondingly, their denotation moves from [fun (A B: Type) => bks A B -> ktree E A B]
+    to [fun (A B: nat) => ktree E (Fin.t A) (Fin.t B)].
+    But our proof crucially rested on the categorie [(Type, ktree E)] being provided by
+    the [itree] library with a traced monoidal structure. We would therefore here need
+    to redo all the work to equip the category [(Nat, fun A B => ktree E (t A) (t B))] with
+    the same strucutre, which is significant low level work.
+    We might therefore want to investigate whether [ktree] is actually the right interface
+    to provide for compiling applications.
+ *)
+
