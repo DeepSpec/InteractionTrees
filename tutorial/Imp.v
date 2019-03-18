@@ -14,6 +14,16 @@
     of the compiler. The first piece is fairly generic, and hence reusable.
  *)
 
+(** This tutorial is composed of the following files:
+    - Utils_tutorial.v     : utilities
+    - Imp.v                : Imp language, syntax and semantics
+    - Asm.v                : Asm language, syntax and semantics
+    - AsmCombinators.v     : Linking theory for Asm
+    - Imp2Asm.v            : Compiler from Imp to Asm
+    - Imp2AsmCorrectness.v : Proof of correctness of the compiler
+    The intended entry point for reading is Imp.v.
+ *)
+
 (** We thefore start by introducing a simplified variant of Software Foundations'
     [Imp] language.
     The language's semantics is first expressed in terms of [itree]s.
