@@ -199,7 +199,7 @@ Fixpoint compile (s : stmt) {struct s} : asm unit unit :=
   | While e b => while_asm (compile_expr 0 e) (compile b)
   end.
 
-(** We consider its proof of correctness in [Imp2AsmCorrectness.v]. *)
+(** We now consider its proof of correctness in [Imp2AsmCorrectness.v]. *)
 
 
 
