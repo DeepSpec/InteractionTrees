@@ -7,7 +7,7 @@
     proof of correctness is expressed by proving a bisimulation between ITrees.
     We shall emphasize two main satisfying aspects of the resulting formalization.
     - Despite the correctness being termination-sensitive, we do not write any
-    cofixpoint. All reasoning is purely equational, and the underlying
+    cofixpoints. All reasoning is purely equational, and the underlying
     coinductive reasoning is hidden on the library side.
     - We split the correctness in two steps. First, a linking theory of the CFG language
     is proved correct. Then, this theory is leveraged to prove the functionnal correctness
@@ -161,12 +161,12 @@ Section Denote.
 
   (** _Imp_ expressions are denoted as [itree eff value], where the returned value
       in the tree is the value computed by the expression.
-      In the [Var] case, the [lift] operator allows to smoothly lift a single effect to
-      an [itree] performing the corresponding [Vis] event and returning immediately the
-      environment's answer.
-      Usual monadic notations are used in the other cases. A constant is simply returned,
-      while we can [bind] recursive computations in the case of operators as one would
-      expect.
+      In the [Var] case, the [lift] operator smoothly lifts a single effect to
+      an [itree] by performing the corresponding [Vis] event and returning the
+      environment's answer immediately.
+      Usual monadic notations are used in the other cases. A constant (literal) is
+      simply returned, while we can [bind] recursive computations in the case of
+      operators as one would expect.
    *)
   Fixpoint denoteExpr (e : expr) : itree eff value :=
     match e with
