@@ -1,12 +1,10 @@
 .PHONY: example-lc example-io example-nimp example-factorial example-threads 
 
-build: coq
-
-include ../common.mk
-
 examples: Makefile.coq
 	mkdir -p extracted
 	$(MAKE) -f Makefile.coq
+
+include ../common.mk
 
 example-lc:
 	$(MAKE) -f Makefile.coq stlc.vo
