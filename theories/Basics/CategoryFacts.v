@@ -37,7 +37,7 @@ Context {Proper_Cat_C : forall a b c,
 Global Instance SemiIso_Cat {a b c}
        (f : C a b) {f' : C b a} {SemiIso_f : SemiIso C f f'}
        (g : C b c) {g' : C c b} {SemiIso_g : SemiIso C g g'}
-  : SemiIso C (f >=> g) (g' >=> f') := {}.
+  : SemiIso C (f >>> g) (g' >>> f') := {}.
 Proof.
   rewrite cat_assoc, <- (cat_assoc _ g), (semi_iso g), cat_id_l,
   (semi_iso f).
@@ -117,7 +117,7 @@ Context {Proper_bimap : forall a b c d,
             @Proper (C a c -> C b d -> C _ _) (eq2 ==> eq2 ==> eq2) bimap}.
 
 Lemma bimap_slide {a b c d} (ac: C a c) (bd: C b d) :
-  bimap ac bd ⩯ bimap ac (id_ _) >=> bimap (id_ _) bd.
+  bimap ac bd ⩯ bimap ac (id_ _) >>> bimap (id_ _) bd.
 Proof.
   rewrite bimap_cat, cat_id_l, cat_id_r.
   reflexivity.
@@ -152,7 +152,7 @@ Context {Proper_case_ : forall a b c,
 (** Commute [cat] and [case_]. *)
 Lemma cat_case
       {a b c d} (ac : C a c) (bc : C b c) (cd : C c d)
-  : case_ ac bc >=> cd ⩯ case_ (ac >=> cd) (bc >=> cd).
+  : case_ ac bc >>> cd ⩯ case_ (ac >>> cd) (bc >>> cd).
 Proof.
   eapply case_universal; [ typeclasses eauto | | ].
   - rewrite <- cat_assoc; [ | typeclasses eauto ].
@@ -171,7 +171,7 @@ Proof.
 Qed.
 
 Lemma case_eta' {a b c} (f : C (bif a b) c) :
-  f ⩯ case_ (inl_ >=> f) (inr_ >=> f).
+  f ⩯ case_ (inl_ >>> f) (inr_ >>> f).
 Proof.
   eapply case_universal; [ typeclasses eauto | | ]; reflexivity.
 Qed.
@@ -179,8 +179,8 @@ Qed.
 (** We can prove the equivalence of morphisms on coproducts
     by case analysis. *)
 Lemma coprod_split {a b c} (f g : C (bif a b) c) :
-  (inl_ >=> f ⩯ inl_ >=> g) ->
-  (inr_ >=> f ⩯ inr_ >=> g) ->
+  (inl_ >>> f ⩯ inl_ >>> g) ->
+  (inr_ >>> f ⩯ inr_ >>> g) ->
   f ⩯ g.
 Proof.
   intros. rewrite (case_eta' g).
@@ -302,12 +302,12 @@ Proof.
   rewrite case_inl. reflexivity. typeclasses eauto.
 Qed.
 
-Lemma inr_unit_l {a} : inr_ >=> unit_l ⩯ id_ a.
+Lemma inr_unit_l {a} : inr_ >>> unit_l ⩯ id_ a.
 Proof.
   apply semi_iso; typeclasses eauto.
 Qed.
 
-Lemma inl_unit_r {a} : inl_ >=> unit_r ⩯ id_ a.
+Lemma inl_unit_r {a} : inl_ >>> unit_r ⩯ id_ a.
 Proof.
   apply semi_iso; typeclasses eauto.
 Qed.
@@ -526,7 +526,7 @@ Proof.
 Qed.
 
 Lemma swap_bimap {a b c d} (ab : C a b) (cd : C c d) :
-  bimap ab cd ⩯ (swap >=> bimap cd ab >=> swap).
+  bimap ab cd ⩯ (swap >>> bimap cd ab >>> swap).
 Proof.
   unfold bimap, Bimap_Coproduct, swap, Swap_Coproduct.
   apply coprod_split.

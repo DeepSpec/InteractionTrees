@@ -1,11 +1,16 @@
-.PHONY: clean all coq test tests examples install uninstall depgraph
+.PHONY: clean all coq test tests examples tutorial install uninstall depgraph
 
 COQPATHFILE=$(wildcard _CoqPath)
 
-all: coq
+build: coq
 
-coq: Makefile.coq
-	$(MAKE) -f Makefile.coq
+include common.mk
+
+all:
+	# Build the library before tests
+	$(MAKE) coq
+	$(MAKE) tutorial
+	$(MAKE) test
 
 install: Makefile.coq all
 	$(MAKE) -f $< $@
@@ -21,42 +26,15 @@ tests:
 examples:
 	$(MAKE) -C examples
 
-Makefile.coq: _CoqProject
-	coq_makefile -f $< -o $@
-
-
-## coqdoc -------------------------------------------------
-COQDOCFLAGS:= \
-  --toc --toc-depth 2 --html --interpolate \
-  --index indexpage --no-lib-name --parse-comments 
-
-ifdef COQDOCJS_DIR
-COQDOCFLAGS+=--with-header $(COQDOCJS_DIR)/extra/header.html --with-footer $(COQDOCJS_DIR)/extra/footer.html
-
-export COQDOCFLAGS
-
-html: Makefile.coq coq
-	rm -rf html
-	$(MAKE) -f Makefile.coq html
-	cp $(COQDOCJS_DIR)/extra/resources/* html
-else
-
-export COQDOCFLAGS
-
-html: Makefile.coq coq
-	rm -rf html
-	$(MAKE) -f Makefile.coq html
-endif
-
-## -------------------------------------------------------
-
-
+tutorial:
+	$(MAKE) -C tutorial
 
 clean: Makefile.coq
 	$(MAKE) -f Makefile.coq clean
 	$(MAKE) -C tests clean
 	$(MAKE) -C examples clean
-	$(RM) theories/{*,*/*}/*.{vo,glob} theories/{*,*/*}/.*.aux
+	$(MAKE) -C tutorial clean
+	$(RM) theories/{.,*,*/*}/*.{vo,glob} theories/{.,*,*/*}/.*.aux
 	$(RM) _CoqProject Makefile.coq*
 
 _CoqProject: $(COQPATHFILE) _CoqConfig Makefile

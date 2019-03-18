@@ -1,10 +1,37 @@
-(** We demonstrate how to use [itrees] in the context of verified compilation.
-    To this end, we start in this file by introduceing a simplified variant of
-    Software Foundations' [Imp] language.
-    The language's semantics is expressed in terms of [itrees].
-    The resulting semantics can be run through provided interpreters.
+(** * The Imp language  *)
+
+(** We now demonstrate how to use [itrees] in the context of verified compilation.
+    To this end, we will consider a simple compiler from an imperative language
+    to a control-flow-graph language.
+    The meaning of both languages will be given in terms of ITrees, so that the
+    proof of correctness is expressed by proving a bisimulation between ITrees.
+    We shall emphasize two main satisfying aspects of the resulting formalization.
+    - Despite the correctness being termination-sensitive, we do not write any
+    cofixpoint. All reasoning is purely equational, and the underlying
+    coinductive reasoning is hidden on the library side.
+    - We split the correctness in two steps. First, a linking theory of the CFG language
+    is proved correct. Then, this theory is leveraged to prove the functionnal correctness
+    of the compiler. The first piece is fairly generic, and hence reusable.
  *)
 
+(** This tutorial is composed of the following files:
+    - Utils_tutorial.v     : utilities
+    - Imp.v                : Imp language, syntax and semantics
+    - Asm.v                : Asm language, syntax and semantics
+    - AsmCombinators.v     : Linking theory for Asm
+    - Imp2Asm.v            : Compiler from Imp to Asm
+    - Imp2AsmCorrectness.v : Proof of correctness of the compiler
+    The intended entry point for reading is Imp.v.
+ *)
+
+(** We thefore start by introducing a simplified variant of Software Foundations'
+    [Imp] language.
+    The language's semantics is first expressed in terms of [itree]s.
+    The semantics of the program can then be obtained by
+    interpreting the events contained in the trees.
+ *)
+
+(* begin hide *)
 From Coq Require Import
      Lists.List
      Strings.String.
@@ -24,6 +51,8 @@ Import MonadNotation.
 Local Open Scope monad_scope.
 Local Open Scope string_scope.
 
+(* end hide *)
+
 (* ================================================================= *)
 (** ** Syntax *)
 
@@ -33,7 +62,7 @@ Definition var : Set := string.
 (** For simplicity, the language manipulates [nat]s as values. *)
 Definition value : Type := nat.
 
-(** Expressions are made of variables, constant litterals, additions and substractions. *)
+(** Expressions are made of variables, constant litterals, and arithmetic operations. *)
 Inductive expr : Type :=
 | Var (_ : var)
 | Lit (_ : value)
@@ -41,8 +70,8 @@ Inductive expr : Type :=
 | Minus (_ _ : expr)
 | Mult (_ _ : expr).
 
-(** _Imp_ statements: *)
-Definition is_true (v : value) : bool := if v then false else true.
+(** The statements are straightforward. The [While] statement is the only
+ potentially diverging one. *)
 
 Inductive stmt : Type :=
 | Assign (x : var) (e : expr)    (* x = e *)
@@ -58,9 +87,7 @@ Inductive stmt : Type :=
 
 Module ImpNotations.
 
-  (* YZ: TODO Improve notations.
-     And also, understand why overloaded notations seem to require to share the same level.
-   *)
+  (** A few notations for convenience.  *)
   Definition Var_coerce: string -> expr := Var.
   Definition Lit_coerce: nat -> expr := Lit.
   Coercion Var_coerce: string >-> expr.
@@ -77,11 +104,11 @@ Module ImpNotations.
   Notation "x '←' e" :=
     (Assign x e) (at level 60, e at level 50): stmt_scope.
 
-  Notation "a ;; b" :=
+  Notation "a ';;;' b" :=
     (Seq a b)
       (at level 100, right associativity,
        format
-         "'[v ' a  ';;' '/' '[' b ']' ']'"
+         "'[v' a  ';;;' '/' '[' b ']' ']'"
       ): stmt_scope.
 
   Notation "'IF' i 'THEN' t 'ELSE' e 'FI'" :=
@@ -91,12 +118,12 @@ Module ImpNotations.
        format
          "'[v ' 'IF'  i '/' '[' 'THEN'  t  ']' '/' '[' 'ELSE'  e ']' 'FI' ']'").
 
-  Notation "'WHILE' t 'DO' b 'DONE'" :=
+  Notation "'WHILE' t 'DO' b" :=
     (While t b)
       (at level 100,
        right associativity,
        format
-         "'[v ' 'WHILE'  t '/' '[' 'DO'  b  ']' DONE ']'").
+         "'[v  ' 'WHILE'  t  'DO' '/' '[v' b  ']' ']'").
 
   Notation "'PRINT' s" :=
     (Print s)
@@ -105,14 +132,14 @@ Module ImpNotations.
 
 End ImpNotations.
 
+Import ImpNotations.
+
 (* ================================================================= *)
 (** ** Semantics *)
 
-Import ImpNotations.
-
 (** _Imp_ produces effects by manipulating its variables.
     To account for this, we define a type of _external interactions_
-    [Locals] modelling reads and writes to variables.
+    [Locals] modeling reads and writes to variables.
     A read, [GetVar], takes a variable as an argument and expects
     the environment to answer with a value, hence defining an effect
     of type [Locals value].
@@ -129,24 +156,13 @@ Variant PrintE : Type -> Type :=
 
 Section Denote.
 
-  (* YZ: TODO get a clear sense of what we want to qualify of:
-     * meaning
-     * semantics
-     * denotation
-     and be consistent about it.
-   *)
   (** We now proceed to denote _Imp_ expressions and statements.
       We could simply fix in stone the universe of effects to be considered,
-      taking as a semantic domain for _Imp_ [itree eff X].
+      taking as a semantic domain for _Imp_ [itree Locals X].
       That would be sufficient to give meaning to _Imp_, but is inconvenient to
       relate this meaning to [itree]s stemmed from other entities.
       We therefore parameterize the denotation of _Imp_ by a larger universe of
-      effects [eff] of which [Locals] is a subeffect.
-   *)
-  (* YZ: TODO think some more about where exactly we take advantage of this approach.
-         Had initially in mind obviously when relating the denotations of imp and asm
-         to prove the compiler correct. However we actually first interpret away all
-         effects, hence it's not so clear.
+      effects [eff], of which [Locals] is assumed to be a subeffect.
    *)
 
   Context {eff : Type -> Type}.
@@ -156,7 +172,7 @@ Section Denote.
   (** _Imp_ expressions are denoted as [itree eff value], where the returned value
       in the tree is the value computed by the expression.
       In the [Var] case, the [lift] operator allows to smoothly lift a single effect to
-      a [itree] performing the corresponding [Vis] event and returning immediately the
+      an [itree] performing the corresponding [Vis] event and returning immediately the
       environment's answer.
       Usual monadic notations are used in the other cases. A constant is simply returned,
       while we can [bind] recursive computations in the case of operators as one would
@@ -176,16 +192,21 @@ Section Denote.
       The most interesting construct is naturally the [while].
 
       To define its meaning, we make use of the [loop] combinator provided by
-      the [itree] library: [loop : (C + A -> itree E (C + B)) -> A -> itree E B].
+      the [itree] library:
+      [loop : (C + A -> itree E (C + B)) -> A -> itree E B].
       The combinator takes as argument the body of the loop, i.e. a function
-      that maps to inputs of type [C + A] a [itree], a computation, returning
-      either a [C] that can be fed back to the loop, or a return value of type
-      [B], and builds the fixpoint of the body, hiding away the [C] argument.
+      that maps inputs of type [C + A] to an [itree] computing either a [C] that
+      can be fed back to the loop, or a return value of type [B]. The combinator
+      builds the fixpoint of the body, hiding away the [C] argument.
 
-   (* YZ NOTE: Insert a reference here to Factorial directly defined over trees  *)
+      Compared to the [mrec] and [rec] combinators introduced in [Introduction.v], [loop]
+      is more restricted in that it naturally represents tail recursive functions.
+      It however enjoys a rich equational theory: its addition grants the type of
+      _continuation trees_, named [ktree]s in the library, a structure of
+      _traced monoidal category_.
 
       We use [loop] to first build a new combinator [while] that takes a boolean
-      computation, runs it and loops if it is true, exits otherwise.
+      computation, runs it, and loops if it returns true, exits otherwise.
    *)
 
   Definition while {eff} (t : itree eff bool) : itree eff unit :=
@@ -197,10 +218,13 @@ Section Denote.
                    if continue : bool then ret (inl tt) else ret (inr tt)
          end) tt.
 
-  (** The meaning of statements can now be defined.
+  (* Casting values into [bool]. *)
+  Definition is_true (v : value) : bool := if v then false else true.
+
+  (** The meaning of statements is now easy to define.
       They are all straightforward, except for [While] that uses our new
       [while] combinator over the computation that evaluates the conditional,
-      and then the body if it were true.
+      and then the body if the former was true.
    *)
   Fixpoint denoteStmt (s : stmt) : itree eff unit :=
     match s with
@@ -223,9 +247,12 @@ Section Denote.
 
 End Denote.
 
+(* ================================================================= *)
+(** ** Factorial *)
+
 Section Denote_Fact.
 
-  (** We illustrate the language by writing the traditional factorial. *)
+  (** We briefly illustrate the language by writing the traditional factorial. *)
 
   Open Scope expr_scope.
   Open Scope stmt_scope.
@@ -233,27 +260,26 @@ Section Denote_Fact.
   Variable output: var.
 
   Definition fact (n:nat): stmt :=
-    input ← n;;
-    output ← 1;;
-    PRINT "";;
+    input ← n;;;
+    output ← 1;;;
+    PRINT "";;;
     WHILE input
-    DO output ← output * input;;
-       input  ← input - 1
-    DONE.
+    DO output ← output * input;;;
+       input  ← input - 1.
 
-  (* YZ NOTE: For tutorial purpose, it could be good to be able to show /some/
-   representation of the tree inside of Coq. Can we have anything better than the
-   following?
-   *)
-  Eval simpl in denoteStmt (fact 6).
-
-  (** We have so far given meaning to [Imp] in terms of [itree]s. In order to
-      actually run the computation, we now need to /handle/ the events contained
+  (** We have given _a_ notion of denotation to [fact 6] via [denoteStmt].
+      However this is naturally not actually runable yet, since it contains
+      uninterpreted [Locals] events.
+      We therefore now need to /handle/ the events contained
       in the trees, i.e. give a concrete interpretation of the environment.
    *)
 
 End Denote_Fact.
 
+(* ================================================================= *)
+(** ** Interpretation *)
+
+(* begin hide *)
 From ITree Require Import
      Effects.Env.
 
@@ -261,37 +287,36 @@ From ExtLib Require Import
      Core.RelDec
      Structures.Maps
      Data.Map.FMapAList.
+(* end hide *)
 
 (** We provide an /ITree event handler/ to interpret away [Locals] events.
     We use an /environment effect/ to do so, modelling the environment as
     a 0-initialized environment.
+    Recall from [Introduction.v] that an _handler_ for the effects [Locals]
+    is a function of type [forall R, Locals R -> M R] for some monad [M].
+    Here we take for our monad the special case of [M = itree E] for some
+    universe of effects [E] required to contain the environment effects [envE]
+    provided by the library. It comes with an effect handler [run_env]
+    interpreting the computation into the state monad.
  *)
 
-(* YZ NOTE: Here also we assume some global [E] that contains [envE] events.
-   We could instead have had [Locals ~> itree (envE var value)]?
-   Why chose this parameterized approach? It forces at the top level to instantiate
-   things with some kind of static global [E] containing everything: does it have any
-   drawbacks?
- *)
-Definition evalLocals {E: Type -> Type} `{envE var value -< E}:
-  Locals ~> itree E :=
+Definition evalLocals {E: Type -> Type} `{envE var value -< E}: Locals ~> itree E :=
   fun _ e =>
     match e with
     | GetVar x => env_lookupDefault x 0
     | SetVar x v => env_add x v
     end.
 
-Definition evalPrint {E : Type -> Type} `{envE var value -< E}:
-  PrintE ~> itree E :=
+Definition evalPrint {E : Type -> Type} `{envE var value -< E}: PrintE ~> itree E :=
   fun _ e =>
     match e with
     | Out s => ret tt
     end.
 
-(** We specifically implement this environment using ExtLib's finite maps. *)
+(** We now concretely implement this environment using ExtLib's finite maps. *)
 Definition env := alist var value.
 
-(* Enable typeclass instances for Maps keyed by strings and values *)
+(** These enable typeclass instances for Maps keyed by strings and values *)
 Instance RelDec_string : RelDec (@eq string) :=
   { rel_dec := fun s1 s2 => if string_dec s1 s2 then true else false}.
 
@@ -304,17 +329,23 @@ Proof.
   - intros EQ; apply string_dec_sound in EQ; unfold rel_dec; simpl; rewrite EQ; reflexivity.
 Qed.
 
-(* Finally, we can define an evaluator for our statements.
-   To do so, we first denote them, leading to a [itree Locals unit].
+(** Finally, we can define an evaluator for our statements.
+   To do so, we first denote them, leading to an [itree Locals unit].
    We then [interp]ret [Locals] into [envE] using [evalLocals], leading to
-   a [itree (envE var value) unit].
-   Finally, [run_env] interprets the [itree] into the state monad, resulting into
+   an [itree (envE var value) unit].
+   Finally, [run_env] interprets the lattest [itree] into the state monad, resulting into
    a an [itree] free of any effect, but returning an environment.
  *)
-(* YZ NOTE: Here, we actually constrain the [eff] argument in [denoteStmt] to be
-   exactly [Locals] rather than any universe of effect containing it.
- *)
 
-Definition ImpEval (s: stmt) : itree void1 (env * unit):=
+Definition ImpEval (s: stmt): itree void1 (env * unit) :=
   let p := interp (case_ evalLocals evalPrint) _ (denoteStmt s) in
   run_env _ p empty.
+
+(** Equipped with this evaluator, we can now compute.
+    Naturally since Coq is total, we cannot do it directly
+    inside of it. We can either rely on extraction, or
+    use some fuel.
+ *)
+Compute (burn 100 (ImpEval (fact "x" "y" 6))).
+
+(** We now turn to our target language, in file [Asm].v *)

@@ -156,11 +156,11 @@ Proof.
   pupto2 (eutt_clo_trans nd unit). econstructor.
   { unfold eval, mfix1.
     rewrite (mfix_unfold nd com (fun _ => unit)); cbn.
-    unfold id, choice, ITree.lift. rewrite vis_bind. reflexivity.
+    unfold id, choice, ITree.lift. rewrite bind_vis. reflexivity.
   }
   { unfold one_loop_tree, mfix0.
     rewrite (mfix_unfold nd unit (fun _ => unit)); cbn.
-    unfold id, choice, ITree.lift. rewrite vis_bind. reflexivity.
+    unfold id, choice, ITree.lift. rewrite bind_vis. reflexivity.
   }
   cbn.
   pfold.
@@ -169,8 +169,8 @@ Proof.
   constructor.
   intros b.
   pupto2 (eutt_clo_trans nd unit). econstructor.
-  { rewrite ret_bind; reflexivity. }
-  { rewrite ret_bind; reflexivity. }
+  { rewrite bind_ret; reflexivity. }
+  { rewrite bind_ret; reflexivity. }
   destruct b.
   (* true *)
   { apply grespectful2_incl. left.
@@ -186,7 +186,7 @@ Proof.
       repeat (constructor; cbn).
     }
     rewrite Ht1.
-    rewrite ret_bind.
+    rewrite bind_ret.
     reflexivity.
   }
   { reflexivity. }

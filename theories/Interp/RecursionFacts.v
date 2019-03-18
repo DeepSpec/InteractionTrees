@@ -51,12 +51,12 @@ Proof.
   rewrite unfold_aloop'.
   destruct observe; cbn.
   - reflexivity.
-  - rewrite ret_bind_; reflexivity. (* TODO: ret_bind, vis_bind are sloooow *)
+  - rewrite bind_ret_; reflexivity. (* TODO: bind_ret, bind_vis are sloooow *)
   - destruct e; cbn.
-    + rewrite ret_bind_; reflexivity.
-    + rewrite vis_bind_. pfold; constructor. left.
+    + rewrite bind_ret_; reflexivity.
+    + rewrite bind_vis_. pfold; constructor. left.
       pfold; constructor.
-      left. rewrite ret_bind.
+      left. rewrite bind_ret.
       apply reflexivity.
 Qed.
 
@@ -114,6 +114,12 @@ Proof.
   pupto2_final. left; pfold; constructor. auto.
 Qed.
 
+(** [mrec ctx] is equivalent to [interp (mrecursive ctx)],
+    where [mrecursive] is defined as follows. *)
+Definition mrecursive (f : D ~> itree (D +' E))
+  : (D +' E) ~> itree E :=
+  case_ (mrec f) ITree.lift.
+
 Theorem interp_mrec_as_interp {T} (c : itree _ T) :
   interp_mrec ctx _ c ≈ interp (mrecursive ctx) _ c.
 Proof.
@@ -126,23 +132,35 @@ Proof.
     pupto2 eutt_nested_clo_bind; econstructor; [reflexivity|].
     intros ? _ []; eauto.
 
-  - unfold ITree.lift, case_; simpl. rewrite vis_bind_.
+  - unfold ITree.lift, case_; simpl. rewrite bind_vis_.
     pfold; constructor.
     pupto2_final.
     left; pfold; econstructor.
     left.
-    rewrite ret_bind_. auto.
+    rewrite bind_ret_. auto.
 Qed.
 
 Theorem mrec_as_interp {T} (d : D T) :
-  mrec ctx _ d ≈ interp (case_ (mrec ctx) ITree.lift) _ (ctx _ d).
+  mrec ctx _ d ≈ interp (mrecursive ctx) _ (ctx _ d).
 Proof.
   apply interp_mrec_as_interp.
 Qed.
 
+Lemma interp_mrecursive {T} (d : D T) :
+  interp (mrecursive ctx) _ (lift_inl1 _ d) ≈ mrec ctx _ d.
+Proof.
+  unfold mrecursive. unfold lift_inl1.
+  rewrite interp_lift. cbn. apply tau_eutt.
+Qed.
+
 End Facts.
 
-Lemma rec_unfold {E A B} (f : A -> itree (callE A B +' E) B) (x : A) :
+(** [rec body] is equivalent to [interp (recursive body)],
+    where [recursive] is defined as follows. *)
+Definition recursive {E A B} (f : A -> itree (callE A B +' E) B) : (callE A B +' E) ~> itree E :=
+  case_ (calling' (rec f)) ITree.lift.
+
+Lemma rec_as_interp {E A B} (f : A -> itree (callE A B +' E) B) (x : A) :
   rec f x ≈ interp (recursive f) _ (f x).
 Proof.
   unfold rec.
@@ -169,4 +187,25 @@ Proof.
   pupto2 eq_itree_clo_bind. econstructor; [reflexivity|].
   intros. subst. rewrite unfold_interp. pupto2_final. pfold. red.
   destruct u2; simpl; eauto.
+Qed.
+
+Lemma unfold_forever {E R S} (t : itree E R)
+  : @ITree.forever E R S t ≅ (t >>= fun _ => Tau (ITree.forever t)).
+Proof.
+  rewrite itree_eta, (itree_eta (_ >>= _)).
+  reflexivity.
+Qed.
+
+Lemma interp_forever {E F} (f : E ~> itree F) {R S}
+      (t : itree E R)
+  : interp f _ (ITree.forever t)
+  ≅ @ITree.forever F R S (interp f _ t).
+Proof.
+  pupto2_init. pcofix CIH.
+  rewrite unfold_forever.
+  rewrite (unfold_forever (interp _ _ _)).
+  rewrite interp_bind.
+  pupto2 eq_itree_clo_bind. econstructor; [reflexivity |].
+  intros ? _ []. rewrite interp_tau.
+  pupto2_final. pfold; constructor; auto.
 Qed.

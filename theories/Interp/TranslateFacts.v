@@ -137,7 +137,7 @@ Qed.
 Import CatNotations.
 
 Lemma translate_cmpE : forall E F G R (g : F ~> G) (f : E ~> F) (t : itree E R),
-    translate (f >=> g)%cat t ≅ translate g (translate f t).
+    translate (f >>> g)%cat t ≅ translate g (translate f t).
 Proof.
   intros E F G R g f t.
   pupto2_init.

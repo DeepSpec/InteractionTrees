@@ -18,4 +18,5 @@ extraction:
 clean:
 	$(RM) {*,*/*}/*.{vo,glob} {*,*/*}/.*.aux
 	$(RM) -rf _build/
+	$(RM) *.{vo,glob} .*.aux
 	$(RM) extraction/*.ml{i,}

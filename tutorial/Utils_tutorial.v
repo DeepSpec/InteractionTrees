@@ -1,3 +1,19 @@
+(** * Utilities for the compiler tutorial *)
+
+(** This file should not be required to be read for
+    understanding the remaining of the tutorial.
+    It however contains no hidden black magic. Its
+    main content is the following:
+    - a few simple generic tactics;
+    - a collection of facts about ExtLib's association
+    lists [alist] that should probably be moved over ExtLib;
+    - a function converting [nat] to their decimal representation
+    as [string], and an unreasonably painful proof of the injectivity
+    of this function.
+    - a [traverse_] function.
+*)
+
+(* begin hide *)
 From Coq Require Import
      Strings.String
      List
@@ -10,7 +26,7 @@ From ExtLib Require Import
      Core.RelDec
      Programming.Show
      Data.Map.FMapAList.
-
+(* end hide *)
 
 Ltac flatten_goal :=
   match goal with
@@ -553,3 +569,16 @@ Section nat_Show.
   Qed.
 
 End nat_Show.
+
+From ExtLib Require Import
+     Structures.Monad.
+Import MonadNotation.
+
+(* Should go ext-lib *)
+Definition traverse_ {A: Type} {M: Type -> Type} `{Monad M} (f: A -> M unit): list A -> M unit :=
+  fix traverse__ l: M unit :=
+    match l with
+    | nil => ret tt
+    | a::l => (f a;; traverse__ l)%monad
+    end.
+

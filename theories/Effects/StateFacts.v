@@ -46,11 +46,11 @@ Lemma unfold_interp_state {E F S R} (h : E ~> Monads.stateT S (itree F)) t s :
       (interp_state h _ t s)
       (_interp_state h R (observe t) s).
 Proof.
-  unfold interp_state.
+  unfold interp_state, interp, aloop, ALoop_stateT0, aloop, ALoop_itree.
   rewrite unfold_aloop'.
   destruct observe; cbn.
   - reflexivity.
-  - rewrite ret_bind_.
+  - rewrite bind_ret_.
     reflexivity.
   - rewrite map_bind. eapply eq_itree_Tau.
     eapply eq_itree_bind.
@@ -124,12 +124,12 @@ Proof.
   intros A t k s.
   rewrite unfold_bind, (unfold_interp_state f t).
   destruct (observe t).
-  (* TODO: performance issues with [ret|tau|vis_bind] here too. *)
-  - cbn. rewrite !ret_bind. simpl.
+  (* TODO: performance issues with [ret|tau|bind_vis] here too. *)
+  - cbn. rewrite !bind_ret. simpl.
     pupto2_final. apply reflexivity.
-  - cbn. rewrite !tau_bind, interp_state_tau.
+  - cbn. rewrite !bind_tau, interp_state_tau.
     pupto2_final. pfold. econstructor. right. apply CIH.
-  - cbn. rewrite interp_state_vis, tau_bind, bind_bind.
+  - cbn. rewrite interp_state_vis, bind_tau, bind_bind.
     pfold; constructor.
     pupto2 eq_itree_clo_bind. econstructor.
     + reflexivity.
@@ -139,7 +139,7 @@ Qed.
 
 Instance eutt_interp_state {E F: Type -> Type} {S : Type}
          (h : E ~> Monads.stateT S (itree F)) R :
-  Proper (eutt eq ==> eq ==> eutt eq) (@interp_state E F S h R).
+  Proper (eutt eq ==> eq ==> eutt eq) (@interp_state E (itree F) S _ _ _ h R).
 Proof.
   repeat intro. subst. pupto2_init. revert_until R. pcofix CIH. intros.
   pfold. pupto2_init. revert_until CIH. pcofix CIH'. intros.

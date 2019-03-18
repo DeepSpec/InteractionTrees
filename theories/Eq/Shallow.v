@@ -77,22 +77,22 @@ Lemma unfold_bind {E R S}
 Proof. eauto. Qed.
 
 Instance observing_bind {E R S} :
-  Proper (observing eq ==> eq ==> observing eq) (@ITree.bind E R S).
+  Proper (eq ==> observing eq ==> observing eq) (@ITree.bind' E R S).
 Proof.
   repeat intro; subst.
-  do 2 rewrite unfold_bind; rewrite H.
+  do 2 rewrite unfold_bind; rewrite H0.
   reflexivity.
 Qed.
 
-Lemma ret_bind {E R S} (r : R) (k : R -> itree E S) :
+Lemma bind_ret {E R S} (r : R) (k : R -> itree E S) :
   observing eq (ITree.bind (Ret r) k) (k r).
 Proof. apply unfold_bind. Qed.
 
-Lemma tau_bind {E R} U t (k: U -> itree E R) :
+Lemma bind_tau {E R} U t (k: U -> itree E R) :
   observing eq (ITree.bind (Tau t) k) (Tau (ITree.bind t k)).
 Proof. apply @unfold_bind. Qed.
 
-Lemma vis_bind {E R U V} (e: E V) (ek: V -> itree E U) (k: U -> itree E R) :
+Lemma bind_vis {E R U V} (e: E V) (ek: V -> itree E U) (k: U -> itree E R) :
   observing eq
     (ITree.bind (Vis e ek) k)
     (Vis e (fun x => ITree.bind (ek x) k)).

@@ -81,7 +81,7 @@ Definition lift_ktree {A B} (f : A -> B) : ktree A B := fun a => Ret (f a).
 Global Instance Id_ktree : Id_ ktree :=
   fun A a => Ret a.
 
-(** Composition is [ITree.cat], denoted as [>=>]. *)
+(** Composition is [ITree.cat], denoted as [>>>]. *)
 Global Instance Cat_ktree : Cat ktree := @ITree.cat E.
 
 (** *** Symmetric monoidal category *)

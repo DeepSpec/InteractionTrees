@@ -1,5 +1,7 @@
 (* begin hide *)
 From ExtLib Require Import
+     Structures.Functor
+     Structures.Monad
      Structures.Monoid.
 
 From ITree Require Import
@@ -18,16 +20,10 @@ Open Scope itree_scope.
    [E ~> state S] define stateful itree morphisms
    [itree E ~> stateT S (itree F)]. *)
 
-Definition interp_state {E F S} (h : E ~> stateT S (itree F)) :
-  itree E ~> stateT S (itree F) :=
-  fun R t0 s0 =>
-    ITree.aloop (fun st =>
-      let s := fst st in let t := snd st in
-      match t.(observe) with
-      | RetF r => inr (s, r)
-      | TauF t => inl (Ret (s, t))
-      | VisF e k => inl (ITree.map (fun '(s, x) => (s, k x)) (h _ e s))
-      end) (s0, t0).
+Definition interp_state {E M S}
+           {FM : Functor M} {MM : Monad M}
+           {LM : ALoop M} (h : E ~> stateT S M) :
+  itree E ~> stateT S M := interp h.
 
 (** The "reader" and "writer" variants are specializations
     of the above stateful morphisms when the state cannot

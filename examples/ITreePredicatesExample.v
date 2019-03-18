@@ -243,15 +243,15 @@ Proof.
   unfold interpret_stateF.
   punfold H0. red in H0.
   destruct (observe t); cbn.
-  - rewrite !ret_bind. pupto2_final. pfold. econstructor.
-  - rewrite !tau_bind. pfold. econstructor.
+  - rewrite !bind_ret. pupto2_final. pfold. econstructor.
+  - rewrite !bind_tau. pfold. econstructor.
     pupto2_final. right.
     eapply CIH.
     inversion H0. pclearbot. assumption.
 
   - destruct e; cbn.
     + (* e is Get, which is ruled out by the NoGets predicate *) inversion H0.
-    + rewrite !tau_bind.
+    + rewrite !bind_tau.
       pfold. econstructor. pupto2_final.
       right. eapply CIH.
       inversion H0. apply inj_pair2 in H2. subst. pclearbot. assumption.
@@ -281,15 +281,15 @@ Proof.
   unfold interpret_stateF.
   punfold H0. red in H0.
   destruct (observe t); cbn.
-  - rewrite !ret_bind. pupto2_final. cbn. eapply paco2_mon. apply INV. intuition.
-  - rewrite !tau_bind. pfold. econstructor.
+  - rewrite !bind_ret. pupto2_final. cbn. eapply paco2_mon. apply INV. intuition.
+  - rewrite !bind_tau. pfold. econstructor.
     pupto2_final. right.
     eapply CIH; auto.
     inversion H0. pclearbot. assumption.
 
   - destruct e; cbn.
     + (* e is Get, which is ruled out by the NoGets predicate *) inversion H0.
-    + rewrite !tau_bind.
+    + rewrite !bind_tau.
       pfold. econstructor. pupto2_final.
       right. eapply CIH; auto.
       inversion H0. apply inj_pair2 in H2. subst. pclearbot. assumption.
