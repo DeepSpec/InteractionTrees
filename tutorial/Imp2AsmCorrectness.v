@@ -192,6 +192,17 @@ Section Simulation_Relation.
     rewrite EQ' in EQ; easy.
   Qed.
 
+  Lemma sim_rel_find_tmp_n_trans:
+    forall g_asm n g_asm' g_asm'' g_imp' g_imp'' v v',
+      sim_rel g_asm n (g_asm', tt) (g_imp',v) ->
+      sim_rel g_asm' (S n) (g_asm'', tt) (g_imp'',v') ->
+      alist_In (gen_tmp n) g_asm'' v.
+  Proof.
+    intros.
+    generalize H; intros LU; apply sim_rel_find_tmp_n in LU.
+    unfold alist_In in LU; erewrite sim_rel_find_tmp_lt_n in LU; eauto.
+  Qed.
+
   (** [Renv] is preserved by assignment.
    *)
   Lemma Renv_write_local:
@@ -212,6 +223,34 @@ Section Simulation_Relation.
     - tauto.
     - apply varOf_inj in Heq; easy.
     - setoid_rewrite In_remove_In_ineq_iff; eauto using RelDec_string_Correct.
+  Qed.
+
+  (** [sim_rel] can be composed when proving binary arithmetic operators. *)
+  Lemma sim_rel_binary_op:
+    forall (g_asm g_asm' g_asm'' g_imp' g_imp'' : alist var value)
+      (n v v' : nat)
+      (Hsim : sim_rel g_asm n (g_asm', tt) (g_imp', v))
+      (Hsim': sim_rel g_asm' (S n) (g_asm'', tt) (g_imp'', v'))
+      (op: nat -> nat -> nat),
+      sim_rel g_asm n (alist_add (gen_tmp n) (op v v') g_asm'', tt) (g_imp'', op v v').
+  Proof.
+    intros.
+    split; [| split].
+    {
+      eapply Renv_add, sim_rel_Renv; eassumption.
+    }
+    {
+      apply In_add_eq.
+    }
+    {
+      intros m LT v''.
+      rewrite <- In_add_ineq_iff; [| apply gen_tmp_inj; lia].
+      destruct Hsim as [_ [_ Hsim]].
+      destruct Hsim' as [_ [_ Hsim']].
+      rewrite Hsim; [| auto with arith].
+      rewrite Hsim'; [| auto with arith].
+      reflexivity.
+    }
   Qed.
 
 End Simulation_Relation.
@@ -467,6 +506,7 @@ Section Correctness.
   Context {HasExit: Exit -< E'}.
   Notation E := (Locals +' E').
 
+  (** We use a couple of tactics to step through itrees by eta expansion followed by reduction *)
   Ltac force_left :=
     match goal with
     | |- eutt _ ?x _ => rewrite (itree_eta x); cbn
@@ -477,9 +517,14 @@ Section Correctness.
     | |- eutt _ _ ?x => rewrite (itree_eta x); cbn
     end.
 
+  (** Chain a reduction expected to exhibit a [Tau] step with its elimination *)
   Ltac untau_left := force_left; rewrite tau_eutt.
   Ltac untau_right := force_right; rewrite tau_eutt.
 
+  (** Correctness of expressions.
+      
+   *)
+  
   Lemma compile_expr_correct : forall e g_imp g_asm n,
       Renv g_asm g_imp ->
       eutt (sim_rel g_asm n)
@@ -487,125 +532,110 @@ Section Correctness.
            (interp_locals (denoteExpr e) g_imp).
   Proof.
     induction e; simpl; intros.
-    - repeat untau_left.
+    - (* Var case *)
+      (* We first compute and eliminate taus on both sides. *)
+      repeat untau_left.
       repeat untau_right.
       force_left; force_right.
+
+      (* We are left with [Ret] constructs on both sides, that remains to be related *)
       apply eutt_ret.
+      (* On the _Asm_ side, we bind to [gen_tmp n] a lookup to [varOf v] *)
+      (* On the _Imp_ side, we return the value of a lookup to [varOf v] *)
       erewrite <- Renv_find; [| eassumption].
       apply sim_rel_add; assumption.
-    - repeat untau_left.
+
+    - (* Litteral case *)
+      (* We reduce both sides to Ret constructs *)
+      repeat untau_left.
       force_left.
       force_right.
+
       apply eutt_ret.
+      (* _Asm_ bind the litteral to [gen_tmp n] while _Imp_ returns it *)
       apply sim_rel_add; assumption.
-    - do 2 setoid_rewrite denote_list_app.
+
+    (* The three binary operator cases are identical *)
+    - (* Plus case *)
+      (* We push [interp_locals] into the denotations *)
+      do 2 setoid_rewrite denote_list_app.
       do 2 setoid_rewrite interp_locals_bind.
+
+      (* The Induction hypothesis on [e1] relates the first itrees *)
       eapply eutt_bind_gen.
-      + eapply IHe1; assumption.
-      + intros [g_asm' []] [g_imp' v] HSIM.
-        eapply eutt_bind_gen.
-        eapply IHe2.
-        eapply sim_rel_Renv; eassumption.
-        intros [g_asm'' []] [g_imp'' v'] HSIM'.
-        repeat untau_left.
-        force_left; force_right.
-        simpl fst in *.
-        (* TODO: Simplify this *)
-        apply eutt_ret.
-        {
-          generalize HSIM; intros LU; apply sim_rel_find_tmp_n in LU.
-          unfold alist_In in LU; erewrite sim_rel_find_tmp_lt_n in LU; eauto; fold (alist_In (gen_tmp n) g_asm'' v) in LU.
-          generalize HSIM'; intros LU'; apply sim_rel_find_tmp_n in LU'.
-          rewrite LU,LU'.
-          split; [| split].
-          {
-            eapply Renv_add, sim_rel_Renv; eassumption.
-          }
-          {
-            apply In_add_eq.
-          }
-          {
-            intros m LT v''.
-            rewrite <- In_add_ineq_iff; [| apply gen_tmp_inj; lia].
-            destruct HSIM as [_ [_ HSIM]].
-            destruct HSIM' as [_ [_ HSIM']].
-            rewrite HSIM; [| auto with arith].
-            rewrite HSIM'; [| auto with arith].
-            reflexivity.
-          }
-        }
-    - do 2 setoid_rewrite denote_list_app.
+      { eapply IHe1; assumption. }
+      (* We obtain new related environments *)
+      intros [g_asm' []] [g_imp' v] HSIM.
+      (* The Induction hypothesis on [e2] relates the second itrees *)
+      eapply eutt_bind_gen.
+      { eapply IHe2.
+        eapply sim_rel_Renv; eassumption. }
+      (* And we once again get new related environments *)
+      intros [g_asm'' []] [g_imp'' v'] HSIM'.
+      (* We can now reduce down to Ret constructs that remains to be related *)
+      repeat untau_left.
+      force_left; force_right.
+      simpl fst in *.
+      apply eutt_ret.
+
+      clear -HSIM HSIM'.
+      erewrite sim_rel_find_tmp_n_trans; eauto. 
+      erewrite sim_rel_find_tmp_n; eauto. 
+      eapply sim_rel_binary_op; eauto.
+
+    - (* Sub case *)
+      (* We push [interp_locals] into the denotations *)
+      do 2 setoid_rewrite denote_list_app.
       do 2 setoid_rewrite interp_locals_bind.
+
+      (* The Induction hypothesis on [e1] relates the first itrees *)
       eapply eutt_bind_gen.
-      + eapply IHe1; assumption.
-      + intros [g_asm' []] [g_imp' v] HSIM.
-        eapply eutt_bind_gen.
-        eapply IHe2.
-        eapply sim_rel_Renv; eassumption.
-        intros [g_asm'' []] [g_imp'' v'] HSIM'.
-        repeat untau_left.
-        force_left; force_right.
-        simpl fst in *.
-        (* TODO: Simplify this *)
-        apply eutt_ret.
-        {
-          generalize HSIM; intros LU; apply sim_rel_find_tmp_n in LU.
-          unfold alist_In in LU; erewrite sim_rel_find_tmp_lt_n in LU; eauto; fold (alist_In (gen_tmp n) g_asm'' v) in LU.
-          generalize HSIM'; intros LU'; apply sim_rel_find_tmp_n in LU'.
-          rewrite LU,LU'.
-          split; [| split].
-          {
-            eapply Renv_add, sim_rel_Renv; eassumption.
-          }
-          {
-            apply In_add_eq.
-          }
-          {
-            intros m LT v''.
-            rewrite <- In_add_ineq_iff; [| apply gen_tmp_inj; lia].
-            destruct HSIM as [_ [_ HSIM]].
-            destruct HSIM' as [_ [_ HSIM']].
-            rewrite HSIM; [| auto with arith].
-            rewrite HSIM'; [| auto with arith].
-            reflexivity.
-          }
-        }
-    - do 2 setoid_rewrite denote_list_app.
+      { eapply IHe1; assumption. }
+      (* We obtain new related environments *)
+      intros [g_asm' []] [g_imp' v] HSIM.
+      (* The Induction hypothesis on [e2] relates the second itrees *)
+      eapply eutt_bind_gen.
+      { eapply IHe2.
+        eapply sim_rel_Renv; eassumption. }
+      (* And we once again get new related environments *)
+      intros [g_asm'' []] [g_imp'' v'] HSIM'.
+      (* We can now reduce down to Ret constructs that remains to be related *)
+      repeat untau_left.
+      force_left; force_right.
+      simpl fst in *.
+      apply eutt_ret.
+
+      clear -HSIM HSIM'.
+      erewrite sim_rel_find_tmp_n_trans; eauto. 
+      erewrite sim_rel_find_tmp_n; eauto. 
+      eapply sim_rel_binary_op; eauto.
+
+    - (* Mul case *)
+      (* We push [interp_locals] into the denotations *)
+      do 2 setoid_rewrite denote_list_app.
       do 2 setoid_rewrite interp_locals_bind.
+
+      (* The Induction hypothesis on [e1] relates the first itrees *)
       eapply eutt_bind_gen.
-      + eapply IHe1; assumption.
-      + intros [g_asm' []] [g_imp' v] HSIM.
-        eapply eutt_bind_gen.
-        eapply IHe2.
-        eapply sim_rel_Renv; eassumption.
-        intros [g_asm'' []] [g_imp'' v'] HSIM'.
-        repeat untau_left.
-        force_left; force_right.
-        simpl fst in *.
-        (* TODO: Simplify this *)
-        apply eutt_ret.
-        {
-          generalize HSIM; intros LU; apply sim_rel_find_tmp_n in LU.
-          unfold alist_In in LU; erewrite sim_rel_find_tmp_lt_n in LU; eauto; fold (alist_In (gen_tmp n) g_asm'' v) in LU.
-          generalize HSIM'; intros LU'; apply sim_rel_find_tmp_n in LU'.
-          rewrite LU,LU'.
-          split; [| split].
-          {
-            eapply Renv_add, sim_rel_Renv; eassumption.
-          }
-          {
-            apply In_add_eq.
-          }
-          {
-            intros m LT v''.
-            rewrite <- In_add_ineq_iff; [| apply gen_tmp_inj; lia].
-            destruct HSIM as [_ [_ HSIM]].
-            destruct HSIM' as [_ [_ HSIM']].
-            rewrite HSIM; [| auto with arith].
-            rewrite HSIM'; [| auto with arith].
-            reflexivity.
-          }
-        }
+      { eapply IHe1; assumption. }
+      (* We obtain new related environments *)
+      intros [g_asm' []] [g_imp' v] HSIM.
+      (* The Induction hypothesis on [e2] relates the second itrees *)
+      eapply eutt_bind_gen.
+      { eapply IHe2.
+        eapply sim_rel_Renv; eassumption. }
+      (* And we once again get new related environments *)
+      intros [g_asm'' []] [g_imp'' v'] HSIM'.
+      (* We can now reduce down to Ret constructs that remains to be related *)
+      repeat untau_left.
+      force_left; force_right.
+      simpl fst in *.
+      apply eutt_ret.
+
+      clear -HSIM HSIM'.
+      erewrite sim_rel_find_tmp_n_trans; eauto. 
+      erewrite sim_rel_find_tmp_n; eauto. 
+      eapply sim_rel_binary_op; eauto.
   Qed.
 
   Lemma compile_assign_correct : forall e x,
