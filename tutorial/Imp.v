@@ -225,6 +225,9 @@ Section Denote.
 
 End Denote.
 
+(* ================================================================= *)
+(** ** Factorial *)
+
 Section Denote_Fact.
 
   (** We briefly illustrate the language by writing the traditional factorial. *)
@@ -249,6 +252,9 @@ Section Denote_Fact.
    *)
 
 End Denote_Fact.
+
+(* ================================================================= *)
+(** ** Interpretation *)
 
 (* begin hide *)
 From ITree Require Import
