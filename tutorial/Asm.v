@@ -108,7 +108,7 @@ Inductive Memory : Type -> Type :=
 
 Section Denote.
 
-  (** Once again, [asm] programs shall be deonted as [itree]s. *)
+  (** Once again, [asm] programs shall be denoted as [itree]s. *)
 
   (* begin hide *)
   Import ExtLib.Structures.Monad.
@@ -205,8 +205,7 @@ Section Denote.
       (** A labelled collection of blocks, [bks], is simply the pointwise
           application of [denote_block].
           However, its denotation is therefore crucially a [ktree],
-          whose structure will be taken profit of in the proof
-          of the compiler.
+          whose structure will be useful in the proof of the compiler.
        *)
       Definition denote_b (bs: bks A B): ktree E A B :=
         fun a => denote_block (bs a).
@@ -271,7 +270,7 @@ Definition AsmEval (p: asm unit void) :=
   let h := bimap evalLocals (bimap evalMemory (id_ _)) in
   let p' := interp h _ (denote_asm p tt) in
   run_env _ (run_env _ p' empty) empty.
-            
+
 (** Now that we have both our language, we could jump directly into implementing
     our compiler.
     However, if we look slightly ahead of us, we can observe that:
@@ -280,5 +279,5 @@ Definition AsmEval (p: asm unit void) :=
     as trivial. In particular, reasoning inductively on this linking is more
     challenging.
     We therefore take a detour: we first reason in isolation about linking, and
-    jump to this end to [AsmCombinators.v].
+    to this end we jump to [AsmCombinators.v].
  *)
