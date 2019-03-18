@@ -268,10 +268,10 @@ Definition memory := alist value value.
     and running them both.
  *)
 Definition AsmEval (p: asm unit void) :=
-  let p1 := interp (bimap evalLocals (id_ (Memory +' Exit))) _ (denote_asm p tt) in 
-  let p2 := interp (bimap (id_ _) (bimap evalMemory (id_ _))) _ p1 in
-  run_env _ (run_env _ p2 empty) empty.
-
+  let h := bimap evalLocals (bimap evalMemory (id_ _)) in
+  let p' := interp h _ (denote_asm p tt) in
+  run_env _ (run_env _ p' empty) empty.
+            
 (** Now that we have both our language, we could jump directly into implementing
     our compiler.
     However, if we look slightly ahead of us, we can observe that:
