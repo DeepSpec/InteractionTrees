@@ -66,14 +66,18 @@ Definition write_one : itree ioE unit :=
     to their effects individually, as a _handler_: a function
     of type [forall R, ioE R -> M R] for some monad [M]. *)
 
-(** This handler responds to every [Input] effect with [[0]],
-    and appends any [Output] to a global log.
+(** The handler [handle_io] below responds to every [Input] effect
+    with [[0]], and appends any [Output] to a global log.
 
     Here the target monad is [M := stateT (list nat) (itree void1)],
     - [stateT] is the state monad transformer, that type unfolds to
       [M R := list nat -> itree void1 (list nat * R)];
     - [void1] is the empty effect (so the resulting itree can perform
       no effect). *)
+
+Compute Monads.stateT (list nat) (itree void1) unit.
+Print void1.
+
 Definition handle_io
   : forall R, ioE R -> Monads.stateT (list nat) (itree void1) R
   := fun R e log =>
@@ -101,20 +105,13 @@ Definition interpreted_write_one : itree void1 (list nat * unit)
 ]]
  *)
 
-(** An [itree void1] can either return a value, or loop infinitely.
-    Since Coq is total, [interpreted_write_one] will not be reduced
-    naively.
+(** An [itree void1] is a computation which can either return a value,
+    or loop infinitely. Since Coq is total, [interpreted_write_one]
+    will not be reduced naively.
 
     Instead, we can force computation with fuel, using [burn]:
  *)
 Compute (burn 100 interpreted_write_one).
-
-(** We can also use tactics in a proof, such as [tau_steps], which
-    removes all taus from the left-hand side of an [≈] equation. *)
-Example write_one_result : interpreted_write_one ≈ Ret ([0; 1], tt).
-Proof.
-  tau_steps. reflexivity.
-Qed.
 
 (** * General recursion with interaction trees *)
 
@@ -200,6 +197,29 @@ Proof. reflexivity. Qed.
 
 (** *** Correctness *)
 
+(** [rec] is actually a special version of [interp], which replaces
+    every [call] in [fact_body] with [factorial] itself.
+ *)
+Lemma unfold_factorial : forall x,
+    factorial x ≈ match x with
+                  | 0 => Ret 1
+                  | S m =>
+                    y <- factorial m ;;
+                    Ret (x * y)
+                  end.
+Proof.
+  intros x.
+  unfold factorial.
+  rewrite rec_as_interp; unfold fact_body at 2.
+  destruct x.
+  - rewrite interp_ret.
+    reflexivity.
+  - rewrite interp_bind.
+    rewrite interp_recursive_call.
+    setoid_rewrite interp_ret.
+    reflexivity.
+Qed.
+
 (** We can prove that the ITrees version [factorial] is "equivalent"
     to the [factorial_spec] version.  The proof goes by induction on
     [n] and uses only rewriting -- no coinduction necessary.
@@ -214,22 +234,18 @@ Lemma factorial_correct : forall n,
     factorial n ≈ Ret (factorial_spec n).
 Proof.
   intros n.
-  unfold factorial.
   induction n as [ | n' IH ].
   - (* n = 0 *)
     (* ADMIT *)
-    rewrite rec_as_interp. simpl.
-    rewrite interp_ret.
+    rewrite unfold_factorial.
     reflexivity.
     (* /ADMIT *)
   - (* n = S n' *)
     (* ADMIT *)
-    rewrite rec_as_interp. simpl.
-    rewrite interp_bind.
-    rewrite interp_recursive_call.
+    rewrite unfold_factorial.
     rewrite IH.                   (* Induction hypothesis *)
     rewrite bind_ret.
-    rewrite interp_ret.
+    simpl.
     reflexivity.
     (* /ADMIT *)
 (* ADMITTED *) Qed. (* /ADMITTED *)
