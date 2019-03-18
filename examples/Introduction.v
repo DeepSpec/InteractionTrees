@@ -12,16 +12,7 @@
    [tutorial/Introduction.v]. *)
 (* /HIDE *)
 
-(** We give examples of defining recursive functions using ITrees,
-    demonstrating:
-    - [rec]
-    - equational reasoning using [≈] ([\approx])
-*)
-
 (* begin hide *)
-Set Implicit Arguments.
-Set Contextual Implicit.
-
 From Coq Require Import
      Arith
      Lia
@@ -40,6 +31,98 @@ Import ITreeNotations.
 Import MonadNotation.
 Open Scope monad_scope.
 (* end hide *)
+
+(** * Effects *)
+
+(** We first show how to represent effectful computations
+    as interaction trees. The [itree] type is parameterized
+    by a type of "uninterpreted effects", which is typically
+    an indexed type with constructors describing the possible
+    interactions with the environment.
+
+    For instance, [ioE] below is a type of simple input/output
+    effects. The fields of each constructor contain data produced
+    by the tree, and the type index the type of answer that the
+    tree expects as a result of the effect.
+ *)
+
+Inductive ioE : Type -> Type :=
+| Input : ioE (list nat)
+  (** Ask for a list of [nat] from the environment. *)
+
+| Output : list nat -> ioE unit
+  (** Send a list of [nat]. *)
+.
+
+(** Effects are wrapped as itrees using [ITree.lift], and
+    composed using monadic operations [bind] and [ret]. *)
+
+(** Read some input, and echo it back, appending [1] to it. *)
+Definition write_one : itree ioE unit :=
+  xs <- ITree.lift Input;;
+  ITree.lift (Output (xs ++ [1])).
+
+(** We can _interpret_ interaction trees by giving semantics
+    to their effects individually, as a _handler_: a function
+    of type [forall R, ioE R -> M R] for some monad [M]. *)
+
+(** This handler responds to every [Input] effect with [[0]],
+    and appends any [Output] to a global log.
+
+    Here the target monad is [M := stateT (list nat) (itree void1)],
+    - [stateT] is the state monad transformer, that type unfolds to
+      [M R := list nat -> itree void1 (list nat * R)];
+    - [void1] is the empty effect (so the resulting itree can perform
+      no effect). *)
+Definition handle_io
+  : forall R, ioE R -> Monads.stateT (list nat) (itree void1) R
+  := fun R e log =>
+       match e with
+       | Input => ret (log, [0])
+       | Output o => ret (log ++ o, tt)
+       end.
+
+(** [interp] lifts any handler into an _interpreter_, of type
+    [forall R, itree ioE R -> M R]. *)
+Definition interp_io
+  : forall R, itree ioE R -> itree void1 (list nat * R)
+  := fun R t => interp handle_io R t [].
+
+(** We can now interpret [write_one]. *)
+Definition interpreted_write_one : itree void1 (list nat * unit)
+  := interp_io _ write_one.
+
+(** Intuitively, [interp_io] replaces every [ITree.lift] in the
+    definition of [write_one] with [handle_io]:
+[[
+  interpreted_write_one :=
+    xs <- handle_io _ Input;;
+    handle_io _ (Output (xs ++ [1]))
+]]
+ *)
+
+(** An [itree void1] can either return a value, or loop infinitely.
+    Since Coq is total, [interpreted_write_one] will not be reduced
+    naively.
+
+    Instead, we can force computation with fuel, using [burn]:
+ *)
+Compute (burn 100 interpreted_write_one).
+
+(** We can also use tactics in a proof, such as [tau_steps], which
+    removes all taus from the left-hand side of an [≈] equation. *)
+Example write_one_result : interpreted_write_one ≈ Ret ([0; 1], tt).
+Proof.
+  tau_steps. reflexivity.
+Qed.
+
+(** * General recursion with interaction trees *)
+
+(** We give examples of defining recursive functions using ITrees,
+    demonstrating:
+    - [rec]
+    - equational reasoning using [≈] ([\approx])
+*)
 
 (** In this file, we won't use external effects, so we will use this
     empty effect type [void1]. *)
