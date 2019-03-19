@@ -925,9 +925,8 @@ End Correctness.
     for each compiled statement! One would hope to easily write and prove an optimization
     coalescing elementary blocks together.
     This however raises for now a difficulty: our representation of labels as binary trees
-    encoded in [Type] is too unstructured to allow for the necessary introspectiion on
-    [asm] programs.
-    We therefore need to change our representation of labels, for instance to a [Fin] type.
+    encoded in [Type] is so unstructured that introspection on [asm] programs is difficult.
+    We might therefore need to change our representation of labels, for instance to a [Fin] type.
     But this change turns out to be more interesting that it might seem: it moves [bks]
     from [fun (A B: Type) => A -> block B] to [fun (A B: nat) => Fin.t A -> block (Fin.t B)].
     Correspondingly, their denotation moves from [fun (A B: Type) => bks A B -> ktree E A B]
@@ -936,7 +935,8 @@ End Correctness.
     the [itree] library with a traced monoidal structure. We would therefore here need
     to redo all the work to equip the category [(Nat, fun A B => ktree E (t A) (t B))] with
     the same strucutre, which is significant low level work.
-    We might therefore want to investigate whether [ktree] is actually the right interface
-    to provide for compiling applications.
+    We might therefore want to investigate whether [ktree] should be generalized to 
+    something along the lines of
+    [ktree (i : Type) (F : i -> Type) (E : Type -> Type) (a b : i) : Type := F a -> itree E (F b).]
  *)
 
