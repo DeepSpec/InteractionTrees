@@ -66,12 +66,11 @@ Inductive block {label : Type} : Type :=
 | bbb (_ : branch label).
 Global Arguments block _ : clear implicits.
 
-(** A piece of code should expose the set of labels allowing
-    to enter into it, as well as the set of outer labels it might
-    jump to.
+(** A piece of code should expose the set of labels allowing to enter
+    into it, as well as the set of outer labels it might jump to.
     To this end, [bks] represents a collection of blocks labeled
     by [A], with branches in [B]. *)
-Definition bks A B := A -> block B.
+Definition bks (A B: Type) := A -> block B.
 
 (** An [asm] program represents the control flow of the computation.
     It is a collection of labelled [blocks] such that its labels are
@@ -83,7 +82,7 @@ Definition bks A B := A -> block B.
     the latter corresponding to an [asm] program with a unique entry
     point and always halting, i.e. a [asm unit void].
  *)
-Record asm A B : Type :=
+Record asm (A B: Type) : Type :=
   {
     internal : Type;
     code : bks (internal + A) (internal + B)
