@@ -1,6 +1,6 @@
 (** * The Imp language  *)
 
-(** We now demonstrate how to use [itrees] in the context of verified compilation.
+(** We now demonstrate how to use ITrees in the context of verified compilation.
     To this end, we will consider a simple compiler from an imperative language
     to a control-flow-graph language.
     The meaning of both languages will be given in terms of ITrees, so that the
@@ -257,7 +257,7 @@ Section Denote_Fact.
        input  ← input - 1.
 
   (** We have given _a_ notion of denotation to [fact 6] via [denoteStmt].
-      However this is naturally not actually runable yet, since it contains
+      However this is naturally not actually runnable yet, since it contains
       uninterpreted [Locals] events.
       We therefore now need to /handle/ the events contained
       in the trees, i.e. give a concrete interpretation of the environment.
@@ -316,8 +316,8 @@ Qed.
    To do so, we first denote them, leading to an [itree Locals unit].
    We then [interp]ret [Locals] into [envE] using [evalLocals], leading to
    an [itree (envE var value) unit].
-   Finally, [run_env] interprets the lattest [itree] into the state monad, resulting into
-   a an [itree] free of any effect, but returning an environment.
+   Finally, [run_env] interprets the latter [itree] into the state monad,
+   resulting in an [itree] free of any effect, but returning an environment.
  *)
 
 Definition ImpEval (s: stmt): itree void1 (env * unit) :=
