@@ -367,6 +367,9 @@ Section Eq_Locals.
       In our case, we specialize [RR] to equality since both trees return [unit],
       and [Renv_] to [Renv].
    *)
+  (* SAZ: TODO - rename some of the variables here to make it clear what are environemnts, etc. 
+     maybe rename a and b to use pattern binding: a == '(src_env, src_res)
+  *)
   Definition eq_locals {R1 R2} (RR : R1 -> R2 -> Prop)
              (Renv_ : _ -> _ -> Prop)
              (t1: itree E R1) (t2: itree E R2): Prop :=
