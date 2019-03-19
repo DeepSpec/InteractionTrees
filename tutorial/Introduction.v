@@ -294,22 +294,19 @@ Proof.
 
 (** An example of a function which is not structurally recursive.
     [log_ b n]: logarithm of [n] in base [b].
-    Note that this diverges if [n > 1] and [b = 0].
- *)
 
-Definition log (b : nat) : nat -> itree E nat :=
-  rec-fix log_b n :=
-    if n <=? 1 then
-      Ret O
-    else
-      y <- log_b (n / b) ;; Ret (S y).
+    Specification:
+      [log_ b (b ^ y) ≈ Ret y] when [1 < b].
+
+    (Note that this only constrains a very small subset of inputs,
+    and in fact our solution diverges for some of them.)
+ *)
+Definition log (b : nat) : nat -> itree E nat
+  (* REPLACE THIS LINE WITH ":= _your_definition_ ." *). Admitted.
 
 Example log_2_64 : log 2 (2 ^ 6) ≈ Ret 6.
 Proof.
-  tau_steps. reflexivity.
-Qed.
-
-(** We can prove that [log_ b (b ^ y) ≈ Ret y] when [1 < b]. *)
+  (* FILL IN HERE *) Admitted.
 
 (** These lemmas take care of the boring arithmetic. *)
 Lemma log_correct_helper :
@@ -333,8 +330,4 @@ Qed.
 Lemma log_correct : forall b y, 1 < b -> log b (b ^ y) ≈ Ret y.
 Proof.
   intros b y H.
-  unfold log, rec_fix.
-  induction y.
-  - (* FILL IN HERE *) admit.
-  - (* FILL IN HERE *) admit.
-(* FILL IN HERE *) Admitted.
+  (* FILL IN HERE *) Admitted.
