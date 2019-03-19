@@ -73,6 +73,7 @@ for testing.
 
 ## Dependencies
 
+- [coq](https://coq.inria.fr/) (8.8 or 8.9)
 - [coq-paco](https://github.com/snu-sf/paco) (2.0.3 or later)
 - [coq-ext-lib](https://github.com/coq-ext-lib/coq-ext-lib) (0.10.0 or later)
 
