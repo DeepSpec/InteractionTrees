@@ -49,7 +49,7 @@ Inductive ioE : Type -> Type :=
   (** Send a list of [nat]. *)
 .
 
-(** Effects are wrapped as itrees using [ITree.lift], and
+(** Effects are wrapped as ITrees using [ITree.lift], and
     composed using monadic operations [bind] and [ret]. *)
 
 (** Read some input, and echo it back, appending [1] to it. *)
@@ -67,7 +67,7 @@ Definition write_one : itree ioE unit :=
     Here the target monad is [M := stateT (list nat) (itree void1)],
     - [stateT] is the state monad transformer, that type unfolds to
       [M R := list nat -> itree void1 (list nat * R)];
-    - [void1] is the empty effect (so the resulting itree can perform
+    - [void1] is the empty effect (so the resulting ITree can perform
       no effect). *)
 
 Compute Monads.stateT (list nat) (itree void1) unit.
@@ -94,11 +94,25 @@ Definition interpreted_write_one : itree void1 (list nat * unit)
 (** Intuitively, [interp_io] replaces every [ITree.lift] in the
     definition of [write_one] with [handle_io]:
 [[
-  interpreted_write_one :=
+  interpreted_write_one =
     xs <- handle_io _ Input;;
     handle_io _ (Output (xs ++ [1]))
 ]]
+
+    We can prove such a lemma in a more restricted setting, where
+    [handle_io] targets some monad of the form [itree F], rather than
+    [T (itree F)] (above, [T := stateT (list nat)]). (The library is
+    currently missing some theory about the monads we can instantiate
+    [interp] with.)
  *)
+Lemma interp_write_one F (handle_io : forall R, ioE R -> itree F R)
+  : interp handle_io _ write_one
+  ≈ (xs <- handle_io _ Input;;
+     handle_io _ (Output (xs ++ [1]))).
+Proof.
+  unfold write_one.
+  (* Use lemmas from [ITree.Simple] ([theories/Simple.v]). *)
+  (* FILL IN HERE *) Admitted.
 
 (** An [itree void1] is a computation which can either return a value,
     or loop infinitely. Since Coq is total, [interpreted_write_one]
@@ -110,8 +124,8 @@ Compute (burn 100 interpreted_write_one).
 
 (** * General recursion with interaction trees *)
 
-(** We give examples of defining recursive functions using ITrees,
-    demonstrating:
+(** One application of [interp] is to define and reason about recursive
+    functions as ITrees. In this section, we will demonstrate:
     - [rec]
     - equational reasoning using [≈] ([\approx])
 *)
@@ -150,7 +164,7 @@ Definition fact_body (x : nat) : itree (callE nat nat +' E) nat :=
     Ret (x * y)
   end.
 
-(** The factorial function itself is defined as an itree by "tying
+(** The factorial function itself is defined as an ITree by "tying
     the knot" using [rec].
  *)
 Definition factorial (n : nat) : itree E nat :=
@@ -205,15 +219,7 @@ Lemma unfold_factorial : forall x,
 Proof.
   intros x.
   unfold factorial.
-  rewrite rec_as_interp; unfold fact_body at 2.
-  destruct x.
-  - rewrite interp_ret.
-    reflexivity.
-  - rewrite interp_bind.
-    rewrite interp_recursive_call.
-    setoid_rewrite interp_ret.
-    reflexivity.
-Qed.
+  (* FILL IN HERE *) Admitted.
 
 (** We can prove that the ITrees version [factorial] is "equivalent"
     to the [factorial_spec] version.  The proof goes by induction on
@@ -229,12 +235,7 @@ Lemma factorial_correct : forall n,
     factorial n ≈ Ret (factorial_spec n).
 Proof.
   intros n.
-  induction n as [ | n' IH ].
-  - (* n = 0 *)
-    (* FILL IN HERE *) admit.
-  - (* n = S n' *)
-    (* FILL IN HERE *) admit.
-(* FILL IN HERE *) Admitted.
+  (* FILL IN HERE *) Admitted.
 
 (** ** Fibonacci *)
 
@@ -260,10 +261,8 @@ Definition fib n : itree E nat :=
 
 Example fib_3_6 : mapT fib [4;5;6] ≈ Ret [3; 5; 8].
 Proof.
-  (* 
-  tau_steps. reflexivity.
-  *)
-(* FILL IN HERE *) Admitted.
+  (* Use [tau_steps] to compute. *)
+  (* FILL IN HERE *) Admitted.
 
 (** Since fib uses two recursive calls, we need to strengthen the
     induction hypothesis.  One way to do that is to prove the
