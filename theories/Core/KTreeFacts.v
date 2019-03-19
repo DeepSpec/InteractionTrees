@@ -1055,20 +1055,76 @@ Variable E : Type -> Type.
 
 Local Open Scope cat.
 
+(* [cat_from_loop]:
+
+      +-------------+
+      |             |
+      +---\/---ab---+
+   -------/\---bc-------
+
+is equivalent to
+
+   ----ab---bc----
+ *)
 Theorem cat_from_loop {A B C} (ab : ktree E A B) (bc : ktree E B C) :
   loop (swap >>> bimap ab bc) ⩯ ab >>> bc.
-Proof.
-  rewrite bimap_slide.
-  rewrite <- cat_assoc.
-  rewrite loop_compose.
-  rewrite swap_bimap.
-  rewrite <- !cat_assoc.
-  rewrite swap_involutive, cat_id_l.
-  rewrite compose_loop.
-  erewrite yanking_ktree.
-  rewrite cat_id_r.
+Proof with try typeclasses eauto.
+(*
+      +-------------+
+      |             |
+      +---\/---ab---+
+   -------/\---bc-------
+ *)
+
+  rewrite bimap_slide...
+  rewrite <- cat_assoc...
+(*
+      +----------------+
+      |                |
+      +---\/---ab------+
+   -------/\------bc-------
+ *)
+
+  rewrite loop_compose...
+(*
+      +-------------+
+      |             |
+      +---\/---ab---+
+   -------/\------------bc----
+ *)
+
+  rewrite swap_bimap...
+  rewrite <- !cat_assoc...
+(*
+      +-------------------+
+      |                   |
+      +---\/--\/------\/--+
+   -------/\--/\--ab--/\----bc----
+ *)
+
+  rewrite swap_involutive, cat_id_l...
+(*
+      +-------------------+
+      |                   |
+      +---------------\/--+
+   ---------------ab--/\----bc----
+ *)
+
+  rewrite compose_loop...
+(*
+           +------+
+           |      |
+           +--\/--+
+   ----ab-----/\-----bc----
+ *)
+
+  rewrite yanking_ktree...
+  rewrite cat_id_r...
+(*
+   ----ab---bc----
+ *)
+
   reflexivity.
-  all: typeclasses eauto.
 Qed.
 
 End CatFromLoop.
