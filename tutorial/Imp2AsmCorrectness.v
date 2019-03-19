@@ -917,7 +917,9 @@ End Correctness.
     It requires to add a new effect to the language and therefore makes the correctness
     theorem relate trees actually still containing events.
     This change, which a good exercise to try, turns out to be as straightforward as one
-    would hope.
+    would hope. The only new lemma needed is to show that [interp_locals] leaves the
+    new [Print] effect untouched.
+    This extension can be found in the _tutorial-print_ branch.
 
     More importantly, our compiler is fairly stupid and inefficient: it creates blocks
     for each compiled statement! One would hope to easily write and prove an optimization
