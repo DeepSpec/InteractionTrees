@@ -4,7 +4,7 @@
     To this end, we will equip them with four main combinators:
     - [pure_asm], casting pure functions into [asm]. 
     - [app_asm], linking them vertically
-    - [loop_asm], hiding internal links
+    - [link_asm], hiding internal links
     - [relabel_asm], allowing to rename labels
     Viewing [asm] units as diagrams, whose entry wires are the exposed labels of
     its blocks, and exit wires the external labels to which it may jump, this

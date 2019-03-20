@@ -307,16 +307,16 @@ End Simulation_Relation.
     The appropriate notion is of course the _equivalence up to tau_. However,
     the [itree] structures put in evidence a very naturaly hierarchy of notions
     of correctness.
-    Since the [asm] programs performs more manipulations of its local
+    Since the [asm] programs perform more manipulations of their local
     environment, we cannot hope to relate the trees containing [Locals] events,
     we first need to interpret them.
     However, since it does not introduce any manipulation of the heap, we
     _can_ prove the result without interpreting the [Memory] events.
     Of course this example is rather contrived, owing to the simplicity of the
     compiler. Nonetheless, it makes a lot of sense when considering optimization:
-    one can see the handling of events are bits of the memory model, and 
-    therefore have a framework to prove some optimization correct with respect
-    to any memory model, i.e. before handling, while other with respect to
+    one can see the handling of events as bits of the memory model, and 
+    therefore have a framework to prove some optimizations correct with respect
+    to any memory model, i.e. before handling, while others with respect to
     concrete memory model, i.e. after handling.
  *)
 
