@@ -330,10 +330,10 @@ Lemma eq_unalltaus (t1 : itree E R1) (t2 : itree E R2) ot1'
 Proof.
   genobs t1 ot1. revert t1 Heqot1 t2 EQV.
   destruct FT as [Huntaus Hnotau].
-  induction Huntaus; intros; punfold EQV; unfold_eq_itree; subst.
+  induction Huntaus; intros; uunfold EQV; unfold_eq_itree; subst.
   - eexists. constructor; eauto. inv EQV; simpl; eauto.
   - inv EQV; simpobs; try inv Heqot1.
-    pclearbot. edestruct IHHuntaus as [? []]; eauto.
+    edestruct IHHuntaus as [? []]; eauto.
 Qed.
 
 Lemma eq_unalltaus_eqF (t : itree E R1) (s : itree E R2) ot'
@@ -343,14 +343,11 @@ Lemma eq_unalltaus_eqF (t : itree E R1) (s : itree E R2) ot'
 Proof.
   destruct UNTAUS as [Huntaus Hnotau].
   remember (observe t) as ot. revert s t Heqot EQV.
-  induction Huntaus; intros; punfold EQV; unfold_eq_itree.
+  induction Huntaus; intros; uunfold EQV; unfold_eq_itree.
   - eexists (observe s). split.
     inv EQV; simpobs; eauto.
     subst; eauto.
-    eapply eq_itreeF_mono; eauto.
-    intros ? ? [| []]; eauto.
   - inv EQV; simpobs; inversion Heqot; subst.
-    destruct REL as [| []].
     edestruct IHHuntaus as [? [[]]]; eauto 10.
 Qed.
 
@@ -361,7 +358,7 @@ Lemma eq_unalltaus_eq (t : itree E R1) (s : itree E R2) t'
 Proof.
   eapply eq_unalltaus_eqF in UNTAUS; try eassumption.
   destruct UNTAUS as [os' []]. eexists (go os'); split; eauto.
-  pfold. eapply eq_itreeF_mono; eauto.
+  ustep. eapply eq_itreeF_mono; eauto.
 Qed.
 
 End NOTAU.
@@ -450,7 +447,7 @@ End NOTAU_rel.
 Global Instance eq_itree_notauF {E R} :
   Proper (going (@eq_itree E R _ eq) ==> flip impl) notauF.
 Proof.
-  intros ? ? [] ?; punfold H. inv H; simpl in *; subst; eauto.
+  intros ? ? [] ?; uunfold H. inv H; simpl in *; subst; eauto.
 Qed.
 
 Lemma untaus_bind {E S R} : forall t t' (k: S -> itree E R)

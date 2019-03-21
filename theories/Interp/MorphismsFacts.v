@@ -84,18 +84,18 @@ Instance eq_itree_interp {E F R}:
 Proof.
   intros f g Hfg.
   intros l r Hlr.
-  pupto2_init; revert l r Hlr; pcofix CIH.
+  revert l r Hlr; ucofix CIH.
   rename r into rr; intros l r Hlr.
   rewrite 2 unfold_interp.
-  punfold Hlr; red in Hlr.
-  destruct Hlr; pclearbot; cbn.
-  - pupto2_final. pfold. constructor; auto.
-  - pupto2_final. pfold. constructor; auto.
-  - pfold; constructor.
-    pupto2 @eq_itree_clo_bind. econstructor.
+  uunfold Hlr; red in Hlr.
+  destruct Hlr; cbn.
+  - constructor; auto.
+  - constructor; auto with paco.
+  - constructor.
+    uclo @eq_itree_clo_bind. econstructor.
     eapply Hfg.
     intros ? _ [].
-    pupto2_final; auto.
+    auto with paco.
 Qed.
 
 Global Instance Proper_interp_eq_itree {E F R f}
@@ -110,19 +110,19 @@ Definition eutt_interp_gen (E F : Type -> Type) (R : Type) :
   Proper (i_respectful (fun _ => eutt eq) ==> eutt eq ==> eutt eq)
          (fun f => @interp E (itree F) _ _ _ f R).
 Proof.
-  repeat intro. pupto2_init. revert_until H. pcofix CIH. intros.
-  pfold. pupto2_init. revert_until CIH. pcofix CIH'. intros.
+  ucofix CIH. red. ucofix CIH'. intros.
 
-  rewrite !unfold_interp. do 2 punfold H1.
-  induction H1; intros; subst; pclearbot; simpl; eauto.
-  - pfold; constructor.
-    pupto2 eutt_nested_clo_bind.
-    econstructor; [apply H|].
-    intros; subst. pupto2_final.
-    right. eapply CIH'. edestruct EUTTK; pclearbot; eauto.
-  - pfold; econstructor. pupto2_final. eauto 7.
-  - pfold; constructor. pfold2_reverse. rewrite unfold_interp. auto.
-  - pfold; constructor. pfold2_reverse. rewrite unfold_interp. auto.
+  rewrite !unfold_interp. do 2 uunfold H1.
+  induction H1; intros; subst; simpl.
+  - econstructor. eauto.
+  - constructor.
+    uclo eutt0_clo_bind.
+    econstructor; [apply H0|].
+    intros; subst.
+    ubase. eapply CIH'; edestruct (EUTTK v2); eauto with paco.
+  - econstructor. eauto 7 with paco.
+  - constructor. eutt0_fold. rewrite unfold_interp. auto.
+  - constructor. eutt0_fold. rewrite unfold_interp. auto.
 Qed.
 
 Instance eutt_interp (E F : Type -> Type) f (R : Type) :
@@ -137,18 +137,18 @@ Lemma interp_bind {E F R S}
       (f : E ~> itree F) (t : itree E R) (k : R -> itree E S) :
    (interp f _ (ITree.bind t k)) ≅ (ITree.bind (interp f _ t) (fun r => interp f _ (k r))).
 Proof.
-  pupto2_init; revert R t k; pcofix CIH; intros.
+  revert R t k; ucofix CIH; intros.
   rewrite unfold_bind, (unfold_interp t).
   destruct (observe t); cbn.
-  (* TODO: [bind_ret] (0.8s) is much slower than [bind_ret_] (0.02s) *)
-  - rewrite bind_ret. pupto2_final. apply reflexivity.
+  (* TODO: [ret_bind] (0.8s) is much slower than [ret_bind_] (0.02s) *)
+  - rewrite bind_ret. apply reflexivity.
   - rewrite bind_tau, !interp_tau.
-    pupto2_final. pfold. econstructor. eauto.
+    econstructor. eauto with paco.
   - rewrite interp_vis, bind_tau. rewrite bind_bind.
-    pfold; constructor.
-    pupto2 (eq_itree_clo_bind F S). econstructor.
+    constructor.
+    uclo (eq_itree_clo_bind F S). econstructor.
     + reflexivity.
-    + intros; subst. pupto2_final. auto.
+    + intros; subst. auto with paco.
 Qed.
 
 Lemma interp_lift {E F : Type -> Type} {R : Type}
@@ -169,15 +169,13 @@ Qed.
 Lemma interp_id_lift {E R} (t : itree E R) :
   interp (fun _ e => ITree.lift e) _ t ≈ t.
 Proof.
-  pupto2_init; revert t; pcofix CIH; intros t.
-  pfold. pupto2_init; revert t; pcofix CIH'; intros t.
-  rewrite unfold_interp.
-  destruct (observe t); cbn; eauto.
-  - pfold. constructor. pupto2_final; auto.
-  - unfold ITree.lift. rewrite bind_vis; cbn.
-    pfold; constructor; constructor.
-    left. rewrite bind_ret.
-    auto.
+  revert t. ucofix CIH. red. ucofix CIH'. intros.
+  rewrite unfold_interp. repeat red.
+  destruct (observe t); cbn; eauto with paco.
+  unfold ITree.lift. constructor. rewrite bind_vis.
+  constructor.
+  left. rewrite bind_ret.
+  auto with paco.
 Qed.
 
 
@@ -186,22 +184,18 @@ Theorem interp_interp {E F G R} (f : E ~> itree F) (g : F ~> itree G) :
       interp g _ (interp f _ t)
     ≅ interp (fun _ e => interp g _ (f _ e)) _ t.
 Proof.
-  intros t.
-  pupto2_init.
-  revert t.
-  pcofix CIH.
-  intros t.
+  ucofix CIH. intros.
   rewrite 2 (unfold_interp t).
   destruct (observe t); cbn.
-  - rewrite interp_ret. pupto2_final. pfold. constructor. reflexivity.
-  - rewrite interp_tau. pupto2_final. pfold. constructor. auto.
+  - rewrite interp_ret. constructor. reflexivity.
+  - rewrite interp_tau. constructor. auto with paco.
   - rewrite interp_tau, interp_bind.
-    pfold; constructor.
-    pupto2 eq_itree_clo_bind.
+    constructor.
+    uclo eq_itree_clo_bind.
     apply pbc_intro_h with (RU := eq).
     + reflexivity.
     + intros ? _ [].
-      pupto2_final; auto.
+      auto with paco.
 Qed.
 
 (* Commuting interpreters --------------------------------------------------- *)
@@ -209,34 +203,31 @@ Qed.
 Lemma interp_translate {E F G} (f : E ~> F) (g : F ~> itree G) {R} (t : itree E R) :
   interp g _ (translate f  t) ≅ interp (fun _ e => g _ (f _ e)) _ t.
 Proof.
-  pupto2_init.
-  revert t.
-  pcofix CIH.
+  revert t.  
+  ucofix CIH.
   intros t.
   rewrite !unfold_interp. unfold _interp.
   rewrite unfold_translate. unfold translateF.
   destruct (observe t); cbn.
-  - pupto2_final. apply Reflexive_eq_itree. (* SAZ: typeclass resolution failure? *)
-  - pfold. constructor. pupto2_final. right. apply CIH.
-  - pfold; constructor.
-    pupto2 eq_itree_clo_bind; econstructor.
+  - apply reflexivity. (* SAZ: typeclass resolution failure? *)
+  - constructor. ubase. apply CIH.
+  - constructor.
+    uclo eq_itree_clo_bind; econstructor.
     + reflexivity.
-    + intros ? _ []. pupto2_final. auto.
+    + intros ? _ []. auto with paco.
 Qed.
 
 Lemma translate_to_interp {E F R} (f : E ~> F) (t : itree E R) :
   translate f t ≈ interp (fun _ e => ITree.lift (f _ e)) _ t.
 Proof.
-  pupto2_init; revert t; pcofix CIH; intros t.
-  pfold. pupto2_init; revert t; pcofix CIH'; intros t.
+  revert t. ucofix CIH. red. ucofix CIH'. intros.
   rewrite unfold_translate.
   rewrite unfold_interp.
-  unfold translateF, _interp.
-  destruct (observe t); cbn; simpl in *; eauto.
-  - pfold. constructor. auto.
-  - unfold ITree.lift. rewrite bind_vis.
-    pfold. do 2 constructor.
-    left. rewrite bind_ret. auto.
+  unfold translateF, _interp. repeat red.
+  destruct (observe t); cbn; simpl in *; eauto 7 with paco.
+  unfold ITree.lift. econstructor. rewrite bind_vis.
+  do 2 constructor.
+  rewrite bind_ret. auto with paco.
 Qed.
 
 Hint Rewrite @interp_ret : itree.

@@ -223,6 +223,8 @@ Definition when {E}
 
 End ITree.
 
+Ltac bind_fold := change @ITree.bind' with (fun E T U k t => @ITree.bind E T U t k) in *.
+
 (** ** Notations *)
 
 (** Sometimes it's more convenient to work without the type classes
