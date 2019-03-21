@@ -1,10 +1,8 @@
 .PHONY: tutorial clean
 
-tutorial: Makefile.coq
-	$(MAKE) -f Makefile.coq
+tutorial: coq
 
-Makefile.coq: _CoqProject
-	coq_makefile -f $< -o $@
+include ../common.mk
 
 clean:
 	if [ -e Makefile.coq ]; then $(MAKE) -f Makefile.coq clean; fi

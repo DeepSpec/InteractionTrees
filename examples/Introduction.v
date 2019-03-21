@@ -7,6 +7,11 @@
     The solutions can be found in [examples/Introduction.v].
  *)
 
+(* HIDE *)
+(* This is actually the solutions file. To do the exercises, see
+   [tutorial/Introduction.v]. *)
+(* /HIDE *)
+
 (* begin hide *)
 From Coq Require Import
      Arith
@@ -112,7 +117,12 @@ Lemma interp_write_one F (handle_io : forall R, ioE R -> itree F R)
 Proof.
   unfold write_one.
   (* Use lemmas from [ITree.Simple] ([theories/Simple.v]). *)
-  (* FILL IN HERE *) Admitted.
+  (* ADMITTED *)
+  rewrite interp_bind.
+  rewrite interp_lift.
+  setoid_rewrite interp_lift.
+  reflexivity.
+Qed. (* /ADMITTED *)
 
 (** An [itree void1] is a computation which can either return a value,
     or loop infinitely. Since Coq is total, [interpreted_write_one]
@@ -219,7 +229,16 @@ Lemma unfold_factorial : forall x,
 Proof.
   intros x.
   unfold factorial.
-  (* FILL IN HERE *) Admitted.
+  (* ADMITTED *)
+  rewrite rec_as_interp; unfold fact_body at 2.
+  destruct x.
+  - rewrite interp_ret.
+    reflexivity.
+  - rewrite interp_bind.
+    rewrite interp_recursive_call.
+    setoid_rewrite interp_ret.
+    reflexivity.
+Qed. (* /ADMITTED *)
 
 (** We can prove that the ITrees version [factorial] is "equivalent"
     to the [factorial_spec] version.  The proof goes by induction on
@@ -235,7 +254,40 @@ Lemma factorial_correct : forall n,
     factorial n ≈ Ret (factorial_spec n).
 Proof.
   intros n.
-  (* FILL IN HERE *) Admitted.
+  (* ADMITTED *)
+  induction n as [ | n' IH ].
+  - (* n = 0 *)
+    rewrite unfold_factorial.
+    reflexivity.
+  - (* n = S n' *)
+    rewrite unfold_factorial.
+    rewrite IH.                   (* Induction hypothesis *)
+    rewrite bind_ret.
+    simpl.
+    reflexivity.
+Qed. (* /ADMITTED *)
+
+(* HIDE *)
+(** The tactics [tau_steps] and [autorewrite with itree] offer
+    a little automation to simplify monadic expressions. *)
+Lemma factorial_correct' : forall n,
+    factorial n ≈ Ret (factorial_spec n).
+Proof.
+  intros n.
+  unfold factorial.
+  induction n as [ | n' IH ].
+  - (* n = 0 *)
+    tau_steps. (* Just compute away. *)
+    reflexivity.
+  - (* n = S n' *)
+    rewrite rec_as_interp.
+    unfold fact_body at 2.
+    autorewrite with itree.
+    rewrite IH.             (* Induction hypothesis *)
+    autorewrite with itree.
+    reflexivity.
+Qed.
+(* /HIDE *)
 
 (** ** Fibonacci *)
 
@@ -254,7 +306,20 @@ Fixpoint fib_spec (n : nat) : nat :=
   end.
 
 Definition fib_body : nat -> itree (callE nat nat +' E) nat
-  (* REPLACE THIS LINE WITH ":= _your_definition_ ." *). Admitted.
+  (* ADMITDEF *)  
+  := fun n =>
+    match n with
+    | 0 => Ret 0
+    | S n' =>
+      match n' with
+      | 0 => Ret 1
+      | S n'' =>
+        y1 <- call n'' ;;
+        y2 <- call n' ;;
+        Ret (y1 + y2)
+      end
+    end.
+  (* /ADMITDEF *)
 
 Definition fib n : itree E nat :=
   rec fib_body n.
@@ -262,7 +327,9 @@ Definition fib n : itree E nat :=
 Example fib_3_6 : mapT fib [4;5;6] ≈ Ret [3; 5; 8].
 Proof.
   (* Use [tau_steps] to compute. *)
-  (* FILL IN HERE *) Admitted.
+  (* ADMITTED *)
+  tau_steps. reflexivity.
+Qed. (* /ADMITTED *)
 
 (** Since fib uses two recursive calls, we need to strengthen the
     induction hypothesis.  One way to do that is to prove the
@@ -284,11 +351,38 @@ Proof.
   induction n as [ | n' IH ]; intros.
   - (* n = 0 *)
     apply Nat.le_0_r in H. subst m.
-    (* FILL IN HERE *) admit.
+    (* ADMIT *)
+    rewrite rec_as_interp. simpl.
+    rewrite interp_ret.
+    (* alternatively, [tau_steps], or [autorewrite with itree] *)
+    reflexivity.
+    (* /ADMIT *)
   - (* n = S n' *)
     apply Nat.le_succ_r in H.
-    (* FILL IN HERE *) admit.
-(* FILL IN HERE *) Admitted.
+    (* ADMIT *)
+    destruct H.
+    + apply IH. auto.
+    + rewrite rec_as_interp.
+      subst m. simpl.
+      destruct n' as [ | n'' ].
+      * rewrite interp_ret. reflexivity.
+      * autorewrite with itree.
+        rewrite IH. 2: lia.
+        autorewrite with itree.
+        rewrite IH. 2: lia.
+        autorewrite with itree.
+        reflexivity.
+    (* /ADMIT *)
+(* ADMITTED *) Qed. (* /ADMITTED. *)
+
+(** The final correctness result follows. *)
+Lemma fib_correct : forall n,
+    fib n ≈ Ret (fib_spec n).
+Proof. (* ADMITTED *)
+  intros n.
+  eapply fib_correct_aux.
+  reflexivity.
+Qed. (* /ADMITTED *)
 
 (** ** Logarithm *)
 
@@ -302,11 +396,19 @@ Proof.
     and in fact our solution diverges for some of them.)
  *)
 Definition log (b : nat) : nat -> itree E nat
-  (* REPLACE THIS LINE WITH ":= _your_definition_ ." *). Admitted.
+  (* ADMITDEF *)
+  := rec-fix log_b n :=
+       if n <=? 1 then
+         Ret O
+       else
+         y <- log_b (n / b) ;; Ret (S y).
+  (* /ADMITDEF *)
 
 Example log_2_64 : log 2 (2 ^ 6) ≈ Ret 6.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  (* ADMITTED *)
+  tau_steps. reflexivity.
+Qed. (* /ADMITTED *)
 
 (** These lemmas take care of the boring arithmetic. *)
 Lemma log_correct_helper :
@@ -330,4 +432,19 @@ Qed.
 Lemma log_correct : forall b y, 1 < b -> log b (b ^ y) ≈ Ret y.
 Proof.
   intros b y H.
-  (* FILL IN HERE *) Admitted.
+  (* ADMITTED *)
+  unfold log, rec_fix.
+  induction y.
+  - rewrite rec_as_interp; cbn.
+    autorewrite with itree.
+    reflexivity.
+  - rewrite rec_as_interp; cbn.
+    (* (b * b ^ y <=? 1) = false *)
+    rewrite log_correct_helper by auto.
+    autorewrite with itree.
+    (* (b * b ^ y / b) = (b ^ y)*)
+    rewrite log_correct_helper2 by auto.
+    rewrite IHy.
+    autorewrite with itree.
+    reflexivity.
+Qed. (* /ADMITTED *)

@@ -185,3 +185,24 @@ Proof.
   intros. subst. rewrite unfold_interp.
   destruct u2; econstructor; eauto with paco.
 Qed.
+
+Lemma unfold_forever {E R S} (t : itree E R)
+  : @ITree.forever E R S t ≅ (t >>= fun _ => Tau (ITree.forever t)).
+Proof.
+  rewrite itree_eta, (itree_eta (_ >>= _)).
+  reflexivity.
+Qed.
+
+Lemma interp_forever {E F} (f : E ~> itree F) {R S}
+      (t : itree E R)
+  : interp f _ (ITree.forever t)
+  ≅ @ITree.forever F R S (interp f _ t).
+Proof.
+  pupto2_init. pcofix CIH.
+  rewrite unfold_forever.
+  rewrite (unfold_forever (interp _ _ _)).
+  rewrite interp_bind.
+  pupto2 eq_itree_clo_bind. econstructor; [reflexivity |].
+  intros ? _ []. rewrite interp_tau.
+  pupto2_final. pfold; constructor; auto.
+Qed.
