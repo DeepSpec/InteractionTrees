@@ -22,30 +22,15 @@ Require Import Imp Asm Utils_tutorial AsmCombinators.
 Require Import Psatz.
 
 From Coq Require Import
-     Strings.String
-     Morphisms
-     Setoid
-     Decimal
-     Numbers.DecimalString
-     ZArith
-     RelationClasses.
+     Strings.String.
 
 From ITree Require Import
      Basics.Category
      Basics.Function
-     Effects.Env
      ITree.
-
-From ExtLib Require Import
-     Core.RelDec
-     Structures.Monad
-     Structures.Maps
-     Programming.Show
-     Data.Map.FMapAList.
 
 Import ListNotations.
 Open Scope string_scope.
-
 (* end hide *)
 
 (* ================================================================= *)

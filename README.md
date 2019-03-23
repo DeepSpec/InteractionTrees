@@ -63,13 +63,47 @@ for testing.
     + `RecursionFacts`
     + `Traces`: Interpretation of itrees as sets of traces.
 
-- `Effects`:
+- `Effects`: Common effects
 
-    + `State`
-    + `Nondet`
-    + `Reader`
-    + `Writer`
-    + ???
+### Summary of effects provided under `Effects`
+
+```
+State
+
+    Get : stateE S S
+    Put : S -> stateE S unit
+
+Reader
+
+    Ask : readerE R R
+
+Writer
+
+    Tell : W -> writerE W unit
+
+Nondeterminism
+
+    Or : nondetE bool
+
+Exception
+
+    Throw : Err -> exceptE Err void
+
+Map
+
+    Insert : K -> V -> mapE K V unit
+    Lookup : K -> mapE K V (option V)
+    Remove : K -> mapE K V unit
+
+Concurrency
+
+    Spawn : itree (spawnE E +' E) unit -> spawnE E unit
+
+Dependent
+
+    (* I : Type,  F : I -> Type *)
+    Dep : forall i : I, depE F (F i)
+```
 
 ## Dependencies
 

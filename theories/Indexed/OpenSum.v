@@ -91,10 +91,8 @@ End SumNotations.
 
 Local Open Scope sum_scope.
 
-(** A polymorphic version of [vis]. *)
-Definition vis {E F X R} `{E -< F}
-           (e : E X) (k : X -> itree F R) : itree F R :=
-  Vis (subeffect _ e) k.
+(** A polymorphic version of [Vis]. *)
+Notation vis e k := (Vis (subeffect _ e) k).
 
 (* Called [send] in Haskell freer. *)
 Definition lift {E F} `{E -< F} : E ~> itree F :=
