@@ -270,7 +270,7 @@ End Denote_Fact.
 
 (* begin hide *)
 From ITree Require Import
-     Effects.Env.
+     Effects.Map.
 
 From ExtLib Require Import
      Core.RelDec
@@ -289,11 +289,11 @@ From ExtLib Require Import
     interpreting the computation into the state monad.
  *)
 
-Definition evalLocals {E: Type -> Type} `{envE var value -< E}: Locals ~> itree E :=
+Definition evalLocals {E: Type -> Type} `{mapE var value -< E}: Locals ~> itree E :=
   fun _ e =>
     match e with
-    | GetVar x => env_lookupDefault x 0
-    | SetVar x v => env_add x v
+    | GetVar x => lookup_def x 0
+    | SetVar x v => insert x v
     end.
 
 (** We now concretely implement this environment using ExtLib's finite maps. *)
@@ -322,7 +322,7 @@ Qed.
 
 Definition ImpEval (s: stmt): itree void1 (env * unit) :=
   let p := interp evalLocals _ (denoteStmt s) in
-  run_env _ p empty.
+  run_map _ p empty.
 
 (** Equipped with this evaluator, we can now compute.
     Naturally since Coq is total, we cannot do it directly

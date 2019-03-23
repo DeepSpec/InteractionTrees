@@ -6,7 +6,7 @@ From Coq Require Import
 
 From ITree Require Import
      ITree
-     Effects.Spawn.
+     Effects.Concurrency.
 
 Import ITreeNotations.
 

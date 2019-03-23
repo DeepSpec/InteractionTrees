@@ -239,7 +239,7 @@ End Denote.
 (* begin hide *)
 From ITree Require Import
      Basics.Category
-     Effects.Env.
+     Effects.Map.
 
 From ExtLib Require Import
      Core.RelDec
@@ -250,12 +250,12 @@ From ExtLib Require Import
 (** Both environments and memory effects can be interpreted as "map" effects,
     exactly as we did for _Imp_. *)
 
-Definition evalMemory {E : Type -> Type} `{envE value value -< E} :
+Definition evalMemory {E : Type -> Type} `{mapE value value -< E} :
   Memory ~> itree E :=
   fun _ e =>
     match e with
-    | Load x => env_lookupDefault x 0
-    | Store x v => env_add x v
+    | Load x => lookup_def x 0
+    | Store x v => insert x v
     end.
 
 (** Once again, we implement our Maps with a simple association list *)
@@ -268,7 +268,7 @@ Definition memory := alist value value.
 Definition AsmEval (p: asm unit void) :=
   let h := bimap evalLocals (bimap evalMemory (id_ _)) in
   let p' := interp h _ (denote_asm p tt) in
-  run_env _ (run_env _ p' empty) empty.
+  run_map _ (run_map _ p' empty) empty.
 
 (** Now that we have both our language, we could jump directly into implementing
     our compiler.
