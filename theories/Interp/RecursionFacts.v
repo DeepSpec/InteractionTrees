@@ -54,8 +54,8 @@ Proof.
   - rewrite bind_ret_; reflexivity. (* TODO: bind_ret, bind_vis are sloooow *)
   - destruct e; cbn.
     + rewrite bind_ret_; reflexivity.
-    + rewrite bind_vis_. ustep; constructor.
-      ustep; constructor. intros.
+    + rewrite bind_vis_. wstep; constructor.
+      wstep; constructor. intros.
       rewrite bind_ret.
       apply reflexivity.
 Qed.
@@ -86,30 +86,30 @@ Hint Rewrite @tau_mrec : itree.
 Instance eq_itree_mrec {R} :
   Proper (eq_itree eq ==> eq_itree eq) (interp_mrec ctx R).
 Proof.
-  ucofix CIH. intros.
+  wcofix CIH. intros.
   rewrite !unfold_interp_mrec.
-  uunfold H0. inv H0; simpobs; [| |destruct e].
+  wunfold H0. inv H0; simpobs; [| |destruct e].
   - apply reflexivity.
-  - econstructor. eauto with paco.
-  - econstructor. apply pointwise_relation_fold in REL.
-    ubase. eapply CIH. rewrite REL. reflexivity.
-  - econstructor. ustep; constructor. auto with paco.
+  - wstep. econstructor. eauto with paco.
+  - wstep. econstructor. apply pointwise_relation_fold in REL.
+    wbase. eapply CIH. rewrite REL. reflexivity.
+  - wstep. econstructor. wstep; constructor. auto with paco.
 Qed.
 
 Theorem interp_mrec_bind {U T} (t : itree _ U) (k : U -> itree _ T) :
   interp_mrec ctx _ (ITree.bind t k) ≅
   ITree.bind (interp_mrec ctx _ t) (fun x => interp_mrec ctx _ (k x)).
 Proof.
-  revert t k; ucofix CIH; intros.
+  revert t k; wcofix CIH; intros.
   rewrite (unfold_interp_mrec _ t), (unfold_bind t).
   destruct (observe t); cbn;
     [| |destruct e];
     autorewrite with itree;
     try rewrite <- bind_bind.
   1: { apply reflexivity. }
-  all: try (econstructor; eauto with paco).
+  all: try (wstep; econstructor; eauto with paco).
   intros.
-  ustep; constructor. auto with paco.
+  wstep; constructor. auto with paco.
 Qed.
 
 (** [mrec ctx] is equivalent to [interp (mrecursive ctx)],
@@ -121,19 +121,19 @@ Definition mrecursive (f : D ~> itree (D +' E))
 Theorem interp_mrec_as_interp {T} (c : itree _ T) :
   interp_mrec ctx _ c ≅ interp (mrecursive ctx) _ c.
 Proof.
-  revert_until T. ucofix CIH. intros.
+  revert_until T. wcofix CIH. intros.
   rewrite unfold_interp_mrec, unfold_interp.
   destruct (observe c); [| |destruct e]; simpl; eauto with paco.
-  - econstructor. eauto.
-  - econstructor. eauto with paco.
+  - wstep. econstructor. eauto.
+  - wstep. econstructor. eauto with paco.
   - rewrite interp_mrec_bind.
-    constructor.
-    uclo eq_itree_clo_bind; econstructor; [reflexivity|].
+    wstep. constructor.
+    wclo eq_itree_clo_bind; econstructor; [reflexivity|].
     intros ? _ []; eauto with paco.
 
   - unfold ITree.lift, case_; simpl. rewrite bind_vis_.
-    constructor.
-    ustep; econstructor. intros.
+    wstep. constructor.
+    wstep; econstructor. intros.
     rewrite bind_ret_. auto with paco.
 Qed.
 
@@ -178,12 +178,12 @@ Lemma interp_loop {E F} (f : E ~> itree F) {A B C}
       (t : C + A -> itree E (C + B)) ca :
   interp f _ (loop_ t ca) ≅ loop_ (fun ca => interp f _ (t ca)) ca.
 Proof.
-  revert ca. ucofix CIH. intros.
+  revert ca. wcofix CIH. intros.
   unfold loop. rewrite !unfold_loop'. unfold loop_once.
   rewrite interp_bind.
-  uclo eq_itree_clo_bind. econstructor; [reflexivity|].
+  wclo eq_itree_clo_bind. econstructor; [reflexivity|].
   intros. subst. rewrite unfold_interp.
-  destruct u2; econstructor; eauto with paco.
+  destruct u2; wstep; econstructor; eauto with paco.
 Qed.
 
 Lemma unfold_forever {E R S} (t : itree E R)
@@ -198,11 +198,11 @@ Lemma interp_forever {E F} (f : E ~> itree F) {R S}
   : interp f _ (ITree.forever t)
   ≅ @ITree.forever F R S (interp f _ t).
 Proof.
-  ucofix CIH.
+  wcofix CIH.
   rewrite unfold_forever.
   rewrite (unfold_forever (interp _ _ _)).
   rewrite interp_bind.
-  uclo eq_itree_clo_bind. econstructor; [reflexivity |].
+  wclo eq_itree_clo_bind. econstructor; [reflexivity |].
   intros ? _ []. rewrite interp_tau.
-  constructor; auto with paco.
+  wstep. constructor; auto with paco.
 Qed.

@@ -74,7 +74,7 @@ Hint Resolve monotone_euttE_ : paco.
 (* Equivalence Up To Taus.
 
    [euttE t1 t2]: [t1] is equivalent to [t2] up to taus. *)
-Definition euttE : itree E R1 -> itree E R2 -> Prop := cpn2 euttE_ bot2.
+Definition euttE : itree E R1 -> itree E R2 -> Prop := wcpn2 euttE_ bot2 bot2.
 Hint Unfold euttE.
 
 Global Arguments euttE t1%itree t2%itree.
@@ -138,7 +138,7 @@ Qed.
 Lemma euttE_Ret x y :
   RR x y -> euttE (Ret x) (Ret y).
 Proof.
-  intros. ustep.
+  intros. wstep.
   constructor.
   split; intros; eapply finite_taus_ret; reflexivity.
   intros.
@@ -152,7 +152,7 @@ Lemma euttE_Vis {U} (e: E U) k k' :
   euttE (Vis e k) (Vis e k').
 Proof.
   intros.
-  ustep; constructor.
+  wstep; constructor.
   split; intros; eapply finite_taus_vis; reflexivity.
   intros.
   cbn in *.
@@ -160,7 +160,7 @@ Proof.
   apply unalltausF_vis in UNTAUS2.
   subst; constructor.
   intros x; specialize (H x).
-  uunfold H. eauto with paco.
+  wunfold H. eauto with paco.
 Qed.
 
 End EUTT.
@@ -211,11 +211,11 @@ Lemma Symmetric_euttE_ {E R1 R2}
       (RR1 : R1 -> R2 -> Prop) (RR2 : R2 -> R1 -> Prop)
       (SYM_RR : forall r1 r2, RR1 r1 r2 -> RR2 r2 r1) :
   forall (t1 : itree E R1) (t2 : itree E R2),
-    cpn2 (euttE_ RR1) bot2 t1 t2 -> cpn2 (euttE_ RR2) bot2 t2 t1.
+    wcpn2 (euttE_ RR1) bot2 bot2 t1 t2 -> wcpn2 (euttE_ RR2) bot2 bot2 t2 t1.
 Proof.
-  ucofix self.
+  wcofix self; wstep.
   intros t1 t2 H12.
-  uunfold H12.
+  wunfold H12.
   eapply Symmetric_euttEF_; try eassumption.
   intros. eauto with paco.
 Qed.
@@ -227,11 +227,11 @@ Lemma Transitive_euttE_ {E R1 R2 R3}
   forall (t1 : itree E R1) t2 t3,
     euttE RR1 t1 t2 -> euttE RR2 t2 t3 -> euttE RR3 t1 t3.
 Proof.
-  ucofix self.
+  wcofix self; wstep.
   intros t1 t2 t3 H12 H23.
-  uunfold H12; uunfold H23.
+  wunfold H12; wunfold H23.
   eapply Transitive_euttEF_; try eassumption.
-  intros. eauto with paco.
+  eauto with paco.
 Qed.
 
 Section EUTT_rel.
@@ -241,7 +241,7 @@ Context {E : Type -> Type} {R : Type} (RR : R -> R -> Prop).
 Global Instance subrelation_eq_euttE :
   @subrelation (itree E R) (eq_itree RR) (euttE RR).
 Proof.
-  ucofix CIH. intros.
+  wcofix CIH; wstep. intros.
   econstructor.
   { split; [|apply flip_eq_itree in H0]; intros; destruct H as [n [? ?]]; eauto using eq_unalltaus. }
 
@@ -277,14 +277,15 @@ Proof.
 Qed.
 
 Global Instance Symmetric_euttE `{Symmetric _ RR}:
-  Symmetric (cpn2 (@euttE_ E _ _ RR) bot2).
+  Symmetric (wcpn2 (@euttE_ E _ _ RR) bot2 bot2).
 Proof. red. eapply Symmetric_euttE_. eauto. Qed.
 
 Global Instance Reflexive_euttE `{Reflexive _ RR}
-       (r : itree E R -> itree E R -> Prop) :
-  Reflexive (cpn2 (euttE_ RR) r).
+       (r rg: itree E R -> itree E R -> Prop) :
+  Reflexive (wcpn2 (euttE_ RR) r rg).
 Proof.
-  ucofix CIH.
+  repeat intro. eapply wcpn2_mon_bot with (gf:=euttE_ RR); eauto with paco.
+  revert x. wcofix CIH; wstep.
   intros. apply Reflexive_euttEF; eauto with paco.
 Qed.
 
@@ -307,7 +308,7 @@ Qed.
 (* [euttE] is preserved by removing one [Tau]. *)
 Lemma tauF_euttE (t t': itree E R) (OBS: TauF t' = observe t): euttE t t'.
 Proof.
-  ustep. split.
+  wstep. split.
   - simpobs. rewrite finite_taus_tau. reflexivity.
   - intros t1' t2' H1 H2.
     eapply unalltaus_tau in H1; eauto.
@@ -325,7 +326,7 @@ Qed.
 Lemma untaus_euttE (t t' : itree E R) : untausF (observe t) (observe t') -> euttE t t'.
 Proof.
   intros H.
-  ustep. split.
+  wstep. split.
   - eapply untaus_finite_taus; eauto.
   - induction H; intros.
     + rewrite (unalltaus_injective _ _ _ UNTAUS1 UNTAUS2).
@@ -349,12 +350,12 @@ Proof. intros ? ? []; eauto. Qed.
 
 Global Instance euttE_observe : Proper (euttE ==> going euttE) observe.
 Proof.
-  constructor. uunfold H. ustep. destruct H. econstructor; eauto.
+  constructor. wunfold H. wstep. destruct H. econstructor; eauto.
 Qed.
 
 Global Instance euttE_tauF : Proper (euttE ==> going euttE) (fun t => TauF t).
 Proof.
-  constructor; ustep. uunfold H.
+  constructor; wstep. wunfold H.
   destruct H. econstructor.
   - split; intros; simpl.
     + rewrite finite_taus_tau, <-FIN, <-finite_taus_tau; eauto.
@@ -365,7 +366,7 @@ Qed.
 Global Instance euttE_VisF {u} (e: E u) :
   Proper (pointwise_relation _ euttE ==> going euttE) (VisF e).
 Proof.
-  constructor; ustep. red in H. econstructor.
+  constructor; wstep. red in H. econstructor.
   - repeat econstructor.
   - intros.
     destruct UNTAUS1 as [UNTAUS1 Hnotau1].
@@ -380,7 +381,7 @@ Qed.
 Global Instance euttE_finite_taus :
   Proper (going euttE ==> flip impl) finite_tausF.
 Proof.
-  intros ? ? [] ?; uunfold H. eapply H. eauto.
+  intros ? ? [] ?; wunfold H. eapply H. eauto.
 Qed.
 
 End EUTT_eq.
@@ -392,7 +393,7 @@ Lemma euttE_tau {E R1 R2} (RR : R1 -> R2 -> Prop)
   euttE RR t1 t2 -> euttE RR (Tau t1) (Tau t2).
 Proof.
   intros H.
-  ustep. eapply euttEF_tau. reflexivity. reflexivity. uunfold H. eauto.
+  wstep. eapply euttEF_tau. reflexivity. reflexivity. wunfold H. eauto.
 Qed.
 
 (* Lemmas about [bind]. *)
@@ -411,7 +412,7 @@ Lemma bind_clo_finite_taus {E U1 U2 RU R1 R2}  t1 t2 k1 k2
     (EQV: euttE RU t1 t2):
   finite_taus (@ITree.bind' E U2 R2 k2 t2).
 Proof.
-  uunfold EQV. destruct EQV as [[FTt _] EQV].
+  wunfold EQV. destruct EQV as [[FTt _] EQV].
   assert (FT1 := FT). apply finite_taus_bind_fst in FT1.
   assert (FT2 := FT1). apply FTt in FT2.
   destruct FT1 as [a [FT1 NT1]], FT2 as [b [FT2 NT2]].
@@ -434,7 +435,7 @@ Proof.
     split; intros; eapply bind_clo_finite_taus; eauto; intros.
     + eapply REL; eauto.
     + eapply REL; eauto.
-  - uunfold EQV. destruct EQV.
+  - wunfold EQV. destruct EQV.
     intros.
     hexploit (@finite_taus_bind_fst E); [do 2 eexists; apply UNTAUS1|]. intros [a FT1].
     hexploit (@finite_taus_bind_fst E); [do 2 eexists; apply UNTAUS2|]. intros [b FT2].
@@ -468,7 +469,7 @@ Lemma euttE_clo_trans {E R1 R2} RR : euttE_trans_clo <3= cpn2 (@euttE_ E R1 R2 R
 Proof.
   ucompat. econstructor; [pmonauto|].
   intros. inv PR.
-  uunfold EQVl. uunfold EQVr. destruct EQVl, EQVr. split.
+  wunfold EQVl. wunfold EQVr. destruct EQVl, EQVr. split.
   { rewrite FIN, FIN0. destruct REL. eauto. }
 
   intros. apply proj1 in FIN. edestruct FIN as [n'' [t2'' TAUS'']]; [eexists; eauto|].
@@ -499,7 +500,7 @@ Context {E : Type -> Type} {R1 R2 : Type} (RR : R1 -> R2 -> Prop).
 Lemma euttE__impl_eutt_ r t1 t2 :
   @euttE_ E R1 R2 RR r t1 t2 -> eutt0 RR r t1 t2.
 Proof.
-  revert t1 t2. ucofix CIH'. intros. destruct H0. repeat red.
+  revert t1 t2. wcofix CIH'; wstep. intros. destruct H0. repeat red.
   genobs_clear t1 ot1. genobs_clear t2 ot2.
   assert (EM: notauF ot1 \/ notauF ot2 \/ ~(notauF ot1 \/ notauF ot2))
     by (destruct ot1, ot2; simpl; tauto).
@@ -527,25 +528,23 @@ Proof.
       hexploit @unalltaus_injective; [|econstructor|]; eauto. intros; subst; eauto.
     }
   - destruct ot1, ot2; simpl in *; try tauto.
-    econstructor. ubase. apply CIH'.
+    econstructor. wbase. apply CIH'.
     econstructor.
     + rewrite !finite_taus_tau in FIN. eauto.
     + eauto using unalltaus_tau'.
 Qed.
 
 Lemma euttE_impl_eutt t1 t2 :
-  cpn2 (@euttE_ E R1 R2 RR) bot2 t1 t2 -> cpn2 (eutt0 RR) bot2 t1 t2.
+  wcpn2 (@euttE_ E R1 R2 RR) bot2 bot2 t1 t2 -> wcpn2 (eutt0 RR) bot2 bot2 t1 t2.
 Proof.
-  intros. eapply cpn2_init in H; eauto with paco.
-  eapply cpn2_final; eauto with paco.
-  left. eapply paco2_mon_gen; eauto; intros; apply euttE__impl_eutt_; eauto.
+  intros. eapply wcpn2_mon_bot; eauto using euttE__impl_eutt_ with paco.
 Qed.
 
 Lemma eutt_impl_euttE t1 t2 :
-  cpn2 (@eutt0 E R1 R2 RR) bot2 t1 t2 -> cpn2 (euttE_ RR) bot2 t1 t2.
+  wcpn2 (@eutt0 E R1 R2 RR) bot2 bot2 t1 t2 -> wcpn2 (euttE_ RR) bot2 bot2 t1 t2.
 Proof.
-  revert_until RR. ucofix CIH. intros.
-  rename H0 into H. do 2 uunfold H. repeat red in H. econstructor; intros.
+  revert_until RR. wcofix CIH; wstep. intros.
+  rename H0 into H. do 2 wunfold H. repeat red in H. econstructor; intros.
   - split; intros.
     + genobs_clear t1 ot1. genobs_clear t2 ot2.
       destruct H0 as [ot' [UNTAUS NOTAU]].
@@ -555,7 +554,7 @@ Proof.
         rewrite finite_taus_tau. eauto.
       * induction H; eauto 7; try inv OBS
         ; rewrite ?finite_taus_tau; eauto; eapply IHUNTAUS; eauto.
-        uunfold EQTAUS. eauto.
+        wunfold EQTAUS. eauto.
     + genobs t1 ot1. genobs t2 ot2. clear Heqot1 t1 Heqot2 t2.
       destruct H0 as [ot' [UNTAUS NOTAU]].
       move UNTAUS before r. revert_until UNTAUS.
@@ -564,7 +563,7 @@ Proof.
         rewrite finite_taus_tau. eauto.
       * induction H; eauto 7; try inv OBS
         ; rewrite ?finite_taus_tau; eauto; eapply IHUNTAUS; eauto.
-        uunfold EQTAUS. eauto.
+        wunfold EQTAUS. eauto.
   - genobs_clear t1 ot1. genobs_clear t2 ot2.
     destruct UNTAUS1 as [UNTAUS1 NT1]. destruct UNTAUS2 as [UNTAUS2 NT2].
     move UNTAUS2 before r. move UNTAUS1 before r. revert_until UNTAUS1.
@@ -578,11 +577,11 @@ Proof.
       * inv H; try contradiction; eauto.
       * inv H; try contradiction; eauto.
         eapply IHUNTAUS1; eauto.
-        uunfold EQTAUS. eauto.
+        wunfold EQTAUS. eauto.
 Qed.
 
 Lemma eutt_is_euttE t1 t2 :
-  cpn2 (@eutt0 E R1 R2 RR) bot2 t1 t2 <-> cpn2 (euttE_ RR) bot2 t1 t2.
+  wcpn2 (@eutt0 E R1 R2 RR) bot2 bot2 t1 t2 <-> wcpn2 (euttE_ RR) bot2 bot2 t1 t2.
 Proof. split; eauto using euttE_impl_eutt, eutt_impl_euttE. Qed.
 
 End EUTT_eq_EUTTE.

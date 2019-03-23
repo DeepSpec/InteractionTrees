@@ -60,12 +60,13 @@ Qed.
 Global Instance translate_Proper :
   Proper (eq_itree (@eq R) ==> eq_itree eq) (translate h).
 Proof.
-  ucofix CIH.
+  wcofix CIH.
   intros x y H.
   rewrite itree_eta.
   rewrite (itree_eta (translate h y)), !unfold_translate, <-!itree_eta.
   rewrite (itree_eta x), (itree_eta y) in H.
-  uunfold H. genobs_clear x ox. genobs_clear y oy. repeat red in H.
+  wunfold H. wstep. repeat red.
+  genobs_clear x ox. genobs_clear y oy. repeat red in H.
   destruct ox, oy; dependent destruction H; constructor; eauto with paco.
 Qed.
 
@@ -86,13 +87,13 @@ Lemma translate_bind : forall {E F R S} (h : E ~> F) (t : itree E S) (k : S -> i
 Proof.
   intros E F R S h t k.
   revert S t k.
-  ucofix CIH.
+  wcofix CIH.
   intros s t k.
-  rewrite !unfold_translate, !unfold_bind.
+  rewrite !unfold_translate, !unfold_bind_.
   genobs_clear t ot. destruct ot; cbn.
   - rewrite unfold_translate. apply reflexivity.
-  - econstructor. ubase. apply CIH.
-  - econstructor. intros. ubase. apply CIH.
+  - wstep. constructor. wbase. apply CIH.
+  - wstep. constructor. intros. wbase. apply CIH.
 Qed.
 
 (* categorical properties --------------------------------------------------- *)
@@ -101,7 +102,7 @@ Lemma translate_id : forall E R (t : itree E R), translate (id_ _) t ≅ t.
 Proof.
   intros E R t.
   revert t.
-  ucofix CIH.
+  wcofix CIH.
   intros t.
   rewrite itree_eta.
   rewrite (itree_eta t).
@@ -109,8 +110,8 @@ Proof.
   unfold translateF.
   destruct (observe t); cbn.
   - apply reflexivity.
-  - econstructor. ubase. apply CIH.
-  - econstructor. intros. ubase. apply CIH.
+  - wstep. econstructor. wbase. apply CIH.
+  - wstep. econstructor. intros. wbase. apply CIH.
 Qed.
 
 Import CatNotations.
@@ -120,13 +121,13 @@ Lemma translate_cmpE : forall E F G R (g : F ~> G) (f : E ~> F) (t : itree E R),
 Proof.
   intros E F G R g f t.
   revert t.
-  ucofix CIH.
+  wcofix CIH.
   intros t.
   rewrite !unfold_translate.
   genobs_clear t ot. destruct ot; cbn.
   - apply reflexivity.
-  - econstructor. ubase. apply CIH.
-  - econstructor. intros. ubase. apply CIH.
+  - wstep. econstructor. wbase. apply CIH.
+  - wstep. econstructor. intros. wbase. apply CIH.
 Qed.
 
 (* SAZ: TODO - it would be good to allow for rewriting of event morphisms under translate:

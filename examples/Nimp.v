@@ -157,11 +157,11 @@ Qed.
 (* SAZ: the [~] notation for eutt wasn't working here. *)
 Lemma eval_one_loop : eval one_loop ≈ one_loop_tree.
 Proof.
-  ucofix CIH. unfold eval, one_loop_tree.
+  wcofix CIH. unfold eval, one_loop_tree.
   setoid_rewrite rec_as_interp; setoid_rewrite interp_bind.
-  ustep. repeat red. cbn. econstructor.
-  ustep. repeat red. cbn. econstructor.
-  left. rewrite !bind_ret, !interp_ret, !bind_ret.
+  wstep. wstep. repeat red. cbn. econstructor.
+  wstep. repeat red. cbn. econstructor.
+  left. rewrite !bind_ret_, !interp_ret, !bind_ret_.
   destruct x.
   - rewrite !interp_ret. apply reflexivity.
   - rewrite !lift_is_vis_ret, interp_bind.
