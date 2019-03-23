@@ -461,7 +461,7 @@ Global Instance eq_cong_eutt0 r r0 :
   Proper (eq_itree eq ==> eq_itree eq ==> flip impl)
          (cpn2 (@eutt0_ E R1 R2 RR (cpn2 (eutt0 RR) r)) r0).
 Proof.
-  repeat intro. destruct H, H0.
+  repeat intro.
   uclo eutt0_clo_trans. econstructor; eauto.
 Qed.
 
@@ -469,7 +469,7 @@ Global Instance eq_cong_eutt0_guard r r0 :
   Proper (eq_itree eq ==> eq_itree eq ==> flip impl)
          (gcpn2 (@eutt0_ E R1 R2 RR (cpn2 (eutt0 RR) r)) r0).
 Proof.
-  repeat intro. destruct H, H0.
+  repeat intro.
   uclo eutt0_clo_trans. econstructor; eauto.
 Qed.
 

@@ -572,7 +572,7 @@ Proof.
     + induction 1; intros.
       * inv H; try contradiction; eauto.
         econstructor. intros.
-        edestruct EUTTK as [TMP | TMP]; destruct TMP; eauto 8 with paco; contradiction.
+        edestruct EUTTK as [TMP | TMP]; eauto with paco; contradiction.
       * subst. inv H; try contradiction. eauto.
     + induction 1; intros; subst.
       * inv H; try contradiction; eauto.
