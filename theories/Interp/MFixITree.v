@@ -188,9 +188,9 @@ Section EX2.
   Hint Resolve monotone_body.
 
 
-  Definition undef := ITree.lift Undef.
-  Definition store x := ITree.lift (Store x).
-  Definition load := ITree.lift Load.
+  Definition undef := ITree.send Undef.
+  Definition store x := ITree.send (Store x).
+  Definition load := ITree.send Load.
 
   Definition prog1 : itree SIO nat  :=
     x <- undef ;;

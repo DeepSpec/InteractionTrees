@@ -423,13 +423,13 @@ Section Eq_Locals.
   Lemma sim_rel_get_tmp0:
     forall n g_asm0 g_asm g_imp v,
       sim_rel g_asm0 n (g_asm,tt) (g_imp,v) ->
-      interp_locals (lift (GetVar (gen_tmp n))) g_asm ≈ Ret (g_asm,v).
+      interp_locals (send (GetVar (gen_tmp n))) g_asm ≈ Ret (g_asm,v).
   Proof.
     intros.
     destruct H as [_ [eq _]].
     unfold interp_locals.
-    unfold lift.
-    rewrite interp_lift.
+    unfold send.
+    rewrite interp_send.
     rewrite tau_eutt.
     cbn.
     unfold run_map.
@@ -440,9 +440,9 @@ Section Eq_Locals.
     rewrite map_bind.
     setoid_rewrite bind_ret.
     setoid_rewrite interp_ret.
-    unfold inl_, Inl_sum1_Handler, Handler.inl_, Handler.hlift.
+    unfold inl_, Inl_sum1_Handler, Handler.inl_, Handler.hsend.
     rewrite interp_state_bind.
-    rewrite interp_state_lift.
+    rewrite interp_state_send.
     rewrite bind_ret2.
     cbn.
     rewrite eq.
@@ -491,7 +491,7 @@ Section Linking.
       denote_asm (if_asm e tp fp)
     ⩯ ((fun _ =>
          denote_list e ;;
-         v <- lift (GetVar tmp_if) ;;
+         v <- send (GetVar tmp_if) ;;
          if v : value then denote_asm fp tt else denote_asm tp tt) : ktree _ _ _).
   Proof.
     unfold if_asm.
@@ -536,7 +536,7 @@ Section Linking.
          match l with
          | inl tt =>
            denote_list e ;;
-           v <- ITree.lift (inl1 (GetVar tmp_if)) ;;
+           v <- ITree.send (inl1 (GetVar tmp_if)) ;;
            if v : value then
              Ret (inr tt)
            else
@@ -726,7 +726,7 @@ Section Correctness.
   Lemma compile_assign_correct : forall e x,
       eq_locals eq Renv
                 (denote_list (compile_assign x e))
-                (v <- denoteExpr e ;; lift (SetVar x v)).
+                (v <- denoteExpr e ;; send (SetVar x v)).
   Proof.
     red; intros.
     unfold compile_assign.

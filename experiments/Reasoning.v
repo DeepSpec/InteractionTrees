@@ -58,7 +58,7 @@ End State.
   Arguments Put {S} _.
 
   Global Instance MS_itree {E S} : MonadState S (itree (stateE S +' E)) :=
-    Build_MonadState S _ (ITree.lift (inl1 Get)) (fun s => ITree.lift (inl1 (Put s))).
+    Build_MonadState S _ (ITree.send (inl1 Get)) (fun s => ITree.send (inl1 (Put s))).
 
   Definition eval_state' {E S} : stateE S ~> Monads.stateT S (itree E) :=
     fun _ e =>
@@ -99,7 +99,7 @@ Lemma interp1_state_get : forall {E:Type -> Type} S s,
 Proof.
   intros E S s.
   unfold get. unfold MS_itree. 
-  rewrite interp1_state_lift1.
+  rewrite interp1_state_send1.
   simpl.
   reflexivity.
 Qed.
@@ -109,7 +109,7 @@ Lemma interp1_state_put : forall {E :Type -> Type} S s s',
 Proof.
   intros E S s s'.
   unfold put. unfold MS_itree.
-  rewrite interp1_state_lift1.
+  rewrite interp1_state_send1.
   simpl.
   reflexivity.
 Qed.
@@ -118,20 +118,20 @@ Lemma interp1_state_E : forall {E F:Type -> Type} S (s:S) (f : E ~> Monads.state
     interp1_state f X (embed e) s ≅ (Vis e (fun x => ret (s, x))).
 Proof.
   intros E F S s f X e.
-  unfold embed. unfold Embeddable_itree. unfold lift. simpl.
-  rewrite interp1_state_lift2.
+  unfold embed. unfold Embeddable_itree. unfold send. simpl.
+  rewrite interp1_state_send2.
   reflexivity.
 Qed.  
 
 
 Lemma run_state_E_right : forall {E} S (s:S) (R T:Type) (e:E R) (k : R -> itree (stateE S +' E) T),
-    run_state (x <- (ITree.lift (inr1 e)) ;; k x) s ≅ (x <- (ITree.lift e) ;; run_state (k x) s).
+    run_state (x <- (ITree.send (inr1 e)) ;; k x) s ≅ (x <- (ITree.send e) ;; run_state (k x) s).
 Proof.
   intros E S s R T e k. 
   unfold run_state.
-  rewrite interp1_state_bind. cbn. rewrite interp1_state_lift2.
+  rewrite interp1_state_bind. cbn. rewrite interp1_state_send2.
   cbn.
-  rewrite bind_vis. unfold ITree.lift. rewrite bind_vis.
+  rewrite bind_vis. unfold ITree.send. rewrite bind_vis.
   apply itree_eq_vis.
   intros.
   rewrite !bind_ret. cbn. reflexivity.
@@ -139,7 +139,7 @@ Qed.
 
 
 Lemma run_state_E0_right : forall {E:Type -> Type} S (s:S) (T:Type) (e:E unit) (k : itree (stateE S +' E) T),
-    run_state ((ITree.lift (inr1 e)) ;; k) s ≅ ((ITree.lift e) ;; run_state k s).
+    run_state ((ITree.send (inr1 e)) ;; k) s ≅ ((ITree.send e) ;; run_state k s).
 Proof.
   intros E S s T e k.
   apply run_state_E_right.
@@ -248,8 +248,8 @@ Definition state2E := ((stateE S1) +' ((stateE S2) +' E)).
 
 Definition get1 : itree state2E S1 := get.
 Definition put1 (s:S1) : itree state2E unit := (put s).
-Definition get2 : itree state2E S2 := ITree.lift (inr1 (inl1 Get)).
-Definition put2 (s:S2) : itree state2E unit := ITree.lift (inr1 (inl1 (Put s))).
+Definition get2 : itree state2E S2 := ITree.send (inr1 (inl1 Get)).
+Definition put2 (s:S2) : itree state2E unit := ITree.send (inr1 (inl1 (Put s))).
 
 End TwoStates.
 
@@ -275,7 +275,7 @@ Proof.
   unfold runboth.
   unfold put2.
   rewrite run_state_E0_right.
-  replace (ITree.lift (inl1 (Put s2'))) with (put s2') by reflexivity.
+  replace (ITree.send (inl1 (Put s2'))) with (put s2') by reflexivity.
   rewrite run_state_put. reflexivity.
 Qed.
 
@@ -297,7 +297,7 @@ Proof.
   unfold runboth.
   unfold get2.
   rewrite run_state_E_right.
-  replace (ITree.lift (inl1 Get)) with (get (T:=S2)) by reflexivity.
+  replace (ITree.send (inl1 Get)) with (get (T:=S2)) by reflexivity.
   rewrite run_state_get.
   reflexivity.
 Qed.

@@ -42,11 +42,11 @@ Open Scope itree_scope.
      match d with
      | Even n => match n with
                  | O => ret true
-                 | S m => lift (Odd m)
+                 | S m => send (Odd m)
                  end
      | Odd n => match n with
                 | O => ret false
-                | S m => lift (Even m)
+                | S m => send (Even m)
                 end
      end.
 ]]
@@ -87,8 +87,8 @@ Definition mrec {D E : Type -> Type}
   fun R d => interp_mrec ctx _ (ctx _ d).
 
 (** Make a recursive call in the handler argument of [mrec]. *)
-Definition lift_inl1 {D E : Type -> Type} : D ~> itree (D +' E)
-  := fun _ d => ITree.lift (inl1 d).
+Definition send_inl1 {D E : Type -> Type} : D ~> itree (D +' E)
+  := fun _ d => ITree.send (inl1 d).
 
 (** Here's some syntactic sugar with a notation [mrec-fix]. *)
 
@@ -98,7 +98,7 @@ Local Notation endo T := (T -> T).
 Definition mrec_fix {D E : Type -> Type} {A B : Type}
            (ctx : endo (D ~> itree (D +' E)))
   : D ~> itree E
-  := mrec (ctx lift_inl1).
+  := mrec (ctx send_inl1).
 
 Notation "'mrec-fix' f d := g" := (mrec_fix (fun f _ d => g))
   (at level 200, f ident, d pattern).
@@ -146,7 +146,7 @@ Definition rec {E : Type -> Type} {A B : Type}
     function might have other effects of type [E], the resulting itree has
     type [(callE A B +' E)].
 *)
-Definition call {E A B} (a:A) : itree (callE A B +' E) B := ITree.lift (inl1 (Call a)).
+Definition call {E A B} (a:A) : itree (callE A B +' E) B := ITree.send (inl1 (Call a)).
 
 (** Here's some syntactic sugar with a notation [mrec-fix]. *)
 

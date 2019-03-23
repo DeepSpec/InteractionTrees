@@ -19,7 +19,7 @@ Inductive spawnE E : Type -> Type :=
 | Spawn : forall (t: itree (spawnE E +' E) unit), spawnE E unit.
 
 Definition spawn {F E} `{(spawnE F) -< E} (t:itree (spawnE F +' F) unit) : itree E unit :=
-    lift (Spawn t).
+    send (Spawn t).
 
 (* A simple round-robin scheduler:
 

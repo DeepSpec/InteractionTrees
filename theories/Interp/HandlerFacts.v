@@ -31,7 +31,7 @@ Proof.
   revert t. ucofix CIH. red. ucofix CIH'. intros.
   rewrite unfold_interp. unfold _interp. repeat red.
   destruct (observe t); cbn; eauto 8 with paco.
-  unfold id_, Id_Handler, Handler.id_, ITree.lift. eutt0_fold. rewrite bind_vis_.
+  unfold id_, Id_Handler, Handler.id_, ITree.send. eutt0_fold. rewrite bind_vis_.
   do 2 constructor.
   left; rewrite bind_ret; auto with paco.
 Qed.
@@ -46,7 +46,7 @@ Instance CatIdL_Handler : CatIdL Handler.
 Proof.
   red; intros A B f X e.
   unfold cat, Cat_Handler, Handler.cat, id_, Id_Handler, Handler.id_.
-  rewrite interp_lift, tau_eutt.
+  rewrite interp_send, tau_eutt.
   reflexivity.
 Qed.
 

@@ -117,7 +117,7 @@ Definition or {R : Type} (t1 t2 : itree nd R) : itree nd R :=
   Vis Or (fun b : bool => if b then t1 else t2).
 
 (* Flip a coin *)
-Definition choice {E} `{nd -< E} : itree E bool := lift Or.
+Definition choice {E} `{nd -< E} : itree E bool := send Or.
 
 Definition eval_def := (fun (c : com) =>
     match c with
@@ -125,13 +125,13 @@ Definition eval_def := (fun (c : com) =>
       (b <- choice;;
       if b : bool
       then Ret tt
-      else (lift (Call c);; lift (Call (loop c))))%itree
+      else (send (Call c);; send (Call (loop c))))%itree
     | choose c1 c2 =>
       (b <- choice;;
       if b : bool
-      then lift (Call c1)
-      else lift (Call c2))%itree
-    | (t1 ;; t2)%com => (lift (Call t1);; lift (Call t2))%itree
+      then send (Call c1)
+      else send (Call c2))%itree
+    | (t1 ;; t2)%com => (send (Call t1);; send (Call t2))%itree
     | skip => Ret tt
     end
   ).
@@ -145,7 +145,7 @@ Definition one_loop_tree : itree nd unit :=
     if b : bool then
       Ret tt
     else
-      lift (Call tt))%itree tt.
+      send (Call tt))%itree tt.
 
 Import Coq.Classes.Morphisms.
 
@@ -164,7 +164,7 @@ Proof.
   left. rewrite !bind_ret, !interp_ret, !bind_ret.
   destruct x.
   - rewrite !interp_ret. apply reflexivity.
-  - rewrite !lift_is_vis_ret, interp_bind.
+  - rewrite !send_is_vis_ret, interp_bind.
     setoid_rewrite interp_recursive_call.
     rewrite eval_skip. rewrite bind_tau, bind_ret.
     rewrite !tau_eutt. eauto with paco.
