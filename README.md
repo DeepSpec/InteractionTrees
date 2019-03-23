@@ -74,33 +74,17 @@ for testing.
 ## Dependencies
 
 - [coq](https://coq.inria.fr/) (8.8 or 8.9)
-- [coq-paco](https://github.com/snu-sf/paco) (2.0.3 or later)
-- [coq-ext-lib](https://github.com/coq-ext-lib/coq-ext-lib) (0.10.0 or later)
+- [coq-paco](https://github.com/snu-sf/paco)
+- [coq-ext-lib](https://github.com/coq-ext-lib/coq-ext-lib)
+
+See `coq-itree.opam` for details.
 
 ## Build instructions
 
-Choose one of the following methods.
-
-### 1. Install dependencies with OPAM
+Install dependencies with opam.
 
 ```
 opam install coq-paco coq-ext-lib
-```
-
-Now you can build the project with:
-
-```
-make
-```
-
-### 2. Use dependencies installed elsewhere
-
-If you would like to use local versions of some of the dependencies, create a
-`_CoqPath` file with the paths to the libraries that you would like to include.
-For example,
-
-```
--Q path/to/paco/src Paco
 ```
 
 Now you can build the project with:
