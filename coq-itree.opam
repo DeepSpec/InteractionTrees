@@ -15,7 +15,7 @@ remove: [ "rm" "-rf" "%{lib}%/coq/user-contrib/ITree" ]
 
 depends: [
   "coq" {>= "8.8" & < "8.10~"}
-  "coq-ext-lib"
+  "coq-ext-lib" {>= "0.10.0" & < "0.10.1"}
   "coq-paco" {>= "2.1.0" & < "2.2"}
 ]
 
