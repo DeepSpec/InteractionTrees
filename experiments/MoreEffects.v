@@ -21,7 +21,7 @@ Section Tagged.
   {| unTag := e |}.
 
   Definition eval_tagged {tag} : eff_hom (Tagged tag) E :=
-    fun _ e => lift e.(unTag).
+    fun _ e => send e.(unTag).
 
 End Tagged.
 
@@ -41,7 +41,7 @@ Section Counter.
   | Incr : counterE N N.
 
   Definition incr {N E} `{counterE N -< E} : itree E N :=
-    lift Incr.
+    send Incr.
 
   Definition eval_counter {N E} `{Countable N}
   : eff_hom_s N (counterE N) E :=

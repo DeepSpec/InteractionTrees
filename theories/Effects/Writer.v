@@ -34,7 +34,7 @@ Variant writerE (W : Type) : Type -> Type :=
 
 (** Output action. *)
 Definition tell {W E} `{writerE W -< E} : W -> itree E unit :=
-  fun w => lift (Tell w).
+  fun w => send (Tell w).
 
 (** One interpretation is to accumulate outputs in a list. *)
 

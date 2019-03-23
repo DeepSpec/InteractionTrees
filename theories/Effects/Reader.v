@@ -29,7 +29,7 @@ Variant readerE : Type -> Type :=
 | Ask : readerE Env.
 
 Definition ask {E} `{readerE -< E} : itree E Env :=
-  lift Ask.
+  send Ask.
 
 Definition eval_reader {E} : Env -> Handler readerE E :=
   fun r _ e =>

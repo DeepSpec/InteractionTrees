@@ -98,12 +98,12 @@ Proof.
   rewrite unfold_interp_state; reflexivity.
 Qed.
 
-Lemma interp_state_lift {E F : Type -> Type} {R S : Type}
+Lemma interp_state_send {E F : Type -> Type} {R S : Type}
       (f : E ~> Monads.stateT S (itree F))
       (s : S) (e : E R) :
-  (interp_state f _ (ITree.lift e) s) ≅ Tau (f _ e s >>= fun i => Ret i).
+  (interp_state f _ (ITree.send e) s) ≅ Tau (f _ e s >>= fun i => Ret i).
 Proof.
-  unfold ITree.lift. rewrite interp_state_vis.
+  unfold ITree.send. rewrite interp_state_vis.
   apply eq_itree_Tau.
   eapply eq_itree_bind.
   - reflexivity.

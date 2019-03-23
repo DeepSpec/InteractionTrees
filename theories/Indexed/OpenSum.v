@@ -95,13 +95,13 @@ Local Open Scope sum_scope.
 Notation vis e k := (Vis (subeffect _ e) k).
 
 (* Called [send] in Haskell freer. *)
-Definition lift {E F} `{E -< F} : E ~> itree F :=
-  fun T e => ITree.lift (subeffect _ e).
+Definition send {E F} `{E -< F} : E ~> itree F :=
+  fun T e => ITree.send (subeffect _ e).
 
-Arguments lift {E F _ T}.
+Arguments send {E F _ T}.
 
-Lemma lift_is_vis_ret {E F R} `{E -< F} (e : E R) :
-  lift e = vis e (fun r => Ret r).
+Lemma send_is_vis_ret {E F R} `{E -< F} (e : E R) :
+  send e = vis e (fun r => Ret r).
 Proof. reflexivity. Qed.
 
 (* Embedding effects into trees.
@@ -124,4 +124,4 @@ Instance Embeddable_forall {A : Type} {U : A -> Type} {V : A -> Type}
 Instance Embeddable_itree {E F : Type -> Type} {R : Type}
          `(E -< F) :
   Embeddable (E R) (itree F R) :=
-  lift.
+  send.

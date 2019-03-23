@@ -141,7 +141,7 @@ Section Denote.
     Definition denote_operand (o : operand) : itree E value :=
       match o with
       | Oimm v => Ret v
-      | Ovar v => lift (GetVar v)
+      | Ovar v => send (GetVar v)
       end.
 
     (** Instructions offer no suprises either. *)
@@ -149,27 +149,27 @@ Section Denote.
       match i with
       | Imov d s =>
         v <- denote_operand s ;;
-        lift (SetVar d v)
+        send (SetVar d v)
       | Iadd d l r =>
-        lv <- lift (GetVar l) ;;
+        lv <- send (GetVar l) ;;
         rv <- denote_operand r ;;
-        lift (SetVar d (lv + rv))
+        send (SetVar d (lv + rv))
       | Isub d l r =>
-        lv <- lift (GetVar l) ;;
+        lv <- send (GetVar l) ;;
         rv <- denote_operand r ;;
-        lift (SetVar d (lv - rv))
+        send (SetVar d (lv - rv))
       | Imul d l r =>
-        lv <- lift (GetVar l) ;;
+        lv <- send (GetVar l) ;;
         rv <- denote_operand r ;;
-        lift (SetVar d (lv * rv))
+        send (SetVar d (lv * rv))
       | Iload d a =>
         addr <- denote_operand a ;;
-        val <- lift (Load addr) ;;
-        lift (SetVar d val)
+        val <- send (Load addr) ;;
+        send (SetVar d val)
       | Istore a v =>
-        addr <- lift (GetVar a) ;;
+        addr <- send (GetVar a) ;;
         val <- denote_operand v ;;
-        lift (Store addr val)
+        send (Store addr val)
       end.
 
     Section with_labels.
@@ -184,7 +184,7 @@ Section Denote.
         match b with
         | Bjmp l => ret l
         | Bbrz v y n =>
-          val <- lift (GetVar v) ;;
+          val <- send (GetVar v) ;;
           if val:nat then ret y else ret n
         | Bhalt => done
         end.

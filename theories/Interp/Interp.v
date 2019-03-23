@@ -9,7 +9,7 @@
     conceptually at a different level: translation always yields strong
     bisimulations.  We can relate translation and interpretation via the law:
 
-    translate h t ≈ interp (lift ∘ h) t
+    translate h t ≈ interp (send ∘ h) t
 *)
 
 (** The semantics of an interaction tree [itree E ~> M] can be

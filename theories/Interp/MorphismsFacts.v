@@ -151,12 +151,12 @@ Proof.
     + intros; subst. auto with paco.
 Qed.
 
-Lemma interp_lift {E F : Type -> Type} {R : Type}
+Lemma interp_send {E F : Type -> Type} {R : Type}
       (f : E ~> (itree F))
       (e : E R) :
-  interp f _ (ITree.lift e) ≅ Tau (f _ e).
+  interp f _ (ITree.send e) ≅ Tau (f _ e).
 Proof.
-  unfold ITree.lift. rewrite interp_vis.
+  unfold ITree.send. rewrite interp_vis.
   apply eq_itree_Tau.
   setoid_rewrite interp_ret.
   rewrite bind_ret2.
@@ -166,13 +166,13 @@ Qed.
 
 (** ** Composition of [interp] *)
 
-Lemma interp_id_lift {E R} (t : itree E R) :
-  interp (fun _ e => ITree.lift e) _ t ≈ t.
+Lemma interp_id_send {E R} (t : itree E R) :
+  interp (fun _ e => ITree.send e) _ t ≈ t.
 Proof.
   revert t. ucofix CIH. red. ucofix CIH'. intros.
   rewrite unfold_interp. repeat red.
   destruct (observe t); cbn; eauto with paco.
-  unfold ITree.lift. constructor. rewrite bind_vis.
+  unfold ITree.send. constructor. rewrite bind_vis.
   constructor.
   left. rewrite bind_ret.
   auto with paco.
@@ -218,19 +218,19 @@ Proof.
 Qed.
 
 Lemma translate_to_interp {E F R} (f : E ~> F) (t : itree E R) :
-  translate f t ≈ interp (fun _ e => ITree.lift (f _ e)) _ t.
+  translate f t ≈ interp (fun _ e => ITree.send (f _ e)) _ t.
 Proof.
   revert t. ucofix CIH. red. ucofix CIH'. intros.
   rewrite unfold_translate.
   rewrite unfold_interp.
   unfold translateF, _interp. repeat red.
   destruct (observe t); cbn; simpl in *; eauto 7 with paco.
-  unfold ITree.lift. econstructor. rewrite bind_vis.
+  unfold ITree.send. econstructor. rewrite bind_vis.
   do 2 constructor.
   rewrite bind_ret. auto with paco.
 Qed.
 
 Hint Rewrite @interp_ret : itree.
 Hint Rewrite @interp_vis : itree.
-Hint Rewrite @interp_lift : itree.
+Hint Rewrite @interp_send : itree.
 Hint Rewrite @interp_bind : itree.

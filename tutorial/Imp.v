@@ -161,7 +161,7 @@ Section Denote.
 
   (** _Imp_ expressions are denoted as [itree eff value], where the returned value
       in the tree is the value computed by the expression.
-      In the [Var] case, the [lift] operator smoothly lifts a single effect to
+      In the [Var] case, the [send] operator smoothly lifts a single effect to
       an [itree] by performing the corresponding [Vis] event and returning the
       environment's answer immediately.
       Usual monadic notations are used in the other cases. A constant (literal) is
@@ -170,7 +170,7 @@ Section Denote.
    *)
   Fixpoint denoteExpr (e : expr) : itree eff value :=
     match e with
-    | Var v => lift (GetVar v)
+    | Var v => send (GetVar v)
     | Lit n => ret n
     | Plus a b => l <- denoteExpr a ;; r <- denoteExpr b ;; ret (l + r)
     | Minus a b => l <- denoteExpr a ;; r <- denoteExpr b ;; ret (l - r)
@@ -221,7 +221,7 @@ Section Denote.
     match s with
     | Assign x e =>
       v <- denoteExpr e ;;
-      lift (SetVar x v)
+      send (SetVar x v)
     | Seq a b =>
       denoteStmt a ;; denoteStmt b
     | If i t e =>
