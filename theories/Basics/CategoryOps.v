@@ -263,14 +263,21 @@ Context `{CoprodCase _ C bif} `{CoprodInl _ C bif} `{CoprodInr _ C bif}.
 Class ReSum (a b : obj) :=
   resum : C a b.
 
+(** The instance weights on [ReSum_inl] (8) and [ReSum_inr] (9) are so that,
+    if you have a list [E +' E +' F] (associated to the right:
+    [E +' (E +' F)]), then the first one will be picked for the inclusion
+    [E -< E +' E +' F]. *)
+
 Global Instance ReSum_id `{Id_ _ C} a : ReSum a a := { resum := id_ a }.
 Global Instance ReSum_sum a b c
          `{ReSum a c} `{ReSum b c} : ReSum (bif a b) c :=
   { resum := case_ resum resum }.
-Global Instance ReSum_inl a b c `{ReSum a b} : ReSum a (bif b c) :=
+Global Instance ReSum_inl a b c `{ReSum a b} : ReSum a (bif b c) | 8 :=
   { resum := resum >>> inl_ }.
-Global Instance ReSum_inr a b c `{ReSum a b} : ReSum a (bif c b) :=
+Global Instance ReSum_inr a b c `{ReSum a b} : ReSum a (bif c b) | 9 :=
   { resum := resum >>> inr_ }.
+Global Instance ReSum_empty {i : obj} `{Initial _ _ i} a : ReSum i a :=
+  { resum := empty }.
 
 (* Usage template:
 
