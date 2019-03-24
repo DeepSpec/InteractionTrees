@@ -39,7 +39,7 @@ Definition id_ (E : Type -> Type) : E ~> itree E := ITree.send.
 Definition cat {E F G : Type -> Type}
            (f : E ~> itree F) (g : F ~> itree G)
   : E ~> itree G
-  := fun R e => interp g R (f R e).
+  := fun R e => interp g (f R e).
 
 (** Wrap effects to the left of a sum. *)
 Definition inl_ {E F : Type -> Type} : E ~> itree (E +' F)

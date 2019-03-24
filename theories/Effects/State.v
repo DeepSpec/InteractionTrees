@@ -27,6 +27,8 @@ Definition interp_state {E M S}
            {LM : ALoop M} (h : E ~> stateT S M) :
   itree E ~> stateT S M := interp h.
 
+Arguments interp_state {E M S FM MM LM} h [T].
+
 Section State.
 
   Variable (S : Type).
