@@ -71,7 +71,7 @@ for testing.
 - [coq-paco](https://github.com/snu-sf/paco)
 - [coq-ext-lib](https://github.com/coq-ext-lib/coq-ext-lib)
 
-See `coq-itree.opam` for details.
+See `coq-itree.opam` for version details.
 
 ## Build instructions
 
