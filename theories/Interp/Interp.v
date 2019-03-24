@@ -49,7 +49,8 @@ From ExtLib Require Import
 
 From ITree Require Import
      Basics.Basics
-     Core.ITreeDefinition.
+     Core.ITreeDefinition
+     Indexed.Relation.
 
 (* end hide *)
 

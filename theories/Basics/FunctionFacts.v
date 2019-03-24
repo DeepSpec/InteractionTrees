@@ -9,7 +9,6 @@ From ITree Require Import
 
 Import CatNotations.
 Local Open Scope cat_scope.
-
 (* end hide *)
 
 Instance subrelation_eeq_eqeq {A B} :

@@ -15,6 +15,7 @@ From ITree Require Import
      Eq.UpToTaus
      Indexed.Sum
      Indexed.Function
+     Indexed.Relation
      Interp.Interp.
 
 Import ITree.Basics.Basics.Monads.
@@ -67,23 +68,19 @@ End Handler.
 
 (** ** Category instances *)
 
-(** This is an indexed generalization of the standard [respectful]
-    relation ([==>]). *)
-(* TODO: should also take a relation on [A]. *)
-Definition i_respectful {A B : Type -> Type} (R : forall t, B t -> B t -> Prop)
-           (f g : A ~> B) : Prop :=
-  forall X (a : A X), (R X) (f X a) (g X a).
-
 Definition Handler (E F : Type -> Type) := E ~> itree F.
 
 Definition eq_Handler {E F : Type -> Type}
   : Handler E F -> Handler E F -> Prop
-  := @i_respectful E (itree F) (fun R => @eq_itree _ _ R eq).
+  := i_pointwise (fun R => eq_itree eq).
+
+Definition eutt_Handler {E F : Type -> Type}
+  : Handler E F -> Handler E F -> Prop
+  := i_pointwise (fun R => eutt eq).
 
 (** The default handler equivalence is [eutt]. *)
 Instance Eq2_Handler : Eq2 Handler
-  := fun E F
-     => @i_respectful E (itree F) (fun R => @eutt _ _ R eq).
+  := @eutt_Handler.
 
 Instance Id_Handler : Id_ Handler
   := @Handler.id_.

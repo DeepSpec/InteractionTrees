@@ -16,7 +16,7 @@ Local Open Scope cat_scope.
 Definition Fun (A B : Type) : Type := A -> B.
 
 (** The identity function, but can sometimes help type inference. *)
-Definition applyFun {A B : Type} (f : Fun A B) : A -> B := f.
+Definition apply_Fun {A B : Type} (f : Fun A B) : A -> B := f.
 
 (** Extensional function equality *)
 Instance eeq : Eq2 Fun :=

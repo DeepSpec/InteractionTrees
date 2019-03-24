@@ -469,7 +469,7 @@ Proof. apply ITree.Eq.UpToTausEquivalence.eutt_map. Qed.
 
 Instance eutt_interp (E F : Type -> Type) f (R : Type) :
   Proper (eutt ==> eutt) (@interp E (itree F) _ _ _ f R).
-Proof. apply ITree.Interp.InterpFacts.eutt_interp. Qed.
+Proof. apply ITree.Interp.InterpFacts.eutt_interp'. Qed.
 
 Ltac tau_steps :=
   repeat (
