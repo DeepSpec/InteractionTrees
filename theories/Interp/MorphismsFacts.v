@@ -139,9 +139,8 @@ Lemma interp_bind {E F R S}
   ≅ ITree.bind (interp f t) (fun r => interp f (k r)).
 Proof.
   revert R t k; ucofix CIH; intros.
-  rewrite unfold_bind, (unfold_interp t).
+  rewrite unfold_bind, (unfold_interp t). (* TODO: slow *)
   destruct (observe t); cbn.
-  (* TODO: [ret_bind] (0.8s) is much slower than [ret_bind_] (0.02s) *)
   - rewrite bind_ret. apply reflexivity.
   - rewrite bind_tau, !interp_tau.
     econstructor. eauto with paco.

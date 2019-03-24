@@ -199,12 +199,12 @@ Proof.
   ucompat. econstructor; [pmonauto|].
   intros. dependent destruction PR.
   uunfold EQVl. uunfold EQVr. unfold_eq_itree.
-  inversion EQVl; clear EQVl;
+  destruct EQVl;
     inversion EQVr; clear EQVr;
     inversion RELATED; clear RELATED;
       subst; simpobs; try discriminate.
 
-  - inversion H0; inversion H3; auto.
+  - inversion H0; inversion H1; auto.
   - inversion H; inversion H3; subst; eauto with rclo.
   - inversion H; inversion H3; subst; auto_inj_pair2; subst.
     econstructor. intros. specialize (REL v). specialize (REL0 v).
@@ -225,7 +225,7 @@ Proof.
   ucompat. econstructor; [pmonauto|].
   intros. dependent destruction PR.
   uunfold EQV. unfold_eq_itree.
-  rewrite !unfold_bind; inv EQV; simpobs.
+  rewrite !unfold_bind; destruct EQV; simpobs.
   - eapply eq_itreeF_mono; [eapply REL |]; eauto with rclo.
   - simpl. eauto 8 with rclo.
   - econstructor.
@@ -450,18 +450,32 @@ Proof.
   intros; subst; auto.
 Qed.
 
-Instance eq_itree_cpn {E R1 R2 RS} r:
-  Proper (eq_itree eq ==> eq_itree eq ==> flip impl)
-         (cpn2 (@eq_itree_ E R1 R2 RS) r).
+Definition eq_itree_cpn_ {E R1 R2 RS} :
+  Proper (eq ==> eq_itree eq ==> eq_itree eq ==> flip impl)
+         (cpn2 (@eq_itree_ E R1 R2 RS)).
 Proof.
-  repeat intro. uclo eq_itree_clo_trans. eauto.
+  repeat intro; subst. uclo eq_itree_clo_trans. eauto.
 Qed.
 
-Instance eq_itree_gcpn {E R1 R2 RS} r:
-  Proper (eq_itree eq ==> eq_itree eq ==> flip impl)
-         (gcpn2 (@eq_itree_ E R1 R2 RS) r).
+Definition eq_itree_gcpn_ {E R1 R2 RS} :
+  Proper (eq ==> eq_itree eq ==> eq_itree eq ==> flip impl)
+         (gcpn2 (@eq_itree_ E R1 R2 RS)).
 Proof.
-  repeat intro. uclo eq_itree_clo_trans. eauto.
+  repeat intro; subst. uclo eq_itree_clo_trans. eauto.
+Qed.
+
+Instance eq_itree_cpn {E R1 R2 RS} :
+  Proper (eq ==> eq_itree eq ==> eq_itree eq ==> iff)
+         (cpn2 (@eq_itree_ E R1 R2 RS)).
+Proof.
+  split; apply eq_itree_cpn_; auto using symmetry.
+Qed.
+
+Instance eq_itree_gcpn {E R1 R2 RS}:
+  Proper (eq ==> eq_itree eq ==> eq_itree eq ==> iff)
+         (gcpn2 (@eq_itree_ E R1 R2 RS)).
+Proof.
+  split; apply eq_itree_gcpn_; auto using symmetry.
 Qed.
 
 Lemma bind_ret2 {E R} :
@@ -479,7 +493,7 @@ Lemma bind_bind {E R S T} :
 Proof.
   ucofix CIH. intros.
   unfold_eq_itree.
-  rewrite !unfold_bind. (* TODO: this is a bit slow (0.5s). *)
+  rewrite !unfold_bind.
   repeat red. genobs s os; destruct os; simpl; eauto with paco.
   apply Reflexive_eq_itreeF. eauto with reflexivity.
 Qed.

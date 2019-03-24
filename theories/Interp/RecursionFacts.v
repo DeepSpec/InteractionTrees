@@ -17,7 +17,6 @@ From ITree Require Import
      Core.KTreeFacts
      Eq.Eq
      Eq.UpToTaus
-     Eq.SimUpToTaus
      Indexed.Sum
      Indexed.Function
      Indexed.OpenSum
@@ -101,7 +100,8 @@ Theorem interp_mrec_bind {U T} (t : itree _ U) (k : U -> itree _ T) :
   ITree.bind (interp_mrec ctx t) (fun x => interp_mrec ctx (k x)).
 Proof.
   revert t k; ucofix CIH; intros.
-  rewrite (unfold_interp_mrec _ t), (unfold_bind t).
+  rewrite (unfold_interp_mrec _ t).
+  rewrite (unfold_bind t). (* TODO: slow *)
   destruct (observe t); cbn;
     [| |destruct e];
     autorewrite with itree;
