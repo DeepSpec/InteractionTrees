@@ -8,10 +8,9 @@
     Goal (cofix spin := Tau spin) = Tau (cofix spin := Tau spin).
     Goal (cofix spin := Tau spin) = (cofix spin2 := Tau (Tau spin2)).
 ]]
-    As an alternative, we define a coinductive notion of equivalence,
-    which can be intuitively thought of as a form of extensional
-    equality. It is weaker than [eq] (we will have to use setoid
-    rewriting everywhere), but makes equivalences provable in practice.
+    As an alternative, we define a weaker, coinductive notion of equivalence,
+    [eq_itree], which can be intuitively thought of as a form of extensional
+    equality. We shall rely extensively on setoid rewriting.
  *)
 
 (* begin hide *)
@@ -42,16 +41,17 @@ Proof. auto. Qed.
 (** ** Coinductive reasoning with Paco *)
 
 (** Similarly to the way we deal with cofixpoints explained in
-    [Core.ITree], and also similarly to the definition of [itree]
-    itself, coinductive properties are defined in two steps,
+    [Core.ITree], coinductive properties are defined in two steps,
     as greatest fixed points of monotone relation transformers.
 
     - a _relation transformer_, a.k.a. _generating function_,
-      is a function mapping relations to relations;
-    - _monotonicity_ is with respect to relations ordered by
-      set inclusion (a.k.a. implication, when viewed as predicates);
-    - the Paco library provides a combinator defining the greatest
-      fixed point when that function is indeed monotone.
+      is a function mapping relations to relations
+      [gf : (i -> i -> Prop) -> (i -> i -> Prop)];
+    - _monotonicity_ is with respect to relations ordered by set inclusion
+      (a.k.a. implication, when viewed as predicates)
+      [(r1 <2= r2) -> (gf r1 <2= gf r2)];
+    - the Paco library provides a combinator [paco2] defining the greatest
+      fixed point [paco2 gf] when [gf] is indeed monotone.
 
     By thus avoiding [CoInductive] to define coinductive properties,
     Paco spares us from thinking about guardedness of proof terms,
