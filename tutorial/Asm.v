@@ -267,8 +267,8 @@ Definition memory := alist value value.
  *)
 Definition AsmEval (p: asm unit void) :=
   let h := bimap evalLocals (bimap evalMemory (id_ _)) in
-  let p' := interp h _ (denote_asm p tt) in
-  run_map _ (run_map _ p' empty) empty.
+  let p' := interp h (denote_asm p tt) in
+  run_map (run_map p' empty) empty.
 
 (** Now that we have both our language, we could jump directly into implementing
     our compiler.

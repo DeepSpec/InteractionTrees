@@ -321,8 +321,8 @@ Qed.
  *)
 
 Definition ImpEval (s: stmt): itree void1 (env * unit) :=
-  let p := interp evalLocals _ (denoteStmt s) in
-  run_map _ p empty.
+  let p := interp evalLocals (denoteStmt s) in
+  run_map p empty.
 
 (** Equipped with this evaluator, we can now compute.
     Naturally since Coq is total, we cannot do it directly

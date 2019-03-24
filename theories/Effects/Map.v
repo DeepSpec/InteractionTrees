@@ -70,4 +70,4 @@ Arguments insert {K V E _}.
 Arguments lookup {K V E _}.
 Arguments remove {K V E _}.
 Arguments lookup_def {K V E _}.
-Arguments run_map {K V map M _}.
+Arguments run_map {K V map M _} [T].

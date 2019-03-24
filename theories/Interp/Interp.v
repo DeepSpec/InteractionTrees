@@ -85,3 +85,5 @@ Definition interp {E M : Type -> Type}
 (* TODO: this does a map, and aloop does a bind. We could fuse those
    by giving aloop a continuation to compose its bind with.
    (coyoneda...) *)
+
+Arguments interp {E M FM MM LM} h [T].

@@ -33,19 +33,19 @@ Context {D E : Type -> Type} (ctx : D ~> itree (D +' E)).
 
 (** Unfolding of [interp_mrec]. *)
 
-Definition _interp_mrec R (ot : itreeF (D +' E) R _) : itree E R :=
+Definition _interp_mrec {R : Type} (ot : itreeF (D +' E) R _) : itree E R :=
   match ot with
   | RetF r => Ret r
-  | TauF t => Tau (interp_mrec ctx _ t)
+  | TauF t => Tau (interp_mrec ctx t)
   | VisF e k => Tau
     match e with
-    | inl1 d => interp_mrec ctx _ (ctx _ d >>= k)
-    | inr1 e => Vis e (fun x => interp_mrec ctx _ (k x))
+    | inl1 d => interp_mrec ctx (ctx _ d >>= k)
+    | inr1 e => Vis e (fun x => interp_mrec ctx (k x))
     end
   end.
 
 Lemma unfold_interp_mrec R (t : itree (D +' E) R) :
-  interp_mrec ctx _ t ≅ _interp_mrec _ (observe t).
+  interp_mrec ctx t ≅ _interp_mrec (observe t).
 Proof.
   unfold interp_mrec.
   rewrite unfold_aloop'.
@@ -61,21 +61,21 @@ Proof.
 Qed.
 
 Lemma ret_mrec {T} (x: T) :
-  interp_mrec ctx _ (Ret x) ≅ Ret x.
+  interp_mrec ctx (Ret x) ≅ Ret x.
 Proof. rewrite unfold_interp_mrec; reflexivity. Qed.
 
 Lemma tau_mrec {T} (t: itree _ T) :
-  interp_mrec ctx _ (Tau t) ≅ Tau (interp_mrec ctx _ t).
+  interp_mrec ctx (Tau t) ≅ Tau (interp_mrec ctx t).
 Proof. rewrite unfold_interp_mrec. reflexivity. Qed.
 
 Lemma vis_mrec_right {T U} (e : E U) (k : U -> itree (D +' E) T) :
-  interp_mrec ctx _ (Vis (inr1 e) k) ≅
-  Tau (Vis e (fun x => interp_mrec ctx _ (k x))).
+  interp_mrec ctx (Vis (inr1 e) k) ≅
+  Tau (Vis e (fun x => interp_mrec ctx (k x))).
 Proof. rewrite unfold_interp_mrec. reflexivity. Qed.
 
 Lemma vis_mrec_left {T U} (d : D U) (k : U -> itree (D +' E) T) :
-  interp_mrec ctx _ (Vis (inl1 d) k) ≅
-  Tau (interp_mrec ctx _ (ITree.bind (ctx _ d) k)).
+  interp_mrec ctx (Vis (inl1 d) k) ≅
+  Tau (interp_mrec ctx (ITree.bind (ctx _ d) k)).
 Proof. rewrite unfold_interp_mrec. reflexivity. Qed.
 
 Hint Rewrite @ret_mrec : itree.
@@ -84,7 +84,7 @@ Hint Rewrite @vis_mrec_right : itree.
 Hint Rewrite @tau_mrec : itree.
 
 Instance eq_itree_mrec {R} :
-  Proper (eq_itree eq ==> eq_itree eq) (interp_mrec ctx R).
+  Proper (eq_itree eq ==> eq_itree eq) (@interp_mrec _ _ ctx R).
 Proof.
   ucofix CIH. intros.
   rewrite !unfold_interp_mrec.
@@ -97,8 +97,8 @@ Proof.
 Qed.
 
 Theorem interp_mrec_bind {U T} (t : itree _ U) (k : U -> itree _ T) :
-  interp_mrec ctx _ (ITree.bind t k) ≅
-  ITree.bind (interp_mrec ctx _ t) (fun x => interp_mrec ctx _ (k x)).
+  interp_mrec ctx (ITree.bind t k) ≅
+  ITree.bind (interp_mrec ctx t) (fun x => interp_mrec ctx (k x)).
 Proof.
   revert t k; ucofix CIH; intros.
   rewrite (unfold_interp_mrec _ t), (unfold_bind t).
@@ -119,7 +119,7 @@ Definition mrecursive (f : D ~> itree (D +' E))
   case_ (mrec f) ITree.send.
 
 Theorem interp_mrec_as_interp {T} (c : itree _ T) :
-  interp_mrec ctx _ c ≅ interp (mrecursive ctx) _ c.
+  interp_mrec ctx c ≅ interp (mrecursive ctx) c.
 Proof.
   revert_until T. ucofix CIH. intros.
   rewrite unfold_interp_mrec, unfold_interp.
@@ -138,13 +138,13 @@ Proof.
 Qed.
 
 Theorem mrec_as_interp {T} (d : D T) :
-  mrec ctx _ d ≅ interp (mrecursive ctx) _ (ctx _ d).
+  mrec ctx d ≅ interp (mrecursive ctx) (ctx _ d).
 Proof.
   apply interp_mrec_as_interp.
 Qed.
 
 Lemma interp_mrecursive {T} (d : D T) :
-  interp (mrecursive ctx) _ (send_inl1 _ d) ≅ Tau (mrec ctx _ d).
+  interp (mrecursive ctx) (send_inl1 d) ≅ Tau (mrec ctx d).
 Proof.
   unfold mrecursive. unfold send_inl1.
   rewrite interp_send. cbn. reflexivity.
@@ -158,7 +158,7 @@ Definition recursive {E A B} (f : A -> itree (callE A B +' E) B) : (callE A B +'
   case_ (calling' (rec f)) ITree.send.
 
 Lemma rec_as_interp {E A B} (f : A -> itree (callE A B +' E) B) (x : A) :
-  rec f x ≅ interp (recursive f) _ (f x).
+  rec f x ≅ interp (recursive f) (f x).
 Proof.
   unfold rec.
   rewrite mrec_as_interp.
@@ -168,7 +168,7 @@ Proof.
 Qed.
 
 Lemma interp_recursive_call {E A B} (f : A -> itree (callE A B +' E) B) (x:A) :
-   interp (recursive f) _ (call x) ≅ Tau (rec f x).
+   interp (recursive f) (call x) ≅ Tau (rec f x).
 Proof.
   unfold recursive. unfold call.
   rewrite interp_send. cbn. reflexivity.
@@ -176,7 +176,7 @@ Qed.
 
 Lemma interp_loop {E F} (f : E ~> itree F) {A B C}
       (t : C + A -> itree E (C + B)) ca :
-  interp f _ (loop_ t ca) ≅ loop_ (fun ca => interp f _ (t ca)) ca.
+  interp f (loop_ t ca) ≅ loop_ (fun ca => interp f (t ca)) ca.
 Proof.
   revert ca. ucofix CIH. intros.
   unfold loop. rewrite !unfold_loop'. unfold loop_once.
@@ -195,12 +195,12 @@ Qed.
 
 Lemma interp_forever {E F} (f : E ~> itree F) {R S}
       (t : itree E R)
-  : interp f _ (ITree.forever t)
-  ≅ @ITree.forever F R S (interp f _ t).
+  : interp f (ITree.forever t)
+  ≅ @ITree.forever F R S (interp f t).
 Proof.
   ucofix CIH.
   rewrite unfold_forever.
-  rewrite (unfold_forever (interp _ _ _)).
+  rewrite (unfold_forever (interp _ _)).
   rewrite interp_bind.
   uclo eq_itree_clo_bind. econstructor; [reflexivity |].
   intros ? _ []. rewrite interp_tau.

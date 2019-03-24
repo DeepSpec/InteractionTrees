@@ -48,7 +48,9 @@ Definition handle_writer_list {W E}
 
 Definition run_writer_list_state {W E}
   : itree (writerE W +' E) ~> stateT (list W) (itree E)
-  := fun _ t => interp_state (case_ handle_writer_list pure_state) _ t.
+  := interp_state (case_ handle_writer_list pure_state).
+
+Arguments run_writer_list_state {W E} [T].
 
 (** Returns the outputs in order: the first output at the head, the last
     output and the end of the list. *)
@@ -57,6 +59,8 @@ Definition run_writer_list {W E}
   := fun _ t =>
        ITree.map (fun wsx => (rev' (fst wsx), snd wsx))
                  (run_writer_list_state t []).
+
+Arguments run_writer_list {W E} [T].
 
 (** When [W] is a monoid, we can also use that to append the outputs together. *)
 
@@ -70,5 +74,7 @@ Definition handle_writer {W E} (Monoid_W : Monoid W)
 Definition run_writer {W E} (Monoid_W : Monoid W)
   : itree (writerE W +' E) ~> writerT W (itree E)
   := fun _ t =>
-       interp_state (case_ (handle_writer Monoid_W) pure_state) _ t
+       interp_state (case_ (handle_writer Monoid_W) pure_state) t
                     (monoid_unit Monoid_W).
+
+Arguments run_writer {W E} Monoid_W [T].

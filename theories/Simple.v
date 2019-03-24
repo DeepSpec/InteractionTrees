@@ -135,36 +135,36 @@ Hint Rewrite @bind_bind : itree.
 
 (** *** Monadic interpretation: [interp] *)
 
-Definition _interp {E F} (f : E ~> itree F) R (ot : itreeF E R _)
+Definition _interp {E F R} (f : E ~> itree F) (ot : itreeF E R _)
   : itree F R
   := match ot with
      | RetF r => Ret r
-     | TauF t => Tau (interp f _ t)
-     | VisF e k => Tau (f _ e >>= (fun x => interp f _ (k x)))
+     | TauF t => Tau (interp f t)
+     | VisF e k => Tau (f _ e >>= (fun x => interp f (k x)))
      end.
 
 Parameter unfold_interp
   : forall {E F R} {f : E ~> itree F} (t : itree E R),
-    interp f _ t ≈ (_interp f _ (observe t)).
+    interp f t ≈ (_interp f (observe t)).
 
 (** The next three are immediate corollaries of [unfold_interp]. *)
 Parameter interp_ret
   : forall {E F R} {f : E ~> itree F} (x: R),
-    interp f _ (Ret x) ≈ Ret x.
+    interp f (Ret x) ≈ Ret x.
 
 Parameter interp_vis
   : forall {E F R} {f : E ~> itree F} U (e: E U) (k: U -> itree E R),
-    interp f _ (Vis e k)
-  ≈ Tau (ITree.bind (f _ e) (fun x => interp f _ (k x))).
+    interp f (Vis e k)
+  ≈ Tau (ITree.bind (f _ e) (fun x => interp f (k x))).
 
 Parameter interp_send : forall {E F : Type -> Type} {R : Type}
       (f : E ~> (itree F)) (e : E R),
-    interp f _ (ITree.send e) ≈ f _ e.
+    interp f (ITree.send e) ≈ f _ e.
 
 Parameter interp_bind : forall {E F R S}
       (f : E ~> itree F) (t : itree E R) (k : R -> itree E S),
-    interp f _ (ITree.bind t k)
-  ≈ ITree.bind (interp f _ t) (fun r => interp f _ (k r)).
+    interp f (ITree.bind t k)
+  ≈ ITree.bind (interp f t) (fun r => interp f (k r)).
 
 Hint Rewrite @interp_ret : itree.
 Hint Rewrite @interp_vis : itree.
@@ -182,11 +182,11 @@ Definition recursive {E A B} (f : A -> itree (callE A B +' E) B)
 Parameter rec_as_interp
   : forall {E A B} (f : A -> itree (callE A B +' E) B) (a : A),
     rec f a
-  ≈ interp (recursive f) _ (f a).
+  ≈ interp (recursive f) (f a).
 
 Parameter interp_recursive_call
   : forall {E A B} (f : A -> itree (callE A B +' E) B) (x : A),
-    interp (recursive f) _ (call x)
+    interp (recursive f) (call x)
   ≈ rec f x.
 
 (** [mrec ctx] is equivalent to [interp (mrecursive ctx)],
@@ -197,13 +197,13 @@ Definition mrecursive {D E} (f : D ~> itree (D +' E))
 
 Parameter mrec_as_interp
   : forall {D E T} (ctx : D ~> itree (D +' E)) (d : D T),
-    mrec ctx _ d
-  ≈ interp (mrecursive ctx) _ (ctx _ d).
+    mrec ctx d
+  ≈ interp (mrecursive ctx) (ctx _ d).
 
 Parameter interp_mrecursive
   : forall {D E T} (ctx : D ~> itree (D +' E)) (d : D T),
-    interp (mrecursive ctx) _ (send_inl1 _ d)
-  ≈ mrec ctx _ d.
+    interp (mrecursive ctx) (send_inl1 d)
+  ≈ mrec ctx d.
 
 Hint Rewrite @interp_recursive_call : itree.
 Hint Rewrite @interp_mrecursive : itree.
@@ -336,17 +336,17 @@ Hint Rewrite @bind_bind : itree.
 
 (** **** Monadic interpretation: [interp] *)
 
-Definition _interp {E F} (f : E ~> itree F) R (ot : itreeF E R _)
+Definition _interp {E F R} (f : E ~> itree F) (ot : itreeF E R _)
   : itree F R
   := match ot with
      | RetF r => Ret r
-     | TauF t => Tau (interp f _ t)
-     | VisF e k => Tau (f _ e >>= (fun x => interp f _ (k x)))
+     | TauF t => Tau (interp f t)
+     | VisF e k => Tau (f _ e >>= (fun x => interp f (k x)))
      end.
 
 Lemma unfold_interp
   : forall {E F R} {f : E ~> itree F} (t : itree E R),
-    interp f _ t ≈ (_interp f _ (observe t)).
+    interp f t ≈ (_interp f (observe t)).
 Proof.
   intros; rewrite <- ITree.Interp.MorphismsFacts.unfold_interp.
   reflexivity.
@@ -355,22 +355,22 @@ Qed.
 (** The next two are immediate corollaries of [unfold_interp]. *)
 Lemma interp_ret
   : forall {E F R} {f : E ~> itree F} (x: R),
-    interp f _ (Ret x) ≈ Ret x.
+    interp f (Ret x) ≈ Ret x.
 Proof.
   intros; rewrite unfold_interp; reflexivity.
 Qed.
 
 Lemma interp_vis
   : forall {E F R} {f : E ~> itree F} U (e: E U) (k: U -> itree E R),
-    interp f _ (Vis e k)
-  ≈ Tau (ITree.bind (f _ e) (fun x => interp f _ (k x))).
+    interp f (Vis e k)
+  ≈ Tau (ITree.bind (f _ e) (fun x => interp f (k x))).
 Proof.
   intros; rewrite unfold_interp; reflexivity.
 Qed.
 
 Lemma interp_send : forall {E F : Type -> Type} {R : Type}
       (f : E ~> (itree F)) (e : E R),
-    interp f _ (ITree.send e) ≈ f _ e.
+    interp f (ITree.send e) ≈ f _ e.
 Proof.
   intros; rewrite ITree.Interp.MorphismsFacts.interp_send, tau_eutt.
   reflexivity.
@@ -378,8 +378,8 @@ Qed.
 
 Lemma interp_bind : forall {E F R S}
       (f : E ~> itree F) (t : itree E R) (k : R -> itree E S),
-    interp f _ (ITree.bind t k)
-  ≈ ITree.bind (interp f _ t) (fun r => interp f _ (k r)).
+    interp f (ITree.bind t k)
+  ≈ ITree.bind (interp f t) (fun r => interp f (k r)).
 Proof.
   intros; rewrite ITree.Interp.MorphismsFacts.interp_bind.
   reflexivity.
@@ -401,14 +401,14 @@ Definition recursive {E A B} (f : A -> itree (callE A B +' E) B)
 Lemma rec_as_interp
   : forall {E A B} (f : A -> itree (callE A B +' E) B) (a : A),
     rec f a
-  ≈ interp (recursive f) _ (f a).
+  ≈ interp (recursive f) (f a).
 Proof.
   intros. rewrite ITree.Interp.RecursionFacts.rec_as_interp. reflexivity.
 Qed.
 
 Lemma interp_recursive_call
   : forall {E A B} (f : A -> itree (callE A B +' E) B) (x : A),
-    interp (recursive f) _ (call x)
+    interp (recursive f) (call x)
   ≈ rec f x.
 Proof.
   intros. rewrite ITree.Interp.RecursionFacts.interp_recursive_call. apply tau_eutt.
@@ -422,16 +422,16 @@ Definition mrecursive {D E} (f : D ~> itree (D +' E))
 
 Lemma mrec_as_interp
   : forall {D E T} (ctx : D ~> itree (D +' E)) (d : D T),
-    mrec ctx _ d
-  ≈ interp (mrecursive ctx) _ (ctx _ d).
+    mrec ctx d
+  ≈ interp (mrecursive ctx) (ctx _ d).
 Proof.
   intros; rewrite ITree.Interp.RecursionFacts.mrec_as_interp. reflexivity.
 Qed.
 
 Lemma interp_mrecursive
   : forall {D E T} (ctx : D ~> itree (D +' E)) (d : D T),
-    interp (mrecursive ctx) _ (send_inl1 _ d)
-  ≈ mrec ctx _ d.
+    interp (mrecursive ctx) (send_inl1 d)
+  ≈ mrec ctx d.
 Proof.
   intros; rewrite ITree.Interp.RecursionFacts.interp_mrecursive. apply tau_eutt.
 Qed.

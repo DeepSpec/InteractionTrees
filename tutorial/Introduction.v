@@ -85,7 +85,7 @@ Definition handle_io
     [forall R, itree ioE R -> M R]. *)
 Definition interp_io
   : forall R, itree ioE R -> itree void1 (list nat * R)
-  := fun R t => interp handle_io R t [].
+  := fun R t => interp handle_io t [].
 
 (** We can now interpret [write_one]. *)
 Definition interpreted_write_one : itree void1 (list nat * unit)
@@ -106,7 +106,7 @@ Definition interpreted_write_one : itree void1 (list nat * unit)
     [interp] with.)
  *)
 Lemma interp_write_one F (handle_io : forall R, ioE R -> itree F R)
-  : interp handle_io _ write_one
+  : interp handle_io write_one
   ≈ (xs <- handle_io _ Input;;
      handle_io _ (Output (xs ++ [1]))).
 Proof.

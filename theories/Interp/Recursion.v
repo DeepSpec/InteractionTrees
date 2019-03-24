@@ -80,15 +80,21 @@ Definition interp_mrec {D E : Type -> Type}
       | VisF (inr1 e) k => inl (Vis e (fun x => Ret (k x)))
       end).
 
+Arguments interp_mrec {D E} ctx [T].
+
 (** Unfold a mutually recursive definition into separate trees,
     resolving the mutual references. *)
 Definition mrec {D E : Type -> Type}
            (ctx : D ~> itree (D +' E)) : D ~> itree E :=
-  fun R d => interp_mrec ctx _ (ctx _ d).
+  fun R d => interp_mrec ctx (ctx _ d).
+
+Arguments mrec {D E} ctx [T].
 
 (** Make a recursive call in the handler argument of [mrec]. *)
 Definition send_inl1 {D E : Type -> Type} : D ~> itree (D +' E)
   := fun _ d => ITree.send (inl1 d).
+
+Arguments send_inl1 {D E} [T].
 
 (** Here's some syntactic sugar with a notation [mrec-fix]. *)
 
@@ -139,7 +145,7 @@ Definition calling' {A B} {F : Type -> Type}
 Definition rec {E : Type -> Type} {A B : Type}
            (body : A -> itree (callE A B +' E) B) :
   A -> itree E B :=
-  fun a => mrec (calling' body) _ (Call a).
+  fun a => mrec (calling' body) (Call a).
 
 (** An easy way to construct an event suitable for use with [rec].
     [call] is an event representing the recursive call.  Since in general, the

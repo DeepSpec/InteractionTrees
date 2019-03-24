@@ -329,7 +329,7 @@ Section Eq_Locals.
       run these effects into the state monad. *)
   Definition interp_locals {R: Type} (t: itree E R) (s: alist var value)
     : itree E' (alist var value * R) :=
-    run_map _ (interp (bimap evalLocals (id_ _)) _ t) s.
+    run_map (interp (bimap evalLocals (id_ _)) t) s.
 
   (** This interpreter is compatible with the equivalence-up-to-tau. *)
   Global Instance eutt_interp_locals {R}:
@@ -443,7 +443,6 @@ Section Eq_Locals.
     unfold inl_, Inl_sum1_Handler, Handler.inl_, Handler.hsend.
     rewrite interp_state_bind.
     rewrite interp_state_send.
-    rewrite bind_ret2.
     cbn.
     rewrite eq.
     rewrite !tau_eutt.
