@@ -11,8 +11,8 @@ From ITree Require Import
      Basics.Basics
      Core.ITree
      Core.KTree
-     Core.KTreeFacts
-     Eq.UpToTaus
+     Core.KTreeBasicFacts
+     Eq.UpToTausEquivalence
      Indexed.Sum
      Interp.Interp
      Interp.MorphismsFacts

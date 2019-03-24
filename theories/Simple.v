@@ -251,7 +251,7 @@ End SimpleTheory.
 (** * Implementation *)
 
 From ITree Require
-     Eq.UpToTaus
+     Eq.UpToTausEquivalence
      Interp.MorphismsFacts
      Interp.RecursionFacts.
 
@@ -271,12 +271,12 @@ Definition eutt : itree E R -> itree E R -> Prop :=
 Infix "≈" := eutt (at level 40).
 
 (** [eutt] is an equivalence relation. *)
-Global Existing Instance UpToTaus.Equivalence_eutt.
+Global Existing Instance ITree.Eq.UpToTausEquivalence.Equivalence_eutt.
 
 (** We can erase taus unter [eutt]. *)
 Lemma tau_eutt : forall (t : itree E R),
     Tau t ≈ t.
-Proof. exact ITree.Eq.UpToTaus.tau_eutt. Qed.
+Proof. exact ITree.Eq.UpToTausCore.tau_eutt. Qed.
 
 Lemma itree_eta : forall (t : itree E R),
     t ≈ go (observe t).
@@ -287,11 +287,11 @@ Qed.
 
 Lemma eutt_ret : forall (r1 r2 : R),
     Ret r1 ≈ Ret r2 <-> r1 = r2.
-Proof. apply ITree.Eq.UpToTaus.eutt_ret. Qed.
+Proof. apply ITree.Eq.UpToTausCore.eutt_ret. Qed.
 
 Lemma eutt_vis : forall {U : Type} (e : E U) (k1 k2 : U -> itree E R),
     (forall u, k1 u ≈ k2 u) <-> Vis e k1 ≈ Vis e k2.
-Proof. apply ITree.Eq.UpToTaus.eutt_vis. Qed.
+Proof. apply ITree.Eq.UpToTausCore.eutt_vis. Qed.
 
 End EquivalenceUpToTaus.
 
@@ -443,29 +443,29 @@ Hint Rewrite @interp_mrecursive : itree.
 
 Instance eutt_go {E R} :
   Proper (going eutt ==> eutt) (@go E R).
-Proof. apply ITree.Eq.UpToTaus.eutt_cong_go. Qed.
+Proof. apply ITree.Eq.UpToTausCore.eutt_cong_go. Qed.
 
 Instance eutt_observe {E R} :
   Proper (eutt ==> going eutt) (@observe E R).
-Proof. apply ITree.Eq.UpToTaus.eutt_cong_observe. Qed.
+Proof. apply ITree.Eq.UpToTausCore.eutt_cong_observe. Qed.
 
 Instance eutt_TauF {E R} :
   Proper (eutt ==> going eutt) (@TauF E R _).
-Proof. apply ITree.Eq.UpToTaus.eutt_cong_tauF. Qed.
+Proof. apply ITree.Eq.UpToTausCore.eutt_cong_tauF. Qed.
 
 Instance eutt_VisF {E R X} (e: E X) :
   Proper (pointwise_relation _ (@eutt E R) ==> going eutt) (VisF e).
-Proof. apply ITree.Eq.UpToTaus.eutt_cong_VisF. Qed.
+Proof. apply ITree.Eq.UpToTausCore.eutt_cong_VisF. Qed.
 
 Instance eutt_bind {E R S} :
   Proper (pointwise_relation _ eutt ==> eutt ==> eutt)
          (@ITree.bind' E R S).
-Proof. apply ITree.Eq.UpToTaus.eutt_bind. Qed.
+Proof. apply ITree.Eq.UpToTausEquivalence.eutt_bind. Qed.
 
 Instance eutt_map {E R S} :
   Proper (pointwise_relation _ eq ==> eutt ==> eutt)
          (@ITree.map E R S).
-Proof. apply ITree.Eq.UpToTaus.eutt_map. Qed.
+Proof. apply ITree.Eq.UpToTausEquivalence.eutt_map. Qed.
 
 Instance eutt_interp (E F : Type -> Type) f (R : Type) :
   Proper (eutt ==> eutt) (@interp E (itree F) _ _ _ f R).

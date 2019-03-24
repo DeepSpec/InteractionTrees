@@ -7,8 +7,7 @@ From ITree Require Import
      Basics.CategoryOps
      Basics.Function
      Core.ITree
-     Eq.UpToTaus
-     Indexed.OpenSum.
+     Eq.UpToTaus.
 
 Import ITreeNotations.
 Local Open Scope itree_scope.
@@ -37,14 +36,6 @@ Definition eutt_ktree {A B} (d1 d2 : ktree E A B) :=
   (forall a, eutt eq (d1 a) (d2 a)).
 
 Global Instance Eq2_ktree : Eq2 (ktree E) := @eutt_ktree.
-
-Global Instance Equivalence_eq_ktree {A B} : @Equivalence (ktree E A B) eq2.
-Proof.
-  split.
-  - intros ab a; reflexivity.
-  - intros ab ab' eqAB a; symmetry; auto.
-  - intros ab ab' ab'' eqAB eqAB' a; etransitivity; eauto.
-Qed.
 
 End Equivalence.
 

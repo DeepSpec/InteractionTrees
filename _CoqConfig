@@ -13,10 +13,13 @@ theories/Basics/FunctionFacts.v
 theories/Core/ITree.v
 theories/Core/KTree.v
 theories/Core/KTreeFacts.v
+theories/Core/KTreeBasicFacts.v
 
 theories/Eq/Shallow.v
 theories/Eq/Eq.v
 theories/Eq/UpToTaus.v
+theories/Eq/UpToTausCore.v
+theories/Eq/UpToTausEquivalence.v
 theories/Eq/UpToTausExplicit.v
 theories/Eq/Untaus.v
 theories/Eq/SimUpToTaus.v
