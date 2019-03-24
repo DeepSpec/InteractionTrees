@@ -238,7 +238,7 @@ Section EUTT_rel.
 
 Context {E : Type -> Type} {R : Type} (RR : R -> R -> Prop).
 
-Global Instance subrelation_eq_euttE :
+Definition subrelation_eq_euttE :
   @subrelation (itree E R) (eq_itree RR) (euttE RR).
 Proof.
   ucofix CIH. intros.

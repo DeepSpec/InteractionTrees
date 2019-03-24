@@ -5,9 +5,6 @@ From Coq Require Import
      Morphisms
      RelationClasses.
 
-From ExtLib Require Import
-     Structures.Monoid.
-
 From Paco Require Import paco.
 
 From ITree Require Import
@@ -122,9 +119,9 @@ Proof.
   revert A t k s.
   ucofix CIH.
   intros A t k s.
-  rewrite unfold_bind, (unfold_interp_state f t).
+  rewrite unfold_bind. (* TODO: slow *)
+  rewrite (unfold_interp_state f t).
   destruct (observe t).
-  (* TODO: performance issues with [ret|tau|vis_bind] here too. *)
   - cbn. rewrite !bind_ret. simpl.
     apply reflexivity.
   - cbn. rewrite !bind_tau, interp_state_tau.
