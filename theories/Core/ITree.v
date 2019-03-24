@@ -32,6 +32,10 @@ Section itree.
   | VisF {X : Type} (e : E X) (k : X -> itree)
   .
 
+  (** We define non-recursive types using the [Variant] command.
+      The main practical difference from [Inductive] is that [Variant]
+      does not generate any induction schemes. *)
+
   CoInductive itree : Type := go
   { _observe : itreeF itree }.
 
