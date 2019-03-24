@@ -45,5 +45,6 @@ theories/Effects/Nondeterminism.v
 theories/Effects/Map.v
 theories/Effects/Concurrency.v
 theories/Effects/Dependent.v
+theories/Effects.v
 
 theories/ITree.v
