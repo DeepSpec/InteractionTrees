@@ -16,6 +16,16 @@ parallel compilation and to contain potential universe
 inconsistencies, so the computational definitions may still be usable
 for testing.
 
+### Top-level modules
+
+- `ITree.Simple`: Simplified tutorial interface.
+  See also `tutorial/Introduction.v`.
+- `ITree.ITree`: Definitions to program with interaction trees.
+- `ITree.ITreeFacts`: Theorems to reason about interaction trees.
+- `ITree.Effects`: Some standard effects.
+
+### Library organization
+
 - `Basics`: General-purpose definitions not tied to interaction trees.
 
     + `Basics`: The `~>` notation and names of common monad transformers.
