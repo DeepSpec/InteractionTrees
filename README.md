@@ -33,13 +33,13 @@ for testing.
     + `ITree`: Interaction trees, type declaration and primitives.
     + `KTree`: Continuation trees `A -> itree E B`, the first Kleisli category
       of `itree` (traced symmetric monoidal).
-    + `KTreeFacts`
+    + `KTreeFacts`, `KTreeBasicFacts`
 
 - `Eq`: Equational theory of interaction trees.
 
     + `Shallow`: One-step unfolding of cofixpoints.
     + `Eq`: Strong bisimulation.
-    + `UpToTaus`: Weak bisimulation.
+    + `UpToTaus`, `UpToTausCore`, `UpToTausEquivalence`: Weak bisimulation.
     + `SimUpToTaus`: Weak simulation.
     + `EqAxiom`: Axiom that strong bisimulation is propositional equality.
 
@@ -55,7 +55,7 @@ for testing.
 - `Interp`: Interaction tree transformations.
 
     + `Interp`: Interpret itrees (`translate`, `interp`)
-    + `InterpFacts`
+    + `TranslateFacts`, `InterpFacts`
     + `Handlers`: Effect handlers `E ~> itree F`, the second Kleisli category
       of `itree` (traced symmetric monoidal).
     + `HandlerFacts`
