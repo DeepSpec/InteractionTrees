@@ -59,11 +59,7 @@ From Coq Require Import
 
 From ITree Require Import
      ITree
-     Basics.Category
-     Basics.Function
-     Core.KTreeFacts
-     Interp.MorphismsFacts
-     Interp.RecursionFacts
+     ITreeFacts
      Effects.StateFacts
      Effects.Map.
 

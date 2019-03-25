@@ -11,9 +11,11 @@ From ITree Require Import
      Basics.FunctionFacts
      Core.ITree
      Core.KTree
-     Eq.UpToTaus
-     Eq.SimUpToTaus
-     Indexed.OpenSum.
+     Eq.UpToTausEquivalence
+     Eq.SimUpToTaus.
+
+From ITree Require Export
+     Core.KTreeBasicFacts.
 
 Import ITreeNotations.
 Import CatNotations.
@@ -26,14 +28,14 @@ Section UnfoldLemmas.
 
 Local Opaque ITree.bind' eutt eq_itree.
 
-Lemma assoc_l_itree {E A B C} x :
-  assoc_l x ≅ @lift_ktree E (A + (B + C)) _ assoc_l x.
+Lemma assoc_l_itree {E A B C} (x : A + (B + C)) :
+  assoc_l_ A B C x ≅ @lift_ktree E (A + (B + C)) _ assoc_l x.
 Proof.
   cbv; destruct x as [ | [] ]; try rewrite bind_ret; reflexivity.
 Qed.
 
-Lemma assoc_r_itree {E A B C} x :
-  assoc_r x ≅ @lift_ktree E ((A + B) + C) _ assoc_r x.
+Lemma assoc_r_itree {E A B C} (x : (A + B) + C) :
+  assoc_r_ A B C x ≅ @lift_ktree E ((A + B) + C) _ assoc_r x.
 Proof.
   cbv; destruct x as [ [] | ]; try rewrite bind_ret; reflexivity.
 Qed.
@@ -288,34 +290,6 @@ Proof.
 Qed.
 
 End MonoidalCategoryLaws.
-
-(* Facts about [loop] *)
-
-Notation loop_once_ f loop_ :=
-  (loop_once f (fun cb => Tau (loop_ f%function cb))).
-
-Lemma unfold_loop'' {E A B C} (f : C + A -> itree E (C + B)) (x : C + A) :
-    observe (loop_ f x)
-  = observe (loop_once f (fun cb => Tau (loop_ f cb)) x).
-Proof. reflexivity. Qed.
-
-Lemma unfold_loop' {E A B C} (f : C + A -> itree E (C + B)) (x : C + A) :
-    loop_ f x
-  ≅ loop_once f (fun cb => Tau (loop_ f cb)) x.
-Proof.
-  rewrite itree_eta, (itree_eta (loop_once _ _ _)).
-  reflexivity.
-Qed.
-
-Lemma unfold_loop {E A B C} (f : C + A -> itree E (C + B)) (x : C + A) :
-    loop_ f x
-  ≈ loop_once f (loop_ f) x.
-Proof.
-  rewrite unfold_loop'.
-  apply eutt_bind; try reflexivity.
-  intros []; try reflexivity.
-  rewrite tau_eutt; reflexivity.
-Qed.
 
 (* Equations for a traced monoidal category *)
 

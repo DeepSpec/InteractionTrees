@@ -7,7 +7,7 @@ Import ListNotations.
 From ITree Require Import
      Core.ITree
      Eq.Untaus
-     Eq.UpToTaus
+     Eq.UpToTausEquivalence
      Eq.SimUpToTaus.
 
 Local Open Scope itree.

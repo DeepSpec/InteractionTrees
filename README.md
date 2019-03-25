@@ -16,6 +16,16 @@ parallel compilation and to contain potential universe
 inconsistencies, so the computational definitions may still be usable
 for testing.
 
+### Top-level modules
+
+- `ITree.Simple`: Simplified tutorial interface.
+  See also `tutorial/Introduction.v`.
+- `ITree.ITree`: Definitions to program with interaction trees.
+- `ITree.ITreeFacts`: Theorems to reason about interaction trees.
+- `ITree.Effects`: Some standard effects.
+
+### Library organization
+
 - `Basics`: General-purpose definitions not tied to interaction trees.
 
     + `Basics`: The `~>` notation and names of common monad transformers.
@@ -33,13 +43,13 @@ for testing.
     + `ITree`: Interaction trees, type declaration and primitives.
     + `KTree`: Continuation trees `A -> itree E B`, the first Kleisli category
       of `itree` (traced symmetric monoidal).
-    + `KTreeFacts`
+    + `KTreeFacts`, `KTreeBasicFacts`
 
 - `Eq`: Equational theory of interaction trees.
 
     + `Shallow`: One-step unfolding of cofixpoints.
     + `Eq`: Strong bisimulation.
-    + `UpToTaus`: Weak bisimulation.
+    + `UpToTaus`, `UpToTausCore`, `UpToTausEquivalence`: Weak bisimulation.
     + `SimUpToTaus`: Weak simulation.
     + `EqAxiom`: Axiom that strong bisimulation is propositional equality.
 
@@ -55,7 +65,7 @@ for testing.
 - `Interp`: Interaction tree transformations.
 
     + `Interp`: Interpret itrees (`translate`, `interp`)
-    + `InterpFacts`
+    + `TranslateFacts`, `InterpFacts`
     + `Handlers`: Effect handlers `E ~> itree F`, the second Kleisli category
       of `itree` (traced symmetric monoidal).
     + `HandlerFacts`

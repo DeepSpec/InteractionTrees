@@ -14,14 +14,13 @@ From ITree Require Import
      Basics.Function
      Core.ITree
      Core.KTree
-     Core.KTreeFacts
      Eq.Eq
      Eq.UpToTaus
      Indexed.Sum
      Indexed.Function
      Indexed.OpenSum
      Interp.Interp
-     Interp.MorphismsFacts
+     Interp.InterpFacts
      Interp.Recursion.
 
 Import ITreeNotations.
@@ -172,18 +171,6 @@ Lemma interp_recursive_call {E A B} (f : A -> itree (callE A B +' E) B) (x:A) :
 Proof.
   unfold recursive. unfold call.
   rewrite interp_send. cbn. reflexivity.
-Qed.
-
-Lemma interp_loop {E F} (f : E ~> itree F) {A B C}
-      (t : C + A -> itree E (C + B)) ca :
-  interp f (loop_ t ca) ≅ loop_ (fun ca => interp f (t ca)) ca.
-Proof.
-  revert ca. ucofix CIH. intros.
-  unfold loop. rewrite !unfold_loop'. unfold loop_once.
-  rewrite interp_bind.
-  uclo eq_itree_clo_bind. econstructor; [reflexivity|].
-  intros. subst. rewrite unfold_interp.
-  destruct u2; econstructor; eauto with paco.
 Qed.
 
 Lemma unfold_forever {E R S} (t : itree E R)

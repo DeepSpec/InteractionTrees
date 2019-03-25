@@ -25,8 +25,6 @@ From Coq Require Import
      Strings.String.
 
 From ITree Require Import
-     Basics.Category
-     Basics.Function
      ITree.
 
 Import ListNotations.
