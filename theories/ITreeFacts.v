@@ -4,9 +4,12 @@ From ITree Require Export
      Basics.FunctionFacts
      Core.ITree
      Core.KTreeFacts
-     Eq
      Interp.TranslateFacts
      Interp.InterpFacts
      Interp.HandlerFacts
      Interp.RecursionFacts
      .
+
+Require Export ITree.Eq.
+(* Coq sometimes thinks [From ITree Require Export Eq.] means
+   [Require Export ITree.Eq.Eq.] *)
