@@ -44,7 +44,6 @@ From ExtLib Require Import
      Data.List.
 
 From ITree Require Import
-     Basics
      ITree.
 
 Import MonadNotation.

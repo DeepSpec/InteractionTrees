@@ -13,10 +13,7 @@ From Coq Require Import
      ZArith.ZArith.
 
 From ITree Require Import
-     Basics.Function
-     ITree
-     OpenSum
-     KTree.
+     ITree.
 
 From ExtLib Require Structures.Monad.
 

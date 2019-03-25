@@ -20,7 +20,7 @@ From ITree Require Import
      Indexed.Function
      Indexed.OpenSum
      Interp.Interp
-     Interp.MorphismsFacts
+     Interp.InterpFacts
      Interp.Recursion.
 
 Import ITreeNotations.

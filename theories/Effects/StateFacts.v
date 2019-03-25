@@ -15,7 +15,7 @@ From ITree Require Import
      Eq.UpToTausEquivalence
      Indexed.Sum
      Interp.Interp
-     Interp.MorphismsFacts
+     Interp.InterpFacts
      Interp.RecursionFacts
      Effects.State.
 

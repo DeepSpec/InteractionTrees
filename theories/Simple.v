@@ -252,7 +252,7 @@ End SimpleTheory.
 
 From ITree Require
      Eq.UpToTausEquivalence
-     Interp.MorphismsFacts
+     Interp.InterpFacts
      Interp.RecursionFacts.
 
 Module Export Simple.
@@ -348,7 +348,7 @@ Lemma unfold_interp
   : forall {E F R} {f : E ~> itree F} (t : itree E R),
     interp f t ≈ (_interp f (observe t)).
 Proof.
-  intros; rewrite <- ITree.Interp.MorphismsFacts.unfold_interp.
+  intros; rewrite <- ITree.Interp.InterpFacts.unfold_interp.
   reflexivity.
 Qed.
 
@@ -372,7 +372,7 @@ Lemma interp_send : forall {E F : Type -> Type} {R : Type}
       (f : E ~> (itree F)) (e : E R),
     interp f (ITree.send e) ≈ f _ e.
 Proof.
-  intros; rewrite ITree.Interp.MorphismsFacts.interp_send, tau_eutt.
+  intros; rewrite ITree.Interp.InterpFacts.interp_send, tau_eutt.
   reflexivity.
 Qed.
 
@@ -381,7 +381,7 @@ Lemma interp_bind : forall {E F R S}
     interp f (ITree.bind t k)
   ≈ ITree.bind (interp f t) (fun r => interp f (k r)).
 Proof.
-  intros; rewrite ITree.Interp.MorphismsFacts.interp_bind.
+  intros; rewrite ITree.Interp.InterpFacts.interp_bind.
   reflexivity.
 Qed.
 
@@ -469,7 +469,7 @@ Proof. apply ITree.Eq.UpToTausEquivalence.eutt_map. Qed.
 
 Instance eutt_interp (E F : Type -> Type) f (R : Type) :
   Proper (eutt ==> eutt) (@interp E (itree F) _ _ _ f R).
-Proof. apply ITree.Interp.MorphismsFacts.eutt_interp. Qed.
+Proof. apply ITree.Interp.InterpFacts.eutt_interp. Qed.
 
 Ltac tau_steps :=
   repeat (

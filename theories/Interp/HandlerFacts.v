@@ -16,7 +16,7 @@ From ITree Require Import
      Interp.Interp
      Interp.Handler
      Interp.TranslateFacts
-     Interp.MorphismsFacts.
+     Interp.InterpFacts.
 
 Import ITree.Basics.Basics.Monads.
 Import ITreeNotations.

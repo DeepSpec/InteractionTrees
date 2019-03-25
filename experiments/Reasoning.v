@@ -6,7 +6,7 @@ From ExtLib Require Import
 
 From ITree Require Import
      ITree
-     MorphismsFacts.
+     InterpFacts.
 
 From Paco Require Import paco.
 

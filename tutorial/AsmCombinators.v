@@ -30,12 +30,8 @@ From Coq Require Import
 Import ListNotations.
 
 From ITree Require Import
-     Basics.Basics
-     Basics.Function
-     Basics.Category
      ITree
-     KTree
-     KTreeFacts.
+     ITreeFacts.
 
 From ExtLib Require Import
      Structures.Monad.
