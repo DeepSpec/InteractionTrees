@@ -5,9 +5,7 @@ From Coq Require Import
 
 From ITree Require Import
      ITree
-     Interp.Recursion
-     Interp.RecursionFacts
-     Interp.MorphismsFacts.
+     ITreeFacts.
 
 Import ITreeNotations.
 

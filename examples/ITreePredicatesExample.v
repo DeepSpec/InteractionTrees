@@ -9,7 +9,8 @@ From ExtLib Require Import
      Monads.
 
 From ITree Require Import
-     ITree.
+     ITree
+     ITreeFacts.
 
 From Paco Require Import paco.
 

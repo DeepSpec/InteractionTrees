@@ -9,8 +9,9 @@ From Paco Require Import paco.
 From ITree Require Import
      Basics.Basics
      Core.ITree
-     Eq.Eq
-     Eq.UpToTaus
+     Core.KTree
+     Core.KTreeBasicFacts
+     Eq.UpToTausEquivalence
      Indexed.Sum
      Indexed.OpenSum
      Interp.Interp
@@ -235,3 +236,15 @@ Hint Rewrite @interp_ret : itree.
 Hint Rewrite @interp_vis : itree.
 Hint Rewrite @interp_send : itree.
 Hint Rewrite @interp_bind : itree.
+
+Lemma interp_loop {E F} (f : E ~> itree F) {A B C}
+      (t : C + A -> itree E (C + B)) ca :
+  interp f (loop_ t ca) ≅ loop_ (fun ca => interp f (t ca)) ca.
+Proof.
+  revert ca. wcofix CIH. intros.
+  rewrite !unfold_loop'. unfold loop_once.
+  rewrite interp_bind.
+  wclo eq_itree_clo_bind. econstructor; [reflexivity|].
+  intros. subst. rewrite unfold_interp.
+  destruct u2; simpl; wstep; constructor; eauto with paco.
+Qed.
