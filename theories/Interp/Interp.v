@@ -9,7 +9,7 @@
     conceptually at a different level: translation always yields strong
     bisimulations.  We can relate translation and interpretation via the law:
 
-    translate h t ≈ interp (lift ∘ h) t
+    translate h t ≈ interp (send ∘ h) t
 *)
 
 (** The semantics of an interaction tree [itree E ~> M] can be
@@ -85,3 +85,5 @@ Definition interp {E M : Type -> Type}
 (* TODO: this does a map, and aloop does a bind. We could fuse those
    by giving aloop a continuation to compose its bind with.
    (coyoneda...) *)
+
+Arguments interp {E M FM MM LM} h [T].

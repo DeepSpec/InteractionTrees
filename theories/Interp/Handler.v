@@ -28,26 +28,26 @@ Open Scope itree_scope.
 Module Handler.
 
 (** Lift an _effect morphism_ into an _effect handler_. *)
-Definition hlift {A B} (m : A ~> B) : A ~> itree B :=
-  fun _ e => ITree.lift (m _ e).
+Definition hsend {A B} (m : A ~> B) : A ~> itree B :=
+  fun _ e => ITree.send (m _ e).
 
 (** This handler just wraps effects back into itrees, which is
     a noop (modulo taus): [interp (id_ E) _ t ≈ t]. *)
-Definition id_ (E : Type -> Type) : E ~> itree E := ITree.lift.
+Definition id_ (E : Type -> Type) : E ~> itree E := ITree.send.
 
 (** Chain handlers: [g] handles the effects produced by [f]. *)
 Definition cat {E F G : Type -> Type}
            (f : E ~> itree F) (g : F ~> itree G)
   : E ~> itree G
-  := fun R e => interp g R (f R e).
+  := fun R e => interp g (f R e).
 
 (** Wrap effects to the left of a sum. *)
 Definition inl_ {E F : Type -> Type} : E ~> itree (E +' F)
-  := hlift inl1.
+  := hsend inl1.
 
 (** Wrap effects to the right of a sum. *)
 Definition inr_ {E F : Type -> Type} : F ~> itree (E +' F)
-  := hlift inr1.
+  := hsend inr1.
 
 (** Case analysis on sums of effects. *)
 Definition case_ {E F G : Type -> Type}

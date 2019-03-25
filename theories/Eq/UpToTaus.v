@@ -223,8 +223,31 @@ Qed.
 
 End EUTT_hetero.
 
+Section EUTT_eq.
+
+Context {E : Type -> Type} {R : Type}.
+
+Local Notation eutt := (@eutt E R R eq).
+
+Global Instance subrelation_observing_eutt:
+  @subrelation (itree E R) (observing eq) eutt.
+Proof.
+  repeat intro. eapply subrelation_eq_eutt, observing_eq_itree_eq. eauto.
+Qed.
+
+Global Instance Reflexive_eutt: Reflexive eutt.
+Proof. apply Reflexive_eutt_param; eauto. Qed.
+
+Global Instance Symmetric_eutt: Symmetric eutt.
+Proof.
+  repeat intro. eapply Symmetric_eutt_hetero, H.
+  intros; subst. eauto.
+Qed.
+
+End EUTT_eq.
+
 Section UptoClosures.
-  
+
 Context {E : Type -> Type} {R1 R2 : Type} (RR : R1 -> R2 -> Prop).
 
 Inductive clo_bind (r: itree E R1 -> itree E R2 -> Prop) : itree E R1 -> itree E R2 -> Prop :=
@@ -373,19 +396,33 @@ Proof.
   - econstructor. rewrite unfold_bind. eapply IHEQV. eauto.
 Qed.
 
-Global Instance eutt_cong_wcpn (r rg: itree E R1 -> itree E R2 -> Prop) :
-  Proper (eutt eq ==> eutt eq ==> flip impl)
+Global Instance eutt_cong_wcpn_ (r rg: itree E R1 -> itree E R2 -> Prop) :
+  Proper (eutt eq ==> eutt eq ==> impl)
          (wcpn2 (@eutt0 E R1 R2 RR) r rg).
 Proof.
   repeat intro.
-  wclo eutt_clo_trans_left. econstructor; eauto.
-  wclo eutt_clo_trans_right. econstructor; eauto.
+  wclo eutt_clo_trans_left. econstructor. symmetry. eauto.
+  wclo eutt_clo_trans_right. econstructor. symmetry. eauto.
+  eauto.
+Qed.
+
+Global Instance eutt_cong_wcpn (r rg: itree E R1 -> itree E R2 -> Prop) :
+  Proper (eutt eq ==> eutt eq ==> iff)
+         (wcpn2 (@eutt0 E R1 R2 RR) r rg).
+Proof.
+  split; apply eutt_cong_wcpn_; auto using symmetry.
+Qed.
+
+Definition eutt_eq_under_rr_impl_ :
+  Proper (@eutt E _ _ eq ==> @eutt _ _ _ eq ==> flip impl) (eutt RR).
+Proof.
+  repeat intro. red. rewrite H, H0. eauto with paco.
 Qed.
 
 Global Instance eutt_eq_under_rr_impl :
-  Proper (@eutt E _ _ eq ==> @eutt _ _ _ eq ==> flip impl) (eutt RR).
+  Proper (@eutt E _ _ eq ==> @eutt _ _ _ eq ==> iff) (eutt RR).
 Proof.
-  repeat red. intros. rewrite H, H0. eauto with paco.
+  split; apply eutt_eq_under_rr_impl_; auto using symmetry.
 Qed.
 
 End EUTT_upto.
@@ -428,12 +465,19 @@ Proof.
   - dependent destruction EQVr. wunfold REL0. simpobs. eauto.
 Qed.
 
-Global Instance eq_cong_eutt0 r rg r0 rg0 :
+Definition eq_cong_eutt0_ r rg r0 rg0 :
   Proper (eq_itree eq ==> eq_itree eq ==> flip impl)
          (wcpn2 (@eutt0_ E R1 R2 RR (wcpn2 (eutt0 RR) r rg)) r0 rg0).
 Proof.
   repeat intro.
   wclo eutt0_clo_trans. econstructor; eauto.
+Qed.
+
+Global Instance eq_cong_eutt0 r rg r0 rg0:
+  Proper (eq_itree eq ==> eq_itree eq ==> iff)
+         (wcpn2 (@eutt0_ E R1 R2 RR (wcpn2 (eutt0 RR) r rg)) r0 rg0).
+Proof.
+  split; apply eq_cong_eutt0_; auto; symmetry; auto.
 Qed.
 
 Lemma eutt0_clo_bind r rg:
@@ -460,26 +504,11 @@ Arguments eutt0_clo_trans : clear implicits.
 
 Arguments eutt0_clo_bind : clear implicits.
 
-Section EUTT_eq.
+Section EUTT_eq2.
 
 Context {E : Type -> Type} {R : Type}.
 
 Local Notation eutt := (@eutt E R R eq).
-
-Global Instance subrelation_observing_eutt:
-  @subrelation (itree E R) (observing eq) eutt.
-Proof.
-  repeat intro. eapply subrelation_eq_eutt, observing_eq_itree_eq. eauto.
-Qed.
-
-Global Instance Reflexive_eutt: Reflexive eutt.
-Proof. apply Reflexive_eutt_param; eauto. Qed.
-
-Global Instance Symmetric_eutt: Symmetric eutt.
-Proof.
-  repeat intro. eapply Symmetric_eutt_hetero, H.
-  intros; subst. eauto.
-Qed.
 
 Global Instance Transitive_eutt : Transitive eutt.
 Proof.
@@ -510,7 +539,7 @@ Proof.
   intros. specialize (H x0). wunfold H. eauto.
 Qed.
 
-End EUTT_eq.
+End EUTT_eq2.
 
 (**)
 
@@ -666,8 +695,12 @@ Qed.
     (assumed to be of the form [lhs ≈ rhs]). *)
 Ltac tau_steps :=
   repeat (
-      rewrite itree_eta at 1; cbn;
+      (* Only rewrite the LHS, even if it also occurs in the RHS *)
+      rewrite itree_eta at 1;
+      cbn;
       match goal with
-      | [ |- go (observe _) ≈ _ ] => fail 1
+      | [ |- go (observe _) ≈ _ ] =>
+        (* Cancel [itree_eta] if no progress was made. *)
+        fail 1
       | _ => try rewrite tau_eutt
       end).

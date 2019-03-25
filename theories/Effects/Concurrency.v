@@ -1,3 +1,6 @@
+(** * Concurrency *)
+
+(* begin hide *)
 Set Implicit Arguments.
 Set Contextual Implicit.
 
@@ -5,20 +8,18 @@ From Coq Require Import
      String List.
 Import ListNotations.
 
-From ExtLib.Structures Require Import
-     Monoid.
-
 From ITree Require Import
      Core.ITree
      Indexed.Sum
      OpenSum.
+(* end hide *)
 
 (* An event that spawns a unit-producing thread with effects in E.   *)
 Inductive spawnE E : Type -> Type :=
 | Spawn : forall (t: itree (spawnE E +' E) unit), spawnE E unit.
 
 Definition spawn {F E} `{(spawnE F) -< E} (t:itree (spawnE F +' F) unit) : itree E unit :=
-    lift (Spawn t).
+    send (Spawn t).
 
 (* A simple round-robin scheduler:
 

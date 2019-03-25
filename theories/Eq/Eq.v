@@ -8,10 +8,9 @@
     Goal (cofix spin := Tau spin) = Tau (cofix spin := Tau spin).
     Goal (cofix spin := Tau spin) = (cofix spin2 := Tau (Tau spin2)).
 ]]
-    As an alternative, we define a coinductive notion of equivalence,
-    which can be intuitively thought of as a form of extensional
-    equality. It is weaker than [eq] (we will have to use setoid
-    rewriting everywhere), but makes equivalences provable in practice.
+    As an alternative, we define a weaker, coinductive notion of equivalence,
+    [eq_itree], which can be intuitively thought of as a form of extensional
+    equality. We shall rely extensively on setoid rewriting.
  *)
 
 (* begin hide *)
@@ -42,16 +41,17 @@ Proof. auto. Qed.
 (** ** Coinductive reasoning with Paco *)
 
 (** Similarly to the way we deal with cofixpoints explained in
-    [Core.ITree], and also similarly to the definition of [itree]
-    itself, coinductive properties are defined in two steps,
+    [Core.ITree], coinductive properties are defined in two steps,
     as greatest fixed points of monotone relation transformers.
 
     - a _relation transformer_, a.k.a. _generating function_,
-      is a function mapping relations to relations;
-    - _monotonicity_ is with respect to relations ordered by
-      set inclusion (a.k.a. implication, when viewed as predicates);
-    - the Paco library provides a combinator defining the greatest
-      fixed point when that function is indeed monotone.
+      is a function mapping relations to relations
+      [gf : (i -> i -> Prop) -> (i -> i -> Prop)];
+    - _monotonicity_ is with respect to relations ordered by set inclusion
+      (a.k.a. implication, when viewed as predicates)
+      [(r1 <2= r2) -> (gf r1 <2= gf r2)];
+    - the Paco library provides a combinator [paco2] defining the greatest
+      fixed point [paco2 gf] when [gf] is indeed monotone.
 
     By thus avoiding [CoInductive] to define coinductive properties,
     Paco spares us from thinking about guardedness of proof terms,
@@ -199,7 +199,7 @@ Proof.
   ucompat. econstructor; [pmonauto|].
   intros. dependent destruction PR.
   wunfold EQVl. wunfold EQVr. unfold_eq_itree.
-  inversion EQVl; clear EQVl;
+  inversion EQVl;
     inversion EQVr; clear EQVr;
     inversion RELATED; clear RELATED;
       subst; simpobs; try discriminate.
@@ -225,7 +225,7 @@ Proof.
   ucompat. econstructor; [pmonauto|].
   intros. dependent destruction PR.
   wunfold EQV. unfold_eq_itree.
-  rewrite !unfold_bind; inv EQV; simpobs.
+  rewrite !unfold_bind; destruct EQV; simpobs.
   - eapply eq_itreeF_mono; [eapply REL |]; eauto with rclo.
   - simpl. eauto 8 with rclo.
   - econstructor.
@@ -445,11 +445,18 @@ Proof.
   intros; subst; auto.
 Qed.
 
-Instance eq_itree_wcpn {E R1 R2 RS} r rg:
+Instance eq_itree_wcpn_ {E R1 R2 RS} r rg:
   Proper (eq_itree eq ==> eq_itree eq ==> flip impl)
          (wcpn2 (@eq_itree_ E R1 R2 RS) r rg).
 Proof.
   repeat intro. wclo eq_itree_clo_trans. eauto.
+Qed.
+
+Instance eq_itree_wcpn {E R1 R2 RS} r rg:
+  Proper (eq_itree eq ==> eq_itree eq ==> iff)
+         (wcpn2 (@eq_itree_ E R1 R2 RS) r rg).
+Proof.
+  split; apply eq_itree_wcpn_; auto using symmetry.
 Qed.
 
 Lemma bind_ret2 {E R} :
@@ -467,7 +474,7 @@ Lemma bind_bind {E R S T} :
 Proof.
   wcofix CIH. intros.
   unfold_eq_itree.
-  rewrite !unfold_bind. (* TODO: this is a bit slow (0.5s). *)
+  rewrite !unfold_bind.
   wstep. repeat red. genobs s os; destruct os; simpl; eauto with paco.
   apply Reflexive_eq_itreeF. eauto with reflexivity.
 Qed.

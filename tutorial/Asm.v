@@ -141,7 +141,7 @@ Section Denote.
     Definition denote_operand (o : operand) : itree E value :=
       match o with
       | Oimm v => Ret v
-      | Ovar v => lift (GetVar v)
+      | Ovar v => send (GetVar v)
       end.
 
     (** Instructions offer no suprises either. *)
@@ -149,27 +149,27 @@ Section Denote.
       match i with
       | Imov d s =>
         v <- denote_operand s ;;
-        lift (SetVar d v)
+        send (SetVar d v)
       | Iadd d l r =>
-        lv <- lift (GetVar l) ;;
+        lv <- send (GetVar l) ;;
         rv <- denote_operand r ;;
-        lift (SetVar d (lv + rv))
+        send (SetVar d (lv + rv))
       | Isub d l r =>
-        lv <- lift (GetVar l) ;;
+        lv <- send (GetVar l) ;;
         rv <- denote_operand r ;;
-        lift (SetVar d (lv - rv))
+        send (SetVar d (lv - rv))
       | Imul d l r =>
-        lv <- lift (GetVar l) ;;
+        lv <- send (GetVar l) ;;
         rv <- denote_operand r ;;
-        lift (SetVar d (lv * rv))
+        send (SetVar d (lv * rv))
       | Iload d a =>
         addr <- denote_operand a ;;
-        val <- lift (Load addr) ;;
-        lift (SetVar d val)
+        val <- send (Load addr) ;;
+        send (SetVar d val)
       | Istore a v =>
-        addr <- lift (GetVar a) ;;
+        addr <- send (GetVar a) ;;
         val <- denote_operand v ;;
-        lift (Store addr val)
+        send (Store addr val)
       end.
 
     Section with_labels.
@@ -184,7 +184,7 @@ Section Denote.
         match b with
         | Bjmp l => ret l
         | Bbrz v y n =>
-          val <- lift (GetVar v) ;;
+          val <- send (GetVar v) ;;
           if val:nat then ret y else ret n
         | Bhalt => done
         end.
@@ -239,7 +239,7 @@ End Denote.
 (* begin hide *)
 From ITree Require Import
      Basics.Category
-     Effects.Env.
+     Effects.Map.
 
 From ExtLib Require Import
      Core.RelDec
@@ -250,12 +250,12 @@ From ExtLib Require Import
 (** Both environments and memory effects can be interpreted as "map" effects,
     exactly as we did for _Imp_. *)
 
-Definition evalMemory {E : Type -> Type} `{envE value value -< E} :
+Definition evalMemory {E : Type -> Type} `{mapE value value -< E} :
   Memory ~> itree E :=
   fun _ e =>
     match e with
-    | Load x => env_lookupDefault x 0
-    | Store x v => env_add x v
+    | Load x => lookup_def x 0
+    | Store x v => insert x v
     end.
 
 (** Once again, we implement our Maps with a simple association list *)
@@ -267,8 +267,8 @@ Definition memory := alist value value.
  *)
 Definition AsmEval (p: asm unit void) :=
   let h := bimap evalLocals (bimap evalMemory (id_ _)) in
-  let p' := interp h _ (denote_asm p tt) in
-  run_env _ (run_env _ p' empty) empty.
+  let p' := interp h (denote_asm p tt) in
+  run_map (run_map p' empty) empty.
 
 (** Now that we have both our language, we could jump directly into implementing
     our compiler.

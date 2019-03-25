@@ -54,13 +54,13 @@ Inductive ioE : Type -> Type :=
   (** Send a list of [nat]. *)
 .
 
-(** Effects are wrapped as ITrees using [ITree.lift], and
+(** Effects are wrapped as ITrees using [ITree.send], and
     composed using monadic operations [bind] and [ret]. *)
 
 (** Read some input, and echo it back, appending [1] to it. *)
 Definition write_one : itree ioE unit :=
-  xs <- ITree.lift Input;;
-  ITree.lift (Output (xs ++ [1])).
+  xs <- ITree.send Input;;
+  ITree.send (Output (xs ++ [1])).
 
 (** We can _interpret_ interaction trees by giving semantics
     to their effects individually, as a _handler_: a function
@@ -90,13 +90,13 @@ Definition handle_io
     [forall R, itree ioE R -> M R]. *)
 Definition interp_io
   : forall R, itree ioE R -> itree void1 (list nat * R)
-  := fun R t => interp handle_io R t [].
+  := fun R t => interp handle_io t [].
 
 (** We can now interpret [write_one]. *)
 Definition interpreted_write_one : itree void1 (list nat * unit)
   := interp_io _ write_one.
 
-(** Intuitively, [interp_io] replaces every [ITree.lift] in the
+(** Intuitively, [interp_io] replaces every [ITree.send] in the
     definition of [write_one] with [handle_io]:
 [[
   interpreted_write_one =
@@ -111,7 +111,7 @@ Definition interpreted_write_one : itree void1 (list nat * unit)
     [interp] with.)
  *)
 Lemma interp_write_one F (handle_io : forall R, ioE R -> itree F R)
-  : interp handle_io _ write_one
+  : interp handle_io write_one
   ≈ (xs <- handle_io _ Input;;
      handle_io _ (Output (xs ++ [1]))).
 Proof.
@@ -119,8 +119,8 @@ Proof.
   (* Use lemmas from [ITree.Simple] ([theories/Simple.v]). *)
   (* ADMITTED *)
   rewrite interp_bind.
-  rewrite interp_lift.
-  setoid_rewrite interp_lift.
+  rewrite interp_send.
+  setoid_rewrite interp_send.
   reflexivity.
 Qed. (* /ADMITTED *)
 

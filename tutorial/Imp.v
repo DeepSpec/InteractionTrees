@@ -161,7 +161,7 @@ Section Denote.
 
   (** _Imp_ expressions are denoted as [itree eff value], where the returned value
       in the tree is the value computed by the expression.
-      In the [Var] case, the [lift] operator smoothly lifts a single effect to
+      In the [Var] case, the [send] operator smoothly lifts a single effect to
       an [itree] by performing the corresponding [Vis] event and returning the
       environment's answer immediately.
       Usual monadic notations are used in the other cases. A constant (literal) is
@@ -170,7 +170,7 @@ Section Denote.
    *)
   Fixpoint denoteExpr (e : expr) : itree eff value :=
     match e with
-    | Var v => lift (GetVar v)
+    | Var v => send (GetVar v)
     | Lit n => ret n
     | Plus a b => l <- denoteExpr a ;; r <- denoteExpr b ;; ret (l + r)
     | Minus a b => l <- denoteExpr a ;; r <- denoteExpr b ;; ret (l - r)
@@ -221,7 +221,7 @@ Section Denote.
     match s with
     | Assign x e =>
       v <- denoteExpr e ;;
-      lift (SetVar x v)
+      send (SetVar x v)
     | Seq a b =>
       denoteStmt a ;; denoteStmt b
     | If i t e =>
@@ -270,7 +270,7 @@ End Denote_Fact.
 
 (* begin hide *)
 From ITree Require Import
-     Effects.Env.
+     Effects.Map.
 
 From ExtLib Require Import
      Core.RelDec
@@ -289,11 +289,11 @@ From ExtLib Require Import
     interpreting the computation into the state monad.
  *)
 
-Definition evalLocals {E: Type -> Type} `{envE var value -< E}: Locals ~> itree E :=
+Definition evalLocals {E: Type -> Type} `{mapE var value -< E}: Locals ~> itree E :=
   fun _ e =>
     match e with
-    | GetVar x => env_lookupDefault x 0
-    | SetVar x v => env_add x v
+    | GetVar x => lookup_def x 0
+    | SetVar x v => insert x v
     end.
 
 (** We now concretely implement this environment using ExtLib's finite maps. *)
@@ -321,8 +321,8 @@ Qed.
  *)
 
 Definition ImpEval (s: stmt): itree void1 (env * unit) :=
-  let p := interp evalLocals _ (denoteStmt s) in
-  run_env _ p empty.
+  let p := interp evalLocals (denoteStmt s) in
+  run_map p empty.
 
 (** Equipped with this evaluator, we can now compute.
     Naturally since Coq is total, we cannot do it directly

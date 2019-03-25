@@ -42,11 +42,11 @@ Open Scope itree_scope.
      match d with
      | Even n => match n with
                  | O => ret true
-                 | S m => lift (Odd m)
+                 | S m => send (Odd m)
                  end
      | Odd n => match n with
                 | O => ret false
-                | S m => lift (Even m)
+                | S m => send (Even m)
                 end
      end.
 ]]
@@ -80,15 +80,21 @@ Definition interp_mrec {D E : Type -> Type}
       | VisF (inr1 e) k => inl (Vis e (fun x => Ret (k x)))
       end).
 
+Arguments interp_mrec {D E} ctx [T].
+
 (** Unfold a mutually recursive definition into separate trees,
     resolving the mutual references. *)
 Definition mrec {D E : Type -> Type}
            (ctx : D ~> itree (D +' E)) : D ~> itree E :=
-  fun R d => interp_mrec ctx _ (ctx _ d).
+  fun R d => interp_mrec ctx (ctx _ d).
+
+Arguments mrec {D E} ctx [T].
 
 (** Make a recursive call in the handler argument of [mrec]. *)
-Definition lift_inl1 {D E : Type -> Type} : D ~> itree (D +' E)
-  := fun _ d => ITree.lift (inl1 d).
+Definition send_inl1 {D E : Type -> Type} : D ~> itree (D +' E)
+  := fun _ d => ITree.send (inl1 d).
+
+Arguments send_inl1 {D E} [T].
 
 (** Here's some syntactic sugar with a notation [mrec-fix]. *)
 
@@ -98,7 +104,7 @@ Local Notation endo T := (T -> T).
 Definition mrec_fix {D E : Type -> Type} {A B : Type}
            (ctx : endo (D ~> itree (D +' E)))
   : D ~> itree E
-  := mrec (ctx lift_inl1).
+  := mrec (ctx send_inl1).
 
 Notation "'mrec-fix' f d := g" := (mrec_fix (fun f _ d => g))
   (at level 200, f ident, d pattern).
@@ -139,14 +145,14 @@ Definition calling' {A B} {F : Type -> Type}
 Definition rec {E : Type -> Type} {A B : Type}
            (body : A -> itree (callE A B +' E) B) :
   A -> itree E B :=
-  fun a => mrec (calling' body) _ (Call a).
+  fun a => mrec (calling' body) (Call a).
 
 (** An easy way to construct an event suitable for use with [rec].
     [call] is an event representing the recursive call.  Since in general, the
     function might have other effects of type [E], the resulting itree has
     type [(callE A B +' E)].
 *)
-Definition call {E A B} (a:A) : itree (callE A B +' E) B := ITree.lift (inl1 (Call a)).
+Definition call {E A B} (a:A) : itree (callE A B +' E) B := ITree.send (inl1 (Call a)).
 
 (** Here's some syntactic sugar with a notation [mrec-fix]. *)
 

@@ -32,6 +32,10 @@ Section itree.
   | VisF {X : Type} (e : E X) (k : X -> itree)
   .
 
+  (** We define non-recursive types using the [Variant] command.
+      The main practical difference from [Inductive] is that [Variant]
+      does not generate any induction schemes. *)
+
   CoInductive itree : Type := go
   { _observe : itreeF itree }.
 
@@ -84,7 +88,7 @@ Definition observe {E R} (t : itree E R) : itree' E R := @_observe E R t.
 
     Using this notation means that we occasionally have to eta expand, e.g.
     writing [Vis e (fun x => Ret x)] instead of [Vis e Ret]. (In this
-    particular case, this is [ITree.lift].)
+    particular case, this is [ITree.send].)
 *)
 Notation Ret x := (go (RetF x)).
 Notation Tau t := (go (TauF t)).
@@ -200,7 +204,7 @@ Definition map {E R S} (f : R -> S)  (t : itree E R) : itree E S :=
   bind t (fun x => Ret (f x)).
 
 (** Atomic itrees performing a single effect. *)
-Definition lift {E : Type -> Type} : E ~> itree E :=
+Definition send {E : Type -> Type} : E ~> itree E :=
   fun R e => Vis e (fun x => Ret x).
 
 (** Ignore the result of a tree. *)

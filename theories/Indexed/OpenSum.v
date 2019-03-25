@@ -1,8 +1,9 @@
 From ITree Require Import
      Basics.Basics
+     Basics.CategoryOps
      Core.ITree
-     Indexed.Sum.
-
+     Indexed.Sum
+     Indexed.Function.
 
 (** Automatic application of commutativity and associativity for
     sums types constructed with [sum1].
@@ -19,46 +20,12 @@ From ITree Require Import
     space exponentially.
  *)
 
-Class Subeffect (A B : Type -> Type) :=
-  { subeffect : A ~> B }.
-
+Notation Subeffect E F := (@ReSum (Type -> Type) IFun E F)
+  (only parsing).
 Notation "E -< F" := (Subeffect E F)
-(at level 90, left associativity) : type_scope.
+  (at level 90, left associativity) : type_scope.
 
-(** [Subeffect] defines a category, with the following identity
-    arrow for every type [A]. *)
-Instance Subeffect_refl {A} : A -< A | 0 :=
-  { subeffect _ a := a }.
-
-(** Composition of the [Subeffect] category. *)
-(* TODO: Not sure whether making this an instance is a good idea. *)
-Definition Subeffect_trans {A B C} `(A -< B) `(B -< C) : A -< C :=
-  {| subeffect _ a := subeffect _ (subeffect _ a) |}.
-
-(** Coproduct. *)
-Instance Subeffect_sum1 {A B C} `(A -< C) `(B -< C) : A +' B -< C | 7 :=
-  { subeffect _ ab :=
-      match ab with
-      | inl1 a => subeffect _ a
-      | inr1 b => subeffect _ b
-      end }.
-
-(** Left inclusion. *)
-Instance Subeffect_left {A B C} `(A -< B) : A -< B +' C | 8 :=
-  { subeffect _ a := inl1 (subeffect _ a) }.
-
-(** Right inclusion. *)
-Instance Subeffect_right {A B C} `(A -< C) : A -< B +' C | 9 :=
-  { subeffect _ a := inr1 (subeffect _ a) }.
-
-(** The instance weights on [Subeffect_left] (8) and [Subeffect_right]
-    (9) are so that, if you have a list [E +' E +' F] (associated to
-    the right: [E +' (E +' F)]), then the first one will be picked
-    for the inclusion [E -< E +' E +' F]. *)
-
-(** Initial object of the [Subeffect] category. *)
-Instance Subeffect_empty A : void1 -< A :=
-  { subeffect _ v := match v with end }.
+Definition subeffect {E F : Type -> Type} `{E -< F} : E ~> F := resum _.
 
 (** Notations to construct and pattern-match on nested sums. *)
 Module Import SumNotations.
@@ -91,19 +58,17 @@ End SumNotations.
 
 Local Open Scope sum_scope.
 
-(** A polymorphic version of [vis]. *)
-Definition vis {E F X R} `{E -< F}
-           (e : E X) (k : X -> itree F R) : itree F R :=
-  Vis (subeffect _ e) k.
+(** A polymorphic version of [Vis]. *)
+Notation vis e k := (Vis (subeffect _ e) k).
 
 (* Called [send] in Haskell freer. *)
-Definition lift {E F} `{E -< F} : E ~> itree F :=
-  fun T e => ITree.lift (subeffect _ e).
+Definition send {E F} `{E -< F} : E ~> itree F :=
+  fun T e => ITree.send (subeffect _ e).
 
-Arguments lift {E F _ T}.
+Arguments send {E F _ T}.
 
-Lemma lift_is_vis_ret {E F R} `{E -< F} (e : E R) :
-  lift e = vis e (fun r => Ret r).
+Lemma send_is_vis_ret {E F R} `{E -< F} (e : E R) :
+  send e = vis e (fun r => Ret r).
 Proof. reflexivity. Qed.
 
 (* Embedding effects into trees.
@@ -126,4 +91,4 @@ Instance Embeddable_forall {A : Type} {U : A -> Type} {V : A -> Type}
 Instance Embeddable_itree {E F : Type -> Type} {R : Type}
          `(E -< F) :
   Embeddable (E R) (itree F R) :=
-  lift.
+  send.
