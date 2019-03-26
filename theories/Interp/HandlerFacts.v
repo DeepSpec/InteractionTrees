@@ -10,7 +10,7 @@ From Paco Require Import paco.
 From ITree Require Import
      Basics.Basics
      Basics.Category
-     Core.ITree
+     Core.ITreeDefinition
      Eq.UpToTausEquivalence
      Indexed.Sum
      Interp.Interp

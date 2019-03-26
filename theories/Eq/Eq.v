@@ -23,7 +23,7 @@ From Coq Require Import
 From Paco Require Import paco.
 
 From ITree Require Import
-     Core.ITree.
+     Core.ITreeDefinition.
 
 From ITree Require Export
      Eq.Shallow.
@@ -41,7 +41,7 @@ Proof. auto. Qed.
 (** ** Coinductive reasoning with Paco *)
 
 (** Similarly to the way we deal with cofixpoints explained in
-    [Core.ITree], coinductive properties are defined in two steps,
+    [Core.ITreeDefinition], coinductive properties are defined in two steps,
     as greatest fixed points of monotone relation transformers.
 
     - a _relation transformer_, a.k.a. _generating function_,

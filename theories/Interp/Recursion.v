@@ -2,7 +2,7 @@
 From ITree Require Import
      Basics.Basics
      Basics.Category
-     Core.ITree
+     Core.ITreeDefinition
      Indexed.Sum
      Interp.Handler.
 

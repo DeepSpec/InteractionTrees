@@ -9,7 +9,7 @@
   We actually define a more general relation transformer
   [observing] to lift arbitrary relations through [observe]. *)
 
-From ITree Require Import Core.ITree.
+From ITree Require Import Core.ITreeDefinition.
 
 From Coq Require Import
      Classes.RelationClasses

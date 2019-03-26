@@ -6,7 +6,7 @@ From ExtLib Require Import
 From ITree Require Import
      Basics.Basics
      Basics.CategoryOps
-     Core.ITree
+     Core.ITreeDefinition
      Indexed.Function
      Indexed.Sum
      Indexed.OpenSum

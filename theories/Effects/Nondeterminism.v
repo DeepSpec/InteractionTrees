@@ -12,7 +12,7 @@ Import ListNotations.
 
 From ITree Require Import
      Basics.Basics
-     Core.ITree
+     Core.ITreeDefinition
      Indexed.Sum
      Indexed.OpenSum
      Effects.Exception.

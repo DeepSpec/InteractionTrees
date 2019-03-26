@@ -6,7 +6,7 @@ Set Contextual Implicit.
 
 From ITree Require Import
      Basics.Basics
-     Core.ITree
+     Core.ITreeDefinition
      Indexed.Sum
      Indexed.OpenSum
      Interp.Interp.
