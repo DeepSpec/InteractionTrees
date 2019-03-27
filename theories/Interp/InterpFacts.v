@@ -52,6 +52,8 @@ Proof.
   apply (Equivalence_i_pointwise (fun R => eq_itree eq)).
 Qed.
 
+Require ITree.Core.KTreeFacts. (* TODO: only needed to avoid a universe inconsistency right around here (errors if you try to move this to the end of the file, or just under the next instance)... *)
+
 Instance Equivalence_eutt_Handler {E F : Type -> Type}
   : Equivalence (@eutt_Handler E F).
 Proof.
