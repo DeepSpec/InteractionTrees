@@ -214,10 +214,20 @@ Proof.
   reflexivity.
 Qed.
 
+(** *** Identities for [interp] *)
 
-(** ** Composition of [interp] *)
+Lemma interp_id_h {A R} (t : itree A R)
+  : interp (id_ A) t ≈ t.
+Proof.
+  revert t. ucofix CIH. red. ucofix CIH'. intros.
+  rewrite unfold_interp. unfold _interp. repeat red.
+  destruct (observe t); cbn; eauto 8 with paco.
+  unfold id_, Id_Handler, Handler.id_, ITree.send. eutt0_fold. rewrite bind_vis_.
+  do 2 constructor.
+  left; rewrite bind_ret; auto with paco.
+Qed.
 
-Lemma interp_id_send {E R} (t : itree E R) :
+Lemma interp_send_h {E R} (t : itree E R) :
   interp (fun _ e => ITree.send e) t ≈ t.
 Proof.
   revert t. ucofix CIH. red. ucofix CIH'. intros.
@@ -229,6 +239,7 @@ Proof.
   auto with paco.
 Qed.
 
+(** ** Composition of [interp] *)
 
 Theorem interp_interp {E F G R} (f : E ~> itree F) (g : F ~> itree G) :
   forall t : itree E R,
@@ -248,8 +259,6 @@ Proof.
     + intros ? _ [].
       auto with paco.
 Qed.
-
-(* Commuting interpreters --------------------------------------------------- *)
 
 Lemma interp_translate {E F G} (f : E ~> F) (g : F ~> itree G) {R} (t : itree E R) :
   interp g (translate f t) ≅ interp (fun _ e => g _ (f _ e)) t.

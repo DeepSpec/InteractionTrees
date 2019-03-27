@@ -25,21 +25,10 @@ Open Scope itree_scope.
 
 (* end hide *)
 
-Lemma eh_cmp_id_left_strong {A R} (t : itree A R)
-  : interp (id_ A) t ≈ t.
-Proof.
-  revert t. ucofix CIH. red. ucofix CIH'. intros.
-  rewrite unfold_interp. unfold _interp. repeat red.
-  destruct (observe t); cbn; eauto 8 with paco.
-  unfold id_, Id_Handler, Handler.id_, ITree.send. eutt0_fold. rewrite bind_vis_.
-  do 2 constructor.
-  left; rewrite bind_ret; auto with paco.
-Qed.
-
 Instance CatIdR_Handler : CatIdR Handler.
 Proof.
   red; intros A B f X e.
-  apply eh_cmp_id_left_strong.
+  apply interp_id_h.
 Qed.
 
 Instance CatIdL_Handler : CatIdL Handler.
