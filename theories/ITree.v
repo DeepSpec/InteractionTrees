@@ -2,7 +2,7 @@ From ITree Require Export
      Basics.Basics
      Basics.CategoryOps
      Basics.Function
-     Core.ITree
+     Core.ITreeDefinition
      Core.KTree
      Eq.UpToTaus
      Indexed.Function

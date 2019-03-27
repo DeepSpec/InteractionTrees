@@ -8,7 +8,7 @@ From Paco Require Import paco.
 
 From ITree Require Import
      Basics.Basics
-     Core.ITree
+     Core.ITreeDefinition
      Core.KTree
      Core.KTreeBasicFacts
      Eq.UpToTausEquivalence

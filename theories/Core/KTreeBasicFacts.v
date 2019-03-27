@@ -7,7 +7,7 @@ From Paco Require Import paco.
 From ITree Require Import
      Basics.Basics
      Basics.CategoryOps
-     Core.ITree
+     Core.ITreeDefinition
      Core.KTree
      Eq.UpToTausEquivalence.
 

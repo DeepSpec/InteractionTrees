@@ -40,7 +40,7 @@ for testing.
 
 - `Core`: Main definitions for interaction trees.
 
-    + `ITree`: Interaction trees, type declaration and primitives.
+    + `ITreeDefinition`: Interaction trees, type declaration and primitives.
     + `KTree`: Continuation trees `A -> itree E B`, the first Kleisli category
       of `itree` (traced symmetric monoidal).
     + `KTreeFacts`, `KTreeBasicFacts`

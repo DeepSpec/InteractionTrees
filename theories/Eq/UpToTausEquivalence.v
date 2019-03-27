@@ -10,7 +10,7 @@ From Paco Require Import paco.
 From ITree Require Import
      Basics.CategoryOps
      Basics.Function
-     Core.ITree.
+     Core.ITreeDefinition.
 
 From ITree Require Export
      Eq.Eq

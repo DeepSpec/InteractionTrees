@@ -2,7 +2,7 @@ From ITree Require Export
      Basics.Basics
      Basics.Category
      Basics.FunctionFacts
-     Core.ITree
+     Core.ITreeDefinition
      Core.KTreeFacts
      Interp.TranslateFacts
      Interp.InterpFacts

@@ -12,7 +12,7 @@ theories/Basics/CategoryFacts.v
 theories/Basics/Function.v
 theories/Basics/FunctionFacts.v
 
-theories/Core/ITree.v
+theories/Core/ITreeDefinition.v
 theories/Core/KTree.v
 theories/Core/KTreeFacts.v
 theories/Core/KTreeBasicFacts.v

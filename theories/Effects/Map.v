@@ -17,7 +17,7 @@ From ExtLib.Structures Require
 From ITree Require Import
      Basics.Basics
      Basics.CategoryOps
-     Core.ITree
+     Core.ITreeDefinition
      Indexed.Sum
      Indexed.OpenSum
      Interp.Interp

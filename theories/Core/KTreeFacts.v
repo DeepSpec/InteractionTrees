@@ -9,7 +9,7 @@ From ITree Require Import
      Basics.Category
      Basics.Function
      Basics.FunctionFacts
-     Core.ITree
+     Core.ITreeDefinition
      Core.KTree
      Eq.UpToTausEquivalence
      Eq.SimUpToTaus.
