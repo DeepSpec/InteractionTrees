@@ -1,18 +1,10 @@
-.PHONY: all extraction clean
+.PHONY: all build extraction clean
 
-all: extraction
+all: coq extraction
 
-# Ensure extracted code is compilable
-# - MetaModule.v is a module that depends on the
-#   ITree library
-# - Extract.v contains the extraction command for
-#   MetaModule (and recursively its dependencies)
-COQC=coqc -Q ../../theories ITree -Q . TestExtraction
+include ../common.mk
 
-extraction:
-	cd extraction; \
-	    $(COQC) ./MetaModule.v; \
-	    $(COQC) ./Extract.v
+extraction: coq
 	ocamlbuild extraction/MetaModule.native -no-links
 
 clean:
