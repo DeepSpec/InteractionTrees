@@ -134,7 +134,7 @@ Proof.
   reflexivity.
 Qed.
 
-Definition eutt_interp (E F : Type -> Type)
+Instance eutt_interp (E F : Type -> Type)
   : @Proper (Handler E F -> (itree E ~> itree F))
             (eq2 ==> respectful_eutt)
             interp.
