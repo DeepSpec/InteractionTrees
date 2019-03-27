@@ -56,6 +56,6 @@ DEPS_DOT=deps.dot
 DEPS_OUT=deps.jpg
 
 depgraph:
-	$(COQDEP) -dumpgraph $(DEPS_DOT) $(shell cat _CoqProject) > /dev/null 2>&1
+	$(COQDEP) -dumpgraph $(DEPS_DOT) $(shell cat _CoqConfig) > /dev/null 2>&1
 	# sed 's%\("\([^"]*\)/\([^"/]*\)"\[label="\)%\1\2/\n%' -i deps.dot
 	dot $(DEPS_DOT) -Tjpg -o$(DEPS_OUT)
