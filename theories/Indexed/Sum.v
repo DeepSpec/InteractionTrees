@@ -9,7 +9,7 @@ From Coq Require Import
 
 From ITree Require Import
      Basics.Basics
-     Core.ITree.
+     Core.ITreeDefinition.
 
 Set Implicit Arguments.
 Set Contextual Implicit.

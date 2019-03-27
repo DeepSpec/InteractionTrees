@@ -13,7 +13,7 @@ From Coq Require Import
 From Paco Require Import paco.
 
 From ITree Require Import
-     Core.ITree.
+     Core.ITreeDefinition.
 
 From ITree Require Export
      Eq.Eq

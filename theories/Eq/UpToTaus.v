@@ -16,7 +16,7 @@
 
     - [ITree.Eq.UpToTausCore] proves that [eutt] is reflexive, symmetric,
       and that [ITree.Eq.Eq.eq_itree] is a subrelation of [eutt].
-      Equations for [ITree.Core.ITree] combinators which only rely on
+      Equations for [ITree.Core.ITreeDefinition] combinators which only rely on
       those properties can also be found here.
 
     - [ITree.Eq.UpToTausEquivalence] proves that [eutt] is transitive,
@@ -31,7 +31,7 @@
 Require Import Paco.paco.
 
 From ITree Require Import
-     Core.ITree.
+     Core.ITreeDefinition.
 
 Import ITreeNotations.
 Local Open Scope itree.

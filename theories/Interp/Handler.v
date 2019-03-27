@@ -10,7 +10,7 @@ From Coq Require Import
 From ITree Require Import
      Basics.Basics
      Basics.Category
-     Core.ITree
+     Core.ITreeDefinition
      Eq.Eq
      Eq.UpToTaus
      Indexed.Sum

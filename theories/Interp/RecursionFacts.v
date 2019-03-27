@@ -12,7 +12,7 @@ From ITree Require Import
      Basics.Category
      Basics.Basics
      Basics.Function
-     Core.ITree
+     Core.ITreeDefinition
      Core.KTree
      Eq.Eq
      Eq.UpToTaus

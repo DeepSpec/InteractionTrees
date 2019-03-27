@@ -49,7 +49,7 @@ From ExtLib Require Import
 
 From ITree Require Import
      Basics.Basics
-     Core.ITree.
+     Core.ITreeDefinition.
 
 (* end hide *)
 

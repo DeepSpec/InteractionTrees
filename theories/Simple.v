@@ -13,7 +13,7 @@ From ITree Require Import
 
 (** Reexported from the library. *)
 
-Require Export ITree.Core.ITree.
+Require Export ITree.Core.ITreeDefinition.
 Import ITreeNotations.
 Open Scope itree_scope.
 (**
