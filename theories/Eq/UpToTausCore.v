@@ -37,7 +37,7 @@ Qed.
 Global Instance subrelation_eq_eutt :
   @subrelation (itree E R) (eq_itree RR) (eutt RR).
 Proof.
-  wcofix CIH; wstep. wcofix CIH'; wstep. intros.
+  wstep. wcofix CIH'; wstep. intros.
   wunfold H0. repeat red in H0 |- *. inv H0; eauto 7 with paco.
 Qed.
 
@@ -57,7 +57,7 @@ Global Instance Reflexive_eutt_param `{Reflexive _ RR}
 Proof.
   repeat intro.
   eapply wcpn2_mon with (r:=bot2) (rg:=bot2); eauto with paco; try contradiction.
-  revert x. wcofix CIH; wstep. wcofix CIH'; wstep. intros. repeat red.
+  revert x. wstep. wcofix CIH; wstep. intros. repeat red.
   destruct (observe x); eauto 7 with paco.
 Qed.
 
@@ -86,13 +86,13 @@ Lemma Symmetric_eutt_hetero {R1 R2}
   forall (t1 : itree E R1) (t2 : itree E R2),
     eutt RR1 t1 t2 -> eutt RR2 t2 t1.
 Proof.
-  wcofix CIH; wstep. wcofix CIH'; wstep. intros.
+  wstep. wcofix CIH; wstep. intros.
   do 2 wunfold H0.
   repeat red in H0 |- *.
   induction H0; eauto 7 with paco.
   econstructor; intros.
   edestruct EUTTK as [TMP | TMP]; [eauto 7 with paco|].
-  left. wbase. apply CIH. wstep. eauto.
+  right. wbase. apply CIH. wstep. eauto.
 Qed.
 
 Lemma euttF_elim_tau_left {R1 R2} (RR: R1 -> R2 -> Prop) r (t1: itree E R1) (t2: itree E R2)

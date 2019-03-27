@@ -111,7 +111,7 @@ Definition eutt_interp_gen (E F : Type -> Type) (R : Type) :
   Proper (i_respectful (fun _ => eutt eq) ==> eutt eq ==> eutt eq)
          (fun f => @interp E (itree F) _ _ _ f R).
 Proof.
-  wcofix CIH; wstep. wcofix CIH'. intros.
+  wstep. wcofix CIH. intros.
 
   rewrite !unfold_interp. do 2 wunfold H1.
   induction H1; intros; subst; simpl.
@@ -120,7 +120,7 @@ Proof.
     wclo eutt0_clo_bind.
     econstructor; [apply H0|].
     intros; subst.
-    wbase. eapply CIH'; edestruct (EUTTK v2); eauto with paco.
+    wbase. eapply CIH; edestruct (EUTTK v2); eauto with paco.
   - wstep. econstructor. eauto 7 with paco.
   - apply eutt0_tau_left. rewrite unfold_interp. auto.
   - apply eutt0_tau_right. rewrite unfold_interp. auto.
@@ -170,13 +170,13 @@ Qed.
 Lemma interp_id_send {E R} (t : itree E R) :
   interp (fun _ e => ITree.send e) t ≈ t.
 Proof.
-  revert t. wcofix CIH. wstep. wcofix CIH'. intros.
+  revert t. wstep. wcofix CIH. intros.
   rewrite unfold_interp. rewrite (itree_eta t) at 2.
   destruct (observe t); simpl; try (wstep; constructor; eauto with paco; fail).
   apply eutt0_tau_left.
   unfold ITree.send. rewrite bind_vis.
   wstep. constructor. intros.
-  left. rewrite bind_ret_.
+  right. rewrite bind_ret_.
   auto with paco.
 Qed.
 
@@ -222,13 +222,13 @@ Qed.
 Lemma translate_to_interp {E F R} (f : E ~> F) (t : itree E R) :
   translate f t ≈ interp (fun _ e => ITree.send (f _ e)) t.
 Proof.
-  revert t. wcofix CIH. wstep. wcofix CIH'. intros.
+  revert t. wstep. wcofix CIH. intros.
   rewrite unfold_translate.
   rewrite unfold_interp.
   unfold translateF, _interp. repeat red.
   destruct (observe t); cbn; simpl in *; try (wstep; constructor; eauto with paco; fail).
   unfold ITree.send. apply eutt0_tau_right. rewrite bind_vis.
-  wstep. constructor. left.
+  wstep. constructor. right.
   rewrite bind_ret. auto with paco.
 Qed.
 

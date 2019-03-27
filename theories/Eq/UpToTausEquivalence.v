@@ -325,7 +325,7 @@ Qed.
 Global Instance eutt_forever {E R S} :
   Proper (eutt eq ==> eutt eq) (@ITree.forever E R S).
 Proof.
-  wcofix CIH; wstep. wcofix CIH'. intros.
+  wstep. wcofix CIH'. intros.
   rewrite (unfold_forever x), (unfold_forever y).
   wclo eutt0_clo_bind. econstructor; eauto.
   intros. subst. wstep. econstructor. eauto with paco.
@@ -360,7 +360,7 @@ Lemma bind_aloop {E A B C} (f : A -> itree E A + B) (g : B -> itree E B + C): fo
        | inr b => bimap (ITree.map inr) (id_ _) (g b)
        end) (inl x).
 Proof.
-  wcofix CIH; wstep. wcofix CIH'. intros.
+  wstep. wcofix CIH. intros.
   rewrite !unfold_aloop'. unfold ITree._aloop.
   destruct (f x) as [t | b]; cbn.
   - unfold id. rewrite bind_tau. wstep. constructor.
@@ -372,7 +372,7 @@ Proof.
     eauto with paco.
   - rewrite bind_ret_. apply eutt0_tau_right.
     rewrite bind_ret_.
-    revert b. wcofix CIH''; [contradiction|]. intros.
+    revert b. wcofix CIH'. intros.
     rewrite !unfold_aloop'. unfold ITree._aloop.
     destruct (g b) as [t' | c]; cbn.
     + rewrite map_bind. wstep. constructor.

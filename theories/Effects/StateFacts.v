@@ -139,7 +139,7 @@ Instance eutt_interp_state {E F: Type -> Type} {S : Type}
   Proper (eutt eq ==> eq ==> eutt eq) (@interp_state E (itree F) S _ _ _ h R).
 Proof.
   repeat intro. subst. revert_until R.
-  wcofix CIH. wstep. wcofix CIH'. intros.
+  wstep. wcofix CIH. intros.
 
   rewrite !unfold_interp_state. do 2 wunfold H0.
   induction H0; intros; subst; simpl.
@@ -147,7 +147,7 @@ Proof.
   - wstep. constructor.
     wclo eutt0_clo_bind; econstructor; [reflexivity|].
     intros; subst.
-    wbase. eapply CIH'. edestruct EUTTK; eauto with paco.
+    wbase. eapply CIH. edestruct EUTTK; eauto with paco.
   - wstep. econstructor. eauto 9 with paco.
   - apply eutt0_tau_left.
     rewrite unfold_interp_state; auto.
@@ -167,7 +167,7 @@ Lemma interp_state_loop {E F S A B C} (RS : S -> S -> Prop)
           (interp_state h (loop_ t1 ca) s1)
           (interp_state h (loop_ t2 ca) s2)).
 Proof.
-  wcofix CIH. wstep. wcofix CIH'. intros.
+  wstep. wcofix CIH. intros.
 
   rewrite (itree_eta (loop_ t1 ca)), (itree_eta (loop_ t2 ca)), !unfold_loop''.
   unfold loop_once. rewrite <- !itree_eta, !interp_state_bind.
