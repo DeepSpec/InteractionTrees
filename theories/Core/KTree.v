@@ -103,24 +103,24 @@ Global Instance Inl_ktree : CoprodInl ktree sum :=
 Global Instance Inr_ktree : CoprodInr ktree sum :=
   fun _ _ => lift_ktree inr.
 
-(** Traced monoidal category *)
+(** *** Traced monoidal category *)
 
-(* The trace is [Fix.loop].
+(** The trace operator here is [loop].
 
-   A [box : ktree (I + A) (I + B)] is a circuit, drawn below as ###,
-   with two input wires labeled by I and A, and two output wires
-   labeled by I and B.
+   We can view a [ktree (I + A) (I + B)] as a circuit, drawn below as [###],
+   with two input wires labeled by [I] and [A], and two output wires
+   labeled by [I] and [B].
 
-   The [loop_ktree : ktree (I + A) (I + B) -> ktree A B] combinator closes
-   the circuit, linking the box with itself by plugging the I output
+   The [loop : ktree (I + A) (I + B) -> ktree A B] combinator closes
+   the circuit, linking the box with itself by plugging the [I] output
    back into the input.
-
+[[
      +-----+
      | ### |
      +-###-+I
   A----###----B
        ###
-
+]]
  *)
 
 End Operations.
@@ -147,8 +147,6 @@ Definition loop_ {E : Type -> Type} {A B C : Type}
     The Kleisli category for the [itree] monad is a traced
     monoidal category, with [loop] as its trace.
  *)
-(* We use explicit recursion instead of relying on [rec] to
-   make the definition properly tail recursive. *)
 Definition loop {E : Type -> Type} {A B C : Type}
            (body : (C + A) -> itree E (C + B)) :
   A -> itree E B :=
