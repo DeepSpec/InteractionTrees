@@ -133,11 +133,8 @@ Lemma sutt_elim_tau_left' {E R1 R2} (RR : R1 -> R2 -> Prop) :
   forall (t1: itree E R1) (t2: itree E R2),
     suttF RR (cpn2 (suttF RR) bot2) (TauF t1) (observe t2) ->
     suttF RR (cpn2 (suttF RR) bot2) (observe t1) (observe t2).
-    (* sutt1 RR (Tau t1) t2 -> *)
-    (* sutt1 RR t1 t2. *)
 Proof.
   intros.
-  (* uunfold H. ustep. repeat red in H |- *. *)
   simpl in *.
   remember (TauF t1) as ott1.
   induction H; intros; subst; try dependent destruction Heqott1; eauto.
@@ -150,10 +147,7 @@ Lemma sutt_elim_tau_left {E R1 R2} (RR : R1 -> R2 -> Prop) :
 Proof.
   intros.
   uunfold H. ustep. repeat red in H |- *.
-  simpl in *.
-  remember (TauF t1) as ott1.
-  induction H; intros; subst; try dependent destruction Heqott1; eauto.
-  uunfold EQTAUS. eauto.
+  apply sutt_elim_tau_left'; auto.
 Qed.
 
 Theorem sutt_eutt {E R1 R2} (RR : R1 -> R2 -> Prop) :
@@ -167,7 +161,9 @@ Proof.
   induction H0; intros; subst; auto.
   - constructor. intro. left. eapply sutt_inv_Vis in H1. eauto with paco.
   - constructor. eapply IHsuttF; auto. apply sutt_elim_tau_left'; auto.
-  - clear Heqi t0. clear CIH. inv H1.
+  - clear Heqi t0. clear CIH.
+    (* doing induction when one of the trees is a tau doesn't work well *)
+    inv H1.
     + remember (observe t2). remember (observe t1).
       generalize dependent t2. generalize dependent t1.
       induction EQTAUS0; intros; try inv Heqi0.

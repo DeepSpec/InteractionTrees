@@ -65,37 +65,6 @@ Definition trace_eq {E : Type -> Type} {R : Type} :
   fun t1 t2 =>
     trace_incl t1 t2 /\ trace_incl t2 t1.
 
-(* (* A trace is still valid after removing taus *) *)
-(* Lemma is_traceF_unalltaus_remove: forall {E R} (t1 t2 : itreeF E R (itree E R)) tr, *)
-(*     unalltausF t1 t2 -> *)
-(*     is_traceF t1 tr -> *)
-(*     is_traceF t2 tr. *)
-(* Proof. *)
-(*   intros. inv H. induction H1; subst; auto. *)
-(*   apply IHuntausF; auto. inversion H0; subst; auto; constructor. *)
-(* Qed. *)
-(* Lemma is_trace_unalltaus_remove: forall {E R} (t1 t2 : itree E R) tr, *)
-(*     unalltausF (observe t1) (observe t2) -> *)
-(*     is_trace t1 tr -> *)
-(*     is_trace t2 tr. *)
-(* Proof. intros. eapply is_traceF_unalltaus_remove; eauto. Qed. *)
-
-(* (* A trace is still valid after adding taus *) *)
-(* Lemma is_traceF_unalltaus_add: forall {E R} (t1 t2 : itreeF E R (itree E R)) tr, *)
-(*     unalltausF t1 t2 -> *)
-(*     is_traceF t2 tr -> *)
-(*     is_traceF t1 tr. *)
-(* Proof. *)
-(*   intros. inv H. *)
-(*   induction H1; auto. *)
-(*   rewrite <- OBS. constructor. auto. *)
-(* Qed. *)
-(* Lemma is_trace_unalltaus_add: forall {E R} (t1 t2 : itree E R) tr, *)
-(*     unalltausF (observe t1) (observe t2) -> *)
-(*     is_trace t2 tr -> *)
-(*     is_trace t1 tr. *)
-(* Proof. intros. eapply is_traceF_unalltaus_add; eauto. Qed. *)
-
 Lemma is_traceF_tau : forall {E R} (t : itree E R) tr,
     is_traceF (observe t) tr <->
     is_traceF (TauF t) tr.
@@ -195,10 +164,7 @@ Proof.
   - apply trace_incl_sutt in H0. clear H.
     generalize dependent t1. generalize dependent t2. ucofix CIH; intros.
     uunfold H0. induction H0; constructor; try red; eauto with paco.
-    ubase. destruct ot2.
-    * replace (RetF r0) with (observe (Ret r0) : itree' E R); eauto with paco.
-    * replace (TauF t) with (observe (Tau t) : itree' E R); eauto with paco.
-    * replace (VisF e k) with (observe (Vis e k) : itree' E R); eauto with paco.
+    ubase. rewrite itree_eta'. eauto with paco.
 Qed.
 
 Theorem trace_eq_iff_eutt : forall {E R} (t1 t2 : itree E R),

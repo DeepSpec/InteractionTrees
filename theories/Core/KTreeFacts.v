@@ -582,7 +582,7 @@ Proof.
     constructor.
     apply IHg; auto. rewrite <- unfold_bind; auto.
 
-  - replace ot2 with (observe (go ot2)) in *.
+  - rewrite (itree_eta' ot2) in *.
     rewrite <- unfold_bind in H2.
     apply eq_itree_tau_inv1 in H1.
     destruct H1 as [t1' [Ht1 Ht1']].
@@ -592,7 +592,6 @@ Proof.
     + eauto.
     + rewrite <- itree_eta; auto.
     + rewrite <- itree_eta; auto.
-    + auto.
 Qed.
 
 Lemma eutt_loop_inv ot1 ot2 :
@@ -641,7 +640,7 @@ Proof.
       apply IHHu; auto.
       rewrite <- itree_eta, <- unfold_bind; auto.
 
-    + replace ot2 with (observe (go ot2)) in *.
+    + rewrite (itree_eta' ot2) in *.
       rewrite <- unfold_bind in H2.
       apply eq_itree_tau_inv1 in H1.
       simpl in H1.
@@ -652,7 +651,6 @@ Proof.
       eapply loop_inv_bind.
       * eapply EQTAUS.
       * rewrite <- itree_eta; auto.
-      * auto.
       * auto.
 Qed.
 
