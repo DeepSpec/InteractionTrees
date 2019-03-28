@@ -1,4 +1,4 @@
-# Interaction Trees
+# Interaction Trees [![Build Status](https://travis-ci.com/DeepSpec/InteractionTrees.svg?branch=master)](https://travis-ci.com/DeepSpec/InteractionTrees)
 
 A Library for Representing Recursive and Impure Programs in Coq
 
