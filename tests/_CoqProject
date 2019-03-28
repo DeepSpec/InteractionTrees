@@ -1,6 +1,6 @@
 -Q ../theories ITree
 -Q extraction/ TestExtraction
--Q rewriting/ TestRewriting
+-Q unit/ TestUnit
 
 # Test to ensure extracted code is compilable
 # - MetaModule.v is a module that depends on the
@@ -11,3 +11,7 @@
 
 extraction/MetaModule.v
 extraction/Extract.v
+
+# Unit tests
+
+unit/Unit.v

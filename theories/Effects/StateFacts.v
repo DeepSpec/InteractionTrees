@@ -39,7 +39,7 @@ Definition _interp_state {E F S R}
   end.
 
 Lemma unfold_interp_state {E F S R} (h : E ~> Monads.stateT S (itree F))
-      (t : _ R) s :
+      (t : itree E R) s :
     eq_itree eq
       (interp_state h t s)
       (_interp_state h (observe t) s).
@@ -82,7 +82,7 @@ Proof.
 Qed.
 
 Lemma interp_state_vis {E F : Type -> Type} {S T U : Type}
-      (e : E T) (k : T -> _ U) (h : E ~> Monads.stateT S (itree F)) (s : S)
+      (e : E T) (k : T -> itree E U) (h : E ~> Monads.stateT S (itree F)) (s : S)
   : interp_state h (Vis e k) s
   ≅ Tau (h T e s >>= fun sx => interp_state h (k (snd sx)) (fst sx)).
 Proof.

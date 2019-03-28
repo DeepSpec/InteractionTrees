@@ -79,7 +79,7 @@ End Monads.
     an output [B]. It's an Asymmetric variant of [loop], and it looks
     similar to an Anamorphism, hence the name [aloop].
  *)
-Class ALoop (M : Type -> Type) : Type :=
+Polymorphic Class ALoop (M : Type -> Type) : Type :=
   aloop : forall {R I: Type}, (I -> M I + R) -> I -> M R.
 
 (* TODO: try this one.
@@ -108,7 +108,7 @@ Instance ALoop_stateT {M S} {AM : ALoop M} : ALoop (stateT S M) :=
       | inr r => inr (r, s)
       end) (i, s)).
 
-Instance ALoop_stateT0 {M S} {AM : ALoop M} : ALoop (Monads.stateT S M) :=
+Polymorphic Instance ALoop_stateT0 {M S} {AM : ALoop M} : ALoop (Monads.stateT S M) :=
   fun _ _ step i s =>
     aloop (fun si =>
       let s := fst si in
@@ -163,4 +163,4 @@ Inductive aloop_Prop {R I : Type} (step : I -> (I -> Prop) + R) (i : I) (r : R)
     aloop_Prop step i r
 .
 
-Instance ALoop_Prop : ALoop Ensembles.Ensemble := @aloop_Prop.
+Polymorphic Instance ALoop_Prop : ALoop Ensembles.Ensemble := @aloop_Prop.
