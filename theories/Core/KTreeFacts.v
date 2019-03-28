@@ -364,7 +364,7 @@ Proof.
   revert cb; ucofix self; intros.
   destruct cb as [c | b].
   - rewrite bind_tau.
-    constructor. 
+    constructor.
     rewrite map_bind.
     rewrite (unfold_loop' _ (inl c)); unfold loop_once.
     autorewrite with itree.
@@ -535,14 +535,13 @@ Hint Constructors loop_preinv.
 Lemma eutt_loop_inv_main_step (ca : C + A) t1 t2 :
   t1 ≅ loop_ f1 ca ->
   t2 ≅ loop_ f2 ca ->
-  suttF1 eq (going loop_preinv) (observe t1) (observe t2).
+  suttF eq (going loop_preinv) (observe t1) (observe t2).
 Proof.
   intros H1 H2.
   rewrite unfold_loop' in H1.
   rewrite unfold_loop' in H2.
   unfold loop_once.
   specialize (eutt_f ca).
-  apply sutt_is_sutt1 in eutt_f.
   uunfold eutt_f.
   unfold loop_once in H1.
   unfold loop_once in H2.
@@ -573,7 +572,7 @@ Proof.
     constructor; intros.
     repeat constructor.
     eapply loop_inv_bind.
-    + apply sutt_is_sutt1, SUTTK.
+    + apply SUTTK.
     + rewrite <- itree_eta; auto.
     + rewrite <- itree_eta; auto.
 
@@ -583,30 +582,28 @@ Proof.
     constructor.
     apply IHg; auto. rewrite <- unfold_bind; auto.
 
-  - replace ot2 with (observe (go ot2)) in *.
+  - rewrite (itree_eta' ot2) in *.
     rewrite <- unfold_bind in H2.
     apply eq_itree_tau_inv1 in H1.
     destruct H1 as [t1' [Ht1 Ht1']].
     rewrite Ht1.
     repeat constructor.
     eapply loop_inv_bind.
-    + apply sutt_is_sutt1. eauto.
+    + eauto.
     + rewrite <- itree_eta; auto.
     + rewrite <- itree_eta; auto.
-    + auto.
 Qed.
 
 Lemma eutt_loop_inv ot1 ot2 :
-  loop_preinv (go ot1) (go ot2) -> cpn2 (suttF1 eq) bot2 ot1 ot2.
+  loop_preinv (go ot1) (go ot2) -> cpn2 (suttF eq) bot2 ot1 ot2.
 Proof.
   intros HH.
   revert ot1 ot2 HH; ucofix self; intros.
   destruct HH as [ca H1 H2 | u1 u2 Hu H1 H2].
-  - eapply monotone_suttF1.
+  - eapply monotone_suttF.
     + eapply (eutt_loop_inv_main_step ca (go ot1) (go ot2)); eauto.
     + intros ? ? []. ubase. eapply self; eauto.
-  - apply sutt_is_sutt1 in Hu.
-    uunfold Hu.
+  - uunfold Hu.
     rewrite unfold_bind in H1.
     rewrite unfold_bind in H2.
     revert ot1 ot2 H1 H2; induction Hu; intros.
@@ -631,7 +628,7 @@ Proof.
       subst; constructor.
       ubase. intros. apply self.
       eapply loop_inv_bind.
-      * apply sutt_is_sutt1. eapply SUTTK.
+      * eapply SUTTK.
       * rewrite <- itree_eta; auto.
       * rewrite <- itree_eta; auto.
 
@@ -643,7 +640,7 @@ Proof.
       apply IHHu; auto.
       rewrite <- itree_eta, <- unfold_bind; auto.
 
-    + replace ot2 with (observe (go ot2)) in *.
+    + rewrite (itree_eta' ot2) in *.
       rewrite <- unfold_bind in H2.
       apply eq_itree_tau_inv1 in H1.
       simpl in H1.
@@ -652,10 +649,8 @@ Proof.
       constructor.
       ubase; apply self.
       eapply loop_inv_bind.
-      * apply sutt_is_sutt1.
-        eapply EQTAUS.
+      * eapply EQTAUS.
       * rewrite <- itree_eta; auto.
-      * auto.
       * auto.
 Qed.
 
@@ -664,8 +659,7 @@ End eutt_loop.
 Instance sutt_loop {E A B C} :
   Proper (pointwise_relation _ (sutt eq) ==> eq ==> sutt eq) (@loop E A B C).
 Proof.
-  repeat intro; subst. apply sutt_is_sutt1.
-
+  repeat intro; subst.
   eapply eutt_loop_inv.
   - eauto.
   - unfold loop; econstructor; rewrite <- itree_eta; reflexivity.
@@ -686,8 +680,7 @@ Proof.
       apply eutt_sutt. apply symmetry; auto.
     + eauto with paco.
     + eauto with paco.
-    + intros. eapply monotone_sutt_RR; try eassumption.
-      red; auto.
+    + intros. induction PR; eauto. constructor. red. auto.
 Qed.
 
 (** *** Traced monoidal categories *)

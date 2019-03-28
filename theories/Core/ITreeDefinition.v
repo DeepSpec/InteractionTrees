@@ -277,13 +277,6 @@ Instance ALoop_itree {E} : ALoop (itree E) :=
 
 (** ** Tactics *)
 
-(* begin hide *)
-(* TODO: Remove this tactic when UpToTausExplicit disappears *)
-Lemma hexploit_mp: forall P Q: Type, P -> (P -> Q) -> Q.
-Proof. intuition. Defined.
-Ltac hexploit x := eapply hexploit_mp; [eapply x|].
-(* end hide *)
-
 (* [inv], [rewrite_everywhere], [..._except] are general purpose *)
 Ltac inv H := inversion H; clear H; subst.
 
