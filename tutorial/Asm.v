@@ -1,3 +1,5 @@
+(** * The Asm language  *)
+
 (** We now consider as a target a simple control-flow-graph language,
     so-called _Asm_.
     Computations are represented as a collection of basic blocks
@@ -11,10 +13,7 @@ From Coq Require Import
      ZArith.ZArith.
 
 From ITree Require Import
-     Basics.Function
-     ITree
-     OpenSum
-     KTree.
+     ITree.
 
 From ExtLib Require Structures.Monad.
 
@@ -50,7 +49,7 @@ Variant instr : Set :=
 
 (** We consider both direct and conditional jumps *)
 Variant branch {label : Type} : Type :=
-| Bjmp (_ : label) (* jump to label *)
+| Bjmp (_ : label)                (* jump to label *)
 | Bbrz (_ : var) (yes no : label) (* conditional jump *)
 | Bhalt
 .
@@ -64,9 +63,8 @@ Inductive block {label : Type} : Type :=
 | bbb (_ : branch label).
 Global Arguments block _ : clear implicits.
 
-(** A piece of code should expose the set of labels allowing
-    to enter into it, as well as the set of outer labels it might
-    jump to.
+(** A piece of code should expose the set of labels allowing to enter
+    into it, as well as the set of outer labels it might jump to.
     To this end, [bks] represents a collection of blocks labeled
     by [A], with branches in [B]. *)
 Definition bks A B := Fin.t A -> block (Fin.t B).
@@ -81,7 +79,7 @@ Definition bks A B := Fin.t A -> block (Fin.t B).
     the latter corresponding to an [asm] program with a unique entry
     point and always halting, i.e. a [asm unit void].
  *)
-Record asm A B : Type :=
+Record asm (A B: nat) : Type :=
   {
     internal : nat;
     code     : bks (internal + A) (internal + B)
@@ -96,7 +94,7 @@ Arguments code {A B}.
 (** _Asm_ produces two kind of effects: through manipulation of the store
     and of the heap.
     We therefore reuse _Imp_'s [Locals], and define an additional pair of
-    effects [Memory].
+    effects [Memory] to model interactions with the heap.
 *)
 Import Imp.
 
@@ -106,7 +104,7 @@ Inductive Memory : Type -> Type :=
 
 Section Denote.
 
-  (** Once again, [asm] programs shall be deonted as [itree]s. *)
+  (** Once again, [asm] programs shall be denoted as [itree]s. *)
 
   (* begin hide *)
   Import ExtLib.Structures.Monad.
@@ -117,7 +115,7 @@ Section Denote.
   (** We introduce a special effect to model termination of the computation.
       Note that it expects _actively_ no answer from the environment: 
       [Done] is of type [Exit void].
-      We can therefore use it to close a [itree E A] no matter what the expected
+      We can therefore use it to "close" an [itree E A] no matter what the expected
       return type [A] is, as witnessed by the [done] computation.
    *)
   Inductive Exit : Type -> Type :=
@@ -140,7 +138,7 @@ Section Denote.
     Definition denote_operand (o : operand) : itree E value :=
       match o with
       | Oimm v => Ret v
-      | Ovar v => lift (GetVar v)
+      | Ovar v => send (GetVar v)
       end.
 
     (** Instructions offer no suprises either. *)
@@ -148,27 +146,27 @@ Section Denote.
       match i with
       | Imov d s =>
         v <- denote_operand s ;;
-        lift (SetVar d v)
+        send (SetVar d v)
       | Iadd d l r =>
-        lv <- lift (GetVar l) ;;
+        lv <- send (GetVar l) ;;
         rv <- denote_operand r ;;
-        lift (SetVar d (lv + rv))
+        send (SetVar d (lv + rv))
       | Isub d l r =>
-        lv <- lift (GetVar l) ;;
+        lv <- send (GetVar l) ;;
         rv <- denote_operand r ;;
-        lift (SetVar d (lv - rv))
+        send (SetVar d (lv - rv))
       | Imul d l r =>
-        lv <- lift (GetVar l) ;;
+        lv <- send (GetVar l) ;;
         rv <- denote_operand r ;;
-        lift (SetVar d (lv * rv))
+        send (SetVar d (lv * rv))
       | Iload d a =>
         addr <- denote_operand a ;;
-        val <- lift (Load addr) ;;
-        lift (SetVar d val)
+        val <- send (Load addr) ;;
+        send (SetVar d val)
       | Istore a v =>
-        addr <- lift (GetVar a) ;;
+        addr <- send (GetVar a) ;;
         val <- denote_operand v ;;
-        lift (Store addr val)
+        send (Store addr val)
       end.
 
     Section with_labels.
@@ -183,7 +181,7 @@ Section Denote.
         match b with
         | Bjmp l => ret l
         | Bbrz v y n =>
-          val <- lift (GetVar v) ;;
+          val <- send (GetVar v) ;;
           if val:nat then ret y else ret n
         | Bhalt => done
         end.
@@ -203,24 +201,24 @@ Section Denote.
       (** A labelled collection of blocks, [bks], is simply the pointwise
           application of [denote_block].
           However, its denotation is therefore crucially a [ktree],
-          whose structure will be heavily taken profit of in the proof
-          of the compiler.
+          whose structure will be useful in the proof of the compiler.
        *)
       Definition denote_b (bs: bks A B): ktree E (Fin.t A) (Fin.t B) :=
         fun a => denote_block (bs a).
 
     End with_labels.
 
-  (** One can think of an asm program as a circuit/diagram where wires
+  (** One can think of an [asm] program as a circuit/diagram where wires
       correspond to jumps/program links.
       [denote_b] computes the meaning of each basic block as an [itree] that
       returns the label of the next block to jump to, laying down all our
       elementary wires. 
       In order to denote an [asm A B] program as a [ktree E A B], it therefore
       remains to wire all those denoted blocks together while hiding the
-      internal lables.
-      We accomplish this with the same [loop] combinator we used to denote
-      _Imp_'s [while] loop.
+      internal labels.
+      Luckily, that is exactly what traced monoidal category are good for.
+      We therefore accomplish this with the same [loop] combinator we used to
+      denote _Imp_'s [while] loop.
       It directly takes our [denote_b (code s): ktree E (I + A) (I + B)] and
       hides [I] as desired.
    *)
@@ -236,50 +234,47 @@ End Denote.
 (* ================================================================= *)
 (** ** Interpretation *)
 
+(* begin hide *)
 From ITree Require Import
-     Effects.Env.
+     Basics.Category
+     Effects.Map.
 
 From ExtLib Require Import
      Core.RelDec
      Structures.Maps
      Data.Map.FMapAList.
+(* end hide *)
 
 (** Both environments and memory effects can be interpreted as "map" effects,
     exactly as we did for _Imp_. *)
 
-Definition interpret_Locals {E : Type -> Type} `{envE var value -< E} :
-  Locals ~> itree E :=
-  fun _ e =>
-    match e with
-    | GetVar x => env_lookupDefault x 0
-    | SetVar x v => env_add x v
-    end.
-
-Definition interpret_Memory {E : Type -> Type} `{envE value value -< E} :
+Definition evalMemory {E : Type -> Type} `{mapE value value -< E} :
   Memory ~> itree E :=
   fun _ e =>
     match e with
-    | Load x => env_lookupDefault x 0
-    | Store x v => env_add x v
+    | Load x => lookup_def x 0
+    | Store x v => insert x v
     end.
 
 (** Once again, we implement our Maps with a simple association list *)
-Definition env := alist var value.
 Definition memory := alist value value.
 
-(* Enable typeclass instances for Maps keyed by strings and values *)
-Instance RelDec_string : RelDec (@eq string) :=
-  { rel_dec := fun s1 s2 => if String.string_dec s1 s2 then true else false}.
+(** We can then define an evaluator for closed assembly programs by
+    interpreting both store and heap events into two instances of [envE],
+    and running them both.
+ *)
+Definition AsmEval (p: asm 1 0) :=
+  let h := bimap evalLocals (bimap evalMemory (id_ _)) in
+  let p' := interp h (denote_asm p Fin.F1) in
+  run_map (run_map p' empty) empty.
 
-Instance RelDec_value : RelDec (@eq value) := { rel_dec := Nat.eqb }.
-
-(* TODO: redefine the interpreter *)
-(* Definition AsmEval (p: asm unit void): itree void1 (env * unit) := *)
-(*   let p := interp evalLocals _ (denoteStmt s) in *)
-(*   run_env _ p empty. *)
-(* Definition run (p: asm unit done) : itree emptyE (env * (memory * unit)) := *)
-(*   let eval := Sum1.elim interpret_Locals interpret_Memory in *)
-(*   run_env _ (run_env _ (interp eval _ (denote_asm p tt)) empty) empty. *)
-
-
-(**  *)
+(** Now that we have both our language, we could jump directly into implementing
+    our compiler.
+    However, if we look slightly ahead of us, we can observe that:
+    - compiling expressions and basic statements will be mostly straightforward;
+    - but linking the resulting elementary (open) [asm] programs together is not
+    as trivial. In particular, reasoning inductively on this linking is more
+    challenging.
+    We therefore take a detour: we first reason in isolation about linking, and
+    to this end we jump to [AsmCombinators.v].
+ *)
