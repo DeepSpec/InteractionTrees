@@ -182,7 +182,6 @@ Definition while_asm (e : list instr) (p : asm 1 1) :
     by induction on the structure of the statement.
 *)
 Fixpoint compile (s : stmt) {struct s} : asm 1 1 :=
->>>>>>> origin/master
   match s with
   | Skip => id_asm
   | Assign x e => raw_asm_block (after (compile_assign x e) (Bjmp F1))

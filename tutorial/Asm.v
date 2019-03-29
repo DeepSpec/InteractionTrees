@@ -79,7 +79,7 @@ Definition bks A B := Fin.t A -> block (Fin.t B).
     the latter corresponding to an [asm] program with a unique entry
     point and always halting, i.e. a [asm unit void].
  *)
-Record asm (A B: Type) : Type :=
+Record asm (A B: nat) : Type :=
   {
     internal : nat;
     code     : bks (internal + A) (internal + B)
@@ -263,9 +263,9 @@ Definition memory := alist value value.
     interpreting both store and heap events into two instances of [envE],
     and running them both.
  *)
-Definition AsmEval (p: asm unit void) :=
+Definition AsmEval (p: asm 1 0) :=
   let h := bimap evalLocals (bimap evalMemory (id_ _)) in
-  let p' := interp h (denote_asm p tt) in
+  let p' := interp h (denote_asm p Fin.F1) in
   run_map (run_map p' empty) empty.
 
 (** Now that we have both our language, we could jump directly into implementing
