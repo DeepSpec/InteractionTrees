@@ -5,7 +5,7 @@ From Coq Require Import
 
 From ITree Require Import
      ITree
-     Interp.Recursion.
+     ITreeFacts.
 
 Import ITreeNotations.
 
@@ -115,25 +115,25 @@ Definition or {R : Type} (t1 t2 : itree nd R) : itree nd R :=
   Vis Or (fun b : bool => if b then t1 else t2).
 
 (* Flip a coin *)
-Definition choice {E} `{nd -< E} : itree E bool := lift Or.
+Definition choice {E} `{nd -< E} : itree E bool := send Or.
 
-Definition eval : com -> itree nd unit :=
-  rec (fun (c : com) =>
+Definition eval_def := (fun (c : com) =>
     match c with
     | loop c =>
       (b <- choice;;
       if b : bool
       then Ret tt
-      else (lift (Call c);; lift (Call (loop c))))%itree
+      else (send (Call c);; send (Call (loop c))))%itree
     | choose c1 c2 =>
       (b <- choice;;
       if b : bool
-      then lift (Call c1)
-      else lift (Call c2))%itree
-    | (t1 ;; t2)%com => (lift (Call t1);; lift (Call t2))%itree
+      then send (Call c1)
+      else send (Call c2))%itree
+    | (t1 ;; t2)%com => (send (Call t1);; send (Call t2))%itree
     | skip => Ret tt
     end
   ).
+Definition eval : com -> itree nd unit := rec eval_def.
 
 (* [itree] semantics of [one_loop]. *)
 Definition one_loop_tree : itree nd unit :=
@@ -143,57 +143,29 @@ Definition one_loop_tree : itree nd unit :=
     if b : bool then
       Ret tt
     else
-      lift (Call tt))%itree tt.
+      send (Call tt))%itree tt.
 
 Import Coq.Classes.Morphisms.
 
-(* SAZ: the [~] notation for eutt wasn't working here. *)
-Lemma eval_one_loop : eutt eq (eval one_loop) (one_loop_tree).
+Lemma eval_skip: rec eval_def skip ≈ Ret tt.
 Proof.
-(*
-  pupto2_init.
-  pcofix self.
-  pupto2 (eutt_clo_trans nd unit). econstructor.
-  { unfold eval, mfix1.
-    rewrite (mfix_unfold nd com (fun _ => unit)); cbn.
-    unfold id, choice, ITree.lift. rewrite bind_vis. reflexivity.
-  }
-  { unfold one_loop_tree, mfix0.
-    rewrite (mfix_unfold nd unit (fun _ => unit)); cbn.
-    unfold id, choice, ITree.lift. rewrite bind_vis. reflexivity.
-  }
-  cbn.
-  pfold.
-  apply euttF1_euttF.
-  constructor.
-  constructor.
-  intros b.
-  pupto2 (eutt_clo_trans nd unit). econstructor.
-  { rewrite bind_ret; reflexivity. }
-  { rewrite bind_ret; reflexivity. }
-  destruct b.
-  (* true *)
-  { apply grespectful2_incl. left.
-    pfold. apply euttF1_euttF; repeat constructor. }
-  (* false *)
-  pupto2 (eutt_clo_trans nd unit). econstructor.
-  { match goal with
-    | [ |- eutt (ITree.bind ?t1 _) _ ] =>
-      assert (Ht1 : eutt t1 (Ret tt))
-    end.
-    { pfold.
-      apply euttF1_euttF.
-      repeat (constructor; cbn).
-    }
-    rewrite Ht1.
-    rewrite bind_ret.
-    reflexivity.
-  }
-  { reflexivity. }
-  apply grespectful2_incl. right.
-  exact self.
+  rewrite rec_as_interp. cbn. rewrite interp_ret. reflexivity.
 Qed.
-*)
-Abort.
+
+(* SAZ: the [~] notation for eutt wasn't working here. *)
+Lemma eval_one_loop : eval one_loop ≈ one_loop_tree.
+Proof.
+  ucofix CIH. unfold eval, one_loop_tree.
+  setoid_rewrite rec_as_interp; setoid_rewrite interp_bind.
+  ustep. repeat red. cbn. econstructor.
+  ustep. repeat red. cbn. econstructor.
+  left. rewrite !bind_ret, !interp_ret, !bind_ret.
+  destruct x.
+  - rewrite !interp_ret. apply reflexivity.
+  - rewrite !send_is_vis_ret, interp_bind.
+    setoid_rewrite interp_recursive_call.
+    rewrite eval_skip. rewrite bind_tau, bind_ret.
+    rewrite !tau_eutt. eauto with paco.
+Qed.
 
 End Tree.

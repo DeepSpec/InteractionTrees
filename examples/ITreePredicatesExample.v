@@ -9,9 +9,12 @@ From ExtLib Require Import
      Monads.
 
 From ITree Require Import
-     ITree.
+     ITree
+     ITreeFacts.
 
 From Paco Require Import paco.
+
+Import ITreeNotations.
 
 (* This file gives an elementary example of how to write a coinductive predicate 
    over itrees and use it to do some simple proofs. This is a common use case 
@@ -89,25 +92,17 @@ Section Proper.
      (see the eq_itree_paco instance in Eq), which means we have to introduce names, start the upto proof,
      do the rewrite, and then regeneralize for the CIH.  It would be nicer if we could rewrite under (paco2 _ r).
    *)
-  Instance proper_interpret_state {S R} : Proper ((@eq_itree (stateE S) R) ==> (@eq S) ==> (@eq_itree void1 (S * R))) interpret_state.
+  Instance proper_interpret_state {S R} : Proper ((@eq_itree (stateE S) R _ eq) ==> (@eq S) ==> (@eq_itree void1 (S * R) _ eq)) interpret_state.
   Proof.
-    repeat red.
-    intros x y H0 x2 y0 H1.
-
-    pupto2_init.
-    revert x y H0 x2 y0 H1.
-    pcofix CIH.
+    ucofix CIH.
     intros x y H0 x2 y0 H1. 
     rewrite (itree_eta (interpret_state x x2)).
     rewrite (itree_eta (interpret_state y y0)).
-    pupto2_final.
-    pfold.
-    rewrite !unfold_interpret_state.
-    unfold interpret_stateF.
-    punfold H0. red in H0.
-    destruct (observe x); inversion H0; subst; pclearbot; red; cbn; eauto.
-    - apply inj_pair2 in H3. apply inj_pair2 in H4. subst.
-      destruct e; econstructor; eauto.
+    rewrite !unfold_interpret_state. subst.
+    uunfold H0. repeat red in H0. unfold interpret_stateF. repeat red.
+    destruct (observe x); inversion H0; subst; cbn; eauto with paco.
+    - apply inj_pair2 in H2. apply inj_pair2 in H3. subst.
+      destruct e; econstructor; eauto with paco.
   Qed.
 
   End Proper.
@@ -206,7 +201,7 @@ Hint Resolve monotone_NoGets_ : paco.
    starting from bot1 (the least prediate).  We would use paco2 and bot2 for a
    binary relation, paco3 and bot3 for ternary, etc. *)
 
-Definition NoGets {S R} : itree (stateE S) R -> Prop := paco1 NoGets_ bot1. 
+Definition NoGets {S R} : itree (stateE S) R -> Prop := cpn1 NoGets_ bot1. 
 
 
 (* Using a coinductive predicate -------------------------------------------- *)
@@ -231,30 +226,24 @@ Lemma state_independent : forall {S R} (t:itree (stateE S) R)
                             (H: NoGets t),
     forall s s', ('(s,x) <- interpret_state t s ;; ret x) ≅ ('(s,x) <- interpret_state t s' ;; ret x).
 Proof.
-  intros S R t H s s'. 
-  red.
-  pupto2_init.
-  revert t H s s'.
-  pcofix CIH.
+  intros S R.
+  ucofix CIH.
   intros t H0 s s'. 
   rewrite (itree_eta (interpret_state t s)).
   rewrite (itree_eta (interpret_state t s')).
   rewrite !unfold_interpret_state.
   unfold interpret_stateF.
-  punfold H0. red in H0.
+  uunfold H0. repeat red in H0.
   destruct (observe t); cbn.
-  - rewrite !bind_ret. pupto2_final. pfold. econstructor.
-  - rewrite !bind_tau. pfold. econstructor.
-    pupto2_final. right.
-    eapply CIH.
-    inversion H0. pclearbot. assumption.
-
+  - rewrite !bind_ret. econstructor. eauto.
+  - rewrite !bind_tau. econstructor.
+    ubase. eapply CIH.
+    inversion H0. subst. assumption.
   - destruct e; cbn.
     + (* e is Get, which is ruled out by the NoGets predicate *) inversion H0.
     + rewrite !bind_tau.
-      pfold. econstructor. pupto2_final.
-      right. eapply CIH.
-      inversion H0. apply inj_pair2 in H2. subst. pclearbot. assumption.
+      econstructor. ubase. eapply CIH.
+      inversion H0. apply inj_pair2 in H2. subst. assumption.
 Qed.
 
 
@@ -269,30 +258,25 @@ Lemma state_independent_k : forall {S R U} (t:itree (stateE S) R)
     (INV: forall s s' x, k (s, x) ≅ k (s', x)),
     forall s s', (sx <- interpret_state t s ;; (k sx)) ≅ (sx <- interpret_state t s' ;; (k sx)).
 Proof.
-  intros S R U t H k INV s s'.
-  red.
-  pupto2_init.
-  revert t H k INV s s'.
-  pcofix CIH.
+  intros S R U.
+  ucofix CIH.
   intros t H0 k INV s s'. 
   rewrite (itree_eta (interpret_state t s)).
   rewrite (itree_eta (interpret_state t s')).
   rewrite !unfold_interpret_state.
   unfold interpret_stateF.
-  punfold H0. red in H0.
+  uunfold H0. repeat red in H0.
   destruct (observe t); cbn.
-  - rewrite !bind_ret. pupto2_final. cbn. eapply paco2_mon. apply INV. intuition.
-  - rewrite !bind_tau. pfold. econstructor.
-    pupto2_final. right.
-    eapply CIH; auto.
-    inversion H0. pclearbot. assumption.
-
+  - rewrite !bind_ret. specialize (INV s s' r0).
+    uunfold INV. eapply gcpn2_mon; [eauto with paco|apply INV|contradiction].
+  - rewrite !bind_tau. econstructor.
+    ubase. eapply CIH; auto.
+    inversion H0. subst. assumption.
   - destruct e; cbn.
     + (* e is Get, which is ruled out by the NoGets predicate *) inversion H0.
     + rewrite !bind_tau.
-      pfold. econstructor. pupto2_final.
-      right. eapply CIH; auto.
-      inversion H0. apply inj_pair2 in H2. subst. pclearbot. assumption.
+      econstructor. ubase. eapply CIH; auto.
+      inversion H0. apply inj_pair2 in H2. subst. assumption.
 Qed.
 
 

@@ -10,7 +10,8 @@ From Coq Require Import
 From ITree Require Import
      Basics.Basics
      Basics.Category
-     Core.ITree
+     Core.ITreeDefinition
+     Eq.Eq
      Eq.UpToTaus
      Indexed.Sum
      Indexed.Function
@@ -28,26 +29,26 @@ Open Scope itree_scope.
 Module Handler.
 
 (** Lift an _effect morphism_ into an _effect handler_. *)
-Definition hlift {A B} (m : A ~> B) : A ~> itree B :=
-  fun _ e => ITree.lift (m _ e).
+Definition hsend {A B} (m : A ~> B) : A ~> itree B :=
+  fun _ e => ITree.send (m _ e).
 
 (** This handler just wraps effects back into itrees, which is
     a noop (modulo taus): [interp (id_ E) _ t ≈ t]. *)
-Definition id_ (E : Type -> Type) : E ~> itree E := ITree.lift.
+Definition id_ (E : Type -> Type) : E ~> itree E := ITree.send.
 
 (** Chain handlers: [g] handles the effects produced by [f]. *)
 Definition cat {E F G : Type -> Type}
            (f : E ~> itree F) (g : F ~> itree G)
   : E ~> itree G
-  := fun R e => interp g R (f R e).
+  := fun R e => interp g (f R e).
 
 (** Wrap effects to the left of a sum. *)
 Definition inl_ {E F : Type -> Type} : E ~> itree (E +' F)
-  := hlift inl1.
+  := hsend inl1.
 
 (** Wrap effects to the right of a sum. *)
 Definition inr_ {E F : Type -> Type} : F ~> itree (E +' F)
-  := hlift inr1.
+  := hsend inr1.
 
 (** Case analysis on sums of effects. *)
 Definition case_ {E F G : Type -> Type}
@@ -101,57 +102,3 @@ Instance Inr_sum1_Handler : CoprodInr Handler sum1
 
 Instance Initial_void1_Handler : Initial Handler void1
   := fun _ _ v => match v : void1 _ with end.
-
-
-
-(*
-
-
-
-(*  ------------------------------------------------------------------------- *)
-
-A Monad Transformer MT is given by:
-  MT : (type -> type) -> (type -> type)
-  lift : `{Monad m} {a}, m a -> MT m a
-
-such that:
-  Monad (MT m)
-
-  lift o return = return
-  lift o (bind t1 k) =
-
-EXAMPLE:
-   stateT S m a :=    S -> m (S * a)
-   lift : m `{Monad m} {a}, fun (c: m a) (s:S) => y <- c ;; ret (s, y)
-
-operations
-  get : m `{Monad m} stateT S m S := fun s => ret_m (s, s)
-  put : m `{Monad m}, S -> stateT S m unit := fun s' => fun s => ret_m (s', tt)
-
-(* category *)
-id : A ~> MT (itree A)
-compose : (B ~> MT2 (itree C)) ~> (A ~> MT1 (itree B)) -> (A ~> (MT2 o MT1) (itree C))
-
-(* co-cartesian *)
-par  : (A ~> MT1 (itree B)) -> (C ~> MT2 (itree D)) -> (A + C ~> (MT1 ** MT2) (itree (B + D)))
-both : (A ~> MT (itree B)) -> (C ~> (MT itree B)) -> (A + C ~> MT (itree B))
-
-swap : (A ~> MT1 (itree B)) -> (C ~> MT2 (itree D)) -> (A + C ~> (MT2 ** MT1) (itree (D + B)))
-
-
-left : A ~> MT (itree (A + B))
-right : B ~> MT (itree (A + B))
-
-left : (A ~> MT (itree B)) -> (A ~> MT (itree (B + C)))
-right : (C ~> MT (itree D)) -> (C ~> MT (itree (A + D)))
-
-(*  ------------------------------------------------------------------------- *)
-Algebraic effects handlers
-
-Definition sig (E:Type -> Type) m `{Monad m} := forall X, E X -> m x
-
-
-
-
-
-*)

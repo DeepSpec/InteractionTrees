@@ -6,7 +6,7 @@ From ExtLib Require
 From ITree Require Import
      Basics.Basics
      Basics.Category
-     Core.ITree
+     Core.ITreeDefinition
      Eq.Eq
      Eq.UpToTaus
      Indexed.Sum
@@ -60,31 +60,13 @@ Qed.
 Global Instance translate_Proper :
   Proper (eq_itree (@eq R) ==> eq_itree eq) (translate h).
 Proof.
-  repeat red.
-  intros x y H.
-  pupto2_init.
-  revert x y H.
-  pcofix CIH.
+  ucofix CIH.
   intros x y H.
   rewrite itree_eta.
-  rewrite (itree_eta (translate h y)).
-  repeat rewrite unfold_translate. unfold translateF.
-  rewrite (itree_eta x) in H.
-  rewrite (itree_eta y) in H.
-  destruct (observe x); destruct (observe y); pinversion H; subst; cbn.
-  - pupto2_final. apply Reflexive_eq_itree. (* SAZ: typeclass resolution not working *)
-  - pupto2_final. pfold. constructor.  right. apply CIH. eauto.
-  - pupto2_final. pfold.
-    repeat (match goal with
-          | [ H : _ |- _ ] => apply inj_pair2 in H
-            end). subst.
-    constructor.
-    inversion H.
-    repeat (match goal with
-          | [ H : _ |- _ ] => apply inj_pair2 in H
-            end). subst.
-    right. apply CIH.
-    eapply transitivity. pclearbot. apply REL0. reflexivity.
+  rewrite (itree_eta (translate h y)), !unfold_translate, <-!itree_eta.
+  rewrite (itree_eta x), (itree_eta y) in H.
+  uunfold H. genobs_clear x ox. genobs_clear y oy. repeat red in H.
+  destruct ox, oy; dependent destruction H; constructor; eauto with paco.
 Qed.
 
 Global Instance translateF_Proper :
@@ -103,16 +85,14 @@ Lemma translate_bind : forall {E F R S} (h : E ~> F) (t : itree E S) (k : S -> i
     translate h (x <- t ;; k x) ≅ (x <- (translate h t) ;; translate h (k x)).
 Proof.
   intros E F R S h t k.
-  pupto2_init.
   revert S t k.
-  pcofix CIH.
+  ucofix CIH.
   intros s t k.
   rewrite !unfold_translate, !unfold_bind.
   genobs_clear t ot. destruct ot; cbn.
-  - rewrite unfold_translate.
-    pupto2_final. apply Reflexive_eq_itree.
-  - pfold. econstructor. pupto2_final. right. apply CIH.
-  - pfold. econstructor. intros.  pupto2_final. right. apply CIH.
+  - rewrite unfold_translate. apply reflexivity.
+  - econstructor. ubase. apply CIH.
+  - econstructor. intros. ubase. apply CIH.
 Qed.
 
 (* categorical properties --------------------------------------------------- *)
@@ -120,18 +100,17 @@ Qed.
 Lemma translate_id : forall E R (t : itree E R), translate (id_ _) t ≅ t.
 Proof.
   intros E R t.
-  pupto2_init.
   revert t.
-  pcofix CIH.
+  ucofix CIH.
   intros t.
   rewrite itree_eta.
   rewrite (itree_eta t).
   rewrite unfold_translate.
   unfold translateF.
   destruct (observe t); cbn.
-  - pupto2_final. apply Reflexive_eq_itree.
-  - pfold. econstructor. pupto2_final. right.  apply CIH.
-  - pfold. econstructor. intros.  pupto2_final. right.  apply CIH.
+  - apply reflexivity.
+  - econstructor. ubase. apply CIH.
+  - econstructor. intros. ubase. apply CIH.
 Qed.
 
 Import CatNotations.
@@ -140,15 +119,14 @@ Lemma translate_cmpE : forall E F G R (g : F ~> G) (f : E ~> F) (t : itree E R),
     translate (f >>> g)%cat t ≅ translate g (translate f t).
 Proof.
   intros E F G R g f t.
-  pupto2_init.
   revert t.
-  pcofix CIH.
+  ucofix CIH.
   intros t.
   rewrite !unfold_translate.
   genobs_clear t ot. destruct ot; cbn.
-  - pupto2_final. apply reflexivity.
-  - pfold. econstructor. pupto2_final. right.  apply CIH.
-  - pfold. econstructor. intros.  pupto2_final. right.  apply CIH.
+  - apply reflexivity.
+  - econstructor. ubase. apply CIH.
+  - econstructor. intros. ubase. apply CIH.
 Qed.
 
 (* SAZ: TODO - it would be good to allow for rewriting of event morphisms under translate:

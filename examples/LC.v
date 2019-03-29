@@ -1,3 +1,5 @@
+(* Big-step reduction of untyped lambda terms. *)
+
 From Coq Require Import Arith.
 
 From ExtLib.Structures Require Import
@@ -62,12 +64,12 @@ Definition big_step : term -> itree void1 value :=
     match t with
     | Var n => ret (VHead (VVar n))
     | App t1 t2 =>
-      t2' <- lift (Call t2);;
-      t1' <- lift (Call t1);;
+      t2' <- send (Call t2);;
+      t1' <- send (Call t1);;
       match t1' with
       | VHead hv => ret (VHead (VApp hv t2'))
       | VLam t1'' =>
-        lift (Call (subst O (to_term t2') t1''))
+        send (Call (subst O (to_term t2') t1''))
       end
     | Lam t => ret (VLam t)
     end).

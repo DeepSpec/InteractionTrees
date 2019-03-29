@@ -9,7 +9,7 @@
   We actually define a more general relation transformer
   [observing] to lift arbitrary relations through [observe]. *)
 
-From ITree Require Import Core.ITree.
+From ITree Require Import Core.ITreeDefinition.
 
 From Coq Require Import
      Classes.RelationClasses
@@ -97,6 +97,14 @@ Lemma bind_vis {E R U V} (e: E V) (ek: V -> itree E U) (k: U -> itree E R) :
     (ITree.bind (Vis e ek) k)
     (Vis e (fun x => ITree.bind (ek x) k)).
 Proof. apply @unfold_bind. Qed.
+
+Lemma unfold_aloop' {E A B} (f : A -> itree E A + B) (x : A) :
+  observing eq
+    (ITree.aloop f x)
+    (ITree._aloop (fun t => Tau t) (ITree.aloop f) (f x)).
+Proof.
+  constructor; reflexivity.
+Qed.
 
 Lemma unfold_forever {E R S} (t: itree E R):
   observing eq (@ITree.forever E R S t) (ITree.bind t (fun _ => Tau (ITree.forever t))).

@@ -1,13 +1,15 @@
 (* begin hide *)
 From ExtLib Require Import
      Structures.Functor
-     Structures.Monad
-     Structures.Monoid.
+     Structures.Monad.
 
 From ITree Require Import
      Basics.Basics
-     Core.ITree
+     Basics.CategoryOps
+     Core.ITreeDefinition
+     Indexed.Function
      Indexed.Sum
+     Indexed.OpenSum
      Interp.Interp.
 
 Import ITree.Basics.Basics.Monads.
@@ -25,27 +27,38 @@ Definition interp_state {E M S}
            {LM : ALoop M} (h : E ~> stateT S M) :
   itree E ~> stateT S M := interp h.
 
-(** The "reader" and "writer" variants are specializations
-    of the above stateful morphisms when the state cannot
-    be changed or read (i.e., append only). *)
+Arguments interp_state {E M S FM MM LM} h [T].
 
-Definition interp_reader {E F R} (h : R -> E ~> itree F) :
-  R -> itree E ~> itree F :=
-  fun r => interp (h r).
+Section State.
 
-Definition translate_reader {E F R} (h : R -> E ~> identity) :
-  R -> itree E ~> itree F :=
-  fun r => interp (fun _ e => Ret (h r _ e)).
+  Variable (S : Type).
 
-Definition map_fst {A A' B} (f : A -> A') : A * B -> A' * B :=
-  fun '(a, b) => (f a, b).
+  Variant stateE : Type -> Type :=
+  | Get : stateE S
+  | Put : S -> stateE unit.
 
-Definition interp_writer {E F W} {Monoid_W : Monoid W} (h : E ~> writerT W (itree F)) :
-  itree E ~> writerT W (itree F) :=
-  fun _ t =>
-    interp_state
-      (fun _ e s => ITree.map (map_fst (monoid_plus Monoid_W s)) (h _ e))
-      _ t (monoid_unit Monoid_W).
+  Definition get {E} `{stateE -< E} : itree E S := embed Get.
+  Definition put {E} `{stateE -< E} : S -> itree E unit := embed Put.
+
+  Definition handle_state {E} : stateE ~> stateT S (itree E) :=
+    fun _ e s =>
+      match e with
+      | Get => Ret (s, s)
+      | Put s' => Ret (s', tt)
+      end.
+
+  Definition pure_state {S E} : E ~> stateT S (itree E)
+    := fun _ e s => Vis e (fun x => Ret (s, x)).
+
+  Definition run_state {E}
+    : itree (stateE +' E) ~> stateT S (itree E)
+    := interp_state (case_ handle_state pure_state).
+
+End State.
+
+Arguments get {S E _}.
+Arguments put {S E _}.
+Arguments run_state {S E} [_] _ _.
 
 (* todo(gmm): this can be stronger if we allow for a `can_returnE` *)
 Inductive can_return {E : Type -> Type} {t : Type} : itree E t -> t -> Prop :=
@@ -103,42 +116,3 @@ Section eff_hom_e.
       end) (h, t).
 
 End eff_hom_e.
-
-Section into.
-  Context {E F : Type -> Type}.
-
-  Definition into (h : E ~> itree F) : (E +' F) ~> itree F :=
-    fun _ e =>
-      match e with
-      | inl1 e => h _ e
-      | inr1 e => ITree.lift e
-      end.
-
-  Definition into_state {s} (h : E ~> stateT s (itree F)) :
-    (E +' F) ~> stateT s (itree F) :=
-    fun _ e s =>
-      match e with
-      | inl1 e => h _ e s
-      | inr1 e => Vis e (fun x => Ret (s, x))
-      end.
-
-  Definition into_reader {R} (h : R -> E ~> itree F) :
-    R -> E +' F ~> itree F :=
-    fun r _ e =>
-      match e with
-      | inl1 e => h r _ e
-      | inr1 e => ITree.lift e
-      end.
-
-  Definition into_writer {W} (Monoid_W : Monoid W)
-             (h : E ~> writerT W (itree F))
-    : E +' F ~> writerT W (itree F) :=
-    fun _ e =>
-      match e with
-      | inl1 e => h _ e
-      | inr1 e => Vis e (fun x => Ret (monoid_unit Monoid_W, x))
-      end.
-
-  (* todo(gmm): is the a corresponding definition for `eff_hom_p`? *)
-
-End into.

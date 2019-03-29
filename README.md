@@ -16,6 +16,16 @@ parallel compilation and to contain potential universe
 inconsistencies, so the computational definitions may still be usable
 for testing.
 
+### Top-level modules
+
+- `ITree.Simple`: Simplified tutorial interface.
+  See also `tutorial/Introduction.v`.
+- `ITree.ITree`: Definitions to program with interaction trees.
+- `ITree.ITreeFacts`: Theorems to reason about interaction trees.
+- `ITree.Effects`: Some standard effects.
+
+### Library organization
+
 - `Basics`: General-purpose definitions not tied to interaction trees.
 
     + `Basics`: The `~>` notation and names of common monad transformers.
@@ -30,16 +40,16 @@ for testing.
 
 - `Core`: Main definitions for interaction trees.
 
-    + `ITree`: Interaction trees, type declaration and primitives.
+    + `ITreeDefinition`: Interaction trees, type declaration and primitives.
     + `KTree`: Continuation trees `A -> itree E B`, the first Kleisli category
       of `itree` (traced symmetric monoidal).
-    + `KTreeFacts`
+    + `KTreeFacts`, `KTreeBasicFacts`
 
 - `Eq`: Equational theory of interaction trees.
 
     + `Shallow`: One-step unfolding of cofixpoints.
     + `Eq`: Strong bisimulation.
-    + `UpToTaus`: Weak bisimulation.
+    + `UpToTaus`, `UpToTausCore`, `UpToTausEquivalence`: Weak bisimulation.
     + `SimUpToTaus`: Weak simulation.
     + `EqAxiom`: Axiom that strong bisimulation is propositional equality.
 
@@ -55,7 +65,7 @@ for testing.
 - `Interp`: Interaction tree transformations.
 
     + `Interp`: Interpret itrees (`translate`, `interp`)
-    + `InterpFacts`
+    + `TranslateFacts`, `InterpFacts`
     + `Handlers`: Effect handlers `E ~> itree F`, the second Kleisli category
       of `itree` (traced symmetric monoidal).
     + `HandlerFacts`
@@ -63,43 +73,22 @@ for testing.
     + `RecursionFacts`
     + `Traces`: Interpretation of itrees as sets of traces.
 
-- `Effects`:
-
-    + `State`
-    + `Nondet`
-    + `Reader`
-    + `Writer`
-    + ???
+- `Effects`: Common effects (see `theories/Effects.v` for a summary).
 
 ## Dependencies
 
-- [coq-paco](https://github.com/snu-sf/paco) (2.0.3 or later)
-- [coq-ext-lib](https://github.com/coq-ext-lib/coq-ext-lib) (0.10.0 or later)
+- [coq](https://coq.inria.fr/) (8.8 or 8.9)
+- [coq-paco](https://github.com/snu-sf/paco)
+- [coq-ext-lib](https://github.com/coq-ext-lib/coq-ext-lib)
+
+See `coq-itree.opam` for version details.
 
 ## Build instructions
 
-Choose one of the following methods.
-
-### 1. Install dependencies with OPAM
+Install dependencies with opam.
 
 ```
 opam install coq-paco coq-ext-lib
-```
-
-Now you can build the project with:
-
-```
-make
-```
-
-### 2. Use dependencies installed elsewhere
-
-If you would like to use local versions of some of the dependencies, create a
-`_CoqPath` file with the paths to the libraries that you would like to include.
-For example,
-
-```
--Q path/to/paco/src Paco
 ```
 
 Now you can build the project with:

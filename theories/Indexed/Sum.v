@@ -9,19 +9,20 @@ From Coq Require Import
 
 From ITree Require Import
      Basics.Basics
-     Core.ITree.
+     Core.ITreeDefinition.
 
 Set Implicit Arguments.
 Set Contextual Implicit.
 (* end hide *)
 
 (** Sum of type constructors [Type -> Type].
+
     [sum1 : (Type -> Type) -> (Type -> Type) -> (Type -> Type)]. *)
 Variant sum1 (E1 E2 : Type -> Type) (X : Type) : Type :=
 | inl1 (_ : E1 X)
 | inr1 (_ : E2 X).
-Arguments inr1 {_ _} [_] _.
-Arguments inl1 {_ _} [_] _.
+Arguments inr1 {E1 E2} [X].
+Arguments inl1 {E1 E2} [X].
 
 (** An infix notation for convenience. *)
 Notation "E1 +' E2" := (sum1 E1 E2)

@@ -9,11 +9,13 @@ From ITree Require Import
      Basics.Category
      Basics.Function
      Basics.FunctionFacts
-     Core.ITree
+     Core.ITreeDefinition
      Core.KTree
-     Eq.UpToTaus
-     Eq.SimUpToTaus
-     Indexed.OpenSum.
+     Eq.UpToTausEquivalence
+     Eq.SimUpToTaus.
+
+From ITree Require Export
+     Core.KTreeBasicFacts.
 
 Import ITreeNotations.
 Import CatNotations.
@@ -26,14 +28,14 @@ Section UnfoldLemmas.
 
 Local Opaque ITree.bind' eutt eq_itree.
 
-Lemma assoc_l_itree {E A B C} x :
-  assoc_l x ≅ @lift_ktree E (A + (B + C)) _ assoc_l x.
+Lemma assoc_l_itree {E A B C} (x : A + (B + C)) :
+  assoc_l_ A B C x ≅ @lift_ktree E (A + (B + C)) _ assoc_l x.
 Proof.
   cbv; destruct x as [ | [] ]; try rewrite bind_ret; reflexivity.
 Qed.
 
-Lemma assoc_r_itree {E A B C} x :
-  assoc_r x ≅ @lift_ktree E ((A + B) + C) _ assoc_r x.
+Lemma assoc_r_itree {E A B C} (x : (A + B) + C) :
+  assoc_r_ A B C x ≅ @lift_ktree E ((A + B) + C) _ assoc_r x.
 Proof.
   cbv; destruct x as [ [] | ]; try rewrite bind_ret; reflexivity.
 Qed.
@@ -289,34 +291,6 @@ Qed.
 
 End MonoidalCategoryLaws.
 
-(* Facts about [loop] *)
-
-Notation loop_once_ f loop_ :=
-  (loop_once f (fun cb => Tau (loop_ f%function cb))).
-
-Lemma unfold_loop'' {E A B C} (f : C + A -> itree E (C + B)) (x : C + A) :
-    observe (loop_ f x)
-  = observe (loop_once f (fun cb => Tau (loop_ f cb)) x).
-Proof. reflexivity. Qed.
-
-Lemma unfold_loop' {E A B C} (f : C + A -> itree E (C + B)) (x : C + A) :
-    loop_ f x
-  ≅ loop_once f (fun cb => Tau (loop_ f cb)) x.
-Proof.
-  rewrite itree_eta, (itree_eta (loop_once _ _ _)).
-  reflexivity.
-Qed.
-
-Lemma unfold_loop {E A B C} (f : C + A -> itree E (C + B)) (x : C + A) :
-    loop_ f x
-  ≈ loop_once f (loop_ f) x.
-Proof.
-  rewrite unfold_loop'.
-  apply eutt_bind; try reflexivity.
-  intros []; try reflexivity.
-  rewrite tau_eutt; reflexivity.
-Qed.
-
 (* Equations for a traced monoidal category *)
 
 Lemma loop_natural_l {E A A' B C} (f : A -> itree E A')
@@ -334,17 +308,17 @@ Proof.
   eapply eq_itree_bind; try reflexivity.
   intros a' _ []. autorewrite with itree.
   remember (inr a') as ca eqn:EQ; clear EQ a'.
-  pupto2_init. revert ca; clear; pcofix self; intro ca.
+  revert ca; clear; ucofix self; intro ca.
   rewrite unfold_loop'; unfold loop_once.
-  pupto2 @eq_itree_clo_bind; econstructor; try reflexivity.
+  uclo eq_itree_clo_bind; econstructor; try reflexivity.
   intros [c | b]; intros; subst.
   - match goal with
     | [ |- _ _ (Tau (loop_ ?f _)) ] => rewrite (unfold_loop' f)
     end.
     unfold loop_once_.
     rewrite bind_ret_. (* TODO: [bind_ret] doesn't work. *)
-    pfold; constructor; auto.
-  - pfold; constructor; auto.
+    constructor; eauto with paco.
+  - constructor; eauto.
 Qed.
 
 Lemma loop_natural_r {E A B B' C} (f : B -> itree E B')
@@ -358,15 +332,15 @@ Lemma loop_natural_r {E A B B' C} (f : B -> itree E B')
 Proof.
   unfold loop.
   remember (inr a) as ca eqn:EQ; clear EQ a.
-  pupto2_init. revert ca; clear; pcofix self; intro ca.
+  revert ca; clear; ucofix self; intro ca.
   rewrite !unfold_loop'; unfold loop_once.
   rewrite !bind_bind.
-  pupto2 @eq_itree_clo_bind; econstructor; try reflexivity.
+  uclo eq_itree_clo_bind; econstructor; try reflexivity.
   intros [c | b]; intros; subst.
   - rewrite bind_ret_, bind_tau_.
-    pfold; constructor; auto.
+    constructor; auto with paco.
   - autorewrite with itree.
-    pupto2_final; apply reflexivity.
+    apply reflexivity.
 Qed.
 
 Lemma loop_dinatural {E A B C C'} (f : C -> itree E C')
@@ -387,24 +361,24 @@ Proof.
   autorewrite with itree.
   eapply eq_itree_bind; try reflexivity.
   clear a; intros cb _ [].
-  pupto2_init. revert cb; pcofix self; intros.
+  revert cb; ucofix self; intros.
   destruct cb as [c | b].
   - rewrite bind_tau.
-    pfold; constructor; pupto2_final; left.
+    constructor. 
     rewrite map_bind.
     rewrite (unfold_loop' _ (inl c)); unfold loop_once.
     autorewrite with itree.
-    pupto2 eq_itree_clo_bind; econstructor; try reflexivity.
+    uclo eq_itree_clo_bind; econstructor; try reflexivity.
     intros c'; intros; subst.
     rewrite bind_tau.
     rewrite bind_ret_.
     rewrite unfold_loop'; unfold loop_once.
     rewrite bind_bind.
-    pfold; constructor.
-    pupto2 eq_itree_clo_bind; econstructor; try reflexivity.
-    intros; subst. eauto.
+    ustep; constructor.
+    uclo eq_itree_clo_bind; econstructor; try reflexivity.
+    intros; subst. eauto with paco.
   - rewrite bind_ret.
-    pupto2_final; apply reflexivity.
+    apply reflexivity.
 Qed.
 
 Lemma vanishing1 {E A B} (f : void + A -> itree E (void + B))
@@ -432,7 +406,7 @@ Proof.
   rewrite !bind_bind.
   eapply eq_itree_bind; try reflexivity.
   clear a; intros dcb _ [].
-  pupto2_init. revert dcb; pcofix self; intros.
+  revert dcb; ucofix self; intros.
   destruct dcb as [d | [c | b]]; cbn.
   all: unfold cat, inl_, inr_, Inl_ktree, lift_ktree; cbn.
   all: rewrite !bind_ret_.
@@ -442,20 +416,20 @@ Proof.
     autorewrite with itree.
     cbn; unfold cat, inl_, Inl_ktree, lift_ktree.
     rewrite bind_ret_.
-    pfold; constructor.
-    pupto2 eq_itree_clo_bind; econstructor. reflexivity.
-    intros; subst. auto.
+    constructor.
+    uclo eq_itree_clo_bind; econstructor. reflexivity.
+    intros; subst. auto with paco.
   - (* c *)
     rewrite 2 unfold_loop'; unfold loop_once.
     rewrite unfold_loop'; unfold loop_once.
     autorewrite with itree.
     cbn; unfold cat, inl_, inr_, Inl_ktree, lift_ktree.
     rewrite !bind_ret_.
-    pfold; constructor.
-    pupto2 eq_itree_clo_bind; econstructor; try reflexivity.
-    intros; subst. auto.
+    constructor.
+    uclo eq_itree_clo_bind; econstructor; try reflexivity.
+    intros; subst. auto with paco.
   - (* b *)
-    pupto2_final; apply reflexivity.
+    apply reflexivity.
 Qed.
 
 Lemma superposing1 {E A B C D D'} (f : C + A -> itree E (C + B))
@@ -478,22 +452,22 @@ Proof.
   { subst; auto. }
   clear a Hl Hr.
   unfold ITree.map.
-  pupto2_init. revert inla inra Hlr; pcofix self; intros.
+  revert inla inra Hlr; ucofix self; intros.
   rewrite 2 unfold_loop'; unfold loop_once.
   rewrite bind_bind.
   destruct inra as [c | a]; subst.
   - rewrite bind_bind; setoid_rewrite bind_ret_.
-    pupto2 eq_itree_clo_bind; econstructor; try reflexivity.
+    uclo eq_itree_clo_bind; econstructor; try reflexivity.
     intros [c' | b]; simpl; intros; subst.
-    + rewrite bind_tau. pfold; constructor.
-      pupto2_final. auto.
-    + rewrite bind_ret. pupto2_final; apply reflexivity.
+    + rewrite bind_tau. constructor.
+      auto with paco.
+    + rewrite bind_ret. apply reflexivity.
   - rewrite bind_bind; setoid_rewrite bind_ret_.
-    pupto2 eq_itree_clo_bind; econstructor; try reflexivity.
+    uclo eq_itree_clo_bind; econstructor; try reflexivity.
     intros [c' | b]; simpl; intros; subst.
-    + rewrite bind_tau. pfold; constructor.
-      pupto2_final. auto.
-    + rewrite bind_ret_. pupto2_final; apply reflexivity.
+    + rewrite bind_tau. constructor.
+      auto with paco.
+    + rewrite bind_ret_. apply reflexivity.
 Qed.
 
 Lemma superposing2 {E A B C D D'} (f : C + A -> itree E (C + B))
@@ -525,10 +499,10 @@ Proof.
   repeat intro; subst.
   unfold loop.
   remember (inr _) as ca eqn:EQ; clear EQ y0.
-  pupto2_init. revert ca; pcofix self; intros.
+  revert ca; ucofix self; intros.
   rewrite 2 unfold_loop'; unfold loop_once.
-  pupto2 eq_itree_clo_bind; econstructor; try auto.
-  intros [c | b]; intros; subst; pfold; constructor; auto.
+  uclo eq_itree_clo_bind; econstructor; try auto.
+  intros [c | b]; intros; subst; constructor; auto with paco.
 Qed.
 
 Section eutt_loop.
@@ -569,7 +543,7 @@ Proof.
   unfold loop_once.
   specialize (eutt_f ca).
   apply sutt_is_sutt1 in eutt_f.
-  punfold eutt_f.
+  uunfold eutt_f.
   unfold loop_once in H1.
   unfold loop_once in H2.
   rewrite unfold_bind in H1.
@@ -591,7 +565,7 @@ Proof.
       rewrite H1, H2.
       auto.
 
-  - pclearbot. apply eq_itree_vis_inv1 in H1.
+  - apply eq_itree_vis_inv1 in H1.
     apply eq_itree_vis_inv1 in H2.
     destruct H1 as [k01 [Hk1 Hk1']].
     destruct H2 as [k02 [Hk2 Hk2']].
@@ -607,10 +581,9 @@ Proof.
     destruct H2 as [t2' [Ht2 Ht2']].
     rewrite Ht2.
     constructor.
-    apply IHs; auto. rewrite <- unfold_bind; auto.
+    apply IHg; auto. rewrite <- unfold_bind; auto.
 
-  - pclearbot.
-    replace ot2 with (observe (go ot2)) in *.
+  - replace ot2 with (observe (go ot2)) in *.
     rewrite <- unfold_bind in H2.
     apply eq_itree_tau_inv1 in H1.
     destruct H1 as [t1' [Ht1 Ht1']].
@@ -624,16 +597,16 @@ Proof.
 Qed.
 
 Lemma eutt_loop_inv ot1 ot2 :
-  loop_preinv (go ot1) (go ot2) -> paco2 (suttF1 eq) bot2 ot1 ot2.
+  loop_preinv (go ot1) (go ot2) -> cpn2 (suttF1 eq) bot2 ot1 ot2.
 Proof.
   intros HH.
-  revert ot1 ot2 HH; pcofix self; intros. pfold.
+  revert ot1 ot2 HH; ucofix self; intros.
   destruct HH as [ca H1 H2 | u1 u2 Hu H1 H2].
   - eapply monotone_suttF1.
     + eapply (eutt_loop_inv_main_step ca (go ot1) (go ot2)); eauto.
-    + intros ? ? []. right. eapply self; eauto.
+    + intros ? ? []. ubase. eapply self; eauto.
   - apply sutt_is_sutt1 in Hu.
-    punfold Hu.
+    uunfold Hu.
     rewrite unfold_bind in H1.
     rewrite unfold_bind in H2.
     revert ot1 ot2 H1 H2; induction Hu; intros.
@@ -644,20 +617,19 @@ Proof.
         simpl in H1, H2.
         destruct H1 as [? []], H2 as [? []].
         subst.
-        do 2 constructor. right.
+        do 2 constructor. ubase.
         apply self.
         eapply loop_inv_main; rewrite <- itree_eta; eauto.
       * apply eq_itree_ret_inv1 in H1.
         apply eq_itree_ret_inv1 in H2.
-        simpl in H1, H2. subst; auto.
+        simpl in H1, H2. subst; auto with paco.
 
-    + pclearbot.
-      apply eq_itree_vis_inv1 in H1.
+    + apply eq_itree_vis_inv1 in H1.
       apply eq_itree_vis_inv1 in H2.
       simpl in H1, H2.
       destruct H1 as [? []], H2 as [? []].
       subst; constructor.
-      right. apply self.
+      ubase. intros. apply self.
       eapply loop_inv_bind.
       * apply sutt_is_sutt1. eapply SUTTK.
       * rewrite <- itree_eta; auto.
@@ -671,15 +643,14 @@ Proof.
       apply IHHu; auto.
       rewrite <- itree_eta, <- unfold_bind; auto.
 
-    + pclearbot.
-      replace ot2 with (observe (go ot2)) in *.
+    + replace ot2 with (observe (go ot2)) in *.
       rewrite <- unfold_bind in H2.
       apply eq_itree_tau_inv1 in H1.
       simpl in H1.
       destruct H1 as [t1' [Ht1 Ht1']].
       rewrite Ht1.
       constructor.
-      right; apply self.
+      ubase; apply self.
       eapply loop_inv_bind.
       * apply sutt_is_sutt1.
         eapply EQTAUS.
@@ -709,13 +680,14 @@ Proof.
   - eapply sutt_loop; auto.
     repeat intro; subst.
     apply eutt_sutt; auto.
-  - eapply paco2_mon_gen.
+  - eapply cpn2_mon_bot.
     + eapply sutt_loop; auto.
       repeat intro.
       apply eutt_sutt. apply symmetry; auto.
+    + eauto with paco.
+    + eauto with paco.
     + intros. eapply monotone_sutt_RR; try eassumption.
       red; auto.
-    + auto.
 Qed.
 
 (** *** Traced monoidal categories *)
@@ -933,6 +905,88 @@ Proof.
     reflexivity.
 Qed.
 
+(** Utility: lemma to ease working forward in an equational proof.
+      Make it more convenient to rewrite subterm only on one side of the equation.
+ *)
+Fact fwd_eqn {a b : Type} (f g : ktree E a b) :
+  (forall h, h ⩯ f -> h ⩯ g) -> f ⩯ g.
+Proof.
+  intro H; apply H; reflexivity.
+Qed.
+
+(** Utility: lemmas to ease forward reasoning *)
+Fact cat_eq2_l {a b c : Type} (h : ktree E a b) (f g : ktree E b c) :
+  f ⩯ g ->
+  h >>> f ⩯ h >>> g.
+Proof.
+  intros H; rewrite H; reflexivity.
+Qed.
+
+Fact cat_eq2_r {a b c : Type} (h : ktree E b c) (f g : ktree E a b) :
+  f ⩯ g ->
+  f >>> h ⩯ g >>> h.
+Proof.
+  intros H; rewrite H; reflexivity.
+Qed.
+
+Fact local_rewrite1 {a b c : Type}:
+  bimap (id_ a) (@swap _ (ktree E) _ _ b c) >>> assoc_l >>> swap
+        ⩯ assoc_l >>> bimap swap (id_ c) >>> assoc_r.
+Proof.
+  symmetry.
+  apply fwd_eqn; intros h Eq.
+  do 2 apply (cat_eq2_l (bimap (id_ _) swap)) in Eq.
+  rewrite <- cat_assoc, bimap_cat, swap_involutive, cat_id_l,
+  bimap_id, cat_id_l in Eq.
+  rewrite <- (cat_assoc _ _ _ assoc_r), <- (cat_assoc _ _ assoc_l _)
+    in Eq.
+  rewrite <- swap_assoc_l in Eq.
+  rewrite (cat_assoc _ _ _ assoc_r) in Eq.
+  rewrite assoc_l_mono in Eq.
+  rewrite cat_id_r in Eq.
+  rewrite cat_assoc.
+  assumption.
+  all: typeclasses eauto.
+Qed.
+
+Fact local_rewrite2 {a b c : Type}:
+  swap >>> assoc_r >>> bimap (id_ _) swap
+       ⩯ @assoc_l _ (ktree E) _ _ a b c >>> bimap swap (id_ _) >>> assoc_r.
+Proof.
+  symmetry.
+  apply fwd_eqn; intros h Eq.
+  do 2 apply (cat_eq2_r (bimap (id_ _) swap)) in Eq.
+  rewrite cat_assoc, bimap_cat, swap_involutive, cat_id_l,
+  bimap_id, cat_id_r in Eq.
+  rewrite 2 (cat_assoc _ assoc_l) in Eq.
+  rewrite <- swap_assoc_r in Eq.
+  rewrite <- 2 (cat_assoc _ assoc_l) in Eq.
+  rewrite assoc_l_mono, cat_id_l in Eq.
+  assumption.
+  all: try typeclasses eauto.
+Qed.
+
+Lemma loop_bimap_ktree {I A B C D}
+      (ab : ktree E A B) (cd : ktree E (I + C) (I + D)) :
+  bimap ab (loop cd)
+        ⩯ loop (assoc_l >>> bimap swap (id_ _)
+                        >>> assoc_r
+                        >>> bimap ab cd
+                        >>> assoc_l >>> bimap swap (id_ _) >>> assoc_r).
+Proof.
+  rewrite swap_bimap, bimap_ktree_loop.
+  rewrite <- compose_loop, <- loop_compose.
+  rewrite (swap_bimap _ _ cd ab).
+  rewrite <- !cat_assoc.
+  rewrite local_rewrite1.
+  rewrite 2 cat_assoc.
+  rewrite <- (cat_assoc _ swap assoc_r).
+  rewrite local_rewrite2.
+  rewrite <- !cat_assoc.
+  reflexivity.
+  all: typeclasses eauto.
+Qed.
+
 Lemma yanking_ktree {A: Type}:
   @loop E _ _ _ swap ⩯ id_ A.
 Proof.
@@ -973,20 +1027,76 @@ Variable E : Type -> Type.
 
 Local Open Scope cat.
 
+(* [cat_from_loop]:
+
+      +-------------+
+      |             |
+      +---\/---ab---+
+   -------/\---bc-------
+
+is equivalent to
+
+   ----ab---bc----
+ *)
 Theorem cat_from_loop {A B C} (ab : ktree E A B) (bc : ktree E B C) :
   loop (swap >>> bimap ab bc) ⩯ ab >>> bc.
-Proof.
-  rewrite bimap_slide.
-  rewrite <- cat_assoc.
-  rewrite loop_compose.
-  rewrite swap_bimap.
-  rewrite <- !cat_assoc.
-  rewrite swap_involutive, cat_id_l.
-  rewrite compose_loop.
-  erewrite yanking_ktree.
-  rewrite cat_id_r.
+Proof with try typeclasses eauto.
+(*
+      +-------------+
+      |             |
+      +---\/---ab---+
+   -------/\---bc-------
+ *)
+
+  rewrite bimap_slide...
+  rewrite <- cat_assoc...
+(*
+      +----------------+
+      |                |
+      +---\/---ab------+
+   -------/\------bc-------
+ *)
+
+  rewrite loop_compose...
+(*
+      +-------------+
+      |             |
+      +---\/---ab---+
+   -------/\------------bc----
+ *)
+
+  rewrite swap_bimap...
+  rewrite <- !cat_assoc...
+(*
+      +-------------------+
+      |                   |
+      +---\/--\/------\/--+
+   -------/\--/\--ab--/\----bc----
+ *)
+
+  rewrite swap_involutive, cat_id_l...
+(*
+      +-------------------+
+      |                   |
+      +---------------\/--+
+   ---------------ab--/\----bc----
+ *)
+
+  rewrite compose_loop...
+(*
+           +------+
+           |      |
+           +--\/--+
+   ----ab-----/\-----bc----
+ *)
+
+  rewrite yanking_ktree...
+  rewrite cat_id_r...
+(*
+   ----ab---bc----
+ *)
+
   reflexivity.
-  all: typeclasses eauto.
 Qed.
 
 End CatFromLoop.

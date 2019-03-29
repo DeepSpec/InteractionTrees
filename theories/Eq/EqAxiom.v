@@ -8,7 +8,7 @@
 
 (* begin hide *)
 From ITree Require Import
-     Core.ITree
+     Core.ITreeDefinition
      Eq.Eq.
 (* end hide *)
 
