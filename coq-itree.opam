@@ -1,4 +1,4 @@
-opam-version: "1.2"
+opam-version: "2.0"
 name: "coq-itree"
 version: "dev"
 maintainer: "Li-yao Xia <lysxia@gmail.com>"
@@ -15,12 +15,12 @@ remove: [ "rm" "-rf" "%{lib}%/coq/user-contrib/ITree" ]
 run-test: [ make "-j%{jobs}%" "test" ]
 
 depends: [
+  "ocaml"
   "coq" {>= "8.8" & < "8.10~"}
-  "coq-ext-lib" {>= "0.10.0" & < "0.10.1"}
+  "coq-ext-lib" {>= "0.10.0" & < "0.10.2"}
   "coq-paco" {>= "2.1.0" & < "2.2"}
   "ocamlbuild"
 ]
-
 authors: [
   "Li-yao Xia <lysxia@gmail.com>"
   "Gregory Malecha <gmalecha@gmail.com>"
@@ -28,3 +28,4 @@ authors: [
 ]
 
 tags: "org:deepspec"
+flags: light-uninstall

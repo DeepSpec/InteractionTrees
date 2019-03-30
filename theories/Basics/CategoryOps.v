@@ -13,6 +13,14 @@
     [Basics.CategoryTheory].
  *)
 
+(** Notations [>>>] and [⩯] are in the module [CatNotations], under the scope
+    [cat]. The common way to use them is:
+[[
+  Import CatNotations.
+  Local Open Scope cat.
+]]
+ *)
+
 (** ** Low-level infrastructure *)
 
 (** Categories are parameterized by a type of objects [obj]. *)
@@ -52,26 +60,24 @@ Section CatOps.
 
 Context {obj : Type} (C : Hom obj).
 
-(** Morphism equivalence. *)
+(** The equivalence between two morphisms [f] and [g] is written
+    [eq2 f g] or [f ⩯ g] ([\hatapprox] in LaTeX). *)
 Class Eq2 : Type :=
   eq2 : forall a b (f g : C a b), Prop.
-(* Example usage: [eq2 f g : Prop], or [f ⩯ g]
-   ([\hatapprox] in LaTeX). *)
 
-(** Identity morphisms. *)
+(** The identity morphism for the object [a : obj] is written [id_ a]. *)
 Class Id_ : Type :=
   id_ : forall a, C a a.
-(* Example usage: [id_ a : C a a] (note that the object [a] is
-   explicit). *)
 (* We add an underscore [id_] to avoid clashing with the standard
    library [id]. *)
 
-(** Morphism composition. Con(cat)enation. *)
+(** Given two morphisms [f] and [g] with a common endpoint, their
+    composition (or con(cat)enation) is written [cat f g] or [f >>> g]. *)
 Class Cat : Type :=
   cat : forall a b c, C a b -> C b c -> C a c.
-(* Example usage: [cat f g], or [f >>> g]. *)
 
-(** Initial object [i] and its initial morphisms [empty : C i a]. *)
+(** If there is an initial object [i], its initial morphisms are written
+    [empty : C i a]. *)
 Class Initial (i : obj) :=
   empty : forall a, C i a.
 
@@ -89,7 +95,10 @@ Section CocartesianOps.
 Context {obj : Type} (C : Hom obj) (bif : binop obj).
 
 (** Bifunctors map pairs of objects to objects ([bif])
-    and pairs of morphisms to morphisms ([bimap]). *)
+    and pairs of morphisms to morphisms ([bimap]).
+
+    The composition [bimap f g] is also called _tensor product_ of [f] and [g].
+ *)
 Class Bimap :=
   bimap : forall a b c d, C a c -> C b d -> C (bif a b) (bif c d).
 

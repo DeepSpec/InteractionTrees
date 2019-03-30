@@ -8,6 +8,7 @@
 From ITree Require Import
      Basics.Basics
      Basics.Category
+     Indexed.Relation
      Indexed.Sum.
 (* end hide *)
 
@@ -15,11 +16,11 @@ From ITree Require Import
 Definition IFun (E F : Type -> Type) : Type := E ~> F.
 
 (** Unwrap [IFun], potentially useful for type inference. *)
-Definition applyIFun {E F} (f : IFun E F) : E ~> F := f.
+Definition apply_IFun {E F T} (f : IFun E F) : E T -> F T := f T.
 
 (** Equivalence of indexed functions is extensional equality. *)
 Instance Eq2_IFun : Eq2 IFun :=
-  fun E F f1 f2 => forall R (e : E R), f1 _ e = f2 _ e.
+  fun E F => i_pointwise (fun T => @eq (F T)).
 
 (** The identity function. *)
 Instance Id_IFun : Id_ IFun :=

@@ -6,7 +6,7 @@ Extraction Language OCaml.
 Extraction Blacklist String List Char Core Z.
 
 Set Extraction AccessOpaque.
-(* NOTE: assumes that this file is compiled from / *)
+(* NOTE: assumes that this file is compiled from examples/ *)
 Cd "extracted".
 
 Recursive Extraction Library MultiThreadedPrinting.

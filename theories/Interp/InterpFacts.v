@@ -7,6 +7,7 @@ From Coq Require Import
 From Paco Require Import paco.
 
 From ITree Require Import
+     Basics.Category
      Basics.Basics
      Core.ITreeDefinition
      Core.KTree
@@ -14,34 +15,59 @@ From ITree Require Import
      Eq.UpToTausEquivalence
      Indexed.Sum
      Indexed.OpenSum
+     Indexed.Function
+     Indexed.Relation
      Interp.Interp
      Interp.Handler
      Interp.TranslateFacts.
 
 Import ITreeNotations.
 
+Definition respectful_eq_itree {E F : Type -> Type}
+  : (itree E ~> itree F) -> (itree E ~> itree F) -> Prop
+  := i_respectful (fun _ => eq_itree eq) (fun _ => eq_itree eq).
 
+Definition respectful_eutt {E F : Type -> Type}
+  : (itree E ~> itree F) -> (itree E ~> itree F) -> Prop
+  := i_respectful (fun _ => eutt eq) (fun _ => eutt eq).
+
+Instance eq_itree_apply_IFun {E F : Type -> Type} {T : Type}
+  : Proper (respectful_eq_itree ==> eq_itree eq ==> eq_itree eq)
+           (@apply_IFun (itree E) (itree F) T).
+Proof.
+  repeat red; eauto.
+Qed.
+
+Instance eutt_apply_IFun {E F : Type -> Type} {T : Type}
+  : Proper (respectful_eutt ==> eutt eq ==> eutt eq)
+           (@apply_IFun (itree E) (itree F) T).
+Proof.
+  repeat red; eauto.
+Qed.
+
+Instance Equivalence_eq_Handler {E F : Type -> Type}
+  : Equivalence (@eq_Handler E F).
+Proof.
+  unfold eq_Handler.
+  apply (Equivalence_i_pointwise (fun R => eq_itree eq)).
+Qed.
+
+Require ITree.Core.KTreeFacts. (* TODO: only needed to avoid a universe inconsistency right around here (errors if you try to move this to the end of the file, or just under the next instance)... *)
+
+Instance Equivalence_eutt_Handler {E F : Type -> Type}
+  : Equivalence (@eutt_Handler E F).
+Proof.
+  unfold eutt_Handler.
+  apply (Equivalence_i_pointwise (fun R => eutt eq)).
+Qed.
+
+Instance Equivalence_eq2_Handler {E F : Type -> Type}
+  : @Equivalence (Handler E F) eq2.
+Proof.
+  exact Equivalence_eutt_Handler.
+Qed.
 
 (** * [interp] *)
-
-(* Proof of
-   [interp f (t >>= k) ~ (interp f t >>= fun r => interp f (k r))]
-
-   "By coinduction", case analysis on t:
-
-    - [t = Ret r] or [t = Vis e k] (...)
-
-    - [t = Tau t]:
-          interp f (Tau t >>= k)
-        = interp f (Tau (t >>= k))
-        = Tau (interp f (t >>= k))
-        { by "coinductive hypothesis" }
-        ~ Tau (interp f t >>= fun ...)
-        = Tau (interp f t) >>= fun ...
-        = interp f (Tau t) >>= fun ...
-        (QED)
-
- *)
 
 (* Unfolding of [interp]. *)
 Definition _interp {E F R} (f : E ~> itree F) (ot : itreeF E R _)
@@ -79,12 +105,13 @@ Lemma interp_vis {E F R} {f : E ~> itree F} U (e: E U) (k: U -> itree E R) :
 Proof. rewrite unfold_interp. reflexivity. Qed.
 
 (** ** [interp] properness *)
-Instance eq_itree_interp {E F R}:
-  Proper (i_respectful (fun _ => eq_itree eq) ==> eq_itree eq ==> eq_itree eq)
-         (fun f => @interp E (itree F) _ _ _ f R).
+Instance eq_itree_interp {E F}
+  : @Proper (Handler E F -> (itree E ~> itree F))
+            (eq_Handler ==> respectful_eq_itree)
+            interp.
 Proof.
   intros f g Hfg.
-  intros l r Hlr.
+  intros T l r Hlr.
   revert l r Hlr; gcofix CIH.
   rename r into rr; intros l r Hlr.
   rewrite 2 unfold_interp.
@@ -99,18 +126,21 @@ Proof.
     auto with paco.
 Qed.
 
-Global Instance Proper_interp_eq_itree {E F R f}
-: Proper (eq_itree eq ==> eq_itree eq) (@interp E (itree F) _ _ _ f R).
+Instance eq_itree_interp' {E F R f}
+  : Proper (eq_itree eq ==> eq_itree eq) (@interp E (itree F) _ _ _ f R).
 Proof.
+  repeat red.
   eapply eq_itree_interp.
-  red. reflexivity.
+  reflexivity.
 Qed.
 
-(* Note that this allows rewriting of handlers. *)
-Definition eutt_interp_gen (E F : Type -> Type) (R : Type) :
-  Proper (i_respectful (fun _ => eutt eq) ==> eutt eq ==> eutt eq)
-         (fun f => @interp E (itree F) _ _ _ f R).
+Instance eutt_interp (E F : Type -> Type)
+  : @Proper (Handler E F -> (itree E ~> itree F))
+            (eq2 ==> respectful_eutt)
+            interp.
 Proof.
+  repeat red.
+  intros until T.
   gstep. gcofix CIH. intros.
 
   rewrite !unfold_interp. do 2 gunfold H1.
@@ -118,7 +148,7 @@ Proof.
   - gstep. constructor. eauto.
   - gstep. constructor.
     gclo eutt0_clo_bind.
-    econstructor; [apply H0|].
+    econstructor; [apply H|].
     intros; subst.
     gbase. eapply CIH; edestruct (EUTTK v2); eauto with paco.
   - gstep. econstructor. eauto 7 with paco.
@@ -126,13 +156,33 @@ Proof.
   - apply eutt0_tau_right. rewrite unfold_interp. auto.
 Qed.
 
-Instance eutt_interp (E F : Type -> Type) f (R : Type) :
+Instance eutt_interp' {E F : Type -> Type} {R : Type} (f : E ~> itree F) :
   Proper (eutt eq ==> eutt eq)
          (@interp E (itree F) _ _ _ f R).
 Proof.
-  apply eutt_interp_gen.
-  red; reflexivity.
+  repeat red.
+  apply eutt_interp.
+  reflexivity.
 Qed.
+
+(* Proof of
+   [interp f (t >>= k) ~ (interp f t >>= fun r => interp f (k r))]
+
+   "By coinduction", case analysis on t:
+
+    - [t = Ret r] or [t = Vis e k] (...)
+
+    - [t = Tau t]:
+          interp f (Tau t >>= k)
+        = interp f (Tau (t >>= k))
+        = Tau (interp f (t >>= k))
+        { by "coinductive hypothesis" }
+        ~ Tau (interp f t >>= fun ...)
+        = Tau (interp f t) >>= fun ...
+        = interp f (Tau t) >>= fun ...
+        (QED)
+
+ *)
 
 Lemma interp_bind {E F R S}
       (f : E ~> itree F) (t : itree E R) (k : R -> itree E S) :
@@ -164,10 +214,19 @@ Proof.
   reflexivity.
 Qed.
 
+(** *** Identities for [interp] *)
 
-(** ** Composition of [interp] *)
+Lemma interp_id_h {A R} (t : itree A R)
+  : interp (id_ A) t ≈ t.
+Proof.
+  revert t. gstep. gcofix CIH. intros.
+  rewrite unfold_interp. unfold _interp. repeat red. gstep. red.
+  destruct (observe t); cbn; eauto 8 with paco.
+  unfold id_, Id_Handler, Handler.id_, ITree.send. econstructor. cbn.
+  constructor. right. rewrite bind_ret; auto with paco.
+Qed.
 
-Lemma interp_id_send {E R} (t : itree E R) :
+Lemma interp_send_h {E R} (t : itree E R) :
   interp (fun _ e => ITree.send e) t ≈ t.
 Proof.
   revert t. gstep. gcofix CIH. intros.
@@ -180,6 +239,7 @@ Proof.
   auto with paco.
 Qed.
 
+(** ** Composition of [interp] *)
 
 Theorem interp_interp {E F G R} (f : E ~> itree F) (g : F ~> itree G) :
   forall t : itree E R,
@@ -199,8 +259,6 @@ Proof.
     + intros ? _ [].
       auto with paco.
 Qed.
-
-(* Commuting interpreters --------------------------------------------------- *)
 
 Lemma interp_translate {E F G} (f : E ~> F) (g : F ~> itree G) {R} (t : itree E R) :
   interp g (translate f t) ≅ interp (fun _ e => g _ (f _ e)) t.

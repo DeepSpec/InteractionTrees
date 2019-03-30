@@ -8,6 +8,6 @@ MultiThreadedPrinting.v
 ExtractThreadsExample.v
 
 Nimp.v
-stlc.v
+LC.v
 
 ITreePredicatesExample.v
