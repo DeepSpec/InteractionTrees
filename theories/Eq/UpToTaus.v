@@ -66,7 +66,7 @@ Hint Constructors euttF.
 Definition eutt0_ eutt eutt0 t1 t2 := euttF eutt eutt0 (observe t1) (observe t2).
 Hint Unfold eutt0_.
 
-Definition eutt0 eutt t1 t2 := wcpn2 (eutt0_ eutt) bot2 bot2 t1 t2.
+Definition eutt0 eutt t1 t2 := gcpn2 (eutt0_ eutt) bot2 bot2 t1 t2.
 Hint Unfold eutt0.
 
 Lemma euttF_mon r r' s s' x y
@@ -84,7 +84,7 @@ Proof. repeat intro. eauto using euttF_mon. Qed.
 Hint Resolve monotone_eutt0_ : paco.
 
 Lemma monotone_eutt0 : monotone2 eutt0.
-Proof. red. intros. eapply wcpn2_mon_bot; eauto using euttF_mon. Qed.
+Proof. red. intros. eapply gcpn2_mon_bot; eauto using euttF_mon. Qed.
 Hint Resolve monotone_eutt0 : paco.
 
 (* We now take the greatest fixpoint of [eutt_]. *)
@@ -92,11 +92,11 @@ Hint Resolve monotone_eutt0 : paco.
 (* Equivalence Up To Taus.
 
    [eutt t1 t2]: [t1] is equivalent to [t2] up to taus. *)
-Definition eutt : itree E R1 -> itree E R2 -> Prop := wcpn2 eutt0 bot2 bot2.
+Definition eutt : itree E R1 -> itree E R2 -> Prop := gcpn2 eutt0 bot2 bot2.
 Hint Unfold eutt.
 
 Lemma eutt_fold :
-  eutt <2= wcpn2 eutt0 bot2 bot2.
+  eutt <2= gcpn2 eutt0 bot2 bot2.
 Proof. intros. apply PR. Qed.
 Hint Resolve eutt_fold.
 

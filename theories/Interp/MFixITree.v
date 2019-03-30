@@ -71,7 +71,7 @@ Section P.
     }.
 
   Definition mfix_P {a b:Type} (f : ((a -> P b) -> (a -> P b))) : a -> P b :=
-    @wcpn2 a (fun _ => b) f bot2 bot2.
+    @gcpn2 a (fun _ => b) f bot2 bot2.
 
   Lemma mfix_law1 : forall (a b : Type) f (x:a) (y:b), (@monotone2 a (fun _ => b) f) -> (mfix_P f x y) -> f (mfix_P f) x y.
   Proof.
@@ -125,7 +125,7 @@ Section SP.
     }.
 
   Definition mfix_SP {a b:Type} (f : ((a -> SP b) -> (a -> SP b))) : a -> SP b :=
-    @wcpn3 a (fun _ => state) (fun _ _ => (state * b)%type) f bot3 bot3.
+    @gcpn3 a (fun _ => state) (fun _ _ => (state * b)%type) f bot3 bot3.
 
   Lemma mfix_SP_law1 : forall (a b : Type) f (x:a) (y : state * b) st, monotone3 f -> (mfix_SP f x st y) -> f (mfix_SP f) x st y.
   Proof.

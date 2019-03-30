@@ -94,15 +94,15 @@ Section Proper.
    *)
   Instance proper_interpret_state {S R} : Proper ((@eq_itree (stateE S) R _ eq) ==> (@eq S) ==> (@eq_itree void1 (S * R) _ eq)) interpret_state.
   Proof.
-    wcofix CIH.
+    gcofix CIH.
     intros x y H0 x2 y0 H1. 
     rewrite (itree_eta (interpret_state x x2)).
     rewrite (itree_eta (interpret_state y y0)).
     rewrite !unfold_interpret_state. subst.
-    wunfold H0. repeat red in H0. unfold interpret_stateF. repeat red.
-    destruct (observe x); inversion H0; subst; cbn; try (wstep; constructor; eauto with paco; fail).
+    gunfold H0. repeat red in H0. unfold interpret_stateF. repeat red.
+    destruct (observe x); inversion H0; subst; cbn; try (gstep; constructor; eauto with paco; fail).
     apply inj_pair2 in H2. apply inj_pair2 in H3. subst.
-    destruct e; wstep; econstructor; eauto with paco.
+    destruct e; gstep; econstructor; eauto with paco.
   Qed.
 
   End Proper.
@@ -201,7 +201,7 @@ Hint Resolve monotone_NoGets_ : paco.
    starting from bot1 (the least prediate).  We would use paco2 and bot2 for a
    binary relation, paco3 and bot3 for ternary, etc. *)
 
-Definition NoGets {S R} : itree (stateE S) R -> Prop := wcpn1 NoGets_ bot1 bot1. 
+Definition NoGets {S R} : itree (stateE S) R -> Prop := gcpn1 NoGets_ bot1 bot1. 
 
 
 (* Using a coinductive predicate -------------------------------------------- *)
@@ -227,22 +227,22 @@ Lemma state_independent : forall {S R} (t:itree (stateE S) R)
     forall s s', ('(s,x) <- interpret_state t s ;; ret x) ≅ ('(s,x) <- interpret_state t s' ;; ret x).
 Proof.
   intros S R.
-  wcofix CIH.
+  gcofix CIH.
   intros t H0 s s'. 
   rewrite (itree_eta (interpret_state t s)).
   rewrite (itree_eta (interpret_state t s')).
   rewrite !unfold_interpret_state.
   unfold interpret_stateF.
-  wunfold H0. repeat red in H0.
+  gunfold H0. repeat red in H0.
   destruct (observe t); cbn.
-  - rewrite !bind_ret. wstep. econstructor. eauto.
-  - rewrite !bind_tau. wstep. econstructor.
-    wbase. eapply CIH.
+  - rewrite !bind_ret. gstep. econstructor. eauto.
+  - rewrite !bind_tau. gstep. econstructor.
+    gbase. eapply CIH.
     inversion H0. subst. assumption.
   - destruct e; cbn.
     + (* e is Get, which is ruled out by the NoGets predicate *) inversion H0.
     + rewrite !bind_tau.
-      wstep. econstructor. wbase. eapply CIH.
+      gstep. econstructor. gbase. eapply CIH.
       inversion H0. apply inj_pair2 in H2. subst. assumption.
 Qed.
 
@@ -259,23 +259,23 @@ Lemma state_independent_k : forall {S R U} (t:itree (stateE S) R)
     forall s s', (sx <- interpret_state t s ;; (k sx)) ≅ (sx <- interpret_state t s' ;; (k sx)).
 Proof.
   intros S R U.
-  wcofix CIH.
+  gcofix CIH.
   intros t H0 k INV s s'. 
   rewrite (itree_eta (interpret_state t s)).
   rewrite (itree_eta (interpret_state t s')).
   rewrite !unfold_interpret_state.
   unfold interpret_stateF.
-  wunfold H0. repeat red in H0.
+  gunfold H0. repeat red in H0.
   destruct (observe t); cbn.
   - rewrite !bind_ret. specialize (INV s s' r0).
-    eapply wcpn2_mon; eauto with paco; contradiction.
-  - rewrite !bind_tau. wstep. econstructor.
-    wbase. eapply CIH; auto.
+    eapply gcpn2_mon; eauto with paco; contradiction.
+  - rewrite !bind_tau. gstep. econstructor.
+    gbase. eapply CIH; auto.
     inversion H0. subst. assumption.
   - destruct e; cbn.
     + (* e is Get, which is ruled out by the NoGets predicate *) inversion H0.
     + rewrite !bind_tau.
-      wstep. econstructor. wbase. eapply CIH; auto.
+      gstep. econstructor. gbase. eapply CIH; auto.
       inversion H0. apply inj_pair2 in H2. subst. assumption.
 Qed.
 

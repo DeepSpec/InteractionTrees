@@ -61,14 +61,14 @@ Instance eq_itree_interp_state {E F S R} (h : E ~> Monads.stateT S (itree F)) :
          (@interp_state _ _ _ _ _ _ h R).
 Proof.
   revert_until R.
-  wcofix CIH. intros h x y H0 x2 y0 H1.
+  gcofix CIH. intros h x y H0 x2 y0 H1.
   rewrite !unfold_interp_state.
   unfold _interp_state.
-  wunfold H0; repeat red in H0.
+  gunfold H0; repeat red in H0.
   genobs x ox; destruct ox; simpobs; dependent destruction H0; simpobs; subst.
-  - wstep. constructor. eauto.
-  - wstep. constructor. eauto with paco.
-  - wstep. constructor. wclo eq_itree_clo_bind. econstructor.
+  - gstep. constructor. eauto.
+  - gstep. constructor. eauto with paco.
+  - gstep. constructor. gclo eq_itree_clo_bind. econstructor.
     + reflexivity.
     + intros [] _ []. auto with paco.
 Qed.
@@ -117,7 +117,7 @@ Lemma interp_state_bind {E F : Type -> Type} {A B S : Type}
   (interp_state f t s >>= fun st => interp_state f (k (snd st)) (fst st)).
 Proof.
   revert A t k s.
-  wcofix CIH.
+  gcofix CIH.
   intros A t k s.
   rewrite unfold_bind. (* TODO: slow *)
   rewrite (unfold_interp_state f t).
@@ -125,10 +125,10 @@ Proof.
   - cbn. rewrite !bind_ret. simpl.
     apply reflexivity.
   - cbn. rewrite !bind_tau, interp_state_tau.
-    wstep. econstructor. wbase. apply CIH.
+    gstep. econstructor. gbase. apply CIH.
   - cbn. rewrite interp_state_vis, bind_tau, bind_bind.
-    wstep. constructor.
-    wclo eq_itree_clo_bind. econstructor.
+    gstep. constructor.
+    gclo eq_itree_clo_bind. econstructor.
     + reflexivity.
     + intros u2 ? []. specialize (CIH _ (k0 (snd u2)) k (fst u2)).
       auto with paco.
@@ -139,16 +139,16 @@ Instance eutt_interp_state {E F: Type -> Type} {S : Type}
   Proper (eutt eq ==> eq ==> eutt eq) (@interp_state E (itree F) S _ _ _ h R).
 Proof.
   repeat intro. subst. revert_until R.
-  wstep. wcofix CIH. intros.
+  gstep. gcofix CIH. intros.
 
-  rewrite !unfold_interp_state. do 2 wunfold H0.
+  rewrite !unfold_interp_state. do 2 gunfold H0.
   induction H0; intros; subst; simpl.
-  - wstep. constructor. eauto.
-  - wstep. constructor.
-    wclo eutt0_clo_bind; econstructor; [reflexivity|].
+  - gstep. constructor. eauto.
+  - gstep. constructor.
+    gclo eutt0_clo_bind; econstructor; [reflexivity|].
     intros; subst.
-    wbase. eapply CIH. edestruct EUTTK; eauto with paco.
-  - wstep. econstructor. eauto 9 with paco.
+    gbase. eapply CIH. edestruct EUTTK; eauto with paco.
+  - gstep. econstructor. eauto 9 with paco.
   - apply eutt0_tau_left.
     rewrite unfold_interp_state; auto.
   - apply eutt0_tau_right.
@@ -167,13 +167,13 @@ Lemma interp_state_loop {E F S A B C} (RS : S -> S -> Prop)
           (interp_state h (loop_ t1 ca) s1)
           (interp_state h (loop_ t2 ca) s2)).
 Proof.
-  wstep. wcofix CIH. intros.
+  gstep. gcofix CIH. intros.
 
   rewrite (itree_eta (loop_ t1 ca)), (itree_eta (loop_ t2 ca)), !unfold_loop''.
   unfold loop_once. rewrite <- !itree_eta, !interp_state_bind.
-  wclo eutt0_clo_bind. econstructor; eauto.
+  gclo eutt0_clo_bind. econstructor; eauto.
   intros. destruct RELv. rewrite H2. destruct (snd v2).
   - rewrite !interp_state_tau.
-    wstep. econstructor. eauto with paco.
-  - rewrite !interp_state_ret. wstep. econstructor. eauto.
+    gstep. econstructor. eauto with paco.
+  - rewrite !interp_state_ret. gstep. econstructor. eauto.
 Qed.

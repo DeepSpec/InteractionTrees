@@ -121,7 +121,7 @@ Hint Resolve monotone_sutt_ : paco.
 (* Equivalence Up To Taus.
 
    [eutt t1 t2]: [t1] is equivalent to [t2] up to taus. *)
-Definition sutt : itree E R1 -> itree E R2 -> Prop := wcpn2 sutt_ bot2 bot2.
+Definition sutt : itree E R1 -> itree E R2 -> Prop := gcpn2 sutt_ bot2 bot2.
 
 Global Arguments sutt t1%itree t2%itree.
 
@@ -155,14 +155,14 @@ Theorem sutt_eutt {E R1 R2} (RR : R1 -> R2 -> Prop) :
     sutt RR t1 t2 -> sutt (flip RR) t2 t1 -> eutt RR t1 t2.
 Proof.
   intros. apply euttE_impl_eutt. revert_until RR.
-  wcofix self; wstep. intros t1 t2 H1 H2.
-  wunfold H1. wunfold H2.
+  gcofix self; gstep. intros t1 t2 H1 H2.
+  gunfold H1. gunfold H2.
   destruct H1 as [FIN1 EQV1], H2 as [FIN2 EQV2].
   constructor.
   - split; auto.
   - intros.
     eapply eq_notauF_and.
-    + intros ? ? I1 I2; wbase.
+    + intros ? ? I1 I2; gbase.
       apply self; [ apply I1 | apply I2 ].
     + eapply monotone_eq_notauF; auto using EQV1.
     + apply eq_notauF_flip.
@@ -174,8 +174,8 @@ Theorem eutt_sutt {E R1 R2} (RR : R1 -> R2 -> Prop) :
     eutt RR t1 t2 -> sutt RR t1 t2.
 Proof.
   intros. apply eutt_impl_euttE in H. revert_until RR.
-  wcofix self; wstep. intros t1 t2 H1.
-  wunfold H1.
+  gcofix self; gstep. intros t1 t2 H1.
+  gunfold H1.
   destruct H1 as [FIN1 EQV1].
   constructor.
   - apply FIN1.
@@ -206,7 +206,7 @@ Inductive suttF1 (sutt: itree' E R1 -> itree' E R2 -> Prop) :
 Hint Constructors suttF1.
 
 Definition sutt1 (t1 : itree E R1) (t2 : itree E R2) :=
-  wcpn2 suttF1 bot2 bot2 (observe t1) (observe t2).
+  gcpn2 suttF1 bot2 bot2 (observe t1) (observe t2).
 Hint Unfold sutt1.
 
 End SUTT1.
@@ -236,24 +236,24 @@ Hint Resolve monotone_suttF1 : paco.
 
 Lemma sutt_to_sutt1:
   forall (t1 : itree E R1) (t2 : itree E R2),
-    wcpn2 (sutt_ RR) bot2 bot2 t1 t2 -> wcpn2 (suttF1 RR) bot2 bot2 (observe t1) (observe t2).
+    gcpn2 (sutt_ RR) bot2 bot2 t1 t2 -> gcpn2 (suttF1 RR) bot2 bot2 (observe t1) (observe t2).
 Proof.
-  wcofix self; wstep. intros t1 t2 SUTT.
-  wunfold SUTT.
+  gcofix self; gstep. intros t1 t2 SUTT.
+  gunfold SUTT.
   apply sutt_inv in SUTT.
   destruct SUTT.
   - destruct H0 as [Huntaus Hnotau].
     induction Huntaus.
     + destruct H1; subst; auto with paco.
     + subst. constructor. eauto.
-  - rewrite H; constructor. wbase; apply self. eauto with paco.
+  - rewrite H; constructor. gbase; apply self. eauto with paco.
 Qed.
 
 Lemma sutt1_to_sutt : forall (t1 : itree E R1) (t2 : itree E R2),
     sutt1 RR t1 t2 -> sutt RR t1 t2.
 Proof.
-  wcofix self; wstep. intros t1 t2 SUTT.
-  wunfold SUTT. repeat red.
+  gcofix self; gstep. intros t1 t2 SUTT.
+  gunfold SUTT. repeat red.
   induction SUTT.
   - apply sutt_inv; eauto 7.
   - apply sutt_inv; eapply suttF0_notau; eauto.
@@ -265,7 +265,7 @@ Proof.
     intros. eapply unalltaus_tau in H; eauto.
     destruct H as [Huntaus Hnotau].
     revert ot2 EQTAUS; induction Huntaus; intros.
-    + wunfold EQTAUS. induction EQTAUS.
+    + gunfold EQTAUS. induction EQTAUS.
       * eauto 9.
       * eexists; split.
         { repeat constructor. }
@@ -273,7 +273,7 @@ Proof.
       * destruct IHEQTAUS as [? []]; auto.
         eauto using unalltaus_tau'.
       * contradiction.
-    + wunfold EQTAUS. induction EQTAUS; try discriminate.
+    + gunfold EQTAUS. induction EQTAUS; try discriminate.
       * destruct IHEQTAUS as [? []]; auto.
         eauto using unalltaus_tau'.
       * inv OBS. eauto.
@@ -302,17 +302,17 @@ Proof.
   apply sutt_is_sutt1.
   apply sutt_is_sutt1 in H.
   setoid_rewrite sutt_is_sutt1 in H0.
-  revert t1 t2 H; wcofix self; wstep. intros.
-  wunfold H1. setoid_rewrite unfold_bind.
+  revert t1 t2 H; gcofix self; gstep. intros.
+  gunfold H1. setoid_rewrite unfold_bind.
   genobs_clear t1 ot1. genobs_clear t2 ot2.
   induction H1; intros.
   - simpl. red in H0.
-    apply H0 in H. wunfold H.
+    apply H0 in H. gunfold H.
     eapply monotone_suttF1; eauto with paco.
-    intros. eapply wcpn2_mon; eauto with paco; contradiction. 
+    intros. eapply gcpn2_mon; eauto with paco; contradiction. 
   - constructor. eauto with paco.
   - constructor. eauto.
-  - constructor. wbase. eapply (self t1 (go (ot2))). eauto.
+  - constructor. gbase. eapply (self t1 (go (ot2))). eauto.
 Qed.
 
 Require Import Coq.Relations.Relations.
@@ -353,11 +353,11 @@ Proof.
   red. red.
   do 5 intro. do 2 rewrite sutt_is_sutt1.
   revert x0 y0 H x1 y1.
-  wcofix CIH; wstep.
+  gcofix CIH; gstep.
   intros.
-  wunfold H0.
-  wunfold H1.
-  wunfold H2.
+  gunfold H0.
+  gunfold H1.
+  gunfold H2.
   repeat red in H0. repeat red in H1. repeat red in H2.
   revert H0 H1.
   genobs_clear y0 oy0. genobs_clear y1 oy1. genobs_clear x2 ox2. genobs_clear x3 ox3.
@@ -371,21 +371,21 @@ Proof.
     rewrite H. rewrite H1.
     constructor.
     intros.
-    wbase.
+    gbase.
     specialize (H0 x2).
     specialize (H2 x2).
     eapply CIH; eauto. }
   { inversion H1; clear H1; subst.
     constructor.
     eapply IHsuttF1; eauto.
-    wunfold REL. eauto. }
+    gunfold REL. eauto. }
   { inversion H0; clear H0; subst.
     constructor.
-    wbase.
+    gbase.
     change oy1 with (observe (go oy1)).
     eapply CIH.
     - eassumption.
     - instantiate (1:= go ot2).
-      wstep. eapply H1.
+      gstep. eapply H1.
     - eapply EQTAUS. }
 Qed.

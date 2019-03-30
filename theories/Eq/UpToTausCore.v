@@ -30,34 +30,34 @@ Context {E : Type -> Type} {R : Type} (RR : R -> R -> Prop).
 Global Instance subrelation_eq_eutt0 eutt :
   @subrelation (itree E R) (eq_itree RR) (eutt0 RR eutt).
 Proof.
-  wcofix CIH; wstep. intros.
-  wunfold H0. repeat red in H0 |- *. inv H0; eauto 7 with paco.
+  gcofix CIH; gstep. intros.
+  gunfold H0. repeat red in H0 |- *. inv H0; eauto 7 with paco.
 Qed.
 
 Global Instance subrelation_eq_eutt :
   @subrelation (itree E R) (eq_itree RR) (eutt RR).
 Proof.
-  wstep. wcofix CIH'; wstep. intros.
-  wunfold H0. repeat red in H0 |- *. inv H0; eauto 7 with paco.
+  gstep. gcofix CIH'; gstep. intros.
+  gunfold H0. repeat red in H0 |- *. inv H0; eauto 7 with paco.
 Qed.
 
 Global Instance Reflexive_eutt0_param `{Reflexive _ RR} eutt
        (r rg: itree E R -> itree E R -> Prop) :
-  Reflexive (wcpn2 (eutt0_ RR eutt) r rg).
+  Reflexive (gcpn2 (eutt0_ RR eutt) r rg).
 Proof.
   repeat intro.
-  eapply wcpn2_mon with (r:=bot2) (rg:=bot2); eauto with paco; try contradiction.
-  revert x. wcofix CIH; wstep. red; intros.
+  eapply gcpn2_mon with (r:=bot2) (rg:=bot2); eauto with paco; try contradiction.
+  revert x. gcofix CIH; gstep. red; intros.
   destruct (observe x); eauto 7 with paco.
 Qed.
 
 Global Instance Reflexive_eutt_param `{Reflexive _ RR}
        (r rg: itree E R -> itree E R -> Prop) :
-  Reflexive (wcpn2 (eutt0 RR) r rg).
+  Reflexive (gcpn2 (eutt0 RR) r rg).
 Proof.
   repeat intro.
-  eapply wcpn2_mon with (r:=bot2) (rg:=bot2); eauto with paco; try contradiction.
-  revert x. wstep. wcofix CIH; wstep. intros. repeat red.
+  eapply gcpn2_mon with (r:=bot2) (rg:=bot2); eauto with paco; try contradiction.
+  revert x. gstep. gcofix CIH; gstep. intros. repeat red.
   destruct (observe x); eauto 7 with paco.
 Qed.
 
@@ -86,35 +86,35 @@ Lemma Symmetric_eutt_hetero {R1 R2}
   forall (t1 : itree E R1) (t2 : itree E R2),
     eutt RR1 t1 t2 -> eutt RR2 t2 t1.
 Proof.
-  wstep. wcofix CIH; wstep. intros.
-  do 2 wunfold H0.
+  gstep. gcofix CIH; gstep. intros.
+  do 2 gunfold H0.
   repeat red in H0 |- *.
   induction H0; eauto 7 with paco.
   econstructor; intros.
   edestruct EUTTK as [TMP | TMP]; [eauto 7 with paco|].
-  right. wbase. apply CIH. wstep. eauto.
+  right. gbase. apply CIH. gstep. eauto.
 Qed.
 
 Lemma euttF_elim_tau_left {R1 R2} (RR: R1 -> R2 -> Prop) r (t1: itree E R1) (t2: itree E R2)
-    (REL : eutt0_ RR r (wcpn2 (eutt0_ RR r) bot2 bot2) (Tau t1) t2) :
-  eutt0_ RR r (wcpn2 (eutt0_ RR r) bot2 bot2) t1 t2.
+    (REL : eutt0_ RR r (gcpn2 (eutt0_ RR r) bot2 bot2) (Tau t1) t2) :
+  eutt0_ RR r (gcpn2 (eutt0_ RR r) bot2 bot2) t1 t2.
 Proof.
   repeat red in REL |- *. simpl in *.
   remember (TauF t1) as ott1.
   move REL before r. revert_until REL.
   induction REL; intros; subst; try dependent destruction Heqott1; eauto.
-  wunfold EQTAUS. eauto.
+  gunfold EQTAUS. eauto.
 Qed.
 
 Lemma euttF_elim_tau_right {R1 R2} (RR: R1 -> R2 -> Prop) r (t1: itree E R1) (t2: itree E R2)
-    (REL : eutt0_ RR r (wcpn2 (eutt0_ RR r) bot2 bot2) t1 (Tau t2)) :
-  eutt0_ RR r (wcpn2 (eutt0_ RR r) bot2 bot2) t1 t2.
+    (REL : eutt0_ RR r (gcpn2 (eutt0_ RR r) bot2 bot2) t1 (Tau t2)) :
+  eutt0_ RR r (gcpn2 (eutt0_ RR r) bot2 bot2) t1 t2.
 Proof.
   repeat red in REL |- *. simpl in *.
   remember (TauF t2) as ott2.
   move REL before r. revert_until REL.
   induction REL; intros; subst; try dependent destruction Heqott2; eauto.
-  wunfold EQTAUS. eauto.
+  gunfold EQTAUS. eauto.
 Qed.
 
 Definition isb_tau {E R} (ot: itree' E R) : bool :=
@@ -123,14 +123,14 @@ Definition isb_tau {E R} (ot: itree' E R) : bool :=
 Lemma eutt_Ret {R1 R2} (RR: R1 -> R2 -> Prop) x y :
   RR x y -> @eutt E R1 R2 RR (Ret x) (Ret y).
 Proof.
-  intros; wstep. wstep. econstructor. eauto.
+  intros; gstep. gstep. econstructor. eauto.
 Qed.
 
 Lemma eutt_Vis {R1 R2 U} RR (e: E U) k k' :
   (forall x: U, @eutt E R1 R2 RR (k x) (k' x)) ->
   eutt RR (Vis e k) (Vis e k').
 Proof.
-  intros. wstep. wstep. econstructor.
+  intros. gstep. gstep. econstructor.
   intros. left. apply H.
 Qed.
 
@@ -162,19 +162,19 @@ Proof. intros ? ? []; eauto. Qed.
 
 Global Instance eutt_cong_observe : Proper (eutt ==> going eutt) observe.
 Proof.
-  constructor. do 2 wstep. do 2 wunfold H. auto.
+  constructor. do 2 gstep. do 2 gunfold H. auto.
 Qed.
 
 Global Instance eutt_cong_tauF : Proper (eutt ==> going eutt) (@TauF _ _ _).
 Proof.
-  constructor. do 2 wstep. econstructor. wunfold H. eauto.
+  constructor. do 2 gstep. econstructor. gunfold H. eauto.
 Qed.
 
 Global Instance eutt_cong_VisF {u} (e: E u) :
   Proper (pointwise_relation _ eutt ==> going eutt) (VisF e).
 Proof.
-  constructor. wstep. wstep. econstructor.
-  intros. specialize (H x0). wunfold H. eauto.
+  constructor. gstep. gstep. econstructor.
+  intros. specialize (H x0). gunfold H. eauto.
 Qed.
 
 End EUTT_eq.
@@ -183,7 +183,7 @@ Lemma eutt_tau {E R1 R2} (RR : R1 -> R2 -> Prop)
            (t1 : itree E R1) (t2 : itree E R2) :
   eutt RR t1 t2 -> eutt RR (Tau t1) (Tau t2).
 Proof.
-  intros. wstep. wstep. econstructor. wunfold H. eauto.
+  intros. gstep. gstep. econstructor. gunfold H. eauto.
 Qed.
 
 Lemma eutt_vis {E R1 R2} (RR : R1 -> R2 -> Prop)
@@ -192,10 +192,10 @@ Lemma eutt_vis {E R1 R2} (RR : R1 -> R2 -> Prop)
   eutt RR (Vis e k1) (Vis e k2).
 Proof.
   split.
-  - intros. wstep; wstep; econstructor.
-    intros x; specialize (H x). wunfold H. eauto.
+  - intros. gstep; gstep; econstructor.
+    intros x; specialize (H x). gunfold H. eauto.
   - intros H x.
-    wunfold H; wunfold H; inversion H; auto_inj_pair2; subst.
+    gunfold H; gunfold H; inversion H; auto_inj_pair2; subst.
     edestruct EUTTK; eauto with paco.
 Qed.
 
@@ -203,8 +203,8 @@ Lemma eutt_ret {E R1 R2} (RR : R1 -> R2 -> Prop) r1 r2 :
   @eutt E R1 R2 RR (Ret r1) (Ret r2) <-> RR r1 r2.
 Proof.
   split.
-  - intros H. wunfold H; wunfold H; inversion H; auto.
-  - intros. wstep; wstep; econstructor. auto.
+  - intros H. gunfold H; gunfold H; inversion H; auto.
+  - intros. gstep; gstep; econstructor. auto.
 Qed.
 
 Global Instance eutt_when {E} (b : bool) :
@@ -223,7 +223,7 @@ Qed.
 
 Lemma tau_eutt {E R} (t: itree E R) : Tau t ≈ t.
 Proof.
-  wstep. wstep. econstructor.
+  gstep. gstep. econstructor.
   destruct (observe t); eauto with paco.
   - constructor. apply reflexivity.
   - constructor. intros. left. apply reflexivity.

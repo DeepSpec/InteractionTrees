@@ -155,7 +155,7 @@ Qed.
 (* SAZ: the [~] notation for eutt wasn't working here. *)
 Lemma eval_one_loop : eval one_loop ≈ one_loop_tree.
 Proof.
-  wcofix CIH.
+  gcofix CIH.
   setoid_rewrite rec_as_interp.
   setoid_rewrite interp_bind.
   setoid_rewrite interp_vis.
@@ -164,7 +164,7 @@ Proof.
   setoid_rewrite bind_bind.
   setoid_rewrite bind_ret.
   setoid_rewrite bind_vis.
-  do 2 wstep; econstructor; left.
+  do 2 gstep; econstructor; left.
   setoid_rewrite bind_ret.
   destruct x.
   - setoid_rewrite interp_ret.
