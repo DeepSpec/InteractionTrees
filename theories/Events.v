@@ -1,7 +1,7 @@
-(** * Effects included in the library *)
+(** * Standard event types *)
 
 (* begin hide *)
-From ITree.Effects Require
+From ITree.Events Require
      State
      Reader
      Writer

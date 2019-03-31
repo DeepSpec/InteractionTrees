@@ -1,6 +1,6 @@
 (** * Sums of indexed types *)
 
-(** In the context of interaction trees, effects can be combined
+(** In the context of interaction trees, events can be combined
     using this sum type. *)
 
 (* begin hide *)

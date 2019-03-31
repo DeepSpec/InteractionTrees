@@ -1,3 +1,7 @@
+(** * State *)
+
+(** Events to read and update global state. *)
+
 (* begin hide *)
 From ExtLib Require Import
      Structures.Functor
@@ -9,7 +13,7 @@ From ITree Require Import
      Core.ITreeDefinition
      Indexed.Function
      Indexed.Sum
-     Indexed.OpenSum
+     Core.Subevent
      Interp.Interp.
 
 Import ITree.Basics.Basics.Monads.
@@ -96,7 +100,7 @@ Arguments eff_hom_prop _ _ : clear implicits.
 Section eff_hom_e.
   Context {E F : Type -> Type}.
 
-  (* note(gmm): you should be able to add effects here
+  (* note(gmm): you should be able to add events here
    * using a monad transformer. In that case, the type
    * of `eval` is:
    *

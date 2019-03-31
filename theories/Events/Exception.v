@@ -1,4 +1,4 @@
-(** * Exception effect *)
+(** * Exception event *)
 
 (* begin hide *)
 Set Implicit Arguments.
@@ -8,7 +8,7 @@ From ITree Require Import
      Basics.Basics
      Core.ITreeDefinition
      Indexed.Sum
-     Indexed.OpenSum
+     Core.Subevent
      Interp.Interp.
 (* end hide *)
 

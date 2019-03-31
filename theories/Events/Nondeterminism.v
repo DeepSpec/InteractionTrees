@@ -14,8 +14,8 @@ From ITree Require Import
      Basics.Basics
      Core.ITreeDefinition
      Indexed.Sum
-     Indexed.OpenSum
-     Effects.Exception.
+     Core.Subevent
+     Events.Exception.
 (* end hide *)
 
 (** Make nondeterministic choices. *)
@@ -48,14 +48,14 @@ Definition remove_from {X} : list X -> list (X * list X) :=
 
 (** ** Empty nondeterminism *)
 
-(** We can use the [exceptE] effect to model nullary branching. *)
+(** We can use [exceptE] events to model nullary branching. *)
 
 (** Exception thrown by [choose]. *)
 Variant no_choice : Set := NoChoice.
 
 (** Choose an element from a list.
 
-    This can fail if the list is empty, using the [exceptE no_choice] effect.
+    This can fail if the list is empty, using the [exceptE no_choice] event.
  *)
 Definition choose {E} `{nondetE -< E} `{exceptE no_choice -< E} {X}
   : list X -> itree E X

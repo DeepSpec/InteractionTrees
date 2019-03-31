@@ -14,7 +14,7 @@ From ITree Require Import
      Core.KTreeBasicFacts
      Eq.UpToTausEquivalence
      Indexed.Sum
-     Indexed.OpenSum
+     Core.Subevent
      Indexed.Function
      Indexed.Relation
      Interp.Interp
@@ -202,12 +202,12 @@ Proof.
     + intros; subst. auto with paco.
 Qed.
 
-Lemma interp_send {E F : Type -> Type} {R : Type}
+Lemma interp_trigger {E F : Type -> Type} {R : Type}
       (f : E ~> (itree F))
       (e : E R) :
-  interp f (ITree.send e) ≅ Tau (f _ e).
+  interp f (ITree.trigger e) ≅ Tau (f _ e).
 Proof.
-  unfold ITree.send. rewrite interp_vis.
+  unfold ITree.trigger. rewrite interp_vis.
   apply eq_itree_Tau.
   setoid_rewrite interp_ret.
   rewrite bind_ret2.
@@ -222,18 +222,18 @@ Proof.
   revert t. ucofix CIH. red. ucofix CIH'. intros.
   rewrite unfold_interp. unfold _interp. repeat red.
   destruct (observe t); cbn; eauto 8 with paco.
-  unfold id_, Id_Handler, Handler.id_, ITree.send. eutt0_fold. rewrite bind_vis_.
+  unfold id_, Id_Handler, Handler.id_, ITree.trigger. eutt0_fold. rewrite bind_vis_.
   do 2 constructor.
   left; rewrite bind_ret; auto with paco.
 Qed.
 
-Lemma interp_send_h {E R} (t : itree E R) :
-  interp (fun _ e => ITree.send e) t ≈ t.
+Lemma interp_trigger_h {E R} (t : itree E R) :
+  interp (fun _ e => ITree.trigger e) t ≈ t.
 Proof.
   revert t. ucofix CIH. red. ucofix CIH'. intros.
   rewrite unfold_interp. repeat red.
   destruct (observe t); cbn; eauto with paco.
-  unfold ITree.send. constructor. rewrite bind_vis.
+  unfold ITree.trigger. constructor. rewrite bind_vis.
   constructor.
   left. rewrite bind_ret.
   auto with paco.
@@ -278,21 +278,21 @@ Proof.
 Qed.
 
 Lemma translate_to_interp {E F R} (f : E ~> F) (t : itree E R) :
-  translate f t ≈ interp (fun _ e => ITree.send (f _ e)) t.
+  translate f t ≈ interp (fun _ e => ITree.trigger (f _ e)) t.
 Proof.
   revert t. ucofix CIH. red. ucofix CIH'. intros.
   rewrite unfold_translate.
   rewrite unfold_interp.
   unfold translateF, _interp. repeat red.
   destruct (observe t); cbn; simpl in *; eauto 7 with paco.
-  unfold ITree.send. econstructor. rewrite bind_vis.
+  unfold ITree.trigger. econstructor. rewrite bind_vis.
   do 2 constructor.
   rewrite bind_ret. auto with paco.
 Qed.
 
 Hint Rewrite @interp_ret : itree.
 Hint Rewrite @interp_vis : itree.
-Hint Rewrite @interp_send : itree.
+Hint Rewrite @interp_trigger : itree.
 Hint Rewrite @interp_bind : itree.
 
 Lemma interp_loop {E F} (f : E ~> itree F) {A B C}

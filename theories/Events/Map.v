@@ -19,9 +19,9 @@ From ITree Require Import
      Basics.CategoryOps
      Core.ITreeDefinition
      Indexed.Sum
-     Indexed.OpenSum
+     Core.Subevent
      Interp.Interp
-     Effects.State.
+     Events.State.
 
 Import ITree.Basics.Basics.Monads.
 (* end hide *)

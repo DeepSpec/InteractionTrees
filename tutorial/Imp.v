@@ -133,11 +133,11 @@ Import ImpNotations.
 (** _Imp_ produces effects by manipulating its variables.
     To account for this, we define a type of _external interactions_
     [Locals] modeling reads and writes to variables.
-    A read, [GetVar], takes a variable as an argument and expects
-    the environment to answer with a value, hence defining an effect
-    of type [Locals value].
-    Similarly, [SetVar] is a write effect parameterized by both a variable
-    and a value to be written, and defines an effect of type [Locals unit],
+    A read, [GetVar], takes a variable as an argument and expects the
+    environment to answer with a value, hence defining an event of type
+    [Locals value].
+    Similarly, [SetVar] is a write event parameterized by both a variable
+    and a value to be written, and defines an event of type [Locals unit],
     no informative answer being expected from the environment.
  *)
 Variant Locals : Type -> Type :=
@@ -147,38 +147,38 @@ Variant Locals : Type -> Type :=
 Section Denote.
 
   (** We now proceed to denote _Imp_ expressions and statements.
-      We could simply fix in stone the universe of effects to be considered,
+      We could simply fix in stone the universe of events to be considered,
       taking as a semantic domain for _Imp_ [itree Locals X].
-      That would be sufficient to give meaning to _Imp_, but is inconvenient to
-      relate this meaning to [itree]s stemmed from other entities.
-      We therefore parameterize the denotation of _Imp_ by a larger universe of
-      effects [eff], of which [Locals] is assumed to be a subeffect.
+      That would be sufficient to give meaning to _Imp_, but is inconvenient
+      to relate this meaning to [itree]s stemmed from other entities.
+      Therefore, we parameterize the denotation of _Imp_ by a larger universe
+      of events [eff], of which [Locals] is assumed to be a subevent.
    *)
 
   Context {eff : Type -> Type}.
   Context {HasLocals : Locals -< eff}.
 
-  (** _Imp_ expressions are denoted as [itree eff value], where the returned value
-      in the tree is the value computed by the expression.
-      In the [Var] case, the [send] operator smoothly lifts a single effect to
+  (** _Imp_ expressions are denoted as [itree eff value], where the returned
+      value in the tree is the value computed by the expression.
+      In the [Var] case, the [trigger] operator smoothly lifts a single event to
       an [itree] by performing the corresponding [Vis] event and returning the
       environment's answer immediately.
-      Usual monadic notations are used in the other cases. A constant (literal) is
-      simply returned, while we can [bind] recursive computations in the case of
-      operators as one would expect.
+      Usual monadic notations are used in the other cases. A constant
+      (literal) is simply returned, while we can [bind] recursive computations
+      in the case of operators as one would expect.
    *)
   Fixpoint denoteExpr (e : expr) : itree eff value :=
     match e with
-    | Var v => send (GetVar v)
+    | Var v => trigger (GetVar v)
     | Lit n => ret n
     | Plus a b => l <- denoteExpr a ;; r <- denoteExpr b ;; ret (l + r)
     | Minus a b => l <- denoteExpr a ;; r <- denoteExpr b ;; ret (l - r)
     | Mult a b => l <- denoteExpr a ;; r <- denoteExpr b ;; ret (l * r)
     end.
 
-  (** We turn to the denotation of statements. As opposed to expressions, statements
-      do not return any value: their semantic domain is therefore [itree eff unit].
-      The most interesting construct is naturally [while].
+  (** We turn to the denotation of statements. As opposed to expressions,
+      statements do not return any value: their semantic domain is therefore
+      [itree eff unit]. The most interesting construct is naturally [while].
 
       To define its meaning, we make use of the [loop] combinator provided by
       the [itree] library:
@@ -188,10 +188,11 @@ Section Denote.
       can be fed back to the loop, or a return value of type [B]. The combinator
       builds the fixpoint of the body, hiding away the [C] argument.
       
-      Compared to the [mrec] and [rec] combinators introduced in [Introduction.v], [loop]
-      is more restricted in that it naturally represents tail recursive functions.
-      It however enjoys a rich equational theory: its addition grants the type of
-      _continuation trees_, named [ktree]s in the library, a structure of
+      Compared to the [mrec] and [rec] combinators introduced in
+      [Introduction.v], [loop] is more restricted in that it naturally
+      represents tail recursive functions.
+      It however enjoys a rich equational theory: its addition grants the type
+      of _continuation trees_, named [ktree]s in the library, a structure of
       _traced monoidal category_.
 
       We use [loop] to first build a new combinator [while] that takes a boolean
@@ -220,7 +221,7 @@ Section Denote.
     match s with
     | Assign x e =>
       v <- denoteExpr e ;;
-      send (SetVar x v)
+      trigger (SetVar x v)
     | Seq a b =>
       denoteStmt a ;; denoteStmt b
     | If i t e =>
@@ -258,7 +259,7 @@ Section Denote_Fact.
   (** We have given _a_ notion of denotation to [fact 6] via [denoteStmt].
       However this is naturally not actually runnable yet, since it contains
       uninterpreted [Locals] events.
-      We therefore now need to /handle/ the events contained
+      We therefore now need to _handle_ the events contained
       in the trees, i.e. give a concrete interpretation of the environment.
    *)
 
@@ -269,7 +270,7 @@ End Denote_Fact.
 
 (* begin hide *)
 From ITree Require Import
-     Effects.Map.
+     Events.Map.
 
 From ExtLib Require Import
      Core.RelDec
@@ -277,14 +278,14 @@ From ExtLib Require Import
      Data.Map.FMapAList.
 (* end hide *)
 
-(** We provide an /ITree event handler/ to interpret away [Locals] events.
-    We use an /environment effect/ to do so, modeling the environment as
+(** We provide an _ITree event handler_ to interpret away [Locals] events.
+    We use an _environment event_ to do so, modeling the environment as
     a 0-initialized environment.
-    Recall from [Introduction.v] that a _handler_ for the effects [Locals]
+    Recall from [Introduction.v] that a _handler_ for the events [Locals]
     is a function of type [forall R, Locals R -> M R] for some monad [M].
     Here we take for our monad the special case of [M = itree E] for some
-    universe of effects [E] required to contain the environment effects [envE]
-    provided by the library. It comes with an effect handler [run_env]
+    universe of events [E] required to contain the environment events [envE]
+    provided by the library. It comes with an event handler [run_env]
     interpreting the computation into the state monad.
  *)
 
@@ -316,7 +317,7 @@ Qed.
    We then [interp]ret [Locals] into [envE] using [evalLocals], leading to
    an [itree (envE var value) unit].
    Finally, [run_env] interprets the latter [itree] into the state monad,
-   resulting in an [itree] free of any effect, but returning an environment.
+   resulting in an [itree] free of any event, but returning an environment.
  *)
 
 Definition ImpEval (s: stmt): itree void1 (env * unit) :=
@@ -324,9 +325,8 @@ Definition ImpEval (s: stmt): itree void1 (env * unit) :=
   run_map p empty.
 
 (** Equipped with this evaluator, we can now compute.
-    Naturally since Coq is total, we cannot do it directly
-    inside of it. We can either rely on extraction, or
-    use some fuel.
+    Naturally since Coq is total, we cannot do it directly inside of it.
+    We can either rely on extraction, or use some fuel.
  *)
 Compute (burn 100 (ImpEval (fact "x" "y" 6))). 
 

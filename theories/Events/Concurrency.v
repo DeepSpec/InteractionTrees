@@ -11,15 +11,15 @@ Import ListNotations.
 From ITree Require Import
      Core.ITreeDefinition
      Indexed.Sum
-     OpenSum.
+     Subevent.
 (* end hide *)
 
-(* An event that spawns a unit-producing thread with effects in E.   *)
+(* An event that spawns a unit-producing thread with events in [E]. *)
 Inductive spawnE E : Type -> Type :=
 | Spawn : forall (t: itree (spawnE E +' E) unit), spawnE E unit.
 
 Definition spawn {F E} `{(spawnE F) -< E} (t:itree (spawnE F +' F) unit) : itree E unit :=
-    send (Spawn t).
+    trigger (Spawn t).
 
 (* A simple round-robin scheduler:
 
@@ -31,7 +31,7 @@ Definition spawn {F E} `{(spawnE F) -< E} (t:itree (spawnE F +' F) unit) : itree
    scheduled pool diverges.
 
    With this implementation, the threads could communicate via a shared memory
-   via their effects [E], but there are no real synchronization primitives that
+   via their events [E], but there are no real synchronization primitives that
    could be used to prevent races.
 
 

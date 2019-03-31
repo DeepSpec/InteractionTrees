@@ -18,7 +18,7 @@ From ITree Require Import
      Eq.UpToTaus
      Indexed.Sum
      Indexed.Function
-     Indexed.OpenSum
+     Core.Subevent
      Interp.Interp
      Interp.InterpFacts
      Interp.Recursion.
@@ -115,7 +115,7 @@ Qed.
     where [mrecursive] is defined as follows. *)
 Definition mrecursive (f : D ~> itree (D +' E))
   : (D +' E) ~> itree E :=
-  case_ (mrec f) ITree.send.
+  case_ (mrec f) ITree.trigger.
 
 Theorem interp_mrec_as_interp {T} (c : itree _ T) :
   interp_mrec ctx c ≅ interp (mrecursive ctx) c.
@@ -130,7 +130,7 @@ Proof.
     uclo eq_itree_clo_bind; econstructor; [reflexivity|].
     intros ? _ []; eauto with paco.
 
-  - unfold ITree.send, case_; simpl. rewrite bind_vis_.
+  - unfold ITree.trigger, case_; simpl. rewrite bind_vis_.
     constructor.
     ustep; econstructor. intros.
     rewrite bind_ret_. auto with paco.
@@ -143,10 +143,10 @@ Proof.
 Qed.
 
 Lemma interp_mrecursive {T} (d : D T) :
-  interp (mrecursive ctx) (send_inl1 d) ≅ Tau (mrec ctx d).
+  interp (mrecursive ctx) (trigger_inl1 d) ≅ Tau (mrec ctx d).
 Proof.
-  unfold mrecursive. unfold send_inl1.
-  rewrite interp_send. cbn. reflexivity.
+  unfold mrecursive. unfold trigger_inl1.
+  rewrite interp_trigger. cbn. reflexivity.
 Qed.
 
 End Facts.
@@ -154,7 +154,7 @@ End Facts.
 (** [rec body] is equivalent to [interp (recursive body)],
     where [recursive] is defined as follows. *)
 Definition recursive {E A B} (f : A -> itree (callE A B +' E) B) : (callE A B +' E) ~> itree E :=
-  case_ (calling' (rec f)) ITree.send.
+  case_ (calling' (rec f)) ITree.trigger.
 
 Lemma rec_as_interp {E A B} (f : A -> itree (callE A B +' E) B) (x : A) :
   rec f x ≅ interp (recursive f) (f x).
@@ -170,7 +170,7 @@ Lemma interp_recursive_call {E A B} (f : A -> itree (callE A B +' E) B) (x:A) :
    interp (recursive f) (call x) ≅ Tau (rec f x).
 Proof.
   unfold recursive. unfold call.
-  rewrite interp_send. cbn. reflexivity.
+  rewrite interp_trigger. cbn. reflexivity.
 Qed.
 
 Lemma unfold_forever {E R S} (t : itree E R)

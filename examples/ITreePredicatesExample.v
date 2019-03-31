@@ -1,3 +1,10 @@
+(* This file gives an elementary example of how to write a coinductive predicate
+   over itrees and use it to do some simple proofs. This is a common use case
+   when working with itrees. *)
+
+(* TODO: this infrastructure should be generalized and integrated into
+   the library. *)
+
 Set Implicit Arguments.
 Set Contextual Implicit.
 
@@ -16,31 +23,26 @@ From Paco Require Import paco.
 
 Import ITreeNotations.
 
-(* This file gives an elementary example of how to write a coinductive predicate 
-   over itrees and use it to do some simple proofs. This is a common use case 
-   when working with itrees. *)
-
 
 (* Defining an itree interpreter -------------------------------------------- *)
 
-(* Suppose that we have an ITree whose effect type admits certain kinds of
+(* Suppose that we have an ITree whose event type admits certain kinds of
    operations.  For this example, we take a simplified version of the [stateE]
-   effect, which defines [get] and [put] operations on states. (see Effect.Std
-   for the more elaborate version, which allows additional effects. )
+   event, which defines [get] and [put] operations on states.
  *)
 
 Variant stateE (S:Type) : Type -> Type :=
 | Get : stateE S S
 | Put : S -> stateE S unit.
 
-(* We can define an interpretation of the [stateE] effect into an itree with
-   empty effects as follows. Note that we split out the "node functor", which is
+(* We can define an interpretation of [stateE] events into itrees with
+   no events as follows. Note that we split out the "node functor", which is
    parameterized by the interpreter on the recursive calls, separating it from
    the CoFixpoint.  This structure mirrors the way that we define predicates
    below.
 
    The ITrees library defines more elaborate versions of these interpreters that
-   work with multiple effects. *)
+   work with multiple events types. *)
 
 Definition stateT (S:Type) (M:Type -> Type) (R:Type) := S -> M (S * R)%type.
 
@@ -116,7 +118,7 @@ Section Proper.
    depend on the (initial) state.  *)
 
 (* First, we define a predicate [NoGets], which characterizes the itrees that
-   don't have the [Get] effect.
+   don't have [Get] events.
 
    There are basically two options for doing this: (1) write a "native" CoInductive
    predicate, or (2) write a paco-compatible predicate.  Since we advocate using
