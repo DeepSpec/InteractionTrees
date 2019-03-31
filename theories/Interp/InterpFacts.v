@@ -84,7 +84,7 @@ Proof.
   destruct (observe t); cbn.
   - reflexivity.
   - rewrite bind_ret_; reflexivity. (* TODO: [bind_ret] is incredibly slow *)
-  - rewrite map_bind. apply eq_itree_Tau. eapply eq_itree_bind.
+  - rewrite bind_map. apply eq_itree_Tau. eapply eq_itree_bind.
     reflexivity.
     intros ? _ []; reflexivity.
 Qed.

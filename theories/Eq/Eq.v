@@ -505,14 +505,14 @@ Proof.
   rewrite bind_bind. setoid_rewrite bind_ret. reflexivity.
 Qed.
 
-Lemma map_bind {E R S T}: forall (f : R -> S) (k: S -> itree E T) (t : itree E R),
+Lemma bind_map {E R S T}: forall (f : R -> S) (k: S -> itree E T) (t : itree E R),
     ITree.bind (ITree.map f t) k ≅ ITree.bind t (fun x => k (f x)).
 Proof.
   unfold ITree.map. intros.
   rewrite bind_bind. setoid_rewrite bind_ret. reflexivity.
 Qed.
 
-Lemma bind_map {E X Y Z} (t: itree E X) (k: X -> itree E Y) (f: Y -> Z) :
+Lemma map_bind {E X Y Z} (t: itree E X) (k: X -> itree E Y) (f: Y -> Z) :
   (ITree.map f (x <- t;; k x)) ≅ (x <- t;; ITree.map f (k x)).
 Proof.
   intros.
@@ -532,7 +532,7 @@ Qed.
 Hint Rewrite @bind_ret_ : itree.
 Hint Rewrite @bind_tau_ : itree.
 Hint Rewrite @bind_vis_ : itree.
-Hint Rewrite @map_bind : itree.
+Hint Rewrite @bind_map : itree.
 Hint Rewrite @map_ret : itree.
 Hint Rewrite @bind_ret2 : itree.
 Hint Rewrite @bind_bind : itree.

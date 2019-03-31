@@ -49,7 +49,7 @@ Proof.
   - reflexivity.
   - rewrite bind_ret_.
     reflexivity.
-  - rewrite map_bind. eapply eq_itree_Tau.
+  - rewrite bind_map. eapply eq_itree_Tau.
     eapply eq_itree_bind.
     + reflexivity.
     + intros [] _ []; reflexivity.

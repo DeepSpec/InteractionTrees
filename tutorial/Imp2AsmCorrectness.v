@@ -433,7 +433,7 @@ Section Eq_Locals.
     unfold lookup_def; cbn.
     rewrite unfold_interp_state; cbn.
     rewrite tau_eutt.
-    rewrite map_bind.
+    rewrite bind_map.
     setoid_rewrite bind_ret.
     setoid_rewrite interp_ret.
     unfold inl_, Inl_sum1_Handler, Handler.inl_, Handler.htrigger.
