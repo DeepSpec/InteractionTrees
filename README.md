@@ -66,7 +66,7 @@ for testing.
 
     + `Interp`: Interpret itrees (`translate`, `interp`)
     + `TranslateFacts`, `InterpFacts`
-    + `Handlers`: Effect handlers `E ~> itree F`, the second Kleisli category
+    + `Handlers`: Event handlers `E ~> itree F`, the second Kleisli category
       of `itree` (traced symmetric monoidal).
     + `HandlerFacts`
     + `Recursion`: Recursion combinators (`mrec`, `rec`)
