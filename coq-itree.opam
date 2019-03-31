@@ -23,8 +23,12 @@ depends: [
 ]
 authors: [
   "Li-yao Xia <lysxia@gmail.com>"
+  "Yannick Zakowski <zakowski@seas.upenn.edu>"
+  "Paul He <paulhe@seas.upenn.edu>"
+  "Chung-Kil Hur <gil.hur@gmail.com>"
   "Gregory Malecha <gmalecha@gmail.com>"
   "Steve Zdancewic <stevez@cis.upenn.edu>"
+  "Benjamin C. Pierce <bcpierce@cis.upenn.edu>"
 ]
 
 tags: "org:deepspec"
