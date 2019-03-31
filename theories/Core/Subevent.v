@@ -20,12 +20,12 @@ From ITree Require Import
     space exponentially.
  *)
 
-Notation Subeffect E F := (@ReSum (Type -> Type) IFun E F)
+Notation Subevent E F := (@ReSum (Type -> Type) IFun E F)
   (only parsing).
-Notation "E -< F" := (Subeffect E F)
+Notation "E -< F" := (Subevent E F)
   (at level 90, left associativity) : type_scope.
 
-Definition subeffect {E F : Type -> Type} `{E -< F} : E ~> F := resum _.
+Definition subevent {E F : Type -> Type} `{E -< F} : E ~> F := resum _.
 
 (** Notations to construct and pattern-match on nested sums. *)
 Module Import SumNotations.
@@ -59,19 +59,19 @@ End SumNotations.
 Local Open Scope sum_scope.
 
 (** A polymorphic version of [Vis]. *)
-Notation vis e k := (Vis (subeffect _ e) k).
+Notation vis e k := (Vis (subevent _ e) k).
 
-(* Called [send] in Haskell freer. *)
-Definition send {E F} `{E -< F} : E ~> itree F :=
-  fun T e => ITree.send (subeffect _ e).
+(* Called [send] in Haskell implementations of Freer monads. *)
+Definition trigger {E F} `{E -< F} : E ~> itree F :=
+  fun T e => ITree.trigger (subevent _ e).
 
-Arguments send {E F _ T}.
+Arguments trigger {E F _ T}.
 
-Lemma send_is_vis_ret {E F R} `{E -< F} (e : E R) :
-  send e = vis e (fun r => Ret r).
+Lemma trigger_is_vis_ret {E F R} `{E -< F} (e : E R) :
+  trigger e = vis e (fun r => Ret r).
 Proof. reflexivity. Qed.
 
-(* Embedding effects into trees.
+(* Embedding events into trees.
 
    For example:
 [[
@@ -91,4 +91,4 @@ Instance Embeddable_forall {A : Type} {U : A -> Type} {V : A -> Type}
 Instance Embeddable_itree {E F : Type -> Type} {R : Type}
          `(E -< F) :
   Embeddable (E R) (itree F R) :=
-  send.
+  trigger.

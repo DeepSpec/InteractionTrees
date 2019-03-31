@@ -15,8 +15,8 @@ From ITree Require Import
      Basics.CategoryOps
      Core.ITreeDefinition
      Indexed.Sum
-     Indexed.OpenSum
-     Effects.Exception
+     Core.Subevent
+     Events.Exception
      Interp.Interp
      Interp.Handler.
 (* end hide *)
@@ -29,7 +29,7 @@ Variant readerE : Type -> Type :=
 | Ask : readerE Env.
 
 Definition ask {E} `{readerE -< E} : itree E Env :=
-  send Ask.
+  trigger Ask.
 
 Definition eval_reader {E} : Env -> Handler readerE E :=
   fun r _ e =>

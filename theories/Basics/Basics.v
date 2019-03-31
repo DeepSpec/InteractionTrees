@@ -24,9 +24,9 @@ Local Open Scope monad.
 
     - Natural transformations (functor morphisms)
     - Monad morphisms
-    - Effect morphisms (if [E] and [F] are simply
+    - Event morphisms (if [E] and [F] are simply
       indexed types with no particular structure)
-    - Effect handlers (if [F] is a monad)
+    - Event handlers (if [F] is a monad)
  *)
 Notation "E ~> F" := (forall T, E T -> F T)
   (at level 99, right associativity, only parsing) : type_scope.

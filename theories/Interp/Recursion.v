@@ -42,11 +42,11 @@ Open Scope itree_scope.
      match d with
      | Even n => match n with
                  | O => ret true
-                 | S m => send (Odd m)
+                 | S m => trigger (Odd m)
                  end
      | Odd n => match n with
                 | O => ret false
-                | S m => send (Even m)
+                | S m => trigger (Even m)
                 end
      end.
 ]]
@@ -91,10 +91,10 @@ Definition mrec {D E : Type -> Type}
 Arguments mrec {D E} ctx [T].
 
 (** Make a recursive call in the handler argument of [mrec]. *)
-Definition send_inl1 {D E : Type -> Type} : D ~> itree (D +' E)
-  := fun _ d => ITree.send (inl1 d).
+Definition trigger_inl1 {D E : Type -> Type} : D ~> itree (D +' E)
+  := fun _ d => ITree.trigger (inl1 d).
 
-Arguments send_inl1 {D E} [T].
+Arguments trigger_inl1 {D E} [T].
 
 (** Here's some syntactic sugar with a notation [mrec-fix]. *)
 
@@ -104,7 +104,7 @@ Local Notation endo T := (T -> T).
 Definition mrec_fix {D E : Type -> Type} {A B : Type}
            (ctx : endo (D ~> itree (D +' E)))
   : D ~> itree E
-  := mrec (ctx send_inl1).
+  := mrec (ctx trigger_inl1).
 
 Notation "'mrec-fix' f d := g" := (mrec_fix (fun f _ d => g))
   (at level 200, f ident, d pattern).
@@ -133,7 +133,7 @@ Definition calling {A B} {F : Type -> Type}
 
 (* TODO: This is identical to [callWith] but [rec] finds a universe
    inconsistency with [calling], and not with [calling'].
-   The inconsistency now pops up later (currently in [Effects.Env]) *)
+   The inconsistency now pops up later (currently in [Events.Env]) *)
 Definition calling' {A B} {F : Type -> Type}
            (f : A -> itree F B) : callE A B ~> itree F :=
   fun _ e =>
@@ -149,10 +149,10 @@ Definition rec {E : Type -> Type} {A B : Type}
 
 (** An easy way to construct an event suitable for use with [rec].
     [call] is an event representing the recursive call.  Since in general, the
-    function might have other effects of type [E], the resulting itree has
+    function might have other events of type [E], the resulting itree has
     type [(callE A B +' E)].
 *)
-Definition call {E A B} (a:A) : itree (callE A B +' E) B := ITree.send (inl1 (Call a)).
+Definition call {E A B} (a:A) : itree (callE A B +' E) B := ITree.trigger (inl1 (Call a)).
 
 (** Here's some syntactic sugar with a notation [mrec-fix]. *)
 

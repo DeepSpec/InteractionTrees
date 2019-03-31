@@ -91,10 +91,10 @@ Arguments code {A B}.
 (* ================================================================= *)
 (** ** Semantics *)
 
-(** _Asm_ produces two kind of effects: through manipulation of the store
+(** _Asm_ produces two kind of events: through manipulation of the store
     and of the heap.
     We therefore reuse _Imp_'s [Locals], and define an additional pair of
-    effects [Memory] to model interactions with the heap.
+    events [Memory] to model interactions with the heap.
 *)
 Import Imp.
 
@@ -112,7 +112,7 @@ Section Denote.
   Local Open Scope monad_scope.
   (* end hide *)
 
-  (** We introduce a special effect to model termination of the computation.
+  (** We introduce a special event to model termination of the computation.
       Note that it expects _actively_ no answer from the environment: 
       [Done] is of type [Exit void].
       We can therefore use it to "close" an [itree E A] no matter what the expected
@@ -124,9 +124,9 @@ Section Denote.
   Definition done {E A} `{Exit -< E} : itree E A :=
     vis Done (fun v => match v : void with end).
 
-  Section with_effect.
+  Section with_event.
 
-    (** As with _Imp_, we parameterize our semantics by a universe of effects
+    (** As with _Imp_, we parameterize our semantics by a universe of events
         that shall encompass all the required ones.
      *)
     Context {E : Type -> Type}.
@@ -138,7 +138,7 @@ Section Denote.
     Definition denote_operand (o : operand) : itree E value :=
       match o with
       | Oimm v => Ret v
-      | Ovar v => send (GetVar v)
+      | Ovar v => trigger (GetVar v)
       end.
 
     (** Instructions offer no suprises either. *)
@@ -146,27 +146,27 @@ Section Denote.
       match i with
       | Imov d s =>
         v <- denote_operand s ;;
-        send (SetVar d v)
+        trigger (SetVar d v)
       | Iadd d l r =>
-        lv <- send (GetVar l) ;;
+        lv <- trigger (GetVar l) ;;
         rv <- denote_operand r ;;
-        send (SetVar d (lv + rv))
+        trigger (SetVar d (lv + rv))
       | Isub d l r =>
-        lv <- send (GetVar l) ;;
+        lv <- trigger (GetVar l) ;;
         rv <- denote_operand r ;;
-        send (SetVar d (lv - rv))
+        trigger (SetVar d (lv - rv))
       | Imul d l r =>
-        lv <- send (GetVar l) ;;
+        lv <- trigger (GetVar l) ;;
         rv <- denote_operand r ;;
-        send (SetVar d (lv * rv))
+        trigger (SetVar d (lv * rv))
       | Iload d a =>
         addr <- denote_operand a ;;
-        val <- send (Load addr) ;;
-        send (SetVar d val)
+        val <- trigger (Load addr) ;;
+        trigger (SetVar d val)
       | Istore a v =>
-        addr <- send (GetVar a) ;;
+        addr <- trigger (GetVar a) ;;
         val <- denote_operand v ;;
-        send (Store addr val)
+        trigger (Store addr val)
       end.
 
     Section with_labels.
@@ -181,7 +181,7 @@ Section Denote.
         match b with
         | Bjmp l => ret l
         | Bbrz v y n =>
-          val <- send (GetVar v) ;;
+          val <- trigger (GetVar v) ;;
           if val:nat then ret y else ret n
         | Bhalt => done
         end.
@@ -227,7 +227,7 @@ Section Denote.
     Definition denote_asm {A B} : asm A B -> ktree E A B :=
       fun s => loop (denote_b (code s)).
 
-  End with_effect.
+  End with_event.
 End Denote.
 
 (* ================================================================= *)
@@ -236,7 +236,7 @@ End Denote.
 (* begin hide *)
 From ITree Require Import
      Basics.Category
-     Effects.Map.
+     Events.Map.
 
 From ExtLib Require Import
      Core.RelDec
@@ -244,7 +244,7 @@ From ExtLib Require Import
      Data.Map.FMapAList.
 (* end hide *)
 
-(** Both environments and memory effects can be interpreted as "map" effects,
+(** Both environments and memory events can be interpreted as "map" events,
     exactly as we did for _Imp_. *)
 
 Definition evalMemory {E : Type -> Type} `{mapE value value -< E} :

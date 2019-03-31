@@ -21,7 +21,7 @@ Open Scope itree_scope.
    - [Ret], [Tau], [Vis] notations
    - [ITree.bind : itree E R -> (R -> itree E S) -> itree E S]
    - [ITree.map : (R -> S) -> itree E R -> itree E S]
-   - [ITree.send : E R -> itree E R]
+   - [ITree.trigger : E R -> itree E R]
    - Notations for [bind t k]: ["t >>= k"], ["x <- t ;; k x"]
  *)
 
@@ -48,7 +48,7 @@ Require Export ITree.Interp.Recursion.
 (**
    - [mrec : (D ~> itree (D +' E)) -> (D ~> itree E)]
      and the notation [mrec-fix]
-   - [send_inl1 : D ~> itree (D +' E)]
+   - [trigger_inl1 : D ~> itree (D +' E)]
    - [rec : (A -> itree (callE A B +' E) B -> A -> itree E B]
      and the notation [rec-fix]
    - [call : A -> itree (callE A B +' E) B]
@@ -56,7 +56,7 @@ Require Export ITree.Interp.Recursion.
 
 Require ITree.Interp.Handler.
 Export ITree.Interp.Handler.Handler.
-(** Combinators for effect handlers:
+(** Combinators for event handlers:
 
    - [case_ : (E ~> itree G) -> (F ~> itree G) -> (E +' F ~> itree G)]
    - [bimap : (E ~> itree G) -> (F ~> itree H) -> (E +' F ~> itree (G +' H))]
@@ -157,9 +157,9 @@ Parameter interp_vis
     interp f (Vis e k)
   ≈ Tau (ITree.bind (f _ e) (fun x => interp f (k x))).
 
-Parameter interp_send : forall {E F : Type -> Type} {R : Type}
+Parameter interp_trigger : forall {E F : Type -> Type} {R : Type}
       (f : E ~> (itree F)) (e : E R),
-    interp f (ITree.send e) ≈ f _ e.
+    interp f (ITree.trigger e) ≈ f _ e.
 
 Parameter interp_bind : forall {E F R S}
       (f : E ~> itree F) (t : itree E R) (k : R -> itree E S),
@@ -168,7 +168,7 @@ Parameter interp_bind : forall {E F R S}
 
 Hint Rewrite @interp_ret : itree.
 Hint Rewrite @interp_vis : itree.
-Hint Rewrite @interp_send : itree.
+Hint Rewrite @interp_trigger : itree.
 Hint Rewrite @interp_bind : itree.
 
 (** *** Simple recursion: [rec] *)
@@ -177,7 +177,7 @@ Hint Rewrite @interp_bind : itree.
     where [recursive] is defined as follows. *)
 Definition recursive {E A B} (f : A -> itree (callE A B +' E) B)
   : (callE A B +' E) ~> itree E
-  := case_ (calling' (rec f)) ITree.send.
+  := case_ (calling' (rec f)) ITree.trigger.
 
 Parameter rec_as_interp
   : forall {E A B} (f : A -> itree (callE A B +' E) B) (a : A),
@@ -193,7 +193,7 @@ Parameter interp_recursive_call
     where [mrecursive] is defined as follows. *)
 Definition mrecursive {D E} (f : D ~> itree (D +' E))
   : (D +' E) ~> itree E :=
-  case_ (mrec f) ITree.send.
+  case_ (mrec f) ITree.trigger.
 
 Parameter mrec_as_interp
   : forall {D E T} (ctx : D ~> itree (D +' E)) (d : D T),
@@ -202,7 +202,7 @@ Parameter mrec_as_interp
 
 Parameter interp_mrecursive
   : forall {D E T} (ctx : D ~> itree (D +' E)) (d : D T),
-    interp (mrecursive ctx) (send_inl1 d)
+    interp (mrecursive ctx) (trigger_inl1 d)
   ≈ mrec ctx d.
 
 Hint Rewrite @interp_recursive_call : itree.
@@ -368,11 +368,11 @@ Proof.
   intros; rewrite unfold_interp; reflexivity.
 Qed.
 
-Lemma interp_send : forall {E F : Type -> Type} {R : Type}
+Lemma interp_trigger : forall {E F : Type -> Type} {R : Type}
       (f : E ~> (itree F)) (e : E R),
-    interp f (ITree.send e) ≈ f _ e.
+    interp f (ITree.trigger e) ≈ f _ e.
 Proof.
-  intros; rewrite ITree.Interp.InterpFacts.interp_send, tau_eutt.
+  intros; rewrite ITree.Interp.InterpFacts.interp_trigger, tau_eutt.
   reflexivity.
 Qed.
 
@@ -387,7 +387,7 @@ Qed.
 
 Hint Rewrite @interp_ret : itree.
 Hint Rewrite @interp_vis : itree.
-Hint Rewrite @interp_send : itree.
+Hint Rewrite @interp_trigger : itree.
 Hint Rewrite @interp_bind : itree.
 
 (** **** Simple recursion: [rec] *)
@@ -396,7 +396,7 @@ Hint Rewrite @interp_bind : itree.
     where [recursive] is defined as follows. *)
 Definition recursive {E A B} (f : A -> itree (callE A B +' E) B)
   : (callE A B +' E) ~> itree E
-  := case_ (calling' (rec f)) ITree.send.
+  := case_ (calling' (rec f)) ITree.trigger.
 
 Lemma rec_as_interp
   : forall {E A B} (f : A -> itree (callE A B +' E) B) (a : A),
@@ -418,7 +418,7 @@ Qed.
     where [mrecursive] is defined as follows. *)
 Definition mrecursive {D E} (f : D ~> itree (D +' E))
   : (D +' E) ~> itree E :=
-  case_ (mrec f) ITree.send.
+  case_ (mrec f) ITree.trigger.
 
 Lemma mrec_as_interp
   : forall {D E T} (ctx : D ~> itree (D +' E)) (d : D T),
@@ -430,7 +430,7 @@ Qed.
 
 Lemma interp_mrecursive
   : forall {D E T} (ctx : D ~> itree (D +' E)) (d : D T),
-    interp (mrecursive ctx) (send_inl1 d)
+    interp (mrecursive ctx) (trigger_inl1 d)
   ≈ mrec ctx d.
 Proof.
   intros; rewrite ITree.Interp.RecursionFacts.interp_mrecursive. apply tau_eutt.

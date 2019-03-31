@@ -17,7 +17,7 @@ From ITree Require Import
      Interp.Interp
      Interp.InterpFacts
      Interp.RecursionFacts
-     Effects.State.
+     Events.State.
 
 Import ITree.Basics.Basics.Monads.
 Import ITreeNotations.
@@ -96,11 +96,11 @@ Proof.
   rewrite unfold_interp_state; reflexivity.
 Qed.
 
-Lemma interp_state_send {E F : Type -> Type} {R S : Type}
+Lemma interp_state_trigger {E F : Type -> Type} {R S : Type}
       (e : E R) (f : E ~> Monads.stateT S (itree F)) (s : S)
-  : (interp_state f (ITree.send e) s) ≅ Tau (f _ e s).
+  : (interp_state f (ITree.trigger e) s) ≅ Tau (f _ e s).
 Proof.
-  unfold ITree.send. rewrite interp_state_vis.
+  unfold ITree.trigger. rewrite interp_state_vis.
   apply eq_itree_Tau.
   rewrite <- (bind_ret2 (f R e s)) at 2.
   eapply eq_itree_bind.

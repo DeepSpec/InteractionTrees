@@ -1,5 +1,5 @@
 From ITree Require Import
-     ITree ITreeFacts Effects.
+     ITree ITreeFacts Events.
 
 (* Coq extraction seems to have problem with module synonyms.
    We just make these synonyms abstract for now. *)

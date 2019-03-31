@@ -7,7 +7,7 @@ From ITree Require Export
      Eq.UpToTaus
      Indexed.Function
      Indexed.Sum
-     Indexed.OpenSum
+     Core.Subevent
      Interp.Interp
      Interp.Handler
      Interp.Recursion

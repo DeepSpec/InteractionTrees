@@ -1,6 +1,6 @@
 (** * Writer *)
 
-(** Output effect. *)
+(** Output events. *)
 
 (* begin hide *)
 Set Implicit Arguments.
@@ -20,21 +20,21 @@ From ITree Require Import
      Basics.CategoryOps
      Core.ITreeDefinition
      Indexed.Sum
-     Indexed.OpenSum
+     Core.Subevent
      Interp.Interp
      Interp.Handler
-     Effects.State.
+     Events.State.
 
 Import Basics.Basics.Monads.
 (* end hide *)
 
-(** Effect to output values of type [W]. *)
+(** Event to output values of type [W]. *)
 Variant writerE (W : Type) : Type -> Type :=
 | Tell : W -> writerE W unit.
 
 (** Output action. *)
 Definition tell {W E} `{writerE W -< E} : W -> itree E unit :=
-  fun w => send (Tell w).
+  fun w => trigger (Tell w).
 
 (** One interpretation is to accumulate outputs in a list. *)
 
