@@ -64,8 +64,8 @@ Proof.
     + destruct ot3; inv ISTAU.
       econstructor. ubase. eapply CIH. eauto with paco.
       ustep. rewrite (itree_eta' (TauF t)) in REL.
-      eapply euttF_elim_tau_left in REL.
-      eapply euttF_elim_tau_right in REL. eauto.
+      eapply euttF_inv_tau_left in REL.
+      eapply euttF_inv_tau_right in REL. eauto.
     + repeat red in REL. dependent destruction REL; simpobs; inv ISTAU.
       econstructor. uunfold EQTAUS. repeat red in EQTAUS. genobs_clear t2 ot.
       move REL before CIH. revert_until REL.
@@ -79,7 +79,7 @@ Proof.
         econstructor. intros.
         edestruct EUTTK, EUTTK0; eauto 8 with rclo paco.
       * eapply IHREL; eauto.
-        eapply euttF_elim_tau_right in EQTAUS. eauto.
+        eapply euttF_inv_tau_right in EQTAUS. eauto.
   - eauto 8 using euttF_mon, cpn2_mon_bot with rclo paco.
   - remember (TauF t2) as o.
     move REL before CIH. revert_until REL.
@@ -115,8 +115,8 @@ Proof.
     + destruct ot1; inv ISTAU.
       econstructor. ubase. eapply CIH. eauto with paco.
       ustep. rewrite (itree_eta' (TauF t2)) in REL.
-      eapply euttF_elim_tau_left in REL.
-      eapply euttF_elim_tau_right in REL. eauto.
+      eapply euttF_inv_tau_left in REL.
+      eapply euttF_inv_tau_right in REL. eauto.
     + repeat red in REL. dependent destruction REL; simpobs; inv ISTAU.
       econstructor. uunfold EQTAUS. repeat red in EQTAUS. genobs_clear t2 ot.
       move REL before CIH. revert_until REL.
@@ -130,7 +130,7 @@ Proof.
         econstructor. intros.
         edestruct EUTTK, EUTTK0; eauto 8 with rclo paco.
       * eapply IHREL; eauto.
-        eapply euttF_elim_tau_right in EQTAUS. eauto.
+        eapply euttF_inv_tau_right in EQTAUS. eauto.
   - eauto 8 using euttF_mon, cpn2_mon_bot with rclo paco.
   - remember (TauF t2) as o.
     move REL before CIH. revert_until REL.

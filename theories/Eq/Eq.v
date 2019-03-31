@@ -262,6 +262,8 @@ Qed.
 
 (** ** Properties of relations *)
 
+(** Instances stating that we have equivalence relations. *)
+
 Section eq_itree_eq.
 
   (** *** Properties of relation transformers. *)
@@ -376,7 +378,7 @@ Qed.
     apply Reflexive_eq_itree.
   Qed.
 
-(** *** Eta-expansion *)
+(** ** Eta-expansion *)
 
 Lemma itree_eta (t : itree E R) : t ≅ go (observe t).
 Proof. apply observing_eq_itree_eq. econstructor. reflexivity. Qed.

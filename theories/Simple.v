@@ -93,10 +93,16 @@ Parameter itree_eta : forall (t : itree E R),
     t ≈ go (observe t).
 
 Parameter eutt_ret : forall (r1 r2 : R),
-    Ret r1 ≈ Ret r2 <-> r1 = r2.
+    r1 = r2 -> Ret r1 ≈ Ret r2.
 
 Parameter eutt_vis : forall {U : Type} (e : E U) (k1 k2 : U -> itree E R),
-    (forall u, k1 u ≈ k2 u) <-> Vis e k1 ≈ Vis e k2.
+    (forall u, k1 u ≈ k2 u) -> Vis e k1 ≈ Vis e k2.
+
+Parameter eutt_inv_ret : forall (r1 r2 : R),
+    Ret r1 ≈ Ret r2 -> r1 = r2.
+
+Parameter eutt_inv_vis : forall {U : Type} (e : E U) (k1 k2 : U -> itree E R),
+     Vis e k1 ≈ Vis e k2 -> (forall u, k1 u ≈ k2 u).
 
 End EquivalenceUpToTaus.
 
@@ -255,7 +261,7 @@ From ITree Require
      Interp.InterpFacts
      Interp.RecursionFacts.
 
-Module Export Simple.
+Module Export Simple : SimpleTheory.
 (** This interface is implemented by the module
     [ITree.Simple.Simple] below. *)
 
@@ -271,7 +277,8 @@ Definition eutt : itree E R -> itree E R -> Prop :=
 Infix "≈" := eutt (at level 40).
 
 (** [eutt] is an equivalence relation. *)
-Global Existing Instance ITree.Eq.UpToTausEquivalence.Equivalence_eutt.
+Global Instance Equivalence_eutt : Equivalence eutt
+  := ITree.Eq.UpToTausEquivalence.Equivalence_eutt.
 
 (** We can erase taus unter [eutt]. *)
 Lemma tau_eutt : forall (t : itree E R),
@@ -285,13 +292,24 @@ Proof.
   reflexivity.
 Qed.
 
-Lemma eutt_ret : forall (r1 r2 : R),
-    Ret r1 ≈ Ret r2 <-> r1 = r2.
+Lemma eutt_ret (r1 r2 : R)
+  : r1 = r2 ->
+    Ret r1 ≈ Ret r2.
 Proof. apply ITree.Eq.UpToTausCore.eutt_ret. Qed.
 
-Lemma eutt_vis : forall {U : Type} (e : E U) (k1 k2 : U -> itree E R),
-    (forall u, k1 u ≈ k2 u) <-> Vis e k1 ≈ Vis e k2.
-Proof. apply ITree.Eq.UpToTausCore.eutt_vis. Qed.
+Lemma eutt_vis {U : Type} (e : E U) (k1 k2 : U -> itree E R)
+  : (forall u, k1 u ≈ k2 u) -> Vis e k1 ≈ Vis e k2.
+Proof. apply ITree.Eq.UpToTausCore.eutt_vis; auto. Qed.
+
+Lemma eutt_inv_ret (r1 r2 : R)
+  : Ret r1 ≈ Ret r2 ->
+    r1 = r2.
+Proof. apply ITree.Eq.UpToTausCore.eutt_inv_ret. Qed.
+
+Lemma eutt_inv_vis {U : Type} (e : E U) (k1 k2 : U -> itree E R)
+  : Vis e k1 ≈ Vis e k2 ->
+    (forall u, k1 u ≈ k2 u).
+Proof. apply ITree.Eq.UpToTausCore.eutt_inv_vis; auto. Qed.
 
 End EquivalenceUpToTaus.
 
