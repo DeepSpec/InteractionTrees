@@ -18,7 +18,6 @@ From ITree Require Import
      Eq.UpToTaus
      Indexed.Sum
      Indexed.Function
-     Core.Subevent
      Interp.Interp
      Interp.InterpFacts
      Interp.Recursion.

@@ -13,7 +13,6 @@ From ITree Require Import
      Core.KTree
      Eq.UpToTausEquivalence
      Indexed.Sum
-     Core.Subevent
      Indexed.Function
      Indexed.Relation
      Interp.Interp

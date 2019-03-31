@@ -61,7 +61,7 @@ Section Operations.
 
 Context {E : Type -> Type}.
 
-Let ktree := ktree E.
+Local Notation ktree := (ktree E).
 
 (* Utility function to lift a pure computation into ktree *)
 Definition lift_ktree {A B} (f : A -> B) : ktree A B := fun a => Ret (f a).
