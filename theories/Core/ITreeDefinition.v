@@ -219,13 +219,6 @@ CoFixpoint spin {E R} : itree E R := Tau spin.
 Definition forever {E R S} (t : itree E R) : itree E S :=
   cofix forever_t := bind t (fun _ => Tau (forever_t)).
 
-(* this definition exists in ExtLib (or should because it is
- * generic to Monads)
- *)
-Definition when {E}
-           (b : bool) (body : itree E unit) : itree E unit :=
-  if b then body else Ret tt.
-
 End ITree.
 
 (** ** Notations *)

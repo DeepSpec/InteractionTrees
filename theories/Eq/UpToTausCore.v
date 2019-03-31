@@ -218,12 +218,6 @@ Proof.
   - intros. ustep; ustep; econstructor. auto.
 Qed.
 
-Global Instance eutt_when {E} (b : bool) :
-  Proper (eutt eq ==> eutt eq) (@ITree.when E b).
-Proof.
-  repeat intro. destruct b; simpl; eauto. reflexivity.
-Qed.
-
 Lemma eutt_map_map {E R S T}
       (f : R -> S) (g : S -> T) (t : itree E R) :
   eutt eq (ITree.map g (ITree.map f t))
