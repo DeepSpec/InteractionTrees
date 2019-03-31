@@ -28,6 +28,9 @@ Open Scope itree_scope.
 (** ** Handler combinators *)
 
 Module Handler.
+(** These are defined primarily for documentation. Except for [htrigger],
+    it is recommended to use the [CategoryOps] classes instead
+    (with the same function names). *)
 
 (** Lift an _event morphism_ into an _event handler_. *)
 Definition htrigger {A B} (m : A ~> B) : A ~> itree B :=
@@ -65,6 +68,11 @@ Definition bimap {E F G H : Type -> Type}
   : E +' F ~> itree (G +' H)
   := case_ (Handler.cat f inl_) (Handler.cat g inr_).
 
+(** Handle [void1] events (of which there are none). *)
+Definition empty {E : Type -> Type}
+  : void1 ~> itree E
+  := fun _ e => match e : void1 _ with end.
+
 End Handler.
 
 (** ** Category instances *)
@@ -99,4 +107,4 @@ Instance Inr_sum1_Handler : CoprodInr Handler sum1
   := @Handler.inr_.
 
 Instance Initial_void1_Handler : Initial Handler void1
-  := fun _ _ v => match v : void1 _ with end.
+  := @Handler.empty.
