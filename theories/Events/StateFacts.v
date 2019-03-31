@@ -11,7 +11,6 @@ From ITree Require Import
      Basics.Basics
      Core.ITreeDefinition
      Core.KTree
-     Core.KTreeBasicFacts
      Eq.UpToTausEquivalence
      Indexed.Sum
      Interp.Interp
@@ -50,10 +49,8 @@ Proof.
   - reflexivity.
   - rewrite bind_ret_.
     reflexivity.
-  - rewrite map_bind. eapply eq_itree_Tau.
-    eapply eq_itree_bind.
-    + reflexivity.
-    + intros [] _ []; reflexivity.
+  - rewrite bind_map. eapply eq_itree_Tau.
+    eapply eq_itree_bind; reflexivity.
 Qed.
 
 Instance eq_itree_interp_state {E F S R} (h : E ~> Monads.stateT S (itree F)) :
@@ -104,8 +101,8 @@ Proof.
   apply eq_itree_Tau.
   rewrite <- (bind_ret2 (f R e s)) at 2.
   eapply eq_itree_bind.
+  - intros []; rewrite interp_state_ret; reflexivity.
   - reflexivity.
-  - intros [] _ []; rewrite interp_state_ret; reflexivity.
 Qed.
 
 Lemma interp_state_bind {E F : Type -> Type} {A B S : Type}
@@ -155,25 +152,50 @@ Proof.
     rewrite unfold_interp_state; auto.
 Qed.
 
-Lemma interp_state_loop {E F S A B C} (RS : S -> S -> Prop)
+Lemma eutt_interp_state_aloop {E F S I A} (RS : S -> S -> Prop)
+      (h : E ~> Monads.stateT S (itree F))
+      (t1 t2 : I -> itree E I + A) :
+  (forall i s1 s2, RS s1 s2 ->
+     sum_rel (fun u1 u2 =>
+                eutt (fun a b => RS (fst a) (fst b) /\ snd a = snd b)
+                     (interp_state h u1 s1)
+                     (interp_state h u2 s2))
+             eq (t1 i) (t2 i)) ->
+  (forall i s1 s2, RS s1 s2 ->
+     eutt (fun a b => RS (fst a) (fst b) /\ snd a = snd b)
+          (interp_state h (ITree.aloop t1 i) s1)
+          (interp_state h (ITree.aloop t2 i) s2)).
+Proof.
+  intro Ht.
+  ucofix CIH. red. ucofix CIH'. intros.
+  rewrite 2 unfold_aloop'.
+  destruct (Ht i s1 s2); cbn; auto.
+  - rewrite 2 interp_state_tau, 2 interp_state_bind.
+    constructor.
+    uclo eutt0_clo_bind; econstructor; eauto.
+    intros [s1' i1'] [s2' i2'] [? []]; cbn.
+    auto with paco.
+  - rewrite 2 interp_state_ret.
+    constructor; auto.
+Qed.
+
+Lemma eutt_interp_state_loop {E F S A B C} (RS : S -> S -> Prop)
       (h : E ~> Monads.stateT S (itree F))
       (t1 t2 : C + A -> itree E (C + B)) :
   (forall ca s1 s2, RS s1 s2 ->
      eutt (fun a b => RS (fst a) (fst b) /\ snd a = snd b)
           (interp_state h (t1 ca) s1)
           (interp_state h (t2 ca) s2)) ->
-  (forall ca s1 s2, RS s1 s2 ->
+  (forall a s1 s2, RS s1 s2 ->
      eutt (fun a b => RS (fst a) (fst b) /\ snd a = snd b)
-          (interp_state h (loop_ t1 ca) s1)
-          (interp_state h (loop_ t2 ca) s2)).
+          (interp_state h (loop t1 a) s1)
+          (interp_state h (loop t2 a) s2)).
 Proof.
-  ucofix CIH. red. ucofix CIH'. intros.
-
-  rewrite (itree_eta (loop_ t1 ca)), (itree_eta (loop_ t2 ca)), !unfold_loop''.
-  unfold loop_once. rewrite <- !itree_eta, !interp_state_bind.
-  uclo eutt0_clo_bind. econstructor; eauto.
-  intros. destruct RELv. rewrite H2. destruct (snd v2).
-  - rewrite !interp_state_tau.
-    econstructor. eauto with paco.
-  - rewrite !interp_state_ret. econstructor. eauto.
+  intros.
+  unfold loop.
+  rewrite 2 interp_state_bind.
+  eapply eutt_bind'; eauto.
+  intros x1 x2 [? []].
+  eapply eutt_interp_state_aloop; auto.
+  intros [] s1' s2' Hs'; constructor; auto.
 Qed.

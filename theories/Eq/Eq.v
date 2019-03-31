@@ -410,7 +410,7 @@ Lemma bind_vis_ {E R} U V (e: E V) (ek: V -> itree E U) (k: U -> itree E R) :
   ITree.bind (Vis e ek) k ≅ Vis e (fun x => ITree.bind (ek x) k).
 Proof. rewrite bind_vis. reflexivity. Qed.
 
-Lemma eq_itree_bind {E R1 R2 S1 S2} (RR : R1 -> R2 -> Prop)
+Lemma eq_itree_bind' {E R1 R2 S1 S2} (RR : R1 -> R2 -> Prop)
       (RS : S1 -> S2 -> Prop)
       t1 t2 k1 k2 :
   eq_itree RR t1 t2 ->
@@ -420,12 +420,12 @@ Proof.
   uclo eq_itree_clo_bind. eauto 7 with paco.
 Qed.
 
-Instance eq_itree_eq_bind {E R S} :
+Instance eq_itree_bind {E R S} :
   Proper (pointwise_relation _ (eq_itree eq) ==>
           eq_itree eq ==>
           eq_itree eq) (@ITree.bind' E R S).
 Proof.
-  repeat intro; eapply eq_itree_bind; eauto.
+  repeat intro; eapply eq_itree_bind'; eauto.
   intros; subst; auto.
 Qed.
 
@@ -437,7 +437,7 @@ Lemma eq_itree_map {E R1 R2 S1 S2} (RR : R1 -> R2 -> Prop)
   eq_itree RS (ITree.map f1 t1) (ITree.map f2 t2).
 Proof.
   unfold ITree.map; intros.
-  eapply eq_itree_bind; eauto.
+  eapply eq_itree_bind'; eauto.
   intros; ustep; constructor; auto.
 Qed.
 
@@ -505,14 +505,14 @@ Proof.
   rewrite bind_bind. setoid_rewrite bind_ret. reflexivity.
 Qed.
 
-Lemma map_bind {E R S T}: forall (f : R -> S) (k: S -> itree E T) (t : itree E R),
+Lemma bind_map {E R S T}: forall (f : R -> S) (k: S -> itree E T) (t : itree E R),
     ITree.bind (ITree.map f t) k ≅ ITree.bind t (fun x => k (f x)).
 Proof.
   unfold ITree.map. intros.
   rewrite bind_bind. setoid_rewrite bind_ret. reflexivity.
 Qed.
 
-Lemma bind_map {E X Y Z} (t: itree E X) (k: X -> itree E Y) (f: Y -> Z) :
+Lemma map_bind {E X Y Z} (t: itree E X) (k: X -> itree E Y) (f: Y -> Z) :
   (ITree.map f (x <- t;; k x)) ≅ (x <- t;; ITree.map f (k x)).
 Proof.
   intros.
@@ -532,7 +532,7 @@ Qed.
 Hint Rewrite @bind_ret_ : itree.
 Hint Rewrite @bind_tau_ : itree.
 Hint Rewrite @bind_vis_ : itree.
-Hint Rewrite @map_bind : itree.
+Hint Rewrite @bind_map : itree.
 Hint Rewrite @map_ret : itree.
 Hint Rewrite @bind_ret2 : itree.
 Hint Rewrite @bind_bind : itree.

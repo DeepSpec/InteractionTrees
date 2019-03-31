@@ -11,7 +11,6 @@ From ITree Require Import
      Basics.Basics
      Core.ITreeDefinition
      Core.KTree
-     Core.KTreeBasicFacts
      Eq.UpToTausEquivalence
      Indexed.Sum
      Core.Subevent
@@ -52,7 +51,7 @@ Proof.
   apply (Equivalence_i_pointwise (fun R => eq_itree eq)).
 Qed.
 
-Require ITree.Core.KTreeFacts. (* TODO: only needed to avoid a universe inconsistency right around here (errors if you try to move this to the end of the file, or just under the next instance)... *)
+Require ITree.Core.KTreeBasicFacts. (* TODO: only needed to avoid a universe inconsistency right around here (errors if you try to move this to the end of the file, or just under the next instance)... *)
 
 Instance Equivalence_eutt_Handler {E F : Type -> Type}
   : Equivalence (@eutt_Handler E F).
@@ -85,9 +84,7 @@ Proof.
   destruct (observe t); cbn.
   - reflexivity.
   - rewrite bind_ret_; reflexivity. (* TODO: [bind_ret] is incredibly slow *)
-  - rewrite map_bind. apply eq_itree_Tau. eapply eq_itree_bind.
-    reflexivity.
-    intros ? _ []; reflexivity.
+  - rewrite bind_map. apply eq_itree_Tau. eapply eq_itree_bind; reflexivity.
 Qed.
 
 (** ** [interp] and constructors *)
@@ -295,14 +292,32 @@ Hint Rewrite @interp_vis : itree.
 Hint Rewrite @interp_trigger : itree.
 Hint Rewrite @interp_bind : itree.
 
-Lemma interp_loop {E F} (f : E ~> itree F) {A B C}
-      (t : C + A -> itree E (C + B)) ca :
-  interp f (loop_ t ca) ≅ loop_ (fun ca => interp f (t ca)) ca.
+Lemma interp_aloop {E F} (f : E ~> itree F) {I A}
+      (t  : I -> itree E I + A)
+      (t' : I -> itree F I + A)
+      (EQ_t : forall i, sum_rel (fun u u' => interp f u ≅ u') eq (t i) (t' i))
+  : forall i,
+    interp f (ITree.aloop t i)
+  ≅ ITree.aloop t' i.
 Proof.
-  revert ca. ucofix CIH. intros.
-  unfold loop. rewrite !unfold_loop'. unfold loop_once.
+  ucofix CIH; intros i.
+  rewrite 2 unfold_aloop'.
+  destruct (EQ_t i); cbn.
+  - rewrite interp_tau, interp_bind.
+    constructor.
+    uclo eq_itree_clo_bind; econstructor; eauto.
+    intros i' _ [].
+    auto with paco.
+  - rewrite interp_ret. constructor; auto.
+Qed.
+
+Lemma interp_loop {E F} (f : E ~> itree F) {A B C}
+      (t : C + A -> itree E (C + B)) a :
+  interp f (loop t a) ≅ loop (fun ca => interp f (t ca)) a.
+Proof.
+  unfold loop.
   rewrite interp_bind.
-  uclo eq_itree_clo_bind. econstructor; [reflexivity|].
-  intros. subst. rewrite unfold_interp.
-  destruct u2; econstructor; eauto with paco.
+  apply eq_itree_bind; try reflexivity.
+  red. apply interp_aloop.
+  intros []; cbn; constructor; reflexivity.
 Qed.

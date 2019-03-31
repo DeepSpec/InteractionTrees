@@ -22,7 +22,7 @@ for testing.
   See also `tutorial/Introduction.v`.
 - `ITree.ITree`: Definitions to program with interaction trees.
 - `ITree.ITreeFacts`: Theorems to reason about interaction trees.
-- `ITree.Effects`: Some standard effects.
+- `ITree.Events`: Some standard event types.
 
 ### Library organization
 
@@ -43,7 +43,9 @@ for testing.
     + `ITreeDefinition`: Interaction trees, type declaration and primitives.
     + `KTree`: Continuation trees `A -> itree E B`, the first Kleisli category
       of `itree` (traced symmetric monoidal).
-    + `KTreeFacts`, `KTreeBasicFacts`
+    + `KTreeFacts`, `KTreeBasicFacts`, `LoopFacts`
+    + `Subevent`: Combinators for extensible effects, injecting events into
+      sums. (Experimental)
 
 - `Eq`: Equational theory of interaction trees.
 
@@ -57,10 +59,8 @@ for testing.
 
     + `Sum`: Sum of indexed types.
     + `Function`: The category of parametric functions between indexed types,
-      i.e., effect morphisms `E ~> F` (symmetric monoidal).
+      i.e., event morphisms `E ~> F` (symmetric monoidal).
     + `FunctionFacts`
-    + `OpenSum`: Combinators for extensible effects, injecting effects into
-      sums. (Experimental)
 
 - `Interp`: Interaction tree transformations.
 
@@ -73,7 +73,7 @@ for testing.
     + `RecursionFacts`
     + `Traces`: Interpretation of itrees as sets of traces.
 
-- `Effects`: Common effects (see `theories/Effects.v` for a summary).
+- `Events`: Common event types (see `theories/Events.v` for a summary).
 
 ## Dependencies
 

@@ -16,6 +16,7 @@ From ITree Require Import
      Core.ITreeDefinition.
 
 From ITree Require Export
+     Eq.Shallow
      Eq.Eq
      Eq.UpToTaus.
 

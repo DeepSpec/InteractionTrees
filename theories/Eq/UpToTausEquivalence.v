@@ -234,6 +234,16 @@ Qed.
 
 Section EUTT0_upto.
 
+(** Generalized heterogeneous version of [eutt_bind] *)
+Lemma eutt_bind' {E R1 R2 S1 S2} {RR: R1 -> R2 -> Prop} {SS: S1 -> S2 -> Prop}:
+  forall t1 t2,
+    eutt RR t1 t2 ->
+    forall s1 s2, (forall r1 r2, RR r1 r2 -> eutt SS (s1 r1) (s2 r2)) ->
+                  @eutt E _ _ SS (ITree.bind t1 s1) (ITree.bind t2 s2).
+Proof.
+  uclo eutt_clo_bind. eauto 7 with paco.
+Qed.
+
 Context {E : Type -> Type} {R1 R2 : Type} (RR : R1 -> R2 -> Prop).
 
 Inductive eutt0_trans_clo (r: itree E R1 -> itree E R2 -> Prop) :
@@ -362,16 +372,6 @@ Proof.
   intros. subst. econstructor. eauto with paco.
 Qed.
 
-(** Generalized heterogeneous version of [eutt_bind] *)
-Lemma eutt_bind_gen {E R1 R2 S1 S2} {RR: R1 -> R2 -> Prop} {SS: S1 -> S2 -> Prop}:
-  forall t1 t2,
-    eutt RR t1 t2 ->
-    forall s1 s2, (forall r1 r2, RR r1 r2 -> eutt SS (s1 r1) (s2 r2)) ->
-                  @eutt E _ _ SS (ITree.bind t1 s1) (ITree.bind t2 s2).
-Proof.
-  uclo eutt_clo_bind. eauto 7 with paco.
-Qed.
-
 Lemma unfold_aloop {E A B} (f : A -> itree E A + B) (x : A) :
     ITree.aloop f x
   ≈ ITree._aloop id (ITree.aloop f) (f x).
@@ -380,35 +380,4 @@ Proof.
   destruct f.
   - rewrite tau_eutt; reflexivity.
   - reflexivity.
-Qed.
-
-Lemma bind_aloop {E A B C} (f : A -> itree E A + B) (g : B -> itree E B + C): forall x,
-    (ITree.aloop f x >>= ITree.aloop g)
-  ≈ ITree.aloop (fun ab =>
-       match ab with
-       | inl a => inl (ITree._aloop id (fun a => Ret (inl a))
-                                    (bimap (id_ _) inr (f a)))
-       | inr b => bimap (ITree.map inr) (id_ _) (g b)
-       end) (inl x).
-Proof.
-  ucofix CIH. red. ucofix CIH'. intros.
-  rewrite !unfold_aloop'. unfold ITree._aloop.
-  destruct (f x) as [t | b]; cbn.
-  - unfold id. rewrite bind_tau. constructor.
-    rewrite !bind_bind.
-    uclo eutt0_clo_bind. econstructor.
-    { reflexivity. }
-    intros ? _ [].
-    rewrite bind_ret.
-    eauto with paco.
-  - rewrite bind_ret.
-    constructor. eutt0_fold.
-    rewrite bind_ret.
-    revert b. ucofix CIH''. intros.
-    rewrite !unfold_aloop'. unfold ITree._aloop.
-    destruct (g b) as [t' | c]; cbn.
-    + rewrite map_bind. constructor.
-      uclo eutt0_clo_bind. econstructor; [reflexivity|].
-      intros. subst. eauto with paco.
-    + econstructor. reflexivity.
 Qed.
