@@ -39,6 +39,18 @@ Definition idM {E : Type -> Type} : E ~> E := fun _ e => e.
 (** [void] is a shorthand for [Empty_set]. *)
 Notation void := Empty_set.
 
+(** ** Relations for morphisms/parametricity *)
+
+(** Logical relation for the [sum] type. *)
+Variant sum_rel {A1 A2 B1 B2 : Type}
+        (RA : A1 -> A2 -> Prop) (RB : B1 -> B2 -> Prop)
+  : A1 + B1 -> A2 + B2 -> Prop :=
+| inl_morphism a1 a2 : RA a1 a2 -> sum_rel RA RB (inl a1) (inl a2)
+| inr_morphism b1 b2 : RB b1 b2 -> sum_rel RA RB (inr b1) (inr b2)
+.
+Arguments inl_morphism {A1 A2 B1 B2 RA RB}.
+Arguments inr_morphism {A1 A2 B1 B2 RA RB}.
+
 (** ** Common monads and transformers. *)
 
 Module Monads.

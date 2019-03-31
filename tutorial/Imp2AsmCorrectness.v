@@ -408,9 +408,9 @@ Section Eq_Locals.
     eq_locals eq Renv (loop t1 x) (loop t2 x).
   Proof.
     unfold eq_locals, interp_locals, run_map.
-    intros. unfold loop.
+    intros.
     rewrite 2 interp_loop.
-    eapply interp_state_loop; auto.
+    eapply eutt_interp_state_loop; auto.
   Qed.
 
   (** [sim_rel] at [n] entails that [GetVar (gen_tmp n)] gets interpreted
@@ -522,6 +522,8 @@ Section Linking.
       unfold inl_, Inl_ktree, lift_ktree;
         rewrite bind_ret_; reflexivity.
   Qed.
+
+Opaque loop.
 
   (** [while_asm] is denoted as the loop of the body with two entry point, the exit
       of the loop, and the body in which we have the same structure as for the conditional *)
@@ -759,7 +761,7 @@ Section Correctness.
                     end) tt.
   Proof.
     unfold while.
-    apply eutt_loop; [| reflexivity].
+    apply eutt_loop.
     intros [[]|[]]; simpl; [| reflexivity].
     unfold ITree.map.
     apply eutt_bind; try reflexivity.

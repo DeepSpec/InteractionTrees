@@ -1,4 +1,4 @@
-(** Properties of [Fix.mrec] and [Fix.rec]. *)
+(** * Properties of [Recursion.mrec] and [Recursion.rec]. *)
 
 Require Import Paco.paco.
 

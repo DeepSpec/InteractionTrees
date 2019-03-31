@@ -14,8 +14,9 @@ theories/Basics/FunctionFacts.v
 
 theories/Core/ITreeDefinition.v
 theories/Core/KTree.v
-theories/Core/KTreeFacts.v
 theories/Core/KTreeBasicFacts.v
+theories/Core/KTreeFacts.v
+theories/Core/LoopFacts.v
 theories/Core/Subevent.v
 
 theories/Eq.v
