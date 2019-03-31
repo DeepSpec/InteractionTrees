@@ -84,9 +84,7 @@ Proof.
   destruct (observe t); cbn.
   - reflexivity.
   - rewrite bind_ret_; reflexivity. (* TODO: [bind_ret] is incredibly slow *)
-  - rewrite bind_map. apply eq_itree_Tau. eapply eq_itree_bind.
-    reflexivity.
-    intros ? _ []; reflexivity.
+  - rewrite bind_map. apply eq_itree_Tau. eapply eq_itree_bind; reflexivity.
 Qed.
 
 (** ** [interp] and constructors *)
@@ -319,7 +317,7 @@ Lemma interp_loop {E F} (f : E ~> itree F) {A B C}
 Proof.
   unfold loop.
   rewrite interp_bind.
-  apply eq_itree_eq_bind; try reflexivity.
+  apply eq_itree_bind; try reflexivity.
   red. apply interp_aloop.
   intros []; cbn; constructor; reflexivity.
 Qed.

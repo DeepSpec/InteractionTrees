@@ -50,9 +50,7 @@ Proof.
   - rewrite bind_ret_.
     reflexivity.
   - rewrite bind_map. eapply eq_itree_Tau.
-    eapply eq_itree_bind.
-    + reflexivity.
-    + intros [] _ []; reflexivity.
+    eapply eq_itree_bind; reflexivity.
 Qed.
 
 Instance eq_itree_interp_state {E F S R} (h : E ~> Monads.stateT S (itree F)) :
@@ -103,8 +101,8 @@ Proof.
   apply eq_itree_Tau.
   rewrite <- (bind_ret2 (f R e s)) at 2.
   eapply eq_itree_bind.
+  - intros []; rewrite interp_state_ret; reflexivity.
   - reflexivity.
-  - intros [] _ []; rewrite interp_state_ret; reflexivity.
 Qed.
 
 Lemma interp_state_bind {E F : Type -> Type} {A B S : Type}
@@ -196,7 +194,7 @@ Proof.
   intros.
   unfold loop.
   rewrite 2 interp_state_bind.
-  eapply eutt_bind_gen; eauto.
+  eapply eutt_bind'; eauto.
   intros x1 x2 [? []].
   eapply eutt_interp_state_aloop; auto.
   intros [] s1' s2' Hs'; constructor; auto.

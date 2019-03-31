@@ -234,6 +234,16 @@ Qed.
 
 Section EUTT0_upto.
 
+(** Generalized heterogeneous version of [eutt_bind] *)
+Lemma eutt_bind' {E R1 R2 S1 S2} {RR: R1 -> R2 -> Prop} {SS: S1 -> S2 -> Prop}:
+  forall t1 t2,
+    eutt RR t1 t2 ->
+    forall s1 s2, (forall r1 r2, RR r1 r2 -> eutt SS (s1 r1) (s2 r2)) ->
+                  @eutt E _ _ SS (ITree.bind t1 s1) (ITree.bind t2 s2).
+Proof.
+  uclo eutt_clo_bind. eauto 7 with paco.
+Qed.
+
 Context {E : Type -> Type} {R1 R2 : Type} (RR : R1 -> R2 -> Prop).
 
 Inductive eutt0_trans_clo (r: itree E R1 -> itree E R2 -> Prop) :
@@ -360,16 +370,6 @@ Proof.
   rewrite (unfold_forever x), (unfold_forever y).
   uclo eutt0_clo_bind. econstructor; eauto.
   intros. subst. econstructor. eauto with paco.
-Qed.
-
-(** Generalized heterogeneous version of [eutt_bind] *)
-Lemma eutt_bind_gen {E R1 R2 S1 S2} {RR: R1 -> R2 -> Prop} {SS: S1 -> S2 -> Prop}:
-  forall t1 t2,
-    eutt RR t1 t2 ->
-    forall s1 s2, (forall r1 r2, RR r1 r2 -> eutt SS (s1 r1) (s2 r2)) ->
-                  @eutt E _ _ SS (ITree.bind t1 s1) (ITree.bind t2 s2).
-Proof.
-  uclo eutt_clo_bind. eauto 7 with paco.
 Qed.
 
 Lemma unfold_aloop {E A B} (f : A -> itree E A + B) (x : A) :

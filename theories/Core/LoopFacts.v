@@ -55,7 +55,7 @@ Proof.
     + econstructor. reflexivity.
 Qed.
 
-Lemma eutt_aloop_gen {E I1 I2 R1 R2}
+Lemma eutt_aloop' {E I1 I2 R1 R2}
       (RI : I1 -> I2 -> Prop)
       (RR : R1 -> R2 -> Prop)
       (body1 : I1 -> itree E I1 + R1)
@@ -86,9 +86,7 @@ Proof.
   intros body1 body2 EQ_BODY a.
   unfold loop.
   eapply eq_itree_bind; auto.
-  clear a; red.
-  intros cb _ [].
-  revert cb; ucofix CIH; intros cb.
+  clear a; red. ucofix CIH; intros cb.
   rewrite 2 unfold_aloop'.
   destruct cb as [c | b]; cbn.
   - constructor.
@@ -149,7 +147,7 @@ Proof.
   eapply eq_itree_bind; try reflexivity.
   red.
   ucofix CIH.
-  intros [c | b] _ []; cbn.
+  intros [c | b]; cbn.
   - rewrite bind_ret.
     rewrite 2 unfold_aloop'; cbn.
     rewrite bind_tau, !bind_bind.
@@ -184,7 +182,7 @@ Proof.
   unfold loop.
   rewrite bind_ret, !bind_bind.
   eapply eq_itree_bind; try reflexivity.
-  intros [c | b] _ [].
+  intros [c | b].
   2:{ rewrite bind_ret.
       do 2 rewrite unfold_aloop'; cbn.
       red. ufinal. left. pfold. constructor. auto.
@@ -214,7 +212,7 @@ Lemma vanishing1_loop {E A B} (f : void + A -> itree E (void + B))
 Proof.
   unfold loop, ITree.map.
   eapply eq_itree_bind; try reflexivity.
-  intros [[]|b] _ [].
+  intros [[]|b].
   rewrite unfold_aloop'; reflexivity.
 Qed.
 
@@ -226,7 +224,7 @@ Proof.
   unfold loop; cbn.
   rewrite !bind_bind, bind_map.
   eapply eq_itree_bind; try reflexivity.
-  intros dcb _ [].
+  intros dcb.
   revert dcb; ucofix CIH; intros dcb.
   do 2 rewrite unfold_aloop'; destruct dcb as [d | [c | b]]; cbn.
   - (* d *)
@@ -260,7 +258,7 @@ Proof.
   unfold loop.
   rewrite map_bind, bind_map.
   eapply eq_itree_bind; try reflexivity.
-  intros cb _ [].
+  intros cb.
   unfold ITree.map.
   revert cb; ucofix CIH; intros cb.
   do 2 rewrite unfold_aloop'. (* why is this slow *)
@@ -287,7 +285,7 @@ Proof.
   unfold loop, ITree.map.
   rewrite !bind_bind.
   eapply eq_itree_bind; try reflexivity.
-  intros d' _ [].
+  intros d'.
   rewrite bind_ret, unfold_aloop'; reflexivity.
 Qed.
 

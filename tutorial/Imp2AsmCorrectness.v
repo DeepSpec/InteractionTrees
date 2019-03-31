@@ -386,7 +386,7 @@ Section Eq_Locals.
   Qed.
 
   (** [eq_locals] commutes with [bind]  *)
-  Definition eq_locals_bind_gen (Renv_ : _ -> _ -> Prop)
+  Definition eq_locals_bind' (Renv_ : _ -> _ -> Prop)
              {R1 R2 S1 S2} (RR : R1 -> R2 -> Prop)
              (RS : S1 -> S2 -> Prop) :
     forall t1 t2,
@@ -397,7 +397,7 @@ Section Eq_Locals.
   Proof.
     repeat intro.
     rewrite 2 interp_locals_bind.
-    eapply eutt_bind_gen.
+    eapply eutt_bind'.
     { eapply H; auto. }
     intros. eapply H0; destruct H2; auto.
   Qed.
@@ -607,7 +607,7 @@ Section Correctness.
       Note that by doing so, we use a _heterogeneous bisimulation_: the trees
       return values of different types ([alist var value * unit] for _Asm_,
       [alist var value * value] for _Imp_). The differeence is nonetheless mostly
-      transparent for the user, except for the use of the more generale [eutt_bind_gen].
+      transparent for the user, except for the use of the more generale [eutt_bind'].
    *)
   
   Lemma compile_expr_correct : forall e g_imp g_asm n,
@@ -643,12 +643,12 @@ Section Correctness.
       do 2 setoid_rewrite interp_locals_bind.
 
       (* The Induction hypothesis on [e1] relates the first itrees *)
-      eapply eutt_bind_gen.
+      eapply eutt_bind'.
       { eapply IHe1; assumption. }
       (* We obtain new related environments *)
       intros [g_asm' []] [g_imp' v] HSIM.
       (* The Induction hypothesis on [e2] relates the second itrees *)
-      eapply eutt_bind_gen.
+      eapply eutt_bind'.
       { eapply IHe2.
         eapply sim_rel_Renv; eassumption. }
       (* And we once again get new related environments *)
@@ -669,12 +669,12 @@ Section Correctness.
       do 2 setoid_rewrite interp_locals_bind.
 
       (* The Induction hypothesis on [e1] relates the first itrees *)
-      eapply eutt_bind_gen.
+      eapply eutt_bind'.
       { eapply IHe1; assumption. }
       (* We obtain new related environments *)
       intros [g_asm' []] [g_imp' v] HSIM.
       (* The Induction hypothesis on [e2] relates the second itrees *)
-      eapply eutt_bind_gen.
+      eapply eutt_bind'.
       { eapply IHe2.
         eapply sim_rel_Renv; eassumption. }
       (* And we once again get new related environments *)
@@ -695,12 +695,12 @@ Section Correctness.
       do 2 setoid_rewrite interp_locals_bind.
 
       (* The Induction hypothesis on [e1] relates the first itrees *)
-      eapply eutt_bind_gen.
+      eapply eutt_bind'.
       { eapply IHe1; assumption. }
       (* We obtain new related environments *)
       intros [g_asm' []] [g_imp' v] HSIM.
       (* The Induction hypothesis on [e2] relates the second itrees *)
-      eapply eutt_bind_gen.
+      eapply eutt_bind'.
       { eapply IHe2.
         eapply sim_rel_Renv; eassumption. }
       (* And we once again get new related environments *)
@@ -734,7 +734,7 @@ Section Correctness.
     (* By correctness of the compilation of expressions,
        we can match the head trees.
      *)
-    eapply eutt_bind_gen.
+    eapply eutt_bind'.
     { eapply compile_expr_correct; eauto. }
 
     (* Once again, we get related environments *)
@@ -793,7 +793,7 @@ Section Correctness.
 
       (* The head trees match by correctness of assign *)
       rewrite <- (bind_ret2 (ITree.bind (denoteExpr e) _)).
-      eapply eq_locals_bind_gen.
+      eapply eq_locals_bind'.
       { eapply compile_assign_correct; auto. }
 
       (* And remains to trivially relate the results *)
@@ -808,7 +808,7 @@ Section Correctness.
       rewrite seq_asm_correct. unfold to_itree.
 
       (* And the result is immediate by indcution hypothesis *)
-      eapply eq_locals_bind_gen.
+      eapply eq_locals_bind'.
       { eauto. }
       intros [] [] []; auto.
 
@@ -822,7 +822,7 @@ Section Correctness.
          and eliminate them by correctness of [compile_expr] *)
       repeat intro.
       rewrite 2 interp_locals_bind.
-      eapply eutt_bind_gen.
+      eapply eutt_bind'.
       { apply compile_expr_correct; auto. }
 
       (* We get in return [sim_rel] related environments *)
@@ -860,7 +860,7 @@ Section Correctness.
       unfold ITree.map. rewrite bind_bind.
       repeat intro.
       rewrite 2 interp_locals_bind.
-      eapply eutt_bind_gen.
+      eapply eutt_bind'.
       { apply compile_expr_correct; auto. }
 
       (* We get in return [sim_rel] related environments *)
@@ -880,7 +880,7 @@ Section Correctness.
         apply eutt_ret; auto.
       + (* In the true case, we line up the body of the loop to use the induction hypothesis *)
         rewrite 2 interp_locals_bind, bind_bind.
-        eapply eutt_bind_gen.
+        eapply eutt_bind'.
         { eapply IHs; auto. }
         intros [g_asm' []] [g_imp' v'] [HSIM' ?].
         intros.
