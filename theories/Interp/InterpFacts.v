@@ -31,36 +31,12 @@ From ITree Require Import
 Import ITreeNotations.
 (* end hide *)
 
-Definition respectful_eq_itree {E F : Type -> Type}
-  : (itree E ~> itree F) -> (itree E ~> itree F) -> Prop
-  := i_respectful (fun _ => eq_itree eq) (fun _ => eq_itree eq).
-
-Definition respectful_eutt {E F : Type -> Type}
-  : (itree E ~> itree F) -> (itree E ~> itree F) -> Prop
-  := i_respectful (fun _ => eutt eq) (fun _ => eutt eq).
-
-Instance eq_itree_apply_IFun {E F : Type -> Type} {T : Type}
-  : Proper (respectful_eq_itree ==> eq_itree eq ==> eq_itree eq)
-           (@apply_IFun (itree E) (itree F) T).
-Proof.
-  repeat red; eauto.
-Qed.
-
-Instance eutt_apply_IFun {E F : Type -> Type} {T : Type}
-  : Proper (respectful_eutt ==> eutt eq ==> eutt eq)
-           (@apply_IFun (itree E) (itree F) T).
-Proof.
-  repeat red; eauto.
-Qed.
-
 Instance Equivalence_eq_Handler {E F : Type -> Type}
   : Equivalence (@eq_Handler E F).
 Proof.
   unfold eq_Handler.
   apply (Equivalence_i_pointwise (fun R => eq_itree eq)).
 Qed.
-
-Require ITree.Core.KTreeBasicFacts. (* TODO: only needed to avoid a universe inconsistency right around here (errors if you try to move this to the end of the file, or just under the next instance)... *)
 
 Instance Equivalence_eutt_Handler {E F : Type -> Type}
   : Equivalence (@eutt_Handler E F).

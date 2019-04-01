@@ -64,8 +64,11 @@ Definition translateF {E F R} (h : E ~> F) (rec: itree E R -> itree F R) (t : it
   | VisF e k => Vis (h _ e) (fun x => rec (k x))
   end.
 
-CoFixpoint translate {E F R} (h : E ~> F) (t : itree E R) : itree F R
-  := translateF h (translate h) (observe t).
+Definition translate {E F} (h : E ~> F)
+  : itree E ~> itree F
+  := fun R => cofix translate_ t := translateF h translate_ (observe t).
+
+Arguments translate {E F} h [T].
 
 (** ** Interpret *)
 
