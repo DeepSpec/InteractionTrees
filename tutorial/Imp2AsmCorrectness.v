@@ -424,7 +424,6 @@ Section Eq_Locals.
     intros.
     destruct H as [_ [eq _]].
     unfold interp_locals.
-    unfold trigger.
     rewrite interp_trigger.
     rewrite tau_eutt.
     cbn.
@@ -935,7 +934,7 @@ End Correctness.
     But our proof crucially rested on the categorie [(Type, ktree E)] being
     provided by the [itree] library with a traced monoidal structure. We would
     therefore need to redo all the work to equip the category
-    [(Nat, fun A B => ktree E (t A) (t B))] with the same strucutre, which is
+    [(Nat, fun A B => ktree E (t A) (t B))] with the same structure, which is
     significant low level work. We might therefore want to investigate whether
     [ktree] should be generalized to something along the lines of
     [ktree (i : Type) (F : i -> Type) (E : Type -> Type) (a b : i) : Type := F a -> itree E (F b).]

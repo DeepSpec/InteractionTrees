@@ -68,14 +68,7 @@ Local Open Scope sum_scope.
 Notation vis e k := (Vis (subevent _ e) k).
 
 (* Called [send] in Haskell implementations of Freer monads. *)
-Definition trigger {E F} `{E -< F} : E ~> itree F :=
-  fun T e => ITree.trigger (subevent _ e).
-
-Arguments trigger {E F _ T}.
-
-Lemma trigger_is_vis_ret {E F R} `{E -< F} (e : E R) :
-  trigger e = vis e (fun r => Ret r).
-Proof. reflexivity. Qed.
+Notation trigger e := (ITree.trigger (subevent _ e)).
 
 (* Embedding events into trees.
 
@@ -97,4 +90,4 @@ Instance Embeddable_forall {A : Type} {U : A -> Type} {V : A -> Type}
 Instance Embeddable_itree {E F : Type -> Type} {R : Type}
          `(E -< F) :
   Embeddable (E R) (itree F R) :=
-  trigger.
+  fun e => trigger e.

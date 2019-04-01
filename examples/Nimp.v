@@ -162,7 +162,7 @@ Proof.
   left. rewrite !bind_ret, !interp_ret, !bind_ret.
   destruct x.
   - rewrite !interp_ret. apply reflexivity.
-  - rewrite !trigger_is_vis_ret, interp_bind.
+  - rewrite !interp_bind.
     setoid_rewrite interp_recursive_call.
     rewrite eval_skip. rewrite bind_tau, bind_ret.
     rewrite !tau_eutt. eauto with paco.
