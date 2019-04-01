@@ -8,8 +8,7 @@ From Coq Require Import
      Lists.List.
 
 From ITree Require Import
-     Basics.Basics
-     Core.ITreeDefinition.
+     Basics.Basics.
 
 Set Implicit Arguments.
 Set Contextual Implicit.
