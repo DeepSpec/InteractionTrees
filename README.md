@@ -38,6 +38,10 @@ See also [the tutorial](./tutorial/README.md).
 
 See `coq-itree.opam` for version details.
 
+## Contributions welcome
+
+Feel free to open an issue or a pull request!
+
 ---
 
 ## For developers
