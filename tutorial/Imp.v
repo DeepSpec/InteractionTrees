@@ -284,8 +284,8 @@ From ExtLib Require Import
     Recall from [Introduction.v] that a _handler_ for the events [Locals]
     is a function of type [forall R, Locals R -> M R] for some monad [M].
     Here we take for our monad the special case of [M = itree E] for some
-    universe of events [E] required to contain the environment events [envE]
-    provided by the library. It comes with an event handler [run_env]
+    universe of events [E] required to contain the environment events [mapE]
+    provided by the library. It comes with an event handler [run_map]
     interpreting the computation into the state monad.
  *)
 
@@ -314,9 +314,9 @@ Qed.
 
 (** Finally, we can define an evaluator for our statements.
    To do so, we first denote them, leading to an [itree Locals unit].
-   We then [interp]ret [Locals] into [envE] using [evalLocals], leading to
-   an [itree (envE var value) unit].
-   Finally, [run_env] interprets the latter [itree] into the state monad,
+   We then [interp]ret [Locals] into [mapE] using [evalLocals], leading to
+   an [itree (mapE var value) unit].
+   Finally, [run_map] interprets the latter [itree] into the state monad,
    resulting in an [itree] free of any event, but returning an environment.
  *)
 
