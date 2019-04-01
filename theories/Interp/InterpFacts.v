@@ -1,3 +1,12 @@
+(** * Facts about [interp] *)
+
+(** Main facts:
+    - [unfold_interp]: Unfold lemma.
+    - [interp_bind]: [interp] is a monad morphism.
+    - [interp_trigger]: Events are interpreted using a handler.
+ *)
+
+(* begin hide *)
 From Coq Require Import
      Program
      Setoid
@@ -20,6 +29,7 @@ From ITree Require Import
      Interp.TranslateFacts.
 
 Import ITreeNotations.
+(* end hide *)
 
 Definition respectful_eq_itree {E F : Type -> Type}
   : (itree E ~> itree F) -> (itree E ~> itree F) -> Prop
@@ -59,15 +69,13 @@ Proof.
   apply (Equivalence_i_pointwise (fun R => eutt eq)).
 Qed.
 
-Instance Equivalence_eq2_Handler {E F : Type -> Type}
+Definition Equivalence_eq2_Handler {E F : Type -> Type}
   : @Equivalence (Handler E F) eq2.
 Proof.
   exact Equivalence_eutt_Handler.
 Qed.
 
-(** * [interp] *)
-
-(* Unfolding of [interp]. *)
+(** Unfolding of [interp]. *)
 Definition _interp {E F R} (f : E ~> itree F) (ot : itreeF E R _)
   : itree F R :=
   match ot with
@@ -76,6 +84,7 @@ Definition _interp {E F R} (f : E ~> itree F) (ot : itreeF E R _)
   | VisF e k => Tau (f _ e >>= (fun x => interp f (k x)))
   end.
 
+(** Unfold lemma. *)
 Lemma unfold_interp {E F R} {f : E ~> itree F} (t : itree E R) :
   interp f t ≅ (_interp f (observe t)).
 Proof.
@@ -88,6 +97,10 @@ Qed.
 
 (** ** [interp] and constructors *)
 
+(** These are specializations of [unfold_interp], which can be added as
+    rewrite hints.
+ *)
+
 Lemma interp_ret {E F R} {f : E ~> itree F} (x: R):
   interp f (Ret x) ≅ Ret x.
 Proof. rewrite unfold_interp. reflexivity. Qed.
@@ -99,6 +112,22 @@ Proof. rewrite unfold_interp. reflexivity. Qed.
 Lemma interp_vis {E F R} {f : E ~> itree F} U (e: E U) (k: U -> itree E R) :
   eq_itree eq (interp f (Vis e k)) (Tau (ITree.bind (f _ e) (fun x => interp f (k x)))).
 Proof. rewrite unfold_interp. reflexivity. Qed.
+
+Lemma interp_trigger {E F : Type -> Type} {R : Type}
+      (f : E ~> (itree F))
+      (e : E R) :
+  interp f (ITree.trigger e) ≅ Tau (f _ e).
+Proof.
+  unfold ITree.trigger. rewrite interp_vis.
+  apply eq_itree_Tau.
+  setoid_rewrite interp_ret.
+  rewrite bind_ret2.
+  reflexivity.
+Qed.
+
+Hint Rewrite @interp_ret : itree.
+Hint Rewrite @interp_vis : itree.
+Hint Rewrite @interp_trigger : itree.
 
 (** ** [interp] properness *)
 Instance eq_itree_interp {E F}
@@ -186,7 +215,7 @@ Lemma interp_bind {E F R S}
   ≅ ITree.bind (interp f t) (fun r => interp f (k r)).
 Proof.
   revert R t k; ucofix CIH; intros.
-  rewrite unfold_bind, (unfold_interp t). (* TODO: slow *)
+  rewrite unfold_bind_, (unfold_interp t). (* TODO: [unfold_bind] is slower than [unfold_bind_] *)
   destruct (observe t); cbn.
   - rewrite bind_ret. apply reflexivity.
   - rewrite bind_tau, !interp_tau.
@@ -198,17 +227,7 @@ Proof.
     + intros; subst. auto with paco.
 Qed.
 
-Lemma interp_trigger {E F : Type -> Type} {R : Type}
-      (f : E ~> (itree F))
-      (e : E R) :
-  interp f (ITree.trigger e) ≅ Tau (f _ e).
-Proof.
-  unfold ITree.trigger. rewrite interp_vis.
-  apply eq_itree_Tau.
-  setoid_rewrite interp_ret.
-  rewrite bind_ret2.
-  reflexivity.
-Qed.
+Hint Rewrite @interp_bind : itree.
 
 (** *** Identities for [interp] *)
 
@@ -286,10 +305,19 @@ Proof.
   rewrite bind_ret. auto with paco.
 Qed.
 
-Hint Rewrite @interp_ret : itree.
-Hint Rewrite @interp_vis : itree.
-Hint Rewrite @interp_trigger : itree.
-Hint Rewrite @interp_bind : itree.
+Lemma interp_forever {E F} (f : E ~> itree F) {R S}
+      (t : itree E R)
+  : interp f (ITree.forever t)
+  ≅ @ITree.forever F R S (interp f t).
+Proof.
+  ucofix CIH.
+  rewrite (unfold_forever_ t).
+  rewrite (unfold_forever_ (interp _ _)).
+  rewrite interp_bind.
+  uclo eq_itree_clo_bind. econstructor; [reflexivity |].
+  intros ? _ []. rewrite interp_tau.
+  constructor; auto with paco.
+Qed.
 
 Lemma interp_aloop {E F} (f : E ~> itree F) {I A}
       (t  : I -> itree E I + A)

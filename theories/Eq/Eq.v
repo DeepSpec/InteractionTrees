@@ -412,6 +412,13 @@ Lemma bind_vis_ {E R} U V (e: E V) (ek: V -> itree E U) (k: U -> itree E R) :
   ITree.bind (Vis e ek) k ≅ Vis e (fun x => ITree.bind (ek x) k).
 Proof. rewrite bind_vis. reflexivity. Qed.
 
+Lemma unfold_forever_ {E R S} (t : itree E R)
+  : @ITree.forever E R S t ≅ (t >>= fun _ => Tau (ITree.forever t)).
+Proof.
+  rewrite itree_eta, (itree_eta (_ >>= _)).
+  reflexivity.
+Qed.
+
 Lemma eq_itree_bind' {E R1 R2 S1 S2} (RR : R1 -> R2 -> Prop)
       (RS : S1 -> S2 -> Prop)
       t1 t2 k1 k2 :

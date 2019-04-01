@@ -1,3 +1,22 @@
+(** * Equivalence up to taus: transitivity and up-to reasoning *)
+
+(** [eutt] is defined using two nested greatest fixed points.
+
+    A proof by coinduction typically begins by opening the two
+    fixed points [ucofix CIH; red; ucofix CIH'] (optionally, with some
+    [revert] before, and [intros] after):
+    - we can rewrite using [eq_itree] ([≅]) equations,
+      this is enabled by the [eutt0_clo_trans] lemma;
+    - we can remove common prefixes ([gcpn2] or [cpn2]) using the tactic
+      [uclo eutt0_clo_bind]: a goal [cpn2 _ _ (bind t1 k1) (bind t1 k2)] is
+      transformed into two [t1 ≅ t2] and [forall v, cpn2 _ _ (k1 v) (k2 v)]).
+
+    Proofs using a single level [ucofix CIH] are also possible:
+    - we can rewrite using [eutt] ([≈])
+      (thanks to the lemmas [eutt_clo_trans_left] and [eutt_clo_trans_right]);
+    - we can remove common prefixes with [uclo eutt_clo_bind].
+ *)
+
 (* begin hide *)
 From Coq Require Import
      Program
@@ -36,7 +55,7 @@ Section EUTT_upto.
 
 Context {E : Type -> Type} {R1 R2 : Type} (RR : R1 -> R2 -> Prop).
 
-Inductive eutt_trans_left_clo (r: itree E R1 -> itree E R2 -> Prop) :
+Variant eutt_trans_left_clo (r: itree E R1 -> itree E R2 -> Prop) :
   itree E R1 -> itree E R2 -> Prop :=
 | eutt_trans_left_clo_intro t1 t2 t3
       (EQV: t1 ≈ t2)
@@ -87,7 +106,7 @@ Proof.
     uunfold EQTAUS. eauto.
 Qed.
 
-Inductive eutt_trans_right_clo (r: itree E R1 -> itree E R2 -> Prop) :
+Variant eutt_trans_right_clo (r: itree E R1 -> itree E R2 -> Prop) :
   itree E R1 -> itree E R2 -> Prop :=
 | eutt_trans_right_clo_intro t1 t2 t3
       (EQV: t3 ≈ t2)
@@ -138,7 +157,7 @@ Proof.
     uunfold EQTAUS. eauto.
 Qed.
 
-Inductive eutt_bind_clo {E R1 R2} (r: itree E R1 -> itree E R2 -> Prop) : itree E R1 -> itree E R2 -> Prop :=
+Variant eutt_bind_clo {E R1 R2} (r: itree E R1 -> itree E R2 -> Prop) : itree E R1 -> itree E R2 -> Prop :=
 | eutt_bind_clo_intro U1 U2 RU t1 t2 k1 k2
       (EQV: @eutt E U1 U2 RU t1 t2)
       (REL: forall v1 v2 (RELv: RU v1 v2), r (k1 v1) (k2 v2))
@@ -246,7 +265,7 @@ Qed.
 
 Context {E : Type -> Type} {R1 R2 : Type} (RR : R1 -> R2 -> Prop).
 
-Inductive eutt0_trans_clo (r: itree E R1 -> itree E R2 -> Prop) :
+Variant eutt0_trans_clo (r: itree E R1 -> itree E R2 -> Prop) :
   itree E R1 -> itree E R2 -> Prop :=
 | eutt0_trans_clo_intro t1 t2 t3 t4
       (EQVl: t1 ≅ t2)
@@ -305,7 +324,7 @@ Proof.
   split; apply eq_cong_eutt0_guard_; auto; symmetry; auto.
 Qed.
 
-Inductive eutt0_bind_clo (r: itree E R1 -> itree E R2 -> Prop) : itree E R1 -> itree E R2 -> Prop :=
+Variant eutt0_bind_clo (r: itree E R1 -> itree E R2 -> Prop) : itree E R1 -> itree E R2 -> Prop :=
 | eutt0_bind_clo_intro U1 U2 RU t1 t2 k1 k2
       (EQV: @eutt E U1 U2 RU t1 t2)
       (REL: forall v1 v2 (RELv: RU v1 v2), r (k1 v1) (k2 v2))

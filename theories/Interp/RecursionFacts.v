@@ -1,5 +1,10 @@
 (** * Properties of [Recursion.mrec] and [Recursion.rec]. *)
 
+(** The main facts to take away are [mrec_as_interp] and [rec_as_interp]:
+    [mrec] and [rec] are special cases of [interp], using [mrecursive] and
+    [recursive] as handlers.
+ *)
+
 Require Import Paco.paco.
 
 From Coq Require Import
@@ -57,28 +62,11 @@ Proof.
       apply reflexivity.
 Qed.
 
-Lemma ret_mrec {T} (x: T) :
-  interp_mrec ctx (Ret x) ≅ Ret x.
-Proof. rewrite unfold_interp_mrec; reflexivity. Qed.
-
-Lemma tau_mrec {T} (t: itree _ T) :
-  interp_mrec ctx (Tau t) ≅ Tau (interp_mrec ctx t).
-Proof. rewrite unfold_interp_mrec. reflexivity. Qed.
-
-Lemma vis_mrec_right {T U} (e : E U) (k : U -> itree (D +' E) T) :
-  interp_mrec ctx (Vis (inr1 e) k) ≅
-  Tau (Vis e (fun x => interp_mrec ctx (k x))).
-Proof. rewrite unfold_interp_mrec. reflexivity. Qed.
-
-Lemma vis_mrec_left {T U} (d : D U) (k : U -> itree (D +' E) T) :
-  interp_mrec ctx (Vis (inl1 d) k) ≅
-  Tau (interp_mrec ctx (ITree.bind (ctx _ d) k)).
-Proof. rewrite unfold_interp_mrec. reflexivity. Qed.
-
-Hint Rewrite @ret_mrec : itree.
-Hint Rewrite @vis_mrec_left : itree.
-Hint Rewrite @vis_mrec_right : itree.
-Hint Rewrite @tau_mrec : itree.
+(** [mrec ctx] is equivalent to [interp (mrecursive ctx)],
+    where [mrecursive] is defined as follows. *)
+Definition mrecursive (f : D ~> itree (D +' E))
+  : (D +' E) ~> itree E :=
+  case_ (mrec f) ITree.trigger.
 
 Instance eq_itree_mrec {R} :
   Proper (eq_itree eq ==> eq_itree eq) (@interp_mrec _ _ ctx R).
@@ -99,22 +87,16 @@ Theorem interp_mrec_bind {U T} (t : itree _ U) (k : U -> itree _ T) :
 Proof.
   revert t k; ucofix CIH; intros.
   rewrite (unfold_interp_mrec _ t).
-  rewrite (unfold_bind t). (* TODO: slow *)
+  rewrite (unfold_bind_ t). (* TODO: should be [unfold_bind] but it is much slower *)
   destruct (observe t); cbn;
     [| |destruct e];
-    autorewrite with itree;
-    try rewrite <- bind_bind.
-  1: { apply reflexivity. }
+    autorewrite with itree.
+  1: apply reflexivity.
+  all: rewrite unfold_interp_mrec.
   all: try (econstructor; eauto with paco).
-  intros.
-  ustep; constructor. auto with paco.
+  - rewrite <- bind_bind; eauto with paco.
+  - ustep; constructor; auto with paco.
 Qed.
-
-(** [mrec ctx] is equivalent to [interp (mrecursive ctx)],
-    where [mrecursive] is defined as follows. *)
-Definition mrecursive (f : D ~> itree (D +' E))
-  : (D +' E) ~> itree E :=
-  case_ (mrec f) ITree.trigger.
 
 Theorem interp_mrec_as_interp {T} (c : itree _ T) :
   interp_mrec ctx c ≅ interp (mrecursive ctx) c.
@@ -170,25 +152,4 @@ Lemma interp_recursive_call {E A B} (f : A -> itree (callE A B +' E) B) (x:A) :
 Proof.
   unfold recursive. unfold call.
   rewrite interp_trigger. cbn. reflexivity.
-Qed.
-
-Lemma unfold_forever {E R S} (t : itree E R)
-  : @ITree.forever E R S t ≅ (t >>= fun _ => Tau (ITree.forever t)).
-Proof.
-  rewrite itree_eta, (itree_eta (_ >>= _)).
-  reflexivity.
-Qed.
-
-Lemma interp_forever {E F} (f : E ~> itree F) {R S}
-      (t : itree E R)
-  : interp f (ITree.forever t)
-  ≅ @ITree.forever F R S (interp f t).
-Proof.
-  ucofix CIH.
-  rewrite unfold_forever.
-  rewrite (unfold_forever (interp _ _)).
-  rewrite interp_bind.
-  uclo eq_itree_clo_bind. econstructor; [reflexivity |].
-  intros ? _ []. rewrite interp_tau.
-  constructor; auto with paco.
 Qed.

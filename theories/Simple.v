@@ -75,8 +75,8 @@ Section EquivalenceUpToTaus.
 
 Context {E : Type -> Type} {R : Type}.
 
-(** The standard [itree] equivalence: "Equivalence Up To Taus",
-    or _weak bisimulation_. *)
+(** The standard [itree] equivalence: "Equivalence Up To Taus"
+    ([eutt] for short), or _weak bisimulation_. *)
 Parameter eutt : itree E R -> itree E R -> Prop.
 
 Infix "≈" := eutt (at level 40).

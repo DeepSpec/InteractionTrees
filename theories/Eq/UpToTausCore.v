@@ -1,7 +1,13 @@
-(** * Simple facts about equivalence up to taus *)
+(** * Equivalence up to taus: simple facts *)
 
 (** This module proves simple facts about the [eutt] relation defined in
-    [UpToTaus]. *)
+    [UpToTaus]:
+
+    - Reflexivity, symmetry
+    - Inversion lemmas
+    - Pseudo-constructor lemmas
+    - Unfold lemmas
+ *)
 
 (* begin hide *)
 From Coq Require Import
