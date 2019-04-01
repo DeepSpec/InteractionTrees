@@ -135,6 +135,10 @@ Notation Vis e k := (go (VisF e k)).
 
 (** *** Definitions *)
 
+(** These are meant to be imported qualified, e.g., [ITree.bind],
+    [ITree.trigger], to avoid ambiguity with identifiers of the same
+    name (some of which are overloaded generalizations of these).
+ *)
 Module ITree.
 
 (** [bind]: monadic composition, tree substitution, sequencing of

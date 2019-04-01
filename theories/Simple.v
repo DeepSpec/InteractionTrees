@@ -25,6 +25,11 @@ Open Scope itree_scope.
    - Notations for [bind t k]: ["t >>= k"], ["x <- t ;; k x"]
  *)
 
+(** The main functions are meant to be imported qualified, e.g., [ITree.bind],
+    [ITree.trigger], to avoid ambiguity with identifiers of the same
+    name (some of which are overloaded generalizations of these).
+ *)
+
 (** Indexed types *)
 Require Export ITree.Basics.Basics.
 (**
