@@ -36,6 +36,8 @@ library.
 
 See `coq-itree.opam` for version details.
 
+---
+
 ## For developers
 
 ### Build
