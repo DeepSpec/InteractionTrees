@@ -1,4 +1,4 @@
-(** * Simulation Up To Tau *)
+(** * Simulation up to taus *)
 
 (** A preorder [sutt t1 t2], where every visible step
   ([RetF] or [VisF]) on the left must be matched with a corresponding
@@ -7,8 +7,10 @@
   In particular, [spin := Tau spin] is less than everything.
 
   The induced equivalence relation is [eutt].
-
-  Various [Proper] lemmas about [eutt] are more easily proved as
+[[
+  Theorem sutt_eutt : sutt eq t u -> sutt eq u t -> eutt eq t u.
+]]
+  Various lemmas about [eutt] may be more easily proved as
   [Proper] lemmas about [sutt] first, and then symmetrizing using
   [eutt_sutt] and [sutt_eutt].
  *)

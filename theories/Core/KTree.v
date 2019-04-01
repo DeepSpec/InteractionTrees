@@ -1,4 +1,4 @@
-(** * The Category of Continuation Trees *)
+(** * The category of continuation trees (KTrees) *)
 
 (** The Kleisli category of ITrees. *)
 

@@ -1,6 +1,6 @@
-(** * Facts about the cocartesian category of KTrees *)
+(** * Theorems about the cocartesian category of KTrees *)
 
-(** Proofs about [loop] are separate, in [ITree.Core.KTreeFacts]. *)
+(** Theorems about [loop] are separate, in [ITree.Core.KTreeFacts]. *)
 
 (* begin hide *)
 From Coq Require Import

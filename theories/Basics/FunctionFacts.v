@@ -1,3 +1,5 @@
+(** * Theorems for [ITree.Basics.Function] *)
+
 (* begin hide *)
 From Coq Require Import
      Morphisms.
@@ -33,8 +35,6 @@ Proof. red; reflexivity. Qed.
 
 Instance InitialObject_void : InitialObject Fun void :=
   fun _ _ v => match v : void with end.
-
-(** ** Equational theory *)
 
 Instance eeq_case_sum {A B C} :
   @Proper (Fun A C -> Fun B C -> Fun (A + B) C)

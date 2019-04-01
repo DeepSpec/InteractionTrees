@@ -76,8 +76,7 @@ Proof.
   uunfold H0. inv H0; simpobs; [| |destruct e].
   - apply reflexivity.
   - econstructor. eauto with paco.
-  - econstructor. apply pointwise_relation_fold in REL.
-    ubase. eapply CIH. rewrite REL. reflexivity.
+  - econstructor. ubase. eapply CIH. apply eq_itree_bind; auto; reflexivity.
   - econstructor. ustep; constructor. auto with paco.
 Qed.
 

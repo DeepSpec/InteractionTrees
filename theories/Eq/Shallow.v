@@ -21,20 +21,12 @@ From Coq Require Import
      ProofIrrelevance.
 (* end hide *)
 
-(** ** Misc *)
-
 (** Rewrite all heterogeneous equalities with the axiom
     [inj_pair2 : existT _ T a = existT _ T b -> a = b]. *)
 Ltac auto_inj_pair2 :=
   repeat (match goal with
           | [ H : _ |- _ ] => apply inj_pair2 in H
           end).
-
-Lemma pointwise_relation_fold {A B} {r: relation B} f g :
-  (forall v:A, r (f v) (g v)) -> pointwise_relation _ r f g.
-Proof. red. eauto. Qed.
-
-(**)
 
 (** ** [observing]: Lift relations through [observe]. *)
 Inductive observing {E R1 R2}

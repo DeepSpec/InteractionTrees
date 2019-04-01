@@ -1,6 +1,6 @@
-(** * Facts about the traced monoidal category of KTrees *)
+(** * Theorems about the traced monoidal category of KTrees *)
 
-(** Proofs about the trace operator [loop].
+(** More precisely, facts about the trace operator [loop].
     The coinductive reasoning is all done in [LoopFacts], and
     this package just repackages it into nice categorical equations.
 

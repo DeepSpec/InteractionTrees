@@ -1,3 +1,6 @@
+(** * Theorems for [ITree.Indexed.Function] *)
+
+(* begin hide *)
 From Coq Require Import
      Setoid
      Morphisms.
@@ -6,6 +9,7 @@ From ITree Require Import
      Basics.Basics
      Indexed.Function
      Indexed.Relation.
+(* end hide *)
 
 Instance Proper_apply_IFun {E F : Type -> Type} {T : Type}
          (RE : forall T, E T -> E T -> Prop)

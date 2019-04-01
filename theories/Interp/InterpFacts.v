@@ -1,4 +1,4 @@
-(** * Facts about [interp] *)
+(** * Theorems about [interp] *)
 
 (** Main facts:
     - [unfold_interp]: Unfold lemma.

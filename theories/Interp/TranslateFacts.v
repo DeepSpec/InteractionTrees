@@ -1,5 +1,6 @@
-(* translate facts ---------------------------------------------------------- *)
+(** * Theorems about [Interp.translate] *)
 
+(* begin hide *)
 From ExtLib Require
      Structures.Monoid.
 
@@ -22,7 +23,7 @@ From Coq Require Import
      Setoid
      Morphisms
      RelationClasses.
-
+(* end hide *)
 
 Section TranslateFacts.
   Context {E F : Type -> Type}.
@@ -94,8 +95,6 @@ Proof.
   - econstructor. ubase. apply CIH.
   - econstructor. intros. ubase. apply CIH.
 Qed.
-
-(* categorical properties --------------------------------------------------- *)
 
 Lemma translate_id : forall E R (t : itree E R), translate (id_ _) t ≅ t.
 Proof.

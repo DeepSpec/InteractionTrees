@@ -1,7 +1,13 @@
+(** * ITrees as sets of traces *)
+
+(* begin hide *)
 From Coq Require Import
      List.
 
 Import ListNotations.
+
+From Paco Require Import
+     paco.
 
 From ITree Require Import
      Core.ITreeDefinition
@@ -10,9 +16,7 @@ From ITree Require Import
      Eq.Shallow.
 
 Local Open Scope itree.
-
-From Paco Require Import
-     paco.
+(* end hide *)
 
 Inductive trace {E : Type -> Type} {R : Type} : Type :=
 | TEnd : trace

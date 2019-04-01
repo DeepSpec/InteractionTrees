@@ -1,3 +1,4 @@
+(** * Theorems for [ITree.Interp.Handler] *)
 
 (* begin hide *)
 From Coq Require Import

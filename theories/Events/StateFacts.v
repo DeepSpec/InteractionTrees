@@ -1,3 +1,5 @@
+(** * Theorems about State effects *)
+
 (* begin hide *)
 From Coq Require Import
      Program
@@ -22,11 +24,9 @@ Import ITree.Basics.Basics.Monads.
 Import ITreeNotations.
 
 Open Scope itree_scope.
-(* end hide *)
-
-(** * [interp_state] *)
 
 Import Monads.
+(* end hide *)
 
 Definition _interp_state {E F S R}
            (f : E ~> stateT S (itree F)) (ot : itreeF E R _)

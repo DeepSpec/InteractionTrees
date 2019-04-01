@@ -1,9 +1,15 @@
+(** * Extensible effects *)
+
+(** Notations to handle large sums and classes for extensible effects. *)
+
+(* begin hide *)
 From ITree Require Import
      Basics.Basics
      Basics.CategoryOps
      Core.ITreeDefinition
      Indexed.Sum
      Indexed.Function.
+(* end hide *)
 
 (** Automatic application of commutativity and associativity for
     sums types constructed with [sum1].
