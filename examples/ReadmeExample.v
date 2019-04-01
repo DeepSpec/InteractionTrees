@@ -29,8 +29,8 @@ Definition echoed (n : nat)
 (* Equational reasoning *)
 Theorem echoed_id : forall n, echoed n ≈ Ret n.
 Proof.
-  intros n.
-  unfold echoed, echo.   (*   interp (handler n) (x <- trigger Input ;; Ret x) *)
+  intros n.              (*   echoed n *)
+  unfold echoed, echo.   (* ≈ interp (handler n) (x <- trigger Input ;; Ret x) *)
   rewrite interp_bind.   (* ≈ x <- interp (handler n) Input ;; interp (handler n) (Ret x) *)
   rewrite interp_trigger, tau_eutt.
                          (* ≈ x <- handler n _ Input ;; interp (handler n) (Ret x) *)
