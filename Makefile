@@ -12,10 +12,10 @@ all:
 	$(MAKE) tutorial
 	$(MAKE) test
 
-install: Makefile.coq all
+install: Makefile.coq coq
 	$(MAKE) -f $< $@
 
-uninstall: Makefile.coq
+uninstall: Makefile.coq coq
 	$(MAKE) -f $< $@
 
 test: examples tests
