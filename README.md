@@ -23,10 +23,12 @@ library.
 - `ITree.ITreeFacts`: Theorems to reason about interaction trees.
 - `ITree.Events`: Some standard event types.
 
-### Quick introduction
+### Introduction
 
-- `ITree.Simple`: Simplified tutorial interface.
-  See also `tutorial/Introduction.v`.
+For a quick overview of the core features of the library, see
+[`examples/ReadmeExample.v`](./examples/ReadmeExample.v).
+
+See also [the tutorial](./tutorial/README.md).
 
 ## Dependencies
 
