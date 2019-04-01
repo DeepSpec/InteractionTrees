@@ -321,7 +321,7 @@ Section Eq_Locals.
   Context {E': Type -> Type}.
   Notation E := (Locals +' E').
 
-  (** [interp_locals] handle [Locals] into the [envE] events, and then
+  (** [interp_locals] handle [Locals] into the [mapE] events, and then
       run these events into the state monad. *)
   Definition interp_locals {R: Type} (t: itree E R) (s: alist var value)
     : itree E' (alist var value * R) :=

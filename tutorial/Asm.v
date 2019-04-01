@@ -259,7 +259,7 @@ Definition evalMemory {E : Type -> Type} `{mapE value value -< E} :
 Definition memory := alist value value.
 
 (** We can then define an evaluator for closed assembly programs by
-    interpreting both store and heap events into two instances of [envE],
+    interpreting both store and heap events into two instances of [mapE],
     and running them both.
  *)
 Definition AsmEval (p: asm unit void) :=
