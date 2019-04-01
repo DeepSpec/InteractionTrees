@@ -51,6 +51,12 @@ Ltac eutt0_fold :=
     change (euttF RR foo (cpn2 gf r) ot1 ot2) with (gcpn2 gf r (go ot1) (go ot2))
   end.
 
+Local Ltac destructkauto EUTTK EUTTK0 :=
+  edestruct EUTTK, EUTTK0;
+    (* TODO: [eauto 8 with rclo paco] works instead of these two lines but is slow. *)
+    try (eauto 6 with paco; fail);
+    (left; eapply rclo2_clo; eauto 6 with rclo paco).
+
 Section EUTT_upto.
 
 Context {E : Type -> Type} {R1 R2 : Type} (RR : R1 -> R2 -> Prop).
@@ -73,12 +79,12 @@ Proof.
   genobs_clear t1 ot1. genobs_clear t2 ot2. genobs_clear t3 ot3.
   move EQV before CIH. revert_until EQV.
   induction EQV; intros; subst.
-  - eauto 9 using euttF_mon, cpn2_mon_bot with rclo paco.
+  - eauto 7 using euttF_mon, cpn2_mon_bot, rclo2_base with paco.
   - remember (VisF e k2) as o.
     move REL before CIH. revert_until REL.
     induction REL; intros; subst; try dependent destruction Heqo; eauto 7.
     econstructor. intros.
-    edestruct EUTTK, EUTTK0; eauto 8 with rclo paco.
+    destructkauto EUTTK EUTTK0.
   - destruct (isb_tau ot3) eqn: ISTAU.
     + destruct ot3; inv ISTAU.
       econstructor. ubase. eapply CIH. eauto with paco.
@@ -96,7 +102,7 @@ Proof.
         move EQTAUS before CIH. revert_until EQTAUS.
         induction EQTAUS; intros; subst; try dependent destruction Heqo; eauto 7.
         econstructor. intros.
-        edestruct EUTTK, EUTTK0; eauto 8 with rclo paco.
+        destructkauto EUTTK EUTTK0.
       * eapply IHREL; eauto.
         eapply euttF_inv_tau_right in EQTAUS. eauto.
   - eauto 8 using euttF_mon, cpn2_mon_bot with rclo paco.
@@ -124,12 +130,12 @@ Proof.
   genobs_clear t1 ot1. genobs_clear t2 ot2. genobs_clear t3 ot3.
   move EQV before CIH. revert_until EQV.
   induction EQV; intros; subst.
-  - eauto 9 using euttF_mon, cpn2_mon_bot with rclo paco.
+  - eauto 7 using euttF_mon, cpn2_mon_bot, rclo2_base with paco.
   - remember (VisF e k2) as o.
     move REL before CIH. revert_until REL.
     induction REL; intros; subst; try dependent destruction Heqo; eauto 7.
     econstructor. intros.
-    edestruct EUTTK, EUTTK0; eauto 8 with rclo paco.
+    destructkauto EUTTK EUTTK0.
   - destruct (isb_tau ot1) eqn: ISTAU.
     + destruct ot1; inv ISTAU.
       econstructor. ubase. eapply CIH. eauto with paco.
@@ -147,7 +153,7 @@ Proof.
         move EQTAUS before CIH. revert_until EQTAUS.
         induction EQTAUS; intros; subst; try dependent destruction Heqo; eauto 7.
         econstructor. intros.
-        edestruct EUTTK, EUTTK0; eauto 8 with rclo paco.
+        destructkauto EUTTK EUTTK0.
       * eapply IHREL; eauto.
         eapply euttF_inv_tau_right in EQTAUS. eauto.
   - eauto 8 using euttF_mon, cpn2_mon_bot with rclo paco.
@@ -177,7 +183,7 @@ Proof.
   move EQV before CIH. revert_until EQV.
   induction EQV; intros; subst.
   - specialize (REL _ _ RBASE). uunfold REL.
-    eauto 9 using euttF_mon, cpn2_mon_bot with rclo paco.
+    eauto 7 using euttF_mon, cpn2_mon_bot, rclo2_base with paco.
   - econstructor. intros.
     edestruct EUTTK; eauto 7 with rclo paco.
   - simpl. eauto 8 with paco.
@@ -288,7 +294,7 @@ Proof.
   - econstructor. intros.
     edestruct EUTTK.
     + left. rewrite REL, REL0. eauto.
-    + right. eapply rclo2_clo. econstructor; eauto with rclo.
+    + right. eauto 6 with rclo.
   - econstructor. eapply rclo2_clo. econstructor; eauto with rclo.
   - dependent destruction EQVl. uunfold REL0. simpobs. eauto.
   - dependent destruction EQVr. uunfold REL0. simpobs. eauto.
@@ -344,8 +350,12 @@ Proof.
   induction EQV; intros; subst.
   - eauto using euttF_mon, upaco2_mon_bot with rclo.
   - econstructor. intros.
-    edestruct EUTTK; right; eapply rclo2_clo; eauto 8 using euttF_mon with rclo paco.
-  - simpl. econstructor. eapply rclo2_clo; eauto 8 with rclo paco.
+    edestruct EUTTK; right; eapply rclo2_clo.
+    + eauto 6 with rclo.
+    + econstructor; eauto with paco; eauto with rclo.
+  - simpl. econstructor; eapply rclo2_clo.
+    econstructor; eauto with paco; eauto with rclo.
+    (* TODO: These lines should just be [eauto 8 with rclo paco] but take a quite a few seconds. *)
   - econstructor. rewrite unfold_bind. eauto.
   - econstructor. rewrite unfold_bind. eauto.
 Qed.
