@@ -77,8 +77,8 @@ For a (much) nicer presentation of the documentation, you can use
 [coqdocjs](https://github.com/tebbi/coqdocjs).
 
 1. Download
-  [coqdoc-master.zip](https://github.com/tebbi/coqdocjs/archive/master.zip) into
-  the Interaction Trees root directory and unzip it.  (It should create the
+  [coqdocjs-master.zip](https://github.com/tebbi/coqdocjs/archive/master.zip)
+  into the Interaction Trees root directory and unzip it.  (It should create the
   `coqdocjs-master` folder.)
 
 2. Run
@@ -86,8 +86,8 @@ For a (much) nicer presentation of the documentation, you can use
 make COQDOCJS_DIR=coqdocjs-master html
 ```
 
-Note: If you opt to clone the `coqdocjs` git project rather than
-download the zip file, set the `COQDOCJS_DIR` appropriately.  (It will
+Note: You can also opt to clone the coqdocjs git project rather than
+download the zip file, and set the `COQDOCJS_DIR` appropriately.  (It will
 probably just be `coqdocjs` not `coqdocjs-master`.)
 
 ## Library internal organization
