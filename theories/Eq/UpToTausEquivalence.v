@@ -7,9 +7,10 @@
     [revert] before, and [intros] after):
     - we can rewrite using [eq_itree] ([≅]) equations,
       this is enabled by the [eutt0_clo_trans] lemma;
-    - we can remove common prefixes ([gcpn2] or [cpn2]) using the tactic
-      [uclo eutt0_clo_bind]: a goal [cpn2 _ _ (bind t1 k1) (bind t1 k2)] is
-      transformed into two [t1 ≅ t2] and [forall v, cpn2 _ _ (k1 v) (k2 v)]).
+    - we can skip "common prefixes" (under either [gcpn2] or [cpn2]
+      relations) using the tactic [uclo eutt0_clo_bind]: a goal
+      [cpn2 _ _ (bind t1 k1) (bind t1 k2)] is transformed into two subgoals
+      [t1 ≈ t2] (the prefixes) and [forall v, cpn2 _ _ (k1 v) (k2 v)]).
 
     Proofs using a single level [ucofix CIH] are also possible:
     - we can rewrite using [eutt] ([≈])
@@ -39,6 +40,7 @@ Import ITreeNotations.
 Local Open Scope itree.
 (* end hide *)
 
+(* begin hide *)
 Ltac eutt0_fold :=
   match goal with
   | [H:_ |- euttF ?RR ?foo (cpn2 ?gf ?r) (observe ?t1) (observe ?t2)] =>
@@ -56,6 +58,7 @@ Local Ltac destructkauto EUTTK EUTTK0 :=
     (* TODO: [eauto 8 with rclo paco] works instead of these two lines but is slow. *)
     try (eauto 6 with paco; fail);
     (left; eapply rclo2_clo; eauto 6 with rclo paco).
+(* end hide *)
 
 Section EUTT_upto.
 
