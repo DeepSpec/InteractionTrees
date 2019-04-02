@@ -32,11 +32,11 @@ install:
 - opam repo add coq-extra-dev https://coq.inria.fr/opam/extra-dev
 - opam pin add coq $COQ_VERSION
 - opam pin add coq-itree --kind=path . -n  # Make opam aware of our dependency constraints
-- opam upgrade  # Upgrade dependencies if cached
 - opam install coq-itree --deps-only -v
 - opam list
 
 script:
 - set -e
 - opam install coq-itree -v
+- opam upgrade
 - opam remove coq-itree -v
