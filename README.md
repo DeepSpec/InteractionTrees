@@ -36,7 +36,7 @@ See also [the tutorial](./tutorial/README.md).
 - [coq-paco](https://github.com/snu-sf/paco)
 - [coq-ext-lib](https://github.com/coq-ext-lib/coq-ext-lib)
 
-See `coq-itree.opam` for version details.
+See [`coq-itree.opam`](./coq-itree.opam) for version details.
 
 ## Contributions welcome
 
