@@ -170,33 +170,20 @@ Proof.
   - econstructor. rewrite unfold_bind. eapply IHEQV. eauto.
 Qed.
 
-Global Instance eutt_cong_gcpn_ (r rg: itree E R1 -> itree E R2 -> Prop) :
-  Proper (eutt eq ==> eutt eq ==> impl)
+Global Instance eutt_cong_gcpn (r rg: itree E R1 -> itree E R2 -> Prop) :
+  Proper (eutt eq ==> eutt eq ==> flip impl)
          (gcpn2 (@eutt0 E R1 R2 RR) r rg).
 Proof.
   repeat intro.
-  gclo eutt_clo_trans_left. econstructor. symmetry. eauto.
-  gclo eutt_clo_trans_right. econstructor. symmetry. eauto.
+  gclo eutt_clo_trans_left. econstructor. eauto.
+  gclo eutt_clo_trans_right. econstructor. eauto.
   eauto.
 Qed.
 
-Global Instance eutt_cong_gcpn (r rg: itree E R1 -> itree E R2 -> Prop) :
-  Proper (eutt eq ==> eutt eq ==> iff)
-         (gcpn2 (@eutt0 E R1 R2 RR) r rg).
-Proof.
-  split; apply eutt_cong_gcpn_; auto using symmetry.
-Qed.
-
-Definition eutt_eq_under_rr_impl_ :
+Global Instance eutt_eq_under_rr_impl :
   Proper (@eutt E _ _ eq ==> @eutt _ _ _ eq ==> flip impl) (eutt RR).
 Proof.
   repeat intro. red. rewrite H, H0. eauto with paco.
-Qed.
-
-Global Instance eutt_eq_under_rr_impl :
-  Proper (@eutt E _ _ eq ==> @eutt _ _ _ eq ==> iff) (eutt RR).
-Proof.
-  split; apply eutt_eq_under_rr_impl_; auto using symmetry.
 Qed.
 
 End EUTT_upto.
@@ -237,19 +224,12 @@ Proof.
   - dependent destruction EQVr. gunfold REL0. simpobs. eauto.
 Qed.
 
-Definition eq_cong_eutt0_ r rg r0 rg0 :
+Global Instance eq_cong_eutt0 r rg r0 rg0 :
   Proper (eq_itree eq ==> eq_itree eq ==> flip impl)
          (gcpn2 (@eutt0_ E R1 R2 RR (gcpn2 (eutt0 RR) r rg)) r0 rg0).
 Proof.
   repeat intro.
   gclo eutt0_clo_trans. econstructor; eauto.
-Qed.
-
-Global Instance eq_cong_eutt0 r rg r0 rg0:
-  Proper (eq_itree eq ==> eq_itree eq ==> iff)
-         (gcpn2 (@eutt0_ E R1 R2 RR (gcpn2 (eutt0 RR) r rg)) r0 rg0).
-Proof.
-  split; apply eq_cong_eutt0_; auto; symmetry; auto.
 Qed.
 
 Lemma eutt0_clo_bind r rg:

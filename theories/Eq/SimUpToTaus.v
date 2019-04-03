@@ -217,20 +217,20 @@ Qed.
 
 Require Import Coq.Relations.Relations.
 
-Lemma eq_itree_vis_l {E R1 R2} {RR : R1 -> R2 -> Prop} {RC T}
+Lemma eq_itree_vis_r {E R1 R2} {RR : R1 -> R2 -> Prop} {RC T}
       (e : E T) (k : _ -> _)
       (it : itreeF E _ _)
-      (H : @eq_itreeF E R1 R2 RR RC (VisF e k) it)
+      (H : @eq_itreeF E R1 R2 RR RC it (VisF e k))
       :
         exists k', it = VisF e k' /\
-                 (forall x, RC (k x) (k' x)).
+                 (forall x, RC (k' x) (k x)).
 Proof.
   refine
     match H in eq_itreeF _ _ x y
           return
-          match x return Prop with
+          match y return Prop with
           | @VisF _ _ _ u e k =>
-            exists k' : _ -> _, y = VisF e k' /\ (forall x : u, RC (k x) (k' x))
+            exists k' : _ -> _, x = VisF e k' /\ (forall x : u, RC (k' x) (k x))
           | _ => True
           end
     with
@@ -241,51 +241,49 @@ Qed.
 
 (* todo: this could be made stronger with eutt rather than eq_itree
  *)
-Instance Proper_sutt {E : Type -> Type} {R1 R2 : Type}
-: Proper (pointwise_relation _ (pointwise_relation _ Basics.impl) ==>
-          eq_itree eq ==> eq_itree eq ==> Basics.impl)
-       (@sutt E R1 R2).
+Instance Proper_sutt {E : Type -> Type} {R1 R2 : Type} r
+: Proper (eq_itree eq ==> eq_itree eq ==> flip impl)
+       (@sutt E R1 R2 r).
 Proof.
   red. red.
-  unfold pointwise_relation.
   unfold impl.
   intros x y Hxy.
   red. red.
-  do 5 intro.
-  revert x0 y0 H x1 y1.
+  intros.
+  revert_until r.
   gcofix CIH; gstep.
   intros.
+  rename H1 into H2, Hxy into H1. 
   gunfold H0.
   gunfold H1.
   gunfold H2.
   repeat red in H0. repeat red in H1. repeat red in H2.
-  revert H0 H1.
-  genobs_clear y0 oy0. genobs_clear y1 oy1. genobs_clear x2 ox2. genobs_clear x3 ox3.
-  revert_until CIH.
-  induction 1; subst; intros.
+  genobs_clear y0 oy0. genobs_clear y oy. genobs_clear x2 ox2. genobs_clear x ox.
+  move H2 before CIH. revert_until H2.
+  induction H2; subst; intros.
   { inv H0. inv H1. econstructor. eauto. }
-  { eapply eq_itree_vis_l in H0.
-    eapply eq_itree_vis_l in H1.
+  { eapply eq_itree_vis_r in H0.
+    eapply eq_itree_vis_r in H1.
     destruct H0 as [ ? [ ? ? ] ].
     destruct H1 as [ ? [ ? ? ] ].
     rewrite H. rewrite H1.
     constructor.
     intros.
     gbase.
-    specialize (H0 x2).
-    specialize (H2 x2).
+    specialize (H0 x1).
+    specialize (H2 x1).
     eapply CIH; eauto. }
-  { inversion H1; clear H1; subst.
+  { inv H0.
     constructor.
     eapply IHsuttF; eauto.
     gunfold REL. eauto. }
-  { inversion H0; clear H0; subst.
+  { inv H1; subst.
     constructor.
     gbase.
-    change oy1 with (observe (go oy1)).
+    rewrite (itree_eta' ox2).
     eapply CIH.
     - eassumption.
     - instantiate (1:= go ot2).
-      gstep. eapply H1.
+      gstep. eauto.
     - eapply EQTAUS. }
 Qed.

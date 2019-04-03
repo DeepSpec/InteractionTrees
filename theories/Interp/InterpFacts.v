@@ -23,6 +23,8 @@ From ITree Require Import
 
 Import ITreeNotations.
 
+Require ITree.Core.KTreeFacts. (* TODO: only needed to avoid a universe inconsistency right around here (errors if you try to move this to the end of the file, or just under the next instance)... *)
+
 Definition respectful_eq_itree {E F : Type -> Type}
   : (itree E ~> itree F) -> (itree E ~> itree F) -> Prop
   := i_respectful (fun _ => eq_itree eq) (fun _ => eq_itree eq).
@@ -51,8 +53,6 @@ Proof.
   unfold eq_Handler.
   apply (Equivalence_i_pointwise (fun R => eq_itree eq)).
 Qed.
-
-Require ITree.Core.KTreeFacts. (* TODO: only needed to avoid a universe inconsistency right around here (errors if you try to move this to the end of the file, or just under the next instance)... *)
 
 Instance Equivalence_eutt_Handler {E F : Type -> Type}
   : Equivalence (@eutt_Handler E F).

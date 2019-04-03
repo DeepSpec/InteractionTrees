@@ -445,18 +445,11 @@ Proof.
   intros; subst; auto.
 Qed.
 
-Instance eq_itree_gcpn_ {E R1 R2 RS} r rg:
+Instance eq_itree_gcpn {E R1 R2 RS} r rg:
   Proper (eq_itree eq ==> eq_itree eq ==> flip impl)
          (gcpn2 (@eq_itree_ E R1 R2 RS) r rg).
 Proof.
   repeat intro. gclo eq_itree_clo_trans. eauto.
-Qed.
-
-Instance eq_itree_gcpn {E R1 R2 RS} r rg:
-  Proper (eq_itree eq ==> eq_itree eq ==> iff)
-         (gcpn2 (@eq_itree_ E R1 R2 RS) r rg).
-Proof.
-  split; apply eq_itree_gcpn_; auto using symmetry.
 Qed.
 
 Lemma bind_ret2 {E R} :
