@@ -10,6 +10,9 @@ From ITree Require Import
 From Coq Require Import
      Morphisms.
 
+Import CatNotations.
+Local Open Scope cat_scope.
+ 
 (* We consider the transport of the symmetric traced monoidal structure of [ktree]s to a subcategory *)
 
 Section SubK.
@@ -25,20 +28,25 @@ Section SubK.
   Definition iFun (A B: i) := F A -> F B.
 
   (* The unit and the bifunctor must be faithfully transported into [Type] by F *)
+  (* Context {iI_init: forall E, Initial (@ktree E) (F iI)}. *)
   Context {iI_void: F iI -> void}.
   Context {void_iI: void -> F iI}.
-  Context {iI_void_iso: Iso Fun iI_void void_iI}.
-
+  Context {iI_voi_iso: Iso Fun iI_void void_iI}.
+ 
   Context {isum_sum: forall {A B: i}, F (isum A B) -> (F A) + (F B)}.
   Context {sum_isum: forall {A B: i}, (F A) + (F B) -> F (isum A B)}.
+  Context {isum_sum_iso: forall A B, Iso Fun (@isum_sum A B) (@sum_isum A B)}.
+  (* Arguments iI_init {E}. *)
   Arguments isum_sum {A B}.
   Arguments sum_isum {A B}.
 
-  Context {isum_sum_iso: forall A B, Iso Fun (@isum_sum A B) (@sum_isum A B)}.
-  Definition iinl {A B}: F A -> F (isum A B) :=
-    fun a => sum_isum (inl a).
-  Definition iinr {A B}: F B -> F (isum A B) :=
-    fun b => sum_isum (inr b).
+  Definition isum_suml {E A B} := @lift_ktree E _ _ (@isum_sum A B).
+  Definition sum_isuml {E A B} := @lift_ktree E _ _ (@sum_isum A B).
+
+  (*
+  Definition iinl {A B}: F A -> F (isum A B) := lift_ktree inl >>> sum_isuml.
+  Definition iinr {A B}: F B -> F (isum A B) := lift_ktree inr >>> sum_isuml.
+   *)
 
   (*
     While [ktree E (A B: Type) := A -> itree E B], we wish to consider the subcategory [sktree E (A B: i) := M A -> itree E (M A)]
@@ -57,12 +65,11 @@ Section SubK.
     Let sktree := sktree E.
 
     (* Utility function to lift a pure computation into ktree *)
-    Definition lift_sktree {A B: i} (f : F A -> F B) : sktree A B := fun a => Ret (f a).
+    Definition lift_sktree {A B: i} (f : F A -> F B) : sktree A B := lift_ktree f. 
 
     (** *** Category *)
 
-    Definition eutt_sktree {A B} (d1 d2 : sktree A B) :=
-      (forall a, eutt eq (d1 a) (d2 a)).
+    Definition eutt_sktree {A B} (d1 d2 : sktree A B) := @eq2 _ (ktree E) _ _ _ d1 d2.
 
     Global Instance Eq2_sktree : Eq2 sktree := @eutt_sktree.
 
@@ -72,18 +79,19 @@ Section SubK.
 
     (** Identity morphism *)
     Global Instance Id_sktree : Id_ sktree :=
-      fun A a => Ret a.
+      fun A => id_ (F A). 
 
     (** *** Symmetric monoidal category *)
 
     (** Initial object, monoidal unit *)
 
     Global Instance Initial_iI_sktree : Initial sktree iI :=
-      fun _ v => match iI_void v with end.
+      fun _ a => match iI_void a with end.
+      (* fun a => iI_init (F a). *)
 
     (** The tensor product is given by the coproduct *)
     Global Instance Case_sktree : @CoprodCase i sktree isum :=
-      fun a b c ska skb iab => Case_ktree _ _ _ ska skb (isum_sum iab).
+      fun (a b c: i) (ska: ktree _ _ _) skb => isum_suml >>> case_ ska skb.
 
     (* TODO, might be annoying *)
     (* Local Opaque eutt. *)
@@ -92,21 +100,21 @@ Section SubK.
     (*           (eq2 ==> eq2 ==> eq2) case_. *)
     (* Proof. *)
     (*   repeat intro. *)
-    (*   apply isum_sum in a. *)
+    (*   apply isum_suml in a. *)
     (*   destruct a; cbv; auto. *)
     (* Qed. *)
 
     Global Instance Inl_sktree : CoprodInl sktree isum :=
-      fun _ _ => lift_sktree iinl.
+      fun _ _ => inl_ >>> sum_isuml.
 
     Global Instance Inr_sktree : CoprodInr sktree isum :=
-      fun _ _ => lift_sktree iinr.
+      fun _ _ => inr_ >>> sum_isuml.
 
     (** Traced monoidal category *)
     Definition sloop {A B C : i}
                (body : sktree (isum C A) (isum C B)) :
       sktree A B :=
-      loop (fun ia => ITree.map isum_sum (body (sum_isum ia))).
+      loop (sum_isuml >>> body >>> isum_suml). 
 
   End Operations.
 
