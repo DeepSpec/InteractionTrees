@@ -1,42 +1,29 @@
 (** * Monadic interpretations of interaction trees *)
 
-(** An event morphism [E ~> F] lifts to an itree morphism [itree E ~> itree F]
-    by mapping the event morphism across each visible event.  We call this
-    process _event translation_.
-
-
-    Translate is defined separately from the itree Morphisms because it is
-    conceptually at a different level: translation always yields strong
-    bisimulations.  We can relate translation and interpretation via the law:
-
-    translate h t ≈ interp (send ∘ h) t
-*)
-
-(** The semantics of an interaction tree [itree E ~> M] can be
-    derived from semantics given for every individual effect
-    [E ~> M].
+(** We can derive semantics for an interaction tree [itree E ~> M]
+    from semantics given for every individual event [E ~> M],
+    when [M] is a monad (actually, with some more structure).
 
     We define the following terminology for this library.
     Other sources may have different usages for the same or related
     words.
 
-    The notation [E ~> F] means [forall T, E T -> F T]
+    The notation [E ~> F] stands for [forall T, E T -> F T]
     (in [ITree.Basics]).
-    It can mean many things, including the following.
+    It can mean many things, including the following:
 
     - The semantics of itrees are given as monad morphisms
       [itree E ~> M], also called "interpreters".
 
-    - "Itree interpreters" (or "itree morphisms") are monad morphisms
-      [itree E ~> itree F]. Most interpreters in this library are
-      actually itree interpreters.
+    - "ITree interpreters" (or "itree morphisms") are monad morphisms
+      where the codomain is made of ITrees: [itree E ~> itree F].
 
-    This module provides various ways of defining interpreters
-    from effect handlers and other similar structures.
+    Interpreters can be obtained from handlers:
 
-    - "Effect handlers" are functions [E ~> M] where [M] is a monad.
+    - In general, "event handlers" are functions [E ~> M] where
+      [M] is a monad.
 
-    - "Itree effect handlers" are functions [E ~> itree F].
+    - "ITree event handlers" are functions [E ~> itree F].
 
     Categorically, this boils down to saying that [itree] is a free
     monad (not quite, but close enough).
@@ -51,12 +38,24 @@ From ITree Require Import
      Basics.Basics
      Core.ITreeDefinition
      Indexed.Relation.
-
 (* end hide *)
 
 (** ** Translate *)
 
-(** A plain effect morphism [E ~> F] defines an itree morphism
+(** An event morphism [E ~> F] lifts to an itree morphism [itree E ~> itree F]
+    by applying the event morphism to every visible event.  We call this
+    process _event translation_.
+
+    Translation is a special case of interpretation:
+[[
+    translate h t ≈ interp (trigger ∘ h) t
+]]
+    However this definition of [translate] yields strong bisimulations
+    more often than [interp].
+    For example, [translate (id_ E) t ≅ id_ (itree E)].
+*)
+
+(** A plain event morphism [E ~> F] defines an itree morphism
     [itree E ~> itree F]. *)
 Definition translateF {E F R} (h : E ~> F) (rec: itree E R -> itree F R) (t : itreeF E R _) : itree F R  :=
   match t with
@@ -65,12 +64,15 @@ Definition translateF {E F R} (h : E ~> F) (rec: itree E R -> itree F R) (t : it
   | VisF e k => Vis (h _ e) (fun x => rec (k x))
   end.
 
-CoFixpoint translate {E F R} (h : E ~> F) (t : itree E R) : itree F R
-  := translateF h (translate h) (observe t).
+Definition translate {E F} (h : E ~> F)
+  : itree E ~> itree F
+  := fun R => cofix translate_ t := translateF h translate_ (observe t).
+
+Arguments translate {E F} h [T].
 
 (** ** Interpret *)
 
-(** An effect handler [E ~> M] defines a monad morphism
+(** An event handler [E ~> M] defines a monad morphism
     [itree E ~> M] for any monad [M] with a loop operator. *)
 
 Definition interp {E M : Type -> Type}

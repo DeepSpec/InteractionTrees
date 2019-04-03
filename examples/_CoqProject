@@ -1,6 +1,7 @@
 -Q ../theories ITree
 -R . Examples
 
+ReadmeExample.v
 Introduction.v
 
 IO.v

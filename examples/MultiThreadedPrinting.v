@@ -6,7 +6,7 @@ From Coq Require Import
 
 From ITree Require Import
      ITree
-     Effects.Concurrency.
+     Events.Concurrency.
 
 Import ITreeNotations.
 
@@ -16,7 +16,7 @@ Variant printE : Type -> Type :=
 
 (* A thread that loops, printing [s] forever. *)
 Definition thread {E} `{printE -< E} (s:string) : itree E unit :=
-  ITree.forever (send (Print s)).
+  ITree.forever (trigger (Print s)).
 
 (* Run three threads. *)
 Definition main_thread : itree (spawnE printE +' printE) unit :=

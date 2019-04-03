@@ -32,18 +32,18 @@ Import MonadNotation.
 Open Scope monad_scope.
 (* end hide *)
 
-(** * Effects *)
+(** * Events *)
 
 (** We first show how to represent effectful computations
     as interaction trees. The [itree] type is parameterized
-    by a type of "uninterpreted effects", which is typically
-    an indexed type with constructors describing the possible
-    interactions with the environment.
+    by an _event type_, which is typically an indexed type
+    with constructors describing the possible interactions
+    with the environment.
 
     For instance, [ioE] below is a type of simple input/output
-    effects. The fields of each constructor contain data produced
+    events. The fields of each constructor contain data produced
     by the tree, and the type index the type of answer that the
-    tree expects as a result of the effect.
+    tree expects as a response to the event.
  *)
 
 Inductive ioE : Type -> Type :=
@@ -54,26 +54,26 @@ Inductive ioE : Type -> Type :=
   (** Send a list of [nat]. *)
 .
 
-(** Effects are wrapped as ITrees using [ITree.send], and
+(** Events are wrapped as ITrees using [ITree.trigger], and
     composed using monadic operations [bind] and [ret]. *)
 
 (** Read some input, and echo it back, appending [1] to it. *)
 Definition write_one : itree ioE unit :=
-  xs <- ITree.send Input;;
-  ITree.send (Output (xs ++ [1])).
+  xs <- ITree.trigger Input;;
+  ITree.trigger (Output (xs ++ [1])).
 
 (** We can _interpret_ interaction trees by giving semantics
-    to their effects individually, as a _handler_: a function
+    to their events individually, as a _handler_: a function
     of type [forall R, ioE R -> M R] for some monad [M]. *)
 
-(** The handler [handle_io] below responds to every [Input] effect
+(** The handler [handle_io] below responds to every [Input] event
     with [[0]], and appends any [Output] to a global log.
 
     Here the target monad is [M := stateT (list nat) (itree void1)],
     - [stateT] is the state monad transformer, that type unfolds to
       [M R := list nat -> itree void1 (list nat * R)];
-    - [void1] is the empty effect (so the resulting ITree can perform
-      no effect). *)
+    - [void1] is the empty event (so the resulting ITree can trigger
+      no event). *)
 
 Compute Monads.stateT (list nat) (itree void1) unit.
 Print void1.
@@ -96,7 +96,7 @@ Definition interp_io
 Definition interpreted_write_one : itree void1 (list nat * unit)
   := interp_io _ write_one.
 
-(** Intuitively, [interp_io] replaces every [ITree.send] in the
+(** Intuitively, [interp_io] replaces every [ITree.trigger] in the
     definition of [write_one] with [handle_io]:
 [[
   interpreted_write_one =
@@ -119,8 +119,8 @@ Proof.
   (* Use lemmas from [ITree.Simple] ([theories/Simple.v]). *)
   (* ADMITTED *)
   rewrite interp_bind.
-  rewrite interp_send.
-  setoid_rewrite interp_send.
+  rewrite interp_trigger.
+  setoid_rewrite interp_trigger.
   reflexivity.
 Qed. (* /ADMITTED *)
 
@@ -140,8 +140,8 @@ Compute (burn 100 interpreted_write_one).
     - equational reasoning using [≈] ([\approx])
 *)
 
-(** In this file, we won't use external effects, so we will use this
-    empty effect type [void1]. *)
+(** In this file, we won't use external events, so we will use this
+    empty event type [void1]. *)
 Definition E := void1.
 
 (** ** Factorial *)
@@ -158,7 +158,7 @@ Fixpoint factorial_spec (n : nat) : nat :=
     [mrec] (from which [rec] is defined) allows multiple, mutually
     recursive definitions.
 
-    The argument of [rec] is an interaction tree with an effect
+    The argument of [rec] is an interaction tree with an event type
     [callE A B] to represent "recursive calls", with input [A]
     and output [B]. The function [call : A -> itree _ B] can be used
     to make such calls.

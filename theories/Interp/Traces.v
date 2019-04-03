@@ -1,7 +1,13 @@
+(** * ITrees as sets of traces *)
+
+(* begin hide *)
 From Coq Require Import
      List.
 
 Import ListNotations.
+
+From Paco Require Import
+     paco.
 
 From ITree Require Import
      Core.ITreeDefinition
@@ -10,9 +16,7 @@ From ITree Require Import
      Eq.Shallow.
 
 Local Open Scope itree.
-
-From Paco Require Import
-     paco.
+(* end hide *)
 
 Inductive trace {E : Type -> Type} {R : Type} : Type :=
 | TEnd : trace
@@ -88,7 +92,7 @@ Proof.
     induction H; intros; try inv Heqi0; red; rewrite <- Heqi1; constructor.
     eapply IHsuttF; eauto.
   - apply IHis_traceF with (t1:=t); auto.
-    apply sutt_elim_tau_left. red. red in H. rewrite <- Heqi in H. auto.
+    apply sutt_inv_tau_left. red. red in H. rewrite <- Heqi in H. auto.
   - gunfold H. rewrite <- Heqi in H.
     remember (VisF _ _). remember (observe t2).
     generalize dependent t2.

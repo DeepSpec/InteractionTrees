@@ -1,4 +1,4 @@
-(** * Simulation Up To Tau *)
+(** * Simulation up to taus *)
 
 (** A preorder [sutt t1 t2], where every visible step
   ([RetF] or [VisF]) on the left must be matched with a corresponding
@@ -7,8 +7,10 @@
   In particular, [spin := Tau spin] is less than everything.
 
   The induced equivalence relation is [eutt].
-
-  Various [Proper] lemmas about [eutt] are more easily proved as
+[[
+  Theorem sutt_eutt : sutt eq t u -> sutt eq u t -> eutt eq t u.
+]]
+  Various lemmas about [eutt] may be more easily proved as
   [Proper] lemmas about [sutt] first, and then symmetrizing using
   [eutt_sutt] and [sutt_eutt].
  *)
@@ -82,7 +84,7 @@ End SUTT_facts.
 
 Hint Resolve @monotone_suttF : paco.
 
-Lemma sutt_inv_Vis {E R1 R2} (RR : R1 -> R2 -> Prop) sutt :
+Lemma suttF_inv_vis {E R1 R2} (RR : R1 -> R2 -> Prop) sutt :
   forall X e (k1 : X -> itree E R1) (k2 : X -> itree E R2),
     suttF RR sutt (VisF e k1) (VisF e k2) ->
     forall x, sutt (observe (k1 x)) (observe (k2 x)).
@@ -90,7 +92,7 @@ Proof.
   intros. inv H. auto_inj_pair2. subst. auto.
 Qed.
 
-Lemma sutt_inv_Vis' {E R1 R2} (RR : R1 -> R2 -> Prop) :
+Lemma sutt_inv_vis {E R1 R2} (RR : R1 -> R2 -> Prop) :
   forall X e (k1 : X -> itree E R1) (k2 : X -> itree E R2),
   sutt RR (Vis e k1) (Vis e k2) ->
   forall x, sutt RR (k1 x) (k2 x).
@@ -131,7 +133,7 @@ Proof.
   - constructor. eauto with paco.
 Qed.
 
-Lemma sutt_elim_tau_left' {E R1 R2} (RR : R1 -> R2 -> Prop) :
+Lemma suttF_inv_tau_left {E R1 R2} (RR : R1 -> R2 -> Prop) :
   forall (t1: itree E R1) (t2: itree E R2),
     suttF RR (gcpn2 (suttF RR) bot2 bot2) (TauF t1) (observe t2) ->
     suttF RR (gcpn2 (suttF RR) bot2 bot2) (observe t1) (observe t2).
@@ -143,14 +145,14 @@ Proof.
   gunfold EQTAUS. eauto.
 Qed.
 
-Lemma sutt_elim_tau_left {E R1 R2} (RR : R1 -> R2 -> Prop) :
+Lemma sutt_inv_tau_left {E R1 R2} (RR : R1 -> R2 -> Prop) :
   forall (t1: itree E R1) (t2: itree E R2),
     sutt RR (Tau t1) t2 ->
     sutt RR t1 t2.
 Proof.
   intros.
   gunfold H. gstep. repeat red in H |- *.
-  apply sutt_elim_tau_left'; auto.
+  apply suttF_inv_tau_left; auto.
 Qed.
 
 Theorem sutt_eutt {E R1 R2} (RR : R1 -> R2 -> Prop) :
@@ -162,8 +164,8 @@ Proof.
   remember (observe t1). remember (observe t2).
   generalize dependent t1. generalize dependent t2.
   induction H0; intros; subst; auto.
-  - constructor. intro. right. eapply sutt_inv_Vis in H1. eauto with paco.
-  - constructor. eapply IHsuttF; auto. apply sutt_elim_tau_left'; auto.
+  - constructor. intro. right. eapply suttF_inv_vis in H1. eauto with paco.
+  - constructor. eapply IHsuttF; auto. apply suttF_inv_tau_left; auto.
   - clear Heqi t0.
     (* doing induction when one of the trees is a tau doesn't work well *)
     inv H1.
@@ -172,8 +174,8 @@ Proof.
       induction EQTAUS0; intros; try inv Heqi0.
       * constructor. rewrite <- H1. constructor. gunfold EQTAUS. inversion EQTAUS. auto.
       * constructor. rewrite <- H0. constructor. intro. right.
-        gbase. apply CIH; auto. eapply sutt_inv_Vis' in EQTAUS; eauto.
-      * constructor. rewrite <- H0. eapply IHEQTAUS0; eauto. apply sutt_elim_tau_left; auto.
+        gbase. apply CIH; auto. eapply sutt_inv_vis in EQTAUS; eauto.
+      * constructor. rewrite <- H0. eapply IHEQTAUS0; eauto. apply sutt_inv_tau_left; auto.
       * constructor. gbase. apply CIH; auto. apply sutt_elim_tau_right; auto.
     + rewrite <- H0 in *. constructor. gbase. apply CIH; apply sutt_elim_tau_right; auto.
 Qed.
@@ -190,7 +192,7 @@ Proof.
 Qed.
 
 (** Generalized heterogeneous version of [eutt_bind] *)
-Lemma sutt_bind_gen {E R1 R2 S1 S2} {RR: R1 -> R2 -> Prop} {SS: S1 -> S2 -> Prop}:
+Lemma sutt_bind' {E R1 R2 S1 S2} {RR: R1 -> R2 -> Prop} {SS: S1 -> S2 -> Prop}:
   forall t1 t2,
     sutt RR t1 t2 ->
     forall s1 s2, (forall r1 r2, RR r1 r2 -> sutt SS (s1 r1) (s2 r2)) ->

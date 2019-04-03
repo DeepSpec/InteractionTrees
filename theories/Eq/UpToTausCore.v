@@ -1,7 +1,13 @@
-(** * Simple facts about equivalence up to taus *)
+(** * Equivalence up to taus: simple facts *)
 
 (** This module proves simple facts about the [eutt] relation defined in
-    [UpToTaus]. *)
+    [UpToTaus]:
+
+    - Reflexivity, symmetry
+    - Inversion lemmas
+    - Pseudo-constructor lemmas
+    - Unfold lemmas
+ *)
 
 (* begin hide *)
 From Coq Require Import
@@ -16,12 +22,15 @@ From ITree Require Import
      Core.ITreeDefinition.
 
 From ITree Require Export
+     Eq.Shallow
      Eq.Eq
      Eq.UpToTaus.
 
 Import ITreeNotations.
 Local Open Scope itree.
 (* end hide *)
+
+(** ** Reflexivity and symmetry *)
 
 Section EUTT_homo.
 
@@ -65,26 +74,24 @@ End EUTT_homo.
 
 Section EUTT_hetero.
 
-Context {E : Type -> Type}.
+Context {E : Type -> Type} {R1 R2 : Type} {RR : R1 -> R2 -> Prop}.
 
-Lemma Symmetric_euttF_hetero {R1 R2}
-      (RR1 : R1 -> R2 -> Prop) (RR2 : R2 -> R1 -> Prop)
+Lemma Symmetric_euttF_hetero (RR' : R2 -> R1 -> Prop)
       (r1 : _ -> _ -> Prop) (r2 : _ -> _ -> Prop) (r'1 : _ -> _ -> Prop) (r'2 : _ -> _ -> Prop)
-      (SYM_RR : forall r1 r2, RR1 r1 r2 -> RR2 r2 r1)
+      (SYM_RR : forall r1 r2, RR r1 r2 -> RR' r2 r1)
       (SYM_r : forall i j, r1 i j -> r2 j i)
       (SYM_r' : forall i j, r'1 i j -> r'2 j i) :
   forall (ot1 : itree' E R1) (ot2 : itree' E R2),
-    euttF RR1 r1 r'1 ot1 ot2 -> euttF RR2 r2 r'2 ot2 ot1.
+    euttF RR r1 r'1 ot1 ot2 -> euttF RR' r2 r'2 ot2 ot1.
 Proof.
   intros. induction H; eauto 7.
   econstructor; intros. edestruct EUTTK; eauto 7.
 Qed.
 
-Lemma Symmetric_eutt_hetero {R1 R2}
-      (RR1 : R1 -> R2 -> Prop) (RR2 : R2 -> R1 -> Prop)
-      (SYM_RR : forall r1 r2, RR1 r1 r2 -> RR2 r2 r1) :
+Lemma Symmetric_eutt_hetero (RR' : R2 -> R1 -> Prop)
+      (SYM_RR : forall r1 r2, RR r1 r2 -> RR' r2 r1) :
   forall (t1 : itree E R1) (t2 : itree E R2),
-    eutt RR1 t1 t2 -> eutt RR2 t2 t1.
+    eutt RR t1 t2 -> eutt RR' t2 t1.
 Proof.
   gstep. gcofix CIH; gstep. intros.
   do 2 gunfold H0.
@@ -95,9 +102,11 @@ Proof.
   right. gbase. apply CIH. gstep. eauto.
 Qed.
 
-Lemma euttF_elim_tau_left {R1 R2} (RR: R1 -> R2 -> Prop) r (t1: itree E R1) (t2: itree E R2)
+(** ** Inversion lemmas *)
+
+Lemma euttF_inv_tau_left r (t1: itree E R1) (t2: itree E R2)
     (REL : eutt0_ RR r (gcpn2 (eutt0_ RR r) bot2 bot2) (Tau t1) t2) :
-  eutt0_ RR r (gcpn2 (eutt0_ RR r) bot2 bot2) t1 t2.
+  eutt0_ RR r (gcpn2 (eutt0_ RR r) bot2 bot2) t1 t2.  
 Proof.
   repeat red in REL |- *. simpl in *.
   remember (TauF t1) as ott1.
@@ -106,7 +115,7 @@ Proof.
   gunfold EQTAUS. eauto.
 Qed.
 
-Lemma euttF_elim_tau_right {R1 R2} (RR: R1 -> R2 -> Prop) r (t1: itree E R1) (t2: itree E R2)
+Lemma euttF_inv_tau_right r (t1: itree E R1) (t2: itree E R2)
     (REL : eutt0_ RR r (gcpn2 (eutt0_ RR r) bot2 bot2) t1 (Tau t2)) :
   eutt0_ RR r (gcpn2 (eutt0_ RR r) bot2 bot2) t1 t2.
 Proof.
@@ -117,21 +126,42 @@ Proof.
   gunfold EQTAUS. eauto.
 Qed.
 
+Lemma eutt_inv_vis {U} (e : E U) (k1 : U -> itree E R1) (k2 : U -> itree E R2)
+  : eutt RR (Vis e k1) (Vis e k2) ->
+    (forall u, eutt RR (k1 u) (k2 u)).
+Proof.
+  intros H x.
+  gunfold H; gunfold H; inversion H; auto_inj_pair2; subst.
+  edestruct EUTTK; eauto with paco.
+Qed.
+
+Lemma eutt_inv_ret r1 r2 :
+  @eutt E R1 R2 RR (Ret r1) (Ret r2) -> RR r1 r2.
+Proof.
+  intros H. gunfold H; gunfold H; inversion H; auto.
+Qed.
+
 Definition isb_tau {E R} (ot: itree' E R) : bool :=
   match ot with | TauF _ => true | _ => false end.
 
-Lemma eutt_Ret {R1 R2} (RR: R1 -> R2 -> Prop) x y :
-  RR x y -> @eutt E R1 R2 RR (Ret x) (Ret y).
+Lemma eutt_ret x1 x2 :
+  RR x1 x2 -> @eutt E R1 R2 RR (Ret x1) (Ret x2).
 Proof.
   intros; gstep. gstep. econstructor. eauto.
 Qed.
 
-Lemma eutt_Vis {R1 R2 U} RR (e: E U) k k' :
+Lemma eutt_vis {U} (e: E U) k k' :
   (forall x: U, @eutt E R1 R2 RR (k x) (k' x)) ->
   eutt RR (Vis e k) (Vis e k').
 Proof.
   intros. gstep. gstep. econstructor.
   intros. left. apply H.
+Qed.
+
+Lemma eutt_tau (t1 : itree E R1) (t2 : itree E R2) :
+  eutt RR t1 t2 -> eutt RR (Tau t1) (Tau t2).
+Proof.
+  intros. gstep. gstep. econstructor. gunfold H. eauto.
 Qed.
 
 End EUTT_hetero.
@@ -178,40 +208,6 @@ Proof.
 Qed.
 
 End EUTT_eq.
-
-Lemma eutt_tau {E R1 R2} (RR : R1 -> R2 -> Prop)
-           (t1 : itree E R1) (t2 : itree E R2) :
-  eutt RR t1 t2 -> eutt RR (Tau t1) (Tau t2).
-Proof.
-  intros. gstep. gstep. econstructor. gunfold H. eauto.
-Qed.
-
-Lemma eutt_vis {E R1 R2} (RR : R1 -> R2 -> Prop)
-      {U} (e : E U) (k1 : U -> itree E R1) (k2 : U -> itree E R2) :
-  (forall u, eutt RR (k1 u) (k2 u)) <->
-  eutt RR (Vis e k1) (Vis e k2).
-Proof.
-  split.
-  - intros. gstep; gstep; econstructor.
-    intros x; specialize (H x). gunfold H. eauto.
-  - intros H x.
-    gunfold H; gunfold H; inversion H; auto_inj_pair2; subst.
-    edestruct EUTTK; eauto with paco.
-Qed.
-
-Lemma eutt_ret {E R1 R2} (RR : R1 -> R2 -> Prop) r1 r2 :
-  @eutt E R1 R2 RR (Ret r1) (Ret r2) <-> RR r1 r2.
-Proof.
-  split.
-  - intros H. gunfold H; gunfold H; inversion H; auto.
-  - intros. gstep; gstep; econstructor. auto.
-Qed.
-
-Global Instance eutt_when {E} (b : bool) :
-  Proper (eutt eq ==> eutt eq) (@ITree.when E b).
-Proof.
-  repeat intro. destruct b; simpl; eauto. reflexivity.
-Qed.
 
 Lemma eutt_map_map {E R S T}
       (f : R -> S) (g : S -> T) (t : itree E R) :

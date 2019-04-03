@@ -1,4 +1,4 @@
-(** * The Category of Continuation Trees *)
+(** * The category of continuation trees (KTrees) *)
 
 (** The Kleisli category of ITrees. *)
 
@@ -61,7 +61,7 @@ Section Operations.
 
 Context {E : Type -> Type}.
 
-Let ktree := ktree E.
+Local Notation ktree := (ktree E).
 
 (* Utility function to lift a pure computation into ktree *)
 Definition lift_ktree {A B} (f : A -> B) : ktree A B := fun a => Ret (f a).
@@ -125,21 +125,6 @@ Global Instance Inr_ktree : CoprodInr ktree sum :=
 
 End Operations.
 
-Definition loop_once {E : Type -> Type} {A B C : Type}
-           (body : C + A -> itree E (C + B))
-           (loop_ : C + A -> itree E B) : C + A -> itree E B :=
-  fun ca =>
-    cb <- body ca ;;
-    match cb with
-    | inl c => loop_ (inl c)
-    | inr b => Ret b
-    end.
-
-Definition loop_ {E : Type -> Type} {A B C : Type}
-           (body : C + A -> itree E (C + B)) :
-  C + A -> itree E B :=
-  cofix loop__ := loop_once body (fun cb => Tau (loop__ cb)).
-
 (** Iterate a function updating an accumulator [C],
     until it produces an output [B]. An encoding of tail recursive
     functions.
@@ -150,4 +135,10 @@ Definition loop_ {E : Type -> Type} {A B C : Type}
 Definition loop {E : Type -> Type} {A B C : Type}
            (body : (C + A) -> itree E (C + B)) :
   A -> itree E B :=
-  fun a => loop_ body (inr a).
+  fun a =>
+    body (inr a) >>=
+      ITree.aloop (fun cb =>
+        match cb with
+        | inl c => inl (body (inl c))
+        | inr b => inr b
+        end).

@@ -1,3 +1,4 @@
+(** * Theorems for [ITree.Interp.Handler] *)
 
 (* begin hide *)
 From Coq Require Import
@@ -35,7 +36,7 @@ Instance CatIdL_Handler : CatIdL Handler.
 Proof.
   red; intros A B f X e.
   unfold cat, Cat_Handler, Handler.cat, id_, Id_Handler, Handler.id_.
-  rewrite interp_send, tau_eutt.
+  rewrite interp_trigger, tau_eutt.
   reflexivity.
 Qed.
 

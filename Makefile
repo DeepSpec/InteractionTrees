@@ -12,10 +12,10 @@ all:
 	$(MAKE) tutorial
 	$(MAKE) test
 
-install: Makefile.coq all
+install: Makefile.coq coq
 	$(MAKE) -f $< $@
 
-uninstall: Makefile.coq
+uninstall: Makefile.coq coq
 	$(MAKE) -f $< $@
 
 test: examples tests
@@ -57,5 +57,5 @@ DEPS_OUT=deps.jpg
 
 depgraph:
 	$(COQDEP) -dumpgraph $(DEPS_DOT) $(shell cat _CoqConfig) > /dev/null 2>&1
-	# sed 's%\("\([^"]*\)/\([^"/]*\)"\[label="\)%\1\2/\n%' -i deps.dot
+	sed 's%\("theories/\([^"]*\)/\([^"/]*\)"\[label="\)%\1\2/\\n%' -i $(DEPS_DOT)
 	dot $(DEPS_DOT) -Tjpg -o$(DEPS_OUT)

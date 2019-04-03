@@ -198,14 +198,14 @@ Section Correctness.
     - (* If it contains an instruction (inductive case). *)
       simpl.
       unfold ITree.map; rewrite bind_bind.
-      eapply eq_itree_eq_bind; [| reflexivity].
+      eapply eq_itree_bind; [| reflexivity].
       intros []; apply IHb.
     - (* If it's a jump, we consider the three cases. *)
       simpl.
       destruct br; simpl.
       + unfold ITree.map; rewrite bind_ret; reflexivity.
       + unfold ITree.map; rewrite bind_bind. 
-        eapply eq_itree_eq_bind; [| reflexivity].
+        eapply eq_itree_bind; [| reflexivity].
         intros ?.
         flatten_goal; rewrite bind_ret; reflexivity.
       + rewrite (itree_eta (ITree.map _ _)).
@@ -227,7 +227,7 @@ Section Correctness.
     induction instrs as [| i instrs IH]; intros b.
     - simpl; rewrite bind_ret; reflexivity.
     - simpl; rewrite bind_bind.
-      eapply eq_itree_eq_bind; try reflexivity.
+      eapply eq_itree_bind; try reflexivity.
       intros []; apply IH.
   Qed.
 

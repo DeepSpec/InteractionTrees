@@ -1,14 +1,21 @@
 (** * Equivalence up to taus *)
 
-(** We consider tau as an "internal step", that should not be
+(** Abbreviated as [eutt]. *)
+
+(** We consider [Tau] as an "internal step", that should not be
    visible to the outside world, so adding or removing [Tau]
    constructors from an itree should produce an equivalent itree.
 
    We must be careful because there may be infinite sequences of
    taus (i.e., [spin]). Here we shall only allow inserting finitely
-   many taus between any two visible steps ([Ret] or [Vis]), so that
+   many [Tau]s between any two visible steps ([Ret] or [Vis]), so that
    [spin] is only related to itself. This ensures that equivalence
    up to taus is transitive (and in fact an equivalence relation).
+ *)
+
+(** A rewrite hint database named [itree] is available via the tactic
+    [autorewrite with itree] as a custom simplifier of expressions using
+    mainly [Ret], [Tau], [Vis], [ITree.bind] and [ITree.Interp.Interp.interp].
  *)
 
 (** This file contains only the definition of the [eutt] relation.
@@ -89,9 +96,9 @@ Hint Resolve monotone_eutt0 : paco.
 
 (* We now take the greatest fixpoint of [eutt_]. *)
 
-(* Equivalence Up To Taus.
+(** Equivalence Up To Taus.
 
-   [eutt t1 t2]: [t1] is equivalent to [t2] up to taus. *)
+    [eutt t1 t2]: [t1] is equivalent to [t2] up to taus. *)
 Definition eutt : itree E R1 -> itree E R2 -> Prop := gcpn2 eutt0 bot2 bot2.
 Hint Unfold eutt.
 

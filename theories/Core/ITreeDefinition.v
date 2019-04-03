@@ -17,7 +17,7 @@ Set Primitive Projections.
 (** An [itree E R] is the denotation of a program as coinductive
     (possibly infinite) tree where the leaves [Ret] are labeled with
     [R] and every node is either a [Tau] node with one child, or a
-    branching node [Vis] with a visible effect [E X] that branches
+    branching node [Vis] with a _visible event_ [E X] that branches
     on the values of [X]. *)
 
 Section itree.
@@ -32,9 +32,10 @@ Section itree.
   | VisF {X : Type} (e : E X) (k : X -> itree)
   .
 
-  (** We define non-recursive types using the [Variant] command.
-      The main practical difference from [Inductive] is that [Variant]
-      does not generate any induction schemes. *)
+  (** We define non-recursive types such as [itreeF] using the [Variant]
+      command. The main practical difference from [Inductive] is that
+      [Variant] does not generate any induction schemes (which are
+      unnecessary). *)
 
   CoInductive itree : Type := go
   { _observe : itreeF itree }.
@@ -88,7 +89,7 @@ Definition observe {E R} (t : itree E R) : itree' E R := @_observe E R t.
 
     Using this notation means that we occasionally have to eta expand, e.g.
     writing [Vis e (fun x => Ret x)] instead of [Vis e Ret]. (In this
-    particular case, this is [ITree.send].)
+    particular case, this is [ITree.trigger].)
 *)
 Notation Ret x := (go (RetF x)).
 Notation Tau t := (go (TauF t)).
@@ -134,6 +135,10 @@ Notation Vis e k := (go (VisF e k)).
 
 (** *** Definitions *)
 
+(** These are meant to be imported qualified, e.g., [ITree.bind],
+    [ITree.trigger], to avoid ambiguity with identifiers of the same
+    name (some of which are overloaded generalizations of these).
+ *)
 Module ITree.
 
 (** [bind]: monadic composition, tree substitution, sequencing of
@@ -203,8 +208,8 @@ Definition aloop {E : Type -> Type} {R I: Type}
 Definition map {E R S} (f : R -> S)  (t : itree E R) : itree E S :=
   bind t (fun x => Ret (f x)).
 
-(** Atomic itrees performing a single effect. *)
-Definition send {E : Type -> Type} : E ~> itree E :=
+(** Atomic itrees triggering a single event. *)
+Definition trigger {E : Type -> Type} : E ~> itree E :=
   fun R e => Vis e (fun x => Ret x).
 
 (** Ignore the result of a tree. *)
@@ -218,16 +223,7 @@ CoFixpoint spin {E R} : itree E R := Tau spin.
 Definition forever {E R S} (t : itree E R) : itree E S :=
   cofix forever_t := bind t (fun _ => Tau (forever_t)).
 
-(* this definition exists in ExtLib (or should because it is
- * generic to Monads)
- *)
-Definition when {E}
-           (b : bool) (body : itree E unit) : itree E unit :=
-  if b then body else Ret tt.
-
 End ITree.
-
-Ltac bind_fold := change @ITree.bind' with (fun E T U k t => @ITree.bind E T U t k) in *.
 
 (** ** Notations *)
 

@@ -184,17 +184,17 @@ Qed.
 
 (** *** "Up-to" principles for coinduction. *)
 
-Inductive eq_itree_trans_clo (r : itree E R1 -> itree E R2 -> Prop) :
+Inductive eq_trans_clo (r : itree E R1 -> itree E R2 -> Prop) :
   itree E R1 -> itree E R2 -> Prop :=
-| eq_itree_trans_clo_intro t1 t2 t3 t4
+| eq_trans_clo_intro t1 t2 t3 t4
       (EQVl: eq_itree eq t1 t2)
       (EQVr: eq_itree eq t4 t3)
       (RELATED: r t2 t3)
-  : eq_itree_trans_clo r t1 t4
+  : eq_trans_clo r t1 t4
 .
-Hint Constructors eq_itree_trans_clo.
+Hint Constructors eq_trans_clo.
 
-Lemma eq_itree_clo_trans : eq_itree_trans_clo <3= cpn2 (eq_itree_ RR).
+Lemma eq_itree_clo_trans : eq_trans_clo <3= cpn2 (eq_itree_ RR).
 Proof.
   ucompat. econstructor; [pmonauto|].
   intros. dependent destruction PR.
@@ -211,16 +211,16 @@ Proof.
     eauto with rclo.
 Qed.
 
-Inductive eq_itree_bind_clo (r : itree E R1 -> itree E R2 -> Prop) :
+Inductive eq_bind_clo (r : itree E R1 -> itree E R2 -> Prop) :
   itree E R1 -> itree E R2 -> Prop :=
 | pbc_intro_h U1 U2 (RU : U1 -> U2 -> Prop) t1 t2 k1 k2
       (EQV: eq_itree RU t1 t2)
       (REL: forall u1 u2, RU u1 u2 -> r (k1 u1) (k2 u2))
-  : eq_itree_bind_clo r (ITree.bind t1 k1) (ITree.bind t2 k2)
+  : eq_bind_clo r (ITree.bind t1 k1) (ITree.bind t2 k2)
 .
-Hint Constructors eq_itree_bind_clo.
+Hint Constructors eq_bind_clo.
 
-Lemma eq_itree_clo_bind : eq_itree_bind_clo <3= cpn2 (eq_itree_ RR).
+Lemma eq_itree_clo_bind : eq_bind_clo <3= cpn2 (eq_itree_ RR).
 Proof.
   ucompat. econstructor; [pmonauto|].
   intros. dependent destruction PR.
@@ -237,8 +237,8 @@ End eq_itree_h.
 Arguments eq_itree_clo_trans : clear implicits.
 Arguments eq_itree_clo_bind : clear implicits.
 
-Hint Constructors eq_itree_trans_clo.
-Hint Constructors eq_itree_bind_clo.
+Hint Constructors eq_trans_clo.
+Hint Constructors eq_bind_clo.
 
 (** *** One-sided inversion *)
 
@@ -261,6 +261,8 @@ Proof.
 Qed.
 
 (** ** Properties of relations *)
+
+(** Instances stating that we have equivalence relations. *)
 
 Section eq_itree_eq.
 
@@ -371,7 +373,7 @@ Qed.
     apply Reflexive_eq_itree.
   Qed.
 
-(** *** Eta-expansion *)
+(** ** Eta-expansion *)
 
 Lemma itree_eta (t : itree E R) : t ≅ go (observe t).
 Proof. apply observing_eq_itree_eq. econstructor. reflexivity. Qed.
@@ -405,7 +407,14 @@ Lemma bind_vis_ {E R} U V (e: E V) (ek: V -> itree E U) (k: U -> itree E R) :
   ITree.bind (Vis e ek) k ≅ Vis e (fun x => ITree.bind (ek x) k).
 Proof. rewrite bind_vis. reflexivity. Qed.
 
-Lemma eq_itree_bind {E R1 R2 S1 S2} (RR : R1 -> R2 -> Prop)
+Lemma unfold_forever_ {E R S} (t : itree E R)
+  : @ITree.forever E R S t ≅ (t >>= fun _ => Tau (ITree.forever t)).
+Proof.
+  rewrite itree_eta, (itree_eta (_ >>= _)).
+  reflexivity.
+Qed.
+
+Lemma eq_itree_bind' {E R1 R2 S1 S2} (RR : R1 -> R2 -> Prop)
       (RS : S1 -> S2 -> Prop)
       t1 t2 k1 k2 :
   eq_itree RR t1 t2 ->
@@ -415,12 +424,12 @@ Proof.
   gclo eq_itree_clo_bind. eauto 7 with paco.
 Qed.
 
-Instance eq_itree_eq_bind {E R S} :
+Instance eq_itree_bind {E R S} :
   Proper (pointwise_relation _ (eq_itree eq) ==>
           eq_itree eq ==>
           eq_itree eq) (@ITree.bind' E R S).
 Proof.
-  repeat intro; eapply eq_itree_bind; eauto.
+  repeat intro; eapply eq_itree_bind'; eauto.
   intros; subst; auto.
 Qed.
 
@@ -432,7 +441,7 @@ Lemma eq_itree_map {E R1 R2 S1 S2} (RR : R1 -> R2 -> Prop)
   eq_itree RS (ITree.map f1 t1) (ITree.map f2 t2).
 Proof.
   unfold ITree.map; intros.
-  eapply eq_itree_bind; eauto.
+  eapply eq_itree_bind'; eauto.
   intros; gstep; constructor; auto.
 Qed.
 
@@ -479,14 +488,14 @@ Proof.
   rewrite bind_bind. setoid_rewrite bind_ret. reflexivity.
 Qed.
 
-Lemma map_bind {E R S T}: forall (f : R -> S) (k: S -> itree E T) (t : itree E R),
+Lemma bind_map {E R S T}: forall (f : R -> S) (k: S -> itree E T) (t : itree E R),
     ITree.bind (ITree.map f t) k ≅ ITree.bind t (fun x => k (f x)).
 Proof.
   unfold ITree.map. intros.
   rewrite bind_bind. setoid_rewrite bind_ret. reflexivity.
 Qed.
 
-Lemma bind_map {E X Y Z} (t: itree E X) (k: X -> itree E Y) (f: Y -> Z) :
+Lemma map_bind {E X Y Z} (t: itree E X) (k: X -> itree E Y) (f: Y -> Z) :
   (ITree.map f (x <- t;; k x)) ≅ (x <- t;; ITree.map f (k x)).
 Proof.
   intros.
@@ -506,7 +515,7 @@ Qed.
 Hint Rewrite @bind_ret_ : itree.
 Hint Rewrite @bind_tau_ : itree.
 Hint Rewrite @bind_vis_ : itree.
-Hint Rewrite @map_bind : itree.
+Hint Rewrite @bind_map : itree.
 Hint Rewrite @map_ret : itree.
 Hint Rewrite @bind_ret2 : itree.
 Hint Rewrite @bind_bind : itree.

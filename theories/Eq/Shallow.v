@@ -7,8 +7,10 @@
 ]]
 
   We actually define a more general relation transformer
-  [observing] to lift arbitrary relations through [observe]. *)
+  [observing] to lift arbitrary relations through [observe].
+ *)
 
+(* begin hide *)
 From ITree Require Import Core.ITreeDefinition.
 
 From Coq Require Import
@@ -17,9 +19,7 @@ From Coq Require Import
      Setoids.Setoid
      Relations.Relations
      ProofIrrelevance.
-
-
-(** ** Misc *)
+(* end hide *)
 
 (** Rewrite all heterogeneous equalities with the axiom
     [inj_pair2 : existT _ T a = existT _ T b -> a = b]. *)
@@ -27,12 +27,6 @@ Ltac auto_inj_pair2 :=
   repeat (match goal with
           | [ H : _ |- _ ] => apply inj_pair2 in H
           end).
-
-Lemma pointwise_relation_fold {A B} {r: relation B} f g :
-  (forall v:A, r (f v) (g v)) -> pointwise_relation _ r f g.
-Proof. red. eauto. Qed.
-
-(**)
 
 (** ** [observing]: Lift relations through [observe]. *)
 Inductive observing {E R1 R2}
@@ -69,6 +63,8 @@ Qed.
 
 End observing_relations.
 
+(** ** Unfolding lemmas for [bind] *)
+
 Lemma unfold_bind {E R S}
       (t : itree E R) (k : R -> itree E S) :
   observing eq
@@ -98,6 +94,8 @@ Lemma bind_vis {E R U V} (e: E V) (ek: V -> itree E U) (k: U -> itree E R) :
     (Vis e (fun x => ITree.bind (ek x) k)).
 Proof. apply @unfold_bind. Qed.
 
+(** Unfolding lemma for [aloop]. There is also a variant [unfold_aloop]
+    without [Tau]. *)
 Lemma unfold_aloop' {E A B} (f : A -> itree E A + B) (x : A) :
   observing eq
     (ITree.aloop f x)
@@ -106,6 +104,7 @@ Proof.
   constructor; reflexivity.
 Qed.
 
+(** Unfolding lemma for [forever]. *)
 Lemma unfold_forever {E R S} (t: itree E R):
   observing eq (@ITree.forever E R S t) (ITree.bind t (fun _ => Tau (ITree.forever t))).
 Proof. econstructor. reflexivity. Qed.

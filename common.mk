@@ -10,6 +10,7 @@ Makefile.coq: _CoqProject
 
 ## coqdoc -------------------------------------------------
 COQDOCFLAGS:= \
+  -t "Interaction Trees" \
   --toc --toc-depth 2 --html --interpolate \
   --index indexpage --no-lib-name --parse-comments 
 

@@ -12,19 +12,23 @@ license: "MIT"
 build: [ make "-j%{jobs}%" ]
 install: [ make "install" ]
 remove: [ "rm" "-rf" "%{lib}%/coq/user-contrib/ITree" ]
-run-test: [ make "-j%{jobs}%" "test" ]
+run-test: [ make "-j%{jobs}%" "all" ]
 
 depends: [
   "ocaml"
   "coq" {>= "8.8" & < "8.10~"}
   "coq-ext-lib" {>= "0.10.0" & < "0.10.2"}
   "coq-paco" {>= "2.1.0" & < "2.2"}
-  "ocamlbuild"
+  "ocamlbuild" {with-test}
 ]
 authors: [
   "Li-yao Xia <lysxia@gmail.com>"
+  "Yannick Zakowski <zakowski@seas.upenn.edu>"
+  "Paul He <paulhe@seas.upenn.edu>"
+  "Chung-Kil Hur <gil.hur@gmail.com>"
   "Gregory Malecha <gmalecha@gmail.com>"
   "Steve Zdancewic <stevez@cis.upenn.edu>"
+  "Benjamin C. Pierce <bcpierce@cis.upenn.edu>"
 ]
 
 tags: "org:deepspec"

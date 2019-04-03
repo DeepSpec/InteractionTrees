@@ -14,8 +14,10 @@ theories/Basics/FunctionFacts.v
 
 theories/Core/ITreeDefinition.v
 theories/Core/KTree.v
-theories/Core/KTreeFacts.v
 theories/Core/KTreeBasicFacts.v
+theories/Core/KTreeFacts.v
+theories/Core/LoopFacts.v
+theories/Core/Subevent.v
 
 theories/Eq.v
 theories/Eq/Shallow.v
@@ -30,7 +32,6 @@ theories/Indexed/Sum.v
 theories/Indexed/Relation.v
 theories/Indexed/Function.v
 theories/Indexed/FunctionFacts.v
-theories/Indexed/OpenSum.v
 
 theories/Interp/Interp.v
 theories/Interp/TranslateFacts.v
@@ -41,13 +42,13 @@ theories/Interp/Recursion.v
 theories/Interp/RecursionFacts.v
 theories/Interp/Traces.v
 
-theories/Effects.v
-theories/Effects/State.v
-theories/Effects/StateFacts.v
-theories/Effects/Reader.v
-theories/Effects/Writer.v
-theories/Effects/Exception.v
-theories/Effects/Nondeterminism.v
-theories/Effects/Map.v
-theories/Effects/Concurrency.v
-theories/Effects/Dependent.v
+theories/Events.v
+theories/Events/State.v
+theories/Events/StateFacts.v
+theories/Events/Reader.v
+theories/Events/Writer.v
+theories/Events/Exception.v
+theories/Events/Nondeterminism.v
+theories/Events/Map.v
+theories/Events/Concurrency.v
+theories/Events/Dependent.v

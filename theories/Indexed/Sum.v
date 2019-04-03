@@ -1,6 +1,6 @@
 (** * Sums of indexed types *)
 
-(** In the context of interaction trees, effects can be combined
+(** In the context of interaction trees, events can be combined
     using this sum type. *)
 
 (* begin hide *)
@@ -8,8 +8,7 @@ From Coq Require Import
      Lists.List.
 
 From ITree Require Import
-     Basics.Basics
-     Core.ITreeDefinition.
+     Basics.Basics.
 
 Set Implicit Arguments.
 Set Contextual Implicit.
