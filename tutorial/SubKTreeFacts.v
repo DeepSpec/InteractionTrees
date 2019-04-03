@@ -31,7 +31,6 @@ Section Facts.
   Context {iI: i}.
   Context {isum: i -> i -> i}.
 
-  (* Context {iI_init: forall E, Initial (@ktree E) (F iI)}. *)
   Context {iI_void: F iI -> void}.
   Context {void_iI: void -> F iI}.
   Context {iI_voi_iso: Iso Fun iI_void void_iI}.
@@ -39,7 +38,6 @@ Section Facts.
   Context {isum_sum: forall {A B: i}, F (isum A B) -> (F A) + (F B)}.
   Context {sum_isum: forall {A B: i}, (F A) + (F B) -> F (isum A B)}.
   Context {isum_sum_iso: forall A B, Iso Fun (@isum_sum A B) (@sum_isum A B)}.
-  (* Arguments iI_init {E}. *)
 
   Context {E: Type -> Type}.
 
@@ -104,102 +102,6 @@ Section Facts.
   Section MonoidalCategoryLaws.
 
     (** *** [Unitors] lemmas *)
-
-    (*
-    Lemma unit_l_sktree (A : Type) :
-      unit_l ⩯ @lift_sktree _ _ E _ A unit_l.
-    Proof.
-      apply unit_l_ktree.
-    Qed.
-
-    Lemma unit_l'_sktree (A : Type) :
-      unit_l' ⩯ @lift_sktree _ _ E A (void + A)%type unit_l'.
-    Proof.
-      reflexivity.
-    Qed.
-     
-    Lemma unit_r_sktree (A : Type) :
-      unit_r ⩯ @lift_sktree E _ A unit_r.
-    Proof.
-      intros [|[]]. reflexivity.
-    Qed.
-
-    Lemma unit_r'_sktree (A : Type) :
-      unit_r' ⩯ @lift_sktree E A (A + void) unit_r'.
-    Proof.
-      reflexivity.
-    Qed.
-     *)
-
-    (*
-    Lemma case_l_sktree {A B: i} (ab: sktree A (isum iI B)) :
-      ab >>> unit_l ⩯ (fun a: F A => ITree.map unit_l (ab a)).
-    Proof.
-      rewrite unit_l_sktree.
-      reflexivity.
-    Qed.
-
-    Lemma case_l_sktree' {A B: Type} (f: @sktree E (void + A) (void + B)) :
-      unit_l' >>> f ⩯ fun a => f (inr a).
-    Proof.
-      rewrite unit_l'_sktree.
-      intro. unfold cat, Cat_sktree, ITree.cat, lift_sktree.
-      rewrite bind_ret_; reflexivity.
-    Qed.
-
-    Lemma case_r_sktree' {A B: Type} (f: @sktree E (A + void) (B + void)) :
-      unit_r' >>> f ⩯ fun a => f (inl a).
-    Proof.
-      rewrite unit_r'_sktree.
-      intro. unfold cat, Cat_sktree, ITree.cat, lift_sktree.
-      rewrite bind_ret_; reflexivity.
-    Qed.
-
-    Lemma case_r_sktree {A B: Type} (ab: @sktree E A (B + void)) :
-      ab >>> unit_r ⩯ (fun a: A => ITree.map unit_r (ab a)).
-    Proof.
-      rewrite unit_r_sktree.
-      reflexivity.
-    Qed.
-
-    (** *** [bimap] lemmas *)
-
-    Fact bimap_id_lift {A B C} (f : B -> C) :
-      bimap (id_ A) (@lift_sktree E _ _ f) ⩯ lift_sktree (bimap (id_ A) f).
-    Proof.
-      unfold bimap, Bimap_Coproduct.
-      rewrite !cat_id_l, <- lift_case_sum, <- compose_lift_sktree.
-      reflexivity.
-      all: typeclasses eauto.
-    Qed.
-
-    Fact bimap_lift_id {A B C} (f : A -> B) :
-      bimap (@lift_sktree E _ _ f) (id_ C) ⩯ lift_sktree (bimap f id).
-    Proof.
-      unfold bimap, Bimap_Coproduct.
-      rewrite !cat_id_l, <- lift_case_sum, <- compose_lift_sktree.
-      reflexivity.
-      all: typeclasses eauto.
-    Qed.
-     *)
-
-    (* Case_sktree is useless as such because the isum_sum parameter cannot be inferred. *)
-    (*  Fix? *)
-    (*  *)
-    Lemma lift_compose_ktree':
-      forall {E A B C} (f: A -> B) (bc: ktree E B C), lift_ktree f >>> bc ⩯ f >>> bc.
-    Proof.
-      intros; rewrite lift_compose_ktree; reflexivity.
-    Qed.
-
-    (* Does this do anything? *)
-(*
-    Global Instance subrelation_euttktree_euttsktree i F E a b :
-      @subrelation (F a -> itree E (F b)) (@eq2 _ (ktree E) _ (F a) (F b)) (@eq2 _ sktree i F E a b).
-    Proof.
-      repeat intros; reflexivity.
-    Qed.
- *)
 
     Global Instance CaseInl_sktree: CaseInl sktree isum.
     Proof.
@@ -324,5 +226,7 @@ Section Facts.
       rewrite <- cat_assoc... 
       reflexivity.
     Qed.
+
+  End TracedCategoryLaws.
 
 End Facts.
