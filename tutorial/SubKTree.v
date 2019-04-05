@@ -37,6 +37,9 @@ Section SubK.
   Arguments isum_sum {A B}.
   Arguments sum_isum {A B}.
 
+  Definition iI_voidl {E} := @lift_ktree E _ _ iI_void.
+  Definition void_iIl {E} := @lift_ktree E _ _ void_iI.
+
   Definition isum_suml {E A B} := @lift_ktree E _ _ (@isum_sum A B).
   Definition sum_isuml {E A B} := @lift_ktree E _ _ (@sum_isum A B).
   
@@ -73,8 +76,7 @@ Section SubK.
     (** Initial object, monoidal unit *)
 
     Global Instance Initial_iI_sktree : Initial sktree iI :=
-
-      fun _ a => match iI_void a with end.
+      fun A => iI_voidl >>> empty.
 
     (** The tensor product is given by the coproduct *)
     Global Instance Case_sktree : @CoprodCase i sktree isum :=

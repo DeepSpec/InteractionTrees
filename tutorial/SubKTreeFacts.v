@@ -154,50 +154,37 @@ Section Facts.
 
     Notation sloop := (@sloop i F isum isum_sum sum_isum).
 
+    Notation iI_voidl := (@iI_voidl i F iI iI_void E).
+    Notation void_iIl := (@void_iIl i F iI void_iI E).
+
     Notation sum_isuml := (@sum_isuml i F isum sum_isum E).
     Notation isum_suml := (@isum_suml i F isum isum_sum E).
 
-    Lemma bimap_cat:
-      forall (I A B : i) (ab : sktree A B),
-        @sum_isuml I A >>> bimap (id_ I) ab
-      ⩯ bimap (id_ (F I)) ab >>> @sum_isuml I B.
+    Lemma swap_bimap_l:
+      forall {A B C D : i} (ab : sktree A B) (cd: sktree C D),
+        @sum_isuml C A >>> @bimap _ sktree _ _ _ _ _ _ cd ab
+      ⩯ @bimap _ (ktree E) _ _ _ _ _ _ cd ab >>> @sum_isuml D B.
     Proof with try typeclasses eauto.
-      intros I A B ab.
-      unfold bimap, Bimap_Coproduct.
-      unfold_sktree.
-      rewrite <- cat_assoc, semi_iso, 3 cat_id_l...
-      unfold case_, sum_isuml, inl_, inr_, Inl_ktree, Inr_ktree.
-      rewrite compose_lift_ktree.
-      unfold Case_ktree, case_sum.
-      match goal with
-      | |- _ ⩯ ?f >>> lift_ktree ?h => rewrite (compose_ktree_lift f h)
-      end.
-      unfold lift_ktree.
-      intros []; simpl.
-      - rewrite map_ret.
-        reflexivity.
-      - unfold cat, Cat_ktree, ITree.cat.
-        rewrite map_bind.
-        apply eutt_bind; [intros ?| reflexivity].
-        rewrite bind_ret, map_ret.
-        reflexivity.
+      intros A B C D ab cd.
+      unfold bimap, Bimap_Coproduct; unfold_sktree.
+      rewrite <- cat_assoc, semi_iso, cat_id_l...
+      rewrite <- 2 cat_assoc, <- cat_case...
+      reflexivity.
     Qed.
 
-    Lemma cat_bimap:
-      forall (I A B : i) (ab : sktree A B),
-        ((@bimap _ sktree _ _ _ _ _ _ (@id_ Type (ktree E) _ (F I)) ab):ktree E _ _) >>> @isum_suml I B
-       ⩯ (@isum_suml I A >>> bimap (id_ (F I)) ab).
+    Lemma swap_bimap_r:
+      forall {A B C D : i} (ab : sktree A B) (cd : sktree C D),
+        ((@bimap _ sktree _ _ _ _ _ _ cd ab):ktree E _ _) >>> @isum_suml D B
+      ⩯ (@isum_suml C A >>> @bimap _ (ktree E) _ _ _ _ _ _ cd ab).
     Proof with try typeclasses eauto.
-      intros I A B ab.
-      unfold bimap, Bimap_Coproduct.
-      unfold_sktree.
-      rewrite 2 cat_id_l...
-      rewrite <- cat_assoc...
+      intros A B C D ab cd.
+      unfold bimap, Bimap_Coproduct; unfold_sktree.
+      rewrite <- 2 cat_assoc...
       rewrite <- cat_case...
       rewrite 2 cat_assoc, semi_iso, cat_id_r...
       reflexivity. 
     Qed.
-      
+    
     Lemma compose_sloop {I A B C}
           (bc_: sktree (isum I B) (isum I C)) (ab: sktree A B) :
       sloop (bimap (id_ _) ab >>> bc_)
@@ -207,7 +194,7 @@ Section Facts.
       unfold sloop.
       rewrite <- compose_loop.
       rewrite <- cat_assoc...
-      rewrite bimap_cat.
+      rewrite swap_bimap_l.
       rewrite <- 2 cat_assoc...
       reflexivity.
     Qed.
@@ -215,17 +202,167 @@ Section Facts.
     Lemma sloop_compose {I A B B'}
           (ab_: sktree (isum I A) (isum I B)) (bc: sktree B B') :
       sloop (ab_ >>> bimap (id_ _) bc)
-           ⩯ sloop ab_ >>> bc.
+    ⩯ sloop ab_ >>> bc.
     Proof with try typeclasses eauto.
       unfold_sktree.
       unfold sloop.
       rewrite <- loop_compose.
       rewrite <- cat_assoc...
       rewrite cat_assoc...
-      rewrite cat_bimap.
+      rewrite swap_bimap_r.
       rewrite <- cat_assoc... 
       reflexivity.
     Qed.
+
+    Lemma sloop_rename_internal {I J A B}
+          (ab_: sktree (isum I A) (isum J B)) (ji: sktree J I) :
+      sloop (ab_ >>> bimap ji (id_ _))
+    ⩯ sloop (bimap ji (id_ _) >>> ab_).
+    Proof with try typeclasses eauto.
+      unfold_sktree; unfold sloop.
+      rewrite 2 cat_assoc...
+      rewrite swap_bimap_r.
+      rewrite <- 3 cat_assoc...
+      rewrite loop_rename_internal.
+      rewrite swap_bimap_l.
+      repeat rewrite cat_assoc...
+      reflexivity.
+    Qed.
+
+    Ltac fold_case:=
+      match goal with
+        |- context[Case_ktree ?A ?B ?C ?f ?g] => replace (Case_ktree A B C f g) with (case_ f g) by reflexivity
+      end.
+
+    Ltac fold_inl:=
+      match goal with
+        |- context[Inl_ktree ?A ?B] => replace (Inl_ktree A B) with (@inl_ _ _ _ _ A B) by reflexivity
+      end.
+
+    Ltac fold_inr:=
+      match goal with
+        |- context[Inr_ktree ?A ?B] => replace (Inr_ktree A B) with (@inr_ _ _ _ _ A B) by reflexivity
+      end.
+
+    Lemma swap_assoc_l: forall {I J B: i},
+         isum_suml >>> bimap (id_ (F I)) (@isum_suml J B) >>> assoc_l 
+       ⩯ (@assoc_l _ sktree isum _ I J B: ktree _ _ _) >>> isum_suml >>> bimap isum_suml (id_ (F B)).
+    Proof with try typeclasses eauto.
+      intros.
+      unfold bimap, Bimap_Coproduct.
+      unfold assoc_l,AssocL_Coproduct.
+      unfold_sktree.
+      repeat fold_case.
+      repeat fold_inl.
+      repeat fold_inr.
+      rewrite 2 cat_id_l...
+      rewrite cat_assoc, cat_case, case_inl...
+      rewrite cat_assoc, case_inr...
+      match goal with |- ?f ⩯ _ => set (g:=f) end.
+
+      rewrite <- 2 cat_assoc...
+      rewrite <- cat_case...
+      rewrite <- cat_assoc...
+      rewrite <- cat_case...
+      rewrite <- cat_assoc...
+      rewrite (cat_assoc _ _ sum_isuml _), semi_iso, cat_id_r...
+      rewrite cat_assoc...
+      rewrite cat_case...
+      rewrite cat_assoc, case_inl, <- cat_assoc, (cat_assoc _ _ sum_isuml _), semi_iso, cat_id_r...
+      rewrite cat_assoc, cat_case, case_inr...
+      rewrite cat_assoc, case_inl...
+      rewrite <- cat_assoc, (cat_assoc _ _ sum_isuml _), semi_iso, cat_id_r...
+      subst g.
+      reflexivity.
+    Qed.
+
+    Lemma swap_assoc_r: forall {I J B: i},
+         assoc_r >>> bimap (id_ (F I)) (@sum_isuml J B) >>> sum_isuml
+       ⩯ bimap (@sum_isuml I J) (id_ (F B)) >>> sum_isuml >>> (@assoc_r _ sktree isum _ I J B: ktree _ _ _).
+    Proof with try typeclasses eauto.
+      intros.
+      unfold bimap, Bimap_Coproduct.
+      unfold assoc_r,AssocR_Coproduct.
+      unfold_sktree.
+      repeat fold_case.
+      repeat fold_inl.
+      repeat fold_inr.
+      rewrite 2 cat_id_l...
+      rewrite cat_case, cat_assoc, case_inr...
+      rewrite (cat_case _ _ inl_ _ _), case_inl...
+      rewrite cat_assoc, case_inr...
+      match goal with |- ?f ⩯ _ => set (g:=f) end.
+      rewrite <- cat_assoc, (cat_assoc _ _ sum_isuml _), semi_iso, cat_id_r...
+      rewrite cat_case...
+      rewrite case_inr...
+      rewrite cat_assoc, case_inl...
+      rewrite <- cat_assoc, semi_iso, cat_id_l...
+      rewrite <- cat_assoc, <- cat_case...
+      rewrite <- cat_assoc, <- cat_case...
+      subst g.
+      repeat rewrite cat_assoc...
+      reflexivity.
+    Qed.
+
+    Lemma sloop_sloop {I J A B} (ab__: sktree (isum I (isum J A)) (isum I (isum J B))) :
+      sloop (sloop ab__)
+    ⩯ sloop (assoc_r >>> ab__ >>> assoc_l).
+    Proof with try typeclasses eauto.
+      unfold_sktree; unfold sloop.
+      rewrite <- compose_loop, <- loop_compose.
+      rewrite loop_loop. 
+      match goal with |- _ ⩯ ?f => set (g := f) end.
+      rewrite 4 cat_assoc...
+      rewrite <- (cat_assoc _ isum_suml _ assoc_l).
+      rewrite swap_assoc_l.
+      repeat rewrite <- cat_assoc...
+      rewrite loop_rename_internal.
+      subst g.
+      rewrite swap_assoc_r.
+      repeat rewrite <- cat_assoc...
+      rewrite bimap_cat, semi_iso, cat_id_r...
+      rewrite bimap_id, cat_id_l... 
+      reflexivity.
+    Qed.
+
+(*
+    Lemma vanishing_sktree {A B: i} (f: sktree (isum iI A) (isum iI B)) :
+      sloop f ⩯ unit_l' >>> f >>> unit_l.
+    Proof with try typeclasses eauto.
+      unfold_sktree; unfold sloop.
+      unfold unit_l', unit_l, UnitL_Coproduct, UnitL'_Coproduct.
+
+      set (f' := bimap void_iIl (id_ _) >>> sum_isuml >>> f >>> isum_suml >>> bimap iI_voidl (id_ _)).
+      generalize (vanishing_ktree f'); intros eq.
+      subst f'.
+      symmetry; rewrite <- cat_id_l...
+      Lemma intro_iso: forall {A B} `{SemiIso C f f'} (g: 
+                         g ⩯ f >>> f' >>> g. 
+
+      rewrite <- (semi_iso  .
+      match goal with
+      | |-  _ ⩯ ?g => replace g with (id_ >>> g)
+      end.
+
+      set (g' := g >>> @bimap _ (ktree E) _ _ _ _ _ _ iI_void (id_ _)).  >>> bimap iI_void (id_ _)).
+      set (g' := g >>> bimap iI_void (id_ _)).
+      rewrite <- vanishing_ktree.
+      unfold unit_l', unit_l, UnitL_Coproduct, UnitL'_Coproduct.
+
+
+      generalize (vanishing_ktree (bimap void_iI (id_ _) >>> sum_isuml >>> f >>> isum_suml >>> bimap iI_void (id_ _))).
+      match goal with
+      | |- loop ?f ⩯ _ => rewrite (vanishing_ktree f)
+      end.
+      intros a.
+      rewrite vanishing1_loop.
+      cbv.
+      rewrite bind_ret.
+      apply eutt_bind; try reflexivity.
+      intros [ [] | ]; reflexivity.
+    Qed.
+
+*)
 
   End TracedCategoryLaws.
 
