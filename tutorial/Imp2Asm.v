@@ -11,7 +11,7 @@
     Their correctness will be shown in the same style as
     the elementary combinators, isolating the control
     flow reasoning.
-    Additionnaly, although naturally their choice here
+    Additionally, although naturally their choice here
     is tied to _Imp_, they are fairly generic constructs
     and could therefore be reused.
 *)
