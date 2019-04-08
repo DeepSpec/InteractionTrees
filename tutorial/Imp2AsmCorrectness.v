@@ -21,7 +21,7 @@
     bisimulation is defined when handling expressions.
     - Linking is proved in isolation: the "high level" control
     flow combinators for _Asm_ defined in [Imp2Asm.v] are
-    proved correct in the same style as the elemntary ones
+    proved correct in the same style as the elementary ones
     from [AsmCombinators.v].
     - Finally, all the pieces are tied together to prove the
     correctness.
@@ -39,7 +39,7 @@
     level of [ktree]s rather than introducing the entry label and
     trying to reason at the level of [itree]s ease sensibly the pain
     by reducing the amount of binders under which we need to work.
-    - We transparently make use of the heterogenous bisimulation provided
+    - We transparently make use of the heterogeneous bisimulation provided
     by the [itree] library to relate computations of _Asm_ expressions
     that return an environment and a [unit] value to ones of _Imp_
     that return an environment and an [Imp.value].
