@@ -20,8 +20,7 @@
  *)
 
 (* begin hide *)
-Require Import Asm Utils_tutorial Label.
-(* Require Import LabelFacts. *)
+Require Import Asm Utils_tutorial Label SubKTree SubKTreeFacts.
 
 From Coq Require Import
      List
@@ -39,6 +38,8 @@ From ExtLib Require Import
      Structures.Monad.
 
 Typeclasses eauto := 5.
+Import CatNotations.
+Local Open Scope cat_scope.
 (* end hide *)
 
 (* ================================================================= *)
@@ -63,7 +64,7 @@ Definition fmap_block {A B: Type} (f: A -> B): block A -> block B :=
 
 (** A utility function to apply renaming functions [f] and [g] respectively to
     the entry and exit labels of a [bks]. *)
-Definition relabel_bks {A B X D : nat} (f : FinC A B) (g : FinC X D)
+Definition relabel_bks {A B X D : nat} (f : F A -> F B) (g : F X -> F D)
            (b : bks B X) : bks A D :=
   fun a => fmap_block g (b (f a)).
 
@@ -84,7 +85,7 @@ Definition raw_asm {A B} (b : bks A B) : asm A B :=
   |}.
 
 (** And so does a single [block] in particular. *)
-Definition raw_asm_block {A: nat} (b : block (Fin.t A)) : asm 1 A :=
+Definition raw_asm_block {A: nat} (b : block (F A)) : asm 1 A :=
   raw_asm (fun _ => b).
 
 (** ** [asm] combinators *)
@@ -93,7 +94,7 @@ Definition raw_asm_block {A: nat} (b : block (Fin.t A)) : asm 1 A :=
 
 (** An [asm] program made only of external jumps.
     This is useful to connect programs with [app_asm]. *)
-Definition pure_asm {A B: nat} (f : Fin.t A -> Fin.t B) : asm A B :=
+Definition pure_asm {A B: nat} (f : F A -> F B) : asm A B :=
   raw_asm (fun a => bbb (Bjmp (f a))).
 
 Definition id_asm {A} : asm A A := pure_asm id.
@@ -106,38 +107,32 @@ Definition id_asm {A} : asm A A := pure_asm id.
     relabelling.
  *)
 Definition _app_B {I J B D: nat} :
-  block (Fin.t (I + B)) -> block (Fin.t ((I + J) + (B + D))) :=
-  fmap_block (fun l =>
-                match split_fin_sum l with
-                | inl i => L _ (L _ i)
-                | inr b => R _ (L _ b)
-                end).
+  block (F (I + B)) -> block (F ((I + J) + (B + D))) :=
+  fmap_block (case_ (inl_ >>> inl_) (inl_ >>> inr_)).
 
 Definition _app_D {I J B D} :
-  block (Fin.t (J + D)) -> block (Fin.t ((I + J) + (B + D))) :=
-  fmap_block (fun l =>
-                match split_fin_sum l with
-                | inl j => L _ (R _ j)
-                | inr d => R _ (R _ d)
-                end).
+  block (F (J + D)) -> block (F ((I + J) + (B + D))) :=
+  fmap_block (case_ (inr_ >>> inl_) (inr_ >>> inr_)).
 
 (** Combinator to append two asm programs, preserving their internal links.
     Can be thought of as a "vertical composition", or a tensor product. 
  *)
+(* We build a function from F X into block (F Y), we hence cannot use case_ whether over iFun or sktree.
+   Can we do better?
+ *)
 Definition app_asm {A B C D} (ab : asm A B) (cd : asm C D) :
   asm (A + C) (B + D) :=
   {| internal := ab.(internal) + cd.(internal);
-     code := fun l =>
-               match split_fin_sum l with
-               | inl iac => match split_fin_sum iac with
-                           | inl ia => _app_B (ab.(code) (L _ ia))
-                           | inr ic => _app_D (cd.(code) (L _ ic))
-                           end
-               | inr ac => match split_fin_sum ac with
-                          | inl a => _app_B (ab.(code) (R _ a))
-                          | inr c => _app_D (cd.(code) (R _ c))
-                          end
-               end
+     code := fun l => match isum_sum l with
+                   | inl iac => match isum_sum iac with
+                               | inl ia => _app_B (ab.(code) (@inl_ _ iFun _ _ _ _ ia))
+                               | inr ic => _app_D (cd.(code) (@inl_ _ iFun _ _ _ _ ic))
+                               end
+                   | inr ac => match isum_sum ac with
+                              | inl a => _app_B (ab.(code) (@inr_ _ iFun _ _ _ _ a))
+                              | inr c => _app_D (cd.(code) (@inr_ _ iFun _ _ _ _ c))
+                              end
+                   end
   |}.
 
 (** Rename visible program labels.
@@ -146,7 +141,7 @@ Definition app_asm {A B C D} (ab : asm A B) (cd : asm C D) :
     associators.
     The following generic combinator allow any relabelling. 
  *)
-Definition relabel_asm {A B C D} (f : FinC A B) (g : FinC C D)
+Definition relabel_asm {A B C D} (f : F A -> F B) (g : F C -> F D)
            (bc : asm B C) : asm A D :=
   {| code := relabel_bks (bimap id f) (bimap id g)  bc.(code); |}.
 
@@ -188,7 +183,7 @@ Section Correctness.
   (** *** Internal structures *)
 
   Lemma fmap_block_map:
-    forall  {L L'} b (f: FinC L L'),
+    forall  {L L'} b (f: F L -> F L'),
       denote_block (fmap_block f b) ≅ ITree.map f (denote_block b).
   Proof.
     induction b as [i b | br]; intros f.
@@ -211,7 +206,7 @@ Section Correctness.
     traverse_ denote_instr.
 
   Lemma after_correct :
-    forall {label: nat} instrs (b: branch (Fin.t label)),
+    forall {label: nat} instrs (b: branch (F label)),
       denote_block (after instrs b) ≅ (denote_list instrs ;; denote_branch b).
   Proof.
     induction instrs as [| i instrs IH]; intros b.
@@ -231,7 +226,7 @@ Section Correctness.
   Qed.
 
 
-  Lemma raw_asm_block_correct_lifted {A} (b : block (Fin.t A)) :
+  Lemma raw_asm_block_correct_lifted {A} (b : block (F A)) :
     denote_asm (raw_asm_block b) ⩯
                ((fun _ => denote_block b) : ktree _ _ _).
   Proof.

@@ -17,7 +17,7 @@ From ITree Require Import
 
 From ExtLib Require Structures.Monad.
 
-Require Import Imp Label.
+Require Import Imp Label SubKTree.
 
 Typeclasses eauto := 5.
 
@@ -67,7 +67,7 @@ Global Arguments block _ : clear implicits.
     into it, as well as the set of outer labels it might jump to.
     To this end, [bks] represents a collection of blocks labeled
     by [A], with branches in [B]. *)
-Definition bks A B := Fin.t A -> block (Fin.t B).
+Definition bks A B := F A -> block (F B).
 
 (** An [asm] program represents the control flow of the computation.
     It is a collection of labelled [blocks] such that its labels are
@@ -138,7 +138,7 @@ Section Denote.
     Definition denote_operand (o : operand) : itree E value :=
       match o with
       | Oimm v => Ret v
-      | Ovar v => send (GetVar v)
+      | Ovar v => trigger (GetVar v)
       end.
 
     (** Instructions offer no suprises either. *)
@@ -146,27 +146,27 @@ Section Denote.
       match i with
       | Imov d s =>
         v <- denote_operand s ;;
-        send (SetVar d v)
+        trigger (SetVar d v)
       | Iadd d l r =>
-        lv <- send (GetVar l) ;;
+        lv <- trigger (GetVar l) ;;
         rv <- denote_operand r ;;
-        send (SetVar d (lv + rv))
+        trigger (SetVar d (lv + rv))
       | Isub d l r =>
-        lv <- send (GetVar l) ;;
+        lv <- trigger (GetVar l) ;;
         rv <- denote_operand r ;;
-        send (SetVar d (lv - rv))
+        trigger (SetVar d (lv - rv))
       | Imul d l r =>
-        lv <- send (GetVar l) ;;
+        lv <- trigger (GetVar l) ;;
         rv <- denote_operand r ;;
-        send (SetVar d (lv * rv))
+        trigger (SetVar d (lv * rv))
       | Iload d a =>
         addr <- denote_operand a ;;
-        val <- send (Load addr) ;;
-        send (SetVar d val)
+        val <- trigger (Load addr) ;;
+        trigger (SetVar d val)
       | Istore a v =>
-        addr <- send (GetVar a) ;;
+        addr <- trigger (GetVar a) ;;
         val <- denote_operand v ;;
-        send (Store addr val)
+        trigger (Store addr val)
       end.
 
     Section with_labels.
@@ -177,11 +177,11 @@ Section Denote.
           If the computation halts instead of branching,
           we return the [done] tree.
        *)
-      Definition denote_branch (b : branch (Fin.t B)) : itree E (Fin.t B) :=
+      Definition denote_branch (b : branch (F B)) : itree E (F B) :=
         match b with
         | Bjmp l => ret l
         | Bbrz v y n =>
-          val <- send (GetVar v) ;;
+          val <- trigger (GetVar v) ;;
           if val:nat then ret y else ret n
         | Bhalt => done
         end.
@@ -190,7 +190,7 @@ Section Denote.
           returning the [label] of the next [block] it shall jump to.
           It recursively denote its instruction before that.
        *)
-      Fixpoint denote_block (b : block (Fin.t B)) : itree E (Fin.t B) :=
+      Fixpoint denote_block (b : block (F B)) : itree E (F B) :=
         match b with
         | bbi i b =>
           denote_instr i ;; denote_block b
@@ -203,7 +203,7 @@ Section Denote.
           However, its denotation is therefore crucially a [ktree],
           whose structure will be useful in the proof of the compiler.
        *)
-      Definition denote_b (bs: bks A B): ktree E (Fin.t A) (Fin.t B) :=
+      Definition denote_b (bs: bks A B): sktree E A B :=
         fun a => denote_block (bs a).
 
     End with_labels.
@@ -225,8 +225,8 @@ Section Denote.
 
     (* Denotation of [asm] *)
 
-    Definition denote_asm {A B} : asm A B -> ktree E (Fin.t A) (Fin.t B) :=
-      fun s => loop_Label (denote_b (code s)).
+    Definition denote_asm {A B} : asm A B -> sktree E A B :=
+      fun s => sloop (denote_b (code s)).
 
   End with_effect.
 End Denote.
@@ -237,7 +237,7 @@ End Denote.
 (* begin hide *)
 From ITree Require Import
      Basics.Category
-     Effects.Map.
+     Events.Map.
 
 From ExtLib Require Import
      Core.RelDec
