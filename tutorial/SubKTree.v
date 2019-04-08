@@ -1,3 +1,4 @@
+(* begin hide *)
 From ITree Require Import
      Basics.Basics
      Basics.Function
@@ -12,36 +13,76 @@ From Coq Require Import
 
 Import CatNotations.
 Local Open Scope cat_scope.
+(* end hide *)
+
 (* We consider the transport of the symmetric traced monoidal structure of [ktree]s to a subcategory *)
 
+Class Embedding (i: Type): Type :=
+  F: i -> Type.
+
+Class Embedded_initial `{Embedding} (iI: i) :=
+  {
+    iI_void: F iI -> void;
+    void_iI: void -> F iI
+  }.
+
+Class Embedded_sum `{Embedding} (isum: i -> i -> i) :=
+  {
+    isum_sum: forall {A B: i}, F (isum A B) -> (F A) + (F B);
+    sum_isum: forall {A B: i}, (F A) + (F B) -> F (isum A B)
+  }.
+
+(* Context {isum_sum_iso: forall A B, Iso Fun (@isum_sum A B) (@sum_isum A B)}. *)
+ 
 Section SubK.
 
   (* We consider a subdomain of Type given by a Type [i] and its injection into Type [F] *)
   Context {i: Type}.
-  Context {F: i -> Type}.
-
+  Context {iEmbed: Embedding i}.
   (* We assume that we have an initial element and a bifunctor over i *)
   Context {iI: i}.
   Context {isum: i -> i -> i}.
+  Context {FInit: Embedded_initial iI}.
+  Context {iI_iso: Iso Fun iI_void void_iI}.
+  Context {Fsum: Embedded_sum isum}.
+  Context {sum_Iso: forall A B, Iso Fun (@isum_sum _ _ _ _ A B) sum_isum}.
 
-  Definition iFun (A B: i) := F A -> F B.
+  Section iFun.
 
-  (* The unit and the bifunctor must be faithfully transported into [Type] by F *)
-  Context {iI_void: F iI -> void}.
-  Context {void_iI: void -> F iI}.
-  Context {iI_voi_iso: Iso Fun iI_void void_iI}.
- 
-  Context {isum_sum: forall {A B: i}, F (isum A B) -> (F A) + (F B)}.
-  Context {sum_isum: forall {A B: i}, (F A) + (F B) -> F (isum A B)}.
-  Context {isum_sum_iso: forall A B, Iso Fun (@isum_sum A B) (@sum_isum A B)}.
-  Arguments isum_sum {A B}.
-  Arguments sum_isum {A B}.
+    Definition iFun (a b: i) := F a -> F b.
+
+    Global Instance Id_iFun : Id_ iFun :=
+      fun a => @id_ _ Fun _ (F a).
+
+    (** Function composition *)
+    Global Instance Cat_iFun : Cat iFun :=
+      fun a b c f g => @cat _ Fun _ _ _ _ f g. 
+
+    (** [void] as an initial object. *)
+    Global Instance Initial_iI : Initial iFun iI :=
+      fun a => iI_void >>> empty.
+
+    (** ** The [sum] coproduct. *)
+
+    (** Coproduct elimination *)
+    Global Instance case_isum : CoprodCase iFun isum :=
+      fun {a b c} f g x => 
+        match isum_sum x with
+        | inl a => f a
+        | inr b => g b
+        end.
+
+    (** Injections *)
+    Global Instance isum_inl : CoprodInl iFun isum := fun a b => @inl_ _ Fun _ _ _ (F b) >>> sum_isum .
+    Global Instance isum_inr : CoprodInr iFun isum := fun a b => @inr_ _ Fun _ _ _ (F a) >>> sum_isum .
+
+  End iFun.
 
   Definition iI_voidl {E} := @lift_ktree E _ _ iI_void.
   Definition void_iIl {E} := @lift_ktree E _ _ void_iI.
 
-  Definition isum_suml {E A B} := @lift_ktree E _ _ (@isum_sum A B).
-  Definition sum_isuml {E A B} := @lift_ktree E _ _ (@sum_isum A B).
+  Definition isum_suml {E A B} := @lift_ktree E _ _ (@isum_sum _ _ _ _ A B).
+  Definition sum_isuml {E A B} := @lift_ktree E _ _ (@sum_isum _ _ _ _ A B).
   
   Definition sktree (E: Type -> Type) (A B: i) := F A -> itree E (F B).
 

@@ -26,39 +26,50 @@ Qed.
 
 Section Facts.
 
+  (* We consider a subdomain of Type given by a Type [i] and its injection into Type [F] *)
   Context {i: Type}.
-  Context {F: i -> Type}.
+  Context {iEmbed: Embedding i}.
+  (* We assume that we have an initial element and a bifunctor over i *)
   Context {iI: i}.
   Context {isum: i -> i -> i}.
+  Context {FInit: Embedded_initial iI}.
+  Context {iI_iso: Iso Fun iI_void void_iI}.
+  Context {Fsum: Embedded_sum isum}.
+  Context {sum_Iso: forall A B, Iso Fun (@isum_sum _ _ _ _ A B) sum_isum}.
+ 
+  (* Context {i: Type}. *)
+  (* Context {F: i -> Type}. *)
+  (* Context {iI: i}. *)
+  (* Context {isum: i -> i -> i}. *)
 
-  Context {iI_void: F iI -> void}.
-  Context {void_iI: void -> F iI}.
-  Context {iI_voi_iso: Iso Fun iI_void void_iI}.
+  (* Context {iI_void: F iI -> void}. *)
+  (* Context {void_iI: void -> F iI}. *)
+  (* Context {iI_voi_iso: Iso Fun iI_void void_iI}. *)
   
-  Context {isum_sum: forall {A B: i}, F (isum A B) -> (F A) + (F B)}.
-  Context {sum_isum: forall {A B: i}, (F A) + (F B) -> F (isum A B)}.
-  Context {isum_sum_iso: forall A B, Iso Fun (@isum_sum A B) (@sum_isum A B)}.
+  (* Context {isum_sum: forall {A B: i}, F (isum A B) -> (F A) + (F B)}. *)
+  (* Context {sum_isum: forall {A B: i}, (F A) + (F B) -> F (isum A B)}. *)
+  (* Context {isum_sum_iso: forall A B, Iso Fun (@isum_sum A B) (@sum_isum A B)}. *)
 
   Context {E: Type -> Type}.
 
-  Notation sktree := (@sktree i F E).
+  Notation sktree := (@sktree i iEmbed E).
 
-  Definition Case_sktree_ := @Case_sktree i F isum isum_sum.
+  Definition Case_sktree_ := @Case_sktree i _ _ _ E.
   Existing Instance Case_sktree_.
-  Definition Inl_sktree_ := @Inl_sktree i F isum sum_isum E.
+  Definition Inl_sktree_ := @Inl_sktree i _ _ _ E.
   Existing Instance Inl_sktree_.
-  Definition Inr_sktree_ := @Inr_sktree i F isum sum_isum E.
+  Definition Inr_sktree_ := @Inr_sktree i _ _ _ E.
   Existing Instance Inr_sktree_.
-  Definition Initial_iI_sktree_ := @Initial_iI_sktree i F iI iI_void.
-  Existing Instance Initial_iI_sktree_.
+  (* Definition Initial_iI_sktree_ := @Initial_iI_sktree i *)
+  (* Existing Instance Initial_iI_sktree_. *)
 
-  Notation sloop := (@sloop i F isum isum_sum sum_isum).
+  (* Notation sloop := (@sloop i F isum isum_sum sum_isum). *)
 
-  Notation iI_voidl := (@iI_voidl i F iI iI_void E).
-  Notation void_iIl := (@void_iIl i F iI void_iI E).
+  (* Notation iI_voidl := (@iI_voidl i F iI iI_void E). *)
+  (* Notation void_iIl := (@void_iIl i F iI void_iI E). *)
 
-  Notation sum_isuml := (@sum_isuml i F isum sum_isum E).
-  Notation isum_suml := (@isum_suml i F isum isum_sum E).
+  (* Notation sum_isuml := (@sum_isuml i F isum sum_isum E). *)
+  (* Notation isum_suml := (@isum_suml i F isum isum_sum E). *)
 
   Ltac unfold_sktree :=
     unfold
@@ -68,8 +79,23 @@ Section Facts.
     inr_, Inr_sktree_, Inr_sktree,
     lift_sktree,
     case_, Case_sktree_, Case_sktree,
-    empty, Initial_iI_sktree_, Initial_iI_sktree,
+    empty(* , Initial_iI_sktree_ *), Initial_iI_sktree,
     id_, Id_sktree.
+
+  Ltac fold_eq:=
+    match goal with
+      |- context[Eq2_ktree ?A ?B ?f ?g] => replace (Eq2_ktree A B f g) with (eq2 f g) by reflexivity
+    end.
+
+  Ltac fold_cat:=
+    match goal with
+      |- context[Cat_ktree ?A ?B ?C ?f ?g] => replace (Cat_ktree A B C f g) with (cat f g) by reflexivity
+    end.
+
+  Ltac fold_id:=
+    match goal with
+      |- context[Id_ktree ?A] => replace (Id_ktree A) with (id_ A) by reflexivity
+    end.
 
   Ltac fold_case:=
     match goal with
@@ -91,7 +117,7 @@ Section Facts.
       |- context[Initial_void_ktree ?A] => replace (Initial_void_ktree A) with (@empty Type (ktree E) _ _ A) by reflexivity
     end.
 
-  Ltac fold_ktree := repeat (fold_case || fold_inl || fold_inr || fold_initial).
+  Ltac fold_ktree := repeat (fold_eq || fold_cat || fold_id || fold_case || fold_inl || fold_inr || fold_initial).
 
   Section UnfoldingLemmas.
 
@@ -108,8 +134,8 @@ Section Facts.
 
     Lemma unfold_bimap_l:
       forall {A B C D : i} (ab : sktree A B) (cd: sktree C D),
-        @sum_isuml C A >>> @bimap _ sktree _ _ _ _ _ _ cd ab
-      ⩯ @bimap _ (ktree E) _ _ _ _ _ _ cd ab >>> @sum_isuml D B.
+        sum_isuml >>> @bimap _ sktree _ _ _ _ _ _ cd ab
+      ⩯ @bimap _ (ktree E) _ _ _ _ _ _ cd ab >>> sum_isuml.
     Proof with try typeclasses eauto.
       intros A B C D ab cd.
       rewrite unfold_bimap.
@@ -119,8 +145,8 @@ Section Facts.
 
     Lemma unfold_bimap_r:
       forall {A B C D : i} (ab : sktree A B) (cd : sktree C D),
-        ((@bimap _ sktree _ _ _ _ _ _ cd ab):ktree E _ _) >>> @isum_suml D B
-      ⩯ (@isum_suml C A >>> @bimap _ (ktree E) _ _ _ _ _ _ cd ab).
+        ((@bimap _ sktree _ _ _ _ _ _ cd ab):ktree E _ _) >>> isum_suml
+      ⩯ (isum_suml >>> @bimap _ (ktree E) _ _ _ _ _ _ cd ab).
     Proof with try typeclasses eauto.
       intros A B C D ab cd.
       rewrite unfold_bimap.
@@ -133,8 +159,7 @@ Section Facts.
       isum_suml >>> bimap iI_voidl (id_ _) >>> unit_l.
     Proof with try typeclasses eauto.
       unfold unit_l, UnitL_Coproduct, bimap, Bimap_Coproduct.
-      unfold_sktree.
-      fold_ktree.
+      unfold_sktree; fold_ktree.
       rewrite cat_id_l...
       rewrite cat_assoc...
       rewrite cat_case, cat_assoc, case_inl, case_inr...
@@ -204,7 +229,7 @@ Section Facts.
 
     (* We might be able to simplify those two *)
     Lemma unfold_swap_assoc_l: forall {I J B: i},
-         isum_suml >>> bimap (id_ (F I)) (@isum_suml J B) >>> assoc_l 
+         isum_suml >>> bimap (id_ (F I)) isum_suml >>> assoc_l 
        ⩯ (@assoc_l _ sktree isum _ I J B: ktree _ _ _) >>> isum_suml >>> bimap isum_suml (id_ (F B)).
     Proof with try typeclasses eauto.
       intros.
@@ -234,8 +259,8 @@ Section Facts.
     Qed.
 
     Lemma unfold_swap_assoc_r: forall {I J B: i},
-         assoc_r >>> bimap (id_ (F I)) (@sum_isuml J B) >>> sum_isuml
-       ⩯ bimap (@sum_isuml I J) (id_ (F B)) >>> sum_isuml >>> (@assoc_r _ sktree isum _ I J B: ktree _ _ _).
+         assoc_r >>> bimap (id_ (F I)) sum_isuml >>> sum_isuml
+       ⩯ bimap sum_isuml (id_ (F B)) >>> sum_isuml >>> (@assoc_r _ sktree isum _ I J B: ktree _ _ _).
     Proof with try typeclasses eauto.
       intros.
       unfold bimap, Bimap_Coproduct.
@@ -340,7 +365,7 @@ Section Facts.
     Proof.
       red; unfold_sktree; intros.
       rewrite <- case_universal; try typeclasses eauto. 
-      - instantiate (1 := (@sum_isuml a b >>> fg)).
+      - instantiate (1 := sum_isuml >>> fg).
         rewrite <- cat_assoc, semi_iso, cat_id_l.
         reflexivity.
         all: try typeclasses eauto.
@@ -466,6 +491,7 @@ Section Facts.
       reflexivity.
     Qed.
 
+    (* The automation in this proof is slightly brutal... *)
     Lemma loop_bimap_sktree {I A B C D}
           (ab : sktree A B) (cd : sktree (isum I C) (isum I D)) :
       bimap ab (sloop cd)
@@ -489,7 +515,7 @@ Section Facts.
     Qed.
 
     Lemma yanking_sktree {A: i}:
-      @sloop E _ _ _ swap ⩯ id_ A.
+      @sloop _ _ _ _ _ _ _ _ swap ⩯ id_ A.
     Proof with try typeclasses eauto.
       unfold_sktree; unfold sloop.
       rewrite <- yanking_ktree.
