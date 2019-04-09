@@ -66,11 +66,7 @@ Section SubK.
 
     (** Coproduct elimination *)
     Global Instance case_isum : CoprodCase iFun isum :=
-      fun {a b c} f g x => 
-        match isum_sum x with
-        | inl a => f a
-        | inr b => g b
-        end.
+      fun {a b c} f g =>  isum_sum >>> @case_ _ Fun _ _ _ _ _ f g.
 
     (** Injections *)
     Global Instance isum_inl : CoprodInl iFun isum := fun a b => @inl_ _ Fun _ _ _ (F b) >>> sum_isum .

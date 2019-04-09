@@ -112,3 +112,8 @@ Admitted.
 (*     apply split_fin_sum_left in EQ. *)
 (*     unfold to_nat' in *. *)
 (*     apply L_sanity in EQ. *)
+
+Global Instance FiniIIso: Iso Fun iI_void void_iI := {}.
+intros x; inversion x.
+intros x; inversion x.
+Defined.

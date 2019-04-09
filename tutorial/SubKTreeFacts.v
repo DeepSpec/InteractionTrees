@@ -331,6 +331,92 @@ Section Facts.
       intros a f x; exfalso; apply iI_void in x; inversion x.
     Qed.
 
+    Lemma empty_ktree_is_empty: forall a,
+        @empty Type (ktree E) _ _ a ⩯ lift_ktree empty. 
+    Proof.
+      intros x [].
+    Qed.
+
+    Lemma unit_l_sktree (A : i) :
+      unit_l ⩯ lift_sktree (@unit_l _ iFun _ _ _ A).
+    Proof.
+      unfold unit_l, UnitL_Coproduct.
+      unfold_sktree.
+      unfold case_isum, Initial_iI.
+      rewrite <- compose_lift_ktree, <- lift_case_sum.
+      rewrite <- lift_ktree_id.
+      rewrite <- compose_lift_ktree.
+      rewrite empty_ktree_is_empty.
+      reflexivity.
+    Qed.
+
+    Lemma unit_l'_sktree (A : i) :
+      unit_l' ⩯ lift_sktree (@unit_l' _ iFun _ iI _ A).
+    Proof.
+      unfold unit_l', UnitL'_Coproduct.
+      unfold_sktree.
+      unfold isum_inr.
+      rewrite <- compose_lift_ktree.
+      reflexivity.
+    Qed.
+
+    Lemma unit_r_sktree (A : i) :
+      unit_r ⩯ lift_sktree (@unit_r _ iFun _ _ _ A).
+    Proof.
+      unfold unit_r, UnitR_Coproduct.
+      unfold_sktree.
+      unfold case_isum, Initial_iI.
+      rewrite <- compose_lift_ktree, <- lift_case_sum.
+      rewrite <- lift_ktree_id.
+      rewrite <- compose_lift_ktree.
+      rewrite empty_ktree_is_empty.
+      reflexivity.
+    Qed.
+
+    Lemma unit_r'_sktree (A : i) :
+      unit_r' ⩯ lift_sktree (@unit_r' _ iFun _ iI _ A).
+    Proof.
+      unfold unit_r', UnitR'_Coproduct.
+      unfold_sktree.
+      unfold isum_inl.
+      rewrite <- compose_lift_ktree.
+      reflexivity.
+    Qed.
+
+    Lemma case_l_sktree {A B: i} (ab: sktree A (isum iI B)) :
+      ab >>> unit_l ⩯ (fun a: F A => ITree.map unit_l (ab a)).
+    Proof.
+      rewrite unit_l_sktree.
+      reflexivity.
+    Qed.
+
+    Lemma case_l_sktree' {A B: i} (f: sktree (isum iI A) (isum iI B)) :
+      unit_l' >>> f ⩯ fun a => f (@inr_ _ iFun _ _ _ _ a).
+    Proof.
+      rewrite unit_l'_sktree.
+      unfold_sktree; unfold isum_inr.
+      unfold unit_l', UnitL'_Coproduct.
+      intro. unfold cat, Cat_ktree, ITree.cat, lift_ktree.
+      rewrite bind_ret_; reflexivity.
+    Qed.
+
+    Lemma case_r_sktree' {A B: i} (f: sktree (isum A iI) (isum B iI)) :
+      unit_r' >>> f ⩯ fun a => f (@inl_ _ iFun _ _ _ _ a).
+    Proof.
+      rewrite unit_r'_sktree.
+      unfold_sktree; unfold isum_inr.
+      unfold unit_l', UnitL'_Coproduct.
+      intro. unfold cat, Cat_ktree, ITree.cat, lift_ktree.
+      rewrite bind_ret_; reflexivity.
+    Qed.
+
+    Lemma case_r_sktree {A B: i} (ab: sktree A (isum B iI)) :
+      ab >>> unit_r ⩯ (fun a: F A => ITree.map unit_r (ab a)).
+    Proof.
+      rewrite unit_r_sktree.
+      reflexivity.
+    Qed.
+
   End CategoryLaws.
 
   Section MonoidalCategoryLaws.
