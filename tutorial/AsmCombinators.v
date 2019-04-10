@@ -327,54 +327,62 @@ Section Correctness.
     2: apply swap_involutive; typeclasses eauto.
     apply eq_sktree_sloop.
     rewrite !cat_assoc; try typeclasses eauto.
-
-
-    rewrite <- !sym_ktree_unfold, !assoc_l_ktree, !assoc_r_ktree, !bimap_lift_id, !bimap_id_lift, !compose_lift_ktree_l, compose_lift_ktree.
+    rewrite <- !sym_sktree_unfold, !assoc_l_sktree, !assoc_r_sktree, !bimap_slift_id, !bimap_id_slift, !compose_lift_sktree_l, compose_lift_sktree.
 
     (* And finally a case analysis on the label provided. *)
-    unfold cat, Cat_ktree, ITree.cat, lift_ktree.
-    intro x. rewrite bind_ret; simpl.
-    destruct x as [[|]|[|]]; cbn.
-    (* ... *)
-    all: unfold cat, Cat_ktree, ITree.cat.
-    all: try rewrite bind_bind.
-    all: unfold _app_B, _app_D.
-    all: rewrite fmap_block_map.
-    all: unfold ITree.map.
-    all: apply eutt_bind; try reflexivity.
-    all: intros []; rewrite (itree_eta (ITree.bind _ _)); cbn; reflexivity.
-  Qed.
+    unfold cat, Cat_sktree, cat, Cat_ktree, Cat_iFun, ITree.cat, lift_sktree, lift_ktree.
+    intro x; unfold denote_b; simpl.
+    repeat rewrite bind_ret; simpl.
+    repeat match goal with
+           | |- context[match ?pat with | _ => _ end] => destruct pat
+           end; cbn.
+
+    (* {  *)
+      
+    (*   all: unfold _app_B, _app_D. *)
+    (*   all: rewrite fmap_block_map. *)
+    (*   all: unfold ITree.map. *)
+      
+    (* (* ... *) *)
+    (* all: unfold cat, Cat_ktree, ITree.cat. *)
+    (* (* all: try rewrite bind_bind. *) *)
+    (* all: unfold _app_B, _app_D. *)
+    (* all: rewrite fmap_block_map. *)
+    (* all: unfold ITree.map. *)
+    (* all: apply eutt_bind; try reflexivity. *)
+    (* all: intros []; rewrite (itree_eta (ITree.bind _ _)); cbn; reflexivity. *)
+  Admitted.
 
   (** Correctness of the [relabel_asm] combinator.
       Its denotation is the same as denoting the original [asm],
       and composing it on both sides with the renaming functions
       lifted as [ktree]s.
    *)
-  Lemma relabel_bks_correct {A B C D} (f : A -> B) (g : C -> D)
+  Lemma relabel_bks_correct {A B C D} (f : F A -> F B) (g : F C -> F D)
              (bc : bks B C) :
     denote_b (relabel_bks f g bc)
-             ⩯ lift_ktree f >>> denote_b bc >>> lift_ktree g.
+             ⩯ lift_sktree f >>> denote_b bc >>> lift_sktree g.
   Proof.
-    rewrite lift_compose_ktree.
-    rewrite compose_ktree_lift.
+    rewrite lift_compose_sktree.
+    rewrite compose_sktree_lift.
     intro a.
     unfold denote_b, relabel_bks.
     rewrite fmap_block_map.
     reflexivity.
   Qed.
 
-  Theorem relabel_asm_correct {A B C D} (f : A -> B) (g : C -> D)
+  Theorem relabel_asm_correct {A B C D} (f : F A -> F B) (g : F C -> F D)
              (bc : asm B C) :
     denote_asm (relabel_asm f g bc)
-               ⩯ lift_ktree f >>> denote_asm bc >>> lift_ktree g.
+               ⩯ lift_sktree f >>> denote_asm bc >>> lift_sktree g.
   Proof.
     unfold denote_asm.
     simpl.
     rewrite relabel_bks_correct.
-    rewrite <- compose_loop.
-    rewrite <- loop_compose.
-    apply eq_ktree_loop.
-    rewrite !bimap_id_lift.
+    rewrite <- compose_sloop.
+    rewrite <- sloop_compose.
+    apply eq_sktree_sloop.
+    rewrite !bimap_id_slift.
     reflexivity.
   Qed.
 
@@ -382,14 +390,14 @@ Section Correctness.
       Linking is exactly looping, it hides internal labels/wires.
    *)
   Theorem link_asm_correct {I A B} (ab : asm (I + A) (I + B)) :
-    denote_asm (link_asm ab) ⩯ loop (denote_asm ab).
+    denote_asm (link_asm ab) ⩯ sloop (denote_asm ab).
   Proof.
     unfold denote_asm.
-    rewrite loop_loop.
-    apply eq_ktree_loop.
+    rewrite sloop_sloop.
+    apply eq_sktree_sloop.
     simpl.
     rewrite relabel_bks_correct.
-    rewrite <- assoc_l_ktree, <- assoc_r_ktree.
+    rewrite <- assoc_l_sktree, <- assoc_r_sktree.
     reflexivity.
   Qed.
 
