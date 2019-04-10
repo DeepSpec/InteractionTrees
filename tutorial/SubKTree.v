@@ -51,6 +51,9 @@ Section SubK.
 
     Definition iFun (a b: i) := F a -> F b.
 
+    Global Instance Eq2_iFun : Eq2 iFun :=
+      fun a b => @eq2 _ Fun _ (F a) (F b).
+
     Global Instance Id_iFun : Id_ iFun :=
       fun a => @id_ _ Fun _ (F a).
 

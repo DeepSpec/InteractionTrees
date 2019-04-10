@@ -8,6 +8,7 @@ From ITree Require Import
      KTreeFacts
      Eq.UpToTausEquivalence.
 From Coq Require Import
+     Program
      Morphisms.
 
 Require Import SubKTree.
@@ -284,27 +285,166 @@ Section Facts.
       reflexivity.
     Qed.
 
-    (*
+    (* To redo, iFun is poorly handled *)
+    Lemma unfold_assoc_l_iFun {A B C}:
+      @assoc_l _ iFun _ _ A B C ⩯
+      isum_sum >>> bimap (id_ (F A)) isum_sum >>> @assoc_l _ Fun _ _ _ _ _ >>> bimap sum_isum (id_ (F C)) >>> sum_isum.
+    Proof with try typeclasses eauto.
+      unfold assoc_l, AssocL_Coproduct.
+      unfold case_ at 1 2, case_isum. 
+      unfold inl_, isum_inl, inr_, isum_inr, sum_isum.
+      unfold cat at 2, Cat_iFun.
+      rewrite cat_assoc...
+      unfold cat, Cat_Fun,  bimap, Bimap_Coproduct, case_, case_sum.
+      intros ?.
+      destruct (isum_sum a).
+      simpl.
+      unfold cat.
+      cbv. reflexivity.
+      cbv. 
+      destruct Fsum.
+      destruct (isum_sum B C f).
+      reflexivity.
+      reflexivity.
+    Qed.
+
+    (* To redo, iFun is poorly handled *)
+    Lemma unfold_assoc_r_iFun {A B C}:
+      @assoc_r _ iFun _ _ A B C ⩯
+      isum_sum >>> bimap isum_sum (id_ (F C)) >>> @assoc_r _ Fun _ _ _ _ _ >>> bimap (id_ (F A)) sum_isum >>> sum_isum.
+    Proof with try typeclasses eauto.
+      unfold assoc_r, AssocR_Coproduct.
+      unfold case_ at 1 2, case_isum. 
+      unfold inl_, isum_inr, inl_, isum_inl, isum_sum.
+      destruct Fsum; simpl.
+      unfold cat, Cat_iFun, Cat_Fun.
+      unfold bimap, Bimap_Coproduct, case_, case_sum.
+      intros ?.
+      repeat match goal with
+      | |- context[match ?x with | _ => _ end] => simpl; destruct x eqn:?EQ
+             end; try reflexivity.
+    Qed.
+
     Lemma assoc_l_sktree {A B C} :
       assoc_l ⩯ lift_sktree (@assoc_l _ iFun _ _ A B C).
     Proof with try typeclasses eauto.
       unfold_sktree.
-      rewrite unfold_assoc_l, assoc_l_ktree. 
-      unfold assoc_l at 2, AssocL_Coproduct, case_, case_isum, inl_, isum_inl, inr_, isum_inr.
-      unfold bimap, Bimap_Coproduct.
-      rewrite assoc_l_ktree. 
-      rewrite <- compose_lift_ktree.
-      rewrite <- lift_case_sum.
-      rewrite cat_assoc... cat_case.
+      rewrite unfold_assoc_l, assoc_l_ktree.
+      rewrite unfold_assoc_l_iFun.
+      repeat rewrite <- compose_lift_ktree.
+      rewrite <- bimap_lift_id, <- bimap_id_lift.
+      reflexivity.
     Qed.
-     *)
-(*
+
     Lemma assoc_r_sktree {A B C} :
       assoc_r ⩯ lift_ktree (@assoc_r _ iFun _ _ A B C).
-    Proof.
-      
+    Proof with try typeclasses eauto.
+      unfold_sktree.
+      rewrite unfold_assoc_r, assoc_r_ktree.
+      rewrite unfold_assoc_r_iFun.
+      repeat rewrite <- compose_lift_ktree.
+      rewrite <- bimap_lift_id, <- bimap_id_lift.
+      reflexivity.
     Qed.
-*)
+
+    Global Instance Category_Fun : Category Fun.
+    Proof.
+      constructor; typeclasses eauto.
+    Qed.
+
+    Global Instance Coproduct_Fun : Coproduct Fun sum.
+    Proof.
+      constructor.
+      - intros a b c f g.
+        cbv; reflexivity.
+      - intros a b c f g.
+        cbv; reflexivity.
+      - intros a b c f g fg Hf Hg [x | y]; cbv in *; auto.
+   Qed.
+
+    Lemma unfold_bimap_iFun: forall {A B C D} (f: F A -> F C) (g: F B -> F D),
+      @bimap _ iFun _ _ _ _ _ _ f g
+    ⩯ isum_sum >>> @bimap _ Fun _ _ _ _ _ _ f g >>> sum_isum.
+    Proof with try typeclasses eauto.
+      unfold eq2, Eq2_iFun.
+      intros A B C D ab cd.
+      unfold bimap, Bimap_Coproduct.
+      unfold cat at 1 2, Cat_iFun.
+      unfold case_ at 1, case_isum.
+      unfold inl_ at 1, inr_ at 1, isum_inl, isum_inr.
+      rewrite cat_assoc, cat_case...
+      rewrite 2 cat_assoc...
+      reflexivity.
+    Qed.
+
+    Lemma bimap_id_slift {A B C} (f : F B -> F C) :
+      bimap (id_ A) (lift_sktree f) ⩯ lift_sktree (bimap (id_ A) f).
+    Proof.
+      unfold_sktree.
+      rewrite unfold_bimap, bimap_id_lift.
+      unfold Id_iFun.
+      rewrite unfold_bimap_iFun.
+      repeat rewrite <- compose_lift_ktree.
+      reflexivity.
+    Qed.
+
+    Lemma bimap_slift_id {A B C} (f : F A -> F B) :
+      bimap (lift_sktree f) (id_ C) ⩯ lift_sktree (bimap f (id_ _)).
+    Proof with try typeclasses eauto.
+      unfold_sktree.
+      rewrite unfold_bimap, bimap_lift_id.
+      unfold Id_iFun.
+      rewrite unfold_bimap_iFun.
+      repeat rewrite <- compose_lift_ktree.
+      reflexivity.
+    Qed.
+
+    Global Instance eq_lift_ktree {A B: i} :
+      Proper (@eq2 _ iFun _ A B ==> eq2) (@lift_sktree _ _ E A B).
+    Proof.
+      intros ? ? ?.
+      rewrite H; reflexivity. 
+    Qed.
+
+    Lemma lift_sktree_id {A: i}: id_ A ⩯ @lift_sktree _ _ E A A (id_ A).
+    Proof.
+      reflexivity.
+    Qed.
+
+    Fact compose_lift_sktree {A B C} (ab : F A -> F B) (bc : F B -> F C) :
+      @lift_sktree _ _ E _ _ ab >>> lift_sktree bc ⩯ lift_sktree (ab >>> bc).
+    Proof.
+      unfold lift_sktree, cat, Cat_sktree.
+      rewrite compose_lift_ktree; reflexivity.
+    Qed.
+
+    Fact compose_lift_sktree_l {A B C D} (f: F A -> F B) (g: F B -> F C) (k: sktree C D) :
+      lift_sktree f >>> (lift_sktree g >>> k) ⩯ lift_sktree (g ∘ f) >>> k.
+    Proof.
+      unfold lift_sktree, cat, Cat_sktree.
+      rewrite compose_lift_ktree_l; reflexivity.
+    Qed.
+
+    Fact compose_lift_sktree_r {A B C D} (f: F B -> F C) (g: F C -> F D) (k: sktree A B) :
+      (k >>> lift_sktree f) >>> lift_sktree g ⩯ k >>> lift_sktree (g ∘ f).
+    Proof.
+      unfold lift_sktree, cat, Cat_sktree.
+      rewrite compose_lift_ktree_r; reflexivity.
+    Qed.
+
+    Fact lift_compose_sktree {A B C} (f: F A -> F B) (bc: sktree B C):
+        lift_sktree f >>> bc ⩯ fun a => bc (f a).
+    Proof.
+      unfold lift_sktree, cat, Cat_sktree.
+      rewrite lift_compose_ktree; reflexivity.
+    Qed.
+
+    Fact compose_sktree_lift {A B C}: forall (ab: sktree A B) (g: F B -> F C),
+        (ab >>> lift_sktree g)
+          ⩯ (fun a => ITree.map g (ab a)).
+    Proof.
+      reflexivity.
+    Qed.
 
   End UnfoldingLemmas.
 
