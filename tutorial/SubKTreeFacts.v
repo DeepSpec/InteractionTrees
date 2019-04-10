@@ -337,7 +337,7 @@ Section Facts.
     Qed.
 
     Lemma assoc_r_sktree {A B C} :
-      assoc_r ⩯ lift_ktree (@assoc_r _ iFun _ _ A B C).
+      assoc_r ⩯ lift_sktree (@assoc_r _ iFun _ _ A B C).
     Proof with try typeclasses eauto.
       unfold_sktree.
       rewrite unfold_assoc_r, assoc_r_ktree.
