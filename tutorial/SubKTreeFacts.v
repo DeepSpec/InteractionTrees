@@ -26,29 +26,14 @@ Qed.
 
 Section Facts.
 
-  (* We consider a subdomain of Type given by a Type [i] and its injection into Type [F] *)
   Context {i: Type}.
   Context {iEmbed: Embedding i}.
-  (* We assume that we have an initial element and a bifunctor over i *)
   Context {iI: i}.
   Context {isum: i -> i -> i}.
   Context {FInit: Embedded_initial iI}.
   Context {iI_iso: Iso Fun iI_void void_iI}.
   Context {Fsum: Embedded_sum isum}.
   Context {sum_Iso: forall A B, Iso Fun (@isum_sum _ _ _ _ A B) sum_isum}.
- 
-  (* Context {i: Type}. *)
-  (* Context {F: i -> Type}. *)
-  (* Context {iI: i}. *)
-  (* Context {isum: i -> i -> i}. *)
-
-  (* Context {iI_void: F iI -> void}. *)
-  (* Context {void_iI: void -> F iI}. *)
-  (* Context {iI_voi_iso: Iso Fun iI_void void_iI}. *)
-  
-  (* Context {isum_sum: forall {A B: i}, F (isum A B) -> (F A) + (F B)}. *)
-  (* Context {sum_isum: forall {A B: i}, (F A) + (F B) -> F (isum A B)}. *)
-  (* Context {isum_sum_iso: forall A B, Iso Fun (@isum_sum A B) (@sum_isum A B)}. *)
 
   Context {E: Type -> Type}.
 
@@ -60,16 +45,6 @@ Section Facts.
   Existing Instance Inl_sktree_.
   Definition Inr_sktree_ := @Inr_sktree i _ _ _ E.
   Existing Instance Inr_sktree_.
-  (* Definition Initial_iI_sktree_ := @Initial_iI_sktree i *)
-  (* Existing Instance Initial_iI_sktree_. *)
-
-  (* Notation sloop := (@sloop i F isum isum_sum sum_isum). *)
-
-  (* Notation iI_voidl := (@iI_voidl i F iI iI_void E). *)
-  (* Notation void_iIl := (@void_iIl i F iI void_iI E). *)
-
-  (* Notation sum_isuml := (@sum_isuml i F isum sum_isum E). *)
-  (* Notation isum_suml := (@isum_suml i F isum isum_sum E). *)
 
   Ltac unfold_sktree :=
     unfold
@@ -294,6 +269,43 @@ Section Facts.
       reflexivity.
     Qed.
 
+    Lemma sym_sktree_unfold {A B}:
+      lift_sktree (@swap _ iFun _ _ A B) ⩯ swap.
+    Proof with try typeclasses eauto.
+      generalize (@sym_ktree_unfold E (F A) (F B)).
+      unfold swap, Swap_Coproduct; intros EQ.
+      unfold_sktree; fold_ktree.
+      rewrite <- cat_case, <- EQ...
+      unfold isum_inl, isum_inr, case_isum.
+      rewrite <- lift_case_sum, cat_case...
+      rewrite <- compose_lift_ktree.
+      unfold sum_isuml, isum_suml.
+      rewrite 3 compose_lift_ktree, lift_case_sum, compose_lift_ktree.
+      reflexivity.
+    Qed.
+
+    (*
+    Lemma assoc_l_sktree {A B C} :
+      assoc_l ⩯ lift_sktree (@assoc_l _ iFun _ _ A B C).
+    Proof with try typeclasses eauto.
+      unfold_sktree.
+      rewrite unfold_assoc_l, assoc_l_ktree. 
+      unfold assoc_l at 2, AssocL_Coproduct, case_, case_isum, inl_, isum_inl, inr_, isum_inr.
+      unfold bimap, Bimap_Coproduct.
+      rewrite assoc_l_ktree. 
+      rewrite <- compose_lift_ktree.
+      rewrite <- lift_case_sum.
+      rewrite cat_assoc... cat_case.
+    Qed.
+     *)
+(*
+    Lemma assoc_r_sktree {A B C} :
+      assoc_r ⩯ lift_ktree (@assoc_r _ iFun _ _ A B C).
+    Proof.
+      
+    Qed.
+*)
+
   End UnfoldingLemmas.
 
   Section CategoryLaws.
@@ -472,6 +484,41 @@ Section Facts.
 
   Section TracedCategoryLaws.
 
+    (* This is weirdly low level, some other proper instances migth be missing *)
+    Global Instance eq_sktree_sloop {I A B} :
+      Proper (eq2 ==> eq2) (@sloop _ _ _ _ E I A B).
+    Proof.
+      repeat intro.
+      apply eutt_loop.
+      intros ?.
+      unfold cat, Cat_ktree, ITree.cat.
+      rewrite 2 bind_bind.
+      apply eutt_bind; [intros ?| reflexivity].
+      apply eutt_bind; [intros ?; reflexivity|].
+      apply H.
+    Qed.
+
+    Global Instance eq_sktree_compose {A B C} :
+      @Proper (sktree A B -> sktree B C -> _) (eq2 ==> eq2 ==> eq2) cat.
+    Proof.
+      intros ab ab' eqAB bc bc' eqBC.
+      rewrite eqAB, eqBC.
+      reflexivity.
+    Qed.
+
+    Global Instance Proper_case_ {A B C} :
+      @Proper (sktree A C -> sktree B C -> _)
+              (eq2 ==> eq2 ==> eq2) case_.
+    Proof.
+      intros x x' EQx y y' EQy z.
+      unfold case_, Case_sktree.
+      unfold cat, Cat_ktree, ITree.cat.
+      apply eutt_bind; [intros ab| reflexivity].
+      destruct ab as [a | b].
+      rewrite (EQx a); reflexivity.
+      rewrite (EQy b); reflexivity.
+    Qed.
+
     Lemma compose_sloop {I A B C}
           (bc_: sktree (isum I B) (isum I C)) (ab: sktree A B) :
       sloop (bimap (id_ _) ab >>> bc_)
@@ -515,6 +562,23 @@ Section Facts.
       rewrite <- 3 cat_assoc...
       rewrite loop_rename_internal.
       rewrite unfold_bimap_l.
+      repeat rewrite cat_assoc...
+      reflexivity.
+    Qed.
+
+    Lemma sloop_rename_internal' {I J A B}
+          (ij : sktree I J) (ji: sktree J I)
+          (ab_: sktree (isum I A) (isum I B)) :
+      (ij >>> ji) ⩯ id_ _ ->
+      sloop (bimap ji (id_ _) >>> ab_ >>> bimap ij (id_ _))
+    ⩯ sloop ab_.
+    Proof with try typeclasses eauto.
+      unfold_sktree; unfold sloop.
+      intros H.
+      rewrite <- (loop_rename_internal' _ _ _ H). 
+      rewrite 2 unfold_bimap.
+      rewrite <- 4 (cat_assoc _ sum_isuml _ _), semi_iso, cat_id_l...
+      rewrite 4 cat_assoc, semi_iso, cat_id_r... 
       repeat rewrite cat_assoc...
       reflexivity.
     Qed.
