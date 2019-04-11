@@ -10,7 +10,7 @@
     cofixpoints. All reasoning is purely equational, and the underlying
     coinductive reasoning is hidden on the library side.
     - We split the correctness in two steps. First, a linking theory of the CFG language
-    is proved correct. Then, this theory is leveraged to prove the functionnal correctness
+    is proved correct. Then, this theory is leveraged to prove the functional correctness
     of the compiler. The first piece is fairly generic, and hence reusable.
  *)
 
@@ -24,7 +24,7 @@
     The intended entry point for reading is Imp.v.
  *)
 
-(** We thefore start by introducing a simplified variant of Software Foundations'
+(** We therefore start by introducing a simplified variant of Software Foundations'
     [Imp] language.
     The language's semantics is first expressed in terms of [itree]s.
     The semantics of the program can then be obtained by

@@ -405,7 +405,7 @@ End Correctness.
     their denotation is bisimilar to their denotational counterparts at the
     [ktree] level.
     This theory of linking is only tied to _Asm_, and can therefore be reused
-    either for other compilers targetting Asm, or for optimizations over Asm. 
+    either for other compilers targeting Asm, or for optimizations over Asm. 
     We now turn to its specific use to finally define our compiler, defined
     in [Imp2Asm.v].
  *)

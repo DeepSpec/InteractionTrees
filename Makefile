@@ -15,7 +15,7 @@ all:
 install: Makefile.coq coq
 	$(MAKE) -f $< $@
 
-uninstall: Makefile.coq coq
+uninstall: Makefile.coq
 	$(MAKE) -f $< $@
 
 test: examples tests
