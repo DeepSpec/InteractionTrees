@@ -11,7 +11,7 @@ license: "MIT"
 
 build: [ make "-j%{jobs}%" ]
 install: [ make "install" ]
-remove: [ "rm" "-rf" "%{lib}%/coq/user-contrib/ITree" ]
+remove: [ make "uninstall" ]
 run-test: [ make "-j%{jobs}%" "all" ]
 
 depends: [
