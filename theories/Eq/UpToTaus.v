@@ -45,29 +45,9 @@ Import ITreeNotations.
 Local Open Scope itree.
 (* end hide *)
 
-Section EUTTG.
-
-Context {E : Type -> Type} {R1 R2 : Type} (RR : R1 -> R2 -> Prop).
-
-Definition euttG_ rh := @eqit_ E R1 R2 RR true true (eqit_trans_clo true true true true rh).
-
-Definition euttG r rl rh t1 t2 := gcpn2 (euttG_ rh) r rl t1 t2.
-
-Lemma test (bl br: bool) rh rh' r
-   (LE: rh <2= rh'):
-  cpn2 (eqit_ RR bl br rh) r <2= cpn2 (@eqit_ E _ _ RR bl br rh') r.
-Proof.
-  intros. exists (cpn2 (eqit_ RR bl br rh)).
-  - econstructor; cycle 1.
-    { intros.
-
-      
-    
-Qed.
-
 Section EUTT_REL.
 
-Context (T1 T2 : Type).
+Context {T1 T2 : Type}.
 
 Definition eutt_rel := (T1 * T2) + (T1 * T2) -> Prop.
 
@@ -107,209 +87,249 @@ Proof.
   intros. destruct x0, p; contradiction.
 Qed.
 
-(* Definition rdup (r: itree' E R1 -> itree' E R2 -> Prop) : eutt_rel := *)
-(*   rpair (fun x y => r (observe x) (observe y)) (fun x y => r (observe x) (observe y)). *)
-
-(* Lemma rdup_mon r r' p *)
-(*       (IN: rdup r p) *)
-(*       (LEr: r <2= r'): *)
-(*   rdup r' p. *)
-(* Proof. *)
-(*   destruct p, p; simpl in *; eauto. *)
-(* Qed. *)
-
-(* Lemma rdup_bot: rdup bot2 <1= bot1. *)
-(* Proof. *)
-(*   intros. destruct x0, p; contradiction. *)
-(* Qed. *)
-
 End EUTT_REL.
 
 Hint Unfold rpair rfst rsnd.
-Hint Resolve rpair_mon : paco.
-(* Hint Unfold rdup. *)
+Hint Resolve rpair_mon rfst_mon rsnd_mon : paco.
      
 Section EUTTG.
 
 Context {E : Type -> Type} {R1 R2 : Type} (RR : R1 -> R2 -> Prop).
 
-Inductive euttGF (euttG: eutt_rel (itree E R1) (itree E R2))
-  : eutt_rel (itree' E R1) (itree' E R2) :=
-| euttGF_ret r1 r2
-      (RBASE: RR r1 r2):
-    euttGF euttG (inl (RetF r1, RetF r2))
-| euttGF_tau t1 t2
-      (EQTAUS: euttG (inl (t1, t2))):
-    euttGF euttG (inl (TauF t1, TauF t2))
+Definition euttG_ (rp: eutt_rel) : eutt_rel :=
+  rpair (@eqit_ E _ _ RR true true (rsnd rp) (rfst rp))
+        (eqit_trans_clo true true true true (rfst rp)).
 
+Definition euttC_trans rp :=
+  rpair (@eqit_trans_clo E R1 R2 true true false false (rfst rp))
+        (eqit_trans_clo true true true true (rsnd rp)).
 
-           
-| euttGF_tauL t1 ot2
-      (EQTAUS: euttGF euttG (inl (observe t1, ot2))):
-    euttGF euttG (inl (TauF t1, ot2))
-| euttGF_tauR ot1 t2
-      (EQTAUS: euttGF euttG (inl (ot1, observe t2))):
-    euttGF euttG (inl (ot1, TauF t2))
-.
+Definition euttC_bind rp :=
+  rpair (@eqit_bind_clo E R1 R2 true true (rfst rp))
+        (eqit_bind_clo true true (rsnd rp)).
+  
+Definition euttC := euttC_trans \2/ euttC_bind.
 
-| euttGF_vis u (e : E u) k1 k2
-      (EUTTK: forall x, euttG (inl (k1 x, k2 x)) \/ euttG (inr (k1 x, k2 x))):
-    euttGF euttG (inj (VisF e k1, VisF e k2))
-           
-.
-Hint Constructors euttGF.
+Definition euttG lp hp := gpaco1 euttG_ euttC lp hp.
 
+Definition euttL r rl rh := rfst (euttG (rpair r r) (rpair rl rh)).
 
+Definition euttH r rh := rsnd (euttG (rpair r r) (rpair r rh)).
 
-
-
-
-
-Inductive euttGF (euttG: eutt_rel) : itree' E R1 -> itree' E R2 -> Prop :=
-| euttGF_ret r1 r2
-      (RBASE: RR r1 r2):
-    euttGF euttG (RetF r1) (RetF r2)
-| euttGF_vis u (e : E u) k1 k2
-      (EUTTK: forall x, euttG (inl (k1 x, k2 x)) \/ euttG (inr (k1 x, k2 x))):
-    euttGF euttG (VisF e k1) (VisF e k2)
-| euttGF_tau t1 t2
-      (EQTAUS: euttG (inl(t1, t2))):
-    euttGF euttG (TauF t1) (TauF t2)
-| euttGF_tauL t1 ot2
-      (EQTAUS: euttGF euttG (observe t1) ot2):
-    euttGF euttG (TauF t1) ot2
-| euttGF_tauR ot1 t2
-      (EQTAUS: euttGF euttG ot1 (observe t2)):
-    euttGF euttG ot1 (TauF t2)
-.
-Hint Constructors euttGF.
-
-Definition euttG' r rw rs := gcpn1 (compose rdup euttGF) (rpair r r) (rpair rw rs).
-Hint Unfold euttG'.
-
-Variant euttG r rw rs t1 t2 :=
-| _euttG (IN: forall p, p = inl(t1,t2) \/ p = inr(t1,t2) -> euttG' r rw rs p)
-.
-Hint Constructors euttG.
-
-Lemma euttGF_mon r r' x y
-    (EUTT: euttGF r x y)
-    (LEr: r <1= r'):
-  euttGF r' x y.
+Lemma euttG__mon: monotone1 euttG_.
 Proof.
-  induction EUTT; eauto.
-  econstructor; intros. edestruct EUTTK; eauto.
+  red; intros. destruct x0, p; simpl in *.
+  - eapply eqitF_mono; eauto.
+  - destruct IN; eauto.
 Qed.
 
-Lemma monotone_euttG_ : monotone1 (compose rdup euttGF).
-Proof. repeat intro. destruct x0, p; eauto using euttGF_mon. Qed.
-Hint Resolve monotone_euttG_ : paco.
+Hint Resolve euttG__mon : paco.
+
+Lemma euttC_trans_wcompat: wcompatible1 euttG_ euttC_trans.
+Proof.
+  econstructor.
+  { red; intros. destruct x0, p; simpl in *; destruct IN; eauto. }
+  intros.
+  admit.
+Admitted.
+
+Lemma euttC_bind_wcompat: wcompatible1 euttG_ euttC_bind.
+Proof.
+  econstructor.
+  { red; intros. destruct x0, p; simpl in *; destruct IN; eauto with paco. }
+  intros.
+  admit.
+Admitted.
+
+Lemma euttC_wcompat: wcompatible1 euttG_ euttC.
+Proof.
+  apply wcompat1_union; eauto with paco.
+  - apply euttC_trans_wcompat.
+  - apply euttC_bind_wcompat.
+Qed.
 
 End EUTTG.
 
-Hint Constructors euttGF.
-Hint Unfold euttG'.
-Hint Constructors euttG.
-Hint Resolve monotone_euttG_ : paco.
-
-
+Hint Resolve euttG__mon : paco.
+Hint Resolve euttC_wcompat : paco.
 
 Section EUTTG_Properties.
 
 Context {E : Type -> Type} {R1 R2 : Type} (RR : R1 -> R2 -> Prop).
 
 Local Notation euttG := (@euttG E R1 R2 RR).
+Local Notation euttH := (@euttH E R1 R2 RR).
+Local Notation euttL := (@euttH E R1 R2 RR).
+
+Lemma rclo1_euttC_mon_fst r r'
+      (LE: rfst r <2= rsnd r'):
+  rfst (rclo1 (@euttC E R1 R2) r) <2= rsnd (rclo1 euttC r').
+Proof.
+  intros. red in PR |- *. remember (inl (x0, x1)) as p.
+  hinduction PR before LE; intros; subst.
+  - apply rclo1_base. apply LE, IN.
+  - destruct IN.
+    + apply rclo1_clo. left. destruct H0. econstructor; eauto using eqit_mon.
+    + apply rclo1_clo. right. destruct H0. unfold rfst, rsnd in *. econstructor; eauto.
+Qed.
+
+Lemma rclo1_euttC_mon_snd r r'
+      (LE: rsnd r <2= rsnd r'):
+  rsnd (rclo1 (@euttC E R1 R2) r) <2= rsnd (rclo1 euttC r').
+Proof.
+  intros. red in PR |- *. remember (inr (x0, x1)) as p.
+  hinduction PR before LE; intros; subst.
+  - apply rclo1_base. apply LE, IN.
+  - destruct IN.
+    + apply rclo1_clo. left. destruct H0. econstructor; eauto.
+    + apply rclo1_clo. right. destruct H0. unfold rsnd in *. econstructor; eauto.
+Qed.
+
+Lemma foo rh t1 t2
+      (IN: euttH rh rh t1 t2) :
+  rsnd (euttG (rpair (@bot2 _ (fun _ => _)) rh) (rpair (@bot2 _ (fun _ => _)) rh)) t1 t2.
+Proof.
+  revert t1 t2 IN. gcofix CIH. intros.
+  gunfold IN. gupaco. econstructor.
+  eapply rclo1_euttC_mon_snd, IN. clear t1 t2 IN.
+  intros. destruct PR; right; cycle 1.
+  { gbase. apply H. }
+  gclo. left. destruct H. econstructor; eauto. clear t1 t2 EQVl EQVr.
+
+  red in RELATED.
+
+
+  
+  gunfold RELATED. gupaco. econstructor.
+  eapply rclo1_euttC_mon_fst, RELATED. clear t1' t2' RELATED.
+  intros. destruct PR; right; cycle 1.
+  { gbase. destruct H; apply H. }
+  simpl in H.
+  
+  
+
+  
+
+
+
+
+  remember (inr (t1, t2)) as p.
+  
+  
+  induction IN; subst.
+  { destruct IN; cycle 1.
+    - gbase. apply H.
+    - simpl in *. gclo. left. simpl.
+      destruct H. econstructor; eauto.
+      gunfold RELATED.
+
+      
+
+      
+
+      
+      
+
+
+      gstep. simpl in *. unfold gupaco1 in *.
+
+
+      eapply euttG__mon. apply H.
+      intros. eapply gupaco1_mon. apply PR.
+      intros. apply CIH.
+      
+      
+  
+Qed.
+
+
+  
+
 (**
    Correctness
  **)
 
-Lemma eutt_le_euttG:
-  eutt RR <2= euttG bot2 bot2 bot2.
-Proof.
-Admitted.
+Axiom eutt_le_euttL:
+  eutt RR <2= euttL bot2 bot2 bot2.
 
-Lemma euttG_le_eutt:
-  euttG bot2 bot2 bot2 <2= eutt RR.
-Proof.
-Admitted.
+Axiom euttL_le_euttH:
+  euttL bot2 bot2 bot2 <2= euttH bot2 bot2.
+
+Axiom euttH_le_eutt:
+  euttH bot2 bot2 <2= eutt RR.
 
 (**
-   Reasoning Principles
+   euttH
  **)
 
-(* Make new hypotheses *)
+(* Make strong hypotheses *)
 
-Lemma euttG_coind r rw rs (INVW: r <2= rw) (INVS: rw <2= rs) x
-      (OBG: forall rw' rs'
-               (OLDW: rw <2= rw') (NEWW: x <2= rw')
-               (OLDS: rs <2= rs') (NEWS: x <2= rs'),
-          x <2= euttG r rw' rs'):
-    x <2= euttG r rw rs.
-Proof.
-  econstructor. revert x0 x1 PR.
-  gcofix CIH with rr; intros.
-  hexploit (OBG (rfst rr) (rsnd rr)); eauto.
-  intros. destruct H. repeat red in IN.
-  eapply gcpn1_mon; eauto with paco.
-  intros. destruct x0, p0; eauto.
-Qed.
+Axiom euttH_coind: forall r rh (INV: r <2= rh) x,
+  (x <2= euttH r (rh \2/ x)) -> (x <2= euttH r rh).
 
 (* Process itrees *)
 
-Lemma euttG_ret: forall r rw rs (INVW: r <2= rw) (INVS: rw <2= rs) v1 v2,
-  RR v1 v2 -> euttG r rw rs (Ret v1) (Ret v2).
-Proof.
-  intros. econstructor. intros. gstep.
-  inv H0; econstructor; eauto.
-Qed.
+Axiom euttH_ret: forall r rh (INV: r <2= rh) v1 v2,
+  RR v1 v2 -> euttH r rh (Ret v1) (Ret v2).
 
-Lemma euttG_bind: forall r rw rs (INVW: r <2= rw) (INVS: rw <2= rs) t1 t2,
-  eqit_bind_clo true true (euttG r rw rs) t1 t2 -> euttG r rw rs t1 t2.
-Proof.
-Admitted.
+Axiom euttH_bind: forall r rh (INV: r <2= rh) t1 t2,
+  eutt_bind_clo (euttH r rh) t1 t2 -> euttH r rh t1 t2.
 
-Lemma euttG_trans_eq: forall r rw rs (INVW: r <2= rw) (INVS: rw <2= rs) t1 t2,
-  eqit_trans_clo false true false true (euttG r rw rs) t1 t2 -> euttG r rw rs t1 t2.
-Proof.
-Admitted.
+Axiom euttH_trans: forall r rh (INV: r <2= rh) t1 t2,
+  eutt_trans_clo (euttH r rh) t1 t2 -> euttH r rh t1 t2.
 
-(* Lose weak hypotheses after general rewriting *)
+(* Make hypotheses available *)
 
-Lemma euttG_trans_eutt: forall r rw rs (INVW: r <2= rw) (INVS: rw <2= rs) t1 t2,
-  eqit_trans_clo true true true true (euttG r r rs) t1 t2 -> euttG r rw rs t1 t2.
-Proof.
-Admitted.
-
-(* Make available weak hypotheses *)
-
-Lemma euttG_tau: forall r rw rs (INVW: r <2= rw) (INVS: rw <2= rs) t1 t2,
-  euttG rw rw rs t1 t2 -> euttG r rw rs (Tau t1) (Tau t2).
-Proof.
-  (* econstructor. intros. gstep. destruct H. *)
-  (* destruct H0; subst; econstructor. *)
-  (* - repeat red in IN. *)
-Admitted.
-
-(* Make available strong hypotheses *)
-
-Lemma euttG_vis: forall r rw rs (INVW: r <2= rw) (INVS: rw <2= rs) u (e: E u) k1 k2,
-  (forall v, euttG rs rs rs (k1 v) (k2 v)) -> euttG r rw rs (Vis e k1) (Vis e k2).
-Proof.
-  econstructor. intros. gstep. destruct H0; subst.
-  - econstructor. intros. right.
-    destruct (H x). hexploit IN; [right; eauto|]. intros IN'.
-    repeat red in IN'. gbase. simpl.
-    
-    
-
-Qed.
+Axiom euttH_vis: forall r rh (INV: r <2= rh) u (e: E u) k1 k2,
+  (forall v, euttH rh rh (k1 v) (k2 v)) -> euttH r rh (Vis e k1) (Vis e k2).
 
 (* Use available hypotheses *)
 
-Lemma euttG_base: forall r rw rs (INVW: r <2= rw) (INVS: rw <2= rs) t1 t2,
-  r t1 t2 -> euttG r rw rs t1 t2.
-Proof.
-Admitted.
+Axiom euttH_base: forall r rh (INV: r <2= rh) t1 t2,
+  r t1 t2 -> euttH r rh t1 t2.
+
+(* Transition to lower-level *)
+
+Axiom euttH_lower: forall r rh (INV: r <2= rh) t1 t2,
+  euttL r r rh t1 t2 -> euttH r rh t1 t2.
+
+(**
+   euttL
+ **)
+
+(* Make weak hypothesis *)
+
+Axiom euttL_coind: forall r rl rh (INV: r <2= rl /\ rl <2= rh) x,
+  (x <2= euttL r (rl \2/ x) (rh \2/ x)) -> (x <2= euttL r rl rh).
+
+(* Process itrees *)
+
+Axiom euttL_ret: forall r rl rh (INV: r <2= rl /\ rl <2= rh) v1 v2,
+  RR v1 v2 -> euttL r rl rh (Ret v1) (Ret v2).
+
+Axiom euttL_bind: forall r rl rh (INV: r <2= rl /\ rl <2= rh) t1 t2,
+  eutt_bind_clo (euttL r rl rh) t1 t2 -> euttL r rl rh t1 t2.
+
+Axiom euttL_trans: forall r rl rh (INV: r <2= rl /\ rl <2= rh) t1 t2,
+  eq_trans_clo (euttL r rl rh) t1 t2 -> euttL r rl rh t1 t2.
+
+(* Make hypotheses available *)
+
+Axiom euttL_tau: forall r rl rh (INV: r <2= rl /\ rl <2= rh) t1 t2,
+  euttL rl rl rh t1 t2 -> euttL r rl rh (Tau t1) (Tau t2).
+
+(* Use available hypotheses *)
+
+Axiom euttL_base: forall r rl rh (INV: r <2= rl /\ rl <2= rh) t1 t2,
+  r t1 t2 -> euttL r rl rh t1 t2.
+
+(* Transition to higher-level *)
+
+Axiom euttL_higher: forall r rl rh (INV: r <2= rl /\ rl <2= rh) u (e: E u) k1 k2,
+  (forall v, euttH rh rh (k1 v) (k2 v)) -> euttL r rl rh (Vis e k1) (Vis e k2).
+
+
+
 
 End EUTTG_Properties.
 
