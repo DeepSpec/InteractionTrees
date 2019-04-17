@@ -3,14 +3,11 @@ From ITree Require Import
      Basics.Function
      ITree
      Basics.Category
-     KTree
-     KTreeFacts.
+     SubKTree.
 
 From Coq Require Import
      Psatz
      Vectors.Fin.
-
-Require Import SubKTree.
 
 Require Import Program.Equality.
 
@@ -102,16 +99,9 @@ Proof.
       * inv H.
 Qed.
 
+(* Admitted for now, TODO *)
 Global Instance FinSumIso {n m: nat}: Iso Fun (@split_fin_sum n m) (@merge_fin_sum n m).
 Admitted.
-(* { *)
-(*   unfold SemiIso, cat, Cat_Fun. *)
-(*   intros ?. *)
-(*   destruct (split_fin_sum a) eqn:EQ. *)
-(*   - simpl. *)
-(*     apply split_fin_sum_left in EQ. *)
-(*     unfold to_nat' in *. *)
-(*     apply L_sanity in EQ. *)
 
 Global Instance FiniIIso: Iso Fun iI_void void_iI := {}.
 intros x; inversion x.

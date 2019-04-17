@@ -126,7 +126,7 @@ Definition tmp_if := gen_tmp 0.
     expression of a _if_ to a block with two exit points.
  *)
 Definition cond_asm (e : list instr) : asm 1 2 :=
-  raw_asm_block (after e (Bbrz tmp_if F1 (FS F1))).
+  raw_asm_block (after e (Bbrz tmp_if (FS F1) F1)).
 
 (** Conditional branch of blocks.
     The program [if_asm e tp fp] creates a block out of [e] jumping

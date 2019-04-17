@@ -13,11 +13,12 @@ From Coq Require Import
      ZArith.ZArith.
 
 From ITree Require Import
-     ITree.
+     ITree
+     SubKTree.
 
 From ExtLib Require Structures.Monad.
 
-Require Import Imp Label SubKTree.
+Require Import Imp Label.
 
 Typeclasses eauto := 5.
 

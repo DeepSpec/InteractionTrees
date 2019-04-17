@@ -20,7 +20,7 @@
  *)
 
 (* begin hide *)
-Require Import Asm Utils_tutorial Label SubKTree SubKTreeFacts.
+Require Import Asm Utils_tutorial Label.
 
 From Coq Require Import
      List
@@ -32,7 +32,9 @@ Import ListNotations.
 
 From ITree Require Import
      ITree
-     ITreeFacts.
+     ITreeFacts
+     SubKTree
+     SubKTreeFacts.
 
 From ExtLib Require Import
      Structures.Monad.
@@ -330,19 +332,31 @@ Section Correctness.
     rewrite <- !sym_sktree_unfold, !assoc_l_sktree, !assoc_r_sktree, !bimap_slift_id, !bimap_id_slift, !compose_lift_sktree_l, compose_lift_sktree.
 
     (* And finally a case analysis on the label provided. *)
+    (* TODO Things get wonky here with sktrees *)
     unfold cat, Cat_sktree, cat, Cat_ktree, Cat_iFun, ITree.cat, lift_sktree, lift_ktree.
     intro x; unfold denote_b; simpl.
-    repeat rewrite bind_ret; simpl.
+    rewrite bind_ret; simpl.
     repeat match goal with
-           | |- context[match ?pat with | _ => _ end] => destruct pat
+           | |- context[match ?pat with | _ => _ end] => destruct pat eqn:?EQ
            end; cbn.
 
-    (* {  *)
-      
-    (*   all: unfold _app_B, _app_D. *)
-    (*   all: rewrite fmap_block_map. *)
-    (*   all: unfold ITree.map. *)
-      
+    (*
+    {
+      all: unfold _app_B, _app_D.
+      all: rewrite fmap_block_map.
+      all: unfold ITree.map.
+      unfold compose.
+      rewrite !unfold_bimap_iFun.
+      rewrite !unfold_assoc_r_iFun.
+      rewrite !unfold_assoc_l_iFun.
+      unfold case_, case_isum.
+      unfold inl_, isum_inl.
+      unfold inr_, isum_inr.
+      cbn.
+      Set Printing Implicit.
+      unfold bimap, Bimap_Coproduct.
+      unfold case_, Case_sktree_, Case_sktree, case_isum; cbn.
+     *)      
     (* (* ... *) *)
     (* all: unfold cat, Cat_ktree, ITree.cat. *)
     (* (* all: try rewrite bind_bind. *) *)

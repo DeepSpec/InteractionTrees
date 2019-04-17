@@ -6,12 +6,13 @@ From ITree Require Import
      ITree
      KTree
      KTreeFacts
+     SubKTree
      Eq.UpToTausEquivalence.
+
 From Coq Require Import
      Program
      Morphisms.
 
-Require Import SubKTree.
 Import ITreeNotations.
 Import CatNotations.
 Local Open Scope itree_scope.
@@ -40,23 +41,17 @@ Section Facts.
 
   Notation sktree := (@sktree i iEmbed E).
 
-  Definition Case_sktree_ := @Case_sktree i _ _ _ E.
-  Existing Instance Case_sktree_.
-  Definition Inl_sktree_ := @Inl_sktree i _ _ _ E.
-  Existing Instance Inl_sktree_.
-  Definition Inr_sktree_ := @Inr_sktree i _ _ _ E.
-  Existing Instance Inr_sktree_.
-
+  (** A bit of Ltac support to unfold [sktree] instances of typeclasses **)
   Ltac unfold_sktree :=
     unfold
       eq2, Eq2_sktree, eutt_sktree,
-    cat, Cat_sktree,
-    inl_, Inl_sktree_, Inl_sktree,
-    inr_, Inr_sktree_, Inr_sktree,
-    lift_sktree,
-    case_, Case_sktree_, Case_sktree,
-    empty(* , Initial_iI_sktree_ *), Initial_iI_sktree,
-    id_, Id_sktree.
+      cat, Cat_sktree,
+      inl_, Inl_sktree,
+      inr_, Inr_sktree,
+      lift_sktree,
+      case_, Case_sktree,
+      empty, Initial_iI_sktree,
+      id_, Id_sktree.
 
   Ltac fold_eq:=
     match goal with
@@ -95,6 +90,7 @@ Section Facts.
 
   Ltac fold_ktree := repeat (fold_eq || fold_cat || fold_id || fold_case || fold_inl || fold_inr || fold_initial).
 
+  (** Unfolding lemmas for the instances that are derived from the Coproduct **)
   Section UnfoldingLemmas.
 
     Lemma unfold_bimap: forall {A B C D} (f: ktree E (F A) (F C)) (g: ktree E (F B) (F D)),
@@ -271,7 +267,7 @@ Section Facts.
     Qed.
 
     Lemma sym_sktree_unfold {A B}:
-      lift_sktree (@swap _ iFun _ _ A B) ⩯ swap.
+      @lift_sktree _ _ E _ _ (@swap _ iFun _ _ A B) ⩯ swap.
     Proof with try typeclasses eauto.
       generalize (@sym_ktree_unfold E (F A) (F B)).
       unfold swap, Swap_Coproduct; intros EQ.
@@ -326,7 +322,7 @@ Section Facts.
     Qed.
 
     Lemma assoc_l_sktree {A B C} :
-      assoc_l ⩯ lift_sktree (@assoc_l _ iFun _ _ A B C).
+      assoc_l ⩯ @lift_sktree _ _ E _ _ (@assoc_l _ iFun _ _ A B C).
     Proof with try typeclasses eauto.
       unfold_sktree.
       rewrite unfold_assoc_l, assoc_l_ktree.
@@ -337,7 +333,7 @@ Section Facts.
     Qed.
 
     Lemma assoc_r_sktree {A B C} :
-      assoc_r ⩯ lift_sktree (@assoc_r _ iFun _ _ A B C).
+      assoc_r ⩯ @lift_sktree _ _ E _ _ (@assoc_r _ iFun _ _ A B C).
     Proof with try typeclasses eauto.
       unfold_sktree.
       rewrite unfold_assoc_r, assoc_r_ktree.
@@ -377,8 +373,13 @@ Section Facts.
       reflexivity.
     Qed.
 
+  End UnfoldingLemmas.
+
+  (* Good behaviour of [lift_sktree] *)
+  Section Lift_sktree.
+
     Lemma bimap_id_slift {A B C} (f : F B -> F C) :
-      bimap (id_ A) (lift_sktree f) ⩯ lift_sktree (bimap (id_ A) f).
+      bimap (id_ A) (@lift_sktree _ _ E _ _ f) ⩯ lift_sktree (bimap (id_ A) f).
     Proof.
       unfold_sktree.
       rewrite unfold_bimap, bimap_id_lift.
@@ -389,7 +390,7 @@ Section Facts.
     Qed.
 
     Lemma bimap_slift_id {A B C} (f : F A -> F B) :
-      bimap (lift_sktree f) (id_ C) ⩯ lift_sktree (bimap f (id_ _)).
+      bimap (@lift_sktree _ _ E _ _ f) (id_ C) ⩯ lift_sktree (bimap f (id_ _)).
     Proof with try typeclasses eauto.
       unfold_sktree.
       rewrite unfold_bimap, bimap_lift_id.
@@ -399,7 +400,7 @@ Section Facts.
       reflexivity.
     Qed.
 
-    Global Instance eq_lift_ktree {A B: i} :
+    Global Instance eq_lift_sktree {A B: i} :
       Proper (@eq2 _ iFun _ A B ==> eq2) (@lift_sktree _ _ E A B).
     Proof.
       intros ? ? ?.
@@ -446,36 +447,38 @@ Section Facts.
       reflexivity.
     Qed.
 
-  End UnfoldingLemmas.
+  End Lift_sktree.
 
   Section CategoryLaws.
+
     Global Instance CatAssoc_sktree : CatAssoc sktree.
-    Proof.
-      intros A B C D f g h a.
-      unfold cat, Cat_sktree.
-      (* Can we make [cat_assoc] work here despite the specialization of the equation? *)
-      rewrite CatAssoc_ktree.
+    Proof with try typeclasses eauto.
+      intros A B C D f g h.
+      unfold_sktree.
+      rewrite cat_assoc...
       reflexivity.
     Qed.
 
     (** *** [id_sktree] respect identity laws *)
     Global Instance CatIdL_sktree : CatIdL sktree.
-    Proof.
-      intros A B f a; unfold cat, Cat_sktree.
-      rewrite CatIdL_ktree.
+    Proof with try typeclasses eauto.
+      intros A B f.
+      unfold_sktree.
+      rewrite cat_id_l...
       reflexivity.
     Qed.
     
     Global Instance CatIdR_sktree : CatIdR sktree.
-    Proof.
-      intros A B f a; unfold cat, Cat_sktree.
-      rewrite CatIdR_ktree.
+    Proof with try typeclasses eauto.
+      intros A B f.
+      unfold_sktree.
+      rewrite cat_id_r...
       reflexivity.
     Qed.
 
     Global Instance Category_sktree : Category sktree.
-    Proof.
-      constructor; typeclasses eauto.
+    Proof with try typeclasses eauto.
+      constructor...
     Qed.
 
     Global Instance InitialObject_sktree : InitialObject sktree iI. 
@@ -490,7 +493,7 @@ Section Facts.
     Qed.
 
     Lemma unit_l_sktree (A : i) :
-      unit_l ⩯ lift_sktree (@unit_l _ iFun _ _ _ A).
+      unit_l ⩯ @lift_sktree _ _ E _ _ (@unit_l _ iFun _ _ _ A).
     Proof.
       unfold unit_l, UnitL_Coproduct.
       unfold_sktree.
@@ -503,7 +506,7 @@ Section Facts.
     Qed.
 
     Lemma unit_l'_sktree (A : i) :
-      unit_l' ⩯ lift_sktree (@unit_l' _ iFun _ iI _ A).
+      unit_l' ⩯ @lift_sktree _ _ E _ _ (@unit_l' _ iFun _ iI _ A).
     Proof.
       unfold unit_l', UnitL'_Coproduct.
       unfold_sktree.
@@ -513,7 +516,7 @@ Section Facts.
     Qed.
 
     Lemma unit_r_sktree (A : i) :
-      unit_r ⩯ lift_sktree (@unit_r _ iFun _ _ _ A).
+      unit_r ⩯ @lift_sktree _ _ E _ _ (@unit_r _ iFun _ _ _ A).
     Proof.
       unfold unit_r, UnitR_Coproduct.
       unfold_sktree.
@@ -526,7 +529,7 @@ Section Facts.
     Qed.
 
     Lemma unit_r'_sktree (A : i) :
-      unit_r' ⩯ lift_sktree (@unit_r' _ iFun _ iI _ A).
+      unit_r' ⩯ @lift_sktree _ _ E _ _ (@unit_r' _ iFun _ iI _ A).
     Proof.
       unfold unit_r', UnitR'_Coproduct.
       unfold_sktree.
@@ -624,7 +627,7 @@ Section Facts.
 
   Section TracedCategoryLaws.
 
-    (* This is weirdly low level, some other proper instances migth be missing *)
+    (* This proof is weirdly low level, some other proper instances migth be missing *)
     Global Instance eq_sktree_sloop {I A B} :
       Proper (eq2 ==> eq2) (@sloop _ _ _ _ E I A B).
     Proof.
@@ -805,7 +808,7 @@ Section Facts.
     Qed.
 
     Lemma yanking_sktree {A: i}:
-      @sloop _ _ _ _ _ _ _ _ swap ⩯ id_ A.
+      @sloop _ _ _ _ E _ _ _ swap ⩯ id_ A.
     Proof with try typeclasses eauto.
       unfold_sktree; unfold sloop.
       rewrite <- yanking_ktree.

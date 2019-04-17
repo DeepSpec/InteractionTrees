@@ -21,7 +21,7 @@
     bisimulation is defined when handling expressions.
     - Linking is proved in isolation: the "high level" control
     flow combinators for _Asm_ defined in [Imp2Asm.v] are
-    proved correct in the same style as the elemntary ones
+    proved correct in the same style as the elementary ones
     from [AsmCombinators.v].
     - Finally, all the pieces are tied together to prove the
     correctness.
@@ -39,14 +39,14 @@
     level of [ktree]s rather than introducing the entry label and
     trying to reason at the level of [itree]s ease sensibly the pain
     by reducing the amount of binders under which we need to work.
-    - We transparently make use of the heterogenous bisimulation provided
+    - We transparently make use of the heterogeneous bisimulation provided
     by the [itree] library to relate computations of _Asm_ expressions
     that return an environment and a [unit] value to ones of _Imp_
     that return an environment and an [Imp.value].
 *)
 
 (* begin hide *)
-Require Import Imp Asm Utils_tutorial AsmCombinators Imp2Asm.
+Require Import Imp Asm Utils_tutorial AsmCombinators Imp2Asm Label.
 
 Require Import Psatz.
 
@@ -55,13 +55,17 @@ From Coq Require Import
      Morphisms
      ZArith
      Setoid
+     Fin
      RelationClasses.
 
 From ITree Require Import
+     CategoryOps
      ITree
      ITreeFacts
-     Effects.StateFacts
-     Effects.Map.
+     Events.StateFacts
+     Events.Map
+     SubKTree
+     SubKTreeFacts.
 
 Import ITreeNotations.
 
@@ -321,8 +325,8 @@ Section Eq_Locals.
   Context {E': Type -> Type}.
   Notation E := (Locals +' E').
 
-  (** [interp_locals] handle [Locals] into the [envE] effects, and then
-      run these effects into the state monad. *)
+  (** [interp_locals] handle [Locals] into the [mapE] events, and then
+      run these events into the state monad. *)
   Definition interp_locals {R: Type} (t: itree E R) (s: alist var value)
     : itree E' (alist var value * R) :=
     run_map (interp (bimap evalLocals (id_ _)) t) s.
@@ -376,8 +380,8 @@ Section Eq_Locals.
            (interp_locals t2 g2).
 
   (** [eq_locals] is compatible with [eutt]. *)
-  Global Instance eutt_eq_locals (Renv_ : _ -> _ -> Prop) {R} RR :
-    Proper (eutt eq ==> eutt eq ==> iff) (@eq_locals R R RR Renv_).
+  Global Instance eutt_eq_locals (Renv_ : _ -> _ -> Prop) {R R'} RR :
+    Proper (eutt eq ==> eutt eq ==> iff) (@eq_locals R R' RR Renv_).
   Proof.
     repeat intro.
     split; repeat intro.
@@ -386,7 +390,7 @@ Section Eq_Locals.
   Qed.
 
   (** [eq_locals] commutes with [bind]  *)
-  Definition eq_locals_bind_gen (Renv_ : _ -> _ -> Prop)
+  Definition eq_locals_bind' (Renv_ : _ -> _ -> Prop)
              {R1 R2 S1 S2} (RR : R1 -> R2 -> Prop)
              (RS : S1 -> S2 -> Prop) :
     forall t1 t2,
@@ -397,7 +401,7 @@ Section Eq_Locals.
   Proof.
     repeat intro.
     rewrite 2 interp_locals_bind.
-    eapply eutt_bind_gen.
+    eapply eutt_bind'.
     { eapply H; auto. }
     intros. eapply H0; destruct H2; auto.
   Qed.
@@ -408,9 +412,9 @@ Section Eq_Locals.
     eq_locals eq Renv (loop t1 x) (loop t2 x).
   Proof.
     unfold eq_locals, interp_locals, run_map.
-    intros. unfold loop.
+    intros.
     rewrite 2 interp_loop.
-    eapply interp_state_loop; auto.
+    eapply eutt_interp_state_loop; auto.
   Qed.
 
   (** [sim_rel] at [n] entails that [GetVar (gen_tmp n)] gets interpreted
@@ -419,26 +423,25 @@ Section Eq_Locals.
   Lemma sim_rel_get_tmp0:
     forall n g_asm0 g_asm g_imp v,
       sim_rel g_asm0 n (g_asm,tt) (g_imp,v) ->
-      interp_locals (send (GetVar (gen_tmp n))) g_asm ≈ Ret (g_asm,v).
+      interp_locals (trigger (GetVar (gen_tmp n))) g_asm ≈ Ret (g_asm,v).
   Proof.
     intros.
     destruct H as [_ [eq _]].
     unfold interp_locals.
-    unfold send.
-    rewrite interp_send.
+    rewrite interp_trigger.
     rewrite tau_eutt.
     cbn.
     unfold run_map.
-    unfold evalLocals, CategoryOps.cat, Cat_Handler, Handler.cat.
+    unfold evalLocals, cat, Cat_Handler, Handler.cat.
     unfold lookup_def; cbn.
     rewrite unfold_interp_state; cbn.
     rewrite tau_eutt.
-    rewrite map_bind.
+    rewrite bind_map.
     setoid_rewrite bind_ret.
     setoid_rewrite interp_ret.
-    unfold inl_, Inl_sum1_Handler, Handler.inl_, Handler.hsend.
+    unfold inl_, Inl_sum1_Handler, Handler.inl_, Handler.htrigger.
     rewrite interp_state_bind.
-    rewrite interp_state_send.
+    rewrite interp_state_trigger.
     cbn.
     rewrite eq.
     rewrite !tau_eutt.
@@ -465,7 +468,22 @@ Section Linking.
   Context {HasMemory: Memory -< E'}.
   Context {HasExit: Exit -< E'}.
   Notation E := (Locals +' E').
-(*
+
+Theorem cat_from_sloop {E A B C} (ab : sktree E A B) (bc : sktree E B C) :
+  sloop (swap >>> bimap ab bc) ⩯ ab >>> bc.
+Proof with try typeclasses eauto.
+  rewrite bimap_slide...
+  rewrite <- cat_assoc...
+  rewrite sloop_compose...
+  rewrite swap_bimap...
+  rewrite <- !cat_assoc...
+  rewrite swap_involutive, cat_id_l...
+  rewrite compose_sloop...
+  rewrite yanking_sktree...
+  rewrite cat_id_r...
+  reflexivity.
+Qed.
+
   (** [seq_asm] is denoted as the (horizontal) composition of denotations. *)
   Lemma seq_asm_correct {A B C} (ab : asm A B) (bc : asm B C) :
       denote_asm (seq_asm ab bc)
@@ -473,80 +491,112 @@ Section Linking.
   Proof.
     unfold seq_asm. 
     rewrite link_asm_correct, relabel_asm_correct, app_asm_correct.
-    rewrite <- lift_ktree_id, cat_assoc.
+    rewrite <- lift_sktree_id, cat_assoc.
     rewrite cat_id_r.
-    rewrite sym_ktree_unfold.
-    apply cat_from_loop.
+    rewrite sym_sktree_unfold.
+    apply cat_from_sloop.
     all: typeclasses eauto.
   Qed.
 
   (** [if_asm] is denoted as the ktree first denoting the branching condition,
       then looking-up the appropriate variable and following with either denotation. *)
-  Lemma if_asm_correct {A} (e : list instr) (tp fp : asm unit A) :
+  (* This proof should be nicer. *)
+  Lemma if_asm_correct {A} (e : list instr) (tp fp : asm 1 A) :
       denote_asm (if_asm e tp fp)
     ⩯ ((fun _ =>
          denote_list e ;;
-         v <- send (GetVar tmp_if) ;;
-         if v : value then denote_asm fp tt else denote_asm tp tt) : ktree _ _ _).
+         v <- trigger (GetVar tmp_if) ;;
+         if v : value then denote_asm fp F1 else denote_asm tp F1) : sktree _ _ _).
   Proof.
     unfold if_asm.
     rewrite seq_asm_correct.
     unfold cond_asm.
     rewrite raw_asm_block_correct_lifted.
-    intros [].
-    unfold CategoryOps.cat, Cat_ktree, ITree.cat; simpl.
+    intros ?.
+    unfold CategoryOps.cat, Cat_sktree, CategoryOps.cat, Cat_ktree, ITree.cat; simpl.
     rewrite after_correct.
     simpl.
     repeat setoid_rewrite bind_bind.
     apply eutt_bind; try reflexivity. intros [].
     apply eutt_bind; try reflexivity. intros [].
     - rewrite bind_ret_.
-      rewrite (relabel_asm_correct _ _ _ (inr tt)).
-      unfold CategoryOps.cat, Cat_ktree, ITree.cat; simpl.
+      rewrite (relabel_asm_correct _ _ _ _).
+      unfold CategoryOps.cat, Cat_sktree, CategoryOps.cat, Cat_ktree, ITree.cat; simpl.
       rewrite bind_bind.
-      unfold lift_ktree; rewrite bind_ret_.
-      setoid_rewrite (app_asm_correct tp fp (inr tt)).
+      unfold lift_sktree, lift_ktree; rewrite bind_ret_.
+      setoid_rewrite (app_asm_correct tp fp _).
+      Local Opaque denote_asm.
       setoid_rewrite bind_bind.
-      rewrite <- (bind_ret2 (denote_asm fp tt)) at 2.
-      eapply eutt_bind; try reflexivity. intros ?.
-      unfold inr_, Inr_ktree, lift_ktree; rewrite bind_ret_; reflexivity.
+      unfold isum_suml, isum_sum, lift_ktree; cbn.
+      rewrite bind_ret; cbn.
+      unfold CategoryOps.cat, Cat_sktree, CategoryOps.cat, Cat_ktree, ITree.cat; simpl.
+      rewrite bind_bind.
+      rewrite <- (bind_ret2 (denote_asm fp F1)) at 2.
+      eapply eutt_bind; [| reflexivity].
+      intros ?.
+      unfold inr_, Inr_sktree, inr_, Inr_ktree, lift_ktree, CategoryOps.cat, Cat_ktree, ITree.cat.
+      unfold sum_isuml, sum_isum, lift_ktree; cbn.
+      Local Opaque merge_fin_sum.
+      rewrite 2 bind_ret; cbn.
+      unfold merge. unfold id_, Id_iFun, id_, Id_Fun.
+      unfold case_, case_isum, CategoryOps.cat, Cat_Fun, case_, case_sum. cbn.
+      setoid_rewrite (@iso_epi _ _ _ _ _ _ _ _ _ (@FinSumIso A A)).
+      reflexivity.
     - rewrite bind_ret_.
-      rewrite (relabel_asm_correct _ _ _ (inl tt)).
-      unfold CategoryOps.cat, Cat_ktree, ITree.cat; simpl.
+      rewrite (relabel_asm_correct _ _ _ _).
+      unfold CategoryOps.cat, Cat_sktree, CategoryOps.cat, Cat_ktree, ITree.cat; simpl.
       rewrite bind_bind.
-      unfold lift_ktree; rewrite bind_ret_.
-      setoid_rewrite (app_asm_correct tp fp (inl tt)).
+      unfold lift_sktree, lift_ktree; rewrite bind_ret_.
+      setoid_rewrite (app_asm_correct tp fp _).
+      Local Opaque denote_asm.
       setoid_rewrite bind_bind.
-      rewrite <- (bind_ret2 (denote_asm tp tt)) at 2.
-      eapply eutt_bind; try reflexivity. intros ?.
-      unfold inl_, Inl_ktree, lift_ktree;
-        rewrite bind_ret_; reflexivity.
+      unfold isum_suml, isum_sum, lift_ktree; cbn.
+      rewrite bind_ret; cbn.
+      unfold CategoryOps.cat, Cat_sktree, CategoryOps.cat, Cat_ktree, ITree.cat; simpl.
+      rewrite bind_bind.
+      rewrite <- (bind_ret2 (denote_asm tp F1)) at 2.
+      eapply eutt_bind; [| reflexivity].
+      intros ?.
+      unfold inl_, Inl_sktree, inl_, Inl_ktree, lift_ktree, CategoryOps.cat, Cat_ktree, ITree.cat.
+      unfold sum_isuml, sum_isum, lift_ktree; cbn.
+      Local Opaque merge_fin_sum.
+      rewrite 2 bind_ret; cbn.
+      unfold merge. unfold id_, Id_iFun, id_, Id_Fun.
+      unfold case_, case_isum, CategoryOps.cat, Cat_Fun, case_, case_sum. cbn.
+      setoid_rewrite (@iso_epi _ _ _ _ _ _ _ _ _ (@FinSumIso A A)).
+      reflexivity.
   Qed.
+
+Opaque sloop.
 
   (** [while_asm] is denoted as the loop of the body with two entry point, the exit
       of the loop, and the body in which we have the same structure as for the conditional *)
-   Lemma while_asm_correct (e : list instr) (p : asm unit unit) :
+   Lemma while_asm_correct (e : list instr) (p : asm 1 1) :
       denote_asm (while_asm e p)
-    ⩯ loop (fun l : unit + unit =>
+    ⩯ @sloop _ _ _ _ _ 1 1 1 (fun l: F 2 =>
          match l with
-         | inl tt =>
+         | F1 =>
            denote_list e ;;
-           v <- ITree.send (inl1 (GetVar tmp_if)) ;;
+           v <- ITree.trigger (inl1 (GetVar tmp_if)) ;;
            if v : value then
-             Ret (inr tt)
+             Ret (FS F1)
            else
-             (denote_asm p tt;; Ret (inl tt))
-         | inr tt => Ret (inl tt)
+             (denote_asm p F1;; Ret F1)
+         | FS _ => Ret F1
          end).
   Proof.
     unfold while_asm.
     rewrite link_asm_correct.
-    apply eq_ktree_loop.
+    apply eq_sktree_sloop.
     rewrite relabel_asm_correct.
-    rewrite <- lift_ktree_id, cat_id_l.
+    rewrite <- lift_sktree_id, cat_id_l.
     rewrite app_asm_correct.
     rewrite if_asm_correct.
     all: try typeclasses eauto.
+    intros x.
+    (* TODO Difficulty to do case analysis on the label with sktree *)
+    (*
+    simpl in x. cbn. dependent inversion x. unfold F, FinEmbedding in x. destruct x.
     intros [[] | []].
     - unfold ITree.cat. 
       simpl; setoid_rewrite bind_bind.
@@ -566,7 +616,9 @@ Section Linking.
         repeat rewrite bind_ret_; reflexivity.
     - rewrite itree_eta; cbn; reflexivity.
   Qed.
-*)
+     *)
+  Admitted.
+
 End Linking.
 
 (* ================================================================= *)
@@ -605,7 +657,7 @@ Section Correctness.
       Note that by doing so, we use a _heterogeneous bisimulation_: the trees
       return values of different types ([alist var value * unit] for _Asm_,
       [alist var value * value] for _Imp_). The differeence is nonetheless mostly
-      transparent for the user, except for the use of the more generale [eutt_bind_gen].
+      transparent for the user, except for the use of the more generale [eutt_bind'].
    *)
   
   Lemma compile_expr_correct : forall e g_imp g_asm n,
@@ -641,12 +693,12 @@ Section Correctness.
       do 2 setoid_rewrite interp_locals_bind.
 
       (* The Induction hypothesis on [e1] relates the first itrees *)
-      eapply eutt_bind_gen.
+      eapply eutt_bind'.
       { eapply IHe1; assumption. }
       (* We obtain new related environments *)
       intros [g_asm' []] [g_imp' v] HSIM.
       (* The Induction hypothesis on [e2] relates the second itrees *)
-      eapply eutt_bind_gen.
+      eapply eutt_bind'.
       { eapply IHe2.
         eapply sim_rel_Renv; eassumption. }
       (* And we once again get new related environments *)
@@ -667,12 +719,12 @@ Section Correctness.
       do 2 setoid_rewrite interp_locals_bind.
 
       (* The Induction hypothesis on [e1] relates the first itrees *)
-      eapply eutt_bind_gen.
+      eapply eutt_bind'.
       { eapply IHe1; assumption. }
       (* We obtain new related environments *)
       intros [g_asm' []] [g_imp' v] HSIM.
       (* The Induction hypothesis on [e2] relates the second itrees *)
-      eapply eutt_bind_gen.
+      eapply eutt_bind'.
       { eapply IHe2.
         eapply sim_rel_Renv; eassumption. }
       (* And we once again get new related environments *)
@@ -693,12 +745,12 @@ Section Correctness.
       do 2 setoid_rewrite interp_locals_bind.
 
       (* The Induction hypothesis on [e1] relates the first itrees *)
-      eapply eutt_bind_gen.
+      eapply eutt_bind'.
       { eapply IHe1; assumption. }
       (* We obtain new related environments *)
       intros [g_asm' []] [g_imp' v] HSIM.
       (* The Induction hypothesis on [e2] relates the second itrees *)
-      eapply eutt_bind_gen.
+      eapply eutt_bind'.
       { eapply IHe2.
         eapply sim_rel_Renv; eassumption. }
       (* And we once again get new related environments *)
@@ -721,7 +773,7 @@ Section Correctness.
   Lemma compile_assign_correct : forall e x,
       eq_locals eq Renv
                 (denote_list (compile_assign x e))
-                (v <- denoteExpr e ;; send (SetVar x v)).
+                (v <- denoteExpr e ;; trigger (SetVar x v)).
   Proof.
     red; intros.
     unfold compile_assign.
@@ -732,7 +784,7 @@ Section Correctness.
     (* By correctness of the compilation of expressions,
        we can match the head trees.
      *)
-    eapply eutt_bind_gen.
+    eapply eutt_bind'.
     { eapply compile_expr_correct; eauto. }
 
     (* Once again, we get related environments *)
@@ -759,14 +811,31 @@ Section Correctness.
                     end) tt.
   Proof.
     unfold while.
-    apply eutt_loop; [| reflexivity].
+    apply eutt_loop.
     intros [[]|[]]; simpl; [| reflexivity].
     unfold ITree.map.
     apply eutt_bind; try reflexivity.
     intros []; reflexivity.
   Qed.
 
-  (*
+Definition to_itree' {E A} (f : sktree E 1 A) : itree E (F A) := f F1.
+Lemma fold_to_itree' {E} (f : sktree E 1 1) : f F1 = to_itree' f.
+Proof. reflexivity. Qed.
+
+Global Instance Proper_to_itree' {E A} :
+  Proper (eq2 ==> eutt eq) (@to_itree' E A).
+Proof.
+  repeat intro.
+  apply H.
+Qed.
+
+(* The first parameter of [eq_locals] is useless for this development. We use to require equality,
+ which carried not information since the return type was unit on both side.
+ Now the return type is heterogeneous, [F 1] on one side and [unit] on the other.
+ *)
+Definition TT {A B}: A -> B -> Prop  := fun _ _ => True.
+Hint Unfold TT.
+
   (** Correctness of the compiler.
       After interpretation of the [Locals], the source _Imp_ statement
       denoted as an [itree] and the compiled _Asm_ program denoted
@@ -778,8 +847,8 @@ Section Correctness.
       in isolation.
    *)
   Theorem compile_correct (s : stmt) :
-    eq_locals eq Renv
-              (denote_asm (compile s) Fin.F1)
+    eq_locals TT Renv
+              (denote_asm (compile s) F1)
               (denoteStmt s).
   Proof.
     induction s.
@@ -792,7 +861,7 @@ Section Correctness.
 
       (* The head trees match by correctness of assign *)
       rewrite <- (bind_ret2 (ITree.bind (denoteExpr e) _)).
-      eapply eq_locals_bind_gen.
+      eapply eq_locals_bind'.
       { eapply compile_assign_correct; auto. }
 
       (* And remains to trivially relate the results *)
@@ -803,25 +872,27 @@ Section Correctness.
 
     - (* Seq *)
       (* We commute [denote_asm] with [seq_asm] *)
-      rewrite fold_to_itree; simpl.
-      rewrite seq_asm_correct. unfold to_itree.
+      rewrite fold_to_itree'; simpl.
+      rewrite seq_asm_correct. unfold to_itree'.
 
       (* And the result is immediate by indcution hypothesis *)
-      eapply eq_locals_bind_gen.
+      eapply eq_locals_bind'.
       { eauto. }
-      intros [] [] []; auto.
+      intros ? [] []; auto.
+      (* TODO Here we need to destruct r1, which can only be F1. However the dependency in the types get in the way *)
+      admit.
 
     - (* If *)
       (* We commute [denote_asm] with [if_asm] *)
-      rewrite fold_to_itree. simpl.
+      rewrite fold_to_itree'. simpl.
       rewrite if_asm_correct.
-      unfold to_itree.
+      unfold to_itree'.
 
       (* We now need to line up the evaluation of the test,
          and eliminate them by correctness of [compile_expr] *)
       repeat intro.
       rewrite 2 interp_locals_bind.
-      eapply eutt_bind_gen.
+      eapply eutt_bind'.
       { apply compile_expr_correct; auto. }
 
       (* We get in return [sim_rel] related environments *)
@@ -839,12 +910,15 @@ Section Correctness.
     - (* While *)
       (* We commute [denote_asm] with [while_asm], and restructure the
          _Imp_ [loop] with [while_is_loop] *)
-      simpl; rewrite fold_to_itree.
+      simpl; rewrite fold_to_itree'.
       rewrite while_asm_correct.
       rewrite while_is_loop.
-      unfold to_itree.
+      unfold to_itree'.
 
+      (* TODO: adapt [eq_locals_loop] to have [sloop] on the left hand side. *)
       (* We now have loops on both side, so we can just reason about their bodies *)
+      admit.
+      (*
       apply eq_locals_loop.
       (* The two cases correspond to entering the loop, or exiting it*)
       intros [[]|[]].
@@ -859,7 +933,7 @@ Section Correctness.
       unfold ITree.map. rewrite bind_bind.
       repeat intro.
       rewrite 2 interp_locals_bind.
-      eapply eutt_bind_gen.
+      eapply eutt_bind'.
       { apply compile_expr_correct; auto. }
 
       (* We get in return [sim_rel] related environments *)
@@ -879,19 +953,22 @@ Section Correctness.
         apply eutt_ret; auto.
       + (* In the true case, we line up the body of the loop to use the induction hypothesis *)
         rewrite 2 interp_locals_bind, bind_bind.
-        eapply eutt_bind_gen.
+        eapply eutt_bind'.
         { eapply IHs; auto. }
         intros [g_asm' []] [g_imp' v'] [HSIM' ?].
         intros.
         force_right; force_left.
         apply eutt_ret; simpl; split; auto. 
 
+       *)
+
     - (* Skip *)
       repeat intro.
       force_right; force_left.
       apply eutt_ret; auto.
-  Qed.
-*)
+  Admitted.
+
+
 End Correctness.
 
 (* ================================================================= *)
@@ -903,34 +980,39 @@ End Correctness.
     We have emphasized that the theory of [ktree]s allowed us to decouple
     all reasoning about the control-flow from the proof of the compiler itself.
     The resulting proof is entirely structurally inductive and equational. In
-    particular, we obtain a final theorem relating potentially infinite computations
-    without having to write any cofixpoint. 
+    particular, we obtain a final theorem relating potentially infinite
+    computations without having to write any cofixpoint.
     
     If this result is encouraging, one might always wonder how things scale.
 
-    A first good sanity check is to extend the languages with a _Print_ instruction.
-    It requires to add a new effect to the language and therefore makes the correctness
-    theorem relate trees actually still containing events.
-    This change, which a good exercise to try, turns out to be as straightforward as one
-    would hope. The only new lemma needed is to show that [interp_locals] leaves the
-    new [Print] effect untouched.
+    A first good sanity check is to extend the languages with a _Print_
+    instruction.
+    It requires to add a new event to the language and therefore makes the
+    correctness theorem relate trees actually still containing events.
+    This change, which a good exercise to try, turns out to be as
+    straightforward as one would hope. The only new lemma needed is to show
+    that [interp_locals] leaves the new [Print] event untouched.
     This extension can be found in the _tutorial-print_ branch.
 
-    More importantly, our compiler is fairly stupid and inefficient: it creates blocks
-    for each compiled statement! One would hope to easily write and prove an optimization
-    coalescing elementary blocks together.
-    This however raises for now a difficulty: our representation of labels as binary trees
-    encoded in [Type] is so unstructured that introspection on [asm] programs is difficult.
-    We might therefore need to change our representation of labels, for instance to a [Fin] type.
-    But this change turns out to be more interesting that it might seem: it moves [bks]
-    from [fun (A B: Type) => A -> block B] to [fun (A B: nat) => Fin.t A -> block (Fin.t B)].
-    Correspondingly, their denotation moves from [fun (A B: Type) => bks A B -> ktree E A B]
+    More importantly, our compiler is fairly stupid and inefficient: it creates
+    blocks for each compiled statement! One would hope to easily write and
+    prove an optimization coalescing elementary blocks together.
+    This however raises for now a difficulty: our representation of labels as
+    binary trees encoded in [Type] is so unstructured that introspection on
+    [asm] programs is difficult.
+    We might therefore need to change our representation of labels, for instance
+    to a [Fin] type.
+    But this change turns out to be more interesting that it might seem: it
+    moves [bks] from [fun (A B: Type) => A -> block B] to
+    [fun (A B: nat) => Fin.t A -> block (Fin.t B)].
+    Correspondingly, their denotation moves from
+    [fun (A B: Type) => bks A B -> ktree E A B]
     to [fun (A B: nat) => ktree E (Fin.t A) (Fin.t B)].
-    But our proof crucially rested on the categorie [(Type, ktree E)] being provided by
-    the [itree] library with a traced monoidal structure. We would therefore here need
-    to redo all the work to equip the category [(Nat, fun A B => ktree E (t A) (t B))] with
-    the same strucutre, which is significant low level work.
-    We might therefore want to investigate whether [ktree] should be generalized to 
-    something along the lines of
+    But our proof crucially rested on the categorie [(Type, ktree E)] being
+    provided by the [itree] library with a traced monoidal structure. We would
+    therefore need to redo all the work to equip the category
+    [(Nat, fun A B => ktree E (t A) (t B))] with the same structure, which is
+    significant low level work. We might therefore want to investigate whether
+    [ktree] should be generalized to something along the lines of
     [ktree (i : Type) (F : i -> Type) (E : Type -> Type) (a b : i) : Type := F a -> itree E (F b).]
  *)

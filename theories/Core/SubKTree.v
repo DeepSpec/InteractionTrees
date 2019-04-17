@@ -32,11 +32,9 @@ Class Embedded_sum `{Embedding} (isum: i -> i -> i) :=
     sum_isum: forall {A B: i}, (F A) + (F B) -> F (isum A B)
   }.
 
-(* Context {isum_sum_iso: forall A B, Iso Fun (@isum_sum A B) (@sum_isum A B)}. *)
- 
 Section SubK.
 
-  (* We consider a subdomain of Type given by a Type [i] and its injection into Type [F] *)
+  (* We consider a subdomain of Type given by a Type [i] and its injection [F] into [Type] *)
   Context {i: Type}.
   Context {iEmbed: Embedding i}.
   (* We assume that we have an initial element and a bifunctor over i *)
@@ -49,6 +47,7 @@ Section SubK.
 
   Section iFun.
 
+    (* The embedding [F] defines a subcategory of [Fun] *)
     Definition iFun (a b: i) := F a -> F b.
 
     Global Instance Eq2_iFun : Eq2 iFun :=
@@ -77,12 +76,7 @@ Section SubK.
 
   End iFun.
 
-  Definition iI_voidl {E} := @lift_ktree E _ _ iI_void.
-  Definition void_iIl {E} := @lift_ktree E _ _ void_iI.
-
-  Definition isum_suml {E A B} := @lift_ktree E _ _ (@isum_sum _ _ _ _ A B).
-  Definition sum_isuml {E A B} := @lift_ktree E _ _ (@sum_isum _ _ _ _ A B).
-  
+  (* The embedding [F] defines a subcategory of [ktree] *)
   Definition sktree (E: Type -> Type) (A B: i) := F A -> itree E (F B).
 
   (** ** Categorical operations *)
@@ -93,22 +87,26 @@ Section SubK.
 
     Let sktree := sktree E.
 
-    (* Utility function to lift a pure computation into ktree *)
+    (* Utility function to lift a pure ([iFun]) computation into sktree *)
     Definition lift_sktree {A B: i} (f : F A -> F B) : sktree A B := lift_ktree f. 
 
+    Definition iI_voidl {E} := @lift_ktree E _ _ iI_void.
+    Definition void_iIl {E} := @lift_ktree E _ _ void_iI.
+
+    Definition isum_suml {E A B} := @lift_ktree E _ _ (@isum_sum _ _ _ _ A B).
+    Definition sum_isuml {E A B} := @lift_ktree E _ _ (@sum_isum _ _ _ _ A B).
+    
     (** *** Category *)
 
     Definition eutt_sktree {A B} (d1 d2 : sktree A B) := @eq2 _ (ktree E) _ _ _ d1 d2.
-
     Global Instance Eq2_sktree : Eq2 sktree := @eutt_sktree.
 
-    (** Composition is [ITree.cat], denoted as [>>>]. *)
+    (** Composition *)
     Global Instance Cat_sktree : Cat sktree :=
       fun (A B C: i) (k: ktree E (F A) (F B)) (k': ktree E (F B) (F C)) => cat k k': ktree E _ _.
 
     (** Identity morphism *)
     Global Instance Id_sktree : Id_ sktree :=
-
       fun A => id_ (F A). 
 
     (** *** Symmetric monoidal category *)
