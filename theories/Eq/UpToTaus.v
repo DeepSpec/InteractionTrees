@@ -85,7 +85,7 @@ Definition transL := @eqit_trans_clo E R1 R2 true true false false.
 
 Variant euttG rH rL gL gH t1 t2 : Prop :=
 | euttG_intro
-    (IN: gpaco2 (@eqit_ E R1 R2 RR true true (transH gH)) id
+    (IN: gpaco2 (@eqit_ E R1 R2 RR true true (transH gH)) (euttC RR true true)
                 (transH rH \2/ transL rL)
                 (transH rH \2/ transL rL \2/ transL gL) t1 t2)
 .
