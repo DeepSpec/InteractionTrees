@@ -22,7 +22,14 @@ Require Import Imp Asm Utils_tutorial AsmCombinators.
 Require Import Psatz.
 
 From Coq Require Import
-     Strings.String.
+     String
+     Morphisms
+     Setoid
+     Decimal
+     Numbers.DecimalString
+     Vectors.Fin
+     ZArith
+     RelationClasses.
 
 From ITree Require Import
      ITree.
@@ -118,8 +125,8 @@ Definition tmp_if := gen_tmp 0.
 (** Turns the list of instructions resulting from the conditional
     expression of a _if_ to a block with two exit points.
  *)
-Definition cond_asm (e : list instr) : asm unit (unit + unit) :=
-  raw_asm_block (after e (Bbrz tmp_if (inr tt) (inl tt))).
+Definition cond_asm (e : list instr) : asm 1 2 :=
+  raw_asm_block (after e (Bbrz tmp_if (FS F1) F1)).
 
 (** Conditional branch of blocks.
     The program [if_asm e tp fp] creates a block out of [e] jumping
@@ -140,8 +147,8 @@ Definition cond_asm (e : list instr) : asm unit (unit + unit) :=
 ]]
  *)
 Definition if_asm {A}
-           (e : list instr) (tp : asm unit A) (fp : asm unit A) :
-  asm unit A :=
+           (e : list instr) (tp : asm 1 A) (fp : asm 1 A) :
+  asm 1 A :=
   seq_asm (cond_asm e)
           (relabel_asm (id_ _) merge (app_asm tp fp)).
 
@@ -154,6 +161,7 @@ Definition if_asm {A}
 
 [while_asm e p]
 [[
+>>>>>>> origin/master
       +-------------+
       |             |
       |    true     |
@@ -162,21 +170,21 @@ Definition if_asm {A}
            false
 ]]
 *)
-Definition while_asm (e : list instr) (p : asm unit unit) :
-  asm unit unit :=
+Definition while_asm (e : list instr) (p : asm 1 1) :
+  asm 1 1 :=
   link_asm (relabel_asm (id_ _) merge
     (app_asm (if_asm e
-                (relabel_asm id inl p)
-                (pure_asm inr))
-            (pure_asm inl))).
+                (relabel_asm id inl_ p)
+                (pure_asm inr_))
+            (pure_asm inl_))).
 
 (** Equipped with our combinators, the compiler writes itself
     by induction on the structure of the statement.
 *)
-Fixpoint compile (s : stmt) {struct s} : asm unit unit :=
+Fixpoint compile (s : stmt) {struct s} : asm 1 1 :=
   match s with
   | Skip => id_asm
-  | Assign x e => raw_asm_block (after (compile_assign x e) (Bjmp tt))
+  | Assign x e => raw_asm_block (after (compile_assign x e) (Bjmp F1))
   | Seq l r => seq_asm (compile l) (compile r)
   | If e l r => if_asm (compile_expr 0 e) (compile l) (compile r)
   | While e b => while_asm (compile_expr 0 e) (compile b)

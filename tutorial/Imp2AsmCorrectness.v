@@ -46,7 +46,7 @@
 *)
 
 (* begin hide *)
-Require Import Imp Asm Utils_tutorial AsmCombinators Imp2Asm.
+Require Import Imp Asm Utils_tutorial AsmCombinators Imp2Asm Label.
 
 Require Import Psatz.
 
@@ -55,13 +55,17 @@ From Coq Require Import
      Morphisms
      ZArith
      Setoid
+     Fin
      RelationClasses.
 
 From ITree Require Import
+     CategoryOps
      ITree
      ITreeFacts
      Events.StateFacts
-     Events.Map.
+     Events.Map
+     SubKTree
+     SubKTreeFacts.
 
 Import ITreeNotations.
 
@@ -376,8 +380,8 @@ Section Eq_Locals.
            (interp_locals t2 g2).
 
   (** [eq_locals] is compatible with [eutt]. *)
-  Global Instance eutt_eq_locals (Renv_ : _ -> _ -> Prop) {R} RR :
-    Proper (eutt eq ==> eutt eq ==> iff) (@eq_locals R R RR Renv_).
+  Global Instance eutt_eq_locals (Renv_ : _ -> _ -> Prop) {R R'} RR :
+    Proper (eutt eq ==> eutt eq ==> iff) (@eq_locals R R' RR Renv_).
   Proof.
     repeat intro.
     split; repeat intro.
@@ -428,7 +432,7 @@ Section Eq_Locals.
     rewrite tau_eutt.
     cbn.
     unfold run_map.
-    unfold evalLocals, CategoryOps.cat, Cat_Handler, Handler.cat.
+    unfold evalLocals, cat, Cat_Handler, Handler.cat.
     unfold lookup_def; cbn.
     rewrite unfold_interp_state; cbn.
     rewrite tau_eutt.
@@ -465,6 +469,21 @@ Section Linking.
   Context {HasExit: Exit -< E'}.
   Notation E := (Locals +' E').
 
+Theorem cat_from_sloop {E A B C} (ab : sktree E A B) (bc : sktree E B C) :
+  sloop (swap >>> bimap ab bc) ⩯ ab >>> bc.
+Proof with try typeclasses eauto.
+  rewrite bimap_slide...
+  rewrite <- cat_assoc...
+  rewrite sloop_compose...
+  rewrite swap_bimap...
+  rewrite <- !cat_assoc...
+  rewrite swap_involutive, cat_id_l...
+  rewrite compose_sloop...
+  rewrite yanking_sktree...
+  rewrite cat_id_r...
+  reflexivity.
+Qed.
+
   (** [seq_asm] is denoted as the (horizontal) composition of denotations. *)
   Lemma seq_asm_correct {A B C} (ab : asm A B) (bc : asm B C) :
       denote_asm (seq_asm ab bc)
@@ -472,82 +491,112 @@ Section Linking.
   Proof.
     unfold seq_asm. 
     rewrite link_asm_correct, relabel_asm_correct, app_asm_correct.
-    rewrite <- lift_ktree_id, cat_assoc.
+    rewrite <- lift_sktree_id, cat_assoc.
     rewrite cat_id_r.
-    rewrite sym_ktree_unfold.
-    apply cat_from_loop.
+    rewrite sym_sktree_unfold.
+    apply cat_from_sloop.
     all: typeclasses eauto.
   Qed.
 
   (** [if_asm] is denoted as the ktree first denoting the branching condition,
       then looking-up the appropriate variable and following with either denotation. *)
-  Lemma if_asm_correct {A} (e : list instr) (tp fp : asm unit A) :
+  (* This proof should be nicer. *)
+  Lemma if_asm_correct {A} (e : list instr) (tp fp : asm 1 A) :
       denote_asm (if_asm e tp fp)
     ⩯ ((fun _ =>
          denote_list e ;;
          v <- trigger (GetVar tmp_if) ;;
-         if v : value then denote_asm fp tt else denote_asm tp tt) : ktree _ _ _).
+         if v : value then denote_asm fp F1 else denote_asm tp F1) : sktree _ _ _).
   Proof.
     unfold if_asm.
     rewrite seq_asm_correct.
     unfold cond_asm.
     rewrite raw_asm_block_correct_lifted.
-    intros [].
-    unfold CategoryOps.cat, Cat_ktree, ITree.cat; simpl.
+    intros ?.
+    unfold CategoryOps.cat, Cat_sktree, CategoryOps.cat, Cat_ktree, ITree.cat; simpl.
     rewrite after_correct.
     simpl.
     repeat setoid_rewrite bind_bind.
     apply eutt_bind; try reflexivity. intros [].
     apply eutt_bind; try reflexivity. intros [].
     - rewrite bind_ret_.
-      rewrite (relabel_asm_correct _ _ _ (inr tt)).
-      unfold CategoryOps.cat, Cat_ktree, ITree.cat; simpl.
+      rewrite (relabel_asm_correct _ _ _ _).
+      unfold CategoryOps.cat, Cat_sktree, CategoryOps.cat, Cat_ktree, ITree.cat; simpl.
       rewrite bind_bind.
-      unfold lift_ktree; rewrite bind_ret_.
-      setoid_rewrite (app_asm_correct tp fp (inr tt)).
+      unfold lift_sktree, lift_ktree; rewrite bind_ret_.
+      setoid_rewrite (app_asm_correct tp fp _).
+      Local Opaque denote_asm.
       setoid_rewrite bind_bind.
-      rewrite <- (bind_ret2 (denote_asm fp tt)) at 2.
-      eapply eutt_bind; try reflexivity. intros ?.
-      unfold inr_, Inr_ktree, lift_ktree; rewrite bind_ret_; reflexivity.
+      unfold isum_suml, isum_sum, lift_ktree; cbn.
+      rewrite bind_ret; cbn.
+      unfold CategoryOps.cat, Cat_sktree, CategoryOps.cat, Cat_ktree, ITree.cat; simpl.
+      rewrite bind_bind.
+      rewrite <- (bind_ret2 (denote_asm fp F1)) at 2.
+      eapply eutt_bind; [| reflexivity].
+      intros ?.
+      unfold inr_, Inr_sktree, inr_, Inr_ktree, lift_ktree, CategoryOps.cat, Cat_ktree, ITree.cat.
+      unfold sum_isuml, sum_isum, lift_ktree; cbn.
+      Local Opaque merge_fin_sum.
+      rewrite 2 bind_ret; cbn.
+      unfold merge. unfold id_, Id_iFun, id_, Id_Fun.
+      unfold case_, case_isum, CategoryOps.cat, Cat_Fun, case_, case_sum. cbn.
+      setoid_rewrite (@iso_epi _ _ _ _ _ _ _ _ _ (@FinSumIso A A)).
+      reflexivity.
     - rewrite bind_ret_.
-      rewrite (relabel_asm_correct _ _ _ (inl tt)).
-      unfold CategoryOps.cat, Cat_ktree, ITree.cat; simpl.
+      rewrite (relabel_asm_correct _ _ _ _).
+      unfold CategoryOps.cat, Cat_sktree, CategoryOps.cat, Cat_ktree, ITree.cat; simpl.
       rewrite bind_bind.
-      unfold lift_ktree; rewrite bind_ret_.
-      setoid_rewrite (app_asm_correct tp fp (inl tt)).
+      unfold lift_sktree, lift_ktree; rewrite bind_ret_.
+      setoid_rewrite (app_asm_correct tp fp _).
+      Local Opaque denote_asm.
       setoid_rewrite bind_bind.
-      rewrite <- (bind_ret2 (denote_asm tp tt)) at 2.
-      eapply eutt_bind; try reflexivity. intros ?.
-      unfold inl_, Inl_ktree, lift_ktree;
-        rewrite bind_ret_; reflexivity.
+      unfold isum_suml, isum_sum, lift_ktree; cbn.
+      rewrite bind_ret; cbn.
+      unfold CategoryOps.cat, Cat_sktree, CategoryOps.cat, Cat_ktree, ITree.cat; simpl.
+      rewrite bind_bind.
+      rewrite <- (bind_ret2 (denote_asm tp F1)) at 2.
+      eapply eutt_bind; [| reflexivity].
+      intros ?.
+      unfold inl_, Inl_sktree, inl_, Inl_ktree, lift_ktree, CategoryOps.cat, Cat_ktree, ITree.cat.
+      unfold sum_isuml, sum_isum, lift_ktree; cbn.
+      Local Opaque merge_fin_sum.
+      rewrite 2 bind_ret; cbn.
+      unfold merge. unfold id_, Id_iFun, id_, Id_Fun.
+      unfold case_, case_isum, CategoryOps.cat, Cat_Fun, case_, case_sum. cbn.
+      setoid_rewrite (@iso_epi _ _ _ _ _ _ _ _ _ (@FinSumIso A A)).
+      reflexivity.
   Qed.
 
-Opaque loop.
+Opaque sloop.
 
   (** [while_asm] is denoted as the loop of the body with two entry point, the exit
       of the loop, and the body in which we have the same structure as for the conditional *)
-   Lemma while_asm_correct (e : list instr) (p : asm unit unit) :
+   Lemma while_asm_correct (e : list instr) (p : asm 1 1) :
       denote_asm (while_asm e p)
-    ⩯ loop (fun l : unit + unit =>
+    ⩯ @sloop _ _ _ _ _ 1 1 1 (fun l: F 2 =>
          match l with
-         | inl tt =>
+         | F1 =>
            denote_list e ;;
            v <- ITree.trigger (inl1 (GetVar tmp_if)) ;;
            if v : value then
-             Ret (inr tt)
+             Ret (FS F1)
            else
-             (denote_asm p tt;; Ret (inl tt))
-         | inr tt => Ret (inl tt)
+             (denote_asm p F1;; Ret F1)
+         | FS _ => Ret F1
          end).
   Proof.
     unfold while_asm.
     rewrite link_asm_correct.
-    apply eq_ktree_loop.
+    apply eq_sktree_sloop.
     rewrite relabel_asm_correct.
-    rewrite <- lift_ktree_id, cat_id_l.
+    rewrite <- lift_sktree_id, cat_id_l.
     rewrite app_asm_correct.
     rewrite if_asm_correct.
     all: try typeclasses eauto.
+    intros x.
+    (* TODO Difficulty to do case analysis on the label with sktree *)
+    (*
+    simpl in x. cbn. dependent inversion x. unfold F, FinEmbedding in x. destruct x.
     intros [[] | []].
     - unfold ITree.cat. 
       simpl; setoid_rewrite bind_bind.
@@ -567,6 +616,8 @@ Opaque loop.
         repeat rewrite bind_ret_; reflexivity.
     - rewrite itree_eta; cbn; reflexivity.
   Qed.
+     *)
+  Admitted.
 
 End Linking.
 
@@ -767,6 +818,24 @@ Section Correctness.
     intros []; reflexivity.
   Qed.
 
+Definition to_itree' {E A} (f : sktree E 1 A) : itree E (F A) := f F1.
+Lemma fold_to_itree' {E} (f : sktree E 1 1) : f F1 = to_itree' f.
+Proof. reflexivity. Qed.
+
+Global Instance Proper_to_itree' {E A} :
+  Proper (eq2 ==> eutt eq) (@to_itree' E A).
+Proof.
+  repeat intro.
+  apply H.
+Qed.
+
+(* The first parameter of [eq_locals] is useless for this development. We use to require equality,
+ which carried not information since the return type was unit on both side.
+ Now the return type is heterogeneous, [F 1] on one side and [unit] on the other.
+ *)
+Definition TT {A B}: A -> B -> Prop  := fun _ _ => True.
+Hint Unfold TT.
+
   (** Correctness of the compiler.
       After interpretation of the [Locals], the source _Imp_ statement
       denoted as an [itree] and the compiled _Asm_ program denoted
@@ -778,8 +847,8 @@ Section Correctness.
       in isolation.
    *)
   Theorem compile_correct (s : stmt) :
-    eq_locals eq Renv
-              (denote_asm (compile s) tt)
+    eq_locals TT Renv
+              (denote_asm (compile s) F1)
               (denoteStmt s).
   Proof.
     induction s.
@@ -803,19 +872,21 @@ Section Correctness.
 
     - (* Seq *)
       (* We commute [denote_asm] with [seq_asm] *)
-      rewrite fold_to_itree; simpl.
-      rewrite seq_asm_correct. unfold to_itree.
+      rewrite fold_to_itree'; simpl.
+      rewrite seq_asm_correct. unfold to_itree'.
 
       (* And the result is immediate by indcution hypothesis *)
       eapply eq_locals_bind'.
       { eauto. }
-      intros [] [] []; auto.
+      intros ? [] []; auto.
+      (* TODO Here we need to destruct r1, which can only be F1. However the dependency in the types get in the way *)
+      admit.
 
     - (* If *)
       (* We commute [denote_asm] with [if_asm] *)
-      rewrite fold_to_itree. simpl.
+      rewrite fold_to_itree'. simpl.
       rewrite if_asm_correct.
-      unfold to_itree.
+      unfold to_itree'.
 
       (* We now need to line up the evaluation of the test,
          and eliminate them by correctness of [compile_expr] *)
@@ -839,12 +910,15 @@ Section Correctness.
     - (* While *)
       (* We commute [denote_asm] with [while_asm], and restructure the
          _Imp_ [loop] with [while_is_loop] *)
-      simpl; rewrite fold_to_itree.
+      simpl; rewrite fold_to_itree'.
       rewrite while_asm_correct.
       rewrite while_is_loop.
-      unfold to_itree.
+      unfold to_itree'.
 
+      (* TODO: adapt [eq_locals_loop] to have [sloop] on the left hand side. *)
       (* We now have loops on both side, so we can just reason about their bodies *)
+      admit.
+      (*
       apply eq_locals_loop.
       (* The two cases correspond to entering the loop, or exiting it*)
       intros [[]|[]].
@@ -886,11 +960,14 @@ Section Correctness.
         force_right; force_left.
         apply eutt_ret; simpl; split; auto. 
 
+       *)
+
     - (* Skip *)
       repeat intro.
       force_right; force_left.
       apply eutt_ret; auto.
-  Qed.
+  Admitted.
+
 
 End Correctness.
 

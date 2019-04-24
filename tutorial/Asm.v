@@ -13,11 +13,12 @@ From Coq Require Import
      ZArith.ZArith.
 
 From ITree Require Import
-     ITree.
+     ITree
+     SubKTree.
 
 From ExtLib Require Structures.Monad.
 
-Require Import Imp.
+Require Import Imp Label.
 
 Typeclasses eauto := 5.
 
@@ -67,7 +68,7 @@ Global Arguments block _ : clear implicits.
     into it, as well as the set of outer labels it might jump to.
     To this end, [bks] represents a collection of blocks labeled
     by [A], with branches in [B]. *)
-Definition bks (A B: Type) := A -> block B.
+Definition bks A B := F A -> block (F B).
 
 (** An [asm] program represents the control flow of the computation.
     It is a collection of labelled [blocks] such that its labels are
@@ -79,10 +80,10 @@ Definition bks (A B: Type) := A -> block B.
     the latter corresponding to an [asm] program with a unique entry
     point and always halting, i.e. a [asm unit void].
  *)
-Record asm (A B: Type) : Type :=
+Record asm (A B: nat) : Type :=
   {
-    internal : Type;
-    code : bks (internal + A) (internal + B)
+    internal : nat;
+    code     : bks (internal + A) (internal + B)
   }.
 
 Arguments internal {A B}.
@@ -91,10 +92,10 @@ Arguments code {A B}.
 (* ================================================================= *)
 (** ** Semantics *)
 
-(** _Asm_ produces two kind of events: through manipulation of the store
+(** _Asm_ produces two kind of effects: through manipulation of the store
     and of the heap.
     We therefore reuse _Imp_'s [Locals], and define an additional pair of
-    events [Memory] to model interactions with the heap.
+    effects [Memory] to model interactions with the heap.
 *)
 Import Imp.
 
@@ -112,7 +113,7 @@ Section Denote.
   Local Open Scope monad_scope.
   (* end hide *)
 
-  (** We introduce a special event to model termination of the computation.
+  (** We introduce a special effect to model termination of the computation.
       Note that it expects _actively_ no answer from the environment: 
       [Done] is of type [Exit void].
       We can therefore use it to "close" an [itree E A] no matter what the expected
@@ -124,9 +125,9 @@ Section Denote.
   Definition done {E A} `{Exit -< E} : itree E A :=
     vis Done (fun v => match v : void with end).
 
-  Section with_event.
+  Section with_effect.
 
-    (** As with _Imp_, we parameterize our semantics by a universe of events
+    (** As with _Imp_, we parameterize our semantics by a universe of effects
         that shall encompass all the required ones.
      *)
     Context {E : Type -> Type}.
@@ -170,14 +171,14 @@ Section Denote.
       end.
 
     Section with_labels.
-      Context {A B : Type}.
+      Context {A B : nat}.
 
       (** A [branch] returns the computed label whose set of possible
           values [B] is carried by the type of the branch.
           If the computation halts instead of branching,
           we return the [done] tree.
        *)
-      Definition denote_branch (b : branch B) : itree E B :=
+      Definition denote_branch (b : branch (F B)) : itree E (F B) :=
         match b with
         | Bjmp l => ret l
         | Bbrz v y n =>
@@ -190,7 +191,7 @@ Section Denote.
           returning the [label] of the next [block] it shall jump to.
           It recursively denote its instruction before that.
        *)
-      Fixpoint denote_block (b : block B) : itree E B :=
+      Fixpoint denote_block (b : block (F B)) : itree E (F B) :=
         match b with
         | bbi i b =>
           denote_instr i ;; denote_block b
@@ -203,7 +204,7 @@ Section Denote.
           However, its denotation is therefore crucially a [ktree],
           whose structure will be useful in the proof of the compiler.
        *)
-      Definition denote_b (bs: bks A B): ktree E A B :=
+      Definition denote_b (bs: bks A B): sktree E A B :=
         fun a => denote_block (bs a).
 
     End with_labels.
@@ -224,10 +225,11 @@ Section Denote.
    *)
 
     (* Denotation of [asm] *)
-    Definition denote_asm {A B} : asm A B -> ktree E A B :=
-      fun s => loop (denote_b (code s)).
 
-  End with_event.
+    Definition denote_asm {A B} : asm A B -> sktree E A B :=
+      fun s => sloop (denote_b (code s)).
+
+  End with_effect.
 End Denote.
 
 (* ================================================================= *)
@@ -244,7 +246,7 @@ From ExtLib Require Import
      Data.Map.FMapAList.
 (* end hide *)
 
-(** Both environments and memory events can be interpreted as "map" events,
+(** Both environments and memory effects can be interpreted as "map" effects,
     exactly as we did for _Imp_. *)
 
 Definition evalMemory {E : Type -> Type} `{mapE value value -< E} :
@@ -259,12 +261,12 @@ Definition evalMemory {E : Type -> Type} `{mapE value value -< E} :
 Definition memory := alist value value.
 
 (** We can then define an evaluator for closed assembly programs by
-    interpreting both store and heap events into two instances of [mapE],
+    interpreting both store and heap events into two instances of [envE],
     and running them both.
  *)
-Definition AsmEval (p: asm unit void) :=
+Definition AsmEval (p: asm 1 0) :=
   let h := bimap evalLocals (bimap evalMemory (id_ _)) in
-  let p' := interp h (denote_asm p tt) in
+  let p' := interp h (denote_asm p Fin.F1) in
   run_map (run_map p' empty) empty.
 
 (** Now that we have both our language, we could jump directly into implementing

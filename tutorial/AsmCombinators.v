@@ -20,23 +20,28 @@
  *)
 
 (* begin hide *)
-Require Import Imp Asm Utils_tutorial.
+Require Import Asm Utils_tutorial Label.
 
 From Coq Require Import
      List
      Strings.String
      Program.Basics
+     Vectors.Fin
      ZArith.
 Import ListNotations.
 
 From ITree Require Import
      ITree
-     ITreeFacts.
+     ITreeFacts
+     SubKTree
+     SubKTreeFacts.
 
 From ExtLib Require Import
      Structures.Monad.
 
 Typeclasses eauto := 5.
+Import CatNotations.
+Local Open Scope cat_scope.
 (* end hide *)
 
 (* ================================================================= *)
@@ -61,8 +66,8 @@ Definition fmap_block {A B: Type} (f: A -> B): block A -> block B :=
 
 (** A utility function to apply renaming functions [f] and [g] respectively to
     the entry and exit labels of a [bks]. *)
-Definition relabel_bks {A B C D : Type} (f : A -> B) (g : C -> D)
-           (b : bks B C) : bks A D :=
+Definition relabel_bks {A B X D : nat} (f : F A -> F B) (g : F X -> F D)
+           (b : bks B X) : bks A D :=
   fun a => fmap_block g (b (f a)).
 
 (** Simple combinator to build a [block] from its instructions and branch operation. *)
@@ -77,16 +82,12 @@ Fixpoint after {A: Type} (is : list instr) (bch : branch A) : block A :=
 
 (** Any collection of blocks forms an [asm] program with no hidden blocks. *)
 Definition raw_asm {A B} (b : bks A B) : asm A B :=
-  {| internal := void;
-     code := fun a' =>
-               match a' with
-               | inl v => match v : void with end
-               | inr a => fmap_block inr (b a)
-               end;
+  {| internal := 0;
+     code := fun l => b l
   |}.
 
 (** And so does a single [block] in particular. *)
-Definition raw_asm_block {A} (b : block A) : asm unit A :=
+Definition raw_asm_block {A: nat} (b : block (F A)) : asm 1 A :=
   raw_asm (fun _ => b).
 
 (** ** [asm] combinators *)
@@ -95,7 +96,7 @@ Definition raw_asm_block {A} (b : block A) : asm unit A :=
 
 (** An [asm] program made only of external jumps.
     This is useful to connect programs with [app_asm]. *)
-Definition pure_asm {A B} (f : A -> B) : asm A B :=
+Definition pure_asm {A B: nat} (f : F A -> F B) : asm A B :=
   raw_asm (fun a => bbb (Bjmp (f a))).
 
 Definition id_asm {A} : asm A A := pure_asm id.
@@ -107,35 +108,33 @@ Definition id_asm {A} : asm A A := pure_asm id.
     The two following functions take care of this internal
     relabelling.
  *)
-Definition _app_B {I J B D} :
-  block (I + B) -> block ((I + J) + (B + D)) :=
-  fmap_block (fun l =>
-                match l with
-                | inl i => inl (inl i)
-                | inr b => inr (inl b)
-                end).
+Definition _app_B {I J B D: nat} :
+  block (F (I + B)) -> block (F ((I + J) + (B + D))) :=
+  fmap_block (case_ (inl_ >>> inl_) (inl_ >>> inr_)).
 
 Definition _app_D {I J B D} :
-  block (J + D) -> block ((I + J) + (B + D)) :=
-  fmap_block (fun l =>
-                match l with
-                | inl j => inl (inr j)
-                | inr d => inr (inr d)
-                end).
+  block (F (J + D)) -> block (F ((I + J) + (B + D))) :=
+  fmap_block (case_ (inr_ >>> inl_) (inr_ >>> inr_)).
 
 (** Combinator to append two asm programs, preserving their internal links.
     Can be thought of as a "vertical composition", or a tensor product. 
  *)
+(* We build a function from F X into block (F Y), we hence cannot use case_ whether over iFun or sktree.
+   Can we do better?
+ *)
 Definition app_asm {A B C D} (ab : asm A B) (cd : asm C D) :
   asm (A + C) (B + D) :=
   {| internal := ab.(internal) + cd.(internal);
-     code := fun l =>
-               match l with
-               | inl (inl ia) => _app_B (ab.(code) (inl ia))
-               | inl (inr ic) => _app_D (cd.(code) (inl ic))
-               | inr (inl  a) => _app_B (ab.(code) (inr  a))
-               | inr (inr  c) => _app_D (cd.(code) (inr  c))
-               end;
+     code := fun l => match isum_sum l with
+                   | inl iac => match isum_sum iac with
+                               | inl ia => _app_B (ab.(code) (@inl_ _ iFun _ _ _ _ ia))
+                               | inr ic => _app_D (cd.(code) (@inl_ _ iFun _ _ _ _ ic))
+                               end
+                   | inr ac => match isum_sum ac with
+                              | inl a => _app_B (ab.(code) (@inr_ _ iFun _ _ _ _ a))
+                              | inr c => _app_D (cd.(code) (@inr_ _ iFun _ _ _ _ c))
+                              end
+                   end
   |}.
 
 (** Rename visible program labels.
@@ -144,10 +143,9 @@ Definition app_asm {A B C D} (ab : asm A B) (cd : asm C D) :
     associators.
     The following generic combinator allow any relabelling. 
  *)
-Definition relabel_asm {A B C D} (f : A -> B) (g : C -> D)
+Definition relabel_asm {A B C D} (f : F A -> F B) (g : F C -> F D)
            (bc : asm B C) : asm A D :=
-  {| code := relabel_bks (bimap id f) (bimap id g) bc.(code);
-  |}.
+  {| code := relabel_bks (bimap id f) (bimap id g)  bc.(code); |}.
 
 (** Labels that are exposed both as entry and exit points can be internalized.
     This operation can be seen as linking two programs internal to [ab] together.
@@ -176,11 +174,9 @@ Import ITreeNotations.
 Import CatNotations.
 Local Open Scope cat.
 (* end hide *)
-
+Import Imp.
 Section Correctness.
 
-  (** We reason about the denotation of [asm] programs, we therefore
-   need an appropriate domain of events [E]. *)
   Context {E : Type -> Type}.
   Context {HasLocals : Locals -< E}.
   Context {HasMemory : Memory -< E}.
@@ -188,9 +184,8 @@ Section Correctness.
 
   (** *** Internal structures *)
 
-  (** Commutes denotation an [fmap] *)
   Lemma fmap_block_map:
-    forall  {L L'} b (f: L -> L'),
+    forall  {L L'} b (f: F L -> F L'),
       denote_block (fmap_block f b) ≅ ITree.map f (denote_block b).
   Proof.
     (* Induction over the structure of the [block b] *)
@@ -221,7 +216,7 @@ Section Correctness.
       with the one of the branch.
    *)
   Lemma after_correct :
-    forall {label: Type} instrs (b: branch label),
+    forall {label: nat} instrs (b: branch (F label)),
       denote_block (after instrs b) ≅ (denote_list instrs ;; denote_branch b).
   Proof.
     induction instrs as [| i instrs IH]; intros b.
@@ -248,23 +243,22 @@ Section Correctness.
       Note that the ⩯ notation in the scope of [ktree] desugars to [eutt_ktree],
       i.e. pointwise [eutt eq].
    *)
-  Lemma raw_asm_block_correct_lifted {A} (b : block A) :
+  Lemma raw_asm_block_correct_lifted {A} (b : block (F A)) :
     denote_asm (raw_asm_block b) ⩯
-               ((fun _ : unit => denote_block b) : ktree _ _ _).
+               ((fun _  => denote_block b) : sktree _ _ _).
   Proof.
     unfold denote_asm.
-    rewrite vanishing_ktree.
-    rewrite case_l_ktree', case_l_ktree.
+    rewrite vanishing_sktree. 
+    rewrite case_l_sktree', case_l_sktree.
     unfold denote_b; simpl.
-    intros [].
-    rewrite fmap_block_map, map_map.
+    intros ?.
     unfold ITree.map.
     rewrite <- (bind_ret2 (denote_block b)) at 2.
     reflexivity.
   Qed.
 
-  Lemma raw_asm_block_correct {A} (b : block A) :
-    (denote_asm (raw_asm_block b) tt) ≈ (denote_block b).
+  Lemma raw_asm_block_correct {A} (b : block (F A)) :
+    (denote_asm (raw_asm_block b) F1) ≈ (denote_block b).
   Proof.
     apply raw_asm_block_correct_lifted.
   Qed.
@@ -275,12 +269,12 @@ Section Correctness.
       Its denotation is the lifting of a pure function
       into a [ktree].
    *)
-  Theorem pure_asm_correct {A B} (f : A -> B) :
-    denote_asm (pure_asm f) ⩯ @lift_ktree E _ _ f.
+  Theorem pure_asm_correct {A B} (f : F A -> F B) :
+    denote_asm (pure_asm f) ⩯ lift_sktree f.
   Proof.
     unfold denote_asm .
-    rewrite vanishing_ktree. (* a pure_asm contains no internal label: we can remove them from the loop *)
-    rewrite case_l_ktree', case_l_ktree.
+    rewrite vanishing_sktree. (* a pure_asm contains no internal label: we can remove them from the loop *)
+    rewrite case_l_sktree', case_l_sktree.
     unfold denote_b; simpl.
     intros ?.
     rewrite map_ret.
@@ -294,6 +288,7 @@ Section Correctness.
   Proof.
     rewrite pure_asm_correct; reflexivity.
   Defined.
+
 
   (** Correctness of the [app_asm] combinator.
       The resulting [asm] gets denoted to the bimap of its subcomponent.
@@ -321,65 +316,87 @@ Section Correctness.
        [loop_loop] is the second _vanishing_ law.
      *)
     match goal with | |- ?x ⩯ _ => set (lhs := x) end.
-    rewrite bimap_ktree_loop. (* a loop superposed atop another diagram can englob the latter *)
-    rewrite loop_bimap_ktree. (* as well as if the loop is under... But it takes a bit more rewiring! *)
-    rewrite <- compose_loop.   (* a loop append to diagrams can swallow them... *)
-    rewrite <- loop_compose.   (* ... from either side. *)
-    rewrite loop_loop.        (* Finally, two nested loop can be combined. *)
+    rewrite bimap_sktree_loop. (* a loop superposed atop another diagram can englob the latter *)
+    rewrite loop_bimap_sktree. (* as well as if the loop is under... But it takes a bit more rewiring! *)
+    rewrite <- compose_sloop.   (* a loop append to diagrams can swallow them... *)
+    rewrite <- sloop_compose.   (* ... from either side. *)
+    rewrite sloop_sloop.       (* Finally, two nested loop can be combined. *)
 
     subst lhs.
     (* Remain now to relate the bodies of the loops on each side. *)
     (* First by some more equational reasoning. *)
-    rewrite <- (loop_rename_internal' swap swap).
+    rewrite <- (sloop_rename_internal' swap swap).
     2: apply swap_involutive; typeclasses eauto.
-    apply eq_ktree_loop.
+    apply eq_sktree_sloop.
     rewrite !cat_assoc; try typeclasses eauto.
-    rewrite <- !sym_ktree_unfold, !assoc_l_ktree, !assoc_r_ktree, !bimap_lift_id, !bimap_id_lift, !compose_lift_ktree_l, compose_lift_ktree.
+    rewrite <- !sym_sktree_unfold, !assoc_l_sktree, !assoc_r_sktree, !bimap_slift_id, !bimap_id_slift, !compose_lift_sktree_l, compose_lift_sktree.
 
     (* And finally a case analysis on the label provided. *)
-    unfold cat, Cat_ktree, ITree.cat, lift_ktree.
-    intro x. rewrite bind_ret; simpl.
-    destruct x as [[|]|[|]]; cbn.
-    (* ... *)
-    all: unfold cat, Cat_ktree, ITree.cat.
-    all: try rewrite bind_bind.
-    all: unfold _app_B, _app_D.
-    all: rewrite fmap_block_map.
-    all: unfold ITree.map.
-    all: apply eutt_bind; try reflexivity.
-    all: intros []; rewrite (itree_eta (ITree.bind _ _)); cbn; reflexivity.
-  Qed.
+    (* TODO Things get wonky here with sktrees *)
+    unfold cat, Cat_sktree, cat, Cat_ktree, Cat_iFun, ITree.cat, lift_sktree, lift_ktree.
+    intro x; unfold denote_b; simpl.
+    rewrite bind_ret; simpl.
+    repeat match goal with
+           | |- context[match ?pat with | _ => _ end] => destruct pat eqn:?EQ
+           end; cbn.
+
+    (*
+    {
+      all: unfold _app_B, _app_D.
+      all: rewrite fmap_block_map.
+      all: unfold ITree.map.
+      unfold compose.
+      rewrite !unfold_bimap_iFun.
+      rewrite !unfold_assoc_r_iFun.
+      rewrite !unfold_assoc_l_iFun.
+      unfold case_, case_isum.
+      unfold inl_, isum_inl.
+      unfold inr_, isum_inr.
+      cbn.
+      Set Printing Implicit.
+      unfold bimap, Bimap_Coproduct.
+      unfold case_, Case_sktree_, Case_sktree, case_isum; cbn.
+     *)      
+    (* (* ... *) *)
+    (* all: unfold cat, Cat_ktree, ITree.cat. *)
+    (* (* all: try rewrite bind_bind. *) *)
+    (* all: unfold _app_B, _app_D. *)
+    (* all: rewrite fmap_block_map. *)
+    (* all: unfold ITree.map. *)
+    (* all: apply eutt_bind; try reflexivity. *)
+    (* all: intros []; rewrite (itree_eta (ITree.bind _ _)); cbn; reflexivity. *)
+  Admitted.
 
   (** Correctness of the [relabel_asm] combinator.
       Its denotation is the same as denoting the original [asm],
       and composing it on both sides with the renaming functions
       lifted as [ktree]s.
    *)
-  Lemma relabel_bks_correct {A B C D} (f : A -> B) (g : C -> D)
+  Lemma relabel_bks_correct {A B C D} (f : F A -> F B) (g : F C -> F D)
              (bc : bks B C) :
     denote_b (relabel_bks f g bc)
-             ⩯ lift_ktree f >>> denote_b bc >>> lift_ktree g.
+             ⩯ lift_sktree f >>> denote_b bc >>> lift_sktree g.
   Proof.
-    rewrite lift_compose_ktree.
-    rewrite compose_ktree_lift.
+    rewrite lift_compose_sktree.
+    rewrite compose_sktree_lift.
     intro a.
     unfold denote_b, relabel_bks.
     rewrite fmap_block_map.
     reflexivity.
   Qed.
 
-  Theorem relabel_asm_correct {A B C D} (f : A -> B) (g : C -> D)
+  Theorem relabel_asm_correct {A B C D} (f : F A -> F B) (g : F C -> F D)
              (bc : asm B C) :
     denote_asm (relabel_asm f g bc)
-               ⩯ lift_ktree f >>> denote_asm bc >>> lift_ktree g.
+               ⩯ lift_sktree f >>> denote_asm bc >>> lift_sktree g.
   Proof.
     unfold denote_asm.
     simpl.
     rewrite relabel_bks_correct.
-    rewrite <- compose_loop.
-    rewrite <- loop_compose.
-    apply eq_ktree_loop.
-    rewrite !bimap_id_lift.
+    rewrite <- compose_sloop.
+    rewrite <- sloop_compose.
+    apply eq_sktree_sloop.
+    rewrite !bimap_id_slift.
     reflexivity.
   Qed.
 
@@ -387,14 +404,14 @@ Section Correctness.
       Linking is exactly looping, it hides internal labels/wires.
    *)
   Theorem link_asm_correct {I A B} (ab : asm (I + A) (I + B)) :
-    denote_asm (link_asm ab) ⩯ loop (denote_asm ab).
+    denote_asm (link_asm ab) ⩯ sloop (denote_asm ab).
   Proof.
     unfold denote_asm.
-    rewrite loop_loop.
-    apply eq_ktree_loop.
+    rewrite sloop_sloop.
+    apply eq_sktree_sloop.
     simpl.
     rewrite relabel_bks_correct.
-    rewrite <- assoc_l_ktree, <- assoc_r_ktree.
+    rewrite <- assoc_l_sktree, <- assoc_r_sktree.
     reflexivity.
   Qed.
 
