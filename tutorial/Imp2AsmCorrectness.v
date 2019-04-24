@@ -836,6 +836,23 @@ Qed.
 Definition TT {A B}: A -> B -> Prop  := fun _ _ => True.
 Hint Unfold TT.
 
+Lemma unique_F1 (r1 : Fin.t 1) : r1 = F1.
+Proof.
+  exact (match r1 in t n return match n as n return t n -> Prop with
+                                | 1 => fun r => r = F1
+                                | _ => fun _ => True
+                                end r1 with
+         | @F1 n => match n with
+                    | O => eq_refl
+                    | S _ => I
+                    end
+         | @FS n y => match y with
+                      | F1 => I
+                      | FS _ => I
+                      end
+         end).
+Qed.
+
   (** Correctness of the compiler.
       After interpretation of the [Locals], the source _Imp_ statement
       denoted as an [itree] and the compiled _Asm_ program denoted
@@ -879,8 +896,8 @@ Hint Unfold TT.
       eapply eq_locals_bind'.
       { eauto. }
       intros ? [] []; auto.
-      (* TODO Here we need to destruct r1, which can only be F1. However the dependency in the types get in the way *)
-      admit.
+      rewrite (unique_F1 r1) in *.
+      auto.
 
     - (* If *)
       (* We commute [denote_asm] with [if_asm] *)
