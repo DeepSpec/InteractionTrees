@@ -164,6 +164,14 @@ Ltac unfold_eqit :=
   (try match goal with [|- eqit_ _ _ _ _ _ _ _ ] => red end);
   (repeat match goal with [H: eqit_ _ _ _ _ _ _ _ |- _ ] => red in H end).
 
+Definition flip_clo {A B C} clo r := @flip A B C (clo (@flip B A C r)).
+
+Lemma eqitF_flip {E R1 R2} (RR : R1 -> R2 -> Prop) b1 b2 vclo r:
+  flip (eqitF (flip RR) b2 b1 (flip_clo vclo) (flip r)) <2= @eqitF E R1 R2 RR b1 b2 vclo r.
+Proof.
+  intros. induction PR; eauto.
+Qed.
+
 Lemma eqit_flip {E R1 R2} (RR : R1 -> R2 -> Prop) b1 b2:
   forall (u : itree E R1) (v : itree E R2),
     eqit (flip RR) b2 b1 v u -> eqit RR b1 b2 u v.
@@ -216,11 +224,12 @@ Hint Constructors eqit_trans_clo.
 Definition eqitC b1 b2 := eqit_trans_clo b1 b2 false false.
 Hint Unfold eqitC.
 
-Lemma eqitC_mon b1 b2 r1 r2
+Lemma eqitC_mon b1 b2 r1 r2 t1 t2
+      (IN: eqitC b1 b2 r1 t1 t2)      
       (LE: r1 <2= r2):
-  eqitC b1 b2 r1 <2= eqitC b1 b2 r2.
+  eqitC b1 b2 r2 t1 t2.
 Proof.
-  intros. destruct PR. econstructor; eauto.
+  destruct IN. econstructor; eauto.
 Qed.
 
 Hint Resolve eqitC_mon : paco.
