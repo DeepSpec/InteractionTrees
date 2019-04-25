@@ -84,52 +84,57 @@ Section eqit.
       pattern-matching is not allowed on [itree].
    *)
 
-  Inductive eqitF (b1 b2: bool) (hsim sim : itree E R1 -> itree E R2 -> Prop) :
+  Inductive eqitF (b1 b2: bool) vclo (sim : itree E R1 -> itree E R2 -> Prop) :
     itree' E R1 -> itree' E R2 -> Prop :=
   | EqRet r1 r2
        (REL: RR r1 r2):
-     eqitF b1 b2 hsim sim (RetF r1) (RetF r2)
+     eqitF b1 b2 vclo sim (RetF r1) (RetF r2)
   | EqTau m1 m2
         (REL: sim m1 m2):
-      eqitF b1 b2 hsim sim (TauF m1) (TauF m2)
+      eqitF b1 b2 vclo sim (TauF m1) (TauF m2)
   | EqVis {u} (e : E u) k1 k2
-        (REL: forall v, sim (k1 v) (k2 v) \/ hsim (k1 v) (k2 v)):
-      eqitF b1 b2 hsim sim (VisF e k1) (VisF e k2)
+        (REL: forall v, vclo sim (k1 v) (k2 v) : Prop):
+      eqitF b1 b2 vclo sim (VisF e k1) (VisF e k2)
   | EqTauL t1 ot2
         (CHECK: b1)
-        (REL: eqitF b1 b2 hsim sim (observe t1) ot2):
-      eqitF b1 b2 hsim sim (TauF t1) ot2
+        (REL: eqitF b1 b2 vclo sim (observe t1) ot2):
+      eqitF b1 b2 vclo sim (TauF t1) ot2
   | EqTauR ot1 t2
         (CHECK: b2)
-        (REL: eqitF b1 b2 hsim sim ot1 (observe t2)):
-      eqitF b1 b2 hsim sim ot1 (TauF t2)
+        (REL: eqitF b1 b2 vclo sim ot1 (observe t2)):
+      eqitF b1 b2 vclo sim ot1 (TauF t2)
   .
   Hint Constructors eqitF.
 
-  Definition eqit_ b1 b2 (hsim sim: itree E R1 -> itree E R2 -> Prop) :
+  Definition eqit_ b1 b2 vclo sim :
     itree E R1 -> itree E R2 -> Prop :=
-    fun t1 t2 => eqitF b1 b2 hsim sim (observe t1) (observe t2).
+    fun t1 t2 => eqitF b1 b2 vclo sim (observe t1) (observe t2).
   Hint Unfold eqit_.
 
   (** [eqitF] and [eqit_] are both monotone. *)
 
-  Lemma eqitF_mono b1 b2 x0 x1 (hsim hsim' sim sim' : itree E R1 -> itree E R2 -> Prop)
-        (IN: eqitF b1 b2 hsim sim x0 x1)
-        (LEh: forall x2 x3, hsim x2 x3 -> hsim' x2 x3 : Prop)
-        (LE: forall x2 x3, sim x2 x3 -> sim' x2 x3 : Prop):
-    eqitF b1 b2 hsim' sim' x0 x1.
+  Lemma eqitF_mono b1 b2 x0 x1 vclo vclo' sim sim'
+        (IN: eqitF b1 b2 vclo sim x0 x1)
+        (MON: monotone2 vclo)
+        (LEc: vclo <3= vclo')
+        (LE: sim <2= sim'):
+    eqitF b1 b2 vclo' sim' x0 x1.
   Proof.
     intros. induction IN; eauto.
-    econstructor. intros. edestruct REL; eauto.
   Qed.
 
-  Lemma eqit__mono b1 b2 hsim : monotone2 (eqit_ b1 b2 hsim).
+  Lemma eqit__mono b1 b2 vclo (MON: monotone2 vclo) : monotone2 (eqit_ b1 b2 vclo).
   Proof. do 2 red. intros. eapply eqitF_mono; eauto. Qed.
 
   Hint Resolve eqit__mono : paco.
+
+  Lemma eqit_idclo_mono: monotone2 (@id (itree E R1 -> itree E R2 -> Prop)).
+  Proof. unfold id. eauto. Qed.
+
+  Hint Resolve eqit_idclo_mono : paco.
   
   Definition eqit b1 b2 : itree E R1 -> itree E R2 -> Prop :=
-    paco2 (eqit_ b1 b2 bot2) bot2.
+    paco2 (eqit_ b1 b2 id) bot2.
 
   (** Strong bisimulation on itrees. If [eqit RR t1 t2],
       we say that [t1] and [t2] are (strongly) bisimilar. As hinted
@@ -140,7 +145,7 @@ Section eqit.
 
   Definition eutt := eqit true true.
 
-  Definition euttle := eqit false true.
+  Definition euttge := eqit true false.
 
 End eqit.
 
@@ -148,10 +153,12 @@ End eqit.
 Hint Constructors eqitF.
 Hint Unfold eqit_.
 Hint Resolve eqit__mono : paco.
+Hint Resolve eqit_idclo_mono : paco.
 Hint Unfold eqit.
 Hint Unfold eq_itree.
 Hint Unfold eutt.
-Hint Unfold euttle.
+Hint Unfold euttge.
+Hint Unfold id.
 
 Ltac unfold_eqit :=
   (try match goal with [|- eqit_ _ _ _ _ _ _ _ ] => red end);
@@ -188,7 +195,7 @@ Infix "≅" := (eq_itree eq) (at level 70) : itree_scope.
 
 Infix "≈" := (eutt eq) (at level 70) : itree_scope.
 
-Infix "≲" := (euttle eq) (at level 70) : itree_scope.
+Infix "≳" := (euttge eq) (at level 70) : itree_scope.
 
 Section eqit_closure.
   
@@ -201,7 +208,7 @@ Inductive eqit_trans_clo b1 b2 b1' b2' (r : itree E R1 -> itree E R2 -> Prop)
 | eqit_trans_clo_intro t1 t2 t1' t2'
       (EQVl: eqit eq b1 b1' t1 t1')
       (EQVr: eqit eq b2 b2' t2 t2')
-      (RELATED: r t1' t2')
+      (REL: r t1' t2')
   : eqit_trans_clo b1 b2 b1' b2' r t1 t2
 .
 Hint Constructors eqit_trans_clo.
@@ -209,13 +216,24 @@ Hint Constructors eqit_trans_clo.
 Definition eqitC b1 b2 := eqit_trans_clo b1 b2 false false.
 Hint Unfold eqitC.
 
-Lemma eqitC_wcompat b1 b2 gH (CLO: eqitC b1 b2 gH <2= gH) :
-  wcompatible2 (@eqit_ E R1 R2 RR b1 b2 gH) (eqitC b1 b2).
+Lemma eqitC_mon b1 b2 r1 r2
+      (LE: r1 <2= r2):
+  eqitC b1 b2 r1 <2= eqitC b1 b2 r2.
+Proof.
+  intros. destruct PR. econstructor; eauto.
+Qed.
+
+Hint Resolve eqitC_mon : paco.
+
+Lemma eqitC_wcompat b1 b2 vclo
+      (MON: monotone2 vclo)
+      (CMP: compose (eqitC b1 b2) vclo <3= compose vclo (eqitC b1 b2)):
+  wcompatible2 (@eqit_ E R1 R2 RR b1 b2 vclo) (eqitC b1 b2).
 Proof.
   econstructor. pmonauto.
   intros. dependent destruction PR.
   punfold EQVl. punfold EQVr. unfold_eqit.
-  hinduction RELATED before r; intros; clear t1' t2'.
+  hinduction REL before r; intros; clear t1' t2'.
   - remember (RetF r1) as x.
     hinduction EQVl before r; intros; subst; try inv Heqx; eauto.
     remember (RetF r3) as y.
@@ -231,9 +249,9 @@ Proof.
     remember (VisF e0 k3) as y.
     hinduction EQVr before r; intros; subst; try dependent destruction Heqy; try inv CHECK; eauto.
     econstructor. intros. pclearbot.
-    destruct (REL1 v).
-    + left. gclo. econstructor; eauto with paco.
-    + right. apply CLO. eauto.
+    eapply MON.
+    + apply CMP. econstructor; eauto.
+    + intros. apply gpaco2_clo, PR.
   - remember (TauF t1) as x.
     hinduction EQVl before r; intros; subst; try inv Heqx; try inv CHECK; eauto.
     pclearbot. punfold REL.
@@ -244,22 +262,24 @@ Qed.
 
 Hint Resolve eqitC_wcompat : paco.
 
-Lemma eqitC_bot_clo b1 b2: eqitC b1 b2 bot2 <2= bot2.
+Lemma eqit_idclo_compat b1 b2: compose (eqitC b1 b2) id <3= compose id (eqitC b1 b2).
 Proof.
-  intros. destruct PR. contradiction.
+  intros. apply PR.
 Qed.
-Hint Resolve eqitC_bot_clo : paco.
+Hint Resolve eqit_idclo_compat : paco.
 
 Lemma eqitC_dist b1 b2:
   forall r1 r2, eqitC b1 b2 (r1 \2/ r2) <2= (eqitC b1 b2 r1 \2/ eqitC b1 b2 r2).
 Proof.
-  intros. destruct PR. destruct RELATED; eauto.
+  intros. destruct PR. destruct REL; eauto.
 Qed.
 
 Hint Resolve eqitC_dist : paco.
 
-Lemma eqit_clo_trans b1 b2 gH (CLO: eqitC b1 b2 gH <2= gH) :
-  eqit_trans_clo b1 b2 false false <3= gupaco2 (eqit_ RR b1 b2 gH) (eqitC b1 b2).
+Lemma eqit_clo_trans b1 b2 vclo
+      (MON: monotone2 vclo)
+      (CMP: compose (eqitC b1 b2) vclo <3= compose vclo (eqitC b1 b2)):
+  eqit_trans_clo b1 b2 false false <3= gupaco2 (eqit_ RR b1 b2 vclo) (eqitC b1 b2).
 Proof.
   intros. destruct PR. gclo. econstructor; eauto with paco.
 Qed.
@@ -267,11 +287,134 @@ Qed.
 End eqit_closure.
 
 Hint Unfold eqitC.
+Hint Resolve eqitC_mon : paco.
 Hint Resolve eqitC_wcompat : paco.
-Hint Resolve eqitC_bot_clo : paco.
+Hint Resolve eqit_idclo_compat : paco.
 Hint Resolve eqitC_dist : paco.
 Arguments eqit_clo_trans : clear implicits.
 Hint Constructors eqit_trans_clo.
+
+(** ** Properties of relations *)
+
+(** Instances stating that we have equivalence relations. *)
+
+Section eqit_eq.
+
+(** *** Properties of relation transformers. *)
+
+Context {E : Type -> Type} {R : Type}.
+
+Local Notation eqit := (@eqit E R R eq).
+
+Global Instance Reflexive_eqitF b1 b2 (sim : itree E R -> itree E R -> Prop)
+: Reflexive sim -> Reflexive (eqitF eq b1 b2 id sim).
+Proof.
+  red. destruct x; constructor; eauto.
+Qed.
+
+Global Instance Symmetric_eqitF b (sim : itree E R -> itree E R -> Prop)
+: Symmetric sim -> Symmetric (eqitF eq b b id sim).
+Proof.
+  red. induction 2; constructor; subst; eauto.
+  intros. apply H. apply (REL v).
+Qed.
+
+Global Instance Reflexive_eqit_ b1 b2 (sim : itree E R -> itree E R -> Prop)
+: Reflexive sim -> Reflexive (eqit_ eq b1 b2 id sim).
+Proof. repeat red. reflexivity. Qed.
+
+Global Instance Symmetric_eqit_ b (sim : itree E R -> itree E R -> Prop)
+: Symmetric sim -> Symmetric (eqit_ eq b b id sim).
+Proof. repeat red; symmetry; auto. Qed.
+
+(** *** [eqit] is an equivalence relation *)
+
+Global Instance Reflexive_eqit_gen b1 b2 (r rg: itree E R -> itree E R -> Prop) :
+  Reflexive (gpaco2 (eqit_ eq b1 b2 id) (eqitC b1 b2) r rg).
+Proof.
+  gcofix CIH. gstep; intros.
+  repeat red. destruct (observe x); eauto with paco.
+Qed.
+
+Global Instance Reflexive_eqit b1 b2 : Reflexive (eqit b1 b2).
+Proof.
+  red; intros. ginit. apply Reflexive_eqit_gen.
+Qed.
+
+Global Instance Symmetric_eqit b : Symmetric (eqit b b).
+Proof.
+  red; intros. apply eqit_flip.
+  eapply eqit_mon, H; eauto.
+  intros; subst. reflexivity.
+Qed.
+
+Global Instance Transitive_eqit (b: bool) : Transitive (eqit false b).
+Proof.
+  ginit. intros.
+  guclo eqit_clo_trans; eauto.
+  econstructor; [reflexivity|..]; eauto with paco.
+  apply eqit_flip. eapply eqit_mon, H1; eauto. intros; subst; reflexivity.
+Qed.
+
+Global Instance Equivalence_eqit : Equivalence (eqit false false).
+Proof.
+  constructor; try typeclasses eauto.
+Qed.
+
+(** *** Congruence properties *)
+
+Global Instance eqit_observe b1 b2:
+  Proper (eqit b1 b2 ==> going (eqit b1 b2)) (@observe E R).
+Proof.
+  constructor; punfold H.
+Qed.
+
+Global Instance eqit_tauF b1 b2:
+  Proper (eqit b1 b2 ==> going (eqit b1 b2)) (@TauF E R _).
+Proof.
+  constructor; pstep. econstructor. eauto.
+Qed.
+
+Global Instance eqit_VisF b1 b2 {u} (e: E u) :
+  Proper (pointwise_relation _ (eqit b1 b2) ==> going (eqit b1 b2)) (VisF e).
+Proof.
+  constructor; red in H. unfold eqit in *. pstep; econstructor; eauto.
+Qed.
+
+Global Instance observing_sub_eqit l r :
+  subrelation (observing eq) (eqit l r).
+Proof.
+  repeat red; intros. destruct H.
+  pstep. red. rewrite H. apply Reflexive_eqitF. left. apply reflexivity.
+Qed.
+
+Global Instance eq_sub_eqit:
+  subrelation (eqit false false) (eqit true false).
+Proof.
+  ginit. gcofix CIH. intros.
+  punfold H0. gstep. red in H0 |- *.
+  hinduction H0 before CIH; subst; econstructor; try inv CHECK; pclearbot; eauto 7 with paco.
+Qed.  
+
+Global Instance eqit_sub_eutt:
+  subrelation (eqit true false) (eqit true true).
+Proof.
+  ginit. gcofix CIH. intros.
+  punfold H0. gstep. red in H0 |- *.
+  hinduction H0 before CIH; subst; econstructor; pclearbot; eauto 7 with paco.
+Qed.  
+
+(** ** Eta-expansion *)
+
+Lemma itree_eta (t : itree E R) : t ≅ go (observe t).
+Proof. apply observing_sub_eqit. econstructor. reflexivity. Qed.
+
+Lemma itree_eta' (ot : itree' E R) : ot = observe (go ot).
+Proof. reflexivity. Qed.
+
+End eqit_eq.
+
+Hint Resolve Reflexive_eqit Reflexive_eqit_gen : reflexivity.
 
 (** *** One-sided inversion *)
 
@@ -329,128 +472,11 @@ Proof.
   intros. pstep. econstructor; eauto. punfold H.
 Qed.
 
-(** ** Properties of relations *)
-
-(** Instances stating that we have equivalence relations. *)
-
-Section eqit_eq.
-
-(** *** Properties of relation transformers. *)
-
-Context {E : Type -> Type} {R : Type}.
-
-Local Notation eqit := (@eqit E R R eq).
-
-Global Instance Reflexive_eqitF b1 b2 (sim : itree E R -> itree E R -> Prop)
-: Reflexive sim -> Reflexive (eqitF eq b1 b2 bot2 sim).
+Lemma tau_eutt {E R} (t: itree E R) :
+  Tau t ≳ t.
 Proof.
-  red. destruct x; constructor; eauto.
+  apply eqit_tauL. reflexivity.
 Qed.
-
-Global Instance Symmetric_eqitF b (sim : itree E R -> itree E R -> Prop)
-: Symmetric sim -> Symmetric (eqitF eq b b bot2 sim).
-Proof.
-  red. induction 2; constructor; subst; eauto.
-  intros. destruct (REL v); try contradiction; eauto.
-Qed.
-
-Global Instance Reflexive_eqit_ b1 b2 (sim : itree E R -> itree E R -> Prop)
-: Reflexive sim -> Reflexive (eqit_ eq b1 b2 bot2 sim).
-Proof. repeat red. reflexivity. Qed.
-
-Global Instance Symmetric_eqit_ b (sim : itree E R -> itree E R -> Prop)
-: Symmetric sim -> Symmetric (eqit_ eq b b bot2 sim).
-Proof. repeat red; symmetry; auto. Qed.
-
-(** *** [eqit] is an equivalence relation *)
-
-Global Instance Reflexive_eqit_gen b1 b2 (r rg: itree E R -> itree E R -> Prop) :
-  Reflexive (gpaco2 (eqit_ eq b1 b2 bot2) (eqitC b1 b2) r rg).
-Proof.
-  repeat intro. eapply gpaco2_mon_bot; eauto with paco.
-  revert x. gcofix CIH. gstep; intros.
-  repeat red. destruct (observe x); eauto with paco.
-Qed.
-
-Global Instance Reflexive_eqit b1 b2 : Reflexive (eqit b1 b2).
-Proof.
-  red; intros. ginit. apply Reflexive_eqit_gen.
-Qed.
-
-Global Instance Symmetric_eqit b : Symmetric (eqit b b).
-Proof.
-  red; intros. apply eqit_flip.
-  eapply eqit_mon, H; eauto.
-  intros; subst. reflexivity.
-Qed.
-
-Global Instance Transitive_eqit (b: bool) : Transitive (eqit false b).
-Proof.
-  ginit. intros.
-  guclo eqit_clo_trans; eauto.
-  econstructor; [reflexivity|..]; eauto with paco.
-  apply eqit_flip. eapply eqit_mon, H1; eauto. intros; subst; reflexivity.
-Qed.
-
-Global Instance Equivalence_eqit : Equivalence (eqit false false).
-Proof.
-  constructor; try typeclasses eauto.
-Qed.
-
-(** *** Congruence properties *)
-
-Global Instance eqit_observe b1 b2:
-  Proper (eqit b1 b2 ==> going (eqit b1 b2)) (@observe E R).
-Proof.
-  constructor; punfold H.
-Qed.
-
-Global Instance eqit_tauF b1 b2:
-  Proper (eqit b1 b2 ==> going (eqit b1 b2)) (@TauF E R _).
-Proof.
-  constructor; pstep. econstructor. eauto.
-Qed.
-
-Global Instance eqit_VisF b1 b2 {u} (e: E u) :
-  Proper (pointwise_relation _ (eqit b1 b2) ==> going (eqit b1 b2)) (VisF e).
-Proof.
-  constructor; red in H. unfold eqit in *. pstep; econstructor; eauto.
-Qed.
-
-Global Instance observing_sub_eqit l r :
-  subrelation (observing eq) (eqit l r).
-Proof.
-  repeat red; intros. destruct H.
-  pstep. red. rewrite H. apply Reflexive_eqitF. left. apply reflexivity.
-Qed.
-
-Global Instance eq_sub_eqit l r:
-  subrelation (eqit false false) (eqit l r).
-Proof.
-  ginit. gcofix CIH. intros.
-  punfold H0. gstep. red in H0 |- *.
-  hinduction H0 before CIH; subst; econstructor; try inv CHECK; pclearbot; eauto 7 with paco.
-Qed.  
-
-Global Instance eqit_sub_eutt l r:
-  subrelation (eqit l r) (eqit true true).
-Proof.
-  ginit. gcofix CIH. intros.
-  punfold H0. gstep. red in H0 |- *.
-  hinduction H0 before CIH; subst; econstructor; pclearbot; eauto 7 with paco.
-Qed.  
-
-(** ** Eta-expansion *)
-
-Lemma itree_eta (t : itree E R) : t ≅ go (observe t).
-Proof. apply observing_sub_eqit. econstructor. reflexivity. Qed.
-
-Lemma itree_eta' (ot : itree' E R) : ot = observe (go ot).
-Proof. reflexivity. Qed.
-
-End eqit_eq.
-
-Hint Resolve Reflexive_eqit Reflexive_eqit_gen : reflexivity.
 
 (** ** Equations for core combinators *)
 
@@ -481,13 +507,27 @@ Proof.
   reflexivity.
 Qed.
 
+Instance euttge_gpaco {E R1 R2 RS} r rg:
+  Proper (euttge eq ==> euttge eq ==> flip impl)
+         (gpaco2 (@eqit_ E R1 R2 RS true true id) (eqitC true true) r rg).
+Proof.
+  repeat intro. guclo eqit_clo_trans.
+Qed.
+
 Instance eqit_gpaco {E R1 R2 RS} b1 b2 r rg:
   Proper (eq_itree eq ==> eq_itree eq ==> flip impl)
-         (gpaco2 (@eqit_ E R1 R2 RS b1 b2 bot2) (eqitC b1 b2) r rg).
+         (gpaco2 (@eqit_ E R1 R2 RS b1 b2 id) (eqitC b1 b2) r rg).
 Proof.
   repeat intro. guclo eqit_clo_trans. econstructor; cycle -1; eauto.
   - eapply eqit_mon, H; eauto; discriminate.
   - eapply eqit_mon, H0; eauto; discriminate.
+Qed.
+
+Instance euttge_eqit {E R}:
+  Proper (euttge eq ==> euttge eq ==> flip impl)
+         (@eqit E R R eq true true).
+Proof.
+  ginit. intros. rewrite H1, H0. gfinal. eauto.
 Qed.
 
 Instance eqit_eqit {E R} b1 b2:
@@ -522,7 +562,7 @@ Lemma eqit_Vis b1 b2 {U} (e : E U)
   <-> eqit RR b1 b2 (Vis e k1) (Vis e k2).
 Proof.
   split; intros H.
-  - pstep. econstructor. left. left. eapply H.
+  - pstep. econstructor. left. apply H.
   - punfold H. inv H; auto_inj_pair2; subst; auto.
     intros. pclearbot. eauto.
 Qed.
@@ -546,15 +586,22 @@ Inductive eqit_bind_clo b1 b2 (r : itree E R1 -> itree E R2 -> Prop) :
 .
 Hint Constructors eqit_bind_clo.
 
-Lemma eqit_clo_bind b1 b2: eqit_bind_clo b1 b2 <3= gupaco2 (eqit_ RR b1 b2 bot2) (eqitC b1 b2).
+Lemma eqit_clo_bind b1 b2 vclo
+      (MON: monotone2 vclo)
+      (CMP: compose (eqitC b1 b2) vclo <3= compose vclo (eqitC b1 b2))      
+      (ID: id <3= vclo):
+  eqit_bind_clo b1 b2 <3= gupaco2 (eqit_ RR b1 b2 vclo) (eqitC b1 b2).
 Proof.
   gcofix CIH. intros. destruct PR.
-  do 2 rewrite (itree_eta (x <- _;; _ x)), unfold_bind_.
+  guclo eqit_clo_trans.
+  econstructor; try (rewrite (itree_eta (x <- _;; _ x)), unfold_bind_; reflexivity).
   punfold EQV. unfold_eqit.
   hinduction EQV before CIH; intros; pclearbot.
-  - rewrite <- !itree_eta. eauto with paco.
+  - guclo eqit_clo_trans.
+    econstructor; try (rewrite <- !itree_eta; reflexivity).
+    eauto with paco.
   - gstep. econstructor. eauto with paco.
-  - gstep. econstructor. left. eauto with paco.
+  - gstep. econstructor. eauto 7 with paco.
   - destruct b1; try discriminate.
     guclo eqit_clo_trans. econstructor; cycle -1; eauto; try reflexivity.
     eapply eqit_tauL. rewrite unfold_bind_, <-itree_eta. reflexivity.
