@@ -45,238 +45,141 @@ Import ITreeNotations.
 Local Open Scope itree.
 (* end hide *)
 
-Hint Unfold flip.
-
-Lemma simpobs {E R} {ot} {t: itree E R} (EQ: ot = observe t): t ≅ go ot.
-Proof.
-  pstep. repeat red. simpobs. simpl. subst. pstep_reverse. apply Reflexive_eqit.
-Qed.
-
-Lemma eqit_trans {E R} b (t1 t2 t3: itree E R)
-      (REL1: eqit eq b false t1 t2)
-      (REL2: eqit eq b false t2 t3):
-  eqit eq b false t1 t3.
-Proof.
-  ginit. guclo eqit_clo_trans; eauto.
-  econstructor; eauto with paco. reflexivity.
-Qed.
-
-Lemma eutt_trans {E R} (t1 t2 t3: itree E R)
-      (INL: t1 ≈ t2)
-      (INR: t2 ≈ t3):
-  t1 ≈ t3.
-Proof.
-  revert_until R. pcofix CIH. intros.
-  pstep. punfold INL. punfold INR. red in INL, INR |- *. genobs_clear t3 ot3.
-  hinduction INL before CIH; intros; subst; clear t1 t2; eauto.
-  - remember (RetF r2) as ot.
-    hinduction INR before CIH; intros; inv Heqot; eauto with paco.
-  - assert (DEC: (exists m3, ot3 = TauF m3) \/ (forall m3, ot3 <> TauF m3)).
-    { destruct ot3; eauto; right; red; intros; inv H. }
-    destruct DEC as [EQ | EQ].
-    + destruct EQ as [m3 ?]; subst.
-      econstructor. right. pclearbot. eapply CIH; eauto with paco.
-      eapply eqit_inv_tauL. eapply eqit_inv_tauR. eauto.
-    + inv INR; try (exfalso; eapply EQ; eauto; fail).
-      econstructor; eauto.
-      pclearbot. punfold REL. red in REL.
-      hinduction REL0 before CIH; intros; try (exfalso; eapply EQ; eauto; fail).
-      * subst. eapply eqitF_mono; eauto. intros.
-        eapply upaco2_mon; eauto; contradiction.
-      * remember (VisF e k1) as ot.
-        hinduction REL0 before CIH; intros; dependent destruction Heqot; eauto with paco.
-        econstructor. intros. right.
-        destruct (REL v), (REL0 v); try contradiction. eauto.
-      * eapply IHREL0; eauto. pstep_reverse.
-        apply eqit_inv_tauR. eauto.
-  - remember (VisF e k2) as ot.
-    hinduction INR before CIH; intros; dependent destruction Heqot; eauto.
-    econstructor. intros.
-    destruct (REL v), (REL0 v); try contradiction; eauto.
-  - remember (TauF t0) as ot.
-    hinduction INR before CIH; intros; dependent destruction Heqot; eauto.
-    eapply IHINL. pclearbot. punfold REL.
-Qed.
-
-Instance eutt_gpaco {E R}:
-  Proper (eutt eq ==> eutt eq ==> flip impl)
-         (@eqit E R R eq true true).
-Proof.
-  repeat intro. eapply eutt_trans; eauto.
-  eapply eutt_trans; eauto. symmetry.  eauto.
-Qed.
-
-Instance euttge_gpaco {E R}:
-  Proper (euttge eq ==> euttge eq ==> flip impl)
-         (@eqit E R R eq true true).
-Proof.
-  repeat intro. eapply eutt_gpaco; eauto; apply eqit_sub_eutt; eauto.
-Qed.
-
-Instance eq_gpaco {E R}:
-  Proper (eq_itree eq ==> eq_itree eq ==> flip impl)
-         (@eqit E R R eq true true).
-Proof.
-  repeat intro. eapply euttge_gpaco; eauto; apply eq_sub_eqit; eauto.
-Qed.
-
 Section EUTTG.
 
 Context {E : Type -> Type} {R1 R2 : Type} (RR : R1 -> R2 -> Prop).
 
-Definition transH := @eqit_trans_clo E R1 R2 true true true true.
-Definition transL := @eqit_trans_clo E R1 R2 true true false false.
+Definition transU := @eqit_trans_clo E R1 R2 true true true true.
+Definition transD := @eqit_trans_clo E R1 R2 true true false false.
+Definition bindC := @eqit_bind_clo E R1 R2 true true.
 
-(* Definition eqitCP r x := @eqitC E R1 R2 true true (x \2/ r). *)
-
-Definition euttGC gH r :=
-  transH (gupaco2 (eqit_ RR true true id) (eqitC true true) (transH (r \2/ gH))).
+Definition euttVC gH r :=
+  transU (gupaco2 (eqit_ RR true true id) (eqitC true true) (transU (r \2/ gH))).
 
 Variant euttG rH rL gL gH t1 t2 : Prop :=
 | euttG_intro
-    (IN: gpaco2 (@eqit_ E R1 R2 RR true true (euttGC gH))
+    (IN: gpaco2 (@eqit_ E R1 R2 RR true true (euttVC gH))
                 (eqitC true true)
-                (transH rH \2/ transL rL)
-                (transH rH \2/ transL rL \2/ transL gL) t1 t2)
+                (transU rH \2/ transD rL)
+                (transU rH \2/ transD rL \2/ transD gL) t1 t2)
 .
-Hint Constructors euttG.
-Hint Unfold transH transL.
 
-Lemma transL_mon r1 r2 t1 t2
-      (IN: transL r1 t1 t2)
+Hint Unfold transU transD bindC euttVC.
+Hint Constructors euttG.
+
+Lemma transD_mon r1 r2 t1 t2
+      (IN: transD r1 t1 t2)
       (LE: r1 <2= r2):
-  transL r2 t1 t2.
+  transD r2 t1 t2.
 Proof. eapply eqitC_mon, LE; eauto. Qed.
 
-Lemma transH_mon r1 r2 t1 t2
-      (IN: transH r1 t1 t2)
+Lemma transU_mon r1 r2 t1 t2
+      (IN: transU r1 t1 t2)
       (LE: r1 <2= r2):
-  transH r2 t1 t2.
+  transU r2 t1 t2.
 Proof.
   destruct IN. econstructor; eauto.
 Qed.
 
-Lemma euttGC_mon gH:
-  monotone2 (euttGC gH).
-Proof.
-  red; intros. eapply transH_mon; eauto. intros.
-  eapply gupaco2_mon; eauto. intros.
-  eapply transH_mon; eauto. intros.
-  destruct PR1; eauto.
-Qed.
-Hint Resolve euttGC_mon : paco.
-
-Lemma transL_transH: transL <3= transH.
+Lemma transDleU: transD <3= transU.
 Proof.
   intros. destruct PR. econstructor; eauto using eqit_mon.
 Qed.
 
-Lemma transH_transL_merge rH t1 t2:
-  (transH rH \2/ transL rH) t1 t2 <-> transH rH t1 t2.
-Proof.
-  split; intros; eauto.
-  destruct H; eauto using transL_transH.
-Qed.
-
-Lemma transH_transH_merge rH t1 t2:
-  (transH rH \2/ transH rH) t1 t2 <-> transH rH t1 t2.
-Proof.
-  split; intros; eauto.
-  destruct H; eauto.
-Qed.
-
-Lemma transL_compose:
-  compose transL transL <3= transL.
+Lemma transD_compose:
+  compose transD transD <3= transD.
 Proof.
   intros. destruct PR. destruct REL.
   econstructor; cycle -1; eauto; eapply eqit_trans; eauto using eqit_mon.
 Qed.
 
-Lemma transH_compose:
-  compose transH transH <3= transH.
+Lemma transU_compose:
+  compose transU transU <3= transU.
 Proof.
   intros. destruct PR. destruct REL.
   econstructor; cycle -1; eauto; eapply eutt_trans; eauto using eqit_mon.
 Qed.
 
-Hint Resolve transL_mon transH_mon : paco.
+Hint Resolve transD_mon transU_mon : paco.
 
-Lemma euttGC_compat gH:
-  compose (eqitC true true) (euttGC gH) <3= compose (euttGC gH) (eqitC true true).
+Lemma euttVC_mon gH:
+  monotone2 (euttVC gH).
 Proof.
-  intros. apply transH_compose. apply transL_transH.
-  eapply transL_mon; eauto. intros.
-  eapply transH_mon; eauto. intros.
+  red; intros. eapply transU_mon; eauto. intros.
+  eapply gupaco2_mon; eauto. intros.
+  eapply transU_mon; eauto. intros.
+  destruct PR1; eauto.
+Qed.
+Hint Resolve euttVC_mon : paco.
+
+Lemma euttVC_compat gH:
+  compose (eqitC true true) (euttVC gH) <3= compose (euttVC gH) (eqitC true true).
+Proof.
+  intros. apply transU_compose. apply transDleU.
+  eapply transD_mon; eauto. intros.
+  eapply transU_mon; eauto. intros.
   eapply gupaco2_mon; eauto; intros.
-  eapply transH_mon; eauto. intros.
+  eapply transU_mon; eauto. intros.
   destruct PR3; eauto.
   left. econstructor; eauto; reflexivity.
 Qed.
-Hint Resolve euttGC_compat : paco.
+Hint Resolve euttVC_compat : paco.
 
-Lemma euttGC_id gH:
-  id <3= euttGC gH.
+Lemma euttVC_id gH:
+  id <3= euttVC gH.
 Proof.
   intros. econstructor; try reflexivity. gbase. econstructor; eauto; reflexivity.
 Qed.
-Hint Resolve euttGC_id : paco.
+Hint Resolve euttVC_id : paco.
 
-Global Instance euttge_euttG rH rL gL gH:
+Global Instance euttG_cong_euttge rH rL gL gH:
   Proper (euttge eq ==> euttge eq ==> flip impl)
          (euttG rH rL gL gH).
 Proof.
   repeat intro. econstructor. destruct H1. guclo eqit_clo_trans.
 Qed.
-
-Global Instance eq_euttG rH rL gL gH:
+Global Instance euttG_cong_eq rH rL gL gH:
   Proper (eq_itree eq ==> eq_itree eq ==> flip impl)
          (euttG rH rL gL gH).
 Proof.
-  repeat intro. eapply euttge_euttG; eauto; apply eq_sub_eqit; eauto.
+  repeat intro. eapply euttG_cong_euttge; eauto; apply eq_sub_eqit; eauto.
 Qed.
 
-Global Instance euttge_euttG_ gH r g:
+Global Instance geuttG_cong_euttge gH r g:
   Proper (euttge eq ==> euttge eq ==> flip impl)
-         (gpaco2 (eqit_ RR true true (euttGC gH)) (eqitC true true) r g).
+         (gpaco2 (eqit_ RR true true (euttVC gH)) (eqitC true true) r g).
 Proof.
   repeat intro. guclo eqit_clo_trans. 
 Qed.
-
-Global Instance eq_euttG_ gH r g:
+Global Instance geuttG_cong_eq gH r g:
   Proper (eq_itree eq ==> eq_itree eq ==> flip impl)
-         (gpaco2 (eqit_ RR true true (euttGC gH)) (eqitC true true) r g).
+         (gpaco2 (eqit_ RR true true (euttVC gH)) (eqitC true true) r g).
 Proof.
-  repeat intro. eapply euttge_euttG_; eauto; apply eq_sub_eqit; eauto.
+  repeat intro. eapply geuttG_cong_euttge; eauto using eqit_mon.
 Qed.
 
 End EUTTG.
 
+Hint Unfold transU transD bindC euttVC.
 Hint Constructors euttG.
-Hint Unfold transH transL.
-Hint Resolve euttGC_mon : paco.
-Hint Resolve euttGC_compat : paco.
-Hint Resolve euttGC_id : paco.
+Hint Resolve transD_mon transU_mon : paco.
+Hint Resolve euttVC_mon : paco.
+Hint Resolve euttVC_compat : paco.
+Hint Resolve euttVC_id : paco.
 
-Section Lemmas.
+Section EUTTG_Properties1.
 
 Context {E : Type -> Type} {R1 R2 : Type} (RR : R1 -> R2 -> Prop).
 
-Lemma rclo_transL r:
-  rclo2 transL r <2= @transL E R1 R2 r.
+Local Notation euttG := (@euttG E R1 R2 RR).
+
+Lemma rclo_transD r:
+  rclo2 transD r <2= @transD E R1 R2 r.
 Proof.
   intros. induction PR.
   - econstructor; eauto; reflexivity.
   - destruct IN. apply H in REL. destruct REL.
     econstructor; cycle -1; eauto using eqit_trans.
-Qed.
-
-Lemma rclo_transH r:
-  rclo2 transH r <2= @transH E R1 R2 r.
-Proof.
-  intros. induction PR.
-  - econstructor; eauto; reflexivity.
-  - destruct IN. apply H in REL. destruct REL.
-    econstructor; cycle -1; eauto; eapply eutt_trans; eauto.
 Qed.
 
 Lemma rclo_flip clo (r: itree E R1 -> itree E R2 -> Prop)
@@ -287,31 +190,30 @@ Proof.
   apply rclo2_clo; eauto.
 Qed.
 
-
-Lemma transL_flip r:
-  flip (transL (flip r)) <2= @transL E R1 R2 r.
+Lemma transD_flip r:
+  flip (transD (flip r)) <2= @transD E R1 R2 r.
 Proof.
   intros. destruct PR. econstructor; cycle -1; eauto.
 Qed.
 
-Lemma transH_flip r:
-  flip (transH (flip r)) <2= @transH E R1 R2 r.
+Lemma transU_flip r:
+  flip (transU (flip r)) <2= @transU E R1 R2 r.
 Proof.
   intros. destruct PR. econstructor; cycle -1; eauto.
 Qed.
 
 Lemma eqitC_flip r:
   flip (eqitC true true (flip r)) <2= @eqitC E R1 R2 true true r.
-Proof. eapply transL_flip. Qed.
+Proof. eapply transD_flip. Qed.
 
-Lemma euttGC_flip gH r:
-  flip (euttGC (flip RR) (flip gH) (flip r)) <2= @euttGC E R1 R2 RR gH r.
+Lemma euttVC_flip gH r:
+  flip (euttVC (flip RR) (flip gH) (flip r)) <2= @euttVC E R1 R2 RR gH r.
 Proof.
-  intros. eapply transH_flip. eapply transH_mon; eauto.
+  intros. eapply transU_flip. eapply transU_mon; eauto.
   gcofix CIH. intros. gunfold PR0. econstructor.
   eapply rclo_flip; eauto with paco.
   eapply rclo2_mon_gen; eauto using eqitC_flip. intros.
-  destruct PR1; eauto using transH_flip.
+  destruct PR1; eauto using transU_flip.
   left. pstep. apply eqitF_flip.
   eapply eqitF_mono; eauto with paco. intros.
   apply rclo2_base. right. left. eapply CIH.
@@ -319,13 +221,9 @@ Proof.
   destruct PR1; eauto. destruct PR2; eauto.
 Qed.
 
-End Lemmas.
-
-Hint Resolve transL_mon transH_mon : paco.
-
-Lemma euttG_flip {E R1 R2 RR} gH r:
-  flip (gupaco2 (eqit_ (flip RR) true true (euttGC (flip RR) (flip gH))) (eqitC true true) (flip r)) <2=
-  gupaco2 (@eqit_ E R1 R2 RR true true (euttGC RR gH)) (eqitC true true) r.
+Lemma euttG_flip gH r:
+  flip (gupaco2 (eqit_ (flip RR) true true (euttVC (flip RR) (flip gH))) (eqitC true true) (flip r)) <2=
+  gupaco2 (@eqit_ E R1 R2 RR true true (euttVC RR gH)) (eqitC true true) r.
 Proof.
   gcofix CIH; intros.
   destruct PR. econstructor.
@@ -334,7 +232,7 @@ Proof.
   destruct PR; eauto.
   left. punfold H. pstep. apply eqitF_flip.
   eapply eqitF_mono; eauto with paco; intros.
-  - eapply euttGC_flip. apply PR.
+  - eapply euttVC_flip. apply PR.
   - apply rclo_flip; eauto with paco.
     eapply rclo2_mon_gen; eauto using eqitC_flip with paco.
     intros. right. left. destruct PR0.
@@ -342,7 +240,7 @@ Proof.
     + apply CIH0. destruct H0; eauto.
 Qed.
 
-Lemma eqit_ret_gen {E R} t1 v
+Lemma eqit_ret_gen {R} t1 v
       (IN: @eqit E R R eq true true t1 (Ret v)):
   eqit eq true false t1 (Ret v).
 Proof.
@@ -351,26 +249,20 @@ Proof.
   hinduction IN before R; intros; subst; eauto; inv Heqot.
 Qed.
 
-Section EUTTG_Properties.
-
-Context {E : Type -> Type} {R1 R2 : Type} (RR : R1 -> R2 -> Prop).
-
-Local Notation euttG := (@euttG E R1 R2 RR).
-
-Lemma euttG_transH_auxL gH r t1 t2 t'
-      (CLOR: transH r <2= r)
+Lemma euttG_transU_auxL gH r t1 t2 t'
+      (CLOR: transU r <2= r)
       (EQ: t1 ≈ t')
-      (REL: gupaco2 (@eqit_ E _ _ RR true true (euttGC RR gH)) (eqitC true true) r t' t2):
-  gupaco2 (eqit_ RR true true (euttGC RR gH)) (eqitC true true) r t1 t2.
+      (REL: gupaco2 (@eqit_ E _ _ RR true true (euttVC RR gH)) (eqitC true true) r t' t2):
+  gupaco2 (eqit_ RR true true (euttVC RR gH)) (eqitC true true) r t1 t2.
 Proof.
   apply gpaco2_dist in REL; eauto with paco. destruct REL; cycle 1.
-  { apply rclo_transL in H.
-    gbase. apply CLOR. apply transH_compose.
-    econstructor; eauto using transL_transH; reflexivity.
+  { apply rclo_transD in H.
+    gbase. apply CLOR. apply transU_compose.
+    econstructor; eauto using transDleU; reflexivity.
   }
-  assert (REL: paco2 (eqit_ RR true true (euttGC RR gH)) r t' t2).
+  assert (REL: paco2 (eqit_ RR true true (euttVC RR gH)) r t' t2).
   { eapply paco2_mon; eauto. intros.
-    apply rclo_transL in PR. apply CLOR.
+    apply rclo_transD in PR. apply CLOR.
     destruct PR, REL; econstructor; eauto using eqit_mon.
   }
   clear H.
@@ -398,10 +290,10 @@ Proof.
       remember (VisF e k1) as ot. genobs m1 om1.
       hinduction REL0 before CIH; intros; subst; try dependent destruction Heqot.
       * gstep. red. simpobs. econstructor; eauto. simpobs. econstructor. intros.
-        pclearbot. apply transH_compose. econstructor; eauto; try reflexivity.
-        eapply transH_mon. apply REL0. intros.
+        pclearbot. apply transU_compose. econstructor; eauto; try reflexivity.
+        eapply transU_mon. apply REL0. intros.
         eapply gupaco2_mon; eauto. intros.
-        eapply transH_mon; eauto. intros.
+        eapply transU_mon; eauto. intros.
         destruct PR1; eauto.
         left. gfinal. destruct H; eauto.
         right. eapply paco2_mon; eauto.
@@ -413,10 +305,10 @@ Proof.
     hinduction REL0 before CIH; intros; subst; try dependent destruction Heqot.
     + gstep. red. simpobs. econstructor.
       intros. pclearbot.
-      apply transH_compose. econstructor; eauto; try reflexivity.
-      eapply transH_mon. apply REL. intros.
+      apply transU_compose. econstructor; eauto; try reflexivity.
+      eapply transU_mon. apply REL. intros.
       eapply gupaco2_mon. eauto. intros.
-      eapply transH_mon. eauto. intros.
+      eapply transU_mon. eauto. intros.
       destruct PR; eauto.
       destruct PR1; eauto.
       left. gfinal. destruct H; eauto.
@@ -434,7 +326,7 @@ Proof.
     + rewrite (simpobs Heqot0), tau_eutt. eauto.
 Qed.
 
-End EUTTG_Properties.
+End EUTTG_Properties1.
 
 Section EUTTG_Properties2.
 
@@ -442,34 +334,34 @@ Context {E : Type -> Type} {R1 R2 : Type} (RR : R1 -> R2 -> Prop).
 
 Local Notation euttG := (@euttG E R1 R2 RR).
 
-Lemma euttG_transH_auxR gH r t1 t2 t'
-      (CLOR: transH r <2= r)
+Lemma euttG_transU_auxR gH r t1 t2 t'
+      (CLOR: transU r <2= r)
       (EQ: t' ≈ t2)
-      (REL: gupaco2 (@eqit_ E _ _ RR true true (euttGC RR gH)) (eqitC true true) r t1 t'):
-  gupaco2 (eqit_ RR true true (euttGC RR gH)) (eqitC true true) r t1 t2.
+      (REL: gupaco2 (@eqit_ E _ _ RR true true (euttVC RR gH)) (eqitC true true) r t1 t'):
+  gupaco2 (eqit_ RR true true (euttVC RR gH)) (eqitC true true) r t1 t2.
 Proof.
   symmetry in EQ. apply euttG_flip.
-  eapply euttG_transH_auxL; eauto using transH_flip.
+  eapply euttG_transU_auxL; eauto using transU_flip.
   apply euttG_flip. eauto.
 Qed.
 
-Lemma euttG_transH_aux gH r
-      (CLOR: transH r <2= r):
-  transH (gupaco2 (eqit_ RR true true (euttGC RR gH)) (eqitC true true) r) <2= 
-  gupaco2 (@eqit_ E R1 R2 RR true true (euttGC RR gH)) (eqitC true true) r.
+Lemma euttG_transU_aux gH r
+      (CLOR: transU r <2= r):
+  transU (gupaco2 (eqit_ RR true true (euttVC RR gH)) (eqitC true true) r) <2= 
+  gupaco2 (@eqit_ E R1 R2 RR true true (euttVC RR gH)) (eqitC true true) r.
 Proof.
   intros. destruct PR. symmetry in EQVr.
-  eapply euttG_transH_auxL; eauto.
-  eapply euttG_transH_auxR; eauto.
+  eapply euttG_transU_auxL; eauto.
+  eapply euttG_transU_auxR; eauto.
 Qed.
 
-Lemma euttGC_gen gH r:
-  transH (gupaco2 (eqit_ RR true true (euttGC RR gH)) (eqitC true true) (transH (r \2/ gH)))
-  <2= @euttGC E R1 R2 RR gH r.
+Lemma euttVC_gen gH r:
+  transU (gupaco2 (eqit_ RR true true (euttVC RR gH)) (eqitC true true) (transU (r \2/ gH)))
+  <2= @euttVC E R1 R2 RR gH r.
 Proof.
   econstructor; try reflexivity.
   revert x0 x1 PR. gcofix CIH. intros.
-  eapply euttG_transH_aux in PR; eauto using transH_compose.
+  eapply euttG_transU_aux in PR; eauto using transU_compose.
   gunfold PR. econstructor.
   eapply rclo2_mon; eauto. intros.
   destruct PR0; eauto.
@@ -479,20 +371,18 @@ Proof.
     eapply gupaco2_mon; eauto.
     intros. destruct PR0; eauto.
   - econstructor. intros. apply rclo2_base. right. left. eapply CIH.
-    eapply transH_mon. apply REL. intros.
+    eapply transU_mon. apply REL. intros.
     gupaco. eapply gupaco2_mon_gen; eauto with paco; intros.
     + eapply eqitF_mono; eauto with paco.
-    + eapply euttG_transH_aux; eauto using transH_compose.
-      eapply transH_mon. apply PR1. intros.
+    + eapply euttG_transU_aux; eauto using transU_compose.
+      eapply transU_mon. apply PR1. intros.
       destruct PR2; cycle 1.
       * gbase. econstructor; try reflexivity; eauto.
       * eapply gupaco2_mon; eauto. intros.
         destruct PR2; eauto.
 Qed.
 
-(* Make new hypotheses *)
-
-Lemma euttG_coind: forall rH rL gL gH x,
+Lemma euttG_cofix_aux: forall rH rL gL gH x,
     (x <2= euttG rH rL (gL \2/ x) (gH \2/ x)) -> (x <2= euttG rH rL gL gH).
 Proof.
   econstructor. revert x0 x1 PR. gcofix CIH.
@@ -501,8 +391,8 @@ Proof.
   apply gpaco2_dist in IN; eauto with paco.
   destruct IN; cycle 1.
   { gbase. apply rclo2_dist in H0; eauto with paco.
-    destruct H0; apply rclo_transL in H0;
-      eauto using transH_compose, transL_compose, transL_transH.
+    destruct H0; apply rclo_transD in H0;
+      eauto using transU_compose, transD_compose, transDleU.
   }
   punfold H0. gstep. red in H0 |- *.
   induction H0; eauto.
@@ -510,29 +400,47 @@ Proof.
     + gbase. apply CIH1. gfinal. right.
       eapply paco2_mon; eauto. intros.
       repeat (apply rclo2_dist in PR; eauto with paco; destruct PR as [PR|PR]);
-        apply rclo_transL in PR; eauto 7 using transL_transH, transH_compose, transL_compose.
+        apply rclo_transD in PR; eauto 7 using transDleU, transU_compose, transD_compose.
     + repeat (apply rclo2_dist in H0; eauto with paco; destruct H0 as [H0|H0]);
-        apply rclo_transL in H0; eauto 8 using transL_transH, transH_compose, transL_compose with paco.
-      apply transL_compose in H0. gclo. eapply transL_mon; eauto. intros.
+        apply rclo_transD in H0; eauto 8 using transDleU, transU_compose, transD_compose with paco.
+      apply transD_compose in H0. gclo. eapply transD_mon; eauto. intros.
       destruct PR; eauto with paco.
       gbase. apply CIH0. right. econstructor; eauto; reflexivity.
   - econstructor. intros.
-    eapply transH_mon. apply REL. intros.
+    eapply transU_mon. apply REL. intros.
     eapply gupaco2_mon; eauto. intros.
-    eapply transH_mon; eauto. intros.
+    eapply transU_mon; eauto. intros.
     destruct PR1; [|destruct H0; eauto with paco].
     destruct H0.
     + left. gbase. apply CIH1. gfinal. right.
       eapply paco2_mon; eauto. intros.
       repeat (apply rclo2_dist in PR1; eauto with paco; destruct PR1 as [PR1|PR1]);
-        apply rclo_transL in PR1; eauto 7 using transL_transH, transH_compose, transL_compose.
+        apply rclo_transD in PR1; eauto 7 using transDleU, transU_compose, transD_compose.
     + left.
       repeat (apply rclo2_dist in H0; eauto with paco; destruct H0 as [H0|H0]);
-        apply rclo_transL in H0; eauto 8 using transL_transH, transH_compose, transL_compose with paco.
-      apply transL_compose in H0. gclo. eapply transL_mon; eauto. intros.
+        apply rclo_transD in H0; eauto 8 using transDleU, transU_compose, transD_compose with paco.
+      apply transD_compose in H0. gclo. eapply transD_mon; eauto. intros.
       destruct PR; eauto with paco.
       gbase. destruct PR1; eauto.
       apply CIH0. right. econstructor; eauto; reflexivity.
+Qed.
+
+End EUTTG_Properties2.
+
+Section EUTTG_principles.
+
+Context {E : Type -> Type} {R1 R2 : Type} (RR : R1 -> R2 -> Prop).
+
+Local Notation euttG := (@euttG E R1 R2 RR).
+
+(* Make new hypotheses *)
+
+Lemma euttG_cofix rH rL gL gH x
+      (OBG: forall gL' gH' (INCL: gL <2= gL') (CIHL: x <2= gL') (INCH: gH <2= gH') (CIHH: x <2= gH'), x <2= euttG rH rL gL' gH'):
+    x <2= euttG rH rL gL gH.
+Proof.
+  eapply euttG_cofix_aux; intros.
+  eapply OBG; eauto.
 Qed.
 
 (* Process itrees *)
@@ -544,15 +452,15 @@ Proof.
 Qed.
 
 Lemma euttG_bind: forall rH rL gL gH t1 t2,
-  eqit_bind_clo true true (euttG rH rL gL gH) t1 t2 -> euttG rH rL gL gH t1 t2.
+  bindC (euttG rH rL gL gH) t1 t2 -> euttG rH rL gL gH t1 t2.
 Proof.
   econstructor. guclo eqit_clo_bind.
   destruct H. econstructor; eauto.
   intros. edestruct REL; eauto.
 Qed.
 
-Lemma euttG_transL: forall rH rL gL gH t1 t2,
-  transL (euttG rH rL gL gH) t1 t2 -> euttG rH rL gL gH t1 t2.
+Lemma euttG_transD: forall rH rL gL gH t1 t2,
+  transD (euttG rH rL gL gH) t1 t2 -> euttG rH rL gL gH t1 t2.
 Proof.
   econstructor. guclo eqit_clo_trans.
   destruct H. econstructor; eauto.
@@ -561,16 +469,16 @@ Qed.
 
 (* Lose weak hypotheses after general rewriting *)
 
-Lemma euttG_transH rH rL gL gH t1 t2:
-  transH (euttG rH rH rH gH) t1 t2 -> euttG rH rL gL gH t1 t2.
+Lemma euttG_transU rH rL gL gH t1 t2:
+  transU (euttG rH rH rH gH) t1 t2 -> euttG rH rL gL gH t1 t2.
 Proof.
   intros.
-  cut (gupaco2 (eqit_ RR true true (euttGC RR gH)) (eqitC true true) (transH rH) t1 t2).
+  cut (gupaco2 (eqit_ RR true true (euttVC RR gH)) (eqitC true true) (transU rH) t1 t2).
   { intros. econstructor. eauto using gpaco2_mon. }
-  eapply euttG_transH_aux; eauto using transH_compose.
-  eapply transH_mon; eauto. intros. destruct PR.
+  eapply euttG_transU_aux; eauto using transU_compose.
+  eapply transU_mon; eauto. intros. destruct PR.
   eapply gpaco2_mon; eauto; intros;
-    repeat destruct PR as [PR|PR]; eauto using transL_transH.
+    repeat destruct PR as [PR|PR]; eauto using transDleU.
 Qed.
 
 (* Make a weakly guarded progress *)
@@ -590,9 +498,9 @@ Lemma euttG_vis: forall rH rL gL gH u (e: E u) k1 k2,
 Proof.
   econstructor. gstep. econstructor. intros.
   specialize (H v). destruct H.
-  apply euttGC_gen. econstructor; try reflexivity.
+  apply euttVC_gen. econstructor; try reflexivity.
   eapply gpaco2_mon_gen; eauto; intros; repeat destruct PR as [PR|PR];
-    eauto using gpaco2_clo, transL_transH, transH_mon with paco.
+    eauto using gpaco2_clo, transDleU, transU_mon with paco.
 Qed.
 
 (* Use available hypotheses *)
@@ -612,7 +520,7 @@ Lemma euttG_le_eutt:
   euttG bot2 bot2 bot2 bot2 <2= eutt RR.
 Proof.
   intros. destruct PR.
-  assert(paco2 (eqit_ RR true true (euttGC RR bot2)) bot2 x0 x1).
+  assert(paco2 (eqit_ RR true true (euttVC RR bot2)) bot2 x0 x1).
   { eapply gpaco2_init; eauto with paco.
     eapply gpaco2_mon; eauto; intros;
       repeat destruct PR as [PR|PR]; destruct PR; contradiction.
@@ -623,14 +531,14 @@ Proof.
   induction H0; pclearbot; eauto.
   econstructor; intros. specialize (REL v).
   right. apply CIH.
-  ginit. apply euttG_transH_aux.
+  ginit. apply euttG_transU_aux.
   { intros. destruct PR; contradiction. }
-  eapply transH_mon. apply REL. intros.
+  eapply transU_mon. apply REL. intros.
   gupaco. eapply gupaco2_mon_gen; eauto with paco; intros.
   - eapply eqitF_mono; eauto with paco.
-  - apply euttG_transH_aux.
+  - apply euttG_transU_aux.
     { intros. destruct PR1; contradiction. }
-    eapply transH_mon; eauto. intros.
+    eapply transU_mon; eauto. intros.
     pclearbot. gfinal. eauto.
 Qed.
 
@@ -643,4 +551,4 @@ Proof.
   - contradiction.
 Qed.
 
-End EUTTG_Properties2.
+End EUTTG_principles.
