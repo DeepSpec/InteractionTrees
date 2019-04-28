@@ -541,6 +541,16 @@ Proof.
     eapply IHINL. pclearbot. punfold REL.
 Qed.
 
+Global Instance Transitive_eutt {E R} : Transitive (@eutt E R R eq).
+Proof.
+  red; intros. eapply eutt_trans; eauto.
+Qed.
+
+Global Instance Equivalence_eutt {E R} : Equivalence (@eutt E R R eq).
+Proof.
+  constructor; try typeclasses eauto.
+Qed.
+
 Global Instance geuttgen_cong_eqit {E R1 R2 RS} b1 b2 r rg:
   Proper (eq_itree eq ==> eq_itree eq ==> flip impl)
          (gpaco2 (@eqit_ E R1 R2 RS b1 b2 id) (eqitC b1 b2) r rg).
@@ -711,7 +721,7 @@ Proof.
   econstructor; eauto with paco.
 Qed.
 
-Instance eqit_bind {E R S} b1 b2 :
+Global Instance eqit_bind {E R S} b1 b2 :
   Proper (pointwise_relation _ (eqit eq b1 b2) ==>
           eqit eq b1 b2 ==>
           eqit eq b1 b2) (@ITree.bind' E R S).
@@ -720,7 +730,7 @@ Proof.
   intros; subst; auto.
 Qed.
 
-Instance eqit_bind_ {E R S} b1 b2 k :
+Global Instance eqit_bind_ {E R S} b1 b2 k :
   Proper (going (eqit eq b1 b2) ==>
           eqit eq b1 b2) (@ITree._bind E R S k (@ITree.bind' E R S k)).
 Proof.
@@ -742,7 +752,7 @@ Proof.
   intros; pstep; constructor; auto.
 Qed.
 
-Instance eqit_eq_map {E R S} b1 b2 :
+Global Instance eqit_eq_map {E R S} b1 b2 :
   Proper (pointwise_relation _ eq ==>
           eqit eq b1 b2 ==>
           eqit eq b1 b2) (@ITree.map E R S).
@@ -807,3 +817,4 @@ Hint Rewrite @bind_map : itree.
 Hint Rewrite @map_ret : itree.
 Hint Rewrite @bind_ret2 : itree.
 Hint Rewrite @bind_bind : itree.
+

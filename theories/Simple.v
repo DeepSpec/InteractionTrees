@@ -262,7 +262,8 @@ End SimpleTheory.
 (** * Implementation *)
 
 From ITree Require
-     Eq.UpToTausEquivalence
+     Eq.Eq
+     Eq.UpToTaus
      Interp.InterpFacts
      Interp.RecursionFacts.
 

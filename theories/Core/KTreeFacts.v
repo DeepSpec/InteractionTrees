@@ -19,7 +19,8 @@ From ITree Require Import
      Basics.FunctionFacts
      Core.ITreeDefinition
      Core.KTree
-     Eq.UpToTausEquivalence.
+     Eq.Eq
+     Eq.UpToTaus.
 
 From ITree Require Export
      Core.KTreeBasicFacts.

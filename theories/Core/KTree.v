@@ -7,6 +7,7 @@ From ITree Require Import
      Basics.CategoryOps
      Basics.Function
      Core.ITreeDefinition
+     Eq.Eq
      Eq.UpToTaus.
 
 Import ITreeNotations.

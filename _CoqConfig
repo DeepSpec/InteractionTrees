@@ -23,8 +23,6 @@ theories/Eq.v
 theories/Eq/Shallow.v
 theories/Eq/Eq.v
 theories/Eq/UpToTaus.v
-theories/Eq/UpToTausCore.v
-theories/Eq/UpToTausEquivalence.v
 theories/Eq/SimUpToTaus.v
 theories/Eq/EqAxiom.v
 

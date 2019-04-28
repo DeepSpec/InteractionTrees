@@ -15,7 +15,8 @@ From ITree Require Import
      Basics.Function
      Core.ITreeDefinition
      Core.KTree
-     Eq.UpToTausEquivalence.
+     Eq.Eq
+     Eq.UpToTaus.
 
 Import ITreeNotations.
 Import CatNotations.
@@ -33,7 +34,7 @@ Lemma bind_aloop {E A B C} (f : A -> itree E A + B) (g : B -> itree E B + C): fo
        | inr b => apply_Fun (bimap (ITree.map inr) (id_ _)) (g b)
        end) (inl x).
 Proof.
-  gstep. gcofix CIH. intros.
+  einit. ecofix CIH. intros.
   rewrite !unfold_aloop'. unfold ITree._aloop.
   destruct (f x) as [t | b]; cbn.
   - unfold id. rewrite bind_tau. gstep. constructor.

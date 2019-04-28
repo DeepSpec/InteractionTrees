@@ -9,7 +9,7 @@ From ITree Require Import
      Basics.Category
      Core.ITreeDefinition
      Eq.Eq
-     Eq.UpToTausEquivalence
+     Eq.UpToTaus
      Indexed.Sum
      Indexed.Function
      Indexed.Relation

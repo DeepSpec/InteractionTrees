@@ -427,6 +427,8 @@ Qed.
 
 End EUTTG_Properties2.
 
+Require Import Paco.pacotac_internal.
+
 Section EUTTG_principles.
 
 Context {E : Type -> Type} {R1 R2 : Type} (RR : R1 -> R2 -> Prop).
@@ -436,7 +438,7 @@ Local Notation euttG := (@euttG E R1 R2 RR).
 (* Make new hypotheses *)
 
 Lemma euttG_cofix rH rL gL gH x
-      (OBG: forall gL' gH' (INCL: gL <2= gL') (CIHL: x <2= gL') (INCH: gH <2= gH') (CIHH: x <2= gH'), x <2= euttG rH rL gL' gH'):
+      (OBG: forall gL' (INCL: gL <2= gL') (CIHL: x <2= gL') gH' (INCH: gH <2= gH') (CIHH: x <2= gH'), x <2= euttG rH rL gL' gH'):
     x <2= euttG rH rL gL gH.
 Proof.
   eapply euttG_cofix_aux; intros.
@@ -542,13 +544,39 @@ Proof.
     pclearbot. gfinal. eauto.
 Qed.
 
-Lemma eutt_le_euttG:
-  eutt RR <2= euttG bot2 bot2 bot2 bot2.
+Lemma eutt_le_euttG rH rL gL gH:
+  eutt RR <2= euttG rH rL gL gH.
 Proof.
   intros. econstructor. econstructor. apply rclo2_base. left.
-  eapply paco2_mon_gen; eauto; intros.
-  - eapply eqitF_mono; eauto with paco.
-  - contradiction.
+  eapply paco2_mon_bot; eauto; intros.
+  eapply eqitF_mono; eauto with paco.
 Qed.
 
 End EUTTG_principles.
+
+Tactic Notation "ecofix" ident(CIH) "with" ident(gL) ident(gH) :=
+  repeat red;
+  paco_pre2; eapply euttG_cofix;
+  paco_post2 CIH with gL;
+  let INC := fresh "_paco_inc_" in
+  paco_post_match2 INC ltac:(paco_ren_r gH) paco_ren_pr;
+  let CIH := fresh CIH in intro CIH; paco_simp_hyp CIH;
+  let CIH' := fresh CIH in try rename INC into CIH'.
+
+Tactic Notation "ecofix" ident(CIH) := ecofix CIH with gL gH.
+
+Ltac eret := under_forall ltac:(eapply euttG_ret; eauto with paco).
+Ltac ebind := under_forall ltac:(eapply euttG_bind; eauto with paco).
+Ltac etransD := under_forall ltac:(eapply euttG_transD; eauto with paco).
+Ltac etransU := under_forall ltac:(eapply euttG_transU; eauto with paco).
+Ltac etau := under_forall ltac:(eapply euttG_tau; eauto with paco).
+Ltac evis := under_forall ltac:(eapply euttG_vis; eauto with paco).
+Ltac ebase := under_forall ltac:(eapply euttG_base; eauto with paco).
+Ltac einit := under_forall ltac:(eapply euttG_le_eutt; eauto with paco).
+Ltac efinal := under_forall ltac:(eapply eutt_le_euttG; eauto with paco).
+
+Hint Resolve euttG_ret : paco.
+Hint Resolve euttG_tau : paco.
+Hint Resolve euttG_vis : paco.
+Hint Resolve euttG_base : paco.
+Hint Resolve euttG_le_eutt: paco.

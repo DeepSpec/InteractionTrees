@@ -20,7 +20,8 @@ From ITree Require Import
      Basics.Basics
      Core.ITreeDefinition
      Core.KTree
-     Eq.UpToTausEquivalence
+     Eq.Eq
+     Eq.UpToTaus
      Indexed.Sum
      Indexed.Function
      Indexed.Relation
