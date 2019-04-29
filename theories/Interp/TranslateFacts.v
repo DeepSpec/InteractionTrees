@@ -31,7 +31,7 @@ Section TranslateFacts.
   Context {R : Type}.
   Context (h : E ~> F).
 
-Lemma unfold_translate : forall (t : itree E R),
+Lemma unfold_translate_ : forall (t : itree E R),
       observing eq
         (translate h t)
         (translateF h (fun t => translate h t) (observe t)).
@@ -39,31 +39,31 @@ Proof.
   intros t. econstructor. reflexivity.
 Qed.
 
-Lemma unfold_translate_ : forall (t : itree E R),
+Lemma unfold_translate : forall (t : itree E R),
     eq_itree eq
         (translate h t)
         (translateF h (fun t => translate h t) (observe t)).
 Proof.
-  intros. rewrite unfold_translate. reflexivity.
+  intros. rewrite unfold_translate_. reflexivity.
 Qed.
 
 Lemma translate_ret : forall (r:R), translate h (Ret r) ≅ Ret r.
 Proof.
   intros r.
-  rewrite itree_eta, unfold_translate_. cbn. reflexivity.
+  rewrite itree_eta, unfold_translate. cbn. reflexivity.
 Qed.
 
 Lemma translate_tau : forall (t : itree E R), translate h (Tau t) ≅ Tau (translate h t).
 Proof.
   intros t.
-  rewrite itree_eta, unfold_translate_. cbn. reflexivity.
+  rewrite itree_eta, unfold_translate. cbn. reflexivity.
 Qed.
 
 Lemma translate_vis : forall X (e:E X) (k : X -> itree E R),
     translate h (Vis e k) ≅ Vis (h _ e) (fun x => translate h (k x)).
 Proof.
   intros X e k.
-  rewrite itree_eta, unfold_translate_. cbn. reflexivity.
+  rewrite itree_eta, unfold_translate. cbn. reflexivity.
 Qed.
 
 Global Instance eq_itree_translate' :
@@ -71,7 +71,7 @@ Global Instance eq_itree_translate' :
 Proof.
   ginit. gcofix CIH.
   intros x y H.
-  rewrite itree_eta, (itree_eta (translate h y)), !unfold_translate_, <-!itree_eta.
+  rewrite itree_eta, (itree_eta (translate h y)), !unfold_translate, <-!itree_eta.
   punfold H. gstep. red in H |- *.
   destruct (observe x); dependent destruction H; try discriminate;
     pclearbot; simpobs; simpl; eauto 7 with paco.
@@ -82,7 +82,7 @@ Global Instance eq_itree_translateF :
          (translateF h (@translate _ _ h R)).
 Proof.
   repeat red. intros.
-  rewrite (itree_eta' x), (itree_eta' y), <- !unfold_translate_, H.
+  rewrite (itree_eta' x), (itree_eta' y), <- !unfold_translate, H.
   apply reflexivity.
 Qed.
 
@@ -95,9 +95,9 @@ Proof.
   revert S t k.
   ginit. gcofix CIH.
   intros s t k.
-  rewrite !unfold_translate_, !unfold_bind_.
+  rewrite !unfold_translate, !unfold_bind.
   genobs_clear t ot. destruct ot; cbn.
-  - rewrite unfold_translate_. apply reflexivity.
+  - rewrite unfold_translate. apply reflexivity.
   - gstep. constructor. eauto with paco.
   - gstep. constructor. eauto with paco.
 Qed.
@@ -110,7 +110,7 @@ Proof.
   intros t.
   rewrite itree_eta.
   rewrite (itree_eta t).
-  rewrite unfold_translate_.
+  rewrite unfold_translate.
   unfold translateF.
   destruct (observe t); cbn.
   - apply reflexivity.
@@ -127,7 +127,7 @@ Proof.
   revert t.
   ginit. gcofix CIH.
   intros t.
-  rewrite !unfold_translate_.
+  rewrite !unfold_translate.
   genobs_clear t ot. destruct ot; cbn.
   - apply reflexivity.
   - gstep. econstructor. gbase. apply CIH.
@@ -167,7 +167,7 @@ Instance eq_itree_translate {E F}
 Proof.
   intros f g Hfg T.
   ginit. gcofix CIH; rename r into rr; intros l r Hlr.
-  rewrite 2 unfold_translate_.
+  rewrite 2 unfold_translate.
   punfold Hlr; red in Hlr.
   destruct Hlr; cbn; try discriminate; pclearbot.
   - gstep. constructor; auto.
@@ -183,13 +183,13 @@ Proof.
   repeat red.
   intros until T.
   ginit. gcofix CIH. intros.
-  rewrite !unfold_translate_. punfold H1. red in H1.
+  rewrite !unfold_translate. punfold H1. red in H1.
   induction H1; intros; subst; simpl.
   - gstep. econstructor. eauto.
   - gstep. econstructor. pclearbot. eauto with paco.
   - gstep. rewrite H. econstructor. pclearbot. red. eauto 7 with paco.
-  - rewrite tau_eutt, unfold_translate_. eauto.
-  - rewrite tau_eutt, unfold_translate_. eauto.
+  - rewrite tau_eutt, unfold_translate. eauto.
+  - rewrite tau_eutt, unfold_translate. eauto.
 Qed.
 
 Instance eutt_translate' {E F : Type -> Type} {R : Type} (f : E ~> F) :

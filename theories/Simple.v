@@ -327,18 +327,22 @@ Lemma unfold_bind
   : forall {E R S} (t : itree E R) (k : R -> itree E S),
     ITree.bind t k
   ≈ ITree._bind k (fun t => ITree.bind t k) (observe t).
-Proof. intros; rewrite <- ITree.Eq.Shallow.unfold_bind; reflexivity. Qed.
+Proof. intros; rewrite <- ITree.Eq.Shallow.unfold_bind_; reflexivity. Qed.
 
 (** The next two are immediate corollaries of [unfold_bind]. *)
 Lemma bind_ret : forall {E R S} (r : R) (k : R -> itree E S),
     ITree.bind (Ret r) k ≈ k r.
-Proof. intros; rewrite ITree.Eq.Shallow.bind_ret; reflexivity. Qed.
+Proof. intros; rewrite ITree.Eq.Shallow.bind_ret_; reflexivity. Qed.
+
+Lemma bind_tau {E R} U t (k: U -> itree E R) :
+  ITree.bind (Tau t) k ≈ Tau (ITree.bind t k).
+Proof. rewrite bind_tau_. reflexivity. Qed.
 
 Lemma bind_vis
   : forall {E R} U V (e: E V) (ek: V -> itree E U) (k: U -> itree E R),
     ITree.bind (Vis e ek) k
   ≈ Vis e (fun x => ITree.bind (ek x) k).
-Proof. intros; rewrite ITree.Eq.Shallow.bind_vis; reflexivity. Qed.
+Proof. intros; rewrite ITree.Eq.Shallow.bind_vis_; reflexivity. Qed.
 
 Lemma bind_ret2 : forall {E R} (s : itree E R),
     ITree.bind s (fun x => Ret x) ≈ s.

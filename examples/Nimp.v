@@ -162,17 +162,17 @@ Proof.
   setoid_rewrite tau_eutt.
   setoid_rewrite interp_ret.
   setoid_rewrite bind_bind.
-  setoid_rewrite bind_ret_.
-  setoid_rewrite bind_vis_.
+  setoid_rewrite bind_ret.
+  setoid_rewrite bind_vis.
   evis. intros. 
-  setoid_rewrite bind_ret_.
+  setoid_rewrite bind_ret.
   destruct v.
   - setoid_rewrite interp_ret. apply reflexivity.
   - setoid_rewrite interp_bind.
     setoid_rewrite interp_recursive_call.
     setoid_rewrite tau_eutt.
     setoid_rewrite eval_skip.
-    setoid_rewrite bind_ret_.
+    setoid_rewrite bind_ret.
     eauto with paco.
 Qed.
 

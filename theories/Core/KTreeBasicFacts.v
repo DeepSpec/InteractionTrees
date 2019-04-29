@@ -43,19 +43,19 @@ Local Opaque ITree.bind' eqit.
 Lemma assoc_l_itree {E A B C} (x : A + (B + C)) :
   assoc_l_ A B C x ≅ @lift_ktree E (A + (B + C)) _ assoc_l x.
 Proof.
-  cbv; destruct x as [ | []]; try rewrite bind_ret_; reflexivity.
+  cbv; destruct x as [ | []]; try rewrite bind_ret; reflexivity.
 Qed.
 
 Lemma assoc_r_itree {E A B C} (x : (A + B) + C) :
   assoc_r_ A B C x ≅ @lift_ktree E ((A + B) + C) _ assoc_r x.
 Proof.
-  cbv; destruct x as [ [] | ]; try rewrite bind_ret_; reflexivity.
+  cbv; destruct x as [ [] | ]; try rewrite bind_ret; reflexivity.
 Qed.
 
 Lemma assoc_l_ktree {E A B C} :
   assoc_l ⩯ @lift_ktree E (A + (B + C)) _ assoc_l.
 Proof.
-  cbv; intros [ | [] ]; try rewrite !bind_ret_; reflexivity.
+  cbv; intros [ | [] ]; try rewrite !bind_ret; reflexivity.
 Qed.
 
 Lemma assoc_r_ktree {E A B C} :
@@ -145,7 +145,7 @@ Fact compose_lift_ktree {A B C} (ab : A -> B) (bc : B -> C) :
 Proof.
   intros a.
   unfold lift_ktree, cat, Cat_ktree, ITree.cat.
-  rewrite bind_ret_.
+  rewrite bind_ret.
   reflexivity.
 Qed.
 
@@ -172,7 +172,7 @@ Fact lift_compose_ktree {A B C}: forall (f:A -> B) (bc: ktree E B C),
 Proof.
   intros; intro a.
   unfold lift_ktree, cat, Cat_ktree, ITree.cat.
-  rewrite bind_ret_. reflexivity.
+  rewrite bind_ret. reflexivity.
 Qed.
 
 Fact compose_ktree_lift {A B C}: forall (ab: ktree E A B) (g:B -> C),
@@ -243,7 +243,7 @@ Lemma case_l_ktree' {A B: Type} (f: @ktree E (void + A) (void + B)) :
 Proof.
   rewrite unit_l'_ktree.
   intro. unfold cat, Cat_ktree, ITree.cat, lift_ktree.
-  rewrite bind_ret_; reflexivity.
+  rewrite bind_ret; reflexivity.
 Qed.
 
 Lemma case_r_ktree' {A B: Type} (f: @ktree E (A + void) (B + void)) :
@@ -251,7 +251,7 @@ Lemma case_r_ktree' {A B: Type} (f: @ktree E (A + void) (B + void)) :
 Proof.
   rewrite unit_r'_ktree.
   intro. unfold cat, Cat_ktree, ITree.cat, lift_ktree.
-  rewrite bind_ret_; reflexivity.
+  rewrite bind_ret; reflexivity.
 Qed.
 
 Lemma case_r_ktree {A B: Type} (ab: @ktree E A (B + void)) :

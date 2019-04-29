@@ -496,27 +496,27 @@ Section Linking.
     repeat setoid_rewrite bind_bind.
     eapply eutt_clo_bind; try reflexivity. intros; subst.
     eapply eutt_clo_bind; try reflexivity. intros; subst; destruct u0.
-    - rewrite bind_ret_.
+    - rewrite bind_ret.
       rewrite (relabel_asm_correct _ _ _ (inr tt)).
       unfold CategoryOps.cat, Cat_ktree, ITree.cat; simpl.
       rewrite bind_bind.
-      unfold lift_ktree; rewrite bind_ret_.
+      unfold lift_ktree; rewrite bind_ret.
       setoid_rewrite (app_asm_correct tp fp (inr tt)).
       setoid_rewrite bind_bind.
       rewrite <- (bind_ret2 (denote_asm fp tt)) at 2.
       eapply eutt_clo_bind; try reflexivity. intros; subst.
-      unfold inr_, Inr_ktree, lift_ktree; rewrite bind_ret_; reflexivity.
-    - rewrite bind_ret_.
+      unfold inr_, Inr_ktree, lift_ktree; rewrite bind_ret; reflexivity.
+    - rewrite bind_ret.
       rewrite (relabel_asm_correct _ _ _ (inl tt)).
       unfold CategoryOps.cat, Cat_ktree, ITree.cat; simpl.
       rewrite bind_bind.
-      unfold lift_ktree; rewrite bind_ret_.
+      unfold lift_ktree; rewrite bind_ret.
       setoid_rewrite (app_asm_correct tp fp (inl tt)).
       setoid_rewrite bind_bind.
       rewrite <- (bind_ret2 (denote_asm tp tt)) at 2.
       eapply eutt_clo_bind; try reflexivity. intros; subst.
       unfold inl_, Inl_ktree, lift_ktree;
-        rewrite bind_ret_; reflexivity.
+        rewrite bind_ret; reflexivity.
   Qed.
 
 Opaque loop.
@@ -554,14 +554,14 @@ Opaque loop.
       eapply eutt_clo_bind; try reflexivity. intros; subst. destruct u0.
       + rewrite (pure_asm_correct _ tt).
         unfold inl_, Inl_ktree, lift_ktree.
-        repeat rewrite bind_ret_.
+        repeat rewrite bind_ret.
         reflexivity.
       + rewrite (relabel_asm_correct _ _ _  tt).
         unfold CategoryOps.cat, Cat_ktree, ITree.cat.
         simpl; repeat setoid_rewrite bind_bind.
-        unfold inl_, Inl_ktree, lift_ktree; rewrite bind_ret_.
+        unfold inl_, Inl_ktree, lift_ktree; rewrite bind_ret.
         eapply eutt_clo_bind; try reflexivity. intros; subst. destruct u3.
-        repeat rewrite bind_ret_. reflexivity.
+        repeat rewrite bind_ret. reflexivity.
     - rewrite itree_eta; cbn; reflexivity.
   Qed.
 
@@ -830,7 +830,7 @@ Section Correctness.
       (* We know that interpreting [GetVar tmp_if] is eutt to [Ret (g_asm,v)] *)
       generalize HSIM; intros EQ; eapply sim_rel_get_tmp0 in EQ.
       setoid_rewrite EQ; clear EQ.
-      rewrite bind_ret_; simpl.
+      rewrite bind_ret; simpl.
       (* We can weaken [sim_rel] down to [Renv] *)
       apply sim_rel_Renv in HSIM.
       (* And finally conclude in both cases *)
@@ -868,7 +868,7 @@ Section Correctness.
       (* We know that interpreting [GetVar tmp_if] is eutt to [Ret (g_asm,v)] *)
       generalize HSIM; intros EQ. eapply sim_rel_get_tmp0 in EQ.
       setoid_rewrite EQ; clear EQ.
-      rewrite bind_ret_; simpl.
+      rewrite bind_ret; simpl.
 
       (* We can weaken [sim_rel] down to [Renv] *)
       apply sim_rel_Renv in HSIM.

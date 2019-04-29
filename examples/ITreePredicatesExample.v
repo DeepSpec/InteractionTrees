@@ -238,13 +238,13 @@ Proof.
   unfold interpret_stateF.
   punfold H0. repeat red in H0.
   destruct (observe t); cbn.
-  - rewrite !bind_ret_. gstep. econstructor. eauto.
-  - rewrite !bind_tau_. gstep. econstructor.
+  - rewrite !bind_ret. gstep. econstructor. eauto.
+  - rewrite !bind_tau. gstep. econstructor.
     gbase. eapply CIH.
     inversion H0. subst. pclearbot. assumption.
   - destruct e; cbn.
     + (* e is Get, which is ruled out by the NoGets predicate *) inversion H0.
-    + rewrite !bind_tau_.
+    + rewrite !bind_tau.
       gstep. econstructor. gbase. eapply CIH.
       inversion H0. apply inj_pair2 in H2. subst. pclearbot. assumption.
 Qed.
@@ -270,14 +270,14 @@ Proof.
   unfold interpret_stateF.
   punfold H0. repeat red in H0.
   destruct (observe t); cbn.
-  - rewrite !bind_ret_. gfinal. right.
+  - rewrite !bind_ret. gfinal. right.
     eapply paco2_mon_bot; eauto with paco. apply INV.
-  - rewrite !bind_tau_. gstep. econstructor.
+  - rewrite !bind_tau. gstep. econstructor.
     gbase. eapply CIH; auto.
     inversion H0. subst. pclearbot. assumption.
   - destruct e; cbn.
     + (* e is Get, which is ruled out by the NoGets predicate *) inversion H0.
-    + rewrite !bind_tau_.
+    + rewrite !bind_tau.
       gstep. econstructor. gbase. eapply CIH; auto.
       inversion H0. apply inj_pair2 in H2. subst. pclearbot. assumption.
 Qed.

@@ -122,7 +122,7 @@ Proof.
   intros ia.
   einit. ebind. econstructor; try reflexivity.
   intros; subst. destruct u2.
-  - rewrite bind_ret_; eauto with paco.
+  - rewrite bind_ret; eauto with paco.
   - reflexivity.
 Qed.
 
@@ -143,13 +143,13 @@ Proof.
     einit. ebind. econstructor; try reflexivity.
     intros; subst. destruct u2.
     + rewrite tau_eutt. reflexivity.
-    + rewrite bind_ret_. eauto with paco. }
+    + rewrite bind_ret. eauto with paco. }
   { apply eutt_loop. cbv. intros [].
     + einit. ebind. econstructor. 
       * eapply eqit_bind; try reflexivity.
         red; intros. rewrite tau_eutt. reflexivity.
       * intros; subst. reflexivity.
-    + rewrite !bind_ret_; reflexivity. }
+    + rewrite !bind_ret; reflexivity. }
 Qed.
 
 (* Loop over the empty set can be erased *)
@@ -202,10 +202,10 @@ Proof.
   apply eutt_loop.
   intros [[]|]; cbn.
   all: rewrite !bind_bind.
-  all: try rewrite !bind_ret_.
+  all: try rewrite !bind_ret.
   all: einit; ebind; econstructor; try reflexivity.
-  all: intros; subst; destruct u2; try rewrite bind_ret_; try reflexivity.
-  all: destruct s; try rewrite bind_ret_; reflexivity.
+  all: intros; subst; destruct u2; try rewrite bind_ret; try reflexivity.
+  all: destruct s; try rewrite bind_ret; reflexivity.
 Qed.
 
 Lemma fold_map {R S}:
@@ -239,7 +239,7 @@ Proof.
     einit. ebind. econstructor; try reflexivity.
     intros. subst.
     autorewrite with itree.
-    rewrite unfold_aloop'_; cbn. reflexivity.
+    rewrite unfold_aloop; cbn. reflexivity.
 Qed.
 
 (** Utility: lemma to ease working forward in an equational proof.

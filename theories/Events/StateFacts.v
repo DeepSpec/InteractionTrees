@@ -45,10 +45,10 @@ Lemma unfold_interp_state {E F S R} (h : E ~> Monads.stateT S (itree F))
       (_interp_state h (observe t) s).
 Proof.
   unfold interp_state, interp, aloop, ALoop_stateT0, aloop, ALoop_itree.
-  rewrite unfold_aloop'.
+  rewrite unfold_aloop.
   destruct observe; cbn.
   - reflexivity.
-  - rewrite bind_ret_.
+  - rewrite bind_ret.
     reflexivity.
   - rewrite bind_map. pstep. econstructor. left.
     eapply eqit_bind; reflexivity.
@@ -115,14 +115,14 @@ Proof.
   revert A t k s.
   ginit. gcofix CIH.
   intros A t k s.
-  rewrite unfold_bind_. (* TODO: slow *)
+  rewrite unfold_bind. (* TODO: slow *)
   rewrite (unfold_interp_state f t).
   destruct (observe t).
-  - cbn. rewrite !bind_ret_. simpl.
+  - cbn. rewrite !bind_ret. simpl.
     apply reflexivity.
-  - cbn. rewrite !bind_tau_, interp_state_tau.
+  - cbn. rewrite !bind_tau, interp_state_tau.
     gstep. econstructor. gbase. apply CIH.
-  - cbn. rewrite interp_state_vis, bind_tau_, bind_bind.
+  - cbn. rewrite interp_state_vis, bind_tau, bind_bind.
     gstep. constructor.
     guclo eqit_clo_bind. econstructor.
     + reflexivity.
@@ -163,7 +163,7 @@ Lemma eutt_interp_state_aloop {E F S I A} (RS : S -> S -> Prop)
 Proof.
   intro Ht.
   einit. ecofix CIH. intros.
-  rewrite 2 unfold_aloop'_.
+  rewrite 2 unfold_aloop.
   destruct (Ht i s1 s2); cbn; auto.
   - rewrite 2 interp_state_tau, 2 interp_state_bind.
     etau. constructor.

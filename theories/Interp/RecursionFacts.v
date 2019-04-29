@@ -50,15 +50,15 @@ Lemma unfold_interp_mrec R (t : itree (D +' E) R) :
   interp_mrec ctx t ≅ _interp_mrec (observe t).
 Proof.
   unfold interp_mrec.
-  rewrite unfold_aloop'.
+  rewrite unfold_aloop.
   destruct observe; cbn.
   - reflexivity.
-  - rewrite bind_ret_; reflexivity. (* TODO: bind_ret, bind_vis are sloooow *)
+  - rewrite bind_ret; reflexivity. (* TODO: bind_ret, bind_vis are sloooow *)
   - destruct e; cbn.
-    + rewrite bind_ret_; reflexivity.
-    + rewrite bind_vis_. pstep; constructor. left.
+    + rewrite bind_ret; reflexivity.
+    + rewrite bind_vis. pstep; constructor. left.
       pstep; constructor. intros. left.
-      rewrite bind_ret_.
+      rewrite bind_ret.
       apply reflexivity.
 Qed.
 
@@ -86,7 +86,7 @@ Theorem interp_mrec_bind {U T} (t : itree _ U) (k : U -> itree _ T) :
 Proof.
   revert t k; ginit. gcofix CIH; intros.
   rewrite (unfold_interp_mrec _ t).
-  rewrite (unfold_bind_ t). (* TODO: should be [unfold_bind] but it is much slower *)
+  rewrite (unfold_bind t). (* TODO: should be [unfold_bind] but it is much slower *)
   destruct (observe t); cbn;
     [| |destruct e];
     autorewrite with itree.
@@ -109,10 +109,10 @@ Proof.
     gstep. constructor.
     guclo eqit_clo_bind; econstructor; [reflexivity|].
     intros ? _ []; eauto with paco.
-  - unfold ITree.trigger, case_; simpl. rewrite bind_vis_.
+  - unfold ITree.trigger, case_; simpl. rewrite bind_vis.
     gstep. constructor.
     gstep; econstructor. intros. red.
-    rewrite bind_ret_. auto with paco.
+    rewrite bind_ret. auto with paco.
 Qed.
 
 Theorem mrec_as_interp {T} (d : D T) :

@@ -612,30 +612,30 @@ Qed.
 (* TODO (LATER): I keep these [...bind_] lemmas around temporarily
    in case I run some issues with slow typeclass resolution. *)
 
-Lemma unfold_bind_ {E R S}
+Lemma unfold_bind {E R S}
            (t : itree E R) (k : R -> itree E S) :
   ITree.bind t k ≅ ITree._bind k (fun t => ITree.bind t k) (observe t).
-Proof. rewrite unfold_bind. reflexivity. Qed.
+Proof. rewrite unfold_bind_. reflexivity. Qed.
 
-Lemma bind_ret_ {E R S} (r : R) (k : R -> itree E S) :
+Lemma bind_ret {E R S} (r : R) (k : R -> itree E S) :
   ITree.bind (Ret r) k ≅ (k r).
-Proof. rewrite bind_ret. reflexivity. Qed.
+Proof. rewrite bind_ret_. reflexivity. Qed.
 
-Lemma bind_tau_ {E R} U t (k: U -> itree E R) :
+Lemma bind_tau {E R} U t (k: U -> itree E R) :
   ITree.bind (Tau t) k ≅ Tau (ITree.bind t k).
-Proof. rewrite bind_tau. reflexivity. Qed.
+Proof. rewrite bind_tau_. reflexivity. Qed.
 
-Lemma bind_vis_ {E R} U V (e: E V) (ek: V -> itree E U) (k: U -> itree E R) :
+Lemma bind_vis {E R} U V (e: E V) (ek: V -> itree E U) (k: U -> itree E R) :
   ITree.bind (Vis e ek) k ≅ Vis e (fun x => ITree.bind (ek x) k).
-Proof. rewrite bind_vis. reflexivity. Qed.
+Proof. rewrite bind_vis_. reflexivity. Qed.
 
-Lemma unfold_aloop'_ {E A B} (f : A -> itree E A + B) (x : A) :
+Lemma unfold_aloop {E A B} (f : A -> itree E A + B) (x : A) :
   (ITree.aloop f x) ≅ (ITree._aloop (fun t => Tau t) (ITree.aloop f) (f x)).
 Proof.
-  rewrite unfold_aloop'. reflexivity.
+  rewrite unfold_aloop_. reflexivity.
 Qed.
 
-Lemma unfold_forever_ {E R S} (t : itree E R)
+Lemma unfold_forever {E R S} (t : itree E R)
   : @ITree.forever E R S t ≅ (t >>= fun _ => Tau (ITree.forever t)).
 Proof.
   rewrite itree_eta, (itree_eta (_ >>= _)).
@@ -699,7 +699,7 @@ Lemma eqit_clo_bind b1 b2 vclo
 Proof.
   gcofix CIH. intros. destruct PR.
   guclo eqit_clo_trans.
-  econstructor; try (rewrite (itree_eta (x <- _;; _ x)), unfold_bind_; reflexivity).
+  econstructor; try (rewrite (itree_eta (x <- _;; _ x)), unfold_bind; reflexivity).
   punfold EQV. unfold_eqit.
   hinduction EQV before CIH; intros; pclearbot.
   - guclo eqit_clo_trans.
@@ -709,10 +709,10 @@ Proof.
   - gstep. econstructor. eauto 7 with paco.
   - destruct b1; try discriminate.
     guclo eqit_clo_trans. econstructor; cycle -1; eauto; try reflexivity.
-    eapply eqit_tauL. rewrite unfold_bind_, <-itree_eta. reflexivity.
+    eapply eqit_tauL. rewrite unfold_bind, <-itree_eta. reflexivity.
   - destruct b2; try discriminate.
     guclo eqit_clo_trans. econstructor; cycle -1; eauto; try reflexivity.
-    eapply eqit_tauL. rewrite unfold_bind_, <-itree_eta. reflexivity.
+    eapply eqit_tauL. rewrite unfold_bind, <-itree_eta. reflexivity.
 Qed.
 
 Lemma eutt_clo_bind {U1 U2 UU} t1 t2 k1 k2
@@ -754,7 +754,7 @@ Global Instance eqit_bind_ {E R S} b1 b2 k :
           eqit eq b1 b2) (@ITree._bind E R S k (@ITree.bind' E R S k)).
 Proof.
   ginit. intros. destruct H0.
-  rewrite (itree_eta' x), (itree_eta' y), <- !unfold_bind_.
+  rewrite (itree_eta' x), (itree_eta' y), <- !unfold_bind.
   guclo eqit_clo_bind. econstructor; eauto.
   intros. subst. apply reflexivity.
 Qed.
@@ -785,7 +785,7 @@ Lemma bind_ret2 {E R} :
     ITree.bind s (fun x => Ret x) ≅ s.
 Proof.
   ginit. gcofix CIH. intros.
-  rewrite !unfold_bind_. gstep. repeat red.
+  rewrite !unfold_bind. gstep. repeat red.
   genobs s os. destruct os; simpl; eauto with paco.
 Qed.
 
@@ -793,7 +793,7 @@ Lemma bind_bind {E R S T} :
   forall (s : itree E R) (k : R -> itree E S) (h : S -> itree E T),
     ITree.bind (ITree.bind s k) h ≅ ITree.bind s (fun r => ITree.bind (k r) h).
 Proof.
-  ginit. gcofix CIH. intros. rewrite !unfold_bind_.
+  ginit. gcofix CIH. intros. rewrite !unfold_bind.
   gstep. repeat red. destruct (observe s); simpl; eauto with paco.
   apply reflexivity.
 Qed.
@@ -802,14 +802,14 @@ Lemma map_map {E R S T}: forall (f : R -> S) (g : S -> T) (t : itree E R),
     ITree.map g (ITree.map f t) ≅ ITree.map (fun x => g (f x)) t.
 Proof.
   unfold ITree.map. intros.
-  rewrite bind_bind. setoid_rewrite bind_ret_. reflexivity.
+  rewrite bind_bind. setoid_rewrite bind_ret. reflexivity.
 Qed.
 
 Lemma bind_map {E R S T}: forall (f : R -> S) (k: S -> itree E T) (t : itree E R),
     ITree.bind (ITree.map f t) k ≅ ITree.bind t (fun x => k (f x)).
 Proof.
   unfold ITree.map. intros.
-  rewrite bind_bind. setoid_rewrite bind_ret_. reflexivity.
+  rewrite bind_bind. setoid_rewrite bind_ret. reflexivity.
 Qed.
 
 Lemma map_bind {E X Y Z} (t: itree E X) (k: X -> itree E Y) (f: Y -> Z) :
@@ -829,9 +829,9 @@ Proof.
   rewrite bind_ret; reflexivity.
 Qed.
 
-Hint Rewrite @bind_ret_ : itree.
-Hint Rewrite @bind_tau_ : itree.
-Hint Rewrite @bind_vis_ : itree.
+Hint Rewrite @bind_ret : itree.
+Hint Rewrite @bind_tau : itree.
+Hint Rewrite @bind_vis : itree.
 Hint Rewrite @bind_map : itree.
 Hint Rewrite @map_ret : itree.
 Hint Rewrite @bind_ret2 : itree.
