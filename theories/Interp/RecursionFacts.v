@@ -56,9 +56,9 @@ Proof.
   - rewrite bind_ret_; reflexivity. (* TODO: bind_ret, bind_vis are sloooow *)
   - destruct e; cbn.
     + rewrite bind_ret_; reflexivity.
-    + rewrite bind_vis_. gstep; constructor.
-      gstep; constructor. intros.
-      rewrite bind_ret.
+    + rewrite bind_vis_. pstep; constructor. left.
+      pstep; constructor. intros. left.
+      rewrite bind_ret_.
       apply reflexivity.
 Qed.
 
@@ -71,20 +71,20 @@ Definition mrecursive (f : D ~> itree (D +' E))
 Instance eq_itree_mrec {R} :
   Proper (eq_itree eq ==> eq_itree eq) (@interp_mrec _ _ ctx R).
 Proof.
-  gcofix CIH. intros.
+  ginit. gcofix CIH. intros.
   rewrite !unfold_interp_mrec.
-  gunfold H0. inv H0; simpobs; [| |destruct e]; gstep.
+  punfold H0. inv H0; try discriminate; pclearbot; simpobs; [| |destruct e]; gstep.
   - apply reflexivity.
   - econstructor. eauto with paco.
-  - econstructor. gbase. eapply CIH. apply eq_itree_bind; auto; reflexivity.
-  - econstructor. gstep; constructor. auto with paco.
+  - econstructor. gbase. eapply CIH. apply eqit_bind; auto; reflexivity.
+  - econstructor. gstep; constructor. red. auto with paco.
 Qed.
 
 Theorem interp_mrec_bind {U T} (t : itree _ U) (k : U -> itree _ T) :
   interp_mrec ctx (ITree.bind t k) ≅
   ITree.bind (interp_mrec ctx t) (fun x => interp_mrec ctx (k x)).
 Proof.
-  revert t k; gcofix CIH; intros.
+  revert t k; ginit. gcofix CIH; intros.
   rewrite (unfold_interp_mrec _ t).
   rewrite (unfold_bind_ t). (* TODO: should be [unfold_bind] but it is much slower *)
   destruct (observe t); cbn;
@@ -100,18 +100,18 @@ Qed.
 Theorem interp_mrec_as_interp {T} (c : itree _ T) :
   interp_mrec ctx c ≅ interp (mrecursive ctx) c.
 Proof.
-  revert_until T. gcofix CIH. intros.
+  revert_until T. ginit. gcofix CIH. intros.
   rewrite unfold_interp_mrec, unfold_interp.
   destruct (observe c); [| |destruct e]; simpl; eauto with paco.
   - gstep. econstructor. eauto.
   - gstep. econstructor. eauto with paco.
   - rewrite interp_mrec_bind.
     gstep. constructor.
-    gclo eq_itree_clo_bind; econstructor; [reflexivity|].
+    guclo eqit_clo_bind; econstructor; [reflexivity|].
     intros ? _ []; eauto with paco.
   - unfold ITree.trigger, case_; simpl. rewrite bind_vis_.
     gstep. constructor.
-    gstep; econstructor. intros.
+    gstep; econstructor. intros. red.
     rewrite bind_ret_. auto with paco.
 Qed.
 

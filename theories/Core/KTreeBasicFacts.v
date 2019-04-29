@@ -38,7 +38,7 @@ Qed.
 
 Section UnfoldLemmas.
 
-Local Opaque ITree.bind' eutt eq_itree.
+Local Opaque ITree.bind' eqit.
 
 Lemma assoc_l_itree {E A B C} (x : A + (B + C)) :
   assoc_l_ A B C x ≅ @lift_ktree E (A + (B + C)) _ assoc_l x.
@@ -55,7 +55,7 @@ Qed.
 Lemma assoc_l_ktree {E A B C} :
   assoc_l ⩯ @lift_ktree E (A + (B + C)) _ assoc_l.
 Proof.
-  cbv; intros [ | [] ]; try rewrite bind_ret_; reflexivity.
+  cbv; intros [ | [] ]; try rewrite !bind_ret_; reflexivity.
 Qed.
 
 Lemma assoc_r_ktree {E A B C} :

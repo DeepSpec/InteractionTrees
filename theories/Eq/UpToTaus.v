@@ -132,32 +132,6 @@ Proof.
 Qed.
 Hint Resolve euttVC_id : paco.
 
-Global Instance euttG_cong_euttge rH rL gL gH:
-  Proper (euttge eq ==> euttge eq ==> flip impl)
-         (euttG rH rL gL gH).
-Proof.
-  repeat intro. econstructor. destruct H1. guclo eqit_clo_trans.
-Qed.
-Global Instance euttG_cong_eq rH rL gL gH:
-  Proper (eq_itree eq ==> eq_itree eq ==> flip impl)
-         (euttG rH rL gL gH).
-Proof.
-  repeat intro. eapply euttG_cong_euttge; eauto; apply eq_sub_eqit; eauto.
-Qed.
-
-Global Instance geuttG_cong_euttge gH r g:
-  Proper (euttge eq ==> euttge eq ==> flip impl)
-         (gpaco2 (eqit_ RR true true (euttVC gH)) (eqitC true true) r g).
-Proof.
-  repeat intro. guclo eqit_clo_trans. 
-Qed.
-Global Instance geuttG_cong_eq gH r g:
-  Proper (eq_itree eq ==> eq_itree eq ==> flip impl)
-         (gpaco2 (eqit_ RR true true (euttVC gH)) (eqitC true true) r g).
-Proof.
-  repeat intro. eapply geuttG_cong_euttge; eauto using eqit_mon.
-Qed.
-
 End EUTTG.
 
 Hint Unfold transU transD bindC euttVC.
@@ -166,6 +140,20 @@ Hint Resolve transD_mon transU_mon : paco.
 Hint Resolve euttVC_mon : paco.
 Hint Resolve euttVC_compat : paco.
 Hint Resolve euttVC_id : paco.
+
+Instance geuttG_cong_euttge {E R1 R2 RR} gH r g:
+  Proper (euttge eq ==> euttge eq ==> flip impl)
+         (gpaco2 (@eqit_ E R1 R2 RR true true (euttVC RR gH)) (eqitC true true) r g).
+Proof.
+  repeat intro. guclo eqit_clo_trans. 
+Qed.
+
+Instance geuttG_cong_eq {E R1 R2 RR} gH r g:
+  Proper (eq_itree eq ==> eq_itree eq ==> flip impl)
+         (gpaco2 (@eqit_ E R1 R2 RR true true (euttVC RR gH)) (eqitC true true) r g).
+Proof.
+  repeat intro. eapply geuttG_cong_euttge; eauto using eqit_mon.
+Qed.
 
 Section EUTTG_Properties1.
 
@@ -471,8 +459,17 @@ Qed.
 
 (* Lose weak hypotheses after general rewriting *)
 
-Lemma euttG_transU rH rL gL gH t1 t2:
-  transU (euttG rH rH rH gH) t1 t2 -> euttG rH rL gL gH t1 t2.
+Lemma euttG_weaken rH rL gL gH t1 t2:
+  euttG rH rH rH gH t1 t2 -> euttG rH rL gL gH t1 t2.
+Proof.
+  intros. destruct H. econstructor.
+  eapply gpaco2_mon; eauto; intros.
+  - destruct PR; eauto using transDleU.
+  - destruct PR as [[]|]; eauto using transDleU.
+Qed.
+
+Lemma euttG_transU rH gH t1 t2:
+  transU (euttG rH rH rH gH) t1 t2 -> euttG rH rH rH gH t1 t2.
 Proof.
   intros.
   cut (gupaco2 (eqit_ RR true true (euttVC RR gH)) (eqitC true true) (transU rH) t1 t2).
@@ -565,18 +562,66 @@ Tactic Notation "ecofix" ident(CIH) "with" ident(gL) ident(gH) :=
 
 Tactic Notation "ecofix" ident(CIH) := ecofix CIH with gL gH.
 
-Ltac eret := under_forall ltac:(eapply euttG_ret; eauto with paco).
-Ltac ebind := under_forall ltac:(eapply euttG_bind; eauto with paco).
-Ltac etransD := under_forall ltac:(eapply euttG_transD; eauto with paco).
-Ltac etransU := under_forall ltac:(eapply euttG_transU; eauto with paco).
-Ltac etau := under_forall ltac:(eapply euttG_tau; eauto with paco).
-Ltac evis := under_forall ltac:(eapply euttG_vis; eauto with paco).
-Ltac ebase := under_forall ltac:(eapply euttG_base; eauto with paco).
-Ltac einit := under_forall ltac:(eapply euttG_le_eutt; eauto with paco).
-Ltac efinal := under_forall ltac:(eapply eutt_le_euttG; eauto with paco).
+Ltac einit := repeat red; under_forall ltac:(eapply euttG_le_eutt; eauto with paco).
+Ltac efinal := repeat red; under_forall ltac:(eapply eutt_le_euttG; eauto with paco).
+Ltac ebase := repeat red; under_forall ltac:(eapply euttG_base; eauto with paco).
+Ltac eret := repeat red; under_forall ltac:(eapply euttG_ret; eauto with paco).
+Ltac etau := repeat red; under_forall ltac:(eapply euttG_tau; eauto with paco).
+Ltac evis := repeat red; under_forall ltac:(eapply euttG_vis; eauto with paco).
+Ltac estep := first [eret|etau|evis].
+Ltac ebind := repeat red; under_forall ltac:(eapply euttG_bind; eauto with paco).
+Ltac eweak := repeat red; under_forall ltac:(eapply euttG_weaken; eauto with paco).
 
 Hint Resolve euttG_ret : paco.
 Hint Resolve euttG_tau : paco.
 Hint Resolve euttG_vis : paco.
 Hint Resolve euttG_base : paco.
 Hint Resolve euttG_le_eutt: paco.
+
+Global Instance euttG_reflexive {E R} rH rL gL gH:
+  Reflexive (@euttG E R R eq rH rL gL gH).
+Proof.
+  red; intros. efinal. reflexivity.
+Qed.
+
+Global Instance euttG_cong_eutt {E R1 R2 RR} rH gH:
+  Proper (eutt eq ==> eutt eq ==> flip impl)
+         (@euttG E R1 R2 RR rH rH rH gH).
+Proof.
+  repeat intro. eapply euttG_transU. eauto.
+Qed.
+
+Global Instance euttG_cong_euttge {E R1 R2 RR} rH rL gL gH:
+  Proper (euttge eq ==> euttge eq ==> flip impl)
+         (@euttG E R1 R2 RR rH rL gL gH).
+Proof.
+  repeat intro. eapply euttG_transD. eauto.
+Qed.
+
+Global Instance euttG_cong_eq {E R1 R2 RR} rH rL gL gH:
+  Proper (eq_itree eq ==> eq_itree eq ==> flip impl)
+         (@euttG E R1 R2 RR rH rL gL gH).
+Proof.
+  repeat intro. eapply euttG_cong_euttge; eauto; apply eq_sub_eqit; eauto.
+Qed.
+
+Global Instance eutt_cong_eutt {E R1 R2 RR}:
+  Proper (eutt eq ==> eutt eq ==> flip impl)
+         (@eqit E R1 R2 RR true true).
+Proof.
+  einit. intros. rewrite H0, H1. efinal.
+Qed.
+
+Global Instance eutt_cong_euttge {E R1 R2 RR}:
+  Proper (euttge eq ==> euttge eq ==> flip impl)
+         (@eqit E R1 R2 RR true true).
+Proof.
+  einit. intros. rewrite H0, H1. efinal.
+Qed.
+
+Global Instance eutt_cong_eq {E R1 R2 RR}:
+  Proper (eq_itree eq ==> eq_itree eq ==> flip impl)
+         (@eqit E R1 R2 RR true true).
+Proof.
+  einit. intros. rewrite H0, H1. efinal.
+Qed.

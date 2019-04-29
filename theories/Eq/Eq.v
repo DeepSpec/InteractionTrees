@@ -412,7 +412,13 @@ Proof.
   ginit. gcofix CIH. intros.
   punfold H0. gstep. red in H0 |- *.
   hinduction H0 before CIH; subst; econstructor; pclearbot; eauto 7 with paco.
-Qed.  
+Qed.
+
+Global Instance eq_sub_eutt:
+  subrelation (eqit false false) (eqit true true).
+Proof.
+  red; intros. eapply eqit_sub_eutt. eapply eq_sub_eqit. apply H.
+Qed.
 
 (** ** Eta-expansion *)
 
@@ -446,6 +452,19 @@ Lemma eq_itree_inv_tau {E R} (t t' : itree E R) :
   t ≅ Tau t' -> exists t0, observe t = TauF t0 /\ t0 ≅ t'.
 Proof.
   intros; punfold H; inv H; try inv CHECK; pclearbot; eauto.
+Qed.
+
+Lemma eqit_inv_ret {E R1 R2 RR} b1 b2 r1 r2 :
+  @eqit E R1 R2 RR b1 b2 (Ret r1) (Ret r2) -> RR r1 r2.
+Proof.
+  intros. punfold H. inv H. eauto.
+Qed.
+
+Lemma eqit_inv_vis {E R1 R2 RR} b1 b2 {u} (e1 e2: E u) (k1: u -> itree E R1) (k2: u -> itree E R2) :
+  eqit RR b1 b2 (Vis e1 k1) (Vis e2 k2) -> e1 = e2 /\ (forall u, eqit RR b1 b2 (k1 u) (k2 u)).
+Proof.
+  intros. punfold H. repeat red in H. simpl in H.
+  dependent destruction H. pclearbot. eauto.
 Qed.
 
 Lemma eqit_inv_tauL {E R1 R2 RR} b1 t1 t2 :
@@ -574,33 +593,18 @@ Proof.
   repeat intro. guclo eqit_clo_trans.
 Qed.
 
-Global Instance eqitgen_cong_eqit {E R} b1 b2:
+Global Instance eqitgen_cong_eqit {E R1 R2 RS} b1 b2:
   Proper (eq_itree eq ==> eq_itree eq ==> flip impl)
-         (@eqit E R R eq b1 b2).
+         (@eqit E R1 R2 RS b1 b2).
 Proof.
   ginit. intros. rewrite H1, H0. gfinal. eauto.
 Qed.
 
-Global Instance euttge_cong_eutt {E R}:
+Global Instance euttge_cong_euttge {E R}:
   Proper (euttge eq ==> flip (euttge eq) ==> flip impl)
          (@eqit E R R eq true false).
 Proof.
   repeat intro. do 2 eapply eqit_trans; eauto. reflexivity.
-Qed.
-
-Global Instance eutt_cong_eutt {E R}:
-  Proper (eutt eq ==> eutt eq ==> flip impl)
-         (@eqit E R R eq true true).
-Proof.
-  repeat intro. eapply eutt_trans; eauto.
-  eapply eutt_trans; eauto. symmetry.  eauto.
-Qed.
-Global Instance eutt_cong_euttge {E R}:
-  Proper (euttge eq ==> euttge eq ==> flip impl)
-         (@eqit E R R eq true true).
-Proof.
-  repeat intro. eapply eutt_trans; eauto using eqit_mon.
-  eapply eutt_trans; eauto. symmetry. eauto using eqit_mon.
 Qed.
 
 (** ** Equations for core combinators *)
@@ -624,6 +628,12 @@ Proof. rewrite bind_tau. reflexivity. Qed.
 Lemma bind_vis_ {E R} U V (e: E V) (ek: V -> itree E U) (k: U -> itree E R) :
   ITree.bind (Vis e ek) k ≅ Vis e (fun x => ITree.bind (ek x) k).
 Proof. rewrite bind_vis. reflexivity. Qed.
+
+Lemma unfold_aloop'_ {E A B} (f : A -> itree E A + B) (x : A) :
+  (ITree.aloop f x) ≅ (ITree._aloop (fun t => Tau t) (ITree.aloop f) (f x)).
+Proof.
+  rewrite unfold_aloop'. reflexivity.
+Qed.
 
 Lemma unfold_forever_ {E R S} (t : itree E R)
   : @ITree.forever E R S t ≅ (t >>= fun _ => Tau (ITree.forever t)).
@@ -703,6 +713,15 @@ Proof.
   - destruct b2; try discriminate.
     guclo eqit_clo_trans. econstructor; cycle -1; eauto; try reflexivity.
     eapply eqit_tauL. rewrite unfold_bind_, <-itree_eta. reflexivity.
+Qed.
+
+Lemma eutt_clo_bind {U1 U2 UU} t1 t2 k1 k2
+      (EQT: @eutt E U1 U2 UU t1 t2)
+      (EQK: forall u1 u2, UU u1 u2 -> eutt RR (k1 u1) (k2 u2)):
+  eutt RR (x <- t1;; k1 x) (x <- t2;; k2 x).
+Proof.
+  intros. ginit. guclo eqit_clo_bind.
+  econstructor; eauto. intros; subst. gfinal. right. apply EQK. eauto.
 Qed.
 
 End eqit_h.

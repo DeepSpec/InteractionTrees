@@ -35,24 +35,18 @@ Lemma bind_aloop {E A B C} (f : A -> itree E A + B) (g : B -> itree E B + C): fo
        end) (inl x).
 Proof.
   einit. ecofix CIH. intros.
-  rewrite !unfold_aloop'. unfold ITree._aloop.
+  rewrite !unfold_aloop'_. unfold ITree._aloop.
   destruct (f x) as [t | b]; cbn.
-  - unfold id. rewrite bind_tau. gstep. constructor.
-    rewrite !bind_bind.
-    gclo eutt0_clo_bind. econstructor.
-    { reflexivity. }
-    intros ? _ [].
-    rewrite bind_ret.
-    eauto with paco.
-  - rewrite bind_ret_. apply eutt0_tau_right.
-    rewrite bind_ret_.
-    revert b. gcofix CIH'. intros.
-    rewrite !unfold_aloop'. unfold ITree._aloop.
-    destruct (g b) as [t' | c]; cbn.
-    + rewrite bind_map. gstep. constructor.
-      gclo eutt0_clo_bind. econstructor; [reflexivity|].
-      intros. subst. eauto with paco.
-    + gstep. econstructor. reflexivity.
+  - unfold id. rewrite bind_tau_. etau. rewrite !bind_bind.
+    ebind. econstructor; try reflexivity.
+    intros. subst. rewrite bind_ret_. eauto with paco.
+  - rewrite bind_ret_, tau_eutt, bind_ret_.
+    revert b. ecofix CIH'. intros.
+    rewrite !unfold_aloop'_. unfold ITree._aloop.
+    destruct (g b) as [t' | c]; cbn; eauto with paco.
+    rewrite bind_map. etau.
+    ebind. econstructor; try reflexivity.
+    intros. subst. eauto with paco.
 Qed.
 
 Lemma eutt_aloop' {E I1 I2 R1 R2}
@@ -65,16 +59,11 @@ Lemma eutt_aloop' {E I1 I2 R1 R2}
   : forall (i1 : I1) (i2 : I2) (RI_i : RI i1 i2),
     @eutt E _ _ RR (ITree.aloop body1 i1) (ITree.aloop body2 i2).
 Proof.
-  gstep. gcofix CIH.
-  intros.
+  einit. ecofix CIH. intros.
   specialize (eutt_body i1 i2 RI_i).
-  do 2 rewrite unfold_aloop'.
-  destruct eutt_body; cbn.
-  - gstep. econstructor.
-    gclo eutt0_clo_bind; econstructor.
-    { eassumption. }
-    intros. auto with paco.
-  - gstep. econstructor. eauto.
+  do 2 rewrite unfold_aloop'_.
+  destruct eutt_body; cbn; eauto with paco.
+  etau. ebind. econstructor; eauto with paco.
 Qed.
 
 (** ** [loop] *)
@@ -83,35 +72,29 @@ Instance eq_itree_loop {E A B C} :
   Proper ((eq ==> eq_itree eq) ==> pointwise_relation _ (eq_itree eq))
          (@loop E A B C).
 Proof.
-  intros body1 body2 EQ_BODY a.
-  unfold loop.
-  eapply eq_itree_bind; auto.
-  clear a; red. gcofix CIH; intros cb.
-  rewrite 2 unfold_aloop'.
+  intros body1 body2 EQ_BODY a. repeat red in EQ_BODY. unfold loop.
+  eapply eqit_bind; eauto.
+  ginit. gcofix CIH; intros cb.
+  rewrite 2 unfold_aloop'_.
   destruct cb as [c | b]; cbn.
   - gstep. constructor.
-    gclo eq_itree_clo_bind; econstructor; eauto.
-    intros cb _ [].
-    auto with paco.
-  - gstep. constructor; auto.
+    guclo eqit_clo_bind. econstructor; eauto.
+    intros. subst. eauto with paco.
+  - gstep. econstructor. eauto.
 Qed.
 
 Instance eutt_loop {E A B C} :
   Proper (pointwise_relation _ (eutt eq) ==> pointwise_relation _ (eutt eq))
          (@loop E A B C).
 Proof.
-  intros body1 body2 EQ_BODY a.
-  unfold loop.
-  apply eutt_bind; auto.
-  clear a; red.
-  gstep; gcofix CIH.
-  intros cb.
-  rewrite 2 unfold_aloop'.
+  intros body1 body2 EQ_BODY a. repeat red in EQ_BODY. unfold loop.
+  apply eqit_bind; auto.
+  ginit. gcofix CIH. intros cb.
+  rewrite 2 unfold_aloop'_.
   destruct cb as [c | b]; cbn.
   - gstep. constructor.
-    gclo eutt0_clo_bind; econstructor; eauto.
-    intros cb' _ [].
-    auto with paco.
+    guclo eqit_clo_bind; econstructor; eauto.
+    intros; subst. eauto with paco.
   - gstep. constructor; auto.
 Qed.
 
@@ -127,7 +110,7 @@ Lemma bind_loop2 {E A A' B C} (f : A' -> itree E A)
 Proof.
   unfold loop.
   rewrite <- bind_bind.
-  eapply eutt_bind; try reflexivity.
+  eapply eqit_bind; try reflexivity.
 Qed.
 
 Lemma bind_loop {E A B B' C}
@@ -144,26 +127,25 @@ Lemma bind_loop {E A B B' C}
 Proof.
   unfold loop.
   rewrite !bind_bind.
-  eapply eq_itree_bind; try reflexivity.
-  red.
-  gcofix CIH.
+  eapply eqit_bind; try reflexivity.
+  ginit. gcofix CIH.
   intros [c | b]; cbn.
-  - rewrite bind_ret.
-    rewrite 2 unfold_aloop'; cbn.
-    rewrite bind_tau, !bind_bind.
+  - rewrite bind_ret_.
+    rewrite 2 unfold_aloop'_; cbn.
+    rewrite bind_tau_, !bind_bind.
     gstep. constructor.
-    gclo eq_itree_clo_bind; econstructor.
+    guclo eqit_clo_bind; econstructor.
     { reflexivity. }
     intros cb' _ [].
     auto with paco.
   - rewrite bind_map.
-    rewrite unfold_aloop'; cbn.
-    rewrite bind_ret.
+    rewrite unfold_aloop'_; cbn.
+    rewrite bind_ret_.
     rewrite <- bind_ret2 at 1.
-    gclo eq_itree_clo_bind; econstructor.
+    guclo eqit_clo_bind; econstructor.
     { reflexivity. }
     intros b' _ [].
-    rewrite unfold_aloop'. gstep. constructor; auto.
+    rewrite unfold_aloop'_. gstep. constructor; auto.
 Qed.
 
 Lemma loop_bind {E A B C C'} (f : C -> itree E C')
@@ -180,29 +162,29 @@ Lemma loop_bind {E A B C C'} (f : C -> itree E C')
       end >>= body) a.
 Proof.
   unfold loop.
-  rewrite bind_ret, !bind_bind.
-  eapply eq_itree_bind; try reflexivity.
+  rewrite bind_ret_, !bind_bind.
+  eapply eqit_bind; try reflexivity.
   intros [c | b].
-  2:{ rewrite bind_ret.
-      do 2 rewrite unfold_aloop'; cbn.
-      red. gstep. constructor. auto.
+  2:{ rewrite bind_ret_.
+      do 2 rewrite unfold_aloop'_; cbn.
+      red. pstep. constructor. auto.
   }
-  revert c; gcofix CIH; intros c.
-  rewrite bind_tau.
-  rewrite unfold_aloop'; cbn.
+  revert c. ginit. gcofix CIH; intros c.
+  rewrite bind_tau_.
+  rewrite unfold_aloop'_; cbn.
   gstep. constructor.
   rewrite !bind_bind, bind_map.
-  gclo eq_itree_clo_bind; econstructor; try reflexivity.
+  guclo eqit_clo_bind; econstructor; try reflexivity.
   intros ? _ [].
-  rewrite unfold_aloop'; cbn.
+  rewrite unfold_aloop'_; cbn.
   autorewrite with itree.
   gstep.
   constructor.
-  gclo eq_itree_clo_bind; econstructor; try reflexivity.
+  guclo eqit_clo_bind; econstructor; try reflexivity.
   intros [] _ [].
   - auto with paco.
-  - rewrite bind_ret.
-    do 2 rewrite unfold_aloop'; cbn.
+  - rewrite bind_ret_.
+    do 2 rewrite unfold_aloop'_; cbn.
     gstep; constructor; auto.
 Qed.
 
@@ -211,9 +193,9 @@ Lemma vanishing1_loop {E A B} (f : void + A -> itree E (void + B))
   loop f a ≅ ITree.map (apply unit_l) (f (inr a)).
 Proof.
   unfold loop, ITree.map.
-  eapply eq_itree_bind; try reflexivity.
+  eapply eqit_bind; try reflexivity.
   intros [[]|b].
-  rewrite unfold_aloop'; reflexivity.
+  rewrite unfold_aloop'_; reflexivity.
 Qed.
 
 Lemma vanishing2_loop {E A B C D} (f : D + (C + A) -> itree E (D + (C + B)))
@@ -223,25 +205,24 @@ Lemma vanishing2_loop {E A B C D} (f : D + (C + A) -> itree E (D + (C + B)))
 Proof.
   unfold loop; cbn.
   rewrite !bind_bind, bind_map.
-  eapply eq_itree_bind; try reflexivity.
-  intros dcb.
-  revert dcb; gcofix CIH; intros dcb.
-  do 2 rewrite unfold_aloop'; destruct dcb as [d | [c | b]]; cbn.
+  eapply eqit_bind; try reflexivity.
+  ginit. gcofix CIH; intros dcb.
+  do 2 rewrite unfold_aloop'_; destruct dcb as [d | [c | b]]; cbn.
   - (* d *)
-    rewrite bind_tau, !bind_bind, bind_map.
+    rewrite bind_tau_, !bind_bind, bind_map.
     gstep. constructor.
-    gclo eq_itree_clo_bind; econstructor; try reflexivity.
+    guclo eqit_clo_bind; econstructor; try reflexivity.
     intros dcb' _ [].
     auto with paco.
   - (* c *)
-    rewrite bind_ret, unfold_aloop'; cbn.
+    rewrite bind_ret_, unfold_aloop'_; cbn.
     rewrite !bind_bind, bind_map.
     gstep. constructor.
-    gclo eq_itree_clo_bind; econstructor; try reflexivity.
+    guclo eqit_clo_bind; econstructor; try reflexivity.
     intros dcb' _ [].
     auto with paco.
   - (* b *)
-    rewrite bind_ret, unfold_aloop'; cbn.
+    rewrite bind_ret_, unfold_aloop'_; cbn.
     gstep. constructor; auto.
 Qed.
 
@@ -257,19 +238,19 @@ Lemma superposing1_loop {E A B C D D'} (f : C + A -> itree E (C + B))
 Proof.
   unfold loop.
   rewrite map_bind, bind_map.
-  eapply eq_itree_bind; try reflexivity.
+  eapply eqit_bind; try reflexivity.
   intros cb.
   unfold ITree.map.
-  revert cb; gcofix CIH; intros cb.
-  do 2 rewrite unfold_aloop'. (* why is this slow *)
+  revert cb. ginit. gcofix CIH; intros cb.
+  do 2 rewrite unfold_aloop'_.
   destruct cb as [c | b]; cbn.
-  - rewrite bind_tau, !bind_bind.
+  - rewrite bind_tau_, !bind_bind.
     gstep. constructor.
-    gclo eq_itree_clo_bind; econstructor; try reflexivity.
+    guclo eqit_clo_bind; econstructor; try reflexivity.
     intros cb' _ [].
-    rewrite bind_ret.
+    rewrite bind_ret_.
     auto with paco.
-  - rewrite bind_ret; gstep; constructor; auto.
+  - rewrite bind_ret_; gstep; constructor; auto.
 Qed.
 
 Lemma superposing2_loop {E A B C D D'} (f : C + A -> itree E (C + B))
@@ -284,14 +265,14 @@ Lemma superposing2_loop {E A B C D D'} (f : C + A -> itree E (C + B))
 Proof.
   unfold loop, ITree.map.
   rewrite !bind_bind.
-  eapply eq_itree_bind; try reflexivity.
+  eapply eqit_bind; try reflexivity.
   intros d'.
-  rewrite bind_ret, unfold_aloop'; reflexivity.
+  rewrite bind_ret_, unfold_aloop'_; reflexivity.
 Qed.
 
 Lemma yanking_loop {E A} (a : A) :
   @loop E _ _ _ swap a ≅ Tau (Ret a).
 Proof.
-  rewrite itree_eta; cbn; apply eq_itree_Tau.
+  rewrite itree_eta. cbn. apply eqit_Tau.
   rewrite itree_eta; reflexivity.
 Qed.
