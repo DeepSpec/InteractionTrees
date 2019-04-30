@@ -415,8 +415,6 @@ Qed.
 
 End EUTTG_Properties2.
 
-Require Import Paco.pacotac_internal.
-
 Section EUTTG_principles.
 
 Context {E : Type -> Type} {R1 R2 : Type} (RR : R1 -> R2 -> Prop).
@@ -551,14 +549,14 @@ Qed.
 
 End EUTTG_principles.
 
+Require Import Paco.pacotac_internal.
+
 Tactic Notation "ecofix" ident(CIH) "with" ident(gL) ident(gH) :=
   repeat red;
-  paco_pre2; eapply euttG_cofix;
+  paco_pre2;
+  eapply euttG_cofix;
   paco_post2 CIH with gL;
-  let INC := fresh "_paco_inc_" in
-  paco_post_match2 INC ltac:(paco_ren_r gH) paco_ren_pr;
-  let CIH := fresh CIH in intro CIH; paco_simp_hyp CIH;
-  let CIH' := fresh CIH in try rename INC into CIH'.
+  paco_post2 CIH with gH.
 
 Tactic Notation "ecofix" ident(CIH) := ecofix CIH with gL gH.
 
