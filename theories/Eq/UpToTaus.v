@@ -457,9 +457,9 @@ Proof.
   edestruct REL; eauto.
 Qed.
 
-(* Lose weak hypotheses after general rewriting *)
+(* Drop weak hypotheses for general rewriting *)
 
-Lemma euttG_weaken rH rL gL gH t1 t2:
+Lemma euttG_drop rH rL gL gH t1 t2:
   euttG rH rH rH gH t1 t2 -> euttG rH rL gL gH t1 t2.
 Proof.
   intros. destruct H. econstructor.
@@ -570,7 +570,7 @@ Ltac etau := repeat red; under_forall ltac:(eapply euttG_tau; eauto with paco).
 Ltac evis := repeat red; under_forall ltac:(eapply euttG_vis; eauto with paco).
 Ltac estep := first [eret|etau|evis].
 Ltac ebind := repeat red; under_forall ltac:(eapply euttG_bind; eauto with paco).
-Ltac eweak := repeat red; under_forall ltac:(eapply euttG_weaken; eauto with paco).
+Ltac edrop := repeat red; under_forall ltac:(eapply euttG_drop; eauto with paco).
 
 Hint Resolve euttG_ret : paco.
 Hint Resolve euttG_tau : paco.
