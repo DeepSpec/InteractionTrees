@@ -41,7 +41,7 @@ Bind Scope sum_scope with sum1.
 
 Notation "(| x )" := (inr1 x) : sum_scope.
 Notation "( x |)" := (inl1 x) : sum_scope.
-Notation "(| x |)" := (inl1 (inr1 x)) : sum_scope.
+Notation "(| x |)" := (inr1 (inl1 x)) : sum_scope.
 Notation "(|| x )" := (inr1 (inr1 x)) : sum_scope.
 Notation "(|| x |)" := (inr1 (inr1 (inl1 x))) : sum_scope.
 Notation "(||| x )" := (inr1 (inr1 (inr1 x))) : sum_scope.
