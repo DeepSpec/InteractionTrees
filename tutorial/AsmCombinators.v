@@ -70,6 +70,14 @@ Definition relabel_bks {A B X D : nat} (f : F A -> F B) (g : F X -> F D)
            (b : bks B X) : bks A D :=
   fun a => fmap_block g (b (f a)).
 
+Definition app_bks {A B C D : nat} (ab : bks A B) (cd : bks C D)
+  : bks (A + C) (B + D) :=
+  fun ac =>
+    match split_fin_sum ac with
+    | inl a => fmap_block (L _) (ab a)
+    | inr c => fmap_block (R _) (cd c)
+    end.
+
 (** Simple combinator to build a [block] from its instructions and branch operation. *)
 Fixpoint after {A: Type} (is : list instr) (bch : branch A) : block A :=
   match is with
@@ -116,6 +124,9 @@ Definition _app_D {I J B D} :
   block (F (J + D)) -> block (F ((I + J) + (B + D))) :=
   fmap_block (case_ (inr_ >>> inl_) (inr_ >>> inr_)).
 
+Notation Foo :=
+(assoc_r >>> bimap (id_ _) (assoc_l >>> bimap swap (id_ _) >>> assoc_r) >>> assoc_l : iFun _ _).
+
 (** Combinator to append two asm programs, preserving their internal links.
     Can be thought of as a "vertical composition", or a tensor product. 
  *)
@@ -125,16 +136,7 @@ Definition _app_D {I J B D} :
 Definition app_asm {A B C D} (ab : asm A B) (cd : asm C D) :
   asm (A + C) (B + D) :=
   {| internal := ab.(internal) + cd.(internal);
-     code := fun l => match isum_sum l with
-                   | inl iac => match isum_sum iac with
-                               | inl ia => _app_B (ab.(code) (@inl_ _ iFun _ _ _ _ ia))
-                               | inr ic => _app_D (cd.(code) (@inl_ _ iFun _ _ _ _ ic))
-                               end
-                   | inr ac => match isum_sum ac with
-                              | inl a => _app_B (ab.(code) (@inr_ _ iFun _ _ _ _ a))
-                              | inr c => _app_D (cd.(code) (@inr_ _ iFun _ _ _ _ c))
-                              end
-                   end
+     code := relabel_bks Foo Foo (app_bks ab.(code) cd.(code))
   |}.
 
 (** Rename visible program labels.
@@ -330,7 +332,9 @@ Section Correctness.
     apply eq_sktree_sloop.
     rewrite !cat_assoc; try typeclasses eauto.
     rewrite <- !sym_sktree_unfold, !assoc_l_sktree, !assoc_r_sktree, !bimap_slift_id, !bimap_id_slift, !compose_lift_sktree_l, compose_lift_sktree.
+    cbn.
 
+(*
     (* And finally a case analysis on the label provided. *)
     (* TODO Things get wonky here with sktrees *)
     unfold cat, Cat_sktree, cat, Cat_ktree, Cat_iFun, ITree.cat, lift_sktree, lift_ktree.
@@ -339,7 +343,7 @@ Section Correctness.
     repeat match goal with
            | |- context[match ?pat with | _ => _ end] => destruct pat eqn:?EQ
            end; cbn.
-
+*)
     (*
     {
       all: unfold _app_B, _app_D.
