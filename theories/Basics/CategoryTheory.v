@@ -161,6 +161,8 @@ Context {obj : Type} (C : Hom obj).
 Context {Eq2_C : Eq2 C} {Id_C : Id_ C} {Cat_C : Cat C}.
 Context (bif : binop obj).
 
+Context {Bimap_bif : Bimap C bif}.
+
 Context {AssocR_bif : AssocR C bif}.
 Context {AssocL_bif : AssocL C bif}.
 
@@ -192,6 +194,16 @@ Context {UnitL_bif  : UnitL  C bif i}.
 Context {UnitL'_bif : UnitL' C bif i}.
 Context {UnitR_bif  : UnitR  C bif i}.
 Context {UnitR'_bif : UnitR' C bif i}.
+
+(** *** Naturality *)
+
+Class UnitLNatural : Prop :=
+  natural_unit_l : forall a b (f : C a b),
+    bimap (id_ i) f >>> unit_l_ i b ⩯ unit_l_ i a >>> f.
+
+Class UnitL'Natural : Prop :=
+  natural_unit_l' : forall a b (f : C a b),
+    unit_l'_ i a >>> bimap (id_ i) f ⩯ f >>> unit_l'_ i b.
 
 (** [unit_l] and [unit_l'] are mutual inverses. *)
 Notation UnitLIso :=
@@ -228,8 +240,6 @@ Proof.
   intros; apply semi_iso, UnitRIso_C.
 Qed.
 
-Context {Bimap_bif : Bimap C bif}.
-
 (** *** Coherence laws *)
 
 (** The Triangle Diagram *)
@@ -251,6 +261,8 @@ Class Monoidal : Prop := {
   monoidal_assoc_iso :> AssocIso;
   monoidal_unit_l_iso :> UnitLIso;
   monoidal_unit_r_iso :> UnitRIso;
+  monoidal_unit_l_natural :> UnitLNatural;
+  monoidal_unit_l'_natural :> UnitL'Natural;
   monoidal_assoc_r_unit :> AssocRUnit;
   monoidal_assoc_r_assoc_r :> AssocRAssocR;
 }.

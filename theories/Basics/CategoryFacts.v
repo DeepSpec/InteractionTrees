@@ -124,6 +124,14 @@ Proof.
   all: typeclasses eauto.
 Qed.
 
+Lemma bimap_slide' {a b c d} (ac: C a c) (bd: C b d) :
+  bimap ac bd ⩯ bimap (id_ _) bd >>> bimap ac (id_ _).
+Proof.
+  rewrite bimap_cat, cat_id_l, cat_id_r.
+  reflexivity.
+  all: typeclasses eauto.
+Qed.
+
 End BifunctorFacts.
 
 (** ** Coproducts *)
@@ -310,6 +318,35 @@ Qed.
 Lemma inl_unit_r {a} : inl_ >>> unit_r ⩯ id_ a.
 Proof.
   apply semi_iso; typeclasses eauto.
+Qed.
+
+Lemma inr_bimap {a b c d} (f : C a b) (g : C c d)
+  : inr_ >>> bimap f g ⩯ g >>> inr_.
+Proof.
+  unfold bimap, Bimap_Coproduct.
+  rewrite case_inr. reflexivity.
+  all: typeclasses eauto.
+Qed.
+
+Global Instance UnitLNatural_Coproduct : UnitLNatural C bif i.
+Proof.
+  red; intros.
+  apply coprod_split.
+  - rewrite <- !cat_assoc.
+    transitivity (empty : C i b); [ | symmetry ]; auto using initial_object.
+    all: typeclasses eauto.
+  - rewrite <- !cat_assoc, inr_bimap, inr_unit_l, cat_assoc,
+      inr_unit_l, cat_id_l, cat_id_r.
+    reflexivity.
+    all: typeclasses eauto.
+Qed.
+
+Global Instance UnitL'Natural_Coproduct : UnitL'Natural C bif i.
+Proof.
+  red; intros.
+  unfold unit_l', UnitL'_Coproduct.
+  rewrite inr_bimap.
+  reflexivity.
 Qed.
 
 (** The coproduct satisfies the monoidal coherence laws. *)
