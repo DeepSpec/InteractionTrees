@@ -347,3 +347,59 @@ Class SwapAssocL : Prop :=
   ⩯ bimap (id_ a) swap >>> assoc_l >>> bimap swap (id_ b).
 
 End SymmetricLaws.
+
+Section IterationLaws.
+
+Context {obj : Type} (C : Hom obj).
+Context {Eq2_C : Eq2 C} {Id_C : Id_ C} {Cat_C : Cat C}.
+Context (bif : binop obj).
+Context {CoprodCase_C : CoprodCase C bif}.
+Context {CoprodInl_C : CoprodInl C bif}.
+Context {CoprodInr_C : CoprodInr C bif}.
+Context {CatLoop_C : CatLoop C bif}.
+
+(** The loop operation satisfies a fixed point equation. *)
+Class LoopUnfold : Prop :=
+  loop_unfold : forall a b (f : C a (bif a b)),
+    cat_loop f ⩯ f >>> case_ (cat_loop f) (id_ b).
+
+(** Naturality in the output (in [b], with [C a (bif a b) -> C a b]).
+    Also known as "parameter identity". *)
+Class LoopNatural : Prop :=
+  loop_natural : forall a b c (f : C a (bif a b)) (g : C b c),
+    cat_loop f >>> g ⩯ cat_loop (f >>> bimap (id_ _) g).
+
+(** Dinaturality in the accumulator (in [a], with [C a (bif a b) -> C a b]).
+    Also known as "composition identity". *)
+Class LoopDinatural : Prop :=
+  loop_dinatural : forall a b c (f : C a (bif b c)) (g : C b (bif a c)),
+                   cat_loop (f >>> case_ g inr_)
+    ⩯ f >>> case_ (cat_loop (g >>> case_ f inr_)) (id_ _).
+(** TODO: provable from the others + uniformity *)
+
+(** Flatten nested loops. Also known as "double dagger identity". *)
+Class LoopCodiagonal : Prop :=
+  loop_codiagonal : forall a b (f : C a (bif a (bif a b))),
+    cat_loop (cat_loop f) ⩯ cat_loop (f >>> case_ inl_ (id_ _)).
+
+(* TODO: also define uniformity, requires a strictness assumption. *)
+
+Class Conway : Prop :=
+  { conway_unfold :> LoopUnfold
+  ; conway_natural :> LoopNatural
+  ; conway_dinatural :> LoopDinatural
+  ; conway_codiagonal :> LoopCodiagonal
+  }.
+
+(** Also called Bekic identity *)
+Definition LoopPairing : Prop :=
+  forall a b c (f : C a (bif (bif a b) c)) (g : C b (bif (bif a b) c)),
+    let h : C b (bif b c)
+        := g >>> assoc_r >>> case_ (cat_loop (f >>> assoc_r)) (id_ _)
+    in
+      cat_loop (case_ f g)
+    ⩯ cat_loop (case_ (cat_loop (f >>> assoc_r)
+                         >>> case_ (cat_loop h) (id_ _) >>> inr_)
+                      (h >>> bimap inr_ (id_ _))).
+
+End IterationLaws.

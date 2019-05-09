@@ -261,6 +261,43 @@ Global Instance UnitR'_Coproduct : UnitR' C SUM I :=
 
 End CocartesianConstruct.
 
+(** ** Iteration, fixed points *)
+
+Section Iteration.
+
+Context {obj : Type} (C : Hom obj).
+Variables (bif : binop obj).
+
+(** Categories with a loop operator (_pre-iterative categories_).
+  Abstract generalization of [ITree.Basics.Basics.ALoop] and
+  [ITree.Core.KTree.loop]. [cat_loop] is often denoted as a dagger in the
+  relevant literature. *)
+Class CatLoop : Type :=
+  cat_loop : forall a b, C a (bif a b) -> C a b.
+
+Context
+  {Id_C : Id_ C}
+  {Cat_C : Cat C}
+  {CoprodCase_bif : CoprodCase C bif}
+  {CoprodInl_bif : CoprodInl C bif}
+  {CoprodInr_bif : CoprodInr C bif}
+  {CatLoop_bif : CatLoop}.
+
+(** Trace operator (generalization of [KTree.loop]). *)
+Definition cat_trace (a b c : obj)
+  : C (bif c a) (bif c b) -> C a b :=
+  fun f => inr_ >>> cat_loop _ _ (f >>> bimap inl_ (id_ b)).
+
+(**  For our purposes, [cat_trace] and [cat_loop] are mutually derivable.
+  [cat_trace] is a definition instead of another class to prevent the interface
+  from growing too much. We originally started with traced categories but
+  iterative/Conway categories seem to provide more of the theory we need. *)
+
+End Iteration.
+
+Arguments cat_loop {obj C bif _ a b}.
+Arguments cat_trace {obj C bif _ _ _ _ _ _ a b c}.
+
 (** ** Automatic solver of reassociating sums *)
 
 Section RESUM.
