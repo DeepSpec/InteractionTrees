@@ -50,6 +50,8 @@ Class InitialObject (i : obj) {Initial_i : Initial C i} : Prop :=
 
 End CatLaws.
 
+(* TODO: all arguments up to typeclass arguments should be implicit,
+   this explicit C is currently the cause for all the "typeclasses eauto". *)
 Arguments cat_assoc {obj} C {Eq2C CatC CatAssoc} [a b c d].
 Arguments initial_object : clear implicits.
 Arguments initial_object {obj} C {Eq2C} i {Initial_i InitialObject}.
