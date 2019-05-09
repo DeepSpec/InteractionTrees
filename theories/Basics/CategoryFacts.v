@@ -576,3 +576,121 @@ End CoproductFacts.
 
 Hint Rewrite @case_inl : cocartesian.
 Hint Rewrite @case_inr : cocartesian.
+
+(** Iterative categories are traced. *)
+Section TracedIterativeFacts.
+
+Context {obj : Type} (C : Hom obj).
+
+Context {Eq2_C : Eq2 C}.
+Context {E_Eq2_C : forall a b, @Equivalence (C a b) eq2}.
+
+Context {Id_C : Id_ C} {Cat_C : Cat C}.
+Context {Proper_cat : forall a b c,
+          @Proper (C a b -> C b c -> C a c) (eq2 ==> eq2 ==> eq2) cat}.
+
+Context {Category_C : Category C}.
+
+Context (bif : binop obj).
+Context {CoprodCase_C : CoprodCase C bif}
+        {CoprodInl_C : CoprodInl C bif}
+        {CoprodInr_C : CoprodInr C bif}.
+Context {Coproduct_C : Coproduct C bif}.
+Context {Proper_case_ : forall a b c,
+            @Proper (C a c -> C b c -> C _ c) (eq2 ==> eq2 ==> eq2) case_}.
+
+Context {CatLoop_bif : CatLoop C bif}.
+Context {Conway_C : Conway C bif}.
+Context {Proper_cat_loop : forall a b,
+            @Proper (C a (bif a b) -> C a b) (eq2 ==> eq2) cat_loop}.
+
+Lemma trace_natural_left {a a' b c} (f : C (bif c a) (bif c b)) (g : C a' a)
+  : g >>> cat_trace f
+  ⩯ cat_trace (bimap (id_ _) g >>> f).
+Proof.
+  unfold cat_trace.
+  transitivity (inr_ >>> cat_loop (bimap (id_ c) g >>> inl_
+                                     >>> case_ (f >>> bimap inl_ (id_ b)) inr_)).
+  - rewrite loop_dinatural.
+    rewrite cat_assoc, case_inl.
+    rewrite <- (cat_assoc _ inr_).
+    unfold bimap, Bimap_Coproduct. (* TODO: by naturality of inr_ *)
+    rewrite case_inr, cat_assoc.
+    repeat (apply Proper_cat; try reflexivity).
+    apply Proper_cat_loop.
+    rewrite cat_assoc.
+    apply Proper_cat; try reflexivity.
+    rewrite !cat_id_l.
+    rewrite cat_case, !case_inr, cat_assoc, case_inl, <- cat_assoc, case_inl.
+    reflexivity.
+    all: typeclasses eauto.
+  - rewrite !cat_assoc, case_inl. reflexivity.
+    all: typeclasses eauto.
+Qed.
+
+Lemma trace_natural_right {a b b' c} (f : C (bif c a) (bif c b)) (g : C b b')
+  : cat_trace f >>> g
+  ⩯ cat_trace (f >>> bimap (id_ _) g).
+Proof.
+  unfold cat_trace.
+  rewrite cat_assoc.
+  apply Proper_cat; try reflexivity.
+  rewrite loop_natural.
+  apply Proper_cat_loop; try reflexivity.
+  rewrite !cat_assoc, !bimap_cat, !cat_id_l, !cat_id_r.
+  reflexivity.
+  all: typeclasses eauto.
+Qed.
+
+Lemma trace_dinatural {a b c c'} (f : C (bif c a) (bif c' b)) (g : C c' c)
+  : cat_trace (f >>> bimap g (id_ _))
+  ⩯ cat_trace (bimap g (id_ _) >>> f).
+Proof.
+  unfold cat_trace.
+  transitivity (inr_ >>> cat_loop (bimap g (id_ a) >>> inl_
+                                     >>> case_ (f >>> bimap inl_ (id_ b)) inr_)).
+  - rewrite loop_dinatural.
+    rewrite <- 2 cat_assoc.
+    unfold bimap at 3, Bimap_Coproduct at 3. (* TODO: naturality of [inr_] *)
+    rewrite case_inr, cat_id_l, (cat_assoc _ _ inl_), case_inl.
+    apply Proper_cat; try reflexivity.
+    rewrite cat_assoc, bimap_cat, cat_id_l.
+    unfold bimap, Bimap_Coproduct.
+    rewrite !cat_assoc, !cat_case, !cat_id_l, cat_assoc, !case_inl, case_inr.
+    rewrite cat_assoc.
+    reflexivity.
+    all: typeclasses eauto.
+  - rewrite 2 cat_assoc, case_inl.
+    reflexivity.
+    all: typeclasses eauto.
+Qed.
+
+Context (i : obj).
+Context {Initial_i : Initial C i}.
+Context {InitialObject_i : InitialObject C i}.
+
+Lemma trace_vanishing_1 {a b} (f : C (bif i a) (bif i b))
+  : cat_trace f
+  ⩯ unit_l' >>> f >>> unit_l.
+Proof.
+  unfold cat_trace.
+  rewrite loop_unfold.
+  rewrite !cat_assoc.
+  match goal with
+  | [ |- _ >>> (_ >>> ?g) ⩯ _ ] =>
+    assert (Hg : g ⩯ unit_l)
+  end.
+  { unfold unit_l, UnitL_Coproduct.
+    apply case_universal.
+    - apply (initial_object _ _).
+    - unfold bimap, Bimap_Coproduct.
+      rewrite <- cat_assoc, case_inr, cat_id_l, case_inr.
+      reflexivity.
+      all: typeclasses eauto.
+  }
+  rewrite Hg.
+  reflexivity.
+  all: try typeclasses eauto.
+Qed.
+
+End TracedIterativeFacts.
