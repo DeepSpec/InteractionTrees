@@ -187,6 +187,32 @@ Proof.
   apply case_universal; auto.
 Qed.
 
+Lemma inr_swap {a b} : inr_ >>> swap_ a b ⩯ inl_.
+Proof.
+  unfold swap, Swap_Coproduct. rewrite case_inr. reflexivity.
+  typeclasses eauto.
+Qed.
+
+Lemma inl_swap {a b} : inl_ >>> swap_ a b ⩯ inr_.
+Proof.
+  unfold swap, Swap_Coproduct. rewrite case_inl. reflexivity.
+  typeclasses eauto.
+Qed.
+
+Lemma inr_bimap {a b c d} (f : C a b) (g : C c d)
+  : inr_ >>> bimap f g ⩯ g >>> inr_.
+Proof.
+  unfold bimap, Bimap_Coproduct. rewrite case_inr. reflexivity.
+  typeclasses eauto.
+Qed.
+
+Lemma inl_bimap {a b c d} (f : C a b) (g : C c d)
+  : inl_ >>> bimap f g ⩯ f >>> inl_.
+Proof.
+  unfold bimap, Bimap_Coproduct. rewrite case_inl. reflexivity.
+  typeclasses eauto.
+Qed.
+
 (** The coproduct is a bifunctor. *)
 
 Global Instance Proper_Bimap_Coproduct {a b c d}:
@@ -572,6 +598,15 @@ Proof.
     all: typeclasses eauto.
 Qed.
 
+(* Naturality of swap *)
+Lemma swap_bimap' {a b c d} (ab : C a b) (cd : C c d) :
+  swap >>> bimap ab cd ⩯ bimap cd ab >>> swap.
+Proof.
+  rewrite swap_bimap, <- !cat_assoc, swap_involutive, cat_id_l.
+  reflexivity.
+  all: typeclasses eauto.
+Qed.
+
 End CoproductFacts.
 
 Hint Rewrite @case_inl : cocartesian.
@@ -691,6 +726,53 @@ Proof.
   rewrite Hg.
   reflexivity.
   all: try typeclasses eauto.
+Qed.
+
+Lemma trace_vanishing_2 {a b c d} (f : C (bif d (bif c a)) (bif d (bif c b)))
+  : cat_trace (cat_trace f)
+  ⩯ cat_trace (assoc_r >>> f >>> assoc_l).
+Proof.
+  unfold cat_trace.
+Abort.
+
+Lemma trace_superposing {a b c d e}
+      (ab : C (bif e a) (bif e b)) (cd : C c d) :
+    bimap (cat_trace ab) cd
+  ⩯ cat_trace (assoc_l >>> bimap ab cd >>> assoc_r).
+Proof.
+  unfold cat_trace.
+  apply (coprod_split _ _ _).
+  - admit.
+  - unfold bimap, Bimap_Coproduct.
+    rewrite case_inr, loop_unfold.
+    unfold assoc_l, AssocL_Coproduct.
+    rewrite !(cat_assoc _ (case_ _ _)).
+    repeat rewrite <- (cat_assoc _ inr_ (case_ _ _)), case_inr.
+    rewrite cat_assoc.
+    apply Proper_cat; try reflexivity.
+    unfold assoc_r, AssocR_Coproduct.
+    rewrite !cat_assoc.
+    repeat rewrite <- (cat_assoc _ inr_ (case_ _ _)), case_inr.
+    rewrite cat_assoc, cat_id_l.
+    repeat rewrite <- (cat_assoc _ inr_ (case_ _ _)), !case_inr.
+    rewrite cat_id_r.
+    reflexivity.
+    all: typeclasses eauto.
+Abort.
+
+Lemma trace_yanking {a} : cat_trace swap ⩯ id_ a.
+Proof.
+  unfold cat_trace.
+  rewrite 2 loop_unfold.
+  rewrite !cat_assoc.
+  rewrite <- cat_assoc, inr_swap.
+  rewrite <- cat_assoc, inl_bimap.
+  rewrite cat_assoc, case_inl.
+  rewrite <- cat_assoc, inl_swap.
+  rewrite <- cat_assoc, inr_bimap.
+  rewrite cat_id_l, case_inr.
+  reflexivity.
+  all: typeclasses eauto.
 Qed.
 
 End TracedIterativeFacts.
