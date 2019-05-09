@@ -577,26 +577,6 @@ Section Correctness.
   Context {HasExit: Exit -< E'}.
   Notation E := (Locals +' E').
 
-  (** We use a couple of tactics to step through itrees by eta expansion followed by reduction *)
-  Ltac force_left :=
-    match goal with
-    | |- eutt _ ?x _ => rewrite (itree_eta x); cbn
-    end.
-
-  Ltac force_right :=
-    match goal with
-    | |- eutt _ _ ?x => rewrite (itree_eta x); cbn
-    end.
-
-  (** Chain a reduction expected to exhibit a [Tau] step with its elimination *)
-  Ltac untau_left := force_left; rewrite tau_eutt.
-  Ltac untau_right := force_right; rewrite tau_eutt.
-
-  (** Fully reduce both sides *)
-  Ltac tau_steps :=
-    repeat (untau_left); force_left;
-    repeat (untau_right); force_right.
-
   (** Correctness of expressions.
       We strengthen [eq_locals]: initial environments are still related by [Renv],
       but intermediate ones must now satisfy [sim_rel].

@@ -837,3 +837,28 @@ Hint Rewrite @map_ret : itree.
 Hint Rewrite @bind_ret2 : itree.
 Hint Rewrite @bind_bind : itree.
 
+(** ** Tactics *)
+
+Ltac force_left :=
+  match goal with
+  | [ |- _ ?x _ ] => rewrite (itree_eta x); cbn
+  end.
+
+Ltac force_right :=
+  match goal with
+  | [ |- _ _ ?x ] => rewrite (itree_eta x); cbn
+  end.
+
+(** Remove all taus from the left hand side of the goal equation
+    (assumed to be of the form [lhs ≈ rhs]). *)
+Ltac tau_steps_left :=
+  repeat (force_left; rewrite tau_eutt); force_left.
+
+(** Remove all taus from the right hand side of the goal equation. *)
+Ltac tau_steps_right :=
+  repeat (force_right; rewrite tau_eutt); force_right.
+
+(** Remove all taus from both sides of the goal equation. *)
+Ltac tau_steps :=
+  tau_steps_left;
+  tau_steps_right.
