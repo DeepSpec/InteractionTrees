@@ -262,7 +262,8 @@ End SimpleTheory.
 (** * Implementation *)
 
 From ITree Require
-     Eq.UpToTausEquivalence
+     Eq.Eq
+     Eq.UpToTaus
      Interp.InterpFacts
      Interp.RecursionFacts.
 
@@ -277,44 +278,44 @@ Context {E : Type -> Type} {R : Type}.
 (** The standard [itree] equivalence: "Equivalence Up To Taus",
     or _weak bisimulation_. *)
 Definition eutt : itree E R -> itree E R -> Prop :=
-  ITree.Eq.UpToTaus.eutt eq.
+  ITree.Eq.Eq.eutt eq.
 
 Infix "≈" := eutt (at level 40).
 
 (** [eutt] is an equivalence relation. *)
 Global Instance Equivalence_eutt : Equivalence eutt
-  := ITree.Eq.UpToTausEquivalence.Equivalence_eutt.
+  := ITree.Eq.Eq.Equivalence_eutt.
 
 (** We can erase taus unter [eutt]. *)
 Lemma tau_eutt : forall (t : itree E R),
     Tau t ≈ t.
-Proof. exact ITree.Eq.UpToTausCore.tau_eutt. Qed.
+Proof. intros. rewrite ITree.Eq.Eq.tau_eutt. reflexivity. Qed.
 
 Lemma itree_eta : forall (t : itree E R),
     t ≈ go (observe t).
-Proof.
-  intros; rewrite <- ITree.Eq.Eq.itree_eta.
-  reflexivity.
-Qed.
+Proof. intros. rewrite <- ITree.Eq.Eq.itree_eta. reflexivity. Qed.
 
 Lemma eutt_ret (r1 r2 : R)
   : r1 = r2 ->
     Ret r1 ≈ Ret r2.
-Proof. apply ITree.Eq.UpToTausCore.eutt_ret. Qed.
+Proof. intros. subst. reflexivity. Qed.
 
 Lemma eutt_vis {U : Type} (e : E U) (k1 k2 : U -> itree E R)
   : (forall u, k1 u ≈ k2 u) -> Vis e k1 ≈ Vis e k2.
-Proof. apply ITree.Eq.UpToTausCore.eutt_vis; auto. Qed.
+Proof.
+  intros. ITree.Eq.UpToTaus.einit. ITree.Eq.UpToTaus.evis.
+  intros. ITree.Eq.UpToTaus.efinal. apply H.
+Qed.
 
 Lemma eutt_inv_ret (r1 r2 : R)
   : Ret r1 ≈ Ret r2 ->
     r1 = r2.
-Proof. apply ITree.Eq.UpToTausCore.eutt_inv_ret. Qed.
+Proof. apply ITree.Eq.Eq.eqit_inv_ret. Qed.
 
 Lemma eutt_inv_vis {U : Type} (e : E U) (k1 k2 : U -> itree E R)
   : Vis e k1 ≈ Vis e k2 ->
     (forall u, k1 u ≈ k2 u).
-Proof. apply ITree.Eq.UpToTausCore.eutt_inv_vis; auto. Qed.
+Proof. apply ITree.Eq.Eq.eqit_inv_vis; auto. Qed.
 
 End EquivalenceUpToTaus.
 
@@ -326,18 +327,22 @@ Lemma unfold_bind
   : forall {E R S} (t : itree E R) (k : R -> itree E S),
     ITree.bind t k
   ≈ ITree._bind k (fun t => ITree.bind t k) (observe t).
-Proof. intros; rewrite <- ITree.Eq.Shallow.unfold_bind; reflexivity. Qed.
+Proof. intros; rewrite <- ITree.Eq.Shallow.unfold_bind_; reflexivity. Qed.
 
 (** The next two are immediate corollaries of [unfold_bind]. *)
 Lemma bind_ret : forall {E R S} (r : R) (k : R -> itree E S),
     ITree.bind (Ret r) k ≈ k r.
-Proof. intros; rewrite ITree.Eq.Shallow.bind_ret; reflexivity. Qed.
+Proof. intros; rewrite ITree.Eq.Shallow.bind_ret_; reflexivity. Qed.
+
+Lemma bind_tau {E R} U t (k: U -> itree E R) :
+  ITree.bind (Tau t) k ≈ Tau (ITree.bind t k).
+Proof. rewrite bind_tau_. reflexivity. Qed.
 
 Lemma bind_vis
   : forall {E R} U V (e: E V) (ek: V -> itree E U) (k: U -> itree E R),
     ITree.bind (Vis e ek) k
   ≈ Vis e (fun x => ITree.bind (ek x) k).
-Proof. intros; rewrite ITree.Eq.Shallow.bind_vis; reflexivity. Qed.
+Proof. intros; rewrite ITree.Eq.Shallow.bind_vis_; reflexivity. Qed.
 
 Lemma bind_ret2 : forall {E R} (s : itree E R),
     ITree.bind s (fun x => Ret x) ≈ s.
@@ -466,41 +471,33 @@ Hint Rewrite @interp_mrecursive : itree.
 
 Instance eutt_go {E R} :
   Proper (going eutt ==> eutt) (@go E R).
-Proof. apply ITree.Eq.UpToTausCore.eutt_cong_go. Qed.
+Proof. repeat red; intros. rewrite H. apply reflexivity. Qed.
 
 Instance eutt_observe {E R} :
   Proper (eutt ==> going eutt) (@observe E R).
-Proof. apply ITree.Eq.UpToTausCore.eutt_cong_observe. Qed.
+Proof. repeat red; intros. rewrite H. apply reflexivity. Qed.
 
 Instance eutt_TauF {E R} :
   Proper (eutt ==> going eutt) (@TauF E R _).
-Proof. apply ITree.Eq.UpToTausCore.eutt_cong_tauF. Qed.
+Proof. repeat red; intros. rewrite H. apply reflexivity. Qed.
 
 Instance eutt_VisF {E R X} (e: E X) :
   Proper (pointwise_relation _ (@eutt E R) ==> going eutt) (VisF e).
-Proof. apply ITree.Eq.UpToTausCore.eutt_cong_VisF. Qed.
+Proof. repeat red; intros. rewrite H. apply reflexivity. Qed.
 
 Instance eutt_bind {E R S} :
   Proper (pointwise_relation _ eutt ==> eutt ==> eutt)
          (@ITree.bind' E R S).
-Proof. apply ITree.Eq.UpToTausEquivalence.eutt_bind. Qed.
+Proof. repeat red; intros. rewrite H, H0. apply reflexivity. Qed.
 
 Instance eutt_map {E R S} :
   Proper (pointwise_relation _ eq ==> eutt ==> eutt)
          (@ITree.map E R S).
-Proof. apply ITree.Eq.UpToTausEquivalence.eutt_map. Qed.
+Proof. repeat red; intros. rewrite H, H0. apply reflexivity. Qed.
 
 Instance eutt_interp (E F : Type -> Type) f (R : Type) :
   Proper (eutt ==> eutt) (@interp E (itree F) _ _ _ f R).
-Proof. apply ITree.Interp.InterpFacts.eutt_interp'. Qed.
-
-Ltac tau_steps :=
-  repeat (
-      rewrite itree_eta at 1; cbn;
-      match goal with
-      | [ |- go (observe _) ≈ _ ] => fail 1
-      | _ => try rewrite tau_eutt
-      end).
+Proof. repeat red; intros. rewrite H. apply reflexivity. Qed.
 
 End Simple.
 (* end hide *)

@@ -52,7 +52,7 @@ Inductive suttF (sutt: itree' E R1 -> itree' E R2 -> Prop) :
 Hint Constructors suttF.
 
 Definition sutt (t1 : itree E R1) (t2 : itree E R2) :=
-  cpn2 suttF bot2 (observe t1) (observe t2).
+  paco2 suttF bot2 (observe t1) (observe t2).
 Hint Unfold sutt.
 
 End SUTT.
@@ -97,8 +97,8 @@ Lemma sutt_inv_vis {E R1 R2} (RR : R1 -> R2 -> Prop) :
   sutt RR (Vis e k1) (Vis e k2) ->
   forall x, sutt RR (k1 x) (k2 x).
 Proof.
-  intros. ustep. uunfold H. repeat red in H |- *. simpl in *.
-  inv H. auto_inj_pair2. subst. specialize (SUTTK x). uunfold SUTTK. eauto with paco.
+  intros. pstep. punfold H. simpl in *.
+  inv H. auto_inj_pair2. subst. specialize (SUTTK x). pclearbot. punfold SUTTK.
 Qed.
 
 Lemma sutt_tau_right {E R1 R2} (RR : R1 -> R2 -> Prop) :
@@ -106,7 +106,7 @@ Lemma sutt_tau_right {E R1 R2} (RR : R1 -> R2 -> Prop) :
     sutt RR t1 t2 ->
     sutt RR t1 (Tau t2).
 Proof.
-  intros. uunfold H. ustep.
+  intros. punfold H. pstep.
   repeat red. repeat red in H. constructor.
   auto.
 Qed.
@@ -116,7 +116,7 @@ Lemma sutt_tau_left {E R1 R2} (RR : R1 -> R2 -> Prop) :
     sutt RR t1 t2 ->
     sutt RR (Tau t1) t2.
 Proof.
-  intros. uunfold H. ustep.
+  intros. punfold H. pstep.
   repeat red. repeat red in H. constructor.
   eauto with paco.
 Qed.
@@ -126,23 +126,22 @@ Lemma sutt_elim_tau_right {E R1 R2} (RR : R1 -> R2 -> Prop) :
     sutt RR t1 (Tau t2) ->
     sutt RR t1 t2.
 Proof.
-  ucofix CIH. intros.
-  uunfold H0. repeat red in H0.
+  pcofix CIH. pstep. intros.
+  punfold H0. repeat red in H0.
   inv H0.
-  - eapply monotone_suttF; eauto using cpn2_mon_bot with paco.
-  - constructor. eauto with paco.
+  - eapply monotone_suttF; eauto using upaco2_mon_bot with paco.
+  - constructor. pclearbot. eauto with paco.
 Qed.
 
 Lemma suttF_inv_tau_left {E R1 R2} (RR : R1 -> R2 -> Prop) :
-  forall (t1: itree E R1) (t2: itree E R2),
-    suttF RR (cpn2 (suttF RR) bot2) (TauF t1) (observe t2) ->
-    suttF RR (cpn2 (suttF RR) bot2) (observe t1) (observe t2).
+  forall (t1: itree E R1) ot2,
+    suttF RR (upaco2 (suttF RR) bot2) (TauF t1) ot2 ->
+    suttF RR (upaco2 (suttF RR) bot2) (observe t1) ot2.
 Proof.
   intros.
-  simpl in *.
   remember (TauF t1) as ott1.
   induction H; intros; subst; try dependent destruction Heqott1; eauto.
-  uunfold EQTAUS. eauto.
+  pclearbot. punfold EQTAUS. 
 Qed.
 
 Lemma sutt_inv_tau_left {E R1 R2} (RR : R1 -> R2 -> Prop) :
@@ -151,7 +150,7 @@ Lemma sutt_inv_tau_left {E R1 R2} (RR : R1 -> R2 -> Prop) :
     sutt RR t1 t2.
 Proof.
   intros.
-  uunfold H. ustep. repeat red in H |- *.
+  punfold H. pstep. repeat red in H |- *.
   apply suttF_inv_tau_left; auto.
 Qed.
 
@@ -159,36 +158,31 @@ Theorem sutt_eutt {E R1 R2} (RR : R1 -> R2 -> Prop) :
   forall (t1 : itree E R1) (t2 : itree E R2),
     sutt RR t1 t2 -> sutt (flip RR) t2 t1 -> eutt RR t1 t2.
 Proof.
-  ucofix CIH. red. ucofix CIH'. intros.
-  uunfold H0. uunfold H1. repeat red in H0, H1. repeat red.
-  remember (observe t1). remember (observe t2).
-  generalize dependent t1. generalize dependent t2.
+  pcofix CIH. intros.
+  punfold H0. punfold H1. pstep. red.
   induction H0; intros; subst; auto.
-  - constructor. intro. left. eapply suttF_inv_vis in H1. eauto with paco.
-  - constructor. eapply IHsuttF; auto. apply suttF_inv_tau_left; auto.
-  - clear Heqi t0. clear CIH.
-    (* doing induction when one of the trees is a tau doesn't work well *)
-    inv H1.
-    + remember (observe t2). remember (observe t1).
-      generalize dependent t2. generalize dependent t1.
-      induction EQTAUS0; intros; try inv Heqi0.
-      * constructor. rewrite <- H1. constructor. uunfold EQTAUS. inversion EQTAUS. auto.
-      * constructor. rewrite <- H0. constructor. intro. right.
-        ubase. apply CIH'; auto. eapply sutt_inv_vis in EQTAUS; eauto.
-      * constructor. rewrite <- H0. eapply IHEQTAUS0; eauto. apply sutt_inv_tau_left; auto.
-      * constructor. ubase. apply CIH'; auto. apply sutt_elim_tau_right; auto.
-    + rewrite <- H0 in *. constructor. ubase. apply CIH'; apply sutt_elim_tau_right; auto.
+  - constructor. intro. right. eapply suttF_inv_vis in H1. pclearbot. eauto with paco.
+  - constructor; eauto. eapply IHsuttF; auto. eapply suttF_inv_tau_left; auto.
+  - (* doing induction when one of the trees is a tau doesn't work well *)
+    inv H1; pclearbot.
+    + clear t1 t2. genobs t0 ot0.
+      hinduction EQTAUS0 before CIH; intros; subst; pclearbot.
+      * constructor; eauto. simpobs. constructor. eauto.
+      * constructor; eauto. simpobs. constructor. intros.
+        right. apply CIH; auto. eapply sutt_inv_vis in EQTAUS; eauto.
+      * constructor; eauto. simpobs. eapply IHEQTAUS0; eauto.
+        rewrite (itree_eta' ot1). apply sutt_inv_tau_left; auto.
+      * constructor. right. apply CIH; auto. apply sutt_elim_tau_right; auto.
+    + constructor. right. apply CIH; apply sutt_elim_tau_right; auto.
 Qed.
 
 Theorem eutt_sutt {E R1 R2} (RR : R1 -> R2 -> Prop) :
   forall (t1 : itree E R1) (t2 : itree E R2),
     eutt RR t1 t2 -> sutt RR t1 t2.
 Proof.
-  ucofix CIH. intros.
-  uunfold H0. uunfold H0.
-  induction H0; constructor; eauto with paco.
-  - intros. destruct (EUTTK x); eauto with paco.
-  - constructor. eauto with paco.
+  pcofix CIH. pstep. intros.
+  punfold H0. red in H0.
+  induction H0; constructor; pclearbot; eauto 7 with paco.
 Qed.
 
 (** Generalized heterogeneous version of [eutt_bind] *)
@@ -198,95 +192,36 @@ Lemma sutt_bind' {E R1 R2 S1 S2} {RR: R1 -> R2 -> Prop} {SS: S1 -> S2 -> Prop}:
     forall s1 s2, (forall r1 r2, RR r1 r2 -> sutt SS (s1 r1) (s2 r2)) ->
                   @sutt E _ _ SS (ITree.bind t1 s1) (ITree.bind t2 s2).
 Proof.
-  (* apply sutt_is_sutt1. *)
-  (* apply sutt_is_sutt1 in H. *)
-  (* setoid_rewrite sutt_is_sutt1 in H0. *)
-  ucofix self; intros.
-  uunfold H0.
-  genobs t1 ot1. genobs t2 ot2.
-  revert t1 t2 Heqot1 Heqot2.
+  pcofix self. pstep. intros.
+  punfold H0.
+  rewrite 2 unfold_bind_.
   induction H0; intros.
-  - rewrite 2 unfold_bind, <- Heqot1, <- Heqot2; simpl.
-    apply H1 in H. uunfold H. eapply gcpn2_mon; eauto with paco; contradiction.
-  - rewrite 2 unfold_bind, <- Heqot1, <- Heqot2; simpl.
-    constructor. eauto with paco.
-  - rewrite (unfold_bind t0), <- Heqot2; simpl.
-    constructor. gcpn_fold. eauto with paco.
-  - rewrite (unfold_bind t0), <- Heqot1; simpl.
-    constructor. subst. eauto with paco.
+  - simpl. apply H1 in H. punfold H. eapply monotone_suttF; eauto using upaco2_mon_bot.
+  - simpl. pclearbot. econstructor. eauto.
+  - constructor. eauto with paco.
+  - constructor. pclearbot. rewrite (itree_eta' ot2), <- unfold_bind_. eauto.
 Qed.
 
 Require Import Coq.Relations.Relations.
 
-Lemma eq_itree_vis_l {E R1 R2} {RR : R1 -> R2 -> Prop} {RC T}
-      (e : E T) (k : _ -> _)
-      (it : itreeF E _ _)
-      (H : @eq_itreeF E R1 R2 RR RC (VisF e k) it)
-      :
-        exists k', it = VisF e k' /\
-                 (forall x, RC (k x) (k' x)).
-Proof.
-  refine
-    match H in eq_itreeF _ _ x y
-          return
-          match x return Prop with
-          | @VisF _ _ _ u e k =>
-            exists k' : _ -> _, y = VisF e k' /\ (forall x : u, RC (k x) (k' x))
-          | _ => True
-          end
-    with
-    | EqVis _ _ _ _ _ Ek => ltac:(eexists; split; [ reflexivity | eassumption ])
-    | _ => I
-    end.
-Qed.
-
 (* todo: this could be made stronger with eutt rather than eq_itree
  *)
-Instance Proper_sutt {E : Type -> Type} {R1 R2 : Type}
-: Proper (pointwise_relation _ (pointwise_relation _ Basics.impl) ==>
-          eq_itree eq ==> eq_itree eq ==> Basics.impl)
-       (@sutt E R1 R2).
+Instance Proper_sutt {E : Type -> Type} {R1 R2 : Type} r
+: Proper (eq_itree eq ==> eq_itree eq ==> flip impl)
+       (@sutt E R1 R2 r).
 Proof.
-  red. red.
-  unfold pointwise_relation.
-  unfold impl.
-  intros x y Hxy.
-  red. red.
-  do 5 intro.
-  revert x0 y0 H x1 y1.
-  ucofix CIH.
-  intros.
-  uunfold H0.
-  uunfold H1.
-  uunfold H2.
-  repeat red in H0. repeat red in H1. repeat red in H2.
-  revert H0 H1.
-  genobs_clear y0 oy0. genobs_clear y1 oy1. genobs_clear x2 ox2. genobs_clear x3 ox3.
-  revert_until CIH.
-  induction 1; subst; intros.
-  { inv H0. inv H1. econstructor. eauto. }
-  { eapply eq_itree_vis_l in H0.
-    eapply eq_itree_vis_l in H1.
-    destruct H0 as [ ? [ ? ? ] ].
-    destruct H1 as [ ? [ ? ? ] ].
-    rewrite H. rewrite H1.
-    constructor.
-    intros.
-    ubase.
-    specialize (H0 x2).
-    specialize (H2 x2).
-    eapply CIH; eauto. }
-  { inversion H1; clear H1; subst.
-    constructor.
-    eapply IHsuttF; eauto.
-    uunfold REL. eauto. }
-  { inversion H0; clear H0; subst.
-    constructor.
-    ubase.
-    change oy1 with (observe (go oy1)).
-    eapply CIH.
-    - eassumption.
-    - instantiate (1:= go ot2).
-      ustep. eapply H1.
-    - eapply EQTAUS. }
+  repeat red. pcofix CIH; pstep. intros.
+  punfold H0; punfold H1; punfold H2. red in H0, H1.
+  (* rename H1 into H2, Hxy into H1.  *)
+  hinduction H2 before CIH; subst; intros.
+  - inv H0; try discriminate. inv H1; try discriminate. econstructor. eauto.
+  - dependent destruction H0; try discriminate.
+    dependent destruction H1; try discriminate.
+    simpobs. pclearbot.
+    constructor. intros. right. eauto 7 with paco.
+  - dependent destruction H1; try discriminate.
+    simpobs. pclearbot. punfold REL.
+  - dependent destruction H0; try discriminate.
+    simpobs. pclearbot. constructor.
+    right. rewrite (itree_eta' ot2) in *. eauto.
 Qed.

@@ -52,6 +52,7 @@ Require Import Psatz.
 
 From Coq Require Import
      Strings.String
+     Program.Basics
      Morphisms
      ZArith
      Setoid
@@ -377,12 +378,10 @@ Section Eq_Locals.
 
   (** [eq_locals] is compatible with [eutt]. *)
   Global Instance eutt_eq_locals (Renv_ : _ -> _ -> Prop) {R} RR :
-    Proper (eutt eq ==> eutt eq ==> iff) (@eq_locals R R RR Renv_).
+    Proper (eutt eq ==> eutt eq ==> flip impl) (@eq_locals R R RR Renv_).
   Proof.
     repeat intro.
-    split; repeat intro.
-    - rewrite <- H, <- H0; auto.
-    - rewrite H, H0; auto.
+    rewrite H, H0; auto.
   Qed.
 
   (** [eq_locals] commutes with [bind]  *)
@@ -397,8 +396,7 @@ Section Eq_Locals.
   Proof.
     repeat intro.
     rewrite 2 interp_locals_bind.
-    eapply eutt_bind'.
-    { eapply H; auto. }
+    eapply eutt_clo_bind; [eapply H; auto|].
     intros. eapply H0; destruct H2; auto.
   Qed.
 
@@ -408,8 +406,7 @@ Section Eq_Locals.
     eq_locals eq Renv (loop t1 x) (loop t2 x).
   Proof.
     unfold eq_locals, interp_locals, run_map.
-    intros.
-    rewrite 2 interp_loop.
+    intros. rewrite 2 interp_loop.
     eapply eutt_interp_state_loop; auto.
   Qed.
 
@@ -497,29 +494,29 @@ Section Linking.
     rewrite after_correct.
     simpl.
     repeat setoid_rewrite bind_bind.
-    apply eutt_bind; try reflexivity. intros [].
-    apply eutt_bind; try reflexivity. intros [].
-    - rewrite bind_ret_.
+    eapply eutt_clo_bind; try reflexivity. intros; subst.
+    eapply eutt_clo_bind; try reflexivity. intros; subst; destruct u0.
+    - rewrite bind_ret.
       rewrite (relabel_asm_correct _ _ _ (inr tt)).
       unfold CategoryOps.cat, Cat_ktree, ITree.cat; simpl.
       rewrite bind_bind.
-      unfold lift_ktree; rewrite bind_ret_.
+      unfold lift_ktree; rewrite bind_ret.
       setoid_rewrite (app_asm_correct tp fp (inr tt)).
       setoid_rewrite bind_bind.
       rewrite <- (bind_ret2 (denote_asm fp tt)) at 2.
-      eapply eutt_bind; try reflexivity. intros ?.
-      unfold inr_, Inr_ktree, lift_ktree; rewrite bind_ret_; reflexivity.
-    - rewrite bind_ret_.
+      eapply eutt_clo_bind; try reflexivity. intros; subst.
+      unfold inr_, Inr_ktree, lift_ktree; rewrite bind_ret; reflexivity.
+    - rewrite bind_ret.
       rewrite (relabel_asm_correct _ _ _ (inl tt)).
       unfold CategoryOps.cat, Cat_ktree, ITree.cat; simpl.
       rewrite bind_bind.
-      unfold lift_ktree; rewrite bind_ret_.
+      unfold lift_ktree; rewrite bind_ret.
       setoid_rewrite (app_asm_correct tp fp (inl tt)).
       setoid_rewrite bind_bind.
       rewrite <- (bind_ret2 (denote_asm tp tt)) at 2.
-      eapply eutt_bind; try reflexivity. intros ?.
+      eapply eutt_clo_bind; try reflexivity. intros; subst.
       unfold inl_, Inl_ktree, lift_ktree;
-        rewrite bind_ret_; reflexivity.
+        rewrite bind_ret; reflexivity.
   Qed.
 
 Opaque loop.
@@ -552,19 +549,19 @@ Opaque loop.
     - unfold ITree.cat. 
       simpl; setoid_rewrite bind_bind.
       rewrite bind_bind.
-      apply eutt_bind; try reflexivity. intros [].
+      eapply eutt_clo_bind; try reflexivity. intros; subst.
       rewrite bind_bind.
-      apply eutt_bind; try reflexivity. intros [].
+      eapply eutt_clo_bind; try reflexivity. intros; subst. destruct u0.
       + rewrite (pure_asm_correct _ tt).
         unfold inl_, Inl_ktree, lift_ktree.
-        repeat rewrite bind_ret_.
+        repeat rewrite bind_ret.
         reflexivity.
       + rewrite (relabel_asm_correct _ _ _  tt).
         unfold CategoryOps.cat, Cat_ktree, ITree.cat.
         simpl; repeat setoid_rewrite bind_bind.
-        unfold inl_, Inl_ktree, lift_ktree; rewrite bind_ret_.
-        apply eutt_bind; try reflexivity. intros [].
-        repeat rewrite bind_ret_; reflexivity.
+        unfold inl_, Inl_ktree, lift_ktree; rewrite bind_ret.
+        eapply eutt_clo_bind; try reflexivity. intros; subst. destruct u3.
+        repeat rewrite bind_ret. reflexivity.
     - rewrite itree_eta; cbn; reflexivity.
   Qed.
 
@@ -608,7 +605,7 @@ Section Correctness.
       [alist var value * value] for _Imp_). The differeence is nonetheless mostly
       transparent for the user, except for the use of the more generale [eutt_bind'].
    *)
-  
+
   Lemma compile_expr_correct : forall e g_imp g_asm n,
       Renv g_asm g_imp ->
       eutt (sim_rel g_asm n)
@@ -618,10 +615,12 @@ Section Correctness.
     induction e; simpl; intros.
     - (* Var case *)
       (* We first compute and eliminate taus on both sides. *)
+
       tau_steps.
 
       (* We are left with [Ret] constructs on both sides, that remains to be related *)
-      apply eutt_ret.
+      red; rewrite <-eqit_Ret.
+      
       (* On the _Asm_ side, we bind to [gen_tmp n] a lookup to [varOf v] *)
       (* On the _Imp_ side, we return the value of a lookup to [varOf v] *)
       erewrite <- Renv_find; [| eassumption].
@@ -631,23 +630,24 @@ Section Correctness.
       (* We reduce both sides to Ret constructs *)
       tau_steps.
 
-      apply eutt_ret.
+      red; rewrite <-eqit_Ret.
       (* _Asm_ bind the litteral to [gen_tmp n] while _Imp_ returns it *)
       apply sim_rel_add; assumption.
 
     (* The three binary operator cases are identical *)
     - (* Plus case *)
       (* We push [interp_locals] into the denotations *)
+
       do 2 setoid_rewrite denote_list_app.
       do 2 setoid_rewrite interp_locals_bind.
 
       (* The Induction hypothesis on [e1] relates the first itrees *)
-      eapply eutt_bind'.
+      eapply eutt_clo_bind.
       { eapply IHe1; assumption. }
       (* We obtain new related environments *)
       intros [g_asm' []] [g_imp' v] HSIM.
       (* The Induction hypothesis on [e2] relates the second itrees *)
-      eapply eutt_bind'.
+      eapply eutt_clo_bind.
       { eapply IHe2.
         eapply sim_rel_Renv; eassumption. }
       (* And we once again get new related environments *)
@@ -655,7 +655,7 @@ Section Correctness.
       (* We can now reduce down to Ret constructs that remains to be related *)
       tau_steps.
       simpl fst in *.
-      apply eutt_ret.
+      red; rewrite <-eqit_Ret.
 
       clear -HSIM HSIM'.
       erewrite sim_rel_find_tmp_n_trans; eauto. 
@@ -668,12 +668,12 @@ Section Correctness.
       do 2 setoid_rewrite interp_locals_bind.
 
       (* The Induction hypothesis on [e1] relates the first itrees *)
-      eapply eutt_bind'.
+      eapply eutt_clo_bind.
       { eapply IHe1; assumption. }
       (* We obtain new related environments *)
       intros [g_asm' []] [g_imp' v] HSIM.
       (* The Induction hypothesis on [e2] relates the second itrees *)
-      eapply eutt_bind'.
+      eapply eutt_clo_bind.
       { eapply IHe2.
         eapply sim_rel_Renv; eassumption. }
       (* And we once again get new related environments *)
@@ -681,7 +681,7 @@ Section Correctness.
       (* We can now reduce down to Ret constructs that remains to be related *)
       tau_steps. 
       simpl fst in *.
-      apply eutt_ret.
+      red; rewrite <- eqit_Ret.
 
       clear -HSIM HSIM'.
       erewrite sim_rel_find_tmp_n_trans; eauto. 
@@ -694,12 +694,12 @@ Section Correctness.
       do 2 setoid_rewrite interp_locals_bind.
 
       (* The Induction hypothesis on [e1] relates the first itrees *)
-      eapply eutt_bind'.
+      eapply eutt_clo_bind.
       { eapply IHe1; assumption. }
       (* We obtain new related environments *)
       intros [g_asm' []] [g_imp' v] HSIM.
       (* The Induction hypothesis on [e2] relates the second itrees *)
-      eapply eutt_bind'.
+      eapply eutt_clo_bind.
       { eapply IHe2.
         eapply sim_rel_Renv; eassumption. }
       (* And we once again get new related environments *)
@@ -707,7 +707,7 @@ Section Correctness.
       (* We can now reduce down to Ret constructs that remains to be related *)
       tau_steps.
       simpl fst in *.
-      apply eutt_ret.
+      red; rewrite <-eqit_Ret.
 
       clear -HSIM HSIM'.
       erewrite sim_rel_find_tmp_n_trans; eauto. 
@@ -733,14 +733,14 @@ Section Correctness.
     (* By correctness of the compilation of expressions,
        we can match the head trees.
      *)
-    eapply eutt_bind'.
+    eapply eutt_clo_bind.
     { eapply compile_expr_correct; eauto. }
 
     (* Once again, we get related environments *)
     intros [g_asm' []] [g_imp' v] HSIM.
     (* We can now reduce to Ret constructs *)
     tau_steps. 
-    eapply eutt_ret; simpl.
+    red; rewrite <- eqit_Ret; simpl.
 
     (* And remains to relate the results *)
     erewrite sim_rel_find_tmp_n; eauto; simpl.
@@ -763,8 +763,8 @@ Section Correctness.
     apply eutt_loop.
     intros [[]|[]]; simpl; [| reflexivity].
     unfold ITree.map.
-    apply eutt_bind; try reflexivity.
-    intros []; reflexivity.
+    eapply eutt_clo_bind; try reflexivity.
+    intros; subst. destruct u2; reflexivity.
   Qed.
 
   (** Correctness of the compiler.
@@ -799,7 +799,7 @@ Section Correctness.
       intros [] [] []; simpl.
       repeat intro.
       force_left; force_right.
-      apply eutt_ret; auto.
+      red; rewrite <-eqit_Ret; auto.
 
     - (* Seq *)
       (* We commute [denote_asm] with [seq_asm] *)
@@ -821,7 +821,7 @@ Section Correctness.
          and eliminate them by correctness of [compile_expr] *)
       repeat intro.
       rewrite 2 interp_locals_bind.
-      eapply eutt_bind'.
+      eapply eutt_clo_bind.
       { apply compile_expr_correct; auto. }
 
       (* We get in return [sim_rel] related environments *)
@@ -830,7 +830,7 @@ Section Correctness.
       (* We know that interpreting [GetVar tmp_if] is eutt to [Ret (g_asm,v)] *)
       generalize HSIM; intros EQ; eapply sim_rel_get_tmp0 in EQ.
       setoid_rewrite EQ; clear EQ.
-      rewrite bind_ret_; simpl.
+      rewrite bind_ret; simpl.
       (* We can weaken [sim_rel] down to [Renv] *)
       apply sim_rel_Renv in HSIM.
       (* And finally conclude in both cases *)
@@ -852,14 +852,14 @@ Section Correctness.
       (* The exiting case is trivial *)
       2:{ repeat intro.
           force_left. force_right.
-          apply eutt_ret; auto. }
+          red; rewrite <-eqit_Ret; auto. }
 
       (* We now need to line up the evaluation of the test,
          and eliminate them by correctness of [compile_expr] *)
       unfold ITree.map. rewrite bind_bind.
       repeat intro.
       rewrite 2 interp_locals_bind.
-      eapply eutt_bind'.
+      eapply eutt_clo_bind.
       { apply compile_expr_correct; auto. }
 
       (* We get in return [sim_rel] related environments *)
@@ -868,7 +868,7 @@ Section Correctness.
       (* We know that interpreting [GetVar tmp_if] is eutt to [Ret (g_asm,v)] *)
       generalize HSIM; intros EQ. eapply sim_rel_get_tmp0 in EQ.
       setoid_rewrite EQ; clear EQ.
-      rewrite bind_ret_; simpl.
+      rewrite bind_ret; simpl.
 
       (* We can weaken [sim_rel] down to [Renv] *)
       apply sim_rel_Renv in HSIM.
@@ -876,20 +876,20 @@ Section Correctness.
       destruct v; simpl; auto.
       + (* The false case is trivial *)
         force_left; force_right.
-        apply eutt_ret; auto.
+        red; rewrite <-eqit_Ret; auto.
       + (* In the true case, we line up the body of the loop to use the induction hypothesis *)
         rewrite 2 interp_locals_bind, bind_bind.
-        eapply eutt_bind'.
+        eapply eutt_clo_bind.
         { eapply IHs; auto. }
         intros [g_asm' []] [g_imp' v'] [HSIM' ?].
         intros.
         force_right; force_left.
-        apply eutt_ret; simpl; split; auto. 
+        red; rewrite <- eqit_Ret; simpl; split; auto. 
 
     - (* Skip *)
       repeat intro.
       force_right; force_left.
-      apply eutt_ret; auto.
+      red; rewrite <- eqit_Ret; auto.
   Qed.
 
 End Correctness.
