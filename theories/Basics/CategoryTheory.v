@@ -161,6 +161,8 @@ Class Coproduct : Prop := {
 
 End CoproductLaws.
 
+Arguments case_universal {obj C _ _ bif _ _ _ _ a b c}.
+
 (** ** Monoidal categories *)
 
 Section MonoidalLaws.

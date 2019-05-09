@@ -154,7 +154,7 @@ Lemma cat_case
       {a b c d} (ac : C a c) (bc : C b c) (cd : C c d)
   : case_ ac bc >>> cd ⩯ case_ (ac >>> cd) (bc >>> cd).
 Proof.
-  eapply case_universal; [ typeclasses eauto | | ].
+  apply case_universal.
   - rewrite <- cat_assoc; [ | typeclasses eauto ].
     rewrite case_inl; [ | typeclasses eauto ].
     reflexivity.
@@ -166,14 +166,14 @@ Qed.
 (** Case analysis with projections is the identity. *)
 Corollary case_eta {a b} : id_ (bif a b) ⩯ case_ inl_ inr_.
 Proof.
-  eapply case_universal; [ typeclasses eauto | | ].
+  apply case_universal.
   all: rewrite cat_id_r; [ reflexivity | typeclasses eauto ].
 Qed.
 
 Lemma case_eta' {a b c} (f : C (bif a b) c) :
   f ⩯ case_ (inl_ >>> f) (inr_ >>> f).
 Proof.
-  eapply case_universal; [ typeclasses eauto | | ]; reflexivity.
+  eapply case_universal; reflexivity.
 Qed.
 
 (** We can prove the equivalence of morphisms on coproducts
@@ -184,8 +184,7 @@ Lemma coprod_split {a b c} (f g : C (bif a b) c) :
   f ⩯ g.
 Proof.
   intros. rewrite (case_eta' g).
-  eapply case_universal; auto.
-  typeclasses eauto.
+  apply case_universal; auto.
 Qed.
 
 (** The coproduct is a bifunctor. *)
