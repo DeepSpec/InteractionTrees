@@ -301,6 +301,7 @@ Proof.
     + unfold inr_, Inr_ktree in Hg.
       rewrite lift_compose_ktree in Hg.
       specialize (Hg y). simpl in Hg. rewrite Hg. reflexivity.
+  - typeclasses eauto.
 Qed.
 
 End MonoidalCategoryLaws.

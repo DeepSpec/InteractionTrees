@@ -105,16 +105,12 @@ Context {Eq2_C : Eq2 C}.
 Context {E_Eq2_C : forall a b, @Equivalence (C a b) eq2}.
 
 Context {Id_C : Id_ C} {Cat_C : Cat C}.
-Context {Proper_cat : forall a b c,
-          @Proper (C a b -> C b c -> C a c) (eq2 ==> eq2 ==> eq2) cat}.
 
 Context {Category_C : Category C}.
 
 Context (bif : binop obj).
 Context {Bimap_bif : Bimap C bif}
         {Bifunctor_bif : Bifunctor C bif}.
-Context {Proper_bimap : forall a b c d,
-            @Proper (C a c -> C b d -> C _ _) (eq2 ==> eq2 ==> eq2) bimap}.
 
 Lemma bimap_slide {a b c d} (ac: C a c) (bd: C b d) :
   bimap ac bd ⩯ bimap ac (id_ _) >>> bimap (id_ _) bd.
@@ -144,8 +140,6 @@ Context {Eq2_C : Eq2 C}.
 Context {E_Eq2_C : forall a b, @Equivalence (C a b) eq2}.
 
 Context {Id_C : Id_ C} {Cat_C : Cat C}.
-Context {Proper_cat : forall a b c,
-          @Proper (C a b -> C b c -> C a c) (eq2 ==> eq2 ==> eq2) cat}.
 
 Context {Category_C : Category C}.
 
@@ -154,8 +148,6 @@ Context {CoprodCase_C : CoprodCase C bif}
         {CoprodInl_C : CoprodInl C bif}
         {CoprodInr_C : CoprodInr C bif}.
 Context {Coproduct_C : Coproduct C bif}.
-Context {Proper_case_ : forall a b c,
-            @Proper (C a c -> C b c -> C _ c) (eq2 ==> eq2 ==> eq2) case_}.
 
 (** Commute [cat] and [case_]. *)
 Lemma cat_case
@@ -362,10 +354,10 @@ Proof.
     rewrite cat_case, case_inl.
     unfold unit_r, UnitR_Coproduct.
     rewrite cat_case, cat_id_l.
-    apply Proper_case_.
-    reflexivity.
-    eapply initial_unique; auto.
-    all: typeclasses eauto.
+    apply (coproduct_proper_case _ _).
+    all: try typeclasses eauto.
+    + reflexivity.
+    + eapply initial_unique; auto.
   - rewrite <- cat_assoc, case_inr.
     rewrite cat_assoc, case_inr.
     rewrite <- cat_assoc, inr_unit_l, cat_id_l.

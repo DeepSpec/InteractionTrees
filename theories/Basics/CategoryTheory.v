@@ -4,6 +4,8 @@
     operations, this module describes their properties. *)
 
 (* begin hide *)
+From Coq Require Import Setoid Morphisms.
+
 From ITree.Basics Require Import
      CategoryOps.
 
@@ -35,6 +37,8 @@ Class Category : Prop := {
   category_cat_id_l :> CatIdL;
   category_cat_id_r :> CatIdR;
   category_cat_assoc :> CatAssoc;
+  category_proper_cat :> forall a b c,
+      @Proper (C a b -> C b c -> C a c) (eq2 ==> eq2 ==> eq2) cat;
 }.
 
 (** *** Initial object *)
@@ -112,6 +116,8 @@ Class BimapCat : Prop :=
 Class Bifunctor : Prop := {
   bifunctor_bimap_id :> BimapId;
   bifunctor_bimap_cat :> BimapCat;
+  bifunctor_proper_bimap :> forall a b c d,
+      @Proper (C a c -> C b d -> C _ _) (eq2 ==> eq2 ==> eq2) bimap;
 }.
 
 End BifunctorLaws.
@@ -149,6 +155,8 @@ Class Coproduct : Prop := {
   coproduct_case_inl :> CaseInl;
   coproduct_case_inr :> CaseInr;
   coproduct_case_universal :> CaseUniversal;
+  coproduct_proper_case :> forall a b c,
+      @Proper (C a c -> C b c -> C _ c) (eq2 ==> eq2 ==> eq2) case_
 }.
 
 End CoproductLaws.

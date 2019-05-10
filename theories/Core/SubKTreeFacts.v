@@ -356,6 +356,7 @@ Section Facts.
       - intros a b c f g.
         cbv; reflexivity.
       - intros a b c f g fg Hf Hg [x | y]; cbv in *; auto.
+      - typeclasses eauto.
     Qed.
 
     Instance cat_iFun_CatIdL : CatIdL iFun.
@@ -367,9 +368,24 @@ Section Facts.
     Instance cat_iFun_assoc : CatAssoc iFun.
     Proof. red; reflexivity. Qed.
 
+    Instance Proper_cat_iFun {a b c}
+      : @Proper (iFun a b -> iFun b c -> iFun a c) (eq2 ==> eq2 ==> eq2) cat.
+    Proof.
+      typeclasses eauto.
+    Qed.
+
     Global Instance Category_iFun : Category iFun.
     Proof.
       constructor; typeclasses eauto.
+    Qed.
+
+    Global Instance Proper_case_iFun {A B C} :
+      @Proper (iFun A C -> iFun B C -> _)
+              (eq2 ==> eq2 ==> eq2) case_.
+    Proof.
+      intros x x' EQx y y' EQy z.
+      unfold case_, case_isum.
+      rewrite EQy, EQx; reflexivity.
     Qed.
 
     Global Instance Coproduct_iFun : Coproduct iFun isum.
@@ -398,16 +414,8 @@ Section Facts.
         + setoid_rewrite <- EQ.
           destruct (sum_Iso a b).
           specialize (iso_mono x); setoid_rewrite iso_mono; reflexivity.
+      - typeclasses eauto.
    Qed.
-
-    Global Instance Proper_case_iFun {A B C} :
-      @Proper (iFun A C -> iFun B C -> _)
-              (eq2 ==> eq2 ==> eq2) case_.
-    Proof.
-      intros x x' EQx y y' EQy z.
-      unfold case_, case_isum.
-      rewrite EQy, EQx; reflexivity.
-    Qed.
 
     Lemma unfold_bimap_iFun: forall {A B C D} (f: F A -> F C) (g: F B -> F D),
       @bimap _ iFun _ _ _ _ _ _ f g
@@ -525,6 +533,12 @@ Section Facts.
       unfold_sktree.
       rewrite cat_id_r...
       reflexivity.
+    Qed.
+
+    Instance Proper_cat_sktree {a b c}
+      : @Proper (sktree a b -> sktree b c -> sktree a c) (eq2 ==> eq2 ==> eq2) cat.
+    Proof.
+      typeclasses eauto.
     Qed.
 
     Global Instance Category_sktree : Category sktree.
@@ -667,6 +681,15 @@ Section Facts.
       - rewrite <- cat_assoc, H0.
         reflexivity.
         all: try typeclasses eauto.
+    Qed.
+
+    Global Instance Proper_case_sktree {A B C} :
+      @Proper (sktree A C -> sktree B C -> _)
+              (eq2 ==> eq2 ==> eq2) case_.
+    Proof.
+      intros x x' EQx y y' EQy.
+      unfold case_, Case_sktree.
+      rewrite EQy, EQx; reflexivity.
     Qed.
 
     Global Instance Coproduct_sktree : Coproduct sktree isum.
