@@ -7,7 +7,7 @@ From ITree Require Import
      ITree
      KTree
      KTreeFacts
-     Eq.UpToTausEquivalence.
+     Eq.UpToTaus.
 From Coq Require Import
      Morphisms.
 

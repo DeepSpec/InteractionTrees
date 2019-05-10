@@ -9,6 +9,8 @@
  *)
 
 (* begin hide *)
+Require Import Paco.paco.
+
 From Coq Require Import
      Morphisms.
 
@@ -19,7 +21,8 @@ From ITree Require Import
      Basics.FunctionFacts
      Core.ITreeDefinition
      Core.KTree
-     Eq.UpToTausEquivalence.
+     Eq.Eq
+     Eq.UpToTaus.
 
 From ITree Require Export
      Core.KTreeBasicFacts.
@@ -31,13 +34,13 @@ Import ITreeNotations.
 Import CatNotations.
 Local Open Scope itree_scope.
 Local Open Scope cat_scope.
-
-Local Opaque eutt loop ITree.bind'.
 (* end hide *)
 
 (** *** Traced monoidal categories *)
 
 Section TraceLaws.
+
+Local Opaque eqit loop ITree.bind'.
 
 Context {E : Type -> Type}.
 
@@ -117,8 +120,10 @@ Proof.
   rewrite bind_loop.
   apply eutt_loop.
   intros ia.
-  apply eutt_bind; try reflexivity.
-  intros []; try rewrite bind_ret; reflexivity.
+  einit. ebind. econstructor; try reflexivity.
+  intros; subst. destruct u2.
+  - rewrite bind_ret; eauto with paco.
+  - reflexivity.
 Qed.
 
 (* Dinaturality of (loop I A B) in I *)
@@ -133,19 +138,17 @@ Proof.
   { intros.
     do 2 (etransitivity; eauto). }
   eapply trans4.
-  { intros a.
-    apply subrelation_eq_eutt.
-    apply (loop_bind ji ab_). }
+  { intros a. erewrite (loop_bind ji ab_) at 1. reflexivity. }
   { apply eutt_loop; cbv; intros ia.
-    eapply eutt_bind; try reflexivity.
-    intros [j | b].
-    + rewrite tau_eutt.
-      reflexivity.
-    + rewrite bind_ret; reflexivity. }
+    einit. ebind. econstructor; try reflexivity.
+    intros; subst. destruct u2.
+    + rewrite tau_eutt. reflexivity.
+    + rewrite bind_ret. eauto with paco. }
   { apply eutt_loop. cbv. intros [].
-    + do 2 (apply eutt_bind; try reflexivity).
-      repeat intro; rewrite tau_eutt.
-      reflexivity.
+    + einit. ebind. econstructor. 
+      * eapply eqit_bind; try reflexivity.
+        red; intros. rewrite tau_eutt. reflexivity.
+      * intros; subst. reflexivity.
     + rewrite !bind_ret; reflexivity. }
 Qed.
 
@@ -157,8 +160,8 @@ Proof.
   rewrite vanishing1_loop.
   cbv.
   rewrite bind_ret.
-  apply eutt_bind; try reflexivity.
-  intros [ [] | ]; reflexivity.
+  einit. ebind. econstructor; try reflexivity.
+  intros; subst. destruct u2; [contradiction|reflexivity]. 
 Qed.
 
 (* [loop_loop]:
@@ -199,9 +202,10 @@ Proof.
   apply eutt_loop.
   intros [[]|]; cbn.
   all: rewrite !bind_bind.
-  all: try rewrite !bind_ret_.
-  all: eapply eutt_bind; try reflexivity.
-  all: intros [ | []]; try rewrite bind_ret; reflexivity.
+  all: try rewrite !bind_ret.
+  all: einit; ebind; econstructor; try reflexivity.
+  all: intros; subst; destruct u2; try rewrite bind_ret; try reflexivity.
+  all: destruct s; try rewrite bind_ret; reflexivity.
 Qed.
 
 Lemma fold_map {R S}:
@@ -232,11 +236,10 @@ Proof.
     all: reflexivity.
   - unfold loop.
     autorewrite with itree.
-    eapply eutt_bind; try reflexivity.
-    intros d.
+    einit. ebind. econstructor; try reflexivity.
+    intros. subst.
     autorewrite with itree.
-    rewrite unfold_aloop; cbn.
-    reflexivity.
+    rewrite unfold_aloop; cbn. reflexivity.
 Qed.
 
 (** Utility: lemma to ease working forward in an equational proof.
@@ -324,8 +327,7 @@ Qed.
 Lemma yanking_ktree {A: Type}:
   @loop E _ _ _ swap ⩯ id_ A.
 Proof.
-  intros ?; rewrite yanking_loop.
-  apply tau_eutt.
+  intros ?; rewrite yanking_loop. rewrite tau_eutt. reflexivity.
 Qed.
 
 Lemma loop_rename_internal' {I J A B} (ij : ktree E I J) (ji: ktree E J I)

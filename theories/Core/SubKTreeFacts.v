@@ -7,7 +7,7 @@ From ITree Require Import
      KTree
      KTreeFacts
      SubKTree
-     Eq.UpToTausEquivalence.
+     Eq.Eq.
 
 From Coq Require Import
      Program
@@ -603,7 +603,7 @@ Section Facts.
       unfold_sktree; unfold isum_inr.
       unfold unit_l', UnitL'_Coproduct.
       intro. unfold cat, Cat_ktree, ITree.cat, lift_ktree.
-      rewrite bind_ret_; reflexivity.
+      rewrite bind_ret; reflexivity.
     Qed.
 
     Lemma case_r_sktree' {A B: i} (f: sktree (isum A iI) (isum B iI)) :
@@ -687,8 +687,8 @@ Section Facts.
       intros ?.
       unfold cat, Cat_ktree, ITree.cat.
       rewrite 2 bind_bind.
-      apply eutt_bind; [intros ?| reflexivity].
-      apply eutt_bind; [intros ?; reflexivity|].
+      apply eqit_bind; [intros ?| reflexivity].
+      apply eqit_bind; [intros ?; reflexivity|].
       apply H.
     Qed.
 
@@ -707,7 +707,7 @@ Section Facts.
       intros x x' EQx y y' EQy z.
       unfold case_, Case_sktree.
       unfold cat, Cat_ktree, ITree.cat.
-      apply eutt_bind; [intros ab| reflexivity].
+      apply eqit_bind; [intros ab| reflexivity].
       destruct ab as [a | b].
       rewrite (EQx a); reflexivity.
       rewrite (EQy b); reflexivity.

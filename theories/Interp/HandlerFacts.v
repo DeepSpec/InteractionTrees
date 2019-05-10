@@ -12,7 +12,8 @@ From ITree Require Import
      Basics.Basics
      Basics.Category
      Core.ITreeDefinition
-     Eq.UpToTausEquivalence
+     Eq.Eq
+     Eq.UpToTaus
      Indexed.Sum
      Interp.Interp
      Interp.Handler

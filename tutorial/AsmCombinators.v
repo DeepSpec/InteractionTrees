@@ -186,18 +186,18 @@ Section Correctness.
     - (* If it contains an instruction (inductive case). *)
       simpl.
       unfold ITree.map; rewrite bind_bind.
-      eapply eq_itree_bind; [| reflexivity].
+      eapply eqit_bind; [| reflexivity].
       intros []; apply IHb.
     - (* If it's a jump, we consider the three cases. *)
       simpl.
       destruct br; simpl.
       + unfold ITree.map; rewrite bind_ret; reflexivity.
       + unfold ITree.map; rewrite bind_bind. 
-        eapply eq_itree_bind; [| reflexivity].
+        eapply eqit_bind; [| reflexivity].
         intros ?.
         flatten_goal; rewrite bind_ret; reflexivity.
       + rewrite (itree_eta (ITree.map _ _)).
-        cbn. apply eq_itree_Vis. intros [].
+        cbn. apply eqit_Vis. intros [].
   Qed.
 
   (** Denotes a list of instruction by binding the resulting trees. *)
@@ -215,7 +215,7 @@ Section Correctness.
     induction instrs as [| i instrs IH]; intros b.
     - simpl; rewrite bind_ret; reflexivity.
     - simpl; rewrite bind_bind.
-      eapply eq_itree_bind; try reflexivity.
+      eapply eqit_bind; try reflexivity.
       intros []; apply IH.
   Qed.
 
@@ -323,7 +323,7 @@ Section Correctness.
     rewrite bind_bind.
     rewrite (fmap_block_map (ab t)).
     unfold ITree.map.
-    apply eutt_bind; [intros ? | reflexivity].
+    apply eqit_bind; [intros ? | reflexivity].
     unfold inl_, Inl_ktree, lift_ktree.
     rewrite bind_ret; reflexivity.
     }
@@ -331,7 +331,7 @@ Section Correctness.
     rewrite bind_bind.
     rewrite (fmap_block_map (cd t)).
     unfold ITree.map.
-    apply eutt_bind; [intros ? | reflexivity].
+    apply eqit_bind; [intros ? | reflexivity].
     unfold inr_, Inr_ktree, lift_ktree.
     rewrite bind_ret; reflexivity.
     }
