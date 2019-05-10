@@ -437,6 +437,105 @@ Section Correctness.
       reflexivity.
     Qed.
 
+    Ltac inl_left := rewrite <- (cat_assoc _ inl_).
+    Ltac inl_right := rewrite (cat_assoc _ inl_).
+    Ltac inr_left := rewrite <- (cat_assoc _ inr_).
+    Ltac inr_right := rewrite  (cat_assoc _ inr_).
+
+  Ltac run_in :=
+    repeat (
+        rewrite cat_id_l
+      + rewrite <- (cat_assoc _ inl_ assoc_l), assoc_l_inl
+      + rewrite <- (cat_assoc _ inl_ assoc_r), assoc_r_inl
+      + rewrite <- (cat_assoc _ inr_ assoc_r), assoc_r_inr
+      + rewrite <- (cat_assoc _ inr_ assoc_l), assoc_l_inr
+      + rewrite <- (cat_assoc _ inl_ (bimap _ _)), bimap_inl
+      + rewrite <- (cat_assoc _ inr_ (bimap _ _)), bimap_inr
+      + rewrite <- (cat_assoc _ inl_ (case_ _ _)), case_inl
+      + rewrite <- (cat_assoc _ inr_ (case_ _ _)), case_inr
+      + rewrite <- (cat_assoc _ inl_ swap), swap_inl
+      + rewrite <- (cat_assoc _ inr_ swap), swap_inr
+      + rewrite <- (cat_assoc _ swap (case_ _ _)), swap_case
+      + rewrite ?assoc_l_inl, ?assoc_l_inr, ?assoc_r_inl, ?assoc_r_inr,
+        ?bimap_inl, ?bimap_inr, ?case_inl, ?case_inr
+      ).
+
+  Local Lemma aux_app_asm_correct1 I J A C :
+      (assoc_r >>>
+       bimap (id_ I) (assoc_l >>> bimap swap (id_ C) >>> assoc_r) >>>
+       assoc_l : sktree E ((I + J) + (A + C)) _)
+    ⩯ bimap swap (id_ (A + C)) >>>
+      (assoc_r >>>
+      (bimap (id_ J) assoc_l >>>
+      (assoc_l >>> (bimap swap (id_ C) >>> assoc_r)))).
+  Proof.
+    rewrite cat_assoc.
+    apply (coprod_split _ _).
+    all: try typeclasses eauto.
+    - run_in. symmetry. rewrite cat_assoc. run_in.
+      (* TODO: [rewrite cat_assoc] seems to loop on one side, hence [symmetry]...
+         this is what prevents us from just adding [rewrite !cat_assoc] to
+         [run_in] *)
+      apply (coprod_split _ _).
+      all: try typeclasses eauto.
+      + run_in. repeat (rewrite cat_assoc; run_in).
+        reflexivity.
+        all: try typeclasses eauto.
+      + run_in. repeat (rewrite cat_assoc; run_in).
+        reflexivity.
+        all: try typeclasses eauto.
+    - run_in. rewrite cat_assoc. symmetry.
+      repeat (rewrite cat_assoc; run_in).
+      apply (coprod_split _ _).
+      all: try typeclasses eauto.
+      + run_in. repeat (rewrite cat_assoc; run_in).
+        reflexivity.
+        all: try typeclasses eauto.
+      + run_in. repeat (rewrite cat_assoc; run_in).
+        reflexivity.
+        all: try typeclasses eauto.
+  Qed.
+
+  Local Lemma aux_app_asm_correct2 I J B D :
+      (assoc_r >>>
+       bimap (id_ I) (assoc_l >>> bimap swap (id_ D) >>> assoc_r) >>>
+       assoc_l : sktree E _ ((I + J) + (B + D)))
+    ⩯ assoc_l >>>
+      (bimap swap (id_ D) >>>
+      (assoc_r >>>
+      (bimap (id_ J) assoc_r >>>
+      (assoc_l >>> bimap swap (id_ (B + D)))))).
+  Proof.
+    simpl.
+    rewrite cat_assoc.
+    apply (coprod_split _ _).
+    all: try typeclasses eauto.
+    - run_in.
+      symmetry. rewrite cat_assoc.
+      run_in.
+      rewrite cat_assoc.
+      run_in.
+      apply (coprod_split _ _).
+      all: try typeclasses eauto.
+      + run_in.
+        repeat (rewrite !cat_assoc; run_in).
+        reflexivity.
+        all: typeclasses eauto.
+      + repeat (rewrite cat_assoc; run_in).
+        reflexivity.
+        all: typeclasses eauto.
+    - run_in.
+      rewrite cat_assoc. run_in.
+      rewrite !cat_assoc; run_in.
+      apply (coprod_split _ _).
+      all: try typeclasses eauto.
+      + run_in. repeat (rewrite !cat_assoc; run_in).
+        reflexivity.
+        all: try typeclasses eauto.
+      + run_in. repeat (rewrite !cat_assoc; run_in).
+        reflexivity.
+        all: try typeclasses eauto.
+  Qed.
 
   (** Correctness of the [app_asm] combinator.
       The resulting [asm] gets denoted to the bimap of its subcomponent.
@@ -477,194 +576,18 @@ Section Correctness.
     subst lhs.
     apply eq_sktree_sloop.
     rewrite !cat_assoc; try typeclasses eauto.
-    rewrite <- !sym_sktree_unfold, !assoc_l_sktree, !assoc_r_sktree, !bimap_slift_id, !bimap_id_slift.
-    rewrite !compose_lift_sktree_l, compose_lift_sktree.
-    match goal with | |- _ ⩯ ?x => set (rhs := x) end.
+    repeat rewrite <- (cat_assoc _ _ _ (bimap (denote_b _) (denote_b _) >>> _)).
+    cbn. rewrite relabel_bks_correct, app_bks_correct.
+    rewrite cat_assoc...
 
-    cbn.
-    rewrite relabel_bks_correct, app_bks_correct.
-    subst rhs.
-    rewrite !cat_assoc; try typeclasses eauto.
-    match goal with
-      |- lift_sktree ?f >>> (_ >>> lift_sktree ?g) ⩯ lift_sktree ?f' >>> (_ >>> lift_sktree ?g') =>
-      cut (f ⩯ f'); [intros ->; cut (g ⩯ g'); [intros ->; reflexivity |] |]
-    end.
-    
-    Ltac inl_left := rewrite <- (cat_assoc _ inl_).
-    Ltac inl_right := rewrite (cat_assoc _ inl_).
-    Ltac inr_left := rewrite <- (cat_assoc _ inr_).
-    Ltac inr_right := rewrite  (cat_assoc _ inr_).
- 
-    {
-      match goal with | |- _ ⩯ ?x => set (rhs := x) end.
+    rewrite <- aux_app_asm_correct1, <- aux_app_asm_correct2.
 
-      (* Normalizing left-hand side by case analysis *)
-      rewrite case_eta'...
-      2: apply Coproduct_iFun. (* ??? *)
-
-      repeat inl_left.
-      rewrite assoc_r_inl.
-      rewrite (cat_case _ _ inl_).
-
-      rewrite bimap_inl, cat_id_l... 
-      inl_right; rewrite bimap_inr...
-      repeat rewrite <- (cat_assoc _ inl_ _ _), assoc_l_inl.
-      repeat rewrite (cat_assoc _ assoc_l ).
-      rewrite <- cat_assoc, assoc_l_inl...
-      rewrite cat_assoc...
-      rewrite (cat_assoc _ _ assoc_r inr_). 
-      rewrite <- (cat_assoc _ inl_ (bimap _ _) _), bimap_inl. 
-      repeat rewrite <- cat_assoc, <- (cat_assoc _ inl_ swap), swap_inl...
-      rewrite <- cat_assoc, (cat_assoc _ _ _ assoc_r), assoc_r_inl... 
-      rewrite (case_inr _ _ _ _ _ inl_).
-      rewrite cat_case, assoc_l_inl...
-      rewrite cat_assoc, assoc_l_inr...
-      rewrite cat_assoc, (case_inr _ _ _ _ _ _ inr_)...
-
-      repeat rewrite <- (cat_assoc _ inr_ _ _).
-      rewrite assoc_r_inr.
-      rewrite (cat_assoc _ inr_ inr_ _), bimap_inr.
-      rewrite <- 2 (cat_assoc _ inr_ _ _), assoc_l_inr.
-      rewrite (cat_case _ _ (inr_ >>> inl_) inr_).
-      rewrite (cat_assoc _ inr_ inl_ _), <- (cat_assoc _ inl_), bimap_inl...
-      rewrite <- 2 (cat_assoc _ inr_), swap_inr.
-      rewrite (cat_assoc _ inl_), assoc_r_inl, case_inl...
-      rewrite <- (cat_assoc _ inr_), bimap_inr.
-      rewrite cat_assoc, assoc_l_inr...
-      rewrite cat_assoc, cat_id_l, assoc_r_inr...
-      rewrite (cat_case _ _ inl_), case_inl... 
-      rewrite cat_assoc, (case_inr _ _ _ _ _ _ inr_)...
-      
-      (* Normalizing right-hand side by case analysis *)
-      subst rhs; match goal with | |- ?x ⩯ _ => set (lhs := x) end.
-
-      symmetry.
-      rewrite case_eta'...
-      2: apply Coproduct_iFun. (* ??? *)
-
-      repeat rewrite <- (cat_assoc _ inl_).
-      rewrite assoc_l_inl.
-      rewrite (cat_assoc _ inl_ inl_), bimap_inl. 
-      rewrite <- (cat_assoc _ inl_ swap), swap_inl.
-      rewrite (cat_assoc _ inr_), assoc_r_inl.
-      rewrite (case_inr _ _ _ _ _ inl_).
-      rewrite (cat_assoc _ inl_), bimap_inr.
-      rewrite <- (cat_assoc _ inl_), assoc_r_inl.
-      rewrite 2 cat_assoc, (cat_case _ _ inl_)...
-      rewrite <- (cat_assoc _ inr_), assoc_l_inr.
-      rewrite <- (cat_assoc _ inl_), (case_inl _ _ _ _ _ _ inr_).
-      rewrite (cat_assoc _ inr_), bimap_inl.
-      rewrite <- (cat_assoc _ inr_), swap_inr.
-      rewrite (cat_assoc _ inl_), <- (cat_assoc _ inr_), (case_inr _ _ _ _ _ _ inr_).
-      rewrite bimap_inr.
-      rewrite (cat_id_l _ _ _ inr_).
-      repeat rewrite <- (cat_assoc _ inr_).
-      rewrite assoc_l_inr.
-      repeat rewrite cat_assoc...
-      rewrite (cat_case _ _ _ inr_).
-      rewrite cat_assoc, <- (cat_assoc _ inl_), bimap_inl...
-      rewrite <- 2 (cat_assoc _ inr_), swap_inr.
-      rewrite cat_assoc, <- (cat_assoc _ inl_ assoc_r), assoc_r_inl...
-      rewrite <- (cat_assoc _ inl_), (case_inl _ _ _ _ _ inl_).
-      rewrite <- (cat_assoc _ inl_), bimap_inl, (cat_id_l _ _ _ inl_).
-      rewrite <- (cat_assoc _ inl_), assoc_l_inl.
-      rewrite cat_assoc, bimap_inl...
-      rewrite <- (cat_assoc _ inl_), swap_inl.
-      inr_left; rewrite bimap_inr.
-      rewrite (cat_id_l _ _ _ inr_).
-      inr_left; rewrite assoc_r_inr.
-      inr_right.
-      rewrite <- (cat_assoc _ inr_ (bimap _ _)), bimap_inr.
-      do 2 inr_left; rewrite assoc_r_inr.
-      do 3 inr_right.
-      rewrite <- (cat_assoc _ inr_ assoc_l), assoc_l_inr.
-      rewrite <- (cat_assoc _ inr_ (case_ _ _)), (case_inr _ _ _ _ _ _ inr_), bimap_inr.
-      rewrite (cat_id_l _ _ _ inr_).
-
-      (* And they are the same. We might want to simplify this proof... *)
-      subst lhs; reflexivity.
-    }
-
-    {
-
-      match goal with | |- _ ⩯ ?x => set (rhs := x) end.
-
-      (* Normalizing left-hand side by case analysis *)
-      rewrite case_eta'...
-      2: apply Coproduct_iFun. (* ??? *)
-
-      repeat inl_left.
-      rewrite assoc_r_inl.
-      rewrite (cat_case _ _ inl_).
-      inl_left; rewrite bimap_inl.
-      rewrite (cat_id_l _ _ _ inl_), assoc_l_inl.
-      inl_right; inr_left; rewrite bimap_inr.
-      repeat inl_left; rewrite assoc_l_inl.
-      inl_right; rewrite bimap_inl.
-      inl_left; rewrite swap_inl.
-      inr_right; rewrite assoc_r_inl.
-      rewrite (case_inr _ _ _ _ _ inl_).
-      rewrite cat_assoc, assoc_l_inr...
-      rewrite cat_assoc, (case_inr _ _ _ _ _ _ inr_)...
-
-      inr_left; rewrite assoc_r_inr.
-      inr_right; rewrite <- (cat_assoc _ inr_ _ assoc_l), bimap_inr.
-      repeat inr_left; rewrite assoc_l_inr.
-      repeat rewrite cat_assoc...
-      rewrite (cat_case _ _ _ inr_).
-      inr_right; inl_left; rewrite bimap_inl.
-      repeat inr_left; rewrite swap_inr.
-      inl_right; rewrite <- (cat_assoc _ inl_ assoc_r), assoc_r_inl.
-      inl_left; rewrite (case_inl _ _ _ _ _ inl_).
-      rewrite assoc_l_inr, case_inl...
-      rewrite bimap_inr, (cat_id_l _ _ _ inr_).
-      inr_left; rewrite assoc_r_inr.
-      inr_right; rewrite (case_inr _ _ _ _ _ _ inr_).
-
-      (* Normalizing right-hand side by case analysis *)
-      subst rhs; match goal with | |- ?x ⩯ _ => set (lhs := x) end.
-
-      symmetry.
-      rewrite case_eta'...
-      2: apply Coproduct_iFun. (* ??? *)
-
-      repeat inl_left; rewrite bimap_inl.
-      rewrite (cat_assoc _ swap), assoc_r_inl.
-      rewrite swap_case.
-      repeat rewrite cat_assoc...
-      rewrite (cat_case _ _ _ inl_).
-      inl_right; inr_left; rewrite bimap_inr.
-      repeat inl_left; rewrite assoc_l_inl.
-      rewrite cat_assoc...
-      inr_left; rewrite assoc_l_inr.
-      inl_right; rewrite <- (cat_assoc _ inl_ (case_ _ _)), (case_inl _ _ _ _ _ _ inr_).
-      inr_right; rewrite <- (cat_assoc _ inl_ (bimap _ _)), bimap_inl.
-      do 2 inr_left; rewrite swap_inr.
-      inl_right; rewrite assoc_r_inl, (case_inl _ _ _ _ _ inl_).
-      rewrite bimap_inl, (cat_id_l _ _ _ inl_).
-      inl_left; rewrite assoc_l_inl.
-      inl_right; rewrite <- (cat_assoc _ inl_ (bimap _ _)), bimap_inl.
-      do 2 inl_left; rewrite swap_inl.
-      inr_right; rewrite assoc_r_inl, case_inr...
-      repeat inr_left; rewrite bimap_inr, (cat_id_l _). 
-      rewrite assoc_r_inr.
-      inr_right; rewrite bimap_inr.
-      inr_left; rewrite assoc_l_inr.
-      repeat rewrite cat_assoc...
-      rewrite cat_case...
-      inr_left; rewrite assoc_l_inr.
-      inr_right; inl_left; rewrite (case_inl _ _ _ _ _ _ inr_).
-      inr_right; inl_left; rewrite bimap_inl.
-      rewrite <- (cat_assoc _ inr_ _ assoc_r), <- (cat_assoc _ inr_ swap), swap_inr.
-      inl_right; rewrite assoc_r_inl.
-      rewrite (case_inl _ _ _ _ _ inl_).
-      inr_left; rewrite (case_inr _ _ _ _ _ _ inr_).
-      inr_left; rewrite bimap_inr.
-      rewrite (cat_id_l _ _ _ inr_).
-      rewrite assoc_r_inr.
-
-      subst lhs; reflexivity.
-    }
+    rewrite <- !compose_lift_sktree.
+    rewrite <- !bimap_id_slift.
+    rewrite <- !compose_lift_sktree.
+    rewrite <- !bimap_slift_id.
+    rewrite <- !assoc_r_sktree, <- !assoc_l_sktree, !sym_sktree_unfold.
+    reflexivity.
   Qed.
 
       
