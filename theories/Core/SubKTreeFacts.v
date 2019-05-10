@@ -356,7 +356,58 @@ Section Facts.
       - intros a b c f g.
         cbv; reflexivity.
       - intros a b c f g fg Hf Hg [x | y]; cbv in *; auto.
+    Qed.
+
+    Instance cat_iFun_CatIdL : CatIdL iFun.
+    Proof. red; reflexivity. Qed.
+
+    Instance cat_iFun_CatIdR : CatIdR iFun.
+    Proof. red; reflexivity. Qed.
+
+    Instance cat_iFun_assoc : CatAssoc iFun.
+    Proof. red; reflexivity. Qed.
+
+    Global Instance Category_iFun : Category iFun.
+    Proof.
+      constructor; typeclasses eauto.
+    Qed.
+
+    Global Instance Coproduct_iFun : Coproduct iFun isum.
+    Proof with try typeclasses eauto.
+      constructor.
+      - intros a b c f g.
+        unfold case_, case_isum, inl_, isum_inl.
+        unfold cat at 1, Cat_iFun.
+        rewrite (cat_assoc _ inl_ sum_isum _), <- (cat_assoc _ sum_isum _ _), semi_iso, cat_id_l...
+        unfold eq2, Eq2_iFun; rewrite case_inl...
+        reflexivity.
+      - intros a b c f g.
+        unfold case_, case_isum, inr_, isum_inr.
+        unfold cat at 1, Cat_iFun.
+        rewrite (cat_assoc _ inr_ sum_isum _), <- (cat_assoc _ sum_isum _ _), semi_iso, cat_id_l...
+        unfold eq2, Eq2_iFun; rewrite case_inr...
+        reflexivity.
+      - intros a b c f g fg Hf Hg x.
+        unfold case_, case_isum, inl_, isum_inl, inr_, isum_inr in *.
+        rewrite <- Hf, <- Hg.
+        destruct Fsum; cbv.
+        destruct (isum_sum a b x) eqn:EQ.
+        + setoid_rewrite <- EQ.
+          destruct (sum_Iso a b).
+          specialize (iso_mono x); setoid_rewrite iso_mono; reflexivity.
+        + setoid_rewrite <- EQ.
+          destruct (sum_Iso a b).
+          specialize (iso_mono x); setoid_rewrite iso_mono; reflexivity.
    Qed.
+
+    Global Instance Proper_case_iFun {A B C} :
+      @Proper (iFun A C -> iFun B C -> _)
+              (eq2 ==> eq2 ==> eq2) case_.
+    Proof.
+      intros x x' EQx y y' EQy z.
+      unfold case_, case_isum.
+      rewrite EQy, EQx; reflexivity.
+    Qed.
 
     Lemma unfold_bimap_iFun: forall {A B C D} (f: F A -> F C) (g: F B -> F D),
       @bimap _ iFun _ _ _ _ _ _ f g
@@ -420,14 +471,14 @@ Section Facts.
     Qed.
 
     Fact compose_lift_sktree_l {A B C D} (f: F A -> F B) (g: F B -> F C) (k: sktree C D) :
-      lift_sktree f >>> (lift_sktree g >>> k) ⩯ lift_sktree (g ∘ f) >>> k.
+      lift_sktree f >>> (lift_sktree g >>> k) ⩯ lift_sktree (f >>> g) >>> k.
     Proof.
       unfold lift_sktree, cat, Cat_sktree.
       rewrite compose_lift_ktree_l; reflexivity.
     Qed.
 
     Fact compose_lift_sktree_r {A B C D} (f: F B -> F C) (g: F C -> F D) (k: sktree A B) :
-      (k >>> lift_sktree f) >>> lift_sktree g ⩯ k >>> lift_sktree (g ∘ f).
+      (k >>> lift_sktree f) >>> lift_sktree g ⩯ k >>> lift_sktree (f >>> g).
     Proof.
       unfold lift_sktree, cat, Cat_sktree.
       rewrite compose_lift_ktree_r; reflexivity.
