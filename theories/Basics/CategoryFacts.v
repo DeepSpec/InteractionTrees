@@ -213,6 +213,17 @@ Proof.
   typeclasses eauto.
 Qed.
 
+Lemma bimap_case {a a' b b' c}
+      (fa : C a a') (fb : C b b') (ga : C a' c) (gb : C b' c)
+  : bimap fa fb >>> case_ ga gb ⩯ case_ (fa >>> ga) (fb >>> gb).
+Proof.
+  unfold bimap, Bimap_Coproduct.
+  rewrite cat_case.
+  rewrite 2 cat_assoc, case_inl, case_inr.
+  reflexivity.
+  all: typeclasses eauto.
+Qed.
+
 Lemma inl_assoc_r {a b c}
   : inl_ >>> assoc_r_ a b c ⩯ bimap (id_ a) inl_.
 Proof.
@@ -769,7 +780,65 @@ Lemma trace_vanishing_2 {a b c d} (f : C (bif d (bif c a)) (bif d (bif c b)))
   ⩯ cat_trace (assoc_r >>> f >>> assoc_l).
 Proof.
   unfold cat_trace.
-Abort.
+  transitivity (inr_ >>> inr_ >>> cat_loop (cat_loop (
+                 f >>> bimap inl_ (bimap (inl_ >>> inr_) (id_ _))
+               ))).
+  - rewrite cat_assoc, loop_natural, cat_assoc, bimap_cat, cat_id_l, cat_id_r.
+    transitivity (inr_ >>> cat_loop (inr_ >>> inl_ >>> case_ (cat_loop (
+                   f >>> bimap inl_ (bimap inl_ (id_ _))
+                 )) inr_)).
+    all: try typeclasses eauto.
+    + rewrite cat_assoc, case_inl.
+      reflexivity.
+      all: typeclasses eauto.
+    + rewrite loop_dinatural.
+      rewrite cat_assoc, case_inl.
+      rewrite loop_natural.
+      rewrite cat_assoc, bimap_cat, cat_id_r.
+      rewrite bimap_case. rewrite <- 2 cat_assoc.
+      reflexivity.
+      all: typeclasses eauto.
+  - rewrite loop_codiagonal.
+    rewrite (cat_assoc _ _ (bimap _ _)), bimap_case, cat_id_r.
+    all: try typeclasses eauto.
+    transitivity (inr_ >>> cat_loop (
+                   (assoc_r >>> inl_) >>>
+                   case_ (f >>> assoc_l >>> bimap inl_ (id_ _)) inr_)).
+    + rewrite loop_dinatural.
+      rewrite <- 2 cat_assoc, inr_assoc_r.
+      rewrite (cat_assoc _ _ inl_), case_inl.
+      rewrite !(cat_assoc _ f).
+      match goal with
+      | [ |- _ >>> cat_loop (_ >>> ?u) ⩯ _ >>> cat_loop (_ >>> ?v) ] =>
+        assert (u ⩯ v)
+      end.
+      { rewrite cat_assoc, bimap_case.
+        rewrite <- cat_assoc, inl_assoc_r.
+        apply (coprod_split _ _).
+        all: try typeclasses eauto.
+        - rewrite case_inl.
+          rewrite <- cat_assoc, inl_assoc_l.
+          rewrite cat_assoc, case_inl.
+          rewrite <- cat_assoc, inl_bimap, cat_id_l.
+          reflexivity.
+          all: typeclasses eauto.
+        - rewrite case_inr.
+          rewrite <- cat_assoc, inr_assoc_l.
+          rewrite bimap_case.
+          rewrite <- cat_assoc, inr_bimap.
+          unfold bimap, Bimap_Coproduct.
+          rewrite !cat_id_l.
+          reflexivity.
+          all: typeclasses eauto.
+      }
+      rewrite H; clear H.
+      reflexivity.
+      all: typeclasses eauto.
+    + rewrite cat_assoc, case_inl.
+      rewrite !(cat_assoc _ assoc_r).
+      reflexivity.
+      all: typeclasses eauto.
+Qed.
 
 Lemma trace_superposing {a b c d e}
       (ab : C (bif e a) (bif e b)) (cd : C c d) :

@@ -377,14 +377,14 @@ Class LoopDinatural : Prop :=
   loop_dinatural : forall a b c (f : C a (bif b c)) (g : C b (bif a c)),
                    cat_loop (f >>> case_ g inr_)
     ⩯ f >>> case_ (cat_loop (g >>> case_ f inr_)) (id_ _).
-(** TODO: provable from the others + uniformity *)
+(** TODO: provable from the others + uniformity? *)
 
 (** Flatten nested loops. Also known as "double dagger identity". *)
 Class LoopCodiagonal : Prop :=
   loop_codiagonal : forall a b (f : C a (bif a (bif a b))),
     cat_loop (cat_loop f) ⩯ cat_loop (f >>> case_ inl_ (id_ _)).
 
-(* TODO: also define uniformity, requires a strictness assumption. *)
+(* TODO: also define uniformity, requires a "purity" assumption. *)
 
 Class Conway : Prop :=
   { conway_unfold :> LoopUnfold
