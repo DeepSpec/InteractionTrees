@@ -16,14 +16,14 @@ Local Open Scope cat.
 
 Section IsoFacts.
 
-Context {obj : Type} (C : Hom obj).
+Context {obj : Type} {C : Hom obj}.
 Context {Eq2C : Eq2 C} {IdC : Id_ C} {CatC : Cat C}.
 
 Context {CatIdL_C : CatIdL C}.
 
 (** [id_] is an isomorphism. *)
 Global Instance SemiIso_Id {a} : SemiIso C (id_ a) (id_ a) := {}.
-Proof. apply cat_id_l; assumption. Qed.
+Proof. apply cat_id_l. Qed.
 
 Context {Equivalence_Eq2_C : forall a b, @Equivalence (C a b) eq2}.
 
@@ -39,16 +39,16 @@ Global Instance SemiIso_Cat {a b c}
        (g : C b c) {g' : C c b} {SemiIso_g : SemiIso C g g'}
   : SemiIso C (f >>> g) (g' >>> f') := {}.
 Proof.
-  rewrite cat_assoc, <- (cat_assoc _ g), (semi_iso g), cat_id_l,
-  (semi_iso f).
-  reflexivity. all: typeclasses eauto.
+  rewrite cat_assoc, <- (cat_assoc g), (semi_iso g _), cat_id_l,
+  (semi_iso f _).
+  reflexivity.
 Qed.
 
 End IsoCat.
 
 Section IsoBimap.
 
-Context (bif : binop obj).
+Context {bif : binop obj}.
 Context {Bimap_bif : Bimap C bif}.
 Context {BimapId_bif : BimapId C bif}.
 Context {BimapCat_bif : BimapCat C bif}.
@@ -61,8 +61,8 @@ Global Instance SemiIso_Bimap {a b c d} (f : C a b) (g : C c d)
          {g' : C d c} {SemiIso_g : SemiIso C g g'} :
   SemiIso C (bimap f g) (bimap f' g') := {}.
 Proof.
-  rewrite bimap_cat, (semi_iso f), (semi_iso g), bimap_id.
-  reflexivity. all: typeclasses eauto.
+  rewrite bimap_cat, (semi_iso f _), (semi_iso g _), bimap_id.
+  reflexivity.
 Qed.
 
 End IsoBimap.
@@ -73,14 +73,14 @@ End IsoFacts.
 
 Section CategoryFacts.
 
-Context {obj : Type} (C : Hom obj).
+Context {obj : Type} {C : Hom obj}.
 
 Context {Eq2_C : Eq2 C}.
 Context {E_Eq2_C : forall a b, @Equivalence (C a b) eq2}.
 
 Context {Id_C : Id_ C} {Cat_C : Cat C}.
 
-Context (i : obj).
+Context {i : obj}.
 Context {Initial_i : Initial C i}.
 Context {InitialObject_i : InitialObject C i}.
 
@@ -89,8 +89,8 @@ Lemma initial_unique :
   forall a (f g : C i a), f ⩯ g.
 Proof.
   intros.
-  rewrite (initial_object _ i); symmetry; rewrite initial_object.
-  reflexivity. auto.
+  rewrite (initial_object f), (initial_object g).
+  reflexivity.
 Qed.
 
 End CategoryFacts.
@@ -99,7 +99,7 @@ End CategoryFacts.
 
 Section BifunctorFacts.
 
-Context {obj : Type} (C : Hom obj).
+Context {obj : Type} {C : Hom obj}.
 
 Context {Eq2_C : Eq2 C}.
 Context {E_Eq2_C : forall a b, @Equivalence (C a b) eq2}.
@@ -108,7 +108,7 @@ Context {Id_C : Id_ C} {Cat_C : Cat C}.
 
 Context {Category_C : Category C}.
 
-Context (bif : binop obj).
+Context {bif : binop obj}.
 Context {Bimap_bif : Bimap C bif}
         {Bifunctor_bif : Bifunctor C bif}.
 
@@ -117,7 +117,6 @@ Lemma bimap_slide {a b c d} (ac: C a c) (bd: C b d) :
 Proof.
   rewrite bimap_cat, cat_id_l, cat_id_r.
   reflexivity.
-  all: typeclasses eauto.
 Qed.
 
 Lemma bimap_slide' {a b c d} (ac: C a c) (bd: C b d) :
@@ -134,7 +133,7 @@ End BifunctorFacts.
 
 Section CoproductFacts.
 
-Context {obj : Type} (C : Hom obj).
+Context {obj : Type} {C : Hom obj}.
 
 Context {Eq2_C : Eq2 C}.
 Context {E_Eq2_C : forall a b, @Equivalence (C a b) eq2}.
@@ -143,7 +142,7 @@ Context {Id_C : Id_ C} {Cat_C : Cat C}.
 
 Context {Category_C : Category C}.
 
-Context (bif : binop obj).
+Context {bif : binop obj}.
 Context {CoprodCase_C : CoprodCase C bif}
         {CoprodInl_C : CoprodInl C bif}
         {CoprodInr_C : CoprodInr C bif}.
@@ -155,19 +154,16 @@ Lemma cat_case
   : case_ ac bc >>> cd ⩯ case_ (ac >>> cd) (bc >>> cd).
 Proof.
   apply case_universal.
-  - rewrite <- cat_assoc; [ | typeclasses eauto ].
-    rewrite case_inl; [ | typeclasses eauto ].
+  - rewrite <- cat_assoc, case_inl.
     reflexivity.
-  - rewrite <- cat_assoc; [ | typeclasses eauto ].
-    rewrite case_inr; [ | typeclasses eauto ].
+  - rewrite <- cat_assoc, case_inr.
     reflexivity.
 Qed.
 
 (** Case analysis with projections is the identity. *)
 Corollary case_eta {a b} : id_ (bif a b) ⩯ case_ inl_ inr_.
 Proof.
-  apply case_universal.
-  all: rewrite cat_id_r; [ reflexivity | typeclasses eauto ].
+  apply case_universal; rewrite cat_id_r; reflexivity.
 Qed.
 
 Lemma case_eta' {a b c} (f : C (bif a b) c) :
@@ -184,33 +180,29 @@ Lemma coprod_split {a b c} (f g : C (bif a b) c) :
   f ⩯ g.
 Proof.
   intros. rewrite (case_eta' g).
-  apply case_universal; auto.
+  apply case_universal; assumption.
 Qed.
 
 Lemma inr_swap {a b} : inr_ >>> swap_ a b ⩯ inl_.
 Proof.
   unfold swap, Swap_Coproduct. rewrite case_inr. reflexivity.
-  typeclasses eauto.
 Qed.
 
 Lemma inl_swap {a b} : inl_ >>> swap_ a b ⩯ inr_.
 Proof.
   unfold swap, Swap_Coproduct. rewrite case_inl. reflexivity.
-  typeclasses eauto.
 Qed.
 
 Lemma inr_bimap {a b c d} (f : C a b) (g : C c d)
   : inr_ >>> bimap f g ⩯ g >>> inr_.
 Proof.
   unfold bimap, Bimap_Coproduct. rewrite case_inr. reflexivity.
-  typeclasses eauto.
 Qed.
 
 Lemma inl_bimap {a b c d} (f : C a b) (g : C c d)
   : inl_ >>> bimap f g ⩯ f >>> inl_.
 Proof.
   unfold bimap, Bimap_Coproduct. rewrite case_inl. reflexivity.
-  typeclasses eauto.
 Qed.
 
 Lemma bimap_case {a a' b b' c}
@@ -221,7 +213,6 @@ Proof.
   rewrite cat_case.
   rewrite 2 cat_assoc, case_inl, case_inr.
   reflexivity.
-  all: typeclasses eauto.
 Qed.
 
 Lemma inl_assoc_r {a b c}
@@ -230,7 +221,6 @@ Proof.
   unfold assoc_r, AssocR_Coproduct, bimap, Bimap_Coproduct.
   rewrite case_inl, cat_id_l.
   reflexivity.
-  all: typeclasses eauto.
 Qed.
 
 Lemma inl_assoc_l {a b c}
@@ -239,7 +229,6 @@ Proof.
   unfold assoc_l, AssocL_Coproduct.
   rewrite case_inl.
   reflexivity.
-  all: typeclasses eauto.
 Qed.
 
 Lemma inr_assoc_l {a b c}
@@ -248,7 +237,6 @@ Proof.
   unfold assoc_l, AssocL_Coproduct, bimap, Bimap_Coproduct.
   rewrite case_inr, cat_id_l.
   reflexivity.
-  all: typeclasses eauto.
 Qed.
 
 Lemma inr_assoc_r {a b c}
@@ -257,7 +245,6 @@ Proof.
   unfold assoc_r, AssocR_Coproduct.
   rewrite case_inr.
   reflexivity.
-  all: typeclasses eauto.
 Qed.
 
 (** The coproduct is a bifunctor. *)
@@ -277,7 +264,6 @@ Proof.
   symmetry. unfold bimap, Bimap_Coproduct.
   rewrite 2 cat_id_l.
   apply case_eta.
-  all: typeclasses eauto.
 Qed.
 
 Global Instance BimapCat_Coproduct : BimapCat C bif.
@@ -287,10 +273,8 @@ Proof.
   apply coprod_split.
   - rewrite <- cat_assoc, !case_inl, !cat_assoc, case_inl.
     reflexivity.
-    all: typeclasses eauto.
   - rewrite <- cat_assoc, !case_inr, !cat_assoc, case_inr.
     reflexivity.
-    all: typeclasses eauto.
 Qed.
 
 Global Instance Bifunctor_Coproduct : Bifunctor C bif.
@@ -306,7 +290,6 @@ Proof.
   red; unfold swap, Swap_Coproduct.
   rewrite cat_case, case_inl, case_inr.
   symmetry; apply case_eta.
-  all: typeclasses eauto.
 Qed.
 
 (** The coproduct is associative *)
@@ -319,7 +302,6 @@ Proof.
   rewrite !cat_assoc, !case_inr, !case_inl.
   rewrite <- cat_case, <- case_eta, cat_id_l, <- case_eta.
   reflexivity.
-  all: typeclasses eauto.
 Qed.
 
 Global Instance AssocLMono_Coproduct {a b c : obj}
@@ -330,7 +312,6 @@ Proof.
   rewrite !cat_assoc, !case_inl, !case_inr.
   rewrite <- cat_case, <- case_eta, cat_id_l, <- case_eta.
   reflexivity.
-  all: typeclasses eauto.
 Qed.
 
 Context (i : obj).
@@ -343,10 +324,9 @@ Global Instance UnitLMono_Coproduct {a : obj}
   : SemiIso C (unit_l_ i a) unit_l'.
 Proof.
   red; unfold unit_l, unit_l', UnitL_Coproduct, UnitL'_Coproduct.
-  rewrite cat_case, cat_id_l, (initial_object C i).
+  rewrite cat_case, cat_id_l, initial_object.
   rewrite <- initial_object.
   symmetry; apply case_eta.
-  all: typeclasses eauto.
 Qed.
 
 (* TODO: derive this by symmetry *)
@@ -354,42 +334,33 @@ Global Instance UnitRMono_Coproduct {a : obj}
   : SemiIso C (unit_r_ i a) unit_r'.
 Proof.
   red; unfold unit_r, unit_r', UnitR_Coproduct, UnitR'_Coproduct.
-  rewrite cat_case, cat_id_l, (initial_object C i).
+  rewrite cat_case, cat_id_l, initial_object.
   rewrite <- initial_object.
   symmetry; apply case_eta.
-  all: typeclasses eauto.
 Qed.
 
 Global Instance UnitLEpi_Coproduct {a : obj}
   : SemiIso C (unit_l'_ i a) unit_l.
 Proof.
   red; unfold unit_l, unit_l', UnitL_Coproduct, UnitL'_Coproduct.
-  rewrite case_inr. reflexivity. typeclasses eauto.
+  rewrite case_inr. reflexivity.
 Qed.
 
 Global Instance UnitREpi_Coproduct {a : obj}
   : SemiIso C (unit_r'_ i a) unit_r.
 Proof.
   red; unfold unit_r, unit_r', UnitR_Coproduct, UnitR'_Coproduct.
-  rewrite case_inl. reflexivity. typeclasses eauto.
+  rewrite case_inl. reflexivity.
 Qed.
 
 Lemma inr_unit_l {a} : inr_ >>> unit_l ⩯ id_ a.
 Proof.
-  apply semi_iso; typeclasses eauto.
+  apply (semi_iso _ _).
 Qed.
 
 Lemma inl_unit_r {a} : inl_ >>> unit_r ⩯ id_ a.
 Proof.
-  apply semi_iso; typeclasses eauto.
-Qed.
-
-Lemma inr_bimap {a b c d} (f : C a b) (g : C c d)
-  : inr_ >>> bimap f g ⩯ g >>> inr_.
-Proof.
-  unfold bimap, Bimap_Coproduct.
-  rewrite case_inr. reflexivity.
-  all: typeclasses eauto.
+  apply (semi_iso _ _).
 Qed.
 
 Global Instance UnitLNatural_Coproduct : UnitLNatural C bif i.
@@ -398,11 +369,9 @@ Proof.
   apply coprod_split.
   - rewrite <- !cat_assoc.
     transitivity (empty : C i b); [ | symmetry ]; auto using initial_object.
-    all: typeclasses eauto.
   - rewrite <- !cat_assoc, inr_bimap, inr_unit_l, cat_assoc,
       inr_unit_l, cat_id_l, cat_id_r.
     reflexivity.
-    all: typeclasses eauto.
 Qed.
 
 Global Instance UnitL'Natural_Coproduct : UnitL'Natural C bif i.
@@ -421,20 +390,17 @@ Proof.
   unfold assoc_r, AssocR_Coproduct, bimap, Bimap_Coproduct.
   rewrite !cat_id_l.
   eapply case_universal.
-  all: try typeclasses eauto.
   - rewrite <- cat_assoc, case_inl.
     rewrite cat_case, case_inl.
     unfold unit_r, UnitR_Coproduct.
     rewrite cat_case, cat_id_l.
     apply (coproduct_proper_case _ _).
-    all: try typeclasses eauto.
     + reflexivity.
     + eapply initial_unique; auto.
   - rewrite <- cat_assoc, case_inr.
     rewrite cat_assoc, case_inr.
     rewrite <- cat_assoc, inr_unit_l, cat_id_l.
     reflexivity.
-    all: typeclasses eauto.
 Qed.
 
 (* TODO: automate this *)
@@ -445,41 +411,37 @@ Proof.
   rewrite !cat_id_l.
   rewrite !cat_case.
   unfold assoc_r, AssocR_Coproduct.
-  apply coprod_split. all: try typeclasses eauto.
+  apply coprod_split.
   - rewrite case_inl.
-    rewrite <- (cat_assoc _ inl_).
+    rewrite <- (cat_assoc inl_).
     rewrite case_inl.
     rewrite !cat_assoc.
-    apply coprod_split. all: try typeclasses eauto.
-    + repeat (rewrite <- (cat_assoc _ inl_), !case_inl).
-      apply coprod_split. all: try typeclasses eauto.
-      * repeat (rewrite <- (cat_assoc _ inl_), !case_inl).
+    apply coprod_split.
+    + repeat (rewrite <- (cat_assoc inl_), !case_inl).
+      apply coprod_split.
+      * repeat (rewrite <- (cat_assoc inl_), !case_inl).
         reflexivity.
-        all: typeclasses eauto.
-      * repeat (rewrite <- (cat_assoc _ inr_), !case_inr).
+      * repeat (rewrite <- (cat_assoc inr_), !case_inr).
         rewrite cat_assoc.
-        rewrite <- (cat_assoc _ inr_), !case_inr.
+        rewrite <- (cat_assoc inr_), !case_inr.
         rewrite cat_assoc.
         rewrite case_inr.
-        rewrite <- (cat_assoc _ inl_ _ inr_), case_inl.
+        rewrite <- (cat_assoc inl_ _ inr_), case_inl.
         rewrite <- cat_assoc, case_inl.
         reflexivity.
-        all: typeclasses eauto.
-    + repeat (rewrite <- (cat_assoc _ inr_), !case_inr).
-      rewrite <- (cat_assoc _ inl_), !case_inl.
+    + repeat (rewrite <- (cat_assoc inr_), !case_inr).
+      rewrite <- (cat_assoc inl_), !case_inl.
       rewrite !cat_assoc.
-      rewrite <- (cat_assoc _ inr_ (case_ _ _) _), !case_inr.
+      rewrite <- (cat_assoc inr_ (case_ _ _) _), !case_inr.
       rewrite cat_assoc, case_inr.
-      rewrite <- (cat_assoc _ inl_ (case_ _ _)), case_inl.
+      rewrite <- (cat_assoc inl_ (case_ _ _)), case_inl.
       rewrite <- !cat_assoc, case_inr.
       reflexivity.
-      all: typeclasses eauto.
   - rewrite !case_inr.
     rewrite !cat_assoc.
-    repeat (rewrite <- (cat_assoc _ inr_ (case_ _ _)), !case_inr).
+    repeat (rewrite <- (cat_assoc inr_ (case_ _ _)), !case_inr).
     rewrite !cat_assoc, case_inr.
     reflexivity.
-    all: typeclasses eauto.
 Qed.
 
 Global Instance Monoidal_Coproduct : Monoidal C bif i.
@@ -497,41 +459,37 @@ Proof.
   rewrite !cat_id_l.
   rewrite !cat_case.
   unfold assoc_l, AssocL_Coproduct.
-  apply coprod_split. all: try typeclasses eauto.
+  apply coprod_split.
   - rewrite !case_inl.
     rewrite !cat_assoc.
-    repeat (rewrite <- (cat_assoc _ inl_ (case_ _ _)), !case_inl).
+    repeat (rewrite <- (cat_assoc inl_ (case_ _ _)), !case_inl).
     rewrite !cat_assoc, case_inl.
     reflexivity.
-    all: typeclasses eauto.
   - rewrite case_inr.
-    rewrite <- (cat_assoc _ inr_).
+    rewrite <- (cat_assoc inr_).
     rewrite case_inr.
     rewrite !cat_assoc.
-    apply coprod_split. all: try typeclasses eauto.
-    + repeat (rewrite <- (cat_assoc _ inl_), !case_inl).
-      rewrite <- (cat_assoc _ inr_), !case_inr.
+    apply coprod_split.
+    + repeat (rewrite <- (cat_assoc inl_), !case_inl).
+      rewrite <- (cat_assoc inr_), !case_inr.
       rewrite !cat_assoc.
-      rewrite <- (cat_assoc _ inl_ (case_ _ _) _), !case_inl.
+      rewrite <- (cat_assoc inl_ (case_ _ _) _), !case_inl.
       rewrite cat_assoc, case_inl.
-      rewrite <- (cat_assoc _ inr_ (case_ _ _)), case_inr.
+      rewrite <- (cat_assoc inr_ (case_ _ _)), case_inr.
       rewrite <- !cat_assoc, case_inl.
       reflexivity.
-      all: typeclasses eauto.
-    + repeat (rewrite <- (cat_assoc _ inr_), !case_inr).
-      apply coprod_split. all: try typeclasses eauto.
-      * repeat (rewrite <- (cat_assoc _ inl_), !case_inl).
+    + repeat (rewrite <- (cat_assoc inr_), !case_inr).
+      apply coprod_split.
+      * repeat (rewrite <- (cat_assoc inl_), !case_inl).
         rewrite cat_assoc.
-        rewrite <- (cat_assoc _ inl_), !case_inl.
+        rewrite <- (cat_assoc inl_), !case_inl.
         rewrite cat_assoc.
         rewrite case_inl.
-        rewrite <- (cat_assoc _ inr_ _ inl_), case_inr.
+        rewrite <- (cat_assoc inr_ _ inl_), case_inr.
         rewrite <- cat_assoc, case_inr.
         reflexivity.
-        all: typeclasses eauto.
-      * repeat (rewrite <- (cat_assoc _ inr_), !case_inr).
+      * repeat (rewrite <- (cat_assoc inr_), !case_inr).
         reflexivity.
-        all: typeclasses eauto.
 Qed.
 
 (** The coproduct satisfies the symmetric monoidal laws. *)
@@ -543,10 +501,8 @@ Proof.
   apply coprod_split.
   - rewrite <- cat_assoc, !case_inl, case_inr.
     reflexivity.
-    all: typeclasses eauto.
   - rewrite <- cat_assoc, !case_inr, case_inl.
     reflexivity.
-    all: typeclasses eauto.
 Qed.
 
 (* TODO: automate *)
@@ -556,33 +512,29 @@ Proof.
   unfold assoc_r, AssocR_Coproduct, swap, Swap_Coproduct, bimap, Bimap_Coproduct.
   apply coprod_split.
   - rewrite !cat_assoc.
-    rewrite <- 2 (cat_assoc _ inl_), !case_inl.
+    rewrite <- 2 (cat_assoc inl_), !case_inl.
     rewrite !cat_assoc.
-    rewrite <- (cat_assoc _ inl_), !case_inl.
-    all: try typeclasses eauto.
+    rewrite <- (cat_assoc inl_), !case_inl.
     apply coprod_split.
-    + rewrite <- 2 (cat_assoc _ inl_), !case_inl.
+    + rewrite <- 2 (cat_assoc inl_), !case_inl.
       rewrite <- cat_assoc. rewrite case_inl.
       rewrite <- cat_assoc, !case_inr.
       rewrite cat_assoc, case_inr.
       rewrite <- cat_assoc, case_inl.
       reflexivity.
-      all: typeclasses eauto.
-    + rewrite <- 2 (cat_assoc _ inr_), !case_inr.
+    + rewrite <- 2 (cat_assoc inr_), !case_inr.
       rewrite cat_assoc.
-      rewrite <- (cat_assoc _ inr_), case_inr, !case_inl.
+      rewrite <- (cat_assoc inr_), case_inr, !case_inl.
       rewrite <- cat_assoc, !case_inl.
       rewrite cat_id_l.
       reflexivity.
-      all: typeclasses eauto.
   - rewrite !cat_assoc.
-    rewrite <- 2 (cat_assoc _ inr_), !case_inr.
+    rewrite <- 2 (cat_assoc inr_), !case_inr.
     rewrite cat_id_l.
-    rewrite cat_assoc, <- (cat_assoc _ inr_ (case_ _ _) _), !case_inr, case_inl, case_inr.
+    rewrite cat_assoc, <- (cat_assoc inr_ (case_ _ _) _), !case_inr, case_inl, case_inr.
     rewrite <- cat_assoc.
     rewrite case_inr, cat_assoc, case_inr, <- cat_assoc, case_inr.
     reflexivity.
-    all: typeclasses eauto.
 Qed.
 
 Global Instance SwapAssocL_Coproduct : SwapAssocL C bif.
@@ -591,39 +543,34 @@ Proof.
   unfold assoc_l, AssocL_Coproduct, swap, Swap_Coproduct, bimap, Bimap_Coproduct.
   apply coprod_split.
   - rewrite !cat_assoc.
-    rewrite <- 2 (cat_assoc _ inl_), !case_inl.
+    rewrite <- 2 (cat_assoc inl_), !case_inl.
     rewrite cat_id_l.
-    rewrite cat_assoc, <- (cat_assoc _ inl_ (case_ _ _) _), !case_inl, case_inr, case_inl.
+    rewrite cat_assoc, <- (cat_assoc inl_ (case_ _ _) _), !case_inl, case_inr, case_inl.
     rewrite <- cat_assoc.
     rewrite case_inl, cat_assoc, case_inl, <- cat_assoc, case_inl.
     reflexivity.
-    all: typeclasses eauto.
   - rewrite !cat_assoc.
-    rewrite <- 2 (cat_assoc _ inr_), !case_inr.
+    rewrite <- 2 (cat_assoc inr_), !case_inr.
     rewrite !cat_assoc.
-    rewrite <- (cat_assoc _ inr_), !case_inr.
-    all: try typeclasses eauto.
+    rewrite <- (cat_assoc inr_), !case_inr.
     apply coprod_split.
-    + rewrite <- 2 (cat_assoc _ inl_), !case_inl.
+    + rewrite <- 2 (cat_assoc inl_), !case_inl.
       rewrite cat_assoc.
-      rewrite <- (cat_assoc _ inl_), case_inl, !case_inr.
+      rewrite <- (cat_assoc inl_), case_inl, !case_inr.
       rewrite <- cat_assoc, !case_inr.
       rewrite cat_id_l.
       reflexivity.
-      all: typeclasses eauto.
-    + rewrite <- 2 (cat_assoc _ inr_), !case_inr.
+    + rewrite <- 2 (cat_assoc inr_), !case_inr.
       rewrite <- cat_assoc. rewrite case_inr.
       rewrite <- cat_assoc, !case_inl.
       rewrite cat_assoc, case_inl.
       rewrite <- cat_assoc, case_inr.
       reflexivity.
-      all: typeclasses eauto.
 Qed.
 
 Global Instance SymMonoidal_Coproduct : SymMonoidal C bif i.
 Proof.
-  constructor.
-  all: try typeclasses eauto.
+  constructor; typeclasses eauto.
 Qed.
 
 Lemma swap_bimap {a b c d} (ab : C a b) (cd : C c d) :
@@ -636,13 +583,11 @@ Proof.
     rewrite <- cat_assoc, case_inr.
     rewrite cat_assoc, case_inr.
     reflexivity.
-    all: typeclasses eauto.
   - rewrite case_inr.
     rewrite cat_assoc, <- cat_assoc, case_inr.
     rewrite <- cat_assoc, case_inl.
     rewrite cat_assoc, case_inl.
     reflexivity.
-    all: typeclasses eauto.
 Qed.
 
 (* Naturality of swap *)
@@ -651,7 +596,6 @@ Lemma swap_bimap' {a b c d} (ab : C a b) (cd : C c d) :
 Proof.
   rewrite swap_bimap, <- !cat_assoc, swap_involutive, cat_id_l.
   reflexivity.
-  all: typeclasses eauto.
 Qed.
 
 End CoproductFacts.
@@ -695,7 +639,7 @@ Proof.
                                      >>> case_ (f >>> bimap inl_ (id_ b)) inr_)).
   - rewrite loop_dinatural.
     rewrite cat_assoc, case_inl.
-    rewrite <- (cat_assoc _ inr_).
+    rewrite <- (cat_assoc inr_).
     unfold bimap, Bimap_Coproduct. (* TODO: by naturality of inr_ *)
     rewrite case_inr, cat_assoc.
     repeat (apply Proper_cat; try reflexivity).
@@ -705,9 +649,7 @@ Proof.
     rewrite !cat_id_l.
     rewrite cat_case, !case_inr, cat_assoc, case_inl, <- cat_assoc, case_inl.
     reflexivity.
-    all: typeclasses eauto.
   - rewrite !cat_assoc, case_inl. reflexivity.
-    all: typeclasses eauto.
 Qed.
 
 Lemma trace_natural_right {a b b' c} (f : C (bif c a) (bif c b)) (g : C b b')
@@ -721,7 +663,6 @@ Proof.
   apply Proper_cat_loop; try reflexivity.
   rewrite !cat_assoc, !bimap_cat, !cat_id_l, !cat_id_r.
   reflexivity.
-  all: typeclasses eauto.
 Qed.
 
 Lemma trace_dinatural {a b c c'} (f : C (bif c a) (bif c' b)) (g : C c' c)
@@ -734,17 +675,15 @@ Proof.
   - rewrite loop_dinatural.
     rewrite <- 2 cat_assoc.
     unfold bimap at 3, Bimap_Coproduct at 3. (* TODO: naturality of [inr_] *)
-    rewrite case_inr, cat_id_l, (cat_assoc _ _ inl_), case_inl.
+    rewrite case_inr, cat_id_l, (cat_assoc _ inl_), case_inl.
     apply Proper_cat; try reflexivity.
     rewrite cat_assoc, bimap_cat, cat_id_l.
     unfold bimap, Bimap_Coproduct.
     rewrite !cat_assoc, !cat_case, !cat_id_l, cat_assoc, !case_inl, case_inr.
     rewrite cat_assoc.
     reflexivity.
-    all: typeclasses eauto.
   - rewrite 2 cat_assoc, case_inl.
     reflexivity.
-    all: typeclasses eauto.
 Qed.
 
 Context (i : obj).
@@ -764,15 +703,12 @@ Proof.
   end.
   { unfold unit_l, UnitL_Coproduct.
     apply case_universal.
-    - apply (initial_object _ _).
-    - unfold bimap, Bimap_Coproduct.
-      rewrite <- cat_assoc, case_inr, cat_id_l, case_inr.
+    - apply initial_object.
+    - rewrite bimap_case, case_inr, cat_id_l.
       reflexivity.
-      all: typeclasses eauto.
   }
   rewrite Hg.
   reflexivity.
-  all: try typeclasses eauto.
 Qed.
 
 Lemma trace_vanishing_2 {a b c d} (f : C (bif d (bif c a)) (bif d (bif c b)))
@@ -787,41 +723,36 @@ Proof.
     transitivity (inr_ >>> cat_loop (inr_ >>> inl_ >>> case_ (cat_loop (
                    f >>> bimap inl_ (bimap inl_ (id_ _))
                  )) inr_)).
-    all: try typeclasses eauto.
     + rewrite cat_assoc, case_inl.
       reflexivity.
-      all: typeclasses eauto.
     + rewrite loop_dinatural.
       rewrite cat_assoc, case_inl.
       rewrite loop_natural.
       rewrite cat_assoc, bimap_cat, cat_id_r.
       rewrite bimap_case. rewrite <- 2 cat_assoc.
       reflexivity.
-      all: typeclasses eauto.
+
   - rewrite loop_codiagonal.
-    rewrite (cat_assoc _ _ (bimap _ _)), bimap_case, cat_id_r.
-    all: try typeclasses eauto.
+    rewrite (cat_assoc _ (bimap _ _)), bimap_case, cat_id_r.
     transitivity (inr_ >>> cat_loop (
                    (assoc_r >>> inl_) >>>
                    case_ (f >>> assoc_l >>> bimap inl_ (id_ _)) inr_)).
     + rewrite loop_dinatural.
       rewrite <- 2 cat_assoc, inr_assoc_r.
-      rewrite (cat_assoc _ _ inl_), case_inl.
-      rewrite !(cat_assoc _ f).
+      rewrite (cat_assoc _ inl_), case_inl.
+      rewrite !(cat_assoc f).
       match goal with
       | [ |- _ >>> cat_loop (_ >>> ?u) ⩯ _ >>> cat_loop (_ >>> ?v) ] =>
         assert (u ⩯ v)
       end.
       { rewrite cat_assoc, bimap_case.
         rewrite <- cat_assoc, inl_assoc_r.
-        apply (coprod_split _ _).
-        all: try typeclasses eauto.
+        apply coprod_split.
         - rewrite case_inl.
           rewrite <- cat_assoc, inl_assoc_l.
           rewrite cat_assoc, case_inl.
           rewrite <- cat_assoc, inl_bimap, cat_id_l.
           reflexivity.
-          all: typeclasses eauto.
         - rewrite case_inr.
           rewrite <- cat_assoc, inr_assoc_l.
           rewrite bimap_case.
@@ -829,15 +760,12 @@ Proof.
           unfold bimap, Bimap_Coproduct.
           rewrite !cat_id_l.
           reflexivity.
-          all: typeclasses eauto.
       }
       rewrite H; clear H.
       reflexivity.
-      all: typeclasses eauto.
     + rewrite cat_assoc, case_inl.
-      rewrite !(cat_assoc _ assoc_r).
+      rewrite !(cat_assoc assoc_r).
       reflexivity.
-      all: typeclasses eauto.
 Qed.
 
 Lemma trace_superposing {a b c d e}
@@ -846,67 +774,62 @@ Lemma trace_superposing {a b c d e}
   ⩯ cat_trace (assoc_l >>> bimap ab cd >>> assoc_r).
 Proof.
   unfold cat_trace.
-  apply (coprod_split _ _ _).
+  apply coprod_split.
   - rewrite inl_bimap.
     transitivity (
         inr_ >>> cat_loop (
           (inl_ >>> assoc_r >>> inl_)
             >>> case_ (assoc_l >>> bimap ab cd >>> assoc_r >>> bimap inl_ (id_ _))
                       inr_)).
-    all: try typeclasses eauto.
+
     + rewrite cat_assoc, loop_natural.
       apply Proper_cat; try reflexivity.
       apply Proper_cat_loop.
       rewrite !cat_assoc.
       rewrite case_inl.
-      rewrite <- (cat_assoc _ inl_), inl_assoc_r.
-      rewrite <- (cat_assoc _ _ assoc_l).
+      rewrite <- (cat_assoc inl_), inl_assoc_r.
+      rewrite <- (cat_assoc _ assoc_l).
       assert (He : forall a b c, bimap (id_ _) inl_ >>> assoc_l_ a b c ⩯ inl_).
       { intros.
-        apply (coprod_split _ _ _).
+        apply coprod_split.
         - rewrite <- cat_assoc, inl_bimap, cat_assoc, inl_assoc_l, cat_id_l.
           reflexivity.
-          all: typeclasses eauto.
         - rewrite <- cat_assoc, inr_bimap, cat_assoc, inr_assoc_l, inl_bimap.
           reflexivity.
-          all: typeclasses eauto.
       }
       rewrite He; clear He.
-      rewrite <- (cat_assoc _ inl_), inl_bimap.
-      rewrite cat_assoc, <- (cat_assoc _ inl_), inl_assoc_r.
+      rewrite <- (cat_assoc inl_), inl_bimap.
+      rewrite cat_assoc, <- (cat_assoc inl_), inl_assoc_r.
       rewrite !bimap_cat, !cat_id_l, !cat_id_r.
       reflexivity.
-      all: typeclasses eauto.
+
     + rewrite loop_dinatural.
       rewrite inl_assoc_r.
       rewrite cat_assoc, <- cat_assoc, inr_bimap, case_inl, !cat_assoc.
       assert (Hr : forall a b c d,
                  bimap inl_ (id_ d) >>> case_ (bimap (id_ a) inl_ >>> inl_) inr_
                ⩯ bimap (inl_ : C a (bif a (bif b c))) (id_ d)).
-      { intros. apply (coprod_split _ _ _).
+      { intros. apply coprod_split.
         - rewrite <- cat_assoc, !inl_bimap, cat_assoc, case_inl.
           rewrite <- cat_assoc, inl_bimap, cat_id_l.
           reflexivity.
-          all: typeclasses eauto.
         - rewrite <- cat_assoc, !inr_bimap, cat_assoc, case_inr.
           reflexivity.
-          all: typeclasses eauto.
       }
       rewrite Hr; clear Hr.
       reflexivity.
-      all: typeclasses eauto.
+
   - rewrite inr_bimap.
     rewrite loop_unfold.
     rewrite !cat_assoc.
-    rewrite <- (cat_assoc _ _ assoc_l), inr_assoc_l.
+    rewrite <- (cat_assoc _ assoc_l), inr_assoc_l.
     rewrite <- cat_assoc, inr_bimap, cat_id_l.
     rewrite <- cat_assoc, inr_bimap.
     rewrite cat_assoc.
-    rewrite <- (cat_assoc _ _ assoc_r), inr_assoc_r.
-    rewrite cat_assoc, <- (cat_assoc _ _ (bimap _ _)), inr_bimap, cat_id_l.
+    rewrite <- (cat_assoc _ assoc_r), inr_assoc_r.
+    rewrite cat_assoc, <- (cat_assoc _ (bimap _ _)), inr_bimap, cat_id_l.
     rewrite case_inr, cat_id_r.
     reflexivity.
-    all: typeclasses eauto.
 Qed.
 
 Lemma trace_yanking {a} : cat_trace swap ⩯ id_ a.
@@ -921,7 +844,6 @@ Proof.
   rewrite <- cat_assoc, inr_bimap.
   rewrite cat_id_l, case_inr.
   reflexivity.
-  all: typeclasses eauto.
 Qed.
 
 End TracedIterativeFacts.

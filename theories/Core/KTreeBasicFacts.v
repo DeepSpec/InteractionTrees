@@ -155,7 +155,6 @@ Proof.
   rewrite <- cat_assoc.
   rewrite compose_lift_ktree.
   reflexivity.
-  typeclasses eauto.
 Qed.
 
 Fact compose_lift_ktree_r {A B C D} (f: B -> C) (g: C -> D) (k: ktree E A B) :
@@ -164,7 +163,6 @@ Proof.
   rewrite cat_assoc.
   rewrite compose_lift_ktree.
   reflexivity.
-  typeclasses eauto.
 Qed.
 
 Fact lift_compose_ktree {A B C}: forall (f:A -> B) (bc: ktree E B C),
@@ -271,7 +269,6 @@ Proof.
   unfold bimap, Bimap_Coproduct.
   rewrite !cat_id_l, <- lift_case_sum, <- compose_lift_ktree.
   reflexivity.
-  all: typeclasses eauto.
 Qed.
 
 Fact bimap_lift_id {A B C} (f : A -> B) :
@@ -280,7 +277,6 @@ Proof.
   unfold bimap, Bimap_Coproduct.
   rewrite !cat_id_l, <- lift_case_sum, <- compose_lift_ktree.
   reflexivity.
-  all: typeclasses eauto.
 Qed.
 
 Global Instance Coproduct_ktree : Coproduct (ktree E) sum.

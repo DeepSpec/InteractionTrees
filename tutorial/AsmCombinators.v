@@ -431,9 +431,7 @@ Section Correctness.
       forall (a b c: obj) (f: C a c) (g: C b c), swap >>> case_ f g ⩯ case_ g f.
     Proof.
       intros; unfold swap, Swap_Coproduct.
-      rewrite (cat_case _ _ inr_ inl_).
-      rewrite case_inr; try typeclasses eauto. 
-      rewrite case_inl; try typeclasses eauto.
+      rewrite cat_case, inr_case, inl_case.
       reflexivity.
     Qed.
 
@@ -445,17 +443,17 @@ Section Correctness.
   Ltac run_in :=
     repeat (
         rewrite cat_id_l
-      + rewrite <- (cat_assoc _ inl_ assoc_l), assoc_l_inl
-      + rewrite <- (cat_assoc _ inl_ assoc_r), assoc_r_inl
-      + rewrite <- (cat_assoc _ inr_ assoc_r), assoc_r_inr
-      + rewrite <- (cat_assoc _ inr_ assoc_l), assoc_l_inr
-      + rewrite <- (cat_assoc _ inl_ (bimap _ _)), bimap_inl
-      + rewrite <- (cat_assoc _ inr_ (bimap _ _)), bimap_inr
-      + rewrite <- (cat_assoc _ inl_ (case_ _ _)), case_inl
-      + rewrite <- (cat_assoc _ inr_ (case_ _ _)), case_inr
-      + rewrite <- (cat_assoc _ inl_ swap), swap_inl
-      + rewrite <- (cat_assoc _ inr_ swap), swap_inr
-      + rewrite <- (cat_assoc _ swap (case_ _ _)), swap_case
+      + rewrite <- (cat_assoc inl_ assoc_l), assoc_l_inl
+      + rewrite <- (cat_assoc inl_ assoc_r), assoc_r_inl
+      + rewrite <- (cat_assoc inr_ assoc_r), assoc_r_inr
+      + rewrite <- (cat_assoc inr_ assoc_l), assoc_l_inr
+      + rewrite <- (cat_assoc inl_ (bimap _ _)), bimap_inl
+      + rewrite <- (cat_assoc inr_ (bimap _ _)), bimap_inr
+      + rewrite <- (cat_assoc inl_ (case_ _ _)), case_inl
+      + rewrite <- (cat_assoc inr_ (case_ _ _)), case_inr
+      + rewrite <- (cat_assoc inl_ swap), swap_inl
+      + rewrite <- (cat_assoc inr_ swap), swap_inr
+      + rewrite <- (cat_assoc swap (case_ _ _)), swap_case
       + rewrite ?assoc_l_inl, ?assoc_l_inr, ?assoc_r_inl, ?assoc_r_inr,
         ?bimap_inl, ?bimap_inr, ?case_inl, ?case_inr
       ).
@@ -470,30 +468,23 @@ Section Correctness.
       (assoc_l >>> (bimap swap (id_ C) >>> assoc_r)))).
   Proof.
     rewrite cat_assoc.
-    apply (coprod_split _ _).
-    all: try typeclasses eauto.
+    apply coprod_split.
     - run_in. symmetry. rewrite cat_assoc. run_in.
       (* TODO: [rewrite cat_assoc] seems to loop on one side, hence [symmetry]...
          this is what prevents us from just adding [rewrite !cat_assoc] to
          [run_in] *)
-      apply (coprod_split _ _).
-      all: try typeclasses eauto.
+      apply coprod_split.
       + run_in. repeat (rewrite cat_assoc; run_in).
         reflexivity.
-        all: try typeclasses eauto.
       + run_in. repeat (rewrite cat_assoc; run_in).
         reflexivity.
-        all: try typeclasses eauto.
     - run_in. rewrite cat_assoc. symmetry.
       repeat (rewrite cat_assoc; run_in).
-      apply (coprod_split _ _).
-      all: try typeclasses eauto.
+      apply coprod_split.
       + run_in. repeat (rewrite cat_assoc; run_in).
         reflexivity.
-        all: try typeclasses eauto.
       + run_in. repeat (rewrite cat_assoc; run_in).
         reflexivity.
-        all: try typeclasses eauto.
   Qed.
 
   Local Lemma aux_app_asm_correct2 I J B D :
@@ -509,32 +500,25 @@ Section Correctness.
     simpl.
     rewrite cat_assoc.
     apply (coprod_split _ _).
-    all: try typeclasses eauto.
     - run_in.
       symmetry. rewrite cat_assoc.
       run_in.
       rewrite cat_assoc.
       run_in.
       apply (coprod_split _ _).
-      all: try typeclasses eauto.
       + run_in.
         repeat (rewrite !cat_assoc; run_in).
         reflexivity.
-        all: typeclasses eauto.
       + repeat (rewrite cat_assoc; run_in).
         reflexivity.
-        all: typeclasses eauto.
     - run_in.
       rewrite cat_assoc. run_in.
       rewrite !cat_assoc; run_in.
       apply (coprod_split _ _).
-      all: try typeclasses eauto.
       + run_in. repeat (rewrite !cat_assoc; run_in).
         reflexivity.
-        all: try typeclasses eauto.
       + run_in. repeat (rewrite !cat_assoc; run_in).
         reflexivity.
-        all: try typeclasses eauto.
   Qed.
 
   (** Correctness of the [app_asm] combinator.
@@ -571,14 +555,15 @@ Section Correctness.
 
     (* Remain now to relate the bodies of the loops on each side. *)
     (* First by some more equational reasoning. *)
+
     rewrite <- (sloop_rename_internal' swap swap).
     2: apply swap_involutive; typeclasses eauto.
     subst lhs.
     apply eq_sktree_sloop.
     rewrite !cat_assoc; try typeclasses eauto.
-    repeat rewrite <- (cat_assoc _ _ _ (bimap (denote_b _) (denote_b _) >>> _)).
+    repeat rewrite <- (cat_assoc _ _ (bimap (denote_b _) (denote_b _) >>> _)).
     cbn. rewrite relabel_bks_correct, app_bks_correct.
-    rewrite cat_assoc...
+    rewrite cat_assoc.
 
     rewrite <- aux_app_asm_correct1, <- aux_app_asm_correct2.
 

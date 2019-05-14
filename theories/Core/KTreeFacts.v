@@ -275,15 +275,14 @@ Proof.
   do 2 apply (cat_eq2_l (bimap (id_ _) swap)) in Eq.
   rewrite <- cat_assoc, bimap_cat, swap_involutive, cat_id_l,
   bimap_id, cat_id_l in Eq.
-  rewrite <- (cat_assoc _ _ _ assoc_r), <- (cat_assoc _ _ assoc_l _)
+  rewrite <- (cat_assoc _ _ assoc_r), <- (cat_assoc _ assoc_l _)
     in Eq.
   rewrite <- swap_assoc_l in Eq.
-  rewrite (cat_assoc _ _ _ assoc_r) in Eq.
+  rewrite (cat_assoc _ _ assoc_r) in Eq.
   rewrite assoc_l_mono in Eq.
   rewrite cat_id_r in Eq.
   rewrite cat_assoc.
   assumption.
-  all: typeclasses eauto.
 Qed.
 
 Fact local_rewrite2 {a b c : Type}:
@@ -295,12 +294,11 @@ Proof.
   do 2 apply (cat_eq2_r (bimap (id_ _) swap)) in Eq.
   rewrite cat_assoc, bimap_cat, swap_involutive, cat_id_l,
   bimap_id, cat_id_r in Eq.
-  rewrite 2 (cat_assoc _ assoc_l) in Eq.
+  rewrite 2 (cat_assoc assoc_l) in Eq.
   rewrite <- swap_assoc_r in Eq.
-  rewrite <- 2 (cat_assoc _ assoc_l) in Eq.
+  rewrite <- 2 (cat_assoc assoc_l) in Eq.
   rewrite assoc_l_mono, cat_id_l in Eq.
   assumption.
-  all: try typeclasses eauto.
 Qed.
 
 Lemma loop_bimap_ktree {I A B C D}
@@ -313,15 +311,14 @@ Lemma loop_bimap_ktree {I A B C D}
 Proof.
   rewrite swap_bimap, bimap_ktree_loop.
   rewrite <- compose_loop, <- loop_compose.
-  rewrite (swap_bimap _ _ cd ab).
+  rewrite (swap_bimap cd ab).
   rewrite <- !cat_assoc.
   rewrite local_rewrite1.
   rewrite 2 cat_assoc.
-  rewrite <- (cat_assoc _ swap assoc_r).
+  rewrite <- (cat_assoc swap assoc_r).
   rewrite local_rewrite2.
   rewrite <- !cat_assoc.
   reflexivity.
-  all: typeclasses eauto.
 Qed.
 
 Lemma yanking_ktree {A: Type}:
@@ -345,7 +342,6 @@ Proof.
   rewrite bimap_id.
   rewrite cat_id_l.
   reflexivity.
-  all: try typeclasses eauto.
 Qed.
 
 End TraceLaws.
@@ -371,7 +367,7 @@ is equivalent to
  *)
 Theorem cat_from_loop {E A B C} (ab : ktree E A B) (bc : ktree E B C) :
   loop (swap >>> bimap ab bc) ⩯ ab >>> bc.
-Proof with try typeclasses eauto.
+Proof.
 (*
       +-------------+
       |             |

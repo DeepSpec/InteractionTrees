@@ -493,7 +493,6 @@ Qed.
     rewrite cat_id_r.
     rewrite sym_sktree_unfold.
     apply cat_from_sloop.
-    all: typeclasses eauto.
   Qed.
 
   (** [if_asm] is denoted as the ktree first denoting the branching condition,
@@ -590,7 +589,6 @@ Opaque sloop.
     rewrite <- lift_sktree_id, cat_id_l.
     rewrite app_asm_correct.
     rewrite if_asm_correct.
-    all: try typeclasses eauto.
     intros x.
     (* TODO Difficulty to do case analysis on the label with sktree *)
     (*

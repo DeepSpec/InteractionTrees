@@ -50,11 +50,13 @@ Class InitialObject (i : obj) {Initial_i : Initial C i} : Prop :=
 
 End CatLaws.
 
-(* TODO: all arguments up to typeclass arguments should be implicit,
-   this explicit C is currently the cause for all the "typeclasses eauto". *)
-Arguments cat_assoc {obj} C {Eq2C CatC CatAssoc} [a b c d].
-Arguments initial_object : clear implicits.
-Arguments initial_object {obj} C {Eq2C} i {Initial_i InitialObject}.
+Arguments cat_id_l {obj C Eq2C IdC CatC CatIdL} [a b] f.
+Arguments cat_id_r {obj C Eq2C IdC CatC CatIdR} [a b] f.
+Arguments cat_assoc {obj C Eq2C CatC CatAssoc} [a b c d] f g.
+Arguments initial_object {obj C Eq2C i Initial_i InitialObject} [a] f.
+
+(** Synonym of [initial_object]. *)
+Notation unique_initial := initial_object.
 
 (** ** Mono-, Epi-, Iso- morphisms *)
 
@@ -90,8 +92,7 @@ Class Iso {a b : obj} (f : C a b) (f' : C b a) : Type := {
 
 End SemiIso.
 
-Arguments semi_iso : clear implicits.
-Arguments semi_iso {obj C Eq2C IdC CatC a b} f f'.
+Arguments semi_iso {obj C Eq2C IdC CatC a b} f f' {SemiIso}.
 
 (** ** Bifunctors *)
 
@@ -123,6 +124,9 @@ Class Bifunctor : Prop := {
 }.
 
 End BifunctorLaws.
+
+Arguments bimap_id {obj C Eq2_C Id_C bif Bimap_bif BimapId} a b.
+Arguments bimap_cat {obj C Eq2_C Cat_C bif Bimap_bif BimapCat} [_ _ _ _ _ _] f1 g1 f2 g2.
 
 (** ** Coproducts *)
 
@@ -163,7 +167,13 @@ Class Coproduct : Prop := {
 
 End CoproductLaws.
 
-Arguments case_universal {obj C _ _ bif _ _ _ _ a b c}.
+Arguments case_inl {obj C Eq2_C Cat_C bif CoprodCase_C CoprodInl_C CaseInl} [a b c] f g.
+Arguments case_inr {obj C Eq2_C Cat_C bif CoprodCase_C CoprodInr_C CaseInr} [a b c] f g.
+Arguments case_universal {obj C _ _ bif _ _ _ _} [a b c] f g fg.
+
+(** More intuitive names. *)
+Notation inl_case := case_inl.
+Notation inr_case := case_inr.
 
 (** ** Monoidal categories *)
 
@@ -295,6 +305,19 @@ Class AssocLAssocL : Prop :=
 
 End MonoidalLaws.
 
+Arguments assoc_r_mono {obj C Eq2_C Id_C Cat_C bif AssocR_bif AssocL_bif AssocIso_C} a b c.
+Arguments assoc_l_mono {obj C Eq2_C Id_C Cat_C bif AssocR_bif AssocL_bif AssocIso_C} a b c.
+Arguments unit_l_mono {obj C Eq2_C Id_C Cat_C bif i UnitL_bif UnitL'_bif UnitLIso_C} a.
+Arguments unit_l_epi {obj C Eq2_C Id_C Cat_C bif i UnitL_bif UnitL'_bif UnitLIso_C} a.
+Arguments unit_r_mono {obj C Eq2_C Id_C Cat_C bif i UnitR_bif UnitR'_bif UnitRIso_C} a.
+Arguments unit_r_epi {obj C Eq2_C Id_C Cat_C bif i UnitR_bif UnitR'_bif UnitRIso_C} a.
+
+Arguments assoc_r_unit {obj C Eq2_C Id_C Cat_C bif Bimap_bif AssocR_bif i UnitL_bif UnitR_bif AssocRUnit} a b.
+Arguments assoc_r_assoc_r {obj C Eq2_C Id_C Cat_C bif Bimap_bif AssocR_bif AssocRAssocR} a b c d.
+
+Arguments assoc_l_unit {obj C Eq2_C Id_C Cat_C bif Bimap_bif AssocL_bif i UnitL_bif UnitR_bif AssocLUnit} a b.
+Arguments assoc_l_assoc_l {obj C Eq2_C Id_C Cat_C bif Bimap_bif AssocL_bif AssocLAssocL} a b c d.
+
 (** ** Symmetric monoidal categories *)
 
 Section SymmetricLaws.
@@ -302,6 +325,7 @@ Section SymmetricLaws.
 Context {obj : Type} (C : Hom obj).
 Context {Eq2_C : Eq2 C} {Id_C : Id_ C} {Cat_C : Cat C}.
 Context (bif : binop obj).
+Context {Bimap_bif : Bimap C bif}.
 Context {Swap_bif : Swap C bif}.
 
 (** [swap] is an involution *)
@@ -324,7 +348,6 @@ Context {UnitR'_i : UnitR' C bif i}.
 Class SwapUnitL : Prop :=
   swap_unit_l : forall a, swap >>> unit_l ⩯ unit_r_ _ a.
 
-Context {Bimap_bif : Bimap C bif}.
 Context {AssocR_bif : AssocR C bif}.
 Context {AssocL_bif : AssocL C bif}.
 
@@ -349,6 +372,11 @@ Class SwapAssocL : Prop :=
   ⩯ bimap (id_ a) swap >>> assoc_l >>> bimap swap (id_ b).
 
 End SymmetricLaws.
+
+Arguments swap_involutive {obj C Eq2_C Id_C Cat_C bif Swap_bif SwapInvolutive_C} a b.
+Arguments swap_unit_l {obj C Eq2_C Cat_C bif Swap_bif i UnitL_i UnitR_i SwapUnitL} a.
+Arguments swap_assoc_r {obj C Eq2_C Id_C Cat_C bif Bimap_bif Swap_bif AssocR_bif  SwapAssocR} a b c.
+Arguments swap_assoc_l {obj C Eq2_C Id_C Cat_C bif Bimap_bif Swap_bif AssocL_bif  SwapAssocL} a b c.
 
 Section IterationLaws.
 
@@ -405,3 +433,8 @@ Definition LoopPairing : Prop :=
                       (h >>> bimap inr_ (id_ _))).
 
 End IterationLaws.
+
+Arguments loop_unfold {obj C Eq2_C Id_C Cat_C bif CoprodCase_C CatLoop_C LoopUnfold} [a b] f.
+Arguments loop_natural {obj C Eq2_C Id_C Cat_C bif CoprodCase_C CoprodInl_C CoprodInr_C CatLoop_C LoopNatural} [a b c] f.
+Arguments loop_dinatural {obj C Eq2_C Id_C Cat_C bif CoprodCase_C CoprodInr_C CatLoop_C LoopDinatural} [a b c] f.
+Arguments loop_codiagonal {obj C Eq2_C Id_C Cat_C bif CoprodCase_C CoprodInl_C CatLoop_C LoopCodiagonal} [a b] f.
