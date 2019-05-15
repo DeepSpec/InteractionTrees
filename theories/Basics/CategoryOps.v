@@ -270,10 +270,10 @@ Variables (bif : binop obj).
 
 (** Categories with a loop operator (_pre-iterative categories_).
   Abstract generalization of [ITree.Basics.Basics.ALoop] and
-  [ITree.Core.KTree.loop]. [cat_loop] is often denoted as a dagger in the
+  [ITree.Core.KTree.loop]. [iter] is often denoted as a dagger in the
   relevant literature. *)
-Class CatLoop : Type :=
-  cat_loop : forall a b, C a (bif a b) -> C a b.
+Class Iter : Type :=
+  iter : forall a b, C a (bif a b) -> C a b.
 
 Context
   {Id_C : Id_ C}
@@ -281,22 +281,22 @@ Context
   {CoprodCase_bif : CoprodCase C bif}
   {CoprodInl_bif : CoprodInl C bif}
   {CoprodInr_bif : CoprodInr C bif}
-  {CatLoop_bif : CatLoop}.
+  {Iter_bif : Iter}.
 
 (** Trace operator (generalization of [KTree.loop]). *)
-Definition cat_trace (a b c : obj)
+Definition loop (a b c : obj)
   : C (bif c a) (bif c b) -> C a b :=
-  fun f => inr_ >>> cat_loop _ _ (f >>> bimap inl_ (id_ b)).
+  fun f => inr_ >>> iter _ _ (f >>> bimap inl_ (id_ b)).
 
-(**  For our purposes, [cat_trace] and [cat_loop] are mutually derivable.
-  [cat_trace] is a definition instead of another class to prevent the interface
+(**  For our purposes, [loop] and [iter] are mutually derivable.
+  [loop] is a definition instead of another class to prevent the interface
   from growing too much. We originally started with traced categories but
   iterative/Conway categories seem to provide more of the theory we need. *)
 
 End Iteration.
 
-Arguments cat_loop {obj C bif _ a b}.
-Arguments cat_trace {obj C bif _ _ _ _ _ _ a b c}.
+Arguments iter {obj C bif _ a b}.
+Arguments loop {obj C bif _ _ _ _ _ _ a b c}.
 
 (** ** Automatic solver of reassociating sums *)
 
