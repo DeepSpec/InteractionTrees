@@ -419,6 +419,8 @@ Class Conway : Prop :=
   ; conway_natural :> LoopNatural
   ; conway_dinatural :> LoopDinatural
   ; conway_codiagonal :> LoopCodiagonal
+  ; conway_proper_loop
+      :> forall a b, @Proper (C a (bif a b) -> C a b) (eq2 ==> eq2) cat_loop
   }.
 
 (** Also called Bekic identity *)
@@ -438,3 +440,4 @@ Arguments loop_unfold {obj C Eq2_C Id_C Cat_C bif CoprodCase_C CatLoop_C LoopUnf
 Arguments loop_natural {obj C Eq2_C Id_C Cat_C bif CoprodCase_C CoprodInl_C CoprodInr_C CatLoop_C LoopNatural} [a b c] f.
 Arguments loop_dinatural {obj C Eq2_C Id_C Cat_C bif CoprodCase_C CoprodInr_C CatLoop_C LoopDinatural} [a b c] f.
 Arguments loop_codiagonal {obj C Eq2_C Id_C Cat_C bif CoprodCase_C CoprodInl_C CatLoop_C LoopCodiagonal} [a b] f.
+Arguments conway_proper_loop {obj C Eq2_C Id_C Cat_C bif CoprodCase_C CoprodInl_C CoprodInr_C CatLoop_C Conway}.

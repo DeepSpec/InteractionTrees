@@ -627,9 +627,35 @@ Context {Proper_case_ : forall a b c,
 
 Context {CatLoop_bif : CatLoop C bif}.
 Context {Conway_C : Conway C bif}.
-Context {Proper_cat_loop : forall a b,
-            @Proper (C a (bif a b) -> C a b) (eq2 ==> eq2) cat_loop}.
 
+Global Instance Proper_cat_trace {a b c}
+  : @Proper (C (bif c a) (bif c b) -> C a b) (eq2 ==> eq2) cat_trace.
+Proof.
+  repeat intro.
+  unfold cat_trace.
+  rewrite H.
+  reflexivity.
+Qed.
+
+(* Naturality of (loop_ktree I A B) in A *)
+(* Or more diagrammatically:
+[[
+        +-----+
+        | ### |
+        +-###-+I
+A----B----###----C
+          ###
+
+is equivalent to:
+
+   +----------+
+   |      ### |
+   +------###-+I
+A----B----###----C
+          ###
+
+]]
+ *)
 Lemma trace_natural_left {a a' b c} (f : C (bif c a) (bif c b)) (g : C a' a)
   : g >>> cat_trace f
   ⩯ cat_trace (bimap (id_ _) g >>> f).
@@ -643,7 +669,7 @@ Proof.
     unfold bimap, Bimap_Coproduct. (* TODO: by naturality of inr_ *)
     rewrite case_inr, cat_assoc.
     repeat (apply Proper_cat; try reflexivity).
-    apply Proper_cat_loop.
+    apply conway_proper_loop.
     rewrite cat_assoc.
     apply Proper_cat; try reflexivity.
     rewrite !cat_id_l.
@@ -652,6 +678,26 @@ Proof.
   - rewrite !cat_assoc, case_inl. reflexivity.
 Qed.
 
+
+(* Naturality of (loop I A B) in B *)
+(* Or more diagrammatically:
+[[
+   +-----+
+   | ### |
+   +-###-+I
+A----###----B----C
+     ###
+
+is equivalent to:
+
+   +----------+
+   | ###      |
+   +-###------+I
+A----###----B----C
+     ###
+
+]]
+ *)
 Lemma trace_natural_right {a b b' c} (f : C (bif c a) (bif c b)) (g : C b b')
   : cat_trace f >>> g
   ⩯ cat_trace (f >>> bimap (id_ _) g).
@@ -660,7 +706,7 @@ Proof.
   rewrite cat_assoc.
   apply Proper_cat; try reflexivity.
   rewrite loop_natural.
-  apply Proper_cat_loop; try reflexivity.
+  apply conway_proper_loop; try reflexivity.
   rewrite !cat_assoc, !bimap_cat, !cat_id_l, !cat_id_r.
   reflexivity.
 Qed.
@@ -710,6 +756,32 @@ Proof.
   rewrite Hg.
   reflexivity.
 Qed.
+
+(* Vanishing. These two loops:
+
+[[
+    +----------+
+    | +-----+  |
+    | | ### |  |
+    | +-###-+I |
+    +---###----+J
+  A-----###-------B
+        ###
+]]
+
+... can be rewired as a single one:
+
+
+[[
+     +-------+
+     |  ###  |
+     +--###--+(I+J)
+     +--###--+
+  A-----###-----B
+        ###
+]]
+
+ *)
 
 Lemma trace_vanishing_2 {a b c d} (f : C (bif d (bif c a)) (bif d (bif c b)))
   : cat_trace (cat_trace f)
@@ -784,7 +856,7 @@ Proof.
 
     + rewrite cat_assoc, loop_natural.
       apply Proper_cat; try reflexivity.
-      apply Proper_cat_loop.
+      apply conway_proper_loop.
       rewrite !cat_assoc.
       rewrite case_inl.
       rewrite <- (cat_assoc inl_), inl_assoc_r.
@@ -843,6 +915,179 @@ Proof.
   rewrite <- cat_assoc, inl_swap.
   rewrite <- cat_assoc, inr_bimap.
   rewrite cat_id_l, case_inr.
+  reflexivity.
+Qed.
+
+Lemma trace_dinatural' {a b c d} (cd : C c d) (dc: C d c)
+      (ab_: C (bif c a) (bif c b))
+  : (cd >>> dc) ⩯ id_ _ ->
+    cat_trace (bimap dc (id_ _) >>> ab_ >>> bimap cd (id_ _))
+  ⩯ cat_trace ab_.
+Proof.
+  intros Hij.
+  rewrite trace_dinatural.
+  rewrite <- cat_assoc.
+  rewrite bimap_cat.
+  rewrite Hij.
+  rewrite cat_id_l.
+  rewrite bimap_id.
+  rewrite cat_id_l.
+  reflexivity.
+Qed.
+
+(* Here we show that we can implement [ITree.cat] using
+   [bimap], [loop], and composition with the monoidal
+   natural isomorphisms. *)
+
+(* [cat_from_loop]:
+
+      +-------------+
+      |             |
+      +---\/---ab---+
+   -------/\---bc-------
+
+is equivalent to
+
+   ----ab---bc----
+ *)
+Theorem cat_from_trace {a b c} (ab : C a b) (bc : C b c)
+  : cat_trace (swap >>> bimap ab bc) ⩯ ab >>> bc.
+Proof.
+(*
+      +-------------+
+      |             |
+      +---\/---ab---+
+   -------/\---bc-------
+ *)
+
+  rewrite bimap_slide.
+  rewrite <- cat_assoc.
+(*
+      +----------------+
+      |                |
+      +---\/---ab------+
+   -------/\------bc-------
+ *)
+
+  rewrite <- trace_natural_right.
+(*
+      +-------------+
+      |             |
+      +---\/---ab---+
+   -------/\------------bc----
+ *)
+
+  rewrite swap_bimap.
+  rewrite <- !cat_assoc.
+(*
+      +-------------------+
+      |                   |
+      +---\/--\/------\/--+
+   -------/\--/\--ab--/\----bc----
+ *)
+
+  rewrite swap_involutive, cat_id_l.
+(*
+      +-------------------+
+      |                   |
+      +---------------\/--+
+   ---------------ab--/\----bc----
+ *)
+
+  rewrite <- trace_natural_left.
+(*
+           +------+
+           |      |
+           +--\/--+
+   ----ab-----/\-----bc----
+ *)
+
+  rewrite trace_yanking.
+  rewrite cat_id_r.
+(*
+   ----ab---bc----
+ *)
+
+  reflexivity.
+Qed.
+
+
+(** Utility: lemma to ease working forward in an equational proof.
+      Make it more convenient to rewrite subterm only on one side of the equation.
+ *)
+Fact fwd_eqn {a b} (f g : C a b) :
+  (forall h, h ⩯ f -> h ⩯ g) -> f ⩯ g.
+Proof.
+  intro H; apply H; reflexivity.
+Qed.
+
+(** Utility: lemmas to ease forward reasoning *)
+Fact cat_eq2_l {a b c} (h : C a b) (f g : C b c) :
+  f ⩯ g ->
+  h >>> f ⩯ h >>> g.
+Proof.
+  intros H; rewrite H; reflexivity.
+Qed.
+
+Fact cat_eq2_r {a b c} (h : C b c) (f g : C a b) :
+  f ⩯ g ->
+  f >>> h ⩯ g >>> h.
+Proof.
+  intros H; rewrite H; reflexivity.
+Qed.
+
+Fact local_rewrite1 {a b c}:
+  bimap (id_ a) (swap_ b c) >>> assoc_l >>> swap
+        ⩯ assoc_l >>> bimap swap (id_ c) >>> assoc_r.
+Proof.
+  symmetry.
+  apply fwd_eqn; intros h Eq.
+  do 2 apply (cat_eq2_l (bimap (id_ _) swap)) in Eq.
+  rewrite <- cat_assoc, bimap_cat, swap_involutive, cat_id_l,
+  bimap_id, cat_id_l in Eq.
+  rewrite <- (cat_assoc _ _ assoc_r), <- (cat_assoc _ assoc_l _)
+    in Eq.
+  rewrite <- swap_assoc_l in Eq.
+  rewrite (cat_assoc _ _ assoc_r) in Eq.
+  rewrite assoc_l_mono in Eq.
+  rewrite cat_id_r in Eq.
+  rewrite cat_assoc.
+  assumption.
+Qed.
+
+Fact local_rewrite2 {a b c}:
+  swap >>> assoc_r >>> bimap (id_ _) swap
+       ⩯ assoc_l_ a b c >>> bimap swap (id_ _) >>> assoc_r.
+Proof.
+  symmetry.
+  apply fwd_eqn; intros h Eq.
+  do 2 apply (cat_eq2_r (bimap (id_ _) swap)) in Eq.
+  rewrite cat_assoc, bimap_cat, swap_involutive, cat_id_l,
+  bimap_id, cat_id_r in Eq.
+  rewrite 2 (cat_assoc assoc_l) in Eq.
+  rewrite <- swap_assoc_r in Eq.
+  rewrite <- 2 (cat_assoc assoc_l) in Eq.
+  rewrite assoc_l_mono, cat_id_l in Eq.
+  assumption.
+Qed.
+
+Lemma loop_bimap_ktree {a b c d e}
+      (ab : C a b) (cd : C (bif e c) (bif e d))
+  : bimap ab (cat_trace cd)
+  ⩯ cat_trace (assoc_l >>> bimap swap (id_ _)
+                       >>> assoc_r
+                       >>> bimap ab cd
+                       >>> assoc_l >>> bimap swap (id_ _) >>> assoc_r).
+Proof.
+  rewrite swap_bimap, trace_superposing.
+  rewrite trace_natural_left, trace_natural_right.
+  rewrite (swap_bimap cd ab).
+  rewrite <- !cat_assoc.
+  rewrite local_rewrite1.
+  rewrite 2 cat_assoc.
+  rewrite <- (cat_assoc swap assoc_r).
+  rewrite local_rewrite2.
+  rewrite <- !cat_assoc.
   reflexivity.
 Qed.
 
