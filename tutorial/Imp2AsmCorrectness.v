@@ -358,6 +358,14 @@ Section Eq_Locals.
     reflexivity.
   Qed.
 
+  Lemma interp_locals_ret {R} (r : R) (s : alist var value) :
+    interp_locals (Ret r) s ≈ Ret (s, r).
+  Proof.
+    unfold interp_locals, run_map, State.interp_state.
+    rewrite interp_ret. rewrite itree_eta; cbn.
+    reflexivity.
+  Qed.
+
   (** Definition of our bisimulation relation.
       As previously explained, it relates up-to-tau two [itree]s after having
       interpreted their [Locals] event.
@@ -608,9 +616,15 @@ Opaque sloop.
         unfold CategoryOps.cat, Cat_ktree, ITree.cat.
         simpl; repeat setoid_rewrite bind_bind.
         unfold inl_, Inl_ktree, lift_ktree; rewrite bind_ret.
-        eapply eutt_clo_bind; try reflexivity. intros; subst. destruct u3.
+        eapply eutt_clo_bind; try reflexivity. intros [] [] _.
         repeat rewrite bind_ret. reflexivity.
-    - rewrite itree_eta; cbn; reflexivity.
+    - intros [].
+      unfold CategoryOps.cat, Cat_ktree, ITree.cat, inr_, Inr_ktree, lift_ktree.
+      rewrite bind_ret.
+      rewrite (pure_asm_correct _ tt).
+      unfold lift_ktree.
+      rewrite !bind_ret.
+      reflexivity.
   Qed.
      *)
   Admitted.
@@ -779,18 +793,23 @@ Section Correctness.
     eapply Renv_write_local; eauto.
   Qed.
 
+  Opaque eutt.
+
   (* Utility: slight rephrasing of [while] to facilitate rewriting
      in the main theorem.*)
   Lemma while_is_loop {E} (body : itree E bool) :
     while body
-          ≈ loop (fun l : unit + unit =>
+          ≈ KTree.loop (fun l : unit + unit =>
                     match l with
                     | inl _ => ITree.map (fun b => if b : bool then inl tt else inr tt) body
                     | inr _ => Ret (inl tt)   (* Enter loop *)
                     end) tt.
   Proof.
     unfold while.
-    apply eutt_loop.
+    match goal with
+    | [ |- _ (_ ?f _) (_ ?g _) ] =>
+      epose proof (Proper_loop f g) as Hfg; apply Hfg; clear Hfg
+    end.
     intros [[]|[]]; simpl; [| reflexivity].
     unfold ITree.map.
     eapply eutt_clo_bind; try reflexivity.
@@ -862,9 +881,9 @@ Qed.
 
       (* And remains to trivially relate the results *)
       intros [] [] []; simpl.
-      repeat intro.
-      force_left; force_right.
-      red; rewrite <-eqit_Ret; auto.
+      repeat intro. Transparent eutt. red.
+      rewrite 2 interp_locals_ret.
+      rewrite <-eqit_Ret; auto.
 
     - (* Seq *)
       (* We commute [denote_asm] with [seq_asm] *)
@@ -960,7 +979,7 @@ Qed.
 
     - (* Skip *)
       repeat intro.
-      force_right; force_left.
+      tau_steps.
       red; rewrite <- eqit_Ret; auto.
   Admitted.
 

@@ -11,6 +11,7 @@ From Paco Require Import paco.
 
 From ITree Require Import
      Basics.Basics
+     Basics.Category
      Core.ITreeDefinition
      Core.KTree
      Eq.Eq
@@ -173,6 +174,24 @@ Proof.
   - rewrite 2 interp_state_ret. eret.
 Qed.
 
+Lemma eutt_interp_state_iter {E F S A B} (RS : S -> S -> Prop)
+      (h : E ~> Monads.stateT S (itree F))
+      (t1 t2 : A -> itree E (A + B)) :
+  (forall ca s1 s2, RS s1 s2 ->
+     eutt (fun a b => RS (fst a) (fst b) /\ snd a = snd b)
+          (interp_state h (t1 ca) s1)
+          (interp_state h (t2 ca) s2)) ->
+  (forall a s1 s2, RS s1 s2 ->
+     eutt (fun a b => RS (fst a) (fst b) /\ snd a = snd b)
+          (interp_state h (iter t1 a) s1)
+          (interp_state h (iter t2 a) s2)).
+Proof.
+  intros.
+  unfold iter, Iter_ktree.
+  eapply eutt_interp_state_aloop; auto.
+  intros [] ? ? ?; constructor; auto.
+Qed.
+
 Lemma eutt_interp_state_loop {E F S A B C} (RS : S -> S -> Prop)
       (h : E ~> Monads.stateT S (itree F))
       (t1 t2 : C + A -> itree E (C + B)) :
@@ -186,10 +205,19 @@ Lemma eutt_interp_state_loop {E F S A B C} (RS : S -> S -> Prop)
           (interp_state h (loop t2 a) s2)).
 Proof.
   intros.
-  unfold loop. einit.
+  unfold loop, bimap, Bimap_Coproduct, case_, Case_ktree, Function.case_sum, id_, Id_ktree, cat, Cat_ktree, ITree.cat, inr_, Inr_ktree, inl_, Inl_ktree, lift_ktree.
+  rewrite 2 bind_ret.
+  eapply eutt_interp_state_iter; auto; intros.
   rewrite 2 interp_state_bind.
-  ebind. econstructor; [eapply H; eauto|].
-  intros x1 x2 [? []].
-  efinal. eapply eutt_interp_state_aloop; eauto.
-  intros [] s1' s2' Hs'; constructor; auto.
+  eapply eutt_clo_bind; eauto.
+  intros.
+  cbn in H2.
+  destruct (snd u1); rewrite <- (proj2 H2).
+  - rewrite bind_ret, 2 interp_state_ret.
+    pstep.
+    constructor.
+    cbn.
+    split; auto using (proj1 H2).
+  - rewrite bind_ret, 2 interp_state_ret. pstep. constructor. cbn.
+    split; auto using (proj1 H2).
 Qed.

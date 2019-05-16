@@ -261,7 +261,7 @@ Qed.
 
 (** *** [bimap] lemmas *)
 Local Opaque paco2.
-Local Opaque eutt loop ITree.bind'.
+Local Opaque eutt ITree.bind'.
 
 Fact bimap_id_lift {A B C} (f : B -> C) :
   bimap (id_ A) (@lift_ktree E _ _ f) ⩯ lift_ktree (bimap (id_ A) f).

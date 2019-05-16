@@ -606,7 +606,7 @@ Hint Rewrite @case_inr : cocartesian.
 (** Iterative categories are traced. *)
 Section TracedIterativeFacts.
 
-Context {obj : Type} (C : Hom obj).
+Context {obj : Type} {C : Hom obj}.
 
 Context {Eq2_C : Eq2 C}.
 Context {E_Eq2_C : forall a b, @Equivalence (C a b) eq2}.
@@ -617,7 +617,7 @@ Context {Proper_cat : forall a b c,
 
 Context {Category_C : Category C}.
 
-Context (bif : binop obj).
+Context {bif : binop obj}.
 Context {CoprodCase_C : CoprodCase C bif}
         {CoprodInl_C : CoprodInl C bif}
         {CoprodInr_C : CoprodInr C bif}.
@@ -656,20 +656,20 @@ A----B----###----C
 
 ]]
  *)
-Lemma trace_natural_left {a a' b c} (f : C (bif c a) (bif c b)) (g : C a' a)
+Lemma loop_natural_left {a a' b c} (f : C (bif c a) (bif c b)) (g : C a' a)
   : g >>> loop f
   ⩯ loop (bimap (id_ _) g >>> f).
 Proof.
   unfold loop.
   transitivity (inr_ >>> iter (bimap (id_ c) g >>> inl_
                                      >>> case_ (f >>> bimap inl_ (id_ b)) inr_)).
-  - rewrite loop_dinatural.
+  - rewrite iter_dinatural.
     rewrite cat_assoc, case_inl.
     rewrite <- (cat_assoc inr_).
     unfold bimap, Bimap_Coproduct. (* TODO: by naturality of inr_ *)
     rewrite case_inr, cat_assoc.
     repeat (apply Proper_cat; try reflexivity).
-    apply conway_proper_loop.
+    apply conway_proper_iter.
     rewrite cat_assoc.
     apply Proper_cat; try reflexivity.
     rewrite !cat_id_l.
@@ -698,27 +698,27 @@ A----###----B----C
 
 ]]
  *)
-Lemma trace_natural_right {a b b' c} (f : C (bif c a) (bif c b)) (g : C b b')
+Lemma loop_natural_right {a b b' c} (f : C (bif c a) (bif c b)) (g : C b b')
   : loop f >>> g
   ⩯ loop (f >>> bimap (id_ _) g).
 Proof.
   unfold loop.
   rewrite cat_assoc.
   apply Proper_cat; try reflexivity.
-  rewrite loop_natural.
-  apply conway_proper_loop; try reflexivity.
+  rewrite iter_natural.
+  apply conway_proper_iter; try reflexivity.
   rewrite !cat_assoc, !bimap_cat, !cat_id_l, !cat_id_r.
   reflexivity.
 Qed.
 
-Lemma trace_dinatural {a b c c'} (f : C (bif c a) (bif c' b)) (g : C c' c)
+Lemma loop_dinatural {a b c c'} (f : C (bif c a) (bif c' b)) (g : C c' c)
   : loop (f >>> bimap g (id_ _))
   ⩯ loop (bimap g (id_ _) >>> f).
 Proof.
   unfold loop.
   transitivity (inr_ >>> iter (bimap g (id_ a) >>> inl_
                                      >>> case_ (f >>> bimap inl_ (id_ b)) inr_)).
-  - rewrite loop_dinatural.
+  - rewrite iter_dinatural.
     rewrite <- 2 cat_assoc.
     unfold bimap at 3, Bimap_Coproduct at 3. (* TODO: naturality of [inr_] *)
     rewrite case_inr, cat_id_l, (cat_assoc _ inl_), case_inl.
@@ -732,16 +732,16 @@ Proof.
     reflexivity.
 Qed.
 
-Context (i : obj).
+Context {i : obj}.
 Context {Initial_i : Initial C i}.
 Context {InitialObject_i : InitialObject C i}.
 
-Lemma trace_vanishing_1 {a b} (f : C (bif i a) (bif i b))
+Lemma loop_vanishing_1 {a b} (f : C (bif i a) (bif i b))
   : loop f
   ⩯ unit_l' >>> f >>> unit_l.
 Proof.
   unfold loop.
-  rewrite loop_unfold.
+  rewrite iter_unfold.
   rewrite !cat_assoc.
   match goal with
   | [ |- _ >>> (_ >>> ?g) ⩯ _ ] =>
@@ -783,7 +783,7 @@ Qed.
 
  *)
 
-Lemma trace_vanishing_2 {a b c d} (f : C (bif d (bif c a)) (bif d (bif c b)))
+Lemma loop_vanishing_2 {a b c d} (f : C (bif d (bif c a)) (bif d (bif c b)))
   : loop (loop f)
   ⩯ loop (assoc_r >>> f >>> assoc_l).
 Proof.
@@ -791,25 +791,25 @@ Proof.
   transitivity (inr_ >>> inr_ >>> iter (iter (
                  f >>> bimap inl_ (bimap (inl_ >>> inr_) (id_ _))
                ))).
-  - rewrite cat_assoc, loop_natural, cat_assoc, bimap_cat, cat_id_l, cat_id_r.
+  - rewrite cat_assoc, iter_natural, cat_assoc, bimap_cat, cat_id_l, cat_id_r.
     transitivity (inr_ >>> iter (inr_ >>> inl_ >>> case_ (iter (
                    f >>> bimap inl_ (bimap inl_ (id_ _))
                  )) inr_)).
     + rewrite cat_assoc, case_inl.
       reflexivity.
-    + rewrite loop_dinatural.
+    + rewrite iter_dinatural.
       rewrite cat_assoc, case_inl.
-      rewrite loop_natural.
+      rewrite iter_natural.
       rewrite cat_assoc, bimap_cat, cat_id_r.
       rewrite bimap_case. rewrite <- 2 cat_assoc.
       reflexivity.
 
-  - rewrite loop_codiagonal.
+  - rewrite iter_codiagonal.
     rewrite (cat_assoc _ (bimap _ _)), bimap_case, cat_id_r.
     transitivity (inr_ >>> iter (
                    (assoc_r >>> inl_) >>>
                    case_ (f >>> assoc_l >>> bimap inl_ (id_ _)) inr_)).
-    + rewrite loop_dinatural.
+    + rewrite iter_dinatural.
       rewrite <- 2 cat_assoc, inr_assoc_r.
       rewrite (cat_assoc _ inl_), case_inl.
       rewrite !(cat_assoc f).
@@ -840,7 +840,7 @@ Proof.
       reflexivity.
 Qed.
 
-Lemma trace_superposing {a b c d e}
+Lemma loop_superposing {a b c d e}
       (ab : C (bif e a) (bif e b)) (cd : C c d) :
     bimap (loop ab) cd
   ⩯ loop (assoc_l >>> bimap ab cd >>> assoc_r).
@@ -854,9 +854,9 @@ Proof.
             >>> case_ (assoc_l >>> bimap ab cd >>> assoc_r >>> bimap inl_ (id_ _))
                       inr_)).
 
-    + rewrite cat_assoc, loop_natural.
+    + rewrite cat_assoc, iter_natural.
       apply Proper_cat; try reflexivity.
-      apply conway_proper_loop.
+      apply conway_proper_iter.
       rewrite !cat_assoc.
       rewrite case_inl.
       rewrite <- (cat_assoc inl_), inl_assoc_r.
@@ -875,7 +875,7 @@ Proof.
       rewrite !bimap_cat, !cat_id_l, !cat_id_r.
       reflexivity.
 
-    + rewrite loop_dinatural.
+    + rewrite iter_dinatural.
       rewrite inl_assoc_r.
       rewrite cat_assoc, <- cat_assoc, inr_bimap, case_inl, !cat_assoc.
       assert (Hr : forall a b c d,
@@ -892,7 +892,7 @@ Proof.
       reflexivity.
 
   - rewrite inr_bimap.
-    rewrite loop_unfold.
+    rewrite iter_unfold.
     rewrite !cat_assoc.
     rewrite <- (cat_assoc _ assoc_l), inr_assoc_l.
     rewrite <- cat_assoc, inr_bimap, cat_id_l.
@@ -904,10 +904,10 @@ Proof.
     reflexivity.
 Qed.
 
-Lemma trace_yanking {a} : loop swap ⩯ id_ a.
+Lemma loop_yanking {a} : loop swap ⩯ id_ a.
 Proof.
   unfold loop.
-  rewrite 2 loop_unfold.
+  rewrite 2 iter_unfold.
   rewrite !cat_assoc.
   rewrite <- cat_assoc, inr_swap.
   rewrite <- cat_assoc, inl_bimap.
@@ -918,14 +918,14 @@ Proof.
   reflexivity.
 Qed.
 
-Lemma trace_dinatural' {a b c d} (cd : C c d) (dc: C d c)
+Lemma loop_dinatural' {a b c d} (cd : C c d) (dc: C d c)
       (ab_: C (bif c a) (bif c b))
   : (cd >>> dc) ⩯ id_ _ ->
     loop (bimap dc (id_ _) >>> ab_ >>> bimap cd (id_ _))
   ⩯ loop ab_.
 Proof.
   intros Hij.
-  rewrite trace_dinatural.
+  rewrite loop_dinatural.
   rewrite <- cat_assoc.
   rewrite bimap_cat.
   rewrite Hij.
@@ -950,7 +950,7 @@ is equivalent to
 
    ----ab---bc----
  *)
-Theorem cat_from_trace {a b c} (ab : C a b) (bc : C b c)
+Theorem cat_from_loop {a b c} (ab : C a b) (bc : C b c)
   : loop (swap >>> bimap ab bc) ⩯ ab >>> bc.
 Proof.
 (*
@@ -969,7 +969,7 @@ Proof.
    -------/\------bc-------
  *)
 
-  rewrite <- trace_natural_right.
+  rewrite <- loop_natural_right.
 (*
       +-------------+
       |             |
@@ -994,7 +994,7 @@ Proof.
    ---------------ab--/\----bc----
  *)
 
-  rewrite <- trace_natural_left.
+  rewrite <- loop_natural_left.
 (*
            +------+
            |      |
@@ -1002,7 +1002,7 @@ Proof.
    ----ab-----/\-----bc----
  *)
 
-  rewrite trace_yanking.
+  rewrite loop_yanking.
   rewrite cat_id_r.
 (*
    ----ab---bc----
@@ -1079,8 +1079,8 @@ Lemma loop_bimap_ktree {a b c d e}
                        >>> bimap ab cd
                        >>> assoc_l >>> bimap swap (id_ _) >>> assoc_r).
 Proof.
-  rewrite swap_bimap, trace_superposing.
-  rewrite trace_natural_left, trace_natural_right.
+  rewrite swap_bimap, loop_superposing.
+  rewrite loop_natural_left, loop_natural_right.
   rewrite (swap_bimap cd ab).
   rewrite <- !cat_assoc.
   rewrite local_rewrite1.

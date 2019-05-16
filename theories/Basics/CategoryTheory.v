@@ -389,42 +389,42 @@ Context {CoprodInr_C : CoprodInr C bif}.
 Context {Iter_C : Iter C bif}.
 
 (** The loop operation satisfies a fixed point equation. *)
-Class LoopUnfold : Prop :=
-  loop_unfold : forall a b (f : C a (bif a b)),
+Class IterUnfold : Prop :=
+  iter_unfold : forall a b (f : C a (bif a b)),
     iter f ⩯ f >>> case_ (iter f) (id_ b).
 
 (** Naturality in the output (in [b], with [C a (bif a b) -> C a b]).
     Also known as "parameter identity". *)
-Class LoopNatural : Prop :=
-  loop_natural : forall a b c (f : C a (bif a b)) (g : C b c),
+Class IterNatural : Prop :=
+  iter_natural : forall a b c (f : C a (bif a b)) (g : C b c),
     iter f >>> g ⩯ iter (f >>> bimap (id_ _) g).
 
 (** Dinaturality in the accumulator (in [a], with [C a (bif a b) -> C a b]).
     Also known as "composition identity". *)
-Class LoopDinatural : Prop :=
-  loop_dinatural : forall a b c (f : C a (bif b c)) (g : C b (bif a c)),
+Class IterDinatural : Prop :=
+  iter_dinatural : forall a b c (f : C a (bif b c)) (g : C b (bif a c)),
                    iter (f >>> case_ g inr_)
     ⩯ f >>> case_ (iter (g >>> case_ f inr_)) (id_ _).
 (** TODO: provable from the others + uniformity? *)
 
 (** Flatten nested loops. Also known as "double dagger identity". *)
-Class LoopCodiagonal : Prop :=
-  loop_codiagonal : forall a b (f : C a (bif a (bif a b))),
+Class IterCodiagonal : Prop :=
+  iter_codiagonal : forall a b (f : C a (bif a (bif a b))),
     iter (iter f) ⩯ iter (f >>> case_ inl_ (id_ _)).
 
 (* TODO: also define uniformity, requires a "purity" assumption. *)
 
 Class Conway : Prop :=
-  { conway_unfold :> LoopUnfold
-  ; conway_natural :> LoopNatural
-  ; conway_dinatural :> LoopDinatural
-  ; conway_codiagonal :> LoopCodiagonal
-  ; conway_proper_loop
+  { conway_unfold :> IterUnfold
+  ; conway_natural :> IterNatural
+  ; conway_dinatural :> IterDinatural
+  ; conway_codiagonal :> IterCodiagonal
+  ; conway_proper_iter
       :> forall a b, @Proper (C a (bif a b) -> C a b) (eq2 ==> eq2) iter
   }.
 
 (** Also called Bekic identity *)
-Definition LoopPairing : Prop :=
+Definition IterPairing : Prop :=
   forall a b c (f : C a (bif (bif a b) c)) (g : C b (bif (bif a b) c)),
     let h : C b (bif b c)
         := g >>> assoc_r >>> case_ (iter (f >>> assoc_r)) (id_ _)
@@ -436,8 +436,8 @@ Definition LoopPairing : Prop :=
 
 End IterationLaws.
 
-Arguments loop_unfold {obj C Eq2_C Id_C Cat_C bif CoprodCase_C Iter_C LoopUnfold} [a b] f.
-Arguments loop_natural {obj C Eq2_C Id_C Cat_C bif CoprodCase_C CoprodInl_C CoprodInr_C Iter_C LoopNatural} [a b c] f.
-Arguments loop_dinatural {obj C Eq2_C Id_C Cat_C bif CoprodCase_C CoprodInr_C Iter_C LoopDinatural} [a b c] f.
-Arguments loop_codiagonal {obj C Eq2_C Id_C Cat_C bif CoprodCase_C CoprodInl_C Iter_C LoopCodiagonal} [a b] f.
-Arguments conway_proper_loop {obj C Eq2_C Id_C Cat_C bif CoprodCase_C CoprodInl_C CoprodInr_C Iter_C Conway}.
+Arguments iter_unfold {obj C Eq2_C Id_C Cat_C bif CoprodCase_C Iter_C IterUnfold} [a b] f.
+Arguments iter_natural {obj C Eq2_C Id_C Cat_C bif CoprodCase_C CoprodInl_C CoprodInr_C Iter_C IterNatural} [a b c] f.
+Arguments iter_dinatural {obj C Eq2_C Id_C Cat_C bif CoprodCase_C CoprodInr_C Iter_C IterDinatural} [a b c] f.
+Arguments iter_codiagonal {obj C Eq2_C Id_C Cat_C bif CoprodCase_C CoprodInl_C Iter_C IterCodiagonal} [a b] f.
+Arguments conway_proper_iter {obj C Eq2_C Id_C Cat_C bif CoprodCase_C CoprodInl_C CoprodInr_C Iter_C Conway}.

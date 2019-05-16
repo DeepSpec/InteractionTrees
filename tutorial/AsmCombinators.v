@@ -35,7 +35,8 @@ From ITree Require Import
      ITree
      ITreeFacts
      SubKTree
-     SubKTreeFacts.
+     SubKTreeFacts
+     Basics.Category.
 
 From ExtLib Require Import
      Structures.Monad.
@@ -241,6 +242,17 @@ Section Correctness.
     intros ?. tau_steps; symmetry; tau_steps. reflexivity.
   Qed.
 
+  Lemma raw_asm_correct {A B} (b : bks A B) :
+    denote_asm (raw_asm b) ⩯ (fun a => denote_block (b a)).
+  Proof.
+    unfold denote_asm; cbn.
+    rewrite vanishing_sktree.
+    rewrite unit_l'_id_sktree.
+    rewrite unit_l_id_sktree.
+    rewrite cat_id_l, cat_id_r.
+    reflexivity.
+  Qed.
+
   (** Correctness of the [raw_asm] operator.
       Its denotation is the same as the denotation of the block.
       Since it is hybrid between the level of [ktree]s (asm) and
@@ -253,12 +265,9 @@ Section Correctness.
     denote_asm (raw_asm_block b) ⩯
                ((fun _  => denote_block b) : sktree _ _ _).
   Proof.
-    unfold denote_asm; cbn.
-    unfold denote_asm.
-    rewrite vanishing_sktree.
-    rewrite unit_l'_id_sktree, unit_l_id_sktree, cat_id_r, cat_id_l.
+    unfold raw_asm_block.
+    rewrite raw_asm_correct.
     reflexivity.
-    all: typeclasses eauto.
   Qed.
 
   Lemma raw_asm_block_correct {A} (b : block (F A)) :
@@ -276,11 +285,9 @@ Section Correctness.
   Theorem pure_asm_correct {A B} (f : F A -> F B) :
     denote_asm (pure_asm f) ⩯ lift_sktree f.
   Proof.
-    unfold denote_asm.
-    rewrite vanishing_sktree. (* a pure_asm contains no internal label: we can remove them from the loop *)
-    rewrite unit_l'_id_sktree, unit_l_id_sktree, cat_id_r, cat_id_l.
+    unfold pure_asm.
+    rewrite raw_asm_correct.
     reflexivity.
-    all: typeclasses eauto.
   Qed.
 
   (** The identity gets denoted as the identity. *)
@@ -506,8 +513,7 @@ Section Correctness.
       rewrite cat_assoc.
       run_in.
       apply (coprod_split _ _).
-      + run_in.
-        repeat (rewrite !cat_assoc; run_in).
+      + repeat (rewrite cat_assoc; run_in).
         reflexivity.
       + repeat (rewrite cat_assoc; run_in).
         reflexivity.
@@ -584,8 +590,10 @@ Section Correctness.
     unfold denote_asm.
     simpl.
     rewrite relabel_bks_correct.
-    rewrite <- compose_sloop.
-    rewrite <- sloop_compose.
+    (* rewrite loop_natural_left, loop_natural_right.
+    apply Proper_loop.
+    *)
+    rewrite <- compose_sloop, <- sloop_compose.
     apply eq_sktree_sloop.
     rewrite !bimap_id_slift.
     reflexivity.

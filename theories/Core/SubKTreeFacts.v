@@ -5,6 +5,7 @@ From ITree Require Import
      Basics.Category
      ITree
      KTree
+     KTreeBasicFacts
      KTreeFacts
      SubKTree
      Eq.Eq.
@@ -706,7 +707,9 @@ Section Facts.
       Proper (eq2 ==> eq2) (@sloop _ _ _ _ E I A B).
     Proof.
       repeat intro.
-      apply eutt_loop.
+      unfold sloop.
+      epose proof (Proper_loop (sum_isuml >>> x >>> isum_suml)) as Pl.
+      eapply Pl.
       intros ?.
       unfold cat, Cat_ktree, ITree.cat.
       rewrite 2 bind_bind.
@@ -743,7 +746,7 @@ Section Facts.
     Proof with try typeclasses eauto.
       unfold_sktree.
       unfold sloop.
-      rewrite <- compose_loop.
+      rewrite loop_natural_left.
       rewrite <- cat_assoc...
       rewrite unfold_bimap.
       rewrite <- 2 (cat_assoc sum_isuml _ _), semi_iso, cat_id_l...
@@ -758,7 +761,7 @@ Section Facts.
     Proof with try typeclasses eauto.
       unfold_sktree.
       unfold sloop.
-      rewrite <- loop_compose.
+      rewrite loop_natural_right.
       rewrite <- cat_assoc...
       rewrite cat_assoc...
       rewrite unfold_bimap.
@@ -777,7 +780,7 @@ Section Facts.
       rewrite unfold_bimap.
       rewrite (cat_assoc _ sum_isuml _), semi_iso, cat_id_r...
       rewrite <- 3 cat_assoc...
-      rewrite loop_rename_internal.
+      rewrite loop_dinatural.
       rewrite unfold_bimap_l.
       repeat rewrite cat_assoc...
       reflexivity.
@@ -792,7 +795,7 @@ Section Facts.
     Proof with try typeclasses eauto.
       unfold_sktree; unfold sloop.
       intros H.
-      rewrite <- (loop_rename_internal' _ _ _ H). 
+      rewrite <- (loop_dinatural' _ _ _ H).
       rewrite 2 unfold_bimap.
       rewrite <- 4 (cat_assoc sum_isuml _ _), semi_iso, cat_id_l...
       rewrite 4 cat_assoc, semi_iso, cat_id_r... 
@@ -807,9 +810,9 @@ Section Facts.
       rewrite unfold_unit_l, unfold_unit_l'.
       rewrite <- cat_assoc...
       rewrite 3 (cat_assoc unit_l' _ _)...
-      rewrite <- vanishing_ktree.
+      rewrite <- loop_vanishing_1.
       repeat rewrite (cat_assoc (bimap _ _) _ _).
-      rewrite <- loop_rename_internal.
+      rewrite <- loop_dinatural.
       repeat rewrite cat_assoc...
       rewrite bimap_cat, semi_iso, cat_id_l, bimap_id, cat_id_r...
       reflexivity.
@@ -820,14 +823,14 @@ Section Facts.
     ⩯ sloop (assoc_r >>> ab__ >>> assoc_l).
     Proof with try typeclasses eauto.
       unfold_sktree; unfold sloop.
-      rewrite <- compose_loop, <- loop_compose.
-      rewrite loop_loop. 
+      rewrite loop_natural_left, loop_natural_right.
+      rewrite loop_vanishing_2.
       match goal with |- _ ⩯ ?f => set (g := f) end.
       rewrite 4 cat_assoc...
       rewrite <- (cat_assoc isum_suml _ assoc_l).
       rewrite unfold_swap_assoc_l.
       repeat rewrite <- cat_assoc...
-      rewrite loop_rename_internal.
+      rewrite loop_dinatural.
       subst g.
       rewrite unfold_swap_assoc_r.
       repeat rewrite <- cat_assoc...
@@ -843,8 +846,8 @@ Section Facts.
     Proof with try typeclasses eauto.
       unfold_sktree; unfold sloop.
       repeat rewrite unfold_bimap.
-      rewrite bimap_ktree_loop.
-      rewrite <- compose_loop, <- loop_compose.
+      rewrite loop_superposing.
+      rewrite loop_natural_left, loop_natural_right.
       rewrite unfold_assoc_r, unfold_assoc_l.
       repeat rewrite <- cat_assoc...
       rewrite semi_iso, cat_id_l...
@@ -870,7 +873,7 @@ Section Facts.
       unfold_sktree; unfold sloop.
       rewrite unfold_bimap.
       rewrite loop_bimap_ktree.
-      rewrite <- compose_loop, <- loop_compose.
+      rewrite loop_natural_left, loop_natural_right.
       repeat (rewrite unfold_assoc_l || rewrite unfold_assoc_r || rewrite unfold_swap || rewrite unfold_bimap).
       repeat rewrite cat_assoc.
       repeat (rewrite <- (cat_assoc sum_isuml isum_suml _), (semi_iso _ _), cat_id_l).
@@ -885,7 +888,7 @@ Section Facts.
       @sloop _ _ _ _ E _ _ _ swap ⩯ id_ A.
     Proof.
       unfold_sktree; unfold sloop.
-      rewrite <- yanking_ktree.
+      rewrite <- loop_yanking.
       rewrite unfold_swap.
       reflexivity.
     Qed.
