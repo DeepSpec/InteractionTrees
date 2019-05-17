@@ -461,6 +461,19 @@ Qed.
     eapply H0. apply H2.
   Qed.
 
+  Import ITree.Basics.Basics.
+  Import Monads.
+
+  
+  Definition state_eutt {E S X} (R : S -> S -> Prop) : (stateT S (itree E) X) -> (stateT S (itree E) X) -> Prop :=
+    fun t1 t2 => forall s, eutt eq (t1 s) (t2 s).
+  
+
+  
+  
+  Lemma interp_state_loop : forall h t
+        state_eutt (State.interp_state h (loop t)) (loop (State.interp_state h t)).
+  
   (** [eq_locals] is compatible with [loop]. *)
   Lemma rel_stmt_loop {A B C E} x
         (t1 : C + A -> itree (Locals +' Memory +' E) (C + B))
@@ -470,9 +483,14 @@ Qed.
   Proof.
     unfold rel_stmt, interp_asm, interp_imp, run_map.
     intros.
-    setoid_rewrite interp_loop.
+
     
+    do 2 rewrite interp_loop.
     About eutt_interp_state_loop.
+
+
+    
+
   Admitted.
 (*  
     apply eutt_interp_state_R with (RR := (fun a b : (alist var value * B) => snd a = snd b)).
