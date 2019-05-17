@@ -35,7 +35,10 @@
 From Coq Require Import
      Arith.PeanoNat
      Lists.List
-     Strings.String.
+     Strings.String
+     Morphisms
+     Setoid
+     RelationClasses.
 
 From ExtLib Require Import
      Data.String
@@ -44,7 +47,10 @@ From ExtLib Require Import
      Data.List.
 
 From ITree Require Import
-     ITree.
+     ITree
+     ITreeFacts
+     Events.Map
+     StateFacts.
 
 Import MonadNotation.
 Local Open Scope monad_scope.
@@ -132,31 +138,31 @@ Import ImpNotations.
 
 (** _Imp_ produces effects by manipulating its variables.
     To account for this, we define a type of _external interactions_
-    [Locals] modeling reads and writes to variables.
+    [ImpState] modeling reads and writes to variables.
     A read, [GetVar], takes a variable as an argument and expects the
     environment to answer with a value, hence defining an event of type
-    [Locals value].
+    [ImpState value].
     Similarly, [SetVar] is a write event parameterized by both a variable
-    and a value to be written, and defines an event of type [Locals unit],
+    and a value to be written, and defines an event of type [ImpState unit],
     no informative answer being expected from the environment.
  *)
-Variant Locals : Type -> Type :=
-| GetVar (x : var) : Locals value
-| SetVar (x : var) (v : value) : Locals unit.
+Variant ImpState : Type -> Type :=
+| GetVar (x : var) : ImpState value
+| SetVar (x : var) (v : value) : ImpState unit.
 
 Section Denote.
 
   (** We now proceed to denote _Imp_ expressions and statements.
       We could simply fix in stone the universe of events to be considered,
-      taking as a semantic domain for _Imp_ [itree Locals X].
+      taking as a semantic domain for _Imp_ [itree ImpState X].
       That would be sufficient to give meaning to _Imp_, but is inconvenient
       to relate this meaning to [itree]s stemmed from other entities.
       Therefore, we parameterize the denotation of _Imp_ by a larger universe
-      of events [eff], of which [Locals] is assumed to be a subevent.
+      of events [eff], of which [ImpState] is assumed to be a subevent.
    *)
 
   Context {eff : Type -> Type}.
-  Context {HasLocals : Locals -< eff}.
+  Context {HasImpState : ImpState -< eff}.
 
   (** _Imp_ expressions are denoted as [itree eff value], where the returned
       value in the tree is the value computed by the expression.
@@ -229,7 +235,7 @@ Section Denote.
       if is_true v then denoteStmt t else denoteStmt e
     | While t b =>
       while (v <- denoteExpr t ;;
-	             if is_true v
+	     if is_true v
                then denoteStmt b ;; ret true
                else ret false)
     | Skip => ret tt
@@ -258,7 +264,7 @@ Section Denote_Fact.
 
   (** We have given _a_ notion of denotation to [fact 6] via [denoteStmt].
       However this is naturally not actually runnable yet, since it contains
-      uninterpreted [Locals] events.
+      uninterpreted [ImpState] events.
       We therefore now need to _handle_ the events contained
       in the trees, i.e. give a concrete interpretation of the environment.
    *)
@@ -278,18 +284,18 @@ From ExtLib Require Import
      Data.Map.FMapAList.
 (* end hide *)
 
-(** We provide an _ITree event handler_ to interpret away [Locals] events.
+(** We provide an _ITree event handler_ to interpret away [ImpState] events.
     We use an _environment event_ to do so, modeling the environment as
     a 0-initialized environment.
-    Recall from [Introduction.v] that a _handler_ for the events [Locals]
-    is a function of type [forall R, Locals R -> M R] for some monad [M].
+    Recall from [Introduction.v] that a _handler_ for the events [ImpState]
+    is a function of type [forall R, ImpState R -> M R] for some monad [M].
     Here we take for our monad the special case of [M = itree E] for some
     universe of events [E] required to contain the environment events [mapE]
     provided by the library. It comes with an event handler [run_map]
     interpreting the computation into the state monad.
  *)
 
-Definition evalLocals {E: Type -> Type} `{mapE var value -< E}: Locals ~> itree E :=
+Definition evalImpState {E: Type -> Type} `{mapE var value -< E}: ImpState ~> itree E :=
   fun _ e =>
     match e with
     | GetVar x => lookup_def x 0
@@ -313,21 +319,67 @@ Proof.
 Qed.
 
 (** Finally, we can define an evaluator for our statements.
-   To do so, we first denote them, leading to an [itree Locals unit].
-   We then [interp]ret [Locals] into [mapE] using [evalLocals], leading to
+   To do so, we first denote them, leading to an [itree ImpState unit].
+   We then [interp]ret [ImpState] into [mapE] using [evalImpState], leading to
    an [itree (mapE var value) unit].
    Finally, [run_map] interprets the latter [itree] into the state monad,
    resulting in an [itree] free of any event, but returning an environment.
  *)
 
-Definition ImpEval (s: stmt): itree void1 (env * unit) :=
-  let p := interp evalLocals (denoteStmt s) in
-  run_map p empty.
+Definition interp_imp  {E A} (t : itree (ImpState +' E) A) globals :=
+  let t' := interp (bimap evalImpState (id_ E)) t in
+  run_map t' globals.
+
+
+Definition ImpEval (s: stmt) : itree void1 (env * unit) :=
+  interp_imp (denoteStmt s) empty.
 
 (** Equipped with this evaluator, we can now compute.
     Naturally since Coq is total, we cannot do it directly inside of it.
     We can either rely on extraction, or use some fuel.
  *)
-Compute (burn 100 (ImpEval (fact "x" "y" 6))). 
+Compute (burn 200 (ImpEval (fact "x" "y" 6))). 
 
 (** We now turn to our target language, in file [Asm].v *)
+
+Section InterpImpProperties.
+  Context {E': Type -> Type}.
+  Notation E := (ImpState +' E').
+
+  (* (** [interp_locals] handle [Locals] into the [mapE] events, and then *)
+  (*     run these events into the state monad. *) *)
+  (* Definition interp_locals {R: Type} (t: itree E R) (s: alist var value) *)
+  (*   : itree E' (alist var value * R) := *)
+  (*   run_map (interp (bimap evalLocals (id_ _)) t) s. *)
+
+  (** This interpreter is compatible with the equivalence-up-to-tau. *)
+  Global Instance eutt_interp_imp {R}:
+    Proper (@eutt E R R eq ==> eq ==> @eutt E' (prod (alist var value) R) (prod _ R) eq)
+           interp_imp.
+  Proof.
+    repeat intro.
+    unfold interp_imp.
+    unfold run_map.
+    rewrite H0. eapply eutt_interp_state; auto.
+    rewrite H. reflexivity.
+  Qed.
+
+  (** [interp_asm] commutes with [bind]. *)
+  Lemma interp_imp_bind: forall {R S} (t: itree E R) (k: R -> itree _ S) (g : alist var value),
+      @eutt E' _ _ eq
+            (interp_imp (ITree.bind t k) g)
+            (ITree.bind (interp_imp t g) (fun '(g',  x) => interp_imp (k x) g')).
+  Proof.
+    intros.
+    unfold interp_imp.
+    unfold run_map.
+    repeat rewrite interp_bind.
+    repeat rewrite interp_state_bind.
+    apply eutt_bind. red. intros.
+    destruct a as [g'  x].
+    simpl.
+    reflexivity.
+    reflexivity.
+  Qed.
+
+End InterpImpProperties.

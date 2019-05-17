@@ -43,7 +43,7 @@ Section compile_assign.
   Definition gen_tmp (n: nat): string :=
     "temp_" ++ string_of_nat n.
 
-  Definition varOf (s : var) : var := "local_" ++ s.
+  Definition varOf (s : var) : var := "global_" ++ s.
 
   (** Expressions are compiled straightforwardly.
       The argument [l] is the number of local variables already introduced to compile
@@ -52,7 +52,7 @@ Section compile_assign.
    *)
   Fixpoint compile_expr (l: nat) (e: expr): list instr :=
     match e with
-    | Var x => [Imov (gen_tmp l) (Ovar (varOf x))]
+    | Var x => [Iload (gen_tmp l) x]
     | Lit n => [Imov (gen_tmp l) (Oimm n)]
     | Plus e1 e2 =>
       let instrs1 := compile_expr l e1 in
@@ -71,7 +71,7 @@ Section compile_assign.
   (** Compiles the expression and then move the result (in [gen_tmp 0]) to the mangled variable. *)
   Definition compile_assign (x: Imp.var) (e: expr): list instr :=
     let instrs := compile_expr 0 e in
-    instrs ++ [Imov (varOf x) (Ovar (gen_tmp 0))].
+    instrs ++ [Istore x (Ovar (gen_tmp 0))].
 
 End compile_assign.
 

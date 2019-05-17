@@ -1,5 +1,5 @@
 (* begin hide *)
-Require Import Asm Utils_tutorial.
+Require Import Asm Imp2AsmCorrectness Utils_tutorial.
 
 Require Import Psatz.
 
@@ -31,26 +31,44 @@ Open Scope string_scope.
 (* end hide *)
 
 
+(* optimizations ------------------------------------------------------------ *)
+
+(* An optimization is just a function from asm units to asm units. *)
+
 Definition optimization {A B} := asm A B -> asm A B.
 
+(* An optimization is correct if it yields an equivalent computation.
 
+    - Note that AsmEval requires that resulting local environment and 
+      the resulting heap must be equivalent, so this formulation of
+      correctness does not permit the elimination of local variables or
+      changes to the state. We could relax this definition (and thereby
+      allow more optimizations to be considered correct. 
+*)
 Definition optimization_correct (opt:optimization) :=
   forall (p : asm unit void),
     AsmEval p ≈ AsmEval (opt p).
 
 
-(* peephole optimizations *)
+(* peephole optimizations --------------------------------------------------- *)
 
+(* A (simple) peephole optmization transforms one instruction into a 
+   (possibly empty) list of equivalent instructions. *)
 Definition peephole_optimization := instr -> list instr.
 
+
+(* SAZ: this code for appending a list of instructions at the beginning of a block 
+   could be useful elsewhere.  We need it to define what it means to apply a 
+   peephole optimization to each instruction in a block. *)
 Fixpoint blk_append {lbl} (l:list instr) (b:block lbl) : block lbl :=
   match l with
   | [] => b
   | i :: l' => bbi i (blk_append l' b)
   end.
 
+(* TODO: Use the AsmCombinators Here... *)
 (* TODO: generalize effect type *)
-Fixpoint denote_instr_list (l:list instr) : itree (Imp.Locals +' Memory +' Exit) unit :=
+Fixpoint denote_instr_list (l:list instr) : itree (Locals +' Memory +' Exit) unit :=
   match l with
   | [] => ret tt
   | i::l' => denote_instr i ;; denote_instr_list l'
@@ -78,18 +96,23 @@ Definition peephole_optimize_bks {A B} (ph : peephole_optimization) (bs : A -> b
 Definition peephole_optimize_asm {A B} (ph : peephole_optimization) (p : asm A B) : asm A B :=
   Build_asm A B (p.(internal)) (peephole_optimize_bks ph (p.(code))).
 
-About Exit.
-Print Exit.
 
-Definition h : Handler (Imp.Locals +' Memory +' Exit)  ((mapE Imp.var Imp.value) +' ((mapE Imp.value Imp.value) +' Exit)) :=
-  (bimap Imp.evalLocals (bimap evalMemory (id_ _))).
+(* SAZ: for now, we explicitly define the handler context in which the optimization will be considered correct.
+   
+*)
+Definition h : Handler (Locals +' Memory +' Exit)  ((mapE Imp.var Imp.value) +' ((mapE Imp.var Imp.value) +' Exit)) :=
+  (bimap evalLocals (bimap evalMemory (id_ _))).
+
+Check run_map.
 
 Definition ph_correct (ph : peephole_optimization) :=
-  forall i, interp h (denote_instr i) ≈ interp h (denote_instr_list (ph i)).
+  forall i e1 e2,
+    
+    run_map (interp h (denote_instr i)) e ≈ run_map (interp h (denote_instr_list (ph i))) e.
 
 Lemma ph_correct_append : forall (ph : peephole_optimization) (H : ph_correct ph)
   lbl b1 b2 i,
-    interp h (denote_block b1) ≈ interp h ((denote_block b2) : itree (Imp.Locals +' Memory +' Exit) lbl)  ->
+    interp h (denote_block b1) ≈ interp h ((denote_block b2) : itree (Locals +' Memory +' Exit) lbl)  ->
     interp h (denote_instr i ;; denote_block b1) ≈ interp h (denote_block (blk_append (ph i) b2)).
 Proof.
   intros ph H lbl b1 b2 i HP.
@@ -108,8 +131,8 @@ Lemma peephole_block_correct :
     (H : ph_correct ph)
     lbl
     (b : block lbl),
-          (interp h ((denote_block b) : itree (Imp.Locals +' Memory +' Exit) lbl)) ≈
-          (interp h (denote_block (peephole_optimize_block ph b) : itree (Imp.Locals +' Memory +' Exit) lbl)).
+          (interp h ((denote_block b) : itree (Locals +' Memory +' Exit) lbl)) ≈
+          (interp h (denote_block (peephole_optimize_block ph b) : itree (Locals +' Memory +' Exit) lbl)).
 Proof.
   intros ph H lbl b.
   induction b.
@@ -157,7 +180,7 @@ Definition simple (i:instr) : list instr :=
   end.
 
 
-Lemma interp_h_ret_tt : forall (t : itree (Imp.Locals +' Memory +' Exit) unit),
+Lemma interp_h_ret_tt : forall (t : itree (Locals +' Memory +' Exit) unit),
     interp h t ≈ interp h (t ;; Ret tt).
 Proof.
   intros t.
@@ -187,6 +210,14 @@ Proof.
         rewrite bind_tau.
         rewrite tau_eutt.
         unfold h.
+        cbn.
+                
+
+        About CategoryOps.cat. unfold CategoryOps.cat, Cat_Handler, Handler.cat. simpl. 
+        unfold lookup_def. rewrite interp_bind. unfold Map.lookup, embed, Embeddable_forall, embed, Embeddable_itree . rewrite interp_trigger.
+        rewrite bind_bind. rewrite bind_tau. rewrite tau_eutt.
+        
+        
         (* SAZ: Not sure what the right way to progress here is. *)
         SearchAbout bimap.
         admit.

@@ -10,10 +10,17 @@
 From Coq Require Import
      Strings.String
      Program.Basics
-     ZArith.ZArith.
+     ZArith.ZArith
+     Morphisms
+     Setoid
+     RelationClasses.
+
 
 From ITree Require Import
-     ITree.
+     ITree
+     ITreeFacts
+     Events.Map
+     StateFacts.
 
 From ExtLib Require Structures.Monad.
 
@@ -44,7 +51,7 @@ Variant instr : Set :=
 | Iadd (dest : var) (src : var) (o : operand)
 | Isub (dest : var) (src : var) (o : operand)
 | Imul (dest : var) (src : var) (o : operand)
-| Iload (dest : var) (addr : operand)
+| Iload (dest : var) (addr : var)
 | Istore (addr : var) (val : operand).
 
 (** We consider both direct and conditional jumps *)
@@ -91,16 +98,16 @@ Arguments code {A B}.
 (* ================================================================= *)
 (** ** Semantics *)
 
-(** _Asm_ produces two kind of events: through manipulation of the store
-    and of the heap.
-    We therefore reuse _Imp_'s [Locals], and define an additional pair of
-    events [Memory] to model interactions with the heap.
+(** _Asm_ produces two kind of events: through manipulation of the 
+    local store and of the heap.
 *)
-Import Imp.
+Variant Locals : Type -> Type :=
+| GetVar (x : var) : Locals value
+| SetVar (x : var) (v : value) : Locals unit.
 
 Inductive Memory : Type -> Type :=
-| Load (addr : value) : Memory value
-| Store (addr val : value) : Memory unit.
+| Load (addr : var) : Memory value
+| Store (addr : var) (val : value) : Memory unit.
 
 Section Denote.
 
@@ -159,12 +166,10 @@ Section Denote.
         lv <- trigger (GetVar l) ;;
         rv <- denote_operand r ;;
         trigger (SetVar d (lv * rv))
-      | Iload d a =>
-        addr <- denote_operand a ;;
+      | Iload d addr =>
         val <- trigger (Load addr) ;;
         trigger (SetVar d val)
-      | Istore a v =>
-        addr <- trigger (GetVar a) ;;
+      | Istore addr v =>
         val <- denote_operand v ;;
         trigger (Store addr val)
       end.
@@ -247,7 +252,15 @@ From ExtLib Require Import
 (** Both environments and memory events can be interpreted as "map" events,
     exactly as we did for _Imp_. *)
 
-Definition evalMemory {E : Type -> Type} `{mapE value value -< E} :
+Definition evalLocals {E: Type -> Type} `{mapE var value -< E}: Locals ~> itree E :=
+  fun _ e =>
+    match e with
+    | GetVar x => lookup_def x 0
+    | SetVar x v => insert x v
+    end.
+
+
+Definition evalMemory {E : Type -> Type} `{mapE var value -< E} :
   Memory ~> itree E :=
   fun _ e =>
     match e with
@@ -256,16 +269,61 @@ Definition evalMemory {E : Type -> Type} `{mapE value value -< E} :
     end.
 
 (** Once again, we implement our Maps with a simple association list *)
-Definition memory := alist value value.
+Definition memory := alist var value.
 
+Definition interp_asm {E A} (t : itree (Locals +' Memory +' E) A) globals locals : itree E (memory * (memory * A)) :=
+  let h := bimap evalLocals (bimap evalMemory (id_ _)) in                             
+  let t' := interp h t in
+  run_map (run_map t' locals) globals.
+  
 (** We can then define an evaluator for closed assembly programs by
     interpreting both store and heap events into two instances of [mapE],
-    and running them both.
+    and running them both in the empty initial environments.
  *)
 Definition AsmEval (p: asm unit void) :=
-  let h := bimap evalLocals (bimap evalMemory (id_ _)) in
-  let p' := interp h (denote_asm p tt) in
-  run_map (run_map p' empty) empty.
+  interp_asm (denote_asm p tt) empty empty.
+
+Section InterpAsmProperties.
+  Context {E': Type -> Type}.
+  Notation E := (Locals +' Memory +' E').
+
+  (* (** [interp_locals] handle [Locals] into the [mapE] events, and then *)
+  (*     run these events into the state monad. *) *)
+  (* Definition interp_locals {R: Type} (t: itree E R) (s: alist var value) *)
+  (*   : itree E' (alist var value * R) := *)
+  (*   run_map (interp (bimap evalLocals (id_ _)) t) s. *)
+
+  (** This interpreter is compatible with the equivalence-up-to-tau. *)
+  Global Instance eutt_interp_asm {R}:
+    Proper (@eutt E R R eq ==> eq ==> eq ==> @eutt E' (prod (memory) (prod (memory) R)) (prod _ (prod _ R)) eq)
+           interp_asm.
+  Proof.
+    repeat intro.
+    unfold interp_asm.
+    unfold run_map.
+    rewrite H0. eapply eutt_interp_state; auto.
+    rewrite H1. rewrite H. reflexivity.
+  Qed.
+
+  (** [interp_asm] commutes with [bind]. *)
+  Lemma interp_asm_bind: forall {R S} (t: itree E R) (k: R -> itree _ S) (l g: memory),
+      @eutt E' _ _ eq
+            (interp_asm (ITree.bind t k) g l)
+            (ITree.bind (interp_asm t g l) (fun '(g', (l', x)) => interp_asm (k x) g' l')).
+  Proof.
+    intros.
+    unfold interp_asm.
+    unfold run_map.
+    repeat rewrite interp_bind.
+    repeat rewrite interp_state_bind.
+    apply eutt_bind. red. intros.
+    destruct a as [g' [l' x]].
+    simpl.
+    reflexivity.
+    reflexivity.
+  Qed.
+
+End InterpAsmProperties.
 
 (** Now that we have both our language, we could jump directly into implementing
     our compiler.
