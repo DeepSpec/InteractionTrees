@@ -97,11 +97,10 @@ Section Facts.
     Lemma unfold_bimap: forall {A B C D} (f: ktree E (F A) (F C)) (g: ktree E (F B) (F D)),
       @bimap i sktree isum _ _ _ _ _ f g
     ⩯ isum_suml >>> @bimap Type (ktree E) sum _ _ _ _ _ f g >>> sum_isuml.
-    Proof with try typeclasses eauto.
+    Proof.
       intros A B C D ab cd.
-      unfold bimap, Bimap_Coproduct; unfold_sktree; fold_ktree.
-      rewrite <- 2 cat_assoc, <- cat_case...
-      rewrite cat_assoc...
+      unfold bimap, Bimap_Coproduct.
+      rewrite cat_assoc, cat_case, 2 cat_assoc.
       reflexivity.
     Qed.
 
@@ -109,10 +108,10 @@ Section Facts.
       forall {A B C D : i} (ab : sktree A B) (cd: sktree C D),
         sum_isuml >>> @bimap _ sktree _ _ _ _ _ _ cd ab
       ⩯ @bimap _ (ktree E) _ _ _ _ _ _ cd ab >>> sum_isuml.
-    Proof with try typeclasses eauto.
+    Proof.
       intros A B C D ab cd.
       rewrite unfold_bimap.
-      rewrite <- 2 cat_assoc, semi_iso, cat_id_l...
+      rewrite <- 2 cat_assoc, (semi_iso _ _), cat_id_l.
       reflexivity.
     Qed.
 
@@ -120,67 +119,54 @@ Section Facts.
       forall {A B C D : i} (ab : sktree A B) (cd : sktree C D),
         ((@bimap _ sktree _ _ _ _ _ _ cd ab):ktree E _ _) >>> isum_suml
       ⩯ (isum_suml >>> @bimap _ (ktree E) _ _ _ _ _ _ cd ab).
-    Proof with try typeclasses eauto.
+    Proof.
       intros A B C D ab cd.
       rewrite unfold_bimap.
-      rewrite cat_assoc, semi_iso, cat_id_r...
+      rewrite cat_assoc, (semi_iso _ _), cat_id_r.
       reflexivity.
     Qed.
 
     Lemma unfold_unit_l {A: i}:
       @unit_l _ sktree _ _ _ A ⩯
       isum_suml >>> bimap iI_voidl (id_ _) >>> unit_l.
-    Proof with try typeclasses eauto.
+    Proof.
       unfold unit_l, UnitL_Coproduct, bimap, Bimap_Coproduct.
-      unfold_sktree; fold_ktree.
-      rewrite cat_id_l...
-      rewrite cat_assoc...
-      rewrite cat_case, cat_assoc, case_inl, case_inr...
+      rewrite cat_id_l.
+      rewrite cat_assoc, cat_case, cat_assoc, case_inl, case_inr.
       reflexivity.
     Qed.
 
     Lemma unfold_unit_l' {A: i}:
       @unit_l' _ sktree _ _ _ A ⩯
       unit_l' >>> bimap void_iIl (id_ _) >>> sum_isuml. 
-    Proof with try typeclasses eauto.
+    Proof.
       unfold unit_l', UnitL'_Coproduct, bimap, Bimap_Coproduct.
-      unfold_sktree.
-      fold_ktree.
-      rewrite cat_id_l...
-      rewrite case_inr...
+      rewrite cat_id_l, case_inr.
       reflexivity.
     Qed.
 
     Lemma unfold_assoc_l {A B C}:
       @assoc_l i sktree isum _ A B C ⩯
        isum_suml >>> bimap (id_ (F A)) isum_suml >>> assoc_l >>> bimap sum_isuml (id_ (F C)) >>> sum_isuml.
-    Proof with try typeclasses eauto.
+    Proof.
       unfold bimap, Bimap_Coproduct.
-      unfold assoc_l,AssocL_Coproduct.
-      unfold_sktree.
-      fold_ktree.
-      rewrite 2 cat_id_l...
-      match goal with |- ?f ⩯ _ => set (g:=f) end.
-      repeat rewrite cat_assoc...
-      rewrite cat_case...
-      rewrite <- cat_assoc, case_inl...
-      rewrite 2 cat_assoc...
-      rewrite <- (cat_assoc _ (case_ _ _) _), case_inl...
-      rewrite <- (cat_assoc inr_ _ _), case_inr...
-      rewrite cat_case...
-      repeat rewrite cat_assoc...
-      rewrite <- (cat_assoc _ (case_ _ _) _), case_inl...
-      repeat rewrite <- cat_assoc...
-      rewrite case_inr...
-      subst g.
-      repeat rewrite cat_assoc...
+      unfold assoc_l, AssocL_Coproduct.
+      rewrite 2 cat_id_l.
+      rewrite (cat_assoc isum_suml).
+      rewrite cat_case, case_inl, (cat_assoc _ inr_), case_inr.
+      rewrite (cat_assoc isum_suml), cat_case, !cat_assoc, case_inl.
+      rewrite (cat_case _ inr_), case_inr.
+      rewrite (cat_assoc inr_), case_inl.
+      rewrite cat_case.
+      rewrite (cat_assoc isum_suml), cat_case.
+      rewrite <- 2 cat_assoc. rewrite 2 (cat_assoc _ _ sum_isuml).
       reflexivity.
     Qed.
 
     Lemma unfold_assoc_r {A B C}:
       @assoc_r i sktree isum _ A B C ⩯
        isum_suml >>> bimap isum_suml (id_ (F C)) >>> assoc_r >>> bimap (id_ (F A)) sum_isuml >>> sum_isuml.
-    Proof with try typeclasses eauto.
+    Proof.
       unfold bimap, Bimap_Coproduct.
       unfold assoc_r,AssocR_Coproduct.
       unfold_sktree.
