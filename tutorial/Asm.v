@@ -230,7 +230,7 @@ Section Denote.
 
     (* Denotation of [asm] *)
     Definition denote_asm {A B} : asm A B -> ktree E A B :=
-      fun s => loop (denote_b (code s)).
+      fun s => KTree.loop (denote_b (code s)).
 
   End with_event.
 End Denote.

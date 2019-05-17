@@ -176,3 +176,23 @@ Inductive aloop_Prop {R I : Type} (step : I -> (I -> Prop) + R) (i : I) (r : R)
 .
 
 Polymorphic Instance ALoop_Prop : ALoop Ensembles.Ensemble := @aloop_Prop.
+
+
+Definition loop {M} {MM : Monad M} {AM : ALoop M} {A B I : Type} (body : (I + A) -> M (I + B)%type) : A -> M B :=
+  fun a =>
+    body (inr a) >>=
+      aloop (fun cb =>
+        match cb with
+        | inl c => inl (body (inl c))
+        | inr b => inr b
+        end).
+
+  (*
+  fun a =>
+  aloop (fun (iab : I + (A + B)) =>
+           match iab with
+           | inl i => inl (x <- (body (inl i));; match x with inl j => ret (inl j) | inr b => ret (inr (inr b)) end)
+           | inr (inl a) => inl (x <- (body (inr a));; match x with inl j => ret (inl j) | inr b => ret (inr (inr b)) end)
+           | inr (inr b) => inr b
+           end) (inr (inl a)).
+*)

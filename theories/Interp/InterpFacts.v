@@ -319,6 +319,7 @@ Lemma interp_loop {E F} (f : E ~> itree F) {A B C}
   interp f (loop t a) ≅ loop (fun ca => interp f (t ca)) a.
 Proof.
   unfold loop.
+  cbn. 
   rewrite interp_bind.
   apply eq_itree_bind; try reflexivity.
   red. apply interp_aloop.

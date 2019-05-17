@@ -387,7 +387,7 @@ Section Correctness.
       Linking is exactly looping, it hides internal labels/wires.
    *)
   Theorem link_asm_correct {I A B} (ab : asm (I + A) (I + B)) :
-    denote_asm (link_asm ab) ⩯ loop (denote_asm ab).
+    denote_asm (link_asm ab) ⩯ KTree.loop (denote_asm ab).
   Proof.
     unfold denote_asm.
     rewrite loop_loop.

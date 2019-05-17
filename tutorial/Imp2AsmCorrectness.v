@@ -465,14 +465,75 @@ Qed.
   Import Monads.
 
   
-  Definition state_eutt {E S X} (R : S -> S -> Prop) : (stateT S (itree E) X) -> (stateT S (itree E) X) -> Prop :=
+  Definition state_eutt {E S X} : (stateT S (itree E) X) -> (stateT S (itree E) X) -> Prop :=
     fun t1 t2 => forall s, eutt eq (t1 s) (t2 s).
-  
+
+  Definition state_eq {E S X} : (stateT S (itree E) X) -> (stateT S (itree E) X) -> Prop :=
+    fun t1 t2 => forall s, eq_itree eq (t1 s) (t2 s).
+
+  Definition state_eq' {E S1 S2 X}  : (stateT S1 (stateT S2 (itree E)) X) -> (stateT S1 (stateT S2 (itree E)) X) -> Prop :=
+    fun t1 t2 => forall s1 s2, eq_itree eq (t1 s1 s2) (t2 s1 s2).
 
   
-  
-  Lemma interp_state_loop : forall h t
-        state_eutt (State.interp_state h (loop t)) (loop (State.interp_state h t)).
+From Paco Require Import paco.  
+Require Import ITree.Events.State.
+
+Lemma interp_state_aloop {E F } S (f : E ~> stateT S (itree F)) {I A}
+      (t  : I -> itree E I + A)
+      (t' : I -> stateT S (itree F) I + A)
+      (EQ_t : forall i, sum_rel (fun u u' => state_eq (interp_state f u) u') eq (t i) (t' i))
+  : forall i,
+    state_eq (interp_state f (ITree.aloop t i))
+             (aloop t' i).
+Proof.
+  ucofix CIH; intros i s.
+  unfold aloop, ALoop_stateT0, aloop, ALoop_itree in *.
+  rewrite 2 unfold_aloop'. simpl.
+  destruct (EQ_t i); cbn.
+  - rewrite interp_state_tau, interp_state_bind.
+    constructor.
+    uclo eq_itree_clo_bind; econstructor; eauto.
+    intros [s' i'] _ []. simpl.
+    auto with paco.
+  - rewrite interp_state_ret. constructor; auto. subst; auto.
+Qed.
+
+
+  Lemma interp_state_loop : forall {I A B:Type} {E F} {S} (h : E ~> stateT S (itree F)) (t : ktree E (I + A) (I + B)) (a:A),
+        state_eq (State.interp_state h (KTree.loop t a)) (loop (fun ia => (State.interp_state h (t ia)) ) a).
+  Proof.
+    unfold state_eq.
+    intros.
+    unfold KTree.loop, loop.
+    cbn.
+    rewrite interp_state_bind.
+    apply eq_itree_bind; try reflexivity.
+    intros ?.
+    apply interp_state_aloop.
+    intros []; cbn; constructor.
+    unfold state_eq. intros. reflexivity.
+    reflexivity.
+  Qed.
+
+
+  Lemma interp_state_loop' : forall {I A B:Type} {E F} {S1 S2} (h : E ~> stateT S2 (itree F)) (t : (I + A) -> stateT S1 (itree E) (I + B)) (a:A),
+      state_eq' (fun s1 s2 => (State.interp_state h (loop t a s1) s2))
+                ((loop : ((I+A) -> stateT S1 (stateT S2 (itree F)) (I + B)) -> _ ) (fun ia s1 => (State.interp_state h (t ia s1)) ) a ).
+  Proof.
+    unfold state_eq'.
+    intros.
+    unfold loop.
+    cbn.
+    rewrite interp_state_bind.
+    apply eq_itree_bind; try reflexivity.
+    intros ?.
+    apply interp_state_aloop.
+    intros [s1' l]; cbn.
+    destruct l; cbn. 
+    - constructor.
+      unfold state_eq. intros. reflexivity.
+    - constructor. reflexivity.
+  Qed.
   
   (** [eq_locals] is compatible with [loop]. *)
   Lemma rel_stmt_loop {A B C E} x
@@ -483,15 +544,29 @@ Qed.
   Proof.
     unfold rel_stmt, interp_asm, interp_imp, run_map.
     intros.
-
+    setoid_rewrite interp_loop.
+    pose proof @interp_state_loop.
+    red in H1.
+    setoid_rewrite H1.
+    pose proof @interp_state_loop'.
+    red in H2.
+    setoid_rewrite H2.
+    unfold loop. cbn.
+    unfold aloop. unfold ALoop_stateT0. unfold aloop.  unfold ALoop_itree.
+    eapply eutt_bind'.
+    apply H. assumption.
+    intros.
+    eapply eutt_aloop' with (RI := state_invariant).
+    2 : { destruct H3. red.  simpl. tauto. }
     
-    do 2 rewrite interp_loop.
-    About eutt_interp_state_loop.
-
-
     
+    intros.
+    destruct H4. simpl in H5. setoid_rewrite <- H5.
+    destruct j1 as [m1 [m2 [a|a]]]; cbn.
 
-  Admitted.
+    - constructor. eapply H. apply H4.
+    - constructor. red. cbn in *. tauto.
+  Qed.
 (*  
     apply eutt_interp_state_R with (RR := (fun a b : (alist var value * B) => snd a = snd b)).
     - typeclasses eauto.
@@ -618,13 +693,13 @@ Section Linking.
         rewrite bind_ret_; reflexivity.
   Qed.
 
-Opaque loop.
+Opaque KTree.loop.
 
   (** [while_asm] is denoted as the loop of the body with two entry point, the exit
       of the loop, and the body in which we have the same structure as for the conditional *)
    Lemma while_asm_correct (e : list instr) (p : asm unit unit) :
       denote_asm (while_asm e p)
-    ⩯ loop (fun l : unit + unit =>
+    ⩯ KTree.loop (fun l : unit + unit =>
          match l with
          | inl tt =>
            denote_list e ;;

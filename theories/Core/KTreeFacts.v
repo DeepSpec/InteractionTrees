@@ -46,7 +46,7 @@ Local Open Scope cat.
 (** *** [loop] lemmas *)
 
 Global Instance eq_ktree_loop {I A B} :
-  Proper (eq2 ==> eq2) (@loop E I A B).
+  Proper (eq2 ==> eq2) (@loop E  I A B).
 Proof.
   repeat intro; apply eutt_loop; auto.
 Qed.
@@ -220,7 +220,7 @@ Lemma bimap_ktree_loop {I A B C D}
 Proof.
   rewrite assoc_l_ktree, assoc_r_ktree.
   rewrite lift_compose_ktree, compose_ktree_lift.
-  remember @loop as l; cbv.
+  remember (@loop) as l; cbv.
   intros []; subst l.
   - rewrite fold_map.
     rewrite (@superposing1_loop E A B I C D).
@@ -230,11 +230,12 @@ Proof.
     all: rewrite bind_bind.
     all: setoid_rewrite bind_ret at 1.
     all: reflexivity.
-  - unfold loop.
+  - unfold loop. cbn.
     autorewrite with itree.
     eapply eutt_bind; try reflexivity.
     intros d.
     autorewrite with itree.
+    unfold aloop, ALoop_itree.
     rewrite unfold_aloop; cbn.
     reflexivity.
 Qed.
@@ -322,7 +323,7 @@ Proof.
 Qed.
 
 Lemma yanking_ktree {A: Type}:
-  @loop E _ _ _ swap ⩯ id_ A.
+  @loop E   _ _ _ swap ⩯ id_ A.
 Proof.
   intros ?; rewrite yanking_loop.
   apply tau_eutt.

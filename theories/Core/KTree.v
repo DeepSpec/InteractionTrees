@@ -5,6 +5,7 @@
 (* begin hide *)
 From ITree Require Import
      Basics.CategoryOps
+     Basics.Basics
      Basics.Function
      Core.ITreeDefinition
      Eq.UpToTaus.
@@ -132,9 +133,10 @@ End Operations.
     The Kleisli category for the [itree] monad is a traced
     monoidal category, with [loop] as its trace.
  *)
-Definition loop {E : Type -> Type} {A B C : Type}
+Definition loop 
+{E : Type -> Type} {A B C : Type}
            (body : (C + A) -> itree E (C + B)) :
-  A -> itree E B :=
+  A -> itree E B := 
   fun a =>
     body (inr a) >>=
       ITree.aloop (fun cb =>

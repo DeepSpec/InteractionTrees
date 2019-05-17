@@ -84,9 +84,10 @@ Instance eq_itree_loop {E A B C} :
          (@loop E A B C).
 Proof.
   intros body1 body2 EQ_BODY a.
-  unfold loop.
+  unfold loop. cbn.
   eapply eq_itree_bind; auto.
   clear a; red. ucofix CIH; intros cb.
+  unfold aloop, ALoop_itree in *.
   rewrite 2 unfold_aloop'.
   destruct cb as [c | b]; cbn.
   - constructor.
@@ -98,14 +99,15 @@ Qed.
 
 Instance eutt_loop {E A B C} :
   Proper (pointwise_relation _ (eutt eq) ==> pointwise_relation _ (eutt eq))
-         (@loop E A B C).
+         (@loop E  A B C).
 Proof.
   intros body1 body2 EQ_BODY a.
-  unfold loop.
+  unfold loop. cbn.
   apply eutt_bind; auto.
   clear a; red.
   ucofix CIH; red; ucofix CIH'.
   intros cb.
+  unfold aloop, ALoop_itree in *.
   rewrite 2 unfold_aloop'.
   destruct cb as [c | b]; cbn.
   - constructor.
@@ -125,7 +127,7 @@ Lemma bind_loop2 {E A A' B C} (f : A' -> itree E A)
             | inr a' => a <- f a';; body (inr a)
             end) a'.
 Proof.
-  unfold loop.
+  unfold loop. cbn. 
   rewrite <- bind_bind.
   eapply eutt_bind; try reflexivity.
 Qed.
@@ -142,13 +144,14 @@ Lemma bind_loop {E A B B' C}
             | inr b => ITree.map inr (f b)
             end) a.
 Proof.
-  unfold loop.
+  unfold loop. cbn.
   rewrite !bind_bind.
   eapply eq_itree_bind; try reflexivity.
   red.
   ucofix CIH.
   intros [c | b]; cbn.
   - rewrite bind_ret.
+    unfold aloop, ALoop_itree in *.
     rewrite 2 unfold_aloop'; cbn.
     rewrite bind_tau, !bind_bind.
     constructor.
@@ -157,6 +160,7 @@ Proof.
     intros cb' _ [].
     auto with paco.
   - rewrite bind_map.
+    unfold aloop, ALoop_itree in *.
     rewrite unfold_aloop'; cbn.
     rewrite bind_ret.
     rewrite <- bind_ret2 at 1.
@@ -179,9 +183,10 @@ Lemma loop_bind {E A B C C'} (f : C -> itree E C')
       | inr a => Ret (inr a)
       end >>= body) a.
 Proof.
-  unfold loop.
+  unfold loop. cbn. 
   rewrite bind_ret, !bind_bind.
   eapply eq_itree_bind; try reflexivity.
+  unfold aloop, ALoop_itree in *.
   intros [c | b].
   2:{ rewrite bind_ret.
       do 2 rewrite unfold_aloop'; cbn.
@@ -210,9 +215,10 @@ Lemma vanishing1_loop {E A B} (f : void + A -> itree E (void + B))
       (a : A) :
   loop f a ≅ ITree.map (apply unit_l) (f (inr a)).
 Proof.
-  unfold loop, ITree.map.
+  unfold loop, ITree.map. cbn. 
   eapply eq_itree_bind; try reflexivity.
   intros [[]|b].
+  unfold aloop, ALoop_itree in *.    
   rewrite unfold_aloop'; reflexivity.
 Qed.
 
@@ -225,6 +231,7 @@ Proof.
   rewrite !bind_bind, bind_map.
   eapply eq_itree_bind; try reflexivity.
   intros dcb.
+  unfold aloop, ALoop_itree in *.  
   revert dcb; ucofix CIH; intros dcb.
   do 2 rewrite unfold_aloop'; destruct dcb as [d | [c | b]]; cbn.
   - (* d *)
@@ -255,10 +262,11 @@ Lemma superposing1_loop {E A B C D D'} (f : C + A -> itree E (C + B))
       | inr (inr d) => ITree.map (inr >>> inr)%cat (g d)
       end) (inl a).
 Proof.
-  unfold loop.
+  unfold loop. cbn.
   rewrite map_bind, bind_map.
   eapply eq_itree_bind; try reflexivity.
   intros cb.
+  unfold aloop, ALoop_itree in *.  
   unfold ITree.map.
   revert cb; ucofix CIH; intros cb.
   do 2 rewrite unfold_aloop'. (* why is this slow *)
@@ -282,15 +290,16 @@ Lemma superposing2_loop {E A B C D D'} (f : C + A -> itree E (C + B))
       | inr (inr d) => ITree.map (inr >>> inr)%cat (g d)
       end) (inr d).
 Proof.
-  unfold loop, ITree.map.
+  unfold loop, ITree.map. cbn.
   rewrite !bind_bind.
   eapply eq_itree_bind; try reflexivity.
   intros d'.
+  unfold aloop, ALoop_itree in *.  
   rewrite bind_ret, unfold_aloop'; reflexivity.
 Qed.
 
 Lemma yanking_loop {E A} (a : A) :
-  @loop E _ _ _ swap a ≅ Tau (Ret a).
+  @loop E  _ _ _ swap a ≅ Tau (Ret a).
 Proof.
   rewrite itree_eta; cbn; apply eq_itree_Tau.
   rewrite itree_eta; reflexivity.
