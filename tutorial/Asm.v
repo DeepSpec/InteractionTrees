@@ -98,15 +98,14 @@ Arguments code {A B}.
 (** ** Semantics *)
 
 (** _Asm_ produces two kind of events: through manipulation of the 
-    registers and of the heap.  (We assume, for simplicity, that
-    both registers and heap addresses are identified by strings
+    registers and of the heap.  
 *)
 Variant Reg : Type -> Type :=
 | GetReg (x : reg) : Reg value
 | SetReg (x : reg) (v : value) : Reg unit.
 
 Inductive Memory : Type -> Type :=
-| Load (a : addr) : Memory value
+| Load  (a : addr) : Memory value
 | Store (a : addr) (val : value) : Memory unit.
 
 Section Denote.
@@ -262,14 +261,14 @@ Proof.
   - intros EQ; apply string_dec_sound in EQ; unfold rel_dec; simpl; rewrite EQ; reflexivity.
 Qed.
 
+(* SAZ: Annoyingly, typeclass resolution picks the wrong map instance for nats by default, so 
+   we create an instance for [reg] that hides the wrong instance with the right one. *)
 Instance RelDec_reg : RelDec (@eq reg) := RelDec_from_dec eq Nat.eq_dec.
-
 (* end hide *)
 
 
 (** Both environments and memory events can be interpreted as "map" events,
     exactly as we did for _Imp_. *)
-
 Definition eval_reg {E: Type -> Type} `{mapE reg value -< E}: Reg ~> itree E :=
   fun _ e =>
     match e with
@@ -288,9 +287,9 @@ Definition eval_memory {E : Type -> Type} `{mapE addr value -< E} :
 
 (** Once again, we implement our Maps with a simple association list *)
 Definition registers := alist reg value.
-Definition memory := alist addr value.
+Definition memory    := alist addr value.
 
-(* SAZ: Annoyingly, typeclass resolution picks the wrong map instance for nats by default. *)
+
 Definition interp_asm {E A} (t : itree (Reg +' Memory +' E) A) mem regs : itree E (memory * (registers * A)) :=
   let h := bimap eval_reg (bimap eval_memory (id_ _)) in                             
   let t' := interp h t in

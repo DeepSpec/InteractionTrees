@@ -40,35 +40,36 @@ Section compile_assign.
   ones introduced by the compiler: the former ones get prefix by "temp_", the latter
   ones by "local_". *)
 
-  Definition gen_tmp (n: nat): reg := n.
-
   (** Expressions are compiled straightforwardly.
       The argument [l] is the number of local variables already introduced to compile
       the expression, and is used for the name of the next one.
       The result of the computation [compile_expr l e] always ends up stored in [gen_tmp l]. 
    *)
-  Fixpoint compile_expr (l: nat) (e: expr): list instr :=
+  Fixpoint compile_expr (l:reg) (e: expr): list instr :=
     match e with
-    | Var x => [Iload (gen_tmp l) x]
-    | Lit n => [Imov (gen_tmp l) (Oimm n)]
+    | Var x => [Iload l x]
+    | Lit n => [Imov l (Oimm n)]
     | Plus e1 e2 =>
       let instrs1 := compile_expr l e1 in
       let instrs2 := compile_expr (1 + l) e2 in
-      instrs1 ++ instrs2 ++ [Iadd (gen_tmp l) (gen_tmp l) (Oreg (gen_tmp (1 + l)))]
+      instrs1 ++ instrs2 ++ [Iadd l l (Oreg (1 + l))]
     | Minus e1 e2 =>
       let instrs1 := compile_expr l e1 in
       let instrs2 := compile_expr (1 + l) e2 in
-      instrs1 ++ instrs2 ++ [Isub (gen_tmp l) (gen_tmp l) (Oreg (gen_tmp (1 + l)))]
+      instrs1 ++ instrs2 ++ [Isub l l (Oreg (1 + l))]
     | Mult e1 e2 =>
       let instrs1 := compile_expr l e1 in
       let instrs2 := compile_expr (1 + l) e2 in
-      instrs1 ++ instrs2 ++ [Imul (gen_tmp l) (gen_tmp l) (Oreg (gen_tmp (1 + l)))]
+      instrs1 ++ instrs2 ++ [Imul l l (Oreg (1 + l))]
       end.
 
-  (** Compiles the expression and then move the result (in [gen_tmp 0]) to the mangled variable. *)
+  (** Compiles the expression and then move the result (in register [0]) to address
+      [x].  Note: here we assume a one-to-one mapping of _Imp_ global variable names
+      and _Asm_ addresses.
+  *)
   Definition compile_assign (x: Imp.var) (e: expr): list instr :=
     let instrs := compile_expr 0 e in
-    instrs ++ [Istore x (Oreg (gen_tmp 0))].
+    instrs ++ [Istore x (Oreg 0)].
 
 End compile_assign.
 
@@ -111,7 +112,7 @@ Definition seq_asm {A B C} (ab : asm A B) (bc : asm B C)
 
 
 (** Location of temporary for [if]. *)
-Definition tmp_if := gen_tmp 0.
+Definition tmp_if := 0.
 
 (** Turns the list of instructions resulting from the conditional
     expression of a _if_ to a block with two exit points.

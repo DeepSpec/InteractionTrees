@@ -167,23 +167,6 @@ Lemma interp_state_loop2
 
 
 (* ================================================================= *)
-(** ** Hiding mangling of variables. *)
-
-(** [varOf] and [gen_tmp] are injective. *)
-Section GEN_TMP.
-
-  Lemma gen_tmp_inj: forall n m, m <> n -> gen_tmp m <> gen_tmp n.
-  Proof.
-    intros n m ineq; intros abs; apply ineq.
-    easy.
-  Qed.
-
-End GEN_TMP.
-
-Opaque gen_tmp.
-
-
-(* ================================================================= *)
 (** ** Simulation relations and invariants *)
 
 (** The compiler is proved correct by constructing a (itree) bisimulation
@@ -223,12 +206,12 @@ Section Simulation_Relation.
   
  (** The simulation relation for evaluation of expressions.
 
-     The relation connects three environments of type [alist var value]:
-
-       - the global and local states at the Asm level
+     The relation connects 
 
        - the global state at the Imp level
           
+       - the memory and register states at the Asm level
+
      and, additionally the returned value at the _Imp_ level. The _Asm_ side
      does not carry a [value], but a [unit], since its denotation does not
      return any [value].
@@ -251,13 +234,13 @@ Section Simulation_Relation.
   Definition sim_rel l_asm n: (globals * value) -> (memory * (registers * unit)) -> Prop :=
     fun '(g_imp', v) '(g_asm', (l_asm', _))  =>
       Renv g_imp' g_asm' /\            (* we don't corrupt any of the imp variables *)
-      alist_In (gen_tmp n) l_asm' v /\ (* we get the right value *)
+      alist_In n l_asm' v /\           (* we get the right value *)
       (forall m, m < n -> forall v,              (* we don't mess with anything on the "stack" *)
-            alist_In (gen_tmp m) l_asm v <-> alist_In (gen_tmp m) l_asm' v).
+            alist_In m l_asm v <-> alist_In m l_asm' v).
 
   Lemma sim_rel_find : forall g_asm g_imp l_asm l_asm' n  v,
     sim_rel l_asm n (g_imp, v) (g_asm, (l_asm', tt)) ->
-    alist_find (gen_tmp n) l_asm' = Some v.
+    alist_find n l_asm' = Some v.
   Proof.
     intros.
     destruct H as [_ [IN _]].
@@ -285,14 +268,14 @@ Section Simulation_Relation.
   (** [sim_rel] can be initialized from [Renv]. *)
   Lemma sim_rel_add: forall g_asm l_asm g_imp n v,
       Renv g_imp g_asm ->
-      sim_rel l_asm n  (g_imp, v) (g_asm, (alist_add (gen_tmp n) v l_asm, tt)).
+      sim_rel l_asm n  (g_imp, v) (g_asm, (alist_add n v l_asm, tt)).
   Proof.
     intros.
     split; [| split].
     - assumption.
     - apply In_add_eq.
     - intros m LT v'.
-      apply In_add_ineq_iff, gen_tmp_inj; lia.
+      apply In_add_ineq_iff; lia.
   Qed.
 
   (** [Renv] can be recovered from [sim_rel]. *)
@@ -305,7 +288,7 @@ Section Simulation_Relation.
   Lemma sim_rel_find_tmp_n:
     forall l_asm g_asm' n l_asm' g_imp' v,
       sim_rel l_asm n  (g_imp',v) (g_asm', (l_asm', tt)) ->
-      alist_In (gen_tmp n) l_asm' v.
+      alist_In n l_asm' v.
   Proof.
     intros ? ? ? ? ? ? [_ [H _]]; exact H. 
   Qed.
@@ -316,7 +299,7 @@ Section Simulation_Relation.
     forall l_asm g_asm' n m l_asm' g_imp' v,
       m < n ->
       sim_rel l_asm n (g_imp',v) (g_asm', (l_asm', tt)) ->
-      alist_find (gen_tmp m) l_asm = alist_find (gen_tmp m) l_asm'.
+      alist_find m l_asm = alist_find m l_asm'.
   Proof.
     intros ? ? ? ? ? ? ? ineq [_ [_ H]].
     match goal with
@@ -334,7 +317,7 @@ Section Simulation_Relation.
     forall l_asm n l_asm' l_asm'' g_asm' g_asm'' g_imp' g_imp'' v v',
       sim_rel l_asm n (g_imp',v) (g_asm', (l_asm', tt))  ->
       sim_rel l_asm' (S n) (g_imp'',v') (g_asm'', (l_asm'', tt))  ->
-      alist_In (gen_tmp n) l_asm'' v.
+      alist_In n l_asm'' v.
   Proof.
     intros.
     generalize H; intros LU; apply sim_rel_find_tmp_n in LU.
@@ -366,25 +349,19 @@ Section Simulation_Relation.
       (Hsim : sim_rel l_asm n (g_imp', v) (g_asm', (l_asm', tt)))
       (Hsim': sim_rel l_asm' (S n) (g_imp'', v') (g_asm'', (l_asm'', tt)))
       (op: nat -> nat -> nat),
-      sim_rel l_asm n (g_imp'', op v v') (g_asm'', (alist_add (gen_tmp n) (op v v') l_asm'', tt)).
+      sim_rel l_asm n (g_imp'', op v v') (g_asm'', (alist_add n (op v v') l_asm'', tt)).
   Proof.
     intros.
     split; [| split].
-    {
-      eapply sim_rel_Renv; eassumption.
-    }
-    {
-      apply In_add_eq.
-    }
-    {
-      intros m LT v''.
-      rewrite <- In_add_ineq_iff; [| apply gen_tmp_inj; lia].
+    - eapply sim_rel_Renv; eassumption.
+    - apply In_add_eq.
+    - intros m LT v''.
+      rewrite <- In_add_ineq_iff; [| lia].
       destruct Hsim as [_ [_ Hsim]].
       destruct Hsim' as [_ [_ Hsim']].
       rewrite Hsim; [| auto with arith].
       rewrite Hsim'; [| auto with arith].
       reflexivity.
-    }
   Qed.
 
 End Simulation_Relation.
@@ -392,36 +369,26 @@ End Simulation_Relation.
 (* ================================================================= *)
 (** ** Bisimulation *)
 
-(** We now make precise the bisimulation established to show the correctness
-    of the compiler.
-    Naturally, we cannot establish a _strong bisimulation_ between the source
-    program and the target program: the [asm] counterpart performs "more
-    steps" when evaluating expressions.
-    The appropriate notion is of course the _equivalence up to tau_. However,
-    the [itree] structures put in evidence a very naturaly hierarchy of notions
-    of correctness.
-    Since the [asm] programs perform more manipulations of their local
-    environment, we cannot hope to relate the trees containing [Locals] events,
-    we first need to interpret them.
-    However, since it does not introduce any manipulation of the heap, we
-    _can_ prove the result without interpreting the [Memory] events.
-    Of course this example is rather contrived, owing to the simplicity of the
-    compiler. Nonetheless, it makes a lot of sense when considering optimization:
-    one can see the handling of events as bits of the memory model, and 
-    therefore have a framework to prove some optimizations correct with respect
-    to any memory model, i.e. before handling, while others with respect to
-    concrete memory model, i.e. after handling.
- *)
+(** We now make precise the bisimulation established to show the correctness of
+    the compiler.  Naturally, we cannot establish a _strong bisimulation_
+    between the source program and the target program: the [asm] counterpart
+    performs "more steps" when evaluating expressions.  The appropriate notion
+    is of course the _equivalence up to tau_. However, the [itree] structures
+    are also quite different.  [asm] programs manipulate two state
+    components. The simulation will establish that the [imp] global state
+    corresponds to the [asm] memory, but do establish that correspondence we
+    also need to interpret the [asm] register effects.  *)
 
 Section Bisimulation.
 
-
   
   (** Definition of our bisimulation relation.
-      As previously explained, it relates up-to-tau two [itree]s after having
-      interpreted their [Locals] event.
-      We additionally bake into it a simulation relation taken in parameter:
-      - Local events are interpreted from related states.
+
+      As previously explained, it relates (up-to-tau) two [itree]s after having
+      interpreted their events.
+
+      We additionally bake into it a simulation
+      -  events are interpreted from related states.
       - Returned values must contain related states, as well as computed datas
       related by another relation [RR] taken in parameter.
       In our case, we specialize [RR] to equality since both trees return [unit],
@@ -514,7 +481,7 @@ Section Bisimulation.
   Lemma sim_rel_get_tmp0:
     forall {E} n l l' g_asm g_imp v,
       sim_rel l' n (g_imp,v) (g_asm, (l,tt)) ->
-      eutt eq (interp_asm ((trigger (GetReg (gen_tmp n))) : itree (Reg +' Memory +' E) value)
+      eutt eq (interp_asm ((trigger (GetReg n)) : itree (Reg +' Memory +' E) value)
                                        g_asm l)
            (Ret (g_asm, (l, v))).
   Proof.
@@ -852,26 +819,6 @@ Section Correctness.
     eapply Renv_write_local; eauto. eauto.
   Qed.
 
-  (*
-  (* Utility: slight rephrasing of [while] to facilitate rewriting
-     in the main theorem.*)
-  Lemma while_is_loop {E} (body : itree E (unit + unit)) :
-    while body
-          ≈ loop (fun l : unit + unit =>
-                    match l with
-                    | inl _ => body
-                    | inr _ => Ret (inl tt)   (* Enter loop *)
-                    end) tt.
-  Proof.
-    unfold while.
-    apply eutt_loop.
-    intros [[]|[]]; simpl; [| reflexivity].
-    unfold ITree.map.
-    apply eutt_bind; try reflexivity.
-    intros []; reflexivity.
-  Qed.
-*)
-
   Definition equivalent (s:stmt) (t:asm unit unit) : Prop :=
     bisimilar (denote_stmt s) (denote_asm t tt).
   
@@ -892,7 +839,7 @@ Section Correctness.
     induction s.
 
     - (* Assign *)
-      simpl.
+      cbn.
       (* We push [denote_asm] inside of the combinators *)
       rewrite raw_asm_block_correct.
       rewrite after_correct.
@@ -907,7 +854,7 @@ Section Correctness.
       repeat intro.
       force_left; force_right.
       apply eutt_ret; auto.
-      unfold state_invariant. simpl. auto.
+      unfold state_invariant; auto.
 
     - (* Seq *)
       (* We commute [denote_asm] with [seq_asm] *)
@@ -916,8 +863,8 @@ Section Correctness.
 
       (* And the result is immediate by indcution hypothesis *)
       eapply bisimilar_bind'.
-      { eauto. }
-      intros []; auto.
+      { assumption. }
+      intros []; assumption.
 
     - (* If *)
       (* We commute [denote_asm] with [if_asm] *)
