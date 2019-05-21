@@ -40,10 +40,7 @@ Section compile_assign.
   ones introduced by the compiler: the former ones get prefix by "temp_", the latter
   ones by "local_". *)
 
-  Definition gen_tmp (n: nat): string :=
-    "temp_" ++ string_of_nat n.
-
-  Definition varOf (s : var) : var := "global_" ++ s.
+  Definition gen_tmp (n: nat): reg := n.
 
   (** Expressions are compiled straightforwardly.
       The argument [l] is the number of local variables already introduced to compile
@@ -57,21 +54,21 @@ Section compile_assign.
     | Plus e1 e2 =>
       let instrs1 := compile_expr l e1 in
       let instrs2 := compile_expr (1 + l) e2 in
-      instrs1 ++ instrs2 ++ [Iadd (gen_tmp l) (gen_tmp l) (Ovar (gen_tmp (1 + l)))]
+      instrs1 ++ instrs2 ++ [Iadd (gen_tmp l) (gen_tmp l) (Oreg (gen_tmp (1 + l)))]
     | Minus e1 e2 =>
       let instrs1 := compile_expr l e1 in
       let instrs2 := compile_expr (1 + l) e2 in
-      instrs1 ++ instrs2 ++ [Isub (gen_tmp l) (gen_tmp l) (Ovar (gen_tmp (1 + l)))]
+      instrs1 ++ instrs2 ++ [Isub (gen_tmp l) (gen_tmp l) (Oreg (gen_tmp (1 + l)))]
     | Mult e1 e2 =>
       let instrs1 := compile_expr l e1 in
       let instrs2 := compile_expr (1 + l) e2 in
-      instrs1 ++ instrs2 ++ [Imul (gen_tmp l) (gen_tmp l) (Ovar (gen_tmp (1 + l)))]
+      instrs1 ++ instrs2 ++ [Imul (gen_tmp l) (gen_tmp l) (Oreg (gen_tmp (1 + l)))]
       end.
 
   (** Compiles the expression and then move the result (in [gen_tmp 0]) to the mangled variable. *)
   Definition compile_assign (x: Imp.var) (e: expr): list instr :=
     let instrs := compile_expr 0 e in
-    instrs ++ [Istore x (Ovar (gen_tmp 0))].
+    instrs ++ [Istore x (Oreg (gen_tmp 0))].
 
 End compile_assign.
 
@@ -108,7 +105,8 @@ We obtain the following diagram:
 
 Which translates to:
  *)
-Definition seq_asm {A B C} (ab : asm A B) (bc : asm B C): asm A C :=
+Definition seq_asm {A B C} (ab : asm A B) (bc : asm B C)
+  : asm A C :=
   link_asm (relabel_asm swap (id_ _) (app_asm ab bc)).
 
 
@@ -118,7 +116,8 @@ Definition tmp_if := gen_tmp 0.
 (** Turns the list of instructions resulting from the conditional
     expression of a _if_ to a block with two exit points.
  *)
-Definition cond_asm (e : list instr) : asm unit (unit + unit) :=
+Definition cond_asm (e : list instr)
+  : asm unit (unit + unit) :=
   raw_asm_block (after e (Bbrz tmp_if (inr tt) (inl tt))).
 
 (** Conditional branch of blocks.
@@ -140,8 +139,8 @@ Definition cond_asm (e : list instr) : asm unit (unit + unit) :=
 ]]
  *)
 Definition if_asm {A}
-           (e : list instr) (tp : asm unit A) (fp : asm unit A) :
-  asm unit A :=
+           (e : list instr) (tp : asm unit A) (fp : asm unit A)
+  : asm unit A :=
   seq_asm (cond_asm e)
           (relabel_asm (id_ _) merge (app_asm tp fp)).
 
@@ -162,8 +161,8 @@ Definition if_asm {A}
            false
 ]]
 *)
-Definition while_asm (e : list instr) (p : asm unit unit) :
-  asm unit unit :=
+Definition while_asm (e : list instr) (p : asm unit unit)
+  : asm unit unit :=
   link_asm (relabel_asm (id_ _) merge
     (app_asm (if_asm e
                 (relabel_asm id inl p)
@@ -175,11 +174,11 @@ Definition while_asm (e : list instr) (p : asm unit unit) :
 *)
 Fixpoint compile (s : stmt) {struct s} : asm unit unit :=
   match s with
-  | Skip => id_asm
+  | Skip       => id_asm
   | Assign x e => raw_asm_block (after (compile_assign x e) (Bjmp tt))
-  | Seq l r => seq_asm (compile l) (compile r)
-  | If e l r => if_asm (compile_expr 0 e) (compile l) (compile r)
-  | While e b => while_asm (compile_expr 0 e) (compile b)
+  | Seq l r    => seq_asm (compile l) (compile r)
+  | If e l r   => if_asm (compile_expr 0 e) (compile l) (compile r)
+  | While e b  => while_asm (compile_expr 0 e) (compile b)
   end.
 
 (** We now consider its proof of correctness in [Imp2AsmCorrectness.v]. *)

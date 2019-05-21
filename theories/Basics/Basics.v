@@ -87,8 +87,8 @@ End Monads.
 (** ** Loop operator *)
 
 (** [aloop]: A primitive for general recursion.
-    Iterate a function updating an accumulator [A], until it produces
-    an output [B]. It's an Asymmetric variant of [loop], and it looks
+    Iterate a function updating an accumulator [I], until it produces
+    an output [R]. It's an Asymmetric variant of [loop], and it looks
     similar to an Anamorphism, hence the name [aloop].
  *)
 Polymorphic Class ALoop (M : Type -> Type) : Type :=
@@ -186,13 +186,3 @@ Definition loop {M} {MM : Monad M} {AM : ALoop M} {A B I : Type} (body : (I + A)
         | inl c => inl (body (inl c))
         | inr b => inr b
         end).
-
-  (*
-  fun a =>
-  aloop (fun (iab : I + (A + B)) =>
-           match iab with
-           | inl i => inl (x <- (body (inl i));; match x with inl j => ret (inl j) | inr b => ret (inr (inr b)) end)
-           | inr (inl a) => inl (x <- (body (inr a));; match x with inl j => ret (inl j) | inr b => ret (inr (inr b)) end)
-           | inr (inr b) => inr b
-           end) (inr (inl a)).
-*)

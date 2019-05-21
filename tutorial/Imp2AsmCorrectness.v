@@ -60,12 +60,14 @@ From Coq Require Import
      RelationClasses.
 
 From ITree Require Import
+     Basics.Basics
      ITree
      ITreeFacts
      Events.StateFacts
      Events.Map.
 
 Import ITreeNotations.
+Import Monads.
 
 From ExtLib Require Import
      Core.RelDec
@@ -82,6 +84,88 @@ Local Open Scope cat.
 
 (* end hide *)
 
+(* Missing library functionality -------------------------------------------- *)
+(* TODO: Move to itrees library
+   SAZ: for some reason, moving the code below into StateFacts.v causes a
+   universe inconsistency... how to debug?
+*)
+From Paco Require Import paco.
+
+Definition state_eq {E S X} 
+  : (stateT S (itree E) X) -> (stateT S (itree E) X) -> Prop :=
+  fun t1 t2 => forall s, eq_itree eq (t1 s) (t2 s).
+
+Definition state_eq2 {E S1 S2 X} 
+  : (stateT S1 (stateT S2 (itree E)) X) -> (stateT S1 (stateT S2 (itree E)) X) -> Prop :=
+  fun t1 t2 => forall s1 s2, eq_itree eq (t1 s1 s2) (t2 s1 s2).
+
+
+Lemma interp_state_aloop {E F } S (f : E ~> stateT S (itree F)) {I A}
+      (t  : I -> itree E I + A)
+      (t' : I -> stateT S (itree F) I + A)
+      (EQ_t : forall i, sum_rel (fun u u' => state_eq (State.interp_state f u) u') eq (t i) (t' i))
+  : forall i, state_eq (State.interp_state f (ITree.aloop t i))
+                  (aloop t' i).
+Proof.
+  ucofix CIH; intros i s.
+  unfold aloop, ALoop_stateT0, aloop, ALoop_itree in *.
+  rewrite 2 unfold_aloop'. simpl.
+  destruct (EQ_t i); cbn.
+  - rewrite interp_state_tau, interp_state_bind.
+    constructor.
+    uclo eq_itree_clo_bind; econstructor; eauto.
+    intros [s' i'] _ []. simpl.
+    auto with paco.
+  - rewrite interp_state_ret. constructor; auto. subst; auto.
+Qed.
+  
+Lemma interp_state_loop
+  : forall {I A B:Type} {E F} {S}
+      (h : E ~> stateT S (itree F))
+      (t : ktree E (I + A) (I + B)) (a:A),
+    state_eq (State.interp_state h (KTree.loop t a))
+             ((Basics.loop : ((I + A) -> stateT S (itree F) (I + B)) -> _)
+                (fun ia => (State.interp_state h (t ia)) ) a).
+  Proof.
+    unfold state_eq.
+    intros.
+    unfold KTree.loop, Basics.loop.
+    cbn.
+    rewrite interp_state_bind.
+    apply eq_itree_bind; try reflexivity.
+    intros ?.
+    apply interp_state_aloop.
+    intros []; cbn; constructor.
+    unfold state_eq. intros. reflexivity.
+    reflexivity.
+  Qed.
+
+
+Lemma interp_state_loop2
+  : forall {I A B:Type} {E F} {S1 S2}
+      (h : E ~> stateT S2 (itree F))
+      (t : (I + A) -> stateT S1 (itree E) (I + B)) (a:A),
+      state_eq2 (fun s1 s2 => (State.interp_state h (Basics.loop t a s1) s2))
+                ((Basics.loop : ((I+A) -> stateT S1 (stateT S2 (itree F)) (I + B)) -> _ )
+                   (fun ia s1 => (State.interp_state h (t ia s1)) ) a ).
+  Proof.
+    unfold state_eq2.
+    intros.
+    unfold loop.
+    cbn.
+    rewrite interp_state_bind.
+    apply eq_itree_bind; try reflexivity.
+    intros ?.
+    apply interp_state_aloop.
+    intros [s1' l]; cbn.
+    destruct l; cbn. 
+    - constructor.
+      unfold state_eq. intros. reflexivity.
+    - constructor. reflexivity.
+  Qed.
+(* End of missing library functionality... ---------------------------------- *)
+
+
 (* ================================================================= *)
 (** ** Hiding mangling of variables. *)
 
@@ -91,18 +175,13 @@ Section GEN_TMP.
   Lemma gen_tmp_inj: forall n m, m <> n -> gen_tmp m <> gen_tmp n.
   Proof.
     intros n m ineq; intros abs; apply ineq.
-    apply string_of_nat_inj in ineq; inversion abs; easy.
-  Qed.
-
-  Lemma varOf_inj: forall n m, m <> n -> varOf m <> varOf n.
-  Proof.
-    intros n m ineq abs; inv abs; easy.
+    easy.
   Qed.
 
 End GEN_TMP.
 
 Opaque gen_tmp.
-Opaque varOf.
+
 
 (* ================================================================= *)
 (** ** Simulation relations and invariants *)
@@ -134,7 +213,7 @@ Section Simulation_Relation.
       The relation relates two environments of type [alist var value].
       The source and target environments exactly agree on user variables.
    *)
-  Definition Renv (g_asm g_imp : alist var value) : Prop :=
+  Definition Renv (g_asm : memory) (g_imp : globals) : Prop :=
     forall k v, alist_In k g_imp v <-> alist_In k g_asm v.
 
   Global Instance Renv_refl : Reflexive Renv.
@@ -169,44 +248,28 @@ Section Simulation_Relation.
      - The "stack" of temporaries used to compute intermediate results is left
        untouched.
   *) 
-  Definition sim_rel l_asm n: (alist var value * (alist var value * unit)) -> alist var value * value -> Prop :=
-    fun '(g_asm', (l_asm', _)) '(g_imp', v) =>
-      Renv g_asm' g_imp' /\            (* we don't corrupt any of the imp variables *)
+  Definition sim_rel l_asm n: (globals * value) -> (memory * (registers * unit)) -> Prop :=
+    fun '(g_imp', v) '(g_asm', (l_asm', _))  =>
+      Renv g_imp' g_asm' /\            (* we don't corrupt any of the imp variables *)
       alist_In (gen_tmp n) l_asm' v /\ (* we get the right value *)
       (forall m, m < n -> forall v,              (* we don't mess with anything on the "stack" *)
             alist_In (gen_tmp m) l_asm v <-> alist_In (gen_tmp m) l_asm' v).
 
-  
   Lemma sim_rel_find : forall g_asm g_imp l_asm l_asm' n  v,
-    sim_rel l_asm n (g_asm, (l_asm', tt)) (g_imp, v) ->
+    sim_rel l_asm n (g_imp, v) (g_asm, (l_asm', tt)) ->
     alist_find (gen_tmp n) l_asm' = Some v.
   Proof.
     intros.
     destruct H as [_ [IN _]].
-    (* SAZ alist_find_Some should be in the library *)
     apply IN.
   Qed.    
 
   (** ** Facts on the simulation relations *)
-(*
-  (** [Renv] is stable by updates to temporaries. *)
-  Lemma Renv_add: forall g_asm g_imp n v,
-      Renv g_asm g_imp -> Renv (alist_add (gen_tmp n) v g_asm) g_imp.
-  Proof.
-    repeat intro.
-    inversion H0. subst. 
-    destruct (k_asm ?[ eq ] (gen_tmp n)) eqn:EQ.
-    rewrite rel_dec_correct in EQ; subst; inv H0.
-    rewrite <- neg_rel_dec_correct in EQ.
-    rewrite (H _ _ H0).
-    apply In_add_ineq_iff; auto.
-  Qed.
- *)
   
   (** [Renv] entails agreement of lookup of user variables. *)
   Lemma Renv_find:
     forall g_asm g_imp x,
-      Renv g_asm g_imp ->
+      Renv g_imp g_asm ->
       alist_find x g_imp = alist_find x g_asm.
   Proof.
     intros.
@@ -221,8 +284,8 @@ Section Simulation_Relation.
 
   (** [sim_rel] can be initialized from [Renv]. *)
   Lemma sim_rel_add: forall g_asm l_asm g_imp n v,
-      Renv g_asm g_imp ->
-      sim_rel l_asm n (g_asm, (alist_add (gen_tmp n) v l_asm, tt)) (g_imp, v).
+      Renv g_imp g_asm ->
+      sim_rel l_asm n  (g_imp, v) (g_asm, (alist_add (gen_tmp n) v l_asm, tt)).
   Proof.
     intros.
     split; [| split].
@@ -234,14 +297,14 @@ Section Simulation_Relation.
 
   (** [Renv] can be recovered from [sim_rel]. *)
   Lemma sim_rel_Renv: forall l_asm n s1 l v1 s2 v2,
-      sim_rel l_asm n (s1,(l,v1)) (s2,v2) -> Renv s1 s2.
+      sim_rel l_asm n (s2,v2) (s1,(l,v1)) -> Renv s2 s1 .
   Proof.
     intros ? ? ? ? ? ? ? H; apply H.
   Qed.
 
   Lemma sim_rel_find_tmp_n:
     forall l_asm g_asm' n l_asm' g_imp' v,
-      sim_rel l_asm n (g_asm', (l_asm', tt)) (g_imp',v) ->
+      sim_rel l_asm n  (g_imp',v) (g_asm', (l_asm', tt)) ->
       alist_In (gen_tmp n) l_asm' v.
   Proof.
     intros ? ? ? ? ? ? [_ [H _]]; exact H. 
@@ -252,7 +315,7 @@ Section Simulation_Relation.
   Lemma sim_rel_find_tmp_lt_n:
     forall l_asm g_asm' n m l_asm' g_imp' v,
       m < n ->
-      sim_rel l_asm n (g_asm', (l_asm', tt)) (g_imp',v) ->
+      sim_rel l_asm n (g_imp',v) (g_asm', (l_asm', tt)) ->
       alist_find (gen_tmp m) l_asm = alist_find (gen_tmp m) l_asm'.
   Proof.
     intros ? ? ? ? ? ? ? ineq [_ [_ H]].
@@ -269,8 +332,8 @@ Section Simulation_Relation.
 
   Lemma sim_rel_find_tmp_n_trans:
     forall l_asm n l_asm' l_asm'' g_asm' g_asm'' g_imp' g_imp'' v v',
-      sim_rel l_asm n (g_asm', (l_asm', tt)) (g_imp',v) ->
-      sim_rel l_asm' (S n) (g_asm'', (l_asm'', tt)) (g_imp'',v') ->
+      sim_rel l_asm n (g_imp',v) (g_asm', (l_asm', tt))  ->
+      sim_rel l_asm' (S n) (g_imp'',v') (g_asm'', (l_asm'', tt))  ->
       alist_In (gen_tmp n) l_asm'' v.
   Proof.
     intros.
@@ -282,8 +345,8 @@ Section Simulation_Relation.
    *)
   Lemma Renv_write_local:
     forall (k : Imp.var) (g_asm g_imp : alist var value) v,
-      Renv g_asm g_imp ->
-      Renv (alist_add k v g_asm) (alist_add k v g_imp).
+      Renv g_imp g_asm ->
+      Renv (alist_add k v g_imp) (alist_add k v g_asm).
   Proof.
     intros k m m' v HRel k' v'.
     unfold alist_add, alist_In; simpl.
@@ -298,12 +361,12 @@ Section Simulation_Relation.
 
   (** [sim_rel] can be composed when proving binary arithmetic operators. *)
   Lemma sim_rel_binary_op:
-    forall (l_asm l_asm' l_asm'' g_asm' g_asm'' g_imp' g_imp'' : alist var value)
+    forall (l_asm l_asm' l_asm'' : registers) (g_asm' g_asm'' : memory) (g_imp' g_imp'' : globals)
       (n v v' : nat)
-      (Hsim : sim_rel l_asm n (g_asm', (l_asm', tt)) (g_imp', v))
-      (Hsim': sim_rel l_asm' (S n) (g_asm'', (l_asm'', tt)) (g_imp'', v'))
+      (Hsim : sim_rel l_asm n (g_imp', v) (g_asm', (l_asm', tt)))
+      (Hsim': sim_rel l_asm' (S n) (g_imp'', v') (g_asm'', (l_asm'', tt)))
       (op: nat -> nat -> nat),
-      sim_rel l_asm n (g_asm'', (alist_add (gen_tmp n) (op v v') l_asm'', tt)) (g_imp'', op v v').
+      sim_rel l_asm n (g_imp'', op v v') (g_asm'', (alist_add (gen_tmp n) (op v v') l_asm'', tt)).
   Proof.
     intros.
     split; [| split].
@@ -353,42 +416,6 @@ End Simulation_Relation.
 Section Bisimulation.
 
 
-
-  
-  (*
-From Paco Require Import paco.  
-Lemma eutt_interp_state_R {E F: Type -> Type} {S R : Type}
-         (RR : R -> R -> Prop)
-         (RS : S -> S -> Prop) (H: Reflexive RS)
-         (RSR : forall R, (R -> R -> Prop) -> (S * R) -> (S * R) -> Prop)
-         (HRSR : forall x1 x2 y1 y2, (RS x1 x2 /\ RR y1 y2) <-> RSR R RR (x1, y1) (x2, y2))
-         (h : E ~> Monads.stateT S (itree F)) 
-         (HP : forall X, Proper (eq ==> RS ==> eutt (RSR X eq)) (@h X))
-  :
-  Proper (eutt RR ==> RS ==> eutt (RSR R RR)) (@State.interp_state E (itree F) S _ _ _ h R).
-Proof.
-  repeat intro. generalize dependent x. generalize dependent y. generalize dependent x0. revert y0.
-  ucofix CIH. red. ucofix CIH'. intros.
-
-  rewrite !unfold_interp_state. do 2 uunfold H2.
-  induction H2; intros; subst; simpl.
-  - constructor. apply HRSR. eauto.
-  - constructor.
-    uclo eutt0_clo_bind; econstructor.
-    eapply HP; eauto.
-    intros; subst.
-    ubase. eapply CIH'.
-    destruct v1. destruct v2. simpl in *. destruct (HRSR s s0 u0 u1).
-    simpl in RELv. tauto.
-    simpl in RELv. destruct RELv. rewrite H2.
-    edestruct EUTTK; eauto with paco.  
-  - econstructor. eauto 9 with paco.
-  - constructor. eutt0_fold.
-    rewrite unfold_interp_state; auto.
-  - constructor. eutt0_fold.
-    rewrite unfold_interp_state; auto.
-Qed.
-*)
   
   (** Definition of our bisimulation relation.
       As previously explained, it relates up-to-tau two [itree]s after having
@@ -407,32 +434,19 @@ Qed.
      from applying because 
    *)
 
-  Definition state_invariant {X} (a : alist var value * (alist var value * X)) (b : alist var value * X) :=
-    Renv (fst a) (fst b) /\ (snd (snd a)) = (snd b).
+  Definition state_invariant {X} (a : Imp.globals * X) (b : Asm.memory * (Asm.registers * X))  :=
+    Renv (fst a) (fst b) /\ (snd a) = (snd (snd b)).
   
-  Definition rel_stmt {A E} (t1 : itree (Locals +' Memory +' E) A) (t2 : itree (ImpState +' E) A) :=
+  Definition bisimilar {A E} (t1 : itree (ImpState +' E) A) (t2 : itree (Reg +' Memory +' E) A)  :=
     forall g_asm g_imp l,
-      Renv g_asm g_imp ->
+      Renv g_imp g_asm ->
       eutt state_invariant
-           (interp_asm t1 g_asm l)
-           (interp_imp t2 g_imp).
+           (interp_imp t1 g_imp)
+           (interp_asm t2 g_asm l).
               
-(*
-  Definition rel_stmt {R1 R2} (RR : (alist var value * R1) -> (alist var value * R2) -> Prop)
-             (Renv_ : _ -> _ -> Prop)
-             (t1: itree E R1) (t2: itree E R2): Prop :=
-    forall g1 g2 l1 l2,
-      Renv_ g1 g2 ->
-      eutt (* (fun '(g1', (l1', x1)) '(g2', (l2', x2))
-            => Renv_ g1' g2' /\ RR x1 x2) *)
-           (fun a b => Renv_ (fst a) (fst b) /\ RR (snd a) (snd b))
-           (interp_asm t1 g1 l1)
-           (interp_asm t2 g2 l2).
-*)
-
   (** [eq_locals] is compatible with [eutt]. *)
-  Global Instance eutt_rel_stmt  {A E}  :
-    Proper (eutt eq ==> eutt eq ==> iff) (@rel_stmt A E).
+  Global Instance eutt_bisimilar  {A E}  :
+    Proper (eutt eq ==> eutt eq ==> iff) (@bisimilar A E).
   Proof.
     repeat intro.
     split; repeat intro.
@@ -441,12 +455,12 @@ Qed.
   Qed.
 
   (** [eq_locals] commutes with [bind]  *)
-  Lemma rel_stmt_bind' {A B E} :
-    forall (t1 : itree (Locals +' Memory +' E) A) (t2 : itree (ImpState +' E) A),
-      rel_stmt t1 t2 ->
-      forall (k1 : A -> itree (Locals +' Memory +' E) B) (k2 : A -> itree (ImpState +' E) B)
-        (H: forall (a:A), rel_stmt (k1 a) (k2 a)),
-        rel_stmt (t1 >>= k1) (t2 >>= k2).
+  Lemma bisimilar_bind' {A B E} :
+    forall (t1 : itree (ImpState +' E) A) (t2 : itree (Reg +' Memory +' E) A) ,
+      bisimilar t1 t2 ->
+      forall (k1 : A -> itree (ImpState +' E) B) (k2 : A -> itree (Reg +' Memory +' E) B) 
+        (H: forall (a:A), bisimilar (k1 a) (k2 a)),
+        bisimilar (t1 >>= k1) (t2 >>= k2).
   Proof.
     repeat intro.
     rewrite interp_asm_bind.
@@ -454,141 +468,53 @@ Qed.
     eapply eutt_bind'.
     { eapply H; auto. }
     intros.
-    destruct r1 as [g1' [l1' x]]. 
-    destruct r2 as [g2' y].
+    destruct r1 as [? ?].
+    destruct r2 as [? [? ?]]. 
     unfold state_invariant in H2.
     simpl in H2. destruct H2. subst.
     eapply H0. apply H2.
   Qed.
 
-  Import ITree.Basics.Basics.
-  Import Monads.
-
-  
-  Definition state_eutt {E S X} : (stateT S (itree E) X) -> (stateT S (itree E) X) -> Prop :=
-    fun t1 t2 => forall s, eutt eq (t1 s) (t2 s).
-
-  Definition state_eq {E S X} : (stateT S (itree E) X) -> (stateT S (itree E) X) -> Prop :=
-    fun t1 t2 => forall s, eq_itree eq (t1 s) (t2 s).
-
-  Definition state_eq' {E S1 S2 X}  : (stateT S1 (stateT S2 (itree E)) X) -> (stateT S1 (stateT S2 (itree E)) X) -> Prop :=
-    fun t1 t2 => forall s1 s2, eq_itree eq (t1 s1 s2) (t2 s1 s2).
-
-  
-From Paco Require Import paco.  
-Require Import ITree.Events.State.
-
-Lemma interp_state_aloop {E F } S (f : E ~> stateT S (itree F)) {I A}
-      (t  : I -> itree E I + A)
-      (t' : I -> stateT S (itree F) I + A)
-      (EQ_t : forall i, sum_rel (fun u u' => state_eq (interp_state f u) u') eq (t i) (t' i))
-  : forall i,
-    state_eq (interp_state f (ITree.aloop t i))
-             (aloop t' i).
-Proof.
-  ucofix CIH; intros i s.
-  unfold aloop, ALoop_stateT0, aloop, ALoop_itree in *.
-  rewrite 2 unfold_aloop'. simpl.
-  destruct (EQ_t i); cbn.
-  - rewrite interp_state_tau, interp_state_bind.
-    constructor.
-    uclo eq_itree_clo_bind; econstructor; eauto.
-    intros [s' i'] _ []. simpl.
-    auto with paco.
-  - rewrite interp_state_ret. constructor; auto. subst; auto.
-Qed.
-
-
-  Lemma interp_state_loop : forall {I A B:Type} {E F} {S} (h : E ~> stateT S (itree F)) (t : ktree E (I + A) (I + B)) (a:A),
-        state_eq (State.interp_state h (KTree.loop t a)) (loop (fun ia => (State.interp_state h (t ia)) ) a).
-  Proof.
-    unfold state_eq.
-    intros.
-    unfold KTree.loop, loop.
-    cbn.
-    rewrite interp_state_bind.
-    apply eq_itree_bind; try reflexivity.
-    intros ?.
-    apply interp_state_aloop.
-    intros []; cbn; constructor.
-    unfold state_eq. intros. reflexivity.
-    reflexivity.
-  Qed.
-
-
-  Lemma interp_state_loop' : forall {I A B:Type} {E F} {S1 S2} (h : E ~> stateT S2 (itree F)) (t : (I + A) -> stateT S1 (itree E) (I + B)) (a:A),
-      state_eq' (fun s1 s2 => (State.interp_state h (loop t a s1) s2))
-                ((loop : ((I+A) -> stateT S1 (stateT S2 (itree F)) (I + B)) -> _ ) (fun ia s1 => (State.interp_state h (t ia s1)) ) a ).
-  Proof.
-    unfold state_eq'.
-    intros.
-    unfold loop.
-    cbn.
-    rewrite interp_state_bind.
-    apply eq_itree_bind; try reflexivity.
-    intros ?.
-    apply interp_state_aloop.
-    intros [s1' l]; cbn.
-    destruct l; cbn. 
-    - constructor.
-      unfold state_eq. intros. reflexivity.
-    - constructor. reflexivity.
-  Qed.
-  
+    
   (** [eq_locals] is compatible with [loop]. *)
-  Lemma rel_stmt_loop {A B C E} x
-        (t1 : C + A -> itree (Locals +' Memory +' E) (C + B))
-        (t2 : C + A -> itree (ImpState +' E) (C + B)) :
-    (forall l, rel_stmt (t1 l) (t2 l)) ->
-    rel_stmt (loop t1 x) (loop t2 x).
+  Lemma bisimilar_loop {A B C E} x
+        (t1 : C + A -> itree (ImpState +' E) (C + B)) 
+        (t2 : C + A -> itree (Reg +' Memory +' E) (C + B)) :
+    (forall l, bisimilar (t1 l) (t2 l)) ->
+    bisimilar (loop t1 x) (loop t2 x).
   Proof.
-    unfold rel_stmt, interp_asm, interp_imp, run_map.
+    unfold bisimilar, interp_asm, interp_imp, run_map.
     intros.
     setoid_rewrite interp_loop.
     pose proof @interp_state_loop.
     red in H1.
     setoid_rewrite H1.
-    pose proof @interp_state_loop'.
+    pose proof @interp_state_loop2.
     red in H2.
     setoid_rewrite H2.
     unfold loop. cbn.
-    unfold aloop. unfold ALoop_stateT0. unfold aloop.  unfold ALoop_itree.
+    unfold aloop. unfold ALoop_stateT0. unfold aloop. unfold ALoop_itree.
     eapply eutt_bind'.
     apply H. assumption.
     intros.
     eapply eutt_aloop' with (RI := state_invariant).
     2 : { destruct H3. red.  simpl. tauto. }
     
-    
     intros.
-    destruct H4. simpl in H5. setoid_rewrite <- H5.
-    destruct j1 as [m1 [m2 [a|a]]]; cbn.
+    destruct H4. setoid_rewrite H5.
+    destruct j2 as [m1 [m2 [a|a]]]; cbn.
 
     - constructor. eapply H. apply H4.
     - constructor. red. cbn in *. tauto.
   Qed.
-(*  
-    apply eutt_interp_state_R with (RR := (fun a b : (alist var value * B) => snd a = snd b)).
-    - typeclasses eauto.
-    - admit.
-    - repeat rewrite interp_loop.
-      apply eutt_interp_state_loop.
-      
-    About eutt_interp_state_loop.
-47    apply eutt_interp_state_loop.
-    apply eutt_interp_state.
-    About eutt_interp_state_loop.
-    About eutt_interp_state.
-  Qed.
-*)
 
   (** [sim_rel] at [n] entails that [GetVar (gen_tmp n)] gets interpreted
       as returning the same value as the _Imp_ related one.
    *)
   Lemma sim_rel_get_tmp0:
     forall {E} n l l' g_asm g_imp v,
-      sim_rel l' n (g_asm, (l,tt)) (g_imp,v) ->
-      eutt eq (interp_asm ((trigger (GetVar (gen_tmp n))) : itree (Locals +' Memory +' E) value)
+      sim_rel l' n (g_imp,v) (g_asm, (l,tt)) ->
+      eutt eq (interp_asm ((trigger (GetReg (gen_tmp n))) : itree (Reg +' Memory +' E) value)
                                        g_asm l)
            (Ret (g_asm, (l, v))).
   Proof.
@@ -599,7 +525,7 @@ Qed.
     rewrite tau_eutt.
     cbn.
     unfold run_map.
-    unfold evalLocals, CategoryOps.cat, Cat_Handler, Handler.cat. 
+    unfold eval_reg, CategoryOps.cat, Cat_Handler, Handler.cat. 
     unfold inl_, Inl_sum1_Handler, Handler.inl_, Handler.htrigger. cbn.
     unfold lookup_def; cbn.
     rewrite interp_bind.
@@ -656,7 +582,7 @@ Section Linking.
       denote_asm (if_asm e tp fp)
     ⩯ ((fun _ =>
          denote_list e ;;
-         v <- trigger (GetVar tmp_if) ;;
+         v <- trigger (GetReg tmp_if) ;;
          if v : value then denote_asm fp tt else denote_asm tp tt) : ktree _ _ _).
   Proof.
     unfold if_asm.
@@ -703,7 +629,7 @@ Opaque KTree.loop.
          match l with
          | inl tt =>
            denote_list e ;;
-           v <- ITree.trigger (inl1 (GetVar tmp_if)) ;;
+           v <- ITree.trigger (inl1 (GetReg tmp_if)) ;;
            if v : value then
              Ret (inr tt)
            else
@@ -777,10 +703,10 @@ Section Correctness.
    *)
   
   Lemma compile_expr_correct : forall {E} e g_imp g_asm l n,
-      Renv g_asm g_imp ->
+      Renv g_imp g_asm ->
       @eutt E _ _ (sim_rel l n)
-           (interp_asm (denote_list (compile_expr n e)) g_asm l)
-           (interp_imp (denoteExpr e) g_imp).
+            (interp_imp (denote_expr e) g_imp)
+            (interp_asm (denote_list (compile_expr n e)) g_asm l).
   Proof.
     induction e; simpl; intros.
     - (* Var case *)
@@ -893,9 +819,9 @@ Section Correctness.
       denoting the expression followed by setting the variable.
    *)
   Lemma compile_assign_correct : forall {E} e x,
-      rel_stmt 
-                ((denote_list (compile_assign x e)) : itree (Locals +' Memory +' E) unit)
-                ((v <- denoteExpr e ;; trigger (Imp.SetVar x v)) : itree (ImpState +' E) unit).
+      bisimilar 
+        ((v <- denote_expr e ;; trigger (Imp.SetVar x v)) : itree (ImpState +' E) unit)
+        ((denote_list (compile_assign x e)) : itree (Reg +' Memory +' E) unit).
   Proof.
     red; intros.
     unfold compile_assign.
@@ -926,13 +852,14 @@ Section Correctness.
     eapply Renv_write_local; eauto. eauto.
   Qed.
 
+  (*
   (* Utility: slight rephrasing of [while] to facilitate rewriting
      in the main theorem.*)
-  Lemma while_is_loop {E} (body : itree E bool) :
+  Lemma while_is_loop {E} (body : itree E (unit + unit)) :
     while body
           ≈ loop (fun l : unit + unit =>
                     match l with
-                    | inl _ => ITree.map (fun b => if b : bool then inl tt else inr tt) body
+                    | inl _ => body
                     | inr _ => Ret (inl tt)   (* Enter loop *)
                     end) tt.
   Proof.
@@ -943,7 +870,11 @@ Section Correctness.
     apply eutt_bind; try reflexivity.
     intros []; reflexivity.
   Qed.
+*)
 
+  Definition equivalent (s:stmt) (t:asm unit unit) : Prop :=
+    bisimilar (denote_stmt s) (denote_asm t tt).
+  
   (** Correctness of the compiler.
       After interpretation of the [Locals], the source _Imp_ statement
       denoted as an [itree] and the compiled _Asm_ program denoted
@@ -955,8 +886,7 @@ Section Correctness.
       in isolation.
    *)
   Theorem compile_correct (s : stmt) :
-    rel_stmt  (denote_asm (compile s) tt)
-              (denoteStmt s).
+    equivalent s (compile s).
   Proof.
     induction s.
 
@@ -967,8 +897,8 @@ Section Correctness.
       rewrite after_correct.
 
       (* The head trees match by correctness of assign *)
-      rewrite <- (bind_ret2 (ITree.bind (denoteExpr e) _)).
-      eapply rel_stmt_bind'.
+      rewrite <- (bind_ret2 (ITree.bind (denote_expr e) _)).
+      eapply bisimilar_bind'.
       { eapply compile_assign_correct; auto. }
 
       (* And remains to trivially relate the results *)
@@ -984,7 +914,7 @@ Section Correctness.
       rewrite seq_asm_correct. unfold to_itree.
 
       (* And the result is immediate by indcution hypothesis *)
-      eapply rel_stmt_bind'.
+      eapply bisimilar_bind'.
       { eauto. }
       intros []; auto.
 
@@ -1023,11 +953,10 @@ Section Correctness.
          _Imp_ [loop] with [while_is_loop] *)
       simpl; rewrite fold_to_itree.
       rewrite while_asm_correct.
-      rewrite while_is_loop.
       unfold to_itree.
 
       (* We now have loops on both side, so we can just reason about their bodies *)
-      apply rel_stmt_loop.
+      apply bisimilar_loop.
       (* The two cases correspond to entering the loop, or exiting it*)
       intros [[]|[]].
 
@@ -1040,7 +969,6 @@ Section Correctness.
 
       (* We now need to line up the evaluation of the test,
          and eliminate them by correctness of [compile_expr] *)
-      unfold ITree.map. rewrite bind_bind.
       repeat intro.
       rewrite interp_asm_bind.
       rewrite interp_imp_bind.
@@ -1049,13 +977,12 @@ Section Correctness.
 
       (* We get in return [sim_rel] related environments *)
       intros [g_asm' [l' x]] [g_imp' v] HSIM.
-      
-      rewrite interp_asm_bind.
-      rewrite interp_imp_bind.
-      
+
       (* We know that interpreting [GetVar tmp_if] is eutt to [Ret (g_asm,v)] *)
       generalize HSIM; intros EQ. eapply sim_rel_get_tmp0 in EQ.
       unfold tmp_if.
+
+      rewrite interp_asm_bind.
       rewrite EQ; clear EQ.
       rewrite bind_ret_; simpl.
 
@@ -1069,7 +996,7 @@ Section Correctness.
         unfold state_invariant. simpl. auto.
       + (* In the true case, we line up the body of the loop to use the induction hypothesis *)
         rewrite interp_asm_bind.
-        rewrite interp_imp_bind, bind_bind.
+        rewrite interp_imp_bind.
         eapply eutt_bind'.
         { eapply IHs; auto. }
         intros [g_asm'' [l'' x']] [g_imp'' v''] [HSIM' ?].

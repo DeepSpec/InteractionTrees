@@ -20,7 +20,7 @@
  *)
 
 (* begin hide *)
-Require Import Imp Asm Utils_tutorial.
+Require Import Asm Utils_tutorial.
 
 From Coq Require Import
      List
@@ -182,7 +182,7 @@ Section Correctness.
   (** We reason about the denotation of [asm] programs, we therefore
    need an appropriate domain of events [E]. *)
   Context {E : Type -> Type}.
-  Context {HasLocals : Locals -< E}.
+  Context {HasRegs : Reg -< E}.
   Context {HasMemory : Memory -< E}.
   Context {HasExit : Exit -< E}.
 

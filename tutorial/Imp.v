@@ -52,10 +52,10 @@ From ITree Require Import
      Events.Map
      StateFacts.
 
+
 Import MonadNotation.
 Local Open Scope monad_scope.
 Local Open Scope string_scope.
-
 (* end hide *)
 
 (* ================================================================= *)
@@ -71,9 +71,9 @@ Definition value : Type := nat.
 Inductive expr : Type :=
 | Var (_ : var)
 | Lit (_ : value)
-| Plus (_ _ : expr)
+| Plus  (_ _ : expr)
 | Minus (_ _ : expr)
-| Mult (_ _ : expr).
+| Mult  (_ _ : expr).
 
 (** The statements are straightforward. The [While] statement is the only
  potentially diverging one. *)
@@ -136,50 +136,49 @@ Import ImpNotations.
 (* ================================================================= *)
 (** ** Semantics *)
 
-(** _Imp_ produces effects by manipulating its variables.
-    To account for this, we define a type of _external interactions_
-    [ImpState] modeling reads and writes to variables.
+(** _Imp_ produces effects by manipulating its variables.  To account for this,
+    we define a type of _external interactions_ [ImpState] modeling reads and
+    writes to global variables.
+
     A read, [GetVar], takes a variable as an argument and expects the
     environment to answer with a value, hence defining an event of type
     [ImpState value].
-    Similarly, [SetVar] is a write event parameterized by both a variable
-    and a value to be written, and defines an event of type [ImpState unit],
-    no informative answer being expected from the environment.
- *)
+
+    Similarly, [SetVar] is a write event parameterized by both a variable and a
+    value to be written, and defines an event of type [ImpState unit], no
+    informative answer being expected from the environment.  *)
 Variant ImpState : Type -> Type :=
 | GetVar (x : var) : ImpState value
 | SetVar (x : var) (v : value) : ImpState unit.
 
 Section Denote.
 
-  (** We now proceed to denote _Imp_ expressions and statements.
-      We could simply fix in stone the universe of events to be considered,
-      taking as a semantic domain for _Imp_ [itree ImpState X].
-      That would be sufficient to give meaning to _Imp_, but is inconvenient
-      to relate this meaning to [itree]s stemmed from other entities.
-      Therefore, we parameterize the denotation of _Imp_ by a larger universe
-      of events [eff], of which [ImpState] is assumed to be a subevent.
-   *)
+  (** We now proceed to denote _Imp_ expressions and statements.  We could
+      simply fix in stone the universe of events to be considered, taking as a
+      semantic domain for _Imp_ [itree ImpState X].  That would be sufficient to
+      give meaning to _Imp_, but is inconvenient to relate this meaning to
+      [itree]s stemmed from other entities.  Therefore, we parameterize the
+      denotation of _Imp_ by a larger universe of events [eff], of which
+      [ImpState] is assumed to be a subevent.  *)
 
   Context {eff : Type -> Type}.
   Context {HasImpState : ImpState -< eff}.
 
   (** _Imp_ expressions are denoted as [itree eff value], where the returned
-      value in the tree is the value computed by the expression.
-      In the [Var] case, the [trigger] operator smoothly lifts a single event to
-      an [itree] by performing the corresponding [Vis] event and returning the
-      environment's answer immediately.
-      Usual monadic notations are used in the other cases. A constant
-      (literal) is simply returned, while we can [bind] recursive computations
-      in the case of operators as one would expect.
-   *)
-  Fixpoint denoteExpr (e : expr) : itree eff value :=
+      value in the tree is the value computed by the expression.  In the [Var]
+      case, the [trigger] operator smoothly lifts a single event to an [itree]
+      by performing the corresponding [Vis] event and returning the
+      environment's answer immediately.  Usual monadic notations are used in the
+      other cases. A constant (literal) is simply returned, while we can [bind]
+      recursive computations in the case of operators as one would expect.  *)
+
+  Fixpoint denote_expr (e : expr) : itree eff value :=
     match e with
-    | Var v => trigger (GetVar v)
-    | Lit n => ret n
-    | Plus a b => l <- denoteExpr a ;; r <- denoteExpr b ;; ret (l + r)
-    | Minus a b => l <- denoteExpr a ;; r <- denoteExpr b ;; ret (l - r)
-    | Mult a b => l <- denoteExpr a ;; r <- denoteExpr b ;; ret (l * r)
+    | Var v     => trigger (GetVar v)
+    | Lit n     => ret n
+    | Plus a b  => l <- denote_expr a ;; r <- denote_expr b ;; ret (l + r)
+    | Minus a b => l <- denote_expr a ;; r <- denote_expr b ;; ret (l - r)
+    | Mult a b  => l <- denote_expr a ;; r <- denote_expr b ;; ret (l * r)
     end.
 
   (** We turn to the denotation of statements. As opposed to expressions,
@@ -201,21 +200,19 @@ Section Denote.
       of _continuation trees_, named [ktree]s in the library, a structure of
       _traced monoidal category_.
 
-      We use [loop] to first build a new combinator [while] that takes a boolean
-      computation, runs it, and loops if it returns true, exits otherwise.
+      We use [loop] to first build a new combinator [while] that takes a step
+      of the loop (i.e. the loop guard 
    *)
 
-  Definition while {eff} (t : itree eff bool) : itree eff unit :=
+  Definition while {eff} (step : itree eff (unit + unit)) : itree eff unit :=
     loop 
       (fun l : unit + unit =>
          match l with
+         | inl _ => step
          | inr _ => ret (inl tt)
-         | inl _ => continue <- t ;;
-                   if continue : bool then ret (inl tt) else ret (inr tt)
          end) tt.
 
   (** Casting values into [bool]. *)
-
   Definition is_true (v : value) : bool := if (v =? 0)%nat then false else true.
 
   (** The meaning of statements is now easy to define.
@@ -223,30 +220,29 @@ Section Denote.
       [while] combinator over the computation that evaluates the conditional,
       and then the body if the former was true.
    *)
-  Fixpoint denoteStmt (s : stmt) : itree eff unit :=
+  Fixpoint denote_stmt (s : stmt) : itree eff unit :=
     match s with
-    | Assign x e =>
-      v <- denoteExpr e ;;
-      trigger (SetVar x v)
-    | Seq a b =>
-      denoteStmt a ;; denoteStmt b
-    | If i t e =>
-      v <- denoteExpr i ;;
-      if is_true v then denoteStmt t else denoteStmt e
+    | Assign x e =>  v <- denote_expr e ;; trigger (SetVar x v)
+    | Seq a b    =>  denote_stmt a ;; denote_stmt b
+    | If i t e   =>
+      v <- denote_expr i ;;
+      if is_true v then denote_stmt t else denote_stmt e
+
     | While t b =>
-      while (v <- denoteExpr t ;;
-	     if is_true v
-               then denoteStmt b ;; ret true
-               else ret false)
+      while (v <- denote_expr t ;;
+	       if is_true v
+               then denote_stmt b ;; ret (inl tt)
+               else ret (inr tt))
+
     | Skip => ret tt
     end.
 
 End Denote.
 
 (* ================================================================= *)
-(** ** Factorial *)
+(** ** EXAMPLE: Factorial *)
 
-Section Denote_Fact.
+Section Example_Fact.
 
   (** We briefly illustrate the language by writing the traditional factorial. *)
 
@@ -262,14 +258,14 @@ Section Denote_Fact.
     DO output ← output * input;;;
        input  ← input - 1.
 
-  (** We have given _a_ notion of denotation to [fact 6] via [denoteStmt].
+  (** We have given _a_ notion of denotation to [fact 6] via [denote_stmt].
       However this is naturally not actually runnable yet, since it contains
       uninterpreted [ImpState] events.
       We therefore now need to _handle_ the events contained
       in the trees, i.e. give a concrete interpretation of the environment.
    *)
 
-End Denote_Fact.
+End Example_Fact.
 
 (* ================================================================= *)
 (** ** Interpretation *)
@@ -282,28 +278,6 @@ From ExtLib Require Import
      Core.RelDec
      Structures.Maps
      Data.Map.FMapAList.
-(* end hide *)
-
-(** We provide an _ITree event handler_ to interpret away [ImpState] events.
-    We use an _environment event_ to do so, modeling the environment as
-    a 0-initialized environment.
-    Recall from [Introduction.v] that a _handler_ for the events [ImpState]
-    is a function of type [forall R, ImpState R -> M R] for some monad [M].
-    Here we take for our monad the special case of [M = itree E] for some
-    universe of events [E] required to contain the environment events [mapE]
-    provided by the library. It comes with an event handler [run_map]
-    interpreting the computation into the state monad.
- *)
-
-Definition evalImpState {E: Type -> Type} `{mapE var value -< E}: ImpState ~> itree E :=
-  fun _ e =>
-    match e with
-    | GetVar x => lookup_def x 0
-    | SetVar x v => insert x v
-    end.
-
-(** We now concretely implement this environment using ExtLib's finite maps. *)
-Definition env := alist var value.
 
 (** These enable typeclass instances for Maps keyed by strings and values *)
 Instance RelDec_string : RelDec (@eq string) :=
@@ -317,22 +291,44 @@ Proof.
     destruct (string_dec x y) eqn:EQ; [intros _; apply string_dec_sound; assumption | intros abs; inversion abs].
   - intros EQ; apply string_dec_sound in EQ; unfold rel_dec; simpl; rewrite EQ; reflexivity.
 Qed.
+(* end hide *)
+
+(** We provide an _ITree event handler_ to interpret away [ImpState] events.
+    We use an _environment event_ to do so, modeling the environment as
+    a 0-initialized environment.
+    Recall from [Introduction.v] that a _handler_ for the events [ImpState]
+    is a function of type [forall R, ImpState R -> M R] for some monad [M].
+    Here we take for our monad the special case of [M = itree E] for some
+    universe of events [E] required to contain the environment events [mapE]
+    provided by the library. It comes with an event handler [run_map]
+    interpreting the computation into the state monad.
+ *)
+Definition eval_imp_state {E: Type -> Type} `{mapE var value -< E}: ImpState ~> itree E :=
+  fun _ e =>
+    match e with
+    | GetVar x => lookup_def x 0
+    | SetVar x v => insert x v
+    end.
+
+(** We now concretely implement this environment using ExtLib's finite maps. *)
+Definition globals := alist var value.
 
 (** Finally, we can define an evaluator for our statements.
    To do so, we first denote them, leading to an [itree ImpState unit].
-   We then [interp]ret [ImpState] into [mapE] using [evalImpState], leading to
+   We then [interp]ret [ImpState] into [mapE] using [eval_imp_state], leading to
    an [itree (mapE var value) unit].
    Finally, [run_map] interprets the latter [itree] into the state monad,
-   resulting in an [itree] free of any event, but returning an environment.
+   resulting in an [itree] free of any event, but returning the final
+   _Imp_ globals.
  *)
 
-Definition interp_imp  {E A} (t : itree (ImpState +' E) A) globals :=
-  let t' := interp (bimap evalImpState (id_ E)) t in
-  run_map t' globals.
+Definition interp_imp  {E A} (t : itree (ImpState +' E) A) (g:globals) :=
+  let t' := interp (bimap eval_imp_state (id_ E)) t in
+  run_map t' g.
 
 
-Definition ImpEval (s: stmt) : itree void1 (env * unit) :=
-  interp_imp (denoteStmt s) empty.
+Definition ImpEval (s: stmt) : itree void1 (globals * unit) :=
+  interp_imp (denote_stmt s) empty.
 
 (** Equipped with this evaluator, we can now compute.
     Naturally since Coq is total, we cannot do it directly inside of it.
@@ -340,21 +336,28 @@ Definition ImpEval (s: stmt) : itree void1 (env * unit) :=
  *)
 Compute (burn 200 (ImpEval (fact "x" "y" 6))). 
 
-(** We now turn to our target language, in file [Asm].v *)
+
 
 Section InterpImpProperties.
+  (** We can lift the underlying equational theory on [itree]s to include new
+      equations for working with [interp_imp].  
+
+      In particular, we have:
+         - [interp_imp] respects [≈] 
+         - [interp_imp] commutes with [bind].  
+
+      We could justify more equations than just the ones below.  For instance,
+      _Imp_ programs also respect a coarser notation of equivalence for the 
+      [globals] state.
+   *)
+
+
   Context {E': Type -> Type}.
   Notation E := (ImpState +' E').
 
-  (* (** [interp_locals] handle [Locals] into the [mapE] events, and then *)
-  (*     run these events into the state monad. *) *)
-  (* Definition interp_locals {R: Type} (t: itree E R) (s: alist var value) *)
-  (*   : itree E' (alist var value * R) := *)
-  (*   run_map (interp (bimap evalLocals (id_ _)) t) s. *)
-
   (** This interpreter is compatible with the equivalence-up-to-tau. *)
   Global Instance eutt_interp_imp {R}:
-    Proper (@eutt E R R eq ==> eq ==> @eutt E' (prod (alist var value) R) (prod _ R) eq)
+    Proper (@eutt E R R eq ==> eq ==> @eutt E' (prod (globals) R) (prod _ R) eq)
            interp_imp.
   Proof.
     repeat intro.
@@ -364,18 +367,17 @@ Section InterpImpProperties.
     rewrite H. reflexivity.
   Qed.
 
-  (** [interp_asm] commutes with [bind]. *)
-  Lemma interp_imp_bind: forall {R S} (t: itree E R) (k: R -> itree _ S) (g : alist var value),
-      @eutt E' _ _ eq
-            (interp_imp (ITree.bind t k) g)
-            (ITree.bind (interp_imp t g) (fun '(g',  x) => interp_imp (k x) g')).
+  (** [interp_imp] commutes with [bind]. *)
+  Lemma interp_imp_bind: forall {R S} (t: itree E R) (k: R -> itree E S) (g : globals),
+      (interp_imp (ITree.bind t k) g)
+    ≅ (ITree.bind (interp_imp t g) (fun '(g',  x) => interp_imp (k x) g')).
   Proof.
     intros.
     unfold interp_imp.
     unfold run_map.
     repeat rewrite interp_bind.
     repeat rewrite interp_state_bind.
-    apply eutt_bind. red. intros.
+    apply eq_itree_bind. red. intros.
     destruct a as [g'  x].
     simpl.
     reflexivity.
@@ -383,3 +385,7 @@ Section InterpImpProperties.
   Qed.
 
 End InterpImpProperties.
+
+
+
+(** We now turn to our target language, in file [Asm].v *)
