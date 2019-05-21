@@ -717,7 +717,7 @@ Section Correctness.
       apply eutt_ret.
       (* On the _Asm_ side, we bind to [gen_tmp n] a lookup to [varOf v] *)
       (* On the _Imp_ side, we return the value of a lookup to [varOf v] *)
-      erewrite <- Renv_find; [| eassumption].
+      erewrite Renv_find; [| eassumption].
       apply sim_rel_add; assumption.
 
     - (* Literal case *)
@@ -739,7 +739,7 @@ Section Correctness.
       eapply eutt_bind'.
       { eapply IHe1; assumption. }
       (* We obtain new related environments *)
-      intros [g_asm' [l' []]] [g_imp' v] HSIM.
+      intros [g_imp' v] [g_asm' [l' []]] HSIM.
       (* The Induction hypothesis on [e2] relates the second itrees *)
       rewrite interp_asm_bind.
       rewrite interp_imp_bind.
@@ -747,7 +747,7 @@ Section Correctness.
       { eapply IHe2.
         eapply sim_rel_Renv; eassumption. }
       (* And we once again get new related environments *)
-      intros [g_asm'' [l'' []]] [g_imp'' v'] HSIM'.
+      intros [g_imp'' v'] [g_asm'' [l'' []]] HSIM'.
       (* We can now reduce down to Ret constructs that remains to be related *)
       tau_steps.
       apply eutt_ret.
@@ -767,7 +767,7 @@ Section Correctness.
       eapply eutt_bind'.
       { eapply IHe1; assumption. }
       (* We obtain new related environments *)
-      intros [g_asm' [l' []]] [g_imp' v] HSIM.
+      intros [g_imp' v] [g_asm' [l' []]] HSIM.
       (* The Induction hypothesis on [e2] relates the second itrees *)
       rewrite interp_asm_bind.
       rewrite interp_imp_bind.
@@ -775,7 +775,7 @@ Section Correctness.
       { eapply IHe2.
         eapply sim_rel_Renv; eassumption. }
       (* And we once again get new related environments *)
-      intros [g_asm'' [l'' []]] [g_imp'' v'] HSIM'.
+      intros [g_imp'' v'] [g_asm'' [l'' []]]  HSIM'.
       (* We can now reduce down to Ret constructs that remains to be related *)
       tau_steps.
       apply eutt_ret.
@@ -795,7 +795,7 @@ Section Correctness.
       eapply eutt_bind'.
       { eapply IHe1; assumption. }
       (* We obtain new related environments *)
-      intros [g_asm' [l' []]] [g_imp' v] HSIM.
+      intros [g_imp' v] [g_asm' [l' []]] HSIM.
       (* The Induction hypothesis on [e2] relates the second itrees *)
       rewrite interp_asm_bind.
       rewrite interp_imp_bind.
@@ -803,7 +803,7 @@ Section Correctness.
       { eapply IHe2.
         eapply sim_rel_Renv; eassumption. }
       (* And we once again get new related environments *)
-      intros [g_asm'' [l'' []]] [g_imp'' v'] HSIM'.
+      intros [g_imp'' v'] [g_asm'' [l'' []]] HSIM'.
       (* We can now reduce down to Ret constructs that remains to be related *)
       tau_steps.
       apply eutt_ret.
@@ -837,7 +837,7 @@ Section Correctness.
     { eapply compile_expr_correct; eauto. }
 
     (* Once again, we get related environments *)
-    intros [g_asm' [l' y]] [g_imp' v] HSIM.
+    intros [g_imp' v]  [g_asm' [l' y]] HSIM.
     simpl in HSIM.
     
     (* We can now reduce to Ret constructs *)
@@ -888,6 +888,7 @@ Section Correctness.
   Theorem compile_correct (s : stmt) :
     equivalent s (compile s).
   Proof.
+    unfold equivalent.
     induction s.
 
     - (* Assign *)
@@ -933,7 +934,7 @@ Section Correctness.
       { apply compile_expr_correct; auto. }
 
       (* We get in return [sim_rel] related environments *)
-      intros [g_asm' [l' x]] [g_imp' v] HSIM.
+      intros [g_imp' v] [g_asm' [l' x]] HSIM.
 
       (* We know that interpreting [GetVar tmp_if] is eutt to [Ret (g_asm,v)] *)
       generalize HSIM; intros EQ.  eapply sim_rel_get_tmp0 in EQ.
@@ -976,7 +977,7 @@ Section Correctness.
       { apply compile_expr_correct; auto. }
 
       (* We get in return [sim_rel] related environments *)
-      intros [g_asm' [l' x]] [g_imp' v] HSIM.
+      intros [g_imp' v] [g_asm' [l' x]] HSIM.
 
       (* We know that interpreting [GetVar tmp_if] is eutt to [Ret (g_asm,v)] *)
       generalize HSIM; intros EQ. eapply sim_rel_get_tmp0 in EQ.
@@ -999,7 +1000,7 @@ Section Correctness.
         rewrite interp_imp_bind.
         eapply eutt_bind'.
         { eapply IHs; auto. }
-        intros [g_asm'' [l'' x']] [g_imp'' v''] [HSIM' ?].
+        intros [g_imp'' v''] [g_asm'' [l'' x']] [HSIM' ?].
         force_right; force_left.
         apply eutt_ret; simpl; split; auto. 
 
