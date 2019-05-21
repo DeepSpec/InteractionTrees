@@ -246,7 +246,7 @@ Section Correctness.
     denote_asm (raw_asm b) ⩯ (fun a => denote_block (b a)).
   Proof.
     unfold denote_asm; cbn.
-    rewrite vanishing_sktree.
+    rewrite loop_vanishing_1.
     rewrite unit_l'_id_sktree.
     rewrite unit_l_id_sktree.
     rewrite cat_id_l, cat_id_r.
@@ -553,20 +553,19 @@ Section Correctness.
        [loop_loop] is the second _vanishing_ law.
      *)
     match goal with | |- ?x ⩯ _ => set (lhs := x) end.
-    rewrite bimap_sktree_loop. (* a loop superposed atop another diagram can englob the latter *)
-    rewrite loop_bimap_sktree. (* as well as if the loop is under... But it takes a bit more rewiring! *)
-    rewrite <- compose_sloop.   (* a loop append to diagrams can swallow them... *)
-    rewrite <- sloop_compose.   (* ... from either side. *)
-    rewrite sloop_sloop.       (* Finally, two nested loop can be combined. *)
+    rewrite loop_superposing.   (* a loop superposed atop another diagram can englob the latter *)
+    rewrite loop_superposing_2. (* as well as if the loop is under... But it takes a bit more rewiring! *)
+    rewrite loop_natural_left.  (* a loop append to diagrams can swallow them... *)
+    rewrite loop_natural_right. (* ... from either side. *)
+    rewrite loop_vanishing_2.   (* Finally, two nested loop can be combined. *)
 
     (* Remain now to relate the bodies of the loops on each side. *)
     (* First by some more equational reasoning. *)
 
-    rewrite <- (sloop_rename_internal' swap swap).
-    2: apply swap_involutive; typeclasses eauto.
+    rewrite <- (loop_dinatural' swap swap) by apply swap_involutive.
     subst lhs.
-    apply eq_sktree_sloop.
-    rewrite !cat_assoc; try typeclasses eauto.
+    apply Proper_loop.
+    rewrite !cat_assoc.
     repeat rewrite <- (cat_assoc _ _ (bimap (denote_b _) (denote_b _) >>> _)).
     cbn. rewrite relabel_bks_correct, app_bks_correct.
     rewrite cat_assoc.
@@ -593,8 +592,8 @@ Section Correctness.
     (* rewrite loop_natural_left, loop_natural_right.
     apply Proper_loop.
     *)
-    rewrite <- compose_sloop, <- sloop_compose.
-    apply eq_sktree_sloop.
+    rewrite loop_natural_left, loop_natural_right.
+    apply Proper_loop.
     rewrite !bimap_id_slift.
     reflexivity.
   Qed.
@@ -606,8 +605,8 @@ Section Correctness.
     denote_asm (link_asm ab) ⩯ sloop (denote_asm ab).
   Proof.
     unfold denote_asm.
-    rewrite sloop_sloop.
-    apply eq_sktree_sloop.
+    rewrite loop_vanishing_2.
+    apply Proper_loop.
     simpl.
     rewrite relabel_bks_correct.
     rewrite <- assoc_l_sktree, <- assoc_r_sktree.

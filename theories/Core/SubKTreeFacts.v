@@ -686,22 +686,17 @@ Section Facts.
 
   End MonoidalCategoryLaws.
 
-  Section TracedCategoryLaws.
+  Section IterativeCategoryLaws.
 
     (* This proof is weirdly low level, some other proper instances migth be missing *)
-    Global Instance eq_sktree_sloop {I A B} :
-      Proper (eq2 ==> eq2) (@sloop _ _ _ _ E I A B).
+    Instance eq_sktree_iter {A B} :
+      @Proper (sktree A (isum A B) -> sktree A B) (eq2 ==> eq2) SubKTree.iter.
     Proof.
-      repeat intro.
-      unfold sloop.
-      epose proof (Proper_loop (sum_isuml >>> x >>> isum_suml)) as Pl.
-      eapply Pl.
-      intros ?.
-      unfold cat, Cat_ktree, ITree.cat.
-      rewrite 2 bind_bind.
-      apply eqit_bind; [intros ?| reflexivity].
-      apply eqit_bind; [intros ?; reflexivity|].
-      apply H.
+      intros f g H.
+      unfold iter, Iter_sktree.
+      eapply eq2_ktree_iter.
+      rewrite H.
+      reflexivity.
     Qed.
 
     Global Instance eq_sktree_compose {A B C} :
@@ -712,173 +707,56 @@ Section Facts.
       reflexivity.
     Qed.
 
-    Global Instance Proper_case_ {A B C} :
-      @Proper (sktree A C -> sktree B C -> _)
-              (eq2 ==> eq2 ==> eq2) case_.
+    Instance IterUnfold_sktree : IterUnfold sktree isum.
     Proof.
-      intros x x' EQx y y' EQy z.
-      unfold case_, Case_sktree.
-      unfold cat, Cat_ktree, ITree.cat.
-      apply eqit_bind; [intros ab| reflexivity].
-      destruct ab as [a | b].
-      rewrite (EQx a); reflexivity.
-      rewrite (EQy b); reflexivity.
-    Qed.
-
-    Lemma compose_sloop {I A B C}
-          (bc_: sktree (isum I B) (isum I C)) (ab: sktree A B) :
-      sloop (bimap (id_ _) ab >>> bc_)
-    ⩯ ab >>> sloop bc_.
-    Proof with try typeclasses eauto.
-      unfold_sktree.
-      unfold sloop.
-      rewrite loop_natural_left.
-      rewrite <- cat_assoc...
-      rewrite unfold_bimap.
-      rewrite <- 2 (cat_assoc sum_isuml _ _), semi_iso, cat_id_l...
-      repeat rewrite cat_assoc...
+      red; intros.
+      unfold iter, Iter_sktree, case_, Case_sktree.
+      rewrite iter_unfold at 1.
+      rewrite cat_assoc.
       reflexivity.
     Qed.
 
-    Lemma sloop_compose {I A B B'}
-          (ab_: sktree (isum I A) (isum I B)) (bc: sktree B B') :
-      sloop (ab_ >>> bimap (id_ _) bc)
-    ⩯ sloop ab_ >>> bc.
-    Proof with try typeclasses eauto.
-      unfold_sktree.
-      unfold sloop.
-      rewrite loop_natural_right.
-      rewrite <- cat_assoc...
-      rewrite cat_assoc...
-      rewrite unfold_bimap.
-      rewrite (cat_assoc _ sum_isuml _), semi_iso, cat_id_r...
-      repeat rewrite cat_assoc...
-      reflexivity.
-    Qed.
-
-    Lemma sloop_rename_internal {I J A B}
-          (ab_: sktree (isum I A) (isum J B)) (ji: sktree J I) :
-      sloop (ab_ >>> bimap ji (id_ _))
-    ⩯ sloop (bimap ji (id_ _) >>> ab_).
-    Proof with try typeclasses eauto.
-      unfold_sktree; unfold sloop.
-      rewrite 2 cat_assoc...
-      rewrite unfold_bimap.
-      rewrite (cat_assoc _ sum_isuml _), semi_iso, cat_id_r...
-      rewrite <- 3 cat_assoc...
-      rewrite loop_dinatural.
-      rewrite unfold_bimap_l.
-      repeat rewrite cat_assoc...
-      reflexivity.
-    Qed.
-
-    Lemma sloop_rename_internal' {I J A B}
-          (ij : sktree I J) (ji: sktree J I)
-          (ab_: sktree (isum I A) (isum I B)) :
-      (ij >>> ji) ⩯ id_ _ ->
-      sloop (bimap ji (id_ _) >>> ab_ >>> bimap ij (id_ _))
-    ⩯ sloop ab_.
-    Proof with try typeclasses eauto.
-      unfold_sktree; unfold sloop.
-      intros H.
-      rewrite <- (loop_dinatural' _ _ _ H).
-      rewrite 2 unfold_bimap.
-      rewrite <- 4 (cat_assoc sum_isuml _ _), semi_iso, cat_id_l...
-      rewrite 4 cat_assoc, semi_iso, cat_id_r... 
-      repeat rewrite cat_assoc...
-      reflexivity.
-    Qed.
-
-    Lemma vanishing_sktree {A B: i} (f: sktree (isum iI A) (isum iI B)) :
-      sloop f ⩯ unit_l' >>> f >>> unit_l.
-    Proof with try typeclasses eauto.
-      unfold_sktree; unfold sloop.
-      rewrite unfold_unit_l, unfold_unit_l'.
-      rewrite <- cat_assoc...
-      rewrite 3 (cat_assoc unit_l' _ _)...
-      rewrite <- loop_vanishing_1.
-      repeat rewrite (cat_assoc (bimap _ _) _ _).
-      rewrite <- loop_dinatural.
-      repeat rewrite cat_assoc...
-      rewrite bimap_cat, semi_iso, cat_id_l, bimap_id, cat_id_r...
-      reflexivity.
-    Qed.
-
-    Lemma sloop_sloop {I J A B} (ab__: sktree (isum I (isum J A)) (isum I (isum J B))) :
-      sloop (sloop ab__)
-    ⩯ sloop (assoc_r >>> ab__ >>> assoc_l).
-    Proof with try typeclasses eauto.
-      unfold_sktree; unfold sloop.
-      rewrite loop_natural_left, loop_natural_right.
-      rewrite loop_vanishing_2.
-      match goal with |- _ ⩯ ?f => set (g := f) end.
-      rewrite 4 cat_assoc...
-      rewrite <- (cat_assoc isum_suml _ assoc_l).
-      rewrite unfold_swap_assoc_l.
-      repeat rewrite <- cat_assoc...
-      rewrite loop_dinatural.
-      subst g.
-      rewrite unfold_swap_assoc_r.
-      repeat rewrite <- cat_assoc...
-      rewrite bimap_cat, semi_iso, cat_id_r...
-      rewrite bimap_id, cat_id_l... 
-      reflexivity.
-    Qed.
-
-    Lemma bimap_sktree_loop {I A B C D}
-          (ab : sktree (isum I A) (isum I B)) (cd : sktree C D) :
-      bimap (sloop ab) cd
-    ⩯ sloop (assoc_l >>> bimap ab cd >>> assoc_r).
-    Proof with try typeclasses eauto.
-      unfold_sktree; unfold sloop.
-      repeat rewrite unfold_bimap.
-      rewrite loop_superposing.
-      rewrite loop_natural_left, loop_natural_right.
-      rewrite unfold_assoc_r, unfold_assoc_l.
-      repeat rewrite <- cat_assoc...
-      rewrite semi_iso, cat_id_l...
-      rewrite (cat_assoc _ (sum_isuml) _), semi_iso, cat_id_r...
-      rewrite (cat_assoc _ (sum_isuml) _), semi_iso, cat_id_r...
-      rewrite (cat_assoc _ (sum_isuml) _), semi_iso, cat_id_r...
-      rewrite (cat_assoc _ (bimap _ _) (bimap _ _) ), bimap_cat...
-      rewrite (cat_assoc _ (bimap _ _) (bimap _ _) ), bimap_cat...
-      rewrite cat_id_l, cat_id_r...
-      repeat rewrite cat_assoc...
-      reflexivity.
-    Qed.
-
-    (* The automation in this proof is slightly brutal... *)
-    Lemma loop_bimap_sktree {I A B C D}
-          (ab : sktree A B) (cd : sktree (isum I C) (isum I D)) :
-      bimap ab (sloop cd)
-    ⩯ sloop (assoc_l >>> bimap swap (id_ _)
-                     >>> assoc_r
-                     >>> bimap ab cd
-                     >>> assoc_l >>> bimap swap (id_ _) >>> assoc_r).
+    Instance IterNatural_sktree : IterNatural sktree isum.
     Proof.
-      unfold_sktree; unfold sloop.
-      rewrite unfold_bimap.
-      rewrite loop_bimap_ktree.
-      rewrite loop_natural_left, loop_natural_right.
-      repeat (rewrite unfold_assoc_l || rewrite unfold_assoc_r || rewrite unfold_swap || rewrite unfold_bimap).
-      repeat rewrite cat_assoc.
-      repeat (rewrite <- (cat_assoc sum_isuml isum_suml _), (semi_iso _ _), cat_id_l).
-      repeat (rewrite <- (cat_assoc (bimap _ _) (bimap _ _) _), bimap_cat).
-      rewrite !cat_id_r. rewrite !cat_id_l.
-      repeat rewrite cat_assoc.
-      rewrite (semi_iso _ _), cat_id_r.
-      reflexivity.
+      red; intros.
+      unfold cat, Cat_sktree, iter, Iter_sktree.
+      rewrite iter_natural. rewrite unfold_bimap.
+      rewrite 2 (cat_assoc _ _ isum_suml), (semi_iso _ _), cat_id_r.
+      rewrite <- cat_assoc; reflexivity.
     Qed.
 
-    Lemma yanking_sktree {A: i}:
-      @sloop _ _ _ _ E _ _ _ swap ⩯ id_ A.
+    Instance IterDinatural_sktree : IterDinatural sktree isum.
     Proof.
-      unfold_sktree; unfold sloop.
-      rewrite <- loop_yanking.
-      rewrite unfold_swap.
+      red; intros.
+      unfold cat, Cat_sktree, case_, Case_sktree, inr_, Inr_sktree, iter, Iter_sktree.
+      rewrite 2 cat_assoc, cat_case, cat_assoc, (semi_iso _ _), cat_id_r.
+      rewrite <- cat_assoc.
+      rewrite iter_dinatural.
+      rewrite !cat_assoc.
+      rewrite cat_case, cat_assoc, (semi_iso _ _), cat_id_r.
       reflexivity.
     Qed.
 
-  End TracedCategoryLaws.
+    Instance IterCodiagonal_sktree : IterCodiagonal sktree isum.
+    Proof.
+      red; intros.
+      unfold cat, Cat_sktree, case_, Case_sktree, inl_, Inl_sktree, iter, Iter_sktree.
+      rewrite iter_natural.
+      rewrite iter_codiagonal.
+      rewrite cat_assoc, bimap_case, cat_id_l, cat_id_r.
+      symmetry.
+      rewrite 2 cat_assoc.
+      rewrite cat_case, cat_assoc, (semi_iso _ _), cat_id_r.
+      unfold id_, Id_sktree. rewrite cat_id_l.
+      rewrite cat_assoc.
+      reflexivity.
+    Qed.
+
+    Global Instance Conway_sktree : Conway sktree isum.
+    Proof.
+      split; typeclasses eauto.
+    Qed.
+
+  End IterativeCategoryLaws.
 
 End Facts.

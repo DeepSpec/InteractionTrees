@@ -1071,7 +1071,7 @@ Proof.
   assumption.
 Qed.
 
-Lemma loop_bimap_ktree {a b c d e}
+Lemma loop_superposing_2 {a b c d e}
       (ab : C a b) (cd : C (bif e c) (bif e d))
   : bimap ab (loop cd)
   ⩯ loop (assoc_l >>> bimap swap (id_ _)

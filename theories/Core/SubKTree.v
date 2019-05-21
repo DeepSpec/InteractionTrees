@@ -126,12 +126,15 @@ Section SubK.
     Global Instance Inr_sktree : CoprodInr sktree isum :=
       fun _ _ => inr_ >>> sum_isuml.
 
-    (** Traced monoidal category *)
-    Definition sloop {A B C : i}
-               (body : sktree (isum C A) (isum C B)) :
-      sktree A B :=
-      loop (sum_isuml >>> body >>> isum_suml). 
+    Global Instance Iter_sktree : Iter sktree isum :=
+      fun A B (f : ktree E (F A) (F (isum A B))) =>
+        iter (f >>> isum_suml) : ktree E (F A) (F B).
 
   End Operations.
 
 End SubK.
+
+Notation iter := (@CategoryOps.iter _ (sktree _) _ _ _ _).
+
+(** Traced monoidal category *)
+Notation sloop := (@CategoryOps.loop _ (sktree _) _ _ _ _ _ _ _ _ _ _).

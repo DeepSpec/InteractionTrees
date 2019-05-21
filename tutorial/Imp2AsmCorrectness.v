@@ -475,21 +475,6 @@ Section Linking.
   Context {HasExit: Exit -< E'}.
   Notation E := (Locals +' E').
 
-Theorem cat_from_sloop {E A B C} (ab : sktree E A B) (bc : sktree E B C) :
-  sloop (swap >>> bimap ab bc) ⩯ ab >>> bc.
-Proof with try typeclasses eauto.
-  rewrite bimap_slide...
-  rewrite <- cat_assoc...
-  rewrite sloop_compose...
-  rewrite swap_bimap...
-  rewrite <- !cat_assoc...
-  rewrite swap_involutive, cat_id_l...
-  rewrite compose_sloop...
-  rewrite yanking_sktree...
-  rewrite cat_id_r...
-  reflexivity.
-Qed.
-
   (** [seq_asm] is denoted as the (horizontal) composition of denotations. *)
   Lemma seq_asm_correct {A B C} (ab : asm A B) (bc : asm B C) :
       denote_asm (seq_asm ab bc)
@@ -500,7 +485,7 @@ Qed.
     rewrite <- lift_sktree_id, cat_assoc.
     rewrite cat_id_r.
     rewrite sym_sktree_unfold.
-    apply cat_from_sloop.
+    apply cat_from_loop.
   Qed.
 
   (** [if_asm] is denoted as the ktree first denoting the branching condition,
@@ -572,13 +557,13 @@ Qed.
       reflexivity.
   Qed.
 
-Opaque sloop.
+Opaque loop.
 
   (** [while_asm] is denoted as the loop of the body with two entry point, the exit
       of the loop, and the body in which we have the same structure as for the conditional *)
    Lemma while_asm_correct (e : list instr) (p : asm 1 1) :
       denote_asm (while_asm e p)
-    ⩯ @sloop _ _ _ _ _ 1 1 1 (fun l: F 2 =>
+    ⩯ sloop (fun l: F (1 + 1) =>
          match l with
          | F1 =>
            denote_list e ;;
@@ -592,7 +577,7 @@ Opaque sloop.
   Proof.
     unfold while_asm.
     rewrite link_asm_correct.
-    apply eq_sktree_sloop.
+    apply Proper_loop.
     rewrite relabel_asm_correct.
     rewrite <- lift_sktree_id, cat_id_l.
     rewrite app_asm_correct.
