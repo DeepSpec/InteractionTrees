@@ -154,6 +154,29 @@ Proof.
   - rewrite tau_eutt, unfold_interp. auto.
 Qed.
 
+Instance euttge_interp (E F : Type -> Type)
+  : @Proper (Handler E F -> (itree E ~> itree F))
+            (i_pointwise (fun _ => euttge eq) ==>
+             i_respectful (fun _ => euttge eq) (fun _ => euttge eq))
+            interp.
+Proof.
+  repeat red.
+  intros until T.
+  ginit. gcofix CIH. intros.
+
+  rewrite !unfold_interp. punfold H1. red in H1.
+  induction H1; intros; subst; pclearbot; simpl.
+  - gstep. constructor. eauto.
+  - gstep. constructor. eauto with paco.
+  - gstep. constructor.
+    guclo eqit_clo_bind.
+    econstructor; [apply H|].
+    intros; subst.
+    gbase. eauto with paco.
+  - rewrite tau_eutt, unfold_interp. auto.
+  - discriminate.
+Qed.
+
 Instance eutt_interp' {E F : Type -> Type} {R : Type} (f : E ~> itree F) :
   Proper (eutt eq ==> eutt eq)
          (@interp E (itree F) _ _ _ f R).
@@ -205,14 +228,13 @@ Hint Rewrite @interp_bind : itree.
 (** *** Identities for [interp] *)
 
 Lemma interp_id_h {A R} (t : itree A R)
-  : interp (id_ A) t ≈ t.
+  : interp (id_ A) t ≳ t.
 Proof.
-  revert t. einit. ecofix CIH. intros.
+  revert t. ginit. gcofix CIH. intros.
   rewrite (itree_eta t), unfold_interp.
-  destruct (observe t); try estep.
-  unfold id_, Id_Handler, Handler.id_, ITree.trigger. simpl.
-  rewrite tau_eutt, bind_vis. evis.
-  intros. rewrite bind_ret. eauto with paco.
+  destruct (observe t); try (gstep; constructor; auto with paco).
+  cbn. constructor; red; intros.
+  rewrite bind_ret. eauto with paco.
 Qed.
 
 Lemma interp_trigger_h {E R} (t : itree E R) :

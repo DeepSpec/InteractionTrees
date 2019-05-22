@@ -121,9 +121,69 @@ Proof.
   reflexivity.
 Qed.
 
+Transparent Recursion.mrec.
+Opaque Recursion.interp_mrec.
+
 Instance IterNatural_Handler : IterNatural Handler sum1.
 Proof.
-Abort.
+  cbv; intros.
+  match goal with
+  | [ |- _ _ (_ _ _ (_ ?h0 _ _)) ] =>
+    remember h0 as h eqn:EQh
+    (* h is pretty big and duplicating it slows down the display of the goal,
+       so we try to rewrite with EQh only when necessary. *)
+  end.
+  remember (f T a0) as t eqn:tmp_t. clear tmp_t.
+  revert t; einit; ecofix CIH; intros t.
+  rewrite (itree_eta t).
+  destruct (observe t).
+  - rewrite unfold_interp_mrec; cbn.
+    rewrite 2 interp_ret.
+    rewrite unfold_interp_mrec.
+    reflexivity.
+  - rewrite unfold_interp_mrec; cbn.
+    rewrite 2 interp_tau.
+    rewrite (unfold_interp_mrec _ _ (Tau _)); cbn.
+    estep.
+  - rewrite unfold_interp_mrec; cbn.
+    rewrite interp_tau.
+    rewrite interp_vis.
+    rewrite unfold_interp_mrec; cbn.
+    destruct e.
+    + estep. subst h. rewrite interp_trigger, bind_tau.
+      rewrite (unfold_interp_mrec _ _ (Tau _)); cbn.
+      rewrite tau_eutt.
+      rewrite (interp_mrec_bind _ (ITree.trigger _)).
+      rewrite (interp_mrec_as_interp _ (ITree.trigger _)).
+      rewrite interp_trigger; cbn.
+      rewrite tau_eutt.
+      unfold Recursion.mrec.
+      rewrite <- interp_mrec_bind.
+      rewrite <- interp_bind.
+      eauto with paco.
+    + estep. rewrite interp_vis, tau_eutt.
+      rewrite interp_mrec_bind.
+      rewrite interp_mrec_as_interp.
+      remember (h _ (inr1 b0)) as W eqn:EW; rewrite EQh in EW; subst W.
+      rewrite interp_interp.
+
+      match goal with
+      | [ |- _ _ (_ _ (_ ?f _ _)) ] =>
+        remember f as hdl eqn:Ehdl
+      end.
+      assert (E0 : (Relation.i_pointwise (fun _ => euttge eq)) hdl (Handler.id_ _)); [ | clear Ehdl ].
+      { subst hdl; rewrite EQh; clear. intros T0 a0.
+        rewrite interp_trigger; cbn.
+        rewrite tau_eutt.
+        reflexivity.
+      }
+      apply euttge_interp in E0. hnf in E0.
+      rewrite (E0 _ (g _ b0) (g _ b0)) by reflexivity. clear E0.
+      rewrite interp_id_h.
+      ebind; econstructor; try reflexivity.
+      intros ? _ [].
+      eauto with paco.
+Qed.
 
 Instance IterDinatural_Handler : IterDinatural Handler sum1.
 Proof.

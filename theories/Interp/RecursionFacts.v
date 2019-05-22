@@ -68,7 +68,7 @@ Definition mrecursive (f : D ~> itree (D +' E))
   : (D +' E) ~> itree E :=
   case_ (mrec f) ITree.trigger.
 
-Instance eq_itree_mrec {R} :
+Global Instance eq_itree_mrec {R} :
   Proper (eq_itree eq ==> eq_itree eq) (@interp_mrec _ _ ctx R).
 Proof.
   ginit. gcofix CIH. intros.
