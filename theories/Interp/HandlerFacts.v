@@ -187,6 +187,35 @@ Qed.
 
 Instance IterDinatural_Handler : IterDinatural Handler sum1.
 Proof.
+  cbv; intros.
+  match goal with
+  | [ |- _ (_ _ _ (_ ?h0 _ _)) _ ] => remember h0 as hg eqn:EQhg
+  end.
+  remember (fun T (ac : (a +' c) T) =>
+              match ac with
+              | inl1 a => f T a
+              | inr1 c => ITree.trigger (inr1 c)
+              end) as hf eqn:EQhf.
+  change (interp (fun _ => _) (f _ a0)) with (interp (mrecursive (fun _ e => interp hf (g _ e))) (f _ a0)).
+  remember (f T a0) as t eqn:EQt; clear EQt.
+  rewrite <- interp_mrec_as_interp.
+  revert t. einit; ecofix CIH. intros.
+  rewrite (itree_eta t).
+  destruct (observe t).
+  - rewrite interp_ret. rewrite 2 unfold_interp_mrec.
+    reflexivity.
+  - rewrite interp_tau. rewrite 2 unfold_interp_mrec.
+    estep.
+  - rewrite interp_vis. rewrite 2 unfold_interp_mrec.
+    estep.
+    remember (hg _ e) as W eqn:EW; rewrite EQhg in EW; subst W.
+    destruct e.
+    + admit.
+    + rewrite interp_mrec_bind.
+      rewrite interp_mrec_as_interp, interp_trigger.
+      rewrite tau_eutt; cbn.
+      rewrite bind_trigger.
+      estep.
 Abort.
 
 Instance IterCodiagonal_Handler : IterCodiagonal Handler sum1.
