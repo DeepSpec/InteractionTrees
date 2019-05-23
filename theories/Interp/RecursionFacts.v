@@ -150,6 +150,28 @@ Qed.
 
 End Facts.
 
+Local Opaque interp_mrec.
+
+Global Instance Proper_interp_mrec {D E} :
+  @Proper ((D ~> itree (D +' E)) -> (itree (D +' E) ~> itree E))
+          (Relation.i_pointwise (fun _ => eutt eq) ==>
+           Relation.i_respectful (fun _ => eutt eq) (fun _ => eutt eq))
+          interp_mrec.
+Proof.
+  intros f g Hfg R.
+  ginit; gcofix CIH; intros t1 t2 Ht.
+  rewrite 2 unfold_interp_mrec.
+  punfold Ht; induction Ht; cbn; pclearbot.
+  3: { gstep; constructor; destruct e.
+    + gfinal; left. apply CIH.
+      eapply eutt_clo_bind; eauto.
+      intros ? _ []. auto.
+    + gstep; constructor. red; auto with paco.
+  }
+  1,2: gstep; constructor; auto with paco.
+  1,2: rewrite unfold_interp_mrec, tau_eutt; auto.
+Qed.
+
 (** [rec body] is equivalent to [interp (recursive body)],
     where [recursive] is defined as follows. *)
 Definition recursive {E A B} (f : A -> itree (callE A B +' E) B) : (callE A B +' E) ~> itree E :=

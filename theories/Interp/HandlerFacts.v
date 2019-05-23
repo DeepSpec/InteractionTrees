@@ -30,7 +30,7 @@ Open Scope itree_scope.
 
 Section HandlerCategory.
 
-Local Opaque eutt ITree.bind' interp Recursion.mrec ITree.trigger.
+Local Opaque eutt ITree.bind' interp ITree.trigger.
 
 Instance Proper_Cat_Handler {A B C}
   : @Proper (Handler A B -> Handler B C -> Handler A C)
@@ -107,22 +107,23 @@ Proof.
   split; typeclasses eauto.
 Qed.
 
+Local Opaque Recursion.interp_mrec.
+
 Instance Proper_Iter_Handler {A B}
   : @Proper (Handler A (A +' B) -> Handler A B)
             (eq2 ==> eq2)
             iter.
 Proof.
-Abort. (** TODO *)
+  repeat intro.
+  apply Proper_interp_mrec; auto.
+Qed.
 
 Instance IterUnfold_Handler : IterUnfold Handler sum1.
 Proof.
   cbv; intros.
-  rewrite mrec_as_interp.
+  rewrite interp_mrec_as_interp.
   reflexivity.
 Qed.
-
-Transparent Recursion.mrec.
-Opaque Recursion.interp_mrec.
 
 Instance IterNatural_Handler : IterNatural Handler sum1.
 Proof.
@@ -185,7 +186,7 @@ Proof.
       eauto with paco.
 Qed.
 
-Section Dinat.
+Section DinatSimulation.
 
 Context {A B C : Type -> Type}.
 Context (f : A ~> itree (B +' C)) (g : B ~> itree (A +' C)).
@@ -244,9 +245,9 @@ Proof.
         estep.
 Qed.
 
-End Dinat.
+End DinatSimulation.
 
-Transparent ITree.trigger.
+Local Transparent ITree.trigger.
 
 Instance IterDinatural_Handler : IterDinatural Handler sum1.
 Proof.
@@ -263,6 +264,8 @@ Proof.
   apply interleaved_mrec.
   do 2 constructor.
 Qed.
+
+Local Opaque ITree.trigger.
 
 Instance IterCodiagonal_Handler : IterCodiagonal Handler sum1.
 Proof.
@@ -291,8 +294,9 @@ Proof.
         auto with paco.
 Qed.
 
-Instance Conway_Handler : Conway Handler sum1.
+Global Instance Conway_Handler : Conway Handler sum1.
 Proof.
-Abort.
+  split; typeclasses eauto.
+Qed.
 
 End HandlerCategory.
