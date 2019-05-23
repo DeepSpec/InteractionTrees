@@ -220,7 +220,30 @@ Abort.
 
 Instance IterCodiagonal_Handler : IterCodiagonal Handler sum1.
 Proof.
-Abort.
+  cbv; intros.
+  remember (f T a0) as t eqn:EQt; clear EQt.
+  revert t. einit; ecofix CIH. intros.
+  rewrite (itree_eta t); destruct (observe t);
+    rewrite unfold_interp, (unfold_interp_mrec f), 2 unfold_interp_mrec; cbn.
+  - reflexivity.
+  - estep.
+  - estep.
+    rewrite interp_mrec_bind.
+    rewrite (@interp_mrec_as_interp _ _ _ X).
+    destruct e; rewrite interp_trigger, tau_eutt; cbn.
+    + unfold Recursion.mrec.
+      rewrite <- interp_mrec_bind, <- interp_bind.
+      auto with paco.
+    + rewrite unfold_interp_mrec; cbn.
+      rewrite tau_eutt.
+      destruct s; cbn.
+      * unfold Recursion.mrec.
+        rewrite <- 2 interp_mrec_bind.
+        rewrite <- interp_bind.
+        auto with paco.
+      * rewrite bind_trigger.
+        auto with paco.
+Qed.
 
 Instance Conway_Handler : Conway Handler sum1.
 Proof.
