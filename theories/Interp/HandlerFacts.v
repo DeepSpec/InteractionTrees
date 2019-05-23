@@ -185,38 +185,84 @@ Proof.
       eauto with paco.
 Qed.
 
+Section Dinat.
+
+Context {A B C : Type -> Type}.
+Context (f : A ~> itree (B +' C)) (g : B ~> itree (A +' C)).
+Context {R : Type}.
+
+Local Inductive interleaved
+  : itree (A +' C) R -> itree (B +' C) R -> Prop :=
+| interleaved_Ret r : interleaved (Ret r) (Ret r)
+| interleaved_Left {U} (t : itree _ U) k1 k2 :
+    (forall (x : U), interleaved (k1 x) (k2 x)) ->
+    interleaved (interp (case_ g inr_) t >>= k1) (t >>= k2)
+| interleaved_Right {U} (t : itree _ U) k1 k2 :
+    (forall (x : U), interleaved (k1 x) (k2 x)) ->
+    interleaved (t >>= k1) (interp (case_ f inr_) t >>= k2)
+.
+
+Hint Constructors interleaved.
+
+Let hg := case_ g inr_.
+Let hf := case_ f inr_.
+
+Theorem interleaved_mrec : forall t1 t2,
+    interleaved t1 t2 ->
+    Recursion.interp_mrec (cat f (case_ g inr_)) t1
+  ≈ Recursion.interp_mrec (cat g (case_ f inr_)) t2.
+Proof.
+  einit; ecofix CIH; intros.
+  induction H0.
+  - rewrite 2 unfold_interp_mrec; cbn. estep.
+  - rewrite (itree_eta t); destruct (observe t).
+    + rewrite interp_ret, 2 bind_ret. auto.
+    + rewrite interp_tau, 2 bind_tau, 2 unfold_interp_mrec; cbn.
+      estep.
+    + rewrite interp_vis, bind_tau, bind_vis, 2 unfold_interp_mrec; cbn.
+      estep.
+      rewrite bind_bind.
+      destruct e; cbn.
+      * cbv; eauto 6 with paco.
+      * unfold inr_, Inr_sum1_Handler, Handler.inr_, Handler.htrigger.
+        rewrite bind_trigger, unfold_interp_mrec; cbn.
+        rewrite tau_eutt.
+        estep.
+    (* TODO: deduplicate *)
+  - rewrite (itree_eta t); destruct (observe t).
+    + rewrite interp_ret, 2 bind_ret. auto.
+    + rewrite interp_tau, 2 bind_tau, 2 unfold_interp_mrec; cbn.
+      estep.
+    + rewrite interp_vis, bind_tau, bind_vis, 2 unfold_interp_mrec; cbn.
+      estep.
+      rewrite bind_bind.
+      destruct e; cbn.
+      * cbv; eauto 6 with paco.
+      * unfold inr_, Inr_sum1_Handler, Handler.inr_, Handler.htrigger.
+        rewrite bind_trigger, unfold_interp_mrec; cbn.
+        rewrite tau_eutt.
+        estep.
+Qed.
+
+End Dinat.
+
+Transparent ITree.trigger.
+
 Instance IterDinatural_Handler : IterDinatural Handler sum1.
 Proof.
   cbv; intros.
-  match goal with
-  | [ |- _ (_ _ _ (_ ?h0 _ _)) _ ] => remember h0 as hg eqn:EQhg
-  end.
-  remember (fun T (ac : (a +' c) T) =>
-              match ac with
-              | inl1 a => f T a
-              | inr1 c => ITree.trigger (inr1 c)
-              end) as hf eqn:EQhf.
-  change (interp (fun _ => _) (f _ a0)) with (interp (mrecursive (fun _ e => interp hf (g _ e))) (f _ a0)).
-  remember (f T a0) as t eqn:EQt; clear EQt.
+  change (
+      Recursion.interp_mrec (cat f (case_ g inr_))
+                            (interp (case_ g inr_) (f _ a0))
+    ≈ interp (mrecursive (cat g (case_ f inr_))) (f _ a0)).
   rewrite <- interp_mrec_as_interp.
-  revert t. einit; ecofix CIH. intros.
-  rewrite (itree_eta t).
-  destruct (observe t).
-  - rewrite interp_ret. rewrite 2 unfold_interp_mrec.
-    reflexivity.
-  - rewrite interp_tau. rewrite 2 unfold_interp_mrec.
-    estep.
-  - rewrite interp_vis. rewrite 2 unfold_interp_mrec.
-    estep.
-    remember (hg _ e) as W eqn:EW; rewrite EQhg in EW; subst W.
-    destruct e.
-    + admit.
-    + rewrite interp_mrec_bind.
-      rewrite interp_mrec_as_interp, interp_trigger.
-      rewrite tau_eutt; cbn.
-      rewrite bind_trigger.
-      estep.
-Abort.
+
+  rewrite <- (bind_ret2 (interp _ _)).
+  rewrite <- (bind_ret2 (f _ a0)) at 2.
+
+  apply interleaved_mrec.
+  do 2 constructor.
+Qed.
 
 Instance IterCodiagonal_Handler : IterCodiagonal Handler sum1.
 Proof.

@@ -128,6 +128,26 @@ Proof.
   rewrite interp_trigger. cbn. reflexivity.
 Qed.
 
+Theorem unfold_interp_mrec_h {T} (t : itree _ T)
+  : interp_mrec ctx (interp (case_ ctx inr_) t)
+  ≳ interp_mrec ctx t.
+Proof.
+  revert t. ginit; gcofix CIH. intros.
+  rewrite (itree_eta t); destruct (observe t);
+    rewrite 2 unfold_interp_mrec; cbn; gstep; constructor.
+  - auto.
+  - rewrite bind_ret; auto with paco.
+  - rewrite bind_map.
+    destruct e.
+    + rewrite 2 interp_mrec_bind.
+      guclo eqit_clo_bind; econstructor; [reflexivity|].
+      intros ? _ []; auto with paco.
+    + cbn. unfold inr_, Handler.Inr_sum1_Handler, Handler.Handler.inr_, Handler.Handler.htrigger.
+      rewrite bind_trigger, unfold_interp_mrec; cbn.
+      rewrite tau_eutt.
+      gstep; constructor. auto with paco.
+Qed.
+
 End Facts.
 
 (** [rec body] is equivalent to [interp (recursive body)],
