@@ -43,7 +43,7 @@ Section compile_assign.
   (** Expressions are compiled straightforwardly.
       The argument [l] is the number of local variables already introduced to compile
       the expression, and is used for the name of the next one.
-      The result of the computation [compile_expr l e] always ends up stored in [gen_tmp l]. 
+      The result of the computation [compile_expr l e] always ends up stored in [l]. 
    *)
   Fixpoint compile_expr (l:reg) (e: expr): list instr :=
     match e with

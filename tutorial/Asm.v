@@ -26,12 +26,14 @@ Typeclasses eauto := 5.
 
 (* end hide *)
 
-(* ================================================================= *)
+
 (** ** Syntax *)
 
 (** We define a countable set of memory addresses, represented as [string]s: *)
 Definition addr : Set := string.
-(** We define a *) 
+
+(** We define a set of register names (for this simple example, we identify them
+with [nat]). *) 
 Definition reg : Set := nat.
 
 (** For simplicity, _Asm_ manipulates [nat]s as values too. *)
@@ -42,9 +44,8 @@ Variant operand : Set :=
 | Oimm (_ : value)
 | Oreg (_ : reg).
 
-(** The instruction set covers moves and arithmetic operations,
-    as well as load and stores to the heap.
- *)
+(** The instruction set covers moves and arithmetic operations, as well as load
+    and stores to the heap.  *)
 Variant instr : Set :=
 | Imov   (dest : reg) (src : operand)
 | Iadd   (dest : reg) (src : reg) (o : operand)
@@ -61,30 +62,37 @@ Variant branch {label : Type} : Type :=
 .
 Global Arguments branch _ : clear implicits.
 
-(** A basic [block] is a sequence of straightline instructions
-    followed by a branch that either halts the execution,
-    or transfers control to another [block]. *)
+(** A basic [block] is a sequence of straightline instructions followed by a
+    branch that either halts the execution, or transfers control to another
+    [block]. *)
 Inductive block {label : Type} : Type :=
 | bbi (_ : instr) (_ : block)
 | bbb (_ : branch label).
 Global Arguments block _ : clear implicits.
 
-(** A piece of code should expose the set of labels allowing to enter
-    into it, as well as the set of outer labels it might jump to.
-    To this end, [bks] represents a collection of blocks labeled
-    by [A], with branches in [B]. *)
+
+(** A piece of code should expose the set of labels allowing to enter into it,
+    as well as the set of outer labels it might jump to.  To this end, [bks]
+    represents a collection of blocks labeled by [A], with branches in [B]. *)
 Definition bks (A B: Type) := A -> block B.
 
-(** An [asm] program represents the control flow of the computation.
-    It is a collection of labelled [blocks] such that its labels are
-    classified into three categories:
+(** An [asm] program represents the control flow of the computation.  It is a
+    collection of labelled [blocks] such that its labels are classified into
+    three categories:
+
     - [A]: (visible) entry points
+
     - [B]: (visible) exit points
+
     - [internal]: (hidden) internal linked labels
-    Note that they uniformely represent open and closed programs,
-    the latter corresponding to an [asm] program with a unique entry
-    point and always halting, i.e. a [asm unit void].
- *)
+
+    Note that they uniformely represent open and closed programs, the latter
+    corresponding to an [asm] program with a unique entry point and no exit
+    labels, i.e. a [asm unit void].  Note that using [void] to describe the exit
+    points means that closed program must either diverge (go into an infinite
+    loop) or somehow generate an event that terminates them.  (See the
+    denotation of [Bhalt] below.)  *)
+
 Record asm (A B: Type) : Type :=
   {
     internal : Type;
@@ -94,11 +102,11 @@ Record asm (A B: Type) : Type :=
 Arguments internal {A B}.
 Arguments code {A B}.
 
-(* ================================================================= *)
+(* ========================================================================== *)
 (** ** Semantics *)
 
-(** _Asm_ produces two kind of events: through manipulation of the 
-    registers and of the heap.  
+(** _Asm_ produces two kind of events for manipulating its two kinds of state:
+    registers and the heap.  
 *)
 Variant Reg : Type -> Type :=
 | GetReg (x : reg) : Reg value
@@ -107,6 +115,21 @@ Variant Reg : Type -> Type :=
 Inductive Memory : Type -> Type :=
 | Load  (a : addr) : Memory value
 | Store (a : addr) (val : value) : Memory unit.
+
+
+(* SAZ: Move Exit to the itrees library? *)
+(* SAZ: I renamed "done" to "halt" since "done" is part of ltac or something - it gets colored weird by proof general *)
+(** We also introduce a special event to model termination of the computation.
+    Note that it expects _actively_ no answer from the environment: [Done] is
+    of type [Exit void].  We can therefore use it to "close" an [itree E A] no
+    matter what the expected return type [A] is, as witnessed by the [exit]
+    computation.  *)
+Inductive Exit : Type -> Type :=
+| Done : Exit void.
+
+Definition exit {E A} `{Exit -< E} : itree E A :=
+  vis Done (fun v => match v : void with end).
+
 
 Section Denote.
 
@@ -118,23 +141,10 @@ Section Denote.
   Local Open Scope monad_scope.
   (* end hide *)
 
-  (** We introduce a special event to model termination of the computation.
-      Note that it expects _actively_ no answer from the environment: 
-      [Done] is of type [Exit void].
-      We can therefore use it to "close" an [itree E A] no matter what the expected
-      return type [A] is, as witnessed by the [done] computation.
-   *)
-  Inductive Exit : Type -> Type :=
-  | Done : Exit void.
-
-  Definition done {E A} `{Exit -< E} : itree E A :=
-    vis Done (fun v => match v : void with end).
-
   Section with_event.
 
     (** As with _Imp_, we parameterize our semantics by a universe of events
-        that shall encompass all the required ones.
-     *)
+        that shall encompass all the required ones. *)
     Context {E : Type -> Type}.
     Context {HasReg : Reg -< E}.
     Context {HasMemory : Memory -< E}.
@@ -176,24 +186,21 @@ Section Denote.
     Section with_labels.
       Context {A B : Type}.
 
-      (** A [branch] returns the computed label whose set of possible
-          values [B] is carried by the type of the branch.
-          If the computation halts instead of branching,
-          we return the [done] tree.
-       *)
+      (** A [branch] returns the computed label whose set of possible values [B]
+          is carried by the type of the branch.  If the computation halts
+          instead of branching, we return the [exit] tree.  *)
       Definition denote_branch (b : branch B) : itree E B :=
         match b with
         | Bjmp l => ret l
         | Bbrz v y n =>
           val <- trigger (GetReg v) ;;
           if val:nat then ret y else ret n
-        | Bhalt => done
+        | Bhalt => exit
         end.
 
-      (** The denotation of a basic [block] shares the same type,
-          returning the [label] of the next [block] it shall jump to.
-          It recursively denote its instruction before that.
-       *)
+      (** The denotation of a basic [block] shares the same type, returning the
+          [label] of the next [block] it shall jump to.  It recursively denote
+          its instruction before that.  *)
       Fixpoint denote_block (b : block B) : itree E B :=
         match b with
         | bbi i b =>
@@ -203,38 +210,37 @@ Section Denote.
         end.
 
       (** A labelled collection of blocks, [bks], is simply the pointwise
-          application of [denote_block].
-          However, its denotation is therefore crucially a [ktree],
-          whose structure will be useful in the proof of the compiler.
-       *)
+          application of [denote_block].  However, its denotation is therefore
+          crucially a [ktree], whose structure will be useful in the proof of
+          the compiler.
+
+          The type [ktree E A B] is shorthand for [A -> itree E B], and we can
+          think of them as "continuations" with events in E.  They have a nice
+          algebraic structure, supported by the library, including a [loop]
+          combinator that we can use to link collections of basic blocks. (See
+          below.) *)
       Definition denote_b (bs: bks A B): ktree E A B :=
         fun a => denote_block (bs a).
 
     End with_labels.
 
   (** One can think of an [asm] program as a circuit/diagram where wires
-      correspond to jumps/program links.
-      [denote_b] computes the meaning of each basic block as an [itree] that
-      returns the label of the next block to jump to, laying down all our
-      elementary wires. 
-      In order to denote an [asm A B] program as a [ktree E A B], it therefore
-      remains to wire all those denoted blocks together while hiding the
-      internal labels.
-      Luckily, that is exactly what traced monoidal category are good for.
-      We therefore accomplish this with the same [loop] combinator we used to
-      denote _Imp_'s [while] loop.
-      It directly takes our [denote_b (code s): ktree E (I + A) (I + B)] and
-      hides [I] as desired.
-   *)
-
-    (* Denotation of [asm] *)
+      correspond to jumps/program links.  [denote_b] computes the meaning of
+      each basic block as an [itree] that returns the label of the next block to
+      jump to, laying down all our elementary wires.  In order to denote an [asm
+      A B] program as a [ktree E A B], it therefore remains to wire all those
+      denoted blocks together while hiding the internal labels.  Luckily, that
+      is exactly what traced monoidal category are good for.  We therefore
+      accomplish this with the same [loop] combinator we used to denote _Imp_'s
+      [while] loop.  It directly takes our [denote_b (code s): ktree E (I + A)
+      (I + B)] and hides [I] as desired.  *)
     Definition denote_asm {A B} : asm A B -> ktree E A B :=
       fun s => KTree.loop (denote_b (code s)).
 
   End with_event.
 End Denote.
 
-(* ================================================================= *)
+(* ========================================================================== *)
 (** ** Interpretation *)
 
 (* begin hide *)
@@ -248,6 +254,7 @@ From ExtLib Require Import
      Structures.Maps
      Data.Map.FMapAList.
 
+(* begin hide *)
 (** These enable typeclass instances for Maps keyed by strings and registers *)
 Instance RelDec_string : RelDec (@eq string) :=
   { rel_dec := fun s1 s2 => if string_dec s1 s2 then true else false}.
@@ -289,29 +296,30 @@ Definition eval_memory {E : Type -> Type} `{mapE addr value -< E} :
 Definition registers := alist reg value.
 Definition memory    := alist addr value.
 
-
-Definition interp_asm {E A} (t : itree (Reg +' Memory +' E) A) mem regs : itree E (memory * (registers * A)) :=
-  let h := bimap eval_reg (bimap eval_memory (id_ _)) in                             
-  let t' := interp h t in
-  run_map (run_map t' regs) mem.
-
+(** The _asm_ interpreter takes as inputs a starting heap [mem] and register
+    state [reg] and interprets an itree in two nested instances of the [map]
+    variant of the state monad. *)
+Definition interp_asm {E A} (t : itree (Reg +' Memory +' E) A) mem regs :
+  itree E (memory * (registers * A)) :=
+  let h := bimap eval_reg (bimap eval_memory
+                                 (id_ _)) in
+  let t' := interp h t
+  in run_map (run_map t' regs) mem.
   
-(** We can then define an evaluator for closed assembly programs by
-    interpreting both store and heap events into two instances of [mapE],
-    and running them both in the empty initial environments.
- *)
-Definition AsmEval (p: asm unit void) :=
-  interp_asm (denote_asm p tt) empty empty.
+(** We can then define an evaluator for closed assembly programs by interpreting
+    both store and heap events into two instances of [mapE], and running them
+    both in the empty initial environments.  *)
+
+Definition eval_asm (p: asm unit void) := interp_asm (denote_asm p tt) empty empty.
 
 Section InterpAsmProperties.
+
   Context {E': Type -> Type}.
   Notation E := (Reg +' Memory +' E').
 
-
   (** This interpreter is compatible with the equivalence-up-to-tau. *)
   Global Instance eutt_interp_asm {R}:
-    Proper (@eutt E R R eq ==> eq ==> eq ==> @eutt E' (prod memory (prod registers R)) (prod _ (prod _ R)) eq)
-           interp_asm.
+    Proper (@eutt E R R eq ==> eq ==> eq ==> @eutt E' (prod memory (prod registers R)) (prod _ (prod _ R)) eq) interp_asm.
   Proof.
     repeat intro.
     unfold interp_asm.
@@ -321,10 +329,10 @@ Section InterpAsmProperties.
   Qed.
 
   (** [interp_asm] commutes with [bind]. *)
-  Lemma interp_asm_bind: forall {R S} (t: itree E R) (k: R -> itree _ S) (l : registers)  (g: memory),
-      @eutt E' _ _ eq
-            (interp_asm (ITree.bind t k) g l)
+  Lemma interp_asm_bind: forall {R S} (t: itree E R) (k: R -> itree _ S) (l : registers) (g: memory),
+      @eutt E' _ _ eq (interp_asm (ITree.bind t k) g l)
             (ITree.bind (interp_asm t g l) (fun '(g', (l', x)) => interp_asm (k x) g' l')).
+
   Proof.
     intros.
     unfold interp_asm.
@@ -332,21 +340,17 @@ Section InterpAsmProperties.
     repeat rewrite interp_bind.
     repeat rewrite interp_state_bind.
     apply eutt_bind. red. intros.
-    destruct a as [g' [l' x]].
-    simpl.
-    reflexivity.
-    reflexivity.
+    destruct a as [g' [l' x]]. simpl.
+    - reflexivity.
+    - reflexivity.
   Qed.
 
 End InterpAsmProperties.
 
 (** Now that we have both our language, we could jump directly into implementing
-    our compiler.
-    However, if we look slightly ahead of us, we can observe that:
-    - compiling expressions and basic statements will be mostly straightforward;
-    - but linking the resulting elementary (open) [asm] programs together is not
-    as trivial. In particular, reasoning inductively on this linking is more
-    challenging.
-    We therefore take a detour: we first reason in isolation about linking, and
-    to this end we jump to [AsmCombinators.v].
- *)
+our compiler.  However, if we look slightly ahead of us, we can observe that: -
+compiling expressions and basic statements will be mostly straightforward; - but
+linking the resulting elementary (open) [asm] programs together is not as
+trivial. In particular, reasoning inductively on this linking is more
+challenging.  We therefore take a detour: we first reason in isolation about
+linking, and to this end we jump to [AsmCombinators.v].  *)
