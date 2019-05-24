@@ -4,6 +4,7 @@
 Require Import ExtLib.Structures.Functor.
 Require Import ExtLib.Structures.Applicative.
 Require Import ExtLib.Structures.Monad.
+Require Import Program.Tactics.
 
 From ITree Require Import Basics.
 
@@ -274,6 +275,14 @@ Instance ALoop_itree {E} : ALoop (itree E) :=
 (** ** Tactics *)
 
 (* [inv], [rewrite_everywhere], [..._except] are general purpose *)
+
+Lemma hexploit_mp: forall P Q: Type, P -> (P -> Q) -> Q.
+Proof. intuition. Defined.
+Ltac hexploit x := eapply hexploit_mp; [eapply x|].
+
+Tactic Notation "hinduction" hyp(IND) "before" hyp(H)
+  := move IND before H; revert_until IND; induction IND.
+
 Ltac inv H := inversion H; clear H; subst.
 
 Ltac rewrite_everywhere lem :=

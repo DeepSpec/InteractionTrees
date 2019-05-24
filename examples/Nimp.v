@@ -155,17 +155,25 @@ Qed.
 (* SAZ: the [~] notation for eutt wasn't working here. *)
 Lemma eval_one_loop : eval one_loop ≈ one_loop_tree.
 Proof.
-  ucofix CIH. unfold eval, one_loop_tree.
-  setoid_rewrite rec_as_interp; setoid_rewrite interp_bind.
-  ustep. repeat red. cbn. econstructor.
-  ustep. repeat red. cbn. econstructor.
-  left. rewrite !bind_ret, !interp_ret, !bind_ret.
-  destruct x.
-  - rewrite !interp_ret. apply reflexivity.
-  - rewrite !interp_bind.
+  einit. ecofix CIH.
+  setoid_rewrite rec_as_interp.
+  setoid_rewrite interp_bind.
+  setoid_rewrite interp_vis.
+  setoid_rewrite tau_eutt.
+  setoid_rewrite interp_ret.
+  setoid_rewrite bind_bind.
+  setoid_rewrite bind_ret.
+  setoid_rewrite bind_vis.
+  evis. intros. 
+  setoid_rewrite bind_ret.
+  destruct v.
+  - setoid_rewrite interp_ret. apply reflexivity.
+  - setoid_rewrite interp_bind.
     setoid_rewrite interp_recursive_call.
-    rewrite eval_skip. rewrite bind_tau, bind_ret.
-    rewrite !tau_eutt. eauto with paco.
+    setoid_rewrite tau_eutt.
+    setoid_rewrite eval_skip.
+    setoid_rewrite bind_ret.
+    eauto with paco.
 Qed.
 
 End Tree.

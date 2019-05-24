@@ -65,7 +65,7 @@ End observing_relations.
 
 (** ** Unfolding lemmas for [bind] *)
 
-Lemma unfold_bind {E R S}
+Lemma unfold_bind_ {E R S}
       (t : itree E R) (k : R -> itree E S) :
   observing eq
     (ITree.bind t k)
@@ -76,27 +76,27 @@ Instance observing_bind {E R S} :
   Proper (eq ==> observing eq ==> observing eq) (@ITree.bind' E R S).
 Proof.
   repeat intro; subst.
-  do 2 rewrite unfold_bind; rewrite H0.
+  do 2 rewrite unfold_bind_; rewrite H0.
   reflexivity.
 Qed.
 
-Lemma bind_ret {E R S} (r : R) (k : R -> itree E S) :
+Lemma bind_ret_ {E R S} (r : R) (k : R -> itree E S) :
   observing eq (ITree.bind (Ret r) k) (k r).
-Proof. apply unfold_bind. Qed.
+Proof. apply unfold_bind_. Qed.
 
-Lemma bind_tau {E R} U t (k: U -> itree E R) :
+Lemma bind_tau_ {E R} U t (k: U -> itree E R) :
   observing eq (ITree.bind (Tau t) k) (Tau (ITree.bind t k)).
-Proof. apply @unfold_bind. Qed.
+Proof. apply @unfold_bind_. Qed.
 
-Lemma bind_vis {E R U V} (e: E V) (ek: V -> itree E U) (k: U -> itree E R) :
+Lemma bind_vis_ {E R U V} (e: E V) (ek: V -> itree E U) (k: U -> itree E R) :
   observing eq
     (ITree.bind (Vis e ek) k)
     (Vis e (fun x => ITree.bind (ek x) k)).
-Proof. apply @unfold_bind. Qed.
+Proof. apply @unfold_bind_. Qed.
 
 (** Unfolding lemma for [aloop]. There is also a variant [unfold_aloop]
     without [Tau]. *)
-Lemma unfold_aloop' {E A B} (f : A -> itree E A + B) (x : A) :
+Lemma unfold_aloop_ {E A B} (f : A -> itree E A + B) (x : A) :
   observing eq
     (ITree.aloop f x)
     (ITree._aloop (fun t => Tau t) (ITree.aloop f) (f x)).
@@ -105,7 +105,7 @@ Proof.
 Qed.
 
 (** Unfolding lemma for [forever]. *)
-Lemma unfold_forever {E R S} (t: itree E R):
+Lemma unfold_forever_ {E R S} (t: itree E R):
   observing eq (@ITree.forever E R S t) (ITree.bind t (fun _ => Tau (ITree.forever t))).
 Proof. econstructor. reflexivity. Qed.
 

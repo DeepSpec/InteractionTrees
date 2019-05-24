@@ -282,7 +282,6 @@ Definition eval_reg {E: Type -> Type} `{mapE reg value -< E}: Reg ~> itree E :=
     | GetReg x => lookup_def x 0
     | SetReg x v => insert x v
     end.
-Set Printing All.
 
 Definition eval_memory {E : Type -> Type} `{mapE addr value -< E} :
   Memory ~> itree E :=
@@ -339,10 +338,12 @@ Section InterpAsmProperties.
     unfold run_map.
     repeat rewrite interp_bind.
     repeat rewrite interp_state_bind.
-    apply eutt_bind. red. intros.
-    destruct a as [g' [l' x]]. simpl.
-    - reflexivity.
-    - reflexivity.
+    eapply eutt_clo_bind.
+    { reflexivity. }
+    red. intros.
+    rewrite H.
+    destruct u2 as [g' [l' x]].
+    reflexivity.
   Qed.
 
 End InterpAsmProperties.

@@ -18,3 +18,8 @@ From ITree Require Import
 Axiom bisimulation_is_eq :
   forall {E : Type -> Type} {R : Type} (t1 t2 : itree E R),
     t1 ≅ t2 -> t1 = t2.
+
+Lemma itree_eta_ {E R} (t : itree E R) : t = go (observe t).
+Proof.
+  apply bisimulation_is_eq. apply itree_eta.
+Qed.

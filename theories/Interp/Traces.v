@@ -11,7 +11,8 @@ From Paco Require Import
 
 From ITree Require Import
      Core.ITreeDefinition
-     Eq.UpToTausEquivalence
+     Eq.Eq
+     Eq.UpToTaus
      Eq.SimUpToTaus
      Eq.Shallow.
 
@@ -86,24 +87,24 @@ Proof.
   red. intros. red in H0. remember (observe t1).
   generalize dependent t1. generalize dependent t2.
   induction H0; intros; try solve [constructor].
-  - uunfold H. rewrite <- Heqi in H.
+  - punfold H. rewrite <- Heqi in H.
     remember (RetF _). remember (observe t2).
     generalize dependent t2.
     induction H; intros; try inv Heqi0; red; rewrite <- Heqi1; constructor.
     eapply IHsuttF; eauto.
   - apply IHis_traceF with (t1:=t); auto.
     apply sutt_inv_tau_left. red. red in H. rewrite <- Heqi in H. auto.
-  - uunfold H. rewrite <- Heqi in H.
+  - punfold H. rewrite <- Heqi in H.
     remember (VisF _ _). remember (observe t2).
     generalize dependent t2.
     induction H; intros; try inv Heqi0.
     + auto_inj_pair2. subst. red. rewrite <- Heqi1. constructor.
     + red. rewrite <- Heqi1. constructor. eapply IHsuttF; eauto.
-  - uunfold H. rewrite <- Heqi in H.
+  - punfold H. rewrite <- Heqi in H.
     remember (VisF _ _). remember (observe t2).
     generalize dependent t2.
     induction H; intros; try inv Heqi0.
-    + auto_inj_pair2. subst. red. rewrite <- Heqi1. constructor.
+    + pclearbot. auto_inj_pair2. subst. red. rewrite <- Heqi1. constructor.
       eapply IHis_traceF; auto.
     + red. rewrite <- Heqi1. constructor. apply IHsuttF; auto.
 Qed.
@@ -119,7 +120,7 @@ Qed.
 Lemma trace_incl_sutt : forall {E R} (t1 t2 : itree E R),
     trace_incl t1 t2 -> sutt eq t1 t2.
 Proof.
-  intros E R. ucofix CIH. intros t1 t2 Hincl.
+  intros E R. pcofix CIH. pstep. intros t1 t2 Hincl.
   unfold trace_incl in *. unfold is_trace in *.
   destruct (observe t1).
   - assert (H : is_traceF (RetF r0 : itreeF E R (itree E R)) (TRet r0)) by constructor.
@@ -130,7 +131,7 @@ Proof.
       generalize dependent t.
       induction H1; intros; try inv Heqt0; auto.
       constructor. eapply IHis_traceF; eauto.
-  - constructor. ubase. apply CIH. intros. apply Hincl. constructor. auto.
+  - constructor. right. apply CIH. intros. apply Hincl. constructor. auto.
   - assert (H: is_traceF (VisF e k) (TEventEnd e)) by constructor.
     apply Hincl in H. destruct (observe t2); inv H.
     + constructor.
@@ -144,10 +145,10 @@ Proof.
       induction H1; intros; try inv Heqt0; auto.
       * constructor. eapply IHis_traceF; eauto.
         intros. rewrite is_traceF_tau. apply Hincl; auto.
-      * auto_inj_pair2. subst. constructor. intro. ubase. apply CIH. intros.
+      * auto_inj_pair2. subst. constructor. intro. right. apply CIH. intros.
         assert (is_traceF (VisF e k) (TEventResponse e x tr)) by (constructor; auto).
         apply Hincl in H0. inv H0. auto_inj_pair2. subst. auto.
-    + auto_inj_pair2. subst. constructor. intro. ubase. apply CIH. intros.
+    + auto_inj_pair2. subst. constructor. intro. right. apply CIH. intros.
       assert (is_traceF (VisF e k) (TEventResponse e x tr)) by (constructor; auto).
       apply Hincl in H0. inv H0. auto_inj_pair2. subst. auto.
 Qed.
@@ -166,9 +167,9 @@ Proof.
   intros E R t1 t2 [? ?]. apply sutt_eutt.
   - apply trace_incl_sutt; auto.
   - apply trace_incl_sutt in H0. clear H.
-    generalize dependent t1. generalize dependent t2. ucofix CIH; intros.
-    uunfold H0. induction H0; constructor; try red; eauto with paco.
-    ubase. rewrite itree_eta'. eauto with paco.
+    generalize dependent t1. generalize dependent t2. pcofix CIH; pstep; intros.
+    punfold H0. induction H0; constructor; try red; pclearbot; eauto with paco.
+    right. rewrite itree_eta'. eauto with paco.
 Qed.
 
 Theorem trace_eq_iff_eutt : forall {E R} (t1 t2 : itree E R),

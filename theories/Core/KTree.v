@@ -8,6 +8,7 @@ From ITree Require Import
      Basics.Basics
      Basics.Function
      Core.ITreeDefinition
+     Eq.Eq
      Eq.UpToTaus.
 
 Import ITreeNotations.

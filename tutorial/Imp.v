@@ -382,7 +382,7 @@ Section InterpImpProperties.
     unfold run_map.
     repeat rewrite interp_bind.
     repeat rewrite interp_state_bind.
-    apply eq_itree_bind. red. intros.
+    apply eqit_bind. red. intros.
     destruct a as [g'  x].
     simpl.
     reflexivity.

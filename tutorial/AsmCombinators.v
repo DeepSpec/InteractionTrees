@@ -198,18 +198,18 @@ Section Correctness.
     - (* If it contains an instruction (inductive case). *)
       simpl.
       unfold ITree.map; rewrite bind_bind.
-      eapply eq_itree_bind; [| reflexivity].
+      eapply eqit_bind; [| reflexivity].
       intros []; apply IHb.
     - (* If it's a jump, we consider the three cases. *)
       simpl.
       destruct br; simpl.
       + unfold ITree.map; rewrite bind_ret; reflexivity.
       + unfold ITree.map; rewrite bind_bind. 
-        eapply eq_itree_bind; [| reflexivity].
+        eapply eqit_bind; [| reflexivity].
         intros ?.
         flatten_goal; rewrite bind_ret; reflexivity.
       + rewrite (itree_eta (ITree.map _ _)).
-        cbn. apply eq_itree_Vis. intros [].
+        cbn. apply eqit_Vis. intros [].
   Qed.
 
   (** Denotes a list of instruction by binding the resulting trees. *)
@@ -227,7 +227,7 @@ Section Correctness.
     induction instrs as [| i instrs IH]; intros b.
     - simpl; rewrite bind_ret; reflexivity.
     - simpl; rewrite bind_bind.
-      eapply eq_itree_bind; try reflexivity.
+      eapply eqit_bind; try reflexivity.
       intros []; apply IH.
   Qed.
 
@@ -346,8 +346,8 @@ Section Correctness.
     all: unfold _app_B, _app_D.
     all: rewrite fmap_block_map.
     all: unfold ITree.map.
-    all: apply eutt_bind; try reflexivity.
-    all: intros []; rewrite (itree_eta (ITree.bind _ _)); cbn; reflexivity.
+    all: einit; ebind; econstructor; try reflexivity.
+    all: intros; subst; rewrite (itree_eta (ITree.bind _ _)); destruct u2; cbn; reflexivity.
   Qed.
 
   (** Correctness of the [relabel_asm] combinator.
