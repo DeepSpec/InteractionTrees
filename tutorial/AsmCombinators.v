@@ -72,6 +72,16 @@ Fixpoint after {A: Type} (is : list instr) (bch : branch A) : block A :=
   | i :: is => bbi i (after is bch)
   end.
 
+(* SAZ: rationalize the names of the combinators? *)
+(** Another combinator that appends a list of instructions to the beginning of a
+    block *)
+Fixpoint blk_append {lbl} (l:list instr) (b:block lbl) : block lbl :=
+  match l with
+  | [] => b
+  | i :: l' => bbi i (blk_append l' b)
+  end.
+
+
 (* ================================================================= *)
 (** ** Low-level interface with [asm] *)
 
@@ -220,7 +230,7 @@ Section Correctness.
       Its denotation bind the denotation of the instructions
       with the one of the branch.
    *)
-  Lemma after_correct :
+  Lemma denote_after :
     forall {label: Type} instrs (b: branch label),
       denote_block (after instrs b) ≅ (denote_list instrs ;; denote_branch b).
   Proof.
@@ -231,6 +241,17 @@ Section Correctness.
       intros []; apply IH.
   Qed.
 
+  Lemma denote_blk_append : forall lbl (l:list instr) (b:block lbl),
+      denote_block (blk_append l b) ≈ (x <- denote_list l ;; denote_block b).
+  Proof.
+    intros lbl.
+    induction l; intros b; simpl.
+    - rewrite bind_ret. reflexivity.
+    - rewrite bind_bind.
+      eapply eutt_clo_bind. reflexivity. red. intros. apply IHl. 
+  Qed.    
+
+  
   (** Utility: denoting the [app] of two lists of instructions binds the denotations. *)
   Lemma denote_list_app:
     forall is1 is2,

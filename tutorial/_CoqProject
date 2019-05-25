@@ -3,10 +3,11 @@
 
 Introduction.v
 
+StateFacts2.v
 Utils_tutorial.v
 Imp.v
 Asm.v
 AsmCombinators.v
 Imp2Asm.v
 Imp2AsmCorrectness.v
-
+AsmOptimization.v

@@ -48,7 +48,7 @@ SAZ: This needs to be updated.
 *)
 
 (* begin hide *)
-Require Import Imp Asm Utils_tutorial AsmCombinators Imp2Asm.
+Require Import Imp Asm Utils_tutorial AsmCombinators Imp2Asm StateFacts2.
 
 Require Import Psatz.
 
@@ -68,7 +68,6 @@ From ITree Require Import
      Events.Map.
 
 Import ITreeNotations.
-Import Monads.
 
 From ExtLib Require Import
      Core.RelDec
@@ -89,7 +88,8 @@ Local Open Scope cat.
 (* TODO: Move to itrees library
    SAZ: for some reason, moving the code below into StateFacts.v causes a
    universe inconsistency... how to debug?
-*)
+ *)
+Import Monads.
 From Paco Require Import paco.
 
 Definition state_eq {E S X} 
@@ -563,7 +563,7 @@ Section Linking.
     rewrite raw_asm_block_correct_lifted.
     intros [].
     unfold CategoryOps.cat, Cat_ktree, ITree.cat; simpl.
-    rewrite after_correct.
+    rewrite denote_after.
     simpl.
     repeat setoid_rewrite bind_bind.
     eapply eutt_clo_bind; try reflexivity. intros; subst.
@@ -837,7 +837,7 @@ Section Correctness.
       cbn.
       (* We push [denote_asm] inside of the combinators *)
       rewrite raw_asm_block_correct.
-      rewrite after_correct.
+      rewrite denote_after.
 
       (* The head trees match by correctness of assign *)
       rewrite <- (bind_ret2 (ITree.bind (denote_expr e) _)).
