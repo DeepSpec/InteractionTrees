@@ -62,25 +62,8 @@ Global Instance FinSum: Embedded_sum plus :=
     sum_isum := merge_fin_sum
   |}.
 
-Definition fin_case_ind {n} (k : Fin.t (S n)) : forall
-        (P : Fin.t (S n) -> Prop)
-        (P_r : P F1)
-        (P_f : forall (k : Fin.t n), P (FS k))
-  , P k :=
-  match k in Fin.t m return
-        match m with
-        | O => fun _ => False
-        | S n => fun k => forall
-        (P : Fin.t (S n) -> Prop)
-        (P_r : P F1)
-        (P_f : forall (k : Fin.t n), P (FS k)), P k
-        end k with
-  | F1 => fun _ P_r _ => P_r
-  | FS k => fun _ _ P_f => P_f k
-  end.
-
 Definition unique_F1 (r1 : Fin.t 1) : r1 = F1 :=
-  fin_case_ind r1 (fun r1 => r1 = F1) eq_refl (case0 _).
+  caseS' r1 (fun r1 => r1 = F1) eq_refl (case0 _).
 
 Lemma split_fin_S_left:
   forall (n: nat) (k : Fin.t (S n)) t,

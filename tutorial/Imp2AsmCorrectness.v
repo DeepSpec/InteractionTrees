@@ -588,7 +588,7 @@ Opaque loop.
     rewrite if_asm_correct.
     intros x.
     unfold bimap, Bimap_Coproduct, Case_sktree, Case_ktree, case_, lift_sktree, isum_suml, case_sum, lift_sktree, lift_ktree, cat, Cat_sktree, cat, Cat_ktree, ITree.cat.
-    apply (fin_case_ind x); cbn.
+    apply (caseS' x); cbn.
     - rewrite bind_ret, !bind_bind.
       eapply eutt_clo_bind; try reflexivity. intros; subst.
       rewrite bind_bind.
