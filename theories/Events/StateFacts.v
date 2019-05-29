@@ -148,48 +148,56 @@ Proof.
   - rewrite tau_eutt, unfold_interp_state. eauto.
 Qed.
 
-Lemma eutt_interp_state_aloop {E F S I A} (RS : S -> S -> Prop)
+Lemma eutt_interp_state_aloop {E F S I I' A A'}
+      (RA : A -> A' -> Prop) (RI : I -> I' -> Prop)
+      (RS : S -> S -> Prop)
       (h : E ~> Monads.stateT S (itree F))
-      (t1 t2 : I -> itree E I + A) :
-  (forall i s1 s2, RS s1 s2 ->
+      (t1 : I -> itree E I + A)
+      (t2 : I' -> itree E I' + A'):
+  (forall i i' s1 s2, RS s1 s2 -> RI i i' ->
      sum_rel (fun u1 u2 =>
-                eutt (fun a b => RS (fst a) (fst b) /\ snd a = snd b)
+                eutt (fun a b => RS (fst a) (fst b) /\ RI (snd a) (snd b))
                      (interp_state h u1 s1)
                      (interp_state h u2 s2))
-             eq (t1 i) (t2 i)) ->
-  (forall i s1 s2, RS s1 s2 ->
-     eutt (fun a b => RS (fst a) (fst b) /\ snd a = snd b)
+             RA (t1 i) (t2 i')) ->
+  (forall i i' s1 s2, RS s1 s2 -> RI i i' ->
+     eutt (fun a b => RS (fst a) (fst b) /\ RA (snd a) (snd b))
           (interp_state h (ITree.aloop t1 i) s1)
-          (interp_state h (ITree.aloop t2 i) s2)).
+          (interp_state h (ITree.aloop t2 i') s2)).
 Proof.
   intro Ht.
   einit. ecofix CIH. intros.
   rewrite 2 unfold_aloop.
-  destruct (Ht i s1 s2); cbn; auto.
+  destruct (Ht i i' s1 s2); cbn; auto.
   - rewrite 2 interp_state_tau, 2 interp_state_bind.
     etau. constructor.
     ebind. econstructor; eauto.
-    intros [s1' i1'] [s2' i2'] [? []]; cbn.
+    intros [s1' i1'] [s2' i2'] [? ?]; cbn.
     auto with paco.
   - rewrite 2 interp_state_ret. eret.
 Qed.
 
-Lemma eutt_interp_state_iter {E F S A B} (RS : S -> S -> Prop)
+Lemma eutt_interp_state_iter {E F S A A' B B'}
+      (RA : A -> A' -> Prop) (RB : B -> B' -> Prop)
+      (RS : S -> S -> Prop)
       (h : E ~> Monads.stateT S (itree F))
-      (t1 t2 : A -> itree E (A + B)) :
-  (forall ca s1 s2, RS s1 s2 ->
-     eutt (fun a b => RS (fst a) (fst b) /\ snd a = snd b)
+      (t1 : A -> itree E (A + B))
+      (t2 : A' -> itree E (A' + B')) :
+  (forall ca ca' s1 s2, RS s1 s2 ->
+                        RA ca ca' ->
+     eutt (fun a b => RS (fst a) (fst b) /\ sum_rel RA RB (snd a) (snd b))
           (interp_state h (t1 ca) s1)
-          (interp_state h (t2 ca) s2)) ->
-  (forall a s1 s2, RS s1 s2 ->
-     eutt (fun a b => RS (fst a) (fst b) /\ snd a = snd b)
-          (interp_state h (iter t1 a) s1)
-          (interp_state h (iter t2 a) s2)).
+          (interp_state h (t2 ca') s2)) ->
+  (forall a a' s1 s2, RS s1 s2 -> RA a a' ->
+     eutt (fun a b => RS (fst a) (fst b) /\ RB (snd a) (snd b))
+          (interp_state h (KTree.iter t1 a) s1)
+          (interp_state h (KTree.iter t2 a') s2)).
 Proof.
   intros.
   unfold iter, Iter_ktree.
-  eapply eutt_interp_state_aloop; auto.
-  intros [] ? ? ?; constructor; auto.
+  eapply (eutt_interp_state_aloop _ (sum_rel _ _)); auto.
+  - intros ? ? ? ? ? []; constructor; auto.
+  - constructor; auto.
 Qed.
 
 Lemma eutt_interp_state_loop {E F S A B C} (RS : S -> S -> Prop)
@@ -207,12 +215,12 @@ Proof.
   intros.
   unfold loop, bimap, Bimap_Coproduct, case_, Case_ktree, Function.case_sum, id_, Id_ktree, cat, Cat_ktree, ITree.cat, inr_, Inr_ktree, inl_, Inl_ktree, lift_ktree.
   rewrite 2 bind_ret.
-  eapply eutt_interp_state_iter; auto; intros.
+  eapply (eutt_interp_state_iter eq eq); auto; intros.
   rewrite 2 interp_state_bind.
+  subst.
   eapply eutt_clo_bind; eauto.
   intros.
-  cbn in H2.
-  destruct (snd u1); rewrite <- (proj2 H2).
+  cbn in H2; destruct (snd u1); rewrite <- (proj2 H2).
   - rewrite bind_ret, 2 interp_state_ret.
     pstep.
     constructor.

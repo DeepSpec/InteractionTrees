@@ -74,7 +74,6 @@ From ExtLib Require Import
      Core.RelDec
      Structures.Monad
      Structures.Maps
-     Programming.Show
      Data.Map.FMapAList.
 
 Import ListNotations.
@@ -414,13 +413,18 @@ Section Eq_Locals.
   Qed.
 
   (** [eq_locals] is compatible with [loop]. *)
-  Lemma eq_locals_loop {A B C} x (t1 t2 : C + A -> itree E (C + B)) :
-    (forall l, eq_locals eq Renv (t1 l) (t2 l)) ->
-    eq_locals eq Renv (loop t1 x) (loop t2 x).
+  Lemma eq_locals_iter {A A' B B'}
+        (R : A -> A' -> Prop)
+        (S : B -> B' -> Prop)
+        (t1 : A -> itree E (A + B))
+        (t2 : A' -> itree E (A' + B')) :
+    (forall l l', R l l' -> eq_locals (sum_rel R S) Renv (t1 l) (t2 l')) ->
+    forall x x', R x x' ->
+    eq_locals S Renv (KTree.iter t1 x) (KTree.iter t2 x').
   Proof.
     unfold eq_locals, interp_locals, run_map.
-    intros. rewrite 2 interp_loop.
-    eapply eutt_interp_state_loop; auto.
+    intros. rewrite 2 interp_iter.
+    eapply eutt_interp_state_iter; auto.
   Qed.
 
   (** [sim_rel] at [n] entails that [GetVar (gen_tmp n)] gets interpreted
@@ -583,36 +587,31 @@ Opaque loop.
     rewrite app_asm_correct.
     rewrite if_asm_correct.
     intros x.
-    (* TODO Difficulty to do case analysis on the label with sktree *)
-    (*
-    simpl in x. cbn. dependent inversion x. unfold F, FinEmbedding in x. destruct x.
-    intros [[] | []].
-    - unfold ITree.cat. 
-      simpl; setoid_rewrite bind_bind.
-      rewrite bind_bind.
+    unfold bimap, Bimap_Coproduct, Case_sktree, Case_ktree, case_, lift_sktree, isum_suml, case_sum, lift_sktree, lift_ktree, cat, Cat_sktree, cat, Cat_ktree, ITree.cat.
+    apply (fin_case_ind x); cbn.
+    - rewrite bind_ret, !bind_bind.
       eapply eutt_clo_bind; try reflexivity. intros; subst.
       rewrite bind_bind.
       eapply eutt_clo_bind; try reflexivity. intros; subst. destruct u0.
-      + rewrite (pure_asm_correct _ tt).
-        unfold inl_, Inl_ktree, lift_ktree.
+      + rewrite (pure_asm_correct _ _).
+        unfold inl_, Inl_sktree, inl_, Inl_ktree, sum_isuml, lift_sktree, lift_ktree, cat, Cat_ktree, ITree.cat.
         repeat rewrite bind_ret.
         reflexivity.
-      + rewrite (relabel_asm_correct _ _ _  tt).
+      + rewrite (relabel_asm_correct _ _ _ _).
         unfold CategoryOps.cat, Cat_ktree, ITree.cat.
         simpl; repeat setoid_rewrite bind_bind.
-        unfold inl_, Inl_ktree, lift_ktree; rewrite bind_ret.
-        eapply eutt_clo_bind; try reflexivity. intros [] [] _.
+        unfold inl_, Inl_sktree, inl_, Inl_ktree, sum_isuml, lift_sktree, lift_ktree, cat, Cat_ktree, ITree.cat.
+        rewrite bind_ret.
+        eapply eutt_clo_bind; try reflexivity.
+        intros ? ? []. rewrite (unique_F1 u1).
         repeat rewrite bind_ret. reflexivity.
-    - intros [].
-      unfold CategoryOps.cat, Cat_ktree, ITree.cat, inr_, Inr_ktree, lift_ktree.
+    - intros k; rewrite (unique_F1 k).
       rewrite bind_ret.
-      rewrite (pure_asm_correct _ tt).
-      unfold lift_ktree.
+      rewrite (pure_asm_correct _ _).
+      unfold inr_, Inr_sktree, inr_, Inr_ktree, inl_, Inl_sktree, inl_, Inl_ktree, isum_inl, sum_isuml, lift_sktree, lift_ktree, cat, Cat_ktree, ITree.cat.
       rewrite !bind_ret.
       reflexivity.
   Qed.
-     *)
-  Admitted.
 
 End Linking.
 
@@ -819,23 +818,6 @@ Qed.
 Definition TT {A B}: A -> B -> Prop  := fun _ _ => True.
 Hint Unfold TT.
 
-Lemma unique_F1 (r1 : Fin.t 1) : r1 = F1.
-Proof.
-  exact (match r1 in t n return match n as n return t n -> Prop with
-                                | 1 => fun r => r = F1
-                                | _ => fun _ => True
-                                end r1 with
-         | @F1 n => match n with
-                    | O => eq_refl
-                    | S _ => I
-                    end
-         | @FS n y => match y with
-                      | F1 => I
-                      | FS _ => I
-                      end
-         end).
-Qed.
-
   (** Correctness of the compiler.
       After interpretation of the [Locals], the source _Imp_ statement
       denoted as an [itree] and the compiled _Asm_ program denoted
@@ -914,31 +896,33 @@ Qed.
       rewrite while_asm_correct.
       rewrite while_is_loop.
       unfold to_itree'.
-
-      (* TODO: adapt [eq_locals_loop] to have [sloop] on the left hand side. *)
-      (* We now have loops on both side, so we can just reason about their bodies *)
-      admit.
-      (*
-      apply eq_locals_loop.
+      unfold loop. unfold iter at 1.
+      unfold Iter_sktree, Inr_sktree, Inr_ktree, inr_, sum_isuml, lift_ktree, cat, Cat_sktree, cat, Cat_ktree, ITree.cat.
+      rewrite 3 bind_ret. cbn.
+      eapply (eq_locals_iter (fun x x' => (x = F1 /\ x' = inl tt) \/ (x = FS F1 /\ x' = inr tt))).
+      2: { auto. }
       (* The two cases correspond to entering the loop, or exiting it*)
-      intros [[]|[]].
+      intros ? ? [[] | []]; subst; cbn.
 
       (* The exiting case is trivial *)
       2:{ repeat intro.
           force_left. force_right.
-          red; rewrite <-eqit_Ret; auto. }
+          red; rewrite <-eqit_Ret; split; auto; constructor; auto. }
 
       (* We now need to line up the evaluation of the test,
          and eliminate them by correctness of [compile_expr] *)
-      unfold ITree.map. rewrite bind_bind.
+      unfold ITree.map. rewrite !bind_bind.
       repeat intro.
-      rewrite 2 interp_locals_bind.
+      rewrite (interp_locals_bind _ _ g1).
+      rewrite (interp_locals_bind _ _ g2).
       eapply eutt_clo_bind.
       { apply compile_expr_correct; auto. }
 
       (* We get in return [sim_rel] related environments *)
       intros [g_asm []] [g_imp v] HSIM.
+      rewrite !bind_bind.
       rewrite 2 interp_locals_bind.
+
       (* We know that interpreting [GetVar tmp_if] is eutt to [Ret (g_asm,v)] *)
       generalize HSIM; intros EQ. eapply sim_rel_get_tmp0 in EQ.
       setoid_rewrite EQ; clear EQ.
@@ -950,23 +934,22 @@ Qed.
       destruct v; simpl; auto.
       + (* The false case is trivial *)
         force_left; force_right.
-        red; rewrite <-eqit_Ret; auto.
+        red; rewrite <-eqit_Ret; split; auto; constructor; auto.
       + (* In the true case, we line up the body of the loop to use the induction hypothesis *)
+        rewrite !bind_bind.
         rewrite 2 interp_locals_bind, bind_bind.
         eapply eutt_clo_bind.
         { eapply IHs; auto. }
-        intros [g_asm' []] [g_imp' v'] [HSIM' ?].
-        intros.
+        intros [g_asm' f1] [g_imp' v'] [HSIM' ?].
+        rewrite (unique_F1 f1).
         force_right; force_left.
-        red; rewrite <- eqit_Ret; simpl; split; auto. 
-
-       *)
+        red; rewrite <- eqit_Ret; simpl; split; auto; constructor; auto.
 
     - (* Skip *)
       repeat intro.
       tau_steps.
       red; rewrite <- eqit_Ret; auto.
-  Admitted.
+Qed.
 
 End Correctness.
 

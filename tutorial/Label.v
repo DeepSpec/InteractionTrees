@@ -18,6 +18,16 @@ Global Instance FinInitial: Embedded_initial 0 :=
     void_iI := fun v => match v with end;
   |}.
 
+
+
+Definition fin_case {n : nat} (k : Fin.t (S n)) : forall R, R -> (Fin.t n -> R) -> R :=
+  match k with
+  | F1 => fun _ r _ => r
+  | FS k => fun _ _ f => f k
+  end.
+
+Arguments fin_case {n} k [R].
+
 Definition split_fin_S (n: nat) (k: Fin.t (S n)) : (Fin.t 1) + (Fin.t n) :=
   match k with
   | F1 => inl F1
@@ -51,6 +61,26 @@ Global Instance FinSum: Embedded_sum plus :=
     isum_sum := split_fin_sum;
     sum_isum := merge_fin_sum
   |}.
+
+Definition fin_case_ind {n} (k : Fin.t (S n)) : forall
+        (P : Fin.t (S n) -> Prop)
+        (P_r : P F1)
+        (P_f : forall (k : Fin.t n), P (FS k))
+  , P k :=
+  match k in Fin.t m return
+        match m with
+        | O => fun _ => False
+        | S n => fun k => forall
+        (P : Fin.t (S n) -> Prop)
+        (P_r : P F1)
+        (P_f : forall (k : Fin.t n), P (FS k)), P k
+        end k with
+  | F1 => fun _ P_r _ => P_r
+  | FS k => fun _ _ P_f => P_f k
+  end.
+
+Definition unique_F1 (r1 : Fin.t 1) : r1 = F1 :=
+  fin_case_ind r1 (fun r1 => r1 = F1) eq_refl (case0 _).
 
 Lemma split_fin_S_left:
   forall (n: nat) (k : Fin.t (S n)) t,

@@ -109,6 +109,19 @@ Proof.
   intros [] ? []; constructor; auto. reflexivity.
 Qed.
 
+Definition eutt_iter_gen {F A B R S} :
+  @Proper ((A -> itree F (A + B)) -> A -> itree F B)
+          ((R ==> eutt (sum_rel R S)) ==> R ==> (eutt S))
+          KTree.iter.
+Proof.
+  do 3 red;
+  intros body1 body2 EQ_BODY x y Hxy. red in EQ_BODY.
+  unfold iter, Iter_ktree.
+  eapply (eutt_aloop' (sum_rel R S)); intros.
+  - destruct H; constructor; auto.
+  - constructor; auto.
+Qed.
+
 Instance eq2_ktree_iter {E A B} :
   @Proper (ktree E A (A + B) -> ktree E A B)
           (eq2 ==> eq2)
