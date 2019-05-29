@@ -211,8 +211,10 @@ Section Denote.
       governed by a value of type [unit + unit].  The right tag [inr tt] says to
       exit the loop, and the [inl tt] says to continue.  *)
 
-  Definition while {eff} (step : itree eff (unit + unit)) : itree eff unit :=
-    loop 
+  (* SAZ + LX - for some reason typeclass resolution can't see the instance for 
+     ALoop_itree, even though it seems to be in scope. *)
+  Definition while (step : itree eff (unit + unit)) : itree eff unit :=
+    @loop (itree eff) _ (ALoop_itree) _ _ _ 
       (fun l : unit + unit =>
          match l with
          | inl _ => step

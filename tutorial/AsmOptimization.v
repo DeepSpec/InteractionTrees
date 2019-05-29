@@ -135,16 +135,38 @@ Proof.
   intros A B ph H.
   unfold optimization_correct.
   intros p.
-  destruct p. 
-  unfold peephole_optimize_asm.
-  simpl.
   unfold eq_asm, eq_asm_denotations.
-  intros.
   unfold denote_asm.
   unfold interp_asm.
   unfold run_map.
+  intros.
   apply eutt_interp_state; auto.
   apply eutt_interp_state; auto.
+  About interp_loop.
+  Set Typeclasses Debug.  (* (bimap eval_reg (bimap eval_memory (id_ Exit))) *)
+  About interp.
+  Set Printing Universes.
+  About interp.
+  About denote_b.
+  Check (internal p).
+
+  assert ((interp _ (KTree.loop (denote_b (code p)) a))
+                 ≅
+          (KTree.loop (fun ca => interp _  ((denote_b (code p)) ca)) a)).
+  epose proof interp_loop.
+  red in H0.
+  unfold denote_b.
+  simpl.
+  rewrite (H0 (bimap eval_reg (bimap eval_memory (id_ Exit))) _ _ (internal p)).
+
+  
+  destruct p. 
+  unfold peephole_optimize_asm.
+  simpl.
+  
+
+
+  About interp_loop.
   (* SAZ: The existential types for internal labels used in [asm] seem to be the source 
      universe inconsistency problems.  I would like to just do [rewrite interp_loop], but
      that fails with a (hidden) unification error, which seems to stem from the error
@@ -154,7 +176,7 @@ Proof.
   red in H0.
   unfold denote_b.
   simpl.
-  Fail rewrite (H0 (bimap eval_reg (bimap eval_memory (id_ Exit))) _ _ internal).
+  rewrite (H0 (bimap eval_reg (bimap eval_memory (id_ Exit))) _ _ internal).
 (*
   apply eutt_loop.
   simpl. red. intros. 

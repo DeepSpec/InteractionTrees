@@ -48,7 +48,7 @@ SAZ: This needs to be updated.
 *)
 
 (* begin hide *)
-Require Import Imp Asm Utils_tutorial AsmCombinators Imp2Asm StateFacts2.
+Require Import Imp Asm Utils_tutorial AsmCombinators Imp2Asm.
 
 Require Import Psatz.
 
@@ -92,80 +92,6 @@ Local Open Scope cat.
 Import Monads.
 From Paco Require Import paco.
 
-Definition state_eq {E S X} 
-  : (stateT S (itree E) X) -> (stateT S (itree E) X) -> Prop :=
-  fun t1 t2 => forall s, eq_itree eq (t1 s) (t2 s).
-
-Definition state_eq2 {E S1 S2 X} 
-  : (stateT S1 (stateT S2 (itree E)) X) -> (stateT S1 (stateT S2 (itree E)) X) -> Prop :=
-  fun t1 t2 => forall s1 s2, eq_itree eq (t1 s1 s2) (t2 s1 s2).
-
-
-Lemma interp_state_aloop {E F } S (f : E ~> stateT S (itree F)) {I A}
-      (t  : I -> itree E I + A)
-      (t' : I -> stateT S (itree F) I + A)
-      (EQ_t : forall i, sum_rel (fun u u' => state_eq (State.interp_state f u) u') eq (t i) (t' i))
-  : forall i, state_eq (State.interp_state f (ITree.aloop t i))
-                  (aloop t' i).
-Proof.
-  ginit. gcofix CIH; intros i s.
-  unfold aloop, ALoop_stateT0, aloop, ALoop_itree in *.
-  rewrite 2 unfold_aloop. simpl.
-  destruct (EQ_t i); cbn.
-  - rewrite interp_state_tau, interp_state_bind.
-    gstep.
-    constructor.
-    guclo eqit_clo_bind; econstructor; eauto.
-    apply H.
-    intros [s' i'] _ []. simpl.
-    auto with paco.
-  - rewrite interp_state_ret. gstep. constructor; auto. subst; auto.
-Qed.
-  
-Lemma interp_state_loop
-  : forall {I A B:Type} {E F} {S}
-      (h : E ~> stateT S (itree F))
-      (t : ktree E (I + A) (I + B)) (a:A),
-    state_eq (State.interp_state h (KTree.loop t a))
-             ((Basics.loop : ((I + A) -> stateT S (itree F) (I + B)) -> _)
-                (fun ia => (State.interp_state h (t ia)) ) a).
-  Proof.
-    unfold state_eq.
-    intros.
-    unfold KTree.loop, Basics.loop.
-    cbn.
-    rewrite interp_state_bind.
-    apply eqit_bind; try reflexivity.
-    intros ?.
-    apply interp_state_aloop.
-    intros []; cbn; constructor.
-    unfold state_eq. intros. reflexivity.
-    reflexivity.
-  Qed.
-
-
-Lemma interp_state_loop2
-  : forall {I A B:Type} {E F} {S1 S2}
-      (h : E ~> stateT S2 (itree F))
-      (t : (I + A) -> stateT S1 (itree E) (I + B)) (a:A),
-      state_eq2 (fun s1 s2 => (State.interp_state h (Basics.loop t a s1) s2))
-                ((Basics.loop : ((I+A) -> stateT S1 (stateT S2 (itree F)) (I + B)) -> _ )
-                   (fun ia s1 => (State.interp_state h (t ia s1)) ) a ).
-  Proof.
-    unfold state_eq2.
-    intros.
-    unfold loop.
-    cbn.
-    rewrite interp_state_bind.
-    apply eqit_bind; try reflexivity.
-    intros ?.
-    apply interp_state_aloop.
-    intros [s1' l]; cbn.
-    destruct l; cbn. 
-    - constructor.
-      unfold state_eq. intros. reflexivity.
-    - constructor. reflexivity.
-  Qed.
 (* End of missing library functionality... ---------------------------------- *)
 
 
@@ -447,13 +373,15 @@ Section Bisimulation.
     eapply H0. apply H2.
   Qed.
 
+  (* SAZ + LX: again, typeclass resolution doesn't find Aloop_itree.  Maybe universes get in the way? *)
+  Notation loop' := (@loop _ _ (ALoop_itree) _ _ _).
     
   (** [eq_locals] is compatible with [loop]. *)
   Lemma bisimilar_loop {A B C E} x
         (t1 : C + A -> itree (ImpState +' E) (C + B)) 
         (t2 : C + A -> itree (Reg +' Memory +' E) (C + B)) :
     (forall l, bisimilar (t1 l) (t2 l)) ->
-    bisimilar (loop t1 x) (loop t2 x).
+    bisimilar (loop' t1 x) (loop' t2 x).
   Proof.
     unfold bisimilar, interp_asm, interp_imp, run_map.
     intros.
