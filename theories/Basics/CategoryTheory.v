@@ -4,6 +4,8 @@
     operations, this module describes their properties. *)
 
 (* begin hide *)
+From Coq Require Import Setoid Morphisms.
+
 From ITree.Basics Require Import
      CategoryOps.
 
@@ -35,6 +37,8 @@ Class Category : Prop := {
   category_cat_id_l :> CatIdL;
   category_cat_id_r :> CatIdR;
   category_cat_assoc :> CatAssoc;
+  category_proper_cat :> forall a b c,
+      @Proper (C a b -> C b c -> C a c) (eq2 ==> eq2 ==> eq2) cat;
 }.
 
 (** *** Initial object *)
@@ -46,9 +50,13 @@ Class InitialObject (i : obj) {Initial_i : Initial C i} : Prop :=
 
 End CatLaws.
 
-Arguments cat_assoc {obj} C {Eq2C CatC CatAssoc} [a b c d].
-Arguments initial_object : clear implicits.
-Arguments initial_object {obj} C {Eq2C} i {Initial_i InitialObject}.
+Arguments cat_id_l {obj C Eq2C IdC CatC CatIdL} [a b] f.
+Arguments cat_id_r {obj C Eq2C IdC CatC CatIdR} [a b] f.
+Arguments cat_assoc {obj C Eq2C CatC CatAssoc} [a b c d] f g.
+Arguments initial_object {obj C Eq2C i Initial_i InitialObject} [a] f.
+
+(** Synonym of [initial_object]. *)
+Notation unique_initial := initial_object.
 
 (** ** Mono-, Epi-, Iso- morphisms *)
 
@@ -84,8 +92,7 @@ Class Iso {a b : obj} (f : C a b) (f' : C b a) : Type := {
 
 End SemiIso.
 
-Arguments semi_iso : clear implicits.
-Arguments semi_iso {obj C Eq2C IdC CatC a b} f f'.
+Arguments semi_iso {obj C Eq2C IdC CatC a b} f f' {SemiIso}.
 
 (** ** Bifunctors *)
 
@@ -112,9 +119,14 @@ Class BimapCat : Prop :=
 Class Bifunctor : Prop := {
   bifunctor_bimap_id :> BimapId;
   bifunctor_bimap_cat :> BimapCat;
+  bifunctor_proper_bimap :> forall a b c d,
+      @Proper (C a c -> C b d -> C _ _) (eq2 ==> eq2 ==> eq2) bimap;
 }.
 
 End BifunctorLaws.
+
+Arguments bimap_id {obj C Eq2_C Id_C bif Bimap_bif BimapId} a b.
+Arguments bimap_cat {obj C Eq2_C Cat_C bif Bimap_bif BimapCat} [_ _ _ _ _ _] f1 g1 f2 g2.
 
 (** ** Coproducts *)
 
@@ -149,9 +161,19 @@ Class Coproduct : Prop := {
   coproduct_case_inl :> CaseInl;
   coproduct_case_inr :> CaseInr;
   coproduct_case_universal :> CaseUniversal;
+  coproduct_proper_case :> forall a b c,
+      @Proper (C a c -> C b c -> C _ c) (eq2 ==> eq2 ==> eq2) case_
 }.
 
 End CoproductLaws.
+
+Arguments case_inl {obj C Eq2_C Cat_C bif CoprodCase_C CoprodInl_C CaseInl} [a b c] f g.
+Arguments case_inr {obj C Eq2_C Cat_C bif CoprodCase_C CoprodInr_C CaseInr} [a b c] f g.
+Arguments case_universal {obj C _ _ bif _ _ _ _} [a b c] f g fg.
+
+(** More intuitive names. *)
+Notation inl_case := case_inl.
+Notation inr_case := case_inr.
 
 (** ** Monoidal categories *)
 
@@ -160,6 +182,8 @@ Section MonoidalLaws.
 Context {obj : Type} (C : Hom obj).
 Context {Eq2_C : Eq2 C} {Id_C : Id_ C} {Cat_C : Cat C}.
 Context (bif : binop obj).
+
+Context {Bimap_bif : Bimap C bif}.
 
 Context {AssocR_bif : AssocR C bif}.
 Context {AssocL_bif : AssocL C bif}.
@@ -192,6 +216,16 @@ Context {UnitL_bif  : UnitL  C bif i}.
 Context {UnitL'_bif : UnitL' C bif i}.
 Context {UnitR_bif  : UnitR  C bif i}.
 Context {UnitR'_bif : UnitR' C bif i}.
+
+(** *** Naturality *)
+
+Class UnitLNatural : Prop :=
+  natural_unit_l : forall a b (f : C a b),
+    bimap (id_ i) f >>> unit_l_ i b ⩯ unit_l_ i a >>> f.
+
+Class UnitL'Natural : Prop :=
+  natural_unit_l' : forall a b (f : C a b),
+    unit_l'_ i a >>> bimap (id_ i) f ⩯ f >>> unit_l'_ i b.
 
 (** [unit_l] and [unit_l'] are mutual inverses. *)
 Notation UnitLIso :=
@@ -228,8 +262,6 @@ Proof.
   intros; apply semi_iso, UnitRIso_C.
 Qed.
 
-Context {Bimap_bif : Bimap C bif}.
-
 (** *** Coherence laws *)
 
 (** The Triangle Diagram *)
@@ -251,6 +283,8 @@ Class Monoidal : Prop := {
   monoidal_assoc_iso :> AssocIso;
   monoidal_unit_l_iso :> UnitLIso;
   monoidal_unit_r_iso :> UnitRIso;
+  monoidal_unit_l_natural :> UnitLNatural;
+  monoidal_unit_l'_natural :> UnitL'Natural;
   monoidal_assoc_r_unit :> AssocRUnit;
   monoidal_assoc_r_assoc_r :> AssocRAssocR;
 }.
@@ -271,6 +305,19 @@ Class AssocLAssocL : Prop :=
 
 End MonoidalLaws.
 
+Arguments assoc_r_mono {obj C Eq2_C Id_C Cat_C bif AssocR_bif AssocL_bif AssocIso_C} a b c.
+Arguments assoc_l_mono {obj C Eq2_C Id_C Cat_C bif AssocR_bif AssocL_bif AssocIso_C} a b c.
+Arguments unit_l_mono {obj C Eq2_C Id_C Cat_C bif i UnitL_bif UnitL'_bif UnitLIso_C} a.
+Arguments unit_l_epi {obj C Eq2_C Id_C Cat_C bif i UnitL_bif UnitL'_bif UnitLIso_C} a.
+Arguments unit_r_mono {obj C Eq2_C Id_C Cat_C bif i UnitR_bif UnitR'_bif UnitRIso_C} a.
+Arguments unit_r_epi {obj C Eq2_C Id_C Cat_C bif i UnitR_bif UnitR'_bif UnitRIso_C} a.
+
+Arguments assoc_r_unit {obj C Eq2_C Id_C Cat_C bif Bimap_bif AssocR_bif i UnitL_bif UnitR_bif AssocRUnit} a b.
+Arguments assoc_r_assoc_r {obj C Eq2_C Id_C Cat_C bif Bimap_bif AssocR_bif AssocRAssocR} a b c d.
+
+Arguments assoc_l_unit {obj C Eq2_C Id_C Cat_C bif Bimap_bif AssocL_bif i UnitL_bif UnitR_bif AssocLUnit} a b.
+Arguments assoc_l_assoc_l {obj C Eq2_C Id_C Cat_C bif Bimap_bif AssocL_bif AssocLAssocL} a b c d.
+
 (** ** Symmetric monoidal categories *)
 
 Section SymmetricLaws.
@@ -278,6 +325,7 @@ Section SymmetricLaws.
 Context {obj : Type} (C : Hom obj).
 Context {Eq2_C : Eq2 C} {Id_C : Id_ C} {Cat_C : Cat C}.
 Context (bif : binop obj).
+Context {Bimap_bif : Bimap C bif}.
 Context {Swap_bif : Swap C bif}.
 
 (** [swap] is an involution *)
@@ -300,7 +348,6 @@ Context {UnitR'_i : UnitR' C bif i}.
 Class SwapUnitL : Prop :=
   swap_unit_l : forall a, swap >>> unit_l ⩯ unit_r_ _ a.
 
-Context {Bimap_bif : Bimap C bif}.
 Context {AssocR_bif : AssocR C bif}.
 Context {AssocL_bif : AssocL C bif}.
 
@@ -325,3 +372,72 @@ Class SwapAssocL : Prop :=
   ⩯ bimap (id_ a) swap >>> assoc_l >>> bimap swap (id_ b).
 
 End SymmetricLaws.
+
+Arguments swap_involutive {obj C Eq2_C Id_C Cat_C bif Swap_bif SwapInvolutive_C} a b.
+Arguments swap_unit_l {obj C Eq2_C Cat_C bif Swap_bif i UnitL_i UnitR_i SwapUnitL} a.
+Arguments swap_assoc_r {obj C Eq2_C Id_C Cat_C bif Bimap_bif Swap_bif AssocR_bif  SwapAssocR} a b c.
+Arguments swap_assoc_l {obj C Eq2_C Id_C Cat_C bif Bimap_bif Swap_bif AssocL_bif  SwapAssocL} a b c.
+
+Section IterationLaws.
+
+Context {obj : Type} (C : Hom obj).
+Context {Eq2_C : Eq2 C} {Id_C : Id_ C} {Cat_C : Cat C}.
+Context (bif : binop obj).
+Context {CoprodCase_C : CoprodCase C bif}.
+Context {CoprodInl_C : CoprodInl C bif}.
+Context {CoprodInr_C : CoprodInr C bif}.
+Context {Iter_C : Iter C bif}.
+
+(** The loop operation satisfies a fixed point equation. *)
+Class IterUnfold : Prop :=
+  iter_unfold : forall a b (f : C a (bif a b)),
+    iter f ⩯ f >>> case_ (iter f) (id_ b).
+
+(** Naturality in the output (in [b], with [C a (bif a b) -> C a b]).
+    Also known as "parameter identity". *)
+Class IterNatural : Prop :=
+  iter_natural : forall a b c (f : C a (bif a b)) (g : C b c),
+    iter f >>> g ⩯ iter (f >>> bimap (id_ _) g).
+
+(** Dinaturality in the accumulator (in [a], with [C a (bif a b) -> C a b]).
+    Also known as "composition identity". *)
+Class IterDinatural : Prop :=
+  iter_dinatural : forall a b c (f : C a (bif b c)) (g : C b (bif a c)),
+                   iter (f >>> case_ g inr_)
+    ⩯ f >>> case_ (iter (g >>> case_ f inr_)) (id_ _).
+(** TODO: provable from the others + uniformity? *)
+
+(** Flatten nested loops. Also known as "double dagger identity". *)
+Class IterCodiagonal : Prop :=
+  iter_codiagonal : forall a b (f : C a (bif a (bif a b))),
+    iter (iter f) ⩯ iter (f >>> case_ inl_ (id_ _)).
+
+(* TODO: also define uniformity, requires a "purity" assumption. *)
+
+Class Conway : Prop :=
+  { conway_unfold :> IterUnfold
+  ; conway_natural :> IterNatural
+  ; conway_dinatural :> IterDinatural
+  ; conway_codiagonal :> IterCodiagonal
+  ; conway_proper_iter
+      :> forall a b, @Proper (C a (bif a b) -> C a b) (eq2 ==> eq2) iter
+  }.
+
+(** Also called Bekic identity *)
+Definition IterPairing : Prop :=
+  forall a b c (f : C a (bif (bif a b) c)) (g : C b (bif (bif a b) c)),
+    let h : C b (bif b c)
+        := g >>> assoc_r >>> case_ (iter (f >>> assoc_r)) (id_ _)
+    in
+      iter (case_ f g)
+    ⩯ iter (case_ (iter (f >>> assoc_r)
+                         >>> case_ (iter h) (id_ _) >>> inr_)
+                      (h >>> bimap inr_ (id_ _))).
+
+End IterationLaws.
+
+Arguments iter_unfold {obj C Eq2_C Id_C Cat_C bif CoprodCase_C Iter_C IterUnfold} [a b] f.
+Arguments iter_natural {obj C Eq2_C Id_C Cat_C bif CoprodCase_C CoprodInl_C CoprodInr_C Iter_C IterNatural} [a b c] f.
+Arguments iter_dinatural {obj C Eq2_C Id_C Cat_C bif CoprodCase_C CoprodInr_C Iter_C IterDinatural} [a b c] f.
+Arguments iter_codiagonal {obj C Eq2_C Id_C Cat_C bif CoprodCase_C CoprodInl_C Iter_C IterCodiagonal} [a b] f.
+Arguments conway_proper_iter {obj C Eq2_C Id_C Cat_C bif CoprodCase_C CoprodInl_C CoprodInr_C Iter_C Conway}.

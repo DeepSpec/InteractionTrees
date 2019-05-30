@@ -20,6 +20,7 @@ From ITree Require Import
      Basics.Basics
      Core.ITreeDefinition
      Core.KTree
+     Core.KTreeFacts
      Eq.Eq
      Eq.UpToTaus
      Indexed.Sum
@@ -153,6 +154,29 @@ Proof.
   - rewrite tau_eutt, unfold_interp. auto.
 Qed.
 
+Instance euttge_interp (E F : Type -> Type)
+  : @Proper (Handler E F -> (itree E ~> itree F))
+            (i_pointwise (fun _ => euttge eq) ==>
+             i_respectful (fun _ => euttge eq) (fun _ => euttge eq))
+            interp.
+Proof.
+  repeat red.
+  intros until T.
+  ginit. gcofix CIH. intros.
+
+  rewrite !unfold_interp. punfold H1. red in H1.
+  induction H1; intros; subst; pclearbot; simpl.
+  - gstep. constructor. eauto.
+  - gstep. constructor. eauto with paco.
+  - gstep. constructor.
+    guclo eqit_clo_bind.
+    econstructor; [apply H|].
+    intros; subst.
+    gbase. eauto with paco.
+  - rewrite tau_eutt, unfold_interp. auto.
+  - discriminate.
+Qed.
+
 Instance eutt_interp' {E F : Type -> Type} {R : Type} (f : E ~> itree F) :
   Proper (eutt eq ==> eutt eq)
          (@interp E (itree F) _ _ _ f R).
@@ -204,14 +228,13 @@ Hint Rewrite @interp_bind : itree.
 (** *** Identities for [interp] *)
 
 Lemma interp_id_h {A R} (t : itree A R)
-  : interp (id_ A) t ≈ t.
+  : interp (id_ A) t ≳ t.
 Proof.
-  revert t. einit. ecofix CIH. intros.
+  revert t. ginit. gcofix CIH. intros.
   rewrite (itree_eta t), unfold_interp.
-  destruct (observe t); try estep.
-  unfold id_, Id_Handler, Handler.id_, ITree.trigger. simpl.
-  rewrite tau_eutt, bind_vis. evis.
-  intros. rewrite bind_ret. eauto with paco.
+  destruct (observe t); try (gstep; constructor; auto with paco).
+  cbn. constructor; red; intros.
+  rewrite bind_ret. eauto with paco.
 Qed.
 
 Lemma interp_trigger_h {E R} (t : itree E R) :
@@ -307,13 +330,36 @@ Proof.
   - rewrite interp_ret. gstep. constructor; auto.
 Qed.
 
+Lemma interp_iter {E F} (f : E ~> itree F) {A B}
+      (t : A -> itree E (A + B)) a0
+  : interp f (iter t a0) ≅ iter (fun a => interp f (t a)) a0.
+Proof.
+  unfold iter, Iter_ktree.
+  apply interp_aloop.
+  intros []; constructor; reflexivity.
+Qed.
+
 Lemma interp_loop {E F} (f : E ~> itree F) {A B C}
       (t : C + A -> itree E (C + B)) a :
   interp f (loop t a) ≅ loop (fun ca => interp f (t ca)) a.
 Proof.
-  unfold loop.
+  unfold loop. unfold cat, Cat_ktree, ITree.cat.
+  rewrite interp_bind.
+  apply eqit_bind.
+  repeat intro.
+  rewrite interp_iter.
+  apply eq_itree_iter.
+  intros ? ? [].
   rewrite interp_bind.
   apply eqit_bind; try reflexivity.
-  red. apply interp_aloop.
-  intros []; cbn; constructor; reflexivity.
+  intros []; cbn. unfold cat. rewrite interp_bind.
+  unfold inl_, Inl_ktree, inr_, Inr_ktree, lift_ktree.
+  rewrite interp_ret, !bind_ret, interp_ret.
+  reflexivity.
+  unfold cat, id_, Id_ktree, inr_, Inr_ktree, lift_ktree.
+  rewrite interp_bind, interp_ret, !bind_ret, interp_ret.
+  reflexivity.
+  unfold inr_, Inr_ktree, lift_ktree.
+  rewrite interp_ret.
+  reflexivity.
 Qed.

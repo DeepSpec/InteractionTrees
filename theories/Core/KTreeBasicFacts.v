@@ -155,7 +155,6 @@ Proof.
   rewrite <- cat_assoc.
   rewrite compose_lift_ktree.
   reflexivity.
-  typeclasses eauto.
 Qed.
 
 Fact compose_lift_ktree_r {A B C D} (f: B -> C) (g: C -> D) (k: ktree E A B) :
@@ -164,7 +163,6 @@ Proof.
   rewrite cat_assoc.
   rewrite compose_lift_ktree.
   reflexivity.
-  typeclasses eauto.
 Qed.
 
 Fact lift_compose_ktree {A B C}: forall (f:A -> B) (bc: ktree E B C),
@@ -263,7 +261,7 @@ Qed.
 
 (** *** [bimap] lemmas *)
 Local Opaque paco2.
-Local Opaque eutt loop ITree.bind'.
+Local Opaque eutt ITree.bind'.
 
 Fact bimap_id_lift {A B C} (f : B -> C) :
   bimap (id_ A) (@lift_ktree E _ _ f) ⩯ lift_ktree (bimap (id_ A) f).
@@ -271,7 +269,6 @@ Proof.
   unfold bimap, Bimap_Coproduct.
   rewrite !cat_id_l, <- lift_case_sum, <- compose_lift_ktree.
   reflexivity.
-  all: typeclasses eauto.
 Qed.
 
 Fact bimap_lift_id {A B C} (f : A -> B) :
@@ -280,7 +277,6 @@ Proof.
   unfold bimap, Bimap_Coproduct.
   rewrite !cat_id_l, <- lift_case_sum, <- compose_lift_ktree.
   reflexivity.
-  all: typeclasses eauto.
 Qed.
 
 Global Instance Coproduct_ktree : Coproduct (ktree E) sum.
@@ -301,6 +297,7 @@ Proof.
     + unfold inr_, Inr_ktree in Hg.
       rewrite lift_compose_ktree in Hg.
       specialize (Hg y). simpl in Hg. rewrite Hg. reflexivity.
+  - typeclasses eauto.
 Qed.
 
 End MonoidalCategoryLaws.

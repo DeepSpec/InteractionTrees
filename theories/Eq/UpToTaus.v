@@ -623,3 +623,9 @@ Global Instance eutt_cong_eq {E R1 R2 RR}:
 Proof.
   einit. intros. rewrite H0, H1. efinal.
 Qed.
+
+Global Instance eutt_cong_eutt' {E R1 R2 RR} :
+  Proper (eutt eq ==> eutt eq ==> flip impl) (@eutt E R1 R2 RR).
+Proof.
+  apply eutt_cong_eutt.
+Qed.

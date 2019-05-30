@@ -50,6 +50,7 @@ Variant sum_rel {A1 A2 B1 B2 : Type}
 .
 Arguments inl_morphism {A1 A2 B1 B2 RA RB}.
 Arguments inr_morphism {A1 A2 B1 B2 RA RB}.
+Hint Constructors sum_rel.
 
 (** ** Common monads and transformers. *)
 
