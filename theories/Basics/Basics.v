@@ -50,6 +50,7 @@ Variant sum_rel {A1 A2 B1 B2 : Type}
 .
 Arguments inl_morphism {A1 A2 B1 B2 RA RB}.
 Arguments inr_morphism {A1 A2 B1 B2 RA RB}.
+Hint Constructors sum_rel.
 
 (** ** Common monads and transformers. *)
 
@@ -176,13 +177,3 @@ Inductive aloop_Prop {R I : Type} (step : I -> (I -> Prop) + R) (i : I) (r : R)
 .
 
 Polymorphic Instance ALoop_Prop : ALoop Ensembles.Ensemble := @aloop_Prop.
-
-
-Definition loop {M} {MM : Monad M} {AM : ALoop M} {A B I : Type} (body : (I + A) -> M (I + B)%type) : A -> M B :=
-  fun a =>
-    body (inr a) >>=
-      aloop (fun cb =>
-        match cb with
-        | inl c => inl (body (inl c))
-        | inr b => inr b
-        end).

@@ -6,6 +6,7 @@ From ITree Require Export
      Basics.Category
      Basics.FunctionFacts
      Core.ITreeDefinition
+     Core.KTreeBasicFacts
      Core.KTreeFacts
      Indexed.FunctionFacts
      Interp.TranslateFacts

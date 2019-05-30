@@ -68,7 +68,7 @@ Definition mrecursive (f : D ~> itree (D +' E))
   : (D +' E) ~> itree E :=
   case_ (mrec f) ITree.trigger.
 
-Instance eq_itree_mrec {R} :
+Global Instance eq_itree_mrec {R} :
   Proper (eq_itree eq ==> eq_itree eq) (@interp_mrec _ _ ctx R).
 Proof.
   ginit. gcofix CIH. intros.
@@ -128,7 +128,49 @@ Proof.
   rewrite interp_trigger. cbn. reflexivity.
 Qed.
 
+Theorem unfold_interp_mrec_h {T} (t : itree _ T)
+  : interp_mrec ctx (interp (case_ ctx inr_) t)
+  ≳ interp_mrec ctx t.
+Proof.
+  revert t. ginit; gcofix CIH. intros.
+  rewrite (itree_eta t); destruct (observe t);
+    rewrite 2 unfold_interp_mrec; cbn; gstep; constructor.
+  - auto.
+  - rewrite bind_ret; auto with paco.
+  - rewrite bind_map.
+    destruct e.
+    + rewrite 2 interp_mrec_bind.
+      guclo eqit_clo_bind; econstructor; [reflexivity|].
+      intros ? _ []; auto with paco.
+    + cbn. unfold inr_, Handler.Inr_sum1_Handler, Handler.Handler.inr_, Handler.Handler.htrigger.
+      rewrite bind_trigger, unfold_interp_mrec; cbn.
+      rewrite tau_eutt.
+      gstep; constructor. auto with paco.
+Qed.
+
 End Facts.
+
+Local Opaque interp_mrec.
+
+Global Instance Proper_interp_mrec {D E} :
+  @Proper ((D ~> itree (D +' E)) -> (itree (D +' E) ~> itree E))
+          (Relation.i_pointwise (fun _ => eutt eq) ==>
+           Relation.i_respectful (fun _ => eutt eq) (fun _ => eutt eq))
+          interp_mrec.
+Proof.
+  intros f g Hfg R.
+  ginit; gcofix CIH; intros t1 t2 Ht.
+  rewrite 2 unfold_interp_mrec.
+  punfold Ht; induction Ht; cbn; pclearbot.
+  3: { gstep; constructor; destruct e.
+    + gfinal; left. apply CIH.
+      eapply eutt_clo_bind; eauto.
+      intros ? _ []. auto.
+    + gstep; constructor. red; auto with paco.
+  }
+  1,2: gstep; constructor; auto with paco.
+  1,2: rewrite unfold_interp_mrec, tau_eutt; auto.
+Qed.
 
 (** [rec body] is equivalent to [interp (recursive body)],
     where [recursive] is defined as follows. *)

@@ -66,6 +66,7 @@ Context {E : Type -> Type}.
 Local Notation ktree := (ktree E).
 
 (* Utility function to lift a pure computation into ktree *)
+(* SAZ: Maybe call this operation [pure] as in Haskell? *)
 Definition lift_ktree {A B} (f : A -> B) : ktree A B := fun a => Ret (f a).
 
 (** *** Category *)
@@ -107,6 +108,14 @@ Global Instance Inr_ktree : CoprodInr ktree sum :=
 
 (** *** Traced monoidal category *)
 
+Global Instance Iter_ktree : Iter ktree sum :=
+  fun A B (f : ktree A (A + B)) (a0 : A) =>
+    ITree.aloop (fun ar =>
+      match ar with
+      | inl a => inl (f a)
+      | inr r => inr r
+      end) (inl a0) : itree E B.
+
 (** The trace operator here is [loop].
 
    We can view a [ktree (I + A) (I + B)] as a circuit, drawn below as [###],
@@ -127,21 +136,6 @@ Global Instance Inr_ktree : CoprodInr ktree sum :=
 
 End Operations.
 
-(** Iterate a function updating an accumulator [C],
-    until it produces an output [B]. An encoding of tail recursive
-    functions.
+Notation iter := (@iter _ (ktree _) sum _ _ _).
+Notation loop := (@loop _ (ktree _) sum _ _ _ _ _ _ _ _ _).
 
-    The Kleisli category for the [itree] monad is a traced
-    monoidal category, with [loop] as its trace.
- *)
-Definition loop 
-{E : Type -> Type} {A B C : Type}
-           (body : (C + A) -> itree E (C + B)) :
-  A -> itree E B := 
-  fun a =>
-    body (inr a) >>=
-      ITree.aloop (fun cb =>
-        match cb with
-        | inl c => inl (body (inl c))
-        | inr b => inr b
-        end).

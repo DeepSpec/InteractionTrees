@@ -629,6 +629,16 @@ Lemma bind_vis {E R} U V (e: E V) (ek: V -> itree E U) (k: U -> itree E R) :
   ITree.bind (Vis e ek) k ≅ Vis e (fun x => ITree.bind (ek x) k).
 Proof. rewrite bind_vis_. reflexivity. Qed.
 
+Lemma bind_trigger {E R} U (e : E U) (k : U -> itree E R)
+  : ITree.bind (ITree.trigger e) k ≅ Vis e (fun x => k x).
+Proof.
+  rewrite unfold_bind; cbn.
+  pstep.
+  constructor.
+  intros; red. left. rewrite bind_ret.
+  apply Reflexive_eqit.
+Qed.
+
 Lemma unfold_aloop {E A B} (f : A -> itree E A + B) (x : A) :
   (ITree.aloop f x) ≅ (ITree._aloop (fun t => Tau t) (ITree.aloop f) (f x)).
 Proof.

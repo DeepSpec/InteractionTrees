@@ -18,16 +18,14 @@ From ITree Require Import
      ITree
      ITreeFacts
      Events.Map
-     StateFacts.
+     StateFacts
+     SubKTree.
 
-From ExtLib Require Structures.Monad.
+Require Import Label.
 
 Typeclasses eauto := 5.
 
 (* end hide *)
-
-
-
 
 (** ** Syntax *)
 
@@ -73,10 +71,13 @@ Inductive block {label : Type} : Type :=
 Global Arguments block _ : clear implicits.
 
 
+
 (** A piece of code should expose the set of labels allowing to enter into it,
     as well as the set of outer labels it might jump to.  To this end, [bks]
     represents a collection of blocks labeled by [A], with branches in [B]. *)
-Definition bks (A B: Type) := A -> block B.
+(* TODO: explain [F A] *)
+Definition bks A B := F A -> block (F B).
+
 
 (** An [asm] program represents the control flow of the computation.  It is a
     collection of labelled [blocks] such that its labels are classified into
@@ -95,10 +96,10 @@ Definition bks (A B: Type) := A -> block B.
     loop) or somehow generate an event that terminates them.  (See the
     denotation of [Bhalt] below.)  *)
 
-Record asm (A B: Type) : Type :=
+Record asm (A B: nat) : Type :=
   {
-    internal : Type;
-    code : bks (internal + A) (internal + B)
+    internal : nat;
+    code     : bks (internal + A) (internal + B)
   }.
 
 Arguments internal {A B}.
@@ -120,7 +121,6 @@ Inductive Memory : Type -> Type :=
 
 
 (* SAZ: Move Exit to the itrees library? *)
-(* SAZ: I renamed "done" to "halt" since "done" is part of ltac or something - it gets colored weird by proof general *)
 (** We also introduce a special event to model termination of the computation.
     Note that it expects _actively_ no answer from the environment: [Done] is
     of type [Exit void].  We can therefore use it to "close" an [itree E A] no
@@ -142,6 +142,7 @@ Section Denote.
   Import MonadNotation.
   Local Open Scope monad_scope.
   (* end hide *)
+
 
   Section with_event.
 
@@ -186,12 +187,12 @@ Section Denote.
       end.
 
     Section with_labels.
-      Context {A B : Type}.
+      Context {A B : nat}.
 
       (** A [branch] returns the computed label whose set of possible values [B]
           is carried by the type of the branch.  If the computation halts
           instead of branching, we return the [exit] tree.  *)
-      Definition denote_branch (b : branch B) : itree E B :=
+      Definition denote_branch (b : branch (F B)) : itree E (F B) :=
         match b with
         | Bjmp l => ret l
         | Bbrz v y n =>
@@ -200,10 +201,11 @@ Section Denote.
         | Bhalt => exit
         end.
 
+
       (** The denotation of a basic [block] shares the same type, returning the
           [label] of the next [block] it shall jump to.  It recursively denote
           its instruction before that.  *)
-      Fixpoint denote_block (b : block B) : itree E B :=
+      Fixpoint denote_block (b : block (F B)) : itree E (F B) :=
         match b with
         | bbi i b =>
           denote_instr i ;; denote_block b
@@ -211,6 +213,7 @@ Section Denote.
           denote_branch b
         end.
 
+      (* TODO: explain [sktree] -- think of a better name? *)
       (** A labelled collection of blocks, [bks], is simply the pointwise
           application of [denote_block].  However, its denotation is therefore
           crucially a [ktree], whose structure will be useful in the proof of
@@ -221,7 +224,7 @@ Section Denote.
           algebraic structure, supported by the library, including a [loop]
           combinator that we can use to link collections of basic blocks. (See
           below.) *)
-      Definition denote_b (bs: bks A B): ktree E A B :=
+      Definition denote_b (bs: bks A B): sktree E A B :=
         fun a => denote_block (bs a).
 
     End with_labels.
@@ -236,8 +239,8 @@ Section Denote.
       accomplish this with the same [loop] combinator we used to denote _Imp_'s
       [while] loop.  It directly takes our [denote_b (code s): ktree E (I + A)
       (I + B)] and hides [I] as desired.  *)
-    Definition denote_asm {A B} : asm A B -> ktree E A B :=
-      fun s => KTree.loop (denote_b (code s)).
+    Definition denote_asm {A B} : asm A B -> sktree E A B :=
+      fun s => sloop (denote_b (code s)).
 
   End with_event.
 End Denote.
@@ -275,7 +278,6 @@ Qed.
 Instance RelDec_reg : RelDec (@eq reg) := RelDec_from_dec eq Nat.eq_dec.
 (* end hide *)
 
-
 (** Both environments and memory events can be interpreted as "map" events,
     exactly as we did for _Imp_. *)
 Definition eval_reg {E: Type -> Type} `{mapE reg value -< E}: Reg ~> itree E :=
@@ -310,7 +312,7 @@ Definition interp_asm {E A} (t : itree (Reg +' Memory +' E) A) mem regs :
 (** We can then define an evaluator for closed assembly programs by interpreting
     both store and heap events into two instances of [mapE], and running them
     both in the empty initial environments.  *)
-Definition eval_asm (p: asm unit void) := interp_asm (denote_asm p tt) empty empty.
+Definition eval_asm (p: asm 1 0) := interp_asm (denote_asm p Fin.F1) empty empty.
 
 (* SAZ: Should some of thes notions of equivalence be put into the library?
    SAZ: Should this be stated in terms of ktree ?

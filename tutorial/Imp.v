@@ -214,14 +214,8 @@ Section Denote.
   (* SAZ + LX - for some reason typeclass resolution can't see the instance for 
      ALoop_itree, even though it seems to be in scope. *)
   Definition while (step : itree eff (unit + unit)) : itree eff unit :=
-    @loop (itree eff) _ (ALoop_itree) _ _ _ 
-      (fun l : unit + unit =>
-         match l with
-         | inl _ => step
-         | inr _ => ret (inl tt)
-         end) tt.
-
-      
+    @iter _ _ _ Iter_ktree _ _ (fun _ => step) tt.
+    
   (** Casting values into [bool]:  [0] corresponds to [false] and any nonzero
       value corresponds to [true].  *)
   Definition is_true (v : value) : bool := if (v =? 0)%nat then false else true.
@@ -329,6 +323,12 @@ Definition globals := alist var value.
    resulting in an [itree] free of any event, but returning the final
    _Imp_ globals.
  *)
+(* SAZ: would rather write something like the following: 
+ h : E ~> M A
+ h' : F[void1] ~> M A
+forall eff, {pf:E -< eff == F[E]} (t : itree eff A)
+        interp pf h h' t : M A
+*)
 
 Definition interp_imp  {E A} (t : itree (ImpState +' E) A) (g:globals) :=
   let t' := interp (bimap eval_imp_state (id_ E)) t in
@@ -342,7 +342,7 @@ Definition eval_imp (s: stmt) : itree void1 (globals * unit) :=
     Naturally since Coq is total, we cannot do it directly inside of it.
     We can either rely on extraction, or use some fuel.
  *)
-Compute (burn 200 (eval_imp (fact "x" "y" 6))). 
+Compute (burn 200 (eval_imp (fact "input" "output" 6))). 
 
 (* ========================================================================== *)
 Section InterpImpProperties.

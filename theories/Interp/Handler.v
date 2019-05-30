@@ -16,7 +16,8 @@ From ITree Require Import
      Indexed.Sum
      Indexed.Function
      Indexed.Relation
-     Interp.Interp.
+     Interp.Interp
+     Interp.Recursion.
 
 Import ITree.Basics.Basics.Monads.
 Import ITreeNotations.
@@ -108,3 +109,6 @@ Instance Inr_sum1_Handler : CoprodInr Handler sum1
 
 Instance Initial_void1_Handler : Initial Handler void1
   := @Handler.empty.
+
+Instance Iter_Handler : Iter Handler sum1
+  := @mrec.

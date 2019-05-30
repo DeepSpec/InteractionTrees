@@ -51,6 +51,9 @@ Section State.
       | Put s' => Ret (s', tt)
       end.
 
+  (* SAZ: this is the instance for the hypothetical "Trigger E M" typeclass.
+    Class Trigger E M := trigger : E ~> M 
+  *)
   Definition pure_state {S E} : E ~> stateT S (itree E)
     := fun _ e s => Vis e (fun x => Ret (s, x)).
 
