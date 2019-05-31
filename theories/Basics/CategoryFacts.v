@@ -183,6 +183,14 @@ Proof.
   apply case_universal; assumption.
 Qed.
 
+Lemma swap_case {a b c} (f : C a c) (g : C b c)
+  : swap >>> case_ f g ⩯ case_ g f.
+Proof.
+  intros; unfold swap, Swap_Coproduct.
+  rewrite cat_case, inr_case, inl_case.
+  reflexivity.
+Qed.
+
 Lemma inr_swap {a b} : inr_ >>> swap_ a b ⩯ inl_.
 Proof.
   unfold swap, Swap_Coproduct. rewrite case_inr. reflexivity.

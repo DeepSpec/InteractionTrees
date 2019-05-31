@@ -13,102 +13,7 @@ Local Open Scope cat_scope.
 
 Section Correctness.
 
-Global Instance CatAssoc_iFun : CatAssoc iFun.
-Proof.
-  intros A B C D f g h.
-  unfold cat, Cat_iFun.
-  apply cat_Fun_assoc.
-Qed.
-
-Lemma bimap_inl
-      {obj : Type} {C : obj -> obj -> Type} {Eq2_C : Eq2 C} {Cat_C : Cat C} {bif : obj -> obj -> obj}
-      {CoprodCase_C : CoprodCase C bif} {CoprodInl_C : CoprodInl C bif} {CoprodInr_C : CoprodInr C bif} {CaseInl_C : CaseInl C bif}:
-  forall (a b c d : obj) (f : C a c) (g : C b d), inl_ >>> bimap f g ⩯ f >>> inl_.
-Proof.
-  intros; unfold bimap, Bimap_Coproduct.
-  apply case_inl; typeclasses eauto.
-Qed.
-
-Lemma bimap_inr
-      {obj : Type} {C : obj -> obj -> Type} {Eq2_C : Eq2 C} {Cat_C : Cat C} {bif : obj -> obj -> obj}
-      {CoprodCase_C : CoprodCase C bif} {CoprodInl_C : CoprodInl C bif} {CoprodInr_C : CoprodInr C bif} {CaseInr_C : CaseInr C bif}:
-  forall (a b c d : obj) (f : C a c) (g : C b d), inr_ >>> bimap f g ⩯ g >>> inr_.
-Proof.
-  intros; unfold bimap, Bimap_Coproduct.
-  apply case_inr; typeclasses eauto.
-Qed.
-
-Lemma assoc_r_inl
-      {obj : Type} {C : obj -> obj -> Type} {Eq2_C : Eq2 C} {Cat_C : Cat C} {bif : obj -> obj -> obj}
-      {CoprodCase_C : CoprodCase C bif} {CoprodInl_C : CoprodInl C bif} {CoprodInr_C : CoprodInr C bif}
-      {CaseInl_C : CaseInl C bif}:
-  forall (a b c : obj), inl_ >>> @assoc_r _ _ _ _ a b c ⩯ case_ inl_ (inl_ >>> inr_).
-Proof.
-  intros; unfold assoc_r, AssocR_Coproduct; apply case_inl; typeclasses eauto.
-Qed.
-
-Lemma assoc_r_inr
-      {obj : Type} {C : obj -> obj -> Type} {Eq2_C : Eq2 C} {Cat_C : Cat C} {bif : obj -> obj -> obj}
-      {CoprodCase_C : CoprodCase C bif} {CoprodInl_C : CoprodInl C bif} {CoprodInr_C : CoprodInr C bif}
-      {CaseInr_C : CaseInr C bif}:
-  forall (a b c : obj), inr_ >>> @assoc_r _ _ _ _ a b c ⩯ inr_ >>> inr_.
-Proof.
-  intros; unfold assoc_r, AssocR_Coproduct; apply case_inr; typeclasses eauto.
-Qed.
-
-Lemma assoc_l_inl
-      {obj : Type} {C : obj -> obj -> Type} {Eq2_C : Eq2 C} {Cat_C : Cat C} {bif : obj -> obj -> obj}
-      {CoprodCase_C : CoprodCase C bif} {CoprodInl_C : CoprodInl C bif} {CoprodInr_C : CoprodInr C bif}
-      {CaseInl_C : CaseInl C bif}:
-  forall (a b c : obj), inl_ >>> @assoc_l _ _ _ _ a b c ⩯ inl_ >>> inl_.
-Proof.
-  intros; unfold assoc_l, AssocR_Coproduct; apply case_inl; typeclasses eauto.
-Qed.
-
-Lemma assoc_l_inr
-      {obj : Type} {C : obj -> obj -> Type} {Eq2_C : Eq2 C} {Cat_C : Cat C} {bif : obj -> obj -> obj}
-      {CoprodCase_C : CoprodCase C bif} {CoprodInl_C : CoprodInl C bif} {CoprodInr_C : CoprodInr C bif}
-      {CaseInr_C : CaseInr C bif}:
-  forall (a b c : obj), inr_ >>> @assoc_l _ _ _ _ a b c ⩯ case_ (inr_ >>> inl_) inr_.
-Proof.
-  intros; unfold assoc_l, AssocR_Coproduct; apply case_inr; typeclasses eauto.
-Qed.
-
-Lemma swap_inl
-      {obj : Type} {C : obj -> obj -> Type} {Eq2_C : Eq2 C} {Cat_C : Cat C} {bif : obj -> obj -> obj}
-      {CoprodCase_C : CoprodCase C bif} {CoprodInl_C : CoprodInl C bif} {CoprodInr_C : CoprodInr C bif}
-      {CaseInl_C : CaseInl C bif}:
-  forall (a b : obj), @inl_ _ _ _ _ a b >>> swap ⩯ inr_.
-Proof.
-  intros; unfold swap, Swap_Coproduct; apply case_inl; typeclasses eauto. 
-Qed.
-
-Lemma swap_inr
-      {obj : Type} {C : obj -> obj -> Type} {Eq2_C : Eq2 C} {Cat_C : Cat C} {bif : obj -> obj -> obj}
-      {CoprodCase_C : CoprodCase C bif} {CoprodInl_C : CoprodInl C bif} {CoprodInr_C : CoprodInr C bif}
-      {CaseInr_C : CaseInr C bif}:
-  forall (a b : obj), @inr_ _ _ _ _ a b >>> swap ⩯ inl_.
-Proof.
-  intros; unfold swap, Swap_Coproduct; apply case_inr; typeclasses eauto. 
-Qed.
-
-Lemma swap_case
-      {obj : Type} {C : obj -> obj -> Type}
-      {Eq2_C : Eq2 C} {Eq2_Eq: forall a b : obj, @Equivalence (C a b) eq2}
-      {Id_C : Id_ C} {Cat_C : Cat C}
-      {Proper_cat : forall a b c, @Proper (C a b -> C b c -> C a c) (eq2 ==> eq2 ==> eq2) cat}
-      {Category_C : Category C}
-      {bif : obj -> obj -> obj}
-      {CoprodCase_C : CoprodCase C bif} {CoprodInl_C : CoprodInl C bif} {CoprodInr_C : CoprodInr C bif}
-      {Coproduct_C : Coproduct C bif}
-      {CaseInr_C : CaseInr C bif}
-      {Proper_case_ : forall a b c, @Proper (C a c -> C b c -> C _ c) (eq2 ==> eq2 ==> eq2) case_}:
-  forall (a b c: obj) (f: C a c) (g: C b c), swap >>> case_ f g ⩯ case_ g f.
-Proof.
-  intros; unfold swap, Swap_Coproduct.
-  rewrite cat_case, inr_case, inl_case.
-  reflexivity.
-Qed.
+Section Category.
 
 Ltac inl_left := rewrite <- (cat_assoc _ inl_).
 Ltac inl_right := rewrite (cat_assoc _ inl_).
@@ -118,31 +23,40 @@ Ltac inr_right := rewrite  (cat_assoc _ inr_).
 Ltac run_in :=
   repeat (
       rewrite cat_id_l
-    + rewrite <- (cat_assoc inl_ assoc_l), assoc_l_inl
-    + rewrite <- (cat_assoc inl_ assoc_r), assoc_r_inl
-    + rewrite <- (cat_assoc inr_ assoc_r), assoc_r_inr
-    + rewrite <- (cat_assoc inr_ assoc_l), assoc_l_inr
-    + rewrite <- (cat_assoc inl_ (bimap _ _)), bimap_inl
-    + rewrite <- (cat_assoc inr_ (bimap _ _)), bimap_inr
+    + rewrite <- (cat_assoc inl_ assoc_l), inl_assoc_l
+    + rewrite <- (cat_assoc inl_ assoc_r), inl_assoc_r
+    + rewrite <- (cat_assoc inr_ assoc_r), inr_assoc_r
+    + rewrite <- (cat_assoc inr_ assoc_l), inr_assoc_l
+    + rewrite <- (cat_assoc inl_ (bimap _ _)), inl_bimap
+    + rewrite <- (cat_assoc inr_ (bimap _ _)), inr_bimap
     + rewrite <- (cat_assoc inl_ (case_ _ _)), case_inl
     + rewrite <- (cat_assoc inr_ (case_ _ _)), case_inr
-    + rewrite <- (cat_assoc inl_ swap), swap_inl
-    + rewrite <- (cat_assoc inr_ swap), swap_inr
+    + rewrite <- (cat_assoc inl_ swap), inl_swap
+    + rewrite <- (cat_assoc inr_ swap), inr_swap
     + rewrite <- (cat_assoc swap (case_ _ _)), swap_case
-    + rewrite ?assoc_l_inl, ?assoc_l_inr, ?assoc_r_inl, ?assoc_r_inr,
-      ?bimap_inl, ?bimap_inr, ?case_inl, ?case_inr
+    + rewrite ?inl_assoc_l, ?inr_assoc_l, ?inl_assoc_r, ?inr_assoc_r,
+      ?inl_bimap, ?inr_bimap, ?case_inl, ?case_inr
     ).
 
-Context {E : Type -> Type}.
+Context {obj : Type} {C : obj -> obj -> Type} {sum_ : obj -> obj -> obj}
+  {Cat_C : Cat C} {Id_C : Id_ C}
+  {Case_C : CoprodCase C sum_} {Inl_C : CoprodInl C sum_}
+  {Inr_C : CoprodInr C sum_}
+  {Eq2_C : Eq2 C}
+  {E_Eq2_C : forall a b, @Equivalence (C a b) eq2}
+  {Category_C : Category C}
+  {Coproduct_C : Coproduct C sum_}.
 
-Local Lemma aux_app_asm_correct1 I J A C :
+Local Infix "+" := sum_.
+
+Local Lemma aux_app_asm_correct1 {i j a c : obj} :
     (assoc_r >>>
-     bimap (id_ I) (assoc_l >>> bimap swap (id_ C) >>> assoc_r) >>>
-     assoc_l : sktree E ((I + J) + (A + C)) _)
-  ⩯ bimap swap (id_ (A + C)) >>>
+     bimap (id_ i) (assoc_l >>> bimap swap (id_ c) >>> assoc_r) >>>
+     assoc_l)
+  ⩯ bimap swap (id_ (a + c)) >>>
     (assoc_r >>>
-    (bimap (id_ J) assoc_l >>>
-    (assoc_l >>> (bimap swap (id_ C) >>> assoc_r)))).
+    (bimap (id_ j) assoc_l >>>
+    (assoc_l >>> (bimap swap (id_ c) >>> assoc_r)))).
 Proof.
   rewrite cat_assoc.
   apply coprod_split.
@@ -164,15 +78,15 @@ Proof.
       reflexivity.
 Qed.
 
-Local Lemma aux_app_asm_correct2 I J B D :
+Local Lemma aux_app_asm_correct2 {i j b d} :
     (assoc_r >>>
-     bimap (id_ I) (assoc_l >>> bimap swap (id_ D) >>> assoc_r) >>>
-     assoc_l : sktree E _ ((I + J) + (B + D)))
+     bimap (id_ i) (assoc_l >>> bimap swap (id_ d) >>> assoc_r) >>>
+     assoc_l)
   ⩯ assoc_l >>>
-    (bimap swap (id_ D) >>>
+    (bimap swap (id_ d) >>>
     (assoc_r >>>
-    (bimap (id_ J) assoc_r >>>
-    (assoc_l >>> bimap swap (id_ (B + D)))))).
+    (bimap (id_ j) assoc_r >>>
+    (assoc_l >>> bimap swap (id_ (b + d)))))).
 Proof.
   simpl.
   rewrite cat_assoc.
@@ -196,6 +110,10 @@ Proof.
     + run_in. repeat (rewrite !cat_assoc; run_in).
       reflexivity.
 Qed.
+
+End Category.
+
+Context {E : Type -> Type}.
 
 Context {HasLocals : Locals -< E}.
 Context {HasMemory : Memory -< E}.
