@@ -308,7 +308,7 @@ Section Correctness.
                lift_sktree f >>> denote_b k >>> lift_sktree g. 
   Proof.
     intros.
-    rewrite lift_compose_sktree, compose_sktree_lift.
+    rewrite compose_sktree_lift, lift_compose_sktree.
     unfold relabel_bks, denote_b.
     intros a; rewrite fmap_block_map; reflexivity.
   Qed.
@@ -323,7 +323,7 @@ Section Correctness.
     unfold bimap, Bimap_Coproduct, case_, Case_ktree, case_sum.
     unfold cat, Cat_ktree, ITree.cat, isum_suml, isum_sum, sum_isuml, sum_isum, FinSum, merge_fin_sum, lift_ktree.
     cbn.
-    rewrite bind_bind, bind_ret.
+    rewrite bind_ret.
     destruct (split_fin_sum a).
 
     {
@@ -366,7 +366,7 @@ Section Correctness.
     unfold denote_asm.
     simpl.
     rewrite relabel_bks_correct.
-    rewrite loop_natural_left, loop_natural_right.
+    rewrite loop_natural_right, loop_natural_left.
     apply Proper_loop.
     rewrite !bimap_id_slift.
     reflexivity.

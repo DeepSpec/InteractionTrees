@@ -195,7 +195,7 @@ Notation case__ C := (@case_ _ C _ _ _ _ _)
 Module Import CatNotations.
 
 Infix "⩯" := eq2 (at level 70) : cat_scope.
-Infix ">>>" := cat (at level 50, left associativity) : cat_scope.
+Infix ">>>" := cat (at level 60, right associativity) : cat_scope.
 
 End CatNotations.
 

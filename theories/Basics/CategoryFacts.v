@@ -390,66 +390,72 @@ Proof.
   reflexivity.
 Qed.
 
+End CoproductFacts.
+
+Ltac run_in :=
+  repeat (
+      apply initial_unique
+    + rewrite cat_id_l
+    + rewrite cat_id_r
+    + rewrite <- (cat_assoc inl_ assoc_l), inl_assoc_l
+    + rewrite <- (cat_assoc inl_ assoc_r), inl_assoc_r
+    + rewrite <- (cat_assoc inr_ assoc_r), inr_assoc_r
+    + rewrite <- (cat_assoc inr_ assoc_l), inr_assoc_l
+    + rewrite <- (cat_assoc inl_ unit_r), inl_unit_r
+    + rewrite <- (cat_assoc inr_ unit_l), inr_unit_l
+    + rewrite <- (cat_assoc inl_ (bimap _ _)), inl_bimap
+    + rewrite <- (cat_assoc inr_ (bimap _ _)), inr_bimap
+    + rewrite <- (cat_assoc inl_ (case_ _ _)), case_inl
+    + rewrite <- (cat_assoc inr_ (case_ _ _)), case_inr
+    + rewrite <- (cat_assoc inl_ swap), inl_swap
+    + rewrite <- (cat_assoc inr_ swap), inr_swap
+    + rewrite <- (cat_assoc swap (case_ _ _)), swap_case
+    + rewrite ?inl_assoc_l, ?inr_assoc_l, ?inl_assoc_r, ?inr_assoc_r,
+      ?inl_bimap, ?inr_bimap, ?bimap_cat, ?bimap_case,
+      ?inl_unit_r, ?inr_unit_l,
+      ?inl_swap, ?inr_swap,
+      ?case_inl, ?case_inr
+    ; rewrite ? cat_assoc).
+
+Ltac autocat :=
+  match goal with
+  | [ |- @eq2 _ _ _ (_ ?a1 ?a2) _ _ _ ] =>
+    apply coprod_split; run_in; try (reflexivity + autocat)
+  | [ |- eq2 _ _ ] => reflexivity + run_in; reflexivity
+  | _ => fail "Unsolvable equation"
+  end.
+
+Section CoproductCoherence.
+
+Context {obj : Type} {C : Hom obj}.
+
+Context {Eq2_C : Eq2 C}.
+Context {E_Eq2_C : forall a b, @Equivalence (C a b) eq2}.
+
+Context {Id_C : Id_ C} {Cat_C : Cat C}.
+
+Context {Category_C : Category C}.
+
+Context {bif : binop obj}.
+Context {CoprodCase_C : CoprodCase C bif}
+        {CoprodInl_C : CoprodInl C bif}
+        {CoprodInr_C : CoprodInr C bif}.
+Context {Coproduct_C : Coproduct C bif}.
+
+Context (i : obj).
+Context {Initial_i : Initial C i}.
+Context {InitialObject_i : InitialObject C i}.
+
 (** The coproduct satisfies the monoidal coherence laws. *)
 
 Global Instance AssocRUnit_Coproduct : AssocRUnit C bif i.
 Proof.
-  intros a b.
-  unfold assoc_r, AssocR_Coproduct, bimap, Bimap_Coproduct.
-  rewrite !cat_id_l.
-  eapply case_universal.
-  - rewrite <- cat_assoc, case_inl.
-    rewrite cat_case, case_inl.
-    unfold unit_r, UnitR_Coproduct.
-    rewrite cat_case, cat_id_l.
-    apply (coproduct_proper_case _ _).
-    + reflexivity.
-    + eapply initial_unique; auto.
-  - rewrite <- cat_assoc, case_inr.
-    rewrite cat_assoc, case_inr.
-    rewrite <- cat_assoc, inr_unit_l, cat_id_l.
-    reflexivity.
+  intros a b. autocat.
 Qed.
 
-(* TODO: automate this *)
 Global Instance AssocRAssocR_Coproduct : AssocRAssocR C bif.
 Proof.
-  intros a b c d.
-  unfold bimap, Bimap_Coproduct.
-  rewrite !cat_id_l.
-  rewrite !cat_case.
-  unfold assoc_r, AssocR_Coproduct.
-  apply coprod_split.
-  - rewrite case_inl.
-    rewrite <- (cat_assoc inl_).
-    rewrite case_inl.
-    rewrite !cat_assoc.
-    apply coprod_split.
-    + repeat (rewrite <- (cat_assoc inl_), !case_inl).
-      apply coprod_split.
-      * repeat (rewrite <- (cat_assoc inl_), !case_inl).
-        reflexivity.
-      * repeat (rewrite <- (cat_assoc inr_), !case_inr).
-        rewrite cat_assoc.
-        rewrite <- (cat_assoc inr_), !case_inr.
-        rewrite cat_assoc.
-        rewrite case_inr.
-        rewrite <- (cat_assoc inl_ _ inr_), case_inl.
-        rewrite <- cat_assoc, case_inl.
-        reflexivity.
-    + repeat (rewrite <- (cat_assoc inr_), !case_inr).
-      rewrite <- (cat_assoc inl_), !case_inl.
-      rewrite !cat_assoc.
-      rewrite <- (cat_assoc inr_ (case_ _ _) _), !case_inr.
-      rewrite cat_assoc, case_inr.
-      rewrite <- (cat_assoc inl_ (case_ _ _)), case_inl.
-      rewrite <- !cat_assoc, case_inr.
-      reflexivity.
-  - rewrite !case_inr.
-    rewrite !cat_assoc.
-    repeat (rewrite <- (cat_assoc inr_ (case_ _ _)), !case_inr).
-    rewrite !cat_assoc, case_inr.
-    reflexivity.
+  intros a b c d. autocat.
 Qed.
 
 Global Instance Monoidal_Coproduct : Monoidal C bif i.
@@ -459,121 +465,26 @@ Proof.
   all: constructor; typeclasses eauto.
 Qed.
 
-(* TODO: automate this. This should follow from the above by symmetry. *)
 Global Instance AssocLAssocL_Coproduct : AssocLAssocL C bif.
 Proof.
-  intros a b c d.
-  unfold bimap, Bimap_Coproduct.
-  rewrite !cat_id_l.
-  rewrite !cat_case.
-  unfold assoc_l, AssocL_Coproduct.
-  apply coprod_split.
-  - rewrite !case_inl.
-    rewrite !cat_assoc.
-    repeat (rewrite <- (cat_assoc inl_ (case_ _ _)), !case_inl).
-    rewrite !cat_assoc, case_inl.
-    reflexivity.
-  - rewrite case_inr.
-    rewrite <- (cat_assoc inr_).
-    rewrite case_inr.
-    rewrite !cat_assoc.
-    apply coprod_split.
-    + repeat (rewrite <- (cat_assoc inl_), !case_inl).
-      rewrite <- (cat_assoc inr_), !case_inr.
-      rewrite !cat_assoc.
-      rewrite <- (cat_assoc inl_ (case_ _ _) _), !case_inl.
-      rewrite cat_assoc, case_inl.
-      rewrite <- (cat_assoc inr_ (case_ _ _)), case_inr.
-      rewrite <- !cat_assoc, case_inl.
-      reflexivity.
-    + repeat (rewrite <- (cat_assoc inr_), !case_inr).
-      apply coprod_split.
-      * repeat (rewrite <- (cat_assoc inl_), !case_inl).
-        rewrite cat_assoc.
-        rewrite <- (cat_assoc inl_), !case_inl.
-        rewrite cat_assoc.
-        rewrite case_inl.
-        rewrite <- (cat_assoc inr_ _ inl_), case_inr.
-        rewrite <- cat_assoc, case_inr.
-        reflexivity.
-      * repeat (rewrite <- (cat_assoc inr_), !case_inr).
-        reflexivity.
+  intros a b c d. autocat.
 Qed.
 
 (** The coproduct satisfies the symmetric monoidal laws. *)
 
 Global Instance SwapUnitL_Coproduct : SwapUnitL C bif i.
 Proof.
-  intros a.
-  unfold swap, Swap_Coproduct, unit_l, UnitL_Coproduct, unit_r, UnitR_Coproduct.
-  apply coprod_split.
-  - rewrite <- cat_assoc, !case_inl, case_inr.
-    reflexivity.
-  - rewrite <- cat_assoc, !case_inr, case_inl.
-    reflexivity.
+  intros a. autocat.
 Qed.
 
-(* TODO: automate *)
 Global Instance SwapAssocR_Coproduct : SwapAssocR C bif.
 Proof.
-  intros a b c.
-  unfold assoc_r, AssocR_Coproduct, swap, Swap_Coproduct, bimap, Bimap_Coproduct.
-  apply coprod_split.
-  - rewrite !cat_assoc.
-    rewrite <- 2 (cat_assoc inl_), !case_inl.
-    rewrite !cat_assoc.
-    rewrite <- (cat_assoc inl_), !case_inl.
-    apply coprod_split.
-    + rewrite <- 2 (cat_assoc inl_), !case_inl.
-      rewrite <- cat_assoc. rewrite case_inl.
-      rewrite <- cat_assoc, !case_inr.
-      rewrite cat_assoc, case_inr.
-      rewrite <- cat_assoc, case_inl.
-      reflexivity.
-    + rewrite <- 2 (cat_assoc inr_), !case_inr.
-      rewrite cat_assoc.
-      rewrite <- (cat_assoc inr_), case_inr, !case_inl.
-      rewrite <- cat_assoc, !case_inl.
-      rewrite cat_id_l.
-      reflexivity.
-  - rewrite !cat_assoc.
-    rewrite <- 2 (cat_assoc inr_), !case_inr.
-    rewrite cat_id_l.
-    rewrite cat_assoc, <- (cat_assoc inr_ (case_ _ _) _), !case_inr, case_inl, case_inr.
-    rewrite <- cat_assoc.
-    rewrite case_inr, cat_assoc, case_inr, <- cat_assoc, case_inr.
-    reflexivity.
+  intros a b c. autocat.
 Qed.
 
 Global Instance SwapAssocL_Coproduct : SwapAssocL C bif.
 Proof.
-  intros a b c.
-  unfold assoc_l, AssocL_Coproduct, swap, Swap_Coproduct, bimap, Bimap_Coproduct.
-  apply coprod_split.
-  - rewrite !cat_assoc.
-    rewrite <- 2 (cat_assoc inl_), !case_inl.
-    rewrite cat_id_l.
-    rewrite cat_assoc, <- (cat_assoc inl_ (case_ _ _) _), !case_inl, case_inr, case_inl.
-    rewrite <- cat_assoc.
-    rewrite case_inl, cat_assoc, case_inl, <- cat_assoc, case_inl.
-    reflexivity.
-  - rewrite !cat_assoc.
-    rewrite <- 2 (cat_assoc inr_), !case_inr.
-    rewrite !cat_assoc.
-    rewrite <- (cat_assoc inr_), !case_inr.
-    apply coprod_split.
-    + rewrite <- 2 (cat_assoc inl_), !case_inl.
-      rewrite cat_assoc.
-      rewrite <- (cat_assoc inl_), case_inl, !case_inr.
-      rewrite <- cat_assoc, !case_inr.
-      rewrite cat_id_l.
-      reflexivity.
-    + rewrite <- 2 (cat_assoc inr_), !case_inr.
-      rewrite <- cat_assoc. rewrite case_inr.
-      rewrite <- cat_assoc, !case_inl.
-      rewrite cat_assoc, case_inl.
-      rewrite <- cat_assoc, case_inr.
-      reflexivity.
+  intros a b c. autocat.
 Qed.
 
 Global Instance SymMonoidal_Coproduct : SymMonoidal C bif i.
@@ -584,29 +495,17 @@ Qed.
 Lemma swap_bimap {a b c d} (ab : C a b) (cd : C c d) :
   bimap ab cd ⩯ (swap >>> bimap cd ab >>> swap).
 Proof.
-  unfold bimap, Bimap_Coproduct, swap, Swap_Coproduct.
-  apply coprod_split.
-  - rewrite case_inl.
-    rewrite cat_assoc, <- cat_assoc, case_inl.
-    rewrite <- cat_assoc, case_inr.
-    rewrite cat_assoc, case_inr.
-    reflexivity.
-  - rewrite case_inr.
-    rewrite cat_assoc, <- cat_assoc, case_inr.
-    rewrite <- cat_assoc, case_inl.
-    rewrite cat_assoc, case_inl.
-    reflexivity.
+  autocat.
 Qed.
 
 (* Naturality of swap *)
 Lemma swap_bimap' {a b c d} (ab : C a b) (cd : C c d) :
   swap >>> bimap ab cd ⩯ bimap cd ab >>> swap.
 Proof.
-  rewrite swap_bimap, <- !cat_assoc, swap_involutive, cat_id_l.
-  reflexivity.
+  autocat.
 Qed.
 
-End CoproductFacts.
+End CoproductCoherence.
 
 Hint Rewrite @case_inl : cocartesian.
 Hint Rewrite @case_inr : cocartesian.
@@ -669,23 +568,12 @@ Lemma loop_natural_left {a a' b c} (f : C (bif c a) (bif c b)) (g : C a' a)
   ⩯ loop (bimap (id_ _) g >>> f).
 Proof.
   unfold loop.
-  transitivity (inr_ >>> iter (bimap (id_ c) g >>> inl_
+  transitivity (inr_ >>> iter ((bimap (id_ c) g >>> inl_)
                                      >>> case_ (f >>> bimap inl_ (id_ b)) inr_)).
   - rewrite iter_dinatural.
-    rewrite cat_assoc, case_inl.
-    rewrite <- (cat_assoc inr_).
-    unfold bimap, Bimap_Coproduct. (* TODO: by naturality of inr_ *)
-    rewrite case_inr, cat_assoc.
-    repeat (apply Proper_cat; try reflexivity).
-    apply conway_proper_iter.
-    rewrite cat_assoc.
-    apply Proper_cat; try reflexivity.
-    rewrite !cat_id_l.
-    rewrite cat_case, !case_inr, cat_assoc, case_inl, <- cat_assoc, case_inl.
-    reflexivity.
+    run_in. unfold bimap, Bimap_Coproduct. run_in. reflexivity.
   - rewrite !cat_assoc, case_inl. reflexivity.
 Qed.
-
 
 (* Naturality of (loop I A B) in B *)
 (* Or more diagrammatically:
@@ -724,18 +612,10 @@ Lemma loop_dinatural {a b c c'} (f : C (bif c a) (bif c' b)) (g : C c' c)
   ⩯ loop (bimap g (id_ _) >>> f).
 Proof.
   unfold loop.
-  transitivity (inr_ >>> iter (bimap g (id_ a) >>> inl_
+  transitivity (inr_ >>> iter ((bimap g (id_ a) >>> inl_)
                                      >>> case_ (f >>> bimap inl_ (id_ b)) inr_)).
   - rewrite iter_dinatural.
-    rewrite <- 2 cat_assoc.
-    unfold bimap at 3, Bimap_Coproduct at 3. (* TODO: naturality of [inr_] *)
-    rewrite case_inr, cat_id_l, (cat_assoc _ inl_), case_inl.
-    apply Proper_cat; try reflexivity.
-    rewrite cat_assoc, bimap_cat, cat_id_l.
-    unfold bimap, Bimap_Coproduct.
-    rewrite !cat_assoc, !cat_case, !cat_id_l, cat_assoc, !case_inl, case_inr.
-    rewrite cat_assoc.
-    reflexivity.
+    run_in. unfold bimap, Bimap_Coproduct. run_in. reflexivity.
   - rewrite 2 cat_assoc, case_inl.
     reflexivity.
 Qed.
@@ -755,12 +635,7 @@ Proof.
   | [ |- _ >>> (_ >>> ?g) ⩯ _ ] =>
     assert (Hg : g ⩯ unit_l)
   end.
-  { unfold unit_l, UnitL_Coproduct.
-    apply case_universal.
-    - apply initial_object.
-    - rewrite bimap_case, case_inr, cat_id_l.
-      reflexivity.
-  }
+  { autocat. }
   rewrite Hg.
   reflexivity.
 Qed.
@@ -800,7 +675,7 @@ Proof.
                  f >>> bimap inl_ (bimap (inl_ >>> inr_) (id_ _))
                ))).
   - rewrite cat_assoc, iter_natural, cat_assoc, bimap_cat, cat_id_l, cat_id_r.
-    transitivity (inr_ >>> iter (inr_ >>> inl_ >>> case_ (iter (
+    transitivity (inr_ >>> iter ((inr_ >>> inl_) >>> case_ (iter (
                    f >>> bimap inl_ (bimap inl_ (id_ _))
                  )) inr_)).
     + rewrite cat_assoc, case_inl.
@@ -809,7 +684,7 @@ Proof.
       rewrite cat_assoc, case_inl.
       rewrite iter_natural.
       rewrite cat_assoc, bimap_cat, cat_id_r.
-      rewrite bimap_case. rewrite <- 2 cat_assoc.
+      rewrite bimap_case. rewrite <- (cat_assoc inl_ inr_).
       reflexivity.
 
   - rewrite iter_codiagonal.
@@ -818,33 +693,17 @@ Proof.
                    (assoc_r >>> inl_) >>>
                    case_ (f >>> assoc_l >>> bimap inl_ (id_ _)) inr_)).
     + rewrite iter_dinatural.
-      rewrite <- 2 cat_assoc, inr_assoc_r.
-      rewrite (cat_assoc _ inl_), case_inl.
-      rewrite !(cat_assoc f).
+      rewrite cat_assoc, inl_case.
+      rewrite <- (cat_assoc _ assoc_r), inr_assoc_r.
+      rewrite !cat_assoc.
       match goal with
-      | [ |- _ >>> iter (_ >>> ?u) ⩯ _ >>> iter (_ >>> ?v) ] =>
+      | [ |- _ >>> _ >>> iter (_ >>> ?u) ⩯ _ >>> _ >>> iter (_ >>> ?v) ] =>
         assert (u ⩯ v)
       end.
-      { rewrite cat_assoc, bimap_case.
-        rewrite <- cat_assoc, inl_assoc_r.
-        apply coprod_split.
-        - rewrite case_inl.
-          rewrite <- cat_assoc, inl_assoc_l.
-          rewrite cat_assoc, case_inl.
-          rewrite <- cat_assoc, inl_bimap, cat_id_l.
-          reflexivity.
-        - rewrite case_inr.
-          rewrite <- cat_assoc, inr_assoc_l.
-          rewrite bimap_case.
-          rewrite <- cat_assoc, inr_bimap.
-          unfold bimap, Bimap_Coproduct.
-          rewrite !cat_id_l.
-          reflexivity.
-      }
+      { autocat. }
       rewrite H; clear H.
       reflexivity.
-    + rewrite cat_assoc, case_inl.
-      rewrite !(cat_assoc assoc_r).
+    + rewrite !cat_assoc, case_inl.
       reflexivity.
 Qed.
 
@@ -859,56 +718,21 @@ Proof.
     transitivity (
         inr_ >>> iter (
           (inl_ >>> assoc_r >>> inl_)
-            >>> case_ (assoc_l >>> bimap ab cd >>> assoc_r >>> bimap inl_ (id_ _))
+            >>> case_ (assoc_l >>> bimap ab cd >>> assoc_r
+                         >>>  bimap inl_ (id_ _))
                       inr_)).
 
     + rewrite cat_assoc, iter_natural.
       apply Proper_cat; try reflexivity.
       apply conway_proper_iter.
-      rewrite !cat_assoc.
-      rewrite case_inl.
-      rewrite <- (cat_assoc inl_), inl_assoc_r.
-      rewrite <- (cat_assoc _ assoc_l).
-      assert (He : forall a b c, bimap (id_ _) inl_ >>> assoc_l_ a b c ⩯ inl_).
-      { intros.
-        apply coprod_split.
-        - rewrite <- cat_assoc, inl_bimap, cat_assoc, inl_assoc_l, cat_id_l.
-          reflexivity.
-        - rewrite <- cat_assoc, inr_bimap, cat_assoc, inr_assoc_l, inl_bimap.
-          reflexivity.
-      }
-      rewrite He; clear He.
-      rewrite <- (cat_assoc inl_), inl_bimap.
-      rewrite cat_assoc, <- (cat_assoc inl_), inl_assoc_r.
-      rewrite !bimap_cat, !cat_id_l, !cat_id_r.
-      reflexivity.
+      run_in; autocat.
 
-    + rewrite iter_dinatural.
-      rewrite inl_assoc_r.
-      rewrite cat_assoc, <- cat_assoc, inr_bimap, case_inl, !cat_assoc.
-      assert (Hr : forall a b c d,
-                 bimap inl_ (id_ d) >>> case_ (bimap (id_ a) inl_ >>> inl_) inr_
-               ⩯ bimap (inl_ : C a (bif a (bif b c))) (id_ d)).
-      { intros. apply coprod_split.
-        - rewrite <- cat_assoc, !inl_bimap, cat_assoc, case_inl.
-          rewrite <- cat_assoc, inl_bimap, cat_id_l.
-          reflexivity.
-        - rewrite <- cat_assoc, !inr_bimap, cat_assoc, case_inr.
-          reflexivity.
-      }
-      rewrite Hr; clear Hr.
-      reflexivity.
+    + rewrite iter_dinatural. rewrite !cat_assoc.
+      run_in. unfold bimap, Bimap_Coproduct. rewrite cat_id_l. reflexivity.
 
   - rewrite inr_bimap.
     rewrite iter_unfold.
-    rewrite !cat_assoc.
-    rewrite <- (cat_assoc _ assoc_l), inr_assoc_l.
-    rewrite <- cat_assoc, inr_bimap, cat_id_l.
-    rewrite <- cat_assoc, inr_bimap.
-    rewrite cat_assoc.
-    rewrite <- (cat_assoc _ assoc_r), inr_assoc_r.
-    rewrite cat_assoc, <- (cat_assoc _ (bimap _ _)), inr_bimap, cat_id_l.
-    rewrite case_inr, cat_id_r.
+    run_in.
     reflexivity.
 Qed.
 
@@ -916,13 +740,7 @@ Lemma loop_yanking {a} : loop swap ⩯ id_ a.
 Proof.
   unfold loop.
   rewrite 2 iter_unfold.
-  rewrite !cat_assoc.
-  rewrite <- cat_assoc, inr_swap.
-  rewrite <- cat_assoc, inl_bimap.
-  rewrite cat_assoc, case_inl.
-  rewrite <- cat_assoc, inl_swap.
-  rewrite <- cat_assoc, inr_bimap.
-  rewrite cat_id_l, case_inr.
+  run_in.
   reflexivity.
 Qed.
 
@@ -933,13 +751,13 @@ Lemma loop_dinatural' {a b c d} (cd : C c d) (dc: C d c)
   ⩯ loop ab_.
 Proof.
   intros Hij.
-  rewrite loop_dinatural.
-  rewrite <- cat_assoc.
+  rewrite <- loop_dinatural.
+  rewrite cat_assoc.
   rewrite bimap_cat.
   rewrite Hij.
   rewrite cat_id_l.
   rewrite bimap_id.
-  rewrite cat_id_l.
+  rewrite cat_id_r.
   reflexivity.
 Qed.
 
@@ -1044,39 +862,11 @@ Proof.
   intros H; rewrite H; reflexivity.
 Qed.
 
-Fact local_rewrite1 {a b c}:
-  bimap (id_ a) (swap_ b c) >>> assoc_l >>> swap
-        ⩯ assoc_l >>> bimap swap (id_ c) >>> assoc_r.
-Proof.
-  symmetry.
-  apply fwd_eqn; intros h Eq.
-  do 2 apply (cat_eq2_l (bimap (id_ _) swap)) in Eq.
-  rewrite <- cat_assoc, bimap_cat, swap_involutive, cat_id_l,
-  bimap_id, cat_id_l in Eq.
-  rewrite <- (cat_assoc _ _ assoc_r), <- (cat_assoc _ assoc_l _)
-    in Eq.
-  rewrite <- swap_assoc_l in Eq.
-  rewrite (cat_assoc _ _ assoc_r) in Eq.
-  rewrite assoc_l_mono in Eq.
-  rewrite cat_id_r in Eq.
-  rewrite cat_assoc.
-  assumption.
-Qed.
-
-Fact local_rewrite2 {a b c}:
+Fact local_rewrite {a b c}:
   swap >>> assoc_r >>> bimap (id_ _) swap
        ⩯ assoc_l_ a b c >>> bimap swap (id_ _) >>> assoc_r.
 Proof.
-  symmetry.
-  apply fwd_eqn; intros h Eq.
-  do 2 apply (cat_eq2_r (bimap (id_ _) swap)) in Eq.
-  rewrite cat_assoc, bimap_cat, swap_involutive, cat_id_l,
-  bimap_id, cat_id_r in Eq.
-  rewrite 2 (cat_assoc assoc_l) in Eq.
-  rewrite <- swap_assoc_r in Eq.
-  rewrite <- 2 (cat_assoc assoc_l) in Eq.
-  rewrite assoc_l_mono, cat_id_l in Eq.
-  assumption.
+  autocat.
 Qed.
 
 Lemma loop_superposing_2 {a b c d e}
@@ -1088,15 +878,14 @@ Lemma loop_superposing_2 {a b c d e}
                        >>> assoc_l >>> bimap swap (id_ _) >>> assoc_r).
 Proof.
   rewrite swap_bimap, loop_superposing.
-  rewrite loop_natural_left, loop_natural_right.
+  rewrite loop_natural_right, loop_natural_left.
   rewrite (swap_bimap cd ab).
+  apply Proper_loop.
+  rewrite !cat_assoc.
+  rewrite local_rewrite.
   rewrite <- !cat_assoc.
-  rewrite local_rewrite1.
-  rewrite 2 cat_assoc.
-  rewrite <- (cat_assoc swap assoc_r).
-  rewrite local_rewrite2.
-  rewrite <- !cat_assoc.
-  reflexivity.
+  do 4 (apply (category_proper_cat _); [ | reflexivity ]).
+  run_in; autocat.
 Qed.
 
 End TracedIterativeFacts.

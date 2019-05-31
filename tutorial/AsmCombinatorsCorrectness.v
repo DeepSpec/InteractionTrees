@@ -58,24 +58,7 @@ Local Lemma aux_app_asm_correct1 {i j a c : obj} :
     (bimap (id_ j) assoc_l >>>
     (assoc_l >>> (bimap swap (id_ c) >>> assoc_r)))).
 Proof.
-  rewrite cat_assoc.
-  apply coprod_split.
-  - run_in. symmetry. rewrite cat_assoc. run_in.
-    (* TODO: [rewrite cat_assoc] seems to loop on one side, hence [symmetry]...
-       this is what prevents us from just adding [rewrite !cat_assoc] to
-       [run_in] *)
-    apply coprod_split.
-    + run_in. repeat (rewrite cat_assoc; run_in).
-      reflexivity.
-    + run_in. repeat (rewrite cat_assoc; run_in).
-      reflexivity.
-  - run_in. rewrite cat_assoc. symmetry.
-    repeat (rewrite cat_assoc; run_in).
-    apply coprod_split.
-    + run_in. repeat (rewrite cat_assoc; run_in).
-      reflexivity.
-    + run_in. repeat (rewrite cat_assoc; run_in).
-      reflexivity.
+  autocat.
 Qed.
 
 Local Lemma aux_app_asm_correct2 {i j b d} :
@@ -88,27 +71,7 @@ Local Lemma aux_app_asm_correct2 {i j b d} :
     (bimap (id_ j) assoc_r >>>
     (assoc_l >>> bimap swap (id_ (b + d)))))).
 Proof.
-  simpl.
-  rewrite cat_assoc.
-  apply (coprod_split _ _).
-  - run_in.
-    symmetry. rewrite cat_assoc.
-    run_in.
-    rewrite cat_assoc.
-    run_in.
-    apply (coprod_split _ _).
-    + repeat (rewrite cat_assoc; run_in).
-      reflexivity.
-    + repeat (rewrite cat_assoc; run_in).
-      reflexivity.
-  - run_in.
-    rewrite cat_assoc. run_in.
-    rewrite !cat_assoc; run_in.
-    apply (coprod_split _ _).
-    + run_in. repeat (rewrite !cat_assoc; run_in).
-      reflexivity.
-    + run_in. repeat (rewrite !cat_assoc; run_in).
-      reflexivity.
+  autocat.
 Qed.
 
 End Category.
@@ -146,8 +109,8 @@ Proof.
   match goal with | |- ?x ⩯ _ => set (lhs := x) end.
   rewrite loop_superposing.   (* a loop superposed atop another diagram can englob the latter *)
   rewrite loop_superposing_2. (* as well as if the loop is under... But it takes a bit more rewiring! *)
-  rewrite loop_natural_left.  (* a loop append to diagrams can swallow them... *)
-  rewrite loop_natural_right. (* ... from either side. *)
+  rewrite loop_natural_right. (* a loop append to diagrams can swallow them... *)
+  rewrite loop_natural_left.  (* ... from either side. *)
   rewrite loop_vanishing_2.   (* Finally, two nested loop can be combined. *)
 
   (* Remain now to relate the bodies of the loops on each side. *)
@@ -159,7 +122,6 @@ Proof.
   rewrite !cat_assoc.
   repeat rewrite <- (cat_assoc _ _ (bimap (denote_b _) (denote_b _) >>> _)).
   cbn. rewrite relabel_bks_correct, app_bks_correct.
-  rewrite cat_assoc.
 
   rewrite <- aux_app_asm_correct1, <- aux_app_asm_correct2.
 

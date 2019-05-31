@@ -487,7 +487,7 @@ Section Linking.
   Proof.
     unfold seq_asm. 
     rewrite link_asm_correct, relabel_asm_correct, app_asm_correct.
-    rewrite <- lift_sktree_id, cat_assoc.
+    rewrite <- lift_sktree_id.
     rewrite cat_id_r.
     rewrite sym_sktree_unfold.
     apply cat_from_loop.
@@ -517,7 +517,6 @@ Section Linking.
     - rewrite bind_ret_.
       rewrite (relabel_asm_correct _ _ _ _).
       unfold CategoryOps.cat, Cat_sktree, CategoryOps.cat, Cat_ktree, ITree.cat; simpl.
-      rewrite bind_bind.
       unfold lift_sktree, lift_ktree; rewrite bind_ret_.
       setoid_rewrite (app_asm_correct tp fp _).
       Local Opaque denote_asm.
@@ -540,7 +539,6 @@ Section Linking.
     - rewrite bind_ret_.
       rewrite (relabel_asm_correct _ _ _ _).
       unfold CategoryOps.cat, Cat_sktree, CategoryOps.cat, Cat_ktree, ITree.cat; simpl.
-      rewrite bind_bind.
       unfold lift_sktree, lift_ktree; rewrite bind_ret_.
       setoid_rewrite (app_asm_correct tp fp _).
       Local Opaque denote_asm.
