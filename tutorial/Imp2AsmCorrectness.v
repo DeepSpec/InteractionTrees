@@ -478,6 +478,7 @@ Section Linking.
   Context {HasMemory: Memory -< E'}.
   Context {HasExit: Exit -< E'}.
   Notation E := (Locals +' E').
+  Context {AppAsmProof : @AppAsmCorrect E _ _ _}.
 
   (** [seq_asm] is denoted as the (horizontal) composition of denotations. *)
   Lemma seq_asm_correct {A B C} (ab : asm A B) (bc : asm B C) :
@@ -624,6 +625,7 @@ Section Correctness.
   Context {HasMemory: Memory -< E'}.
   Context {HasExit: Exit -< E'}.
   Notation E := (Locals +' E').
+  Context {AppAsmProof : @AppAsmCorrect E _ _ _}.
 
   (** Correctness of expressions.
       We strengthen [eq_locals]: initial environments are still related by [Renv],

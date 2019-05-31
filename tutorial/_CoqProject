@@ -10,4 +10,6 @@ Asm.v
 AsmCombinators.v
 Imp2Asm.v
 Imp2AsmCorrectness.v
+AsmCombinatorsCorrectness.v
+Imp2AsmProof.v
 
