@@ -443,7 +443,7 @@ Qed.
 Lemma eq_itree_inv_vis {E R U} (t : itree E R) (e : E U) (k : U -> _) :
   t ≅ Vis e k -> exists k', observe t = VisF e k' /\ forall u, k' u ≅ k u.
 Proof.
-  intros; punfold H; inv H; auto_inj_pair2; subst; try inv CHECK.
+  intros; punfold H; red in H; dependent destruction H.
   eexists; split; eauto.
   intros. destruct (REL u); try contradiction; pclearbot; eauto.
 Qed.
@@ -678,7 +678,7 @@ Lemma eqit_Vis b1 b2 {U} (e : E U)
 Proof.
   split; intros H.
   - pstep. econstructor. left. apply H.
-  - punfold H. inv H; auto_inj_pair2; subst; auto.
+  - punfold H. red in H; dependent destruction H.
     intros. pclearbot. eauto.
 Qed.
 
@@ -687,7 +687,7 @@ Lemma eqit_Ret b1 b2 (r1 : R1) (r2 : R2) :
 Proof.
   split; intros H.
   - pstep. constructor; auto.
-  - punfold H. inversion H; auto_inj_pair2; subst; auto.
+  - punfold H. red in H. dependent destruction H. auto.
 Qed.
 
 (** *** "Up-to" principles for coinduction. *)

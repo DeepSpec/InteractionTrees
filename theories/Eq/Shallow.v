@@ -21,13 +21,6 @@ From Coq Require Import
      ProofIrrelevance.
 (* end hide *)
 
-(** Rewrite all heterogeneous equalities with the axiom
-    [inj_pair2 : existT _ T a = existT _ T b -> a = b]. *)
-Ltac auto_inj_pair2 :=
-  repeat (match goal with
-          | [ H : _ |- _ ] => apply inj_pair2 in H
-          end).
-
 (** ** [observing]: Lift relations through [observe]. *)
 Inductive observing {E R1 R2}
            (eq_ : itree' E R1 -> itree' E R2 -> Prop)

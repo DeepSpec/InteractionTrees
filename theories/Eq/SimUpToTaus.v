@@ -89,7 +89,7 @@ Lemma suttF_inv_vis {E R1 R2} (RR : R1 -> R2 -> Prop) sutt :
     suttF RR sutt (VisF e k1) (VisF e k2) ->
     forall x, sutt (observe (k1 x)) (observe (k2 x)).
 Proof.
-  intros. inv H. auto_inj_pair2. subst. auto.
+  intros. dependent destruction H. auto.
 Qed.
 
 Lemma sutt_inv_vis {E R1 R2} (RR : R1 -> R2 -> Prop) :
@@ -98,7 +98,7 @@ Lemma sutt_inv_vis {E R1 R2} (RR : R1 -> R2 -> Prop) :
   forall x, sutt RR (k1 x) (k2 x).
 Proof.
   intros. pstep. punfold H. simpl in *.
-  inv H. auto_inj_pair2. subst. specialize (SUTTK x). pclearbot. punfold SUTTK.
+  dependent destruction H. specialize (SUTTK x). pclearbot. punfold SUTTK.
 Qed.
 
 Lemma sutt_tau_right {E R1 R2} (RR : R1 -> R2 -> Prop) :

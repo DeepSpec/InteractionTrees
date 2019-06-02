@@ -2,7 +2,7 @@
 
 (* begin hide *)
 From Coq Require Import
-     List.
+     List Program.
 
 Import ListNotations.
 
@@ -97,14 +97,14 @@ Proof.
   - punfold H. rewrite <- Heqi in H.
     remember (VisF _ _). remember (observe t2).
     generalize dependent t2.
-    induction H; intros; try inv Heqi0.
-    + auto_inj_pair2. subst. red. rewrite <- Heqi1. constructor.
+    induction H; intros; try dependent destruction Heqi0.
+    + red. rewrite <- Heqi1. constructor.
     + red. rewrite <- Heqi1. constructor. eapply IHsuttF; eauto.
   - punfold H. rewrite <- Heqi in H.
     remember (VisF _ _). remember (observe t2).
     generalize dependent t2.
-    induction H; intros; try inv Heqi0.
-    + pclearbot. auto_inj_pair2. subst. red. rewrite <- Heqi1. constructor.
+    induction H; intros; try dependent destruction Heqi0.
+    + pclearbot. red. rewrite <- Heqi1. constructor.
       eapply IHis_traceF; auto.
     + red. rewrite <- Heqi1. constructor. apply IHsuttF; auto.
 Qed.
@@ -133,24 +133,24 @@ Proof.
       constructor. eapply IHis_traceF; eauto.
   - constructor. right. apply CIH. intros. apply Hincl. constructor. auto.
   - assert (H: is_traceF (VisF e k) (TEventEnd e)) by constructor.
-    apply Hincl in H. destruct (observe t2); inv H.
+    apply Hincl in H. destruct (observe t2); dependent destruction H.
     + constructor.
       assert (forall tr, is_traceF (VisF e k) tr -> is_traceF (observe t) tr).
       {
         intros. rewrite is_traceF_tau. apply Hincl; auto.
       }
-      clear Hincl. rename H into Hincl.
+      clear Hincl. rename H0 into Hincl.
       remember (observe t). remember (TEventEnd _).
       generalize dependent t.
-      induction H1; intros; try inv Heqt0; auto.
+      induction H; intros; try dependent destruction Heqt0; auto.
       * constructor. eapply IHis_traceF; eauto.
         intros. rewrite is_traceF_tau. apply Hincl; auto.
-      * auto_inj_pair2. subst. constructor. intro. right. apply CIH. intros.
+      * constructor. intro. right. apply CIH. intros.
         assert (is_traceF (VisF e k) (TEventResponse e x tr)) by (constructor; auto).
-        apply Hincl in H0. inv H0. auto_inj_pair2. subst. auto.
-    + auto_inj_pair2. subst. constructor. intro. right. apply CIH. intros.
+        apply Hincl in H0. dependent destruction H0. auto.
+    + constructor. intro. right. apply CIH. intros.
       assert (is_traceF (VisF e k) (TEventResponse e x tr)) by (constructor; auto).
-      apply Hincl in H0. inv H0. auto_inj_pair2. subst. auto.
+      apply Hincl in H0. dependent destruction H0. auto.
 Qed.
 
 Theorem trace_incl_iff_sutt : forall {E R} (t1 t2 : itree E R),
