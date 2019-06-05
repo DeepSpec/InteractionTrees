@@ -1,5 +1,5 @@
 (* begin hide *)
-Require Import Asm AsmCombinators Imp2AsmCorrectness Utils_tutorial.
+Require Import Label Asm AsmCombinators Imp2AsmCorrectness Utils_tutorial.
 
 Require Import Psatz.
 
@@ -16,7 +16,8 @@ From ITree Require Import
      ITreeFacts
      Events.StateFacts
      Events.Map
-     Events.State.
+     Events.State
+     SubKTree.
 
 Import ITreeNotations.
 
@@ -77,8 +78,6 @@ Definition peephole_optimize_asm {A B} (ph : peephole_optimization) (p : asm A B
 
 Section Correctness.
 
-  (* SAZ: Should we set this this here?? *)
-
   (** A peephole optimizer is correct if it replaces an instruction with 
     a semantically equivalent sequence of instructions. *)
   Definition ph_correct (ph : peephole_optimization) :=
@@ -87,8 +86,8 @@ Section Correctness.
 
   Lemma ph_blk_append_correct : forall (ph : peephole_optimization) (H : ph_correct ph)
     lbl b1 b2 i,
-    (@eq_asm_denotations Exit unit lbl (fun _ => denote_block b1) (fun _ => denote_block b2)) ->
-    (@eq_asm_denotations Exit unit lbl
+    (@eq_asm_denotations Exit (F lbl) (F lbl) (fun _ => denote_block b1) (fun _ => denote_block b2)) ->
+    (@eq_asm_denotations Exit (F lbl) (F lbl)
                          (fun _ => denote_instr i ;; denote_block b1)
                          (fun _ => denote_block (blk_append (ph i) b2))).
   Proof.
@@ -99,14 +98,14 @@ Section Correctness.
     unfold ph_correct in H.
     unfold eq_asm_denotations in H.
     specialize H with (i:=i).
-    pose proof (H a) as H2.
+    pose proof (H tt) as H2.
     do 2 rewrite interp_asm_bind.
     eapply eutt_clo_bind.
     apply H2.
     intros. subst.
     destruct u2 as [g [l ?]].
     apply HP.
-    exact tt.
+    exact a.
   Qed.  
 
 
@@ -114,8 +113,8 @@ Lemma peephole_block_correct :
   forall (ph : peephole_optimization)
     (H : ph_correct ph)
     lbl
-    (b : block lbl),
-    @eq_asm_denotations Exit unit lbl
+    (b : block (F lbl)),
+    @eq_asm_denotations Exit (F lbl) (F lbl)
                         (fun _ => denote_block b)
                         (fun _ => denote_block (peephole_optimize_block ph b)).
 Proof.
@@ -137,11 +136,65 @@ Proof.
   intros p.
   unfold eq_asm, eq_asm_denotations.
   unfold denote_asm.
+  intros a mem regs.
+  eapply peephole_block_correct in H.
+  unfold eq_asm_denotations in H.
+  unfold interp_asm in *.
+  unfold run_map in *.
+  unfold sloop, CategoryOps.cat, Cat_sktree, CategoryOps.cat, Cat_ktree, ITree.cat.
+  rewrite! interp_bind.
+  rewrite! interp_state_bind.
+  eapply eutt_clo_bind.
+  { reflexivity. }
+  intros. 
+  unfold iter. unfold Iter_sktree.
+  rewrite! interp_iter.
+  unfold CategoryOps.cat, Cat_ktree.
+  unfold KTree.iter, Iter_ktree.
+  subst.
+  pose proof  @interp_state_aloop.
+  red in H0.
+  
+  
+  rewrite H0.
+  - reflexivity.
+  - admit.
+  - 
+  
+  setoid_rewrite interp_state_aloop.
+  
+  pose proof @eutt_interp_state_iter.
+  red in H0.
+  rewrite H0.
+  apply interp_state_bind.
+  
+  apply eutt_interp_state; auto.
+  apply eutt_interp_state; auto.  
+  
+  reflexivity.
+  intros. subst.
+  unfold iter, Iter_sktree.
+  rewrite! interp_iter.
+  eapply eutt_iter. red.
+  intros.
+  eapply eutt_interp. reflexivity.
+  apply eutt_interp_state; auto.
+  
+  
+  
   unfold interp_asm.
   unfold run_map.
   intros.
-  apply eutt_interp_state; auto.
-  apply eutt_interp_state; auto.
+
+  unfold CategoryOps.cat, Cat_ktree. cbn. 
+  eapply peephole_block_correct in H.
+  unfold eq_asm_denotations in H.
+  unfold interp_asm in H.
+  
+  
+  
+  SearchAbout interp.
+  
   About interp_loop.
   Set Typeclasses Debug.  (* (bimap eval_reg (bimap eval_memory (id_ Exit))) *)
   About interp.

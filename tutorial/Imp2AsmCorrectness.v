@@ -843,6 +843,19 @@ Section Correctness.
                     end) (inr tt).
   Proof.
     unfold while.
+    rewrite! unfold_iter_ktree.
+    rewrite! tau_eutt.
+    rewrite bind_ret.
+    rewrite unfold_iter_ktree.
+    rewrite! tau_eutt, bind_bind.
+    eapply eutt_clo_bind. reflexivity.
+    intros. subst.
+    destruct u2 as [[]|[]].
+    rewrite bind_ret.
+
+    2 : {
+      force_right. reflexivity.
+    }
   Admitted.
   (* TODO: Fix this
     match goal with
