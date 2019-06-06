@@ -42,6 +42,14 @@ Section BasicFacts.
   Context `{MonadLaws}.
   Context `{MonadProperOps}.
 
+  Instance Proper_Kleisli_apply {a b} :
+    Proper (eq2 ==> eq ==> eqm) (@Kleisli_apply m a b).
+  Proof.
+    cbv; intros; subst; auto.
+  Qed.
+
+  Lemma fold_Kleisli {a b} (f : Kleisli m a b) (x : a) : f x = Kleisli_apply f x.
+  Proof. reflexivity. Qed.
   
 Global Instance Equivalence_Kleisli_eq2 {a b} : @Equivalence (Kleisli m a b) eq2.
 Proof.
@@ -113,7 +121,6 @@ Global Instance Proper_case_Kleisli {a b c}
 Proof.
   repeat intro; destruct (_ : _ + _); cbn; auto.
 Qed.
-
 
 (** *** [pure] is well-behaved *)
 
@@ -290,5 +297,7 @@ Qed.
 
 End BasicFacts.
 
-
-
+Notation Proper_iter m a b :=
+  (@Proper (Kleisli m a (sum a b)%type -> (Kleisli m a b))
+           (pointwise_relation _ eqm ==> pointwise_relation _ eqm)
+           iter).

@@ -5,6 +5,7 @@
 (* begin hide *)
 From ITree Require Import
      Basics.CategoryOps
+     Basics.CategoryKleisli
      Basics.Basics
      Basics.CategoryKleisli
      Basics.Function
@@ -19,48 +20,25 @@ From Coq Require Import
      Morphisms.
 (* end hide *)
 
-Definition ktree (E: Type -> Type) (A B : Type) : Type
-  := Kleisli (itree E) A B.
-(* ktree can represent both blocks (A -> block B) and asm (asm A B). *)
+Implicit Types E : Type -> Type.
+Implicit Types a b : Type.
+
+Notation ktree E := (Kleisli (itree E)).
 
 Bind Scope ktree_scope with ktree.
 
-(* (@ktree E) forms a traced monoidal category, i.e. a symmetric monoidal one with a loop operator *)
+Notation ktree_apply := (@Kleisli_apply (itree _)).
+Notation lift_ktree := (@Kleisli_pure (itree _) _ _ _).
+Notation lift_ktree_ E a b := (@Kleisli_pure (itree E) _ a b).
+
+(* [ktree E] forms an iterative category, i.e. a cocartesian category with a
+   loop operator *)
 (* Obj ≅ Type *)
 (* Arrow: A -> B ≅ terms of type (ktree A B) *)
 
 (** ** KTree equivalence *)
-Section Equivalence.
 
-Context {E : Type -> Type}.
-
-Global Instance EqM_ktree : EqM (itree E) := fun A => (@eutt E _ _ eq).
-
-(* We work up to pointwise eutt *)
-Definition eutt_ktree {A B} (d1 d2 : ktree E A B) := @Eq2_Kleisli (itree E) _ A B d1 d2.
-(*
-Definition eutt_ktree {A B} (d1 d2 : ktree E A B) :=
-  (forall a, eutt eq (d1 a) (d2 a)).
-*)
-Global Instance Eq2_ktree : Eq2 (ktree E) := @eutt_ktree.
-
-End Equivalence.
-
-(** *** Conversion to [itree] *)
-(** A trick to allow rewriting with eq_ktree in pointful contexts. *)
-
-Definition to_itree {E A} (f : @ktree E unit A) : itree E A := f tt.
-
-Global Instance Proper_to_itree {E A} :
-  Proper (eq2 ==> eutt eq) (@to_itree E A).
-Proof.
-  repeat intro.
-  apply H.
-Qed.
-
-Lemma fold_to_itree {E} (f : @ktree E unit unit) : f tt = to_itree f.
-Proof. reflexivity. Qed.
-
+Instance EqM_itree E : EqM (itree E) := fun _ => eutt eq.
 
 (** ** Categorical operations *)
 
@@ -70,56 +48,15 @@ Context {E : Type -> Type}.
 
 Local Notation ktree := (ktree E).
 
-(* Utility function to lift a pure computation into ktree *)
-(* SAZ: Maybe call this operation [pure] as in Haskell? *)
-Definition lift_ktree {A B} : (A -> B) -> ktree A B := pure.
-
-(** *** Category *)
-
-(** Identity morphism *)
-Global Instance Id_ktree : Id_ ktree :=
-  fun A a => Ret a.
-
-(** Composition is [ITree.cat], denoted as [>>>]. *)
-Global Instance Cat_ktree : Cat ktree := @ITree.cat E.
-
-(** *** Symmetric monoidal category *)
-
-(** Initial object, monoidal unit *)
-Local Notation I := Basics.void.
-
-Global Instance Initial_void_ktree : Initial ktree I :=
-  fun _ v => match v : I with end.
-
-(** The tensor product is given by the coproduct *)
-
-Global Instance Case_ktree : CoprodCase ktree sum :=
-  fun _ _ _ => @case_sum _ _ _.
-
-Local Opaque eutt.
-
-Global Instance Proper_case_ {A B C} :
-  @Proper (ktree A C -> ktree B C -> _)
-          (eq2 ==> eq2 ==> eq2) case_.
-Proof.
-  repeat intro; destruct a; cbv; auto. apply H. apply H0.
-Qed.
-
-Global Instance Inl_ktree : CoprodInl ktree sum :=
-  fun _ _ => lift_ktree inl.
-
-Global Instance Inr_ktree : CoprodInr ktree sum :=
-  fun _ _ => lift_ktree inr.
-
 (** *** Traced monoidal category *)
 
 Global Instance Iter_ktree : Iter ktree sum :=
-  fun A B (f : ktree A (A + B)) (a0 : A) =>
-    ITree.aloop (fun ar =>
-      match ar with
-      | inl a => inl (f a)
+  fun a b (f : ktree a (a + b)) (x0 : a) =>
+    ITree.aloop (fun xr =>
+      match xr with
+      | inl x => inl (f x)
       | inr r => inr r
-      end) (inl a0) : itree E B.
+      end) (inl x0) : itree E b.
 
 (** The trace operator here is [loop].
 

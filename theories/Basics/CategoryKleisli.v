@@ -14,6 +14,13 @@ Implicit Types a b c : Type.
 
 Definition Kleisli m a b : Type := a -> m b.
 
+(** A trick to allow rewriting in pointful contexts. *)
+Definition Kleisli_arrow {m a b} : (a -> m b) -> Kleisli m a b := fun f => f.
+Definition Kleisli_apply {m a b} : Kleisli m a b -> (a -> m b) := fun f => f.
+
+Definition Kleisli_pure {m} `{Monad m} {a b} (f : a -> b) : Kleisli m a b :=
+  fun x => ret (f x).
+
 Class EqM m : Type :=
   eqm : forall a, m a -> m a -> Prop.
 
@@ -52,7 +59,7 @@ Section Instances.
   Definition map {a b c} (g:b -> c) (ab : Kleisli m a b) : Kleisli m a c :=
      cat ab (pure g).
   
-  Global Instance Initial_void_ktree : Initial (Kleisli m) void :=
+  Global Instance Initial_Kleisli : Initial (Kleisli m) void :=
     fun _ v => match v : void with end.
 
   Global Instance Id_Kleisli : Id_ (Kleisli m) :=

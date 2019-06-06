@@ -21,7 +21,7 @@ Local Open Scope itree_scope.
 Local Open Scope cat_scope.
 
 Global Instance lift_SemiIso {A B: Type} {f: A -> B} {g: B -> A} `{@SemiIso _ Fun _ _ _ _ _ f g} {E}:
-  @SemiIso _ (ktree E) Eq2_ktree (Id_ktree) Cat_ktree _ _ (lift_ktree f) (lift_ktree g).
+  SemiIso (ktree E) (lift_ktree f) (lift_ktree g).
 Proof.
   red.
   rewrite compose_lift_ktree, semi_iso, lift_ktree_id; auto.
@@ -45,49 +45,55 @@ Section Facts.
 
   (** A bit of Ltac support to unfold [sktree] instances of typeclasses **)
   Ltac unfold_sktree :=
-    unfold
-      eq2, Eq2_sktree, eutt_sktree,
-      cat, Cat_sktree,
-      inl_, Inl_sktree,
-      inr_, Inr_sktree,
-      lift_sktree,
-      case_, Case_sktree,
-      empty, Initial_iI_sktree,
-      id_, Id_sktree.
+      unfold lift_sktree;
+      let ccc := fresh "ccc" in
+      let eccc := fresh "eq" ccc in
+      try (remember (@cat _ _ Cat_sktree) as ccc eqn:eccc;
+        unfold cat, Cat_sktree in eccc; subst ccc);
+      try (remember (@id_ _ _ Id_sktree) as ccc eqn:eccc;
+        unfold id_, Id_sktree in eccc; subst ccc);
+      try (remember (@inl_ _ _ _ Inl_sktree) as ccc eqn:eccc;
+        unfold inl_, Inl_sktree in eccc; subst ccc);
+      try (remember (@inr_ _ _ _ Inr_sktree) as ccc eqn:eccc;
+        unfold inr_, Inr_sktree in eccc; subst ccc);
+      try (remember (@case_ _ _ _ Case_sktree) as ccc eqn:eccc;
+        unfold case_, Case_sktree in eccc; subst ccc);
+      try (remember (@empty _ _ _ Initial_iI_sktree) as ccc eqn:eccc;
+        unfold empty, Initial_iI_sktree in eccc; subst ccc).
 
   Ltac fold_eq:=
     match goal with
-      |- context[Eq2_ktree ?A ?B ?f ?g] => replace (Eq2_ktree A B f g) with (eq2 f g) by reflexivity
+      |- context[Eq2_Kleisli ?m ?M ?A ?B ?f ?g] => replace (Eq2_Kleisli m A B f g) with (eq2 f g) by reflexivity
     end.
 
   Ltac fold_cat:=
     match goal with
-      |- context[Cat_ktree ?A ?B ?C ?f ?g] => replace (Cat_ktree A B C f g) with (cat f g) by reflexivity
+      |- context[Cat_Kleisli ?m ?M ?A ?B ?C ?f ?g] => replace (Cat_Kleisli m A B C f g) with (cat f g) by reflexivity
     end.
 
   Ltac fold_id:=
     match goal with
-      |- context[Id_ktree ?A] => replace (Id_ktree A) with (id_ A) by reflexivity
+      |- context[Id_Kleisli ?m ?A] => replace (Id_Kleisli m A) with (@id_ _ (ktree E) _ A) by reflexivity
     end.
 
   Ltac fold_case:=
     match goal with
-      |- context[Case_ktree ?A ?B ?C ?f ?g] => replace (Case_ktree A B C f g) with (case_ f g) by reflexivity
+      |- context[CoprodCase_Kleisli ?m ?A ?B ?C ?f ?g] => replace (CoprodCase_Kleisli m A B C f g) with (case_ f g) by reflexivity
     end.
 
   Ltac fold_inl:=
     match goal with
-      |- context[Inl_ktree ?A ?B] => replace (Inl_ktree A B) with (@inl_ Type (ktree E) _ _ A B) by reflexivity
+      |- context[CoprodInl_Kleisli ?m _ ?A ?B] => replace (CoprodInl_Kleisli m A B) with (@inl_ Type (ktree E) _ _ A B) by reflexivity
     end.
 
   Ltac fold_inr:=
     match goal with
-      |- context[Inr_ktree ?A ?B] => replace (Inr_ktree A B) with (@inr_ Type (ktree E) _ _ A B) by reflexivity
+      |- context[CoprodInr_Kleisli ?m _ ?A ?B] => replace (CoprodInr_Kleisli m A B) with (@inr_ Type (ktree E) _ _ A B) by reflexivity
     end.
 
   Ltac fold_initial:=
     match goal with
-      |- context[Initial_void_ktree ?A] => replace (Initial_void_ktree A) with (@empty Type (ktree E) _ _ A) by reflexivity
+      |- context[Initial_Kleisli ?A] => replace (Initial_Kleisli A) with (@empty Type (ktree E) _ _ A) by reflexivity
     end.
 
   Ltac fold_ktree := repeat (fold_eq || fold_cat || fold_id || fold_case || fold_inl || fold_inr || fold_initial).
@@ -171,19 +177,18 @@ Section Facts.
       unfold bimap, Bimap_Coproduct.
       unfold assoc_r,AssocR_Coproduct.
       unfold_sktree.
-      fold_ktree.
-      rewrite 2 cat_id_l...
+      rewrite 2 cat_id_l.
       match goal with |- ?f ⩯ _ => set (g:=f) end.
-      repeat rewrite cat_assoc...
-      rewrite cat_case...
-      rewrite <- cat_assoc, (cat_assoc _ inl_ _), case_inl...
-      rewrite <- (cat_assoc inr_ _ _), case_inr...
-      rewrite (cat_assoc inr_ _ _), <- (cat_assoc inr_ (case_ _ _) _), case_inr...
-      rewrite cat_case...
-      rewrite cat_assoc, cat_case, case_inl...
-      rewrite (cat_assoc _ inr_ _), case_inr...
+      repeat rewrite cat_assoc.
+      rewrite cat_case.
+      rewrite <- cat_assoc, (cat_assoc _ inl_ _), case_inl.
+      rewrite <- (cat_assoc inr_ _ _), case_inr.
+      rewrite (cat_assoc inr_ _ _), <- (cat_assoc inr_ (case_ _ _) _), case_inr.
+      rewrite cat_case.
+      rewrite cat_assoc, cat_case, case_inl.
+      rewrite (cat_assoc _ inr_ _), case_inr.
       subst g.
-      repeat rewrite cat_assoc...
+      repeat rewrite cat_assoc.
       reflexivity.
     Qed.
 
@@ -191,29 +196,28 @@ Section Facts.
     Lemma unfold_swap_assoc_l: forall {I J B: i},
          isum_suml >>> bimap (id_ (F I)) isum_suml >>> assoc_l 
        ⩯ (@assoc_l _ sktree isum _ I J B: ktree _ _ _) >>> isum_suml >>> bimap isum_suml (id_ (F B)).
-    Proof with try typeclasses eauto.
+    Proof.
       intros.
       unfold bimap, Bimap_Coproduct.
       unfold assoc_l,AssocL_Coproduct.
       unfold_sktree.
-      fold_ktree.
-      rewrite 2 cat_id_l...
-      rewrite cat_assoc, cat_case, case_inl...
-      rewrite cat_assoc, case_inr...
+      rewrite 2 cat_id_l.
+      rewrite cat_assoc, cat_case, case_inl.
+      rewrite cat_assoc, case_inr.
       match goal with |- ?f ⩯ _ => set (g:=f) end.
 
-      rewrite <- 2 cat_assoc...
-      rewrite <- cat_case...
-      rewrite <- cat_assoc...
-      rewrite <- cat_case...
-      rewrite <- cat_assoc...
-      rewrite (cat_assoc _ sum_isuml _), semi_iso, cat_id_r...
-      rewrite cat_assoc...
-      rewrite cat_case...
-      rewrite cat_assoc, case_inl, <- cat_assoc, (cat_assoc _ sum_isuml _), semi_iso, cat_id_r...
-      rewrite cat_assoc, cat_case, case_inr...
-      rewrite cat_assoc, case_inl...
-      rewrite <- cat_assoc, (cat_assoc _ sum_isuml _), semi_iso, cat_id_r...
+      rewrite <- 2 cat_assoc.
+      rewrite <- cat_case.
+      rewrite <- cat_assoc.
+      rewrite <- cat_case.
+      rewrite <- cat_assoc.
+      rewrite (cat_assoc _ sum_isuml _), (semi_iso _ _), cat_id_r.
+      rewrite cat_assoc.
+      rewrite cat_case.
+      rewrite cat_assoc, case_inl, <- cat_assoc, (cat_assoc _ sum_isuml _), (semi_iso _ _), cat_id_r.
+      rewrite cat_assoc, cat_case, case_inr.
+      rewrite cat_assoc, case_inl.
+      rewrite <- cat_assoc, (cat_assoc _ sum_isuml _), (semi_iso _ _), cat_id_r.
       subst g.
       reflexivity.
     Qed.
@@ -221,51 +225,50 @@ Section Facts.
     Lemma unfold_swap_assoc_r: forall {I J B: i},
          assoc_r >>> bimap (id_ (F I)) sum_isuml >>> sum_isuml
        ⩯ bimap sum_isuml (id_ (F B)) >>> sum_isuml >>> (@assoc_r _ sktree isum _ I J B: ktree _ _ _).
-    Proof with try typeclasses eauto.
+    Proof.
       intros.
       unfold bimap, Bimap_Coproduct.
       unfold assoc_r,AssocR_Coproduct.
       unfold_sktree.
       fold_ktree.
-      rewrite 2 cat_id_l...
-      rewrite cat_case, cat_assoc, case_inr...
-      rewrite (cat_case inl_ _ _), case_inl...
+      rewrite 2 cat_id_l.
+      rewrite cat_case, cat_assoc, case_inr.
+      rewrite (cat_case inl_), case_inl.
       rewrite cat_assoc, case_inr...
       match goal with |- ?f ⩯ _ => set (g:=f) end.
-      rewrite <- cat_assoc, (cat_assoc _ sum_isuml _), semi_iso, cat_id_r...
-      rewrite cat_case...
-      rewrite case_inr...
-      rewrite cat_assoc, case_inl...
-      rewrite <- cat_assoc, semi_iso, cat_id_l...
-      rewrite <- cat_assoc, <- cat_case...
-      rewrite <- cat_assoc, <- cat_case...
+      rewrite <- cat_assoc, (cat_assoc _ sum_isuml _), (semi_iso _ _), cat_id_r.
+      rewrite cat_case.
+      rewrite case_inr.
+      rewrite cat_assoc, case_inl.
+      rewrite <- cat_assoc, (semi_iso _ _), cat_id_l.
+      rewrite <- cat_assoc, <- cat_case.
+      rewrite <- cat_assoc, <- cat_case.
       subst g.
-      repeat rewrite cat_assoc...
+      repeat rewrite cat_assoc.
       reflexivity.
     Qed.
 
     Lemma unfold_swap {A B: i}:
       swap ⩯ sum_isuml >>> (@swap _ sktree _ _ A B:ktree _ _ _) >>> isum_suml.
-    Proof with try typeclasses eauto.
+    Proof.
       unfold swap, Swap_Coproduct.
-      unfold_sktree; unfold sloop, case_; fold_ktree.
-      rewrite <- cat_assoc, semi_iso, cat_id_l...
-      rewrite <- cat_case, cat_assoc, semi_iso, cat_id_r...
+      unfold_sktree.
+      rewrite <- cat_assoc, (semi_iso _ _), cat_id_l.
+      rewrite <- cat_case, cat_assoc, (semi_iso _ _), cat_id_r.
       reflexivity.
     Qed.
 
     Lemma sym_sktree_unfold {A B}:
       @lift_sktree _ _ E _ _ (@swap _ iFun _ _ A B) ⩯ swap.
-    Proof with try typeclasses eauto.
+    Proof.
       generalize (@sym_ktree_unfold E (F A) (F B)).
       unfold swap, Swap_Coproduct; intros EQ.
-      unfold_sktree; fold_ktree.
-      rewrite <- cat_case, <- EQ...
+      unfold_sktree.
+      rewrite <- cat_case, <- EQ.
       unfold isum_inl, isum_inr, case_isum.
-      rewrite <- lift_case_sum, cat_case...
-      rewrite <- compose_lift_ktree.
+      rewrite <- lift_case_sum, cat_case.
       unfold sum_isuml, isum_suml.
-      rewrite 3 compose_lift_ktree, lift_case_sum, compose_lift_ktree.
+      rewrite 2 compose_lift_ktree, lift_case_sum, compose_lift_ktree.
       reflexivity.
     Qed.
 
@@ -273,12 +276,12 @@ Section Facts.
     Lemma unfold_assoc_l_iFun {A B C}:
       @assoc_l _ iFun _ _ A B C ⩯
       isum_sum >>> bimap (id_ (F A)) isum_sum >>> @assoc_l _ Fun _ _ _ _ _ >>> bimap sum_isum (id_ (F C)) >>> sum_isum.
-    Proof with try typeclasses eauto.
+    Proof.
       unfold assoc_l, AssocL_Coproduct.
       unfold case_ at 1 2, case_isum. 
       unfold inl_, isum_inl, inr_, isum_inr, sum_isum.
       unfold cat at 2, Cat_iFun.
-      rewrite cat_assoc...
+      rewrite cat_assoc.
       unfold cat, Cat_Fun,  bimap, Bimap_Coproduct, case_, case_sum.
       intros ?.
       destruct (isum_sum a).
@@ -295,8 +298,8 @@ Section Facts.
     (* To redo, iFun is poorly handled *)
     Lemma unfold_assoc_r_iFun {A B C}:
       @assoc_r _ iFun _ _ A B C ⩯
-      isum_sum >>> bimap isum_sum (id_ (F C)) >>> @assoc_r _ Fun _ _ _ _ _ >>> bimap (id_ (F A)) sum_isum >>> sum_isum.
-    Proof with try typeclasses eauto.
+      isum_sum >>> @bimap _ Fun sum _ _ _ _ _ isum_sum (id_ (F C)) >>> @assoc_r _ Fun _ _ _ _ _ >>> bimap (id_ (F A)) sum_isum >>> sum_isum.
+    Proof.
       unfold assoc_r, AssocR_Coproduct.
       unfold case_ at 1 2, case_isum. 
       unfold inl_, isum_inr, inl_, isum_inl, isum_sum.
@@ -311,23 +314,23 @@ Section Facts.
 
     Lemma assoc_l_sktree {A B C} :
       assoc_l ⩯ @lift_sktree _ _ E _ _ (@assoc_l _ iFun _ _ A B C).
-    Proof with try typeclasses eauto.
-      unfold_sktree.
+    Proof.
       rewrite unfold_assoc_l, assoc_l_ktree.
       rewrite unfold_assoc_l_iFun.
-      repeat rewrite <- compose_lift_ktree.
-      rewrite <- bimap_lift_id, <- bimap_id_lift.
+      unfold isum_suml, sum_isuml.
+      rewrite !bimap_lift_id, !bimap_id_lift.
+      repeat rewrite compose_lift_ktree.
       reflexivity.
     Qed.
 
     Lemma assoc_r_sktree {A B C} :
       assoc_r ⩯ @lift_sktree _ _ E _ _ (@assoc_r _ iFun _ _ A B C).
-    Proof with try typeclasses eauto.
-      unfold_sktree.
+    Proof.
       rewrite unfold_assoc_r, assoc_r_ktree.
       rewrite unfold_assoc_r_iFun.
-      repeat rewrite <- compose_lift_ktree.
-      rewrite <- bimap_lift_id, <- bimap_id_lift.
+      unfold isum_suml, sum_isuml.
+      rewrite !bimap_lift_id, !bimap_id_lift.
+      repeat rewrite compose_lift_ktree.
       reflexivity.
     Qed.
 
@@ -428,22 +431,22 @@ Section Facts.
     Lemma bimap_id_slift {A B C} (f : F B -> F C) :
       bimap (id_ A) (@lift_sktree _ _ E _ _ f) ⩯ lift_sktree (bimap (id_ A) f).
     Proof.
-      unfold_sktree.
+      unfold_sktree. unfold lift_sktree.
       rewrite unfold_bimap, bimap_id_lift.
-      unfold Id_iFun.
       rewrite unfold_bimap_iFun.
-      repeat rewrite <- compose_lift_ktree.
+      unfold isum_suml, sum_isuml.
+      repeat rewrite compose_lift_ktree.
       reflexivity.
     Qed.
 
     Lemma bimap_slift_id {A B C} (f : F A -> F B) :
       bimap (@lift_sktree _ _ E _ _ f) (id_ C) ⩯ lift_sktree (bimap f (id_ _)).
-    Proof with try typeclasses eauto.
-      unfold_sktree.
+    Proof.
+      unfold_sktree. unfold lift_sktree.
       rewrite unfold_bimap, bimap_lift_id.
-      unfold Id_iFun.
       rewrite unfold_bimap_iFun.
-      repeat rewrite <- compose_lift_ktree.
+      unfold isum_suml, sum_isuml.
+      repeat rewrite compose_lift_ktree.
       reflexivity.
     Qed.
 
@@ -548,13 +551,13 @@ Section Facts.
     Lemma unit_l_sktree (A : i) :
       unit_l ⩯ @lift_sktree _ _ E _ _ (@unit_l _ iFun _ _ _ A).
     Proof.
-      unfold unit_l, UnitL_Coproduct.
+      unfold unit_l, UnitL_Coproduct, lift_sktree.
       unfold_sktree.
-      unfold case_isum, Initial_iI.
-      rewrite <- compose_lift_ktree, <- lift_case_sum.
-      rewrite <- lift_ktree_id.
-      rewrite <- compose_lift_ktree.
-      rewrite empty_ktree_is_empty.
+      unfold isum_suml, iI_voidl.
+      rewrite lift_ktree_id, empty_ktree_is_empty.
+      rewrite compose_lift_ktree.
+      rewrite lift_case_sum.
+      rewrite compose_lift_ktree.
       reflexivity.
     Qed.
 
@@ -563,7 +566,7 @@ Section Facts.
     Proof.
       unfold unit_l', UnitL'_Coproduct.
       unfold_sktree.
-      unfold isum_inr.
+      unfold inr_ at 2; unfold isum_inr.
       rewrite <- compose_lift_ktree.
       reflexivity.
     Qed.
@@ -571,22 +574,22 @@ Section Facts.
     Lemma unit_r_sktree (A : i) :
       unit_r ⩯ @lift_sktree _ _ E _ _ (@unit_r _ iFun _ _ _ A).
     Proof.
-      unfold unit_r, UnitR_Coproduct.
+      unfold unit_r, UnitR_Coproduct, lift_sktree.
       unfold_sktree.
-      unfold case_isum, Initial_iI.
-      rewrite <- compose_lift_ktree, <- lift_case_sum.
-      rewrite <- lift_ktree_id.
-      rewrite <- compose_lift_ktree.
-      rewrite empty_ktree_is_empty.
+      unfold isum_suml, iI_voidl.
+      rewrite lift_ktree_id, empty_ktree_is_empty.
+      rewrite compose_lift_ktree.
+      rewrite lift_case_sum.
+      rewrite compose_lift_ktree.
       reflexivity.
     Qed.
 
     Lemma unit_r'_sktree (A : i) :
       unit_r' ⩯ @lift_sktree _ _ E _ _ (@unit_r' _ iFun _ iI _ A).
     Proof.
-      unfold unit_r', UnitR'_Coproduct.
+      unfold unit_r', UnitR'_Coproduct, lift_sktree.
       unfold_sktree.
-      unfold isum_inl.
+      unfold inl_ at 2; unfold isum_inl.
       rewrite <- compose_lift_ktree.
       reflexivity.
     Qed.
@@ -604,7 +607,7 @@ Section Facts.
       rewrite unit_l'_sktree.
       unfold_sktree; unfold isum_inr.
       unfold unit_l', UnitL'_Coproduct.
-      intro. unfold cat, Cat_ktree, ITree.cat, lift_ktree, pure, Monad.ret, Monad_itree.
+      intro. unfold cat, Cat_Kleisli, lift_ktree; cbn.
       rewrite bind_ret; reflexivity.
     Qed.
 
@@ -614,7 +617,7 @@ Section Facts.
       rewrite unit_r'_sktree.
       unfold_sktree; unfold isum_inr.
       unfold unit_l', UnitL'_Coproduct.
-      intro. unfold cat, Cat_ktree, ITree.cat, lift_ktree, pure, Monad.ret, Monad_itree.
+      intro. unfold cat, Cat_Kleisli, lift_ktree; cbn.
       rewrite bind_ret_; reflexivity.
     Qed.
 

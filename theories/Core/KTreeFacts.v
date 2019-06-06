@@ -14,6 +14,7 @@ From ITree Require Import
      Basics.CategoryOps
      Basics.CategoryTheory
      Basics.CategoryKleisli
+     Basics.CategoryKleisliFacts
      Basics.Function
      Core.ITreeDefinition
      Core.KTree
@@ -139,7 +140,7 @@ Lemma unfold_iter_ktree {E A B} (f : ktree E A (A + B)) (a0 : A) :
     | inr b => Ret b
     end).
 Proof.
-  unfold iter, Iter_ktree, cat, Cat_ktree, ITree.cat.
+  unfold iter, Iter_ktree, cat.
   rewrite unfold_aloop; cbn.
   pstep; constructor; left.
   eapply eqit_bind; try reflexivity.
@@ -159,7 +160,8 @@ Qed.
 Instance IterNatural_ktree {E} : IterNatural (ktree E) sum.
 Proof.
   repeat intro.
-  unfold bimap, Bimap_Coproduct, case_, Case_ktree, case_sum, cat, Cat_ktree, ITree.cat.
+  unfold bimap, Bimap_Coproduct, case_, CoprodCase_Kleisli, case_sum, cat, Cat_Kleisli.
+  cbn.
   revert a0.
   einit. ecofix CIH. intros.
   rewrite 2 unfold_iter_ktree.
@@ -168,11 +170,9 @@ Proof.
   rewrite !bind_bind.
   ebind; econstructor; try reflexivity.
   intros [] ? [].
-  unfold id_, Id_ktree, inl_, Inl_ktree, lift_ktree, pure, Monad.ret, Monad_itree.
   rewrite 2 bind_ret.
   eauto with paco.
   rewrite bind_bind.
-  unfold inr_, Inr_ktree, lift_ktree, pure, Monad.ret, Monad_itree.
   setoid_rewrite bind_ret.
   rewrite bind_ret2.
   reflexivity.
@@ -225,12 +225,13 @@ Qed.
 Instance IterDinatural_ktree {E} : IterDinatural (ktree E) sum.
 Proof.
   repeat intro.
-  unfold bimap, Bimap_Coproduct, case_, Case_ktree, case_sum, cat, Cat_ktree, ITree.cat.
+  unfold bimap, Bimap_Coproduct, case_, CoprodCase_Kleisli, case_sum, cat, Cat_Kleisli.
+  cbn.
   transitivity (iter (fun t =>
                         x <- f t;;
                         match x with
                         | inl a1 => Tau (g a1)
-                        | inr b0 => inr_ b0
+                        | inr b0 => Ret (inr b0)
                         end) a0).
   - apply eutt_iter; intros x.
     eapply eutt_clo_bind.
@@ -287,7 +288,8 @@ Qed.
 Instance IterCodiagonal_ktree {E} : IterCodiagonal (ktree E) sum.
 Proof.
   repeat intro.
-  unfold bimap, Bimap_Coproduct, case_, Case_ktree, case_sum, cat, Cat_ktree, ITree.cat.
+  unfold bimap, Bimap_Coproduct, case_, CoprodCase_Kleisli, case_sum, cat, Cat_Kleisli.
+  cbn.
   rewrite iter_codiagonal_ktree.
   rewrite tau_eutt.
   apply eutt_iter.
