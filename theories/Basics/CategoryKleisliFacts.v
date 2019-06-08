@@ -61,6 +61,7 @@ Proof.
   apply Proper_bind; auto.
 Qed.
 
+
 Lemma assoc_l_kleisli {a b c : Type} :
   (@assoc_l _ (Kleisli m) sum _ _ _ _) ⩯ (@pure m _ (a + (b + c))%type _ assoc_l).
 Proof.
@@ -106,7 +107,7 @@ Proof. intros A f []. Qed.
 
 
 
-Instance Proper_case_Kleisli {a b c}
+Global Instance Proper_case_Kleisli {a b c}
   : @Proper (Kleisli m a c -> Kleisli m b c -> _)
             (eq2 ==> eq2 ==> eq2) case_.
 Proof.
@@ -115,6 +116,8 @@ Qed.
 
 
 (** *** [pure] is well-behaved *)
+
+(* SAZ: not sure about the naming conventions here. *)
 
 Global Instance eq_pure {A B} :
   Proper (eq2 ==> eq2) (@pure _ _ A B).
@@ -154,7 +157,7 @@ Proof.
   reflexivity.
 Qed.
 
-Fact pure_compose {A B C}: forall (f:A -> B) (bc: Kleisli m B C),
+Fact pure_cat {A B C}: forall (f:A -> B) (bc: Kleisli m B C),
     pure f >>> bc ⩯ fun a => bc (f a).
 Proof.
   intros; intro a.
@@ -162,20 +165,128 @@ Proof.
   rewrite bind_ret. reflexivity.
 Qed.
 
-(*
-Fact compose_pure {A B C}: forall (ab: Kleisli m A B) (g:B -> C),
+
+Fact cat_pure {A B C}: forall (ab: Kleisli m A B) (g:B -> C),
     (ab >>> pure g)
-  ⩯ (fun a => ITree.map g (ab a)).
+  ⩯ (map g ab).
 Proof.
   reflexivity.
 Qed.
-*)
 
-Lemma sym_ktree_unfold {A B}:
+Lemma pure_swap {A B}:
   @pure _ _ (A+B) _ swap ⩯ swap.
 Proof.
   intros []; reflexivity.
 Qed.
+
+
+Fact case_pure {A B C} (ac : A -> C) (bc : B -> C) :
+    case_ (pure ac) (pure bc)
+  ⩯ pure (@case_ _ Fun _ _ _ _ _ ac bc).
+Proof.
+  intros []; reflexivity.
+Qed.
+
+(** *** [Unitors] lemmas *)
+
+(* This is probably generalizable into [Basics.Category]. *)
+
+Lemma unit_l_pure (A : Type) :
+  unit_l ⩯ @pure _ _ (void + A) A unit_l.
+Proof.
+  intros [[]|]. reflexivity.
+Qed.
+
+Lemma unit_l'_pure (A : Type) :
+  unit_l' ⩯ @pure _ _ A (void + A) unit_l'.
+Proof.
+  reflexivity.
+Qed.
+
+Lemma unit_r_pure (A : Type) :
+  unit_r ⩯ @pure _ _ (A + void) A unit_r.
+Proof.
+  intros [|[]]. reflexivity.
+Qed.
+
+Lemma unit_r'_pure (A : Type) :
+  unit_r' ⩯ @pure _ _ A (A + void) unit_r'.
+Proof.
+  reflexivity.
+Qed.
+
+(* SAZ: was named "case_l_ktree" *)
+Lemma case_l {A B: Type} (ab: Kleisli m A (void + B)) :
+  ab >>> unit_l ⩯ map unit_l ab.
+Proof.
+  rewrite unit_l_pure.
+  reflexivity.
+Qed.
+
+(* SAZ: was named "case_l'_ktree" *)
+Lemma case_l' {A B: Type} (f: Kleisli m (void + A) (void + B)) :
+  unit_l' >>> f ⩯ fun a => f (inr a).
+Proof.
+  rewrite unit_l'_pure.
+  intro. unfold cat, Cat_Kleisli, pure.
+  rewrite bind_ret; reflexivity.
+Qed.
+
+
+Lemma case_r {A B: Type} (ab: Kleisli m A (B + void)) :
+  ab >>> unit_r ⩯ map unit_r ab.
+Proof.
+  rewrite unit_r_pure.
+  reflexivity.
+Qed.
+
+Lemma case_r' {A B: Type} (f: Kleisli m (A + void) (B + void)) :
+  unit_r' >>> f ⩯ fun a => f (inl a).
+Proof.
+  rewrite unit_r'_pure.
+  intro. unfold cat, Cat_Kleisli, pure.
+  rewrite bind_ret; reflexivity.
+Qed.
+
+
+Fact bimap_id_pure {A B C} (f : B -> C) :
+  bimap (id_ A) (pure f) ⩯ pure (bimap (id_ A) f).
+Proof.
+  unfold bimap, Bimap_Coproduct.
+  rewrite !cat_id_l. rewrite <- !case_pure. rewrite <- !compose_pure. rewrite <- pure_id.
+  rewrite !cat_id_l. 
+  reflexivity.
+Qed.
+
+Fact bimap_pure_id {A B C} (f : A -> B) :
+  bimap (pure f) (id_ C) ⩯ pure (bimap f id).
+Proof.
+  unfold bimap, Bimap_Coproduct.
+  rewrite !cat_id_l, <- case_pure, <- compose_pure.
+  reflexivity.
+Qed.
+
+Global Instance Coproduct_Kleisli : Coproduct (Kleisli m) sum.
+Proof.
+  constructor.
+  - intros a b c f g.
+    unfold inl_, CoprodInl_Kleisli.
+    rewrite pure_cat.
+    reflexivity.
+  - intros a b c f g.
+    unfold inr_, CoprodInr_Kleisli.
+    rewrite pure_cat.
+    reflexivity.
+  - intros a b c f g fg Hf Hg [x | y].
+    + unfold inl_, CoprodInl_Kleisli in Hf.
+      rewrite pure_cat in Hf.
+      specialize (Hf x). simpl in Hf. rewrite Hf. reflexivity.
+    + unfold inr_, CoprodInr_Kleisli in Hg.
+      rewrite pure_cat in Hg.
+      specialize (Hg y). simpl in Hg. rewrite Hg. reflexivity.
+  - typeclasses eauto.
+Qed.
+
 
 End BasicFacts.
 

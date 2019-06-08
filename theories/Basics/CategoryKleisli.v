@@ -42,6 +42,9 @@ Section Instances.
     fun _ _ _ u v x =>
       bind (u x) (fun y => v y).
 
+  Definition map {a b c} (g:b -> c) (ab : Kleisli m a b) : Kleisli m a c :=
+     cat ab (pure g).
+  
   Global Instance Initial_void_ktree : Initial (Kleisli m) void :=
     fun _ v => match v : void with end.
 
