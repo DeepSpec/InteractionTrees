@@ -6,6 +6,7 @@
 From ITree Require Import
      Basics.CategoryOps
      Basics.Basics
+     Basics.CategoryKleisli
      Basics.Function
      Core.ITreeDefinition
      Eq.Eq
@@ -19,7 +20,7 @@ From Coq Require Import
 (* end hide *)
 
 Definition ktree (E: Type -> Type) (A B : Type) : Type
-  := A -> itree E B.
+  := Kleisli (itree E) A B.
 (* ktree can represent both blocks (A -> block B) and asm (asm A B). *)
 
 Bind Scope ktree_scope with ktree.
@@ -33,10 +34,14 @@ Section Equivalence.
 
 Context {E : Type -> Type}.
 
+Global Instance EqM_ktree : EqM (itree E) := fun A => (@eutt E _ _ eq).
+
 (* We work up to pointwise eutt *)
+Definition eutt_ktree {A B} (d1 d2 : ktree E A B) := @Eq2_Kleisli (itree E) _ A B d1 d2.
+(*
 Definition eutt_ktree {A B} (d1 d2 : ktree E A B) :=
   (forall a, eutt eq (d1 a) (d2 a)).
-
+*)
 Global Instance Eq2_ktree : Eq2 (ktree E) := @eutt_ktree.
 
 End Equivalence.
@@ -67,7 +72,7 @@ Local Notation ktree := (ktree E).
 
 (* Utility function to lift a pure computation into ktree *)
 (* SAZ: Maybe call this operation [pure] as in Haskell? *)
-Definition lift_ktree {A B} (f : A -> B) : ktree A B := fun a => Ret (f a).
+Definition lift_ktree {A B} : (A -> B) -> ktree A B := pure.
 
 (** *** Category *)
 
@@ -97,7 +102,7 @@ Global Instance Proper_case_ {A B C} :
   @Proper (ktree A C -> ktree B C -> _)
           (eq2 ==> eq2 ==> eq2) case_.
 Proof.
-  repeat intro; destruct a; cbv; auto.
+  repeat intro; destruct a; cbv; auto. apply H. apply H0.
 Qed.
 
 Global Instance Inl_ktree : CoprodInl ktree sum :=

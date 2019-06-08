@@ -17,6 +17,7 @@ From Paco Require Import paco.
 
 From ITree Require Import
      Basics.Category
+     Basics.CategoryKleisli
      Basics.Basics
      Core.ITreeDefinition
      Core.KTree
@@ -353,13 +354,13 @@ Proof.
   rewrite interp_bind.
   apply eqit_bind; try reflexivity.
   intros []; cbn. unfold cat. rewrite interp_bind.
-  unfold inl_, Inl_ktree, inr_, Inr_ktree, lift_ktree.
+  unfold inl_, Inl_ktree, inr_, Inr_ktree, lift_ktree, pure, Monad.ret, Monad_itree.
   rewrite interp_ret, !bind_ret, interp_ret.
   reflexivity.
-  unfold cat, id_, Id_ktree, inr_, Inr_ktree, lift_ktree.
+  unfold cat, id_, Id_ktree, inr_, Inr_ktree, lift_ktree, pure, Monad.ret, Monad_itree.
   rewrite interp_bind, interp_ret, !bind_ret, interp_ret.
   reflexivity.
-  unfold inr_, Inr_ktree, lift_ktree.
+  unfold inr_, Inr_ktree, lift_ktree, pure, Monad.ret, Monad_itree.
   rewrite interp_ret.
   reflexivity.
 Qed.

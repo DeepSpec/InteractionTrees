@@ -19,31 +19,50 @@ Class EqM m : Type :=
 
 Arguments eqm {m _ a}.
 
-Notation "≈" := eqm (at level 40) : kleisli_scope.
+Infix "≈" := eqm (at level 70) : kleisli_scope.
 
-Instance Eq2_Kleisli m `{EqM m} : Eq2 (Kleisli m) :=
-  fun _ _ => pointwise_relation _ eqm.
+(* SAZ: What is the right way to express that [eqm] is an equivalence at every type? 
+   SAZ: Also... move to PERs here?
+*)
+Class EqMEq m `{EqM m} := eqm_equiv :> forall a, Equivalence (@eqm _ _ a).
 
-Instance Cat_Kleisli m `{Monad m} : Cat (Kleisli m) :=
-  fun _ _ _ u v x =>
-    bind (u x) (fun y => v y).
 
-Instance Id_Kleisli m `{Monad m} : Id_ (Kleisli m) :=
-  fun _ x => ret x.
+Section Instances.
+  Context {m : Type -> Type}.
+  Context `{Monad m}.
+  Context `{EqM m}.
 
-Instance CoprodCase_Kleisli m : CoprodCase (Kleisli m) sum :=
-  fun _ _ _ l r => case_sum _ _ _ l r.
+  Definition pure {a b} (f:a -> b) : Kleisli m a b :=
+    fun (x:a) => ret (f x).
 
-Instance CoprodInl_Kleisli m `{Monad m} : CoprodInl (Kleisli m) sum :=
-  fun _ _ x => ret (inl x).
+  Global Instance Eq2_Kleisli : Eq2 (Kleisli m) :=
+    fun _ _ => pointwise_relation _ eqm.
 
-Instance CoprodInr_Kleisli m `{Monad m} : CoprodInr (Kleisli m) sum :=
-  fun _ _ x => ret (inr x).
+  Global Instance Cat_Kleisli : Cat (Kleisli m) :=
+    fun _ _ _ u v x =>
+      bind (u x) (fun y => v y).
 
-Instance Iter_Kleisli m `{Monad m} `{ALoop m} : Iter (Kleisli m) sum :=
-  fun a b (f : Kleisli m a (a + b)) (a0 : a) =>
-    aloop (fun ar =>
-      match ar with
-      | inl a => inl (f a)
-      | inr r => inr r
-      end) (inl a0) : m b.
+  Global Instance Initial_void_ktree : Initial (Kleisli m) void :=
+    fun _ v => match v : void with end.
+
+  Global Instance Id_Kleisli : Id_ (Kleisli m) :=
+    fun _ => pure id.
+
+  Global Instance CoprodCase_Kleisli : CoprodCase (Kleisli m) sum :=
+    fun _ _ _ l r => case_sum _ _ _ l r.
+
+  Global Instance CoprodInl_Kleisli : CoprodInl (Kleisli m) sum :=
+    fun _ _ => pure inl.
+
+  Global Instance CoprodInr_Kleisli : CoprodInr (Kleisli m) sum :=
+    fun _ _ => pure inr.
+
+  (* SAZ: Maybe get rid of the Aloop constraint and move to Iter *)
+  Global Instance Iter_Kleisli `{ALoop m} : Iter (Kleisli m) sum :=
+    fun a b (f : Kleisli m a (a + b)) (a0 : a) =>
+      aloop (fun ar =>
+               match ar with
+               | inl a => inl (f a)
+               | inr r => inr r
+               end) (inl a0) : m b.
+End Instances.

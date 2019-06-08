@@ -12,6 +12,7 @@ From Paco Require Import paco.
 From ITree Require Import
      Basics.Basics
      Basics.Category
+     Basics.CategoryKleisli
      Core.ITreeDefinition
      Core.KTree
      Core.KTreeFacts
@@ -214,7 +215,7 @@ Lemma eutt_interp_state_loop {E F S A B C} (RS : S -> S -> Prop)
           (interp_state h (loop t2 a) s2)).
 Proof.
   intros.
-  unfold loop, bimap, Bimap_Coproduct, case_, Case_ktree, Function.case_sum, id_, Id_ktree, cat, Cat_ktree, ITree.cat, inr_, Inr_ktree, inl_, Inl_ktree, lift_ktree.
+  unfold loop, bimap, Bimap_Coproduct, case_, Case_ktree, Function.case_sum, id_, Id_ktree, cat, Cat_ktree, ITree.cat, inr_, Inr_ktree, inl_, Inl_ktree, lift_ktree, pure, Monad.ret, Monad_itree.
   rewrite 2 bind_ret.
   eapply (eutt_interp_state_iter eq eq); auto; intros.
   rewrite 2 interp_state_bind.
@@ -262,14 +263,13 @@ Proof.
   - rewrite interp_state_ret. gstep. constructor; auto. subst; auto.
 Qed.
 
-From ExtLib Require Import Monad.
 
 
 (* SAZ:
    I think that here is where we really would rather make the Kleisly category for [StateT S M].
    (Maybe generically?)
 *)
-
+(*
 Import MonadNotation.
 Open Scope monad_scope.
 Definition loop {M} {MM : Monad M} {AM : ALoop M} {A B I : Type} (body : (I + A) -> M (I + B)%type) : A -> M B :=
@@ -325,3 +325,4 @@ Lemma interp_state_loop2
       unfold state_eq. intros. reflexivity.
     - constructor. reflexivity.
   Qed.
+*)

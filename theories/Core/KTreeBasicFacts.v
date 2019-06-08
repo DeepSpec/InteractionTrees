@@ -14,6 +14,7 @@ From Paco Require Import paco.
 From ITree Require Import
      Basics.Basics
      Basics.Category
+     Basics.CategoryKleisli
      Basics.Function
      Basics.FunctionFacts
      Core.ITreeDefinition
@@ -131,7 +132,7 @@ Global Instance eq_lift_ktree {A B} :
   Proper (eq2 ==> eq2) (@lift_ktree E A B).
 Proof.
   repeat intro.
-  unfold lift_ktree.
+  unfold lift_ktree, pure, Monad.ret, Monad_itree.
   erewrite (H a); reflexivity.
 Qed.
 
@@ -144,7 +145,7 @@ Fact compose_lift_ktree {A B C} (ab : A -> B) (bc : B -> C) :
   (@lift_ktree E _ _ ab >>> lift_ktree bc ⩯ lift_ktree (ab >>> bc))%cat.
 Proof.
   intros a.
-  unfold lift_ktree, cat, Cat_ktree, ITree.cat.
+  unfold lift_ktree, pure, Monad.ret, Monad_itree, cat, Cat_ktree, ITree.cat.
   rewrite bind_ret.
   reflexivity.
 Qed.
@@ -169,7 +170,7 @@ Fact lift_compose_ktree {A B C}: forall (f:A -> B) (bc: ktree E B C),
     lift_ktree f >>> bc ⩯ fun a => bc (f a).
 Proof.
   intros; intro a.
-  unfold lift_ktree, cat, Cat_ktree, ITree.cat.
+  unfold lift_ktree, pure, Monad.ret, Monad_itree, cat, Cat_ktree, ITree.cat.
   rewrite bind_ret. reflexivity.
 Qed.
 
@@ -194,9 +195,10 @@ Context {E : Type -> Type}.
 
 Local Open Scope cat.
 
+
 Fact lift_case_sum {A B C} (ac : A -> C) (bc : B -> C) :
     case_ (@lift_ktree E _ _ ac) (lift_ktree bc)
-  ⩯ lift_ktree (case_ ac bc).
+  ⩯ lift_ktree (@case_ _ Fun _ _ _ _ _ ac bc).
 Proof.
   intros []; reflexivity.
 Qed.
@@ -240,7 +242,7 @@ Lemma case_l_ktree' {A B: Type} (f: @ktree E (void + A) (void + B)) :
   unit_l' >>> f ⩯ fun a => f (inr a).
 Proof.
   rewrite unit_l'_ktree.
-  intro. unfold cat, Cat_ktree, ITree.cat, lift_ktree.
+  intro. unfold cat, Cat_ktree, ITree.cat, lift_ktree, pure, Monad.ret, Monad_itree.
   rewrite bind_ret; reflexivity.
 Qed.
 
@@ -248,7 +250,7 @@ Lemma case_r_ktree' {A B: Type} (f: @ktree E (A + void) (B + void)) :
   unit_r' >>> f ⩯ fun a => f (inl a).
 Proof.
   rewrite unit_r'_ktree.
-  intro. unfold cat, Cat_ktree, ITree.cat, lift_ktree.
+  intro. unfold cat, Cat_ktree, ITree.cat, lift_ktree, pure, Monad.ret, Monad_itree.
   rewrite bind_ret; reflexivity.
 Qed.
 

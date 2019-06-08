@@ -3,6 +3,7 @@ From ITree Require Import
      Basics.Function
      Basics.FunctionFacts
      Basics.Category
+     Basics.CategoryKleisli
      ITree
      KTree
      KTreeBasicFacts
@@ -301,7 +302,7 @@ Section Facts.
       unfold inl_, isum_inr, inl_, isum_inl, isum_sum.
       destruct Fsum; simpl.
       unfold cat, Cat_iFun, Cat_Fun.
-      unfold bimap, Bimap_Coproduct, case_, case_sum.
+      unfold bimap, Bimap_Coproduct, case_, case_sum, CoprodCase_Kleisli, case_sum.
       intros ?.
       repeat match goal with
       | |- context[match ?x with | _ => _ end] => simpl; destruct x eqn:?EQ
@@ -539,7 +540,7 @@ Section Facts.
     Qed.
 
     Lemma empty_ktree_is_empty: forall a,
-        @empty Type (ktree E) _ _ a ⩯ lift_ktree empty. 
+        @empty Type (ktree E) _ _ a ⩯ lift_ktree (@empty Type _ _ _ a). 
     Proof.
       intros x [].
     Qed.
@@ -603,7 +604,7 @@ Section Facts.
       rewrite unit_l'_sktree.
       unfold_sktree; unfold isum_inr.
       unfold unit_l', UnitL'_Coproduct.
-      intro. unfold cat, Cat_ktree, ITree.cat, lift_ktree.
+      intro. unfold cat, Cat_ktree, ITree.cat, lift_ktree, pure, Monad.ret, Monad_itree.
       rewrite bind_ret; reflexivity.
     Qed.
 
@@ -613,7 +614,7 @@ Section Facts.
       rewrite unit_r'_sktree.
       unfold_sktree; unfold isum_inr.
       unfold unit_l', UnitL'_Coproduct.
-      intro. unfold cat, Cat_ktree, ITree.cat, lift_ktree.
+      intro. unfold cat, Cat_ktree, ITree.cat, lift_ktree, pure, Monad.ret, Monad_itree.
       rewrite bind_ret_; reflexivity.
     Qed.
 

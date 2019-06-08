@@ -13,6 +13,7 @@ From ITree Require Import
      Basics.Basics
      Basics.CategoryOps
      Basics.CategoryTheory
+     Basics.CategoryKleisli
      Basics.Function
      Core.ITreeDefinition
      Core.KTree
@@ -167,11 +168,11 @@ Proof.
   rewrite !bind_bind.
   ebind; econstructor; try reflexivity.
   intros [] ? [].
-  unfold id_, Id_ktree, inl_, Inl_ktree, lift_ktree.
+  unfold id_, Id_ktree, inl_, Inl_ktree, lift_ktree, pure, Monad.ret, Monad_itree.
   rewrite 2 bind_ret.
   eauto with paco.
   rewrite bind_bind.
-  unfold inr_, Inr_ktree, lift_ktree.
+  unfold inr_, Inr_ktree, lift_ktree, pure, Monad.ret, Monad_itree.
   setoid_rewrite bind_ret.
   rewrite bind_ret2.
   reflexivity.
