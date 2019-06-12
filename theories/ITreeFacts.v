@@ -4,6 +4,8 @@
 From ITree Require Export
      Basics.Basics
      Basics.Category
+     Basics.CategoryKleisli
+     Basics.CategoryKleisliFacts
      Basics.FunctionFacts
      Core.ITreeDefinition
      Core.KTreeBasicFacts

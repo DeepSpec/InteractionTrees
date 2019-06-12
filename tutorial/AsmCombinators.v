@@ -250,7 +250,7 @@ Section Correctness.
     rewrite bind_bind; setoid_rewrite IH; reflexivity.
   Qed.
 
-  Lemma lift_ktree_inr {A B} : @lift_ktree E A (B + A) inr = inr_.
+  Lemma lift_ktree_inr {A B} : lift_ktree_ E A (B + A) inr = inr_.
   Proof. reflexivity. Qed.
 
   Lemma unit_l'_id_sktree {n : nat} : (@unit_l' _ (sktree E) plus 0 _ n) ⩯ id_ n.
@@ -341,8 +341,8 @@ Section Correctness.
     rewrite unfold_bimap.
     unfold app_bks, denote_b.
     intros ?.
-    unfold bimap, Bimap_Coproduct, case_, Case_ktree, case_sum.
-    unfold cat, Cat_ktree, ITree.cat, isum_suml, isum_sum, sum_isuml, sum_isum, FinSum, merge_fin_sum, lift_ktree.
+    unfold bimap, Bimap_Coproduct, case_, CoprodCase_Kleisli, case_sum.
+    unfold cat, Cat_Kleisli, ITree.cat, isum_suml, isum_sum, sum_isuml, sum_isum, FinSum, merge_fin_sum, lift_ktree.
     cbn.
     rewrite bind_bind, bind_ret.
     destruct (split_fin_sum a).
@@ -352,7 +352,7 @@ Section Correctness.
     rewrite (fmap_block_map (ab t)).
     unfold ITree.map.
     apply eqit_bind; [intros ? | reflexivity].
-    unfold inl_, Inl_ktree, lift_ktree.
+    unfold inl_, CoprodInl_Kleisli, lift_ktree.
     rewrite bind_ret; reflexivity.
     }
     {
@@ -360,13 +360,13 @@ Section Correctness.
     rewrite (fmap_block_map (cd t)).
     unfold ITree.map.
     apply eqit_bind; [intros ? | reflexivity].
-    unfold inr_, Inr_ktree, lift_ktree.
+    unfold inr_, CoprodInr_Kleisli, lift_ktree.
     rewrite bind_ret; reflexivity.
     }
   Qed.
 
     Global Instance CatAssoc_iFun : CatAssoc iFun.
-    Proof with try typeclasses eauto.
+    Proof.
       intros A B C D f g h.
       unfold cat, Cat_iFun.
       apply cat_Fun_assoc.

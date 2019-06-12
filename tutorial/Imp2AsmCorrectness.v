@@ -534,57 +534,47 @@ Section Linking.
     rewrite seq_asm_correct.
     unfold cond_asm.
     rewrite raw_asm_block_correct_lifted.
+    rewrite relabel_asm_correct.
     intros ?.
-    unfold CategoryOps.cat, Cat_sktree, CategoryOps.cat, Cat_ktree, ITree.cat; simpl.
+    unfold CategoryOps.cat, Cat_sktree, CategoryOps.cat, Cat_Kleisli; simpl.
     rewrite denote_after.
-    simpl.
+    Local Opaque denote_asm.
+    cbn.
     repeat setoid_rewrite bind_bind.
+    apply eqit_bind; try reflexivity. intros _.
     apply eqit_bind; try reflexivity. intros [].
-    apply eqit_bind; try reflexivity. intros [].
-    - rewrite bind_ret_.
-      rewrite (relabel_asm_correct _ _ _ _).
-      unfold CategoryOps.cat, Cat_sktree, CategoryOps.cat, Cat_ktree, ITree.cat; simpl.
-      rewrite bind_bind.
-      unfold lift_sktree, lift_ktree; rewrite bind_ret_.
+
+    - rewrite !bind_ret.
       setoid_rewrite (app_asm_correct tp fp _).
-      Local Opaque denote_asm.
       setoid_rewrite bind_bind.
       unfold isum_suml, isum_sum, lift_ktree; cbn.
       rewrite bind_ret; cbn.
-      unfold CategoryOps.cat, Cat_sktree, CategoryOps.cat, Cat_ktree, ITree.cat; simpl.
       rewrite bind_bind.
       rewrite <- (bind_ret2 (denote_asm fp F1)) at 2.
       eapply eqit_bind; [| reflexivity].
       intros ?.
-      unfold inr_, Inr_sktree, inr_, Inr_ktree, lift_ktree, CategoryOps.cat, Cat_ktree, ITree.cat.
-      unfold sum_isuml, sum_isum, lift_ktree; cbn.
       Local Opaque merge_fin_sum.
       rewrite 2 bind_ret; cbn.
+      apply eqit_Ret.
       unfold merge. unfold id_, Id_iFun, id_, Id_Fun.
-      unfold case_, case_isum, CategoryOps.cat, Cat_Fun, case_, case_sum. cbn.
+      unfold case_, case_isum, CategoryOps.cat, Cat_Fun, case_, case_sum, CoprodCase_Kleisli. cbn.
       setoid_rewrite (@iso_epi _ _ _ _ _ _ _ _ _ (@FinSumIso A A)).
       reflexivity.
-    - rewrite bind_ret_.
-      rewrite (relabel_asm_correct _ _ _ _).
-      unfold CategoryOps.cat, Cat_sktree, CategoryOps.cat, Cat_ktree, ITree.cat; simpl.
-      rewrite bind_bind.
-      unfold lift_sktree, lift_ktree; rewrite bind_ret_.
+
+    - rewrite !bind_ret.
       setoid_rewrite (app_asm_correct tp fp _).
-      Local Opaque denote_asm.
       setoid_rewrite bind_bind.
       unfold isum_suml, isum_sum, lift_ktree; cbn.
       rewrite bind_ret; cbn.
-      unfold CategoryOps.cat, Cat_sktree, CategoryOps.cat, Cat_ktree, ITree.cat; simpl.
       rewrite bind_bind.
       rewrite <- (bind_ret2 (denote_asm tp F1)) at 2.
       eapply eqit_bind; [| reflexivity].
       intros ?.
-      unfold inl_, Inl_sktree, inl_, Inl_ktree, lift_ktree, CategoryOps.cat, Cat_ktree, ITree.cat.
-      unfold sum_isuml, sum_isum, lift_ktree; cbn.
       Local Opaque merge_fin_sum.
       rewrite 2 bind_ret; cbn.
+      apply eqit_Ret.
       unfold merge. unfold id_, Id_iFun, id_, Id_Fun.
-      unfold case_, case_isum, CategoryOps.cat, Cat_Fun, case_, case_sum. cbn.
+      unfold case_, case_isum, CategoryOps.cat, Cat_Fun, case_, case_sum, CoprodCase_Kleisli. cbn.
       setoid_rewrite (@iso_epi _ _ _ _ _ _ _ _ _ (@FinSumIso A A)).
       reflexivity.
   Qed.
@@ -614,28 +604,28 @@ Section Linking.
     rewrite app_asm_correct.
     rewrite if_asm_correct.
     intros x.
-    unfold bimap, Bimap_Coproduct, Case_sktree, Case_ktree, case_, lift_sktree, isum_suml, case_sum, lift_sktree, lift_ktree, cat, Cat_sktree, cat, Cat_ktree, ITree.cat.
+    unfold bimap, Bimap_Coproduct, Case_sktree, CoprodCase_Kleisli, case_, lift_sktree, isum_suml, case_sum, lift_sktree, lift_ktree, cat, Cat_sktree, cat, Cat_Kleisli; cbn.
+    rewrite bind_ret.
     apply (caseS' x); cbn.
-    - rewrite bind_ret, !bind_bind.
+    - rewrite !bind_bind.
       eapply eutt_clo_bind; try reflexivity. intros; subst.
       rewrite bind_bind.
       eapply eutt_clo_bind; try reflexivity. intros; subst. destruct u0.
       + rewrite (pure_asm_correct _ _).
-        unfold inl_, Inl_sktree, inl_, Inl_ktree, sum_isuml, lift_sktree, lift_ktree, cat, Cat_ktree, ITree.cat.
-        repeat rewrite bind_ret.
+        unfold inl_, Inl_sktree, inl_, CoprodInl_Kleisli, sum_isuml, lift_sktree, lift_ktree, cat, Cat_Kleisli; cbn.
+        rewrite !bind_ret.
         reflexivity.
       + rewrite (relabel_asm_correct _ _ _ _).
-        unfold CategoryOps.cat, Cat_ktree, ITree.cat.
+        unfold CategoryOps.cat, Cat_Kleisli.
         simpl; repeat setoid_rewrite bind_bind.
-        unfold inl_, Inl_sktree, inl_, Inl_ktree, sum_isuml, lift_sktree, lift_ktree, cat, Cat_ktree, ITree.cat.
+        unfold inl_, Inl_sktree, inl_, CoprodInl_Kleisli, sum_isuml, lift_sktree, lift_ktree, cat, Cat_Kleisli; cbn.
         rewrite bind_ret.
         eapply eutt_clo_bind; try reflexivity.
         intros ? ? []. rewrite (unique_F1 u1).
         repeat rewrite bind_ret. reflexivity.
     - intros k; rewrite (unique_F1 k).
-      rewrite bind_ret.
       rewrite (pure_asm_correct _ _).
-      unfold inr_, Inr_sktree, inr_, Inr_ktree, inl_, Inl_sktree, inl_, Inl_ktree, isum_inl, sum_isuml, lift_sktree, lift_ktree, cat, Cat_ktree, ITree.cat.
+      unfold inr_, Inr_sktree, inr_, CoprodInr_Kleisli, inl_, Inl_sktree, inl_, CoprodInl_Kleisli, isum_inl, sum_isuml, lift_sktree, lift_ktree, cat, Cat_Kleisli; cbn.
       rewrite !bind_ret.
       reflexivity.
   Qed.
@@ -880,6 +870,7 @@ Proof.
   apply H.
 Qed.
 
+Notation Inr_Kleisli := CoprodInr_Kleisli.
 
   (** Correctness of the compiler.
       After interpretation of the [Locals], the source _Imp_ statement
@@ -898,7 +889,7 @@ Qed.
     induction s.
 
     - (* Assign *)
-      cbn.
+      simpl.
       (* We push [denote_asm] inside of the combinators *)
       rewrite raw_asm_block_correct.
       rewrite denote_after.
@@ -963,11 +954,12 @@ Qed.
       simpl; rewrite fold_to_itree'.
       rewrite while_is_loop.
       rewrite while_asm_correct.
+      Local Opaque denote_asm.
 
       unfold to_itree'.
       unfold sloop. unfold iter at 2.
-      unfold Iter_sktree, Inr_sktree, Inr_ktree, inr_, sum_isuml, lift_ktree, cat, Cat_sktree, cat, Cat_ktree, ITree.cat.
-      cbn. 
+      unfold Iter_sktree, Inr_sktree, Inr_Kleisli, inr_, sum_isuml, lift_ktree, cat, Cat_sktree, cat, Cat_Kleisli.
+      simpl.
       rewrite 2 bind_ret.
       simpl. 
       eapply (bisimilar_iter (fun x x' => (x = inl tt /\ x' = F1) \/ (x = inr tt /\ x' = FS F1))).
@@ -1023,9 +1015,10 @@ Qed.
         red; rewrite <- eqit_Ret; simpl; split; auto; constructor; auto.
 
     - (* Skip *)
+      Local Transparent denote_asm.
       repeat intro.
       tau_steps.
-      red. rewrite <- eqit_Ret.
+      red. apply eqit_Ret.
       unfold state_invariant. simpl. auto.
   Qed.
 

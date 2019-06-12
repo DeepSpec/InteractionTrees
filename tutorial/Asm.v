@@ -342,6 +342,17 @@ Section InterpAsmProperties.
     rewrite H. rewrite H1. reflexivity.
   Qed.
 
+  (** [interp_asm] commutes with [Ret]. *)
+  Lemma interp_asm_ret: forall {R} (r: R) (l : registers) (g: memory),
+      @eutt E' _ _ eq (interp_asm (Ret r) g l)
+            (Ret (g, (l, r))).
+  Proof.
+    unfold interp_asm, run_map.
+    intros.
+    rewrite interp_ret, 2 interp_state_ret.
+    reflexivity.
+  Qed.
+
   (** [interp_asm] commutes with [bind]. *)
   Lemma interp_asm_bind: forall {R S} (t: itree E R) (k: R -> itree _ S) (l : registers) (g: memory),
       @eutt E' _ _ eq (interp_asm (ITree.bind t k) g l)
