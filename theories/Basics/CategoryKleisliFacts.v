@@ -22,7 +22,7 @@ Section BasicFacts.
   Context {m : Type -> Type}.
   Context {EQM : EqM m}.
   Context `{Monad m}.
-  Context `{@EqMEq m EQM}.
+  Context `{@EqMProps m _ EQM}.
 
   Class MonadLaws :=
     {
@@ -292,14 +292,3 @@ End BasicFacts.
 
 
 
-Notation Proper_aloop m a b :=
-  (@Proper ((a -> m (sum a b)%type) -> (a -> m b%type))
-           (pointwise_relation _ eqm ==> pointwise_relation _ eqm)
-           bind).
-
-Instance Proper_iter_Kleisli m `{EqM m} `{Monad m} `{ALoop m}
-         {a b}
-  : @Proper (Kleisli m a (a + b) -> Kleisli m a b)
-            (eq2 ==> eq2) iter.
-Proof.
-Admitted.

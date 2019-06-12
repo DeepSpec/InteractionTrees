@@ -24,7 +24,14 @@ Infix "≈" := eqm (at level 70) : kleisli_scope.
 (* SAZ: What is the right way to express that [eqm] is an equivalence at every type? 
    SAZ: Also... move to PERs here?
 *)
-Class EqMEq m `{EqM m} := eqm_equiv :> forall a, Equivalence (@eqm _ _ a).
+Class EqMProps m `{Monad m} `{EqM m} :=
+   {
+       eqm_equiv :> forall a, Equivalence (@eqm _ _ a)
+     ; eqm_bind :> forall {a b} (x y : m a) (f g : a -> m b),
+         eqm x y ->
+         (forall y, eqm (f y) (g y)) ->
+         eqm (bind x f) (bind y g)
+   }.
 
 
 Section Instances.

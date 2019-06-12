@@ -125,23 +125,4 @@ Section eff_hom_e.
 
 End eff_hom_e.
 
-Section Kleisli.
-  Variable M : Type -> Type.
-  Variable S : Type.
-  Context `{EqMEq M}.
-  
-  Global Instance EqM_stateTM : EqM (stateT S M) :=
-    fun a m1 m2 => forall s, eqm (m1 s) (m2 s).
-
-  Global Instance EqMEq_stateTM : EqMEq (stateT S M) := _.
-  red. intros a.
-  unfold EqMEq in H0.
-  unfold eqm, EqM_stateTM. 
-  repeat split; red; intros.
-  - reflexivity.
-  - symmetry. auto.
-  - etransitivity; eauto. 
-  Qed.
-  
-End Kleisli.
 
