@@ -294,6 +294,74 @@ Section Kleisli.
     Qed.
         
 
-    
+  Global Instance IterCodiagonal_stateTM : IterCodiagonal (Kleisli (stateT S m)) sum := _.
+  Proof.
+    destruct CM.
+    unfold IterCodiagonal.
+    intros a b f.
+    unfold iter, Iter_stateTM.
+    repeat red.
+    intros.
+    eapply transitivity.
+    eapply conway_proper_iter.
+    eapply Proper_cat_Kleisli.
+
+    assert (internalize (fun (x:a) (s:S) => iter (internalize f >>> pure iso) (s, x))
+                       ⩯
+                       iter (internalize f >>> pure iso)).
+    { repeat red.
+      destruct a2.
+      unfold internalize.
+      cbn.  reflexivity.
+    }
+   apply H.
+   reflexivity.
+   eapply transitivity.
+   
+   eapply conway_proper_iter.
+   apply conway_natural.
+   rewrite conway_codiagonal.
+   eapply conway_proper_iter.
+   rewrite internalize_cat.
+   (* SAZ This proof can probably use less unfolding *)
+   repeat red.
+   destruct a2.
+   unfold cat, Cat_Kleisli. cbn.
+   repeat rewrite bind_bind.
+   unfold internalize, pure.
+   cbn.
+   apply eqm_bind.
+    - reflexivity.
+    - repeat red.
+      destruct a3 as [s' [x | [y | z]]].
+      + rewrite bind_ret.
+        cbn. unfold id_, Id_Kleisli, pure.
+        rewrite bind_ret.
+        unfold cat, Cat_Kleisli.
+        rewrite bind_bind.
+        rewrite bind_ret.
+        cbn.  unfold inl_, CoprodInl_Kleisli, pure.
+        rewrite bind_ret. reflexivity.
+      + rewrite bind_ret.
+        cbn.
+        rewrite bind_ret.
+        unfold cat, Cat_Kleisli.
+        rewrite bind_bind, bind_ret. cbn.
+        unfold inr_, CoprodInr_Kleisli, pure.
+        rewrite bind_ret. reflexivity.
+      + rewrite bind_ret.
+        cbn.
+        rewrite bind_ret.
+        unfold cat, Cat_Kleisli.
+        rewrite bind_bind, bind_ret. cbn.
+        unfold inr_, CoprodInr_Kleisli, pure.
+        rewrite bind_ret.
+        reflexivity.
+  Qed.
+
+  Global Instance Conway_stateTM : Conway (Kleisli (stateT S m)) sum.
+  constructor; 
+  typeclasses eauto.
+  Qed.
   
 End Kleisli.
