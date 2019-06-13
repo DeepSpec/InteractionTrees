@@ -327,24 +327,3 @@ Lemma interp_state_loop2
   Qed.
  *)
 
-Section Kleisli.
-  Variable M : Type -> Type.
-  Variable S : Type.
-  Context `{EqMProps M}.
-  
-  Global Instance EqM_stateTM : EqM (stateT S M) :=
-    fun a m1 m2 => forall s, eqm (m1 s) (m2 s).
-
-  Global Instance EqMProps_stateTM : EqMProps (stateT S M) := _.
-  constructor.
-  - intros a.
-    destruct H1.
-    unfold eqm, EqM_stateTM. 
-    repeat split; red; intros.
-    +  reflexivity.
-    + symmetry. auto.
-    + etransitivity; eauto.
-  - admit.
-  Admitted.
-  
-End Kleisli.
