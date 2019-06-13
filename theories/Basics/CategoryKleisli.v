@@ -34,10 +34,6 @@ Infix "≈" := eqm (at level 70) : kleisli_scope.
 Class EqMProps m `{Monad m} `{EqM m} :=
    {
        eqm_equiv :> forall a, Equivalence (@eqm _ _ a)
-     ; eqm_bind :> forall {a b} (x y : m a) (f g : a -> m b),
-         eqm x y ->
-         (forall y, eqm (f y) (g y)) ->
-         eqm (bind x f) (bind y g)
    }.
 
 
@@ -75,6 +71,7 @@ Section Instances.
     fun _ _ => pure inr.
 
   (* SAZ: Maybe get rid of the Aloop constraint and move to Iter *)
+  (*
   Global Instance Iter_Kleisli `{ALoop m} : Iter (Kleisli m) sum :=
     fun a b (f : Kleisli m a (a + b)) (a0 : a) =>
       aloop (fun ar =>
@@ -82,4 +79,5 @@ Section Instances.
                | inl a => inl (f a)
                | inr r => inr r
                end) (inl a0) : m b.
+  *)
 End Instances.
