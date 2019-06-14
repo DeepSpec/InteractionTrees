@@ -9,6 +9,7 @@ theories/Basics/Category.v
 theories/Basics/CategoryOps.v
 theories/Basics/CategoryTheory.v
 theories/Basics/CategoryFacts.v
+theories/Basics/MonadTheory.v
 theories/Basics/CategoryKleisli.v
 theories/Basics/CategoryKleisliFacts.v
 theories/Basics/Function.v
@@ -46,6 +47,7 @@ theories/Interp/Traces.v
 theories/Events.v
 theories/Events/State.v
 theories/Events/StateFacts.v
+theories/Events/StateKleisli.v
 theories/Events/Reader.v
 theories/Events/Writer.v
 theories/Events/Exception.v

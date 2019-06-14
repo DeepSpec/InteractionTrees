@@ -13,6 +13,7 @@ From ITree Require Import
      Basics.Category
      Basics.CategoryKleisli
      Basics.CategoryKleisliFacts
+     Basics.MonadTheory
      Events.State
      Events.StateFacts.
 
@@ -34,20 +35,16 @@ Section Kleisli.
   Global Instance EqM_stateTM : EqM (stateT S m) :=
     fun a => pointwise_relation _ eqm.
 
-  Global Instance EqMProps_stateTM : EqMProps (stateT S m) := _.
+  Global Instance EqMProps_stateTM : @EqMProps (stateT S m) _ EqM_stateTM := _.
   constructor.
-  - intros a.
-    destruct HEQP.
-    unfold eqm, EqM_stateTM. 
-    repeat split; red; intros.
-    +  reflexivity.
-    + symmetry. auto.
-    + etransitivity; eauto.
+  - repeat red.
+    reflexivity.
+  - repeat red. intros. symmetry. apply H.
+  - repeat red. intros. etransitivity; eauto. apply H.  apply H0.
   Qed.
 
   Global Instance MonadProperOps_stateTM : @MonadProperOps (stateT S m) _ _ := _.
   Proof.
-    constructor.
     repeat red. intros a b x y H x0 y0 H0 s. 
     apply eqm_bind.
     + apply H.
@@ -55,7 +52,6 @@ Section Kleisli.
       destruct a0.
       apply H0.
   Qed.
-
 
   Instance MonadLaws_stateTM : @MonadLaws (stateT S m) _ _ := _.
   constructor.

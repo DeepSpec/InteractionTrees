@@ -7,6 +7,7 @@ From ITree Require Import
      Basics.CategoryOps
      Basics.CategoryKleisli
      Basics.Basics
+     Basics.MonadTheory
      Basics.CategoryKleisli
      Basics.Function
      Core.ITreeDefinition

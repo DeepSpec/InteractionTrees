@@ -10,38 +10,24 @@ From ExtLib Require Import
 From ITree Require Import
      Basics.Basics
      Basics.Category
+     Basics.MonadTheory
      Basics.CategoryKleisli
      Basics.Function.
 
 Import CatNotations.
 Open Scope cat_scope.
-Open Scope kleisli_scope.
+Open Scope monad_scope.
+
 
 Section BasicFacts.
 
   Context {m : Type -> Type}.
-  Context {EQM : EqM m}.
-  Context `{Monad m}.
-  Context `{@EqMProps m _ EQM}.
-
-  Class MonadLaws :=
-    {
-      bind_ret :> forall a b (f : a -> m b) (x : a), bind (ret x) f ≈ f x
-    ; ret_bind :> forall a (x : m a), bind x (fun y => ret y) ≈ x
-    ; bind_bind :> forall a b c (x : m a) (f : a -> m b) (g : b -> m c), bind (bind x f) g ≈ bind x (fun y => bind (f y) g)
-    }.                                             
-
-  Class MonadProperOps :=
-    { 
-      Proper_bind :> forall a b,
-          (@Proper (m a%type -> (a -> m b) -> m b)
-           (eqm ==> pointwise_relation _ eqm ==> eqm)
-           bind)
-    }.
-      
-  Context `{MonadLaws}.
-  Context `{MonadProperOps}.
-
+  Context {EqM : EqM m}.
+  Context {Mm : Monad m}.
+  Context {EqMP : @EqMProps m _ EqM}.
+  Context {ML : @MonadLaws m EqM Mm}.
+  Context {MP : @MonadProperOps m EqM Mm}.
+  
   Instance Proper_Kleisli_apply {a b} :
     Proper (eq2 ==> eq ==> eqm) (@Kleisli_apply m a b).
   Proof.
@@ -51,13 +37,13 @@ Section BasicFacts.
   Lemma fold_Kleisli {a b} (f : Kleisli m a b) (x : a) : f x = Kleisli_apply f x.
   Proof. reflexivity. Qed.
   
-Global Instance Equivalence_Kleisli_eq2 {a b} : @Equivalence (Kleisli m a b) eq2.
-Proof.
-  split; repeat intro.
-  - reflexivity.
-  - symmetry; auto.
-  - etransitivity; eauto.
-Qed.
+  Global Instance Equivalence_Kleisli_eq2 {a b} : @Equivalence (Kleisli m a b) eq2.
+  Proof.
+    split; repeat intro.
+    - reflexivity.
+    - symmetry; auto.
+    - etransitivity; eauto.
+  Qed.
 
 
 Global Instance Proper_cat_Kleisli {a b c}
@@ -69,17 +55,16 @@ Proof.
   apply Proper_bind; auto.
 Qed.
 
-
 Lemma assoc_l_kleisli {a b c : Type} :
   (@assoc_l _ (Kleisli m) sum _ _ _ _) ⩯ (@pure m _ (a + (b + c))%type _ assoc_l).
 Proof.
-  cbv; intros x; destruct x as [ | []]; try rewrite bind_ret; reflexivity.  
+  cbv; intros x; destruct x as [ | []];  try setoid_rewrite bind_ret; reflexivity.  
 Qed.
-      
+
 Lemma assoc_r_ktree {a b c : Type} :
   (@assoc_r _ (Kleisli m) sum _ _ _ _) ⩯ (@pure m _ ((a + b) + c)%type _ assoc_r).
 Proof.
-  cbv; intros x; destruct x as [[] | ]; try rewrite bind_ret; reflexivity.  
+  cbv; intros x; destruct x as [[] | ]; try setoid_rewrite bind_ret; reflexivity.  
 Qed.
 
 Global Instance CatAssoc_Kleisli : CatAssoc (Kleisli m).
@@ -87,7 +72,7 @@ Proof.
   red. intros a b c d f g h. 
   unfold cat, Cat_Kleisli.
   cbv. intros x.
-  rewrite bind_bind.
+  setoid_rewrite bind_bind.
   reflexivity.
 Qed.
 
@@ -131,7 +116,7 @@ Global Instance eq_pure {A B} :
 Proof.
   repeat intro.
   unfold pure, Monad.ret.
-  erewrite (H3 a); reflexivity.
+  erewrite (H a); reflexivity.
 Qed.
 
 Lemma pure_id {A: Type}: (id_ A ⩯ @pure _ _ A A (id_ A))%cat.

@@ -7,7 +7,8 @@ From ExtLib Require Import
 From ITree Require Import
      Basics.Basics
      Basics.CategoryOps
-     Basics.Function.
+     Basics.Function
+     Basics.MonadTheory.
 
 Implicit Types m : Type -> Type.
 Implicit Types a b c : Type.
@@ -21,22 +22,6 @@ Definition Kleisli_apply {m a b} : Kleisli m a b -> (a -> m b) := fun f => f.
 
 Definition Kleisli_pure {m} `{Monad m} {a b} (f : a -> b) : Kleisli m a b :=
   fun x => ret (f x).
-
-Class EqM m : Type :=
-  eqm : forall a, m a -> m a -> Prop.
-
-Arguments eqm {m _ a}.
-
-Infix "≈" := eqm (at level 70) : kleisli_scope.
-
-(* SAZ: What is the right way to express that [eqm] is an equivalence at every type? 
-   SAZ: Also... move to PERs here?
-*)
-Class EqMProps m `{Monad m} `{EqM m} :=
-   {
-       eqm_equiv :> forall a, Equivalence (@eqm _ _ a)
-   }.
-
 
 Section Instances.
   Context {m : Type -> Type}.
