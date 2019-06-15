@@ -124,7 +124,7 @@ Section Kleisli.
     repeat red.
     destruct a0.
     unfold internalize, cat, Cat_Kleisli. cbn.
-    apply Proper_bind.
+    apply Proper_bind; auto.
     - reflexivity.
     - repeat red.
       destruct a1.

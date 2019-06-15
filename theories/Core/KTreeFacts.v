@@ -17,6 +17,7 @@ From ITree Require Import
      Basics.CategoryKleisliFacts
      Basics.Function
      Core.ITreeDefinition
+     Core.ITreeMonad
      Core.KTree
      Eq.Eq
      Eq.UpToTaus.

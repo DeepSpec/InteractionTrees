@@ -20,16 +20,14 @@ Definition Kleisli m a b : Type := a -> m b.
 Definition Kleisli_arrow {m a b} : (a -> m b) -> Kleisli m a b := fun f => f.
 Definition Kleisli_apply {m a b} : Kleisli m a b -> (a -> m b) := fun f => f.
 
-Definition Kleisli_pure {m} `{Monad m} {a b} (f : a -> b) : Kleisli m a b :=
+
+Definition pure {m} `{Monad m} {a b} (f : a -> b) : Kleisli m a b :=
   fun x => ret (f x).
 
 Section Instances.
   Context {m : Type -> Type}.
   Context `{Monad m}.
   Context `{EqM m}.
-
-  Definition pure {a b} (f:a -> b) : Kleisli m a b :=
-    fun (x:a) => ret (f x).
 
   Global Instance Eq2_Kleisli : Eq2 (Kleisli m) :=
     fun _ _ => pointwise_relation _ eqm.

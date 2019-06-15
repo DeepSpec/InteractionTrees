@@ -26,7 +26,7 @@ Infix "≈" := eqm (at level 70) : monad_scope.
 
 Section Laws.
 
-  Context {m : Type -> Type}.
+  Context (m : Type -> Type).
   Context {EqM : @EqM m}.
   Context {Mm : Monad m}.
   Context {EqMP : @EqMProps m _ EqM}.
@@ -49,3 +49,6 @@ Section Laws.
            bind).
 
 End Laws.
+Arguments bind_ret {m _ _ _}.
+Arguments ret_bind {m _ _ _}.
+Arguments bind_bind {m _ _ _}.

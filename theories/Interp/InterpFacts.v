@@ -18,6 +18,7 @@ From Paco Require Import paco.
 From ITree Require Import
      Basics.Category
      Basics.CategoryKleisli
+     Basics.CategoryKleisliFacts
      Basics.Basics
      Core.ITreeDefinition
      Core.KTree

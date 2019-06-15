@@ -29,17 +29,14 @@ Notation ktree E := (Kleisli (itree E)).
 Bind Scope ktree_scope with ktree.
 
 Notation ktree_apply := (@Kleisli_apply (itree _)).
-Notation lift_ktree := (@Kleisli_pure (itree _) _ _ _).
-Notation lift_ktree_ E a b := (@Kleisli_pure (itree E) _ a b).
+Notation lift_ktree := (@pure (itree _) _ _ _).
+Notation lift_ktree_ E a b := (@pure (itree E) _ a b).
 
 (* [ktree E] forms an iterative category, i.e. a cocartesian category with a
    loop operator *)
 (* Obj ≅ Type *)
 (* Arrow: A -> B ≅ terms of type (ktree A B) *)
 
-(** ** KTree equivalence *)
-
-Instance EqM_itree E : EqM (itree E) := fun _ => eutt eq.
 
 (** ** Categorical operations *)
 

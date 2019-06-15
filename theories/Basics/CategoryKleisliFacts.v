@@ -58,7 +58,7 @@ Qed.
 Lemma assoc_l_kleisli {a b c : Type} :
   (@assoc_l _ (Kleisli m) sum _ _ _ _) ⩯ (@pure m _ (a + (b + c))%type _ assoc_l).
 Proof.
-  cbv; intros x; destruct x as [ | []];  try setoid_rewrite bind_ret; reflexivity.  
+  cbv; intros x; destruct x as [ | []];  try setoid_rewrite bind_ret; reflexivity.
 Qed.
 
 Lemma assoc_r_ktree {a b c : Type} :
@@ -111,7 +111,7 @@ Qed.
 
 (* SAZ: not sure about the naming conventions here. *)
 
-Global Instance eq_pure {A B} :
+Global Instance Proper_pure {A B} :
   Proper (eq2 ==> eq2) (@pure _ _ A B).
 Proof.
   repeat intro.
