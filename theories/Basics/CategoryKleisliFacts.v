@@ -279,6 +279,66 @@ Proof.
   - typeclasses eauto.
 Qed.
 
+Global Instance bimap_id_kleisli : BimapId (Kleisli m) sum.
+Proof.
+  unfold BimapId, bimap, Bimap_Coproduct.
+  intros.
+  rewrite! cat_id_l.
+  unfold inl_, inr_, CoprodInl_Kleisli, CoprodInr_Kleisli.
+  rewrite case_pure.
+  unfold pure, id_, case_, CoprodCase_Kleisli, case_sum, Id_Kleisli, pure.
+  red. intro. destruct a0; reflexivity.
+Qed.  
+
+  Lemma map_inl_case_kleisli:
+    forall (a1 b1 b2 c1 c2 : Type) (f1 : Kleisli m a1 b1) (g1 : Kleisli m b1 c1) (g2 : Kleisli m b2 c2),
+      map inl f1 >>> case_ (map inl g1) (map inr g2) ⩯ map inl (f1 >>> g1).
+  Proof.
+    intros a1 b1 b2 c1 c2 f1 g1 g2.
+    unfold cat, Cat_Kleisli, case_, CoprodCase_Kleisli, case_sum.
+    unfold map. unfold cat, Cat_Kleisli.
+    setoid_rewrite bind_bind.
+    unfold pure. setoid_rewrite bind_ret. reflexivity.
+  Qed.
+
+  Lemma map_inr_case_kleisli:
+    forall (a2 b1 b2 c1 c2 : Type) (f2 : Kleisli m a2 b2) (g1 : Kleisli m b1 c1) (g2 : Kleisli m b2 c2),
+      map inr f2 >>> case_ (map inl g1) (map inr g2) ⩯ map inr (f2 >>> g2).
+  Proof.
+    intros a2 b1 b2 c1 c2 f2 g1 g2.
+    unfold cat, Cat_Kleisli, case_, CoprodCase_Kleisli, case_sum.
+    unfold map. unfold cat, Cat_Kleisli.
+    setoid_rewrite bind_bind.
+    unfold pure. setoid_rewrite bind_ret. reflexivity.
+  Qed.
+
+
+Global Instance bimap_cat_kleisli : BimapCat (Kleisli m) sum.
+Proof.
+  unfold BimapCat, bimap, Bimap_Coproduct.
+  intros.
+  unfold inl_, inr_, CoprodInl_Kleisli, CoprodInr_Kleisli.
+  rewrite! cat_pure. rewrite! cat_case.
+  rewrite map_inl_case_kleisli.
+  rewrite map_inr_case_kleisli.
+  reflexivity.
+Qed.
+
+Global Instance proper_bimap_kleisli : forall a b c d,
+    @Proper (Kleisli m a c -> Kleisli m b d -> Kleisli m _ _) (eq2 ==> eq2 ==> eq2) bimap.
+Proof.
+  intros.
+  repeat intro.
+  unfold bimap, Bimap_Coproduct.
+  unfold case_, CoprodCase_Kleisli, case_sum.
+  destruct a0.
+  - unfold cat, Cat_Kleisli, inl_. rewrite H. reflexivity.
+  - unfold cat, Cat_Kleisli, inl_. rewrite H0. reflexivity.
+Qed.
+
+Global Instance Bifunctor_Kleisli : Bifunctor (Kleisli m) sum.
+constructor; typeclasses eauto.
+Qed.
 
 End BasicFacts.
 

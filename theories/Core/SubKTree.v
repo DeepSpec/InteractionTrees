@@ -101,8 +101,8 @@ Section SubK.
     
     Definition eutt_sktree {A B} (d1 d2 : sktree A B) := @eq2 _ (ktree E) _ _ _ d1 d2.
     Global Instance Eq2_sktree : Eq2 sktree := @eutt_sktree.
-    
 
+    
     (** Composition *)
     Global Instance Cat_sktree : Cat sktree :=
       fun (A B C: i) (k: ktree E (F A) (F B)) (k': ktree E (F B) (F C)) => cat k k': ktree E _ _.
