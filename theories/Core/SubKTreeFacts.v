@@ -302,7 +302,7 @@ Section Facts.
     Qed.
 
     Lemma sym_sktree_unfold {A B}:
-      (@eq2 _ (ktree E) _ _ _)
+      (@eq2 _ (sktree) _ _ _)
       (@lift_sktree _ _ E _ _ (@swap _ iFun _ _ A B))
       swap.
     Proof.

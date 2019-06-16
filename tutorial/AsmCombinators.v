@@ -600,13 +600,9 @@ Section Correctness.
     rewrite <- !bimap_slift_id.
     rewrite <- !assoc_r_sktree.
     rewrite <- !assoc_l_sktree.
-    (* SAZ: This typeclass resolution loops *)
-  Abort.
-  (*
     rewrite !sym_sktree_unfold.
     reflexivity.
   Qed.
-  *)
       
   Theorem relabel_asm_correct {A B C D} (f : F A -> F B) (g : F C -> F D)
              (bc : asm B C) :
