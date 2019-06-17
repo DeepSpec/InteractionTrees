@@ -470,7 +470,7 @@ Section Bisimulation.
     rewrite tau_eutt.
     cbn.
     unfold run_map.
-    unfold eval_reg, CategoryOps.cat, Cat_Handler, Handler.cat. 
+    unfold map_reg, CategoryOps.cat, Cat_Handler, Handler.cat. 
     unfold inl_, Inl_sum1_Handler, Handler.inl_, Handler.htrigger. cbn.
     unfold lookup_def; cbn.
     rewrite interp_bind.

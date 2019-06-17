@@ -13,18 +13,22 @@ From Coq Require Import
      Setoid
      RelationClasses.
 
+Require Import ExtLib.Structures.Monad.
 
 From ITree Require Import
      ITree
      ITreeFacts
+     ITreeMonad  (* SAZ: Should we add this to ITree? *)
+     Basics.MonadTheory
      Events.Map
+     Events.State
+     Events.StateKleisli
      StateFacts
      SubKTree.
 
 Require Import Label.
 
-Typeclasses eauto := 5.
-
+Import Monads.
 (* end hide *)
 
 (** ** Syntax *)
@@ -280,14 +284,15 @@ Instance RelDec_reg : RelDec (@eq reg) := RelDec_from_dec eq Nat.eq_dec.
 
 (** Both environments and memory events can be interpreted as "map" events,
     exactly as we did for _Imp_. *)
-Definition eval_reg {E: Type -> Type} `{mapE reg value -< E}: Reg ~> itree E :=
+Definition map_reg {E: Type -> Type} `{mapE reg value -< E}
+  : Reg ~> itree E :=
   fun _ e =>
     match e with
     | GetReg x => lookup_def x 0
     | SetReg x v => insert x v
     end.
 
-Definition eval_memory {E : Type -> Type} `{mapE addr value -< E} :
+Definition map_memory {E : Type -> Type} `{mapE addr value -< E} :
   Memory ~> itree E :=
   fun _ e =>
     match e with
@@ -299,15 +304,20 @@ Definition eval_memory {E : Type -> Type} `{mapE addr value -< E} :
 Definition registers := alist reg value.
 Definition memory    := alist addr value.
 
+
 (** The _asm_ interpreter takes as inputs a starting heap [mem] and register
     state [reg] and interprets an itree in two nested instances of the [map]
-    variant of the state monad. *)
-Definition interp_asm {E A} (t : itree (Reg +' Memory +' E) A) mem regs :
-  itree E (memory * (registers * A)) :=
-  let h := bimap eval_reg (bimap eval_memory
+    variant of the state monad. To get this type to work out, we have to 
+    do a bit of post-processing to swap the order of the "state components"
+    introduced by the interpretation.
+*)
+Definition interp_asm {E A} (t : itree (Reg +' Memory +' E) A) :
+  memory -> registers -> itree E (memory * (registers * A)) :=
+  let h := bimap map_reg (bimap map_memory
                                  (id_ _)) in
-  let t' := interp h t
-  in run_map (run_map t' regs) mem.
+  let t' := interp h t in
+  fun  mem regs => run_map (run_map t' regs) mem.
+
 
 (** We can then define an evaluator for closed assembly programs by interpreting
     both store and heap events into two instances of [mapE], and running them
@@ -317,11 +327,10 @@ Definition eval_asm (p: asm 1 0) := interp_asm (denote_asm p Fin.F1) empty empty
 (* SAZ: Should some of thes notions of equivalence be put into the library?
    SAZ: Should this be stated in terms of ktree ?
  *)
-(** The definition [interp_asm] alos induces a notion of equivalence (open)
-    _asm_ programs *)
-Definition eq_asm_denotations {E A B} (t1 t2 : A -> itree (Reg +' Memory +' E) B) : Prop :=
-  forall (a:A) (mem:memory) (regs:registers),
-    (interp_asm (t1 a) mem regs) ≈ (interp_asm (t2 a) mem regs).
+(** The definition [interp_asm] also induces a notion of equivalence (open)
+    _asm_ programs, which is just the equivalence of the ktree category *)
+Definition eq_asm_denotations {E A B} (t1 t2 : Kleisli (itree (Reg +' Memory +' E)) A B) : Prop :=
+  forall a mem regs, interp_asm (t1 a) mem regs ≈ interp_asm (t2 a) mem regs.
 
 Definition eq_asm {A B} (p1 p2 : asm A B) : Prop :=
   eq_asm_denotations (denote_asm p1) (denote_asm p2).
@@ -338,35 +347,39 @@ Section InterpAsmProperties.
     repeat intro.
     unfold interp_asm.
     unfold run_map.
-    rewrite H0. eapply eutt_interp_state; auto.
-    rewrite H. rewrite H1. reflexivity.
+    rewrite H0.
+    rewrite H.
+    rewrite H1.
+    reflexivity.
   Qed.
 
   (** [interp_asm] commutes with [Ret]. *)
-  Lemma interp_asm_ret: forall {R} (r: R) (l : registers) (g: memory),
-      @eutt E' _ _ eq (interp_asm (Ret r) g l)
-            (Ret (g, (l, r))).
+  Lemma interp_asm_ret: forall {R} (r: R) (regs : registers) (mem: memory),
+      @eutt E' _ _ eq (interp_asm (ret r) mem regs)
+            (ret (mem, (regs, r))).
   Proof.
     unfold interp_asm, run_map.
     intros.
+    unfold ret at 1, Monad_itree.
     rewrite interp_ret, 2 interp_state_ret.
     reflexivity.
   Qed.
 
   (** [interp_asm] commutes with [bind]. *)
-  Lemma interp_asm_bind: forall {R S} (t: itree E R) (k: R -> itree _ S) (l : registers) (g: memory),
-      @eutt E' _ _ eq (interp_asm (ITree.bind t k) g l)
-            (ITree.bind (interp_asm t g l) (fun '(g', (l', x)) => interp_asm (k x) g' l')).
+  Lemma interp_asm_bind: forall {R S} (t: itree E R) (k: R -> itree _ S) (regs : registers) (mem: memory),
+      @eutt E' _ _ eq (interp_asm (ITree.bind t k) mem regs)
+            (ITree.bind (interp_asm t mem regs) (fun '(mem', (regs', x)) => interp_asm (k x) mem' regs')).
 
   Proof.
     intros.
     unfold interp_asm.
-    unfold run_map.
+    unfold run_map. cbn.
     repeat rewrite interp_bind.
     repeat rewrite interp_state_bind.
+    repeat rewrite Eq.bind_bind.
     eapply eutt_clo_bind.
     { reflexivity. }
-    red. intros.
+    intros.
     rewrite H.
     destruct u2 as [g' [l' x]].
     reflexivity.

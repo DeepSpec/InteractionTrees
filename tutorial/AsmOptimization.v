@@ -12,7 +12,10 @@ From Coq Require Import
      RelationClasses.
 
 From ITree Require Import
+     Basics.Category
+     Basics.MonadTheory
      ITree
+     ITreeMonad
      ITreeFacts
      Events.StateFacts
      Events.Map
@@ -30,6 +33,10 @@ From ExtLib Require Import
 
 Import ListNotations.
 Open Scope string_scope.
+
+Import CatNotations.
+Open Scope cat_scope.
+
 (* end hide *)
 
 
@@ -85,13 +92,13 @@ Section Correctness.
     @eq_asm_denotations Exit unit _ (fun _ => denote_instr i) (fun _ => denote_list (ph i)).
 
   Lemma ph_blk_append_correct : forall (ph : peephole_optimization) (H : ph_correct ph)
-    lbl b1 b2 i,
-    (@eq_asm_denotations Exit (F lbl) (F lbl) (fun _ => denote_block b1) (fun _ => denote_block b2)) ->
-    (@eq_asm_denotations Exit (F lbl) (F lbl)
+    lbl1 lbl2 b1 b2 i,
+    (@eq_asm_denotations Exit (F lbl1) (F lbl2) (fun _ => denote_block b1) (fun _ => denote_block b2)) ->
+    (@eq_asm_denotations Exit (F lbl1) (F lbl2)
                          (fun _ => denote_instr i ;; denote_block b1)
                          (fun _ => denote_block (blk_append (ph i) b2))).
   Proof.
-    intros ph H lbl b1 b2 i HP.
+    intros ph H lbl1 lbl2 b1 b2 i HP.
     unfold eq_asm_denotations.
     intros a mem regs. 
     rewrite denote_blk_append.
@@ -112,18 +119,18 @@ Section Correctness.
 Lemma peephole_block_correct : 
   forall (ph : peephole_optimization)
     (H : ph_correct ph)
-    lbl
-    (b : block (F lbl)),
-    @eq_asm_denotations Exit (F lbl) (F lbl)
+    (lbl1 lbl2 : nat)
+    (b : block (F lbl2)),
+    @eq_asm_denotations Exit (F lbl1) (F lbl2)
                         (fun _ => denote_block b)
                         (fun _ => denote_block (peephole_optimize_block ph b)).
 Proof.
-  intros ph H lbl b.
+  intros ph H lbl1 lbl2 b.
   induction b.
   - simpl.
     unfold eq_asm_denotations.
     intros.
-    apply ph_blk_append_correct; auto.
+    eapply ph_blk_append_correct. assumption. exact IHb. assumption.
   - unfold eq_asm_denotations.
     intros. reflexivity.
 Qed.    
@@ -134,14 +141,51 @@ Proof.
   intros A B ph H.
   unfold optimization_correct.
   intros p.
-  unfold eq_asm, eq_asm_denotations.
-  unfold denote_asm.
+  unfold eq_asm, eq_asm_denotations, denote_asm.
   intros a mem regs.
-  eapply peephole_block_correct in H.
-  unfold eq_asm_denotations in H.
-  unfold interp_asm in *.
-  unfold run_map in *.
-Admitted.  
+  unfold interp_asm, run_map.
+  repeat setoid_rewrite interp_bind.
+  repeat rewrite interp_state_bind.
+  eapply eutt_clo_bind.
+  { reflexivity. }
+  intros. simpl in *.
+  rewrite H0.
+  destruct u2 as [mem' [regs' z]].
+  simpl.
+  unfold denote_b.
+  unfold iter, Iter_sktree.
+  repeat rewrite interp_iter.
+  unfold KTree.iter, Iter_ktree.
+  cbn. 
+  pose proof @interp_state_aloop'.
+  red in H1.
+  repeat rewrite H1.
+  unfold aloop, ALoop_stateT0, aloop, ALoop_itree.
+  repeat rewrite H1.
+  unfold aloop, ALoop_stateT0, aloop, ALoop_itree.
+  eapply (@eutt_aloop'  _ _ _ _ _ eq); auto.
+  intros j1 j2 Heq.
+  rewrite Heq.
+  destruct j2 as [mem'' [regs'' [ll | rr]]]; cbn.
+  - constructor.
+    repeat rewrite interp_bind.
+    repeat rewrite interp_state_bind.
+    eapply eutt_clo_bind.
+    + eapply eutt_clo_bind.
+      * unfold peephole_optimize_bks.
+        pose proof @peephole_block_correct.
+        unfold eq_asm_denotations, interp_asm, run_map in H2.    
+        eapply H2.
+        apply H.
+        apply ll.
+      * intros.
+        rewrite H2.
+        reflexivity.
+    + intros.
+      rewrite H2.
+      reflexivity.
+  - constructor. reflexivity.
+Qed.    
 
 
 (* concrete optimizations --------------------------------------------------- *)
