@@ -174,6 +174,72 @@ Section alistFacts.
       intros [EQ | abs]; [inv EQ; rewrite <- neg_rel_dec_correct in Heq; tauto | apply (H v); assumption]. 
   Qed.
 
+  Lemma alist_In_add_eq : forall m (k:K) (v n:V), alist_In k (alist_add k n m) v -> n = v.
+  Proof.
+    destruct m as [| [k1 v1]]; intros.
+    - unfold alist_add in H.
+      unfold alist_In in H. simpl in H.
+      destruct (k ?[ eq ] k); inversion H; auto.
+    - unfold alist_add in H.
+      unfold alist_In in H.
+      simpl in H.
+      destruct (k ?[ eq ] k). inversion H; auto.
+      pose proof (@not_In_remove ((k1,v1)::m)).
+      unfold alist_In in H0. simpl in H0.
+      apply H0 in H.
+      contradiction.
+  Qed.
+
+  Lemma alist_find_remove_none:
+    forall (m : list (K*V)) (k1 k2 : K), k2 <> k1 -> alist_find k1 (alist_remove k2 m) = None -> alist_find k1 m = None.
+  Proof.
+    induction m as [| [? ?] m IH]; intros ?k1 ?k2 ineq HF; simpl in *.
+    - reflexivity.
+    - destruct (rel_dec_p k1 k).
+      + subst. eapply rel_dec_neq_false in ineq; eauto. rewrite ineq in HF. simpl in HF.
+        assert (k = k) by reflexivity.
+        apply rel_dec_correct in H. rewrite H in HF. inversion HF.
+      + destruct (rel_dec_p k2 k); simpl in *.
+        apply rel_dec_correct in e. rewrite e in HF. simpl in HF.
+        eapply rel_dec_neq_false in n; eauto. rewrite n. eapply IH. apply ineq. assumption.
+        eapply rel_dec_neq_false in n0; eauto. rewrite n0 in HF. simpl in HF.
+        eapply rel_dec_neq_false in n; eauto. rewrite n in *. eapply IH. apply ineq. assumption.
+  Qed.
+    
+  Lemma alist_find_add_none:
+    forall m (k r :K) (v:V), 
+    alist_find k (alist_add r v m) = None ->
+    alist_find k m = None.
+  Proof.
+    destruct m as [| [k1 v1]]; intros.
+    - reflexivity.
+    - simpl in *.
+      remember (k ?[ eq ] r) as x.
+      destruct x.  inversion H.
+      remember (r ?[ eq] k1) as y.
+      destruct y. simpl in *. symmetry in Heqy. rewrite rel_dec_correct in Heqy. subst.
+      rewrite <- Heqx.
+      apply (alist_find_remove_none _ k k1); auto.
+      rewrite rel_dec_sym in Heqx; eauto.
+      apply neg_rel_dec_correct. symmetry in Heqx. assumption.
+      simpl in H.
+      destruct (k ?[ eq ] k1); auto.
+      apply (alist_find_remove_none _ k r); auto.
+      rewrite rel_dec_sym in Heqx; eauto.
+      apply neg_rel_dec_correct. symmetry in Heqx. assumption.
+  Qed.      
+
+  
+  Lemma alist_find_neq : forall m (k r:K) (v:V), k <> r -> alist_find k (alist_add r v m) = alist_find k m.
+  Proof.
+    intros.
+    remember (alist_find k (alist_add r v m)) as x.
+    destruct x.
+    - symmetry in Heqx. apply In_add_In_ineq in Heqx; auto.
+    - symmetry in Heqx. symmetry. eapply alist_find_add_none. apply Heqx.
+ Qed.
+  
+  
 End alistFacts.
 Arguments alist_find {_ _ _ _}.
 Arguments alist_add {_ _ _ _}.

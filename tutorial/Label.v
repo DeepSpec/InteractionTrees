@@ -114,6 +114,8 @@ Qed.
 
 (* Admitted for now, TODO *)
 Global Instance FinSumIso {n m: nat}: Iso Fun (@split_fin_sum n m) (@merge_fin_sum n m).
+Proof.
+  split; unfold SemiIso, eq2, eeq, id_, Id_Fun, cat, Cat_Fun.
 Admitted.
 
 Global Instance FiniIIso: Iso Fun iI_void void_iI := {}.

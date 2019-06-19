@@ -57,33 +57,40 @@ Definition optimization {A B} := asm A B -> asm A B.
 
 (** We define an appropriate notion of equivalence on these state components.
     This will be useful for defining optimizations at the [Asm] level. *)
-Definition EQ_registers (regs1 regs2 : registers) : Prop :=
-  forall k v, alist_In k regs1 v <-> alist_In k regs2 v.
 
+Definition lookup_default {K V} `{Map K V} k d m :=
+  match Maps.lookup k m with
+  | Some v' => v'
+  | None => d
+  end.
+
+Definition EQ_registers (d:value) (regs1 regs2 : registers) : Prop :=
+  forall k, lookup_default k d regs1 = lookup_default k d regs2.
+  
 Definition EQ_memory (mem1 mem2 : memory) : Prop :=
   forall k v, alist_In k mem1 v <-> alist_In k mem2 v.
 
-Global Instance EQ_registers_refl : Reflexive EQ_registers.
+Global Instance EQ_registers_refl {d} : Reflexive (EQ_registers d).
   Proof.
     red. intros. unfold EQ_registers. tauto.
   Qed.    
 
-Global Instance EQ_registers_sym : Symmetric EQ_registers.
+Global Instance EQ_registers_sym {d} : Symmetric (EQ_registers d).
   Proof.
-    repeat intro. 
-    split; intros; apply H; assumption.
+    repeat intro.
+    unfold EQ_registers in H.
+    rewrite H.
+    reflexivity.
   Qed.
 
-Global Instance EQ_registers_trans : Transitive EQ_registers.
+Global Instance EQ_registers_trans {d} : Transitive (EQ_registers d).
   Proof.
     repeat intro. 
     unfold EQ_registers in *.
-    split; intros.
-    - apply H0. apply H. assumption.
-    - apply H. apply H0. assumption.
+    rewrite H. rewrite H0. reflexivity.
   Qed.
   
-Global Instance EQ_registers_eqv : Equivalence EQ_registers.
+Global Instance EQ_registers_eqv {d} : Equivalence (EQ_registers d).
 constructor; typeclasses eauto. 
   
   
@@ -115,7 +122,7 @@ Qed.
 Inductive rel_asm {B} : memory * (registers * B) -> memory * (registers * B) -> Prop :=
 |rel_asm_ctr : forall b mem1 mem2 regs1 regs2
                  (HMem : EQ_memory mem1 mem2)
-                 (HReg : EQ_registers regs1 regs2),
+                 (HReg : EQ_registers 0 regs1 regs2),
     rel_asm (mem1, (regs1, b)) (mem2, (regs2, b)).
 
 Global Instance rel_asm_refl {B} : Reflexive (@rel_asm B).
@@ -173,7 +180,7 @@ Qed.
 Definition eq_asm_denotations_EQ {E A B} (t1 t2 : Kleisli (itree (Reg +' Memory +' E)) A B) : Prop :=
   forall a mem1 mem2 regs1 regs2,
     EQ_memory mem1 mem2 ->
-    EQ_registers regs1 regs2 ->
+    EQ_registers 0 regs1 regs2 ->
     (eutt rel_asm)
       (interp_asm (t1 a) mem1 regs1)
       (interp_asm (t2 a) mem2 regs2).
@@ -188,7 +195,7 @@ Definition optimization_correct A B (opt:optimization) :=
 Definition EQ_asm {E A} (f g : memory -> registers -> itree E _) : Prop :=
   forall mem1 mem2 regs1 regs2,
     EQ_memory mem1 mem2 ->
-    EQ_registers regs2 regs2 ->
+    EQ_registers 0 regs2 regs2 ->
     eutt (@rel_asm A) (f mem1 regs1) (g mem2 regs2).
 
 Infix "≡" := EQ_asm (at level 70).
@@ -231,11 +238,6 @@ Proof.
   apply eqit_Ret. destruct b. assumption.
 Qed.
 
-Definition lookup_default {K V} `{Map K V} k v m :=
-  match Maps.lookup k m with
-  | Some v' => v'
-  | None => v
-  end.
 
 Lemma interp_asm_ret {E A} (x:A) mem reg :
   interp_asm (Ret x) mem reg ≈ (Ret (mem, (reg, x)) : itree E _).
@@ -415,30 +417,6 @@ Section Correctness.
     apply HP; auto.
   Qed.  
 
-  Lemma EQ_registers_lookup : forall regs1 regs2 r ,
-      EQ_registers regs1 regs2 ->
-      lookup r regs1 = lookup r regs2.
-  Proof.
-    intros. unfold EQ_registers, alist_In in H.
-    unfold lookup, Map_alist.
-    remember (alist_find r regs1) as x.
-    destruct x.
-    - symmetry in Heqx. rewrite H in Heqx. rewrite Heqx. reflexivity.
-    - remember (alist_find r regs2) as x.
-      destruct x.
-      symmetry in Heqx0. rewrite <- H in Heqx0. rewrite Heqx0 in Heqx. inversion Heqx.
-      reflexivity.
- Qed.
-    
-Lemma EQ_registers_lookup_default : forall regs1 regs2 r v,
-      EQ_registers regs1 regs2 ->
-      lookup_default r v regs1 = lookup_default r v regs2.
-Proof.
-  intros regs1 regs2 r v H.
-  unfold lookup_default.
-  erewrite EQ_registers_lookup. reflexivity. assumption.
-Qed.
-  
 
 Lemma peephole_block_correct : 
   forall (ph : peephole_optimization)
@@ -464,7 +442,7 @@ Proof.
       repeat rewrite interp_state_ret.
       apply eqit_Ret. constructor; auto.
     + setoid_rewrite interp_asm_GetReg.
-      rewrite (EQ_registers_lookup_default _ regs2); auto.
+      rewrite H1.
       unfold value in *.
       remember (lookup_default r 0 regs2) as x.
       destruct x.
@@ -587,62 +565,25 @@ Definition simple (i:instr) : list instr :=
   end.
 
 
-(* TODO: Move to utilities *)
-Section alist_facts.
-
-  Context {K V: Type}.
-  Context {RR : @RelDec K (@eq K)}.
-  Context {RRC : @RelDec_Correct K (@eq K) RR}.
-
-  Lemma alist_In_add_eq : forall m (k:K) (v n:V), alist_In k (alist_add k n m) v -> n = v.
-  Proof.
-    destruct m as [| [k1 v1]]; intros.
-    - unfold alist_add in H.
-      unfold alist_In in H. simpl in H.
-      destruct (k ?[ eq ] k); inversion H; auto.
-    - unfold alist_add in H.
-      unfold alist_In in H.
-      simpl in H.
-      destruct (k ?[ eq ] k). inversion H; auto.
-      pose proof (@not_In_remove K V _ _ ((k1,v1)::m)).
-      unfold alist_In in H0. simpl in H0.
-      apply H0 in H.
-      contradiction.
-  Qed.
-End alist_facts.
 
   
 (* SAZ: Belongs in the utilities? (but depends on EQ_registers) *)
 Lemma EQ_registers_add:
-  forall (r : reg) (regs1 regs2 : registers),
-    EQ_registers regs1 regs2 ->
-    EQ_registers (alist_add r (lookup_default r 0 regs1) regs1) regs2.
+  forall (r : reg) (d:value) (regs1 regs2 : registers),
+    EQ_registers d regs1 regs2 ->
+    EQ_registers d (alist_add r (lookup_default r d regs1) regs1) regs2.
 Proof.
-  intros r regs1 regs2 H.
-  unfold EQ_registers in *.
+  intros r d regs1 regs2 H.
+  unfold EQ_registers, lookup_default in *.
   intros.
-  unfold lookup_default, lookup, Map_alist.
-  remember (@alist_find reg _ RelDec_reg nat r regs1) as x.
-  unfold alist_In.
-  unfold alist_add.
-  destruct x; simpl in *.
-  unfold rel_dec, RelDec_reg; simpl.
-  - destruct (Nat.eq_dec k r).
-    + subst.
-      split; intros.
-      inversion H0. subst.
-      unfold alist_In in H.
-      apply H. symmetry. assumption.
-      unfold alist_In in H.
-      unfold value in *.
-      apply H in H0.
-      rewrite H0 in Heqx.
-      assumption.
-
-    + split; intros.
-      unfold alist_In in H0.
-Admitted.
-
+  destruct (Nat.eq_dec k r).
+  - subst. unfold lookup, Map_alist. rewrite In_add_eq. 
+    apply H.
+  - unfold lookup, Map_alist.
+    rewrite alist_find_neq; auto.
+    apply H.
+Qed.
+  
 Lemma simple_correct : ph_correct simple.
 Proof.
   unfold ph_correct.
