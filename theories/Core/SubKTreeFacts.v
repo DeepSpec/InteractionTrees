@@ -381,22 +381,6 @@ Section Facts.
       reflexivity.
     Qed.
 
-    Global Instance Category_Fun : Category Fun.
-    Proof.
-      constructor; typeclasses eauto.
-    Qed.
-
-    Global Instance Coproduct_Fun : Coproduct Fun sum.
-    Proof.
-      constructor.
-      - intros a b c f g.
-        cbv; reflexivity.
-      - intros a b c f g.
-        cbv; reflexivity.
-      - intros a b c f g fg Hf Hg [x | y]; cbv in *; auto.
-      - typeclasses eauto.
-    Qed.
-
     Instance cat_iFun_CatIdL : CatIdL iFun.
     Proof. red; reflexivity. Qed.
 
