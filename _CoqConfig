@@ -53,5 +53,7 @@ theories/Events/Writer.v
 theories/Events/Exception.v
 theories/Events/Nondeterminism.v
 theories/Events/Map.v
+theories/Events/MapDefault.v
+theories/Events/MapDefaultFacts.v
 theories/Events/Concurrency.v
 theories/Events/Dependent.v

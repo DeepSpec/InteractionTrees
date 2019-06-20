@@ -52,6 +52,17 @@ Arguments inl_morphism {A1 A2 B1 B2 RA RB}.
 Arguments inr_morphism {A1 A2 B1 B2 RA RB}.
 Hint Constructors sum_rel.
 
+(** Logical relation for the [sum] type. *)
+Variant prod_rel {A1 A2 B1 B2 : Type}
+        (RA : A1 -> A2 -> Prop) (RB : B1 -> B2 -> Prop)
+  : (A1 * B1) -> (A2 * B2) -> Prop :=
+| prod_morphism a1 a2 b1 b2 : RA a1 a2 -> RB b1 b2 -> prod_rel RA RB (a1, b1) (a2, b2)
+.
+
+Arguments prod_morphism {A1 A2 B1 B2 RA RB}.
+Hint Constructors prod_rel.
+
+
 (** ** Common monads and transformers. *)
 
 Module Monads.

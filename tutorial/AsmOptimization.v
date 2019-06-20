@@ -65,7 +65,7 @@ Definition lookup_default {K V} `{Map K V} k d m :=
   end.
 
 Definition EQ_registers (d:value) (regs1 regs2 : registers) : Prop :=
-  forall k, lookup_default k d regs1 = lookup_default k d regs2.
+  forall r, lookup_default r d regs1 = lookup_default r d regs2.
   
 Definition EQ_memory (mem1 mem2 : memory) : Prop :=
   forall k v, alist_In k mem1 v <-> alist_In k mem2 v.
@@ -195,7 +195,7 @@ Definition optimization_correct A B (opt:optimization) :=
 Definition EQ_asm {E A} (f g : memory -> registers -> itree E _) : Prop :=
   forall mem1 mem2 regs1 regs2,
     EQ_memory mem1 mem2 ->
-    EQ_registers 0 regs2 regs2 ->
+    EQ_registers 0 regs1 regs2 ->
     eutt (@rel_asm A) (f mem1 regs1) (g mem2 regs2).
 
 Infix "≡" := EQ_asm (at level 70).
@@ -255,30 +255,27 @@ Lemma interp_asm_GetReg {E A} f r mem reg :
 Proof.
   unfold interp_asm, run_map.
   rewrite interp_bind.
-  unfold trigger.
-  rewrite interp_vis. rewrite tau_eutt.
-  unfold subevent, resum, ReSum_inl, resum, ReSum_id, id_. cbn.
-  setoid_rewrite interp_ret.
-  rewrite bind_bind.
-  setoid_rewrite bind_ret.
-  repeat rewrite interp_state_bind.
-  unfold Id_IFun.
-  unfold CategoryOps.cat, Cat_Handler, Handler.cat. cbn.
-  unfold inl_, Inl_sum1_Handler, Handler.inl_, Handler.htrigger.
-  unfold lookup_def.
-  rewrite interp_bind.
   setoid_rewrite interp_trigger. rewrite tau_eutt.
+  repeat rewrite interp_state_bind. cbn. 
+  unfold subevent, resum, ReSum_inl, resum, ReSum_id, id_.
+  unfold Id_IFun. 
+  unfold CategoryOps.cat, Cat_Handler, Handler.cat. cbn.
+  unfold lookup_def.  
+  rewrite interp_bind.
   setoid_rewrite interp_ret.
+  repeat rewrite interp_state_bind.
+  setoid_rewrite interp_state_ret.
+  unfold Map.lookup, embed, Embeddable_forall, embed, Embeddable_itree.
+  unfold trigger. rewrite interp_vis. setoid_rewrite interp_ret. rewrite tau_eutt.
+  unfold subevent, resum.
   repeat rewrite interp_state_bind.
   repeat setoid_rewrite interp_state_ret.
-  rewrite interp_state_trigger. rewrite tau_eutt.
-  cbn .
+  unfold inl_, Inl_sum1_Handler, Handler.inl_, Handler.htrigger.
+  rewrite interp_state_trigger. rewrite tau_eutt. cbn.
   rewrite interp_state_ret.
-  repeat rewrite bind_ret.
-  cbn.
-  unfold lookup_default.
-  unfold lookup, Map_alist. reflexivity.
-Qed.  
+  repeat rewrite bind_ret. cbn.
+  unfold lookup_default, lookup, Map_alist. reflexivity.
+Qed.
 
 Lemma interp_asm_SetReg {E A} f r v mem reg :
   @eutt E _ _ (@rel_asm A)
@@ -576,7 +573,7 @@ Proof.
   intros r d regs1 regs2 H.
   unfold EQ_registers, lookup_default in *.
   intros.
-  destruct (Nat.eq_dec k r).
+  destruct (Nat.eq_dec r r0).
   - subst. unfold lookup, Map_alist. rewrite In_add_eq. 
     apply H.
   - unfold lookup, Map_alist.
@@ -627,7 +624,7 @@ Proof.
     * apply Nat.eqb_neq in n.
       rewrite n.
       simpl.
-      apply interp_asm_ret_tt; auto. reflexivity.
+      apply interp_asm_ret_tt; auto. 
 Qed.      
 
 End Correctness.
