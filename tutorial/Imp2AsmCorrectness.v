@@ -67,7 +67,7 @@ From ITree Require Import
      ITree
      ITreeFacts
      Events.StateFacts
-     Events.Map
+     Events.MapDefault
      SubKTree
      SubKTreeFacts.
 
@@ -85,17 +85,9 @@ Open Scope string_scope.
 Import CatNotations.
 Local Open Scope cat.
 
-(* end hide *)
-
-(* Missing library functionality -------------------------------------------- *)
-(* TODO: Move to itrees library
-   SAZ: for some reason, moving the code below into StateFacts.v causes a
-   universe inconsistency... how to debug?
- *)
 Import Monads.
-From Paco Require Import paco.
-
-(* End of missing library functionality... ---------------------------------- *)
+Open Scope monad_scope.
+(* end hide *)
 
 
 (* ================================================================= *)
@@ -441,6 +433,7 @@ Section Bisimulation.
     unfold KTree.iter, Iter_ktree.
     pose proof @interp_state_aloop'.
     red in H2.
+    
     do 2 rewrite H2.
     unfold aloop, ALoop_stateT0, aloop, ALoop_itree .
     rewrite H2.
@@ -473,21 +466,15 @@ Section Bisimulation.
     unfold map_reg, CategoryOps.cat, Cat_Handler, Handler.cat. 
     unfold inl_, Inl_sum1_Handler, Handler.inl_, Handler.htrigger. cbn.
     unfold lookup_def; cbn.
-    rewrite interp_bind.
-    unfold Map.lookup, embed, Embeddable_itree, Embeddable_forall, embed.
+    unfold embed, Embeddable_itree, Embeddable_forall, embed.
     rewrite interp_trigger.
-    rewrite bind_tau.
-    rewrite !tau_eutt.
-    rewrite !interp_state_bind.
+    rewrite tau_eutt.
     rewrite interp_state_trigger.
     rewrite !tau_eutt.
     cbn.
     rewrite interp_state_ret.
-    rewrite bind_ret. cbn.
+    unfold lookup_default, lookup, Map_alist.
     erewrite sim_rel_find.
-    rewrite interp_ret.
-    rewrite interp_state_ret.
-    rewrite interp_state_ret.
     reflexivity.
     apply H.
   Qed.
@@ -667,6 +654,7 @@ Section Correctness.
 
       (* We are left with [Ret] constructs on both sides, that remains to be related *)
       red; rewrite <-eqit_Ret.
+      unfold lookup_default, lookup, Map_alist.
       
       (* On the _Asm_ side, we bind to [gen_tmp n] a lookup to [varOf v] *)
       (* On the _Imp_ side, we return the value of a lookup to [varOf v] *)
@@ -706,7 +694,7 @@ Section Correctness.
       tau_steps.
       red. rewrite <- eqit_Ret.
 
-      clear -HSIM HSIM'.
+      clear -HSIM HSIM'. unfold lookup_default, lookup, Map_alist.
       erewrite sim_rel_find_tmp_n_trans; eauto. 
       erewrite sim_rel_find_tmp_n; eauto. 
       eapply sim_rel_binary_op; eauto.
@@ -734,7 +722,7 @@ Section Correctness.
       tau_steps.
       red. rewrite <- eqit_Ret.
 
-      clear -HSIM HSIM'.
+      clear -HSIM HSIM'. unfold lookup_default, lookup, Map_alist.
       erewrite sim_rel_find_tmp_n_trans; eauto. 
       erewrite sim_rel_find_tmp_n; eauto. 
       eapply sim_rel_binary_op; eauto.
@@ -762,7 +750,7 @@ Section Correctness.
       tau_steps.
       red. rewrite <- eqit_Ret.
 
-      clear -HSIM HSIM'.
+      clear -HSIM HSIM'. unfold lookup_default, lookup, Map_alist.
       erewrite sim_rel_find_tmp_n_trans; eauto. 
       erewrite sim_rel_find_tmp_n; eauto. 
       eapply sim_rel_binary_op; eauto.
@@ -800,6 +788,7 @@ Section Correctness.
 
     (* And remains to relate the results *)
     unfold state_invariant.
+    unfold lookup_default, lookup, Map_alist.
     rewrite sim_rel_find_tmp_n; eauto; simpl.
     apply sim_rel_Renv in HSIM.
     split; auto.

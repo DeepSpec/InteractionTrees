@@ -18,7 +18,8 @@ From ITree Require Import
      ITreeMonad
      ITreeFacts
      Events.StateFacts
-     Events.Map
+     Events.MapDefault
+     Events.MapDefaultFacts
      Events.State
      SubKTree.
 
@@ -58,101 +59,86 @@ Definition optimization {A B} := asm A B -> asm A B.
 (** We define an appropriate notion of equivalence on these state components.
     This will be useful for defining optimizations at the [Asm] level. *)
 
-Definition lookup_default {K V} `{Map K V} k d m :=
-  match Maps.lookup k m with
-  | Some v' => v'
-  | None => d
-  end.
-
 Definition EQ_registers (d:value) (regs1 regs2 : registers) : Prop :=
-  forall r, lookup_default r d regs1 = lookup_default r d regs2.
-  
-Definition EQ_memory (mem1 mem2 : memory) : Prop :=
-  forall k v, alist_In k mem1 v <-> alist_In k mem2 v.
+  @eq_map _ _ _ _ d regs1 regs2.
 
 Global Instance EQ_registers_refl {d} : Reflexive (EQ_registers d).
-  Proof.
-    red. intros. unfold EQ_registers. tauto.
-  Qed.    
+unfold EQ_registers. typeclasses eauto.
+Qed.
 
 Global Instance EQ_registers_sym {d} : Symmetric (EQ_registers d).
-  Proof.
-    repeat intro.
-    unfold EQ_registers in H.
-    rewrite H.
-    reflexivity.
-  Qed.
+unfold EQ_registers. typeclasses eauto.
+Qed.
 
 Global Instance EQ_registers_trans {d} : Transitive (EQ_registers d).
-  Proof.
-    repeat intro. 
-    unfold EQ_registers in *.
-    rewrite H. rewrite H0. reflexivity.
-  Qed.
-  
+unfold EQ_registers. typeclasses eauto.
+Qed.
+
 Global Instance EQ_registers_eqv {d} : Equivalence (EQ_registers d).
-constructor; typeclasses eauto. 
-  
-  
-Global Instance EQ_memory_refl : Reflexive EQ_memory.
-Proof.
-  red. intros. unfold EQ_memory. tauto.
-Qed.    
+constructor; typeclasses eauto.
+Qed.
 
-Global Instance EQ_memory_sym : Symmetric EQ_memory.
+
+
+Definition EQ_memory (mem1 mem2 : memory) : Prop :=
+  @eq_map _ _ _ _ 0 mem1 mem2.
+
+Global Instance EQ_memory_refl : Reflexive (EQ_memory).
+unfold EQ_memory. typeclasses eauto.
+Qed.
+
+Global Instance EQ_memory_sym : Symmetric (EQ_memory).
+unfold EQ_memory. typeclasses eauto.
+Qed.
+
+Global Instance EQ_memory_trans : Transitive (EQ_memory).
+unfold EQ_memory. typeclasses eauto.
+Qed.
+
+Global Instance EQ_memory_eqv : Equivalence (EQ_memory).
+constructor; typeclasses eauto.
+Qed.
+
+
+(* SAZ: TODO: Move this elsewhere, it belong with the Basics *)
+Section ProdRel.
+  Context {R S : Type}.
+  Context (RR : R -> R -> Prop).
+  Context (SS : S -> S -> Prop).
+
+  Global Instance prod_rel_refl `{Reflexive _ RR} `{Reflexive _ SS} : Reflexive (prod_rel RR SS).
   Proof.
-    repeat intro. 
-    split; intros; apply H; assumption.
+    red. destruct x. constructor; auto.
+  Qed.
+  
+  Global Instance prod_rel_sym `{Symmetric _ RR} `{Symmetric _ SS}  : Symmetric (prod_rel RR SS).
+  Proof.
+    red. intros. 
+    inversion H1. subst.
+    constructor; symmetry; auto.
   Qed.
 
-Global Instance EQ_memory_trans : Transitive EQ_memory.
+  Global Instance prod_rel_trans `{Transitive _ RR} `{Transitive _ SS}  : Transitive (prod_rel RR SS).
   Proof.
-    repeat intro. 
-    unfold EQ_registers in *.
-    split; intros.
-    - apply H0. apply H. assumption.
-    - apply H. apply H0. assumption.
+    red.
+    intros.
+    inversion H1.
+    inversion H2.
+    subst.
+    inversion H9; subst.
+    constructor; etransitivity; eauto.
   Qed.
 
-Global Instance EQ_memory_eqv : Equivalence EQ_memory.
-Proof.
-constructor; typeclasses eauto. 
-Qed.
+  Global Instance prod_rel_eqv `{Equivalence _ RR} `{Equivalence _ SS} : Equivalence (prod_rel RR SS).
+  Proof.
+    constructor; typeclasses eauto.
+  Qed.
 
-Inductive rel_asm {B} : memory * (registers * B) -> memory * (registers * B) -> Prop :=
-|rel_asm_ctr : forall b mem1 mem2 regs1 regs2
-                 (HMem : EQ_memory mem1 mem2)
-                 (HReg : EQ_registers 0 regs1 regs2),
-    rel_asm (mem1, (regs1, b)) (mem2, (regs2, b)).
+  End ProdRel.
 
-Global Instance rel_asm_refl {B} : Reflexive (@rel_asm B).
-Proof.
-  repeat intro.
-  destruct x as [m [r b]].
-  constructor; reflexivity.
-Qed.  
+Definition rel_asm {B} : memory * (registers * B) -> memory * (registers * B) -> Prop := 
+  prod_rel EQ_memory (prod_rel (EQ_registers 0) eq).
 
-Global Instance rel_asm_sym {B} : Symmetric (@rel_asm B).
-Proof.
-  repeat intro.
-  inversion H.
-  subst.
-  constructor; symmetry; assumption.
-Qed.  
-
-Global Instance rel_asm_trans {B} : Transitive (@rel_asm B).
-Proof.
-  repeat intro.
-  inversion H.
-  inversion H0.
-  subst. inversion H3. subst.
-  constructor; eapply transitivity; eassumption.
-Qed.
-
-Global Instance rel_asm_eqv {B} : Equivalence (@rel_asm B).
-Proof.
-  constructor; typeclasses eauto.
-Qed.
 
 Global Instance eutt_rel_asm_refl {E R} {r : R -> R -> Prop} `{Reflexive _ r} : Reflexive (@eutt E R R r).
 Proof.
@@ -207,7 +193,8 @@ Infix "≡" := EQ_asm (at level 70).
 
    It also depends crucially on the fact that the handlers respect
    the equivalence on the state maps.     
-*)
+ *)
+(*
 Lemma interp_asm_id:
   forall (t : itree (Reg +' Memory +' Exit) unit),
     (interp_asm t) ≡ (interp_asm t).
@@ -218,6 +205,8 @@ Proof.
   unfold interp_state.
   pose proof @eutt_interp.
 Admitted.    
+*)
+
 
 
 Lemma interp_asm_ret_tt : forall (t : itree (Reg +' Memory +' Exit) unit),
@@ -226,18 +215,24 @@ Proof.
   intros t mem1 mem2 regs1 regs2 H1 H2.
   rewrite interp_asm_bind.
   rewrite <- bind_ret2 at 1.
-  eapply eutt_clo_bind.
-  { apply interp_asm_id; auto. }
+  About eutt_clo_bind.
+  apply (@eutt_clo_bind _ _ _ _ _ _ rel_asm).
+  { unfold interp_asm.
+    unfold rel_asm.
+    apply run_map_proper; auto.
+    apply run_map_proper; auto.
+    reflexivity.
+  }     
   intros.
   inversion H; subst.
-
+  inversion H3. subst.
   unfold interp_asm.
   unfold run_map.
   rewrite interp_ret.
   do 2 rewrite interp_state_ret.
-  apply eqit_Ret. destruct b. assumption.
+  apply eqit_Ret. constructor. auto. destruct b3.
+  assumption.
 Qed.
-
 
 Lemma interp_asm_ret {E A} (x:A) mem reg :
   interp_asm (Ret x) mem reg ≈ (Ret (mem, (reg, x)) : itree E _).
@@ -261,11 +256,7 @@ Proof.
   unfold Id_IFun. 
   unfold CategoryOps.cat, Cat_Handler, Handler.cat. cbn.
   unfold lookup_def.  
-  rewrite interp_bind.
-  setoid_rewrite interp_ret.
-  repeat rewrite interp_state_bind.
-  setoid_rewrite interp_state_ret.
-  unfold Map.lookup, embed, Embeddable_forall, embed, Embeddable_itree.
+  unfold embed, Embeddable_forall, embed, Embeddable_itree.
   unfold trigger. rewrite interp_vis. setoid_rewrite interp_ret. rewrite tau_eutt.
   unfold subevent, resum.
   repeat rewrite interp_state_bind.
@@ -274,7 +265,7 @@ Proof.
   rewrite interp_state_trigger. rewrite tau_eutt. cbn.
   rewrite interp_state_ret.
   repeat rewrite bind_ret. cbn.
-  unfold lookup_default, lookup, Map_alist. reflexivity.
+  reflexivity.
 Qed.
 
 Lemma interp_asm_SetReg {E A} f r v mem reg :
@@ -319,19 +310,12 @@ Proof.
   unfold inl_, Inl_sum1_Handler, Handler.inl_, Handler.htrigger.
   unfold inr_, Inr_sum1_Handler, Handler.inr_, Handler.htrigger.
   unfold lookup_def.
-  rewrite interp_bind.
-  setoid_rewrite interp_trigger. rewrite tau_eutt.
-  setoid_rewrite interp_ret.
-  rewrite interp_bind. repeat rewrite interp_trigger. rewrite tau_eutt.
-  setoid_rewrite interp_ret.
-  repeat rewrite interp_state_bind.
-  repeat setoid_rewrite interp_state_ret.
+  repeat (setoid_rewrite interp_trigger; rewrite tau_eutt).
   repeat rewrite interp_state_trigger. rewrite tau_eutt.
   cbn. unfold pure_state. rewrite interp_state_vis. cbn.  rewrite tau_eutt.
   rewrite bind_ret. rewrite interp_state_ret.
   repeat rewrite bind_ret. cbn. 
-  unfold lookup_default.
-  unfold lookup, Map_alist. reflexivity.
+  reflexivity.
 Qed.  
 
 Lemma interp_asm_Store {E A} f a v mem reg :
@@ -410,7 +394,7 @@ Section Correctness.
     eapply eutt_clo_bind.
     apply H2; auto.
     intros. 
-    inversion H0.
+    inversion H0; subst. inversion H3; subst.
     apply HP; auto.
   Qed.  
 
@@ -495,27 +479,31 @@ Proof.
        subst. cbn.
        repeat rewrite interp_ret.
        repeat rewrite interp_state_ret.
-       apply eqit_Ret. constructor; auto. }
+       apply eqit_Ret.
+       inversion H4; subst.
+       constructor; auto. }
     
   intros. 
-  inversion H0.
-  subst. simpl in *.
+  inversion H0; subst.
+  simpl in *.
   unfold denote_b.
   unfold iter, Iter_sktree.
   repeat rewrite interp_iter.
   unfold KTree.iter, Iter_ktree.
   cbn. 
   pose proof @interp_state_aloop'.
-  red in H3.
-  repeat rewrite H3.
+  red in H5.
+  repeat rewrite H5.
   unfold aloop, ALoop_stateT0, aloop, ALoop_itree.
-  repeat rewrite H3.
+  repeat rewrite H5.
   unfold aloop, ALoop_stateT0, aloop, ALoop_itree.
   eapply (@eutt_aloop'  _ _ _ _ _ rel_asm); auto.
   intros j1 j2 Hrel.
-  inversion Hrel.
-  subst; cbn.
-  destruct b0.
+  inversion Hrel. subst.
+  inversion H7; subst. subst.
+  inversion Hrel. subst.
+  cbn.
+  destruct b5.
   - constructor.
     repeat rewrite interp_bind.
     repeat rewrite interp_state_bind.
@@ -523,16 +511,16 @@ Proof.
     + eapply (@eutt_clo_bind _ _ _ _ _ _ rel_asm).
       * unfold peephole_optimize_bks.
         pose proof @peephole_block_correct.
-        unfold eq_asm_denotations_EQ, interp_asm, run_map in H4.    
-        eapply H4; auto.
+        unfold eq_asm_denotations_EQ, interp_asm, run_map in H9.    
+        eapply H9; auto.
         apply f.
       * intros.
-        inversion H4.
-        subst. cbn.
+        inversion H9.
+        subst. inversion H11; subst.
         repeat rewrite bind_ret.
         unfold CategoryOps.cat, Cat_sktree, CategoryOps.cat, Cat_Kleisli. cbn.
         unfold case_, Case_sum1, CoprodCase_Kleisli, case_sum.
-        destruct (split_fin_sum b0).
+        destruct (split_fin_sum b5).
         -- repeat rewrite bind_ret.
            rewrite interp_ret.
            repeat rewrite interp_state_ret.
@@ -542,13 +530,15 @@ Proof.
            repeat rewrite interp_state_ret.
            apply eqit_Ret. constructor; auto.
     + intros.
-      inversion H4.
+      inversion H9.
       subst; cbn.
-      rewrite interp_ret.
+      repeat rewrite interp_ret.
       repeat rewrite interp_state_ret.
       apply eqit_Ret. constructor; auto.
+      inversion H11; subst.
+      constructor; auto.
   - constructor. constructor; auto.
-  - constructor; auto.
+  - inversion H4; subst. constructor; auto.
 Qed.    
 
 
@@ -563,20 +553,24 @@ Definition simple (i:instr) : list instr :=
 
 
 
-  
-(* SAZ: Belongs in the utilities? (but depends on EQ_registers) *)
+
+(* SAZ: Belongs in the utilities? (but depends on EQ_registers) 
+   EQ_Registers is now just an alias for eq_map, so this can be moved to MapDefaultFacts. 
+*)
 Lemma EQ_registers_add:
   forall (r : reg) (d:value) (regs1 regs2 : registers),
     EQ_registers d regs1 regs2 ->
     EQ_registers d (alist_add r (lookup_default r d regs1) regs1) regs2.
 Proof.
   intros r d regs1 regs2 H.
-  unfold EQ_registers, lookup_default in *.
+  unfold EQ_registers.
+  unfold eq_map.
   intros.
-  destruct (Nat.eq_dec r r0).
-  - subst. unfold lookup, Map_alist. rewrite In_add_eq. 
+  unfold lookup_default at 1, lookup, Map_alist.
+  destruct (Nat.eq_dec k r).
+  - subst. rewrite In_add_eq. 
     apply H.
-  - unfold lookup, Map_alist.
+  - unfold lookup_default, lookup, Map_alist.
     rewrite alist_find_neq; auto.
     apply H.
 Qed.
@@ -620,7 +614,8 @@ Proof.
       cbn.
       apply eqit_Ret.
       constructor; auto.
-      apply EQ_registers_add; auto.
+      constructor; auto.
+      apply EQ_registers_add; auto. 
     * apply Nat.eqb_neq in n.
       rewrite n.
       simpl.

@@ -13,6 +13,7 @@ From ITree Require Import
      Basics.Basics
      Basics.Category
      Basics.CategoryKleisli
+     Basics.MonadTheory
      Core.ITreeDefinition
      Core.KTree
      Core.KTreeFacts
@@ -232,7 +233,7 @@ Proof.
     split; auto using (proj1 H2).
 Qed.
 
-
+(* SAZ: These are probably too specialized. *)
 Definition state_eq {E S X} 
   : (stateT S (itree E) X) -> (stateT S (itree E) X) -> Prop :=
   fun t1 t2 => forall s, eq_itree eq (t1 s) (t2 s).
@@ -262,6 +263,7 @@ Proof.
     auto with paco.
   - rewrite interp_state_ret. gstep. constructor; auto. subst; auto.
 Qed.
+
 
 
 

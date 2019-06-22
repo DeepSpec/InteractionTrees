@@ -70,9 +70,8 @@ Section Map.
   
 End Map.
 
-Arguments mapE {K V} d.
-Arguments insert {K V E _}.
-Arguments lookup_def {K V E _}.
-Arguments remove {K V E _}.
-Arguments run_map {K V map M _ _} [T].
-Arguments eq_map {K V map M}.
+Arguments insert {K V E d _}.
+Arguments lookup_def {K V E d _}.
+Arguments remove {K V E d _}.
+Arguments run_map {K V map M _ _ } [T].
+Arguments eq_map {K V map M d}.

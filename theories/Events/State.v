@@ -68,6 +68,7 @@ Arguments get {S E _}.
 Arguments put {S E _}.
 Arguments run_state {S E} [_] _ _.
 
+
 (* todo(gmm): this can be stronger if we allow for a `can_returnE` *)
 Inductive can_return {E : Type -> Type} {t : Type} : itree E t -> t -> Prop :=
 | can_return_Ret {x} : can_return (Ret x) x

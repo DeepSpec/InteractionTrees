@@ -20,7 +20,6 @@ From ITree Require Import
      ITreeFacts
      ITreeMonad  (* SAZ: Should we add this to ITree? *)
      Basics.MonadTheory
-     Events.Map
      Events.State
      Events.StateKleisli
      StateFacts
@@ -255,7 +254,7 @@ End Denote.
 (* begin hide *)
 From ITree Require Import
      Basics.Category
-     Events.Map.
+     Events.MapDefault.
 
 From ExtLib Require Import
      Core.RelDec
@@ -284,19 +283,20 @@ Instance RelDec_reg : RelDec (@eq reg) := RelDec_from_dec eq Nat.eq_dec.
 
 (** Both environments and memory events can be interpreted as "map" events,
     exactly as we did for _Imp_. *)
-Definition map_reg {E: Type -> Type} `{mapE reg value -< E}
+
+Definition map_reg {E: Type -> Type} `{mapE reg 0 -< E}
   : Reg ~> itree E :=
   fun _ e =>
     match e with
-    | GetReg x => lookup_def x 0
+    | GetReg x => lookup_def x
     | SetReg x v => insert x v
     end.
 
-Definition map_memory {E : Type -> Type} `{mapE addr value -< E} :
+Definition map_memory {E : Type -> Type} `{mapE addr 0 -< E} :
   Memory ~> itree E :=
   fun _ e =>
     match e with
-    | Load x => lookup_def x 0
+    | Load x => lookup_def x
     | Store x v => insert x v
     end.
 

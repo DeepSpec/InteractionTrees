@@ -54,7 +54,7 @@ From ExtLib Require Import
 From ITree Require Import
      ITree
      ITreeFacts
-     Events.Map
+     Events.MapDefault
      StateFacts.
 
 
@@ -276,7 +276,7 @@ End Example_Fact.
 
 (* begin hide *)
 From ITree Require Import
-     Events.Map.
+     Events.MapDefault.
 
 From ExtLib Require Import
      Core.RelDec
@@ -305,10 +305,10 @@ Qed.
     [M = itree E] for some universe of events [E] required to contain the
     environment events [mapE] provided by the library. It comes with an event
     handler [run_map] interpreting the computation into the state monad.  *)
-Definition eval_imp_state {E: Type -> Type} `{mapE var value -< E}: ImpState ~> itree E :=
+Definition eval_imp_state {E: Type -> Type} `{mapE var 0 -< E}: ImpState ~> itree E :=
   fun _ e =>
     match e with
-    | GetVar x => lookup_def x 0
+    | GetVar x => lookup_def x 
     | SetVar x v => insert x v
     end.
 
