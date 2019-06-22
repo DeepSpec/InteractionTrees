@@ -18,8 +18,6 @@ Global Instance FinInitial: Embedded_initial 0 :=
     void_iI := fun v => match v with end;
   |}.
 
-
-
 Definition fin_case {n : nat} (k : Fin.t (S n)) : forall R, R -> (Fin.t n -> R) -> R :=
   match k with
   | F1 => fun _ r _ => r
@@ -93,6 +91,7 @@ Qed.
 
 Arguments split_fin_sum {n m}.
 
+
 Lemma split_fin_sum_left:
   forall {n m} (k: Fin.t (n + m)) k',
     split_fin_sum k = inl k' ->
@@ -112,10 +111,12 @@ Proof.
       * inv H.
 Qed.
 
+
+
 (* Admitted for now, TODO *)
 Global Instance FinSumIso {n m: nat}: Iso Fun (@split_fin_sum n m) (@merge_fin_sum n m).
 Proof.
-  split; unfold SemiIso, eq2, eeq, id_, Id_Fun, cat, Cat_Fun.
+  split; unfold SemiIso, eq2, eeq, id_, Id_Fun, cat, Cat_Fun; intros.
 Admitted.
 
 Global Instance FiniIIso: Iso Fun iI_void void_iI := {}.

@@ -629,3 +629,84 @@ Global Instance eutt_cong_eutt' {E R1 R2 RR} :
 Proof.
   apply eutt_cong_eutt.
 Qed.
+
+(* Lift properties of the return relation to eutt itself *)
+
+Section EqLift.
+  Context {E : Type -> Type} {R : Type}.
+  Context {RR : R -> R -> Prop}.
+
+  Local Notation eqit := (@eqit E R R RR).
+
+  Global Instance Reflexive_eqitF `{Reflexive _ RR} b1 b2 (sim : itree E R -> itree E R -> Prop)
+    : Reflexive sim -> Reflexive (eqitF RR b1 b2 id sim).
+  Proof.
+    red. destruct x; constructor; eauto.
+  Qed.
+
+  Global Instance Symmetric_eqitF `{Symmetric _ RR} b (sim : itree E R -> itree E R -> Prop)
+    : Symmetric sim -> Symmetric (eqitF RR b b id sim).
+  Proof.
+    red. induction 2; constructor; subst; eauto. 
+    intros. apply H0. apply (REL v).
+  Qed.
+
+  Global Instance Reflexive_eqit_ `{Reflexive _ RR} b1 b2 (sim : itree E R -> itree E R -> Prop)
+    : Reflexive sim -> Reflexive (eqit_ RR b1 b2 id sim).
+  Proof. repeat red. reflexivity. Qed.
+
+  Global Instance Symmetric_eqit_ `{Symmetric _ RR} b (sim : itree E R -> itree E R -> Prop)
+    : Symmetric sim -> Symmetric (eqit_ RR b b id sim).
+  Proof. repeat red; symmetry; auto. Qed.
+
+(** *** [eqit] is an equivalence relation *)
+
+Global Instance Reflexive_eqit_gen `{Reflexive _ RR} b1 b2 (r rg: itree E R -> itree E R -> Prop) :
+  Reflexive (gpaco2 (eqit_ RR b1 b2 id) (eqitC b1 b2) r rg).
+Proof.
+  gcofix CIH. gstep; intros.
+  repeat red. destruct (observe x); eauto with paco.
+Qed.
+
+Global Instance Reflexive_eqit `{Reflexive _ RR} b1 b2 : Reflexive (eqit b1 b2).
+Proof.
+  red; intros. ginit. apply Reflexive_eqit_gen.
+Qed.
+
+Global Instance Symmetric_eqit `{Symmetric _ RR} b : Symmetric (eqit b b).
+Proof.
+  red; intros. apply eqit_flip.
+  eapply eqit_mon, H0; eauto.
+Qed.
+End EqLift.
+
+Global Instance eutt_rel_refl {E R} {r : R -> R -> Prop} `{Reflexive _ r} : Reflexive (@eutt E R R r).
+Proof.
+  red. einit. ecofix CH.
+  intros x.
+  rewrite itree_eta in *. destruct (observe x); estep.
+Qed.
+  
+
+Global Instance eutt_rel_sym {E R} {r : R -> R -> Prop} `{Symmetric _ r} : Symmetric (@eutt E R R r).
+Proof.
+  red. einit. ecofix CH.
+  intros x y EQ.
+  rewrite itree_eta, (itree_eta x).
+  punfold EQ. red in EQ.
+  induction EQ; pclearbot; auto.
+  - eret.
+  - etau.
+  - evis. intros. ebase.
+  - rewrite tau_eutt. rewrite (itree_eta t1). apply IHEQ.
+  - rewrite tau_eutt. rewrite itree_eta. apply IHEQ.
+Qed.
+
+Global Instance eutt_rel_trans {E R} {r : R -> R -> Prop} `{Transitive _ r} : Transitive (@eutt E R R r).
+Proof.
+Admitted.
+
+Global Instance eutt_rel_equiv {E R} {r : R -> R -> Prop} `{Equivalence _ r} : Equivalence (@eutt E R R r).
+Proof.
+  constructor; typeclasses eauto.
+Qed.

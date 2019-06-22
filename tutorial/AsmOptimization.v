@@ -100,66 +100,9 @@ constructor; typeclasses eauto.
 Qed.
 
 
-(* SAZ: TODO: Move this elsewhere, it belong with the Basics *)
-Section ProdRel.
-  Context {R S : Type}.
-  Context (RR : R -> R -> Prop).
-  Context (SS : S -> S -> Prop).
-
-  Global Instance prod_rel_refl `{Reflexive _ RR} `{Reflexive _ SS} : Reflexive (prod_rel RR SS).
-  Proof.
-    red. destruct x. constructor; auto.
-  Qed.
-  
-  Global Instance prod_rel_sym `{Symmetric _ RR} `{Symmetric _ SS}  : Symmetric (prod_rel RR SS).
-  Proof.
-    red. intros. 
-    inversion H1. subst.
-    constructor; symmetry; auto.
-  Qed.
-
-  Global Instance prod_rel_trans `{Transitive _ RR} `{Transitive _ SS}  : Transitive (prod_rel RR SS).
-  Proof.
-    red.
-    intros.
-    inversion H1.
-    inversion H2.
-    subst.
-    inversion H9; subst.
-    constructor; etransitivity; eauto.
-  Qed.
-
-  Global Instance prod_rel_eqv `{Equivalence _ RR} `{Equivalence _ SS} : Equivalence (prod_rel RR SS).
-  Proof.
-    constructor; typeclasses eauto.
-  Qed.
-
-  End ProdRel.
 
 Definition rel_asm {B} : memory * (registers * B) -> memory * (registers * B) -> Prop := 
   prod_rel EQ_memory (prod_rel (EQ_registers 0) eq).
-
-
-
-Global Instance eutt_rel_asm_refl {E R} {r : R -> R -> Prop} `{Reflexive _ r} : Reflexive (@eutt E R R r).
-Proof.
-  (* SAZ: Should this be in the library? *)
-Admitted.
-
-Global Instance eutt_rel_asm_sym {E R} {r : R -> R -> Prop} `{Symmetric _ r} : Symmetric (@eutt E R R r).
-Proof.
-  (* SAZ: Should this be in the library? *)
-Admitted.
-
-Global Instance eutt_rel_asm_trans {E R} {r : R -> R -> Prop} `{Transitive _ r} : Transitive (@eutt E R R r).
-Proof.
-  (* SAZ: Should this be in the library? *)
-Admitted.
-
-Global Instance eutt_rel_asm_equiv {E R} {r : R -> R -> Prop} `{Equivalence _ r} : Equivalence (@eutt E R R r).
-Proof.
-  constructor; typeclasses eauto.
-Qed.
 
 
 (** The definition [interp_asm] also induces a notion of equivalence (open)
@@ -186,28 +129,6 @@ Definition EQ_asm {E A} (f g : memory -> registers -> itree E _) : Prop :=
     eutt (@rel_asm A) (f mem1 regs1) (g mem2 regs2).
 
 Infix "≡" := EQ_asm (at level 70).
-
-
-(* SAZ: I'm not sure that this can be proved without coinduction on t.
-   It probably belongs in the state part of the library, along with the
-   appropriate definition of eutt, etc.
-
-   It also depends crucially on the fact that the handlers respect
-   the equivalence on the state maps.     
- *)
-(*
-Lemma interp_asm_id:
-  forall (t : itree (Reg +' Memory +' Exit) unit),
-    (interp_asm t) ≡ (interp_asm t).
-Proof.
-  intros t mem1 mem2 regs1 regs2 H1 H2.
-  unfold interp_asm.
-  unfold run_map.
-  unfold interp_state.
-  pose proof @eutt_interp.
-Admitted.    
-*)
-
 
 
 Lemma interp_asm_ret_tt : forall (t : itree (Reg +' Memory +' Exit) unit),
