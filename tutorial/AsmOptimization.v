@@ -140,6 +140,7 @@ Definition rel_asm {B} : memory * (registers * B) -> memory * (registers * B) ->
   prod_rel EQ_memory (prod_rel (EQ_registers 0) eq).
 
 
+
 Global Instance eutt_rel_asm_refl {E R} {r : R -> R -> Prop} `{Reflexive _ r} : Reflexive (@eutt E R R r).
 Proof.
   (* SAZ: Should this be in the library? *)
@@ -215,7 +216,6 @@ Proof.
   intros t mem1 mem2 regs1 regs2 H1 H2.
   rewrite interp_asm_bind.
   rewrite <- bind_ret2 at 1.
-  About eutt_clo_bind.
   apply (@eutt_clo_bind _ _ _ _ _ _ rel_asm).
   { unfold interp_asm.
     unfold rel_asm.

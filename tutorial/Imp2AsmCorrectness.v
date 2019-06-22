@@ -368,10 +368,10 @@ Section Bisimulation.
     eapply H0; eauto.
   Qed.
 
-  (* SAZ + LX: again, typeclass resolution doesn't find Aloop_itree.  Maybe universes get in the way? *)
-  Notation loop' := (@loop _ _ (ALoop_itree) _ _ _).
+  (* (* SAZ + LX: again, typeclass resolution doesn't find Aloop_itree.  Maybe universes get in the way? *) *)
+  (* Notation loop' := (@loop _ _ (ALoop_itree) _ _ _). *)
     
-  (** [eq_locals] is compatible with [loop]. *)
+  (** [bisimilar] is compatible with [loop]. *)
 
   (*
   Lemma bisimilar_loop {A B C E} x
@@ -804,13 +804,16 @@ Section Correctness.
   Definition TT {A B}: A -> B -> Prop  := fun _ _ => True.
   Hint Unfold TT.
 
-  
   Definition equivalent (s:stmt) (t:asm 1 1) : Prop :=
     bisimilar TT (denote_stmt s) (denote_asm t F1).
   
-  Opaque eutt.
 
 
+
+  Inductive RI : (unit + unit) -> (unit + unit + unit) -> Prop :=
+  | RI_inl : RI (inl tt) (inl (inl tt))
+  | RI_inr : RI (inr tt) (inr tt).
+    
   (* Utility: slight rephrasing of [while] to facilitate rewriting
      in the main theorem.*)
   Lemma while_is_loop {E} (body : itree E (unit+unit)) :
@@ -835,18 +838,21 @@ Section Correctness.
     2 : {
       force_right. reflexivity.
     }
-  Admitted.
-  (* TODO: Fix this
-    match goal with
-    | [ |- _ (_ ?f _) (_ ?g _) ] =>
-      epose proof (Proper_iter f g) as Hfg; apply Hfg; clear Hfg
-    end.
-    intros [[]|[]]; simpl; [| reflexivity].
-    unfold ITree.map.
-    eapply eutt_clo_bind; try reflexivity.
-    intros; subst. destruct u2; reflexivity.
+    unfold KTree.iter, Iter_ktree.
+    apply eutt_aloop' with (RI:=RI).
+    - intros.
+      inversion H.
+      + subst. econstructor.
+        rewrite <- ret_bind.
+        eapply eutt_clo_bind. rewrite ret_bind. reflexivity.
+        intros. subst.
+        destruct u2. unfold ret, Monad_itree.
+        * apply eqit_Ret. destruct u. assumption.
+        * apply eqit_Ret. destruct u. constructor.
+      + subst. econstructor. reflexivity.
+    - constructor.
   Qed.
-  *)
+
 
 Definition to_itree' {E A} (f : sktree E 1 A) : itree E (F A) := f F1.
 Lemma fold_to_itree' {E} (f : sktree E 1 1) : f F1 = to_itree' f.
