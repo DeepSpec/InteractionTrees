@@ -99,6 +99,29 @@ Global Instance EQ_memory_eqv : Equivalence (EQ_memory).
 constructor; typeclasses eauto.
 Qed.
 
+(* TODO - remove these when Eq.v is fixed *)
+Section EuttRelInstances.
+  Context {R : Type}.
+  Context (RR : R -> R -> Prop).
+
+  Global Instance eutt_rel_refl {E} `{Reflexive _ RR} : Reflexive (@eutt E _ _ RR).
+  Proof.
+  Admitted.
+  
+  Global Instance eutt_rel_sym {E} `{Symmetric _ RR} : Symmetric (@eutt E _ _ RR).
+  Proof.
+  Admitted.
+
+  Global Instance eutt_rel_trans {E} `{Transitive _ RR} : Transitive (@eutt E _ _ RR).
+  Proof.
+  Admitted.
+    
+  Global Instance eutt_rel_eqv {E} `{Equivalence _ RR} : Equivalence (@eutt E _ _ RR).
+  Proof.
+    constructor; typeclasses eauto.
+  Qed.
+
+End EuttRelInstances.
 
 
 Definition rel_asm {B} : memory * (registers * B) -> memory * (registers * B) -> Prop := 
@@ -122,14 +145,13 @@ Definition optimization_correct A B (opt:optimization) :=
   forall (p : asm A B),
     eq_asm_EQ p (opt p).
 
-Definition EQ_asm {E A} (f g : memory -> registers -> itree E _) : Prop :=
+Definition EQ_asm {E A} (f g : memory -> registers -> itree E (memory * (registers * A))) : Prop :=
   forall mem1 mem2 regs1 regs2,
     EQ_memory mem1 mem2 ->
     EQ_registers 0 regs1 regs2 ->
     eutt (@rel_asm A) (f mem1 regs1) (g mem2 regs2).
 
 Infix "≡" := EQ_asm (at level 70).
-
 
 Lemma interp_asm_ret_tt : forall (t : itree (Reg +' Memory +' Exit) unit),
     (interp_asm t) ≡ (interp_asm (t ;; Ret tt)).

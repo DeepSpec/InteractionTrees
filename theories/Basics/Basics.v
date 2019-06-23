@@ -3,7 +3,11 @@
 (** Not specific to itrees. *)
 
 (* begin hide *)
-From Coq Require Ensembles.
+From Coq Require 
+     Ensembles.
+
+From Coq Require Import
+     RelationClasses.
 
 From ExtLib Require Import
      Structures.Functor
