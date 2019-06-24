@@ -367,42 +367,6 @@ Section Bisimulation.
     eapply H0; eauto.
   Qed.
 
-  (* (* SAZ + LX: again, typeclass resolution doesn't find Aloop_itree.  Maybe universes get in the way? *) *)
-  (* Notation loop' := (@loop _ _ (ALoop_itree) _ _ _). *)
-    
-  (** [bisimilar] is compatible with [loop]. *)
-
-  (*
-  Lemma bisimilar_loop {A B C E} x
-        (t1 : C + A -> itree (ImpState +' E) (C + B)) 
-        (t2 : C + A -> itree (Reg +' Memory +' E) (C + B)) :
-    (forall l, bisimilar (t1 l) (t2 l)) ->
-    bisimilar (loop' t1 x) (loop' t2 x).
-  Proof.
-    unfold bisimilar, interp_asm, interp_imp, run_map.
-    intros.
-    setoid_rewrite interp_loop.
-    pose proof @interp_state_loop.
-    red in H1.
-    setoid_rewrite H1.
-    pose proof @interp_state_loop2.
-    red in H2.
-    setoid_rewrite H2.
-    unfold loop. cbn.
-    unfold aloop. unfold ALoop_stateT0. unfold aloop. unfold ALoop_itree.
-    eapply eutt_clo_bind.
-    apply H. assumption.
-    intros.
-    eapply eutt_aloop' with (RI := state_invariant).
-    2 : { destruct H3. red.  simpl. tauto. }
-    
-    intros.
-    destruct H4. setoid_rewrite H5.
-    destruct j2 as [m1 [m2 [a|a]]]; cbn.
-
-    - constructor. eapply H. apply H4.
-    - constructor. red. cbn in *. tauto.
-*)
 
   Lemma interp_state_aloop' {E F } S (f : E ~> stateT S (itree F)) {I A}
       (t  : I -> itree E I + A)
@@ -414,7 +378,6 @@ Section Bisimulation.
     destruct (t i); constructor; auto. red.  intros.
     reflexivity.
   Qed.
-
 
   
   Lemma bisimilar_iter {E A A' B B'}
@@ -484,12 +447,10 @@ End Bisimulation.
 (* ================================================================= *)
 (** ** Linking *)
 
-(** We first show that our "high level" [asm] combinators are correct.
-    These proofs are mostly independent from the compiler, and therefore
-    fairly reusable.
-    Once again, these notion of correctness are expressed as equations
-    commuting the denotation with the combinator.
- *)
+(** We first show that our "high level" [asm] combinators are correct.  These
+    proofs are mostly independent from the compiler, and therefore fairly
+    reusable.  Once again, these notion of correctness are expressed as
+    equations commuting the denotation with the combinator.  *)
 
 Section Linking.
 
@@ -508,7 +469,15 @@ Section Linking.
 
   (** [if_asm] is denoted as the ktree first denoting the branching condition,
       then looking-up the appropriate variable and following with either denotation. *)
-  (* This proof should be nicer. *)
+
+  (* SAZ: This proof and the following one should be made nicer.
+     Part of the problem is that some of the details of the Label types leak through
+     the interface.  It would be better to extend the Embedding and SubKTree interfaces
+     to better preserve the abstractions.  
+
+     We should not have to unfold [isum_suml], [merge], etc. We would have to figure out
+     the right way to abstract properties like: [split_fin_sum_FS_inr].
+  *) 
   Lemma if_asm_correct {A} (e : list instr) (tp fp : asm 1 A) :
       denote_asm (if_asm e tp fp)
     ⩯ ((fun _ =>
