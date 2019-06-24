@@ -329,21 +329,21 @@ Section Correctness.
       lifted as [ktree]s.
    *)
   Lemma relabel_bks_correct: forall {A B C D: nat} (f: iFun A B) (g: iFun C D) k,
-      denote_b (relabel_bks f g k) ⩯
-               lift_sktree f >>> denote_b k >>> lift_sktree g. 
+      denote_bks (relabel_bks f g k) ⩯
+               lift_sktree f >>> denote_bks k >>> lift_sktree g. 
   Proof.
     intros.
     rewrite lift_compose_sktree, compose_sktree_lift.
-    unfold relabel_bks, denote_b.
+    unfold relabel_bks, denote_bks.
     intros a; rewrite fmap_block_map; reflexivity.
   Qed.
 
   Lemma app_bks_correct: forall {A B C D: nat} (ab: bks A B) (cd: bks C D),
-    denote_b (app_bks ab cd) ⩯ bimap (denote_b ab) (denote_b cd).
+    denote_bks (app_bks ab cd) ⩯ bimap (denote_bks ab) (denote_bks cd).
   Proof.
     intros.
     rewrite unfold_bimap.
-    unfold app_bks, denote_b.
+    unfold app_bks, denote_bks.
     intros ?.
     unfold bimap, Bimap_Coproduct, case_, CoprodCase_Kleisli, case_sum.
     unfold cat, Cat_Kleisli, ITree.cat, isum_suml, isum_sum, sum_isuml, sum_isum, FinSum, merge_fin_sum, lift_ktree.
@@ -591,7 +591,7 @@ Section Correctness.
     subst lhs.
     apply Proper_loop.
     rewrite !cat_assoc.
-    repeat rewrite <- (cat_assoc _ _ (bimap (denote_b _) (denote_b _) >>> _)).
+    repeat rewrite <- (cat_assoc _ _ (bimap (denote_bks _) (denote_bks _) >>> _)).
     cbn. rewrite relabel_bks_correct, app_bks_correct.
     rewrite cat_assoc.
 

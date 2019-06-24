@@ -429,7 +429,7 @@ Proof.
   intros. 
   inversion H0; subst.
   simpl in *.
-  unfold denote_b.
+  unfold denote_bks.
   unfold iter, Iter_sktree.
   repeat rewrite interp_iter.
   unfold KTree.iter, Iter_ktree.

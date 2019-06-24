@@ -212,7 +212,7 @@ Section Denote.
       exit the loop, and the [inl tt] says to continue.  *)
 
   (* SAZ + LX - for some reason typeclass resolution can't see the instance for 
-     ALoop_itree, even though it seems to be in scope. *)
+     Iter_ktree, even though it seems to be in scope. *)
   Definition while (step : itree eff (unit + unit)) : itree eff unit :=
     @iter _ _ _ Iter_ktree _ _ (fun _ => step) tt.
     

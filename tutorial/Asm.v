@@ -77,8 +77,9 @@ Global Arguments block _ : clear implicits.
 
 (** A piece of code should expose the set of labels allowing to enter into it,
     as well as the set of outer labels it might jump to.  To this end, [bks]
-    represents a collection of blocks labeled by [A], with branches in [B]. *)
-(* TODO: explain [F A] *)
+    represents a collection of blocks labeled by [F A], with branches in [F B]. 
+*)
+
 Definition bks A B := F A -> block (F B).
 
 
@@ -227,23 +228,23 @@ Section Denote.
           algebraic structure, supported by the library, including a [loop]
           combinator that we can use to link collections of basic blocks. (See
           below.) *)
-      Definition denote_b (bs: bks A B): sktree E A B :=
+      Definition denote_bks (bs: bks A B): sktree E A B :=
         fun a => denote_block (bs a).
 
     End with_labels.
 
   (** One can think of an [asm] program as a circuit/diagram where wires
-      correspond to jumps/program links.  [denote_b] computes the meaning of
+      correspond to jumps/program links.  [denote_bks] computes the meaning of
       each basic block as an [itree] that returns the label of the next block to
       jump to, laying down all our elementary wires.  In order to denote an [asm
       A B] program as a [ktree E A B], it therefore remains to wire all those
       denoted blocks together while hiding the internal labels.  Luckily, that
       is exactly what traced monoidal category are good for.  We therefore
       accomplish this with the same [loop] combinator we used to denote _Imp_'s
-      [while] loop.  It directly takes our [denote_b (code s): ktree E (I + A)
+      [while] loop.  It directly takes our [denote_bks (code s): ktree E (I + A)
       (I + B)] and hides [I] as desired.  *)
     Definition denote_asm {A B} : asm A B -> sktree E A B :=
-      fun s => sloop (denote_b (code s)).
+      fun s => sloop (denote_bks (code s)).
 
   End with_event.
 End Denote.
@@ -313,8 +314,7 @@ Definition memory    := alist addr value.
 *)
 Definition interp_asm {E A} (t : itree (Reg +' Memory +' E) A) :
   memory -> registers -> itree E (memory * (registers * A)) :=
-  let h := bimap map_reg (bimap map_memory
-                                 (id_ _)) in
+  let h := bimap map_reg (bimap map_memory (id_ _)) in
   let t' := interp h t in
   fun  mem regs => run_map (run_map t' regs) mem.
 
