@@ -1,7 +1,7 @@
 (** * Compilation of Imp to Asm *)
 
 (** We are now ready to define our compiler.
-    The compilation of [expr]essions is of no interest.
+    The compilation of [expr]essions is of little interest.
     The interesting part is in the structure of the
     compilation of instructions: we build higher level
     [asm] combinators from the primitive ones defined
@@ -42,12 +42,8 @@ Open Scope string_scope.
 
 Section compile_assign.
 
-  (** We use a simple scheme to ensure disjointness of user variables from local
-  ones introduced by the compiler: the former ones get prefix by "temp_", the latter
-  ones by "local_". *)
-
   (** Expressions are compiled straightforwardly.
-      The argument [l] is the number of local variables already introduced to compile
+      The argument [l] is the number of registers already introduced to compile
       the expression, and is used for the name of the next one.
       The result of the computation [compile_expr l e] always ends up stored in [l]. 
    *)
