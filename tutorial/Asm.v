@@ -322,7 +322,7 @@ Definition interp_asm {E A} (t : itree (Reg +' Memory +' E) A) :
 (** We can then define an evaluator for closed assembly programs by interpreting
     both store and heap events into two instances of [mapE], and running them
     both in the empty initial environments.  *)
-Definition run_asm (p: asm 1 0) := interp_asm (denote_asm p Fin.F1) empty empty.
+Definition run_asm (p: asm 1 0) := interp_asm (denote_asm p Label.f1) empty empty.
 
 (* SAZ: Should some of thes notions of equivalence be put into the library?
    SAZ: Should this be stated in terms of ktree ?

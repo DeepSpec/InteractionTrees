@@ -17,7 +17,7 @@
 *)
 
 (* begin hide *)
-Require Import Imp Asm Utils_tutorial AsmCombinators.
+Require Import Imp Asm Label Utils_tutorial AsmCombinators.
 
 Require Import Psatz.
 
@@ -27,7 +27,6 @@ From Coq Require Import
      Setoid
      Decimal
      Numbers.DecimalString
-     Vectors.Fin
      ZArith
      RelationClasses.
 
@@ -125,7 +124,7 @@ Definition tmp_if := 0.
     expression of a _if_ to a block with two exit points.
  *)
 Definition cond_asm (e : list instr) : asm 1 2 :=
-  raw_asm_block (after e (Bbrz tmp_if (FS F1) F1)).
+  raw_asm_block (after e (Bbrz tmp_if (FS f1) f1)).
 
 
 (** Conditional branch of blocks.
@@ -184,7 +183,7 @@ Definition while_asm (e : list instr) (p : asm 1 1) :
 Fixpoint compile (s : stmt) {struct s} : asm 1 1 :=
   match s with
   | Skip       => id_asm
-  | Assign x e => raw_asm_block (after (compile_assign x e) (Bjmp F1))
+  | Assign x e => raw_asm_block (after (compile_assign x e) (Bjmp f1))
   | Seq l r    => seq_asm (compile l) (compile r)
   | If e l r   => if_asm (compile_expr 0 e) (compile l) (compile r)
   | While e b  => while_asm (compile_expr 0 e) (compile b)

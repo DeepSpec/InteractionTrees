@@ -26,7 +26,6 @@ From Coq Require Import
      List
      Strings.String
      Program.Basics
-     Vectors.Fin
      ZArith
      Morphisms.
 Import ListNotations.
@@ -256,13 +255,17 @@ Section Correctness.
 
   Lemma unit_l'_id_sktree {n : nat} : (@unit_l' _ (sktree E) plus 0 _ n) ⩯ id_ n.
   Proof.
-    intros ?. tau_steps; symmetry; tau_steps. reflexivity.
+    intros ?. tau_steps; symmetry; tau_steps. rewrite R_0_a. unfold id.
+    reflexivity.
   Qed.
+
 
   Lemma unit_l_id_sktree {n : nat} : (@unit_l _ (sktree E) plus 0 _ n) ⩯ id_ n.
   Proof.
-    intros ?. tau_steps; symmetry; tau_steps. reflexivity.
+    intros ?. tau_steps; symmetry; tau_steps. rewrite split_fin_sum_0_a.
+    reflexivity.
   Qed.
+
 
   Lemma raw_asm_correct {A B} (b : bks A B) :
     denote_asm (raw_asm b) ⩯ (fun a => denote_block (b a)).
@@ -293,7 +296,7 @@ Section Correctness.
   Qed.
 
   Lemma raw_asm_block_correct {A} (b : block (F A)) :
-    (denote_asm (raw_asm_block b) F1) ≈ (denote_block b).
+    (denote_asm (raw_asm_block b) f1) ≈ (denote_block b).
   Proof.
     apply raw_asm_block_correct_lifted.
   Qed.
@@ -350,7 +353,7 @@ Section Correctness.
 
     {
     rewrite bind_bind.
-    rewrite (fmap_block_map (ab t)).
+    rewrite (fmap_block_map (ab f)).
     unfold ITree.map.
     apply eqit_bind; [intros ? | reflexivity].
     unfold inl_, CoprodInl_Kleisli, lift_ktree.
@@ -358,7 +361,7 @@ Section Correctness.
     }
     {
     rewrite bind_bind.
-    rewrite (fmap_block_map (cd t)).
+    rewrite (fmap_block_map (cd f)).
     unfold ITree.map.
     apply eqit_bind; [intros ? | reflexivity].
     unfold inr_, CoprodInr_Kleisli, lift_ktree.
