@@ -1,11 +1,14 @@
 (** * Main module with theorems *)
 
+
 From ITree Require Export
      Basics.Basics
      Basics.Category
+     Basics.MonadTheory
+     Basics.CategoryKleisli
+     Basics.CategoryKleisliFacts
      Basics.FunctionFacts
      Core.ITreeDefinition
-     Core.KTreeBasicFacts
      Core.KTreeFacts
      Indexed.FunctionFacts
      Interp.TranslateFacts

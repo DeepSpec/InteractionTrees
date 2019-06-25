@@ -205,8 +205,8 @@ Local Inductive interleaved
 
 Hint Constructors interleaved.
 
-Let hg := case_ g inr_.
-Let hf := case_ f inr_.
+Let hg := @case_ _ Handler _ _ _ _ _ g inr_.
+Let hf := @case_ _ Handler _ _ _ _ _ f inr_.
 
 Theorem interleaved_mrec : forall t1 t2,
     interleaved t1 t2 ->

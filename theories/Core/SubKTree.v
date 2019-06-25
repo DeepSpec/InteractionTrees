@@ -90,17 +90,19 @@ Section SubK.
     (* Utility function to lift a pure ([iFun]) computation into sktree *)
     Definition lift_sktree {A B: i} (f : F A -> F B) : sktree A B := lift_ktree f. 
 
-    Definition iI_voidl {E} := @lift_ktree E _ _ iI_void.
-    Definition void_iIl {E} := @lift_ktree E _ _ void_iI.
+    Definition iI_voidl {E} := lift_ktree_ E _ _ iI_void.
+    Definition void_iIl {E} := lift_ktree_ E _ _ void_iI.
 
-    Definition isum_suml {E A B} := @lift_ktree E _ _ (@isum_sum _ _ _ _ A B).
-    Definition sum_isuml {E A B} := @lift_ktree E _ _ (@sum_isum _ _ _ _ A B).
+    Definition isum_suml {E A B} := lift_ktree_ E _ _ (@isum_sum _ _ _ _ A B).
+    Definition sum_isuml {E A B} := lift_ktree_ E _ _ (@sum_isum _ _ _ _ A B).
     
     (** *** Category *)
 
+    
     Definition eutt_sktree {A B} (d1 d2 : sktree A B) := @eq2 _ (ktree E) _ _ _ d1 d2.
     Global Instance Eq2_sktree : Eq2 sktree := @eutt_sktree.
 
+    
     (** Composition *)
     Global Instance Cat_sktree : Cat sktree :=
       fun (A B C: i) (k: ktree E (F A) (F B)) (k': ktree E (F B) (F C)) => cat k k': ktree E _ _.

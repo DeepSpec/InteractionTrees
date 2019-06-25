@@ -10,6 +10,7 @@ From ExtLib Require Import
 From ITree Require Import
      Basics.Basics
      Basics.CategoryOps
+     Basics.CategoryKleisli
      Core.ITreeDefinition
      Indexed.Function
      Indexed.Sum
@@ -51,6 +52,9 @@ Section State.
       | Put s' => Ret (s', tt)
       end.
 
+  (* SAZ: this is the instance for the hypothetical "Trigger E M" typeclass.
+    Class Trigger E M := trigger : E ~> M 
+  *)
   Definition pure_state {S E} : E ~> stateT S (itree E)
     := fun _ e s => Vis e (fun x => Ret (s, x)).
 
@@ -63,6 +67,7 @@ End State.
 Arguments get {S E _}.
 Arguments put {S E _}.
 Arguments run_state {S E} [_] _ _.
+
 
 (* todo(gmm): this can be stronger if we allow for a `can_returnE` *)
 Inductive can_return {E : Type -> Type} {t : Type} : itree E t -> t -> Prop :=
@@ -120,3 +125,5 @@ Section eff_hom_e.
       end) (h, t).
 
 End eff_hom_e.
+
+

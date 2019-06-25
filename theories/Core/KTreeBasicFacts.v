@@ -1,3 +1,5 @@
+(* SAZ: This entire file should be supplanted by CategoryKleisliFacts for the m = itree E instance *)
+
 (** * Theorems about the cocartesian category of KTrees *)
 
 (** Theorems about [loop] are separate, in [ITree.Core.KTreeFacts]. *)
@@ -14,6 +16,8 @@ From Paco Require Import paco.
 From ITree Require Import
      Basics.Basics
      Basics.Category
+     Basics.CategoryKleisli
+     Basics.CategoryKleisliFacts
      Basics.Function
      Basics.FunctionFacts
      Core.ITreeDefinition
@@ -40,28 +44,16 @@ Section UnfoldLemmas.
 
 Local Opaque ITree.bind' eqit.
 
-Lemma assoc_l_itree {E A B C} (x : A + (B + C)) :
-  assoc_l_ A B C x ≅ @lift_ktree E (A + (B + C)) _ assoc_l x.
-Proof.
-  cbv; destruct x as [ | []]; try rewrite bind_ret; reflexivity.
-Qed.
-
-Lemma assoc_r_itree {E A B C} (x : (A + B) + C) :
-  assoc_r_ A B C x ≅ @lift_ktree E ((A + B) + C) _ assoc_r x.
-Proof.
-  cbv; destruct x as [ [] | ]; try rewrite bind_ret; reflexivity.
-Qed.
-
 Lemma assoc_l_ktree {E A B C} :
-  assoc_l ⩯ @lift_ktree E (A + (B + C)) _ assoc_l.
+  assoc_l ⩯ lift_ktree_ E (A + (B + C)) _ assoc_l.
 Proof.
   cbv; intros [ | [] ]; try rewrite !bind_ret; reflexivity.
 Qed.
 
 Lemma assoc_r_ktree {E A B C} :
-  assoc_r ⩯ @lift_ktree E ((A + B) + C) _ assoc_r.
+  assoc_r ⩯ lift_ktree_ E ((A + B) + C) _ assoc_r.
 Proof.
-  intros ?; rewrite <- assoc_r_itree; reflexivity.
+  cbv; intros [ [] | ]; try rewrite bind_ret; reflexivity.
 Qed.
 
 End UnfoldLemmas.
@@ -78,7 +70,7 @@ Global Instance eq_ktree_compose {A B C} :
 Proof.
   intros ab ab' eqAB bc bc' eqBC.
   intro a.
-  unfold cat, Cat_ktree, ITree.cat.
+  unfold cat, Cat_Kleisli; cbn.
   rewrite (eqAB a).
   einit. ebind. econstructor; try reflexivity.
   intros; subst. specialize (eqBC u2). efinal.
@@ -88,7 +80,7 @@ Qed.
 Global Instance CatAssoc_ktree : CatAssoc (ktree E).
 Proof.
   intros A B C D f g h a.
-  unfold cat, Cat_ktree, ITree.cat.
+  unfold cat, Cat_Kleisli; cbn.
   rewrite bind_bind.
   reflexivity.
 Qed.
@@ -96,13 +88,13 @@ Qed.
 (** *** [id_ktree] respect identity laws *)
 Global Instance CatIdL_ktree : CatIdL (ktree E).
 Proof.
-  intros A B f a; unfold cat, Cat_ktree, ITree.cat, id_, Id_ktree.
+  intros A B f a; unfold cat, Cat_Kleisli, id_, Id_Kleisli; cbn.
   rewrite bind_ret. reflexivity.
 Qed.
 
 Global Instance CatIdR_ktree : CatIdR (ktree E).
 Proof.
-  intros A B f a; unfold cat, Cat_ktree, ITree.cat, id_, Id_ktree.
+  intros A B f a; unfold cat, Cat_Kleisli, ITree.cat, id_, Id_Kleisli; cbn.
   rewrite <- (bind_ret2 (f a)) at 2.
   reflexivity.
 Qed.
@@ -128,23 +120,23 @@ Local Open Scope cat.
 (** *** [lift_ktree] is well-behaved *)
 
 Global Instance eq_lift_ktree {A B} :
-  Proper (eq2 ==> eq2) (@lift_ktree E A B).
+  @Proper (Fun A B -> ktree E A B) (eq2 ==> eq2) lift_ktree.
 Proof.
   repeat intro.
-  unfold lift_ktree.
+  unfold lift_ktree, pure, Monad.ret, Monad_itree.
   erewrite (H a); reflexivity.
 Qed.
 
-Lemma lift_ktree_id {A: Type}: (id_ A ⩯ @lift_ktree E A A (id_ A))%cat.
+Lemma lift_ktree_id {A: Type}: (id_ A ⩯ lift_ktree_ E A A (id_ A))%cat.
 Proof.
   reflexivity.
 Qed.
 
 Fact compose_lift_ktree {A B C} (ab : A -> B) (bc : B -> C) :
-  (@lift_ktree E _ _ ab >>> lift_ktree bc ⩯ lift_ktree (ab >>> bc))%cat.
+  (lift_ktree_ E _ _ ab >>> lift_ktree bc ⩯ lift_ktree (ab >>> bc))%cat.
 Proof.
   intros a.
-  unfold lift_ktree, cat, Cat_ktree, ITree.cat.
+  unfold lift_ktree, cat, Cat_Kleisli; cbn.
   rewrite bind_ret.
   reflexivity.
 Qed.
@@ -169,7 +161,7 @@ Fact lift_compose_ktree {A B C}: forall (f:A -> B) (bc: ktree E B C),
     lift_ktree f >>> bc ⩯ fun a => bc (f a).
 Proof.
   intros; intro a.
-  unfold lift_ktree, cat, Cat_ktree, ITree.cat.
+  unfold lift_ktree, cat, Cat_Kleisli; cbn.
   rewrite bind_ret. reflexivity.
 Qed.
 
@@ -181,7 +173,7 @@ Proof.
 Qed.
 
 Lemma sym_ktree_unfold {A B}:
-  @lift_ktree E (A + B) (B + A) swap ⩯ swap.
+  lift_ktree_ E (A + B) _ swap ⩯ swap.
 Proof.
   intros []; reflexivity.
 Qed.
@@ -194,9 +186,10 @@ Context {E : Type -> Type}.
 
 Local Open Scope cat.
 
+
 Fact lift_case_sum {A B C} (ac : A -> C) (bc : B -> C) :
-    case_ (@lift_ktree E _ _ ac) (lift_ktree bc)
-  ⩯ lift_ktree (case_ ac bc).
+    case_ (lift_ktree_ E _ _ ac) (lift_ktree bc)
+  ⩯ lift_ktree (case__ Fun ac bc).
 Proof.
   intros []; reflexivity.
 Qed.
@@ -206,25 +199,25 @@ Qed.
 (* This is probably generalizable into [Basics.Category]. *)
 
 Lemma unit_l_ktree (A : Type) :
-  unit_l ⩯ @lift_ktree E _ A unit_l.
+  unit_l ⩯ lift_ktree_ E (_ + A) _ unit_l.
 Proof.
   intros [[]|]. reflexivity.
 Qed.
 
 Lemma unit_l'_ktree (A : Type) :
-  unit_l' ⩯ @lift_ktree E A (void + A) unit_l'.
+  unit_l' ⩯ lift_ktree_ E A (void + A) unit_l'.
 Proof.
   reflexivity.
 Qed.
 
 Lemma unit_r_ktree (A : Type) :
-  unit_r ⩯ @lift_ktree E _ A unit_r.
+  unit_r ⩯ lift_ktree_ E (A + void) _ unit_r.
 Proof.
   intros [|[]]. reflexivity.
 Qed.
 
 Lemma unit_r'_ktree (A : Type) :
-  unit_r' ⩯ @lift_ktree E A (A + void) unit_r'.
+  unit_r' ⩯ lift_ktree_ E A (A + void) unit_r'.
 Proof.
   reflexivity.
 Qed.
@@ -240,7 +233,7 @@ Lemma case_l_ktree' {A B: Type} (f: @ktree E (void + A) (void + B)) :
   unit_l' >>> f ⩯ fun a => f (inr a).
 Proof.
   rewrite unit_l'_ktree.
-  intro. unfold cat, Cat_ktree, ITree.cat, lift_ktree.
+  intro. unfold cat, Cat_Kleisli, lift_ktree; cbn.
   rewrite bind_ret; reflexivity.
 Qed.
 
@@ -248,7 +241,7 @@ Lemma case_r_ktree' {A B: Type} (f: @ktree E (A + void) (B + void)) :
   unit_r' >>> f ⩯ fun a => f (inl a).
 Proof.
   rewrite unit_r'_ktree.
-  intro. unfold cat, Cat_ktree, ITree.cat, lift_ktree.
+  intro. unfold cat, Cat_Kleisli, lift_ktree; cbn.
   rewrite bind_ret; reflexivity.
 Qed.
 
@@ -264,7 +257,7 @@ Local Opaque paco2.
 Local Opaque eutt ITree.bind'.
 
 Fact bimap_id_lift {A B C} (f : B -> C) :
-  bimap (id_ A) (@lift_ktree E _ _ f) ⩯ lift_ktree (bimap (id_ A) f).
+  bimap (id_ A) (lift_ktree_ E _ _ f) ⩯ lift_ktree (bimap (id_ A) f).
 Proof.
   unfold bimap, Bimap_Coproduct.
   rewrite !cat_id_l, <- lift_case_sum, <- compose_lift_ktree.
@@ -272,7 +265,7 @@ Proof.
 Qed.
 
 Fact bimap_lift_id {A B C} (f : A -> B) :
-  bimap (@lift_ktree E _ _ f) (id_ C) ⩯ lift_ktree (bimap f id).
+  bimap (lift_ktree_ E _ _ f) (id_ C) ⩯ lift_ktree (bimap f id).
 Proof.
   unfold bimap, Bimap_Coproduct.
   rewrite !cat_id_l, <- lift_case_sum, <- compose_lift_ktree.
@@ -283,18 +276,18 @@ Global Instance Coproduct_ktree : Coproduct (ktree E) sum.
 Proof.
   constructor.
   - intros a b c f g.
-    unfold inl_, Inl_ktree.
+    unfold inl_, CoprodInl_Kleisli.
     rewrite lift_compose_ktree.
     reflexivity.
   - intros a b c f g.
-    unfold inr_, Inr_ktree.
+    unfold inr_, CoprodInr_Kleisli.
     rewrite lift_compose_ktree.
     reflexivity.
   - intros a b c f g fg Hf Hg [x | y].
-    + unfold inl_, Inl_ktree in Hf.
+    + unfold inl_, CoprodInl_Kleisli in Hf.
       rewrite lift_compose_ktree in Hf.
       specialize (Hf x). simpl in Hf. rewrite Hf. reflexivity.
-    + unfold inr_, Inr_ktree in Hg.
+    + unfold inr_, CoprodInr_Kleisli in Hg.
       rewrite lift_compose_ktree in Hg.
       specialize (Hg y). simpl in Hg. rewrite Hg. reflexivity.
   - typeclasses eauto.
