@@ -99,30 +99,6 @@ Global Instance EQ_memory_eqv : Equivalence (EQ_memory).
 constructor; typeclasses eauto.
 Qed.
 
-(* TODO - remove these when Eq.v is fixed *)
-Section EuttRelInstances.
-  Context {R : Type}.
-  Context (RR : R -> R -> Prop).
-
-  Global Instance eutt_rel_refl {E} `{Reflexive _ RR} : Reflexive (@eutt E _ _ RR).
-  Proof.
-  Admitted.
-  
-  Global Instance eutt_rel_sym {E} `{Symmetric _ RR} : Symmetric (@eutt E _ _ RR).
-  Proof.
-  Admitted.
-
-  Global Instance eutt_rel_trans {E} `{Transitive _ RR} : Transitive (@eutt E _ _ RR).
-  Proof.
-  Admitted.
-    
-  Global Instance eutt_rel_eqv {E} `{Equivalence _ RR} : Equivalence (@eutt E _ _ RR).
-  Proof.
-    constructor; typeclasses eauto.
-  Qed.
-
-End EuttRelInstances.
-
 
 Definition rel_asm {B} : memory * (registers * B) -> memory * (registers * B) -> Prop := 
   prod_rel EQ_memory (prod_rel (EQ_registers 0) eq).
