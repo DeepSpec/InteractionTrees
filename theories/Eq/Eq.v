@@ -215,10 +215,12 @@ Context {E : Type -> Type} {R1 R2 : Type} (RR : R1 -> R2 -> Prop).
 
 Inductive eqit_trans_clo b1 b2 b1' b2' (r : itree E R1 -> itree E R2 -> Prop)
   : itree E R1 -> itree E R2 -> Prop :=
-| eqit_trans_clo_intro t1 t2 t1' t2'
-      (EQVl: eqit eq b1 b1' t1 t1')
-      (EQVr: eqit eq b2 b2' t2 t2')
+| eqit_trans_clo_intro t1 t2 t1' t2' RR1 RR2
+      (EQVl: eqit RR1 b1 b1' t1 t1')
+      (EQVr: eqit RR2 b2 b2' t2 t2')
       (REL: r t1' t2')
+      (LERR1: forall x x' y, RR1 x x' -> RR x' y -> RR x y)
+      (LERR2: forall x y y', RR2 y y' -> RR x y' -> RR x y)
   : eqit_trans_clo b1 b2 b1' b2' r t1 t2
 .
 Hint Constructors eqit_trans_clo.
@@ -309,6 +311,79 @@ Hint Constructors eqit_trans_clo.
 
 (** Instances stating that we have equivalence relations. *)
 
+Section eqit_gen.
+
+(** *** Properties of relation transformers. *)
+
+Context {E : Type -> Type} {R: Type} (RR : R -> R -> Prop).
+
+Global Instance Reflexive_eqitF b1 b2 (sim : itree E R -> itree E R -> Prop)
+: Reflexive RR -> Reflexive sim -> Reflexive (eqitF RR b1 b2 id sim).
+Proof.
+  red. destruct x; constructor; eauto.
+Qed.
+
+Global Instance Symmetric_eqitF b (sim : itree E R -> itree E R -> Prop)
+: Symmetric RR -> Symmetric sim -> Symmetric (eqitF RR b b id sim).
+Proof.
+  red. induction 3; constructor; subst; eauto.
+  intros. apply H0. apply (REL v).
+Qed.
+
+Global Instance Reflexive_eqit_ b1 b2 (sim : itree E R -> itree E R -> Prop)
+: Reflexive RR -> Reflexive sim -> Reflexive (eqit_ RR b1 b2 id sim).
+Proof. repeat red. intros. reflexivity. Qed.
+
+Global Instance Symmetric_eqit_ b (sim : itree E R -> itree E R -> Prop)
+: Symmetric RR -> Symmetric sim -> Symmetric (eqit_ RR b b id sim).
+Proof. repeat red; symmetry; auto. Qed.
+
+(** *** [eqit] is an equivalence relation *)
+
+Global Instance Reflexive_eqit_gen b1 b2 (r rg: itree E R -> itree E R -> Prop) :
+  Reflexive RR -> Reflexive (gpaco2 (eqit_ RR b1 b2 id) (eqitC RR b1 b2) r rg).
+Proof.
+  gcofix CIH. gstep; intros.
+  repeat red. destruct (observe x); eauto with paco.
+Qed.
+
+Global Instance Reflexive_eqit b1 b2 : Reflexive RR -> Reflexive (@eqit E _ _ RR b1 b2).
+Proof.
+  red; intros. ginit. apply Reflexive_eqit_gen; eauto.
+Qed.
+
+Global Instance Symmetric_eqit b : Symmetric RR -> Symmetric (@eqit E _ _ RR b b).
+Proof.
+  red; intros. apply eqit_flip.
+  eapply eqit_mon, H0; eauto.
+Qed.
+
+Global Instance eq_sub_euttge:
+  subrelation (@eqit E _ _ RR false false) (eqit RR true false).
+Proof.
+  ginit. gcofix CIH. intros.
+  punfold H0. gstep. red in H0 |- *.
+  hinduction H0 before CIH; subst; econstructor; try inv CHECK; pclearbot; eauto 7 with paco.
+Qed.  
+
+Global Instance euttge_sub_eutt:
+  subrelation (@eqit E _ _ RR true false) (eqit RR true true).
+Proof.
+  ginit. gcofix CIH. intros.
+  punfold H0. gstep. red in H0 |- *.
+  hinduction H0 before CIH; subst; econstructor; pclearbot; eauto 7 with paco.
+Qed.
+
+Global Instance eq_sub_eutt:
+  subrelation (@eqit E _ _ RR false false) (eqit RR true true).
+Proof.
+  red; intros. eapply euttge_sub_eutt. eapply eq_sub_euttge. apply H.
+Qed.
+
+End eqit_gen.
+
+Hint Resolve Reflexive_eqit Reflexive_eqit_gen : reflexivity.
+
 Section eqit_eq.
 
 (** *** Properties of relation transformers. *)
@@ -317,58 +392,42 @@ Context {E : Type -> Type} {R : Type}.
 
 Local Notation eqit := (@eqit E R R eq).
 
-Global Instance Reflexive_eqitF b1 b2 (sim : itree E R -> itree E R -> Prop)
+Global Instance Reflexive_eqitF_eq b1 b2 (sim : itree E R -> itree E R -> Prop)
 : Reflexive sim -> Reflexive (eqitF eq b1 b2 id sim).
 Proof.
-  red. destruct x; constructor; eauto.
+  apply Reflexive_eqitF; eauto.
 Qed.
 
-Global Instance Symmetric_eqitF b (sim : itree E R -> itree E R -> Prop)
+Global Instance Symmetric_eqitF_eq b (sim : itree E R -> itree E R -> Prop)
 : Symmetric sim -> Symmetric (eqitF eq b b id sim).
 Proof.
-  red. induction 2; constructor; subst; eauto.
-  intros. apply H. apply (REL v).
+  apply Symmetric_eqitF; eauto.
 Qed.
 
-Global Instance Reflexive_eqit_ b1 b2 (sim : itree E R -> itree E R -> Prop)
+Global Instance Reflexive_eqit__eq b1 b2 (sim : itree E R -> itree E R -> Prop)
 : Reflexive sim -> Reflexive (eqit_ eq b1 b2 id sim).
-Proof. repeat red. reflexivity. Qed.
+Proof. apply Reflexive_eqit_; eauto. Qed.
 
-Global Instance Symmetric_eqit_ b (sim : itree E R -> itree E R -> Prop)
+Global Instance Symmetric_eqit__eq b (sim : itree E R -> itree E R -> Prop)
 : Symmetric sim -> Symmetric (eqit_ eq b b id sim).
-Proof. repeat red; symmetry; auto. Qed.
+Proof. apply Symmetric_eqit_; eauto. Qed.
 
 (** *** [eqit] is an equivalence relation *)
 
-Global Instance Reflexive_eqit_gen b1 b2 (r rg: itree E R -> itree E R -> Prop) :
-  Reflexive (gpaco2 (eqit_ eq b1 b2 id) (eqitC b1 b2) r rg).
+Global Instance Reflexive_eqit_gen_eq b1 b2 (r rg: itree E R -> itree E R -> Prop) :
+  Reflexive (gpaco2 (eqit_ eq b1 b2 id) (eqitC eq b1 b2) r rg).
 Proof.
-  gcofix CIH. gstep; intros.
-  repeat red. destruct (observe x); eauto with paco.
+  apply Reflexive_eqit_gen; eauto.
 Qed.
 
-Global Instance Reflexive_eqit b1 b2 : Reflexive (eqit b1 b2).
+Global Instance Reflexive_eqit_eq b1 b2 : Reflexive (eqit b1 b2).
 Proof.
-  red; intros. ginit. apply Reflexive_eqit_gen.
+  apply Reflexive_eqit; eauto.
 Qed.
 
-Global Instance Symmetric_eqit b : Symmetric (eqit b b).
+Global Instance Symmetric_eqit_eq b : Symmetric (eqit b b).
 Proof.
-  red; intros. apply eqit_flip.
-  eapply eqit_mon, H; eauto.
-Qed.
-
-Global Instance Transitive_eqit (b: bool) : Transitive (eqit false b).
-Proof.
-  ginit. intros.
-  guclo eqit_clo_trans; eauto.
-  econstructor; [reflexivity|..]; eauto with paco.
-  apply eqit_flip. eapply eqit_mon, H1; eauto.
-Qed.
-
-Global Instance Equivalence_eqit : Equivalence (eqit false false).
-Proof.
-  constructor; try typeclasses eauto.
+  apply Symmetric_eqit; eauto.
 Qed.
 
 (** *** Congruence properties *)
@@ -395,29 +454,7 @@ Global Instance observing_sub_eqit l r :
   subrelation (observing eq) (eqit l r).
 Proof.
   repeat red; intros. destruct H.
-  pstep. red. rewrite H. apply Reflexive_eqitF. left. apply reflexivity.
-Qed.
-
-Global Instance eq_sub_eqit:
-  subrelation (eqit false false) (eqit true false).
-Proof.
-  ginit. gcofix CIH. intros.
-  punfold H0. gstep. red in H0 |- *.
-  hinduction H0 before CIH; subst; econstructor; try inv CHECK; pclearbot; eauto 7 with paco.
-Qed.  
-
-Global Instance eqit_sub_eutt:
-  subrelation (eqit true false) (eqit true true).
-Proof.
-  ginit. gcofix CIH. intros.
-  punfold H0. gstep. red in H0 |- *.
-  hinduction H0 before CIH; subst; econstructor; pclearbot; eauto 7 with paco.
-Qed.
-
-Global Instance eq_sub_eutt:
-  subrelation (eqit false false) (eqit true true).
-Proof.
-  red; intros. eapply eqit_sub_eutt. eapply eq_sub_eqit. apply H.
+  pstep. red. rewrite H. apply Reflexive_eqitF; eauto. left. apply reflexivity.
 Qed.
 
 (** ** Eta-expansion *)
@@ -429,8 +466,6 @@ Lemma itree_eta' (ot : itree' E R) : ot = observe (go ot).
 Proof. reflexivity. Qed.
 
 End eqit_eq.
-
-Hint Resolve Reflexive_eqit Reflexive_eqit_gen : reflexivity.
 
 (** *** One-sided inversion *)
 
@@ -489,6 +524,21 @@ Proof.
   - inv Heqtt2. punfold_reverse H.
 Qed.
 
+Lemma eqit_inv_tauLR {E R1 R2 RR} b1 b2 t1 t2 :
+  @eqit E R1 R2 RR b1 b2 (Tau t1) (Tau t2) -> eqit RR b1 b2 t1 t2.
+Proof.
+  intros. punfold H. red in H. simpl in *.
+  remember (TauF t1) as tt1. remember (TauF t2) as tt2.
+  hinduction H before b2; intros; try discriminate.
+  - inv Heqtt1. inv Heqtt2. pclearbot. eauto.
+  - inv Heqtt1. inv H; eauto.
+    + pclearbot. punfold REL. pstep. red. simpobs. eauto.
+    + pstep. red. simpobs. econstructor; eauto. pstep_reverse. apply IHeqitF; eauto.
+  - inv Heqtt2. inv H; eauto.
+    + pclearbot. punfold REL. pstep. red. simpobs. eauto.    
+    + pstep. red. simpobs. econstructor; eauto. pstep_reverse. apply IHeqitF; eauto.    
+Qed.
+
 Lemma eqit_tauL {E R1 R2 RR} b2 (t1 : itree E R1) (t2 : itree E R2) :
   eqit RR true b2 t1 t2 -> eqit RR true b2 (Tau t1) t2.
 Proof.
@@ -509,26 +559,28 @@ Qed.
 
 Lemma simpobs {E R} {ot} {t: itree E R} (EQ: ot = observe t): t ≅ go ot.
 Proof.
-  pstep. repeat red. simpobs. simpl. subst. pstep_reverse. apply Reflexive_eqit.
+  pstep. repeat red. simpobs. simpl. subst. pstep_reverse. apply Reflexive_eqit; eauto.
 Qed.
 
 (** *** Transitivity properties *)
 
-Lemma eqit_trans {E R} b (t1 t2 t3: itree E R)
-      (REL1: eqit eq b false t1 t2)
-      (REL2: eqit eq b false t2 t3):
-  eqit eq b false t1 t3.
+Inductive rcompose {R1 R2 R3} (RR1: R1->R2->Prop) (RR2: R2->R3->Prop) (r1: R1) (r3: R3) : Prop :=
+| rcompose_intro r2 (REL1: RR1 r1 r2) (REL2: RR2 r2 r3)
+.
+Hint Constructors rcompose.
+
+Lemma trans_rcompose {R} RR (TRANS: Transitive RR):
+  forall x y : R, rcompose RR RR x y -> RR x y.
 Proof.
-  ginit. guclo eqit_clo_trans; eauto.
-  econstructor; eauto with paco. reflexivity.
+  intros. destruct H; eauto.
 Qed.
 
-Lemma eutt_trans {E R} (t1 t2 t3: itree E R)
-      (INL: t1 ≈ t2)
-      (INR: t2 ≈ t3):
-  t1 ≈ t3.
+Lemma eqit_trans {E R1 R2 R3} (RR1: R1->R2->Prop) (RR2: R2->R3->Prop) b1 b2 t1 t2 t3
+      (INL: eqit RR1 b1 b2 t1 t2)
+      (INR: eqit RR2 b1 b2 t2 t3):
+  @eqit E _ _ (rcompose RR1 RR2) b1 b2 t1 t3.
 Proof.
-  revert_until R. pcofix CIH. intros.
+  revert_until b2. pcofix CIH. intros.
   pstep. punfold INL. punfold INR. red in INL, INR |- *. genobs_clear t3 ot3.
   hinduction INL before CIH; intros; subst; clear t1 t2; eauto.
   - remember (RetF r2) as ot.
@@ -538,18 +590,19 @@ Proof.
     destruct DEC as [EQ | EQ].
     + destruct EQ as [m3 ?]; subst.
       econstructor. right. pclearbot. eapply CIH; eauto with paco.
-      eapply eqit_inv_tauL. eapply eqit_inv_tauR. eauto.
+      eapply eqit_inv_tauLR. eauto.
     + inv INR; try (exfalso; eapply EQ; eauto; fail).
       econstructor; eauto.
       pclearbot. punfold REL. red in REL.
       hinduction REL0 before CIH; intros; try (exfalso; eapply EQ; eauto; fail).
-      * subst. eapply eqitF_mono; eauto. intros.
-        eapply upaco2_mon; eauto; contradiction.
+      * remember (RetF r1) as ot.
+        hinduction REL0 before CIH; intros; inv Heqot; eauto with paco.
       * remember (VisF e k1) as ot.
         hinduction REL0 before CIH; intros; dependent destruction Heqot; eauto with paco.
         econstructor. intros. right.
         destruct (REL v), (REL0 v); try contradiction. eauto.
       * eapply IHREL0; eauto. pstep_reverse.
+        destruct b1; inv CHECK0.
         apply eqit_inv_tauR. eauto.
   - remember (VisF e k2) as ot.
     hinduction INR before CIH; intros; dependent destruction Heqot; eauto.
@@ -557,54 +610,122 @@ Proof.
     destruct (REL v), (REL0 v); try contradiction; eauto.
   - remember (TauF t0) as ot.
     hinduction INR before CIH; intros; dependent destruction Heqot; eauto.
-    eapply IHINL. pclearbot. punfold REL.
+    eapply IHINL; eauto. pclearbot. punfold REL.
 Qed.
 
-Global Instance Transitive_eutt {E R} : Transitive (@eutt E R R eq).
+Global Instance Transitive_eqit {E : Type -> Type} {R: Type} (RR : R -> R -> Prop) (b1 b2: bool):
+  Transitive RR -> Transitive (@eqit E _ _ RR b1 b2).
 Proof.
-  red; intros. eapply eutt_trans; eauto.
+  red; intros. eapply eqit_mon, eqit_trans; eauto using (trans_rcompose RR).
 Qed.
 
-Global Instance Equivalence_eutt {E R} : Equivalence (@eutt E R R eq).
+Global Instance Transitive_eqit_eq {E : Type -> Type} {R: Type} (b1 b2: bool):
+  Transitive (@eqit E R R eq b1 b2).
+Proof.
+  apply Transitive_eqit. repeat intro; subst; eauto.
+Qed.
+
+Global Instance Equivalence_eqit {E : Type -> Type} {R: Type} (RR : R -> R -> Prop) (b: bool):
+  Equivalence RR -> Equivalence (@eqit E R R RR b b).
 Proof.
   constructor; try typeclasses eauto.
 Qed.
 
-Global Instance geuttgen_cong_eqit {E R1 R2 RS} b1 b2 r rg:
-  Proper (eq_itree eq ==> eq_itree eq ==> flip impl)
-         (gpaco2 (@eqit_ E R1 R2 RS b1 b2 id) (eqitC b1 b2) r rg).
+Global Instance Equivalence_eqit_eq {E : Type -> Type} {R: Type} (b: bool):
+  Equivalence (@eqit E R R eq false false).
 Proof.
-  repeat intro. guclo eqit_clo_trans. econstructor; cycle -1; eauto.
+  constructor; try typeclasses eauto.
+Qed.
+
+Global Instance Transitive_eutt {E R RR} : Transitive RR -> Transitive (@eutt E R R RR).
+Proof.
+  red; intros. eapply eqit_mon, eqit_trans; eauto using (trans_rcompose RR).
+Qed.
+
+Global Instance Equivalence_eutt {E R RR} : Equivalence RR -> Equivalence (@eutt E R R RR).
+Proof.
+  constructor; try typeclasses eauto.
+Qed.
+
+Global Instance geuttgen_cong_eqit {E R1 R2 RR1 RR2 RS} b1 b2 r rg
+       (LERR1: forall x x' y, (RR1 x x': Prop) -> (RS x' y: Prop) -> RS x y)
+       (LERR2: forall x y y', (RR2 y y': Prop) -> RS x y' -> RS x y):
+  Proper (eq_itree RR1 ==> eq_itree RR2 ==> flip impl)
+         (gpaco2 (@eqit_ E R1 R2 RS b1 b2 id) (eqitC RS b1 b2) r rg).
+Proof.
+  repeat intro. guclo eqit_clo_trans. econstructor; cycle -3; eauto.
   - eapply eqit_mon, H; eauto; discriminate.
   - eapply eqit_mon, H0; eauto; discriminate.
 Qed.
 
-Global Instance geuttge_cong_euttge {E R1 R2 RS} r rg:
+Global Instance geuttgen_cong_eqit_eq {E R1 R2 RS} b1 b2 r rg:
+  Proper (eq_itree eq ==> eq_itree eq ==> flip impl)
+         (gpaco2 (@eqit_ E R1 R2 RS b1 b2 id) (eqitC RS b1 b2) r rg).
+Proof.
+  eapply geuttgen_cong_eqit; intros; subst; eauto.
+Qed.
+
+Global Instance geuttge_cong_euttge {E R1 R2 RR1 RR2 RS} r rg
+       (LERR1: forall x x' y, (RR1 x x': Prop) -> (RS x' y: Prop) -> RS x y)
+       (LERR2: forall x y y', (RR2 y y': Prop) -> RS x y' -> RS x y):
+  Proper (euttge RR1 ==> eq_itree RR2 ==> flip impl)
+         (gpaco2 (@eqit_ E R1 R2 RS true false id) (eqitC RS true false) r rg).
+Proof.
+  repeat intro. guclo eqit_clo_trans.
+Qed.
+
+Global Instance geuttge_cong_euttge_eq {E R1 R2 RS} r rg:
   Proper (euttge eq ==> eq_itree eq ==> flip impl)
-         (gpaco2 (@eqit_ E R1 R2 RS true false id) (eqitC true false) r rg).
+         (gpaco2 (@eqit_ E R1 R2 RS true false id) (eqitC RS true false) r rg).
+Proof.
+  eapply geuttge_cong_euttge; intros; subst; eauto.
+Qed.
+
+Global Instance geutt_cong_euttge {E R1 R2 RR1 RR2 RS} r rg
+       (LERR1: forall x x' y, (RR1 x x': Prop) -> (RS x' y: Prop) -> RS x y)
+       (LERR2: forall x y y', (RR2 y y': Prop) -> RS x y' -> RS x y):
+  Proper (euttge RR1 ==> euttge RR2 ==> flip impl)
+         (gpaco2 (@eqit_ E R1 R2 RS true true id) (eqitC RS true true) r rg).
 Proof.
   repeat intro. guclo eqit_clo_trans.
 Qed.
 
-Global Instance geutt_cong_euttge {E R1 R2 RS} r rg:
+Global Instance geutt_cong_euttge_eq {E R1 R2 RS} r rg:
   Proper (euttge eq ==> euttge eq ==> flip impl)
-         (gpaco2 (@eqit_ E R1 R2 RS true true id) (eqitC true true) r rg).
+         (gpaco2 (@eqit_ E R1 R2 RS true true id) (eqitC RS true true) r rg).
 Proof.
-  repeat intro. guclo eqit_clo_trans.
+  eapply geutt_cong_euttge; intros; subst; eauto.
 Qed.
 
-Global Instance eqitgen_cong_eqit {E R1 R2 RS} b1 b2:
+Global Instance eqitgen_cong_eqit {E R1 R2 RR1 RR2 RS} b1 b2
+       (LERR1: forall x x' y, (RR1 x x': Prop) -> (RS x' y: Prop) -> RS x y)
+       (LERR2: forall x y y', (RR2 y y': Prop) -> RS x y' -> RS x y):
+  Proper (eq_itree RR1 ==> eq_itree RR2 ==> flip impl)
+         (@eqit E R1 R2 RS b1 b2).
+Proof.
+  ginit. intros. eapply geuttgen_cong_eqit; eauto. gfinal. eauto.
+Qed.
+
+Global Instance eqitgen_cong_eqit_eq {E R1 R2 RS} b1 b2:
   Proper (eq_itree eq ==> eq_itree eq ==> flip impl)
          (@eqit E R1 R2 RS b1 b2).
 Proof.
   ginit. intros. rewrite H1, H0. gfinal. eauto.
 Qed.
 
-Global Instance euttge_cong_euttge {E R}:
+Global Instance euttge_cong_euttge {E R RS}
+       (TRANS: Transitive RS):
+  Proper (euttge RS ==> flip (euttge RS) ==> flip impl)
+         (@eqit E R R RS true false).
+Proof.
+  repeat intro. do 2 (eapply eqit_mon, eqit_trans; eauto using (trans_rcompose RS)).
+Qed.
+
+Global Instance euttge_cong_euttge_eq {E R}:
   Proper (euttge eq ==> flip (euttge eq) ==> flip impl)
          (@eqit E R R eq true false).
 Proof.
-  repeat intro. do 2 eapply eqit_trans; eauto. reflexivity.
+  eapply euttge_cong_euttge; eauto using eq_trans.
 Qed.
 
 (** ** Equations for core combinators *)
@@ -636,7 +757,7 @@ Proof.
   pstep.
   constructor.
   intros; red. left. rewrite bind_ret.
-  apply Reflexive_eqit.
+  apply Reflexive_eqit; eauto.
 Qed.
 
 Lemma unfold_aloop {E A B} (f : A -> itree E A + B) (x : A) :
@@ -651,6 +772,10 @@ Proof.
   rewrite itree_eta, (itree_eta (_ >>= _)).
   reflexivity.
 Qed.
+
+Ltac auto_ctrans :=
+  intros; repeat (match goal with [H: rcompose _ _ _ _ |- _] => destruct H end); subst; eauto.
+Ltac auto_ctrans_eq := try instantiate (1:=eq); auto_ctrans.
 
 Section eqit_h.
 
@@ -701,27 +826,34 @@ Inductive eqit_bind_clo b1 b2 (r : itree E R1 -> itree E R2 -> Prop) :
 .
 Hint Constructors eqit_bind_clo.
 
+Lemma foo1 {X Y} (R: X -> Y -> Prop) x y z (EQ: x = z) (REL: R z y): R x y.
+Proof. subst; eauto. Qed.
+
+Lemma foo2 {X Y} (R: X -> Y -> Prop) x y z (EQ: y = z) (REL: R x z): R x y.
+Proof. subst; eauto. Qed.
+
 Lemma eqit_clo_bind b1 b2 vclo
       (MON: monotone2 vclo)
-      (CMP: compose (eqitC b1 b2) vclo <3= compose vclo (eqitC b1 b2))      
+      (CMP: compose (eqitC RR b1 b2) vclo <3= compose vclo (eqitC RR b1 b2))      
       (ID: id <3= vclo):
-  eqit_bind_clo b1 b2 <3= gupaco2 (eqit_ RR b1 b2 vclo) (eqitC b1 b2).
+  eqit_bind_clo b1 b2 <3= gupaco2 (eqit_ RR b1 b2 vclo) (eqitC RR b1 b2).
 Proof.
   gcofix CIH. intros. destruct PR.
   guclo eqit_clo_trans.
-  econstructor; try (rewrite (itree_eta (x <- _;; _ x)), unfold_bind; reflexivity).
+  econstructor; auto_ctrans_eq; try (rewrite (itree_eta (x <- _;; _ x)), unfold_bind; reflexivity).
   punfold EQV. unfold_eqit.
   hinduction EQV before CIH; intros; pclearbot.
   - guclo eqit_clo_trans.
-    econstructor; try (rewrite <- !itree_eta; reflexivity).
+    econstructor; auto_ctrans_eq; try (rewrite <- !itree_eta; reflexivity). 
     eauto with paco.
   - gstep. econstructor. eauto with paco.
   - gstep. econstructor. eauto 7 with paco.
   - destruct b1; try discriminate.
-    guclo eqit_clo_trans. econstructor; cycle -1; eauto; try reflexivity.
+    guclo eqit_clo_trans.
+    econstructor; auto_ctrans_eq; cycle -1; eauto; try reflexivity.
     eapply eqit_tauL. rewrite unfold_bind, <-itree_eta. reflexivity.
   - destruct b2; try discriminate.
-    guclo eqit_clo_trans. econstructor; cycle -1; eauto; try reflexivity.
+    guclo eqit_clo_trans. econstructor; auto_ctrans_eq; cycle -1; eauto; try reflexivity.
     eapply eqit_tauL. rewrite unfold_bind, <-itree_eta. reflexivity.
 Qed.
 
