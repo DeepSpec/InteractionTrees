@@ -73,10 +73,8 @@ Section MapFacts.
       |- ?x = _ => destruct x eqn:EQ
     end; [| reflexivity].
     rewrite mapsto_lookup in EQ.
-    (* Waiting for extended MapOk interface from ext-lib *)
-    admit.
-    (* exfalso; eapply mapsto_remove_eq; eauto. *)
-  Admitted.
+    exfalso; eapply mapsto_remove_eq; eauto.
+  Qed.
 
   (* Should move to extlib *)
   Lemma lookup_remove_neq:
@@ -87,21 +85,18 @@ Section MapFacts.
       |- ?x = _ => destruct x eqn:EQ
     end.
     - rewrite mapsto_lookup in EQ.
-      (* Waiting for extended MapOk interface from ext-lib *)
-      admit.
-    (* Waiting for extended MapOk interface from ext-lib *)
-    (* apply mapsto_remove_neq in EQ; auto. *)
-    (* symmetry; rewrite mapsto_lookup; eauto. *)
+      apply mapsto_remove_neq in EQ; auto.
+      symmetry; rewrite mapsto_lookup; eauto.
     -  match goal with
          |- _ = ?x => destruct x eqn:EQ'
        end; auto.
        rewrite mapsto_lookup in EQ'.
-       (* Waiting for extended MapOk interface from ext-lib *)
-       admit.
-       (* eapply mapsto_remove_neq in EQ'; eauto. *)
-       (* rewrite <- mapsto_lookup in EQ'. *)
-       (* rewrite EQ in EQ'; inv EQ'. *)
-  Admitted.
+       eapply mapsto_remove_neq in EQ'; eauto.
+       rewrite <- mapsto_lookup in EQ'.
+       rewrite EQ in EQ'; inv EQ'.
+       Unshelve.
+       all: typeclasses eauto.
+  Qed.
 
   Global Instance eq_map_refl {d} : Reflexive (@eq_map _ _ _ _ d).
   Proof.
