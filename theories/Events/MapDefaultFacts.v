@@ -37,6 +37,71 @@ Section MapFacts.
   Variables (K V : Type).
   Context {map : Type}.
   Context {M : Map K V map}.
+  Context {MOk: MapOk eq M}.
+  Context {Kdec: @RelDec K eq}.
+  Context {KdecOk: RelDec_Correct Kdec}.
+
+  (* Should move to extlib *)
+  Lemma lookup_add_eq: forall k v s, lookup k (add k v s) = Some v.
+  Proof.
+    intros.
+    rewrite mapsto_lookup; apply mapsto_add_eq. 
+    Unshelve.
+    2: typeclasses eauto.
+  Qed.
+
+  (* Should move to extlib *)
+  Lemma lookup_add_neq: forall k k' v s, k' <> k -> lookup k (add k' v s) = lookup k s.
+  Proof.
+    intros.
+    generalize (@mapsto_add_neq _ _ _ eq _ _ s k' v k H); clear H; intros H.
+    setoid_rewrite <- mapsto_lookup in H.
+    destruct (lookup k s) as [v' |] eqn:EQ.
+    - specialize (H v').
+      apply H; auto.
+    - destruct (lookup k (add k' v s)) as [v' |] eqn:EQ'; [| reflexivity].
+      specialize (H v').
+      symmetry; apply H; auto.
+  Qed.
+
+  (* Should move to extlib *)
+  Lemma lookup_remove_eq:
+    forall k s, lookup k (remove k s) = None.
+  Proof.
+    intros.
+    match goal with
+      |- ?x = _ => destruct x eqn:EQ
+    end; [| reflexivity].
+    rewrite mapsto_lookup in EQ.
+    (* Waiting for extended MapOk interface from ext-lib *)
+    admit.
+    (* exfalso; eapply mapsto_remove_eq; eauto. *)
+  Admitted.
+
+  (* Should move to extlib *)
+  Lemma lookup_remove_neq:
+    forall k k' s, k <> k' -> lookup k (remove k' s) = lookup k s.
+  Proof.
+    intros.
+    match goal with
+      |- ?x = _ => destruct x eqn:EQ
+    end.
+    - rewrite mapsto_lookup in EQ.
+      (* Waiting for extended MapOk interface from ext-lib *)
+      admit.
+    (* Waiting for extended MapOk interface from ext-lib *)
+    (* apply mapsto_remove_neq in EQ; auto. *)
+    (* symmetry; rewrite mapsto_lookup; eauto. *)
+    -  match goal with
+         |- _ = ?x => destruct x eqn:EQ'
+       end; auto.
+       rewrite mapsto_lookup in EQ'.
+       (* Waiting for extended MapOk interface from ext-lib *)
+       admit.
+       (* eapply mapsto_remove_neq in EQ'; eauto. *)
+       (* rewrite <- mapsto_lookup in EQ'. *)
+       (* rewrite EQ in EQ'; inv EQ'. *)
+  Admitted.
 
   Global Instance eq_map_refl {d} : Reflexive (@eq_map _ _ _ _ d).
   Proof.
@@ -74,16 +139,26 @@ Section MapFacts.
   Proof.
     intros d s1 s2 k v H.
     unfold eq_map in *.
-    intros.
-    unfold lookup_default in *.
-  Admitted.
+    intros k'.
+    destruct (rel_dec_p k k').
+    - subst.
+      unfold lookup_default in *.
+      rewrite 2 lookup_add_eq; reflexivity.
+    - unfold lookup_default in *.
+      rewrite 2 lookup_add_neq; auto.
+  Qed.      
 
   Lemma eq_map_remove:
     forall (d : V) (s1 s2 : map) (k : K), (@eq_map _ _ _ _ d) s1 s2 -> (@eq_map _ _ _ _ d) (remove k s1) (remove k s2).
   Proof.
     intros d s1 s2 k H.
-  Admitted.
-
+    unfold eq_map in *; intros k'.
+    unfold lookup_default.
+    destruct (rel_dec_p k k').
+    - subst; rewrite 2 lookup_remove_eq; auto.
+    - rewrite 2 lookup_remove_neq; auto.
+      apply H.
+  Qed.
   
   Lemma handle_map_eq : 
     forall d E X (s1 s2 : map) (m : mapE K d X),
@@ -167,5 +242,4 @@ Section MapFacts.
       eauto.
   Qed.
     
-  
 End MapFacts.
