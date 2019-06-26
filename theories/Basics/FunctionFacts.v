@@ -41,6 +41,18 @@ Instance eeq_case_sum {A B C} :
           (eq2 ==> eq2 ==> eq2) case_.
 Proof. cbv; intros; subst; destruct _; auto. Qed.
 
+Instance Category_Fun : Category Fun.
+Proof.
+  constructor; typeclasses eauto.
+Qed.
+
 Instance Coproduct_Fun : Coproduct Fun sum.
 Proof.
-Admitted.
+  constructor.
+  - intros a b c f g.
+    cbv; reflexivity.
+  - intros a b c f g.
+    cbv; reflexivity.
+  - intros a b c f g fg Hf Hg [x | y]; cbv in *; auto.
+  - typeclasses eauto.
+Qed.
