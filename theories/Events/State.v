@@ -69,6 +69,9 @@ Arguments put {S E _}.
 Arguments run_state {S E} [_] _ _.
 
 
+(* ----------------------------------------------------------------------- *)
+(* SAZ: The code from here to <END> below doesn't belong to State.v  it should 
+   go in Prop.v or something like that . *)
 (* todo(gmm): this can be stronger if we allow for a `can_returnE` *)
 Inductive can_return {E : Type -> Type} {t : Type} : itree E t -> t -> Prop :=
 | can_return_Ret {x} : can_return (Ret x) x
@@ -100,6 +103,8 @@ Section interp_prop.
 
 End interp_prop.
 Arguments eff_hom_prop _ _ : clear implicits.
+(* <END> -------------------------------------------------------------------- *)
+
 
 (** An extensional stateful handler *)
 Section eff_hom_e.

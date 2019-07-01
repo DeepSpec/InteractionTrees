@@ -105,6 +105,7 @@ Proof.
   apply reflexivity.
 Qed.
 
+
 Hint Rewrite @interp_ret : itree.
 Hint Rewrite @interp_vis : itree.
 Hint Rewrite @interp_trigger : itree.
@@ -240,7 +241,7 @@ Proof.
 Qed.
 
 Lemma interp_trigger_h {E R} (t : itree E R) :
-  interp (fun _ e => ITree.trigger e) t ≈ t.
+  interp ITree.trigger t ≈ t.
 Proof.
   revert t. einit. ecofix CIH. intros.
   rewrite unfold_interp. rewrite (itree_eta t) at 2.
