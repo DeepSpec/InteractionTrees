@@ -138,8 +138,8 @@ Proof.
   apply (@eutt_clo_bind _ _ _ _ _ _ rel_asm).
   { unfold interp_asm.
     unfold rel_asm.
-    apply run_map_proper; auto.
-    apply run_map_proper; auto.
+    eapply run_map_proper; try typeclasses eauto; auto.
+    eapply run_map_proper; try typeclasses eauto; auto.
     reflexivity.
   }     
   intros.

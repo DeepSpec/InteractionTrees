@@ -164,7 +164,7 @@ in [Interp.Interp.interp].
 
 (* TODO: some of these mk functions have too many explicit arguments *)
 Instance ALoop_stateT {M S} {AM : ALoop M} : ALoop (stateT S M) :=
-  fun _ _ step i => mkStateT _ _ (fun s =>
+  fun _ _ step i => mkStateT (fun s =>
     aloop (fun is =>
       let i := fst is in
       let s := snd is in
@@ -192,7 +192,7 @@ Instance ALoop_readerT {M S} {AM : ALoop M} : ALoop (readerT S M) :=
       end) i).
 
 Instance ALoop_optionT {M} {AM : ALoop M} : ALoop (optionT M) :=
-  fun _ _ step i => mkOptionT _ _ (
+  fun _ _ step i => mkOptionT (
     aloop (fun oi =>
       match oi with
       | Some i =>
@@ -204,7 +204,7 @@ Instance ALoop_optionT {M} {AM : ALoop M} : ALoop (optionT M) :=
       end) (Some i)).
 
 Instance ALoop_eitherT {M E} {AM : ALoop M} : ALoop (eitherT E M) :=
-  fun _ _ step i => mkEitherT _ _ _ (
+  fun _ _ step i => mkEitherT (
     aloop (fun ei =>
       match ei with
       | inl e => inr (inl e)
