@@ -57,7 +57,7 @@ From ITree Require Import
      Events.MapDefault
      StateFacts.
 
-
+Import Monads.
 Import MonadNotation.
 Local Open Scope monad_scope.
 Local Open Scope string_scope.
@@ -304,8 +304,8 @@ Qed.
     -> M R] for some monad [M].  Here we take for our monad the special case of
     [M = itree E] for some universe of events [E] required to contain the
     environment events [mapE] provided by the library. It comes with an event
-    handler [run_map] interpreting the computation into the state monad.  *)
-Definition eval_imp_state {E: Type -> Type} `{mapE var 0 -< E}: ImpState ~> itree E :=
+    interpreter [interp_map] that yields a computation in the state monad.  *)
+Definition handle_ImpState {E: Type -> Type} `{mapE var 0 -< E}: ImpState ~> itree E :=
   fun _ e =>
     match e with
     | GetVar x => lookup_def x 
@@ -313,15 +313,15 @@ Definition eval_imp_state {E: Type -> Type} `{mapE var 0 -< E}: ImpState ~> itre
     end.
 
 (** We now concretely implement this environment using ExtLib's finite maps. *)
-Definition globals := alist var value.
+Definition env := alist var value.
 
 (** Finally, we can define an evaluator for our statements.
    To do so, we first denote them, leading to an [itree ImpState unit].
-   We then [interp]ret [ImpState] into [mapE] using [eval_imp_state], leading to
+   We then [interp]ret [ImpState] into [mapE] using [handle_ImpState], leading to
    an [itree (mapE var value) unit].
-   Finally, [run_map] interprets the latter [itree] into the state monad,
+   Finally, [interp_map] interprets the latter [itree] into the state monad,
    resulting in an [itree] free of any event, but returning the final
-   _Imp_ globals.
+   _Imp_ env.
  *)
 (* SAZ: would rather write something like the following: 
  h : E ~> M A
@@ -330,12 +330,12 @@ forall eff, {pf:E -< eff == F[E]} (t : itree eff A)
         interp pf h h' t : M A
 *)
 
-Definition interp_imp  {E A} (t : itree (ImpState +' E) A) (g:globals) :=
-  let t' := interp (bimap eval_imp_state (id_ E)) t in
-  run_map t' g.
+Definition interp_imp  {E A} (t : itree (ImpState +' E) A) : stateT env (itree E) A :=
+  let t' := interp (bimap handle_ImpState (id_ E)) t in
+  interp_map t'.
 
 
-Definition eval_imp (s: stmt) : itree void1 (globals * unit) :=
+Definition eval_imp (s: stmt) : itree void1 (env * unit) :=
   interp_imp (denote_stmt s) empty.
 
 (** Equipped with this evaluator, we can now compute.
@@ -355,7 +355,7 @@ Section InterpImpProperties.
 
       We could justify more equations than just the ones below.  For instance,
       _Imp_ programs also respect a coarser notation of equivalence for the 
-      [globals] state.  We exploit this possibility to implement optimzations
+      [env] state.  We exploit this possibility to implement optimzations
       at the _Asm_ level (see AsmOptimizations.v).
    *)
 
@@ -364,24 +364,24 @@ Section InterpImpProperties.
 
   (** This interpreter is compatible with the equivalence-up-to-tau. *)
   Global Instance eutt_interp_imp {R}:
-    Proper (@eutt E R R eq ==> eq ==> @eutt E' (prod (globals) R) (prod _ R) eq)
+    Proper (@eutt E R R eq ==> eq ==> @eutt E' (prod (env) R) (prod _ R) eq)
            interp_imp.
   Proof.
     repeat intro.
     unfold interp_imp.
-    unfold run_map.
+    unfold interp_map.
     rewrite H0. eapply eutt_interp_state; auto.
     rewrite H. reflexivity.
   Qed.
 
   (** [interp_imp] commutes with [bind]. *)
-  Lemma interp_imp_bind: forall {R S} (t: itree E R) (k: R -> itree E S) (g : globals),
+  Lemma interp_imp_bind: forall {R S} (t: itree E R) (k: R -> itree E S) (g : env),
       (interp_imp (ITree.bind t k) g)
     ≅ (ITree.bind (interp_imp t g) (fun '(g',  x) => interp_imp (k x) g')).
   Proof.
     intros.
     unfold interp_imp.
-    unfold run_map.
+    unfold interp_map.
     repeat rewrite interp_bind.
     repeat rewrite interp_state_bind.
     apply eqit_bind. red. intros.

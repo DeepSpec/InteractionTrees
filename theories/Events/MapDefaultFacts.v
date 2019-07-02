@@ -179,10 +179,10 @@ Section MapFacts.
   
   (* This lemma states that the operations provided by [handle_map] respect
      the equivalence on the underlying map interface *)
-  Lemma run_map_id d {E X} (t : itree (mapE K d +' E) X) :
-    map_default_eq eq d (run_map t) (run_map t).
+  Lemma interp_map_id d {E X} (t : itree (mapE K d +' E) X) :
+    map_default_eq eq d (interp_map t) (interp_map t).
   Proof.
-    unfold map_default_eq, run_map; intros.
+    unfold map_default_eq, interp_map; intros.
     revert t s1 s2 H.
     ginit.
     gcofix CH.
@@ -203,10 +203,10 @@ Section MapFacts.
         gbase. apply CH. assumption.
   Qed.
  
-  Global Instance run_map_proper {R E d} {RR : R -> R -> Prop} :
-    Proper ((eutt RR) ==> (@map_default_eq _ _ RR d E)) (@run_map _ _ _ _ E d R).
+  Global Instance interp_map_proper {R E d} {RR : R -> R -> Prop} :
+    Proper ((eutt RR) ==> (@map_default_eq _ _ RR d E)) (@interp_map _ _ _ _ E d R).
   Proof.
-    unfold map_default_eq, run_map.
+    unfold map_default_eq, interp_map.
     repeat intro.
     revert x y H s1 s2 H0.
     einit.

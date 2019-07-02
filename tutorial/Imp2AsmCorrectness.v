@@ -119,7 +119,7 @@ Section Simulation_Relation.
       The relation relates two environments of type [alist var value].
       The source and target environments exactly agree on user variables.
    *)
-  Definition Renv (g_asm : memory) (g_imp : globals) : Prop :=
+  Definition Renv (g_imp : memory) (g_asm : env) : Prop :=
     forall k v, alist_In k g_imp v <-> alist_In k g_asm v.
 
   Global Instance Renv_refl : Reflexive Renv.
@@ -154,7 +154,7 @@ Section Simulation_Relation.
      - The "stack" of temporaries used to compute intermediate results is left
        untouched.
   *) 
-  Definition sim_rel l_asm n: (globals * value) -> (memory * (registers * unit)) -> Prop :=
+  Definition sim_rel l_asm n: (env * value) -> (memory * (registers * unit)) -> Prop :=
     fun '(g_imp', v) '(g_asm', (l_asm', _))  =>
       Renv g_imp' g_asm' /\            (* we don't corrupt any of the imp variables *)
       alist_In n l_asm' v /\           (* we get the right value *)
@@ -267,7 +267,7 @@ Section Simulation_Relation.
 
   (** [sim_rel] can be composed when proving binary arithmetic operators. *)
   Lemma sim_rel_binary_op:
-    forall (l_asm l_asm' l_asm'' : registers) (g_asm' g_asm'' : memory) (g_imp' g_imp'' : globals)
+    forall (l_asm l_asm' l_asm'' : registers) (g_asm' g_asm'' : memory) (g_imp' g_imp'' : env)
       (n v v' : nat)
       (Hsim : sim_rel l_asm n (g_imp', v) (g_asm', (l_asm', tt)))
       (Hsim': sim_rel l_asm' (S n) (g_imp'', v') (g_asm'', (l_asm'', tt)))
@@ -324,7 +324,7 @@ Section Bisimulation.
      from applying because 
    *)
 
-  Definition state_invariant {A B} (RAB: A -> B -> Prop) (a : Imp.globals * A) (b : Asm.memory * (Asm.registers * B))  :=
+  Definition state_invariant {A B} (RAB: A -> B -> Prop) (a : Imp.env * A) (b : Asm.memory * (Asm.registers * B))  :=
     Renv (fst a) (fst b) /\ (RAB (snd a) (snd (snd b))).
   
   Definition bisimilar {A B E} (RAB: A -> B -> Prop) (t1 : itree (ImpState +' E) A) (t2 : itree (Reg +' Memory +' E) B)  :=
@@ -390,7 +390,7 @@ Section Bisimulation.
     bisimilar S (KTree.iter t1 x) (KTree.iter t2 x').
   Proof.
     
-    unfold bisimilar, interp_asm, interp_imp, run_map.
+    unfold bisimilar, interp_asm, interp_imp, interp_map.
     intros. rewrite 2 interp_iter.
     unfold KTree.iter, Iter_ktree.
     pose proof @interp_state_aloop'.
@@ -424,7 +424,7 @@ Section Bisimulation.
     rewrite interp_trigger.
     rewrite tau_eutt.
     cbn.
-    unfold run_map.
+    unfold interp_map.
     unfold map_reg, CategoryOps.cat, Cat_Handler, Handler.cat. 
     unfold inl_, Inl_sum1_Handler, Handler.inl_, Handler.htrigger. cbn.
     unfold lookup_def; cbn.
@@ -1052,7 +1052,7 @@ Notation Inr_Kleisli := CoprodInr_Kleisli.
       red. intros.
       setoid_rewrite interp_asm_ret.
       unfold interp_imp.
-      rewrite interp_ret. unfold run_map. rewrite interp_state_ret.
+      rewrite interp_ret. unfold interp_map. rewrite interp_state_ret.
       unfold ret, Monad_itree, id.
       apply eqit_Ret.
       unfold state_invariant. simpl. auto.

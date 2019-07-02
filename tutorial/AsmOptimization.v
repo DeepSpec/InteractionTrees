@@ -138,15 +138,15 @@ Proof.
   apply (@eutt_clo_bind _ _ _ _ _ _ rel_asm).
   { unfold interp_asm.
     unfold rel_asm.
-    eapply run_map_proper; try typeclasses eauto; auto.
-    eapply run_map_proper; try typeclasses eauto; auto.
+    eapply interp_map_proper; try typeclasses eauto; auto.
+    eapply interp_map_proper; try typeclasses eauto; auto.
     reflexivity.
   }     
   intros.
   inversion H; subst.
   inversion H3. subst.
   unfold interp_asm.
-  unfold run_map.
+  unfold interp_map.
   rewrite interp_ret.
   do 2 rewrite interp_state_ret.
   apply eqit_Ret. constructor. auto. destruct b3.
@@ -156,7 +156,7 @@ Qed.
 Lemma interp_asm_ret {E A} (x:A) mem reg :
   interp_asm (Ret x) mem reg ≈ (Ret (mem, (reg, x)) : itree E _).
 Proof.
-  unfold interp_asm, run_map.
+  unfold interp_asm, interp_map.
   rewrite interp_ret.
   repeat rewrite interp_state_ret.
   reflexivity.
@@ -167,7 +167,7 @@ Lemma interp_asm_GetReg {E A} f r mem reg :
        (interp_asm (val <- trigger (GetReg r) ;; f val) mem reg)
        ((interp_asm (f (lookup_default r 0 reg))) mem reg).
 Proof.
-  unfold interp_asm, run_map.
+  unfold interp_asm, interp_map.
   rewrite interp_bind.
   setoid_rewrite interp_trigger. rewrite tau_eutt.
   repeat rewrite interp_state_bind. cbn. 
@@ -192,7 +192,7 @@ Lemma interp_asm_SetReg {E A} f r v mem reg :
        (interp_asm (trigger (SetReg r v) ;; f) mem reg)
        ((interp_asm f) mem (Maps.add r v reg)).
 Proof.
-  unfold interp_asm, run_map.
+  unfold interp_asm, interp_map.
   rewrite interp_bind.
   unfold trigger.
   rewrite interp_vis. rewrite tau_eutt.
@@ -218,7 +218,7 @@ Lemma interp_asm_Load {E A} f a mem reg :
        (interp_asm (val <- trigger (Load a) ;; f val) mem reg)
        ((interp_asm (f (lookup_default a 0 mem))) mem reg).
 Proof.
-  unfold interp_asm, run_map.
+  unfold interp_asm, interp_map.
   rewrite interp_bind.
   rewrite interp_trigger. rewrite tau_eutt.
   unfold subevent, resum, ReSum_inr, resum, ReSum_inl, resum, ReSum_id, id_. cbn.
@@ -242,7 +242,7 @@ Lemma interp_asm_Store {E A} f a v mem reg :
        (interp_asm (trigger (Store a v) ;; f) mem reg)
        ((interp_asm f) (Maps.add a v mem) reg).
 Proof.
-  unfold interp_asm, run_map.
+  unfold interp_asm, interp_map.
   rewrite interp_bind.
   rewrite interp_trigger. rewrite tau_eutt.
   unfold subevent, resum, ReSum_inr, resum, ReSum_inl, resum, ReSum_id, id_. cbn.
@@ -338,7 +338,7 @@ Proof.
     destruct b; simpl.
     + unfold interp_asm.
       rewrite interp_ret.
-      unfold run_map.
+      unfold interp_map.
       repeat rewrite interp_state_ret.
       apply eqit_Ret. constructor; auto.
     + setoid_rewrite interp_asm_GetReg.
@@ -350,7 +350,7 @@ Proof.
       apply eqit_Ret. constructor; auto.
       repeat rewrite interp_asm_ret.
       apply eqit_Ret. constructor; auto.
-    + unfold interp_asm, run_map.
+    + unfold interp_asm, interp_map.
       unfold id_, Id_Handler, Handler.id_.
       unfold exit.
       rewrite interp_vis. rewrite tau_eutt.
@@ -382,7 +382,7 @@ Proof.
   intros p.
   unfold eq_asm, eq_asm_denotations, denote_asm.
   intros a mem1 mem2 regs1 regs2 H1 H2.
-  unfold interp_asm, run_map.
+  unfold interp_asm, interp_map.
   repeat setoid_rewrite interp_bind.
   repeat rewrite interp_state_bind.
   apply (@eutt_clo_bind _ _ _ _ _ _ rel_asm).
@@ -430,7 +430,7 @@ Proof.
     + eapply (@eutt_clo_bind _ _ _ _ _ _ rel_asm).
       * unfold peephole_optimize_bks.
         pose proof @peephole_block_correct.
-        unfold eq_asm_denotations_EQ, interp_asm, run_map in H9.    
+        unfold eq_asm_denotations_EQ, interp_asm, interp_map in H9.    
         eapply H9; auto.
         apply f.
       * intros.
@@ -515,7 +515,7 @@ Proof.
       rewrite interp_asm_GetReg.
 
       unfold trigger.
-      unfold interp_asm, run_map.
+      unfold interp_asm, interp_map.
       rewrite interp_vis. rewrite tau_eutt.
       cbn.
       repeat rewrite interp_state_bind.

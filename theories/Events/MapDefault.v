@@ -59,12 +59,18 @@ Section Map.
       | Remove k => Ret (Maps.remove k env, tt)
       end.
 
-  Definition run_map {E d} : itree (mapE d +' E) ~> stateT map (itree E) :=
+  (* SAZ: I think that all of these [run_foo] functions should be renamed
+     [interp_foo].  That would be more consistent with the idea that 
+     we define semantics by nested interpretation.  Also, it seems a bit
+     strange to define [interp_map] in terms of [interp_state].
+  *)
+  Definition interp_map {E d} : itree (mapE d +' E) ~> stateT map (itree E) :=
     interp_state (case_ handle_map pure_state).
 
 
   (* The appropriate notation of the equivalence on the state associated with
-     the MapDefault effects.  Two maps are  *)
+     the MapDefault effects.  Two maps are equivalent if they yield the same
+     answers under [lookup_default] *)
   Definition eq_map (d:V) (m1 m2 : map) : Prop :=
     forall k, lookup_default k d m1 = lookup_default k d m2.
   
@@ -73,5 +79,5 @@ End Map.
 Arguments insert {K V E d _}.
 Arguments lookup_def {K V E d _}.
 Arguments remove {K V E d _}.
-Arguments run_map {K V map M _ _ } [T].
+Arguments interp_map {K V map M _ _ } [T].
 Arguments eq_map {K V map M d}.

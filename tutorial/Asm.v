@@ -316,7 +316,7 @@ Definition interp_asm {E A} (t : itree (Reg +' Memory +' E) A) :
   memory -> registers -> itree E (memory * (registers * A)) :=
   let h := bimap map_reg (bimap map_memory (id_ _)) in
   let t' := interp h t in
-  fun  mem regs => run_map (run_map t' regs) mem.
+  fun  mem regs => interp_map (interp_map t' regs) mem.
 
 
 (** We can then define an evaluator for closed assembly programs by interpreting
@@ -346,7 +346,7 @@ Section InterpAsmProperties.
   Proof.
     repeat intro.
     unfold interp_asm.
-    unfold run_map.
+    unfold interp_map.
     rewrite H0.
     rewrite H.
     rewrite H1.
@@ -358,7 +358,7 @@ Section InterpAsmProperties.
       @eutt E' _ _ eq (interp_asm (ret r) mem regs)
             (ret (mem, (regs, r))).
   Proof.
-    unfold interp_asm, run_map.
+    unfold interp_asm, interp_map.
     intros.
     unfold ret at 1, Monad_itree.
     rewrite interp_ret, 2 interp_state_ret.
@@ -373,7 +373,7 @@ Section InterpAsmProperties.
   Proof.
     intros.
     unfold interp_asm.
-    unfold run_map. cbn.
+    unfold interp_map. cbn.
     repeat rewrite interp_bind.
     repeat rewrite interp_state_bind.
     repeat rewrite Eq.bind_bind.
