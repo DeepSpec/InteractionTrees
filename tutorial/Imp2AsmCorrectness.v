@@ -119,7 +119,7 @@ Section Simulation_Relation.
       The relation relates two environments of type [alist var value].
       The source and target environments exactly agree on user variables.
    *)
-  Definition Renv (g_imp : memory) (g_asm : env) : Prop :=
+  Definition Renv (g_imp : Imp.env) (g_asm : Asm.memory) : Prop :=
     forall k v, alist_In k g_imp v <-> alist_In k g_asm v.
 
   Global Instance Renv_refl : Reflexive Renv.
@@ -324,20 +324,27 @@ Section Bisimulation.
      from applying because 
    *)
 
-  Definition state_invariant {A B} (RAB: A -> B -> Prop) (a : Imp.env * A) (b : Asm.memory * (Asm.registers * B))  :=
-    Renv (fst a) (fst b) /\ (RAB (snd a) (snd (snd b))).
+  Section RAB.
+
+    Context {A B : Type}.
+    Context (RAB : A -> B -> Prop).  (* relation on Imp / Asm values *)
+            
+    Definition state_invariant (a : Imp.env * A) (b : Asm.memory * (Asm.registers * B))  :=
+      Renv (fst a) (fst b) /\ (RAB (snd a) (snd (snd b))).
   
-  Definition bisimilar {A B E} (RAB: A -> B -> Prop) (t1 : itree (ImpState +' E) A) (t2 : itree (Reg +' Memory +' E) B)  :=
+    Definition bisimilar {E} (t1 : itree (ImpState +' E) A) (t2 : itree (Reg +' Memory +' E) B)  :=
     forall g_asm g_imp l,
       Renv g_imp g_asm ->
-      eutt (state_invariant RAB)
+      eutt state_invariant
            (interp_imp t1 g_imp)
            (interp_asm t2 g_asm l).
-              
-  (** [eq_locals] is compatible with [eutt]. *)
+  End RAB.
+
+    
+  (** [bisimilar] is compatible with [eutt]. *)
 
   Global Instance eutt_bisimilar  {A B E}  (RAB : A -> B -> Prop):
-    Proper (eutt eq ==> eutt eq ==> iff) (@bisimilar A B E RAB).
+    Proper (eutt eq ==> eutt eq ==> iff) (@bisimilar A B RAB E).
   Proof.
     repeat intro.
     unfold bisimilar. split.
@@ -414,12 +421,11 @@ Section Bisimulation.
   Lemma sim_rel_get_tmp0:
     forall {E} n l l' g_asm g_imp v,
       sim_rel l' n (g_imp,v) (g_asm, (l,tt)) ->
-      eutt eq (interp_asm ((trigger (GetReg n)) : itree (Reg +' Memory +' E) value)
+      (interp_asm ((trigger (GetReg n)) : itree (Reg +' Memory +' E) value)
                                        g_asm l)
-           (Ret (g_asm, (l, v))).
+      ≈     (Ret (g_asm, (l, v))).
   Proof.
     intros.
-    
     unfold interp_asm.
     rewrite interp_trigger.
     rewrite tau_eutt.
@@ -555,18 +561,22 @@ Section Linking.
 
   (** [while_asm] is denoted as the loop of the body with two entry point, the exit
       of the loop, and the body in which we have the same structure as for the conditional *)
+  (* SAZ: it is annoying that we have to instantiate the isum_sum with the FinEmbedding information.
+     This probably points to a leaky abstraction about the labels that we should clean up.
+   *)
+
+  Notation label_case := (fun l => (@isum_sum _ FinEmbedding plus _ 1 _ l)).
+  Notation l1 := f1.
+  Notation l2 := (FS f1).
+  
   Lemma while_asm_correct (e : list instr) (p : asm 1 1) :
-      (denote_asm (while_asm e p) : (@sktree nat FinEmbedding _ 1 1))
-    ⩯ ((sloop (fun l: F (1 + 1) =>
-         match (@isum_sum _ FinEmbedding plus _ 1 _ l) with
+      denote_asm (while_asm e p)
+    ⩯ (sloop (fun l: F (1 + 1) =>
+         match label_case l with
          | inl _ =>  denote_list e ;;
-           v <- ITree.trigger (inl1 (GetReg tmp_if)) ;;
-           if v : value then
-             Ret ((FS f1) : F (2))
-           else
-             (denote_asm p f1;; Ret (f1 : fin( 1 + 1)))
-         | inr x => Ret f1
-         end))).
+                    v <- trigger (GetReg tmp_if) ;; if (v:value) then Ret l2 else (denote_asm p f1;; Ret l1)
+         | inr _ => Ret l1
+         end)).
   Proof.
     unfold while_asm.
     rewrite link_asm_correct.
@@ -576,39 +586,43 @@ Section Linking.
     rewrite app_asm_correct.
     rewrite if_asm_correct.
     intros x.
-    unfold bimap, Bimap_Coproduct, Case_sktree, CoprodCase_Kleisli, case_, lift_sktree, isum_suml, case_sum, lift_sktree, lift_ktree, cat, Cat_sktree, cat, Cat_Kleisli; cbn.
+    cbn.
     rewrite bind_ret.
     destruct (split_fin_sum x).
-    - rewrite !bind_bind.
+    - cbn.
+      rewrite !bind_bind.
       eapply eutt_clo_bind; try reflexivity. intros; subst.
       rewrite bind_bind.
-      eapply eutt_clo_bind; try reflexivity. intros; subst. destruct u0.
-      + rewrite (pure_asm_correct _ _).
-        unfold inl_, Inl_sktree, inl_, CoprodInl_Kleisli, sum_isuml, lift_sktree, lift_ktree, cat, Cat_Kleisli; cbn.
+      eapply eutt_clo_bind; try reflexivity. intros; subst.
+      destruct u0.
+      + rewrite (pure_asm_correct _ _). cbn. 
         rewrite !bind_ret.
+        apply eqit_Ret. 
+        (* SAZ this part could be made nicer, perhaps. *)
         unfold merge, case_, case_isum, isum_sum, FinSum.
         unfold CategoryOps.cat, Cat_Fun, case_, CoprodCase_Kleisli, case_sum.
         rewrite split_merge. unfold id_, Id_iFun, id_, Id_Fun.
         unfold inr_, sum_inr.
-        setoid_rewrite merge_fin_sum_inr.
-        reflexivity.
-      + rewrite (relabel_asm_correct _ _ _ _).
-        unfold CategoryOps.cat, Cat_Kleisli.
+        apply merge_fin_sum_inr.
+
+      + rewrite (relabel_asm_correct _ _ _ _). cbn.
         simpl; repeat setoid_rewrite bind_bind.
-        unfold inl_, Inl_sktree, inl_, CoprodInl_Kleisli, sum_isuml, lift_sktree, lift_ktree, cat, Cat_Kleisli; cbn.
         rewrite bind_ret.
         eapply eutt_clo_bind; try reflexivity.
         intros ? ? []. 
         repeat rewrite bind_ret.
+        apply eqit_Ret.
+        (* SAZ: same as above *)
         unfold inl_, sum_inl.
         unfold merge, case_, case_isum. cbn.
         unfold CategoryOps.cat, Cat_Kleisli, Cat_Fun, case_, CoprodCase_Kleisli, case_sum.
-        rewrite split_merge. unfold id_, Id_iFun, id_, Id_Fun.
-        setoid_rewrite merge_fin_sum_inl_1.
-        reflexivity.
+        rewrite split_merge.
+        unfold id_, Id_iFun, id_, Id_Fun.
+        apply merge_fin_sum_inl_1.
         
-    - rewrite (pure_asm_correct _ _).
-      unfold inr_, Inr_sktree, inr_, CoprodInr_Kleisli, inl_, Inl_sktree, inl_, CoprodInl_Kleisli, isum_inl, sum_isuml, lift_sktree, lift_ktree, cat, Cat_Kleisli; cbn.
+    - cbn. 
+      rewrite (pure_asm_correct _ _).
+      rewrite bind_bind. cbn. 
       rewrite !bind_ret.
       apply eqit_Ret.
       unfold inl_, sum_inl.
@@ -627,7 +641,7 @@ Section Correctness.
 
 
   (** Correctness of expressions.
-      We strengthen [eq_locals]: initial environments are still related by [Renv],
+      We strengthen [bisimilar]: initial environments are still related by [Renv],
       but intermediate ones must now satisfy [sim_rel].
       Note that by doing so, we use a _heterogeneous bisimulation_: the trees
       return values of different types ([alist var value * unit] for _Asm_,
@@ -639,13 +653,6 @@ Section Correctness.
       @eutt E _ _ (sim_rel l n)
             (interp_imp (denote_expr e) g_imp)
             (interp_asm (denote_list (compile_expr n e)) g_asm l).
-(*
-  Lemma compile_expr_correct : forall e g_imp g_asm n,
-      Renv g_asm g_imp ->
-      eutt (sim_rel g_asm n)
-           (interp_locals (denote_list (compile_expr n e)) g_asm)
-           (interp_locals (denoteExpr e) g_imp).
-*)
   Proof.
     induction e; simpl; intros.
     - (* Var case *)
@@ -798,7 +805,7 @@ Section Correctness.
   Qed.
 
 
-  (* The first parameter of [eq_locals] is useless for this development. We use to require equality,
+  (* The first parameter of [bisimilar] is useless for this development. We used to require equality,
  which carried not information since the return type was unit on both side.
  Now the return type is heterogeneous, [F 1] on one side and [unit] on the other.
    *)
@@ -1086,22 +1093,4 @@ End Correctness.
     More importantly, our compiler is fairly stupid and inefficient: it creates
     blocks for each compiled statement! One would hope to easily write and
     prove an optimization coalescing elementary blocks together.
-    This however raises for now a difficulty: our representation of labels as
-    binary trees encoded in [Type] is so unstructured that introspection on
-    [asm] programs is difficult.
-    We might therefore need to change our representation of labels, for instance
-    to a [Fin] type.
-    But this change turns out to be more interesting that it might seem: it
-    moves [bks] from [fun (A B: Type) => A -> block B] to
-    [fun (A B: nat) => Fin.t A -> block (Fin.t B)].
-    Correspondingly, their denotation moves from
-    [fun (A B: Type) => bks A B -> ktree E A B]
-    to [fun (A B: nat) => ktree E (Fin.t A) (Fin.t B)].
-    But our proof crucially rested on the categorie [(Type, ktree E)] being
-    provided by the [itree] library with a traced monoidal structure. We would
-    therefore need to redo all the work to equip the category
-    [(Nat, fun A B => ktree E (t A) (t B))] with the same structure, which is
-    significant low level work. We might therefore want to investigate whether
-    [ktree] should be generalized to something along the lines of
-    [ktree (i : Type) (F : i -> Type) (E : Type -> Type) (a b : i) : Type := F a -> itree E (F b).]
  *)
