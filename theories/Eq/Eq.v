@@ -826,12 +826,6 @@ Inductive eqit_bind_clo b1 b2 (r : itree E R1 -> itree E R2 -> Prop) :
 .
 Hint Constructors eqit_bind_clo.
 
-Lemma foo1 {X Y} (R: X -> Y -> Prop) x y z (EQ: x = z) (REL: R z y): R x y.
-Proof. subst; eauto. Qed.
-
-Lemma foo2 {X Y} (R: X -> Y -> Prop) x y z (EQ: y = z) (REL: R x z): R x y.
-Proof. subst; eauto. Qed.
-
 Lemma eqit_clo_bind b1 b2 vclo
       (MON: monotone2 vclo)
       (CMP: compose (eqitC RR b1 b2) vclo <3= compose vclo (eqitC RR b1 b2))      
