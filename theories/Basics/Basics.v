@@ -3,7 +3,11 @@
 (** Not specific to itrees. *)
 
 (* begin hide *)
-From Coq Require Ensembles.
+From Coq Require 
+     Ensembles.
+
+From Coq Require Import
+     RelationClasses.
 
 From ExtLib Require Import
      Structures.Functor
@@ -52,6 +56,54 @@ Arguments inl_morphism {A1 A2 B1 B2 RA RB}.
 Arguments inr_morphism {A1 A2 B1 B2 RA RB}.
 Hint Constructors sum_rel.
 
+(** Logical relation for the [prod] type. *)
+Variant prod_rel {A1 A2 B1 B2 : Type}
+        (RA : A1 -> A2 -> Prop) (RB : B1 -> B2 -> Prop)
+  : (A1 * B1) -> (A2 * B2) -> Prop :=
+| prod_morphism a1 a2 b1 b2 : RA a1 a2 -> RB b1 b2 -> prod_rel RA RB (a1, b1) (a2, b2)
+.
+
+Arguments prod_morphism {A1 A2 B1 B2 RA RB}.
+Hint Constructors prod_rel.
+
+
+(* SAZ: TODO: Move this elsewhere, it belong with the Basics *)
+Section ProdRelInstances.
+  Context {R S : Type}.
+  Context (RR : R -> R -> Prop).
+  Context (SS : S -> S -> Prop).
+
+  Global Instance prod_rel_refl `{Reflexive _ RR} `{Reflexive _ SS} : Reflexive (prod_rel RR SS).
+  Proof.
+    red. destruct x. constructor; auto.
+  Qed.
+  
+  Global Instance prod_rel_sym `{Symmetric _ RR} `{Symmetric _ SS}  : Symmetric (prod_rel RR SS).
+  Proof.
+    red. intros. 
+    inversion H1. subst.
+    constructor; symmetry; auto.
+  Qed.
+
+  Global Instance prod_rel_trans `{Transitive _ RR} `{Transitive _ SS}  : Transitive (prod_rel RR SS).
+  Proof.
+    red.
+    intros.
+    inversion H1.
+    inversion H2.
+    subst.
+    inversion H9; subst.
+    constructor; etransitivity; eauto.
+  Qed.
+
+  Global Instance prod_rel_eqv `{Equivalence _ RR} `{Equivalence _ SS} : Equivalence (prod_rel RR SS).
+  Proof.
+    constructor; typeclasses eauto.
+  Qed.
+
+End ProdRelInstances.
+
+
 (** ** Common monads and transformers. *)
 
 Module Monads.
@@ -88,8 +140,8 @@ End Monads.
 (** ** Loop operator *)
 
 (** [aloop]: A primitive for general recursion.
-    Iterate a function updating an accumulator [A], until it produces
-    an output [B]. It's an Asymmetric variant of [loop], and it looks
+    Iterate a function updating an accumulator [I], until it produces
+    an output [R]. It's an Asymmetric variant of [loop], and it looks
     similar to an Anamorphism, hence the name [aloop].
  *)
 Polymorphic Class ALoop (M : Type -> Type) : Type :=
@@ -112,7 +164,7 @@ in [Interp.Interp.interp].
 
 (* TODO: some of these mk functions have too many explicit arguments *)
 Instance ALoop_stateT {M S} {AM : ALoop M} : ALoop (stateT S M) :=
-  fun _ _ step i => mkStateT _ _ (fun s =>
+  fun _ _ step i => mkStateT (fun s =>
     aloop (fun is =>
       let i := fst is in
       let s := snd is in
@@ -140,7 +192,7 @@ Instance ALoop_readerT {M S} {AM : ALoop M} : ALoop (readerT S M) :=
       end) i).
 
 Instance ALoop_optionT {M} {AM : ALoop M} : ALoop (optionT M) :=
-  fun _ _ step i => mkOptionT _ _ (
+  fun _ _ step i => mkOptionT (
     aloop (fun oi =>
       match oi with
       | Some i =>
@@ -152,7 +204,7 @@ Instance ALoop_optionT {M} {AM : ALoop M} : ALoop (optionT M) :=
       end) (Some i)).
 
 Instance ALoop_eitherT {M E} {AM : ALoop M} : ALoop (eitherT E M) :=
-  fun _ _ step i => mkEitherT _ _ _ (
+  fun _ _ step i => mkEitherT (
     aloop (fun ei =>
       match ei with
       | inl e => inr (inl e)

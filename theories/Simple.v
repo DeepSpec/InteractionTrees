@@ -283,8 +283,10 @@ Definition eutt : itree E R -> itree E R -> Prop :=
 Infix "≈" := eutt (at level 40).
 
 (** [eutt] is an equivalence relation. *)
-Global Instance Equivalence_eutt : Equivalence eutt
-  := ITree.Eq.Eq.Equivalence_eutt.
+Global Instance Equivalence_eutt : Equivalence eutt.
+Proof.
+  apply ITree.Eq.Eq.Equivalence_eutt. econstructor; eauto using trans_eq. 
+Qed.
 
 (** We can erase taus unter [eutt]. *)
 Lemma tau_eutt : forall (t : itree E R),

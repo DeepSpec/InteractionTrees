@@ -12,8 +12,11 @@ From Paco Require Import paco.
 From ITree Require Import
      Basics.Basics
      Basics.Category
+     Basics.CategoryKleisli
+     Basics.MonadTheory
      Core.ITreeDefinition
      Core.KTree
+     Core.KTreeFacts
      Eq.Eq
      Eq.UpToTaus
      Indexed.Sum
@@ -213,7 +216,7 @@ Lemma eutt_interp_state_loop {E F S A B C} (RS : S -> S -> Prop)
           (interp_state h (loop t2 a) s2)).
 Proof.
   intros.
-  unfold loop, bimap, Bimap_Coproduct, case_, Case_ktree, Function.case_sum, id_, Id_ktree, cat, Cat_ktree, ITree.cat, inr_, Inr_ktree, inl_, Inl_ktree, lift_ktree.
+  unfold loop, bimap, Bimap_Coproduct, case_, CoprodCase_Kleisli, Function.case_sum, id_, Id_Kleisli, cat, Cat_Kleisli; cbn.
   rewrite 2 bind_ret.
   eapply (eutt_interp_state_iter eq eq); auto; intros.
   rewrite 2 interp_state_bind.
@@ -229,3 +232,30 @@ Proof.
   - rewrite bind_ret, 2 interp_state_ret. pstep. constructor. cbn.
     split; auto using (proj1 H2).
 Qed.
+
+(* SAZ: These are probably too specialized. *)
+Definition state_eq {E S X} 
+  : (stateT S (itree E) X) -> (stateT S (itree E) X) -> Prop :=
+  fun t1 t2 => forall s, eq_itree eq (t1 s) (t2 s).
+
+Lemma interp_state_aloop {E F } S (f : E ~> stateT S (itree F)) {I A}
+      (t  : I -> itree E I + A)
+      (t' : I -> stateT S (itree F) I + A)
+      (EQ_t : forall i, sum_rel (fun u u' => state_eq (State.interp_state f u) u') eq (t i) (t' i))
+  : forall i, state_eq (State.interp_state f (ITree.aloop t i))
+                  (aloop t' i).
+Proof.
+  ginit. gcofix CIH; intros i s.
+  unfold aloop, ALoop_stateT0, aloop, ALoop_itree in *.
+  rewrite 2 unfold_aloop. simpl.
+  destruct (EQ_t i); cbn.
+  - rewrite interp_state_tau, interp_state_bind.
+    gstep.
+    constructor.
+    guclo eqit_clo_bind; econstructor; eauto.
+    apply H.
+    intros [s' i'] _ []. simpl.
+    auto with paco.
+  - rewrite interp_state_ret. gstep. constructor; auto. subst; auto.
+Qed.
+

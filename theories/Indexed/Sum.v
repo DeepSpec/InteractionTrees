@@ -25,7 +25,7 @@ Arguments inl1 {E1 E2} [X].
 
 (** An infix notation for convenience. *)
 Notation "E1 +' E2" := (sum1 E1 E2)
-  (at level 60, right associativity) : type_scope.
+  (at level 59, right associativity) : type_scope.
 
 (** The empty indexed type. *)
 Variant void1 : Type -> Type := .

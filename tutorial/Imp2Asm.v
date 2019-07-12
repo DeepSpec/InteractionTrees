@@ -1,7 +1,7 @@
 (** * Compilation of Imp to Asm *)
 
 (** We are now ready to define our compiler.
-    The compilation of [expr]essions is of no interest.
+    The compilation of [expr]essions is of little interest.
     The interesting part is in the structure of the
     compilation of instructions: we build higher level
     [asm] combinators from the primitive ones defined
@@ -17,7 +17,7 @@
 *)
 
 (* begin hide *)
-Require Import Imp Asm Utils_tutorial AsmCombinators.
+Require Import Imp Asm Label Utils_tutorial AsmCombinators.
 
 Require Import Psatz.
 
@@ -27,7 +27,6 @@ From Coq Require Import
      Setoid
      Decimal
      Numbers.DecimalString
-     Vectors.Fin
      ZArith
      RelationClasses.
 
@@ -43,42 +42,36 @@ Open Scope string_scope.
 
 Section compile_assign.
 
-  (** We use a simple scheme to ensure disjointness of user variables from local
-  ones introduced by the compiler: the former ones get prefix by "temp_", the latter
-  ones by "local_". *)
-
-  Definition gen_tmp (n: nat): string :=
-    "temp_" ++ string_of_nat n.
-
-  Definition varOf (s : var) : var := "local_" ++ s.
-
   (** Expressions are compiled straightforwardly.
-      The argument [l] is the number of local variables already introduced to compile
+      The argument [l] is the number of registers already introduced to compile
       the expression, and is used for the name of the next one.
-      The result of the computation [compile_expr l e] always ends up stored in [gen_tmp l]. 
+      The result of the computation [compile_expr l e] always ends up stored in [l]. 
    *)
-  Fixpoint compile_expr (l: nat) (e: expr): list instr :=
+  Fixpoint compile_expr (l:reg) (e: expr): list instr :=
     match e with
-    | Var x => [Imov (gen_tmp l) (Ovar (varOf x))]
-    | Lit n => [Imov (gen_tmp l) (Oimm n)]
+    | Var x => [Iload l x]
+    | Lit n => [Imov l (Oimm n)]
     | Plus e1 e2 =>
       let instrs1 := compile_expr l e1 in
       let instrs2 := compile_expr (1 + l) e2 in
-      instrs1 ++ instrs2 ++ [Iadd (gen_tmp l) (gen_tmp l) (Ovar (gen_tmp (1 + l)))]
+      instrs1 ++ instrs2 ++ [Iadd l l (Oreg (1 + l))]
     | Minus e1 e2 =>
       let instrs1 := compile_expr l e1 in
       let instrs2 := compile_expr (1 + l) e2 in
-      instrs1 ++ instrs2 ++ [Isub (gen_tmp l) (gen_tmp l) (Ovar (gen_tmp (1 + l)))]
+      instrs1 ++ instrs2 ++ [Isub l l (Oreg (1 + l))]
     | Mult e1 e2 =>
       let instrs1 := compile_expr l e1 in
       let instrs2 := compile_expr (1 + l) e2 in
-      instrs1 ++ instrs2 ++ [Imul (gen_tmp l) (gen_tmp l) (Ovar (gen_tmp (1 + l)))]
+      instrs1 ++ instrs2 ++ [Imul l l (Oreg (1 + l))]
       end.
 
-  (** Compiles the expression and then move the result (in [gen_tmp 0]) to the mangled variable. *)
+  (** Compiles the expression and then move the result (in register [0]) to address
+      [x].  Note: here we assume a one-to-one mapping of _Imp_ global variable names
+      and _Asm_ addresses.
+  *)
   Definition compile_assign (x: Imp.var) (e: expr): list instr :=
     let instrs := compile_expr 0 e in
-    instrs ++ [Imov (varOf x) (Ovar (gen_tmp 0))].
+    instrs ++ [Istore x (Oreg 0)].
 
 End compile_assign.
 
@@ -115,18 +108,20 @@ We obtain the following diagram:
 
 Which translates to:
  *)
-Definition seq_asm {A B C} (ab : asm A B) (bc : asm B C): asm A C :=
+Definition seq_asm {A B C} (ab : asm A B) (bc : asm B C)
+  : asm A C :=
   link_asm (relabel_asm swap (id_ _) (app_asm ab bc)).
 
 
 (** Location of temporary for [if]. *)
-Definition tmp_if := gen_tmp 0.
+Definition tmp_if := 0.
 
 (** Turns the list of instructions resulting from the conditional
     expression of a _if_ to a block with two exit points.
  *)
 Definition cond_asm (e : list instr) : asm 1 2 :=
-  raw_asm_block (after e (Bbrz tmp_if (FS F1) F1)).
+  raw_asm_block (after e (Bbrz tmp_if (FS f1) f1)).
+
 
 (** Conditional branch of blocks.
     The program [if_asm e tp fp] creates a block out of [e] jumping
@@ -183,11 +178,11 @@ Definition while_asm (e : list instr) (p : asm 1 1) :
 *)
 Fixpoint compile (s : stmt) {struct s} : asm 1 1 :=
   match s with
-  | Skip => id_asm
-  | Assign x e => raw_asm_block (after (compile_assign x e) (Bjmp F1))
-  | Seq l r => seq_asm (compile l) (compile r)
-  | If e l r => if_asm (compile_expr 0 e) (compile l) (compile r)
-  | While e b => while_asm (compile_expr 0 e) (compile b)
+  | Skip       => id_asm
+  | Assign x e => raw_asm_block (after (compile_assign x e) (Bjmp f1))
+  | Seq l r    => seq_asm (compile l) (compile r)
+  | If e l r   => if_asm (compile_expr 0 e) (compile l) (compile r)
+  | While e b  => while_asm (compile_expr 0 e) (compile b)
   end.
 
 (** We now consider its proof of correctness in [Imp2AsmCorrectness.v]. *)

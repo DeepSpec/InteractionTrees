@@ -98,6 +98,13 @@ Context {obj : Type} (C : Hom obj) (bif : binop obj).
     and pairs of morphisms to morphisms ([bimap]).
 
     The composition [bimap f g] is also called _tensor product_ of [f] and [g].
+
+    Many of the following typeclases are _derived_ from just three basic 
+    Coproduc constructions:
+       - [CoprodCase]  (case analysis)
+       - [CoprodInl]   (left injection)
+       - [CoprodInr]   (right injection)
+
  *)
 Class Bimap :=
   bimap : forall a b c d, C a c -> C b d -> C (bif a b) (bif c d).

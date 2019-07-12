@@ -26,7 +26,6 @@ From Coq Require Import
      List
      Strings.String
      Program.Basics
-     Vectors.Fin
      ZArith
      Morphisms.
 Import ListNotations.
@@ -34,6 +33,7 @@ Import ListNotations.
 From ITree Require Import
      ITree
      ITreeFacts
+     ITreeMonad
      SubKTree
      SubKTreeFacts
      Basics.Category.
@@ -85,6 +85,16 @@ Fixpoint after {A: Type} (is : list instr) (bch : branch A) : block A :=
   | nil => bbb bch
   | i :: is => bbi i (after is bch)
   end.
+
+(* SAZ: rationalize the names of the combinators? *)
+(** Another combinator that appends a list of instructions to the beginning of a
+    block *)
+Fixpoint blk_append {lbl} (l:list instr) (b:block lbl) : block lbl :=
+  match l with
+  | [] => b
+  | i :: l' => bbi i (blk_append l' b)
+  end.
+
 
 (* ================================================================= *)
 (** ** Low-level interface with [asm] *)
@@ -168,11 +178,10 @@ Import ITreeNotations.
 Import CatNotations.
 Local Open Scope cat.
 (* end hide *)
-Import Imp.
 Section Correctness.
 
   Context {E : Type -> Type}.
-  Context {HasLocals : Locals -< E}.
+  Context {HasRegs : Reg -< E}.
   Context {HasMemory : Memory -< E}.
   Context {HasExit : Exit -< E}.
 
@@ -209,8 +218,9 @@ Section Correctness.
       Its denotation bind the denotation of the instructions
       with the one of the branch.
    *)
-  Lemma after_correct :
-    forall {label: nat} instrs (b: branch (F label)),
+
+  Lemma denote_after :
+    forall {label} instrs (b: branch (F label)),
       denote_block (after instrs b) ≅ (denote_list instrs ;; denote_branch b).
   Proof.
     induction instrs as [| i instrs IH]; intros b.
@@ -220,6 +230,17 @@ Section Correctness.
       intros []; apply IH.
   Qed.
 
+  Lemma denote_blk_append : forall lbl (l:list instr) (b:block (F lbl)),
+      denote_block (blk_append l b) ≈ (x <- denote_list l ;; denote_block b).
+  Proof.
+    intros lbl.
+    induction l; intros b; simpl.
+    - rewrite bind_ret. reflexivity.
+    - rewrite bind_bind.
+      eapply eutt_clo_bind. reflexivity. red. intros. apply IHl. 
+  Qed.    
+
+  
   (** Utility: denoting the [app] of two lists of instructions binds the denotations. *)
   Lemma denote_list_app:
     forall is1 is2,
@@ -229,18 +250,22 @@ Section Correctness.
     rewrite bind_bind; setoid_rewrite IH; reflexivity.
   Qed.
 
-  Lemma lift_ktree_inr {A B} : @lift_ktree E A (B + A) inr = inr_.
+  Lemma lift_ktree_inr {A B} : lift_ktree_ E A (B + A) inr = inr_.
   Proof. reflexivity. Qed.
 
   Lemma unit_l'_id_sktree {n : nat} : (@unit_l' _ (sktree E) plus 0 _ n) ⩯ id_ n.
   Proof.
-    intros ?. tau_steps; symmetry; tau_steps. reflexivity.
+    intros ?. tau_steps; symmetry; tau_steps. rewrite R_0_a. unfold id.
+    reflexivity.
   Qed.
+
 
   Lemma unit_l_id_sktree {n : nat} : (@unit_l _ (sktree E) plus 0 _ n) ⩯ id_ n.
   Proof.
-    intros ?. tau_steps; symmetry; tau_steps. reflexivity.
+    intros ?. tau_steps; symmetry; tau_steps. rewrite split_fin_sum_0_a.
+    reflexivity.
   Qed.
+
 
   Lemma raw_asm_correct {A B} (b : bks A B) :
     denote_asm (raw_asm b) ⩯ (fun a => denote_block (b a)).
@@ -271,7 +296,7 @@ Section Correctness.
   Qed.
 
   Lemma raw_asm_block_correct {A} (b : block (F A)) :
-    (denote_asm (raw_asm_block b) F1) ≈ (denote_block b).
+    (denote_asm (raw_asm_block b) f1) ≈ (denote_block b).
   Proof.
     apply raw_asm_block_correct_lifted.
   Qed.
@@ -304,48 +329,48 @@ Section Correctness.
       lifted as [ktree]s.
    *)
   Lemma relabel_bks_correct: forall {A B C D: nat} (f: iFun A B) (g: iFun C D) k,
-      denote_b (relabel_bks f g k) ⩯
-               lift_sktree f >>> denote_b k >>> lift_sktree g. 
+      denote_bks (relabel_bks f g k) ⩯
+               lift_sktree f >>> denote_bks k >>> lift_sktree g. 
   Proof.
     intros.
     rewrite lift_compose_sktree, compose_sktree_lift.
-    unfold relabel_bks, denote_b.
+    unfold relabel_bks, denote_bks.
     intros a; rewrite fmap_block_map; reflexivity.
   Qed.
 
   Lemma app_bks_correct: forall {A B C D: nat} (ab: bks A B) (cd: bks C D),
-    denote_b (app_bks ab cd) ⩯ bimap (denote_b ab) (denote_b cd).
+    denote_bks (app_bks ab cd) ⩯ bimap (denote_bks ab) (denote_bks cd).
   Proof.
     intros.
     rewrite unfold_bimap.
-    unfold app_bks, denote_b.
+    unfold app_bks, denote_bks.
     intros ?.
-    unfold bimap, Bimap_Coproduct, case_, Case_ktree, case_sum.
-    unfold cat, Cat_ktree, ITree.cat, isum_suml, isum_sum, sum_isuml, sum_isum, FinSum, merge_fin_sum, lift_ktree.
+    unfold bimap, Bimap_Coproduct, case_, CoprodCase_Kleisli, case_sum.
+    unfold cat, Cat_Kleisli, ITree.cat, isum_suml, isum_sum, sum_isuml, sum_isum, FinSum, merge_fin_sum, lift_ktree.
     cbn.
     rewrite bind_bind, bind_ret.
     destruct (split_fin_sum a).
 
     {
     rewrite bind_bind.
-    rewrite (fmap_block_map (ab t)).
+    rewrite (fmap_block_map (ab f)).
     unfold ITree.map.
     apply eqit_bind; [intros ? | reflexivity].
-    unfold inl_, Inl_ktree, lift_ktree.
+    unfold inl_, CoprodInl_Kleisli, lift_ktree.
     rewrite bind_ret; reflexivity.
     }
     {
     rewrite bind_bind.
-    rewrite (fmap_block_map (cd t)).
+    rewrite (fmap_block_map (cd f)).
     unfold ITree.map.
     apply eqit_bind; [intros ? | reflexivity].
-    unfold inr_, Inr_ktree, lift_ktree.
+    unfold inr_, CoprodInr_Kleisli, lift_ktree.
     rewrite bind_ret; reflexivity.
     }
   Qed.
 
     Global Instance CatAssoc_iFun : CatAssoc iFun.
-    Proof with try typeclasses eauto.
+    Proof.
       intros A B C D f g h.
       unfold cat, Cat_iFun.
       apply cat_Fun_assoc.
@@ -566,7 +591,7 @@ Section Correctness.
     subst lhs.
     apply Proper_loop.
     rewrite !cat_assoc.
-    repeat rewrite <- (cat_assoc _ _ (bimap (denote_b _) (denote_b _) >>> _)).
+    repeat rewrite <- (cat_assoc _ _ (bimap (denote_bks _) (denote_bks _) >>> _)).
     cbn. rewrite relabel_bks_correct, app_bks_correct.
     rewrite cat_assoc.
 
@@ -576,10 +601,11 @@ Section Correctness.
     rewrite <- !bimap_id_slift.
     rewrite <- !compose_lift_sktree.
     rewrite <- !bimap_slift_id.
-    rewrite <- !assoc_r_sktree, <- !assoc_l_sktree, !sym_sktree_unfold.
+    rewrite <- !assoc_r_sktree.
+    rewrite <- !assoc_l_sktree.
+    rewrite !sym_sktree_unfold.
     reflexivity.
   Qed.
-
       
   Theorem relabel_asm_correct {A B C D} (f : F A -> F B) (g : F C -> F D)
              (bc : asm B C) :

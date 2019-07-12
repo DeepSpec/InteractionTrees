@@ -17,6 +17,8 @@ From Paco Require Import paco.
 
 From ITree Require Import
      Basics.Category
+     Basics.CategoryKleisli
+     Basics.CategoryKleisliFacts
      Basics.Basics
      Core.ITreeDefinition
      Core.KTree
@@ -102,6 +104,7 @@ Proof.
   rewrite bind_ret2.
   apply reflexivity.
 Qed.
+
 
 Hint Rewrite @interp_ret : itree.
 Hint Rewrite @interp_vis : itree.
@@ -238,7 +241,7 @@ Proof.
 Qed.
 
 Lemma interp_trigger_h {E R} (t : itree E R) :
-  interp (fun _ e => ITree.trigger e) t ≈ t.
+  interp ITree.trigger t ≈ t.
 Proof.
   revert t. einit. ecofix CIH. intros.
   rewrite unfold_interp. rewrite (itree_eta t) at 2.
@@ -343,7 +346,7 @@ Lemma interp_loop {E F} (f : E ~> itree F) {A B C}
       (t : C + A -> itree E (C + B)) a :
   interp f (loop t a) ≅ loop (fun ca => interp f (t ca)) a.
 Proof.
-  unfold loop. unfold cat, Cat_ktree, ITree.cat.
+  unfold loop. unfold cat, Cat_Kleisli, ITree.cat; cbn.
   rewrite interp_bind.
   apply eqit_bind.
   repeat intro.
@@ -353,13 +356,13 @@ Proof.
   rewrite interp_bind.
   apply eqit_bind; try reflexivity.
   intros []; cbn. unfold cat. rewrite interp_bind.
-  unfold inl_, Inl_ktree, inr_, Inr_ktree, lift_ktree.
-  rewrite interp_ret, !bind_ret, interp_ret.
-  reflexivity.
-  unfold cat, id_, Id_ktree, inr_, Inr_ktree, lift_ktree.
-  rewrite interp_bind, interp_ret, !bind_ret, interp_ret.
-  reflexivity.
-  unfold inr_, Inr_ktree, lift_ktree.
-  rewrite interp_ret.
-  reflexivity.
+  - unfold inl_, CoprodInl_Kleisli, inr_, CoprodInr_Kleisli, lift_ktree; cbn.
+    rewrite interp_ret, !bind_ret, interp_ret.
+    reflexivity.
+  - unfold cat, id_, Id_Kleisli, inr_, CoprodInr_Kleisli, lift_ktree, pure; cbn.
+    rewrite interp_bind, interp_ret, !bind_ret, interp_ret.
+    reflexivity.
+  - unfold inr_, CoprodInr_Kleisli, lift_ktree, pure; cbn.
+    rewrite interp_ret.
+    reflexivity.
 Qed.

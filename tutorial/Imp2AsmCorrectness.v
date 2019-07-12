@@ -2,6 +2,8 @@
 
 (** We finally turn to proving our compiler correct.
 
+SAZ: This needs to be updated.
+
     We express the result as a (weak) bisimulation between
     the [itree] resulting from the denotation of the source
     _Imp_ statement and the denotation of the compiled _Asm_
@@ -56,15 +58,15 @@ From Coq Require Import
      Morphisms
      ZArith
      Setoid
-     Fin
      RelationClasses.
 
 From ITree Require Import
+     Basics.Basics
      CategoryOps
      ITree
      ITreeFacts
      Events.StateFacts
-     Events.Map
+     Events.MapDefault
      SubKTree
      SubKTreeFacts.
 
@@ -82,146 +84,147 @@ Open Scope string_scope.
 Import CatNotations.
 Local Open Scope cat.
 
+Import Monads.
+Open Scope monad_scope.
 (* end hide *)
 
-(* ================================================================= *)
-(** ** Hiding mangling of variables. *)
-
-(** [varOf] and [gen_tmp] are injective. *)
-Section GEN_TMP.
-
-  Lemma gen_tmp_inj: forall n m, m <> n -> gen_tmp m <> gen_tmp n.
-  Proof.
-    intros n m ineq; intros abs; apply ineq.
-    apply string_of_nat_inj in ineq; inversion abs; easy.
-  Qed.
-
-  Lemma varOf_inj: forall n m, m <> n -> varOf m <> varOf n.
-  Proof.
-    intros n m ineq abs; inv abs; easy.
-  Qed.
-
-End GEN_TMP.
-
-Opaque gen_tmp.
-Opaque varOf.
 
 (* ================================================================= *)
-(** ** Simulation relations *)
+(** ** Simulation relations and invariants *)
 
-(** The compiler is proved correct by constructing a (itree) bisimulation between
-    the source program and its compilation.
-    As is traditional, we define, to this end, a simulation relation [Renv]. Since the
-    bisimulation will take place after handling of the local environment, [Renv]
-    relates two [alist var value] environments.
- *)
+(** The compiler is proved correct by constructing a (itree) bisimulation
+    between the source program and its compilation.  The compiler does two
+    things that affect the state:
+
+      - it translates source Imp variables to Asm global variables, which should
+        match at each step of computation
+
+      - it introduces temporary local variables that name intermediate values
+
+    As is traditional, we define, to this end, a simulation relation [Renv] and
+    invariants that relate the source Imp environment to the target Asm
+    environment, following the description above.
+   
+    [Renv] relates two [alist var value] environments if they act as 
+    equivalent maps.  This is used to relate Imp's [ImpState] environment to
+    Asm's [Memory].  
+
+*)
 
 Section Simulation_Relation.
 
   (** ** Definition of the simulation relations *)
 
-  (** Relates a source variable to its mangled counterpart in _Asm_. *)
-  Variant Rvar : var -> var -> Prop :=
-  | Rvar_var v : Rvar (varOf v) v.
-
   (** The simulation relation for evaluation of statements.
       The relation relates two environments of type [alist var value].
       The source and target environments exactly agree on user variables.
    *)
-  Definition Renv (g_asm g_imp : alist var value) : Prop :=
-    forall k_asm k_imp, Rvar k_asm k_imp ->
-                   forall v, alist_In k_imp g_imp v <-> alist_In k_asm g_asm v.
+  Definition Renv (g_imp : Imp.env) (g_asm : Asm.memory) : Prop :=
+    forall k v, alist_In k g_imp v <-> alist_In k g_asm v.
 
+  Global Instance Renv_refl : Reflexive Renv.
+  Proof.
+    red. intros. unfold Renv. tauto.
+  Qed.    
+  
  (** The simulation relation for evaluation of expressions.
-     The relation also relates two environments of type [alist var value],
-     but additionally the returned value at the _Imp_ level. The _Asm_
-     side does not carry a [value], but a [unit], since its denotation
-     does not return any [value].
-     The [sim_rel] relation is parameterized by the state of the [asm] environment
-     before the step, and the name of the variable used to store
-     the result.
+
+     The relation connects 
+
+       - the global state at the Imp level
+          
+       - the memory and register states at the Asm level
+
+     and, additionally the returned value at the _Imp_ level. The _Asm_ side
+     does not carry a [value], but a [unit], since its denotation does not
+     return any [value].
+
+     The [sim_rel] relation is parameterized by the state of the local [asm]
+     environment before the step, and the name of the variable used to store the
+     result.
+
+
      It enforces three conditions:
-     - [Renv] on the environments, ensuring that evaluation of expressions
-     does not corrupt user variables;
+     - [Renv] on the global environments, ensuring that evaluation of expressions does
+     not change user variables;
+
      - Agreement on the computed value, i.e. the returned value [v] is stored at
      the assembly level in the expected temporary;
-     - The "stack" of temporaries used to compute intermediate results is left untouched.
-  *) 
-  Definition sim_rel g_asm n: alist var value * unit -> alist var value * value -> Prop :=
-    fun '(g_asm', _) '(g_imp',v) =>
-      Renv g_asm' g_imp' /\            (* we don't corrupt any of the imp variables *)
-      alist_In (gen_tmp n) g_asm' v /\ (* we get the right value *)
-      (forall m, m < n -> forall v,              (* we don't mess with anything on the "stack" *)
-            alist_In (gen_tmp m) g_asm v <-> alist_In (gen_tmp m) g_asm' v).
 
+     - The "stack" of temporaries used to compute intermediate results is left
+       untouched.
+  *) 
+  Definition sim_rel l_asm n: (env * value) -> (memory * (registers * unit)) -> Prop :=
+    fun '(g_imp', v) '(g_asm', (l_asm', _))  =>
+      Renv g_imp' g_asm' /\            (* we don't corrupt any of the imp variables *)
+      alist_In n l_asm' v /\           (* we get the right value *)
+      (forall m, m < n -> forall v,              (* we don't mess with anything on the "stack" *)
+            alist_In m l_asm v <-> alist_In m l_asm' v).
+
+  Lemma sim_rel_find : forall g_asm g_imp l_asm l_asm' n  v,
+    sim_rel l_asm n (g_imp, v) (g_asm, (l_asm', tt)) ->
+    alist_find n l_asm' = Some v.
+  Proof.
+    intros.
+    destruct H as [_ [IN _]].
+    apply IN.
+  Qed.    
 
   (** ** Facts on the simulation relations *)
-
-  (** [Renv] is stable by updates to temporaries. *)
-  Lemma Renv_add: forall g_asm g_imp n v,
-      Renv g_asm g_imp -> Renv (alist_add (gen_tmp n) v g_asm) g_imp.
-  Proof.
-    repeat intro.
-    destruct (k_asm ?[ eq ] (gen_tmp n)) eqn:EQ.
-    rewrite rel_dec_correct in EQ; subst; inv H0.
-    rewrite <- neg_rel_dec_correct in EQ.
-    rewrite (H _ _ H0).
-    apply In_add_ineq_iff; auto.
-  Qed.
-
+  
   (** [Renv] entails agreement of lookup of user variables. *)
   Lemma Renv_find:
     forall g_asm g_imp x,
-      Renv g_asm g_imp ->
-      alist_find x g_imp = alist_find (varOf x) g_asm.
+      Renv g_imp g_asm ->
+      alist_find x g_imp = alist_find x g_asm.
   Proof.
     intros.
-    destruct (alist_find x g_imp) eqn:LUL, (alist_find (varOf x) g_asm) eqn:LUR; auto.
-    - eapply H in LUL; [| constructor].
+    destruct (alist_find x g_imp) eqn:LUL, (alist_find x g_asm) eqn:LUR; auto.
+    - eapply H in LUL.
       rewrite LUL in LUR; auto.
-    - eapply H in LUL; [| constructor].
+    - eapply H in LUL.
       rewrite LUL in LUR; auto.
-    - erewrite <- (H (varOf x) x (Rvar_var x) v) in LUR.
+    - eapply H in LUR.
       rewrite LUR in LUL; inv LUL.
   Qed.      
 
   (** [sim_rel] can be initialized from [Renv]. *)
-  Lemma sim_rel_add: forall g_asm g_imp n v,
-      Renv g_asm g_imp ->
-      sim_rel g_asm n (alist_add (gen_tmp n) v g_asm, tt) (g_imp, v).
+  Lemma sim_rel_add: forall g_asm l_asm g_imp n v,
+      Renv g_imp g_asm ->
+      sim_rel l_asm n  (g_imp, v) (g_asm, (alist_add n v l_asm, tt)).
   Proof.
     intros.
     split; [| split].
-    - apply Renv_add; assumption.
+    - assumption.
     - apply In_add_eq.
     - intros m LT v'.
-      apply In_add_ineq_iff, gen_tmp_inj; lia.
+      apply In_add_ineq_iff; lia.
   Qed.
 
   (** [Renv] can be recovered from [sim_rel]. *)
-  Lemma sim_rel_Renv: forall g_asm n s1 v1 s2 v2,
-      sim_rel g_asm n (s1,v1) (s2,v2) -> Renv s1 s2.
+  Lemma sim_rel_Renv: forall l_asm n s1 l v1 s2 v2,
+      sim_rel l_asm n (s2,v2) (s1,(l,v1)) -> Renv s2 s1 .
   Proof.
-    intros ? ? ? ? ? ? H; apply H.
+    intros ? ? ? ? ? ? ? H; apply H.
   Qed.
 
   Lemma sim_rel_find_tmp_n:
-    forall g_asm n g_asm' g_imp' v,
-      sim_rel g_asm n (g_asm', tt) (g_imp',v) ->
-      alist_In (gen_tmp n) g_asm' v.
+    forall l_asm g_asm' n l_asm' g_imp' v,
+      sim_rel l_asm n  (g_imp',v) (g_asm', (l_asm', tt)) ->
+      alist_In n l_asm' v.
   Proof.
-    intros ? ? ? ? ? [_ [H _]]; exact H. 
+    intros ? ? ? ? ? ? [_ [H _]]; exact H. 
   Qed.
 
   (** [sim_rel] entails agreement of lookups in the "stack" between its argument
       and the current Asm environement *)
   Lemma sim_rel_find_tmp_lt_n:
-    forall g_asm n m g_asm' g_imp' v,
+    forall l_asm g_asm' n m l_asm' g_imp' v,
       m < n ->
-      sim_rel g_asm n (g_asm', tt) (g_imp',v) ->
-      alist_find (gen_tmp m) g_asm = alist_find (gen_tmp m) g_asm'.
+      sim_rel l_asm n (g_imp',v) (g_asm', (l_asm', tt)) ->
+      alist_find m l_asm = alist_find m l_asm'.
   Proof.
-    intros ? ? ? ? ? ? ineq [_ [_ H]].
+    intros ? ? ? ? ? ? ? ineq [_ [_ H]].
     match goal with
     | |- _ = ?x => destruct x eqn:EQ
     end.
@@ -234,10 +237,10 @@ Section Simulation_Relation.
   Qed.
 
   Lemma sim_rel_find_tmp_n_trans:
-    forall g_asm n g_asm' g_asm'' g_imp' g_imp'' v v',
-      sim_rel g_asm n (g_asm', tt) (g_imp',v) ->
-      sim_rel g_asm' (S n) (g_asm'', tt) (g_imp'',v') ->
-      alist_In (gen_tmp n) g_asm'' v.
+    forall l_asm n l_asm' l_asm'' g_asm' g_asm'' g_imp' g_imp'' v v',
+      sim_rel l_asm n (g_imp',v) (g_asm', (l_asm', tt))  ->
+      sim_rel l_asm' (S n) (g_imp'',v') (g_asm'', (l_asm'', tt))  ->
+      alist_In n l_asm'' v.
   Proof.
     intros.
     generalize H; intros LU; apply sim_rel_find_tmp_n in LU.
@@ -248,50 +251,40 @@ Section Simulation_Relation.
    *)
   Lemma Renv_write_local:
     forall (k : Imp.var) (g_asm g_imp : alist var value) v,
-      Renv g_asm g_imp ->
-      Renv (alist_add (varOf k) v g_asm) (alist_add k v g_imp).
+      Renv g_imp g_asm ->
+      Renv (alist_add k v g_imp) (alist_add k v g_asm).
   Proof.
-    intros k m m' v HRel k_asm k_imp Hk v'.
-    specialize (HRel _ _ Hk v').
-    inv Hk.
+    intros k m m' v HRel k' v'.
     unfold alist_add, alist_In; simpl.
-    do 2 flatten_goal;
+    flatten_goal;
       repeat match goal with
              | h: _ = true |- _ => rewrite rel_dec_correct in h
              | h: _ = false |- _ => rewrite <- neg_rel_dec_correct in h
              end; try subst.
     - tauto.
-    - tauto.
-    - apply varOf_inj in Heq; easy.
     - setoid_rewrite In_remove_In_ineq_iff; eauto using RelDec_string_Correct.
   Qed.
 
   (** [sim_rel] can be composed when proving binary arithmetic operators. *)
   Lemma sim_rel_binary_op:
-    forall (g_asm g_asm' g_asm'' g_imp' g_imp'' : alist var value)
+    forall (l_asm l_asm' l_asm'' : registers) (g_asm' g_asm'' : memory) (g_imp' g_imp'' : env)
       (n v v' : nat)
-      (Hsim : sim_rel g_asm n (g_asm', tt) (g_imp', v))
-      (Hsim': sim_rel g_asm' (S n) (g_asm'', tt) (g_imp'', v'))
+      (Hsim : sim_rel l_asm n (g_imp', v) (g_asm', (l_asm', tt)))
+      (Hsim': sim_rel l_asm' (S n) (g_imp'', v') (g_asm'', (l_asm'', tt)))
       (op: nat -> nat -> nat),
-      sim_rel g_asm n (alist_add (gen_tmp n) (op v v') g_asm'', tt) (g_imp'', op v v').
+      sim_rel l_asm n (g_imp'', op v v') (g_asm'', (alist_add n (op v v') l_asm'', tt)).
   Proof.
     intros.
     split; [| split].
-    {
-      eapply Renv_add, sim_rel_Renv; eassumption.
-    }
-    {
-      apply In_add_eq.
-    }
-    {
-      intros m LT v''.
-      rewrite <- In_add_ineq_iff; [| apply gen_tmp_inj; lia].
+    - eapply sim_rel_Renv; eassumption.
+    - apply In_add_eq.
+    - intros m LT v''.
+      rewrite <- In_add_ineq_iff; [| lia].
       destruct Hsim as [_ [_ Hsim]].
       destruct Hsim' as [_ [_ Hsim']].
       rewrite Hsim; [| auto with arith].
       rewrite Hsim'; [| auto with arith].
       reflexivity.
-    }
   Qed.
 
 End Simulation_Relation.
@@ -299,77 +292,26 @@ End Simulation_Relation.
 (* ================================================================= *)
 (** ** Bisimulation *)
 
-(** We now make precise the bisimulation established to show the correctness
-    of the compiler.
-    Naturally, we cannot establish a _strong bisimulation_ between the source
-    program and the target program: the [asm] counterpart performs "more
-    steps" when evaluating expressions.
-    The appropriate notion is of course the _equivalence up to tau_. However,
-    the [itree] structures put in evidence a very naturaly hierarchy of notions
-    of correctness.
-    Since the [asm] programs perform more manipulations of their local
-    environment, we cannot hope to relate the trees containing [Locals] events,
-    we first need to interpret them.
-    However, since it does not introduce any manipulation of the heap, we
-    _can_ prove the result without interpreting the [Memory] events.
-    Of course this example is rather contrived, owing to the simplicity of the
-    compiler. Nonetheless, it makes a lot of sense when considering optimization:
-    one can see the handling of events as bits of the memory model, and 
-    therefore have a framework to prove some optimizations correct with respect
-    to any memory model, i.e. before handling, while others with respect to
-    concrete memory model, i.e. after handling.
- *)
+(** We now make precise the bisimulation established to show the correctness of
+    the compiler.  Naturally, we cannot establish a _strong bisimulation_
+    between the source program and the target program: the [asm] counterpart
+    performs "more steps" when evaluating expressions.  The appropriate notion
+    is of course the _equivalence up to tau_. However, the [itree] structures
+    are also quite different.  [asm] programs manipulate two state
+    components. The simulation will establish that the [imp] global state
+    corresponds to the [asm] memory, but do establish that correspondence we
+    also need to interpret the [asm] register effects.  *)
 
-Section Eq_Locals.
+Section Bisimulation.
 
-  Context {E': Type -> Type}.
-  Notation E := (Locals +' E').
-
-  (** [interp_locals] handle [Locals] into the [mapE] events, and then
-      run these events into the state monad. *)
-  Definition interp_locals {R: Type} (t: itree E R) (s: alist var value)
-    : itree E' (alist var value * R) :=
-    run_map (interp (bimap evalLocals (id_ _)) t) s.
-
-  (** This interpreter is compatible with the equivalence-up-to-tau. *)
-  Global Instance eutt_interp_locals {R}:
-    Proper (@eutt E R R eq ==> eq ==> @eutt E' (prod (alist var value) R) (prod _ R) eq)
-           interp_locals.
-  Proof.
-    repeat intro.
-    unfold interp_locals.
-    unfold run_map.
-    rewrite H0. eapply eutt_interp_state; auto.
-    rewrite H; reflexivity.
-  Qed.
-
-  (** [interp_locals] commutes with [bind]. *)
-  Lemma interp_locals_bind: forall {R S} (t: itree E R) (k: R -> itree _ S) (s: alist var value),
-      @eutt E' _ _ eq
-            (interp_locals (ITree.bind t k) s)
-            (ITree.bind (interp_locals t s) (fun s' => interp_locals (k (snd s')) (fst s'))).
-  Proof.
-    intros.
-    unfold interp_locals.
-    unfold run_map.
-    rewrite interp_bind.
-    rewrite interp_state_bind.
-    reflexivity.
-  Qed.
-
-  Lemma interp_locals_ret {R} (r : R) (s : alist var value) :
-    interp_locals (Ret r) s ≈ Ret (s, r).
-  Proof.
-    unfold interp_locals, run_map, State.interp_state.
-    rewrite interp_ret. rewrite itree_eta; cbn.
-    reflexivity.
-  Qed.
-
+  
   (** Definition of our bisimulation relation.
-      As previously explained, it relates up-to-tau two [itree]s after having
-      interpreted their [Locals] event.
-      We additionally bake into it a simulation relation taken in parameter:
-      - Local events are interpreted from related states.
+
+      As previously explained, it relates (up-to-tau) two [itree]s after having
+      interpreted their events.
+
+      We additionally bake into it a simulation
+      -  events are interpreted from related states.
       - Returned values must contain related states, as well as computed datas
       related by another relation [RR] taken in parameter.
       In our case, we specialize [RR] to equality since both trees return [unit],
@@ -377,107 +319,146 @@ Section Eq_Locals.
    *)
   (* SAZ: TODO - rename some of the variables here to make it clear what are environemnts, etc. 
      maybe rename a and b to use pattern binding: a == '(src_env, src_res)
-  *)
-  Definition eq_locals {R1 R2} (RR : R1 -> R2 -> Prop)
-             (Renv_ : _ -> _ -> Prop)
-             (t1: itree E R1) (t2: itree E R2): Prop :=
-    forall g1 g2,
-      Renv_ g1 g2 ->
-      eutt (fun a (b : alist var value * R2) => Renv_ (fst a) (fst b) /\ RR (snd a) (snd b))
-           (interp_locals t1 g1)
-           (interp_locals t2 g2).
 
-  (** [eq_locals] is compatible with [eutt]. *)
-  Global Instance eutt_eq_locals (Renv_ : _ -> _ -> Prop) {R S} {RR : R -> S -> Prop} :
-    Proper (eutt eq ==> eutt eq ==> iff) (@eq_locals R S RR Renv_).
-  Proof.
-    split; repeat intro.
-    - apply H1 in H2. rewrite H, H0 in H2. auto.
-    - rewrite H, H0. auto.
-  Qed.
+     Annoyingly, using pattern matching here prevents lemmas like [eutt_interp_state_loop] 
+     from applying because 
+   *)
 
-  (** [eq_locals] commutes with [bind]  *)
-  Definition eq_locals_bind' (Renv_ : _ -> _ -> Prop)
-             {R1 R2 S1 S2} (RR : R1 -> R2 -> Prop)
-             (RS : S1 -> S2 -> Prop) :
-    forall t1 t2,
-      eq_locals RR Renv_ t1 t2 ->
-      forall k1 k2,
-        (forall r1 r2, RR r1 r2 -> eq_locals RS Renv_ (k1 r1) (k2 r2)) ->
-        eq_locals RS Renv_ (t1 >>= k1) (t2 >>= k2).
+  Section RAB.
+
+    Context {A B : Type}.
+    Context (RAB : A -> B -> Prop).  (* relation on Imp / Asm values *)
+            
+    Definition state_invariant (a : Imp.env * A) (b : Asm.memory * (Asm.registers * B))  :=
+      Renv (fst a) (fst b) /\ (RAB (snd a) (snd (snd b))).
+  
+    Definition bisimilar {E} (t1 : itree (ImpState +' E) A) (t2 : itree (Reg +' Memory +' E) B)  :=
+    forall g_asm g_imp l,
+      Renv g_imp g_asm ->
+      eutt state_invariant
+           (interp_imp t1 g_imp)
+           (interp_asm t2 g_asm l).
+  End RAB.
+
+    
+  (** [bisimilar] is compatible with [eutt]. *)
+
+  Global Instance eutt_bisimilar  {A B E}  (RAB : A -> B -> Prop):
+    Proper (eutt eq ==> eutt eq ==> iff) (@bisimilar A B RAB E).
   Proof.
     repeat intro.
-    rewrite 2 interp_locals_bind.
-    eapply eutt_clo_bind; [eapply H; auto|].
-    intros. eapply H0; destruct H2; auto.
+    unfold bisimilar. split.
+    - intros.
+      rewrite <- H, <- H0. auto.
+    - intros.
+      rewrite H, H0. auto.
   Qed.
 
-  (** [eq_locals] is compatible with [loop]. *)
-  Lemma eq_locals_iter {A A' B B'}
+  Lemma bisimilar_bind' {A A' B C E} (RAA' : A -> A' -> Prop) (RBC: B -> C -> Prop):
+    forall (t1 : itree (ImpState +' E) A) (t2 : itree (Reg +' Memory +' E) A') ,
+      bisimilar RAA' t1 t2 ->
+      forall (k1 : A -> itree (ImpState +' E) B) (k2 : A' -> itree (Reg +' Memory +' E) C) 
+        (H: forall (a:A) (a':A'), RAA' a a' -> bisimilar RBC (k1 a) (k2 a')),
+        bisimilar RBC (t1 >>= k1) (t2 >>= k2).
+  Proof.
+    repeat intro.
+    rewrite interp_asm_bind.
+    rewrite interp_imp_bind.
+    eapply eutt_clo_bind.
+    { eapply H; auto. }
+    intros.
+    destruct u1 as [? ?].
+    destruct u2 as [? [? ?]]. 
+    unfold state_invariant in H2.
+    simpl in H2. destruct H2. subst.
+    eapply H0; eauto.
+  Qed.
+
+
+  Lemma interp_state_aloop' {E F } S (f : E ~> stateT S (itree F)) {I A}
+      (t  : I -> itree E I + A)
+  : forall i, state_eq (State.interp_state f (ITree.aloop t i))
+                  (aloop (fun i => match t i with inl u => inl (State.interp_state f u) | inr a => inr a end) i).
+  Proof.
+    eapply interp_state_aloop.
+    intros i.
+    destruct (t i); constructor; auto. red.  intros.
+    reflexivity.
+  Qed.
+
+  
+  Lemma bisimilar_iter {E A A' B B'}
         (R : A -> A' -> Prop)
         (S : B -> B' -> Prop)
-        (t1 : A -> itree E (A + B))
-        (t2 : A' -> itree E (A' + B')) :
-    (forall l l', R l l' -> eq_locals (sum_rel R S) Renv (t1 l) (t2 l')) ->
+        (t1 : A -> itree (_ +' E) (A + B))
+        (t2 : A' -> itree (_ +' _ +' E) (A' + B')) :
+    (forall l l', R l l' -> bisimilar (sum_rel R S) (t1 l) (t2 l')) ->
     forall x x', R x x' ->
-    eq_locals S Renv (KTree.iter t1 x) (KTree.iter t2 x').
+    bisimilar S (KTree.iter t1 x) (KTree.iter t2 x').
   Proof.
-    unfold eq_locals, interp_locals, run_map.
+    
+    unfold bisimilar, interp_asm, interp_imp, interp_map.
     intros. rewrite 2 interp_iter.
-    eapply eutt_interp_state_iter; auto.
+    unfold KTree.iter, Iter_ktree.
+    pose proof @interp_state_aloop'.
+    red in H2.
+    
+    do 2 rewrite H2.
+    unfold aloop, ALoop_stateT0, aloop, ALoop_itree .
+    rewrite H2.
+    eapply (eutt_aloop' (state_invariant (sum_rel R S))).
+    intros.
+    destruct H3. simpl.
+    destruct H4.
+    - constructor. apply H; auto.
+    - constructor. constructor; auto.
+    - split; auto. simpl. constructor; auto.
   Qed.
 
   (** [sim_rel] at [n] entails that [GetVar (gen_tmp n)] gets interpreted
       as returning the same value as the _Imp_ related one.
    *)
   Lemma sim_rel_get_tmp0:
-    forall n g_asm0 g_asm g_imp v,
-      sim_rel g_asm0 n (g_asm,tt) (g_imp,v) ->
-      interp_locals (trigger (GetVar (gen_tmp n))) g_asm ≈ Ret (g_asm,v).
+    forall {E} n l l' g_asm g_imp v,
+      sim_rel l' n (g_imp,v) (g_asm, (l,tt)) ->
+      (interp_asm ((trigger (GetReg n)) : itree (Reg +' Memory +' E) value)
+                                       g_asm l)
+      ≈     (Ret (g_asm, (l, v))).
   Proof.
     intros.
-    destruct H as [_ [eq _]].
-    unfold interp_locals.
+    unfold interp_asm.
     rewrite interp_trigger.
     rewrite tau_eutt.
     cbn.
-    unfold run_map.
-    unfold evalLocals, cat, Cat_Handler, Handler.cat.
+    unfold interp_map.
+    unfold map_reg, CategoryOps.cat, Cat_Handler, Handler.cat. 
+    unfold inl_, Inl_sum1_Handler, Handler.inl_, Handler.htrigger. cbn.
     unfold lookup_def; cbn.
-    rewrite unfold_interp_state; cbn.
+    unfold embed, Embeddable_itree, Embeddable_forall, embed.
+    rewrite interp_trigger.
     rewrite tau_eutt.
-    rewrite bind_map.
-    setoid_rewrite bind_ret.
-    setoid_rewrite interp_ret.
-    unfold inl_, Inl_sum1_Handler, Handler.inl_, Handler.htrigger.
-    rewrite interp_state_bind.
     rewrite interp_state_trigger.
-    cbn.
-    rewrite eq.
     rewrite !tau_eutt.
-    rewrite bind_ret; cbn.
+    cbn.
     rewrite interp_state_ret.
+    unfold lookup_default, lookup, Map_alist.
+    erewrite sim_rel_find.
     reflexivity.
+    apply H.
   Qed.
+    
 
-End Eq_Locals.
+End Bisimulation.
 
 (* ================================================================= *)
 (** ** Linking *)
 
-(** We first show that our "high level" [asm] combinators are correct.
-    These proofs are mostly independent from the compiler, and therefore
-    fairly reusable.
-    Once again, these notion of correctness are expressed as equations
-    commuting the denotation with the combinator.
- *)
+(** We first show that our "high level" [asm] combinators are correct.  These
+    proofs are mostly independent from the compiler, and therefore fairly
+    reusable.  Once again, these notion of correctness are expressed as
+    equations commuting the denotation with the combinator.  *)
 
 Section Linking.
-
-  Context {E': Type -> Type}.
-  Context {HasMemory: Memory -< E'}.
-  Context {HasExit: Exit -< E'}.
-  Notation E := (Locals +' E').
 
   (** [seq_asm] is denoted as the (horizontal) composition of denotations. *)
   Lemma seq_asm_correct {A B C} (ab : asm A B) (bc : asm B C) :
@@ -494,90 +475,108 @@ Section Linking.
 
   (** [if_asm] is denoted as the ktree first denoting the branching condition,
       then looking-up the appropriate variable and following with either denotation. *)
-  (* This proof should be nicer. *)
+
+  (* SAZ: This proof and the following one should be made nicer.
+     Part of the problem is that some of the details of the Label types leak through
+     the interface.  It would be better to extend the Embedding and SubKTree interfaces
+     to better preserve the abstractions.  
+
+     We should not have to unfold [isum_suml], [merge], etc. We would have to figure out
+     the right way to abstract properties like: [split_fin_sum_FS_inr].
+  *) 
   Lemma if_asm_correct {A} (e : list instr) (tp fp : asm 1 A) :
       denote_asm (if_asm e tp fp)
     ⩯ ((fun _ =>
          denote_list e ;;
-         v <- trigger (GetVar tmp_if) ;;
-         if v : value then denote_asm fp F1 else denote_asm tp F1) : sktree _ _ _).
+         v <- trigger (GetReg tmp_if) ;;
+         if v : value then denote_asm fp f1 else denote_asm tp f1) : sktree _ _ _).
   Proof.
     unfold if_asm.
     rewrite seq_asm_correct.
     unfold cond_asm.
     rewrite raw_asm_block_correct_lifted.
+    rewrite relabel_asm_correct.
     intros ?.
-    unfold CategoryOps.cat, Cat_sktree, CategoryOps.cat, Cat_ktree, ITree.cat; simpl.
-    rewrite after_correct.
-    simpl.
+    Local Opaque denote_asm.
+    Local Opaque Label.FS.
+    Local Opaque merge_fin_sum.
+
+    unfold CategoryOps.cat, Cat_sktree, CategoryOps.cat, Cat_Kleisli; simpl.
+    rewrite denote_after.
+    cbn.
     repeat setoid_rewrite bind_bind.
+    apply eqit_bind; try reflexivity. intros _.
     apply eqit_bind; try reflexivity. intros [].
-    apply eqit_bind; try reflexivity. intros [].
-    - rewrite bind_ret_.
-      rewrite (relabel_asm_correct _ _ _ _).
-      unfold CategoryOps.cat, Cat_sktree, CategoryOps.cat, Cat_ktree, ITree.cat; simpl.
-      rewrite bind_bind.
-      unfold lift_sktree, lift_ktree; rewrite bind_ret_.
+
+    - rewrite !bind_ret.
       setoid_rewrite (app_asm_correct tp fp _).
-      Local Opaque denote_asm.
       setoid_rewrite bind_bind.
-      unfold isum_suml, isum_sum, lift_ktree; cbn.
+      unfold isum_suml, isum_sum, lift_ktree; cbn. unfold id_, Id_iFun, id, id_, Id_Fun.
       rewrite bind_ret; cbn.
-      unfold CategoryOps.cat, Cat_sktree, CategoryOps.cat, Cat_ktree, ITree.cat; simpl.
-      rewrite bind_bind.
-      rewrite <- (bind_ret2 (denote_asm fp F1)) at 2.
-      eapply eqit_bind; [| reflexivity].
+      unfold merge.
+      unfold case_, case_isum, CategoryOps.cat, Cat_Fun, case_, case_sum, CoprodCase_Kleisli, case_sum.
+      cbn.
+      rewrite split_fin_sum_FS_inr.
+      repeat rewrite bind_bind.
+      repeat setoid_rewrite bind_ret.
+      rewrite <- (bind_ret2 (denote_asm fp f1)).
+      eapply eqit_bind.
+      * 
       intros ?.
-      unfold inr_, Inr_sktree, inr_, Inr_ktree, lift_ktree, CategoryOps.cat, Cat_ktree, ITree.cat.
-      unfold sum_isuml, sum_isum, lift_ktree; cbn.
-      Local Opaque merge_fin_sum.
-      rewrite 2 bind_ret; cbn.
-      unfold merge. unfold id_, Id_iFun, id_, Id_Fun.
-      unfold case_, case_isum, CategoryOps.cat, Cat_Fun, case_, case_sum. cbn.
+      apply eqit_Ret.
+
       setoid_rewrite (@iso_epi _ _ _ _ _ _ _ _ _ (@FinSumIso A A)).
       reflexivity.
-    - rewrite bind_ret_.
-      rewrite (relabel_asm_correct _ _ _ _).
-      unfold CategoryOps.cat, Cat_sktree, CategoryOps.cat, Cat_ktree, ITree.cat; simpl.
-      rewrite bind_bind.
-      unfold lift_sktree, lift_ktree; rewrite bind_ret_.
+      * rewrite bind_ret2.
+        reflexivity.
+
+
+    - rewrite !bind_ret.
       setoid_rewrite (app_asm_correct tp fp _).
-      Local Opaque denote_asm.
+      repeat setoid_rewrite bind_bind.
+      unfold isum_suml, lift_ktree_, isum_sum, FinSum. unfold id_, Id_iFun, id, id_, Id_Fun.
+      unfold ret, Monad_itree. 
+      rewrite bind_ret.
+      unfold merge.
+      unfold case_, case_isum, CategoryOps.cat, Cat_Fun, case_, case_sum, CoprodCase_Kleisli, case_sum.
+      rewrite split_fin_sum_f1_inl.
+      unfold Cat_sktree.
+      repeat rewrite bind_bind.
+      unfold isum_sum.
+      unfold CategoryOps.cat, Cat_Kleisli.
       setoid_rewrite bind_bind.
-      unfold isum_suml, isum_sum, lift_ktree; cbn.
-      rewrite bind_ret; cbn.
-      unfold CategoryOps.cat, Cat_sktree, CategoryOps.cat, Cat_ktree, ITree.cat; simpl.
-      rewrite bind_bind.
-      rewrite <- (bind_ret2 (denote_asm tp F1)) at 2.
-      eapply eqit_bind; [| reflexivity].
-      intros ?.
-      unfold inl_, Inl_sktree, inl_, Inl_ktree, lift_ktree, CategoryOps.cat, Cat_ktree, ITree.cat.
-      unfold sum_isuml, sum_isum, lift_ktree; cbn.
-      Local Opaque merge_fin_sum.
-      rewrite 2 bind_ret; cbn.
-      unfold merge. unfold id_, Id_iFun, id_, Id_Fun.
-      unfold case_, case_isum, CategoryOps.cat, Cat_Fun, case_, case_sum. cbn.
-      setoid_rewrite (@iso_epi _ _ _ _ _ _ _ _ _ (@FinSumIso A A)).
-      reflexivity.
+      repeat setoid_rewrite bind_ret.
+      rewrite <- (bind_ret2 (denote_asm tp f1)).
+      eapply eqit_bind.
+      * 
+        intros ?.
+        apply eqit_Ret.
+        unfold sum_isum.
+        setoid_rewrite (@iso_epi _ _ _ _ _ _ _ _ _ (@FinSumIso A A)).
+        reflexivity.
+      * rewrite bind_ret2.
+        reflexivity.
   Qed.
 
-Opaque loop.
 
   (** [while_asm] is denoted as the loop of the body with two entry point, the exit
       of the loop, and the body in which we have the same structure as for the conditional *)
-   Lemma while_asm_correct (e : list instr) (p : asm 1 1) :
+  (* SAZ: it is annoying that we have to instantiate the isum_sum with the FinEmbedding information.
+     This probably points to a leaky abstraction about the labels that we should clean up.
+   *)
+
+  Notation label_case := (fun l => (@isum_sum _ FinEmbedding plus _ 1 _ l)).
+  Notation l1 := f1.
+  Notation l2 := (FS f1).
+  
+  Lemma while_asm_correct (e : list instr) (p : asm 1 1) :
       denote_asm (while_asm e p)
-    ⩯ sloop (fun l: F (1 + 1) =>
-         match l with
-         | F1 =>
-           denote_list e ;;
-           v <- ITree.trigger (inl1 (GetVar tmp_if)) ;;
-           if v : value then
-             Ret (FS F1)
-           else
-             (denote_asm p F1;; Ret F1)
-         | FS _ => Ret F1
-         end).
+    ⩯ (sloop (fun l: F (1 + 1) =>
+         match label_case l with
+         | inl _ =>  denote_list e ;;
+                    v <- trigger (GetReg tmp_if) ;; if (v:value) then Ret l2 else (denote_asm p f1;; Ret l1)
+         | inr _ => Ret l1
+         end)).
   Proof.
     unfold while_asm.
     rewrite link_asm_correct.
@@ -587,31 +586,51 @@ Opaque loop.
     rewrite app_asm_correct.
     rewrite if_asm_correct.
     intros x.
-    unfold bimap, Bimap_Coproduct, Case_sktree, Case_ktree, case_, lift_sktree, isum_suml, case_sum, lift_sktree, lift_ktree, cat, Cat_sktree, cat, Cat_ktree, ITree.cat.
-    apply (caseS' x); cbn.
-    - rewrite bind_ret, !bind_bind.
+    cbn.
+    rewrite bind_ret.
+    destruct (split_fin_sum x).
+    - cbn.
+      rewrite !bind_bind.
       eapply eutt_clo_bind; try reflexivity. intros; subst.
       rewrite bind_bind.
-      eapply eutt_clo_bind; try reflexivity. intros; subst. destruct u0.
-      + rewrite (pure_asm_correct _ _).
-        unfold inl_, Inl_sktree, inl_, Inl_ktree, sum_isuml, lift_sktree, lift_ktree, cat, Cat_ktree, ITree.cat.
-        repeat rewrite bind_ret.
-        reflexivity.
-      + rewrite (relabel_asm_correct _ _ _ _).
-        unfold CategoryOps.cat, Cat_ktree, ITree.cat.
+      eapply eutt_clo_bind; try reflexivity. intros; subst.
+      destruct u0.
+      + rewrite (pure_asm_correct _ _). cbn. 
+        rewrite !bind_ret.
+        apply eqit_Ret. 
+        (* SAZ this part could be made nicer, perhaps. *)
+        unfold merge, case_, case_isum, isum_sum, FinSum.
+        unfold CategoryOps.cat, Cat_Fun, case_, CoprodCase_Kleisli, case_sum.
+        rewrite split_merge. unfold id_, Id_iFun, id_, Id_Fun.
+        unfold inr_, sum_inr.
+        apply merge_fin_sum_inr.
+
+      + rewrite (relabel_asm_correct _ _ _ _). cbn.
         simpl; repeat setoid_rewrite bind_bind.
-        unfold inl_, Inl_sktree, inl_, Inl_ktree, sum_isuml, lift_sktree, lift_ktree, cat, Cat_ktree, ITree.cat.
         rewrite bind_ret.
         eapply eutt_clo_bind; try reflexivity.
-        intros ? ? []. rewrite (unique_F1 u1).
-        repeat rewrite bind_ret. reflexivity.
-    - intros k; rewrite (unique_F1 k).
-      rewrite bind_ret.
+        intros ? ? []. 
+        repeat rewrite bind_ret.
+        apply eqit_Ret.
+        (* SAZ: same as above *)
+        unfold inl_, sum_inl.
+        unfold merge, case_, case_isum. cbn.
+        unfold CategoryOps.cat, Cat_Kleisli, Cat_Fun, case_, CoprodCase_Kleisli, case_sum.
+        rewrite split_merge.
+        unfold id_, Id_iFun, id_, Id_Fun.
+        apply merge_fin_sum_inl_1.
+        
+    - cbn. 
       rewrite (pure_asm_correct _ _).
-      unfold inr_, Inr_sktree, inr_, Inr_ktree, inl_, Inl_sktree, inl_, Inl_ktree, isum_inl, sum_isuml, lift_sktree, lift_ktree, cat, Cat_ktree, ITree.cat.
+      rewrite bind_bind. cbn. 
       rewrite !bind_ret.
-      reflexivity.
-  Qed.
+      apply eqit_Ret.
+      unfold inl_, sum_inl.
+      unfold merge, case_, case_isum. cbn.
+      unfold CategoryOps.cat, Cat_Kleisli, Cat_Fun, case_, CoprodCase_Kleisli, case_sum.
+      rewrite split_merge. unfold id_, Id_iFun, id_, Id_Fun.
+      apply merge_fin_sum_inl_1.
+Qed.
 
 End Linking.
 
@@ -620,25 +639,20 @@ End Linking.
 
 Section Correctness.
 
-  Context {E': Type -> Type}.
-  Context {HasMemory: Memory -< E'}.
-  Context {HasExit: Exit -< E'}.
-  Notation E := (Locals +' E').
 
   (** Correctness of expressions.
-      We strengthen [eq_locals]: initial environments are still related by [Renv],
+      We strengthen [bisimilar]: initial environments are still related by [Renv],
       but intermediate ones must now satisfy [sim_rel].
       Note that by doing so, we use a _heterogeneous bisimulation_: the trees
       return values of different types ([alist var value * unit] for _Asm_,
       [alist var value * value] for _Imp_). The differeence is nonetheless mostly
       transparent for the user, except for the use of the more generale [eqit_bind'].
    *)
-
-  Lemma compile_expr_correct : forall e g_imp g_asm n,
-      Renv g_asm g_imp ->
-      eutt (sim_rel g_asm n)
-           (interp_locals (denote_list (compile_expr n e)) g_asm)
-           (interp_locals (denoteExpr e) g_imp).
+  Lemma compile_expr_correct : forall {E} e g_imp g_asm l n,
+      Renv g_imp g_asm ->
+      @eutt E _ _ (sim_rel l n)
+            (interp_imp (denote_expr e) g_imp)
+            (interp_asm (denote_list (compile_expr n e)) g_asm l).
   Proof.
     induction e; simpl; intros.
     - (* Var case *)
@@ -648,10 +662,11 @@ Section Correctness.
 
       (* We are left with [Ret] constructs on both sides, that remains to be related *)
       red; rewrite <-eqit_Ret.
+      unfold lookup_default, lookup, Map_alist.
       
       (* On the _Asm_ side, we bind to [gen_tmp n] a lookup to [varOf v] *)
       (* On the _Imp_ side, we return the value of a lookup to [varOf v] *)
-      erewrite <- Renv_find; [| eassumption].
+      erewrite Renv_find; [| eassumption].
       apply sim_rel_add; assumption.
 
     - (* Literal case *)
@@ -667,25 +682,27 @@ Section Correctness.
       (* We push [interp_locals] into the denotations *)
 
       do 2 setoid_rewrite denote_list_app.
-      do 2 setoid_rewrite interp_locals_bind.
+      rewrite interp_asm_bind.
+      rewrite interp_imp_bind.
 
       (* The Induction hypothesis on [e1] relates the first itrees *)
       eapply eutt_clo_bind.
       { eapply IHe1; assumption. }
       (* We obtain new related environments *)
-      intros [g_asm' []] [g_imp' v] HSIM.
+      intros [g_imp' v] [g_asm' [l' []]] HSIM.
       (* The Induction hypothesis on [e2] relates the second itrees *)
+      rewrite interp_asm_bind.
+      rewrite interp_imp_bind.
       eapply eutt_clo_bind.
       { eapply IHe2.
         eapply sim_rel_Renv; eassumption. }
       (* And we once again get new related environments *)
-      intros [g_asm'' []] [g_imp'' v'] HSIM'.
+      intros [g_imp'' v'] [g_asm'' [l'' []]] HSIM'.
       (* We can now reduce down to Ret constructs that remains to be related *)
       tau_steps.
-      simpl fst in *.
-      red; rewrite <-eqit_Ret.
+      red. rewrite <- eqit_Ret.
 
-      clear -HSIM HSIM'.
+      clear -HSIM HSIM'. unfold lookup_default, lookup, Map_alist.
       erewrite sim_rel_find_tmp_n_trans; eauto. 
       erewrite sim_rel_find_tmp_n; eauto. 
       eapply sim_rel_binary_op; eauto.
@@ -693,25 +710,27 @@ Section Correctness.
     - (* Sub case *)
       (* We push [interp_locals] into the denotations *)
       do 2 setoid_rewrite denote_list_app.
-      do 2 setoid_rewrite interp_locals_bind.
+      rewrite interp_asm_bind.
+      rewrite interp_imp_bind.
 
       (* The Induction hypothesis on [e1] relates the first itrees *)
       eapply eutt_clo_bind.
       { eapply IHe1; assumption. }
       (* We obtain new related environments *)
-      intros [g_asm' []] [g_imp' v] HSIM.
+      intros [g_imp' v] [g_asm' [l' []]] HSIM.
       (* The Induction hypothesis on [e2] relates the second itrees *)
+      rewrite interp_asm_bind.
+      rewrite interp_imp_bind.
       eapply eutt_clo_bind.
       { eapply IHe2.
         eapply sim_rel_Renv; eassumption. }
       (* And we once again get new related environments *)
-      intros [g_asm'' []] [g_imp'' v'] HSIM'.
+      intros [g_imp'' v'] [g_asm'' [l'' []]]  HSIM'.
       (* We can now reduce down to Ret constructs that remains to be related *)
-      tau_steps. 
-      simpl fst in *.
-      red; rewrite <- eqit_Ret.
+      tau_steps.
+      red. rewrite <- eqit_Ret.
 
-      clear -HSIM HSIM'.
+      clear -HSIM HSIM'. unfold lookup_default, lookup, Map_alist.
       erewrite sim_rel_find_tmp_n_trans; eauto. 
       erewrite sim_rel_find_tmp_n; eauto. 
       eapply sim_rel_binary_op; eauto.
@@ -719,25 +738,27 @@ Section Correctness.
     - (* Mul case *)
       (* We push [interp_locals] into the denotations *)
       do 2 setoid_rewrite denote_list_app.
-      do 2 setoid_rewrite interp_locals_bind.
+      rewrite interp_asm_bind.
+      rewrite interp_imp_bind.
 
       (* The Induction hypothesis on [e1] relates the first itrees *)
       eapply eutt_clo_bind.
       { eapply IHe1; assumption. }
       (* We obtain new related environments *)
-      intros [g_asm' []] [g_imp' v] HSIM.
+      intros [g_imp' v] [g_asm' [l' []]] HSIM.
       (* The Induction hypothesis on [e2] relates the second itrees *)
+      rewrite interp_asm_bind.
+      rewrite interp_imp_bind.
       eapply eutt_clo_bind.
       { eapply IHe2.
         eapply sim_rel_Renv; eassumption. }
       (* And we once again get new related environments *)
-      intros [g_asm'' []] [g_imp'' v'] HSIM'.
+      intros [g_imp'' v'] [g_asm'' [l'' []]] HSIM'.
       (* We can now reduce down to Ret constructs that remains to be related *)
       tau_steps.
-      simpl fst in *.
-      red; rewrite <-eqit_Ret.
+      red. rewrite <- eqit_Ret.
 
-      clear -HSIM HSIM'.
+      clear -HSIM HSIM'. unfold lookup_default, lookup, Map_alist.
       erewrite sim_rel_find_tmp_n_trans; eauto. 
       erewrite sim_rel_find_tmp_n; eauto. 
       eapply sim_rel_binary_op; eauto.
@@ -747,16 +768,17 @@ Section Correctness.
       The resulting list of instruction is denoted as
       denoting the expression followed by setting the variable.
    *)
-  Lemma compile_assign_correct : forall e x,
-      eq_locals eq Renv
-                (denote_list (compile_assign x e))
-                (v <- denoteExpr e ;; trigger (SetVar x v)).
+  Lemma compile_assign_correct : forall {E} e x,
+      bisimilar eq
+        ((v <- denote_expr e ;; trigger (Imp.SetVar x v)) : itree (ImpState +' E) unit)
+        ((denote_list (compile_assign x e)) : itree (Reg +' Memory +' E) unit).
   Proof.
     red; intros.
     unfold compile_assign.
-    (* We push interp_locals inside of the denotations *)
+    (* We push interpreters inside of the denotations *)
     rewrite denote_list_app.
-    do 2 rewrite interp_locals_bind.
+    rewrite interp_asm_bind.
+    rewrite interp_imp_bind.
 
     (* By correctness of the compilation of expressions,
        we can match the head trees.
@@ -765,43 +787,83 @@ Section Correctness.
     { eapply compile_expr_correct; eauto. }
 
     (* Once again, we get related environments *)
-    intros [g_asm' []] [g_imp' v] HSIM.
+    intros [g_imp' v]  [g_asm' [l' y]] HSIM.
+    simpl in HSIM.
+    
     (* We can now reduce to Ret constructs *)
-    tau_steps. 
-    red; rewrite <- eqit_Ret; simpl.
+    tau_steps.
+    red. rewrite <- eqit_Ret.
 
     (* And remains to relate the results *)
-    erewrite sim_rel_find_tmp_n; eauto; simpl.
+    unfold state_invariant.
+    unfold lookup_default, lookup, Map_alist.
+    rewrite sim_rel_find_tmp_n; eauto; simpl.
     apply sim_rel_Renv in HSIM.
     split; auto.
     eapply Renv_write_local; eauto.
+    eauto.
   Qed.
 
-  Opaque eutt.
 
+  (* The first parameter of [bisimilar] is useless for this development. We used to require equality,
+ which carried not information since the return type was unit on both side.
+ Now the return type is heterogeneous, [F 1] on one side and [unit] on the other.
+   *)
+  Definition TT {A B}: A -> B -> Prop  := fun _ _ => True.
+  Hint Unfold TT.
+
+  Definition equivalent (s:stmt) (t:asm 1 1) : Prop :=
+    bisimilar TT (denote_stmt s) (denote_asm t f1).
+  
+
+
+
+  Inductive RI : (unit + unit) -> (unit + unit + unit) -> Prop :=
+  | RI_inl : RI (inl tt) (inl (inl tt))
+  | RI_inr : RI (inr tt) (inr tt).
+    
   (* Utility: slight rephrasing of [while] to facilitate rewriting
      in the main theorem.*)
-  Lemma while_is_loop {E} (body : itree E bool) :
+  Lemma while_is_loop {E} (body : itree E (unit+unit)) :
     while body
-          ≈ KTree.loop (fun l : unit + unit =>
+          ≈ KTree.iter (fun l : unit + unit =>
                     match l with
-                    | inl _ => ITree.map (fun b => if b : bool then inl tt else inr tt) body
-                    | inr _ => Ret (inl tt)   (* Enter loop *)
-                    end) tt.
+                    | inl _ => x <- body;; match x with inl _ => Ret (inl (inl tt)) | inr _ => Ret (inr tt) end
+                    | inr _ => Ret (inl (inl tt))   (* Enter loop *)
+                    end) (inr tt).
   Proof.
     unfold while.
-    match goal with
-    | [ |- _ (_ ?f _) (_ ?g _) ] =>
-      epose proof (Proper_loop f g) as Hfg; apply Hfg; clear Hfg
-    end.
-    intros [[]|[]]; simpl; [| reflexivity].
-    unfold ITree.map.
-    eapply eutt_clo_bind; try reflexivity.
-    intros; subst. destruct u2; reflexivity.
+    rewrite! unfold_iter_ktree.
+    rewrite! tau_eutt.
+    rewrite bind_ret.
+    rewrite unfold_iter_ktree.
+    rewrite! tau_eutt, bind_bind.
+    eapply eutt_clo_bind. reflexivity.
+    intros. subst.
+    destruct u2 as [[]|[]].
+    rewrite bind_ret.
+
+    2 : {
+      force_right. reflexivity.
+    }
+    unfold KTree.iter, Iter_ktree.
+    apply eutt_aloop' with (RI:=RI).
+    - intros.
+      inversion H.
+      + subst. econstructor.
+        rewrite <- ret_bind.
+        eapply eutt_clo_bind. rewrite ret_bind. reflexivity.
+        intros. subst.
+        destruct u2. unfold ret, Monad_itree.
+        * apply eqit_Ret. destruct u. assumption.
+        * apply eqit_Ret. destruct u. constructor.
+      + subst. econstructor. reflexivity.
+    - constructor.
   Qed.
 
-Definition to_itree' {E A} (f : sktree E 1 A) : itree E (F A) := f F1.
-Lemma fold_to_itree' {E} (f : sktree E 1 1) : f F1 = to_itree' f.
+
+Definition to_itree' {E A} (f : sktree E 1 A) : itree E (F A) := f f1.
+Lemma fold_to_itree' {E} (f : sktree E 1 1) : f f1 = to_itree' f.
 Proof. reflexivity. Qed.
 
 Global Instance Proper_to_itree' {E A} :
@@ -811,12 +873,7 @@ Proof.
   apply H.
 Qed.
 
-(* The first parameter of [eq_locals] is useless for this development. We use to require equality,
- which carried not information since the return type was unit on both side.
- Now the return type is heterogeneous, [F 1] on one side and [unit] on the other.
- *)
-Definition TT {A B}: A -> B -> Prop  := fun _ _ => True.
-Hint Unfold TT.
+Notation Inr_Kleisli := CoprodInr_Kleisli.
 
   (** Correctness of the compiler.
       After interpretation of the [Locals], the source _Imp_ statement
@@ -829,28 +886,30 @@ Hint Unfold TT.
       in isolation.
    *)
   Theorem compile_correct (s : stmt) :
-    eq_locals TT Renv
-              (denote_asm (compile s) F1)
-              (denoteStmt s).
+    equivalent s (compile s).
   Proof.
+    unfold equivalent.
     induction s.
 
     - (* Assign *)
       simpl.
       (* We push [denote_asm] inside of the combinators *)
       rewrite raw_asm_block_correct.
-      rewrite after_correct.
+      rewrite denote_after.
 
       (* The head trees match by correctness of assign *)
-      rewrite <- (bind_ret2 (ITree.bind (denoteExpr e) _)).
-      eapply eq_locals_bind'.
+      rewrite <- (bind_ret2 (ITree.bind (denote_expr e) _)).
+      eapply bisimilar_bind'.
       { eapply compile_assign_correct; auto. }
 
       (* And remains to trivially relate the results *)
-      intros [] [] []; simpl.
-      repeat intro. Transparent eutt. red.
-      rewrite 2 interp_locals_ret.
-      rewrite <-eqit_Ret; auto.
+      
+      intros []; simpl.
+      repeat intro.
+      force_left; force_right.
+      Transparent eutt. red.      
+      rewrite <- eqit_Ret; auto.
+      unfold state_invariant; auto.
 
     - (* Seq *)
       (* We commute [denote_asm] with [seq_asm] *)
@@ -858,11 +917,10 @@ Hint Unfold TT.
       rewrite seq_asm_correct. unfold to_itree'.
 
       (* And the result is immediate by indcution hypothesis *)
-      eapply eq_locals_bind'.
-      { eauto. }
-      intros ? [] []; auto.
-      rewrite (unique_F1 r1) in *.
-      auto.
+      eapply bisimilar_bind'.
+      { eassumption. }
+      intros [] ? _. rewrite (unique_f1 a').
+      eassumption.
 
     - (* If *)
       (* We commute [denote_asm] with [if_asm] *)
@@ -873,17 +931,21 @@ Hint Unfold TT.
       (* We now need to line up the evaluation of the test,
          and eliminate them by correctness of [compile_expr] *)
       repeat intro.
-      rewrite 2 interp_locals_bind.
+      rewrite interp_asm_bind.
+      rewrite interp_imp_bind.
       eapply eutt_clo_bind.
       { apply compile_expr_correct; auto. }
 
       (* We get in return [sim_rel] related environments *)
-      intros [g_asm []] [g_imp v] HSIM.
-      rewrite interp_locals_bind.
+      intros [g_imp' v] [g_asm' [l' x]] HSIM.
+
       (* We know that interpreting [GetVar tmp_if] is eutt to [Ret (g_asm,v)] *)
-      generalize HSIM; intros EQ; eapply sim_rel_get_tmp0 in EQ.
-      setoid_rewrite EQ; clear EQ.
-      rewrite bind_ret; simpl.
+      generalize HSIM; intros EQ.  eapply sim_rel_get_tmp0 in EQ.
+      unfold tmp_if.
+      rewrite interp_asm_bind.
+      rewrite EQ; clear EQ.
+      rewrite bind_ret_; simpl.
+
       (* We can weaken [sim_rel] down to [Renv] *)
       apply sim_rel_Renv in HSIM.
       (* And finally conclude in both cases *)
@@ -893,40 +955,61 @@ Hint Unfold TT.
       (* We commute [denote_asm] with [while_asm], and restructure the
          _Imp_ [loop] with [while_is_loop] *)
       simpl; rewrite fold_to_itree'.
-      rewrite while_asm_correct.
       rewrite while_is_loop.
+      rewrite while_asm_correct.
+      Local Opaque denote_asm.
+
       unfold to_itree'.
-      unfold loop. unfold iter at 1.
-      unfold Iter_sktree, Inr_sktree, Inr_ktree, inr_, sum_isuml, lift_ktree, cat, Cat_sktree, cat, Cat_ktree, ITree.cat.
-      rewrite 3 bind_ret. cbn.
-      eapply (eq_locals_iter (fun x x' => (x = F1 /\ x' = inl tt) \/ (x = FS F1 /\ x' = inr tt))).
-      2: { auto. }
+      unfold sloop. unfold iter at 2.
+      unfold Iter_sktree, Inr_sktree, Inr_Kleisli, inr_, sum_isuml, lift_ktree, cat, Cat_sktree, cat, Cat_Kleisli.
+      Local Opaque f1.
+      simpl.
+      rewrite 2 bind_ret.
+      simpl. 
+      eapply (bisimilar_iter (fun x x' => (x = inl tt /\ x' = f1) \/ (x = inr tt /\ x' = FS f1))).
+      2: {
+        right. split. auto. apply R_1_a.
+        }
       (* The two cases correspond to entering the loop, or exiting it*)
       intros ? ? [[] | []]; subst; cbn.
 
       (* The exiting case is trivial *)
       2:{ repeat intro.
           force_left. force_right.
-          red; rewrite <-eqit_Ret; split; auto; constructor; auto. }
+          red.
+          rewrite split_fin_sum_FS_inr.
+          rewrite! bind_ret.
+          rewrite interp_asm_bind.
+          rewrite split_fin_sum_f1_inl. cbn. 
+          rewrite <- eqit_Ret; auto.
+          unfold state_invariant. simpl.
+          split; auto.
+          setoid_rewrite split_fin_sum_L_L_f1.
+          constructor. left. auto.
+      }
+
 
       (* We now need to line up the evaluation of the test,
          and eliminate them by correctness of [compile_expr] *)
-      unfold ITree.map. rewrite !bind_bind.
       repeat intro.
-      rewrite (interp_locals_bind _ _ g1).
-      rewrite (interp_locals_bind _ _ g2).
+      rewrite split_fin_sum_f1_inl.      
+      rewrite !interp_imp_bind.
+      rewrite !interp_asm_bind.
+      rewrite !bind_bind.
+
       eapply eutt_clo_bind.
       { apply compile_expr_correct; auto. }
 
-      (* We get in return [sim_rel] related environments *)
-      intros [g_asm []] [g_imp v] HSIM.
+      intros [g_imp' v] [g_asm' [l' x]] HSIM.
+      rewrite !interp_asm_bind.
       rewrite !bind_bind.
-      rewrite 2 interp_locals_bind.
 
       (* We know that interpreting [GetVar tmp_if] is eutt to [Ret (g_asm,v)] *)
       generalize HSIM; intros EQ. eapply sim_rel_get_tmp0 in EQ.
-      setoid_rewrite EQ; clear EQ.
-      rewrite bind_ret; simpl.
+      unfold tmp_if.
+
+      rewrite EQ; clear EQ.
+      rewrite bind_ret_; simpl.
 
       (* We can weaken [sim_rel] down to [Renv] *)
       apply sim_rel_Renv in HSIM.
@@ -934,21 +1017,52 @@ Hint Unfold TT.
       destruct v; simpl; auto.
       + (* The false case is trivial *)
         force_left; force_right.
-        red; rewrite <-eqit_Ret; split; auto; constructor; auto.
+        red.
+        setoid_rewrite interp_asm_ret.
+        unfold ret, Monad_itree.
+        rewrite bind_ret.
+        rewrite split_fin_sum_FS_inr.
+        rewrite interp_asm_bind.
+        cbn. 
+        rewrite <- eqit_Ret.
+        unfold state_invariant. simpl.
+        split; auto.
+        unfold id.
+        rewrite split_fin_sum_R_2.
+        constructor. constructor.
+        
       + (* In the true case, we line up the body of the loop to use the induction hypothesis *)
+        rewrite !interp_asm_bind.
+        rewrite !interp_imp_bind.
         rewrite !bind_bind.
-        rewrite 2 interp_locals_bind, bind_bind.
         eapply eutt_clo_bind.
         { eapply IHs; auto. }
-        intros [g_asm' f1] [g_imp' v'] [HSIM' ?].
-        rewrite (unique_F1 f1).
+        intros [g_imp'' v''] [g_asm'' [l'' x']] [HSIM' ?].
         force_right; force_left.
-        red; rewrite <- eqit_Ret; simpl; split; auto; constructor; auto.
+        setoid_rewrite interp_asm_ret.
+        setoid_rewrite bind_ret.
+        rewrite split_fin_sum_f1_inl. cbn. 
+        apply eqit_Ret.
+        setoid_rewrite split_fin_sum_L_L_f1.
+        constructor; auto.
+        simpl. constructor; left; auto.
 
     - (* Skip *)
-      repeat intro.
-      tau_steps.
-      red; rewrite <- eqit_Ret; auto.
+
+      simpl.
+      unfold id_asm.
+      pose proof  (@pure_asm_correct).
+      unfold eq2, Eq2_sktree, eutt_sktree in H.
+      red in H. unfold Eq2_Kleisli in H. red in H.
+      rewrite H. unfold lift_sktree, lift_ktree_.
+      unfold ret, Monad_itree, id.
+      red. intros.
+      setoid_rewrite interp_asm_ret.
+      unfold interp_imp.
+      rewrite interp_ret. unfold interp_map. rewrite interp_state_ret.
+      unfold ret, Monad_itree, id.
+      apply eqit_Ret.
+      unfold state_invariant. simpl. auto.
 Qed.
 
 End Correctness.
@@ -979,22 +1093,4 @@ End Correctness.
     More importantly, our compiler is fairly stupid and inefficient: it creates
     blocks for each compiled statement! One would hope to easily write and
     prove an optimization coalescing elementary blocks together.
-    This however raises for now a difficulty: our representation of labels as
-    binary trees encoded in [Type] is so unstructured that introspection on
-    [asm] programs is difficult.
-    We might therefore need to change our representation of labels, for instance
-    to a [Fin] type.
-    But this change turns out to be more interesting that it might seem: it
-    moves [bks] from [fun (A B: Type) => A -> block B] to
-    [fun (A B: nat) => Fin.t A -> block (Fin.t B)].
-    Correspondingly, their denotation moves from
-    [fun (A B: Type) => bks A B -> ktree E A B]
-    to [fun (A B: nat) => ktree E (Fin.t A) (Fin.t B)].
-    But our proof crucially rested on the categorie [(Type, ktree E)] being
-    provided by the [itree] library with a traced monoidal structure. We would
-    therefore need to redo all the work to equip the category
-    [(Nat, fun A B => ktree E (t A) (t B))] with the same structure, which is
-    significant low level work. We might therefore want to investigate whether
-    [ktree] should be generalized to something along the lines of
-    [ktree (i : Type) (F : i -> Type) (E : Type -> Type) (a b : i) : Type := F a -> itree E (F b).]
  *)
