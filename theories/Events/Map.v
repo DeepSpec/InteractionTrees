@@ -61,7 +61,7 @@ Section Map.
       | Remove k => Ret (Maps.remove k env, tt)
       end.
 
-  Definition run_map {E F} `{View F (stateT map (itree E)) mapE}
+  Definition run_map {E F} `{View mapE F (stateT map (itree E))}
     : itree F ~> stateT map (itree E) :=
     interp_state (over handle_map).
 
