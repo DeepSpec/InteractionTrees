@@ -71,10 +71,16 @@ Definition handle_writer {W E} (Monoid_W : Monoid W)
        | Tell w => Ret (monoid_plus Monoid_W s w, tt) 
        end.
 
-Definition run_writer {W E} (Monoid_W : Monoid W)
-  : itree (writerE W +' E) ~> writerT W (itree E)
+Definition run_writer {W E F} (Monoid_W : Monoid W) `{View (writerE W) F (stateT W (itree E))}
+  : itree F ~> writerT W (itree E) 
   := fun _ t =>
-       interp_state (case_ (handle_writer Monoid_W) pure_state) t
+       interp_state (over (handle_writer Monoid_W)) t
                     (monoid_unit Monoid_W).
 
-Arguments run_writer {W E} Monoid_W [T].
+(* Definition run_writer {W E} (Monoid_W : Monoid W) *)
+(*   : itree (writerE W +' E) ~> writerT W (itree E) *)
+(*   := fun _ t => *)
+(*        interp_state (case_ (handle_writer Monoid_W) pure_state) t *)
+(*                     (monoid_unit Monoid_W). *)
+
+Arguments run_writer {W E _} Monoid_W {_} [T].

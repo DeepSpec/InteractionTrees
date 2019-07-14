@@ -176,7 +176,91 @@ Section MapFacts.
     assumption.
   Qed.
     
-  
+
+    (* Context {E F: Type -> Type}. *)
+    (* Variable d: V. *)
+    (* Goal View (mapE K d) F (fun a: Type => stateT map (itree E) a). *)
+    (*   eapply View_ToStateT. *)
+    (* Unshelve. *)
+
+
+(*
+Debug: 1: looking for (View (mapE K d) ?F (fun a : Type => stateT map (itree E) a)) with backtracking
+Debug: 1.1: simple apply @View_ToStateT on (View (mapE K d) ?F (fun a : Type => stateT map (itree E) a)), 1 subgoal(s)
+Debug: 1.1-1 : (View (mapE K d) ?F E)
+Debug: 1.1-1: looking for (View (mapE K d) ?F E) with backtracking
+Debug: 1.1-1.1: simple apply @View_Assoc2 on (View (mapE K d) ?F E), 1 subgoal(s)
+Debug: 1.1-1.1-1 : (View (mapE K d) (?Goal0 +' ?Goal1 +' ?Goal) E)
+Debug: 1.1-1.1-1: looking for (View (mapE K d) (?Goal0 +' ?Goal1 +' ?Goal) E) with backtracking
+Debug: 1.1-1.1-1.1: simple apply @View_Assoc2 on (View (mapE K d) (?Goal0 +' ?Goal1 +' ?Goal) E), 1 subgoal(s)
+Debug: 1.1-1.1-1.1-1 : (View (mapE K d) (?Goal1 +' ?Goal2 +' ?Goal0 +' ?Goal) E)
+Debug: 1.1-1.1-1.2: simple apply @View_comp_base on (View (mapE K d) (?Goal0 +' ?Goal1 +' ?Goal) E), 1 subgoal(s)
+Debug: 1.1-1.1-1.2-1 : (View (mapE K d) (?Goal0 +' ?Goal) void1)
+Debug: 1.1-1.1-1.3: simple apply @View_inner_base on (View (mapE K d) (?Goal0 +' ?Goal1 +' ?Goal) E), 1 subgoal(s)
+Debug: 1.1-1.1-1.3-1 : (View void1 (?Goal0 +' ?Goal) E)
+Debug: 1.1-1.2: simple apply @View_comp_base on (View (mapE K d) ?F E), 1 subgoal(s)
+Debug: 1.1-1.2-1 : (View (mapE K d) ?Goal void1)
+Debug: 1.1-1.2-1: looking for (View (mapE K d) ?Goal void1) with backtracking
+Debug: 1.1-1.2-1.1: simple apply @View_id on (View (mapE K d) ?Goal void1), 0 subgoal(s)
+
+Debug: 1: looking for (View (mapE K d) ?F (fun a : Type => stateT map (itree E) a)) with backtracking
+Debug: 1.1: simple apply @View_inner_base on (View (mapE K d) ?F (fun a : Type => stateT map (itree E) a)), 1 subgoal(s)
+Debug: 1.1-1 : (View void1 ?Goal (fun a : Type => stateT map (itree E) a))
+Debug: 1.1-1: looking for (View void1 ?Goal (fun a : Type => stateT map (itree E) a)) with backtracking
+Debug: 1.1-1.1: simple apply @View_inner_base on (View void1 ?Goal (fun a : Type => stateT map (itree E) a)), 1 subgoal(s)
+Debug: 1.1-1.1-1 : (View void1 ?Goal (fun a : Type => stateT map (itree E) a))
+Debug: 1.1-1.1-1: looking for (View void1 ?Goal (fun a : Type => stateT map (itree E) a)) with backtracking
+Debug: 1.1-1.1-1.1: simple apply @View_inner_base on (View void1 ?Goal (fun a : Type => stateT map (itree E) a)), 1 subgoal(s)
+Debug: 1.1-1.1-1.1-1 : (View void1 ?Goal (fun a : Type => stateT map (itree E) a))
+Debug: 1.1-1.1-1.2: simple apply @View_ToStateT on (View void1 ?Goal (fun a : Type => stateT map (itree E) a)), 1 subgoal(s)
+Debug: 1.1-1.1-1.2-1 : (View void1 ?Goal E)
+Debug: 1.1-1.1-1.3: simple apply @View_ToStateT on (View void1 ?Goal (fun a : Type => stateT map (itree E) a)), 1 subgoal(s)
+Debug: 1.1-1.1-1.3-1 : (View void1 ?Goal E)
+Debug: 1.1-1.1-1.4: simple apply @View_Assoc2 on (View void1 ?Goal (fun a : Type => stateT map (itree E) a)), 1 subgoal(s)
+Debug: 1.1-1.1-1.4-1 : (View void1 (?Goal0 +' ?Goal1 +' ?Goal) (fun a : Type => stateT map (itree E) a))
+Debug: 1.1-1.1-1.5: simple apply @View_inner_base on (View void1 ?Goal (fun a : Type => stateT map (itree E) a)), 1 subgoal(s)
+Debug: 1.1-1.1-1.5-1 : (View void1 ?Goal (fun a : Type => stateT map (itree E) a))
+Debug: 1.1-1.1-1.6: simple apply @View_Assoc2 on (View void1 ?Goal (fun a : Type => stateT map (itree E) a)), 1 subgoal(s)
+Debug: 1.1-1.1-1.6-1 : (View void1 (?Goal0 +' ?Goal1 +' ?Goal) (fun a : Type => stateT map (itree E) a))
+Debug: 1.1-1.2: simple apply @View_ToStateT on (View void1 ?Goal (fun a : Type => stateT map (itree E) a)), 1 subgoal(s)
+Debug: 1.1-1.2-1 : (View void1 ?Goal E)
+Debug: 1.1-1.2-1: looking for (View void1 ?Goal E) with backtracking
+Debug: 1.1-1.2-1.1: simple apply @View_comp_base on (View void1 ?Goal E), 1 subgoal(s)
+Debug: 1.1-1.2-1.1-1 : (View void1 ?Goal void1)
+Debug: 1.1-1.2-1.2: simple apply @View_inner_base on (View void1 ?Goal E), 1 subgoal(s)
+Debug: 1.1-1.2-1.2-1 : (View void1 ?Goal E)
+Debug: 1.1-1.2-1.3: simple apply @View_none on (View void1 ?Goal E), 0 subgoal(s)
+
+Debug: 1: looking for (View (mapE K d) ?F (fun a : Type => stateT map (itree E) a)) with backtracking
+Debug: 1.1: simple apply @View_ToStateT on (View (mapE K d) ?F (fun a : Type => stateT map (itree E) a)), 1 subgoal(s)
+Debug: 1.1-1 : (View (mapE K d) ?F E)
+Debug: 1.1-1: looking for (View (mapE K d) ?F E) with backtracking
+Debug: 1.1-1.1: simple apply @View_Assoc2 on (View (mapE K d) ?F E), 1 subgoal(s)
+Debug: 1.1-1.1-1 : (View (mapE K d) (?Goal0 +' ?Goal1 +' ?Goal) E)
+Debug: 1.1-1.1-1: looking for (View (mapE K d) (?Goal0 +' ?Goal1 +' ?Goal) E) with backtracking
+Debug: 1.1-1.1-1.1: simple apply @View_Assoc2 on (View (mapE K d) (?Goal0 +' ?Goal1 +' ?Goal) E), 1 subgoal(s)
+Debug: 1.1-1.1-1.1-1 : (View (mapE K d) (?Goal1 +' ?Goal2 +' ?Goal0 +' ?Goal) E)
+Debug: 1.1-1.1-1.2: simple apply @View_comp_base on (View (mapE K d) (?Goal0 +' ?Goal1 +' ?Goal) E), 1 subgoal(s)
+Debug: 1.1-1.1-1.2-1 : (View (mapE K d) (?Goal0 +' ?Goal) void1)
+Debug: 1.1-1.1-1.3: simple apply @View_inner_base on (View (mapE K d) (?Goal0 +' ?Goal1 +' ?Goal) E), 1 subgoal(s)
+Debug: 1.1-1.1-1.3-1 : (View void1 (?Goal0 +' ?Goal) E)
+Debug: 1.1-1.1-1.4: simple apply @View_comp_base on (View (mapE K d) (?Goal0 +' ?Goal1 +' ?Goal) E), 1 subgoal(s)
+Debug: 1.1-1.1-1.4-1 : (View (mapE K d) (?Goal0 +' ?Goal) void1)
+Debug: 1.1-1.1-1.5: simple apply @View_inner_base on (View (mapE K d) (?Goal0 +' ?Goal1 +' ?Goal) E), 1 subgoal(s)
+Debug: 1.1-1.1-1.5-1 : (View void1 (?Goal0 +' ?Goal) E)
+Debug: 1.1-1.1-1.6: simple apply @View_Assoc2 on (View (mapE K d) (?Goal0 +' ?Goal1 +' ?Goal) E), 1 subgoal(s)
+Debug: 1.1-1.1-1.6-1 : (View (mapE K d) (?Goal1 +' ?Goal2 +' ?Goal0 +' ?Goal) E)
+Debug: 1.1-1.2: simple apply @View_comp_base on (View (mapE K d) ?F E), 1 subgoal(s)
+Debug: 1.1-1.2-1 : (View (mapE K d) ?Goal void1)
+Debug: 1.1-1.2-1: looking for (View (mapE K d) ?Goal void1) with backtracking
+Debug: 1.1-1.2-1.1: simple apply @View_id on (View (mapE K d) ?Goal void1), 0 subgoal(s)
+
+ *)
+
+    (* Set Typeclasses Debug. *)
+    (* Typeclasses eauto := debug 3. *)
+
+
   (* This lemma states that the operations provided by [handle_map] respect
      the equivalence on the underlying map interface *)
   Lemma interp_map_id d {E X} (t : itree (mapE K d +' E) X) :
@@ -204,7 +288,7 @@ Section MapFacts.
   Qed.
  
   Global Instance interp_map_proper {R E d} {RR : R -> R -> Prop} :
-    Proper ((eutt RR) ==> (@map_default_eq _ _ RR d E)) (@interp_map _ _ _ _ E d R).
+    Proper ((eutt RR) ==> (@map_default_eq _ _ RR d E)) (@interp_map _ _ _ _ E d _ _ R).
   Proof.
     unfold map_default_eq, interp_map.
     repeat intro.
