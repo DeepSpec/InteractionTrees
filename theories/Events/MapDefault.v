@@ -59,14 +59,23 @@ Section Map.
       | Remove k => Ret (Maps.remove k env, tt)
       end.
 
+  (* BEGIN TMP *)
+  (* Existing Instance View_none. *)
+  (* Existing Instance View_inner_base. *)
+  (* Existing Instance View_ToStateT. *)
+  (* END TMP *)
+
+
   (* SAZ: I think that all of these [run_foo] functions should be renamed
      [interp_foo].  That would be more consistent with the idea that 
      we define semantics by nested interpretation.  Also, it seems a bit
      strange to define [interp_map] in terms of [interp_state].
   *)
-  Definition interp_map {E d} : itree (mapE d +' E) ~> stateT map (itree E) :=
-    interp_state (case_ handle_map pure_state).
-
+  (* Definition interp_map {E d} : itree (mapE d +' E) ~> stateT map (itree E) := *)
+    (* interp_state (case_ handle_map pure_state). *)
+  Definition interp_map {E d F} `{View (mapE d) F (stateT map (itree E))}
+    : itree (mapE d +' E) ~> stateT map (itree E) :=
+            interp_state (over handle_map).
 
   (* The appropriate notation of the equivalence on the state associated with
      the MapDefault effects.  Two maps are equivalent if they yield the same
@@ -79,5 +88,5 @@ End Map.
 Arguments insert {K V E d _}.
 Arguments lookup_def {K V E d _}.
 Arguments remove {K V E d _}.
-Arguments interp_map {K V map M _ _ } [T].
+Arguments interp_map {K V map M _ _ _ _} [T].
 Arguments eq_map {K V map M d}.

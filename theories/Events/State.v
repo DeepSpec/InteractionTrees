@@ -53,14 +53,15 @@ Section State.
       end.
 
   (* SAZ: this is the instance for the hypothetical "Trigger E M" typeclass.
-    Class Trigger E M := trigger : E ~> M 
-  *)
+    Class Trigger E M := trigger : E ~> M
+    YZ: now part of the instances for View
   Definition pure_state {S E} : E ~> stateT S (itree E)
     := fun _ e s => Vis e (fun x => Ret (s, x)).
+  *)
 
-  Definition run_state {E}
-    : itree (stateE +' E) ~> stateT S (itree E)
-    := interp_state (case_ handle_state pure_state).
+  Definition run_state {E F} `{View stateE F (stateT S (itree E))}
+    : itree F ~> stateT S (itree E)
+    := interp_state (over handle_state).
 
 End State.
 
