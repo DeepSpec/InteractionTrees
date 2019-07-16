@@ -374,18 +374,15 @@ Section Bisimulation.
     eapply H0; eauto.
   Qed.
 
-
-  Lemma interp_state_aloop' {E F } S (f : E ~> stateT S (itree F)) {I A}
-      (t  : I -> itree E I + A)
-  : forall i, state_eq (State.interp_state f (ITree.aloop t i))
-                  (aloop (fun i => match t i with inl u => inl (State.interp_state f u) | inr a => inr a end) i).
+  Lemma interp_state_iter' {E F } S (f : E ~> stateT S (itree F)) {I A}
+      (t  : I -> itree E (I + A))
+  : forall i, state_eq (State.interp_state f (ITree.iter t i))
+                  (Basics.iter (fun i => State.interp_state f (t i)) i).
   Proof.
-    eapply interp_state_aloop.
+    eapply interp_state_iter.
     intros i.
-    destruct (t i); constructor; auto. red.  intros.
-    reflexivity.
+    red. reflexivity.
   Qed.
-
   
   Lemma bisimilar_iter {E A A' B B'}
         (R : A -> A' -> Prop)
@@ -399,20 +396,23 @@ Section Bisimulation.
     
     unfold bisimilar, interp_asm, interp_imp, interp_map.
     intros. rewrite 2 interp_iter.
-    unfold KTree.iter, Iter_ktree.
-    pose proof @interp_state_aloop'.
-    red in H2.
+    unfold KTree.iter, Iter_Kleisli.
+    pose proof @interp_state_iter'.
+    red in H2. unfold Basics.iter, MonadIter_itree.
     
-    do 2 rewrite H2.
-    unfold aloop, ALoop_stateT0, aloop, ALoop_itree .
+    rewrite 2 H2.
+    unfold Basics.iter, MonadIter_stateT0, Basics.iter, MonadIter_itree; cbn.
     rewrite H2.
-    eapply (eutt_aloop' (state_invariant (sum_rel R S))).
+    apply (eutt_iter' (state_invariant R)).
     intros.
-    destruct H3. simpl.
-    destruct H4.
-    - constructor. apply H; auto.
-    - constructor. constructor; auto.
-    - split; auto. simpl. constructor; auto.
+    destruct H3; cbn.
+    rewrite interp_state_bind, bind_bind.
+    setoid_rewrite interp_state_ret.
+    setoid_rewrite bind_ret. cbn.
+    apply (@eutt_clo_bind _ _ _ _ _ _ (state_invariant (sum_rel R S))).
+    - auto.
+    - intros ? ? [? []]; cbn; apply eqit_Ret; constructor; split; auto.
+    - constructor; auto.
   Qed.
 
   (** [sim_rel] at [n] entails that [GetVar (gen_tmp n)] gets interpreted
@@ -428,7 +428,6 @@ Section Bisimulation.
     intros.
     unfold interp_asm.
     rewrite interp_trigger.
-    rewrite tau_eutt.
     cbn.
     unfold interp_map.
     unfold map_reg, CategoryOps.cat, Cat_Handler, Handler.cat. 
@@ -436,10 +435,9 @@ Section Bisimulation.
     unfold lookup_def; cbn.
     unfold embed, Embeddable_itree, Embeddable_forall, embed.
     rewrite interp_trigger.
-    rewrite tau_eutt.
     rewrite interp_state_trigger.
-    rewrite !tau_eutt.
     cbn.
+    rewrite bind_ret, tau_eutt.
     rewrite interp_state_ret.
     unfold lookup_default, lookup, Map_alist.
     erewrite sim_rel_find.
@@ -834,30 +832,20 @@ Section Correctness.
   Proof.
     unfold while.
     rewrite! unfold_iter_ktree.
-    rewrite! tau_eutt.
-    rewrite bind_ret.
+    rewrite bind_ret, tau_eutt.
     rewrite unfold_iter_ktree.
-    rewrite! tau_eutt, bind_bind.
+    rewrite !bind_bind.
     eapply eutt_clo_bind. reflexivity.
     intros. subst.
     destruct u2 as [[]|[]].
-    rewrite bind_ret.
-
-    2 : {
-      force_right. reflexivity.
-    }
-    unfold KTree.iter, Iter_ktree.
-    apply eutt_aloop' with (RI:=RI).
-    - intros.
-      inversion H.
-      + subst. econstructor.
-        rewrite <- ret_bind.
-        eapply eutt_clo_bind. rewrite ret_bind. reflexivity.
-        intros. subst.
-        destruct u2. unfold ret, Monad_itree.
-        * apply eqit_Ret. destruct u. assumption.
-        * apply eqit_Ret. destruct u. constructor.
-      + subst. econstructor. reflexivity.
+    2 : { force_right. reflexivity. }
+    rewrite bind_ret, !tau_eutt.
+    unfold KTree.iter, Iter_Kleisli.
+    apply eutt_iter' with (RI := fun _ r => inl tt = r).
+    - intros _ _ [].
+      rewrite <- bind_ret2 at 1.
+      eapply eutt_clo_bind; try reflexivity.
+      intros [|[]] _ []; apply eqit_Ret; auto.
     - constructor.
   Qed.
 

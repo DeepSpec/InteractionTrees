@@ -151,7 +151,7 @@ Definition _interp {E F R} (f : E ~> itree F) (ot : itreeF E R _)
   := match ot with
      | RetF r => Ret r
      | TauF t => Tau (interp f t)
-     | VisF e k => Tau (f _ e >>= (fun x => interp f (k x)))
+     | VisF e k => f _ e >>= (fun x => Tau (interp f (k x)))
      end.
 
 Parameter unfold_interp
@@ -166,7 +166,7 @@ Parameter interp_ret
 Parameter interp_vis
   : forall {E F R} {f : E ~> itree F} U (e: E U) (k: U -> itree E R),
     interp f (Vis e k)
-  ≈ Tau (ITree.bind (f _ e) (fun x => interp f (k x))).
+  ≈ ITree.bind (f _ e) (fun x => interp f (k x)).
 
 Parameter interp_trigger : forall {E F : Type -> Type} {R : Type}
       (f : E ~> (itree F)) (e : E R),
@@ -371,7 +371,7 @@ Definition _interp {E F R} (f : E ~> itree F) (ot : itreeF E R _)
   := match ot with
      | RetF r => Ret r
      | TauF t => Tau (interp f t)
-     | VisF e k => Tau (f _ e >>= (fun x => interp f (k x)))
+     | VisF e k => f _ e >>= (fun x => Tau (interp f (k x)))
      end.
 
 Lemma unfold_interp
@@ -393,16 +393,16 @@ Qed.
 Lemma interp_vis
   : forall {E F R} {f : E ~> itree F} U (e: E U) (k: U -> itree E R),
     interp f (Vis e k)
-  ≈ Tau (ITree.bind (f _ e) (fun x => interp f (k x))).
+  ≈ ITree.bind (f _ e) (fun x => interp f (k x)).
 Proof.
-  intros; rewrite unfold_interp; reflexivity.
+  intros; rewrite InterpFacts.interp_vis; setoid_rewrite tau_eutt; reflexivity.
 Qed.
 
 Lemma interp_trigger : forall {E F : Type -> Type} {R : Type}
       (f : E ~> (itree F)) (e : E R),
     interp f (ITree.trigger e) ≈ f _ e.
 Proof.
-  intros; rewrite ITree.Interp.InterpFacts.interp_trigger, tau_eutt.
+  intros; rewrite ITree.Interp.InterpFacts.interp_trigger.
   reflexivity.
 Qed.
 
@@ -441,7 +441,8 @@ Lemma interp_recursive_call
     interp (recursive f) (call x)
   ≈ rec f x.
 Proof.
-  intros. rewrite ITree.Interp.RecursionFacts.interp_recursive_call. apply tau_eutt.
+  intros. rewrite ITree.Interp.RecursionFacts.interp_recursive_call.
+  reflexivity.
 Qed.
 
 (** [mrec ctx] is equivalent to [interp (mrecursive ctx)],
@@ -463,7 +464,8 @@ Lemma interp_mrecursive
     interp (mrecursive ctx) (trigger_inl1 d)
   ≈ mrec ctx d.
 Proof.
-  intros; rewrite ITree.Interp.RecursionFacts.interp_mrecursive. apply tau_eutt.
+  intros; rewrite ITree.Interp.RecursionFacts.interp_mrecursive.
+  reflexivity.
 Qed.
 
 Hint Rewrite @interp_recursive_call : itree.

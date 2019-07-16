@@ -414,12 +414,12 @@ Class IterCodiagonal : Prop :=
 
 (* TODO: also define uniformity, requires a "purity" assumption. *)
 
-Class Conway : Prop :=
-  { conway_unfold :> IterUnfold
-  ; conway_natural :> IterNatural
-  ; conway_dinatural :> IterDinatural
-  ; conway_codiagonal :> IterCodiagonal
-  ; conway_proper_iter
+Class Iterative : Prop :=
+  { iterative_unfold :> IterUnfold
+  ; iterative_natural :> IterNatural
+  ; iterative_dinatural :> IterDinatural
+  ; iterative_codiagonal :> IterCodiagonal
+  ; iterative_proper_iter
       :> forall a b, @Proper (C a (bif a b) -> C a b) (eq2 ==> eq2) iter
   }.
 
@@ -440,4 +440,4 @@ Arguments iter_unfold {obj C Eq2_C Id_C Cat_C bif CoprodCase_C Iter_C IterUnfold
 Arguments iter_natural {obj C Eq2_C Id_C Cat_C bif CoprodCase_C CoprodInl_C CoprodInr_C Iter_C IterNatural} [a b c] f.
 Arguments iter_dinatural {obj C Eq2_C Id_C Cat_C bif CoprodCase_C CoprodInr_C Iter_C IterDinatural} [a b c] f.
 Arguments iter_codiagonal {obj C Eq2_C Id_C Cat_C bif CoprodCase_C CoprodInl_C Iter_C IterCodiagonal} [a b] f.
-Arguments conway_proper_iter {obj C Eq2_C Id_C Cat_C bif CoprodCase_C CoprodInl_C CoprodInr_C Iter_C Conway}.
+Arguments iterative_proper_iter {obj C Eq2_C Id_C Cat_C bif CoprodCase_C CoprodInl_C CoprodInr_C Iter_C Iterative}.

@@ -626,7 +626,7 @@ Context {Proper_case_ : forall a b c,
             @Proper (C a c -> C b c -> C _ c) (eq2 ==> eq2 ==> eq2) case_}.
 
 Context {Iter_bif : Iter C bif}.
-Context {Conway_C : Conway C bif}.
+Context {Iterative_C : Iterative C bif}.
 
 Global Instance Proper_loop {a b c}
   : @Proper (C (bif c a) (bif c b) -> C a b) (eq2 ==> eq2) loop.
@@ -669,7 +669,7 @@ Proof.
     unfold bimap, Bimap_Coproduct. (* TODO: by naturality of inr_ *)
     rewrite case_inr, cat_assoc.
     repeat (apply Proper_cat; try reflexivity).
-    apply conway_proper_iter.
+    apply iterative_proper_iter.
     rewrite cat_assoc.
     apply Proper_cat; try reflexivity.
     rewrite !cat_id_l.
@@ -706,7 +706,7 @@ Proof.
   rewrite cat_assoc.
   apply Proper_cat; try reflexivity.
   rewrite iter_natural.
-  apply conway_proper_iter; try reflexivity.
+  apply iterative_proper_iter; try reflexivity.
   rewrite !cat_assoc, !bimap_cat, !cat_id_l, !cat_id_r.
   reflexivity.
 Qed.
@@ -856,7 +856,7 @@ Proof.
 
     + rewrite cat_assoc, iter_natural.
       apply Proper_cat; try reflexivity.
-      apply conway_proper_iter.
+      apply iterative_proper_iter.
       rewrite !cat_assoc.
       rewrite case_inl.
       rewrite <- (cat_assoc inl_), inl_assoc_r.

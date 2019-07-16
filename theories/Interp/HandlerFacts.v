@@ -50,7 +50,7 @@ Qed.
 Instance CatIdL_Handler : CatIdL Handler.
 Proof.
   cbv; intros.
-  rewrite interp_trigger, tau_eutt.
+  rewrite interp_trigger.
   reflexivity.
 Qed.
 
@@ -83,14 +83,14 @@ Qed.
 Instance CaseInl_Handler : CaseInl Handler sum1.
 Proof.
   cbv; intros.
-  rewrite interp_trigger, tau_eutt.
+  rewrite interp_trigger.
   reflexivity.
 Qed.
 
 Instance CaseInr_Handler : CaseInr Handler sum1.
 Proof.
   cbv; intros.
-  rewrite interp_trigger, tau_eutt.
+  rewrite interp_trigger.
   reflexivity.
 Qed.
 
@@ -98,8 +98,8 @@ Instance CaseUniversal_Handler : CaseUniversal Handler sum1.
 Proof.
   cbv; intros.
   destruct (_ : sum1 _ _ _).
-  - rewrite <- H, interp_trigger, tau_eutt. reflexivity.
-  - rewrite <- H0, interp_trigger, tau_eutt. reflexivity.
+  - rewrite <- H, interp_trigger. reflexivity.
+  - rewrite <- H0, interp_trigger. reflexivity.
 Qed.
 
 Global Instance Coproduct_Handler : Coproduct Handler sum1.
@@ -128,13 +128,28 @@ Qed.
 Instance IterNatural_Handler : IterNatural Handler sum1.
 Proof.
   cbv; intros.
+  pattern f.
+  match goal with
+  | [ |- ?G ?f ] =>
+    enough (HHH : G (fun T e => Tau (f T e))); cbn in *
+  end.
+  { etransitivity; [etransitivity; [|eapply HHH] |]; clear.
+    - symmetry. apply euttge_sub_eutt, euttge_interp.
+      + reflexivity.
+      + apply euttge_interp_mrec; repeat intro; apply tau_eutt.
+    - apply euttge_sub_eutt, euttge_interp_mrec.
+      + intros ? ?. apply euttge_interp.
+        * reflexivity.
+        * apply tau_eutt.
+      + rewrite tau_eutt. reflexivity.
+  }
   match goal with
   | [ |- _ _ (_ _ _ (_ ?h0 _ _)) ] =>
     remember h0 as h eqn:EQh
     (* h is pretty big and duplicating it slows down the display of the goal,
        so we try to rewrite with EQh only when necessary. *)
   end.
-  remember (f T a0) as t eqn:tmp_t. clear tmp_t.
+  remember (Tau (f T a0)) as t eqn:tmp_t. clear tmp_t.
   revert t; einit; ecofix CIH; intros t.
   rewrite (itree_eta t).
   destruct (observe t).
@@ -147,50 +162,47 @@ Proof.
     rewrite (unfold_interp_mrec _ _ (Tau _)); cbn.
     estep.
   - rewrite unfold_interp_mrec; cbn.
-    rewrite interp_tau.
     rewrite interp_vis.
-    rewrite unfold_interp_mrec; cbn.
-    destruct e.
-    + estep. subst h. rewrite interp_trigger, bind_tau.
-      rewrite (unfold_interp_mrec _ _ (Tau _)); cbn.
-      rewrite tau_eutt.
-      rewrite (interp_mrec_bind _ (ITree.trigger _)).
-      rewrite (interp_mrec_as_interp _ (ITree.trigger _)).
-      rewrite interp_trigger; cbn.
-      rewrite tau_eutt.
+    destruct e; cbn.
+    + rewrite interp_tau.
+      rewrite 2 interp_mrec_bind, interp_bind.
+      subst h; cbn.
+      rewrite interp_trigger.
+      rewrite unfold_interp_mrec; cbn.
+      rewrite interp_mrec_trigger; cbn.
       unfold Recursion.mrec.
-      rewrite <- interp_mrec_bind.
+      rewrite !interp_tau.
+      rewrite (unfold_interp_mrec _ _ (Tau _)); cbn.
+      rewrite !bind_tau.
+      etau. rewrite tau_eutt, <- interp_bind, <- 2 interp_mrec_bind.
+      setoid_rewrite (tau_eutt (interp _ _)).
       rewrite <- interp_bind.
-      eauto with paco.
-    + estep. rewrite interp_vis, tau_eutt.
+      auto with paco.
+    + rewrite interp_vis.
       rewrite interp_mrec_bind.
-      rewrite interp_mrec_as_interp.
-      remember (h _ (inr1 b0)) as W eqn:EW; rewrite EQh in EW; subst W.
-      rewrite interp_interp.
-
-      match goal with
-      | [ |- _ _ (_ _ (_ ?f _ _)) ] =>
-        remember f as hdl eqn:Ehdl
-      end.
-      assert (E0 : (Relation.i_pointwise (fun _ => euttge eq)) hdl (Handler.id_ _)); [ | clear Ehdl ].
-      { subst hdl; rewrite EQh; clear. intros T0 a0.
+      subst h; cbn.
+      Local Transparent eutt.
+      ebind. apply (pbc_intro_h _ _ _ _ _ eq).
+      { rewrite interp_mrec_as_interp, interp_interp.
+        rewrite <- interp_id_h at 1.
+        eapply eutt_interp; try reflexivity.
+        intros ? ?.
         rewrite interp_trigger; cbn.
-        rewrite tau_eutt.
-        reflexivity.
-      }
-      apply euttge_interp in E0. hnf in E0.
-      rewrite (E0 _ (g _ b0) (g _ b0)) by reflexivity. clear E0.
-      rewrite interp_id_h.
-      ebind; econstructor; try reflexivity.
+        reflexivity. }
       intros ? _ [].
-      eauto with paco.
+      rewrite (unfold_interp_mrec _ _ (Tau _)); cbn.
+      etau.
+      rewrite tau_eutt.
+      auto with paco.
 Qed.
 
 Section DinatSimulation.
 
 Context {A B C : Type -> Type}.
-Context (f : A ~> itree (B +' C)) (g : B ~> itree (A +' C)).
+Context (f0 : A ~> itree (B +' C)) (g0 : B ~> itree (A +' C)).
 Context {R : Type}.
+
+Context (f := fun T e => Tau (f0 T e)) (g := fun T e => Tau (g0 T e)).
 
 Local Inductive interleaved
   : itree (A +' C) R -> itree (B +' C) R -> Prop :=
@@ -220,42 +232,62 @@ Proof.
     + rewrite interp_ret, 2 bind_ret. auto.
     + rewrite interp_tau, 2 bind_tau, 2 unfold_interp_mrec; cbn.
       estep.
-    + rewrite interp_vis, bind_tau, bind_vis, 2 unfold_interp_mrec; cbn.
-      estep.
+    + rewrite interp_vis, bind_vis.
       rewrite bind_bind.
-      destruct e; cbn.
-      * cbv; eauto 6 with paco.
-      * unfold inr_, Inr_sum1_Handler, Handler.inr_, Handler.htrigger.
-        rewrite bind_trigger, unfold_interp_mrec; cbn.
-        rewrite tau_eutt.
-        estep.
-    (* TODO: deduplicate *)
+      rewrite (unfold_interp_mrec _ _ (Vis _ _)); cbn.
+      destruct e; cbn. setoid_rewrite (tau_eutt (interp _ _)).
+      * unfold cat at 3, Cat_Handler at 3, Handler.cat.
+        change (g X b) with (Tau (g0 X b)).
+        rewrite bind_tau, unfold_interp_mrec; cbn.
+        etau. rewrite tau_eutt. ebase.
+      * unfold inr_ at 3, Inr_sum1_Handler at 3, Handler.inr_, Handler.htrigger.
+        rewrite bind_trigger.
+        rewrite unfold_interp_mrec; cbn.
+        evis; intros; etau. rewrite tau_eutt. ebase.
   - rewrite (itree_eta t); destruct (observe t).
     + rewrite interp_ret, 2 bind_ret. auto.
     + rewrite interp_tau, 2 bind_tau, 2 unfold_interp_mrec; cbn.
       estep.
-    + rewrite interp_vis, bind_tau, bind_vis, 2 unfold_interp_mrec; cbn.
-      estep.
+    + rewrite interp_vis, bind_vis.
       rewrite bind_bind.
-      destruct e; cbn.
-      * cbv; eauto 6 with paco.
-      * unfold inr_, Inr_sum1_Handler, Handler.inr_, Handler.htrigger.
-        rewrite bind_trigger, unfold_interp_mrec; cbn.
-        rewrite tau_eutt.
-        estep.
+      rewrite (unfold_interp_mrec _ _ (Vis _ _)); cbn.
+      destruct e; cbn. setoid_rewrite (tau_eutt (interp _ _)).
+      * unfold cat at 2, Cat_Handler at 2, Handler.cat.
+        change (f X a) with (Tau (f0 X a)).
+        rewrite !bind_tau, (unfold_interp_mrec _ _ (Tau _)); cbn.
+        etau. rewrite tau_eutt. ebase.
+      * unfold inr_ at 4, Inr_sum1_Handler at 4, Handler.inr_, Handler.htrigger.
+        rewrite bind_trigger.
+        rewrite unfold_interp_mrec; cbn.
+        evis; intros; etau. rewrite tau_eutt. ebase.
 Qed.
 
 End DinatSimulation.
 
+Local Opaque eutt.
 Local Transparent ITree.trigger.
 
 Instance IterDinatural_Handler : IterDinatural Handler sum1.
 Proof.
-  cbv; intros.
-  change (
+  cbv; intros a b c f0 g0 T a0.
+  pose (f := fun T e => Tau (f0 T e)). pose (g := fun T e => Tau (g0 T e)).
+  enough (
       Recursion.interp_mrec (cat f (case_ g inr_))
                             (interp (case_ g inr_) (f _ a0))
     ≈ interp (mrecursive (cat g (case_ f inr_))) (f _ a0)).
+  { cbv in H. etransitivity; [etransitivity; [|apply H]|]; clear H.
+    - symmetry. apply euttge_sub_eutt, euttge_interp_mrec.
+      1: intros ? ?.
+      1,2: rewrite tau_eutt; apply euttge_interp; try reflexivity.
+      1,2: intros ? []; [apply tau_eutt| reflexivity].
+    - apply euttge_sub_eutt, euttge_interp; [ | apply tau_eutt].
+      intros ? []; try reflexivity.
+      rewrite tau_eutt. apply euttge_interp_mrec.
+      intros ? ?.
+      rewrite tau_eutt.
+      all: apply euttge_interp; try reflexivity.
+      all: intros ? []; [apply tau_eutt | reflexivity].
+  }
   rewrite <- interp_mrec_as_interp.
 
   rewrite <- (bind_ret2 (interp _ _)).
@@ -267,34 +299,61 @@ Qed.
 
 Local Opaque ITree.trigger.
 
+Import Recursion.
+
 Instance IterCodiagonal_Handler : IterCodiagonal Handler sum1.
 Proof.
-  cbv; intros.
-  remember (f T a0) as t eqn:EQt; clear EQt.
+  cbv; intros a b f0 T x.
+  remember (f0 T x) as t eqn:EQt; clear.
+  pose (f := fun T e => Tau (f0 T e)).
+  enough (interp_mrec (fun _ d => interp_mrec f (f _ d))
+                      (interp_mrec f t)
+          ≈ interp_mrec (fun _ e => interp (fun _ ab =>
+                                              match ab with
+                                              | inl1 x => ITree.trigger (inl1 x)
+                                              | inr1 y => ITree.trigger y
+                                              end) (f _ e))
+                        (interp (fun _ ab =>
+                                   match ab with
+                                   | inl1 x => ITree.trigger (inl1 x)
+                                   | inr1 y => ITree.trigger y
+                                   end) t)).
+  { subst f. etransitivity; [etransitivity; [| apply H] |]; clear H.
+    - symmetry. apply euttge_sub_eutt, euttge_interp_mrec.
+      + intros ? ?. apply euttge_interp_mrec; try apply tau_eutt.
+        intros ? ?. apply tau_eutt.
+      + apply euttge_interp_mrec; repeat intro; reflexivity + rewrite tau_eutt.
+        reflexivity.
+    - apply euttge_sub_eutt, euttge_interp_mrec; repeat intro;
+        apply euttge_interp; try reflexivity.
+      apply tau_eutt.
+  }
   revert t. einit; ecofix CIH. intros.
-  rewrite (itree_eta t); destruct (observe t);
-    rewrite unfold_interp, (unfold_interp_mrec f), 2 unfold_interp_mrec; cbn.
-  - reflexivity.
-  - estep.
-  - estep.
-    rewrite interp_mrec_bind.
-    rewrite (@interp_mrec_as_interp _ _ _ X).
-    destruct e; rewrite interp_trigger, tau_eutt; cbn.
-    + unfold Recursion.mrec.
-      rewrite <- interp_mrec_bind, <- interp_bind.
-      auto with paco.
-    + rewrite unfold_interp_mrec; cbn.
-      rewrite tau_eutt.
-      destruct s; cbn.
-      * unfold Recursion.mrec.
-        rewrite <- 2 interp_mrec_bind.
-        rewrite <- interp_bind.
-        auto with paco.
-      * rewrite bind_trigger.
-        auto with paco.
+  rewrite (itree_eta t); destruct (observe t); cbn.
+  all: rewrite (unfold_interp_mrec _ _ (go _)), unfold_interp; cbn.
+  1,2: rewrite unfold_interp_mrec; cbn.
+  1,2: rewrite (unfold_interp_mrec _ _ (go _)); estep.
+  destruct e.
+  - rewrite (interp_mrec_bind _ (ITree.trigger _)).
+    rewrite interp_mrec_trigger; cbn.
+    unfold Recursion.mrec.
+    remember (f X a0) as fxa eqn:Hfxa; unfold f in Hfxa; subst fxa.
+    rewrite interp_tau, unfold_interp_mrec; cbn.
+    rewrite (unfold_interp_mrec _ _ (Tau _)); cbn.
+    rewrite !bind_tau.
+    etau.
+    rewrite tau_eutt. setoid_rewrite tau_eutt.
+    rewrite <- interp_mrec_bind, <- interp_bind.
+    auto with paco.
+  - rewrite bind_trigger.
+    setoid_rewrite tau_eutt.
+    rewrite 2 unfold_interp_mrec; cbn.
+    destruct s; estep.
+    rewrite <- interp_mrec_bind, <- interp_bind.
+    auto with paco.
 Qed.
 
-Global Instance Conway_Handler : Conway Handler sum1.
+Global Instance Iterative_Handler : Iterative Handler sum1.
 Proof.
   split; typeclasses eauto.
 Qed.

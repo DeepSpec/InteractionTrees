@@ -4,9 +4,9 @@
 
 (* begin hide *)
 From ITree Require Import
+     Basics.Basics
      Basics.CategoryOps
      Basics.CategoryKleisli
-     Basics.Basics
      Basics.MonadTheory
      Basics.CategoryKleisli
      Basics.Function
@@ -47,14 +47,6 @@ Context {E : Type -> Type}.
 Local Notation ktree := (ktree E).
 
 (** *** Traced monoidal category *)
-
-Global Instance Iter_ktree : Iter ktree sum :=
-  fun a b (f : ktree a (a + b)) (x0 : a) =>
-    ITree.aloop (fun xr =>
-      match xr with
-      | inl x => inl (f x)
-      | inr r => inr r
-      end) (inl x0) : itree E b.
 
 (** The trace operator here is [loop].
 

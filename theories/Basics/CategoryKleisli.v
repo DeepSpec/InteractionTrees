@@ -54,14 +54,7 @@ Section Instances.
   Global Instance CoprodInr_Kleisli : CoprodInr (Kleisli m) sum :=
     fun _ _ => pure inr.
 
-  (* SAZ: Maybe get rid of the Aloop constraint and move to Iter *)
-  (*
-  Global Instance Iter_Kleisli `{ALoop m} : Iter (Kleisli m) sum :=
-    fun a b (f : Kleisli m a (a + b)) (a0 : a) =>
-      aloop (fun ar =>
-               match ar with
-               | inl a => inl (f a)
-               | inr r => inr r
-               end) (inl a0) : m b.
-  *)
+  Global Instance Iter_Kleisli `{MonadIter m} : Iter (Kleisli m) sum :=
+    fun a b => Basics.iter.
+
 End Instances.

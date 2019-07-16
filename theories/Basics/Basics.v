@@ -139,93 +139,80 @@ End Monads.
 
 (** ** Loop operator *)
 
-(** [aloop]: A primitive for general recursion.
+(** [iter]: A primitive for general recursion.
     Iterate a function updating an accumulator [I], until it produces
-    an output [R]. It's an Asymmetric variant of [loop], and it looks
-    similar to an Anamorphism, hence the name [aloop].
+    an output [R].
  *)
-Polymorphic Class ALoop (M : Type -> Type) : Type :=
-  aloop : forall {R I: Type}, (I -> M I + R) -> I -> M R.
-
-(* TODO: try this one.
-Class ALoop (M : Type -> Type) : Type :=
-  aloop : forall I R, (I -> itreeF M R I) -> I -> M R.
-
-It allows us to drop the [Monad] and [Functor] constraints
-in [Interp.Interp.interp].
- *)
+Polymorphic Class MonadIter (M : Type -> Type) : Type :=
+  iter : forall {R I: Type}, (I -> M (I + R)%type) -> I -> M R.
 
 (** *** Transformer instances *)
 
-(** And the standard transformers can lift [aloop].
+(** And the standard transformers can lift [iter].
 
     Quite easily in fact, no [Monad] assumption needed.
  *)
 
-(* TODO: some of these mk functions have too many explicit arguments *)
-Instance ALoop_stateT {M S} {AM : ALoop M} : ALoop (stateT S M) :=
+Instance MonadIter_stateT {M S} {MM : Monad M} {AM : MonadIter M}
+  : MonadIter (stateT S M) :=
   fun _ _ step i => mkStateT (fun s =>
-    aloop (fun is =>
+    iter (fun is =>
       let i := fst is in
       let s := snd is in
-      match step i with
-      | inl run => inl (runStateT run s)
-      | inr r => inr (r, s)
-      end) (i, s)).
+      is' <- runStateT (step i) s ;;
+      ret match fst is' with
+          | inl i' => inl (i', snd is')
+          | inr r => inr (r, snd is')
+          end) (i, s)).
 
-Polymorphic Instance ALoop_stateT0 {M S} {AM : ALoop M} : ALoop (Monads.stateT S M) :=
+Polymorphic Instance MonadIter_stateT0 {M S} {MM : Monad M} {AM : MonadIter M}
+  : MonadIter (Monads.stateT S M) :=
   fun _ _ step i s =>
-    aloop (fun si =>
+    iter (fun si =>
       let s := fst si in
       let i := snd si in
-      match step i with
-      | inl run => inl (run s)
-      | inr r => inr (s, r)
-      end) (s, i).
+      si' <- step i s;;
+      ret match snd si' with
+          | inl i' => inl (fst si', i')
+          | inr r => inr (fst si', r)
+          end) (s, i).
 
-Instance ALoop_readerT {M S} {AM : ALoop M} : ALoop (readerT S M) :=
+Instance MonadIter_readerT {M S} {AM : MonadIter M} : MonadIter (readerT S M) :=
   fun _ _ step i => mkReaderT (fun s =>
-    aloop (fun i =>
-      match step i with
-      | inl run => inl (runReaderT run s)
-      | inr r => inr r
-      end) i).
+    iter (fun i => runReaderT (step i) s) i).
 
-Instance ALoop_optionT {M} {AM : ALoop M} : ALoop (optionT M) :=
+Instance MonadIter_optionT {M} {MM : Monad M} {AM : MonadIter M}
+  : MonadIter (optionT M) :=
   fun _ _ step i => mkOptionT (
-    aloop (fun oi =>
-      match oi with
-      | Some i =>
-        match step i with
-        | inl run => inl (unOptionT run)
-        | inr r => inr (Some r)
-        end
-      | None => inr None
-      end) (Some i)).
+    iter (fun i =>
+      oi <- unOptionT (step i) ;;
+      ret match oi with
+          | None => inr None
+          | Some (inl i) => inl i
+          | Some (inr r) => inr (Some r)
+          end) i).
 
-Instance ALoop_eitherT {M E} {AM : ALoop M} : ALoop (eitherT E M) :=
+Instance MonadIter_eitherT {M E} {MM : Monad M} {AM : MonadIter M}
+  : MonadIter (eitherT E M) :=
   fun _ _ step i => mkEitherT (
-    aloop (fun ei =>
-      match ei with
-      | inl e => inr (inl e)
-      | inr i =>
-        match step i with
-        | inl run => inl (unEitherT run)
-        | inr r => inr (inr r)
-        end
-      end) (inr i)).
+    iter (fun i =>
+      ei <- unEitherT (step i) ;;
+      ret match ei with
+          | inl e => inr (inl e)
+          | inr (inl i) => inl i
+          | inr (inr r) => inr (inr r)
+          end) i).
 
 (** And the nondeterminism monad [_ -> Prop] also has one. *)
 
-Inductive aloop_Prop {R I : Type} (step : I -> (I -> Prop) + R) (i : I) (r : R)
+Inductive iter_Prop {R I : Type} (step : I -> I + R -> Prop) (i : I) (r : R)
   : Prop :=
-| aloop_done
-  : step i = inr r -> aloop_Prop step i r
-| aloop_step p i'
-  : step i = inl p ->
-    p i' ->
-    aloop_Prop step i' r ->
-    aloop_Prop step i r
+| iter_done
+  : step i (inr r) -> iter_Prop step i r
+| iter_step i'
+  : step i (inl i') ->
+    iter_Prop step i' r ->
+    iter_Prop step i r
 .
 
-Polymorphic Instance ALoop_Prop : ALoop Ensembles.Ensemble := @aloop_Prop.
+Polymorphic Instance MonadIter_Prop : MonadIter Ensembles.Ensemble := @iter_Prop.
