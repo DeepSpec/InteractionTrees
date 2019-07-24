@@ -42,35 +42,58 @@ Open Scope string_scope.
 
 Section compile_assign.
 
-  (** Expressions are compiled straightforwardly.
+  (** Arithmetic expressions are compiled straightforwardly.
       The argument [l] is the number of registers already introduced to compile
-      the expression, and is used for the name of the next one.
-      The result of the computation [compile_expr l e] always ends up stored in [l]. 
+      the aexpession, and is used for the name of the next one.
+      The result of the computation [compile_aexp l e] always ends up stored in [l]. 
    *)
-  Fixpoint compile_expr (l:reg) (e: expr): list instr :=
+  Fixpoint compile_aexp (l:reg) (e: aexp): list instr :=
     match e with
-    | Var x => [Iload l x]
-    | Lit n => [Imov l (Oimm n)]
-    | Plus e1 e2 =>
-      let instrs1 := compile_expr l e1 in
-      let instrs2 := compile_expr (1 + l) e2 in
+    | AId x => [Iload l x]
+    | ANum n => [Imov l (Oimm n)]
+    | APlus e1 e2 =>
+      let instrs1 := compile_aexp l e1 in
+      let instrs2 := compile_aexp (1 + l) e2 in
       instrs1 ++ instrs2 ++ [Iadd l l (Oreg (1 + l))]
-    | Minus e1 e2 =>
-      let instrs1 := compile_expr l e1 in
-      let instrs2 := compile_expr (1 + l) e2 in
+    | AMinus e1 e2 =>
+      let instrs1 := compile_aexp l e1 in
+      let instrs2 := compile_aexp (1 + l) e2 in
       instrs1 ++ instrs2 ++ [Isub l l (Oreg (1 + l))]
-    | Mult e1 e2 =>
-      let instrs1 := compile_expr l e1 in
-      let instrs2 := compile_expr (1 + l) e2 in
+    | AMult e1 e2 =>
+      let instrs1 := compile_aexp l e1 in
+      let instrs2 := compile_aexp (1 + l) e2 in
       instrs1 ++ instrs2 ++ [Imul l l (Oreg (1 + l))]
       end.
 
-  (** Compiles the expression and then move the result (in register [0]) to address
+  (* Boolean expressions follow a similar fate, where [BTrue] is encoded as [1]
+  and [BFalse] as [0]. *)
+  Fixpoint compile_bexp (l:reg) (e: bexp): list instr :=
+    match e with
+    | BTrue => [Imov l (Oimm 1)]
+    | BFalse => [Imov l (Oimm 0)]
+    | BEq a b =>
+      let instrs1 := compile_aexp l a in
+      let instrs2 := compile_aexp (1 + l) b in
+      instrs1 ++ instrs2 ++ [IEq l l (Oreg (1 + l))]
+    | BLe a b =>
+      let instrs1 := compile_aexp l a in
+      let instrs2 := compile_aexp (1 + l) b in
+      instrs1 ++ instrs2 ++ [ILe l l (Oreg (1 + l))]
+    | BNot a =>
+      let instrs := compile_bexp l a in
+      instrs ++ [INot l (Oreg l)]
+    | BAnd a b =>
+      let instrs1 := compile_bexp l a in
+      let instrs2 := compile_bexp (1 + l) b in
+      instrs1 ++ instrs2 ++ [IAnd l l (Oreg (1 + l))]
+    end.
+
+  (** Compiles the aexpession and then move the result (in register [0]) to address
       [x].  Note: here we assume a one-to-one mapping of _Imp_ global variable names
       and _Asm_ addresses.
   *)
-  Definition compile_assign (x: Imp.var) (e: expr): list instr :=
-    let instrs := compile_expr 0 e in
+  Definition compile_assign (x: Imp.var) (e: aexp): list instr :=
+    let instrs := compile_aexp 0 e in
     instrs ++ [Istore x (Oreg 0)].
 
 End compile_assign.
@@ -117,7 +140,7 @@ Definition seq_asm {A B C} (ab : asm A B) (bc : asm B C)
 Definition tmp_if := 0.
 
 (** Turns the list of instructions resulting from the conditional
-    expression of a _if_ to a block with two exit points.
+    aexpession of a _if_ to a block with two exit points.
  *)
 Definition cond_asm (e : list instr) : asm 1 2 :=
   raw_asm_block (after e (Bbrz tmp_if (FS f1) f1)).
@@ -176,13 +199,13 @@ Definition while_asm (e : list instr) (p : asm 1 1) :
 (** Equipped with our combinators, the compiler writes itself
     by induction on the structure of the statement.
 *)
-Fixpoint compile (s : stmt) {struct s} : asm 1 1 :=
+Fixpoint compile (s : com) {struct s} : asm 1 1 :=
   match s with
-  | Skip       => id_asm
-  | Assign x e => raw_asm_block (after (compile_assign x e) (Bjmp f1))
-  | Seq l r    => seq_asm (compile l) (compile r)
-  | If e l r   => if_asm (compile_expr 0 e) (compile l) (compile r)
-  | While e b  => while_asm (compile_expr 0 e) (compile b)
+  | CSkip       => id_asm
+  | CAss x e => raw_asm_block (after (compile_assign x e) (Bjmp f1))
+  | CSeq l r    => seq_asm (compile l) (compile r)
+  | CIf e l r   => if_asm (compile_bexp 0 e) (compile l) (compile r)
+  | CWhile e b  => while_asm (compile_bexp 0 e) (compile b)
   end.
 
 (** We now consider its proof of correctness in [Imp2AsmCorrectness.v]. *)

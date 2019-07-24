@@ -66,12 +66,79 @@ Local Open Scope string_scope.
 (* ========================================================================== *)
 (** ** Syntax *)
 
+(* Taken from Software_Foundation/lf/Imp.v, to replace by a simple import? *)
+
+(* ================================================================= *)
+(** ** Syntax *)
+
+Inductive aexp : Type :=
+  | ANum (n : nat)
+  | AId (x : string)
+  | APlus (a1 a2 : aexp)
+  | AMinus (a1 a2 : aexp)
+  | AMult (a1 a2 : aexp).
+
+Inductive bexp : Type :=
+  | BTrue
+  | BFalse
+  | BEq (a1 a2 : aexp)
+  | BLe (a1 a2 : aexp)
+  | BNot (b : bexp)
+  | BAnd (b1 b2 : bexp).
+
+Inductive com : Set :=
+    CSkip : com
+  | CAss : string -> aexp -> com
+  | CSeq : com -> com -> com
+  | CIf : bexp -> com -> com -> com
+  | CWhile : bexp -> com -> com.
+
+(* ========================================================================== *)
+(** ** Notations *)
+
+Module ImpNotations.
+
+  Coercion AId : string >-> aexp.
+  Coercion ANum : nat >-> aexp.
+
+  Definition bool_to_bexp (b : bool) : bexp :=
+    if b then BTrue else BFalse.
+  Coercion bool_to_bexp : bool >-> bexp.
+
+  Bind Scope imp_scope with aexp.
+  Bind Scope imp_scope with bexp.
+  Delimit Scope imp_scope with imp.
+  Notation "x + y" := (APlus x y) (at level 50, left associativity) : imp_scope.
+  Notation "x - y" := (AMinus x y) (at level 50, left associativity) : imp_scope.
+  Notation "x * y" := (AMult x y) (at level 40, left associativity) : imp_scope.
+  Notation "x <= y" := (BLe x y) (at level 70, no associativity) : imp_scope.
+  Notation "x = y" := (BEq x y) (at level 70, no associativity) : imp_scope.
+  Notation "x && y" := (BAnd x y) (at level 40, left associativity) : imp_scope.
+  Notation "'~' b" := (BNot b) (at level 75, right associativity) : imp_scope.
+
+  Notation "'SKIP'" :=
+    CSkip : imp_scope.
+  Notation "x '::=' a" :=
+    (CAss x a) (at level 60) : imp_scope.
+  (* Triple ;;; rather than double to avoid conflict with bind *)
+  Notation "c1 ;;; c2" :=
+    (CSeq c1 c2) (at level 80, right associativity) : imp_scope.
+  Notation "'WHILE' b 'DO' c 'END'" :=
+    (CWhile b c) (at level 80, right associativity) : imp_scope.
+  Notation "'TEST' c1 'THEN' c2 'ELSE' c3 'FI'" :=
+    (CIf c1 c2 c3) (at level 80, right associativity) : imp_scope.
+
+End ImpNotations.
+
 (** Imp manipulates a countable set of variables represented as [string]s: *)
-Definition var : Set := string.
+Notation var := string.
+(* Definition var : Set := string. *)
 
 (** For simplicity, the language manipulates [nat]s as values. *)
-Definition value : Type := nat.
+(* Definition value : Type := nat. *)
+Notation value := nat.
 
+(*
 (** Expressions are made of variables, constant literals, and arithmetic operations. *)
 Inductive expr : Type :=
 | Var (_ : var)
@@ -135,6 +202,7 @@ Module ImpNotations.
          "'[v  ' 'WHILE'  t  'DO' '/' '[v' b  ']' ']'").
 
 End ImpNotations.
+*)
 
 Import ImpNotations.
 
@@ -177,13 +245,23 @@ Section Denote.
       other cases. A constant (literal) is simply returned, while we can [bind]
       recursive computations in the case of operators as one would expect.  *)
 
-  Fixpoint denote_expr (e : expr) : itree eff value :=
+  Fixpoint denote_aexp (e : aexp) : itree eff value :=
     match e with
-    | Var v     => trigger (GetVar v)
-    | Lit n     => ret n
-    | Plus a b  => l <- denote_expr a ;; r <- denote_expr b ;; ret (l + r)
-    | Minus a b => l <- denote_expr a ;; r <- denote_expr b ;; ret (l - r)
-    | Mult a b  => l <- denote_expr a ;; r <- denote_expr b ;; ret (l * r)
+    | AId v      => trigger (GetVar v)
+    | ANum n     => ret n
+    | APlus a b  => l <- denote_aexp a ;; r <- denote_aexp b ;; ret (l + r)
+    | AMinus a b => l <- denote_aexp a ;; r <- denote_aexp b ;; ret (l - r)
+    | AMult a b  => l <- denote_aexp a ;; r <- denote_aexp b ;; ret (l * r)
+    end.
+
+  Fixpoint denote_bexp (e : bexp) : itree eff bool :=
+    match e with
+    | BTrue    => ret true
+    | BFalse   => ret false
+    | BEq a b  => l <- denote_aexp a ;; r <- denote_aexp b ;; ret (Nat.eqb l r)
+    | BLe a b  => l <- denote_aexp a ;; r <- denote_aexp b ;; ret (Nat.leb l r)
+    | BNot a   => b <- denote_bexp a ;; ret (negb b)
+    | BAnd a b => l <- denote_bexp a ;; r <- denote_bexp b ;; ret (andb l r)
     end.
 
   (** We turn to the denotation of statements. As opposed to expressions,
@@ -216,29 +294,25 @@ Section Denote.
   Definition while (step : itree eff (unit + unit)) : itree eff unit :=
     @iter _ _ _ Iter_ktree _ _ (fun _ => step) tt.
     
-  (** Casting values into [bool]:  [0] corresponds to [false] and any nonzero
-      value corresponds to [true].  *)
-  Definition is_true (v : value) : bool := if (v =? 0)%nat then false else true.
-
   (** The meaning of statements is now easy to define.  They are all
       straightforward, except for [While], whic uses our new [while] combinator
       over the computation that evaluates the conditional, and then the body if
       the former was true.  *)
-  Fixpoint denote_stmt (s : stmt) : itree eff unit :=
+  Fixpoint denote_com (s : com) : itree eff unit :=
     match s with
-    | Assign x e =>  v <- denote_expr e ;; trigger (SetVar x v)
-    | Seq a b    =>  denote_stmt a ;; denote_stmt b
-    | If i t e   =>
-      v <- denote_expr i ;;
-      if is_true v then denote_stmt t else denote_stmt e
+    | CAss x e =>  v <- denote_aexp e ;; trigger (SetVar x v)
+    | CSeq a b    =>  denote_com a ;; denote_com b
+    | CIf i t e   =>
+      b <- denote_bexp i ;;
+      if (b: bool) then denote_com t else denote_com e
 
-    | While t b =>
-      while (v <- denote_expr t ;;
-	       if is_true v
-               then denote_stmt b ;; ret (inl tt)
+    | CWhile t body =>
+      while (b <- denote_bexp t ;;
+	       if (b: bool)
+               then denote_com body ;; ret (inl tt)
                else ret (inr tt))
 
-    | Skip => ret tt
+    | CSkip => ret tt
     end.
 
 End Denote.
@@ -251,19 +325,19 @@ Section Example_Fact.
   (** We briefly illustrate the language by writing the traditional factorial. 
       example.  *)
 
-  Open Scope expr_scope.
-  Open Scope stmt_scope.
+  Open Scope imp_scope.
   Variable input: var.
   Variable output: var.
 
-  Definition fact (n:nat): stmt :=
-    input ← n;;;
-    output ← 1;;;
-    WHILE input
-    DO output ← output * input;;;
-       input  ← input - 1.
+  Definition fact (n:nat): com :=
+    input ::= n;;;
+    output ::= 1;;;
+    WHILE ~(n = 0)
+    DO output ::= output * input;;;
+       input  ::= input - 1
+    END.
 
-  (** We have given _a_ notion of denotation to [fact 6] via [denote_stmt].
+  (** We have given _a_ notion of denotation to [fact 6] via [denote_com].
       However this is naturally not actually runnable yet, since it contains
       uninterpreted [ImpState] events.  We therefore now need to _handle_ the
       events contained in the trees, i.e. give a concrete interpretation of the
@@ -335,13 +409,14 @@ Definition interp_imp  {E A} (t : itree (ImpState +' E) A) : stateT env (itree E
   interp_map t'.
 
 
-Definition eval_imp (s: stmt) : itree void1 (env * unit) :=
-  interp_imp (denote_stmt s) empty.
+Definition eval_imp (s: com) : itree void1 (env * unit) :=
+  interp_imp (denote_com s) empty.
 
 (** Equipped with this evaluator, we can now compute.
     Naturally since Coq is total, we cannot do it directly inside of it.
     We can either rely on extraction, or use some fuel.
  *)
+(* YZ Is [burn] broken? *)
 Compute (burn 200 (eval_imp (fact "input" "output" 6))). 
 
 (* ========================================================================== *)
@@ -392,7 +467,5 @@ Section InterpImpProperties.
   Qed.
 
 End InterpImpProperties.
-
-
 
 (** We now turn to our target language, in file [Asm].v *)
