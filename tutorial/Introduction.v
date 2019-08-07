@@ -104,6 +104,11 @@ Definition interpreted_write_one : itree void1 (list nat * unit)
     [T (itree F)] (above, [T := stateT (list nat)]). (The library is
     currently missing some theory about the monads we can instantiate
     [interp] with.)
+
+    The proof of [interp_write_one] will require us to rewrite an
+    expression under a binder#&mdash;#i.e. on the right side of a
+    [;;]. The [rewrite] tactic will fail in this situation; instead,
+    we can use [setoid_rewrite], which works under binders.
  *)
 Lemma interp_write_one F (handle_io : forall R, ioE R -> itree F R)
   : interp handle_io write_one
