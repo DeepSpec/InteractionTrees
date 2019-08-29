@@ -29,13 +29,13 @@ examples:
 tutorial:
 	$(MAKE) -C tutorial
 
-clean: Makefile.coq
-	$(MAKE) -f Makefile.coq clean
+clean:
+	if [ -e Makefile.coq ] ; then $(MAKE) -f Makefile.coq cleanall ; fi
 	$(MAKE) -C tests clean
 	$(MAKE) -C examples clean
 	$(MAKE) -C tutorial clean
 	$(RM) theories/{.,*,*/*}/*.{vo,glob} theories/{.,*,*/*}/.*.aux
-	$(RM) _CoqProject Makefile.coq*
+	$(RM) _CoqProject Makefile.coq Makefile.coq.conf
 
 _CoqProject: $(COQPATHFILE) _CoqConfig Makefile
 	@ echo "# Generating _CoqProject"
