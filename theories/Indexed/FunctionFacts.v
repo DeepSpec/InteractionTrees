@@ -9,6 +9,8 @@ From ITree Require Import
      Basics.Basics
      Indexed.Function
      Indexed.Relation.
+
+Set Universe Polymorphism.
 (* end hide *)
 
 Instance Proper_apply_IFun {E F : Type -> Type} {T : Type}
