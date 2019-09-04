@@ -1,6 +1,6 @@
 (* SAZ: I'm not sure where in the library this should live.
     The Monad instance for itree is in ITreeDefinition but we want
-    to define EqM and MonadLaws instances too. 
+    to define EqM and MonadLaws instances too.
 *)
 
 From ITree Require Import
@@ -35,4 +35,3 @@ Proof.
     intros.
     apply eqit_bind; auto.
 Qed.
-

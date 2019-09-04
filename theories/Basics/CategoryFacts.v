@@ -47,7 +47,7 @@ Context {Eq2C : Eq2 C} {IdC : Id_ C} {CatC : Cat C}.
 Context {CatIdL_C : CatIdL C}.
 
 (** [id_] is an isomorphism. *)
-Global Instance SemiIso_Id {a} : SemiIso C (id_ a) (id_ a) := {}.
+Global Instance SemiIso_Id {a} : SemiIso C (id_ a) (id_ a).
 Proof. apply cat_id_l. Qed.
 
 Context {Equivalence_Eq2_C : forall a b, @Equivalence (C a b) eq2}.
@@ -62,10 +62,10 @@ Context {Proper_Cat_C : forall a b c,
 Global Instance SemiIso_Cat {a b c}
        (f : C a b) {f' : C b a} {SemiIso_f : SemiIso C f f'}
        (g : C b c) {g' : C c b} {SemiIso_g : SemiIso C g g'}
-  : SemiIso C (f >>> g) (g' >>> f') := {}.
+  : SemiIso C (f >>> g) (g' >>> f').
 Proof.
-  rewrite cat_assoc, <- (cat_assoc g), (semi_iso g _), cat_id_l,
-  (semi_iso f _).
+  red.
+  rewrite cat_assoc, <- (cat_assoc g), (semi_iso g _), cat_id_l, (semi_iso f _).
   reflexivity.
 Qed.
 
@@ -84,8 +84,9 @@ Context {Proper_Bimap_bif : forall a b c d,
 Global Instance SemiIso_Bimap {a b c d} (f : C a b) (g : C c d)
          {f' : C b a} {SemiIso_f : SemiIso C f f'}
          {g' : C d c} {SemiIso_g : SemiIso C g g'} :
-  SemiIso C (bimap f g) (bimap f' g') := {}.
+  SemiIso C (bimap f g) (bimap f' g').
 Proof.
+  red.
   rewrite bimap_cat, (semi_iso f _), (semi_iso g _), bimap_id.
   reflexivity.
 Qed.

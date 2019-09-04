@@ -46,7 +46,7 @@ Inductive observing {E R1 R2}
            (eq_ : itree' E R1 -> itree' E R2 -> Prop)
            (t1 : itree E R1) (t2 : itree E R2) : Prop :=
 | observing_intros :
-    eq_ t1.(observe) t2.(observe) -> observing eq_ t1 t2.
+    eq_ (observe t1) (observe t2) -> observing eq_ t1 t2.
 Hint Constructors observing.
 
 Section observing_relations.
