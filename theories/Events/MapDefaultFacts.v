@@ -191,8 +191,7 @@ Section MapFacts.
     destruct (observe t).
     - gstep. constructor. constructor; auto.
     - gstep. constructor. gbase. apply CH. assumption.
-    - gstep. constructor.
-      guclo eqit_clo_bind. econstructor.
+    - guclo eqit_clo_bind. econstructor.
       unfold pure_state.
       destruct e.
       + cbn. eapply eqit_mon. 4 : { apply handle_map_eq. assumption. }
@@ -200,6 +199,7 @@ Section MapFacts.
       + cbn. apply eqit_Vis. intros.  apply eqit_Ret. constructor; auto.
       + intros. destruct u1. destruct u2. cbn.
         inversion H. subst.
+        gstep; constructor.
         gbase. apply CH. assumption.
   Qed.
  
@@ -218,8 +218,7 @@ Section MapFacts.
     induction H0; intros; subst; simpl; pclearbot.
     - eret.
     - etau.
-    - etau.
-      ebind.
+    - ebind.
       apply pbc_intro_h with (RU := prod_rel (@eq_map _ _ _ _ d) eq).
       { (* SAZ: I must be missing some lemma that should solve this case *)
         unfold case_. unfold Case_sum1, case_sum1.
@@ -229,8 +228,7 @@ Section MapFacts.
       } 
       intros.
       inversion H. subst.
-      simpl.
-      ebase.
+      estep; constructor. ebase.
     - rewrite tau_eutt, unfold_interp_state.
       eauto.
     - rewrite tau_eutt, unfold_interp_state.

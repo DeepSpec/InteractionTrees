@@ -839,7 +839,7 @@ Section Facts.
       reflexivity.
     Qed.
 
-    Global Instance Conway_sktree : Conway sktree isum.
+    Global Instance Iterative_sktree : Iterative sktree isum.
     Proof.
       split; typeclasses eauto.
     Qed.

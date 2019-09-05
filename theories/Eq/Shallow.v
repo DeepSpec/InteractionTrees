@@ -96,10 +96,10 @@ Proof. apply @unfold_bind_. Qed.
 
 (** Unfolding lemma for [aloop]. There is also a variant [unfold_aloop]
     without [Tau]. *)
-Lemma unfold_aloop_ {E A B} (f : A -> itree E A + B) (x : A) :
+Lemma unfold_aloop_ {E A B} (f : A -> itree E (A + B)) (x : A) :
   observing eq
-    (ITree.aloop f x)
-    (ITree._aloop (fun t => Tau t) (ITree.aloop f) (f x)).
+    (ITree.iter f x)
+    (ITree.bind (f x) (ITree._iter (fun t => Tau t) (ITree.iter f))).
 Proof.
   constructor; reflexivity.
 Qed.

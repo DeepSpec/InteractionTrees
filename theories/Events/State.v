@@ -29,10 +29,10 @@ Open Scope itree_scope.
 
 Definition interp_state {E M S}
            {FM : Functor M} {MM : Monad M}
-           {LM : ALoop M} (h : E ~> stateT S M) :
+           {IM : MonadIter M} (h : E ~> stateT S M) :
   itree E ~> stateT S M := interp h.
 
-Arguments interp_state {E M S FM MM LM} h [T].
+Arguments interp_state {E M S FM MM IM} h [T].
 
 Section State.
 
@@ -122,11 +122,11 @@ Section eff_hom_e.
   { eval : forall t, E t -> itree F (eff_hom_e * t) }.
 
   Definition interp_e (h : eff_hom_e) : itree E ~> itree F := fun R t =>
-    ITree.aloop (fun '(s, t) =>
+    ITree.iter (fun '(s, t) =>
       match t.(observe) with
-      | RetF r => inr r
-      | TauF t => inl (Ret (s, t))
-      | VisF e k => inl (ITree.map (fun '(s, x) => (s, k x)) (h.(eval) _ e))
+      | RetF r => Ret (inr r)
+      | TauF t => Ret (inl (s, t))
+      | VisF e k => ITree.map (fun '(s, x) => inl (s, k x)) (h.(eval) _ e)
       end) (h, t).
 
 End eff_hom_e.

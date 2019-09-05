@@ -298,7 +298,7 @@ Definition loop (a b c : obj)
 (**  For our purposes, [loop] and [iter] are mutually derivable.
   [loop] is a definition instead of another class to prevent the interface
   from growing too much. We originally started with traced categories but
-  iterative/Conway categories seem to provide more of the theory we need. *)
+  iterative categories seem to provide more of the theory we need. *)
 
 End Iteration.
 

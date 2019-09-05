@@ -99,10 +99,10 @@ Global Instance EQ_memory_eqv : Equivalence (EQ_memory).
 constructor; typeclasses eauto.
 Qed.
 
-
 Definition rel_asm {B} : memory * (registers * B) -> memory * (registers * B) -> Prop := 
   prod_rel EQ_memory (prod_rel (EQ_registers 0) eq).
 
+Hint Unfold rel_asm.
 
 (** The definition [interp_asm] also induces a notion of equivalence (open)
     _asm_ programs, which is just the equivalence of the ktree category *)
@@ -169,21 +169,24 @@ Lemma interp_asm_GetReg {E A} f r mem reg :
 Proof.
   unfold interp_asm, interp_map.
   rewrite interp_bind.
-  setoid_rewrite interp_trigger. rewrite tau_eutt.
+  setoid_rewrite interp_trigger.
   repeat rewrite interp_state_bind. cbn. 
   unfold subevent, resum, ReSum_inl, resum, ReSum_id, id_.
   unfold Id_IFun. 
   unfold CategoryOps.cat, Cat_Handler, Handler.cat. cbn.
   unfold lookup_def.  
   unfold embed, Embeddable_forall, embed, Embeddable_itree.
-  unfold trigger. rewrite interp_vis. setoid_rewrite interp_ret. rewrite tau_eutt.
+  unfold trigger. rewrite interp_vis. setoid_rewrite interp_ret.
   unfold subevent, resum.
   repeat rewrite interp_state_bind.
   repeat setoid_rewrite interp_state_ret.
   unfold inl_, Inl_sum1_Handler, Handler.inl_, Handler.htrigger.
-  rewrite interp_state_trigger. rewrite tau_eutt. cbn.
+  rewrite interp_state_trigger. cbn.
+  rewrite !bind_ret, !tau_eutt.
   rewrite interp_state_ret.
-  repeat rewrite bind_ret. cbn.
+  rewrite !bind_ret, !tau_eutt.
+  rewrite !interp_state_ret; cbn.
+  rewrite bind_ret; cbn.
   reflexivity.
 Qed.
 
@@ -195,19 +198,20 @@ Proof.
   unfold interp_asm, interp_map.
   rewrite interp_bind.
   unfold trigger.
-  rewrite interp_vis. rewrite tau_eutt.
+  rewrite interp_vis.
   unfold subevent, resum, ReSum_inl, resum, ReSum_id, id_. cbn.
   setoid_rewrite interp_ret.
   rewrite bind_bind.
+  setoid_rewrite tau_eutt.
   setoid_rewrite bind_ret.
   repeat rewrite interp_state_bind.
   unfold Id_IFun.
   unfold CategoryOps.cat, Cat_Handler, Handler.cat. cbn.
   unfold inl_, Inl_sum1_Handler, Handler.inl_, Handler.htrigger.
   unfold insert.
-  setoid_rewrite interp_trigger. rewrite tau_eutt.
+  setoid_rewrite interp_trigger.
   repeat rewrite interp_state_trigger.  cbn.
-  rewrite tau_eutt.
+  rewrite bind_ret, tau_eutt.
   setoid_rewrite interp_state_ret.
   rewrite bind_ret. cbn.
   reflexivity.
@@ -220,7 +224,7 @@ Lemma interp_asm_Load {E A} f a mem reg :
 Proof.
   unfold interp_asm, interp_map.
   rewrite interp_bind.
-  rewrite interp_trigger. rewrite tau_eutt.
+  rewrite interp_trigger.
   unfold subevent, resum, ReSum_inr, resum, ReSum_inl, resum, ReSum_id, id_. cbn.
   repeat rewrite interp_state_bind.
   unfold Id_IFun.
@@ -230,10 +234,12 @@ Proof.
   unfold inr_, Inr_sum1_Handler, Handler.inr_, Handler.htrigger.
   unfold lookup_def.
   repeat (setoid_rewrite interp_trigger; rewrite tau_eutt).
-  repeat rewrite interp_state_trigger. rewrite tau_eutt.
-  cbn. unfold pure_state. rewrite interp_state_vis. cbn.  rewrite tau_eutt.
-  rewrite bind_ret. rewrite interp_state_ret.
-  repeat rewrite bind_ret. cbn. 
+  repeat rewrite interp_state_trigger.
+  cbn. unfold pure_state, embed, Embeddable_forall, embed, Embeddable_itree, trigger.
+  do 2 rewrite interp_vis, bind_vis.
+  rewrite interp_state_vis. cbn. rewrite bind_vis, interp_state_vis. cbn.
+  rewrite !bind_ret, !tau_eutt. rewrite !interp_ret, !interp_state_ret.
+  rewrite bind_ret; cbn.
   reflexivity.
 Qed.  
 
@@ -244,7 +250,7 @@ Lemma interp_asm_Store {E A} f a v mem reg :
 Proof.
   unfold interp_asm, interp_map.
   rewrite interp_bind.
-  rewrite interp_trigger. rewrite tau_eutt.
+  rewrite interp_trigger.
   unfold subevent, resum, ReSum_inr, resum, ReSum_inl, resum, ReSum_id, id_. cbn.
   repeat rewrite interp_state_bind.
   unfold Id_IFun.
@@ -253,16 +259,14 @@ Proof.
   unfold inl_, Inl_sum1_Handler, Handler.inl_, Handler.htrigger.
   unfold inr_, Inr_sum1_Handler, Handler.inr_, Handler.htrigger.
   unfold insert, embed, Embeddable_forall, embed, Embeddable_itree. 
-  rewrite interp_trigger. rewrite tau_eutt.
-  setoid_rewrite interp_trigger. rewrite tau_eutt.
-  rewrite interp_state_trigger. rewrite tau_eutt. cbn.
-  unfold pure_state. rewrite interp_state_vis. cbn.  rewrite tau_eutt.
-  rewrite bind_ret. rewrite interp_state_ret.
-  repeat rewrite bind_ret. cbn. 
+  rewrite interp_trigger.
+  setoid_rewrite interp_trigger.
+  rewrite interp_state_trigger. cbn.
+  cbn. unfold pure_state, embed, Embeddable_forall, embed, Embeddable_itree, trigger.
+  rewrite bind_vis, interp_state_vis. cbn. rewrite !bind_ret, !tau_eutt.
+  rewrite interp_state_ret, bind_ret; cbn.
   reflexivity.
-Qed.  
-  
-
+Qed.
 
 (* peephole optimizations --------------------------------------------------- *)
 
@@ -353,24 +357,22 @@ Proof.
     + unfold interp_asm, interp_map.
       unfold id_, Id_Handler, Handler.id_.
       unfold exit.
-      rewrite interp_vis. rewrite tau_eutt.
+      rewrite interp_vis.
       cbn. rewrite interp_state_bind.
       unfold CategoryOps.cat, Cat_Handler, Handler.cat, inr_, Inr_sum1_Handler, Handler.inr_, Handler.htrigger.
-      setoid_rewrite interp_trigger. rewrite tau_eutt.
+      setoid_rewrite interp_trigger.
       unfold inr_.
-      rewrite interp_trigger. rewrite tau_eutt.
-      rewrite interp_state_trigger. rewrite tau_eutt.
+      rewrite interp_trigger.
+      rewrite interp_state_trigger.
       rewrite interp_state_bind.
-      cbn. unfold pure_state. rewrite interp_state_vis. cbn.  rewrite tau_eutt.
+      cbn. unfold pure_state.
+      rewrite bind_vis, interp_state_vis. cbn.
       repeat rewrite bind_vis.
       rewrite interp_state_bind.
-      rewrite interp_state_trigger. cbn.  rewrite tau_eutt.
+      rewrite interp_state_trigger. cbn.
+      rewrite !bind_vis, interp_state_vis. cbn.
       rewrite bind_vis.
-      rewrite interp_state_vis. rewrite tau_eutt. cbn.
-      rewrite bind_vis.
-      unfold resum, ReSum_id, id_, Id_IFun.
-      apply eqit_Vis.
-      intros. inversion u.
+      apply eqit_Vis; intros [].
 Qed.
 
 
@@ -386,7 +388,6 @@ Proof.
   repeat setoid_rewrite interp_bind.
   repeat rewrite interp_state_bind.
   apply (@eutt_clo_bind _ _ _ _ _ _ rel_asm).
-
   
   { apply (@eutt_clo_bind _ _ _ _ _ _ rel_asm).
     -  unfold inr_, CoprodInr_Kleisli, lift_ktree_.
@@ -401,64 +402,49 @@ Proof.
        apply eqit_Ret.
        inversion H4; subst.
        constructor; auto. }
-    
+
   intros. 
   inversion H0; subst.
   simpl in *.
   unfold denote_bks.
   unfold iter, Iter_sktree.
   repeat rewrite interp_iter.
-  unfold KTree.iter, Iter_ktree.
+  unfold KTree.iter, Iter_Kleisli.
   cbn. 
-  pose proof @interp_state_aloop'.
+  pose proof @interp_state_iter'.
   red in H5.
+  unfold Basics.iter, MonadIter_stateT0, Basics.iter, MonadIter_itree in *.
+  cbn in *.
   repeat rewrite H5.
-  unfold aloop, ALoop_stateT0, aloop, ALoop_itree.
-  repeat rewrite H5.
-  unfold aloop, ALoop_stateT0, aloop, ALoop_itree.
-  eapply (@eutt_aloop'  _ _ _ _ _ rel_asm); auto.
-  intros j1 j2 Hrel.
-  inversion Hrel. subst.
-  inversion H7; subst. subst.
-  inversion Hrel. subst.
-  cbn.
-  destruct b5.
-  - constructor.
-    repeat rewrite interp_bind.
-    repeat rewrite interp_state_bind.
-    eapply (@eutt_clo_bind _ _ _ _ _ _ rel_asm).
-    + eapply (@eutt_clo_bind _ _ _ _ _ _ rel_asm).
-      * unfold peephole_optimize_bks.
-        pose proof @peephole_block_correct.
-        unfold eq_asm_denotations_EQ, interp_asm, interp_map in H9.    
-        eapply H9; auto.
-        apply f.
-      * intros.
-        inversion H9.
-        subst. inversion H11; subst.
-        repeat rewrite bind_ret.
-        unfold CategoryOps.cat, Cat_sktree, CategoryOps.cat, Cat_Kleisli. cbn.
-        unfold case_, Case_sum1, CoprodCase_Kleisli, case_sum.
-        destruct (split_fin_sum b5).
-        -- repeat rewrite bind_ret.
-           rewrite interp_ret.
-           repeat rewrite interp_state_ret.
-           apply eqit_Ret. constructor; auto.
-        -- repeat rewrite bind_ret.
-           rewrite interp_ret.
-           repeat rewrite interp_state_ret.
-           apply eqit_Ret. constructor; auto.
-    + intros.
-      inversion H9.
-      subst; cbn.
-      repeat rewrite interp_ret.
-      repeat rewrite interp_state_ret.
-      apply eqit_Ret. constructor; auto.
-      inversion H11; subst.
-      constructor; auto.
-  - constructor. constructor; auto.
-  - inversion H4; subst. constructor; auto.
-Qed.    
+
+  eapply eutt_iter' with (RI := rel_asm); cbn.
+  2: destruct H4; auto.
+  intros j1 j2 [ ? ? ? ? ? [? ? ? ? ? []]]; cbn.
+  rewrite !interp_bind, !interp_state_bind, !bind_bind. (* Slow! *)
+
+  apply (@eutt_clo_bind _ _ _ _ _ _ rel_asm);
+    [|intros ? ? [? ? ? ? ? [? ? ? ? ? []]]]; cbn.
+  { eapply @peephole_block_correct; eauto. }
+
+  apply (@eutt_clo_bind _ _ _ _ _ _ rel_asm);
+    [|intros ? ? [? ? ? ? ? [? ? ? ? ? []]]]; cbn.
+  { rewrite bind_ret.
+    unfold case_, Case_sum1, CoprodCase_Kleisli, case_sum.
+    unfold CategoryOps.cat, Cat_sktree, CategoryOps.cat, Cat_Kleisli.
+    unfold inl_, Inl_sktree, inl_, CoprodInl_Kleisli, lift_ktree_.
+    unfold inr_, Inr_sktree, inr_, CoprodInr_Kleisli, lift_ktree_.
+    unfold id_, Id_sktree, id_, Id_Kleisli, lift_ktree_.
+    cbn.
+    destruct split_fin_sum.
+    all: rewrite !bind_ret, interp_ret, !interp_state_ret.
+    all: apply eqit_Ret; auto.
+  }
+
+  rewrite interp_ret, !interp_state_ret, !bind_ret.
+  rewrite !interp_state_ret, !bind_ret; cbn.
+  apply eqit_Ret.
+  destruct split_fin_sum; auto.
+Qed.
 
 
 (* concrete optimizations --------------------------------------------------- *)
@@ -516,28 +502,22 @@ Proof.
 
       unfold trigger.
       unfold interp_asm, interp_map.
-      rewrite interp_vis. rewrite tau_eutt.
+      rewrite interp_vis.
       cbn.
       repeat rewrite interp_state_bind.
       unfold CategoryOps.cat, Cat_Handler, Handler.cat. simpl.
       unfold inl_, Inl_sum1_Handler, Handler.inl_, Handler.htrigger.
       unfold insert.
       unfold embed, Embeddable_itree, Embeddable_forall, inl_, embed.
-      rewrite interp_trigger. rewrite tau_eutt.
-      rewrite interp_state_trigger. rewrite tau_eutt.
+      rewrite interp_trigger.
+      rewrite interp_state_trigger.
       cbn.
-      rewrite interp_state_ret.
-      rewrite bind_ret.
-      rewrite interp_ret.
-      repeat rewrite interp_state_ret.
-      cbn.
-      apply eqit_Ret.
-      constructor; auto.
-      constructor; auto.
-      apply EQ_registers_add; auto. 
+      rewrite bind_ret, tau_eutt.
+      rewrite interp_state_ret, bind_ret, interp_ret. cbn.
+      rewrite tau_eutt, 2 interp_state_ret.
+      apply eqit_Ret. auto using EQ_registers_add.
     * apply Nat.eqb_neq in n.
       rewrite n.
-      simpl.
       apply interp_asm_ret_tt; auto. 
 Qed.      
 

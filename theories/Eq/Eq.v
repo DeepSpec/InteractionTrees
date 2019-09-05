@@ -359,7 +359,7 @@ Proof.
 Qed.
 
 Global Instance eq_sub_euttge:
-  subrelation (@eqit E _ _ RR false false) (eqit RR true false).
+  subrelation (@eq_itree E _ _ RR) (euttge RR).
 Proof.
   ginit. gcofix CIH. intros.
   punfold H0. gstep. red in H0 |- *.
@@ -367,7 +367,7 @@ Proof.
 Qed.  
 
 Global Instance euttge_sub_eutt:
-  subrelation (@eqit E _ _ RR true false) (eqit RR true true).
+  subrelation (@euttge E _ _ RR) (eutt RR).
 Proof.
   ginit. gcofix CIH. intros.
   punfold H0. gstep. red in H0 |- *.
@@ -375,7 +375,7 @@ Proof.
 Qed.
 
 Global Instance eq_sub_eutt:
-  subrelation (@eqit E _ _ RR false false) (eqit RR true true).
+  subrelation (@eq_itree E _ _ RR) (eutt RR).
 Proof.
   red; intros. eapply euttge_sub_eutt. eapply eq_sub_euttge. apply H.
 Qed.
@@ -760,8 +760,8 @@ Proof.
   apply Reflexive_eqit; eauto.
 Qed.
 
-Lemma unfold_aloop {E A B} (f : A -> itree E A + B) (x : A) :
-  (ITree.aloop f x) ≅ (ITree._aloop (fun t => Tau t) (ITree.aloop f) (f x)).
+Lemma unfold_iter {E A B} (f : A -> itree E (A + B)) (x : A) :
+  (ITree.iter f x) ≅ (f x >>= ITree._iter (fun t => Tau t) (ITree.iter f)).
 Proof.
   rewrite unfold_aloop_. reflexivity.
 Qed.
