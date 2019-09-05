@@ -503,7 +503,7 @@ Proof.
   destruct i; simpl; try apply interp_asm_ret_tt; auto; try reflexivity.
 
   destruct src.
-  + simpl. rewrite bind_ret.
+  + simpl. rewrite !bind_ret.
     apply interp_asm_ret_tt; auto; try reflexivity.
 
   + simpl.
