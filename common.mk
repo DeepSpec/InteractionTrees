@@ -1,9 +1,13 @@
 # Shared make commands
 
-.PHONY: coq
+.PHONY: coq clean-coq
 
 coq: Makefile.coq
 	$(MAKE) -f Makefile.coq
+
+clean-coq:
+	if [ -e Makefile.coq ] ; then $(MAKE) -f Makefile.coq cleanall ; fi
+	$(RM) Makefile.coq Makefile.coq.conf
 
 Makefile.coq: _CoqProject
 	coq_makefile -f $< -o $@

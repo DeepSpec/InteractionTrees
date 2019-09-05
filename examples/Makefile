@@ -27,8 +27,6 @@ example-threads: Makefile.coq $(THREADSML)
 	ocamlbuild -I extracted runthread.native
 	./runthread.native
 
-clean:
-	if [ -e Makefile.coq ]; then $(MAKE) -f Makefile.coq clean; fi
+clean: clean-coq
 	ocamlbuild -clean
-	$(RM) *.{vo,glob} .*.aux
-	$(RM) -rf extracted Makefile.coq*
+	$(RM) -r extracted
