@@ -691,7 +691,7 @@ Section Instances.
    A <-> A -> void1 *)
   Instance View_id {A} : View A A void1.
   refine
-    {| preview := inl1
+    {| prj := inl1
        ; review := fun _ x => x
     |}.
   auto.

@@ -62,13 +62,10 @@ Section Map.
       end.
 
   Definition run_map {E F} `{View mapE F (stateT map (itree E))}
-<<<<<<< HEAD
     : itree F ~> stateT map (itree E) :=
     interp_state (over' handle_map).
 
   Definition run_map' {E F} `{Subevent mapE F} `{Trigger F (stateT map (itree E))}
-=======
->>>>>>> Making progress with the View stuff. Typeclasses behave quite mysteriously sometimes but seem stable right now. I got lost in the story for triggerable for now, it is a bit more complicated than I thouht
     : itree F ~> stateT map (itree E) :=
     interp_state (over handle_map).
 
