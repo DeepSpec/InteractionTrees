@@ -23,93 +23,89 @@ Import MonadNotation.
 
 Set Implicit Arguments.
 
-Section View.
 
-  (* View A B Z generalizes the Subevent relation.
-   Should be thought as `A` is a subdomain of `B`, and `Z` a view of the complement.
-   Note that one could always chose to take Z = unit, but an informative view is necessary
-   to derive a useful [over] function.
+Section Trigger.
+
+  (* Temporary prime, to remove once the old trigger is scrapped off *)
+  Class Trigger (M: Type -> Type) (E: Type -> Type) := trigger': E ~> M.
+  (* Class Trigger (M: (Type -> Type) -> Type -> Type) := *)
+  (*   trigger': forall (E: Type -> Type) (X: Type), E X -> M E X. *)
+
+  Instance Trigger_ITree {E} : Trigger (itree E) E := ITree.trigger.
+  (* Instance Trigger_ITree: Trigger itree := (fun E => ITree.trigger). *)
+
+  Instance Trigger_State {S} {E} {M} `{Monad M} `{Trigger M E}: Trigger (Monads.stateT S M) E := 
+    (fun T e s => t <- trigger' _ e ;; ret (s,t))%monad.
+  (* Instance Trigger_State {S} {M: (Type -> Type) -> Type -> Type} `{forall E, Monad (M E)} `{Trigger M}: Trigger (fun E => Monads.stateT S (M E)) := *)
+  (*   (fun E T e s => t <- trigger' _ _ e ;; ret (s,t))%monad. *)
+
+  (* TODO: this is the place where [eqm] should be part of the monad equivalence.  
+       for M = itree we probably want to instantiate eqm as eutt or equiv 
+  *)
+  Instance Trigger_Prop {E} {M} `{Monad M} `{Trigger M E} (eqm : forall X, M X -> M X -> Prop) : Trigger (fun X => M X -> Prop) E :=
+    (fun T e m => eqm _ m (trigger' _ e)).
+  
+End Trigger.
+
+
+Inductive option1 (A : Type -> Type) X :Type :=
+| None1 : option1 A X
+| Some1 : (A X) -> option1 A X
+.                               
+Arguments None1 {_ _}.
+Arguments Some1 {_ _}.
+
+Section Subevent.
+
+  (* Subevent A B generalizes the Subevent relation.
+     Should be thought as `A` is a subdomain of `B`.
    *)
-  Class View {A B Z : Type -> Type} : Type :=
-    { preview : B ~> A +' Z
-      ; review : A ~> B 
-      ; preview_review : forall {t} (a : A t), preview (review a) = inl1 a
-      ; review_preview : forall {t} (b : B t) a, preview b = inl1 a -> review a = b
+  Class Subevent {A B : Type -> Type} : Type :=
+    {   prj : B ~> option1 A
+      ; inj : A ~> B 
+      ; prj_inj : forall {t} (a : A t), prj (inj a) = Some1 a
+      ; inj_prj : forall {t} (b : B t) a, prj b = Some1 a -> inj a = b
     }.
-  Arguments View : clear implicits.
-  Arguments preview {_ _ _ _} [_].
-  Arguments review {_ _ _ _} [_].
-
-  (* Partial injection of the bigger domain of events back into the smaller one *)
-  Definition isa {A B Z} {V : View A B Z} : forall t, B t -> option (A t) :=
-    fun t ma =>
-      match preview ma with
-      | inl1 a => Some a
-      | inr1 _ => None
-      end.
+  Arguments Subevent : clear implicits.
+  Arguments prj {_ _ _} [_].
+  Arguments inj {_ _ _} [_].
 
   (* Embedding of the subdomain into the bigger one *)
-  Definition subeventV {A B Z} {V : View A B Z} : A ~> B := review.
+  Definition subeventV {A B} {V : Subevent A B} : A ~> B := inj.
 
   (* Generic lifting of an type-indexed function from the subdomain of effects `a`
    into the ambient one `A`.
    This is where we crucially need the `Z` argument to
    ̀View` for `preview` to also tell us how to embed the complement `A\a` into
    `B`. *)
-  Definition over {A B Z} {z : View A B Z} (f : A ~> Z) : B ~> Z :=
-    fun t b => match preview b with
-            | inl1 a => f _ a
-            | inr1 z => z
+  About trigger'.
+  Definition over {A B M : Type -> Type} {S : Subevent A B} {T : Trigger M B} (f : A ~> M) : B ~> M  :=
+    fun t b => match @prj A B S t b with
+            | Some1 a => f _ a
+            | None1  => @trigger' M B T t b
             end.
   Arguments over {_ _ _ _} _ [_] _.
 
-End View.
-Arguments View : clear implicits.
-Arguments preview {_ _ _ _} [_].
-Arguments review {_ _ _ _} [_].
-
-Section Triggerable.
-
-  (* Temporary prime, to remove once the old trigger is scrapped off *)
-  (* Class Triggerable (M: Type -> Type) (E: Type -> Type) := trigger': E ~> M. *)
-  Class Triggerable' (M: (Type -> Type) -> Type -> Type) :=
-    trigger': forall (E: Type -> Type) (X: Type), E X -> M E X.
-
-  (* Instance Trigger_ITree: Triggerable itree := ITree.trigger. *)
-  Instance Trigger_ITree: Triggerable' itree := (fun E => ITree.trigger).
-
-  (* Instance Trigger_State {S} {E} {M} `{Monad M} `{Triggerable M E}: Triggerable (Monads.stateT S M) E := *)
-    (* (fun T e s => t <- trigger' _ e ;; ret (s,t))%monad. *)
-  Instance Trigger_State {S} {M: (Type -> Type) -> Type -> Type} `{forall E, Monad (M E)} `{Triggerable' M}: Triggerable' (fun E => Monads.stateT S (M E)) :=
-    (fun E T e s => t <- trigger' _ _ e ;; ret (s,t))%monad.
-  
-End Triggerable.
-
-Section Subevent.
-
-  (* Recovering the previous notion of effect inclusion. Need to figure out how things pan out *)
-
-  Definition unit1: Type -> Type := fun _ => unit.
-  (* The less informative previous Subevent relation is recovered by dismissing the `Z` parameter *)
-  Notation Subevent A B := (View A B unit1) (only parsing).
-  Notation "A -< B" := (Subevent A B) 
-                         (at level 90, left associativity) : type_scope.
-
-  Definition subevent {E F : Type -> Type} `{E -< F} : E ~> F := subeventV.
-
-  (** A polymorphic version of [Vis]. *)
-  Notation vis e k := (Vis (subevent _ e) k).
-
-  (* Called [send] in Haskell implementations of Freer monads. *)
-  Notation trigger e := (ITree.trigger (subevent _ e)).
-
 End Subevent.
 
-Notation Subevent A B := (View A B unit1) (only parsing).
+Arguments Subevent : clear implicits.
+Arguments prj {_ _ _} [_].
+Arguments inj {_ _ _} [_].
+
+
+(* Recovering the previous notion of effect inclusion. Need to figure out how things pan out *)
 Notation "A -< B" := (Subevent A B) 
                        (at level 90, left associativity) : type_scope.
+
+Definition subevent {E F : Type -> Type} `{E -< F} : E ~> F := subeventV.
+
+(** A polymorphic version of [Vis]. *)
 Notation vis e k := (Vis (subevent _ e) k).
+
+(* Called [send] in Haskell implementations of Freer monads. *)
 Notation trigger e := (ITree.trigger (subevent _ e)).
+
+
 
 (*************** Instances ***************)
 Section Instances.
@@ -119,7 +115,7 @@ Section Instances.
    A <-> A -> void1 *)
   Instance View_id {A} : View A A void1.
   refine
-    {| preview := inl1
+    {| prj := inl1
        ; review := fun _ x => x
     |}.
   auto.
