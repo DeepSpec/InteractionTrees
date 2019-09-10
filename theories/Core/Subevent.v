@@ -64,7 +64,7 @@ Section Trigger.
    *)
 
   (* Temporary prime, to remove once the old trigger is scrapped off *)
-  Class Trigger (M: Type -> Type) (E: Type -> Type) := trigger': E ~> M.
+  Class Trigger (E: Type -> Type) (M: Type -> Type) := trigger': E ~> M.
   (* Remark: could be a property of a family of monads instead: *)
   (* Class Trigger (M: (Type -> Type) -> Type -> Type) := *)
   (*   trigger': forall (E: Type -> Type) (X: Type), E X -> M E X. *)
@@ -77,7 +77,7 @@ End Trigger.
    The [Trigger] typeclass gives us a way to otherwise embed the event into
    the monad of interest "in a minimal way".
  *)
-Definition over {A B M : Type -> Type} {S:Subevent A B} {T:Trigger M B} (f : A ~> M) : B ~> M  :=
+Definition over {A B M : Type -> Type} {S:Subevent A B} {T:Trigger B M} (f : A ~> M) : B ~> M  :=
   fun t b => match prj b with
           | Some1 a => f _ a
           | None1  => trigger' _ b
@@ -111,15 +111,15 @@ Section Instances.
      *)
 
     (* The minimal [itree] that performs [e] is [Vis e (fun x => Ret x)], already defined as [ITree.trigger] *)
-    Instance Trigger_ITree {E} : Trigger (itree E) E := ITree.trigger.
+    Instance Trigger_ITree {E} : Trigger E (itree E) := ITree.trigger.
 
     (* The [stateT] transformer relies on the trigger instance of its monad and simply pass away the state untouched *)
-    Instance Trigger_State {S} {E} {M} `{Monad M} `{Trigger M E}: Trigger (Monads.stateT S M) E :=
+    Instance Trigger_State {S} {E} {M} `{Monad M} `{Trigger E M}: Trigger E (Monads.stateT S M) :=
       (fun T e s => t <- trigger' _ e ;; ret (s,t))%monad.
 
     (* The [PropT] transformer returns the propositional singleton of the underlying trigger.
        However, we might want this singleton to be up to some equivalence *)
-    Instance Trigger_Prop {E} {M} `{Monad M} `{Trigger M E} (eqm : forall X, M X -> M X -> Prop) : Trigger (fun X => M X -> Prop) E :=
+    Instance Trigger_Prop {E} {M} `{Monad M} `{Trigger E M} (eqm : forall X, M X -> M X -> Prop) : Trigger E (fun X => M X -> Prop) :=
       (fun T e m => eqm _ m (trigger' _ e)).
 
   End Trigger_Instances.
@@ -279,7 +279,7 @@ Section Test.
   Variable S: Type.
   Variable h: A ~> (* Monads.stateT S *) (itree void1).
   Typeclasses eauto := 4.
-  (* TODO It tries to infer the arguments to Trigger in the wrong order. To figure out *)
+  (* This cannot work: the instances do not extend void1, i.e. do not alter the monad into which we trigger. Should it? *)
   Fail Goal forall {X} (e: (A +' B) X), over h e = over h e.
 
 End Test.
