@@ -53,6 +53,7 @@ End CatLaws.
 Arguments cat_id_l {obj C Eq2C IdC CatC CatIdL} [a b] f.
 Arguments cat_id_r {obj C Eq2C IdC CatC CatIdR} [a b] f.
 Arguments cat_assoc {obj C Eq2C CatC CatAssoc} [a b c d] f g.
+Arguments category_proper_cat {obj C Eq2C IdC CatC Category} [a b c].
 Arguments initial_object {obj C Eq2C i Initial_i InitialObject} [a] f.
 
 (** Synonym of [initial_object]. *)
