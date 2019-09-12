@@ -257,14 +257,17 @@ Debug: 1.1-1.2-1.1: simple apply @View_id on (View (mapE K d) ?Goal void1), 0 su
 
  *)
 
-    (* Set Typeclasses Debug. *)
-    (* Typeclasses eauto := debug 3. *)
+    Set Typeclasses Debug.
+    Typeclasses eauto := debug 3.
 
 
   (* This lemma states that the operations provided by [handle_map] respect
      the equivalence on the underlying map interface *)
+    (* YZ: We see here why I should always listen to Liyao:
+        using -< + Trigger would require for mapE K d -< E, which makes no sense.
+     *)
   Lemma interp_map_id d {E X} (t : itree (mapE K d +' E) X) :
-    map_default_eq eq d (interp_map t) (interp_map t).
+    map_default_eq eq d (interp_map' t) (interp_map' t).
   Proof.
     unfold map_default_eq, interp_map; intros.
     revert t s1 s2 H.
