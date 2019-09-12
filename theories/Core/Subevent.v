@@ -19,6 +19,8 @@ From ExtLib Require Import
      Monad.
 
 Import MonadNotation.
+Import CatNotations.
+Open Scope cat_scope.
 
 (* end hide *)
 
@@ -34,15 +36,32 @@ Arguments Some1 {_} [_].
 
 Section Subevent.
 
+  (* Isomorphism:  B <~> (A +' C) *)
+  
+  Class Subevent {A B C : Type -> Type} : Type :=
+    {
+      f : B ~> (A +' C) ;
+      g : (A +' C) ~> B ;
+      iso : Iso _ f g ;
+    }.
+  
+  Definition inj1 {A B C} `{Subevent A B C} : A ~> B :=  inl_ >>> g.
+  Definition inj2 {A B C} `{Subevent A B C} : C ~> B :=  inr_ >>> g.
+  Definition case  {A B C} `{Subevent A B C} : B ~> (A +' C) := f.
+End Subevent.
+  
+(*  
+  
   (**
      The [Subevent] typeclasse expresses the intuitive set inclusion over family of events.
      `A` is a subdomain of `B` if there is an injection from `A` into `B`.
    *)
-  Class Subevent {A B : Type -> Type} : Type :=
-    {   prj : B ~> option1 A
+  Class Subevent {A B C : Type -> Type} : Type :=
+    {   prj : B ~> A +' C
       ; inj : A ~> B
-      ; prj_inj : forall {t} (a : A t), prj (inj a) = Some1 a
-      ; inj_prj : forall {t} (b : B t) a, prj b = Some1 a -> inj a = b
+      ; prj_inj : forall {t} (a : A t), prj (inj a) = inl1 a
+      ; inj_prj : forall {t} (b : B t) a, prj b = inl1 a -> inj a = b
+      ; inj_prj : forall {t} (b : B t) a, prj b = inl1 a -> inj a = b
     }.
   Arguments Subevent : clear implicits.
   Arguments prj {_ _ _} [_].
@@ -51,11 +70,14 @@ Section Subevent.
   (* Embedding of the subdomain into the bigger one *)
   Definition subeventV {A B} {V : Subevent A B} : A ~> B := inj.
 
-End Subevent.
-
+*)
 Arguments Subevent : clear implicits.
-Arguments prj {_ _ _} [_].
-Arguments inj {_ _ _} [_].
+About case.
+Arguments case {_ _ _ _} [_].
+Arguments inj1 {_ _ _ _} [_].
+Arguments inj2 {_ _ _ _} [_].
+
+
 
 Section Trigger.
 
@@ -83,25 +105,32 @@ End Trigger.
    The [Trigger] typeclass gives us a way to otherwise embed the event into
    the monad of interest "in a minimal way".
  *)
-Definition over {A B M : Type -> Type} {S:Subevent A B} {T:Trigger B M} (f : A ~> M) : B ~> M  :=
-  fun t b => match prj b with
-          | Some1 a => f _ a
-          | None1  => trigger' _ b
-          end.
-Arguments over {_ _ _ _ _} _ [_] _.
+Definition over {A B C M : Type -> Type} {S:Subevent A B C} {T:Trigger C M} (f : A ~> M) : B ~> M  :=
+  fun t b =>  match case b with
+           | inl1 a => f _ a
+           | inr1 c => trigger' _ c
+           end.
 
+Arguments over {_ _ _ _ _ _} _ [_] _.
+
+
+(* TODO: Change these *)
 (* Recovering the previous notion of effect inclusion. *)
-Notation "A -< B" := (Subevent A B)
+(*
+Notation "A -< B" := (C, Subevent A B C)
                        (at level 90, left associativity) : type_scope.
 
 Definition subevent {E F : Type -> Type} `{E -< F} : E ~> F := subeventV.
+*)
 
+(*
 (** A polymorphic version of [Vis]. *)
 Notation vis e k := (Vis (subevent _ e) k).
 
 (* Called [send] in Haskell implementations of Freer monads. *)
 (* YZ: TODO: kill or change this notation? *)
 Notation trigger e := (ITree.trigger (subevent _ e)).
+ *)
 
 (*************** Instances ***************)
 Section Instances.
@@ -125,25 +154,43 @@ Section Instances.
 
     (* The [PropT] transformer returns the propositional singleton of the underlying trigger.
        However, we might want this singleton to be up to some equivalence *)
-    Instance Trigger_Prop {E} {M} `{Monad M} `{Trigger E M} (eqm : forall X, M X -> M X -> Prop) : Trigger E (fun X => M X -> Prop) :=
-      (fun T e m => eqm _ m (trigger' _ e)).
+    Instance Trigger_Prop {E} {M} `{Monad M} `{Trigger E M} : Trigger E (fun X => M X -> Prop) :=
+      (fun T e m => m = (trigger' _ e)).
 
   End Trigger_Instances.
+
+  
+  
+
 
   Section Subevent_Instances.
 
     (** Event level instances *)
 
     (* The subeffect relationship is reflexive: A -<  A *)
-    Instance Subevent_refl {A} : A -< A.
+    Instance Subevent_refl {A : Type -> Type} : Subevent A A void1.
     refine
-      {| prj := Some1
-         ; inj := fun _ x => x
+      {| f := inl1
+         ; g := fun T (x : (A +' void1) T) => match x with inl1 a => a | inr1 abs => match abs with end end
+                        
       |}.
-    auto.
-    intros ? ? ? H; inversion H; auto.
+    split. constructor.
+    repeat intro. 
+    unfold cat, Cat_IFun. cbn. destruct a. reflexivity. inversion v.
     Defined.
 
+    (* 
+    Instance Subevent_refl_BETTER {A : Type -> Type} : Subevent A A void1.
+    refine
+      {| f := inl_
+       ; g := unit_r
+      |}.
+    split. constructor.
+    repeat intro. 
+    unfold cat, Cat_IFun. cbn. destruct a. reflexivity. inversion v.
+    Defined.
+     *)
+    
     (* void1 is a subeffect of any type
        void1 -< A *)
     Instance Subevent_void {A}: void1 -< A.
@@ -268,8 +315,12 @@ Existing Instance Trigger_ITree | 1.
 Existing Instance Trigger_State | 1.
 Existing Instance Trigger_Prop  | 1.
 
+
+
+
 Section View.
 
+  
   Class View {A B Z : Type -> Type} : Type :=
     { preview : B ~> A +' Z
       ; review : A ~> B
@@ -540,6 +591,10 @@ Section View.
    It requires to build a [Z (S * T)] from a [Z T] which we cannot do in general.
    We can certainly build the specific instance for [Z ~ itree Y] for some Y.
    *)
+
+  
+
+  
   Definition pure_state {S E} : E ~> Monads.stateT S (itree E)
     := fun _ e s => Vis e (fun x => Ret (s, x)).
 
@@ -557,6 +612,22 @@ Section View.
     - intros ? xy x; destruct (preview xy) eqn:EQ; intros EQ'; inv EQ'; apply review_preview; auto.
   Defined.  
 
+
+  Instance View_ToStateT' {S A B Z} `{View A B Z}: View A B (Monads.stateT S Z) :=
+    {|
+      preview := fun _ a =>
+                   match preview a with
+                   | inl1 b => inl1 b
+                   | inr1 z => inr1 (pure_state _ z)
+                   end;
+      review := review
+    |}.
+  Proof.
+    intros; rewrite preview_review; reflexivity.
+    - intros ? xy x; destruct (preview xy) eqn:EQ; intros EQ'; inv EQ'; apply review_preview; auto.
+  Defined.  
+
+  
 End View.
 Arguments View : clear implicits.
 Arguments preview {_ _ _ _} [_].
