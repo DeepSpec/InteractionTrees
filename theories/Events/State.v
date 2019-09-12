@@ -59,21 +59,20 @@ Section State.
     := fun _ e s => Vis e (fun x => Ret (s, x)).
   *)
 
-  Definition run_state {E F} `{Subevent stateE F} `{Trigger F (stateT S (itree E))}
-    : itree F ~> stateT S (itree E)
-    := interp_state (over handle_state).
-
-  Definition run_state' {E F} `{View stateE F (stateT S (itree E))}
+  Definition run_state {E F} `{View stateE F (stateT S (itree E))}
     : itree F ~> stateT S (itree E)
     := interp_state (over' handle_state).
+
+  Definition run_state' {E F} `{Subevent stateE F} `{Trigger F (stateT S (itree E))}
+    : itree F ~> stateT S (itree E)
+    := interp_state (over handle_state).
 
 End State.
 
 Arguments get {S E _}.
 Arguments put {S E _}.
-Arguments run_state {S E} [_] _ _.
-Arguments run_state' {S E} [_] _ _.
-
+Arguments run_state {S E F _} [_] _.
+Arguments run_state' {S E F _ _} [_] _.
 
 (* ----------------------------------------------------------------------- *)
 (* SAZ: The code from here to <END> below doesn't belong to State.v  it should 
