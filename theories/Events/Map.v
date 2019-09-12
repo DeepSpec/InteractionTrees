@@ -61,13 +61,13 @@ Section Map.
       | Remove k => Ret (Maps.remove k env, tt)
       end.
 
-  Definition run_map {E F} `{Subevent mapE F} `{Trigger F (stateT map (itree E))}
-    : itree F ~> stateT map (itree E) :=
-    interp_state (over handle_map).
-
-  Definition run_map' {E F} `{View mapE F (stateT map (itree E))}
+  Definition run_map {E F} `{View mapE F (stateT map (itree E))}
     : itree F ~> stateT map (itree E) :=
     interp_state (over' handle_map).
+
+  Definition run_map' {E F} `{Subevent mapE F} `{Trigger F (stateT map (itree E))}
+    : itree F ~> stateT map (itree E) :=
+    interp_state (over handle_map).
 
 (*
   Definition run_map {E} : itree (mapE +' E) ~> stateT map (itree E) :=
@@ -80,5 +80,5 @@ Arguments insert {K V E _}.
 Arguments lookup {K V E _}.
 Arguments remove {K V E _}.
 Arguments lookup_def {K V E _}.
-Arguments run_map  {K V map M _ _ _ _} [T].
-Arguments run_map' {K V map M _ _ _} [T].
+Arguments run_map  {K V map M _ _ _} [T].
+Arguments run_map' {K V map M _ _ _ _} [T].

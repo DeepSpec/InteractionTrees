@@ -37,11 +37,11 @@ Definition eval_reader {E} : Env -> Handler readerE E :=
     | Ask => Ret r
     end.
 
-Definition run_reader {E F} `{Subevent readerE F} `{Trigger F (itree E)} : Env -> itree F ~> itree E :=
-  fun r => interp (over (eval_reader r)).
-
-Definition run_reader' {E F} `{View readerE F (itree E)} : Env -> itree F ~> itree E :=
+Definition run_reader {E F} `{View readerE F (itree E)} : Env -> itree F ~> itree E :=
   fun r => interp (over' (eval_reader r)).
+
+Definition run_reader' {E F} `{Subevent readerE F} `{Trigger F (itree E)} : Env -> itree F ~> itree E :=
+  fun r => interp (over (eval_reader r)).
 
 (* Definition run_reader {E} : Env -> itree (readerE +' E) ~> itree E := *)
 (*   fun r => interp (case_ (eval_reader r) (id_ _)). *)
@@ -49,5 +49,5 @@ Definition run_reader' {E F} `{View readerE F (itree E)} : Env -> itree F ~> itr
 End Reader.
 
 Arguments ask {Env E _}.
-Arguments run_reader {Env E F _ _} _ _ _.
-Arguments run_reader' {Env E F _} _ _ _.
+Arguments run_reader {Env E F _} _ _ _.
+Arguments run_reader' {Env E F _ _} _ _ _.

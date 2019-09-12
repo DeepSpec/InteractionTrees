@@ -73,11 +73,11 @@ Section Map.
   *)
   (* Definition interp_map {E d} : itree (mapE d +' E) ~> stateT map (itree E) := *)
     (* interp_state (case_ handle_map pure_state). *)
-  Definition interp_map {E d F} `{Subevent (mapE d) F} `{Trigger F (stateT map (itree E))}
+  Definition interp_map {E d F} `{View (mapE d) F (stateT map (itree E))}
     : itree (mapE d +' E) ~> stateT map (itree E) :=
             interp_state (over' handle_map).
 
-  Definition interp_map' {E d F} `{View (mapE d) F (stateT map (itree E))}
+  Definition interp_map' {E d F} `{Subevent (mapE d) F} `{Trigger F (stateT map (itree E))}
     : itree (mapE d +' E) ~> stateT map (itree E) :=
             interp_state (over' handle_map).
 
@@ -92,6 +92,6 @@ End Map.
 Arguments insert {K V E d _}.
 Arguments lookup_def {K V E d _}.
 Arguments remove {K V E d _}.
-Arguments interp_map {K V map M _ _ _ _ _} [T].
-Arguments interp_map' {K V map M _ _ _ _} [T].
+Arguments interp_map {K V map M _ _ _ _} [T].
+Arguments interp_map' {K V map M _ _ _ _ _} [T].
 Arguments eq_map {K V map M d}.
