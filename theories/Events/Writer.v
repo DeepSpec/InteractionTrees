@@ -83,6 +83,12 @@ Definition run_writer' {W E F} (Monoid_W : Monoid W) `{Subevent (writerE W) F} `
        interp_state (over (handle_writer Monoid_W)) t
                     (monoid_unit Monoid_W).
 
+Definition run_writer' {W E F} (Monoid_W : Monoid W) `{View (writerE W) F (stateT W (itree E))}
+  : itree F ~> writerT W (itree E)
+  := fun _ t =>
+       interp_state (over' (handle_writer Monoid_W)) t
+                    (monoid_unit Monoid_W).
+
 (* Definition run_writer {W E} (Monoid_W : Monoid W) *)
 (*   : itree (writerE W +' E) ~> writerT W (itree E) *)
 (*   := fun _ t => *)

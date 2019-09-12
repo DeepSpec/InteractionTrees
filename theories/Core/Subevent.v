@@ -715,7 +715,7 @@ Section Instances.
     (** Event level instances *)
 
     (* The subeffect relationship is reflexive: A -<  A *)
-    Instance Subevent_refl {A} : Subevent A A.
+    Instance Subevent_refl {A} : A -< A.
     refine
       {| prj := Some1
          ; inj := fun _ x => x
@@ -726,7 +726,7 @@ Section Instances.
 
     (* void1 is a subeffect of any type
        void1 -< A *)
-    Instance Subevent_void {A}: Subevent void1 A.
+    Instance Subevent_void {A}: void1 -< A.
     refine
       {| prj := fun _ _ => None1
          ; inj := fun t (x: void1 t) => match x with end
@@ -848,11 +848,328 @@ Existing Instance Trigger_ITree | 1.
 Existing Instance Trigger_State | 1.
 Existing Instance Trigger_Prop  | 1.
 
+Section View.
+
+  Class View {A B Z : Type -> Type} : Type :=
+    { preview : B ~> A +' Z
+      ; review : A ~> B
+      ; preview_review : forall {t} (a : A t), preview (review a) = inl1 a
+      ; review_preview : forall {t} (b : B t) a, preview b = inl1 a -> review a = b
+    }.
+  Arguments View : clear implicits.
+  Arguments preview {_ _ _ _} [_].
+  Arguments review {_ _ _ _} [_].
+
+(* The subeffect relationship is reflexive
+   A <-> A -> void1 *)
+  Instance View_id {A} : View A A void1.
+  refine
+    {| preview := inl1
+       ; review := fun _ x => x
+    |}.
+  auto.
+  intros ? ? ? H; inversion H; auto.
+  Defined.
+
+  (* void1 is a subeffect of any type
+   void1 <-> A -> A *)
+  Instance View_none {A}: View void1 A A.
+  refine
+    {| preview := inr1
+       ; review := fun t (x: void1 t) => match x with end
+    |}.
+  intros ? x; inversion x.
+  intros ? ? x; inversion x.
+  Defined.
+
+  (* Could use the categorical instances, but a bit annoying since we are working pointwise here *)
+  (* Definition assoc_r {A B C: Type -> Type}: ((A +' B) +' C) ~> (A +' (B +' C)) := *)
+  (*   fun _ x => *)
+  (*     match x with *)
+  (*     | inr1 c => inr1 (inr1 c) *)
+  (*     | inl1 (inr1 b) => inr1 (inl1 b) *)
+  (*     | inl1 (inl1 a) => inl1 a *)
+  (*     end. *)
+
+  (* Definition assoc_l {A B C: Type -> Type}: (A +' (B +' C)) ~> ((A +' B) +' C) := *)
+  (*   fun _ x => *)
+  (*     match x with *)
+  (*     | inr1 (inr1 c) => inr1 c *)
+  (*     | inr1 (inl1 b) => inl1 (inr1 b) *)
+  (*     | inl1 a => inl1 (inl1 a) *)
+  (*     end. *)
+
+  (* Lemma assoc_rl {A B C: Type -> Type}: forall x, assoc_r (assoc_l x) = x. *)
+
+  Instance View_Assoc1 {A B C D E: Type -> Type} `{View (A +' B +' C) D E}: View ((A +' B) +' C) D E.
+  refine
+    {| preview := fun _ d => match preview d with
+                          | inl1 x => inl1 (assoc_l _ x)
+                          | inr1 e => inr1 e
+                          end
+       ; review := fun _ x => review (assoc_r _ x)
+    |}.
+  Admitted.
+  (* There appears to be problems with the `Category` instances *)
+  (* - intros ? [a | [b | c]]; rewrite preview_review. *)
+  (*   generalize (@Monoidal_Coproduct _ Fun _ _ _ _ _). *)
+  (*   generalize (@monoidal_assoc_iso (Type -> Type) IFun Eq2_IFun Id_IFun Cat_IFun sum1 _ _ _ void1 _ _ _ _ (@Monoidal_Coproduct ). *)
+  (*   generalize (@assoc_r_mono (Type -> Type) IFun Eq2_IFun Id_IFun Cat_IFun sum1 _ _ (@monoidal_assoc_iso (Type -> Type) IFun sum1 void1)). _ _ _ _ _ _ _ A B C). (. *)
+  (*   inversion x. *)
+  (* intros ? ? x; inversion x. *)
+  (* Defined. *)
+
+  Instance View_Assoc2 {A B C D E: Type -> Type} `{View A (B +' C +' D) E}: View A ((B +' C) +' D) E.
+  refine
+    {| preview := fun _ d => preview (assoc_r _ d)
+       ; review := fun _ x => assoc_l _ (review x) 
+    |}.
+  Admitted.
+
+  Instance View_Assoc3 {A B C D E: Type -> Type} `{View A B (C +' D +' E)}: View A B ((C +' D) +' E).
+  refine
+    {| preview := fun _ d => match preview d with
+                          | inl1 a => inl1 a
+                          | inr1 d => inr1 (assoc_l _ d)
+                          end
+       ; review := review
+    |}.
+  Admitted.
+
+  (* Extends the complement to the left
+     A <-> B -> Z
+-------------------------
+ A <-> B' +' B -> B' +' Z
+   *)
+
+  Instance View_comp {A B B' Z} `{View A B Z} : View A (B' +' B) (B' +' Z).
+  refine
+    {|
+      preview := fun _ X =>
+                   match X with
+                   | inl1 b' =>  inr1 (inl1 b')
+                   | inr1 b => match preview b with
+                              | inl1 b => inl1 b
+                              | inr1 z => inr1 (inr1 z)
+                              end
+                   end
+      ; review := fun _ x => inr1 (review x)
+    |}.
+  Proof.
+    - intros t x; cbn.
+      rewrite preview_review; reflexivity.
+    - intros t [x | y] x'; [intros abs; inversion abs |]; cbn. 
+      destruct (preview y) eqn:EQ; [| intros abs; inversion abs].
+      intros eq; inversion eq; subst.
+      apply review_preview in EQ; rewrite EQ; reflexivity.
+  Defined.
+
+  (* The base case is anonying. Could consider introducing void1, but likely to be tricky to avoid looping *)
+  Instance View_comp_base {A B B'} `{V: View A B void1} : View A (B' +' B) B'.
+  refine
+    {|
+      preview := fun T X =>  
+                   match X with
+                   | inl1 b' => inr1 b'
+                   | inr1 b => match preview b with
+                              | inl1 a => inl1 a
+                              | inr1 z => match z in void1 T with end
+                              end
+                   end
+      ; review := fun _ x => inr1 (review x)
+    |}.
+  Proof.
+    - intros t a; cbn; rewrite preview_review; auto. 
+    - intros t [b' | b] a; cbn; intros EQ; inv EQ; auto.
+      match goal with
+      | h: context[match ?x with | _ => _ end] |- _ =>
+        destruct x eqn:EQ; [apply review_preview in EQ; subst; inv h | inv h]
+      end; easy.
+  Defined.
+
+  (* Extends the subtype to the left
+     A <-> B -> Z
+-------------------------
+ B' +' A <-> B' +' B -> Z
+   *)
+
+  Instance View_inner {A B B' Z} `{View A B Z} : View (B' +' A) (B' +' B) Z.
+  refine
+    {|
+      preview := fun _ X => 
+                   match X with
+                   | inl1 b' =>  inl1 (inl1 b')
+                   | inr1 b => match preview b with
+                              | inl1 b => inl1 (inr1 b)
+                              | inr1 z => inr1 z
+                              end
+                   end
+      ; review := fun _ x => 
+                    match x with
+                    | inl1 b' => inl1 b'
+                    | inr1 a => inr1 (review a) 
+                    end
+    |}.
+  Proof.
+    - intros t [b' | a]; cbn; auto.
+      rewrite preview_review; reflexivity.
+    - intros t [b' | b] [b'' | a]; cbn; intros EQ; inv EQ; auto;
+        match goal with
+        | h: context[match ?x with | _ => _ end] |- _ =>
+          destruct x eqn:EQ; [apply review_preview in EQ; subst; inv h | inv h]
+        end.
+      auto.
+  Defined.
+
+  (* The base case is anonying. Could consider introducing void1, but likely to be tricky to avoid looping *)
+  Instance View_inner_base {B B' Z} `{V: View void1 B Z} : View B' (B' +' B) Z.
+  refine
+    {|
+      preview := fun _ X =>  
+                   match X with
+                   | inl1 b' =>  inl1 b'
+                   | inr1 b => match preview b with
+                               | inl1 b => match b in void1 _ with end
+                               | inr1 z => inr1 z
+                               end
+                   end
+      ; review := inl1
+    |}.
+  Proof.
+    - auto. 
+    - intros t [b' | b] a; cbn; intros EQ; inv EQ; auto.
+      match goal with
+      | h: context[match ?x with | _ => _ end] |- _ =>
+        destruct x eqn:EQ; [apply review_preview in EQ; subst; inv h | inv h]
+      end; easy.
+  Defined.
+
+  (** Instances to call [over] into other monads *)
+
+  (*
+ A <-> B -> Z
+------------------
+ A <-> B -> stateT s Z
+   *)
+
+  (* Instance View_ToStateT {S: Type} {A B E: Type -> Type} {M: (Type -> Type) -> Type -> Type } *)
+  (*          `{View A B (M E)} `{Triggerable' M}: View A B (Monads.stateT S (M E)). *)
+  (* econstructor. *)
+  (* Unshelve. *)
+  (* 4:{ exact review. } *)
+  (* 3:{ *)
+  (*   destruct H. *)
+  (*   intros t a. *)
+  (*   destruct (preview0 _ a) as [b | m]; [left; exact b | right]. *)
+  (*   eapply trigger'; eauto. *)
+  (*   Unshelve. *)
+
+  (*   Instance Trigger_State' {S} (* {M: (Type -> Type) -> Type -> Type} `{forall E, Monad (M E)} `{Triggerable' M} *): Triggerable' (Monads.stateT S). *)
+  (*   intros E T e s. *)
+    
+  (*   (fun E T e s => t <- trigger' _ _ e ;; ret (s,t))%monad. *)
+ 
+  (*   refine (fun _ a => match preview a with *)
+  (*                  | inl1 b => inl1 b *)
+  (*                  | inr1 z => inr1 (trigger' _ _ z) *)
+  (*                  end). *)
+  (*   typeclasses eauto. *)
+  (*   := *)
+  (*   {| *)
+  (*     preview := fun _ a => _ *)
+  (*                  match preview a with *)
+  (*                  | inl1 b => inl1 b *)
+  (*                  | inr1 z => inr1 _ *)
+  (*                                  (* (trigger' z) *) *)
+  (*                  end; *)
+  (*     review := review *)
+  (*   |}. *)
+  (* Proof. *)
+  (*   intros; rewrite preview_review; reflexivity. *)
+  (*   - intros ? xy x; destruct (preview xy) eqn:EQ; intros EQ'; inv EQ'; apply review_preview; auto. *)
+  (* Defined.   *)
+
+
+  (* (* To avoid universe inconsistency *) *)
+  From ITree Require Import
+       Core.KTree
+       Interp.Handler
+       Interp.Recursion.
+
+  (*
+ A <-> B -> Z
+------------------
+ A <-> B -> itree Z
+   *)
+  Instance View_ToITree {A B Z} `{View A B Z}: View A B (itree Z) :=
+    {|
+      preview := fun _ x =>
+                   match preview x with
+                   | inl1 e => inl1 e
+                   | inr1 f => inr1 (ITree.trigger f)
+                   end;
+      review := review
+    |}.
+  Proof.
+    - intros; rewrite preview_review; reflexivity.
+    - intros ? xy x; destruct (preview xy) eqn:EQ; intros EQ'; inv EQ'; apply review_preview; auto.
+  Defined.
+
+  (* Instance ViewToStateT {S A Z B} `{V: View A B Z}: View A B (Monads.stateT S Z). *)
+  (* This instance seems impossible to write.
+   It requires to build a [Z (S * T)] from a [Z T] which we cannot do in general.
+   We can certainly build the specific instance for [Z ~ itree Y] for some Y.
+   *)
+  Definition pure_state {S E} : E ~> Monads.stateT S (itree E)
+    := fun _ e s => Vis e (fun x => Ret (s, x)).
+
+  Instance View_ToStateT {S A B Z} `{View A B Z}: View A B (Monads.stateT S (itree Z)) :=
+    {|
+      preview := fun _ a =>
+                   match preview a with
+                   | inl1 b => inl1 b
+                   | inr1 z => inr1 (pure_state _ z)
+                   end;
+      review := review
+    |}.
+  Proof.
+    intros; rewrite preview_review; reflexivity.
+    - intros ? xy x; destruct (preview xy) eqn:EQ; intros EQ'; inv EQ'; apply review_preview; auto.
+  Defined.  
+
+End View.
+Arguments View : clear implicits.
+Arguments preview {_ _ _ _} [_].
+Arguments review {_ _ _ _} [_].
+
+Definition over' {A B Z} {z : View A B Z} (f : A ~> Z) : B ~> Z :=
+  fun t b => match preview b with
+          | inl1 a => f _ a
+          | inr1 z => z
+          end.
+Arguments over' {_ _ _ _} _ [_] _.
+
+Existing Instance View_id | 0.
+Existing Instance View_none | 0.
+Existing Instance View_inner | 3.
+Existing Instance View_inner_base | 2.
+Existing Instance View_comp | 3.
+Existing Instance View_comp_base | 2.
+Existing Instance View_Assoc1 | 10.
+Existing Instance View_Assoc2 | 10.
+Existing Instance View_Assoc3 | 10.
+Existing Instance View_ToITree | 1.
+Existing Instance View_ToStateT | 1.
+
 Section Test.
 
   (* Small stress test: can we infer a view instance picking event domains 1 and 3 in a list? *)
   Variable A B C D: Type -> Type.
   Goal (A +' C) -< (A +' B +' C +' D).
+    typeclasses eauto.
+  Qed.
+
+  Goal View (A +' C) (A +' B +' C +' D) (B +' D).
     typeclasses eauto.
   Qed.
 
@@ -863,10 +1180,13 @@ Section Test.
 
   (* Test for [over] *)
   Variable S: Type.
-  Variable h: A ~> (* Monads.stateT S *) (itree void1).
+  Variable h: forall E, A ~> (* Monads.stateT S *) (itree E).
   Typeclasses eauto := 4.
   (* This cannot work: the instances do not extend void1, i.e. do not alter the monad into which we trigger. Should it? *)
   Fail Goal forall {X} (e: (A +' B) X), over h e = over h e.
+  (* Goal forall {X: Type} (e: (A +' B) X), @over' A (A +' B) (itree B) _ (h _) _ e= @over' A (A +' B) (itree B) _ (h _) _ e. *)
+    (* intros ? ?. *)
+    (* Set Printing Implicit. *)
 
 End Test.
 
