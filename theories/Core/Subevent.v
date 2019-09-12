@@ -705,25 +705,43 @@ Section Instances.
 
     (* The [PropT] transformer returns the propositional singleton of the underlying trigger.
        However, we might want this singleton to be up to some equivalence *)
-    Instance Trigger_Prop {E} {M} `{Monad M} `{Trigger E M} (eqm : forall X, M X -> M X -> Prop) : Trigger E (fun X => M X -> Prop) :=
-      (fun T e m => eqm _ m (trigger' _ e)).
+    Instance Trigger_Prop {E} {M} `{Monad M} `{Trigger E M} : Trigger E (fun X => M X -> Prop) :=
+      (fun T e m => m = (trigger' _ e)).
 
   End Trigger_Instances.
+
+  
+  
+
 
   Section Subevent_Instances.
 
     (** Event level instances *)
 
     (* The subeffect relationship is reflexive: A -<  A *)
-    Instance Subevent_refl {A} : A -< A.
+    Instance Subevent_refl {A : Type -> Type} : Subevent A A void1.
     refine
-      {| prj := Some1
-         ; inj := fun _ x => x
+      {| f := inl1
+         ; g := fun T (x : (A +' void1) T) => match x with inl1 a => a | inr1 abs => match abs with end end
+                        
       |}.
-    auto.
-    intros ? ? ? H; inversion H; auto.
+    split. constructor.
+    repeat intro. 
+    unfold cat, Cat_IFun. cbn. destruct a. reflexivity. inversion v.
     Defined.
 
+    (* 
+    Instance Subevent_refl_BETTER {A : Type -> Type} : Subevent A A void1.
+    refine
+      {| f := inl_
+       ; g := unit_r
+      |}.
+    split. constructor.
+    repeat intro. 
+    unfold cat, Cat_IFun. cbn. destruct a. reflexivity. inversion v.
+    Defined.
+     *)
+    
     (* void1 is a subeffect of any type
        void1 -< A *)
     Instance Subevent_void {A}: void1 -< A.
@@ -848,8 +866,12 @@ Existing Instance Trigger_ITree | 1.
 Existing Instance Trigger_State | 1.
 Existing Instance Trigger_Prop  | 1.
 
+
+
+
 Section View.
 
+  
   Class View {A B Z : Type -> Type} : Type :=
     { preview : B ~> A +' Z
       ; review : A ~> B
@@ -1120,6 +1142,10 @@ Section View.
    It requires to build a [Z (S * T)] from a [Z T] which we cannot do in general.
    We can certainly build the specific instance for [Z ~ itree Y] for some Y.
    *)
+
+  
+
+  
   Definition pure_state {S E} : E ~> Monads.stateT S (itree E)
     := fun _ e s => Vis e (fun x => Ret (s, x)).
 
@@ -1137,6 +1163,22 @@ Section View.
     - intros ? xy x; destruct (preview xy) eqn:EQ; intros EQ'; inv EQ'; apply review_preview; auto.
   Defined.  
 
+
+  Instance View_ToStateT' {S A B Z} `{View A B Z}: View A B (Monads.stateT S Z) :=
+    {|
+      preview := fun _ a =>
+                   match preview a with
+                   | inl1 b => inl1 b
+                   | inr1 z => inr1 (pure_state _ z)
+                   end;
+      review := review
+    |}.
+  Proof.
+    intros; rewrite preview_review; reflexivity.
+    - intros ? xy x; destruct (preview xy) eqn:EQ; intros EQ'; inv EQ'; apply review_preview; auto.
+  Defined.  
+
+  
 End View.
 Arguments View : clear implicits.
 Arguments preview {_ _ _ _} [_].
