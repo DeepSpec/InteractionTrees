@@ -73,20 +73,25 @@ Section Map.
   *)
   (* Definition interp_map {E d} : itree (mapE d +' E) ~> stateT map (itree E) := *)
     (* interp_state (case_ handle_map pure_state). *)
-  Definition interp_map {E d F} `{View (mapE d) F (stateT map (itree E))}
+  Definition interp_map {E d F} `{Subevent (mapE d) F} `{Trigger F (stateT map (itree E))}
     : itree (mapE d +' E) ~> stateT map (itree E) :=
-            interp_state (over handle_map).
+            interp_state (over' handle_map).
+
+  Definition interp_map' {E d F} `{View (mapE d) F (stateT map (itree E))}
+    : itree (mapE d +' E) ~> stateT map (itree E) :=
+            interp_state (over' handle_map).
 
   (* The appropriate notation of the equivalence on the state associated with
      the MapDefault effects.  Two maps are equivalent if they yield the same
      answers under [lookup_default] *)
   Definition eq_map (d:V) (m1 m2 : map) : Prop :=
     forall k, lookup_default k d m1 = lookup_default k d m2.
-  
+
 End Map.
 
 Arguments insert {K V E d _}.
 Arguments lookup_def {K V E d _}.
 Arguments remove {K V E d _}.
-Arguments interp_map {K V map M _ _ _ _} [T].
+Arguments interp_map {K V map M _ _ _ _ _} [T].
+Arguments interp_map' {K V map M _ _ _ _} [T].
 Arguments eq_map {K V map M d}.
