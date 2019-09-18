@@ -67,10 +67,6 @@ Section State.
     : itree F ~> stateT S (itree E)
     := interp_state (over handle_state).
 
-  Definition run_state' {E F} `{Subevent stateE F} `{Trigger F (stateT S (itree E))}
-    : itree F ~> stateT S (itree E)
-    := interp_state (over handle_state).
-
 End State.
 
 Arguments get {S E _}.

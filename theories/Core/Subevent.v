@@ -24,8 +24,7 @@ Open Scope cat_scope.
 
 (* end hide *)
 
-From ExtLib Require Import
-     Monad.
+Set Implicit Arguments.
 
 (* Lifting of the [option] monad over indexed types *)
 Inductive option1 (A : Type -> Type) X :Type :=
