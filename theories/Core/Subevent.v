@@ -197,7 +197,7 @@ Section Instances.
     Admitted.  (* IY : Don't know what to do with shelved goals.. *)
 
     (* Search About _ .*)
-    SearchAbout cat. 
+   (* SearchAbout cat. *)  
     Instance Subevent_Assoc1' {A B C D E: Type -> Type} `{Subevent (A +' (B +' C)) D E} : Subevent ((A +' B) +' C) D E.
     refine
       {| f := (assoc_l : IFun _ _) >>> f

@@ -279,7 +279,7 @@ Class AssocRAssocR : Prop :=
     ⩯ assoc_r >>> assoc_r.
 
 Class Monoidal : Prop := {
-  monoidal_category :> Category C;
+  monoidal_category : Category C;
   monoidal_bifunctor :> Bifunctor C bif;
   monoidal_assoc_iso :> AssocIso;
   monoidal_unit_l_iso :> UnitLIso;

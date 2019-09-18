@@ -60,7 +60,7 @@ Proof. cbv; intros; subst; destruct _; auto. Qed.
 
 Instance Category_IFun : Category IFun.
 Proof.
-  constructor; typeclasses eauto.
+  constructor; typeclasses eauto.    
 Qed.
 
 Instance Coproduct_IFun : Coproduct IFun sum1.
@@ -73,3 +73,5 @@ Proof.
   - intros a b c f g fg Hf Hg ? [x | y]; cbv in *; auto.
   - typeclasses eauto.
 Qed.
+
+SearchAbout cat Proper. 
