@@ -2,6 +2,9 @@
 
 (** Notations to handle large sums and classes for extensible effects. *)
 
+From Coq Require Import
+     Setoid Morphisms.
+
 (* begin hide *)
 From ITree Require Import
      Basics.Basics
@@ -13,8 +16,10 @@ From ITree Require Import
      Core.ITreeDefinition
      Indexed.Sum
      Indexed.Function
+     Indexed.FunctionFacts
 .
 
+(* Want to import Indexed.FunctionFacts *)
 From ExtLib Require Import
      Monad.
 
@@ -34,17 +39,21 @@ Inductive option1 (A : Type -> Type) X :Type :=
 Arguments None1 {_ _}.
 Arguments Some1 {_} [_].
 
+
 Section Subevent.
 
   (* Isomorphism:  B <~> (A +' C) *)
   
   Class Subevent {A B C : Type -> Type} : Type :=
     {
-      f : B ~> (A +' C) ;
+      f : B ~> A +' C ;
       g : (A +' C) ~> B ;
       iso : Iso _ f g ;
     }.
-  
+
+  Arguments Subevent : clear implicits.
+  Arguments f {_ _ _ _} [_].
+  Arguments g {_ _ _ _} [_]. 
   Definition inj1 {A B C} `{Subevent A B C} : A ~> B :=  inl_ >>> g.
   Definition inj2 {A B C} `{Subevent A B C} : C ~> B :=  inr_ >>> g.
   Definition case  {A B C} `{Subevent A B C} : B ~> (A +' C) := f.
@@ -114,12 +123,10 @@ Definition over {A B C M : Type -> Type} {S:Subevent A B C} {T:Trigger C M} (f :
 Arguments over {_ _ _ _ _ _} _ [_] _.
 
 
-(* TODO: Change these *)
 (* Recovering the previous notion of effect inclusion. *)
-(*
-Notation "A -< B" := (C, Subevent A B C)
+Notation "A +? C -< B" := (Subevent A B C)
                        (at level 90, left associativity) : type_scope.
-
+(*
 Definition subevent {E F : Type -> Type} `{E -< F} : E ~> F := subeventV.
 *)
 
@@ -159,57 +166,60 @@ Section Instances.
 
   End Trigger_Instances.
 
-  
-  
 
-
+  
   Section Subevent_Instances.
 
     (** Event level instances *)
-
+    
     (* The subeffect relationship is reflexive: A -<  A *)
     Instance Subevent_refl {A : Type -> Type} : Subevent A A void1.
     refine
-      {| f := inl1
-         ; g := fun T (x : (A +' void1) T) => match x with inl1 a => a | inr1 abs => match abs with end end
-                        
+      {| f := fun x =>  inl_ x  
+         ; g := fun x => unit_r x         
       |}.
-    split. constructor.
-    repeat intro. 
+    split. constructor. repeat intro. 
     unfold cat, Cat_IFun. cbn. destruct a. reflexivity. inversion v.
     Defined.
-
-    (* 
-    Instance Subevent_refl_BETTER {A : Type -> Type} : Subevent A A void1.
-    refine
-      {| f := inl_
-       ; g := unit_r
-      |}.
-    split. constructor.
-    repeat intro. 
-    unfold cat, Cat_IFun. cbn. destruct a. reflexivity. inversion v.
-    Defined.
-     *)
-    
+ 
     (* void1 is a subeffect of any type
        void1 -< A *)
-    Instance Subevent_void {A}: void1 -< A.
-    refine
-      {| prj := fun _ _ => None1
-         ; inj := fun t (x: void1 t) => match x with end
-      |}.
-    intros ? x; inversion x.
-    intros ? ? x; inversion x.
-    Defined.
+    Instance Subevent_void {A}: void1 +? void1 -< A.
+    refine {|
+      f := fun _ _ => _ void1
+     ; g := fun _ _ => _ (void1 +' void1)
+    |}.
+    split. repeat intro. unfold cat, Cat_IFun;  
+    destruct (_ : sum1 _ _ _); inversion v; 
+    inversion v.
+    repeat intro. unfold cat, Cat_IFun.
+    destruct (_ : sum1 _ _ _). inversion v. inversion v.  
+    Admitted.  (* IY : Don't know what to do with shelved goals.. *)
 
-    Instance Subevent_Assoc1 {A B C D: Type -> Type} `{Subevent (A +' (B +' C)) D}: Subevent ((A +' B) +' C) D.
+    (* Search About _ .*)
+    SearchAbout cat. 
+    Instance Subevent_Assoc1' {A B C D E: Type -> Type} `{Subevent (A +' (B +' C)) D E} : Subevent ((A +' B) +' C) D E.
     refine
-      {| prj := fun _ d => match prj d with
-                        | Some1 x => Some1 (assoc_l _ x)
-                        | None1 => None1
-                        end
-         ; inj := fun _ x => inj (assoc_r _ x)
+      {| f := (assoc_l : IFun _ _) >>> f
+         ; g := (assoc_r : IFun _ _ ) >>> g
       |}.
+    split. unfold SemiIso, IFun. rewrite cat_assoc. (* Need FunctionFacts, maybe... *)
+    Admitted. 
+      
+    Instance Subevent_Assoc1 {A B C D E: Type -> Type} `{Subevent (A +' B +' C) D E}: Subevent ((A +' B) +' C) D E.
+    refine
+      {| f := fun _ d => match f _ d with
+                          | inl1 x => inl1 (inl1 x) 
+                          | inr1 e => inr1 e 
+                          end                            
+         ; g := fun _ x => g x 
+      |}.
+    split. inversion H.
+    - unfold SemiIso, IFun. unfold cat, Cat_IFun. cbv. intros.
+
+      
+      fold cat. 
+            constructor.  unfold g.
     - intros t [[|]|]; cbn; rewrite prj_inj; cbn; auto.
     - intros t f e EQ.
       match type of EQ with
@@ -373,6 +383,7 @@ Section View.
   (* Lemma assoc_rl {A B C: Type -> Type}: forall x, assoc_r (assoc_l x) = x. *)
 
   Instance View_Assoc1 {A B C D E: Type -> Type} `{View (A +' B +' C) D E}: View ((A +' B) +' C) D E.
+
   refine
     {| preview := fun _ d => match preview d with
                           | inl1 x => inl1 (assoc_l _ x)
