@@ -171,7 +171,12 @@ Section Instances.
   Section Subevent_Instances.
 
     (** Event level instances *)
-    
+    (* A ~> A +' void1
+       A +' void1 ~> A
+     *)
+    Check f.
+    Check unit_r.
+    Check (fun A => (Subevent A A void1)).  
     (* The subeffect relationship is reflexive: A -<  A *)
     Instance Subevent_refl {A : Type -> Type} : Subevent A A void1.
     refine
@@ -184,9 +189,16 @@ Section Instances.
  
     (* void1 is a subeffect of any type
        void1 -< A *)
-    Instance Subevent_void {A}: void1 +? void1 -< A.
+    (* Subevent void1 A void1
+     * f := B ~> A +' C
+       g := A +' C ~> B
+       A ~> void1 +' void1
+       void1 +' void1 ~> A
+     *)
+  
+   Instance Subevent_void {A}: void1 +? void1 -< A. 
     refine {|
-      f := fun _ _ => _ void1
+      f := fun _ _ => _ (void1)  
      ; g := fun _ _ => _ (void1 +' void1)
     |}.
     split. repeat intro. unfold cat, Cat_IFun;  
@@ -194,7 +206,8 @@ Section Instances.
     inversion v.
     repeat intro. unfold cat, Cat_IFun.
     destruct (_ : sum1 _ _ _). inversion v. inversion v.  
-    Admitted.  (* IY : Don't know what to do with shelved goals.. *)
+    Unshelve. intros. apply Initial_void1. admit.
+    intros. admit.   (*IY: TODO, not sure what to do here *)
 
     (* Search About _ .*)
    (* SearchAbout cat. *)  
@@ -203,7 +216,8 @@ Section Instances.
       {| f := (assoc_l : IFun _ _) >>> f
          ; g := (assoc_r : IFun _ _ ) >>> g
       |}.
-    split. unfold SemiIso, IFun. rewrite cat_assoc. (* Need FunctionFacts, maybe... *)
+    split. unfold SemiIso, IFun. rewrite <- cat_assoc. SearchAbout cat. 
+                                                      (* Need FunctionFacts, maybe... *)
     Admitted. 
       
     Instance Subevent_Assoc1 {A B C D E: Type -> Type} `{Subevent (A +' B +' C) D E}: Subevent ((A +' B) +' C) D E.
@@ -216,40 +230,33 @@ Section Instances.
       |}.
     split. inversion H.
     - unfold SemiIso, IFun. unfold cat, Cat_IFun. cbv. intros.
-
+      (* IY: Stuck here, again.. *)
       
-      fold cat. 
-            constructor.  unfold g.
-    - intros t [[|]|]; cbn; rewrite prj_inj; cbn; auto.
-    - intros t f e EQ.
-      match type of EQ with
-      | context[match ?x with | _ => _  end] => destruct x eqn:PROJ
-      end; [inv EQ |].
-      inv EQ.
-      apply inj_prj in PROJ; subst.
-      admit. (* assoc_r ∘  assoc_l ~ id *)
-    Admitted.
-
-    Instance Subevent_Assoc2 {A B C D: Type -> Type} `{Subevent A (B +' (C +' D))}: Subevent A ((B +' C) +' D).
+      Instance Subevent_Assoc2 {A B C D E: Type -> Type} `{Subevent A (B +' (C +' D)) E}: Subevent A ((B +' C) +' D) E.
     refine
-      {| prj := fun _ d => prj (assoc_r _ d)
-         ; inj := fun _ x => assoc_l _ (inj x) 
+      {| f := (assoc_r : IFun _ _ ) >>> f
+         ; g := g >>> (assoc_l : IFun _ _)
       |}.
-    - intros t a.
-      admit. (* assoc_r ∘  assoc_l ~ id *)
-    - intros t f e EQ.
-      apply inj_prj in EQ.
-      rewrite EQ.
-      admit. (* assoc_l ∘  assoc_r ~ id *)
-    Admitted.
-
+    split. unfold SemiIso. rewrite <- cat_assoc. apply semi_iso.
+    inversion H. 
+    destruct iso0. apply semi_iso in iso_mono. apply semi_iso in iso_epi.
+    (* IY : Stuck. What to do with f0 >>> g0? *)
+   Admitted. 
 
     (* Extends the domain to the left
        A -< B -> C +' A -< C +' B
      *)
-
-    Instance Subevent_Sum_In {A B C: Type -> Type} `{A -< B} : C +' A -< C +' B.
+    Instance Subevent_Sum_In {A B C D: Type -> Type} `{A +? D -< B} : (C +' A) +? D -< C +' B.
     refine
+      {| f := fun _ cb => match f _ cb with
+            | inl1 c => c
+            | inr1 b => b
+            end                            
+       ; g := fun _ cad => inl1 (g cad)  
+      |}.
+    split. repeat intro. 
+    Admitted. 
+    (*    refine
       {|
         prj := fun _ cb =>
                      match cb with
@@ -273,9 +280,19 @@ Section Instances.
           end; inv EQ.
           f_equal; apply inj_prj; auto.
     Defined.
-
-    Instance Subevent_Sum_Out {A B C: Type -> Type} `{A -< B} : A -< C +' B.
+    *)
+    
+    Instance Subevent_Sum_Out {A B C D: Type -> Type} `{A +? D -< B} : A +? D -< C +' B.
     refine
+      {| f := fun _ cb => match cb with
+                          | inl1 c => f _ c 
+                          | inr1 b => f _ b
+                          end
+       ; g := fun _ ad => inr1 (g ad)                  
+      |}.
+    - constructor. intros t a. 
+    Admitted.
+    (* refine
       {|
         prj := fun _ cb =>
                  match cb with
@@ -295,9 +312,19 @@ Section Instances.
         end; inv EQ.
         f_equal; apply inj_prj; auto.
     Defined.
-
-    Instance Subevent_Base_In {A B: Type -> Type} : A -< A +' B.
+     *)
+    
+    Instance Subevent_Base_In {A B C: Type -> Type} `{A +? C -< A} : A +? C -< A +' B.
     refine
+      {| f := fun _ ab => match ab with
+                          | inl1 a => inl1 a
+                          | inr1 b => f _ ab (* IY : This looks wrong. *)
+                           end 
+         ; g := fun _ ac => inl1 (g ac) (* IY : Why doesn't `inl1` work? *)
+      |}.
+    - constructor. 
+    Admitted.
+    (* refine
       {|
         prj := fun _ ab =>
                  match ab with
@@ -309,7 +336,7 @@ Section Instances.
       - auto.
       - intros t [|] ? EQ; inv EQ; auto.
     Defined.
-
+    *) 
   End Subevent_Instances.
 
 End Instances.
@@ -343,6 +370,7 @@ Section View.
 
 (* The subeffect relationship is reflexive
    A <-> A -> void1 *)
+
   Instance View_id {A} : View A A void1.
   refine
     {| preview := inl1
