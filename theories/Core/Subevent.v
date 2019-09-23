@@ -49,7 +49,7 @@ Section Subevent.
       g : (A +' C) ~> B
     }.
 
-  Class Subevent_wf {A B C} `{Subevent A B C}: Prop :=
+  Class Subevent_wf {A B C} (sub: @Subevent A B C): Prop :=
       {
         iso : Iso _ f g
       }.
@@ -187,66 +187,103 @@ Section Instances.
     - cbv; intros ? [? | []]; reflexivity.
     Qed.
 
-
-    (* void1 is a subeffect of any type
-       void1 -< A *)
-    (* Subevent void1 A void1
-     * f := B ~> A +' C
-       g := A +' C ~> B
-       A ~> void1 +' void1
-       void1 +' void1 ~> A
-     *)
-
-   Instance Subevent_void {A}: void1 +? void1 -< A. 
-    refine {|
-      f := fun _ _ => _ (void1)  
-     ; g := fun _ _ => _ (void1 +' void1)
-    |}.
-    split. repeat intro. unfold cat, Cat_IFun;  
-    destruct (_ : sum1 _ _ _); inversion v; 
-    inversion v.
-    repeat intro. unfold cat, Cat_IFun.
-    destruct (_ : sum1 _ _ _). inversion v. inversion v.  
-    Unshelve. intros. apply Initial_void1. admit.
-    intros. admit.   (*IY: TODO, not sure what to do here *)
-
-    (* Search About _ .*)
-   (* SearchAbout cat. *)  
-    Instance Subevent_Assoc1' {A B C D E: Type -> Type} `{Subevent (A +' (B +' C)) D E} : Subevent ((A +' B) +' C) D E.
-    refine
-      {| f := (assoc_l : IFun _ _) >>> f
-         ; g := (assoc_r : IFun _ _ ) >>> g
+    Instance Subevent_void {A : Type -> Type} : Subevent void1 A A :=
+      {| f := inr_: IFun _ _
+         ; g := unit_l: IFun _ _
       |}.
-    split. unfold SemiIso, IFun. rewrite <- cat_assoc. SearchAbout cat. 
-                                                      (* Need FunctionFacts, maybe... *)
-    Admitted. 
-      
-    Instance Subevent_Assoc1 {A B C D E: Type -> Type} `{Subevent (A +' B +' C) D E}: Subevent ((A +' B) +' C) D E.
-    refine
-      {| f := fun _ d => match f _ d with
-                          | inl1 x => inl1 (inl1 x) 
-                          | inr1 e => inr1 e 
-                          end                            
-         ; g := fun _ x => g x 
-      |}.
-    split. inversion H.
-    - unfold SemiIso, IFun. unfold cat, Cat_IFun. cbv. intros.
-      (* IY: Stuck here, again.. *)
-      
-      Instance Subevent_Assoc2 {A B C D E: Type -> Type} `{Subevent A (B +' (C +' D)) E}: Subevent A ((B +' C) +' D) E.
-    refine
-      {| f := (assoc_r : IFun _ _ ) >>> f
-         ; g := g >>> (assoc_l : IFun _ _)
-      |}.
-    split. unfold SemiIso. rewrite <- cat_assoc. apply semi_iso.
-    inversion H. 
-    destruct iso0. apply semi_iso in iso_mono. apply semi_iso in iso_epi.
-    (* IY : Stuck. What to do with f0 >>> g0? *)
-   Admitted. 
 
+    Instance Subevent_void_wf {A : Type -> Type} : @Subevent_wf _ A _ Subevent_void.
+    constructor; split.
+    - cbv; reflexivity.
+    - cbv. intros ? [[] | ?]; reflexivity.
+    Qed.
+
+    Instance Subevent_Assoc1 {A B C D E: Type -> Type} `{Subevent (A +' (B +' C)) D E} : Subevent ((A +' B) +' C) D E :=
+      {| f := f >>> case_ (assoc_l >>> inl_) inr_
+         ; g := bimap assoc_r (id_ _) >>> g
+      |}.
+
+    Instance Subevent_Assoc1_wf {A B C D E: Type -> Type}
+            {Sub: (A +' B +' C) +? E -< D}
+            {SubWf: Subevent_wf Sub}
+     : Subevent_wf (@Subevent_Assoc1 A B C D E Sub).
+   constructor; split.
+   - cbn.
+     apply SemiIso_Cat.
+     apply SubWf.
+     unfold SemiIso.
+     rewrite cat_case.
+     rewrite cat_assoc, inl_bimap.
+     rewrite <- cat_assoc, assoc_l_mono, cat_id_l.
+     rewrite inr_bimap, cat_id_l.
+     rewrite <- case_eta.
+     reflexivity.
+   - cbn. apply SemiIso_Cat.
+     2 : apply SubWf.
+     unfold SemiIso.
+     rewrite bimap_case.
+     rewrite cat_id_l.
+     rewrite <- cat_assoc, assoc_r_mono.
+     rewrite cat_id_l.
+     rewrite <- case_eta.
+     reflexivity.
+   Qed. 
+
+    Instance Subevent_Assoc2 {A B C D E: Type -> Type}
+      `{A +? E -< (B +' (C +' D))}: A +? E -< ((B +' C) +' D) :=
+        {| f := assoc_r >>> f
+           ; g := g >>> assoc_l
+        |}.
+
+   Instance Subevent_Assoc2_wf {A B C D E: Type -> Type}
+               {Sub: A +? E -< (B +' (C +' D))}
+               {SubWf: Subevent_wf Sub}
+        : Subevent_wf (@Subevent_Assoc2 A B C D E Sub).
+    Proof.
+        constructor; split.
+        - cbn.
+          apply SemiIso_Cat, SubWf.
+          unfold SemiIso.
+          rewrite assoc_r_mono; reflexivity.
+        - cbn.
+          apply SemiIso_Cat.
+          apply SubWf.
+          unfold SemiIso.
+          rewrite assoc_l_mono; reflexivity.
+    Qed.
+
+    Instance Subevent_Assoc3 {A B C D E: Type -> Type}
+       `{A +? (B +' (C +' D)) -< E} : A +? ((B +' C) +' D) -< E :=
+      {| f := f >>> (bimap (id_ _) assoc_l)  
+          ; g := (bimap (id_ _) assoc_r) >>> g
+      |}.
+    
+    Instance Subevent_Assoc3_wf {A B C D E: Type -> Type}
+             {Sub: A +? (B +' (C +' D)) -< E}
+             {SubWf: Subevent_wf Sub}
+      : Subevent_wf (@Subevent_Assoc3 A B C D E Sub).
+    Proof.
+      constructor; split.
+      - cbn.
+        apply SemiIso_Cat. apply SubWf.
+        apply SemiIso_Bimap.
+        apply SemiIso_Id.
+        apply AssocLMono_Coproduct.
+      - cbn.
+        apply SemiIso_Cat.
+        apply SemiIso_Bimap.
+        apply SemiIso_Id.
+        apply AssocRMono_Coproduct.
+        apply SubWf.
+    Qed.
+    
     (* Extends the domain to the left
        A -< B -> C +' A -< C +' B
      *)
+    Instance Subevent_Sum_In {A B C D: Type -> Type} `{A +? D -< B} : (C +' A) +? D -< C +' B :=
+      {| f := case_ (inl_ >>> inl_) (f >>> case_ (inr_ >>> inl_) inr_);
+         g := assoc_r >>> case_ inl_ (g >>> inr_) |}.
+
     Instance Subevent_Sum_In {A B C D: Type -> Type} `{A +? D -< B} : (C +' A) +? D -< C +' B.
     refine
       {| f := fun _ cb => match f _ cb with
