@@ -43,13 +43,16 @@ Arguments Some1 {_} [_].
 Section Subevent.
 
   (* Isomorphism:  B <~> (A +' C) *)
-  
   Class Subevent {A B C : Type -> Type} : Type :=
     {
       f : B ~> A +' C ;
-      g : (A +' C) ~> B ;
-      iso : Iso _ f g ;
+      g : (A +' C) ~> B
     }.
+
+  Class Subevent_wf {A B C} `{Subevent A B C}: Prop :=
+      {
+        iso : Iso _ f g
+      }.
 
   Arguments Subevent : clear implicits.
   Arguments f {_ _ _ _} [_].
@@ -58,9 +61,9 @@ Section Subevent.
   Definition inj2 {A B C} `{Subevent A B C} : C ~> B :=  inr_ >>> g.
   Definition case  {A B C} `{Subevent A B C} : B ~> (A +' C) := f.
 End Subevent.
-  
-(*  
-  
+
+(*
+
   (**
      The [Subevent] typeclasse expresses the intuitive set inclusion over family of events.
      `A` is a subdomain of `B` if there is an injection from `A` into `B`.
@@ -166,27 +169,25 @@ Section Instances.
 
   End Trigger_Instances.
 
-
-  
   Section Subevent_Instances.
 
     (** Event level instances *)
     (* A ~> A +' void1
        A +' void1 ~> A
      *)
-    Check f.
-    Check unit_r.
-    Check (fun A => (Subevent A A void1)).  
     (* The subeffect relationship is reflexive: A -<  A *)
-    Instance Subevent_refl {A : Type -> Type} : Subevent A A void1.
-    refine
-      {| f := fun x =>  inl_ x  
-         ; g := fun x => unit_r x         
+    Instance Subevent_refl {A : Type -> Type} : Subevent A A void1 :=
+      {| f := inl_: IFun _ _
+         ; g := unit_r: IFun _ _
       |}.
-    split. constructor. repeat intro. 
-    unfold cat, Cat_IFun. cbn. destruct a. reflexivity. inversion v.
-    Defined.
- 
+
+    Instance Subevent_refl_wf {A : Type -> Type} : @Subevent_wf A _ _ Subevent_refl.
+    constructor; split.
+    - cbv; reflexivity.
+    - cbv; intros ? [? | []]; reflexivity.
+    Qed.
+
+
     (* void1 is a subeffect of any type
        void1 -< A *)
     (* Subevent void1 A void1
@@ -195,7 +196,7 @@ Section Instances.
        A ~> void1 +' void1
        void1 +' void1 ~> A
      *)
-  
+
    Instance Subevent_void {A}: void1 +? void1 -< A. 
     refine {|
       f := fun _ _ => _ (void1)  
