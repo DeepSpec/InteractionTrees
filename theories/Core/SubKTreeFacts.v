@@ -53,7 +53,6 @@ Section Facts.
     - symmetry. auto.
     - etransitivity; eauto.
   Qed.
-    
 
   Global Instance Proper_Eq2sktree {a b:i} : Proper ((@Eq2_sktree i iEmbed E a b) ==>
                                                      (@Eq2_sktree i iEmbed E a b) ==>
@@ -323,7 +322,7 @@ Section Facts.
       isum_sum >>> bimap (id_ (F A)) isum_sum >>> @assoc_l _ Fun _ _ _ _ _ >>> bimap sum_isum (id_ (F C)) >>> sum_isum.
     Proof.
       unfold assoc_l, AssocL_Coproduct.
-      unfold case_ at 1 2, case_isum. 
+      unfold case_ at 1 2, case_isum.
       unfold inl_, isum_inl, inr_, isum_inr, sum_isum.
       unfold cat at 2, Cat_iFun.
       rewrite cat_assoc.
