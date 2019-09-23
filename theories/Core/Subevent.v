@@ -51,7 +51,7 @@ Section Subevent.
 
   Class Subevent_wf {A B C} (sub: @Subevent A B C): Prop :=
       {
-        iso : Iso _ f g
+        sub_iso : Iso _ f g
       }.
 
   Arguments Subevent : clear implicits.
@@ -176,10 +176,58 @@ Section Instances.
        A +' void1 ~> A
      *)
     (* The subeffect relationship is reflexive: A -<  A *)
-    Instance Subevent_refl {A : Type -> Type} : Subevent A A void1 :=
+    Instance Subevent_refl {A : Type -> Type} : A +? void1 -< A :=
       {| f := inl_: IFun _ _
          ; g := unit_r: IFun _ _
       |}.
+
+    Instance Subevent_void {A : Type -> Type} : void1 +? A -< A :=
+      {| f := inr_: IFun _ _
+         ; g := unit_l: IFun _ _
+      |}.
+
+    (* Extends the domain to the left
+       A -< B -> C +' A -< C +' B
+     *)
+    Instance Subevent_Sum_In {A B C D: Type -> Type} `{A +? D -< B} : (C +' A) +? D -< C +' B :=
+      {|
+        f := case_ (inl_ >>> inl_) (f >>> bimap inr_ (id_ _));
+        g := assoc_r >>> bimap (id_ _) g
+      |}.
+
+    Instance Subevent_Sum_Out {A B C D: Type -> Type}
+             `{A +? D -< B} : A +? C +' D -< C +' B :=
+      {|
+        f := case_ (inl_ >>> inr_) (f >>> bimap (id_ _) inr_)
+        ; g := case_ (inl_ >>> g >>> inr_) (bimap (id_ _) (inr_ >>> g))
+      |}.
+
+    Instance Subevent_Base {A B}: A +? B -< A +' B :=
+      {|
+        f := id_ _;
+        g := id_ _
+      |}.
+
+    Instance Subevent_Assoc1 {A B C D E: Type -> Type} `{Subevent (A +' (B +' C)) D E} : Subevent ((A +' B) +' C) D E :=
+      {| f := f >>> case_ (assoc_l >>> inl_) inr_
+         ; g := bimap assoc_r (id_ _) >>> g
+      |}.
+
+    Instance Subevent_Assoc2 {A B C D E: Type -> Type}
+      `{A +? E -< (B +' (C +' D))}: A +? E -< ((B +' C) +' D) :=
+        {| f := assoc_r >>> f
+           ; g := g >>> assoc_l
+        |}.
+
+    Instance Subevent_Assoc3 {A B C D E: Type -> Type}
+       `{A +? (B +' (C +' D)) -< E} : A +? ((B +' C) +' D) -< E :=
+      {| f := f >>> (bimap (id_ _) assoc_l)
+          ; g := (bimap (id_ _) assoc_r) >>> g
+      |}.
+
+    (**
+       Well-formedness of the instances: each subevent instance defines an isomorphism.
+     *)
 
     Instance Subevent_refl_wf {A : Type -> Type} : @Subevent_wf A _ _ Subevent_refl.
     constructor; split.
@@ -187,21 +235,15 @@ Section Instances.
     - cbv; intros ? [? | []]; reflexivity.
     Qed.
 
-    Instance Subevent_void {A : Type -> Type} : Subevent void1 A A :=
-      {| f := inr_: IFun _ _
-         ; g := unit_l: IFun _ _
-      |}.
-
     Instance Subevent_void_wf {A : Type -> Type} : @Subevent_wf _ A _ Subevent_void.
     constructor; split.
     - cbv; reflexivity.
     - cbv. intros ? [[] | ?]; reflexivity.
     Qed.
 
-    Instance Subevent_Assoc1 {A B C D E: Type -> Type} `{Subevent (A +' (B +' C)) D E} : Subevent ((A +' B) +' C) D E :=
-      {| f := f >>> case_ (assoc_l >>> inl_) inr_
-         ; g := bimap assoc_r (id_ _) >>> g
-      |}.
+    Instance Subevent_Base_wf {A B: Type -> Type} : Subevent_wf (@Subevent_Base A B).
+    constructor; split; cbv; reflexivity.
+    Qed.
 
     Instance Subevent_Assoc1_wf {A B C D E: Type -> Type}
             {Sub: (A +' B +' C) +? E -< D}
@@ -229,11 +271,6 @@ Section Instances.
      reflexivity.
    Qed. 
 
-    Instance Subevent_Assoc2 {A B C D E: Type -> Type}
-      `{A +? E -< (B +' (C +' D))}: A +? E -< ((B +' C) +' D) :=
-        {| f := assoc_r >>> f
-           ; g := g >>> assoc_l
-        |}.
 
    Instance Subevent_Assoc2_wf {A B C D E: Type -> Type}
                {Sub: A +? E -< (B +' (C +' D))}
@@ -252,12 +289,7 @@ Section Instances.
           rewrite assoc_l_mono; reflexivity.
     Qed.
 
-    Instance Subevent_Assoc3 {A B C D E: Type -> Type}
-       `{A +? (B +' (C +' D)) -< E} : A +? ((B +' C) +' D) -< E :=
-      {| f := f >>> (bimap (id_ _) assoc_l)  
-          ; g := (bimap (id_ _) assoc_r) >>> g
-      |}.
-    
+
     Instance Subevent_Assoc3_wf {A B C D E: Type -> Type}
              {Sub: A +? (B +' (C +' D)) -< E}
              {SubWf: Subevent_wf Sub}
@@ -276,112 +308,77 @@ Section Instances.
         apply AssocRMono_Coproduct.
         apply SubWf.
     Qed.
-    
-    (* Extends the domain to the left
-       A -< B -> C +' A -< C +' B
-     *)
-    Instance Subevent_Sum_In {A B C D: Type -> Type} `{A +? D -< B} : (C +' A) +? D -< C +' B :=
-      {| f := case_ (inl_ >>> inl_) (f >>> case_ (inr_ >>> inl_) inr_);
-         g := assoc_r >>> case_ inl_ (g >>> inr_) |}.
 
-    Instance Subevent_Sum_In {A B C D: Type -> Type} `{A +? D -< B} : (C +' A) +? D -< C +' B.
-    refine
-      {| f := fun _ cb => match f _ cb with
-            | inl1 c => c
-            | inr1 b => b
-            end                            
-       ; g := fun _ cad => inl1 (g cad)  
-      |}.
-    split. repeat intro. 
-    Admitted. 
-    (*    refine
-      {|
-        prj := fun _ cb =>
-                     match cb with
-                     | inl1 c =>  Some1 (inl1 c)
-                     | inr1 b => match prj b with
-                                | Some1 a => Some1 (inr1 a)
-                                | None1 => None1
-                                end
-                     end
-        ; inj := fun _ ca => match ca with
-                         | inl1 c => inl1 c
-                         | inr1 a => inr1 (inj a)
-                         end
-      |}.
-      - intros t [x | y]; auto. 
-        rewrite prj_inj; reflexivity.
-      - intros t [|] ? EQ.
-        + inv EQ; auto.
-        + match type of EQ with
-          | context[match ?x with | _ => _  end] => destruct x eqn:PROJ
-          end; inv EQ.
-          f_equal; apply inj_prj; auto.
-    Defined.
-    *)
-    
-    Instance Subevent_Sum_Out {A B C D: Type -> Type} `{A +? D -< B} : A +? D -< C +' B.
-    refine
-      {| f := fun _ cb => match cb with
-                          | inl1 c => f _ c 
-                          | inr1 b => f _ b
-                          end
-       ; g := fun _ ad => inr1 (g ad)                  
-      |}.
-    - constructor. intros t a. 
-    Admitted.
-    (* refine
-      {|
-        prj := fun _ cb =>
-                 match cb with
-                 | inl1 c => None1
-                 | inr1 b => match prj b with
-                            | Some1 a => Some1 a
-                            | None1   => None1
-                            end
-                 end
-        ; inj := fun _ a => inr1 (inj a)
-      |}.
-      - intros t a.
-        rewrite prj_inj; reflexivity.
-      - intros t [|] a EQ; [inv EQ |].
-        match type of EQ with
-        | context[match ?x with | _ => _  end] => destruct x eqn:PROJ
-        end; inv EQ.
-        f_equal; apply inj_prj; auto.
-    Defined.
-     *)
-    
-    Instance Subevent_Base_In {A B C: Type -> Type} `{A +? C -< A} : A +? C -< A +' B.
-    refine
-      {| f := fun _ ab => match ab with
-                          | inl1 a => inl1 a
-                          | inr1 b => f _ ab (* IY : This looks wrong. *)
-                           end 
-         ; g := fun _ ac => inl1 (g ac) (* IY : Why doesn't `inl1` work? *)
-      |}.
-    - constructor. 
-    Admitted.
-    (* refine
-      {|
-        prj := fun _ ab =>
-                 match ab with
-                 | inl1 a => Some1 a
-                 | inr1 _ => None1
-                 end
-        ; inj := inl1
-      |}.
-      - auto.
-      - intros t [|] ? EQ; inv EQ; auto.
-    Defined.
-    *) 
-  End Subevent_Instances.
+
+    Instance Subevent_Sum_In_wf {A B C D: Type -> Type}
+             {Sub: A +? D -< B}
+             {SubWf: Subevent_wf Sub}
+      : Subevent_wf (@Subevent_Sum_In A B C D Sub).
+    Proof.
+      constructor; split.
+      - cbn.
+        unfold SemiIso.
+        rewrite cat_case.
+        rewrite <- cat_assoc, (cat_assoc inl_ inl_), inl_assoc_r.
+        do 2 rewrite inl_bimap, cat_id_l.
+        rewrite <- inr_assoc_l. 
+        rewrite ! cat_assoc, <- (cat_assoc _ assoc_r _), assoc_l_mono, cat_id_l.
+        rewrite inr_bimap, <- cat_assoc.
+        rewrite semi_iso; [| apply SubWf].
+        rewrite cat_id_l, case_eta.
+        reflexivity.
+      - cbn.
+        unfold SemiIso.
+        rewrite cat_assoc, bimap_case, cat_id_l.
+        rewrite <- cat_assoc.
+        rewrite (@semi_iso _ _ _ _ _ _ _ g f); [| apply SubWf].
+        rewrite cat_id_l.
+        unfold assoc_r, AssocR_Coproduct.
+        rewrite cat_case.
+        rewrite cat_assoc, case_inr.
+        rewrite cat_case.
+        rewrite cat_assoc, case_inr, case_inl.
+        rewrite inr_bimap, inl_bimap, cat_id_l.
+        rewrite <- case_eta', <- case_eta.
+        reflexivity.
+    Qed.
+
+
+    Instance Subevent_Sum_Out_wf {A B C D: Type -> Type}
+             {Sub: A +? D -< B}
+             {SubWf: Subevent_wf Sub}
+      : Subevent_wf (@Subevent_Sum_Out A B C D Sub).
+    Proof.
+      constructor; split.
+      - cbn.
+        unfold SemiIso.
+        rewrite cat_case.
+        rewrite cat_assoc, inr_case, inl_bimap, cat_id_l.
+        rewrite cat_assoc, bimap_case, cat_id_l.
+        rewrite inr_bimap.
+        rewrite 2 cat_assoc, <- cat_case, <- case_eta, cat_id_l.
+        rewrite <- cat_assoc, semi_iso; [| apply SubWf].
+        rewrite cat_id_l, <- case_eta.
+        reflexivity.
+      - cbn.
+        unfold SemiIso.
+        rewrite cat_case.
+        rewrite 2 cat_assoc, inr_case.
+        rewrite <- (cat_assoc _ f _), semi_iso; [| apply SubWf].
+        rewrite cat_id_l, inl_bimap, cat_id_l.
+        rewrite bimap_case, cat_id_l.
+        rewrite <- cat_assoc, (cat_assoc _ g _), semi_iso; [| apply SubWf].
+        rewrite cat_id_r, inr_bimap, <- case_eta', <- case_eta.
+        reflexivity.
+    Qed.
+
+ End Subevent_Instances.
 
 End Instances.
 
 Existing Instance Subevent_refl | 0.
 Existing Instance Subevent_void | 0.
-Existing Instance Subevent_Base_In | 0.
+Existing Instance Subevent_Base | 0.
 Existing Instance Subevent_Sum_In | 2.
 Existing Instance Subevent_Sum_Out | 3.
 Existing Instance Subevent_Assoc1 | 10.
@@ -390,12 +387,8 @@ Existing Instance Trigger_ITree | 1.
 Existing Instance Trigger_State | 1.
 Existing Instance Trigger_Prop  | 1.
 
-
-
-
 Section View.
 
-  
   Class View {A B Z : Type -> Type} : Type :=
     { preview : B ~> A +' Z
       ; review : A ~> B
