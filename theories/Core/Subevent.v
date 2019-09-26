@@ -45,21 +45,21 @@ Section Subevent.
   (* Isomorphism:  B <~> (A +' C) *)
   Class Subevent {A B C : Type -> Type} : Type :=
     {
-      f : B ~> A +' C ;
-      g : (A +' C) ~> B
+      split_E : B ~> A +' C ;
+      merge_E : (A +' C) ~> B
     }.
 
   Class Subevent_wf {A B C} (sub: @Subevent A B C): Prop :=
       {
-        sub_iso : Iso _ f g
+        sub_iso : Iso _ split_E merge_E
       }.
 
   Arguments Subevent : clear implicits.
-  Arguments f {_ _ _ _} [_].
-  Arguments g {_ _ _ _} [_]. 
-  Definition inj1 {A B C} `{Subevent A B C} : A ~> B :=  inl_ >>> g.
-  Definition inj2 {A B C} `{Subevent A B C} : C ~> B :=  inr_ >>> g.
-  Definition case  {A B C} `{Subevent A B C} : B ~> (A +' C) := f.
+  Arguments split_E {_ _ _ _} [_].
+  Arguments merge_E {_ _ _ _} [_].
+  Definition inj1 {A B C} `{Subevent A B C} : A ~> B :=  inl_ >>> merge_E.
+  Definition inj2 {A B C} `{Subevent A B C} : C ~> B :=  inr_ >>> merge_E.
+  Definition case  {A B C} `{Subevent A B C} : B ~> (A +' C) := split_E.
 End Subevent.
 
 (*
@@ -103,7 +103,7 @@ Section Trigger.
 itree:(Type -> Type) -> Type -> Type
      Trigger itree
    *)
-  Class Trigger (E: Type -> Type) (M: Type -> Type) := trigger': E ~> M.
+  Class Trigger (E: Type -> Type) (M: Type -> Type) := trigger: E ~> M.
   (* Remark: could be a property of a family of monads instead: *)
   (* Class Trigger (M: (Type -> Type) -> Type -> Type) := *)
   (*   trigger': forall (E: Type -> Type) (X: Type), E X -> M E X. *)
@@ -119,7 +119,7 @@ End Trigger.
 Definition over {A B C M : Type -> Type} {S:Subevent A B C} {T:Trigger C M} (f : A ~> M) : B ~> M  :=
   fun t b =>  match case b with
            | inl1 a => f _ a
-           | inr1 c => trigger' _ c
+           | inr1 c => trigger _ c
            end.
 
 Arguments over {_ _ _ _ _ _} _ [_] _.
@@ -159,12 +159,12 @@ Section Instances.
 
     (* The [stateT] transformer relies on the trigger instance of its monad and simply pass away the state untouched *)
     Instance Trigger_State {S} {E} {M} `{Monad M} `{Trigger E M}: Trigger E (Monads.stateT S M) :=
-      (fun T e s => t <- trigger' _ e ;; ret (s,t))%monad.
+      (fun T e s => t <- trigger _ e ;; ret (s,t))%monad.
 
     (* The [PropT] transformer returns the propositional singleton of the underlying trigger.
        However, we might want this singleton to be up to some equivalence *)
     Instance Trigger_Prop {E} {M} `{Monad M} `{Trigger E M} : Trigger E (fun X => M X -> Prop) :=
-      (fun T e m => m = (trigger' _ e)).
+      (fun T e m => m = (trigger _ e)).
 
   End Trigger_Instances.
 
@@ -176,13 +176,13 @@ Section Instances.
      *)
     (* The subeffect relationship is reflexive: A -<  A *)
     Instance Subevent_refl {A : Type -> Type} : A +? void1 -< A :=
-      {| f := inl_: IFun _ _
-         ; g := unit_r: IFun _ _
+      {| split_E := inl_: IFun _ _
+         ; merge_E := unit_r: IFun _ _
       |}.
 
     Instance Subevent_void {A : Type -> Type} : void1 +? A -< A :=
-      {| f := inr_: IFun _ _
-         ; g := unit_l: IFun _ _
+      {| split_E := inr_: IFun _ _
+         ; merge_E := unit_l: IFun _ _
       |}.
 
     (* Extends the domain to the left
@@ -190,38 +190,38 @@ Section Instances.
      *)
     Instance Subevent_Sum_In {A B C D: Type -> Type} `{A +? D -< B} : (C +' A) +? D -< C +' B :=
       {|
-        f := case_ (inl_ >>> inl_) (f >>> bimap inr_ (id_ _));
-        g := assoc_r >>> bimap (id_ _) g
+        split_E := case_ (inl_ >>> inl_) (split_E >>> bimap inr_ (id_ _));
+        merge_E := assoc_r >>> bimap (id_ _) merge_E
       |}.
 
     Instance Subevent_Sum_Out {A B C D: Type -> Type}
              `{A +? D -< B} : A +? C +' D -< C +' B :=
       {|
-        f := case_ (inl_ >>> inr_) (f >>> bimap (id_ _) inr_)
-        ; g := case_ (inl_ >>> g >>> inr_) (bimap (id_ _) (inr_ >>> g))
+        split_E := case_ (inl_ >>> inr_) (split_E >>> bimap (id_ _) inr_)
+        ; merge_E := case_ (inl_ >>> merge_E >>> inr_) (bimap (id_ _) (inr_ >>> merge_E))
       |}.
 
     Instance Subevent_Base {A B}: A +? B -< A +' B :=
       {|
-        f := id_ _;
-        g := id_ _
+        split_E := id_ _;
+        merge_E := id_ _
       |}.
 
     Instance Subevent_Assoc1 {A B C D E: Type -> Type} `{Subevent (A +' (B +' C)) D E} : Subevent ((A +' B) +' C) D E :=
-      {| f := f >>> case_ (assoc_l >>> inl_) inr_
-         ; g := bimap assoc_r (id_ _) >>> g
+      {| split_E := split_E >>> case_ (assoc_l >>> inl_) inr_
+         ; merge_E := bimap assoc_r (id_ _) >>> merge_E
       |}.
 
     Instance Subevent_Assoc2 {A B C D E: Type -> Type}
       `{A +? E -< (B +' (C +' D))}: A +? E -< ((B +' C) +' D) :=
-        {| f := assoc_r >>> f
-           ; g := g >>> assoc_l
+        {| split_E := assoc_r >>> split_E
+           ; merge_E := merge_E >>> assoc_l
         |}.
 
     Instance Subevent_Assoc3 {A B C D E: Type -> Type}
        `{A +? (B +' (C +' D)) -< E} : A +? ((B +' C) +' D) -< E :=
-      {| f := f >>> (bimap (id_ _) assoc_l)
-          ; g := (bimap (id_ _) assoc_r) >>> g
+      {| split_E := split_E >>> (bimap (id_ _) assoc_l)
+          ; merge_E := (bimap (id_ _) assoc_r) >>> merge_E
       |}.
 
     (**
@@ -327,7 +327,7 @@ Section Instances.
         unfold SemiIso.
         rewrite cat_assoc, bimap_case, cat_id_l.
         rewrite <- cat_assoc.
-        rewrite (@semi_iso _ _ _ _ _ _ _ g f); [| apply SubWf].
+        rewrite (@semi_iso _ _ _ _ _ _ _ merge_E split_E); [| apply SubWf].
         rewrite cat_id_l.
         unfold assoc_r, AssocR_Coproduct.
         rewrite cat_case.
@@ -359,10 +359,10 @@ Section Instances.
         unfold SemiIso.
         rewrite cat_case.
         rewrite 2 cat_assoc, inr_case.
-        rewrite <- (cat_assoc _ f _), semi_iso; [| apply SubWf].
+        rewrite <- (cat_assoc _ split_E _), semi_iso; [| apply SubWf].
         rewrite cat_id_l, inl_bimap, cat_id_l.
         rewrite bimap_case, cat_id_l.
-        rewrite <- cat_assoc, (cat_assoc _ g _), semi_iso; [| apply SubWf].
+        rewrite <- cat_assoc, (cat_assoc _ merge_E _), semi_iso; [| apply SubWf].
         rewrite cat_id_r, inr_bimap, <- case_eta', <- case_eta.
         reflexivity.
     Qed.
@@ -384,7 +384,7 @@ Existing Instance Trigger_Prop  | 1.
 
 Section Test.
 
-  (* Small stress test: can we infer a view instance picking event domains 1 and 3 in a list? *)
+  (* Small test: can we infer a view instance picking event domains 1 and 3 in a list? *)
   Variable A B C D: Type -> Type.
   Goal (A +' C) +? (B +' D) -< (A +' B +' C +' D).
     typeclasses eauto.
@@ -397,25 +397,4 @@ Section Test.
 
 End Test.
 
-
-(* Embedding events into trees.
-
-   For example:
-[[
-   embed :
-     (forall x y z,       E (f x y z)) ->
-     (forall x y z, itree E (f x y z))
-]]
- *)
-(* Class Embeddable U V := *)
-(*   embed : U -> V. *)
-
-(* Instance Embeddable_forall {A : Type} {U : A -> Type} {V : A -> Type} *)
-(*          `(forall a, Embeddable (U a) (V a)) : *)
-(*   Embeddable (forall a, U a) (forall a, V a) := *)
-(*   fun u a => embed (u a). *)
-
-(* Instance Embeddable_itree {E F : Type -> Type} {R : Type} *)
-(*          `(E -< F) : *)
-(*   Embeddable (E R) (itree F R) := *)
-(*   fun e => trigger e. *)
+Notation trigger e := (trigger _ (inj1 e)).
