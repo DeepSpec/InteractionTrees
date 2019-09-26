@@ -103,7 +103,7 @@ Section Trigger.
 itree:(Type -> Type) -> Type -> Type
      Trigger itree
    *)
-  Class Trigger (E: Type -> Type) (M: Type -> Type) := trigger: E ~> M.
+  Class Trigger (E: Type -> Type) (M: Type -> Type) := trigger': E ~> M.
   (* Remark: could be a property of a family of monads instead: *)
   (* Class Trigger (M: (Type -> Type) -> Type -> Type) := *)
   (*   trigger': forall (E: Type -> Type) (X: Type), E X -> M E X. *)
@@ -119,7 +119,7 @@ End Trigger.
 Definition over {A B C M : Type -> Type} {S:Subevent A B C} {T:Trigger C M} (f : A ~> M) : B ~> M  :=
   fun t b =>  match case b with
            | inl1 a => f _ a
-           | inr1 c => trigger _ c
+           | inr1 c => trigger' _ c
            end.
 
 Arguments over {_ _ _ _ _ _} _ [_] _.
@@ -159,12 +159,12 @@ Section Instances.
 
     (* The [stateT] transformer relies on the trigger instance of its monad and simply pass away the state untouched *)
     Instance Trigger_State {S} {E} {M} `{Monad M} `{Trigger E M}: Trigger E (Monads.stateT S M) :=
-      (fun T e s => t <- trigger _ e ;; ret (s,t))%monad.
+      (fun T e s => t <- trigger' _ e ;; ret (s,t))%monad.
 
     (* The [PropT] transformer returns the propositional singleton of the underlying trigger.
        However, we might want this singleton to be up to some equivalence *)
     Instance Trigger_Prop {E} {M} `{Monad M} `{Trigger E M} : Trigger E (fun X => M X -> Prop) :=
-      (fun T e m => m = (trigger _ e)).
+      (fun T e m => m = (trigger' _ e)).
 
   End Trigger_Instances.
 
@@ -397,4 +397,4 @@ Section Test.
 
 End Test.
 
-Notation trigger e := (trigger _ (inj1 e)).
+Notation trigger e := (trigger' _ (inj1 e)).

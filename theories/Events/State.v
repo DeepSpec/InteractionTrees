@@ -42,8 +42,8 @@ Section State.
   | Get : stateE S
   | Put : S -> stateE unit.
 
-  Definition get {E} `{stateE -< E} : itree E S := embed Get.
-  Definition put {E} `{stateE -< E} : S -> itree E unit := embed Put.
+  Definition get {E F} `{stateE +? F -< E} : itree E S := trigger Get.
+  Definition put {E F} `{stateE +? F -< E} : S -> itree E unit := fun s => trigger (Put s).
 
   Definition handle_state {E} : stateE ~> stateT S (itree E) :=
     fun _ e s =>
@@ -59,20 +59,14 @@ Section State.
     := fun _ e s => Vis e (fun x => Ret (s, x)).
   *)
 
-  Definition run_state {E F} `{View stateE F (stateT S (itree E))}
-    : itree F ~> stateT S (itree E)
-    := interp_state (over' handle_state).
-
-  Definition run_state' {E F} `{Subevent stateE F} `{Trigger F (stateT S (itree E))}
-    : itree F ~> stateT S (itree E)
-    := interp_state (over handle_state).
+  Definition run_state {E F} `{stateE +? E -< F} : itree F ~> stateT S (itree E) :=
+    interp_state (over handle_state).
 
 End State.
 
 Arguments get {S E _}.
 Arguments put {S E _}.
 Arguments run_state {S E F _} [_] _.
-Arguments run_state' {S E F _ _} [_] _.
 
 (* ----------------------------------------------------------------------- *)
 (* SAZ: The code from here to <END> below doesn't belong to State.v  it should 
