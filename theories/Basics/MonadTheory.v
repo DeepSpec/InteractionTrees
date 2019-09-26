@@ -1,6 +1,6 @@
 (** * Monad laws and associated typeclasses *)
 
-(* hide *)
+(* begin hide *)
 From Coq Require Import
      Morphisms.
 
