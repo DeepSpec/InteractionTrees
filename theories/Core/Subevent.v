@@ -398,3 +398,4 @@ Section Test.
 End Test.
 
 Notation trigger e := (trigger' _ (inj1 e)).
+Notation vis e k := (Vis (inj1 e) k).

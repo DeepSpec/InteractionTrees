@@ -194,7 +194,7 @@ Section MapFacts.
     - gstep. constructor. constructor; auto.
     - gstep. constructor. gbase. apply CH. assumption.
     - guclo eqit_clo_bind. econstructor.
-      unfold pure_state.
+      unfold over.
       destruct e.
       + cbn. eapply eqit_mon. 4 : { apply handle_map_eq. assumption. }
         auto. auto. intros.  apply PR.

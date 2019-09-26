@@ -28,7 +28,7 @@ Variant depE {I : Type} (F : I -> Type) : Type -> Type :=
 
 Arguments Dep {I F}.
 
-Definition dep {I F E} `{depE F -< E} (i : I) : itree E (F i) :=
+Definition dep {I F E G} `{depE F +? G -< E} (i : I) : itree E (F i) :=
   trigger (Dep i).
 
 Definition undep {I F} (f : forall i : I, F i) :

@@ -18,7 +18,7 @@ From ITree Require Import
 Inductive spawnE E : Type -> Type :=
 | Spawn : forall (t: itree (spawnE E +' E) unit), spawnE E unit.
 
-Definition spawn {F E} `{(spawnE F) -< E} (t:itree (spawnE F +' F) unit) : itree E unit :=
+Definition spawn {F E G} `{(spawnE F) +? G -< E} (t:itree (spawnE F +' F) unit) : itree E unit :=
     trigger (Spawn t).
 
 (* A simple round-robin scheduler:

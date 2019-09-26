@@ -18,7 +18,7 @@ Variant exceptE (Err : Type) : Type -> Type :=
 
 (** Since the output type of [Throw] is [void], we can make it an action
     with any return type. *)
-Definition throw {Err : Type} {E : Type -> Type} `{exceptE Err -< E} {X}
+Definition throw {Err : Type} {E F : Type -> Type} `{exceptE Err +? F -< E} {X}
            (e : Err)
   : itree E X
   := vis (Throw e) (fun v : void => match v with end).

@@ -23,13 +23,13 @@ Variant nondetE : Type -> Type :=
 | Or : nondetE bool.
 
 (** Choose one of two computations. *)
-Definition or {E} `{nondetE -< E} {R} (t1 t2 : itree E R)
+Definition or {E F} `{nondetE +? F -< E} {R} (t1 t2 : itree E R)
   : itree E R :=
   vis Or (fun b : bool => if b then t1 else t2).
 
 (** Choose an element from a nonempty list (with the head and tail
     as separate arguments), so it cannot fail. *)
-Definition choose1 {E} `{nondetE -< E} {X}
+Definition choose1 {E F} `{nondetE +? F -< E} {X}
   : X -> list X -> itree E X
   := fix choose1' x xs : itree E X :=
        match xs with
@@ -57,7 +57,8 @@ Variant no_choice : Set := NoChoice.
 
     This can fail if the list is empty, using the [exceptE no_choice] event.
  *)
-Definition choose {E} `{nondetE -< E} `{exceptE no_choice -< E} {X}
+
+Definition choose {E F G} `{nondetE +? F -< E} `{exceptE no_choice +? G -< E} {X}
   : list X -> itree E X
   := fix choose' xs : itree E X :=
        match xs with

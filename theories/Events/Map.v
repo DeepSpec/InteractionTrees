@@ -36,11 +36,11 @@ Section Map.
   | Remove : K -> mapE unit
   .
 
-  Definition insert {E} `{mapE -< E} : K -> V -> itree E unit := embed Insert.
-  Definition lookup {E} `{mapE -< E} : K -> itree E (option V) := embed Lookup.
-  Definition remove {E} `{mapE -< E} : K -> itree E unit := embed Remove.
+  Definition insert {E F} `{mapE +? F -< E} : K -> V -> itree E unit := fun k v => trigger (Insert k v).
+  Definition lookup {E F} `{mapE +? F -< E} : K -> itree E (option V) := fun k => trigger (Lookup k).
+  Definition remove {E F} `{mapE +? F -< E} : K -> itree E unit := fun k => trigger (Remove k).
 
-  Definition lookup_def {E} `{mapE -< E} : K -> V -> itree E V
+  Definition lookup_def {E F} `{mapE +? F -< E} : K -> V -> itree E V
     := fun k v =>
          ITree.bind (lookup k) (fun ov =>
          Ret (match ov with
@@ -61,18 +61,9 @@ Section Map.
       | Remove k => Ret (Maps.remove k env, tt)
       end.
 
-  Definition run_map {E F} `{View mapE F (stateT map (itree E))}
-    : itree F ~> stateT map (itree E) :=
-    interp_state (over' handle_map).
-
-  Definition run_map' {E F} `{Subevent mapE F} `{Trigger F (stateT map (itree E))}
+  Definition run_map {E F} `{mapE +? E -< F}
     : itree F ~> stateT map (itree E) :=
     interp_state (over handle_map).
-
-(*
-  Definition run_map {E} : itree (mapE +' E) ~> stateT map (itree E) :=
-    interp_state (case_ handle_map pure_state).
- *)
 
 End Map.
 
@@ -81,4 +72,3 @@ Arguments lookup {K V E _}.
 Arguments remove {K V E _}.
 Arguments lookup_def {K V E _}.
 Arguments run_map  {K V map M _ _ _} [T].
-Arguments run_map' {K V map M _ _ _ _} [T].
