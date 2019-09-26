@@ -177,11 +177,10 @@ Section MapFacts.
   Qed.
 
   (* This lemma states that the operations provided by [handle_map] respect
-     the equivalence on the underlying map interface *)
-    (* YZ: We see here why I should always listen to Liyao:
-        using -< + Trigger would require for mapE K d -< E, which makes no sense.
-     *)
-  Lemma interp_map_id d {E X} (t : itree (mapE K d +' E) X) :
+     the equivalence on the underlying map interface
+        Lemma interp_map_id d {E X} (t : itree (mapE K d +' E) X) :
+   *)
+  Lemma interp_map_id d {E F X} {SE:mapE K d +? E -< F} (t : itree F X) :
     map_default_eq eq d (interp_map t) (interp_map t).
   Proof.
     unfold map_default_eq, interp_map; intros.
@@ -194,19 +193,23 @@ Section MapFacts.
     - gstep. constructor. constructor; auto.
     - gstep. constructor. gbase. apply CH. assumption.
     - guclo eqit_clo_bind. econstructor.
-      unfold over.
-      destruct e.
-      + cbn. eapply eqit_mon. 4 : { apply handle_map_eq. assumption. }
-        auto. auto. intros.  apply PR.
-      + cbn. apply eqit_Vis. intros.  apply eqit_Ret. constructor; auto.
+      (* YZ. First case relates trees made of calls to over applied to the same event *)
+      + unfold over. destruct (case e).
+        * cbn. eapply eqit_mon. 4 : { apply handle_map_eq. assumption. }
+          auto. auto. intros.  apply PR.
+        (* YZ: Hence in this case we relate two trees defined as triggers *)
+        * unfold trigger', Trigger_State, trigger', Trigger_ITree, ITree.trigger.
+          cbn. rewrite 2 bind_vis. apply eqit_Vis.
+          intros. rewrite 2 bind_ret.  apply eqit_Ret. constructor; auto.
+      (* We get away with it by unfolding the instances though *)
       + intros. destruct u1. destruct u2. cbn.
         inversion H. subst.
         gstep; constructor.
         gbase. apply CH. assumption.
   Qed.
 
-  Global Instance interp_map_proper {R E d} {RR : R -> R -> Prop} :
-    Proper ((eutt RR) ==> (@map_default_eq _ _ RR d E)) (@interp_map _ _ _ _ E d _ _ R).
+  Global Instance interp_map_proper {R E F d} {SE:mapE K d +? F -< E} {RR : R -> R -> Prop} :
+    Proper ((eutt RR) ==> (@map_default_eq _ _ RR d F)) (@interp_map _ _ _ _ E d _ _ R).
   Proof.
     unfold map_default_eq, interp_map.
     repeat intro.
@@ -223,10 +226,14 @@ Section MapFacts.
     - ebind.
       apply pbc_intro_h with (RU := prod_rel (@eq_map _ _ _ _ d) eq).
       { (* SAZ: I must be missing some lemma that should solve this case *)
-        unfold case_. unfold Case_sum1, case_sum1.
-        destruct e. apply handle_map_eq. assumption.
-        unfold pure_state.
-        pstep. econstructor. intros. constructor. pfold. econstructor. constructor; auto.
+        unfold over.
+        destruct (case e). 
+        - apply handle_map_eq. assumption.
+        - unfold trigger', Trigger_State, trigger', Trigger_ITree, ITree.trigger.
+          pstep. cbn. red. cbn. (* YZ: this is ugly... A better way? *)
+          econstructor. intros. constructor. pfold.
+          red; cbn.
+          econstructor. constructor; auto.
       } 
       intros.
       inversion H. subst.
@@ -236,5 +243,5 @@ Section MapFacts.
     - rewrite tau_eutt, unfold_interp_state.
       eauto.
   Qed.
-    
+
 End MapFacts.
