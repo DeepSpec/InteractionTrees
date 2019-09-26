@@ -73,5 +73,3 @@ Proof.
   - intros a b c f g fg Hf Hg ? [x | y]; cbv in *; auto.
   - typeclasses eauto.
 Qed.
-
-SearchAbout cat Proper. 
