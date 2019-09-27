@@ -18,6 +18,9 @@ From Coq Require Import
      Arith
      Lia.
 
+From ExtLib Require Import
+     Structures.Monad.
+
 From ITree Require Import
      ITree
      ITreeFacts
@@ -60,7 +63,7 @@ Proof.
   contradiction.
 Qed.
 
-Instance FinInitial {E} : Initial (sub (ktree E) fin) 0 := fun _ => fin_0.
+Instance FinInitial {m} : Initial (sub (Kleisli m) fin) 0 := fun _ => fin_0.
 
 Lemma split_fin_helper:
   forall n m x : nat, x < n + m -> ~ x < n -> x - n < m.
@@ -187,21 +190,25 @@ Proof.
     try contradiction + exfalso; lia.
 Qed.
 
-Instance ToBifunctor_ktree_fin {E} : ToBifunctor (ktree E) fin sum Nat.add :=
-  fun n m y => Ret (split_fin_sum n m y).
+Instance ToBifunctor_Kleisli_fin {m} `{Monad m} : ToBifunctor (Kleisli m) fin sum Nat.add :=
+  fun n m y => ret (split_fin_sum n m y).
 
-Instance FromBifunctor_ktree_fin {E} : FromBifunctor (ktree E) fin sum Nat.add :=
-  fun n m y => Ret (merge_fin_sum n m y).
+Instance FromBifunctor_Kleisli_fin {m} `{Monad m} : FromBifunctor (Kleisli m) fin sum Nat.add :=
+  fun n m y => ret (merge_fin_sum n m y).
 
-Instance IsoBif_ktree_fin {E}
-  : forall a b, Iso (ktree E) (a := fin (Nat.add a b)) to_bif from_bif.
+Lemma Proper_ret {m} `{MonadLaws m}
+  : forall A (x y : A), x = y -> eqm (ret x) (ret y).
+Admitted.
+
+Instance IsoBif_ktree_fin {m} `{MonadLaws m} {_ : EqMProps m}
+  : forall a b, Iso (Kleisli m) (a := fin (Nat.add a b)) to_bif from_bif.
 Proof.
-  unfold to_bif, ToBifunctor_ktree_fin, from_bif, FromBifunctor_ktree_fin.
+  unfold to_bif, ToBifunctor_Kleisli_fin, from_bif, FromBifunctor_Kleisli_fin.
   constructor; intros x.
-  - unfold cat, Cat_sub, Cat_Kleisli. cbn. rewrite bind_ret.
-    apply eqit_Ret, merge_split.
-  - unfold cat, Cat_sub, Cat_Kleisli. cbn. rewrite bind_ret.
-    apply eqit_Ret, split_merge.
+  - unfold cat, Cat_sub, Cat_Kleisli. cbn. rewrite MonadTheory.bind_ret.
+    apply Proper_ret, merge_split.
+  - unfold cat, Cat_sub, Cat_Kleisli. cbn. rewrite MonadTheory.bind_ret.
+    apply Proper_ret, split_merge.
 Qed.
 
 Instance ToBifunctor_Fun_fin : ToBifunctor Fun fin sum Nat.add :=
@@ -218,7 +225,7 @@ Proof.
   - apply split_merge.
 Qed.
 
-Instance InitialObject_ktree_fin {E} : InitialObject (sub (ktree E) fin) 0.
+Instance InitialObject_ktree_fin {m} `{EqM m} : InitialObject (sub (Kleisli m) fin) 0.
 Proof.
   intros n f x; apply fin_0; auto.
 Qed.

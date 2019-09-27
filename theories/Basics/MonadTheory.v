@@ -42,6 +42,7 @@ Section Laws.
     ; bind_bind :> forall a b c (x : m a) (f : a -> m b) (g : b -> m c), bind (bind x f) g ≈ bind x (fun y => bind (f y) g)
     }.                                             
 
+  (* This should be just a notation *)
   Class MonadProperOps :=
       Proper_bind :> forall {a b},
           (@Proper (m a%type -> (a -> m b) -> m b)

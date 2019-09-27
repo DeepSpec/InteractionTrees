@@ -153,7 +153,7 @@ Polymorphic Class MonadIter (M : Type -> Type) : Type :=
     Quite easily in fact, no [Monad] assumption needed.
  *)
 
-Instance MonadIter_stateT {M S} {MM : Monad M} {AM : MonadIter M}
+Polymorphic Instance MonadIter_stateT {M S} {MM : Monad M} {AM : MonadIter M}
   : MonadIter (stateT S M) :=
   fun _ _ step i => mkStateT (fun s =>
     iter (fun is =>

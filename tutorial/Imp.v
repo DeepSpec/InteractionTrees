@@ -154,9 +154,10 @@ Import ImpNotations.
     Similarly, [SetVar] is a write event parameterized by both a variable and a
     value to be written, and defines an event of type [ImpState unit], no
     informative answer being expected from the environment.  *)
-Variant ImpState : Type -> Type :=
-| GetVar (x : var) : ImpState value
-| SetVar (x : var) (v : value) : ImpState unit.
+Class MonadStateImp (m : Type -> Type) : Type :=
+  { get_var : var -> m value
+  ; set_var : var -> value -> m unit
+  }.
 
 Section Denote.
 
@@ -168,8 +169,9 @@ Section Denote.
       parameterize the denotation of _Imp_ by a larger universe of events [eff],
       of which [ImpState] is assumed to be a subevent. *)
 
-  Context {eff : Type -> Type}.
-  Context {HasImpState : ImpState -< eff}.
+  Context {m : Type -> Type}.
+  Context {Monad_m : Monad m}.
+  Context {MonadStateImp_m : MonadStateImp m}.
 
   (** _Imp_ expressions are denoted as [itree eff value], where the returned
       value in the tree is the value computed by the expression.
@@ -180,9 +182,9 @@ Section Denote.
       Usual monadic notations are used in the other cases: we can [bind]
       recursive computations in the case of operators as one would expect. *)
 
-  Fixpoint denote_expr (e : expr) : itree eff value :=
+  Fixpoint denote_expr (e : expr) : m value :=
     match e with
-    | Var v     => trigger (GetVar v)
+    | Var v     => get_var v
     | Lit n     => ret n
     | Plus a b  => l <- denote_expr a ;; r <- denote_expr b ;; ret (l + r)
     | Minus a b => l <- denote_expr a ;; r <- denote_expr b ;; ret (l - r)
@@ -218,31 +220,32 @@ Section Denote.
       That is, the right tag [inr tt] says to exit the loop,
       while the [inl tt] says to continue. *)
 
-  Definition while (step : itree eff (unit + unit)) : itree eff unit :=
-    iter (C := Kleisli _) (fun _ => step) tt.
-
   (** Casting values into [bool]:  [0] corresponds to [false] and any nonzero
       value corresponds to [true].  *)
-  Definition is_true (v : value) : bool := if (v =? 0)%nat then false else true.
+  Definition is_true (v : value) : bool := negb (v =? 0)%nat.
+
+  Definition if_ (b : m value) (t e : m unit) : m unit :=
+    v <- b ;;
+    if is_true v then t else e.
+
+  Definition while `{MonadIter m} (b : m value) (step : m unit) : m unit :=
+    Basics.iter (fun _ =>
+      v <- b ;;
+      if is_true v then
+        step ;; ret (inl tt)
+      else
+        ret (inr tt)) tt.
 
   (** The meaning of statements is now easy to define.  They are all
       straightforward, except for [While], which uses our new [while] combinator
       over the computation that evaluates the conditional, and then the body if
       the former was true.  *)
-  Fixpoint denote_stmt (s : stmt) : itree eff unit :=
+  Fixpoint denote_stmt `{MonadIter m} (s : stmt) : m unit :=
     match s with
-    | Assign x e =>  v <- denote_expr e ;; trigger (SetVar x v)
-    | Seq a b    =>  denote_stmt a ;; denote_stmt b
-    | If i t e   =>
-      v <- denote_expr i ;;
-      if is_true v then denote_stmt t else denote_stmt e
-
-    | While t b =>
-      while (v <- denote_expr t ;;
-	           if is_true v
-             then denote_stmt b ;; ret (inl tt)
-             else ret (inr tt))
-
+    | Assign x e => v <- denote_expr e ;; set_var x v
+    | Seq a b    => denote_stmt a ;; denote_stmt b
+    | If i t e   => if_ (denote_expr i) (denote_stmt t) (denote_stmt e)
+    | While t b => while (denote_expr t) (denote_stmt b)
     | Skip => ret tt
     end.
 
@@ -310,15 +313,18 @@ Qed.
     [M = itree E] for some universe of events [E] required to contain the
     environment events [mapE] provided by the library. It comes with an event
     interpreter [interp_map] that yields a computation in the state monad.  *)
-Definition handle_ImpState {E: Type -> Type} `{mapE var 0 -< E}: ImpState ~> itree E :=
-  fun _ e =>
-    match e with
-    | GetVar x => lookup_def x
-    | SetVar x v => insert x v
-    end.
 
 (** We now concretely implement this environment using ExtLib's finite maps. *)
-Definition env := alist var value.
+Notation env := (alist var value).
+
+Import Basics.
+Import StateMonad.
+
+Instance MonadStateImp_stateT {m: Type -> Type} `{Monad m}
+  : MonadStateImp (stateT env m) :=
+  {| get_var x := mkStateT (fun s => ret (lookup_default x 0 s, s))
+   ; set_var x v := mkStateT (fun s => ret (tt, add x v s))
+  |}.
 
 (** Finally, we can define an evaluator for our statements.
    To do so, we first denote them, leading to an [itree ImpState unit].
@@ -335,69 +341,13 @@ forall eff, {pf:E -< eff == F[E]} (t : itree eff A)
         interp pf h h' t : M A
 *)
 
-Definition interp_imp  {E A} (t : itree (ImpState +' E) A) : stateT env (itree E) A :=
-  let t' := interp (bimap handle_ImpState (id_ E)) t in
-  interp_map t'.
-
-
-Definition eval_imp (s: stmt) : itree void1 (env * unit) :=
-  interp_imp (denote_stmt s) empty.
+Definition eval_imp (s : stmt) : itree void1 env :=
+  StateMonad.execStateT (denote_stmt s) empty.
 
 (** Equipped with this evaluator, we can now compute.
     Naturally since Coq is total, we cannot do it directly inside of it.
     We can either rely on extraction, or use some fuel.
  *)
 Compute (burn 200 (eval_imp (fact "input" "output" 6))).
-
-(* ========================================================================== *)
-Section InterpImpProperties.
-  (** We can lift the underlying equational theory on [itree]s to include new
-      equations for working with [interp_imp].
-
-      In particular, we have:
-         - [interp_imp] respects [≈]
-         - [interp_imp] commutes with [bind].
-
-      We could justify more equations than just the ones below.  For instance,
-      _Imp_ programs also respect a coarser notation of equivalence for the
-      [env] state.  We exploit this possibility to implement optimzations
-      at the _Asm_ level (see AsmOptimizations.v).
-   *)
-
-  Context {E': Type -> Type}.
-  Notation E := (ImpState +' E').
-
-  (** This interpreter is compatible with the equivalence-up-to-tau. *)
-  Global Instance eutt_interp_imp {R}:
-    Proper (@eutt E R R eq ==> eq ==> @eutt E' (prod (env) R) (prod _ R) eq)
-           interp_imp.
-  Proof.
-    repeat intro.
-    unfold interp_imp.
-    unfold interp_map.
-    rewrite H0. eapply eutt_interp_state; auto.
-    rewrite H. reflexivity.
-  Qed.
-
-  (** [interp_imp] commutes with [bind]. *)
-  Lemma interp_imp_bind: forall {R S} (t: itree E R) (k: R -> itree E S) (g : env),
-      (interp_imp (ITree.bind t k) g)
-    ≅ (ITree.bind (interp_imp t g) (fun '(g',  x) => interp_imp (k x) g')).
-  Proof.
-    intros.
-    unfold interp_imp.
-    unfold interp_map.
-    repeat rewrite interp_bind.
-    repeat rewrite interp_state_bind.
-    apply eqit_bind. red. intros.
-    destruct a as [g'  x].
-    simpl.
-    reflexivity.
-    reflexivity.
-  Qed.
-
-End InterpImpProperties.
-
-
 
 (** We now turn to our target language, in file [Asm].v *)

@@ -116,14 +116,15 @@ Arguments code {A B}.
 (** _Asm_ produces two kind of events for manipulating its two kinds of state:
     registers and the heap.
 *)
-Variant Reg : Type -> Type :=
-| GetReg (x : reg) : Reg value
-| SetReg (x : reg) (v : value) : Reg unit.
+Class HasReg (m : Type -> Type) : Type :=
+  { get_reg : reg -> m value
+  ; set_reg : reg -> value -> m unit
+  }.
 
-Inductive Memory : Type -> Type :=
-| Load  (a : addr) : Memory value
-| Store (a : addr) (val : value) : Memory unit.
-
+Class HasMemory (m : Type -> Type) : Type :=
+  { load : addr -> m value
+  ; store : addr -> value -> m unit
+  }.
 
 (* SAZ: Move Exit to the itrees library? *)
 (** We also introduce a special event to model termination of the computation.
@@ -131,12 +132,10 @@ Inductive Memory : Type -> Type :=
     of type [Exit void].  We can therefore use it to "close" an [itree E A] no
     matter what the expected return type [A] is, as witnessed by the [exit]
     computation.  *)
-Inductive Exit : Type -> Type :=
-| Done : Exit void.
+Class MonadExit (m : Type -> Type) : Type :=
+  exit : forall a, m a.
 
-Definition exit {E A} `{Exit -< E} : itree E A :=
-  vis Done (fun v => match v : void with end).
-
+Arguments exit {m _ a}.
 
 Section Denote.
 
@@ -148,47 +147,49 @@ Section Denote.
   Local Open Scope monad_scope.
   (* end hide *)
 
-
   Section with_event.
 
     (** As with _Imp_, we parameterize our semantics by a universe of events
         that shall encompass all the required ones. *)
-    Context {E : Type -> Type}.
-    Context {HasReg : Reg -< E}.
-    Context {HasMemory : Memory -< E}.
-    Context {HasExit : Exit -< E}.
+    Context
+      {m : Type -> Type}
+      {Monad_m : Monad m}
+      {MonadIter_m : MonadIter m}
+      {HasReg_m : HasReg m}
+      {HasMemory_m : HasMemory m}
+      {MonadExit_m : MonadExit m}.
 
     (** Operands are trivially denoted as [itree]s returning values *)
-    Definition denote_operand (o : operand) : itree E value :=
+    Definition denote_operand (o : operand) : m value :=
       match o with
-      | Oimm v => Ret v
-      | Oreg v => trigger (GetReg v)
+      | Oimm v => ret v
+      | Oreg v => get_reg v
       end.
 
     (** Instructions offer no suprises either. *)
-    Definition denote_instr (i : instr) : itree E unit :=
+    Definition denote_instr (i : instr) : m unit :=
       match i with
       | Imov d s =>
         v <- denote_operand s ;;
-        trigger (SetReg d v)
+        set_reg d v
       | Iadd d l r =>
-        lv <- trigger (GetReg l) ;;
+        lv <- get_reg l ;;
         rv <- denote_operand r ;;
-        trigger (SetReg d (lv + rv))
+        set_reg d (lv + rv)
       | Isub d l r =>
-        lv <- trigger (GetReg l) ;;
+        lv <- get_reg l ;;
         rv <- denote_operand r ;;
-        trigger (SetReg d (lv - rv))
+        set_reg d (lv - rv)
       | Imul d l r =>
-        lv <- trigger (GetReg l) ;;
+        lv <- get_reg l ;;
         rv <- denote_operand r ;;
-        trigger (SetReg d (lv * rv))
+        set_reg d (lv * rv)
       | Iload d addr =>
-        val <- trigger (Load addr) ;;
-        trigger (SetReg d val)
+        val <- load addr ;;
+        set_reg d val
       | Istore addr v =>
         val <- denote_operand v ;;
-        trigger (Store addr val)
+        store addr val
       end.
 
     Section with_labels.
@@ -197,20 +198,19 @@ Section Denote.
       (** A [branch] returns the computed label whose set of possible values [B]
           is carried by the type of the branch.  If the computation halts
           instead of branching, we return the [exit] tree.  *)
-      Definition denote_branch (b : branch (fin B)) : itree E (fin B) :=
+      Definition denote_branch (b : branch (fin B)) : m (fin B) :=
         match b with
         | Bjmp l => ret l
         | Bbrz v y n =>
-          val <- trigger (GetReg v) ;;
+          val <- get_reg v ;;
           if val:nat then ret y else ret n
         | Bhalt => exit
         end.
 
-
       (** The denotation of a basic [block] shares the same type, returning the
           [label] of the next [block] it shall jump to.  It recursively denote
           its instruction before that.  *)
-      Fixpoint denote_block (b : block (fin B)) : itree E (fin B) :=
+      Fixpoint denote_block (b : block (fin B)) : m (fin B) :=
         match b with
         | bbi i b =>
           denote_instr i ;; denote_block b
@@ -229,7 +229,7 @@ Section Denote.
           algebraic structure, supported by the library, including a [loop]
           combinator that we can use to link collections of basic blocks. (See
           below.) *)
-      Definition denote_bks (bs: bks A B): sub (ktree E) fin A B :=
+      Definition denote_bks (bs: bks A B) : sub (Kleisli m) fin A B :=
         fun a => denote_block (bs a).
 
     End with_labels.
@@ -244,7 +244,7 @@ Section Denote.
       accomplish this with the same [loop] combinator we used to denote _Imp_'s
       [while] loop.  It directly takes our [denote_bks (code s): ktree E (I + A)
       (I + B)] and hides [I] as desired.  *)
-    Definition denote_asm {A B} : asm A B -> sub (ktree E) fin A B :=
+    Definition denote_asm {A B} : asm A B -> sub (Kleisli m) fin A B :=
       fun s => loop (denote_bks (code s)).
 
   End with_event.
@@ -286,26 +286,30 @@ Instance RelDec_reg : RelDec (@eq reg) := RelDec_from_dec eq Nat.eq_dec.
 (** Both environments and memory events can be interpreted as "map" events,
     exactly as we did for _Imp_. *)
 
-Definition map_reg {E: Type -> Type} `{mapE reg 0 -< E}
-  : Reg ~> itree E :=
-  fun _ e =>
-    match e with
-    | GetReg x => lookup_def x
-    | SetReg x v => insert x v
-    end.
-
-Definition map_memory {E : Type -> Type} `{mapE addr 0 -< E} :
-  Memory ~> itree E :=
-  fun _ e =>
-    match e with
-    | Load x => lookup_def x
-    | Store x v => insert x v
-    end.
-
 (** Once again, we implement our Maps with a simple association list *)
 Definition registers := alist reg value.
 Definition memory    := alist addr value.
+Definition asm_env : Type := registers * memory.
 
+Import StateMonad.
+
+Instance HasReg_stateT {m: Type -> Type} `{Monad m}
+  : HasReg (stateT asm_env m) :=
+  {| get_reg x := mkStateT (fun s => ret (lookup_default x 0 (fst s), s))
+   ; set_reg x v := mkStateT (fun s => ret (tt, (add x v (fst s), snd s)))
+  |}.
+
+Instance HasMemory_stateT {m: Type -> Type} `{Monad m}
+  : HasMemory (stateT asm_env m) :=
+  {| load x := mkStateT (fun s => ret (lookup_default x 0 (snd s), s))
+   ; store x v := mkStateT (fun s => ret (tt, (fst s, add x v (snd s))))
+  |}.
+
+Instance MonadExit_stateT {S} {m: Type -> Type} `{MonadExit m}
+  : MonadExit (stateT S m).
+Admitted.
+
+Instance MonadExit_itree {E} : MonadExit (itree E). Admitted. (* TODO *)
 
 (** The _asm_ interpreter takes as inputs a starting heap [mem] and register
     state [reg] and interprets an itree in two nested instances of the [map]
@@ -313,80 +317,12 @@ Definition memory    := alist addr value.
     do a bit of post-processing to swap the order of the "state components"
     introduced by the interpretation.
 *)
-Definition interp_asm {E A} (t : itree (Reg +' Memory +' E) A) :
-  memory -> registers -> itree E (memory * (registers * A)) :=
-  let h := bimap map_reg (bimap map_memory (id_ _)) in
-  let t' := interp h t in
-  fun  mem regs => interp_map (interp_map t' regs) mem.
-
 
 (** We can then define an evaluator for closed assembly programs by interpreting
     both store and heap events into two instances of [mapE], and running them
     both in the empty initial environments.  *)
-Definition run_asm (p: asm 1 0) := interp_asm (denote_asm p Fin.f0) empty empty.
-
-(* SAZ: Should some of thes notions of equivalence be put into the library?
-   SAZ: Should this be stated in terms of ktree ?
- *)
-(** The definition [interp_asm] also induces a notion of equivalence (open)
-    _asm_ programs, which is just the equivalence of the ktree category *)
-Definition eq_asm_denotations {E A B} (t1 t2 : Kleisli (itree (Reg +' Memory +' E)) A B) : Prop :=
-  forall a mem regs, interp_asm (t1 a) mem regs ≈ interp_asm (t2 a) mem regs.
-
-Definition eq_asm {A B} (p1 p2 : asm A B) : Prop :=
-  eq_asm_denotations (denote_asm p1) (denote_asm p2).
-
-Section InterpAsmProperties.
-
-  Context {E': Type -> Type}.
-  Notation E := (Reg +' Memory +' E').
-
-  (** This interpreter is compatible with the equivalence-up-to-tau. *)
-  Global Instance eutt_interp_asm {R}:
-    Proper (@eutt E R R eq ==> eq ==> eq ==> @eutt E' (prod memory (prod registers R)) (prod _ (prod _ R)) eq) interp_asm.
-  Proof.
-    repeat intro.
-    unfold interp_asm.
-    unfold interp_map.
-    rewrite H0.
-    rewrite H.
-    rewrite H1.
-    reflexivity.
-  Qed.
-
-  (** [interp_asm] commutes with [Ret]. *)
-  Lemma interp_asm_ret: forall {R} (r: R) (regs : registers) (mem: memory),
-      @eutt E' _ _ eq (interp_asm (ret r) mem regs)
-            (ret (mem, (regs, r))).
-  Proof.
-    unfold interp_asm, interp_map.
-    intros.
-    unfold ret at 1, Monad_itree.
-    rewrite interp_ret, 2 interp_state_ret.
-    reflexivity.
-  Qed.
-
-  (** [interp_asm] commutes with [bind]. *)
-  Lemma interp_asm_bind: forall {R S} (t: itree E R) (k: R -> itree _ S) (regs : registers) (mem: memory),
-      @eutt E' _ _ eq (interp_asm (ITree.bind t k) mem regs)
-            (ITree.bind (interp_asm t mem regs) (fun '(mem', (regs', x)) => interp_asm (k x) mem' regs')).
-
-  Proof.
-    intros.
-    unfold interp_asm.
-    unfold interp_map. cbn.
-    repeat rewrite interp_bind.
-    repeat rewrite interp_state_bind.
-    repeat rewrite Eq.bind_bind.
-    eapply eutt_clo_bind.
-    { reflexivity. }
-    intros.
-    rewrite H.
-    destruct u2 as [g' [l' x]].
-    reflexivity.
-  Qed.
-
-End InterpAsmProperties.
+Definition run_asm (p: asm 1 0) : itree void1 asm_env :=
+  execStateT (denote_asm p Fin.f0) (empty, empty).
 
 (** Now that we have both our language, we could jump directly into implementing
 our compiler.  However, if we look slightly ahead of us, we can observe that: -
