@@ -15,14 +15,15 @@ From Coq Require Import
 
 Require Import ExtLib.Structures.Monad.
 
+  (* SAZ: Should we add ITreeMonad to ITree? *)
 From ITree Require Import
      ITree
      ITreeFacts
-     ITreeMonad  (* SAZ: Should we add this to ITree? *)
+     ITreeMonad
      Basics.MonadTheory
      Events.State
      Events.StateKleisli
-     StateFacts
+     Events.StateFacts
      SubKTree.
 
 Require Import Label Utils_tutorial.

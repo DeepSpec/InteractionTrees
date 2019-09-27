@@ -55,7 +55,7 @@ From ITree Require Import
      ITree
      ITreeFacts
      Events.MapDefault
-     StateFacts.
+     Events.StateFacts.
 
 Import Monads.
 Import MonadNotation.
