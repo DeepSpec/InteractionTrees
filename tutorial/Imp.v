@@ -33,7 +33,7 @@
 (** We therefore start by introducing a simplified variant of Software
     Foundations' [Imp] language.  The language's semantics is first expressed in
     terms of [itree]s.  The semantics of the program can then be obtained by
-    interpreting the events contained in the trees.  
+    interpreting the events contained in the trees.
 *)
 
 (* begin hide *)
@@ -112,7 +112,7 @@ Module ImpNotations.
 
   Notation "x '←' e" :=
     (Assign x e) (at level 60, e at level 50): stmt_scope.
-  
+
   Notation "a ';;;' b" :=
     (Seq a b)
       (at level 100, right associativity,
@@ -166,8 +166,8 @@ Section Denote.
       denotation of _Imp_ by a larger universe of events [eff], of which
       [ImpState] is assumed to be a subevent.  *)
 
-  Context {eff : Type -> Type}.
-  Context {HasImpState : ImpState -< eff}.
+  Context {E F : Type -> Type}.
+  Context {HasImpState : ImpState +? E -< F}.
 
   (** _Imp_ expressions are denoted as [itree eff value], where the returned
       value in the tree is the value computed by the expression.  In the [Var]
@@ -177,7 +177,7 @@ Section Denote.
       other cases. A constant (literal) is simply returned, while we can [bind]
       recursive computations in the case of operators as one would expect.  *)
 
-  Fixpoint denote_expr (e : expr) : itree eff value :=
+  Fixpoint denote_expr (e : expr) : itree F value :=
     match e with
     | Var v     => trigger (GetVar v)
     | Lit n     => ret n
@@ -199,7 +199,7 @@ Section Denote.
       that maps inputs of type [C + A] to an [itree] computing either a [C] that
       can be fed back to the loop, or a return value of type [B]. The combinator
       builds the fixpoint of the body, hiding away the [C] argument.
-      
+
       Compared to the [mrec] and [rec] combinators introduced in
       [Introduction.v], [loop] is more restricted in that it naturally
       represents tail recursive functions.  It however enjoys a rich equational
@@ -211,11 +211,11 @@ Section Denote.
       governed by a value of type [unit + unit].  The right tag [inr tt] says to
       exit the loop, and the [inl tt] says to continue.  *)
 
-  (* SAZ + LX - for some reason typeclass resolution can't see the instance for 
+  (* SAZ + LX - for some reason typeclass resolution can't see the instance for
      Iter_ktree, even though it seems to be in scope. *)
-  Definition while (step : itree eff (unit + unit)) : itree eff unit :=
+  Definition while (step : itree F (unit + unit)) : itree F unit :=
     @iter _ _ _ Iter_Kleisli _ _ (fun _ => step) tt.
-    
+
   (** Casting values into [bool]:  [0] corresponds to [false] and any nonzero
       value corresponds to [true].  *)
   Definition is_true (v : value) : bool := if (v =? 0)%nat then false else true.
@@ -224,7 +224,7 @@ Section Denote.
       straightforward, except for [While], whic uses our new [while] combinator
       over the computation that evaluates the conditional, and then the body if
       the former was true.  *)
-  Fixpoint denote_stmt (s : stmt) : itree eff unit :=
+  Fixpoint denote_stmt (s : stmt) : itree F unit :=
     match s with
     | Assign x e =>  v <- denote_expr e ;; trigger (SetVar x v)
     | Seq a b    =>  denote_stmt a ;; denote_stmt b
@@ -248,7 +248,7 @@ End Denote.
 
 Section Example_Fact.
 
-  (** We briefly illustrate the language by writing the traditional factorial. 
+  (** We briefly illustrate the language by writing the traditional factorial.
       example.  *)
 
   Open Scope expr_scope.
@@ -305,10 +305,11 @@ Qed.
     [M = itree E] for some universe of events [E] required to contain the
     environment events [mapE] provided by the library. It comes with an event
     interpreter [interp_map] that yields a computation in the state monad.  *)
-Definition handle_ImpState {E: Type -> Type} `{mapE var 0 -< E}: ImpState ~> itree E :=
+Definition handle_ImpState
+           {E F: Type -> Type} `{mapE var 0 +? E -< F} : ImpState ~> itree F :=
   fun _ e =>
     match e with
-    | GetVar x => lookup_def x 
+    | GetVar x => lookup_def x
     | SetVar x v => insert x v
     end.
 
@@ -323,38 +324,38 @@ Definition env := alist var value.
    resulting in an [itree] free of any event, but returning the final
    _Imp_ env.
  *)
-(* SAZ: would rather write something like the following: 
+(* SAZ: would rather write something like the following:
  h : E ~> M A
  h' : F[void1] ~> M A
 forall eff, {pf:E -< eff == F[E]} (t : itree eff A)
         interp pf h h' t : M A
 *)
 
-Definition interp_imp  {E A} (t : itree (ImpState +' E) A) : stateT env (itree E) A :=
-  let t' := interp (bimap handle_ImpState (id_ E)) t in
-  interp_map t'.
+Definition interp_imp {E F A}
+           `{ImpState +? E -< F}
+           (t : itree F A) : stateT env (itree E) A :=
+  interp_map (interp (over handle_ImpState) t).
 
-
-Definition eval_imp (s: stmt) : itree void1 (env * unit) :=
+Definition eval_imp {E F} `{ImpState +? E -< F} (s: stmt) : itree E (env * unit) :=
   interp_imp (denote_stmt s) empty.
 
 (** Equipped with this evaluator, we can now compute.
     Naturally since Coq is total, we cannot do it directly inside of it.
     We can either rely on extraction, or use some fuel.
  *)
-Compute (burn 200 (eval_imp (fact "input" "output" 6))). 
+Compute (burn 200 (eval_imp (fact "input" "output" 6))).
 
 (* ========================================================================== *)
 Section InterpImpProperties.
   (** We can lift the underlying equational theory on [itree]s to include new
-      equations for working with [interp_imp].  
+      equations for working with [interp_imp].
 
       In particular, we have:
-         - [interp_imp] respects [≈] 
-         - [interp_imp] commutes with [bind].  
+         - [interp_imp] respects [≈]
+         - [interp_imp] commutes with [bind].
 
       We could justify more equations than just the ones below.  For instance,
-      _Imp_ programs also respect a coarser notation of equivalence for the 
+      _Imp_ programs also respect a coarser notation of equivalence for the
       [env] state.  We exploit this possibility to implement optimzations
       at the _Asm_ level (see AsmOptimizations.v).
    *)
@@ -392,7 +393,6 @@ Section InterpImpProperties.
   Qed.
 
 End InterpImpProperties.
-
 
 
 (** We now turn to our target language, in file [Asm].v *)

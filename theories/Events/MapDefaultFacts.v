@@ -195,7 +195,7 @@ Section MapFacts.
     - ebind. econstructor.
       (* YZ. First case relates trees made of calls to over applied to the same event *)
       + unfold over. destruct (case e).
-        * apply handle_map_eq; assumption. 
+        * apply handle_map_eq; assumption.
         (* YZ: Hence in this case we relate two trees defined as triggers *)
         * unfold trigger', Trigger_State, trigger', Trigger_ITree, ITree.trigger.
           cbn. rewrite 2 bind_vis. apply eqit_Vis.

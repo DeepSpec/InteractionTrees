@@ -110,13 +110,17 @@ itree:(Type -> Type) -> Type -> Type
 
 End Trigger.
 
+(* Recovering the previous notion of effect inclusion. *)
+Notation "A +? C -< B" := (Subevent A B C)
+                            (at level 90, left associativity) : type_scope.
+
 (**
    Generic lifting of an handler over a super-set of events.
    The [Subevent] typeclass gives us the partial inverse to call the handler on its domain.
    The [Trigger] typeclass gives us a way to otherwise embed the event into
    the monad of interest "in a minimal way".
  *)
-Definition over {A B C M : Type -> Type} {S:Subevent A B C} {T:Trigger C M} (f : A ~> M) : B ~> M  :=
+Definition over {A B C M : Type -> Type} {S:A +? C -< B} {T:Trigger C M} (f : A ~> M) : B ~> M  :=
   fun t b =>  match case b with
            | inl1 a => f _ a
            | inr1 c => trigger' _ c
@@ -124,10 +128,6 @@ Definition over {A B C M : Type -> Type} {S:Subevent A B C} {T:Trigger C M} (f :
 
 Arguments over {_ _ _ _ _ _} _ [_] _.
 
-
-(* Recovering the previous notion of effect inclusion. *)
-Notation "A +? C -< B" := (Subevent A B C)
-                       (at level 90, left associativity) : type_scope.
 (*
 Definition subevent {E F : Type -> Type} `{E -< F} : E ~> F := subeventV.
 *)
@@ -155,7 +155,8 @@ Section Instances.
      *)
 
     (* The minimal [itree] that performs [e] is [Vis e (fun x => Ret x)], already defined as [ITree.trigger] *)
-    Instance Trigger_ITree {E} : Trigger E (itree E) := ITree.trigger.
+    Instance Trigger_ITree {E F G} `{E +? F -< G}: Trigger E (itree G) := fun _ e => ITree.trigger (inj1 e).
+    (* Instance Trigger_ITree {E} : Trigger E (itree E) := ITree.trigger. *)
 
     (* The [stateT] transformer relies on the trigger instance of its monad and simply pass away the state untouched *)
     Instance Trigger_State {S} {E} {M} `{Monad M} `{Trigger E M}: Trigger E (Monads.stateT S M) :=
