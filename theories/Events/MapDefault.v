@@ -35,7 +35,7 @@ Section Map.
   Arguments Insert {d}.
   Arguments LookupDef {d}.
   Arguments Remove {d}.
-  
+
   Definition insert {E d F} `{(mapE d) +? F -< E} : K -> V -> itree E unit := fun k v => trigger (Insert k v).
   Definition lookup_def {E d F} `{(mapE d) +? F -< E} : K -> itree E V := fun k => trigger (LookupDef k).
   Definition remove {E d F} `{(mapE d) +? F -< E} : K -> itree E unit := fun k => trigger (Remove k).
@@ -50,7 +50,7 @@ Section Map.
     | Some v' => v'
     | None => d
     end.
-  
+
   Definition handle_map {E d} : mapE d ~> stateT map (itree E) :=
     fun _ e env =>
       match e with
@@ -77,8 +77,8 @@ Section Map.
 
 End Map.
 
-Arguments insert {K V E d _}.
-Arguments lookup_def {K V E d _}.
-Arguments remove {K V E d _}.
+Arguments insert {K V E d _ _}.
+Arguments lookup_def {K V E d _ _}.
+Arguments remove {K V E d _ _}.
 Arguments interp_map {K V map M _ _ _ _} [T].
 Arguments eq_map {K V map M d}.

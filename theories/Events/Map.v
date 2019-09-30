@@ -67,8 +67,8 @@ Section Map.
 
 End Map.
 
-Arguments insert {K V E _}.
-Arguments lookup {K V E _}.
-Arguments remove {K V E _}.
-Arguments lookup_def {K V E _}.
+Arguments insert {K V E F _}.
+Arguments lookup {K V E F _}.
+Arguments remove {K V E F _}.
+Arguments lookup_def {K V E F _}.
 Arguments run_map  {K V map M _ _ _} [T].

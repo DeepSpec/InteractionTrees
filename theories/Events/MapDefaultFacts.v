@@ -101,7 +101,7 @@ Section MapFacts.
   Global Instance eq_map_refl {d} : Reflexive (@eq_map _ _ _ _ d).
   Proof.
     red. intros. unfold eq_map. tauto.
-  Qed.    
+  Qed.
 
   Global Instance eq_map_sym {d} : Symmetric (@eq_map _ _ _ _ d).
   Proof.
@@ -185,18 +185,17 @@ Section MapFacts.
   Proof.
     unfold map_default_eq, interp_map; intros.
     revert t s1 s2 H.
-    ginit.
-    gcofix CH.
+    einit.
+    ecofix CH.
     intros.
     repeat rewrite unfold_interp_state. unfold _interp_state.
     destruct (observe t).
-    - gstep. constructor. constructor; auto.
-    - gstep. constructor. gbase. apply CH. assumption.
-    - guclo eqit_clo_bind. econstructor.
+    - estep.
+    - estep.
+    - ebind. econstructor.
       (* YZ. First case relates trees made of calls to over applied to the same event *)
       + unfold over. destruct (case e).
-        * cbn. eapply eqit_mon. 4 : { apply handle_map_eq. assumption. }
-          auto. auto. intros.  apply PR.
+        * apply handle_map_eq; assumption. 
         (* YZ: Hence in this case we relate two trees defined as triggers *)
         * unfold trigger', Trigger_State, trigger', Trigger_ITree, ITree.trigger.
           cbn. rewrite 2 bind_vis. apply eqit_Vis.
@@ -204,8 +203,7 @@ Section MapFacts.
       (* We get away with it by unfolding the instances though *)
       + intros. destruct u1. destruct u2. cbn.
         inversion H. subst.
-        gstep; constructor.
-        gbase. apply CH. assumption.
+        estep.
   Qed.
 
   Global Instance interp_map_proper {R E F d} {SE:mapE K d +? F -< E} {RR : R -> R -> Prop} :

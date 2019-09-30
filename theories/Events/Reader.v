@@ -42,5 +42,5 @@ Definition run_reader {E F} `{readerE +? E -< F} : Env -> itree F ~> itree E :=
 
 End Reader.
 
-Arguments ask {Env E _}.
+Arguments ask {Env E F _}.
 Arguments run_reader {Env E F _} _ _ _.

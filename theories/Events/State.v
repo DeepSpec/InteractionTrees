@@ -64,8 +64,8 @@ Section State.
 
 End State.
 
-Arguments get {S E _}.
-Arguments put {S E _}.
+Arguments get {S E F _}.
+Arguments put {S E F _}.
 Arguments run_state {S E F _} [_] _.
 
 (* ----------------------------------------------------------------------- *)
