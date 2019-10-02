@@ -208,6 +208,12 @@ Section Instances.
         merge_E := id_ _
       |}.
 
+    Instance Subevent_to_complement {A B C E} `{A +' B +? C -< E}: A +? B +' C -< E :=
+      {|
+        split_E := split_E >>> assoc_r;
+        merge_E := assoc_l >>> merge_E
+      |}.
+
     Instance Subevent_Assoc1 {A B C D E: Type -> Type} `{Subevent (A +' (B +' C)) D E} : Subevent ((A +' B) +' C) D E :=
       {| split_E := split_E >>> case_ (assoc_l >>> inl_) inr_
          ; merge_E := bimap assoc_r (id_ _) >>> merge_E
@@ -243,6 +249,21 @@ Section Instances.
 
     Instance Subevent_Base_wf {A B: Type -> Type} : Subevent_wf (@Subevent_Base A B).
     constructor; split; cbv; reflexivity.
+    Qed.
+
+    Instance Subevent_to_complement_wf {A B C D: Type -> Type}
+             {Sub: (A +' B) +? C -< D}
+             {SubWf: Subevent_wf Sub}
+      : Subevent_wf (@Subevent_to_complement _ _ _ _ Sub).
+    constructor; split.
+    - cbn.
+      apply SemiIso_Cat.
+      apply SubWf.
+      apply AssocRMono_Coproduct.
+    - cbn.
+      apply SemiIso_Cat.
+      apply AssocLMono_Coproduct.
+      apply SubWf.
     Qed.
 
     Instance Subevent_Assoc1_wf {A B C D E: Type -> Type}
@@ -318,7 +339,7 @@ Section Instances.
         rewrite cat_case.
         rewrite <- cat_assoc, (cat_assoc inl_ inl_), inl_assoc_r.
         do 2 rewrite inl_bimap, cat_id_l.
-        rewrite <- inr_assoc_l. 
+        rewrite <- inr_assoc_l.
         rewrite ! cat_assoc, <- (cat_assoc _ assoc_r _), assoc_l_mono, cat_id_l.
         rewrite inr_bimap, <- cat_assoc.
         rewrite semi_iso; [| apply SubWf].
@@ -372,16 +393,22 @@ Section Instances.
 
 End Instances.
 
-Existing Instance Subevent_refl | 0.
-Existing Instance Subevent_void | 0.
-Existing Instance Subevent_Base | 0.
-Existing Instance Subevent_Sum_In | 2.
-Existing Instance Subevent_Sum_Out | 3.
-Existing Instance Subevent_Assoc1 | 10.
-Existing Instance Subevent_Assoc2 | 10.
-Existing Instance Trigger_ITree | 1.
-Existing Instance Trigger_State | 1.
-Existing Instance Trigger_Prop  | 1.
+Existing Instance Subevent_refl          | 0.
+Existing Instance Subevent_void          | 0.
+Existing Instance Subevent_Base          | 0.
+Existing Instance Subevent_Sum_In        | 2.
+Existing Instance Subevent_Sum_Out       | 3.
+(* Existing Instance Subevent_to_complement | 5. *)
+Existing Instance Subevent_Assoc1        | 10.
+Existing Instance Subevent_Assoc2        | 10.
+(* Existing Instance Subevent_Assoc3        | 10. *)
+(* YZ: Reassociation instances loop when evars are involved.
+   A solution if we want them is to manually add finer grained hints to the db.
+   See: https://coq.discourse.group/t/instance-resolution-restricting-the-introduction-of-evars/457/3
+ *)
+Existing Instance Trigger_ITree          | 1.
+Existing Instance Trigger_State          | 1.
+Existing Instance Trigger_Prop           | 1.
 
 Section Test.
 

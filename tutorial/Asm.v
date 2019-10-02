@@ -18,7 +18,7 @@ Require Import ExtLib.Structures.Monad.
 From ITree Require Import
      ITree
      ITreeFacts
-     ITreeMonad  (* SAZ: Should we add this to ITree? *)
+     ITreeMonad
      Basics.MonadTheory
      Events.State
      Events.StateKleisli
@@ -36,11 +36,11 @@ Import Monads.
 Definition addr : Set := string.
 
 (** We define a set of register names (for this simple example, we identify them
-with [nat]). *) 
+with [nat]). *)
 Definition reg : Set := nat.
 
 (** For simplicity, _Asm_ manipulates [nat]s as values too. *)
-Definition value : Set := nat. 
+Definition value : Set := nat.
 
 (** We consider constants and variables as operands. *)
 Variant operand : Set :=
@@ -74,10 +74,9 @@ Inductive block {label : Type} : Type :=
 Global Arguments block _ : clear implicits.
 
 
-
 (** A piece of code should expose the set of labels allowing to enter into it,
     as well as the set of outer labels it might jump to.  To this end, [bks]
-    represents a collection of blocks labeled by [F A], with branches in [F B]. 
+    represents a collection of blocks labeled by [F A], with branches in [F B].
 *)
 
 Definition bks A B := F A -> block (F B).
@@ -113,7 +112,7 @@ Arguments code {A B}.
 (** ** Semantics *)
 
 (** _Asm_ produces two kind of events for manipulating its two kinds of state:
-    registers and the heap.  
+    registers and the heap.
 *)
 Variant Reg : Type -> Type :=
 | GetReg (x : reg) : Reg value
@@ -133,9 +132,8 @@ Inductive Memory : Type -> Type :=
 Inductive Exit : Type -> Type :=
 | Done : Exit void.
 
-Definition exit {E A} `{Exit -< E} : itree E A :=
+Definition exit {E F A} `{Exit +? F -< E} : itree E A :=
   vis Done (fun v => match v : void with end).
-
 
 Section Denote.
 
@@ -152,10 +150,10 @@ Section Denote.
 
     (** As with _Imp_, we parameterize our semantics by a universe of events
         that shall encompass all the required ones. *)
-    Context {E : Type -> Type}.
-    Context {HasReg : Reg -< E}.
-    Context {HasMemory : Memory -< E}.
-    Context {HasExit : Exit -< E}.
+    Context {E C1 C2 C3 : Type -> Type}.
+    Context {HasReg : Reg +? C1 -< E}.
+    Context {HasMemory : Memory +? C2 -< E}.
+    Context {HasExit : Exit +? C3 -< E}.
 
     (** Operands are trivially denoted as [itree]s returning values *)
     Definition denote_operand (o : operand) : itree E value :=
@@ -277,7 +275,7 @@ Proof.
   - intros EQ; apply string_dec_sound in EQ; unfold rel_dec; simpl; rewrite EQ; reflexivity.
 Qed.
 
-(* SAZ: Annoyingly, typeclass resolution picks the wrong map instance for nats by default, so 
+(* SAZ: Annoyingly, typeclass resolution picks the wrong map instance for nats by default, so
    we create an instance for [reg] that hides the wrong instance with the right one. *)
 Instance RelDec_reg : RelDec (@eq reg) := RelDec_from_dec eq Nat.eq_dec.
 (* end hide *)
@@ -285,7 +283,7 @@ Instance RelDec_reg : RelDec (@eq reg) := RelDec_from_dec eq Nat.eq_dec.
 (** Both environments and memory events can be interpreted as "map" events,
     exactly as we did for _Imp_. *)
 
-Definition map_reg {E: Type -> Type} `{mapE reg 0 -< E}
+Definition map_reg {E G: Type -> Type} `{mapE reg 0 +? G -< E}
   : Reg ~> itree E :=
   fun _ e =>
     match e with
@@ -293,7 +291,7 @@ Definition map_reg {E: Type -> Type} `{mapE reg 0 -< E}
     | SetReg x v => insert x v
     end.
 
-Definition map_memory {E : Type -> Type} `{mapE addr 0 -< E} :
+Definition map_memory {E G : Type -> Type} `{mapE addr 0 +? G -< E} :
   Memory ~> itree E :=
   fun _ e =>
     match e with
@@ -305,34 +303,71 @@ Definition map_memory {E : Type -> Type} `{mapE addr 0 -< E} :
 Definition registers := alist reg value.
 Definition memory    := alist addr value.
 
-
 (** The _asm_ interpreter takes as inputs a starting heap [mem] and register
     state [reg] and interprets an itree in two nested instances of the [map]
-    variant of the state monad. To get this type to work out, we have to 
+    variant of the state monad. To get this type to work out, we have to
     do a bit of post-processing to swap the order of the "state components"
     introduced by the interpretation.
-*)
-Definition interp_asm {E A} (t : itree (Reg +' Memory +' E) A) :
-  memory -> registers -> itree E (memory * (registers * A)) :=
-  let h := bimap map_reg (bimap map_memory (id_ _)) in
-  let t' := interp h t in
-  fun  mem regs => interp_map (interp_map t' regs) mem.
+ *)
 
+Definition interp_asm_regs {E A C} `{Reg +? C -< E}
+           (t: itree E A) : registers -> itree C (registers * A) :=
+  interp_map (interp (over map_reg) t).
+
+Definition interp_asm_mem {E A C} `{Memory +? C -< E}
+           (t: itree E A) : memory -> itree C (memory * A) :=
+  interp_map (interp (over map_memory) t).
+
+(* YZ: NOTE: Notice the mention of the successive contexts.
+   A formulation of the form `Reg +' Memory +? C -< E` would both
+   require another instance that is prone to looping (see [Subevent_to_complement]),
+   as well as would fix the order in which Memory and Reg have to appear
+ *)
+
+(* YZ: NOTE: This style naturally leads to compose two interpreters.
+   In contrast, the previous definition interpreted once the bimap of
+   two handlers.
+ *)
+Definition interp_asm {E A C D} `{Memory +? C -< D} `{Reg +? D -< E}
+           (t : itree E A) : memory -> registers -> itree C (memory * (registers * A)) :=
+  fun mem regs => let t' := interp_asm_regs t regs in
+               interp_asm_mem t' mem.
 
 (** We can then define an evaluator for closed assembly programs by interpreting
     both store and heap events into two instances of [mapE], and running them
     both in the empty initial environments.  *)
-Definition run_asm (p: asm 1 0) := interp_asm (denote_asm p Label.f1) empty empty.
+(* YZ: NOTE: do we want such a general type? *)
+(* YZ: NOTE: the increased generality of the type forces us to be general here as well,
+             or to specify the return type as [itree Exit _]?
+             Indeed, there's no way for Coq to pick both [C] and [D] by itself.
+ *)
+Definition run_asm {E C} `{Exit +? C -< E} (p: asm 1 0): itree E (memory * (registers * F 0))
+    := interp_asm (denote_asm p Label.f1) empty empty.
 
 (* SAZ: Should some of thes notions of equivalence be put into the library?
    SAZ: Should this be stated in terms of ktree ?
  *)
 (** The definition [interp_asm] also induces a notion of equivalence (open)
     _asm_ programs, which is just the equivalence of the ktree category *)
-Definition eq_asm_denotations {E A B} (t1 t2 : Kleisli (itree (Reg +' Memory +' E)) A B) : Prop :=
+Definition eq_asm_denotations {E C A B} `{Reg +' Memory +? C -< E}
+           (t1 t2 : Kleisli (itree E) A B) : Prop.
+  Typeclasses eauto := 4.
+  refine ( forall a mem regs, interp_asm (t1 a) mem regs ≈ interp_asm (t2 a) mem regs).
+  all: try typeclasses eauto.
+  refine (let t1' := t1 a in _).
+
+    :=
   forall a mem regs, interp_asm (t1 a) mem regs ≈ interp_asm (t2 a) mem regs.
 
-Definition eq_asm {A B} (p1 p2 : asm A B) : Prop :=
+  Set Printing Implicit.
+Definition eq_asm   {A B} (p1 p2 : asm A B) : Prop.
+  refine (eq_asm_denotations (denote_asm p1) (denote_asm p2)).
+  Unshelve.
+  exact (void1).
+Defined.
+  Set Printing Implicit.
+  Show Proof.
+    :=
   eq_asm_denotations (denote_asm p1) (denote_asm p2).
 
 Section InterpAsmProperties.
