@@ -172,11 +172,28 @@ Proof.
   - discriminate.
 Qed.
 
-Instance eutt_interp' {E F : Type -> Type} {R : Type} (f : E ~> itree F) :
-  Proper (eutt eq ==> eutt eq)
+
+Instance eutt_interp' {E F : Type -> Type} {R : Type} (RR: R -> R -> Prop) (f : E ~> itree F) :
+  Proper (eutt RR ==> eutt RR)
          (@interp E (itree F) _ _ _ f R).
 Proof.
-  repeat red. apply eutt_interp. reflexivity.
+  repeat red.
+  einit.
+  ecofix CIH. intros.
+  rewrite !unfold_interp.
+  punfold H0.
+  induction H0; intros; subst; pclearbot; simpl.
+  - estep.
+  - estep.
+  - ebind; econstructor.
+    + reflexivity.
+    + intros; subst.
+      estep.
+      ebase.
+  - rewrite tau_eutt, unfold_interp.
+    eauto.
+  - rewrite tau_eutt, unfold_interp.
+    eauto.
 Qed.
 
 Instance euttge_interp' {E F : Type -> Type} {R : Type} (f : E ~> itree F) :
