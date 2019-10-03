@@ -349,26 +349,18 @@ Definition run_asm {E C} `{Exit +? C -< E} (p: asm 1 0): itree E (memory * (regi
  *)
 (** The definition [interp_asm] also induces a notion of equivalence (open)
     _asm_ programs, which is just the equivalence of the ktree category *)
-Definition eq_asm_denotations {E C A B} `{Reg +' Memory +? C -< E}
-           (t1 t2 : Kleisli (itree E) A B) : Prop.
-  Typeclasses eauto := 4.
-  refine ( forall a mem regs, interp_asm (t1 a) mem regs ≈ interp_asm (t2 a) mem regs).
-  all: try typeclasses eauto.
-  refine (let t1' := t1 a in _).
 
+Definition eq_asm_denotations {E A B C D} `{Memory +? C -< D} `{Reg +? D -< E}
+           (t1 t2 : Kleisli (itree E) A B) : Prop
     :=
   forall a mem regs, interp_asm (t1 a) mem regs ≈ interp_asm (t2 a) mem regs.
 
-  Set Printing Implicit.
-Definition eq_asm   {A B} (p1 p2 : asm A B) : Prop.
-  refine (eq_asm_denotations (denote_asm p1) (denote_asm p2)).
-  Unshelve.
-  exact (void1).
-Defined.
-  Set Printing Implicit.
-  Show Proof.
+(* SAZ: Note - we turned off associativity of the Subevent typeclasses because
+they were causing an infinite loop here ... *)
+Definition eq_asm {E A B C D F} `{Exit +? F -< C} `{Memory +? C -< D} `{Reg +? D -< E} 
+           (p1 p2 : asm A B) : Prop 
     :=
-  eq_asm_denotations (denote_asm p1) (denote_asm p2).
+      eq_asm_denotations (denote_asm p1) (denote_asm p2).
 
 Section InterpAsmProperties.
 
@@ -381,9 +373,10 @@ Section InterpAsmProperties.
   Proof.
     repeat intro.
     unfold interp_asm.
-    unfold interp_map.
-    rewrite H0.
+    unfold interp_asm_mem.
+    unfold interp_asm_regs.
     rewrite H.
+    rewrite H0.
     rewrite H1.
     reflexivity.
   Qed.
@@ -393,10 +386,13 @@ Section InterpAsmProperties.
       @eutt E' _ _ eq (interp_asm (ret r) mem regs)
             (ret (mem, (regs, r))).
   Proof.
-    unfold interp_asm, interp_map.
+    unfold interp_asm, interp_asm_mem, interp_asm_regs, interp_map.
     intros.
     unfold ret at 1, Monad_itree.
-    rewrite interp_ret, 2 interp_state_ret.
+    rewrite interp_ret.
+    rewrite interp_state_ret.
+    rewrite interp_ret.    
+    rewrite interp_state_ret.
     reflexivity.
   Qed.
 
@@ -407,11 +403,12 @@ Section InterpAsmProperties.
 
   Proof.
     intros.
-    unfold interp_asm.
-    unfold interp_map. cbn.
+    unfold interp_asm, interp_asm_mem, interp_asm_regs, interp_map.
+    About interp_bind.
     repeat rewrite interp_bind.
     repeat rewrite interp_state_bind.
-    repeat rewrite Eq.bind_bind.
+    repeat rewrite interp_bind.
+    repeat rewrite interp_state_bind.    
     eapply eutt_clo_bind.
     { reflexivity. }
     intros.

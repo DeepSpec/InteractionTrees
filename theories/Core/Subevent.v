@@ -399,8 +399,8 @@ Existing Instance Subevent_Base          | 0.
 Existing Instance Subevent_Sum_In        | 2.
 Existing Instance Subevent_Sum_Out       | 3.
 (* Existing Instance Subevent_to_complement | 5. *)
-Existing Instance Subevent_Assoc1        | 10.
-Existing Instance Subevent_Assoc2        | 10.
+(* Existing Instance Subevent_Assoc1        | 10. *)
+(* Existing Instance Subevent_Assoc2        | 10. *)
 (* Existing Instance Subevent_Assoc3        | 10. *)
 (* YZ: Reassociation instances loop when evars are involved.
    A solution if we want them is to manually add finer grained hints to the db.
@@ -419,10 +419,12 @@ Section Test.
   Qed.
 
   (* Reassociation is fine *)
+  (* SAZ: Commented out due to commenting out Subevent_Assoc* *)
+  (*
   Goal (A +' C) +? (B +' D) -< (A +' B) +' (C +' D).
     typeclasses eauto.
   Qed.
-
+   *)
 End Test.
 
 Notation trigger e := (trigger' _ (inj1 e)).
