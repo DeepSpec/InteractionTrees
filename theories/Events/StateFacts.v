@@ -151,6 +151,44 @@ Proof.
   - rewrite tau_eutt, unfold_interp_state; eauto.
 Qed.
 
+(* SAZ:
+    This lemma should be generalizable to replace eq (the equivalence on states) with
+    SS - a relation on states, but we then need to add a hypothesis that [h] respects
+    the equivalence:
+
+      (GoodH:  forall e s1 s2, SS s1 s2 -> eutt (prod_rel SS eq) (h e s1) (h e s2))
+
+    Then we need to prove that the particular handlers in the interp_state definition
+    meet this requirement...
+
+    After doing this, the MapDefaultFacts should be an instance, so we can recover
+    [interp_map_proper] by applying the general version of this lemma.
+*)
+Instance eutt_interp_state_gen {E F: Type -> Type} {S : Type}
+         (h : E ~> Monads.stateT S (itree F)) R RR :
+  Proper (eutt RR ==> eq ==> eutt (prod_rel eq RR)) (@interp_state E (itree F) S _ _ _ h R).
+Proof.
+  repeat intro. subst. revert_until R.
+  einit. ecofix CIH. intros.
+
+  rewrite !unfold_interp_state. punfold H0. red in H0.
+  induction H0; intros; subst; simpl; pclearbot.
+  - eret.
+  - etau.
+  - ebind. econstructor; [reflexivity|].  (* SAZ: reflexivity will break, we need to use the GoodH hypothesis *)
+    intros; subst.
+    etau. ebase.
+  - rewrite tau_eutt, unfold_interp_state; eauto.
+  - rewrite tau_eutt, unfold_interp_state; eauto.
+Qed.
+
+(* 
+(* SAZ: unclear whether we want to introduce a runStateT instance because the instance 
+   above applies after unfolding *)
+Instance eutt_runStateT_itree
+         Proper ((eq ==> eutt (prod_rel eq RR)) ==> eq ) (@runStateT S (itree E) A)
+*)
+
 Lemma eutt_interp_state_aloop {E F S I I' A A'}
       (RA : A -> A' -> Prop) (RI : I -> I' -> Prop)
       (RS : S -> S -> Prop)
