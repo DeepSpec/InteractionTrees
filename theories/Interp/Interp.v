@@ -39,7 +39,7 @@ From ITree Require Import
      Core.ITreeDefinition
      Indexed.Relation.
 (* end hide *)
-
+Set Universe Polymorphism.
 (** ** Translate *)
 
 (** An event morphism [E ~> F] lifts to an itree morphism [itree E ~> itree F]

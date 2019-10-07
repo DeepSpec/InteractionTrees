@@ -51,10 +51,10 @@ Proof.
   unfold interp_state, interp, Basics.iter, MonadIter_stateT0, Basics.iter, MonadIter_itree; cbn.
   rewrite unfold_iter; cbn.
   destruct observe; cbn.
-  - rewrite 2 bind_ret. reflexivity.
-  - rewrite 2 bind_ret.
+  - unfold runStateT; rewrite 2 bind_ret. reflexivity.
+  - unfold runStateT; rewrite 2 bind_ret.
     reflexivity.
-  - rewrite bind_map, bind_bind; cbn. setoid_rewrite bind_ret.
+  - unfold runStateT. cbn. rewrite bind_map, bind_bind; cbn. setoid_rewrite bind_ret.
     apply eqit_bind; reflexivity.
 Qed.
 
@@ -227,7 +227,7 @@ Proof.
 Qed.
 
 (* SAZ: These are probably too specialized. *)
-Definition state_eq {E S X} 
+Definition state_eq {E S X}
   : (stateT S (itree E) X) -> (stateT S (itree E) X) -> Prop :=
   fun t1 t2 => forall s, eq_itree eq (t1 s) (t2 s).
 
@@ -238,11 +238,11 @@ Lemma interp_state_iter {E F } S (f : E ~> stateT S (itree F)) {I A}
   : forall i, state_eq (State.interp_state f (ITree.iter t i))
                   (Basics.iter t' i).
 Proof.
-  unfold Basics.iter, MonadIter_stateT0, Basics.iter, MonadIter_itree in *; cbn.
+  unfold Basics.iter, MonadIter_stateT0, Basics.iter, MonadIter_itree, runStateT in *; cbn.
   ginit. gcofix CIH; intros i s.
   rewrite 2 unfold_iter; cbn.
   rewrite !bind_bind.
-  setoid_rewrite bind_ret.
+  cbn. setoid_rewrite bind_ret.
   rewrite interp_state_bind.
   guclo eqit_clo_bind; econstructor; eauto.
   - apply EQ_t.

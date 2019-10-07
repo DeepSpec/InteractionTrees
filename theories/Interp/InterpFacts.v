@@ -172,7 +172,6 @@ Proof.
   - discriminate.
 Qed.
 
-
 Instance eutt_interp' {E F : Type -> Type} {R : Type} (RR: R -> R -> Prop) (f : E ~> itree F) :
   Proper (eutt RR ==> eutt RR)
          (@interp E (itree F) _ _ _ f R).

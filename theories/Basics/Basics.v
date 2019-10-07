@@ -3,7 +3,7 @@
 (** Not specific to itrees. *)
 
 (* begin hide *)
-From Coq Require 
+From Coq Require
      Ensembles.
 
 From Coq Require Import
@@ -77,10 +77,10 @@ Section ProdRelInstances.
   Proof.
     red. destruct x. constructor; auto.
   Qed.
-  
+
   Global Instance prod_rel_sym `{Symmetric _ RR} `{Symmetric _ SS}  : Symmetric (prod_rel RR SS).
   Proof.
-    red. intros. 
+    red. intros.
     inversion H1. subst.
     constructor; symmetry; auto.
   Qed.
@@ -112,6 +112,8 @@ Definition identity (a : Type) : Type := a.
 
 Definition stateT (s : Type) (m : Type -> Type) (a : Type) : Type :=
   s -> m (prod s a).
+Definition runStateT {s m a} (r: stateT s m a): s -> m (prod s a) := fun s => r s.
+
 Definition state (s a : Type) := s -> prod s a.
 
 Definition readerT (r : Type) (m : Type -> Type) (a : Type) : Type :=
@@ -122,18 +124,18 @@ Definition writerT (w : Type) (m : Type -> Type) (a : Type) : Type :=
   m (prod w a).
 Definition writer := prod.
 
-Instance Functor_stateT {m s} {Fm : Functor m} : Functor (stateT s m)
-  := {|
-    fmap _ _ f := fun run s => fmap (fun sa => (fst sa, f (snd sa))) (run s)
-    |}.
+Instance Functor_stateT {m s} {Fm : Functor m} : Functor (stateT s m) :=
+  {|
+    fmap _ _ f := fun run s => fmap (fun sa => (fst sa, f (snd sa))) (runStateT run s)
+  |}.
 
-Instance Monad_stateT {m s} {Fm : Monad m} : Monad (stateT s m)
-  := {|
+Instance Monad_stateT {m s} {Fm : Monad m} : Monad (stateT s m) :=
+  {|
     ret _ a := fun s => ret (s, a)
-  ; bind _ _ t k := fun s =>
-      sa <- t s ;;
-      k (snd sa) (fst sa)
-    |}.
+    ; bind _ _ t k :=
+        fun s => sa <- runStateT t s ;;
+              k (snd sa) (fst sa)
+  |}.
 
 End Monads.
 
@@ -155,15 +157,16 @@ Polymorphic Class MonadIter (M : Type -> Type) : Type :=
 
 Instance MonadIter_stateT {M S} {MM : Monad M} {AM : MonadIter M}
   : MonadIter (stateT S M) :=
-  fun _ _ step i => mkStateT (fun s =>
-    iter (fun is =>
-      let i := fst is in
-      let s := snd is in
-      is' <- runStateT (step i) s ;;
-      ret match fst is' with
-          | inl i' => inl (i', snd is')
-          | inr r => inr (r, snd is')
-          end) (i, s)).
+  fun _ _ step i =>
+    mkStateT (fun s =>
+                iter (fun is =>
+                        let i := fst is in
+                        let s := snd is in
+                        is' <- runStateT (step i) s ;;
+                         ret match fst is' with
+                             | inl i' => inl (i',  snd is')
+                             | inr r => inr (r, snd is')
+                             end) (i, s)).
 
 Polymorphic Instance MonadIter_stateT0 {M S} {MM : Monad M} {AM : MonadIter M}
   : MonadIter (Monads.stateT S M) :=
@@ -171,7 +174,7 @@ Polymorphic Instance MonadIter_stateT0 {M S} {MM : Monad M} {AM : MonadIter M}
     iter (fun si =>
       let s := fst si in
       let i := snd si in
-      si' <- step i s;;
+      si' <- Monads.runStateT (step i) s;;
       ret match snd si' with
           | inl i' => inl (fst si', i')
           | inr r => inr (fst si', r)

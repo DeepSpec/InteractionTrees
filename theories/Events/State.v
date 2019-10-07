@@ -17,6 +17,11 @@ From ITree Require Import
      Core.Subevent
      Interp.Interp.
 
+From Coq Require Import
+     Setoid
+     Morphisms
+     RelationClasses.
+
 Import ITree.Basics.Basics.Monads.
 Import ITreeNotations.
 
@@ -46,21 +51,22 @@ Section State.
   Definition put {E} `{stateE -< E} : S -> itree E unit := embed Put.
 
   Definition handle_state {E} : stateE ~> stateT S (itree E) :=
-    fun _ e s =>
+    fun _ e =>
       match e with
-      | Get => Ret (s, s)
-      | Put s' => Ret (s', tt)
+      | Get => fun s => Ret (s, s)
+      | Put s' => fun _ => Ret (s', tt)
       end.
 
   (* SAZ: this is the instance for the hypothetical "Trigger E M" typeclass.
-    Class Trigger E M := trigger : E ~> M 
+    Class Trigger E M := trigger : E ~> M
   *)
   Definition pure_state {S E} : E ~> stateT S (itree E)
     := fun _ e s => Vis e (fun x => Ret (s, x)).
 
-  Definition run_state {E}
-    : itree (stateE +' E) ~> stateT S (itree E)
-    := interp_state (case_ handle_state pure_state).
+  Definition apply_IFun {E F} (f : IFun E F) : E ~> F := f.
+
+  Definition run_state {E} : itree (stateE +' E) ~> stateT S (itree E) :=
+    interp_state (case_ handle_state pure_state).
 
 End State.
 
@@ -68,9 +74,8 @@ Arguments get {S E _}.
 Arguments put {S E _}.
 Arguments run_state {S E} [_] _ _.
 
-
 (* ----------------------------------------------------------------------- *)
-(* SAZ: The code from here to <END> below doesn't belong to State.v  it should 
+(* SAZ: The code from here to <END> below doesn't belong to State.v  it should
    go in Prop.v or something like that . *)
 (* todo(gmm): this can be stronger if we allow for a `can_returnE` *)
 Inductive can_return {E : Type -> Type} {t : Type} : itree E t -> t -> Prop :=
