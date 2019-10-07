@@ -48,7 +48,7 @@ SAZ: This needs to be updated.
 *)
 
 (* begin hide *)
-Require Import Imp Asm Utils_tutorial AsmCombinators Imp2Asm Label.
+Require Import Imp Asm Utils_tutorial AsmCombinators Imp2Asm Fin KTreeFin.
 
 Require Import Psatz.
 
@@ -61,14 +61,11 @@ From Coq Require Import
      RelationClasses.
 
 From ITree Require Import
-     Basics.Basics
-     CategoryOps
      ITree
      ITreeFacts
+     Basics.CategorySub
      Events.StateFacts
-     Events.MapDefault
-     SubKTree
-     SubKTreeFacts.
+     Events.MapDefault.
 
 Import ITreeNotations.
 
@@ -458,6 +455,8 @@ End Bisimulation.
 
 Section Linking.
 
+Import KTreeFin.
+
   (** [seq_asm] is denoted as the (horizontal) composition of denotations. *)
   Lemma seq_asm_correct {A B C} (ab : asm A B) (bc : asm B C) :
       denote_asm (seq_asm ab bc)
@@ -465,9 +464,7 @@ Section Linking.
   Proof.
     unfold seq_asm. 
     rewrite link_asm_correct, relabel_asm_correct, app_asm_correct.
-    rewrite <- lift_sktree_id, cat_assoc.
-    rewrite cat_id_r.
-    rewrite sym_sktree_unfold.
+    rewrite fmap_id0, cat_id_r, fmap_swap.
     apply cat_from_loop.
   Qed.
 
@@ -476,7 +473,7 @@ Section Linking.
 
   (* SAZ: This proof and the following one should be made nicer.
      Part of the problem is that some of the details of the Label types leak through
-     the interface.  It would be better to extend the Embedding and SubKTree interfaces
+     the interface.  It would be better to extend the CategorySub interface
      to better preserve the abstractions.  
 
      We should not have to unfold [isum_suml], [merge], etc. We would have to figure out
@@ -487,7 +484,7 @@ Section Linking.
     ⩯ ((fun _ =>
          denote_list e ;;
          v <- trigger (GetReg tmp_if) ;;
-         if v : value then denote_asm fp f1 else denote_asm tp f1) : sktree _ _ _).
+         if v : value then denote_asm fp f0 else denote_asm tp f0)).
   Proof.
     unfold if_asm.
     rewrite seq_asm_correct.
@@ -496,10 +493,8 @@ Section Linking.
     rewrite relabel_asm_correct.
     intros ?.
     Local Opaque denote_asm.
-    Local Opaque Label.FS.
-    Local Opaque merge_fin_sum.
 
-    unfold CategoryOps.cat, Cat_sktree, CategoryOps.cat, Cat_Kleisli; simpl.
+    unfold CategoryOps.cat, Cat_sub, CategoryOps.cat, Cat_Kleisli; simpl.
     rewrite denote_after.
     cbn.
     repeat setoid_rewrite bind_bind.
@@ -509,51 +504,33 @@ Section Linking.
     - rewrite !bind_ret.
       setoid_rewrite (app_asm_correct tp fp _).
       setoid_rewrite bind_bind.
-      unfold isum_suml, isum_sum, lift_ktree; cbn. unfold id_, Id_iFun, id, id_, Id_Fun.
-      rewrite bind_ret; cbn.
-      unfold merge.
-      unfold case_, case_isum, CategoryOps.cat, Cat_Fun, case_, case_sum, CoprodCase_Kleisli, case_sum.
-      cbn.
-      rewrite split_fin_sum_FS_inr.
-      repeat rewrite bind_bind.
-      repeat setoid_rewrite bind_ret.
-      rewrite <- (bind_ret2 (denote_asm fp f1)).
-      eapply eqit_bind.
-      * 
-      intros ?.
-      apply eqit_Ret.
-
-      setoid_rewrite (@iso_epi _ _ _ _ _ _ _ _ _ (@FinSumIso A A)).
-      reflexivity.
-      * rewrite bind_ret2.
-        reflexivity.
-
+      match goal with
+      | [ |- _ (?t >>= _) _ ] => let y := eval compute in t in change t with y
+      end.
+      rewrite bind_ret. cbn.
+      setoid_rewrite bind_ret.
+      rewrite bind_bind.
+      unfold from_bif, FromBifunctor_ktree_fin; cbn.
+      setoid_rewrite bind_ret.
+      rewrite bind_ret2'.
+      { rewrite (unique_f0 (fi' 0)). reflexivity. }
+      { intros. Local Opaque split_fin_sum R. cbv. Local Transparent split_fin_sum R.
+        rewrite split_fin_sum_R. reflexivity. }
 
     - rewrite !bind_ret.
       setoid_rewrite (app_asm_correct tp fp _).
       repeat setoid_rewrite bind_bind.
-      unfold isum_suml, lift_ktree_, isum_sum, FinSum. unfold id_, Id_iFun, id, id_, Id_Fun.
-      unfold ret, Monad_itree. 
-      rewrite bind_ret.
-      unfold merge.
-      unfold case_, case_isum, CategoryOps.cat, Cat_Fun, case_, case_sum, CoprodCase_Kleisli, case_sum.
-      rewrite split_fin_sum_f1_inl.
-      unfold Cat_sktree.
-      repeat rewrite bind_bind.
-      unfold isum_sum.
-      unfold CategoryOps.cat, Cat_Kleisli.
-      setoid_rewrite bind_bind.
-      repeat setoid_rewrite bind_ret.
-      rewrite <- (bind_ret2 (denote_asm tp f1)).
-      eapply eqit_bind.
-      * 
-        intros ?.
-        apply eqit_Ret.
-        unfold sum_isum.
-        setoid_rewrite (@iso_epi _ _ _ _ _ _ _ _ _ (@FinSumIso A A)).
-        reflexivity.
-      * rewrite bind_ret2.
-        reflexivity.
+      match goal with
+      | [ |- _ (?t >>= _) _ ] => let y := eval compute in t in change t with y
+      end.
+      rewrite bind_ret. cbn. rewrite bind_bind.
+      setoid_rewrite bind_ret.
+      unfold from_bif, FromBifunctor_ktree_fin.
+      setoid_rewrite bind_ret.
+      rewrite bind_ret2'.
+      { rewrite (unique_f0 (fi' 0)). reflexivity. }
+      { intros. Local Opaque split_fin_sum L. cbv. Local Transparent split_fin_sum R.
+        rewrite split_fin_sum_L. reflexivity. }
   Qed.
 
 
@@ -563,71 +540,61 @@ Section Linking.
      This probably points to a leaky abstraction about the labels that we should clean up.
    *)
 
-  Notation label_case := (fun l => (@isum_sum _ FinEmbedding plus _ 1 _ l)).
-  Notation l1 := f1.
-  Notation l2 := (FS f1).
-  
+  Notation label_case := (split_fin_sum _ _).
+
   Lemma while_asm_correct (e : list instr) (p : asm 1 1) :
       denote_asm (while_asm e p)
-    ⩯ (sloop (fun l: F (1 + 1) =>
+    ⩯ (loop (C := sub (ktree _) fin) (fun l : fin (1 + 1) =>
          match label_case l with
-         | inl _ =>  denote_list e ;;
-                    v <- trigger (GetReg tmp_if) ;; if (v:value) then Ret l2 else (denote_asm p f1;; Ret l1)
-         | inr _ => Ret l1
+         | inl _ =>
+           denote_list e ;;
+           v <- trigger (GetReg tmp_if) ;;
+           if (v:value) then Ret (fS f0) else (denote_asm p f0;; Ret f0)
+         | inr _ => Ret f0
          end)).
   Proof.
     unfold while_asm.
     rewrite link_asm_correct.
     apply Proper_loop.
     rewrite relabel_asm_correct.
-    rewrite <- lift_sktree_id, cat_id_l.
+    rewrite fmap_id0, cat_id_l.
     rewrite app_asm_correct.
     rewrite if_asm_correct.
     intros x.
     cbn.
+    unfold to_bif, ToBifunctor_ktree_fin.
     rewrite bind_ret.
-    destruct (split_fin_sum x).
-    - cbn.
-      rewrite !bind_bind.
+    destruct (label_case x); cbn.
+    - rewrite !bind_bind. setoid_rewrite bind_ret.
       eapply eutt_clo_bind; try reflexivity. intros; subst.
       rewrite bind_bind.
       eapply eutt_clo_bind; try reflexivity. intros; subst.
+      unfold from_bif, FromBifunctor_ktree_fin; cbn.
+      setoid_rewrite bind_ret.
       destruct u0.
-      + rewrite (pure_asm_correct _ _). cbn. 
+      + rewrite (pure_asm_correct _ _); cbn.
         rewrite !bind_ret.
-        apply eqit_Ret. 
-        (* SAZ this part could be made nicer, perhaps. *)
-        unfold merge, case_, case_isum, isum_sum, FinSum.
-        unfold CategoryOps.cat, Cat_Fun, case_, CoprodCase_Kleisli, case_sum.
-        rewrite split_merge. unfold id_, Id_iFun, id_, Id_Fun.
-        unfold inr_, sum_inr.
-        apply merge_fin_sum_inr.
+        apply eqit_Ret.
+        apply unique_fin; reflexivity.
 
       + rewrite (relabel_asm_correct _ _ _ _). cbn.
-        simpl; repeat setoid_rewrite bind_bind.
         rewrite bind_ret.
+        setoid_rewrite bind_bind.
         eapply eutt_clo_bind; try reflexivity.
-        intros ? ? []. 
+        intros ? ? [].
         repeat rewrite bind_ret.
         apply eqit_Ret.
-        (* SAZ: same as above *)
-        unfold inl_, sum_inl.
-        unfold merge, case_, case_isum. cbn.
-        unfold CategoryOps.cat, Cat_Kleisli, Cat_Fun, case_, CoprodCase_Kleisli, case_sum.
-        rewrite split_merge.
-        unfold id_, Id_iFun, id_, Id_Fun.
-        apply merge_fin_sum_inl_1.
+        rewrite (unique_f0 u1).
+        apply unique_fin; reflexivity.
         
     - cbn. 
       rewrite (pure_asm_correct _ _).
-      rewrite bind_bind. cbn. 
+      rewrite bind_bind. cbn.
+      unfold from_bif, FromBifunctor_ktree_fin.
       rewrite !bind_ret.
       apply eqit_Ret.
-      unfold inl_, sum_inl.
-      unfold merge, case_, case_isum. cbn.
-      unfold CategoryOps.cat, Cat_Kleisli, Cat_Fun, case_, CoprodCase_Kleisli, case_sum.
-      rewrite split_merge. unfold id_, Id_iFun, id_, Id_Fun.
-      apply merge_fin_sum_inl_1.
+      rewrite (unique_f0 f).
+      apply unique_fin; reflexivity.
 Qed.
 
 End Linking.
@@ -811,7 +778,7 @@ Section Correctness.
   Hint Unfold TT.
 
   Definition equivalent (s:stmt) (t:asm 1 1) : Prop :=
-    bisimilar TT (denote_stmt s) (denote_asm t f1).
+    bisimilar TT (denote_stmt s) (denote_asm t f0).
   
 
 
@@ -850,8 +817,8 @@ Section Correctness.
   Qed.
 
 
-Definition to_itree' {E A} (f : sktree E 1 A) : itree E (F A) := f f1.
-Lemma fold_to_itree' {E} (f : sktree E 1 1) : f f1 = to_itree' f.
+Definition to_itree' {E A} (f : ktree_fin E 1 A) : itree E (fin A) := f f0.
+Lemma fold_to_itree' {E} (f : ktree_fin E 1 1) : f f0 = to_itree' f.
 Proof. reflexivity. Qed.
 
 Global Instance Proper_to_itree' {E A} :
@@ -907,7 +874,7 @@ Notation Inr_Kleisli := CoprodInr_Kleisli.
       (* And the result is immediate by indcution hypothesis *)
       eapply bisimilar_bind'.
       { eassumption. }
-      intros [] ? _. rewrite (unique_f1 a').
+      intros [] ? _. rewrite (unique_f0 a').
       eassumption.
 
     - (* If *)
@@ -948,28 +915,22 @@ Notation Inr_Kleisli := CoprodInr_Kleisli.
       Local Opaque denote_asm.
 
       unfold to_itree'.
-      unfold sloop. unfold iter at 2.
-      unfold Iter_sktree, Inr_sktree, Inr_Kleisli, inr_, sum_isuml, lift_ktree, cat, Cat_sktree, cat, Cat_Kleisli.
-      Local Opaque f1.
-      simpl.
-      rewrite 2 bind_ret.
-      simpl. 
-      eapply (bisimilar_iter (fun x x' => (x = inl tt /\ x' = f1) \/ (x = inr tt /\ x' = FS f1))).
+      unfold loop. unfold iter at 2.
+      unfold Iter_sub, CoprodInr_sub, Inr_Kleisli, inr_, lift_ktree, cat, Cat_sub, cat, Cat_Kleisli.
+      unfold from_bif, FromBifunctor_ktree_fin.
+      cbn. rewrite 2 bind_ret. cbn.
+      eapply (bisimilar_iter (fun x x' => (x = inl tt /\ x' = f0) \/ (x = inr tt /\ x' = fS f0))).
       2: {
-        right. split. auto. apply R_1_a.
+        right. split. auto. apply unique_fin; reflexivity.
         }
       (* The two cases correspond to entering the loop, or exiting it*)
       intros ? ? [[] | []]; subst; cbn.
 
       (* The exiting case is trivial *)
       2:{ repeat intro.
+          unfold to_bif, ToBifunctor_ktree_fin. rewrite !bind_ret. cbn.
           force_left. force_right.
-          red.
-          rewrite split_fin_sum_FS_inr.
-          rewrite! bind_ret.
-          rewrite interp_asm_bind.
-          rewrite split_fin_sum_f1_inl. cbn. 
-          rewrite <- eqit_Ret; auto.
+          red; rewrite <- eqit_Ret; auto.
           unfold state_invariant. simpl.
           split; auto.
           setoid_rewrite split_fin_sum_L_L_f1.
@@ -980,7 +941,6 @@ Notation Inr_Kleisli := CoprodInr_Kleisli.
       (* We now need to line up the evaluation of the test,
          and eliminate them by correctness of [compile_expr] *)
       repeat intro.
-      rewrite split_fin_sum_f1_inl.      
       rewrite !interp_imp_bind.
       rewrite !interp_asm_bind.
       rewrite !bind_bind.
@@ -1006,19 +966,10 @@ Notation Inr_Kleisli := CoprodInr_Kleisli.
       + (* The false case is trivial *)
         force_left; force_right.
         red.
-        setoid_rewrite interp_asm_ret.
-        unfold ret, Monad_itree.
-        rewrite bind_ret.
-        rewrite split_fin_sum_FS_inr.
-        rewrite interp_asm_bind.
-        cbn. 
         rewrite <- eqit_Ret.
         unfold state_invariant. simpl.
         split; auto.
-        unfold id.
-        rewrite split_fin_sum_R_2.
-        constructor. constructor.
-        
+
       + (* In the true case, we line up the body of the loop to use the induction hypothesis *)
         rewrite !interp_asm_bind.
         rewrite !interp_imp_bind.
@@ -1027,9 +978,6 @@ Notation Inr_Kleisli := CoprodInr_Kleisli.
         { eapply IHs; auto. }
         intros [g_imp'' v''] [g_asm'' [l'' x']] [HSIM' ?].
         force_right; force_left.
-        setoid_rewrite interp_asm_ret.
-        setoid_rewrite bind_ret.
-        rewrite split_fin_sum_f1_inl. cbn. 
         apply eqit_Ret.
         setoid_rewrite split_fin_sum_L_L_f1.
         constructor; auto.
@@ -1039,18 +987,14 @@ Notation Inr_Kleisli := CoprodInr_Kleisli.
 
       simpl.
       unfold id_asm.
-      pose proof  (@pure_asm_correct).
-      unfold eq2, Eq2_sktree, eutt_sktree in H.
-      red in H. unfold Eq2_Kleisli in H. red in H.
-      rewrite H. unfold lift_sktree, lift_ktree_.
-      unfold ret, Monad_itree, id.
+      pose proof (@pure_asm_correct).
+      do 5 red in H. rewrite H.
       red. intros.
       setoid_rewrite interp_asm_ret.
       unfold interp_imp.
       rewrite interp_ret. unfold interp_map. rewrite interp_state_ret.
-      unfold ret, Monad_itree, id.
       apply eqit_Ret.
-      unfold state_invariant. simpl. auto.
+      unfold state_invariant. auto.
 Qed.
 
 End Correctness.
@@ -1082,3 +1026,14 @@ End Correctness.
     blocks for each compiled statement! One would hope to easily write and
     prove an optimization coalescing elementary blocks together.
  *)
+
+(* Print Assumptions compile_correct. *)
+
+(*
+Axioms:
+ProofIrrelevance.proof_irrelevance : forall (P : Prop) (p1 p2 : P), p1 = p2
+Eqdep.Eq_rect_eq.eq_rect_eq : forall (U : Type) (p : U)
+                                (Q : U -> Type) (x : Q p)
+                                (h : p = p), x = eq_rect p Q x p h
+JMeq.JMeq_eq : forall (A : Type) (x y : A), JMeq.JMeq x y -> x = y
+*)

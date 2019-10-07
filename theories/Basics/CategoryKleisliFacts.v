@@ -11,6 +11,7 @@ From ITree Require Import
      Basics.Basics
      Basics.Category
      Basics.MonadTheory
+     Basics.CategoryFunctor
      Basics.CategoryKleisli
      Basics.Function.
 
@@ -45,6 +46,15 @@ Section BasicFacts.
     - etransitivity; eauto.
   Qed.
 
+  Global Instance Functor_pure
+    : Functor Fun (Kleisli m) (fun x => x) (@pure m _).
+  Proof.
+    constructor; intros.
+    - reflexivity.
+    - intros ?. unfold pure, cat, Cat_Kleisli. rewrite bind_ret.
+      reflexivity.
+    - intros ? ? ? ?. unfold pure. rewrite H. reflexivity.
+  Qed.
 
 Global Instance Proper_cat_Kleisli {a b c}
   : @Proper (Kleisli m a b -> Kleisli m b c -> _)

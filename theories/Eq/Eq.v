@@ -925,6 +925,15 @@ Proof.
   genobs s os. destruct os; simpl; eauto with paco.
 Qed.
 
+Lemma bind_ret2' {E R} (u : itree E R) (f : R -> R) :
+  (forall x, f x = x) ->
+  (r <- u ;; Ret (f r)) ≅ u.
+Proof.
+  intro H. rewrite <- (bind_ret2 u) at 2. apply eqit_bind.
+  - hnf. intros. apply eqit_Ret. auto.
+  - reflexivity.
+Qed.
+
 Lemma bind_bind {E R S T} :
   forall (s : itree E R) (k : R -> itree E S) (h : S -> itree E T),
     ITree.bind (ITree.bind s k) h ≅ ITree.bind s (fun r => ITree.bind (k r) h).

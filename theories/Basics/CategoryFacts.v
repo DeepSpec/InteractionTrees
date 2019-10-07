@@ -34,7 +34,7 @@ Ltac cat_auto_simpl :=
      || rewrite case_inl || rewrite <- (cat_assoc inl_ (case_ _ _)), case_inl
      || rewrite case_inr || rewrite <- (cat_assoc inr_ (case_ _ _)), case_inr
      || rewrite !cat_assoc);
-    reflexivity + eauto with cat
+    reflexivity || eauto with cat
   end.
 
 (** ** Isomorphisms *)
@@ -221,7 +221,7 @@ Qed.
 
 Ltac cat_auto :=
   unfold_coproduct;
-  repeat progress (reflexivity + (try cat_auto_simpl); try apply coprod_split).
+  repeat progress (reflexivity || (try cat_auto_simpl); try apply coprod_split).
 
 Ltac cat_auto' :=
   repeat intro;
@@ -231,11 +231,23 @@ Ltac cat_auto' :=
          end;
   cat_auto.
 
+Lemma swap_case (a b c: obj) (f: C a c) (g: C b c)
+  : swap >>> case_ f g ⩯ case_ g f.
+Proof.
+  intros; unfold swap, Swap_Coproduct.
+  rewrite cat_case, inr_case, inl_case.
+  reflexivity.
+Qed.
+
 Lemma inr_swap {a b} : inr_ >>> swap_ a b ⩯ inl_.
 Proof. apply case_inr. Qed.
 
 Lemma inl_swap {a b} : inl_ >>> swap_ a b ⩯ inr_.
 Proof. apply case_inl. Qed.
+
+Lemma bimap_case_unfold {a b c d} (f : C a b) (g : C c d)
+  : bimap f g ⩯ case_ (f >>> inl_) (g >>> inr_).
+Proof. reflexivity. Qed.
 
 Lemma inr_bimap {a b c d} (f : C a b) (g : C c d)
   : inr_ >>> bimap f g ⩯ g >>> inr_.
@@ -393,7 +405,7 @@ Ltac cat_auto_step :=
 
 Ltac cat_auto :=
   unfold_coproduct;
-  repeat progress (reflexivity + cat_auto_simpl; try apply coprod_split).
+  repeat progress (reflexivity || cat_auto_simpl; try apply coprod_split).
 
 (** Iterative categories are traced. *)
 Section TracedIterativeFacts.
@@ -411,8 +423,6 @@ Context {CoprodCase_C : CoprodCase C bif}
         {CoprodInl_C : CoprodInl C bif}
         {CoprodInr_C : CoprodInr C bif}.
 Context {Coproduct_C : Coproduct C bif}.
-Context {Proper_case_ : forall a b c,
-            @Proper (C a c -> C b c -> C _ c) (eq2 ==> eq2 ==> eq2) case_}.
 
 Context {Iter_bif : Iter C bif}.
 Context {Iterative_C : Iterative C bif}.

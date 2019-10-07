@@ -21,12 +21,12 @@ From ITree Require Import
      ITreeFacts
      ITreeMonad
      Basics.MonadTheory
+     Basics.CategorySub
      Events.State
      Events.StateKleisli
-     Events.StateFacts
-     SubKTree.
+     Events.StateFacts.
 
-Require Import Label Utils_tutorial.
+Require Import Fin Utils_tutorial.
 
 Import Monads.
 (* end hide *)
@@ -81,7 +81,7 @@ Global Arguments block _ : clear implicits.
     represents a collection of blocks labeled by [F A], with branches in [F B]. 
 *)
 
-Definition bks A B := F A -> block (F B).
+Definition bks A B := fin A -> block (fin B).
 
 
 (** An [asm] program represents the control flow of the computation.  It is a
@@ -197,7 +197,7 @@ Section Denote.
       (** A [branch] returns the computed label whose set of possible values [B]
           is carried by the type of the branch.  If the computation halts
           instead of branching, we return the [exit] tree.  *)
-      Definition denote_branch (b : branch (F B)) : itree E (F B) :=
+      Definition denote_branch (b : branch (fin B)) : itree E (fin B) :=
         match b with
         | Bjmp l => ret l
         | Bbrz v y n =>
@@ -210,7 +210,7 @@ Section Denote.
       (** The denotation of a basic [block] shares the same type, returning the
           [label] of the next [block] it shall jump to.  It recursively denote
           its instruction before that.  *)
-      Fixpoint denote_block (b : block (F B)) : itree E (F B) :=
+      Fixpoint denote_block (b : block (fin B)) : itree E (fin B) :=
         match b with
         | bbi i b =>
           denote_instr i ;; denote_block b
@@ -229,7 +229,7 @@ Section Denote.
           algebraic structure, supported by the library, including a [loop]
           combinator that we can use to link collections of basic blocks. (See
           below.) *)
-      Definition denote_bks (bs: bks A B): sktree E A B :=
+      Definition denote_bks (bs: bks A B): sub (ktree E) fin A B :=
         fun a => denote_block (bs a).
 
     End with_labels.
@@ -244,8 +244,8 @@ Section Denote.
       accomplish this with the same [loop] combinator we used to denote _Imp_'s
       [while] loop.  It directly takes our [denote_bks (code s): ktree E (I + A)
       (I + B)] and hides [I] as desired.  *)
-    Definition denote_asm {A B} : asm A B -> sktree E A B :=
-      fun s => sloop (denote_bks (code s)).
+    Definition denote_asm {A B} : asm A B -> sub (ktree E) fin A B :=
+      fun s => loop (denote_bks (code s)).
 
   End with_event.
 End Denote.
@@ -323,7 +323,7 @@ Definition interp_asm {E A} (t : itree (Reg +' Memory +' E) A) :
 (** We can then define an evaluator for closed assembly programs by interpreting
     both store and heap events into two instances of [mapE], and running them
     both in the empty initial environments.  *)
-Definition run_asm (p: asm 1 0) := interp_asm (denote_asm p Label.f1) empty empty.
+Definition run_asm (p: asm 1 0) := interp_asm (denote_asm p Fin.f0) empty empty.
 
 (* SAZ: Should some of thes notions of equivalence be put into the library?
    SAZ: Should this be stated in terms of ktree ?

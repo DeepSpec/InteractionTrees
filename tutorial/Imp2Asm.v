@@ -17,7 +17,7 @@
 *)
 
 (* begin hide *)
-Require Import Imp Asm Label Utils_tutorial AsmCombinators.
+Require Import Imp Asm Fin Utils_tutorial AsmCombinators.
 
 Require Import Psatz.
 
@@ -120,7 +120,7 @@ Definition tmp_if := 0.
     expression of a _if_ to a block with two exit points.
  *)
 Definition cond_asm (e : list instr) : asm 1 2 :=
-  raw_asm_block (after e (Bbrz tmp_if (FS f1) f1)).
+  raw_asm_block (after e (Bbrz tmp_if (fS f0) f0)).
 
 
 (** Conditional branch of blocks.
@@ -169,7 +169,7 @@ Definition while_asm (e : list instr) (p : asm 1 1) :
   asm 1 1 :=
   link_asm (relabel_asm (id_ _) merge
     (app_asm (if_asm e
-                (relabel_asm id inl_ p)
+                (relabel_asm (id_ _) inl_ p)
                 (pure_asm inr_))
             (pure_asm inl_))).
 
@@ -179,7 +179,7 @@ Definition while_asm (e : list instr) (p : asm 1 1) :
 Fixpoint compile (s : stmt) {struct s} : asm 1 1 :=
   match s with
   | Skip       => id_asm
-  | Assign x e => raw_asm_block (after (compile_assign x e) (Bjmp f1))
+  | Assign x e => raw_asm_block (after (compile_assign x e) (Bjmp f0))
   | Seq l r    => seq_asm (compile l) (compile r)
   | If e l r   => if_asm (compile_expr 0 e) (compile l) (compile r)
   | While e b  => while_asm (compile_expr 0 e) (compile b)
