@@ -407,15 +407,16 @@ Section Bisimulation.
     unfold Basics.iter, MonadIter_stateT0, Basics.iter, MonadIter_itree; cbn.
     rewrite H2.
     apply (eutt_iter' (state_invariant R)).
+    2: constructor; auto.
     intros.
     destruct H3; cbn.
-    rewrite interp_state_bind, bind_bind.
+    rewrite interp_bind, interp_state_bind, bind_bind.
+    setoid_rewrite interp_ret.
     setoid_rewrite interp_state_ret.
     setoid_rewrite bind_ret. cbn.
-    apply (@eutt_clo_bind _ _ _ _ _ _ (state_invariant (sum_rel R S))).
+    apply eutt_clo_bind with (UU := state_invariant (sum_rel R S)).
     - auto.
     - intros ? ? [? []]; cbn; apply eqit_Ret; constructor; split; auto.
-    - constructor; auto.
   Qed.
 
   (** [sim_rel] at [n] entails that [GetVar (gen_tmp n)] gets interpreted
@@ -429,25 +430,20 @@ Section Bisimulation.
       ≈     (Ret (g_asm, (l, v))).
   Proof.
     intros.
-    unfold interp_asm.
+    unfold interp_asm, interp_asm_regs, interp_asm_mem.
+    unfold trigger, Trigger_ITree.
     rewrite interp_trigger.
     cbn.
-    unfold interp_map.
-    unfold map_reg, CategoryOps.cat, Cat_Handler, Handler.cat.
-    unfold inl_, Inl_sum1_Handler, Handler.inl_, Handler.htrigger. cbn.
-    unfold lookup_def; cbn.
-    unfold embed, Embeddable_itree, Embeddable_forall, embed.
-    rewrite interp_trigger.
-    rewrite interp_state_trigger.
+    unfold lookup_def, trigger, Trigger_ITree, interp_map.
     cbn.
+    rewrite interp_state_trigger; cbn.
     rewrite bind_ret, tau_eutt.
-    rewrite interp_state_ret.
+    rewrite interp_ret, interp_state_ret.
     unfold lookup_default, lookup, Map_alist.
     erewrite sim_rel_find.
     reflexivity.
     apply H.
   Qed.
-
 
 End Bisimulation.
 
