@@ -303,7 +303,11 @@ End Simulation_Relation.
     also need to interpret the [asm] register effects.  *)
 
 Section Bisimulation.
-
+  Context {E F C1 C2: Type -> Type}.
+  Context {HasReg : Reg +? C1 -< E}.
+  Context {HasMemory : Memory +? C2 -< C1}.
+  Context {HasState : ImpState +? C2 -< F}.
+  Context {HasRegWf : Subevent_wf HasReg}.
 
   (** Definition of our bisimulation relation.
 
@@ -325,14 +329,13 @@ Section Bisimulation.
    *)
 
   Section RAB.
-
     Context {A B : Type}.
     Context (RAB : A -> B -> Prop).  (* relation on Imp / Asm values *)
 
     Definition state_invariant (a : Imp.env * A) (b : Asm.memory * (Asm.registers * B))  :=
       Renv (fst a) (fst b) /\ (RAB (snd a) (snd (snd b))).
 
-    Definition bisimilar {E} (t1 : itree (ImpState +' E) A) (t2 : itree (Reg +' Memory +' E) B)  :=
+    Definition bisimilar (t1 : itree F A) (t2 : itree E B)  :=
     forall g_asm g_imp l,
       Renv g_imp g_asm ->
       eutt state_invariant
@@ -340,24 +343,23 @@ Section Bisimulation.
            (interp_asm t2 g_asm l).
   End RAB.
 
-
   (** [bisimilar] is compatible with [eutt]. *)
 
-  Global Instance eutt_bisimilar  {A B E}  (RAB : A -> B -> Prop):
-    Proper (eutt eq ==> eutt eq ==> iff) (@bisimilar A B RAB E).
+  Global Instance eutt_bisimilar {A B} (RAB : A -> B -> Prop):
+    Proper (eutt eq ==> eutt eq ==> iff) (bisimilar RAB).
   Proof.
     repeat intro.
     unfold bisimilar. split.
     - intros.
-      rewrite <- H, <- H0. auto.
+      rewrite <- H, <- H0; auto.
     - intros.
-      rewrite H, H0. auto.
+      rewrite H, H0; auto.
   Qed.
 
-  Lemma bisimilar_bind' {A A' B C E} (RAA' : A -> A' -> Prop) (RBC: B -> C -> Prop):
-    forall (t1 : itree (ImpState +' E) A) (t2 : itree (Reg +' Memory +' E) A') ,
+  Lemma bisimilar_bind' {A A' B C} (RAA' : A -> A' -> Prop) (RBC: B -> C -> Prop):
+    forall (t1 : itree F A) (t2 : itree E A') ,
       bisimilar RAA' t1 t2 ->
-      forall (k1 : A -> itree (ImpState +' E) B) (k2 : A' -> itree (Reg +' Memory +' E) C)
+      forall (k1 : A -> itree F B) (k2 : A' -> itree E C)
         (H: forall (a:A) (a':A'), RAA' a a' -> bisimilar RBC (k1 a) (k2 a')),
         bisimilar RBC (t1 >>= k1) (t2 >>= k2).
   Proof.
@@ -374,8 +376,9 @@ Section Bisimulation.
     eapply H0; eauto.
   Qed.
 
-  Lemma interp_state_iter' {E F } S (f : E ~> stateT S (itree F)) {I A}
-      (t  : I -> itree E (I + A))
+  (* YZ: Move this to the library *)
+  Lemma interp_state_iter' {E1 E2} S (f : E1 ~> stateT S (itree E2)) {I A}
+      (t  : I -> itree E1 (I + A))
   : forall i, state_eq (State.interp_state f (ITree.iter t i))
                   (Basics.iter (fun i => State.interp_state f (t i)) i).
   Proof.
@@ -384,11 +387,11 @@ Section Bisimulation.
     red. reflexivity.
   Qed.
 
-  Lemma bisimilar_iter {E A A' B B'}
+  Lemma bisimilar_iter {A A' B B'}
         (R : A -> A' -> Prop)
         (S : B -> B' -> Prop)
-        (t1 : A -> itree (_ +' E) (A + B))
-        (t2 : A' -> itree (_ +' _ +' E) (A' + B')) :
+        (t1 : A -> itree F (A + B))
+        (t2 : A' -> itree E (A' + B')) :
     (forall l l', R l l' -> bisimilar (sum_rel R S) (t1 l) (t2 l')) ->
     forall x x', R x x' ->
     bisimilar S (KTree.iter t1 x) (KTree.iter t2 x').
@@ -423,9 +426,9 @@ Section Bisimulation.
       as returning the same value as the _Imp_ related one.
    *)
   Lemma sim_rel_get_tmp0:
-    forall {E} n l l' g_asm g_imp v,
+    forall n l l' g_asm g_imp v,
       sim_rel l' n (g_imp,v) (g_asm, (l,tt)) ->
-      (interp_asm ((trigger (GetReg n)) : itree (Reg +' Memory +' E) value)
+      (interp_asm ((trigger (GetReg n)) : itree E value)
                                        g_asm l)
       ≈     (Ret (g_asm, (l, v))).
   Proof.
@@ -434,6 +437,7 @@ Section Bisimulation.
     unfold trigger, Trigger_ITree.
     rewrite interp_trigger.
     cbn.
+    rewrite over_inj1. cbn.
     unfold lookup_def, trigger, Trigger_ITree, interp_map.
     cbn.
     rewrite interp_state_trigger; cbn.
@@ -457,18 +461,23 @@ End Bisimulation.
 
 Section Linking.
 
-  (** [seq_asm] is denoted as the (horizontal) composition of denotations. *)
-  Lemma seq_asm_correct {A B C} (ab : asm A B) (bc : asm B C) :
+    Context {E C1 C2 C3 : Type -> Type}.
+    Context {HasReg : Reg +? C1 -< E}.
+    Context {HasMemory : Memory +? C2 -< E}.
+    Context {HasExit : Exit +? C3 -< E}.
+
+    (** [seq_asm] is denoted as the (horizontal) composition of denotations. *)
+    Lemma seq_asm_correct {A B C} (ab : asm A B) (bc : asm B C) :
       denote_asm (seq_asm ab bc)
-    ⩯ denote_asm ab >>> denote_asm bc.
-  Proof.
-    unfold seq_asm.
-    rewrite link_asm_correct, relabel_asm_correct, app_asm_correct.
-    rewrite <- lift_sktree_id, cat_assoc.
-    rewrite cat_id_r.
-    rewrite sym_sktree_unfold.
-    apply cat_from_loop.
-  Qed.
+                 ⩯ denote_asm ab >>> denote_asm bc.
+    Proof.
+      unfold seq_asm.
+      rewrite link_asm_correct, relabel_asm_correct, app_asm_correct.
+      rewrite <- lift_sktree_id, cat_assoc.
+      rewrite cat_id_r.
+      rewrite sym_sktree_unfold.
+      apply cat_from_loop.
+    Qed.
 
   (** [if_asm] is denoted as the ktree first denoting the branching condition,
       then looking-up the appropriate variable and following with either denotation. *)
@@ -635,7 +644,11 @@ End Linking.
 (** ** Correctness *)
 
 Section Correctness.
-
+  Context {E F C1 C2 : Type -> Type}.
+  Context {HasReg : Reg +? C1 -< E}.
+  Context {HasMemory : Memory +? C2 -< E}.
+  Context {HasState : ImpState +? C2 -< F}.
+  (* Context {HasExit : Exit +? C3 -< E}. *)
 
   (** Correctness of expressions.
       We strengthen [bisimilar]: initial environments are still related by [Renv],
@@ -645,20 +658,48 @@ Section Correctness.
       [alist var value * value] for _Imp_). The differeence is nonetheless mostly
       transparent for the user, except for the use of the more generale [eqit_bind'].
    *)
-  Lemma compile_expr_correct : forall {E} e g_imp g_asm l n,
+  Lemma compile_expr_correct : forall e g_imp g_asm l n,
       Renv g_imp g_asm ->
-      @eutt E _ _ (sim_rel l n)
+      @eutt C2 _ _ (sim_rel l n)
             (interp_imp (denote_expr e) g_imp)
             (interp_asm (denote_list (compile_expr n e)) g_asm l).
   Proof.
     induction e; simpl; intros.
     - (* Var case *)
       (* We first compute and eliminate taus on both sides. *)
+      match goal with |- eutt ?R _ ?t' => set (RR := R); set (t := t') end.
+      force_left.
+      unfold trigger', Trigger_ITree.
+      
 
+
+  match goal with | [ |- _ ?x _ ] => rewrite (itree_eta x) end.
+  unfold interp_imp.
+  unfold interp, Basics.iter, MonadIter_itree, ITree.iter.
+  cbn.
+      cbn.
+      unfold trigger', Trigger_ITree.
+      cbn.
+      unfold interp_imp.
+      
+
+      force_left; rewrite tau_eutt.
+      force_left; rewrite tau_eutt.
+      force_left.
+      force_right. cbn. rewrite tau_eutt.
+      force_left; rewrite tau_eutt.
+      tau_steps_left; rewrite tau_eutt.
+      unfold trigger', Trigger_ITree.
+      cbn.
+      rewrite itree_eta. cbn.
+      rewrite tau_eutt.
+      rewrite itree_eta. cbn.
+
+      at 2.
       tau_steps.
-
+      rewrite itree_eta at 2.
       (* We are left with [Ret] constructs on both sides, that remains to be related *)
-      red; rewrite <-eqit_Ret.
+      red; rewrite <- eqit_Ret.
       unfold lookup_default, lookup, Map_alist.
 
       (* On the _Asm_ side, we bind to [gen_tmp n] a lookup to [varOf v] *)
@@ -678,7 +719,9 @@ Section Correctness.
     - (* Plus case *)
       (* We push [interp_locals] into the denotations *)
 
-      do 2 setoid_rewrite denote_list_app.
+      rewrite 2 denote_list.
+
+      rewrite (@denote_list_app E C1 C2 HasReg HasMemory (compile_expr n e1) (compile_expr (S n) e2 ++ [Iadd n n (Oreg (S n))])).
       rewrite interp_asm_bind.
       rewrite interp_imp_bind.
 

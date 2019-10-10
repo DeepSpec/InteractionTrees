@@ -360,12 +360,12 @@ Section InterpImpProperties.
       at the _Asm_ level (see AsmOptimizations.v).
    *)
 
-  Context {E': Type -> Type}.
-  Notation E := (ImpState +' E').
+  Context {E C: Type -> Type}.
+  Context {HasState: ImpState +? C -< E}.
 
   (** This interpreter is compatible with the equivalence-up-to-tau. *)
   Global Instance eutt_interp_imp {R}:
-    Proper (@eutt E R R eq ==> eq ==> @eutt E' (prod (env) R) (prod _ R) eq)
+    Proper (@eutt E R R eq ==> eq ==> @eutt C (prod (env) R) (prod _ R) eq)
            interp_imp.
   Proof.
     repeat intro.

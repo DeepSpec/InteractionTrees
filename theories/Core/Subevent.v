@@ -39,7 +39,6 @@ Inductive option1 (A : Type -> Type) X :Type :=
 Arguments None1 {_ _}.
 Arguments Some1 {_} [_].
 
-
 Section Subevent.
 
   (* Isomorphism:  B <~> (A +' C) *)
@@ -51,7 +50,7 @@ Section Subevent.
 
   Class Subevent_wf {A B C} (sub: @Subevent A B C): Prop :=
       {
-        sub_iso : Iso _ split_E merge_E
+        sub_iso :> Iso _ split_E merge_E
       }.
 
   Arguments Subevent : clear implicits.
@@ -60,35 +59,32 @@ Section Subevent.
   Definition inj1 {A B C} `{Subevent A B C} : A ~> B :=  inl_ >>> merge_E.
   Definition inj2 {A B C} `{Subevent A B C} : C ~> B :=  inr_ >>> merge_E.
   Definition case  {A B C} `{Subevent A B C} : B ~> (A +' C) := split_E.
+
 End Subevent.
 
-(*
-
-  (**
-     The [Subevent] typeclasse expresses the intuitive set inclusion over family of events.
-     `A` is a subdomain of `B` if there is an injection from `A` into `B`.
-   *)
-  Class Subevent {A B C : Type -> Type} : Type :=
-    {   prj : B ~> A +' C
-      ; inj : A ~> B
-      ; prj_inj : forall {t} (a : A t), prj (inj a) = inl1 a
-      ; inj_prj : forall {t} (b : B t) a, prj b = inl1 a -> inj a = b
-      ; inj_prj : forall {t} (b : B t) a, prj b = inl1 a -> inj a = b
-    }.
-  Arguments Subevent : clear implicits.
-  Arguments prj {_ _ _} [_].
-  Arguments inj {_ _ _} [_].
-
-  (* Embedding of the subdomain into the bigger one *)
-  Definition subeventV {A B} {V : Subevent A B} : A ~> B := inj.
-
-*)
 Arguments Subevent : clear implicits.
 Arguments case {_ _ _ _} [_].
 Arguments inj1 {_ _ _ _} [_].
 Arguments inj2 {_ _ _ _} [_].
 
+Notation "A +? C -< B" := (Subevent A B C)
+                            (at level 90, left associativity) : type_scope.
 
+Lemma case_inj1: forall {A B C: Type -> Type} `{Sub: A +? C -< B} {SubWF: Subevent_wf Sub} {T} (e: A T),
+    case (inj1 e) = inl_ _ e.
+Proof.
+  intros.
+  pose proof (iso_epi IFun T (inl_ _ e)).
+  auto.
+Qed.
+
+Lemma case_inj2: forall {A B C: Type -> Type} `{Sub: A +? C -< B} {SubWF: Subevent_wf Sub} {T} (e: C T),
+    case (inj2 e) = inr_ _ e.
+Proof.
+  intros.
+  pose proof (iso_epi IFun T (inr_ _ e)).
+  auto.
+Qed.
 
 Section Trigger.
 
@@ -97,23 +93,12 @@ Section Trigger.
      an event [e] builds the "smallest" monadic value that executes [e].
    *)
 
-  (* Temporary prime, to remove once the old trigger is scrapped off
-     Trigger E
-(itree E): Type -> Type
-itree:(Type -> Type) -> Type -> Type
-     Trigger itree
-   *)
   Class Trigger (E: Type -> Type) (M: Type -> Type) := trigger': E ~> M.
-  (* Remark: could be a property of a family of monads instead: *)
-  (* Class Trigger (M: (Type -> Type) -> Type -> Type) := *)
-  (*   trigger': forall (E: Type -> Type) (X: Type), E X -> M E X. *)
 
 End Trigger.
 
-(* Recovering the previous notion of effect inclusion. *)
-Notation "A +? C -< B" := (Subevent A B C)
-                            (at level 90, left associativity) : type_scope.
-
+Notation trigger e := (trigger' _ (inj1 e)).
+Notation vis e k := (Vis (inj1 e) k).
 (**
    Generic lifting of an handler over a super-set of events.
    The [Subevent] typeclass gives us the partial inverse to call the handler on its domain.
@@ -128,18 +113,25 @@ Definition over {A B C M : Type -> Type} {S:A +? C -< B} {T:Trigger C M} (f : A 
 
 Arguments over {_ _ _ _ _ _} _ [_] _.
 
-(*
-Definition subevent {E F : Type -> Type} `{E -< F} : E ~> F := subeventV.
-*)
+Lemma over_inj1: forall {A B C M: Type -> Type}
+                   {Sub: A +? C -< B} {SubWF: Subevent_wf Sub} {Trig: Trigger C M}
+                   (h: A ~> M)
+                   {T} (e: A T),
+    over h (inj1 e) = h _ e.
+Proof.
+  intros.
+  unfold over; rewrite case_inj1; reflexivity.
+Qed.
 
-(*
-(** A polymorphic version of [Vis]. *)
-Notation vis e k := (Vis (subevent _ e) k).
-
-(* Called [send] in Haskell implementations of Freer monads. *)
-(* YZ: TODO: kill or change this notation? *)
-Notation trigger e := (ITree.trigger (subevent _ e)).
- *)
+Lemma over_inj2: forall {A B C M: Type -> Type}
+                   {Sub: A +? C -< B} {SubWF: Subevent_wf Sub} {Trig: Trigger C M}
+                   (h: A ~> M)
+                   {T} (e: C T),
+    over h (inj2 e) = trigger' _ e.
+Proof.
+  intros.
+  unfold over; rewrite case_inj2; reflexivity.
+Qed.
 
 (*************** Instances ***************)
 Section Instances.
@@ -426,6 +418,3 @@ Section Test.
   Qed.
    *)
 End Test.
-
-Notation trigger e := (trigger' _ (inj1 e)).
-Notation vis e k := (Vis (inj1 e) k).

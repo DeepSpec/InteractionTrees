@@ -357,19 +357,20 @@ Definition eq_asm_denotations {E A B C D} `{Memory +? C -< D} `{Reg +? D -< E}
 
 (* SAZ: Note - we turned off associativity of the Subevent typeclasses because
 they were causing an infinite loop here ... *)
-Definition eq_asm {E A B C D F} `{Exit +? F -< C} `{Memory +? C -< D} `{Reg +? D -< E} 
-           (p1 p2 : asm A B) : Prop 
+Definition eq_asm {E A B C D F} `{Exit +? F -< C} `{Memory +? C -< D} `{Reg +? D -< E}
+           (p1 p2 : asm A B) : Prop
     :=
       eq_asm_denotations (denote_asm p1) (denote_asm p2).
 
 Section InterpAsmProperties.
 
-  Context {E': Type -> Type}.
-  Notation E := (Reg +' Memory +' E').
+  Context {E C1 C2 : Type -> Type}.
+  Context {HasReg : Reg +? C1 -< E}.
+  Context {HasMemory : Memory +? C2 -< C1}.
 
   (** This interpreter is compatible with the equivalence-up-to-tau. *)
   Global Instance eutt_interp_asm {R}:
-    Proper (@eutt E R R eq ==> eq ==> eq ==> @eutt E' (prod memory (prod registers R)) (prod _ (prod _ R)) eq) interp_asm.
+    Proper (@eutt E R R eq ==> eq ==> eq ==> @eutt C2 (prod memory (prod registers R)) (prod _ (prod _ R)) eq) interp_asm.
   Proof.
     repeat intro.
     unfold interp_asm.
@@ -383,7 +384,7 @@ Section InterpAsmProperties.
 
   (** [interp_asm] commutes with [Ret]. *)
   Lemma interp_asm_ret: forall {R} (r: R) (regs : registers) (mem: memory),
-      @eutt E' _ _ eq (interp_asm (ret r) mem regs)
+      @eutt C2 _ _ eq (interp_asm (ret r) mem regs)
             (ret (mem, (regs, r))).
   Proof.
     unfold interp_asm, interp_asm_mem, interp_asm_regs, interp_map.
@@ -391,14 +392,14 @@ Section InterpAsmProperties.
     unfold ret at 1, Monad_itree.
     rewrite interp_ret.
     rewrite interp_state_ret.
-    rewrite interp_ret.    
+    rewrite interp_ret.
     rewrite interp_state_ret.
     reflexivity.
   Qed.
 
   (** [interp_asm] commutes with [bind]. *)
   Lemma interp_asm_bind: forall {R S} (t: itree E R) (k: R -> itree _ S) (regs : registers) (mem: memory),
-      @eutt E' _ _ eq (interp_asm (ITree.bind t k) mem regs)
+      @eutt C2 _ _ eq (interp_asm (ITree.bind t k) mem regs)
             (ITree.bind (interp_asm t mem regs) (fun '(mem', (regs', x)) => interp_asm (k x) mem' regs')).
 
   Proof.
@@ -408,7 +409,7 @@ Section InterpAsmProperties.
     repeat rewrite interp_bind.
     repeat rewrite interp_state_bind.
     repeat rewrite interp_bind.
-    repeat rewrite interp_state_bind.    
+    repeat rewrite interp_state_bind.
     eapply eutt_clo_bind.
     { reflexivity. }
     intros.
