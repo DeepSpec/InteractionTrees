@@ -94,7 +94,7 @@ Definition bks A B := F A -> block (F B).
 
     - [internal]: (hidden) internal linked labels
 
-    Note that they uniformely represent open and closed programs, the latter
+    Note that they uniformly represent open and closed programs, the latter
     corresponding to an [asm] program with a unique entry point and no exit
     labels, i.e. a [asm unit void].  Note that using [void] to describe the exit
     points means that closed program must either diverge (go into an infinite

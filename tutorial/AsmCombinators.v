@@ -12,7 +12,7 @@
     _traced monoidal category_.
     We do so by thinking of [ktree]s as a theory of linking at the denotational
     level. Each linking combinator is therefore proved correct by showing that
-    the denotation of the resulting [asm], a [ktree],  can be swapped with the
+    the denotation of the resulting [asm], a [ktree], can be swapped with the
     corresponding [ktree] combinator.
     It is interesting to notice that while the [ktree] theory, provided by the
     library, required heavy use of coinduction, it provides sufficient reasoning
@@ -215,7 +215,7 @@ Section Correctness.
     traverse_ denote_instr.
 
   (** Correctness of the [after] operator.
-      Its denotation bind the denotation of the instructions
+      Its denotation binds the denotation of the instructions
       with the one of the branch.
    *)
 

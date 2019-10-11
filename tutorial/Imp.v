@@ -202,12 +202,12 @@ Section Denote.
       
       Compared to the [mrec] and [rec] combinators introduced in
       [Introduction.v], [loop] is more restricted in that it naturally
-      represents tail recursive functions.  It however enjoys a rich equational
+      represents tail recursive functions.  It, however, enjoys a rich equational
       theory: its addition grants the type of _continuation trees_ (named
       [ktree]s in the library), a structure of a _traced monoidal category_.
 
       We use [loop] to first build a new combinator [while] that takes a step of
-      the loop (i.e. the loop guard The "control" behavior of the loop is
+      the loop (i.e. the loop guard). The "control" behavior of the loop is
       governed by a value of type [unit + unit].  The right tag [inr tt] says to
       exit the loop, and the [inl tt] says to continue.  *)
 
@@ -221,7 +221,7 @@ Section Denote.
   Definition is_true (v : value) : bool := if (v =? 0)%nat then false else true.
 
   (** The meaning of statements is now easy to define.  They are all
-      straightforward, except for [While], whic uses our new [while] combinator
+      straightforward, except for [While], which uses our new [while] combinator
       over the computation that evaluates the conditional, and then the body if
       the former was true.  *)
   Fixpoint denote_stmt (s : stmt) : itree eff unit :=
@@ -264,7 +264,7 @@ Section Example_Fact.
        input  ← input - 1.
 
   (** We have given _a_ notion of denotation to [fact 6] via [denote_stmt].
-      However this is naturally not actually runnable yet, since it contains
+      However, this is naturally not actually runnable yet, since it contains
       uninterpreted [ImpState] events.  We therefore now need to _handle_ the
       events contained in the trees, i.e. give a concrete interpretation of the
       environment.  *)

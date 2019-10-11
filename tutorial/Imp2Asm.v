@@ -65,7 +65,7 @@ Section compile_assign.
       instrs1 ++ instrs2 ++ [Imul l l (Oreg (1 + l))]
       end.
 
-  (** Compiles the expression and then move the result (in register [0]) to address
+  (** Compiles the expression and then moves the result (in register [0]) to address
       [x].  Note: here we assume a one-to-one mapping of _Imp_ global variable names
       and _Asm_ addresses.
   *)
