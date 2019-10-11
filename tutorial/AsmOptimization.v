@@ -1,6 +1,4 @@
 (* begin hide *)
-Require Import Label Asm AsmCombinators Imp2AsmCorrectness Utils_tutorial.
-
 Require Import Psatz.
 
 From Coq Require Import
@@ -20,8 +18,7 @@ From ITree Require Import
      Events.StateFacts
      Events.MapDefault
      Events.MapDefaultFacts
-     Events.State
-     SubKTree.
+     Events.State.
 
 Import ITreeNotations.
 
@@ -38,6 +35,7 @@ Open Scope string_scope.
 Import CatNotations.
 Open Scope cat_scope.
 
+Require Import Fin Asm AsmCombinators Imp2AsmCorrectness Utils_tutorial.
 (* end hide *)
 
 
@@ -300,8 +298,8 @@ Section Correctness.
 
   Lemma ph_blk_append_correct : forall (ph : peephole_optimization) (H : ph_correct ph)
     lbl1 lbl2 b1 b2 i,
-    (@eq_asm_denotations_EQ Exit (F lbl1) (F lbl2) (fun _ => denote_block b1) (fun _ => denote_block b2)) ->
-    (@eq_asm_denotations_EQ Exit (F lbl1) (F lbl2)
+    (@eq_asm_denotations_EQ Exit (fin lbl1) (fin lbl2) (fun _ => denote_block b1) (fun _ => denote_block b2)) ->
+    (@eq_asm_denotations_EQ Exit (fin lbl1) (fin lbl2)
                          (fun _ => denote_instr i ;; denote_block b1)
                          (fun _ => denote_block (blk_append (ph i) b2))).
   Proof.
@@ -326,8 +324,8 @@ Lemma peephole_block_correct :
   forall (ph : peephole_optimization)
     (H : ph_correct ph)
     (lbl1 lbl2 : nat)
-    (b : block (F lbl2)),
-    @eq_asm_denotations_EQ Exit (F lbl1) (F lbl2)
+    (b : block (fin lbl2)),
+    @eq_asm_denotations_EQ Exit (fin lbl1) (fin lbl2)
                         (fun _ => denote_block b)
                         (fun _ => denote_block (peephole_optimize_block ph b)).
 Proof.
@@ -397,6 +395,7 @@ Proof.
        apply eqit_Ret. constructor; auto.
     -  intros. inversion H0.
        subst. cbn.
+       unfold CategorySub.from_bif, FromBifunctor_ktree_fin.
        repeat rewrite interp_ret.
        repeat rewrite interp_state_ret.
        apply eqit_Ret.
@@ -407,7 +406,7 @@ Proof.
   inversion H0; subst.
   simpl in *.
   unfold denote_bks.
-  unfold iter, Iter_sktree.
+  unfold iter, CategorySub.Iter_sub.
   repeat rewrite interp_iter.
   unfold KTree.iter, Iter_Kleisli.
   cbn. 
@@ -426,15 +425,18 @@ Proof.
     [|intros ? ? [? ? ? ? ? [? ? ? ? ? []]]]; cbn.
   { eapply @peephole_block_correct; eauto. }
 
+  unfold CategorySub.to_bif, ToBifunctor_ktree_fin.
   apply (@eutt_clo_bind _ _ _ _ _ _ rel_asm);
     [|intros ? ? [? ? ? ? ? [? ? ? ? ? []]]]; cbn.
-  { rewrite bind_ret.
+  {
+    rewrite bind_ret.
     unfold case_, Case_sum1, CoprodCase_Kleisli, case_sum.
-    unfold CategoryOps.cat, Cat_sktree, CategoryOps.cat, Cat_Kleisli.
-    unfold inl_, Inl_sktree, inl_, CoprodInl_Kleisli, lift_ktree_.
-    unfold inr_, Inr_sktree, inr_, CoprodInr_Kleisli, lift_ktree_.
-    unfold id_, Id_sktree, id_, Id_Kleisli, lift_ktree_.
+    unfold CategoryOps.cat, CategorySub.Cat_sub, CategoryOps.cat, Cat_Kleisli.
+    unfold inl_, CategorySub.CoprodInl_sub, inl_, CoprodInl_Kleisli, lift_ktree_.
+    unfold inr_, CategorySub.CoprodInr_sub, inr_, CoprodInr_Kleisli, lift_ktree_.
+    unfold id_, CategorySub.Id_sub, id_, Id_Kleisli, lift_ktree_.
     cbn.
+    unfold CategorySub.from_bif, FromBifunctor_ktree_fin.
     destruct split_fin_sum.
     all: rewrite !bind_ret, interp_ret, !interp_state_ret.
     all: apply eqit_Ret; auto.

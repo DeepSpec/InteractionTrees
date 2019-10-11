@@ -4,8 +4,9 @@
 Introduction.v
 
 Utils_tutorial.v
+Fin.v
+KTreeFin.v
 Imp.v
-Label.v
 Asm.v
 AsmCombinators.v
 Imp2Asm.v

@@ -9,6 +9,8 @@ theories/Basics/Category.v
 theories/Basics/CategoryOps.v
 theories/Basics/CategoryTheory.v
 theories/Basics/CategoryFacts.v
+theories/Basics/CategorySub.v
+theories/Basics/CategoryFunctor.v
 theories/Basics/MonadTheory.v
 theories/Basics/CategoryKleisli.v
 theories/Basics/CategoryKleisliFacts.v
@@ -18,8 +20,6 @@ theories/Basics/FunctionFacts.v
 theories/Core/ITreeDefinition.v
 theories/Core/KTree.v
 theories/Core/KTreeFacts.v
-theories/Core/SubKTree.v
-theories/Core/SubKTreeFacts.v
 theories/Core/Subevent.v
 theories/Core/ITreeMonad.v
 
