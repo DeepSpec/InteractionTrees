@@ -271,16 +271,18 @@ Section Instances.
           * rewrite <- EQ' in *; rewrite ISO2.
             auto.
       - cbn.
-(*        unfold SemiIso.
+        unfold SemiIso.
         repeat rewrite cat_case.
         repeat rewrite cat_assoc.
+        generalize (@sub_iso _ _ _ _ Sub1WF); intros [_ epi1].
+        generalize (@sub_iso _ _ _ _ Sub2WF); intros [_ epi2].
+        unfold SemiIso in *.
         rewrite <- (cat_assoc merge_E split_E).
-        generalize (@sub_iso _ _ _ _ Sub1WF); intros [].
-        Set Printing Implicit.
-        unfold SemiIso in iso_epi.
-        rewrite (iso_mono (f := merge_E) (f' := split_E)).
- *)
-    Admitted.
+        rewrite epi1, cat_id_l, case_inr, case_inl.
+        rewrite <- (cat_assoc merge_E split_E).
+        rewrite epi2, cat_id_l, case_inr, case_inl.
+        intros ? [|[|]]; cbn; reflexivity.
+    Qed.
 
    (**
        Well-formedness of the instances: each subevent instance defines an isomorphism.
