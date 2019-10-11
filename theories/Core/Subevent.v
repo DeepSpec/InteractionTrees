@@ -223,7 +223,66 @@ Section Instances.
           ; merge_E := (bimap (id_ _) assoc_r) >>> merge_E
       |}.
 
-    (**
+    Instance Subevent_forget_order
+             {E C1 C2 A B}
+             {Sub1: A +? C1 -< E}
+             {Sub2: B +? C2 -< C1}:
+      Subevent B E (A +' C2) :=
+      {| split_E := split_E >>> case_
+                            (inl_ >>> inr_)
+                            (split_E >>> case_
+                                     inl_
+                                     (inr_ >>> inr_))
+         ; merge_E := case_
+                        (inl_ >>> merge_E >>> inr_ >>> merge_E)
+                        (case_
+                           (inl_ >>> merge_E)
+                           (inr_ >>> merge_E >>> inr_ >>> merge_E))
+      |}.
+
+    Instance Subevent_forget_order_wf
+             {E C1 C2 A B}
+             {Sub1: A +? C1 -< E}
+             {Sub2: B +? C2 -< C1}
+             {Sub1WF: Subevent_wf Sub1}
+             {Sub2WF: Subevent_wf Sub2}
+      : Subevent_wf (@Subevent_forget_order _ _ _ _ _ Sub1 Sub2).
+    Proof.
+      do 2 split.
+      - cbn.
+        unfold SemiIso.
+        rewrite cat_assoc, cat_case.
+        rewrite cat_assoc, case_inr, case_inl.
+        rewrite cat_assoc, cat_case.
+        rewrite cat_assoc, case_inl.
+        rewrite (cat_assoc inr_ inr_), 2 case_inr.
+        (* Can we avoid this mess? *)
+        unfold cat, Cat_IFun, case_, Case_sum1, case_sum1, inl_, Inl_sum1, inr_, Inr_sum1, id_, Id_IFun.
+        intros ? e.
+        generalize (iso_mono _ (Iso := sub_iso) _ e); intros ISO1.
+        unfold cat, Cat_IFun, case_, Case_sum1, case_sum1, inl_, Inl_sum1, inr_, Inr_sum1, id_, Id_IFun in *.
+        destruct (split_E T e) eqn:EQ.
+        + auto.
+        + generalize (iso_mono _ (Iso := sub_iso) _ c); intros ISO2.
+          unfold cat, Cat_IFun, case_, Case_sum1, case_sum1, inl_, Inl_sum1, inr_, Inr_sum1, id_, Id_IFun in *.
+          destruct (split_E T c) eqn:EQ'.
+          * rewrite <- EQ' in *; rewrite ISO2.
+            auto.
+          * rewrite <- EQ' in *; rewrite ISO2.
+            auto.
+      - cbn.
+(*        unfold SemiIso.
+        repeat rewrite cat_case.
+        repeat rewrite cat_assoc.
+        rewrite <- (cat_assoc merge_E split_E).
+        generalize (@sub_iso _ _ _ _ Sub1WF); intros [].
+        Set Printing Implicit.
+        unfold SemiIso in iso_epi.
+        rewrite (iso_mono (f := merge_E) (f' := split_E)).
+ *)
+    Admitted.
+
+   (**
        Well-formedness of the instances: each subevent instance defines an isomorphism.
      *)
 
