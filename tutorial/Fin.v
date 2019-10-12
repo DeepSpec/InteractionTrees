@@ -46,12 +46,12 @@ Lemma unique_f0 : forall (a : fin 1), a = f0.
 Proof.
   destruct a. apply unique_fin; simpl. lia.
 Qed.
-  
+
 Program Definition fS {n} : fin n -> fin (S n) :=
   fun i => fi' (S (proj1_sig i)).
 Next Obligation.
   destruct i; simpl; lia.
-Defined.  
+Defined.
 
 Lemma fin_0 {A} : fin 0 -> A.
 Proof.
@@ -68,7 +68,7 @@ Proof.
   intros n m x l n0.
   lia.
 Defined.
-  
+
 Program Definition split_fin_sum (n m : nat)
   : fin (n + m) -> (fin n) + (fin m) := fun x =>
     match lt_dec (proj1_sig x) n with
@@ -94,12 +94,12 @@ Defined.
 Lemma R_0_a : forall (n:nat) (a : fin n), R 0 a = a.
 Proof.
   intros; destruct a; apply unique_fin; reflexivity.
-Qed.  
+Qed.
 
 Lemma R_1_a : forall (n:nat) (a : fin n), R 1 a = fS a.
 Proof.
   intros; destruct a; apply unique_fin; reflexivity.
-Qed.  
+Qed.
 
 Lemma split_fin_sum_0_a : forall m (a : fin (0 + m)),
     (@split_fin_sum 0 m a) = inr a.
@@ -126,18 +126,18 @@ Qed.
 Lemma L_1_f1 : (L 1 (@f0 0)) = f0.
 Proof.
   apply unique_fin; reflexivity.
-Qed.  
+Qed.
 
-Lemma split_fin_sum_L_L_f1 : 
+Lemma split_fin_sum_L_L_f1 :
   (@split_fin_sum _ _ (L 1 (L 1 (@f0 0)))) = inl f0.
 Proof.
   cbn; f_equal; apply unique_fin; reflexivity.
-Qed.    
+Qed.
 
 Lemma split_fin_sum_R_2 : split_fin_sum 2 1 (R 2 (@f0 0)) = inr f0.
 Proof.
   cbn; f_equal; apply unique_fin; reflexivity.
-Qed.  
+Qed.
 
 Lemma split_fin_sum_R n m (x : fin m) : split_fin_sum n m (R n x) = inr x.
 Proof.
@@ -156,7 +156,7 @@ Proof.
 Qed.
 
 Definition merge_fin_sum (n m: nat) : fin n + fin m -> fin (n + m) :=
-  fun v => 
+  fun v =>
     match v with
     | inl v => L m v
     | inr v => R n v
@@ -166,11 +166,11 @@ Lemma merge_fin_sum_inr : (merge_fin_sum 1 1 (inr f0)) = (fS f0).
 Proof.
   apply unique_fin; reflexivity.
 Qed.
-  
+
 Lemma merge_fin_sum_inl_1 f : (merge_fin_sum 1 1 (inl f)) = f0.
 Proof.
   rewrite (unique_f0 f); apply unique_fin; reflexivity.
-Qed.  
+Qed.
 
 Lemma merge_split:
   forall (n m : nat) (a : fin (n + m)), merge_fin_sum n m (split_fin_sum n m a) = a.

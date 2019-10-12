@@ -20,7 +20,9 @@
  *)
 
 (** This tutorial is composed of the following files:
-    - Utils_tutorial.v     : utilities
+    - Utils_tutorial.v     : Utilities
+    - Fin.v                : Finite types as a categorical embedding
+    - KTreeFin.v           : Subcategory of ktrees over finite types
     - Imp.v                : Imp language, syntax and semantics
     - Asm.v                : Asm language, syntax and semantics
     - AsmCombinators.v     : Linking theory for Asm
@@ -30,10 +32,10 @@
     The intended entry point for reading is Imp.v.
  *)
 
-(** We therefore start by introducing a simplified variant of Software
+(** We start by introducing a simplified variant of Software
     Foundations' [Imp] language.  The language's semantics is first expressed in
     terms of [itree]s.  The semantics of the program can then be obtained by
-    interpreting the events contained in the trees.  
+    interpreting the events contained in the trees.
 *)
 
 (* begin hide *)
@@ -112,7 +114,7 @@ Module ImpNotations.
 
   Notation "x '←' e" :=
     (Assign x e) (at level 60, e at level 50): stmt_scope.
-  
+
   Notation "a ';;;' b" :=
     (Seq a b)
       (at level 100, right associativity,
@@ -158,24 +160,25 @@ Variant ImpState : Type -> Type :=
 
 Section Denote.
 
-  (** We now proceed to denote _Imp_ expressions and statements.  We could
-      simply fix in stone the universe of events to be considered, taking as a
-      semantic domain for _Imp_ [itree ImpState X].  That would be sufficient to
-      give meaning to _Imp_, but is inconvenient to relate this meaning to
-      [itree]s stemmed from other entities.  Therefore, we parameterize the
-      denotation of _Imp_ by a larger universe of events [eff], of which
-      [ImpState] is assumed to be a subevent.  *)
+  (** We now proceed to denote _Imp_ expressions and statements.
+      We could simply fix in stone the universe of events to be considered,
+      taking as a semantic domain for _Imp_ [itree ImpState X]. That would be
+      sufficient to give meaning to _Imp_, but would prohibit us from relating this
+      meaning to [itree]s stemmed from other entities. Therefore, we
+      parameterize the denotation of _Imp_ by a larger universe of events [eff],
+      of which [ImpState] is assumed to be a subevent. *)
 
   Context {eff : Type -> Type}.
   Context {HasImpState : ImpState -< eff}.
 
   (** _Imp_ expressions are denoted as [itree eff value], where the returned
-      value in the tree is the value computed by the expression.  In the [Var]
-      case, the [trigger] operator smoothly lifts a single event to an [itree]
-      by performing the corresponding [Vis] event and returning the
-      environment's answer immediately.  Usual monadic notations are used in the
-      other cases. A constant (literal) is simply returned, while we can [bind]
-      recursive computations in the case of operators as one would expect.  *)
+      value in the tree is the value computed by the expression.
+      In the [Var] case, the [trigger] operator smoothly lifts a single event to
+      an [itree] by performing the corresponding [Vis] event and returning the
+      environment's answer immediately.
+      A constant (literal) is simply returned.
+      Usual monadic notations are used in the other cases: we can [bind]
+      recursive computations in the case of operators as one would expect. *)
 
   Fixpoint denote_expr (e : expr) : itree eff value :=
     match e with
@@ -190,32 +193,34 @@ Section Denote.
       statements do not return any value: their semantic domain is therefore
       [itree eff unit]. The most interesting construct is, naturally, [while].
 
-      To define its meaning, we make use of the [loop] combinator provided by
+      To define its meaning, we make use of the [iter] combinator provided by
       the [itree] library:
 
-      [loop : (C + A -> itree E (C + B)) -> A -> itree E B].
+      [iter : (A -> itree E (A + B)) -> A -> itree E B].
 
       The combinator takes as argument the body of the loop, i.e. a function
-      that maps inputs of type [C + A] to an [itree] computing either a [C] that
-      can be fed back to the loop, or a return value of type [B]. The combinator
-      builds the fixpoint of the body, hiding away the [C] argument.
-      
+      that maps inputs of type [A], the accumulator, to an [itree] computing
+      either a new [A] that can be fed back to the loop, or a return value of
+      type [B]. The combinator builds the fixpoint of the body, hiding away the
+      [A] argument from the return type.
+
       Compared to the [mrec] and [rec] combinators introduced in
-      [Introduction.v], [loop] is more restricted in that it naturally
+      [Introduction.v], [iter] is more restricted in that it naturally
       represents tail recursive functions.  It, however, enjoys a rich equational
       theory: its addition grants the type of _continuation trees_ (named
-      [ktree]s in the library), a structure of a _traced monoidal category_.
+      [ktree]s in the library), a structure of _traced monoidal category_.
 
-      We use [loop] to first build a new combinator [while] that takes a step of
-      the loop (i.e. the loop guard). The "control" behavior of the loop is
-      governed by a value of type [unit + unit].  The right tag [inr tt] says to
-      exit the loop, and the [inl tt] says to continue.  *)
+      We use [loop] to first build a new combinator [while].
+      The accumulator degenerates to a single [unit] value indicating
+      whether we entered the body of the while loop or not. Since the
+      the operation does not return any value, the return type is also
+      taken to be [unit].
+      That is, the right tag [inr tt] says to exit the loop,
+      while the [inl tt] says to continue. *)
 
-  (* SAZ + LX - for some reason typeclass resolution can't see the instance for 
-     Iter_ktree, even though it seems to be in scope. *)
   Definition while (step : itree eff (unit + unit)) : itree eff unit :=
-    @iter _ _ _ Iter_Kleisli _ _ (fun _ => step) tt.
-    
+    iter (C := Kleisli _) (fun _ => step) tt.
+
   (** Casting values into [bool]:  [0] corresponds to [false] and any nonzero
       value corresponds to [true].  *)
   Definition is_true (v : value) : bool := if (v =? 0)%nat then false else true.
@@ -234,9 +239,9 @@ Section Denote.
 
     | While t b =>
       while (v <- denote_expr t ;;
-	       if is_true v
-               then denote_stmt b ;; ret (inl tt)
-               else ret (inr tt))
+	           if is_true v
+             then denote_stmt b ;; ret (inl tt)
+             else ret (inr tt))
 
     | Skip => ret tt
     end.
@@ -248,7 +253,7 @@ End Denote.
 
 Section Example_Fact.
 
-  (** We briefly illustrate the language by writing the traditional factorial. 
+  (** We briefly illustrate the language by writing the traditional factorial.
       example.  *)
 
   Open Scope expr_scope.
@@ -308,7 +313,7 @@ Qed.
 Definition handle_ImpState {E: Type -> Type} `{mapE var 0 -< E}: ImpState ~> itree E :=
   fun _ e =>
     match e with
-    | GetVar x => lookup_def x 
+    | GetVar x => lookup_def x
     | SetVar x v => insert x v
     end.
 
@@ -323,7 +328,7 @@ Definition env := alist var value.
    resulting in an [itree] free of any event, but returning the final
    _Imp_ env.
  *)
-(* SAZ: would rather write something like the following: 
+(* SAZ: would rather write something like the following:
  h : E ~> M A
  h' : F[void1] ~> M A
 forall eff, {pf:E -< eff == F[E]} (t : itree eff A)
@@ -342,19 +347,19 @@ Definition eval_imp (s: stmt) : itree void1 (env * unit) :=
     Naturally since Coq is total, we cannot do it directly inside of it.
     We can either rely on extraction, or use some fuel.
  *)
-Compute (burn 200 (eval_imp (fact "input" "output" 6))). 
+Compute (burn 200 (eval_imp (fact "input" "output" 6))).
 
 (* ========================================================================== *)
 Section InterpImpProperties.
   (** We can lift the underlying equational theory on [itree]s to include new
-      equations for working with [interp_imp].  
+      equations for working with [interp_imp].
 
       In particular, we have:
-         - [interp_imp] respects [≈] 
-         - [interp_imp] commutes with [bind].  
+         - [interp_imp] respects [≈]
+         - [interp_imp] commutes with [bind].
 
       We could justify more equations than just the ones below.  For instance,
-      _Imp_ programs also respect a coarser notation of equivalence for the 
+      _Imp_ programs also respect a coarser notation of equivalence for the
       [env] state.  We exploit this possibility to implement optimzations
       at the _Asm_ level (see AsmOptimizations.v).
    *)

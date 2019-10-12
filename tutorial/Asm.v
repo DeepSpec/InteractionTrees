@@ -37,11 +37,11 @@ Import Monads.
 Definition addr : Set := string.
 
 (** We define a set of register names (for this simple example, we identify them
-with [nat]). *) 
+with [nat]). *)
 Definition reg : Set := nat.
 
 (** For simplicity, _Asm_ manipulates [nat]s as values too. *)
-Definition value : Set := nat. 
+Definition value : Set := nat.
 
 (** We consider constants and variables as operands. *)
 Variant operand : Set :=
@@ -78,7 +78,7 @@ Global Arguments block _ : clear implicits.
 
 (** A piece of code should expose the set of labels allowing to enter into it,
     as well as the set of outer labels it might jump to.  To this end, [bks]
-    represents a collection of blocks labeled by [F A], with branches in [F B]. 
+    represents a collection of blocks labeled by [F A], with branches in [F B].
 *)
 
 Definition bks A B := fin A -> block (fin B).
@@ -114,7 +114,7 @@ Arguments code {A B}.
 (** ** Semantics *)
 
 (** _Asm_ produces two kind of events for manipulating its two kinds of state:
-    registers and the heap.  
+    registers and the heap.
 *)
 Variant Reg : Type -> Type :=
 | GetReg (x : reg) : Reg value
@@ -278,7 +278,7 @@ Proof.
   - intros EQ; apply string_dec_sound in EQ; unfold rel_dec; simpl; rewrite EQ; reflexivity.
 Qed.
 
-(* SAZ: Annoyingly, typeclass resolution picks the wrong map instance for nats by default, so 
+(* SAZ: Annoyingly, typeclass resolution picks the wrong map instance for nats by default, so
    we create an instance for [reg] that hides the wrong instance with the right one. *)
 Instance RelDec_reg : RelDec (@eq reg) := RelDec_from_dec eq Nat.eq_dec.
 (* end hide *)
@@ -309,7 +309,7 @@ Definition memory    := alist addr value.
 
 (** The _asm_ interpreter takes as inputs a starting heap [mem] and register
     state [reg] and interprets an itree in two nested instances of the [map]
-    variant of the state monad. To get this type to work out, we have to 
+    variant of the state monad. To get this type to work out, we have to
     do a bit of post-processing to swap the order of the "state components"
     introduced by the interpretation.
 *)

@@ -2,7 +2,7 @@
 
 (** We develop in this file a theory of linking for [asm] programs.
     To this end, we will equip them with four main combinators:
-    - [pure_asm], casting pure functions into [asm]. 
+    - [pure_asm], casting pure functions into [asm].
     - [app_asm], linking them vertically
     - [link_asm], hiding internal links
     - [relabel_asm], allowing to rename labels
@@ -119,7 +119,7 @@ Definition pure_asm {A B: nat} (f : sub Fun fin A B) : asm A B :=
 
 Definition id_asm {A} : asm A A := pure_asm id.
 
-(** The [app_asm] combinator joins two [asm] programs, 
+(** The [app_asm] combinator joins two [asm] programs,
     preserving their internal links.
     Since the three ambient domains of labels are extended,
     the only tricky part is to rename all labels appropriately.
@@ -130,7 +130,7 @@ Notation swap4 :=
 (assoc_r >>> bimap (id_ _) (assoc_l >>> bimap swap (id_ _) >>> assoc_r) >>> assoc_l).
 
 (** Combinator to append two asm programs, preserving their internal links.
-    Can be thought of as a "vertical composition", or a tensor product. 
+    Can be thought of as a "vertical composition", or a tensor product.
  *)
 (* We build a function from F X into block (F Y), we hence cannot use case_ whether over iFun or sktree.
    Can we do better?
@@ -145,7 +145,7 @@ Definition app_asm {A B C D} (ab : asm A B) (cd : asm C D) :
     Having chosen to represent labels as binary trees encoded in [Type],
     we, for instance, typically need to rename our visible labels through
     associators.
-    The following generic combinator allow any relabelling. 
+    The following generic combinator allow any relabelling.
  *)
 Definition relabel_asm {A B C D} (f : sub Fun fin A B) (g : sub Fun fin C D)
            (bc : asm B C) : asm A D :=
@@ -235,7 +235,7 @@ Section CategoryTheory.
       simpl.
       destruct br; simpl.
       + unfold ITree.map; rewrite bind_ret; reflexivity.
-      + unfold ITree.map; rewrite bind_bind. 
+      + unfold ITree.map; rewrite bind_bind.
         eapply eqit_bind; [| reflexivity].
         intros ?.
         flatten_goal; rewrite bind_ret; reflexivity.
@@ -270,10 +270,10 @@ Section CategoryTheory.
     induction l; intros b; simpl.
     - rewrite bind_ret. reflexivity.
     - rewrite bind_bind.
-      eapply eutt_clo_bind. reflexivity. red. intros. apply IHl. 
-  Qed.    
+      eapply eutt_clo_bind. reflexivity. red. intros. apply IHl.
+  Qed.
 
-  
+
   (** Utility: denoting the [app] of two lists of instructions binds the denotations. *)
   Lemma denote_list_app:
     forall is1 is2,
@@ -448,7 +448,7 @@ Section CategoryTheory.
 
     rewrite 2 subpure_swap4; reflexivity.
   Qed.
-      
+
   Theorem relabel_asm_correct {A B C D}
           (f : sub Fun fin A B) (g : sub Fun fin C D)
           (bc : asm B C)
@@ -486,7 +486,7 @@ End Correctness.
     their denotation is bisimilar to their denotational counterparts at the
     [ktree] level.
     This theory of linking is only tied to _Asm_, and can therefore be reused
-    either for other compilers targeting Asm, or for optimizations over Asm. 
+    either for other compilers targeting Asm, or for optimizations over Asm.
     We now turn to its specific use to finally define our compiler, defined
     in [Imp2Asm.v].
  *)
