@@ -45,7 +45,7 @@ Section compile_assign.
   (** Expressions are compiled straightforwardly.
       The argument [l] is the number of registers already introduced to compile
       the expression, and is used for the name of the next one.
-      The result of the computation [compile_expr l e] always ends up stored in [l]. 
+      The result of the computation [compile_expr l e] always ends up stored in [l].
    *)
   Fixpoint compile_expr (l:reg) (e: expr): list instr :=
     match e with
@@ -81,7 +81,7 @@ End compile_assign.
 
 (** Sequencing of blocks: the program [seq_asm ab bc] links the
     exit points of [ab] with the entry points of [bc].
-    
+
 [[
            B
    A---ab-----bc---C
@@ -150,13 +150,12 @@ Definition if_asm {A}
 (* Conditional looping of blocks.
    The program [while_asm e p] composes vertically two programs:
    an [if_asm] construct with [p] followed by a jump on the true branch,
-   and a unique jump on the false branch. 
+   and a unique jump on the false branch.
    The loop is then closed with [link_asm] by matching the jump from the
    true branch to the entry point.
 
 [while_asm e p]
 [[
->>>>>>> origin/master
       +-------------+
       |             |
       |    true     |
@@ -186,7 +185,3 @@ Fixpoint compile (s : stmt) {struct s} : asm 1 1 :=
   end.
 
 (** We now consider its proof of correctness in [Imp2AsmCorrectness.v]. *)
-
-
-
-

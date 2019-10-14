@@ -9,17 +9,21 @@ SAZ: This needs to be updated.
     _Imp_ statement and the denotation of the compiled _Asm_
     program. This weak bisimulation is a _up-to-tau_ bisimulation.
     More specifically, we relate the itrees after having
-    interpreted the [Locals] events contained in the trees into
-    the state monad, and run them.
+    interpreted the events contained in the trees, and run
+    the resulting computation from the state monad:
+    [ImpState] on the _Imp_ side, [Reg] and [Memory] on the
+    _Asm_ side.
 
     The proof is essentially structured as followed:
-    - a simulation relation is defined to relate the local
-    environments during the simulation. This relation is
-    strengthened into a second one used during the simulation
+    - a simulation relation is defined to relate the _Imp_
+    state to the _Asm_ memory during the simulation. This
+    relation is strengthened into a second one additionally
+    relating the result of the denotation of an expression to
+    the _Asm_ set of registers, and used during the simulation
     of expressions.
     - the desired bisimulation is defined to carry out the
-    the simulation invariant into a up-to-tau after interpretation
-    of [Locals] relation. Once again a slightly different
+    the simulation invariant into a up-to-tau equivalence after
+    interpretation of events. Once again a slightly different
     bisimulation is defined when handling expressions.
     - Linking is proved in isolation: the "high level" control
     flow combinators for _Asm_ defined in [Imp2Asm.v] are
@@ -42,10 +46,10 @@ SAZ: This needs to be updated.
     trying to reason at the level of [itree]s ease sensibly the pain
     by reducing the amount of binders under which we need to work.
     - We transparently make use of the heterogeneous bisimulation provided
-    by the [itree] library to relate computations of _Asm_ expressions
-    that return an environment and a [unit] value to ones of _Imp_
-    that return an environment and an [Imp.value].
-*)
+    by the [itree] library to relate computations of _Asm_ expressions that
+    return a pair of environments (registers and memory) and a [unit] value to
+    ones of _Imp_ that return a single environment and an [Imp.value].
+ *)
 
 (* begin hide *)
 Require Import Imp Asm Utils_tutorial AsmCombinators Imp2Asm Fin KTreeFin.
@@ -304,21 +308,15 @@ Section Bisimulation.
 
   (** Definition of our bisimulation relation.
 
-      As previously explained, it relates (up-to-tau) two [itree]s after having
-      interpreted their events.
+      As previously explained, the bisimulation relates (up-to-tau)
+      two [itree]s after having interpreted their events.
 
-      We additionally bake into it a simulation
-      -  events are interpreted from related states.
+      We additionally bake into it a simulation invariant
+      - Events are interpreted from states related by [Renv]
       - Returned values must contain related states, as well as computed datas
-      related by another relation [RR] taken in parameter.
-      In our case, we specialize [RR] to equality since both trees return [unit],
-      and [Renv_] to [Renv].
-   *)
-  (* SAZ: TODO - rename some of the variables here to make it clear what are environemnts, etc.
-     maybe rename a and b to use pattern binding: a == '(src_env, src_res)
-
-     Annoyingly, using pattern matching here prevents lemmas like [eutt_interp_state_loop]
-     from applying because
+      related by another relation [RAB] taken in parameter.
+      In our case, we will specialize [RAB] to the total relation since the trees return
+      respectively [unit] and the unique top-level label [F0: fin 1].
    *)
 
   Section RAB.
@@ -455,7 +453,7 @@ End Bisimulation.
 
 Section Linking.
 
-Import KTreeFin.
+  Import KTreeFin.
 
   (** [seq_asm] is denoted as the (horizontal) composition of denotations. *)
   Lemma seq_asm_correct {A B C} (ab : asm A B) (bc : asm B C) :

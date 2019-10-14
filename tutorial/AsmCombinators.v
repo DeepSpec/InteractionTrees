@@ -227,18 +227,18 @@ Section CategoryTheory.
     (* Induction over the structure of the [block b] *)
     induction b as [i b | br]; intros f.
     - (* If it contains an instruction (inductive case). *)
-      simpl.
-      unfold ITree.map; rewrite bind_bind.
+      cbn.
+      rewrite map_bind.
       eapply eqit_bind; [| reflexivity].
       intros []; apply IHb.
     - (* If it's a jump, we consider the three cases. *)
       simpl.
       destruct br; simpl.
-      + unfold ITree.map; rewrite bind_ret; reflexivity.
-      + unfold ITree.map; rewrite bind_bind.
+      + rewrite map_ret; reflexivity.
+      + rewrite map_bind.
         eapply eqit_bind; [| reflexivity].
         intros ?.
-        flatten_goal; rewrite bind_ret; reflexivity.
+        flatten_goal; rewrite map_ret; reflexivity.
       + rewrite (itree_eta (ITree.map _ _)).
         cbn. apply eqit_Vis. intros [].
   Qed.
@@ -251,7 +251,6 @@ Section CategoryTheory.
       Its denotation binds the denotation of the instructions
       with the one of the branch.
    *)
-
   Lemma denote_after :
     forall {label} instrs (b: branch (fin label)),
       denote_block (after instrs b) ≅ (denote_list instrs ;; denote_branch b).
@@ -270,9 +269,9 @@ Section CategoryTheory.
     induction l; intros b; simpl.
     - rewrite bind_ret. reflexivity.
     - rewrite bind_bind.
-      eapply eutt_clo_bind. reflexivity. red. intros. apply IHl.
+      eapply eqit_bind'; try reflexivity.
+      intros; apply IHl.
   Qed.
-
 
   (** Utility: denoting the [app] of two lists of instructions binds the denotations. *)
   Lemma denote_list_app:
@@ -301,7 +300,6 @@ Section CategoryTheory.
       (apply unique_fin; simpl; auto using Nat.sub_0_r).
     reflexivity.
   Qed.
-
 
   Lemma raw_asm_correct {A B} (b : bks A B) :
     denote_asm (raw_asm b) ⩯ (fun a => denote_block (b a)).
@@ -370,7 +368,8 @@ Section CategoryTheory.
   Proof.
     intros. intros a.
     unfold relabel_bks, denote_bks.
-    unfold subpure, subm, lift_ktree, cat, Cat_sub, cat, Cat_Kleisli.
+    unfold subpure, subm, cat, Cat_sub.
+    unfold pure, cat, Cat_Kleisli.
     unfold bind, ret; simpl.
     rewrite fmap_block_map, bind_ret.
     reflexivity.
@@ -382,11 +381,15 @@ Section CategoryTheory.
     intros. rewrite bimap_case_unfold.
     intros ?.
     unfold app_bks, denote_bks.
-    unfold case_, CoprodCase_sub, case_, CoprodCase_Kleisli, case_sum.
-    unfold inl_, CoprodInl_sub, inl_, CoprodInl_Kleisli, lift_ktree_.
-    unfold cat, Cat_sub, cat, Cat_Kleisli, bind, ret.
-    unfold from_bif, FromBifunctor_ktree_fin, to_bif, ToBifunctor_ktree_fin; simpl.
+
+    unfold case_, CoprodCase_sub, inl_, CoprodInl_sub, cat, Cat_sub.
+
+    unfold case_, CoprodCase_Kleisli, case_sum, inl_, CoprodInl_Kleisli, pure, cat, Cat_Kleisli.
+
+    unfold from_bif, FromBifunctor_ktree_fin, to_bif, ToBifunctor_ktree_fin; cbn.
+
     rewrite bind_ret.
+
     destruct split_fin_sum.
     all: rewrite fmap_block_map.
     all: setoid_rewrite bind_ret.
