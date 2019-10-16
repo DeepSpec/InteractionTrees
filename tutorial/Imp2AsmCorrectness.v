@@ -300,8 +300,8 @@ End Simulation_Relation.
     is of course the _equivalence up to tau_. However, the [itree] structures
     are also quite different.  [asm] programs manipulate two state
     components. The simulation will establish that the [imp] global state
-    corresponds to the [asm] memory, but do establish that correspondence we
-    also need to interpret the [asm] register effects.  *)
+    corresponds to the [asm] memory, but to be able to  establish this
+    correspondence, we also need to interpret the [asm] register effects.  *)
 
 Section Bisimulation.
 
@@ -311,10 +311,10 @@ Section Bisimulation.
       As previously explained, the bisimulation relates (up-to-tau)
       two [itree]s after having interpreted their events.
 
-      We additionally bake into it a simulation invariant
+      We additionally bake into it a simulation invariant:
       - Events are interpreted from states related by [Renv]
       - Returned values must contain related states, as well as computed datas
-      related by another relation [RAB] taken in parameter.
+        related by another relation [RAB] taken in parameter.
       In our case, we will specialize [RAB] to the total relation since the trees return
       respectively [unit] and the unique top-level label [F0: fin 1].
    *)
@@ -468,15 +468,6 @@ Section Linking.
 
   (** [if_asm] is denoted as the ktree first denoting the branching condition,
       then looking-up the appropriate variable and following with either denotation. *)
-
-  (* SAZ: This proof and the following one should be made nicer.
-     Part of the problem is that some of the details of the Label types leak through
-     the interface.  It would be better to extend the CategorySub interface
-     to better preserve the abstractions.
-
-     We should not have to unfold [isum_suml], [merge], etc. We would have to figure out
-     the right way to abstract properties like: [split_fin_sum_FS_inr].
-  *)
   Lemma if_asm_correct {A} (e : list instr) (tp fp : asm 1 A) :
       denote_asm (if_asm e tp fp)
     ⩯ ((fun _ =>
@@ -489,6 +480,7 @@ Section Linking.
     unfold cond_asm.
     rewrite raw_asm_block_correct_lifted.
     rewrite relabel_asm_correct.
+
     intros ?.
     Local Opaque denote_asm.
 
@@ -508,11 +500,12 @@ Section Linking.
       rewrite bind_ret. cbn.
       setoid_rewrite bind_ret.
       rewrite bind_bind.
-      unfold from_bif, FromBifunctor_ktree_fin; cbn.
       setoid_rewrite bind_ret.
+      unfold from_bif, FromBifunctor_ktree_fin; cbn.
       rewrite bind_ret2'.
       { rewrite (unique_f0 (fi' 0)). reflexivity. }
-      { intros. Local Opaque split_fin_sum R. cbv. Local Transparent split_fin_sum R.
+      { intros.
+        Local Opaque split_fin_sum R. cbv. Local Transparent split_fin_sum R.
         rewrite split_fin_sum_R. reflexivity. }
 
     - rewrite !bind_ret.
@@ -531,13 +524,8 @@ Section Linking.
         rewrite split_fin_sum_L. reflexivity. }
   Qed.
 
-
   (** [while_asm] is denoted as the loop of the body with two entry point, the exit
       of the loop, and the body in which we have the same structure as for the conditional *)
-  (* SAZ: it is annoying that we have to instantiate the isum_sum with the FinEmbedding information.
-     This probably points to a leaky abstraction about the labels that we should clean up.
-   *)
-
   Notation label_case := (split_fin_sum _ _).
 
   Lemma while_asm_correct (e : list instr) (p : asm 1 1) :
@@ -608,8 +596,8 @@ Section Correctness.
       but intermediate ones must now satisfy [sim_rel].
       Note that by doing so, we use a _heterogeneous bisimulation_: the trees
       return values of different types ([alist var value * unit] for _Asm_,
-      [alist var value * value] for _Imp_). The differeence is nonetheless mostly
-      transparent for the user, except for the use of the more generale [eqit_bind'].
+      [alist var value * value] for _Imp_). The difference is nonetheless mostly
+      transparent for the user, except for the use of the more general lemma [eqit_bind'].
    *)
   Lemma compile_expr_correct : forall {E} e g_imp g_asm l n,
       Renv g_imp g_asm ->
@@ -717,7 +705,7 @@ Section Correctness.
         eapply sim_rel_Renv; eassumption. }
       (* And we once again get new related environments *)
       intros [g_imp'' v'] [g_asm'' [l'' []]] HSIM'.
-      (* We can now reduce down to Ret constructs that remains to be related *)
+      (* We can now reduce down to Ret constructs that remain to be related *)
       tau_steps.
       red. rewrite <- eqit_Ret.
 
@@ -728,7 +716,7 @@ Section Correctness.
   Qed.
 
   (** Correctness of the assign statement.
-      The resulting list of instruction is denoted as
+      The resulting list of instructions is denoted as
       denoting the expression followed by setting the variable.
    *)
   Lemma compile_assign_correct : forall {E} e x,
@@ -767,9 +755,10 @@ Section Correctness.
     eauto.
   Qed.
 
-  (* The first parameter of [bisimilar] is useless for this development. We used to require equality,
- which carried not information since the return type was unit on both side.
- Now the return type is heterogeneous, [F 1] on one side and [unit] on the other.
+  (* The first parameter of [bisimilar] is unnecessary for this development.
+     The return type is heterogeneous, the singleton type [F 1] on one side
+     and [unit] on the other, hence we instantiate the parameter with the trivial
+     relation.
    *)
   Definition TT {A B}: A -> B -> Prop  := fun _ _ => True.
   Hint Unfold TT.
@@ -810,19 +799,18 @@ Section Correctness.
     - constructor.
   Qed.
 
+  Definition to_itree' {E A} (f : ktree_fin E 1 A) : itree E (fin A) := f f0.
+  Lemma fold_to_itree' {E} (f : ktree_fin E 1 1) : f f0 = to_itree' f.
+  Proof. reflexivity. Qed.
 
-Definition to_itree' {E A} (f : ktree_fin E 1 A) : itree E (fin A) := f f0.
-Lemma fold_to_itree' {E} (f : ktree_fin E 1 1) : f f0 = to_itree' f.
-Proof. reflexivity. Qed.
+  Global Instance Proper_to_itree' {E A} :
+    Proper (eq2 ==> eutt eq) (@to_itree' E A).
+  Proof.
+    repeat intro.
+    apply H.
+  Qed.
 
-Global Instance Proper_to_itree' {E A} :
-  Proper (eq2 ==> eutt eq) (@to_itree' E A).
-Proof.
-  repeat intro.
-  apply H.
-Qed.
-
-Notation Inr_Kleisli := CoprodInr_Kleisli.
+  Notation Inr_Kleisli := CoprodInr_Kleisli.
 
   (** Correctness of the compiler.
       After interpretation of the [Locals], the source _Imp_ statement
@@ -830,7 +818,7 @@ Notation Inr_Kleisli := CoprodInr_Kleisli.
       as an [itree] are equivalent up-to-taus.
       The correctness is termination sensitive, but nonetheless a simple
       induction on statements.
-      We only are left with reasoning about the functional correctness of
+      We are only left with reasoning about the functional correctness of
       the compiler, all control-flow related reasoning having been handled
       in isolation.
    *)
@@ -931,7 +919,6 @@ Notation Inr_Kleisli := CoprodInr_Kleisli.
           constructor. left. auto.
       }
 
-
       (* We now need to line up the evaluation of the test,
          and eliminate them by correctness of [compile_expr] *)
       repeat intro.
@@ -996,14 +983,14 @@ End Correctness.
 (* ================================================================= *)
 (** ** Closing word. *)
 
-(** Through this medium-sized exemple, we have seen how to use [itree]s to
+(** Through this medium-sized example, we have seen how to use [itree]s to
     denote two languages, how to run them and how to prove correct a compiler
-    between them both.
+    between them.
     We have emphasized that the theory of [ktree]s allowed us to decouple
     all reasoning about the control-flow from the proof of the compiler itself.
     The resulting proof is entirely structurally inductive and equational. In
     particular, we obtain a final theorem relating potentially infinite
-    computations without having to write any cofixpoint.
+    computations without having to write any cofixed-point.
 
     If this result is encouraging, one might always wonder how things scale.
 
@@ -1019,15 +1006,7 @@ End Correctness.
     More importantly, our compiler is fairly stupid and inefficient: it creates
     blocks for each compiled statement! One would hope to easily write and
     prove an optimization coalescing elementary blocks together.
+
+    A first example of optimization at the [asm] level proved correct is
+    demonstrated in the _AsmOptimization.v_ file.
  *)
-
-(* Print Assumptions compile_correct. *)
-
-(*
-Axioms:
-ProofIrrelevance.proof_irrelevance : forall (P : Prop) (p1 p2 : P), p1 = p2
-Eqdep.Eq_rect_eq.eq_rect_eq : forall (U : Type) (p : U)
-                                (Q : U -> Type) (x : Q p)
-                                (h : p = p), x = eq_rect p Q x p h
-JMeq.JMeq_eq : forall (A : Type) (x y : A), JMeq.JMeq x y -> x = y
-*)
