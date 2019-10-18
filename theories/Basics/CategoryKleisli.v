@@ -1,3 +1,20 @@
+(** * Kleisli category *)
+
+(** The category of "effectful functions", of type [a -> m b],
+  for some monad [m]. *)
+
+(** Note that this is not quite a Kleisli category over the
+  category [Fun], as the notion of morphism equivalence is
+  different. The category [Fun] uses pointwise equality,
+  [eq ==> eq], while [Kleisli m] uses pointwise equivalence,
+  [eq ==> eqm], for an equivalence relation [eqm] associated
+  with the monad [m]. The right underlying category for [Kleisli]
+  would be a category of setoids and respectful functions, but
+  this seems awkward to program with. Investigating this
+  question further is future work.
+ *)
+
+(* begin hide *)
 From Coq Require Import
      Morphisms.
 
@@ -9,6 +26,7 @@ From ITree Require Import
      Basics.CategoryOps
      Basics.Function
      Basics.MonadTheory.
+(* end hide *)
 
 Implicit Types m : Type -> Type.
 Implicit Types a b c : Type.
