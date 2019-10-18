@@ -100,31 +100,40 @@ for testing.
 - `Basics`: General-purpose definitions not tied to interaction trees.
 
     + `Basics`: The `~>` notation and names of common monad transformers.
-    + `Category`: A simple theory of ((traced) (symmetric) monoidal) categories.
+    + `Category`: A simple theory of categories, monoidal and iterative.
 
         * `CategoryOps`: Interfaces of operations to define categories.
         * `CategoryTheory`: Properties of categories.
         * `CategoryFacts`: General facts about categories.
+	* `CategoryFunctor`: Classes of functors.
+	* `CategorySub`: Definition of sub-categories.
 
     + `Function`: The category of Coq functions `A -> B` (symmetric monoidal).
     + `FunctionFacts`
+
+    + `MonadTheory`: Properties of monads (in the category of functions).
+    + `CategoryKleisli`: The Kleisli category (over the category of functions).
+    + `CategoryKleisliFacts`
 
 - `Core`: Main definitions for interaction trees.
 
     + `ITreeDefinition`: Interaction trees, type declaration and primitives.
     + `KTree`: Continuation trees `A -> itree E B`, the first Kleisli category
-      of `itree` (traced symmetric monoidal).
-    + `KTreeFacts`, `KTreeBasicFacts`, `LoopFacts`
+      of `itree`.
+    + `KTreeFacts`, `KTreeBasicFacts`
     + `Subevent`: Combinators for extensible effects, injecting events into
       sums. (Experimental)
+    + `ITreeMonad`: Instantiation of the `Basics.MonadTheory` interface with
+      `itree`.
 
 - `Eq`: Equational theory of interaction trees.
 
     + `Shallow`: One-step unfolding of cofixpoints.
     + `Eq`: Strong bisimulation.
-    + `UpToTaus`, `UpToTausCore`, `UpToTausEquivalence`: Weak bisimulation.
+    + `UpToTaus`: Weak bisimulation.
     + `SimUpToTaus`: Weak simulation.
     + `EqAxiom`: Axiom that strong bisimulation is propositional equality.
+      The library exports that axiom but does not itself make use of it.
 
 - `Indexed`: Indexed types `Type -> Type`.
 
