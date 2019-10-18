@@ -18,8 +18,21 @@ From Coq Require Import
      Classes.Morphisms
      Setoids.Setoid
      Relations.Relations
-     ProofIrrelevance.
+     JMeq.
 (* end hide *)
+
+(* This exists in the stdlib as [ProofIrrelevance.inj_pair2], but we reprove
+   it to not depend on proof irrelevance (we use axiom [JMeq.JMeq_eq] instead) *)
+Lemma inj_pair2 :
+  forall (U : Type) (P : U -> Type) (p : U) (x y : P p),
+    existT P p x = existT P p y -> x = y.
+Proof.
+  intros. apply JMeq_eq.
+  refine (
+      match H in _ = w return JMeq x (projT2 w) with
+      | eq_refl => JMeq_refl
+      end).
+Qed.
 
 (** Rewrite all heterogeneous equalities with the axiom
     [inj_pair2 : existT _ T a = existT _ T b -> a = b]. *)
