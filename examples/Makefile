@@ -6,6 +6,10 @@ examples: Makefile.coq
 
 include ../common.mk
 
+example-echo:
+	coqc -Q ../theories ITree Echo.v
+	ocamlc echo.mli echo.ml echo_driver.ml -o echo
+
 example-lc:
 	$(MAKE) -f Makefile.coq stlc.vo
 
@@ -17,7 +21,6 @@ example-nimp:
 
 example-factorial:
 	$(MAKE) -f Makefile.coq Factorial.vo
-
 
 THREADSV=MultiThreadedPrinting.vo ExtractThreadsExample.vo
 THREADSML=runthread.ml

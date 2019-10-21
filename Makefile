@@ -26,6 +26,9 @@ tests:
 examples:
 	$(MAKE) -C examples
 
+echo-example:
+	$(MAKE) -C examples example-echo
+
 tutorial:
 	$(MAKE) -C tutorial
 
@@ -57,3 +60,7 @@ depgraph:
 	$(COQDEP) -dumpgraph $(DEPS_DOT) $(shell cat _CoqConfig) > /dev/null 2>&1
 	sed 's%\("theories/\([^"]*\)/\([^"/]*\)"\[label="\)%\1\2/\\n%' -i $(DEPS_DOT)
 	dot $(DEPS_DOT) -Tjpg -o$(DEPS_OUT)
+
+docker:
+	docker build -t lysxia/itree .
+	docker run -it lysxia/itree
