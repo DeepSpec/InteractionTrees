@@ -76,17 +76,17 @@ Arguments translate {E F} h [T].
     [itree E ~> M] for any monad [M] with a loop operator. *)
 
 Definition interp {E M : Type -> Type}
-           {FM : Functor M} {MM : Monad M} {LM : ALoop M}
+           {FM : Functor M} {MM : Monad M} {IM : MonadIter M}
            (h : E ~> M) :
   itree E ~> M := fun R =>
-  aloop (fun t =>
+  iter (fun t =>
     match observe t with
-    | RetF r => inr r
-    | TauF t => inl (ret t)
-    | VisF e k => inl (fmap k (h _ e))
+    | RetF r => ret (inr r)
+    | TauF t => ret (inl t)
+    | VisF e k => fmap (fun x => inl (k x)) (h _ e)
     end).
 (* TODO: this does a map, and aloop does a bind. We could fuse those
    by giving aloop a continuation to compose its bind with.
    (coyoneda...) *)
 
-Arguments interp {E M FM MM LM} h [T].
+Arguments interp {E M FM MM IM} h [T].

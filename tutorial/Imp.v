@@ -55,7 +55,7 @@ From ITree Require Import
      ITree
      ITreeFacts
      Events.MapDefault
-     StateFacts.
+     Events.StateFacts.
 
 Import Monads.
 Import MonadNotation.
@@ -292,7 +292,7 @@ Section Denote.
   (* SAZ + LX - for some reason typeclass resolution can't see the instance for 
      Iter_ktree, even though it seems to be in scope. *)
   Definition while (step : itree eff (unit + unit)) : itree eff unit :=
-    @iter _ _ _ Iter_ktree _ _ (fun _ => step) tt.
+    @iter _ _ _ Iter_Kleisli _ _ (fun _ => step) tt.
     
   (** The meaning of statements is now easy to define.  They are all
       straightforward, except for [While], whic uses our new [while] combinator

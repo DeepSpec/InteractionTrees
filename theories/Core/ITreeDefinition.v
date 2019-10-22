@@ -105,7 +105,7 @@ Notation Vis e k := (go (VisF e k)).
 (** *** How to write cofixpoints *)
 
 (** We define cofixpoints in two steps: first a plain definition
-    (prefixed with an [_], e.g., [_bind], [_aloop]) defines the body
+    (prefixed with an [_], e.g., [_bind], [_iter]) defines the body
     of the function:
 
     - it takes the recursive call ([bind]) as a parameter;
@@ -182,20 +182,20 @@ Definition cat {E T U V}
   T -> itree E V :=
   fun t => bind' h (k t).
 
-(** [aloop]: See [Basics.Basics.ALoop]. *)
+(** [iter]: See [Basics.Basics.MonadIter]. *)
 
-Definition _aloop {E : Type -> Type} {R I : Type}
+Definition _iter {E : Type -> Type} {R I : Type}
            (tau : _)
-           (aloop_ : I -> itree E R)
-           (step_i : itree E I + R) : itree E R :=
+           (iter_ : I -> itree E R)
+           (step_i : I + R) : itree E R :=
   match step_i with
-  | inl cont => tau (ITree.bind cont aloop_)
+  | inl i => tau (iter_ i)
   | inr r => Ret r
   end.
 
-Definition aloop {E : Type -> Type} {R I: Type}
-           (step : I -> itree E I + R) : I -> itree E R :=
-  cofix aloop_ i := _aloop (fun t => Tau t) aloop_ (step i).
+Definition iter {E : Type -> Type} {R I: Type}
+           (step : I -> itree E (I + R)) : I -> itree E R :=
+  cofix iter_ i := bind (step i) (_iter (fun t => Tau t) iter_).
 
 (* note(gmm): There needs to be generic automation for monads to simplify
  * using the monad laws up to a setoid.
@@ -269,8 +269,8 @@ Instance Monad_itree {E} : Monad (itree E) :=
 ;  bind := fun T U t k => @ITree.bind' E T U k t
 |}.
 
-Instance ALoop_itree {E} : ALoop (itree E) :=
-  fun _ _ => ITree.aloop.
+Instance MonadIter_itree {E} : MonadIter (itree E) :=
+  fun _ _ => ITree.iter.
 
 (** ** Tactics *)
 

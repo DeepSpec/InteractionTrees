@@ -7,8 +7,6 @@ include ../common.mk
 extraction: coq
 	ocamlbuild extraction/MetaModule.native -no-links
 
-clean:
-	$(RM) {*,*/*}/*.{vo,glob} {*,*/*}/.*.aux
+clean: clean-coq
 	$(RM) -rf _build/
-	$(RM) *.{vo,glob} .*.aux
 	$(RM) extraction/*.ml{i,}

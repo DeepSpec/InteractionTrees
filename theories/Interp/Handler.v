@@ -14,7 +14,6 @@ From ITree Require Import
      Eq.Eq
      Eq.UpToTaus
      Indexed.Sum
-     Indexed.Function
      Indexed.Relation
      Interp.Interp
      Interp.Recursion.
@@ -60,8 +59,17 @@ Definition inr_ {E F : Type -> Type} : F ~> itree (E +' F)
 Definition case_ {E F G : Type -> Type}
            (f : E ~> itree G) (g : F ~> itree G)
   : E +' F ~> itree G
+  := fun _ ab => match ab with
+                 | inl1 a => f _ a
+                 | inr1 b => g _ b
+                 end.
+
+(* Definition case_' {E F G : Type -> Type}
+           (f : E ~> itree G) (g : F ~> itree G)
+  : E +' F ~> itree G
   := @case_sum1 E F (itree G) f g.
 (* TODO: why is there a universe inconsistency if this is before [inl_] and [inr_]? *)
+ *)
 
 (** Handle events independently, with disjoint sets of output events. *)
 Definition bimap {E F G H : Type -> Type}
