@@ -10,6 +10,8 @@ From ITree Require Import
      Basics.Category
      Indexed.Relation
      Indexed.Sum.
+
+Set Universe Polymorphism.
 (* end hide *)
 
 (** The name of the category. *)

@@ -71,12 +71,12 @@ Open Scope itree_scope.
 Definition interp_mrec {D E : Type -> Type}
            (ctx : D ~> itree (D +' E)) : itree (D +' E) ~> itree E :=
   fun R =>
-    ITree.aloop (fun t : itree (D +' E) R =>
+    ITree.iter (fun t : itree (D +' E) R =>
       match observe t with
-      | RetF r => inr r
-      | TauF t => inl (Ret t)
-      | VisF (inl1 d) k => inl (Ret (ctx _ d >>= k))
-      | VisF (inr1 e) k => inl (Vis e (fun x => Ret (k x)))
+      | RetF r => Ret (inr r)
+      | TauF t => Ret (inl t)
+      | VisF (inl1 d) k => Ret (inl (ctx _ d >>= k))
+      | VisF (inr1 e) k => Vis e (fun x => Ret (inl (k x)))
       end).
 
 Arguments interp_mrec {D E} ctx [T].

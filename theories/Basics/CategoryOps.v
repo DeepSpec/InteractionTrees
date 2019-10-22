@@ -1,10 +1,40 @@
 (** * Category operations *)
 
-(** Interfaces for programming with categories.
+(** Interfaces for programming with categories. *)
 
-    We use typeclasses to give "canonical names" to these operations,
-    allowing us to define common notations and equations once and for
-    all. This is the approach described in
+(** A category is represented by a type of objects [obj], and a type
+    of morphisms [C : obj -> obj -> Type].
+
+    The interface gives the signatures for the following operations
+    (which may be defined independently).
+    For any [a], [b], [c]):
+
+    - [eq2 : C a b -> C a b -> Prop], equivalence of morphisms;
+
+    - [id_ a : C a a], the identity morphism;
+    - [cat : C a b -> C b c -> C a c], composition of morphisms;
+
+    - [empty : C i a], the initial morphism (where [i] is the initial
+      object);
+
+    - [bimap : C a b -> C c d -> C (bif a b) (bif c d)], "vertical
+      composition" of morphisms, where [bif] is a bifunctor
+      (in our case it is the coproduct bifunctor);
+    - [assoc_l], [assoc_r], [unit_l], [unit_l'], [unit_r], [unit_r']:
+      natural isomorphisms of a tensor product [bif], making [C] a
+      monoidal category;
+
+    - [case_ : C a c -> C b c -> C (bif a b) c], "case analysis"
+      of a coproduct [bif];
+    - [inl_ : C a (bif a b)], left injection in a coproduct [bif];
+    - [inr_ : C b (bif a b)], right injection;
+
+    - [iter : C a (bif a b) -> C a b], loop operator.
+ *)
+
+(** We use typeclasses to give such "canonical names" to these
+    operations, allowing us to define common notations and equations
+    once and for all. This is the approach described in
     "Type Classes for Mathematics in Type Theory",
     by Bas Spitters and Eelis van der Weegen
     (https://arxiv.org/abs/1102.1323).
@@ -298,7 +328,7 @@ Definition loop (a b c : obj)
 (**  For our purposes, [loop] and [iter] are mutually derivable.
   [loop] is a definition instead of another class to prevent the interface
   from growing too much. We originally started with traced categories but
-  iterative/Conway categories seem to provide more of the theory we need. *)
+  iterative categories seem to provide more of the theory we need. *)
 
 End Iteration.
 

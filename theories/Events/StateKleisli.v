@@ -73,7 +73,7 @@ Section Kleisli.
   Qed.
       
   Context {IM: Iter (Kleisli m) sum}.
-  Context {CM: Conway (Kleisli m) sum}.
+  Context {CM: Iterative (Kleisli m) sum}.
 
   Definition iso {a b:Type} (sab : S * (a + b)) : (S * a) + (S * b) :=
     match sab with
@@ -142,7 +142,7 @@ Section Kleisli.
     destruct CM.
     repeat red.
     intros a b x y H a0 s.
-    apply conway_proper_iter.
+    apply iterative_proper_iter.
     repeat red.
     destruct a1.
     cbn.
@@ -160,7 +160,7 @@ Section Kleisli.
   intros a0 s.
   unfold cat, Cat_Kleisli.
   unfold iter, Iter_stateTM.
-  rewrite conway_unfold.  (* SAZ: why isn't iter_unfold exposed here? *)
+  rewrite iterative_unfold.  (* SAZ: why isn't iter_unfold exposed here? *)
   unfold cat, Cat_Kleisli.
   simpl.
   rewrite bind_bind.
@@ -180,8 +180,8 @@ Section Kleisli.
     intros a b c f g.
     repeat red.
     intros a0 s.
-    setoid_rewrite conway_natural.
-    apply conway_proper_iter.
+    setoid_rewrite iterative_natural.
+    apply iterative_proper_iter.
     repeat red.
     destruct a1. 
     unfold cat, Cat_Kleisli.
@@ -257,9 +257,9 @@ Section Kleisli.
     intros a b c f g a0 a1. 
     unfold iter, Iter_stateTM.
     eapply transitivity.
-    eapply conway_proper_iter.
+    eapply iterative_proper_iter.
     apply iter_dinatural_helper.
-    rewrite conway_dinatural.
+    rewrite iterative_dinatural.
     cbn.
     unfold cat, Cat_Kleisli.
     rewrite bind_bind.
@@ -271,7 +271,7 @@ Section Kleisli.
       + unfold pure.
         rewrite bind_ret.
         cbn.
-        eapply conway_proper_iter.
+        eapply iterative_proper_iter.
         repeat red.
         destruct a2.
         cbn. rewrite! bind_bind.
@@ -299,7 +299,7 @@ Section Kleisli.
     repeat red.
     intros.
     eapply transitivity.
-    eapply conway_proper_iter.
+    eapply iterative_proper_iter.
     eapply Proper_cat_Kleisli.
 
     assert (internalize (fun (x:a) (s:S) => iter (internalize f >>> pure iso) (s, x))
@@ -314,10 +314,10 @@ Section Kleisli.
    reflexivity.
    eapply transitivity.
    
-   eapply conway_proper_iter.
-   apply conway_natural.
-   rewrite conway_codiagonal.
-   eapply conway_proper_iter.
+   eapply iterative_proper_iter.
+   apply iterative_natural.
+   rewrite iterative_codiagonal.
+   eapply iterative_proper_iter.
    rewrite internalize_cat.
    (* SAZ This proof can probably use less unfolding *)
    repeat red.
@@ -355,7 +355,7 @@ Section Kleisli.
         reflexivity.
   Qed.
 
-  Global Instance Conway_stateTM : Conway (Kleisli (stateT S m)) sum.
+  Global Instance Iterative_stateTM : Iterative (Kleisli (stateT S m)) sum.
   constructor; 
   typeclasses eauto.
   Qed.
