@@ -36,8 +36,14 @@ Definition aequiv_strong (a1 a2: aexp): Prop :=
 Definition eval_aexp (a: aexp) :=
   @interp_imp void1 value (denote_aexp a).
 
+Definition eval_bexp (b: bexp) :=
+  @interp_imp void1 bool (denote_bexp b). 
+
 Definition aequiv (a1 a2: aexp): Prop :=
   forall s, run_state (eval_aexp a1) s ≈ run_state (eval_aexp a2) s.
+
+Definition bequiv (b1 b2: bexp): Prop :=
+  forall s, run_state (eval_bexp b1) s ≈ run_state (eval_bexp b2) s. 
 
 Definition cequiv (c1 c2: com): Prop :=
   forall s, run_state (@interp_imp void1 _ (denote_com c1)) s ≈ run_state (interp_imp (denote_com c2)) s.
@@ -96,8 +102,54 @@ Section Examples.
     rewrite bind_ret, interp_imp_bind, interp_imp_trigger_get_var, bind_ret, interp_imp_ret.
     cbn. rewrite Nat.sub_diag.
     reflexivity.
-  Qed. 
-    
-    
+  Qed.
+  
+  Theorem bequiv_example: bequiv (X - X = 0) true.
+  Proof.
+    unfold bequiv. unfold eval_bexp. intros.
+    remember (run_state (interp_imp (denote_bexp true)) s) as r eqn: rhs. 
+    unfold denote_bexp. cbn in rhs.
+    (* IY : Would like to `rewrite aequiv_example.` here. *)
+    cbn. rewrite 2 interp_imp_bind.
+    rewrite interp_imp_trigger_get_var. 
+    Admitted. 
+  
+
+  (* ================================================================= *)
+  (** ** Simple Examples *)
+
+  (** For examples of command equivalence, let's start by looking at
+    some trivial program transformations involving [SKIP]: *)
+  
+  Theorem skip_left : forall c,
+  cequiv
+    (SKIP;;; c)%imp
+    c.
+  Proof.
+    unfold cequiv. intros.
+    cbn. rewrite interp_imp_bind, interp_imp_ret.
+    rewrite bind_ret. 
+    reflexivity.
+  Qed.
+
+  (** **** Exercise: 2 stars, standard (skip_right) 
+    Prove that adding a [SKIP] after a command results in an
+    equivalent program *)
+
+  Theorem skip_right : forall c,
+    cequiv
+     (c ;;; SKIP)%imp
+    c.
+  Proof.
+    unfold cequiv. intros.
+    cbn. rewrite interp_imp_bind.
+    Admitted. (* IY: Why doesn't `rewrite interp_imp_ret.` work here? *) 
       
-   
+   (** Similarly, here is a simple transformation that optimizes [TEST]
+    commands: *)
+
+  Theorem TEST_true_simple : forall c1 c2,
+    cequiv
+      (TEST BTrue THEN c1 ELSE c2 FI)%imp
+      c1.
+  Proof. Admitted. 
