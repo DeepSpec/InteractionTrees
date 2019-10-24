@@ -161,8 +161,16 @@ Section Examples.
     run_state (interp_imp (ITree.bind t (fun x : R => Ret x))) g ≅ run_state (interp_imp t) g.
   Proof.
     intros. unfold interp_imp. unfold interp_map.
-    unfold State.interp_state.
-    (* rewrite interp_interp. *) Admitted. 
+    rewrite interp_bind. setoid_rewrite interp_state_bind.
+    setoid_rewrite interp_ret. setoid_rewrite interp_state_ret.
+    match goal with
+      |- ITree.bind _ ?f ≅ _ => remember f as x
+    end.                                      
+    assert (x = fun st : env * R => Ret st).
+    { apply functional_extensionality.
+      intros. subst. destruct x0. reflexivity. }
+    rewrite H. rewrite bind_ret2. reflexivity.  
+   Qed. 
     
     
   Lemma interp_imp_bind_ret_unit : forall  {E} (t: itree (ImpState +' E) unit)  (g : env),
@@ -181,9 +189,20 @@ Section Examples.
      (c ;;; SKIP)%imp
     c.
   Proof.
-    unfold cequiv. intros. cbn.
-    rewrite interp_imp_bind_ret_unit. 
-    reflexivity.
+    unfold cequiv. intros. cbn. setoid_rewrite interp_imp_bind.
+    (* TODO: Define lemma from (match goal... reflexivity) 
+       to avoid functional extensionality.*)
+    match goal with
+      |- ?f ≈ _ => remember f as x
+    end.    
+    assert (x ≈ ITree.bind (run_state (interp_imp (denote_com c)) s)
+    (fun x => Ret x)). 
+    { subst. eapply eutt_clo_bind. reflexivity.
+      intros. subst. destruct u2. destruct u. rewrite interp_imp_ret.
+      reflexivity.
+    }
+    rewrite H. rewrite bind_ret2.
+    reflexivity. 
   Qed.
   
   (** Similarly, here is a simple transformation that optimizes [TEST]
@@ -206,6 +225,7 @@ Section Examples.
       c1.
   Proof.
     unfold cequiv. intros. unfold bequiv in H.
-    unfold eval_bexp in H. cbn in H. unfold eutt in H.
-    (* inversion H. *)
-  Admitted. 
+    unfold eval_bexp in H. cbn in H. cbn.
+    rewrite interp_imp_bind. rewrite H. rewrite interp_imp_ret, bind_ret. 
+    reflexivity.
+  Qed.  
