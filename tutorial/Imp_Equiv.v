@@ -38,13 +38,13 @@ Definition eval_aexp (a: aexp) :=
   @interp_imp void1 value (denote_aexp a).
 
 Definition eval_bexp (b: bexp) :=
-  @interp_imp void1 bool (denote_bexp b). 
+  @interp_imp void1 bool (denote_bexp b).
 
 Definition aequiv (a1 a2: aexp): Prop :=
   forall s, run_state (eval_aexp a1) s ≈ run_state (eval_aexp a2) s.
 
 Definition bequiv (b1 b2: bexp): Prop :=
-  forall s, run_state (eval_bexp b1) s ≈ run_state (eval_bexp b2) s. 
+  forall s, run_state (eval_bexp b1) s ≈ run_state (eval_bexp b2) s.
 
 Definition cequiv (c1 c2: com): Prop :=
   forall s, run_state (@interp_imp void1 _ (denote_com c1)) s ≈ run_state (interp_imp (denote_com c2)) s.
@@ -59,11 +59,11 @@ Section Examples.
   Definition Z : string := "Z".
 
   Lemma interp_imp_ret: forall {R} (v: R) (E: Type -> Type) (g : env),
-     run_state (interp_imp (Ret v)) g ≅ (Ret (g, v) : itree E (env * R)).  
+     run_state (interp_imp (Ret v)) g ≅ (Ret (g, v) : itree E (env * R)).
   Proof.
     intros.
     unfold interp_imp, interp_map, run_state.
-    rewrite interp_ret. 
+    rewrite interp_ret.
     rewrite interp_state_ret.
     reflexivity.
   Qed.
@@ -78,9 +78,9 @@ Section Examples.
     unfold interp_map.
     repeat rewrite interp_bind.
     repeat rewrite interp_state_bind.
-  Admitted. 
- 
-  
+  Admitted.
+
+
   Instance run_state_proper {E A} : Proper (eqm ==> eq ==> eutt eq) (@run_state E A).
   Admitted.
 
@@ -96,43 +96,41 @@ Section Examples.
     run_state (interp_imp (trigger (GetVar x))) g ≈ (Ret (g, lookup_default x 0 g) : itree E (env * value)).
   Proof.
     intros. unfold interp_imp, interp_map. rewrite interp_trigger.
-    rewrite tau_eutt. cbn. unfold cat, Cat_Handler, Handler.cat.
-  Admitted. 
-                                                                                                     
+    (* rewrite tau_eutt. cbn. unfold cat, Cat_Handler, Handler.cat. *)
+  Admitted.
+
   Theorem aequiv_example: aequiv (X - X) 0.
   Proof.
     unfold aequiv. intros s. unfold eval_aexp. simpl.
-    rewrite interp_imp_ret.   
+    rewrite interp_imp_ret.
     rewrite interp_imp_bind.
     rewrite interp_imp_trigger_get_var.
     rewrite bind_ret, interp_imp_bind, interp_imp_trigger_get_var, bind_ret, interp_imp_ret.
-    cbn. rewrite Nat.sub_diag.
+    rewrite Nat.sub_diag.
     reflexivity.
   Qed.
 
-  
   Theorem bequiv_example: bequiv (X - X = 0) true.
   Proof.
-    unfold bequiv. unfold eval_bexp. intros.
-    remember (run_state (interp_imp (denote_bexp true)) s) as r eqn: rhs. 
-    unfold denote_bexp. cbn in rhs. 
-    (* IY : Would like to `rewrite aequiv_example.` here. *)
-    cbn. rewrite 2 interp_imp_bind.
-    rewrite interp_imp_trigger_get_var.
-    rewrite bind_bind.
-    rewrite bind_ret, interp_imp_bind, interp_imp_trigger_get_var, bind_ret, interp_imp_ret.
-    cbn. rewrite Nat.sub_diag. rewrite bind_ret.
-    rewrite interp_imp_bind. rewrite interp_imp_ret. rewrite rhs. 
-    rewrite bind_ret. reflexivity. 
-  Qed. 
-  
+    unfold bequiv, eval_bexp, denote_bexp.
+    Local Opaque denote_aexp.
+    cbn.
+    intros.
+    rewrite interp_imp_bind.
+    rewrite (aequiv_example s).
+    Local Transparent denote_aexp.
+    unfold eval_aexp; cbn.
+    rewrite interp_imp_ret, bind_ret.
+    rewrite interp_imp_bind, interp_imp_ret, bind_ret.
+    reflexivity.
+  Qed.
 
   (* ================================================================= *)
   (** ** Simple Examples *)
 
   (** For examples of command equivalence, let's start by looking at
     some trivial program transformations involving [SKIP]: *)
-  
+
   Theorem skip_left : forall c,
   cequiv
     (SKIP;;; c)%imp
@@ -140,7 +138,7 @@ Section Examples.
   Proof.
     unfold cequiv. intros.
     cbn. rewrite interp_imp_bind. rewrite interp_imp_ret.
-    rewrite bind_ret. 
+    rewrite bind_ret.
     reflexivity.
   Qed.
 
@@ -149,14 +147,14 @@ Section Examples.
   Proof.
     intros.
     remember (fun _ : unit => Ret tt) eqn: lh_ret.
-    remember (fun x : unit => Ret x) eqn: rh_ret. 
+    remember (fun x : unit => Ret x) eqn: rh_ret.
     assert (i = i0). {
       rewrite lh_ret, rh_ret. apply functional_extensionality.
-      destruct x. reflexivity. 
+      destruct x. reflexivity.
     } rewrite H. reflexivity.
   Qed.
 
- 
+
   Lemma interp_imp_bind_ret : forall {E R} (t: itree (ImpState +' E) R) (g: env),
     run_state (interp_imp (ITree.bind t (fun x : R => Ret x))) g ≅ run_state (interp_imp t) g.
   Proof.
@@ -172,15 +170,22 @@ Section Examples.
     rewrite H. rewrite bind_ret2. reflexivity.  
    Qed. 
     
-    
+ 
   Lemma interp_imp_bind_ret_unit : forall  {E} (t: itree (ImpState +' E) unit)  (g : env),
-    run_state (interp_imp (ITree.bind t (fun _ : unit  => Ret tt))) g ≅ run_state (interp_imp t) g.
+    run_state (interp_imp (ITree.bind t (fun _ : unit  => Ret tt))) g ≈ run_state (interp_imp t) g.
   Proof.
-    intros. rewrite bind_ret_unit_wildcard. 
-    rewrite interp_imp_bind_ret. reflexivity.
-  Qed. 
-  
-  (** **** Exercise: 2 stars, standard (skip_right) 
+    intros.
+    rewrite interp_imp_bind.
+    rewrite <- (bind_ret2 (run_state _ _)).
+    eapply eutt_clo_bind.
+    rewrite bind_ret2.
+    reflexivity.
+    intros [? []] [? []] EQ; inversion EQ; subst.
+    rewrite interp_imp_ret.
+    reflexivity.
+  Qed.
+
+  (** **** Exercise: 2 stars, standard (skip_right)
     Prove that adding a [SKIP] after a command results in an
     equivalent program *)
 
@@ -189,22 +194,11 @@ Section Examples.
      (c ;;; SKIP)%imp
     c.
   Proof.
-    unfold cequiv. intros. cbn. setoid_rewrite interp_imp_bind.
-    (* TODO: Define lemma from (match goal... reflexivity) 
-       to avoid functional extensionality.*)
-    match goal with
-      |- ?f ≈ _ => remember f as x
-    end.    
-    assert (x ≈ ITree.bind (run_state (interp_imp (denote_com c)) s)
-    (fun x => Ret x)). 
-    { subst. eapply eutt_clo_bind. reflexivity.
-      intros. subst. destruct u2. destruct u. rewrite interp_imp_ret.
-      reflexivity.
-    }
-    rewrite H. rewrite bind_ret2.
-    reflexivity. 
+    unfold cequiv. intros. cbn.
+    rewrite interp_imp_bind_ret_unit.
+    reflexivity.
   Qed.
-  
+
   (** Similarly, here is a simple transformation that optimizes [TEST]
     commands: *)
 
@@ -225,7 +219,6 @@ Section Examples.
       c1.
   Proof.
     unfold cequiv. intros. unfold bequiv in H.
-    unfold eval_bexp in H. cbn in H. cbn.
-    rewrite interp_imp_bind. rewrite H. rewrite interp_imp_ret, bind_ret. 
-    reflexivity.
-  Qed.  
+    unfold eval_bexp in H. cbn in H. unfold eutt in H.
+    (* inversion H. *)
+  Admitted.
