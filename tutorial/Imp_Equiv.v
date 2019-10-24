@@ -11,7 +11,8 @@ From Coq Require Import
      String
      Setoid
      Morphisms
-     Arith.
+     Arith
+     Logic.FunctionalExtensionality.
 
 (**
    The chapter [Equiv] from _Programming Language Foundations_ introduced a
@@ -83,8 +84,13 @@ Section Examples.
   Instance run_state_proper {E A} : Proper (eqm ==> eq ==> eutt eq) (@run_state E A).
   Admitted.
 
+  Instance run_state_proper_eqit {E A} : Proper (eqm ==> eq ==> eq_itree eq) (@run_state E A).
+  Admitted.
+
   Instance interp_state_proper {T E F S} (h: forall T : Type, E T -> Monads.stateT S (itree F) T) : Proper (eutt eq ==> eqm) (State.interp_state h (T := T)).
-  Admitted. 
+  Admitted.
+
+ (* Instance run_state_interp_interp *)
 
   Lemma interp_imp_trigger_get_var: forall (E: Type -> Type) (x: var) (g: env),
     run_state (interp_imp (trigger (GetVar x))) g ≈ (Ret (g, lookup_default x 0 g) : itree E (env * value)).
@@ -103,16 +109,22 @@ Section Examples.
     cbn. rewrite Nat.sub_diag.
     reflexivity.
   Qed.
+
   
   Theorem bequiv_example: bequiv (X - X = 0) true.
   Proof.
     unfold bequiv. unfold eval_bexp. intros.
     remember (run_state (interp_imp (denote_bexp true)) s) as r eqn: rhs. 
-    unfold denote_bexp. cbn in rhs.
+    unfold denote_bexp. cbn in rhs. 
     (* IY : Would like to `rewrite aequiv_example.` here. *)
     cbn. rewrite 2 interp_imp_bind.
-    rewrite interp_imp_trigger_get_var. 
-    Admitted. 
+    rewrite interp_imp_trigger_get_var.
+    rewrite bind_bind.
+    rewrite bind_ret, interp_imp_bind, interp_imp_trigger_get_var, bind_ret, interp_imp_ret.
+    cbn. rewrite Nat.sub_diag. rewrite bind_ret.
+    rewrite interp_imp_bind. rewrite interp_imp_ret. rewrite rhs. 
+    rewrite bind_ret. reflexivity. 
+  Qed. 
   
 
   (* ================================================================= *)
@@ -127,11 +139,39 @@ Section Examples.
     c.
   Proof.
     unfold cequiv. intros.
-    cbn. rewrite interp_imp_bind, interp_imp_ret.
+    cbn. rewrite interp_imp_bind. rewrite interp_imp_ret.
     rewrite bind_ret. 
     reflexivity.
   Qed.
 
+  Lemma bind_ret_unit_wildcard : forall {E} (t: itree E unit),
+      ITree.bind t (fun _  => Ret tt) = ITree.bind t (fun x : unit => Ret x).
+  Proof.
+    intros.
+    remember (fun _ : unit => Ret tt) eqn: lh_ret.
+    remember (fun x : unit => Ret x) eqn: rh_ret. 
+    assert (i = i0). {
+      rewrite lh_ret, rh_ret. apply functional_extensionality.
+      destruct x. reflexivity. 
+    } rewrite H. reflexivity.
+  Qed.
+
+ 
+  Lemma interp_imp_bind_ret : forall {E R} (t: itree (ImpState +' E) R) (g: env),
+    run_state (interp_imp (ITree.bind t (fun x : R => Ret x))) g ≅ run_state (interp_imp t) g.
+  Proof.
+    intros. unfold interp_imp. unfold interp_map.
+    unfold State.interp_state.
+    (* rewrite interp_interp. *) Admitted. 
+    
+    
+  Lemma interp_imp_bind_ret_unit : forall  {E} (t: itree (ImpState +' E) unit)  (g : env),
+    run_state (interp_imp (ITree.bind t (fun _ : unit  => Ret tt))) g ≅ run_state (interp_imp t) g.
+  Proof.
+    intros. rewrite bind_ret_unit_wildcard. 
+    rewrite interp_imp_bind_ret. reflexivity.
+  Qed. 
+  
   (** **** Exercise: 2 stars, standard (skip_right) 
     Prove that adding a [SKIP] after a command results in an
     equivalent program *)
@@ -141,15 +181,31 @@ Section Examples.
      (c ;;; SKIP)%imp
     c.
   Proof.
-    unfold cequiv. intros.
-    cbn. rewrite interp_imp_bind.
-    Admitted. (* IY: Why doesn't `rewrite interp_imp_ret.` work here? *) 
-      
-   (** Similarly, here is a simple transformation that optimizes [TEST]
+    unfold cequiv. intros. cbn.
+    rewrite interp_imp_bind_ret_unit. 
+    reflexivity.
+  Qed.
+  
+  (** Similarly, here is a simple transformation that optimizes [TEST]
     commands: *)
 
   Theorem TEST_true_simple : forall c1 c2,
     cequiv
       (TEST BTrue THEN c1 ELSE c2 FI)%imp
       c1.
-  Proof. Admitted. 
+  Proof.
+    unfold cequiv. intros. cbn.
+    rewrite interp_imp_bind. rewrite interp_imp_ret, bind_ret.
+    reflexivity.
+  Qed.
+
+  Theorem TEST_true: forall b c1 c2,
+    bequiv b BTrue  ->
+    cequiv
+      (TEST b THEN c1 ELSE c2 FI)%imp
+      c1.
+  Proof.
+    unfold cequiv. intros. unfold bequiv in H.
+    unfold eval_bexp in H. cbn in H. unfold eutt in H.
+    (* inversion H. *)
+  Admitted. 
