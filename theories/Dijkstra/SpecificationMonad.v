@@ -40,7 +40,6 @@ Section OrderedMonad.
                               lem B (bind w1 f1) (bind w2 f2).
 
 End OrderedMonad.
-
 Section Pure_Spec_Instance.
   
   Definition _Pure_Spec (A : Type) := (A -> Prop) -> Prop.
@@ -67,6 +66,90 @@ Section Pure_Spec_Instance.
     Proof.
       destruct w1. destruct w2. unfold eqwp in *. simpl. intuition; apply H; auto.
     Qed.
+
+  Lemma eqwp_trans : forall A (w1 w2 w3 : Pure_Spec A), eqwp w1 w2 -> eqwp w2 w3 -> eqwp w1 w3.
+    Proof.
+      destruct w1. destruct w2. destruct w3. unfold eqwp in *. intuition.
+      - apply H0. apply H. auto.
+      - apply H. apply H0. auto.
+    Qed.
+
+  Definition _retp (A : Type) (a : A) := fun (p : A -> Prop) => p a.
+
+  Hint Unfold _retp.
+  Hint Unfold monotonicp.
+
+  Lemma monot_retp : forall A (a : A), monotonicp (_retp A a).
+    Proof.
+      intuition.
+    Qed.
+
+  Definition _bindp (A B : Type) (w : _Pure_Spec A) (f : A -> _Pure_Spec B) :=
+    fun p => w (fun a => f a p).
+
+  Lemma monot_bindp : forall A B (w : _Pure_Spec A) (f : A -> _Pure_Spec B),
+      monotonicp w -> (forall a, monotonicp (f a)) -> monotonicp (_bindp A B w f).
+  Proof.
+    unfold monotonicp in *. intuition. unfold _bindp in *. apply H with (p := (fun a => f a p) ); auto.
+    intuition. apply H0 with (p := p); auto.
+  Qed.
+
+  Definition retp {A : Type} (a : A) : Pure_Spec A :=
+    exist (@monotonicp A) (_retp A a) (monot_retp A a).
+
+  Definition bindp {A B : Type} (w : Pure_Spec A) (f : A -> Pure_Spec B) : Pure_Spec B :=
+    let '(exist _ w' Hw' ) := w in
+    let f' := fun a => proj1_sig (f a) in
+    let Hf' := fun a => proj2_sig (f a) in
+    exist (@monotonicp B) (_bindp A B w' f') (monot_bindp A B w' f' Hw' Hf').
+
+  Instance Pure_SpecM : Monad Pure_Spec :=
+    {
+      ret := @retp;
+      bind := @bindp;
+    }.
+
+  Lemma bind_retp : forall A B (f : A -> Pure_Spec B) (a : A), 
+      bindp (retp a) f ≈ f a.
+  Proof.
+    unfold eqm, Pure_SpecEq. intuition.
+  Qed.
+
+  Lemma ret_bindp : forall A (w : Pure_Spec A), bind w ret ≈ w.
+  Proof.
+    destruct w as [w' Hw']. unfold eqm, Pure_SpecEq. simpl. split; intuition.
+  Qed.
+
+  Lemma bind_bindp : forall A B C (w : Pure_Spec A) (f : A -> Pure_Spec B) (g : B -> Pure_Spec C),
+      bindp (bindp w f) g ≈ bindp w (fun a => bind (f a) g).
+  Proof.
+    destruct w as [w' Hw']. unfold eqm, Pure_SpecEq, eqwp. simpl. intros; split; intuition.
+    - unfold _retp, _bindp in *. unfold monotonicp in Hw'. eapply Hw'.
+      2: apply H. intuition. destruct (f a) as [fa Hfa]. simpl in *. unfold _bindp. auto.
+    - unfold _retp, _bindp in *. eapply Hw'.
+      2 : apply H. intuition. destruct (f a) as [fa Hfa]. simpl in *. unfold _bindp in *.
+      auto.
+  Qed.
+
+  Instance Pure_SpecLaws : MonadLaws Pure_Spec :=
+    {
+      bind_ret := bind_retp;
+      ret_bind := ret_bindp;
+      bind_bind := bind_bindp
+    }.
+
+  Definition lemPure {A : Type} (w1 w2 : Pure_Spec A) : Prop :=
+    forall p, proj1_sig w2 p -> proj1_sig w1 p.
+
+  Instance Pure_SpecOrderM : OrderM Pure_Spec := @lemPure.
+
+  Instance Pure_SpecOrder : OrderedMonad Pure_Spec.
+  Proof.
+    unfold OrderedMonad. intros. unfold lem, Pure_SpecOrderM, lemPure in *.
+    destruct w1 as [w1' Hw1']. destruct w2 as [w2' Hw2']. simpl in *. unfold _bindp in *.
+    intuition. apply H. unfold monotonicp in Hw2'. eapply Hw2'; eauto; auto.
+  Qed.
+
 
 End Pure_Spec_Instance.
 
