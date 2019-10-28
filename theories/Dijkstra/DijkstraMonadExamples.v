@@ -23,34 +23,34 @@ From ITree Require Import
 Import MonadNotation.
 Local Open Scope monad.
 
-Section Pure_Spec_Instance.
+Section PureSpecInstance.
   
-  Definition _Pure_Spec (A : Type) := (A -> Prop) -> Prop.
+  Definition _PureSpec (A : Type) := (A -> Prop) -> Prop.
   
-  Definition monotonicp {A} (w : _Pure_Spec A) :=
+  Definition monotonicp {A} (w : _PureSpec A) :=
     forall (p p' : A -> Prop), (forall a, p a -> p' a) -> w p -> w p'.
 
-  Definition Pure_Spec (A : Type) := 
-    { w : _Pure_Spec A | monotonicp w }.
+  Definition PureSpec (A : Type) := 
+    { w : _PureSpec A | monotonicp w }.
 
-  Definition eqwp {A : Type} (w1 w2 : Pure_Spec A) :=
+  Definition eqwp {A : Type} (w1 w2 : PureSpec A) :=
     forall p, proj1_sig w1 p <-> proj1_sig w2 p.
 
-  Global Instance Pure_SpecEq : EqM Pure_Spec := @eqwp.
+  Global Instance PureSpecEq : EqM PureSpec := @eqwp.
 
   Hint Unfold eqwp.
 
-  Lemma eqwp_refl : forall A (w : Pure_Spec A), eqwp w w.
+  Lemma eqwp_refl : forall A (w : PureSpec A), eqwp w w.
     Proof.
       destruct w. intuition.
     Qed.
 
-  Lemma eqwp_sym : forall A (w1 w2 : Pure_Spec A), eqwp w1 w2 -> eqwp w2 w1.
+  Lemma eqwp_sym : forall A (w1 w2 : PureSpec A), eqwp w1 w2 -> eqwp w2 w1.
     Proof.
       destruct w1. destruct w2. unfold eqwp in *. simpl. intuition; apply H; auto.
     Qed.
 
-  Lemma eqwp_trans : forall A (w1 w2 w3 : Pure_Spec A), eqwp w1 w2 -> eqwp w2 w3 -> eqwp w1 w3.
+  Lemma eqwp_trans : forall A (w1 w2 w3 : PureSpec A), eqwp w1 w2 -> eqwp w2 w3 -> eqwp w1 w3.
     Proof.
       destruct w1. destruct w2. destruct w3. unfold eqwp in *. intuition.
       - apply H0. apply H. auto.
@@ -67,46 +67,46 @@ Section Pure_Spec_Instance.
       intuition.
     Qed.
 
-  Definition _bindp (A B : Type) (w : _Pure_Spec A) (f : A -> _Pure_Spec B) :=
+  Definition _bindp (A B : Type) (w : _PureSpec A) (f : A -> _PureSpec B) :=
     fun p => w (fun a => f a p).
 
-  Lemma monot_bindp : forall A B (w : _Pure_Spec A) (f : A -> _Pure_Spec B),
+  Lemma monot_bindp : forall A B (w : _PureSpec A) (f : A -> _PureSpec B),
       monotonicp w -> (forall a, monotonicp (f a)) -> monotonicp (_bindp A B w f).
   Proof.
     unfold monotonicp in *. intuition. unfold _bindp in *. apply H with (p := (fun a => f a p) ); auto.
     intuition. apply H0 with (p := p); auto.
   Qed.
 
-  Definition retp {A : Type} (a : A) : Pure_Spec A :=
+  Definition retp {A : Type} (a : A) : PureSpec A :=
     exist (@monotonicp A) (_retp A a) (monot_retp A a).
 
-  Definition bindp {A B : Type} (w : Pure_Spec A) (f : A -> Pure_Spec B) : Pure_Spec B :=
+  Definition bindp {A B : Type} (w : PureSpec A) (f : A -> PureSpec B) : PureSpec B :=
     let '(exist _ w' Hw' ) := w in
     let f' := fun a => proj1_sig (f a) in
     let Hf' := fun a => proj2_sig (f a) in
     exist (@monotonicp B) (_bindp A B w' f') (monot_bindp A B w' f' Hw' Hf').
 
-  Global Instance Pure_SpecM : Monad Pure_Spec :=
+  Global Instance PureSpecM : Monad PureSpec :=
     {
       ret := @retp;
       bind := @bindp;
     }.
 
-  Lemma bind_retp : forall A B (f : A -> Pure_Spec B) (a : A), 
+  Lemma bind_retp : forall A B (f : A -> PureSpec B) (a : A), 
       bindp (retp a) f ≈ f a.
   Proof.
-    unfold eqm, Pure_SpecEq. intuition.
+    unfold eqm, PureSpecEq. intuition.
   Qed.
 
-  Lemma ret_bindp : forall A (w : Pure_Spec A), bindp w retp ≈ w.
+  Lemma ret_bindp : forall A (w : PureSpec A), bindp w retp ≈ w.
   Proof.
-    destruct w as [w' Hw']. unfold eqm, Pure_SpecEq. simpl. split; intuition.
+    destruct w as [w' Hw']. unfold eqm, PureSpecEq. simpl. split; intuition.
   Qed.
 
-  Lemma bind_bindp : forall A B C (w : Pure_Spec A) (f : A -> Pure_Spec B) (g : B -> Pure_Spec C),
+  Lemma bind_bindp : forall A B C (w : PureSpec A) (f : A -> PureSpec B) (g : B -> PureSpec C),
       bindp (bindp w f) g ≈ bindp w (fun a => bindp (f a) g).
   Proof.
-    destruct w as [w' Hw']. unfold eqm, Pure_SpecEq, eqwp. simpl. intros; split; intuition.
+    destruct w as [w' Hw']. unfold eqm, PureSpecEq, eqwp. simpl. intros; split; intuition.
     - unfold _retp, _bindp in *. unfold monotonicp in Hw'. eapply Hw'.
       2: apply H. intuition. destruct (f a) as [fa Hfa]. simpl in *. unfold _bindp. auto.
     - unfold _retp, _bindp in *. eapply Hw'.
@@ -114,29 +114,29 @@ Section Pure_Spec_Instance.
       auto.
   Qed.
 
-  Global Instance Pure_SpecLaws : MonadLaws Pure_Spec :=
+  Global Instance PureSpecLaws : MonadLaws PureSpec :=
     {
       bind_ret := bind_retp;
       ret_bind := ret_bindp;
       bind_bind := bind_bindp
     }.
 
-  Definition lemPure {A : Type} (w1 w2 : Pure_Spec A) : Prop :=
+  Definition lemPure {A : Type} (w1 w2 : PureSpec A) : Prop :=
     forall p, proj1_sig w2 p -> proj1_sig w1 p.
 
-  Global Instance Pure_SpecOrderM : OrderM Pure_Spec := @lemPure.
+  Global Instance PureSpecOrderM : OrderM PureSpec := @lemPure.
 
-  Global Instance Pure_SpecOrder : OrderedMonad Pure_Spec.
+  Global Instance PureSpecOrder : OrderedMonad PureSpec.
   Proof.
-    unfold OrderedMonad. intros. unfold lem, Pure_SpecOrderM, lemPure in *.
+    unfold OrderedMonad. intros. unfold lem, PureSpecOrderM, lemPure in *.
     destruct w1 as [w1' Hw1']. destruct w2 as [w2' Hw2']. simpl in *. unfold _bindp in *.
     intuition. apply H. unfold monotonicp in Hw2'. eapply Hw2'; eauto; auto.
   Qed.
 
 
-End Pure_Spec_Instance.
+End PureSpecInstance.
 
-Section Pure_Spec_Obs.
+Section PureSpecObs.
   
   Definition Id (A : Type) := A.
 
@@ -171,7 +171,7 @@ Section Pure_Spec_Obs.
     }.
 
 
-  Definition _obsp (A : Type) (m : Id A) : _Pure_Spec A :=
+  Definition _obsp (A : Type) (m : Id A) : _PureSpec A :=
     fun p => p m.
 
   Hint Unfold monotonicp.
@@ -179,25 +179,25 @@ Section Pure_Spec_Obs.
   Lemma obsp_monot : forall A (m : Id A), monotonicp (_obsp A m).
     Proof. auto. Qed.
 
-  Definition obsp (A : Type) (m : Id A) : Pure_Spec A :=
+  Definition obsp (A : Type) (m : Id A) : PureSpec A :=
     exist _ (_obsp A m) (obsp_monot A m).
 
-  Instance Id_EffectObs : EffectObs Id Pure_Spec := obsp.
+  Instance IdEffectObs : EffectObs Id PureSpec := obsp.
 
   Lemma obsp_pres_ret : forall A (a : A), obs A (ret a) ≈ ret a.
     Proof.
-      unfold eqm, Pure_SpecEq, eqwp. simpl. split; intuition.
+      unfold eqm, PureSpecEq, eqwp. simpl. split; intuition.
     Qed.
 
   Lemma obsp_pres_bind : forall A B (m : Id A) (f : A -> Id B),
         obs B (bind m f) ≈ bind (obs A m) (fun a => obs B (f a)).
     Proof.
-      unfold eqm, Pure_SpecEq, eqwp. simpl; split; intuition.
+      unfold eqm, PureSpecEq, eqwp. simpl; split; intuition.
     Qed.
 
   (*Must be on some weird case, figure out later, for now just directly write hte lemmas*)
   Program Instance Pure_MonadMorph : 
-    MonadMorphism Id Pure_Spec Id_EffectObs :=
+    MonadMorphism Id PureSpec IdEffectObs :=
     {
       ret_pres := obsp_pres_ret;
       bind_pres := obsp_pres_bind
@@ -206,47 +206,47 @@ Section Pure_Spec_Obs.
   
 
 
-End Pure_Spec_Obs.
+End PureSpecObs.
 
 Section State.
   Context (S : Type).
-Section State_Spec_Instance.
+Section StateSpecInstance.
   
 
   Definition monotonic {A} (w : ((A * S) -> Prop) -> S -> Prop):= 
     forall (p p' : (A * S) -> Prop) s,
     (forall a s', p (a,s') -> p' (a,s')) -> w p s -> w p' s.
 
-  Definition _State_Spec (A : Type) := ((A * S) -> Prop) -> (S -> Prop).
+  Definition _StateSpec (A : Type) := ((A * S) -> Prop) -> (S -> Prop).
 
-  Definition State_Spec (A : Type) :=
-    { w : _State_Spec A | monotonic w }.
+  Definition StateSpec (A : Type) :=
+    { w : _StateSpec A | monotonic w }.
 
-  Definition eqw {A : Type} (w1 w2 : State_Spec A) :=
+  Definition eqw {A : Type} (w1 w2 : StateSpec A) :=
     forall p s, proj1_sig w1 p s <-> proj1_sig w2 p s. 
 
-  Global Instance State_SpecEq : EqM State_Spec := @eqw.
+  Global Instance StateSpecEq : EqM StateSpec := @eqw.
 
   Hint Unfold eqw.
 
-  Lemma eqw_refl : forall A (w : State_Spec A), eqw w w.
+  Lemma eqw_refl : forall A (w : StateSpec A), eqw w w.
   Proof.
     destruct w. intuition.
   Qed.
 
-  Lemma eqw_sym : forall A (w1 w2 : State_Spec A), eqw w1 w2 -> eqw w2 w1.
+  Lemma eqw_sym : forall A (w1 w2 : StateSpec A), eqw w1 w2 -> eqw w2 w1.
   Proof.
     destruct w1. destruct w2. intuition. unfold eqw in *. simpl in *. intuition; apply H; auto.
   Qed.
 
-  Lemma eqw_trans : forall A (w1 w2 w3 : State_Spec A), eqw w1 w2 -> eqw w2 w3 -> eqw w1 w3.
+  Lemma eqw_trans : forall A (w1 w2 w3 : StateSpec A), eqw w1 w2 -> eqw w2 w3 -> eqw w1 w3.
   Proof.
     destruct w1. destruct w2. destruct w3. intuition. unfold eqw in *; intuition.
     - apply H0. apply H. auto.
     - apply H. apply H0. auto.
   Qed.
 
-  Definition _retst (A : Type) (a : A) : _State_Spec A := fun p s => p (a,s).
+  Definition _retst (A : Type) (a : A) : _StateSpec A := fun p s => p (a,s).
 
   Lemma monot_retst : forall A (a: A), monotonic (_retst A a).
   Proof.
@@ -255,37 +255,37 @@ Section State_Spec_Instance.
 
   Definition retst {A : Type} (a : A) := exist (@monotonic A) (_retst A a) (monot_retst A a).
 
-  Definition _bindst (A B : Type) (w : _State_Spec A) (f : A -> _State_Spec B) : _State_Spec B :=
+  Definition _bindst (A B : Type) (w : _StateSpec A) (f : A -> _StateSpec B) : _StateSpec B :=
     fun p s => w (fun '(a,s') => f a p s') s.
 
-  Lemma monot_bindst : forall A B (f : A -> _State_Spec B) (w : _State_Spec A) 
+  Lemma monot_bindst : forall A B (f : A -> _StateSpec B) (w : _StateSpec A) 
           (Hw : monotonic w) (Hf : forall a, monotonic (f a) ), monotonic  (_bindst A B w f).
   Proof.
     intros. unfold monotonic, _bindst in *. intuition. 
     eapply Hw; eauto. intros. apply Hf with (p := p); auto.
   Qed.
 
-  Definition bindst {A B : Type} (w : State_Spec A) (f : A -> State_Spec B) : State_Spec B :=
+  Definition bindst {A B : Type} (w : StateSpec A) (f : A -> StateSpec B) : StateSpec B :=
     let '(exist _ w' Hw' ) := w in
     let f' := fun a => proj1_sig (f a) in
     let Hf' : forall a, monotonic (f' a) := fun a => proj2_sig (f a) in
     exist (@monotonic B) (_bindst A B w' f') (monot_bindst A B f' w' Hw' Hf').
 
-  Global Instance State_SpecM : Monad State_Spec :=
+  Global Instance StateSpecM : Monad StateSpec :=
     {
       ret := @retst;
       bind := @bindst;
     }.
 
-  Lemma bind_retst : forall A B (f: A -> State_Spec B) (a : A), bindst (retst a) f ≈ f a.
+  Lemma bind_retst : forall A B (f: A -> StateSpec B) (a : A), bindst (retst a) f ≈ f a.
   Proof. 
-    unfold eqm, State_SpecEq. intuition. 
+    unfold eqm, StateSpecEq. intuition. 
   Qed.
 
   Hint Unfold _retst.
   Hint Unfold _bindst.
 
-  Lemma ret_bindst : forall A (w : State_Spec A), bindst w retst ≈ w.
+  Lemma ret_bindst : forall A (w : StateSpec A), bindst w retst ≈ w.
   Proof.
     destruct w as [w' Hw'].
     unfold eqw. simpl. intros. split; intuition.
@@ -294,7 +294,7 @@ Section State_Spec_Instance.
     - unfold _retst, _bindst. apply Hw' with (p := p); auto.
   Qed.
 
-  Lemma bind_bindst : forall A B C (w : State_Spec A) (f : A -> State_Spec B) (g : B -> State_Spec C),
+  Lemma bind_bindst : forall A B C (w : StateSpec A) (f : A -> StateSpec B) (g : B -> StateSpec C),
       bindst (bindst w f) g ≈ bindst w (fun a => bindst (f a) g).
   Proof.
     destruct w as [w' Hw']. unfold eqw. simpl. intros; split; intuition.
@@ -306,7 +306,7 @@ Section State_Spec_Instance.
       unfold _bindst in H0. auto.
   Qed.
 
-  Global Instance State_SpecMLaws : MonadLaws State_Spec:=
+  Global Instance StateSpecMLaws : MonadLaws StateSpec:=
     {
       bind_ret := bind_retst;
       ret_bind := ret_bindst;
@@ -314,23 +314,45 @@ Section State_Spec_Instance.
    }.
     
 
-  Definition lemSt {A : Type} (w1 w2 : State_Spec A) : Prop :=
+  Definition lemSt {A : Type} (w1 w2 : StateSpec A) : Prop :=
     forall p s, proj1_sig w2 p s -> proj1_sig w1 p s.
 
-  Global Instance State_SpecOrderM : OrderM State_Spec := @lemSt.
+  Global Instance StateSpecOrderM : OrderM StateSpec := @lemSt.
 
-  Global Instance State_SpecOrder : OrderedMonad State_Spec.
+  Global Instance StateSpecOrder : OrderedMonad StateSpec.
   Proof. 
     unfold OrderedMonad.
-    intros A B w1 w2 f1 f2 Hw Hf. unfold lem in *. unfold State_SpecOrderM, lemSt in *.
+    intros A B w1 w2 f1 f2 Hw Hf. unfold lem in *. unfold StateSpecOrderM, lemSt in *.
     destruct w1 as [w1' Hw1']. destruct w2 as [w2' Hw2']. simpl in *. 
     intuition. apply Hw. 
     cbv in H. unfold monotonic in Hw2'. eapply Hw2'; eauto; auto.
   Qed.
 
-End State_Spec_Instance.
 
-Section State_Monad.
+  Definition StatePrePost A : Type := (S -> Prop) * ((A * S) -> Prop ). 
+
+  Definition _encode : StatePrePost ~> _StateSpec := 
+    fun A pp =>
+    let '(pre,post) := pp in
+    fun p s => 
+      (pre s /\ (forall a s', post (a,s') -> p (a,s'))).
+
+  Hint Unfold _encode.
+
+  Lemma encode_monot : forall A (prepost : StatePrePost A), monotonic (_encode A prepost).
+    Proof.
+     unfold monotonic. intros. destruct prepost as [ pre post].
+     simpl in *. intuition.
+    Qed.
+
+  Definition encode : StatePrePost ~> StateSpec :=
+    fun A pp =>
+    exist _ (_encode A pp) (encode_monot A pp).
+
+
+End StateSpecInstance.
+
+Section StateMonad.
 
   Definition State A := S -> (A * S).
   
@@ -339,6 +361,10 @@ Section State_Monad.
   Definition bindstm (A B : Type) (m : State A) (f : A -> State B) :=
     fun s => let '(a,s') := (m s) in
              f a s'.
+
+  Definition get : State S := fun s => (s,s).
+
+  Definition put s : State unit := fun _ => (tt,s).
 
   Hint Unfold retstm.
   Hint Unfold bindstm.
@@ -353,7 +379,7 @@ Section State_Monad.
     fun (A : Type) (m1 m2 : State A) =>
       forall s, m1 s = m2 s.
 
-  Global Program Instance StateM_Laws : MonadLaws State.
+  Global Program Instance StateMLaws : MonadLaws State.
   Next Obligation.
     Proof.
       unfold retstm, bindstm, eqm, StateEq. auto.
@@ -369,11 +395,11 @@ Section State_Monad.
       destruct (x s). auto.
     Qed.
 
-End State_Monad.
+End StateMonad.
 
-Section State_Spec_Obs.
+Section StateSpecObs.
 
-  Definition _obsst (A : Type) (m : State A ) : _State_Spec A :=
+  Definition _obsst (A : Type) (m : State A ) : _StateSpec A :=
     fun p s => p (m s).
 
   Hint Unfold _obsst.
@@ -385,32 +411,62 @@ Section State_Spec_Obs.
       eapply H; auto.
     Qed.
 
-  Definition obsst (A : Type) (m : State A) : State_Spec A :=
+  Definition obsst (A : Type) (m : State A) : StateSpec A :=
     exist _ (_obsst A m) (obsst_monot A m).
 
-  Global Instance State_Effect_Obs : EffectObs State State_Spec := obsst.
+  Global Instance StateEffectObs : EffectObs State StateSpec := obsst.
 
   Lemma obsst_pres_ret : forall A (a : A), obsst A (ret a) ≈ ret a.
     Proof.
-      unfold eqm, State_SpecEq, eqw. simpl. intuition.
+      unfold eqm, StateSpecEq, eqw. simpl. intuition.
     Qed.
 
   Lemma obsst_pres_bind : forall A B (m : State A) (f : A -> State B), 
         obsst B (bind m f) ≈ bind (obsst A m) (fun a => obsst B (f a)).
     Proof.
-      unfold eqm, State_SpecEq, eqw. simpl. intuition.
+      unfold eqm, StateSpecEq, eqw. simpl. intuition.
       - unfold _bindst, _obsst in *. unfold bindstm in *. destruct (m s). auto.
       - unfold _bindst, _obsst in *. unfold bindstm. destruct (m s). auto.
     Qed.
 
 
-  Global Instance StateMonadMorph : MonadMorphism State State_Spec State_Effect_Obs :=
+  Global Instance StateMonadMorph : MonadMorphism State StateSpec StateEffectObs :=
     {
       ret_pres := obsst_pres_ret;
       bind_pres := obsst_pres_bind
     }.
   
 
-End State_Spec_Obs.
+End StateSpecObs.
+
+Section StateDijkstra.
+
+
+  Definition ST := DijkstraMonad State StateSpec StateEffectObs.
+  
+  Definition STProp := DijkstraProp State StateSpec StateEffectObs.
+
+End StateDijkstra.
+
 
 End State.
+
+
+Definition StateNat := State nat.
+
+Definition StateSpecNat := StateSpec nat.
+
+Definition m := bind (get _) (fun x => put _ (S x)).
+
+Definition w := encode nat unit ((fun _ => True), (fun '(p,s) => s > 0)).
+
+Lemma ex : STProp nat unit w m.
+  Proof.
+    unfold STProp. unfold DijkstraProp. cbv. intros.
+    destruct H. apply H0. induction s; auto.
+  Qed.
+
+Lemma ex' : forall n, snd (m n) > 0.
+Proof.
+  intros. cbv. induction n; auto.
+Qed.

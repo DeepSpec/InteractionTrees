@@ -65,7 +65,7 @@ Section EffectObservation.
   Definition bindw := @bind W _.
 *)
 
-  Global Class MonadMorphism :=
+  Class MonadMorphism :=
     {
       ret_pres : forall A (a : A), obs A (ret a) ≈ ret a; 
       bind_pres : forall A B (m : M A) (f : A -> M B),
@@ -85,12 +85,10 @@ Section DijkstraMonad.
   Context { WOrderLaws : OrderedMonad W }.
   Context ( Obs : EffectObs M W ).
 
-
-  (*Note that the Dijkstra Monad is only a monad-like structure
-    not an actual monad*)
   Definition DijkstraMonad (A : Type) (w : W A) := 
     { m : M A |  obs A m <≈ w }.
-  
 
+  Definition DijkstraProp (A : Type) (w : W A) (m : M A) :=
+    obs A m <≈ w.
 
 End DijkstraMonad.
