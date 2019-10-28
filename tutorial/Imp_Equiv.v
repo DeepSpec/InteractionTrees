@@ -87,6 +87,13 @@ Section Examples.
   Instance run_state_proper_eqit {E A} : Proper (eqm ==> eq ==> eq_itree eq) (@run_state E A).
   Admitted.
 
+  (* IY: How do we define a KTree Proper instance for eutt? *)
+  (*
+  Instance iter_proper {E A B} : @Proper (ktree E A (A + B))
+          (eq2 ==> eq_itree eq2)
+          iter.
+  *) 
+
   Instance interp_state_proper {T E F S} (h: forall T : Type, E T -> Monads.stateT S (itree F) T) : Proper (eutt eq ==> eqm) (State.interp_state h (T := T)).
   Admitted.
 
@@ -219,6 +226,50 @@ Section Examples.
       c1.
   Proof.
     unfold cequiv. intros. unfold bequiv in H.
-    unfold eval_bexp in H. cbn in H. unfold eutt in H.
-    (* inversion H. *)
-  Admitted.
+    unfold eval_bexp in H. cbn in H. cbn.
+    rewrite interp_imp_bind. rewrite H. rewrite interp_imp_ret, bind_ret. 
+    reflexivity.
+  Qed.
+  
+  (* IY: Conveniently, this is the exact same proof as TEST_true! *)
+  Theorem TEST_false : forall b c1 c2,
+    bequiv b BFalse ->
+    cequiv
+      (TEST b THEN c1 ELSE c2 FI)%imp
+      c2.
+  Proof.
+    unfold cequiv. intros. unfold bequiv in H.
+    unfold eval_bexp in H. cbn in H. cbn.
+    rewrite interp_imp_bind. rewrite H. rewrite interp_imp_ret, bind_ret.
+    reflexivity.
+  Qed. 
+
+  (* IY: Uses eutt_clo_bind again. *)
+  Theorem swap_if_branches : forall b e1 e2,
+    cequiv
+      (TEST b THEN e1 ELSE e2 FI)%imp
+      (TEST BNot b THEN e2 ELSE e1 FI)%imp.
+  Proof.
+    unfold cequiv. intros. cbn.
+    repeat rewrite interp_imp_bind.
+    rewrite bind_bind. cbn.
+    rewrite <- (bind_ret2 (run_state _ _)).
+    eapply eutt_clo_bind. reflexivity.
+    intros. subst. destruct u2. setoid_rewrite interp_imp_ret.
+    rewrite bind_ret.
+    destruct b0; cbn; reflexivity.
+  Qed.
+
+  (* IY: Do we need a eutt Proper Instance on iter? *)
+  Theorem WHILE_false : forall b c,
+    bequiv b BFalse ->
+    cequiv
+      (WHILE b DO c END)%imp
+      (SKIP)%imp.
+  Proof.
+    unfold cequiv. intros. unfold bequiv in H.
+    unfold eval_bexp in H. cbn in H. cbn.
+    rewrite interp_imp_ret. unfold while. 
+    (* IY: Want to use iter_dinatural_ktree.
+       Need to make the inner if expression to a match? *)
+    Admitted. 
