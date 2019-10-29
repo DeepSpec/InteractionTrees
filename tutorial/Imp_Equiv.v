@@ -277,17 +277,10 @@ Section Examples.
   Proof.
     unfold cequiv. intros. unfold bequiv in H.
     unfold eval_bexp in H. cbn in H. cbn.
-    rewrite interp_imp_ret. rewrite while_is_loop. 
-    rewrite interp_imp_iter. 
-    rewrite! unfold_iter_ktree. rewrite tau_eutt. cbn. 
+    rewrite interp_imp_ret. unfold while.
+    rewrite interp_imp_iter.
+    rewrite unfold_iter_ktree. cbn. 
     rewrite bind_bind. rewrite interp_imp_bind.
     rewrite bind_bind.
-    destruct b; simpl; try (rewrite interp_imp_ret, bind_ret);
-    try (rewrite interp_imp_bind, bind_bind, simpl).
-    - rewrite interp_imp_bind, bind_bind.
-      admit.
-    - rewrite interp_imp_ret, bind_ret, bind_ret. reflexivity.
-    -
-    Admitted. 
-
+  Admitted.   
   
