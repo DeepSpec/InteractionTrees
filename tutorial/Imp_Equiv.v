@@ -156,7 +156,6 @@ Section Examples.
     rewrite bind_ret.
     reflexivity.
   Qed.
-<<<<<<< HEAD
 
   Lemma bind_ret_unit_wildcard : forall {E} (t: itree E unit),
       ITree.bind t (fun _  => Ret tt) = ITree.bind t (fun x : unit => Ret x).
@@ -288,5 +287,15 @@ Section Examples.
     rewrite interp_imp_iter.
     rewrite unfold_iter_ktree. cbn. 
     rewrite bind_bind. rewrite interp_imp_bind.
-    rewrite bind_bind.
-  Admitted.   
+    rewrite bind_bind. cbn. rewrite H.
+    repeat (rewrite interp_imp_ret, bind_ret).
+    repeat rewrite bind_ret.
+    reflexivity.
+  Qed.
+
+  
+(*
+  Theorem WHILE_true_nonterm : forall b c st st',
+      bequiv b BTrue ->
+      ~ (st =[ WHILE b DO c END ]=> st'). 
+*)    

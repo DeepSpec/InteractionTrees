@@ -201,7 +201,7 @@ Definition while_asm (e : list instr) (p : asm 1 1) :
 Fixpoint compile (s : com) {struct s} : asm 1 1 :=
   match s with
   | CSkip       => id_asm
-  | CAss x e => raw_asm_block (after (compile_assign x e) (Bjmp f1))
+  | CAss x e => raw_asm_block (after (compile_assign x e) (Bjmp f0))
   | CSeq l r    => seq_asm (compile l) (compile r)
   | CIf e l r   => if_asm (compile_bexp 0 e) (compile l) (compile r)
   | CWhile e b  => while_asm (compile_bexp 0 e) (compile b)

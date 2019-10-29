@@ -714,13 +714,17 @@ Section Correctness.
       erewrite sim_rel_find_tmp_n; eauto.
       eapply sim_rel_binary_op; eauto.
   Qed.
-
+  
+  (* TODO *)
+  (*
   Lemma compile_bexp_correct : forall {E} e g_imp g_asm l n,
       Renv g_imp g_asm ->
       @eutt E _ _ (sim_rel l n)
             (interp_imp (denote_bexp e) g_imp)
             (interp_asm (denote_list (compile_bexp n e)) g_asm l).
   Proof.
+  Admitted. 
+  *)
  
   (** Correctness of the assign statement.
       The resulting list of instructions is denoted as

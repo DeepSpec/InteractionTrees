@@ -296,14 +296,6 @@ Section Denote.
       while the [inl tt] says to continue. *)
 
 
-(*
-  (** Casting values into [bool]:  [0] corresponds to [false] and any nonzero
-      value corresponds to [true].  *)
-  Definition is_true (v : value) : bool := if (v =? 0)%nat then false else true.
-  *)
-  Definition while (step : itree eff (unit + unit)) : itree eff unit :=
-    @iter _ _ _ Iter_ktree _ _ (fun _ => step) tt.
-*)
   (* SAZ + LX - for some reason typeclass resolution can't see the instance for 
      Iter_ktree, even though it seems to be in scope. *)
   Definition while (step : itree eff (unit + unit)) : itree eff unit :=
