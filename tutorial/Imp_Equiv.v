@@ -156,6 +156,7 @@ Section Examples.
     rewrite bind_ret.
     reflexivity.
   Qed.
+<<<<<<< HEAD
 
   Lemma bind_ret_unit_wildcard : forall {E} (t: itree E unit),
       ITree.bind t (fun _  => Ret tt) = ITree.bind t (fun x : unit => Ret x).
@@ -209,8 +210,15 @@ Section Examples.
      (c ;;; SKIP)%imp
     c.
   Proof.
+    (* TODO: Define LTac using eutt_clo_bind. *)
     unfold cequiv. intros. cbn.
-    rewrite interp_imp_bind_ret_unit.
+     rewrite interp_imp_bind.
+    rewrite <- (bind_ret2 (run_state _ _)).
+    eapply eutt_clo_bind.
+    rewrite bind_ret2.
+    reflexivity.
+    intros [? []] [? []] EQ; inversion EQ; subst.
+    rewrite interp_imp_ret.
     reflexivity.
   Qed.
 
@@ -224,7 +232,6 @@ Section Examples.
 
   (** Similarly, here is a simple transformation that optimizes [TEST]
     commands: *)
-
   Theorem TEST_true_simple : forall c1 c2,
     cequiv
       (TEST BTrue THEN c1 ELSE c2 FI)%imp
@@ -283,4 +290,3 @@ Section Examples.
     rewrite bind_bind. rewrite interp_imp_bind.
     rewrite bind_bind.
   Admitted.   
-  

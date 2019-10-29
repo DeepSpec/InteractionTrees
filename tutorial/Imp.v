@@ -240,13 +240,12 @@ Section Denote.
   Context {HasImpState : ImpState -< eff}.
 
   (** _Imp_ expressions are denoted as [itree eff value], where the returned
-      value in the tree is the value computed by the expression.
-      In the [Var] case, the [trigger] operator smoothly lifts a single event to
-      an [itree] by performing the corresponding [Vis] event and returning the
-      environment's answer immediately.
-      A constant (literal) is simply returned.
-      Usual monadic notations are used in the other cases: we can [bind]
-      recursive computations in the case of operators as one would expect. *)
+      value in the tree is the value computed by the expression.  In the [Var]
+      case, the [trigger] operator smoothly lifts a single event to an [itree]
+      by performing the corresponding [Vis] event and returning the
+      environment's answer immediately.  Usual monadic notations are used in the
+      other cases. A constant (literal) is simply returned, while we can [bind]
+      recursive computations in the case of operators as one would expect.  *)
 
   Fixpoint denote_aexp (e : aexp) : itree eff value :=
     match e with
@@ -296,16 +295,19 @@ Section Denote.
       That is, the right tag [inr tt] says to exit the loop,
       while the [inl tt] says to continue. *)
 
-  (*
-    From `master` (TODO: do we want to use this?) 
-    iter (C := Kleisli _) (fun _ => step) tt.
 
+(*
   (** Casting values into [bool]:  [0] corresponds to [false] and any nonzero
       value corresponds to [true].  *)
   Definition is_true (v : value) : bool := if (v =? 0)%nat then false else true.
   *)
   Definition while (step : itree eff (unit + unit)) : itree eff unit :=
     @iter _ _ _ Iter_ktree _ _ (fun _ => step) tt.
+*)
+  (* SAZ + LX - for some reason typeclass resolution can't see the instance for 
+     Iter_ktree, even though it seems to be in scope. *)
+  Definition while (step : itree eff (unit + unit)) : itree eff unit :=
+    @iter _ _ _ Iter_Kleisli _ _ (fun _ => step) tt.
     
   (** The meaning of statements is now easy to define.  They are all
       straightforward, except for [While], which uses our new [while] combinator
