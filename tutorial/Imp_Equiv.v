@@ -1,4 +1,4 @@
-Require Import Imp.
+Require Import Imp. 
 Require Import Paco.paco.
 From ITree Require Import
      ITree
@@ -13,6 +13,9 @@ From Coq Require Import
      Morphisms
      Arith
      Logic.FunctionalExtensionality.
+From ExtLib Require Import
+     Structures.Monad.
+Import MonadNotation.
 
 (**
    The chapter [Equiv] from _Programming Language Foundations_ introduced a
@@ -69,7 +72,7 @@ Section Examples.
   Qed.
 
   (** [interp_imp] commutes with [bind]. *)
-  Lemma interp_imp_bind: forall {R S E} (t: itree (ImpState +' E) R) (k: R -> itree (ImpState +' E) S) (g : env),
+  Lemma interp_imp_bind: forall {R S E} (t : itree (ImpState +' E) R) (k: R -> itree (ImpState +' E) S) (g : env),
       run_state (interp_imp (ITree.bind t k)) g
     ≅ (ITree.bind (run_state (interp_imp t) g) (fun '(g',  x) => run_state (interp_imp (k x)) g')).
   Proof.
@@ -80,19 +83,24 @@ Section Examples.
     repeat rewrite interp_state_bind.
   Admitted.
 
-
+  Lemma interp_imp_iter: forall {E A B} (t : A -> itree (ImpState +' E) (A + B)) (a0 : A) (g: env),
+    run_state (interp_imp (KTree.iter t a0)) g
+                ≅ KTree.iter (fun '(g', a) =>
+                                '(s,ab) <- run_state (interp_imp (t a)) g';;
+                                 match ab with
+                                 | inl a => ret (inl (s,a))
+                                 | inr b => ret (inr (s,b))
+                                 end
+                             ) (g, a0).
+  Proof.
+    intros. unfold interp_imp, interp_map.
+  Admitted.
+  
   Instance run_state_proper {E A} : Proper (eqm ==> eq ==> eutt eq) (@run_state E A).
   Admitted.
 
   Instance run_state_proper_eqit {E A} : Proper (eqm ==> eq ==> eq_itree eq) (@run_state E A).
   Admitted.
-
-  (* IY: How do we define a KTree Proper instance for eutt? *)
-  (*
-  Instance iter_proper {E A B} : @Proper (ktree E A (A + B))
-          (eq2 ==> eq_itree eq2)
-          iter.
-  *) 
 
   Instance interp_state_proper {T E F S} (h: forall T : Type, E T -> Monads.stateT S (itree F) T) : Proper (eutt eq ==> eqm) (State.interp_state h (T := T)).
   Admitted.
@@ -170,6 +178,14 @@ Section Examples.
     reflexivity.
   Qed.
 
+  
+  Ltac simple_TEST H :=
+    unfold cequiv; intros;
+    unfold bequiv, eval_bexp in *; cbn in *;
+    rewrite interp_imp_bind; try (rewrite H);
+    rewrite interp_imp_ret, bind_ret;
+    reflexivity.
+
   (** Similarly, here is a simple transformation that optimizes [TEST]
     commands: *)
   Theorem TEST_true_simple : forall c1 c2,
@@ -177,10 +193,9 @@ Section Examples.
       (TEST BTrue THEN c1 ELSE c2 FI)%imp
       c1.
   Proof.
-    unfold cequiv. intros. cbn.
-    rewrite interp_imp_bind. rewrite interp_imp_ret, bind_ret.
-    reflexivity.
+    simple_TEST H. 
   Qed.
+
 
   Theorem TEST_true: forall b c1 c2,
     bequiv b BTrue  ->
@@ -188,26 +203,20 @@ Section Examples.
       (TEST b THEN c1 ELSE c2 FI)%imp
       c1.
   Proof.
-    unfold cequiv. intros. unfold bequiv in H.
-    unfold eval_bexp in H. cbn in H. cbn.
-    rewrite interp_imp_bind. rewrite H. rewrite interp_imp_ret, bind_ret. 
-    reflexivity.
+    intros. simple_TEST H.
   Qed.
   
-  (* IY: Conveniently, this is the exact same proof as TEST_true! *)
   Theorem TEST_false : forall b c1 c2,
     bequiv b BFalse ->
     cequiv
       (TEST b THEN c1 ELSE c2 FI)%imp
       c2.
   Proof.
-    unfold cequiv. intros. unfold bequiv in H.
-    unfold eval_bexp in H. cbn in H. cbn.
-    rewrite interp_imp_bind. rewrite H. rewrite interp_imp_ret, bind_ret.
-    reflexivity.
+    intros. simple_TEST H. 
   Qed. 
 
-  (* IY: Uses eutt_clo_bind again. *)
+  (* IY: Uses eutt_clo_bind again.
+     TODO: What's the best Ltac for eutt_clo_bind things? *)
   Theorem swap_if_branches : forall b e1 e2,
     cequiv
       (TEST b THEN e1 ELSE e2 FI)%imp
@@ -223,7 +232,6 @@ Section Examples.
     destruct b0; cbn; reflexivity.
   Qed.
 
-  (* IY: Do we need a eutt Proper Instance on iter? *)
   Theorem WHILE_false : forall b c,
     bequiv b BFalse ->
     cequiv
@@ -232,7 +240,17 @@ Section Examples.
   Proof.
     unfold cequiv. intros. unfold bequiv in H.
     unfold eval_bexp in H. cbn in H. cbn.
-    rewrite interp_imp_ret. unfold while. 
-    (* IY: Want to use iter_dinatural_ktree.
-       Need to make the inner if expression to a match? *)
+    rewrite interp_imp_ret. rewrite while_is_loop. 
+    rewrite interp_imp_iter. 
+    rewrite! unfold_iter_ktree. rewrite tau_eutt. cbn. 
+    rewrite bind_bind. rewrite interp_imp_bind.
+    rewrite bind_bind.
+    destruct b; simpl; try (rewrite interp_imp_ret, bind_ret);
+    try (rewrite interp_imp_bind, bind_bind, simpl).
+    - rewrite interp_imp_bind, bind_bind.
+      admit.
+    - rewrite interp_imp_ret, bind_ret, bind_ret. reflexivity.
+    -
     Admitted. 
+
+  
