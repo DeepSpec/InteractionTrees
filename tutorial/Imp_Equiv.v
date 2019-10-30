@@ -81,7 +81,7 @@ Section Examples.
     unfold interp_map.
     repeat rewrite interp_bind.
     repeat rewrite interp_state_bind.
-  Admitted.
+    unfold State.interp_state. Admitted. 
 
   Lemma interp_imp_iter: forall {E A B} (t : A -> itree (ImpState +' E) (A + B)) (a0 : A) (g: env),
     run_state (interp_imp (KTree.iter t a0)) g
@@ -104,9 +104,12 @@ Section Examples.
 
   Instance interp_state_proper {T E F S} (h: forall T : Type, E T -> Monads.stateT S (itree F) T) : Proper (eutt eq ==> eqm) (State.interp_state h (T := T)).
   Admitted.
-
- (* Instance run_state_interp_interp *)
-
+  
+  (* IY: This lemma might be useless.. *)
+  Lemma interp_imp_trigger : forall (E F: Type -> Type) `{E -< ImpState +' F}  (R: Type) (e: E R) (f : forall T : Type, E T -> itree F (env * T)) (g: env),
+      run_state (interp_imp (trigger e)) g ≳ f R e.
+  Proof. Admitted.
+  
   Lemma interp_imp_trigger_get_var: forall (E: Type -> Type) (x: var) (g: env),
     run_state (interp_imp (trigger (GetVar x))) g ≈ (Ret (g, lookup_default x 0 g) : itree E (env * value)).
   Proof.
@@ -114,6 +117,10 @@ Section Examples.
     (* rewrite tau_eutt. cbn. unfold cat, Cat_Handler, Handler.cat. *)
   Admitted.
 
+  Lemma interp_imp_trigger_set_var: forall (E: Type -> Type) (g: env) (x: var) (v: value) s,
+      run_state (interp_imp (trigger (SetVar x s))) g ≈ (Ret (g, tt) : itree E (env * unit)).
+  Proof. Admitted.
+  
   Theorem aequiv_example: aequiv (X - X) 0.
   Proof.
     unfold aequiv. intros s. unfold eval_aexp. simpl.
@@ -312,6 +319,19 @@ Section Examples.
       (WHILE b DO c END)%imp
       (WHILE BTrue DO SKIP END)%imp.
   Proof.
+    unfold cequiv. intros. cbn.
+    unfold while. rewrite 2 interp_imp_iter. cbn.
+    unfold KTree.iter, Iter_Kleisli, Basics.iter, MonadIter_itree.
+    rewrite 2 unfold_iter.
+    repeat rewrite (bind_bind, interp_imp_bind). rewrite 2 bind_bind.
+    rewrite 2 interp_imp_bind. rewrite 2 bind_bind.
+    rewrite interp_imp_ret, bind_ret.
+    rewrite interp_imp_bind, interp_imp_ret, bind_bind, bind_ret.
+    rewrite interp_imp_ret, bind_ret, bind_ret. cbn.
+    rewrite tau_eutt.
+    rewrite unfold_iter.
+    rewrite bind_bind, interp_imp_bind.
+    (* This will go nowhere. *)
     Admitted. 
 
   Theorem loop_unrolling : forall b c,
@@ -327,9 +347,11 @@ Section Examples.
     repeat rewrite bind_bind. cbn. eapply eutt_clo_bind.
     reflexivity.
     intros.
-    destruct u1, u2. destruct b0.
-    - repeat (rewrite interp_imp_bind, bind_bind).
-      inversion H; subst.
+    destruct u1, u2. inversion H; subst. 
+    (* This is the first time we _needed_ to reason about the program structure! *)
+    destruct b1. 
+    - (* Then, we go back to rewriting ITrees *)
+      repeat (rewrite interp_imp_bind, bind_bind).
       repeat (rewrite interp_imp_bind, bind_bind).
       rewrite interp_imp_bind. 
       eapply eutt_clo_bind. reflexivity.
@@ -342,7 +364,408 @@ Section Examples.
       repeat (rewrite bind_bind, interp_imp_bind).
       rewrite bind_bind. reflexivity.
     - rewrite interp_imp_ret. repeat rewrite bind_ret.
-      inversion H; subst. rewrite interp_imp_ret.
+      rewrite interp_imp_ret.
       reflexivity.
   Qed. 
     
+  Theorem seq_assoc : forall c1 c2 c3,
+    cequiv ((c1;;;c2);;;c3)%imp (c1;;;(c2;;;c3))%imp.
+  Proof.
+    unfold cequiv. intros. cbn.
+    rewrite 3 interp_imp_bind. rewrite bind_bind.
+    eapply eutt_clo_bind. reflexivity.
+    intros.
+    destruct u1, u2. inversion H; subst.
+    rewrite interp_imp_bind. reflexivity.
+  Qed.
+
+  Theorem identity_assignment : forall x,
+    cequiv
+      (x ::= x)%imp
+      (SKIP)%imp.
+  Proof.
+    unfold cequiv. intros. cbn.
+    rewrite interp_imp_bind, interp_imp_ret.
+    rewrite interp_imp_trigger_get_var, bind_ret.
+    rewrite interp_imp_trigger_set_var. reflexivity. 
+    constructor.
+  Qed. 
+           
+  Theorem assign_aequiv : forall (x : string) e,
+    aequiv x e ->
+    cequiv (SKIP)%imp (x ::= e)%imp.
+  Proof.
+    unfold cequiv. intros. cbn. unfold aequiv in H.
+    rewrite interp_imp_ret, interp_imp_bind.
+    unfold eval_aexp in H. setoid_rewrite <- H.
+    simpl. rewrite interp_imp_trigger_get_var.
+    rewrite bind_ret. 
+    rewrite -> interp_imp_trigger_set_var.
+    reflexivity. constructor.
+  Qed. 
+
+
+  (* ################################################################# *)
+  (** * Properties of Behavioral Equivalence *)
+
+  (** We next consider some fundamental properties of program
+    equivalence. *)
+
+  Lemma refl_aequiv : forall (a : aexp), aequiv a a.
+  Proof.
+    intros a st. reflexivity.  Qed.
+
+  Lemma sym_aequiv : forall (a1 a2 : aexp),
+    aequiv a1 a2 -> aequiv a2 a1.
+  Proof.
+    intros a1 a2 H. intros st. symmetry. apply H.  Qed.
+
+  Lemma trans_aequiv : forall (a1 a2 a3 : aexp),
+    aequiv a1 a2 -> aequiv a2 a3 -> aequiv a1 a3.
+  Proof.
+    unfold aequiv. intros a1 a2 a3 H12 H23 st.
+    rewrite (H12 st). rewrite (H23 st). reflexivity.  Qed.
+
+  Lemma refl_bequiv : forall (b : bexp), bequiv b b.
+  Proof.
+    unfold bequiv. intros b st. reflexivity.  Qed.
+
+  Lemma sym_bequiv : forall (b1 b2 : bexp),
+    bequiv b1 b2 -> bequiv b2 b1.
+  Proof.
+    unfold bequiv. intros b1 b2 H. intros st. symmetry. apply H.  Qed.
+
+  Lemma trans_bequiv : forall (b1 b2 b3 : bexp),
+    bequiv b1 b2 -> bequiv b2 b3 -> bequiv b1 b3.
+  Proof.
+    unfold bequiv. intros b1 b2 b3 H12 H23 st.
+    rewrite (H12 st). rewrite (H23 st). reflexivity.  Qed.
+
+  (* These next two lemmas are different from the original Imp_Equiv. *)
+  Lemma refl_cequiv : forall (c : com), cequiv c c.
+  Proof.
+    unfold cequiv. intros. reflexivity. Qed.
+
+  (* Slightly simpler proof here, because we don't need to reason 
+     about the states. *)
+  Lemma sym_cequiv : forall (c1 c2 : com),
+    cequiv c1 c2 -> cequiv c2 c1.
+  Proof.
+    unfold cequiv. intros. rewrite H.
+    reflexivity. 
+  Qed.
+
+  Lemma trans_cequiv : forall (c1 c2 c3 : com),
+    cequiv c1 c2 -> cequiv c2 c3 -> cequiv c1 c3.
+  Proof.
+    unfold cequiv. intros.
+    rewrite H, H0. reflexivity. 
+  Qed. 
+
+  (* ================================================================= *)
+  (** ** Behavioral Equivalence Is a Congruence *)  
+
+  (** Less obviously, behavioral equivalence is also a _congruence_.
+      That is, the equivalence of two subprograms implies the
+      equivalence of the larger programs in which they are embedded:
+                aequiv a1 a1'
+        -----------------------------
+        cequiv (x ::= a1) (x ::= a1')
+                cequiv c1 c1'
+                cequiv c2 c2'
+           --------------------------
+           cequiv (c1;;c2) (c1';;c2')
+      ... and so on for the other forms of commands. *)
+
+  (** (Note that we are using the inference rule notation here not
+      as part of a definition, but simply to write down some valid
+      implications in a readable format. We prove these implications
+      below.) *)
+
+  (** We will see a concrete example of why these congruence
+      properties are important in the following section (in the proof of
+      [fold_constants_com_sound]), but the main idea is that they allow
+      us to replace a small part of a large program with an equivalent
+      small part and know that the whole large programs are equivalent
+      _without_ doing an explicit proof about the non-varying parts --
+      i.e., the "proof burden" of a small change to a large program is
+      proportional to the size of the change, not the program. *)
+
+  Theorem CAss_congruence : forall x a1 a1',
+    aequiv a1 a1' ->
+    cequiv (CAss x a1) (CAss x a1').
+  Proof.
+    unfold cequiv. intros. unfold aequiv in H.
+    cbn. rewrite 2 interp_imp_bind. rewrite H.
+    eapply eutt_clo_bind. reflexivity.
+    intros. rewrite H0. reflexivity.
+  Qed.
+
+  
+  Theorem CWhile_congruence : forall b1 b1' c1 c1',
+    bequiv b1 b1' -> cequiv c1 c1' ->
+    cequiv (WHILE b1 DO c1 END)%imp (WHILE b1' DO c1' END)%imp.
+  Proof.
+    unfold cequiv. intros. unfold bequiv in H. cbn.
+    unfold while. 
+    rewrite 2 interp_imp_iter. cbn.
+    unfold KTree.iter, Iter_Kleisli, Basics.iter, MonadIter_itree.
+    eapply eutt_iter'. intros.
+    rewrite H1; clear H1. destruct j2.
+    rewrite 2 interp_imp_bind. rewrite 2 bind_bind. rewrite H.
+    2, 3 : reflexivity.
+    eapply eutt_clo_bind. reflexivity.
+    intros. rewrite H1; clear H1.
+    eapply eutt_clo_bind. destruct u2. destruct b.
+    rewrite 2 interp_imp_bind. rewrite H0. reflexivity.
+    reflexivity.
+    intros. rewrite H1; clear H1. destruct u3. destruct s0.
+    (* Morally, we want to use `reflexivity.` *)
+    Admitted. 
+
+  
+  (* CSeq_congruence, CIf_congruence are super clean. *)
+  Theorem CSeq_congruence : forall c1 c1' c2 c2',
+    cequiv c1 c1' -> cequiv c2 c2' ->
+    cequiv (c1;;;c2)%imp (c1';;;c2')%imp.
+  Proof.
+    unfold cequiv. intros. simpl.
+    rewrite 2 interp_imp_bind.
+    eapply eutt_clo_bind. rewrite H. reflexivity.
+    intros. rewrite H1; clear H1. destruct u2.
+    rewrite H0. reflexivity.
+  Qed.
+
+  Theorem CIf_congruence : forall b b' c1 c1' c2 c2',
+    bequiv b b' -> cequiv c1 c1' -> cequiv c2 c2' ->
+    cequiv (TEST b THEN c1 ELSE c2 FI)%imp
+           (TEST b' THEN c1' ELSE c2' FI)%imp.
+  Proof.
+    unfold bequiv, cequiv. intros. simpl.
+    rewrite 2 interp_imp_bind.
+    eapply eutt_clo_bind. rewrite H.
+    reflexivity.
+    intros. rewrite H2. clear H2. destruct u2.
+    destruct b0; try rewrite H0; try rewrite H1; reflexivity.
+  Qed. 
+
+  Example congruence_example:
+    cequiv
+      (* Program 1: *)
+      (X ::= 0;;;
+       TEST X = 0
+       THEN
+         Y ::= 0
+       ELSE
+         Y ::= 42
+       FI)%imp
+      (* Program 2: *)
+      (X ::= 0;;;
+       TEST X = 0
+       THEN
+         Y ::= X - X   (* <--- Changed here *)
+       ELSE
+         Y ::= 42
+       FI)%imp.
+  Proof.
+    apply CSeq_congruence.
+    - apply refl_cequiv.
+    - apply CIf_congruence.
+      + apply refl_bequiv.
+      + apply CAss_congruence. unfold aequiv. simpl.
+        * symmetry. admit. (* TODO *)
+      + apply refl_cequiv.
+  Admitted.
+
+  (* ################################################################# *)
+  (** * Program Transformations *)
+
+  (** A _program transformation_ is a function that takes a program as
+      input and produces some variant of the program as output.
+      Compiler optimizations such as constant folding are a canonical
+      example, but there are many others. *)
+ 
+  (** A program transformation is _sound_ if it preserves the
+      behavior of the original program. *)
+
+  Definition atrans_sound (atrans : aexp -> aexp) : Prop :=
+    forall (a : aexp),
+      aequiv a (atrans a).
+
+  Definition btrans_sound (btrans : bexp -> bexp) : Prop :=
+    forall (b : bexp),
+      bequiv b (btrans b).
+
+  Definition ctrans_sound (ctrans : com -> com) : Prop :=
+    forall (c : com),
+      cequiv c (ctrans c).
+
+  (* ================================================================= *)
+  (** ** The Constant-Folding Transformation *)
+
+  (** An expression is _constant_ when it contains no variable
+      references.
+      Constant folding is an optimization that finds constant
+      expressions and replaces them by their values. *)
+
+  Fixpoint fold_constants_aexp (a : aexp) : aexp :=
+    match a with
+    | ANum n       => ANum n
+    | AId x        => AId x
+    | APlus a1 a2  =>
+      match (fold_constants_aexp a1,
+             fold_constants_aexp a2)
+      with
+      | (ANum n1, ANum n2) => ANum (n1 + n2)
+      | (a1', a2') => APlus a1' a2'
+      end
+    | AMinus a1 a2 =>
+      match (fold_constants_aexp a1,
+             fold_constants_aexp a2)
+      with
+      | (ANum n1, ANum n2) => ANum (n1 - n2)
+      | (a1', a2') => AMinus a1' a2'
+      end
+    | AMult a1 a2  =>
+      match (fold_constants_aexp a1,
+             fold_constants_aexp a2)
+      with
+      | (ANum n1, ANum n2) => ANum (n1 * n2)
+      | (a1', a2') => AMult a1' a2'
+      end
+    end.
+
+  Example fold_aexp_ex1 :
+    fold_constants_aexp ((1 + 2) * X)
+    = (3 * X)%imp.
+  Proof. reflexivity. Qed.
+
+  Example fold_aexp_ex2 :
+    fold_constants_aexp (X - ((0 * 6) + Y))%imp = (X - (0 + Y))%imp.
+  Proof. reflexivity. Qed.
+
+    
+  Fixpoint fold_constants_bexp (b : bexp) : bexp :=
+    match b with
+    | BTrue        => BTrue
+    | BFalse       => BFalse
+    | BEq a1 a2  =>
+        match (fold_constants_aexp a1,
+              fold_constants_aexp a2) with
+        | (ANum n1, ANum n2) =>
+            if n1 =? n2 then BTrue else BFalse
+        | (a1', a2') =>
+            BEq a1' a2'
+        end
+    | BLe a1 a2  =>
+        match (fold_constants_aexp a1,
+              fold_constants_aexp a2) with
+        | (ANum n1, ANum n2) =>
+            if n1 <=? n2 then BTrue else BFalse
+        | (a1', a2') =>
+            BLe a1' a2'
+        end
+    | BNot b1  =>
+        match (fold_constants_bexp b1) with
+        | BTrue => BFalse
+        | BFalse => BTrue
+        | b1' => BNot b1'
+        end
+    | BAnd b1 b2  =>
+        match (fold_constants_bexp b1,
+              fold_constants_bexp b2) with
+        | (BTrue, BTrue) => BTrue
+        | (BTrue, BFalse) => BFalse
+        | (BFalse, BTrue) => BFalse
+        | (BFalse, BFalse) => BFalse
+        | (b1', b2') => BAnd b1' b2'
+        end
+    end.
+
+  Example fold_bexp_ex1 :
+    fold_constants_bexp (true && ~(false && true))%imp
+    = true.
+  Proof. reflexivity. Qed.
+
+  Example fold_bexp_ex2 :
+    fold_constants_bexp ((X = Y) && (0 = (2 - (1 + 1))))%imp
+    = ((X = Y) && true)%imp.
+  Proof. reflexivity. Qed.
+
+  (** To fold constants in a command, we apply the appropriate folding
+      functions on all embedded expressions. *)
+
+  Open Scope imp.
+  Fixpoint fold_constants_com (c : com) : com :=
+    match c with
+    | SKIP      =>
+        SKIP
+    | x ::= a   =>
+        x ::= (fold_constants_aexp a)
+    | c1 ;;; c2  =>
+        (fold_constants_com c1) ;;; (fold_constants_com c2)
+    | TEST b THEN c1 ELSE c2 FI =>
+        match fold_constants_bexp b with
+        | BTrue  => fold_constants_com c1
+        | BFalse => fold_constants_com c2
+        | b' => TEST b' THEN fold_constants_com c1
+                      ELSE fold_constants_com c2 FI
+        end
+    | WHILE b DO c END =>
+        match fold_constants_bexp b with
+        | BTrue => WHILE BTrue DO SKIP END
+        | BFalse => SKIP
+        | b' => WHILE b' DO (fold_constants_com c) END
+        end
+    end.
+  Close Scope imp.
+
+
+  Example fold_com_ex1 :
+    fold_constants_com
+      (* Original program: *)
+      (X ::= 4 + 5;;;
+      Y ::= X - 3;;;
+      TEST (X - Y) = (2 + 4) THEN SKIP
+      ELSE Y ::= 0 FI;;;
+      TEST 0 <= (4 - (2 + 1)) THEN Y ::= 0
+      ELSE SKIP FI;;;
+      WHILE Y = 0 DO
+        X ::= X + 1
+      END)%imp
+    = (* After constant folding: *)
+      (X ::= 9;;;
+      Y ::= X - 3;;;
+      TEST (X - Y) = 6 THEN SKIP
+      ELSE Y ::= 0 FI;;;
+      Y ::= 0;;;
+      WHILE Y = 0 DO
+        X ::= X + 1
+      END)%imp.
+  Proof. reflexivity. Qed.
+
+
+  (* ================================================================= *)
+  (** ** Soundness of Constant Folding *)
+
+  (** Now we need to show that what we've done is correct. *)
+
+  (** Here's the proof for arithmetic expressions: *)
+
+  Theorem fold_constants_aexp_sound :
+    atrans_sound fold_constants_aexp.
+  Proof.
+    unfold atrans_sound. intros a. unfold aequiv. intros st.
+    induction a; simpl;
+      (* ANum and AId follow immediately *)
+      try reflexivity;
+      (* APlus, AMinus, and AMult follow from the IH
+        and the observation that
+                aeval st (APlus a1 a2)
+              = ANum ((aeval st a1) + (aeval st a2))
+              = aeval st (ANum ((aeval st a1) + (aeval st a2)))
+        (and similarly for AMinus/minus and AMult/mult) *)
+      try (destruct (fold_constants_aexp a1);
+          destruct (fold_constants_aexp a2);
+          rewrite IHa1; rewrite IHa2; reflexivity).
+    Admitted. 
