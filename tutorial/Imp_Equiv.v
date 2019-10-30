@@ -291,11 +291,58 @@ Section Examples.
     repeat (rewrite interp_imp_ret, bind_ret).
     repeat rewrite bind_ret.
     reflexivity.
-  Qed.
+  Qed.          
 
-  
-(*
+  (* Up until now, we only had to think about behavioral equivalence
+     of Imp programs. Now, we see an instance of reasoning about the 
+     predicates of the program. Namely, we want to show the divergence
+     of a program and characterize different types of divergent behaviors. 
+   *)
+
+  (* TODO: Define divergence *)
+  (*
   Theorem WHILE_true_nonterm : forall b c st st',
       bequiv b BTrue ->
       ~ (st =[ WHILE b DO c END ]=> st'). 
-*)    
+  *)    
+
+  Theorem WHILE_true : forall b c,
+    bequiv b BTrue  ->
+    cequiv
+      (WHILE b DO c END)%imp
+      (WHILE BTrue DO SKIP END)%imp.
+  Proof.
+    Admitted. 
+
+  Theorem loop_unrolling : forall b c,
+    cequiv
+      (WHILE b DO c END)%imp
+      (TEST b THEN (c ;;; WHILE b DO c END) ELSE SKIP FI)%imp.
+  Proof.
+    unfold cequiv. intros. cbn.
+    unfold while. rewrite interp_imp_iter. cbn.
+    rewrite interp_imp_bind.
+    rewrite unfold_iter_ktree.
+    repeat (rewrite bind_bind, interp_imp_bind).
+    repeat rewrite bind_bind. cbn. eapply eutt_clo_bind.
+    reflexivity.
+    intros.
+    destruct u1, u2. destruct b0.
+    - repeat (rewrite interp_imp_bind, bind_bind).
+      inversion H; subst.
+      repeat (rewrite interp_imp_bind, bind_bind).
+      rewrite interp_imp_bind. 
+      eapply eutt_clo_bind. reflexivity.
+      intros. subst. destruct u2.
+      rewrite interp_imp_ret. repeat rewrite bind_ret.
+      rewrite tau_eutt. rewrite unfold_iter_ktree.
+      repeat (rewrite bind_bind, interp_imp_bind).
+      rewrite bind_bind. rewrite interp_imp_iter.
+      rewrite unfold_iter_ktree. cbn.
+      repeat (rewrite bind_bind, interp_imp_bind).
+      rewrite bind_bind. reflexivity.
+    - rewrite interp_imp_ret. repeat rewrite bind_ret.
+      inversion H; subst. rewrite interp_imp_ret.
+      reflexivity.
+  Qed. 
+    
