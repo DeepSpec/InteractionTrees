@@ -12,7 +12,8 @@ From Coq Require Import
      Setoid
      Morphisms
      Arith
-     Logic.FunctionalExtensionality.
+     Logic.FunctionalExtensionality
+     RelationClasses.
 From ExtLib Require Import
      Structures.Monad.
 Import MonadNotation.
@@ -501,6 +502,10 @@ Section Examples.
     intros. rewrite H0. reflexivity.
   Qed.
 
+  (* Needed to define this equivalence instance for CWhile_congruence. *)
+  Global Instance sum_rel_refl {R S : Type} {RR : R -> R -> Prop} {SS : S -> S -> Prop} `{Reflexive _ RR} `{Reflexive _ SS}: Reflexive (sum_rel RR SS).
+  Proof. red. destruct x; constructor; auto. Qed. 
+
   
   Theorem CWhile_congruence : forall b1 b1' c1 c1',
     bequiv b1 b1' -> cequiv c1 c1' ->
@@ -519,9 +524,9 @@ Section Examples.
     eapply eutt_clo_bind. destruct u2. destruct b.
     rewrite 2 interp_imp_bind. rewrite H0. reflexivity.
     reflexivity.
-    intros. rewrite H1; clear H1. destruct u3. destruct s0.
-    (* Morally, we want to use `reflexivity.` *)
-    Admitted. 
+    intros. rewrite H1; clear H1. destruct u3. destruct s0; reflexivity.
+    Qed. 
+   
 
   
   (* CSeq_congruence, CIf_congruence are super clean. *)
