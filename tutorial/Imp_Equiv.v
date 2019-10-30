@@ -70,6 +70,15 @@ Section Examples.
     rewrite interp_state_ret.
     reflexivity.
   Qed.
+  
+  Instance run_state_proper {E A} : Proper (eqm ==> eq ==> eutt eq) (@run_state E A).
+  Admitted.
+
+  Instance run_state_proper_eqit {E A} : Proper (eqm ==> eq ==> eq_itree eq) (@run_state E A).
+  Admitted.
+
+  Instance interp_state_proper {T E F S} (h: forall T : Type, E T -> Monads.stateT S (itree F) T) : Proper (eutt eq ==> eqm) (State.interp_state h (T := T)).
+  Admitted.
 
   (** [interp_imp] commutes with [bind]. *)
   Lemma interp_imp_bind: forall {R S E} (t : itree (ImpState +' E) R) (k: R -> itree (ImpState +' E) S) (g : env),
@@ -81,7 +90,9 @@ Section Examples.
     unfold interp_map.
     repeat rewrite interp_bind.
     repeat rewrite interp_state_bind.
-    unfold State.interp_state. Admitted. 
+    unfold State.interp_state.
+    unfold run_state. unfold case_, Case_sum1, case_sum1. 
+  Admitted. 
 
   Lemma interp_imp_iter: forall {E A B} (t : A -> itree (ImpState +' E) (A + B)) (a0 : A) (g: env),
     run_state (interp_imp (KTree.iter t a0)) g
@@ -94,21 +105,10 @@ Section Examples.
                              ) (g, a0).
   Proof.
     intros. unfold interp_imp, interp_map.
+    rewrite 2 unfold_iter_ktree. cbn. rewrite bind_bind.
+    repeat unfold run_state. unfold State.interp_state.
+    unfold case_, Case_sum1, case_sum1.  
   Admitted.
-  
-  Instance run_state_proper {E A} : Proper (eqm ==> eq ==> eutt eq) (@run_state E A).
-  Admitted.
-
-  Instance run_state_proper_eqit {E A} : Proper (eqm ==> eq ==> eq_itree eq) (@run_state E A).
-  Admitted.
-
-  Instance interp_state_proper {T E F S} (h: forall T : Type, E T -> Monads.stateT S (itree F) T) : Proper (eutt eq ==> eqm) (State.interp_state h (T := T)).
-  Admitted.
-  
-  (* IY: This lemma might be useless.. *)
-  Lemma interp_imp_trigger : forall (E F: Type -> Type) `{E -< ImpState +' F}  (R: Type) (e: E R) (f : forall T : Type, E T -> itree F (env * T)) (g: env),
-      run_state (interp_imp (trigger e)) g ≳ f R e.
-  Proof. Admitted.
   
   Lemma interp_imp_trigger_get_var: forall (E: Type -> Type) (x: var) (g: env),
     run_state (interp_imp (trigger (GetVar x))) g ≈ (Ret (g, lookup_default x 0 g) : itree E (env * value)).
@@ -755,17 +755,16 @@ Section Examples.
   Theorem fold_constants_aexp_sound :
     atrans_sound fold_constants_aexp.
   Proof.
-    unfold atrans_sound. intros a. unfold aequiv. intros st.
+    unfold atrans_sound. intros a. unfold aequiv.
+    unfold eval_aexp in *. 
     induction a; simpl;
       (* ANum and AId follow immediately *)
-      try reflexivity;
-      (* APlus, AMinus, and AMult follow from the IH
-        and the observation that
-                aeval st (APlus a1 a2)
-              = ANum ((aeval st a1) + (aeval st a2))
-              = aeval st (ANum ((aeval st a1) + (aeval st a2)))
-        (and similarly for AMinus/minus and AMult/mult) *)
-      try (destruct (fold_constants_aexp a1);
-          destruct (fold_constants_aexp a2);
-          rewrite IHa1; rewrite IHa2; reflexivity).
-    Admitted. 
+      try reflexivity.  
+    - destruct (fold_constants_aexp a1); destruct (fold_constants_aexp a2);
+      simpl; intros; try (rewrite interp_imp_bind, interp_imp_ret);
+      try rewrite IHa1; try rewrite IHa2; cbn; repeat rewrite interp_imp_ret, bind_ret;
+        rewrite interp_imp_bind.
+      try rewrite IHa2. cbn. rewrite interp_imp_ret.
+      rewrite bind_ret. rewrite interp_imp_ret. reflexivity.
+      (* TODO: Very simple rewrites, should define Ltacs on these *)
+  Admitted. 
