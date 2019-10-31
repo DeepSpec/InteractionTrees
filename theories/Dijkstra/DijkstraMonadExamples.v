@@ -328,6 +328,19 @@ Section StateSpecInstance.
     cbv in H. unfold monotonic in Hw2'. eapply Hw2'; eauto; auto.
   Qed.
 
+  Definition _encode A (post : A * S -> Prop) (pre : S -> Prop) : _StateSpec A :=
+    fun p s => pre s /\ forall r, post r -> p r.
+
+  Lemma encode_monot : forall A post pre, monotonic (_encode A post pre).
+    Proof.
+      unfold monotonic, _encode. intros. destruct H0. split; auto. intros.
+      destruct r. apply H. auto.
+    Qed.
+
+  Definition encode A (post : A * S -> Prop) (pre : S -> Prop) : StateSpec A :=
+    exist _ (_encode A post pre) (encode_monot A post pre).
+
+
 End StateSpecInstance.
 
 Section StateMonad.
@@ -368,6 +381,10 @@ Section StateMonad.
       unfold bindstm, eqm, StateEq. intuition.
       destruct (x s). auto.
     Qed.
+
+   Definition get : State S := fun s => (s,s).
+
+   Definition put (s : S) : State unit := fun s' => (tt,s).
 
 End StateMonad.
 
@@ -410,7 +427,66 @@ Section StateSpecObs.
       bind_pres := obsst_pres_bind
     }.
   
+  Definition ST (A : Type) (w : StateSpec A) := DijkstraMonad State StateSpec StateEffectObs A w.
+
+  Definition STProp (A : Type) (w : StateSpec A) := DijkstraProp State StateSpec StateEffectObs A w.
 
 End StateSpecObs.
 
 End State.
+
+Section StateExample.
+  Definition StateNat A := State nat A.
+
+  Definition inc : State nat unit := bind (get nat) (fun n => put _ (S n)).
+
+  Definition winc := encode _ unit (fun '(p,s) => s > 0) (fun s => True).
+
+  Lemma ex : STProp nat unit winc inc.
+    Proof.
+      cbv. intros. destruct H as [ _ H]. apply H. induction s; auto.
+    Qed.
+End StateExample.
+
+
+Section Free.
+
+  Inductive Free (E : Type -> Type) (A : Type) :=
+    | Ret (a : A)
+    | Vis {B} (ev : E B) (k : B -> Free E A).
+
+  Inductive StateE (S : Type) : Type -> Type :=
+    | Get : StateE S S
+    | Put : S -> StateE S unit
+.
+
+
+ Definition refr := Ret.
+
+ Definition bindfr (E : Type -> Type) (A B : Type) (m : Free E A) (f : A -> Free E B) : (Free E B) :=
+   (fix _bind m :=
+   match m with
+     | Ret _ _ a => f a
+     | Vis _ _ ev k => Vis _  _ ev (fun b => _bind (k b) ) end ) m.
+
+ Global Instance FreeMonad E: Monad (Free E) :=
+   {
+     ret := refr E;
+     bind := bindfr E;
+   }.
+
+ Definition interpfr (E : Type -> Type) (M : Type -> Type) {mon : Monad M } (A : Type) (i : E ~> M) :
+            Free E A ->  M A :=
+   fix _interp m :=
+     match m with
+       | Ret _ _ a => ret a
+       | Vis _ _ ev k => bind (i _ ev) (fun b => _interp (k b)) end.
+Locate "~>".
+ Definition StateHSpec S : (StateE S) ~> StateSpec S :=
+   fun _ ev =>
+     match ev with
+       | Get _ => obs _ (get S)
+       | Put _ s => obs _ (put S s) end.
+ 
+
+End Free.
