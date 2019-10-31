@@ -314,11 +314,11 @@ Section Examples.
    *)
 
   (* TODO: Define divergence *)
-  (*
-  Theorem WHILE_true_nonterm : forall b c st st',
+  
+  (*Theorem WHILE_true_nonterm : forall b c st st',
       bequiv b BTrue ->
-      ~ (st =[ WHILE b DO c END ]=> st'). 
-  *)    
+      ~ (st =[ WHILE b DO c END ]=> st'). *)
+  
 
   Theorem WHILE_true : forall b c,
     bequiv b BTrue  ->
@@ -584,9 +584,9 @@ Section Examples.
     - apply CIf_congruence.
       + apply refl_bequiv.
       + apply CAss_congruence. unfold aequiv. simpl.
-        * symmetry. admit. (* TODO *)
+        * symmetry. apply aequiv_example. 
       + apply refl_cequiv.
-  Admitted.
+   Qed. 
 
   (* ################################################################# *)
   (** * Program Transformations *)
