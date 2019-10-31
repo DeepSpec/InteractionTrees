@@ -124,11 +124,11 @@ Section PureSpecInstance.
   Definition lemPure {A : Type} (w1 w2 : PureSpec A) : Prop :=
     forall p, proj1_sig w2 p -> proj1_sig w1 p.
 
-  Global Instance PureSpecOrderM : OrderM PureSpec := @lemPure.
+  Global Instance Pure_SpecOrderM : OrderM PureSpec := @lemPure.
 
-  Global Instance PureSpecOrder : OrderedMonad PureSpec.
+  Global Instance Pure_SpecOrder : OrderedMonad PureSpec.
   Proof.
-    unfold OrderedMonad. intros. unfold lem, PureSpecOrderM, lemPure in *.
+    unfold OrderedMonad. intros. unfold lem, Pure_SpecOrderM, lemPure in *.
     destruct w1 as [w1' Hw1']. destruct w2 as [w2' Hw2']. simpl in *. unfold _bindp in *.
     intuition. apply H. unfold monotonicp in Hw2'. eapply Hw2'; eauto; auto.
   Qed.
@@ -196,7 +196,7 @@ Section PureSpecObs.
     Qed.
 
   (*Must be on some weird case, figure out later, for now just directly write hte lemmas*)
-  Program Instance Pure_MonadMorph : 
+  Program Instance PureMonadMorph : 
     MonadMorphism Id PureSpec IdEffectObs :=
     {
       ret_pres := obsp_pres_ret;
@@ -328,28 +328,6 @@ Section StateSpecInstance.
     cbv in H. unfold monotonic in Hw2'. eapply Hw2'; eauto; auto.
   Qed.
 
-
-  Definition StatePrePost A : Type := (S -> Prop) * ((A * S) -> Prop ). 
-
-  Definition _encode : StatePrePost ~> _StateSpec := 
-    fun A pp =>
-    let '(pre,post) := pp in
-    fun p s => 
-      (pre s /\ (forall a s', post (a,s') -> p (a,s'))).
-
-  Hint Unfold _encode.
-
-  Lemma encode_monot : forall A (prepost : StatePrePost A), monotonic (_encode A prepost).
-    Proof.
-     unfold monotonic. intros. destruct prepost as [ pre post].
-     simpl in *. intuition.
-    Qed.
-
-  Definition encode : StatePrePost ~> StateSpec :=
-    fun A pp =>
-    exist _ (_encode A pp) (encode_monot A pp).
-
-
 End StateSpecInstance.
 
 Section StateMonad.
@@ -361,10 +339,6 @@ Section StateMonad.
   Definition bindstm (A B : Type) (m : State A) (f : A -> State B) :=
     fun s => let '(a,s') := (m s) in
              f a s'.
-
-  Definition get : State S := fun s => (s,s).
-
-  Definition put s : State unit := fun _ => (tt,s).
 
   Hint Unfold retstm.
   Hint Unfold bindstm.
@@ -439,34 +413,4 @@ Section StateSpecObs.
 
 End StateSpecObs.
 
-Section StateDijkstra.
-
-
-  Definition ST := DijkstraMonad State StateSpec StateEffectObs.
-  
-  Definition STProp := DijkstraProp State StateSpec StateEffectObs.
-
-End StateDijkstra.
-
-
 End State.
-
-
-Definition StateNat := State nat.
-
-Definition StateSpecNat := StateSpec nat.
-
-Definition m := bind (get _) (fun x => put _ (S x)).
-
-Definition w := encode nat unit ((fun _ => True), (fun '(p,s) => s > 0)).
-
-Lemma ex : STProp nat unit w m.
-  Proof.
-    unfold STProp. unfold DijkstraProp. cbv. intros.
-    destruct H. apply H0. induction s; auto.
-  Qed.
-
-Lemma ex' : forall n, snd (m n) > 0.
-Proof.
-  intros. cbv. induction n; auto.
-Qed.
