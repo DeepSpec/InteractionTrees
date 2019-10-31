@@ -73,26 +73,34 @@ Section Examples.
   Qed.
   
   Instance run_state_proper {E A} : Proper (eqm ==> eq ==> eutt eq) (@run_state E A).
-  Admitted.
+  Proof.
+    cbv; intros; subst; auto.
+  Qed. 
 
   Instance run_state_proper_eqit {E A} : Proper (eqm ==> eq ==> eq_itree eq) (@run_state E A).
-  Admitted.
-
+  Proof.
+    cbv. intros. subst.
+  Admitted. 
+  
   Instance interp_state_proper {T E F S} (h: forall T : Type, E T -> Monads.stateT S (itree F) T) : Proper (eutt eq ==> eqm) (State.interp_state h (T := T)).
-  Admitted.
+  Proof.
+  Admitted. 
 
+  
   (** [interp_imp] commutes with [bind]. *)
   Lemma interp_imp_bind: forall {R S E} (t : itree (ImpState +' E) R) (k: R -> itree (ImpState +' E) S) (g : env),
       run_state (interp_imp (ITree.bind t k)) g
     ≅ (ITree.bind (run_state (interp_imp t) g) (fun '(g',  x) => run_state (interp_imp (k x)) g')).
   Proof.
-    intros.
+    intros. 
+    revert R t k. ginit. gcofix CIH; intros.
     unfold interp_imp.
-    unfold interp_map.
-    repeat rewrite interp_bind.
-    repeat rewrite interp_state_bind.
-    unfold State.interp_state.
-    unfold run_state. unfold case_, Case_sum1, case_sum1. 
+    setoid_rewrite unfold_bind. setoid_rewrite (unfold_interp t).
+    destruct (observe t); cbn.
+    - apply reflexivity.
+    - rewrite tau_eutt. gstep. admit.
+    - rewrite interp_vis. setoid_rewrite interp_bind.
+      unfold handle_ImpState. cbn. gstep. admit.
   Admitted. 
 
   Lemma interp_imp_iter: forall {E A B} (t : A -> itree (ImpState +' E) (A + B)) (a0 : A) (g: env),
@@ -208,10 +216,6 @@ Section Examples.
     reflexivity.
   Qed.
 
-  (** **** Exercise: 2 stars, standard (skip_right)
-    Prove that adding a [SKIP] after a command results in an
-    equivalent program *)
-
   Theorem skip_right : forall c,
     cequiv
      (c ;;; SKIP)%imp
@@ -301,7 +305,9 @@ Section Examples.
     reflexivity.
   Qed.          
 
-  (* Up until now, we only had to think about behavioral equivalence
+  (** * Divergence of Imp programs *
+    
+     Up until now, we only had to think about behavioral equivalence
      of Imp programs. Now, we see an instance of reasoning about the 
      predicates of the program. Namely, we want to show the divergence
      of a program and characterize different types of divergent behaviors. 
