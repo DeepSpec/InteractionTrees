@@ -1,4 +1,4 @@
-Require Import Imp. 
+Require Import Imp.
 Require Import Paco.paco.
 From ITree Require Import
      ITree
@@ -71,37 +71,44 @@ Section Examples.
     rewrite interp_state_ret.
     reflexivity.
   Qed.
-  
+
   Instance run_state_proper {E A} : Proper (eqm ==> eq ==> eutt eq) (@run_state E A).
   Proof.
     cbv; intros; subst; auto.
-  Qed. 
+  Qed.
 
   Instance run_state_proper_eqit {E A} : Proper (eqm ==> eq ==> eq_itree eq) (@run_state E A).
   Proof.
     cbv. intros. subst.
-  Admitted. 
-  
+  Admitted.
+
   Instance interp_state_proper {T E F S} (h: forall T : Type, E T -> Monads.stateT S (itree F) T) : Proper (eutt eq ==> eqm) (State.interp_state h (T := T)).
   Proof.
-  Admitted. 
+  Admitted.
 
-  
+  (* This should move to the library *)
+  Lemma eq_itree_clo_bind {E : Type -> Type} {R1 R2 : Type} (RR : R1 -> R2 -> Prop) {U1 U2 UU} t1 t2 k1 k2
+        (EQT: @eq_itree E U1 U2 UU t1 t2)
+        (EQK: forall u1 u2, UU u1 u2 -> eq_itree RR (k1 u1) (k2 u2)):
+    eq_itree RR (x <- t1;; k1 x) (x <- t2;; k2 x).
+  Proof.
+    intros. ginit. guclo eqit_clo_bind.
+    econstructor; eauto. intros; subst. gfinal. right. apply EQK. eauto.
+  Qed.
+
   (** [interp_imp] commutes with [bind]. *)
   Lemma interp_imp_bind: forall {R S E} (t : itree (ImpState +' E) R) (k: R -> itree (ImpState +' E) S) (g : env),
       run_state (interp_imp (ITree.bind t k)) g
-    ≅ (ITree.bind (run_state (interp_imp t) g) (fun '(g',  x) => run_state (interp_imp (k x)) g')).
+                ≅ (ITree.bind (run_state (interp_imp t) g) (fun '(g',  x) => run_state (interp_imp (k x)) g')).
   Proof.
-    intros. 
-    revert R t k. ginit. gcofix CIH; intros.
+    intros.
     unfold interp_imp.
-    setoid_rewrite unfold_bind. setoid_rewrite (unfold_interp t).
-    destruct (observe t); cbn.
-    - apply reflexivity.
-    - rewrite tau_eutt. gstep. admit.
-    - rewrite interp_vis. setoid_rewrite interp_bind.
-      unfold handle_ImpState. cbn. gstep. admit.
-  Admitted. 
+    rewrite interp_bind.
+    setoid_rewrite interp_state_bind.
+    apply eq_itree_clo_bind with (UU := eq).
+    reflexivity.
+    intros [] [] EQ; inv EQ; reflexivity.
+  Qed.
 
   Lemma interp_imp_iter: forall {E A B} (t : A -> itree (ImpState +' E) (A + B)) (a0 : A) (g: env),
     run_state (interp_imp (KTree.iter t a0)) g
@@ -116,9 +123,9 @@ Section Examples.
     intros. unfold interp_imp, interp_map.
     rewrite 2 unfold_iter_ktree. cbn. rewrite bind_bind.
     repeat unfold run_state. unfold State.interp_state.
-    unfold case_, Case_sum1, case_sum1.  
+    unfold case_, Case_sum1, case_sum1.
   Admitted.
-  
+
   Lemma interp_imp_trigger_get_var: forall (E: Type -> Type) (x: var) (g: env),
     run_state (interp_imp (trigger (GetVar x))) g ≈ (Ret (g, lookup_default x 0 g) : itree E (env * value)).
   Proof.
@@ -129,7 +136,7 @@ Section Examples.
   Lemma interp_imp_trigger_set_var: forall (E: Type -> Type) (g: env) (x: var) (v: value) s,
       run_state (interp_imp (trigger (SetVar x s))) g ≈ (Ret (g, tt) : itree E (env * unit)).
   Proof. Admitted.
-  
+
   Theorem aequiv_example: aequiv (X - X) 0.
   Proof.
     unfold aequiv. intros s. unfold eval_aexp. simpl.
@@ -194,14 +201,14 @@ Section Examples.
     setoid_rewrite interp_ret. setoid_rewrite interp_state_ret.
     match goal with
       |- ITree.bind _ ?f ≅ _ => remember f as x
-    end.                                      
+    end.
     assert (x = fun st : env * R => Ret st).
     { apply functional_extensionality.
       intros. subst. destruct x0. reflexivity. }
-    rewrite H. rewrite bind_ret2. reflexivity.  
-   Qed. 
-    
- 
+    rewrite H. rewrite bind_ret2. reflexivity.
+   Qed.
+
+
   Lemma interp_imp_bind_ret_unit : forall  {E} (t: itree (ImpState +' E) unit)  (g : env),
     run_state (interp_imp (ITree.bind t (fun _ : unit  => Ret tt))) g ≈ run_state (interp_imp t) g.
   Proof.
@@ -233,7 +240,7 @@ Section Examples.
     reflexivity.
   Qed.
 
-  
+
   Ltac simple_TEST H :=
     unfold cequiv; intros;
     unfold bequiv, eval_bexp in *; cbn in *;
@@ -248,7 +255,7 @@ Section Examples.
       (TEST BTrue THEN c1 ELSE c2 FI)%imp
       c1.
   Proof.
-    simple_TEST H. 
+    simple_TEST H.
   Qed.
 
 
@@ -260,15 +267,15 @@ Section Examples.
   Proof.
     intros. simple_TEST H.
   Qed.
-  
+
   Theorem TEST_false : forall b c1 c2,
     bequiv b BFalse ->
     cequiv
       (TEST b THEN c1 ELSE c2 FI)%imp
       c2.
   Proof.
-    intros. simple_TEST H. 
-  Qed. 
+    intros. simple_TEST H.
+  Qed.
 
   (* IY: Uses eutt_clo_bind again.
      TODO: What's the best Ltac for eutt_clo_bind things? *)
@@ -297,28 +304,28 @@ Section Examples.
     unfold eval_bexp in H. cbn in H. cbn.
     rewrite interp_imp_ret. unfold while.
     rewrite interp_imp_iter.
-    rewrite unfold_iter_ktree. cbn. 
+    rewrite unfold_iter_ktree. cbn.
     rewrite bind_bind. rewrite interp_imp_bind.
     rewrite bind_bind. cbn. rewrite H.
     repeat (rewrite interp_imp_ret, bind_ret).
     repeat rewrite bind_ret.
     reflexivity.
-  Qed.          
+  Qed.
 
   (** * Divergence of Imp programs *
-    
+
      Up until now, we only had to think about behavioral equivalence
-     of Imp programs. Now, we see an instance of reasoning about the 
+     of Imp programs. Now, we see an instance of reasoning about the
      predicates of the program. Namely, we want to show the divergence
-     of a program and characterize different types of divergent behaviors. 
+     of a program and characterize different types of divergent behaviors.
    *)
 
   (* TODO: Define divergence *)
-  
+
   (*Theorem WHILE_true_nonterm : forall b c st st',
       bequiv b BTrue ->
       ~ (st =[ WHILE b DO c END ]=> st'). *)
-  
+
 
   Theorem WHILE_true : forall b c,
     bequiv b BTrue  ->
@@ -339,7 +346,7 @@ Section Examples.
     rewrite unfold_iter.
     rewrite bind_bind, interp_imp_bind.
     (* This will go nowhere. *)
-    Admitted. 
+    Admitted.
 
   Theorem loop_unrolling : forall b c,
     cequiv
@@ -354,13 +361,13 @@ Section Examples.
     repeat rewrite bind_bind. cbn. eapply eutt_clo_bind.
     reflexivity.
     intros.
-    destruct u1, u2. inversion H; subst. 
+    destruct u1, u2. inversion H; subst.
     (* This is the first time we _needed_ to reason about the program structure! *)
-    destruct b1. 
+    destruct b1.
     - (* Then, we go back to rewriting ITrees *)
       repeat (rewrite interp_imp_bind, bind_bind).
       repeat (rewrite interp_imp_bind, bind_bind).
-      rewrite interp_imp_bind. 
+      rewrite interp_imp_bind.
       eapply eutt_clo_bind. reflexivity.
       intros. subst. destruct u2.
       rewrite interp_imp_ret. repeat rewrite bind_ret.
@@ -373,8 +380,8 @@ Section Examples.
     - rewrite interp_imp_ret. repeat rewrite bind_ret.
       rewrite interp_imp_ret.
       reflexivity.
-  Qed. 
-    
+  Qed.
+
   Theorem seq_assoc : forall c1 c2 c3,
     cequiv ((c1;;;c2);;;c3)%imp (c1;;;(c2;;;c3))%imp.
   Proof.
@@ -394,10 +401,10 @@ Section Examples.
     unfold cequiv. intros. cbn.
     rewrite interp_imp_bind, interp_imp_ret.
     rewrite interp_imp_trigger_get_var, bind_ret.
-    rewrite interp_imp_trigger_set_var. reflexivity. 
+    rewrite interp_imp_trigger_set_var. reflexivity.
     constructor.
-  Qed. 
-           
+  Qed.
+
   Theorem assign_aequiv : forall (x : string) e,
     aequiv x e ->
     cequiv (SKIP)%imp (x ::= e)%imp.
@@ -406,10 +413,10 @@ Section Examples.
     rewrite interp_imp_ret, interp_imp_bind.
     unfold eval_aexp in H. setoid_rewrite <- H.
     simpl. rewrite interp_imp_trigger_get_var.
-    rewrite bind_ret. 
+    rewrite bind_ret.
     rewrite -> interp_imp_trigger_set_var.
     reflexivity. constructor.
-  Qed. 
+  Qed.
 
 
   (* ################################################################# *)
@@ -453,24 +460,24 @@ Section Examples.
   Proof.
     unfold cequiv. intros. reflexivity. Qed.
 
-  (* Slightly simpler proof here, because we don't need to reason 
+  (* Slightly simpler proof here, because we don't need to reason
      about the states. *)
   Lemma sym_cequiv : forall (c1 c2 : com),
     cequiv c1 c2 -> cequiv c2 c1.
   Proof.
     unfold cequiv. intros. rewrite H.
-    reflexivity. 
+    reflexivity.
   Qed.
 
   Lemma trans_cequiv : forall (c1 c2 c3 : com),
     cequiv c1 c2 -> cequiv c2 c3 -> cequiv c1 c3.
   Proof.
     unfold cequiv. intros.
-    rewrite H, H0. reflexivity. 
-  Qed. 
+    rewrite H, H0. reflexivity.
+  Qed.
 
   (* ================================================================= *)
-  (** ** Behavioral Equivalence Is a Congruence *)  
+  (** ** Behavioral Equivalence Is a Congruence *)
 
   (** Less obviously, behavioral equivalence is also a _congruence_.
       That is, the equivalence of two subprograms implies the
@@ -510,15 +517,15 @@ Section Examples.
 
   (* Needed to define this equivalence instance for CWhile_congruence. *)
   Global Instance sum_rel_refl {R S : Type} {RR : R -> R -> Prop} {SS : S -> S -> Prop} `{Reflexive _ RR} `{Reflexive _ SS}: Reflexive (sum_rel RR SS).
-  Proof. red. destruct x; constructor; auto. Qed. 
+  Proof. red. destruct x; constructor; auto. Qed.
 
-  
+
   Theorem CWhile_congruence : forall b1 b1' c1 c1',
     bequiv b1 b1' -> cequiv c1 c1' ->
     cequiv (WHILE b1 DO c1 END)%imp (WHILE b1' DO c1' END)%imp.
   Proof.
     unfold cequiv. intros. unfold bequiv in H. cbn.
-    unfold while. 
+    unfold while.
     rewrite 2 interp_imp_iter. cbn.
     unfold KTree.iter, Iter_Kleisli, Basics.iter, MonadIter_itree.
     eapply eutt_iter'. intros.
@@ -531,10 +538,10 @@ Section Examples.
     rewrite 2 interp_imp_bind. rewrite H0. reflexivity.
     reflexivity.
     intros. rewrite H1; clear H1. destruct u3. destruct s0; reflexivity.
-    Qed. 
-   
+    Qed.
 
-  
+
+
   (* CSeq_congruence, CIf_congruence are super clean. *)
   Theorem CSeq_congruence : forall c1 c1' c2 c2',
     cequiv c1 c1' -> cequiv c2 c2' ->
@@ -558,7 +565,7 @@ Section Examples.
     reflexivity.
     intros. rewrite H2. clear H2. destruct u2.
     destruct b0; try rewrite H0; try rewrite H1; reflexivity.
-  Qed. 
+  Qed.
 
   Example congruence_example:
     cequiv
@@ -584,9 +591,9 @@ Section Examples.
     - apply CIf_congruence.
       + apply refl_bequiv.
       + apply CAss_congruence. unfold aequiv. simpl.
-        * symmetry. apply aequiv_example. 
+        * symmetry. apply aequiv_example.
       + apply refl_cequiv.
-   Qed. 
+   Qed.
 
   (* ################################################################# *)
   (** * Program Transformations *)
@@ -595,7 +602,7 @@ Section Examples.
       input and produces some variant of the program as output.
       Compiler optimizations such as constant folding are a canonical
       example, but there are many others. *)
- 
+
   (** A program transformation is _sound_ if it preserves the
       behavior of the original program. *)
 
@@ -655,7 +662,7 @@ Section Examples.
     fold_constants_aexp (X - ((0 * 6) + Y))%imp = (X - (0 + Y))%imp.
   Proof. reflexivity. Qed.
 
-    
+
   Fixpoint fold_constants_bexp (b : bexp) : bexp :=
     match b with
     | BTrue        => BTrue
@@ -767,10 +774,10 @@ Section Examples.
     atrans_sound fold_constants_aexp.
   Proof.
     unfold atrans_sound. intros a. unfold aequiv.
-    unfold eval_aexp in *. 
+    unfold eval_aexp in *.
     induction a; simpl;
       (* ANum and AId follow immediately *)
-      try reflexivity.  
+      try reflexivity.
     - destruct (fold_constants_aexp a1); destruct (fold_constants_aexp a2);
       simpl; intros; try (rewrite interp_imp_bind, interp_imp_ret);
       try rewrite IHa1; try rewrite IHa2; cbn; repeat rewrite interp_imp_ret, bind_ret;
@@ -778,4 +785,4 @@ Section Examples.
       try rewrite IHa2. cbn. rewrite interp_imp_ret.
       rewrite bind_ret. rewrite interp_imp_ret. reflexivity.
       (* TODO: Very simple rewrites, should define Ltacs on these *)
-  Admitted. 
+  Admitted.
