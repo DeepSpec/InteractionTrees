@@ -18,6 +18,7 @@ From ITree Require Import
      Basics.Function
      Basics.MonadTheory
      Dijkstra.DijkstraMonad
+     Events.State
 .
 
 Import MonadNotation.
@@ -455,11 +456,6 @@ Section Free.
     | Ret (a : A)
     | Vis {B} (ev : E B) (k : B -> Free E A).
 
-  Inductive StateE (S : Type) : Type -> Type :=
-    | Get : StateE S S
-    | Put : S -> StateE S unit
-.
-
 
  Definition refr := Ret.
 
@@ -481,12 +477,40 @@ Section Free.
      match m with
        | Ret _ _ a => ret a
        | Vis _ _ ev k => bind (i _ ev) (fun b => _interp (k b)) end.
-Locate "~>".
- Definition StateHSpec S : (StateE S) ~> StateSpec S :=
+
+ Definition StateHSpec S : (stateE S) ~> StateSpec S :=
    fun _ ev =>
      match ev with
        | Get _ => obs _ (get S)
        | Put _ s => obs _ (put S s) end.
+
+ Definition stateH S : (stateE S) ~> State S :=
+   fun _ ev =>
+     match ev with
+       | Get _ => get S
+       | Put _ s => put S s end.
+
+ Inductive NondetE : Type -> Type :=
+   | Choose : NondetE nat.
+
+ Definition _choose (S : Type) : _StateSpec S nat :=
+   fun p s => forall (n : nat), p (n,s) .
+
+ Lemma choose_monot : forall S, monotonic S (_choose S).
+ Proof.
+   unfold monotonic. intros. cbv. intros. unfold _choose in *. auto.
+ Qed.
+
+ Definition choose (S : Type) : StateSpec S nat :=
+   exist _ (_choose S) (choose_monot S).
+
+ Definition NondetHSpec S : NondetE ~> StateSpec S :=
+   fun _ ev => 
+     match ev with | Choose => choose S end.
+
+
+ Definition interpstop S A (m : Free (stateE S) A) : StateSpec S A :=
+   interpfr (stateE S) (StateSpec S) A (StateHSpec S) m.
  
 
 End Free.
