@@ -78,11 +78,6 @@ Section Examples.
     cbv; intros; subst; auto.
   Qed.
 
-  Instance run_state_proper_eqit {E A} : Proper (eqm ==> eq ==> eutt eq) (@run_state E A).
-  Proof.
-    repeat intro; subst; apply H.
-  Qed.
-
   Instance interp_state_proper {T E F S} (h: forall T : Type, E T -> Monads.stateT S (itree F) T) : Proper (eutt eq ==> eqm) (State.interp_state h (T := T)).
   Proof.
     einit. ecofix CIH. intros.
