@@ -12,6 +12,7 @@ From Coq Require Import
      Setoid
      Morphisms
      Arith
+     Program
      Logic.FunctionalExtensionality
      RelationClasses.
 From ExtLib Require Import
@@ -77,14 +78,25 @@ Section Examples.
     cbv; intros; subst; auto.
   Qed.
 
-  Instance run_state_proper_eqit {E A} : Proper (eqm ==> eq ==> eq_itree eq) (@run_state E A).
+  Instance run_state_proper_eqit {E A} : Proper (eqm ==> eq ==> eutt eq) (@run_state E A).
   Proof.
-    cbv. intros. subst.
-  Admitted.
+    repeat intro; subst; apply H.
+  Qed.
 
   Instance interp_state_proper {T E F S} (h: forall T : Type, E T -> Monads.stateT S (itree F) T) : Proper (eutt eq ==> eqm) (State.interp_state h (T := T)).
   Proof.
-  Admitted.
+    einit. ecofix CIH. intros.
+
+    rewrite !unfold_interp_state. punfold H0. red in H0.
+    induction H0; intros; subst; simpl; pclearbot.
+    - eret.
+    - etau.
+    - ebind. econstructor; [reflexivity|].
+      intros; subst.
+      etau. ebase.
+    - rewrite tau_eutt, unfold_interp_state; eauto.
+    - rewrite tau_eutt, unfold_interp_state; eauto.
+  Qed.
 
   (* This should move to the library *)
   Lemma eq_itree_clo_bind {E : Type -> Type} {R1 R2 : Type} (RR : R1 -> R2 -> Prop) {U1 U2 UU} t1 t2 k1 k2
@@ -99,20 +111,20 @@ Section Examples.
   (** [interp_imp] commutes with [bind]. *)
   Lemma interp_imp_bind: forall {R S E} (t : itree (ImpState +' E) R) (k: R -> itree (ImpState +' E) S) (g : env),
       run_state (interp_imp (ITree.bind t k)) g
-                ≅ (ITree.bind (run_state (interp_imp t) g) (fun '(g',  x) => run_state (interp_imp (k x)) g')).
+                ≈ (ITree.bind (run_state (interp_imp t) g) (fun '(g',  x) => run_state (interp_imp (k x)) g')).
   Proof.
     intros.
     unfold interp_imp.
     rewrite interp_bind.
     setoid_rewrite interp_state_bind.
-    apply eq_itree_clo_bind with (UU := eq).
+    apply eutt_clo_bind with (UU := eq).
     reflexivity.
     intros [] [] EQ; inv EQ; reflexivity.
   Qed.
 
   Lemma interp_imp_iter: forall {E A B} (t : A -> itree (ImpState +' E) (A + B)) (a0 : A) (g: env),
     run_state (interp_imp (KTree.iter t a0)) g
-                ≅ KTree.iter (fun '(g', a) =>
+                ≈ KTree.iter (fun '(g', a) =>
                                 '(s,ab) <- run_state (interp_imp (t a)) g';;
                                  match ab with
                                  | inl a => ret (inl (s,a))
@@ -194,20 +206,19 @@ Section Examples.
 
 
   Lemma interp_imp_bind_ret : forall {E R} (t: itree (ImpState +' E) R) (g: env),
-    run_state (interp_imp (ITree.bind t (fun x : R => Ret x))) g ≅ run_state (interp_imp t) g.
+    run_state (interp_imp (ITree.bind t (fun x : R => Ret x))) g ≈ run_state (interp_imp t) g.
   Proof.
     intros. unfold interp_imp. unfold interp_map.
     rewrite interp_bind. setoid_rewrite interp_state_bind.
     setoid_rewrite interp_ret. setoid_rewrite interp_state_ret.
     match goal with
-      |- ITree.bind _ ?f ≅ _ => remember f as x
+      |- ITree.bind _ ?f ≈ _ => remember f as x
     end.
     assert (x = fun st : env * R => Ret st).
     { apply functional_extensionality.
       intros. subst. destruct x0. reflexivity. }
     rewrite H. rewrite bind_ret2. reflexivity.
    Qed.
-
 
   Lemma interp_imp_bind_ret_unit : forall  {E} (t: itree (ImpState +' E) unit)  (g : env),
     run_state (interp_imp (ITree.bind t (fun _ : unit  => Ret tt))) g ≈ run_state (interp_imp t) g.
