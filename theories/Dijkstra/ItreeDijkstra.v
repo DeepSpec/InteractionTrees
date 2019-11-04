@@ -45,14 +45,34 @@ Section PureItree.
   (*I will axiomatize into existence two functions on itrees and talk to steve about if they are 
    feasible*)
   
-
+  Definition tau_invar (E : Type -> Type) (A : Type) (P : itree E A -> Prop) : Prop :=
+    forall (t : itree E A), (P t -> (P (Tau t))) /\(P (Tau t) -> P t).
+ 
   Definition monotonici A (w : _PureItreeSpec A) :=
     forall (p p' : itree Void A -> Prop), (forall i', p i' -> p' i') -> w p -> w p'. 
 
+  Definition PureItreeSpec A := {w : _PureItreeSpec A | monotonici A w}.
+
+  Lemma retpi_monot : forall A (a : A), monotonici A (_retpi A a).
+  Proof.
+    unfold monotonici. intuition. unfold _retpi in *. auto.
+  Qed.
+
  (* is is_val a decidable prop   *)
   Inductive is_val A (a : A) : itree Void A -> Prop :=
-    | base (t : itree Void A ) :  t = ret a ->  is_val A a t
-    | tau (t : itree Void A) : is_val A a (Tau t) .
+    | base :  is_val A a (ITreeDefinition.Ret a)
+    | tau (t : itree Void A): is_val A a t -> is_val A a (Tau t) .
+
+
+  Lemma is_val_tau_invar : forall A (a : A), tau_invar Void A (is_val A a).
+  Proof.
+    intros. unfold tau_invar. split; intros.
+    - constructor. auto.
+    - inversion H. auto.
+  Qed.
+
+  (* maybe specifications only take tau invariant propositions  *)
+
 
   Definition _bindpi A B (m : _PureItreeSpec A ) (f : A -> _PureItreeSpec B) : _PureItreeSpec B :=
     fun (p : itree Void B -> Prop) => 
@@ -68,6 +88,60 @@ Section PureItree.
     - apply H with (p := fp); auto.
     - subst. intros. apply H0 with (p := p); auto.
   Qed.
+
+  Definition retpi A (a : A) : PureItreeSpec A :=
+    exist _ (_retpi A a) (retpi_monot A a).
+
+  Definition bindpi A B (w : PureItreeSpec A) (f : A -> PureItreeSpec B) :=
+    let '(exist _ w' Hw') := w in
+    let f' := fun a => proj1_sig (f a) in
+    let Hf' := fun a => proj2_sig (f a) in
+    exist _ (_bindpi A B w' f') (bindpi_monot A B w' f' Hw' Hf').
+
+  Global Instance PureItreeSpecMonad : Monad PureItreeSpec :=
+    {
+      ret := retpi;
+      bind := bindpi
+    }.
+
+  Global Instance PureItreeSpecEq : EqM PureItreeSpec :=
+    fun A w1 w2 => forall (p : itree Void A -> Prop), proj1_sig w1 p <-> proj1_sig w2 p.
+
+  Lemma bindpi_retpi : forall A B (f : A -> PureItreeSpec B) (a : A), 
+      bind (ret a) f ≈ f a.
+    Proof.
+      intros. split.
+      - cbn. unfold _bindpi. unfold _retpi. intros. apply H. constructor. 
+      - cbv. intros. inversion H0. subst. auto.
+    Qed.
+
+  Lemma retpi_bindpi : forall A (w : PureItreeSpec A), bind w (fun x => ret x) ≈ w.
+  Proof.
+    intros. destruct w as [ w Hw]. split.
+    - intros. simpl in *. unfold _bindpi in H.
+      unfold _retpi in H. cbv in H.
+      unfold monotonici in *. eapply Hw.
+      2: apply H. intros. simpl in H0. admit.
+      (*forall i : PureItree, exists a, is_val a i \/ inf_tau i  *)
+      (*forall t t', inf_tau t -> inf_tau t' -> forall P, P t <-> P t'  *)
+    - simpl. cbv. intros. unfold monotonici in Hw. apply Hw with (p := p); auto.
+      intros. induction H1; auto. (* need a notion of Tau invariant predicates, or need to rethink this  *)
+      
+   Admitted.    
+
+  Lemma bindpi_bindpi : forall (A B C : Type) (w : PureItreeSpec A) 
+                               (f : A -> PureItreeSpec B) (g : B -> PureItreeSpec C),
+      bind (bind w f) g ≈ bind w (fun a => bind (f a) g).
+
+  Admitted.
+
+  Global Instance PureItreeSpecLaws : MonadLaws PureItreeSpec.
+  Proof.
+    constructor.
+    - intros A B f a. cbv. intros. destruct (f a) as [w Hw] eqn : Heq. split; intros.
+      + unfold monotonici in *. eapply Hw.
+        * intros. admit.
+        *
 
   (* does this satisfy the monad laws? is it unique in some sense, if not what are the implications of
    this choice*)
