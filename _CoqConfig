@@ -57,3 +57,6 @@ theories/Events/MapDefault.v
 theories/Events/MapDefaultFacts.v
 theories/Events/Concurrency.v
 theories/Events/Dependent.v
+
+theories/Dijkstra/DijkstraMonad.v
+theories/Dijkstra/DijkstraMonadExamples.v
