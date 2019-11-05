@@ -472,7 +472,7 @@ Section Free.
    }.
 
  Definition interpfr (E : Type -> Type) (M : Type -> Type) {mon : Monad M } (A : Type) (i : E ~> M) :
-            Free E A ->  M A :=
+  Free E A ->  M A :=
    fix _interp m :=
      match m with
        | Ret _ _ a => ret a
@@ -490,27 +490,84 @@ Section Free.
        | Get _ => get S
        | Put _ s => put S s end.
 
+ (** * Exception / Partial functions  *)
+
+ Section Partial_Spec.
+   
+ Inductive PartialE : Type -> Type :=
+   | AbortE : PartialE nat.
+
+ Definition _partialZero (S : Type) : _StateSpec S nat :=
+   fun p s => forall n, n <> 0 -> p (n, s). 
+
+ Lemma partialZero_mono : forall S, monotonic S (_partialZero S).
+ Proof.
+   unfold monotonic. intros. cbv. intros. unfold _partialZero in H0.
+   unfold not in H0. apply H0 in H1. apply H in H1. apply H1.
+ Qed.
+
+ Definition partialZero (S : Type) : StateSpec S nat :=
+   exist _ (_partialZero S) (partialZero_mono S). 
+
+ Definition PartialHSpec (S : Type) : PartialE ~> StateSpec S :=
+   fun _ ev =>
+   match ev with
+     | AbortE => partialZero S
+   end.
+
+ Inductive Expr :=
+  | Val : nat -> Expr
+  | Div : Expr -> Expr -> Expr.
+
+ Inductive step_rel : Expr -> nat -> Prop :=
+  | Base : forall n, step_rel (Val n) n
+  | Step : forall l r v1 v2,
+    step_rel l v1 ->
+    step_rel r (S v2) ->
+    step_rel (Div l r) (Nat.div v1 (S v2)).
+
+ Definition PartialF := Free PartialE.
+
+ End Partial_Spec. 
+
+ (** * Nondeterminism *) 
+       
  Inductive NondetE : Type -> Type :=
    | Choose : NondetE nat.
 
- Definition _choose (S : Type) : _StateSpec S nat :=
+ Definition _chooseA (S : Type) : _StateSpec S nat :=
    fun p s => forall (n : nat), p (n,s) .
 
- Lemma choose_monot : forall S, monotonic S (_choose S).
+ Definition _chooseD (S : Type) : _StateSpec S nat :=
+   fun p s => exists (n : nat), p (n, s) . 
+
+ Lemma chooseA_monot : forall S, monotonic S (_chooseA S).
  Proof.
-   unfold monotonic. intros. cbv. intros. unfold _choose in *. auto.
+   unfold monotonic. intros. cbv. intros. unfold _chooseA in *. auto.
  Qed.
 
- Definition choose (S : Type) : StateSpec S nat :=
-   exist _ (_choose S) (choose_monot S).
+ Lemma chooseD_monot : forall S, monotonic S (_chooseD S).
+ Proof.
+   unfold monotonic. intros. cbv. intros. unfold _chooseD in *. auto.
+   destruct H0. 
+   apply H in H0. exists x. apply H0. 
+ Qed.
 
- Definition NondetHSpec S : NondetE ~> StateSpec S :=
+ Definition chooseD (S : Type) : StateSpec S nat :=
+   exist _ (_chooseD S) (chooseD_monot S).
+
+ Definition chooseA (S : Type) : StateSpec S nat :=
+   exist _ (_chooseA S) (chooseA_monot S). 
+
+ Definition NondetHSpecD S : NondetE ~> StateSpec S :=
    fun _ ev => 
-     match ev with | Choose => choose S end.
+     match ev with | Choose => chooseD S end.
 
+ Definition NondetHSpecA S : NondetE ~> StateSpec S :=
+   fun _ ev =>
+     match ev with | Choose => chooseA S end.
 
  Definition interpstop S A (m : Free (stateE S) A) : StateSpec S A :=
    interpfr (stateE S) (StateSpec S) A (StateHSpec S) m.
  
-
-End Free.
+End Free. 
