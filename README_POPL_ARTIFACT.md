@@ -159,9 +159,12 @@ A file-by-file breakdown of the library can be found in the file `README.md`.
   `Core/ITreeDefinition.v` and `Interp/Recursion.v` respectively.
   They are both instances of the type class `Iter` for categories,
   defined in `Basics/CategoryOps.v`, with the associated equations in
-  `Basics/CategoryTheory.v`. `iter` lives in the category of KTrees
-  (the instance is defined in `Core/KTree.v` (TODO check)) and `mrec`
-  lives in the category of event handlers in `Interp/Handler.v`.
+  `Basics/CategoryTheory.v`. `iter` is an instance of `Iter`
+  in the category of KTrees; the instance is actually defined in
+  `Basics/CategoryKleisli.v` for any monad which is also an instance of
+  `MonadIter`, which is defined for `itree` in `Core/ITreeDefinition.v`.
+  `mrec` is an instance of `Iter` in the category of event handlers,
+  that instance can be found in `Interp/Handler.v`.
   `loop` is derived from `iter` also in a general way in
   `Basics/CategoryOps.v`.
 
