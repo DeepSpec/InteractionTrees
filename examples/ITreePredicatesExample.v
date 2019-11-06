@@ -17,7 +17,8 @@ From ExtLib Require Import
 
 From ITree Require Import
      ITree
-     ITreeFacts.
+     ITreeFacts
+     DijkstraMonad.
 
 From Paco Require Import paco.
 
@@ -293,3 +294,11 @@ Proof.
   intros.
   reflexivity.
 Qed.  
+
+
+(* Using Dijkstra Monads -------------------------------------------- *)
+
+(* Specificaton monads for the uninterpreted and interpreted ITree states. *)
+
+ (* stateT S (itree void1) R *)
+Definition W_stateT : 

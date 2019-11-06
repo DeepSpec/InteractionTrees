@@ -24,8 +24,21 @@ From ITree Require Import
 Import MonadNotation.
 Local Open Scope monad.
 
+
+(** * Pure Specification Monad *)
+
+(**   A specification monad on the identity monad.   
+
+      Also commonly denoted as W^{Pure}.
+*)
+
 Section PureSpecInstance.
-  
+
+  (** ** Monotonic predicate transformers 
+
+      Due to the *ordered* nature of specification monads, we focus on 
+      ordered specifications. *)
+
   Definition _PureSpec (A : Type) := (A -> Prop) -> Prop.
   
   Definition monotonicp {A} (w : _PureSpec A) :=
@@ -34,6 +47,12 @@ Section PureSpecInstance.
   Definition PureSpec (A : Type) := 
     { w : _PureSpec A | monotonicp w }.
 
+
+  (** ** Equivalent Specifications
+
+      Two specifications are equivalent iff the underlying predicates
+      imply each other. *)
+  
   Definition eqwp {A : Type} (w1 w2 : PureSpec A) :=
     forall p, proj1_sig w1 p <-> proj1_sig w2 p.
 
@@ -58,6 +77,11 @@ Section PureSpecInstance.
       - apply H. apply H0. auto.
     Qed.
 
+  (** ** Specification Monad 
+      
+      This is a specification monad, i.e. we can define their 
+      monotonic return and bind. *)
+   
   Definition _retp (A : Type) (a : A) := fun (p : A -> Prop) => p a.
 
   Hint Unfold _retp.
@@ -93,6 +117,8 @@ Section PureSpecInstance.
       bind := @bindp;
     }.
 
+  (** ** Monad Laws *)
+
   Lemma bind_retp : forall A B (f : A -> PureSpec B) (a : A), 
       bindp (retp a) f ≈ f a.
   Proof.
@@ -115,6 +141,11 @@ Section PureSpecInstance.
       auto.
   Qed.
 
+  (** ** Ordered Monad
+
+      A specification monad W is *ordered*, where W A is equipped with a preorder
+      for each type A, and the bind is monotonic in both arguments. *)
+
   Global Instance PureSpecLaws : MonadLaws PureSpec :=
     {
       bind_ret := bind_retp;
@@ -134,11 +165,18 @@ Section PureSpecInstance.
     intuition. apply H. unfold monotonicp in Hw2'. eapply Hw2'; eauto; auto.
   Qed.
 
-
 End PureSpecInstance.
 
+
+(** * Effect Observation *)
+
+
+(** ** Effect Observation on the Identity Monad *)
+
 Section PureSpecObs.
-  
+
+  (** ** Identity monad *)
+
   Definition Id (A : Type) := A.
 
   Definition retid {A : Type} a : A:= a.
@@ -171,7 +209,8 @@ Section PureSpecObs.
       bind_bind := bind_bindid;
     }.
 
-
+  (** ** Effect Observation *)
+  
   Definition _obsp (A : Type) (m : Id A) : _PureSpec A :=
     fun p => p m.
 
@@ -196,7 +235,6 @@ Section PureSpecObs.
       unfold eqm, PureSpecEq, eqwp. simpl; split; intuition.
     Qed.
 
-  (*Must be on some weird case, figure out later, for now just directly write hte lemmas*)
   Program Instance PureMonadMorph : 
     MonadMorphism Id PureSpec IdEffectObs :=
     {
@@ -204,15 +242,37 @@ Section PureSpecObs.
       bind_pres := obsp_pres_bind
     }.
   
-  
-
-
 End PureSpecObs.
+
+
+(** * Monad Transformers 
+
+    For T(Id), a monad obtained by the application of a monad transformer 
+    to the identity monad, we can build a canonical specification monad and 
+    a canonical effect observation on it. 
+ *)
+
+Section PureTSpecObs.
+
+  (**  T(Id). *)
+
+  Definition idT (m: Type -> Type) : Type -> Type :=
+    m.
+
+ Instance Monad_idT {m} {Fm: Monad m} : Monad (idT m)
+    := {|
+      ret  := @ret m _   
+    ; bind c k := @bind m _ c k
+    |}.
+  
+End PureTSpecObs.  
+
+
+(** * Specification of State *)
 
 Section State.
   Context (S : Type).
 Section StateSpecInstance.
-  
 
   Definition monotonic {A} (w : ((A * S) -> Prop) -> S -> Prop):= 
     forall (p p' : (A * S) -> Prop) s,
@@ -314,7 +374,6 @@ Section StateSpecInstance.
       bind_bind := bind_bindst
    }.
     
-
   Definition lemSt {A : Type} (w1 w2 : StateSpec A) : Prop :=
     forall p s, proj1_sig w2 p s -> proj1_sig w1 p s.
 
@@ -341,8 +400,10 @@ Section StateSpecInstance.
   Definition encode A (post : A * S -> Prop) (pre : S -> Prop) : StateSpec A :=
     exist _ (_encode A post pre) (encode_monot A post pre).
 
-
 End StateSpecInstance.
+
+
+(** * Simple State Monad *)
 
 Section StateMonad.
 
@@ -388,6 +449,9 @@ Section StateMonad.
    Definition put (s : S) : State unit := fun s' => (tt,s).
 
 End StateMonad.
+
+
+(** * State Effect Observation *)
 
 Section StateSpecObs.
 
@@ -436,6 +500,9 @@ End StateSpecObs.
 
 End State.
 
+
+(** * State Example *)
+
 Section StateExample.
   Definition StateNat A := State nat A.
 
@@ -449,6 +516,8 @@ Section StateExample.
     Qed.
 End StateExample.
 
+
+(** * Free Monad *)
 
 Section Free.
 
@@ -490,54 +559,20 @@ Section Free.
        | Get _ => get S
        | Put _ s => put S s end.
 
- (** * Exception / Partial functions  *)
 
- Section Partial_Spec.
-   
- Inductive PartialE : Type -> Type :=
-   | AbortE : PartialE nat.
 
- Definition _partialZero (S : Type) : _StateSpec S nat :=
-   fun p s => forall n, n <> 0 -> p (n, s). 
+ (** * Examples of Effect Observations *)
 
- Lemma partialZero_mono : forall S, monotonic S (_partialZero S).
- Proof.
-   unfold monotonic. intros. cbv. intros. unfold _partialZero in H0.
-   unfold not in H0. apply H0 in H1. apply H in H1. apply H1.
- Qed.
-
- Definition partialZero (S : Type) : StateSpec S nat :=
-   exist _ (_partialZero S) (partialZero_mono S). 
-
- Definition PartialHSpec (S : Type) : PartialE ~> StateSpec S :=
-   fun _ ev =>
-   match ev with
-     | AbortE => partialZero S
-   end.
-
- Inductive Expr :=
-  | Val : nat -> Expr
-  | Div : Expr -> Expr -> Expr.
-
- Inductive step_rel : Expr -> nat -> Prop :=
-  | Base : forall n, step_rel (Val n) n
-  | Step : forall l r v1 v2,
-    step_rel l v1 ->
-    step_rel r (S v2) ->
-    step_rel (Div l r) (Nat.div v1 (S v2)).
-
- Definition PartialF := Free PartialE.
-
- End Partial_Spec. 
-
- (** * Nondeterminism *) 
+ (** ** Nondeterminism *) 
        
  Inductive NondetE : Type -> Type :=
    | Choose : NondetE nat.
 
+ (* Angelic determinism *)
  Definition _chooseA (S : Type) : _StateSpec S nat :=
    fun p s => forall (n : nat), p (n,s) .
 
+ (* Demonic determinism *)
  Definition _chooseD (S : Type) : _StateSpec S nat :=
    fun p s => exists (n : nat), p (n, s) . 
 
