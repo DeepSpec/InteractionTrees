@@ -375,6 +375,11 @@ Proof.
     destruct (string_dec x y) eqn:EQ; [intros _; apply string_dec_sound; assumption | intros abs; inversion abs].
   - intros EQ; apply string_dec_sound in EQ; unfold rel_dec; simpl; rewrite EQ; reflexivity.
 Qed.
+
+(* IY: Need to reason about FMapAlist and ITree Maps. Is this the best way? *)
+Lemma alist_add_lookup_eq : forall (x: var) (s : alist var value),
+      alist_add RelDec_string x (lookup_default x 0 s) s = s.
+Proof. Admitted.
 (* end hide *)
 
 (** We provide an _ITree event handler_ to interpret away [ImpState] events.  We

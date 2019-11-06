@@ -16,7 +16,9 @@ From Coq Require Import
      Logic.FunctionalExtensionality
      RelationClasses.
 From ExtLib Require Import
-     Structures.Monad.
+     Structures.Monad
+     Data.Map.FMapAList. 
+
 Import MonadNotation.
 
 (**
@@ -81,7 +83,6 @@ Section Examples.
   Instance interp_state_proper {T E F S} (h: forall T : Type, E T -> Monads.stateT S (itree F) T) : Proper (eutt eq ==> eqm) (State.interp_state h (T := T)).
   Proof.
     einit. ecofix CIH. intros.
-
     rewrite !unfold_interp_state. punfold H0. red in H0.
     induction H0; intros; subst; simpl; pclearbot.
     - eret.
@@ -116,7 +117,7 @@ Section Examples.
     reflexivity.
     intros [] [] EQ; inv EQ; reflexivity.
   Qed.
-
+                               
   Lemma interp_imp_iter: forall {E A B} (t : A -> itree (ImpState +' E) (A + B)) (a0 : A) (g: env),
     run_state (interp_imp (KTree.iter t a0)) g
                 ≈ KTree.iter (fun '(g', a) =>
@@ -127,22 +128,35 @@ Section Examples.
                                  end
                              ) (g, a0).
   Proof.
-    intros. unfold interp_imp, interp_map.
-    rewrite 2 unfold_iter_ktree. cbn. rewrite bind_bind.
-    repeat unfold run_state. unfold State.interp_state.
-    unfold case_, Case_sum1, case_sum1.
-  Admitted.
+    intros.
+    unfold interp_imp. cbn.
+    rewrite interp_iter. unfold interp_map.
+   
+  Admitted. 
 
   Lemma interp_imp_trigger_get_var: forall (E: Type -> Type) (x: var) (g: env),
     run_state (interp_imp (trigger (GetVar x))) g ≈ (Ret (g, lookup_default x 0 g) : itree E (env * value)).
   Proof.
     intros. unfold interp_imp, interp_map. rewrite interp_trigger.
-    (* rewrite tau_eutt. cbn. unfold cat, Cat_Handler, Handler.cat. *)
-  Admitted.
+    setoid_rewrite unfold_interp_state.
+    cbn. rewrite bind_ret. rewrite tau_eutt.
+    rewrite 2 interp_state_bind. rewrite bind_bind.
+    cbn. repeat rewrite interp_state_ret, bind_ret.
+    cbn. rewrite tau_eutt. rewrite interp_ret.
+    rewrite interp_state_ret. reflexivity. 
+  Qed.     
 
-  Lemma interp_imp_trigger_set_var: forall (E: Type -> Type) (g: env) (x: var) (v: value) s,
-      run_state (interp_imp (trigger (SetVar x s))) g ≈ (Ret (g, tt) : itree E (env * unit)).
-  Proof. Admitted.
+  Lemma interp_imp_trigger_set_var: forall (E: Type -> Type) (g: env) (x: var) (v: value),
+      run_state (interp_imp (trigger (SetVar x v))) g ≈ (Ret (alist_add RelDec_string x v g, tt) : itree E (env * unit)).
+  Proof.
+    intros. unfold interp_imp, interp_map. rewrite interp_trigger.
+    setoid_rewrite unfold_interp_state.
+    cbn. rewrite bind_ret. rewrite tau_eutt.
+    rewrite 2 interp_state_bind. rewrite bind_bind.
+    cbn. repeat rewrite interp_state_ret, bind_ret.
+    cbn. rewrite tau_eutt. rewrite interp_ret.
+    rewrite interp_state_ret. reflexivity.
+  Qed. 
 
   Theorem aequiv_example: aequiv (X - X) 0.
   Proof.
@@ -365,6 +379,7 @@ Section Examples.
     rewrite unfold_iter_ktree.
     repeat (rewrite bind_bind, interp_imp_bind).
     repeat rewrite bind_bind. cbn. eapply eutt_clo_bind.
+
     reflexivity.
     intros.
     destruct u1, u2. inversion H; subst.
@@ -398,7 +413,7 @@ Section Examples.
     destruct u1, u2. inversion H; subst.
     rewrite interp_imp_bind. reflexivity.
   Qed.
-
+  
   Theorem identity_assignment : forall x,
     cequiv
       (x ::= x)%imp
@@ -407,8 +422,8 @@ Section Examples.
     unfold cequiv. intros. cbn.
     rewrite interp_imp_bind, interp_imp_ret.
     rewrite interp_imp_trigger_get_var, bind_ret.
-    rewrite interp_imp_trigger_set_var. reflexivity.
-    constructor.
+    rewrite interp_imp_trigger_set_var. apply eqit_Ret.
+    rewrite alist_add_lookup_eq. reflexivity. 
   Qed.
 
   Theorem assign_aequiv : forall (x : string) e,

@@ -253,3 +253,25 @@ Proof.
     + rewrite interp_state_ret; apply reflexivity.
 Qed.
 
+Lemma interp_state_iter_ktree {E F } S (f : E ~> stateT S (itree F)) {I A}
+      (t  : I -> itree E (I + A))
+      (t' : I -> stateT S (itree F) (I + A))
+      (EQ_t : forall i, state_eq (State.interp_state f (t i)) (t' i))
+  : forall i, state_eq (State.interp_state f (KTree.iter t i))
+                  (Basics.iter t' i).
+Proof.
+  unfold Basics.iter, MonadIter_stateT0, Basics.iter, MonadIter_itree in *; cbn.
+  ginit. gcofix CIH; intros i s.
+  rewrite unfold_iter; cbn.
+  rewrite unfold_iter_ktree. 
+  rewrite !bind_bind.
+  setoid_rewrite bind_ret.
+  rewrite interp_state_bind. 
+  guclo eqit_clo_bind; econstructor;  eauto.
+  - apply EQ_t.
+  - intros [s' []] _ []; cbn.
+    + rewrite interp_state_tau.
+      gstep; constructor.
+      auto with paco.
+    + rewrite interp_state_ret; apply reflexivity.
+Qed. 
