@@ -240,10 +240,10 @@ Section Kleisli.
       destruct a1 as [s' [x | y]].
       + unfold pure.
         rewrite bind_ret.
-        unfold case_, CoprodCase_Kleisli, Function.case_sum.
+        unfold case_, Case_Kleisli, Function.case_sum.
         reflexivity.
       + unfold pure. rewrite bind_ret.
-        unfold case_, CoprodCase_Kleisli, Function.case_sum.
+        unfold case_, Case_Kleisli, Function.case_sum.
           cbn.
           rewrite bind_ret. reflexivity.
   Qed.
@@ -279,9 +279,9 @@ Section Kleisli.
         * reflexivity.
         * repeat red.
           destruct a2 as [s' [x' | y]].
-          ** cbn.  rewrite bind_ret. unfold case_, CoprodCase_Kleisli, Function.case_sum.
+          ** cbn.  rewrite bind_ret. unfold case_, Case_Kleisli, Function.case_sum.
              reflexivity.
-          ** cbn.  rewrite bind_ret. unfold case_, CoprodCase_Kleisli, Function.case_sum.
+          ** cbn.  rewrite bind_ret. unfold case_, Case_Kleisli, Function.case_sum.
              rewrite bind_ret. reflexivity.
       + unfold pure.
         rewrite bind_ret.
@@ -336,21 +336,21 @@ Section Kleisli.
         unfold cat, Cat_Kleisli.
         rewrite bind_bind.
         rewrite bind_ret.
-        cbn.  unfold inl_, CoprodInl_Kleisli, pure.
+        cbn.  unfold inl_, Inl_Kleisli, pure.
         rewrite bind_ret. reflexivity.
       + rewrite bind_ret.
         cbn.
         rewrite bind_ret.
         unfold cat, Cat_Kleisli.
         rewrite bind_bind, bind_ret. cbn.
-        unfold inr_, CoprodInr_Kleisli, pure.
+        unfold inr_, Inr_Kleisli, pure.
         rewrite bind_ret. reflexivity.
       + rewrite bind_ret.
         cbn.
         rewrite bind_ret.
         unfold cat, Cat_Kleisli.
         rewrite bind_bind, bind_ret. cbn.
-        unfold inr_, CoprodInr_Kleisli, pure.
+        unfold inr_, Inr_Kleisli, pure.
         rewrite bind_ret.
         reflexivity.
   Qed.

@@ -382,9 +382,9 @@ Section CategoryTheory.
     intros ?.
     unfold app_bks, denote_bks.
 
-    unfold case_, CoprodCase_sub, inl_, CoprodInl_sub, cat, Cat_sub.
+    unfold case_, Case_sub, inl_, Inl_sub, cat, Cat_sub.
 
-    unfold case_, CoprodCase_Kleisli, case_sum, inl_, CoprodInl_Kleisli, pure, cat, Cat_Kleisli.
+    unfold case_, Case_Kleisli, case_sum, inl_, Inl_Kleisli, pure, cat, Cat_Kleisli.
 
     unfold from_bif, FromBifunctor_ktree_fin, to_bif, ToBifunctor_ktree_fin; cbn.
 

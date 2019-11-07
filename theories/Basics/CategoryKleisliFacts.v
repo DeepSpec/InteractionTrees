@@ -1,3 +1,5 @@
+(** Proofs that the Kleisli category of a monad is in fact a category. *)
+
 From Coq Require Import
      Program
      Setoid
@@ -272,18 +274,18 @@ Global Instance Coproduct_Kleisli : Coproduct (Kleisli m) sum.
 Proof.
   constructor.
   - intros a b c f g.
-    unfold inl_, CoprodInl_Kleisli.
+    unfold inl_, Inl_Kleisli.
     rewrite pure_cat.
     reflexivity.
   - intros a b c f g.
-    unfold inr_, CoprodInr_Kleisli.
+    unfold inr_, Inr_Kleisli.
     rewrite pure_cat.
     reflexivity.
   - intros a b c f g fg Hf Hg [x | y].
-    + unfold inl_, CoprodInl_Kleisli in Hf.
+    + unfold inl_, Inl_Kleisli in Hf.
       rewrite pure_cat in Hf.
       specialize (Hf x). simpl in Hf. rewrite Hf. reflexivity.
-    + unfold inr_, CoprodInr_Kleisli in Hg.
+    + unfold inr_, Inr_Kleisli in Hg.
       rewrite pure_cat in Hg.
       specialize (Hg y). simpl in Hg. rewrite Hg. reflexivity.
   - typeclasses eauto.
@@ -294,9 +296,9 @@ Proof.
   unfold BimapId, bimap, Bimap_Coproduct.
   intros.
   rewrite! cat_id_l.
-  unfold inl_, inr_, CoprodInl_Kleisli, CoprodInr_Kleisli.
+  unfold inl_, inr_, Inl_Kleisli, Inr_Kleisli.
   rewrite case_pure.
-  unfold pure, id_, case_, CoprodCase_Kleisli, case_sum, Id_Kleisli, pure.
+  unfold pure, id_, case_, Case_Kleisli, case_sum, Id_Kleisli, pure.
   red. intro. destruct a0; reflexivity.
 Qed.  
 
@@ -305,7 +307,7 @@ Qed.
       map inl f1 >>> case_ (map inl g1) (map inr g2) ⩯ map inl (f1 >>> g1).
   Proof.
     intros a1 b1 b2 c1 c2 f1 g1 g2.
-    unfold cat, Cat_Kleisli, case_, CoprodCase_Kleisli, case_sum.
+    unfold cat, Cat_Kleisli, case_, Case_Kleisli, case_sum.
     unfold map. unfold cat, Cat_Kleisli.
     setoid_rewrite bind_bind.
     unfold pure. setoid_rewrite bind_ret. reflexivity.
@@ -316,7 +318,7 @@ Qed.
       map inr f2 >>> case_ (map inl g1) (map inr g2) ⩯ map inr (f2 >>> g2).
   Proof.
     intros a2 b1 b2 c1 c2 f2 g1 g2.
-    unfold cat, Cat_Kleisli, case_, CoprodCase_Kleisli, case_sum.
+    unfold cat, Cat_Kleisli, case_, Case_Kleisli, case_sum.
     unfold map. unfold cat, Cat_Kleisli.
     setoid_rewrite bind_bind.
     unfold pure. setoid_rewrite bind_ret. reflexivity.
@@ -327,7 +329,7 @@ Global Instance bimap_cat_kleisli : BimapCat (Kleisli m) sum.
 Proof.
   unfold BimapCat, bimap, Bimap_Coproduct.
   intros.
-  unfold inl_, inr_, CoprodInl_Kleisli, CoprodInr_Kleisli.
+  unfold inl_, inr_, Inl_Kleisli, Inr_Kleisli.
   rewrite! cat_pure. rewrite! cat_case.
   rewrite map_inl_case_kleisli.
   rewrite map_inr_case_kleisli.
@@ -340,7 +342,7 @@ Proof.
   intros.
   repeat intro.
   unfold bimap, Bimap_Coproduct.
-  unfold case_, CoprodCase_Kleisli, case_sum.
+  unfold case_, Case_Kleisli, case_sum.
   destruct a0.
   - unfold cat, Cat_Kleisli, inl_. rewrite H. reflexivity.
   - unfold cat, Cat_Kleisli, inl_. rewrite H0. reflexivity.

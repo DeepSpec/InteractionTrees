@@ -810,7 +810,7 @@ Section Correctness.
     apply H.
   Qed.
 
-  Notation Inr_Kleisli := CoprodInr_Kleisli.
+  Notation Inr_Kleisli := Inr_Kleisli.
 
   (** Correctness of the compiler.
       After interpretation of the [Locals], the source _Imp_ statement
@@ -898,7 +898,7 @@ Section Correctness.
 
       unfold to_itree'.
       unfold loop. unfold iter at 2.
-      unfold Iter_sub, CoprodInr_sub, Inr_Kleisli, inr_, lift_ktree, cat, Cat_sub, cat, Cat_Kleisli.
+      unfold Iter_sub, Inr_sub, Inr_Kleisli, inr_, lift_ktree, cat, Cat_sub, cat, Cat_Kleisli.
       unfold from_bif, FromBifunctor_ktree_fin.
       cbn. rewrite 2 bind_ret. cbn.
       eapply (bisimilar_iter (fun x x' => (x = inl tt /\ x' = f0) \/ (x = inr tt /\ x' = fS f0))).

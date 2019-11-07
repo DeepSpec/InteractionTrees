@@ -368,13 +368,13 @@ Proof.
   rewrite interp_bind.
   apply eqit_bind; try reflexivity.
   intros []; cbn. unfold cat. rewrite interp_bind.
-  - unfold inl_, CoprodInl_Kleisli, inr_, CoprodInr_Kleisli, lift_ktree; cbn.
+  - unfold inl_, Inl_Kleisli, inr_, Inr_Kleisli, lift_ktree; cbn.
     rewrite interp_ret, !bind_ret, interp_ret.
     reflexivity.
-  - unfold cat, id_, Id_Kleisli, inr_, CoprodInr_Kleisli, lift_ktree, pure; cbn.
+  - unfold cat, id_, Id_Kleisli, inr_, Inr_Kleisli, lift_ktree, pure; cbn.
     rewrite interp_bind, interp_ret, !bind_ret, interp_ret.
     reflexivity.
-  - unfold inr_, CoprodInr_Kleisli, lift_ktree, pure; cbn.
+  - unfold inr_, Inr_Kleisli, lift_ktree, pure; cbn.
     rewrite interp_ret.
     reflexivity.
 Qed.

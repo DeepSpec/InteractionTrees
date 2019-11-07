@@ -387,7 +387,7 @@ Proof.
   apply (@eutt_clo_bind _ _ _ _ _ _ rel_asm).
 
   { apply (@eutt_clo_bind _ _ _ _ _ _ rel_asm).
-    -  unfold inr_, CoprodInr_Kleisli, lift_ktree_.
+    -  unfold inr_, Inr_Kleisli, lift_ktree_.
        unfold ret, Monad_itree.
        repeat rewrite interp_ret.
        repeat rewrite interp_state_ret.
@@ -429,10 +429,10 @@ Proof.
     [|intros ? ? [? ? ? ? ? [? ? ? ? ? []]]]; cbn.
   {
     rewrite bind_ret.
-    unfold case_, Case_sum1, CoprodCase_Kleisli, case_sum.
+    unfold case_, Case_sum1, Case_Kleisli, case_sum.
     unfold CategoryOps.cat, CategorySub.Cat_sub, CategoryOps.cat, Cat_Kleisli.
-    unfold inl_, CategorySub.CoprodInl_sub, inl_, CoprodInl_Kleisli, lift_ktree_.
-    unfold inr_, CategorySub.CoprodInr_sub, inr_, CoprodInr_Kleisli, lift_ktree_.
+    unfold inl_, CategorySub.Inl_sub, inl_, Inl_Kleisli, lift_ktree_.
+    unfold inr_, CategorySub.Inr_sub, inr_, Inr_Kleisli, lift_ktree_.
     unfold id_, CategorySub.Id_sub, id_, Id_Kleisli, lift_ktree_.
     cbn.
     unfold CategorySub.from_bif, FromBifunctor_ktree_fin.

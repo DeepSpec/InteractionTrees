@@ -276,18 +276,18 @@ Global Instance Coproduct_ktree : Coproduct (ktree E) sum.
 Proof.
   constructor.
   - intros a b c f g.
-    unfold inl_, CoprodInl_Kleisli.
+    unfold inl_, Inl_Kleisli.
     rewrite lift_compose_ktree.
     reflexivity.
   - intros a b c f g.
-    unfold inr_, CoprodInr_Kleisli.
+    unfold inr_, Inr_Kleisli.
     rewrite lift_compose_ktree.
     reflexivity.
   - intros a b c f g fg Hf Hg [x | y].
-    + unfold inl_, CoprodInl_Kleisli in Hf.
+    + unfold inl_, Inl_Kleisli in Hf.
       rewrite lift_compose_ktree in Hf.
       specialize (Hf x). simpl in Hf. rewrite Hf. reflexivity.
-    + unfold inr_, CoprodInr_Kleisli in Hg.
+    + unfold inr_, Inr_Kleisli in Hg.
       rewrite lift_compose_ktree in Hg.
       specialize (Hg y). simpl in Hg. rewrite Hg. reflexivity.
   - typeclasses eauto.

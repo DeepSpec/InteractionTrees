@@ -29,8 +29,8 @@ Section CocartesianFunctor.
 Context
   {obj : Type} {C D : obj -> obj -> Type}
   {bif : obj -> obj -> obj}
-  `{Eq2 _ C} `{CoprodCase _ C bif} `{CoprodInl _ C bif} `{CoprodInr _ C bif}
-  `{Eq2 _ D} `{CoprodCase _ D bif} `{CoprodInl _ D bif} `{CoprodInr _ D bif}
+  `{Eq2 _ C} `{Case _ C bif} `{Inl _ C bif} `{Inr _ C bif}
+  `{Eq2 _ D} `{Case _ D bif} `{Inl _ D bif} `{Inr _ D bif}
   {fmap : forall a b, C a b -> D a b}.
 
 Arguments fmap {a b}.
@@ -109,7 +109,7 @@ Global Instance CocartesianFunctor_pure : CocartesianFunctor (fmap := @subpure).
 Proof.
   constructor; intros.
   - intros []; cbn.
-    unfold unsubm, case_, CoprodCase_Kleisli, case_sum, CoprodCase_sub, case_.
+    unfold unsubm, case_, Case_Kleisli, case_sum, Case_sub, case_.
     unfold cat, Cat_sub, Cat_Fun.
     unfold to_bif, ToBifunctor_ktree_fin, ToBifunctor_Fun_fin.
     rewrite bind_ret.

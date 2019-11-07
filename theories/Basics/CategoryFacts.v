@@ -169,9 +169,9 @@ Context {Id_C : Id_ C} {Cat_C : Cat C}.
 Context {Category_C : Category C}.
 
 Context {bif : binop obj}.
-Context {CoprodCase_C : CoprodCase C bif}
-        {CoprodInl_C : CoprodInl C bif}
-        {CoprodInr_C : CoprodInr C bif}.
+Context {Case_C : Case C bif}
+        {Inl_C : Inl C bif}
+        {Inr_C : Inr C bif}.
 Context {Coproduct_C : Coproduct C bif}.
 
 Lemma case_inl' {a b c d} (ac : C a c) (bc : C b c) (cd : C c d)
@@ -419,9 +419,9 @@ Context {Id_C : Id_ C} {Cat_C : Cat C}.
 Context {Category_C : Category C}.
 
 Context {bif : binop obj}.
-Context {CoprodCase_C : CoprodCase C bif}
-        {CoprodInl_C : CoprodInl C bif}
-        {CoprodInr_C : CoprodInr C bif}.
+Context {Case_C : Case C bif}
+        {Inl_C : Inl C bif}
+        {Inr_C : Inr C bif}.
 Context {Coproduct_C : Coproduct C bif}.
 
 Context {Iter_bif : Iter C bif}.

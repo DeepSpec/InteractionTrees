@@ -138,9 +138,9 @@ Section CoproductLaws.
 Context {obj : Type} (C : Hom obj).
 Context {Eq2_C : Eq2 C} {Id_C : Id_ C} {Cat_C : Cat C}.
 Context (bif : binop obj).
-Context {CoprodCase_C : CoprodCase C bif}
-        {CoprodInl_C : CoprodInl C bif}
-        {CoprodInr_C : CoprodInr C bif}.
+Context {Case_C : Case C bif}
+        {Inl_C : Inl C bif}
+        {Inr_C : Inr C bif}.
 
 Class CaseInl : Prop :=
   case_inl : forall a b c (f : C a c) (g : C b c),
@@ -168,8 +168,8 @@ Class Coproduct : Prop := {
 
 End CoproductLaws.
 
-Arguments case_inl {obj C Eq2_C Cat_C bif CoprodCase_C CoprodInl_C CaseInl} [a b c] f g.
-Arguments case_inr {obj C Eq2_C Cat_C bif CoprodCase_C CoprodInr_C CaseInr} [a b c] f g.
+Arguments case_inl {obj C Eq2_C Cat_C bif Case_C Inl_C CaseInl} [a b c] f g.
+Arguments case_inr {obj C Eq2_C Cat_C bif Case_C Inr_C CaseInr} [a b c] f g.
 Arguments case_universal {obj C _ _ bif _ _ _ _} [a b c] f g fg.
 
 (** More intuitive names. *)
@@ -383,9 +383,9 @@ Section IterationLaws.
 Context {obj : Type} (C : Hom obj).
 Context {Eq2_C : Eq2 C} {Id_C : Id_ C} {Cat_C : Cat C}.
 Context (bif : binop obj).
-Context {CoprodCase_C : CoprodCase C bif}.
-Context {CoprodInl_C : CoprodInl C bif}.
-Context {CoprodInr_C : CoprodInr C bif}.
+Context {Case_C : Case C bif}.
+Context {Inl_C : Inl C bif}.
+Context {Inr_C : Inr C bif}.
 Context {Iter_C : Iter C bif}.
 
 (** The loop operation satisfies a fixed point equation. *)
@@ -436,8 +436,8 @@ Definition IterPairing : Prop :=
 
 End IterationLaws.
 
-Arguments iter_unfold {obj C Eq2_C Id_C Cat_C bif CoprodCase_C Iter_C IterUnfold} [a b] f.
-Arguments iter_natural {obj C Eq2_C Id_C Cat_C bif CoprodCase_C CoprodInl_C CoprodInr_C Iter_C IterNatural} [a b c] f.
-Arguments iter_dinatural {obj C Eq2_C Id_C Cat_C bif CoprodCase_C CoprodInr_C Iter_C IterDinatural} [a b c] f.
-Arguments iter_codiagonal {obj C Eq2_C Id_C Cat_C bif CoprodCase_C CoprodInl_C Iter_C IterCodiagonal} [a b] f.
-Arguments iterative_proper_iter {obj C Eq2_C Id_C Cat_C bif CoprodCase_C CoprodInl_C CoprodInr_C Iter_C Iterative}.
+Arguments iter_unfold {obj C Eq2_C Id_C Cat_C bif Case_C Iter_C IterUnfold} [a b] f.
+Arguments iter_natural {obj C Eq2_C Id_C Cat_C bif Case_C Inl_C Inr_C Iter_C IterNatural} [a b c] f.
+Arguments iter_dinatural {obj C Eq2_C Id_C Cat_C bif Case_C Inr_C Iter_C IterDinatural} [a b c] f.
+Arguments iter_codiagonal {obj C Eq2_C Id_C Cat_C bif Case_C Inl_C Iter_C IterCodiagonal} [a b] f.
+Arguments iterative_proper_iter {obj C Eq2_C Id_C Cat_C bif Case_C Inl_C Inr_C Iter_C Iterative}.
