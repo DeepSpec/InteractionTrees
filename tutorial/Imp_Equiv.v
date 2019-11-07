@@ -80,6 +80,13 @@ Section Examples.
     cbv; intros; subst; auto.
   Qed.
 
+  
+  Instance interp_imp_state_eq_proper {E A} (g: env): Proper (state_eq ==> eq ==> eutt eq) (@run_state E A).
+  Proof.
+    einit. ecofix CIH. intros.
+    subst. Admitted.   
+
+
   Instance interp_state_proper {T E F S} (h: forall T : Type, E T -> Monads.stateT S (itree F) T) : Proper (eutt eq ==> eqm) (State.interp_state h (T := T)).
   Proof.
     einit. ecofix CIH. intros.
@@ -117,6 +124,7 @@ Section Examples.
     reflexivity.
     intros [] [] EQ; inv EQ; reflexivity.
   Qed.
+
                                
   Lemma interp_imp_iter: forall {E A B} (t : A -> itree (ImpState +' E) (A + B)) (a0 : A) (g: env),
     run_state (interp_imp (KTree.iter t a0)) g
@@ -131,8 +139,15 @@ Section Examples.
     intros.
     unfold interp_imp. cbn.
     rewrite interp_iter. unfold interp_map.
-   
-  Admitted. 
+    match goal with
+      |- run_state (State.interp_state ?f (KTree.iter ?t ?i)) _ ≈ _ =>
+           remember f as fx; remember t as tx; remember i as ix
+    end.
+    eassert (state_eq (State.interp_state fx (KTree.iter tx ix)) (Basics.iter _ ix)).
+    { eapply interp_state_iter_ktree. intros. admit. } 
+    setoid_rewrite H. 
+  Admitted.
+ Basics.iter 
 
   Lemma interp_imp_trigger_get_var: forall (E: Type -> Type) (x: var) (g: env),
     run_state (interp_imp (trigger (GetVar x))) g ≈ (Ret (g, lookup_default x 0 g) : itree E (env * value)).
