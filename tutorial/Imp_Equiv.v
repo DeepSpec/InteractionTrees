@@ -81,7 +81,7 @@ Section Examples.
   Qed.
 
   
-  Instance interp_imp_state_eq_proper {E A} (g: env): Proper (state_eq ==> eq ==> eutt eq) (@run_state E A).
+  Instance run_state_state_eq_proper {E A} : Proper (state_eq ==> eq ==> eutt eq) (@run_state E A).
   Proof.
     einit. ecofix CIH. intros.
     subst. Admitted.   
@@ -147,7 +147,6 @@ Section Examples.
     { eapply interp_state_iter_ktree. intros. admit. } 
     setoid_rewrite H. 
   Admitted.
- Basics.iter 
 
   Lemma interp_imp_trigger_get_var: forall (E: Type -> Type) (x: var) (g: env),
     run_state (interp_imp (trigger (GetVar x))) g ≈ (Ret (g, lookup_default x 0 g) : itree E (env * value)).
