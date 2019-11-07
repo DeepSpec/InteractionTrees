@@ -4,7 +4,7 @@
     To this end, we will equip them with four main combinators:
     - [pure_asm], casting pure functions into [asm].
     - [app_asm], linking them vertically
-    - [link_asm], hiding internal links
+    - [loop_asm], hiding internal links
     - [relabel_asm], allowing to rename labels
     Viewing [asm] units as diagrams, whose entry wires are the exposed labels of
     its blocks, and exit wires the external labels to which it may jump, this
@@ -154,7 +154,7 @@ Definition relabel_asm {A B C D} (f : sub Fun fin A B) (g : sub Fun fin C D)
 (** Labels that are exposed both as entry and exit points can be internalized.
     This operation can be seen as linking two programs internal to [ab] together.
  *)
-Definition link_asm {I A B} (ab : asm (I + A) (I + B)) : asm A B :=
+Definition loop_asm {I A B} (ab : asm (I + A) (I + B)) : asm A B :=
   {| internal := ab.(internal) + I;
      code := relabel_bks assoc_r assoc_l ab.(code);
   |}.
@@ -222,7 +222,7 @@ Section CategoryTheory.
 
   Lemma fmap_block_map:
     forall  {L L'} b (f: fin L -> fin L'),
-      denote_block (fmap_block f b) ≅ ITree.map f (denote_block b).
+      denote_bk (fmap_block f b) ≅ ITree.map f (denote_bk b).
   Proof.
     (* Induction over the structure of the [block b] *)
     induction b as [i b | br]; intros f.
@@ -253,7 +253,7 @@ Section CategoryTheory.
    *)
   Lemma denote_after :
     forall {label} instrs (b: branch (fin label)),
-      denote_block (after instrs b) ≅ (denote_list instrs ;; denote_branch b).
+      denote_bk (after instrs b) ≅ (denote_list instrs ;; denote_br b).
   Proof.
     induction instrs as [| i instrs IH]; intros b.
     - simpl; rewrite bind_ret; reflexivity.
@@ -263,7 +263,7 @@ Section CategoryTheory.
   Qed.
 
   Lemma denote_blk_append : forall lbl (l:list instr) (b:block (fin lbl)),
-      denote_block (blk_append l b) ≈ (x <- denote_list l ;; denote_block b).
+      denote_bk (blk_append l b) ≈ (x <- denote_list l ;; denote_bk b).
   Proof.
     intros lbl.
     induction l; intros b; simpl.
@@ -302,7 +302,7 @@ Section CategoryTheory.
   Qed.
 
   Lemma raw_asm_correct {A B} (b : bks A B) :
-    denote_asm (raw_asm b) ⩯ (fun a => denote_block (b a)).
+    denote_asm (raw_asm b) ⩯ (fun a => denote_bk (b a)).
   Proof.
     unfold denote_asm; cbn.
     rewrite loop_vanishing_1.
@@ -322,7 +322,7 @@ Section CategoryTheory.
    *)
   Lemma raw_asm_block_correct_lifted {A} (b : block (fin A)) :
     denote_asm (raw_asm_block b) ⩯
-               ((fun _  => denote_block b) : sub (ktree _) fin _ _).
+               ((fun _  => denote_bk b) : sub (ktree _) fin _ _).
   Proof.
     unfold raw_asm_block.
     rewrite raw_asm_correct.
@@ -330,7 +330,7 @@ Section CategoryTheory.
   Qed.
 
   Lemma raw_asm_block_correct {A} (b : block (fin A)) :
-    (denote_asm (raw_asm_block b) f0) ≈ (denote_block b).
+    (denote_asm (raw_asm_block b) f0) ≈ (denote_bk b).
   Proof.
     apply raw_asm_block_correct_lifted.
   Qed.
@@ -467,11 +467,11 @@ Section CategoryTheory.
     reflexivity.
   Qed.
 
-  (** Correctness of the [link_asm] combinator.
+  (** Correctness of the [loop_asm] combinator.
       Linking is exactly looping, it hides internal labels/wires.
    *)
-  Theorem link_asm_correct {I A B} (ab : asm (I + A) (I + B)) :
-    denote_asm (link_asm ab) ⩯ loop (denote_asm ab).
+  Theorem loop_asm_correct {I A B} (ab : asm (I + A) (I + B)) :
+    denote_asm (loop_asm ab) ⩯ loop (denote_asm ab).
   Proof.
     unfold denote_asm.
     rewrite loop_vanishing_2.

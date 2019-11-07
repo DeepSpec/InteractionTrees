@@ -297,10 +297,10 @@ Section Correctness.
 
   Lemma ph_blk_append_correct : forall (ph : peephole_optimization) (H : ph_correct ph)
     lbl1 lbl2 b1 b2 i,
-    (@eq_asm_denotations_EQ Exit (fin lbl1) (fin lbl2) (fun _ => denote_block b1) (fun _ => denote_block b2)) ->
+    (@eq_asm_denotations_EQ Exit (fin lbl1) (fin lbl2) (fun _ => denote_bk b1) (fun _ => denote_bk b2)) ->
     (@eq_asm_denotations_EQ Exit (fin lbl1) (fin lbl2)
-                         (fun _ => denote_instr i ;; denote_block b1)
-                         (fun _ => denote_block (blk_append (ph i) b2))).
+                         (fun _ => denote_instr i ;; denote_bk b1)
+                         (fun _ => denote_bk (blk_append (ph i) b2))).
   Proof.
     intros ph H lbl1 lbl2 b1 b2 i HP.
     unfold eq_asm_denotations_EQ.
@@ -325,8 +325,8 @@ Lemma peephole_block_correct :
     (lbl1 lbl2 : nat)
     (b : block (fin lbl2)),
     @eq_asm_denotations_EQ Exit (fin lbl1) (fin lbl2)
-                        (fun _ => denote_block b)
-                        (fun _ => denote_block (peephole_optimize_block ph b)).
+                        (fun _ => denote_bk b)
+                        (fun _ => denote_bk (peephole_optimize_block ph b)).
 Proof.
   intros ph H lbl1 lbl2 b.
   induction b.
