@@ -27,6 +27,9 @@ Local Open Scope monad_scope.
 Local Open Scope string_scope.
 
 Inductive Void : Type -> Type := .
+Definition tau_invar (E : Type -> Type) (A : Type) (P : itree E A -> Prop) : Prop :=
+    forall (t : itree E A), (P t -> (P (Tau t))) /\(P (Tau t) -> P t).
+
 
 Section PureItree.
 
@@ -38,18 +41,19 @@ Section PureItree.
 
   (* can interpretation deal with infinite taus*)
 
-  Definition _PureItreeSpec A := (itree Void A-> Prop) -> Prop.
+  Definition _PureItreeSpec A := forall (p : itree Void A -> Prop), (tau_invar Void A p) -> Prop.
 
-  Definition _retpi A (a : A) : _PureItreeSpec A := fun p => p (ret a).
+  Definition _retpi A (a : A) : _PureItreeSpec A := fun p _ => p (ret a).
 
   (*I will axiomatize into existence two functions on itrees and talk to steve about if they are 
    feasible*)
   
-  Definition tau_invar (E : Type -> Type) (A : Type) (P : itree E A -> Prop) : Prop :=
-    forall (t : itree E A), (P t -> (P (Tau t))) /\(P (Tau t) -> P t).
+  
  
   Definition monotonici A (w : _PureItreeSpec A) :=
-    forall (p p' : itree Void A -> Prop), (forall i', p i' -> p' i') -> w p -> w p'. 
+    forall (p p' : itree Void A -> Prop) (Hp : tau_invar Void A p) (Hp' :tau_invar Void A p'),
+                                          (forall i', p i' -> p' i') -> w p Hp -> w p' Hp'. 
+(* need the fact that bind preserves this tau invariance condition*) 
 
   Definition PureItreeSpec A := {w : _PureItreeSpec A | monotonici A w}.
 
@@ -73,20 +77,32 @@ Section PureItree.
 
   (* maybe specifications only take tau invariant propositions  *)
 
+  Lemma bind_pred_tau_invar : forall A B (f : A -> _PureItreeSpec B) 
+                                     (p : itree Void B -> Prop) (Hp : tau_invar Void B p), 
+      tau_invar Void A (fun (i : itree Void A) => forall a, is_val A a i -> f a p Hp).
+  Proof.
+    intros. unfold tau_invar in *. split; intros;
+    apply H; specialize (is_val_tau_invar A a t) as Ht; tauto.
+  Qed.
+
 
   Definition _bindpi A B (m : _PureItreeSpec A ) (f : A -> _PureItreeSpec B) : _PureItreeSpec B :=
-    fun (p : itree Void B -> Prop) => 
-      m (fun (i : itree Void A) => forall a, is_val A a i -> f a p).
+    fun (p : itree Void B -> Prop) (Hp : tau_invar Void B p) => 
+      m (fun (i : itree Void A) => forall a, is_val A a i -> f a p Hp) (bind_pred_tau_invar A B f p Hp).
 
   Lemma bindpi_monot : forall A B (w : _PureItreeSpec A) (f : A -> _PureItreeSpec B), 
       monotonici A w -> (forall a, monotonici B (f a)) -> monotonici B (_bindpi A B w f).
   Proof.
-    unfold monotonici. intros. unfold _bindpi in *. intros.
-    remember (fun i : itree Void A => forall a : A, is_val A a i -> f a p) as fp.
-    remember (fun i : itree Void A => forall a : A, is_val A a i -> f a p') as fp'.
-    enough (forall i, fp i -> fp' i).
-    - apply H with (p := fp); auto.
-    - subst. intros. apply H0 with (p := p); auto.
+    unfold monotonici. intros. unfold _bindpi in *. 
+    (*specialize H with (p := (fun i : itree Void A => forall a : A, is_val A a i -> f a p Hp)) as H'.
+    enough () *)
+    set (fun i  p0 Hp0 => forall a : A, is_val A a i -> f a p0 Hp0) as fp.
+    (*remember (fun p Hp => bind_pred_tau_invar A B f p Hp) as fHp. *)
+    enough (forall i, fp i p Hp -> fp i p' Hp').
+    - eapply H with (p := fun i => fp i p Hp).
+      + intros. subst. apply H3 with (i := i'); auto.
+      + subst. cbn. apply H2.
+    - unfold fp. intros.eapply H0; eauto.
   Qed.
 
   Definition retpi A (a : A) : PureItreeSpec A :=
@@ -105,7 +121,7 @@ Section PureItree.
     }.
 
   Global Instance PureItreeSpecEq : EqM PureItreeSpec :=
-    fun A w1 w2 => forall (p : itree Void A -> Prop), proj1_sig w1 p <-> proj1_sig w2 p.
+    fun A w1 w2 => forall (p : itree Void A -> Prop) (Hp : tau_invar Void A p), proj1_sig w1 p Hp <-> proj1_sig w2 p Hp.
 
   Lemma bindpi_retpi : forall A B (f : A -> PureItreeSpec B) (a : A), 
       bind (ret a) f ≈ f a.
