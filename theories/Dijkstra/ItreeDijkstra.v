@@ -31,31 +31,32 @@ Definition tau_invar (E : Type -> Type) (A : Type) (P : itree E A -> Prop) : Pro
     forall (t : itree E A), (P t -> (P (Tau t))) /\(P (Tau t) -> P t).
 
 
-Section PureItree.
+Section PureITree.
 
   (*how to deal with nonterminsim*)
   (* partial correctness itrees   *)
   (* match t with Ret a => p (inl a)  *)
   
-  Definition PureItree A := itree Void A.
+  Definition PureITree A := itree Void A.
 
   (* can interpretation deal with infinite taus*)
 
-  Definition _PureItreeSpec A := forall (p : itree Void A -> Prop), (tau_invar Void A p) -> Prop.
+  Definition _PureITreeSpec A := forall (p : itree Void A -> Prop), (tau_invar Void A p) -> Prop.
 
-  Definition _retpi A (a : A) : _PureItreeSpec A := fun p _ => p (ret a).
+  Definition _retpi A (a : A) : _PureITreeSpec A := fun p _ => p (ret a).
 
   (*I will axiomatize into existence two functions on itrees and talk to steve about if they are 
    feasible*)
   
   
- 
-  Definition monotonici A (w : _PureItreeSpec A) :=
+
+  Definition monotonici A (w : _PureITreeSpec A) :=
     forall (p p' : itree Void A -> Prop) (Hp : tau_invar Void A p) (Hp' :tau_invar Void A p'),
                                           (forall i', p i' -> p' i') -> w p Hp -> w p' Hp'. 
 (* need the fact that bind preserves this tau invariance condition*) 
 
-  Definition PureItreeSpec A := {w : _PureItreeSpec A | monotonici A w}.
+
+  Definition PureITreeSpec A := {w : _PureITreeSpec A | monotonici A w}.
 
   Lemma retpi_monot : forall A (a : A), monotonici A (_retpi A a).
   Proof.
@@ -77,7 +78,7 @@ Section PureItree.
 
   (* maybe specifications only take tau invariant propositions  *)
 
-  Lemma bind_pred_tau_invar : forall A B (f : A -> _PureItreeSpec B) 
+  Lemma bind_pred_tau_invar : forall A B (f : A -> _PureITreeSpec B) 
                                      (p : itree Void B -> Prop) (Hp : tau_invar Void B p), 
       tau_invar Void A (fun (i : itree Void A) => forall a, is_val A a i -> f a p Hp).
   Proof.
@@ -86,11 +87,11 @@ Section PureItree.
   Qed.
 
 
-  Definition _bindpi A B (m : _PureItreeSpec A ) (f : A -> _PureItreeSpec B) : _PureItreeSpec B :=
+  Definition _bindpi A B (m : _PureITreeSpec A ) (f : A -> _PureITreeSpec B) : _PureITreeSpec B :=
     fun (p : itree Void B -> Prop) (Hp : tau_invar Void B p) => 
       m (fun (i : itree Void A) => forall a, is_val A a i -> f a p Hp) (bind_pred_tau_invar A B f p Hp).
 
-  Lemma bindpi_monot : forall A B (w : _PureItreeSpec A) (f : A -> _PureItreeSpec B), 
+  Lemma bindpi_monot : forall A B (w : _PureITreeSpec A) (f : A -> _PureITreeSpec B), 
       monotonici A w -> (forall a, monotonici B (f a)) -> monotonici B (_bindpi A B w f).
   Proof.
     unfold monotonici. intros. unfold _bindpi in *. 
@@ -102,28 +103,30 @@ Section PureItree.
     - eapply H with (p := fun i => fp i p Hp).
       + intros. subst. apply H3 with (i := i'); auto.
       + subst. cbn. apply H2.
-    - unfold fp. intros.eapply H0; eauto.
+    - unfold fp. intros. eapply H0; eauto.
   Qed.
 
-  Definition retpi A (a : A) : PureItreeSpec A :=
+  Definition retpi A (a : A) : PureITreeSpec A :=
     exist _ (_retpi A a) (retpi_monot A a).
 
-  Definition bindpi A B (w : PureItreeSpec A) (f : A -> PureItreeSpec B) :=
+  Definition bindpi A B (w : PureITreeSpec A) (f : A -> PureITreeSpec B) :=
     let '(exist _ w' Hw') := w in
     let f' := fun a => proj1_sig (f a) in
     let Hf' := fun a => proj2_sig (f a) in
     exist _ (_bindpi A B w' f') (bindpi_monot A B w' f' Hw' Hf').
 
-  Global Instance PureItreeSpecMonad : Monad PureItreeSpec :=
+  Global Instance PureItreeSpecMonad : Monad PureITreeSpec :=
     {
       ret := retpi;
       bind := bindpi
     }.
 
-  Global Instance PureItreeSpecEq : EqM PureItreeSpec :=
+
+  Global Instance PureITreeSpecEq : EqM PureITreeSpec :=
     fun A w1 w2 => forall (p : itree Void A -> Prop) (Hp : tau_invar Void A p), proj1_sig w1 p Hp <-> proj1_sig w2 p Hp.
 
-  Lemma bindpi_retpi : forall A B (f : A -> PureItreeSpec B) (a : A), 
+
+  Lemma bindpi_retpi : forall A B (f : A -> PureITreeSpec B) (a : A), 
       bind (ret a) f ≈ f a.
     Proof.
       intros. split.
@@ -131,7 +134,7 @@ Section PureItree.
       - cbv. intros. inversion H0. subst. auto.
     Qed.
 
-  Lemma retpi_bindpi : forall A (w : PureItreeSpec A), bind w (fun x => ret x) ≈ w.
+  Lemma retpi_bindpi : forall A (w : PureITreeSpec A), bind w (fun x => ret x) ≈ w.
   Proof.
     intros. destruct w as [ w Hw]. split.
     - intros. simpl in *. unfold _bindpi in H.
@@ -145,19 +148,19 @@ Section PureItree.
       
    Admitted.    
 
-  Lemma bindpi_bindpi : forall (A B C : Type) (w : PureItreeSpec A) 
-                               (f : A -> PureItreeSpec B) (g : B -> PureItreeSpec C),
+  Lemma bindpi_bindpi : forall (A B C : Type) (w : PureITreeSpec A) 
+                               (f : A -> PureITreeSpec B) (g : B -> PureITreeSpec C),
       bind (bind w f) g ≈ bind w (fun a => bind (f a) g).
 
   Admitted.
 
-  Global Instance PureItreeSpecLaws : MonadLaws PureItreeSpec.
+  Global Instance PureItreeSpecLaws : MonadLaws PureITreeSpec.
   Proof.
     constructor.
     - intros A B f a. cbv. intros. destruct (f a) as [w Hw] eqn : Heq. split; intros.
       + unfold monotonici in *. eapply Hw.
         * intros. admit.
-        *
+        * Abort.
 
   (* does this satisfy the monad laws? is it unique in some sense, if not what are the implications of
    this choice*)
@@ -170,14 +173,14 @@ Section PureItree.
 
 (* is this monotonic?   *)
 
-End PureItree.
+End PureITree.
 
-Section StateItree.
+Section StateITree.
   Context (S : Type).
   
-  Definition StateItree A := itree (stateE S) A.
+  Definition StateITree A := itree (stateE S) A.
 
-  Definition _StateItreeSpec A := (itree Void (A * S) -> Prop) -> S -> Prop.
+  Definition _StateITreeSpec A := (itree Void (A * S) -> Prop) -> S -> Prop.
 
   Definition _interpStateSpec : (stateE S) ~> (_StateSpec S) :=
     fun _ (ev : stateE S _) =>
@@ -190,11 +193,11 @@ Section StateItree.
       unfold monotonic. intros. cbv. destruct ev; auto.
     Qed.
 
-  Definition monotonicis A (w : _StateItreeSpec A) := 
+  Definition monotonicis A (w : _StateITreeSpec A) := 
     forall (p p' : itree Void (A * S) -> Prop ) s, (forall i s', p (ret (i,s')) -> p' (ret (i,s')))
                                                                       -> w p s -> w p' s.
 
-  Definition _retis A (a : A) : _StateItreeSpec A :=
+  Definition _retis A (a : A) : _StateITreeSpec A :=
     fun p s => p (ret (a,s)).
 
   Lemma retis_monot : forall A a, monotonicis A (_retis A a).
@@ -213,14 +216,14 @@ Section StateItree.
 
 
 
-  Definition StateItreeSpec A := {w : _StateItreeSpec A | monotonicis _ w}.
+  Definition StateITreeSpec A := {w : _StateITreeSpec A | monotonicis _ w}.
 
   Definition interpStateSpecCore : forall A, (stateE S A) -> (itree Void (StateSpec S A)) :=
     fun A ev => 
     ret (exist _ (_interpStateSpec A ev) (monot_interpStateSpec A ev)).
 
   Definition StateSpecT (M : Type -> Type) (A : Type) := (M (A * S)%type -> Prop) -> S -> Prop.
-
+End StateITree. 
 (*
   Global Instance StateSpecIter : Monad
 

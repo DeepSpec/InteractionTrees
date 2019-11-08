@@ -32,22 +32,22 @@ Arguments lem { M OrderM A }.
 Infix "<≈" := lem (at level 70).
 
 Section OrderedMonad.
+  
   Context (W : Type -> Type).
   Context {Eq : EqM W}.
   Context {MonadW : Monad W}.
   Context {MonadLawsW : MonadLaws W}.
   Context {OrderM : OrderM W}.
-
-   
+  
   Class OrderedMonad :=
     monot : forall A B w1 w2 (f1 f2 : A -> W B), w1 <≈ w2 ->
                             (forall (a : A), (f1 a) <≈  (f2 a) ) -> (bind w1 f1) <≈ (bind w2 f2).
 
 End OrderedMonad.
-Locate "~>".
+
+
 Class EffectObs (M W : Type -> Type) := 
   obs : M ~> W.
-
 
 Section EffectObservation.
 
