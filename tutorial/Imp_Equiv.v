@@ -143,10 +143,32 @@ Section Examples.
       |- run_state (State.interp_state ?f (KTree.iter ?t ?i)) _ ≈ _ =>
            remember f as fx; remember t as tx; remember i as ix
     end.
-    eassert (state_eq (State.interp_state fx (KTree.iter tx ix)) (Basics.iter _ ix)).
-    { eapply interp_state_iter_ktree. intros. admit. } 
-    setoid_rewrite H. 
-  Admitted.
+    match goal with
+      |- run_state _ _ ≈ KTree.iter ?k ?kb => remember k as kx; remember kb as kbx
+    end. Admitted. 
+(*    unfold State.interp_state, interp. unfold KTree.iter, Iter_Kleisli, Basics.iter.
+    cbn. unfold MonadIter_itree, ITree.iter. 
+    unfold KTree.iter, Iter_Kleisli, Basics.iter, MonadIter_itree, ITree.iter. 
+    eassert (state_eq (State.interp_state fx (KTree.iter tx ix)) (Basics.iter kx kbx)).
+    { eapply interp_state_iter_ktree. intros. subst. red. reflexivity. }
+    setoid_rewrite H. unfold KTree.iter, Iter_Kleisli. unfold run_state. subst.
+    clear H. 
+    setoid_rewrite interp_state_interp.
+    (fun i : A =>
+     State.interp_state (case_ (handle_map (V:=value)) State.pure_state)
+       (interp (bimap handle_ImpState (id_ E)) (t i))) a0 g
+  ≈ Basics.iter
+      (fun '(g', a) =>
+       ITree.bind
+         (State.interp_state (case_ (handle_map (V:=value)) State.pure_state)
+            (interp (bimap handle_ImpState (id_ E)) (t a)) g')
+         (fun x : env * (A + B) =>
+          let (s, ab) := x in
+          match ab with
+          | inl a1 => Ret (inl (s, a1))
+          | inr b => Ret (inr (s, b))
+          end)) (g, a0) *)
+
 
   Lemma interp_imp_trigger_get_var: forall (E: Type -> Type) (x: var) (g: env),
     run_state (interp_imp (trigger (GetVar x))) g ≈ (Ret (g, lookup_default x 0 g) : itree E (env * value)).
@@ -450,9 +472,10 @@ Section Examples.
     simpl. rewrite interp_imp_trigger_get_var.
     rewrite bind_ret.
     rewrite -> interp_imp_trigger_set_var.
-    reflexivity. constructor.
-  Qed.
-
+    assert (s = alist_add RelDec_string x (lookup_default x 0 s) s). {
+     admit. } rewrite <- H0. 
+    reflexivity. 
+  Admitted.
 
   (* ################################################################# *)
   (** * Properties of Behavioral Equivalence *)
@@ -798,6 +821,35 @@ Section Examples.
   Proof. reflexivity. Qed.
 
 
+  Ltac rewrite_imp_ret_ :=
+    rewrite interp_imp_ret, bind_ret, interp_imp_bind.
+
+  Ltac rewrite_imp_ret :=
+    rewrite interp_imp_ret, bind_ret, interp_imp_ret. 
+
+  Ltac rewrite_imp_bind :=
+    rewrite interp_imp_bind, bind_bind.
+  
+  Ltac rewrite_ret_binds :=
+    rewrite_imp_ret_;
+    rewrite_imp_bind. 
+
+  Ltac rewrite_trigger_get_vars :=
+    rewrite interp_imp_trigger_get_var, bind_ret, interp_imp_ret.
+
+  Ltac rewrite_trigger_get_vars_bind :=
+    rewrite interp_imp_trigger_get_var, bind_ret, interp_imp_bind.
+
+  Ltac eutt_bind_bind :=
+    eapply eutt_clo_bind; try reflexivity;
+    try (intros; subst; eapply eutt_clo_bind; try reflexivity;
+         try (intros; subst;
+         match goal with
+          | [ |- (let '(g', x) := ?u in _) ≈ _ ]=> destruct u; subst; rewrite 2 interp_imp_bind
+         end     
+        )).
+    
+
   (* ================================================================= *)
   (** ** Soundness of Constant Folding *)
 
@@ -812,12 +864,57 @@ Section Examples.
     unfold eval_aexp in *.
     induction a; simpl;
       (* ANum and AId follow immediately *)
-      try reflexivity.
-    - destruct (fold_constants_aexp a1); destruct (fold_constants_aexp a2);
-      simpl; intros; try (rewrite interp_imp_bind, interp_imp_ret);
-      try rewrite IHa1; try rewrite IHa2; cbn; repeat rewrite interp_imp_ret, bind_ret;
-        rewrite interp_imp_bind.
-      try rewrite IHa2. cbn. rewrite interp_imp_ret.
-      rewrite bind_ret. rewrite interp_imp_ret. reflexivity.
-      (* TODO: Very simple rewrites, should define Ltacs on these *)
-  Admitted.
+      try reflexivity; destruct (fold_constants_aexp a1); destruct (fold_constants_aexp a2);
+        cbn; intros; rewrite interp_imp_bind; try rewrite interp_imp_bind, bind_ret; 
+          try rewrite interp_imp_ret; rewrite IHa1; cbn; try (rewrite interp_imp_ret, bind_ret);
+            try rewrite interp_imp_trigger_get_var; try rewrite interp_imp_bind;
+              try rewrite bind_ret; try rewrite interp_imp_ret; try rewrite interp_imp_bind;
+                try rewrite IHa2; cbn;
+                  repeat (try (rewrite interp_imp_bind, bind_bind);
+                          try (rewrite interp_imp_bind, bind_ret, interp_imp_bind));
+      try (rewrite bind_bind; eutt_bind_bind;
+        rewrite IHa2; cbn; reflexivity). 
+      + rewrite interp_imp_ret, bind_ret, interp_imp_ret. reflexivity.
+      + rewrite_trigger_get_vars. 
+        rewrite interp_imp_ret, bind_ret, interp_imp_bind.
+        rewrite_trigger_get_vars. reflexivity.
+      + rewrite_ret_binds. reflexivity. 
+      + rewrite_ret_binds. reflexivity. 
+      + rewrite_ret_binds. reflexivity.
+      + rewrite_trigger_get_vars.
+        rewrite bind_ret, interp_imp_ret, interp_imp_bind.
+        rewrite interp_imp_ret, bind_ret, interp_imp_ret. 
+        reflexivity.
+      + rewrite_trigger_get_vars.
+        rewrite_trigger_get_vars_bind. 
+        rewrite_trigger_get_vars. reflexivity.
+      + rewrite_trigger_get_vars_bind.
+        rewrite_imp_bind. reflexivity.
+      + rewrite_trigger_get_vars_bind.
+        rewrite_imp_bind. reflexivity.
+      + rewrite_trigger_get_vars_bind.
+        rewrite_imp_bind. reflexivity.
+      + rewrite_imp_ret. reflexivity.
+      + rewrite_imp_ret_. reflexivity.
+      + rewrite_ret_binds. reflexivity.
+      + rewrite_ret_binds. reflexivity.
+      + rewrite_ret_binds. reflexivity.
+      + rewrite_trigger_get_vars_bind. reflexivity.
+      + rewrite_trigger_get_vars. rewrite_trigger_get_vars_bind.
+        rewrite_trigger_get_vars. reflexivity.
+      + rewrite_trigger_get_vars_bind. rewrite_imp_bind. reflexivity.
+      + rewrite_trigger_get_vars_bind. rewrite_imp_bind. reflexivity.
+      + rewrite_trigger_get_vars_bind. rewrite_imp_bind. reflexivity.
+      + rewrite_imp_ret. reflexivity.
+      + rewrite_imp_ret_. reflexivity.
+      + rewrite_ret_binds. reflexivity.
+      + rewrite_ret_binds. reflexivity.
+      + rewrite_ret_binds. reflexivity.
+      + rewrite_trigger_get_vars_bind. reflexivity.
+      + rewrite_trigger_get_vars. rewrite_trigger_get_vars_bind.
+        rewrite_trigger_get_vars. reflexivity.
+      + rewrite_trigger_get_vars_bind. rewrite_imp_bind. reflexivity.
+      + rewrite_trigger_get_vars_bind. rewrite_imp_bind. reflexivity.
+      + repeat rewrite_trigger_get_vars_bind. rewrite_imp_bind. reflexivity.
+Qed. 
+      
