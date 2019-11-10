@@ -621,7 +621,7 @@ Section nat_Show.
   Fixpoint nat_to_string (n: nat): string :=
     match n with
     | O => ""
-    | S n => String (ascii_of_nat 49) (nat_to_string n)
+    | S n => String (Ascii.ascii_of_nat 49) (nat_to_string n)
     end.
 
   Lemma nat_to_string_inj:
