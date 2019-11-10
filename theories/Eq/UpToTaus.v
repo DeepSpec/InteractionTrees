@@ -323,6 +323,12 @@ Proof.
   intros. destruct PR. econstructor; eauto. reflexivity. auto_ctrans.
 Qed.
 
+Theorem eqit_tau_l R (m: itree E R) : eqit eq true true (Tau m) m.
+Proof.
+  apply euttge_sub_eutt.
+  apply tau_eutt.
+Qed.
+
 Lemma transL_closed vclo r
       (MON: monotone2 vclo)
       (COMP: wcompatible2 (eqit_ RR true true vclo) (transD RR))
@@ -366,10 +372,10 @@ Proof.
     + gstep. red. simpobs. econstructor. gbase.
       destruct REL.
       * eapply CIH. econstructor; [|eauto using paco2_mon with paco|].
-        -- eapply eqit_trans; [apply REL0|]. rewrite tau_eutt. reflexivity.
+        -- eapply eqit_trans; [apply REL0|]. rewrite eqit_tau_l; reflexivity.
         -- auto_ctrans.
       * eapply CIH0. apply CLOL. econstructor; [|eauto|].
-        -- eapply eqit_trans; [apply REL0|]. rewrite tau_eutt. reflexivity.
+        -- eapply eqit_trans; [apply REL0|]. rewrite eqit_tau_l; reflexivity.
         -- auto_ctrans.
     + punfold REL0. red in REL0. simpl in *.
       remember (VisF e k1) as ot. genobs m1 ot2.
@@ -386,7 +392,7 @@ Proof.
         econstructor; try reflexivity; auto_ctrans.
         gfinal. destruct PR; eauto.
     + eapply IHREL0; try eapply eqit_trans; auto_ctrans_eq.
-      rewrite <-itree_eta, tau_eutt. reflexivity.
+      rewrite <-itree_eta, eqit_tau_l. reflexivity.
     + gclo; econstructor; auto_ctrans_eq; try reflexivity.
       rewrite (simpobs Heqot2), tau_eutt. reflexivity.
   - remember (VisF e k2) as ot. genobs t2 ot2.

@@ -12,13 +12,13 @@ From ITree Require Import
 
 Instance EqM_ITree {E} : EqM (itree E) := fun a => eutt eq.
 
-Instance EqMProps_ITree {E} : EqMProps (itree E) := _.
+Instance EqMProps_ITree {E} : EqMProps (itree E).
 repeat red.
 intros a.
 typeclasses eauto.
 Qed.
 
-Instance MonadLaws_ITree {E} : MonadLaws (itree E) := _.
+Instance MonadLaws_ITree {E} : MonadLaws (itree E).
 constructor.
 - intros a b f x. 
   unfold Monad.bind, Monad.ret, Monad_itree.
@@ -29,7 +29,7 @@ constructor.
   unfold eqm, EqM_ITree. rewrite bind_bind. reflexivity.
 Qed.  
 
-Instance MonadProperOps_ITree {E} : MonadProperOps (itree E) := _.
+Instance MonadProperOps_ITree {E} : MonadProperOps (itree E).
 unfold MonadProperOps.
 unfold Monad.bind, Monad_itree.
 intros.

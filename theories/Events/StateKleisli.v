@@ -35,7 +35,7 @@ Section Kleisli.
   Global Instance EqM_stateTM : EqM (stateT S m) :=
     fun a => pointwise_relation _ eqm.
 
-  Global Instance EqMProps_stateTM : @EqMProps (stateT S m) _ EqM_stateTM := _.
+  Global Instance EqMProps_stateTM : @EqMProps (stateT S m) _ EqM_stateTM.
   constructor.
   - repeat red.
     reflexivity.
@@ -43,7 +43,7 @@ Section Kleisli.
   - repeat red. intros. etransitivity; eauto. apply H.  apply H0.
   Qed.
 
-  Global Instance MonadProperOps_stateTM : @MonadProperOps (stateT S m) _ _ := _.
+  Global Instance MonadProperOps_stateTM : @MonadProperOps (stateT S m) _ _.
   Proof.
     repeat red. intros a b x y H x0 y0 H0 s. 
     apply eqm_bind.
@@ -53,7 +53,7 @@ Section Kleisli.
       apply H0.
   Qed.
 
-  Instance MonadLaws_stateTM : @MonadLaws (stateT S m) _ _ := _.
+  Instance MonadLaws_stateTM : @MonadLaws (stateT S m) _ _.
   constructor.
   - cbn. intros a b f x. 
     repeat red.  intros s.
@@ -151,7 +151,7 @@ Section Kleisli.
     - repeat red. destruct a2 as [s' [x1|y1]]; reflexivity.
  Qed.
 
-  Global Instance IterUnfold_stateTM : IterUnfold (Kleisli (stateT S m)) sum := _.
+  Global Instance IterUnfold_stateTM : IterUnfold (Kleisli (stateT S m)) sum.
   Proof.
   destruct CM.
   unfold IterUnfold.
@@ -173,7 +173,7 @@ Section Kleisli.
       reflexivity.
   Qed.
 
-  Global Instance IterNatural_stateTM : IterNatural (Kleisli (stateT S m)) sum := _.
+  Global Instance IterNatural_stateTM : IterNatural (Kleisli (stateT S m)) sum.
   Proof.
     destruct CM.
     unfold IterNatural.
@@ -249,7 +249,7 @@ Section Kleisli.
   Qed.
 
     
-  Global Instance IterDinatural_stateTM : IterDinatural (Kleisli (stateT S m)) sum := _.
+  Global Instance IterDinatural_stateTM : IterDinatural (Kleisli (stateT S m)) sum.
   Proof.
     destruct CM.
     unfold IterDinatural.
@@ -290,7 +290,7 @@ Section Kleisli.
     Qed.
         
 
-  Global Instance IterCodiagonal_stateTM : IterCodiagonal (Kleisli (stateT S m)) sum := _.
+  Global Instance IterCodiagonal_stateTM : IterCodiagonal (Kleisli (stateT S m)) sum.
   Proof.
     destruct CM.
     unfold IterCodiagonal.

@@ -14,7 +14,7 @@ Local Open Scope cat_scope.
 (* end hide *)
 
 Instance subrelation_eeq_eqeq {A B} :
-  @subrelation (A -> B) eq2 (@eq A ==> @eq B)%signature := {}.
+  @subrelation (A -> B) eq2 (@eq A ==> @eq B)%signature.
 Proof. congruence. Qed.
 
 Instance Equivalence_eeq {A B} : @Equivalence (Fun A B) eq2.
