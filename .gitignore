@@ -1,4 +1,6 @@
 **.vo
+*.vos
+*.vok
 **.v.d
 **.glob
 *.v#
@@ -25,6 +27,7 @@ deps.jpg
 deps.dot
 
 .coqdeps.d
+.Makefile.coq.d
 Makefile.coq
 Makefile.coq.conf
 _CoqProject
