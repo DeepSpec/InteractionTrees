@@ -451,7 +451,7 @@ Existing Instance Subevent_void          | 0.
 Existing Instance Subevent_Base          | 0.
 Existing Instance Subevent_Sum_In        | 2.
 Existing Instance Subevent_Sum_Out       | 3.
-Existing Instance Subevent_forget_order  | 5.
+(* Existing Instance Subevent_forget_order  | 5. *)
 (* Existing Instance Subevent_to_complement | 5. *)
 (* Existing Instance Subevent_Assoc1        | 10. *)
 (* Existing Instance Subevent_Assoc2        | 10. *)
