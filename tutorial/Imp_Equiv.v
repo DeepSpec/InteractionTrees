@@ -917,7 +917,8 @@ Section Examples.
       + repeat rewrite_trigger_get_vars_bind. rewrite_imp_bind. reflexivity.
 Qed. 
 
-Instance denote_aexp_proper : Proper (aequiv ==> eutt eq) (denote_aexp).
+
+Instance denote_aexp_proper : @Proper (aexp -> itree (ImpState +' void1) value) (aequiv ==> eutt eq) (denote_aexp).
 Proof.
   einit. ecofix CIH. intros.
   unfold denote_aexp. cbn. Admitted.
@@ -927,7 +928,6 @@ Proof. Admitted.
 
 State.interp_state*)
 
-Set Printing All.
 Theorem fold_constants_bexp_sound:
   btrans_sound fold_constants_bexp.
 Proof.
@@ -939,8 +939,37 @@ Proof.
     remember (fold_constants_aexp a1) as a1' eqn:Heqa1'.
     remember (fold_constants_aexp a2) as a2' eqn:Heqa2'.
     rewrite interp_imp_bind.
-    generalize fold_constants_aexp_sound. intros.
-    unfold atrans_sound in H. Typeclasses eauto := 4. 
+
+    generalize fold_constants_aexp_sound. 
+    unfold atrans_sound.
+    intros EQ; specialize (EQ a1).
+    match goal with
+      |- ITree.bind (run_state (interp_imp ?foo) _) _ ≈ _ =>
+                                                    assert (foo ≈ denote_aexp (fold_constants_aexp a1))
+                                                    end.
+    {
+      Set Printing Implicit.
+      apply denote_aexp_proper, EQ.
+
+    Typeclasses eauto := 4.
+    (* rewrite EQ. *)
+    eapply eutt_cong_eutt'.
+    {
+      eapply eutt_clo_bind with (UU := eq).
+      eapply eutt_interp_imp; eauto.
+      eapply denote_aexp_proper.
+      eauto.
+      intros ? [] ->.
+
+      eapply run_state_state_eq_proper; eauto.
+
+
+      eapply eutt_interp_imp; eauto.
+    Set Printing Implicit.
+
+
+    Typeclasses eauto := 4.
+    rewrite EQ.
    (* apply (sym_aequiv a1 (fold_constants_aexp a1)) in H. *) 
     (*setoid_rewrite (H a1) . *) 
     rewrite eutt_clo_bind with (UU:=eq) (t2:= (run_state (interp_imp (denote_aexp a1')) s)).
