@@ -36,7 +36,7 @@ Import MonadNotation.
    YZ: Not really though, depends on the interpretation obviously
  *)
 
-Definition run_state {E A} (R : Monads.stateT env (itree E) A) (st: env) : itree E (env * A) :=     R st.
+Definition run_state {E A} (R : Monads.stateT env (itree E) A) (G: env) : itree E (env * A) :=     R G.
 
 Definition aequiv_strong (a1 a2: aexp): Prop :=
   denote_aexp a1 ≈ denote_aexp a2.
@@ -85,7 +85,6 @@ Section Examples.
   Proof.
     einit. ecofix CIH. intros.
     subst. Admitted.   
-
 
   Instance interp_state_proper {T E F S} (h: forall T : Type, E T -> Monads.stateT S (itree F) T) : Proper (eutt eq ==> eqm) (State.interp_state h (T := T)).
   Proof.
@@ -917,4 +916,49 @@ Section Examples.
       + rewrite_trigger_get_vars_bind. rewrite_imp_bind. reflexivity.
       + repeat rewrite_trigger_get_vars_bind. rewrite_imp_bind. reflexivity.
 Qed. 
-      
+
+Instance denote_aexp_proper : Proper (aequiv ==> eutt eq) (denote_aexp).
+Proof.
+  einit. ecofix CIH. intros.
+  unfold denote_aexp. cbn. Admitted.
+
+(*Instance run_state_proper_eutt {E A} t (g: env): Proper (eutt eq ==> eq ==> eutt eq) (run_state (st:=g)).
+Proof. Admitted. 
+
+State.interp_state*)
+
+Set Printing All.
+Theorem fold_constants_bexp_sound:
+  btrans_sound fold_constants_bexp.
+Proof.
+  unfold btrans_sound. intros b. unfold bequiv.
+  unfold eval_bexp.
+  intros s.
+  induction b; try reflexivity.
+  - cbn. 
+    remember (fold_constants_aexp a1) as a1' eqn:Heqa1'.
+    remember (fold_constants_aexp a2) as a2' eqn:Heqa2'.
+    rewrite interp_imp_bind.
+    generalize fold_constants_aexp_sound. intros.
+    unfold atrans_sound in H. Typeclasses eauto := 4. 
+   (* apply (sym_aequiv a1 (fold_constants_aexp a1)) in H. *) 
+    (*setoid_rewrite (H a1) . *) 
+    rewrite eutt_clo_bind with (UU:=eq) (t2:= (run_state (interp_imp (denote_aexp a1')) s)).
+    (*
+    rewrite fold_constants_aexp_sound. 
+    assert (denote_aexp a1 ≈ denote_aexp a1'). {
+      rewrite Heqa1'. 
+      pose proof fold_constants_aexp_sound as Has.
+      unfold atrans_sound in Has.
+      apply (sym_aequiv a1 (fold_constants_aexp a1)) in Has. 
+      setoid_rewrite Has. reflexivity.
+    } 
+    2 : { unfold run_state. eapply eutt_interp_imp. apply H. rewrite H. setoid_rewrite H. 
+    rewrite H. *)  Admitted. 
+   (* setoid_rewrite -> H. 
+    replace (denote_aexp a1) with (denote_aexp a1') by
+      (subst a1'; rewrite <- fold_constants_aexp_sound; reflexivity).
+    destruct a1'. 
+    setoid_rewrite interp_imp_bind.
+    destruct a1'; destruct a2'.
+    + setoid_rewrite interp_imp_bind. *) 

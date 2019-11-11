@@ -75,7 +75,13 @@ Proof.
       apply IHeqitF. apply H1.
     + apply IHeqitF. inversion H1; subst.
       pclearbot. punfold H2.
-Qed. 
+Qed.
+
+CoFixpoint spin {E R} : itree E R := Tau spin.
 
 (** Next Exercise (TODO) : Prove lemma diverges spin. Use pcofix (equal to Tau spin)  *)
-    
+Lemma divergence_spin {E X}:
+  @divergence E X spin. 
+Proof.
+  pcofix CIH. unfold divergence_.
+  pfold. cbn. Admitted.  
