@@ -4,7 +4,9 @@ From Coq Require Import
      Strings.String
      Morphisms
      Setoid
-     RelationClasses.
+     RelationClasses
+     Logic.Classical_Prop
+.
 
 From ExtLib Require Import
      Data.String
@@ -19,7 +21,10 @@ From ITree Require Import
      Events.State
      Events.StateFacts
      Dijkstra.DijkstraMonadExamples
+     Core.Divergence
 .
+
+From Paco Require Import paco.
 
 Import Monads.
 Import MonadNotation.
@@ -76,35 +81,95 @@ Section PureITree.
     - inversion H. auto.
   Qed.
 
+  Lemma tau_invar_prop_subst_aux : forall A (a : A) (p : itree Void A -> Prop) (t t' : itree Void A), tau_invar Void A p ->
+                               is_val A a t /\ is_val A a t' -> (p t -> p t').
+  Proof.
+    intros. destruct H0 as [Ht Ht'].
+    induction  Ht'; induction Ht; auto.
+    - apply H in H1. auto.
+    - apply H in IHHt'. auto.
+    - apply IHHt. apply H. auto.
+  Qed.
+
+  Lemma tau_invar_prop_subst : forall A (a : A) (p : itree Void A -> Prop) (t t' : itree Void A), tau_invar Void A p ->
+                               is_val A a t /\ is_val A a t' -> (p t <-> p t').
+    Proof.
+      split; intros; eapply tau_invar_prop_subst_aux; eauto.
+      destruct H0. split; eauto.
+    Qed.
+
+
+  Lemma divergence_tau_invar : forall A, tau_invar Void A divergence.
+  Proof.
+    intros. split; intros.
+    - pfold. left. constructor. auto.
+    - pinversion H. subst. auto.
+  Qed.
+
+  Lemma is_val_div : forall A (t : itree Void A), ~(exists a, is_val A a t) -> divergence t.
+    Proof.
+      intros. pcofix CIH. pfold.      -
+      destruct (observe t).
+      Admitted.
+
+  Lemma is_val_or_div : forall A (t : itree Void A), (exists a, is_val A a t) \/ divergence t.
+    Proof.
+      intros.
+      destruct (classic (exists a, is_val A a t)); auto.
+      right. apply is_val_div. auto.
+    Qed.
+
   (* maybe specifications only take tau invariant propositions  *)
+
+  Hint Constructors is_val.
+(*fails some monad laws if w does not admit any finite trees, some of these variables might have the wrong
+  scope *)
+  (* fun t => (exists a, is_val A a t /\ w t /\ f a p Hp) \/ (divergence t /\ w divergence)  *)
+(* should bind preserve infiniteness? *)
+  CoFixpoint spin {A : Type} : itree Void A := Tau spin.
 
   Lemma bind_pred_tau_invar : forall A B (f : A -> _PureITreeSpec B) 
                                      (p : itree Void B -> Prop) (Hp : tau_invar Void B p), 
-      tau_invar Void A (fun (i : itree Void A) => forall a, is_val A a i -> f a p Hp).
+      tau_invar Void A (fun (t : itree Void A) => (exists a, is_val A a t /\ f a p Hp) \/ 
+                                                  (divergence t /\ p spin)).
   Proof.
-    intros. unfold tau_invar in *. split; intros;
-    apply H; specialize (is_val_tau_invar A a t) as Ht; tauto.
+    intros. unfold tau_invar in *. split; intros.
+    - destruct H.
+      + left. destruct H as [a [Hvala Hfa] ]. exists a; split; auto.
+      + destruct H. right. split; auto. apply divergence_tau_invar in H. auto.
+    - destruct H.
+      + left. destruct H as [a [Hvala Hfa] ]. exists a; split; auto. inv Hvala. auto.
+      + destruct H. apply divergence_tau_invar in H. tauto.
   Qed.
 
+  
+  (*intuitively, you have two choices, prove the tree evaluates to a and prove f a p,
+    or prove t is infinite and prove that the infinite predicate is in w*)
+  Definition _bindpi A B (w : _PureITreeSpec A) (f : A -> _PureITreeSpec B) :=
+    fun (p : itree Void B -> Prop) (Hp : tau_invar Void B p) =>
+      w (fun (t : itree Void A) => (exists a, is_val A a t /\ f a p Hp) \/ 
+                                   (divergence t /\  p spin ))
+  (bind_pred_tau_invar A B f p Hp).
+(* replace   *)
 
-  Definition _bindpi A B (m : _PureITreeSpec A ) (f : A -> _PureITreeSpec B) : _PureITreeSpec B :=
-    fun (p : itree Void B -> Prop) (Hp : tau_invar Void B p) => 
-      m (fun (i : itree Void A) => forall a, is_val A a i -> f a p Hp) (bind_pred_tau_invar A B f p Hp).
 
-  Lemma bindpi_monot : forall A B (w : _PureITreeSpec A) (f : A -> _PureITreeSpec B), 
+  Lemma bindpi_monot : forall A B (w : _PureITreeSpec A) (f : A -> _PureITreeSpec B),
       monotonici A w -> (forall a, monotonici B (f a)) -> monotonici B (_bindpi A B w f).
   Proof.
-    unfold monotonici. intros. unfold _bindpi in *. 
-    (*specialize H with (p := (fun i : itree Void A => forall a : A, is_val A a i -> f a p Hp)) as H'.
-    enough () *)
-    set (fun i  p0 Hp0 => forall a : A, is_val A a i -> f a p0 Hp0) as fp.
-    (*remember (fun p Hp => bind_pred_tau_invar A B f p Hp) as fHp. *)
-    enough (forall i, fp i p Hp -> fp i p' Hp').
-    - eapply H with (p := fun i => fp i p Hp).
-      + intros. subst. apply H3 with (i := i'); auto.
-      + subst. cbn. apply H2.
-    - unfold fp. intros. eapply H0; eauto.
+    unfold monotonici. intros. unfold _bindpi in *.
+    set (fun t p0 Hp0 => (exists a, is_val A a t /\ f a p0 Hp0)\/ (divergence t /\ p spin))  as fp.
+    enough (forall t, fp t p Hp -> fp t p' Hp').
+    - eapply H with (p := fun t => fp t p Hp).
+      + intros. subst. apply H3 in H4. 
+        unfold fp in H4. destruct H4; auto.
+        destruct H4. right. split; auto.
+   + apply H2.
+    - unfold fp. intros. destruct H3; auto. left.
+      intros. destruct H3 as [a [Hvala Hfa] ].
+      exists a. split; auto.
+      eapply H0; eauto.
   Qed.
+
 
   Definition retpi A (a : A) : PureITreeSpec A :=
     exist _ (_retpi A a) (retpi_monot A a).
@@ -126,33 +191,70 @@ Section PureITree.
     fun A w1 w2 => forall (p : itree Void A -> Prop) (Hp : tau_invar Void A p), proj1_sig w1 p Hp <-> proj1_sig w2 p Hp.
 
 
+  Lemma ret_not_div : forall (A : Type) (E : Type -> Type) (a : A), ~ (@divergence E A (ret a)).
+    Proof.
+      intros. intro Hcontra. pinversion Hcontra.
+    Qed.
+
   Lemma bindpi_retpi : forall A B (f : A -> PureITreeSpec B) (a : A), 
       bind (ret a) f ≈ f a.
     Proof.
       intros. split.
-      - cbn. unfold _bindpi. unfold _retpi. intros. apply H. constructor. 
-      - cbv. intros. inversion H0. subst. auto.
+      - cbn. unfold _bindpi. unfold _retpi. intros. 
+        destruct H.
+        + destruct H as [a0 [Hvala0 Hfa0] ]. inversion Hvala0. subst. auto.
+        + exfalso. destruct H. eapply ret_not_div. eauto. 
+      - simpl. destruct (f a) as [fa Hfa] eqn : Heq. simpl. intros.
+        left. exists a. split; auto.
+        + constructor.
+        + rewrite Heq. auto.
     Qed.
 
+    
   Lemma retpi_bindpi : forall A (w : PureITreeSpec A), bind w (fun x => ret x) ≈ w.
   Proof.
     intros. destruct w as [ w Hw]. split.
     - intros. simpl in *. unfold _bindpi in H.
-      unfold _retpi in H. cbv in H.
-      unfold monotonici in *. eapply Hw.
-      2: apply H. intros. simpl in H0. admit.
-      (*forall i : PureItree, exists a, is_val a i \/ inf_tau i  *)
-      (*forall t t', inf_tau t -> inf_tau t' -> forall P, P t <-> P t'  *)
-    - simpl. cbv. intros. unfold monotonici in Hw. apply Hw with (p := p); auto.
-      intros. induction H1; auto. (* need a notion of Tau invariant predicates, or need to rethink this  *)
-      
+      unfold _retpi in H. simpl in H.
+      eapply Hw.
+      2: apply H.
+      intros. destruct H0.
+      + destruct H0 as [a [ Hvala Hpa]  ].
+        induction Hvala; auto. apply Hp in IHHvala. auto.
+      + destruct H0. (* this is proven by inf taus being obs equivalent, that should be provable  *) admit.
+    - simpl. intros. unfold _bindpi.
+      eapply Hw. 2: apply H. intros.
+      destruct (is_val_or_div A i').
+      + left. destruct H1 as [ a Ha ]. exists a. split; auto.
+        unfold _retpi. eapply tau_invar_prop_subst; eauto.
+        split. constructor. auto.
+      + right. split; auto. (* same as the other unsolved case*)
    Admitted.    
 
   Lemma bindpi_bindpi : forall (A B C : Type) (w : PureITreeSpec A) 
                                (f : A -> PureITreeSpec B) (g : B -> PureITreeSpec C),
       bind (bind w f) g ≈ bind w (fun a => bind (f a) g).
+    Proof.
+      intros. destruct w as [w Hw]. split; simpl.
+      - intros. eapply Hw; try apply H.
+        intros. destruct H0; try destruct H0.
+        + destruct H0. simpl in *.
+          left. exists x. split; auto. unfold bindpi. destruct (f x) as [fx Hfx].
+          simpl in *. unfold _bindpi.
+          
+          eapply Hfx; try apply H1.
+          intros. destruct H2.
+          * destruct H2 as [b [Hvalb Hgb ] ].
+            left. exists b. auto.
+          * destruct H2. right. split; auto.
+        + unfold _bindpi in H.(* eapply Hw.
+
+          destruct H1. simpl in *.
+          * 
+      *)
 
   Admitted.
+
 
   Global Instance PureItreeSpecLaws : MonadLaws PureITreeSpec.
   Proof.
