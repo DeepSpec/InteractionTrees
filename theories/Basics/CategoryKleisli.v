@@ -63,13 +63,13 @@ Section Instances.
   Global Instance Id_Kleisli : Id_ (Kleisli m) :=
     fun _ => pure id.
 
-  Global Instance CoprodCase_Kleisli : CoprodCase (Kleisli m) sum :=
+  Global Instance Case_Kleisli : Case (Kleisli m) sum :=
     fun _ _ _ l r => case_sum _ _ _ l r.
 
-  Global Instance CoprodInl_Kleisli : CoprodInl (Kleisli m) sum :=
+  Global Instance Inl_Kleisli : Inl (Kleisli m) sum :=
     fun _ _ => pure inl.
 
-  Global Instance CoprodInr_Kleisli : CoprodInr (Kleisli m) sum :=
+  Global Instance Inr_Kleisli : Inr (Kleisli m) sum :=
     fun _ _ => pure inr.
 
   Global Instance Iter_Kleisli `{MonadIter m} : Iter (Kleisli m) sum :=

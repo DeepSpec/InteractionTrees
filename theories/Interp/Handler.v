@@ -106,13 +106,13 @@ Instance Id_Handler : Id_ Handler
 Instance Cat_Handler : Cat Handler
   := @Handler.cat.
 
-Instance Case_sum1_Handler : CoprodCase Handler sum1
+Instance Case_sum1_Handler : Case Handler sum1
   := @Handler.case_.
 
-Instance Inl_sum1_Handler : CoprodInl Handler sum1
+Instance Inl_sum1_Handler : Inl Handler sum1
   := @Handler.inl_.
 
-Instance Inr_sum1_Handler : CoprodInr Handler sum1
+Instance Inr_sum1_Handler : Inr Handler sum1
   := @Handler.inr_.
 
 Instance Initial_void1_Handler : Initial Handler void1

@@ -191,48 +191,43 @@ Section Denote.
         trigger (Store addr val)
       end.
 
-    Section with_labels.
-      Context {A B : nat}.
-
-      (** A [branch] returns the computed label whose set of possible values [B]
-          is carried by the type of the branch.  If the computation halts
-          instead of branching, we return the [exit] tree.  *)
-      Definition denote_branch (b : branch (fin B)) : itree E (fin B) :=
-        match b with
-        | Bjmp l => ret l
-        | Bbrz v y n =>
-          val <- trigger (GetReg v) ;;
-          if val:nat then ret y else ret n
-        | Bhalt => exit
-        end.
+    (** A [branch] returns the computed label whose set of possible values [B]
+        is carried by the type of the branch.  If the computation halts
+        instead of branching, we return the [exit] tree.  *)
+    Definition denote_br {B} (b : branch B) : itree E B :=
+      match b with
+      | Bjmp l => ret l
+      | Bbrz v y n =>
+        val <- trigger (GetReg v) ;;
+        if val:nat then ret y else ret n
+      | Bhalt => exit
+      end.
 
 
-      (** The denotation of a basic [block] shares the same type, returning the
-          [label] of the next [block] it shall jump to.  It recursively denote
-          its instruction before that.  *)
-      Fixpoint denote_block (b : block (fin B)) : itree E (fin B) :=
-        match b with
-        | bbi i b =>
-          denote_instr i ;; denote_block b
-        | bbb b =>
-          denote_branch b
-        end.
+    (** The denotation of a basic [block] shares the same type, returning the
+        [label] of the next [block] it shall jump to.  It recursively denote
+        its instruction before that.  *)
+    Fixpoint denote_bk {B} (b : block B) : itree E B :=
+      match b with
+      | bbi i b =>
+        denote_instr i ;; denote_bk b
+      | bbb b =>
+        denote_br b
+      end.
 
-      (* TODO: explain [sktree] -- think of a better name? *)
-      (** A labelled collection of blocks, [bks], is simply the pointwise
-          application of [denote_block].  However, its denotation is therefore
-          crucially a [ktree], whose structure will be useful in the proof of
-          the compiler.
+    (** A labelled collection of blocks, [bks], is simply the pointwise
+        application of [denote_bk].  Crucially, its denotation is therefore
+        a [ktree], whose structure will be useful in the proof of
+        the compiler.
 
-          The type [ktree E A B] is shorthand for [A -> itree E B], and we can
-          think of them as "continuations" with events in E.  They have a nice
-          algebraic structure, supported by the library, including a [loop]
-          combinator that we can use to link collections of basic blocks. (See
-          below.) *)
-      Definition denote_bks (bs: bks A B): sub (ktree E) fin A B :=
-        fun a => denote_block (bs a).
-
-    End with_labels.
+        The type [sub (ktree E) fin A B] is shorthand for
+        [fin A -> itree E (fin B)], and we can think of them as "continuations"
+        with events in E, with input values in [fin A] and output values in [fin B].
+        They have a nice algebraic structure, supported by the library,
+        including a [loop] combinator that we can use to link collections of
+        basic blocks. (See below.) *)
+    Definition denote_bks {A B : nat} (bs: bks A B): sub (ktree E) fin A B :=
+      fun a => denote_bk (bs a).
 
   (** One can think of an [asm] program as a circuit/diagram where wires
       correspond to jumps/program links.  [denote_bks] computes the meaning of
@@ -286,7 +281,7 @@ Instance RelDec_reg : RelDec (@eq reg) := RelDec_from_dec eq Nat.eq_dec.
 (** Both environments and memory events can be interpreted as "map" events,
     exactly as we did for _Imp_. *)
 
-Definition map_reg {E: Type -> Type} `{mapE reg 0 -< E}
+Definition h_reg {E: Type -> Type} `{mapE reg 0 -< E}
   : Reg ~> itree E :=
   fun _ e =>
     match e with
@@ -294,7 +289,7 @@ Definition map_reg {E: Type -> Type} `{mapE reg 0 -< E}
     | SetReg x v => insert x v
     end.
 
-Definition map_memory {E : Type -> Type} `{mapE addr 0 -< E} :
+Definition h_memory {E : Type -> Type} `{mapE addr 0 -< E} :
   Memory ~> itree E :=
   fun _ e =>
     match e with
@@ -315,7 +310,7 @@ Definition memory    := alist addr value.
 *)
 Definition interp_asm {E A} (t : itree (Reg +' Memory +' E) A) :
   memory -> registers -> itree E (memory * (registers * A)) :=
-  let h := bimap map_reg (bimap map_memory (id_ _)) in
+  let h := bimap h_reg (bimap h_memory (id_ _)) in
   let t' := interp h t in
   fun  mem regs => interp_map (interp_map t' regs) mem.
 

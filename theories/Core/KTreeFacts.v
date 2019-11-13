@@ -169,7 +169,7 @@ Qed.
 Instance IterNatural_ktree {E} : IterNatural (ktree E) sum.
 Proof.
   repeat intro.
-  unfold bimap, Bimap_Coproduct, case_, CoprodCase_Kleisli, case_sum, cat, Cat_Kleisli.
+  unfold bimap, Bimap_Coproduct, case_, Case_Kleisli, case_sum, cat, Cat_Kleisli.
   cbn.
   revert a0.
   einit. ecofix CIH. intros.
@@ -225,7 +225,7 @@ Qed.
 Instance IterDinatural_ktree {E} : IterDinatural (ktree E) sum.
 Proof.
   repeat intro.
-  unfold bimap, Bimap_Coproduct, case_, CoprodCase_Kleisli, case_sum, cat, Cat_Kleisli.
+  unfold bimap, Bimap_Coproduct, case_, Case_Kleisli, case_sum, cat, Cat_Kleisli.
   cbn.
   transitivity (iter (fun t =>
                         x <- f t;;
@@ -291,7 +291,7 @@ Qed.
 Instance IterCodiagonal_ktree {E} : IterCodiagonal (ktree E) sum.
 Proof.
   repeat intro.
-  unfold bimap, Bimap_Coproduct, case_, CoprodCase_Kleisli, case_sum, cat, Cat_Kleisli.
+  unfold bimap, Bimap_Coproduct, case_, Case_Kleisli, case_sum, cat, Cat_Kleisli.
   cbn.
   rewrite iter_codiagonal_ktree.
   apply eutt_iter.

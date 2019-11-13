@@ -87,7 +87,7 @@ End compile_assign.
    A---ab-----bc---C
 ]]
 
-   ... can be implemented using just [app_asm], [relabel_asm] and [link_asm].
+   ... can be implemented using just [app_asm], [relabel_asm] and [loop_asm].
 
   Indeed, [app_asm ab bc] can be visualized as:
 [[
@@ -110,7 +110,7 @@ Which translates to:
  *)
 Definition seq_asm {A B C} (ab : asm A B) (bc : asm B C)
   : asm A C :=
-  link_asm (relabel_asm swap (id_ _) (app_asm ab bc)).
+  loop_asm (relabel_asm swap (id_ _) (app_asm ab bc)).
 
 
 (** Location of temporary for [if]. *)
@@ -151,7 +151,7 @@ Definition if_asm {A}
    The program [while_asm e p] composes vertically two programs:
    an [if_asm] construct with [p] followed by a jump on the true branch,
    and a unique jump on the false branch.
-   The loop is then closed with [link_asm] by matching the jump from the
+   The loop is then closed with [loop_asm] by matching the jump from the
    true branch to the entry point.
 
 [while_asm e p]
@@ -166,7 +166,7 @@ Definition if_asm {A}
 *)
 Definition while_asm (e : list instr) (p : asm 1 1) :
   asm 1 1 :=
-  link_asm (relabel_asm (id_ _) merge
+  loop_asm (relabel_asm (id_ _) merge
     (app_asm (if_asm e
                 (relabel_asm (id_ _) inl_ p)
                 (pure_asm inr_))

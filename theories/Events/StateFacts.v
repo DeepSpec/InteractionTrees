@@ -209,7 +209,7 @@ Lemma eutt_interp_state_loop {E F S A B C} (RS : S -> S -> Prop)
           (interp_state h (loop t2 a) s2)).
 Proof.
   intros.
-  unfold loop, bimap, Bimap_Coproduct, case_, CoprodCase_Kleisli, Function.case_sum, id_, Id_Kleisli, cat, Cat_Kleisli; cbn.
+  unfold loop, bimap, Bimap_Coproduct, case_, Case_Kleisli, Function.case_sum, id_, Id_Kleisli, cat, Cat_Kleisli; cbn.
   rewrite 2 bind_ret.
   eapply (eutt_interp_state_iter eq eq); auto; intros.
   rewrite 2 interp_state_bind.

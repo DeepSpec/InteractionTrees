@@ -37,7 +37,7 @@ Instance Initial_void : Initial Fun void :=
 (** ** The [sum] coproduct. *)
 
 (** Coproduct elimination *)
-Instance case_sum : CoprodCase Fun sum :=
+Instance case_sum : Case Fun sum :=
   fun {A B C} (f : A -> C) (g : B -> C) (x : A + B) =>
     match x with
     | inl a => f a
@@ -45,5 +45,5 @@ Instance case_sum : CoprodCase Fun sum :=
     end.
 
 (** Injections *)
-Instance sum_inl : CoprodInl Fun sum := @inl.
-Instance sum_inr : CoprodInr Fun sum := @inr.
+Instance sum_inl : Inl Fun sum := @inl.
+Instance sum_inr : Inr Fun sum := @inr.

@@ -1,5 +1,7 @@
 (** * Full subcategories *)
 
+(** The category described by a subset of objects of an existing category. *)
+
 (* begin hide *)
 From Coq Require Import
      Setoid
@@ -74,17 +76,17 @@ Definition Bimap_sub : Bimap sub sbif :=
 End Bimap.
 
 Context
-  {CoprodCase_C : CoprodCase C bif}
-  {CoprodInl_C : CoprodInl C bif}
-  {CoprodInr_C : CoprodInr C bif}.
+  {Case_C : Case C bif}
+  {Inl_C : Inl C bif}
+  {Inr_C : Inr C bif}.
 
-Global Instance CoprodCase_sub : CoprodCase sub sbif :=
+Global Instance Case_sub : Case sub sbif :=
   fun _ _ _ f g => to_bif >>> case_ (C := C) f g.
 
-Global Instance CoprodInl_sub : CoprodInl sub sbif :=
+Global Instance Inl_sub : Inl sub sbif :=
   fun _ _ => inl_ (C := C) >>> from_bif.
 
-Global Instance CoprodInr_sub : CoprodInr sub sbif :=
+Global Instance Inr_sub : Inr sub sbif :=
   fun _ _ => inr_ (C := C) >>> from_bif.
 
 Context
@@ -162,7 +164,7 @@ Proof.
   - enough (from_bif >>> fg ⩯ case_ (C := C) f g).
     { rewrite <- H1, <- cat_assoc, (semi_iso _ _), cat_id_l. reflexivity. }
     apply case_universal; rewrite <- cat_assoc; eauto.
-  - intros. unfold case_, CoprodCase_sub.
+  - intros. unfold case_, Case_sub.
     apply category_proper_cat. reflexivity.
     eapply coproduct_proper_case; eauto.
 Qed.

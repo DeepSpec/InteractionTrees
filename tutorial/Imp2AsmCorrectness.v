@@ -425,7 +425,7 @@ Section Bisimulation.
     rewrite interp_trigger.
     cbn.
     unfold interp_map.
-    unfold map_reg, CategoryOps.cat, Cat_Handler, Handler.cat.
+    unfold h_reg, CategoryOps.cat, Cat_Handler, Handler.cat.
     unfold inl_, Inl_sum1_Handler, Handler.inl_, Handler.htrigger. cbn.
     unfold lookup_def; cbn.
     unfold embed, Embeddable_itree, Embeddable_forall, embed.
@@ -461,7 +461,7 @@ Section Linking.
     ⩯ denote_asm ab >>> denote_asm bc.
   Proof.
     unfold seq_asm.
-    rewrite link_asm_correct, relabel_asm_correct, app_asm_correct.
+    rewrite loop_asm_correct, relabel_asm_correct, app_asm_correct.
     rewrite fmap_id0, cat_id_r, fmap_swap.
     apply cat_from_loop.
   Qed.
@@ -540,7 +540,7 @@ Section Linking.
          end)).
   Proof.
     unfold while_asm.
-    rewrite link_asm_correct.
+    rewrite loop_asm_correct.
     apply Proper_loop.
     rewrite relabel_asm_correct.
     rewrite fmap_id0, cat_id_l.
@@ -764,7 +764,7 @@ Section Correctness.
   Hint Unfold TT.
 
   Definition equivalent (s:stmt) (t:asm 1 1) : Prop :=
-    bisimilar TT (denote_stmt s) (denote_asm t f0).
+    bisimilar TT (denote_imp s) (denote_asm t f0).
 
   Inductive RI : (unit + unit) -> (unit + unit + unit) -> Prop :=
   | RI_inl : RI (inl tt) (inl (inl tt))
@@ -810,7 +810,7 @@ Section Correctness.
     apply H.
   Qed.
 
-  Notation Inr_Kleisli := CoprodInr_Kleisli.
+  Notation Inr_Kleisli := Inr_Kleisli.
 
   (** Correctness of the compiler.
       After interpretation of the [Locals], the source _Imp_ statement
@@ -898,7 +898,7 @@ Section Correctness.
 
       unfold to_itree'.
       unfold loop. unfold iter at 2.
-      unfold Iter_sub, CoprodInr_sub, Inr_Kleisli, inr_, lift_ktree, cat, Cat_sub, cat, Cat_Kleisli.
+      unfold Iter_sub, Inr_sub, Inr_Kleisli, inr_, lift_ktree, cat, Cat_sub, cat, Cat_Kleisli.
       unfold from_bif, FromBifunctor_ktree_fin.
       cbn. rewrite 2 bind_ret. cbn.
       eapply (bisimilar_iter (fun x x' => (x = inl tt /\ x' = f0) \/ (x = inr tt /\ x' = fS f0))).

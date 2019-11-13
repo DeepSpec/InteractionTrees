@@ -225,22 +225,22 @@ Section Denote.
       value corresponds to [true].  *)
   Definition is_true (v : value) : bool := if (v =? 0)%nat then false else true.
 
-  (** The meaning of statements is now easy to define.  They are all
+  (** The meaning of Imp statements is now easy to define.  They are all
       straightforward, except for [While], which uses our new [while] combinator
       over the computation that evaluates the conditional, and then the body if
       the former was true.  *)
-  Fixpoint denote_stmt (s : stmt) : itree eff unit :=
+  Fixpoint denote_imp (s : stmt) : itree eff unit :=
     match s with
     | Assign x e =>  v <- denote_expr e ;; trigger (SetVar x v)
-    | Seq a b    =>  denote_stmt a ;; denote_stmt b
+    | Seq a b    =>  denote_imp a ;; denote_imp b
     | If i t e   =>
       v <- denote_expr i ;;
-      if is_true v then denote_stmt t else denote_stmt e
+      if is_true v then denote_imp t else denote_imp e
 
     | While t b =>
       while (v <- denote_expr t ;;
 	           if is_true v
-             then denote_stmt b ;; ret (inl tt)
+             then denote_imp b ;; ret (inl tt)
              else ret (inr tt))
 
     | Skip => ret tt
@@ -268,7 +268,7 @@ Section Example_Fact.
     DO output ← output * input;;;
        input  ← input - 1.
 
-  (** We have given _a_ notion of denotation to [fact 6] via [denote_stmt].
+  (** We have given _a_ notion of denotation to [fact 6] via [denote_imp].
       However, this is naturally not actually runnable yet, since it contains
       uninterpreted [ImpState] events.  We therefore now need to _handle_ the
       events contained in the trees, i.e. give a concrete interpretation of the
@@ -341,7 +341,7 @@ Definition interp_imp  {E A} (t : itree (ImpState +' E) A) : stateT env (itree E
 
 
 Definition eval_imp (s: stmt) : itree void1 (env * unit) :=
-  interp_imp (denote_stmt s) empty.
+  interp_imp (denote_imp s) empty.
 
 (** Equipped with this evaluator, we can now compute.
     Naturally since Coq is total, we cannot do it directly inside of it.
