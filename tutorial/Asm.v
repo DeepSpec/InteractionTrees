@@ -20,7 +20,7 @@ From ITree Require Import
      ITree
      ITreeFacts
      ITreeMonad
-     Basics.MonadTheory
+     Basics.Monad
      Basics.CategorySub
      Events.State
      Events.StateKleisli

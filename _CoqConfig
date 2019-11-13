@@ -11,7 +11,7 @@ theories/Basics/CategoryTheory.v
 theories/Basics/CategoryFacts.v
 theories/Basics/CategorySub.v
 theories/Basics/CategoryFunctor.v
-theories/Basics/MonadTheory.v
+theories/Basics/Monad.v
 theories/Basics/CategoryKleisli.v
 theories/Basics/CategoryKleisliFacts.v
 theories/Basics/Function.v

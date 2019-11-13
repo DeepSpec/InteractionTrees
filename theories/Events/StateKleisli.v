@@ -13,7 +13,7 @@ From ITree Require Import
      Basics.Category
      Basics.CategoryKleisli
      Basics.CategoryKleisliFacts
-     Basics.MonadTheory
+     Basics.Monad
      Events.State
      Events.StateFacts.
 
@@ -30,12 +30,14 @@ Section Kleisli.
   Context {HM: Monad m}.
   Context {HEQP: @EqMProps m _ EQM}.
   Context {ML: @MonadLaws m _ HM}.
-  Context {eqm_bind : @MonadProperOps m EQM HM}.
   
-  Global Instance EqM_stateTM : EqM (stateT S m) :=
-    fun a => pointwise_relation _ eqm.
+  Global Instance EqM_stateTM : EqM (stateT S m).
+  Proof.
+    exact (fun a => pointwise_relation _ eqm).
+  Defined.
 
-  Global Instance EqMProps_stateTM : @EqMProps (stateT S m) _ EqM_stateTM := _.
+  Global Instance EqMProps_stateTM : @EqMProps (stateT S m) _ EqM_stateTM.
+  Proof.
   constructor.
   - repeat red.
     reflexivity.
@@ -43,33 +45,29 @@ Section Kleisli.
   - repeat red. intros. etransitivity; eauto. apply H.  apply H0.
   Qed.
 
-  Global Instance MonadProperOps_stateTM : @MonadProperOps (stateT S m) _ _ := _.
-  Proof.
-    repeat red. intros a b x y H x0 y0 H0 s. 
-    apply eqm_bind.
+  Instance MonadLaws_stateTM : @MonadLaws (stateT S m) _ _.
+  constructor.
+  - cbn. intros a b f x. 
+    repeat red.  intros s.
+    rewrite bind_ret_l. reflexivity.
+  - cbn. intros a x.
+    repeat red. intros s.
+    assert (EQM _ (bind (x s) (fun sa : S * a => ret (fst sa, snd sa))) (bind (x s) (fun sa => ret sa))).
+    { apply Proper_bind. reflexivity. intros.  repeat red. destruct a0; reflexivity. }
+    rewrite H.
+    rewrite bind_ret_r. reflexivity.
+  - cbn. intros a b c x f g.
+    repeat red. intros s.
+    rewrite bind_bind.
+    apply Proper_bind.
+    + reflexivity.
+    + reflexivity.
+  - repeat red. intros a b x y H x0 y0 H0 s.
+    apply Proper_bind.
     + apply H.
     + repeat red.
       destruct a0.
       apply H0.
-  Qed.
-
-  Instance MonadLaws_stateTM : @MonadLaws (stateT S m) _ _ := _.
-  constructor.
-  - cbn. intros a b f x. 
-    repeat red.  intros s.
-    rewrite bind_ret. reflexivity.
-  - cbn. intros a x.
-    repeat red. intros s.
-    assert (EQM _ (bind (x s) (fun sa : S * a => ret (fst sa, snd sa))) (bind (x s) (fun sa => ret sa))).
-    { apply eqm_bind. reflexivity. intros.  repeat red. destruct a0; reflexivity. }
-    rewrite H.
-    rewrite ret_bind. reflexivity.
-  - cbn. intros a b c x f g.
-    repeat red. intros s.
-    rewrite bind_bind.
-    apply eqm_bind.
-    + reflexivity.
-    + reflexivity.
   Qed.
       
   Context {IM: Iter (Kleisli m) sum}.
@@ -132,10 +130,12 @@ Section Kleisli.
   Qed.
 
   
-  Global Instance Iter_stateTM : Iter (Kleisli (stateT S m)) sum := 
-    fun (a b : Type) (f : a -> S -> m (S * (a + b))) (x:a) (s:S) =>
-      iter ((internalize f) >>> (pure iso)) (s, x).
-
+  Global Instance Iter_stateTM : Iter (Kleisli (stateT S m)) sum.
+  Proof.
+    exact
+      (fun (a b : Type) (f : a -> S -> m (S * (a + b))) (x:a) (s:S) =>
+        iter ((internalize f) >>> (pure iso)) (s, x)).
+  Defined.
   
   Global Instance Proper_Iter_stateTM : forall a b, @Proper (Kleisli (stateT S m) a (a + b) -> (Kleisli (stateT S m) a b)) (eq2 ==> eq2) iter.
   Proof.
@@ -146,12 +146,12 @@ Section Kleisli.
     repeat red.
     destruct a1.
     cbn.
-    apply eqm_bind.
+    apply Proper_bind.
     - apply H.
     - repeat red. destruct a2 as [s' [x1|y1]]; reflexivity.
  Qed.
 
-  Global Instance IterUnfold_stateTM : IterUnfold (Kleisli (stateT S m)) sum := _.
+  Global Instance IterUnfold_stateTM : IterUnfold (Kleisli (stateT S m)) sum.
   Proof.
   destruct CM.
   unfold IterUnfold.
@@ -164,16 +164,16 @@ Section Kleisli.
   unfold cat, Cat_Kleisli.
   simpl.
   rewrite bind_bind.
-  apply eqm_bind.
+  apply Proper_bind.
   + reflexivity.
   + repeat red. destruct a1 as [s' [x | y]]; simpl.
-    * unfold pure. rewrite bind_ret.
+    * unfold pure. rewrite bind_ret_l.
       reflexivity.
-    * unfold pure. rewrite bind_ret.
+    * unfold pure. rewrite bind_ret_l.
       reflexivity.
   Qed.
 
-  Global Instance IterNatural_stateTM : IterNatural (Kleisli (stateT S m)) sum := _.
+  Global Instance IterNatural_stateTM : IterNatural (Kleisli (stateT S m)) sum.
   Proof.
     destruct CM.
     unfold IterNatural.
@@ -187,24 +187,24 @@ Section Kleisli.
     unfold cat, Cat_Kleisli.
     cbn. 
     rewrite! bind_bind. 
-    apply eqm_bind.
+    apply Proper_bind.
     - reflexivity.
     - repeat red. destruct a2 as [s' [x | y]]; simpl.
-      + unfold pure. rewrite bind_ret.
+      + unfold pure. rewrite bind_ret_l.
         cbn. unfold cat, Cat_Kleisli. cbn.
         rewrite bind_bind.
-        rewrite bind_ret.
-        rewrite bind_ret.
+        rewrite bind_ret_l.
+        rewrite bind_ret_l.
         cbn.
-        unfold id_, Id_Kleisli. unfold pure. rewrite bind_ret. reflexivity.
-      + unfold pure. rewrite bind_ret.
+        unfold id_, Id_Kleisli. unfold pure. rewrite bind_ret_l. reflexivity.
+      + unfold pure. rewrite bind_ret_l.
         cbn. unfold cat, Cat_Kleisli. cbn.
         rewrite bind_bind.
-        apply eqm_bind.
+        apply Proper_bind.
         * reflexivity.
         * repeat red. destruct a2.
           cbn.
-          rewrite bind_ret. reflexivity.
+          rewrite bind_ret_l. reflexivity.
   Qed.
 
   Lemma internalize_pure_iso {a b c} (f : Kleisli (stateT S m) a (b + c)) :
@@ -234,22 +234,22 @@ Section Kleisli.
     unfold cat, Cat_Kleisli, internalize.
     cbn. 
     repeat rewrite bind_bind.
-    apply eqm_bind.
+    apply Proper_bind.
     - reflexivity.
     - repeat red.
       destruct a1 as [s' [x | y]].
       + unfold pure.
-        rewrite bind_ret.
+        rewrite bind_ret_l.
         unfold case_, Case_Kleisli, Function.case_sum.
         reflexivity.
-      + unfold pure. rewrite bind_ret.
+      + unfold pure. rewrite bind_ret_l.
         unfold case_, Case_Kleisli, Function.case_sum.
           cbn.
-          rewrite bind_ret. reflexivity.
+          rewrite bind_ret_l. reflexivity.
   Qed.
 
     
-  Global Instance IterDinatural_stateTM : IterDinatural (Kleisli (stateT S m)) sum := _.
+  Global Instance IterDinatural_stateTM : IterDinatural (Kleisli (stateT S m)) sum.
   Proof.
     destruct CM.
     unfold IterDinatural.
@@ -264,33 +264,33 @@ Section Kleisli.
     unfold cat, Cat_Kleisli.
     rewrite bind_bind.
     unfold internalize. cbn.
-    apply eqm_bind.
+    apply Proper_bind.
     - reflexivity.
     - repeat red.
       destruct a2 as [s [x | y]].
       + unfold pure.
-        rewrite bind_ret.
+        rewrite bind_ret_l.
         cbn.
         eapply iterative_proper_iter.
         repeat red.
         destruct a2.
         cbn. rewrite! bind_bind.
-        apply eqm_bind.
+        apply Proper_bind.
         * reflexivity.
         * repeat red.
           destruct a2 as [s' [x' | y]].
-          ** cbn.  rewrite bind_ret. unfold case_, Case_Kleisli, Function.case_sum.
+          ** cbn.  rewrite bind_ret_l. unfold case_, Case_Kleisli, Function.case_sum.
              reflexivity.
-          ** cbn.  rewrite bind_ret. unfold case_, Case_Kleisli, Function.case_sum.
-             rewrite bind_ret. reflexivity.
+          ** cbn.  rewrite bind_ret_l. unfold case_, Case_Kleisli, Function.case_sum.
+             rewrite bind_ret_l. reflexivity.
       + unfold pure.
-        rewrite bind_ret.
+        rewrite bind_ret_l.
         cbn.
         reflexivity.
     Qed.
         
 
-  Global Instance IterCodiagonal_stateTM : IterCodiagonal (Kleisli (stateT S m)) sum := _.
+  Global Instance IterCodiagonal_stateTM : IterCodiagonal (Kleisli (stateT S m)) sum.
   Proof.
     destruct CM.
     unfold IterCodiagonal.
@@ -326,32 +326,32 @@ Section Kleisli.
    repeat rewrite bind_bind.
    unfold internalize, pure.
    cbn.
-   apply eqm_bind.
+   apply Proper_bind.
     - reflexivity.
     - repeat red.
       destruct a3 as [s' [x | [y | z]]].
-      + rewrite bind_ret.
+      + rewrite bind_ret_l.
         cbn. unfold id_, Id_Kleisli, pure.
-        rewrite bind_ret.
+        rewrite bind_ret_l.
         unfold cat, Cat_Kleisli.
         rewrite bind_bind.
-        rewrite bind_ret.
+        rewrite bind_ret_l.
         cbn.  unfold inl_, Inl_Kleisli, pure.
-        rewrite bind_ret. reflexivity.
-      + rewrite bind_ret.
+        rewrite bind_ret_l. reflexivity.
+      + rewrite bind_ret_l.
         cbn.
-        rewrite bind_ret.
+        rewrite bind_ret_l.
         unfold cat, Cat_Kleisli.
-        rewrite bind_bind, bind_ret. cbn.
+        rewrite bind_bind, bind_ret_l. cbn.
         unfold inr_, Inr_Kleisli, pure.
-        rewrite bind_ret. reflexivity.
-      + rewrite bind_ret.
+        rewrite bind_ret_l. reflexivity.
+      + rewrite bind_ret_l.
         cbn.
-        rewrite bind_ret.
+        rewrite bind_ret_l.
         unfold cat, Cat_Kleisli.
-        rewrite bind_bind, bind_ret. cbn.
+        rewrite bind_bind, bind_ret_l. cbn.
         unfold inr_, Inr_Kleisli, pure.
-        rewrite bind_ret.
+        rewrite bind_ret_l.
         reflexivity.
   Qed.
 

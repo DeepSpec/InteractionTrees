@@ -44,7 +44,7 @@ Proof.
   ebind; econstructor; try reflexivity.
   intros [a | b] _ [].
   - rewrite bind_tau. etau.
-  - rewrite bind_ret, tau_eutt.
+  - rewrite bind_ret_l, tau_eutt.
     revert b. ecofix CIH'. intros.
     rewrite !unfold_iter. unfold ITree._iter.
     rewrite bind_map.
@@ -177,8 +177,8 @@ Proof.
   rewrite !bind_bind.
   ebind; econstructor; try reflexivity.
   intros [] ? [].
-  - rewrite bind_tau, 2 bind_ret. etau.
-  - rewrite bind_ret, !bind_bind. setoid_rewrite bind_ret. rewrite bind_ret2.
+  - rewrite bind_tau, 2 bind_ret_l. etau.
+  - rewrite bind_ret_l, !bind_bind. setoid_rewrite bind_ret_l. rewrite bind_ret_r.
     reflexivity.
 Qed.
 
@@ -217,9 +217,9 @@ Proof.
     * rewrite bind_tau.
       gstep; constructor.
       eauto with paco.
-    * rewrite bind_ret. gstep; econstructor; auto.
+    * rewrite bind_ret_l. gstep; econstructor; auto.
   }
-  { rewrite bind_ret. gstep; constructor; auto. }
+  { rewrite bind_ret_l. gstep; constructor; auto. }
 Qed.
 
 Instance IterDinatural_ktree {E} : IterDinatural (ktree E) sum.
@@ -270,7 +270,7 @@ Proof.
   rewrite unfold_iter_ktree, !bind_bind.
   guclo eqit_clo_bind. econstructor. reflexivity.
   intros [| []] ? [].
-  - rewrite bind_ret, bind_tau.
+  - rewrite bind_ret_l, bind_tau.
     gstep. constructor.
     revert a.
     gcofix CIH'. intros.
@@ -279,12 +279,12 @@ Proof.
     rewrite !bind_bind.
     guclo eqit_clo_bind. econstructor. reflexivity.
     intros [| []] ? [].
-    + rewrite bind_tau, bind_ret. gstep; constructor; auto with paco.
-    + rewrite 2 bind_ret. gstep; constructor; auto with paco.
-    + rewrite 2 bind_ret. gstep; constructor; auto.
-  - rewrite 2 bind_ret.
+    + rewrite bind_tau, bind_ret_l. gstep; constructor; auto with paco.
+    + rewrite 2 bind_ret_l. gstep; constructor; auto with paco.
+    + rewrite 2 bind_ret_l. gstep; constructor; auto.
+  - rewrite 2 bind_ret_l.
     gstep; constructor; auto with paco.
-  - rewrite 2 bind_ret.
+  - rewrite 2 bind_ret_l.
     gstep; reflexivity.
 Qed.
 

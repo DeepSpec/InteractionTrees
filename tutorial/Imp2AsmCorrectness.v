@@ -369,16 +369,6 @@ Section Bisimulation.
     eapply H0; eauto.
   Qed.
 
-  Lemma interp_state_iter' {E F } S (f : E ~> stateT S (itree F)) {I A}
-      (t  : I -> itree E (I + A))
-  : forall i, state_eq (State.interp_state f (ITree.iter t i))
-                  (Basics.iter (fun i => State.interp_state f (t i)) i).
-  Proof.
-    eapply interp_state_iter.
-    intros i.
-    red. reflexivity.
-  Qed.
-
   Lemma bisimilar_iter {E A A' B B'}
         (R : A -> A' -> Prop)
         (S : B -> B' -> Prop)
@@ -403,7 +393,7 @@ Section Bisimulation.
     destruct H3; cbn.
     rewrite interp_state_bind, bind_bind.
     setoid_rewrite interp_state_ret.
-    setoid_rewrite bind_ret. cbn.
+    setoid_rewrite bind_ret_l. cbn.
     apply (@eutt_clo_bind _ _ _ _ _ _ (state_invariant (sum_rel R S))).
     - auto.
     - intros ? ? [? []]; cbn; apply eqit_Ret; constructor; split; auto.
@@ -432,7 +422,7 @@ Section Bisimulation.
     rewrite interp_trigger.
     rewrite interp_state_trigger.
     cbn.
-    rewrite bind_ret, tau_eutt.
+    rewrite bind_ret_l, tau_eutt.
     rewrite interp_state_ret.
     unfold lookup_default, lookup, Map_alist.
     erewrite sim_rel_find.
@@ -491,34 +481,34 @@ Section Linking.
     apply eqit_bind; try reflexivity. intros _.
     apply eqit_bind; try reflexivity. intros [].
 
-    - rewrite !bind_ret.
+    - rewrite !bind_ret_l.
       setoid_rewrite (app_asm_correct tp fp _).
       setoid_rewrite bind_bind.
       match goal with
       | [ |- _ (?t >>= _) _ ] => let y := eval compute in t in change t with y
       end.
-      rewrite bind_ret. cbn.
-      setoid_rewrite bind_ret.
+      rewrite bind_ret_l. cbn.
+      setoid_rewrite bind_ret_l.
       rewrite bind_bind.
-      setoid_rewrite bind_ret.
+      setoid_rewrite bind_ret_l.
       unfold from_bif, FromBifunctor_ktree_fin; cbn.
-      rewrite bind_ret2'.
+      rewrite bind_ret_r'.
       { rewrite (unique_f0 (fi' 0)). reflexivity. }
       { intros.
         Local Opaque split_fin_sum R. cbv. Local Transparent split_fin_sum R.
         rewrite split_fin_sum_R. reflexivity. }
 
-    - rewrite !bind_ret.
+    - rewrite !bind_ret_l.
       setoid_rewrite (app_asm_correct tp fp _).
       repeat setoid_rewrite bind_bind.
       match goal with
       | [ |- _ (?t >>= _) _ ] => let y := eval compute in t in change t with y
       end.
-      rewrite bind_ret. cbn. rewrite bind_bind.
-      setoid_rewrite bind_ret.
+      rewrite bind_ret_l. cbn. rewrite bind_bind.
+      setoid_rewrite bind_ret_l.
       unfold from_bif, FromBifunctor_ktree_fin.
-      setoid_rewrite bind_ret.
-      rewrite bind_ret2'.
+      setoid_rewrite bind_ret_l.
+      rewrite bind_ret_r'.
       { rewrite (unique_f0 (fi' 0)). reflexivity. }
       { intros. Local Opaque split_fin_sum L. cbv. Local Transparent split_fin_sum R.
         rewrite split_fin_sum_L. reflexivity. }
@@ -549,26 +539,26 @@ Section Linking.
     intros x.
     cbn.
     unfold to_bif, ToBifunctor_ktree_fin.
-    rewrite bind_ret.
+    rewrite bind_ret_l.
     destruct (label_case x); cbn.
-    - rewrite !bind_bind. setoid_rewrite bind_ret.
+    - rewrite !bind_bind. setoid_rewrite bind_ret_l.
       eapply eutt_clo_bind; try reflexivity. intros; subst.
       rewrite bind_bind.
       eapply eutt_clo_bind; try reflexivity. intros; subst.
       unfold from_bif, FromBifunctor_ktree_fin; cbn.
-      setoid_rewrite bind_ret.
+      setoid_rewrite bind_ret_l.
       destruct u0.
       + rewrite (pure_asm_correct _ _); cbn.
-        rewrite !bind_ret.
+        rewrite !bind_ret_l.
         apply eqit_Ret.
         apply unique_fin; reflexivity.
 
       + rewrite (relabel_asm_correct _ _ _ _). cbn.
-        rewrite bind_ret.
+        rewrite bind_ret_l.
         setoid_rewrite bind_bind.
         eapply eutt_clo_bind; try reflexivity.
         intros ? ? [].
-        repeat rewrite bind_ret.
+        repeat rewrite bind_ret_l.
         apply eqit_Ret.
         rewrite (unique_f0 u1).
         apply unique_fin; reflexivity.
@@ -577,7 +567,7 @@ Section Linking.
       rewrite (pure_asm_correct _ _).
       rewrite bind_bind. cbn.
       unfold from_bif, FromBifunctor_ktree_fin.
-      rewrite !bind_ret.
+      rewrite !bind_ret_l.
       apply eqit_Ret.
       rewrite (unique_f0 f).
       apply unique_fin; reflexivity.
@@ -782,18 +772,18 @@ Section Correctness.
   Proof.
     unfold while.
     rewrite! unfold_iter_ktree.
-    rewrite bind_ret, tau_eutt.
+    rewrite bind_ret_l, tau_eutt.
     rewrite unfold_iter_ktree.
     rewrite !bind_bind.
     eapply eutt_clo_bind. reflexivity.
     intros. subst.
     destruct u2 as [[]|[]].
     2 : { force_right. reflexivity. }
-    rewrite bind_ret, !tau_eutt.
+    rewrite bind_ret_l, !tau_eutt.
     unfold KTree.iter, Iter_Kleisli.
     apply eutt_iter' with (RI := fun _ r => inl tt = r).
     - intros _ _ [].
-      rewrite <- bind_ret2 at 1.
+      rewrite <- bind_ret_r at 1.
       eapply eutt_clo_bind; try reflexivity.
       intros [|[]] _ []; apply eqit_Ret; auto.
     - constructor.
@@ -835,7 +825,7 @@ Section Correctness.
       rewrite denote_after.
 
       (* The head trees match by correctness of assign *)
-      rewrite <- (bind_ret2 (ITree.bind (denote_expr e) _)).
+      rewrite <- (bind_ret_r (ITree.bind (denote_expr e) _)).
       eapply bisimilar_bind'.
       { eapply compile_assign_correct; auto. }
 
@@ -900,7 +890,7 @@ Section Correctness.
       unfold loop. unfold iter at 2.
       unfold Iter_sub, Inr_sub, Inr_Kleisli, inr_, lift_ktree, cat, Cat_sub, cat, Cat_Kleisli.
       unfold from_bif, FromBifunctor_ktree_fin.
-      cbn. rewrite 2 bind_ret. cbn.
+      cbn. rewrite 2 bind_ret_l. cbn.
       eapply (bisimilar_iter (fun x x' => (x = inl tt /\ x' = f0) \/ (x = inr tt /\ x' = fS f0))).
       2: {
         right. split. auto. apply unique_fin; reflexivity.
@@ -910,7 +900,7 @@ Section Correctness.
 
       (* The exiting case is trivial *)
       2:{ repeat intro.
-          unfold to_bif, ToBifunctor_ktree_fin. rewrite !bind_ret. cbn.
+          unfold to_bif, ToBifunctor_ktree_fin. rewrite !bind_ret_l. cbn.
           force_left. force_right.
           red; rewrite <- eqit_Ret; auto.
           unfold state_invariant. simpl.

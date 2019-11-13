@@ -198,9 +198,9 @@ Instance IsoBif_ktree_fin {E}
 Proof.
   unfold to_bif, ToBifunctor_ktree_fin, from_bif, FromBifunctor_ktree_fin.
   constructor; intros x.
-  - unfold cat, Cat_sub, Cat_Kleisli. cbn. rewrite bind_ret.
+  - unfold cat, Cat_sub, Cat_Kleisli. cbn. rewrite bind_ret_l.
     apply eqit_Ret, merge_split.
-  - unfold cat, Cat_sub, Cat_Kleisli. cbn. rewrite bind_ret.
+  - unfold cat, Cat_sub, Cat_Kleisli. cbn. rewrite bind_ret_l.
     apply eqit_Ret, split_merge.
 Qed.
 

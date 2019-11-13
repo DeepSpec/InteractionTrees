@@ -70,7 +70,7 @@ Lemma unfold_interp {E F R} {f : E ~> itree F} (t : itree E R) :
 Proof.
   unfold interp. unfold Basics.iter, MonadIter_itree. rewrite unfold_iter.
   destruct (observe t); cbn;
-    rewrite ?bind_ret, ?bind_map; reflexivity.
+    rewrite ?bind_ret_l, ?bind_map; reflexivity.
 Qed.
 
 (** ** [interp] and constructors *)
@@ -98,7 +98,7 @@ Lemma interp_trigger {E F : Type -> Type} {R : Type}
 Proof.
   unfold ITree.trigger. rewrite interp_vis.
   setoid_rewrite interp_ret.
-  setoid_rewrite tau_eutt. rewrite bind_ret2.
+  setoid_rewrite tau_eutt. rewrite bind_ret_r.
   reflexivity.
 Qed.
 
@@ -230,7 +230,7 @@ Proof.
   revert R t k. ginit. gcofix CIH; intros.
   rewrite unfold_bind, (unfold_interp t).
   destruct (observe t); cbn.
-  - rewrite bind_ret. apply reflexivity.
+  - rewrite bind_ret_l. apply reflexivity.
   - rewrite bind_tau, !interp_tau.
     gstep. econstructor. eauto with paco.
   - rewrite interp_vis, bind_bind.
@@ -250,7 +250,7 @@ Proof.
   rewrite (itree_eta t), unfold_interp.
   destruct (observe t); try (gstep; constructor; auto with paco).
   cbn. gstep. red; cbn. constructor; red; intros.
-  rewrite bind_ret, tau_eutt. eauto with paco.
+  rewrite bind_ret_l, tau_eutt. eauto with paco.
 Qed.
 
 Lemma interp_trigger_h {E R} (t : itree E R) :
@@ -260,7 +260,7 @@ Proof.
   rewrite unfold_interp. rewrite (itree_eta t) at 2.
   destruct (observe t); try estep.
   unfold ITree.trigger. simpl. rewrite bind_vis.
-  evis. intros. rewrite bind_ret, tau_eutt.
+  evis. intros. rewrite bind_ret_l, tau_eutt.
   auto with paco.
 Qed.
 
@@ -310,7 +310,7 @@ Proof.
   rewrite unfold_interp.
   destruct (observe t); try estep.
   unfold ITree.trigger. simpl. rewrite bind_vis.
-  evis. intros. rewrite bind_ret, tau_eutt. auto with paco.
+  evis. intros. rewrite bind_ret_l, tau_eutt. auto with paco.
 Qed.
 
 Lemma interp_forever {E F} (f : E ~> itree F) {R S}
@@ -369,10 +369,10 @@ Proof.
   apply eqit_bind; try reflexivity.
   intros []; cbn. unfold cat. rewrite interp_bind.
   - unfold inl_, Inl_Kleisli, inr_, Inr_Kleisli, lift_ktree; cbn.
-    rewrite interp_ret, !bind_ret, interp_ret.
+    rewrite interp_ret, !bind_ret_l, interp_ret.
     reflexivity.
   - unfold cat, id_, Id_Kleisli, inr_, Inr_Kleisli, lift_ktree, pure; cbn.
-    rewrite interp_bind, interp_ret, !bind_ret, interp_ret.
+    rewrite interp_bind, interp_ret, !bind_ret_l, interp_ret.
     reflexivity.
   - unfold inr_, Inr_Kleisli, lift_ktree, pure; cbn.
     rewrite interp_ret.

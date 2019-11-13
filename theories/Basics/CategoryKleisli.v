@@ -25,7 +25,7 @@ From ITree Require Import
      Basics.Basics
      Basics.CategoryOps
      Basics.Function
-     Basics.MonadTheory.
+     Basics.Monad.
 (* end hide *)
 
 Implicit Types m : Type -> Type.

@@ -738,7 +738,7 @@ Lemma unfold_bind {E R S}
   ITree.bind t k ≅ ITree._bind k (fun t => ITree.bind t k) (observe t).
 Proof. rewrite unfold_bind_. reflexivity. Qed.
 
-Lemma bind_ret {E R S} (r : R) (k : R -> itree E S) :
+Lemma bind_ret_l {E R S} (r : R) (k : R -> itree E S) :
   ITree.bind (Ret r) k ≅ (k r).
 Proof. rewrite bind_ret_. reflexivity. Qed.
 
@@ -756,7 +756,7 @@ Proof.
   rewrite unfold_bind; cbn.
   pstep.
   constructor.
-  intros; red. left. rewrite bind_ret.
+  intros; red. left. rewrite bind_ret_l.
   apply Reflexive_eqit; eauto.
 Qed.
 
@@ -916,7 +916,7 @@ Proof.
   intros; subst; auto.
 Qed.
 
-Lemma bind_ret2 {E R} :
+Lemma bind_ret_r {E R} :
   forall s : itree E R,
     ITree.bind s (fun x => Ret x) ≅ s.
 Proof.
@@ -925,11 +925,11 @@ Proof.
   genobs s os. destruct os; simpl; eauto with paco.
 Qed.
 
-Lemma bind_ret2' {E R} (u : itree E R) (f : R -> R) :
+Lemma bind_ret_r' {E R} (u : itree E R) (f : R -> R) :
   (forall x, f x = x) ->
   (r <- u ;; Ret (f r)) ≅ u.
 Proof.
-  intro H. rewrite <- (bind_ret2 u) at 2. apply eqit_bind.
+  intro H. rewrite <- (bind_ret_r u) at 2. apply eqit_bind.
   - hnf. intros. apply eqit_Ret. auto.
   - reflexivity.
 Qed.
@@ -947,14 +947,14 @@ Lemma map_map {E R S T}: forall (f : R -> S) (g : S -> T) (t : itree E R),
     ITree.map g (ITree.map f t) ≅ ITree.map (fun x => g (f x)) t.
 Proof.
   unfold ITree.map. intros.
-  rewrite bind_bind. setoid_rewrite bind_ret. reflexivity.
+  rewrite bind_bind. setoid_rewrite bind_ret_l. reflexivity.
 Qed.
 
 Lemma bind_map {E R S T}: forall (f : R -> S) (k: S -> itree E T) (t : itree E R),
     ITree.bind (ITree.map f t) k ≅ ITree.bind t (fun x => k (f x)).
 Proof.
   unfold ITree.map. intros.
-  rewrite bind_bind. setoid_rewrite bind_ret. reflexivity.
+  rewrite bind_bind. setoid_rewrite bind_ret_l. reflexivity.
 Qed.
 
 Lemma map_bind {E X Y Z} (t: itree E X) (k: X -> itree E Y) (f: Y -> Z) :
@@ -971,15 +971,15 @@ Lemma map_ret {E A B} (f : A -> B) (a : A) :
 Proof.
   intros.
   unfold ITree.map.
-  rewrite bind_ret; reflexivity.
+  rewrite bind_ret_l; reflexivity.
 Qed.
 
-Hint Rewrite @bind_ret : itree.
+Hint Rewrite @bind_ret_l : itree.
+Hint Rewrite @bind_ret_r : itree.
 Hint Rewrite @bind_tau : itree.
 Hint Rewrite @bind_vis : itree.
 Hint Rewrite @bind_map : itree.
 Hint Rewrite @map_ret : itree.
-Hint Rewrite @bind_ret2 : itree.
 Hint Rewrite @bind_bind : itree.
 
 (** ** Tactics *)
