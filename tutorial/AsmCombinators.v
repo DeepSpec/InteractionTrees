@@ -178,6 +178,11 @@ Import ITreeNotations.
 Import CatNotations.
 Local Open Scope cat.
 (* end hide *)
+
+From ExtLib Require Import Functor.
+From ITree Require Import MonadTheory.
+Local Close Scope itree_scope.
+
 Section Correctness.
 
 Section CategoryTheory.
@@ -211,98 +216,124 @@ Section CategoryTheory.
       (assoc_l >>> bimap swap (id_ (bif B D)))))).
   Proof. cat_auto. Qed.
 
-  End CategoryTheory.
+End CategoryTheory.
 
-  Context {E : Type -> Type}.
-  Context {HasRegs : Reg -< E}.
-  Context {HasMemory : Memory -< E}.
-  Context {HasExit : Exit -< E}.
+  Context
+    {m : Type -> Type}
+    {Functor_m : Functor m}
+    {Monad_m : Monad m}
+    {MonadIter_m : MonadIter m}
+    {EqM_m : EqM m}
+    {EqMProps_m : EqMProps m}
+    {MonadLaws_m : MonadLaws m}
+    {MonadProperOps_m : MonadProperOps m}
+    {HasRegs_m : HasReg m}
+    {HasMemory_m : HasMemory m}
+    {MonadExit_m : MonadExit m}.
+
+  Instance proper_bind {a b} :
+          (@Proper (m a -> (a -> m b) -> m b)
+           (eqm ==> pointwise_relation _ eqm ==> eqm)
+           bind).
+    Admitted.
+
+  Lemma fmap_bind {A B C} (f : B -> C) (u : m A) (k : A -> m B)
+    : fmap f (bind u k) ≈ bind u (fun x => fmap f (k x)).
+  Proof. Admitted.
+
+  Lemma fmap_ret {A B} (f : A -> B) (a : A)
+    : fmap f (ret a) ≈ ret (f a).
+  Proof. Admitted.
+
+  Lemma fmap_exit {A B} (f : A -> B)
+    : fmap f exit ≈ exit.
+    Admitted.
 
   (** *** Internal structures *)
 
   Lemma fmap_block_map:
     forall  {L L'} b (f: fin L -> fin L'),
-      denote_block (fmap_block f b) ≅ ITree.map f (denote_block b).
+      denote_block (fmap_block f b) ≈ fmap f (denote_block b).
   Proof.
     (* Induction over the structure of the [block b] *)
     induction b as [i b | br]; intros f.
     - (* If it contains an instruction (inductive case). *)
-      cbn.
-      rewrite map_bind.
-      eapply eqit_bind; [| reflexivity].
-      intros []; apply IHb.
+      simpl.
+      rewrite fmap_bind. setoid_rewrite IHb.
+      reflexivity.
     - (* If it's a jump, we consider the three cases. *)
       simpl.
       destruct br; simpl.
-      + rewrite map_ret; reflexivity.
-      + rewrite map_bind.
-        eapply eqit_bind; [| reflexivity].
-        intros ?.
-        flatten_goal; rewrite map_ret; reflexivity.
-      + rewrite (itree_eta (ITree.map _ _)).
-        cbn. apply eqit_Vis. intros [].
+      + rewrite fmap_ret; reflexivity.
+      + rewrite fmap_bind. apply proper_bind; [ reflexivity | ].
+        intros []; rewrite fmap_ret; reflexivity.
+      + rewrite fmap_exit; reflexivity.
   Qed.
 
   (** Denotes a list of instruction by binding the resulting trees. *)
-  Definition denote_list: list instr -> itree E unit :=
+  Definition denote_list: list instr -> m unit :=
     traverse_ denote_instr.
 
   (** Correctness of the [after] operator.
       Its denotation binds the denotation of the instructions
       with the one of the branch.
    *)
-  Lemma denote_after :
-    forall {label} instrs (b: branch (fin label)),
-      denote_block (after instrs b) ≅ (denote_list instrs ;; denote_branch b).
+
+  (** TODO: rename this *)
+  Lemma denote_after {label} instrs (b: branch (fin label))
+    : denote_block (after instrs b) ≈ (denote_list instrs ;; denote_branch b).
   Proof.
-    induction instrs as [| i instrs IH]; intros b.
+    induction instrs as [| i instrs IH].
     - simpl; rewrite bind_ret; reflexivity.
-    - simpl; rewrite bind_bind.
-      eapply eqit_bind; try reflexivity.
-      intros []; apply IH.
+    - simpl; rewrite bind_bind. setoid_rewrite IH.
+      reflexivity.
   Qed.
 
-  Lemma denote_blk_append : forall lbl (l:list instr) (b:block (fin lbl)),
-      denote_block (blk_append l b) ≈ (x <- denote_list l ;; denote_block b).
+  Lemma denote_blk_append lbl (l:list instr) (b:block (fin lbl))
+    : denote_block (blk_append l b) ≈ (x <- denote_list l ;; denote_block b).
   Proof.
-    intros lbl.
-    induction l; intros b; simpl.
+    induction l; simpl.
     - rewrite bind_ret. reflexivity.
-    - rewrite bind_bind.
-      eapply eqit_bind'; try reflexivity.
-      intros; apply IHl.
+    - rewrite bind_bind. setoid_rewrite IHl.
+      reflexivity.
   Qed.
-
+  
   (** Utility: denoting the [app] of two lists of instructions binds the denotations. *)
-  Lemma denote_list_app:
-    forall is1 is2,
-      @denote_list (is1 ++ is2) ≅ (@denote_list is1;; denote_list is2).
+  Lemma denote_list_app is1 is2
+    : @denote_list (is1 ++ is2) ≈ (@denote_list is1;; denote_list is2).
   Proof.
-    intros is1 is2; induction is1 as [| i is1 IH]; simpl; intros; [rewrite bind_ret; reflexivity |].
+    induction is1 as [| i is1 IH]; simpl; [rewrite bind_ret; reflexivity |].
     rewrite bind_bind; setoid_rewrite IH; reflexivity.
   Qed.
 
-  Lemma lift_ktree_inr {A B} : lift_ktree_ E A (B + A) inr = inr_.
+  Lemma lift_ktree_inr {A B} : pure (a := A) (b := B + A) inr = inr_.
   Proof. reflexivity. Qed.
 
   Lemma unit_l'_id_sktree {n : nat}
-    : (unit_l' (C := sub (ktree E) fin) (bif := Nat.add) (i := 0)) ⩯ id_ n.
+    : (unit_l' (C := sub (Kleisli m) fin) (bif := Nat.add) (i := 0)) ⩯ id_ n.
   Proof.
-    intros ?. tau_steps; symmetry; tau_steps. rewrite R_0_a. unfold id.
+    intros ?. unfold unit_l', UnitL'_Coproduct, inr_, CoprodInr_sub, inr_, CoprodInr_Kleisli, cat, Cat_Kleisli, pure.
+    rewrite bind_ret. unfold from_bif, FromBifunctor_Kleisli_fin, merge_fin_sum.
+    rewrite R_0_a.
     reflexivity.
   Qed.
 
   Lemma unit_l_id_sktree {n : nat}
-    : (unit_l (C := sub (ktree E) fin) (bif := Nat.add) (i := 0)) ⩯ id_ n.
+    : (unit_l (C := sub (Kleisli m) fin) (bif := Nat.add) (i := 0)) ⩯ id_ n.
   Proof.
-    intros ?. tau_steps; symmetry; tau_steps.
+    intros ?. unfold unit_l, UnitL_Coproduct, case_, CoprodCase_sub, cat, Cat_Kleisli, pure, to_bif, ToBifunctor_Kleisli_fin.
+    rewrite bind_ret.
+    cbn.
     replace (fi' _) with a by
       (apply unique_fin; simpl; auto using Nat.sub_0_r).
     reflexivity.
   Qed.
 
+  Context
+    {IC : Iterative (Kleisli m) sum}.
+
   Lemma raw_asm_correct {A B} (b : bks A B) :
-    denote_asm (raw_asm b) ⩯ (fun a => denote_block (b a)).
+    denote_asm (raw_asm b) ⩯ Kleisli_arrow (fun a => denote_block (b a)).
   Proof.
     unfold denote_asm; cbn.
     rewrite loop_vanishing_1.
@@ -322,7 +353,7 @@ Section CategoryTheory.
    *)
   Lemma raw_asm_block_correct_lifted {A} (b : block (fin A)) :
     denote_asm (raw_asm_block b) ⩯
-               ((fun _  => denote_block b) : sub (ktree _) fin _ _).
+    Kleisli_arrow (fun _  => denote_block b).
   Proof.
     unfold raw_asm_block.
     rewrite raw_asm_correct.
@@ -357,6 +388,11 @@ Section CategoryTheory.
     rewrite pure_asm_correct; reflexivity.
   Defined.
 
+  Lemma fmap_monad {a b} (f : a -> b) (u : m a) :
+    fmap f u ≈ bind u (fun x => ret (f x)).
+  Proof.
+  Admitted.
+
   (** Correctness of the [relabel_asm] combinator.
       Its denotation is the same as denoting the original [asm],
       and composing it on both sides with the renaming functions
@@ -370,9 +406,8 @@ Section CategoryTheory.
     unfold relabel_bks, denote_bks.
     unfold subpure, subm, cat, Cat_sub.
     unfold pure, cat, Cat_Kleisli.
-    unfold bind, ret; simpl.
     rewrite fmap_block_map, bind_ret.
-    reflexivity.
+    apply fmap_monad.
   Qed.
 
   Lemma app_bks_correct: forall {A B C D: nat} (ab: bks A B) (cd: bks C D),
@@ -386,6 +421,7 @@ Section CategoryTheory.
 
     unfold case_, CoprodCase_Kleisli, case_sum, inl_, CoprodInl_Kleisli, pure, cat, Cat_Kleisli.
 
+(*
     unfold from_bif, FromBifunctor_ktree_fin, to_bif, ToBifunctor_ktree_fin; cbn.
 
     rewrite bind_ret.
@@ -395,14 +431,16 @@ Section CategoryTheory.
     all: setoid_rewrite bind_ret.
     all: reflexivity.
   Qed.
+*) Admitted.
 
   Lemma subpure_swap4 {A B C D} :
-    subpure (E := E) (n := (A + B) + (C + D)) swap4 ⩯ swap4.
-  Proof.
+    subpure (M := m) (n := (A + B) + (C + D)) swap4 ⩯ swap4.
+  Proof. (*
     do 2 rewrite !fmap_cat0, fmap_bimap, fmap_id0.
     rewrite !fmap_assoc_r, !fmap_assoc_l, fmap_swap.
     reflexivity.
   Qed.
+*) Admitted.
 
   (** Correctness of the [app_asm] combinator.
       The resulting [asm] gets denoted to the bimap of its subcomponent.

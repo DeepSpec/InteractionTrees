@@ -111,7 +111,7 @@ Qed.
 Global Instance Proper_subm {a b} : Proper (eq2 ==> eq2) (subm a b).
 Proof. hnf; auto. Qed.
 
-Global Instance Proper_unsubm {a b} : Proper (eq2 ==> eq2) (subm a b).
+Global Instance Proper_unsubm {a b} : Proper (eq2 ==> eq2) (unsubm a b).
 Proof. hnf; auto. Qed.
 
 Global Instance Functor_unsubm : Functor sub C Embed unsubm.

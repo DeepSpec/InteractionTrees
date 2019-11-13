@@ -88,14 +88,20 @@ Qed.
 End CocartesianFunctor.
 
 Notation Fun_fin := (sub Fun fin).
-Notation ktree_fin E := (sub (ktree E) fin).
+Notation Kleisli_fin m := (sub (Kleisli m) fin).
 
 Section PureKF.
 
-Context {E : Type -> Type}.
+Context {M : Type -> Type} {MM : Monad.Monad M}.
 
-Definition subpure {n m} (f : Fun_fin n m) : ktree_fin E n m :=
+Definition subpure {n m} (f : Fun_fin n m) : Kleisli_fin M n m :=
   subm (pure (unsubm f)).
+
+Context
+  {EM : EqM M}
+  {EEM : EqMProps M}
+  {ML : MonadLaws M}
+  {MPO : MonadProperOps M}.
 
 Global Instance Functor_pure : Functor _ _ _ (@subpure).
 Proof.
@@ -110,12 +116,15 @@ Proof.
   constructor; intros.
   - intros []; cbn.
     unfold unsubm, case_, CoprodCase_Kleisli, case_sum, CoprodCase_sub, case_.
-    unfold cat, Cat_sub, Cat_Fun.
-    unfold to_bif, ToBifunctor_ktree_fin, ToBifunctor_Fun_fin.
-    rewrite bind_ret.
+    unfold cat, Cat_sub, Cat_Fun, Cat_Kleisli.
+    unfold to_bif, ToBifunctor_Kleisli_fin, ToBifunctor_Fun_fin.
+    rewrite MonadTheory.bind_ret.
+    unfold subpure, subm, pure, unsubm.
     destruct split_fin_sum; reflexivity.
-  - intros ?; cbn. rewrite bind_ret. reflexivity.
-  - intros ?; cbn; rewrite bind_ret; reflexivity.
+  - intros ?; cbn. unfold subpure, pure, subm, inl_, CoprodInl_sub, cat, Cat_Kleisli, Cat_Fun, inl_, CoprodInl_Kleisli, pure.
+    rewrite MonadTheory.bind_ret. reflexivity.
+  - intros ?; cbn. unfold subpure, pure, subm, inr_, CoprodInr_sub, cat, Cat_Kleisli, Cat_Fun, inr_, CoprodInr_Kleisli, pure.
+    rewrite MonadTheory.bind_ret; reflexivity.
 Qed.
 
 End PureKF.
