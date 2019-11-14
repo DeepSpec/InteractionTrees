@@ -52,13 +52,13 @@ Proof.
   unfold interp_mrec.
   rewrite unfold_iter.
   destruct observe; cbn.
-  - rewrite bind_ret; reflexivity.
-  - rewrite bind_ret; reflexivity.
+  - rewrite bind_ret_l; reflexivity.
+  - rewrite bind_ret_l; reflexivity.
   - destruct e; cbn.
-    + rewrite bind_ret; reflexivity.
+    + rewrite bind_ret_l; reflexivity.
     + rewrite bind_vis.
       pstep; constructor. intros. left.
-      rewrite bind_ret.
+      rewrite bind_ret_l.
       apply reflexivity.
 Qed.
 
@@ -103,7 +103,7 @@ Theorem interp_mrec_trigger {U} (a : (D +' E) U) :
 Proof.
   rewrite unfold_interp_mrec; unfold mrecursive.
   destruct a; cbn.
-  rewrite tau_eutt, bind_ret2.
+  rewrite tau_eutt, bind_ret_r.
   reflexivity.
   pstep; constructor. intros; left. rewrite tau_eutt, unfold_interp_mrec; cbn.
   apply reflexivity.
@@ -125,7 +125,7 @@ Proof.
   - rewrite tau_eutt. unfold ITree.trigger, case_; simpl. rewrite bind_vis.
     gstep. constructor.
     intros; red.
-    rewrite bind_ret. rewrite tau_eutt. auto with paco.
+    rewrite bind_ret_l. rewrite tau_eutt. auto with paco.
 Qed.
 
 Theorem mrec_as_interp {T} (d : D T) :

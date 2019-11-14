@@ -35,7 +35,7 @@ Proof.
   rewrite interp_trigger.
                          (* ≈ x <- handler n _ Input ;; interp (handler n) (Ret x) *)
   cbn.                   (* ≈ x <- Ret n ;; interp (handler n) (Ret x) *)
-  rewrite bind_ret.      (* ≈ interp (handler n) (Ret n) *)
+  rewrite bind_ret_l.    (* ≈ interp (handler n) (Ret n) *)
   rewrite interp_ret.    (* ≈ Ret n *)
   reflexivity.
 Qed.

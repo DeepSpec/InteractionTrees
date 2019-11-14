@@ -13,7 +13,7 @@ From ITree Require Import
      Basics.Basics
      Basics.Category
      Basics.CategoryKleisli
-     Basics.MonadTheory
+     Basics.Monad
      Core.ITreeDefinition
      Core.KTree
      Core.KTreeFacts
@@ -51,10 +51,10 @@ Proof.
   unfold interp_state, interp, Basics.iter, MonadIter_stateT0, Basics.iter, MonadIter_itree; cbn.
   rewrite unfold_iter; cbn.
   destruct observe; cbn.
-  - rewrite 2 bind_ret. reflexivity.
-  - rewrite 2 bind_ret.
+  - rewrite 2 bind_ret_l. reflexivity.
+  - rewrite 2 bind_ret_l.
     reflexivity.
-  - rewrite bind_map, bind_bind; cbn. setoid_rewrite bind_ret.
+  - rewrite bind_map, bind_bind; cbn. setoid_rewrite bind_ret_l.
     apply eqit_bind; reflexivity.
 Qed.
 
@@ -120,7 +120,7 @@ Proof.
   rewrite unfold_bind. (* TODO: slow *)
   rewrite (unfold_interp_state f t).
   destruct (observe t).
-  - cbn. rewrite !bind_ret. simpl.
+  - cbn. rewrite !bind_ret_l. simpl.
     apply reflexivity.
   - cbn. rewrite !bind_tau, interp_state_tau.
     gstep. econstructor. gbase. apply CIH.
@@ -210,19 +210,19 @@ Lemma eutt_interp_state_loop {E F S A B C} (RS : S -> S -> Prop)
 Proof.
   intros.
   unfold loop, bimap, Bimap_Coproduct, case_, Case_Kleisli, Function.case_sum, id_, Id_Kleisli, cat, Cat_Kleisli; cbn.
-  rewrite 2 bind_ret.
+  rewrite 2 bind_ret_l.
   eapply (eutt_interp_state_iter eq eq); auto; intros.
   rewrite 2 interp_state_bind.
   subst.
   eapply eutt_clo_bind; eauto.
   intros.
   cbn in H2; destruct (snd u1); rewrite <- (proj2 H2).
-  - rewrite bind_ret, 2 interp_state_ret.
+  - rewrite bind_ret_l, 2 interp_state_ret.
     pstep.
     constructor.
     cbn.
     split; auto using (proj1 H2).
-  - rewrite bind_ret, 2 interp_state_ret. pstep. constructor. cbn.
+  - rewrite bind_ret_l, 2 interp_state_ret. pstep. constructor. cbn.
     split; auto using (proj1 H2).
 Qed.
 
@@ -242,7 +242,7 @@ Proof.
   ginit. gcofix CIH; intros i s.
   rewrite 2 unfold_iter; cbn.
   rewrite !bind_bind.
-  setoid_rewrite bind_ret.
+  setoid_rewrite bind_ret_l.
   rewrite interp_state_bind.
   guclo eqit_clo_bind; econstructor; eauto.
   - apply EQ_t.
@@ -253,3 +253,12 @@ Proof.
     + rewrite interp_state_ret; apply reflexivity.
 Qed.
 
+Lemma interp_state_iter' {E F } S (f : E ~> stateT S (itree F)) {I A}
+      (t  : I -> itree E (I + A))
+  : forall i, state_eq (State.interp_state f (ITree.iter t i))
+                       (Basics.iter (fun i => State.interp_state f (t i)) i).
+Proof.
+  eapply interp_state_iter.
+  intros i.
+  red. reflexivity.
+Qed.

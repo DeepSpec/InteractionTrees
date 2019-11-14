@@ -95,7 +95,7 @@ Qed.
 Global Instance CatIdR_ktree : CatIdR (ktree E).
 Proof.
   intros A B f a; unfold cat, Cat_Kleisli, ITree.cat, id_, Id_Kleisli; cbn.
-  rewrite <- (bind_ret2 (f a)) at 2.
+  rewrite <- (bind_ret_r (f a)) at 2.
   reflexivity.
 Qed.
 

@@ -256,7 +256,7 @@ Section CategoryTheory.
       denote_bk (after instrs b) ≅ (denote_list instrs ;; denote_br b).
   Proof.
     induction instrs as [| i instrs IH]; intros b.
-    - simpl; rewrite bind_ret; reflexivity.
+    - simpl; rewrite bind_ret_l; reflexivity.
     - simpl; rewrite bind_bind.
       eapply eqit_bind; try reflexivity.
       intros []; apply IH.
@@ -267,7 +267,7 @@ Section CategoryTheory.
   Proof.
     intros lbl.
     induction l; intros b; simpl.
-    - rewrite bind_ret. reflexivity.
+    - rewrite bind_ret_l. reflexivity.
     - rewrite bind_bind.
       eapply eqit_bind'; try reflexivity.
       intros; apply IHl.
@@ -278,7 +278,7 @@ Section CategoryTheory.
     forall is1 is2,
       @denote_list (is1 ++ is2) ≅ (@denote_list is1;; denote_list is2).
   Proof.
-    intros is1 is2; induction is1 as [| i is1 IH]; simpl; intros; [rewrite bind_ret; reflexivity |].
+    intros is1 is2; induction is1 as [| i is1 IH]; simpl; intros; [rewrite bind_ret_l; reflexivity |].
     rewrite bind_bind; setoid_rewrite IH; reflexivity.
   Qed.
 
@@ -371,7 +371,7 @@ Section CategoryTheory.
     unfold subpure, subm, cat, Cat_sub.
     unfold pure, cat, Cat_Kleisli.
     unfold bind, ret; simpl.
-    rewrite fmap_block_map, bind_ret.
+    rewrite fmap_block_map, bind_ret_l.
     reflexivity.
   Qed.
 
@@ -388,11 +388,11 @@ Section CategoryTheory.
 
     unfold from_bif, FromBifunctor_ktree_fin, to_bif, ToBifunctor_ktree_fin; cbn.
 
-    rewrite bind_ret.
+    rewrite bind_ret_l.
 
     destruct split_fin_sum.
     all: rewrite fmap_block_map.
-    all: setoid_rewrite bind_ret.
+    all: setoid_rewrite bind_ret_l.
     all: reflexivity.
   Qed.
 

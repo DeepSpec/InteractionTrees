@@ -112,10 +112,10 @@ Proof.
     unfold unsubm, case_, Case_Kleisli, case_sum, Case_sub, case_.
     unfold cat, Cat_sub, Cat_Fun.
     unfold to_bif, ToBifunctor_ktree_fin, ToBifunctor_Fun_fin.
-    rewrite bind_ret.
+    rewrite bind_ret_l.
     destruct split_fin_sum; reflexivity.
-  - intros ?; cbn. rewrite bind_ret. reflexivity.
-  - intros ?; cbn; rewrite bind_ret; reflexivity.
+  - intros ?; cbn. rewrite bind_ret_l. reflexivity.
+  - intros ?; cbn; rewrite bind_ret_l; reflexivity.
 Qed.
 
 End PureKF.

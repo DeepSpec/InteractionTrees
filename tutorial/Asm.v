@@ -20,10 +20,9 @@ From ITree Require Import
      ITree
      ITreeFacts
      ITreeMonad
-     Basics.MonadTheory
+     Basics.Monad
      Basics.CategorySub
      Events.State
-     Events.StateKleisli
      Events.StateFacts.
 
 Require Import Fin Utils_tutorial.

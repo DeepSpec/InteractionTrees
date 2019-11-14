@@ -4,7 +4,7 @@
 From ITree Require Export
      Basics.Basics
      Basics.Category
-     Basics.MonadTheory
+     Basics.Monad
      Basics.CategoryKleisli
      Basics.CategoryKleisliFacts
      Basics.FunctionFacts
