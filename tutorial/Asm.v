@@ -23,7 +23,6 @@ From ITree Require Import
      Basics.Monad
      Basics.CategorySub
      Events.State
-     Events.StateKleisli
      Events.StateFacts.
 
 Require Import Fin Utils_tutorial.

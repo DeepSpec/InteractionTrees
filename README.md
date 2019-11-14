@@ -114,6 +114,7 @@ for testing.
     + `FunctionFacts`
 
     + `Monad`: Properties of monads (in the category of functions).
+    + `MonadState`: The state monad transformer.
 
 - `Core`: Main definitions for interaction trees.
 
