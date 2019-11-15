@@ -138,6 +138,16 @@ Section PureITree.
 
   Definition PureITreeSpec A := {w : _PureITreeSpec A | monotonici A w}.
 
+  Definition _div_spec A : _PureITreeSpec A := fun p _ => p spin.
+
+  Lemma div_spec_monot : forall A, monotonici A (_div_spec A).
+    Proof.
+      unfold monotonici, _div_spec. auto.
+    Qed.
+
+  Definition div_spec A := exist _ (_div_spec A) (div_spec_monot A).
+    
+
   Lemma retpi_monot : forall A (a : A), monotonici A (_retpi A a).
   Proof.
     unfold monotonici. intuition. unfold _retpi in *. auto.
@@ -146,6 +156,14 @@ Section PureITree.
   Inductive is_val A (a : A) : itree Void A -> Prop :=
     | base :  is_val A a (ITreeDefinition.Ret a)
     | tau (t : itree Void A): is_val A a t -> is_val A a (Tau t) .
+
+  Lemma is_val_to_eutt : forall A (a : A) (t : itree Void A),
+      is_val A a t -> ret a ≈ t.
+  Proof.
+    intros. induction H.
+    - reflexivity.
+    - rewrite tau_eutt. auto.
+  Qed.
 
   Definition is_val_eutt A (a : A) (t : itree Void A) := t ≈ ret a.
 
@@ -214,7 +232,7 @@ Section PureITree.
 
   Ltac dest_void := match goal with [ E : Void ?A  |- _ ]=> destruct E end.  
 
-  Lemma divergence_resp_eutt : forall A, resp_eutt Void A divergence.
+  Lemma divergence_resp_eutt' : forall A, resp_eutt Void A divergence.
     Proof.
       intro A. intro. intro.  intro. split.
       - generalize dependent t2. generalize dependent t1. pcofix CIH.
@@ -235,7 +253,7 @@ Section PureITree.
           rewrite <- (tau_eutt t). rewrite H. reflexivity.
   Qed.
 
-  Lemma divergence_resp_eutt' : forall A, resp_eutt Void A divergence.
+  Lemma divergence_resp_eutt : forall A, resp_eutt Void A divergence.
   Proof.
     intros. unfold resp_eutt. intros. rewrite H. tauto.
   Qed.
@@ -277,6 +295,17 @@ Section PureITree.
     - rewrite <- Heutt in H. auto.
   Qed.
 
+  Lemma bind_pred_resp_eutt' : forall A B (f : A -> _PureITreeSpec B)
+                               (p : itree Void B -> Prop) (Hp : resp_eutt Void B p) (w : _PureITreeSpec A),
+      resp_eutt Void A (fun (t : itree Void A) => (exists a, ret a ≈ t /\ f a p Hp) \/
+                                                  (divergence t /\ w divergence (divergence_resp_eutt A) /\ p spin )).
+  Proof.
+    intros. intros t1 t2 Heutt. split; intros; destruct H.
+    - destruct H as [ a [Hta Hfa] ]. left. exists a. rewrite Hta. auto.
+    - rewrite Heutt in H. auto.
+    - left. destruct H as [ a [Hta Hfa] ]. exists a. rewrite Hta. symmetry in Heutt. auto.
+    - rewrite <- Heutt in H. auto.
+  Qed.    
   
   (*intuitively, you have two choices, prove the tree evaluates to a and prove f a p,
     or prove t is infinite and prove that the infinite predicate is in w*)
@@ -287,7 +316,12 @@ Section PureITree.
   (bind_pred_resp_eutt A B f p Hp).
 (* replace   *)
 
-
+  Definition _bindpi' A B (w : _PureITreeSpec A) (f : A -> _PureITreeSpec B) :=
+    fun (p : itree Void B -> Prop) (Hp : resp_eutt Void B p) =>
+      w (fun (t : itree Void A) => (exists a, ret a ≈ t /\ f a p Hp) \/
+                                   (divergence t /\ w divergence (divergence_resp_eutt A) /\ p spin) )
+        (bind_pred_resp_eutt' A B f p Hp w).
+ (*new div pre, (divergence t /\ w div _ /\ p spin)   *)
   Lemma bindpi_monot : forall A B (w : _PureITreeSpec A) (f : A -> _PureITreeSpec B),
       monotonici A w -> (forall a, monotonici B (f a)) -> monotonici B (_bindpi A B w f).
   Proof.
@@ -305,6 +339,23 @@ Section PureITree.
       eapply H0; eauto.
   Qed.
 
+  Lemma bindpi_monot' : forall A B (w : _PureITreeSpec A) (f : A -> _PureITreeSpec B),
+      monotonici A w -> (forall a, monotonici B (f a)) -> monotonici B ( _bindpi' A B w f).
+  Proof.
+    unfold monotonici. intros. unfold _bindpi in *.
+    set (fun (t : itree Void A) p0 Hp0 => (exists a, ret a ≈ t /\ f a p0 Hp0)\/ 
+                                          (divergence t /\ w divergence (divergence_resp_eutt A) /\ p spin))  as fp.
+    enough (forall t, fp t p Hp -> fp t p' Hp').
+    - eapply H with (p := fun t => fp t p Hp).
+      + intros.  apply H3 in H4. 
+        unfold fp in H4. destruct H4; auto. right. destruct H4. destruct H5. split; auto.
+      + apply H2.
+    - unfold fp. intros. destruct H3; auto. left.
+      intros. destruct H3 as [a [Hvala Hfa] ].
+      exists a. split; auto.
+      eapply H0; eauto.
+  Qed.
+  
 
   Definition retpi A (a : A) : PureITreeSpec A :=
     exist _ (_retpi A a) (retpi_monot A a).
@@ -315,16 +366,13 @@ Section PureITree.
     let Hf' := fun a => proj2_sig (f a) in
     exist _ (_bindpi A B w' f') (bindpi_monot A B w' f' Hw' Hf').
 
-  Global Instance PureItreeSpecMonad : Monad PureITreeSpec :=
-    {
-      ret := retpi;
-      bind := bindpi
-    }.
-
-
+  Definition bindpi' A B (w : PureITreeSpec A) (f : A -> PureITreeSpec B) :=
+    let '(exist _ w' Hw') := w in
+    let f' := fun a => proj1_sig (f a) in
+    let Hf' := fun a => proj2_sig (f a) in
+    exist _ (_bindpi' A B w' f') (bindpi_monot' A B w' f' Hw' Hf').
   Global Instance PureITreeSpecEq : EqM PureITreeSpec :=
     fun A w1 w2 => forall (p : itree Void A -> Prop) (Hp : resp_eutt Void A p), proj1_sig w1 p Hp <-> proj1_sig w2 p Hp.
-
 
   Lemma ret_not_div : forall (A : Type) (E : Type -> Type) (a : A), ~ (@divergence E A (ret a)).
     Proof.
@@ -337,6 +385,14 @@ Section PureITree.
       intros. pinversion H; subst. auto.
     Qed.
  
+
+  Section SpecMonadCand1.
+    Instance PureItreeSpecMonad : Monad PureITreeSpec :=
+    {
+      ret := retpi;
+      bind := bindpi
+    }.
+
   Lemma retpi_bindpi : forall A B (f : A -> PureITreeSpec B) (a : A), 
       bind (ret a) f ≈ f a.
     Proof.
@@ -391,7 +447,7 @@ Section PureITree.
     Qed.
 
 
-  Global Instance PureItreeSpecLaws : MonadLaws PureITreeSpec.
+  Instance PureItreeSpecLaws : MonadLaws PureITreeSpec.
   Proof.
     constructor.
     - apply retpi_bindpi.
@@ -399,6 +455,67 @@ Section PureITree.
     - apply bindpi_bindpi.
   Qed.  
 
+  End SpecMonadCand1.
+
+  Section SpecMonadCand2.
+    
+    Lemma div_imp_p_iff_p_spin : forall A (p : itree Void A -> Prop),
+      (resp_eutt Void A p) ->
+      (forall t, divergence t -> p t) <-> p spin.
+      Proof.
+        intros. split.
+        - intros. apply H0. apply spin_div.
+        - intros. apply div_spin_eutt in H1. eapply H; eauto.
+      Qed.
+
+    Instance PureITreeSpecMonad : Monad PureITreeSpec := 
+      {
+        ret := retpi;
+        bind := bindpi';
+      }.
+
+     Lemma retpi_bindpi' : forall A B (f : A -> PureITreeSpec B) (a : A),
+        bind (ret a) f ≈ f a.
+     Proof.
+       intros. split.
+       - cbn. unfold _bindpi', _retpi. intros. destruct (f a) as [wfa Hwfa] eqn : Heqfa.
+         simpl. destruct H. 
+         + destruct H as [ a0 [Hreta0 Hfa0] ]. apply inv_ret in Hreta0. subst.
+           rewrite Heqfa in Hfa0. simpl in *. auto.
+         + destruct H. apply ret_not_div in H. contradiction.
+       - intros. cbn. unfold _bindpi', _retpi. left. exists a. split; auto.
+         reflexivity.
+     Qed.
+
+     Lemma bindpi'_retpi : forall A (w : PureITreeSpec A), bind w (fun x => ret x) ≈ w.
+       Proof.
+         intros. destruct w as [w Hw]. split.
+         - cbn. unfold _bindpi'. eapply Hw. intros t.
+           intros. destruct H.
+           + destruct H as [ a [Hreta Hpa] ]. unfold _retpi in Hpa.
+             eapply Hp; try apply Hpa. symmetry. auto.
+           + destruct H.  apply div_spin_eutt in H as Htspin.
+             enough (p spin). { eapply Hp; eauto. } tauto.
+         - simpl. unfold _bindpi'. intros. eapply Hw; eauto.
+           intros t. intros. unfold _retpi.
+           specialize (eutt_reta_or_div A t) as Hor. destruct Hor.
+           + left. destruct H1 as [a Hreta].  exists a. split; auto. eapply Hp; eauto.
+           + right. split; auto. split.
+             * unfold monotonici in Hw.
+               assert (p spin). { apply div_spin_eutt in H1. eapply Hp; eauto. symmetry. auto. }
+               (* maybe need w to be downwardly closed in some sense, maybe pays to continue with the other model,
+                  come back to this later*)
+               destruct (div_imp_p_iff_p_spin A p Hp) as [H3 H4]. specialize (H4 H2).
+               (* w accepts p, div ⊆ p, therefore should w accept div, this seems like the hoare logic weakening rule,
+                  when start having preconditions (like state)  will probably need contravariant weakening*)
+
+               (* pureitree spec is a psot condition enricher, as is exceptions, 
+                  state is a precondition and post condition enricher  *)
+               admit. (* this case seems conceptually new ...  *)
+             * eapply Hp; eauto.  symmetry. apply div_spin_eutt. auto.
+       Admitted.
+
+  
   (* does this satisfy the monad laws? is it unique in some sense, if not what are the implications of
    this choice*)
   
