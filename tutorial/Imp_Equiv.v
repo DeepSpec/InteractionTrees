@@ -864,7 +864,7 @@ Section Examples.
     induction a; simpl;
       (* ANum and AId follow immediately *)
       try reflexivity; destruct (fold_constants_aexp a1); destruct (fold_constants_aexp a2);
-        cbn; intros; rewrite interp_imp_bind; try rewrite interp_imp_bind, bind_ret; 
+        cbn; intros; try rewrite interp_imp_bind; try rewrite interp_imp_bind, bind_ret; 
           try rewrite interp_imp_ret; rewrite IHa1; cbn; try (rewrite interp_imp_ret, bind_ret);
             try rewrite interp_imp_trigger_get_var; try rewrite interp_imp_bind;
               try rewrite bind_ret; try rewrite interp_imp_ret; try rewrite interp_imp_bind;
@@ -928,66 +928,96 @@ Proof. Admitted.
 
 State.interp_state*)
 
+  
+
 Theorem fold_constants_bexp_sound:
   btrans_sound fold_constants_bexp.
 Proof.
   unfold btrans_sound. intros b. unfold bequiv.
   unfold eval_bexp.
-  intros s.
   induction b; try reflexivity.
-  - cbn. 
-    remember (fold_constants_aexp a1) as a1' eqn:Heqa1'.
-    remember (fold_constants_aexp a2) as a2' eqn:Heqa2'.
-    rewrite interp_imp_bind.
-
-    generalize fold_constants_aexp_sound. 
-    unfold atrans_sound.
+  - cbn;
+    remember (fold_constants_aexp a1) as a1' eqn:Heqa1';
+    remember (fold_constants_aexp a2) as a2' eqn:Heqa2'; intros;
+    rewrite interp_imp_bind;
+    generalize fold_constants_aexp_sound;
+    unfold atrans_sound;
     intros EQ; specialize (EQ a1).
-    match goal with
+  generalize fold_constants_aexp_sound;
+    unfold atrans_sound;
+    intros EQ1; specialize (EQ1 a2).
+  match goal with
       |- ITree.bind (run_state (interp_imp ?foo) _) _ ≈ _ =>
-                                                    assert (foo ≈ denote_aexp (fold_constants_aexp a1))
-                                                    end.
-    {
-      Set Printing Implicit.
-      apply denote_aexp_proper, EQ.
-
-    Typeclasses eauto := 4.
-    (* rewrite EQ. *)
+      assert (foo ≈ denote_aexp (fold_constants_aexp a1))
+         end.
+  apply denote_aexp_proper, EQ. 
+      (*  Typeclasses eauto := 4. *)
+  eapply eutt_cong_eutt'.  
+  eapply eutt_clo_bind with (UU := eq) (t2 := (run_state (interp_imp (denote_aexp a1')) s))
+                                   (k2 := fun '(g', x) => run_state (interp_imp (ITree.bind (denote_aexp a2') (fun r : value => Ret (x =? r)))) g').
+  apply eutt_interp_imp; try rewrite H; try rewrite Heqa1'; reflexivity. 
+  intros; rewrite H0; destruct u2; try rewrite 2 interp_imp_bind.
+  match goal with
+        |- ITree.bind (run_state (interp_imp ?foo) _) _ ≈ _ =>
+        assert (foo ≈ denote_aexp (fold_constants_aexp a2))
+      end. { apply denote_aexp_proper, EQ1. }
+      eapply eutt_clo_bind with (UU := eq) (t2 := (run_state (interp_imp (denote_aexp a2')) e)) (k2 := fun '(g', x) => run_state (interp_imp (Ret (n =? x))) g').
+      eapply eutt_interp_imp. rewrite H1. rewrite Heqa2'. reflexivity.
+      reflexivity. intros; subst. reflexivity.
+  reflexivity.
+  destruct a1', a2'; cbn; try (repeat rewrite interp_imp_bind); try reflexivity; 
+    rewrite_imp_ret_; rewrite_imp_ret;
+      destruct (n =? n0); simpl; rewrite interp_imp_ret; reflexivity.
+  - cbn;
+    remember (fold_constants_aexp a1) as a1' eqn:Heqa1';
+    remember (fold_constants_aexp a2) as a2' eqn:Heqa2';
+    intros; rewrite interp_imp_bind;
+    generalize fold_constants_aexp_sound;
+    unfold atrans_sound;
+    intros EQ; specialize (EQ a1).
+  generalize fold_constants_aexp_sound;
+    unfold atrans_sound;
+    intros EQ1; specialize (EQ1 a2).
+  match goal with
+      |- ITree.bind (run_state (interp_imp ?foo) _) _ ≈ _ =>
+      assert (foo ≈ denote_aexp (fold_constants_aexp a1))
+         end.
+  apply denote_aexp_proper, EQ. 
+      (*  Typeclasses eauto := 4. *)
+  eapply eutt_cong_eutt'.  
+  eapply eutt_clo_bind with (UU := eq) (t2 := (run_state (interp_imp (denote_aexp a1')) s))
+                                   (k2 := fun '(g', x) => run_state (interp_imp (ITree.bind (denote_aexp a2') (fun r : value => Ret (x <=? r)))) g').
+  apply eutt_interp_imp; try rewrite H; try rewrite Heqa1'; reflexivity. 
+  intros; rewrite H0; destruct u2; try rewrite 2 interp_imp_bind.
+  match goal with
+        |- ITree.bind (run_state (interp_imp ?foo) _) _ ≈ _ =>
+        assert (foo ≈ denote_aexp (fold_constants_aexp a2))
+      end. { apply denote_aexp_proper, EQ1. }
+      eapply eutt_clo_bind with (UU := eq) (t2 := (run_state (interp_imp (denote_aexp a2')) e)) (k2 := fun '(g', x) => run_state (interp_imp (Ret (n <=? x))) g').
+      eapply eutt_interp_imp. rewrite H1. rewrite Heqa2'. reflexivity.
+      reflexivity. intros; subst. reflexivity. reflexivity. 
+  destruct a1', a2'; cbn; try (repeat rewrite interp_imp_bind); try reflexivity; 
+    rewrite_imp_ret_; rewrite_imp_ret;
+      destruct (n <=? n0); simpl; rewrite interp_imp_ret; reflexivity.
+  - cbn. remember (fold_constants_bexp b) as b' eqn:Heqb'.
+    intros; rewrite interp_imp_bind. rewrite IHb.
+    destruct b'; cbn; try rewrite_imp_ret; try rewrite interp_imp_ret; try reflexivity;
+    try(rewrite_imp_bind; rewrite 2 interp_imp_bind; rewrite bind_bind; reflexivity).
+  - cbn.
+    remember (fold_constants_bexp b1) as b1' eqn: Heqb1'.
+    remember (fold_constants_bexp b2) as b2' eqn: Heqb2'.
+    intros; rewrite interp_imp_bind. rewrite IHb1.
     eapply eutt_cong_eutt'.
-    {
-      eapply eutt_clo_bind with (UU := eq).
-      eapply eutt_interp_imp; eauto.
-      eapply denote_aexp_proper.
-      eauto.
-      intros ? [] ->.
-
-      eapply run_state_state_eq_proper; eauto.
-
-
-      eapply eutt_interp_imp; eauto.
-    Set Printing Implicit.
-
-
-    Typeclasses eauto := 4.
-    rewrite EQ.
-   (* apply (sym_aequiv a1 (fold_constants_aexp a1)) in H. *) 
-    (*setoid_rewrite (H a1) . *) 
-    rewrite eutt_clo_bind with (UU:=eq) (t2:= (run_state (interp_imp (denote_aexp a1')) s)).
-    (*
-    rewrite fold_constants_aexp_sound. 
-    assert (denote_aexp a1 ≈ denote_aexp a1'). {
-      rewrite Heqa1'. 
-      pose proof fold_constants_aexp_sound as Has.
-      unfold atrans_sound in Has.
-      apply (sym_aequiv a1 (fold_constants_aexp a1)) in Has. 
-      setoid_rewrite Has. reflexivity.
-    } 
-    2 : { unfold run_state. eapply eutt_interp_imp. apply H. rewrite H. setoid_rewrite H. 
-    rewrite H. *)  Admitted. 
-   (* setoid_rewrite -> H. 
-    replace (denote_aexp a1) with (denote_aexp a1') by
-      (subst a1'; rewrite <- fold_constants_aexp_sound; reflexivity).
-    destruct a1'. 
-    setoid_rewrite interp_imp_bind.
-    destruct a1'; destruct a2'.
-    + setoid_rewrite interp_imp_bind. *) 
+    eapply eutt_clo_bind with (UU := eq) (t2 := (run_state (interp_imp (denote_bexp b1')) s)) (k2 := fun '(g', x) => run_state (interp_imp (ITree.bind (denote_bexp b2') (fun r : bool => Ret (x && r)%bool))) g'). reflexivity. intros. rewrite H; subst. 
+    destruct u2. rewrite 2 interp_imp_bind. rewrite IHb2. reflexivity. reflexivity.
+    destruct b1'; destruct b2'; cbn; try rewrite_imp_ret; try rewrite interp_imp_ret; try reflexivity;
+      try(rewrite_imp_bind; rewrite 2 interp_imp_bind; rewrite bind_bind; reflexivity); 
+      try cbn; try rewrite bind_ret; try rewrite interp_imp_bind_ret; try rewrite interp_imp_ret; try reflexivity; try rewrite 2 interp_imp_bind; try rewrite interp_imp_ret; try rewrite bind_ret; try rewrite 2 interp_imp_bind; try rewrite bind_bind; cbn; try eapply eutt_clo_bind; try reflexivity;
+        try intros; try subst; try destruct u2; try rewrite_imp_bind;
+          try rewrite interp_imp_bind; try rewrite interp_imp_ret; try rewrite bind_ret;
+      try rewrite interp_imp_bind; try rewrite interp_imp_bind; try rewrite bind_bind;
+      cbn; try rewrite interp_imp_ret; try reflexivity;
+      try (eapply eutt_clo_bind); try reflexivity;
+      try intros; try subst; try destruct u2; try rewrite interp_imp_ret; try rewrite bind_ret;
+      try rewrite interp_imp_ret; try reflexivity.
+Qed. 
