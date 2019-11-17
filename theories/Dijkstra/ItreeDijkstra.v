@@ -21,6 +21,7 @@ From ITree Require Import
      Events.State
      Events.StateFacts
      Core.Divergence
+     Dijkstra.DijkstraMonad
    (*  Simple *)
 .
 
@@ -455,6 +456,72 @@ Section PureITree.
     - apply bindpi_bindpi.
   Qed.  
 
+  Instance PureITreeOrderM : OrderM PureITreeSpec :=
+    fun A (w1 w2 : PureITreeSpec A) => forall p Hp, proj1_sig w2 p Hp -> proj1_sig w1 p Hp.
+
+  Instance PureItreeOrder : OrderedMonad PureITreeSpec.
+  Proof.
+    unfold OrderedMonad. intros. destruct w1 as [w1' Hw1']. destruct w2 as [w2' Hw2']. simpl in *.
+    intros p Hp. simpl.
+    unfold _bindpi. intros.  eapply H. simpl.
+    eapply Hw2'; try (apply H1). intros t. intros. destruct H2; auto.
+    destruct H2 as [a [Hreta Hf2a] ]. left. specialize (H0 a p Hp). exists a. auto.
+  Qed.
+
+    
+  Definition _obsip A (t : itree Void A) : _PureITreeSpec A := fun p _ => p t.
+
+  Lemma obsip_monot : forall A (t : itree Void A), monotonici A (_obsip A t).
+    Proof.
+      unfold monotonici. intros. unfold _obsip in *. auto.
+    Qed.
+
+  Definition obsip A (t : itree Void A) : PureITreeSpec A :=
+    exist _ (_obsip A t) (obsip_monot A t).
+
+(*
+  Instance ITreeVoidMonad : Monad (itree Void) :=
+    {
+      ret := ret;
+      bind := @bind;
+    }.
+*)
+  Lemma obsip_pres_ret : forall A (a : A), obsip A (ret a) ≈ ret a.
+    Proof.
+      intros. intros p Hp. cbn. unfold _retpi, _obsip. tauto.
+    Qed.
+
+  Lemma obsip_pres_bind : forall A B (t : itree Void A) (f : A -> itree Void B),
+        obsip B (bind t f) ≈ bind (obsip A t) (fun a => obsip B (f a)).
+    Proof.
+      intros. intros p Hp. cbn. unfold _obsip, _bindpi. split; intros.
+      - specialize (eutt_reta_or_div A t) as Hor. destruct Hor.
+        + destruct H0 as [a Hreta ]. left. exists a. split; auto.
+          assert (p (bind (ret a) f) ). 
+          * eapply Hp; eauto. rewrite <- Hreta. reflexivity.
+          * simpl in H0. eapply Hp; eauto. symmetry. specialize (bind_ret a f) as H1. rewrite H1. reflexivity.
+        + right. split; auto. apply div_spin_eutt in H0. specialize (spin_bind Void A B f) as H1.
+          eapply Hp; eauto. rewrite <- H0 in H1. eapply Hp; eauto. rewrite <- H0. reflexivity.
+      - destruct H.
+        + destruct H as [a [Hreta Hpfa] ]. specialize (bind_ret a f) as H1.
+          assert (bind (ret a) f ≈ f a ). {  rewrite H1. reflexivity. }
+           rewrite Hreta in H. eapply Hp; eauto.
+        + destruct H. apply div_spin_eutt in H.
+          assert (bind t f ≈ spin). {  rewrite H. symmetry. apply spin_bind. }
+          eapply Hp; eauto.
+    Qed.
+
+    Instance PureITreeEffectObs : EffectObs (itree Void) (PureITreeSpec) := obsip.
+
+    Instance PureITreeMorph : MonadMorphism (itree Void) (PureITreeSpec) PureITreeEffectObs.
+    Proof.
+      constructor.
+      - apply obsip_pres_ret.
+      - apply obsip_pres_bind.
+    Qed.
+    (* not 100% sure but I think this actually is a partial correctness spec, or maybe not?  *)
+  
+
   End SpecMonadCand1.
 
   Section SpecMonadCand2.
@@ -514,7 +581,7 @@ Section PureITree.
                admit. (* this case seems conceptually new ...  *)
              * eapply Hp; eauto.  symmetry. apply div_spin_eutt. auto.
        Admitted.
-
+       End SpecMonadCand2.
   
   (* does this satisfy the monad laws? is it unique in some sense, if not what are the implications of
    this choice*)
