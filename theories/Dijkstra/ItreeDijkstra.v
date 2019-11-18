@@ -687,7 +687,7 @@ Section StateITree.
     - unfold _bindsi. intros. eapply Hw; try (apply H). intros. simpl in H0. clear H.
       destruct H0.
       + destruct H as [a [s' H ] ]. destruct H. destruct (f a) as [fa Hfa] eqn : Heq. simpl in *.
-        left. exists a. exists s'. split; auto.rewrite Heq. simpl. eapply Hfa; (try apply H0).
+        left. exists a. exists s'. split; auto. rewrite Heq. simpl. eapply Hfa; (try apply H0).
         intros. destruct H1; auto.
       + destruct H. destruct H0.
         * destruct H0 as [b [s'' [Hretbs'' Hga] ] ]. exfalso.
