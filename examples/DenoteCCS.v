@@ -25,10 +25,7 @@ From Coq Require Import
     (#) Milner, R., Communication and Concurrency, 1989.
 *)
 
-
-
 Import ListNotations.
-
 Set Implicit Arguments.
 
 Section ccs.
@@ -39,7 +36,7 @@ Section ccs.
          | A = P1     Process identifier *** (TODO)
          | a.P1       Action
          | P1 + P2    Choice (Sum type)
-         | P1 ∥ P2    Parallel composition
+         | P1 ∥ P2    Parallel composition *** (WIP)
          | P1 ∖ a     Restriction *** (TODO)
 
       * Empty process
@@ -111,8 +108,8 @@ Example ccs2 (a : A) : ccs := pick (fun b => if b
 
 Example finite2 (a : A) : Type := finitary (ccs2 a).
 
-(* Do we need finitary? Aren't all of these trees built from our operators going
-   to be finite? *)
+(* ✠ Question: Do we need finitary? Aren't all of these trees built from our
+   operators going to be finite? *)
 
 (* Helper function for choose --
    Crawling over possible labels in the ccs tree and flattening them as a list. *)
@@ -126,7 +123,36 @@ Next Obligation.
   - exact IHD.
 Defined.
 
-(* Example ports. *)
+(* Here is a convoluted attempt at going forward and trying to define the
+   parallel composition operator... It is bad.*)
+(* Wrong. *)
+CoFixpoint choose (p1 p2 : list ccs) : bool -> ccs :=
+  match p1 with
+  | [] => match p2 with
+         | [] => fun b => zero
+         | h :: t => fun b => pick (choose [] t)
+         end
+  | h1 :: t1 => match p2 with
+        | [] => fun b => zero
+        | h2 :: t2 =>
+          fun b =>
+          match b with
+          | true => pick (choose t1 p2)
+          | false => pick (choose p1 t2)
+          end
+        end
+  end.
+
+(* Parallel composition operator. Wrong. *)
+Definition par (p1 p2 : ccs) (pf1 : finitary p1) (pf2 : finitary p2) : ccs :=
+  pick (choose (label_list pf1) (label_list pf2)).
+
+(* These don't work because it doesn't reason about any of the labels in a
+   meaningful way. It nests the choose operators, but in a totally non-
+   sensical manner. We stare at the label lists again, to see how this is useful
+   and what we could do. *)
+
+(* Example label lists. *)
 
 (* A ccs tree of depth 1. *)
 Example label_list1 :=
@@ -181,35 +207,36 @@ Example ex_label_list3 :=
 Eval cbv in ex_label_list3.
 
 (* The possible transitions from `(a.P + b.Q) ∥ (ā.∅ ∥ b̄.∅)` are:
-      (τ)⟶ P ∥ (∅ ∥ b̄.∅)
-      (τ)⟶ Q ∥ (ā.∅ ∥ ∅)
-      (b̄)⟶ P ∥ (∅ ∥ ∅)
-      (ā)⟶ Q ∥ (∅ ∥ ∅) *)
+    1)  -(τ)⟶ P ∥ (∅ ∥ b̄.∅) -(b̄)⟶ P ∥ (∅ ∥ ∅)
+    2)  -(τ)⟶ Q ∥ (ā.∅ ∥ ∅) -(ā)⟶ Q ∥ (∅ ∥ ∅) *)
 
 (* ✠ Question: Does `∅ ∥ ∅` transition to anything?
-   It looks like there's no applicable transition strategy in
+   There are no applicable transition strategy in
    LTS (Labeled Transition System) for this agent expression. *)
 
-(* Wrong. *)
-CoFixpoint choose (p1 p2 : list ccs) : bool -> ccs :=
-  match p1 with
-  | [] => match p2 with
-         | [] => fun b => zero
-         | h :: t => fun b => pick (choose [] t)
-         end
-  | h1 :: t1 => match p2 with
-        | [] => fun b => zero
-        | h2 :: t2 =>
-          fun b =>
-          match b with
-          | true => pick (choose t1 p2)
-          | false => pick (choose p1 t2)
-          end
-        end
-  end.
+(* Sub-example : (ā.∅ ∥ b̄.∅)
+    1)  -(ā)⟶ (∅ ∥ b̄.∅) -(b̄)⟶ (∅ ∥ ∅)
+    2)  -(b̄)⟶ (ā.∅ ∥ ∅) -(ā)⟶ (∅ ∥ ∅)
+   This is an example where there are no complementary actions for a parallel
+   composition.
 
-(* Parallel composition operator. Wrong. *)
-(*Definition par (p1 p2 : ccs) (pf1 : finitary p1) (pf2 : finitary p2) : ccs :=
-  pick (choose (ports pf1) (ports pf2)).*)
+   We can try defining a parallel composition operator with a straight-forward
+   type declaration:
+   > Definition par (p1 p2 : ccs) (pf1 : finitary p1) (pf2 : finitary p2): ccs.
+   p1 := ā.∅
+   p2 := b̄.∅
+   par p1 p2 ≈ (āb̄, ∅ ∥ ∅) + (b̄ā, ∅ ∥ ∅)
+             ≈ pick (fun b => if b then @send a (@send b (par ∅ ∅))
+                                   else @send b (@send a (par ∅ ∅)))
+             ≈ (* Stuck. Do we need a parallel event of empty processes? *)
+*)
+
+(* The above Sub-example motivates the need for a parallel event of empty
+   processes. We modify our original definition of CCS events. *)
+Variant ccsE' : Type -> Type :=
+| Or' : ccsE' bool
+| Act' : A -> ccsE' unit
+| Par' : ccsE' bool.
+
 
 End ccs.
