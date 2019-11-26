@@ -282,6 +282,10 @@ Section PureITree.
     - rewrite <- Heutt in H. auto.
   Qed.
 
+(* map it into an itree whose return type is _PureITreeSpec, if that tree is inf, then deal separate
+  Definition _iterpi (A B : Type) (body : A -> _PureITreeSpec (A + B) ) (init : A) : _PureITreeSpec B :=
+    fun p Hp -> body a (fun (t: itree Void (A+B)) => ()  \/ (divergence t /\ p spin)  )
+*)
   Lemma bind_pred_resp_eutt' : forall A B (f : A -> _PureITreeSpec B)
                                (p : itree Void B -> Prop) (Hp : resp_eutt Void B p) (w : _PureITreeSpec A),
       resp_eutt Void A (fun (t : itree Void A) => (exists a, ret a ≈ t /\ f a p Hp) \/
@@ -362,6 +366,86 @@ Section PureITree.
     let Hf' := fun a => proj2_sig (f a) in
     exist _ (_bindpi' A B w' f') (bindpi_monot' A B w' f' Hw' Hf').
 
+(* possible naturally written iter
+ iter (body : A -> _PureITreeSpec (A + B) (a : A) :=
+ fun p =>  body a (fun (t: itree Void (A + B) )
+                (divergence t /\ p spin) \/
+                (exists b, ret (inr b) ≈ t /\ p (ret b )) \/
+                (exists a', ret (inl a')) ≈ t /\ body a' (iter body a' p)
+) 
+
+)
+
+
+*)
+
+  Lemma inf_tree_pred_resp_eutt : forall A B (p : itree Void B -> Prop), 
+      resp_eutt Void (A + B) (fun (t : itree Void (A+B)) => divergence t /\ p spin ). 
+  Proof.
+    intros. intros t1 t2 Heutt. rewrite Heutt. reflexivity.
+  Qed.
+
+  Lemma term_b_pred_resp_eutt : forall A B (p : itree Void B -> Prop),
+      resp_eutt Void (A + B) (fun (t : itree Void (A + B)) => exists b, ret (inr b) ≈ t /\ p (ret b)  ).
+  Proof.
+    intros. intros t1 t2 Heutt. split; intros.
+    - destruct H. exists x. rewrite <- Heutt. auto.
+    - destruct H. exists x. rewrite Heutt. auto.
+  Qed.
+
+  Lemma cont_a_pred_resp_eutt : forall A B (body : A -> PureITreeSpec (A + B) ) (a : A) (p : itree Void B -> Prop) (Hp : resp_eutt Void B p)
+                                       ( F : (A -> PureITreeSpec (A + B) ) -> A -> _PureITreeSpec B ),
+      resp_eutt Void ( A + B) (fun (t : itree Void (A + B)) => exists a' , ret (inl a') ≈ t /\ F body a' p Hp  ).
+  Proof.
+    intros. intros t1 t2 Heutt. split; intros.
+    - destruct H. exists x. rewrite <- Heutt. auto.
+    - destruct H. exists x. rewrite Heutt. auto.
+  Qed.
+
+(* maybe generalize body to A -> itree Void (A + B) -> Prop, and later prove, if forall a
+   body respects eutt, then iter body a does and reformulate  *)
+
+  Inductive iterF {A B : Type} (body : A -> PureITreeSpec (A + B) )
+            (a : A) (p : itree Void B -> Prop) (Hp : resp_eutt Void B p)  (F : (A -> PureITreeSpec (A + B)) -> A -> _PureITreeSpec B ) : Prop :=
+
+    | inf_tree : proj1_sig (body a) (fun (t : itree Void (A + B) )=> divergence t /\ p spin) (inf_tree_pred_resp_eutt A B p) -> iterF body a p Hp F
+    | term_b : proj1_sig (body a) (fun t => exists b, ret (inr b)≈ t /\ p (ret  b) ) (term_b_pred_resp_eutt A B p) ->
+        iterF body a p Hp F
+    | cont_a
+       : proj1_sig (body a) (fun t => exists a', ret (inl a') ≈ t /\ F body a' p Hp) (cont_a_pred_resp_eutt A B body a p Hp F) ->
+         iterF body a p Hp F
+.
+Hint Constructors iterF.
+
+Lemma iterF_monotone {A B} (body:  (A -> PureITreeSpec (A + B))) 
+      (sim sim' : ((A -> PureITreeSpec (A + B) ) -> A -> _PureITreeSpec B )) (a : A)
+      (p : itree Void B -> Prop) (Hp : resp_eutt Void B p)
+      (IN : iterF body a p Hp sim) (LE : sim <4= sim'):
+  iterF body a p Hp sim'.
+  Proof.
+    induction IN; auto. apply cont_a.
+    destruct (body a ) as [ba Hba] eqn : Heq.  simpl in *. eapply Hba; eauto. intros t. intros.
+    destruct H0. destruct H0. exists x. split; auto. 
+  Qed.
+
+  Definition iter_ {A B} sim (body : A -> PureITreeSpec (A + B)) a p Hp :=
+    iterF body a p Hp sim.
+  Hint Unfold iter_.
+
+  Lemma iterF_monotone' {A B} : monotone4 (@iter_ A B).
+  Proof.
+    do 2 red. intros. eapply iterF_monotone; eauto.
+  Qed.
+
+  Hint Resolve iterF_monotone' : paco.
+
+  Definition iter {A B}  : (A -> PureITreeSpec (A + B)) -> A ->  _PureITreeSpec B :=
+    paco4 (@iter_ A B) bot4.
+
+(*there may be a way to reason about iteration in spec monads *)
+
+
+
   (*Monad equivalence relation for PureITreeSpec monad *)
   Global Instance PureITreeSpecEq : EqM PureITreeSpec :=
     fun A w1 w2 => forall (p : itree Void A -> Prop) (Hp : resp_eutt Void A p), proj1_sig w1 p Hp <-> proj1_sig w2 p Hp.
@@ -400,7 +484,7 @@ Section PureITree.
       - simpl. destruct (f a) as [fa Hfa] eqn : Heq. simpl. intros.
         left. exists a. split.
         + reflexivity.
-        + rewrite Heq. auto.
+        + rewrite Heq.  auto.
     Qed.
 
   Lemma bindpi_retpi : forall A (w : PureITreeSpec A), bind w (fun x => ret x) ≈ w.
