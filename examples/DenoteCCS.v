@@ -16,10 +16,11 @@ From Coq Require Import
     parallel.
 
     The primitive in the calculus is a _process_ that can have input and output
-    _ports_ in which processes can communicate. Each port is labeled and can
-    take either input or output (but not both), and processes can only communicate
-    through a port with the same label with opposing polarity (i.e. a process with
-    input port `a` can communicate with a process with output port `a`).
+    _actions_ in which processes can communicate. Each action has a corresponding
+    label, and can act as either an input or output (but not both).
+    Processes can only communicate through complementary actions with the same
+    label (i.e. same labels with actions of opposing polarity, such that process
+    with input action `a` can communicate with a process with output action `a`).
 
 
     (#) Milner, R., Communication and Concurrency, 1989.
@@ -236,7 +237,7 @@ Eval cbv in ex_label_list3.
 Variant ccsE' : Type -> Type :=
 | Or' : ccsE' bool
 | Act' : A -> ccsE' unit
-| Par' : ccsE' bool.
+| Par' : ccsE' (unit * unit). (* This could be `ccsE' unit` or `ccsE' bool`. *)
 
 
 End ccs.
