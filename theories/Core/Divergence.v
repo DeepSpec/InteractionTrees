@@ -75,7 +75,10 @@ Proof.
       apply IHeqitF. apply H1.
     + apply IHeqitF. inversion H1; subst.
       pclearbot. punfold H2.
-Qed. 
+Qed.
 
-(** Next Exercise (TODO) : Prove lemma diverges spin. Use pcofix (equal to Tau spin)  *)
-    
+Theorem spin_diverge {E A} : @divergence E A ITree.spin.
+Proof.
+  unfold divergence, ITree.spin.
+  pcofix H. pfold. constructor. right. apply H.
+Qed. 
