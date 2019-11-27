@@ -33,35 +33,33 @@ Section ccs.
 
   (** CCS Operators:
 
-      P := ∅          Empty process
-         | A = P1     Process identifier *** (TODO)
+      P := ∅          Empty Process
+         | A = P1     Process Identifier *** (TODO)
          | a.P1       Action
          | P1 + P2    Choice (Sum type)
-         | P1 ∥ P2    Parallel composition *** (WIP)
+         | P1 ∥ P2    Parallel Composition *** (WIP)
          | P1 ∖ a     Restriction *** (TODO)
 
-      * Empty process
-      * Process identifier: Identifier A refers to process P1. Allows
+      * Empty Process
+      * Process Identifier: Identifier A refers to process P1. Allows
                             recursive definitions.
       * Action: Process P1 performs an action a. This could be a send or
                 receive, depending on the polarity of the action a.
       * Choice : either P1 or P2 will be processed.
-      * Parallel composition: Processes P1 and P2 exist simultaneously
+      * Parallel Composition: Processes P1 and P2 exist simultaneously
       * Restriction: Hides port a in process P1.
   *)
 
-(* Labels. *)
-Variable A : Type.
-
-(* Labels with polarity. *)
-Variant Label : Prop :=
-| In (a : A)
-| Out (a : A).
+(* We need a decidable equality on labels for the Restriction and Parallel Composition
+   operator. Indexing labels by nat gives an easy decidable equality for now. *)
+Variant Label : nat -> Type :=
+| In (n : nat) : Label n
+| Out (n : nat) : Label n.
 
 (* Denotation of CCS Operators as ITree events *)
 Variant ccsE : Type -> Type :=
 | Or : ccsE bool
-| Act : A -> ccsE unit.
+| Act (n : nat) : Label n -> ccsE unit.
 
 Definition ccs := itree ccsE unit.
 
@@ -75,11 +73,10 @@ Definition ccs := itree ccsE unit.
 Definition zero : ccs := Ret tt.
 
 (* Action operator. *)
-Definition act {a : A} (H: Label) (k : ccs) : ccs := Vis (Act a) (fun _ => k).
+Definition send (n : nat) (k : ccs) : ccs := Vis (Act (In n)) (fun _ => k).
 
-Definition send {a : A} (k : ccs) : ccs := @act a (In a) k.
+Definition recv (n : nat) (k : ccs) : ccs := Vis (Act (Out n)) (fun _ => k). 
 
-Definition recv {a : A} (k : ccs) : ccs := @act a (Out a) k.
 
 (* Choose operator *)
 Definition pick (k : bool -> ccs) : ccs := Vis Or k.
@@ -87,8 +84,8 @@ Definition pick (k : bool -> ccs) : ccs := Vis Or k.
 (* Representation of finitary ccs. *)
 Inductive finitary : ccs -> Type :=
 | ZeroFin : finitary zero
-| SendFin (a : A) (k : ccs): finitary (@send a k)
-| RecvFin (a : A) (k : ccs) : finitary (@recv a k)
+| SendFin (n : nat) (k : ccs): finitary (send n k)
+| RecvFin (n : nat) (k : ccs) : finitary (recv n k)
 | ChoiceFin (k : bool -> ccs) (finL: finitary (k true))
             (finR: finitary (k false)):
     finitary (pick k)
@@ -97,17 +94,17 @@ Inductive finitary : ccs -> Type :=
 
 (* Example finitary ccs trees. *)
 
-Example ccs1 (a : A) : ccs := pick (fun _ => @send a zero).
+Example ccs1 (n : nat) : ccs := pick (fun _ => send n zero).
 
-Example finite1 (a : A) : Type := finitary (ccs1 a).
+Example finite1 (n : nat) : Type := finitary (ccs1 n).
 
-Eval cbv in finite1.
+Eval cbv in finite1 1.
 
-Example ccs2 (a : A) : ccs := pick (fun b => if b
-                                     then @send a zero
-                                     else @recv a zero).
+Example ccs2 (n : nat) : ccs := pick (fun b => if b
+                                     then send n zero
+                                     else recv n zero).
 
-Example finite2 (a : A) : Type := finitary (ccs2 a).
+Example finite2 (n : nat) : Type := finitary (ccs2 1).
 
 (* ✠ Question: Do we need finitary? Aren't all of these trees built from our
    operators going to be finite? *)
@@ -118,8 +115,8 @@ Program Fixpoint label_list (p : ccs) (D : finitary p) : list ccs := _.
 Next Obligation.
   dependent induction D.
   - exact [].
-  - exact [@send a k].
-  - exact [@recv a k].
+  - exact [send n k].
+  - exact [recv n k].
   - exact (List.app IHD1 IHD2).
   - exact IHD.
 Defined.
@@ -157,27 +154,28 @@ Definition par (p1 p2 : ccs) (pf1 : finitary p1) (pf2 : finitary p2) : ccs :=
 
 (* A ccs tree of depth 1. *)
 Example label_list1 :=
-  fun (a : A) => label_list
-                   (ChoiceFin (fun b => if b then @send a zero
-                                        else @recv a zero)
-                              (SendFin a zero)
-                              (RecvFin a zero)).
+  fun (n : nat) => label_list
+                   (ChoiceFin (fun b => if b then send n zero
+                                        else recv n zero)
+                              (SendFin n zero)
+                              (RecvFin n zero)).
 
-Eval cbv in label_list1.
+Eval cbv in label_list1 1.
 (* cbv is not the right reduction strategy, because we don't want it to unfold
    all the way. We need information about the polarity of labels. *)
 
 (* A ccs tree of depth 2. *)
 Example label_list2 :=
-  fun (a : A) => label_list
-                (ChoiceFin (fun b => if b then @send a zero
-                                       else pick (fun _ => @send a zero))
-                           (SendFin a zero)
-                           (ChoiceFin (fun _ => @send a zero)
-                                       (SendFin a zero)
-                                       (SendFin a zero))).
+  fun (n1 n2 : nat) => label_list
+                (ChoiceFin (fun b => if b then @send n1 zero
+                                       else pick (fun _ => @send n2 zero))
+                           (SendFin n1 zero)
+                           (ChoiceFin (fun _ => @send n2 zero)
+                                       (SendFin n2 zero)
+                                       (SendFin n2 zero))).
 
 Eval cbv in label_list2.
+
 
 (* Woo! Our crawling operator is working as expected. Now, we think about
    how we can actually construct the parallel composition combinator.
@@ -187,25 +185,25 @@ Eval cbv in label_list2.
 
 (* Label lists of the components we're combining with the parallel combinator. *)
 Example ex_label_list1 :=
-  fun (a1 a2 : A) (P Q : ccs) => label_list
-                                (ChoiceFin (fun b => if b then @recv a1 P
-                                                  else @recv a2 Q)
-                                           (RecvFin a1 P)
-                                           (RecvFin a2 Q)).
+  fun (n1 n2 : nat) (P Q : ccs) => label_list
+                                (ChoiceFin (fun b => if b then @recv n1 P
+                                                  else @recv n2 Q)
+                                           (RecvFin n1 P)
+                                           (RecvFin n2 Q)).
 
-Eval cbv in ex_label_list1.
+Eval cbv in ex_label_list1 1 2.
 
 Example ex_label_list2 :=
-  fun (a1 : A) => label_list
-                 (SendFin a1 zero).
+  fun (n1 : nat) => label_list
+                 (SendFin n1 zero).
 
-Eval cbv in ex_label_list2.
+Eval cbv in ex_label_list2 1.
 
 Example ex_label_list3 :=
-  fun (a2 : A) => label_list
-                 (SendFin a2 zero).
+  fun (n2 : nat) => label_list
+                 (SendFin n2 zero).
 
-Eval cbv in ex_label_list3.
+Eval cbv in ex_label_list3 2.
 
 (* The possible transitions from `(a.P + b.Q) ∥ (ā.∅ ∥ b̄.∅)` are:
     1)  -(τ)⟶ P ∥ (∅ ∥ b̄.∅) -(b̄)⟶ P ∥ (∅ ∥ ∅)
@@ -227,17 +225,8 @@ Eval cbv in ex_label_list3.
    p1 := ā.∅
    p2 := b̄.∅
    par p1 p2 ≈ (āb̄, ∅ ∥ ∅) + (b̄ā, ∅ ∥ ∅)
-             ≈ pick (fun b => if b then @send a (@send b (par ∅ ∅))
-                                   else @send b (@send a (par ∅ ∅)))
-             ≈ (* Stuck. Do we need a parallel event of empty processes? *)
+             ≈ pick (fun b => if b then @send a (@send b ∅)
+                                   else @send b (@send a ∅))
 *)
-
-(* The above Sub-example motivates the need for a parallel event of empty
-   processes. We modify our original definition of CCS events. *)
-Variant ccsE' : Type -> Type :=
-| Or' : ccsE' bool
-| Act' : A -> ccsE' unit
-| Par' : ccsE' (unit * unit). (* This could be `ccsE' unit` or `ccsE' bool`. *)
-
 
 End ccs.
