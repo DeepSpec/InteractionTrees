@@ -405,6 +405,10 @@ Section PureITree.
 (* maybe generalize body to A -> itree Void (A + B) -> Prop, and later prove, if forall a
    body respects eutt, then iter body a does and reformulate  *)
 
+  (*may need to introduce notion of a well founded relation to the cont_a case, 
+    this may induce another case where you know body a "infinitely loops"
+*)
+
   Inductive iterF {A B : Type} (body : A -> PureITreeSpec (A + B) )
             (a : A) (p : itree Void B -> Prop) (Hp : resp_eutt Void B p)  (F : (A -> PureITreeSpec (A + B)) -> A -> _PureITreeSpec B ) : Prop :=
 
@@ -439,8 +443,27 @@ Lemma iterF_monotone {A B} (body:  (A -> PureITreeSpec (A + B)))
 
   Hint Resolve iterF_monotone' : paco.
 
-  Definition iter {A B}  : (A -> PureITreeSpec (A + B)) -> A ->  _PureITreeSpec B :=
+  Definition _iter {A B}  : (A -> PureITreeSpec (A + B)) -> A ->  _PureITreeSpec B :=
     paco4 (@iter_ A B) bot4.
+
+  Lemma iter_monot : forall A B (f : A -> PureITreeSpec (A + B) ) (a : A),
+                              monotonici B (_iter f a).
+    Proof.
+      unfold monotonici. intros. generalize dependent a. pcofix CIH. pfold. intros. punfold H1.
+      red. red in H1. inversion H1; simpl in *.
+      - apply inf_tree. specialize (H spin).
+        destruct (f a) as [fa Hfa]; simpl in *. eapply Hfa; eauto.
+        intros. destruct H2. auto.
+      - apply term_b. destruct (f a) as [fa Hfa]; simpl in *.
+        eapply Hfa; eauto. intros. destruct H2 as [b Hb]. exists b. destruct Hb.
+        auto.
+      - apply cont_a. destruct (f a) as [fa Hfa]; simpl in *. eapply Hfa; eauto.
+        intros. destruct H2 as [a' Ha']. exists a'. destruct Ha'. split; auto.
+        right. eapply CIH. red. pclearbot. auto.
+    Qed.
+
+  Definition iter {A B} (body : A -> PureITreeSpec (A + B) ) (init : A) : PureITreeSpec B :=
+    exist _ (_iter body init) (iter_monot A B body init).
 
 (*there may be a way to reason about iteration in spec monads *)
 
@@ -533,6 +556,34 @@ Lemma iterF_monotone {A B} (body:  (A -> PureITreeSpec (A + B)))
     - apply bindpi_retpi.
     - apply bindpi_bindpi.
   Qed.  
+
+  Instance PureITreeIter : Iter (Kleisli PureITreeSpec) sum := @iter.
+  
+  Instance PureITreeIterUnfold : IterUnfold  (Kleisli PureITreeSpec) sum.
+  Proof.
+    intros A B f a.
+    constructor.
+    (*this case went through without even needing coinduction???*)
+    - intros. red. red in H. repeat red in H.
+      punfold H. inversion H.
+      + destruct (f a) as [fa Hfa] eqn : Heq; simpl in *.
+        repeat red. rewrite Heq. red. eapply Hfa; eauto.
+        intro t. intros. destruct H1. right. auto.
+      + destruct (f a) as [fa Hfa] eqn : Heq; simpl in *.
+        repeat red. rewrite Heq. red. eapply Hfa; eauto.
+        intros t ?. destruct H1 as [b [Hb Hpb] ]. left. exists (inr b).
+        split; auto.
+      +  destruct (f a) as [fa Hfa] eqn : Heq; simpl in *.
+         repeat red. rewrite Heq. red. eapply Hfa; eauto.
+         intros t ?. left. destruct H1 as [a' [Ha' Hpa'] ]. pclearbot.
+         exists (inl a'). split; auto.
+    (*this case is probably where I need coinduction*)
+    - intros. red. repeat red in H. destruct (f a) as [fa Hfa] eqn : Heq.
+      red in H. destruct (iter f a) as [iterfa Hiterfa] eqn : Heq'.
+      unfold CategoryOps.iter, PureITreeIter. rewrite Heq'.
+
+  Admitted.
+  
 
   Instance PureITreeOrderM : OrderM PureITreeSpec :=
     fun A (w1 w2 : PureITreeSpec A) => forall p Hp, proj1_sig w2 p Hp -> proj1_sig w1 p Hp.
