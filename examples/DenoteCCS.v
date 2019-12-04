@@ -1,8 +1,13 @@
 From ITree Require Import
      ITree
-     ITreeDefinition.
+     ITreeDefinition
+     Interp.Traces.
 
 From Coq Require Import
+     Lists.ListSet
+     Lists.List
+     Arith.EqNat
+     Arith.PeanoNat
      Program.Equality
      List.
 
@@ -53,14 +58,21 @@ Section ccs.
 (* We need a decidable equality on labels for the Restriction and Parallel
    Composition operator. Indexing labels by nat gives an easy decidable
    equality for now. *)
-Variant Label : nat -> Type :=
-| In (n : nat) : Label n
-| Out (n : nat) : Label n.
+
+Variable A : Type.
+Variable A_dec_eq : forall x y: A, {x = y} + {x <> y}.
+Variable A_beq : A -> A -> bool. (* Requires A to have a decidable equality *)
+
+Variant Label : Type :=
+| In (l : A) : Label
+| Out (l : A) : Label.
+
+Variable Label_dec_eq : forall x y: Label, {x = y} + {x <> y}. 
 
 (* Denotation of CCS Operators as ITree events. *)
 Variant ccsE : Type -> Type :=
 | Or (n : nat): ccsE nat (* Note: choices are zero-indexed. *)
-| Act (n : nat) : Label n -> ccsE unit.
+| Act : Label -> ccsE unit.
 
 Definition ccs := itree ccsE unit.
 
@@ -70,10 +82,10 @@ Definition ccs := itree ccsE unit.
 (* The empty process. *)
 Definition zero : ccs := Ret tt.
 
-(* Action operators, where n denotes the label. *)
-Definition send (n : nat) (k : ccs) : ccs := Vis (Act (In n)) (fun _ => k).
+(* Action operators, where l denotes the label. *)
+Definition send (l : A) (k : ccs) : ccs := Vis (Act (In l)) (fun _ => k).
 
-Definition recv (n : nat) (k : ccs) : ccs := Vis (Act (Out n)) (fun _ => k).
+Definition recv (l : A) (k : ccs) : ccs := Vis (Act (Out l)) (fun _ => k).
 
 (* Choose operator, where n is the number of choices. *)
 Definition pick (n: nat) (k : nat -> ccs) : ccs := Vis (Or n) k.
@@ -107,16 +119,119 @@ with par_right (p1 p2 : ccs) : ccs :=
   end
 with par_comm (p1 p2 : ccs) : ccs :=
   match p1, p2 with
-  | (Vis (Act (In n1)) k1), (Vis (Act (Out n2)) k2) =>
-    if beq_nat n1 n2 then Tau (par (k1 tt) (k2 tt)) else zero
-  | (Vis (Act (Out n1)) k1), (Vis (Act (In n2)) k2) =>
-    if beq_nat n1 n2 then Tau (par (k1 tt) (k2 tt)) else zero
+  | (Vis (Act (In l1)) k1), (Vis (Act (Out l2)) k2) =>
+    if A_beq l1 l2 then Tau (par (k1 tt) (k2 tt)) else zero
+  | (Vis (Act (Out l1)) k1), (Vis (Act (In l2)) k2) =>
+    if A_beq l1 l2 then Tau (par (k1 tt) (k2 tt)) else zero
   | _, _ => zero
   end.
 
+Arguments empty_set {_}.
+
+(* OCaml's init operator. *)
+Fixpoint init' {X : Type} acc (i n' : nat) (k : nat -> X) : list X :=
+  match n' - i with
+  | 0 => acc
+  | S n =>  init' ((k i)::acc) (i+1) n k
+  end.
+
+Definition init {X : Type} (n : nat) (k : nat -> X) : list X :=
+  init' [] (0) (n + 1) k.
+
+(* Test *)
+Eval cbv in init 2 (fun n => if beq_nat n 0 then 2 else 1).
+
+
+(* Operational Semantics for CCS without Hide or Bang. *)
+
+Section ccs_op.
+
+
+Inductive ccs_o : Type :=
+| Done : ccs_o
+| Action : Label -> ccs_o -> ccs_o
+| Choice : ccs_o -> ccs_o -> ccs_o
+| Par : ccs_o -> ccs_o -> ccs_o
+.
+
+Inductive step {l : A} : option Label -> ccs_o -> ccs_o -> Prop :=
+| step_Send t :
+    step (Some (In l)) (Action (In l) t) t
+| step_Recv t :
+    step (Some (Out l)) (Action (Out l) t) t
+| step_Choice_L u v u' (A' : option Label) :
+    step A' u u' -> step A' (Choice u v) u'
+| step_Choice_R u v v' (A' : option Label) :
+    step A' v v' -> step A' (Choice u v) v'
+| step_Par_L u v u' (A' : option Label) :
+    step A' u u' -> step A' (Par u v) (Par u' v)
+| step_Par_R u v v' (A' : option Label) :
+    step A' v v' -> step A' (Par u v) (Par u v')
+| step_Par_Comm1 u v u' v' :
+    step (Some (In l)) u u' -> step (Some (Out l)) v v' ->
+    step None u' v'
+| step_Par_Comm2 u v u' v' :
+    step (Some (Out l)) u u' -> step (Some (In l)) v v' ->
+    step None u' v'
+.
+
+Theorem label_dec_eq :
+  forall x y : Label, {x = y} + {x <> y}.
+Proof.
+  intros.
+  destruct x, y. destruct (A_dec_eq l l0).
+  left. subst. reflexivity.
+  right.
+  Admitted.
+
+Arguments empty_set {_}.
+
+(* Trace Semantics. *)
+
+(*Fixpoint trace (c : ccs_o) (acc : list Label) : set (list Label) :=
+  match (c : ccs_o) with
+  | Action A c1 => trace c1 (A :: acc)
+  | Par c1 c2 =>
+    set_inter (list_eq_dec label_dec_eq) (trace c1 acc) (trace c2 acc)
+  | Choice c1 c2 =>
+    set_union (list_eq_dec label_dec_eq) (trace c1 acc) (trace c2 acc)
+  | Done => set_add (list_eq_dec label_dec_eq) acc empty_set
+  end. *)
+
+Inductive trace_ob : Type :=
+| TNil : trace_ob
+| TLabel : Label -> trace_ob.
+
+Inductive is_trace_obF : ccs_o -> trace_ob -> Prop :=
+| TraceDone : is_trace_obF (Done) TNil.
+
+Inductive is_trace_ob : ccs_o -> trace_ob -> Prop := .
+End ccs_op.
+
+Inductive equiv_traces : trace_ob -> (@trace ccsE unit) -> Prop := .
+
+Lemma trace_eq_ob_den :
+  forall (to : ccs_o) (td : ccs),
+    (forall trd, is_trace td trd -> exists tro, is_trace_ob to tro /\ equiv_traces tro trd)
+    /\ (forall tro, is_trace_ob to tro -> exists trd, is_trace td trd /\ equiv_traces tro trd).
+Proof. Admitted.
 
 (*-------------------- Notes -------------------------*)
 (* Nov. 26, 2019. *)
+(* Trace Equality. *)
+(* Need this to be a CoFixpoint. *)
+(*CoFixpoint trace_d (c: ccs) (acc : list Label) : set (list Label) :=
+  match c with
+  | Vis (Act A) k => trace_d (k tt) (A :: acc)
+  | Vis (Or n) k =>
+    fold_left (fun su1 c1 =>
+                 set_union (list_eq_dec Label_dec_eq) su1
+                           (trace_d c1 acc))
+              (init n k) empty_set
+  | Ret _ => set_add (list_eq_dec Label_dec_eq) acc empty_set
+  | _ => empty_set
+  end. *)
+
 (* Example finitary ccs trees. *)
 
 Inductive finitary : ccs -> Type :=
@@ -263,4 +378,3 @@ Eval cbv in ex_label_list3 2.
                                    else @send b (@send a ∅))
 *)
 
-End ccs.
