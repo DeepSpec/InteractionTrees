@@ -114,7 +114,8 @@ with par_comm (p1 p2 : ccs) : ccs :=
   | _, _ => zero
   end.
 
-(*---- Notes ----*)
+
+(*-------------------- Notes -------------------------*)
 (* Nov. 26, 2019. *)
 (* Example finitary ccs trees. *)
 
