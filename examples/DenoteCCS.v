@@ -59,9 +59,8 @@ Variant Label : nat -> Type :=
 
 (* Denotation of CCS Operators as ITree events. *)
 Variant ccsE : Type -> Type :=
-| Or (n : nat): ccsE nat
-| Act (n : nat) : Label n -> ccsE unit
-| Par : ccsE bool.
+| Or (n : nat): ccsE nat (* Note: choices are zero-indexed. *)
+| Act (n : nat) : Label n -> ccsE unit.
 
 Definition ccs := itree ccsE unit.
 
@@ -87,12 +86,11 @@ Definition pick (n: nat) (k : nat -> ccs) : ccs := Vis (Or n) k.
 CoFixpoint par (p1 p2 : ccs) : ccs :=
   match p1, p2 with
   | (Vis (Or n1) k1), (Vis (Or n2) k2) =>
-      Vis Par (fun b1 : bool =>
-        if b1 then Vis (Or n1) (fun n11 : nat => par_left (k1 n11) p2)
-        else (Vis Par(fun b2 : bool =>
-               if b2 then Vis (Or n2) (fun n21 : nat => par_right p1 (k2 n21))
-               else Vis (Or n1) (fun n12 : nat => Vis (Or n2)
-                 (fun n22 => par_comm (k1 n12) (k2 n22))))))
+      Vis (Or 3) (fun n0 : nat =>
+        if beq_nat n0 0 then Vis (Or n1) (fun n11 : nat => par_left (k1 n11) p2)
+        else if beq_nat n0 1 then Vis (Or n2) (fun n21 : nat => par_right p1 (k2 n21))
+        else Vis (Or n1) (fun n12 : nat => Vis (Or n2)
+                 (fun n22 => par_comm (k1 n12) (k2 n22))))
   | _, _ => zero
   end
 with par_left (p1 p2 : ccs) : ccs :=
