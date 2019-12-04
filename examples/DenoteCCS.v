@@ -50,38 +50,76 @@ Section ccs.
       * Restriction: Hides port a in process P1.
   *)
 
-(* We need a decidable equality on labels for the Restriction and Parallel Composition
-   operator. Indexing labels by nat gives an easy decidable equality for now. *)
+(* We need a decidable equality on labels for the Restriction and Parallel
+   Composition operator. Indexing labels by nat gives an easy decidable
+   equality for now. *)
 Variant Label : nat -> Type :=
 | In (n : nat) : Label n
 | Out (n : nat) : Label n.
 
-(* Denotation of CCS Operators as ITree events *)
+(* Denotation of CCS Operators as ITree events. *)
 Variant ccsE : Type -> Type :=
-| Or : ccsE bool
-| Act (n : nat) : Label n -> ccsE unit.
+| Or (n : nat): ccsE nat
+| Act (n : nat) : Label n -> ccsE unit
+| Par : ccsE bool.
 
 Definition ccs := itree ccsE unit.
 
 (** Denotation of basic operations in CCS.
     For now, we reason about finitary ITrees. *)
 
-(* NB: The denotation of zero should be of type *unit* not void.
-   For now, we'll reason about finitary (but still possibly nonterminating!)
-   ITrees. *)
 (* The empty process. *)
 Definition zero : ccs := Ret tt.
 
-(* Action operator. *)
+(* Action operators, where n denotes the label. *)
 Definition send (n : nat) (k : ccs) : ccs := Vis (Act (In n)) (fun _ => k).
 
-Definition recv (n : nat) (k : ccs) : ccs := Vis (Act (Out n)) (fun _ => k). 
+Definition recv (n : nat) (k : ccs) : ccs := Vis (Act (Out n)) (fun _ => k).
 
+(* Choose operator, where n is the number of choices. *)
+Definition pick (n: nat) (k : nat -> ccs) : ccs := Vis (Or n) k.
 
-(* Choose operator *)
-Definition pick (k : bool -> ccs) : ccs := Vis Or k.
+(* Parallel composition operator (#).
 
-(* Representation of finitary ccs. *)
+   (#) Follows denotation of CCS parallel composition operator from
+       Section 5 Rule IV. (p. 269) of:
+       M. Henessy & G. Plotkin, A Term Model for CCS, 1980. *)
+CoFixpoint par (p1 p2 : ccs) : ccs :=
+  match p1, p2 with
+  | (Vis (Or n1) k1), (Vis (Or n2) k2) =>
+      Vis Par (fun b1 : bool =>
+        if b1 then Vis (Or n1) (fun n11 : nat => par_left (k1 n11) p2)
+        else (Vis Par(fun b2 : bool =>
+               if b2 then Vis (Or n2) (fun n21 : nat => par_right p1 (k2 n21))
+               else Vis (Or n1) (fun n12 : nat => Vis (Or n2)
+                 (fun n22 => par_comm (k1 n12) (k2 n22))))))
+  | _, _ => zero
+  end
+with par_left (p1 p2 : ccs) : ccs :=
+  match p1, p2 with
+  | (Vis (Act x) k), _ => Vis (Act x) (fun _ => par (k tt) p2)
+  | Tau t1, _ => Tau (par t1 p2)
+  | _, _ => zero
+  end
+with par_right (p1 p2 : ccs) : ccs :=
+  match p1, p2 with
+  | _, (Vis (Act x) k) => Vis (Act x) (fun _ => par p1 (k tt))
+  | _, Tau t1 => Tau (par p1 t1)
+  | _, _ => zero
+  end
+with par_comm (p1 p2 : ccs) : ccs :=
+  match p1, p2 with
+  | (Vis (Act (In n1)) k1), (Vis (Act (Out n2)) k2) =>
+    if beq_nat n1 n2 then Tau (par (k1 tt) (k2 tt)) else zero
+  | (Vis (Act (Out n1)) k1), (Vis (Act (In n2)) k2) =>
+    if beq_nat n1 n2 then Tau (par (k1 tt) (k2 tt)) else zero
+  | _, _ => zero
+  end.
+
+(*---- Notes ----*)
+(* Nov. 26, 2019. *)
+(* Example finitary ccs trees. *)
+
 Inductive finitary : ccs -> Type :=
 | ZeroFin : finitary zero
 | SendFin (n : nat) (k : ccs): finitary (send n k)
@@ -91,9 +129,6 @@ Inductive finitary : ccs -> Type :=
     finitary (pick k)
 | TauFin (k : ccs) (finK: finitary k) : finitary (Tau k)
 .
-
-(* Example finitary ccs trees. *)
-
 Example ccs1 (n : nat) : ccs := pick (fun _ => send n zero).
 
 Example finite1 (n : nat) : Type := finitary (ccs1 n).
@@ -124,7 +159,7 @@ Defined.
 (* Here is a convoluted attempt at going forward and trying to define the
    parallel composition operator... It is bad.*)
 (* Wrong. *)
-CoFixpoint choose (p1 p2 : list ccs) : bool -> ccs :=
+CoFixpoint choose1 (p1 p2 : list ccs) : bool -> ccs :=
   match p1 with
   | [] => match p2 with
          | [] => fun b => zero
@@ -142,7 +177,7 @@ CoFixpoint choose (p1 p2 : list ccs) : bool -> ccs :=
   end.
 
 (* Parallel composition operator. Wrong. *)
-Definition par (p1 p2 : ccs) (pf1 : finitary p1) (pf2 : finitary p2) : ccs :=
+Definition par1 (p1 p2 : ccs) (pf1 : finitary p1) (pf2 : finitary p2) : ccs :=
   pick (choose (label_list pf1) (label_list pf2)).
 
 (* These don't work because it doesn't reason about any of the labels in a
@@ -153,14 +188,14 @@ Definition par (p1 p2 : ccs) (pf1 : finitary p1) (pf2 : finitary p2) : ccs :=
 (* Example label lists. *)
 
 (* A ccs tree of depth 1. *)
-Example label_list1 :=
+Example label_list12 :=
   fun (n : nat) => label_list
                    (ChoiceFin (fun b => if b then send n zero
                                         else recv n zero)
                               (SendFin n zero)
                               (RecvFin n zero)).
 
-Eval cbv in label_list1 1.
+Eval cbv in label_list12 1.
 (* cbv is not the right reduction strategy, because we don't want it to unfold
    all the way. We need information about the polarity of labels. *)
 
