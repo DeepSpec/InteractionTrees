@@ -4,7 +4,6 @@ From ITree Require Import
      Interp.Traces.
 
 From Coq Require Import
-     Lists.ListSet
      Lists.List
      Arith.EqNat
      Arith.PeanoNat
@@ -34,15 +33,13 @@ From Coq Require Import
 Import ListNotations.
 Set Implicit Arguments.
 
-Section ccs.
-
   (** CCS Operators:
 
       P := ∅          Empty Process
          | A = P1     Process Identifier *** (TODO)
          | a.P1       Action
          | P1 + P2    Choice (Sum type)
-         | P1 ∥ P2    Parallel Composition *** (WIP)
+         | P1 ∥ P2    Parallel Composition
          | P1 ∖ a     Restriction *** (TODO)
 
       * Empty Process
@@ -55,9 +52,13 @@ Section ccs.
       * Restriction: Hides port a in process P1.
   *)
 
+
+(** *Denotation of CCS with ITrees *)
+
+Section ccs.
+
 (* We need a decidable equality on labels for the Restriction and Parallel
-   Composition operator. Indexing labels by nat gives an easy decidable
-   equality for now. *)
+   Composition operator. *)
 
 Variable A : Type.
 Variable A_dec_eq : forall x y: A, {x = y} + {x <> y}.
@@ -67,7 +68,22 @@ Variant Label : Type :=
 | In (l : A) : Label
 | Out (l : A) : Label.
 
-Variable Label_dec_eq : forall x y: Label, {x = y} + {x <> y}. 
+Theorem label_dec_eq :
+  forall x y : Label, {x = y} + {x <> y}.
+Proof.
+  intros.
+  destruct x, y.
+  - destruct (A_dec_eq l l0).
+    + left. subst. reflexivity.
+    + right. unfold not. intros. unfold not in n.
+      inversion H; auto.
+  - right. unfold not. intros. inversion H.
+  - right. unfold not. intros. inversion H.
+  - destruct (A_dec_eq l l0).
+    + left. subst. reflexivity.
+    + right. unfold not. intros. unfold not in n.
+      inversion H; auto.
+Qed.
 
 (* Denotation of CCS Operators as ITree events. *)
 Variant ccsE : Type -> Type :=
@@ -126,26 +142,14 @@ with par_comm (p1 p2 : ccs) : ccs :=
   | _, _ => zero
   end.
 
-Arguments empty_set {_}.
 
-(* OCaml's init operator. *)
-Fixpoint init' {X : Type} acc (i n' : nat) (k : nat -> X) : list X :=
-  match n' - i with
-  | 0 => acc
-  | S n =>  init' ((k i)::acc) (i+1) n k
-  end.
+(* To show correctness of our denotation of CCS, we compare
+   the trace semantics between this denotation and the
+   operational semantics for CCS. *)
 
-Definition init {X : Type} (n : nat) (k : nat -> X) : list X :=
-  init' [] (0) (n + 1) k.
-
-(* Test *)
-Eval cbv in init 2 (fun n => if beq_nat n 0 then 2 else 1).
-
-
-(* Operational Semantics for CCS without Hide or Bang. *)
+(** *Operational Semantics for CCS *)
 
 Section ccs_op.
-
 
 Inductive ccs_o : Type :=
 | Done : ccs_o
@@ -154,6 +158,7 @@ Inductive ccs_o : Type :=
 | Par : ccs_o -> ccs_o -> ccs_o
 .
 
+(* Transition rules for the Labelled Transition System. *)
 Inductive step {l : A} : option Label -> ccs_o -> ccs_o -> Prop :=
 | step_Send t :
     step (Some (In l)) (Action (In l) t) t
@@ -175,49 +180,85 @@ Inductive step {l : A} : option Label -> ccs_o -> ccs_o -> Prop :=
     step None u' v'
 .
 
-Theorem label_dec_eq :
-  forall x y : Label, {x = y} + {x <> y}.
-Proof.
-  intros.
-  destruct x, y. destruct (A_dec_eq l l0).
-  left. subst. reflexivity.
-  right.
-  Admitted.
-
-Arguments empty_set {_}.
-
 (* Trace Semantics. *)
-
-(*Fixpoint trace (c : ccs_o) (acc : list Label) : set (list Label) :=
-  match (c : ccs_o) with
-  | Action A c1 => trace c1 (A :: acc)
-  | Par c1 c2 =>
-    set_inter (list_eq_dec label_dec_eq) (trace c1 acc) (trace c2 acc)
-  | Choice c1 c2 =>
-    set_union (list_eq_dec label_dec_eq) (trace c1 acc) (trace c2 acc)
-  | Done => set_add (list_eq_dec label_dec_eq) acc empty_set
-  end. *)
 
 Inductive trace_ob : Type :=
 | TNil : trace_ob
-| TLabel : Label -> trace_ob.
+| TLabel : Label -> trace_ob -> trace_ob.
 
-Inductive is_trace_obF : ccs_o -> trace_ob -> Prop :=
-| TraceDone : is_trace_obF (Done) TNil.
+(* TODO *)
+Inductive is_subtree_ob : ccs_o -> ccs_o -> Prop :=
+| SubDone : is_subtree_ob Done Done.
 
-Inductive is_trace_ob : ccs_o -> trace_ob -> Prop := .
+Inductive is_trace_ob : ccs_o -> trace_ob -> Prop :=
+| TraceDone : is_trace_ob (Done) TNil
+| TraceAction : forall A c tr, is_trace_ob (Action A c) (TLabel A tr)
+| TraceChoice : forall c1 c2 sc1 sc2 tr,
+    is_subtree_ob sc1 c1 -> is_subtree_ob sc2 c2 ->
+    is_trace_ob sc1 tr -> is_trace_ob sc2 tr ->
+    is_trace_ob (Choice c1 c2) tr
+| TracePar : forall c1 c2 sc1 sc2 tr,
+    is_subtree_ob sc1 c1 -> is_subtree_ob sc2 c2 ->
+    is_trace_ob sc1 tr \/ is_trace_ob sc2 tr ->
+    is_trace_ob (Par c1 c2) tr
+.
+
 End ccs_op.
 
-Inductive equiv_traces : trace_ob -> (@trace ccsE unit) -> Prop := .
 
-Lemma trace_eq_ob_den :
-  forall (to : ccs_o) (td : ccs),
-    (forall trd, is_trace td trd -> exists tro, is_trace_ob to tro /\ equiv_traces tro trd)
-    /\ (forall tro, is_trace_ob to tro -> exists trd, is_trace td trd /\ equiv_traces tro trd).
-Proof. Admitted.
+(** *Equivalence on Traces
+
+    We defined the trace semantics for our operational semantics above, and
+    there is a trace semantics defined for ITrees (in theories.Interp.Traces).
+
+    To show equivalence between these traces, we need to first show
+    an equivalence relation between our varying notion of traces.
+*)
+
+Arguments trace _ _.
+Inductive equiv_traces : trace_ob -> trace -> Prop :=
+| TEqNil : equiv_traces TNil TEnd
+| TEqRet : forall x, equiv_traces TNil (TRet x)
+| TEqEvEnd : forall l,
+    equiv_traces (TLabel l TNil) (TEventEnd (Act l))
+| TEqEvResp : forall l tro trd,
+    equiv_traces tro trd ->
+    equiv_traces (TLabel l tro) (@TEventResponse ccsE unit unit (Act l) tt trd)
+.
+
+(* Now we can prove trace equivalence between the semantic models. *)
+Theorem trace_eq_ob_den :
+  (forall td trd, is_trace td trd -> exists to tro, is_trace_ob to tro /\ equiv_traces tro trd)
+  /\ (forall to tro, is_trace_ob to tro -> exists td trd, is_trace td trd /\ equiv_traces tro trd).
+Proof.
+  split.
+  - intros td trd H. induction H.
+    + exists Done. exists TNil. repeat constructor.
+    + exists Done. exists TNil. repeat constructor.
+    + remember (observe t) as t'.
+      exists 
+      * inversion H. 
+  - intros. admit.
+Admitted.
+
 
 (*-------------------- Notes -------------------------*)
-(* Nov. 26, 2019. *)
+
+(* Dec. 4, 2019. *)
+
+(* OCaml's init operator. *)
+Fixpoint init' {X : Type} acc (i n' : nat) (k : nat -> X) : list X :=
+  match n' - i with
+  | 0 => acc
+  | S n =>  init' ((k i)::acc) (i+1) n k
+  end.
+
+Definition init {X : Type} (n : nat) (k : nat -> X) : list X :=
+  init' [] (0) (n + 1) k.
+
+(* Test *)
+Eval cbv in init 2 (fun n => if beq_nat n 0 then 2 else 1).
+
 (* Trace Equality. *)
 (* Need this to be a CoFixpoint. *)
 (*CoFixpoint trace_d (c: ccs) (acc : list Label) : set (list Label) :=
@@ -232,6 +273,7 @@ Proof. Admitted.
   | _ => empty_set
   end. *)
 
+(* Nov. 26, 2019. *)
 (* Example finitary ccs trees. *)
 
 Inductive finitary : ccs -> Type :=
