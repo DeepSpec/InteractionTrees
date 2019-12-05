@@ -71,24 +71,15 @@ Variant Label : Type :=
 Theorem label_dec_eq :
   forall x y : Label, {x = y} + {x <> y}.
 Proof.
-  intros.
-  destruct x, y.
-  - destruct (A_dec_eq l l0).
-    + left. subst. reflexivity.
-    + right. unfold not. intros. unfold not in n.
-      inversion H; auto.
-  - right. unfold not. intros. inversion H.
-  - right. unfold not. intros. inversion H.
-  - destruct (A_dec_eq l l0).
-    + left. subst. reflexivity.
-    + right. unfold not. intros. unfold not in n.
-      inversion H; auto.
+  decide equality.
 Qed.
 
 (* Denotation of CCS Operators as ITree events. *)
 Variant ccsE : Type -> Type :=
 | Or (n : nat): ccsE nat (* Note: choices are zero-indexed. *)
-| Act : Label -> ccsE unit.
+| Act : Label -> ccsE unit
+| Sync : A -> ccsE unit
+| Fail : ccsE void.
 
 Definition ccs := itree ccsE unit.
 
@@ -97,6 +88,8 @@ Definition ccs := itree ccsE unit.
 
 (* The empty process. *)
 Definition zero : ccs := Ret tt.
+
+Definition fail : ccs := Vis Fail (fun x : void => match x with end).
 
 (* Action operators, where l denotes the label. *)
 Definition send (l : A) (k : ccs) : ccs := Vis (Act (In l)) (fun _ => k).
@@ -111,36 +104,40 @@ Definition pick (n: nat) (k : nat -> ccs) : ccs := Vis (Or n) k.
    (#) Follows denotation of CCS parallel composition operator from
        Section 5 Rule IV. (p. 269) of:
        M. Henessy & G. Plotkin, A Term Model for CCS, 1980. *)
+(* Invariant on atomic processes. *)
 CoFixpoint par (p1 p2 : ccs) : ccs :=
+  let par_left (p1 p2 : ccs) : ccs :=
+  match p1, p2 with
+  | (Vis (Act x) k), _ => Vis (Act x) (fun _ => par (k tt) p2)
+  | Vis (Sync a) t1, _ => Vis (Sync a) (fun _ => par (t1 tt) p2)
+  | Ret _, _ => p2
+  | _, _ => fail
+  end in
+  let par_right (p1 p2 : ccs) : ccs :=
+  match p1, p2 with
+  | _, (Vis (Act x) k) => Vis (Act x) (fun _ => par p1 (k tt))
+  | _, Vis (Sync a) t1 => Vis (Sync a) (fun _ => par p1 (t1 tt))
+  | _, Ret _ => p1
+  | _, _ => fail
+  end in
+  let par_comm (p1 p2 : ccs) : ccs :=
+  match p1, p2 with
+  | (Vis (Act (In l1)) k1), (Vis (Act (Out l2)) k2) =>
+    if A_beq l1 l2 then Vis (Sync l1) (fun _ => par (k1 tt) (k2 tt)) else fail
+  | (Vis (Act (Out l1)) k1), (Vis (Act (In l2)) k2) =>
+    if A_beq l1 l2 then Vis (Sync l1) (fun _ => par (k1 tt) (k2 tt)) else fail
+  | _, _ => fail
+  end in
   match p1, p2 with
   | (Vis (Or n1) k1), (Vis (Or n2) k2) =>
       Vis (Or 3) (fun n0 : nat =>
         if beq_nat n0 0 then Vis (Or n1) (fun n11 : nat => par_left (k1 n11) p2)
         else if beq_nat n0 1 then Vis (Or n2) (fun n21 : nat => par_right p1 (k2 n21))
-        else Vis (Or n1) (fun n12 : nat => Vis (Or n2)
-                 (fun n22 => par_comm (k1 n12) (k2 n22))))
-  | _, _ => zero
+        else Vis (Or (n1 * n2))
+                 (fun m => par_comm (k1 (m mod n2)) (k2 (m / n1))))
+  | _, _ => fail
   end
-with par_left (p1 p2 : ccs) : ccs :=
-  match p1, p2 with
-  | (Vis (Act x) k), _ => Vis (Act x) (fun _ => par (k tt) p2)
-  | Tau t1, _ => Tau (par t1 p2)
-  | _, _ => zero
-  end
-with par_right (p1 p2 : ccs) : ccs :=
-  match p1, p2 with
-  | _, (Vis (Act x) k) => Vis (Act x) (fun _ => par p1 (k tt))
-  | _, Tau t1 => Tau (par p1 t1)
-  | _, _ => zero
-  end
-with par_comm (p1 p2 : ccs) : ccs :=
-  match p1, p2 with
-  | (Vis (Act (In l1)) k1), (Vis (Act (Out l2)) k2) =>
-    if A_beq l1 l2 then Tau (par (k1 tt) (k2 tt)) else zero
-  | (Vis (Act (Out l1)) k1), (Vis (Act (In l2)) k2) =>
-    if A_beq l1 l2 then Tau (par (k1 tt) (k2 tt)) else zero
-  | _, _ => zero
-  end.
+.
 
 
 (* To show correctness of our denotation of CCS, we compare
@@ -158,6 +155,13 @@ Inductive ccs_o : Type :=
 | Par : ccs_o -> ccs_o -> ccs_o
 .
 
+(* TODO Exercise : State invariant as a coinductive predicate,
+and preservation by par. *)
+
+(* TODO: Change to synchronous version of the LTS.
+   obs := Sync (n).
+   P -> (a ext) Q is not observed by the trace.
+ *)
 (* Transition rules for the Labelled Transition System. *)
 Inductive step {l : A} : option Label -> ccs_o -> ccs_o -> Prop :=
 | step_Send t :
@@ -191,7 +195,7 @@ Inductive is_subtree_ob : ccs_o -> ccs_o -> Prop :=
 | SubDone : is_subtree_ob Done Done.
 
 Inductive is_trace_ob : ccs_o -> trace_ob -> Prop :=
-| TraceDone : is_trace_ob (Done) TNil
+| TraceDone :  is_trace_ob (Done) TNil
 | TraceAction : forall A c tr, is_trace_ob (Action A c) (TLabel A tr)
 | TraceChoice : forall c1 c2 sc1 sc2 tr,
     is_subtree_ob sc1 c1 -> is_subtree_ob sc2 c2 ->
@@ -236,8 +240,8 @@ Proof.
     + exists Done. exists TNil. repeat constructor.
     + exists Done. exists TNil. repeat constructor.
     + remember (observe t) as t'.
-      exists 
-      * inversion H. 
+      exists
+      * inversion H.
   - intros. admit.
 Admitted.
 
