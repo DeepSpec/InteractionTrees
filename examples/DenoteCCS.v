@@ -10,7 +10,7 @@ From Coq Require Import
      Program.Equality
      List.
 
-From Paco Require Import paco. 
+From Paco Require Import paco.
 
 (** * Modeling Concurrency with ITrees (CCS)
 
@@ -145,41 +145,79 @@ CoFixpoint par (p1 p2 : ccs) : ccs :=
 
 Coercion is_true : bool >-> Sortclass.
 
-(* Shape invariant of the tree.
+Notation ccs' := (itreeF ccsE unit ccs).
+
+(** *Shape Invariant
+
    The tree should alternate in depth starting with a (Vis (Or _) _)
    node, then a non-(Vis (Or _) _) node, and keep alternating until
-   it finds a leaf. *)
-Inductive shape_inv_gen (inv : bool -> ccs -> Prop) (or : bool) : ccs -> Prop :=
-| shape_Ret (CHECK: not or) : shape_inv_gen inv or (Ret tt)
-| shape_Or (CHECK: or) (n1 n2 : nat) (k : nat -> ccs) :
-    n1 <= n2 ->
-    inv (negb or) (k n1) ->
-    shape_inv_gen inv or (Vis (Or n2) k)
-| shape_Act (CHECK : not or) (k : unit -> ccs) a :
-    inv (negb or) (k tt) ->
-    shape_inv_gen inv or (Vis (Act a) k)
-| shape_Sync (CHECK : not or) (k : unit -> ccs) a :
-    inv (negb or) (k tt) ->
-    shape_inv_gen inv or (Vis (Sync a) k)
-| shape_Fail (CHECK : not or) (k : void -> ccs) :
-    not or ->
-    shape_inv_gen inv or (Vis Fail k)
-| shape_Tau (p : ccs) :
-    inv (negb or) p ->
-    shape_inv_gen inv or (Tau p)
-| shape_TauSkip (p : ccs) :
-    inv or p ->
-    shape_inv_gen inv or (Tau p)
-.
-Hint Constructors shape_inv_gen.
+   it finds a leaf.
 
-Definition shape_inv (p : ccs) : Prop := paco2 shape_inv_gen bot2 true p.
+   The equational properties of CCS structural congruences state that
+   any level of the tree can be defined as a sum. This shape invariant
+   is necessary for our parallel composition operator, and we define this
+   shape as the canonical shape for our denotation of CCS with ITrees.
+ *)
+
+(* Functorial definition of shape invariant.
+   The definition takes two parameters :
+   - [b] is a boolean flag indicating whether or not it is currently
+     at an [Or] event level of the tree.
+   - [inv] is the currently built coinductive relation.
+ *)
+Inductive shape_invF (b : bool) (inv : bool -> ccs -> Prop) : bool -> ccs' -> Prop :=
+| ShapeRet (CHECK: not b):
+    shape_invF b inv b (RetF tt)
+| ShapeOr k
+          (CHECK : b)
+          (n1 n2 : nat)
+          (H : n1 <= n2)
+          (REL : inv (negb b) (k n1)):
+    shape_invF b inv (negb b) (VisF (Or n2) k)
+| ShapeAct a k
+           (CHECK : not b)
+           (REL : inv (negb b) (k tt)):
+    shape_invF b inv (negb b) (VisF (Act a) k)
+| ShapeSync a k
+            (CHECK : not b)
+            (REL : inv (negb b) (k tt)):
+    shape_invF b inv (negb b) (VisF (Sync a) k)
+| ShapeTau p
+           (REL : inv (negb b) p):
+    shape_invF b inv b (TauF p)
+| ShapeTauSkip p
+               (REL : inv b p):
+    shape_invF b inv b (TauF p)
+.
+
+Hint Constructors shape_invF.
+
+Definition shape_inv_ b1 inv : bool -> ccs -> Prop :=
+  fun b2 p => shape_invF b1 inv b2 (observe p).
+
+(* Proving monotonicity properties for [paco]. *)
+
+Lemma shape_invF_mono b1 inv inv' b2 p1
+      (IN: shape_invF b1 inv b2 p1)
+      (LE: inv <2= inv'):
+  shape_invF b1 inv' b2 p1.
+Proof.
+  intros. induction IN; eauto.
+Qed.
+
+Lemma shape_inv__mono b1 : monotone2 (shape_inv_ b1).
+Proof. do 2 red. intros. eapply shape_invF_mono; eauto. Qed.
+
+Hint Resolve shape_inv__mono : paco.
+
+Definition shape_inv (p : ccs) : Prop := paco2 (shape_inv_ true) bot2 true p.
 
 Theorem par_preserves_shape :
   forall p1 p2, shape_inv p1 -> shape_inv p2 -> shape_inv (par p1 p2).
 Proof.
   unfold shape_inv.
-  pcofix CIH.
+  pcofix CIH. pstep.
+  intros. punfold H0. punfold H1.
 Admitted.
 
 (* To show correctness of our denotation of CCS, we compare
@@ -218,7 +256,6 @@ Inductive step {l : A} : option Label -> ccs_o -> ccs_o -> Prop :=
     step (Some (Out l)) u u' -> step (Some (In l)) v v' ->
     step None u' v'
 .
-
 
 (** *Synchronous Model of Operational CCS
 
