@@ -1,7 +1,8 @@
 From ITree Require Import
      ITree
      ITreeDefinition
-     Interp.Traces.
+     Interp.Traces
+     Eq.
 
 From Coq Require Import
      Lists.List
@@ -108,6 +109,77 @@ Definition pick (n: nat) (k : nat -> ccs) : ccs := Vis (Or n) k.
        Section 5 Rule IV. (p. 269) of:
        M. Henessy & G. Plotkin, A Term Model for CCS, 1980. *)
 (* TODO: State invariant on atomic processes? *)
+
+Notation ccs' := (itreeF ccsE unit ccs).
+
+Inductive parLF (par : ccs -> ccs -> ccs -> Prop) : ccs' -> ccs' -> ccs' -> Prop :=
+| ParActL l k pr pr' pc
+          (REL : par (k tt) pr' pc):
+    parLF par (VisF (Act l) k) pr (VisF (Act l) (fun _ => pc))
+| ParSyncL l k pr pr' pc
+           (REL : par (k tt) pr' pc):
+    parLF par (VisF (Sync l) k) pr (VisF (Sync l) (fun _ => pc))
+| ParRetL r pr:
+    parLF par (RetF r) pr pr
+.
+
+Definition parL_ par : ccs -> ccs -> ccs -> Prop :=
+  fun pl pr pc => parLF par (observe pl) (observe pr) (observe pc).
+
+Inductive parRF (par : ccs -> ccs -> ccs -> Prop) : ccs' -> ccs' -> ccs' -> Prop :=
+| ParActR l k pl pl' pc
+          (REL : par pl' (k tt) pc):
+    parRF par pl (VisF (Act l) k) (VisF (Act l) (fun _ => pc))
+| ParSyncR l k pl pl' pc
+           (REL : par pl' (k tt) pc):
+    parRF par pl (VisF (Sync l) k) (VisF (Sync l) (fun _ => pc))
+| ParRetR r pl:
+    parRF par pl (RetF r) pl
+.
+
+Definition parR_ par : ccs -> ccs -> ccs -> Prop :=
+  fun pl pr pc => parRF par (observe pl) (observe pr) (observe pc).
+
+Inductive parCF (par : ccs -> ccs -> ccs -> Prop) : ccs' -> ccs' -> ccs' -> Prop :=
+| ParInOutF l1 l2 k1 k2 pc
+            (REL : par (k1 tt) (k2 tt) pc)
+            (EQ : l1 = l2):
+    parCF par (VisF (Act (In l1)) k1) (VisF (Act (Out l1)) k2)
+             (VisF (Sync l1) (fun _ => pc))
+| ParOutInF l1 l2 k1 k2 pc
+            (REL : par (k1 tt) (k2 tt) pc)
+            (EQ : l1 = l2):
+    parCF par (VisF (Act (Out l1)) k1) (VisF (Act (In l1)) k2)
+             (VisF (Sync l1) (fun _ => pc))
+.
+
+Definition parC_ par : ccs -> ccs -> ccs -> Prop :=
+  fun pl pr pc => parCF par (observe pl) (observe pr) (observe pc).
+
+Inductive parF' (par : ccs -> ccs -> ccs -> Prop) : ccs' -> ccs' -> ccs' -> Prop :=
+| ParF' n1 n2 k1 k2 pc p2 n11
+       (PAR_L : parL_ par (k1 n11) p2 pc):
+    parF' par (VisF (Or n1) k1) (VisF (Or n2) k2)
+         (VisF (Or n1) (fun n11 : nat => pc))
+.
+
+(*
+Inductive parF (par : ccs -> ccs -> ccs -> Prop) : ccs' -> ccs' -> ccs' -> Prop :=
+| ParF kl kr pl pr plc prc pcc nl nr
+       (PAR_L : parL_ par (kl nl) pr plc)
+       (PAR_R : parR_ par pl (kr nr) prc)
+       (PAR_C : parC_ par (kl nl) (kr nr) pcc):
+    parF par (VisF (Or nl) kl) (VisF (Or nr) kr)
+         (VisF (Or 3) (fun (nx : nat) =>
+              if beq_nat nx 0
+              then Vis (Or nl) (fun ny => if beq_nat ny nl then pc else fail)
+              else if beq_nat nx 1
+                   then Vis (Or nr) (fun ny => if beq_nat ny nr then pc else fail))
+          else
+         )
+.
+*)
+
 CoFixpoint par (p1 p2 : ccs) : ccs :=
   let par_left (p1 p2 : ccs) : ccs :=
     match p1, p2 with
@@ -142,10 +214,6 @@ CoFixpoint par (p1 p2 : ccs) : ccs :=
   | _, _ => fail
   end
 .
-
-Coercion is_true : bool >-> Sortclass.
-
-Notation ccs' := (itreeF ccsE unit ccs).
 
 (** *Shape Invariant
 
@@ -216,15 +284,23 @@ Theorem par_preserves_shape :
   forall p1 p2, shape_inv p1 -> shape_inv p2 -> shape_inv (par p1 p2).
 Proof.
   unfold shape_inv.
-  pcofix CIH. pstep.
-  intros. punfold H0. punfold H1.
-Admitted.
+  pcofix CIH.
+  intros. punfold H0. pstep. punfold H1.
+  red in H0, H1 |- *.
+  Admitted.
+  (* induction (par p1 p2).
+  induction H0.
+  - inversion H1; subst.
+    + eapply ShapeRet.
+       induction H0; induction H1; pclearbot; eauto 10 with paco; simpl.
+  unfold (shape_inv_ true).
+Admitted. *)
 
 (* To show correctness of our denotation of CCS, we compare
    the trace semantics between this denotation and the
    operational semantics for CCS. *)
 
-(** *Operational Semantics for CCS. *)
+(** *Operational Semantics for CCS *)
 
 Section ccs_op.
 
