@@ -10,6 +10,8 @@ From Coq Require Import
      Program.Equality
      List.
 
+From Paco Require Import paco. 
+
 (** * Modeling Concurrency with ITrees (CCS)
 
     We want to reason about concurrency with ITrees.
@@ -62,7 +64,8 @@ Section ccs.
 
 Variable A : Type.
 Variable A_dec_eq : forall x y: A, {x = y} + {x <> y}.
-Variable A_beq : A -> A -> bool. (* Requires A to have a decidable equality *)
+
+Definition A_beq (a1 a2 : A): bool := true. (* TODO *)
 
 Variant Label : Type :=
 | In (l : A) : Label
@@ -104,7 +107,7 @@ Definition pick (n: nat) (k : nat -> ccs) : ccs := Vis (Or n) k.
    (#) Follows denotation of CCS parallel composition operator from
        Section 5 Rule IV. (p. 269) of:
        M. Henessy & G. Plotkin, A Term Model for CCS, 1980. *)
-(* TODO: Invariant on atomic processes. *)
+(* TODO: State invariant on atomic processes? *)
 CoFixpoint par (p1 p2 : ccs) : ccs :=
   let par_left (p1 p2 : ccs) : ccs :=
     match p1, p2 with
@@ -140,14 +143,50 @@ CoFixpoint par (p1 p2 : ccs) : ccs :=
   end
 .
 
-(* TODO Exercise : State invariant as a coinductive predicate,
-and preservation by par. *)
+Coercion is_true : bool >-> Sortclass.
+
+(* Shape invariant of the tree.
+   The tree should alternate in depth starting with a (Vis (Or _) _)
+   node, then a non-(Vis (Or _) _) node, and keep alternating until
+   it finds a leaf. *)
+Inductive shape_inv_gen (inv : bool -> ccs -> Prop) (or : bool) : ccs -> Prop :=
+| shape_Ret (CHECK: not or) : shape_inv_gen inv or (Ret tt)
+| shape_Or (CHECK: or) (n1 n2 : nat) (k : nat -> ccs) :
+    n1 <= n2 ->
+    inv (negb or) (k n1) ->
+    shape_inv_gen inv or (Vis (Or n2) k)
+| shape_Act (CHECK : not or) (k : unit -> ccs) a :
+    inv (negb or) (k tt) ->
+    shape_inv_gen inv or (Vis (Act a) k)
+| shape_Sync (CHECK : not or) (k : unit -> ccs) a :
+    inv (negb or) (k tt) ->
+    shape_inv_gen inv or (Vis (Sync a) k)
+| shape_Fail (CHECK : not or) (k : void -> ccs) :
+    not or ->
+    shape_inv_gen inv or (Vis Fail k)
+| shape_Tau (p : ccs) :
+    inv (negb or) p ->
+    shape_inv_gen inv or (Tau p)
+| shape_TauSkip (p : ccs) :
+    inv or p ->
+    shape_inv_gen inv or (Tau p)
+.
+Hint Constructors shape_inv_gen.
+
+Definition shape_inv (p : ccs) : Prop := paco2 shape_inv_gen bot2 true p.
+
+Theorem par_preserves_shape :
+  forall p1 p2, shape_inv p1 -> shape_inv p2 -> shape_inv (par p1 p2).
+Proof.
+  unfold shape_inv.
+  pcofix CIH.
+Admitted.
 
 (* To show correctness of our denotation of CCS, we compare
    the trace semantics between this denotation and the
    operational semantics for CCS. *)
 
-(** *Operational Semantics for CCS *)
+(** *Operational Semantics for CCS. *)
 
 Section ccs_op.
 
@@ -180,12 +219,7 @@ Inductive step {l : A} : option Label -> ccs_o -> ccs_o -> Prop :=
     step None u' v'
 .
 
-End ccs_op.
 
-(* TODO: Change to synchronous version of the LTS.
-   obs := Sync (n).
-   P -> (a ext) Q is not observed by the trace.
- *)
 (** *Synchronous Model of Operational CCS
 
    In order to get a trace semantics, we need to limit our operational
@@ -201,9 +235,40 @@ End ccs_op.
    because it provides a more stable basis for our future direction of
    extend our denotation to message passing models of concurrency
    (e.g. π-calculus).
-*)
+ *)
 
-(* Trace Semantics. *)
+Inductive aux_step {l : A} : option Label -> ccs_o -> ccs_o -> Prop :=
+| aux_step_Send t :
+    aux_step (Some (In l)) (Action (In l) t) t
+| aux_step_Recv t :
+    aux_step (Some (Out l)) (Action (Out l) t) t
+.
+
+Inductive sync_step {l : A} : option Label -> ccs_o -> ccs_o -> Prop :=
+| sync_step_Choice_L u v u' (A' : option Label) :
+    sync_step A' u u' -> sync_step A' (Choice u v) u'
+| sync_step_Choice_R u v v' (A' : option Label) :
+    sync_step A' v v' -> sync_step A' (Choice u v) v'
+| sync_step_Par_L u v u' (A' : option Label) :
+    sync_step A' u u' -> sync_step A' (Par u v) (Par u' v)
+| sync_step_Par_R u v v' (A' : option Label) :
+    sync_step A' v v' -> sync_step A' (Par u v) (Par u v')
+| sync_step_Par_Comm1 u v u' v' :
+    @aux_step l (Some (In l)) u u' ->
+    @aux_step l (Some (Out l)) v v' ->
+    sync_step None u' v'
+| sync_step_Par_Comm2 u v u' v' :
+    @aux_step l (Some (Out l)) u u' ->
+    @aux_step l (Some (In l)) v v' ->
+    sync_step None u' v'
+.
+
+End ccs_op.
+
+(* Trace Semantics. The observed events by the trace should be
+   only on the synchronous steps, so
+      obs := Sync (n).
+*)
 
 Inductive trace_ob : Type :=
 | TNil : trace_ob
