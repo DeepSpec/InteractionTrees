@@ -2,7 +2,7 @@ From ITree Require Import
      ITree
      ITreeDefinition
      Interp.Traces
-     Eq.
+     .
 
 From Coq Require Import
      Lists.List
@@ -35,6 +35,8 @@ From Paco Require Import paco.
 
 Import ListNotations.
 Set Implicit Arguments.
+Set Contextual Implicit.
+Set Primitive Projections.
 
   (** CCS Operators:
 
@@ -57,7 +59,6 @@ Set Implicit Arguments.
 
 
 (** *Denotation of CCS with ITrees *)
-
 Section ccs.
 
 (* We need a decidable equality on labels for the Restriction and Parallel
@@ -144,66 +145,63 @@ CoFixpoint par (p1 p2 : ccs) : ccs :=
   end
 .
 
+Notation ccs' := (itree' ccsE unit).
 
-Notation ccs' := (itreeF ccsE unit ccs).
-
-Inductive parLF (par : ccs -> ccs -> ccs -> Prop) : ccs' -> ccs' -> ccs' -> Prop :=
-| ParActL l k pr pr' pc
-          (REL : par (k tt) pr' pc):
-    parLF par (VisF (Act l) k) pr (VisF (Act l) (fun _ => pc))
-| ParSyncL l k pr pr' pc
-           (REL : par (k tt) pr' pc):
-    parLF par (VisF (Sync l) k) pr (VisF (Sync l) (fun _ => pc))
-| ParRetL r pr:
-    parLF par (RetF r) pr pr
+Inductive par_dir :=
+| Left
+| Right
+| Comm
+| Choice
 .
 
-Definition parL_ par : ccs -> ccs -> ccs -> Prop :=
-  fun pl pr pc => parLF par (observe pl) (observe pr) (observe pc).
-
-Inductive parRF (par : ccs -> ccs -> ccs -> Prop) : ccs' -> ccs' -> ccs' -> Prop :=
-| ParActR l k pl pl' pc
-          (REL : par pl' (k tt) pc):
-    parRF par pl (VisF (Act l) k) (VisF (Act l) (fun _ => pc))
-| ParSyncR l k pl pl' pc
-           (REL : par pl' (k tt) pc):
-    parRF par pl (VisF (Sync l) k) (VisF (Sync l) (fun _ => pc))
+Inductive parF (par : par_dir -> ccs -> ccs -> ccs -> Prop) : par_dir -> ccs' -> ccs' -> ccs' -> Prop :=
+| ParActLF l k pr pr' pc
+          (REL : par Choice (k tt) pr' pc):
+    parF par Left (VisF (Act l) k) pr (VisF (Act l) (fun _ => pc))
+| ParSyncLF l k pr pr' pc
+           (REL : par Choice (k tt) pr' pc):
+    parF par Left (VisF (Sync l) k) pr (VisF (Sync l) (fun _ => pc))
+| ParRetLF r pr:
+    parF par Left (RetF r) pr pr
+| ParActRF l k pl pl' pc
+          (REL : par Choice pl' (k tt) pc):
+    parF par Right pl (VisF (Act l) k) (VisF (Act l) (fun _ => pc))
+| ParSyncRF l k pl pl' pc
+           (REL : par Choice pl' (k tt) pc):
+    parF par Right pl (VisF (Sync l) k) (VisF (Sync l) (fun _ => pc))
 | ParRetR r pl:
-    parRF par pl (RetF r) pl
+    parF par Right pl (RetF r) pl
+| ParInOutCF l1 l2 k1 k2 pc
+            (REL : par Choice (k1 tt) (k2 tt) pc)
+            (EQ : l1 = l2):
+    parF par Comm (VisF (Act (In l1)) k1) (VisF (Act (Out l1)) k2)
+             (VisF (Sync l1) (fun _ => pc))
+| ParOutInCF l1 l2 k1 k2 pc
+            (REL : par Choice (k1 tt) (k2 tt) pc)
+            (EQ : l1 = l2):
+    parF par Comm (VisF (Act (Out l1)) k1) (VisF (Act (In l1)) k2)
+         (VisF (Sync l1) (fun _ => pc))
+| ParOrF n1 n2 k1 k2 kcl kcr kcc
+         (REL_L: forall n11,
+             n11 <= n1 ->
+             par Left (k1 n11) (Vis (Or n2) k2) (kcl n11))
+         (REL_R: forall n21,
+             n21 <= n2 ->
+             par Right (Vis (Or n1) k1) (k2 n21) (kcr n21))
+         (REL_C: forall m,
+             m <= n1 * n2 ->
+             par Comm (k1 (m mod n2)) (k2 (m / n1)) (kcc m)):
+    parF par Choice (VisF (Or n1) k1) (VisF (Or n2) k2)
+         (VisF (Or 3) (fun n0 =>
+                         if beq_nat n0 0 then Vis (Or n1) kcl
+                         else if beq_nat n0 1 then Vis (Or n2) kcr
+                              else Vis (Or (n1 * n2)) kcc)
+         )
 .
 
-Definition parR_ par : ccs -> ccs -> ccs -> Prop :=
-  fun pl pr pc => parRF par (observe pl) (observe pr) (observe pc).
+Definition par_ par : par_dir -> ccs -> ccs -> ccs -> Prop :=
+  fun d pl pr pc => parF par d (observe pl) (observe pr) (observe pc).
 
-Inductive parCF (par : ccs -> ccs -> ccs -> Prop) : ccs' -> ccs' -> ccs' -> Prop :=
-| ParInOutF l1 l2 k1 k2 pc
-            (REL : par (k1 tt) (k2 tt) pc)
-            (EQ : l1 = l2):
-    parCF par (VisF (Act (In l1)) k1) (VisF (Act (Out l1)) k2)
-             (VisF (Sync l1) (fun _ => pc))
-| ParOutInF l1 l2 k1 k2 pc
-            (REL : par (k1 tt) (k2 tt) pc)
-            (EQ : l1 = l2):
-    parCF par (VisF (Act (Out l1)) k1) (VisF (Act (In l1)) k2)
-             (VisF (Sync l1) (fun _ => pc))
-.
-
-Definition parC_ par : ccs -> ccs -> ccs -> Prop :=
-  fun pl pr pc => parCF par (observe pl) (observe pr) (observe pc).
-
-(* TODO : WIP... *)
-Inductive parF (par : ccs -> ccs -> ccs -> Prop) : ccs' -> ccs' -> ccs' -> Prop :=
-| ParF n1 n2 k1 k2 pl pr pc
-       (REL : par (k1 n1) (k2 n2) pc)
-       (PAR_LRC :
-          forall n11 n21 m,
-          exists pcl pcr pcc,
-            n11 <= n1 -> n21 <= n2 -> m <= n1 * n2 ->
-            parL_ par (k1 n11) pr pcl /\
-            parR_ par pl (k2 n21) pcr /\
-            parC_ par (k1 (m mod n2)) (k2 (m / n1)) pcc):
-    parF par (VisF (Or n1) k1) (VisF (Or n2) k2)
-         (VisF (Or n1) (fun n11 => pc)).
 
 (** *Shape Invariant
 
@@ -223,60 +221,78 @@ Inductive parF (par : ccs -> ccs -> ccs -> Prop) : ccs' -> ccs' -> ccs' -> Prop 
      at an [Or] event level of the tree.
    - [inv] is the currently built coinductive relation.
  *)
-Inductive shape_invF (b : bool) (inv : bool -> ccs -> Prop) : bool -> ccs' -> Prop :=
-| ShapeRet (CHECK: not b):
-    shape_invF b inv b (RetF tt)
+Inductive shape_invF (inv : bool -> ccs -> Prop) : bool -> ccs' -> Prop :=
+| ShapeRet :
+    shape_invF inv false (RetF tt)
 | ShapeOr k
-          (CHECK : b)
           (n1 n2 : nat)
           (H : n1 <= n2)
-          (REL : inv (negb b) (k n1)):
-    shape_invF b inv (negb b) (VisF (Or n2) k)
+          (REL : inv false (k n1)):
+    shape_invF inv true (VisF (Or n2) k)
 | ShapeAct a k
-           (CHECK : not b)
-           (REL : inv (negb b) (k tt)):
-    shape_invF b inv (negb b) (VisF (Act a) k)
+           (REL : inv true (k tt)):
+    shape_invF inv false (VisF (Act a) k)
 | ShapeSync a k
-            (CHECK : not b)
-            (REL : inv (negb b) (k tt)):
-    shape_invF b inv (negb b) (VisF (Sync a) k)
+            (REL : inv true (k tt)):
+    shape_invF inv false (VisF (Sync a) k)
 | ShapeTau p
-           (REL : inv (negb b) p):
-    shape_invF b inv b (TauF p)
+           (REL : inv true p):
+    shape_invF inv false (TauF p)
 | ShapeTauSkip p
-               (REL : inv b p):
-    shape_invF b inv b (TauF p)
+               (REL : inv true p):
+    shape_invF inv false (TauF p)
 .
 
 Hint Constructors shape_invF.
 
-Definition shape_inv_ b1 inv : bool -> ccs -> Prop :=
-  fun b2 p => shape_invF b1 inv b2 (observe p).
+Definition shape_inv_ inv : bool -> ccs -> Prop :=
+  fun b p => shape_invF inv b (observe p).
 
 (* Proving monotonicity properties for [paco]. *)
 
-Lemma shape_invF_mono b1 inv inv' b2 p1
-      (IN: shape_invF b1 inv b2 p1)
+Lemma shape_invF_mono inv inv' b p1
+      (IN: shape_invF inv b p1)
       (LE: inv <2= inv'):
-  shape_invF b1 inv' b2 p1.
+  shape_invF inv' b p1.
 Proof.
   intros. induction IN; eauto.
 Qed.
 
-Lemma shape_inv__mono b1 : monotone2 (shape_inv_ b1).
+Lemma shape_inv__mono : monotone2 (shape_inv_).
 Proof. do 2 red. intros. eapply shape_invF_mono; eauto. Qed.
 
 Hint Resolve shape_inv__mono : paco.
 
-Definition shape_inv (p : ccs) : Prop := paco2 (shape_inv_ true) bot2 true p.
+Definition shape_inv (p : ccs) : Prop := paco2 shape_inv_ bot2 true p.
 
 Theorem par_preserves_shape :
-  forall p1 p2, shape_inv p1 -> shape_inv p2 -> shape_inv (par p1 p2).
+  forall (p1 p2 : ccs), shape_inv p1 -> shape_inv p2 -> shape_inv (par p1 p2).
 Proof.
   unfold shape_inv.
-  pcofix CIH.
-  intros. punfold H0. pstep. punfold H1.
+  pcofix CIH. intros.
+  punfold H0; pstep; punfold H1.
   red in H0, H1 |- *.
+  induction H0.
+  - inversion H1; subst. rewrite <- H in H1.
+    + destruct (observe (par p1 p2)) eqn: H3.
+      * destruct r0. eapply ShapeRet.
+      * eapply ShapeTau. left. pstep. red.
+        assert (forall n k, observe t = VisF (Or n) k). 
+        destruct (observe t).
+        -- eapply ShapeRet.
+        remember (upaco2 shape_inv_ r) as inv.
+        remember (observe t) as x.
+        eapply ShapeOr. 
+
+        eapply (ShapeOr inv _ _ _).
+
+  inversion H0; subst.
+  
+  -
+    destruct r0; eapply ShapeRet; apply CHECK.
+  - eapply ShapeTau; simpl; left; pstep; red.
+    induction (observe t) eqn: H3.
+    * destruct r0. eapply ShapeRet. 
   Admitted.
   (* induction (par p1 p2).
   induction H0.
