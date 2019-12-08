@@ -109,6 +109,41 @@ Definition pick (n: nat) (k : nat -> ccs) : ccs := Vis (Or n) k.
        Section 5 Rule IV. (p. 269) of:
        M. Henessy & G. Plotkin, A Term Model for CCS, 1980. *)
 (* TODO: State invariant on atomic processes? *)
+CoFixpoint par (p1 p2 : ccs) : ccs :=
+  let par_left (p1 p2 : ccs) : ccs :=
+    match p1, p2 with
+    | (Vis (Act x) k), _ => Vis (Act x) (fun _ => par (k tt) p2)
+    | Vis (Sync a) t1, _ => Vis (Sync a) (fun _ => par (t1 tt) p2)
+    | Ret _, _ => p2
+    | _, _ => fail
+    end
+  in let par_right (p1 p2 : ccs) : ccs :=
+    match p1, p2 with
+    | _, (Vis (Act x) k) => Vis (Act x) (fun _ => par p1 (k tt))
+    | _, Vis (Sync a) t1 => Vis (Sync a) (fun _ => par p1 (t1 tt))
+    | _, Ret _ => p1
+    | _, _ => fail
+    end
+  in let par_comm (p1 p2 : ccs) : ccs :=
+    match p1, p2 with
+    | (Vis (Act (In l1)) k1), (Vis (Act (Out l2)) k2) =>
+      if A_beq l1 l2 then Vis (Sync l1) (fun _ => par (k1 tt) (k2 tt)) else fail
+    | (Vis (Act (Out l1)) k1), (Vis (Act (In l2)) k2) =>
+      if A_beq l1 l2 then Vis (Sync l1) (fun _ => par (k1 tt) (k2 tt)) else fail
+    | _, _ => fail
+    end
+  in
+  match p1, p2 with
+  | (Vis (Or n1) k1), (Vis (Or n2) k2) =>
+      Vis (Or 3) (fun n0 : nat =>
+        if beq_nat n0 0 then Vis (Or n1) (fun n11 : nat => par_left (k1 n11) p2)
+        else if beq_nat n0 1 then Vis (Or n2) (fun n21 : nat => par_right p1 (k2 n21))
+        else Vis (Or (n1 * n2))
+                 (fun m => par_comm (k1 (m mod n2)) (k2 (m / n1))))
+  | _, _ => fail
+  end
+.
+
 
 Notation ccs' := (itreeF ccsE unit ccs).
 
@@ -156,64 +191,19 @@ Inductive parCF (par : ccs -> ccs -> ccs -> Prop) : ccs' -> ccs' -> ccs' -> Prop
 Definition parC_ par : ccs -> ccs -> ccs -> Prop :=
   fun pl pr pc => parCF par (observe pl) (observe pr) (observe pc).
 
-Inductive parF' (par : ccs -> ccs -> ccs -> Prop) : ccs' -> ccs' -> ccs' -> Prop :=
-| ParF' n1 n2 k1 k2 pc p2 n11
-       (PAR_L : parL_ par (k1 n11) p2 pc):
-    parF' par (VisF (Or n1) k1) (VisF (Or n2) k2)
-         (VisF (Or n1) (fun n11 : nat => pc))
-.
-
-(*
+(* TODO : WIP... *)
 Inductive parF (par : ccs -> ccs -> ccs -> Prop) : ccs' -> ccs' -> ccs' -> Prop :=
-| ParF kl kr pl pr plc prc pcc nl nr
-       (PAR_L : parL_ par (kl nl) pr plc)
-       (PAR_R : parR_ par pl (kr nr) prc)
-       (PAR_C : parC_ par (kl nl) (kr nr) pcc):
-    parF par (VisF (Or nl) kl) (VisF (Or nr) kr)
-         (VisF (Or 3) (fun (nx : nat) =>
-              if beq_nat nx 0
-              then Vis (Or nl) (fun ny => if beq_nat ny nl then pc else fail)
-              else if beq_nat nx 1
-                   then Vis (Or nr) (fun ny => if beq_nat ny nr then pc else fail))
-          else
-         )
-.
-*)
-
-CoFixpoint par (p1 p2 : ccs) : ccs :=
-  let par_left (p1 p2 : ccs) : ccs :=
-    match p1, p2 with
-    | (Vis (Act x) k), _ => Vis (Act x) (fun _ => par (k tt) p2)
-    | Vis (Sync a) t1, _ => Vis (Sync a) (fun _ => par (t1 tt) p2)
-    | Ret _, _ => p2
-    | _, _ => fail
-    end
-  in let par_right (p1 p2 : ccs) : ccs :=
-    match p1, p2 with
-    | _, (Vis (Act x) k) => Vis (Act x) (fun _ => par p1 (k tt))
-    | _, Vis (Sync a) t1 => Vis (Sync a) (fun _ => par p1 (t1 tt))
-    | _, Ret _ => p1
-    | _, _ => fail
-    end
-  in let par_comm (p1 p2 : ccs) : ccs :=
-    match p1, p2 with
-    | (Vis (Act (In l1)) k1), (Vis (Act (Out l2)) k2) =>
-      if A_beq l1 l2 then Vis (Sync l1) (fun _ => par (k1 tt) (k2 tt)) else fail
-    | (Vis (Act (Out l1)) k1), (Vis (Act (In l2)) k2) =>
-      if A_beq l1 l2 then Vis (Sync l1) (fun _ => par (k1 tt) (k2 tt)) else fail
-    | _, _ => fail
-    end
-  in
-  match p1, p2 with
-  | (Vis (Or n1) k1), (Vis (Or n2) k2) =>
-      Vis (Or 3) (fun n0 : nat =>
-        if beq_nat n0 0 then Vis (Or n1) (fun n11 : nat => par_left (k1 n11) p2)
-        else if beq_nat n0 1 then Vis (Or n2) (fun n21 : nat => par_right p1 (k2 n21))
-        else Vis (Or (n1 * n2))
-                 (fun m => par_comm (k1 (m mod n2)) (k2 (m / n1))))
-  | _, _ => fail
-  end
-.
+| ParF n1 n2 k1 k2 pl pr pc
+       (REL : par (k1 n1) (k2 n2) pc)
+       (PAR_LRC :
+          forall n11 n21 m,
+          exists pcl pcr pcc,
+            n11 <= n1 -> n21 <= n2 -> m <= n1 * n2 ->
+            parL_ par (k1 n11) pr pcl /\
+            parR_ par pl (k2 n21) pcr /\
+            parC_ par (k1 (m mod n2)) (k2 (m / n1)) pcc):
+    parF par (VisF (Or n1) k1) (VisF (Or n2) k2)
+         (VisF (Or n1) (fun n11 => pc)).
 
 (** *Shape Invariant
 
