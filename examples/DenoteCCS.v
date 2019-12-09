@@ -2,6 +2,7 @@ From ITree Require Import
      ITree
      ITreeDefinition
      Interp.Traces
+     Eq
      .
 
 From Coq Require Import
@@ -9,7 +10,10 @@ From Coq Require Import
      Arith.EqNat
      Arith.PeanoNat
      Program.Equality
-     List.
+     List
+     Setoid
+     Morphisms
+     RelationClasses.
 
 From Paco Require Import paco.
 
@@ -88,6 +92,8 @@ Variant ccsE : Type -> Type :=
 
 Definition ccs := itree ccsE unit.
 
+Notation ccs' := (itree' ccsE unit).
+
 (** Denotation of basic operations in CCS.
     For now, we reason about finitary ITrees. *)
 
@@ -110,42 +116,51 @@ Definition pick (n: nat) (k : nat -> ccs) : ccs := Vis (Or n) k.
        Section 5 Rule IV. (p. 269) of:
        M. Henessy & G. Plotkin, A Term Model for CCS, 1980. *)
 (* TODO: State invariant on atomic processes? *)
-CoFixpoint par (p1 p2 : ccs) : ccs :=
+CoFixpoint par' (p1 p2 : ccs) : ccs :=
   let par_left (p1 p2 : ccs) : ccs :=
     match p1, p2 with
-    | (Vis (Act x) k), _ => Vis (Act x) (fun _ => par (k tt) p2)
-    | Vis (Sync a) t1, _ => Vis (Sync a) (fun _ => par (t1 tt) p2)
+    | (Vis (Act x) k), _ => Vis (Act x) (fun _ => par' (k tt) p2)
+    | Vis (Sync a) t1, _ => Vis (Sync a) (fun _ => par' (t1 tt) p2)
     | Ret _, _ => p2
     | _, _ => fail
     end
   in let par_right (p1 p2 : ccs) : ccs :=
     match p1, p2 with
-    | _, (Vis (Act x) k) => Vis (Act x) (fun _ => par p1 (k tt))
-    | _, Vis (Sync a) t1 => Vis (Sync a) (fun _ => par p1 (t1 tt))
+    | _, (Vis (Act x) k) => Vis (Act x) (fun _ => par' p1 (k tt))
+    | _, Vis (Sync a) t1 => Vis (Sync a) (fun _ => par' p1 (t1 tt))
     | _, Ret _ => p1
     | _, _ => fail
     end
   in let par_comm (p1 p2 : ccs) : ccs :=
     match p1, p2 with
     | (Vis (Act (In l1)) k1), (Vis (Act (Out l2)) k2) =>
-      if A_beq l1 l2 then Vis (Sync l1) (fun _ => par (k1 tt) (k2 tt)) else fail
+      if A_beq l1 l2
+      then Vis (Sync l1) (fun _ => par' (k1 tt) (k2 tt))
+      else fail
     | (Vis (Act (Out l1)) k1), (Vis (Act (In l2)) k2) =>
-      if A_beq l1 l2 then Vis (Sync l1) (fun _ => par (k1 tt) (k2 tt)) else fail
+      if A_beq l1 l2
+      then Vis (Sync l1) (fun _ => par' (k1 tt) (k2 tt))
+      else fail
     | _, _ => fail
     end
   in
-  match p1, p2 with
-  | (Vis (Or n1) k1), (Vis (Or n2) k2) =>
-      Vis (Or 3) (fun n0 : nat =>
-        if beq_nat n0 0 then Vis (Or n1) (fun n11 : nat => par_left (k1 n11) p2)
-        else if beq_nat n0 1 then Vis (Or n2) (fun n21 : nat => par_right p1 (k2 n21))
-        else Vis (Or (n1 * n2))
-                 (fun m => par_comm (k1 (m mod n2)) (k2 (m / n1))))
+  match (observe p1), (observe p2) with
+  | (VisF (Or n1) k1), (VisF (Or n2) k2) =>
+      Vis (Or (n1 + n2 + (n1 * n2))) (fun n0 : nat =>
+                    if beq_nat n0 n1
+                    then par_left (k1 n0) p2
+                    else if beq_nat n0 (n2 + n2)
+                         then par_right p1 (k2 (n0 - n1))
+                         else par' (k1 ((n0 - n1 - n2) mod n2)) (k2 ((n0 - n1 - n2) / n1)))
   | _, _ => fail
   end
 .
 
-Notation ccs' := (itree' ccsE unit).
+(* [paco] must be used for a pleasant coinductive proof experience.
+   Here, the [par] operator is stated as a coinductive proposition.
+   We keep the CoFixpoint definition above because of its readability. *)
+
+
 
 Inductive par_dir :=
 | Left
@@ -154,7 +169,8 @@ Inductive par_dir :=
 | Choice
 .
 
-Inductive parF (par : par_dir -> ccs -> ccs -> ccs -> Prop) : par_dir -> ccs' -> ccs' -> ccs' -> Prop :=
+Inductive parF (par : par_dir -> ccs -> ccs -> ccs -> Prop) :
+  par_dir -> ccs' -> ccs' -> ccs' -> Prop :=
 | ParActLF l k pr pr' pc
           (REL : par Choice (k tt) pr' pc):
     parF par Left (VisF (Act l) k) pr (VisF (Act l) (fun _ => pc))
@@ -183,25 +199,39 @@ Inductive parF (par : par_dir -> ccs -> ccs -> ccs -> Prop) : par_dir -> ccs' ->
          (VisF (Sync l1) (fun _ => pc))
 | ParOrF n1 n2 k1 k2 kcl kcr kcc
          (REL_L: forall n11,
-             n11 <= n1 ->
              par Left (k1 n11) (Vis (Or n2) k2) (kcl n11))
          (REL_R: forall n21,
-             n21 <= n2 ->
              par Right (Vis (Or n1) k1) (k2 n21) (kcr n21))
          (REL_C: forall m,
-             m <= n1 * n2 ->
              par Comm (k1 (m mod n2)) (k2 (m / n1)) (kcc m)):
     parF par Choice (VisF (Or n1) k1) (VisF (Or n2) k2)
-         (VisF (Or 3) (fun n0 =>
-                         if beq_nat n0 0 then Vis (Or n1) kcl
-                         else if beq_nat n0 1 then Vis (Or n2) kcr
-                              else Vis (Or (n1 * n2)) kcc)
+         (VisF (Or (n1 * n2 + n1 + n2)) (fun n0 =>
+               if n0 <=? n1 then (kcl n1)
+               else if n0 <=? (n1 + n2) then (kcr n2)
+               else (kcc (n0 - n1 - n2)))
          )
 .
 
 Definition par_ par : par_dir -> ccs -> ccs -> ccs -> Prop :=
   fun d pl pr pc => parF par d (observe pl) (observe pr) (observe pc).
 
+Lemma parF_mono par par' d p1 p2 p3
+      (IN: parF par d p1 p2 p3)
+      (LE: par <4= par'):
+  parF par' d p1 p2 p3.
+Proof.
+  intros. induction IN; econstructor; eauto.
+Qed.
+
+Lemma par__mono : monotone4 par_.
+Proof. do 2 red. intros. eapply parF_mono; eauto. Qed.
+
+Definition par (p1 p2 p3 : ccs) : Prop := paco4 par_ bot4 Choice p1 p2 p3.
+
+Theorem par_pred : forall p1 p2, par p1 p2 (par' p1 p2).
+  Admitted. 
+
+Hint Resolve par__mono : paco.
 
 (** *Shape Invariant
 
@@ -265,42 +295,68 @@ Hint Resolve shape_inv__mono : paco.
 
 Definition shape_inv (p : ccs) : Prop := paco2 shape_inv_ bot2 true p.
 
-Theorem par_preserves_shape :
-  forall (p1 p2 : ccs), shape_inv p1 -> shape_inv p2 -> shape_inv (par p1 p2).
+Instance proper_par'_eqit : Proper (eq_itree eq ==> eq_itree eq ==> eq_itree eq) par'. Admitted.
+
+Instance shape_inv_par'_eqit : Proper (eq_itree eq ==> iff) shape_inv.
+Admitted.
+
+Theorem par'_preserves_shape :
+  forall (p1 p2 : ccs),
+    shape_inv p1 -> shape_inv p2 -> shape_inv (par' p1 p2).
 Proof.
+  intros.
+  setoid_rewrite (itree_eta p1).
+  setoid_rewrite (itree_eta p2).
+  pcofix CIH.
+  pstep. punfold H. punfold H0.
+  unfold shape_inv_ in *.
+  destruct (observe p1).
+  - destruct (observe p2); inversion H; subst.
+  - destruct (observe p2); inversion H; subst.
+  - destruct (observe p2); inversion H;
+      inversion H0; subst.
+    apply inj_pair2 in H2.
+    apply inj_pair2 in H4.
+    apply inj_pair2 in H6.
+    apply inj_pair2 in H8. subst. cbn.
+    econstructor.
+    + eauto.
+    + cbn. left. pstep.
+      cbn. destruct (n2 + n3 + n2 * n3 =? n2).
+      * destruct (n3 + n2 + n3 * n2 =? n3).
+        -- match goal with
+             |- shape_invF _ _ ?cont => remember cont as k1
+           end.
+           destruct k1 eqn: Hk.
+           ++ destruct r0. econstructor.
+           ++ econstructor. Admitted.
+
+
+Theorem par_preserves_shape :
+  forall (p1 p2 p3 : ccs), par p1 p2 p3 ->
+                      shape_inv p1 ->
+                      shape_inv p2 -> shape_inv p3.
+Proof with eauto.
   unfold shape_inv.
   pcofix CIH. intros.
   punfold H0; pstep; punfold H1.
   red in H0, H1 |- *.
-  induction H0.
-  - inversion H1; subst. rewrite <- H in H1.
-    + destruct (observe (par p1 p2)) eqn: H3.
-      * destruct r0. eapply ShapeRet.
-      * eapply ShapeTau. left. pstep. red.
-        assert (forall n k, observe t = VisF (Or n) k). 
-        destruct (observe t).
-        -- eapply ShapeRet.
-        remember (upaco2 shape_inv_ r) as inv.
-        remember (observe t) as x.
-        eapply ShapeOr. 
-
-        eapply (ShapeOr inv _ _ _).
-
   inversion H0; subst.
-  
-  -
-    destruct r0; eapply ShapeRet; apply CHECK.
-  - eapply ShapeTau; simpl; left; pstep; red.
-    induction (observe t) eqn: H3.
-    * destruct r0. eapply ShapeRet. 
-  Admitted.
-  (* induction (par p1 p2).
-  induction H0.
-  - inversion H1; subst.
-    + eapply ShapeRet.
-       induction H0; induction H1; pclearbot; eauto 10 with paco; simpl.
-  unfold (shape_inv_ true).
-Admitted. *)
+  rewrite <- H in *. rewrite <- H3 in *.
+  clear H. clear H3.
+  econstructor... left. pstep.
+  red. destruct (n1 * n2 + n1 + n2 <=? n1).
+  - destruct (observe (kcl n1)); try destruct r0;
+      try econstructor...
+    + right. eapply CIH.
+      * admit.
+      * admit.
+      * admit.
+    + admit.
+  - destruct (n1 * n2 + n1 + n2 <=? n1 + n2).
+    + admit.
+    + admit.
+Admitted.
 
 (* To show correctness of our denotation of CCS, we compare
    the trace semantics between this denotation and the
