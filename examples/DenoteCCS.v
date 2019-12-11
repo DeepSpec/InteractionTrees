@@ -17,6 +17,8 @@ From Coq Require Import
 
 From Paco Require Import paco.
 
+Require Import ITree.Eq.EqAxiom.
+
 (** * Modeling Concurrency with ITrees (CCS)
 
     We want to reason about concurrency with ITrees.
@@ -121,14 +123,14 @@ CoFixpoint par' (p1 p2 : ccs) : ccs :=
     match p1, p2 with
     | (Vis (Act x) k), _ => Vis (Act x) (fun _ => par' (k tt) p2)
     | Vis (Sync a) t1, _ => Vis (Sync a) (fun _ => par' (t1 tt) p2)
-    | Ret _, _ => p2
+    | Ret _, _ => Tau (par' p2 p2)
     | _, _ => fail
     end
   in let par_right (p1 p2 : ccs) : ccs :=
     match p1, p2 with
     | _, (Vis (Act x) k) => Vis (Act x) (fun _ => par' p1 (k tt))
     | _, Vis (Sync a) t1 => Vis (Sync a) (fun _ => par' p1 (t1 tt))
-    | _, Ret _ => p1
+    | _, Ret _ => Tau (par' p1 p1)
     | _, _ => fail
     end
   in let par_comm (p1 p2 : ccs) : ccs :=
@@ -151,7 +153,7 @@ CoFixpoint par' (p1 p2 : ccs) : ccs :=
                     then par_left (k1 n0) p2
                     else if beq_nat n0 (n2 + n2)
                          then par_right p1 (k2 (n0 - n1))
-                         else par' (k1 ((n0 - n1 - n2) mod n2)) (k2 ((n0 - n1 - n2) / n1)))
+                         else par_comm (k1 ((n0 - n1 - n2) mod n2)) (k2 ((n0 - n1 - n2) / n1)))
   | _, _ => fail
   end
 .
@@ -159,8 +161,6 @@ CoFixpoint par' (p1 p2 : ccs) : ccs :=
 (* [paco] must be used for a pleasant coinductive proof experience.
    Here, the [par] operator is stated as a coinductive proposition.
    We keep the CoFixpoint definition above because of its readability. *)
-
-
 
 Inductive par_dir :=
 | Left
@@ -256,8 +256,7 @@ Inductive shape_invF (inv : bool -> ccs -> Prop) : bool -> ccs' -> Prop :=
     shape_invF inv false (RetF tt)
 | ShapeOr k
           (n1 n2 : nat)
-          (H : n1 <= n2)
-          (REL : inv false (k n1)):
+          (REL : forall n1, n1 <= n2 -> inv false (k n1)):
     shape_invF inv true (VisF (Or n2) k)
 | ShapeAct a k
            (REL : inv true (k tt)):
@@ -265,6 +264,8 @@ Inductive shape_invF (inv : bool -> ccs -> Prop) : bool -> ccs' -> Prop :=
 | ShapeSync a k
             (REL : inv true (k tt)):
     shape_invF inv false (VisF (Sync a) k)
+| ShapeFail k:
+    shape_invF inv false (VisF Fail k)
 | ShapeTau p
            (REL : inv true p):
     shape_invF inv false (TauF p)
@@ -300,36 +301,159 @@ Instance proper_par'_eqit : Proper (eq_itree eq ==> eq_itree eq ==> eq_itree eq)
 Instance shape_inv_par'_eqit : Proper (eq_itree eq ==> iff) shape_inv.
 Admitted.
 
+Ltac bubble_types :=
+  repeat (match goal with
+          | h: ?T |- _ =>
+            lazymatch type of h with
+            | nat => fail
+            | _ => revert h
+            end
+          end).
+Ltac bubble_types2 :=
+  repeat (match goal with
+          | h: ?T |- _ =>
+            lazymatch type of h with
+            | nat -> itree ccsE unit => fail
+            | _ => revert h
+            end
+          end)
+.
+
 Theorem par'_preserves_shape :
   forall (p1 p2 : ccs),
     shape_inv p1 -> shape_inv p2 -> shape_inv (par' p1 p2).
 Proof.
-  intros.
+  intros p1 p2.
   setoid_rewrite (itree_eta p1).
   setoid_rewrite (itree_eta p2).
-  pcofix CIH.
-  pstep. punfold H. punfold H0.
-  unfold shape_inv_ in *.
-  destruct (observe p1).
-  - destruct (observe p2); inversion H; subst.
-  - destruct (observe p2); inversion H; subst.
-  - destruct (observe p2); inversion H;
-      inversion H0; subst.
-    apply inj_pair2 in H2.
-    apply inj_pair2 in H4.
-    apply inj_pair2 in H6.
-    apply inj_pair2 in H8. subst. cbn.
-    econstructor.
-    + eauto.
-    + cbn. left. pstep.
-      cbn. destruct (n2 + n3 + n2 * n3 =? n2).
-      * destruct (n3 + n2 + n3 * n2 =? n3).
-        -- match goal with
-             |- shape_invF _ _ ?cont => remember cont as k1
-           end.
-           destruct k1 eqn: Hk.
-           ++ destruct r0. econstructor.
-           ++ econstructor. Admitted.
+  generalize dependent p1. generalize dependent p2.
+  pcofix CIH. unfold shape_inv in CIH.
+  pstep.
+  unfold shape_inv_ in *. intros p2 p1.
+  destruct (observe p1); intros H H0;
+    punfold H; punfold H0.
+  - (* Ret *)
+    destruct (observe p2); inversion H; subst.
+  - (* Tau *)
+    destruct (observe p2); inversion H; subst.
+  - (* Vis *)
+    destruct (observe p2); inversion H;
+      inversion H0.
+    (* par' (Vis e k, Vis e0 k0) *)
+    dependent destruction H2.
+    dependent destruction H6.
+    dependent destruction H7.
+    bubble_types; intros. bubble_types2; intros.
+    cbn; econstructor; eauto; left; pstep.
+    simpl.
+    destruct (n4 =? n2).
+    + (* Left *)
+      match goal with
+        |- shape_invF _ _ (?cont) => remember cont as k2
+      end.
+      destruct k2 eqn: Hk2.
+      * (* RetF *)
+        destruct r0; constructor.
+      * (* TauF *)
+        destruct (_observe (k n4)) eqn:?;
+          setoid_rewrite Heqi in Heqk2; try inversion Heqk2.
+        -- constructor. right.
+           setoid_rewrite (itree_eta_ (Vis (Or n3) k0)).
+           apply CIH; pstep; simpl; eapply H0.
+        -- destruct e; inversion Heqk2.
+      * (* VisF *)
+        destruct (_observe (k n4)) eqn:Heqi;
+        setoid_rewrite Heqi in Heqk2; try inversion Heqk2;
+        rewrite Heqk2.
+        -- constructor.
+        -- destruct e0 eqn: He0; try constructor;
+            try (right; setoid_rewrite (itree_eta_ (k3 tt));
+                 setoid_rewrite (itree_eta_ (Vis (Or n3) k0))).
+          ++ subst. inversion Heqk2.
+             dependent destruction H5.
+             dependent destruction H6.
+             apply CIH.
+             ** admit.
+             ** pstep; simpl; red in H0; eapply H0.
+          ++ apply CIH.
+             ** admit.
+             ** pstep; simpl; red in H0; eapply H0.
+    + (* Right & Comm *)
+      destruct (n4 =? n3 + n3).
+      * (* Right. This proof is symmetric with Left. *)
+        match goal with
+          |- shape_invF _ _ (?cont) => remember cont as k2
+        end.
+        destruct k2 eqn: Hk2.
+        -- (* RetF *)
+          destruct r0; constructor.
+        -- (* TauF *)
+          destruct (_observe (k0 (n4 - n2))) eqn:?;
+                   setoid_rewrite Heqi in Heqk2; try inversion Heqk2.
+          ++ constructor. right.
+             setoid_rewrite (itree_eta_ (Vis (Or n2) k)).
+             apply CIH; pstep; simpl; eapply H.
+          ++ destruct e; inversion Heqk2.
+        -- (* VisF *)
+          destruct (_observe (k0 (n4 - n2))) eqn: Heqi;
+            setoid_rewrite Heqi in Heqk2; try inversion Heqk2;
+              rewrite Heqk2.
+          ++ constructor.
+          ++ destruct e0 eqn: He0; try constructor;
+               try (right; setoid_rewrite (itree_eta_ (k3 tt));
+                    setoid_rewrite (itree_eta_ (Vis (Or n2) k)));
+               apply CIH.
+             ** pstep. apply H.
+             ** pstep. admit.
+             ** pstep. apply H.
+             ** pstep. admit. 
+      * (* Comm *)
+        match goal with
+          |- shape_invF _ _ (?cont) => remember cont as k2
+        end.
+        destruct k2 eqn: Hk2.
+        -- destruct r0; constructor.
+        -- destruct (_observe (k ((n4 - n2 - n3) mod n3))) eqn:?;
+             setoid_rewrite Heqi in Heqk2; try inversion Heqk2;
+             rewrite Heqk2.
+           destruct e; try inversion H3. clear H3. clear H4.
+           destruct l;
+           destruct (_observe (k0 ((n4 - n2 - n3) / n2))) eqn:?;
+            setoid_rewrite Heqi0 in Heqk2; try inversion Heqk2;
+            rewrite Heqk2;
+              destruct e; try inversion H3; clear H3; clear H4;
+              destruct l0; try inversion Heqk2.
+        -- destruct (_observe (k ((n4 - n2 - n3) mod n3))) eqn:?;
+             setoid_rewrite Heqi in Heqk2; try inversion Heqk2;
+             rewrite Heqk2.
+           ++ destruct r0; constructor.
+           ++ constructor.
+           ++ clear H3. destruct e0.
+              ** constructor.
+              ** destruct l.
+                 --- destruct (_observe (k0 ((n4 - n2 - n3) / n2))) eqn:?;
+                     setoid_rewrite Heqi0 in Heqk2; setoid_rewrite Heqi0.
+                     +++ constructor.
+                     +++ constructor.
+                     +++ destruct e0; try constructor. destruct l0.
+                         *** constructor.
+                         *** simpl. constructor. right.
+                             setoid_rewrite (itree_eta_ (k3 tt)).
+                             setoid_rewrite (itree_eta_ (k4 tt)).
+                             apply CIH; admit. 
+                 --- destruct (_observe (k0 ((n4 - n2 - n3) / n2))) eqn:?;
+                     setoid_rewrite Heqi0 in Heqk2; setoid_rewrite Heqi0.
+                     +++ constructor.
+                     +++ constructor.
+                     +++ destruct e0; try constructor. destruct l0.
+                         *** constructor. right.
+                             setoid_rewrite (itree_eta_ (k3 tt)).
+                             setoid_rewrite (itree_eta_ (k4 tt)).
+                             apply CIH; admit.
+                         *** constructor.
+              ** constructor.
+              ** constructor.
+Admitted.
 
 
 Theorem par_preserves_shape :
