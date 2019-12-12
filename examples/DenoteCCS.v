@@ -477,10 +477,10 @@ Inductive step {l : A} : option Label -> ccs_ -> ccs_ -> Prop :=
     step A' v v' -> step A' (Par u v) (Par u v')
 | step_Par_Comm1 u v u' v' :
     step (Some (In l)) u u' -> step (Some (Out l)) v v' ->
-    step None u' v'
+    step None (Par u v) (Par u' v')
 | step_Par_Comm2 u v u' v' :
     step (Some (Out l)) u u' -> step (Some (In l)) v v' ->
-    step None u' v'
+    step None (Par u v) (Par u' v')
 .
 
 (** *Synchronous Model of Operational CCS
@@ -505,63 +505,69 @@ Inductive step {l : A} : option Label -> ccs_ -> ccs_ -> Prop :=
 
    Transition Rules found in p.39 of
    R. Milner, Communicating and Mobile Systems: The π-calculus.  *)
-Inductive aux_step {l : A} : option Label -> ccs_ -> ccs_ -> Prop :=
-| aux_step_Send t :
+Inductive aux_step : option Label -> ccs_ -> ccs_ -> Prop :=
+| aux_step_Send l t :
     aux_step (Some (In l)) (Action (In l) t) t
-| aux_step_Recv t :
+| aux_step_Recv l t :
     aux_step (Some (Out l)) (Action (Out l) t) t
 .
 
-Inductive sync_step {l : A} : option Label -> ccs_ -> ccs_ -> Prop :=
-| sync_step_Choice_L_In u v u' (A' : option Label) :
-    @aux_step l (Some (In l)) u u' -> sync_step A' (Choice u v) u'
-| sync_step_Choice_L_Out u v u' (A' : option Label) :
-    @aux_step l (Some (Out l)) u u' -> sync_step A' (Choice u v) u'
-| sync_step_Choice_R_In u v v' (A' : option Label) :
-    @aux_step l (Some (In l)) v v' -> sync_step A' (Choice u v) v'
-| sync_step_Choice_R_Out u v v' (A' : option Label) :
-    @aux_step l (Some (Out l)) v v' -> sync_step A' (Choice u v) v'
+Inductive sync_step : option Label -> ccs_ -> ccs_ -> Prop :=
+| sync_step_Choice_L a u v u':
+    aux_step (Some a) u u' ->
+    sync_step (Some a) (Choice u v) u'
+| sync_step_Choice_R a u v v' :
+    aux_step (Some a) v v' ->
+    sync_step (Some a) (Choice u v) v'
 | sync_step_Par_L u v u' (A' : option Label) :
     sync_step A' u u' -> sync_step A' (Par u v) (Par u' v)
 | sync_step_Par_R u v v' (A' : option Label) :
     sync_step A' v v' -> sync_step A' (Par u v) (Par u v')
-| sync_step_Par_Comm1 u v u' v' :
-    @aux_step l (Some (In l)) u u' ->
-    @aux_step l (Some (Out l)) v v' ->
-    sync_step None u' v'
-| sync_step_Par_Comm2 u v u' v' :
-    @aux_step l (Some (Out l)) u u' ->
-    @aux_step l (Some (In l)) v v' ->
-    sync_step None u' v'
+| sync_step_Par_Comm1 l u v u' v' :
+    aux_step (Some (In l)) u u' ->
+    aux_step (Some (Out l)) v v' ->
+    sync_step None (Par u v) (Par u' v')
+| sync_step_Par_Comm2 l u v u' v' :
+    aux_step (Some (Out l)) u u' ->
+    aux_step (Some (In l)) v v' ->
+    sync_step None (Par u v) (Par u' v')
+| sync_step_Par_Comm1_Eq l u v u' :
+    aux_step (Some (In l)) u u' ->
+    aux_step (Some (Out l)) v u' ->
+    sync_step None (Par u v) u'
+| sync_step_Par_Comm2_Eq l u v u' :
+    aux_step (Some (Out l)) u u' ->
+    aux_step (Some (In l)) v u' ->
+    sync_step None (Par u v) u'
 .
 
 End ccs_op.
 
 (* Trace Semantics.
    The trace is the reflexive transitive closure of the step relation. *)
-Inductive is_trace : ccs_ -> list (option Label) -> ccs_ -> Prop :=
-| is_trace_refl : forall (p : ccs_), is_trace p [] p
-| is_trace_step : forall (p1 p2 p3 : ccs_) l a A,
-    is_trace p2 l p3 ->
-    @sync_step A a p1 p2 ->
-    is_trace p1 (a :: l) p3.
+Inductive is_trace_ : ccs_ -> list (option Label) -> ccs_ -> Prop :=
+| is_trace_refl : forall (p : ccs_), is_trace_ p [] p
+| is_trace_step : forall (p1 p2 p3 : ccs_) l a,
+    is_trace_ p2 l p3 ->
+    sync_step a p1 p2 ->
+    is_trace_ p1 (a :: l) p3.
 
-Lemma is_trace_app :
+Lemma is_trace__app :
   forall (p1 p2 p3 : ccs_) l1 l2,
-    is_trace p1 l1 p2 -> is_trace p2 l2 p3 ->
-    is_trace p1 (l1 ++ l2) p3.
+    is_trace_ p1 l1 p2 -> is_trace_ p2 l2 p3 ->
+    is_trace_ p1 (l1 ++ l2) p3.
 Proof.
   intros. induction H.
   - cbn; eauto.
-  - apply IHis_trace in H0.
+  - apply IHis_trace_ in H0.
     eapply is_trace_step. apply H0. apply H1.
 Qed.
 
-Lemma is_trace_inversion {X: A} :
+Lemma is_trace__inversion {X: A} :
   forall (p1 p2 : ccs_) l a,
-    is_trace p1 l p2 ->
-    (l = [] /\ p1 = p2) \/ (l = [a] /\ @sync_step X a p1 p2) \/
-    (exists l1 l2 p', l = l1 ++ l2 /\ is_trace p1 l1 p' /\ is_trace p' l2 p2).
+    is_trace_ p1 l p2 ->
+    (l = [] /\ p1 = p2) \/ (l = [a] /\ sync_step a p1 p2) \/
+    (exists l1 l2 p', l = l1 ++ l2 /\ is_trace_ p1 l1 p' /\ is_trace_ p' l2 p2).
 Proof.
   induction p1; intros; inversion H; subst;
     try (left; split; reflexivity);
@@ -591,30 +597,99 @@ Qed.
 
 Arguments trace _ _.
 
-(* TODO. This is wrong. *)
-(*
-Inductive equiv_traces : trace_ -> trace -> Prop :=
-| TEqNil : equiv_traces TNil TEnd
-| TEqRet : forall x, equiv_traces TNil (TRet x)
-| TEqEvEnd : forall l,
-    equiv_traces (TLabel l TNil) (TEventEnd (Act l))
-| TEqEvResp : forall l tro trd,
-    equiv_traces tro trd ->
-    equiv_traces (TLabel l tro) (@TEventResponse ccsE unit unit (Act l) tt trd)
+Inductive equiv_traces : @trace ccsE unit -> list (option Label) -> Prop :=
+| TEqNil : equiv_traces TEnd []
+| TEqRet x : equiv_traces (TRet x) []
+| TEqEvEndAct a :
+    equiv_traces (TEventEnd (Act a)) [Some a]
+| TEqEvEndSync x :
+    equiv_traces (TEventEnd (Sync x)) [None]
+| TEqEvEndFail :
+    equiv_traces (TEventEnd (Fail)) []
+| TEqEvEndOr n : (* Waiting for non-deterministic Choice *)
+    equiv_traces (TEventEnd (Or n)) []
+| TEqEvRespAct (a : Label) t l :
+    equiv_traces t l ->
+    equiv_traces (TEventResponse (Act a) tt t) ((Some a)::l)
+| TEqEvRespSync x t l:
+    equiv_traces t l ->
+    equiv_traces (TEventResponse (Sync x) tt t) ((None)::l)
+| TEqEvRespFail t {x : void} :
+    equiv_traces (@TEventResponse ccsE unit void (Fail) x t) []
+| TEqEvRespOr n1 n2 t l :
+    equiv_traces (@TEventResponse ccsE unit nat (Or n1) n2 t) l
 .
-*)
+
+Ltac exists_trace_done := exists []; exists Done; exists Done; split; constructor.
+
+Ltac repeat_constructors :=
+  split; repeat econstructor; repeat econstructor; constructor.
 
 (* Now we can prove trace equivalence between the semantic models. *)
-Theorem trace_eq_ob_den :
-  (forall td trd, is_trace td trd -> exists to tro, is_trace_ob to tro /\ equiv_traces tro trd)
-  /\ (forall to tro, is_trace_ob to tro -> exists td trd, is_trace td trd /\ equiv_traces tro trd).
+Theorem trace_eq_ob_den (a : A) (l : list A):
+  (forall c1 tr, is_trace c1 tr ->
+             exists tr' c1' c2',
+               is_trace_ c1' tr' c2' /\
+               equiv_traces tr tr')
+  /\ (forall c1' c2' tr', is_trace_ c1' tr' c2' ->
+                    exists tr c1,
+                      is_trace c1 tr /\
+                      equiv_traces tr tr').
 Proof.
   split.
-  - intros td trd H. induction H.
-    + exists Done. exists TNil. repeat constructor.
-    + exists Done. exists TNil. repeat constructor.
-    + remember (observe t) as t'.
-      exists
-      * inversion H.
-  - intros. admit.
-Admitted.
+  - (* Denotational trace => Operational trace *)
+    intros. induction H.
+    + (* TraceEmpty *)
+      exists_trace_done.
+    + (* TraceRet *)
+      exists_trace_done.
+    + (* TraceTau *)
+      destruct (observe t); assumption.
+    + (* TraceVisEnd *)
+      destruct e.
+      * exists []; exists (Choice Done Done); exists (Choice Done Done);
+          repeat_constructors.
+      * exists [Some l0]; exists (Choice (Action l0 Done) Done); exists Done.
+        destruct l0; repeat_constructors.
+      * exists [None];
+          exists (Par (Action (In (hd a l)) Done) (Action (Out (hd a l)) Done));
+          exists (Par Done Done); repeat_constructors.
+      * exists_trace_done.
+    + (* TraceVisContinue *)
+      destruct e.
+      * exists []; exists (Choice Done Done); exists (Choice Done Done);
+          repeat_constructors.
+      * destruct IHis_traceF.
+        destruct H0 as [? [?]]. destruct H0.
+        exists (Some l0::x0); exists (Choice (Action l0 x1) x2); exists x2.
+        destruct l0.
+        -- split.
+           ++ econstructor. apply H0. repeat constructor.
+           ++ destruct x. econstructor. apply H1.
+        -- split.
+           ++ econstructor. apply H0. repeat constructor.
+           ++ destruct x. econstructor. apply H1.
+      * destruct IHis_traceF.
+        destruct H0 as [? [?]]. destruct H0.
+        exists (None::x0); exists (Par (Action (In (hd a l)) x1) (Action (Out (hd a l)) x1)).
+        exists (x2).
+        split.
+        -- econstructor. apply H0. econstructor; constructor.
+        -- destruct x. econstructor. apply H1.
+      * destruct IHis_traceF.
+        destruct H0 as [? [?]]. destruct H0.
+        exists_trace_done.
+  - (* Operational trace => Denotational trace *)
+    intros. induction H.
+    + exists TEnd. exists zero. split; constructor.
+    + destruct a0.
+      destruct IHis_trace_ as [? [?]].
+      destruct H1; unfold is_trace in H1.
+      * exists (@TEventResponse ccsE unit unit (Act l1) tt x).
+        exists (Vis (Act l1) (fun _ => x0)).
+        split; constructor; assumption.
+      * destruct IHis_trace_ as [? [?]]. destruct H1.
+        exists (@TEventResponse ccsE unit unit (Sync a) tt x).
+        exists (Vis (Sync a) (fun _ => x0)).
+        split; constructor; assumption.
+Qed.
