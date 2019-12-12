@@ -13,7 +13,8 @@ From Coq Require Import
      List
      Setoid
      Morphisms
-     RelationClasses.
+     RelationClasses
+     Relations.Relation_Operators.
 
 From Paco Require Import paco.
 
@@ -118,30 +119,30 @@ Definition pick (n: nat) (k : nat -> ccs) : ccs := Vis (Or n) k.
        Section 5 Rule IV. (p. 269) of:
        M. Henessy & G. Plotkin, A Term Model for CCS, 1980. *)
 (* TODO: State invariant on atomic processes? *)
-CoFixpoint par' (p1 p2 : ccs) : ccs :=
+CoFixpoint par (p1 p2 : ccs) : ccs :=
   let par_left (p1 p2 : ccs) : ccs :=
     match p1, p2 with
-    | (Vis (Act x) k), _ => Vis (Act x) (fun _ => par' (k tt) p2)
-    | Vis (Sync a) t1, _ => Vis (Sync a) (fun _ => par' (t1 tt) p2)
-    | Ret _, _ => Tau (par' p2 p2)
+    | (Vis (Act x) k), _ => Vis (Act x) (fun _ => par (k tt) p2)
+    | Vis (Sync a) t1, _ => Vis (Sync a) (fun _ => par (t1 tt) p2)
+    | Ret _, _ => Tau (par (Vis (Or 0) (fun _ => Ret tt)) p2)
     | _, _ => fail
     end
   in let par_right (p1 p2 : ccs) : ccs :=
     match p1, p2 with
-    | _, (Vis (Act x) k) => Vis (Act x) (fun _ => par' p1 (k tt))
-    | _, Vis (Sync a) t1 => Vis (Sync a) (fun _ => par' p1 (t1 tt))
-    | _, Ret _ => Tau (par' p1 p1)
+    | _, (Vis (Act x) k) => Vis (Act x) (fun _ => par p1 (k tt))
+    | _, Vis (Sync a) t1 => Vis (Sync a) (fun _ => par p1 (t1 tt))
+    | _, Ret _ => Tau (par p1 (Vis (Or 0) (fun _ => Ret tt)))
     | _, _ => fail
     end
   in let par_comm (p1 p2 : ccs) : ccs :=
     match p1, p2 with
     | (Vis (Act (In l1)) k1), (Vis (Act (Out l2)) k2) =>
       if A_beq l1 l2
-      then Vis (Sync l1) (fun _ => par' (k1 tt) (k2 tt))
+      then Vis (Sync l1) (fun _ => par (k1 tt) (k2 tt))
       else fail
     | (Vis (Act (Out l1)) k1), (Vis (Act (In l2)) k2) =>
       if A_beq l1 l2
-      then Vis (Sync l1) (fun _ => par' (k1 tt) (k2 tt))
+      then Vis (Sync l1) (fun _ => par (k1 tt) (k2 tt))
       else fail
     | _, _ => fail
     end
@@ -194,9 +195,6 @@ Inductive shape_invF (inv : bool -> ccs -> Prop) : bool -> ccs' -> Prop :=
 | ShapeTau p
            (REL : inv true p):
     shape_invF inv false (TauF p)
-| ShapeTauSkip p
-               (REL : inv true p):
-    shape_invF inv false (TauF p)
 .
 
 Hint Constructors shape_invF.
@@ -221,7 +219,7 @@ Hint Resolve shape_inv__mono : paco.
 
 Definition shape_inv (p : ccs) : Prop := paco2 shape_inv_ bot2 true p.
 
-Instance proper_par'_eqit : Proper (eq_itree eq ==> eq_itree eq ==> eq_itree eq) par'. Admitted.
+Instance proper_par'_eqit : Proper (eq_itree eq ==> eq_itree eq ==> eq_itree eq) par. Admitted.
 
 Instance shape_inv_par'_eqit : Proper (eq_itree eq ==> iff) shape_inv.
 Admitted.
@@ -246,7 +244,7 @@ Ltac bubble_types2 :=
 
 Theorem par'_preserves_shape :
   forall (p1 p2 : ccs),
-    shape_inv p1 -> shape_inv p2 -> shape_inv (par' p1 p2).
+    shape_inv p1 -> shape_inv p2 -> shape_inv (par p1 p2).
 Proof.
   intros p1 p2.
   setoid_rewrite (itree_eta p1).
@@ -255,14 +253,14 @@ Proof.
   pcofix CIH. unfold shape_inv in CIH.
   pstep.
   unfold shape_inv_ in *. intros p2 p1.
-  destruct (observe p1); intros H H0;
+  destruct (observe p1) eqn: Heqp1; intros H H0;
     punfold H; punfold H0.
   - (* Ret *)
     destruct (observe p2); inversion H; subst.
   - (* Tau *)
     destruct (observe p2); inversion H; subst.
   - (* Vis *)
-    destruct (observe p2); inversion H;
+    destruct (observe p2) eqn: Heqp2; inversion H;
       inversion H0.
     (* par (Vis e k, Vis e0 k0) *)
     dependent destruction H2.
@@ -284,7 +282,9 @@ Proof.
           setoid_rewrite Heqi in Heqk2; try inversion Heqk2.
         -- constructor. right.
            setoid_rewrite (itree_eta_ (Vis (Or n3) k0)).
-           apply CIH; pstep; simpl; eapply H0.
+           setoid_rewrite (itree_eta_ (Vis (Or 0) (fun _ : nat => Ret tt))).
+           apply CIH; simpl; pstep; eauto.
+           constructor; eauto.
         -- destruct e; inversion Heqk2.
       * (* VisF *)
         destruct (_observe (k n4)) eqn:Heqi;
@@ -329,7 +329,9 @@ Proof.
                    setoid_rewrite Heqi in Heqk2; try inversion Heqk2.
           ++ constructor. right.
              setoid_rewrite (itree_eta_ (Vis (Or n2) k)).
-             apply CIH; pstep; simpl; eapply H.
+             setoid_rewrite (itree_eta_ (Vis (Or 0) (fun _ : nat => Ret tt))).
+             apply CIH; simpl; pstep; eauto.
+             constructor; eauto.
           ++ destruct e; inversion Heqk2.
         -- (* VisF *)
           destruct (_observe (k0 (n4 - n2))) eqn: Heqi;
@@ -440,6 +442,10 @@ Proof.
               ** constructor.
 Qed.
 
+Eval cbv in fun (a : A) => ret_traces
+              (par (Vis (Or 2) (fun n => if beq_nat n 1 then zero else send a zero))
+                  (Vis (Or 2) (fun n => if beq_nat n 1 then zero else recv a zero))).
+
 (* To show correctness of our denotation of CCS, we compare
    the trace semantics between this denotation and the
    operational semantics for CCS. *)
@@ -448,15 +454,15 @@ Qed.
 
 Section ccs_op.
 
-Inductive ccs_o : Type :=
-| Done : ccs_o
-| Action : Label -> ccs_o -> ccs_o
-| Choice : ccs_o -> ccs_o -> ccs_o
-| Par : ccs_o -> ccs_o -> ccs_o
+Inductive ccs_ : Type :=
+| Done : ccs_
+| Action : Label -> ccs_ -> ccs_
+| Choice : ccs_ -> ccs_ -> ccs_
+| Par : ccs_ -> ccs_ -> ccs_
 .
 
 (* General transition rules for the Labelled Transition System. *)
-Inductive step {l : A} : option Label -> ccs_o -> ccs_o -> Prop :=
+Inductive step {l : A} : option Label -> ccs_ -> ccs_ -> Prop :=
 | step_Send t :
     step (Some (In l)) (Action (In l) t) t
 | step_Recv t :
@@ -494,18 +500,27 @@ Inductive step {l : A} : option Label -> ccs_o -> ccs_o -> Prop :=
    (e.g. π-calculus).
  *)
 
-Inductive aux_step {l : A} : option Label -> ccs_o -> ccs_o -> Prop :=
+(* Operational semantics for Labeled Transition System, without Restriction
+   and Bang.
+
+   Transition Rules found in p.39 of
+   R. Milner, Communicating and Mobile Systems: The π-calculus.  *)
+Inductive aux_step {l : A} : option Label -> ccs_ -> ccs_ -> Prop :=
 | aux_step_Send t :
     aux_step (Some (In l)) (Action (In l) t) t
 | aux_step_Recv t :
     aux_step (Some (Out l)) (Action (Out l) t) t
 .
 
-Inductive sync_step {l : A} : option Label -> ccs_o -> ccs_o -> Prop :=
-| sync_step_Choice_L u v u' (A' : option Label) :
-    sync_step A' u u' -> sync_step A' (Choice u v) u'
-| sync_step_Choice_R u v v' (A' : option Label) :
-    sync_step A' v v' -> sync_step A' (Choice u v) v'
+Inductive sync_step {l : A} : option Label -> ccs_ -> ccs_ -> Prop :=
+| sync_step_Choice_L_In u v u' (A' : option Label) :
+    @aux_step l (Some (In l)) u u' -> sync_step A' (Choice u v) u'
+| sync_step_Choice_L_Out u v u' (A' : option Label) :
+    @aux_step l (Some (Out l)) u u' -> sync_step A' (Choice u v) u'
+| sync_step_Choice_R_In u v v' (A' : option Label) :
+    @aux_step l (Some (In l)) v v' -> sync_step A' (Choice u v) v'
+| sync_step_Choice_R_Out u v v' (A' : option Label) :
+    @aux_step l (Some (Out l)) v v' -> sync_step A' (Choice u v) v'
 | sync_step_Par_L u v u' (A' : option Label) :
     sync_step A' u u' -> sync_step A' (Par u v) (Par u' v)
 | sync_step_Par_R u v v' (A' : option Label) :
@@ -522,31 +537,48 @@ Inductive sync_step {l : A} : option Label -> ccs_o -> ccs_o -> Prop :=
 
 End ccs_op.
 
-(* Trace Semantics. The observed events by the trace should be
-   only on the synchronous steps, so
-      obs := Sync (n).
-*)
+(* Trace Semantics.
+   The trace is the reflexive transitive closure of the step relation. *)
+Inductive is_trace : ccs_ -> list (option Label) -> ccs_ -> Prop :=
+| is_trace_refl : forall (p : ccs_), is_trace p [] p
+| is_trace_step : forall (p1 p2 p3 : ccs_) l a A,
+    is_trace p2 l p3 ->
+    @sync_step A a p1 p2 ->
+    is_trace p1 (a :: l) p3.
 
-Inductive trace_ob : Type :=
-| TNil : trace_ob
-| TLabel : Label -> trace_ob -> trace_ob.
+Lemma is_trace_app :
+  forall (p1 p2 p3 : ccs_) l1 l2,
+    is_trace p1 l1 p2 -> is_trace p2 l2 p3 ->
+    is_trace p1 (l1 ++ l2) p3.
+Proof.
+  intros. induction H.
+  - cbn; eauto.
+  - apply IHis_trace in H0.
+    eapply is_trace_step. apply H0. apply H1.
+Qed.
 
-(* TODO *)
-Inductive is_subtree_ob : ccs_o -> ccs_o -> Prop :=
-| SubDone : is_subtree_ob Done Done.
+Lemma is_trace_inversion {X: A} :
+  forall (p1 p2 : ccs_) l a,
+    is_trace p1 l p2 ->
+    (l = [] /\ p1 = p2) \/ (l = [a] /\ @sync_step X a p1 p2) \/
+    (exists l1 l2 p', l = l1 ++ l2 /\ is_trace p1 l1 p' /\ is_trace p' l2 p2).
+Proof.
+  induction p1; intros; inversion H; subst;
+    try (left; split; reflexivity);
+    try (right; right; exists [a0]).
+  - exists l0. exists p0. split. reflexivity.
+    split. repeat (econstructor; eauto). auto.
+  - exists l1. exists p3. split. reflexivity.
+    split. econstructor. econstructor.
+    apply H1. apply H0.
+  - exists l0. exists p0. split. reflexivity.
+    split. econstructor. econstructor.
+    apply H1. apply H0.
+  - exists l0. exists p0. split. reflexivity.
+    split. econstructor. econstructor.
+    apply H1. apply H0.
+Qed.
 
-Inductive is_trace_ob : ccs_o -> trace_ob -> Prop :=
-| TraceDone :  is_trace_ob (Done) TNil
-| TraceAction : forall A c tr, is_trace_ob (Action A c) (TLabel A tr)
-| TraceChoice : forall c1 c2 sc1 sc2 tr,
-    is_subtree_ob sc1 c1 -> is_subtree_ob sc2 c2 ->
-    is_trace_ob sc1 tr -> is_trace_ob sc2 tr ->
-    is_trace_ob (Choice c1 c2) tr
-| TracePar : forall c1 c2 sc1 sc2 tr,
-    is_subtree_ob sc1 c1 -> is_subtree_ob sc2 c2 ->
-    is_trace_ob sc1 tr \/ is_trace_ob sc2 tr ->
-    is_trace_ob (Par c1 c2) tr
-.
 
 (** *Equivalence on Traces
 
@@ -558,7 +590,10 @@ Inductive is_trace_ob : ccs_o -> trace_ob -> Prop :=
 *)
 
 Arguments trace _ _.
-Inductive equiv_traces : trace_ob -> trace -> Prop :=
+
+(* TODO. This is wrong. *)
+(*
+Inductive equiv_traces : trace_ -> trace -> Prop :=
 | TEqNil : equiv_traces TNil TEnd
 | TEqRet : forall x, equiv_traces TNil (TRet x)
 | TEqEvEnd : forall l,
@@ -567,6 +602,7 @@ Inductive equiv_traces : trace_ob -> trace -> Prop :=
     equiv_traces tro trd ->
     equiv_traces (TLabel l tro) (@TEventResponse ccsE unit unit (Act l) tt trd)
 .
+*)
 
 (* Now we can prove trace equivalence between the semantic models. *)
 Theorem trace_eq_ob_den :
