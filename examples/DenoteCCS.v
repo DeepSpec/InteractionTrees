@@ -101,7 +101,7 @@ Notation ccs' := (itree' ccsE unit).
     For now, we reason about finitary ITrees. *)
 
 (* The empty process. *)
-Definition zero : ccs := Ret tt.
+Definition zero : ccs := Ret tt. (* Or 0 as zero? *)
 
 Definition fail : ccs := Vis Fail (fun x : void => match x with end).
 
@@ -124,14 +124,14 @@ CoFixpoint par (p1 p2 : ccs) : ccs :=
     match p1, p2 with
     | (Vis (Act x) k), _ => Vis (Act x) (fun _ => par (k tt) p2)
     | Vis (Sync a) t1, _ => Vis (Sync a) (fun _ => par (t1 tt) p2)
-    | Ret _, _ => Tau (par (Vis (Or 0) (fun _ => Ret tt)) p2)
+    | Ret _, _ => Tau p2
     | _, _ => fail
     end
   in let par_right (p1 p2 : ccs) : ccs :=
     match p1, p2 with
     | _, (Vis (Act x) k) => Vis (Act x) (fun _ => par p1 (k tt))
     | _, Vis (Sync a) t1 => Vis (Sync a) (fun _ => par p1 (t1 tt))
-    | _, Ret _ => Tau (par p1 (Vis (Or 0) (fun _ => Ret tt)))
+    | _, Ret _ => Tau p1
     | _, _ => fail
     end
   in let par_comm (p1 p2 : ccs) : ccs :=
@@ -219,10 +219,22 @@ Hint Resolve shape_inv__mono : paco.
 
 Definition shape_inv (p : ccs) : Prop := paco2 shape_inv_ bot2 true p.
 
-Instance proper_par'_eqit : Proper (eq_itree eq ==> eq_itree eq ==> eq_itree eq) par. Admitted.
+Instance proper_par'_eqit :
+  Proper (eq_itree eq ==> eq_itree eq ==> eq_itree eq) par.
+Proof.
+  ginit. gcofix CIH. intros. rewrite itree_eta.
+  rewrite (itree_eta (par y y0)).
+  punfold H0. punfold H1.
+  gstep.
+  red in H0, H1 |- *.
+  destruct (observe x). destruct (observe y). 
+  destruct (observe (par x x2)) eqn: Hx.
+  destruct (observe (par y y0)) eqn: Hy.
+  - constructor. destruct r0, r1.
+Admitted.
 
 Instance shape_inv_par'_eqit : Proper (eq_itree eq ==> iff) shape_inv.
-Admitted.
+Admitted. 
 
 Ltac bubble_types :=
   repeat (match goal with
@@ -280,11 +292,9 @@ Proof.
       * (* TauF *)
         destruct (_observe (k n4)) eqn:?;
           setoid_rewrite Heqi in Heqk2; try inversion Heqk2.
-        -- constructor. right.
-           setoid_rewrite (itree_eta_ (Vis (Or n3) k0)).
-           setoid_rewrite (itree_eta_ (Vis (Or 0) (fun _ : nat => Ret tt))).
-           apply CIH; simpl; pstep; eauto.
-           constructor; eauto.
+        -- constructor. left. eapply paco2_mon. pclearbot.
+           pstep. unfold shape_inv_ in H0. apply H0.
+           intros. inversion PR.
         -- destruct e; inversion Heqk2.
       * (* VisF *)
         destruct (_observe (k n4)) eqn:Heqi;
@@ -327,11 +337,9 @@ Proof.
         -- (* TauF *)
           destruct (_observe (k0 (n4 - n2))) eqn:?;
                    setoid_rewrite Heqi in Heqk2; try inversion Heqk2.
-          ++ constructor. right.
-             setoid_rewrite (itree_eta_ (Vis (Or n2) k)).
-             setoid_rewrite (itree_eta_ (Vis (Or 0) (fun _ : nat => Ret tt))).
-             apply CIH; simpl; pstep; eauto.
-             constructor; eauto.
+          ++ constructor. left. eapply paco2_mon. pstep.
+             unfold shape_inv_ in H. apply H. intros.
+             inversion PR.
           ++ destruct e; inversion Heqk2.
         -- (* VisF *)
           destruct (_observe (k0 (n4 - n2))) eqn: Heqi;
@@ -531,14 +539,6 @@ Inductive sync_step : option Label -> ccs_ -> ccs_ -> Prop :=
     aux_step (Some (Out l)) u u' ->
     aux_step (Some (In l)) v v' ->
     sync_step None (Par u v) (Par u' v')
-| sync_step_Par_Comm1_Eq l u v u' :
-    aux_step (Some (In l)) u u' ->
-    aux_step (Some (Out l)) v u' ->
-    sync_step None (Par u v) u'
-| sync_step_Par_Comm2_Eq l u v u' :
-    aux_step (Some (Out l)) u u' ->
-    aux_step (Some (In l)) v u' ->
-    sync_step None (Par u v) u'
 .
 
 End ccs_op.
@@ -550,7 +550,8 @@ Inductive is_trace_ : ccs_ -> list (option Label) -> ccs_ -> Prop :=
 | is_trace_step : forall (p1 p2 p3 : ccs_) l a,
     is_trace_ p2 l p3 ->
     sync_step a p1 p2 ->
-    is_trace_ p1 (a :: l) p3.
+    is_trace_ p1 (a :: l) p3
+.
 
 Lemma is_trace__app :
   forall (p1 p2 p3 : ccs_) l1 l2,
@@ -563,8 +564,8 @@ Proof.
     eapply is_trace_step. apply H0. apply H1.
 Qed.
 
-Lemma is_trace__inversion {X: A} :
-  forall (p1 p2 : ccs_) l a,
+Lemma is_trace__inversion (a : option Label) :
+  forall (p1 p2 : ccs_) l,
     is_trace_ p1 l p2 ->
     (l = [] /\ p1 = p2) \/ (l = [a] /\ sync_step a p1 p2) \/
     (exists l1 l2 p', l = l1 ++ l2 /\ is_trace_ p1 l1 p' /\ is_trace_ p' l2 p2).
@@ -585,6 +586,57 @@ Proof.
     apply H1. apply H0.
 Qed.
 
+Lemma is_trace_par (a : option Label) :
+  forall (p1 p2 p1' p2' : ccs_) a1 a2,
+    is_trace_ p1 [a1] p1' -> is_trace_ p2 [a2] p2' ->
+    is_trace_ (Par p1 p2) [a2; a1] (Par p1' p2').
+Proof.
+  intros. econstructor.
+  econstructor. econstructor. econstructor.
+  inversion H; subst. inversion H4; subst.
+  apply H6. econstructor. inversion H0; subst.
+  inversion H4; subst. apply H6.
+Qed.
+
+Lemma is_trace_par_left :
+  forall p1 p1' l1 p2,
+    is_trace_ p1 l1 p1' ->
+    is_trace_ (Par p1 p2) l1 (Par p1' p2).
+Proof.
+  intros. induction H; subst.
+  - constructor.
+  - econstructor. apply IHis_trace_.
+    constructor. apply H0.
+Qed.
+
+Lemma is_trace_par_acc_nonsync :
+  forall (p1 p2 p1' p2' : ccs_) l1 l2,
+    is_trace_ p1 l1 p1' -> is_trace_ p2 l2 p2' ->
+    is_trace_ (Par p1 p2) (l2 ++ l1) (Par p1' p2').
+Proof.
+  intros. induction H0.
+  - simpl. inversion H; subst.
+    + constructor.
+    + econstructor. apply is_trace_par_left. eauto.
+      constructor. apply H1.
+  - simpl. econstructor. apply IHis_trace_.
+    constructor. apply H1.
+Qed.
+
+Lemma is_trace_par_sync :
+  forall (p1 p2 p1' p2' p1'' p2'': ccs_) a l1 l2,
+    is_trace_ p1' l1 p1'' -> is_trace_ p2' l2 p2'' ->
+    aux_step (Some (In a)) p1 p1' -> aux_step (Some (Out a)) p2 p2' ->
+    is_trace_ (Par p1 p2) (None::(l2 ++ l1)) (Par p1'' p2'').
+Proof.
+  intros.
+  assert (is_trace_ (Par p1 p2) [None] (Par p1' p2')).
+  { econstructor. econstructor. econstructor; eauto. }
+  pose proof is_trace_step.
+  apply is_trace_step with (p2 := (Par p1' p2')).
+  apply is_trace_par_acc_nonsync; eauto.
+  econstructor; eauto.
+Qed.
 
 (** *Equivalence on Traces
 
@@ -611,13 +663,15 @@ Inductive equiv_traces : @trace ccsE unit -> list (option Label) -> Prop :=
 | TEqEvRespAct (a : Label) t l :
     equiv_traces t l ->
     equiv_traces (TEventResponse (Act a) tt t) ((Some a)::l)
-| TEqEvRespSync x t l:
+| TEqEvRespSync x t l :
     equiv_traces t l ->
     equiv_traces (TEventResponse (Sync x) tt t) ((None)::l)
 | TEqEvRespFail t {x : void} :
     equiv_traces (@TEventResponse ccsE unit void (Fail) x t) []
-| TEqEvRespOr n1 n2 t l :
-    equiv_traces (@TEventResponse ccsE unit nat (Or n1) n2 t) l
+| TEqEvRespOr n1 n2 t l a u u' v :
+    equiv_traces t l ->
+    is_trace_ (Choice u v) (a::l) u' ->
+    equiv_traces (@TEventResponse ccsE unit nat (Or n1) n2 t) (a::l)
 .
 
 Ltac exists_trace_done := exists []; exists Done; exists Done; split; constructor.
@@ -647,21 +701,31 @@ Proof.
       destruct (observe t); assumption.
     + (* TraceVisEnd *)
       destruct e.
-      * exists []; exists (Choice Done Done); exists (Choice Done Done);
+      * (* Or n0 *)
+        exists []; exists (Choice Done Done); exists (Choice Done Done);
           repeat_constructors.
-      * exists [Some l0]; exists (Choice (Action l0 Done) Done); exists Done.
+      * (* Act l0 *)
+        exists [Some l0]; exists (Choice (Action l0 Done) Done); exists Done.
         destruct l0; repeat_constructors.
-      * exists [None];
+      * (* Sync a0 *)
+        exists [None];
           exists (Par (Action (In (hd a l)) Done) (Action (Out (hd a l)) Done));
           exists (Par Done Done); repeat_constructors.
-      * exists_trace_done.
+      * (* Fail *)
+        exists_trace_done.
     + (* TraceVisContinue *)
       destruct e.
-      * exists []; exists (Choice Done Done); exists (Choice Done Done);
-          repeat_constructors.
-      * destruct IHis_traceF.
+      * (* Or n0 *)
+        destruct IHis_traceF.
         destruct H0 as [? [?]]. destruct H0.
-        exists (Some l0::x0); exists (Choice (Action l0 x1) x2); exists x2.
+        exists ((Some (In (hd a l)))::x0); exists (Choice (Action (In (hd a l)) x1) x1); exists x2.
+        split. econstructor. apply H0. constructor. econstructor.
+        econstructor. apply H1. econstructor. apply H0. constructor.
+        constructor.
+      * (* Act l0 *)
+        destruct IHis_traceF.
+        destruct H0 as [? [?]]. destruct H0.
+        exists (Some l0::x0); exists (Choice (Action l0 x1) x1); exists x2.
         destruct l0.
         -- split.
            ++ econstructor. apply H0. repeat constructor.
@@ -669,14 +733,20 @@ Proof.
         -- split.
            ++ econstructor. apply H0. repeat constructor.
            ++ destruct x. econstructor. apply H1.
-      * destruct IHis_traceF.
+      * (* Sync a0 *)
+        destruct IHis_traceF.
         destruct H0 as [? [?]]. destruct H0.
-        exists (None::x0); exists (Par (Action (In (hd a l)) x1) (Action (Out (hd a l)) x1)).
-        exists (x2).
-        split.
-        -- econstructor. apply H0. econstructor; constructor.
-        -- destruct x. econstructor. apply H1.
-      * destruct IHis_traceF.
+        exists (None::(x0)).
+        exists (Par (Action (In (hd a l)) x1) (Action (Out (hd a l)) x2)).
+        exists (Par x2 x2). split.
+        -- assert (None :: x0 = [None] ++ x0).
+           { reflexivity. }
+           rewrite H2.
+           eapply is_trace_par_sync. eauto.
+           constructor. constructor. econstructor.
+        -- destruct x. econstructor. eauto. Unshelve. eauto. 
+      * (* Fail *)
+        destruct IHis_traceF.
         destruct H0 as [? [?]]. destruct H0.
         exists_trace_done.
   - (* Operational trace => Denotational trace *)
