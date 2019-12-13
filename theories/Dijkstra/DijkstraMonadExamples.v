@@ -19,7 +19,14 @@ From ITree Require Import
      Basics.MonadTheory
      Dijkstra.DijkstraMonad
      Events.State
+     ITree
+     ITreeFacts
+     Events.MapDefault
+     Events.StateFacts
+     Core.Divergence
 .
+
+From Paco Require Import paco.
 
 Import MonadNotation.
 Local Open Scope monad.
@@ -266,6 +273,67 @@ Section PureTSpecObs.
     |}.
   
 End PureTSpecObs.  
+
+Section PartialITreeSpec.
+
+  Inductive Void : Type -> Type := .
+
+  Definition _obsit (A : Type) (t : itree Void A) :=
+    fun p => (exists a, ret a ≈ t /\ p a) \/ divergence t.
+
+  Lemma obsit_monot : forall A (t : itree Void A), monotonicp (_obsit A t).
+    Proof.
+      unfold monotonicp, _obsit. intros. destruct H0; auto.
+      left. destruct H0 as [ a [ ? ? ]  ]. exists a. auto.
+    Qed.
+
+  Definition obsit (A : Type) (t : itree Void A) : PureSpec A :=
+    exist _ (_obsit A t) (obsit_monot A t).
+
+  Instance PureITreeEffectObs : EffectObs (itree Void) PureSpec := obsit.
+
+  Program Instance PureITreeMonadMorph : MonadMorphism (itree Void) PureSpec PureITreeEffectObs.
+  Next Obligation.
+    unfold obs, PureITreeEffectObs, obsit. intro p.
+    simpl. unfold _obsit, _retp. split; intros.
+    - destruct H.
+      + destruct H as [a' [? ? ]  ].  pinversion H. subst. auto.
+      + pinversion H.
+    - left. exists a. split; auto. reflexivity.
+  Qed.
+  
+  Next Obligation.
+    intro p. red. unfold obs, PureITreeEffectObs, obsit, _obsit, _bindp. simpl. split; intros.
+    - destruct H.
+      + destruct H as [b [? ? ] ]. left.
+        assert (exists a, ret a ≈ m). admit.
+        destruct H1 as [a Ha]. exists a. split; auto. left. exists b.
+        rewrite <- Ha in H. specialize  @bind_ret with (E := Void) as Hbind. 
+        specialize (Hbind A B a f). rewrite Hbind in H. auto.
+      + assert (divergence m \/ exists a, ret a ≈ m). admit.
+        destruct H0; auto. left. destruct H0 as [a ?]. exists a. split; auto.
+        rewrite <- H0 in H. specialize (@bind_ret) with (E := Void) as H1.
+        specialize (H1 A B a f). rewrite H1 in H. auto.
+    - destruct H.
+      + destruct H as [a [? ? ] ]. destruct H0.
+        * destruct H0 as [b [? ? ] ]. left. exists b. split; auto.
+          specialize (bind_ret a f) as H2. rewrite H0. rewrite <- H2. rewrite H. reflexivity.
+        * right. specialize (bind_ret a f) as H1. rewrite <- H1 in H0. 
+          rewrite H in H0. auto.
+      + right. admit.
+ Admitted.
+
+
+  Variant iterF {A B : Type} (f : A -> _PureSpec (A + B) ) (a : A) (p : B -> Prop)
+          (F : (A -> _PureSpec (A + B) ) -> A -> (B -> Prop) -> Prop ) : Prop :=
+    | term_b : f a (fun aorb => exists b, inr b = aorb /\ p b) -> iterF f a p F
+    | cont_a : f a (fun aorb => exists a', inl a' = aorb /\ F f a' p) -> iterF f a p F
+
+.
+        
+
+
+End PartialITreeSpec.
 
 
 (** * Specification of State *)

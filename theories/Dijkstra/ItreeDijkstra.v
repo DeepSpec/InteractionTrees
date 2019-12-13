@@ -30,7 +30,6 @@ From Paco Require Import paco.
 Import Monads.
 Import MonadNotation.
 Local Open Scope monad_scope.
-Local Open Scope string_scope.
 
 (** The itree Tau (Tau (Tau ...))*)
 CoFixpoint spin {E: Type -> Type} {A : Type}  : itree E A := Tau spin.
@@ -113,6 +112,21 @@ Section PureITree.
     forall (p p' : itree Void A -> Prop) (Hp : resp_eutt Void A p) (Hp' : resp_eutt Void A p'),
                                           (forall i', p i' -> p' i') -> w p Hp -> w p' Hp'. 
 
+  (* same as monot  *)
+  Definition dmonot A (w : _PureITreeSpec A) :=
+    forall (p p' : itree Void A -> Prop) Hp Hp', (forall t, p t <-> p' t) -> (w p Hp <-> w p' Hp').
+  (* what if we identify a spec with the intersection of all of the preds it accepts*)
+  Lemma monot_imp_dmonot : forall A (w : _PureITreeSpec A), monotonici A w -> dmonot A w.
+  Proof.
+    unfold monotonici, dmonot. intros. split.
+    - apply H; auto. intros. apply H0. auto.
+    - apply H; auto. intros. apply H0. auto.
+  Qed.
+
+  (* does not hold for many basic specs  *)
+  Definition amonot A (w : _PureITreeSpec A) :=
+    forall (p p' : itree Void A -> Prop) Hp Hp', (forall t, p t -> p' t) -> w p' Hp' -> w p Hp.
+
   (*Sigm*)
   Definition PureITreeSpec A := {w : _PureITreeSpec A | monotonici A w}.
 
@@ -124,124 +138,11 @@ Section PureITree.
       unfold monotonici, _div_spec. auto.
     Qed.
 
+  Lemma div_spec_amonot : forall A , amonot A (_div_spec A).
+  Proof.
+    unfold amonot, _div_spec. intros. auto.
+  Abort.
   Definition div_spec A := exist _ (_div_spec A) (div_spec_monot A).
-
-  (*Assortment of definitions and lemmas defining an inductive definition of the return value of a tree and relating
-    it to tau_invar and divergence. I believe none of this code is particularly useful anymore*)
-  Section IsVal.
-  Inductive is_val A (a : A) : itree Void A -> Prop :=
-    | base :  is_val A a (ITreeDefinition.Ret a)
-    | tau (t : itree Void A): is_val A a t -> is_val A a (Tau t) .
-
-  Lemma is_val_to_eutt : forall A (a : A) (t : itree Void A),
-      is_val A a t -> ret a ≈ t.
-  Proof.
-    intros. induction H.
-    - reflexivity.
-    - rewrite tau_eutt. auto.
-  Qed.
-
-  Definition is_val_eutt A (a : A) (t : itree Void A) := t ≈ ret a.
-
-  Lemma is_val_resp_eutt : forall A a, resp_eutt Void A (is_val_eutt A a).
-    Proof.
-      intros. intros t1 t2. unfold is_val_eutt. split; intros.
-      - rewrite H in H0. auto.
-      - rewrite H. auto.
-    Qed.
-
-  Lemma is_val_tau_invar : forall A (a : A), tau_invar Void A (is_val A a).
-  Proof.
-    intros. unfold tau_invar. split; intros.
-    - constructor. auto.
-    - inversion H. auto.
-  Qed.
-
-  Lemma eutt_reta_or_spin_aux : forall A (t : itree Void A), (forall a, ~(t≈ ret a)) -> divergence t.
-    Proof.
-      intros A. pcofix CIH. intros. pfold. unfold divergence_.
-      destruct (observe t) eqn:Heqt.
-      - specialize (itree_eta t) as H. rewrite Heqt in H.
-        specialize (H0 r0). rewrite H in H0. exfalso. apply H0.
-        reflexivity.
-      - specialize (itree_eta t) as H. rewrite Heqt in H. constructor. right. eapply CIH; eauto.
-        intros. rewrite <- tau_eutt. rewrite <- H. auto.
-      - destruct e.
-    Qed.
-
-  Lemma tau_invar_prop_subst_aux : forall A (a : A) (p : itree Void A -> Prop) (t t' : itree Void A), tau_invar Void A p ->
-                               is_val A a t /\ is_val A a t' -> (p t -> p t').
-  Proof.
-    intros. destruct H0 as [Ht Ht'].
-    induction  Ht'; induction Ht; auto.
-    - apply H in H1. auto.
-    - apply H in IHHt'. auto.
-    - apply IHHt. apply H. auto.
-  Qed.
-
-  Lemma tau_invar_prop_subst_aux_eutt : forall A (a : A) (p : itree Void A -> Prop) (t t' : itree Void A), resp_eutt Void A p ->
-                                     is_val_eutt A a t /\ is_val_eutt A a t' -> (p t -> p t').
-    Proof.
-      intros. destruct H0 as [Ht Ht'].
-      unfold is_val_eutt in *. rewrite <- Ht in Ht'. eapply H; try eassumption.
-    Qed.
-  Lemma tau_invar_prop_subst : forall A (a : A) (p : itree Void A -> Prop) (t t' : itree Void A), tau_invar Void A p ->
-                               is_val A a t /\ is_val A a t' -> (p t <-> p t').
-    Proof.
-      split; intros; eapply tau_invar_prop_subst_aux; eauto.
-      destruct H0. split; eauto.
-    Qed.
-
-  Lemma tau_invar_prop_subst_eutt : forall A (a : A) (p : itree Void A -> Prop) (t t' : itree Void A), resp_eutt Void A p ->
-                                     is_val_eutt A a t /\ is_val_eutt A a t' -> (p t <-> p t').
-    Proof.
-      split; intros; eapply tau_invar_prop_subst_aux_eutt; eauto. split; destruct H0; eauto.
-    Qed.
-
-
-  Lemma divergence_tau_invar : forall A, tau_invar Void A divergence.
-  Proof.
-    intros. split; intros.
-    - pfold. left. constructor. auto.
-    - pinversion H. subst. auto.
-  Qed.
-
-  Ltac dest_void := match goal with [ E : Void ?A  |- _ ]=> destruct E end.  
-
-  Lemma divergence_resp_eutt' : forall A, resp_eutt Void A divergence.
-    Proof.
-      intro A. intro. intro.  intro. split.
-      - generalize dependent t2. generalize dependent t1. pcofix CIH.
-        intros. assert (Ht1 : divergence t1). auto. pfold. punfold H1. unfold divergence_ in *.
-        destruct (observe t1) eqn : Heqt1; destruct (observe t2) eqn : Heqt2; try dest_void; try inv_div_ret.
-        + specialize (itree_eta t2) as H. rewrite Heqt2 in H.
-          rewrite H in H0. rewrite H0 in Ht1. pinversion Ht1.
-        + constructor. inversion H1; subst. right. eapply CIH with (t1 := t1); eauto.
-          clear H2 H1. rewrite H0. clear Heqt1.  specialize (itree_eta t2) as H. rewrite Heqt2 in H.
-          rewrite <- (tau_eutt t0). rewrite H. reflexivity.
-      - generalize dependent t2. generalize dependent t1. pcofix CIH.
-        intros. assert (Ht2: divergence t2). auto. pfold. punfold H1. unfold divergence_ in *.
-        destruct (observe t1) eqn : Heqt1; destruct (observe t2) eqn : Heqt2; try dest_void; try inv_div_ret.
-        + specialize (itree_eta t1) as H. rewrite Heqt1 in H. rewrite H in H0.
-          rewrite <- H0 in Ht2. pinversion Ht2.
-        + constructor. inversion H1; subst. right. eapply CIH with (t2 := t2); eauto.
-          rewrite <- H0. clear H1 H2 Heqt2. specialize (itree_eta t1 ) as H. rewrite Heqt1 in H.
-          rewrite <- (tau_eutt t). rewrite H. reflexivity.
-  Qed.
-
-  Lemma divergence_resp_eutt : forall A, resp_eutt Void A divergence.
-  Proof.
-    intros. unfold resp_eutt. intros. rewrite H. tauto.
-  Qed.
-
-  Lemma no_val_div : forall A , tau_invar Void A (fun t => ~exists a, is_val A a t).
-    Proof.
-      intros. split; intros; intro Hcontra.
-      - apply H. destruct Hcontra as [a Ha]. exists a. inv Ha. auto.
-      - apply H. destruct Hcontra as [a Ha]. exists a. constructor. auto.
-    Qed.
-  End IsVal.
-  (*End of deprecated section*)
 
   (*Morally, this is the return function. This is paired with a proof that all such specs are monotonic*)
   Definition _retpi A (a : A) : _PureITreeSpec A := fun p _ => p (ret a).
@@ -250,6 +151,11 @@ Section PureITree.
   Proof.
     unfold monotonici. intuition. unfold _retpi in *. auto.
   Qed.
+
+  Lemma retpi_amonot : forall A (a : A), amonot A ( _retpi A a ).
+  Proof.
+    unfold amonot, _retpi. intros.
+    Abort.
 
   Lemma eutt_reta_or_div_aux : forall A (t : itree Void A), ~(exists a, ret a ≈ t) -> divergence t.
     Proof.
@@ -286,17 +192,7 @@ Section PureITree.
   Definition _iterpi (A B : Type) (body : A -> _PureITreeSpec (A + B) ) (init : A) : _PureITreeSpec B :=
     fun p Hp -> body a (fun (t: itree Void (A+B)) => ()  \/ (divergence t /\ p spin)  )
 *)
-  Lemma bind_pred_resp_eutt' : forall A B (f : A -> _PureITreeSpec B)
-                               (p : itree Void B -> Prop) (Hp : resp_eutt Void B p) (w : _PureITreeSpec A),
-      resp_eutt Void A (fun (t : itree Void A) => (exists a, ret a ≈ t /\ f a p Hp) \/
-                                                  (divergence t /\ w divergence (divergence_resp_eutt A) /\ p spin )).
-  Proof.
-    intros. intros t1 t2 Heutt. split; intros; destruct H.
-    - destruct H as [ a [Hta Hfa] ]. left. exists a. rewrite Hta. auto.
-    - rewrite Heutt in H. auto.
-    - left. destruct H as [ a [Hta Hfa] ]. exists a. rewrite Hta. symmetry in Heutt. auto.
-    - rewrite <- Heutt in H. auto.
-  Qed.    
+
   
   (*the bind function for the PureITreeSpec monad
     intuitively, you have two choices, prove the tree evaluates to a and prove f a p,
@@ -306,13 +202,6 @@ Section PureITree.
       w (fun (t : itree Void A) => (exists a, ret a ≈ t /\ f a p Hp) \/ 
                                    (divergence t /\  p spin ))
   (bind_pred_resp_eutt A B f p Hp).
-
-  (*Possible alternate bind*)
-  Definition _bindpi' A B (w : _PureITreeSpec A) (f : A -> _PureITreeSpec B) :=
-    fun (p : itree Void B -> Prop) (Hp : resp_eutt Void B p) =>
-      w (fun (t : itree Void A) => (exists a, ret a ≈ t /\ f a p Hp) \/
-                                   (divergence t /\ w divergence (divergence_resp_eutt A) /\ p spin) )
-        (bind_pred_resp_eutt' A B f p Hp w).
  
 
   Lemma bindpi_monot : forall A B (w : _PureITreeSpec A) (f : A -> _PureITreeSpec B),
@@ -332,22 +221,6 @@ Section PureITree.
       eapply H0; eauto.
   Qed.
 
-  Lemma bindpi_monot' : forall A B (w : _PureITreeSpec A) (f : A -> _PureITreeSpec B),
-      monotonici A w -> (forall a, monotonici B (f a)) -> monotonici B ( _bindpi' A B w f).
-  Proof.
-    unfold monotonici. intros. unfold _bindpi in *.
-    set (fun (t : itree Void A) p0 Hp0 => (exists a, ret a ≈ t /\ f a p0 Hp0)\/ 
-                                          (divergence t /\ w divergence (divergence_resp_eutt A) /\ p spin))  as fp.
-    enough (forall t, fp t p Hp -> fp t p' Hp').
-    - eapply H with (p := fun t => fp t p Hp).
-      + intros.  apply H3 in H4. 
-        unfold fp in H4. destruct H4; auto. right. destruct H4. destruct H5. split; auto.
-      + apply H2.
-    - unfold fp. intros. destruct H3; auto. left.
-      intros. destruct H3 as [a [Hvala Hfa] ].
-      exists a. split; auto.
-      eapply H0; eauto.
-  Qed.
   
   (*Definition of ret accounting for the proof of monotonicity*)
   Definition retpi A (a : A) : PureITreeSpec A :=
@@ -359,13 +232,6 @@ Section PureITree.
     let f' := fun a => proj1_sig (f a) in
     let Hf' := fun a => proj2_sig (f a) in
     exist _ (_bindpi A B w' f') (bindpi_monot A B w' f' Hw' Hf').
-
-  Definition bindpi' A B (w : PureITreeSpec A) (f : A -> PureITreeSpec B) :=
-    let '(exist _ w' Hw') := w in
-    let f' := fun a => proj1_sig (f a) in
-    let Hf' := fun a => proj2_sig (f a) in
-    exist _ (_bindpi' A B w' f') (bindpi_monot' A B w' f' Hw' Hf').
-
 (* possible naturally written iter
  iter (body : A -> _PureITreeSpec (A + B) (a : A) :=
  fun p =>  body a (fun (t: itree Void (A + B) )
@@ -402,13 +268,46 @@ Section PureITree.
     - destruct H. exists x. rewrite Heutt. auto.
   Qed.
 
+  Lemma resp_eutt_or : forall A (p p' : itree Void A -> Prop), 
+      resp_eutt _ _ p -> resp_eutt _ _ p' -> resp_eutt _ _ (fun t => p t \/ p' t).
+  Proof.
+    intros. intros t1 t2 Ht. split; intros.
+    - destruct  H1.
+      + left. eapply H; eauto. symmetry. auto.
+      + right. eapply H0; eauto. symmetry. auto.
+    - destruct H1.
+      + left. eapply H; eauto.
+      + right. eapply H0; eauto.
+  Qed.
+
+  Definition iterF_body {A B : Type} (body : A -> PureITreeSpec (A + B) )
+            (a : A) (p : itree Void B -> Prop) (Hp : resp_eutt Void B p)  (F : (A -> PureITreeSpec (A + B)) -> A -> _PureITreeSpec B ) :=
+    fun (t : itree Void (A + B) ) =>( divergence t /\ p spin ) \/
+                                    (exists b, ret (inr b) ≈ t /\ p (ret b)  ) \/
+                                    (exists a', ret (inl a') ≈ t /\ F body a' p Hp ).
+
+  Lemma iterF_body_resp_eutt : forall (A B : Type)  (body : A -> PureITreeSpec (A + B) )
+            (a : A) (p : itree Void B -> Prop) (Hp : resp_eutt Void B p)  (F : (A -> PureITreeSpec (A + B)) -> A -> _PureITreeSpec B ),
+      resp_eutt _ _ (iterF_body body a p Hp F).
+  Proof.
+    intros. eapply resp_eutt_or; try eapply resp_eutt_or; intros.
+    - apply inf_tree_pred_resp_eutt.
+    - apply term_b_pred_resp_eutt.
+    - apply cont_a_pred_resp_eutt. auto.
+  Qed.
+
+  
+
 (* maybe generalize body to A -> itree Void (A + B) -> Prop, and later prove, if forall a
    body respects eutt, then iter body a does and reformulate  *)
 
   (*may need to introduce notion of a well founded relation to the cont_a case, 
     this may induce another case where you know body a "infinitely loops"
 *)
+  (* this may be some kind of generalization of loop invariants with well founded relations  *)
+  (* change so that body a is   *)
 
+(*
   Inductive iterF {A B : Type} (body : A -> PureITreeSpec (A + B) )
             (a : A) (p : itree Void B -> Prop) (Hp : resp_eutt Void B p)  (F : (A -> PureITreeSpec (A + B)) -> A -> _PureITreeSpec B ) : Prop :=
 
@@ -419,17 +318,25 @@ Section PureITree.
        : proj1_sig (body a) (fun t => exists a', ret (inl a') ≈ t /\ F body a' p Hp) (cont_a_pred_resp_eutt A B body a p Hp F) ->
          iterF body a p Hp F
 .
-Hint Constructors iterF.
 
+*)
+
+  Variant iterF {A B : Type} (body : A -> PureITreeSpec (A + B))
+          (a : A) (p : itree Void B -> Prop) (Hp : resp_eutt Void B p) (F : (A -> PureITreeSpec (A + B)) -> A -> _PureITreeSpec B ) : Prop :=
+    | iterF_con : proj1_sig (body a) (iterF_body body a p Hp F) (iterF_body_resp_eutt A B body a p Hp F) -> iterF body a p Hp F.
+
+Hint Constructors iterF.
 Lemma iterF_monotone {A B} (body:  (A -> PureITreeSpec (A + B))) 
       (sim sim' : ((A -> PureITreeSpec (A + B) ) -> A -> _PureITreeSpec B )) (a : A)
       (p : itree Void B -> Prop) (Hp : resp_eutt Void B p)
       (IN : iterF body a p Hp sim) (LE : sim <4= sim'):
   iterF body a p Hp sim'.
   Proof.
-    induction IN; auto. apply cont_a.
-    destruct (body a ) as [ba Hba] eqn : Heq.  simpl in *. eapply Hba; eauto. intros t. intros.
-    destruct H0. destruct H0. exists x. split; auto. 
+    induction IN; constructor; auto.
+    destruct (body a) as [fa Hfa] eqn : Heq. simpl in *.
+    unfold iterF_body in *. eapply Hfa; try apply H.
+    intros. destruct H0; try destruct H0; auto.
+    right. right. destruct H0 as [ a' [Hret Hsim] ]. exists a'. auto.
   Qed.
 
   Definition iter_ {A B} sim (body : A -> PureITreeSpec (A + B)) a p Hp :=
@@ -449,17 +356,17 @@ Lemma iterF_monotone {A B} (body:  (A -> PureITreeSpec (A + B)))
   Lemma iter_monot : forall A B (f : A -> PureITreeSpec (A + B) ) (a : A),
                               monotonici B (_iter f a).
     Proof.
-      unfold monotonici. intros. generalize dependent a. pcofix CIH. pfold. intros. punfold H1.
+      unfold monotonici. intros. generalize dependent a.
+      pcofix CIH. pfold. intros. punfold H1.
       red. red in H1. inversion H1; simpl in *.
-      - apply inf_tree. specialize (H spin).
-        destruct (f a) as [fa Hfa]; simpl in *. eapply Hfa; eauto.
-        intros. destruct H2. auto.
-      - apply term_b. destruct (f a) as [fa Hfa]; simpl in *.
-        eapply Hfa; eauto. intros. destruct H2 as [b Hb]. exists b. destruct Hb.
-        auto.
-      - apply cont_a. destruct (f a) as [fa Hfa]; simpl in *. eapply Hfa; eauto.
-        intros. destruct H2 as [a' Ha']. exists a'. destruct Ha'. split; auto.
-        right. eapply CIH. red. pclearbot. auto.
+      constructor. destruct (f a) as [fa Hfa] eqn : Heq. simpl in *.
+      eapply Hfa; try apply H0. intros t. intros.
+      unfold iterF_body in *.
+      destruct H2 as [ ? | [? | ?] ].
+      - left. destruct H2. split; auto.
+      - destruct H2 as [b [Hret Hpb]  ]. right. left. exists b. split; auto.
+      - destruct H2 as [a' [Hret Hpaco] ]. pclearbot. right. right.
+        exists a'. split; auto.
     Qed.
 
   Definition iter {A B} (body : A -> PureITreeSpec (A + B) ) (init : A) : PureITreeSpec B :=
@@ -558,31 +465,50 @@ Lemma iterF_monotone {A B} (body:  (A -> PureITreeSpec (A + B)))
   Qed.  
 
   Instance PureITreeIter : Iter (Kleisli PureITreeSpec) sum := @iter.
-  
+  (*
+  Lemma spec_cover : forall A (w : PureITreeSpec A) (p : itree Void A -> Prop) Hp q Hq r Hr,
+      (forall (t : itree Void A), (q t \/ r t ) <-> p t) -> (proj1_sig w p Hp -> (proj1_sig w q Hq \/ proj1_sig w r Hr)).
+    Proof.
+      intros. destruct w as [w Hw]. simpl in *.
+      assert (Hanti : forall (p p': itree Void A -> Prop) Hp Hp', (forall t, p t -> p' t) -> (w p' Hp' -> w p Hp ) ). admit.
+
+      (* assert (Hw' : forall (p p' : itree Void A -> Prop) Hp Hp', (forall t, p t <-> p' t) ->  () ) *)
+      (*specialize (Hanti ) *)
+      (*assert (forall p p', (forall )) *)
+
+
+    Admitted.
+  *)
+
   Instance PureITreeIterUnfold : IterUnfold  (Kleisli PureITreeSpec) sum.
   Proof.
     intros A B f a.
     constructor.
     (*this case went through without even needing coinduction???*)
-    - intros. red. red in H. repeat red in H.
+    - intros. red. repeat red in H.
       punfold H. inversion H.
-      + destruct (f a) as [fa Hfa] eqn : Heq; simpl in *.
-        repeat red. rewrite Heq. red. eapply Hfa; eauto.
-        intro t. intros. destruct H1. right. auto.
-      + destruct (f a) as [fa Hfa] eqn : Heq; simpl in *.
-        repeat red. rewrite Heq. red. eapply Hfa; eauto.
-        intros t ?. destruct H1 as [b [Hb Hpb] ]. left. exists (inr b).
-        split; auto.
-      +  destruct (f a) as [fa Hfa] eqn : Heq; simpl in *.
-         repeat red. rewrite Heq. red. eapply Hfa; eauto.
-         intros t ?. left. destruct H1 as [a' [Ha' Hpa'] ]. pclearbot.
-         exists (inl a'). split; auto.
+      unfold cat, Cat_Kleisli. destruct (f a) as [fa Hfa] eqn : Heq; simpl in *.
+      unfold _bindpi. unfold iterF_body in H0. eapply Hfa; eauto.
+      intro t. intros. destruct H1 as [ ? | [? | ?] ]; auto.
+      + destruct H1 as [b [Hretb Hpb] ]. left. exists (inr b). simpl. auto.
+      + left. destruct H1 as [a' [Hreta' Hpacoa' ] ]. pclearbot.
+        exists (inl a'). simpl. auto.
     (*this case is probably where I need coinduction*)
-    - intros. red. repeat red in H. destruct (f a) as [fa Hfa] eqn : Heq.
-      red in H. destruct (iter f a) as [iterfa Hiterfa] eqn : Heq'.
-      unfold CategoryOps.iter, PureITreeIter. rewrite Heq'.
-
-  Admitted.
+    - revert a.  pcofix CIH. unfold cat, Cat_Kleisli in *. intros.
+      pfold. red. constructor. destruct (f a) as [fa Hfa] eqn : Heq. simpl in *.
+      unfold _bindpi in H0. unfold iterF_body. eapply Hfa; eauto.
+      clear H0. intros t. intros. destruct H; auto.
+      destruct H as [ [a' | b] [? ?] ]; simpl in *.
+      + right. right. exists a'. split; auto. right. apply CIH.
+        destruct (f a') as [fa' Hfa'] eqn : Heq'. simpl. unfold _bindpi. 
+        punfold H0. inversion H0; subst. rewrite Heq' in H1. simpl in *.
+        unfold iterF_body in H1. eapply Hfa'; eauto. intros t'. intros.
+        destruct H2 as [? | [? | ?] ]; auto.
+        * destruct H2 as [b [? ?] ]. left. exists (inr b). auto.
+        * destruct H2 as [a'' [? ?] ]. left. exists (inl a''). pclearbot.
+          auto.
+      + right. left. exists b. auto.
+  Qed.
   
 
   Instance PureITreeOrderM : OrderM PureITreeSpec :=
@@ -599,6 +525,11 @@ Lemma iterF_monotone {A B} (body:  (A -> PureITreeSpec (A + B)))
 
   (*Definition of effect observation from pure itrees into pure itree specs *)
   Definition _obsip A (t : itree Void A) : _PureITreeSpec A := fun p _ => p t.
+(*
+  Definition f A : A -> itree Void nat := fun (a : A) => ret 2.
+
+  Lemma ex : forall p Hp, _obsip nat (bind spin f) p Hp.
+    intros. unfold _obsip. *)
 
   Lemma obsip_monot : forall A (t : itree Void A), monotonici A (_obsip A t).
     Proof.
@@ -898,8 +829,67 @@ Section StateITree.
         specialize (bind_ret (a,s') (fun '(a0,s0) => f a0 s0 ) ) as H1. simpl in H1. rewrite H1. reflexivity.
       + destruct H. eapply Hp; eauto. apply div_spin_eutt in H. rewrite H. symmetry. apply spin_bind.
   Qed.
+
+  Instance StateITreeEffectObs : EffectObs (fun A => S -> itree Void (A * S) ) (StateITreeSpec):=
+    obssi.
+
+  Program Instance StateITreeMonadMorphism : MonadMorphism (fun A => S -> itree Void (A * S)) StateITreeSpec StateITreeEffectObs.
+  Next Obligation. apply obssi_pres_ret. Qed.
+  Next Obligation. apply obssi_pres_bind. Qed.
+
+
+  Definition _encode A (post : itree Void (A * S) -> Prop ) (Hpost : resp_eutt _ _ post) (pre : S -> Prop) : _StateITreeSpec A :=
+    fun p Hp s => pre s /\ forall t, post t -> p t.
+
+  Lemma encode_monot : forall A post Hpost pre, monotonicsi A ( _encode A post Hpost pre).
+  Proof.
+    intros. intro. intros. unfold _encode in *. destruct H0. split; auto.
+  Qed.
+
+  Definition encode A post Hpost pre :=
+    exist _ (_encode A post Hpost pre) (encode_monot A post Hpost pre).
+
+
    
 End StateITree.
+  Local Open Scope nat_scope.
+
+  Lemma is_n_resp_eutt :forall (n : nat), resp_eutt Void _ (fun t => t ≈ ret (tt,n) ).
+  Proof.
+    intros n t1. intros. rewrite H. tauto.
+  Qed.
+  
+  Definition skip_if_4_spec := encode nat unit (fun t => t ≈ ret (tt, 4)) (is_n_resp_eutt 4) (fun n => n = 4).
+
+  Definition diverge_if_not_4 := fun n => if (n =? 4) then ret (tt, 4) else @spin Void _.
+
+  Lemma m_sats_skip_spec : DijkstraProp (fun A => nat -> itree Void (A * nat)) (StateITreeSpec nat) (StateITreeEffectObs nat ) unit skip_if_4_spec diverge_if_not_4.
+  Proof.
+    unfold DijkstraProp. intros p Hp. intros. unfold skip_if_4_spec, diverge_if_not_4  in *. simpl in *. unfold _encode, _obssi in *.
+    destruct H. rewrite H. rewrite Nat.eqb_refl. apply H0. reflexivity.
+  Qed.
+
+  Definition inc_if_4_spec := encode nat unit (fun t => t ≈ ret (tt, 4)) (is_n_resp_eutt 4) (fun n => n = 5).
+
+  Lemma e2 : ~ ( DijkstraProp (fun A => nat -> itree Void (A * nat) )  (StateITreeSpec nat) 
+                              (StateITreeEffectObs nat) unit inc_if_4_spec diverge_if_not_4). 
+  Proof.
+    unfold DijkstraProp. intro Hcontra. repeat red in Hcontra. unfold inc_if_4_spec, diverge_if_not_4, _encode in Hcontra. simpl in *.
+    unfold _encode in *. 
+    set (p' := fun t : itree Void (unit * nat) => t ≈ ret (tt, 4) ). 
+    assert (resp_eutt _ _ p').
+    {
+       unfold p'. intros t1 t2. intros. rewrite H. tauto.
+    }
+     specialize ( Hcontra p' H 5). simpl in *. unfold p' in Hcontra. 
+
+    enough (ret (tt,4) ≈ @spin Void (unit * nat)).
+    - specialize (spin_div Void (unit * nat)) as H1. rewrite <- H0 in H1. pinversion H1.
+    - symmetry. eapply Hcontra; eauto.
+  Qed.
+  (* going to want some machinery for aiding in the disproving of dijkstra triples  *)
+
+
 (*
   Definition _interpStateSpec : (stateE S) ~> (_StateSpec S) :=
     fun _ (ev : stateE S _) =>

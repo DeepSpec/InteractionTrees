@@ -91,7 +91,7 @@ Section DijkstraMonad.
   Definition DijkstraMonad (A : Type) (w : W A) := 
     { m : M A |  obs A m <≈ w }.
   
-  Definition DijkstraProp (A : Type) (w : W A) (m : M A) :=
+  Definition DijkstraProp (A : Type) (w : W A) (m : M A)  : Prop :=
     obs A m <≈ w.
 
 End DijkstraMonad.
