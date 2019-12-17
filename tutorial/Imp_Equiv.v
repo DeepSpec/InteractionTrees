@@ -75,18 +75,21 @@ Section Examples.
     reflexivity.
   Qed.
 
-  Instance run_state_proper {E A} : Proper (eqm ==> eq ==> eutt eq) (@run_state E A).
+  Instance run_state_proper {E A} :
+    Proper (eqm ==> eq ==> eutt eq) (@run_state E A).
   Proof.
     cbv; intros; subst; auto.
   Qed.
 
-  
-  Instance run_state_state_eq_proper {E A} : Proper (state_eq ==> eq ==> eutt eq) (@run_state E A).
+  Instance run_state_state_eq_proper {E A} :
+    Proper (state_eq ==> eq ==> eutt eq) (@run_state E A).
   Proof.
     einit. ecofix CIH. intros.
-    subst. Admitted.   
+    subst. Admitted.
 
-  Instance interp_state_proper {T E F S} (h: forall T : Type, E T -> Monads.stateT S (itree F) T) : Proper (eutt eq ==> eqm) (State.interp_state h (T := T)).
+  Instance interp_state_proper {T E F S}
+           (h: forall T : Type, E T -> Monads.stateT S (itree F) T) :
+    Proper (eutt eq ==> eqm) (State.interp_state h (T := T)).
   Proof.
     einit. ecofix CIH. intros.
     rewrite !unfold_interp_state. punfold H0. red in H0.
@@ -101,7 +104,8 @@ Section Examples.
   Qed.
 
   (* This should move to the library *)
-  Lemma eq_itree_clo_bind {E : Type -> Type} {R1 R2 : Type} (RR : R1 -> R2 -> Prop) {U1 U2 UU} t1 t2 k1 k2
+  Lemma eq_itree_clo_bind {E : Type -> Type} {R1 R2 : Type}
+        (RR : R1 -> R2 -> Prop) {U1 U2 UU} t1 t2 k1 k2
         (EQT: @eq_itree E U1 U2 UU t1 t2)
         (EQK: forall u1 u2, UU u1 u2 -> eq_itree RR (k1 u1) (k2 u2)):
     eq_itree RR (x <- t1;; k1 x) (x <- t2;; k2 x).
@@ -111,7 +115,11 @@ Section Examples.
   Qed.
 
   (** [interp_imp] commutes with [bind]. *)
-  Lemma interp_imp_bind: forall {R S E} (t : itree (ImpState +' E) R) (k: R -> itree (ImpState +' E) S) (g : env),
+  Lemma interp_imp_bind:
+    forall {R S E}
+           (t : itree (ImpState +' E) R)
+           (k: R -> itree (ImpState +' E) S)
+           (g : env),
       run_state (interp_imp (ITree.bind t k)) g
                 ≈ (ITree.bind (run_state (interp_imp t) g) (fun '(g',  x) => run_state (interp_imp (k x)) g')).
   Proof.
@@ -124,8 +132,10 @@ Section Examples.
     intros [] [] EQ; inv EQ; reflexivity.
   Qed.
 
-                               
-  Lemma interp_imp_iter: forall {E A B} (t : A -> itree (ImpState +' E) (A + B)) (a0 : A) (g: env),
+  Lemma interp_imp_iter:
+    forall {E A B}
+           (t : A -> itree (ImpState +' E) (A + B))
+           (a0 : A) (g: env),
     run_state (interp_imp (KTree.iter t a0)) g
                 ≈ KTree.iter (fun '(g', a) =>
                                 '(s,ab) <- run_state (interp_imp (t a)) g';;
@@ -170,7 +180,8 @@ Section Examples.
 
 
   Lemma interp_imp_trigger_get_var: forall (E: Type -> Type) (x: var) (g: env),
-    run_state (interp_imp (trigger (GetVar x))) g ≈ (Ret (g, lookup_default x 0 g) : itree E (env * value)).
+      run_state (interp_imp (trigger (GetVar x))) g ≈
+                (Ret (g, lookup_default x 0 g) : itree E (env * value)).
   Proof.
     intros. unfold interp_imp, interp_map. rewrite interp_trigger.
     setoid_rewrite unfold_interp_state.
@@ -181,8 +192,10 @@ Section Examples.
     rewrite interp_state_ret. reflexivity. 
   Qed.     
 
-  Lemma interp_imp_trigger_set_var: forall (E: Type -> Type) (g: env) (x: var) (v: value),
-      run_state (interp_imp (trigger (SetVar x v))) g ≈ (Ret (alist_add RelDec_string x v g, tt) : itree E (env * unit)).
+  Lemma interp_imp_trigger_set_var:
+    forall (E: Type -> Type) (g: env) (x: var) (v: value),
+      run_state (interp_imp (trigger (SetVar x v))) g ≈
+                (Ret (alist_add RelDec_string x v g, tt) : itree E (env * unit)).
   Proof.
     intros. unfold interp_imp, interp_map. rewrite interp_trigger.
     setoid_rewrite unfold_interp_state.
@@ -199,7 +212,8 @@ Section Examples.
     rewrite interp_imp_ret.
     rewrite interp_imp_bind.
     rewrite interp_imp_trigger_get_var.
-    rewrite bind_ret, interp_imp_bind, interp_imp_trigger_get_var, bind_ret, interp_imp_ret.
+    rewrite bind_ret, interp_imp_bind, interp_imp_trigger_get_var,
+    bind_ret, interp_imp_ret.
     rewrite Nat.sub_diag.
     reflexivity.
   Qed.
@@ -264,8 +278,10 @@ Section Examples.
     rewrite H. rewrite bind_ret2. reflexivity.
    Qed.
 
-  Lemma interp_imp_bind_ret_unit : forall  {E} (t: itree (ImpState +' E) unit)  (g : env),
-    run_state (interp_imp (ITree.bind t (fun _ : unit  => Ret tt))) g ≈ run_state (interp_imp t) g.
+  Lemma interp_imp_bind_ret_unit :
+    forall {E} (t: itree (ImpState +' E) unit)  (g : env),
+      run_state (interp_imp (ITree.bind t (fun _ : unit  => Ret tt))) g
+                ≈ run_state (interp_imp t) g.
   Proof.
     intros.
     rewrite interp_imp_bind.
@@ -573,7 +589,11 @@ Section Examples.
   Qed.
 
   (* Needed to define this equivalence instance for CWhile_congruence. *)
-  Global Instance sum_rel_refl {R S : Type} {RR : R -> R -> Prop} {SS : S -> S -> Prop} `{Reflexive _ RR} `{Reflexive _ SS}: Reflexive (sum_rel RR SS).
+  Global Instance sum_rel_refl {R S : Type}
+         {RR : R -> R -> Prop}
+         {SS : S -> S -> Prop}
+         `{Reflexive _ RR}
+         `{Reflexive _ SS}: Reflexive (sum_rel RR SS).
   Proof. red. destruct x; constructor; auto. Qed.
 
 
@@ -824,14 +844,14 @@ Section Examples.
     rewrite interp_imp_ret, bind_ret, interp_imp_bind.
 
   Ltac rewrite_imp_ret :=
-    rewrite interp_imp_ret, bind_ret, interp_imp_ret. 
+    rewrite interp_imp_ret, bind_ret, interp_imp_ret.
 
   Ltac rewrite_imp_bind :=
     rewrite interp_imp_bind, bind_bind.
-  
+
   Ltac rewrite_ret_binds :=
     rewrite_imp_ret_;
-    rewrite_imp_bind. 
+    rewrite_imp_bind.
 
   Ltac rewrite_trigger_get_vars :=
     rewrite interp_imp_trigger_get_var, bind_ret, interp_imp_ret.
@@ -845,9 +865,9 @@ Section Examples.
          try (intros; subst;
          match goal with
           | [ |- (let '(g', x) := ?u in _) ≈ _ ]=> destruct u; subst; rewrite 2 interp_imp_bind
-         end     
+         end
         )).
-    
+
 
   (* ================================================================= *)
   (** ** Soundness of Constant Folding *)
@@ -864,7 +884,7 @@ Section Examples.
     induction a; simpl;
       (* ANum and AId follow immediately *)
       try reflexivity; destruct (fold_constants_aexp a1); destruct (fold_constants_aexp a2);
-        cbn; intros; try rewrite interp_imp_bind; try rewrite interp_imp_bind, bind_ret; 
+        cbn; intros; try rewrite interp_imp_bind; try rewrite interp_imp_bind, bind_ret;
           try rewrite interp_imp_ret; rewrite IHa1; cbn; try (rewrite interp_imp_ret, bind_ret);
             try rewrite interp_imp_trigger_get_var; try rewrite interp_imp_bind;
               try rewrite bind_ret; try rewrite interp_imp_ret; try rewrite interp_imp_bind;
@@ -872,20 +892,20 @@ Section Examples.
                   repeat (try (rewrite interp_imp_bind, bind_bind);
                           try (rewrite interp_imp_bind, bind_ret, interp_imp_bind));
       try (rewrite bind_bind; eutt_bind_bind;
-        rewrite IHa2; cbn; reflexivity). 
+        rewrite IHa2; cbn; reflexivity).
       + rewrite interp_imp_ret, bind_ret, interp_imp_ret. reflexivity.
-      + rewrite_trigger_get_vars. 
+      + rewrite_trigger_get_vars.
         rewrite interp_imp_ret, bind_ret, interp_imp_bind.
         rewrite_trigger_get_vars. reflexivity.
-      + rewrite_ret_binds. reflexivity. 
-      + rewrite_ret_binds. reflexivity. 
+      + rewrite_ret_binds. reflexivity.
+      + rewrite_ret_binds. reflexivity.
       + rewrite_ret_binds. reflexivity.
       + rewrite_trigger_get_vars.
         rewrite bind_ret, interp_imp_ret, interp_imp_bind.
-        rewrite interp_imp_ret, bind_ret, interp_imp_ret. 
+        rewrite interp_imp_ret, bind_ret, interp_imp_ret.
         reflexivity.
       + rewrite_trigger_get_vars.
-        rewrite_trigger_get_vars_bind. 
+        rewrite_trigger_get_vars_bind.
         rewrite_trigger_get_vars. reflexivity.
       + rewrite_trigger_get_vars_bind.
         rewrite_imp_bind. reflexivity.
@@ -915,7 +935,7 @@ Section Examples.
       + rewrite_trigger_get_vars_bind. rewrite_imp_bind. reflexivity.
       + rewrite_trigger_get_vars_bind. rewrite_imp_bind. reflexivity.
       + repeat rewrite_trigger_get_vars_bind. rewrite_imp_bind. reflexivity.
-Qed. 
+Qed.
 
 
 Instance denote_aexp_proper : @Proper (aexp -> itree (ImpState +' void1) value) (aequiv ==> eutt eq) (denote_aexp).
@@ -923,12 +943,6 @@ Proof.
   einit. ecofix CIH. intros.
   unfold denote_aexp. cbn. Admitted.
 
-(*Instance run_state_proper_eutt {E A} t (g: env): Proper (eutt eq ==> eq ==> eutt eq) (run_state (st:=g)).
-Proof. Admitted. 
-
-State.interp_state*)
-
-  
 
 Theorem fold_constants_bexp_sound:
   btrans_sound fold_constants_bexp.
@@ -950,22 +964,30 @@ Proof.
       |- ITree.bind (run_state (interp_imp ?foo) _) _ ≈ _ =>
       assert (foo ≈ denote_aexp (fold_constants_aexp a1))
          end.
-  apply denote_aexp_proper, EQ. 
-      (*  Typeclasses eauto := 4. *)
-  eapply eutt_cong_eutt'.  
-  eapply eutt_clo_bind with (UU := eq) (t2 := (run_state (interp_imp (denote_aexp a1')) s))
-                                   (k2 := fun '(g', x) => run_state (interp_imp (ITree.bind (denote_aexp a2') (fun r : value => Ret (x =? r)))) g').
-  apply eutt_interp_imp; try rewrite H; try rewrite Heqa1'; reflexivity. 
+  apply denote_aexp_proper, EQ.
+  eapply eutt_cong_eutt'.
+  eapply eutt_clo_bind
+    with (UU := eq)
+         (t2 := (run_state (interp_imp (denote_aexp a1')) s))
+         (k2 := fun '(g', x) =>
+                  run_state (interp_imp
+                               (ITree.bind (denote_aexp a2')
+                                           (fun r : value => Ret (x =? r)))) g').
+  apply eutt_interp_imp; try rewrite H; try rewrite Heqa1'; reflexivity.
   intros; rewrite H0; destruct u2; try rewrite 2 interp_imp_bind.
   match goal with
         |- ITree.bind (run_state (interp_imp ?foo) _) _ ≈ _ =>
         assert (foo ≈ denote_aexp (fold_constants_aexp a2))
-      end. { apply denote_aexp_proper, EQ1. }
-      eapply eutt_clo_bind with (UU := eq) (t2 := (run_state (interp_imp (denote_aexp a2')) e)) (k2 := fun '(g', x) => run_state (interp_imp (Ret (n =? x))) g').
-      eapply eutt_interp_imp. rewrite H1. rewrite Heqa2'. reflexivity.
-      reflexivity. intros; subst. reflexivity.
+  end.
+  { apply denote_aexp_proper, EQ1. }
+  eapply eutt_clo_bind
+    with (UU := eq)
+         (t2 := (run_state (interp_imp (denote_aexp a2')) e))
+         (k2 := fun '(g', x) => run_state (interp_imp (Ret (n =? x))) g').
+  eapply eutt_interp_imp. rewrite H1. rewrite Heqa2'. reflexivity.
+  reflexivity. intros; subst. reflexivity.
   reflexivity.
-  destruct a1', a2'; cbn; try (repeat rewrite interp_imp_bind); try reflexivity; 
+  destruct a1', a2'; cbn; try (repeat rewrite interp_imp_bind); try reflexivity;
     rewrite_imp_ret_; rewrite_imp_ret;
       destruct (n =? n0); simpl; rewrite interp_imp_ret; reflexivity.
   - cbn;
@@ -981,22 +1003,30 @@ Proof.
   match goal with
       |- ITree.bind (run_state (interp_imp ?foo) _) _ ≈ _ =>
       assert (foo ≈ denote_aexp (fold_constants_aexp a1))
-         end.
-  apply denote_aexp_proper, EQ. 
-      (*  Typeclasses eauto := 4. *)
-  eapply eutt_cong_eutt'.  
-  eapply eutt_clo_bind with (UU := eq) (t2 := (run_state (interp_imp (denote_aexp a1')) s))
-                                   (k2 := fun '(g', x) => run_state (interp_imp (ITree.bind (denote_aexp a2') (fun r : value => Ret (x <=? r)))) g').
-  apply eutt_interp_imp; try rewrite H; try rewrite Heqa1'; reflexivity. 
+  end.
+  apply denote_aexp_proper, EQ.
+  eapply eutt_cong_eutt'.
+  eapply eutt_clo_bind
+    with (UU := eq)
+         (t2 := (run_state (interp_imp (denote_aexp a1')) s))
+         (k2 := fun '(g', x) =>
+                  run_state (interp_imp
+                               (ITree.bind (denote_aexp a2')
+                                           (fun r : value => Ret (x <=? r)))) g').
+  apply eutt_interp_imp; try rewrite H; try rewrite Heqa1'; reflexivity.
   intros; rewrite H0; destruct u2; try rewrite 2 interp_imp_bind.
   match goal with
         |- ITree.bind (run_state (interp_imp ?foo) _) _ ≈ _ =>
         assert (foo ≈ denote_aexp (fold_constants_aexp a2))
-      end. { apply denote_aexp_proper, EQ1. }
-      eapply eutt_clo_bind with (UU := eq) (t2 := (run_state (interp_imp (denote_aexp a2')) e)) (k2 := fun '(g', x) => run_state (interp_imp (Ret (n <=? x))) g').
-      eapply eutt_interp_imp. rewrite H1. rewrite Heqa2'. reflexivity.
-      reflexivity. intros; subst. reflexivity. reflexivity. 
-  destruct a1', a2'; cbn; try (repeat rewrite interp_imp_bind); try reflexivity; 
+  end.
+  { apply denote_aexp_proper, EQ1. }
+  eapply eutt_clo_bind
+    with (UU := eq)
+         (t2 := (run_state (interp_imp (denote_aexp a2')) e))
+         (k2 := fun '(g', x) => run_state (interp_imp (Ret (n <=? x))) g').
+  eapply eutt_interp_imp. rewrite H1. rewrite Heqa2'. reflexivity.
+  reflexivity. intros; subst. reflexivity. reflexivity.
+  destruct a1', a2'; cbn; try (repeat rewrite interp_imp_bind); try reflexivity;
     rewrite_imp_ret_; rewrite_imp_ret;
       destruct (n <=? n0); simpl; rewrite interp_imp_ret; reflexivity.
   - cbn. remember (fold_constants_bexp b) as b' eqn:Heqb'.
@@ -1008,16 +1038,110 @@ Proof.
     remember (fold_constants_bexp b2) as b2' eqn: Heqb2'.
     intros; rewrite interp_imp_bind. rewrite IHb1.
     eapply eutt_cong_eutt'.
-    eapply eutt_clo_bind with (UU := eq) (t2 := (run_state (interp_imp (denote_bexp b1')) s)) (k2 := fun '(g', x) => run_state (interp_imp (ITree.bind (denote_bexp b2') (fun r : bool => Ret (x && r)%bool))) g'). reflexivity. intros. rewrite H; subst. 
+    eapply eutt_clo_bind
+      with (UU := eq)
+           (t2 := (run_state (interp_imp (denote_bexp b1')) s))
+           (k2 := fun '(g', x) =>
+                    run_state (interp_imp
+                                 (ITree.bind (denote_bexp b2')
+                                             (fun r : bool => Ret (x && r)%bool))) g').
+    reflexivity. intros. rewrite H; subst.
     destruct u2. rewrite 2 interp_imp_bind. rewrite IHb2. reflexivity. reflexivity.
-    destruct b1'; destruct b2'; cbn; try rewrite_imp_ret; try rewrite interp_imp_ret; try reflexivity;
-      try(rewrite_imp_bind; rewrite 2 interp_imp_bind; rewrite bind_bind; reflexivity); 
-      try cbn; try rewrite bind_ret; try rewrite interp_imp_bind_ret; try rewrite interp_imp_ret; try reflexivity; try rewrite 2 interp_imp_bind; try rewrite interp_imp_ret; try rewrite bind_ret; try rewrite 2 interp_imp_bind; try rewrite bind_bind; cbn; try eapply eutt_clo_bind; try reflexivity;
+    destruct b1'; destruct b2'; cbn; try rewrite_imp_ret; try rewrite interp_imp_ret;
+      try reflexivity;
+      try(rewrite_imp_bind; rewrite 2 interp_imp_bind; rewrite bind_bind; reflexivity);
+      try cbn; try rewrite bind_ret; try rewrite interp_imp_bind_ret;
+        try rewrite interp_imp_ret;
+        try reflexivity; try rewrite 2 interp_imp_bind; try rewrite interp_imp_ret;
+          try rewrite bind_ret; try rewrite 2 interp_imp_bind; try rewrite bind_bind;
+            cbn; try eapply eutt_clo_bind; try reflexivity;
         try intros; try subst; try destruct u2; try rewrite_imp_bind;
           try rewrite interp_imp_bind; try rewrite interp_imp_ret; try rewrite bind_ret;
       try rewrite interp_imp_bind; try rewrite interp_imp_bind; try rewrite bind_bind;
       cbn; try rewrite interp_imp_ret; try reflexivity;
       try (eapply eutt_clo_bind); try reflexivity;
-      try intros; try subst; try destruct u2; try rewrite interp_imp_ret; try rewrite bind_ret;
+        try intros; try subst; try destruct u2; try rewrite interp_imp_ret;
+          try rewrite bind_ret;
       try rewrite interp_imp_ret; try reflexivity.
-Qed. 
+Qed.
+
+Theorem fold_constants_com_sound :
+  ctrans_sound fold_constants_com.
+Proof.
+  red. red.
+  induction c.
+  - cbn. reflexivity.
+  - cbn. intros. rewrite interp_imp_bind. rewrite interp_imp_bind.
+    eapply eutt_clo_bind.
+    + pose proof fold_constants_aexp_sound.
+      unfold atrans_sound in H. unfold aequiv in H.
+      unfold eval_aexp in H. rewrite H. reflexivity.
+    + intros. destruct u1, u2. inversion H; subst.
+      reflexivity.
+  - cbn. intros. rewrite interp_imp_bind. rewrite interp_imp_bind.
+    eapply eutt_clo_bind.
+    + rewrite IHc1. reflexivity.
+    + intros. destruct u1, u2. inversion H; subst.
+      rewrite IHc2. reflexivity.
+  - intros. cbn. rewrite interp_imp_bind.
+    pose proof fold_constants_bexp_sound.
+    unfold btrans_sound in H. unfold bequiv in H.
+    unfold eval_bexp in H.
+    rewrite H.
+    destruct (fold_constants_bexp b).
+    + cbn. rewrite interp_imp_ret. rewrite bind_ret.
+      rewrite <- IHc1. reflexivity.
+    + cbn. rewrite interp_imp_ret. rewrite bind_ret.
+      rewrite <- IHc2. reflexivity.
+    + cbn. rewrite 3 interp_imp_bind. rewrite 2 bind_bind.
+      eapply eutt_clo_bind.
+      * reflexivity.
+      * intros. eapply eutt_clo_bind.
+        -- destruct u1, u2. inversion H0; subst.
+           reflexivity.
+        -- intros. destruct u0, u3. inversion H1; subst.
+           destruct b1.
+           ++ rewrite <- IHc1. reflexivity.
+           ++ rewrite <- IHc2. reflexivity.
+    + cbn. rewrite 3 interp_imp_bind. rewrite 2 bind_bind.
+      eapply eutt_clo_bind.
+      * reflexivity.
+      * intros. eapply eutt_clo_bind.
+        -- destruct u1, u2. inversion H0; subst.
+           reflexivity.
+        -- intros. destruct u0, u3. inversion H1; subst.
+           destruct b1.
+           ++ rewrite <- IHc1. reflexivity.
+           ++ rewrite <- IHc2. reflexivity.
+    + cbn. rewrite 3 interp_imp_bind. rewrite 2 bind_bind.
+      eapply eutt_clo_bind.
+      * reflexivity.
+      * intros. eapply eutt_clo_bind.
+        -- destruct u1, u2. inversion H0; subst.
+           reflexivity.
+        -- intros. destruct u0, u3. inversion H1; subst.
+           destruct b2.
+           ++ rewrite <- IHc1. reflexivity.
+           ++ rewrite <- IHc2. reflexivity.
+    + cbn. rewrite 3 interp_imp_bind. rewrite 2 bind_bind.
+      eapply eutt_clo_bind.
+      * reflexivity.
+      * intros. eapply eutt_clo_bind.
+        -- destruct u1, u2. inversion H0; subst.
+           reflexivity.
+        -- intros. destruct u0, u3. inversion H1; subst.
+           destruct b1.
+           ++ rewrite <- IHc1. reflexivity.
+           ++ rewrite <- IHc2. reflexivity.
+  - intros. cbn.
+    unfold while. rewrite interp_imp_iter.
+    rewrite unfold_iter_ktree. cbn. rewrite bind_bind.
+    rewrite interp_imp_bind. rewrite bind_bind.
+    pose proof fold_constants_bexp_sound.
+    unfold btrans_sound in H. unfold bequiv in H.
+    unfold eval_bexp in H.
+    rewrite H.
+    destruct (fold_constants_bexp b).
+    + cbn. rewrite interp_imp_ret. rewrite bind_ret.
+      rewrite interp_imp_bind. rewrite bind_bind.
+      rewrite IHc. cbn. Admitted. 
