@@ -187,12 +187,6 @@ Section PureITree.
     - left. destruct H as [ a [Hta Hfa] ]. exists a. rewrite Hta. symmetry in Heutt. auto.
     - rewrite <- Heutt in H. auto.
   Qed.
-
-(* map it into an itree whose return type is _PureITreeSpec, if that tree is inf, then deal separate
-  Definition _iterpi (A B : Type) (body : A -> _PureITreeSpec (A + B) ) (init : A) : _PureITreeSpec B :=
-    fun p Hp -> body a (fun (t: itree Void (A+B)) => ()  \/ (divergence t /\ p spin)  )
-*)
-
   
   (*the bind function for the PureITreeSpec monad
     intuitively, you have two choices, prove the tree evaluates to a and prove f a p,
@@ -221,7 +215,6 @@ Section PureITree.
       eapply H0; eauto.
   Qed.
 
-  
   (*Definition of ret accounting for the proof of monotonicity*)
   Definition retpi A (a : A) : PureITreeSpec A :=
     exist _ (_retpi A a) (retpi_monot A a).
@@ -232,18 +225,6 @@ Section PureITree.
     let f' := fun a => proj1_sig (f a) in
     let Hf' := fun a => proj2_sig (f a) in
     exist _ (_bindpi A B w' f') (bindpi_monot A B w' f' Hw' Hf').
-(* possible naturally written iter
- iter (body : A -> _PureITreeSpec (A + B) (a : A) :=
- fun p =>  body a (fun (t: itree Void (A + B) )
-                (divergence t /\ p spin) \/
-                (exists b, ret (inr b) ≈ t /\ p (ret b )) \/
-                (exists a', ret (inl a')) ≈ t /\ body a' (iter body a' p)
-) 
-
-)
-
-
-*)
 
   Lemma inf_tree_pred_resp_eutt : forall A B (p : itree Void B -> Prop), 
       resp_eutt Void (A + B) (fun (t : itree Void (A+B)) => divergence t /\ p spin ). 
@@ -295,31 +276,6 @@ Section PureITree.
     - apply term_b_pred_resp_eutt.
     - apply cont_a_pred_resp_eutt. auto.
   Qed.
-
-  
-
-(* maybe generalize body to A -> itree Void (A + B) -> Prop, and later prove, if forall a
-   body respects eutt, then iter body a does and reformulate  *)
-
-  (*may need to introduce notion of a well founded relation to the cont_a case, 
-    this may induce another case where you know body a "infinitely loops"
-*)
-  (* this may be some kind of generalization of loop invariants with well founded relations  *)
-  (* change so that body a is   *)
-
-(*
-  Inductive iterF {A B : Type} (body : A -> PureITreeSpec (A + B) )
-            (a : A) (p : itree Void B -> Prop) (Hp : resp_eutt Void B p)  (F : (A -> PureITreeSpec (A + B)) -> A -> _PureITreeSpec B ) : Prop :=
-
-    | inf_tree : proj1_sig (body a) (fun (t : itree Void (A + B) )=> divergence t /\ p spin) (inf_tree_pred_resp_eutt A B p) -> iterF body a p Hp F
-    | term_b : proj1_sig (body a) (fun t => exists b, ret (inr b)≈ t /\ p (ret  b) ) (term_b_pred_resp_eutt A B p) ->
-        iterF body a p Hp F
-    | cont_a
-       : proj1_sig (body a) (fun t => exists a', ret (inl a') ≈ t /\ F body a' p Hp) (cont_a_pred_resp_eutt A B body a p Hp F) ->
-         iterF body a p Hp F
-.
-
-*)
 
   Variant iterF {A B : Type} (body : A -> PureITreeSpec (A + B))
           (a : A) (p : itree Void B -> Prop) (Hp : resp_eutt Void B p) (F : A -> Prop ) : Prop :=
@@ -512,84 +468,70 @@ Lemma iterF_monotone {A B} (body:  (A -> PureITreeSpec (A + B)))
       + right. left. exists b. auto.
   Qed.
  
-  Lemma not_ret_eutt_spin : forall A E (a : A), ~ (ret a ≈ @spin E A).
+  Lemma not_ret_eutt_spin : forall A E (a : A), ~ (Ret a ≈ @spin E A).
   Proof.
-    intros. intro Hcontra. specialize (spin_div E A) as Hdiv. rewrite <- Hcontra in Hdiv.
+    intros. intro Hcontra. simpl in Hcontra. specialize (spin_div E A) as Hdiv. rewrite <- Hcontra in Hdiv.
     pinversion Hdiv.
   Qed.
 
 
   Ltac clear_ret_eutt_spin :=
-    match goal with | H : ret ?a ≈ spin  |- _ => exfalso; eapply not_ret_eutt_spin; eauto
+    match goal with | H : ret ?a ≈ spin  |- _ => simpl in H; exfalso; eapply not_ret_eutt_spin; eauto
+                    | H : Ret ?a ≈ spin  |- _ => exfalso; eapply not_ret_eutt_spin; eauto
                     | H : spin ≈ ret ?a  |- _ => exfalso; symmetry in H; eapply not_ret_eutt_spin; eauto
                     | H : divergence (ret _ ) |- _ => pinversion H
                     end.
   
+  Ltac invert_evidence :=
+    intros; repeat match goal with 
+                   | H : _ /\ _ |- _ => destruct H
+                   | H : _ \/ _ |- _ => destruct H 
+                   | H : iterF_body _ _ _ _ _ |- _ => destruct H as [? | [? | ?] ]
+                   | H : exists a : ?A, _ |- _ => destruct H as [?a ?H]
+                   | x : ?A + ?B |- _ => destruct x as [?a | ?b]
+                   | H : upaco1 _ _ _ |- _ => pclearbot
+           end.
+
+  Ltac invert_ret := simpl in *; match goal with | H : Ret ?a ≈ Ret ?b |- _ => 
+                                                   apply inv_ret in H; try discriminate; try (injection H as H);
+                                                   subst end.
+
+  Ltac basic_solve := invert_evidence; try clear_ret_eutt_spin; try invert_ret.
+
   Instance PureITreeIterNatural : IterNatural (Kleisli PureITreeSpec) sum.
   Proof.
     intros A B C. intros. constructor.
-    - intros. generalize dependent a. pcofix CIH. intros. pfold. repeat red in H. punfold H0. destruct H0.
+    - intros. generalize dependent a. pcofix CIH. intros. pfold. repeat red in H. 
+      punfold H0. destruct H0.
       destruct (f a) as [fa Hfa] eqn : Heq. simpl in *. constructor.
       cbn. rewrite Heq. simpl. unfold _bindpi. eapply Hfa; eauto.
-      intros t ?. unfold iterF_body in H0.
-      destruct H0.
-      + destruct H0 as [ Ht [? | ? ] ].
-        * destruct H0 as [b [? ?] ]. specialize (spin_div Void B) as Hcontra. rewrite <- H0 in Hcontra. pinversion Hcontra.
-        * right. split; auto. destruct H0. unfold iterF_body. left. split; auto. apply spin_div.
-      + clear H. destruct H0.
-        * destruct H as [b [ ? ?] ]. left. exists (inr b). split; auto. destruct H0.
-          -- destruct H0 as [b' [Hab Hgbp] ].  pinversion Hab. subst. clear Hab.
-             cbn. destruct (g b) as [gb Hgb] eqn : Heq'. simpl in *.
-             unfold _bindpi. simpl. eapply Hgb; eauto. intros t' ?.
-             specialize (eutt_reta_or_div C t') as Hor. destruct Hor.
-             ++ left. destruct H1 as [c Hc]. exists c. split; auto. unfold _retpi. unfold iterF_body.
-                right. left. exists c. split; try reflexivity.
-                eapply Hp; eauto.
-             ++ right. split; auto. unfold iterF_body. left. 
-                specialize (div_spin_eutt C t' H1) as H2. 
-                split; try apply spin_div. eapply Hp; eauto. symmetry. auto.
-          -- destruct H0. pinversion H0.
-        * destruct H as [a' [? ?] ]. pclearbot. left. exists (inl a').
-          split; auto. simpl. unfold _bindpi. unfold _retpi. left. exists a'. unfold id. 
-          split; try reflexivity.
-          unfold iterF_body. right. right. exists a'. split; try reflexivity. right.
-          apply CIH. unfold _bindpi. assumption.
+      intros t ?Ht.
+      basic_solve.
+      + right. split; auto. unfold iterF_body. left. split; auto. apply spin_div.
+      + cbn. left. exists (inr b). split; auto. cbn. unfold bindpi, _bindpi. simpl.
+        destruct (g b) as [gb Hgb] eqn : Heq'. simpl in *. eapply Hgb; try apply H2. intros ?t ?Ht.
+        clear H.  specialize (eutt_reta_or_div C t0) as Hor. basic_solve.
+        * left. exists a0. unfold _retpi. split; auto. unfold iterF_body. right. left.
+          exists a0. split; try reflexivity. eapply Hp; eauto.
+        * right. split; auto. left. apply div_spin_eutt in H. split; try apply spin_div.
+          eapply Hp; try symmetry; eauto.
+      + left. exists (inl a'). split; auto. cbn. unfold _bindpi, _retpi, id. left. exists a'.
+        split; try reflexivity. unfold iterF_body. right. right. exists a'.
+        split; try reflexivity. right. apply CIH; auto.
     - intros. generalize dependent a. pcofix CIH. intros. pfold. red.
       repeat red in H0.
       constructor.
       destruct (f a) as [fa Hfa] eqn : Heq. simpl in *. punfold H0. destruct H0. simpl in H.
       cbn in H. unfold bindpi, _bindpi in H. rewrite Heq in H. simpl in *. eapply Hfa; try apply H.
-      intros t ?. unfold iterF_body. destruct H0.
-      + destruct H0 as [ [a' | b] [? ?] ].
-        * right. right. exists a'. split; auto. right. apply CIH.
-          cbn in H1. unfold _bindpi in H1. unfold _retpi, id in H1. destruct H1.
-           -- destruct H1 as [a'' [Ha' ?] ].
-             unfold id in Ha'. apply inv_ret in Ha'. subst. unfold iterF_body in H1.
-             destruct H1.
-             ++ destruct H1. pinversion H1.
-             ++ destruct H1.
-                ** destruct H1 as [? [? ?] ]. apply inv_ret in H1. discriminate.
-                ** destruct H1 as [a'' [? ?] ]. pclearbot. apply inv_ret in H1. injection H1. intros.
-                   subst. assumption.
-           -- destruct H1. pinversion H1.
-        * right. left. exists b. split; auto. left. exists b. split; try reflexivity.
-          cbn in H1. unfold bindpi, _bindpi in H1. destruct (g b) as [gb Hgb] eqn : Heq'. simpl in *.
-          eapply Hgb; try apply H1. unfold _retpi. intros t' ?.
-          destruct H2.
-          -- destruct H2 as [c [? ?] ]. unfold iterF_body in H3. destruct H3.
-             ++ destruct H3. pinversion H3.
-             ++ destruct H3.
-                ** destruct H3 as [c' [? ?] ]. apply inv_ret in H3. injection H3. intros. subst.
-                   eapply Hp; eauto. symmetry. auto.
-                ** destruct H3 as [ a'' [? _ ] ]. apply inv_ret in H3. discriminate.
-          -- destruct H2. unfold iterF_body in H3. destruct H3; try destruct H3.
-             ++ eapply Hp; try eapply spin_div; eauto. apply div_spin_eutt. auto.
-             ++ destruct H3 as [ c [Hcontra _ ] ]. clear_ret_eutt_spin.
-             ++ destruct H3 as [ a'' [Hcontra _] ]. clear_ret_eutt_spin.
-     + destruct H0. unfold iterF_body in H1. left. split; auto. right.
-       split; try apply spin_div. destruct H1; try tauto. destruct H1.
-       * destruct H1 as [c [? _ ] ]. clear_ret_eutt_spin.
-       * destruct H1 as [a'' [? _] ]. clear_ret_eutt_spin.
+      intros t ?. simpl in *. basic_solve.
+      + cbn in H1. unfold _bindpi, _retpi in H1. basic_solve. unfold id in *. basic_solve.
+        unfold iterF_body. right. right. exists a0. split; auto.
+      + cbn in H1. unfold bindpi, _bindpi in H1. right. left. exists b. split; auto.
+        left. exists b. split; try reflexivity. destruct (g b) as [gb Hgb] eqn : Heq'.
+        simpl in *. eapply Hgb; try apply H1. intros ?t ?Ht. simpl in *. basic_solve.
+        * unfold _retpi in H3. basic_solve. eapply Hp; eauto. symmetry. auto.
+        * apply div_spin_eutt in H2. eapply Hp; eauto.
+      + left. split; auto. right. split; auto; try apply spin_div.
    Qed.
       
   (*I am sorry, I will come up for some automation for this eventually*)
@@ -599,256 +541,91 @@ Lemma iterF_monotone {A B} (body:  (A -> PureITreeSpec (A + B)))
     (* can't coinduct in this case it seems, fingers crossed I don't need to *)
     - intros. cbn. unfold bindpi, _bindpi. destruct (f a) as [fa Hfa] eqn : Heq. simpl.
       cbn in H. punfold H. destruct H. cbn in H. unfold bindpi, _bindpi in H. rewrite Heq in H. simpl in *.
-      eapply Hfa; try apply H. intros t ?. destruct H0.
-      + destruct H0 as [ [b | c]  [? ?] ].
-        * left. exists (inl b). split; auto. cbn. cbn in H1. destruct (g b ) as [gb Hgb] eqn : Heq'.
-          simpl in *. pfold. constructor. cbn. unfold bindpi, _bindpi. rewrite Heq'. simpl. 
-          eapply Hgb; try apply H1. intros t' ?. 
-          unfold iterF_body in H2. destruct H2.
-          -- right. destruct H2. split; auto.
-             unfold iterF_body. left. split; auto.
-             apply spin_div.
-          -- destruct H2.
-             ++ destruct H2 as [c [? ?] ].
-                left. exists (inr c). split; auto. cbn. unfold _retpi.
-                unfold iterF_body. right. left. exists c. split; auto. reflexivity.
-             ++ destruct H2 as [a' [? ?] ]. left. exists (inl a'). split; auto.
-                cbn. pclearbot. punfold H3. destruct H3. cbn in H3. unfold bindpi, _bindpi in H3.
-                destruct (f a') as [fa' Hfa'] eqn : Heq''. simpl in *. eapply Hfa'; try apply H3.
-                intros t'' ?. destruct H4.
-                ** unfold iterF_body. right. destruct H4 as [ [b' | c] ? ].
-                   --- destruct H4. right. exists b'. split; auto.
-                       clear H. clear H3. clear Heq Heq' Heq''.
-                       clear H1. left. cbn in H5.
-                        generalize dependent b'. generalize dependent t''. pcofix CIH. intros.
-                       (* might need some kind of coinductive hyp here *)
-                       pfold. constructor. cbn in H5.
-                       destruct (g b') as [gb' Hgb'] eqn : Heq. simpl in *.
-                       cbn. unfold bindpi, _bindpi. rewrite Heq. simpl. eapply Hgb'; try apply H5.
-                       intros t''' ?.
-                       destruct H as [? | [? | ?] ].
-                       +++ right. destruct H. split; auto. unfold iterF_body.
-                           left. split; auto; apply spin_div.
-                       +++ destruct H as [c [? ?] ]. left. exists (inr c).
-                           split; auto. cbn. red. unfold iterF_body. right. left. exists c.
-                           split; auto. reflexivity.
-                       +++ destruct H as [a'' [? ?] ]. left. exists (inl a'').
-                           split; auto. cbn. pclearbot. punfold H1.
-                           destruct H1. cbn in H1. unfold bindpi, _bindpi in H1.
-                           destruct (f a'') as [fa'' Hfa''] eqn : Heq'. simpl in *.
-                           eapply Hfa''; try apply H1.
-                           intros t4 ?. destruct H3 as [ [ [b'' | c'] ]  | [? ?] ] .
-                           *** destruct H3. unfold iterF_body. right. right. exists b''.
-                               split; auto. right. apply CIH with (t'' := t4); auto.
-                           *** destruct H3. cbn in H6. unfold _retpi in H6.
-                               unfold iterF_body in H6. destruct H6 as [? | [? | ?] ].
-                               ++++ destruct H6. pinversion H6.
-                               ++++ destruct H6 as [c'' [? ?] ]. apply inv_ret in H6.
-                                    injection H6. intros. subst. unfold iterF_body.
-                                    right. left. exists c'. split; auto.
-                               ++++ destruct H6 as [a''' [? ?] ].  apply inv_ret in H6. discriminate.
-                          *** unfold iterF_body in H6. unfold iterF_body. destruct H6 as [? | [? | ?] ].
-                              ++++ left. tauto.
-                              ++++ destruct H6 as [c [? ?] ].
-                                   clear_ret_eutt_spin.
-                              ++++ destruct H6 as [? [? ?] ]. clear_ret_eutt_spin.
-                    --- cbn in H4. unfold _retpi in H4. left. exists c. destruct H4.
-                        split; auto. destruct H5 as [? | [? | ?] ].
-                        +++ destruct H5. pinversion H5.
-                        +++ destruct H5 as [ c' [ ? ?  ] ]. apply inv_ret in H5. injection H5. intros.
-                            subst. auto.
-                        +++ destruct H5 as [a'' [? ?] ]. apply inv_ret in H5. discriminate.
-                ** destruct H4. red. red in H5.
-                   destruct H5 as [? | [? | ?] ]; try (destruct H5 as [? [? ?] ]; clear_ret_eutt_spin ).
-                   left. tauto.
-       * left. cbn in H1. unfold _retpi in H1. exists (inr c). split; auto.
-         cbn. unfold _retpi, id. unfold iterF_body in H1. destruct H1 as [? | [? | ?] ].
-         -- destruct H1. pinversion H1.
-         -- destruct H1 as [c' [? ? ] ]. apply inv_ret in H1. injection H1. intros. subst. auto.
-         -- destruct H1 as [a' [? _] ]. apply inv_ret in H1. discriminate.
-    + destruct H0. right. split; auto. unfold iterF_body in H1. destruct H1 as [? | [? | ? ] ].
-      * destruct H1. auto.
-      * destruct H1 as [? [? ?] ]. clear_ret_eutt_spin.
-      * destruct H1 as [? [? ?] ]. clear_ret_eutt_spin.
+      eapply Hfa; try apply H. intros t ?. simpl in H0.
+      basic_solve; auto.
+      + rename a0 into b. left. exists (inl b). split; auto. cbn. cbn in H1. clear H. clear H0.
+        generalize dependent b. pcofix CIH.
+        intros. pfold. constructor. cbn. unfold bindpi, _bindpi.
+        destruct (g b) as [gb Hgb] eqn : ?Heq. simpl in *. eapply Hgb; try apply H1.
+        intros ?t ?Ht. basic_solve.
+        * right. split; auto. unfold iterF_body. left. split; auto. apply spin_div.
+        * rename b0 into c. left. exists (inr c). split; auto. cbn. unfold _retpi.
+          unfold iterF_body. right. left. exists c. split; auto; reflexivity.
+        * left. exists (inl a'). split; auto. cbn. punfold H0. destruct H0. cbn in H0.
+          unfold bindpi, _bindpi in H0. destruct (f a') as [fa' Hfa'] eqn :?Heq. simpl in *.
+          eapply Hfa'; try apply H0. intros ?t ?Ht. simpl in *. basic_solve.
+          -- cbn in H3. rename a0 into b'. unfold iterF_body. right. right. exists b'. split; auto.
+          -- cbn in H3. rename b0 into c. unfold _retpi in H3. basic_solve.
+             unfold iterF_body. right. left. exists c. split; auto.
+          -- left. auto.
+      + cbn in H1. unfold _retpi in H1. basic_solve. rename b into c. left.
+        exists (inr c). auto.
   - intros. generalize dependent a. pcofix CIH.
     intros. pfold. constructor. cbn. cbn in H0. unfold bindpi, _bindpi in *. 
     destruct (f a) as [fa Hfa] eqn : Heq. simpl in *. eapply Hfa; try apply H0.
-    intros t ?. clear H0. destruct H.
-    + destruct H as [ [b | c] [? ?]  ].
-      * left. exists (inl b). split; auto. cbn in H0. red in H0. punfold H0. destruct H0.
-        cbn in H0. unfold bindpi, _bindpi in H0. destruct (g b) as [gb Hgb] eqn : Heq'.
-        simpl in *. cbn. rewrite Heq'. simpl. eapply Hgb; try apply H0. clear H0. intros t' ?.
-        destruct H0.
-        -- unfold iterF_body. right. destruct H0 as [ [a' | c] ? ].
-           ++ right. exists a'. destruct H0. split; auto. right. apply CIH.
-              cbn. cbn in H1. unfold bindpi, _bindpi. destruct (f a') as [fa' Hfa'] eqn : Heq''.
-              simpl in *. eapply Hfa'; try apply H1. clear H1. intros t'' ?.
-              unfold iterF_body in H1. destruct H1 as [ ? | [? | ?] ]; auto.
-              ** destruct H1 as [c [? ?] ]. left. exists (inr c). cbn. auto.
-              ** destruct H1 as [b' [? ?] ]. left. exists (inl b'). split; auto.
-                 pclearbot. cbn. assumption.
-           ++ cbn in H0. unfold _retpi in H0. left. exists c.
-              destruct H0. split; auto. destruct H1 as [? | [? | ?] ].
-              ** destruct H1. pinversion H1.
-              ** destruct H1 as [c' [? ?] ]. apply inv_ret in H1. injection H1 as ?. subst. auto.
-              ** destruct H1 as [?  [? ?] ]. apply inv_ret in H1. discriminate.
-        -- destruct H0. unfold iterF_body. destruct H1 as [ ? | [? | ?] ]; 
-                                             try tauto; destruct H1 as [? [? ?] ]; clear_ret_eutt_spin.
-     * cbn in H0. unfold _retpi, id in H0. left. exists (inr c). split; auto.
-       cbn. red. red. right. left. exists c. split; auto; try reflexivity.
-   + right. destruct H. split; auto. red. left. split; auto. apply spin_div.
+    intros t ?. simpl in *. basic_solve.
+    + rename a0 into b. left. exists (inl b). split; auto. cbn. cbn in H1. red in H1.
+      punfold H1. destruct H1. cbn in H1. unfold bindpi, _bindpi in H1. destruct (g b) as [gb Hgb] eqn : ?Heq.
+      simpl in *. eapply Hgb; try apply H1. intros ?t ?Ht. simpl in *. clear H1.
+      basic_solve.
+      * cbn in H2. right. right. exists a0. split; auto. right. apply CIH. cbn.
+        unfold bindpi, _bindpi. destruct (f a0) as [fa0 Hfa0] eqn : ?Heq. simpl in *.
+        eapply Hfa0; try apply H2. intros ?t ?Ht. basic_solve; auto.
+        -- rename b0 into c. left. exists (inr c). split; auto.
+        -- rename a' into b'. left. exists (inl b'). split; auto.
+      * cbn in H2. unfold _retpi in H2. basic_solve.
+        right. left. exists b0. auto.
+      * left. auto.
+    + cbn in H1. unfold _retpi, id in H1. left. rename b into c. exists (inr c). split; auto.
+      cbn. unfold _retpi. right. left. exists c. split; auto; reflexivity.
+    + right. split; auto. left. split; auto; apply spin_div.
   Qed.
 
-  Definition bind_inl_id {A B} : Kleisli PureITreeSpec (A + (A + B)) (A + B) :=
-    fun x => match x with
-               | inl a => ret (inl a)
-               | inr b => ret b end.
-
-  Lemma f_leq_iter_f : forall (A B : Type) (f : Kleisli (PureITreeSpec) A (A + (A + B)) ) (a : A),
-                              f a >>= bind_inl_id <≈ iter f a.
-  Proof.
-    intros A B f a p Hp Hf. cbn. unfold bindpi, _bindpi, bind_inl_id.
-    punfold Hf. destruct Hf. destruct (f a) as [fa Hfa] eqn : Heq. simpl in *. eapply Hfa; try apply H.
-    intros t Ht. destruct Ht as [? | [? | ?] ]; auto.
-    - destruct H0 as [b [? ?] ]. left. exists (inr b). split; auto.
-    - destruct H0. destruct H0 as [H1 Hco]. left. exists (inl x). split; auto. unfold retpi, _retpi. simpl.
-      pclearbot. fold (@_iter A (A + B)) in Hco.
-    Abort.
-    (*
-    generalize dependent a. pcofix CIH. intros. cbn in Hf. unfold bind_inl_id, bindpi, _bindpi in Hf. 
-    destruct (f a) as [fa Hfa] eqn : Heq. simpl in *. pfold. constructor. rewrite Heq.
-    simpl. unfold iterF_body. eapply Hfa; try apply Hf. intros t Ht. simpl in Ht.
-    destruct Ht as [Ht | Ht]; auto. right. destruct Ht as [ [a' | [a' | b] ] [ ? ?] ].
-    - simpl in *. unfold _retpi in H0. right. exists a'. split; auto. right. apply CIH.
-      unfold bindpi, _bindpi, bind_inl_id. destruct (f a') as [fa' Hfa'] eqn : Heq'. simpl.
-    - simpl in *. unfold _retpi in H0. left. exists (inl a'). split; auto.
-    - simpl in *. unfold _retpi in H0. left. exists (inr b). split; auto.
-   *)
   Instance PureITreeIterCodiagonal : IterCodiagonal (Kleisli PureITreeSpec) sum.
   Proof.
     intros A B f. constructor.
     - intros. generalize dependent a. pcofix CIH. intros. cbn in H0. punfold H0.
       pfold. destruct H0. constructor. cbn in H. cbn. punfold H.  destruct H. 
       unfold bindpi, _bindpi. destruct (f a) as [fa Hfa] eqn : Heq. simpl in *. eapply Hfa; try apply H.
-      intros t ?. destruct H0 as [? | [? | ?] ].
-      + destruct H0. destruct H1 as [? | [? | ?] ].
-        * destruct H1. right. split; auto. unfold iterF_body. left. auto.
-        * destruct H1 as [? [? ?] ]. clear_ret_eutt_spin.
-        * destruct H1 as [ ? [? ?] ]. clear_ret_eutt_spin.
-      + destruct H0 as [ [a' | b] [? ?] ].
-        * left. exists (inr (inl a')). split; auto. cbn. unfold _retpi. destruct H1 as [? | [? | ? ] ].
-          -- destruct H1. pinversion H1.
-          -- destruct H1 as [? [? ?] ]. apply inv_ret in H1. discriminate.
-          -- destruct H1 as [a'' [? ?] ]. apply inv_ret in H1. injection H1. intros. subst.
-             pclearbot. unfold iterF_body. right. right. exists a'. unfold id. split; try reflexivity.
-             right. apply CIH. auto.
-        * destruct H1 as [? | [? | ?] ].
-          -- destruct H1. pinversion H1.
-          -- destruct H1 as [b' [? ?] ]. apply inv_ret in H1. injection H1. intros. subst.
-             left. exists (inr (inr b) ). split; auto. cbn. unfold _retpi. red.
-             right. left. exists b. split; auto; reflexivity.
-          -- destruct H1 as [? [? ?] ]. apply inv_ret in H1. discriminate.
-     + destruct H0 as [a' [? ?] ]. pclearbot. punfold H1. destruct H1. 
-       left. exists (inl a'). split; auto.  cbn. unfold _retpi. cbn. 
-       right. right. exists a'. split; try reflexivity. right. apply CIH.
-       unfold _iter. pfold. red. constructor. cbn. pfold. red. constructor.
-       destruct (f a') as [fa' Hfa'] eqn : Heq'. simpl in *. 
-       eapply Hfa'; try apply H1. intros t' ?. unfold iterF_body. destruct H2 as [ ? | [? | ?] ].
-       * left. destruct H2. split; auto.
-       * right. destruct H2 as [ [a'' | b] [? ?]  ].
-         -- left. exists (inl a''). split; auto.
-         -- left. exists (inr b). split; auto.
-       * destruct H2 as [a'' [? ?] ]. pclearbot.
-         right. right. exists a''. split; auto.
-         (* I think there might be something odd going on here*)
+      intros t ?. simpl in *. basic_solve.
+      + right. split; auto. left. auto.
+      + left. exists (inr (inr b) ). split; auto. clear H. cbn. unfold _retpi. right. left.
+        exists b. unfold id. split; auto; reflexivity.
+      + left. exists (inr (inl a0) ). clear H. split; auto. cbn. unfold _retpi. unfold iterF_body.
+        right. right. exists a0. unfold id. split; auto. reflexivity.
+      + left. exists (inl a'). split; auto. cbn. unfold _retpi. unfold iterF_body. right. right.
+        exists a'. split; try reflexivity. clear H. right. apply CIH. red. pfold.
+        red. constructor. punfold H1. red in H1. destruct H1. destruct (f a') as [fa' Hfa'] eqn : ?Heq.
+        simpl in *. red. pfold. constructor. rewrite Heq0. simpl in *.
+        eapply Hfa'; try apply H. clear H. intros ?t ?Ht. auto.
     - intros. punfold H. generalize dependent a.  pcofix CIH. intros.  cbn in H0. pfold. constructor.
       destruct H0. cbn in H. cbn.  unfold bindpi, _bindpi in H. pfold. constructor.
       destruct (f a) as [fa Hfa] eqn : Heq. simpl in *. eapply Hfa; try apply H. 
       rename H into Ha.
-      intros t ?. destruct H.
-      + destruct H as [ [a' | [a' | b] ] ?  ].
-        * destruct H. cbn in H0. unfold _retpi in H0. destruct H0 as [?|  [? | ?] ].
-          -- destruct H0. pinversion H0.
-          -- destruct H0 as [b [? ?] ]. apply inv_ret in H0. discriminate.
-          -- destruct H0 as [a'' [? ?] ]. apply inv_ret in H0. injection H0. intros. subst.
-             pclearbot.
-             unfold iterF_body. right. right. exists a'. split; auto. left. 
-             pfold. punfold H1. constructor. destruct H1. cbn in H1. unfold bindpi, _bindpi in H1.
-             destruct (f a') as [fa' Hfa'] eqn : Heq'. simpl in *. eapply Hfa'; try apply H1. clear H1.
-             intros t' ?. cbn in H1. destruct H1.
-             ++ destruct H1 as [ [a'' | [a'' | b] ] ?  ].
-                ** cbn in H1. unfold _retpi in H1. cbn in H1.  destruct H1.
-                   red in H2.  destruct H2 as [? | [? | ?] ] .
-                   --- destruct H2. pinversion H2.
-                   --- destruct H2 as [b [? ?] ]. apply inv_ret in H2. discriminate.
-                   --- destruct H2 as [a''' [? ?] ]. pclearbot. apply inv_ret in H2.
-                       injection H2 as H2. subst. red. right. right. exists a''. split; auto.
-                       left.
-                       (*not sure if this is right*)
-                       clear H1.
-                       (*end weird section*)
-                       generalize dependent a''. pcofix CIH'. clear Ha. intros.
-                       punfold H3. destruct H3. cbn in H1. unfold bindpi, _bindpi in H1.
-                       pfold. constructor. destruct (f a'') as [fa'' Hfa''] eqn : Heq3. cbn in *. simpl in *.
-                       eapply Hfa''; try apply H1. intros t'' Ht''. simpl in Ht''. clear H1.
-                       unfold iterF_body.
-                       destruct Ht'' as [Ht'' | Ht''].
-                       +++ destruct Ht'' as [ [a''' | [a''' | b]  ] [ ? ?] ].
-                           *** cbn in H2. unfold _retpi in H2. unfold iterF_body in H2. destruct H2 as [? | [? | ? ] ].
-                               ---- destruct H2. clear_ret_eutt_spin.
-                               ---- destruct H2 as [b [? ?] ]. apply inv_ret in H2. discriminate.
-                               ---- right. right. destruct H2 as [a4 [? ?] ]. apply inv_ret in H2. injection H2 as H2. subst.
-                                    pclearbot. exists a'''. split; auto.
-                           *** cbn in H2. unfold _retpi, id in H2. unfold iterF_body in H2. destruct H2 as [? | [? | ?] ].
-                               ---- destruct H2. clear_ret_eutt_spin.
-                               ---- destruct H2 as [b [? ?] ]. apply inv_ret in H2. discriminate.
-                               ---- right. left. destruct H2 as [a4 [? ?] ]. apply inv_ret in H2. injection H2 as H2. subst.
-                                    pclearbot. exists ( inl a'''). split; auto.
-                                    right. right. exists a'''. split; try reflexivity.
-                                    right. apply CIH. punfold H3. 
-                           *** cbn in H2. unfold _retpi, id in H2. unfold iterF_body in H2. destruct H2 as [? | [? | ?] ].
-                               ---- destruct H2. clear_ret_eutt_spin.
-                               ---- destruct H2 as [b' [? Hpb] ]. apply inv_ret in H2. injection H2 as H2. subst.
-                                    right. left. exists (inr b). split; auto. right. left. exists b.
-                                    split; auto; reflexivity.
-                               ---- destruct H2 as [a''' [? ?] ]. apply inv_ret in H2. discriminate.
-                       +++ left. destruct Ht'' as [Hdivt'' ?]. split; auto. unfold iterF_body in H1. 
-                           destruct H1 as [? | [? | ?] ]; auto. destruct H1 as [a''' [? _ ] ].  clear_ret_eutt_spin.
-               ** cbn in H1. unfold _retpi, id in H1. destruct H1. unfold iterF_body in H2. unfold iterF_body.
-                  destruct H2 as [? | [? | ?] ].
-                  --- destruct H2. clear_ret_eutt_spin.
-                  --- destruct H2 as [b [? ?] ]. apply inv_ret in H2. discriminate.
-                  --- destruct H2 as [a''' [? ?] ]. pclearbot. apply inv_ret in H2. injection H2 as H2. subst.
-                      right. left. exists (inl a''). split; auto. right. right. exists a''. split; try reflexivity.
-                      right. apply CIH. punfold H3.
-              ** destruct H1. cbn in H2. unfold _retpi, id in H2. unfold iterF_body in H2. unfold iterF_body.
-                 destruct H2 as [? | [? | ?] ].
-                 --- destruct H2. clear_ret_eutt_spin.
-                 --- destruct H2 as [b' [? Hpb] ]. apply inv_ret in H2. injection H2 as H2. subst. right. left.
-                     exists (inr b). split; auto. right. left. exists b. split; auto; reflexivity.
-                 --- destruct H2 as [a''' [? ?] ]. apply inv_ret in H2. discriminate.
-          ++ destruct H1. unfold iterF_body in H2. unfold iterF_body. destruct H2 as [? | [? | ?] ].
-             ** left. split; auto.
-             ** destruct H2 as [? [? ?] ]. clear_ret_eutt_spin.
-             ** destruct H2 as [? [? ?] ]. clear_ret_eutt_spin.
-      * destruct H. cbn in H0. unfold _retpi, id in H0. unfold iterF_body.
-        destruct H0 as [ ? | [? | ?] ].
-        -- destruct H0. clear_ret_eutt_spin.
-        -- destruct H0 as [? [? ?] ]. apply inv_ret in H0. discriminate.
-        -- destruct H0 as [a'' [? ?] ]. pclearbot. apply inv_ret in H0. injection H0 as H0. subst. right. left.
-           exists (inl a'). split; auto. right. right. exists a'. split; try reflexivity.
-           right. apply CIH. punfold H1.
-      * destruct H. cbn in H0. unfold _retpi, id in H0. unfold iterF_body in H0. unfold iterF_body.
-        destruct H0 as [? | [? | ?] ].
-        -- destruct H0. clear_ret_eutt_spin.
-        -- destruct H0 as [b' [? ?] ]. apply inv_ret in H0. injection H0 as H0. subst.
-           right. left. exists (inr b). split; auto. right. left. exists b.
-           split; auto; reflexivity.
-        -- destruct H0 as [? [? ?] ]. apply inv_ret in H0. discriminate.
-    + left. destruct H. split; auto. unfold iterF_body in H0. unfold iterF_body. destruct H0 as [? | [? | ?] ]; auto.
-      destruct H0 as [a' [? ?] ]. clear_ret_eutt_spin.
-  Qed.
-
+      intros t ?. simpl in *. basic_solve.
+      + cbn in H0. unfold _retpi in H0. basic_solve. unfold iterF_body. right. right.
+        exists a0. split; auto. left.  
+        clear H.
+        generalize dependent a0.
+        pcofix CIH'. intros. pfold. constructor. clear Ha. punfold H1.
+        destruct H1. cbn in H. unfold bindpi, _bindpi in H. simpl in *. 
+        destruct (f a0) as [fa0 Hfa0] eqn : ?Heq. simpl in *. eapply Hfa0; try apply H.
+        clear H. intros ?t ?Ht. simpl in *. basic_solve.
+        * cbn in H0. unfold _retpi in H0. basic_solve. right. right. exists a1.
+          split; auto.
+        * cbn in H0. unfold _retpi in H0. basic_solve. right. left.  exists (inl a1). split; auto.
+          right. right. exists a1. split; auto; try reflexivity. right. apply CIH. punfold H1.
+        * cbn in H0. unfold _retpi, id in H0. basic_solve. right. left. exists (inr b).
+          split; auto. right. left. exists b.  split; auto. reflexivity.
+        * left. split; auto.
+      + cbn in H0. unfold _retpi, id in H0. basic_solve. right. left.
+        exists (inl a0). split; auto. right. right. exists a0. split; try reflexivity.
+        right. apply CIH. punfold H1.
+      + cbn in H0. unfold _retpi, id in H0. basic_solve. right. left. exists (inr b).
+        split; auto. right. left. exists b. split; auto. reflexivity.
+      + left. split; auto.
+        left. auto.
+   Qed.
 
   (*Definition of effect observation from pure itrees into pure itree specs *)
   Definition _obsip A (t : itree Void A) : _PureITreeSpec A := fun p _ => p t.
@@ -893,9 +670,101 @@ Lemma iterF_monotone {A B} (body:  (A -> PureITreeSpec (A + B)))
     Qed.
 
     
+  Lemma obsip_eutt : forall A (t1 t2 : itree Void A), t1 ≈ t2 <-> obsip A t1 ≈ obsip A t2.
+  Proof.
+    split; intros; unfold obsip, _obsip in *; simpl in *.
+    - intros p Hp. simpl. split; intros; eapply Hp; eauto.
+      symmetry. auto.
+    - set (fun t => t ≈ t1) as p. 
+      assert (Hp : resp_eutt _ _ p).
+      + intros t3 t4. unfold p. split; intros.
+        * rewrite <- H1. symmetry. auto.
+        * rewrite H0. auto.
+      + specialize (H p Hp). simpl in *. unfold p in H. symmetry. apply H. reflexivity.
+  Qed.
+
+
+  Lemma obsip_pres_iter_right : forall A B (f : A -> itree Void (A + B) ) (a : A)
+            (p : itree Void B -> Prop) (Hp : resp_eutt Void B p),
+     proj1_sig (obsip B (iter f a)) p Hp -> proj1_sig (iterp (fun x => obsip _ (f x) ) a) p Hp.
+  Proof.
+    intros. generalize dependent a. pcofix CIH. intros. pfold. constructor.
+    cbn. red. unfold iterF_body.
+    simpl. specialize (unfold_iter_ktree f a) as Hunfold.
+    cbn in H0. red in H0. symmetry in Hunfold. eapply Hp in H0; 
+                                                 try (rewrite <- Hunfold; reflexivity).
+    specialize (eutt_reta_or_div _ (f a) ) as [Hret | Hdiv] .
+    - destruct Hret as [ [a' | b ] Hret  ].
+      + right. right. exists a'. split; auto. right. apply CIH. cbn. red.
+        eapply Hp; eauto. rewrite <- Hret. 
+        match goal with | |- _ ≈ ITree.bind _ ?g => 
+                          specialize (bind_ret (inl a') g) as Hbind_ret end. 
+        rewrite Hbind_ret. rewrite tau_eutt. reflexivity.
+      + right. left. exists b. split; auto. eapply Hp; try apply H0.
+        rewrite <- Hret. match goal with | |- _ ≈ ITree.bind _ ?g =>
+                                           specialize (bind_ret (inr b) g) as Hbind_ret end.
+        rewrite Hbind_ret. reflexivity.
+    - apply div_spin_eutt in Hdiv as Hspin. left. split; auto. 
+      eapply Hp; eauto. rewrite Hspin. apply spin_bind.
+   Qed.
+
+  Ltac proof_by_contra := match goal with | |- ?P => destruct (classic P) as [ ? | Hcontra];
+                                                     auto end.
+
+  Lemma obsip_pres_iter_left : forall A B (f : A -> itree Void (A + B) ) (a : A)
+                             (p : itree Void B -> Prop) (Hp : resp_eutt Void B p),
+      proj1_sig (iterp (fun x => obsip _ (f x) ) a) p Hp -> proj1_sig (obsip B (iter f a)) p Hp.
+  Proof.
+    intros. cbn. red. cbn in H. red in H. (*  proof_by_contra.*) cbn in H.
+    punfold H. destruct H. cbn in H. red in H. 
+    destruct H as [? | [? | ?] ].
+    - destruct H. apply div_spin_eutt in H as H1. eapply Hp; eauto.
+      specialize (unfold_iter_ktree f a) as Hunfold. rewrite Hunfold. rewrite H1.
+      symmetry. apply spin_bind.
+    - destruct H as [b [Hretb  Hb ] ]. specialize (unfold_iter_ktree f a) as Hunfold.
+      eapply Hp; eauto. rewrite Hunfold. rewrite <- Hretb.
+      match goal with | |- ITree.bind _ ?g ≈ _ => specialize (bind_ret (inr b) g) 
+      as Hbind_ret end. rewrite Hbind_ret. reflexivity.
+    - destruct H as [a' [ Hreta' Hitera']  ]. pclearbot.
+      specialize (unfold_iter_ktree f a) as Hunfold. eapply Hp; eauto;
+      try (rewrite Hunfold; reflexivity). 
+      (* assert (_iter (fun x : A=> obsip (A + B) (f x) ) a'  p Hp); auto. *)
+      eapply Hp; eauto.
+      + rewrite <- Hreta'. match goal with | |- ITree.bind _ ?g ≈ _ => 
+                                             specialize (bind_ret (inl a') g) as Hbind_ret end.
+        rewrite Hbind_ret. reflexivity.
+      + (* I have unfolded in some sense, I want to have a coinductive hyp here *) 
+   (* red in H.
+    assert (KTree.iter f a ≈ iter f a \/ KTree.iter f a ≈ iter f a).
+    - pcofix CIH. 
+    Abort.
+
+
+
+ punfold H. destruct H. cbn in H. red in H. 
+    destruct H as [? | [? | ?] ].
+    - destruct H. apply div_spin_eutt in H as H1. eapply Hp; eauto.
+      specialize (unfold_iter_ktree f a) as Hunfold. rewrite Hunfold. rewrite H1.
+      symmetry. apply spin_bind.
+    - destruct H as [b [Hretb  Hb ] ]. specialize (unfold_iter_ktree f a) as Hunfold.
+      eapply Hp; eauto. rewrite Hunfold. rewrite <- Hretb.
+      match goal with | |- ITree.bind _ ?g ≈ _ => specialize (bind_ret (inr b) g) 
+      as Hbind_ret end. rewrite Hbind_ret. reflexivity.
+    - 
+    exfalso. apply Hcontra. exfalso *)
+  Abort.
+
+  (*Other direction is odd, because I can't just straightforwardly coinduct*)
 
   Lemma obsip_pres_iter : forall A B (f : A -> itree Void (A + B) ) (a : A),
-        obsip (iter f a) ≈ iter (fun a => obsip (f a) ) a.
+        obsip _ (iter f a) ≈ iterp (fun (x : A) => obsip (A + B) (f x) ) a.
+  Proof.
+    intros. constructor.
+    -  apply obsip_pres_iter_right.
+    - intros. cbn. red. cbn in H. unfold obsip, _obsip in H. simpl in H.
+      red in H. punfold H. destruct H. simpl in *.
+      cbn in H.
+  Abort.
 
     Instance PureITreeEffectObs : EffectObs (itree Void) (PureITreeSpec) := obsip.
 
@@ -910,75 +779,6 @@ Lemma iterF_monotone {A B} (body:  (A -> PureITreeSpec (A + B)))
 
   End SpecMonadCand1.
 
-  Section SpecMonadCand2.
-    
-    Lemma div_imp_p_iff_p_spin : forall A (p : itree Void A -> Prop),
-      (resp_eutt Void A p) ->
-      (forall t, divergence t -> p t) <-> p spin.
-      Proof.
-        intros. split.
-        - intros. apply H0. apply spin_div.
-        - intros. apply div_spin_eutt in H1. eapply H; eauto.
-      Qed.
-
-    Instance PureITreeSpecMonad : Monad PureITreeSpec := 
-      {
-        ret := retpi;
-        bind := bindpi';
-      }.
-
-     Lemma retpi_bindpi' : forall A B (f : A -> PureITreeSpec B) (a : A),
-        bind (ret a) f ≈ f a.
-     Proof.
-       intros. split.
-       - cbn. unfold _bindpi', _retpi. intros. destruct (f a) as [wfa Hwfa] eqn : Heqfa.
-         simpl. destruct H. 
-         + destruct H as [ a0 [Hreta0 Hfa0] ]. apply inv_ret in Hreta0. subst.
-           rewrite Heqfa in Hfa0. simpl in *. auto.
-         + destruct H. apply ret_not_div in H. contradiction.
-       - intros. cbn. unfold _bindpi', _retpi. left. exists a. split; auto.
-         reflexivity.
-     Qed.
-
-     Lemma bindpi'_retpi : forall A (w : PureITreeSpec A), bind w (fun x => ret x) ≈ w.
-       Proof.
-         intros. destruct w as [w Hw]. split.
-         - cbn. unfold _bindpi'. eapply Hw. intros t.
-           intros. destruct H.
-           + destruct H as [ a [Hreta Hpa] ]. unfold _retpi in Hpa.
-             eapply Hp; try apply Hpa. symmetry. auto.
-           + destruct H.  apply div_spin_eutt in H as Htspin.
-             enough (p spin). { eapply Hp; eauto. } tauto.
-         - simpl. unfold _bindpi'. intros. eapply Hw; eauto.
-           intros t. intros. unfold _retpi.
-           specialize (eutt_reta_or_div A t) as Hor. destruct Hor.
-           + left. destruct H1 as [a Hreta].  exists a. split; auto. eapply Hp; eauto.
-           + right. split; auto. split.
-             * unfold monotonici in Hw.
-               assert (p spin). { apply div_spin_eutt in H1. eapply Hp; eauto. symmetry. auto. }
-               (* maybe need w to be downwardly closed in some sense, maybe pays to continue with the other model,
-                  come back to this later*)
-               destruct (div_imp_p_iff_p_spin A p Hp) as [H3 H4]. specialize (H4 H2).
-               (* w accepts p, div ⊆ p, therefore should w accept div, this seems like the hoare logic weakening rule,
-                  when start having preconditions (like state)  will probably need contravariant weakening*)
-
-               (* pureitree spec is a psot condition enricher, as is exceptions, 
-                  state is a precondition and post condition enricher  *)
-               admit. (* this case seems conceptually new ...  *)
-             * eapply Hp; eauto.  symmetry. apply div_spin_eutt. auto.
-       Admitted.
-       End SpecMonadCand2.
-  
-  (* does this satisfy the monad laws? is it unique in some sense, if not what are the implications of
-   this choice*)
-  
-  (* maybe could parameterize bind on a predicate is_val A a itree -> Prop, and that predicate
-     determines how nonterminism is handled, that shouldn't be hard, my proof of monot
-     didn't seem to rely on the def of is_val, likely bad choices would break monad laws?
-     *)
-                       
-
-(* is this monotonic?   *)
 
 End PureITree.
 
