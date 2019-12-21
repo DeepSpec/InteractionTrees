@@ -28,7 +28,6 @@ From ITree Require Import
 
 Import ListNotations.
 Import ITreeNotations.
-Import MonadNotation.
 Open Scope monad_scope.
 (* end hide *)
 
