@@ -291,7 +291,7 @@ Section PartialITreeSpec.
     exist _ (_obsit A t) (obsit_monot A t).
 
   Instance PureITreeEffectObs : EffectObs (itree Void) PureSpec := obsit.
-
+(*
   Program Instance PureITreeMonadMorph : MonadMorphism (itree Void) PureSpec PureITreeEffectObs.
   Next Obligation.
     unfold obs, PureITreeEffectObs, obsit. intro p.
@@ -322,7 +322,7 @@ Section PartialITreeSpec.
           rewrite H in H0. auto.
       + right. admit.
  Admitted.
-
+*)
 
   Variant iterF {A B : Type} (f : A -> _PureSpec (A + B) ) (a : A) (p : B -> Prop)
           (F : (A -> _PureSpec (A + B) ) -> A -> (B -> Prop) -> Prop ) : Prop :=
