@@ -275,6 +275,13 @@ Section PureITree.
     | cont_a (a' : A) (Hreta : ret (inl a') ≈ t) (Hcorec : F a')
 .
 
+ Lemma iterF_body_equiv : forall A B (body : A -> PureITreeSpec (A + B) )
+            (p : itree Void B -> Prop) (Hp : resp_eutt Void B p)  (F : A -> Prop )
+            (t : itree Void (A + B)), iterF_body body p Hp F t <-> iterF_body body p Hp F t.
+   Proof.
+     split; intros; auto.
+   Qed.
+
 Hint Constructors iterF_body.
 
   Lemma iterF_body'_resp_eutt : forall (A B : Type)  (body : A -> PureITreeSpec (A + B) )
@@ -289,7 +296,7 @@ Hint Constructors iterF_body.
 
   Lemma iterF_body_resp_eutt :forall (A B : Type)  (body : A -> PureITreeSpec (A + B) )
             (p : itree Void B -> Prop) (Hp : resp_eutt Void B p)  (F : A -> Prop ),
-      resp_eutt _ _ (fun t => iterF_body body p Hp F t).
+      resp_eutt _ _ (iterF_body body p Hp F).
   Proof.
     intros. intros t1 t2 Heutt. split; intros; inversion H; subst; auto.
     - apply inf_tau; auto. rewrite Heutt in Ht. auto.
@@ -475,7 +482,7 @@ Lemma iterF_monotone {A B} (body:  (A -> PureITreeSpec (A + B)))
     intros; repeat match goal with 
                    | H : _ /\ _ |- _ => destruct H
                    | H : _ \/ _ |- _ => destruct H 
-                   (* | H : iterF_body _ _ _ _ _ |- _ => inversion H; subst *)
+                   | H : iterF_body _ _ _ _ _ |- _ => inversion H; clear H; subst
                    | H : exists a : ?A, _ |- _ => destruct H as [?a ?H]
                    | x : ?A + ?B |- _ => destruct x as [?a | ?b]
                    | H : upaco1 _ _ _ |- _ => pclearbot
@@ -503,7 +510,7 @@ Lemma iterF_monotone {A B} (body:  (A -> PureITreeSpec (A + B)))
       constructor. destruct (f a) as [fa Hfa]; simpl in *. eapply Hfa; try apply H.
       intros t ?Ht. simpl in Ht. basic_solve; auto.
       + eapply cont_a; try apply H0. cbn in H1.
-        red in H1. left. auto.
+        red in H1. auto.
       + eapply term_b; try apply H0. auto.
   Qed.
 
@@ -514,19 +521,15 @@ Lemma iterF_monotone {A B} (body:  (A -> PureITreeSpec (A + B)))
       punfold H0. destruct H0.
       destruct (f a) as [fa Hfa] eqn : Heq. simpl in *. constructor.
       cbn. rewrite Heq. simpl. unfold _bindpi. eapply Hfa; eauto.
-      intros t ?Ht.
-      basic_solve.
-      + right. split; auto. unfold iterF_body. left. split; auto. apply spin_div.
-      + cbn. left. exists (inr b). split; auto. cbn. unfold bindpi, _bindpi. simpl.
-        destruct (g b) as [gb Hgb] eqn : Heq'. simpl in *. eapply Hgb; try apply H2. intros ?t ?Ht.
-        clear H.  specialize (eutt_reta_or_div C t0) as Hor. basic_solve.
-        * left. exists a0. unfold _retpi. split; auto. unfold iterF_body. right. left.
-          exists a0. split; try reflexivity. eapply Hp; eauto.
-        * right. split; auto. left. apply div_spin_eutt in H. split; try apply spin_div.
-          eapply Hp; try symmetry; eauto.
+      intros t ?Ht. basic_solve.
+      + right. split; auto. apply inf_tau; auto. apply spin_div.
+      + left. exists (inr b). split; auto. cbn. unfold bindpi, _bindpi. simpl.
+        destruct (g b) as [gb Hgb] eqn : Heq'. simpl in *. eapply Hgb; try apply H1. intros ?t ?Ht.
+        clear H. specialize (eutt_reta_or_div C t0) as Hor. basic_solve.
+        * left. exists a0. unfold _retpi. split; auto. eapply term_b; try reflexivity. eapply Hp; eauto.
+        * right. split; auto. eapply inf_tau; try apply spin_div. eapply Hp; eauto. symmetry. apply div_spin_eutt. auto.
       + left. exists (inl a'). split; auto. cbn. unfold _bindpi, _retpi, id. left. exists a'.
-        split; try reflexivity. unfold iterF_body. right. right. exists a'.
-        split; try reflexivity. right. apply CIH; auto.
+        split; try reflexivity. eapply cont_a; try reflexivity. right. apply CIH; auto.
     - intros. generalize dependent a. pcofix CIH. intros. pfold. red.
       repeat red in H0.
       constructor.
@@ -534,13 +537,13 @@ Lemma iterF_monotone {A B} (body:  (A -> PureITreeSpec (A + B)))
       cbn in H. unfold bindpi, _bindpi in H. rewrite Heq in H. simpl in *. eapply Hfa; try apply H.
       intros t ?. simpl in *. basic_solve.
       + cbn in H1. unfold _bindpi, _retpi in H1. basic_solve. unfold id in *. basic_solve.
-        unfold iterF_body. right. right. exists a0. split; auto.
-      + cbn in H1. unfold bindpi, _bindpi in H1. right. left. exists b. split; auto.
+        eapply cont_a; eauto. auto.
+      + cbn in H1. unfold bindpi, _bindpi in H1. eapply term_b; try apply H0.
         left. exists b. split; try reflexivity. destruct (g b) as [gb Hgb] eqn : Heq'.
         simpl in *. eapply Hgb; try apply H1. intros ?t ?Ht. simpl in *. basic_solve.
         * unfold _retpi in H3. basic_solve. eapply Hp; eauto. symmetry. auto.
         * apply div_spin_eutt in H2. eapply Hp; eauto.
-      + left. split; auto. right. split; auto; try apply spin_div.
+      + apply inf_tau; auto. right. split; auto. apply spin_div.
    Qed.
       
   (*I am sorry, I will come up for some automation for this eventually*)
@@ -557,16 +560,16 @@ Lemma iterF_monotone {A B} (body:  (A -> PureITreeSpec (A + B)))
         intros. pfold. constructor. cbn. unfold bindpi, _bindpi.
         destruct (g b) as [gb Hgb] eqn : ?Heq. simpl in *. eapply Hgb; try apply H1.
         intros ?t ?Ht. basic_solve.
-        * right. split; auto. unfold iterF_body. left. split; auto. apply spin_div.
+        * right. split; auto. apply inf_tau; auto. apply spin_div.
         * rename b0 into c. left. exists (inr c). split; auto. cbn. unfold _retpi.
-          unfold iterF_body. right. left. exists c. split; auto; reflexivity.
-        * left. exists (inl a'). split; auto. cbn. punfold H0. destruct H0. cbn in H0.
-          unfold bindpi, _bindpi in H0. destruct (f a') as [fa' Hfa'] eqn :?Heq. simpl in *.
-          eapply Hfa'; try apply H0. intros ?t ?Ht. simpl in *. basic_solve.
-          -- cbn in H3. rename a0 into b'. unfold iterF_body. right. right. exists b'. split; auto.
-          -- cbn in H3. rename b0 into c. unfold _retpi in H3. basic_solve.
-             unfold iterF_body. right. left. exists c. split; auto.
-          -- left. auto.
+          eapply term_b; eauto. reflexivity.
+        * left. exists (inl a'). split; auto. cbn. punfold Hcorec. destruct Hcorec. cbn in H.
+          unfold bindpi, _bindpi in H. destruct (f a') as [fa' Hfa'] eqn :?Heq. simpl in *.
+          eapply Hfa'; try apply H. intros ?t ?Ht. simpl in *. basic_solve.
+          -- cbn in H2. rename a0 into b'. eapply cont_a; eauto. auto.
+          -- cbn in H2. rename b0 into c. unfold _retpi in H2. basic_solve.
+             eapply term_b; try apply Hb. auto.
+          -- apply inf_tau; auto.
       + cbn in H1. unfold _retpi in H1. basic_solve. rename b into c. left.
         exists (inr c). auto.
   - intros. generalize dependent a. pcofix CIH.
@@ -577,17 +580,17 @@ Lemma iterF_monotone {A B} (body:  (A -> PureITreeSpec (A + B)))
       punfold H1. destruct H1. cbn in H1. unfold bindpi, _bindpi in H1. destruct (g b) as [gb Hgb] eqn : ?Heq.
       simpl in *. eapply Hgb; try apply H1. intros ?t ?Ht. simpl in *. clear H1.
       basic_solve.
-      * cbn in H2. right. right. exists a0. split; auto. right. apply CIH. cbn.
+      * cbn in H2. eapply cont_a; try apply H1. right. apply CIH. cbn.
         unfold bindpi, _bindpi. destruct (f a0) as [fa0 Hfa0] eqn : ?Heq. simpl in *.
         eapply Hfa0; try apply H2. intros ?t ?Ht. basic_solve; auto.
         -- rename b0 into c. left. exists (inr c). split; auto.
         -- rename a' into b'. left. exists (inl b'). split; auto.
       * cbn in H2. unfold _retpi in H2. basic_solve.
-        right. left. exists b0. auto.
-      * left. auto.
+        rename b0 into c. eapply term_b; try apply Hb. auto.
+      * apply inf_tau; auto.
     + cbn in H1. unfold _retpi, id in H1. left. rename b into c. exists (inr c). split; auto.
-      cbn. unfold _retpi. right. left. exists c. split; auto; reflexivity.
-    + right. split; auto. left. split; auto; apply spin_div.
+      cbn. unfold _retpi. eapply term_b; eauto. reflexivity. 
+    + right. split; auto. apply inf_tau; auto. apply spin_div.
   Qed.
 
   Instance PureITreeIterCodiagonal : IterCodiagonal (Kleisli PureITreeSpec) sum.
@@ -597,43 +600,39 @@ Lemma iterF_monotone {A B} (body:  (A -> PureITreeSpec (A + B)))
       pfold. destruct H0. constructor. cbn in H. cbn. punfold H.  destruct H. 
       unfold bindpi, _bindpi. destruct (f a) as [fa Hfa] eqn : Heq. simpl in *. eapply Hfa; try apply H.
       intros t ?. simpl in *. basic_solve.
-      + right. split; auto. left. auto.
-      + left. exists (inr (inr b) ). split; auto. clear H. cbn. unfold _retpi. right. left.
-        exists b. unfold id. split; auto; reflexivity.
-      + left. exists (inr (inl a0) ). clear H. split; auto. cbn. unfold _retpi. unfold iterF_body.
-        right. right. exists a0. unfold id. split; auto. reflexivity.
-      + left. exists (inl a'). split; auto. cbn. unfold _retpi. unfold iterF_body. right. right.
-        exists a'. split; try reflexivity. clear H. right. apply CIH. red. pfold.
-        red. constructor. punfold H1. red in H1. destruct H1. destruct (f a') as [fa' Hfa'] eqn : ?Heq.
+      + right. split; auto.
+      + left. exists (inr (inr b) ). split; auto. clear H. cbn. unfold _retpi.
+        eapply term_b; try apply Hb0. reflexivity.
+      + left. exists (inr (inl a0) ). clear H. split; auto. cbn. unfold _retpi. 
+        eapply cont_a; unfold id; try reflexivity. right. apply CIH. apply Hcorec.
+      + left. exists (inl a'). split; auto. cbn. unfold _retpi. 
+        eapply cont_a; try reflexivity. clear H. right. apply CIH. red. pfold.
+        red. constructor. punfold Hcorec. red in Hcorec. destruct Hcorec. destruct (f a') as [fa' Hfa'] eqn : ?Heq.
         simpl in *. red. pfold. constructor. rewrite Heq0. simpl in *.
         eapply Hfa'; try apply H. clear H. intros ?t ?Ht. auto.
-    - intros. punfold H. generalize dependent a.  pcofix CIH. intros.  cbn in H0. pfold. constructor.
+    - intros. punfold H. generalize dependent a. pcofix CIH. intros. cbn in H0. pfold. constructor.
       destruct H0. cbn in H. cbn.  unfold bindpi, _bindpi in H. pfold. constructor.
       destruct (f a) as [fa Hfa] eqn : Heq. simpl in *. eapply Hfa; try apply H. 
       rename H into Ha.
       intros t ?. simpl in *. basic_solve.
-      + cbn in H0. unfold _retpi in H0. basic_solve. unfold iterF_body. right. right.
-        exists a0. split; auto. left.  
-        clear H.
+      + cbn in H0. unfold _retpi in H0. basic_solve. eapply cont_a; try apply H. 
+        clear H.  left.
         generalize dependent a0.
-        pcofix CIH'. intros. pfold. constructor. clear Ha. punfold H1.
-        destruct H1. cbn in H. unfold bindpi, _bindpi in H. simpl in *. 
+        pcofix CIH'. intros. pfold. constructor. clear Ha. punfold Hcorec.
+        destruct Hcorec. cbn in H. unfold bindpi, _bindpi in H. simpl in *. 
         destruct (f a0) as [fa0 Hfa0] eqn : ?Heq. simpl in *. eapply Hfa0; try apply H.
         clear H. intros ?t ?Ht. simpl in *. basic_solve.
-        * cbn in H0. unfold _retpi in H0. basic_solve. right. right. exists a1.
-          split; auto.
-        * cbn in H0. unfold _retpi in H0. basic_solve. right. left.  exists (inl a1). split; auto.
-          right. right. exists a1. split; auto; try reflexivity. right. apply CIH. punfold H1.
-        * cbn in H0. unfold _retpi, id in H0. basic_solve. right. left. exists (inr b).
-          split; auto. right. left. exists b.  split; auto. reflexivity.
-        * left. split; auto.
-      + cbn in H0. unfold _retpi, id in H0. basic_solve. right. left.
-        exists (inl a0). split; auto. right. right. exists a0. split; try reflexivity.
-        right. apply CIH. punfold H1.
-      + cbn in H0. unfold _retpi, id in H0. basic_solve. right. left. exists (inr b).
-        split; auto. right. left. exists b. split; auto. reflexivity.
-      + left. split; auto.
-        left. auto.
+        * cbn in H0. unfold _retpi in H0. basic_solve. eapply cont_a; try apply H. auto.
+        * cbn in H0. unfold _retpi in H0. basic_solve. eapply term_b; try apply H. eapply cont_a; try reflexivity. 
+          right. apply CIH. punfold Hcorec.
+        * cbn in H0. unfold _retpi, id in H0. basic_solve. eapply term_b; try apply H. 
+          eapply term_b; try reflexivity. auto.
+        * apply inf_tau; auto.
+      + cbn in H0. unfold _retpi, id in H0. basic_solve. eapply term_b; try apply H. eapply cont_a; try reflexivity.
+        right. apply CIH. punfold Hcorec.
+      + cbn in H0. unfold _retpi, id in H0. basic_solve. eapply term_b; try apply H. eapply term_b; try reflexivity.
+        auto.
+      + apply inf_tau; auto.
    Qed.
 
   (*Definition of effect observation from pure itrees into pure itree specs *)
@@ -698,22 +697,20 @@ Lemma iterF_monotone {A B} (body:  (A -> PureITreeSpec (A + B)))
      proj1_sig (obsip B (iter f a)) p Hp -> proj1_sig (iterp (fun x => obsip _ (f x) ) a) p Hp.
   Proof.
     intros. generalize dependent a. pcofix CIH. intros. pfold. constructor.
-    cbn. red. unfold iterF_body.
+    cbn. red.
     simpl. specialize (unfold_iter_ktree f a) as Hunfold.
     cbn in H0. red in H0. symmetry in Hunfold. eapply Hp in H0; 
                                                  try (rewrite <- Hunfold; reflexivity).
-    specialize (eutt_reta_or_div _ (f a) ) as [Hret | Hdiv] .
-    - destruct Hret as [ [a' | b ] Hret  ].
-      + right. right. exists a'. split; auto. right. apply CIH. cbn. red.
-        eapply Hp; eauto. rewrite <- Hret. 
+    specialize (eutt_reta_or_div _ (f a) ) as [Hret | Hdiv]; basic_solve.
+    - eapply cont_a; try apply Hret. right. apply CIH. cbn. red. eapply Hp; eauto. rewrite <- Hret.
         match goal with | |- _ ≈ ITree.bind _ ?g => 
-                          specialize (bind_ret (inl a') g) as Hbind_ret end. 
-        rewrite Hbind_ret. rewrite tau_eutt. reflexivity.
-      + right. left. exists b. split; auto. eapply Hp; try apply H0.
-        rewrite <- Hret. match goal with | |- _ ≈ ITree.bind _ ?g =>
-                                           specialize (bind_ret (inr b) g) as Hbind_ret end.
+                          specialize (bind_ret (inl a0) g) as Hbind_ret end.  rewrite Hbind_ret.
+        rewrite tau_eutt. reflexivity.
+    - eapply term_b; try apply Hret. eapply Hp; eauto.
+      rewrite <- Hret. match goal with | |- _ ≈ ITree.bind _ ?g =>
+                              specialize (bind_ret (inr b) g) as Hbind_ret end.
         rewrite Hbind_ret. reflexivity.
-    - apply div_spin_eutt in Hdiv as Hspin. left. split; auto. 
+    - apply div_spin_eutt in Hdiv as Hspin. apply inf_tau; auto.
       eapply Hp; eauto. rewrite Hspin. apply spin_bind.
    Qed.
 
@@ -723,7 +720,7 @@ Lemma iterF_monotone {A B} (body:  (A -> PureITreeSpec (A + B)))
   Lemma obsip_pres_iter_left : forall A B (f : A -> itree Void (A + B) ) (a : A)
                              (p : itree Void B -> Prop) (Hp : resp_eutt Void B p),
       proj1_sig (iterp (fun x => obsip _ (f x) ) a) p Hp -> proj1_sig (obsip B (iter f a)) p Hp.
-  Proof.
+  Proof. (*
     intros. cbn. red. cbn in H. red in H. cbn in H.
     punfold H. destruct H. cbn in H. red in H. 
     basic_solve; auto.
@@ -740,8 +737,8 @@ Lemma iterF_monotone {A B} (body:  (A -> PureITreeSpec (A + B)))
       eapply Hp; eauto.
       + rewrite <- H. match goal with | |- ITree.bind _ ?g ≈ _ => 
                                              specialize (bind_ret (inl a') g) as Hbind_ret end.
-        rewrite Hbind_ret. reflexivity.
-      + (* I have unfolded in some sense, I want to have a coinductive hyp here *) 
+        rewrite Hbind_ret. reflexivity. 
+      + (* I have unfolded in some sense, I want to have a coinductive hyp here *) *)
    (* red in H.
     assert (KTree.iter f a ≈ iter f a \/ KTree.iter f a ≈ iter f a).
     - pcofix CIH. 
