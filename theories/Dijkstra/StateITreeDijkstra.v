@@ -231,7 +231,6 @@ Section StateITree.
   Definition encode A post Hpost pre :=
     exist _ (_encode A post Hpost pre) (encode_monot A post Hpost pre).
 
-
   Variant iterF_body {A B : Type} (p : itree Void (B * S) -> Prop ) (Hp : resp_eutt _ _ p)
           (F : (A * S) -> Prop ) (t : itree Void ((A + B) * S )) : Prop :=
   | inf_tau (Ht : divergence t) (Hspin : p spin) 
@@ -259,9 +258,6 @@ Section StateITree.
           (p : itree Void (B * S) -> Prop ) (Hp : resp_eutt _ _ p) 
           (F : (A * S) -> Prop ) : Prop :=
     | iterF_cons (Hiter : proj1_sig (body a) (iterF_body p Hp F) (iterF_body_resp_eutt A B p Hp F) s).
-                   
-
-
 
    
 End StateITree.
