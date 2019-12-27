@@ -261,21 +261,46 @@ Section PureITree.
       + right. eapply H0; eauto.
   Qed.
 
-  Definition iterF_body {A B : Type} (body : A -> PureITreeSpec (A + B) )
+  Definition iterF_body' {A B : Type} (body : A -> PureITreeSpec (A + B) )
             (p : itree Void B -> Prop) (Hp : resp_eutt Void B p)  (F : A -> Prop ) :=
     fun (t : itree Void (A + B) ) =>( divergence t /\ p spin ) \/
                                     (exists b, ret (inr b) ≈ t /\ p (ret b)  ) \/
                                     (exists a', ret (inl a') ≈ t /\ F a').
 
-  Lemma iterF_body_resp_eutt : forall (A B : Type)  (body : A -> PureITreeSpec (A + B) )
+  Variant iterF_body {A B : Type}  (body : A -> PureITreeSpec (A + B) )
+            (p : itree Void B -> Prop) (Hp : resp_eutt Void B p)  (F : A -> Prop )
+            (t : itree Void (A + B)) : Prop :=
+    | inf_tau (Ht: divergence t) (Hspin : p spin)
+    | term_b (b : B) (Hretb : ret (inr b) ≈ t ) (Hb : p (ret b)) 
+    | cont_a (a' : A) (Hreta : ret (inl a') ≈ t) (Hcorec : F a')
+.
+
+Hint Constructors iterF_body.
+
+  Lemma iterF_body'_resp_eutt : forall (A B : Type)  (body : A -> PureITreeSpec (A + B) )
             (p : itree Void B -> Prop) (Hp : resp_eutt Void B p)  (F : A -> Prop ),
-      resp_eutt _ _ (iterF_body body p Hp F).
+      resp_eutt _ _ (iterF_body' body p Hp F).
   Proof.
     intros. eapply resp_eutt_or; try eapply resp_eutt_or; intros.
     - apply inf_tree_pred_resp_eutt.
     - apply term_b_pred_resp_eutt.
     - apply cont_a_pred_resp_eutt. auto.
   Qed.
+
+  Lemma iterF_body_resp_eutt :forall (A B : Type)  (body : A -> PureITreeSpec (A + B) )
+            (p : itree Void B -> Prop) (Hp : resp_eutt Void B p)  (F : A -> Prop ),
+      resp_eutt _ _ (fun t => iterF_body body p Hp F t).
+  Proof.
+    intros. intros t1 t2 Heutt. split; intros; inversion H; subst; auto.
+    - apply inf_tau; auto. rewrite Heutt in Ht. auto.
+    - eapply term_b; eauto. rewrite Hretb. auto.
+    - eapply cont_a; eauto. rewrite Hreta. auto.
+    - apply inf_tau; auto. rewrite Heutt. auto.
+    - eapply term_b; eauto. rewrite Hretb. symmetry. auto.
+    - eapply cont_a; eauto. rewrite Hreta. symmetry. auto.
+  Qed.
+
+  
 
   Variant iterF {A B : Type} (body : A -> PureITreeSpec (A + B))
           (a : A) (p : itree Void B -> Prop) (Hp : resp_eutt Void B p) (F : A -> Prop ) : Prop :=
@@ -290,9 +315,7 @@ Lemma iterF_monotone {A B} (body:  (A -> PureITreeSpec (A + B)))
   Proof.
     induction IN; constructor; auto.
     destruct (body a) as [fa Hfa] eqn : Heq. simpl in *.
-    unfold iterF_body in *. eapply Hfa; try apply H.
-    intros. destruct H0; try destruct H0; auto.
-    right. right. destruct H0 as [ a' [Hret Hsim] ]. exists a'. auto.
+    eapply Hfa; try apply H. intros. inversion H0; eauto.
   Qed.
 
   Definition iter_ {A B} sim (body : A -> PureITreeSpec (A + B)) a p Hp : Prop :=
@@ -319,13 +342,8 @@ Lemma iterF_monotone {A B} (body:  (A -> PureITreeSpec (A + B)))
       pcofix CIH. pfold. intros. punfold H1.
       red. red in H1. inversion H1; simpl in *.
       constructor. destruct (f a) as [fa Hfa] eqn : Heq. simpl in *.
-      eapply Hfa; try apply H0. intros t. intros.
-      unfold iterF_body in *.
-      destruct H2 as [ ? | [? | ?] ].
-      - left. destruct H2. split; auto.
-      - destruct H2 as [b [Hret Hpb]  ]. right. left. exists b. split; auto.
-      - destruct H2 as [a' [Hret Hpaco] ]. pclearbot. right. right.
-        exists a'. split; auto.
+      eapply Hfa; try apply H0. intros t. intros. inversion H2; subst; eauto.
+      pclearbot. eapply cont_a; eauto.
     Qed.
 
   Definition iterp {A B} (body : A -> PureITreeSpec (A + B) ) (init : A) : PureITreeSpec B :=
@@ -438,35 +456,6 @@ Lemma iterF_monotone {A B} (body:  (A -> PureITreeSpec (A + B)))
 
   Instance PureITreeIter : Iter (Kleisli PureITreeSpec) sum := @iterp.
 
-  Instance PureITreeIterUnfold : IterUnfold  (Kleisli PureITreeSpec) sum.
-  Proof.
-    intros A B f a.
-    constructor.
-    (*this case went through without even needing coinduction???*)
-    - intros. red. repeat red in H.
-      punfold H. inversion H.
-      unfold cat, Cat_Kleisli. destruct (f a) as [fa Hfa] eqn : Heq; simpl in *.
-      unfold _bindpi. unfold iterF_body in H0. eapply Hfa; eauto.
-      intro t. intros. destruct H1 as [ ? | [? | ?] ]; auto.
-      + destruct H1 as [b [Hretb Hpb] ]. left. exists (inr b). simpl. auto.
-      + left. destruct H1 as [a' [Hreta' Hpacoa' ] ]. pclearbot.
-        exists (inl a'). simpl. auto.
-    (*this case is probably where I need coinduction*)
-    - revert a.  pcofix CIH. unfold cat, Cat_Kleisli in *. intros.
-      pfold. red. constructor. destruct (f a) as [fa Hfa] eqn : Heq. simpl in *.
-      unfold _bindpi in H0. unfold iterF_body. eapply Hfa; eauto.
-      clear H0. intros t. intros. destruct H; auto.
-      destruct H as [ [a' | b] [? ?] ]; simpl in *.
-      + right. right. exists a'. split; auto. right. apply CIH.
-        destruct (f a') as [fa' Hfa'] eqn : Heq'. simpl. unfold _bindpi. 
-        punfold H0. inversion H0; subst. rewrite Heq' in H1. simpl in *.
-        unfold iterF_body in H1. eapply Hfa'; eauto. intros t'. intros.
-        destruct H2 as [? | [? | ?] ]; auto.
-        * destruct H2 as [b [? ?] ]. left. exists (inr b). auto.
-        * destruct H2 as [a'' [? ?] ]. left. exists (inl a''). pclearbot.
-          auto.
-      + right. left. exists b. auto.
-  Qed.
  
   Lemma not_ret_eutt_spin : forall A E (a : A), ~ (Ret a ≈ @spin E A).
   Proof.
@@ -486,7 +475,7 @@ Lemma iterF_monotone {A B} (body:  (A -> PureITreeSpec (A + B)))
     intros; repeat match goal with 
                    | H : _ /\ _ |- _ => destruct H
                    | H : _ \/ _ |- _ => destruct H 
-                   | H : iterF_body _ _ _ _ _ |- _ => destruct H as [? | [? | ?] ]
+                   (* | H : iterF_body _ _ _ _ _ |- _ => inversion H; subst *)
                    | H : exists a : ?A, _ |- _ => destruct H as [?a ?H]
                    | x : ?A + ?B |- _ => destruct x as [?a | ?b]
                    | H : upaco1 _ _ _ |- _ => pclearbot
@@ -496,7 +485,27 @@ Lemma iterF_monotone {A B} (body:  (A -> PureITreeSpec (A + B)))
                                                    apply inv_ret in H; try discriminate; try (injection H as H);
                                                    subst end.
 
+
   Ltac basic_solve := invert_evidence; try clear_ret_eutt_spin; try invert_ret.
+
+  Instance PureITreeIterUnfold : IterUnfold  (Kleisli PureITreeSpec) sum.
+  Proof.
+    intros A B f a.
+    constructor.
+    (*this case went through without even needing coinduction???*)
+    - intros. red. repeat red in H. punfold H. destruct H.
+      cbn. unfold bindpi, _bindpi. destruct (f a) as [fa Hfa]; simpl in *.
+      eapply Hfa; eauto. intros t ?Ht. inversion Ht; eauto.
+      + left. exists (inr b). split; auto.
+      + left. exists (inl a'). split; auto. pclearbot. auto.
+    (*very suspicious that I no longer need to coinduct, I think I will move this onto a refactor branch to experiment on*)
+    - revert a. (* pcofix CIH. *) intros. cbn in H. pfold. unfold bindpi, _bindpi in H.
+      constructor. destruct (f a) as [fa Hfa]; simpl in *. eapply Hfa; try apply H.
+      intros t ?Ht. simpl in Ht. basic_solve; auto.
+      + eapply cont_a; try apply H0. cbn in H1.
+        red in H1. left. auto.
+      + eapply term_b; try apply H0. auto.
+  Qed.
 
   Instance PureITreeIterNatural : IterNatural (Kleisli PureITreeSpec) sum.
   Proof.
@@ -715,22 +724,21 @@ Lemma iterF_monotone {A B} (body:  (A -> PureITreeSpec (A + B)))
                              (p : itree Void B -> Prop) (Hp : resp_eutt Void B p),
       proj1_sig (iterp (fun x => obsip _ (f x) ) a) p Hp -> proj1_sig (obsip B (iter f a)) p Hp.
   Proof.
-    intros. cbn. red. cbn in H. red in H. (*  proof_by_contra.*) cbn in H.
+    intros. cbn. red. cbn in H. red in H. cbn in H.
     punfold H. destruct H. cbn in H. red in H. 
-    destruct H as [? | [? | ?] ].
-    - destruct H. apply div_spin_eutt in H as H1. eapply Hp; eauto.
+    basic_solve; auto.
+    - apply div_spin_eutt in H as H1. eapply Hp; eauto.
       specialize (unfold_iter_ktree f a) as Hunfold. rewrite Hunfold. rewrite H1.
       symmetry. apply spin_bind.
-    - destruct H as [b [Hretb  Hb ] ]. specialize (unfold_iter_ktree f a) as Hunfold.
+    - rename H into Hretb. rename H0 into Hb. specialize (unfold_iter_ktree f a) as Hunfold.
       eapply Hp; eauto. rewrite Hunfold. rewrite <- Hretb.
       match goal with | |- ITree.bind _ ?g ≈ _ => specialize (bind_ret (inr b) g) 
-      as Hbind_ret end. rewrite Hbind_ret. reflexivity.
-    - destruct H as [a' [ Hreta' Hitera']  ]. pclearbot.
-      specialize (unfold_iter_ktree f a) as Hunfold. eapply Hp; eauto;
+      as Hbind_ret end. simpl in *. rewrite Hbind_ret. reflexivity.
+    - specialize (unfold_iter_ktree f a) as Hunfold. eapply Hp; eauto;
       try (rewrite Hunfold; reflexivity). 
       (* assert (_iter (fun x : A=> obsip (A + B) (f x) ) a'  p Hp); auto. *)
       eapply Hp; eauto.
-      + rewrite <- Hreta'. match goal with | |- ITree.bind _ ?g ≈ _ => 
+      + rewrite <- H. match goal with | |- ITree.bind _ ?g ≈ _ => 
                                              specialize (bind_ret (inl a') g) as Hbind_ret end.
         rewrite Hbind_ret. reflexivity.
       + (* I have unfolded in some sense, I want to have a coinductive hyp here *) 
