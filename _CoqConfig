@@ -61,4 +61,6 @@ theories/Events/Dependent.v
 
 theories/Dijkstra/DijkstraMonad.v
 theories/Dijkstra/DijkstraMonadExamples.v
-theories/Dijkstra/ITreeDijkstra.v
+theories/Dijkstra/PureITreeBasics.v
+theories/Dijkstra/PureITreeDijkstra.v
+theories/Dijkstra/StateITreeDijkstra.v
