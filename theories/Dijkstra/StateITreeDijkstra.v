@@ -232,17 +232,17 @@ Section StateITree.
     exist _ (_encode A post Hpost pre) (encode_monot A post Hpost pre).
 
   Variant iterF_body {A B : Type} (p : itree Void (B * S) -> Prop ) (Hp : resp_eutt _ _ p)
-          (F : (A * S) -> Prop ) (t : itree Void ((A + B) * S )) : Prop :=
+          (F : A -> S -> Prop ) (t : itree Void ((A + B) * S )) : Prop :=
   | inf_tau (Ht : divergence t) (Hspin : p spin) 
   | term_b (b : B) (s : S) (Ht : (ret ((inr b),s)) ≈ t) (Hbs : p (ret (b,s) ))
-  | cont_a (a' : A) (s : S) (Hreta : ret (inl a', s) ≈ t ) (Hcorec : F (a',s) )
+  | cont_a (a' : A) (s : S) (Hreta : ret (inl a', s) ≈ t ) (Hcorec : F  a' s )
 
 .
 
   Hint Constructors iterF_body.
 
   Lemma iterF_body_resp_eutt : forall A B 
-          (p : itree Void (B * S) -> Prop ) (Hp : resp_eutt _ _ p) (F : (A * S) -> Prop ), 
+          (p : itree Void (B * S) -> Prop ) (Hp : resp_eutt _ _ p) (F : A -> S -> Prop ), 
     resp_eutt _ _ (iterF_body p Hp F).
   Proof.
     intros. intros t1 t2 Heutt. split; intros; inversion H; subst.
@@ -256,14 +256,14 @@ Section StateITree.
 
   Variant iterF {A B : Type} (body : A -> StateITreeSpec (A + B) ) (a : A) (s : S)
           (p : itree Void (B * S) -> Prop ) (Hp : resp_eutt _ _ p) 
-          (F : (A * S) -> Prop ) : Prop :=
+          (F : A -> S -> Prop ) : Prop :=
     | iterF_cons (Hiter : proj1_sig (body a) (iterF_body p Hp F) (iterF_body_resp_eutt A B p Hp F) s).
 
   Hint Constructors iterF.
   Lemma iterF_monotone {A B} (body:  (A -> StateITreeSpec (A + B))) 
-        (sim sim' : (A*S) -> Prop) (a : A) (s : S)
+        sim sim'  (a : A) (s : S)
         (p : itree Void (B * S) -> Prop) (Hp : resp_eutt Void (B * S) p)
-        (IN : iterF body a s p Hp sim) (LE : sim <1= sim'):
+        (IN : iterF body a s p Hp sim) (LE : sim <2= sim'):
     iterF body a s p Hp sim'.
   Proof.
     induction IN; constructor; auto.
@@ -276,22 +276,24 @@ Section StateITree.
 
   Hint Unfold iter_.
 
-  Lemma iterF_monotone' {A B} body p Hp : monotone1 (fun sim '(a,s) => @iter_ A B sim body a p Hp s).
+  Lemma iterF_monotone' {A B} body p Hp : monotone2 (fun sim a s  => @iter_ A B sim body a p Hp s).
   Proof.
-    repeat red. intros. destruct x0 as [a s]. eapply iterF_monotone; eauto.
+    repeat red. intros. eapply iterF_monotone; eauto.
   Qed.
 
   Hint Resolve iterF_monotone' : paco.
 
   Definition iter_paco {A B} := fun (f : A -> StateITreeSpec (A + B) ) (a : A) (p : itree Void (B * S) -> Prop )
                                 (Hp : resp_eutt _ _ p) (s : S) => 
-                              paco1 (fun (F : (A * S) -> Prop) '(a,s) => iter_ F f a p Hp s ) bot1 (a,s).
+                              paco2 (fun (F : A -> S -> Prop) a s => iter_ F f a p Hp s ) bot2  a s.
+
+  Ltac punf2 H := punfold H; try apply iterF_monotone'.
 
   Lemma iter_monot : forall A B (f : A -> StateITreeSpec (A + B) ) (a : A),
     monotonicsi _ (iter_paco f a).
   Proof.
     intros. repeat intro. generalize dependent a. generalize dependent s. pcofix CIH.
-    intros. pfold. punfold H1. constructor. destruct H1. destruct (f a) as [fa Hfa]. simpl in *.
+    intros. pfold. punf2 H1. constructor. destruct H1. destruct (f a) as [fa Hfa]. simpl in *.
     eapply Hfa; try apply Hiter. intros t ?Ht. inversion Ht; subst; eauto.
     pclearbot. eapply cont_a; eauto.
   Qed.
@@ -339,7 +341,7 @@ Section StateITree.
   Instance StateITreeUnfold : IterUnfold (Kleisli StateITreeSpec) sum.
   Proof.
     intros A B f a. constructor; intros.
-    - red. repeat red in H. cbn. unfold bindsi, _bindsi. punfold H. destruct H. dest_dep f a. 
+    - red. repeat red in H. cbn. unfold bindsi, _bindsi. punf2 H. destruct H. dest_dep f a. 
       eapply Hfa; try apply Hiter. intros t ?Ht. inversion Ht; subst; auto.
       + left. exists (inr b). exists s0. split; auto.
       + pclearbot. left. exists (inl a'). exists s0. auto.
@@ -353,7 +355,7 @@ Section StateITree.
   Proof.
     intros A B C. intros. constructor.
     - gen_dep2 a s. pcofix CIH. intros. cbn in H0. red in H0. pfold. constructor. cbn. 
-      unfold bindsi, _bindsi. punfold H0. destruct H0. dest_dep f a. eapply Hfa; try apply Hiter.
+      unfold bindsi, _bindsi. punf2 H0. destruct H0. dest_dep f a. eapply Hfa; try apply Hiter.
       clear Hiter. intros t ?Ht. basic_solve; eauto.
       + right. split; auto. apply inf_tau; auto. apply spin_div.
       + left. exists (inr b). exists s0. split; auto. cbn. unfold bindsi, _bindsi.
@@ -365,14 +367,18 @@ Section StateITree.
           eapply Hp; try apply H. symmetry. apply div_spin_eutt. auto.
       + left. exists ( inl a'). exists s0. split; auto. cbn. unfold _bindsi, _retsi.
         left. exists a'. exists s0. split; try reflexivity. eapply cont_a; try reflexivity.
-        right. apply CIH. punfold Hcorec.  unfold _bindsi. pfold.
+        right. apply CIH. pclearbot. punf2 Hcorec.  unfold _bindsi. pfold.
         destruct Hcorec. constructor. dest_dep f a'. eapply Hfa0; try apply Hiter; auto. clear Hiter. intros.
 
-        inversion H; eauto. eapply cont_a; eauto. pclearbot. 
+        inversion H; eauto. eapply cont_a; eauto. pclearbot.
         left. admit.
-    - intros. gen_dep2 a s. cbn. unfold _bindsi. intros. unfold iter_paco. gen_dep2 a s. cbn. 
-      (*pcofix CIH. intros. pcofix CIH. *)
-   Admitted.
+    - intros. gen_dep2 a s. cbn. unfold _bindsi.   (* pcofix CIH.  (*could the problem be that *) pcofix CIH.
+      enough (forall x,  proj1_sig (iter (cat f (bimap (id_ A) g)) (fst x) ) p Hp (snd x) -> proj1_sig (cat (iter f) g (fst x) ) p Hp (snd x) ); auto.
+      + intros. apply (H (a,s) ). auto.
+      + cbn. unfold _bindsi. unfold iter_paco. intros.
+        (* match goal with | |- paco1 ?p _ _ => set p as hidden end. *)
+        generalize dependent x. pcofix CIH.
+        pcofix CIH. *) Admitted.
       
 
 
