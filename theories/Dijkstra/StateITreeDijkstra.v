@@ -37,14 +37,14 @@ Section StateITree.
   
   Definition StateITree A := itree (stateE S) A.
 
-  Definition _StateITreeSpec A := forall (p : itree Void (A * S) -> Prop), resp_eutt Void (A * S) p -> S -> Prop.
+  Definition _StateITreeSpec A := forall (p : itree Void (S * A) -> Prop), resp_eutt Void (S * A) p -> S -> Prop.
 
-  Definition monotonicsi A (w : _StateITreeSpec A) := forall (p p' : itree Void (A * S) -> Prop) 
+  Definition monotonicsi A (w : _StateITreeSpec A) := forall (p p' : itree Void (S * A) -> Prop) 
                                                              Hp Hp' s, (forall t, p t -> p' t) -> w p Hp s -> w p' Hp' s.
 
   Definition StateITreeSpec A := {w : _StateITreeSpec A | monotonicsi A w}.
 
-  Definition _retsi A (a : A) : _StateITreeSpec A := fun p _ s => p (ret (a,s)).
+  Definition _retsi A (a : A) : _StateITreeSpec A := fun p _ s => p (ret (s,a)).
 
   Lemma monot_retsi : forall A (a : A), monotonicsi A (_retsi A a).
     Proof.
@@ -53,9 +53,9 @@ Section StateITree.
 
   Definition retsi A (a : A) : StateITreeSpec A := exist _ (_retsi A a) (monot_retsi A a).
 
-  Lemma bindsi_pred_eutt : forall A B (w : _StateITreeSpec A) (f : A -> _StateITreeSpec B) 
-                                  (p : itree Void (B * S) -> Prop) (Hp : resp_eutt Void (B * S) p) (s : S), 
-         resp_eutt Void (A * S) (fun t => (exists a s', ret (a,s') ≈ t /\ f a p Hp s') \/ divergence t /\ p spin).
+  Lemma bindsi_pred_eutt : forall A B (f : A -> _StateITreeSpec B) 
+                                  (p : itree Void (S * B) -> Prop) (Hp : resp_eutt Void _ p), 
+         resp_eutt Void _ (fun t => (exists a s', ret (s',a) ≈ t /\ f a p Hp s') \/ divergence t /\ p spin).
   Proof.
     intros. intros t1 t2 Heutt. split; intros.
     - destruct H.
@@ -69,16 +69,16 @@ Section StateITree.
    Qed.
 
   Definition _bindsi A B (w : _StateITreeSpec A) (f : A -> _StateITreeSpec B) :=
-    fun (p : itree Void (B * S) -> Prop) (Hp : resp_eutt Void (B * S) p) (s : S) =>
-      w (fun (t : itree Void (A * S) )=> (exists a s', ret (a,s') ≈ t /\ f a p Hp s' )  \/ 
+    fun (p : itree Void (S * B) -> Prop) (Hp : resp_eutt _ _ p) (s : S) =>
+      w (fun t=> (exists a s', ret (s',a) ≈ t /\ f a p Hp s' )  \/ 
                                          (divergence t /\ p spin) )  
-        (bindsi_pred_eutt A B w f p Hp s) s.
+        (bindsi_pred_eutt A B f p Hp) s.
 
   Lemma monot_bindsi : forall A B (w : _StateITreeSpec A) (f : A -> _StateITreeSpec B), monotonicsi A w ->
       (forall a, monotonicsi B (f a)) -> monotonicsi B (_bindsi A B w f).
   Proof.
     unfold monotonicsi. intros. unfold _bindsi in *.
-    set (fun (t : itree Void (A * S)) p0 Hp0 => (exists a s', ret (a,s') ≈ t /\ f a p0 Hp0 s') \/ (divergence t /\ p0 spin)) as fp.
+    set (fun (t : itree Void (S * A)) p0 Hp0 => (exists a s', ret (s',a) ≈ t /\ f a p0 Hp0 s') \/ (divergence t /\ p0 spin)) as fp.
     enough (forall t, fp t p Hp -> fp t p' Hp').
     - eapply H with (p := fun t => fp t p Hp); eauto.
     - unfold fp. intros. destruct H3.
@@ -122,8 +122,8 @@ Section StateITree.
       + destruct H0 as [ a [s' [Hretas' Has'] ] ]. symmetry in Hretas'. eapply Hp; eauto.
       + destruct H0. apply div_spin_eutt in H0. eapply Hp; eauto.
     - cbn. unfold _bindsi, _retsi. intros. eapply Hw; try (apply H). intros.
-      specialize (eutt_reta_or_div (A * S) t). intros. destruct H1.
-      + destruct H1 as [ [a s']  Hretas']. left. exists a. exists s'. split; auto.
+      specialize (eutt_reta_or_div _ t). intros. destruct H1.
+      + destruct H1 as [ [s' a]  Hretas']. left. exists a. exists s'. split; auto.
         eapply Hp; eauto.
       + right. split; auto. eapply Hp; eauto. apply div_spin_eutt in H1. symmetry. auto.
    Qed.
@@ -139,7 +139,7 @@ Section StateITree.
         intros. destruct H1; auto.
       + destruct H. destruct H0.
         * destruct H0 as [b [s'' [Hretbs'' Hga] ] ]. exfalso.
-          specialize (spin_div Void (B* S) ) as H0. rewrite <- Hretbs'' in H0. pinversion H0.
+          specialize (spin_div Void (S * B) ) as H0. rewrite <- Hretbs'' in H0. pinversion H0.
         * right. tauto.
    - unfold _bindsi. intros. eapply Hw; try (apply H). simpl in *. intros. clear H. destruct H0.
      + destruct H as [a [s' H] ]. destruct H. left. exists a. exists s'. split; auto.
@@ -168,23 +168,23 @@ Section StateITree.
     apply H0. auto.
   Qed.
 
-  Definition _obssi A (m : S -> itree Void (A * S)) : _StateITreeSpec A :=
+  Definition _obssi A (m : S -> itree Void (S * A)) : _StateITreeSpec A :=
     fun post Hp s => post (m s).
 
-  Lemma monot_obssi : forall A (m : S -> itree Void (A * S)), monotonicsi A (_obssi A m).
+  Lemma monot_obssi : forall A (m : S -> itree Void (S * A)), monotonicsi A (_obssi A m).
   Proof.
     unfold monotonicsi. intros. apply H. auto.
   Qed.
 
-  Definition obssi A (m : S -> itree Void (A * S) ) : StateITreeSpec A :=
+  Definition obssi A (m : S -> itree Void (S * A) ) : StateITreeSpec A :=
     exist _ (_obssi A m) (monot_obssi A m).
 
-  Definition ret_stateitree A (a : A) : (S -> itree Void (A * S) ):= fun s => ret (a,s).
+  Definition ret_stateitree A (a : A) : (S -> itree Void (S * A) ):= fun s => ret (s,a).
 
-  Definition bind_stateitree A B (m : S -> itree Void (A * S) ) (f : A -> (S -> itree Void (B * S))) : S -> (itree Void (B * S)) :=
-    fun s => let t := m s in bind t (fun '(a,s') => f a s' ) .
+  Definition bind_stateitree A B (m : S -> itree Void (S * A) ) (f : A -> (S -> itree Void (S * B))) : S -> (itree Void (S * B)) :=
+    fun s => let t := m s in bind t (fun '(s',a) => f a s' ) .
 
-  Global Instance StateTransformITreeMonad : Monad (fun A => S -> itree Void (A * S)) :=
+  Global Instance StateTransformITreeMonad : Monad (fun A => S -> itree Void (S * A)) :=
     {
       ret := ret_stateitree;
       bind := bind_stateitree;
@@ -195,32 +195,32 @@ Section StateITree.
     intros. cbn. intros p Hp s. split; intros; apply H.
   Qed.
 
-  Lemma obssi_pres_bind : forall A B (m : S -> itree Void (A * S) ) (f : A -> S -> itree Void (B * S)),
+  Lemma obssi_pres_bind : forall A B (m : stateT S (itree Void) A ) (f : A -> stateT S (itree Void) B ),
       obssi B (bind m f) ≈ bind (obssi A m) (fun a => obssi B (f a) ).
   Proof.
     intros. cbn. intros p Hp s. split; intros.
     - simpl in *. unfold bind_stateitree in H. unfold _obssi in H.
       unfold _bindsi. unfold _obssi.
       specialize (eutt_reta_or_div _ (m s) ) as Hor. destruct Hor.
-      * left. destruct H0 as [ [a s' ] Has']. exists a. exists s'. split; auto.
-        eapply Hp; eauto. rewrite <- Has'. simpl. symmetry. specialize (bind_ret (a,s') (fun '(a0,s0) => f a0 s0) ) as H1.
-        simpl in H1. rewrite H1. reflexivity.
+      * left. destruct H0 as [ [s' a ] Has']. exists a. exists s'. split; auto.
+        eapply Hp; eauto. rewrite <- Has'. simpl. symmetry. specialize (bind_ret (s',a) (fun '(s0,a0) => f a0 s0) ) as H1.
+        simpl in H1.  auto. rewrite H1. reflexivity.
       * right. split; auto. apply div_spin_eutt in H0. eapply Hp; eauto. rewrite H0. apply spin_bind.
     - simpl in *. unfold bind_stateitree. unfold _bindsi, _obssi in *. destruct H.
       + destruct H as [a [s' [Hretas' Hpfa] ] ]. eapply Hp; eauto. rewrite <- Hretas'.
-        specialize (bind_ret (a,s') (fun '(a0,s0) => f a0 s0 ) ) as H1. simpl in H1. rewrite H1. reflexivity.
+        specialize (bind_ret (s',a) (fun '(s0,a0) => f a0 s0 ) ) as H1. simpl in H1. rewrite H1. reflexivity.
       + destruct H. eapply Hp; eauto. apply div_spin_eutt in H. rewrite H. symmetry. apply spin_bind.
   Qed.
 
-  Instance StateITreeEffectObs : EffectObs (fun A => S -> itree Void (A * S) ) (StateITreeSpec):=
+  Instance StateITreeEffectObs : EffectObs (stateT S (itree Void) ) (StateITreeSpec):=
     obssi.
 
-  Program Instance StateITreeMonadMorphism : MonadMorphism (fun A => S -> itree Void (A * S)) StateITreeSpec StateITreeEffectObs.
+  Program Instance StateITreeMonadMorphism : MonadMorphism (stateT S (itree Void) ) StateITreeSpec StateITreeEffectObs.
   Next Obligation. apply obssi_pres_ret. Qed.
   Next Obligation. apply obssi_pres_bind. Qed.
 
 
-  Definition _encode A (post : itree Void (A * S) -> Prop ) (Hpost : resp_eutt _ _ post) (pre : S -> Prop) : _StateITreeSpec A :=
+  Definition _encode A (post : itree Void (S * A) -> Prop ) (Hpost : resp_eutt _ _ post) (pre : S -> Prop) : _StateITreeSpec A :=
     fun p Hp s => pre s /\ forall t, post t -> p t.
 
   Lemma encode_monot : forall A post Hpost pre, monotonicsi A ( _encode A post Hpost pre).
@@ -231,18 +231,18 @@ Section StateITree.
   Definition encode A post Hpost pre :=
     exist _ (_encode A post Hpost pre) (encode_monot A post Hpost pre).
 
-  Variant iterF_body {A B : Type} (p : itree Void (B * S) -> Prop ) (Hp : resp_eutt _ _ p)
-          (F : A -> S -> Prop ) (t : itree Void ((A + B) * S )) : Prop :=
+  Variant iterF_body {A B : Type} (p : itree Void (S * B) -> Prop ) (Hp : resp_eutt _ _ p)
+          (F : A -> S -> Prop ) (t : itree Void (S * (A + B) )) : Prop :=
   | inf_tau (Ht : divergence t) (Hspin : p spin) 
-  | term_b (b : B) (s : S) (Ht : (ret ((inr b),s)) ≈ t) (Hbs : p (ret (b,s) ))
-  | cont_a (a' : A) (s : S) (Hreta : ret (inl a', s) ≈ t ) (Hcorec : F  a' s )
+  | term_b (b : B) (s : S) (Ht : (ret (s,(inr b))) ≈ t) (Hbs : p (ret (s,b) ))
+  | cont_a (a' : A) (s : S) (Hreta : ret (s,inl a') ≈ t ) (Hcorec : F  a' s )
 
 .
 
   Hint Constructors iterF_body.
 
   Lemma iterF_body_resp_eutt : forall A B 
-          (p : itree Void (B * S) -> Prop ) (Hp : resp_eutt _ _ p) (F : A -> S -> Prop ), 
+          (p : itree Void (S * B) -> Prop ) (Hp : resp_eutt _ _ p) (F : A -> S -> Prop ), 
     resp_eutt _ _ (iterF_body p Hp F).
   Proof.
     intros. intros t1 t2 Heutt. split; intros; inversion H; subst.
@@ -255,14 +255,14 @@ Section StateITree.
   Qed.
 
   Variant iterF {A B : Type} (body : A -> StateITreeSpec (A + B) ) (a : A) (s : S)
-          (p : itree Void (B * S) -> Prop ) (Hp : resp_eutt _ _ p) 
+          (p : itree Void (S * B) -> Prop ) (Hp : resp_eutt _ _ p) 
           (F : A -> S -> Prop ) : Prop :=
     | iterF_cons (Hiter : proj1_sig (body a) (iterF_body p Hp F) (iterF_body_resp_eutt A B p Hp F) s).
 
   Hint Constructors iterF.
   Lemma iterF_monotone {A B} (body:  (A -> StateITreeSpec (A + B))) 
         sim sim'  (a : A) (s : S)
-        (p : itree Void (B * S) -> Prop) (Hp : resp_eutt Void (B * S) p)
+        (p : itree Void (S * B) -> Prop) (Hp : resp_eutt Void (S * B) p)
         (IN : iterF body a s p Hp sim) (LE : sim <2= sim'):
     iterF body a s p Hp sim'.
   Proof.
@@ -283,7 +283,7 @@ Section StateITree.
 
   Hint Resolve iterF_monotone' : paco.
 
-  Definition iter_paco {A B} := fun (f : A -> StateITreeSpec (A + B) ) (a : A) (p : itree Void (B * S) -> Prop )
+  Definition iter_paco {A B} := fun (f : A -> StateITreeSpec (A + B) ) (a : A) (p : itree Void (S * B) -> Prop )
                                 (Hp : resp_eutt _ _ p) (s : S) => 
                               paco2 (fun (F : A -> S -> Prop) a s => iter_ F f a p Hp s ) bot2  a s.
 
@@ -351,6 +351,14 @@ Section StateITree.
       + eapply term_b; try apply H0; auto.
   Qed.
 
+  Lemma iterF_body_proper : forall A B (p p' : itree Void (S * B) -> Prop ) Hp Hp' (F F' : A -> S -> Prop) t,
+      (forall t, p t -> p' t) -> (forall a s, F a s -> F' a s) ->      
+      iterF_body p Hp F t -> iterF_body p' Hp' F' t.
+  Proof.
+    intros. 
+    inversion H1; subst; eauto.
+  Qed.
+
   Instance StateITreeIterNatural : IterNatural (Kleisli StateITreeSpec) sum.
   Proof.
     intros A B C. intros. constructor.
@@ -361,25 +369,165 @@ Section StateITree.
       + left. exists (inr b). exists s0. split; auto. cbn. unfold bindsi, _bindsi.
         dest_dep g b. eapply Hfa0; try apply H0. intros. 
         specialize (eutt_reta_or_div _ t0) as Hor. basic_solve; auto.
-        * left. destruct a0 as [c s1]. exists c. exists s1. split; auto. unfold _retsi.
+        * left. destruct a0 as [s1 c]. exists c. exists s1. split; auto. unfold _retsi.
           eapply term_b; try reflexivity. eapply Hp; eauto.
         * right. split; eauto. apply inf_tau; try apply spin_div.
           eapply Hp; try apply H. symmetry. apply div_spin_eutt. auto.
       + left. exists ( inl a'). exists s0. split; auto. cbn. unfold _bindsi, _retsi.
         left. exists a'. exists s0. split; try reflexivity. eapply cont_a; try reflexivity.
-        right. apply CIH. pclearbot. punf2 Hcorec.  unfold _bindsi. pfold.
-        destruct Hcorec. constructor. dest_dep f a'. eapply Hfa0; try apply Hiter; auto. clear Hiter. intros.
+        right. apply CIH. pclearbot. auto.
+    - intros. gen_dep2 a s. cbn. unfold _bindsi. pcofix CIH. 
+      intros. pfold. constructor. punf2 H0. destruct H0. cbn in Hiter.
+      unfold bindsi, _bindsi in Hiter. dest_dep f a. eapply Hfa; try apply Hiter. clear Hiter.
+      simpl.  intros. basic_solve; auto.
+      + cbn in H0. unfold _bindsi, _retsi in H0. basic_solve. unfold id in H0. basic_solve. pclearbot. 
+        eapply cont_a; eauto. auto.
+      + cbn in H0. unfold bindsi, _bindsi in H0. eapply term_b; try apply H.
+        left. exists b. exists s'. split; try reflexivity. dest_dep g b. eapply Hfa0; try apply H0.
+        intros ?t ?Ht. simpl in *. basic_solve.
+        * unfold _retsi in H2. basic_solve. eapply Hp; eauto. symmetry. auto.
+        * apply div_spin_eutt in H1. eapply Hp; eauto.
+      + apply inf_tau; auto. right. split; auto. apply spin_div.
+  Qed.
 
-        inversion H; eauto. eapply cont_a; eauto. pclearbot.
-        left. admit.
-    - intros. gen_dep2 a s. cbn. unfold _bindsi.   (* pcofix CIH.  (*could the problem be that *) pcofix CIH.
-      enough (forall x,  proj1_sig (iter (cat f (bimap (id_ A) g)) (fst x) ) p Hp (snd x) -> proj1_sig (cat (iter f) g (fst x) ) p Hp (snd x) ); auto.
-      + intros. apply (H (a,s) ). auto.
-      + cbn. unfold _bindsi. unfold iter_paco. intros.
-        (* match goal with | |- paco1 ?p _ _ => set p as hidden end. *)
-        generalize dependent x. pcofix CIH.
-        pcofix CIH. *) Admitted.
-      
+  Instance StateITreeIterDinatural : IterDinatural (Kleisli StateITreeSpec) sum.
+  Proof.
+    intros A B C f g. constructor.
+    - intros. cbn. unfold bindsi, _bindsi. cbn in H. punf2 H. destruct H. cbn in Hiter. unfold bindsi, _bindsi in Hiter.
+      dest_dep f a. eapply Hfa; try apply Hiter. clear Hiter. simpl. intros ?t ?Ht. basic_solve; auto.
+      + cbn in H0. rename a0 into b. left. exists (inl b). exists s'. split; auto.
+        cbn. 
+        clear H.
+        gen_dep2 b s'. pcofix CIH. intros. pfold. constructor. cbn. unfold bindsi, _bindsi.
+        dest_dep g b. eapply Hfa0; try apply H0. clear H0. intros. basic_solve; auto using spin_div.
+        * rename b0 into c. left. exists (inr c). exists s0. split; auto. cbn. unfold _retsi.
+          eapply term_b; eauto. reflexivity.
+        * left. exists (inl a'). exists s0. split; auto. cbn. pclearbot. punf2 Hcorec. destruct Hcorec.
+          cbn in Hiter. unfold bindsi, _bindsi in Hiter. dest_dep f a'. eapply Hfa1; try apply Hiter. clear Hiter.
+          simpl. intros. basic_solve; auto using spin_div.
+          -- cbn in H0. auto. eapply cont_a; eauto. auto.
+          -- cbn in H0. unfold _retsi in H0. basic_solve; auto using spin_div. eapply term_b; try apply Hbs.
+             auto.
+      + cbn in H0. unfold _retsi in H0. basic_solve; auto using spin_div. rename b into c. left.
+        exists (inr c). exists s'. split; auto.
+    - gen_dep2 a s. pcofix CIH. intros. cbn in H0. pfold. unfold bindsi, _bindsi in H0. constructor.
+      cbn. unfold bindsi, _bindsi. dest_dep f a. eapply Hfa; try apply H0. clear H0. simpl.
+      intros. basic_solve; auto using spin_div.
+      + cbn in H0. left. rename a0 into b. exists (inl b). exists s'. split; auto.
+        cbn. punf2 H0. destruct H0. cbn in Hiter. unfold bindsi, _bindsi in Hiter. dest_dep g b.
+        eapply Hfa0; try apply Hiter. clear Hiter. simpl. intros. basic_solve; auto using spin_div.
+        * eapply cont_a; try apply H0. right. apply CIH. cbn. unfold bindsi, _bindsi. cbn in H1.
+          dest_dep f a0. eapply Hfa1; try apply H1. clear H1. intros. basic_solve; auto using spin_div.
+          -- rename b0 into c. left. exists (inr c). exists s0. split; auto.
+          -- left. rename a' into b'. exists (inl b'). exists s0. split; auto. pclearbot.  auto.
+        * cbn in H1. unfold _retsi in H1. basic_solve. rename b0 into c. eapply term_b; try apply Hbs; auto.
+     + cbn in H0. unfold _retsi in H0. left. rename b into c. exists (inr c). exists s'.
+       split; auto. cbn. unfold _retsi. eapply term_b; try apply H0; auto. reflexivity.
+  Qed.
 
+  Instance StateITreeIterCodiagonal : IterCodiagonal (Kleisli StateITreeSpec) sum.
+  Proof.
+    intros A B f. constructor.
+    - gen_dep2 a s. pcofix CIH. intros. cbn in H0. pfold. constructor. cbn. unfold bindsi, _bindsi.
+      punf2 H0. destruct H0. cbn in Hiter. punf2 Hiter. destruct Hiter. dest_dep f a. eapply Hfa; try apply Hiter.
+      clear Hiter. intros. basic_solve; auto using spin_div.
+      + left. exists (inr (inr b) ). exists s0. split; auto. cbn. unfold _retsi.
+        eapply term_b; try apply Hbs0. reflexivity.
+      + left. exists (inr (inl a0)). exists s0. split; auto. cbn. unfold _retsi. 
+        apply cont_a with (a' := a0) (s1 := s0); try reflexivity. pclearbot. right. apply CIH. auto.
+      + left. exists (inl a'). exists s0. split; auto. cbn. unfold _retsi. 
+        eapply cont_a with (a'0 := a') (s1 := s0); try reflexivity. right. apply CIH. pclearbot.
+        punf2 Hcorec. destruct Hcorec. pfold. constructor. cbn. pfold. constructor.
+        dest_dep f a'. eapply Hfa0; try apply Hiter. clear Hiter. auto.
+    - gen_dep2 a s. pcofix CIH. intros. pfold. constructor. cbn. cbn in H0. punf2 H0. destruct H0.
+      cbn in Hiter. unfold bindsi, _bindsi in Hiter. pfold. constructor. dest_dep f a.
+      eapply Hfa; try apply Hiter. clear Hiter. simpl. intros. basic_solve; auto using spin_div.
+      + cbn in H0. unfold _retsi in H0. eapply cont_a; try apply H.
+        clear H. left.
+        gen_dep2 a0 s'. pcofix CIH'. intros. basic_solve; auto using spin_div.
+        pclearbot. pfold. constructor. punf2 Hcorec. destruct Hcorec. cbn in Hiter. unfold bindsi, _bindsi in Hiter.
+        dest_dep f a0. eapply Hfa0; try apply Hiter. clear Hiter. simpl. intros.
+        basic_solve; auto.
+        * cbn in H0. unfold _retsi in H0. basic_solve. eapply cont_a; try apply H. right. apply CIH'.
+          pclearbot. punf2 Hcorec. destruct Hcorec. cbn in Hiter. unfold bindsi, _bindsi in Hiter.
+          eapply cont_a with (a' := a1) (s0 := s'0) ; try reflexivity. left. pfold. constructor. auto.
+        * cbn in H0. unfold _retsi in H0. basic_solve. pclearbot. eapply term_b; try apply H.
+          eapply cont_a; try reflexivity. auto.
+        * eapply term_b; try apply H. cbn in H0. unfold _retsi in H0. basic_solve. eapply term_b; try apply Hbs; reflexivity.
+     + cbn in H0. unfold _retsi in H0. basic_solve. eapply term_b; try apply H.
+       eapply cont_a; try reflexivity. right. apply CIH. pclearbot. apply Hcorec.
+     + cbn in H0. unfold _retsi in H0. basic_solve. eapply term_b; try apply H. eapply term_b; try apply Hbs; reflexivity.
+  Qed.
+
+  Program Definition get_spec : StateITreeSpec S :=
+    fun p _ s => p (ret (s,s)).
+  Next Obligation.
+  intro. auto.
+  Qed.
+
+  Program Definition put_spec (s : S) : StateITreeSpec unit :=
+    fun p _ _ => p (ret (s,tt) ).
+  Next Obligation.
+  intro. auto.
+  Qed.
+
+  Definition HandlerStateITree : (stateE S) ~> (StateITreeSpec) :=
+    fun _ ev =>
+      match ev with 
+      | Get _ => get_spec
+      | Put _ s => put_spec s
+      end.
+  
+  (*MonadIter type parameters reversed for just Iter*)
+  Instance StateITreeMonadIter  : MonadIter StateITreeSpec := fun B A => @iterp A B.
+
+  Definition InterpStateITreeSpec := interp HandlerStateITree.
+
+  Definition get_handle : S -> (itree Void (S * S) ) :=
+    fun s => ret (s,s).
+
+  Definition put_handle (s : S) : S -> (itree Void (S * unit )) :=
+    fun _ => ret (s, tt).
+
+  Definition HandlerState : (stateE S) ~> (stateT S (itree Void)) :=
+    fun _ ev =>
+      match ev with
+      | Get _ => get_handle
+      | Put _ s => put_handle s
+      end.
+
+  
+
+  Lemma interp_obs : forall (A : Type) (t : itree (stateE S) A ),
+      InterpStateITreeSpec A t ≈ obs A (interp_state HandlerState t). 
+  Proof.
+    intros. constructor; intros.
+    - cbn in H. cbn. red. (*for terminating t's it maybe is fine*) admit.
+    - cbn in H. unfold _obssi in H. cbn.
+      gen_dep2 t s. pcofix CIH. intros. pfold. constructor.
+      destruct (observe t) eqn : Heq; simpl.
+      + unfold _retsi. simpl in *. assert (t ≈ ret r0).
+        { specialize (itree_eta t) as H. rewrite Heq in H. rewrite H. reflexivity. }
+        eapply term_b with (s0 := s) (b := r0); try reflexivity. eapply Hp; eauto.
+        rewrite H. specialize @interp_state_ret with (E := stateE S) as Hret.
+        specialize (Hret Void A S HandlerState s r0). rewrite Hret. reflexivity.
+      + unfold _retsi. apply cont_a with (a' := t0) (s0 :=s); try reflexivity.
+        right. apply CIH. eapply Hp; eauto. 
+        assert (t ≈ t0). { specialize (itree_eta t) as H. rewrite Heq in H. rewrite H. rewrite tau_eutt. reflexivity. }
+        rewrite H. reflexivity.
+      + destruct e.
+        * repeat red. left. exists s. exists s. split; try reflexivity.  cbn. unfold _retsi. 
+          eapply cont_a with (s0 := s); try reflexivity. right. apply CIH.  eapply Hp; eauto.
+          specialize @unfold_interp_state with (E := stateE S) (t := t) as H.
+          specialize (H Void S HandlerState s). rewrite H. rewrite Heq.
+          simpl. cbn. rewrite bind_ret. simpl. rewrite tau_eutt. reflexivity.
+        * repeat red. left. exists tt. exists s0. split; try reflexivity. repeat red.
+          eapply cont_a; try reflexivity. right. apply CIH. eapply Hp; eauto.
+          specialize @unfold_interp_state with (E := stateE S) (t := t) as H. specialize (H Void S HandlerState s).
+          rewrite Heq in H. simpl in H. unfold put_handle in H. simpl in H. rewrite bind_ret in H. simpl in *.
+          rewrite H. rewrite tau_eutt. reflexivity.
+   Admitted.
 
 End StateITree.
+
+

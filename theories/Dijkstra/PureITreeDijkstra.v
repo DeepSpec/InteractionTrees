@@ -230,6 +230,21 @@ Hint Constructors iterF_body.
           (a : A) (p : itree Void B -> Prop) (Hp : resp_eutt Void B p) (F : A -> Prop ) : Prop :=
     | iterF_con : proj1_sig (body a) (iterF_body p Hp F) (iterF_body_resp_eutt A B p Hp F) -> iterF body a p Hp F.
 
+(*
+  Inductive iter_ind {A B : Type} (f : A -> PureITreeSpec (A + B) ) (a : A) (p : itree Void B -> Prop)
+           (Hp : resp_eutt _ _ p) : Prop := 
+    | iter_ind_cons (Hiter : iterF f a p Hp (fun a0 => iter_ind f a0 p Hp) ) .
+*)
+(*
+  Lemma
+
+  Inductive iter_ind {A B : Type} (body : A -> _PureITreeSpec (A + B) ) (p : itree Void B -> Prop)
+            (Hp : resp_eutt _ _ p) : A -> Prop :=
+    | Hiter (a : A) : body a (fun t : itree Void (A + B) => (divergence t /\ p spin)   
+                                                   \/ (exists b, t ≈ (ret (inr b) /\ p (ret b) )) 
+                                             \/ (exists a', t ≈ (ret (inl a')) /\ 
+                                         iter_ind body p Hp a') ) .
+*)
 Hint Constructors iterF.
 Lemma iterF_monotone {A B} (body:  (A -> PureITreeSpec (A + B))) 
       (sim sim' : A -> Prop) (a : A)
@@ -566,18 +581,15 @@ Lemma iterF_monotone {A B} (body:  (A -> PureITreeSpec (A + B)))
       intros. intros p Hp. cbn. unfold _obsip, _bindpi. split; intros.
       - specialize (eutt_reta_or_div A t) as Hor. destruct Hor.
         + destruct H0 as [a Hreta ]. left. exists a. split; auto.
-          assert (p (bind (ret a) f) ). 
-          * eapply Hp; eauto. rewrite <- Hreta. reflexivity.
-          * simpl in H0. eapply Hp; eauto. symmetry. specialize (bind_ret a f) as H1. rewrite H1. reflexivity.
+          eapply Hp; eauto. specialize (bind_ret a f) as H1. rewrite <- H1.
+          rewrite Hreta. reflexivity.
         + right. split; auto. apply div_spin_eutt in H0. specialize (spin_bind Void A B f) as H1.
           eapply Hp; eauto. rewrite <- H0 in H1. eapply Hp; eauto. rewrite <- H0. reflexivity.
       - destruct H.
         + destruct H as [a [Hreta Hpfa] ]. specialize (bind_ret a f) as H1.
-          assert (bind (ret a) f ≈ f a ). {  rewrite H1. reflexivity. }
-           rewrite Hreta in H. eapply Hp; eauto.
+          eapply Hp; eauto.  rewrite <- H1. rewrite Hreta. reflexivity.
         + destruct H. apply div_spin_eutt in H.
-          assert (bind t f ≈ spin). {  rewrite H. symmetry. apply spin_bind. }
-          eapply Hp; eauto.
+          eapply Hp; eauto. rewrite H. symmetry. apply spin_bind.
     Qed.
 
     
@@ -606,9 +618,8 @@ Lemma iterF_monotone {A B} (body:  (A -> PureITreeSpec (A + B)))
                                                  try (rewrite <- Hunfold; reflexivity).
     specialize (eutt_reta_or_div _ (f a) ) as [Hret | Hdiv]; basic_solve.
     - eapply cont_a; try apply Hret. right. apply CIH. cbn. red. eapply Hp; eauto. rewrite <- Hret.
-        match goal with | |- _ ≈ ITree.bind _ ?g => 
-                          specialize (bind_ret (inl a0) g) as Hbind_ret end.  rewrite Hbind_ret.
-        rewrite tau_eutt. reflexivity.
+      setoid_rewrite bind_ret.
+      rewrite tau_eutt. reflexivity.
     - eapply term_b; try apply Hret. eapply Hp; eauto.
       rewrite <- Hret. match goal with | |- _ ≈ ITree.bind _ ?g =>
                               specialize (bind_ret (inr b) g) as Hbind_ret end.
@@ -623,44 +634,44 @@ Lemma iterF_monotone {A B} (body:  (A -> PureITreeSpec (A + B)))
   Lemma obsip_pres_iter_left : forall A B (f : A -> itree Void (A + B) ) (a : A)
                              (p : itree Void B -> Prop) (Hp : resp_eutt Void B p),
       proj1_sig (iterp (fun x => obsip _ (f x) ) a) p Hp -> proj1_sig (obsip B (iter f a)) p Hp.
-  Proof. (*
-    intros. cbn. red. cbn in H. red in H. cbn in H.
+  Proof. 
+    intros. cbn. red. cbn in H. red in H. cbn in H. 
     punfold H. destruct H. cbn in H. red in H. 
     basic_solve; auto.
-    - apply div_spin_eutt in H as H1. eapply Hp; eauto.
+    - apply div_spin_eutt in Ht as H1. eapply Hp; eauto.
       specialize (unfold_iter_ktree f a) as Hunfold. rewrite Hunfold. rewrite H1.
       symmetry. apply spin_bind.
-    - rename H into Hretb. rename H0 into Hb. specialize (unfold_iter_ktree f a) as Hunfold.
+    - specialize (unfold_iter_ktree f a) as Hunfold.
       eapply Hp; eauto. rewrite Hunfold. rewrite <- Hretb.
       match goal with | |- ITree.bind _ ?g ≈ _ => specialize (bind_ret (inr b) g) 
       as Hbind_ret end. simpl in *. rewrite Hbind_ret. reflexivity.
     - specialize (unfold_iter_ktree f a) as Hunfold. eapply Hp; eauto;
       try (rewrite Hunfold; reflexivity). 
-      (* assert (_iter (fun x : A=> obsip (A + B) (f x) ) a'  p Hp); auto. *)
-      eapply Hp; eauto.
-      + rewrite <- H. match goal with | |- ITree.bind _ ?g ≈ _ => 
-                                             specialize (bind_ret (inl a') g) as Hbind_ret end.
-        rewrite Hbind_ret. reflexivity. 
-      + (* I have unfolded in some sense, I want to have a coinductive hyp here *) *)
-   (* red in H.
-    assert (KTree.iter f a ≈ iter f a \/ KTree.iter f a ≈ iter f a).
-    - pcofix CIH. 
-    Abort.
-
-
-
- punfold H. destruct H. cbn in H. red in H. 
-    destruct H as [? | [? | ?] ].
-    - destruct H. apply div_spin_eutt in H as H1. eapply Hp; eauto.
-      specialize (unfold_iter_ktree f a) as Hunfold. rewrite Hunfold. rewrite H1.
-      symmetry. apply spin_bind.
-    - destruct H as [b [Hretb  Hb ] ]. specialize (unfold_iter_ktree f a) as Hunfold.
-      eapply Hp; eauto. rewrite Hunfold. rewrite <- Hretb.
-      match goal with | |- ITree.bind _ ?g ≈ _ => specialize (bind_ret (inr b) g) 
-      as Hbind_ret end. rewrite Hbind_ret. reflexivity.
-    - 
-    exfalso. apply Hcontra. exfalso *)
+      (* assert (_iter (fun x : A=> obsip (A + B) (f x) ) a'  p Hp); auto. *) unfold resp_eutt in *.
+      eapply Hp with (t1 := KTree.iter f a'); eauto.
+      + rewrite <- Hreta. setoid_rewrite bind_ret.
+        rewrite tau_eutt. reflexivity.
+      + (* I have unfolded in some sense, I want to have a coinductive hyp here *)
   Abort.
+
+  Lemma iter_too_big_aux : exists A B (f : A -> itree Void (A + B) ) (p : itree Void B -> Prop) (a : A) Hp,
+       proj1_sig (iterp (fun x => obsip _ (f x) ) a) p Hp /\ ~ proj1_sig (obsip B (iter f a)) p Hp.
+  Proof.
+    exists nat. exists nat. exists (fun n => ret (inl n) ). exists (fun _ => False).
+    exists 0. assert (resp_eutt _ _ (fun _  : itree Void nat => False) ).
+    { intros t1 t2. tauto. } exists H.
+    split; auto.
+    pcofix CIH. pfold. constructor. cbn. red. eapply cont_a; eauto. reflexivity.
+  Qed.
+
+  Lemma iter_too_big : ~  forall A B (f : A -> itree Void (A + B) ) (a : A)
+                             (p : itree Void B -> Prop) (Hp : resp_eutt Void B p),
+      proj1_sig (iterp (fun x => obsip _ (f x) ) a) p Hp -> proj1_sig (obsip B (iter f a)) p Hp.
+  Proof.
+    intro Hcontra. 
+    specialize iter_too_big_aux as Hlem. basic_solve.
+    apply H0. eapply Hcontra; eauto.
+  Qed.
 
   (*Other direction is odd, because I can't just straightforwardly coinduct*)
 
