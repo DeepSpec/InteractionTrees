@@ -515,15 +515,15 @@ Section ccs_combinators.
           -- destruct r0; constructor.
           -- destruct (_observe (k ((n4 - n2 - n3) mod n3))) eqn:?;
               setoid_rewrite Heqi in Heqk2; try inversion Heqk2;
-              rewrite Heqk2.
-             destruct e; try inversion H2. clear H2. clear H3.
-             admit. (*
-            destruct l;
-            destruct (_observe (k0 ((n4 - n2 - n3) / n2))) eqn:?;
-              setoid_rewrite Heqi0 in Heqk2; try inversion Heqk2;
               rewrite Heqk2;
-                destruct e; try inversion H2; clear H2; clear H3;
-                destruct l0; try inversion Heqk2. *)
+             destruct e; try inversion H2; clear H2; clear H3;
+             destruct l; destruct l0;
+               destruct (_observe (k0 ((n4 - n2 - n3) / n2))) eqn:?;
+                        setoid_rewrite Heqi0 in Heqk2; try inversion Heqk2;
+                 rewrite Heqk2;
+                 destruct e; try inversion H2; clear H2;
+                   destruct l1; try inversion Heqk2;
+                     destruct (l ≡? l0); inversion Heqk2.
           -- destruct (_observe (k ((n4 - n2 - n3) mod n3))) eqn:?;
               setoid_rewrite Heqi in Heqk2; try inversion Heqk2;
               rewrite Heqk2.
@@ -531,62 +531,200 @@ Section ccs_combinators.
             ++ constructor.
             ++ clear H2. destruct e0.
                 ** constructor.
-                ** destruct l.
-                  --- admit. (* destruct (_observe (k0 ((n4 - n2 - n3) / n2))) eqn:?;
-                      setoid_rewrite Heqi0 in Heqk2; setoid_rewrite Heqi0.
-                      +++ constructor.
-                      +++ constructor.
-                      +++ destruct e0; try constructor. destruct l0.
-                          *** constructor.
-                          *** simpl. constructor. right.
-                              setoid_rewrite (itree_eta_ (k3 tt)).
-                              setoid_rewrite (itree_eta_ (k4 tt)).
-                              apply CIH.
-                              ---- destruct (REL ((n4 - n2 - n3) mod n3)).
-                                    ++++ punfold H1. unfold shape_inv_ in H1.
-                                        unfold observe in H1.
-                                        rewrite Heqi in H1. inversion H1.
-                                        dependent destruction H4.
-                                        setoid_rewrite <- (itree_eta_ (k3 tt)).
-                                        destruct REL1. apply H2. inversion H2.
-                                    ++++ inversion H1.
-                              ---- destruct (REL0 ((n4 - n2 - n3) / n2)).
-                                    ++++ punfold H1. unfold shape_inv_ in H1.
-                                        unfold observe in H1.
-                                        rewrite Heqi0 in H1. inversion H1.
-                                        dependent destruction H4.
-                                        setoid_rewrite <- (itree_eta_ (k4 tt)).
-                                        destruct REL1. apply H2. inversion H2.
-                                    ++++ inversion H1. *)
-                  --- admit. (* destruct (_observe (k0 ((n4 - n2 - n3) / n2))) eqn:?;
-                      setoid_rewrite Heqi0 in Heqk2; setoid_rewrite Heqi0.
-                      +++ constructor.
-                      +++ constructor.
-                      +++ destruct e0; try constructor. destruct l0.
-                          *** constructor. right.
-                              setoid_rewrite (itree_eta_ (k3 tt)).
-                              setoid_rewrite (itree_eta_ (k4 tt)).
-                              apply CIH.
-                              ---- destruct (REL ((n4 - n2 - n3) mod n3)).
-                                    ++++ punfold H1. unfold shape_inv_ in H1.
-                                        unfold observe in H1.
-                                        rewrite Heqi in H1. inversion H1.
-                                        dependent destruction H4.
-                                        setoid_rewrite <- (itree_eta_ (k3 tt)).
-                                        destruct REL1. apply H2. inversion H2.
-                                    ++++ inversion H1.
-                              ---- destruct (REL0 ((n4 - n2 - n3) / n2)).
-                                    ++++ punfold H1. unfold shape_inv_ in H1.
-                                        unfold observe in H1.
-                                        rewrite Heqi0 in H1. inversion H1.
-                                        dependent destruction H4.
-                                        setoid_rewrite <- (itree_eta_ (k4 tt)).
-                                        destruct REL1. apply H2. inversion H2.
-                                    ++++ inversion H1.
-                          *** constructor. *)
+                ** destruct l;destruct (_observe (k0 ((n4 - n2 - n3) / n2))) eqn:?;
+                       destruct l0;
+                         setoid_rewrite Heqi0 in Heqk2; setoid_rewrite Heqi0;
+                           try (inversion Heqk2; dependent destruction H3;
+                                dependent destruction H4; constructor);
+                           try constructor; destruct e0; try constructor;
+                             destruct l0; destruct l1; try constructor;
+                               destruct (l ≡? l0).
+                   +++ inversion Heqk2.
+                      dependent destruction H3.
+                      dependent destruction H4.
+                      constructor.
+                      setoid_rewrite (itree_eta_ (k3 tt)).
+                      setoid_rewrite (itree_eta_ (k4 tt)). right.
+                      apply CIH.
+                      *** destruct (REL ((n4 - n2 - n3) mod n3)).
+                          ---- punfold H1. unfold shape_inv_ in H1.
+                              unfold observe in H1.
+                              rewrite Heqi in H1. inversion H1.
+                              dependent destruction H4.
+                              setoid_rewrite <- (itree_eta_ (k3 tt)).
+                              destruct REL1.
+                              ++++ dependent destruction H5.
+                                    apply H3.
+                              ++++ dependent destruction H5.
+                                    inversion H3.
+                         ---- inversion H1.
+                      *** destruct (REL0 ((n4 - n2 - n3) / n2)).
+                         ---- punfold H1. unfold shape_inv_ in H1.
+                              unfold observe in H1.
+                              rewrite Heqi0 in H1. inversion H1.
+                              dependent destruction H4.
+                              setoid_rewrite <- (itree_eta_ (k4 tt)).
+                              destruct REL1.
+                              **** dependent destruction H5.
+                                  apply H3.
+                              **** dependent destruction H5.
+                                  inversion H3.
+                         ---- inversion H1.
+                   +++ constructor.
+                   +++ constructor. right.
+                       setoid_rewrite (itree_eta_ (k3 tt)).
+                       setoid_rewrite (itree_eta_ (k4 tt)).
+                       apply CIH.
+                       *** destruct (REL ((n4 - n2 - n3) mod n3)).
+                           ---- punfold H1. unfold shape_inv_ in H1.
+                                unfold observe in H1.
+                                rewrite Heqi in H1. inversion H1.
+                                dependent destruction H5.
+                                setoid_rewrite <- (itree_eta_ (k3 tt)).
+                                destruct REL1.
+                                ++++ apply H2.
+                                ++++ inversion H2.
+                           ---- inversion H1.
+                       *** destruct (REL0 ((n4 - n2 - n3) / n2)).
+                           ---- punfold H1. unfold shape_inv_ in H1.
+                               unfold observe in H1.
+                               rewrite Heqi0 in H1. inversion H1.
+                               dependent destruction H5.
+                               setoid_rewrite <- (itree_eta_ (k4 tt)).
+                               destruct REL1.
+                               ++++ apply H2.
+                               ++++ inversion H2.
+                           ---- inversion H1.
+                   +++ constructor.
+                   +++ constructor. right.
+                       setoid_rewrite (itree_eta_ (k3 tt)).
+                       setoid_rewrite (itree_eta_ (k4 tt)).
+                       apply CIH.
+                      ---- destruct (REL ((n4 - n2 - n3) mod n3)).
+                          ++++ punfold H1. unfold shape_inv_ in H1.
+                              unfold observe in H1.
+                              rewrite Heqi in H1. inversion H1.
+                              dependent destruction H5.
+                              setoid_rewrite <- (itree_eta_ (k3 tt)).
+                              destruct REL1. apply H2. inversion H2.
+                          ++++ inversion H1.
+                      ---- destruct (REL0 ((n4 - n2 - n3) / n2)).
+                          ++++ punfold H1. unfold shape_inv_ in H1.
+                               unfold observe in H1.
+                               rewrite Heqi0 in H1. inversion H1.
+                               dependent destruction H5.
+                               setoid_rewrite <- (itree_eta_ (k4 tt)).
+                               destruct REL1. apply H2. inversion H2.
+                          ++++ inversion H1.
+                   +++ constructor.
+                   +++ constructor. right.
+                       setoid_rewrite (itree_eta_ (k3 tt)).
+                       setoid_rewrite (itree_eta_ (k4 tt)).
+                       apply CIH.
+                      ---- destruct (REL ((n4 - n2 - n3) mod n3)).
+                          ++++ punfold H1. unfold shape_inv_ in H1.
+                              unfold observe in H1.
+                              rewrite Heqi in H1. inversion H1.
+                              dependent destruction H5.
+                              setoid_rewrite <- (itree_eta_ (k3 tt)).
+                              destruct REL1. apply H2. inversion H2.
+                          ++++ inversion H1.
+                      ---- destruct (REL0 ((n4 - n2 - n3) / n2)).
+                          ++++ punfold H1. unfold shape_inv_ in H1.
+                               unfold observe in H1.
+                               rewrite Heqi0 in H1. inversion H1.
+                               dependent destruction H5.
+                               setoid_rewrite <- (itree_eta_ (k4 tt)).
+                               destruct REL1. apply H2. inversion H2.
+                          ++++ inversion H1.
+                   +++ constructor.
+                   +++ constructor. right.
+                       setoid_rewrite (itree_eta_ (k3 tt)).
+                       setoid_rewrite (itree_eta_ (k4 tt)).
+                       apply CIH.
+                      ---- destruct (REL ((n4 - n2 - n3) mod n3)).
+                          ++++ punfold H1. unfold shape_inv_ in H1.
+                              unfold observe in H1.
+                              rewrite Heqi in H1. inversion H1.
+                              dependent destruction H5.
+                              setoid_rewrite <- (itree_eta_ (k3 tt)).
+                              destruct REL1. apply H2. inversion H2.
+                          ++++ inversion H1.
+                      ---- destruct (REL0 ((n4 - n2 - n3) / n2)).
+                          ++++ punfold H1. unfold shape_inv_ in H1.
+                               unfold observe in H1.
+                               rewrite Heqi0 in H1. inversion H1.
+                               dependent destruction H5.
+                               setoid_rewrite <- (itree_eta_ (k4 tt)).
+                               destruct REL1. apply H2. inversion H2.
+                          ++++ inversion H1.
+                   +++ constructor.
+                   +++ constructor. right.
+                       setoid_rewrite (itree_eta_ (k3 tt)).
+                       setoid_rewrite (itree_eta_ (k4 tt)).
+                       apply CIH.
+                      ---- destruct (REL ((n4 - n2 - n3) mod n3)).
+                          ++++ punfold H1. unfold shape_inv_ in H1.
+                              unfold observe in H1.
+                              rewrite Heqi in H1. inversion H1.
+                              dependent destruction H5.
+                              setoid_rewrite <- (itree_eta_ (k3 tt)).
+                              destruct REL1. apply H2. inversion H2.
+                          ++++ inversion H1.
+                      ---- destruct (REL0 ((n4 - n2 - n3) / n2)).
+                          ++++ punfold H1. unfold shape_inv_ in H1.
+                               unfold observe in H1.
+                               rewrite Heqi0 in H1. inversion H1.
+                               dependent destruction H5.
+                               setoid_rewrite <- (itree_eta_ (k4 tt)).
+                               destruct REL1. apply H2. inversion H2.
+                          ++++ inversion H1.
+                   +++ constructor.
+                   +++ constructor. right.
+                       setoid_rewrite (itree_eta_ (k3 tt)).
+                       setoid_rewrite (itree_eta_ (k4 tt)).
+                       apply CIH.
+                      ---- destruct (REL ((n4 - n2 - n3) mod n3)).
+                          ++++ punfold H1. unfold shape_inv_ in H1.
+                              unfold observe in H1.
+                              rewrite Heqi in H1. inversion H1.
+                              dependent destruction H5.
+                              setoid_rewrite <- (itree_eta_ (k3 tt)).
+                              destruct REL1. apply H2. inversion H2.
+                          ++++ inversion H1.
+                      ---- destruct (REL0 ((n4 - n2 - n3) / n2)).
+                          ++++ punfold H1. unfold shape_inv_ in H1.
+                               unfold observe in H1.
+                               rewrite Heqi0 in H1. inversion H1.
+                               dependent destruction H5.
+                               setoid_rewrite <- (itree_eta_ (k4 tt)).
+                               destruct REL1. apply H2. inversion H2.
+                          ++++ inversion H1.
+                   +++ constructor.
+                   +++ constructor. right.
+                       setoid_rewrite (itree_eta_ (k3 tt)).
+                       setoid_rewrite (itree_eta_ (k4 tt)).
+                       apply CIH.
+                      ---- destruct (REL ((n4 - n2 - n3) mod n3)).
+                          ++++ punfold H1. unfold shape_inv_ in H1.
+                              unfold observe in H1.
+                              rewrite Heqi in H1. inversion H1.
+                              dependent destruction H5.
+                              setoid_rewrite <- (itree_eta_ (k3 tt)).
+                              destruct REL1. apply H2. inversion H2.
+                          ++++ inversion H1.
+                      ---- destruct (REL0 ((n4 - n2 - n3) / n2)).
+                          ++++ punfold H1. unfold shape_inv_ in H1.
+                               unfold observe in H1.
+                               rewrite Heqi0 in H1. inversion H1.
+                               dependent destruction H5.
+                               setoid_rewrite <- (itree_eta_ (k4 tt)).
+                               destruct REL1. apply H2. inversion H2.
+                          ++++ inversion H1.
+                   +++ constructor.
                 ** constructor.
                 ** constructor.
-  Admitted.
+  Qed.
 
   Eval cbv in fun (a : idx) => ret_traces
                 (par (Vis (Or 2) (fun n => if beq_nat n 1 then zero else send a zero))
@@ -617,7 +755,7 @@ End ccs_combinators.
 Section ccs_op.
 
   (** *Operational Semantics for CCS *)
-
+  (* TODO : Change *)
   Inductive ccs_ : Type :=
   | Done : ccs_
   | Action : Label -> ccs_ -> ccs_
