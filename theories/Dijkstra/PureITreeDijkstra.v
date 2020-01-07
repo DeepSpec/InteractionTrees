@@ -669,8 +669,7 @@ Lemma iterF_monotone {A B} (body:  (A -> PureITreeSpec (A + B)))
       proj1_sig (iterp (fun x => obsip _ (f x) ) a) p Hp -> proj1_sig (obsip B (iter f a)) p Hp.
   Proof.
     intro Hcontra. 
-    specialize iter_too_big_aux as Hlem. basic_solve.
-    apply H0. eapply Hcontra; eauto.
+    specialize iter_too_big_aux as Hlem. basic_solve. auto.
   Qed.
 
   (*Other direction is odd, because I can't just straightforwardly coinduct*)
@@ -685,9 +684,9 @@ Lemma iterF_monotone {A B} (body:  (A -> PureITreeSpec (A + B)))
       cbn in H.
   Abort.
 
-  Instance PureITreeEffectObs : EffectObs (itree Void) (PureITreeSpec) := obsip.
+  Global Instance PureITreeEffectObs : EffectObs (itree Void) (PureITreeSpec) := obsip.
 
-  Instance PureITreeMorph : MonadMorphism (itree Void) (PureITreeSpec) PureITreeEffectObs.
+  Global Instance PureITreeMorph : MonadMorphism (itree Void) (PureITreeSpec) PureITreeEffectObs.
   Proof.
     constructor.
     - apply obsip_pres_ret.
