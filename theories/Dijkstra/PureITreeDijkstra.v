@@ -296,7 +296,7 @@ Lemma iterF_monotone {A B} (body:  (A -> PureITreeSpec (A + B)))
   Global Instance PureITreeSpecEq : EqM PureITreeSpec :=
     fun A w1 w2 => forall (p : itree Void A -> Prop) (Hp : resp_eutt Void A p), proj1_sig w1 p Hp <-> proj1_sig w2 p Hp.
  
-  Instance PureItreeSpecMonad : Monad PureITreeSpec :=
+  Global Instance PureItreeSpecMonad : Monad PureITreeSpec :=
     {
       ret := retpi;
       bind := bindpi
@@ -378,15 +378,11 @@ Lemma iterF_monotone {A B} (body:  (A -> PureITreeSpec (A + B)))
     eapply Hw2'; try (apply H1). intros t. intros. destruct H2; auto.
     destruct H2 as [a [Hreta Hf2a] ]. left. specialize (H0 a p Hp). exists a. auto.
   Qed.
-
+(*
   Instance PureITreeIter : Iter (Kleisli PureITreeSpec) sum := @iterp.
 
  
-  Lemma not_ret_eutt_spin : forall A E (a : A), ~ (Ret a ≈ @spin E A).
-  Proof.
-    intros. intro Hcontra. simpl in Hcontra. specialize (spin_div E A) as Hdiv. rewrite <- Hcontra in Hdiv.
-    pinversion Hdiv.
-  Qed.
+
 
 
   Ltac clear_ret_eutt_spin :=
@@ -553,59 +549,6 @@ Lemma iterF_monotone {A B} (body:  (A -> PureITreeSpec (A + B)))
       + apply inf_tau; auto.
    Qed.
 
-  (*Definition of effect observation from pure itrees into pure itree specs *)
-  Definition _obsip A (t : itree Void A) : _PureITreeSpec A := fun p _ => p t.
-(*
-  Definition f A : A -> itree Void nat := fun (a : A) => ret 2.
-
-  Lemma ex : forall p Hp, _obsip nat (bind spin f) p Hp.
-    intros. unfold _obsip. *)
-
-  Lemma obsip_monot : forall A (t : itree Void A), monotonici A (_obsip A t).
-  Proof.
-    unfold monotonici. intros. unfold _obsip in *. auto.
-  Qed.
-
-  Definition obsip A (t : itree Void A) : PureITreeSpec A :=
-    exist _ (_obsip A t) (obsip_monot A t).
-
-  (*Proof that this effect observation is a valid monad morphism*)
-  Lemma obsip_pres_ret : forall A (a : A), obsip A (ret a) ≈ ret a.
-  Proof.
-    intros. intros p Hp. cbn. unfold _retpi, _obsip. tauto.
-  Qed.
-
-  Lemma obsip_pres_bind : forall A B (t : itree Void A) (f : A -> itree Void B),
-        obsip B (bind t f) ≈ bind (obsip A t) (fun a => obsip B (f a)).
-    Proof.
-      intros. intros p Hp. cbn. unfold _obsip, _bindpi. split; intros.
-      - specialize (eutt_reta_or_div A t) as Hor. destruct Hor.
-        + destruct H0 as [a Hreta ]. left. exists a. split; auto.
-          eapply Hp; eauto. specialize (bind_ret a f) as H1. rewrite <- H1.
-          rewrite Hreta. reflexivity.
-        + right. split; auto. apply div_spin_eutt in H0. specialize (spin_bind Void A B f) as H1.
-          eapply Hp; eauto. rewrite <- H0 in H1. eapply Hp; eauto. rewrite <- H0. reflexivity.
-      - destruct H.
-        + destruct H as [a [Hreta Hpfa] ]. specialize (bind_ret a f) as H1.
-          eapply Hp; eauto.  rewrite <- H1. rewrite Hreta. reflexivity.
-        + destruct H. apply div_spin_eutt in H.
-          eapply Hp; eauto. rewrite H. symmetry. apply spin_bind.
-    Qed.
-
-    
-  Lemma obsip_eutt : forall A (t1 t2 : itree Void A), t1 ≈ t2 <-> obsip A t1 ≈ obsip A t2.
-  Proof.
-    split; intros; unfold obsip, _obsip in *; simpl in *.
-    - intros p Hp. simpl. split; intros; eapply Hp; eauto.
-      symmetry. auto.
-    - set (fun t => t ≈ t1) as p. 
-      assert (Hp : resp_eutt _ _ p).
-      + intros t3 t4. unfold p. split; intros.
-        * rewrite <- H1. symmetry. auto.
-        * rewrite H0. auto.
-      + specialize (H p Hp). simpl in *. unfold p in H. symmetry. apply H. reflexivity.
-  Qed.
-
 
   Lemma obsip_pres_iter_right : forall A B (f : A -> itree Void (A + B) ) (a : A)
             (p : itree Void B -> Prop) (Hp : resp_eutt Void B p),
@@ -683,6 +626,66 @@ Lemma iterF_monotone {A B} (body:  (A -> PureITreeSpec (A + B)))
       red in H. punfold H. destruct H. simpl in *.
       cbn in H.
   Abort.
+*)
+
+  Lemma not_ret_eutt_spin : forall A E (a : A), ~ (Ret a ≈ @spin E A).
+  Proof.
+    intros. intro Hcontra. simpl in Hcontra. specialize (spin_div E A) as Hdiv. rewrite <- Hcontra in Hdiv.
+    pinversion Hdiv.
+  Qed.
+
+  (*Definition of effect observation from pure itrees into pure itree specs *)
+  Definition _obsip A (t : itree Void A) : _PureITreeSpec A := fun p _ => p t.
+(*
+  Definition f A : A -> itree Void nat := fun (a : A) => ret 2.
+
+  Lemma ex : forall p Hp, _obsip nat (bind spin f) p Hp.
+    intros. unfold _obsip. *)
+
+  Lemma obsip_monot : forall A (t : itree Void A), monotonici A (_obsip A t).
+  Proof.
+    unfold monotonici. intros. unfold _obsip in *. auto.
+  Qed.
+
+  Definition obsip A (t : itree Void A) : PureITreeSpec A :=
+    exist _ (_obsip A t) (obsip_monot A t).
+
+  (*Proof that this effect observation is a valid monad morphism*)
+  Lemma obsip_pres_ret : forall A (a : A), obsip A (ret a) ≈ ret a.
+  Proof.
+    intros. intros p Hp. cbn. unfold _retpi, _obsip. tauto.
+  Qed.
+
+  Lemma obsip_pres_bind : forall A B (t : itree Void A) (f : A -> itree Void B),
+        obsip B (bind t f) ≈ bind (obsip A t) (fun a => obsip B (f a)).
+    Proof.
+      intros. intros p Hp. cbn. unfold _obsip, _bindpi. split; intros.
+      - specialize (eutt_reta_or_div A t) as Hor. destruct Hor.
+        + destruct H0 as [a Hreta ]. left. exists a. split; auto.
+          eapply Hp; eauto. specialize (bind_ret a f) as H1. rewrite <- H1.
+          rewrite Hreta. reflexivity.
+        + right. split; auto. apply div_spin_eutt in H0. specialize (spin_bind Void A B f) as H1.
+          eapply Hp; eauto. rewrite <- H0 in H1. eapply Hp; eauto. rewrite <- H0. reflexivity.
+      - destruct H.
+        + destruct H as [a [Hreta Hpfa] ]. specialize (bind_ret a f) as H1.
+          eapply Hp; eauto.  rewrite <- H1. rewrite Hreta. reflexivity.
+        + destruct H. apply div_spin_eutt in H.
+          eapply Hp; eauto. rewrite H. symmetry. apply spin_bind.
+    Qed.
+
+    
+  Lemma obsip_eutt : forall A (t1 t2 : itree Void A), t1 ≈ t2 <-> obsip A t1 ≈ obsip A t2.
+  Proof.
+    split; intros; unfold obsip, _obsip in *; simpl in *.
+    - intros p Hp. simpl. split; intros; eapply Hp; eauto.
+      symmetry. auto.
+    - set (fun t => t ≈ t1) as p. 
+      assert (Hp : resp_eutt _ _ p).
+      + intros t3 t4. unfold p. split; intros.
+        * rewrite <- H1. symmetry. auto.
+        * rewrite H0. auto.
+      + specialize (H p Hp). simpl in *. unfold p in H. symmetry. apply H. reflexivity.
+  Qed.
 
   Global Instance PureITreeEffectObs : EffectObs (itree Void) (PureITreeSpec) := obsip.
 
