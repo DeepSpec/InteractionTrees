@@ -134,8 +134,8 @@ Proof.
 Qed.
 
 Instance eutt_interp_state {E F: Type -> Type} {S : Type}
-         (h : E ~> Monads.stateT S (itree F)) R :
-  Proper (eutt eq ==> eq ==> eutt eq) (@interp_state E (itree F) S _ _ _ h R).
+         (h : E ~> Monads.stateT S (itree F)) R RR :
+  Proper (eutt RR ==> eq ==> eutt (prod_rel eq RR)) (@interp_state E (itree F) S _ _ _ h R).
 Proof.
   repeat intro. subst. revert_until R.
   einit. ecofix CIH. intros.
