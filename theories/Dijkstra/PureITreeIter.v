@@ -169,10 +169,32 @@ Lemma strong_to_weak_bisim : forall E A (t1 t2 : itree E A),
 Proof.
   intros. rewrite H. reflexivity.
 Qed.
+(*
+Lemma observe_eutt_spin_aux : forall E A (t0 t1 : itree E A ), spin ≅ t0 -> observe (t0) = TauF t1 -> t1 ≅ spin.
+Proof.
+  intros E A. intros.
+  specialize (itree_eta (@spin E A)) as Hspin.
+  unfold spin in Hspin. cbn in Hspin. fold (@spin E A) in Hspin.
+  rewrite H in Hspin. specialize (itree_eta t0) as Ht0. rewrite H0 in Ht0.
+  rewrite Hspin in Ht0. rewrite <- H in Ht0. symmetry in Ht0. pinversion Ht0; subst; auto.
+  clear Ht0.
+  red in Ht0. red. punfold Ht0. red in Ht0. inversion Ht0; subst; auto.
+  pinversion Ht0; subst; auto.
+  red in Hspin. rewrite H in Hspin. 
+  rewrite Hspin. rewrite tau_eutt. reflexivity.
+Qed.
+
 
 Lemma observe_eutt_spin : forall E A (t : itree E A), t ≈ spin -> exists t0, observe t = TauF t0 /\ t0 ≈ spin.
 Proof.
-  intros. destruct (observe t) eqn : Heq; try discriminate.
+  intros. destruct (observe t) eqn : Heq.
+  - specialize (itree_eta (@spin E A) ) as Hspin. specialize (itree_eta t) as Ht.
+    rewrite Heq in Ht. exfalso. rewrite Ht in H.
+    specialize (spin_div E A) as Hdiv. rewrite <- H in Hdiv. pinversion Hdiv.
+  - exists t0. split; auto. pcofix CIH. apply observe_eutt_spin_a
+
+
+  try discriminate.
   - specialize (itree_eta t) as Heta. rewrite Heq in Heta. rewrite Heta in H. pinversion H. 
     destruct (observe spin) eqn : ?Heq; try discriminate. admit.
   - exists t0. split; auto. specialize (itree_eta t) as H0. rewrite Heq in H0. rewrite H0 in H.
@@ -180,13 +202,25 @@ Proof.
   - specialize (itree_eta t) as Heta. rewrite Heq in Heta. rewrite Heta in H. exfalso. clear Heq Heta.
     admit.
 Admitted.
-
+*)
 (*could use yannick or Li Yao's help on this one, should be true but has been problematic
   to prove*)
 Lemma not_wf_iter_spin : forall (A B : Type) (g : A -> itree Void (A + B) ) (a : A),
           not_wf_from A (fun a1 a2 => a1 =[ fun x => obs _ (g x) ]=> a2) a -> spin ≈ iter g a.
 Proof.
   intros. unfold spec_iter_arrow_rel in H. cbn in H. unfold _obsip in H. 
+  enough (divergence (iter g a)).
+  { apply div_spin_eutt in H0. rewrite H0. reflexivity. }
+  remember (KTree.iter g a) as t. assert (t ≈ KTree.iter g a). { rewrite Heqt. reflexivity. } clear Heqt.
+  generalize dependent a. pcofix CIH. intros. pfold. red. destruct (observe t) eqn : Heqt; try contradiction;
+                                                            destruct (eutt_reta_or_div _ (KTree.iter g a) ); basic_solve.
+  - exfalso. admit.
+  - (*
+  
+  - exfalso. rename r0 into b. specialize (itree_eta t) as Ht. rewrite Heqt in Ht. rewrite Ht in H1.
+
+
+
   remember spin as t. rewrite Heqt. rewrite <- Heqt. assert (t ≈ spin). { rewrite Heqt. reflexivity. }
   clear Heqt. gen_dep2 a t.
   pcofix CIH. intros t Ht a Hwfa. 
@@ -201,6 +235,8 @@ Proof.
     specialize (itree_eta (g a) ) as Hga. rewrite Heq in Hga. rewrite Hga in Hrel. basic_solve. auto.
   - exfalso. specialize (itree_eta (g a)) as Hga. rewrite Heq in Hga. rewrite Hga in Hrel. basic_solve.
   - constructor. specialize (itree_eta (g a)) as Hga. rewrite Heq in Hga. rewrite Hga in Hiter. 
+    destruct (eutt_reta_or_div _ t1 ); basic_solve.
+    + *)
 
 Admitted.
 
@@ -217,26 +253,27 @@ Proof.
     assert (wf_from A rg a).
     { specialize (Hn a). destruct (classic (wf_from A rg a)); tauto. }
     clear Hn H0.
-    induction H1.
-    + unfold rg in H0. destruct (eutt_reta_or_div _ (g a) ); basic_solve.
-      * rename a0 into a'. specialize (H0 a'). exfalso. apply H0. unfold spec_iter_arrow_rel.
-        cbn. red. symmetry. eauto.
-      * exists 1. cbn. red. symmetry in H1. eapply term_b; eauto.
-        eapply Hp; eauto. setoid_rewrite unfold_iter_ktree. rewrite H1. setoid_rewrite bind_ret. reflexivity.
-      * exists 1. cbn. red. eapply intern_div; eauto. apply div_spin_eutt in H1. eapply Hp; eauto.
-        setoid_rewrite unfold_iter_ktree. rewrite H1. apply spin_bind.
+    induction H1 as [a Ha | a Ha IHn].
+    + unfold rg in Ha. destruct (eutt_reta_or_div _ (g a) ); basic_solve.
+      * rename a0 into a'. specialize (Ha a'). exfalso. apply Ha. unfold spec_iter_arrow_rel.
+        cbn. red. symmetry. auto.
+      * exists 1. cbn. red. symmetry in H0. eapply term_b; eauto.
+        eapply Hp; eauto. setoid_rewrite unfold_iter_ktree. rewrite H0. setoid_rewrite bind_ret. reflexivity.
+      * exists 1. cbn. red. eapply intern_div; eauto. apply div_spin_eutt in H0. eapply Hp; eauto.
+        setoid_rewrite unfold_iter_ktree. rewrite H0. apply spin_bind.
     + destruct (eutt_reta_or_div _ (g a) ); basic_solve.
-      * rename a0 into a'. symmetry in H2. specialize (H1 a').
+      * rename a0 into a'. symmetry in H0. specialize (Ha a').
         assert (rg a a').
         { unfold rg. unfold spec_iter_arrow_rel. cbn. red. auto. }
         assert (p (KTree.iter g a')).
-        { eapply Hp; eauto. setoid_rewrite  unfold_iter_ktree. rewrite H2.
+        { eapply Hp; eauto. setoid_rewrite unfold_iter_ktree. rewrite H0.
           setoid_rewrite <- unfold_iter_ktree. setoid_rewrite bind_ret. rewrite tau_eutt. reflexivity. }
-        specialize (H1 H3 H4). red in H1. basic_solve. exists (S n). cbn. red. eapply cont_a; eauto.
-      * exists 1. cbn. red. symmetry in H2. eapply term_b; eauto.
-        eapply Hp; eauto. setoid_rewrite unfold_iter_ktree. rewrite H2. setoid_rewrite bind_ret. reflexivity.
-      * exists 1. cbn. red. eapply intern_div; eauto. apply div_spin_eutt in H2. eapply Hp; eauto.
-        setoid_rewrite unfold_iter_ktree. rewrite H2. apply spin_bind.
+        
+        specialize (IHn _ H1 H2). red in IHn. basic_solve. exists (S n). cbn. red. eapply cont_a; eauto.
+      * exists 1. cbn. red. symmetry in H0. eapply term_b; eauto.
+        eapply Hp; eauto. setoid_rewrite unfold_iter_ktree. rewrite H0. setoid_rewrite bind_ret. reflexivity.
+      * exists 1. cbn. red. eapply intern_div; eauto. apply div_spin_eutt in H0. eapply Hp; eauto.
+        setoid_rewrite unfold_iter_ktree. rewrite H0. apply spin_bind.
 Qed.
 
 
@@ -261,6 +298,56 @@ Qed.
 
 
 Instance PureITreeIter :  Iter (Kleisli PureITreeSpec) sum := @iter_fix.
+
+Instance PureITreeMonadIter : MonadIter PureITreeSpec := fun A B => @iter_fix B A.
+
+Definition loop_invar_imp {A B : Type} (q : itree Void (A + B) -> Prop ) (p : itree Void B -> Prop) :Prop :=
+  forall (t : itree Void B), q (t >>= fun b => ret (inr b) ) -> p t. 
+
+Definition iter_lift {A B : Type} (g : A -> itree Void (A + B)) : (A + B) ->itree Void (A + B) :=
+  fun x => match x with 
+             | inl a => g a
+             | inr b => ret (inr b) end.
+
+Notation "q -+> p" := (loop_invar_imp q p) (at level 80).
+
+
+
+Lemma loop_invar : forall (A B : Type) (g : A -> itree Void (A + B) ) (a : A) 
+                          (p : itree Void B -> Prop) (Hp : resp_eutt _ _ p)
+                          (q : itree Void (A + B) -> Prop ) (Hq : resp_eutt _ _ q ),
+    (q -+> p) -> (q (g a)) -> 
+    (forall t, q t ->  q (bind t (iter_lift g))) ->
+    (p \1/ divergence) (iter g a).
+Proof.
+  intros. unfold loop_invar_imp in *.
+  set (fun a1 a2 => a1 =[fun x => obs _ (g x)  ]=> a2 ) as rg.
+  destruct (classic_wf A rg a).
+  - left. induction H2 as [a Ha | a Ha IH].
+    + destruct (eutt_reta_or_div _ (g a) ); basic_solve.
+      * exfalso. apply (Ha a0). clear Ha. symmetry in H2. auto.
+      * specialize (H (ret b)). apply Hp with (t1 := ret b).
+        -- setoid_rewrite unfold_iter_ktree. rewrite <- H2. setoid_rewrite bind_ret. reflexivity.
+        -- apply H. eapply Hq; eauto. setoid_rewrite bind_ret. auto.
+      * apply div_spin_eutt in H2. specialize (H spin). apply Hp with (t1 := spin).
+        -- setoid_rewrite unfold_iter_ktree. rewrite H2. apply spin_bind.
+        -- apply H. eapply Hq; eauto. rewrite H2. symmetry. apply spin_bind.
+    + destruct (eutt_reta_or_div _ (g a) ); basic_solve.
+      * rename a0 into a'. enough (p (KTree.iter g a')).
+        { eapply Hp; eauto. setoid_rewrite unfold_iter_ktree at 1. rewrite <- H2. setoid_rewrite bind_ret. 
+          rewrite tau_eutt. reflexivity. }
+        apply IH.
+        -- unfold rg. unfold spec_iter_arrow_rel. cbn. red. symmetry. auto.
+        -- specialize (H1 (g a) H0). eapply Hq; try apply H1. 
+           unfold iter_lift. symmetry in H2. rewrite H2. setoid_rewrite bind_ret. reflexivity.
+      * specialize (H (ret b)). apply Hp with (t1 := ret b).
+        -- setoid_rewrite unfold_iter_ktree. rewrite <- H2. setoid_rewrite bind_ret. reflexivity.
+        -- apply H. eapply Hq; eauto. setoid_rewrite bind_ret. auto.
+      * apply div_spin_eutt in H2. specialize (H spin). apply Hp with (t1 := spin).
+        -- setoid_rewrite unfold_iter_ktree. rewrite H2. apply spin_bind.
+        -- apply H. eapply Hq; eauto. rewrite H2. symmetry. apply spin_bind.
+  - apply not_wf_iter_spin in H2. right. rewrite <- H2. apply spin_div.
+Admitted.
 
 Ltac unf_bindg := unfold bindpi, _bindpi.
 
@@ -305,8 +392,21 @@ Proof.
     simpl in *. basic_solve; eauto. cbn in H2. left. exists (inl a0). split; auto. cbn.
     exists n. auto.
   - specialize  ( itree_spec_iter_unfold_aux_r A B g a) as H. cbn in H. cbn. intros. red.
-    unf_bind H0. dest_dep g a. 
-Admitted.
+    cbn in H.
+    unfold case_,  CoprodCase_Kleisli, case_sum in *.
+    destruct (classic (exists n,  proj1_sig
+        (bindpi (A + B) B (g a)
+           (fun y : A + B =>
+            match y with
+            | inl a => iter_fix_n n g a
+            | inr b => ret b
+            end)) p Hp)).
+    + basic_solve. exists (S n). cbn. auto.
+    + exfalso. apply H1. clear H1. clear H. unfold iter, PureITreeIter, iter_fix, _iter_fix in H0.
+      (*maybe p contains a sequence of t's which each require different amounts of unfolding. this could be problematic
+        it probably pays to move on and bring up the issue later*)
+      unf_bind H0. unf_bindg. dest_dep g a.
+Abort.
 
 
 (*is a relation R well founded from point x*)

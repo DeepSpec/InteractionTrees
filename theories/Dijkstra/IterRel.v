@@ -26,9 +26,9 @@ Section IterRel.
   Definition not_wf_from : A -> Prop :=
     paco1 not_wf_F bot1.
 
-  Inductive wf_from : A -> Prop :=
-    | base (a : A) : (forall a', ~ (r a a')) -> wf_from a
-    | step (a : A) : (forall a', r a a' -> wf_from a') -> wf_from a
+  Inductive wf_from (a : A) : Prop :=
+    | base : (forall a', ~ (r a a')) -> wf_from a
+    | step : (forall a', r a a' -> wf_from a') -> wf_from a
   .
   Hint Constructors wf_from.
   Lemma neg_wf_from_not_wf_from_l : forall (a : A),
@@ -62,6 +62,11 @@ Section IterRel.
     split; try apply neg_wf_from_not_wf_from_r; try apply neg_wf_from_not_wf_from_l.
   Qed.
 
+  Lemma classic_wf : forall (a : A), wf_from a \/ not_wf_from a.
+  Proof.
+    intros. destruct (classic (wf_from a)); auto.
+    apply neg_wf_from_not_wf_from in H. auto.
+  Qed.
   
 End IterRel.
 

@@ -212,7 +212,7 @@ Section StateITree.
       + destruct H. eapply Hp; eauto. apply div_spin_eutt in H. rewrite H. symmetry. apply spin_bind.
   Qed.
 
-  Instance StateITreeEffectObs : EffectObs (stateT S (itree Void) ) (StateITreeSpec):=
+  Global Instance StateITreeEffectObs : EffectObs (stateT S (itree Void) ) (StateITreeSpec):=
     obssi.
 
   Program Instance StateITreeMonadMorphism : MonadMorphism (stateT S (itree Void) ) StateITreeSpec StateITreeEffectObs.
