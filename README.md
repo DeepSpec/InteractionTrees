@@ -121,7 +121,7 @@ for testing.
     + `ITreeDefinition`: Interaction trees, type declaration and primitives.
     + `KTree`: Continuation trees `A -> itree E B`, the first Kleisli category
       of `itree`.
-    + `KTreeFacts`, `KTreeBasicFacts`
+    + `KTreeFacts`
     + `Subevent`: Combinators for extensible effects, injecting events into
       sums.
     + `ITreeMonad`: Instantiation of the `Basics.Monad` interface with
