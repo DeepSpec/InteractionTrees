@@ -185,8 +185,15 @@ Proof.
   intros []; reflexivity.
 Qed.
 
+Lemma pure_inl {A B}
+  : pure (b := A + B) inl_ ⩯ inl_.
+Proof. reflexivity. Qed.
 
-Fact case_pure {A B C} (ac : A -> C) (bc : B -> C) :
+Lemma pure_inr {A B}
+  : pure (b := A + B) inr_ ⩯ inr_.
+Proof. reflexivity. Qed.
+
+Lemma case_pure {A B C} (ac : A -> C) (bc : B -> C) :
     case_ (pure ac) (pure bc)
   ⩯ pure (@case_ _ Fun _ _ _ _ _ ac bc).
 Proof.
