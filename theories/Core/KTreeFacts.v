@@ -129,7 +129,7 @@ Qed.
 Definition eutt_iter_gen {F A B R S} :
   @Proper ((A -> itree F (A + B)) -> A -> itree F B)
           ((R ==> eutt (sum_rel R S)) ==> R ==> (eutt S))
-          KTree.iter.
+          (iter (C := ktree F)).
 Proof.
   do 3 red;
   intros body1 body2 EQ_BODY x y Hxy. red in EQ_BODY.
@@ -184,7 +184,7 @@ Qed.
 
 Lemma iter_dinatural_ktree {E A B C}
       (f : ktree E A (C + B)) (g : ktree E C (A + B)) (a0 : A)
-  : iter (fun a =>
+  : iter (C := ktree E) (fun a =>
       cb <- f a ;;
       match cb with
       | inl c => Tau (g c)
@@ -192,7 +192,7 @@ Lemma iter_dinatural_ktree {E A B C}
       end) a0
   ≅ cb <- f a0 ;;
      match cb with
-     | inl c0 => Tau (iter (fun c =>
+     | inl c0 => Tau (iter (C := ktree E) (fun c =>
          ab <- g c ;;
          match ab with
          | inl a => Tau (f a)
@@ -227,7 +227,7 @@ Proof.
   repeat intro.
   unfold bimap, Bimap_Coproduct, case_, Case_Kleisli, case_sum, cat, Cat_Kleisli.
   cbn.
-  transitivity (iter (fun t =>
+  transitivity (iter (C := ktree E) (fun t =>
                         x <- f t;;
                         match x with
                         | inl a1 => Tau (g a1)
@@ -255,7 +255,7 @@ Qed.
 
 Lemma iter_codiagonal_ktree {E A B} (f : ktree E A (A + (A + B))) (a0 : A)
   : iter (iter f) a0
-  ≅ iter (fun a =>
+  ≅ iter (C := ktree _) (fun a =>
        r <- f a ;;
        match r with
        | inl a' => Ret (inl a')

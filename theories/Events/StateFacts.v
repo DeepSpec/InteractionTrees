@@ -209,8 +209,8 @@ Lemma eutt_interp_state_iter {E F S A A' B B'}
           (interp_state h (t2 ca') s2)) ->
   (forall a a' s1 s2, RS s1 s2 -> RA a a' ->
      eutt (fun a b => RS (fst a) (fst b) /\ RB (snd a) (snd b))
-          (interp_state h (KTree.iter t1 a) s1)
-          (interp_state h (KTree.iter t2 a') s2)).
+          (interp_state h (iter (C := ktree _) t1 a) s1)
+          (interp_state h (iter (C := ktree _) t2 a') s2)).
 Proof.
   apply eutt_interp_state_aloop.
 Qed.

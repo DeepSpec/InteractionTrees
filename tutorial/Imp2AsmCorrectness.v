@@ -376,12 +376,12 @@ Section Bisimulation.
         (t2 : A' -> itree (_ +' _ +' E) (A' + B')) :
     (forall l l', R l l' -> bisimilar (sum_rel R S) (t1 l) (t2 l')) ->
     forall x x', R x x' ->
-    bisimilar S (KTree.iter t1 x) (KTree.iter t2 x').
+    bisimilar S (iter (C := ktree _) t1 x) (iter (C := ktree _) t2 x').
   Proof.
 
     unfold bisimilar, interp_asm, interp_imp, interp_map.
     intros. rewrite 2 interp_iter.
-    unfold KTree.iter, Iter_Kleisli.
+    unfold iter, Iter_Kleisli.
     pose proof @interp_state_iter'.
     red in H2. unfold Basics.iter, MonadIter_itree.
 
@@ -764,7 +764,7 @@ Section Correctness.
      in the main theorem.*)
   Lemma while_is_loop {E} (body : itree E (unit+unit)) :
     while body
-          ≈ KTree.iter (fun l : unit + unit =>
+          ≈ iter (C := ktree _) (fun l : unit + unit =>
                     match l with
                     | inl _ => x <- body;; match x with inl _ => Ret (inl (inl tt)) | inr _ => Ret (inr tt) end
                     | inr _ => Ret (inl (inl tt))   (* Enter loop *)
@@ -780,7 +780,7 @@ Section Correctness.
     destruct u2 as [[]|[]].
     2 : { force_right. reflexivity. }
     rewrite bind_ret_l, !tau_eutt.
-    unfold KTree.iter, Iter_Kleisli.
+    unfold iter, Iter_Kleisli.
     apply eutt_iter' with (RI := fun _ r => inl tt = r).
     - intros _ _ [].
       rewrite <- bind_ret_r at 1.

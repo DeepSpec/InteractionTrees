@@ -407,7 +407,7 @@ Proof.
   unfold denote_bks.
   unfold iter, CategorySub.Iter_sub.
   repeat rewrite interp_iter.
-  unfold KTree.iter, Iter_Kleisli.
+  unfold iter, Iter_Kleisli.
   cbn.
   pose proof @interp_state_iter'.
   red in H5.

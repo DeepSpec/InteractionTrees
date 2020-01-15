@@ -67,7 +67,3 @@ Local Notation ktree := (ktree E).
  *)
 
 End Operations.
-
-Notation iter := (@iter _ (ktree _) sum _ _ _).
-Notation loop := (@loop _ (ktree _) sum _ _ _ _ _ _ _ _ _).
-
