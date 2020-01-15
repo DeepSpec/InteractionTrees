@@ -39,7 +39,7 @@ Section CategoryTheory.
              (assoc_r >>>
                       (bimap (id_ J) assoc_r >>>
                              (assoc_l >>> bimap swap (id_ (bif B D)))))).
-  Proof. Admitted. (* cat_auto. Qed. *)
+  Proof. cat_auto. Qed.
 
 End CategoryTheory.
 
