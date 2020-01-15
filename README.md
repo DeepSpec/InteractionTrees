@@ -32,7 +32,7 @@ See also [the tutorial](./tutorial/README.md).
 
 ## Dependencies
 
-- [coq](https://coq.inria.fr/) (8.8 or 8.9)
+- [coq](https://coq.inria.fr/) (8.8, 8.9, or 8.10)
 - [coq-paco](https://github.com/snu-sf/paco)
 - [coq-ext-lib](https://github.com/coq-ext-lib/coq-ext-lib)
 
