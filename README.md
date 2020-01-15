@@ -32,7 +32,7 @@ See also [the tutorial](./tutorial/README.md).
 
 ## Dependencies
 
-- [coq](https://coq.inria.fr/) (8.8 or 8.9)
+- [coq](https://coq.inria.fr/) (8.8, 8.9, or 8.10)
 - [coq-paco](https://github.com/snu-sf/paco)
 - [coq-ext-lib](https://github.com/coq-ext-lib/coq-ext-lib)
 
@@ -121,7 +121,7 @@ for testing.
     + `ITreeDefinition`: Interaction trees, type declaration and primitives.
     + `KTree`: Continuation trees `A -> itree E B`, the first Kleisli category
       of `itree`.
-    + `KTreeFacts`, `KTreeBasicFacts`
+    + `KTreeFacts`
     + `Subevent`: Combinators for extensible effects, injecting events into
       sums.
     + `ITreeMonad`: Instantiation of the `Basics.Monad` interface with

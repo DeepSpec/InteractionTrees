@@ -123,7 +123,7 @@ Section eff_hom_e.
 
   Definition interp_e (h : eff_hom_e) : itree E ~> itree F := fun R t =>
     ITree.iter (fun '(s, t) =>
-      match t.(observe) with
+      match observe t with
       | RetF r => Ret (inr r)
       | TauF t => Ret (inl (s, t))
       | VisF e k => ITree.map (fun '(s, x) => inl (s, k x)) (h.(eval) _ e)

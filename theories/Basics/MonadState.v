@@ -25,7 +25,7 @@ Section State.
   Context {HM: Monad M}.
   Context {HEQP: @EqMProps M _ EQM}.
   Context {ML: @MonadLaws M _ HM}.
-  
+
   Global Instance EqM_stateTM : EqM (stateT S M).
   Proof.
     exact (fun a => pointwise_relation _ eqm).
@@ -43,7 +43,7 @@ Section State.
   Instance MonadLaws_stateTM : @MonadLaws (stateT S M) _ _.
   Proof.
   constructor.
-  - cbn. intros a b f x. 
+  - cbn. intros a b f x.
     repeat red.  intros s.
     rewrite bind_ret_l. reflexivity.
   - cbn. intros a x.
@@ -65,7 +65,7 @@ Section State.
       destruct a0.
       apply H0.
   Qed.
-      
+
   Context {IM: Iter (Kleisli M) sum}.
   Context {CM: Iterative (Kleisli M) sum}.
 
@@ -80,7 +80,7 @@ Section State.
     | inl (s, a) => (s, inl a)
     | inr (s, b) => (s, inr b)
     end.
-  
+
   Definition internalize {a b:Type} (f : Kleisli (stateT S M) a b) : Kleisli M (S * a) (S * b) :=
     fun (sa : S * a) => f (snd sa) (fst sa).
 
@@ -98,7 +98,7 @@ Section State.
       apply H.
   Qed.
 
-  
+
   Lemma internalize_cat {a b c} (f : Kleisli (stateT S M) a b) (g : Kleisli (stateT S M) b c) :
     (internalize (f >>> g)) ⩯ ((internalize f) >>> (internalize g)).
   Proof.
@@ -111,7 +111,7 @@ Section State.
     reflexivity.
   Qed.
 
-  
+
   Lemma internalize_pure {a b c} (f : Kleisli (stateT S M) a b) (g : S * b -> S * c) :
     internalize f >>> pure g   ⩯   (internalize (f >>> (fun b s => ret (g (s,b))))).
   Proof.
@@ -125,14 +125,14 @@ Section State.
       unfold pure. reflexivity.
   Qed.
 
-  
+
   Global Instance Iter_stateTM : Iter (Kleisli (stateT S M)) sum.
   Proof.
     exact
       (fun (a b : Type) (f : a -> S -> M (S * (a + b))) (x:a) (s:S) =>
         iter ((internalize f) >>> (pure iso)) (s, x)).
   Defined.
-  
+
   Global Instance Proper_Iter_stateTM : forall a b, @Proper (Kleisli (stateT S M) a (a + b) -> (Kleisli (stateT S M) a b)) (eq2 ==> eq2) iter.
   Proof.
     destruct CM.
@@ -179,10 +179,10 @@ Section State.
     setoid_rewrite iterative_natural.
     apply iterative_proper_iter.
     repeat red.
-    destruct a1. 
+    destruct a1.
     unfold cat, Cat_Kleisli.
-    cbn. 
-    rewrite! bind_bind. 
+    cbn.
+    rewrite! bind_bind.
     apply Proper_bind.
     - reflexivity.
     - repeat red. destruct a2 as [s' [x | y]]; simpl.
@@ -208,7 +208,7 @@ Section State.
   Proof.
     reflexivity.
   Qed.
-    
+
 
   Lemma eq2_to_eqm : forall a b (f g : Kleisli (stateT S M) a b) (x:a) (s:S),
       eq2 f g ->
@@ -228,7 +228,7 @@ Section State.
     repeat red.
     destruct a0.
     unfold cat, Cat_Kleisli, internalize.
-    cbn. 
+    cbn.
     repeat rewrite bind_bind.
     apply Proper_bind.
     - reflexivity.
@@ -244,13 +244,13 @@ Section State.
           rewrite bind_ret_l. reflexivity.
   Qed.
 
-    
+
   Global Instance IterDinatural_stateTM : IterDinatural (Kleisli (stateT S M)) sum.
   Proof.
     destruct CM.
     unfold IterDinatural.
     repeat red.
-    intros a b c f g a0 a1. 
+    intros a b c f g a0 a1.
     unfold iter, Iter_stateTM.
     eapply transitivity.
     eapply iterative_proper_iter.
@@ -284,7 +284,7 @@ Section State.
         cbn.
         reflexivity.
     Qed.
-        
+
 
   Global Instance IterCodiagonal_stateTM : IterCodiagonal (Kleisli (stateT S M)) sum.
   Proof.
@@ -309,7 +309,7 @@ Section State.
    apply H.
    reflexivity.
    eapply transitivity.
-   
+
    eapply iterative_proper_iter.
    apply iterative_natural.
    rewrite iterative_codiagonal.
@@ -353,8 +353,8 @@ Section State.
 
   Global Instance Iterative_stateTM : Iterative (Kleisli (stateT S M)) sum.
   Proof.
-  constructor; 
+  constructor;
   typeclasses eauto.
   Qed.
-  
+
 End State.

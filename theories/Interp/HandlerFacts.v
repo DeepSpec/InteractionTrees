@@ -204,7 +204,7 @@ Context {R : Type}.
 
 Context (f := fun T e => Tau (f0 T e)) (g := fun T e => Tau (g0 T e)).
 
-Local Inductive interleaved
+Inductive interleaved
   : itree (A +' C) R -> itree (B +' C) R -> Prop :=
 | interleaved_Ret r : interleaved (Ret r) (Ret r)
 | interleaved_Left {U} (t : itree _ U) k1 k2 :
