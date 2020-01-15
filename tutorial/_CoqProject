@@ -6,6 +6,7 @@ Introduction.v
 Utils_tutorial.v
 Fin.v
 KTreeFin.v
+CatTheory.v
 Imp.v
 Asm.v
 AsmCombinators.v

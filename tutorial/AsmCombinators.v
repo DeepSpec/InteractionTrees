@@ -38,7 +38,7 @@ From ITree Require Import
      Basics.Category
      Basics.CategorySub.
 
-Require Import Asm Utils_tutorial Fin KTreeFin.
+Require Import Asm Utils_tutorial Fin KTreeFin CatTheory.
 
 Import CatNotations.
 Local Open Scope cat_scope.
@@ -125,10 +125,6 @@ Definition id_asm {A} : asm A A := pure_asm id.
     the only tricky part is to rename all labels appropriately.
  *)
 
-(** [(A + B) + (C + D) -> (A + C) + (B + D)]*)
-Notation swap4 :=
-(assoc_r >>> bimap (id_ _) (assoc_l >>> bimap swap (id_ _) >>> assoc_r) >>> assoc_l).
-
 (** Combinator to append two asm programs, preserving their internal links.
     Can be thought of as a "vertical composition", or a tensor product.
  *)
@@ -179,39 +175,6 @@ Import CatNotations.
 Local Open Scope cat.
 (* end hide *)
 Section Correctness.
-
-Section CategoryTheory.
-
-  Context
-    {obj : Type} {C : obj -> obj -> Type}
-    {bif : obj -> obj -> obj}
-    {Eq2_C : Eq2 C}
-    `{forall a b, Equivalence (eq2 (a := a) (b := b))}
-    `{Category obj C (Eq2C := _)}
-    `{Coproduct obj C (Eq2_C := _) (Cat_C := _) bif}.
-
-  Local Lemma aux_app_asm_correct1 (I J A B : obj) :
-      (assoc_r >>>
-       bimap (id_ I) (assoc_l >>> bimap swap (id_ B) >>> assoc_r) >>>
-       assoc_l)
-    ⩯ bimap swap (id_ (bif A B)) >>>
-      (assoc_r >>>
-      (bimap (id_ J) assoc_l >>>
-      (assoc_l >>> (bimap swap (id_ B) >>> assoc_r)))).
-  Proof. cat_auto. Qed.
-
-  Local Lemma aux_app_asm_correct2 (I J B D : obj) :
-      (assoc_r >>>
-       bimap (id_ I) (assoc_l >>> bimap swap (id_ D) >>> assoc_r) >>>
-       assoc_l)
-    ⩯ assoc_l >>>
-      (bimap swap (id_ D) >>>
-      (assoc_r >>>
-      (bimap (id_ J) assoc_r >>>
-      (assoc_l >>> bimap swap (id_ (bif B D)))))).
-  Proof. cat_auto. Qed.
-
-  End CategoryTheory.
 
   Context {E : Type -> Type}.
   Context {HasRegs : Reg -< E}.
@@ -281,9 +244,6 @@ Section CategoryTheory.
     intros is1 is2; induction is1 as [| i is1 IH]; simpl; intros; [rewrite bind_ret_l; reflexivity |].
     rewrite bind_bind; setoid_rewrite IH; reflexivity.
   Qed.
-
-  Lemma lift_ktree_inr {A B} : lift_ktree_ E A (B + A) inr = inr_.
-  Proof. reflexivity. Qed.
 
   Lemma unit_l'_id_sktree {n : nat}
     : (unit_l' (C := sub (ktree E) fin) (bif := Nat.add) (i := 0)) ⩯ id_ n.
@@ -394,14 +354,6 @@ Section CategoryTheory.
     all: rewrite fmap_block_map.
     all: setoid_rewrite bind_ret_l.
     all: reflexivity.
-  Qed.
-
-  Lemma subpure_swap4 {A B C D} :
-    subpure (E := E) (n := (A + B) + (C + D)) swap4 ⩯ swap4.
-  Proof.
-    do 2 rewrite !fmap_cat0, fmap_bimap, fmap_id0.
-    rewrite !fmap_assoc_r, !fmap_assoc_l, fmap_swap.
-    reflexivity.
   Qed.
 
   (** Correctness of the [app_asm] combinator.
