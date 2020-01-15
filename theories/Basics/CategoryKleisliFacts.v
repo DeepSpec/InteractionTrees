@@ -57,7 +57,7 @@ Section BasicFacts.
     - intros ? ? ? ?. unfold pure. rewrite H. reflexivity.
   Qed.
 
-Global Instance Proper_cat_Kleisli {a b c}
+Instance Proper_cat_Kleisli {a b c}
   : @Proper (Kleisli m a b -> Kleisli m b c -> _)
             (eq2 ==> eq2 ==> eq2) cat.
 Proof.
