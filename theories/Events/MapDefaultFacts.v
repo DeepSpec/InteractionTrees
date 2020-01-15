@@ -45,7 +45,7 @@ Section MapFacts.
   Lemma lookup_add_eq: forall k v s, lookup k (add k v s) = Some v.
   Proof.
     intros.
-    rewrite mapsto_lookup; apply mapsto_add_eq. 
+    rewrite mapsto_lookup; apply mapsto_add_eq.
     Unshelve.
     2: typeclasses eauto.
   Qed.
@@ -113,7 +113,7 @@ Section MapFacts.
 
   Global Instance eq_map_trans {d} : Transitive (@eq_map _ _ _ _ d).
   Proof.
-    repeat intro. 
+    repeat intro.
     unfold eq_map in *.
     rewrite H. rewrite H0. reflexivity.
   Qed.
@@ -123,7 +123,7 @@ Section MapFacts.
   Context {R1 R2 : Type}.
   Variable RR : R1 -> R2 -> Prop.
 
-  Definition map_default_eq d {E} 
+  Definition map_default_eq d {E}
     : (stateT map (itree E) R1) -> (stateT map (itree E) R2) -> Prop :=
     fun t1 t2 => forall s1 s2, (@eq_map _ _ _ _ d) s1 s2 -> eutt (prod_rel (@eq_map _ _ _ _ d) RR) (t1 s1) (t2 s2).
 
@@ -141,7 +141,7 @@ Section MapFacts.
       rewrite 2 lookup_add_eq; reflexivity.
     - unfold lookup_default in *.
       rewrite 2 lookup_add_neq; auto.
-  Qed.      
+  Qed.
 
   Lemma eq_map_remove:
     forall (d : V) (s1 s2 : map) (k : K), (@eq_map _ _ _ _ d) s1 s2 -> (@eq_map _ _ _ _ d) (remove k s1) (remove k s2).
@@ -154,8 +154,8 @@ Section MapFacts.
     - rewrite 2 lookup_remove_neq; auto.
       apply H.
   Qed.
-  
-  Lemma handle_map_eq : 
+
+  Lemma handle_map_eq :
     forall d E X (s1 s2 : map) (m : mapE K d X),
       (@eq_map _ _ _ _ d) s1 s2 ->
       eutt (prod_rel (@eq_map _ _ _ _ d) eq) (handle_map m s1) ((handle_map m s2) : itree E (map * X)).
@@ -197,7 +197,7 @@ Section MapFacts.
       + unfold over. destruct (case e).
         * apply handle_map_eq; assumption.
         (* YZ: Hence in this case we relate two trees defined as triggers *)
-        * unfold trigger', Trigger_State, trigger', Trigger_ITree, ITree.trigger.
+        * unfold trigger, Trigger_State, trigger, Trigger_ITree, ITree.trigger.
           cbn. rewrite 2 bind_vis. apply eqit_Vis.
           intros. rewrite 2 bind_ret.  apply eqit_Ret. constructor; auto.
       (* We get away with it by unfolding the instances though *)
@@ -215,7 +215,7 @@ Section MapFacts.
     einit.
     ecofix CH.
     intros.
-    rewrite! unfold_interp_state. 
+    rewrite! unfold_interp_state.
     punfold H0. red in H0.
     revert s1 s2 H1.
     induction H0; intros; subst; simpl; pclearbot.
@@ -225,14 +225,14 @@ Section MapFacts.
       apply pbc_intro_h with (RU := prod_rel (@eq_map _ _ _ _ d) eq).
       { (* SAZ: I must be missing some lemma that should solve this case *)
         unfold over.
-        destruct (case e). 
+        destruct (case e).
         - apply handle_map_eq. assumption.
-        - unfold trigger', Trigger_State, trigger', Trigger_ITree, ITree.trigger.
+        - unfold trigger, Trigger_State, trigger, Trigger_ITree, ITree.trigger.
           pstep. cbn. red. cbn. (* YZ: this is ugly... A better way? *)
           econstructor. intros. constructor. pfold.
           red; cbn.
           econstructor. constructor; auto.
-      } 
+      }
       intros.
       inversion H. subst.
       estep; constructor. ebase.

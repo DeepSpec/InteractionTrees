@@ -93,11 +93,12 @@ Section Trigger.
      an event [e] builds the "smallest" monadic value that executes [e].
    *)
 
-  Class Trigger (E: Type -> Type) (M: Type -> Type) := trigger': E ~> M.
+  Class Trigger (E: Type -> Type) (M: Type -> Type) := trigger: E ~> M.
 
 End Trigger.
-
-Notation trigger e := (trigger' _ (inj1 e)).
+Arguments trigger {E M Trigger} [T].
+(* Notation trigger e := (trigger' _ (inj1 e)). *)
+(* Notation trigger := trigger'. *)
 Notation vis e k := (Vis (inj1 e) k).
 (**
    Generic lifting of an handler over a super-set of events.
@@ -108,7 +109,7 @@ Notation vis e k := (Vis (inj1 e) k).
 Definition over {A B C M : Type -> Type} {S:A +? C -< B} {T:Trigger C M} (f : A ~> M) : B ~> M  :=
   fun t b =>  match case b with
            | inl1 a => f _ a
-           | inr1 c => trigger' _ c
+           | inr1 c => trigger c
            end.
 
 Arguments over {_ _ _ _ _ _} _ [_] _.
@@ -127,7 +128,7 @@ Lemma over_inj2: forall {A B C M: Type -> Type}
                    {Sub: A +? C -< B} {SubWF: Subevent_wf Sub} {Trig: Trigger C M}
                    (h: A ~> M)
                    {T} (e: C T),
-    over h (inj2 e) = trigger' _ e.
+    over h (inj2 e) = trigger e.
 Proof.
   intros.
   unfold over; rewrite case_inj2; reflexivity.
@@ -148,16 +149,18 @@ Section Instances.
 
     (* The minimal [itree] that performs [e] is [Vis e (fun x => Ret x)], already defined as [ITree.trigger] *)
     Instance Trigger_ITree {E F G} `{E +? F -< G}: Trigger E (itree G) := fun _ e => ITree.trigger (inj1 e).
-    (* Instance Trigger_ITree {E} : Trigger E (itree E) := ITree.trigger. *)
+    (* We allow to look for the inclusion by commuting the two arguments.
+       By doing it only at this level it's a cheap way to explore both options while avoiding looping resolutions
+     *)
 
     (* The [stateT] transformer relies on the trigger instance of its monad and simply pass away the state untouched *)
     Instance Trigger_State {S} {E} {M} `{Monad M} `{Trigger E M}: Trigger E (Monads.stateT S M) :=
-      (fun T e s => t <- trigger' _ e ;; ret (s,t))%monad.
+      (fun T e s => t <- trigger e ;; ret (s,t))%monad.
 
     (* The [PropT] transformer returns the propositional singleton of the underlying trigger.
        However, we might want this singleton to be up to some equivalence *)
     Instance Trigger_Prop {E} {M} `{Monad M} `{Trigger E M} : Trigger E (fun X => M X -> Prop) :=
-      (fun T e m => m = (trigger' _ e)).
+      (fun T e m => m = (trigger e)).
 
   End Trigger_Instances.
 
@@ -283,6 +286,13 @@ Section Instances.
         rewrite epi2, cat_id_l, case_inr, case_inl.
         intros ? [|[|]]; cbn; reflexivity.
     Qed.
+
+    Instance Subevent_commute
+             {A B C}
+             {Sub: A +? B -< C}:
+      B +? A -< C :=
+      {| split_E := split_E >>> swap
+         ; merge_E := swap >>> merge_E |}.
 
    (**
        Well-formedness of the instances: each subevent instance defines an isomorphism.
@@ -463,6 +473,25 @@ Existing Instance Subevent_Sum_Out       | 3.
 Existing Instance Trigger_ITree          | 1.
 Existing Instance Trigger_State          | 1.
 Existing Instance Trigger_Prop           | 1.
+(* Existing Instance Trigger_ITree_comm.    | 2. *)
+
+(* This one allows to apply Subevent_forget_order when ready to conclude, in order to avoid loops.
+   It's not pretty, and only works when two effects are nested. Should be improved.
+ *)
+Hint Extern 10 (Subevent ?A ?B ?C) =>
+match goal with
+| h: _ +? ?E -< ?C |- _ =>
+  match goal with
+  | h': ?A +? _ -< ?E |- _ =>
+    apply (@Subevent_forget_order _ _ _ _ _ h h')
+  end
+end: typeclass_instances.
+
+Hint Extern 10 (Subevent ?A ?B ?C) =>
+match goal with
+| h: ?B +? ?A -< ?C |- _ =>
+  exact (@Subevent_commute _ _ _ h)
+end: typeclass_instances.
 
 Section Test.
 
