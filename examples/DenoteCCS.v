@@ -622,6 +622,7 @@ Section ccs_op.
   | Choice : ccs_ -> ccs_ -> ccs_
   | Par : ccs_ -> ccs_ -> ccs_
   | Hide : Label -> ccs_ -> ccs_
+  | Bang : ccs_ -> ccs_
   .
 
   (* General transition rules for the Labelled Transition System. *)
@@ -644,9 +645,14 @@ Section ccs_op.
   | step_Par_Comm2 l u v u' v' :
       step (Some (@Out l)) u u' -> step (Some (@In l)) v v' ->
       step None (Par u v) (Par u' v')
-  | step_Hide l u u' :
+  | step_Hide_In l u u' :
       step (Some (@In l)) u u' ->
       step (Some (@In l)) (Hide (@In l) u) (Hide (@In l) u')
+  | step_Hide_Out l u u' :
+      step (Some (@Out l)) u u' ->
+      step (Some (@Out l)) (Hide (@Out l) u) (Hide (@Out l) u')
+  | step_Bang u u' (A' : option Label) :
+      step A' (Par u (Bang u)) u' -> step A' (Bang u) u'
   .
 
   (** *Synchronous Model of Operational CCS
@@ -697,6 +703,14 @@ Section ccs_op.
       aux_step (Some (Out l)) u u' ->
       aux_step (Some (In l)) v v' ->
       sync_step None (Par u v) (Par u' v')
+  | sync_step_Hide_In l u u' :
+      sync_step (Some (@In l)) u u' ->
+      sync_step (Some (@In l)) (Hide (@In l) u) (Hide (@In l) u')
+  | sync_step_Hide_Out l u u' :
+      sync_step (Some (@Out l)) u u' ->
+      sync_step (Some (@Out l)) (Hide (@Out l) u) (Hide (@Out l) u')
+  | sync_step_Bang u u' (A' : option Label) :
+      sync_step A' (Par u (Bang u)) u' -> sync_step A' (Bang u) u'
   .
 
 End ccs_op.
@@ -745,6 +759,9 @@ Proof.
     split. econstructor. econstructor.
     apply H1. apply H0.
   - exists l1. exists p3. split. reflexivity.
+    split. econstructor. econstructor.
+    apply H1. apply H0.
+  - exists l0. exists p3. split. reflexivity.
     split. econstructor. econstructor.
     apply H1. apply H0.
 Qed.
