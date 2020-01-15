@@ -375,7 +375,7 @@ Section InterpImpProperties.
     repeat intro.
     unfold interp_imp.
     unfold interp_map.
-    rewrite H0. eapply eutt_interp_state; auto.
+    rewrite H0. eapply eutt_interp_state_eq; auto.
     rewrite H. reflexivity.
   Qed.
 
