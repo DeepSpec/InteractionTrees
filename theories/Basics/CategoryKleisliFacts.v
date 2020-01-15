@@ -57,6 +57,14 @@ Section BasicFacts.
     - intros ? ? ? ?. unfold pure. rewrite H. reflexivity.
   Qed.
 
+(* This is subsumed by [category_proper_cat] and the [Category]
+   instance for Kleisli.
+   Adding this as an instance (i.e., marking this as [Global]) would confuse
+   typeclass search, as it would often be picked for categories whose arrow
+   types are definitionally equal to some [Kleisli m a b]
+   (e.g., [sub (Kleisli m) f]), which puts the rest of the search in the wrong
+   category.
+ *)
 Instance Proper_cat_Kleisli {a b c}
   : @Proper (Kleisli m a b -> Kleisli m b c -> _)
             (eq2 ==> eq2 ==> eq2) cat.
