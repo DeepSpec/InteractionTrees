@@ -364,14 +364,14 @@ Section ccs_combinators.
           rewrite Heqk2.
           -- constructor.
           -- destruct e0 eqn: He0; try constructor.
-             ++ destruct l0; econstructor; subst;
+             ++ destruct l; econstructor; subst;
                   try (right; setoid_rewrite (itree_eta_ (k3 tt));
                        setoid_rewrite (itree_eta_ (Vis (Or n3) k0)); apply CIH).
                 ** pstep. destruct (REL n4).
                    --- punfold H1. unfold shape_inv_ in H1.
                        unfold observe in H1. rewrite Heqi in H1.
                        inversion H1.
-                       dependent destruction H6.
+                       dependent destruction H5.
                        setoid_rewrite <- (itree_eta_ (k3 tt)).
                        destruct REL1.
                        +++ punfold H3.
@@ -384,7 +384,7 @@ Section ccs_combinators.
                    --- punfold H1. unfold shape_inv_ in H1.
                        unfold observe in H1. rewrite Heqi in H1.
                        inversion H1.
-                       dependent destruction H6.
+                       dependent destruction H5.
                        setoid_rewrite <- (itree_eta_ (k3 tt)).
                        destruct REL1.
                        +++ punfold H3.
@@ -450,7 +450,7 @@ Section ccs_combinators.
                 rewrite Heqk2.
             ++ constructor.
             ++ destruct e0 eqn: He0; try constructor;
-                 try destruct l0.
+                 try destruct l.
                ** econstructor; subst;
                   try (right; setoid_rewrite (itree_eta_ (k3 tt));
                        setoid_rewrite (itree_eta_ (Vis (Or n2) k)); apply CIH);
@@ -458,7 +458,7 @@ Section ccs_combinators.
                   --- punfold H1. unfold shape_inv_ in H1.
                       unfold observe in H1.
                       rewrite Heqi in H1. inversion H1.
-                      dependent destruction H6.
+                      dependent destruction H5.
                       setoid_rewrite <- (itree_eta_ (k3 tt)).
                       destruct REL1. apply H3.
                       inversion H3.
@@ -471,7 +471,7 @@ Section ccs_combinators.
                       +++ punfold H1. unfold shape_inv_ in H1.
                           unfold observe in H1.
                           rewrite Heqi in H1. inversion H1.
-                          dependent destruction H6.
+                          dependent destruction H5.
                           setoid_rewrite <- (itree_eta_ (k3 tt)).
                           destruct REL1. apply H3.
                           inversion H3.
@@ -513,12 +513,12 @@ Section ccs_combinators.
               setoid_rewrite Heqi in Heqk2; try inversion Heqk2;
               rewrite Heqk2;
              destruct e; try inversion H2; clear H2; clear H3;
-             destruct l; destruct l0;
+             destruct l;
                destruct (_observe (k0 ((n4 - n2 - n3) / n2))) eqn:?;
                         setoid_rewrite Heqi0 in Heqk2; try inversion Heqk2;
                  rewrite Heqk2;
                  destruct e; try inversion H2; clear H2;
-                   destruct l1; try inversion Heqk2;
+                   destruct l0; try inversion Heqk2;
                      destruct (l ≡? l0); inversion Heqk2.
           -- destruct (_observe (k ((n4 - n2 - n3) mod n3))) eqn:?;
               setoid_rewrite Heqi in Heqk2; try inversion Heqk2;
@@ -679,9 +679,9 @@ Section ccs_op.
     R. Milner, Communicating and Mobile Systems: The π-calculus.  *)
   Inductive aux_step : option Label -> ccs_ -> ccs_ -> Prop :=
   | aux_step_Send l t :
-      aux_step (Some (In l)) (Action (In l) t) t
+      aux_step (Some (@In l)) (Action (@In l) t) t
   | aux_step_Recv l t :
-      aux_step (Some (Out l)) (Action (Out l) t) t
+      aux_step (Some (@Out l)) (Action (@Out l) t) t
   .
 
   Inductive sync_step : option Label -> ccs_ -> ccs_ -> Prop :=
@@ -696,12 +696,12 @@ Section ccs_op.
   | sync_step_Par_R u v v' (A' : option Label) :
       sync_step A' v v' -> sync_step A' (Par u v) (Par u v')
   | sync_step_Par_Comm1 l u v u' v' :
-      aux_step (Some (In l)) u u' ->
-      aux_step (Some (Out l)) v v' ->
+      aux_step (Some (@In l)) u u' ->
+      aux_step (Some (@Out l)) v v' ->
       sync_step None (Par u v) (Par u' v')
   | sync_step_Par_Comm2 l u v u' v' :
-      aux_step (Some (Out l)) u u' ->
-      aux_step (Some (In l)) v v' ->
+      aux_step (Some (@Out l)) u u' ->
+      aux_step (Some (@In l)) v v' ->
       sync_step None (Par u v) (Par u' v')
   | sync_step_Hide_In l u u' :
       sync_step (Some (@In l)) u u' ->
@@ -710,7 +710,7 @@ Section ccs_op.
       sync_step (Some (@Out l)) u u' ->
       sync_step (Some (@Out l)) (Hide (@Out l) u) (Hide (@Out l) u')
   | sync_step_Bang u u' (A' : option Label) :
-      sync_step A' (Par u (Bang u)) u' -> step A' (Bang u) u'
+      sync_step A' (Par u (Bang u)) u' -> sync_step A' (Bang u) u'
   .
 
 End ccs_op.
@@ -806,7 +806,7 @@ Qed.
 Lemma is_trace_par_sync :
   forall (p1 p2 p1' p2' p1'' p2'': ccs_) a l1 l2,
     is_trace_ p1' l1 p1'' -> is_trace_ p2' l2 p2'' ->
-    aux_step (Some (In a)) p1 p1' -> aux_step (Some (Out a)) p2 p2' ->
+    aux_step (Some (@In a)) p1 p1' -> aux_step (Some (@Out a)) p2 p2' ->
     is_trace_ (Par p1 p2) (None::(l2 ++ l1)) (Par p1'' p2'').
 Proof.
   intros.
@@ -889,7 +889,7 @@ Proof.
         destruct l0; repeat_constructors.
       * (* Sync a0 *)
         exists [None];
-          exists (Par (Action (In (hd a l)) Done) (Action (Out (hd a l)) Done));
+          exists (Par (Action (@In (hd a l)) Done) (Action (@Out (hd a l)) Done));
           exists (Par Done Done); repeat_constructors.
       * (* Fail *)
         exists_trace_done.
@@ -898,8 +898,8 @@ Proof.
       * (* Or n0 *)
         destruct IHis_traceF.
         destruct H0 as [? [?]]. destruct H0.
-        exists ((Some (In (hd a l)))::x0);
-          exists (Choice (Action (In (hd a l)) x1) x1); exists x2.
+        exists ((Some (@In (hd a l)))::x0);
+          exists (Choice (Action (@In (hd a l)) x1) x1); exists x2.
         split. econstructor. apply H0. constructor. econstructor.
         econstructor. apply H1. econstructor. apply H0. constructor.
         constructor.
@@ -918,7 +918,7 @@ Proof.
         destruct IHis_traceF.
         destruct H0 as [? [?]]. destruct H0.
         exists (None::(x0)).
-        exists (Par (Action (In (hd a l)) x1) (Action (Out (hd a l)) x2)).
+        exists (Par (Action (@In (hd a l)) x1) (Action (@Out (hd a l)) x2)).
         exists (Par x2 x2). split.
         -- assert (None :: x0 = [None] ++ x0).
            { reflexivity. }
