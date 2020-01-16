@@ -103,13 +103,13 @@ Section ccs.
     forall (x y : Label), {x = y} + {x <> y}.
   Proof.
     intros. repeat decide equality.
-    
+  Qed.
 
   (* Denotation of CCS Operators as ITree events. *)
   Variant ccsE : Type -> Type :=
   | Or (n : nat) : ccsE nat
      (* Note: choices are zero-indexed. *)
-  | Act (l : idx) : Label l -> ccsE unit
+  | Act : Label -> ccsE unit
   | Sync : idx -> ccsE unit
   | Fail : ccsE void
   .
@@ -710,7 +710,7 @@ Section ccs_op.
       sync_step (Some (@Out l)) u u' ->
       sync_step (Some (@Out l)) (Hide (@Out l) u) (Hide (@Out l) u')
   | sync_step_Bang u u' (A' : option Label) :
-      sync_step A' (Par u (Bang u)) u' -> sync_step A' (Bang u) u'
+      sync_step A' (Par u (Bang u)) u' -> step A' (Bang u) u'
   .
 
 End ccs_op.
