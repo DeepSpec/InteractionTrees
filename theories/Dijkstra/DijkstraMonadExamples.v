@@ -580,6 +580,7 @@ Section StateExample.
 
   Lemma ex : STProp nat unit winc inc.
     Proof.
+      red. red. red. red. red.
       cbv. intros. destruct H as [ _ H]. apply H. induction s; auto.
     Qed.
 End StateExample.

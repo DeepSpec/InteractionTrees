@@ -6,6 +6,7 @@ From Coq Require Import
      Setoid
      RelationClasses
      Logic.Classical_Prop
+     Logic.EqdepFacts
 .
 
 From ExtLib Require Import
@@ -123,4 +124,17 @@ Lemma inv_ret : forall (A : Type) (E : Type -> Type) (a b : A),
     @eutt E A A eq (ret a) (ret b) -> a = b.
 Proof. 
   intros. pinversion H; subst. auto.
+Qed.
+
+Lemma inv_tau : forall (A : Type) (E : Type -> Type) (t1 t2 : itree E A),
+    Tau t1 ≅ Tau t2 -> t1 ≅ t2.
+Proof.
+  intros. pinversion H; try discriminate. auto.
+Qed.
+
+Lemma inv_vis : forall (R A: Type) (E : Type -> Type) (e1 e2 : E A) (k1 k2 : A -> itree E R),
+    Vis e1 k1 ≅ Vis e2 k2 -> (e1 = e2) /\ (forall (a : A), k1 a ≅ k2 a).
+Proof.
+  intros. pinversion H; subst. repeat match goal with | H : existT _ _ _ = existT _ _ _ |- _ => apply inj_pair2 in H end.
+  subst. split; auto.
 Qed.

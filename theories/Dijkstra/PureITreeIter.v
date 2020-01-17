@@ -183,39 +183,96 @@ Proof.
   red in Hspin. rewrite H in Hspin. 
   rewrite Hspin. rewrite tau_eutt. reflexivity.
 Qed.
-
-
+*)
+(*
 Lemma observe_eutt_spin : forall E A (t : itree E A), t ≈ spin -> exists t0, observe t = TauF t0 /\ t0 ≈ spin.
-Proof.
-  intros. destruct (observe t) eqn : Heq.
-  - specialize (itree_eta (@spin E A) ) as Hspin. specialize (itree_eta t) as Ht.
-    rewrite Heq in Ht. exfalso. rewrite Ht in H.
-    specialize (spin_div E A) as Hdiv. rewrite <- H in Hdiv. pinversion Hdiv.
-  - exists t0. split; auto. pcofix CIH. apply observe_eutt_spin_a
-
-
-  try discriminate.
-  - specialize (itree_eta t) as Heta. rewrite Heq in Heta. rewrite Heta in H. pinversion H. 
-    destruct (observe spin) eqn : ?Heq; try discriminate. admit.
-  - exists t0. split; auto. specialize (itree_eta t) as H0. rewrite Heq in H0. rewrite H0 in H.
-    rewrite tau_eutt in H. auto.
-  - specialize (itree_eta t) as Heta. rewrite Heq in Heta. rewrite Heta in H. exfalso. clear Heq Heta.
+dProof.
+  intros. destruct (observe (@spin E A)) eqn : Heq ; try discriminate.
+  specialize (itree_eta (@spin E A)) as H0. rewrite Heq in H0. 
+  specialize (inv_tau A E spin t0) as Ht0. rewrite <- H0 in Ht0.
+  exists t0. split; auto.
     admit.
 Admitted.
 *)
-(*could use yannick or Li Yao's help on this one, should be true but has been problematic
-  to prove*)
+
+Lemma wf_iter_ret :  forall (A B : Type) (g : A -> itree Void (A + B) ) (a : A),
+           (exists (b : B), Ret b ≈ iter g a) -> wf_from A (fun a1 a2 => a1 =[ fun x => obs _ (g x) ]=> a2) a.
+Proof.
+  intros. basic_solve. pinversion H; subst.
+  - admit.
+  -
+Abort.
+
+
+Lemma burn_eutt_l : forall (A : Type) (t t': itree Void A) (n : nat), burn n t ≅ t' -> t ≈ t'.
+Proof.
+  intros. gen_dep2 t t'. induction n; intros.
+  - simpl in *. rewrite H. reflexivity.
+  - simpl in H. destruct (observe t) eqn : Heq; try destruct e.
+    + specialize (itree_eta t) as Ht. rewrite Heq in Ht. rewrite Ht. rewrite <- H. reflexivity.
+    + specialize (itree_eta t) as Ht. rewrite Heq in Ht. rewrite Ht. rewrite tau_eutt. apply IHn; auto.
+Qed.
+
+Lemma burn_eutt_r : forall (A : Type) (t t' : itree Void A) (n : nat), t≈ t' -> burn n t ≈ t'.
+Proof.
+  intros. gen_dep2 t t'. induction n; intros; simpl; auto.
+  destruct (observe t) eqn : Heq; try destruct e.
+  - specialize (itree_eta t) as Ht. rewrite Heq in Ht. rewrite <- Ht. auto.
+  - apply IHn. specialize (itree_eta t) as Ht. rewrite Heq in Ht. rewrite Ht in H.
+    rewrite tau_eutt in H. auto.
+Qed.
+
+Lemma burn_sutt_ret : forall (A : Type) (t : itree Void A) (a : A), t ≈ ret a -> (exists n, burn n t ≅ ret a).
+Proof.
+  intros. match goal with | |- ?g => destruct (classic g); auto end.
+  Abort.
+
+
+
+Lemma eutt_ret_euttge : forall (E : Type -> Type) (A : Type) (a : A) (t : itree E A),
+      t ≈ Ret a -> t ≳ Ret a.
+Proof.
+  intros. generalize dependent t. pcofix CIH. intros. pfold. red. pinversion H0; subst; auto.
+  - cbn. auto.
+  - cbn. apply EqTauL; auto.
+
+    genobs t1 ot1. genobs (go (@RetF E A _ a)) ot2.  clear H1.
+    gen_dep2 t1 t.
+    induction REL; intros; subst; auto; try discriminate.
+    + constructor. inversion Heqot2. auto.
+    + constructor; auto. eapply IHREL; eauto.
+Qed.
+
+Lemma unfold_spin : forall (E : Type -> Type) (A : Type), (@spin E A) ≅ Tau spin.
+Proof.
+  intros.  pcofix CIH. cbn. pfold. red. cbn. apply EqTau. cbn.
+  left. pcofix CIH'. pfold. red. cbn. auto.
+Qed.
+
+Lemma iter_left : forall (A B : Type) (a : A) (g : A -> itree Void (A + B) ), (forall a, exists a', g a ≈ Ret (inl a') ) -> 
+                                                                              KTree.iter g a ≈ spin.
+Proof.
+  intros. revert a. einit. ecofix CIH. intros. setoid_rewrite unfold_iter_ktree.
+  specialize (H a) as Ha. basic_solve.
+  apply eutt_ret_euttge in Ha. 
+  setoid_rewrite Ha. setoid_rewrite bind_ret.
+  rewrite unfold_spin.
+  etau.
+Qed.
+
 Lemma not_wf_iter_spin : forall (A B : Type) (g : A -> itree Void (A + B) ) (a : A),
           not_wf_from A (fun a1 a2 => a1 =[ fun x => obs _ (g x) ]=> a2) a -> spin ≈ iter g a.
 Proof.
-  intros. unfold spec_iter_arrow_rel in H. cbn in H. unfold _obsip in H. 
-  enough (divergence (iter g a)).
-  { apply div_spin_eutt in H0. rewrite H0. reflexivity. }
-  remember (KTree.iter g a) as t. assert (t ≈ KTree.iter g a). { rewrite Heqt. reflexivity. } clear Heqt.
-  generalize dependent a. pcofix CIH. intros. pfold. red. destruct (observe t) eqn : Heqt; try contradiction;
-                                                            destruct (eutt_reta_or_div _ (KTree.iter g a) ); basic_solve.
-  - exfalso. admit.
-  - (*
+  intros. unfold spec_iter_arrow_rel in H. cbn in H. unfold _obsip in H.
+  generalize dependent a. einit. ecofix CIH. intros.
+  setoid_rewrite unfold_iter_ktree.
+  pinversion H0; try apply not_wf_F_mono'. apply eutt_ret_euttge in Hrel.
+  setoid_rewrite Hrel. setoid_rewrite bind_ret. setoid_rewrite unfold_spin.
+  etau.
+Qed.
+  
+
+(*
   
   - exfalso. rename r0 into b. specialize (itree_eta t) as Ht. rewrite Heqt in Ht. rewrite Ht in H1.
 
@@ -237,8 +294,6 @@ Proof.
   - constructor. specialize (itree_eta (g a)) as Hga. rewrite Heq in Hga. rewrite Hga in Hiter. 
     destruct (eutt_reta_or_div _ t1 ); basic_solve.
     + *)
-
-Admitted.
 
 Lemma iter_morph_aux_l : forall (A B : Type) (g : A -> itree Void (A + B) ) (a : A) (p : itree Void B -> Prop)
                                 (Hp : resp_eutt _ _ p),  p (KTree.iter g a) -> _iter_fix (fun x => obs _ (g x) ) a p Hp.
@@ -347,7 +402,7 @@ Proof.
         -- setoid_rewrite unfold_iter_ktree. rewrite H2. apply spin_bind.
         -- apply H. eapply Hq; eauto. rewrite H2. symmetry. apply spin_bind.
   - apply not_wf_iter_spin in H2. right. rewrite <- H2. apply spin_div.
-Admitted.
+Qed.
 
 Ltac unf_bindg := unfold bindpi, _bindpi.
 
