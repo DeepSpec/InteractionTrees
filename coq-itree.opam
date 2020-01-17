@@ -16,7 +16,7 @@ run-test: [ make "-j%{jobs}%" "all" ]
 depends: [
   "ocaml"
   "coq" {>= "8.8" & < "8.11~"}
-  "coq-ext-lib" {>= "0.10.3" & < "0.11"}
+  "coq-ext-lib" {>= "0.11.1" & < "0.12"}
   "coq-paco" {>= "4.0.0" & < "4.1.0"}
   "ocamlbuild" {with-test}
 ]

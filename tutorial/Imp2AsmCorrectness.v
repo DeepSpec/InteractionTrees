@@ -58,6 +58,7 @@ Require Import Psatz.
 
 From Coq Require Import
      Strings.String
+     List
      Program.Basics
      Morphisms
      ZArith
