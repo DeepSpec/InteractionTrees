@@ -92,7 +92,7 @@ From ITree Require Import ITree
 From ExtLib Require Import
      Structures.Monad.
 Import MonadNotation.
-Open Scope monad_scope. 
+Open Scope monad_scope.
 
 Class DecEq (A : Type) : Type := {
   eqb : A -> A -> bool;
@@ -119,7 +119,6 @@ Definition or {E R} `{ndE -< E} :
   itree E R -> itree E R -> itree E R :=
   fun u v =>
     b <- choose;; if b : bool then u else v.
-(* Why can't "bool" be inferred? *)
 
 (* Failure *)
 Definition oops {E R} `{ndE -< E} : itree E R :=
@@ -133,22 +132,17 @@ Definition done {E} : itree E unit := ret tt.
 Definition exec {L E} `{callE L unit -< E} : L -> itree E unit :=
   embed Call.
 
-
-(* TODO:  Should have (A -> itree (ccsE A +' E) ~> itree (ccsE A +' E), can't figure out the dependent type match *)
 Definition hide {A E} `{DecEq A} :
   A -> itree (ccsE A) ~> itree (ccsE A +' E) :=
   fun a0 =>
     interp (fun _ e => match e in ccsE _ T return _ T with
-                    | Out a => if eqb a0 a then ret tt else trigger (Out a)                        
+                    | Out a => if eqb a0 a then ret tt else trigger (Out a)
                     end).
-
 
 Definition flip {A B C} (f : A -> B -> C) : B -> A -> C :=
   fun y x => f x y.
 
 
-(* TODO: Make the types work out again. *)
-(* Eat CPDT *)
 (*
 Definition handleOut {A E F} `{E -< F} {R}
            (h : A -> itree (ccsE A +' E) ~> itree F) :

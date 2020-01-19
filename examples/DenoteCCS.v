@@ -171,7 +171,7 @@ Section ccs_combinators.
     translate (@hide' l ccsE) t.
 
   (* Choose operator, where n is the number of choices. *)
-  Definition pick (n : nat) (k : nat -> ccs) : ccs := Vis (Or n) k.
+  Definition choose (n : nat) (k : nat -> ccs) : ccs := Vis (Or n) k.
 
   (* Parallel composition operator (#).
 
@@ -284,19 +284,18 @@ Section ccs_combinators.
   Instance proper_par_eqit :
     Proper (eq_itree eq ==> eq_itree eq ==> eq_itree eq) par.
   Proof.
-    ginit. gcofix CIH. intros. rewrite itree_eta.
-    rewrite (itree_eta (par y y0)).
-    punfold H0. punfold H1.
-    gstep.
-    red in H0, H1 |- *.
-    destruct (observe x). destruct (observe y).
-    destruct (observe (par x x2)) eqn: Hx.
-    destruct (observe (par y y0)) eqn: Hy.
-    - constructor. destruct r0, r1.
-  Admitted.
+    repeat intro.
+    apply bisimulation_is_eq in H.
+    apply bisimulation_is_eq in H0.
+    rewrite H, H0. reflexivity.
+  Qed.
 
   Instance shape_inv_par_eqit : Proper (eq_itree eq ==> iff) shape_inv.
-  Admitted. 
+  Proof.
+    repeat intro.
+    apply bisimulation_is_eq in H.
+    rewrite H. reflexivity.
+  Qed.
 
   Ltac bubble_types :=
     repeat (match goal with
@@ -313,8 +312,7 @@ Section ccs_combinators.
               | nat -> itree ccsE unit => fail
               | _ => revert h
               end
-            end)
-.
+            end).
 
   Theorem par_preserves_shape :
     forall (p1 p2 : ccs),
@@ -588,8 +586,8 @@ Section ccs_combinators.
   Qed.
 
   Eval cbv in fun (a : idx) => ret_traces
-                (par (Vis (Or 2) (fun n => if beq_nat n 1 then zero else send a zero))
-                     (Vis (Or 2) (fun n => if beq_nat n 1 then zero else recv a zero))).
+    (par (Vis (Or 2) (fun n => if beq_nat n 1 then zero else send a zero))
+    (Vis (Or 2) (fun n => if beq_nat n 1 then zero else recv a zero))).
 
   (* Bang operator. *)
   Inductive bangF bang : ccs -> ccs -> Prop :=
@@ -613,46 +611,16 @@ End ccs_combinators.
    the trace semantics between this denotation and the
    operational semantics for CCS. *)
 
-Section ccs_op.
+Section lts.
 
-  (** *Operational Semantics for CCS *)
-  Inductive ccs_ : Type :=
-  | Done : ccs_
-  | Action : Label -> ccs_ -> ccs_
-  | Choice : ccs_ -> ccs_ -> ccs_
-  | Par : ccs_ -> ccs_ -> ccs_
-  | Hide : Label -> ccs_ -> ccs_
-  | Bang : ccs_ -> ccs_
-  .
-
-  (* General transition rules for the Labelled Transition System. *)
-  Inductive step : option Label -> ccs_ -> ccs_ -> Prop :=
-  | step_Send l t :
-      step (Some (@In l)) (Action (@In l) t) t
-  | step_Recv l t :
-      step (Some (@Out l)) (Action (@Out l) t) t
-  | step_Choice_L u v u' (A' : option Label) :
-      step A' u u' -> step A' (Choice u v) u'
-  | step_Choice_R u v v' (A' : option Label) :
-      step A' v v' -> step A' (Choice u v) v'
-  | step_Par_L u v u' (A' : option Label) :
-      step A' u u' -> step A' (Par u v) (Par u' v)
-  | step_Par_R u v v' (A' : option Label) :
-      step A' v v' -> step A' (Par u v) (Par u v')
-  | step_Par_Comm1 l u v u' v' :
-      step (Some (@In l)) u u' -> step (Some (@Out l)) v v' ->
-      step None (Par u v) (Par u' v')
-  | step_Par_Comm2 l u v u' v' :
-      step (Some (@Out l)) u u' -> step (Some (@In l)) v v' ->
-      step None (Par u v) (Par u' v')
-  | step_Hide_In l u u' :
-      step (Some (@In l)) u u' ->
-      step (Some (@In l)) (Hide (@In l) u) (Hide (@In l) u')
-  | step_Hide_Out l u u' :
-      step (Some (@Out l)) u u' ->
-      step (Some (@Out l)) (Hide (@Out l) u) (Hide (@Out l) u')
-  | step_Bang u u' (A' : option Label) :
-      step A' (Par u (Bang u)) u' -> step A' (Bang u) u'
+  (** *Operational Semantics for CCS, the Labeled Transition System (lts) *)
+  Inductive lts : Type :=
+  | Done : lts
+  | Action : Label -> lts -> lts
+  | Choice : lts -> lts -> lts
+  | Par : lts -> lts -> lts
+  | Hide : Label -> lts -> lts
+  | Bang : lts -> lts
   .
 
   (** *Synchronous Model of Operational CCS
@@ -672,19 +640,18 @@ Section ccs_op.
     (e.g. π-calculus).
   *)
 
-  (* Operational semantics for Labeled Transition System, without Restriction
-    and Bang.
+  (* Operational semantics for Labeled Transition System.
 
     Transition Rules found in p.39 of
     R. Milner, Communicating and Mobile Systems: The π-calculus.  *)
-  Inductive aux_step : option Label -> ccs_ -> ccs_ -> Prop :=
+  Inductive aux_step : option Label -> lts -> lts -> Prop :=
   | aux_step_Send l t :
       aux_step (Some (@In l)) (Action (@In l) t) t
   | aux_step_Recv l t :
       aux_step (Some (@Out l)) (Action (@Out l) t) t
   .
 
-  Inductive sync_step : option Label -> ccs_ -> ccs_ -> Prop :=
+  Inductive sync_step : option Label -> lts -> lts -> Prop :=
   | sync_step_Choice_L a u v u':
       aux_step (Some a) u u' ->
       sync_step (Some a) (Choice u v) u'
@@ -716,21 +683,21 @@ Section ccs_op.
 End ccs_op.
 
 (** *Trace Semantics
-  The trace semantics for a small-step semantics is the reflexive transitive closure
-  of the step relation. *)
+  The trace semantics for a small-step semantics is the reflexive transitive
+  closure of the step relation. *)
 
-Inductive is_trace_ : ccs_ -> list (option Label) -> ccs_ -> Prop :=
-| is_trace_refl : forall (p : ccs_), is_trace_ p [] p
-| is_trace_step : forall (p1 p2 p3 : ccs_) l a,
-    is_trace_ p2 l p3 ->
+Inductive lts_trace : lts -> list (option Label) -> lts -> Prop :=
+| lts_trace_refl : forall (p : lts), lts_trace p [] p
+| lts_trace_step : forall (p1 p2 p3 : lts) l a,
+    lts_trace p2 l p3 ->
     sync_step a p1 p2 ->
-    is_trace_ p1 (a :: l) p3
+    lts_trace p1 (a :: l) p3
 .
 
-Lemma is_trace__app :
+Lemma lts_trace_app :
   forall (p1 p2 p3 : ccs_) l1 l2,
-    is_trace_ p1 l1 p2 -> is_trace_ p2 l2 p3 ->
-    is_trace_ p1 (l1 ++ l2) p3.
+    lts_trace p1 l1 p2 -> lts_trace p2 l2 p3 ->
+    lts_trace p1 (l1 ++ l2) p3.
 Proof.
   intros. induction H.
   - cbn; eauto.
@@ -738,11 +705,11 @@ Proof.
     eapply is_trace_step. apply H0. apply H1.
 Qed.
 
-Lemma is_trace__inversion (a : option Label) :
+Lemma lts_trace_inversion (a : option Label) :
   forall (p1 p2 : ccs_) l,
-    is_trace_ p1 l p2 ->
+    lts_trace p1 l p2 ->
     (l = [] /\ p1 = p2) \/ (l = [a] /\ sync_step a p1 p2) \/
-    (exists l1 l2 p', l = l1 ++ l2 /\ is_trace_ p1 l1 p' /\ is_trace_ p' l2 p2).
+    (exists l1 l2 p', l = l1 ++ l2 /\ lts_trace p1 l1 p' /\ lts_trace p' l2 p2).
 Proof.
   induction p1; intros; inversion H; subst;
     try (left; split; reflexivity);
@@ -766,10 +733,10 @@ Proof.
     apply H1. apply H0.
 Qed.
 
-Lemma is_trace_par (a : option Label) :
-  forall (p1 p2 p1' p2' : ccs_) a1 a2,
-    is_trace_ p1 [a1] p1' -> is_trace_ p2 [a2] p2' ->
-    is_trace_ (Par p1 p2) [a2; a1] (Par p1' p2').
+Lemma lts_trace_par (a : option Label) :
+  forall (p1 p2 p1' p2' : lts) a1 a2,
+    lts_trace p1 [a1] p1' -> lts_trace p2 [a2] p2' ->
+    lts_trace (Par p1 p2) [a2; a1] (Par p1' p2').
 Proof.
   intros. econstructor.
   econstructor. econstructor. econstructor.
@@ -778,10 +745,10 @@ Proof.
   inversion H4; subst. apply H6.
 Qed.
 
-Lemma is_trace_par_left :
+Lemma lts_trace_par_left :
   forall p1 p1' l1 p2,
-    is_trace_ p1 l1 p1' ->
-    is_trace_ (Par p1 p2) l1 (Par p1' p2).
+    lts_trace p1 l1 p1' ->
+    lts_trace (Par p1 p2) l1 (Par p1' p2).
 Proof.
   intros. induction H; subst.
   - constructor.
@@ -789,32 +756,32 @@ Proof.
     constructor. apply H0.
 Qed.
 
-Lemma is_trace_par_acc_nonsync :
+Lemma lts_trace_par_acc_nonsync :
   forall (p1 p2 p1' p2' : ccs_) l1 l2,
-    is_trace_ p1 l1 p1' -> is_trace_ p2 l2 p2' ->
-    is_trace_ (Par p1 p2) (l2 ++ l1) (Par p1' p2').
+    lts_trace p1 l1 p1' -> lts_trace p2 l2 p2' ->
+    lts_trace_ (Par p1 p2) (l2 ++ l1) (Par p1' p2').
 Proof.
   intros. induction H0.
   - simpl. inversion H; subst.
     + constructor.
-    + econstructor. apply is_trace_par_left. eauto.
+    + econstructor. apply lts_trace_par_left. eauto.
       constructor. apply H1.
   - simpl. econstructor. apply IHis_trace_.
     constructor. apply H1.
 Qed.
 
-Lemma is_trace_par_sync :
-  forall (p1 p2 p1' p2' p1'' p2'': ccs_) a l1 l2,
-    is_trace_ p1' l1 p1'' -> is_trace_ p2' l2 p2'' ->
+Lemma lts_trace_par_sync :
+  forall (p1 p2 p1' p2' p1'' p2'': lts) a l1 l2,
+    lts_trace p1' l1 p1'' -> lts_trace p2' l2 p2'' ->
     aux_step (Some (@In a)) p1 p1' -> aux_step (Some (@Out a)) p2 p2' ->
-    is_trace_ (Par p1 p2) (None::(l2 ++ l1)) (Par p1'' p2'').
+    lts_trace (Par p1 p2) (None::(l2 ++ l1)) (Par p1'' p2'').
 Proof.
   intros.
   assert (is_trace_ (Par p1 p2) [None] (Par p1' p2')).
   { econstructor. econstructor. econstructor; eauto. }
-  pose proof is_trace_step.
-  apply is_trace_step with (p2 := (Par p1' p2')).
-  apply is_trace_par_acc_nonsync; eauto.
+  pose proof lts_trace_step.
+  apply lts_trace_step with (p2 := (Par p1' p2')).
+  apply lts_trace_par_acc_nonsync; eauto.
   econstructor; eauto.
 Qed.
 
@@ -863,9 +830,9 @@ Ltac repeat_constructors :=
 Theorem trace_eq_ob_den (a : idx) (l : list idx):
   (forall c1 tr, is_trace c1 tr ->
              exists tr' c1' c2',
-               is_trace_ c1' tr' c2' /\
+               lts_trace c1' tr' c2' /\
                equiv_traces tr tr')
-  /\ (forall c1' c2' tr', is_trace_ c1' tr' c2' ->
+  /\ (forall c1' c2' tr', lts_trace c1' tr' c2' ->
                     exists tr c1,
                       is_trace c1 tr /\
                       equiv_traces tr tr').
