@@ -37,13 +37,29 @@ Section OrderedMonad.
   Context {Eq : EqM W}.
   Context {MonadW : Monad W}.
   Context {MonadLawsW : MonadLaws W}.
-  Context {OrderM : OrderM W}.
+  Context {OrderW : OrderM W}.
   
   Class OrderedMonad :=
     monot : forall A B w1 w2 (f1 f2 : A -> W B), w1 <≈ w2 ->
                             (forall (a : A), (f1 a) <≈  (f2 a) ) -> (bind w1 f1) <≈ (bind w2 f2).
 
 End OrderedMonad.
+
+Section SpecMonad.
+
+  Context (W : Type -> Type).
+  Context {MonadW : Monad W}.
+  Context {OrderW : OrderM W}.
+  Context {OrderedMonadW : OrderedMonad W}.
+  Class SpecMonad :=
+    {
+      Input : Type -> Type;
+      In : forall {A : Type}, Input A -> W A -> Prop
+    }.
+
+  Infix "∈" := In (at level 70).
+End SpecMonad.
+
 
 
 Class EffectObs (M W : Type -> Type) := 
@@ -58,12 +74,7 @@ Section EffectObservation.
   Context {MonadLawsW : MonadLaws W}.
   Context {WOrder : OrderM W}.
   Context {WOrderLaws : OrderedMonad W}.
-  Context (Obs : EffectObs M W). (*
-  Definition retm := @ret M _.
-  Definition retw := @ret W _.
-  Definition bindm := @bind M _.
-  Definition bindw := @bind W _.
-*)
+  Context (Obs : EffectObs M W). 
 
   Global Class MonadMorphism :=
     {

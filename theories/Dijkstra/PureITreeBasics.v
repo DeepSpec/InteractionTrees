@@ -33,7 +33,7 @@ Import MonadNotation.
 Local Open Scope monad_scope.
 
 (** The itree Tau (Tau (Tau ...))*)
-CoFixpoint spin {E: Type -> Type} {A : Type}  : itree E A := Tau spin.
+Definition spin {E: Type -> Type} {A : Type}  : itree E A := ITree.spin.
 
 Lemma spin_div : forall E A, @divergence E A spin.
 Proof.
@@ -118,6 +118,12 @@ Lemma eutt_reta_or_div : forall A (t : itree Void A), (exists a, ret a ≈ t) \/
 Lemma ret_not_div : forall (A : Type) (E : Type -> Type) (a : A), ~ (@divergence E A (ret a)).
 Proof.
   intros. intro Hcontra. pinversion Hcontra.
+Qed.
+
+Lemma not_ret_eutt_spin : forall A E (a : A), ~ (Ret a ≈ @spin E A).
+Proof.
+  intros. intro Hcontra. simpl in Hcontra. specialize (spin_div E A) as Hdiv. rewrite <- Hcontra in Hdiv.
+  pinversion Hdiv.
 Qed.
 
 Lemma inv_ret : forall (A : Type) (E : Type -> Type) (a b : A),

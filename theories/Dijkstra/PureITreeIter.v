@@ -263,37 +263,14 @@ Qed.
 Lemma not_wf_iter_spin : forall (A B : Type) (g : A -> itree Void (A + B) ) (a : A),
           not_wf_from A (fun a1 a2 => a1 =[ fun x => obs _ (g x) ]=> a2) a -> spin ≈ iter g a.
 Proof.
-  intros. unfold spec_iter_arrow_rel in H. cbn in H. unfold _obsip in H.
-  generalize dependent a. einit. ecofix CIH. intros.
+  intros A B g. unfold spec_iter_arrow_rel. cbn. unfold _obsip.
+  einit. ecofix CIH. intros.
   setoid_rewrite unfold_iter_ktree.
   pinversion H0; try apply not_wf_F_mono'. apply eutt_ret_euttge in Hrel.
   setoid_rewrite Hrel. setoid_rewrite bind_ret. setoid_rewrite unfold_spin.
   etau.
 Qed.
-  
 
-(*
-  
-  - exfalso. rename r0 into b. specialize (itree_eta t) as Ht. rewrite Heqt in Ht. rewrite Ht in H1.
-
-
-
-  remember spin as t. rewrite Heqt. rewrite <- Heqt. assert (t ≈ spin). { rewrite Heqt. reflexivity. }
-  clear Heqt. gen_dep2 a t.
-  pcofix CIH. intros t Ht a Hwfa. 
-  pfold. punfold Hwfa; try apply not_wf_F_mono'.
-  inversion Hwfa. pclearbot.
-  specialize (unfold_iter_ktree g a) as Hiter. apply strong_to_weak_bisim in Hiter as Hiter'.
-  rewrite Hrel in Hiter'. setoid_rewrite bind_ret in Hiter'. 
-  apply observe_eutt_spin in  Ht as Ht0. basic_solve. red. rewrite H.
-  unfold iter, Iter_Kleisli, Basics.iter, MonadIter_itree, ITree.iter. unfold observe.
-  cbn. destruct (observe (g a) ) eqn : ?Heq; simpl; basic_solve.
-  - simpl. constructor; auto. right. apply CIH; auto.
-    specialize (itree_eta (g a) ) as Hga. rewrite Heq in Hga. rewrite Hga in Hrel. basic_solve. auto.
-  - exfalso. specialize (itree_eta (g a)) as Hga. rewrite Heq in Hga. rewrite Hga in Hrel. basic_solve.
-  - constructor. specialize (itree_eta (g a)) as Hga. rewrite Heq in Hga. rewrite Hga in Hiter. 
-    destruct (eutt_reta_or_div _ t1 ); basic_solve.
-    + *)
 
 Lemma iter_morph_aux_l : forall (A B : Type) (g : A -> itree Void (A + B) ) (a : A) (p : itree Void B -> Prop)
                                 (Hp : resp_eutt _ _ p),  p (KTree.iter g a) -> _iter_fix (fun x => obs _ (g x) ) a p Hp.

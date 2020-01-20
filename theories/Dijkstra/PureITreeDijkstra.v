@@ -628,12 +628,6 @@ Lemma iterF_monotone {A B} (body:  (A -> PureITreeSpec (A + B)))
   Abort.
 *)
 
-  Lemma not_ret_eutt_spin : forall A E (a : A), ~ (Ret a ≈ @spin E A).
-  Proof.
-    intros. intro Hcontra. simpl in Hcontra. specialize (spin_div E A) as Hdiv. rewrite <- Hcontra in Hdiv.
-    pinversion Hdiv.
-  Qed.
-
   (*Definition of effect observation from pure itrees into pure itree specs *)
   Definition _obsip A (t : itree Void A) : _PureITreeSpec A := fun p _ => p t.
 (*
