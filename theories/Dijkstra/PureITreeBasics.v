@@ -42,7 +42,7 @@ Proof.
 Qed.
 
 (*this implies that if a spec w accepts spin, then bind w f should too?   *)
-Lemma spin_bind : forall (E : Type -> Type) (A B : Type) (f : A -> itree E B), spin ≈ bind spin f.
+Lemma spin_bind : forall (E : Type -> Type) (A B : Type) (f : A -> itree E B), spin ≈ ITree.bind spin f.
 Proof.
   intros. pcofix CIH. pfold. unfold bind. simpl. red.
   cbn. constructor. right. auto.
@@ -143,4 +143,23 @@ Lemma inv_vis : forall (R A: Type) (E : Type -> Type) (e1 e2 : E A) (k1 k2 : A -
 Proof.
   intros. pinversion H; subst. repeat match goal with | H : existT _ _ _ = existT _ _ _ |- _ => apply inj_pair2 in H end.
   subst. split; auto.
+Qed.
+
+Lemma eutt_ret_euttge : forall (E : Type -> Type) (A : Type) (a : A) (t : itree E A),
+      t ≈ Ret a -> t ≳ Ret a.
+Proof.
+  intros. generalize dependent t. pcofix CIH. intros. pfold. red. pinversion H0; subst; auto.
+  - cbn. auto.
+  - cbn. apply EqTauL; auto.
+    genobs t1 ot1. genobs (go (@RetF E A _ a)) ot2.  clear H1.
+    generalize dependent t1. generalize dependent t.
+    induction REL; intros; subst; auto; try discriminate.
+    + constructor. inversion Heqot2. auto.
+    + constructor; auto. eapply IHREL; eauto.
+Qed.
+
+Lemma unfold_spin : forall (E : Type -> Type) (A : Type), (@spin E A) ≅ Tau spin.
+Proof.
+  intros.  pcofix CIH. cbn. pfold. red. cbn. apply EqTau. cbn.
+  left. pcofix CIH'. pfold. red. cbn. auto.
 Qed.

@@ -235,7 +235,6 @@ Proof.
   intros. generalize dependent t. pcofix CIH. intros. pfold. red. pinversion H0; subst; auto.
   - cbn. auto.
   - cbn. apply EqTauL; auto.
-
     genobs t1 ot1. genobs (go (@RetF E A _ a)) ot2.  clear H1.
     gen_dep2 t1 t.
     induction REL; intros; subst; auto; try discriminate.

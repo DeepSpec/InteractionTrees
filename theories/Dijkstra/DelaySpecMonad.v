@@ -23,6 +23,7 @@ From ITree Require Import
      Core.Divergence
      Dijkstra.DijkstraMonad
      Dijkstra.PureITreeBasics
+     Dijkstra.IterRel
    (*  Simple *)
 .
 
@@ -67,6 +68,8 @@ Definition Delay (A : Type) := itree Void A.
 Global Instance EqMDelay : EqM Delay := @ITreeMonad.EqM_ITree Void.
 
 Global Instance MonadDelay : Monad Delay := @Monad_itree Void.
+
+Global Instance MonadIterDelay : MonadIter Delay := fun R I f a => KTree.iter f a.
 
 Definition DelaySpecInput (A : Type) := {p : Delay A -> Prop | resp_eutt _ _ p}.
 
@@ -168,4 +171,69 @@ Proof.
     + destruct p as [p Hp]. simpl in *. eapply Hp; try apply H0. rewrite <- H. setoid_rewrite bind_ret. reflexivity.
     + apply div_spin_eutt in H. destruct p as [p Hp]. simpl in *. eapply Hp; try apply H0. rewrite H. 
       symmetry. apply spin_bind.
+Qed.
+
+Definition iter_arrow_rel {A B : Type} (g : A -> Delay (A + B) ) (a1 a2 : A) : Prop :=
+  g a1 ≈ ret (inl a2).
+
+Notation "x =[ g ]=> y" := (iter_arrow_rel g x y) (at level 70).
+
+Lemma iter_inl_spin : forall (A B : Type) (g : A -> Delay (A + B) ) (a : A),
+    not_wf_from _ (iter_arrow_rel g) a -> KTree.iter g a ≈ spin.
+Proof.
+  intros A B g. einit. ecofix CIH. intros. pinversion H0; try apply not_wf_F_mono'.
+  setoid_rewrite unfold_iter_ktree. unfold iter_arrow_rel in Hrel. apply eutt_ret_euttge in Hrel.
+  rewrite Hrel. setoid_rewrite bind_ret. rewrite unfold_spin. etau.
+Qed.
+
+Definition loop_invar_imp {A B : Type} (q : Delay (A + B) -> Prop ) (p : Delay B -> Prop) :Prop :=
+  forall t, q (t >>= fun b => ret (inr b) ) -> p t. 
+
+Definition iter_lift {A B : Type} (g : A -> Delay (A + B)) : (A + B) -> Delay (A + B) :=
+  fun x => match x with 
+             | inl a => g a
+             | inr b => ret (inr b) end.
+  
+Notation "q -+> p" := (loop_invar_imp q p) (at level 80).
+
+
+
+Lemma loop_invar : forall (A B : Type) (g : A -> Delay (A + B) ) (a : A) 
+                          (p : Delay B -> Prop) (Hp : resp_eutt _ _ p)
+                          (q : Delay (A + B) -> Prop ) (Hq : resp_eutt _ _ q ),
+    (q -+> p) -> (q (g a)) -> 
+    (forall t, q t ->  q (bind t (iter_lift g))) ->
+    (p \1/ divergence) (KTree.iter g a).
+Proof.
+  intros. unfold loop_invar_imp in *.
+  set (iter_arrow_rel g) as rg.
+  destruct (classic_wf A rg a).
+  - left. induction H2.
+    + unfold rg, iter_arrow_rel in H2. destruct (eutt_reta_or_div _ (g a)); basic_solve.
+      * symmetry in H3. apply H2 in H3. contradiction.
+      * apply H. cbn. eapply Hq; try apply H0.
+        setoid_rewrite unfold_iter_ktree. rewrite <- H3.
+        repeat setoid_rewrite bind_ret. reflexivity.
+      * apply div_spin_eutt in H3. apply H. cbn.
+        eapply Hq; try apply H0. rewrite H3.
+        setoid_rewrite unfold_iter_ktree. rewrite H3.
+        symmetry. setoid_rewrite <- spin_bind. apply spin_bind.
+    + unfold rg in *.
+      destruct (eutt_reta_or_div _ (g a) ); basic_solve.
+      * rename a0 into a'. apply Hp with (t1 := KTree.iter g a').
+        -- setoid_rewrite unfold_iter_ktree at 2. rewrite <- H4.
+           setoid_rewrite bind_ret. rewrite tau_eutt. reflexivity.
+        -- symmetry in H4. apply H3; auto. unfold iter_lift in H1. specialize (H1 (g a) H0).
+           eapply Hq; try apply H1. cbn. rewrite H4. setoid_rewrite bind_ret.
+           reflexivity.
+      * apply Hp with (t1 := ret b).
+        -- setoid_rewrite unfold_iter_ktree. rewrite <- H4. 
+           setoid_rewrite bind_ret. reflexivity.
+        -- apply H. cbn. eapply Hq; try apply H0.
+           setoid_rewrite bind_ret. auto.
+      * apply div_spin_eutt in H4. apply H. cbn.
+        eapply Hq; try apply H0. rewrite H4.
+        setoid_rewrite unfold_iter_ktree. rewrite H4. repeat setoid_rewrite <- spin_bind.
+        reflexivity.
+  - apply iter_inl_spin in H2. right. rewrite H2. apply spin_div.
 Qed.
