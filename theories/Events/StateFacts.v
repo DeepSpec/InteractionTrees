@@ -13,7 +13,6 @@ From ITree Require Import
      Basics.Basics
      Basics.Category
      Basics.CategoryKleisli
-     Basics.MonadTheory
      Core.ITreeDefinition
      Core.KTree
      Core.KTreeFacts
@@ -134,6 +133,24 @@ Proof.
 Qed.
 
 Instance eutt_interp_state {E F: Type -> Type} {S : Type}
+         (h : E ~> Monads.stateT S (itree F)) R RR :
+  Proper (eutt RR ==> eq ==> eutt (prod_rel eq RR)) (@interp_state E (itree F) S _ _ _ h R).
+Proof.
+  repeat intro. subst. revert_until R.
+  einit. ecofix CIH. intros.
+
+  rewrite !unfold_interp_state. punfold H0. red in H0.
+  induction H0; intros; subst; simpl; pclearbot.
+  - eret.
+  - etau.
+  - ebind. econstructor; [reflexivity|].
+    intros; subst.
+    etau. ebase.
+  - rewrite tau_eutt, unfold_interp_state; eauto.
+  - rewrite tau_eutt, unfold_interp_state; eauto.
+Qed.
+
+Instance eutt_interp_state_eq {E F: Type -> Type} {S : Type}
          (h : E ~> Monads.stateT S (itree F)) R :
   Proper (eutt eq ==> eq ==> eutt eq) (@interp_state E (itree F) S _ _ _ h R).
 Proof.
@@ -150,6 +167,7 @@ Proof.
   - rewrite tau_eutt, unfold_interp_state; eauto.
   - rewrite tau_eutt, unfold_interp_state; eauto.
 Qed.
+
 
 Lemma eutt_interp_state_aloop {E F S I I' A A'}
       (RA : A -> A' -> Prop) (RI : I -> I' -> Prop)
@@ -253,3 +271,12 @@ Proof.
     + rewrite interp_state_ret; apply reflexivity.
 Qed.
 
+Lemma interp_state_iter' {E F } S (f : E ~> stateT S (itree F)) {I A}
+      (t  : I -> itree E (I + A))
+  : forall i, state_eq (State.interp_state f (ITree.iter t i))
+                       (Basics.iter (fun i => State.interp_state f (t i)) i).
+Proof.
+  eapply interp_state_iter.
+  intros i.
+  red. reflexivity.
+Qed.
