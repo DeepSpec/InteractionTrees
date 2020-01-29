@@ -9,7 +9,7 @@ env:
   matrix:
   - OCAML_VERSION=4.07 COQ_VERSION="8.8.2"
   - OCAML_VERSION=4.07 COQ_VERSION="8.9.0"
-  - OCAML_VERSION=4.07 COQ_VERSION="8.10.2"
+  - OCAML_VERSION=4.09 COQ_VERSION="8.10.2"
 os:
   - linux
     # - osx
