@@ -1007,3 +1007,19 @@ Ltac tau_steps_right :=
 Ltac tau_steps :=
   tau_steps_left;
   tau_steps_right.
+
+Ltac force_left_in H :=
+  match type of H with _ ?x _ => rewrite (itree_eta x) in H; cbn in H end.
+
+Ltac force_right_in H :=
+  match type of H with _ _ ?x => rewrite (itree_eta x) in H; cbn in H end.
+
+Ltac tau_steps_left_in H :=
+  repeat (force_left_in H; rewrite tau_eutt in H); force_left_in H.
+
+Ltac tau_steps_right_in H :=
+  repeat (force_right_in H; rewrite tau_eutt in H); force_right_in H.
+
+Ltac tau_steps_in H :=
+  tau_steps_left_in H;
+  tau_steps_right_in H.

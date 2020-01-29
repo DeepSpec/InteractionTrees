@@ -103,6 +103,14 @@ Qed.
 Global Instance DelaySpecEq : EqM DelaySpec :=
   fun _ w1 w2 => forall p, p ∈ w1 <-> p ∈ w2.
 
+Global Instance DelaySpecEqEquiv {A : Type} : Equivalence (DelaySpecEq A).
+Proof.
+  constructor; repeat intro; try tauto.
+  - repeat red in H. specialize (H p). tauto.
+  - repeat red in H, H0. specialize (H p). specialize (H0 p). tauto.
+Qed.
+
+
 Global Instance DelaySpecMonad : Monad DelaySpec :=
   {
     ret := ret_del;
@@ -147,11 +155,15 @@ Global Instance DelaySpecOrderM : OrderM DelaySpec :=
 
 Global Instance DelaySpecOrder : OrderedMonad DelaySpec.
 Proof.
-  red. intros. repeat red. cbn. destruct w1 as [w1 Hw1]. destruct w2 as [w2 Hw2].
-  intros. simpl in *. apply H. simpl in *. eapply Hw2; try apply H1. simpl in *. intros.
-  basic_solve.
-  - left. exists a. split; auto. apply H0. auto.
-  - right. auto.
+  constructor.
+  - intros. repeat red. intros. destruct w. auto.
+  - intros. destruct w1. destruct w2. destruct w3. intro. simpl in *.
+    specialize (H p2). specialize (H0 p2). simpl in *. intros. auto.
+  - red. intros. repeat red. cbn. destruct w1 as [w1 Hw1]. destruct w2 as [w2 Hw2].
+    intros. simpl in *. apply H. simpl in *. eapply Hw2; try apply H1. simpl in *. intros.
+    basic_solve.
+    + left. exists a. split; auto. apply H0. auto.
+    + right. auto.
 Qed.
 
 Program Definition obs_del (A : Type) (t : Delay A) : DelaySpec A := fun p => t ∈ p.
@@ -237,3 +249,4 @@ Proof.
         reflexivity.
   - apply iter_inl_spin in H2. right. rewrite H2. apply spin_div.
 Qed.
+

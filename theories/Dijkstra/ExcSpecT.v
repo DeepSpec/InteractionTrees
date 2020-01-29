@@ -6,6 +6,7 @@ From Coq Require Import
      Setoid
      RelationClasses
      Logic.Classical_Prop
+     Logic.FunctionalExtensionality
 .
 
 From ExtLib Require Import
@@ -35,10 +36,13 @@ Local Open Scope monad_scope.
 Section ExcT.
   Context (E : Type).
   Context (W : Type -> Type).
+  Context {EqW : EqM W}.
   Context {MonadW : Monad W}.
+  Context {MonadLawsW : MonadLaws W}.
   Context {OrderW : OrderM W}.
   Context {OrderedMonadW : OrderedMonad W}.
-  
+  Context {EquivRel : forall A, Equivalence (EqW A) }.
+
   Definition ExcSpecT (A : Type) := W (E + A).
 
   Definition ret_exc (A : Type) (a : A) :ExcSpecT A := ret (inr a).
@@ -55,16 +59,34 @@ Section ExcT.
   Global Instance ExcSpecTOrder : OrderM ExcSpecT :=
     fun _ w1 w2 => OrderW _ w1 w2.
 
-  
-
    Global Instance ExcSpecTOrderedLaws : OrderedMonad ExcSpecT.
    Proof.
-     rename OrderedMonadW into Hw. intros A B w1 w2 f1 f2 Hlw Hlf.
-     red in Hw. apply Hw; auto. intros. destruct a as [e |  a]. simpl.
-     - admit. (*forgot to add some basic partial order laws*)
-     - apply Hlf.
-   Admitted.
+     destruct OrderedMonadW. constructor. 
+     - intros. repeat red. apply reflex.
+     - intros. repeat red. repeat red in H, H0. eapply trans; eauto.
+     - intros A B w1 w2 f1 f2 Hlw Hlf.
+       apply monot; auto. intros. destruct a as [e |  a]. simpl; try apply reflex.
+       apply Hlf.
+   Qed.
 
+  Global Instance ExcSpecTEq : EqM ExcSpecT := fun _ w1 w2 => EqW _ w1 w2.
+
+  Global Instance ExcSpecTMonadLaws : MonadLaws ExcSpecT.
+  Proof.
+    destruct MonadLawsW. constructor.
+    - intros A B f a. cbn. red. unfold ret_exc, bind_exc.
+      rewrite bind_ret. reflexivity.
+    - intros A w. cbn. unfold bind_exc, ret_exc. 
+      match goal with |- bind _ ?f ≈ _ => assert (Heq : f = fun x => ret x) end.
+      { apply functional_extensionality. intros. destruct x; reflexivity. }
+      rewrite Heq. rewrite ret_bind. reflexivity.
+    - intros A B C w f g. cbn. unfold bind_exc.
+      rewrite bind_bind. match goal with |- bind _ ?f1 ≈ bind _ ?f2 => assert (Heq :forall x, f1 x ≈ f2 x) end.
+      { intros. destruct x; simpl.
+        - rewrite bind_ret. reflexivity.
+        - reflexivity.
+      } (*need a rewriting principle*)
+   Admitted.
 
 
 End ExcT.

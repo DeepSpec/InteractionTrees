@@ -6,6 +6,7 @@ From Coq Require Import
      Setoid
      RelationClasses
      Logic.Classical_Prop
+     Logic.FunctionalExtensionality
 .
 
 From ExtLib Require Import
@@ -29,6 +30,8 @@ From ITree Require Import
    (*  Simple *)
 .
 
+Require Import Omega.
+Require Import NArith.
 Require Import Imp.
 Import Monads.
 Import MonadNotation.
@@ -66,26 +69,23 @@ Lemma aexp_term : forall (E : Type -> Type) (ae : aexp) (s : env),
     exists (n : nat), @interp_imp Void _ (denote_aexp ae) s ≈ Ret (s,n).
 Proof.
   intros. induction ae.
-  - exists n. cbn.  unfold interp_imp, interp_map, interp_state. rewrite interp_ret. 
-    unfold interp, Basics.iter, MonadIter_stateT0. setoid_rewrite unfold_iter_ktree.
-    repeat setoid_rewrite bind_ret. cbn. reflexivity.
+  - exists n. cbn. tau_steps. reflexivity.
     (*getvar case, extract to a lemma*)
   - cbn. exists (lookup_default x 0 s). 
-    unfold interp_imp, interp_map, interp_state. rewrite interp_trigger.
-     unfold interp, Basics.iter, MonadIter_stateT0. setoid_rewrite unfold_iter_ktree.
-     setoid_rewrite bind_bind. cbn. setoid_rewrite map_ret.
-     setoid_rewrite bind_ret. cbn. setoid_rewrite bind_ret. 
-     rewrite tau_eutt. setoid_rewrite unfold_iter_ktree.
-     setoid_rewrite bind_bind. cbn. setoid_rewrite bind_ret.
-     setoid_rewrite bind_ret. cbn. rewrite tau_eutt. 
-     setoid_rewrite unfold_iter_ktree. cbn. setoid_rewrite bind_bind.
-     setoid_rewrite bind_ret. setoid_rewrite bind_ret. cbn. reflexivity.
-   - basic_solve. exists (n + n0)%nat.
-     cbn.
-     unfold interp_imp, interp_map, interp_state. rewrite interp_bind.
-     unfold interp, Basics.iter, MonadIter_stateT0. setoid_rewrite unfold_iter_ktree.
-     cbn. 
-Admitted.
+    tau_steps. reflexivity.
+  - basic_solve. exists (n0 + n)%nat.
+    cbn. setoid_rewrite interp_imp_bind. rewrite IHae1.
+    setoid_rewrite bind_ret. setoid_rewrite interp_imp_bind. rewrite IHae2.
+    tau_steps. reflexivity.
+  - basic_solve. exists (n0 - n)%nat.
+    cbn. setoid_rewrite interp_imp_bind. rewrite IHae1.
+    setoid_rewrite bind_ret. setoid_rewrite interp_imp_bind. rewrite IHae2.
+    tau_steps. reflexivity.
+  - basic_solve. exists (n0 * n)%nat.
+    cbn. setoid_rewrite interp_imp_bind. rewrite IHae1.
+    setoid_rewrite bind_ret. setoid_rewrite interp_imp_bind. rewrite IHae2.
+    tau_steps. reflexivity.
+Qed.
      
     
 Lemma bools_term : forall (be : bexp) (s : env),
@@ -93,15 +93,26 @@ Lemma bools_term : forall (be : bexp) (s : env),
 Proof.
   intros. induction be.
   - exists true. cbn. unfold interp_imp, interp_map, interp_state. repeat rewrite interp_ret. 
-    unfold interp. unfold Basics.iter, MonadIter_stateT0.
-    setoid_rewrite unfold_iter_ktree. setoid_rewrite bind_bind. cbn.
-    repeat setoid_rewrite bind_ret. cbn. reflexivity.
-  - exists false. cbn. unfold interp_imp, interp_map, interp_state. repeat rewrite interp_ret. 
-    unfold interp. unfold Basics.iter, MonadIter_stateT0.
-    setoid_rewrite unfold_iter_ktree. setoid_rewrite bind_bind. cbn.
-    repeat setoid_rewrite bind_ret. cbn. reflexivity.
-  -
-Admitted.
+    tau_steps. reflexivity.
+  - exists false. tau_steps. reflexivity.
+  - specialize (aexp_term Void a1 s) as Ha1. specialize (aexp_term Void a2 s) as Ha2.
+    basic_solve. exists (n0 =? n).
+    cbn. setoid_rewrite interp_imp_bind. rewrite Ha1.
+    setoid_rewrite bind_ret. setoid_rewrite interp_imp_bind.
+    rewrite Ha2. tau_steps. reflexivity.
+  - specialize (aexp_term Void a1 s) as Ha1. specialize (aexp_term Void a2 s) as Ha2.
+    basic_solve. exists (n0 <=? n).
+    cbn. setoid_rewrite interp_imp_bind. rewrite Ha1.
+    setoid_rewrite bind_ret. setoid_rewrite interp_imp_bind.
+    rewrite Ha2. tau_steps. reflexivity.
+  - basic_solve. exists (negb bc). cbn.
+    setoid_rewrite interp_imp_bind. rewrite IHbe. tau_steps.
+    reflexivity.
+  - basic_solve. exists (bc0 && bc)%bool.
+    cbn. setoid_rewrite interp_imp_bind. rewrite IHbe1. setoid_rewrite bind_ret.
+    cbn. setoid_rewrite interp_imp_bind. rewrite IHbe2. tau_steps.
+    reflexivity.
+Qed.
 
 Lemma classic_bool : forall (b : bexp) (s : env), is_true b s \/ is_false b s.
 Proof.
@@ -145,10 +156,47 @@ Proof.
   unfold hoare_triple. intros. unfold denote_imp in H1. cbn in H1.
   unfold while in H1. unfold interp_imp, interp_map, interp_state in H1.
   (*this moves interp inside the iter*)
-  setoid_rewrite interp_iter in H1.
-  unfold interp at 1 in H1.
+  match goal with | H : interp _ (?t0 ) _ ≈ _ |- _ => set t0 as t end.
+  assert (t ≈ t); try reflexivity. unfold t in H2 at 2.
+  
+  setoid_rewrite interp_iter in H2. 
+  match type of H2 with _ ≈ _ (fun _ => ?t0 ) _ => set t0 as while_body end.
+  assert (while_body ≈ while_body); try reflexivity.
+  unfold while_body in H3 at 2. 
+  rewrite interp_bind in H3. fold while_body in H2.
+  match type of H3 with _ ≈ ?t => set t as t' end.
+
+  (*f (if b then x else y) = if b then f x else f y *)
+  (*need good ways to streamline this interpretation*)
+  match type of H3 with _ ≈ ITree.bind _ ?f => assert (eq2 f f) end; try reflexivity.
+  assert (eq2 (fun r : bool =>
+          interp (bimap handle_ImpState (id_ Void))
+            (if r
+             then ITree.bind (denote_com c) (fun _ : unit => Ret (inl tt))
+             else Ret (inr tt)))
+          (fun r : bool =>
+          
+            (if r
+             then interp (bimap handle_ImpState (id_ Void)) (ITree.bind (denote_com c) (fun _ : unit => Ret (inl tt)))
+             else interp (bimap handle_ImpState (id_ Void)) (Ret (inr tt))))).
+  rewrite H4 in H3.
+
+(*
+  
   match goal with | H : context [KTree.iter (fun _ => ?body) _ ] |- _ => 
    set body as while_body end. fold while_body in H1.
+  assert (while_body ≅ while_body); try reflexivity. 
+  match goal with | H : interp ?f _ _ ≈ _ |- _ => set f as f' end. fold f' in H1.
+  set (@interp_imp Void) as T. unfold interp_imp, interp_map, interp_state in T.
+  unfold handle_ImpState in T. unfold handle_map in T.
+  (*so apparently we interpret from impstateE into mapE and I don't like that
+  *)
+  
+  unfold while_body in H2. fold f' in H2. setoid_rewrite bind_ret in H2. unfold denote_com in H2.
+  specialize (@interp_imp_bind Void) as Hinterp. 
+  unfold interp_imp, interp_map, interp_state in Hinterp.
+  (*fold (@interp_imp Void _ (handle_map (id_ Void) ) ) in H2. *)
+  setoid_rewrite interp_imp_bind in H2.
   unfold Basics.iter, MonadIter_stateT0 in H1.
   (*this context is probably proper with eq_itree*)
 
@@ -176,6 +224,6 @@ Proof.
   (*probably need to induce that arrow relation again*)
   (*invariant is something that has a few cases*)
   (*does burn preserve eutt? if so maybe write a tactic that just
-    runs a tactic a bunch*)
+    runs a tactic a bunch*) *) Abort.
 
   

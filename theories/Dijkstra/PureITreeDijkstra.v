@@ -372,11 +372,15 @@ Lemma iterF_monotone {A B} (body:  (A -> PureITreeSpec (A + B)))
 
   Instance PureItreeOrder : OrderedMonad PureITreeSpec.
   Proof.
-    unfold OrderedMonad. intros. destruct w1 as [w1' Hw1']. destruct w2 as [w2' Hw2']. simpl in *.
-    intros p Hp. simpl.
-    unfold _bindpi. intros.  eapply H. simpl.
-    eapply Hw2'; try (apply H1). intros t. intros. destruct H2; auto.
-    destruct H2 as [a [Hreta Hf2a] ]. left. specialize (H0 a p Hp). exists a. auto.
+    constructor.
+    - intros. repeat red. intros. destruct w. auto.
+    - intros. repeat red. repeat red in H, H0. intros. destruct w1.
+      destruct w2. destruct w3. simpl in *. auto.
+    - intros. destruct w1 as [w1' Hw1']. destruct w2 as [w2' Hw2']. simpl in *.
+      intros p Hp. simpl.
+      unfold _bindpi. intros.  eapply H. simpl.
+      eapply Hw2'; try (apply H1). intros t. intros. destruct H2; auto.
+      destruct H2 as [a [Hreta Hf2a] ]. left. specialize (H0 a p Hp). exists a. auto.
   Qed.
 (*
   Instance PureITreeIter : Iter (Kleisli PureITreeSpec) sum := @iterp.

@@ -38,10 +38,13 @@ Section OrderedMonad.
   Context {MonadW : Monad W}.
   Context {MonadLawsW : MonadLaws W}.
   Context {OrderW : OrderM W}.
-  
   Class OrderedMonad :=
-    monot : forall A B w1 w2 (f1 f2 : A -> W B), w1 <≈ w2 ->
-                            (forall (a : A), (f1 a) <≈  (f2 a) ) -> (bind w1 f1) <≈ (bind w2 f2).
+    {
+      reflex : forall A (w : W A), w <≈ w;
+      trans : forall A (w1 w2 w3 : W A), w1 <≈ w2 -> w2 <≈ w3 -> w1 <≈ w3;
+      monot : forall A B w1 w2 (f1 f2 : A -> W B), w1 <≈ w2 ->
+                            (forall (a : A), (f1 a) <≈  (f2 a) ) -> (bind w1 f1) <≈ (bind w2 f2)
+    }.
 
 End OrderedMonad.
 

@@ -1,6 +1,6 @@
 From Coq Require Import Logic.Classical_Prop.
 From Paco Require Import paco.
-
+Require Import Omega.
 Section IterRel.
 
   Context (A : Type).
@@ -67,7 +67,49 @@ Section IterRel.
     intros. destruct (classic (wf_from a)); auto.
     apply neg_wf_from_not_wf_from in H. auto.
   Qed.
+
+  Lemma intro_not_wf : forall (P : A -> Prop) (f : A -> A) (a : A),
+    P a -> (forall a1 a2, P a1 -> r a1 a2 -> P a2 ) -> (forall a, P a -> r a (f a)) ->
+    not_wf_from a.
+  Proof.
+    intros. generalize dependent a. pcofix CIH. intros. pfold.
+    apply not_wf with (a' := f a).
+    - auto using H1.
+    - right. apply CIH. eapply H0; eauto.
+  Qed.
+
+  Lemma intro_wf : forall (P : A-> Prop) (m : A -> nat) (a : A),
+      P a -> (forall a1 a2, P a1 -> r a1 a2 -> P a2 ) -> 
+      (forall a1 a2, P a1 -> r a1 a2 -> m a2 < m a1) -> wf_from a.
+  Proof.
+    intros. remember (m a) as ma. assert (m a <= ma). omega. clear Heqma. 
+    generalize dependent a.  
+    induction (ma) as [  | n IHn] eqn : Heq.
+    - subst. intros. apply base. intros. intro.  
+      assert (~ m a' < m a).
+      {  omega. }
+      apply H4. clear H4. auto.
+    - intros. Abort.
+
+
   
 End IterRel.
 
-
+Lemma no_inf_dec_seq_aux : forall  (r : nat -> nat -> Prop) (n n': nat),
+    n' <= n ->
+    (forall n1 n2, r n1 n2 -> n2 < n1) ->
+     wf_from nat r n -> wf_from nat r n'.
+  Proof.
+    intros. induction n.
+    - assert (n' =0). omega. subst. apply base. intros n'. intro Hcontra.
+      assert (~ n' < 0). omega. auto.
+    - apply step. 
+      intros n'' Hn''.
+    (* destruct (classic (exists n', r (S n) n' )).
+      + destruct H2 as [n' Hn'].
+        assert (P n').
+        { eapply H0; eauto. }
+        apply H1 in Hn'. admit.
+      + apply base. intros. intro Hcontra. apply H2.
+        exists a'. auto. *)
+        Abort.

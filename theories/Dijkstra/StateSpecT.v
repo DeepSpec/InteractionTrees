@@ -6,6 +6,7 @@ From Coq Require Import
      Setoid
      RelationClasses
      Logic.Classical_Prop
+     Logic.FunctionalExtensionality
 .
 
 From ExtLib Require Import
@@ -69,6 +70,10 @@ Section StateSpecT.
   Context {MonadW : Monad W}.
   Context {OrderW : OrderM W}.
   Context {OrderedMonadW : OrderedMonad W}.
+  Context {EqW : EqM W}.
+  Context {EquivRel : forall A, Equivalence (EqW A) }.
+  Context {MonadLawsW : MonadLaws W}.
+  
 
   Definition StateSpecT (A : Type) := stateT S W A.
   
@@ -77,12 +82,57 @@ Section StateSpecT.
 
   Global Instance StateSpecTOrderedLaws : OrderedMonad StateSpecT.
   Proof.
-    intros A B w1 w2 f1 f2 Hlw Hlf. unfold StateSpecT in *.
-    red in OrderedMonadW. rename OrderedMonadW into HW. repeat red.
-    intros. apply HW; auto. intros. destruct a as [s' a]. simpl.
-    repeat red in Hlf. apply Hlf.
+    destruct OrderedMonadW.
+    constructor.
+    - repeat intro.  auto.
+    - repeat intro. eapply trans; eauto.
+    - intros A B w1 w2 f1 f2 Hlw Hlf. unfold StateSpecT in *.
+      repeat red.
+      intros. apply monot; auto. intros. destruct a as [s' a]. simpl.
+      repeat red in Hlf. apply Hlf.
   Qed.
   
+  Global Instance StateSpecTEq : EqM StateSpecT :=
+    fun _ w1 w2 => forall s, w1 s ≈ w2 s.
+
+  Global Instance StateSpecTMonadLaws : MonadLaws StateSpecT.
+  Proof.
+    destruct MonadLawsW.
+    constructor.
+    - intros A B f a. intro. repeat red. 
+      cbn. 
+      rewrite bind_ret. simpl. reflexivity.
+    - intros A w. intro. cbn.
+      assert ((fun sa : S * A => ret (fst sa, snd sa)) = fun sa => ret sa).
+      { apply functional_extensionality. intros. 
+        destruct x. reflexivity. } rewrite H.
+      rewrite ret_bind. reflexivity.
+     - intros A B C w f g. intro. cbn. rewrite bind_bind. reflexivity.
+  Qed.
+    
+
+  Section Observation.
+    Context (M : Type -> Type).
+    Context {MonadM : Monad M}.
+    Context {EffectObsMW : EffectObs M W}.
+    Context {MonadMorphismMW : MonadMorphism M W EffectObsMW}.
+
+    Global Instance EffectObsStateT : EffectObs (stateT S M) (stateT S W) := fun _ m s => obs _ (m s).
+
+    Global Instance MonadMorphimStateT : MonadMorphism (stateT S M) (stateT S W) EffectObsStateT.
+    Proof.
+      destruct MonadMorphismMW.
+      constructor.
+      - intros. repeat red. intros. specialize (ret_pres (S * A)%type (s,a) ).
+        cbn. rewrite <- ret_pres. reflexivity.
+      - intros. repeat red. intros. cbn. specialize (bind_pres (S * A)%type (S * B)%type ). 
+        unfold obs, EffectObsStateT.
+        rewrite bind_pres. reflexivity.
+    Qed.
+
+
+  End Observation.
+
   (*Can I encode a pre post thing, state spec enriches the precondition and 
      specializes post condition*)
 
@@ -135,10 +185,17 @@ Section LoopInvarSpecific.
     intros. specialize (loop_invar (S * A) (S * B) ) as Hloop.
     set (iso_destatify_arrow g) as g'.
     enough ((p \1/ divergence) (KTree.iter g' (s,a) )).
-    - assert (KTree.iter g' (s,a) ≅ iter g a s).
+    - assert (KTree.iter g' (s,a) ≈ iter g a s).
       + unfold g', iso_destatify_arrow.
         unfold iter, Iter_Kleisli, Basics.iter, MonadIterDelay, StateIter,
-        MonadIter_stateT0, reassoc.
+        MonadIter_stateT0, reassoc. unfold Basics.iter.
+        unfold MonadIterDelay. 
+        match goal with |-  (KTree.iter ?f _) ≈  (KTree.iter ?g _) => enough (eq2 f g) end.
+        * admit.
+        * intro. destruct a0 as [s' a']. 
+          simpl. match goal with |- ?a = ?b => assert (a ≈ b) end.
+          { eapply eutt_clo_bind; try reflexivity. intros.
+            destruct u1; destruct u2. injection H3 as H3. subst. destruct s3; reflexivity. }
         admit. (*obviously the same but something annoying going on*)
       + assert (Hpdiv : resp_eutt _ _ (p \1/ divergence)).
         { intros t1 t2 Heutt. split; intros; basic_solve.
@@ -147,7 +204,7 @@ Section LoopInvarSpecific.
           - left. eapply Hp; eauto.
           - right. rewrite Heutt. auto.
          }
-        eapply Hpdiv; try apply H2. rewrite H3. reflexivity.
+        eapply Hpdiv; try apply H2. symmetry. auto.
      - eapply Hloop; eauto.
   Admitted.
 
@@ -200,4 +257,3 @@ Section LoopInvarGeneral.
   
 
 End LoopInvarGeneral.
-

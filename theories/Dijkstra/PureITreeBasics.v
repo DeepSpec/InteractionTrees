@@ -162,4 +162,8 @@ Lemma unfold_spin : forall (E : Type -> Type) (A : Type), (@spin E A) ≅ Tau sp
 Proof.
   intros.  pcofix CIH. cbn. pfold. red. cbn. apply EqTau. cbn.
   left. pcofix CIH'. pfold. red. cbn. auto.
-Qed.
+Qed. 
+(*
+Global Instance iter_interp_proper {E : Type -> Type} {R : Type} :
+  Proper ( @eq_itree eq E R ==> iff) (KTree.iter)
+*)
