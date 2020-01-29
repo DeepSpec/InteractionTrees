@@ -131,9 +131,9 @@ Context {obj : Type} (C : Hom obj) (bif : binop obj).
 
     Many of the following typeclases are _derived_ from just three basic 
     Coproduc constructions:
-       - [CoprodCase]  (case analysis)
-       - [CoprodInl]   (left injection)
-       - [CoprodInr]   (right injection)
+       - [Case]  (case analysis)
+       - [Inl]   (left injection)
+       - [Inr]   (right injection)
 
  *)
 Class Bimap :=
@@ -144,19 +144,20 @@ Class Bimap :=
 (** Coproducts are a generalization of sum types and case analysis. *)
 
 (** Case analysis on a sum. *)
-Class CoprodCase :=
+Class Case :=
   case_ : forall a b c, C a c -> C b c -> C (bif a b) c.
 
 (** Injection into the left component. *)
-Class CoprodInl :=
+Class Inl :=
   inl_ : forall a b, C a (bif a b).
 
 (** Injection into the right component. *)
-Class CoprodInr :=
+Class Inr :=
   inr_ : forall a b, C b (bif a b).
 
 (* Like [id_], the underscores avoid confusion with the names
-   from the stdlib (where [case] is a tactic.) *)
+   from the stdlib ([inl] and [inr] are constructors of [sum],
+   and [case] is a tactic.) *)
 
 (** *** Tensor products (monoidal categories) *)
 
@@ -200,9 +201,9 @@ Class Swap :=
 End CocartesianOps.
 
 Arguments bimap {obj C bif Bimap a b c d}.
-Arguments case_ {obj C bif CoprodCase a b c}.
-Arguments inl_ {obj C bif CoprodInl a b}.
-Arguments inr_ {obj C bif CoprodInr a b}.
+Arguments case_ {obj C bif Case a b c}.
+Arguments inl_ {obj C bif Inl a b}.
+Arguments inr_ {obj C bif Inr a b}.
 Arguments assoc_r {obj C bif AssocR a b c}.
 Arguments assoc_l {obj C bif AssocL a b c}.
 Arguments unit_l  {obj C bif i UnitL a}.
@@ -244,7 +245,7 @@ Local Open Scope cat.
 
 (** Generalization of [a + a -> a]. *)
 Definition merge {obj : Type} {C : Hom obj} {bif : binop obj}
-           {Id_C : Id_ C} {Coproduct_C : CoprodCase C bif}
+           {Id_C : Id_ C} {Coproduct_C : Case C bif}
   : forall {a : obj}, C (bif a a) a :=
   fun a => case_ (id_ a) (id_ a).
 
@@ -256,9 +257,9 @@ Definition merge {obj : Type} {C : Hom obj} {bif : binop obj}
 Section CocartesianConstruct.
 
 Context {obj : Type} (C : Hom obj) (Cat_C : Cat C).
-Variables (SUM : binop obj) (Coprod_SUM : CoprodCase C SUM)
-          (CoprodInl_SUM : CoprodInl C SUM)
-          (CoprodInr_SUM : CoprodInr C SUM).
+Variables (SUM : binop obj) (Coprod_SUM : Case C SUM)
+          (Inl_SUM : Inl C SUM)
+          (Inr_SUM : Inr C SUM).
 
 (** Coproducts are bifunctors. *)
 Global Instance Bimap_Coproduct : Bimap C SUM :=
@@ -315,9 +316,9 @@ Class Iter : Type :=
 Context
   {Id_C : Id_ C}
   {Cat_C : Cat C}
-  {CoprodCase_bif : CoprodCase C bif}
-  {CoprodInl_bif : CoprodInl C bif}
-  {CoprodInr_bif : CoprodInr C bif}
+  {Case_bif : Case C bif}
+  {Inl_bif : Inl C bif}
+  {Inr_bif : Inr C bif}
   {Iter_bif : Iter}.
 
 (** Trace operator (generalization of [KTree.loop]). *)
@@ -341,7 +342,7 @@ Section RESUM.
 
 Context {obj : Type} (C : Hom obj) (bif : binop obj).
 Context `{Id_ _ C} `{Cat _ C}.
-Context `{CoprodCase _ C bif} `{CoprodInl _ C bif} `{CoprodInr _ C bif}.
+Context `{Case _ C bif} `{Inl _ C bif} `{Inr _ C bif}.
 
 Class ReSum (a b : obj) :=
   resum : C a b.

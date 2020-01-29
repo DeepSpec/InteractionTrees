@@ -199,7 +199,7 @@ Section MapFacts.
         (* YZ: Hence in this case we relate two trees defined as triggers *)
         * unfold trigger, Trigger_State, trigger, Trigger_ITree, ITree.trigger.
           cbn. rewrite 2 bind_vis. apply eqit_Vis.
-          intros. rewrite 2 bind_ret.  apply eqit_Ret. constructor; auto.
+          intros. rewrite 2 bind_ret_l.  apply eqit_Ret. constructor; auto.
       (* We get away with it by unfolding the instances though *)
       + intros. destruct u1. destruct u2. cbn.
         inversion H. subst.

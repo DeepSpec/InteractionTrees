@@ -16,7 +16,7 @@ Inductive com : Type :=
 | seq : com -> com -> com
 .
 
-Infix ";;" := seq (at level 60, right associativity) : com_scope.
+Infix ";;" := seq (at level 61, right associativity) : com_scope.
 Delimit Scope com_scope with com.
 Open Scope com_scope.
 
@@ -162,16 +162,16 @@ Proof.
   setoid_rewrite tau_eutt.
   setoid_rewrite interp_ret.
   setoid_rewrite bind_bind.
-  setoid_rewrite bind_ret.
+  setoid_rewrite bind_ret_l.
   setoid_rewrite bind_vis.
   evis. intros.
-  setoid_rewrite bind_ret.
+  setoid_rewrite bind_ret_l.
   destruct v.
   - setoid_rewrite interp_ret. apply reflexivity.
   - setoid_rewrite interp_bind.
     setoid_rewrite interp_recursive_call.
     setoid_rewrite eval_skip.
-    setoid_rewrite bind_ret.
+    setoid_rewrite bind_ret_l.
     eauto with paco.
 Qed.
 

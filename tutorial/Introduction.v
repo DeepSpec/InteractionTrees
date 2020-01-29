@@ -106,7 +106,7 @@ Definition interpreted_write_one : itree void1 (list nat * unit)
     [interp] with.)
 
     The proof of [interp_write_one] will require us to rewrite an
-    expression under a binder#&mdash;#i.e. on the right side of a
+    expression under a binder---i.e., on the right side of a
     [;;]. The [rewrite] tactic will fail in this situation; instead,
     we can use [setoid_rewrite], which works under binders.
  *)

@@ -17,7 +17,7 @@
 *)
 
 (* begin hide *)
-Require Import Imp Asm Label Utils_tutorial AsmCombinators.
+Require Import Imp Asm Fin Utils_tutorial AsmCombinators.
 
 Require Import Psatz.
 
@@ -45,7 +45,7 @@ Section compile_assign.
   (** Expressions are compiled straightforwardly.
       The argument [l] is the number of registers already introduced to compile
       the expression, and is used for the name of the next one.
-      The result of the computation [compile_expr l e] always ends up stored in [l]. 
+      The result of the computation [compile_expr l e] always ends up stored in [l].
    *)
   Fixpoint compile_expr (l:reg) (e: expr): list instr :=
     match e with
@@ -65,7 +65,7 @@ Section compile_assign.
       instrs1 ++ instrs2 ++ [Imul l l (Oreg (1 + l))]
       end.
 
-  (** Compiles the expression and then move the result (in register [0]) to address
+  (** Compiles the expression and then moves the result (in register [0]) to address
       [x].  Note: here we assume a one-to-one mapping of _Imp_ global variable names
       and _Asm_ addresses.
   *)
@@ -81,13 +81,13 @@ End compile_assign.
 
 (** Sequencing of blocks: the program [seq_asm ab bc] links the
     exit points of [ab] with the entry points of [bc].
-    
+
 [[
            B
    A---ab-----bc---C
 ]]
 
-   ... can be implemented using just [app_asm], [relabel_asm] and [link_asm].
+   ... can be implemented using just [app_asm], [relabel_asm] and [loop_asm].
 
   Indeed, [app_asm ab bc] can be visualized as:
 [[
@@ -110,7 +110,7 @@ Which translates to:
  *)
 Definition seq_asm {A B C} (ab : asm A B) (bc : asm B C)
   : asm A C :=
-  link_asm (relabel_asm swap (id_ _) (app_asm ab bc)).
+  loop_asm (relabel_asm swap (id_ _) (app_asm ab bc)).
 
 
 (** Location of temporary for [if]. *)
@@ -120,7 +120,7 @@ Definition tmp_if := 0.
     expression of a _if_ to a block with two exit points.
  *)
 Definition cond_asm (e : list instr) : asm 1 2 :=
-  raw_asm_block (after e (Bbrz tmp_if (FS f1) f1)).
+  raw_asm_block (after e (Bbrz tmp_if (fS f0) f0)).
 
 
 (** Conditional branch of blocks.
@@ -150,13 +150,12 @@ Definition if_asm {A}
 (* Conditional looping of blocks.
    The program [while_asm e p] composes vertically two programs:
    an [if_asm] construct with [p] followed by a jump on the true branch,
-   and a unique jump on the false branch. 
-   The loop is then closed with [link_asm] by matching the jump from the
+   and a unique jump on the false branch.
+   The loop is then closed with [loop_asm] by matching the jump from the
    true branch to the entry point.
 
 [while_asm e p]
 [[
->>>>>>> origin/master
       +-------------+
       |             |
       |    true     |
@@ -167,9 +166,9 @@ Definition if_asm {A}
 *)
 Definition while_asm (e : list instr) (p : asm 1 1) :
   asm 1 1 :=
-  link_asm (relabel_asm (id_ _) merge
+  loop_asm (relabel_asm (id_ _) merge
     (app_asm (if_asm e
-                (relabel_asm id inl_ p)
+                (relabel_asm (id_ _) inl_ p)
                 (pure_asm inr_))
             (pure_asm inl_))).
 
@@ -179,14 +178,10 @@ Definition while_asm (e : list instr) (p : asm 1 1) :
 Fixpoint compile (s : stmt) {struct s} : asm 1 1 :=
   match s with
   | Skip       => id_asm
-  | Assign x e => raw_asm_block (after (compile_assign x e) (Bjmp f1))
+  | Assign x e => raw_asm_block (after (compile_assign x e) (Bjmp f0))
   | Seq l r    => seq_asm (compile l) (compile r)
   | If e l r   => if_asm (compile_expr 0 e) (compile l) (compile r)
   | While e b  => while_asm (compile_expr 0 e) (compile b)
   end.
 
 (** We now consider its proof of correctness in [Imp2AsmCorrectness.v]. *)
-
-
-
-

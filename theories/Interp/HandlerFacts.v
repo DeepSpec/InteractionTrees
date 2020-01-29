@@ -204,7 +204,7 @@ Context {R : Type}.
 
 Context (f := fun T e => Tau (f0 T e)) (g := fun T e => Tau (g0 T e)).
 
-Local Inductive interleaved
+Inductive interleaved
   : itree (A +' C) R -> itree (B +' C) R -> Prop :=
 | interleaved_Ret r : interleaved (Ret r) (Ret r)
 | interleaved_Left {U} (t : itree _ U) k1 k2 :
@@ -229,7 +229,7 @@ Proof.
   induction H0.
   - rewrite 2 unfold_interp_mrec; cbn. estep.
   - rewrite (itree_eta t); destruct (observe t).
-    + rewrite interp_ret, 2 bind_ret. auto.
+    + rewrite interp_ret, 2 bind_ret_l. auto.
     + rewrite interp_tau, 2 bind_tau, 2 unfold_interp_mrec; cbn.
       estep.
     + rewrite interp_vis, bind_vis.
@@ -245,7 +245,7 @@ Proof.
         rewrite unfold_interp_mrec; cbn.
         evis; intros; etau. rewrite tau_eutt. ebase.
   - rewrite (itree_eta t); destruct (observe t).
-    + rewrite interp_ret, 2 bind_ret. auto.
+    + rewrite interp_ret, 2 bind_ret_l. auto.
     + rewrite interp_tau, 2 bind_tau, 2 unfold_interp_mrec; cbn.
       estep.
     + rewrite interp_vis, bind_vis.
@@ -290,8 +290,8 @@ Proof.
   }
   rewrite <- interp_mrec_as_interp.
 
-  rewrite <- (bind_ret2 (interp _ _)).
-  rewrite <- (bind_ret2 (f _ a0)) at 2.
+  rewrite <- (bind_ret_r (interp _ _)).
+  rewrite <- (bind_ret_r (f _ a0)) at 2.
 
   apply interleaved_mrec.
   do 2 constructor.

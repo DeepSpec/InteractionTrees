@@ -7,7 +7,7 @@ From ITree Require Import
      Basics.Basics
      Basics.CategoryOps
      Basics.CategoryKleisli
-     Basics.MonadTheory
+     Basics.Monad
      Basics.CategoryKleisli
      Basics.Function
      Core.ITreeDefinition
@@ -67,7 +67,3 @@ Local Notation ktree := (ktree E).
  *)
 
 End Operations.
-
-Notation iter := (@iter _ (ktree _) sum _ _ _).
-Notation loop := (@loop _ (ktree _) sum _ _ _ _ _ _ _ _ _).
-

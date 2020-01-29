@@ -44,7 +44,7 @@ Proof.
   ebind; econstructor; try reflexivity.
   intros [a | b] _ [].
   - rewrite bind_tau. etau.
-  - rewrite bind_ret, tau_eutt.
+  - rewrite bind_ret_l, tau_eutt.
     revert b. ecofix CIH'. intros.
     rewrite !unfold_iter. unfold ITree._iter.
     rewrite bind_map.
@@ -129,7 +129,7 @@ Qed.
 Definition eutt_iter_gen {F A B R S} :
   @Proper ((A -> itree F (A + B)) -> A -> itree F B)
           ((R ==> eutt (sum_rel R S)) ==> R ==> (eutt S))
-          KTree.iter.
+          (iter (C := ktree F)).
 Proof.
   do 3 red;
   intros body1 body2 EQ_BODY x y Hxy. red in EQ_BODY.
@@ -169,7 +169,7 @@ Qed.
 Instance IterNatural_ktree {E} : IterNatural (ktree E) sum.
 Proof.
   repeat intro.
-  unfold bimap, Bimap_Coproduct, case_, CoprodCase_Kleisli, case_sum, cat, Cat_Kleisli.
+  unfold bimap, Bimap_Coproduct, case_, Case_Kleisli, case_sum, cat, Cat_Kleisli.
   cbn.
   revert a0.
   einit. ecofix CIH. intros.
@@ -177,14 +177,14 @@ Proof.
   rewrite !bind_bind.
   ebind; econstructor; try reflexivity.
   intros [] ? [].
-  - rewrite bind_tau, 2 bind_ret. etau.
-  - rewrite bind_ret, !bind_bind. setoid_rewrite bind_ret. rewrite bind_ret2.
+  - rewrite bind_tau, 2 bind_ret_l. etau.
+  - rewrite bind_ret_l, !bind_bind. setoid_rewrite bind_ret_l. rewrite bind_ret_r.
     reflexivity.
 Qed.
 
 Lemma iter_dinatural_ktree {E A B C}
       (f : ktree E A (C + B)) (g : ktree E C (A + B)) (a0 : A)
-  : iter (fun a =>
+  : iter (C := ktree E) (fun a =>
       cb <- f a ;;
       match cb with
       | inl c => Tau (g c)
@@ -192,7 +192,7 @@ Lemma iter_dinatural_ktree {E A B C}
       end) a0
   ≅ cb <- f a0 ;;
      match cb with
-     | inl c0 => Tau (iter (fun c =>
+     | inl c0 => Tau (iter (C := ktree E) (fun c =>
          ab <- g c ;;
          match ab with
          | inl a => Tau (f a)
@@ -217,17 +217,17 @@ Proof.
     * rewrite bind_tau.
       gstep; constructor.
       eauto with paco.
-    * rewrite bind_ret. gstep; econstructor; auto.
+    * rewrite bind_ret_l. gstep; econstructor; auto.
   }
-  { rewrite bind_ret. gstep; constructor; auto. }
+  { rewrite bind_ret_l. gstep; constructor; auto. }
 Qed.
 
 Instance IterDinatural_ktree {E} : IterDinatural (ktree E) sum.
 Proof.
   repeat intro.
-  unfold bimap, Bimap_Coproduct, case_, CoprodCase_Kleisli, case_sum, cat, Cat_Kleisli.
+  unfold bimap, Bimap_Coproduct, case_, Case_Kleisli, case_sum, cat, Cat_Kleisli.
   cbn.
-  transitivity (iter (fun t =>
+  transitivity (iter (C := ktree E) (fun t =>
                         x <- f t;;
                         match x with
                         | inl a1 => Tau (g a1)
@@ -255,7 +255,7 @@ Qed.
 
 Lemma iter_codiagonal_ktree {E A B} (f : ktree E A (A + (A + B))) (a0 : A)
   : iter (iter f) a0
-  ≅ iter (fun a =>
+  ≅ iter (C := ktree _) (fun a =>
        r <- f a ;;
        match r with
        | inl a' => Ret (inl a')
@@ -270,7 +270,7 @@ Proof.
   rewrite unfold_iter_ktree, !bind_bind.
   guclo eqit_clo_bind. econstructor. reflexivity.
   intros [| []] ? [].
-  - rewrite bind_ret, bind_tau.
+  - rewrite bind_ret_l, bind_tau.
     gstep. constructor.
     revert a.
     gcofix CIH'. intros.
@@ -279,19 +279,19 @@ Proof.
     rewrite !bind_bind.
     guclo eqit_clo_bind. econstructor. reflexivity.
     intros [| []] ? [].
-    + rewrite bind_tau, bind_ret. gstep; constructor; auto with paco.
-    + rewrite 2 bind_ret. gstep; constructor; auto with paco.
-    + rewrite 2 bind_ret. gstep; constructor; auto.
-  - rewrite 2 bind_ret.
+    + rewrite bind_tau, bind_ret_l. gstep; constructor; auto with paco.
+    + rewrite 2 bind_ret_l. gstep; constructor; auto with paco.
+    + rewrite 2 bind_ret_l. gstep; constructor; auto.
+  - rewrite 2 bind_ret_l.
     gstep; constructor; auto with paco.
-  - rewrite 2 bind_ret.
+  - rewrite 2 bind_ret_l.
     gstep; reflexivity.
 Qed.
 
 Instance IterCodiagonal_ktree {E} : IterCodiagonal (ktree E) sum.
 Proof.
   repeat intro.
-  unfold bimap, Bimap_Coproduct, case_, CoprodCase_Kleisli, case_sum, cat, Cat_Kleisli.
+  unfold bimap, Bimap_Coproduct, case_, Case_Kleisli, case_sum, cat, Cat_Kleisli.
   cbn.
   rewrite iter_codiagonal_ktree.
   apply eutt_iter.

@@ -9,17 +9,21 @@ SAZ: This needs to be updated.
     _Imp_ statement and the denotation of the compiled _Asm_
     program. This weak bisimulation is a _up-to-tau_ bisimulation.
     More specifically, we relate the itrees after having
-    interpreted the [Locals] events contained in the trees into
-    the state monad, and run them.
+    interpreted the events contained in the trees, and run
+    the resulting computation from the state monad:
+    [ImpState] on the _Imp_ side, [Reg] and [Memory] on the
+    _Asm_ side.
 
     The proof is essentially structured as followed:
-    - a simulation relation is defined to relate the local
-    environments during the simulation. This relation is
-    strengthened into a second one used during the simulation
+    - a simulation relation is defined to relate the _Imp_
+    state to the _Asm_ memory during the simulation. This
+    relation is strengthened into a second one additionally
+    relating the result of the denotation of an expression to
+    the _Asm_ set of registers, and used during the simulation
     of expressions.
     - the desired bisimulation is defined to carry out the
-    the simulation invariant into a up-to-tau after interpretation
-    of [Locals] relation. Once again a slightly different
+    the simulation invariant into a up-to-tau equivalence after
+    interpretation of events. Once again a slightly different
     bisimulation is defined when handling expressions.
     - Linking is proved in isolation: the "high level" control
     flow combinators for _Asm_ defined in [Imp2Asm.v] are
@@ -42,13 +46,13 @@ SAZ: This needs to be updated.
     trying to reason at the level of [itree]s ease sensibly the pain
     by reducing the amount of binders under which we need to work.
     - We transparently make use of the heterogeneous bisimulation provided
-    by the [itree] library to relate computations of _Asm_ expressions
-    that return an environment and a [unit] value to ones of _Imp_
-    that return an environment and an [Imp.value].
-*)
+    by the [itree] library to relate computations of _Asm_ expressions that
+    return a pair of environments (registers and memory) and a [unit] value to
+    ones of _Imp_ that return a single environment and an [Imp.value].
+ *)
 
 (* begin hide *)
-Require Import Imp Asm Utils_tutorial AsmCombinators Imp2Asm Label.
+Require Import Imp Asm Utils_tutorial AsmCombinators Imp2Asm Fin KTreeFin.
 
 Require Import Psatz.
 
@@ -61,14 +65,11 @@ From Coq Require Import
      RelationClasses.
 
 From ITree Require Import
-     Basics.Basics
-     CategoryOps
      ITree
      ITreeFacts
+     Basics.CategorySub
      Events.StateFacts
-     Events.MapDefault
-     SubKTree
-     SubKTreeFacts.
+     Events.MapDefault.
 
 Import ITreeNotations.
 
@@ -299,8 +300,8 @@ End Simulation_Relation.
     is of course the _equivalence up to tau_. However, the [itree] structures
     are also quite different.  [asm] programs manipulate two state
     components. The simulation will establish that the [imp] global state
-    corresponds to the [asm] memory, but do establish that correspondence we
-    also need to interpret the [asm] register effects.  *)
+    corresponds to the [asm] memory, but to be able to  establish this
+    correspondence, we also need to interpret the [asm] register effects.  *)
 
 Section Bisimulation.
   Context {E F C1 C2: Type -> Type}.
@@ -311,21 +312,15 @@ Section Bisimulation.
 
   (** Definition of our bisimulation relation.
 
-      As previously explained, it relates (up-to-tau) two [itree]s after having
-      interpreted their events.
+      As previously explained, the bisimulation relates (up-to-tau)
+      two [itree]s after having interpreted their events.
 
-      We additionally bake into it a simulation
-      -  events are interpreted from related states.
+      We additionally bake into it a simulation invariant:
+      - Events are interpreted from states related by [Renv]
       - Returned values must contain related states, as well as computed datas
-      related by another relation [RR] taken in parameter.
-      In our case, we specialize [RR] to equality since both trees return [unit],
-      and [Renv_] to [Renv].
-   *)
-  (* SAZ: TODO - rename some of the variables here to make it clear what are environemnts, etc.
-     maybe rename a and b to use pattern binding: a == '(src_env, src_res)
-
-     Annoyingly, using pattern matching here prevents lemmas like [eutt_interp_state_loop]
-     from applying because
+      related by another relation [RAB] taken in parameter.
+      In our case, we will specialize [RAB] to the total relation since the trees return
+      respectively [unit] and the unique top-level label [F0: fin 1].
    *)
 
   Section RAB.
@@ -376,17 +371,6 @@ Section Bisimulation.
     eapply H0; eauto.
   Qed.
 
-  (* YZ: Move this to the library *)
-  Lemma interp_state_iter' {E1 E2} S (f : E1 ~> stateT S (itree E2)) {I A}
-      (t  : I -> itree E1 (I + A))
-  : forall i, state_eq (State.interp_state f (ITree.iter t i))
-                  (Basics.iter (fun i => State.interp_state f (t i)) i).
-  Proof.
-    eapply interp_state_iter.
-    intros i.
-    red. reflexivity.
-  Qed.
-
   Lemma bisimilar_iter {A A' B B'}
         (R : A -> A' -> Prop)
         (S : B -> B' -> Prop)
@@ -394,19 +378,19 @@ Section Bisimulation.
         (t2 : A' -> itree E (A' + B')) :
     (forall l l', R l l' -> bisimilar (sum_rel R S) (t1 l) (t2 l')) ->
     forall x x', R x x' ->
-    bisimilar S (KTree.iter t1 x) (KTree.iter t2 x').
+    bisimilar S (iter (C := ktree _) t1 x) (iter (C := ktree _) t2 x').
   Proof.
     unfold bisimilar, interp_asm, interp_asm_mem, interp_asm_regs, interp_imp, interp_map.
     intros. rewrite 2 interp_iter.
-    unfold KTree.iter, Iter_Kleisli.
+    unfold iter, Iter_Kleisli.
     pose proof @interp_state_iter'.
     red in H2. unfold Basics.iter, MonadIter_itree.
 
     rewrite 2 H2.
     unfold Basics.iter, MonadIter_stateT0, Basics.iter, MonadIter_itree; cbn.
-    change (ITree.iter ?t ?l) with (KTree.iter t l).
+    change (ITree.iter ?t ?l) with (iter (C := ktree _) t l).
     rewrite interp_iter.
-    unfold KTree.iter, Iter_Kleisli.
+    unfold iter, Iter_Kleisli.
     unfold Basics.iter, MonadIter_stateT0, Basics.iter, MonadIter_itree; cbn.
     rewrite H2.
     apply (eutt_iter' (state_invariant R)).
@@ -416,7 +400,7 @@ Section Bisimulation.
     rewrite interp_bind, interp_state_bind, bind_bind.
     setoid_rewrite interp_ret.
     setoid_rewrite interp_state_ret.
-    setoid_rewrite bind_ret. cbn.
+    setoid_rewrite bind_ret_l. cbn.
     apply eutt_clo_bind with (UU := state_invariant (sum_rel R S)).
     - auto.
     - intros ? ? [? []]; cbn; apply eqit_Ret; constructor; split; auto.
@@ -441,7 +425,7 @@ Section Bisimulation.
     unfold lookup_def, trigger, Trigger_ITree, interp_map.
     cbn.
     rewrite interp_state_trigger; cbn.
-    rewrite bind_ret, tau_eutt.
+    rewrite bind_ret_l, tau_eutt.
     rewrite interp_ret, interp_state_ret.
     unfold lookup_default, lookup, Map_alist.
     erewrite sim_rel_find.
@@ -472,170 +456,125 @@ Section Linking.
                  ⩯ denote_asm ab >>> denote_asm bc.
     Proof.
       unfold seq_asm.
-      rewrite link_asm_correct, relabel_asm_correct, app_asm_correct.
-      rewrite <- lift_sktree_id, cat_assoc.
-      rewrite cat_id_r.
-      rewrite sym_sktree_unfold.
+      rewrite loop_asm_correct, relabel_asm_correct, app_asm_correct.
+      rewrite fmap_id0, cat_id_r, fmap_swap.
       apply cat_from_loop.
     Qed.
 
   (** [if_asm] is denoted as the ktree first denoting the branching condition,
       then looking-up the appropriate variable and following with either denotation. *)
-
-  (* SAZ: This proof and the following one should be made nicer.
-     Part of the problem is that some of the details of the Label types leak through
-     the interface.  It would be better to extend the Embedding and SubKTree interfaces
-     to better preserve the abstractions.
-
-     We should not have to unfold [isum_suml], [merge], etc. We would have to figure out
-     the right way to abstract properties like: [split_fin_sum_FS_inr].
-  *)
   Lemma if_asm_correct {A} (e : list instr) (tp fp : asm 1 A) :
       denote_asm (if_asm e tp fp)
     ⩯ ((fun _ =>
          denote_list e ;;
          v <- trigger (GetReg tmp_if) ;;
-         if v : value then denote_asm fp f1 else denote_asm tp f1) : sktree _ _ _).
+         if v : value then denote_asm fp f0 else denote_asm tp f0)).
   Proof.
     unfold if_asm.
     rewrite seq_asm_correct.
     unfold cond_asm.
     rewrite raw_asm_block_correct_lifted.
     rewrite relabel_asm_correct.
+
     intros ?.
     Local Opaque denote_asm.
-    Local Opaque Label.FS.
-    Local Opaque merge_fin_sum.
 
-    unfold CategoryOps.cat, Cat_sktree, CategoryOps.cat, Cat_Kleisli; simpl.
+    unfold CategoryOps.cat, Cat_sub, CategoryOps.cat, Cat_Kleisli; simpl.
     rewrite denote_after.
     cbn.
     repeat setoid_rewrite bind_bind.
     apply eqit_bind; try reflexivity. intros _.
     apply eqit_bind; try reflexivity. intros [].
 
-    - rewrite !bind_ret.
+    - rewrite !bind_ret_l.
       setoid_rewrite (app_asm_correct tp fp _).
       setoid_rewrite bind_bind.
-      unfold isum_suml, isum_sum, lift_ktree; cbn. unfold id_, Id_iFun, id, id_, Id_Fun.
-      rewrite bind_ret; cbn.
-      unfold merge.
-      unfold case_, case_isum, CategoryOps.cat, Cat_Fun, case_, case_sum, CoprodCase_Kleisli, case_sum.
-      cbn.
-      rewrite split_fin_sum_FS_inr.
-      repeat rewrite bind_bind.
-      repeat setoid_rewrite bind_ret.
-      rewrite <- (bind_ret2 (denote_asm fp f1)).
-      eapply eqit_bind.
-      *
-      intros ?.
-      apply eqit_Ret.
+      match goal with
+      | [ |- _ (?t >>= _) _ ] => let y := eval compute in t in change t with y
+      end.
+      rewrite bind_ret_l. cbn.
+      setoid_rewrite bind_ret_l.
+      rewrite bind_bind.
+      setoid_rewrite bind_ret_l.
+      unfold from_bif, FromBifunctor_ktree_fin; cbn.
+      rewrite bind_ret_r'.
+      { rewrite (unique_f0 (fi' 0)). reflexivity. }
+      { intros.
+        Local Opaque split_fin_sum R. cbv. Local Transparent split_fin_sum R.
+        rewrite split_fin_sum_R. reflexivity. }
 
-      setoid_rewrite (@iso_epi _ _ _ _ _ _ _ _ _ (@FinSumIso A A)).
-      reflexivity.
-      * rewrite bind_ret2.
-        reflexivity.
-
-
-    - rewrite !bind_ret.
+    - rewrite !bind_ret_l.
       setoid_rewrite (app_asm_correct tp fp _).
       repeat setoid_rewrite bind_bind.
-      unfold isum_suml, lift_ktree_, isum_sum, FinSum. unfold id_, Id_iFun, id, id_, Id_Fun.
-      unfold ret, Monad_itree.
-      rewrite bind_ret.
-      unfold merge.
-      unfold case_, case_isum, CategoryOps.cat, Cat_Fun, case_, case_sum, CoprodCase_Kleisli, case_sum.
-      rewrite split_fin_sum_f1_inl.
-      unfold Cat_sktree.
-      repeat rewrite bind_bind.
-      unfold isum_sum.
-      unfold CategoryOps.cat, Cat_Kleisli.
-      setoid_rewrite bind_bind.
-      repeat setoid_rewrite bind_ret.
-      rewrite <- (bind_ret2 (denote_asm tp f1)).
-      eapply eqit_bind.
-      *
-        intros ?.
-        apply eqit_Ret.
-        unfold sum_isum.
-        setoid_rewrite (@iso_epi _ _ _ _ _ _ _ _ _ (@FinSumIso A A)).
-        reflexivity.
-      * rewrite bind_ret2.
-        reflexivity.
+      match goal with
+      | [ |- _ (?t >>= _) _ ] => let y := eval compute in t in change t with y
+      end.
+      rewrite bind_ret_l. cbn. rewrite bind_bind.
+      setoid_rewrite bind_ret_l.
+      unfold from_bif, FromBifunctor_ktree_fin.
+      setoid_rewrite bind_ret_l.
+      rewrite bind_ret_r'.
+      { rewrite (unique_f0 (fi' 0)). reflexivity. }
+      { intros. Local Opaque split_fin_sum L. cbv. Local Transparent split_fin_sum R.
+        rewrite split_fin_sum_L. reflexivity. }
   Qed.
-
 
   (** [while_asm] is denoted as the loop of the body with two entry point, the exit
       of the loop, and the body in which we have the same structure as for the conditional *)
-  (* SAZ: it is annoying that we have to instantiate the isum_sum with the FinEmbedding information.
-     This probably points to a leaky abstraction about the labels that we should clean up.
-   *)
-
-  Notation label_case := (fun l => (@isum_sum _ FinEmbedding plus _ 1 _ l)).
-  Notation l1 := f1.
-  Notation l2 := (FS f1).
+  Notation label_case := (split_fin_sum _ _).
 
   Lemma while_asm_correct (e : list instr) (p : asm 1 1) :
       denote_asm (while_asm e p)
-    ⩯ (sloop (fun l: F (1 + 1) =>
+    ⩯ (loop (C := sub (ktree _) fin) (fun l : fin (1 + 1) =>
          match label_case l with
-         | inl _ =>  denote_list e ;;
-                    v <- trigger (GetReg tmp_if) ;; if (v:value) then Ret l2 else (denote_asm p f1;; Ret l1)
-         | inr _ => Ret l1
+         | inl _ =>
+           denote_list e ;;
+           v <- trigger (GetReg tmp_if) ;;
+           if (v:value) then Ret (fS f0) else (denote_asm p f0;; Ret f0)
+         | inr _ => Ret f0
          end)).
   Proof.
     unfold while_asm.
-    rewrite link_asm_correct.
+    rewrite loop_asm_correct.
     apply Proper_loop.
     rewrite relabel_asm_correct.
-    rewrite <- lift_sktree_id, cat_id_l.
+    rewrite fmap_id0, cat_id_l.
     rewrite app_asm_correct.
     rewrite if_asm_correct.
     intros x.
     cbn.
-    rewrite bind_ret.
-    destruct (split_fin_sum x).
-    - cbn.
-      rewrite !bind_bind.
+    unfold to_bif, ToBifunctor_ktree_fin.
+    rewrite bind_ret_l.
+    destruct (label_case x); cbn.
+    - rewrite !bind_bind. setoid_rewrite bind_ret_l.
       eapply eutt_clo_bind; try reflexivity. intros; subst.
       rewrite bind_bind.
       eapply eutt_clo_bind; try reflexivity. intros; subst.
+      unfold from_bif, FromBifunctor_ktree_fin; cbn.
+      setoid_rewrite bind_ret_l.
       destruct u0.
-      + rewrite (pure_asm_correct _ _). cbn.
-        rewrite !bind_ret.
+      + rewrite (pure_asm_correct _ _); cbn.
+        rewrite !bind_ret_l.
         apply eqit_Ret.
-        (* SAZ this part could be made nicer, perhaps. *)
-        unfold merge, case_, case_isum, isum_sum, FinSum.
-        unfold CategoryOps.cat, Cat_Fun, case_, CoprodCase_Kleisli, case_sum.
-        rewrite split_merge. unfold id_, Id_iFun, id_, Id_Fun.
-        unfold inr_, sum_inr.
-        apply merge_fin_sum_inr.
-
+        apply unique_fin; reflexivity.
       + rewrite (relabel_asm_correct _ _ _ _). cbn.
-        simpl; repeat setoid_rewrite bind_bind.
-        rewrite bind_ret.
+        rewrite bind_ret_l.
+        setoid_rewrite bind_bind.
         eapply eutt_clo_bind; try reflexivity.
         intros ? ? [].
-        repeat rewrite bind_ret.
+        repeat rewrite bind_ret_l.
         apply eqit_Ret.
-        (* SAZ: same as above *)
-        unfold inl_, sum_inl.
-        unfold merge, case_, case_isum. cbn.
-        unfold CategoryOps.cat, Cat_Kleisli, Cat_Fun, case_, CoprodCase_Kleisli, case_sum.
-        rewrite split_merge.
-        unfold id_, Id_iFun, id_, Id_Fun.
-        apply merge_fin_sum_inl_1.
+        rewrite (unique_f0 u1).
+        apply unique_fin; reflexivity.
 
     - cbn.
       rewrite (pure_asm_correct _ _).
       rewrite bind_bind. cbn.
-      rewrite !bind_ret.
+      unfold from_bif, FromBifunctor_ktree_fin.
+      rewrite !bind_ret_l.
       apply eqit_Ret.
-      unfold inl_, sum_inl.
-      unfold merge, case_, case_isum. cbn.
-      unfold CategoryOps.cat, Cat_Kleisli, Cat_Fun, case_, CoprodCase_Kleisli, case_sum.
-      rewrite split_merge. unfold id_, Id_iFun, id_, Id_Fun.
-      apply merge_fin_sum_inl_1.
+      rewrite (unique_f0 f).
+      apply unique_fin; reflexivity.
 Qed.
 
 End Linking.
@@ -719,8 +658,8 @@ Section Correctness.
       but intermediate ones must now satisfy [sim_rel].
       Note that by doing so, we use a _heterogeneous bisimulation_: the trees
       return values of different types ([alist var value * unit] for _Asm_,
-      [alist var value * value] for _Imp_). The differeence is nonetheless mostly
-      transparent for the user, except for the use of the more generale [eqit_bind'].
+      [alist var value * value] for _Imp_). The difference is nonetheless mostly
+      transparent for the user, except for the use of the more general lemma [eqit_bind'].
    *)
   Lemma compile_expr_correct : forall e g_imp g_asm l n (foo: itree E unit),
       Renv g_imp g_asm ->
@@ -879,7 +818,7 @@ Lemma foo: interp (over h) (trigger' _ e)
         eapply sim_rel_Renv; eassumption. }
       (* And we once again get new related environments *)
       intros [g_imp'' v'] [g_asm'' [l'' []]] HSIM'.
-      (* We can now reduce down to Ret constructs that remains to be related *)
+      (* We can now reduce down to Ret constructs that remain to be related *)
       tau_steps.
       red. rewrite <- eqit_Ret.
 
@@ -890,7 +829,7 @@ Lemma foo: interp (over h) (trigger' _ e)
   Qed.
 
   (** Correctness of the assign statement.
-      The resulting list of instruction is denoted as
+      The resulting list of instructions is denoted as
       denoting the expression followed by setting the variable.
    *)
   Lemma compile_assign_correct : forall {E} e x,
@@ -929,19 +868,16 @@ Lemma foo: interp (over h) (trigger' _ e)
     eauto.
   Qed.
 
-
-  (* The first parameter of [bisimilar] is useless for this development. We used to require equality,
- which carried not information since the return type was unit on both side.
- Now the return type is heterogeneous, [F 1] on one side and [unit] on the other.
+  (* The first parameter of [bisimilar] is unnecessary for this development.
+     The return type is heterogeneous, the singleton type [F 1] on one side
+     and [unit] on the other, hence we instantiate the parameter with the trivial
+     relation.
    *)
   Definition TT {A B}: A -> B -> Prop  := fun _ _ => True.
   Hint Unfold TT.
 
   Definition equivalent (s:stmt) (t:asm 1 1) : Prop :=
-    bisimilar TT (denote_stmt s) (denote_asm t f1).
-
-
-
+   bisimilar TT (denote_imp s) (denote_asm t f0).
 
   Inductive RI : (unit + unit) -> (unit + unit + unit) -> Prop :=
   | RI_inl : RI (inl tt) (inl (inl tt))
@@ -951,7 +887,7 @@ Lemma foo: interp (over h) (trigger' _ e)
      in the main theorem.*)
   Lemma while_is_loop {E} (body : itree E (unit+unit)) :
     while body
-          ≈ KTree.iter (fun l : unit + unit =>
+          ≈ iter (C := ktree _) (fun l : unit + unit =>
                     match l with
                     | inl _ => x <- body;; match x with inl _ => Ret (inl (inl tt)) | inr _ => Ret (inr tt) end
                     | inr _ => Ret (inl (inl tt))   (* Enter loop *)
@@ -959,36 +895,35 @@ Lemma foo: interp (over h) (trigger' _ e)
   Proof.
     unfold while.
     rewrite! unfold_iter_ktree.
-    rewrite bind_ret, tau_eutt.
+    rewrite bind_ret_l, tau_eutt.
     rewrite unfold_iter_ktree.
     rewrite !bind_bind.
     eapply eutt_clo_bind. reflexivity.
     intros. subst.
     destruct u2 as [[]|[]].
     2 : { force_right. reflexivity. }
-    rewrite bind_ret, !tau_eutt.
-    unfold KTree.iter, Iter_Kleisli.
+    rewrite bind_ret_l, !tau_eutt.
+    unfold iter, Iter_Kleisli.
     apply eutt_iter' with (RI := fun _ r => inl tt = r).
     - intros _ _ [].
-      rewrite <- bind_ret2 at 1.
+      rewrite <- bind_ret_r at 1.
       eapply eutt_clo_bind; try reflexivity.
       intros [|[]] _ []; apply eqit_Ret; auto.
     - constructor.
   Qed.
 
+  Definition to_itree' {E A} (f : ktree_fin E 1 A) : itree E (fin A) := f f0.
+  Lemma fold_to_itree' {E} (f : ktree_fin E 1 1) : f f0 = to_itree' f.
+  Proof. reflexivity. Qed.
 
-Definition to_itree' {E A} (f : sktree E 1 A) : itree E (F A) := f f1.
-Lemma fold_to_itree' {E} (f : sktree E 1 1) : f f1 = to_itree' f.
-Proof. reflexivity. Qed.
+  Global Instance Proper_to_itree' {E A} :
+    Proper (eq2 ==> eutt eq) (@to_itree' E A).
+  Proof.
+    repeat intro.
+    apply H.
+  Qed.
 
-Global Instance Proper_to_itree' {E A} :
-  Proper (eq2 ==> eutt eq) (@to_itree' E A).
-Proof.
-  repeat intro.
-  apply H.
-Qed.
-
-Notation Inr_Kleisli := CoprodInr_Kleisli.
+  Notation Inr_Kleisli := Inr_Kleisli.
 
   (** Correctness of the compiler.
       After interpretation of the [Locals], the source _Imp_ statement
@@ -996,7 +931,7 @@ Notation Inr_Kleisli := CoprodInr_Kleisli.
       as an [itree] are equivalent up-to-taus.
       The correctness is termination sensitive, but nonetheless a simple
       induction on statements.
-      We only are left with reasoning about the functional correctness of
+      We are only left with reasoning about the functional correctness of
       the compiler, all control-flow related reasoning having been handled
       in isolation.
    *)
@@ -1013,7 +948,7 @@ Notation Inr_Kleisli := CoprodInr_Kleisli.
       rewrite denote_after.
 
       (* The head trees match by correctness of assign *)
-      rewrite <- (bind_ret2 (ITree.bind (denote_expr e) _)).
+      rewrite <- (bind_ret_r (ITree.bind (denote_expr e) _)).
       eapply bisimilar_bind'.
       { eapply compile_assign_correct; auto. }
 
@@ -1034,7 +969,7 @@ Notation Inr_Kleisli := CoprodInr_Kleisli.
       (* And the result is immediate by indcution hypothesis *)
       eapply bisimilar_bind'.
       { eassumption. }
-      intros [] ? _. rewrite (unique_f1 a').
+      intros [] ? _. rewrite (unique_f0 a').
       eassumption.
 
     - (* If *)
@@ -1075,39 +1010,31 @@ Notation Inr_Kleisli := CoprodInr_Kleisli.
       Local Opaque denote_asm.
 
       unfold to_itree'.
-      unfold sloop. unfold iter at 2.
-      unfold Iter_sktree, Inr_sktree, Inr_Kleisli, inr_, sum_isuml, lift_ktree, cat, Cat_sktree, cat, Cat_Kleisli.
-      Local Opaque f1.
-      simpl.
-      rewrite 2 bind_ret.
-      simpl.
-      eapply (bisimilar_iter (fun x x' => (x = inl tt /\ x' = f1) \/ (x = inr tt /\ x' = FS f1))).
+      unfold loop. unfold iter at 2.
+      unfold Iter_sub, Inr_sub, Inr_Kleisli, inr_, lift_ktree, cat, Cat_sub, cat, Cat_Kleisli.
+      unfold from_bif, FromBifunctor_ktree_fin.
+      cbn. rewrite 2 bind_ret_l. cbn.
+      eapply (bisimilar_iter (fun x x' => (x = inl tt /\ x' = f0) \/ (x = inr tt /\ x' = fS f0))).
       2: {
-        right. split. auto. apply R_1_a.
+        right. split. auto. apply unique_fin; reflexivity.
         }
       (* The two cases correspond to entering the loop, or exiting it*)
       intros ? ? [[] | []]; subst; cbn.
 
       (* The exiting case is trivial *)
       2:{ repeat intro.
+          unfold to_bif, ToBifunctor_ktree_fin. rewrite !bind_ret_l. cbn.
           force_left. force_right.
-          red.
-          rewrite split_fin_sum_FS_inr.
-          rewrite! bind_ret.
-          rewrite interp_asm_bind.
-          rewrite split_fin_sum_f1_inl. cbn.
-          rewrite <- eqit_Ret; auto.
+          red; rewrite <- eqit_Ret; auto.
           unfold state_invariant. simpl.
           split; auto.
           setoid_rewrite split_fin_sum_L_L_f1.
           constructor. left. auto.
       }
 
-
       (* We now need to line up the evaluation of the test,
          and eliminate them by correctness of [compile_expr] *)
       repeat intro.
-      rewrite split_fin_sum_f1_inl.
       rewrite !interp_imp_bind.
       rewrite !interp_asm_bind.
       rewrite !bind_bind.
@@ -1133,18 +1060,9 @@ Notation Inr_Kleisli := CoprodInr_Kleisli.
       + (* The false case is trivial *)
         force_left; force_right.
         red.
-        setoid_rewrite interp_asm_ret.
-        unfold ret, Monad_itree.
-        rewrite bind_ret.
-        rewrite split_fin_sum_FS_inr.
-        rewrite interp_asm_bind.
-        cbn.
         rewrite <- eqit_Ret.
         unfold state_invariant. simpl.
         split; auto.
-        unfold id.
-        rewrite split_fin_sum_R_2.
-        constructor. constructor.
 
       + (* In the true case, we line up the body of the loop to use the induction hypothesis *)
         rewrite !interp_asm_bind.
@@ -1154,9 +1072,6 @@ Notation Inr_Kleisli := CoprodInr_Kleisli.
         { eapply IHs; auto. }
         intros [g_imp'' v''] [g_asm'' [l'' x']] [HSIM' ?].
         force_right; force_left.
-        setoid_rewrite interp_asm_ret.
-        setoid_rewrite bind_ret.
-        rewrite split_fin_sum_f1_inl. cbn.
         apply eqit_Ret.
         setoid_rewrite split_fin_sum_L_L_f1.
         constructor; auto.
@@ -1166,18 +1081,14 @@ Notation Inr_Kleisli := CoprodInr_Kleisli.
 
       simpl.
       unfold id_asm.
-      pose proof  (@pure_asm_correct).
-      unfold eq2, Eq2_sktree, eutt_sktree in H.
-      red in H. unfold Eq2_Kleisli in H. red in H.
-      rewrite H. unfold lift_sktree, lift_ktree_.
-      unfold ret, Monad_itree, id.
+      pose proof (@pure_asm_correct).
+      do 5 red in H. rewrite H.
       red. intros.
       setoid_rewrite interp_asm_ret.
       unfold interp_imp.
       rewrite interp_ret. unfold interp_map. rewrite interp_state_ret.
-      unfold ret, Monad_itree, id.
       apply eqit_Ret.
-      unfold state_invariant. simpl. auto.
+      unfold state_invariant. auto.
 Qed.
 
 End Correctness.
@@ -1185,14 +1096,14 @@ End Correctness.
 (* ================================================================= *)
 (** ** Closing word. *)
 
-(** Through this medium-sized exemple, we have seen how to use [itree]s to
+(** Through this medium-sized example, we have seen how to use [itree]s to
     denote two languages, how to run them and how to prove correct a compiler
-    between them both.
+    between them.
     We have emphasized that the theory of [ktree]s allowed us to decouple
     all reasoning about the control-flow from the proof of the compiler itself.
     The resulting proof is entirely structurally inductive and equational. In
     particular, we obtain a final theorem relating potentially infinite
-    computations without having to write any cofixpoint.
+    computations without having to write any cofixed-point.
 
     If this result is encouraging, one might always wonder how things scale.
 
@@ -1208,4 +1119,7 @@ End Correctness.
     More importantly, our compiler is fairly stupid and inefficient: it creates
     blocks for each compiled statement! One would hope to easily write and
     prove an optimization coalescing elementary blocks together.
+
+    A first example of optimization at the [asm] level proved correct is
+    demonstrated in the _AsmOptimization.v_ file.
  *)

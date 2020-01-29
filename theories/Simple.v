@@ -129,7 +129,7 @@ Parameter bind_vis
     ITree.bind (Vis e ek) k
   ≈ Vis e (fun x => ITree.bind (ek x) k).
 
-Parameter bind_ret2 : forall {E R} (s : itree E R),
+Parameter bind_ret_r : forall {E R} (s : itree E R),
     ITree.bind s (fun x => Ret x) ≈ s.
 
 Parameter bind_bind
@@ -141,7 +141,7 @@ Parameter bind_bind
 Hint Rewrite @tau_eutt : itree.
 Hint Rewrite @bind_ret : itree.
 Hint Rewrite @bind_vis : itree.
-Hint Rewrite @bind_ret2 : itree.
+Hint Rewrite @bind_ret_r : itree.
 Hint Rewrite @bind_bind : itree.
 
 (** *** Monadic interpretation: [interp] *)
@@ -346,9 +346,9 @@ Lemma bind_vis
   ≈ Vis e (fun x => ITree.bind (ek x) k).
 Proof. intros; rewrite ITree.Eq.Shallow.bind_vis_; reflexivity. Qed.
 
-Lemma bind_ret2 : forall {E R} (s : itree E R),
+Lemma bind_ret_r : forall {E R} (s : itree E R),
     ITree.bind s (fun x => Ret x) ≈ s.
-Proof. intros; rewrite ITree.Eq.Eq.bind_ret2; reflexivity. Qed.
+Proof. intros; rewrite ITree.Eq.Eq.bind_ret_r; reflexivity. Qed.
 
 Lemma bind_bind
   : forall {E R S T}
@@ -361,7 +361,7 @@ Hint Rewrite @tau_eutt : itree.
 Hint Rewrite @bind_ret : itree.
 Hint Rewrite @bind_tau : itree.
 Hint Rewrite @bind_vis : itree.
-Hint Rewrite @bind_ret2 : itree.
+Hint Rewrite @bind_ret_r : itree.
 Hint Rewrite @bind_bind : itree.
 
 (** **** Monadic interpretation: [interp] *)

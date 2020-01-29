@@ -13,6 +13,7 @@ From ITree Require Import
      Basics.Basics
      Basics.Category
      Basics.CategoryKleisli
+     Basics.Monad
      Core.ITreeDefinition
      Core.KTree
      Core.KTreeFacts
@@ -50,10 +51,10 @@ Proof.
   unfold interp_state, interp, Basics.iter, MonadIter_stateT0, Basics.iter, MonadIter_itree; cbn.
   rewrite unfold_iter; cbn.
   destruct observe; cbn.
-  - rewrite 2 bind_ret. reflexivity.
-  - rewrite 2 bind_ret.
+  - rewrite 2 bind_ret_l. reflexivity.
+  - rewrite 2 bind_ret_l.
     reflexivity.
-  - rewrite bind_map, bind_bind; cbn. setoid_rewrite bind_ret.
+  - rewrite bind_map, bind_bind; cbn. setoid_rewrite bind_ret_l.
     apply eqit_bind; reflexivity.
 Qed.
 
@@ -119,7 +120,7 @@ Proof.
   rewrite unfold_bind. (* TODO: slow *)
   rewrite (unfold_interp_state f t).
   destruct (observe t).
-  - cbn. rewrite !bind_ret. simpl.
+  - cbn. rewrite !bind_ret_l. simpl.
     apply reflexivity.
   - cbn. rewrite !bind_tau, interp_state_tau.
     gstep. econstructor. gbase. apply CIH.
@@ -208,8 +209,8 @@ Lemma eutt_interp_state_iter {E F S A A' B B'}
           (interp_state h (t2 ca') s2)) ->
   (forall a a' s1 s2, RS s1 s2 -> RA a a' ->
      eutt (fun a b => RS (fst a) (fst b) /\ RB (snd a) (snd b))
-          (interp_state h (KTree.iter t1 a) s1)
-          (interp_state h (KTree.iter t2 a') s2)).
+          (interp_state h (iter (C := ktree _) t1 a) s1)
+          (interp_state h (iter (C := ktree _) t2 a') s2)).
 Proof.
   apply eutt_interp_state_aloop.
 Qed.
@@ -227,20 +228,20 @@ Lemma eutt_interp_state_loop {E F S A B C} (RS : S -> S -> Prop)
           (interp_state h (loop t2 a) s2)).
 Proof.
   intros.
-  unfold loop, bimap, Bimap_Coproduct, case_, CoprodCase_Kleisli, Function.case_sum, id_, Id_Kleisli, cat, Cat_Kleisli; cbn.
-  rewrite 2 bind_ret.
+  unfold loop, bimap, Bimap_Coproduct, case_, Case_Kleisli, Function.case_sum, id_, Id_Kleisli, cat, Cat_Kleisli; cbn.
+  rewrite 2 bind_ret_l.
   eapply (eutt_interp_state_iter eq eq); auto; intros.
   rewrite 2 interp_state_bind.
   subst.
   eapply eutt_clo_bind; eauto.
   intros.
   cbn in H2; destruct (snd u1); rewrite <- (proj2 H2).
-  - rewrite bind_ret, 2 interp_state_ret.
+  - rewrite bind_ret_l, 2 interp_state_ret.
     pstep.
     constructor.
     cbn.
     split; auto using (proj1 H2).
-  - rewrite bind_ret, 2 interp_state_ret. pstep. constructor. cbn.
+  - rewrite bind_ret_l, 2 interp_state_ret. pstep. constructor. cbn.
     split; auto using (proj1 H2).
 Qed.
 
@@ -260,7 +261,7 @@ Proof.
   ginit. gcofix CIH; intros i s.
   rewrite 2 unfold_iter; cbn.
   rewrite !bind_bind.
-  setoid_rewrite bind_ret.
+  setoid_rewrite bind_ret_l.
   rewrite interp_state_bind.
   guclo eqit_clo_bind; econstructor; eauto.
   - apply EQ_t.

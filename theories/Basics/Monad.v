@@ -1,10 +1,10 @@
 (** * Monad laws and associated typeclasses *)
 
-(* hide *)
+(* begin hide *)
 From Coq Require Import
      Morphisms.
 
-From ExtLib Require Import
+From ExtLib Require Export
      Structures.Monad.
 
 From ITree Require Import
@@ -33,22 +33,20 @@ Section Laws.
 
   Local Open Scope monad_scope.
   
-  (* SAZ: Where should these next two typeclasses live? *)
-  (* SAZ: Where should the instances for itree be declared? *)
+  (* This should go coq-ext-lib. *)
   Class MonadLaws :=
-    {
-      bind_ret :> forall a b (f : a -> m b) (x : a), bind (ret x) f ≈ f x
-    ; ret_bind :> forall a (x : m a), bind x (fun y => ret y) ≈ x
+    { bind_ret_l :> forall a b (f : a -> m b) (x : a), bind (ret x) f ≈ f x
+    ; bind_ret_r :> forall a (x : m a), bind x (fun y => ret y) ≈ x
     ; bind_bind :> forall a b c (x : m a) (f : a -> m b) (g : b -> m c), bind (bind x f) g ≈ bind x (fun y => bind (f y) g)
-    }.                                             
-
-  Class MonadProperOps :=
-      Proper_bind :> forall {a b},
-          (@Proper (m a%type -> (a -> m b) -> m b)
-           (eqm ==> pointwise_relation _ eqm ==> eqm)
-           bind).
+    ; Proper_bind :> forall {a b},
+        (@Proper (m a%type -> (a -> m b) -> m b)
+         (eqm ==> pointwise_relation _ eqm ==> eqm)
+         bind)
+    }.
 
 End Laws.
-Arguments bind_ret {m _ _ _}.
-Arguments ret_bind {m _ _ _}.
+
+Arguments bind_ret_l {m _ _ _}.
+Arguments bind_ret_r {m _ _ _}.
 Arguments bind_bind {m _ _ _}.
+Arguments Proper_bind {m _ _ _}.

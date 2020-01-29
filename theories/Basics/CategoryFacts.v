@@ -34,7 +34,7 @@ Ltac cat_auto_simpl :=
      || rewrite case_inl || rewrite <- (cat_assoc inl_ (case_ _ _)), case_inl
      || rewrite case_inr || rewrite <- (cat_assoc inr_ (case_ _ _)), case_inr
      || rewrite !cat_assoc);
-    reflexivity + eauto with cat
+    reflexivity || eauto with cat
   end.
 
 (** ** Isomorphisms *)
@@ -47,7 +47,7 @@ Context {Eq2C : Eq2 C} {IdC : Id_ C} {CatC : Cat C}.
 Context {CatIdL_C : CatIdL C}.
 
 (** [id_] is an isomorphism. *)
-Global Instance SemiIso_Id {a} : SemiIso C (id_ a) (id_ a) := {}.
+Global Instance SemiIso_Id {a} : SemiIso C (id_ a) (id_ a).
 Proof. apply cat_id_l. Qed.
 
 Context {Equivalence_Eq2_C : forall a b, @Equivalence (C a b) eq2}.
@@ -62,10 +62,10 @@ Context {Proper_Cat_C : forall a b c,
 Global Instance SemiIso_Cat {a b c}
        (f : C a b) {f' : C b a} {SemiIso_f : SemiIso C f f'}
        (g : C b c) {g' : C c b} {SemiIso_g : SemiIso C g g'}
-  : SemiIso C (f >>> g) (g' >>> f') := {}.
+  : SemiIso C (f >>> g) (g' >>> f').
 Proof.
-  rewrite cat_assoc, <- (cat_assoc g), (semi_iso g _), cat_id_l,
-  (semi_iso f _).
+  red.
+  rewrite cat_assoc, <- (cat_assoc g), (semi_iso g _), cat_id_l, (semi_iso f _).
   reflexivity.
 Qed.
 
@@ -84,8 +84,9 @@ Context {Proper_Bimap_bif : forall a b c d,
 Global Instance SemiIso_Bimap {a b c d} (f : C a b) (g : C c d)
          {f' : C b a} {SemiIso_f : SemiIso C f f'}
          {g' : C d c} {SemiIso_g : SemiIso C g g'} :
-  SemiIso C (bimap f g) (bimap f' g') := {}.
+  SemiIso C (bimap f g) (bimap f' g').
 Proof.
+  red.
   rewrite bimap_cat, (semi_iso f _), (semi_iso g _), bimap_id.
   reflexivity.
 Qed.
@@ -169,9 +170,9 @@ Context {Id_C : Id_ C} {Cat_C : Cat C}.
 Context {Category_C : Category C}.
 
 Context {bif : binop obj}.
-Context {CoprodCase_C : CoprodCase C bif}
-        {CoprodInl_C : CoprodInl C bif}
-        {CoprodInr_C : CoprodInr C bif}.
+Context {Case_C : Case C bif}
+        {Inl_C : Inl C bif}
+        {Inr_C : Inr C bif}.
 Context {Coproduct_C : Coproduct C bif}.
 
 Lemma case_inl' {a b c d} (ac : C a c) (bc : C b c) (cd : C c d)
@@ -221,7 +222,7 @@ Qed.
 
 Ltac cat_auto :=
   unfold_coproduct;
-  repeat progress (reflexivity + (try cat_auto_simpl); try apply coprod_split).
+  repeat progress (reflexivity || (try cat_auto_simpl); try apply coprod_split).
 
 Ltac cat_auto' :=
   repeat intro;
@@ -231,11 +232,23 @@ Ltac cat_auto' :=
          end;
   cat_auto.
 
+Lemma swap_case (a b c: obj) (f: C a c) (g: C b c)
+  : swap >>> case_ f g ⩯ case_ g f.
+Proof.
+  intros; unfold swap, Swap_Coproduct.
+  rewrite cat_case, inr_case, inl_case.
+  reflexivity.
+Qed.
+
 Lemma inr_swap {a b} : inr_ >>> swap_ a b ⩯ inl_.
 Proof. apply case_inr. Qed.
 
 Lemma inl_swap {a b} : inl_ >>> swap_ a b ⩯ inr_.
 Proof. apply case_inl. Qed.
+
+Lemma bimap_case_unfold {a b c d} (f : C a b) (g : C c d)
+  : bimap f g ⩯ case_ (f >>> inl_) (g >>> inr_).
+Proof. reflexivity. Qed.
 
 Lemma inr_bimap {a b c d} (f : C a b) (g : C c d)
   : inr_ >>> bimap f g ⩯ g >>> inr_.
@@ -393,7 +406,7 @@ Ltac cat_auto_step :=
 
 Ltac cat_auto :=
   unfold_coproduct;
-  repeat progress (reflexivity + cat_auto_simpl; try apply coprod_split).
+  repeat progress (reflexivity || cat_auto_simpl; try apply coprod_split).
 
 (** Iterative categories are traced. *)
 Section TracedIterativeFacts.
@@ -407,12 +420,10 @@ Context {Id_C : Id_ C} {Cat_C : Cat C}.
 Context {Category_C : Category C}.
 
 Context {bif : binop obj}.
-Context {CoprodCase_C : CoprodCase C bif}
-        {CoprodInl_C : CoprodInl C bif}
-        {CoprodInr_C : CoprodInr C bif}.
+Context {Case_C : Case C bif}
+        {Inl_C : Inl C bif}
+        {Inr_C : Inr C bif}.
 Context {Coproduct_C : Coproduct C bif}.
-Context {Proper_case_ : forall a b c,
-            @Proper (C a c -> C b c -> C _ c) (eq2 ==> eq2 ==> eq2) case_}.
 
 Context {Iter_bif : Iter C bif}.
 Context {Iterative_C : Iterative C bif}.

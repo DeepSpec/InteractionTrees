@@ -477,6 +477,7 @@ Existing Instance Trigger_Prop           | 1.
 
 (* This one allows to apply Subevent_forget_order when ready to conclude, in order to avoid loops.
    It's not pretty, and only works when two effects are nested. Should be improved.
+
  *)
 Hint Extern 10 (Subevent ?A ?B ?C) =>
 match goal with

@@ -18,8 +18,21 @@ From Coq Require Import
      Classes.Morphisms
      Setoids.Setoid
      Relations.Relations
-     ProofIrrelevance.
+     JMeq.
 (* end hide *)
+
+(* This exists in the stdlib as [ProofIrrelevance.inj_pair2], but we reprove
+   it to not depend on proof irrelevance (we use axiom [JMeq.JMeq_eq] instead) *)
+Lemma inj_pair2 :
+  forall (U : Type) (P : U -> Type) (p : U) (x y : P p),
+    existT P p x = existT P p y -> x = y.
+Proof.
+  intros. apply JMeq_eq.
+  refine (
+      match H in _ = w return JMeq x (projT2 w) with
+      | eq_refl => JMeq_refl
+      end).
+Qed.
 
 (** Rewrite all heterogeneous equalities with the axiom
     [inj_pair2 : existT _ T a = existT _ T b -> a = b]. *)
@@ -33,7 +46,7 @@ Inductive observing {E R1 R2}
            (eq_ : itree' E R1 -> itree' E R2 -> Prop)
            (t1 : itree E R1) (t2 : itree E R2) : Prop :=
 | observing_intros :
-    eq_ t1.(observe) t2.(observe) -> observing eq_ t1 t2.
+    eq_ (observe t1) (observe t2) -> observing eq_ t1 t2.
 Hint Constructors observing.
 
 Section observing_relations.

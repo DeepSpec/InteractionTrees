@@ -1,3 +1,20 @@
+(** * Kleisli category *)
+
+(** The category of "effectful functions", of type [a -> m b],
+  for some monad [m]. *)
+
+(** Note that this is not quite a Kleisli category over the
+  category [Fun], as the notion of morphism equivalence is
+  different. The category [Fun] uses pointwise equality,
+  [eq ==> eq], while [Kleisli m] uses pointwise equivalence,
+  [eq ==> eqm], for an equivalence relation [eqm] associated
+  with the monad [m]. The right underlying category for [Kleisli]
+  would be a category of setoids and respectful functions, but
+  this seems awkward to program with. Investigating this
+  question further is future work.
+ *)
+
+(* begin hide *)
 From Coq Require Import
      Morphisms.
 
@@ -8,7 +25,8 @@ From ITree Require Import
      Basics.Basics
      Basics.CategoryOps
      Basics.Function
-     Basics.MonadTheory.
+     Basics.Monad.
+(* end hide *)
 
 Implicit Types m : Type -> Type.
 Implicit Types a b c : Type.
@@ -45,13 +63,13 @@ Section Instances.
   Global Instance Id_Kleisli : Id_ (Kleisli m) :=
     fun _ => pure id.
 
-  Global Instance CoprodCase_Kleisli : CoprodCase (Kleisli m) sum :=
+  Global Instance Case_Kleisli : Case (Kleisli m) sum :=
     fun _ _ _ l r => case_sum _ _ _ l r.
 
-  Global Instance CoprodInl_Kleisli : CoprodInl (Kleisli m) sum :=
+  Global Instance Inl_Kleisli : Inl (Kleisli m) sum :=
     fun _ _ => pure inl.
 
-  Global Instance CoprodInr_Kleisli : CoprodInr (Kleisli m) sum :=
+  Global Instance Inr_Kleisli : Inr (Kleisli m) sum :=
     fun _ _ => pure inr.
 
   Global Instance Iter_Kleisli `{MonadIter m} : Iter (Kleisli m) sum :=

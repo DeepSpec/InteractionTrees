@@ -15,17 +15,17 @@ From Coq Require Import
 
 Require Import ExtLib.Structures.Monad.
 
+  (* SAZ: Should we add ITreeMonad to ITree? *)
 From ITree Require Import
      ITree
      ITreeFacts
      ITreeMonad
-     Basics.MonadTheory
+     Basics.Monad
+     Basics.CategorySub
      Events.State
-     Events.StateKleisli
-     StateFacts
-     SubKTree.
+     Events.StateFacts.
 
-Require Import Label Utils_tutorial.
+Require Import Fin Utils_tutorial.
 
 Import Monads.
 (* end hide *)
@@ -79,7 +79,7 @@ Global Arguments block _ : clear implicits.
     represents a collection of blocks labeled by [F A], with branches in [F B].
 *)
 
-Definition bks A B := F A -> block (F B).
+Definition bks A B := fin A -> block (fin B).
 
 
 (** An [asm] program represents the control flow of the computation.  It is a
@@ -92,7 +92,7 @@ Definition bks A B := F A -> block (F B).
 
     - [internal]: (hidden) internal linked labels
 
-    Note that they uniformely represent open and closed programs, the latter
+    Note that they uniformly represent open and closed programs, the latter
     corresponding to an [asm] program with a unique entry point and no exit
     labels, i.e. a [asm unit void].  Note that using [void] to describe the exit
     points means that closed program must either diverge (go into an infinite
@@ -188,48 +188,43 @@ Section Denote.
         trigger (Store addr val)
       end.
 
-    Section with_labels.
-      Context {A B : nat}.
-
-      (** A [branch] returns the computed label whose set of possible values [B]
-          is carried by the type of the branch.  If the computation halts
-          instead of branching, we return the [exit] tree.  *)
-      Definition denote_branch (b : branch (F B)) : itree E (F B) :=
-        match b with
-        | Bjmp l => ret l
-        | Bbrz v y n =>
-          val <- trigger (GetReg v) ;;
-          if val:nat then ret y else ret n
-        | Bhalt => exit
-        end.
+    (** A [branch] returns the computed label whose set of possible values [B]
+        is carried by the type of the branch.  If the computation halts
+        instead of branching, we return the [exit] tree.  *)
+    Definition denote_br {B} (b : branch B) : itree E B :=
+      match b with
+      | Bjmp l => ret l
+      | Bbrz v y n =>
+        val <- trigger (GetReg v) ;;
+        if val:nat then ret y else ret n
+      | Bhalt => exit
+      end.
 
 
-      (** The denotation of a basic [block] shares the same type, returning the
-          [label] of the next [block] it shall jump to.  It recursively denote
-          its instruction before that.  *)
-      Fixpoint denote_block (b : block (F B)) : itree E (F B) :=
-        match b with
-        | bbi i b =>
-          denote_instr i ;; denote_block b
-        | bbb b =>
-          denote_branch b
-        end.
+    (** The denotation of a basic [block] shares the same type, returning the
+        [label] of the next [block] it shall jump to.  It recursively denote
+        its instruction before that.  *)
+    Fixpoint denote_bk {B} (b : block B) : itree E B :=
+      match b with
+      | bbi i b =>
+        denote_instr i ;; denote_bk b
+      | bbb b =>
+        denote_br b
+      end.
 
-      (* TODO: explain [sktree] -- think of a better name? *)
-      (** A labelled collection of blocks, [bks], is simply the pointwise
-          application of [denote_block].  However, its denotation is therefore
-          crucially a [ktree], whose structure will be useful in the proof of
-          the compiler.
+    (** A labelled collection of blocks, [bks], is simply the pointwise
+        application of [denote_bk].  Crucially, its denotation is therefore
+        a [ktree], whose structure will be useful in the proof of
+        the compiler.
 
-          The type [ktree E A B] is shorthand for [A -> itree E B], and we can
-          think of them as "continuations" with events in E.  They have a nice
-          algebraic structure, supported by the library, including a [loop]
-          combinator that we can use to link collections of basic blocks. (See
-          below.) *)
-      Definition denote_bks (bs: bks A B): sktree E A B :=
-        fun a => denote_block (bs a).
-
-    End with_labels.
+        The type [sub (ktree E) fin A B] is shorthand for
+        [fin A -> itree E (fin B)], and we can think of them as "continuations"
+        with events in E, with input values in [fin A] and output values in [fin B].
+        They have a nice algebraic structure, supported by the library,
+        including a [loop] combinator that we can use to link collections of
+        basic blocks. (See below.) *)
+    Definition denote_bks {A B : nat} (bs: bks A B): sub (ktree E) fin A B :=
+      fun a => denote_bk (bs a).
 
   (** One can think of an [asm] program as a circuit/diagram where wires
       correspond to jumps/program links.  [denote_bks] computes the meaning of
@@ -241,8 +236,8 @@ Section Denote.
       accomplish this with the same [loop] combinator we used to denote _Imp_'s
       [while] loop.  It directly takes our [denote_bks (code s): ktree E (I + A)
       (I + B)] and hides [I] as desired.  *)
-    Definition denote_asm {A B} : asm A B -> sktree E A B :=
-      fun s => sloop (denote_bks (code s)).
+    Definition denote_asm {A B} : asm A B -> sub (ktree E) fin A B :=
+      fun s => loop (denote_bks (code s)).
 
   End with_event.
 End Denote.
@@ -309,6 +304,11 @@ Definition memory    := alist addr value.
     do a bit of post-processing to swap the order of the "state components"
     introduced by the interpretation.
  *)
+(* Definition interp_asm {E A} (t : itree (Reg +' Memory +' E) A) : *)
+(*   memory -> registers -> itree E (memory * (registers * A)) := *)
+(*   let h := bimap h_reg (bimap h_memory (id_ _)) in *)
+(*   let t' := interp h t in *)
+(*   fun  mem regs => interp_map (interp_map t' regs) mem. *)
 
 Definition interp_asm_regs {E A C} `{Reg +? C -< E}
            (t: itree E A) : registers -> itree C (registers * A) :=
@@ -341,8 +341,8 @@ Definition interp_asm {E A C D} `{Memory +? C -< D} `{Reg +? D -< E}
              or to specify the return type as [itree Exit _]?
              Indeed, there's no way for Coq to pick both [C] and [D] by itself.
  *)
-Definition run_asm {E C} `{Exit +? C -< E} (p: asm 1 0): itree E (memory * (registers * F 0))
-    := interp_asm (denote_asm p Label.f1) empty empty.
+Definition run_asm {E C} `{Exit +? C -< E} (p: asm 1 0): itree E (memory * (registers * _))
+    := interp_asm (denote_asm p Fin.f0) empty empty.
 
 (* SAZ: Should some of thes notions of equivalence be put into the library?
    SAZ: Should this be stated in terms of ktree ?

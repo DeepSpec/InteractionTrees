@@ -1,6 +1,4 @@
 (* begin hide *)
-Require Import Label Asm AsmCombinators Imp2AsmCorrectness Utils_tutorial.
-
 Require Import Psatz.
 
 From Coq Require Import
@@ -13,15 +11,14 @@ From Coq Require Import
 
 From ITree Require Import
      Basics.Category
-     Basics.MonadTheory
+     Basics.Monad
      ITree
      ITreeMonad
      ITreeFacts
      Events.StateFacts
      Events.MapDefault
      Events.MapDefaultFacts
-     Events.State
-     SubKTree.
+     Events.State.
 
 Import ITreeNotations.
 
@@ -38,8 +35,8 @@ Open Scope string_scope.
 Import CatNotations.
 Open Scope cat_scope.
 
+Require Import Fin Asm AsmCombinators Utils_tutorial.
 (* end hide *)
-
 
 (* optimizations ------------------------------------------------------------ *)
 
@@ -49,7 +46,7 @@ Definition optimization {A B} := asm A B -> asm A B.
 
 (** An optimization is correct if it yields an equivalent computation.
 
-    - Note that eq_asm requires that resulting register environment and 
+    - Note that eq_asm requires that resulting register environment and
       the resulting heap must be equivalent, so this formulation of
       correctness does not permit the elimination of local variables or
       differences in the state.  Those optimizations would require
@@ -99,7 +96,7 @@ Global Instance EQ_memory_eqv : Equivalence (EQ_memory).
 constructor; typeclasses eauto.
 Qed.
 
-Definition rel_asm {B} : memory * (registers * B) -> memory * (registers * B) -> Prop := 
+Definition rel_asm {B} : memory * (registers * B) -> memory * (registers * B) -> Prop :=
   prod_rel EQ_memory (prod_rel (EQ_registers 0) eq).
 
 Hint Unfold rel_asm.
@@ -134,14 +131,14 @@ Lemma interp_asm_ret_tt : forall (t : itree (Reg +' Memory +' Exit) unit),
 Proof.
   intros t mem1 mem2 regs1 regs2 H1 H2.
   rewrite interp_asm_bind.
-  rewrite <- bind_ret2 at 1.
+  rewrite <- bind_ret_r at 1.
   apply (@eutt_clo_bind _ _ _ _ _ _ rel_asm).
   { unfold interp_asm.
     unfold rel_asm.
     eapply interp_map_proper; try typeclasses eauto; auto.
     eapply interp_map_proper; try typeclasses eauto; auto.
     reflexivity.
-  }     
+  }
   intros.
   inversion H; subst.
   inversion H3. subst.
@@ -170,11 +167,11 @@ Proof.
   unfold interp_asm, interp_map.
   rewrite interp_bind.
   setoid_rewrite interp_trigger.
-  repeat rewrite interp_state_bind. cbn. 
+  repeat rewrite interp_state_bind. cbn.
   unfold subevent, resum, ReSum_inl, resum, ReSum_id, id_.
-  unfold Id_IFun. 
+  unfold Id_IFun.
   unfold CategoryOps.cat, Cat_Handler, Handler.cat. cbn.
-  unfold lookup_def.  
+  unfold lookup_def.
   unfold embed, Embeddable_forall, embed, Embeddable_itree.
   unfold trigger. rewrite interp_vis. setoid_rewrite interp_ret.
   unfold subevent, resum.
@@ -182,11 +179,11 @@ Proof.
   repeat setoid_rewrite interp_state_ret.
   unfold inl_, Inl_sum1_Handler, Handler.inl_, Handler.htrigger.
   rewrite interp_state_trigger. cbn.
-  rewrite !bind_ret, !tau_eutt.
+  rewrite !bind_ret_l, !tau_eutt.
   rewrite interp_state_ret.
-  rewrite !bind_ret, !tau_eutt.
+  rewrite !bind_ret_l, !tau_eutt.
   rewrite !interp_state_ret; cbn.
-  rewrite bind_ret; cbn.
+  rewrite bind_ret_l; cbn.
   reflexivity.
 Qed.
 
@@ -203,7 +200,7 @@ Proof.
   setoid_rewrite interp_ret.
   rewrite bind_bind.
   setoid_rewrite tau_eutt.
-  setoid_rewrite bind_ret.
+  setoid_rewrite bind_ret_l.
   repeat rewrite interp_state_bind.
   unfold Id_IFun.
   unfold CategoryOps.cat, Cat_Handler, Handler.cat. cbn.
@@ -211,11 +208,11 @@ Proof.
   unfold insert.
   setoid_rewrite interp_trigger.
   repeat rewrite interp_state_trigger.  cbn.
-  rewrite bind_ret, tau_eutt.
+  rewrite bind_ret_l, tau_eutt.
   setoid_rewrite interp_state_ret.
-  rewrite bind_ret. cbn.
+  rewrite bind_ret_l. cbn.
   reflexivity.
-Qed.  
+Qed.
 
 Lemma interp_asm_Load {E A} f a mem reg :
   @eutt E _ _ (@rel_asm A)
@@ -238,10 +235,10 @@ Proof.
   cbn. unfold pure_state, embed, Embeddable_forall, embed, Embeddable_itree, trigger.
   do 2 rewrite interp_vis, bind_vis.
   rewrite interp_state_vis. cbn. rewrite bind_vis, interp_state_vis. cbn.
-  rewrite !bind_ret, !tau_eutt. rewrite !interp_ret, !interp_state_ret.
-  rewrite bind_ret; cbn.
+  rewrite !bind_ret_l, !tau_eutt. rewrite !interp_ret, !interp_state_ret.
+  rewrite bind_ret_l; cbn.
   reflexivity.
-Qed.  
+Qed.
 
 Lemma interp_asm_Store {E A} f a v mem reg :
   @eutt E _ _ (@rel_asm A)
@@ -258,23 +255,23 @@ Proof.
   unfold CategoryOps.cat, Cat_Handler, Handler.cat. cbn.
   unfold inl_, Inl_sum1_Handler, Handler.inl_, Handler.htrigger.
   unfold inr_, Inr_sum1_Handler, Handler.inr_, Handler.htrigger.
-  unfold insert, embed, Embeddable_forall, embed, Embeddable_itree. 
+  unfold insert, embed, Embeddable_forall, embed, Embeddable_itree.
   rewrite interp_trigger.
   setoid_rewrite interp_trigger.
   rewrite interp_state_trigger. cbn.
   cbn. unfold pure_state, embed, Embeddable_forall, embed, Embeddable_itree, trigger.
-  rewrite bind_vis, interp_state_vis. cbn. rewrite !bind_ret, !tau_eutt.
-  rewrite interp_state_ret, bind_ret; cbn.
+  rewrite bind_vis, interp_state_vis. cbn. rewrite !bind_ret_l, !tau_eutt.
+  rewrite interp_state_ret, bind_ret_l; cbn.
   reflexivity.
 Qed.
 
 (* peephole optimizations --------------------------------------------------- *)
 
-(** A (simple) peephole optmization transforms one instruction into a 
+(** A (simple) peephole optmization transforms one instruction into a
    (possibly empty) list of equivalent instructions. *)
 Definition peephole_optimization := instr -> list instr.
 
-(** We lift peephole optimizations to _asm_ pointwise through the structures. *) 
+(** We lift peephole optimizations to _asm_ pointwise through the structures. *)
 Fixpoint peephole_optimize_block {lbl} (ph : peephole_optimization) (b:block lbl) : block lbl :=
   match b with
   | bbi i k => blk_append (ph i) (peephole_optimize_block ph k)
@@ -292,7 +289,7 @@ Definition peephole_optimize_asm {A B} (ph : peephole_optimization) (p : asm A B
 
 Section Correctness.
 
-  (** A peephole optimizer is correct if it replaces an instruction with 
+  (** A peephole optimizer is correct if it replaces an instruction with
     a semantically equivalent sequence of instructions. *)
   Definition ph_correct (ph : peephole_optimization) :=
   forall (i:instr),
@@ -300,10 +297,10 @@ Section Correctness.
 
   Lemma ph_blk_append_correct : forall (ph : peephole_optimization) (H : ph_correct ph)
     lbl1 lbl2 b1 b2 i,
-    (@eq_asm_denotations_EQ Exit (F lbl1) (F lbl2) (fun _ => denote_block b1) (fun _ => denote_block b2)) ->
-    (@eq_asm_denotations_EQ Exit (F lbl1) (F lbl2)
-                         (fun _ => denote_instr i ;; denote_block b1)
-                         (fun _ => denote_block (blk_append (ph i) b2))).
+    (@eq_asm_denotations_EQ Exit (fin lbl1) (fin lbl2) (fun _ => denote_bk b1) (fun _ => denote_bk b2)) ->
+    (@eq_asm_denotations_EQ Exit (fin lbl1) (fin lbl2)
+                         (fun _ => denote_instr i ;; denote_bk b1)
+                         (fun _ => denote_bk (blk_append (ph i) b2))).
   Proof.
     intros ph H lbl1 lbl2 b1 b2 i HP.
     unfold eq_asm_denotations_EQ.
@@ -316,20 +313,20 @@ Section Correctness.
     do 2 rewrite interp_asm_bind.
     eapply eutt_clo_bind.
     apply H2; auto.
-    intros. 
+    intros.
     inversion H0; subst. inversion H3; subst.
     apply HP; auto.
-  Qed.  
+  Qed.
 
 
-Lemma peephole_block_correct : 
+Lemma peephole_block_correct :
   forall (ph : peephole_optimization)
     (H : ph_correct ph)
     (lbl1 lbl2 : nat)
-    (b : block (F lbl2)),
-    @eq_asm_denotations_EQ Exit (F lbl1) (F lbl2)
-                        (fun _ => denote_block b)
-                        (fun _ => denote_block (peephole_optimize_block ph b)).
+    (b : block (fin lbl2)),
+    @eq_asm_denotations_EQ Exit (fin lbl1) (fin lbl2)
+                        (fun _ => denote_bk b)
+                        (fun _ => denote_bk (peephole_optimize_block ph b)).
 Proof.
   intros ph H lbl1 lbl2 b.
   induction b.
@@ -338,7 +335,7 @@ Proof.
     intros.
     eapply ph_blk_append_correct; try assumption. exact IHb. assumption.
   - unfold eq_asm_denotations_EQ.
-    intros. 
+    intros.
     destruct b; simpl.
     + unfold interp_asm.
       rewrite interp_ret.
@@ -388,29 +385,30 @@ Proof.
   repeat setoid_rewrite interp_bind.
   repeat rewrite interp_state_bind.
   apply (@eutt_clo_bind _ _ _ _ _ _ rel_asm).
-  
+
   { apply (@eutt_clo_bind _ _ _ _ _ _ rel_asm).
-    -  unfold inr_, CoprodInr_Kleisli, lift_ktree_.
+    -  unfold inr_, Inr_Kleisli, lift_ktree_.
        unfold ret, Monad_itree.
        repeat rewrite interp_ret.
        repeat rewrite interp_state_ret.
        apply eqit_Ret. constructor; auto.
     -  intros. inversion H0.
        subst. cbn.
+       unfold CategorySub.from_bif, FromBifunctor_ktree_fin.
        repeat rewrite interp_ret.
        repeat rewrite interp_state_ret.
        apply eqit_Ret.
        inversion H4; subst.
        constructor; auto. }
 
-  intros. 
+  intros.
   inversion H0; subst.
   simpl in *.
   unfold denote_bks.
-  unfold iter, Iter_sktree.
+  unfold iter, CategorySub.Iter_sub.
   repeat rewrite interp_iter.
-  unfold KTree.iter, Iter_Kleisli.
-  cbn. 
+  unfold iter, Iter_Kleisli.
+  cbn.
   pose proof @interp_state_iter'.
   red in H5.
   unfold Basics.iter, MonadIter_stateT0, Basics.iter, MonadIter_itree in *.
@@ -426,22 +424,25 @@ Proof.
     [|intros ? ? [? ? ? ? ? [? ? ? ? ? []]]]; cbn.
   { eapply @peephole_block_correct; eauto. }
 
+  unfold CategorySub.to_bif, ToBifunctor_ktree_fin.
   apply (@eutt_clo_bind _ _ _ _ _ _ rel_asm);
     [|intros ? ? [? ? ? ? ? [? ? ? ? ? []]]]; cbn.
-  { rewrite bind_ret.
-    unfold case_, Case_sum1, CoprodCase_Kleisli, case_sum.
-    unfold CategoryOps.cat, Cat_sktree, CategoryOps.cat, Cat_Kleisli.
-    unfold inl_, Inl_sktree, inl_, CoprodInl_Kleisli, lift_ktree_.
-    unfold inr_, Inr_sktree, inr_, CoprodInr_Kleisli, lift_ktree_.
-    unfold id_, Id_sktree, id_, Id_Kleisli, lift_ktree_.
+  {
+    rewrite bind_ret_l.
+    unfold case_, Case_sum1, Case_Kleisli, case_sum.
+    unfold CategoryOps.cat, CategorySub.Cat_sub, CategoryOps.cat, Cat_Kleisli.
+    unfold inl_, CategorySub.Inl_sub, inl_, Inl_Kleisli, lift_ktree_.
+    unfold inr_, CategorySub.Inr_sub, inr_, Inr_Kleisli, lift_ktree_.
+    unfold id_, CategorySub.Id_sub, id_, Id_Kleisli, lift_ktree_.
     cbn.
+    unfold CategorySub.from_bif, FromBifunctor_ktree_fin.
     destruct split_fin_sum.
-    all: rewrite !bind_ret, interp_ret, !interp_state_ret.
+    all: rewrite !bind_ret_l, interp_ret, !interp_state_ret.
     all: apply eqit_Ret; auto.
   }
 
-  rewrite interp_ret, !interp_state_ret, !bind_ret.
-  rewrite !interp_state_ret, !bind_ret; cbn.
+  rewrite interp_ret, !interp_state_ret, !bind_ret_l.
+  rewrite !interp_state_ret, !bind_ret_l; cbn.
   apply eqit_Ret.
   destruct split_fin_sum; auto.
 Qed.
@@ -456,11 +457,8 @@ Definition simple (i:instr) : list instr :=
   | _ => [i]
   end.
 
-
-
-
-(* SAZ: Belongs in the utilities? (but depends on EQ_registers) 
-   EQ_Registers is now just an alias for eq_map, so this can be moved to MapDefaultFacts. 
+(* SAZ: Belongs in the utilities? (but depends on EQ_registers)
+   EQ_Registers is now just an alias for eq_map, so this can be moved to MapDefaultFacts.
 *)
 Lemma EQ_registers_add:
   forall (r : reg) (d:value) (regs1 regs2 : registers),
@@ -473,31 +471,31 @@ Proof.
   intros.
   unfold lookup_default at 1, lookup, Map_alist.
   destruct (Nat.eq_dec k r).
-  - subst. rewrite In_add_eq. 
+  - subst. rewrite In_add_eq.
     apply H.
   - unfold lookup_default, lookup, Map_alist.
     rewrite alist_find_neq; auto.
     apply H.
 Qed.
-  
+
 Lemma simple_correct : ph_correct simple.
 Proof.
   unfold ph_correct.
   intros i.
   unfold eq_asm_denotations_EQ.
-  intros. 
+  intros.
   destruct i; simpl; try apply interp_asm_ret_tt; auto; try reflexivity.
 
   destruct src.
-  + simpl. rewrite !bind_ret.
+  + simpl. rewrite !bind_ret_l.
     apply interp_asm_ret_tt; auto; try reflexivity.
 
   + simpl.
     destruct (Nat.eq_dec dest r).
-    * subst. 
+    * subst.
       rewrite Nat.eqb_refl.
       simpl.
-      rewrite interp_asm_ret.      
+      rewrite interp_asm_ret.
       rewrite interp_asm_GetReg.
 
       unfold trigger.
@@ -512,13 +510,13 @@ Proof.
       rewrite interp_trigger.
       rewrite interp_state_trigger.
       cbn.
-      rewrite bind_ret, tau_eutt.
-      rewrite interp_state_ret, bind_ret, interp_ret. cbn.
+      rewrite bind_ret_l, tau_eutt.
+      rewrite interp_state_ret, bind_ret_l, interp_ret. cbn.
       rewrite tau_eutt, 2 interp_state_ret.
       apply eqit_Ret. auto using EQ_registers_add.
     * apply Nat.eqb_neq in n.
       rewrite n.
-      apply interp_asm_ret_tt; auto. 
-Qed.      
+      apply interp_asm_ret_tt; auto.
+Qed.
 
 End Correctness.

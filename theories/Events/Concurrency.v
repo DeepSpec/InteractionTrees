@@ -47,7 +47,7 @@ Definition rr_match {E} (rr : list (itree ((spawnE E) +' E) unit) -> itree E uni
     match q with
     | [] => Ret tt
     | t::ts =>
-      match t.(observe) with
+      match observe t with
       | RetF _ => Tau (rr ts)
       | TauF u => Tau (rr (ts ++ [u]))
       | @VisF _ _ _ X o k =>
