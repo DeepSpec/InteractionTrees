@@ -100,7 +100,11 @@ Lemma no_inf_dec_seq_aux : forall  (r : nat -> nat -> Prop) (n n': nat),
     (forall n1 n2, r n1 n2 -> n2 < n1) ->
      wf_from nat r n -> wf_from nat r n'.
   Proof.
-    intros. induction n.
+    intros. generalize dependent n'. 
+    induction H1 as [n Hn| n Hn].
+    - assert 
+
+    induction n.
     - assert (n' =0). omega. subst. apply base. intros n'. intro Hcontra.
       assert (~ n' < 0). omega. auto.
     - apply step. 

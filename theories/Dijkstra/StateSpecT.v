@@ -24,7 +24,9 @@ From ITree Require Import
      Core.Divergence
      Dijkstra.DijkstraMonad
      Dijkstra.PureITreeBasics
+     Dijkstra.IterRel
      Dijkstra.DelaySpecMonad
+     Dijkstra.StateSpecT
    (*  Simple *)
 .
 
@@ -182,21 +184,17 @@ Section LoopInvarSpecific.
         (q -+> p) -> (forall t, q t -> q (t >>= (iter_lift ( iso_destatify_arrow g)  ))) -> 
          (p \1/ divergence) (iter g a s) .
   Proof.
-    intros. specialize (loop_invar (S * A) (S * B) ) as Hloop.
+    intros.
     set (iso_destatify_arrow g) as g'.
     enough ((p \1/ divergence) (KTree.iter g' (s,a) )).
     - assert (KTree.iter g' (s,a) ≈ iter g a s).
       + unfold g', iso_destatify_arrow.
         unfold iter, Iter_Kleisli, Basics.iter, MonadIterDelay, StateIter,
         MonadIter_stateT0, reassoc. unfold Basics.iter.
-        unfold MonadIterDelay. 
-        match goal with |-  (KTree.iter ?f _) ≈  (KTree.iter ?g _) => enough (eq2 f g) end.
-        * admit.
-        * intro. destruct a0 as [s' a']. 
-          simpl. match goal with |- ?a = ?b => assert (a ≈ b) end.
-          { eapply eutt_clo_bind; try reflexivity. intros.
-            destruct u1; destruct u2. injection H3 as H3. subst. destruct s3; reflexivity. }
-        admit. (*obviously the same but something annoying going on*)
+        unfold MonadIterDelay. eapply eutt_iter. intro.
+        destruct a0 as [a' s']. simpl.
+        eapply eutt_clo_bind; try reflexivity. intros.
+        subst. destruct u2. simpl. destruct s1; reflexivity.
       + assert (Hpdiv : resp_eutt _ _ (p \1/ divergence)).
         { intros t1 t2 Heutt. split; intros; basic_solve.
           - left. eapply Hp; eauto. symmetry. auto.
@@ -205,8 +203,8 @@ Section LoopInvarSpecific.
           - right. rewrite Heutt. auto.
          }
         eapply Hpdiv; try apply H2. symmetry. auto.
-     - eapply Hloop; eauto.
-  Admitted.
+     - eapply loop_invar; eauto.
+  Qed.
 
 End LoopInvarSpecific.
 

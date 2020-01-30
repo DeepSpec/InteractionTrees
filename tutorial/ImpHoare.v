@@ -149,18 +149,90 @@ Proof.
     rewrite H. setoid_rewrite bind_ret. apply Hc2. auto.
 Qed.
 
+Timeout 5 Definition app {A B : Type} (f : A -> B) (a : A) := f a.
+
+Definition run_state_itree {A S : Type} {E : Type -> Type} (m : stateT S (itree E) A ) (s : S) : itree E (S * A) :=
+  m s.
+
+Global Instance EqStateEq {S R: Type} {E : Type -> Type} : Equivalence (@state_eq E R S).
+Proof.
+  constructor; repeat intro.
+  - reflexivity.
+  -  unfold state_eq in H. symmetry. auto.
+  - unfold state_eq in *. rewrite H. auto.
+Qed.
+
+(*
+Global Instance run_state_proper {E : Type -> Type} {S R : Type} : 
+  Proper (@state_eq E S R ==> @eutt E (S * R) (S * R) eq) (@run_state_itree R S E ).
+*)
+(*
+Check (case_ (handle_map (V := value) pure_state ) ).
+
+Timeout 5 Definition run_state_map {value A : Type} (t : itree (mapE var 0 +' Void)  A) s  : itree Void ( env * A):= 
+  interp_state (case_ (handle_map (V := value) ) pure_state) t s.
+*)
+
+Section interp_state_eq_iter.
+  Context {E F: Type -> Type}.
+  Context (S : Type).
+  Context (f : E ~> stateT S (itree F) ).
+  Context (A B : Type).
+  Context (g : A ->itree E (A + B) ).
+  Context (a : A).
+
+  Set Default Timeout 10.
+
+  Lemma interp_state_eq_iter : state_eq (interp_state f (KTree.iter g a) )
+                              (MonadIter_stateT0 _ _ (fun a0 => interp_state f (g a0)) a).
+  Proof.
+    specialize @interp_state_iter with (E := E) as Hisi. unfold Basics.iter in Hisi.
+    unfold KTree.iter, Iter_Kleisli, Basics.iter, MonadIter_itree.
+    eapply Hisi. reflexivity.
+  Qed.
+
+End interp_state_eq_iter.
+
 Lemma hoare_while : forall (c : com) (b : bexp) (P : env -> Prop),
     {{fun s => is_true b s /\ P s}} c {{ P  }} ->
     {{ P }} WHILE b DO c END {{ fun s => is_false b s /\ P s}}.
 Proof.
   unfold hoare_triple. intros. unfold denote_imp in H1. cbn in H1.
-  unfold while in H1. unfold interp_imp, interp_map, interp_state in H1.
+  unfold while in H1. unfold interp_imp, interp_map in H1.
   (*this moves interp inside the iter*)
-  match goal with | H : interp _ (?t0 ) _ ≈ _ |- _ => set t0 as t end.
+
+  (* setoid_rewrite eutt_interp_state_iter in H1. *)
+  rewrite interp_iter in H1.
+  match goal with | H : ?m0 s ≈ _ |- _ => set m0 as m end.
+  fold m in H1.
+  assert (state_eq m m); try reflexivity.
+  unfold m at 1 in H2.  rewrite interp_state_eq_iter in H2.
+
+  (*still need to figure out how to use this run state notion
+    to rewrite this monad you did 
+    ironically this really gets back to my old contention that interps need to be iter morphisms
+*)
+
+(*
+  eapply interp_state_iter in H2.
+  match goal with | H : interp_state ?h0 _ _ ≈ _ |- _ => set h0 as h end.
+  fold h in H1. unfold IFun in h.
+  set (run_state_map h (A := unit)) as rs.
+  assert (rs )
+  
+
+  (*run_state (m : stateT ... ) (s : S) : Delay A, prove properness, use interp_state_iter*)
+
+  
+  
+  match goal with | H : interp_state _ (?t0 ) _ ≈ _ |- _ => set t0 as t end.
   assert (t ≈ t); try reflexivity. unfold t in H2 at 2.
   
-  setoid_rewrite interp_iter in H2. 
-  match type of H2 with _ ≈ _ (fun _ => ?t0 ) _ => set t0 as while_body end.
+  setoid_rewrite interp_iter in H1. rewrite interp_state_iter in H1.
+  setoid_rewrite interp_iter in H1.
+
+  About interp_iter. setoid_rewrite interp_iter in H1.
+  Match type of H2 with _ ≈ _ (fun _ => ?t0 ) _ => set t0 as while_body end.
   assert (while_body ≈ while_body); try reflexivity.
   unfold while_body in H3 at 2. 
   rewrite interp_bind in H3. fold while_body in H2.
@@ -180,7 +252,7 @@ Proof.
              then interp (bimap handle_ImpState (id_ Void)) (ITree.bind (denote_com c) (fun _ : unit => Ret (inl tt)))
              else interp (bimap handle_ImpState (id_ Void)) (Ret (inr tt))))).
   rewrite H4 in H3.
-
+*)
 (*
   
   match goal with | H : context [KTree.iter (fun _ => ?body) _ ] |- _ => 
