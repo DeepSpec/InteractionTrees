@@ -166,17 +166,20 @@ Section Instances.
 
   Section Subevent_Instances.
 
+    Class CUnit : Type := CUnitC {}.
+    Global Instance cUnit: CUnit := CUnitC.
+
     (** Event level instances *)
     (* A ~> A +' void1
        A +' void1 ~> A
      *)
     (* The subeffect relationship is reflexive: A -<  A *)
-    Instance Subevent_refl {A : Type -> Type} : A +? void1 -< A :=
+    Instance Subevent_refl `{CUnit} {A : Type -> Type} : A +? void1 -< A :=
       {| split_E := inl_: IFun _ _
          ; merge_E := unit_r: IFun _ _
       |}.
 
-    Instance Subevent_void {A : Type -> Type} : void1 +? A -< A :=
+    Instance Subevent_void `{CUnit} {A : Type -> Type} : void1 +? A -< A :=
       {| split_E := inr_: IFun _ _
          ; merge_E := unit_l: IFun _ _
       |}.
@@ -184,49 +187,49 @@ Section Instances.
     (* Extends the domain to the left
        A -< B -> C +' A -< C +' B
      *)
-    Instance Subevent_Sum_In {A B C D: Type -> Type} `{A +? D -< B} : (C +' A) +? D -< C +' B :=
+    Instance Subevent_Sum_In `{CUnit} {A B C D: Type -> Type} `{A +? D -< B} : (C +' A) +? D -< C +' B :=
       {|
         split_E := case_ (inl_ >>> inl_) (split_E >>> bimap inr_ (id_ _));
         merge_E := assoc_r >>> bimap (id_ _) merge_E
       |}.
 
-    Instance Subevent_Sum_Out {A B C D: Type -> Type}
+    Instance Subevent_Sum_Out `{CUnit} {A B C D: Type -> Type}
              `{A +? D -< B} : A +? C +' D -< C +' B :=
       {|
         split_E := case_ (inl_ >>> inr_) (split_E >>> bimap (id_ _) inr_)
         ; merge_E := case_ (inl_ >>> merge_E >>> inr_) (bimap (id_ _) (inr_ >>> merge_E))
       |}.
 
-    Instance Subevent_Base {A B}: A +? B -< A +' B :=
+    Instance Subevent_Base `{CUnit} {A B}: A +? B -< A +' B :=
       {|
         split_E := id_ _;
         merge_E := id_ _
       |}.
 
-    Instance Subevent_to_complement {A B C E} `{A +' B +? C -< E}: A +? B +' C -< E :=
+    Instance Subevent_to_complement `{CUnit} {A B C E} `{A +' B +? C -< E}: A +? B +' C -< E :=
       {|
         split_E := split_E >>> assoc_r;
         merge_E := assoc_l >>> merge_E
       |}.
 
-    Instance Subevent_Assoc1 {A B C D E: Type -> Type} `{Subevent (A +' (B +' C)) D E} : Subevent ((A +' B) +' C) D E :=
+    Instance Subevent_Assoc1 `{CUnit} {A B C D E: Type -> Type} `{Subevent (A +' (B +' C)) D E} : Subevent ((A +' B) +' C) D E :=
       {| split_E := split_E >>> case_ (assoc_l >>> inl_) inr_
          ; merge_E := bimap assoc_r (id_ _) >>> merge_E
       |}.
 
-    Instance Subevent_Assoc2 {A B C D E: Type -> Type}
+    Instance Subevent_Assoc2 `{CUnit} {A B C D E: Type -> Type}
       `{A +? E -< (B +' (C +' D))}: A +? E -< ((B +' C) +' D) :=
         {| split_E := assoc_r >>> split_E
            ; merge_E := merge_E >>> assoc_l
         |}.
 
-    Instance Subevent_Assoc3 {A B C D E: Type -> Type}
+    Instance Subevent_Assoc3 `{CUnit} {A B C D E: Type -> Type}
        `{A +? (B +' (C +' D)) -< E} : A +? ((B +' C) +' D) -< E :=
       {| split_E := split_E >>> (bimap (id_ _) assoc_l)
           ; merge_E := (bimap (id_ _) assoc_r) >>> merge_E
       |}.
 
-    Instance Subevent_forget_order
+    Instance Subevent_forget_order `{CUnit}
              {E C1 C2 A B}
              {Sub1: A +? C1 -< E}
              {Sub2: B +? C2 -< C1}:
@@ -244,12 +247,13 @@ Section Instances.
       |}.
 
     Instance Subevent_forget_order_wf
+             `{CUnit}
              {E C1 C2 A B}
              {Sub1: A +? C1 -< E}
              {Sub2: B +? C2 -< C1}
              {Sub1WF: Subevent_wf Sub1}
              {Sub2WF: Subevent_wf Sub2}
-      : Subevent_wf (@Subevent_forget_order _ _ _ _ _ Sub1 Sub2).
+      : Subevent_wf (@Subevent_forget_order _ _ _ _ _ _ Sub1 Sub2).
     Proof.
       do 2 split.
       - cbn.
@@ -288,6 +292,7 @@ Section Instances.
     Qed.
 
     Instance Subevent_commute
+             `{CUnit}
              {A B C}
              {Sub: A +? B -< C}:
       B +? A -< C :=
@@ -310,14 +315,14 @@ Section Instances.
     - cbv. intros ? [[] | ?]; reflexivity.
     Qed.
 
-    Instance Subevent_Base_wf {A B: Type -> Type} : Subevent_wf (@Subevent_Base A B).
+    Instance Subevent_Base_wf {A B: Type -> Type} : Subevent_wf (@Subevent_Base _ A B).
     constructor; split; cbv; reflexivity.
     Qed.
 
     Instance Subevent_to_complement_wf {A B C D: Type -> Type}
              {Sub: (A +' B) +? C -< D}
              {SubWf: Subevent_wf Sub}
-      : Subevent_wf (@Subevent_to_complement _ _ _ _ Sub).
+      : Subevent_wf (@Subevent_to_complement _ _ _ _ _ Sub).
     constructor; split.
     - cbn.
       apply SemiIso_Cat.
@@ -332,7 +337,7 @@ Section Instances.
     Instance Subevent_Assoc1_wf {A B C D E: Type -> Type}
              {Sub: (A +' B +' C) +? E -< D}
              {SubWf: Subevent_wf Sub}
-      : Subevent_wf (@Subevent_Assoc1 A B C D E Sub).
+      : Subevent_wf (@Subevent_Assoc1 _ A B C D E Sub).
     constructor; split.
     - cbn.
       apply SemiIso_Cat.
@@ -358,7 +363,7 @@ Section Instances.
     Instance Subevent_Assoc2_wf {A B C D E: Type -> Type}
              {Sub: A +? E -< (B +' (C +' D))}
              {SubWf: Subevent_wf Sub}
-      : Subevent_wf (@Subevent_Assoc2 A B C D E Sub).
+      : Subevent_wf (@Subevent_Assoc2 _ A B C D E Sub).
     Proof.
       constructor; split.
       - cbn.
@@ -375,7 +380,7 @@ Section Instances.
     Instance Subevent_Assoc3_wf {A B C D E: Type -> Type}
              {Sub: A +? (B +' (C +' D)) -< E}
              {SubWf: Subevent_wf Sub}
-      : Subevent_wf (@Subevent_Assoc3 A B C D E Sub).
+      : Subevent_wf (@Subevent_Assoc3 _ A B C D E Sub).
     Proof.
       constructor; split.
       - cbn.
@@ -394,7 +399,7 @@ Section Instances.
     Instance Subevent_Sum_In_wf {A B C D: Type -> Type}
              {Sub: A +? D -< B}
              {SubWf: Subevent_wf Sub}
-      : Subevent_wf (@Subevent_Sum_In A B C D Sub).
+      : Subevent_wf (@Subevent_Sum_In _ A B C D Sub).
     Proof.
       constructor; split.
       - cbn.
@@ -427,7 +432,7 @@ Section Instances.
     Instance Subevent_Sum_Out_wf {A B C D: Type -> Type}
              {Sub: A +? D -< B}
              {SubWf: Subevent_wf Sub}
-      : Subevent_wf (@Subevent_Sum_Out A B C D Sub).
+      : Subevent_wf (@Subevent_Sum_Out _ A B C D Sub).
     Proof.
       constructor; split.
       - cbn.
@@ -484,21 +489,21 @@ match goal with
 | h: _ +? ?E -< ?C |- _ =>
   match goal with
   | h': ?A +? _ -< ?E |- _ =>
-    apply (@Subevent_forget_order _ _ _ _ _ h h')
+    apply (@Subevent_forget_order _ _ _ _ _ _ h h')
   end
 end: typeclass_instances.
 
 Hint Extern 10 (Subevent ?A ?B ?C) =>
 match goal with
 | h: ?B +? ?A -< ?C |- _ =>
-  exact (@Subevent_commute _ _ _ h)
+  exact (@Subevent_commute _ _ _ _ h)
 end: typeclass_instances.
 
 Section Test.
 
   (* Small test: can we infer a view instance picking event domains 1 and 3 in a list? *)
   Variable A B C D: Type -> Type.
-  Goal (A +' C) +? (B +' D) -< (A +' B +' C +' D).
+  Goal forall `{CUnit}, (A +' C) +? (B +' D) -< (A +' B +' C +' D).
     typeclasses eauto.
   Qed.
 
