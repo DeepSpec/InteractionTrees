@@ -68,7 +68,7 @@ Arguments inj1 {_ _ _ _} [_].
 Arguments inj2 {_ _ _ _} [_].
 
 Notation "A +? C -< B" := (Subevent A B C)
-                            (at level 90, left associativity) : type_scope.
+                            (at level 89, left associativity) : type_scope.
 
 Lemma case_inj1: forall {A B C: Type -> Type} `{Sub: A +? C -< B} {SubWF: Subevent_wf Sub} {T} (e: A T),
     case (inj1 e) = inl_ _ e.
