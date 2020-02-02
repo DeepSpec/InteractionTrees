@@ -680,7 +680,7 @@ Section lts.
       sync_step A' (Par u (Bang u)) u' -> sync_step A' (Bang u) u'
   .
 
-End ccs_op.
+End lts.
 
 (** *Trace Semantics
   The trace semantics for a small-step semantics is the reflexive transitive
@@ -695,18 +695,18 @@ Inductive lts_trace : lts -> list (option Label) -> lts -> Prop :=
 .
 
 Lemma lts_trace_app :
-  forall (p1 p2 p3 : ccs_) l1 l2,
+  forall (p1 p2 p3 : lts) l1 l2,
     lts_trace p1 l1 p2 -> lts_trace p2 l2 p3 ->
     lts_trace p1 (l1 ++ l2) p3.
 Proof.
   intros. induction H.
   - cbn; eauto.
-  - apply IHis_trace_ in H0.
-    eapply is_trace_step. apply H0. apply H1.
+  - apply IHlts_trace in H0.
+    eapply lts_trace_step. apply H0. apply H1.
 Qed.
 
 Lemma lts_trace_inversion (a : option Label) :
-  forall (p1 p2 : ccs_) l,
+  forall (p1 p2 : lts) l,
     lts_trace p1 l p2 ->
     (l = [] /\ p1 = p2) \/ (l = [a] /\ sync_step a p1 p2) \/
     (exists l1 l2 p', l = l1 ++ l2 /\ lts_trace p1 l1 p' /\ lts_trace p' l2 p2).
@@ -752,21 +752,21 @@ Lemma lts_trace_par_left :
 Proof.
   intros. induction H; subst.
   - constructor.
-  - econstructor. apply IHis_trace_.
+  - econstructor. apply IHlts_trace.
     constructor. apply H0.
 Qed.
 
 Lemma lts_trace_par_acc_nonsync :
-  forall (p1 p2 p1' p2' : ccs_) l1 l2,
+  forall (p1 p2 p1' p2' : lts) l1 l2,
     lts_trace p1 l1 p1' -> lts_trace p2 l2 p2' ->
-    lts_trace_ (Par p1 p2) (l2 ++ l1) (Par p1' p2').
+    lts_trace (Par p1 p2) (l2 ++ l1) (Par p1' p2').
 Proof.
   intros. induction H0.
   - simpl. inversion H; subst.
     + constructor.
     + econstructor. apply lts_trace_par_left. eauto.
       constructor. apply H1.
-  - simpl. econstructor. apply IHis_trace_.
+  - simpl. econstructor. apply IHlts_trace.
     constructor. apply H1.
 Qed.
 
@@ -777,7 +777,7 @@ Lemma lts_trace_par_sync :
     lts_trace (Par p1 p2) (None::(l2 ++ l1)) (Par p1'' p2'').
 Proof.
   intros.
-  assert (is_trace_ (Par p1 p2) [None] (Par p1' p2')).
+  assert (lts_trace (Par p1 p2) [None] (Par p1' p2')).
   { econstructor. econstructor. econstructor; eauto. }
   pose proof lts_trace_step.
   apply lts_trace_step with (p2 := (Par p1' p2')).
@@ -817,7 +817,7 @@ Inductive equiv_traces : @trace ccsE unit -> list (option Label) -> Prop :=
     equiv_traces (@TEventResponse ccsE unit void (Fail) x t) []
 | TEqEvRespOr n1 n2 t l a u u' v :
     equiv_traces t l ->
-    is_trace_ (Choice u v) (a::l) u' ->
+    lts_trace (Choice u v) (a::l) u' ->
     equiv_traces (@TEventResponse ccsE unit nat (Or n1) n2 t) (a::l)
 .
 
@@ -890,7 +890,7 @@ Proof.
         -- assert (None :: x0 = [None] ++ x0).
            { reflexivity. }
            rewrite H2.
-           eapply is_trace_par_sync. eauto.
+           eapply lts_trace_par_sync. eauto.
            constructor. constructor. econstructor.
         -- destruct x. econstructor. eauto. Unshelve. eauto.
       * (* Fail *)
@@ -901,12 +901,12 @@ Proof.
     intros. induction H.
     + exists TEnd. exists zero. split; constructor.
     + destruct a0.
-      destruct IHis_trace_ as [? [?]].
+      destruct IHlts_trace as [? [?]].
       destruct H1; unfold is_trace in H1.
       * exists (@TEventResponse ccsE unit unit (Act l1) tt x).
         exists (Vis (Act l1) (fun _ => x0)).
         split; constructor; assumption.
-      * destruct IHis_trace_ as [? [?]]. destruct H1.
+      * destruct IHlts_trace as [? [?]]. destruct H1.
         exists (@TEventResponse ccsE unit unit (Sync a) tt x).
         exists (Vis (Sync a) (fun _ => x0)).
         split; constructor; assumption.
