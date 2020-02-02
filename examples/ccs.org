@@ -1,0 +1,79 @@
+* If we step back a level, the overall goal is to denote ccs into some kind of domain 
+  that is either simply an itree, or a monad transformer applied to itree such as `itree E () -> Prop`.
+  So we want to have some domain `D` and a function `sem: ccs -> D`
+
+* One important property of these `sem` and `D` is that the "natural" notion 
+  of equivalence over `D`, let's write it `≈`, should be such that two processes `P` and `Q` are weakly bisimilar 
+  if and only if `sem P ≈ sem Q`
+
+* Concretely, it seems to make sense to have `D ≜ itree E unit -> Prop` for a certain `E`
+  Now over this domain, there is a "natural" notion of equivalence: `a ≈ b iff
+  (∀ ta, a ta -> ∃ tb, b tb /\ eutt ta tb)` (and the symmetric). That is: if you think of the elements of
+  your domain as sets of trees, then the elements are equivalent if they are in bijection "up-to eutt".
+  Of course we _could_ try to define another equivalence on this domain, but it would be cool if somehow
+  we can define `sem` such that this natural equivalence satisfies the previous point.
+
+* Now why is it so far not the case? Because the current way we define 
+  `sem (P ⊕ Q)` is essentially `sem P ∪ sem Q` (except that it happens in two steps by first introducing
+  the choice node and then later interpreting this choice into the prop monad by collecting both branches).
+  Second important point, currently again, writing `hs` for handshake, that is the "tau" step from ccs,
+  you denote `sem (hs.P)` as `Tau (sem P)` (once again in two steps, first with an event, that is meant to
+  be interpreted away afterward into a simply Tau since we do not wish to observe it).
+  However as you discovered, this does not work well: with this approach, `a.0 ⊕ b.0` and `a.0 ⊕ hs.b.0` 
+  have equivalent denotations. So if we want to keep the "natural" notion of equivalence from the previous 
+  bullet, we need to change this `sem` function.
+  
+* We are now getting concretely to the discussion: here is a hand-wavy proposal to do so.
+  In general, it is true that we do not want to observe handshakes. So let's still interpret them as their own
+  event, `HS`, and let's still plan to interpret it away as a `Tau`.
+  But we are going to change the way we define `sem (P ⊕ Q)` so that before that, _some_ of these `HS` will 
+  get promoted to an "observable handshake`, `OHS`, that won't get away as easily.
+  
+** So the first idea we discussed is to define roughly:
+   ```sem (P ⊕ Q) ≜ let t1 := sem P in
+                    let t2 := sem Q in 
+                    match t1,t2 with
+                    | Vis HS t1, Vis HS t2 => Vis (Choice 2) (0 ↦ Vis OHS t1, 1 ↦ Vis OHS t2)
+                    | Vis HS t1, _ => Vis (Choice 2) (0 ↦ Vis OHS t1, 1 ↦ t2)
+                    | _, Vis HS t2 => Vis (Choice 2) (0 ↦ t1, 1 ↦ Vis OHS t2)
+                    | _, _ => Vis (Choice 2) (false ↦ t1, true ↦ t2)
+                    end.
+   ```
+   That is this simple idea that we peak at our trees when denoting a choice so that we promote 
+   the handshakes that might be there to observational ones.
+   Then we can handle the other handshakes away: `handle_HS: HS ~> itree _ ≜ fun _ _ => Tau (fun _ => Ret tt)`.
+   Then we can handle the choice into the Prop monad the usual way.
+   And that should mean that, abusively using set notations, we now have 
+   `sem (a.0 ⊕ b.0) = {Vis a 0 ; Vis b 0}` while `sem (a.0 ⊕ hs.b.0) = {Vis a 0 ; Vis OHS (_ => Vis b 0)}` 
+   And hence they are not equivalent.
+   Note however that we have in contrast: `sem (hs.b.0) = {Tau (Vis b 0)}` since in this case the handshake
+   did not get promoted to an `OHS`, and hence we still have `sem (hs.b.0) ≈ sem (b.0)` as we should.
+
+** Now the last point we discussed, why put more things in our set when we promote?
+   You pointed out that we should have: `sem (P ⊕ hs.P) ≈ sem (hs.P)`.
+   With the approach just discussed, we would have (taking `P = 0` for clarity):
+   `sem (0 ⊕ hs.0) = {0 ; Vis OHS 0}` and `sem (hs.0) = {Vis OHS 0}`.
+   But this is problematic: they are not equivalent because there is a tree in `sem (0 ⊕ hs.0)`,
+   namely the tree `0`, that I cannot find an eutt companion for in `sem (hs.0)`.
+   The problem is really the following: when there is an handshake below a choice, we needed to
+   acknowledge the fact that we can observe the behaviour that consists in using this handshake 
+   to pick a path, even if it does not emit something we can interact with so far. But intuitively,
+   if you think in term of all the behaviours this represents, it "contains" the one that consists in 
+   being scheduled so that you never stop at this handshake but always continue until you reach a
+   visible event.
+   So I am kinda confident that the following slight change is sound:
+   ```sem (P ⊕ Q) ≜ let t1 := sem P in
+                    let t2 := sem Q in 
+                    match t1,t2 with
+                    | Vis HS t1, Vis HS t2 => Vis (Choice 4) (0 ↦ Vis OHS t1, 1 ↦ Vis HS t1, 2 ↦ Vis OHS t2, 3 ↦ Vis OHS t2)
+                    | Vis HS t1, _ => Vis (Choice 3) (0 ↦ Vis OHS t1, 1 ↦ Vis HS t1, 2 ↦ t2)
+                    | _, Vis HS t2 => Vis (Choice 3) (0 ↦ t1, 1 ↦ Vis OHS t2, 2 ↦ Vis HS t2)
+                    | _, _ => Vis (Choice 2) (false ↦ t1, true ↦ t2)
+                    end.
+   ```
+   That is when you promote an OHS, you are in a sense adding exactly the scheduling that allowed the process
+   to use the handshake to chose a non-determinist path, but then scheduled another process for it to be able to
+   observe it. But you also add the non-promoted one that correspond to the scheduling where the process got 
+   to continue reducing after its handshake without anyone noticing.
+   We definitely need to think a bit to get any kind of serious conviction that this is correct, but it makes
+   sense to me at least intuitively.
