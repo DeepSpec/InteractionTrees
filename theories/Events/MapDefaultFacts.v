@@ -229,9 +229,9 @@ Section MapFacts.
       intros.
       inversion H. subst.
       estep; constructor. ebase.
-    - rewrite tau_eutt, unfold_interp_state.
+    - rewrite tau_euttge, unfold_interp_state.
       eauto.
-    - rewrite tau_eutt, unfold_interp_state.
+    - rewrite tau_euttge, unfold_interp_state.
       eauto.
   Qed.
     

@@ -103,9 +103,9 @@ Theorem interp_mrec_trigger {U} (a : (D +' E) U) :
 Proof.
   rewrite unfold_interp_mrec; unfold mrecursive.
   destruct a; cbn.
-  rewrite tau_eutt, bind_ret_r.
+  rewrite tau_euttge, bind_ret_r.
   reflexivity.
-  pstep; constructor. intros; left. rewrite tau_eutt, unfold_interp_mrec; cbn.
+  pstep; constructor. intros; left. rewrite tau_euttge, unfold_interp_mrec; cbn.
   apply reflexivity.
 Qed.
 
@@ -122,10 +122,10 @@ Proof.
     gstep; constructor.
     guclo eqit_clo_bind; econstructor; [reflexivity|].
     intros ? _ []; eauto with paco.
-  - rewrite tau_eutt. unfold ITree.trigger, case_; simpl. rewrite bind_vis.
+  - rewrite tau_euttge. unfold ITree.trigger, case_; simpl. rewrite bind_vis.
     gstep. constructor.
     intros; red.
-    rewrite bind_ret_l. rewrite tau_eutt. auto with paco.
+    rewrite bind_ret_l. rewrite tau_euttge. auto with paco.
 Qed.
 
 Theorem mrec_as_interp {T} (d : D T) :
@@ -158,7 +158,7 @@ Proof.
     intros ? _ []; rewrite unfold_interp_mrec; cbn; auto with paco.
   - unfold inr_, Handler.Inr_sum1_Handler, Handler.Handler.inr_, Handler.Handler.htrigger.
     rewrite bind_trigger, unfold_interp_mrec; cbn.
-    rewrite tau_eutt.
+    rewrite tau_euttge.
     gstep; constructor.
     intros; red. gstep; constructor.
     rewrite unfold_interp_mrec; cbn.
@@ -186,7 +186,7 @@ Proof.
     + gstep; constructor. auto with paco.
   }
   1,2: gstep; constructor; auto with paco.
-  1,2: rewrite unfold_interp_mrec, tau_eutt; auto.
+  1,2: rewrite unfold_interp_mrec, tau_euttge; auto.
 Qed.
 
 (** [rec body] is equivalent to [interp (recursive body)],
@@ -230,7 +230,7 @@ Proof.
     + gstep; constructor. auto with paco.
   }
   1,2: gstep; constructor; auto with paco.
-  1: rewrite unfold_interp_mrec, tau_eutt; auto.
+  1: rewrite unfold_interp_mrec, tau_euttge; auto.
   discriminate.
 Qed.
 

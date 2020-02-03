@@ -551,10 +551,16 @@ Proof.
   intros. pstep. econstructor; eauto. punfold H.
 Qed.
 
-Lemma tau_eutt {E R} (t: itree E R) :
+Lemma tau_euttge {E R} (t: itree E R) :
   Tau t ≳ t.
 Proof.
   apply eqit_tauL. reflexivity.
+Qed.
+
+Lemma tau_eutt {E R} (t: itree E R) :
+  Tau t ≈ t.
+Proof.
+  apply euttge_sub_eutt, tau_euttge.
 Qed.
 
 Lemma simpobs {E R} {ot} {t: itree E R} (EQ: ot = observe t): t ≅ go ot.

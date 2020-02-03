@@ -147,8 +147,8 @@ Proof.
   - ebind. econstructor; [reflexivity|].
     intros; subst.
     etau. ebase.
-  - rewrite tau_eutt, unfold_interp_state; eauto.
-  - rewrite tau_eutt, unfold_interp_state; eauto.
+  - rewrite tau_euttge, unfold_interp_state; eauto.
+  - rewrite tau_euttge, unfold_interp_state; eauto.
 Qed.
 
 Instance eutt_interp_state_eq {E F: Type -> Type} {S : Type}
@@ -165,8 +165,8 @@ Proof.
   - ebind. econstructor; [reflexivity|].
     intros; subst.
     etau. ebase.
-  - rewrite tau_eutt, unfold_interp_state; eauto.
-  - rewrite tau_eutt, unfold_interp_state; eauto.
+  - rewrite tau_euttge, unfold_interp_state; eauto.
+  - rewrite tau_euttge, unfold_interp_state; eauto.
 Qed.
 
 

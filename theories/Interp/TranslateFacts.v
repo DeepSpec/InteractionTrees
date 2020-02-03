@@ -188,8 +188,8 @@ Proof.
   - gstep. econstructor. eauto.
   - gstep. econstructor. pclearbot. eauto with paco.
   - gstep. rewrite H. econstructor. pclearbot. red. eauto 7 with paco.
-  - rewrite tau_eutt, unfold_translate. eauto.
-  - rewrite tau_eutt, unfold_translate. eauto.
+  - rewrite tau_euttge, unfold_translate. eauto.
+  - rewrite tau_euttge, unfold_translate. eauto.
 Qed.
 
 Instance eutt_translate' {E F : Type -> Type} {R : Type} (f : E ~> F) :

@@ -44,7 +44,7 @@ Proof.
   ebind; econstructor; try reflexivity.
   intros [a | b] _ [].
   - rewrite bind_tau. etau.
-  - rewrite bind_ret_l, tau_eutt.
+  - rewrite bind_ret_l, tau_euttge.
     revert b. ecofix CIH'. intros.
     rewrite !unfold_iter. unfold ITree._iter.
     rewrite bind_map.
