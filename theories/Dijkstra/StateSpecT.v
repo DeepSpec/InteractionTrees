@@ -26,7 +26,6 @@ From ITree Require Import
      Dijkstra.PureITreeBasics
      Dijkstra.IterRel
      Dijkstra.DelaySpecMonad
-     Dijkstra.StateSpecT
    (*  Simple *)
 .
 

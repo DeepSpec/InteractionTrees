@@ -102,18 +102,5 @@ Lemma no_inf_dec_seq_aux : forall  (r : nat -> nat -> Prop) (n n': nat),
   Proof.
     intros. generalize dependent n'. 
     induction H1 as [n Hn| n Hn].
-    - assert 
-
-    induction n.
-    - assert (n' =0). omega. subst. apply base. intros n'. intro Hcontra.
-      assert (~ n' < 0). omega. auto.
-    - apply step. 
-      intros n'' Hn''.
-    (* destruct (classic (exists n', r (S n) n' )).
-      + destruct H2 as [n' Hn'].
-        assert (P n').
-        { eapply H0; eauto. }
-        apply H1 in Hn'. admit.
-      + apply base. intros. intro Hcontra. apply H2.
-        exists a'. auto. *)
+    - 
         Abort.
