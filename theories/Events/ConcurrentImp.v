@@ -3,31 +3,6 @@ Require Import Arith.PeanoNat.
 
 Open Scope string_scope.
 
-
-CoInductive itree (E : Type -> Type) (A : Type): Type :=
-  | Ret (a : A)
-  | Tau (t : itree E A)
-  | Vis {X : Type} (e : E X) (c : X -> itree E A).
-
-
-Variant nondetE : Type -> Type :=
-  | Or : nondetE bool.
-
-
-Definition union (E1 E2 : Type -> Type) : (Type -> Type) := (fun tau => sum (E1 tau) (E2 tau)).
-
-
-CoFixpoint par {E} (t1 t2 : itree (union E nondetE) unit) : (itree (union E nondetE) unit) := 
-  match t1, t2 with
-    | Ret _ _ a, _ => t2
-    | _, Ret _ _ a => t1
-    | Tau _ _ t'1, Tau _ _ t'2 => Vis _ _ (inr Or) (fun b : bool => if b then par t'1 t2 else par t1 t'2)
-    | Tau _ _ t'1, Vis _ _ e2 c2 => Vis _ _ (inr Or) (fun b : bool => if b then par t'1 t2 else Vis _ _ e2 (fun x => par t1 (c2 x)))
-    | Vis _ _ e1 c1, Tau _ _ t'2 => Vis _ _ (inr Or) (fun b : bool => if b then Vis _ _ e1 (fun x => par (c1 x) t2) else par t1 t'2)
-    | Vis _ _ e1 c1, Vis _ _ e2 c2 =>  Vis _ _ (inr Or) (fun b : bool => if b then Vis _ _ e1 (fun x => par (c1 x) t2) else  Vis _ _ e2 (fun x => par t1 (c2 x)))
-  end.
-
-
 Inductive expr : Type :=
   | Var (x : string)
   | Lit (n : nat).
@@ -44,6 +19,19 @@ Notation "x '::=' n" := (Assign x n) (at level 60).
 Notation "c1 ;; c2" := (Seq c1 c2) (at level 80, right associativity).
 Notation "c1 ||| c2" := (Par c1 c2) (at level 80, right associativity).
 Notation "'TEST' c1 'THEN' c2 'ELSE' c3 'FI'" := (If c1 c2 c3) (at level 80, right associativity).
+
+CoInductive itree (E : Type -> Type) (A : Type): Type :=
+  | Ret (a : A)
+  | Tau (t : itree E A)
+  | Vis {X : Type} (e : E X) (c : X -> itree E A).
+
+
+Variant nondetE : Type -> Type :=
+  | Or : nondetE bool.
+
+
+Definition union (E1 E2 : Type -> Type) : (Type -> Type) := (fun tau => sum (E1 tau) (E2 tau)).
+
 
 Variant ImpState : Type -> Type :=
   | GetVar (x : string) : ImpState nat
@@ -69,6 +57,18 @@ Fixpoint denote_expr (e : expr) : itree (union ImpState nondetE) nat :=
   end.
 
 Definition is_true (v : nat) : bool := if (v =? 0)%nat then false else true.
+
+
+CoFixpoint par {E} (t1 t2 : itree (union E nondetE) unit) : (itree (union E nondetE) unit) := 
+  match t1, t2 with
+    | Ret _ _ a, _ => t2
+    | _, Ret _ _ a => t1
+    | Tau _ _ t'1, Tau _ _ t'2 => Vis _ _ (inr Or) (fun b : bool => if b then par t'1 t2 else par t1 t'2)
+    | Tau _ _ t'1, Vis _ _ e2 c2 => Vis _ _ (inr Or) (fun b : bool => if b then par t'1 t2 else Vis _ _ e2 (fun x => par t1 (c2 x)))
+    | Vis _ _ e1 c1, Tau _ _ t'2 => Vis _ _ (inr Or) (fun b : bool => if b then Vis _ _ e1 (fun x => par (c1 x) t2) else par t1 t'2)
+    | Vis _ _ e1 c1, Vis _ _ e2 c2 =>  Vis _ _ (inr Or) (fun b : bool => if b then Vis _ _ e1 (fun x => par (c1 x) t2) else  Vis _ _ e2 (fun x => par t1 (c2 x)))
+  end.
+
 
 Fixpoint denote_stmt (t : stmt) : itree (union ImpState nondetE) unit :=
   match t with
