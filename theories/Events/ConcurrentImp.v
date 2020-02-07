@@ -20,6 +20,7 @@ Notation "c1 ;; c2" := (Seq c1 c2) (at level 80, right associativity).
 Notation "c1 ||| c2" := (Par c1 c2) (at level 80, right associativity).
 Notation "'TEST' c1 'THEN' c2 'ELSE' c3 'FI'" := (If c1 c2 c3) (at level 80, right associativity).
 
+(* YZ: Why are you redefining everything??? *)
 CoInductive itree (E : Type -> Type) (A : Type): Type :=
   | Ret (a : A)
   | Tau (t : itree E A)
@@ -30,13 +31,12 @@ Variant nondetE : Type -> Type :=
   | Or : nondetE bool.
 
 
+(* YZ: this "union" is called "sum1" in the library, and written "+'" *)
 Definition union (E1 E2 : Type -> Type) : (Type -> Type) := (fun tau => sum (E1 tau) (E2 tau)).
-
 
 Variant ImpState : Type -> Type :=
   | GetVar (x : string) : ImpState nat
   | SetVar (x : string) (v : nat) : ImpState unit.
-
 
 CoFixpoint bind {E : Type -> Type} {R S : Type} (t : itree E R) (c : R -> itree E S) : itree E S :=
   match t with
@@ -45,10 +45,8 @@ CoFixpoint bind {E : Type -> Type} {R S : Type} (t : itree E R) (c : R -> itree 
     | Vis _ _ e k => Vis _ _ e (fun x => bind (k x) c)
   end.
 
-
 Notation "t1 ;;; t2" := (bind t1 (fun _ => t2)) (at level 61, right associativity).
 Notation "x <- t1 ;;; t2" := (bind t1 (fun x => t2)) (at level 61, t1 at next level, right associativity).
-
 
 Fixpoint denote_expr (e : expr) : itree (union ImpState nondetE) nat :=
   match e with
@@ -59,7 +57,7 @@ Fixpoint denote_expr (e : expr) : itree (union ImpState nondetE) nat :=
 Definition is_true (v : nat) : bool := if (v =? 0)%nat then false else true.
 
 
-CoFixpoint par {E} (t1 t2 : itree (union E nondetE) unit) : (itree (union E nondetE) unit) := 
+CoFixpoint par {E} (t1 t2 : itree (union E nondetE) unit) : (itree (union E nondetE) unit) :=
   match t1, t2 with
     | Ret _ _ a, _ => t2
     | _, Ret _ _ a => t1
@@ -89,7 +87,20 @@ CoInductive stream := cons (b : bool) (s : stream).
 
 Definition update_env (f : env) (x : string) (n : nat) := fun y => if x =? y then n else f y.
 
-Fixpoint eval 
+(**
+ BEGIN YZ COMMENT
+   This is not how we evaluate itrees.
+   itrees are evaluated by providing a handler that gives a meaning to some events E in terms of a monad M.
+   The notion of interpreter [interp] then takes such an handler as argument, and gives a meaning to a
+   whole [itree E] in term of M.
+
+   So here in particular such a function fixing a scheduler should probably be something like:
+   schedules: itree (nondetE +' ImpState) ~> stateT (stream nat) (itree ImpState)
+
+END YZ COMMENT
+**)
+
+Fixpoint eval
 (t : itree (union ImpState nondetE) unit)
 (s : stream)
 (f : env)
