@@ -100,19 +100,81 @@ Definition update_env (f : env) (x : string) (n : nat) := fun y => if x =? y the
 END YZ COMMENT
 **)
 
-Fixpoint eval
+(* You can work interactively with it like that: *)
+Fixpoint eval'
+(fuel : nat)
 (t : itree (union ImpState nondetE) unit)
 (s : stream)
 (f : env)
-(n : nat) :
-env :=
-  match n with
+  {struct fuel}:
+  env.
+  refine (
+  match fuel with
     | 0 => f
-    | S n => (match t, s with
-            | Ret _ _ tt, _ => f
-            | Tau _ _ t, _ => eval t s f n
-            | Vis _ _ (inl (GetVar x)) k, _ => eval (k (f x)) s f n
-            | Vis _ _ (inl (SetVar x v)) k, _ => eval (k tt) s (update_env f x v) n
-            | Vis _ _ (inr Or) k, cons b bs => eval (k b) bs f n
-            end)
-   end.
+    | S n => match s with
+            | cons b bs => _
+            end
+  end).
+  destruct t eqn:EQ.
+  exact f.
+  refine (eval' n t s f).
+  destruct e.
+  - destruct i.
+    refine (eval' n (c (f x)) s f).
+    refine (eval' n (c tt) s (update_env f x v)).
+  - destruct n0.
+    refine (eval' n (c b) bs f).
+Defined.
+
+(* It should compute, and by printing you can get the direct definition: *)
+
+Definition eval :=
+fix eval (fuel : nat) (t : itree (union ImpState nondetE) unit) (s : stream) (f : env) {struct fuel} : env :=
+  match fuel with
+  | 0 => f
+  | S n =>
+      match s with
+      | cons b bs =>
+          let i := t in
+          let EQ : t = i := eq_refl in
+          match i as i0 return (t = i0 -> env) with
+          | Ret _ _ a => fun _ : t = Ret (union ImpState nondetE) unit a => f
+          | Tau _ _ i0 => fun _ : t = Tau (union ImpState nondetE) unit i0 => eval n t s f
+          | @Vis _ _ X e c =>
+              fun EQ0 : t = Vis (union ImpState nondetE) unit e c =>
+              match e as s0 return (t = Vis (union ImpState nondetE) unit s0 c -> env) with
+              | inl i0 =>
+                  fun EQ1 : t = Vis (union ImpState nondetE) unit (inl i0) c =>
+                  match
+                    i0 as i1 in (ImpState T)
+                    return
+                      (forall c0 : T -> itree (union ImpState nondetE) unit,
+                       t = Vis (union ImpState nondetE) unit (inl i1) c0 -> env)
+                  with
+                  | GetVar x =>
+                      fun (c0 : nat -> itree (union ImpState nondetE) unit)
+                        (_ : t = Vis (union ImpState nondetE) unit (inl (GetVar x)) c0) => 
+                      eval n (c0 (f x)) s f
+                  | SetVar x v =>
+                      fun (c0 : unit -> itree (union ImpState nondetE) unit)
+                        (_ : t = Vis (union ImpState nondetE) unit (inl (SetVar x v)) c0) =>
+                      eval n (c0 tt) s (update_env f x v)
+                  end c EQ1
+              | inr n0 =>
+                  fun EQ1 : t = Vis (union ImpState nondetE) unit (inr n0) c =>
+                  match
+                    n0 as n1 in (nondetE T)
+                    return
+                      (forall c0 : T -> itree (union ImpState nondetE) unit,
+                       t = Vis (union ImpState nondetE) unit (inr n1) c0 -> env)
+                  with
+                  | Or =>
+                      fun (c0 : bool -> itree (union ImpState nondetE) unit)
+                        (_ : t = Vis (union ImpState nondetE) unit (inr Or) c0) => eval n (c0 b) bs f
+                  end c EQ1
+              end EQ0
+          end EQ
+      end
+  end.
+
+(* That you may be able to clean up a bit after if need be *)
