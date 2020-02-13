@@ -4,13 +4,16 @@ From ITree Require Import
      Eq
 .
 
+From ExtLib Require Import
+     Structures.Monad. 
+
 Set Implicit Arguments.
 Set Contextual Implicit.
 Set Primitive Projections.
 
 (** *Weak Bisimilarity in CCS
     How do we define weak bisimilarity in CCS using ITrees, when their notion
-    of bisimilarity are different? We need only to observe this simple example
+    of bisimilarity is different? We need only to observe this simple example
     to observe the limitation of weak bisimulation in ITrees.
 
     These processes are weakly inequivalent in CCS:
@@ -42,9 +45,13 @@ Set Primitive Projections.
  *)
 
 
+Import Monads.
+Import MonadNotation.
+Local Open Scope monad_scope.
+
 (* A variant of CCS denotation, using binary `or` operators and `promoted silent`
    steps. *)
-Section weak_ccs.
+Section denote_ccs.
 
   (* Labels for defining parity of actions. *)
   Variant Label : Type :=
@@ -52,29 +59,61 @@ Section weak_ccs.
   | Out (n : nat) : Label
   .
 
-  Variant ccsE : Type -> Type :=
-  | Or : ccsE bool
-  | Act (l : Label) : ccsE unit
-  | Fail : ccsE void
+  (* CCS Syntax. *)
+  Inductive ccs : Set :=
+  | Zero
+  | Fail
+  | Or (a b : ccs)
+  | Bang (a : ccs)
+  | Act (l : Label) (a : ccs)
+  | Par (a b : ccs)
   .
 
-  Definition ccs := itree ccsE unit.
+  (* CCS Events. *)
+  Variant ccsE : Type -> Type :=
+  | OrE : ccsE bool
+  | ActE (l : Label) : ccsE unit
+  | FailE : ccsE void
+  | SyncE : ccsE unit
+  | OSyncE : ccsE unit (* See ccs.org. *)
+  .
 
-End weak_ccs.
+  (* Denotation of CCS as uninterpreted ITree events. *)
+  Definition ccsD := itree ccsE unit.
 
-Notation ccs' := (itree' ccsE unit).
+  (*Context {eff : Type -> Type}.
+  Context {CCS: ccsE -< eff}.*)
 
-Section weak_ccs_combinators.
+  (* Equational theories for CCS. *)
 
-  Definition zero : ccs := Ret tt.
+  (* State Lemma that this shape invariant can hold for any tree. *)
 
-  Definition fail : ccs := Vis Fail (fun x : void => match x with end).
+  Definition or (p1 p2 : itree ccsE unit) : itree ccsE unit :=
+    Vis OrE (fun (x : bool) => if x then p1 else p2)
+  .
 
-  Definition send (n : nat) (p : ccs) : ccs := Vis (Act (In n)) (fun _ => p).
-  Definition recv (n : nat) (p : ccs) : ccs := Vis (Act (Out n)) (fun _ => p).
+  Definition denote_or (p1 p2 : itree ccsE unit) : itree ccsE unit :=
+    match p1, p2 with
+    | Vis SyncE t1, Vis SyncE t2 => or (or (Vis OSyncE t1) (Vis SyncE t1))
+                                       (or (Vis OSyncE t2) (Vis SyncE t2))
+    | Vis SyncE t1, _=> or (or (Vis OSyncE t1) (Vis SyncE t1)) p2
+    | _, Vis SyncE t2 => or p1 (or (Vis OSyncE t2) (Vis SyncE t2))
+    | _, _ => or p1 p2
+    end
+  .
 
-  Definition choose (p1 p2 : ccs) : ccs :=
-    Vis Or (fun (b : bool) => if b then p1 else p2).
+  (*Fixpoint denote_ccs (p : ccs) : itree ccsE unit :=
+    match p with
+    | Zero => ret tt
+    | Fail => Vis FailE (fun x : void => match x with end)
+    | Act l a => trigger (ActE l) ;; Tau (denote_ccs a)
+    | Or a b => denote_or (denote_ccs a) (denote_ccs b)
+    | Par a b => p1 <- denote_ccs a ;;
+                    p2 <- denote_ccs b ;;
+                    ret tt
+    | Bang a => ret tt
+    end
+  .*)
 
-End weak_ccs_combinators.
+End denote_ccs.
 
