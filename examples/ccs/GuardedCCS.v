@@ -163,7 +163,7 @@ Section DenoteCCS.
     (itree eff unit) -> itree eff unit :=
     fun (a : itree eff unit) => ab <- body a;;
              match ab with
-             | inl a => Vis ParE (fun b => if true then Tau (a) else bang body a)
+             | inl a => Vis ParE (fun (b : bool) => if b then Tau (a) else bang body a)
              | inr b => Ret b (* never going to be reached *)
              end
    .
@@ -179,5 +179,7 @@ Section DenoteCCS.
     | Bang x => bang (fun a => ret (inl a)) (denote_ccs x)
     end.
 
+   Compute (burn 100 (denote_ccs (Bang (Proc (Or Zero Zero))))).
+   
 End DenoteCCS.
 
