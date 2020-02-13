@@ -27,6 +27,7 @@ From ITree Require Import
      Dijkstra.IterRel
      Dijkstra.DelaySpecMonad
      Dijkstra.StateSpecT
+     Dijkstra.StateDelaySpec
    (*  Simple *)
 .
 
@@ -86,8 +87,7 @@ Proof.
     setoid_rewrite bind_ret. setoid_rewrite interp_imp_bind. rewrite IHae2.
     tau_steps. reflexivity.
 Qed.
-     
-    
+
 Lemma bools_term : forall (be : bexp) (s : env),
     exists (bc : bool), @interp_imp Void _ (denote_bexp be) s ≈ Ret (s,bc).
 Proof.
@@ -162,13 +162,20 @@ Proof.
   - unfold state_eq in *. rewrite H. auto.
 Qed.
 
+Global Instance StateDelayProperOps {S : Type} : MonadProperOps (StateDelay S).
+Proof.
+  red. intros A B. repeat intro. red in H0. cbn. red in H. red in H.
+  eapply eutt_clo_bind; try apply H.
+  intros. subst. destruct u2 as [s' a]. simpl. red in H0. red in H0.
+  apply H0.
+Qed.
+
 
 Global Instance run_state_proper_eq_itree {E : Type -> Type} {S R : Type} {s : S} : 
   Proper (@state_eq E S R ==> eq_itree eq) (@run_state_itree R S E s).
 Proof.
   repeat intro. unfold run_state_itree. unfold state_eq in H. rewrite H. reflexivity.
 Qed.
-
 
 Global Instance run_state_proper_eutt {E : Type -> Type} {S R : Type} {s : S} : 
   Proper (@state_eq E S R ==> eutt eq) (@run_state_itree R S E s).
@@ -180,8 +187,8 @@ Global Instance eutt_proper_under_interp_state
        {E F: Type -> Type} {S R : Type} {h : E ~> stateT S (itree F) } :
   Proper (eq_itree eq ==> @state_eq F S R) (fun (t : itree E R) =>  interp_state h t).
 Proof.
-  repeat intro. 
-Admitted.
+  repeat intro. unfold interp_state. rewrite H. reflexivity.
+Qed.
 
 (*
 Check (case_ (handle_map (V := value) pure_state ) ).
@@ -202,9 +209,8 @@ Section interp_state_eq_iter.
   Lemma interp_state_eq_iter : state_eq (interp_state f (KTree.iter g a) )
                               (MonadIter_stateT0 _ _ (fun a0 => interp_state f (g a0)) a).
   Proof.
-    specialize @interp_state_iter with (E := E) as Hisi. unfold Basics.iter in Hisi.
     unfold KTree.iter, Iter_Kleisli, Basics.iter, MonadIter_itree.
-    eapply Hisi. reflexivity.
+    eapply interp_state_iter; reflexivity.
   Qed.
 
 End interp_state_eq_iter.
@@ -240,14 +246,8 @@ Lemma eq_itree_clo_bind {E : Type -> Type} {R1 R2 : Type} :
     (forall (u1 : U1) (u2 : U2), UU u1 u2 -> eq_itree RR (k1 u1) (k2 u2)  ) -> 
     eq_itree RR (ITree.bind t1 k1) (ITree.bind t2 k2).
 Proof.
-  intros. generalize dependent t2. generalize dependent t1.
-  pcofix CIH. 
-  intros. pinversion H1; eauto.
-  - specialize (@itree_eta E U1 t1 ) as Hr1.
-    rewrite <- H2 in Hr1.
-    specialize (@itree_eta E U2 t2) as Hr2.
-    rewrite <- H in Hr2.  pfold. red. Admitted.
-
+  intros. unfold eq_itree in *. eapply eqit_bind'; eauto.
+Qed.
 
 
 Global Instance bind_state_eq2 {E : Type -> Type} {A B S : Type} {m : stateT S (itree E) A} : 
@@ -268,59 +268,40 @@ Lemma compile_while : forall (b : bexp) (c : com),
 Proof.
   intros. simpl. unfold denote_imp. simpl. unfold while. unfold interp_imp at 1, interp_map at 1.
   cbn. red. red. intros. symmetry.
-Abort.
+  rewrite interp_iter. 
+  match goal with | |- _ ≈ ?m _ => set m as while_denote; fold while_denote end.
+  assert (Hwhile_rewrite : state_eq while_denote while_denote); try reflexivity.
+  unfold while_denote in Hwhile_rewrite at 2.
+  rewrite interp_state_eq_iter in Hwhile_rewrite. 
+  fold (run_state_itree s while_denote). rewrite Hwhile_rewrite.
+  clear Hwhile_rewrite. unfold run_state_itree.
+  match goal with |- MonadIter_stateT0 _ _ (fun _ :unit => ?m1) _ _ ≈ MonadIter_stateT0 _ _ (fun _ : unit => ?m2) _ _ => 
+                  enough (state_eq m1 m2) end.
+  - eapply proper_state_eq_iter in H.
+    match goal with |- ?m1 s ≈ ?m2 s => set m1 as while_denote1; fold while_denote1; 
+                                        set m2 as while_denote2; fold while_denote2 end.
+    fold (run_state_itree s while_denote1). fold (run_state_itree s while_denote2).
+    unfold while_denote1. unfold while_denote2. rewrite H. reflexivity.
+ - rewrite interp_bind. rewrite interp_state_bind_state.
+   clear s. intro s. eapply eq_itree_clo_bind; try reflexivity.
+   intros. subst. destruct u2 as [s' b0 ]. simpl. destruct b0.
+   + rewrite interp_bind. rewrite interp_state_bind.
+     unfold interp_imp, interp_map. reflexivity.
+   + unfold interp_imp, interp_map. reflexivity.
+Qed.
+
+
+
+
 Lemma hoare_while : forall (c : com) (b : bexp) (P : env -> Prop),
     {{fun s => is_true b s /\ P s}} c {{ P  }} ->
     {{ P }} WHILE b DO c END {{ fun s => is_false b s /\ P s}}.
 Proof.
-  unfold hoare_triple. intros. unfold denote_imp in H1. cbn in H1.
-  unfold while in H1. unfold interp_imp, interp_map in H1.
-  (*this moves interp inside the iter*)
-
-  (* setoid_rewrite eutt_interp_state_iter in H1. *)
-  rewrite interp_iter in H1.
-  match goal with | H : ?m0 s ≈ _ |- _ => set m0 as m end.
-  fold m in H1.
-  assert (state_eq m m); try reflexivity.
-  unfold m at 1 in H2.  rewrite interp_state_eq_iter in H2.
-  fold (run_state_itree s m) in H1. symmetry in H2. 
-  
-  setoid_rewrite H2 in H1.
-  
-  match goal with | H : run_state_itree s (_ _ _ (fun _ => ?e) tt) ≈ _  |- _ => set e as body end.
-  assert (state_eq body body); try reflexivity.
-  
-  unfold body in H3 at 2.
-  setoid_rewrite interp_bind in H3.
-  fold body in H1. setoid_rewrite interp_state_bind_state in H3.
-  
-
-  match type of H3 with state_eq _ (bind (?h0 (?h1 ?bexp) ) 
-                                         (fun be => ?h2 (?h3 (
-                                   if _ 
-                                   then ?l else ?r) ))) => set h0 as hsb; set h1 as hib; fold hsb in H3; fold hib in H3; 
-                                                             set h2 as hsu; set h3 as hiu; fold hsu in H3; fold hiu in H3  end.
-  assert (Hse : state_eq2 
-                  (fun b: bool => hsu (hiu (if b 
-                                            then ITree.bind (denote_com c) (fun _ : unit => Ret (inl tt)) 
-                                            else Ret (inr tt))))
-                  (fun b : bool => if b 
-                                   then bind (interp_imp (denote_com c) )  (fun _ : unit => interp_imp (Ret (inl tt)) ) 
-                                   else interp_imp (Ret (inr tt) ) ) 
- ).
-  {
-    intro b0. destruct b0; try reflexivity. unfold hsu, hiu. setoid_rewrite interp_bind. unfold interp_imp, interp_map. intro.
-    setoid_rewrite interp_state_bind. unfold bind. simpl. reflexivity.
-  }
-  rewrite Hse in H3. clear Hse.
-
-  (*once I fully push down interps in body I can rewrite in H1*)
-  eapply proper_state_eq_iter in H3; eauto. rewrite H3 in H1. clear H3. 
-  unfold run_state_itree in H1. unfold hsb, hib, hsu, hiu in H1.
-  clear hsb hib hsu hiu. clear H2 body m. rename H1 into Heutt.
-  rename H0 into Hres.
+  unfold hoare_triple. intros.
+  specialize (compile_while b c) as Hbc. red in Hbc. red in Hbc.
+  rewrite Hbc in H1. clear Hbc.
   specialize (loop_invar_state env unit unit) as Hloop. unfold State in Hloop.
-
+  rename H1 into Heutt. rename H0 into Hs.
   match type of Heutt with MonadIter_stateT0 unit unit ?g tt _ ≈ _ => set g as body end.
 
   split.
@@ -407,8 +388,6 @@ Proof.
        cbn in H0. rewrite <- H1 in H0. setoid_rewrite bind_ret in H0.
        pinversion H0.
   + unfold q. 
-    (*I chose the wrong q*)
-
     unfold DelaySpecMonad.iter_lift, iso_destatify_arrow, reassoc. 
     basic_solve; try (destruct (classic_bool b s0) ); 
       try (destruct (eutt_reta_or_div _ (interp_imp (denote_com c) s0 ) )); basic_solve.
@@ -583,3 +562,312 @@ Proof.
        rewrite H0. rewrite <- spin_bind. apply spin_div.
 
 Qed.       
+
+Lemma denote_imp_bind : forall (c1 c2 : com), state_eq (denote_imp (c1 ;;; c2)) (denote_imp c1 ;; denote_imp c2).
+Proof.
+  intros. intro. cbn. unfold denote_imp. simpl. setoid_rewrite interp_imp_bind.
+  eapply eq_itree_clo_bind; try reflexivity. intros. subst. destruct u2. reflexivity.
+Qed.
+
+Definition state_eq_eutt {R S : Type} {E : Type -> Type} (m0 m1 : stateT S (itree E) R) :Prop :=
+  forall s, m0 s ≈ m1 s.
+
+Global Instance equiv_state_eq_eutt {R S} {E} : Equivalence (@state_eq_eutt R S E).
+Proof.
+  constructor; red; red; intros.
+  - reflexivity.
+  - red in H. rewrite H. reflexivity.
+  - red in H. red in H0.  rewrite H. rewrite H0. reflexivity.
+Qed.
+
+Lemma state_eq_sub_state_eutt : forall (E : Type -> Type) (R S: Type) ,
+    subrelation (@state_eq E S R) state_eq_eutt.
+Proof.
+  red. intros E R S m0 m1 Heq.
+  red. red in Heq. intros. rewrite Heq. reflexivity.
+Qed.
+
+Global Instance state_eq_prop_state_eutt {R S} {E} : Proper (@state_eq E S R ==> state_eq ==> impl) state_eq_eutt.
+Proof.
+  red. red. intros m0 m1 Heq0. red. intros m2 m3. intros Heq2.
+  red. intros. red. red in H. red in Heq2. red in Heq0. intros.
+  rewrite <- Heq2. rewrite <- H. rewrite Heq0. reflexivity.
+Qed.
+
+Lemma set_var_val_interp : forall x n E, @state_eq_eutt _ _ E (interp_imp (trigger (SetVar x n))) (fun s => Ret (Maps.add x n s,tt)).
+Proof.
+  intros. intro. tau_steps. reflexivity.
+Qed.
+
+Fixpoint compute_aexp (a : aexp) (s : env) : value :=
+  match a with
+  | ANum n => n
+  | AId x => lookup_default x 0 s
+  | APlus a1 a2 => (compute_aexp a1 s) + (compute_aexp a2 s)
+  | AMinus a1 a2 => (compute_aexp a1 s) - (compute_aexp a2 s)
+  | AMult a1 a2 => (compute_aexp a1 s) * (compute_aexp a2 s)
+  end.
+
+Fixpoint compute_bexp (b : bexp) (s : env)  : bool :=
+  match b with
+  | BTrue => true
+  | BFalse => false
+  | BEq a1 a2 => (compute_aexp a1 s) =? (compute_aexp a2 s)
+  | BLe a1 a2 => (compute_aexp a1 s) <=? (compute_aexp a2 s)
+  | BNot b0 => negb (compute_bexp b0 s)
+  | BAnd b1 b2 => (compute_bexp b1 s) && (compute_bexp b2 s)
+  end.
+
+Lemma compute_aexp_sc : forall (a : aexp),
+    @state_eq_eutt value env Void (interp_imp (denote_aexp a)) (fun s => Ret (s, compute_aexp a s)).
+Proof.
+  intros. red. intros. induction a; simpl;
+  try (tau_steps; reflexivity);
+  try (rewrite interp_imp_bind; rewrite IHa1; rewrite bind_ret;
+    rewrite interp_imp_bind; rewrite IHa2; rewrite bind_ret; tau_steps; reflexivity).
+Qed.
+
+Lemma compute_aexp_sc_tree : forall (a : aexp) (s : env),
+    (@interp_imp Void value (denote_aexp a) s) ≈ (Ret (s, compute_aexp a s) ).
+Proof.
+  intros. apply compute_aexp_sc.
+Qed.
+
+
+Lemma compute_bexp_sc : forall (b : bexp),
+    @state_eq_eutt bool env Void (interp_imp (denote_bexp b) ) (fun s => Ret (s, compute_bexp b s)).
+Proof.
+  intros. red. intros. induction b; simpl;
+  try (tau_steps; reflexivity).
+  - rewrite interp_imp_bind. rewrite compute_aexp_sc_tree.
+    rewrite bind_ret. rewrite interp_imp_bind. rewrite compute_aexp_sc_tree.
+    rewrite bind_ret. tau_steps. reflexivity.
+  - rewrite interp_imp_bind. rewrite compute_aexp_sc_tree.
+    rewrite bind_ret. rewrite interp_imp_bind. rewrite compute_aexp_sc_tree.
+    rewrite bind_ret. tau_steps. reflexivity.
+  - rewrite interp_imp_bind. rewrite IHb. rewrite bind_ret.
+    tau_steps. reflexivity.
+  - rewrite interp_imp_bind. rewrite IHb1. rewrite bind_ret.
+    rewrite interp_imp_bind. rewrite IHb2. rewrite bind_ret.
+    tau_steps. reflexivity.
+Qed.
+
+Lemma compute_bexp_sc_tree : forall (b : bexp) (s : env),
+    (@interp_imp Void bool (denote_bexp b) s ) ≈ (Ret (s, compute_bexp b s) ).
+Proof.
+  intros. apply compute_bexp_sc.
+Qed.
+
+
+(*state_eq_eutt is proper wrt to verify_cond*)
+
+Global Instance proper_verify_cond {S A : Type} {w : StateDelaySpec S A} :
+  Proper (state_eq_eutt ==> iff) (verify_cond S w).
+Proof.
+  repeat intro. unfold verify_cond, DijkstraProp. split; intros.
+  - repeat red in H0. repeat red. intros. specialize (H0 s p). destruct p as [p Hp].
+    simpl in *.
+    apply Hp with (t1 := x s); auto.
+  - repeat red in H0. repeat red. intros. specialize (H0 s p). destruct p as [p Hp].
+    simpl in *.
+    apply Hp with (t1 := y s); auto. symmetry. auto.
+Qed.
+
+Global Instance state_eutt_iter {A B S: Type} {E : Type -> Type} : 
+  Proper (pointwise_relation A (@state_eq_eutt (A + B) S E ) ==> 
+                             pointwise_relation A (@state_eq_eutt B S E) ) (MonadIter_stateT0 B A).
+Proof.
+  repeat intro. red in H. red. red. unfold MonadIter_stateT0.
+  apply eutt_iter. red. intros. destruct a0 as [s' a']. simpl. red in H.
+  rewrite H. reflexivity.
+Qed.
+
+Global Instance state_eutt_bind_l {A B S : Type} {E : Type -> Type} :
+  Proper ((@state_eq_eutt A S E) ==> pointwise_relation _ (@state_eq_eutt B S E)  ) bind.
+Proof.
+  unfold Proper, respectful, pointwise_relation. intros m0 m1 Heutt k.
+  intro. cbn. red in Heutt. rewrite Heutt. reflexivity.
+Qed.
+(*we need a way to generate properness goals, this is fucking ridiculous*)
+Global Instance state_eutt_bind_r {A B S : Type} {E : Type -> Type} 
+       {m : stateT S (itree E) A } :
+  Proper ((pointwise_relation _ state_eq_eutt) ==>  (@state_eq_eutt B S E )  ) (bind m). 
+Proof.
+  repeat intro. rename x into k0. rename y into k1. rename H into Heutt.
+  red. red. red in Heutt. red in Heutt. cbn.
+  eapply eutt_clo_bind; try reflexivity. intros. subst. destruct u2 as [s' a]. simpl.
+  rewrite Heutt. reflexivity.
+Qed.
+
+Section SQRTEx.
+
+  Context (i n : var).
+  
+
+  Definition nat_sqrt : com := 
+    i ::= 0;;; 
+    WHILE (~ (i * i = n) ) DO 
+       i ::= i + 1 
+    END.
+
+  Local Open Scope nat_scope.
+  Local Close Scope imp_scope.
+
+
+  Definition is_square : nat -> Prop := fun (n : nat) => exists (m : nat), (m * m = n).
+
+  Definition pre1 : env -> Prop := fun s => is_square (lookup_default n 0 s).
+  Definition pre2 : env -> Prop := fun s => ~ is_square (lookup_default n 0 s).
+
+  Definition post1 (s0 : env) (t : Delay (env * unit) ) : Prop := 
+    exists s, t ≈ ret (s,tt) /\ (lookup_default i 0 s * lookup_default i 0 s) = lookup_default n 0 s0.
+
+  Definition post2 : env -> Delay (env * unit) -> Prop := fun _ t => divergence t.
+
+  Lemma burn_tree : forall (E : Type -> Type) (R : Type) (n : nat) (t : itree E R),
+      t ≈ burn n t.
+  Proof.
+    intros. symmetry. generalize dependent t. induction n0; intros; try reflexivity.
+    simpl. destruct (observe t) eqn : Heq.
+    - specialize (itree_eta t) as Ht. rewrite Heq in Ht. rewrite Ht. reflexivity.
+    - specialize (itree_eta t) as Ht. rewrite Heq in Ht. rewrite Ht.
+      rewrite tau_eutt. auto.
+    - specialize (itree_eta t) as Ht. rewrite Heq in Ht. rewrite Ht. reflexivity.
+  Qed.
+(*
+  Global Instance proper_state_eq_eutt_iter {S Type: } :
+    Proper (state_eq_eutt ==> pointwise_relation _ (state_eq_eutt) )
+           (fun body)
+*)
+
+  Global Instance DelaySpecProper : MonadProperOps DelaySpec.
+  Proof.
+    red. intros A B. repeat intro. red in H0. repeat red in H. unfold bind, DelaySpecMonad, bind_del, _bind_del.
+    simpl. split; intros.
+    - destruct x as [x Hx]. destruct y as [y Hy]. simpl in *.
+      assert (forall p, x p -> y p).
+      {
+        intros. specialize (H p0). tauto.
+      }
+      apply H2. eapply Hx; try apply H1. simpl. intros. basic_solve; auto.
+      + left. exists a. split; auto.
+        Admitted.
+  
+  Lemma prepost1_holds_nat_sqrt_loop : 
+    verify_cond env (encode_dyn env ((pre1 /1\ fun s => lookup_default i 0 s = 0), post1) ) 
+                (denote_imp (WHILE (~ i * i  = n) DO i ::= i + 1 END)%imp ).
+  Proof.
+    rewrite compile_while.
+    eapply proper_verify_cond.
+    {
+      apply state_eutt_iter. intro. destruct a. intro. setoid_rewrite compute_bexp_sc. eapply state_eutt_bind.
+      (*need to be able to do a *)
+
+
+      unfold bind, Monad_stateT.  setoid_rewrite compute_bexp_sc_tree.
+      setoid_rewrite compute_bexp_sc.
+      tau_steps.
+    repeat red. simpl. intros. destruct H. apply H0. clear H0. destruct H as [Hpre Hi0].
+    assert (Hpost1 : forall s, resp_eutt _ _ (post1 s)).
+    {
+      unfold post1. repeat intro. split; basic_solve.
+      - exists s1. split; auto. rewrite <- H. auto.
+      - exists s1. rewrite H. split; auto.
+    }
+    eapply Hpost1.
+    { specialize compile_while as Hcw. red in Hcw. red in Hcw. rewrite Hcw.
+      reflexivity. }
+    clear p.
+    set (lookup_default n 0 s) as n0.
+    set (fun x s => lookup_default x 0 s)  as get.
+    set (fun (t : Delay ((env * unit) + (env * unit)) ) => exists s0, 
+    (t ≈ ret (inl (s0,tt)) /\ get i s0 * get i s0 < n0  ) \/ (t ≈ ret (inr (s0,tt)) /\ get i s0 * get i s0 = n0) ) as q .
+    set (fun (t : Delay (env * unit)) => exists s0, t ≈ ret (s0,tt) /\ get i s0 * get i s0 = n0  ) as p.
+    match goal with |- post1 s ?t => enough (p t) end.
+    {
+      unfold post1, p in *. auto.
+    }
+    assert (Hq : resp_eutt _ _ q).
+    {
+      + unfold q. repeat intro. split; intros; basic_solve; auto.
+        * exists s0. left. rewrite <- H. auto.
+        * exists s0. right. rewrite <- H. auto.
+        * exists s0. left. rewrite H. auto.
+        * exists s0. right. rewrite H. auto.
+    }
+    match goal with |- p ?t => enough ((p \1/ divergence) t)  end.
+    - admit. (*prove convergence*)
+    - eapply loop_invar_state with (q := q); eauto.
+      + eapply Hq.
+        * unfold reassoc. rewrite compute_bexp_sc.
+        * 
+          Set Default Timeout 30.
+          match goal with |- ?t ≈ _ => specialize (burn_tree _ _ 10 t) as Ht end. 
+          
+          
+          unfold interp_imp, interp_map, interp_state, interp, ITree.bind in Ht. simpl in Ht.
+          setoid_rewrite interp_imp_bind. *)
+      + unfold  DelaySpecMonad.loop_invar_imp. unfold q, p.
+        cbn. intros; basic_solve.
+        * destruct (eutt_reta_or_div _ t).
+          -- basic_solve. destruct a as [s' [] ]. rewrite <- H1 in H.
+             setoid_rewrite bind_ret in H. basic_solve.
+          -- apply div_spin_eutt in H1. rewrite H1 in H. rewrite <- spin_bind in H.
+             exfalso. eapply not_ret_eutt_spin. rewrite H. reflexivity.
+        * destruct (eutt_reta_or_div _ t).
+          -- basic_solve. destruct a as [s' [] ]. exists s'.
+             rewrite <- H1 in H. setoid_rewrite bind_ret in H. basic_solve.
+             split; auto. symmetry. auto.
+          -- apply div_spin_eutt in H1. rewrite H1 in H.
+             rewrite <- spin_bind in H. exfalso.
+             eapply not_ret_eutt_spin. symmetry. eauto.
+      + 
+    
+
+  Lemma prepost1_holds_nat_sqrt : verify_cond env (encode_dyn env (pre1,post1) ) (denote_imp nat_sqrt).
+  Proof.
+    unfold nat_sqrt.
+    repeat red. simpl. unfold pre1, post1. intros. destruct H as [Hn Hr]. apply Hr.
+    clear Hr. assert (state_eq_eutt (denote_imp nat_sqrt)  (denote_imp nat_sqrt) ); try reflexivity.
+    unfold nat_sqrt in H at 2. setoid_rewrite denote_imp_bind in H at 2.
+
+    assert (state_eq_eutt (denote_imp (i ::= 0)%imp ) (fun s => Ret (Maps.add i 0 s, tt))).
+    {
+      intro. tau_steps. reflexivity. 
+    }
+    
+    specialize (compile_while  (~ i * i = n )%imp (i ::= i + 1)%imp ) as Hwhile.
+    
+
+    set (fun (t : Delay (env * unit)%type) => exists s0, t ≈ Ret (s0,tt) /\ get i s * get i s = n0 ) as p'.
+    eno
+    match 
+
+
+    (* i² <= n /\ n = n0*)
+    (* may want a richer loop_invar_state in general, think about that after you get this proof,
+       p and q get an added
+     *)
+
+      (* I think I need the hoare style rules*)
+
+
+
+
+    setoid_rewrite H0 in H.
+
+
+      intros. unfold nat_sqrt. unfold denote_imp. simpl.
+      setoid_rewrite bind_bind. setoid_rewrite bind_ret. simpl. rewrite bind_trigger. 
+      fun s => Maps.add i 0 s ;; MonadIter_stateT0 
+
+      force_left. simpl. rewrite tau_eutt. cbn. setoid_rewrite bind_bind.
+    unfold nat_sqrt in H at 2. rewrite denote_imp_bind in H.
+    unfold state_eq in H.
+    match type of H with state_eq _ (_ ;; ?c) => assert (state_eq c c); try reflexivity end.
+    setoid_rewrite compile_while in H.
+    assert (denote_imp)
+    unfold denote_imp in H. 
+
+
+End SQRTEx.

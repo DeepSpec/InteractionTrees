@@ -167,3 +167,13 @@ Qed.
 Global Instance iter_interp_proper {E : Type -> Type} {R : Type} :
   Proper ( @eq_itree eq E R ==> iff) (KTree.iter)
 *)
+
+
+Lemma burn_eutt_r : forall (A : Type) (t t' : itree Void A) (n : nat), t≈ t' -> burn n t ≈ t'.
+Proof.
+  intros. generalize dependent t. generalize dependent t'. induction n; intros; simpl; auto.
+  destruct (observe t) eqn : Heq; try destruct e.
+  - specialize (itree_eta t) as Ht. rewrite Heq in Ht. rewrite <- Ht. auto.
+  - apply IHn. specialize (itree_eta t) as Ht. rewrite Heq in Ht. rewrite Ht in H.
+    rewrite tau_eutt in H. auto.
+Qed.
