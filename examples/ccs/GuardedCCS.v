@@ -25,21 +25,20 @@ Set Implicit Arguments.
 Set Contextual Implicit.
 Set Primitive Projections.
 
-(* *Finitary, Strongly Guarded CCS*
+(* *Finitary, Guarded CCS*
    - Finitary: for any p, Const(p) is finite.
    - Guarded: for any summation, the top level process is an action or
               synchronous step.
-   - Strongly Guarded : for any summation, the top level process is **visible**
-                        action.
 
-   Instead of interpreting non-determination as an uninterpreted event,
+   Idea(?) : Instead of interpreting non-determination as an uninterpreted event,
    let's model them using K-Trees.
 
-   We also impose an extra guardedness condition on the non-deterministic
-   continuations: namely, that the immediate continuations must be an action event
-   and cannot be a silent step.
-
-   This constraint is a work-around to the approach in [WeakCCS.v] and [ccs.org]
+   We also attempted to impose an extra guardedness condition on the
+   non-deterministic continuations: namely, that the immediate continuations
+   must be an action event and cannot be a silent step. This did not work, as
+   explained below.
+   This constraint was a proposed work-around to the approach in [WeakCCS.v] and
+   [ccs.org].
  *)
 
 
@@ -49,6 +48,8 @@ Import ListNotations.
 Local Open Scope monad_scope.
 
 Section GuardedCCS.
+
+  (** *Syntax *)
 
   (* Locally Nameless representation of variables. *)
   Variant idx : Type :=
@@ -76,23 +77,55 @@ Section GuardedCCS.
   | Out (x : idx)
   .
 
-  Variant action : Type :=
+  Variant label : Type :=
   | Visible (x : visible)
   | Silent
   .
 
-  (* Any sequence of labels must be strongly guarded, i.e. the starting label
-     must be a visible action. *)
-  Variant labels : Type := Labels (vx : visible) (xl : action).
+  (** Guarded CCS Syntax, following:
+     [R.Gorrieri, C.Versari, _Introduction to Concurrency Theory_].
+     Any sequence of labels under nondeterministic choice must be guarded,
+     i.e. the starting label must be an action. *)
 
-  (** Strongly Guarded CCS Syntax, following:
-     [R.Gorrieri, C.Versari, _Introduction to Concurrency Theory_].  *)
+  (*
+     We attempted, at first, to define a "Strongly Guarded" CCS.
+     Guarded CCS is defined as having action labels immediately under
+     nondeterministic choice. _Strongly Guarded_ CCS, on the other hand,
+     forces a *visible* action under nondeterministic choice, i.elim .
+
+        Inductive action : Type := Action (x : label) (a : action).
+        Inductive seq_ccs : Type :=
+                  ...
+        | GAct (vx : visible) (a : action).
+
+     However, this notion of "Strongly Guarded" doesn't work for two
+     reasons:
+
+     1. You cannot model any _internal step_ that a system may wish
+        to take.
+        For instance, in vanilla CCS, one can write down the following
+        expression:
+              τ.N + α -τ-> N
+        We cannot write an equivalent expression in Strongly Guarded CCS.
+
+     2. Guardedness condition breaks (is fragile) whenever we try to
+        define an _action_ step.
+        How do we define a correct action step?
+
+        Let's look at this expression:
+              α.τ.N + β.τ.N
+        No matter what the system chooses to do, the guardedness condition
+        immediately breaks. Since we want to compare the operational weak
+        bisimulation to our denotational equivalence of ITree weak bisimulation,
+        (for proving full abstraction) we still want to be able to define
+        a small step semantics. This syntactic definition will be fragile.
+  *)
 
   (* Sequential Processes. *)
   Inductive seq_ccs : Type :=
   | Zero
   | Or (a b : seq_ccs)
-  | Act (x : labels) (a : seq_ccs)
+  | Act (x : label) (a : seq_ccs)
   .
 
   (* CCS Processes. *)
@@ -103,14 +136,24 @@ Section GuardedCCS.
   | Bang (p : ccs)
   .
 
+  (** *Structural Operational Semantics *)
+
+
 End GuardedCCS.
 
 Infix "≡?" := (eq_idx) (at level 70).
 
+(** *Denotational Semantics
+
+    Denotation of operational CCS in ITrees.
+ *)
+
 Section DenoteCCS.
 
+  (* IY: We leave the parallel composition operator as an uninterpreted event
+         for now. *)
   Variant eff : Type -> Type :=
-  | ActE (x : labels) : eff unit
+  | ActE (x : label) : eff unit
   | OrE : eff bool
   | ParE : eff bool
   .
@@ -127,6 +170,9 @@ Section DenoteCCS.
       Vis (ActE x) (fun _ => p)
     end.
 
+  (* IY: These series of matches seem like they should have a nice functional
+     combinator... *)
+
   Definition match_idx (target x : idx) : idx :=
     if x ≡? target then I_nat 0
     else match x with
@@ -142,7 +188,7 @@ Section DenoteCCS.
     end
   .
 
-  Definition match_action (target : idx) (x : action) : action :=
+  Definition match_action (target : idx) (x : label) : label :=
     match x with
     | Silent => Silent
     | Visible v => Visible (match_visible target v)
@@ -153,12 +199,13 @@ Section DenoteCCS.
   Definition hide (x : idx) {E : Type -> Type} : eff ~> eff :=
     fun _ e =>
       match e with
-      | ActE (Labels v1 a2) =>
-        ActE (Labels (match_visible x v1) (match_action x a2))
+      | ActE a =>
+        ActE (match_action x a)
       | x => x
       end.
 
-  (* The generating operator, bang. *)
+  (* The generating operator, bang.
+     IY: Can we write this using the `iter` combinator? *)
   CoFixpoint bang (body : itree eff unit -> (itree eff ((itree eff unit) + unit))):
     (itree eff unit) -> itree eff unit :=
     fun (a : itree eff unit) => ab <- body a;;
@@ -180,6 +227,10 @@ Section DenoteCCS.
     end.
 
    Compute (burn 100 (denote_ccs (Bang (Proc (Or Zero Zero))))).
-   
+
 End DenoteCCS.
 
+(* TODO: 1. Implement operational and contextual preorder.
+         2. Prove full abstraction.
+         3. Write handler for denotation. (Prop or State monad?)
+ *)
