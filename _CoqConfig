@@ -23,6 +23,7 @@ theories/Core/KTree.v
 theories/Core/KTreeFacts.v
 theories/Core/Subevent.v
 theories/Core/ITreeMonad.v
+theories/Core/Divergence.v
 
 theories/Eq.v
 theories/Eq/Shallow.v
