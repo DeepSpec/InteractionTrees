@@ -30,7 +30,7 @@ From ITree Require Import
      Dijkstra.StateDelaySpec
    (*  Simple *)
 .
-
+Require Import Psatz.
 Require Import Omega.
 Require Import NArith.
 Require Import Imp.
@@ -658,7 +658,22 @@ Proof.
   intros. apply compute_bexp_sc.
 Qed.
 
+Definition inc_var (x : var) (s : env) : env:=
+  Maps.add x (1 + lookup_default x 0 s)%nat  s.
 
+Lemma compute_assign_sc : forall (x : var) (a : aexp),
+    state_eq_eutt (@interp_imp Void unit (denote_com (x ::= a) ) ) 
+                  (fun s => Ret (Maps.add x (compute_aexp a s) s, tt) ).
+Proof.
+  intros. simpl. intro. rewrite interp_imp_bind.
+  rewrite compute_aexp_sc_tree. rewrite bind_ret. tau_steps. reflexivity.
+Qed.
+
+Lemma compute_assign_sc_tree : forall (x : var) (a : aexp) (s : env),
+    (@interp_imp Void unit (denote_com (x ::= a)) s ) ≈ Ret (Maps.add x (compute_aexp a s) s, tt ). 
+Proof.
+  intros. apply compute_assign_sc.
+Qed.
 (*state_eq_eutt is proper wrt to verify_cond*)
 
 Global Instance proper_verify_cond {S A : Type} {w : StateDelaySpec S A} :
@@ -699,10 +714,26 @@ Proof.
   rewrite Heutt. reflexivity.
 Qed.
 
+Global Instance state_eutt_bind_l' {A B S : Type} {E : Type -> Type} :
+  Proper ((@state_eq_eutt A S E) ==> pointwise_relation _ (@state_eq_eutt B S E) ==> state_eq_eutt  ) bind.
+Proof.
+  unfold Proper, respectful, pointwise_relation. intros m0 m1 Hmeutt k0 k1 Hkeutt.
+  intro. cbn. red in Hmeutt. rewrite Hmeutt. 
+  eapply eutt_clo_bind; try reflexivity. intros. subst. destruct u2 as [s' a].
+  simpl. red in Hkeutt. rewrite Hkeutt. reflexivity.
+Qed.
+
+Global Instance run_state_eutt_proper_eutt : forall (E : Type -> Type) (S R : Type) (s : S),
+          Proper (@state_eq_eutt R S E  ==> eutt eq) (run_state_itree s).
+Proof.
+  repeat intro. red in H. unfold run_state_itree. rewrite H. reflexivity.
+Qed.
+
+
 Section SQRTEx.
 
   Context (i n : var).
-  
+  Context ( Hneq : i <> n).
 
   Definition nat_sqrt : com := 
     i ::= 0;;; 
@@ -751,22 +782,152 @@ Section SQRTEx.
       }
       apply H2. eapply Hx; try apply H1. simpl. intros. basic_solve; auto.
       + left. exists a. split; auto.
-        Admitted.
-  
+        Abort.
+
+  Lemma compile_nat_sqrt_body : 
+    state_eq_eutt (denote_imp (WHILE (~ i * i  = n) DO i ::= i + 1 END)%imp) 
+                              (MonadIter_stateT0 _ _  (fun (_ :unit) (s : env) => 
+                                                         if (compute_bexp (~ i * i = n) s)  
+                                                         then Ret (inc_var i s, inl tt)
+                                                         else Ret (s, inr tt) ) tt ) .
+  Proof.
+    rewrite compile_while. apply state_eutt_iter. intro.
+    rewrite compute_bexp_sc. intro. simpl. rewrite bind_ret. simpl.
+    destruct (lookup_default i 0 s * lookup_default i 0 s =? lookup_default n 0 s); simpl.
+    - tau_steps. reflexivity.
+    - unfold denote_imp. rewrite compute_assign_sc_tree. rewrite bind_ret.
+      cbn. tau_steps. rewrite plus_comm. reflexivity.
+  Qed.
+
+  Let body_arrow (s : env) : Delay (env * (unit + unit) ) :=
+    if (compute_bexp (~ i * i = n) s )
+    then Ret (inc_var i s, inl tt)
+    else Ret (s, inr tt). 
+
+  (*this may force me to come up with good wf_from conditions*)
+
+  Ltac eqbdestruct a b := destruct (a =? b) eqn :?Heq; 
+                          match type of Heq with 
+                            | _ = true => apply Nat.eqb_eq in Heq
+                            | _ = false => apply Nat.eqb_neq in Heq end.
+
+
+  Lemma diverge_if_not_square_nat_sqrt_aux : forall (s : env),
+      ~ is_square (lookup_default n 0 s) ->
+      not_wf_from _ (fun s0 s1 => Ret (s1, inl tt) ≈ body_arrow s0 ) s.
+  Proof.
+    intros s Hn. 
+    set (lookup_default n 0 s) as n0.
+    assert (forall m, m * m <> n0 ).
+    {
+      intros m Hcontra. unfold n0 in Hcontra. apply Hn. exists m. auto.
+    }
+    eapply intro_not_wf with (P := fun s => lookup_default n 0 s = n0) (f := fun s => inc_var i s); auto.
+    - intros s0 s1 Hinv Heval. unfold body_arrow in Heval. simpl in Heval.
+      rewrite Hinv in Heval. eqbdestruct (lookup_default i 0 s0 * lookup_default i 0 s0) n0.
+      + simpl in *. basic_solve.
+      + simpl in Heval. basic_solve. unfold inc_var.
+        admit. (*need some basic map function, I don't know where this map stuff is coming from so might be a headache,
+                 worst case this seems like something to put off to last second*)
+    - intros s' Hinv. unfold body_arrow. simpl. rewrite Hinv.
+      eqbdestruct (lookup_default i 0 s' * lookup_default i 0 s') n0; simpl.
+      + exfalso. eapply H; apply Heq.
+      + reflexivity.
+  Admitted.
+
+  Lemma converge_if_square_nat_sqrt_aux : forall (s : env),
+      lookup_default i 0 s = 0 ->
+      is_square (lookup_default n 0 s) ->
+      wf_from _ (fun s0 s1 => Ret (s1, inl tt) ≈ body_arrow s0 ) s.
+  Proof.
+    intros s Hi H. intros. unfold is_square in H. destruct H as [sqrt Hsqrt].
+    set (fun s' : env => lookup_default i 0 s' <= sqrt /\ 
+                         lookup_default n 0 s = lookup_default n 0 s') as inv.
+    set (fun s : env => sqrt - lookup_default i 0 s)  as f.
+    apply wf_intro_gt with (f := f) (P := inv); unfold inv; unfold f.
+    - intros s1 s2 Hs1 Heutt.
+      unfold body_arrow in Heutt. simpl in Heutt.
+      destruct Hs1 as [Hsqrt1 Hconst].
+      eqbdestruct (lookup_default i 0 s1 * lookup_default i 0 s1) (lookup_default n 0 s1);
+        simpl in *; basic_solve. 
+      split.
+      + assert (lookup_default i 0 (inc_var i s1) = 1 + lookup_default i 0 s ). admit.
+        nia.
+      + admit.
+    - intros s1 s2 Hs1 Heutt. unfold body_arrow in Heutt. simpl in *.
+      eqbdestruct (lookup_default i 0 s1 * lookup_default i 0 s1) (lookup_default n 0 s1).
+      + simpl in *. basic_solve.
+      + simpl in *. basic_solve.
+         assert (lookup_default i 0 (inc_var i s1) = 1 + lookup_default i 0 s ). admit.
+         assert (sqrt > lookup_default i 0 s1). nia. rewrite H1.
+         admit.
+         (*this is an annoying nat subtlety*)
+    - split; omega.
+  Admitted.
+
+      (*Global Instance state_eq_eutt_eutt : Proper (state_eq_eutt ==> (pointwise_relation _ (eutt eq) ) ) (pointwise_relation _ (eutt eq) ). *)
+
+
+  Lemma diverge_if_not_square_nat_sqrt : forall (s : env),
+      ~ is_square (lookup_default n 0 s) -> 
+      divergence ( (denote_imp (WHILE (~ i * i  = n) DO i ::= i + 1 END)%imp) s).
+    Proof. 
+      intros.
+      enough (denote_imp (WHILE ~ i * i = n DO i ::= i + 1 END)%imp s ≈ spin ).
+      {
+         rewrite H0. apply spin_div.
+      }
+      match goal with |- ?m s ≈ spin => fold (run_state_itree s m) end.
+      rewrite compile_nat_sqrt_body. unfold run_state_itree.
+      apply iter_inl_spin_state.
+      apply ( diverge_if_not_square_nat_sqrt_aux) in H. unfold state_iter_arrow_rel.
+      simpl. unfold body_arrow in H. simpl in *. generalize dependent s. pcofix CIH. intros.
+      pinversion H0; try apply not_wf_F_mono'.
+      pfold. eapply not_wf with (a' := (a',tt)).
+      - symmetry. auto.
+      - right. auto.
+    Qed.
+
+    (*maybe there is a better way to do it, prove that if the body can't prove a a spin,
+      and it is wf then
+      start working on that
+     *)
+
+  Lemma converge_if_square_nat_sqrt : forall (s : env),
+        lookup_default i 0 s = 0 -> 
+        is_square (lookup_default n 0 s) ->
+        exists s', (denote_imp (WHILE ~ i * i = n DO i ::= i + 1 END)%imp s ≈ Ret (s',tt) ).
+  Proof.
+    intros s Hi0 Hn. specialize (converge_if_square_nat_sqrt_aux s Hi0 Hn) as Hwf.
+    assert (Hi : lookup_default i 0 s * lookup_default i 0 s <= lookup_default n 0 s); try nia.
+    clear Hi0.
+    induction Hwf.
+    - rename a into s. exists s.
+      admit.
+    - rename a into s. 
+      eqbdestruct (lookup_default i 0 s * lookup_default i 0 s) (lookup_default n 0 s).
+      + exists s. match goal with |- ?m s ≈ _ => fold (run_state_itree s m) end.
+        rewrite compile_nat_sqrt_body. unfold run_state_itree. simpl. 
+        unfold MonadIter_stateT0, Basics.iter, MonadIterDelay. rewrite unfold_iter_ktree.
+        simpl. rewrite Heq. rewrite Nat.eqb_refl. simpl. rewrite bind_bind.
+        rewrite bind_ret. rewrite bind_ret. simpl. reflexivity.
+      + enough (exists s', denote_imp (WHILE ~ i * i = n DO i ::= i + 1 END)%imp (inc_var i s) 
+                                      ≈ Ret (s',tt) ).
+        {
+          destruct H1 as [s' Hs'].
+
+        apply H0.
+      + ex
+
+      apply H0.
+      +
+
+
   Lemma prepost1_holds_nat_sqrt_loop : 
     verify_cond env (encode_dyn env ((pre1 /1\ fun s => lookup_default i 0 s = 0), post1) ) 
                 (denote_imp (WHILE (~ i * i  = n) DO i ::= i + 1 END)%imp ).
   Proof.
-    rewrite compile_while.
-    eapply proper_verify_cond.
-    {
-      apply state_eutt_iter. intro. destruct a. intro. setoid_rewrite compute_bexp_sc. eapply state_eutt_bind.
-      (*need to be able to do a *)
-
-
-      unfold bind, Monad_stateT.  setoid_rewrite compute_bexp_sc_tree.
-      setoid_rewrite compute_bexp_sc.
-      tau_steps.
+    rewrite compile_nat_sqrt_body.
     repeat red. simpl. intros. destruct H. apply H0. clear H0. destruct H as [Hpre Hi0].
     assert (Hpost1 : forall s, resp_eutt _ _ (post1 s)).
     {
@@ -774,6 +935,21 @@ Section SQRTEx.
       - exists s1. split; auto. rewrite <- H. auto.
       - exists s1. rewrite H. split; auto.
     }
+    unfold pre1 in Hpre.
+    match goal with |- post1 s (MonadIter_stateT0 _ _ ?k _ _ ) => set k as body end.
+    unfold body.
+    set (fun s0 s1 => Ret (s1, inl tt) ≈ body tt s0 ) as body_rel.
+    assert (wf_from _ body_rel s).
+    {
+      unfold body_rel. set (lookup_default n 0 s) as n_val.
+      induction n_val eqn : Heq.
+      assert ()
+      - apply base. unfold body. intros s'. intro Hcontra.
+        rewrite Hi0 in Hcontra. unfold n_val in Heq. rewrite Heq in Hcontra. simpl in Hcontra.
+        basic_solve.
+      -
+
+
     eapply Hpost1.
     { specialize compile_while as Hcw. red in Hcw. red in Hcw. rewrite Hcw.
       reflexivity. }
@@ -801,7 +977,7 @@ Section SQRTEx.
       + eapply Hq.
         * unfold reassoc. rewrite compute_bexp_sc.
         * 
-          Set Default Timeout 30.
+          
           match goal with |- ?t ≈ _ => specialize (burn_tree _ _ 10 t) as Ht end. 
           
           

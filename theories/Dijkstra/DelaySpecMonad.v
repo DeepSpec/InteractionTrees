@@ -198,6 +198,27 @@ Proof.
   rewrite Hrel. setoid_rewrite bind_ret. rewrite unfold_spin. etau.
 Qed.
 
+(*eventually might want more general reasoning principle, like weaken the second precondition to only apply
+  to a' reachable from a under g*)
+Lemma iter_wf_converge : forall (A B : Type) (g : A -> Delay (A + B) ) (a : A),
+    wf_from A (iter_arrow_rel g) a ->
+    (forall a, exists (ab : A + B), g a ≈ Ret ab) ->
+    exists b : B, KTree.iter g a ≈ Ret b.
+Proof.
+  intros A B g a Hwf Hconv.
+  induction Hwf.
+  - specialize (Hconv a). destruct Hconv as [ [a' | b] Hret ].
+    + exfalso. apply (H a'). auto.
+    + exists b. rewrite unfold_iter_ktree. rewrite Hret. rewrite bind_ret.
+      reflexivity.
+  - specialize (Hconv a). destruct Hconv as [ [a' | b] Hret ].
+    + apply H0 in Hret as Hret'. destruct Hret' as [b Hret']. exists b.
+      rewrite unfold_iter_ktree. rewrite Hret. rewrite bind_ret. rewrite tau_eutt. auto.
+    + exists b. rewrite unfold_iter_ktree. rewrite Hret. rewrite bind_ret.
+      reflexivity.
+Qed.
+
+
 Definition loop_invar_imp {A B : Type} (q : Delay (A + B) -> Prop ) (p : Delay B -> Prop) :Prop :=
   forall t, q (t >>= fun b => ret (inr b) ) -> p t. 
 

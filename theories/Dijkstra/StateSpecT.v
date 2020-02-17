@@ -173,8 +173,6 @@ Section LoopInvarSpecific.
   Definition iso_destatify_arrow {A B : Type} (f : A -> State (A + B) ) : (S * A) -> Delay ((S * A) + (S * B)) :=
     fun '(s,a) => reassoc (f a s).
 
-
-  
   (*should be able to use original*)
   Lemma loop_invar_state: forall (A B : Type) (g : A -> State (A + B)) (a : A) (s : S)
                (p : Delay ( S * B) -> Prop) (q : Delay ((S * A) + (S *B))  -> Prop  ) 
@@ -203,6 +201,47 @@ Section LoopInvarSpecific.
          }
         eapply Hpdiv; try apply H2. symmetry. auto.
      - eapply loop_invar; eauto.
+  Qed.
+
+  Definition state_iter_arrow_rel {A B S : Type} (g : A -> stateT S Delay (A + B) ) '(s0,a0) '(s1,a1) :=
+    g a0 s0 ≈ Ret (s1, inl a1). 
+
+  Lemma iter_inl_spin_state : forall (A B S : Type) (g : A -> stateT S Delay (A + B) ) (a : A) (s : S),
+      not_wf_from _ (state_iter_arrow_rel g ) (s,a) -> MonadIter_stateT0 _ _  g a s ≈ spin.
+  Proof.
+    intros. unfold MonadIter_stateT0.
+    apply iter_inl_spin. (*seems to require some coinduciton*)
+    generalize dependent a. generalize dependent s.
+    pcofix CIH. intros. pinversion H0; try apply not_wf_F_mono'. pfold. 
+    apply not_wf with (a' := a'); eauto.
+    - red in Hrel. destruct a' as [s' a']. simpl. red. simpl. rewrite Hrel.
+      rewrite bind_ret. simpl. reflexivity.
+    - right. destruct a'. eauto.
+  Qed.
+
+  Lemma iter_wf_converge_state : forall (A B S : Type)  (g : A -> stateT S Delay (A + B) ) (a : A) (s : S),
+      (forall a s, exists ab, g a s ≈ Ret ab) ->
+      wf_from _ (state_iter_arrow_rel g) (s,a) ->
+      exists (p : S * B), MonadIter_stateT0 _ _ g a s ≈ Ret p.
+  Proof.
+    intros. unfold MonadIter_stateT0, Basics.iter, MonadIterDelay.
+    apply iter_wf_converge.
+    - eapply wf_from_sub_rel; try apply H0.
+      repeat intro. unfold iter_arrow_rel in *. unfold state_iter_arrow_rel.
+      clear H0 a s.
+      destruct x as [s a]. simpl in *. destruct y as [s' a'].
+      destruct (eutt_reta_or_div _ (g a s) ); basic_solve.
+      + rewrite <- H0. rewrite <- H0 in H1. simpl in H1. rewrite bind_ret in H1.
+        simpl in *. destruct a0. simpl in *. destruct s1; basic_solve.
+        reflexivity.
+      + apply div_spin_eutt in H0. rewrite H0 in H1. rewrite <- spin_bind in H1.
+        symmetry in H1. exfalso. eapply not_ret_eutt_spin; eauto.
+   - clear H0 a s. intros [s a]. specialize (H a s). basic_solve.
+     destruct ab as [s' [a' | b] ].
+     + exists (inl (s',a') ). simpl. rewrite H. rewrite bind_ret. simpl.
+       reflexivity.
+     + exists (inr (s',b)). simpl. rewrite H. rewrite bind_ret. simpl.
+       reflexivity.
   Qed.
 
 End LoopInvarSpecific.
