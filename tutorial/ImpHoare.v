@@ -688,6 +688,18 @@ Proof.
     apply Hp with (t1 := y s); auto. symmetry. auto.
 Qed.
 
+Global Instance proper_verify_cond_strong {S A : Type} {w : StateDelaySpec S A} :
+  Proper (state_eq ==> iff) (verify_cond S w).
+Proof.
+  repeat intro. unfold verify_cond, DijkstraProp. split; intros.
+  - repeat red in H0. repeat red. intros. specialize (H0 s p). destruct p as [p Hp].
+    simpl in *. apply state_eq_sub_state_eutt in H.
+    apply Hp with (t1 := x s); auto.
+  - repeat red in H0. repeat red. intros. specialize (H0 s p). destruct p as [p Hp].
+    simpl in *.
+    apply Hp with (t1 := y s); auto. apply state_eq_sub_state_eutt in H. symmetry. auto.
+Qed.
+
 Global Instance state_eutt_iter {A B S: Type} {E : Type -> Type} : 
   Proper (pointwise_relation A (@state_eq_eutt (A + B) S E ) ==> 
                              pointwise_relation A (@state_eq_eutt B S E) ) (MonadIter_stateT0 B A).
@@ -727,6 +739,31 @@ Global Instance run_state_eutt_proper_eutt : forall (E : Type -> Type) (S R : Ty
           Proper (@state_eq_eutt R S E  ==> eutt eq) (run_state_itree s).
 Proof.
   repeat intro. red in H. unfold run_state_itree. rewrite H. reflexivity.
+Qed.
+
+Lemma lookup_neq : forall (s : env) (x y: var) (v d: value), x <> y -> 
+                lookup_default x d (Maps.add y v s)  = lookup_default x d s.
+Proof.
+  intros. unfold lookup_default. destruct (Maps.lookup x s) eqn : Heq.
+  - assert (Maps.mapsto x n s).
+    {  apply Maps.mapsto_lookup. auto. }
+    assert (Maps.mapsto x n (Maps.add y v s) ).
+    { eapply Maps.mapsto_add_neq in H0; eauto. }
+    apply Maps.mapsto_lookup in H1. rewrite H1. auto.
+  - eapply RelDec.rel_dec_neq_false in H; try apply RelDec_string_Correct. 
+    clear Heq.
+    induction s.
+    + cbn. rewrite H. auto.
+    + simpl. unfold Maps.lookup in IHs. unfold FMapAList.Map_alist in IHs. rewrite H. simpl.
+      unfold Maps.add in IHs. auto.
+Admitted.
+
+Lemma lookup_eq : forall (s : env) (x : var) (v d : value),
+    lookup_default x d (Maps.add x v s) = v.
+Proof.
+  intros. assert (Maps.mapsto x v (Maps.add x v s) ).
+  { apply Maps.mapsto_add_eq; try reflexivity. }
+  eapply Maps.mapsto_lookup in H. unfold lookup_default. rewrite H. auto.
 Qed.
 
 
@@ -826,14 +863,12 @@ Section SQRTEx.
     - intros s0 s1 Hinv Heval. unfold body_arrow in Heval. simpl in Heval.
       rewrite Hinv in Heval. eqbdestruct (lookup_default i 0 s0 * lookup_default i 0 s0) n0.
       + simpl in *. basic_solve.
-      + simpl in Heval. basic_solve. unfold inc_var.
-        admit. (*need some basic map function, I don't know where this map stuff is coming from so might be a headache,
-                 worst case this seems like something to put off to last second*)
+      + simpl in Heval. basic_solve. unfold inc_var. rewrite lookup_neq; auto.
     - intros s' Hinv. unfold body_arrow. simpl. rewrite Hinv.
       eqbdestruct (lookup_default i 0 s' * lookup_default i 0 s') n0; simpl.
       + exfalso. eapply H; apply Heq.
       + reflexivity.
-  Admitted.
+  Qed.
 
   Lemma converge_if_square_nat_sqrt_aux : forall (s : env),
       lookup_default i 0 s = 0 ->
@@ -851,19 +886,16 @@ Section SQRTEx.
       eqbdestruct (lookup_default i 0 s1 * lookup_default i 0 s1) (lookup_default n 0 s1);
         simpl in *; basic_solve. 
       split.
-      + assert (lookup_default i 0 (inc_var i s1) = 1 + lookup_default i 0 s ). admit.
+      + unfold inc_var. rewrite lookup_eq.
         nia.
-      + admit.
+      + unfold inc_var. rewrite lookup_neq; auto.
     - intros s1 s2 Hs1 Heutt. unfold body_arrow in Heutt. simpl in *.
       eqbdestruct (lookup_default i 0 s1 * lookup_default i 0 s1) (lookup_default n 0 s1).
       + simpl in *. basic_solve.
       + simpl in *. basic_solve.
-         assert (lookup_default i 0 (inc_var i s1) = 1 + lookup_default i 0 s ). admit.
-         assert (sqrt > lookup_default i 0 s1). nia. rewrite H1.
-         admit.
-         (*this is an annoying nat subtlety*)
-    - split; omega.
-  Admitted.
+        unfold inc_var. rewrite lookup_eq. nia.
+    - split; nia.
+ Qed.
 
       (*Global Instance state_eq_eutt_eutt : Proper (state_eq_eutt ==> (pointwise_relation _ (eutt eq) ) ) (pointwise_relation _ (eutt eq) ). *)
 
@@ -899,28 +931,28 @@ Section SQRTEx.
         exists s', (denote_imp (WHILE ~ i * i = n DO i ::= i + 1 END)%imp s ≈ Ret (s',tt) ).
   Proof.
     intros s Hi0 Hn. specialize (converge_if_square_nat_sqrt_aux s Hi0 Hn) as Hwf.
-    assert (Hi : lookup_default i 0 s * lookup_default i 0 s <= lookup_default n 0 s); try nia.
-    clear Hi0.
-    induction Hwf.
-    - rename a into s. exists s.
-      admit.
-    - rename a into s. 
-      eqbdestruct (lookup_default i 0 s * lookup_default i 0 s) (lookup_default n 0 s).
-      + exists s. match goal with |- ?m s ≈ _ => fold (run_state_itree s m) end.
-        rewrite compile_nat_sqrt_body. unfold run_state_itree. simpl. 
-        unfold MonadIter_stateT0, Basics.iter, MonadIterDelay. rewrite unfold_iter_ktree.
-        simpl. rewrite Heq. rewrite Nat.eqb_refl. simpl. rewrite bind_bind.
-        rewrite bind_ret. rewrite bind_ret. simpl. reflexivity.
-      + enough (exists s', denote_imp (WHILE ~ i * i = n DO i ::= i + 1 END)%imp (inc_var i s) 
-                                      ≈ Ret (s',tt) ).
-        {
-          destruct H1 as [s' Hs'].
-
-        apply H0.
-      + ex
-
-      apply H0.
-      +
+    eenough (exists s', _ ≈ Ret (s',tt) ).
+    {
+      destruct H as [s' H] . exists s'.
+      match goal with |- ?m s ≈ _ => fold (run_state_itree s m) end.
+      rewrite compile_nat_sqrt_body. unfold run_state_itree. apply H.
+    }
+    specialize (iter_wf_converge_state unit unit env (fun _ : unit => body_arrow) ) as Hconv.
+    specialize (Hconv tt s).
+    enough ( exists p : env * unit,
+            MonadIter_stateT0 unit unit (fun _ : unit => body_arrow) tt s
+            ≈ Ret p).
+    { destruct H as [ [s' [] ] H ]. eauto. }
+    apply Hconv.
+    - intros. unfold body_arrow. simpl.
+      eqbdestruct (lookup_default i 0 s0 * lookup_default i 0 s0) (lookup_default n 0 s0); simpl.
+      + exists (s0, inr tt). reflexivity.
+      + exists (inc_var i s0, inl tt). reflexivity.
+    - clear Hconv. clear Hi0. clear Hn. induction Hwf.
+      + apply base. intros [s' [] ] ? . apply (H s').
+        unfold state_iter_arrow_rel in H0. symmetry. auto.
+      + apply step. intros [ s' [] ] ?. eapply H0. unfold state_iter_arrow_rel in H1. symmetry. auto.
+  Qed.
 
 
   Lemma prepost1_holds_nat_sqrt_loop : 
@@ -936,114 +968,117 @@ Section SQRTEx.
       - exists s1. rewrite H. split; auto.
     }
     unfold pre1 in Hpre.
-    match goal with |- post1 s (MonadIter_stateT0 _ _ ?k _ _ ) => set k as body end.
-    unfold body.
-    set (fun s0 s1 => Ret (s1, inl tt) ≈ body tt s0 ) as body_rel.
-    assert (wf_from _ body_rel s).
-    {
-      unfold body_rel. set (lookup_default n 0 s) as n_val.
-      induction n_val eqn : Heq.
-      assert ()
-      - apply base. unfold body. intros s'. intro Hcontra.
-        rewrite Hi0 in Hcontra. unfold n_val in Heq. rewrite Heq in Hcontra. simpl in Hcontra.
-        basic_solve.
-      -
-
-
-    eapply Hpost1.
-    { specialize compile_while as Hcw. red in Hcw. red in Hcw. rewrite Hcw.
-      reflexivity. }
+    
     clear p.
     set (lookup_default n 0 s) as n0.
     set (fun x s => lookup_default x 0 s)  as get.
     set (fun (t : Delay ((env * unit) + (env * unit)) ) => exists s0, 
-    (t ≈ ret (inl (s0,tt)) /\ get i s0 * get i s0 < n0  ) \/ (t ≈ ret (inr (s0,tt)) /\ get i s0 * get i s0 = n0) ) as q .
-    set (fun (t : Delay (env * unit)) => exists s0, t ≈ ret (s0,tt) /\ get i s0 * get i s0 = n0  ) as p.
-    match goal with |- post1 s ?t => enough (p t) end.
-    {
-      unfold post1, p in *. auto.
-    }
+    ((t ≈ ret (inl (s0,tt)) /\ get i s0 * get i s0 <= n0  ) \/ (t ≈ ret (inr (s0,tt)) /\ get i s0 * get i s0 = n0)) /\ get n s0 = n0 ) as q .
+    set (fun (t : Delay (env * unit)) => exists s0, t ≈ ret (s0,tt) /\ get i s0 * get i s0 = n0 ) as p.
+    match goal with |- post1 s ?t => enough (p t); auto end.
     assert (Hq : resp_eutt _ _ q).
     {
       + unfold q. repeat intro. split; intros; basic_solve; auto.
-        * exists s0. left. rewrite <- H. auto.
-        * exists s0. right. rewrite <- H. auto.
-        * exists s0. left. rewrite H. auto.
-        * exists s0. right. rewrite H. auto.
+        * exists s0. split; auto. left. rewrite <- H. auto.
+        * exists s0. split; auto. right. rewrite <- H. auto.
+        * exists s0. split; auto. left. rewrite H. auto.
+        * exists s0. split; auto. right. rewrite H. auto.
     }
     match goal with |- p ?t => enough ((p \1/ divergence) t)  end.
-    - admit. (*prove convergence*)
+    - destruct H; auto. exfalso.
+      specialize (converge_if_square_nat_sqrt s Hi0 Hpre) as Hconv.
+      basic_solve.
+      match type of Hconv with ?m s ≈ _ => fold (run_state_itree s m) in Hconv end.
+      rewrite compile_nat_sqrt_body in Hconv. unfold run_state_itree in Hconv. rewrite Hconv in H.
+      pinversion H.
     - eapply loop_invar_state with (q := q); eauto.
-      + eapply Hq.
-        * unfold reassoc. rewrite compute_bexp_sc.
-        * 
-          
-          match goal with |- ?t ≈ _ => specialize (burn_tree _ _ 10 t) as Ht end. 
-          
-          
-          unfold interp_imp, interp_map, interp_state, interp, ITree.bind in Ht. simpl in Ht.
-          setoid_rewrite interp_imp_bind. *)
-      + unfold  DelaySpecMonad.loop_invar_imp. unfold q, p.
-        cbn. intros; basic_solve.
-        * destruct (eutt_reta_or_div _ t).
-          -- basic_solve. destruct a as [s' [] ]. rewrite <- H1 in H.
-             setoid_rewrite bind_ret in H. basic_solve.
-          -- apply div_spin_eutt in H1. rewrite H1 in H. rewrite <- spin_bind in H.
-             exfalso. eapply not_ret_eutt_spin. rewrite H. reflexivity.
-        * destruct (eutt_reta_or_div _ t).
-          -- basic_solve. destruct a as [s' [] ]. exists s'.
-             rewrite <- H1 in H. setoid_rewrite bind_ret in H. basic_solve.
-             split; auto. symmetry. auto.
-          -- apply div_spin_eutt in H1. rewrite H1 in H.
-             rewrite <- spin_bind in H. exfalso.
-             eapply not_ret_eutt_spin. symmetry. eauto.
-      + 
+      (*Establishment*)
+      + unfold reassoc. simpl. rewrite Hi0. simpl.
+        destruct (lookup_default n 0 s) eqn : Heq; simpl.
+        * eapply Hq.
+          -- rewrite bind_ret. reflexivity.
+          -- red. exists s. split; auto. right. unfold get. split; try reflexivity. unfold n0.
+             (*wierd, so it seems to have something to do with different type aliasing for env*) 
+             unfold env in Hi0. rewrite Hi0. auto.
+        * eapply Hq.
+          -- rewrite bind_ret. reflexivity.
+          -- red. exists (inc_var i s). split; auto. 
+             ++ left. split; try reflexivity. unfold get, inc_var.
+                rewrite lookup_eq. unfold is_square in Hpre. basic_solve. nia.
+             ++ unfold get, inc_var. rewrite lookup_neq; auto.
+      (*Post Condition*)
+      + red. cbn. intros. red. red in H. basic_solve.
+        * exists s0. destruct (eutt_reta_or_div _ t); basic_solve.
+          -- destruct a as [ s' [] ]. rewrite <- H2 in H. simpl in *. rewrite bind_ret in H.
+             basic_solve.
+          -- apply div_spin_eutt in H2. rewrite H2 in H.
+             rewrite <- spin_bind in H. exfalso. symmetry in H. eapply not_ret_eutt_spin; try apply H.
+        * exists s0. destruct (eutt_reta_or_div _ t); basic_solve.
+          -- destruct a as [ s' []  ]. symmetry in H2. rewrite H2 in H.
+             simpl in *. rewrite H1. rewrite bind_ret in H. basic_solve. auto.
+          -- apply div_spin_eutt in H2. rewrite H2 in H. rewrite <- spin_bind in H.
+             exfalso. symmetry in H. eapply not_ret_eutt_spin; try apply H.
+       (*Preservation*)
+      + intros. simpl. red in H. basic_solve.
+        * eapply Hq.
+          -- rewrite H. simpl. rewrite bind_ret. unfold DelaySpecMonad.iter_lift, iso_destatify_arrow, reassoc.
+             simpl. reflexivity. 
+          -- eqbdestruct (lookup_default i 0 s0 * lookup_default i 0 s0) (lookup_default n 0 s0).
+             ++ simpl. red. exists s0. rewrite bind_ret. split; auto. right. unfold get, n0. 
+                split; try reflexivity.
+                unfold env in Heq. rewrite Heq. auto.
+             ++ simpl. red. exists (inc_var i s0). rewrite bind_ret. split; auto.
+                ** left. split; try reflexivity. unfold get, inc_var. rewrite lookup_eq.
+                   unfold get in H1. red in Hpre. basic_solve. unfold get in H0. unfold n0 in *.
+                   rewrite <- Hpre. rewrite <- H0 in H1. rewrite <- Hpre in H0. unfold env in *.  rewrite H0 in Heq.
+                   assert (lookup_default i 0 s0 < m); nia.
+                ** unfold get, inc_var. rewrite lookup_neq; auto.
+         * eapply Hq.
+           -- rewrite H. simpl. rewrite bind_ret. cbn. reflexivity.
+           -- red. exists s0. split; auto. right. split; auto. reflexivity.
+  Qed.
     
 
   Lemma prepost1_holds_nat_sqrt : verify_cond env (encode_dyn env (pre1,post1) ) (denote_imp nat_sqrt).
   Proof.
-    unfold nat_sqrt.
-    repeat red. simpl. unfold pre1, post1. intros. destruct H as [Hn Hr]. apply Hr.
-    clear Hr. assert (state_eq_eutt (denote_imp nat_sqrt)  (denote_imp nat_sqrt) ); try reflexivity.
-    unfold nat_sqrt in H at 2. setoid_rewrite denote_imp_bind in H at 2.
-
-    assert (state_eq_eutt (denote_imp (i ::= 0)%imp ) (fun s => Ret (Maps.add i 0 s, tt))).
+    unfold nat_sqrt.  rewrite denote_imp_bind.
+    setoid_rewrite compile_nat_sqrt_body.
+    setoid_rewrite compute_assign_sc. repeat red. intros s [p Hp]. intros. simpl in H.
+    destruct H as [Hpre H]. apply H. clear H.
+    assert (Hpost: forall s, resp_eutt _ _ (post1 s)).
     {
-      intro. tau_steps. reflexivity. 
+      repeat intro. unfold post1. split; intros; basic_solve.
+      - exists s1. split; auto. rewrite <- H. auto.
+      - exists s1. rewrite H. split; auto.
     }
-    
-    specialize (compile_while  (~ i * i = n )%imp (i ::= i + 1)%imp ) as Hwhile.
-    
+   
+    eapply Hpost.
+    - Opaque Maps.add. simpl. rewrite bind_ret. simpl. reflexivity.
+    - match goal with |- post1 s ?m => enough (post1 (Maps.add i 0 s) m) end.
+      { unfold post1. unfold post1 in H. rewrite lookup_neq in H; auto. }
+      specialize prepost1_holds_nat_sqrt_loop as Hloop.
+      rewrite compile_nat_sqrt_body in Hloop. repeat red in Hloop.
+      match goal with |- post1 ?s _ => set s as s1 end.
+      simpl in Hloop. specialize (Hloop s1 (exist _ (post1 s1) (Hpost s1)) ).
+      simpl in *. eapply Hloop. split; try split; intros.
+      + unfold pre1, s1. rewrite lookup_neq; auto.
+      + unfold s1. rewrite lookup_eq. auto.
+      + red. red in H. basic_solve. unfold s1 in H0. exists s0. split; auto. 
+   Qed.
 
-    set (fun (t : Delay (env * unit)%type) => exists s0, t ≈ Ret (s0,tt) /\ get i s * get i s = n0 ) as p'.
-    eno
-    match 
-
-
-    (* i² <= n /\ n = n0*)
-    (* may want a richer loop_invar_state in general, think about that after you get this proof,
-       p and q get an added
-     *)
-
-      (* I think I need the hoare style rules*)
-
-
-
-
-    setoid_rewrite H0 in H.
-
-
-      intros. unfold nat_sqrt. unfold denote_imp. simpl.
-      setoid_rewrite bind_bind. setoid_rewrite bind_ret. simpl. rewrite bind_trigger. 
-      fun s => Maps.add i 0 s ;; MonadIter_stateT0 
-
-      force_left. simpl. rewrite tau_eutt. cbn. setoid_rewrite bind_bind.
-    unfold nat_sqrt in H at 2. rewrite denote_imp_bind in H.
-    unfold state_eq in H.
-    match type of H with state_eq _ (_ ;; ?c) => assert (state_eq c c); try reflexivity end.
-    setoid_rewrite compile_while in H.
-    assert (denote_imp)
-    unfold denote_imp in H. 
+  Lemma prepost2_holds_nat_sqrt : verify_cond env (encode_dyn env (pre2,post2) ) (denote_imp nat_sqrt).
+  Proof.
+    unfold nat_sqrt. rewrite denote_imp_bind.
+    setoid_rewrite compile_nat_sqrt_body.
+    setoid_rewrite compute_assign_sc. repeat red. intros s [p Hp]. intros. simpl in H.
+    destruct H as [Hpre H]. apply H. clear H. red in Hpre.
+    simpl. red. rewrite bind_ret. simpl. 
+    assert (Hs' : ~ is_square (lookup_default n 0 (Maps.add i 0 s)) ).
+    { rewrite lookup_neq; auto. } clear Hpre.
+    apply diverge_if_not_square_nat_sqrt in Hs' as Hdivs.
+    specialize compile_nat_sqrt_body as Hcomp. red in Hcomp. rewrite <- Hcomp.
+    auto.
+  Qed.
 
 
 End SQRTEx.

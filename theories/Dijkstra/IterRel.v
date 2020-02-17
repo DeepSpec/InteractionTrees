@@ -141,7 +141,7 @@ Proof.
 Qed.
 
 (*Possibly uses some kind of transitivity in > that is missing in my more general proofs,
-  a more general proof would be nice but I think the nat*)
+  a more general proof would be nice but I think the nat captures most of what people want*)
 Lemma wf_intro_gt : forall (A : Type) (r : A -> A -> Prop) (f : A -> nat) (P : A -> Prop) (a : A),
     (forall a1 a2, P a1 -> r a1 a2 -> P a2) -> 
     (forall a1 a2, P a1 -> r a1 a2 -> f a1 > f a2) -> 
