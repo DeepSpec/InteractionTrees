@@ -55,7 +55,6 @@ Section GuardedCCS.
   | I_string (s : string) : idx
   | I_nat (n : nat) : idx
   .
-
   Definition eq_idx : idx -> idx -> bool :=
     fun i1 i2 =>
       match i1 with
@@ -77,16 +76,36 @@ Section GuardedCCS.
   | In (i : idx)
   | Out (i : idx)
   .
-
   Variant label : Type :=
   | Visible (vx : visible)
   | Silent
   .
 
-  (** Strong Guardedness Condition:
+  (* IY: These series of matches seem like they should have a nice functional
+     combinator... *)
+  Definition match_idx (target x : idx) : idx :=
+    if x ≡? target then I_nat 0
+    else match x with
+         | I_string _ => x
+         | I_nat i => I_nat (i + 1)
+         end
+  .
+  Definition match_visible (target : idx) (x : visible) : visible :=
+    match x with
+    | In x1 => In (match_idx target x1)
+    | Out x1 => Out (match_idx target x1)
+    end
+  .
+  Definition match_action (target : idx) (x : label) : label :=
+    match x with
+    | Silent => Silent
+    | Visible v => Visible (match_visible target v)
+    end
+  .
+
+  (* Strong Guardedness Condition:
      Any sequence of labels under nondeterministic choice must be strongly guarded,
      i.e. the starting label must be an action. *)
-
   Inductive ccs : Type :=
   | Zero
   | Or (op oq : visible * ccs)
@@ -95,7 +114,6 @@ Section GuardedCCS.
   | New (i : idx) (p : ccs)
   | Bang (p : ccs)
   .
-
 
   Class ProcessCongruence (R : ccs -> ccs -> Prop) :=
     {
@@ -113,8 +131,7 @@ Section GuardedCCS.
           R (Par r p) (Par r q)
     }.
 
-  (* TODO:
-     Show process congruence is an equivalence relation. *)
+  (* TODO: Show process congruence is an equivalence relation. *)
 
   (** *Structural Congruence *)
   Inductive bound : idx -> ccs -> Prop :=
@@ -193,12 +210,11 @@ Section GuardedCCS.
       (exists q', eval a q q' /\ strong_simulation p' q')) ->
      strong_simulation p q
   .
-
   Inductive strong_bisimulation : ccs -> ccs -> Prop :=
   | StrongBisim (p q : ccs):
       strong_simulation p q -> strong_simulation q p ->
-      strong_bisimulation p q.
-
+      strong_bisimulation p q
+  .
   (** *Weak Bisimulation *)
   Inductive weak_silent_closure : ccs -> ccs -> Prop :=
   | WeakSilentRefl (p : ccs):
@@ -208,7 +224,6 @@ Section GuardedCCS.
       eval Silent p q ->
       weak_silent_closure p r
   .
-
   Inductive weak_visible_closure : ccs -> ccs -> Prop :=
   | WeakVisRefl x (p q r: ccs):
       weak_silent_closure q r ->
@@ -219,7 +234,6 @@ Section GuardedCCS.
       eval (Visible x) p q ->
       weak_visible_closure p r
   .
-
   Inductive weak_simulation : ccs -> ccs -> Prop :=
   | WeakSim (p q : ccs) :
       (forall p', eval Silent p p' ->
@@ -228,7 +242,6 @@ Section GuardedCCS.
                exists q', weak_visible_closure q q' /\ weak_simulation p' q') ->
       weak_simulation p q
   .
-
   Inductive weak_bisimulation : ccs -> ccs -> Prop :=
   | WeakBisim (p q : ccs):
       weak_simulation p q -> weak_simulation q p ->
@@ -238,12 +251,6 @@ Section GuardedCCS.
 End GuardedCCS.
 
 
-(** *Denotational Semantics
-
-    Denotation of operational CCS in ITrees.
- *)
-
-(*
 Section DenoteCCS.
 
   Infix "≡?" := (eq_idx) (at level 70).
@@ -252,44 +259,56 @@ Section DenoteCCS.
          for now. *)
   Variant eff : Type -> Type :=
   | ActE (x : label) : eff unit
-  | OrE : eff bool
-  | ParE : eff bool
+  | OrE (n : nat) : eff nat
+  | FailE : eff void
   .
 
-  Fixpoint denote_seq_ccs (sp : seq_ccs) : itree eff unit :=
-    match sp with
-    | Zero => ret tt
-    | Or a b =>
-      let p1 := denote_seq_ccs a in
-      let p2 := denote_seq_ccs b in
-      Vis OrE (fun (b : bool) => if b then p1 else p2)
-    | Act x k =>
-      let p := denote_seq_ccs k in
-      Vis (ActE x) (fun _ => p)
-    end.
+  (* "CTree" : Concurrent trees, as itree denotations of CCS. *)
+  Definition ctree := itree eff unit.
 
-  (* IY: These series of matches seem like they should have a nice functional
-     combinator... *)
+  Definition fail : ctree := Vis FailE (fun (x : void) => match x with end).
 
-  Definition match_idx (target x : idx) : idx :=
-    if x ≡? target then I_nat 0
-    else match x with
-         | I_string _ => x
-         | I_nat i => I_nat (i + 1)
-         end
-  .
-
-  Definition match_visible (target : idx) (x : visible) : visible :=
-    match x with
-    | In x1 => In (match_idx target x1)
-    | Out x1 => Out (match_idx target x1)
-    end
-  .
-
-  Definition match_action (target : idx) (x : label) : label :=
-    match x with
-    | Silent => Silent
-    | Visible v => Visible (match_visible target v)
+  CoFixpoint par (p q : ctree) : ctree :=
+    let par_left (p' q' : ctree) : ctree :=
+        match p', q' with
+        | Vis (ActE l) k, _ => Vis (ActE l) (fun _ => par (k tt) q')
+        | Tau tp', _ => Tau (par tp' q')
+        | Ret _, _ => Tau q'
+        | _, _ => fail
+        end
+    in
+    let par_right (p' q' : ctree) : ctree :=
+        match p', q' with
+        | _, Vis (ActE l) k => Vis (ActE l) (fun _ => par (k tt) p')
+        | _, Tau tq' => Tau (par p' tq')
+        | _, Ret _ => Tau p'
+        | _, _ => fail
+        end
+    in
+    let par_comm (p' q' : ctree) : ctree :=
+        match p', q' with
+        | Vis (ActE (Visible (In pl))) pk, Vis (ActE (Visible (Out ql))) qk
+        | Vis (ActE (Visible (Out pl))) pk, Vis (ActE (Visible (In ql))) qk =>
+          if pl ≡? ql then
+            Vis (ActE Silent) (fun _ => par (pk tt) (qk tt))
+          else
+            fail
+        | _, _ => fail
+        end
+    in
+    match (observe p), (observe q) with
+    | VisF (OrE n1) k1, VisF (OrE n2) k2 =>
+      Vis (OrE (n1 + n2 + (n1 * n2))) (fun n0 : nat =>
+        if beq_nat n0 n1
+        then par_left (k1 n0) q
+        else if beq_nat n0 (n2 + n2)
+          then par_right p (k2 (n0 - n1))
+          else par_comm (k1 ((n0 - n1 - n2) mod n2)) (k2 ((n0 - n1 - n2) / n1)))
+    | _, _ =>
+      Vis (OrE 3) (fun n0 : nat =>
+                     if beq_nat n0 0 then par_left p q
+                     else if beq_nat n0 1 then par_right p q
+                          else par_comm p q)
     end
   .
 
@@ -302,32 +321,47 @@ Section DenoteCCS.
       | x => x
       end.
 
-  (* The generating operator, bang.
-     IY: Can we write this using the `iter` combinator? *)
-  CoFixpoint bang (body : itree eff unit -> (itree eff ((itree eff unit) + unit))):
-    (itree eff unit) -> itree eff unit :=
-    fun (a : itree eff unit) => ab <- body a;;
-             match ab with
-             | inl a => Vis ParE (fun (b : bool) => if b then Tau (a) else bang body a)
-             | inr b => Ret b (* never going to be reached *)
-             end
+  (* Anomaly "cannot define an evar twice." *)
+  (* Definition bang (p : ctree) : ctree :=
+    iter (C := Kleisli _) (fun prc => trigger p;;
+                             ret (inl p)) p. *)
+
+  Definition bang (p : ctree) : ctree :=
+    iter (C := Kleisli _) (fun _ => par p p ;; ret (inl p)) p.
+
+  Fixpoint denote_ccs (prog : ccs) : ctree :=
+    match prog with
+    | Zero => ret tt
+    | Or (vp, p) (vq, q) =>
+      let dp := denote_ccs p in
+      let dq := denote_ccs q in
+      Vis (OrE 2) (fun (n : nat) => if beq_nat n 0 then Vis (ActE (Visible vp)) (fun _ => dp)
+                                 else Vis (ActE (Visible vq)) (fun _ => dp))
+    | Act l p =>
+      let dp := denote_ccs p in
+      Vis (ActE l) (fun _ => dp)
+    | Par p q =>
+      let dp := denote_ccs p in
+      let dq := denote_ccs q in
+      par dp dq
+    | New l p =>
+      let dp := denote_ccs p in
+      translate (@hide l eff) dp
+    | Bang p =>
+      let dp := denote_ccs p in
+      bang dp
+    end
   .
 
-  Fixpoint denote_ccs (p : ccs) : itree eff unit :=
-    match p with
-    | Proc x => denote_seq_ccs x
-    | New x a => let k := denote_ccs a in
-                translate (@hide x eff) k
-    | Par a b => let k1 := denote_ccs a in
-                let k2 := denote_ccs b in
-                Vis ParE (fun (b : bool) => if b then k1 else k2)
-    | Bang x => bang (fun a => ret (inl a)) (denote_ccs x)
-    end.
+  (*Compute (burn 100 (denote_ccs (Bang (Proc (Or Zero Zero))))). *)
 
-  Compute (burn 100 (denote_ccs (Bang (Proc (Or Zero Zero))))).
+  (* TODO: Equational properties that should hold over our denotation.
+     (Sanity check..) *)
+  Theorem par_zero_unit:
+    forall p, denote_ccs (Par Zero p) ≈ denote_ccs p.
+  Proof. Admitted.
 
-  (* "CTree" : Concurrent trees, as itree denotations of CCS... *)
-  Definition ctree := itree eff unit.
+  (** *Verifying full abstraction *)
 
   Inductive ctree_cong : ctree -> ctree -> Prop :=
   (* II. Ambiguity *)
@@ -382,14 +416,10 @@ Theorem denotational_model :
   forall p q, weak_bisimulation p q -> ctree_equiv (denote_ccs p) (denote_ccs q).
 Proof.
   intros. destruct p, q.
-  - cbn. destruct p, p0.
-    + cbn. constructor. constructor. constructor. constructor.
-      reflexivity.
-    + cbn. constructor. Admitted. (* IY: Something's not quite right here. *)
+  - cbn. Admitted.
 
 Theorem full_abstraction :
   forall p q, ctree_equiv (denote_ccs p) (denote_ccs q) -> weak_bisimulation p q.
 Proof. Admitted.
 
 (* TODO: Write handler for denotation. (Prop or State monad?) *)
-*)
