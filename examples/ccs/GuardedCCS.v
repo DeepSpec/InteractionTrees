@@ -26,18 +26,16 @@ Set Implicit Arguments.
 Set Contextual Implicit.
 Set Primitive Projections.
 
-(* *Finitary, Guarded CCS*
-   - Finitary: for any p, Const(p) is finite.
-   - Guarded: for any summation, the top level process is an action or
-              synchronous step.
+(** *Strongly Guarded CCS*
+   - Strongly Guarded: for any summation, the top level process is a visible
+                       action.
 
    Idea(?) : Instead of interpreting non-determination as an uninterpreted event,
    let's model them using K-Trees.
 
    We also attempted to impose an extra guardedness condition on the
    non-deterministic continuations: namely, that the immediate continuations
-   must be an action event and cannot be a silent step. This did not work, as
-   explained below.
+   must be an action event and cannot be a silent step.
    This constraint was a proposed work-around to the approach in [WeakCCS.v] and
    [ccs.org].
  *)
@@ -72,6 +70,8 @@ Section GuardedCCS.
       end
   .
 
+  Infix "≡?" := (eq_idx) (at level 70).
+
   (* CCS labels have polarity. *)
   Variant visible : Type :=
   | In (i : idx)
@@ -83,174 +83,107 @@ Section GuardedCCS.
   | Silent
   .
 
-  (** Guarded CCS Syntax, following:
-     [R.Gorrieri, C.Versari, _Introduction to Concurrency Theory_].
-     Any sequence of labels under nondeterministic choice must be guarded,
+  (** Strong Guardedness Condition:
+     Any sequence of labels under nondeterministic choice must be strongly guarded,
      i.e. the starting label must be an action. *)
 
-  (*
-     We attempted, at first, to define a "Strongly Guarded" CCS.
-     Guarded CCS is defined as having action labels immediately under
-     nondeterministic choice. _Strongly Guarded_ CCS, on the other hand,
-     forces a *visible* action under nondeterministic choice, i.elim .
-
-        Inductive action : Type := Action (x : label) (a : action).
-        Inductive seq_ccs : Type :=
-                  ...
-        | GAct (vx : visible) (a : action).
-
-     However, this notion of "Strongly Guarded" doesn't work for two
-     reasons:
-
-     1. You cannot model any _internal step_ that a system may wish
-        to take.
-        For instance, in vanilla CCS, one can write down the following
-        expression:
-              τ.N + α -τ-> N
-        We cannot write an equivalent expression in Strongly Guarded CCS.
-
-     2. Guardedness condition breaks (is fragile) whenever we try to
-        define an _action_ step.
-        How do we define a correct action step?
-
-        Let's look at this expression:
-              α.τ.N + β.τ.N
-        No matter what the system chooses to do, the guardedness condition
-        immediately breaks. Since we want to compare the operational weak
-        bisimulation to our denotational equivalence of ITree weak bisimulation,
-        (for proving full abstraction) we still want to be able to define
-        a small step semantics. This syntactic definition will be fragile.
-  *)
-
-  (* Sequential Processes. *)
-  Inductive seq_ccs : Type :=
-  | Zero
-  | Or (a b : seq_ccs)
-  | Act (l : label) (a : seq_ccs)
-  .
-
-  (* CCS Processes. *)
   Inductive ccs : Type :=
-  | Proc (p : seq_ccs)
-  | Par (a b : ccs)
-  | New (i : idx) (a : ccs)
+  | Zero
+  | Or (op oq : visible * ccs)
+  | Act (l : label) (p : ccs)
+  | Par (p q : ccs)
+  | New (i : idx) (p : ccs)
   | Bang (p : ccs)
   .
 
-  Infix "≡?" := (eq_idx) (at level 70).
+
+  Class ProcessCongruence (R : ccs -> ccs -> Prop) :=
+    {
+      sum : forall (p q r : ccs) (x y : visible),
+        R p q ->
+        R (Or (x, p) (y, r)) (Or (x, q) (y, r));
+      new : forall (p q : ccs) (i : idx),
+          R p q ->
+          R (New i p) (New i q);
+      parL : forall (p q r : ccs),
+          R p q ->
+          R (Par p r) (Par q r);
+      parR : forall (p q r : ccs),
+          R r p ->
+          R (Par r p) (Par r q)
+    }.
+
+  (* TODO:
+     Show process congruence is an equivalence relation. *)
 
   (** *Structural Congruence *)
-  Inductive scong : seq_ccs -> seq_ccs -> Prop :=
-  | SC_Sum (a b : seq_ccs):
-      scong (Or a b) (Or b a)
-  | SC_CongOr (a a' b b' : seq_ccs):
-      scong a a' -> scong b b' ->
-      scong (Or a b) (Or a' b')
-  | SC_CongAct (l : label) (a a' : seq_ccs):
-      scong a a' ->
-      scong (Act l a) (Act l a')
-  .
-
-  Inductive s_bound : idx -> seq_ccs -> Prop :=
-  | SB_ActIn (i : idx) (a : seq_ccs):
-      s_bound i (Act (Visible (In i)) a)
-  | SB_ActOut (i : idx) (a : seq_ccs):
-      s_bound i (Act (Visible (Out i)) a)
-  | SB_Act (i : idx) (x : label) (a : seq_ccs):
-      s_bound i a ->
-      s_bound i (Act x a)
-  | SB_Or (i : idx) (a b : seq_ccs):
-      s_bound i a \/ s_bound i b ->
-      s_bound i (Or a b)
-  .
-
   Inductive bound : idx -> ccs -> Prop :=
-  | B_Proc (i : idx) (a : seq_ccs):
-      s_bound i a ->
-      bound i (Proc a)
-  | B_Par (i : idx) (a b : ccs):
-      bound i a \/ bound i b ->
-      bound i (Par a b)
-  | B_New (i j : idx) (a : ccs):
-      bound i a -> not (i ≡? j) ->
-      bound i (New j a)
-  | B_Bang (i : idx) (a : ccs):
-      bound i a ->
-      bound i (Bang a)
+  | B_ActIn (i : idx) (p : ccs):
+      bound i (Act (Visible (In i)) p)
+  | B_ActOut (i : idx) (p : ccs):
+      bound i (Act (Visible (Out i)) p)
+  | B_Act (i : idx) (x : label) (p : ccs):
+      bound i p ->
+      bound i (Act x p)
+  | B_Or (i : idx) (p q : ccs) (vp vq : visible):
+      bound i p \/ bound i q ->
+      bound i (Or (vp, p) (vq, q))
+  | B_Par (i : idx) (p q : ccs):
+      bound i p \/ bound i q ->
+      bound i (Par p q)
+  | B_New (i j : idx) (p : ccs):
+      bound i p -> not (i ≡? j) ->
+      bound i (New j p)
+  | B_Bang (i : idx) (p : ccs):
+      bound i p ->
+      bound i (Bang p)
   .
 
-  Definition free (i : idx) (c : ccs) : Prop := not (bound i c).
+  Definition free (i : idx) (p : ccs) : Prop := not (bound i p).
 
-  Inductive cong : ccs -> ccs -> Prop :=
-  | C_Proc (a b : seq_ccs) :
-      scong a b ->
-      cong (Proc a) (Proc b)
-  | C_ParZero (a : ccs):
-      cong (Par (Proc Zero) a) (Par a (Proc Zero))
-  | C_ParComm (a b : ccs):
-      cong (Par a b) (Par b a)
-  | C_ParAssoc (a b c : ccs):
-      cong (Par (Par a b) c) (Par a (Par b c))
-  | C_NewDist (i : idx) (a b : ccs):
-      free i a ->
-      cong (New i (Par a b)) (Par a (New i b))
-  | C_NewZero (i : idx) :
-      cong (New i (Proc Zero)) (Proc Zero)
-  | C_Bang (a : ccs) :
-      cong (Bang a) (Par a (Bang a))
-  | C_CongPar (a a' b b': ccs):
-      cong a a' -> cong b b' ->
-      cong (Par a b) (Par a' b')
-  | C_CongNew (i : idx) (a a' : ccs):
-      cong a a' ->
-      cong (New i a) (New i a')
-  | C_CongBang (a a' : ccs):
-      cong a a' ->
-      cong (Bang a) (Bang a')
+  (* We don't get associativity of sum due to the guardedness condition. *)
+  Inductive structural_congruence : ccs -> ccs -> Prop :=
+  | SC_SumComm (op oq : visible * ccs):
+      structural_congruence (Or op oq) (Or oq op)
+  | SC_ParComm (p q : ccs):
+      structural_congruence (Par p q) (Par q p)
+  | SC_ParAssoc (p q r : ccs):
+      structural_congruence (Par (Par p q) r) (Par p (Par q r))
   .
+
+  (* TODO: Show structural congruence is a process congruence. *)
 
   (** *Structural Operational Semantics *)
-
-  Inductive seval : option label -> seq_ccs -> seq_ccs -> Prop :=
-  | SE_Pref (x : label) (a : seq_ccs):
-      seval (Some x) (Act x a) a
-  | SE_SumL (x : label) (a a' b : seq_ccs):
-      seval (Some x) a a' ->
-      seval (Some x) (Or a b) a'
-  | SE_SumR (x : label) (a b b' : seq_ccs):
-      seval (Some x) b b' ->
-      seval (Some x) (Or a b) b'
-  .
-
-  (* 'None' option is used for structural congruence. *)
-  Inductive eval : option label -> ccs -> ccs -> Prop :=
-  | E_Proc (x : option label) (a a': seq_ccs):
-      seval x a a' ->
-      eval x (Proc a) (Proc a')
-  | E_ParL (x : option label) (a a' b : ccs):
-      eval x a a' ->
-      eval x (Par a b) (Par a' b)
-  | E_ParR (x : option label) (a b b' : ccs):
-      eval x b b' ->
-      eval x (Par a b) (Par a b')
-  | E_ParC (i : idx) (a a' b b' : ccs):
-      eval (Some (Visible (In i))) a a' ->
-      eval (Some (Visible (Out i))) b b' ->
-      eval (Some Silent) a' b'
-  | E_ResIn (i j : idx) (a a' : ccs):
+  Inductive eval : label -> ccs -> ccs -> Prop :=
+  | E_ParL (l : label) (p p' q : ccs):
+      eval l p p' ->
+      eval l (Par p q) (Par p' q)
+  | E_ParR (l : label) (p q q' : ccs):
+      eval l q q' ->
+      eval l (Par p q) (Par p q')
+  | E_ParC (i : idx) (p p' q q' : ccs):
+      eval (Visible (In i)) p p' ->
+      eval (Visible (Out i)) q q' ->
+      eval Silent p' q'
+  | E_Act (l : label) (p : ccs):
+      eval l (Act l p) p
+  | E_ResIn (i j : idx) (p p' : ccs):
       not (i ≡? j) ->
-      eval (Some (Visible (In i))) a a' ->
-      eval (Some (Visible (In i))) (New j a) (New j a')
-  | E_ResOut (i j : idx) (a a' : ccs):
+      eval (Visible (In i)) p p' ->
+      eval (Visible (In i)) (New j p) (New j p')
+  | E_ResOut (i j : idx) (p p' : ccs):
       not (i ≡? j) ->
-      eval (Some (Visible (Out i))) a a' ->
-      eval (Some (Visible (Out i))) (New j a) (New j a')
-  | E_ResSilent (j : idx) (a a': ccs):
-      eval (Some Silent) a a' ->
-      eval (Some Silent) (New j a) (New j a')
-  | E_Struct (x : option label) (a a' b b': ccs):
-      cong a b \/ a = b -> cong a' b' \/ a' = b' ->
-      eval x a a' -> eval x b b'
+      eval (Visible (Out i)) p p' ->
+      eval (Visible (Out i)) (New j p) (New j p')
+  | E_ResSilent (j : idx) (p p': ccs):
+      eval Silent p p' ->
+      eval Silent (New j p) (New j p')
+  | E_Bang (p : ccs):
+      eval Silent (Bang p) (Par p (Bang p))
+  | E_Struct (l : label) (p q r: ccs):
+      structural_congruence p q ->
+      eval l q r ->
+      eval l p r
   .
 
   (** *Strong Bisimulation *)
@@ -267,32 +200,31 @@ Section GuardedCCS.
       strong_bisimulation p q.
 
   (** *Weak Bisimulation *)
-
   Inductive weak_silent_closure : ccs -> ccs -> Prop :=
   | WeakSilentRefl (p : ccs):
       weak_silent_closure p p
   | WeakSilentTrans (p q r : ccs):
       weak_silent_closure q r ->
-      eval (Some Silent) p q ->
+      eval Silent p q ->
       weak_silent_closure p r
   .
 
   Inductive weak_visible_closure : ccs -> ccs -> Prop :=
   | WeakVisRefl x (p q r: ccs):
       weak_silent_closure q r ->
-      eval (Some (Visible x)) p q ->
+      eval (Visible x) p q ->
       weak_visible_closure p r
   | WeakVisTrans x (p q r: ccs):
       weak_visible_closure q r ->
-      eval (Some (Visible x)) p q ->
+      eval (Visible x) p q ->
       weak_visible_closure p r
   .
 
   Inductive weak_simulation : ccs -> ccs -> Prop :=
   | WeakSim (p q : ccs) :
-      (forall p', eval (Some Silent) p p' ->
+      (forall p', eval Silent p p' ->
              exists q', weak_silent_closure q q' /\ weak_simulation p' q') ->
-      (forall x p', eval (Some (Visible x)) p p' ->
+      (forall x p', eval (Visible x) p p' ->
                exists q', weak_visible_closure q q' /\ weak_simulation p' q') ->
       weak_simulation p q
   .
@@ -311,6 +243,7 @@ End GuardedCCS.
     Denotation of operational CCS in ITrees.
  *)
 
+(*
 Section DenoteCCS.
 
   Infix "≡?" := (eq_idx) (at level 70).
@@ -439,7 +372,7 @@ Section DenoteCCS.
                  (Vis OrE (fun (b : bool) => if b then Vis (ActE (Visible x)) (fun _ => t') else Vis (ActE (Visible x)) (fun _ => u')))
   .
 
-  (* TODO: Use Proper Instance and congruence for this definition. *)
+  (* TODO: Use Proper Instance and congruence for this definition? *)
   Definition ctree_equiv (t u : ctree) :=
     partial_order t u /\ partial_order u t /\ u ≈ t.
 
@@ -447,10 +380,16 @@ End DenoteCCS.
 
 Theorem denotational_model :
   forall p q, weak_bisimulation p q -> ctree_equiv (denote_ccs p) (denote_ccs q).
-Proof. Admitted.
+Proof.
+  intros. destruct p, q.
+  - cbn. destruct p, p0.
+    + cbn. constructor. constructor. constructor. constructor.
+      reflexivity.
+    + cbn. constructor. Admitted. (* IY: Something's not quite right here. *)
 
 Theorem full_abstraction :
   forall p q, ctree_equiv (denote_ccs p) (denote_ccs q) -> weak_bisimulation p q.
 Proof. Admitted.
 
 (* TODO: Write handler for denotation. (Prop or State monad?) *)
+*)
