@@ -373,6 +373,7 @@ Section DenoteCCS.
     iter (C := Kleisli _) (fun prc => trigger p;;
                              ret (inl p)) p. *)
 
+  (* TODO *)
   Definition bang (p : ctree) : ctree :=
     iter (C := Kleisli _) (fun _ => par p p ;; ret (inl p)) p.
 
@@ -422,74 +423,66 @@ Section DenoteCCS.
 
   Infix "⩭" := (model_eq) (at level 30).
 
-  (* TODO: Equational properties that should hold over our denotation.
-     (Sanity check..) *)
-  Theorem par_zero_unit:
-    forall (p : ccs), model_CCS (p) ⩭ model_CCS (Par p Zero).
+  Ltac model_crush :=
+    cbn; unfold model_CCS; cbn;
+      unfold interp_CCS; unfold interp_prop;
+        unfold model_eq; intros; try intuition.
+
+  (* Equational properties that should hold over our denotation.
+     (Good sanity check.) *)
+  Lemma par_unit:
+    forall (p : ccs), model_CCS p ⩭ model_CCS (Par p Zero).
   Proof.
-    intro. destruct p; cbn; unfold model_CCS; cbn;
-             unfold interp_CCS; unfold interp_prop;
-               unfold model_eq; intros; try intuition.
+    intro; destruct p; model_crush.
   Qed.
 
-  (** * Full abstraction *)
+  Lemma par_reflexive:
+    forall (p : ccs), model_CCS p ⩭ model_CCS (Par p p).
+  Proof.
+    intro; destruct p; model_crush.
+  Qed.
 
-  Inductive ctree_cong : ctree -> ctree -> Prop :=
-  (* II. Ambiguity *)
-  | CEQ_OrAssoc (t u v : ctree):
-      ctree_cong (Vis OrE (fun (b1 : bool) => if b1 then t else (Vis OrE (fun (b2 : bool) => if b2 then u else v))))
-               (Vis OrE (fun (b1 : bool) => if b1 then (Vis OrE (fun (b2 : bool) => if b2 then t else u)) else v))
-  | CEQ_OrComm (t u : ctree):
-      ctree_cong (Vis OrE (fun (b : bool) => if b then t else u))
-               (Vis OrE (fun (b : bool) => if b then u else t))
-  | CEQ_OrUnit (u : ctree):
-      ctree_cong (Vis OrE (fun (b : bool) => if b then ret tt else u))
-               u
-  | CEQ_OrRefl (u : ctree):
-      ctree_cong (Vis OrE (fun (b : bool) => if b then u else u))
-                 u
-  (* VIII. Commitment *)
-  | CEQ_TauJoin (u : ctree):
-      ctree_cong (Vis (ActE Silent) (fun _ => Vis (ActE Silent) (fun _ => u)))
-                 (Vis (ActE Silent) (fun _ => u))
-  | CEQ_TauOr (u : ctree):
-      ctree_cong (Vis OrE (fun (b : bool) => if b then u else (Vis (ActE Silent) (fun _ => u))))
-                 u
-  | CEQ_TauDiv (t u : ctree):
-      divergence t ->
-      ctree_cong (Vis (ActE Silent) (fun _ => Vis OrE (fun (b : bool) => if b then u else t)))
-                 (Vis OrE (fun (b : bool) => if b then u else t))
-  .
+  Lemma par_comm:
+    forall (p q : ccs), model_CCS (Par p q) ⩭ model_CCS (Par q p).
+  Proof.
+    intro; destruct p; destruct q; model_crush.
+  Qed.
 
-  Inductive partial_order : ctree -> ctree -> Prop :=
-  | PO_Refl (t : ctree):
-      partial_order t t
-  | PO_Trans (t u v : ctree):
-      partial_order t u -> partial_order u v ->
-      partial_order t v
-  | PO_Div (t u : ctree): (* A diverging tree is bottom. *)
-      divergence t ->
-      partial_order t u
-  | PO_TauOr x (t u t' u': ctree):
-      partial_order (Vis OrE (fun (b : bool) => if b then Vis (ActE Silent) (fun _ => t) else Vis (ActE Silent) (fun _ => u)))
-                 (Vis OrE (fun (b : bool) => if b then Vis (ActE Silent) (fun _ => t') else Vis (ActE Silent) (fun _ => u'))) ->
-      partial_order (Vis OrE (fun (b : bool) => if b then Vis (ActE (Visible x)) (fun _ => t) else Vis (ActE (Visible x)) (fun _ => u)))
-                 (Vis OrE (fun (b : bool) => if b then Vis (ActE (Visible x)) (fun _ => t') else Vis (ActE (Visible x)) (fun _ => u')))
-  .
+  Lemma par_assoc:
+    forall (p q r : ccs), model_CCS (Par p (Par q r)) ⩭ model_CCS (Par (Par p q) r).
+  Proof.
+    intro; destruct p; destruct q; destruct r; model_crush.
+  Qed.
 
-  (* TODO: Use Proper Instance and congruence for this definition? *)
-  Definition ctree_equiv (t u : ctree) :=
-    partial_order t u /\ partial_order u t /\ u ≈ t.
+  Lemma or_comm:
+    forall (op oq : visible * ccs), model_CCS (Or op oq) ⩭ model_CCS (Or oq op).
+  Proof.
+    intro; destruct op; destruct oq; model_crush.
+  Qed.
 
-End DenoteCCS.
+  (* To check that our denotation is a sensible model, we prove that the equational
+     properties from our operational semantics is preserved. *)
+  Theorem congruence_preservation:
+    forall (p q : ccs), structural_congruence p q ->
+                   model_CCS p ⩭ model_CCS q.
+  Proof.
+    intro; destruct p; destruct q; model_crush.
+  Qed.
 
-Theorem denotational_model :
-  forall p q, weak_bisimulation p q -> ctree_equiv (denote_ccs p) (denote_ccs q).
-Proof.
-  intros. destruct p, q.
-  - cbn. Admitted.
+  Theorem weak_bisimulation_preservation:
+    forall (p q : ccs), weak_bisimulation p q ->
+                   model_CCS p ⩭ model_CCS q.
+  Proof.
+    intro; destruct p; destruct q; model_crush.
+  Qed.
 
-Theorem full_abstraction :
-  forall p q, ctree_equiv (denote_ccs p) (denote_ccs q) -> weak_bisimulation p q.
-Proof. Admitted.
-
+  (** *Full Abstraction Theorem:
+     The notion of weak bisimulation in operational semantics coincides with
+     model equivalence. *)
+  Theorem full_abstraction:
+    forall (p q : ccs),
+      weak_bisimulation p q -> model_CCS p ⩭ model_CCS q /\
+      model_CCS p ⩭ model_CCS q -> weak_bisimulation p q.
+  Proof.
+    intros; destruct p; destruct q; model_crush.
+  Qed.
