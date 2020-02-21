@@ -13,7 +13,10 @@ From Coq Require Import
      Setoid
      RelationClasses.
 
-Require Import ExtLib.Structures.Monad.
+From ExtLib Require Import
+     Structures.Monad
+     EitherMonad
+     MonadTrans.
 
   (* SAZ: Should we add ITreeMonad to ITree? *)
 From ITree Require Import
@@ -21,6 +24,7 @@ From ITree Require Import
      ITreeFacts
      ITreeMonad
      Basics.Monad
+     Basics.MonadEither
      Basics.CategorySub
      Events.State
      Events.StateFacts.
@@ -61,6 +65,7 @@ Variant instr : Set :=
 Variant branch {label : Type} : Type :=
 | Bjmp (_ : label)                (* jump to label *)
 | Bbrz (_ : reg) (yes no : label) (* conditional jump *)
+| Bret (_: reg)
 | Bhalt
 .
 Global Arguments branch _ : clear implicits.
@@ -123,7 +128,6 @@ Inductive Memory : Type -> Type :=
 | Load  (a : addr) : Memory value
 | Store (a : addr) (val : value) : Memory unit.
 
-
 (* SAZ: Move Exit to the itrees library? *)
 (** We also introduce a special event to model termination of the computation.
     Note that it expects _actively_ no answer from the environment: [Done] is
@@ -136,7 +140,6 @@ Inductive Exit : Type -> Type :=
 Definition exit {E A} `{Exit -< E} : itree E A :=
   vis Done (fun v => match v : void with end).
 
-
 Section Denote.
 
   (** Once again, [asm] programs shall be denoted as [itree]s. *)
@@ -146,7 +149,6 @@ Section Denote.
   Import MonadNotation.
   Local Open Scope monad_scope.
   (* end hide *)
-
 
   Section with_event.
 
@@ -190,26 +192,31 @@ Section Denote.
         trigger (Store addr val)
       end.
 
+    Definition returns {B} r: eitherT value (itree E) B := mkEitherT (val <- trigger (GetReg r);; ret (inl val)).
+
+    Notation tree_ret := (eitherT value (itree E)).
+
     (** A [branch] returns the computed label whose set of possible values [B]
         is carried by the type of the branch.  If the computation halts
         instead of branching, we return the [exit] tree.  *)
-    Definition denote_br {B} (b : branch B) : itree E B :=
+    Definition denote_br {B} (b : branch B) : tree_ret B :=
       match b with
       | Bjmp l => ret l
       | Bbrz v y n =>
-        val <- trigger (GetReg v) ;;
-        if val:nat then ret y else ret n
-      | Bhalt => exit
+        lift
+          (val <- trigger (GetReg v) ;;
+           if val:nat then ret y else ret n)
+      | Bret r => returns r
+      | Bhalt => lift exit
       end.
-
 
     (** The denotation of a basic [block] shares the same type, returning the
         [label] of the next [block] it shall jump to.  It recursively denote
         its instruction before that.  *)
-    Fixpoint denote_bk {B} (b : block B) : itree E B :=
+    Fixpoint denote_bk {B} (b : block B) : tree_ret B :=
       match b with
       | bbi i b =>
-        denote_instr i ;; denote_bk b
+        lift (denote_instr i) ;; denote_bk b
       | bbb b =>
         denote_br b
       end.
@@ -225,10 +232,10 @@ Section Denote.
         They have a nice algebraic structure, supported by the library,
         including a [loop] combinator that we can use to link collections of
         basic blocks. (See below.) *)
-    Definition denote_bks {A B : nat} (bs: bks A B): sub (ktree E) fin A B :=
+    Definition denote_bks {A B : nat} (bs: bks A B): sub (Kleisli tree_ret) fin A B :=
       fun a => denote_bk (bs a).
 
-  (** One can think of an [asm] program as a circuit/diagram where wires
+    (** One can think of an [asm] program as a circuit/diagram where wires
       correspond to jumps/program links.  [denote_bks] computes the meaning of
       each basic block as an [itree] that returns the label of the next block to
       jump to, laying down all our elementary wires.  In order to denote an [asm
@@ -238,7 +245,7 @@ Section Denote.
       accomplish this with the same [loop] combinator we used to denote _Imp_'s
       [while] loop.  It directly takes our [denote_bks (code s): ktree E (I + A)
       (I + B)] and hides [I] as desired.  *)
-    Definition denote_asm {A B} : asm A B -> sub (ktree E) fin A B :=
+    Definition denote_asm {A B} : asm A B -> sub (Kleisli tree_ret) fin A B :=
       fun s => loop (denote_bks (code s)).
 
   End with_event.
