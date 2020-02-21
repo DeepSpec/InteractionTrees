@@ -26,6 +26,8 @@ Set Implicit Arguments.
 Set Contextual Implicit.
 Set Primitive Projections.
 
+Require Import PropT.
+
 (** *Strongly Guarded CCS*
    - Strongly Guarded: for any summation, the top level process is a visible
                        action.
@@ -255,33 +257,78 @@ Section DenoteCCS.
 
   Infix "≡?" := (eq_idx) (at level 70).
 
-  (* IY: We leave the parallel composition operator as an uninterpreted event
-         for now. *)
   Variant eff : Type -> Type :=
   | ActE (x : label) : eff unit
   | OrE (n : nat) : eff nat
   | FailE : eff void
   .
 
-  (* "CTree" : Concurrent trees, as itree denotations of CCS. *)
   Definition ctree := itree eff unit.
 
-  Definition fail : ctree := Vis FailE (fun (x : void) => match x with end).
+(*
+  (* "CTree": Nondeterministic choice trees, as ktrees. *)
+  Definition ctree (n : nat) := ktree eff nat unit.
+
+  (* "DTree": Deterministic trees. *)
+  Definition dtree := itree eff unit.
+
+  Definition zero : ctree 0 := fun _ => Ret tt.
+
+  Definition fail (n : nat) : ctree n :=
+    fun _ => x <- trigger FailE ;;
+      match (x : void) with end.
+
+  Typeclasses eauto := 5.
+  Definition choose (n : nat) (k : ctree n) (x : nat) :=
+    match k in (ctree n)
+  Definition choose (n : nat) (k : ctree n) (x : nat) : x <= n -> ctree n :=
+    match x return x <= n -> ctree n with
+      | 0 => fun pf : 0 <= n =>
+      c <- trigger (ChooseE x) ;;
+        if x <? n
+        then k c
+        else @fail 1 1
+      | _ => fun _ =>
+               fun _ => fail 1 1
+    end
+  .
+
+
+  Definition det (k : dtree) : ctree 1 := @choose 1 (fun _ => k).
+
+  CoFixpoint par {n m : nat} (p : ctree n) (q : ctree m) :
+    ctree (n + m + (n * m)) := 
+    let par_left (p' q' : dtree) :=x
+        fun (x : nat) =>
+          match p', q' with
+          | Vis (ActE l) k, _ =>
+            trigger (ActE l) ;;
+                    par (det (k tt)) (det q')
+          | Tau tp', _ => par (det tp') (det q')
+          | Ret _, _ => det (q')
+          | _, _ => @fail
+          end
+    in fail (n + m + (n * m)).
+ *)
+
+  Definition fail : ctree :=
+    x <- trigger FailE ;;
+      match (x : void) with end.
 
   CoFixpoint par (p q : ctree) : ctree :=
-    let par_left (p' q' : ctree) : ctree :=
-        match p', q' with
-        | Vis (ActE l) k, _ => Vis (ActE l) (fun _ => par (k tt) q')
-        | Tau tp', _ => Tau (par tp' q')
-        | Ret _, _ => Tau q'
+    let par_left (p' q' : ctree) :=
+       match p', q' with
+        | Vis (ActE l) k, _ => trigger (ActE l) ;; par (k tt) q'
+        | Tau tp', _ => par tp' q'
+        | Ret _, _ => q'
         | _, _ => fail
         end
     in
     let par_right (p' q' : ctree) : ctree :=
         match p', q' with
-        | _, Vis (ActE l) k => Vis (ActE l) (fun _ => par (k tt) p')
-        | _, Tau tq' => Tau (par p' tq')
-        | _, Ret _ => Tau p'
+        | _, Vis (ActE l) k => trigger (ActE l) ;; par (k tt) p'
+        | _, Tau tq' => par p' tq'
+        | _, Ret _ => p'
         | _, _ => fail
         end
     in
@@ -290,7 +337,7 @@ Section DenoteCCS.
         | Vis (ActE (Visible (In pl))) pk, Vis (ActE (Visible (Out ql))) qk
         | Vis (ActE (Visible (Out pl))) pk, Vis (ActE (Visible (In ql))) qk =>
           if pl ≡? ql then
-            Vis (ActE Silent) (fun _ => par (pk tt) (qk tt))
+            trigger (ActE Silent) ;; par (pk tt) (qk tt)
           else
             fail
         | _, _ => fail
@@ -305,10 +352,10 @@ Section DenoteCCS.
           then par_right p (k2 (n0 - n1))
           else par_comm (k1 ((n0 - n1 - n2) mod n2)) (k2 ((n0 - n1 - n2) / n1)))
     | _, _ =>
-      Vis (OrE 3) (fun n0 : nat =>
-                     if beq_nat n0 0 then par_left p q
-                     else if beq_nat n0 1 then par_right p q
-                          else par_comm p q)
+      Vis (OrE 3) (fun x : nat =>
+      if beq_nat x 0 then par_left p q
+      else if beq_nat x 1 then par_right p q
+          else par_comm p q)
     end
   .
 
@@ -331,15 +378,17 @@ Section DenoteCCS.
 
   Fixpoint denote_ccs (prog : ccs) : ctree :=
     match prog with
-    | Zero => ret tt
+    | Zero => Ret tt
     | Or (vp, p) (vq, q) =>
       let dp := denote_ccs p in
       let dq := denote_ccs q in
-      Vis (OrE 2) (fun (n : nat) => if beq_nat n 0 then Vis (ActE (Visible vp)) (fun _ => dp)
-                                 else Vis (ActE (Visible vq)) (fun _ => dp))
+      x <- trigger (OrE 2);;
+        if beq_nat x 0 then
+          trigger (ActE (Visible vp)) ;; dp
+        else trigger (ActE (Visible vq)) ;; dp
     | Act l p =>
       let dp := denote_ccs p in
-      Vis (ActE l) (fun _ => dp)
+      trigger (ActE l) ;; dp
     | Par p q =>
       let dp := denote_ccs p in
       let dq := denote_ccs q in
@@ -355,13 +404,35 @@ Section DenoteCCS.
 
   (*Compute (burn 100 (denote_ccs (Bang (Proc (Or Zero Zero))))). *)
 
+  Inductive CCS_handler : eff ~> PropT eff :=
+    | CCSAct: forall l, CCS_handler (ActE l) (trigger (ActE l))
+    | CCSOr: forall (n x: nat), x <= n -> CCS_handler (OrE n) (Ret x)
+  .
+
+  Definition interp_CCS : itree eff ~> PropT eff :=
+    interp_prop (CCS_handler).
+
+  Definition model_CCS (c : ccs) : PropT eff unit :=
+    interp_CCS (denote_ccs c).
+
+  Definition model := PropT eff unit.
+
+  Definition model_eq (ml mr : model): Prop :=
+    forall t, ml t -> mr t /\ mr t -> ml t.
+
+  Infix "⩭" := (model_eq) (at level 30).
+
   (* TODO: Equational properties that should hold over our denotation.
      (Sanity check..) *)
   Theorem par_zero_unit:
-    forall p, denote_ccs (Par Zero p) ≈ denote_ccs p.
-  Proof. Admitted.
+    forall (p : ccs), model_CCS (p) ⩭ model_CCS (Par p Zero).
+  Proof.
+    intro. destruct p; cbn; unfold model_CCS; cbn;
+             unfold interp_CCS; unfold interp_prop;
+               unfold model_eq; intros; try intuition.
+  Qed.
 
-  (** *Verifying full abstraction *)
+  (** * Full abstraction *)
 
   Inductive ctree_cong : ctree -> ctree -> Prop :=
   (* II. Ambiguity *)
@@ -422,4 +493,3 @@ Theorem full_abstraction :
   forall p q, ctree_equiv (denote_ccs p) (denote_ccs q) -> weak_bisimulation p q.
 Proof. Admitted.
 
-(* TODO: Write handler for denotation. (Prop or State monad?) *)
