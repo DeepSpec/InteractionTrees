@@ -32,6 +32,9 @@ Require Import PropT.
    - Strongly Guarded: for any summation, the top level process is a visible
                        action.
 
+   Idea(?) : Instead of interpreting non-determination as an uninterpreted event,
+   let's model them using K-Trees.
+
    We also attempted to impose an extra guardedness condition on the
    non-deterministic continuations: namely, that the immediate continuations
    must be an action event and cannot be a silent step.
@@ -261,6 +264,51 @@ Section DenoteCCS.
 
   Definition ctree := itree eff unit.
 
+(*
+  (* "CTree": Nondeterministic choice trees, as ktrees. *)
+  Definition ctree (n : nat) := ktree eff nat unit.
+
+  (* "DTree": Deterministic trees. *)
+  Definition dtree := itree eff unit.
+
+  Definition zero : ctree 0 := fun _ => Ret tt.
+
+  Definition fail (n : nat) : ctree n :=
+    fun _ => x <- trigger FailE ;;
+      match (x : void) with end.
+
+  Typeclasses eauto := 5.
+  Definition choose (n : nat) (k : ctree n) (x : nat) :=
+    match k in (ctree n)
+  Definition choose (n : nat) (k : ctree n) (x : nat) : x <= n -> ctree n :=
+    match x return x <= n -> ctree n with
+      | 0 => fun pf : 0 <= n =>
+      c <- trigger (ChooseE x) ;;
+        if x <? n
+        then k c
+        else @fail 1 1
+      | _ => fun _ =>
+               fun _ => fail 1 1
+    end
+  .
+
+  Definition det (k : dtree) : ctree 1 := @choose 1 (fun _ => k).
+
+  CoFixpoint par {n m : nat} (p : ctree n) (q : ctree m) :
+    ctree (n + m + (n * m)) := 
+    let par_left (p' q' : dtree) :=x
+        fun (x : nat) =>
+          match p', q' with
+          | Vis (ActE l) k, _ =>
+            trigger (ActE l) ;;
+                    par (det (k tt)) (det q')
+          | Tau tp', _ => par (det tp') (det q')
+          | Ret _, _ => det (q')
+          | _, _ => @fail
+          end
+    in fail (n + m + (n * m)).
+ *)
+
   Definition fail : ctree :=
     x <- trigger FailE ;;
       match (x : void) with end.
@@ -358,7 +406,6 @@ Section DenoteCCS.
     end
   .
 
-  (** *Interpretation of CCS model *)
   Inductive CCS_handler : eff ~> PropT eff :=
     | CCSAct: forall l, CCS_handler (ActE l) (trigger (ActE l))
     | CCSOr: forall (n x: nat), x <= n -> CCS_handler (OrE n) (Ret x)
