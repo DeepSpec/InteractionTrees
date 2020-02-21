@@ -166,17 +166,6 @@ Variant ImpState : Type -> Type :=
 Section par.
   Context {E : Type -> Type} {T U : Type}.
   Context {HasChoice : nondetE -< E}.
-
-  (*
-  match t1, t2 with
-    | Ret _ _ a, _ => t2
-    | _, Ret _ _ a => t1
-    | Tau _ _ t'1, Tau _ _ t'2 => Vis _ _ (inr Or) (fun b : bool => if b then par t'1 t2 else par t1 t'2)
-    | Tau _ _ t'1, Vis _ _ e2 c2 => Vis _ _ (inr Or) (fun b : bool => if b then par t'1 t2 else Vis _ _ e2 (fun x => par t1 (c2 x)))
-    | Vis _ _ e1 c1, Tau _ _ t'2 => Vis _ _ (inr Or) (fun b : bool => if b then Vis _ _ e1 (fun x => par (c1 x) t2) else par t1 t'2)
-    | Vis _ _ e1 c1, Vis _ _ e2 c2 =>  Vis _ _ (inr Or) (fun b : bool => if b then Vis _ _ e1 (fun x => par (c1 x) t2) else  Vis _ _ e2 (fun x => par t1 (c2 x)))
-  end.
-   *)
   
   Definition _par
              (par : itree E unit -> itree E unit -> itree E unit)
@@ -189,9 +178,14 @@ Section par.
       b <- trigger Or ;;
       (if (b:bool) then Tau (par t'1 (go t2)) else Tau (par (go t1) t'2))
     | TauF t'1, VisF e2 c2 =>
-      b <- trigger Or;;
+      b <- trigger Or ;;
       (if (b:bool) then Tau (par t'1 (go t2)) else Vis e2 (fun x => par (go t1) (c2 x)))
-    | _, _ => Ret tt
+    | VisF e1 c1, TauF t'2 =>
+      b <- trigger Or ;;
+      (if (b:bool) then Vis e1 (fun x => par (c1 x) (go t2)) else Tau (par (go t1) t'2))
+    | VisF e1 c1, VisF e2 c2 =>
+      b <- trigger Or ;;
+      (if (b:bool) then Vis e1 (fun x => par (c1 x) (go t2)) else Vis e2 (fun x => par (go t1) (c2 x)))
     end.
 
   CoFixpoint par' (t1 t2 : itree E unit) : itree E unit :=
@@ -388,16 +382,26 @@ Definition interp_imp1  {E A} (t : itree (ImpState +' E) A) : stateT env (itree 
   let t' := interp (bimap handle_ImpState (id_ E)) t in
   interp_map t'.
 
+Definition PropT (E: Type -> Type) (R: Type): Type := itree E R -> Prop.
+
+Definition handle_Or {E} : nondetE ~> PropT E :=
+  fun R e =>
+    match e with
+    | Or => (fun t => t = Ret true \/ t = Ret false)
+    end.
+
 
 CoInductive stream := cons (b : bool) (s : stream).
 
-Definition handle_Or {E} : nondetE ~> stateT stream (itree E) :=
+(* Definition handle_Or {E} : nondetE ~> stateT stream (itree E) :=
   fun _ e s =>
     match e with
     | Or => match s with
            | cons b s' => Ret (s', b)
            end
     end.
+
+About handle_Or.
 
 Definition eval_imp (s: stmt) : stream -> env -> itree void1 (stream * (env * unit)) :=
   fun strm env =>
@@ -412,7 +416,8 @@ Definition example2 : stmt :=
   (("x" ::= Lit 1) ||| (If (Var "x") ("y" ::= Lit 1) ("y" ::= Lit 2))).
 
 Compute (burn 200 (eval_imp example2 ones empty)).
-
+Compute (burn 200 (eval_imp example2 zeros empty)).
+*)
 
 (** Equipped with this evaluator, we can now compute.
     Naturally since Coq is total, we cannot do it directly inside of it.
