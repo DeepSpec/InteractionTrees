@@ -22,7 +22,12 @@ From ITree Require Import
      ITree
      ITreeFacts
      Basics.Category
-     Basics.CategorySub.
+     Basics.CategorySub
+     Basics.MonadEither
+     Basics.Monad.
+From ExtLib Require Import
+     EitherMonad.
+
 (* end hide *)
 
 (* Type with [n] inhabitants. *)
@@ -60,7 +65,17 @@ Proof.
   contradiction.
 Qed.
 
-Instance FinInitial {E} : Initial (sub (ktree E) fin) 0 := fun _ => fin_0.
+Section WithMonad.
+
+Variable M: Type -> Type.
+Context {EQM : EqM M}.
+Context {HM: Monad M}.
+Context {HEQP: @EqMProps M _ EQM}.
+Context {ML: @MonadLaws M _ HM}.
+
+Notation ktree := (Kleisli M).
+
+Global Instance FinInitial : Initial (sub ktree fin) 0 := fun _ => fin_0.
 
 Lemma split_fin_helper:
   forall n m x : nat, x < n + m -> ~ x < n -> x - n < m.
@@ -82,7 +97,7 @@ Defined.
 Program Definition L {n} (m : nat) (a : fin n) : fin (n + m) := _.
 Next Obligation.
   destruct a.
-  exists x. apply PeanoNat.Nat.lt_lt_add_r.  assumption.
+  exists x. apply PeanoNat.Nat.lt_lt_add_r. assumption.
 Defined.
 
 Program Definition R {m} (n:nat) (a:fin m) : fin (n + m) := _.
@@ -187,30 +202,30 @@ Proof.
     try contradiction + exfalso; lia.
 Qed.
 
-Instance ToBifunctor_ktree_fin {E} : ToBifunctor (ktree E) fin sum Nat.add :=
-  fun n m y => Ret (split_fin_sum n m y).
+Global Instance ToBifunctor_ktree_fin  : ToBifunctor ktree fin sum Nat.add :=
+  fun n m y => ret (split_fin_sum n m y).
 
-Instance FromBifunctor_ktree_fin {E} : FromBifunctor (ktree E) fin sum Nat.add :=
-  fun n m y => Ret (merge_fin_sum n m y).
+Global Instance FromBifunctor_ktree_fin : FromBifunctor ktree fin sum Nat.add :=
+  fun n m y => ret (merge_fin_sum n m y).
 
-Instance IsoBif_ktree_fin {E}
-  : forall a b, Iso (ktree E) (a := fin (Nat.add a b)) to_bif from_bif.
+Global Instance IsoBif_ktree_fin
+  : forall a b, Iso ktree (a := fin (Nat.add a b)) to_bif from_bif.
 Proof.
   unfold to_bif, ToBifunctor_ktree_fin, from_bif, FromBifunctor_ktree_fin.
   constructor; intros x.
   - unfold cat, Cat_sub, Cat_Kleisli. cbn. rewrite bind_ret_l.
-    apply eqit_Ret, merge_split.
+    rewrite merge_split; reflexivity.
   - unfold cat, Cat_sub, Cat_Kleisli. cbn. rewrite bind_ret_l.
-    apply eqit_Ret, split_merge.
+    rewrite split_merge; reflexivity.
 Qed.
 
-Instance ToBifunctor_Fun_fin : ToBifunctor Fun fin sum Nat.add :=
+Global Instance ToBifunctor_Fun_fin : ToBifunctor Fun fin sum Nat.add :=
   fun n m y => split_fin_sum n m y.
 
-Instance FromBifunctor_Fun_fin : FromBifunctor Fun fin sum Nat.add :=
+Global Instance FromBifunctor_Fun_fin : FromBifunctor Fun fin sum Nat.add :=
   fun n m y => merge_fin_sum n m y.
 
-Instance IsoBif_Fun_fin
+Global Instance IsoBif_Fun_fin
   : forall a b, Iso Fun (a := fin (Nat.add a b)) to_bif from_bif.
 Proof.
   constructor; intros x.
@@ -218,7 +233,9 @@ Proof.
   - apply split_merge.
 Qed.
 
-Instance InitialObject_ktree_fin {E} : InitialObject (sub (ktree E) fin) 0.
+Global Instance InitialObject_ktree_fin : InitialObject (sub ktree fin) 0.
 Proof.
   intros n f x; apply fin_0; auto.
 Qed.
+
+End WithMonad.

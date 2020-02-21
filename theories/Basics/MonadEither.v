@@ -73,43 +73,6 @@ Section Either.
     | inr (inr b) => inr (inr b)
     end.
 
-  (* Definition iso_inv {a b:Type} (sab : (S * a) + (S * b)) : S * (a + b) := *)
-  (*   match sab with *)
-  (*   | inl (s, a) => (s, inl a) *)
-  (*   | inr (s, b) => (s, inr b) *)
-  (*   end. *)
-
-  (* Definition internalize {a b:Type} (f : Kleisli (eitherT S M) a b) : Kleisli M (S * a) (S * b) := *)
-  (*   fun (sa : S * a) => f (snd sa) (fst sa). *)
-
-  (* Lemma internalize_eq {a b:Type} (f g : Kleisli (eitherT S M) a b) : *)
-  (*   eq2 f g <-> eq2 (internalize f) (internalize g). *)
-  (* Proof. *)
-  (*   split. *)
-  (*   - intros. *)
-  (*     repeat red. destruct a0. *)
-  (*     unfold internalize. cbn.  apply H. *)
-  (*   - intros. *)
-  (*     repeat red. intros. *)
-  (*     unfold internalize in H. *)
-  (*     specialize (H (a1, a0)). *)
-  (*     apply H. *)
-  (* Qed. *)
-
-
-  (* Lemma internalize_pure {a b c} (f : Kleisli (eitherT S M) a b) (g : S * b -> S * c) : *)
-  (*   internalize f >>> pure g   ⩯   (internalize (f >>> (fun b s => ret (g (s,b))))). *)
-  (* Proof. *)
-  (*   repeat red. *)
-  (*   destruct a0. *)
-  (*   unfold internalize, cat, Cat_Kleisli. cbn. *)
-  (*   apply Proper_bind; auto. *)
-  (*   - reflexivity. *)
-  (*   - repeat red. *)
-  (*     destruct a1. *)
-  (*     unfold pure. reflexivity. *)
-  (* Qed. *)
-
   Definition internalize {a b:Type} (f : Kleisli (eitherT A M) a b) : Kleisli M a (A + b) :=
     fun x => let '(mkEitherT y) := f x in y.
 
@@ -117,25 +80,11 @@ Section Either.
     fun (a b: Type) (f: a -> (eitherT A M (a + b))) x =>
       mkEitherT (iter ((internalize f) >>> (pure iso)) x).
 
-  (* Instance proper_internalize: Proper (eqm ==> eq2) internalize. *)
-
   Instance proper_internalize {a b}: Proper (eq2 ==> eq2) (@internalize a b).
   intros x y H o; specialize (H o).
   unfold internalize; destruct (x o), (y o).
   apply H.
   Qed.
-
-  (* Lemma internalize_cat {a b c} (f : Kleisli (eitherT A M) a b) (g : Kleisli (eitherT A M) b c) : *)
-  (*   (internalize (f >>> g)) ⩯ ((internalize f) >>> (internalize g)). *)
-  (* Proof. *)
-  (*   repeat red. *)
-  (*   destruct a0. *)
-  (*   cbn. *)
-  (*   unfold internalize. *)
-  (*   unfold cat, Cat_Kleisli. *)
-  (*   cbn. *)
-  (*   reflexivity. *)
-  (* Qed. *)
 
   Global Instance Proper_Iter_eitherTM : forall a b, @Proper (Kleisli (eitherT A M) a (a + b) -> (Kleisli (eitherT A M) a b)) (eq2 ==> eq2) iter.
   Proof.
