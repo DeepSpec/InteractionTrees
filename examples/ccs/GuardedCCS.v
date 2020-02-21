@@ -253,7 +253,7 @@ Section DenoteCCS.
 
   Infix "≡?" := (eq_idx) (at level 70).
 
-  Variant eff : Type -> Type :=
+  Inductive eff : Type -> Type :=
   | ActE (x : visible) : eff unit
   | OrE (n : nat) : eff nat
   | FailE : eff void
@@ -323,9 +323,11 @@ Section DenoteCCS.
     iter (C := Kleisli _) (fun prc => trigger p;;
                              ret (inl p)) p. *)
 
-  (* TODO *)
-  Definition bang (p : ctree) : ctree :=
-    iter (C := Kleisli _) (fun _ => par p p ;; ret (inl p)) p.
+  Definition bang (p : itree eff unit): itree eff unit :=
+      iter (a := ctree -> ctree)
+         (b := unit)
+         (C := Kleisli _) (fun (k : ctree -> ctree) =>
+                             ret (inl (par (k p)))) (par p).
 
   Fixpoint denote_ccs (prog : ccs) : ctree :=
     match prog with
@@ -359,6 +361,7 @@ Section DenoteCCS.
   .
 
   (** *Interpretation of CCS model *)
+
   Inductive CCS_handler : eff ~> PropT eff :=
     | CCSAct: forall l, CCS_handler (ActE l) (trigger (ActE l))
     | CCSOr: forall (n x: nat), x <= n -> CCS_handler (OrE n) (Ret x)
@@ -382,8 +385,9 @@ Section DenoteCCS.
       unfold interp_CCS; unfold interp_prop;
         unfold model_eq; intros; try intuition.
 
+  (** *Algebraic Properties of Denotation *)
   (* Equational properties that should hold over our denotation.
-     (Good sanity check.) *)
+     (Good sanity check *and* evidence that our model is nice.) *)
   Lemma par_unit:
     forall (p : ccs), model_CCS p ⩭ model_CCS (Par p Zero).
   Proof.
@@ -430,7 +434,7 @@ Section DenoteCCS.
     intro; destruct p; destruct q; model_crush.
   Qed.
 
-  (** *Full Abstraction Theorem:
+  (** *Full Abstraction Theorem
      The notion of weak bisimulation in operational semantics coincides with
      model equivalence. *)
   Theorem full_abstraction:
