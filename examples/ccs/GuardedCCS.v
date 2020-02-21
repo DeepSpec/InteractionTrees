@@ -6,6 +6,8 @@ From ITree Require Import
      Divergence
 .
 
+From Paco Require Import paco.
+
 From ExtLib Require Import
      Structures.Monad.
 
@@ -271,6 +273,7 @@ Section DenoteCCS.
         | Vis (ActE l) k, _ => trigger (ActE l) ;; par (k tt) q'
         | Tau tp', _ => par tp' q'
         | Ret _, _ => q'
+        | Vis (OrE _) _, Vis (OrE _) _ => par p' q'
         | _, _ => fail
         end
     in
@@ -279,6 +282,7 @@ Section DenoteCCS.
         | _, Vis (ActE l) k => trigger (ActE l) ;; par (k tt) p'
         | _, Tau tq' => par p' tq'
         | _, Ret _ => p'
+        | Vis (OrE _) _, Vis (OrE _) _ => par p' q'
         | _, _ => fail
         end
     in
@@ -290,6 +294,7 @@ Section DenoteCCS.
             Tau (par (pk tt) (qk tt))
           else
             fail
+        | Vis (OrE _) _, Vis (OrE _) _ => par p' q'
         | _, _ => fail
         end
     in
@@ -317,7 +322,7 @@ Section DenoteCCS.
         ActE (match_visible x a)
       | x => x
       end.
-
+  
   (* Anomaly "cannot define an evar twice." *)
   (* Definition bang (p : ctree) : ctree :=
     iter (C := Kleisli _) (fun prc => trigger p;;
@@ -327,7 +332,23 @@ Section DenoteCCS.
       iter (a := ctree -> ctree)
          (b := unit)
          (C := Kleisli _) (fun (k : ctree -> ctree) =>
-                             ret (inl (par (k p)))) (par p).
+                             ret (inl (par (k p)))) (fun x => Ret tt).
+  
+  Lemma bang_unfold:
+    forall p, (bang p) ≈ par p (bang p).
+  Proof.
+    intros. unfold bang at 1.
+    match goal with
+      |- iter ?body ?a ≈ _ => generalize (iter_unfold body);
+                              intro eq; specialize (eq a)
+    end.
+    rewrite eq. cbn. rewrite bind_ret_l. cbn.  match goal with
+      |- iter ?body ?a ≈ _ => generalize (iter_unfold body);
+                              intro eq'; specialize (eq' a)
+    end.
+    rewrite eq'. cbn. rewrite bind_ret_l. cbn.
+    unfold bang at 1. pcofix CIH. pstep.
+  Admitted.
 
   Fixpoint denote_ccs (prog : ccs) : ctree :=
     match prog with
@@ -376,14 +397,14 @@ Section DenoteCCS.
   Definition model := PropT eff unit.
 
   Definition model_eq (ml mr : model): Prop :=
-    forall t, ml t -> mr t /\ mr t -> ml t.
+    forall t, (ml t -> mr t) /\ (mr t -> ml t).
 
   Infix "⩭" := (model_eq) (at level 30).
 
   Ltac model_crush :=
     cbn; unfold model_CCS; cbn;
       unfold interp_CCS; unfold interp_prop;
-        unfold model_eq; intros; try intuition.
+        unfold model_eq; intros; intuition.
 
   (** *Algebraic Properties of Denotation *)
   (* Equational properties that should hold over our denotation.
@@ -392,7 +413,8 @@ Section DenoteCCS.
     forall (p : ccs), model_CCS p ⩭ model_CCS (Par p Zero).
   Proof.
     intro; destruct p; model_crush.
-  Qed.
+    - admit.
+  Admitted.
 
   Lemma par_reflexive:
     forall (p : ccs), model_CCS p ⩭ model_CCS (Par p p).
@@ -431,7 +453,7 @@ Section DenoteCCS.
     forall (p q : ccs), weak_bisimulation p q ->
                    model_CCS p ⩭ model_CCS q.
   Proof.
-    intro; destruct p; destruct q; model_crush.
+    intro; destruct p; destruct q. model_crush.
   Qed.
 
   (** *Full Abstraction Theorem
@@ -439,8 +461,10 @@ Section DenoteCCS.
      model equivalence. *)
   Theorem full_abstraction:
     forall (p q : ccs),
-      weak_bisimulation p q -> model_CCS p ⩭ model_CCS q /\
-      model_CCS p ⩭ model_CCS q -> weak_bisimulation p q.
+      (weak_bisimulation p q -> model_CCS p ⩭ model_CCS q) /\
+      (model_CCS p ⩭ model_CCS q -> weak_bisimulation p q).
   Proof.
-    intros; destruct p; destruct q; model_crush.
+    intros; destruct p; destruct q; model_crush. 
+
+    model_crush.
   Qed.
