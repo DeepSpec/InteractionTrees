@@ -225,5 +225,53 @@ Section StateDelaySpec.
           specialize (H0 s p). apply H0. eauto.
   Qed.
 
+  Lemma combine_prepost_aux : forall (A B : Type) (pre1 pre2 : St -> Prop) 
+                (post1 : Delay (St * A) -> Prop ) (post2 : Delay (St * B) -> Prop) 
+    (m : StateDelay A) (f : A -> StateDelay B),
+    verify_cond (encode (post1,pre1) ) m -> 
+    (forall (a : A) (s : St), (* this condition is not exactly what i want*)
+        post1 (Ret (s,a) ) -> post2 (f a s) ) ->
+    ( post1 spin -> post2 spin) ->
+    resp_eutt _ _ post1 ->
+    verify_cond (encode (post2, pre1) ) (bind m f).
+  Proof.
+    intros. repeat red in H. repeat red. intros. 
+    destruct p as [p Hp]. simpl in *.
+    destruct H3. 
+    destruct (eutt_reta_or_div _ (m s) ); basic_solve.
+    - destruct a as [s' a].
+      apply Hp with (t1 := f a s').
+      + rewrite <- H5. simpl. rewrite bind_ret. reflexivity.
+      + apply H4. apply H0.
+        symmetry in H5.
+        apply H2 with (t1 := m s); auto.
+        specialize (H s (exist _ post1 H2) ). simpl in *.
+        apply H; auto.
+    - apply div_spin_eutt in H5. apply Hp with (t1 := spin).
+      + rewrite H5. apply spin_bind.
+      + apply H4. apply H1.
+        apply H2 with (t1 := m s); auto.
+        specialize (H s (exist _ post1 H2) ).
+        simpl in *. apply H; auto.
+   Qed.
+
+  Lemma combine_prepost : forall (A B : Type) (pre1 pre2 : St -> Prop) 
+                (post1 : Delay (St * A) -> Prop ) (post2 : Delay (St * B) -> Prop) 
+    (m : StateDelay A) (f : A -> StateDelay B),
+    verify_cond (encode (post1,pre1) ) m -> 
+    (forall a s, post1 (Ret (s,a)) -> pre2 s)  ->
+    (forall a, verify_cond (encode (post2,pre2) ) (f a)  ) ->
+    ( post1 spin -> post2 spin) ->
+    resp_eutt _ _ post1 ->
+    resp_eutt _ _ post2 ->
+    verify_cond (encode (post2, pre1) ) (bind m f).
+  Proof.
+    intros.
+    eapply combine_prepost_aux; eauto.
+    intros.
+    specialize (H1 a) as Hpp2. repeat red in Hpp2.
+    specialize (Hpp2 s (exist _ post2 H4) ). simpl in *.
+    apply Hpp2. split; eauto. 
+  Qed.
 
 End StateDelaySpec.

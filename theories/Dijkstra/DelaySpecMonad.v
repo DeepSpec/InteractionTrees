@@ -129,7 +129,7 @@ Next Obligation.
   repeat red. cbn. split; intros.
   - red in H. simpl in H. destruct w as [w Hw]. simpl in *. eapply Hw; try apply H.
     intros. simpl in *. destruct p as [p Hp]. simpl in *. basic_solve.
-    +  eapply Hp; eauto. symmetry. auto.
+    + eapply Hp; eauto. symmetry. auto.
     + apply div_spin_eutt in H0. eapply Hp; eauto.
   - red. destruct w as [w Hw]. simpl in *. eapply Hw; try apply H. intros.
     destruct p as [p Hp]. simpl in *.
@@ -195,7 +195,7 @@ Lemma iter_inl_spin : forall (A B : Type) (g : A -> Delay (A + B) ) (a : A),
 Proof.
   intros A B g. einit. ecofix CIH. intros. pinversion H0; try apply not_wf_F_mono'.
   setoid_rewrite unfold_iter_ktree. unfold iter_arrow_rel in Hrel. apply eutt_ret_euttge in Hrel.
-  rewrite Hrel. setoid_rewrite bind_ret. rewrite unfold_spin. etau.
+  rewrite Hrel. rewrite bind_ret. rewrite unfold_spin. etau.
 Qed.
 
 (*eventually might want more general reasoning principle, like weaken the second precondition to only apply

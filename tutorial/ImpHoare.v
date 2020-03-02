@@ -52,6 +52,7 @@ Definition lift_imp_post (P : env -> Prop) : Delay (env * unit) -> Prop :=
   fun (t : Delay (env * unit) ) => (exists (s : env), ret (s, tt) ≈ t /\ P s).
 
 Notation "{{ P }} c {{ Q }}" := (hoare_triple P Q c) (at level 70).
+                                                                     
 
 Definition is_bool (E : Type -> Type) (bc : bool) (be : bexp) (s : env) : Prop :=
    @interp_imp E bool (denote_bexp be) s ≈ ret (s, bc).
@@ -258,7 +259,7 @@ Proof.
   destruct u2 as [s' a]. simpl. rewrite H. reflexivity.
 Qed.
 
-
+(*can actually make this nicer*)
 Lemma compile_while : forall (b : bexp) (c : com), 
                              (denote_imp ( WHILE b DO c END )) ≈ MonadIter_stateT0 unit unit 
                                          (fun _ : unit => bind (interp_imp (denote_bexp b)) 
@@ -608,6 +609,7 @@ Fixpoint compute_aexp (a : aexp) (s : env) : value :=
   | AMult a1 a2 => (compute_aexp a1 s) * (compute_aexp a2 s)
   end.
 
+
 Fixpoint compute_bexp (b : bexp) (s : env)  : bool :=
   match b with
   | BTrue => true
@@ -744,7 +746,8 @@ Qed.
 Lemma lookup_neq : forall (s : env) (x y: var) (v d: value), x <> y -> 
                 lookup_default x d (Maps.add y v s)  = lookup_default x d s.
 Proof.
-  intros. unfold lookup_default. destruct (Maps.lookup x s) eqn : Heq.
+  intros. unfold lookup_default.
+  destruct (Maps.lookup x s) eqn : Heq.
   - assert (Maps.mapsto x n s).
     {  apply Maps.mapsto_lookup. auto. }
     assert (Maps.mapsto x n (Maps.add y v s) ).
@@ -766,6 +769,23 @@ Proof.
   eapply Maps.mapsto_lookup in H. unfold lookup_default. rewrite H. auto.
 Qed.
 
+Definition assign_aexp (P : env -> Prop) (x : var) (a : aexp) : env -> Prop := 
+  fun s => P (Maps.add x (compute_aexp a s) s).
+
+Lemma hoare_assign : forall (P : env -> Prop) (x : var) (a : aexp), 
+    {{assign_aexp P x a}} x ::= a {{P}}.
+Proof.
+  intros. red. intros s s' Hassign Hret. unfold denote_imp in Hret.
+  rewrite compute_assign_sc_tree in Hret. basic_solve. auto.
+Qed.
+
+Lemma hoare_consequence : forall (P0 P1 Q0 Q1: env -> Prop) (c : com),
+    (forall s, P0 s -> P1 s) -> (forall s, Q0 s -> Q1 s) -> 
+    {{P1}} c {{Q0}} -> {{P0}} c {{Q1}}.
+Proof.
+  unfold hoare_triple. intros P0 P1 Q0 Q1 c HP HQ Hc s s' Hs Hcomp.
+  apply HQ. eapply Hc; eauto.
+Qed.
 
 Section SQRTEx.
 
@@ -1051,7 +1071,6 @@ Section SQRTEx.
       - exists s1. split; auto. rewrite <- H. auto.
       - exists s1. rewrite H. split; auto.
     }
-   
     eapply Hpost.
     - Opaque Maps.add. simpl. rewrite bind_ret. simpl. reflexivity.
     - match goal with |- post1 s ?m => enough (post1 (Maps.add i 0 s) m) end.
@@ -1078,6 +1097,16 @@ Section SQRTEx.
     apply diverge_if_not_square_nat_sqrt in Hs' as Hdivs.
     specialize compile_nat_sqrt_body as Hcomp. red in Hcomp. rewrite <- Hcomp.
     auto.
+  Qed.
+  
+  Open Scope list_scope.
+  Lemma both_hold_nat_sqrt : verify_cond env 
+                      (encode_list_dyn env (  (pre1, post1) :: (pre2,post2) :: nil ) ) (denote_imp nat_sqrt).
+  Proof.
+     repeat red. cbn. intros. inversion H; subst.
+     - apply prepost1_holds_nat_sqrt. auto.
+     - inversion H1; subst; try inversion H2.
+       apply prepost2_holds_nat_sqrt. auto.
   Qed.
 
 

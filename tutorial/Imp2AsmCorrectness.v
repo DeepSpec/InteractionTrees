@@ -159,7 +159,7 @@ Section Simulation_Relation.
     fun '(g_imp', v) '(g_asm', (l_asm', _))  =>
       Renv g_imp' g_asm' /\            (* we don't corrupt any of the imp variables *)
       alist_In n l_asm' v /\           (* we get the right value *)
-      (forall m, m < n -> forall v,              (* we don't mess with anything on the "stack" *)
+      (forall m, m < n -> forall v,              (* we don't mess with anything zon the "stack" *)
             alist_In m l_asm v <-> alist_In m l_asm' v).
 
   Lemma sim_rel_find : forall g_asm g_imp l_asm l_asm' n  v,
