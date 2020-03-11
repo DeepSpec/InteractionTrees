@@ -3,7 +3,6 @@ From ITree Require Import
      ITreeFacts
      ITreeDefinition
      Eq
-     Divergence
 .
 
 From Paco Require Import paco.
@@ -21,14 +20,22 @@ From Coq Require Import
      Strings.String
      RelationClasses
      Relations.Relation_Operators
-     ZArith.Int.
+     ZArith.Int
+     Init.Datatypes
+.
 
+Require Import ITree.Eq.EqAxiom.
+
+Require Import Fin.
 
 Set Implicit Arguments.
 Set Contextual Implicit.
 Set Primitive Projections.
 
 Require Import PropT.
+
+  Typeclasses eauto := 5.
+
 
 (** *Strongly Guarded CCS*
    - Strongly Guarded: for any summation, the top level process is a visible
@@ -263,9 +270,10 @@ Section DenoteCCS.
 
   Definition ctree := itree eff unit.
 
-  Definition fail : ctree :=
-    x <- trigger FailE ;;
+  Definition fail : ctree:=
+    x <- trigger FailE;;
       match (x : void) with end.
+
 
   CoFixpoint par (p q : ctree) : ctree :=
     let par_left (p' q' : ctree) :=
@@ -300,14 +308,14 @@ Section DenoteCCS.
     in
     match (observe p), (observe q) with
     | VisF (OrE n1) k1, VisF (OrE n2) k2 =>
-      Vis (OrE (n1 + n2 + (n1 * n2))) (fun n0 : nat =>
+      Tau (n0 <- trigger (OrE (n1 + n2 + (n1 * n2))) ;;
         if beq_nat n0 n1
         then par_left (k1 n0) q
         else if beq_nat n0 (n2 + n2)
           then par_right p (k2 (n0 - n1))
           else par_comm (k1 ((n0 - n1 - n2) mod n2)) (k2 ((n0 - n1 - n2) / n1)))
     | _, _ =>
-      Vis (OrE 3) (fun x : nat =>
+      Tau (x <- trigger (OrE 3) ;;
       if beq_nat x 0 then par_left p q
       else if beq_nat x 1 then par_right p q
           else par_comm p q)
@@ -322,33 +330,85 @@ Section DenoteCCS.
         ActE (match_visible x a)
       | x => x
       end.
-  
-  (* Anomaly "cannot define an evar twice." *)
-  (* Definition bang (p : ctree) : ctree :=
-    iter (C := Kleisli _) (fun prc => trigger p;;
-                             ret (inl p)) p. *)
 
-  Definition bang (p : itree eff unit): itree eff unit :=
-      iter (a := ctree -> ctree)
-         (b := unit)
-         (C := Kleisli _) (fun (k : ctree -> ctree) =>
-                             ret (inl (par (k p)))) (fun x => Ret tt).
-  
+  Import CatNotations.
+
+  Definition test (f : ctree -> ctree -> ctree) (k : ctree -> ctree) :
+    Fun ctree (Fun ctree ctree)
+    :=
+      fun (p : ctree) => f (k p).
+
+  Eval cbv in test.
+
+  Definition bang': (ctree -> ctree -> ctree) -> ctree -> ctree :=
+    fun f p => iter (a := ctree -> ctree)
+           (b := unit)
+           (C := Kleisli _) (fun (k : ctree -> ctree) =>
+                                ret (inl (f (k p)))) (fun x => p).
+
+  Definition bang : ctree -> ctree := bang' par.
+
+
+  Ltac iter_unfold_l :=
+    match goal with
+    | [ |- iter ?body ?a ≈ _] => generalize (iter_unfold body); remember body;
+                          intro; remember a
+    end;
+    match goal with
+    | [ H : iter _ ⩯ _ |- iter _ ?body ≈ _ ] => specialize (H body); subst
+    end;
+    match goal with
+    | [H : ?body ≈ _ |- ?body ≈ _ ] => rewrite H; cbn; rewrite bind_ret_l; cbn;
+                                     clear H
+    end.
+
+  Ltac iter_unfold_r :=
+    match goal with
+    | [ |- _ ≈ iter ?body ?a ] => generalize (iter_unfold body); remember body;
+                          intro; remember a
+    end;
+    match goal with
+    | [ H : iter _ ⩯ _ |- _ ≈ iter _ ?body ] => specialize (H body); subst
+    end;
+    match goal with
+    | [H : ?body ≈ _  |- _ ≈ ?body ] => rewrite H; cbn; rewrite bind_ret_l; cbn;
+                                     clear H
+    end.
+
+  Lemma bang'_cat_left:
+    forall f p, bang' f p ≈ ((f p) >>> (bang' f)) p.
+  Proof.
+    intros. unfold cat, Cat_Fun.
+    unfold bang' at 1.
+    iter_unfold_l. iter_unfold_l. iter_unfold_l.
+    unfold iter, Iter_Kleisli, Basics.iter, MonadIter_itree, ITree.iter.
+    unfold ITree._iter.
+  Admitted.
+
+  (* iter_unfold:
+  forall (obj : Type) (C : obj -> obj -> Type) (Eq2_C : Eq2 C)
+    (Id_C : Id_ C) (Cat_C : Cat C) (bif : obj -> obj -> obj)
+    (Case_C : Case C bif) (Iter_C : Iter C bif),
+  IterUnfold C bif ->
+  forall (a b : obj) (f : C a (bif a b)), iter f ⩯ f >>> case_ (iter f) (id_ b) *)
+
+  Lemma bang'_cat_right:
+    forall f p, bang' f p ≈ ((bang' f) >>> (f p)) p.
+  Proof.
+    einit. ecofix CIH. intros.
+    unfold bang', cat, Cat_Fun.
+    unfold iter, Iter_Kleisli, Basics.iter, MonadIter_itree.
+    ebind.
+    Admitted.
+
   Lemma bang_unfold:
     forall p, (bang p) ≈ par p (bang p).
   Proof.
-    intros. unfold bang at 1.
-    match goal with
-      |- iter ?body ?a ≈ _ => generalize (iter_unfold body);
-                              intro eq; specialize (eq a)
-    end.
-    rewrite eq. cbn. rewrite bind_ret_l. cbn.  match goal with
-      |- iter ?body ?a ≈ _ => generalize (iter_unfold body);
-                              intro eq'; specialize (eq' a)
-    end.
-    rewrite eq'. cbn. rewrite bind_ret_l. cbn.
-    unfold bang at 1. pcofix CIH. pstep.
-  Admitted.
+    pose proof (bang'_cat_left par).
+    unfold cat, Cat_Fun in H.
+    pose proof (bang'_cat_right par).
+    unfold cat, Cat_Fun in H0. intuition.
+  Qed.
 
   Fixpoint denote_ccs (prog : ccs) : ctree :=
     match prog with
@@ -409,62 +469,99 @@ Section DenoteCCS.
   (** *Algebraic Properties of Denotation *)
   (* Equational properties that should hold over our denotation.
      (Good sanity check *and* evidence that our model is nice.) *)
+  Require Import ITree.Eq.EqAxiom.
+
+  Instance interp_ccs_proper {A} :
+    Proper (eutt eq ==> eq ==> eq) (interp (T:= A) CCS_handler).
+  Proof. Admitted.
+
   Lemma par_unit:
+    model_CCS (Par Zero Zero) ⩭ model_CCS (Zero).
+  Proof.
+    model_crush.
+    - admit.
+    - setoid_rewrite itree_eta_ at 1. cbn.
+      match goal with
+        |- interp _ ?tree t => remember tree
+      end. Admitted. 
+
+(*  Lemma par_unit:
     forall (p : ccs), model_CCS p ⩭ model_CCS (Par p Zero).
   Proof.
     intro; destruct p; model_crush.
-    - admit.
+    - unfold par.
+      match goal with
+        |- interp _ (iter ?body ?a) _ => remember body
+      end.
+      generalize (unfold_iter i). intros eq. specialize (eq (Ret tt, Ret tt)).
+
+      rewrite bind_iter in eq.
+      setoid_rewrite eq. 
+      rewrite interp_iter.
+
+       match goal with
+      |- iter ?body ?a ≈ _ => generalize (iter_unfold body);
+                              intro eq; specialize (eq a)
+    end.
+  Admitted. *)
+
+
+  Lemma par_bang:
+    forall (p : ccs), model_CCS (Bang p) ⩭ model_CCS (Par p (Bang p)).
+  Proof.
+    intro; destruct p; model_crush.
   Admitted.
+
 
   Lemma par_reflexive:
     forall (p : ccs), model_CCS p ⩭ model_CCS (Par p p).
   Proof.
     intro; destruct p; model_crush.
-  Qed.
+  Admitted. 
 
   Lemma par_comm:
     forall (p q : ccs), model_CCS (Par p q) ⩭ model_CCS (Par q p).
   Proof.
-    intro; destruct p; destruct q; model_crush.
-  Qed.
+    Admitted.
 
-  Lemma par_assoc:
-    forall (p q r : ccs), model_CCS (Par p (Par q r)) ⩭ model_CCS (Par (Par p q) r).
-  Proof.
-    intro; destruct p; destruct q; destruct r; model_crush.
-  Qed.
+  (* Lemma par_assoc: *)
+  (*   forall (p q r : ccs), model_CCS (Par p (Par q r)) ⩭ model_CCS (Par (Par p q) r). *)
+  (* Proof. *)
+  (*   intro; destruct p; destruct q; destruct r; model_crush. *)
+  (*   - unfol  *)
+  (* Qed. *)
 
-  Lemma or_comm:
-    forall (op oq : visible * ccs), model_CCS (Or op oq) ⩭ model_CCS (Or oq op).
-  Proof.
-    intro; destruct op; destruct oq; model_crush.
-  Qed.
+  (* Lemma or_comm: *)
+  (*   forall (op oq : visible * ccs), model_CCS (Or op oq) ⩭ model_CCS (Or oq op). *)
+  (* Proof. *)
+  (*   intro; destruct op; destruct oq; model_crush. *)
+  (* Qed. *)
 
-  (* To check that our denotation is a sensible model, we prove that the equational
-     properties from our operational semantics is preserved. *)
-  Theorem congruence_preservation:
-    forall (p q : ccs), structural_congruence p q ->
-                   model_CCS p ⩭ model_CCS q.
-  Proof.
-    intro; destruct p; destruct q; model_crush.
-  Qed.
+  (* (* To check that our denotation is a sensible model, we prove that the equational *)
+  (*    properties from our operational semantics is preserved. *) *)
+  (* Theorem congruence_preservation: *)
+  (*   forall (p q : ccs), structural_congruence p q -> *)
+  (*                  model_CCS p ⩭ model_CCS q. *)
+  (* Proof. *)
+  (*   intro; destruct p; destruct q; model_crush. *)
+  (* Qed. *)
 
-  Theorem weak_bisimulation_preservation:
-    forall (p q : ccs), weak_bisimulation p q ->
-                   model_CCS p ⩭ model_CCS q.
-  Proof.
-    intro; destruct p; destruct q. model_crush.
-  Qed.
+  (* Theorem weak_bisimulation_preservation: *)
+  (*   forall (p q : ccs), weak_bisimulation p q -> *)
+  (*                  model_CCS p ⩭ model_CCS q. *)
+  (* Proof. *)
+  (*   intro; destruct p; destruct q. model_crush. *)
+  (* Qed. *)
 
-  (** *Full Abstraction Theorem
-     The notion of weak bisimulation in operational semantics coincides with
-     model equivalence. *)
-  Theorem full_abstraction:
-    forall (p q : ccs),
-      (weak_bisimulation p q -> model_CCS p ⩭ model_CCS q) /\
-      (model_CCS p ⩭ model_CCS q -> weak_bisimulation p q).
-  Proof.
-    intros; destruct p; destruct q; model_crush. 
+  (* (** *Full Abstraction Theorem *)
+  (*    The notion of weak bisimulation in operational semantics coincides with *)
+  (*    model equivalence. *) *)
+  (* Theorem full_abstraction: *)
+  (*   forall (p q : ccs), *)
+  (*     (weak_bisimulation p q -> model_CCS p ⩭ model_CCS q) /\ *)
+  (*     (model_CCS p ⩭ model_CCS q -> weak_bisimulation p q). *)
+  (* Proof. *)
+  (*   intros; destruct p; destruct q; model_crush.  *)
 
-    model_crush.
-  Qed.
+  (*   model_crush. *)
+  (* Qed. *)
