@@ -114,50 +114,20 @@ Section Instance_MayRet.
     + rewrite H. intros.
       cbn. rewrite bind_vis.
       eapply (@ReturnsVis _ _ _ _ _ a).
-      reflexivity.
-
-
-
+  Admitted.
 
 End Instance_MayRet.
 
-
-  (*
-    Goal MayRet t 0.
-    change t with (bind (trigger (Rd x)
-    apply mayret_bind.
-    2: auto.
-    (* MayRet (trigger (Rd x) 0) *)
-
-
-   *)
-
-  Definition ret_f := (fun A (a : A) (ma : m A) => eqm ma (ret a)).
-
-  Lemma ret_f_closed :
-    forall A (a : A), closed_eqm (ret_f A a).
-  Proof.
-    split; intros; unfold ret_f in *;
-      rewrite H0 in *; assumption.
-  Defined.
-
-  Definition bind_f :=
-    fun A B (PA : PropTM A) (K : A -> PropTM B) mb =>
-      exists (ma : m A) (kb : A -> m B),
-        !PA ma /\ (forall a, MayRet ma a -> !(K a) (kb a)) /\
-        Monad.eqm mb (bind ma kb).
-
-
-
-End MayRet.
-
+Arguments mayret {m _} [A].
 
 Section Transformer.
+
 
   Variable (m: Type -> Type).
   Context `{Monad m}.
   Context {EQM : EqM m}.
   Context {ITERM : MonadIter m}.
+  Context {MAYR : MayRet m}.
   Context {HEQP: @EqMProps m _ EQM}.
   Context {HMLAWS: @MonadLaws m EQM _}.
 
@@ -176,8 +146,8 @@ Section Transformer.
     fun A PA PA' => forall x y, eqm x y -> (!PA x <-> !PA' y).
 
   Definition eqm3: forall A, PropTM A -> PropTM A -> Prop :=
-    fun _ P Q => (forall a, !P a -> exists a', eqm a a' /\ !Q a) /\
-              (forall a, !Q a -> exists a', eqm a a' /\ !P a).
+    fun _ P Q => (forall a, !P a -> exists a', eqm a a' /\ !Q a') /\
+              (forall a, !Q a -> exists a', eqm a a' /\ !P a').
 
   Global Instance EqM_PropTM : EqM PropTM := eqm2.
 
@@ -196,6 +166,12 @@ MayRet ma a ~ a = ma
 PA ma /\ (K a mb)
    *)
 
+  Definition bind_f :=
+    fun A B (PA : PropTM A) (K : A -> PropTM B) mb =>
+      exists (ma : m A) (kb : A -> m B),
+        !PA ma /\ (forall a, mayret ma a -> !(K a) (kb a)) /\
+        Monad.eqm mb (bind ma kb).
+
   Lemma bind_f_closed:
     forall A B (PA : PropTM A) (K : A -> PropTM B),
       closed_eqm (bind_f A B PA K).
@@ -204,6 +180,17 @@ PA ma /\ (K a mb)
       (destruct H1 as (ma & kb & HPA & HK & HEQa); exists ma, kb;
        rewrite H0 in *; repeat (split; try assumption)).
   Defined.
+
+
+  Definition ret_f := (fun A (a : A) (ma : m A) => eqm ma (ret a)).
+
+  Lemma ret_f_closed :
+    forall A (a : A), closed_eqm (ret_f A a).
+  Proof.
+    split; intros; unfold ret_f in *;
+      rewrite H0 in *; assumption.
+  Defined.
+
 
   Global Instance Monad_PropTM : Monad (PropTM) :=
     {|
@@ -224,12 +211,16 @@ PA ma /\ (K a mb)
 
 End Transformer.
 
-Section BAR.
+
+(* IY: [For Kento]: Monad laws for PropTM!
+                    Let me know if you have any questions. :-) *)
+Section Laws.
 
   Variable (m: Type -> Type).
   Context `{Monad m}.
   Context {EQM : EqM m}.
   Context {ITERM : MonadIter m}.
+  Context {MAYR : MayRet m}. 
   Context {HEQP: @EqMProps m _ EQM}.
   Context {HMLAWS: @MonadLaws m EQM _}.
 
@@ -242,72 +233,33 @@ Section BAR.
       destruct P; eapply c; eauto; rewrite Heq; reflexivity.
   Qed.
 
-  Arguments MayRet [m _ A] _ _.
-  Axiom return_ret_inv: forall A (a a': A), eqm (ret a) (ret a') -> a = a'.
-
-  Lemma MayRetret_Eq: forall {A} (a b: A), MayRet (ret a) b -> a = b.
-  Proof.
-    intros ? ? ? ?.
-    (* inversion H0; subst. *)
-    dependent induction H0.
-    - apply return_ret_inv.
-      symmetry. rewrite x; reflexivity.
-
-    reflexivity.
-    remember (ret a) as ra.
-    revert Heqra.
-    induction h0.
-    intros ->.
-    - apply return_ret_inv. symmetry; auto.
-    - intros ->.
-      apply IHMayRet2.
-      inversion H0_; subst.
-
-      Set Nested Proofs Allowed.
-      Lemma ret_eq_bind :
-        forall A B (a: A) (ma: m A) (k : A -> m B), eqm (ret a) (bind ma k) ->
-
-
-
-
-
-
-  Lemma ret_bind:
-    forall A B (a : A) (f : A -> PropTM m B),
+  Lemma ret_bind_l:
+    forall A B (f : A -> PropTM m B) (a : A),
       eqm (bind (ret a) f) (f a).
   Proof.
-    intros A B a f b b' HEqb. split.
-    - intros Hb. cbn in *. unfold bind_f in Hb.
-      cbn in *.
-      destruct Hb as (ma & kb & Hma & Hk & Heqb').
-      rewrite HEqb in *.
-      rewrite Heqb'.
-      unfold ret_f in Hma. rewrite Hma.
-      rewrite bind_ret_l. apply Hk.
-      apply mayret_ret. symmetry. apply Hma.
-    - intros Hb.
-      exists (ret a), (fun x => b'). cbn. repeat split.
-      + unfold ret_f. reflexivity.
-      + intros a0 Hmr.
-        remember (ret a) as ra.
-        revert Heqra. intros.
-        apply return_ret_inv in H
-        et Nested Proofs Allowed.
-        Require Import Coq.Program.Equality.
-          (*
-  H0 : ret a0 ≈ ret a
-*)
-          -
-        clear - Hmr.
-        exfalso.
-        clear -Hmr.
-        dependent induction Hmr.
-        admit.
-        clear IHHmr1 IHHmr2.
+  Admitted.
 
-        inversion Hmr; subst.
-    unfold Monad_PropTM.
-    intro mb. split.
-    - intros (ma & kb & HRet & HBind & HEq).
-      rewrite HEq.
-End Transformer.
+  Lemma ret_bind_r:
+    forall A (ma : PropTM m A),
+      eqm (bind ma (fun x => ret x)) ma.
+  Proof.
+  Admitted.
+
+  Lemma bind_bind:
+    forall A B C (ma : PropTM m A) (mab : A -> PropTM m B)
+           (mbc : B -> PropTM m C),
+      eqm (bind (bind ma mab) mbc) (bind ma (fun x => bind (mab x) mbc)).
+  Proof. Admitted.
+
+  Lemma respect_bind :
+  forall a b : Type, Proper (eqm ==> pointwise_relation a eqm ==> @eqm (PropTM m) _ b) bind.
+  Proof.
+  Admitted.
+
+  Global Instance PropTM_Laws : @MonadLaws (PropTM m) _ _.
+  split. apply ret_bind_l.
+  apply ret_bind_r. apply bind_bind.
+  apply respect_bind.
+  Qed.
+
+End Laws.
