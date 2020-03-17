@@ -36,7 +36,7 @@ Section Transformer.
   Definition closed_eqm {A} (P: m A -> Prop) := forall a a', eqm a a' -> (P a <-> P a').
 
   (* Design choice 1: closed or not by construction? *)
-  Definition PropTM : Type -> Type :=
+  Definition PropTM' : Type -> Type :=
     fun A => {P: m A -> Prop | closed_eqm P}.
 
   (* Design choice 2: (ma = ret a) or eqm ma (ret a)? *)
@@ -55,8 +55,11 @@ Section Transformer.
     fun _ P Q => (forall a, P a -> exists a', eqm a a' /\ Q a) /\
               (forall a, Q a -> exists a', eqm a a' /\ P a).
 
-  (* bind {ret 1} (fun n => if n = 0 then empty set else {ret n})
+  (* bind {ret 1} (fun n => if n = 0 then empty set else {ret n}) K
+     K 1 == {ret 1}
      = empty_set
+kb : nat -> m nat
+     kb 0 € K 0
      ma = ret 1
      What will be my kb?
      kb := fun n =>if n = 0 then ret 0 else (ret n)) for instance
@@ -67,6 +70,7 @@ Section Transformer.
 
   Global Instance EqM_PropTM : EqM PropTM := eqm2.
 
+  (* This should be a typeclass rather? *)
   Inductive MayRet {m: Type -> Type} {M: Monad m}: forall {A}, m A -> A -> Prop :=
   | mayret_ret:  forall A (a: A), MayRet (ret a) a
   | mayret_bind: forall A B (ma: m A) a (k: A -> m B) b,
@@ -102,4 +106,5 @@ Section Transformer.
     intro mb. split.
     - intros (ma & kb & HRet & HBind & HEq).
       rewrite HEq. 
+
 End Transformer.
