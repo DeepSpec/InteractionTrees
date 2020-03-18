@@ -237,7 +237,17 @@ Section Laws.
     forall A B (f : A -> PropTM m B) (a : A),
       eqm (bind (ret a) f) (f a).
   Proof.
-  Admitted.
+    intros A B F a x y Heq. split.
+    - intros comp.
+      destruct comp as [ma comp]. destruct comp as [kb comp].
+      destruct comp as [maRet comp].
+      destruct comp as [mrtF xBind].
+      assert (mrt: (let (mayret) := MAYR in mayret) A ma a).
+      { admit. }
+      apply (mrtF a) in mrt.
+      rewrite Heq in xBind. rename xBind into yBind.
+      rewrite maRet in yBind.
+      
 
   Lemma ret_bind_r:
     forall A (ma : PropTM m A),
