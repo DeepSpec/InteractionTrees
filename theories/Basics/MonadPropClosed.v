@@ -69,8 +69,8 @@ End MayRet.
 Section Instance_MayRet.
 
   Inductive Returns {E} {A: Type} : itree E A -> A -> Prop :=
-  | ReturnsRet: forall a t, t ≈ Ret a -> Returns t a
-  | ReturnsTau: forall a t, Returns t a -> Returns (Tau t) a
+  | ReturnsRet: forall a t,    t ≈ Ret a -> Returns t a
+  | ReturnsTau: forall a t t', t' ≅ Tau t -> Returns t a -> Returns t' a
   | ReturnsVis: forall a {X} (e: E X) (x: X) t k, t ≈ Vis e k -> Returns (k x) a -> Returns t a
   .
   Hint Constructors Returns.
@@ -86,10 +86,12 @@ Section Instance_MayRet.
     - revert y H. induction HRet; intros.
       constructor; rewrite <- H, H0; reflexivity.
       apply IHHRet, eqit_inv_tauL; auto.
+      rewrite <- H0, H; reflexivity.
       econstructor 3; [rewrite <- H0, H; reflexivity | apply IHHRet; reflexivity].
     - revert x H; induction HRet; intros ? EQ.
       constructor; rewrite EQ; eauto.
       apply IHHRet, eqit_inv_tauR; auto.
+      rewrite EQ, H; reflexivity.
       econstructor 3; [rewrite EQ, H; reflexivity | apply IHHRet; reflexivity].
   Qed.
 
@@ -104,6 +106,58 @@ Section Instance_MayRet.
       ITree.bind ma kb ≈ Ret b -> exists a, ma ≈ Ret a /\ kb a ≈ Ret b.
   Proof.
     Admitted. 
+
+  (*
+  Inductive foo E X: itree E X -> Prop :=
+  | ISRet: forall a t, observe t = RetF a -> foo E X t
+  | ISTau: forall t t', observe t = TauF t' -> foo E X t' -> foo E X t.
+
+  Lemma bar: forall E X (a: X) (t: itree E X),
+      t ≈ ret a ->
+      foo E X t.
+  Proof.
+    intros.
+    punfold H.
+    cbn in H.
+    unfold eqit_ in *.
+    cbn in *.
+    remember (observe t) as tl.
+    remember (RetF a) as tr.
+    revert t Heqtl Heqtr.
+    induction H; intros; subst.
+    - econstructor 1.
+      rewrite <- Heqtl.
+      cbn. reflexivity.
+    - discriminate.
+    - discriminate.
+    - econstructor 2; auto.
+      rewrite Heqtl; reflexivity.
+    - discriminate.
+  Qed.
+   *)
+
+  Lemma eutt_ret_returns: forall E X (a: X) (t: itree E X),
+      t ≈ ret a ->
+      Returns t a.
+  Proof.
+    intros.
+    punfold H.
+    cbn in H.
+    unfold eqit_ in *.
+    cbn in *.
+    remember (observe t) as tl.
+    remember (RetF a) as tr.
+    revert t Heqtl Heqtr.
+    induction H; intros; subst.
+    - econstructor 1.
+      rewrite <- Heqtr, Heqtl.
+      rewrite itree_eta; reflexivity.
+    - discriminate.
+    - discriminate.
+    - econstructor 2; auto.
+      rewrite itree_eta, Heqtl; reflexivity.
+    - discriminate.
+  Qed.
 
   Instance ITree_mayret_correct E: @MayRetCorrect _ _ _ (ITree_mayret E).
   split.
