@@ -52,16 +52,16 @@ Section MayRet.
       mayret_ret_refl : forall {A} (a: A), mayret (ret a) a;
       mayret_ret_inj  : forall {A} (a a': A), mayret (ret a) a' -> a = a';
 
-      mayret_bind: forall {A B} (ma: m A) (kb: A -> m B) a b,
+      mayret_bind : forall {A B} (ma: m A) (kb: A -> m B) a b,
           mayret ma a ->
           mayret (kb a) b ->
           mayret (bind ma kb) b;
 
-      mayret_bind': forall {A B} (ma: m A) (kb: A -> m B) b,
+      mayret_bind' : forall {A B} (ma: m A) (kb: A -> m B) b,
           mayret (bind ma kb) b ->
           exists a, mayret ma a /\ mayret (kb a) b;
 
-      mayret_eqm: forall {A: Type}, Proper (eqm ==> @eq A ==> iff) mayret
+      mayret_eqm :> forall {A: Type}, Proper (eqm ==> @eq A ==> iff) mayret
     }.
 
 End MayRet.
@@ -79,11 +79,6 @@ Section Instance_MayRet.
     {| mayret := @Returns E |}.
 
   Require Import Paco.paco.
-  Lemma eutt_ret_vis_abs: forall {X Y E} (x: X) (e: E Y) k, Ret x ≈ Vis e k -> False.
-  Proof.
-    intros.
-    punfold H; inv H.
-  Qed.
 
   Instance Returns_eutt {E A}: Proper (eutt eq ==> @eq A ==> iff) (@Returns E A).
   Proof.
@@ -98,6 +93,18 @@ Section Instance_MayRet.
       econstructor 3; [rewrite EQ, H; reflexivity | apply IHHRet; reflexivity].
   Qed.
 
+  Lemma eutt_ret_vis_abs: forall {X Y E} (x: X) (e: E Y) k, Ret x ≈ Vis e k -> False.
+  Proof.
+    intros.
+    punfold H; inv H.
+  Qed.
+
+  Lemma eutt_bind_ret_abs:
+    forall {E A B} (ma : itree E A) (kb : A -> itree E B) b,
+      ITree.bind ma kb ≈ Ret b -> exists a, ma ≈ Ret a /\ kb a ≈ Ret b.
+  Proof.
+    Admitted. 
+
   Instance ITree_mayret_correct E: @MayRetCorrect _ _ _ (ITree_mayret E).
   split.
   - intros. constructor.
@@ -105,7 +112,8 @@ Section Instance_MayRet.
   - intros. inversion H; subst.
     + apply eqit_inv_ret in H0; assumption.
     + apply eutt_ret_vis_abs in H0; contradiction.
-  - induction 1.
+  - (* mayret_bind *)
+    induction 1.
     + intros. rewrite H.
       cbn. rewrite Eq.bind_ret_l.
       apply H0.
@@ -113,8 +121,41 @@ Section Instance_MayRet.
       apply IHReturns, H0.
     + rewrite H. intros.
       cbn. rewrite bind_vis.
-      eapply (@ReturnsVis _ _ _ _ _ a).
-  Admitted.
+      eapply (@ReturnsVis E B b X e x).
+      * reflexivity.
+      * apply IHReturns. assumption.
+  - (* mayret_bind' *)
+    cbn. intros A B ma kb b H.
+    remember (ITree.bind ma kb) as t.
+    assert (Heq: t ≈ ITree.bind ma kb) by (rewrite Heqt; reflexivity).
+    revert Heq. clear Heqt.
+    induction H; intros.
+    + rewrite H in Heq. clear H.
+      symmetry in Heq.
+      eapply eutt_bind_ret_abs in Heq.
+      destruct Heq as [? [? ?]].
+      exists x. rewrite H, H0.
+      split; constructor; reflexivity.
+    + apply IHReturns. rewrite <- Heq.
+      symmetry. apply tau_eutt.
+    + apply IHReturns. clear IHReturns.
+      rewrite <- Heq. admit. 
+  - (* Proper instance *)
+    intros. constructor.
+    + subst. induction 1.
+      * rewrite <- H. rewrite H0. constructor.
+        reflexivity.
+      * apply IHReturns. rewrite tau_eutt in H.
+        apply H.
+      * rewrite H in H0. clear H.
+        rewrite H0 in *. clear H0.
+        apply IHReturns.
+        inversion H1; subst. rewrite H.
+        -- admit.
+        -- admit.
+        -- rewrite H.
+        eapply ReturnsVis in H1.
+      Admitted.
 
 End Instance_MayRet.
 
