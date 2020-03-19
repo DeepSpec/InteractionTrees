@@ -152,7 +152,6 @@ Section ITree_inversion_lemmas.
     - inversion Heqtr.
   Qed.
 
-  (*
   Lemma eqit_inv_bind_ret:
     forall {E X R1 R2 RR} b1 b2
       (ma : itree E X) (kb : X -> itree E R1) (b: R2),
@@ -199,69 +198,31 @@ Section ITree_inversion_lemmas.
           rewrite itree_eta, Hobma in H1.
           apply eqit_inv_ret in H1; subst.
           rewrite <- H0.
-
-          setoid_rewrite <- tau_eutt at 2.
-          rewrite <- H2, H0.
-          apply eutt_inv_ret in H1; subst; reflexivity.
+          destruct b1; [| inv CHECK].
+          apply eqit_tauL; auto.
       + cbn in *. rewrite eqitree_Tau in H0.
         edestruct IHeqitF as (a & ? & ?);[reflexivity | apply H0 | reflexivity |].
         exists a; split; [| assumption].
-        rewrite itree_eta, Hobma, tau_eutt; auto.
+        destruct b1; [| inv CHECK].
+        rewrite itree_eta, Hobma; apply eqit_tauL; auto.
       + exfalso. cbn in H0; apply eqitree_inv_tau_vis in H0; contradiction.
     - intros. inversion Heqtr.
   Qed.
-   *)
 
   Lemma eutt_inv_bind_ret:
     forall {E A B} (ma : itree E A) (kb : A -> itree E B) b,
       ITree.bind ma kb ≈ Ret b ->
       exists a, ma ≈ Ret a /\ kb a ≈ Ret b.
   Proof.
-    intros.
-    punfold H.
-    unfold eqit_ in *.
-    cbn in *.
-    remember (ITree.bind ma kb) as tl.
-    assert (tl ≅ ITree.bind ma kb) by (subst; reflexivity).
-    clear Heqtl.
-    genobs tl tl'.
-    remember (RetF b) as tr.
-    revert ma kb tl Heqtl' H0 b Heqtr.
-    induction H.
-    - intros; subst.
-      rewrite Heqtl' in *; clear Heqtl'.
-      destruct (observe tl) eqn: Hobtl; inv Heqtr.
-      + rewrite unfold_bind in H0.
-        destruct (observe ma) eqn: Hobma.
-        * exists r. split. rewrite <- Hobma. tau_steps. reflexivity.
-          cbn in *. rewrite <- H0. rewrite itree_eta, Hobtl. reflexivity.
-        * cbn in H0. rewrite itree_eta in H0. rewrite Hobtl in H0.
-          apply eqitree_inv_ret_tau in H0. contradiction.
-        * cbn in H0. rewrite itree_eta, Hobtl in H0.
-          apply eqitree_inv_ret_vis in H0. contradiction.
-    - intros. inversion Heqtr.
-    - intros. inversion Heqtr.
-    - intros. subst.
-      apply simpobs in Heqtl'. rewrite Heqtl' in H0; clear tl Heqtl'.
-      rewrite unfold_bind in H0.
-      destruct (observe ma) eqn: Hobma.
-      + cbn in *.
-        specialize (IHeqitF ma (fun _ => t1) t1 eq_refl).
-        edestruct IHeqitF as (a & ? & ?);[| reflexivity |].
-        * setoid_rewrite itree_eta at 4.
-          rewrite Hobma, Eq.bind_ret_l.
-          reflexivity.
-        * exists a; split; auto.
-          setoid_rewrite <- tau_eutt at 2.
-          rewrite <- H2, H0.
-          rewrite itree_eta, Hobma in H1.
-          apply eutt_inv_ret in H1; subst; reflexivity.
-      + cbn in *. rewrite eqitree_Tau in H0.
-        edestruct IHeqitF as (a & ? & ?);[reflexivity | apply H0 | reflexivity |].
-        exists a; split; [| assumption].
-        rewrite itree_eta, Hobma, tau_eutt; auto.
-      + exfalso. cbn in H0; apply eqitree_inv_tau_vis in H0; contradiction.
-    - intros. inversion Heqtr.
+    intros; apply eqit_inv_bind_ret; auto.
+  Qed.
+
+  Lemma eqitree_inv_bind_ret:
+    forall {E A B} (ma : itree E A) (kb : A -> itree E B) b,
+      ITree.bind ma kb ≅ Ret b ->
+      exists a, ma ≅ Ret a /\ kb a ≅ Ret b.
+  Proof.
+    intros; apply eqit_inv_bind_ret; auto.
   Qed.
 
   Lemma eutt_inv_bind_vis:
