@@ -96,6 +96,8 @@ Section Instance_MayRet.
       econstructor 3; [rewrite EQ, H; reflexivity | apply IHHRet; reflexivity].
   Qed.
 
+  (* Absurd inversion lemmas for eutt and eqitree. *)
+
   Lemma eutt_ret_vis_abs: forall {X Y E} (x: X) (e: E Y) k, Ret x ≈ Vis e k -> False.
   Proof.
     intros.
@@ -119,6 +121,51 @@ Section Instance_MayRet.
   Proof.
     intros. punfold H; inv H.
     inversion CHECK.
+  Qed.
+
+  (* ITree mayret 'Correctness' lemmas. *)
+
+  Lemma ITree_mayret_inj:
+    forall {E: Type -> Type} {A : Type} (a a' : A),
+      @Returns E A (Ret a) a' -> a = a'.
+  Proof.
+    intros.
+    remember (Ret a) as t.
+    assert (Heq: t ≈ Ret a) by (rewrite Heqt; reflexivity).
+    revert Heq. clear Heqt.
+    induction H; subst.
+    + intros. rewrite H in Heq.
+      apply eqit_inv_ret in Heq. symmetry. apply Heq.
+    + rewrite <- tau_eutt in H0.
+      intros. apply IHReturns.
+      rewrite <- Heq.
+      rewrite H. symmetry. apply tau_eutt.
+    + intros.
+      apply IHReturns.
+      rewrite H in Heq. symmetry in Heq.
+      apply eutt_ret_vis_abs in Heq; contradiction.
+  Qed.
+
+  Lemma ITree_mayret_bind:
+    forall {E A B} (ma : itree E A) (kb : A -> itree E B) (a : A) (b : B),
+    Returns ma a ->
+    Returns (kb a) b ->
+    Returns (ITree.bind ma kb) b.
+  Proof.
+    induction 1. cbn in *; intros.
+    + rewrite H.
+      rewrite Eq.bind_ret_l.
+      apply H0.
+    + setoid_rewrite <- tau_eutt in IHReturns at 3.
+      intros.
+      rewrite <- H in IHReturns.
+      apply IHReturns, H1.
+    + intros.
+      cbn in *. rewrite H.
+      rewrite bind_vis.
+      eapply (@ReturnsVis E B b X e x).
+      * reflexivity.
+      * apply IHReturns. assumption.
   Qed.
 
   Lemma eutt_ret_returns: forall E X (a: X) (t: itree E X),
@@ -235,87 +282,62 @@ Section Instance_MayRet.
     intros. punfold H.
   Admitted.
 
-  Lemma ITree_mayret_bind:
-    forall {E A B} (ma : itree E A) (kb : A -> itree E B) (a : A) (b : B),
-    Returns ma a ->
-    Returns (kb a) b ->
-    Returns (ITree.bind ma kb) b.
+  Lemma ITree_mayret_bind_inv:
+    forall {E} (A B : Type) (ma : itree E A) (kb : A -> itree E B) (b : B),
+      Returns (bind ma kb) b ->
+      exists a : A, Returns ma a /\ Returns (kb a) b.
   Proof.
-    induction 1. cbn in *; intros.
-    + rewrite H.
-      rewrite Eq.bind_ret_l.
-      apply H0.
-    + setoid_rewrite <- tau_eutt in IHReturns at 3.
-      intros.
-      rewrite <- H in IHReturns.
-      apply IHReturns, H1.
-    + intros.
-      cbn in *. rewrite H.
-      rewrite bind_vis.
-      eapply (@ReturnsVis E B b X e x).
-      * reflexivity.
-      * apply IHReturns. assumption.
-  Qed.
-
-  Instance ITree_mayret_correct E: @MayRetCorrect _ _ _ (ITree_mayret E).
-  split.
-  - intros. constructor. reflexivity.
-  - intros.
-    remember (ret a) as t.
-    assert (Heq: t ≈ ret a) by (rewrite Heqt; reflexivity).
-    revert Heq. clear Heqt.
-    induction H; subst.
-    + intros. rewrite H in Heq.
-      apply eqit_inv_ret in Heq. symmetry. apply Heq.
-    + rewrite <- tau_eutt in H0.
-      intros. apply IHReturns.
-      rewrite <- Heq.
-      rewrite H. symmetry. apply tau_eutt.
-    + intros.
-      apply IHReturns.
-      rewrite H in Heq. symmetry in Heq.
-      apply eutt_ret_vis_abs in Heq; contradiction.
-  - cbn. apply (@ITree_mayret_bind E).
-  - (* mayret_bind' *)
-    cbn. intros A B ma kb b H.
+    cbn. intros E A B ma kb b H.
     remember (ITree.bind ma kb) as t.
     assert (Heq: t ≈ ITree.bind ma kb) by (rewrite Heqt; reflexivity).
     revert Heq. clear Heqt.
     intros. symmetry in Heq.
     generalize dependent ma.
     generalize dependent kb.
-    induction H.
-    + intros kb ma Heqt.
-      rewrite H in Heqt.
-      apply (eutt_bind_ret_inv ma kb a) in Heqt.
-      destruct Heqt as [? [? ?]].
+    revert A.
+    induction H; intros.
+    + rewrite H in Heq.
+      apply (eutt_bind_ret_inv ma kb a) in Heq.
+      destruct Heq as [? [? ?]].
       exists x. split. apply eutt_ret_returns in H0.
       apply H0. apply eutt_ret_returns in H1.
       apply H1.
-    + intros. eapply IHReturns.
+    + eapply IHReturns.
       rewrite H in Heq.
       rewrite tau_eutt in Heq. apply Heq.
-    + intros. rewrite H in Heq. clear H.
+    + rewrite H in Heq. clear H.
+      generalize Heq. intros Heq'.
       apply eutt_bind_vis_inv in Heq.
       destruct Heq.
-      * admit.
-      * destruct H as [? [? ?]].
-        apply eutt_ret_returns in H.
-        exists x0. split. apply H. admit. 
-  - (* Proper instance *)
-    intros. constructor.
-    + subst. induction 1.
-      * rewrite <- H. rewrite H0. constructor.
-        reflexivity.
-      * apply IHReturns. admit.  
-      Admitted. 
+      * destruct H as (kma & Heqma). setoid_rewrite Heqma.
+        edestruct (IHReturns A kb (kma x)).
+        setoid_rewrite Heqma in Heq'.
+        rewrite bind_vis in Heq'.
+        apply eqit_inv_vis in Heq'. destruct Heq'.
+        specialize (H1 x).
+        rewrite H1. reflexivity.
+        exists x0. split.
+        econstructor 3. reflexivity. apply H. apply H.
+      * destruct H as (a' & (Heqma & Heqk)).
+        edestruct (IHReturns X k (Ret x)).
+        rewrite Eq.bind_ret_l. reflexivity.
+        exists a'. split. constructor. apply Heqma. econstructor 3.
+        apply Heqk. apply H0.
+  Qed.
+
+  Instance ITree_mayret_correct E: @MayRetCorrect _ _ _ (ITree_mayret E).
+  split; cbn.
+  - intros. constructor. reflexivity.
+  - apply (@ITree_mayret_inj E).
+  - apply (@ITree_mayret_bind E).
+  - apply (@ITree_mayret_bind_inv E).
+  - Admitted.
 
 End Instance_MayRet.
 
 Arguments mayret {m _} [A].
 
 Section Transformer.
-
 
   Variable (m: Type -> Type).
   Context `{Monad m}.
