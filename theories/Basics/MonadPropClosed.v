@@ -61,7 +61,7 @@ Section MayRet.
           mayret (bind ma kb) b ->
           exists a, mayret ma a /\ mayret (kb a) b;
 
-      mayret_eqm: forall {A: Type}, Proper (eqm ==> @eq A ==> iff) mayret
+      mayret_eqm :> forall {A: Type}, Proper (eqm ==> @eq A ==> iff) mayret
     }.
 
 End MayRet.
@@ -221,6 +221,7 @@ Section Laws.
   Context {EQM : EqM m}.
   Context {ITERM : MonadIter m}.
   Context {MAYR : MayRet m}. 
+  Context {MAYRC : MayRetCorrect m}.
   Context {HEQP: @EqMProps m _ EQM}.
   Context {HMLAWS: @MonadLaws m EQM _}.
 
@@ -239,14 +240,21 @@ Section Laws.
   Proof.
     intros A B F a x y Heq. split.
     - intros comp.
-      destruct comp as [ma comp]. destruct comp as [kb comp].
-      destruct comp as [maRet comp].
-      destruct comp as [mrtF xBind].
-      assert (mrt: (let (mayret) := MAYR in mayret) A ma a).
-      { admit. }
-      apply (mrtF a) in mrt.
-      rewrite Heq in xBind. rename xBind into yBind.
-      rewrite maRet in yBind.
+      destruct comp as (ma & kb & maRet & goal & xBind).
+      cbn in *. unfold ret_f in *.
+      rewrite <- Heq, xBind, maRet, bind_ret_l.
+      apply goal.
+      rewrite maRet. eapply (mayret_ret_refl).
+      auto.
+    - intros fApp.
+      rewrite Heq. cbn in *. unfold bind_f in *. unfold ret_f in *.
+      exists (ret a). exists (fun _ => y).
+      split.
+      + cbn. reflexivity.
+      + split.
+        * intros a' mRet. eapply mayret_ret_inj in mRet.
+          subst. auto. apply MAYRC.
+        *  
       
 
   Lemma ret_bind_r:
