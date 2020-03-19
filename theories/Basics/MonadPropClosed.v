@@ -254,15 +254,24 @@ Section Laws.
       + split.
         * intros a' mRet. eapply mayret_ret_inj in mRet.
           subst. auto. apply MAYRC.
-        *  
-      
+        * rewrite bind_ret_l. reflexivity.
+ Qed.     
 
   Lemma ret_bind_r:
     forall A (ma : PropTM m A),
       eqm (bind ma (fun x => ret x)) ma.
   Proof.
-  Admitted.
+    intros A PTA.
+    cbn in *. unfold bind_f in *. unfold ret_f in *.
+    split; rewrite H0; clear H0; cbn in *; intros comp.
+    - destruct comp as (ma & kb & Hpta & Hreteq & Hbind).
+      rewrite Hbind.
+      assert (nonEmpty: exists a, mayret ma a).
+      { 
+       
 
+      
+    
   Lemma bind_bind:
     forall A B C (ma : PropTM m A) (mab : A -> PropTM m B)
            (mbc : B -> PropTM m C),
