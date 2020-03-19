@@ -461,11 +461,16 @@ Section Laws.
     - destruct comp as (ma & kb & Hpta & Hreteq & Hbind).
       rewrite Hbind.
       assert (nonEmpty: exists a, mayret ma a).
-      { 
-       
-
+      { admit. (* I feel like this should follow from (! PTA ma)
+        that ma has to return some a. *) }
+      destruct nonEmpty as (a & mRet). eapply Hreteq in mRet.
+      admit.
+    - exists y. exists (fun x => ret x).
+      split; auto. split.
+      + reflexivity.
+      + rewrite bind_ret_r. reflexivity.
       
-    
+      
   Lemma bind_bind:
     forall A B C (ma : PropTM m A) (mab : A -> PropTM m B)
            (mbc : B -> PropTM m C),
