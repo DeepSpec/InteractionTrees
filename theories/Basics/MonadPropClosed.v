@@ -233,8 +233,79 @@ Section ITree_inversion_lemmas.
       (exists (a : A), (ma ≈ Ret a) /\ (kab a ≈ Vis e kxb)).
   Proof.
     intros. punfold H.
-  Admitted.
-
+    unfold eqit_ in *.
+    cbn in *.
+    remember (ITree.bind ma kab) as tl.
+    assert (tl ≅ ITree.bind ma kab) by (subst; reflexivity).
+    clear Heqtl.
+    genobs tl tl'.
+    remember (VisF e kxb) as tr.
+    revert ma kab tl Heqtl' H0 kxb Heqtr.
+    revert A.
+    induction H.
+    - intros; subst; inv Heqtr.
+    - intros; subst; inv Heqtr.
+    - intros; subst.
+      rewrite unfold_bind in H0.
+      destruct (observe ma) eqn: Hobma.
+      + cbn in *; rewrite itree_eta in H0; rewrite <- Heqtl' in H0.
+        right. exists r. split. rewrite itree_eta. rewrite Hobma. reflexivity.
+        rewrite <- H0. apply eqit_Vis.
+        unfold id in REL.
+        unfold upaco2 in REL.
+        intros.
+        destruct (REL u0).
+        * unfold eqit. unfold eqit_. intros. apply H.
+        * inversion H.
+      + cbn in *; rewrite itree_eta in H0; rewrite <- Heqtl' in H0.
+        symmetry in H0.
+        apply eqitree_inv_tau_vis in H0. contradiction.
+      + cbn in *; rewrite itree_eta in H0; rewrite <- Heqtl' in H0.
+        clear Heqtl'.
+        left. unfold id in REL.
+        unfold upaco2 in REL.
+        setoid_rewrite itree_eta at 1.
+        rewrite Hobma. clear Hobma.
+        inv Heqtr.
+        dependent destruction H3.
+        dependent destruction H2.
+        apply eq_itree_inv_vis in H0.
+        edestruct H0 as (? & ? & ?).
+        inv H. dependent destruction H5.
+        dependent destruction H4.
+        exists k. reflexivity.
+    - intros. inv Heqtr.
+      apply simpobs in Heqtl'. rewrite Heqtl' in H0; clear tl Heqtl'.
+      rewrite unfold_bind in H0.
+      destruct (observe ma) eqn: Hobma.
+      + cbn in *.
+        specialize (IHeqitF A ma (fun _ => t1) t1 eq_refl).
+        edestruct IHeqitF as [a | a];[| reflexivity | | ].
+        * setoid_rewrite itree_eta at 4.
+          rewrite Hobma, Eq.bind_ret_l.
+          reflexivity.
+        * left. apply a.
+        * right.
+          destruct a.
+          setoid_rewrite itree_eta in H1 at 1.
+          rewrite Hobma in H1. destruct H1.
+          apply eutt_inv_ret in H1; subst.
+          setoid_rewrite itree_eta at 1.
+          rewrite Hobma.
+          rewrite <- tau_eutt in H2.
+          rewrite H0 in H2.
+          exists x. split; try assumption; reflexivity.
+      + cbn in *. rewrite eqitree_Tau in H0.
+        edestruct IHeqitF as [a | ?];[reflexivity | apply H0 | reflexivity | |].
+        * left. setoid_rewrite itree_eta at 1.
+          rewrite Hobma. setoid_rewrite tau_eutt at 1.
+          assumption.
+        * right. setoid_rewrite itree_eta at 1.
+          rewrite Hobma. setoid_rewrite tau_eutt at 1.
+          assumption.
+      + exfalso. cbn in H0; apply eqitree_inv_tau_vis in H0; contradiction.
+    - intros. inversion Heqtr.
+  Qed.
 
 End ITree_inversion_lemmas.
 
