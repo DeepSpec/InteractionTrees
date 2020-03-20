@@ -525,6 +525,46 @@ End Instance_MayRet.
 
 Arguments mayret {m _} [A].
 
+From ITree Require Import
+     Basics.MonadState.
+
+Import ITree.Basics.Basics.Monads.
+
+Section Instance_MayRet_State.
+  Variable m : Type -> Type.
+  Variable S : Type.
+  Context {EQM : EqM m}.
+  Context {HM: Monad m}.
+  Context {MR: MayRet m}.
+  Context {MRC: MayRetCorrect m}.
+
+  Instance StateT_MayRet: MayRet (stateT S m) :=
+    {|
+      mayret :=
+        fun A (sma: stateT S m A) a =>
+          exists si sf, mayret (sma si) (sf,a)
+    |}.
+
+  (* We need to know that our space of states is inhabited *)
+  Hypothesis s: S.
+
+  Instance StateT_MayRetCorrect: MayRetCorrect (stateT S m).
+  split.
+  - repeat intro.
+    exists s, s; apply (mayret_ret_refl m). 
+  - repeat intro.
+    destruct H as (si & sf & HMR).
+    apply (mayret_ret_inj m) in HMR; inv HMR; reflexivity.
+  - intros A B ma kb a b (si & sj & HMRma) (sj' & sf & HMRkb).
+    exists si, sf.
+    eapply (mayret_bind m).
+    apply HMRma.
+    cbn.
+    (* This cannot hold *)
+  Abort.
+
+End Instance_MayRet_State.
+
 Section Transformer.
 
   Variable (m: Type -> Type).
