@@ -490,13 +490,36 @@ Section Instance_MayRet.
         apply Heqk. apply H0.
   Qed.
 
+  Lemma ITree_mayret_proper :
+    forall {E : Type -> Type} {A : Type}, Proper (eqm ==> eq ==> iff) (@Returns E A).
+  Proof.
+    repeat intro.
+    split; intros; subst; generalize dependent H.
+    - revert y.
+      induction H1.
+      + intros. rewrite H in H0. clear H.
+        constructor. symmetry. apply H0.
+      + intros. rewrite H in H0.
+        rewrite tau_eutt in H0.
+        apply IHReturns in H0. apply H0.
+      + intros. rewrite H in H0.
+        econstructor 3. symmetry. apply H0. apply H1.
+    - revert x.
+      induction H1; intros; rewrite H in H0; clear H.
+      + constructor. apply H0.
+      + rewrite tau_eutt in H0.
+        apply IHReturns in H0. apply H0.
+      + econstructor 3. apply H0. apply H1.
+  Qed.
+
   Instance ITree_mayret_correct E: @MayRetCorrect _ _ _ (ITree_mayret E).
   split; cbn.
   - intros. constructor. reflexivity.
   - apply (@ITree_mayret_inj E).
   - apply (@ITree_mayret_bind E).
   - apply (@ITree_mayret_bind_inv E).
-  - Admitted.
+  - apply (@ITree_mayret_proper E).
+  Qed.
 
 End Instance_MayRet.
 
