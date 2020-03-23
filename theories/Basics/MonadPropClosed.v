@@ -725,7 +725,8 @@ Section Laws.
         } 
         rewrite kb_ret_eq. rewrite bind_ret_r. auto.
       + unfold not in *. (* Div probably contradicts Htpa *)
-        inversion PTA as [maProp Hclosed]. unfold closed_eqm in *. admit.
+        inversion PTA as [maProp Hclosed]. unfold closed_eqm in *. 
+        admit.
     - exists y. exists (fun x => ret x).
       split; auto. split.
       + reflexivity.
@@ -741,7 +742,8 @@ Section Laws.
     split; rewrite H0; clear H0.
     - intros Hleft. cbn in *. unfold bind_f in *. 
       destruct Hleft as (mb & kbmC & comp & HBmrtcont & Hbindy).
-      cbn in *. destruct comp as (ma & kamB & Hpta & HAmrtcont & Hbindmb).
+      cbn in *.
+      destruct comp as (ma & kamB & Hpta & HAmrtcont & Hbindmb).
       exists ma. exists (fun a: A => bind (kamB a) kbmC).
       split; auto. split.
       + intros a mrtA. exists (kamB a). exists kbmC. split; auto.
@@ -750,13 +752,25 @@ Section Laws.
         eapply mayret_bind; eauto.
       + rewrite Hbindy. rewrite Hbindmb.
         apply bind_bind.
-    - admit.
+    - intros Hright.
+      destruct Hright as (ma & kamC & Hpta & comp & Hbindy).
+      cbn in *. unfold bind_f in *. cbn in *.
+      assert (retOrDiv: (forall a, mayret ma a) \/ ~(forall a, (mayret ma a))).
+      apply excluded_middle.
+      destruct retOrDiv as [Hret | Hdiv].
+      + edestruct comp; auto. rename x0 into mb. rename H0 into compI.
+        (* Might not be the right move to edustruct *)
+        destruct compI as (kbmC & Hptb & HBmrtcont & Heq).
+        exists mb. exists kbmC.
+        split.
+        * exists ma. admit.
+        * admit.
+      + admit.
   Admitted.
   Lemma respect_bind :
   forall a b : Type, Proper (eqm ==> pointwise_relation a eqm ==> @eqm (PropTM m) _ b) bind.
   Proof.
   Admitted.
-
   Global Instance PropTM_Laws : @MonadLaws (PropTM m) _ _.
   split. apply ret_bind_l.
   apply ret_bind_r. apply bind_bind.
