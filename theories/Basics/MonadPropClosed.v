@@ -713,7 +713,8 @@ Section Laws.
     split; rewrite H0; clear H0; cbn in *; intros comp.
     - destruct comp as (ma & kb & Hpta & Hreteq & Hbind).
       rewrite Hbind. clear Hbind.
-      assert (retOrDiv: (forall a, mayret ma a) \/ ~(forall a, mayret ma a)). apply excluded_middle.
+      assert (retOrDiv: (forall a, mayret ma a) \/ ~(forall a, mayret ma a)).
+      apply excluded_middle.
       destruct retOrDiv as [mRet | div].
       + assert (kb_ret_eq: bind ma kb ≈ bind ma ret).
         {
@@ -724,8 +725,7 @@ Section Laws.
         } 
         rewrite kb_ret_eq. rewrite bind_ret_r. auto.
       + unfold not in *. (* Div probably contradicts Htpa *)
-        inversion PTA as [maProp Hclosed].
-        
+        inversion PTA as [maProp Hclosed]. unfold closed_eqm in *. admit.
     - exists y. exists (fun x => ret x).
       split; auto. split.
       + reflexivity.
@@ -736,8 +736,22 @@ Section Laws.
     forall A B C (ma : PropTM m A) (mab : A -> PropTM m B)
            (mbc : B -> PropTM m C),
       eqm (bind (bind ma mab) mbc) (bind ma (fun x => bind (mab x) mbc)).
-  Proof. Admitted.
-
+  Proof.
+    intros A B C PTA kaPTB kbPTC.  
+    split; rewrite H0; clear H0.
+    - intros Hleft. cbn in *. unfold bind_f in *. 
+      destruct Hleft as (mb & kbmC & comp & HBmrtcont & Hbindy).
+      cbn in *. destruct comp as (ma & kamB & Hpta & HAmrtcont & Hbindmb).
+      exists ma. exists (fun a: A => bind (kamB a) kbmC).
+      split; auto. split.
+      + intros a mrtA. exists (kamB a). exists kbmC. split; auto.
+        split; try reflexivity.
+        intros b mrtB. apply HBmrtcont. rewrite Hbindmb.
+        eapply mayret_bind; eauto.
+      + rewrite Hbindy. rewrite Hbindmb.
+        apply bind_bind.
+    - admit.
+  Admitted.
   Lemma respect_bind :
   forall a b : Type, Proper (eqm ==> pointwise_relation a eqm ==> @eqm (PropTM m) _ b) bind.
   Proof.
