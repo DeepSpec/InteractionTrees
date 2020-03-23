@@ -1,7 +1,15 @@
+3.1.0
+=====
+
+- Require coq-ext-lib >= 0.11.1
+- Change precedence of `>>=` to level 58 (previously at level 50).
+- Add `tau_eutt` and `tau_euttge` (the latter was actually renamed from
+  `tau_eutt`).
+
 3.0.0
 =====
 
-- Add compatibility with Coq 8.10
+- Add compatibility with Coq 8.10 and 8.11
 
 - Require coq-ext-lib 0.10.3 (only this one version, not 0.10.2 or 0.11.0!)
   for notation compatibility.
