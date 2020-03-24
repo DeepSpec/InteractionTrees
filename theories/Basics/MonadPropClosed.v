@@ -577,6 +577,7 @@ Section Transformer.
 
   Definition closed_eqm {A} (P: m A -> Prop) := forall a a', eqm a a' -> (P a <-> P a').
 
+  Arguments exist {A P}. 
   (* Design choice 1: closed or not by construction? *)
   Definition PropTM : Type -> Type :=
     fun A => {P: m A -> Prop | closed_eqm P}.
@@ -610,6 +611,15 @@ MayRet ma a ~ a = ma
 PA ma /\ (K a mb)
    *)
 
+  Definition ret_f := (fun A (a : A) (ma : m A) => eqm ma (ret a)).
+
+  Lemma ret_f_closed :
+    forall A (a : A), closed_eqm (ret_f A a).
+  Proof.
+    split; intros; unfold ret_f in *;
+      rewrite H0 in *; assumption.
+  Defined.
+
   Definition bind_f :=
     fun A B (PA : PropTM A) (K : A -> PropTM B) mb =>
       exists (ma : m A) (kb : A -> m B),
@@ -625,28 +635,23 @@ PA ma /\ (K a mb)
        rewrite H0 in *; repeat (split; try assumption)).
   Defined.
 
-
-  Definition ret_f := (fun A (a : A) (ma : m A) => eqm ma (ret a)).
-
-  Lemma ret_f_closed :
-    forall A (a : A), closed_eqm (ret_f A a).
-  Proof.
-    split; intros; unfold ret_f in *;
-      rewrite H0 in *; assumption.
-  Defined.
-
-
   Global Instance Monad_PropTM : Monad (PropTM) :=
     {|
-      ret:= fun A (a: A) => (exist _ (ret_f A a) (ret_f_closed A a))
+      ret:= fun A (a: A) => (exist (ret_f A a) (ret_f_closed A a))
       ; bind := fun A B (PA : PropTM A) (K : A -> PropTM B)=>
-                  exist _ (bind_f A B PA K) (bind_f_closed A B PA K)
+                  exist (bind_f A B PA K) (bind_f_closed A B PA K)
       |}.
 
- (* Global Instance MonadIter_Prop : MonadIter PropTM := *)
- (*    fun R I step i r => *)
- (*      exists (step': I -> m (I + R)%type), *)
- (*        (forall j, step j (step' j)) /\ CategoryOps.iter step' i = r. *)
+  Global Instance MonadIter_Prop : MonadIter PropTM.
+  refine (fun R I step i =>
+            exist (fun (r: m R) => exists (step': I -> m (I + R)%type),
+                     (forall j, !(step j) (step' j)) /\
+                     (eqm (m := m)(CategoryOps.iter step' i) r))
+                  _).
+  intros m1 m2 eqm12; split; intros (step' & ISIN & EQ);
+    (exists step'; split; auto);
+    [rewrite <- eqm12 | rewrite eqm12]; auto.
+  Defined.
 
   (* What is the connection (precisely) with this continuation monad? *)
   (* Definition ContM: Type -> Type := fun A => (A -> Prop) -> Prop. *)
@@ -702,15 +707,24 @@ Section Laws.
         * rewrite bind_ret_l. reflexivity.
   Qed.
 
-  Axiom excluded_middle: forall P: Prop,
-      P \/ ~P.
+  (* Stronger Proper? *)
+  Lemma Proper_bind_strong:
+    forall {A B} (ma ma': m A),
+      ma ≈ ma' ->
+      forall (kb kb': A -> m B),
+        (forall a, mayret ma a -> kb a ≈ kb' a) ->
+        (bind ma kb) ≈ (bind ma' kb').
+  Admitted.
 
   (* Stronger monad law? *)
   Lemma bind_mayret_ret: forall {A} ma kb,
       (forall a : A, mayret ma a -> kb a ≈ ret a) ->
       bind ma kb ≈ ma.
   Proof.
-  Admitted.
+    intros.
+    setoid_rewrite <- bind_ret_r at 3.
+    apply Proper_bind_strong; [reflexivity | auto].
+  Qed.
 
   Lemma ret_bind_r:
     forall A (ma : PropTM m A),
@@ -752,6 +766,16 @@ Section Laws.
     - intros Hright.
       destruct Hright as (ma & kamC & Hpta & comp & Hbindy).
       cbn in *. unfold bind_f in *. cbn in *.
+      do 2 eexists.
+         repeat split.
+         exists ma.
+         eexists; repeat split.
+         auto.
+         intros a mr.
+         destruct (comp _ mr) as (mb & kb & H1 & H2 & H3).
+
+
+
       assert (retOrDiv: (forall a, mayret ma a) \/ ~(forall a, (mayret ma a))).
       apply excluded_middle.
       destruct retOrDiv as [Hret | Hdiv].
