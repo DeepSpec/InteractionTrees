@@ -551,7 +551,7 @@ Section Instance_MayRet_State.
   Instance StateT_MayRetCorrect: MayRetCorrect (stateT S m).
   split.
   - repeat intro.
-    exists s, s; apply (mayret_ret_refl m). 
+    exists s, s; apply (mayret_ret_refl m).
   - repeat intro.
     destruct H as (si & sf & HMR).
     apply (mayret_ret_inj m) in HMR; inv HMR; reflexivity.
@@ -692,49 +692,42 @@ Section Laws.
       auto.
     - intros fApp.
       rewrite Heq. cbn in *. unfold bind_f in *. unfold ret_f in *.
-      exists (ret a). exists (fun _ => y).
+      cbn.
+      exists (ret a), (fun _ => y).
       split.
       + cbn. reflexivity.
       + split.
         * intros a' mRet. eapply mayret_ret_inj in mRet.
           subst. auto. apply MAYRC.
         * rewrite bind_ret_l. reflexivity.
- Qed.
+  Qed.
 
   Axiom excluded_middle: forall P: Prop,
-    P \/ ~P.
+      P \/ ~P.
 
+  (* Stronger monad law? *)
   Lemma bind_mayret_ret: forall {A} ma kb,
-    (forall a : A, mayret ma a -> kb a ≈ ret a) ->
-    bind ma kb ≈ ma.
+      (forall a : A, mayret ma a -> kb a ≈ ret a) ->
+      bind ma kb ≈ ma.
   Proof.
   Admitted.
-  
+
   Lemma ret_bind_r:
     forall A (ma : PropTM m A),
       eqm (bind ma (fun x => ret x)) ma.
   Proof.
     intros A PTA.
-    cbn in *. unfold bind_f in *. unfold ret_f in *.
-    split; rewrite H0; clear H0; cbn in *; intros comp.
-    - destruct comp as (ma & kb & Hpta & Hreteq & Hbind).
+    cbn in *. unfold bind_f in *. unfold ret_f in *. cbn.
+    split.
+    - rewrite H0; clear H0; cbn in *; intros comp.
+      destruct comp as (ma & kb & Hpta & Hreteq & Hbind).
       rewrite Hbind. clear Hbind.
-      apply bind_mayret_ret in Hreteq.
-      rewrite Hreteq. auto.
-      
-      (* assert (retOrDiv: (exists a, mayret ma a) \/ ~(exists a, mayret ma a)).
-      apply excluded_middle.
-      destruct retOrDiv as [mRet | div].
-      + destruct mRet as (a & mRet).
-        apply (Hreteq a) in mRet.
-        admit.
-      + unfold not in *.
-        inversion PTA as [maProp Hclosed]. unfold closed_eqm in *. 
-        admit. *)
-    - exists y. exists (fun x => ret x).
-      split; auto. split.
-      + reflexivity.
-      + rewrite bind_ret_r. reflexivity.
+      rewrite bind_mayret_ret; auto.
+    - rewrite H0; clear x H0; cbn in *; intros comp.
+      exists y, (fun a => ret a).
+      repeat split; auto.
+      intros; reflexivity.
+      rewrite bind_ret_r; reflexivity.
   Qed.
 
   Lemma bind_bind:
@@ -742,9 +735,9 @@ Section Laws.
            (mbc : B -> PropTM m C),
       eqm (bind (bind ma mab) mbc) (bind ma (fun x => bind (mab x) mbc)).
   Proof.
-    intros A B C PTA kaPTB kbPTC.  
+    intros A B C PTA kaPTB kbPTC.
     split; rewrite H0; clear H0.
-    - intros Hleft. cbn in *. unfold bind_f in *. 
+    - intros Hleft. cbn in *. unfold bind_f in *.
       destruct Hleft as (mb & kbmC & comp & HBmrtcont & Hbindy).
       cbn in *.
       destruct comp as (ma & kamB & Hpta & HAmrtcont & Hbindmb).
@@ -771,6 +764,7 @@ Section Laws.
         * admit.
       + admit.
   Admitted.
+
   Lemma respect_bind :
   forall a b : Type, Proper (eqm ==> pointwise_relation a eqm ==> @eqm (PropTM m) _ b) bind.
   Proof.
