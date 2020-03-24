@@ -704,6 +704,12 @@ Section Laws.
   Axiom excluded_middle: forall P: Prop,
     P \/ ~P.
 
+  Lemma bind_mayret_ret: forall {A} ma kb,
+    (forall a : A, mayret ma a -> kb a ≈ ret a) ->
+    bind ma kb ≈ ma.
+  Proof.
+  Admitted.
+  
   Lemma ret_bind_r:
     forall A (ma : PropTM m A),
       eqm (bind ma (fun x => ret x)) ma.
@@ -713,25 +719,23 @@ Section Laws.
     split; rewrite H0; clear H0; cbn in *; intros comp.
     - destruct comp as (ma & kb & Hpta & Hreteq & Hbind).
       rewrite Hbind. clear Hbind.
-      assert (retOrDiv: (forall a, mayret ma a) \/ ~(forall a, mayret ma a)).
+      apply bind_mayret_ret in Hreteq.
+      rewrite Hreteq. auto.
+      
+      (* assert (retOrDiv: (exists a, mayret ma a) \/ ~(exists a, mayret ma a)).
       apply excluded_middle.
       destruct retOrDiv as [mRet | div].
-      + assert (kb_ret_eq: bind ma kb ≈ bind ma ret).
-        {
-          eapply Proper_bind.
-          + reflexivity.
-          + unfold pointwise_relation.
-            intros a. eapply Hreteq in mRet. apply mRet.
-        } 
-        rewrite kb_ret_eq. rewrite bind_ret_r. auto.
-      + unfold not in *. (* Div probably contradicts Htpa *)
-        inversion PTA as [maProp Hclosed]. unfold closed_eqm in *. 
+      + destruct mRet as (a & mRet).
+        apply (Hreteq a) in mRet.
         admit.
+      + unfold not in *.
+        inversion PTA as [maProp Hclosed]. unfold closed_eqm in *. 
+        admit. *)
     - exists y. exists (fun x => ret x).
       split; auto. split.
       + reflexivity.
       + rewrite bind_ret_r. reflexivity.
-  Admitted.
+  Qed.
 
   Lemma bind_bind:
     forall A B C (ma : PropTM m A) (mab : A -> PropTM m B)
