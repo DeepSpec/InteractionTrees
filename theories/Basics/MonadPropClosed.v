@@ -311,19 +311,10 @@ End ITree_inversion_lemmas.
 
 Section MayRet.
 
-  Variable (m: Type -> Type).
-  Context `{Monad m}.
-  Context {EQM : EqM m}.
+  (* We wish to be able to capture propositionally the set of values that a monadic computation can return *)
 
-  (*
-    Given the usual event `Rd (x: loc): E nat`, considering the tree:
-    t == Vis (Rd x) (fun n => ret n)
-    Then with the def from Vellvm specialized to itrees, we have:
-      forall n, MayRet t n
-    While with the following generic definition, to the contrary, we cannot prove `MayRet t n` for any n.
-   *)
+  (* A possible generic definition could be thought to be as follows:
 
-  (*
   Inductive MayRet : forall {A}, m A -> A -> Prop :=
   | mayret_ret:  forall A (a : A),
       (* eqm (ret a) b -> *)
@@ -333,7 +324,21 @@ Section MayRet.
       MayRet ma a ->
       MayRet (k a) b ->
       MayRet (bind ma k) b.
+
+    This definition is however too generic as it says nothing about the effects of the computation.
+    For instance consider the following itree illustration.
+    Given the usual event `Rd (x: loc): E nat`, considering the tree:
+    t == Vis (Rd x) (fun n => ret n)
+    Then with the def from Vellvm specialized to itrees, we have:
+      forall n, MayRet t n
+    While with the following generic definition, to the contrary, we cannot prove `MayRet t n` for any n.
    *)
+
+
+  Variable (m: Type -> Type).
+  Context `{Monad m}.
+  Context {EQM : EqM m}.
+
 
 
   Class MayRet: Type :=
@@ -548,6 +553,7 @@ Section Instance_MayRet_State.
   (* We need to know that our space of states is inhabited *)
   Hypothesis s: S.
 
+
   Instance StateT_MayRetCorrect: MayRetCorrect (stateT S m).
   split.
   - repeat intro.
@@ -596,21 +602,6 @@ Section Transformer.
 
   Global Instance EqM_PropTM : EqM PropTM := eqm2.
 
-  (* Let's assume M = id monad
-
-mb = kb ma
-
-fun b =>
-!PA a /\ K a b
-
- ma: m A ~ ma: A
-kb : A -> m B ~ kb: A -> B
-bind ma kb ~ kb ma
-MayRet ma a ~ a = ma
-
-PA ma /\ (K a mb)
-   *)
-
   Definition ret_f := (fun A (a : A) (ma : m A) => eqm ma (ret a)).
 
   Lemma ret_f_closed :
@@ -620,6 +611,20 @@ PA ma /\ (K a mb)
       rewrite H0 in *; assumption.
   Defined.
 
+  (* Notice that the continuation only checks membership to the set continuation over values that may be returned.
+     The following example illustrates why removing this restriction is incompatible with the [bind_ret_l] monadic law.
+
+     Consider the [PA := ret true], i.e. the singleton set (up-to ≈) containing the pure computation [ret true].
+     Consider the continuation [K := fun b => if b then ret 0 else (fun _ => False)], i.e. the continuation that on true
+     returns the singleton set (up-to ≈) containing the pure computation [ret 0], and on false the empty set.
+
+     By [bind_ret_l], we _should_ have [bind PA K ≈ K true = ret 0].
+     But if our definition require to provide a continuation whose member belongs to each set, then we need
+     to find a value for [k true] that belongs to [K true = ∅], which is absurd.
+     Hence we would have [bind PA K ≈ ∅].
+
+     For this reason, we are trying to restrict the requirement to values that are actually returned by the computation.
+   *)
   Definition bind_f :=
     fun A B (PA : PropTM A) (K : A -> PropTM B) mb =>
       exists (ma : m A) (kb : A -> m B),
@@ -865,14 +870,14 @@ Section Laws.
     - intros Hright.
       destruct Hright as (ma & kamC & Hpta & comp & Hbindy).
       cbn in *. unfold bind_f in *. cbn in *.
+      refine (exists (bind ma _), _).
       do 2 eexists.
          repeat split.
          exists ma.
          eexists; repeat split.
          auto.
          intros a mr.
-         destruct (comp _ mr) as (mb & kb & H1 & H2 & H3).
-
+         destruct (comp _ mr) as (mb & kb & H1 & H2 & H3); clear comp.
 
 
       assert (retOrDiv: (forall a, mayret ma a) \/ ~(forall a, (mayret ma a))).
