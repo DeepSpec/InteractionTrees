@@ -642,16 +642,115 @@ PA ma /\ (K a mb)
                   exist (bind_f A B PA K) (bind_f_closed A B PA K)
       |}.
 
+  Lemma monad_iter_closed:
+    forall (R I : Type) (step : I -> PropTM (I + R)) (i : I),
+      closed_eqm
+        (fun r : m R =>
+           exists step' : I -> m (I + R),
+             (forall j : I, ! (step j) (step' j)) /\
+             eqm (m := m) (CategoryOps.iter step' i) r).
+  Proof.
+    intros R I step i.
+    intros m1 m2 eqm12; split; intros (step' & ISIN & EQ);
+      (exists step'; split; auto);
+      [rewrite <- eqm12 | rewrite eqm12]; auto.
+  Qed.
+
+
   Global Instance MonadIter_Prop : MonadIter PropTM.
-  refine (fun R I step i =>
+   exact (fun R I step i =>
             exist (fun (r: m R) => exists (step': I -> m (I + R)%type),
                      (forall j, !(step j) (step' j)) /\
                      (eqm (m := m)(CategoryOps.iter step' i) r))
-                  _).
-  intros m1 m2 eqm12; split; intros (step' & ISIN & EQ);
-    (exists step'; split; auto);
-    [rewrite <- eqm12 | rewrite eqm12]; auto.
+                  (monad_iter_closed R I step i)).
   Defined.
+
+  Global Instance Iter_PropTM : Iter (Kleisli PropTM) sum.
+  Proof.
+    eapply Iter_Kleisli.
+  Defined.
+
+  Context {CM: Iterative (Kleisli m) sum}.
+
+  Global Instance Proper_Iter_PropTM : forall a b, @Proper (Kleisli PropTM a (a + b) -> Kleisli PropTM a b) (eq2 ==> eq2) iter.
+  Proof.
+    destruct CM.
+    repeat red in iterative_proper_iter.
+    repeat red.
+    intros A B x y Heq a mx my Heq0.
+    split; repeat red; intros; red in H0;
+      edestruct H0 as (? & ? & ?); clear H0;
+        exists x0; split;
+          [ | rewrite Heq0 in H2; assumption | | rewrite <- Heq0 in H2; assumption ];
+          intros; repeat red in Heq; assert (Hj: x0 j ≈ x0 j) by reflexivity;
+            specialize (Heq j (x0 j) (x0 j) Hj); clear Hj;
+              destruct Heq; [apply H0 in H1 | apply H3 in H1] ; apply H1.
+  Qed.
+
+  Global Instance IterUnfold_PropTM : IterUnfold (Kleisli PropTM) sum.
+  Proof.
+    destruct CM.
+    clear iterative_natural; clear iterative_dinatural; clear iterative_codiagonal;
+      clear iterative_proper_iter.
+    unfold IterUnfold.
+    intros a b f.
+    repeat red.
+    intros a0 x y Heq.
+    unfold cat, Cat_Kleisli.
+    unfold iter, Iter_PropTM, Iter_Kleisli, Basics.iter, MonadIter_Prop.
+    simpl proj1_sig.
+    split.
+    - intros. edestruct H0 as (? & ? & ?). clear H0.
+      repeat red.
+      rewrite Heq in H2.
+      exists (x0 a0).
+      exists (fun y0 : a + b => case_ (C := Kleisli m) (iter x0) (id_ b) y0).
+      split.
+      + apply H1.
+      + split.
+        * intros. repeat red.
+          destruct a1.
+          -- exists x0. split. apply H1.
+             cbn. reflexivity.
+          -- cbn. repeat red.
+             repeat red in iterative_unfold.
+             cbn. reflexivity.
+        * rewrite <- H2.
+          specialize (iterative_unfold a b x0 a0).
+          setoid_rewrite iterative_unfold.
+          unfold cat, Cat_Kleisli. reflexivity.
+    - intros. edestruct H0 as (mab & kmb & fa & Hb & Heqy); clear H0.
+      rewrite <- Heq in Heqy; clear Heq.
+      esplit. split.
+      + admit.
+      + rewrite Heqy; clear Heqy.
+        assert (Hmr : exists a0, mayret mab a0). admit.
+        destruct Hmr.
+        specialize (Hb x0 H0); clear H0.
+        repeat red in Hb. destruct x0.
+        * edestruct Hb as (? & ? & ?); clear Hb.
+          admit.
+        * do 6 red in Hb.
+          specialize (iterative_unfold a b).
+          Unshelve. 2 : {
+            admit. 
+          }
+          admit.
+  Admitted.
+
+  Global Instance IterNatural_PropTM : IterNatural (Kleisli PropTM) sum.
+  Proof. Admitted.
+
+  Global Instance IterDinatural_PropTM : IterDinatural (Kleisli PropTM) sum.
+  Proof. Admitted.
+
+  Global Instance IterCodiagonal_PropTM : IterCodiagonal (Kleisli PropTM) sum.
+  Proof. Admitted.
+
+  Global Instance Iterative_PropTM : Iterative (Kleisli PropTM) sum.
+  Proof.
+    constructor; typeclasses eauto.
+  Qed.
 
   (* What is the connection (precisely) with this continuation monad? *)
   (* Definition ContM: Type -> Type := fun A => (A -> Prop) -> Prop. *)
