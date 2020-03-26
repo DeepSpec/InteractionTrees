@@ -169,39 +169,7 @@ Lemma strong_to_weak_bisim : forall E A (t1 t2 : itree E A),
 Proof.
   intros. rewrite H. reflexivity.
 Qed.
-(*
-Lemma observe_eutt_spin_aux : forall E A (t0 t1 : itree E A ), spin ≅ t0 -> observe (t0) = TauF t1 -> t1 ≅ spin.
-Proof.
-  intros E A. intros.
-  specialize (itree_eta (@spin E A)) as Hspin.
-  unfold spin in Hspin. cbn in Hspin. fold (@spin E A) in Hspin.
-  rewrite H in Hspin. specialize (itree_eta t0) as Ht0. rewrite H0 in Ht0.
-  rewrite Hspin in Ht0. rewrite <- H in Ht0. symmetry in Ht0. pinversion Ht0; subst; auto.
-  clear Ht0.
-  red in Ht0. red. punfold Ht0. red in Ht0. inversion Ht0; subst; auto.
-  pinversion Ht0; subst; auto.
-  red in Hspin. rewrite H in Hspin. 
-  rewrite Hspin. rewrite tau_eutt. reflexivity.
-Qed.
-*)
-(*
-Lemma observe_eutt_spin : forall E A (t : itree E A), t ≈ spin -> exists t0, observe t = TauF t0 /\ t0 ≈ spin.
-dProof.
-  intros. destruct (observe (@spin E A)) eqn : Heq ; try discriminate.
-  specialize (itree_eta (@spin E A)) as H0. rewrite Heq in H0. 
-  specialize (inv_tau A E spin t0) as Ht0. rewrite <- H0 in Ht0.
-  exists t0. split; auto.
-    admit.
-Admitted.
-*)
 
-Lemma wf_iter_ret :  forall (A B : Type) (g : A -> itree Void (A + B) ) (a : A),
-           (exists (b : B), Ret b ≈ iter g a) -> wf_from A (fun a1 a2 => a1 =[ fun x => obs _ (g x) ]=> a2) a.
-Proof.
-  intros. basic_solve. pinversion H; subst.
-  - admit.
-  -
-Abort.
 
 
 Lemma burn_eutt_l : forall (A : Type) (t t': itree Void A) (n : nat), burn n t ≅ t' -> t ≈ t'.

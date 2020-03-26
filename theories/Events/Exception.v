@@ -25,7 +25,6 @@ From ITree Require Import
      Events.MapDefault
      Events.State
      Events.StateFacts
-     Core.Divergence
      Dijkstra.DijkstraMonad
      Dijkstra.PureITreeBasics
      Dijkstra.IterRel

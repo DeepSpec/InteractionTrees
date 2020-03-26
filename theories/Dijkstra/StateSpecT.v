@@ -175,7 +175,7 @@ Section LoopInvarSpecific.
 
   (*should be able to use original*)
   Lemma loop_invar_state: forall (A B : Type) (g : A -> State (A + B)) (a : A) (s : S)
-               (p : Delay ( S * B) -> Prop) (q : Delay ((S * A) + (S *B))  -> Prop  ) 
+               (p : Delay ( S * B) -> Prop) (q : Delay ((S * A) + (S * B))  -> Prop  ) 
                (Hp : resp_eutt _ _ p) (Hq : resp_eutt _ _ q) ,
         (q (reassoc (g a s) )) -> 
         (q -+> p) -> (forall t, q t -> q (t >>= (iter_lift ( iso_destatify_arrow g)  ))) -> 
@@ -246,50 +246,3 @@ Section LoopInvarSpecific.
 
 End LoopInvarSpecific.
 
-Section LoopInvarGeneral.
-  Context (S : Type).
-  Context (M : Type -> Type).
-  Context {MonadM : Monad M}.
-  Context {EqMM : EqM M}.
-  Context {MonadLawsM : MonadLaws M}.
-  Context {IterM : MonadIter M}.
-
-  Context (divergence : forall {A : Type}, M A -> Prop).
-
-  Definition loop_invar_imp {A B : Type} (q : M (A + B) -> Prop ) (p : M B -> Prop) :Prop :=
-    forall m, q (m >>= fun b => ret (inr b) ) -> p m. 
-
-  Definition iter_lift {A B : Type} (g : A -> M (A + B)) : (A + B) -> M (A + B) :=
-    fun x => match x with 
-             | inl a => g a
-             | inr b => ret (inr b) end.
-
-  Notation "q -+> p" := (loop_invar_imp q p) (at level 80).
-
-  Definition resp_eq {A : Type} (p : M A -> Prop) : Prop :=
-    forall m1 m2, m1 ≈ m2 -> (p m1) <-> (p m2).
-(*
-  Definition loop_invar_prop : Prop :=   forall (A B : Type) (g : A -> M (A + B) ) (a : A) 
-                          (p : M B -> Prop) (Hp : resp_eq p)
-                          (q : M (A + B) -> Prop ) (Hq : resp_eq q ),
-    (q -+> p) -> (q (g a)) -> 
-    (forall t, q t ->  q (bind t (iter_lift g))) ->
-    p \1/ divergence) (iter g a).
-
-  Context (divergence : forall (A : Type), M A -> Prop ).
-  (* Context (under_loop_invar : forall (A B : Type) (g : A -> M (A + B) ) (a : A), ) *)
-  (*might need a proof that if that whole inl wf thing happens then it 
-    is some infinite element, or have some kind of underlying loop invariant principle*)
-  (*divergent elements follow two laws bind spin f eq spin, 
-    if
-   *)
-  (*complication, delay monad is simple in some sense, every element is either spin,
-    or it is ret some value*)
-  (*notions of divergence always makes sense in the base monad*)
-
-
-  *)
-
-  
-
-End LoopInvarGeneral.

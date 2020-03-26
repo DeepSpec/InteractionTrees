@@ -71,22 +71,6 @@ Section ExcT.
 
   Global Instance ExcSpecTEq : EqM ExcSpecT := fun _ w1 w2 => EqW _ w1 w2.
 
-  Global Instance ExcSpecTMonadLaws : MonadLaws ExcSpecT.
-  Proof.
-    destruct MonadLawsW. constructor.
-    - intros A B f a. cbn. red. unfold ret_exc, bind_exc.
-      rewrite bind_ret. reflexivity.
-    - intros A w. cbn. unfold bind_exc, ret_exc. 
-      match goal with |- bind _ ?f ≈ _ => assert (Heq : f = fun x => ret x) end.
-      { apply functional_extensionality. intros. destruct x; reflexivity. }
-      rewrite Heq. rewrite ret_bind. reflexivity.
-    - intros A B C w f g. cbn. unfold bind_exc.
-      rewrite bind_bind. match goal with |- bind _ ?f1 ≈ bind _ ?f2 => assert (Heq :forall x, f1 x ≈ f2 x) end.
-      { intros. destruct x; simpl.
-        - rewrite bind_ret. reflexivity.
-        - reflexivity.
-      } (*need a rewriting principle*)
-   Admitted.
 
 
 End ExcT.
