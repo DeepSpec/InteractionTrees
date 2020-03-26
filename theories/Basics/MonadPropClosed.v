@@ -16,6 +16,7 @@ From Coq Require Import Morphisms
 
 Require Import Paco.paco.
 
+Require Import Classical_Prop.
 (* See [PropT.v] in the Vellvm repo for the exact framework to follow with respect to typeclasses, as well as a proof of most monad laws for [PropTM (itree E)] *)
 
 Section ITree_inversion_lemmas.
@@ -339,8 +340,6 @@ Section MayRet.
   Context `{Monad m}.
   Context {EQM : EqM m}.
 
-
-
   Class MayRet: Type :=
     {
       mayret: forall {A}, m A -> A -> Prop
@@ -661,14 +660,77 @@ Section Transformer.
       [rewrite <- eqm12 | rewrite eqm12]; auto.
   Qed.
 
-
-  Global Instance MonadIter_Prop : MonadIter PropTM.
+  Global Instance MonadIter_PropTM : MonadIter PropTM.
    exact (fun R I step i =>
             exist (fun (r: m R) => exists (step': I -> m (I + R)%type),
                      (forall j, !(step j) (step' j)) /\
                      (eqm (m := m)(CategoryOps.iter step' i) r))
                   (monad_iter_closed R I step i)).
   Defined.
+  Import CatNotations.
+  Local Open Scope cat_scope.
+
+  Lemma monad_iter_closed':
+    forall (R I : Type) (step : I -> PropTM (I + R)) (i : I),
+      closed_eqm
+        (fun r : m R =>
+           exists step' : I * nat -> m (I + R),
+             (forall (n : nat) (j : I), ! (step j) (step' (j, n))) /\
+             eqm (m := m) (let body :=
+                  fun '(x, k) =>
+                    bind (step' (x, k))
+                         (fun ir : I + R =>
+                            match ir with
+                            | inl i0 => ret (inl (i0, S k))
+                            | inr r0 => ret (inr r0)
+                            end) in
+              CategoryOps.iter body (i, 0)) r).
+  Proof.
+    intros R I step i.
+    intros m1 m2 eqm12; split; intros (step' & ISIN & EQ);
+      (exists step'; split; auto);
+      [rewrite <- eqm12 | rewrite eqm12]; auto.
+  Qed.
+
+  Global Instance MonadIter_PropTM' : MonadIter PropTM.
+  refine (fun (R I : Type) (step : I -> PropTM (I + R)) (i : I) =>
+            exist (fun r : m R =>
+           exists step' : I * nat -> m (I + R),
+             (forall (n : nat) (j : I), ! (step j) (step' (j, n))) /\
+             eqm (m := m) (let body :=
+                  fun '(x, k) =>
+                    bind (step' (x, k))
+                         (fun ir : I + R =>
+                            match ir with
+                            | inl i0 => ret (inl (i0, S k))
+                            | inr r0 => ret (inr r0)
+                            end) in
+                           CategoryOps.iter body (i, 0)) r)
+                  (monad_iter_closed' R I step i)).
+  Qed.
+
+  (* CoInductive iter_PropTM {R I : Type} (step : I -> m (I + R) -> Prop) : I -> m R -> Prop := *)
+  (* | iter_done : forall (i : I) (mr : I -> m R) (r : R), *)
+  (*     step i (inr (mr i)) -> *)
+  (*     mayret mr (inr r) -> *)
+  (*     iter_PropTM step i . *)
+  (* | iter_step : forall (i j : I) (mr : m R), *)
+  (*     step i (ret (m := m) (inl j)) -> *)
+  (*     iter_PropTM step j mr -> *)
+  (*     iter_PropTM step i mr *)
+  (* . *)
+
+  (* Inductive iter_Prop {R I : Type} (step : I -> I + R -> Prop) (i : I) (r : R) *)
+  (*   : Prop := *)
+  (* | iter_done *)
+  (*   : step i (inr r) -> iter_Prop step i r *)
+  (* | iter_step i' *)
+  (*   : step i (inl i') -> *)
+  (*     iter_Prop step i' r -> *)
+  (*     iter_Prop step i r *)
+  (* . *)
+
+  (* Polymorphic Instance MonadIter_Prop : MonadIter Ensembles.Ensemble := @iter_Prop. *)
 
   Global Instance Iter_PropTM : Iter (Kleisli PropTM) sum.
   Proof.
@@ -683,14 +745,14 @@ Section Transformer.
     repeat red in iterative_proper_iter.
     repeat red.
     intros A B x y Heq a mx my Heq0.
-    split; repeat red; intros; red in H0;
-      edestruct H0 as (? & ? & ?); clear H0;
-        exists x0; split;
-          [ | rewrite Heq0 in H2; assumption | | rewrite <- Heq0 in H2; assumption ];
-          intros; repeat red in Heq; assert (Hj: x0 j ≈ x0 j) by reflexivity;
-            specialize (Heq j (x0 j) (x0 j) Hj); clear Hj;
-              destruct Heq; [apply H0 in H1 | apply H3 in H1] ; apply H1.
-  Qed.
+    Admitted. 
+    (* split; repeat red; intros; red in H0; *)
+    (*   edestruct H0 as (? & ? & ?); clear H0; *)
+    (*     exists x0; split; *)
+    (*       [ | rewrite Heq0 in H2; assumption | | rewrite <- Heq0 in H2; assumption ]; *)
+    (*       intros; repeat red in Heq; assert (Hj: x0 j ≈ x0 j) by reflexivity; *)
+    (*         specialize (Heq j (x0 j) (x0 j) Hj); clear Hj; *)
+    (*           destruct Heq; [apply H0 in H1 | apply H3 in H1] ; apply H1. *)
 
   Global Instance IterUnfold_PropTM : IterUnfold (Kleisli PropTM) sum.
   Proof.
@@ -705,49 +767,59 @@ Section Transformer.
     unfold iter, Iter_PropTM, Iter_Kleisli, Basics.iter, MonadIter_Prop.
     simpl proj1_sig.
     split.
-    - intros. edestruct H0 as (? & ? & ?). clear H0.
-      repeat red.
-      rewrite Heq in H2.
-      exists (x0 a0).
-      exists (fun y0 : a + b => case_ (C := Kleisli m) (iter x0) (id_ b) y0).
-      split.
-      + apply H1.
-      + split.
-        * intros. repeat red.
-          destruct a1.
-          -- exists x0. split. apply H1.
-             cbn. reflexivity.
-          -- cbn. repeat red.
-             repeat red in iterative_unfold.
-             cbn. reflexivity.
-        * rewrite <- H2.
-          specialize (iterative_unfold a b x0 a0).
-          setoid_rewrite iterative_unfold.
-          unfold cat, Cat_Kleisli. reflexivity.
-    - intros. edestruct H0 as (mab & kmb & fa & Hb & Heqy); clear H0.
-      rewrite <- Heq in Heqy; clear Heq.
-      esplit. split.
-      + admit.
-      + rewrite Heqy; clear Heqy.
-        assert (Hmr : exists a0, mayret mab a0). admit.
-        destruct Hmr.
-        specialize (Hb x0 H0); clear H0.
-        repeat red in Hb. destruct x0.
-        * edestruct Hb as (? & ? & ?); clear Hb.
-          admit.
-        * do 6 red in Hb.
-          specialize (iterative_unfold a b).
-          Unshelve. 2 : {
-            admit. 
-          }
-          admit.
+    - intros.
+  (*     edestruct H0 as (? & ? & ?). clear H0. *)
+  (*     repeat red. *)
+  (*     rewrite Heq in H2. *)
+  (*     exists (x0 a0). *)
+  (*     exists (fun y0 : a + b => case_ (C := Kleisli m) (iter x0) (id_ b) y0). *)
+  (*     split. *)
+  (*     + apply H1. *)
+  (*     + split. *)
+  (*       * intros. repeat red. *)
+  (*         destruct a1. *)
+  (*         -- exists x0. split. apply H1. *)
+  (*            cbn. reflexivity. *)
+  (*         -- cbn. repeat red. *)
+  (*            repeat red in iterative_unfold. *)
+  (*            cbn. reflexivity. *)
+  (*       * rewrite <- H2. *)
+  (*         specialize (iterative_unfold a b x0 a0). *)
+  (*         setoid_rewrite iterative_unfold. *)
+  (*         unfold cat, Cat_Kleisli. reflexivity. *)
+  (*   - intros. edestruct H0 as (mab & k & Hf & Hcat & Heqy); clear H0. *)
+  (*     rewrite <- Heq in Heqy; clear Heq. *)
+  (*     unfold MonadIter_PropTM in Hcat. *)
+  (*     setoid_rewrite Heqy; clear Heqy. *)
+  (*     unfold PropTM in f. unfold Kleisli in f. *)
+      
+  (*     specialize (iterative_unfold a b). *)
   Admitted.
 
   Global Instance IterNatural_PropTM : IterNatural (Kleisli PropTM) sum.
-  Proof. Admitted.
+  Proof.
+    destruct CM.
+    clear iterative_unfold; clear iterative_dinatural; clear iterative_codiagonal;
+      clear iterative_proper_iter.
+    unfold IterNatural.
+    intros a b c f g.
+    repeat red.
+    intros a0 x y Heq.
+    unfold cat, Cat_Kleisli.
+    simpl proj1_sig.
+    split.
+    - intros. setoid_rewrite <- Heq; clear Heq.
+      unfold IterNatural in iterative_natural.
+  Admitted.
+
 
   Global Instance IterDinatural_PropTM : IterDinatural (Kleisli PropTM) sum.
-  Proof. Admitted.
+  Proof.
+    destruct CM.
+    clear iterative_unfold; clear iterative_natural; clear iterative_codiagonal;
+      clear iterative_proper_iter.
+    unfold IterDinatural.
+  Admitted.
 
   Global Instance IterCodiagonal_PropTM : IterCodiagonal (Kleisli PropTM) sum.
   Proof. Admitted.
