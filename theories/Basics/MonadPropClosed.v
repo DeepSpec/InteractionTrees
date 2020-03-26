@@ -12,7 +12,9 @@ From ITree Require Import
 
 From Coq Require Import Morphisms
      Program.Equality
-     Classes.RelationClasses.
+     Classes.RelationClasses
+     Logic.FunctionalExtensionality
+.
 
 Require Import Paco.paco.
 
@@ -359,7 +361,13 @@ Section MayRet.
           mayret (bind ma kb) b ->
           exists a, mayret ma a /\ mayret (kb a) b;
 
-      mayret_eqm :> forall {A: Type}, Proper (eqm ==> @eq A ==> iff) mayret
+      mayret_eqm :> forall {A: Type}, Proper (eqm ==> @eq A ==> iff) mayret;
+
+      mayret_proper_strong :> forall {A B} (ma ma': m A),
+          ma ≈ ma' ->
+          forall (kb kb': A -> m B),
+            (forall a, mayret ma a -> kb a ≈ kb' a) ->
+            (bind ma kb) ≈ (bind ma' kb')
     }.
 
 End MayRet.
@@ -516,6 +524,95 @@ Section Instance_MayRet.
       + econstructor 3. apply H0. apply H1.
   Qed.
 
+  Section ReturnsBind.
+    Context {E : Type -> Type} {R : Type}.
+
+    Import ITreeNotations.
+    Local Open Scope itree.
+
+    Inductive eqit_Returns_bind_clo b1 b2 (r : itree E R -> itree E R -> Prop) :
+      itree E R -> itree E R -> Prop :=
+    | pbc_intro_h U (t1 t2: itree E U) (k1 k2: U -> itree E R)
+                  (EQV: eqit eq b1 b2 t1 t2)
+                  (REL: forall u, Returns t1 u -> r (k1 u) (k2 u))
+      : eqit_Returns_bind_clo b1 b2 r (ITree.bind t1 k1) (ITree.bind t2 k2)
+    .
+    Hint Constructors eqit_Returns_bind_clo.
+
+    Lemma eqit_Returns_clo_bind b1 b2 vclo
+          (MON: monotone2 vclo)
+          (CMP: compose (eqitC eq b1 b2) vclo <3= compose vclo (eqitC eq b1 b2))
+          (ID: id <3= vclo):
+      eqit_Returns_bind_clo b1 b2 <3= gupaco2 (eqit_ eq b1 b2 vclo) (eqitC eq b1 b2).
+    Proof.
+      gcofix CIH. intros. destruct PR.
+      guclo eqit_clo_trans.
+      econstructor; auto_ctrans_eq; try (rewrite (itree_eta (x <- _;; _ x)), unfold_bind; reflexivity).
+      punfold EQV. unfold_eqit.
+      genobs t1 ot1.
+      genobs t2 ot2.
+      hinduction EQV before CIH; intros; pclearbot.
+      - guclo eqit_clo_trans.
+        econstructor; auto_ctrans_eq; try (rewrite <- !itree_eta; reflexivity).
+        gbase; cbn.
+        apply REL0.
+        rewrite itree_eta, <- Heqot1; constructor; reflexivity.
+      - gstep. econstructor.
+        gbase.
+        apply CIH.
+        constructor; auto.
+        intros u HR.
+        apply REL0.
+        rewrite itree_eta, <- Heqot1.
+        econstructor 2; eauto; reflexivity.
+      - gstep. econstructor.
+        intros; apply ID; unfold id.
+        gbase.
+        apply CIH.
+        constructor; auto.
+        intros ? HR; apply REL0.
+        rewrite itree_eta, <- Heqot1.
+        econstructor 3; eauto; reflexivity.
+      - destruct b1; try discriminate.
+        guclo eqit_clo_trans.
+        econstructor.
+        3:{ eapply IHEQV; eauto.
+            intros ? HR; apply REL.
+            rewrite itree_eta, <- Heqot1; econstructor 2; eauto; reflexivity.
+        }
+        3,4:auto_ctrans_eq.
+        2: reflexivity.
+        eapply eqit_tauL. rewrite unfold_bind, <-itree_eta. reflexivity.
+      - destruct b2; try discriminate.
+        guclo eqit_clo_trans.
+        econstructor; auto_ctrans_eq; cycle -1; eauto; try reflexivity.
+        eapply eqit_tauL. rewrite unfold_bind, <-itree_eta. reflexivity.
+    Qed.
+
+    Lemma eqit_Returns_bind' {S} b1 b2
+          (t1 t2: itree E S) (k1 k2: S -> itree E R) :
+      eqit eq b1 b2 t1 t2 ->
+      (forall r, Returns t1 r -> eqit eq b1 b2 (k1 r) (k2 r)) ->
+      @eqit E _ _ eq b1 b2 (ITree.bind t1 k1) (ITree.bind t2 k2).
+    Proof.
+      intros. ginit. guclo eqit_Returns_clo_bind. unfold eqit in *.
+      econstructor; eauto with paco.
+    Qed.
+
+  End ReturnsBind.
+
+  Lemma ITree_mayret_strong_proper:
+     forall (E : Type -> Type) (A B : Type) (ma ma' : itree E A),
+       ma ≈ ma' ->
+       forall kb kb' : A -> itree E B,
+         (forall a : A, Returns ma a -> kb a ≈ kb' a) ->
+         ITree.bind ma kb ≈ ITree.bind ma' kb'.
+  Proof.
+    intros E A B.
+    pose proof (eqit_Returns_bind' (S := A) (R := B) (E := E) true true).
+    intros. apply H. apply H0. apply H1.
+  Qed.
+
   Instance ITree_mayret_correct E: @MayRetCorrect _ _ _ (ITree_mayret E).
   split; cbn.
   - intros. constructor. reflexivity.
@@ -523,6 +620,7 @@ Section Instance_MayRet.
   - apply (@ITree_mayret_bind E).
   - apply (@ITree_mayret_bind_inv E).
   - apply (@ITree_mayret_proper E).
+  - apply (@ITree_mayret_strong_proper E).
   Qed.
 
 End Instance_MayRet.
@@ -660,13 +758,13 @@ Section Transformer.
       [rewrite <- eqm12 | rewrite eqm12]; auto.
   Qed.
 
-  Global Instance MonadIter_PropTM : MonadIter PropTM.
-   exact (fun R I step i =>
-            exist (fun (r: m R) => exists (step': I -> m (I + R)%type),
-                     (forall j, !(step j) (step' j)) /\
-                     (eqm (m := m)(CategoryOps.iter step' i) r))
-                  (monad_iter_closed R I step i)).
-  Defined.
+  (* Global Instance MonadIter_PropTM : MonadIter PropTM. *)
+  (*  exact (fun R I step i => *)
+  (*           exist (fun (r: m R) => exists (step': I -> m (I + R)%type), *)
+  (*                    (forall j, !(step j) (step' j)) /\ *)
+  (*                    (eqm (m := m)(CategoryOps.iter step' i) r)) *)
+  (*                 (monad_iter_closed R I step i)). *)
+  (* Defined. *)
   Import CatNotations.
   Local Open Scope cat_scope.
 
@@ -692,7 +790,7 @@ Section Transformer.
       [rewrite <- eqm12 | rewrite eqm12]; auto.
   Qed.
 
-  Global Instance MonadIter_PropTM' : MonadIter PropTM.
+  Global Instance MonadIter_PropTM : MonadIter PropTM.
   refine (fun (R I : Type) (step : I -> PropTM (I + R)) (i : I) =>
             exist (fun r : m R =>
            exists step' : I * nat -> m (I + R),
@@ -707,30 +805,7 @@ Section Transformer.
                             end) in
                            CategoryOps.iter body (i, 0)) r)
                   (monad_iter_closed' R I step i)).
-  Qed.
-
-  (* CoInductive iter_PropTM {R I : Type} (step : I -> m (I + R) -> Prop) : I -> m R -> Prop := *)
-  (* | iter_done : forall (i : I) (mr : I -> m R) (r : R), *)
-  (*     step i (inr (mr i)) -> *)
-  (*     mayret mr (inr r) -> *)
-  (*     iter_PropTM step i . *)
-  (* | iter_step : forall (i j : I) (mr : m R), *)
-  (*     step i (ret (m := m) (inl j)) -> *)
-  (*     iter_PropTM step j mr -> *)
-  (*     iter_PropTM step i mr *)
-  (* . *)
-
-  (* Inductive iter_Prop {R I : Type} (step : I -> I + R -> Prop) (i : I) (r : R) *)
-  (*   : Prop := *)
-  (* | iter_done *)
-  (*   : step i (inr r) -> iter_Prop step i r *)
-  (* | iter_step i' *)
-  (*   : step i (inl i') -> *)
-  (*     iter_Prop step i' r -> *)
-  (*     iter_Prop step i r *)
-  (* . *)
-
-  (* Polymorphic Instance MonadIter_Prop : MonadIter Ensembles.Ensemble := @iter_Prop. *)
+  Defined.
 
   Global Instance Iter_PropTM : Iter (Kleisli PropTM) sum.
   Proof.
@@ -745,14 +820,14 @@ Section Transformer.
     repeat red in iterative_proper_iter.
     repeat red.
     intros A B x y Heq a mx my Heq0.
-    Admitted. 
-    (* split; repeat red; intros; red in H0; *)
-    (*   edestruct H0 as (? & ? & ?); clear H0; *)
-    (*     exists x0; split; *)
-    (*       [ | rewrite Heq0 in H2; assumption | | rewrite <- Heq0 in H2; assumption ]; *)
-    (*       intros; repeat red in Heq; assert (Hj: x0 j ≈ x0 j) by reflexivity; *)
-    (*         specialize (Heq j (x0 j) (x0 j) Hj); clear Hj; *)
-    (*           destruct Heq; [apply H0 in H1 | apply H3 in H1] ; apply H1. *)
+    split; repeat red; intros; red in H0;
+        edestruct H0 as (? & ? & ?); clear H0;
+        exists x0; split;
+          [ | rewrite Heq0 in H2; assumption | | rewrite <- Heq0 in H2; assumption ];
+          intros; repeat red in Heq; assert (Hj: x0 (j, n) ≈ x0 (j, n)) by reflexivity;
+            specialize (Heq j (x0 (j, n)) (x0 (j, n)) Hj); clear Hj;
+              destruct Heq; [apply H0 in H1 | apply H3 in H1] ; apply H1.
+  Qed.
 
   Global Instance IterUnfold_PropTM : IterUnfold (Kleisli PropTM) sum.
   Proof.
@@ -767,32 +842,35 @@ Section Transformer.
     unfold iter, Iter_PropTM, Iter_Kleisli, Basics.iter, MonadIter_Prop.
     simpl proj1_sig.
     split.
-    - intros.
-  (*     edestruct H0 as (? & ? & ?). clear H0. *)
-  (*     repeat red. *)
-  (*     rewrite Heq in H2. *)
-  (*     exists (x0 a0). *)
-  (*     exists (fun y0 : a + b => case_ (C := Kleisli m) (iter x0) (id_ b) y0). *)
-  (*     split. *)
-  (*     + apply H1. *)
-  (*     + split. *)
-  (*       * intros. repeat red. *)
-  (*         destruct a1. *)
-  (*         -- exists x0. split. apply H1. *)
-  (*            cbn. reflexivity. *)
-  (*         -- cbn. repeat red. *)
-  (*            repeat red in iterative_unfold. *)
-  (*            cbn. reflexivity. *)
-  (*       * rewrite <- H2. *)
-  (*         specialize (iterative_unfold a b x0 a0). *)
-  (*         setoid_rewrite iterative_unfold. *)
-  (*         unfold cat, Cat_Kleisli. reflexivity. *)
+    - intros. repeat red in H0.
+      edestruct H0 as (? & ? & ?). clear H0.
+      repeat red.
+      rewrite Heq in H2.
+      exists (x0 (a0, 0)).
+      exists (fun y0 : a + b => case_ (C := Kleisli m) (iter (C := Kleisli m) (fun ax => x0 (ax, 1))) (id_ b) y0).
+      split.
+      + apply H1.
+      + split.
+        * intros. repeat red.
+          destruct a1.
+          -- exists x0. split.
+             ++ apply H1.
+             ++ cbn. admit. 
+          -- cbn. repeat red.
+             repeat red in iterative_unfold.
+             cbn. reflexivity.
+        * rewrite <- H2.
+          match goal with
+          | |- iter ?body _ ≈ _ => remember body as body'
+          end.
+          specialize (iterative_unfold ((a * nat)%type) b body' (a0, 0)).
+          setoid_rewrite iterative_unfold.
+          unfold cat, Cat_Kleisli. admit. 
   (*   - intros. edestruct H0 as (mab & k & Hf & Hcat & Heqy); clear H0. *)
   (*     rewrite <- Heq in Heqy; clear Heq. *)
   (*     unfold MonadIter_PropTM in Hcat. *)
   (*     setoid_rewrite Heqy; clear Heqy. *)
   (*     unfold PropTM in f. unfold Kleisli in f. *)
-      
   (*     specialize (iterative_unfold a b). *)
   Admitted.
 
@@ -802,14 +880,6 @@ Section Transformer.
     clear iterative_unfold; clear iterative_dinatural; clear iterative_codiagonal;
       clear iterative_proper_iter.
     unfold IterNatural.
-    intros a b c f g.
-    repeat red.
-    intros a0 x y Heq.
-    unfold cat, Cat_Kleisli.
-    simpl proj1_sig.
-    split.
-    - intros. setoid_rewrite <- Heq; clear Heq.
-      unfold IterNatural in iterative_natural.
   Admitted.
 
 
