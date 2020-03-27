@@ -10,13 +10,14 @@ From ITree Require Import
      Basics.CategoryKleisliFacts
      Basics.Monad.
 
+From Paco Require Import paco.
+
 From Coq Require Import Morphisms
      Program.Equality
      Classes.RelationClasses
      Logic.FunctionalExtensionality
 .
 
-Require Import Paco.paco.
 
 Require Import Classical_Prop.
 (* See [PropT.v] in the Vellvm repo for the exact framework to follow with respect to typeclasses, as well as a proof of most monad laws for [PropTM (itree E)] *)
@@ -829,49 +830,116 @@ Section Transformer.
               destruct Heq; [apply H0 in H1 | apply H3 in H1] ; apply H1.
   Qed.
 
-  Global Instance IterUnfold_PropTM : IterUnfold (Kleisli PropTM) sum.
+  Lemma indexed_iter_unfold :
+    forall (A B : Type) (x y : m B)
+      (step : A * nat -> m (A + B)) (a : A),
+      iter (C := Kleisli m) (fun '(x, k) => bind (step (x, k)) (fun ir : A + B =>
+        match ir with
+        | inl i0 => ret (inl (i0, S k))
+        | inr r0 => ret (inr r0)
+        end)) (a, 0) ≈
+      bind (m := m) (step (a, 0))
+      (fun y0 : A + B =>
+       bind match y0 with
+          | inl i0 => ret (inl (i0, 1))
+          | inr r0 => ret (inr r0)
+          end
+       (fun y1 : A * nat + B =>
+        case_ (C := Kleisli m) (bif := sum)
+          (iter (C := Kleisli m)
+             (fun '(x0, k) =>
+              bind (step (x0, k))
+                (fun ir : A + B =>
+                 match ir with
+                 | inl i0 => ret (inl (i0, S k))
+                 | inr r0 => ret (inr r0)
+                 end))) (id_ B) y1)).
   Proof.
+    intros.
+    destruct CM. rewrite iterative_unfold.
+    unfold cat, Cat_Kleisli. destruct HMLAWS.
+    rewrite bind_bind. reflexivity.
+  Qed.
+
+ 
+  Lemma iter_eq_start_index:
+    forall (a b : Type) (x0 : a * nat -> m (a + b)) (a1 : a),
+      iter (C := Kleisli m) (bif := sum)
+        (fun '(x, k) =>
+            bind (x0 (x, k + 1))
+                (fun ir : a + b =>
+                    match ir with
+                    | inl i0 => ret (inl (i0, S k))
+                    | inr r0 => ret (inr r0)
+                    end)) (a1, 0)
+        ≈ iter (C := Kleisli m) (bif := sum)
+        (fun '(x', k) =>
+            bind (x0 (x', k))
+                (fun ir : a + b =>
+                    match ir with
+                    | inl i0 => ret (inl (i0, S k))
+                    | inr r0 => ret (inr r0)
+                    end)) (a1, 1).
+  Proof.
+    intros a b x0 a1.
     destruct CM.
-    clear iterative_natural; clear iterative_dinatural; clear iterative_codiagonal;
-      clear iterative_proper_iter.
+    rewrite iterative_unfold. unfold cat, Cat_Kleisli.
+    destruct HMLAWS. rewrite bind_bind. cbn.
+    rewrite iterative_unfold at 1. unfold cat, Cat_Kleisli.
+    rewrite bind_bind.
+    match goal with
+      |- bind _ ?body1 ≈ bind _ ?body2 => remember body1 as k1; remember body2 as k2
+    end.
+    assert (k1 = k2). {
+      subst. apply functional_extensionality. intros.
+      (* destruct x. setoid_rewrite bind_ret_l.  *) admit.
+      (* Can we have something like ITree's translate, here?
+         Need to do some kind of inductive reasoning over the iter body. 
+       *)
+    }
+    rewrite H0; reflexivity.
+  Admitted.
+
+  Global Instance IterUnfold_PropTM : IterUnfold (Kleisli PropTM) sum.
+  Proof with (repeat red).
     unfold IterUnfold.
-    intros a b f.
-    repeat red.
-    intros a0 x y Heq.
-    unfold cat, Cat_Kleisli.
-    unfold iter, Iter_PropTM, Iter_Kleisli, Basics.iter, MonadIter_Prop.
-    simpl proj1_sig.
-    split.
-    - intros. repeat red in H0.
-      edestruct H0 as (? & ? & ?). clear H0.
-      repeat red.
-      rewrite Heq in H2.
+    intros a b f... intros a0 x y Heq.
+    unfold cat, Cat_Kleisli, iter, Iter_PropTM, Iter_Kleisli, Basics.iter, MonadIter_Prop.
+    simpl proj1_sig; split; intros.
+    - edestruct H0 as (? & ? & ?)... clear H0.
+      rewrite Heq in H2; setoid_rewrite <- H2; clear H2.
       exists (x0 (a0, 0)).
-      exists (fun y0 : a + b => case_ (C := Kleisli m) (iter (C := Kleisli m) (fun ax => x0 (ax, 1))) (id_ b) y0).
-      split.
-      + apply H1.
-      + split.
-        * intros. repeat red.
-          destruct a1.
-          -- exists x0. split.
-             ++ apply H1.
-             ++ cbn. admit. 
-          -- cbn. repeat red.
-             repeat red in iterative_unfold.
-             cbn. reflexivity.
-        * rewrite <- H2.
-          match goal with
-          | |- iter ?body _ ≈ _ => remember body as body'
-          end.
-          specialize (iterative_unfold ((a * nat)%type) b body' (a0, 0)).
-          setoid_rewrite iterative_unfold.
-          unfold cat, Cat_Kleisli. admit. 
-  (*   - intros. edestruct H0 as (mab & k & Hf & Hcat & Heqy); clear H0. *)
-  (*     rewrite <- Heq in Heqy; clear Heq. *)
-  (*     unfold MonadIter_PropTM in Hcat. *)
-  (*     setoid_rewrite Heqy; clear Heqy. *)
-  (*     unfold PropTM in f. unfold Kleisli in f. *)
-  (*     specialize (iterative_unfold a b). *)
+      exists (fun y0 : a + b =>
+            bind
+              match y0 with
+              | inl i0 => ret (inl (i0, 1))
+              | inr r0 => ret (inr r0)
+              end
+              (fun y1 : a * nat + b =>
+               case_ (C := Kleisli m) (bif := sum)
+                 (iter (C := Kleisli m) (bif := sum)
+                    (fun '(x', k) =>
+                     bind (x0 (x', k))
+                       (fun ir : a + b =>
+                        match ir with
+                        | inl i0 => ret (inl (i0, S k))
+                        | inr r0 => ret (inr r0)
+                        end))) (id_ b) y1)).
+      split; [ apply H1 | split; intros ].
+      + destruct a1.
+        * exists (fun '(ax, nx) => x0 (ax, nx + 1)).
+          split.
+          -- intros k. apply (H1 (k + 1)).
+          -- rewrite bind_ret_l. cbn. apply iter_eq_start_index.
+        * do 10 red. rewrite bind_ret_l. cbn. reflexivity.
+      + destruct CM; setoid_rewrite iterative_unfold.
+        unfold cat, Cat_Kleisli; destruct HMLAWS; rewrite bind_bind.
+        reflexivity.
+    - intros. edestruct H0 as (mab & k & Hf & Hcat & Heqy); clear H0.
+      rewrite <- Heq in Heqy; clear Heq.
+      unfold MonadIter_PropTM in Hcat.
+      setoid_rewrite Heqy; clear Heqy.
+      (* Note: need to introduce classical reasoning here. *)
   Admitted.
 
   Global Instance IterNatural_PropTM : IterNatural (Kleisli PropTM) sum.
@@ -882,7 +950,6 @@ Section Transformer.
     unfold IterNatural.
   Admitted.
 
-
   Global Instance IterDinatural_PropTM : IterDinatural (Kleisli PropTM) sum.
   Proof.
     destruct CM.
@@ -890,7 +957,7 @@ Section Transformer.
       clear iterative_proper_iter.
     unfold IterDinatural.
   Admitted.
-
+     iter (C := Kleisli m) (fun a1 : A => step (a1, 1)) a     iter (C := Kleisli m) (fun a1 : A => step (a1, 1)) a..
   Global Instance IterCodiagonal_PropTM : IterCodiagonal (Kleisli PropTM) sum.
   Proof. Admitted.
 
@@ -905,7 +972,6 @@ Section Transformer.
 (* ?p : "Morphisms.Proper (Morphisms.respectful eqm (Basics.flip Basics.impl)) ! (f a)" *)
 
 End Transformer.
-
 
 (* IY: [For Kento]: Monad laws for PropTM!
                     Let me know if you have any questions. :-) *)
