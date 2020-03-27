@@ -861,12 +861,11 @@ Section Transformer.
     rewrite bind_bind. reflexivity.
   Qed.
 
- 
   Lemma iter_eq_start_index:
     forall (a b : Type) (x0 : a * nat -> m (a + b)) (a1 : a),
       iter (C := Kleisli m) (bif := sum)
         (fun '(x, k) =>
-            bind (x0 (x, k + 1))
+            bind (x0 (x, S k))
                 (fun ir : a + b =>
                     match ir with
                     | inl i0 => ret (inl (i0, S k))
@@ -882,22 +881,20 @@ Section Transformer.
                     end)) (a1, 1).
   Proof.
     intros a b x0 a1.
-    destruct CM.
-    rewrite iterative_unfold. unfold cat, Cat_Kleisli.
-    destruct HMLAWS. rewrite bind_bind. cbn.
-    rewrite iterative_unfold at 1. unfold cat, Cat_Kleisli.
-    rewrite bind_bind.
+    destruct CM. destruct HMLAWS.
+    do 2 (rewrite iterative_unfold; unfold cat, Cat_Kleisli;
+          rewrite bind_bind; cbn).
     match goal with
       |- bind _ ?body1 ≈ bind _ ?body2 => remember body1 as k1; remember body2 as k2
     end.
-    assert (k1 = k2). {
-      subst. apply functional_extensionality. intros.
-      (* destruct x. setoid_rewrite bind_ret_l.  *) admit.
-      (* Can we have something like ITree's translate, here?
-         Need to do some kind of inductive reasoning over the iter body. 
-       *)
+    assert (forall (y : a + b), k1 y ≈ k2 y). {
+      subst; intros; destruct y; rewrite 2 bind_ret_l; cbn.
+      do 2 (rewrite iterative_unfold; unfold cat, Cat_Kleisli;
+            rewrite bind_bind; cbn).
+      admit. reflexivity. (* Need coinduction over unfolding of iter *)
+      (* TODO: Maybe we can use dinaturality law here. *)
     }
-    rewrite H0; reflexivity.
+    (* specialize (H2 k1 k2). (* Functional extensionality not generalizable to eqm *) *)
   Admitted.
 
   Global Instance IterUnfold_PropTM : IterUnfold (Kleisli PropTM) sum.
@@ -927,9 +924,9 @@ Section Transformer.
                         end))) (id_ b) y1)).
       split; [ apply H1 | split; intros ].
       + destruct a1.
-        * exists (fun '(ax, nx) => x0 (ax, nx + 1)).
+        * exists (fun '(ax, nx) => x0 (ax, S nx)).
           split.
-          -- intros k. apply (H1 (k + 1)).
+          -- intros k. apply (H1 (S k)).
           -- rewrite bind_ret_l. cbn. apply iter_eq_start_index.
         * do 10 red. rewrite bind_ret_l. cbn. reflexivity.
       + destruct CM; setoid_rewrite iterative_unfold.
