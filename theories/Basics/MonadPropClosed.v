@@ -372,6 +372,61 @@ Section MayRet.
 
 End MayRet.
 
+Section TMayRet.
+
+  Variable (m: Type -> Type).
+  Context `{Monad m}.
+  Context {EQM : EqM m}.
+
+  (* Is there some Monad Transformer Type class with lift laws
+     and such? *)
+  Variable (T: (Type -> Type) -> (Type -> Type)).
+  Context `{Monad (T m)}.
+  
+  (* There has to be some Id monad available in a 
+     library... *)
+  Definition Id (A: Type) : Type := A.
+  Context `{Monad (T Id)}.
+
+  Class TMayRet: Type :=
+    {
+    tmayret: forall {A}, T m A -> T Id A -> Prop
+    }.
+
+  (* The trivial monad transformer. *)
+  Definition IdT (m: Type -> Type) : Type -> Type := m.
+  Context `{Monad (IdT m)}.
+
+  Class TMayRetCorrect `{TMayRet}: Prop :=
+    {
+    tmayret_ret_refl : forall {A} (a: A), tmayret (ret a) (ret a)
+    (* The first ret comes from T m A and the second from T Id A,
+       which is the ret of the non-transformer version of T *) 
+    }.
+End TMayRet.
+
+Section Instance_TMayRet_id.
+  Variable m : Type -> Type.
+  Context {EQM : EqM m}.
+  Context {HM: Monad m}.
+  Context `{HTMM: Monad (IdT m)}.
+  Context `{HTIM: Monad (IdT Id)}.
+
+  Instance IdT_TMayRet: (TMayRet m IdT) :=
+    {|
+      tmayret :=
+        fun A (ima: IdT m A) (iia: IdT Id A) => True
+        (* Ignore this nonsensical definition *)
+    |}.
+
+  Instance IdT_TMayRetCorrect: TMayRetCorrect m IdT.
+  split.
+  intros A a. unfold ret.
+  (* Just wanted to unfold ret to see if the correct returns were
+     being used in the tmayret_ret_refl definition *)
+  Abort.
+End Instance_TMayRet_id.
+
 Section Instance_MayRet.
 
   Inductive Returns {E} {A: Type} : itree E A -> A -> Prop :=
@@ -866,6 +921,39 @@ Section Transformer.
     rewrite bind_bind. reflexivity.
   Qed.
 
+  Definition g {a b : Type} (x0 : a * nat -> m (a + b)) (a1 : a)
+    := (fun '(x, k) =>
+            bind (x0 (x, k))
+                (fun ir : a + b =>
+                    match ir with
+                    | inl i0 => ret (inl (i0, k))
+                    | inr r0 => ret (inr r0)
+                    end)).
+
+  Definition f {a b : Type} : a * nat  -> m (a * nat + b) := fun '(x, k) => ret (inl ((x, S k))).
+
+  Lemma iter_succ_dinatural:
+    forall {a b : Type} (x0 : a * nat -> m (a + b)) (a1 : a),
+      iter (C := Kleisli m) (bif := sum)
+           (f >>> case_ (g x0 a1) inr_)
+       ⩯
+       f >>> case_ (iter (C := Kleisli m) (bif := sum) ((g x0 a1) >>> (case_ f inr_))) (id_ _).
+  Proof.
+    intros. rewrite iter_dinatural. reflexivity.
+  Qed.
+
+  Definition foo {a b : Type} (x0 : a * nat -> m (a + b))  :=
+     fun '(x1, k) =>
+             bind (m := m)
+               (bind (m := m) (x0 (x1, k))
+                   (fun ir : a + b =>
+                    match ir with
+                    | inl i0 => ret (inl (i0, S (S k)))
+                    | inr r0 => ret (inr r0)
+                    end))  (fun y : a * nat + b =>
+                              case_ (C := Kleisli m)
+                                    (fun '(x0, k) => ret (inl (x0, S k))) inr_ y) .
+  
   Lemma iter_eq_start_index:
     forall (a b : Type) (x0 : a * nat -> m (a + b)) (a1 : a),
       iter (C := Kleisli m) (bif := sum)
@@ -886,22 +974,49 @@ Section Transformer.
                     end)) (a1, 1).
   Proof.
     intros a b x0 a1.
-    destruct CM. destruct HMLAWS.
-    do 2 (rewrite iterative_unfold; unfold cat, Cat_Kleisli;
-          rewrite bind_bind; cbn).
+    pose proof (iter_succ_dinatural x0 a1).
+    specialize (H0 (a1, 0)).
+    unfold f at 1, g at 1 in H0.
+    unfold cat at 1, Cat_Kleisli at 1 in H0.
     match goal with
-      |- bind _ ?body1 ≈ bind _ ?body2 => remember body1 as k1; remember body2 as k2
+    | H : ?body1 ≈ _ |- ?body2 ≈ _ => remember body1 as s1;
+                                                 remember body2 as s2
     end.
-    assert (forall (y : a + b), k1 y ≈ k2 y). {
-      subst; intros; destruct y; rewrite 2 bind_ret_l; cbn.
-      do 2 (rewrite iterative_unfold; unfold cat, Cat_Kleisli;
-            rewrite bind_bind; cbn).
-      admit. reflexivity. (* Need coinduction over unfolding of iter *)
-      (* TODO: Maybe we can use dinaturality law here. *)
+    assert (s1 ≈ s2). {
+      subst.
+      match goal with
+      | |- iter ?body1 _ ≈ iter ?body2 _ => remember body1 as k1;
+                                            remember body2 as k2
+      end.
+      assert (iter k1 ⩯ iter k2). {
+        eapply iterative_proper_iter.
+        subst. do 3 red. intros.
+        destruct a0; rewrite bind_ret_l; cbn.
+        reflexivity.
+      }
+      do 3 red in H1.
+      apply H1.
     }
-    (* specialize (H2 k1 k2). (* Functional extensionality not generalizable to eqm *) *)
-  Admitted.
-
+    rewrite <- H1. subst. clear H1. rewrite H0.
+    unfold f, g.
+    unfold cat, Cat_Kleisli. rewrite bind_ret_l.
+    cbn.
+    match goal with
+    | |- iter ?body1 _ ≈ iter ?body2 _ => remember body1 as i1; remember body2 as i2
+     end.
+    assert (iter i1 ⩯ iter i2). {
+      eapply iterative_proper_iter.
+      subst.
+      do 3 red. intros.
+      destruct a0. rewrite bind_bind.
+      eapply Proper_bind. reflexivity.
+      do 2 red. intros. destruct a2;
+      rewrite bind_ret_l; cbn; reflexivity.
+    }
+    do 3 red in H1.
+    apply H1.
+  Qed.
+  
   Global Instance IterUnfold_PropTM : IterUnfold (Kleisli PropTM) sum.
   Proof with (repeat red).
     unfold IterUnfold.
