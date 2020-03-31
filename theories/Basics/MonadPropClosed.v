@@ -373,6 +373,61 @@ Section MayRet.
 
 End MayRet.
 
+Section TMayRet.
+
+  Variable (m: Type -> Type).
+  Context `{Monad m}.
+  Context {EQM : EqM m}.
+
+  (* Is there some Monad Transformer Type class with lift laws
+     and such? *)
+  Variable (T: (Type -> Type) -> (Type -> Type)).
+  Context `{Monad (T m)}.
+  
+  (* There has to be some Id monad available in a 
+     library... *)
+  Definition Id (A: Type) : Type := A.
+  Context `{Monad (T Id)}.
+
+  Class TMayRet: Type :=
+    {
+    tmayret: forall {A}, T m A -> T Id A -> Prop
+    }.
+
+  (* The trivial monad transformer. *)
+  Definition IdT (m: Type -> Type) : Type -> Type := m.
+  Context `{Monad (IdT m)}.
+
+  Class TMayRetCorrect `{TMayRet}: Prop :=
+    {
+    tmayret_ret_refl : forall {A} (a: A), tmayret (ret a) (ret a)
+    (* The first ret comes from T m A and the second from T Id A,
+       which is the ret of the non-transformer version of T *) 
+    }.
+End TMayRet.
+
+Section Instance_TMayRet_id.
+  Variable m : Type -> Type.
+  Context {EQM : EqM m}.
+  Context {HM: Monad m}.
+  Context `{HTMM: Monad (IdT m)}.
+  Context `{HTIM: Monad (IdT Id)}.
+
+  Instance IdT_TMayRet: (TMayRet m IdT) :=
+    {|
+      tmayret :=
+        fun A (ima: IdT m A) (iia: IdT Id A) => True
+        (* Ignore this nonsensical definition *)
+    |}.
+
+  Instance IdT_TMayRetCorrect: TMayRetCorrect m IdT.
+  split.
+  intros A a. unfold ret.
+  (* Just wanted to unfold ret to see if the correct returns were
+     being used in the tmayret_ret_refl definition *)
+  Abort.
+End Instance_TMayRet_id.
+
 Section Instance_MayRet.
 
   Inductive Returns {E} {A: Type} : itree E A -> A -> Prop :=
