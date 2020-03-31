@@ -15,7 +15,6 @@ From Paco Require Import paco.
 From Coq Require Import Morphisms
      Program.Equality
      Classes.RelationClasses
-     Logic.FunctionalExtensionality
 .
 
 
@@ -681,7 +680,7 @@ Section Transformer.
 
   Definition closed_eqm {A} (P: m A -> Prop) := forall a a', eqm a a' -> (P a <-> P a').
 
-  Arguments exist {A P}. 
+  Arguments exist {A P}.
   (* Design choice 1: closed or not by construction? *)
   Definition PropTM : Type -> Type :=
     fun A => {P: m A -> Prop | closed_eqm P}.
@@ -728,6 +727,12 @@ Section Transformer.
       exists (ma : m A) (kb : A -> m B),
         !PA ma /\ (forall a, mayret ma a -> !(K a) (kb a)) /\
         Monad.eqm mb (bind ma kb).
+
+  (* Definition bind_f := *)
+  (*   fun A B (PA : PropTM A) (K : A -> PropTM B) mb => *)
+  (*     exists (ma : m A) (kb : {a: A | mayret ma a} -> m B), *)
+  (*       !PA ma /\ (forall a, !(K a) (kb a)) /\ *)
+  (*       Monad.eqm mb (bind ma (lift kb default)). *)
 
   Lemma bind_f_closed:
     forall A B (PA : PropTM A) (K : A -> PropTM B),
@@ -954,7 +959,7 @@ Section Transformer.
       clear iterative_proper_iter.
     unfold IterDinatural.
   Admitted.
-     iter (C := Kleisli m) (fun a1 : A => step (a1, 1)) a     iter (C := Kleisli m) (fun a1 : A => step (a1, 1)) a..
+
   Global Instance IterCodiagonal_PropTM : IterCodiagonal (Kleisli PropTM) sum.
   Proof. Admitted.
 
@@ -1053,13 +1058,51 @@ Section Laws.
       rewrite bind_ret_r; reflexivity.
   Qed.
 
+  Require Import Logic.ClassicalChoice.
+
+  (* YZ: The following discusses the possible use of the axiom of choice to prove the associativity of the bind operator
+         Since we are considering two consecutive binds, the computation of interest is divided into three parts, of
+         respective types [A], [A -> m B], [B -> m C]. We refer part i for the third i, and [i-j] for portions covering
+         several thirds.
+
+     The crux of the problem when associating to the left is as follows.
+     We need to provide a computation in [m] covering computation 1-2.
+     We have the part 1 [ma: m A], as well as an hypothesis of the form:
+     H: ∀ a:A, mayret ma a -> ∃ (mb: m B), R a mb
+
+     If we forget about [mayret] for a moment, our hypothesis becomes:
+     H: forall a:A, ∃ (mb: m B), R a mb
+     By applying to [H] the functional axiom of choice, i.e.:
+     choice:  ∀ (A B : Type) (R : A->B->Prop),
+              (∀ x : A, ∃ y : B, R x y) ->
+              ∃ f : A->B, (∀ x : A, R x (f x)).
+     H: exists (f: A -> m B), ∀ a:A, R a (f a)
+     And we can hence provide the sought computation 1-2 as [bind ma f].
+
+     Now let's plug back [mayret], can we still work around. It feels like two things may be useful:
+     1) Assume the monad to be pointed, i.e. assume the existence of a family of elements [⊥: forall A, m A].
+        I don't yet foresee where we'd need to know anything about it, but [spin] seems to be a natural candidate over [itree E].
+     2) Assume the axiom of _strong_ excluded middle, i.e.
+        classicT: forall (P : Prop), {P} + {~ P}
+        so that the definition of the continuation can pattern match on the existence of a value returned by the first part of the computation
+        (i.e. a generalization on pattern matching on its termination).
+
+     However we might also be able to rather rephrase [H] by pushing [classically] the precondition under the existential by providing
+     [⊥] over the complement, that is proving for instance:
+     H': ∀ a: A, ∃ (mb : m B) (kb: B -> m C),
+                   (~ mayret ma a /\ mb = ⊥) \/
+                   (mayret ma a /\ ! (KAB a) mb /\ (forall a0 : B, mayret mb a0 -> ! (KBC a0) (kb a0)) /\ kamC a ≈ bind mb kb)
+
+     We try this approach below:
+   *)
+
   Lemma bind_bind:
     forall A B C (ma : PropTM m A) (mab : A -> PropTM m B)
            (mbc : B -> PropTM m C),
       eqm (bind (bind ma mab) mbc) (bind ma (fun x => bind (mab x) mbc)).
   Proof.
-    intros A B C PTA kaPTB kbPTC.
-    split; rewrite H0; clear H0.
+    intros A B C PTA KAB KBC mac mac' EQ; rewrite <- EQ; clear mac' EQ.
+    split.
     - intros Hleft. cbn in *. unfold bind_f in *.
       destruct Hleft as (mb & kbmC & comp & HBmrtcont & Hbindy).
       cbn in *.
@@ -1072,30 +1115,82 @@ Section Laws.
         eapply mayret_bind; eauto.
       + rewrite Hbindy. rewrite Hbindmb.
         apply bind_bind.
-    - intros Hright.
-      destruct Hright as (ma & kamC & Hpta & comp & Hbindy).
-      cbn in *. unfold bind_f in *. cbn in *.
-      refine (exists (bind ma _), _).
-      do 2 eexists.
-         repeat split.
-         exists ma.
-         eexists; repeat split.
-         auto.
-         intros a mr.
-         destruct (comp _ mr) as (mb & kb & H1 & H2 & H3); clear comp.
+    - intros (ma & kamC & Hpta & comp & Hbindy).
+      cbn in *; unfold bind_f in *; cbn in *.
 
+      (* Let's assume the existence of ⊥ *)
+      assert (bot: forall A, m A) by admit.
+      (* Let's push the precondition under the existential *)
+      assert (comp': forall a: A,
+                 exists (mb : m B) (kb: B -> m C),
+                   (~ mayret ma a /\ mb = bot B) \/
+                   (mayret ma a /\ ! (KAB a) mb /\ (forall a0 : B, mayret mb a0 -> ! (KBC a0) (kb a0)) /\ kamC a ≈ bind mb kb)
+             ).
+      {
+        intros a.
+        destruct (classic (mayret ma a)) as [MAY | MAY_NOT].
+        destruct (comp a MAY) as (mb & kb & HYP).
+        exists mb, kb; right; auto.
+        exists (bot _), (fun _ => bot _); left; auto.
+      }
+      clear comp.
 
-      assert (retOrDiv: (forall a, mayret ma a) \/ ~(forall a, (mayret ma a))).
-      apply excluded_middle.
-      destruct retOrDiv as [Hret | Hdiv].
-      + edestruct comp; auto. rename x0 into mb. rename H0 into compI.
-        (* Might not be the right move to edustruct *)
-        destruct compI as (kbmC & Hptb & HBmrtcont & Heq).
-        exists mb. exists kbmC.
-        split.
-        * exists ma. admit.
-        * admit.
-      + admit.
+      (* We can now use [choice] to extract our continuation for part 2 of type [A -> m B] *)
+      apply choice in comp'.
+      destruct comp' as (kAmB & comp).
+      (* So that we can now provide the part 1-2 of the computation *)
+      exists (bind ma kAmB).
+      (* We now however need to provide the part 3 of the computation, things get a bit confusing *)
+      (* We _could_ apply [choice] a second time to also derive a function for this part, giving us a family
+         of such continuations indexed by [A] *)
+      generalize comp; intros comp'.
+      apply choice in comp; destruct comp as (kBmC & comp).
+      (* In all account it feels like we need to case analysis as to whether there exists a value returned by [ma] *)
+      destruct (classic (exists a, mayret ma a)) as [[a aRET] | NORET].
+      {
+        (* Here we have such a value, we can feed it to either of our hypotheses *)
+        (* The one that used choice gives us a continuation, and eliminate the left branch in the [comp]: *)
+        specialize (comp a); destruct comp as [(abs & _) | (_ & comp)]; [contradiction |].
+        (* The original one of course gives the same thing, I dunno what I was thinking *)
+        clear kBmC comp.
+        specialize (comp' a); destruct comp' as (kBmC & [(abs & _) | (_ & IN2 & CONT2 & EQ13)]); [contradiction |].
+        (* Hence we can feed it *)
+        exists kBmC.
+        repeat split.
+        - (* We are now splitting part 1-2, we should have everything we need *)
+          exists ma, kAmB.
+          repeat split.
+          + assumption.
+          + (* This is awkward. I used my case analysis earlier to fix [a: A], but need now to work with others *)
+            intros a' a'RET.
+            admit.
+          + reflexivity.
+        - intros b bRET.
+          apply CONT2.
+          eapply mayret_bind' in bRET; eauto.
+          (* Similar to previously. I can get some [a: A] over which [kAmB a] satisfies my goal, but I fixed it *)
+          admit.
+        - rewrite bind_bind.
+          rewrite Hbindy.
+          (* And once again, EQ13 is too specialized *)
+          admit.
+      }
+      {
+        (* Here, part 1 never returns, but I'm kinda lost as to what that means at the moment... *)
+        (* Right, we can prove that [forall a: A, kAmB a = ⊥]. So the always diverging continuation should be fitting *)
+        exists (fun _ => bot _).
+        repeat split.
+        - exists ma, (fun _ => bot _).
+          repeat split; auto.
+          + intros a aRET; exfalso; apply NORET; eexists; eauto.
+          + (* At least extentionally true, if not completely true *)
+            admit.
+        - intros b bRET.
+          (* Not sure *)
+          admit.
+        - rewrite Hbindy.
+          rewrite bind_bind.
+          (* Some work to be done here, that's where we need to axiomatize [⊥] I think *)
   Admitted.
 
   Lemma respect_bind :
