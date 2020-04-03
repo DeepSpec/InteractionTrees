@@ -88,4 +88,16 @@ Definition interp_either {E M : Type -> Type} {A: Type}
                 | VisF e k => fmap (fun x => inl (mkEitherT (k x))) (h _ e)
                 end).
 
+Definition interp_either' {E M : Type -> Type} {A: Type}
+           {FM : Functor M} {MM : Monad M} {IM : MonadIter M}
+           (h : E ~> M) :
+  eitherT A (itree E) ~> eitherT A M :=
+  fun R => iter (fun t =>
+                match observe (unEitherT t) with
+                | RetF (inl a) => mkEitherT (ret (inl a))
+                | RetF (inr r) => ret (inr r)
+                | TauF t => ret (inl (mkEitherT t))
+                | VisF e k => fmap (fun x => inl (mkEitherT (k x))) (MonadTrans.lift (h _ e))
+                end).
+
 Arguments interp_either {E M A FM MM IM} h [T].

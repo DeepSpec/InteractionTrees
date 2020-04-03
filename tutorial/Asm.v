@@ -308,18 +308,43 @@ Definition registers := alist reg value.
 Definition memory    := alist addr value.
 
 
+(* Definition eitherT_stateT_commute {S A M R}: *)
+(*   (stateT S (eitherT A M) R) -> (eitherT A (stateT S M) R). *)
+(* intros ?. *)
+
+From ITree Require Import Interp.InterpEither.
 (** The _asm_ interpreter takes as inputs a starting heap [mem] and register
     state [reg] and interprets an itree in two nested instances of the [map]
     variant of the state monad. To get this type to work out, we have to
     do a bit of post-processing to swap the order of the "state components"
     introduced by the interpretation.
-*)
-Definition interp_asm {E A} (t : itree (Reg +' Memory +' E) A) :
-  memory -> registers -> itree E (memory * (registers * A)) :=
-  let h := bimap h_reg (bimap h_memory (id_ _)) in
-  let t' := interp h t in
-  fun  mem regs => interp_map (interp_map t' regs) mem.
+ *)
+(* Should [eitherT] be on top of [itree E] or on the outside? *)
 
+Definition distribute {A B C: Type}: A * (B + C) -> A * B + A * C :=
+  fun '(a,bc) => match bc with
+              | inl b => inl (a,b)
+              | inr c => inr (a,c)
+              end.
+Definition interp_either_map {E K V Exc d map} `{M : Map K V map} :
+  eitherT Exc (itree (@mapE K V d +' E)) ~>
+          stateT map (eitherT (map * Exc) (itree E)) :=
+  fun T t s =>
+    let '(mkEitherT t') :=
+         interp_either' (M := stateT _ _) (case_ (@handle_map K V _ _ E d) pure_state) _ t in
+    mkEitherT (ITree.map distribute (t' s)).
+
+(*
+Definition MAS {m: Type -> Type} (S: Type) (Exc: Type): Type -> Type :=
+    fun (A: Type) => m ((Exc * S) + (A * S)).
+ *)
+
+Definition interp_asm {E A}
+           (t : eitherT value (itree (Reg +' Memory +' E)) A) :
+  stateT registers (stateT memory (eitherT (memory * (registers * value)) (itree E))) A :=
+  let h := bimap h_reg (bimap h_memory (id_ E)) in
+  let t' := interp_either' h _ t in
+  fun mem regs => interp_either_map _ (interp_either_map _ t' mem) regs.
 
 (** We can then define an evaluator for closed assembly programs by interpreting
     both store and heap events into two instances of [mapE], and running them
@@ -331,7 +356,7 @@ Definition run_asm (p: asm 1 0) := interp_asm (denote_asm p Fin.f0) empty empty.
  *)
 (** The definition [interp_asm] also induces a notion of equivalence (open)
     _asm_ programs, which is just the equivalence of the ktree category *)
-Definition eq_asm_denotations {E A B} (t1 t2 : Kleisli (itree (Reg +' Memory +' E)) A B) : Prop :=
+Definition eq_asm_denotations {E A B} (t1 t2 : Kleisli (eitherT value (itree (Reg +' Memory +' E))) A B) : Prop :=
   forall a mem regs, interp_asm (t1 a) mem regs ≈ interp_asm (t2 a) mem regs.
 
 Definition eq_asm {A B} (p1 p2 : asm A B) : Prop :=
@@ -343,33 +368,33 @@ Section InterpAsmProperties.
   Notation E := (Reg +' Memory +' E').
 
   (** This interpreter is compatible with the equivalence-up-to-tau. *)
-  Global Instance eutt_interp_asm {R}:
-    Proper (@eutt E R R eq ==> eq ==> eq ==> @eutt E' (prod memory (prod registers R)) (prod _ (prod _ R)) eq) interp_asm.
-  Proof.
-    repeat intro.
-    unfold interp_asm.
-    unfold interp_map.
-    rewrite H0.
-    rewrite H.
-    rewrite H1.
-    reflexivity.
-  Qed.
+  (* Global Instance eutt_interp_asm {R}: *)
+  (*   Proper (@eutt E R R eq ==> eq ==> eq ==> @eutt E' (prod memory (prod registers R)) (prod _ (prod _ R)) eq) interp_asm. *)
+  (* Proof. *)
+  (*   repeat intro. *)
+  (*   unfold interp_asm. *)
+  (*   unfold interp_map. *)
+  (*   rewrite H0. *)
+  (*   rewrite H. *)
+  (*   rewrite H1. *)
+  (*   reflexivity. *)
+  (* Qed. *)
 
   (** [interp_asm] commutes with [Ret]. *)
   Lemma interp_asm_ret: forall {R} (r: R) (regs : registers) (mem: memory),
-      @eutt E' _ _ eq (interp_asm (ret r) mem regs)
-            (ret (mem, (regs, r))).
+      @eutt E' _ _ eq (interp_asm (ret (m:= eitherT _ _) r) mem regs)
+            (ret (mem, (regs, inr r))).
   Proof.
     unfold interp_asm, interp_map.
     intros.
     unfold ret at 1, Monad_itree.
-    rewrite interp_ret, 2 interp_state_ret.
+    cbn. rewrite interp_ret, 2 interp_state_ret.
     reflexivity.
   Qed.
 
   (** [interp_asm] commutes with [bind]. *)
-  Lemma interp_asm_bind: forall {R S} (t: itree E R) (k: R -> itree _ S) (regs : registers) (mem: memory),
-      @eutt E' _ _ eq (interp_asm (ITree.bind t k) mem regs)
+  Lemma interp_asm_bind: forall {R S} (t: eitherT value (itree E) R) (k: R -> eitherT value (itree _) S) (regs : registers) (mem: memory),
+      @eutt E' _ _ eq (interp_asm (bind t k) mem regs)
             (ITree.bind (interp_asm t mem regs) (fun '(mem', (regs', x)) => interp_asm (k x) mem' regs')).
 
   Proof.
