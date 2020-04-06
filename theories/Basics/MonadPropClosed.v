@@ -378,39 +378,65 @@ Section TMayRet.
   Context `{Monad m}.
   Context {EQM : EqM m}.
 
-  (* Is there some Monad Transformer Type class with lift laws
-     and such? *)
   Variable (T: (Type -> Type) -> (Type -> Type)).
   Context `{Monad (T m)}.
   
-  (* There has to be some Id monad available in a 
-     library... *)
   Definition Id (A: Type) : Type := A.
   Context `{Monad (T Id)}.
 
+  (* maybe take in a 3rd argument R, which is a Run
+     function that can be applied to the T Id A monad to 
+     extract the underlying 'a' value
+     The semantics of tmayret then becomes "the T m A term
+     returns the value that the T Id A term computes to under
+     the provided Run function *)
+  (* Is there some "runnable monad" type class? *)
+    
   Class TMayRet: Type :=
     {
-    tmayret: forall {A}, T m A -> T Id A -> Prop
-    }.
+    tmayret: forall {A},
+        T m A -> (T Id A) -> (T Id A -> A) -> Prop;
 
-  (* The trivial monad transformer. *)
-  Definition IdT (m: Type -> Type) : Type -> Type := m.
-  Context `{Monad (IdT m)}.
+    run_m: forall {X}, T Id X -> X
+    }.
+  
 
   Class TMayRetCorrect `{TMayRet}: Prop :=
     {
-    tmayret_ret_refl : forall {A} (a: A), tmayret (ret a) (ret a)
-    (* The first ret comes from T m A and the second from T Id A,
-       which is the ret of the non-transformer version of T *) 
+    tmayret_ret_refl : forall {A} (a: A),
+        tmayret (ret a) (ret a) run_m;
+
+    tmayret_ret_inj  : forall {A} (a a': A),
+        tmayret (ret a) (ret a') run_m -> a = a';
+
+    tmayret_bind : forall {A B} (tma: T m A) (ktb: A -> T m B)
+                          (tia: T Id A) (a: A) (b: B),
+        tmayret tma (ret a) run_m ->
+        tmayret (ktb (run_m (ret a))) (ret b) run_m ->
+        tmayret (bind tma ktb) (ret b) run_m;
+
+    tmayret_bind' : forall {A B} (tma: T m A) (ktb: A -> T m B)
+                           b,
+        tmayret (bind tma ktb) (ret b) run_m ->
+        exists a, tmayret tma (ret a) run_m /\
+                  tmayret (ktb (run_m (ret a))) (ret b) run_m;
+
     }.
+
 End TMayRet.
 
+(*
 Section Instance_TMayRet_id.
   Variable m : Type -> Type.
   Context {EQM : EqM m}.
   Context {HM: Monad m}.
+
+  (* The trivial monad transformer. *)
+  Definition IdT (m: Type -> Type) : Type -> Type := m.
+  Context `{Monad (IdT m)}.
   Context `{HTMM: Monad (IdT m)}.
   Context `{HTIM: Monad (IdT Id)}.
+  
 
   Instance IdT_TMayRet: (TMayRet m IdT) :=
     {|
@@ -426,6 +452,8 @@ Section Instance_TMayRet_id.
      being used in the tmayret_ret_refl definition *)
   Abort.
 End Instance_TMayRet_id.
+
+ *)
 
 Section Instance_MayRet.
 
