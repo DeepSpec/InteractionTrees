@@ -374,12 +374,13 @@ End MayRet.
 
 Section TMayRet.
 
-  Variable (m: Type -> Type).
-  Context `{Monad m}.
-  Context {EQM : EqM m}.
-
   Variable (T: (Type -> Type) -> (Type -> Type)).
+  Variable (m: Type -> Type).
+
+  Context `{Monad m}.
+  Context {EQM_m : EqM m}.
   Context `{Monad (T m)}.
+  Context {EQM_tm : EqM (T m)}.
   
   Definition Id (A: Type) : Type := A.
   Context `{Monad (T Id)}.
@@ -394,66 +395,78 @@ Section TMayRet.
     
   Class TMayRet: Type :=
     {
-    tmayret: forall {A},
-        T m A -> (T Id A) -> (T Id A -> A) -> Prop;
+      run_m: forall {X}, T Id X -> X;
+      (* run_m: forall {X Y}, T Id X -> Y; *)
+    
+      tmayret: forall {A},
+          T m A -> (T Id A) -> (T Id A -> A) -> Prop
 
-    run_m: forall {X}, T Id X -> X
     }.
   
 
   Class TMayRetCorrect `{TMayRet}: Prop :=
     {
-    tmayret_ret_refl : forall {A} (a: A),
-        tmayret (ret a) (ret a) run_m;
+      tmayret_ret_refl : forall {A} (a: A),
+          tmayret (ret a) (ret a) run_m;
 
-    tmayret_ret_inj  : forall {A} (a a': A),
-        tmayret (ret a) (ret a') run_m -> a = a';
+      tmayret_ret_inj  : forall {A} (a a': A),
+          tmayret (ret a) (ret a') run_m -> a = a';
 
-    tmayret_bind : forall {A B} (tma: T m A) (ktb: A -> T m B)
-                          (tia: T Id A) (a: A) (b: B),
-        tmayret tma (ret a) run_m ->
-        tmayret (ktb (run_m (ret a))) (ret b) run_m ->
-        tmayret (bind tma ktb) (ret b) run_m;
+      tmayret_bind : forall {A B} (tma: T m A) (ktb: A -> T m B)
+                            (tia: T Id A) (a: A) (b: B),
+          tmayret tma (ret a) run_m ->
+          tmayret (ktb (run_m (ret a))) (ret b) run_m ->
+          tmayret (bind tma ktb) (ret b) run_m;
 
-    tmayret_bind' : forall {A B} (tma: T m A) (ktb: A -> T m B)
-                           b,
-        tmayret (bind tma ktb) (ret b) run_m ->
-        exists a, tmayret tma (ret a) run_m /\
-                  tmayret (ktb (run_m (ret a))) (ret b) run_m;
+      tmayret_bind' : forall {A B} (tma: T m A) (ktb: A -> T m B)
+                             b,
+          tmayret (bind tma ktb) (ret b) run_m ->
+          exists a, tmayret tma (ret a) run_m /\
+                    tmayret (ktb (run_m (ret a))) (ret b) run_m;
 
     }.
 
 End TMayRet.
 
-(*
-Section Instance_TMayRet_id.
+From ITree Require Import
+     Basics.MonadState.
+
+Import ITree.Basics.Basics.Monads.
+Section Instance_TMayRet_state.
   Variable m : Type -> Type.
+  Variable S : Type.
   Context {EQM : EqM m}.
   Context {HM: Monad m}.
 
-  (* The trivial monad transformer. *)
-  Definition IdT (m: Type -> Type) : Type -> Type := m.
-  Context `{Monad (IdT m)}.
-  Context `{HTMM: Monad (IdT m)}.
-  Context `{HTIM: Monad (IdT Id)}.
-  
+  Variable (T: (Type -> Type) -> (Type -> Type)).
+  Context `{Monad (T m)}.
+  (* This must be the case because stateT S Id is the same
+     as the normal state S monad. Hopefully this is provable. *)
+  Context `{Monad (stateT S Id)}.
 
-  Instance IdT_TMayRet: (TMayRet m IdT) :=
+  (*
+  Context {MR: MayRet m}.
+  Context {MRC: MayRetCorrect m}.
+   *)
+
+  (* We need to know that our space of states is inhabited *)
+  Hypothesis s: S.
+  
+  (*
+  Instance StateT_TMayRet: TMayRet (stateT S) m
+  
     {|
-      tmayret :=
-        fun A (ima: IdT m A) (iia: IdT Id A) => True
-        (* Ignore this nonsensical definition *)
+      run_m :=
+        fun X (sx: stateT S Id X) => sx s 
     |}.
 
-  Instance IdT_TMayRetCorrect: TMayRetCorrect m IdT.
-  split.
-  intros A a. unfold ret.
-  (* Just wanted to unfold ret to see if the correct returns were
-     being used in the tmayret_ret_refl definition *)
-  Abort.
-End Instance_TMayRet_id.
+      tmayret :=
+        fun A (sma: stateT S m A) (sia: stateT S Id A)  =>
+          exists si sf, mayret (sma si) (sf,a)
 
- *)
+  Instance StateT_MayRetCorrect: TMayRetCorrect (stateT S) m.
+*)
+End Instance_TMayRet_state.
 
 Section Instance_MayRet.
 
@@ -710,10 +723,6 @@ End Instance_MayRet.
 
 Arguments mayret {m _} [A].
 
-From ITree Require Import
-     Basics.MonadState.
-
-Import ITree.Basics.Basics.Monads.
 
 Section Instance_MayRet_State.
   Variable m : Type -> Type.
