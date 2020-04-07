@@ -3,10 +3,12 @@
 (** Not specific to itrees. *)
 
 (* begin hide *)
-From Coq Require 
+From Coq Require
      Ensembles.
 
 From Coq Require Import
+     Morphisms
+     Setoid
      RelationClasses.
 
 From ExtLib Require Import
@@ -66,8 +68,6 @@ Variant prod_rel {A1 A2 B1 B2 : Type}
 Arguments prod_morphism {A1 A2 B1 B2 RA RB}.
 Hint Constructors prod_rel.
 
-
-(* SAZ: TODO: Move this elsewhere, it belong with the Basics *)
 Section ProdRelInstances.
   Context {R S : Type}.
   Context (RR : R -> R -> Prop).
@@ -102,6 +102,53 @@ Section ProdRelInstances.
   Qed.
 
 End ProdRelInstances.
+
+
+(* SAZ: There is probably a nice way to typeclassify the eq_rel proofs *)
+(* Heterogeneous relation equivalence *)
+Definition eq_rel {A B} (R : A -> B -> Prop) (S : A -> B -> Prop) :=
+  forall (a:A) (b:B), (R a b) <-> (S a b).
+(* subrelation R S /\ subrelation S R *)
+
+Lemma eq_rel_prod_eq : forall A B, eq_rel (prod_rel eq eq) (eq : A * B -> A * B -> Prop).
+Proof.
+  intros.
+  unfold eq_rel; split; intros.
+  - inversion H. subst. reflexivity.
+  - destruct a; destruct b; inversion H; subst; constructor; reflexivity.
+Qed.           
+
+  
+Global Instance eq_rel_Reflexive {A B} : Reflexive (@eq_rel A B).
+Proof.
+  red. unfold eq_rel. tauto.
+Qed.
+
+Global Instance eq_rel_Symmetric {A B} : Reflexive (@eq_rel A B).
+Proof.
+  red. unfold eq_rel. tauto.
+Qed.
+
+Global Instance eq_rel_Transitive {A B} : Transitive (@eq_rel A B).
+Proof.
+  red. unfold eq_rel. intros. eapply transitivity; eauto.
+Qed.
+
+
+Global Instance eq_rel_Proper {A B} : Proper (eq_rel ==> eq_rel ==> iff) (@eq_rel A B).
+Proof.
+  repeat red; unfold eq_rel; split; intros.
+  - rewrite <- H. rewrite H1. rewrite H0. reflexivity.
+  - rewrite H. rewrite H1. rewrite H0. reflexivity.
+Qed.
+
+Global Instance prod_rel_Proper {A1 A2 B1 B2} : Proper (eq_rel ==> eq_rel ==> eq_rel) (@prod_rel A1 A2 B1 B2).
+Proof.
+  repeat red; unfold eq_rel; split; intros.
+  - inversion H1; subst. constructor. apply H. assumption. apply H0. assumption.
+  - inversion H1; subst. constructor. apply H. assumption. apply H0. assumption.
+Qed.
+
 
 
 (** ** Common monads and transformers. *)

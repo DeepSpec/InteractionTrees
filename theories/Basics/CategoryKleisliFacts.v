@@ -25,10 +25,10 @@ Open Scope monad_scope.
 Section BasicFacts.
 
   Context {m : Type -> Type}.
-  Context {EqM : EqM m}.
+  Context {EqMR : EqMR m}.
   Context {Mm : Monad m}.
-  Context {EqMP : @EqMProps m _ EqM}.
-  Context {ML : @MonadLaws m EqM Mm}.
+  Context {EqMROK : @EqMR_OK m EqMR}.
+  Context {ML : @EqmRMonad m EqMR Mm}.
   
   Instance Proper_Kleisli_apply {a b} :
     Proper (eq2 ==> eq ==> eqm) (@Kleisli_apply m a b).

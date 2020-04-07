@@ -23,6 +23,7 @@ From Coq Require Import
 From Paco Require Import paco.
 
 From ITree Require Import
+     Basics.Basics
      Core.ITreeDefinition.
 
 From ITree Require Export
@@ -160,9 +161,38 @@ Hint Unfold eutt.
 Hint Unfold euttge.
 Hint Unfold id.
 
+
 Ltac unfold_eqit :=
   (try match goal with [|- eqit_ _ _ _ _ _ _ _ ] => red end);
   (repeat match goal with [H: eqit_ _ _ _ _ _ _ _ |- _ ] => red in H end).
+
+
+Global Instance eqitF_Proper_R {E : Type -> Type} {R1 R2:Type} : Proper ( (@eq_rel R1 R2) ==> eq ==> eq ==> (eq_rel ==> eq_rel) ==> eq_rel ==> eq_rel)
+                                                                       (@eqitF E R1 R2).
+Proof.
+  repeat red.
+  intros. subst. split; intros.
+  - induction H0; try auto.
+    econstructor. apply H. assumption.
+    econstructor. apply H3. assumption.
+    econstructor. intros. specialize (REL v). specialize (H2 x3 y3). apply H2 in H3. apply H3. assumption.
+  - induction H0; try auto.
+    econstructor. apply H. assumption.
+    econstructor. apply H3. assumption.
+    econstructor. intros. specialize (REL v). specialize (H2 x3 y3). apply H2 in H3. apply H3. assumption.
+Qed.    
+
+Global Instance eqitF_Proper_R2 {E : Type -> Type} {R1 R2:Type} : Proper ( (@eq_rel R1 R2) ==> eq ==> eq ==> eq ==> eq ==> eq ==> eq ==> iff)
+                                                                       (@eqitF E R1 R2).
+Proof.
+  repeat red.
+  intros. subst. split; intros.
+  - induction H0; try auto.
+    econstructor. apply H. assumption.
+  - induction H0; try auto.
+    econstructor. apply H. assumption.
+Qed.    
+
 
 Definition flip_clo {A B C} clo r := @flip A B C (clo (@flip B A C r)).
 
@@ -567,6 +597,43 @@ Lemma simpobs {E R} {ot} {t: itree E R} (EQ: ot = observe t): t ≅ go ot.
 Proof.
   pstep. repeat red. simpobs. simpl. subst. pstep_reverse. apply Reflexive_eqit; eauto.
 Qed.
+
+(** *** E*)
+
+
+Global Instance eqit_Proper_R {E : Type -> Type} {R1 R2:Type}
+  : Proper ( (@eq_rel R1 R2) ==> eq ==> eq ==> eq ==> eq ==> iff) (@eqit E R1 R2).
+Proof.
+  repeat red.
+  intros. subst.
+  split.
+  -  revert_until y1. pcofix CIH. intros.
+     pstep. punfold H1. red in H1. red.
+     hinduction H1 before CIH; intros; eauto.
+     + apply EqRet. apply H. assumption.
+     + apply EqTau. right. apply CIH. pclearbot. pinversion REL.
+     + apply EqVis. intros. red. right. apply CIH.
+       specialize (REL v).
+       red in REL. pclearbot. pinversion REL.
+  -  revert_until y1. pcofix CIH. intros.
+     pstep. punfold H1. red in H1. red.
+     hinduction H1 before CIH; intros; eauto.
+     + apply EqRet. apply H. assumption.
+     + apply EqTau. right. apply CIH. pclearbot. pinversion REL.
+     + apply EqVis. intros. red. right. apply CIH.
+       specialize (REL v).
+       red in REL. pclearbot. pinversion REL.
+Qed.       
+
+Global Instance eutt_Proper_R {E : Type -> Type} {R1 R2:Type}
+  : Proper ( (@eq_rel R1 R2) ==> eq ==> eq ==> iff) (@eutt E R1 R2).
+Proof.
+  unfold eutt. repeat red.
+  intros. split; intros; subst.
+  - rewrite <- H. assumption.
+  - rewrite H. assumption.
+Qed.  
+  
 
 (** *** Transitivity properties *)
 

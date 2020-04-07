@@ -45,7 +45,7 @@ Definition pure {m} `{Monad m} {a b} (f : a -> b) : Kleisli m a b :=
 Section Instances.
   Context {m : Type -> Type}.
   Context `{Monad m}.
-  Context `{EqM m}.
+  Context `{EqMR m}.
 
   Global Instance Eq2_Kleisli : Eq2 (Kleisli m) :=
     fun _ _ => pointwise_relation _ eqm.

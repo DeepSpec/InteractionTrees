@@ -21,31 +21,69 @@ Local Open Scope cat.
 Section State.
   Variable M : Type -> Type.
   Variable S : Type.
-  Context {EQM : EqM M}.
-  Context {HM: Monad M}.
-  Context {HEQP: @EqMProps M _ EQM}.
-  Context {ML: @MonadLaws M _ HM}.
+  Context {EQMR : EqMR M}.
+  Context {HM : Monad M}.
+  Context {EqMROK : @EqMR_OK M EQMR}.
+  Context {ML : @EqmRMonad M EQMR HM}.
 
-  Global Instance EqM_stateTM : EqM (stateT S M).
-  Proof.
-    exact (fun a => pointwise_relation _ eqm).
-  Defined.
+  Global Instance EqMR_stateTM : EqMR (stateT S M) :=
+    fun a b (R : a -> b -> Prop) (f : stateT S M a) (g : stateT S M b) =>
+      forall (s : S), eqmR (prod_rel eq R) (f s) (g s).
 
-  Global Instance EqMProps_stateTM : @EqMProps (stateT S M) _ EqM_stateTM.
+
+
+  Global Instance EqMR_OK_stateTM : EqMR_OK (stateT S M).
   Proof.
-  constructor.
-  - repeat red.
-    reflexivity.
-  - repeat red. intros. symmetry. apply H.
-  - repeat red. intros. etransitivity; eauto. apply H.  apply H0.
+    split; unfold eqmR, EqMR_stateTM; intros.
+    - red. reflexivity.
+    - red. symmetry; auto.
+    - red. intros. eapply transitivity; eauto.
+    - do 3 red. intros. split; intros.
+         +  specialize (H0 s). specialize (H1 s). specialize (H2 s).
+            rewrite eq_rel_prod_eq in H0.            
+            rewrite eq_rel_prod_eq in H1.
+            rewrite <- H0.
+            rewrite <- H1.
+            rewrite H in H2.
+            assumption.
+         + specialize (H0 s). specialize (H1 s). specialize (H2 s).
+           rewrite eq_rel_prod_eq in H0.
+           rewrite eq_rel_prod_eq in H1.
+           assert (eq_rel (prod_rel (@eq S) x) (prod_rel eq y)).
+           { rewrite H. reflexivity. }
+           rewrite H3. rewrite H1. rewrite H0. assumption.
   Qed.
+         
+      
+  
+  (* Global Instance EqMProps_stateTM : @EqMProps (stateT S M) _ EqM_stateTM. *)
+  (* Proof. *)
+  (* constructor. *)
+  (* - repeat red. *)
+  (*   reflexivity. *)
+  (* - repeat red. intros. symmetry. apply H. *)
+  (* - repeat red. intros. etransitivity; eauto. apply H.  apply H0. *)
+  (* Qed. *)
 
-  Instance MonadLaws_stateTM : @MonadLaws (stateT S M) _ _.
+  Instance EqmRMonad_stateTM : @EqmRMonad (stateT S M) _ _.
   Proof.
   constructor.
-  - cbn. intros a b f x.
-    repeat red.  intros s.
-    rewrite bind_ret_l. reflexivity.
+  - cbn. intros a b R x y.
+    repeat red.  split; intros H.
+    + do 2 red.
+      intros s. apply eqmR_ret.
+      assumption. (* TODO: Figure out why typeclass resolution doesn't find this *)
+      constructor; tauto.
+         + unfold eqmR in H.
+           unfold EqMR_stateTM in H.
+           
+           apply H1.
+           unfold eqmR.
+           
+        
+
+      
+      rewrite eqmR_bind_ret_l. reflexivity.
   - cbn. intros a x.
     repeat red. intros s.
     assert (EQM _ (bind (x s) (fun sa : S * a => ret (fst sa, snd sa))) (bind (x s) (fun sa => ret sa))).
