@@ -3,9 +3,6 @@ From Coq Require Import
      Setoid
      Morphisms.
 
-From ExtLib Require Import
-     Structures.Monad.
-
 From ITree Require Import
      Basics.Basics
      Basics.Category
@@ -13,18 +10,41 @@ From ITree Require Import
      Basics.CategoryKleisliFacts
      Basics.Monad.
 
-Import ITree.Basics.Basics.Monads.
 Import CatNotations.
+Import MonadNotation.
 Local Open Scope cat_scope.
 Local Open Scope cat.
+Local Open Scope monad_scope.
 
-Section State.
+Definition stateT (S: Type) (M: Type -> Type) (A : Type) : Type :=
+  S -> M (prod S A).
+Definition state (S A : Type) := S -> prod S A.
+
+Section Functor_State.
+
+  Global Instance Functor_stateT {M} {Fm : Functor M} {S} : Functor (stateT S M)
+    := {|
+        fmap _ _ f := fun run s => fmap (fun sa => (fst sa, f (snd sa))) (run s)
+      |}.
+
+End Functor_State.
+
+Section Monad_State.
+
   Variable M : Type -> Type.
   Variable S : Type.
   Context {EQM : EqM M}.
   Context {HM: Monad M}.
   Context {HEQP: @EqMProps M _ EQM}.
   Context {ML: @MonadLaws M _ HM}.
+
+  Global Instance Monad_stateT : Monad (stateT S M)
+    := {|
+        ret _ a := fun s => ret (s, a)
+        ; bind _ _ t k := fun s =>
+                            sa <- t s ;;
+                            k (snd sa) (fst sa)
+      |}.
 
   Global Instance EqM_stateTM : EqM (stateT S M).
   Proof.
@@ -40,7 +60,7 @@ Section State.
   - repeat red. intros. etransitivity; eauto. apply H.  apply H0.
   Qed.
 
-  Instance MonadLaws_stateTM : @MonadLaws (stateT S M) _ _.
+  Global Instance MonadLaws_stateTM : @MonadLaws (stateT S M) _ _.
   Proof.
   constructor.
   - cbn. intros a b f x.
@@ -66,7 +86,17 @@ Section State.
       apply H0.
   Qed.
 
-  Context {IM: Iter (Kleisli M) sum}.
+End Monad_State.
+
+Section Iter_State.
+
+  Variable M : Type -> Type.
+  Variable S : Type.
+  Context {EQM : EqM M}.
+  Context {HM: Monad M}.
+  Context {HEQP: @EqMProps M _ EQM}.
+  Context {ML: @MonadLaws M _ HM}.
+  Context {IM: MonadIter M}.
   Context {CM: Iterative (Kleisli M) sum}.
 
   Definition iso {a b:Type} (sab : S * (a + b)) : (S * a) + (S * b) :=
@@ -111,7 +141,6 @@ Section State.
     reflexivity.
   Qed.
 
-
   Lemma internalize_pure {a b c} (f : Kleisli (stateT S M) a b) (g : S * b -> S * c) :
     internalize f >>> pure g   ⩯   (internalize (f >>> (fun b s => ret (g (s,b))))).
   Proof.
@@ -125,13 +154,9 @@ Section State.
       unfold pure. reflexivity.
   Qed.
 
-
-  Global Instance Iter_stateTM : Iter (Kleisli (stateT S M)) sum.
-  Proof.
-    exact
-      (fun (a b : Type) (f : a -> S -> M (S * (a + b))) (x:a) (s:S) =>
-        iter ((internalize f) >>> (pure iso)) (s, x)).
-  Defined.
+  Global Instance Iter_stateTM : MonadIter (stateT S M) :=
+    fun a b (body: b -> S -> M (S * (b + a))) x s =>
+      iter ((internalize body) >>> (pure iso)) (s, x).
 
   Global Instance Proper_Iter_stateTM : forall a b, @Proper (Kleisli (stateT S M) a (a + b) -> (Kleisli (stateT S M) a b)) (eq2 ==> eq2) iter.
   Proof.
@@ -149,43 +174,38 @@ Section State.
 
   Global Instance IterUnfold_stateTM : IterUnfold (Kleisli (stateT S M)) sum.
   Proof.
-  destruct CM.
-  unfold IterUnfold.
-  intros a b f.
-  repeat red.
-  intros a0 s.
-  unfold cat, Cat_Kleisli.
-  unfold iter, Iter_stateTM.
-  rewrite iterative_unfold.  (* SAZ: why isn't iter_unfold exposed here? *)
-  unfold cat, Cat_Kleisli.
-  simpl.
-  rewrite bind_bind.
-  apply Proper_bind.
-  + reflexivity.
-  + repeat red. destruct a1 as [s' [x | y]]; simpl.
-    * unfold pure. rewrite bind_ret_l.
-      reflexivity.
-    * unfold pure. rewrite bind_ret_l.
-      reflexivity.
+    (* destruct CM. *)
+    unfold IterUnfold, CategoryOps.iter, Iter_Kleisli, iter, Iter_stateTM.
+    intros A B f a s.
+    rewrite iter_monad_to_cat.
+    rw_pointed_l iter_unfold.
+    unfold cat, Cat_Kleisli.
+    simpl.
+    rewrite bind_bind.
+    apply Proper_bind.
+    + reflexivity.
+    + intros [? [? | ?]]; simpl.
+      * unfold pure. rewrite bind_ret_l.
+        reflexivity.
+      * unfold pure. rewrite bind_ret_l.
+        reflexivity.
   Qed.
 
   Global Instance IterNatural_stateTM : IterNatural (Kleisli (stateT S M)) sum.
   Proof.
     destruct CM.
-    unfold IterNatural.
-    intros a b c f g.
-    repeat red.
-    intros a0 s.
+    intros A B C f g a s.
+    unfold CategoryOps.iter, Iter_Kleisli, iter, Iter_stateTM.
     setoid_rewrite iterative_natural.
     apply iterative_proper_iter.
     repeat red.
-    destruct a1.
+    intros [].
     unfold cat, Cat_Kleisli.
     cbn.
     rewrite! bind_bind.
     apply Proper_bind.
     - reflexivity.
-    - repeat red. destruct a2 as [s' [x | y]]; simpl.
+    - repeat red. intros [s' [x | y]]; simpl.
       + unfold pure. rewrite bind_ret_l.
         cbn. unfold cat, Cat_Kleisli. cbn.
         rewrite bind_bind.
@@ -198,7 +218,7 @@ Section State.
         rewrite bind_bind.
         apply Proper_bind.
         * reflexivity.
-        * repeat red. destruct a2.
+        * repeat red. intros [].
           cbn.
           rewrite bind_ret_l. reflexivity.
   Qed.
@@ -357,4 +377,4 @@ Section State.
   typeclasses eauto.
   Qed.
 
-End State.
+End Iter_State.

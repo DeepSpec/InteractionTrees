@@ -25,6 +25,7 @@ From ITree Require Import
      ITreeMonad
      Basics.Monad
      Basics.MonadEither
+     Basics.MonadState
      Basics.CategorySub
      Events.State
      Events.StateFacts.
@@ -77,8 +78,6 @@ Inductive block {label : Type} : Type :=
 | bbi (_ : instr) (_ : block)
 | bbb (_ : branch label).
 Global Arguments block _ : clear implicits.
-
-
 
 (** A piece of code should expose the set of labels allowing to enter into it,
     as well as the set of outer labels it might jump to.  To this end, [bks]
@@ -354,10 +353,28 @@ Definition run_asm (p: asm 1 0) := interp_asm (denote_asm p Fin.f0) empty empty.
 (* SAZ: Should some of thes notions of equivalence be put into the library?
    SAZ: Should this be stated in terms of ktree ?
  *)
+
+Axiom fold: forall E (r b: Type), (itree E r -> b -> b) -> itree E r -> b -> b.
+
+Definition interp {E M : Type -> Type}
+           {FM : Functor M} {MM : Monad M} {IM : MonadIter M}
+           (h : E ~> M) :
+  itree E ~> M.  := fun R =>
+  iter (fun t =>
+    match observe t with
+    | RetF r => ret (inr r)
+    | TauF t => ret (inl t)
+    | VisF e k => fmap (fun x => inl (k x)) (h _ e)
+    end).
+(* TODO: this does a map, and aloop does a bind. We could fuse those
+   by giving aloop a continuation to compose its bind with.
+   (coyoneda...) *)
+
+
 (** The definition [interp_asm] also induces a notion of equivalence (open)
     _asm_ programs, which is just the equivalence of the ktree category *)
 Definition eq_asm_denotations {E A B} (t1 t2 : Kleisli (eitherT value (itree (Reg +' Memory +' E))) A B) : Prop :=
-  forall a mem regs, interp_asm (t1 a) mem regs ≈ interp_asm (t2 a) mem regs.
+  forall  a, eqm (interp_asm (t1 a)) (interp_asm (t2 a)).
 
 Definition eq_asm {A B} (p1 p2 : asm A B) : Prop :=
   eq_asm_denotations (denote_asm p1) (denote_asm p2).
@@ -381,8 +398,21 @@ Section InterpAsmProperties.
   (* Qed. *)
 
   (** [interp_asm] commutes with [Ret]. *)
+  Lemma interp_asm_ret: forall {R} (r: R),
+      eqm (interp_asm (E := E') (ret (m:= eitherT _ _) r))
+          (ret (m := stateT _ _) r).
+  Proof.
+    unfold interp_asm, interp_either_map.
+    intros R r regs mem.
+    unfold ret at 1, Monad_eitherT.
+    unfold eqm. unfold EqM_eitherTM.
+    replace {| unEitherT := ret (m := itree E) (inr r) |} with (ret (m := eitherT _ _) r).
+    rewrite interp_ret, 2 interp_state_ret.
+    reflexivity.
+  Qed.
+
   Lemma interp_asm_ret: forall {R} (r: R) (regs : registers) (mem: memory),
-      @eutt E' _ _ eq (interp_asm (ret (m:= eitherT _ _) r) mem regs)
+      @eutt E' _ _ eq (interp_asm (ret (m:= eitherT _ _) r) regs mem)
             (ret (mem, (regs, inr r))).
   Proof.
     unfold interp_asm, interp_map.
