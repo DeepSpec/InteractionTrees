@@ -26,7 +26,10 @@ Implicit Types a b : Type.
 
 Notation ktree E := (Kleisli (itree E)).
 
-Declare Scope ktree_scope.
+(*
+  The following line removes the warning on >=8.10, but is incompatible for <8.10
+ *)
+(* Declare Scope ktree_scope. *)
 Bind Scope ktree_scope with ktree.
 
 Notation ktree_apply := (@Kleisli_apply (itree _)).

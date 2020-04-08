@@ -194,7 +194,10 @@ Hint Unfold flip: core.
 
 (* end hide *)
 
-Declare Scope eq_itree_scope.
+(*
+  The following line removes the warning on >=8.10, but is incompatible for <8.10
+ *)
+(* Declare Scope eq_itree_scope. *)
 Delimit Scope eq_itree_scope with eq_itree.
 
 (** A notation of [eq_itree eq]. You can write [≅] using [[\cong]] in
