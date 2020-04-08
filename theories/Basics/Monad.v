@@ -22,7 +22,7 @@ Class EqMR (m:Type -> Type) : Type :=
 Arguments eqmR {m _ _ _}.
 
 (* 
- forall a b (R : a -> b -> Prop),  m a -> m a -> Prop
+ forall a,  m a -> m a -> Prop
 *)
 Definition eqm {m:Type -> Type} `{EqMR m} {A} := @eqmR _ _ A A eq.
 
@@ -86,9 +86,9 @@ Class EqmRMonad :=
 
 
     eqmR_bind_ret_r : forall {A}
-                         (RA : A -> A -> Prop)
-                         (ma : m A)
-                         (ma_OK : eqmR RA ma ma),
+                        (RA : A -> A -> Prop)
+                        (ma : m A)
+                        (ma_OK : eqmR RA ma ma),
         eqmR RA (bind ma (fun y => ret y)) ma;
 
     eqmR_bind_bind : forall {A B C}
@@ -143,7 +143,7 @@ Section MONAD.
     - unfold eqm. apply eqmR_bind_ret_l with (RA := eq). assumption.
       repeat red. intros. rewrite H3. reflexivity. reflexivity.
     - unfold eqm. apply eqmR_bind_ret_r with (RA := eq). assumption.
-      reflexivity.
+      repeat red. intros. reflexivity.
     - unfold eqm. apply eqmR_bind_bind with (RA := eq)(RB := eq); auto.
       repeat red. intros. rewrite H3. reflexivity.
       repeat red. intros. rewrite H3. reflexivity.

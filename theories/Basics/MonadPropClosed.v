@@ -733,7 +733,7 @@ Section Transformer.
   Context {HEQP: @EqMProps m _ EQM}.
   Context {HMLAWS: @MonadLaws m EQM _}.
 
-  Definition closed_eqm {A} (P: m A -> Prop) := forall a a', eqm a a' -> (P a <-> P a').
+  Definition closed_eqm {A} (P: m A -> Prop) := forall a a', eqmR R a a' -> (P a <-> P a').
 
   Arguments exist {A P}.
   (* Design choice 1: closed or not by construction? *)
