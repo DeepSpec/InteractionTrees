@@ -26,6 +26,7 @@ Implicit Types a b : Type.
 
 Notation ktree E := (Kleisli (itree E)).
 
+Declare Scope ktree_scope.
 Bind Scope ktree_scope with ktree.
 
 Notation ktree_apply := (@Kleisli_apply (itree _)).

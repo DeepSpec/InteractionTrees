@@ -99,7 +99,7 @@ Qed.
 Definition rel_asm {B} : memory * (registers * B) -> memory * (registers * B) -> Prop :=
   prod_rel EQ_memory (prod_rel (EQ_registers 0) eq).
 
-Hint Unfold rel_asm.
+Hint Unfold rel_asm: core.
 
 (** The definition [interp_asm] also induces a notion of equivalence (open)
     _asm_ programs, which is just the equivalence of the ktree category *)

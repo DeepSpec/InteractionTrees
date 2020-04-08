@@ -752,7 +752,7 @@ Section Correctness.
      relation.
    *)
   Definition TT {A B}: A -> B -> Prop  := fun _ _ => True.
-  Hint Unfold TT.
+  Hint Unfold TT: core.
 
   Definition equivalent (s:stmt) (t:asm 1 1) : Prop :=
     bisimilar TT (denote_imp s) (denote_asm t f0).

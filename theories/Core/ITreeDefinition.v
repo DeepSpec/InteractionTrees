@@ -56,6 +56,7 @@ Section itree.
 End itree.
 
 (* begin hide *)
+Declare Scope itree_scope.
 Bind Scope itree_scope with itree.
 Delimit Scope itree_scope with itree.
 Local Open Scope itree_scope.

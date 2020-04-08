@@ -36,6 +36,7 @@ Definition subevent {E F : Type -> Type} `{E -< F} : E ~> F := resum _.
 (** Notations to construct and pattern-match on nested sums. *)
 Module Import SumNotations.
 
+Declare Scope sum_scope.
 Delimit Scope sum_scope with sum.
 Bind Scope sum_scope with sum1.
 

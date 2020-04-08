@@ -49,16 +49,16 @@ Inductive suttF (sutt: itree' E R1 -> itree' E R2 -> Prop) :
       (EQTAUS: sutt (observe t1) ot2):
     suttF sutt (TauF t1) ot2
 .
-Hint Constructors suttF.
+Hint Constructors suttF: core.
 
 Definition sutt (t1 : itree E R1) (t2 : itree E R2) :=
   paco2 suttF bot2 (observe t1) (observe t2).
-Hint Unfold sutt.
+Hint Unfold sutt: core.
 
 End SUTT.
 
-Hint Constructors suttF.
-Hint Unfold sutt.
+Hint Constructors suttF: core.
+Hint Unfold sutt: core.
 
 Section SUTT_rel.
 

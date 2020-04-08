@@ -104,8 +104,8 @@ Variant euttG rH rL gL gH t1 t2 : Prop :=
     (IN: gpaco2 (@eqit_ E R1 R2 RR true true (euttVC gH)) transD (transU rH \2/ rL) gL t1 t2)
 .
 
-Hint Unfold transU transD bindC euttVC.
-Hint Constructors euttG.
+Hint Unfold transU transD bindC euttVC: core.
+Hint Constructors euttG: core.
 
 Lemma transD_mon r1 r2 t1 t2
       (IN: transD r1 t1 t2)
@@ -178,8 +178,8 @@ Hint Resolve euttVC_id : paco.
 
 End EUTTG.
 
-Hint Unfold transU transD bindC euttVC.
-Hint Constructors euttG.
+Hint Unfold transU transD bindC euttVC: core.
+Hint Constructors euttG: core.
 Hint Resolve transD_mon transU_mon : paco.
 Hint Resolve euttVC_mon : paco.
 Hint Resolve euttVC_compat : paco.
@@ -301,7 +301,7 @@ Variant transL (r: itree E R1 -> itree E R2 -> Prop) (t1: itree E R1) (t2: itree
                (LERR: forall x x' y, RR1 x x' -> RR x' y -> RR x y)
   : transL r t1 t2
 .
-Hint Constructors transL.
+Hint Constructors transL: core.
 
 Lemma transD_transL r:
   transD RR (transL r) <2= transL (transD RR r).

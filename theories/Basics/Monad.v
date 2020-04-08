@@ -28,6 +28,7 @@ Class EqMProps (m:Type -> Type) `{Monad m} `{EqM m} :=
       eqm_equiv :> forall a, Equivalence (eqm a).
 Arguments EqMProps m {_ _}.
 Arguments eqm {m _ _}.
+Declare Scope monad_scope.
 Infix "≈" := eqm (at level 70) : monad_scope.
 
 Section monadic.
