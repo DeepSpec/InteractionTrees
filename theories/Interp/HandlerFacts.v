@@ -215,7 +215,7 @@ Inductive interleaved
     interleaved (t >>= k1) (interp (case_ f inr_) t >>= k2)
 .
 
-Hint Constructors interleaved.
+Hint Constructors interleaved: core.
 
 Let hg := @case_ _ Handler _ _ _ _ _ g inr_.
 Let hf := @case_ _ Handler _ _ _ _ _ f inr_.

@@ -104,12 +104,12 @@ Section eqit.
         (REL: eqitF b1 b2 vclo sim ot1 (observe t2)):
       eqitF b1 b2 vclo sim ot1 (TauF t2)
   .
-  Hint Constructors eqitF.
+  Hint Constructors eqitF: core.
 
   Definition eqit_ b1 b2 vclo sim :
     itree E R1 -> itree E R2 -> Prop :=
     fun t1 t2 => eqitF b1 b2 vclo sim (observe t1) (observe t2).
-  Hint Unfold eqit_.
+  Hint Unfold eqit_: core.
 
   (** [eqitF] and [eqit_] are both monotone. *)
 
@@ -132,7 +132,7 @@ Section eqit.
   Proof. unfold id. eauto. Qed.
 
   Hint Resolve eqit_idclo_mono : paco.
-  
+
   Definition eqit b1 b2 : itree E R1 -> itree E R2 -> Prop :=
     paco2 (eqit_ b1 b2 id) bot2.
 
@@ -140,7 +140,7 @@ Section eqit.
       we say that [t1] and [t2] are (strongly) bisimilar. As hinted
       at above, bisimilarity can be intuitively thought of as
       equality. *)
-  
+
   Definition eq_itree := eqit false false.
 
   Definition eutt := eqit true true.
@@ -150,15 +150,15 @@ Section eqit.
 End eqit.
 
 (* begin hide *)
-Hint Constructors eqitF.
-Hint Unfold eqit_.
+Hint Constructors eqitF: core.
+Hint Unfold eqit_: core.
 Hint Resolve eqit__mono : paco.
 Hint Resolve eqit_idclo_mono : paco.
-Hint Unfold eqit.
-Hint Unfold eq_itree.
-Hint Unfold eutt.
-Hint Unfold euttge.
-Hint Unfold id.
+Hint Unfold eqit: core.
+Hint Unfold eq_itree: core.
+Hint Unfold eutt: core.
+Hint Unfold euttge: core.
+Hint Unfold id: core.
 
 Ltac unfold_eqit :=
   (try match goal with [|- eqit_ _ _ _ _ _ _ _ ] => red end);
@@ -190,10 +190,11 @@ Proof.
   red in euv |- *. induction euv; pclearbot; eauto 7 with paco.
 Qed.
 
-Hint Unfold flip.
+Hint Unfold flip: core.
 
 (* end hide *)
 
+Declare Scope eq_itree_scope.
 Delimit Scope eq_itree_scope with eq_itree.
 
 (** A notation of [eq_itree eq]. You can write [≅] using [[\cong]] in
@@ -208,7 +209,7 @@ Infix "≈" := (eutt eq) (at level 70) : itree_scope.
 Infix "≳" := (euttge eq) (at level 70) : itree_scope.
 
 Section eqit_closure.
-  
+
 Context {E : Type -> Type} {R1 R2 : Type} (RR : R1 -> R2 -> Prop).
 
 (** *** "Up-to" principles for coinduction. *)
@@ -223,13 +224,13 @@ Inductive eqit_trans_clo b1 b2 b1' b2' (r : itree E R1 -> itree E R2 -> Prop)
       (LERR2: forall x y y', RR2 y y' -> RR x y' -> RR x y)
   : eqit_trans_clo b1 b2 b1' b2' r t1 t2
 .
-Hint Constructors eqit_trans_clo.
+Hint Constructors eqit_trans_clo: core.
 
 Definition eqitC b1 b2 := eqit_trans_clo b1 b2 false false.
-Hint Unfold eqitC.
+Hint Unfold eqitC: core.
 
 Lemma eqitC_mon b1 b2 r1 r2 t1 t2
-      (IN: eqitC b1 b2 r1 t1 t2)      
+      (IN: eqitC b1 b2 r1 t1 t2)
       (LE: r1 <2= r2):
   eqitC b1 b2 r2 t1 t2.
 Proof.
@@ -299,13 +300,13 @@ Qed.
 
 End eqit_closure.
 
-Hint Unfold eqitC.
+Hint Unfold eqitC: core.
 Hint Resolve eqitC_mon : paco.
 Hint Resolve eqitC_wcompat : paco.
 Hint Resolve eqit_idclo_compat : paco.
 Hint Resolve eqitC_dist : paco.
 Arguments eqit_clo_trans : clear implicits.
-Hint Constructors eqit_trans_clo.
+Hint Constructors eqit_trans_clo: core.
 
 (** ** Properties of relations *)
 
@@ -364,7 +365,7 @@ Proof.
   ginit. gcofix CIH. intros.
   punfold H0. gstep. red in H0 |- *.
   hinduction H0 before CIH; subst; econstructor; try inv CHECK; pclearbot; eauto 7 with paco.
-Qed.  
+Qed.
 
 Global Instance euttge_sub_eutt:
   subrelation (@euttge E _ _ RR) (eutt RR).
@@ -535,8 +536,8 @@ Proof.
     + pclearbot. punfold REL. pstep. red. simpobs. eauto.
     + pstep. red. simpobs. econstructor; eauto. pstep_reverse. apply IHeqitF; eauto.
   - inv Heqtt2. inv H; eauto.
-    + pclearbot. punfold REL. pstep. red. simpobs. eauto.    
-    + pstep. red. simpobs. econstructor; eauto. pstep_reverse. apply IHeqitF; eauto.    
+    + pclearbot. punfold REL. pstep. red. simpobs. eauto.
+    + pstep. red. simpobs. econstructor; eauto. pstep_reverse. apply IHeqitF; eauto.
 Qed.
 
 Lemma eqit_tauL {E R1 R2 RR} b2 (t1 : itree E R1) (t2 : itree E R2) :
@@ -573,7 +574,7 @@ Qed.
 Inductive rcompose {R1 R2 R3} (RR1: R1->R2->Prop) (RR2: R2->R3->Prop) (r1: R1) (r3: R3) : Prop :=
 | rcompose_intro r2 (REL1: RR1 r1 r2) (REL2: RR2 r2 r3)
 .
-Hint Constructors rcompose.
+Hint Constructors rcompose: core.
 
 Lemma trans_rcompose {R} RR (TRANS: Transitive RR):
   forall x y : R, rcompose RR RR x y -> RR x y.
@@ -830,11 +831,11 @@ Inductive eqit_bind_clo b1 b2 (r : itree E R1 -> itree E R2 -> Prop) :
       (REL: forall u1 u2, RU u1 u2 -> r (k1 u1) (k2 u2))
   : eqit_bind_clo b1 b2 r (ITree.bind t1 k1) (ITree.bind t2 k2)
 .
-Hint Constructors eqit_bind_clo.
+Hint Constructors eqit_bind_clo: core.
 
 Lemma eqit_clo_bind b1 b2 vclo
       (MON: monotone2 vclo)
-      (CMP: compose (eqitC RR b1 b2) vclo <3= compose vclo (eqitC RR b1 b2))      
+      (CMP: compose (eqitC RR b1 b2) vclo <3= compose vclo (eqitC RR b1 b2))
       (ID: id <3= vclo):
   eqit_bind_clo b1 b2 <3= gupaco2 (eqit_ RR b1 b2 vclo) (eqitC RR b1 b2).
 Proof.
@@ -844,7 +845,7 @@ Proof.
   punfold EQV. unfold_eqit.
   hinduction EQV before CIH; intros; pclearbot.
   - guclo eqit_clo_trans.
-    econstructor; auto_ctrans_eq; try (rewrite <- !itree_eta; reflexivity). 
+    econstructor; auto_ctrans_eq; try (rewrite <- !itree_eta; reflexivity).
     eauto with paco.
   - gstep. econstructor. eauto with paco.
   - gstep. econstructor. eauto 7 with paco.
@@ -869,7 +870,7 @@ Qed.
 End eqit_h.
 
 Arguments eqit_clo_bind : clear implicits.
-Hint Constructors eqit_bind_clo.
+Hint Constructors eqit_bind_clo: core.
 
 Lemma eqit_bind' {E R1 R2 S1 S2} (RR : R1 -> R2 -> Prop) b1 b2
       (RS : S1 -> S2 -> Prop)

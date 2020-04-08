@@ -81,6 +81,7 @@ Notation binop obj := (obj -> obj -> obj) (only parsing).
 End Carrier.
 
 (** Scope for category notations. *)
+Declare Scope cat_scope.
 Delimit Scope cat_scope with cat.
 
 (** ** Categories *)
