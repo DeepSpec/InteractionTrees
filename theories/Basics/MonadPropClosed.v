@@ -340,7 +340,7 @@ Section MayRet.
 
   Variable (m: Type -> Type).
   Context `{Monad m}.
-  Context {EQM : EqM m}.
+  Context {EQM : EqMR m}.
 
   Class MayRet: Type :=
     {
@@ -376,7 +376,7 @@ Section TMayRet.
 
   Variable (m: Type -> Type).
   Context `{Monad m}.
-  Context {EQM : EqM m}.
+  Context {EQM : EqMR m}.
 
   (* Is there some Monad Transformer Type class with lift laws
      and such? *)
@@ -407,7 +407,7 @@ End TMayRet.
 
 Section Instance_TMayRet_id.
   Variable m : Type -> Type.
-  Context {EQM : EqM m}.
+  Context {EQM : EqMR m}.
   Context {HM: Monad m}.
   Context `{HTMM: Monad (IdT m)}.
   Context `{HTIM: Monad (IdT Id)}.
@@ -690,7 +690,7 @@ Import ITree.Basics.Basics.Monads.
 Section Instance_MayRet_State.
   Variable m : Type -> Type.
   Variable S : Type.
-  Context {EQM : EqM m}.
+  Context {EQM : EqMR m}.
   Context {HM: Monad m}.
   Context {MR: MayRet m}.
   Context {MRC: MayRetCorrect m}.
@@ -727,41 +727,44 @@ Section Transformer.
 
   Variable (m: Type -> Type).
   Context `{Monad m}.
-  Context {EQM : EqM m}.
+  Context {EQM : EqMR m}.
   Context {ITERM : MonadIter m}.
   Context {MAYR : MayRet m}.
-  Context {HEQP: @EqMProps m _ EQM}.
+  Context {HEQP: @EqMR_OK m EQM}.
   Context {HMLAWS: @MonadLaws m EQM _}.
 
-  Definition closed_eqm {A} (P: m A -> Prop) := forall a a', eqm a a' -> (P a <-> P a').
+  Definition closed_eqmR {A B} (PA : m A -> Prop) (PB : m B -> Prop) (REL : A -> B -> Prop) :=
+    forall a b, eqmR REL a b -> (PA a <-> PB b).
 
   Arguments exist {A P}.
   (* Design choice 1: closed or not by construction? *)
   Definition PropTM : Type -> Type :=
-    fun A => {P: m A -> Prop | closed_eqm P}.
+    fun A => m A -> Prop.
 
   Notation "! P" := (proj1_sig P) (at level 5).
 
-  Definition eqm1: forall A, PropTM A -> PropTM A -> Prop:=
-    fun A PA PA' => forall a, !PA a <-> !PA' a.
+  Definition eqm1 : forall (A B : Type) (R : A -> B -> Prop), PropTM A -> PropTM B -> Prop :=
+    fun _ _ REL PA PB => forall x y r, r x y -> (PA x <-> PB y).
 
-  Definition eqm2: forall A, PropTM A -> PropTM A -> Prop:=
-    fun A PA PA' => forall x y, eqm x y -> (!PA x <-> !PA' y).
+  Definition eqm2 : forall (A B : Type) (R : A -> B -> Prop), PropTM A -> PropTM B -> Prop :=
+    fun _ _ REL PA PB =>
+      (forall x y r, eqmR r x y -> (PA x <-> PB y)) /\
+      closed_eqmR PA PB REL.
 
-  Definition eqm3: forall A, PropTM A -> PropTM A -> Prop :=
-    fun _ P Q => (forall a, !P a -> exists a', eqm a a' /\ !Q a') /\
-              (forall a, !Q a -> exists a', eqm a a' /\ !P a').
+  Definition eqm3 : forall (A B : Type) (R : A -> B -> Prop), PropTM A -> PropTM B -> Prop :=
+    fun _ _ REL PA PB => (forall x r, PA x -> exists y, eqmR r x y /\ PB y) /\
+                      (forall y r, PB y -> exists x, eqmR r x y /\ PA x).
 
-  Global Instance EqM_PropTM : EqM PropTM := eqm2.
+  Global Instance EqMR_PropTM : EqMR PropTM := eqm2.
 
   Definition ret_f := (fun A (a : A) (ma : m A) => eqm ma (ret a)).
 
+  (* TODO *)
   Lemma ret_f_closed :
-    forall A (a : A), closed_eqm (ret_f A a).
+    forall A B (a : A) (b : B) (rel : A -> B -> Prop),
+      closed_eqmR (ret_f A a) (ret_f B b) rel.
   Proof.
-    split; intros; unfold ret_f in *;
-      rewrite H0 in *; assumption.
-  Defined.
+  Admitted. 
 
   (* Notice that the continuation only checks membership to the set continuation over values that may be returned.
      The following example illustrates why removing this restriction is incompatible with the [bind_ret_l] monadic law.
@@ -777,311 +780,296 @@ Section Transformer.
 
      For this reason, we are trying to restrict the requirement to values that are actually returned by the computation.
    *)
+
+  Definition agrees {A : Type} : A -> (A -> Prop) -> Prop :=
+    fun (x : A) (P : A -> Prop) => P x.
+
+  Infix "∈" := agrees (at level 70).
+
   Definition bind_f :=
-    fun A B (PA : PropTM A) (K : A -> PropTM B) mb =>
-      exists (ma : m A) (kb : A -> m B),
-        !PA ma /\ (forall a, mayret ma a -> !(K a) (kb a)) /\
-        Monad.eqm mb (bind ma kb).
+  fun A B (PA : PropTM A) (K : A -> PropTM B) (mb : m B) =>
+    exists (ma : m A) (kb : A -> m B),
+      PA ma /\ eqmR agrees (Functor.fmap kb ma) (Functor.fmap K ma) /\
+      Monad.eqm mb (bind ma kb).
 
-  (* Definition bind_f := *)
-  (*   fun A B (PA : PropTM A) (K : A -> PropTM B) mb => *)
-  (*     exists (ma : m A) (kb : {a: A | mayret ma a} -> m B), *)
-  (*       !PA ma /\ (forall a, !(K a) (kb a)) /\ *)
-  (*       Monad.eqm mb (bind ma (lift kb default)). *)
-
-  Lemma bind_f_closed:
-    forall A B (PA : PropTM A) (K : A -> PropTM B),
-      closed_eqm (bind_f A B PA K).
-  Proof.
-    split; intros;
-      (destruct H1 as (ma & kb & HPA & HK & HEQa); exists ma, kb;
-       rewrite H0 in *; repeat (split; try assumption)).
-  Defined.
+  (* TODO *)
+  (* Lemma bind_f_closed: *)
+  (*   forall A B (PA : PropTM A) (PB : PropTM B) (REL : A -> B -> Prop) *)
+  (*     (K : A -> PropTM B), *)
+  (*     closed_eqmR (bind_f A B PA K). *)
+  (* Proof. *)
+  (*   split; intros; *)
+  (*     (destruct H1 as (ma & kb & HPA & HK & HEQa); exists ma, kb; *)
+  (*      rewrite H0 in *; repeat (split; try assumption)). *)
+  (* Defined. *)
 
   Global Instance Monad_PropTM : Monad (PropTM) :=
     {|
-      ret:= fun A (a: A) => (exist (ret_f A a) (ret_f_closed A a))
-      ; bind := fun A B (PA : PropTM A) (K : A -> PropTM B)=>
-                  exist (bind_f A B PA K) (bind_f_closed A B PA K)
+      ret:= fun A (a: A) => (ret_f A a)
+      ; bind := fun A B (PA : PropTM A) (K : A -> PropTM B) =>
+                  (bind_f A B PA K) 
       |}.
 
-  Lemma monad_iter_closed:
-    forall (R I : Type) (step : I -> PropTM (I + R)) (i : I),
-      closed_eqm
-        (fun r : m R =>
-           exists step' : I -> m (I + R),
-             (forall j : I, ! (step j) (step' j)) /\
-             eqm (m := m) (CategoryOps.iter step' i) r).
-  Proof.
-    intros R I step i.
-    intros m1 m2 eqm12; split; intros (step' & ISIN & EQ);
-      (exists step'; split; auto);
-      [rewrite <- eqm12 | rewrite eqm12]; auto.
-  Qed.
-
-  (* Global Instance MonadIter_PropTM : MonadIter PropTM. *)
-  (*  exact (fun R I step i => *)
-  (*           exist (fun (r: m R) => exists (step': I -> m (I + R)%type), *)
-  (*                    (forall j, !(step j) (step' j)) /\ *)
-  (*                    (eqm (m := m)(CategoryOps.iter step' i) r)) *)
-  (*                 (monad_iter_closed R I step i)). *)
-  (* Defined. *)
   Import CatNotations.
   Local Open Scope cat_scope.
 
-  Lemma monad_iter_closed':
-    forall (R I : Type) (step : I -> PropTM (I + R)) (i : I),
-      closed_eqm
-        (fun r : m R =>
-           exists step' : I * nat -> m (I + R),
-             (forall (n : nat) (j : I), ! (step j) (step' (j, n))) /\
-             eqm (m := m) (let body :=
-                  fun '(x, k) =>
-                    bind (step' (x, k))
-                         (fun ir : I + R =>
-                            match ir with
-                            | inl i0 => ret (inl (i0, S k))
-                            | inr r0 => ret (inr r0)
-                            end) in
-              CategoryOps.iter body (i, 0)) r).
-  Proof.
-    intros R I step i.
-    intros m1 m2 eqm12; split; intros (step' & ISIN & EQ);
-      (exists step'; split; auto);
-      [rewrite <- eqm12 | rewrite eqm12]; auto.
-  Qed.
+  (* TODO *)
+  (* Lemma monad_iter_closed': *)
+  (*   forall (R I : Type) (step : I -> PropTM (I + R)) (i : I), *)
+  (*     closed_eqm *)
+  (*       (fun r : m R => *)
+  (*          exists step' : I * nat -> m (I + R), *)
+  (*            (forall (n : nat) (j : I), ! (step j) (step' (j, n))) /\ *)
+  (*            eqm (m := m) (let body := *)
+  (*                 fun '(x, k) => *)
+  (*                   bind (step' (x, k)) *)
+  (*                        (fun ir : I + R => *)
+  (*                           match ir with *)
+  (*                           | inl i0 => ret (inl (i0, S k)) *)
+  (*                           | inr r0 => ret (inr r0) *)
+  (*                           end) in *)
+  (*             CategoryOps.iter body (i, 0)) r). *)
+  (* Proof. *)
+  (*   intros R I step i. *)
+  (*   intros m1 m2 eqm12; split; intros (step' & ISIN & EQ); *)
+  (*     (exists step'; split; auto); *)
+  (*     [rewrite <- eqm12 | rewrite eqm12]; auto. *)
+  (* Qed. *)
 
-  Global Instance MonadIter_PropTM : MonadIter PropTM.
-  refine (fun (R I : Type) (step : I -> PropTM (I + R)) (i : I) =>
-            exist (fun r : m R =>
-           exists step' : I * nat -> m (I + R),
-             (forall (n : nat) (j : I), ! (step j) (step' (j, n))) /\
-             eqm (m := m) (let body :=
-                  fun '(x, k) =>
-                    bind (step' (x, k))
-                         (fun ir : I + R =>
-                            match ir with
-                            | inl i0 => ret (inl (i0, S k))
-                            | inr r0 => ret (inr r0)
-                            end) in
-                           CategoryOps.iter body (i, 0)) r)
-                  (monad_iter_closed' R I step i)).
-  Defined.
+  (* Global Instance MonadIter_PropTM : MonadIter PropTM. *)
+  (* refine (fun (R I : Type) (step : I -> PropTM (I + R)) (i : I) => *)
+  (*           exist (fun r : m R => *)
+  (*          exists step' : I * nat -> m (I + R), *)
+  (*            (forall (n : nat) (j : I), ! (step j) (step' (j, n))) /\ *)
+  (*            eqm (m := m) (let body := *)
+  (*                 fun '(x, k) => *)
+  (*                   bind (step' (x, k)) *)
+  (*                        (fun ir : I + R => *)
+  (*                           match ir with *)
+  (*                           | inl i0 => ret (inl (i0, S k)) *)
+  (*                           | inr r0 => ret (inr r0) *)
+  (*                           end) in *)
+  (*                          CategoryOps.iter body (i, 0)) r) *)
+  (*                 (monad_iter_closed' R I step i)). *)
+  (* Defined. *)
 
-  Global Instance Iter_PropTM : Iter (Kleisli PropTM) sum.
-  Proof.
-    eapply Iter_Kleisli.
-  Defined.
+  (* TODO *)
+  (* Global Instance Iter_PropTM : Iter (Kleisli PropTM) sum. *)
+  (* Proof. *)
+  (*   eapply Iter_Kleisli. *)
+  (* Defined. *)
 
   Context {CM: Iterative (Kleisli m) sum}.
 
-  Global Instance Proper_Iter_PropTM : forall a b, @Proper (Kleisli PropTM a (a + b) -> Kleisli PropTM a b) (eq2 ==> eq2) iter.
-  Proof.
-    destruct CM.
-    repeat red in iterative_proper_iter.
-    repeat red.
-    intros A B x y Heq a mx my Heq0.
-    split; repeat red; intros; red in H0;
-        edestruct H0 as (? & ? & ?); clear H0;
-        exists x0; split;
-          [ | rewrite Heq0 in H2; assumption | | rewrite <- Heq0 in H2; assumption ];
-          intros; repeat red in Heq; assert (Hj: x0 (j, n) ≈ x0 (j, n)) by reflexivity;
-            specialize (Heq j (x0 (j, n)) (x0 (j, n)) Hj); clear Hj;
-              destruct Heq; [apply H0 in H1 | apply H3 in H1] ; apply H1.
-  Qed.
+  (* Global Instance Proper_Iter_PropTM : forall a b, @Proper (Kleisli PropTM a (a + b) -> Kleisli PropTM a b) (eq2 ==> eq2) iter. *)
+  (* Proof. *)
+  (*   destruct CM. *)
+  (*   repeat red in iterative_proper_iter. *)
+  (*   repeat red. *)
+  (*   intros A B x y Heq a mx my Heq0. *)
+  (*   split; repeat red; intros; red in H0; *)
+  (*       edestruct H0 as (? & ? & ?); clear H0; *)
+  (*       exists x0; split; *)
+  (*         [ | rewrite Heq0 in H2; assumption | | rewrite <- Heq0 in H2; assumption ]; *)
+  (*         intros; repeat red in Heq; assert (Hj: x0 (j, n) ≈ x0 (j, n)) by reflexivity; *)
+  (*           specialize (Heq j (x0 (j, n)) (x0 (j, n)) Hj); clear Hj; *)
+  (*             destruct Heq; [apply H0 in H1 | apply H3 in H1] ; apply H1. *)
+  (* Qed. *)
+    (* Admitted.  *)
 
-  Lemma indexed_iter_unfold :
-    forall (A B : Type) (x y : m B)
-      (step : A * nat -> m (A + B)) (a : A),
-      iter (C := Kleisli m) (fun '(x, k) => bind (step (x, k)) (fun ir : A + B =>
-        match ir with
-        | inl i0 => ret (inl (i0, S k))
-        | inr r0 => ret (inr r0)
-        end)) (a, 0) ≈
-      bind (m := m) (step (a, 0))
-      (fun y0 : A + B =>
-       bind match y0 with
-          | inl i0 => ret (inl (i0, 1))
-          | inr r0 => ret (inr r0)
-          end
-       (fun y1 : A * nat + B =>
-        case_ (C := Kleisli m) (bif := sum)
-          (iter (C := Kleisli m)
-             (fun '(x0, k) =>
-              bind (step (x0, k))
-                (fun ir : A + B =>
-                 match ir with
-                 | inl i0 => ret (inl (i0, S k))
-                 | inr r0 => ret (inr r0)
-                 end))) (id_ B) y1)).
-  Proof.
-    intros.
-    destruct CM. rewrite iterative_unfold.
-    unfold cat, Cat_Kleisli. destruct HMLAWS.
-    rewrite bind_bind. reflexivity.
-  Qed.
+  (* Lemma indexed_iter_unfold : *)
+  (*   forall (A B : Type) (x y : m B) *)
+  (*     (step : A * nat -> m (A + B)) (a : A), *)
+  (*     iter (C := Kleisli m) (fun '(x, k) => bind (step (x, k)) (fun ir : A + B => *)
+  (*       match ir with *)
+  (*       | inl i0 => ret (inl (i0, S k)) *)
+  (*       | inr r0 => ret (inr r0) *)
+  (*       end)) (a, 0) ≈ *)
+  (*     bind (m := m) (step (a, 0)) *)
+  (*     (fun y0 : A + B => *)
+  (*      bind match y0 with *)
+  (*         | inl i0 => ret (inl (i0, 1)) *)
+  (*         | inr r0 => ret (inr r0) *)
+  (*         end *)
+  (*      (fun y1 : A * nat + B => *)
+  (*       case_ (C := Kleisli m) (bif := sum) *)
+  (*         (iter (C := Kleisli m) *)
+  (*            (fun '(x0, k) => *)
+  (*             bind (step (x0, k)) *)
+  (*               (fun ir : A + B => *)
+  (*                match ir with *)
+  (*                | inl i0 => ret (inl (i0, S k)) *)
+  (*                | inr r0 => ret (inr r0) *)
+  (*                end))) (id_ B) y1)). *)
+  (* Proof. *)
+  (*   intros. *)
+  (*   destruct CM. rewrite iterative_unfold. *)
+  (*   unfold cat, Cat_Kleisli. destruct HMLAWS. *)
+  (*   rewrite bind_bind. reflexivity. *)
+  (* Qed. *)
 
-  Definition g {a b : Type} (x0 : a * nat -> m (a + b)) (a1 : a)
-    := (fun '(x, k) =>
-            bind (x0 (x, k))
-                (fun ir : a + b =>
-                    match ir with
-                    | inl i0 => ret (inl (i0, k))
-                    | inr r0 => ret (inr r0)
-                    end)).
+  (* Definition g {a b : Type} (x0 : a * nat -> m (a + b)) (a1 : a) *)
+  (*   := (fun '(x, k) => *)
+  (*           bind (x0 (x, k)) *)
+  (*               (fun ir : a + b => *)
+  (*                   match ir with *)
+  (*                   | inl i0 => ret (inl (i0, k)) *)
+  (*                   | inr r0 => ret (inr r0) *)
+  (*                   end)). *)
 
-  Definition f {a b : Type} : a * nat  -> m (a * nat + b) := fun '(x, k) => ret (inl ((x, S k))).
+  (* Definition f {a b : Type} : a * nat  -> m (a * nat + b) := fun '(x, k) => ret (inl ((x, S k))). *)
 
-  Lemma iter_succ_dinatural:
-    forall {a b : Type} (x0 : a * nat -> m (a + b)) (a1 : a),
-      iter (C := Kleisli m) (bif := sum)
-           (f >>> case_ (g x0 a1) inr_)
-       ⩯
-       f >>> case_ (iter (C := Kleisli m) (bif := sum) ((g x0 a1) >>> (case_ f inr_))) (id_ _).
-  Proof.
-    intros. rewrite iter_dinatural. reflexivity.
-  Qed.
+  (* Lemma iter_succ_dinatural: *)
+  (*   forall {a b : Type} (x0 : a * nat -> m (a + b)) (a1 : a), *)
+  (*     iter (C := Kleisli m) (bif := sum) *)
+  (*          (f >>> case_ (g x0 a1) inr_) *)
+  (*      ⩯ *)
+  (*      f >>> case_ (iter (C := Kleisli m) (bif := sum) ((g x0 a1) >>> (case_ f inr_))) (id_ _). *)
+  (* Proof. *)
+  (*   intros. rewrite iter_dinatural. reflexivity. *)
+  (* Qed. *)
 
-  Definition foo {a b : Type} (x0 : a * nat -> m (a + b))  :=
-     fun '(x1, k) =>
-             bind (m := m)
-               (bind (m := m) (x0 (x1, k))
-                   (fun ir : a + b =>
-                    match ir with
-                    | inl i0 => ret (inl (i0, S (S k)))
-                    | inr r0 => ret (inr r0)
-                    end))  (fun y : a * nat + b =>
-                              case_ (C := Kleisli m)
-                                    (fun '(x0, k) => ret (inl (x0, S k))) inr_ y) .
+  (* Definition foo {a b : Type} (x0 : a * nat -> m (a + b))  := *)
+  (*    fun '(x1, k) => *)
+  (*            bind (m := m) *)
+  (*              (bind (m := m) (x0 (x1, k)) *)
+  (*                  (fun ir : a + b => *)
+  (*                   match ir with *)
+  (*                   | inl i0 => ret (inl (i0, S (S k))) *)
+  (*                   | inr r0 => ret (inr r0) *)
+  (*                   end))  (fun y : a * nat + b => *)
+  (*                             case_ (C := Kleisli m) *)
+  (*                                   (fun '(x0, k) => ret (inl (x0, S k))) inr_ y) . *)
   
-  Lemma iter_eq_start_index:
-    forall (a b : Type) (x0 : a * nat -> m (a + b)) (a1 : a),
-      iter (C := Kleisli m) (bif := sum)
-        (fun '(x, k) =>
-            bind (x0 (x, S k))
-                (fun ir : a + b =>
-                    match ir with
-                    | inl i0 => ret (inl (i0, S k))
-                    | inr r0 => ret (inr r0)
-                    end)) (a1, 0)
-        ≈ iter (C := Kleisli m) (bif := sum)
-        (fun '(x', k) =>
-            bind (x0 (x', k))
-                (fun ir : a + b =>
-                    match ir with
-                    | inl i0 => ret (inl (i0, S k))
-                    | inr r0 => ret (inr r0)
-                    end)) (a1, 1).
-  Proof.
-    intros a b x0 a1.
-    pose proof (iter_succ_dinatural x0 a1).
-    specialize (H0 (a1, 0)).
-    unfold f at 1, g at 1 in H0.
-    unfold cat at 1, Cat_Kleisli at 1 in H0.
-    match goal with
-    | H : ?body1 ≈ _ |- ?body2 ≈ _ => remember body1 as s1;
-                                                 remember body2 as s2
-    end.
-    assert (s1 ≈ s2). {
-      subst.
-      match goal with
-      | |- iter ?body1 _ ≈ iter ?body2 _ => remember body1 as k1;
-                                            remember body2 as k2
-      end.
-      assert (iter k1 ⩯ iter k2). {
-        eapply iterative_proper_iter.
-        subst. do 3 red. intros.
-        destruct a0; rewrite bind_ret_l; cbn.
-        reflexivity.
-      }
-      do 3 red in H1.
-      apply H1.
-    }
-    rewrite <- H1. subst. clear H1. rewrite H0.
-    unfold f, g.
-    unfold cat, Cat_Kleisli. rewrite bind_ret_l.
-    cbn.
-    match goal with
-    | |- iter ?body1 _ ≈ iter ?body2 _ => remember body1 as i1; remember body2 as i2
-     end.
-    assert (iter i1 ⩯ iter i2). {
-      eapply iterative_proper_iter.
-      subst.
-      do 3 red. intros.
-      destruct a0. rewrite bind_bind.
-      eapply Proper_bind. reflexivity.
-      do 2 red. intros. destruct a2;
-      rewrite bind_ret_l; cbn; reflexivity.
-    }
-    do 3 red in H1.
-    apply H1.
-  Qed.
+  (* Lemma iter_eq_start_index: *)
+  (*   forall (a b : Type) (x0 : a * nat -> m (a + b)) (a1 : a), *)
+  (*     iter (C := Kleisli m) (bif := sum) *)
+  (*       (fun '(x, k) => *)
+  (*           bind (x0 (x, S k)) *)
+  (*               (fun ir : a + b => *)
+  (*                   match ir with *)
+  (*                   | inl i0 => ret (inl (i0, S k)) *)
+  (*                   | inr r0 => ret (inr r0) *)
+  (*                   end)) (a1, 0) *)
+  (*       ≈ iter (C := Kleisli m) (bif := sum) *)
+  (*       (fun '(x', k) => *)
+  (*           bind (x0 (x', k)) *)
+  (*               (fun ir : a + b => *)
+  (*                   match ir with *)
+  (*                   | inl i0 => ret (inl (i0, S k)) *)
+  (*                   | inr r0 => ret (inr r0) *)
+  (*                   end)) (a1, 1). *)
+  (* Proof. *)
+  (*   intros a b x0 a1. *)
+  (*   pose proof (iter_succ_dinatural x0 a1). *)
+  (*   specialize (H0 (a1, 0)). *)
+  (*   unfold f at 1, g at 1 in H0. *)
+  (*   unfold cat at 1, Cat_Kleisli at 1 in H0. *)
+  (*   match goal with *)
+  (*   | H : ?body1 ≈ _ |- ?body2 ≈ _ => remember body1 as s1; *)
+  (*                                                remember body2 as s2 *)
+  (*   end. *)
+  (*   assert (s1 ≈ s2). { *)
+  (*     subst. *)
+  (*     match goal with *)
+  (*     | |- iter ?body1 _ ≈ iter ?body2 _ => remember body1 as k1; *)
+  (*                                           remember body2 as k2 *)
+  (*     end. *)
+  (*     assert (iter k1 ⩯ iter k2). { *)
+  (*       eapply iterative_proper_iter. *)
+  (*       subst. do 3 red. intros. *)
+  (*       destruct a0; rewrite bind_ret_l; cbn. *)
+  (*       reflexivity. *)
+  (*     } *)
+  (*     do 3 red in H1. *)
+  (*     apply H1. *)
+  (*   } *)
+  (*   rewrite <- H1. subst. clear H1. rewrite H0. *)
+  (*   unfold f, g. *)
+  (*   unfold cat, Cat_Kleisli. rewrite bind_ret_l. *)
+  (*   cbn. *)
+  (*   match goal with *)
+  (*   | |- iter ?body1 _ ≈ iter ?body2 _ => remember body1 as i1; remember body2 as i2 *)
+  (*    end. *)
+  (*   assert (iter i1 ⩯ iter i2). { *)
+  (*     eapply iterative_proper_iter. *)
+  (*     subst. *)
+  (*     do 3 red. intros. *)
+  (*     destruct a0. rewrite bind_bind. *)
+  (*     eapply Proper_bind. reflexivity. *)
+  (*     do 2 red. intros. destruct a2; *)
+  (*     rewrite bind_ret_l; cbn; reflexivity. *)
+  (*   } *)
+  (*   do 3 red in H1. *)
+  (*   apply H1. *)
+  (* Qed. *)
   
-  Global Instance IterUnfold_PropTM : IterUnfold (Kleisli PropTM) sum.
-  Proof with (repeat red).
-    unfold IterUnfold.
-    intros a b f... intros a0 x y Heq.
-    unfold cat, Cat_Kleisli, iter, Iter_PropTM, Iter_Kleisli, Basics.iter, MonadIter_Prop.
-    simpl proj1_sig; split; intros.
-    - edestruct H0 as (? & ? & ?)... clear H0.
-      rewrite Heq in H2; setoid_rewrite <- H2; clear H2.
-      exists (x0 (a0, 0)).
-      exists (fun y0 : a + b =>
-            bind
-              match y0 with
-              | inl i0 => ret (inl (i0, 1))
-              | inr r0 => ret (inr r0)
-              end
-              (fun y1 : a * nat + b =>
-               case_ (C := Kleisli m) (bif := sum)
-                 (iter (C := Kleisli m) (bif := sum)
-                    (fun '(x', k) =>
-                     bind (x0 (x', k))
-                       (fun ir : a + b =>
-                        match ir with
-                        | inl i0 => ret (inl (i0, S k))
-                        | inr r0 => ret (inr r0)
-                        end))) (id_ b) y1)).
-      split; [ apply H1 | split; intros ].
-      + destruct a1.
-        * exists (fun '(ax, nx) => x0 (ax, S nx)).
-          split.
-          -- intros k. apply (H1 (S k)).
-          -- rewrite bind_ret_l. cbn. apply iter_eq_start_index.
-        * do 10 red. rewrite bind_ret_l. cbn. reflexivity.
-      + destruct CM; setoid_rewrite iterative_unfold.
-        unfold cat, Cat_Kleisli; destruct HMLAWS; rewrite bind_bind.
-        reflexivity.
-    - intros. edestruct H0 as (mab & k & Hf & Hcat & Heqy); clear H0.
-      rewrite <- Heq in Heqy; clear Heq.
-      unfold MonadIter_PropTM in Hcat.
-      setoid_rewrite Heqy; clear Heqy.
-      (* Note: need to introduce classical reasoning here. *)
-  Admitted.
+  (* Global Instance IterUnfold_PropTM : IterUnfold (Kleisli PropTM) sum. *)
+  (* Proof with (repeat red). *)
+  (*   unfold IterUnfold. *)
+  (*   intros a b f... *)
+  (* (*   intros a0 x y Heq. *) *)
+  (* (*   unfold cat, Cat_Kleisli, iter, Iter_PropTM, Iter_Kleisli, Basics.iter, MonadIter_Prop. *) *)
+  (* (*   simpl proj1_sig; split; intros. *) *)
+  (* (*   - edestruct H0 as (? & ? & ?)... clear H0. *) *)
+  (* (*     rewrite Heq in H2; setoid_rewrite <- H2; clear H2. *) *)
+  (* (*     exists (x0 (a0, 0)). *) *)
+  (* (*     exists (fun y0 : a + b => *) *)
+  (* (*           bind *) *)
+  (* (*             match y0 with *) *)
+  (* (*             | inl i0 => ret (inl (i0, 1)) *) *)
+  (* (*             | inr r0 => ret (inr r0) *) *)
+  (* (*             end *) *)
+  (* (*             (fun y1 : a * nat + b => *) *)
+  (* (*              case_ (C := Kleisli m) (bif := sum) *) *)
+  (* (*                (iter (C := Kleisli m) (bif := sum) *) *)
+  (* (*                   (fun '(x', k) => *) *)
+  (* (*                    bind (x0 (x', k)) *) *)
+  (* (*                      (fun ir : a + b => *) *)
+  (* (*                       match ir with *) *)
+  (* (*                       | inl i0 => ret (inl (i0, S k)) *) *)
+  (* (*                       | inr r0 => ret (inr r0) *) *)
+  (* (*                       end))) (id_ b) y1)). *) *)
+  (* (*     split; [ apply H1 | split; intros ]. *) *)
+  (* (*     + destruct a1. *) *)
+  (* (*       * exists (fun '(ax, nx) => x0 (ax, S nx)). *) *)
+  (* (*         split. *) *)
+  (* (*         -- intros k. apply (H1 (S k)). *) *)
+  (* (*         -- rewrite bind_ret_l. cbn. apply iter_eq_start_index. *) *)
+  (* (*       * do 10 red. rewrite bind_ret_l. cbn. reflexivity. *) *)
+  (* (*     + destruct CM; setoid_rewrite iterative_unfold. *) *)
+  (* (*       unfold cat, Cat_Kleisli; destruct HMLAWS; rewrite bind_bind. *) *)
+  (* (*       reflexivity. *) *)
+  (* (*   - intros. edestruct H0 as (mab & k & Hf & Hcat & Heqy); clear H0. *) *)
+  (* (*     rewrite <- Heq in Heqy; clear Heq. *) *)
+  (* (*     unfold MonadIter_PropTM in Hcat. *) *)
+  (* (*     setoid_rewrite Heqy; clear Heqy. *) *)
+  (* (*     (* Note: need to introduce classical reasoning here. *) *) *)
+  (* Admitted. *)
 
-  Global Instance IterNatural_PropTM : IterNatural (Kleisli PropTM) sum.
-  Proof.
-    destruct CM.
-    clear iterative_unfold; clear iterative_dinatural; clear iterative_codiagonal;
-      clear iterative_proper_iter.
-    unfold IterNatural.
-  Admitted.
+  (* Global Instance IterNatural_PropTM : IterNatural (Kleisli PropTM) sum. *)
+  (* Proof. *)
+  (*   destruct CM. *)
+  (*   clear iterative_unfold; clear iterative_dinatural; clear iterative_codiagonal; *)
+  (*     clear iterative_proper_iter. *)
+  (*   unfold IterNatural. *)
+  (* Admitted. *)
 
-  Global Instance IterDinatural_PropTM : IterDinatural (Kleisli PropTM) sum.
-  Proof.
-    destruct CM.
-    clear iterative_unfold; clear iterative_natural; clear iterative_codiagonal;
-      clear iterative_proper_iter.
-    unfold IterDinatural.
-  Admitted.
+  (* Global Instance IterDinatural_PropTM : IterDinatural (Kleisli PropTM) sum. *)
+  (* Proof. *)
+  (*   destruct CM. *)
+  (*   clear iterative_unfold; clear iterative_natural; clear iterative_codiagonal; *)
+  (*     clear iterative_proper_iter. *)
+  (*   unfold IterDinatural. *)
+  (* Admitted. *)
 
-  Global Instance IterCodiagonal_PropTM : IterCodiagonal (Kleisli PropTM) sum.
-  Proof. Admitted.
+  (* Global Instance IterCodiagonal_PropTM : IterCodiagonal (Kleisli PropTM) sum. *)
+  (* Proof. Admitted. *)
 
-  Global Instance Iterative_PropTM : Iterative (Kleisli PropTM) sum.
-  Proof.
-    constructor; typeclasses eauto.
-  Qed.
+  (* Global Instance Iterative_PropTM : Iterative (Kleisli PropTM) sum. *)
+  (* Proof. *)
+  (*   constructor; typeclasses eauto. *)
+  (* Qed. *)
 
   (* What is the connection (precisely) with this continuation monad? *)
   (* Definition ContM: Type -> Type := fun A => (A -> Prop) -> Prop. *)
@@ -1096,45 +1084,46 @@ Section Laws.
 
   Variable (m: Type -> Type).
   Context `{Monad m}.
-  Context {EQM : EqM m}.
+  Context {EQM : EqMR m}.
   Context {ITERM : MonadIter m}.
   Context {MAYR : MayRet m}.
   Context {MAYRC : MayRetCorrect m}.
-  Context {HEQP: @EqMProps m _ EQM}.
+  Context {HEQP: @EqMR_OK m EQM}.
   Context {HMLAWS: @MonadLaws m EQM _}.
 
   Notation "! P" := (proj1_sig P) (at level 5).
 
-  Instance eqm_MonadProp_Proper {A} (P: PropTM m A) : Proper (@eqm _ _ A ==> iff) ! P.
+  Instance eqm_MonadProp_Proper {A} (P: PropTM m A) : Proper (@eqm _ _ A ==> iff) P.
   Proof.
     cbv. intros x y Heq.
-    split; intros Heqa;
-      destruct P; eapply c; eauto; rewrite Heq; reflexivity.
-  Qed.
+    (* split; intros Heqa; *)
+    (*   destruct P; eapply c; eauto; rewrite Heq; reflexivity. *)
+  Admitted.
 
   Lemma ret_bind_l:
     forall A B (f : A -> PropTM m B) (a : A),
       eqm (bind (ret a) f) (f a).
   Proof.
-    intros A B F a x y Heq. split.
-    - intros comp.
-      destruct comp as (ma & kb & maRet & goal & xBind).
-      cbn in *. unfold ret_f in *.
-      rewrite <- Heq, xBind, maRet, bind_ret_l.
-      apply goal.
-      rewrite maRet. eapply (mayret_ret_refl).
-      auto.
-    - intros fApp.
-      rewrite Heq. cbn in *. unfold bind_f in *. unfold ret_f in *.
-      cbn.
-      exists (ret a), (fun _ => y).
-      split.
-      + cbn. reflexivity.
-      + split.
-        * intros a' mRet. eapply mayret_ret_inj in mRet.
-          subst. auto. apply MAYRC.
-        * rewrite bind_ret_l. reflexivity.
-  Qed.
+  (*   intros A B F a x y Heq. split. *)
+  (*   - intros comp. *)
+  (*     destruct comp as (ma & kb & maRet & goal & xBind). *)
+  (*     cbn in *. unfold ret_f in *. *)
+  (*     rewrite <- Heq, xBind, maRet, bind_ret_l. *)
+  (*     apply goal. *)
+  (*     rewrite maRet. eapply (mayret_ret_refl). *)
+  (*     auto. *)
+  (*   - intros fApp. *)
+  (*     rewrite Heq. cbn in *. unfold bind_f in *. unfold ret_f in *. *)
+  (*     cbn. *)
+  (*     exists (ret a), (fun _ => y). *)
+  (*     split. *)
+  (*     + cbn. reflexivity. *)
+  (*     + split. *)
+  (*       * intros a' mRet. eapply mayret_ret_inj in mRet. *)
+  (*         subst. auto. apply MAYRC. *)
+  (*       * rewrite bind_ret_l. reflexivity. *)
+  (* Qed. *)
+    Admitted. 
 
   (* Stronger Proper? *)
   Lemma Proper_bind_strong:
@@ -1161,18 +1150,19 @@ Section Laws.
   Proof.
     intros A PTA.
     cbn in *. unfold bind_f in *. unfold ret_f in *. cbn.
-    split.
-    - rewrite H0; clear H0; cbn in *; intros comp.
-      destruct comp as (ma & kb & Hpta & Hreteq & Hbind).
-      rewrite Hbind. clear Hbind.
-      rewrite bind_mayret_ret; auto.
-    - rewrite H0; clear x H0; cbn in *; intros comp.
-      exists y, (fun a => ret a).
-      repeat split; auto.
-      intros; reflexivity.
-      rewrite bind_ret_r; reflexivity.
-  Qed.
-
+  (*   split. *)
+  (*   - rewrite H0; clear H0; cbn in *; intros comp. *)
+  (*     destruct comp as (ma & kb & Hpta & Hreteq & Hbind). *)
+  (*     rewrite Hbind. clear Hbind. *)
+  (*     rewrite bind_mayret_ret; auto. *)
+  (*   - rewrite H0; clear x H0; cbn in *; intros comp. *)
+  (*     exists y, (fun a => ret a). *)
+  (*     repeat split; auto. *)
+  (*     intros; reflexivity. *)
+  (*     rewrite bind_ret_r; reflexivity. *)
+  (* Qed. *)
+  Admitted.
+  
   Require Import Logic.ClassicalChoice.
 
   (* YZ: The following discusses the possible use of the axiom of choice to prove the associativity of the bind operator
@@ -1216,96 +1206,96 @@ Section Laws.
            (mbc : B -> PropTM m C),
       eqm (bind (bind ma mab) mbc) (bind ma (fun x => bind (mab x) mbc)).
   Proof.
-    intros A B C PTA KAB KBC mac mac' EQ; rewrite <- EQ; clear mac' EQ.
-    split.
-    - intros Hleft. cbn in *. unfold bind_f in *.
-      destruct Hleft as (mb & kbmC & comp & HBmrtcont & Hbindy).
-      cbn in *.
-      destruct comp as (ma & kamB & Hpta & HAmrtcont & Hbindmb).
-      exists ma. exists (fun a: A => bind (kamB a) kbmC).
-      split; auto. split.
-      + intros a mrtA. exists (kamB a). exists kbmC. split; auto.
-        split; try reflexivity.
-        intros b mrtB. apply HBmrtcont. rewrite Hbindmb.
-        eapply mayret_bind; eauto.
-      + rewrite Hbindy. rewrite Hbindmb.
-        apply bind_bind.
-    - intros (ma & kamC & Hpta & comp & Hbindy).
-      cbn in *; unfold bind_f in *; cbn in *.
+    (* intros A B C PTA KAB KBC mac mac' EQ; rewrite <- EQ; clear mac' EQ. *)
+    (* split. *)
+    (* - intros Hleft. cbn in *. unfold bind_f in *. *)
+    (*   destruct Hleft as (mb & kbmC & comp & HBmrtcont & Hbindy). *)
+    (*   cbn in *. *)
+    (*   destruct comp as (ma & kamB & Hpta & HAmrtcont & Hbindmb). *)
+    (*   exists ma. exists (fun a: A => bind (kamB a) kbmC). *)
+    (*   split; auto. split. *)
+    (*   + intros a mrtA. exists (kamB a). exists kbmC. split; auto. *)
+    (*     split; try reflexivity. *)
+    (*     intros b mrtB. apply HBmrtcont. rewrite Hbindmb. *)
+    (*     eapply mayret_bind; eauto. *)
+    (*   + rewrite Hbindy. rewrite Hbindmb. *)
+    (*     apply bind_bind. *)
+    (* - intros (ma & kamC & Hpta & comp & Hbindy). *)
+    (*   cbn in *; unfold bind_f in *; cbn in *. *)
 
-      (* Let's assume the existence of ⊥ *)
-      assert (bot: forall A, m A) by admit.
-      (* Let's push the precondition under the existential *)
-      assert (comp': forall a: A,
-                 exists (mb : m B) (kb: B -> m C),
-                   (~ mayret ma a /\ mb = bot B) \/
-                   (mayret ma a /\ ! (KAB a) mb /\ (forall a0 : B, mayret mb a0 -> ! (KBC a0) (kb a0)) /\ kamC a ≈ bind mb kb)
-             ).
-      {
-        intros a.
-        destruct (classic (mayret ma a)) as [MAY | MAY_NOT].
-        destruct (comp a MAY) as (mb & kb & HYP).
-        exists mb, kb; right; auto.
-        exists (bot _), (fun _ => bot _); left; auto.
-      }
-      clear comp.
+    (*   (* Let's assume the existence of ⊥ *) *)
+    (*   assert (bot: forall A, m A) by admit. *)
+    (*   (* Let's push the precondition under the existential *) *)
+    (*   assert (comp': forall a: A, *)
+    (*              exists (mb : m B) (kb: B -> m C), *)
+    (*                (~ mayret ma a /\ mb = bot B) \/ *)
+    (*                (mayret ma a /\ ! (KAB a) mb /\ (forall a0 : B, mayret mb a0 -> ! (KBC a0) (kb a0)) /\ kamC a ≈ bind mb kb) *)
+    (*          ). *)
+    (*   { *)
+    (*     intros a. *)
+    (*     destruct (classic (mayret ma a)) as [MAY | MAY_NOT]. *)
+    (*     destruct (comp a MAY) as (mb & kb & HYP). *)
+    (*     exists mb, kb; right; auto. *)
+    (*     exists (bot _), (fun _ => bot _); left; auto. *)
+    (*   } *)
+    (*   clear comp. *)
 
-      (* We can now use [choice] to extract our continuation for part 2 of type [A -> m B] *)
-      apply choice in comp'.
-      destruct comp' as (kAmB & comp).
-      (* So that we can now provide the part 1-2 of the computation *)
-      exists (bind ma kAmB).
-      (* We now however need to provide the part 3 of the computation, things get a bit confusing *)
-      (* We _could_ apply [choice] a second time to also derive a function for this part, giving us a family
-         of such continuations indexed by [A] *)
-      generalize comp; intros comp'.
-      apply choice in comp; destruct comp as (kBmC & comp).
-      (* In all account it feels like we need to case analysis as to whether there exists a value returned by [ma] *)
-      destruct (classic (exists a, mayret ma a)) as [[a aRET] | NORET].
-      {
-        (* Here we have such a value, we can feed it to either of our hypotheses *)
-        (* The one that used choice gives us a continuation, and eliminate the left branch in the [comp]: *)
-        specialize (comp a); destruct comp as [(abs & _) | (_ & comp)]; [contradiction |].
-        (* The original one of course gives the same thing, I dunno what I was thinking *)
-        clear kBmC comp.
-        specialize (comp' a); destruct comp' as (kBmC & [(abs & _) | (_ & IN2 & CONT2 & EQ13)]); [contradiction |].
-        (* Hence we can feed it *)
-        exists kBmC.
-        repeat split.
-        - (* We are now splitting part 1-2, we should have everything we need *)
-          exists ma, kAmB.
-          repeat split.
-          + assumption.
-          + (* This is awkward. I used my case analysis earlier to fix [a: A], but need now to work with others *)
-            intros a' a'RET.
-            admit.
-          + reflexivity.
-        - intros b bRET.
-          apply CONT2.
-          eapply mayret_bind' in bRET; eauto.
-          (* Similar to previously. I can get some [a: A] over which [kAmB a] satisfies my goal, but I fixed it *)
-          admit.
-        - rewrite bind_bind.
-          rewrite Hbindy.
-          (* And once again, EQ13 is too specialized *)
-          admit.
-      }
-      {
-        (* Here, part 1 never returns, but I'm kinda lost as to what that means at the moment... *)
-        (* Right, we can prove that [forall a: A, kAmB a = ⊥]. So the always diverging continuation should be fitting *)
-        exists (fun _ => bot _).
-        repeat split.
-        - exists ma, (fun _ => bot _).
-          repeat split; auto.
-          + intros a aRET; exfalso; apply NORET; eexists; eauto.
-          + (* At least extentionally true, if not completely true *)
-            admit.
-        - intros b bRET.
-          (* Not sure *)
-          admit.
-        - rewrite Hbindy.
-          rewrite bind_bind.
-          (* Some work to be done here, that's where we need to axiomatize [⊥] I think *)
+    (*   (* We can now use [choice] to extract our continuation for part 2 of type [A -> m B] *) *)
+    (*   apply choice in comp'. *)
+    (*   destruct comp' as (kAmB & comp). *)
+    (*   (* So that we can now provide the part 1-2 of the computation *) *)
+    (*   exists (bind ma kAmB). *)
+    (*   (* We now however need to provide the part 3 of the computation, things get a bit confusing *) *)
+    (*   (* We _could_ apply [choice] a second time to also derive a function for this part, giving us a family *)
+    (*      of such continuations indexed by [A] *) *)
+    (*   generalize comp; intros comp'. *)
+    (*   apply choice in comp; destruct comp as (kBmC & comp). *)
+    (*   (* In all account it feels like we need to case analysis as to whether there exists a value returned by [ma] *) *)
+    (*   destruct (classic (exists a, mayret ma a)) as [[a aRET] | NORET]. *)
+    (*   { *)
+    (*     (* Here we have such a value, we can feed it to either of our hypotheses *) *)
+    (*     (* The one that used choice gives us a continuation, and eliminate the left branch in the [comp]: *) *)
+    (*     specialize (comp a); destruct comp as [(abs & _) | (_ & comp)]; [contradiction |]. *)
+    (*     (* The original one of course gives the same thing, I dunno what I was thinking *) *)
+    (*     clear kBmC comp. *)
+    (*     specialize (comp' a); destruct comp' as (kBmC & [(abs & _) | (_ & IN2 & CONT2 & EQ13)]); [contradiction |]. *)
+    (*     (* Hence we can feed it *) *)
+    (*     exists kBmC. *)
+    (*     repeat split. *)
+    (*     - (* We are now splitting part 1-2, we should have everything we need *) *)
+    (*       exists ma, kAmB. *)
+    (*       repeat split. *)
+    (*       + assumption. *)
+    (*       + (* This is awkward. I used my case analysis earlier to fix [a: A], but need now to work with others *) *)
+    (*         intros a' a'RET. *)
+    (*         admit. *)
+    (*       + reflexivity. *)
+    (*     - intros b bRET. *)
+    (*       apply CONT2. *)
+    (*       eapply mayret_bind' in bRET; eauto. *)
+    (*       (* Similar to previously. I can get some [a: A] over which [kAmB a] satisfies my goal, but I fixed it *) *)
+    (*       admit. *)
+    (*     - rewrite bind_bind. *)
+    (*       rewrite Hbindy. *)
+    (*       (* And once again, EQ13 is too specialized *) *)
+    (*       admit. *)
+    (*   } *)
+    (*   { *)
+    (*     (* Here, part 1 never returns, but I'm kinda lost as to what that means at the moment... *) *)
+    (*     (* Right, we can prove that [forall a: A, kAmB a = ⊥]. So the always diverging continuation should be fitting *) *)
+    (*     exists (fun _ => bot _). *)
+    (*     repeat split. *)
+    (*     - exists ma, (fun _ => bot _). *)
+    (*       repeat split; auto. *)
+    (*       + intros a aRET; exfalso; apply NORET; eexists; eauto. *)
+    (*       + (* At least extentionally true, if not completely true *) *)
+    (*         admit. *)
+    (*     - intros b bRET. *)
+    (*       (* Not sure *) *)
+    (*       admit. *)
+    (*     - rewrite Hbindy. *)
+    (*       rewrite bind_bind. *)
+    (*       (* Some work to be done here, that's where we need to axiomatize [⊥] I think *) *)
   Admitted.
 
   Lemma respect_bind :
