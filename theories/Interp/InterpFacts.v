@@ -68,7 +68,7 @@ Definition _interp {E F R} (f : E ~> itree F) (ot : itreeF E R _)
 Lemma unfold_interp {E F R} {f : E ~> itree F} (t : itree E R) :
   interp f t ≅ (_interp f (observe t)).
 Proof.
-  unfold interp. unfold Basics.iter, MonadIter_itree. rewrite unfold_iter.
+  unfold interp. unfold Monad.iter, MonadIter_itree. rewrite unfold_iter.
   destruct (observe t); cbn;
     rewrite ?bind_ret_l, ?bind_map; reflexivity.
 Qed.
@@ -349,7 +349,7 @@ Lemma interp_iter {E F} (f : E ~> itree F) {A B}
       (t : A -> itree E (A + B)) a0
   : interp f (iter t a0) ≅ iter (C := ktree _) (fun a => interp f (t a)) a0.
 Proof.
-  unfold iter, Iter_Kleisli, Basics.iter, MonadIter_itree.
+  unfold iter, Iter_Kleisli, Monad.iter, MonadIter_itree.
   apply interp_iter'.
   reflexivity.
 Qed.

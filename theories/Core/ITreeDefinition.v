@@ -1,12 +1,9 @@
 (** * Interaction trees: core definitions *)
 
 (* begin hide *)
-Require Import ExtLib.Structures.Functor.
-Require Import ExtLib.Structures.Applicative.
-Require Import ExtLib.Structures.Monad.
 Require Import Program.Tactics.
 
-From ITree Require Import Basics.
+From ITree Require Import Basics Monad Applicative Functor.
 
 Set Implicit Arguments.
 Set Contextual Implicit.
@@ -212,6 +209,7 @@ Definition map {E R S} (f : R -> S)  (t : itree E R) : itree E S :=
 (** Atomic itrees triggering a single event. *)
 Definition trigger {E : Type -> Type} : E ~> itree E :=
   fun R e => Vis e (fun x => Ret x).
+Instance trigger_itree {E: Type -> Type} : Triggerable (itree E) E := trigger.
 
 (** Ignore the result of a tree. *)
 Definition ignore {E R} : itree E R -> itree E unit :=

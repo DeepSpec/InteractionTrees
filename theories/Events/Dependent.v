@@ -16,11 +16,12 @@
 (* begin hide *)
 From ITree Require Import
      Basics.Basics
+     Basics.Monad
+     Basics.MonadId
      Core.ITreeDefinition
      Indexed.Sum
      Core.Subevent.
 
-Import Basics.Basics.Monads.
 (* end hide *)
 
 Variant depE {I : Type} (F : I -> Type) : Type -> Type :=

@@ -7,6 +7,7 @@ From ITree Require Import
      Basics.Category
      Basics.CategoryKleisli
      Basics.CategoryKleisliFacts
+     Basics.Functor
      Basics.Monad.
 
 Import CatNotations.
@@ -91,8 +92,8 @@ Section Iter_Either.
   Variable exn : Type.
   Context {EQM : EqM M}.
   Context {HM: Monad M}.
-  Context {HEQP: @EqMProps M _ EQM}.
-  Context {ML: @MonadLaws M _ HM}.
+  Context {HEQP: @EqMProps M HM EQM}.
+  Context {ML: @MonadLaws M EQM HM}.
   Context {IM: MonadIter M}.
   Context {CM: Iterative (Kleisli M) sum}.
 

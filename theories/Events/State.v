@@ -3,12 +3,10 @@
 (** Events to read and update global state. *)
 
 (* begin hide *)
-From ExtLib Require Import
-     Structures.Functor
-     Structures.Monad.
-
 From ITree Require Import
      Basics.Basics
+     Basics.Functor
+     Basics.Monad
      Basics.MonadState
      Basics.CategoryOps
      Basics.CategoryKleisli
@@ -18,7 +16,6 @@ From ITree Require Import
      Core.Subevent
      Interp.Interp.
 
-Import ITree.Basics.Basics.Monads.
 Import ITreeNotations.
 
 Open Scope itree_scope.

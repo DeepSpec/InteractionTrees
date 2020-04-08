@@ -13,12 +13,6 @@ From Coq Require Import
      Setoid
      RelationClasses.
 
-From ExtLib Require Import
-     Structures.Monad
-     EitherMonad
-     MonadTrans.
-
-  (* SAZ: Should we add ITreeMonad to ITree? *)
 From ITree Require Import
      ITree
      ITreeFacts
@@ -144,7 +138,6 @@ Section Denote.
   (** Once again, [asm] programs shall be denoted as [itree]s. *)
 
   (* begin hide *)
-  Import ExtLib.Structures.Monad.
   Import MonadNotation.
   Local Open Scope monad_scope.
   (* end hide *)
@@ -162,7 +155,7 @@ Section Denote.
     Definition denote_operand (o : operand) : itree E value :=
       match o with
       | Oimm v => Ret v
-      | Oreg v => trigger (GetReg v)
+      | Oreg v => ITree.trigger (GetReg v)
       end.
 
     (** Instructions offer no suprises either. *)

@@ -1,8 +1,8 @@
 (** * Theorems about [Interp.translate] *)
 
 (* begin hide *)
-From ExtLib Require
-     Structures.Monoid.
+(* From ExtLib Require *)
+(*      Structures.Monoid. *)
 
 From ITree Require Import
      Basics.Basics

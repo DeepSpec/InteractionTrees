@@ -8,6 +8,7 @@ From ITree Require Import
      Basics.Category
      Basics.CategoryKleisli
      Basics.CategoryKleisliFacts
+     Basics.Functor
      Basics.Monad.
 
 Import CatNotations.

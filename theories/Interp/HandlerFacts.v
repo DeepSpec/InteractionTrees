@@ -10,6 +10,7 @@ From Paco Require Import paco.
 
 From ITree Require Import
      Basics.Basics
+     Basics.Monad
      Basics.Category
      Core.ITreeDefinition
      Eq.Eq
@@ -21,7 +22,6 @@ From ITree Require Import
      Interp.InterpFacts
      Interp.RecursionFacts.
 
-Import ITree.Basics.Basics.Monads.
 Import ITreeNotations.
 
 Open Scope itree_scope.

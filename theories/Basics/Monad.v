@@ -11,19 +11,10 @@ From ITree Require Import
 (* end hide *)
 
 Set Primitive Projections.
-(* Set Implicit Arguments. *)
-(* Set Strict Implicit. *)
-(* Set Universe Polymorphism. *)
+Set Universe Polymorphism.
 
 Set Implicit Arguments.
 Set Strict Implicit.
-
-Polymorphic Class Functor@{d c} (F : Type@{d} -> Type@{c}) : Type :=
-  { fmap : forall {A B : Type@{d}}, (A -> B) -> F A -> F B }.
-
-Module FunctorNotation.
-  Notation "f <$> x" := (@fmap _ _ _ _ f x) (at level 52, left associativity).
-End FunctorNotation.
 
 Class Monad@{d c} (m : Type@{d} -> Type@{c}) : Type :=
 { ret : forall {t : Type@{d}}, t -> m t
@@ -35,7 +26,7 @@ Class EqM (m:Type -> Type) : Type :=
 
 Class EqMProps (m:Type -> Type) `{Monad m} `{EqM m} :=
       eqm_equiv :> forall a, Equivalence (eqm a).
-
+Arguments EqMProps m {_ _}.
 Arguments eqm {m _ _}.
 Infix "≈" := eqm (at level 70) : monad_scope.
 
@@ -118,6 +109,7 @@ Section MonadLaws.
 
 End MonadLaws.
 
+Arguments MonadLaws m {_ _}.
 Arguments bind_ret_l {m _ _ _}.
 Arguments bind_ret_r {m _ _ _}.
 Arguments bind_bind {m _ _ _}.
@@ -169,7 +161,7 @@ Section MonadTriggerable.
   Context {MM: Monad M}.
   Context {MM': Monad M'}.
   Context {EqMM': @EqM M'}.
-  Context {IM: MonadIter M}. 
+  Context {IM: MonadIter M}.
   Context {IM': MonadIter M'}.
 
   (**
@@ -177,7 +169,7 @@ Section MonadTriggerable.
      monadic effectful computation are dubbed "Triggerable".
    *)
 
-  Class Triggerable := trigger: forall (E: Type -> Type), E ~> M.
+  Class Triggerable (E: Type -> Type) := trigger: E ~> M.
 
   (* The correctness of this operation, i.e. its minimality, is expressed
      with respect to a notion of interpretation of monads.
@@ -188,11 +180,11 @@ Section MonadTriggerable.
   Class Interpretable :=
     interp: forall (E: Type -> Type) (h: E ~> M'), M ~> M'.
 
-  Class InterpCorrect {InterpMM': Interpretable} {TrigM: Triggerable}: Prop :=
+  Class InterpCorrect E {InterpMM': Interpretable} {TrigM: Triggerable E}: Prop :=
     {
-      interp_monad_hom E h :> MonadHom (interp E h);
-      interp_iter_hom  E h :> IterHom (interp E h);
-      interp_trigger E h T (e: E T): interp E h (trigger _ _ e) ≈ h _ e
+      interp_monad_hom h :> MonadHom (interp E h);
+      interp_iter_hom  h :> IterHom (interp E h);
+      interp_trigger h T (e: E T): interp E h (trigger _ e) ≈ h _ e
     }.
 
 End MonadTriggerable.

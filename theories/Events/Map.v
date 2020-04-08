@@ -8,14 +8,12 @@ From Coq Require Import
      String List.
 Import ListNotations.
 
-From ExtLib Require Import
-     Core.RelDec.
-
 From ExtLib.Structures Require
-     Functor Monoid Maps.
+     Monoid Maps.
 
 From ITree Require Import
      Basics.Basics
+     Basics.MonadState
      Basics.CategoryOps
      Core.ITreeDefinition
      Indexed.Sum
@@ -23,7 +21,6 @@ From ITree Require Import
      Interp.Interp
      Events.State.
 
-Import ITree.Basics.Basics.Monads.
 (* end hide *)
 
 Section Map.
