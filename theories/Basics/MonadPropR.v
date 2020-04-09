@@ -30,7 +30,7 @@ Section Transformer.
   Context {HEQP: @EqMR_OK m EQM}.
   Context {HMLAWS: @MonadLaws m EQM _}.
 
-  Definition closed_eqmR {A B} (PA : m A -> Prop) (PB : m B -> Prop) (REL : A -> B -> Prop) :=
+  Definition closed_eqmR {A B} (REL : A -> B -> Prop) (PA : m A -> Prop) (PB : m B -> Prop)  :=
     forall a b, eqmR REL a b -> (PA a <-> PB b).
 
   (* Design choice: under generalized eqm, PropTM is not closed by construction.*)
@@ -38,9 +38,11 @@ Section Transformer.
     fun A => m A -> Prop.
 
   Definition eqm' : forall (A B : Type) (R : A -> B -> Prop), PropTM A -> PropTM B -> Prop :=
-    fun _ _ REL PA PB =>
-      (forall x y r, eqmR r x y -> (PA x <-> PB y)) /\
-      closed_eqmR PA PB REL.
+    fun A B REL PA PB =>
+      (forall (Ra : A -> A -> Prop), closed_eqmR Ra PA PA) /\
+      (forall (Rb : B -> B -> Prop), closed_eqmR Rb PB PB) /\      
+      closed_eqmR REL PA PB.
+
 
   Global Instance EqMR_PropTM : EqMR PropTM := eqm'.
 
@@ -70,6 +72,18 @@ Section Transformer.
   Local Open Scope cat_scope.
 End Transformer.
 
+Section PropT_EqmRMonad.
+
+  Variable (m: Type -> Type).
+  Context `{Monad m}.
+  Context {EQMR : EqMR m}.
+  Context {ITERM : MonadIter m}.
+  Context {HEQP: @EqMR_OK m EQMR}.
+  Context {HM: @EqmRMonad m EQMR _}.
+
+  Instance eqmR_OK_PropT : EqmR_OK (PropTM m).
+End PropT_EqmRMonad.
+
 Section Laws.
 
   Variable (m: Type -> Type).
@@ -79,9 +93,13 @@ Section Laws.
   Context {HEQP: @EqMR_OK m EQM}.
   Context {HMLAWS: @MonadLaws m EQM _}.
 
+
+
+  
   Instance eqm_MonadProp_Proper {A} (P: PropTM m A) : Proper (@eqm _ _ A ==> iff) P.
   Proof.
     cbv. intros x y Heq.
+
   Admitted.
 
   Lemma ret_bind_l:
