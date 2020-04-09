@@ -94,7 +94,16 @@ Section Laws.
     forall A (ma : PropTM m A),
       eqm (bind ma (fun x => ret x)) ma.
   Proof.
-  Admitted.
+    intros A PTmA.
+    cbn in *. unfold bind_f in *. unfold ret_f in *. cbn in *. unfold liftM in *.
+    split.
+    + intros mA1 mA2 R. intros Heqmr.
+      split.
+    - intros comp.
+      destruct comp as (mA & kamA & Hpta & Heqmrbind & Heqbind).
+      try rewrite <- Heqmr. (* rewrite <- Heqmr *)
+      (* Setoid rewrite failure *)
+      Abort.
 
   Lemma bind_bind:
     forall A B C (ma : PropTM m A) (mab : A -> PropTM m B)
