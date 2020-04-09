@@ -102,17 +102,58 @@ Section Laws.
 
   Admitted.
 
-  Lemma ret_bind_l:
+  Lemma bind_ret_l:
     forall A B (f : A -> PropTM m B) (a : A),
       eqm (bind (ret a) f) (f a).
   Proof.
   Admitted.
 
-  Lemma ret_bind_r:
+  Lemma bind_ret_r:
     forall A (ma : PropTM m A),
       eqm (bind ma (fun x => ret x)) ma.
   Proof.
-  Admitted.
+    intros A PTmA.
+    cbn in *. unfold bind_f, ret_f in *.
+    cbn in *. unfold liftM in *.
+    split.
+    - intros mA1 mA2 R. intros Heqmr.
+      split.
+      + intros comp.
+        destruct comp as (mA & ka & Hpta & Heqmrbind & Heqbind).
+        
+        assert (HProper: Proper (eqmR R --> flip impl) PTmA).
+        admit.
+
+        rewrite <- Heqmr. clear Heqmr. clear HProper.
+        rewrite Heqbind. clear Heqbind.
+        (* Want to take (bind mA ka) to mA, which might mean
+           that kamA is ret. I think Heqmrbind gives this. *)
+        admit.
+      + intros Hpta2.
+        exists mA2, (fun x => ret x). split; auto. split.
+        * admit.
+        * rewrite bind_ret_r.
+
+          assert (HProper: Proper (eqmR R --> flip impl) (eqm mA1)).
+          admit.
+
+          rewrite <- Heqmr.
+          reflexivity.
+    - split.
+      rename a into mA1. rename b into mA2. rename H0 into Heqmr.
+      + intros comp.
+        destruct comp as (mA & ka & Hpta & Heqmrbind & Heqbind).
+        (* This rewrite works for some reason?? *)
+        rewrite <- Heqmr. clear Heqmr.
+        rewrite Heqbind. clear Heqbind.
+        (* same situation as above *)
+        admit.
+      + intros Hpta2. 
+        rename a into mA1. rename b into mA2. rename H0 into Heqmr.
+        exists mA2, (fun x => ret x). split; auto. split.
+        * admit.
+        * rewrite bind_ret_r. auto.
+Admitted.
 
   Lemma bind_bind:
     forall A B C (ma : PropTM m A) (mab : A -> PropTM m B)
