@@ -27,7 +27,7 @@ Section BasicFacts.
   Context {m : Type -> Type}.
   Context {EqMR : EqMR m}.
   Context {Mm : Monad m}.
-  Context {EqMROK : @EqMR_OK m EqMR}.
+  Context {EqMROK : @EqmR_OK m EqMR}.
   Context {ML : @EqmRMonad m EqMR Mm}.
   
   Instance Proper_Kleisli_apply {a b} :

@@ -23,7 +23,7 @@ Section State.
   Variable S : Type.
   Context {EQMR : EqMR M}.
   Context {HM : Monad M}.
-  Context {EqMROK : @EqMR_OK M EQMR}.
+  Context {EqMROK : @EqmR_OK M EQMR}.
   Context {ML : @EqmRMonad M EQMR HM}.
 
   Global Instance EqMR_stateTM : EqMR (stateT S M) :=
@@ -32,7 +32,7 @@ Section State.
 
 
 
-  Global Instance EqMR_OK_stateTM : EqMR_OK (stateT S M).
+  Global Instance EqmR_OK_stateTM : EqmR_OK (stateT S M).
   Proof.
     split; unfold eqmR, EqMR_stateTM; intros.
     - red. reflexivity.

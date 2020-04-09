@@ -29,11 +29,11 @@ Definition eqm {m:Type -> Type} `{EqMR m} {A} := @eqmR _ _ A A eq.
 Arguments eqm {m _ _}.
 Infix "≈" := eqm (at level 70) : monad_scope.
 
-Section EqMRRel.
+Section EqmRRel.
   Context (m : Type -> Type).
   Context {EqMR : @EqMR m}.
   
-  Class EqMR_OK : Type :=
+  Class EqmR_OK : Type :=
     {
       eqmR_transport_refl :>  forall {A} (R : A -> A -> Prop), Reflexive R -> Reflexive (eqmR R);
       eqmR_transport_symm :>  forall {A} (R : A -> A -> Prop), Symmetric R -> Symmetric (eqmR R);
@@ -44,9 +44,9 @@ Section EqMRRel.
           Proper (@eq_rel A B ==> eqmR eq ==> eqmR eq ==> iff) (eqmR);
     }.
 
-End EqMRRel.
+End EqmRRel.
 
-Instance eqm_equiv (m:Type -> Type) `{EqMR m} `{@EqMR_OK m _} : forall a, Equivalence (@eqm m _ a).
+Instance eqm_equiv (m:Type -> Type) `{EqMR m} `{@EqmR_OK m _} : forall a, Equivalence (@eqm m _ a).
 unfold eqm. split; typeclasses eauto.
 Defined.
 
@@ -135,7 +135,7 @@ Section MONAD.
   Local Open Scope monad_scope.
 
   Global Instance monad_eqmR
-         {m : Type -> Type} `{Monad m} `{@EqMR m} `{@EqMR_OK m _} `{@EqmRMonad m _ _} :
+         {m : Type -> Type} `{Monad m} `{@EqMR m} `{@EqmR_OK m _} `{@EqmRMonad m _ _} :
     @MonadLaws m _ _.
   Proof.
     split; intros.
@@ -159,5 +159,6 @@ Section MONAD.
       apply H4.
 Defined.      
 End MONAD.
-  
+
+
 

@@ -12,7 +12,7 @@ From ITree Require Import
 
 Instance EqMR_ITree {E} : EqMR (itree E) := fun a b => eutt.
 
-Instance EqMR_OK_ITree {E} : EqMR_OK (itree E).
+Instance EqmR_OK_ITree {E} : EqmR_OK (itree E).
 Proof.
   split; intros; try typeclasses eauto.
   unfold eqmR, EqMR_ITree.
