@@ -21,26 +21,13 @@ From Coq Require Import Morphisms
 Require Import Classical_Prop.
 (* See [PropT.v] in the Vellvm repo for the exact framework to follow with respect to typeclasses, as well as a proof of most monad laws for [PropTM (itree E)] *)
 
-Definition agrees {A : Type} :=
-    fun (x : A) (P : A -> Prop) => P x.
-
-(* NB: ∈ is the notation for [eqmR agrees], since if we think of (A -> Prop) as
-       a set of elements of type A,
-
-       eqmR agrees : A -> (A -> Prop) -> Prop
-
-   is intuitively a proposition equivalent  for the set inclusion of an element of
-   type A in a set of elements of type A.
- *)
-Infix "∈" := (eqmR agrees) (at level 70).
-
 Section Transformer.
 
   Variable (m : Type -> Type).
   Context `{Monad m}.
   Context {EQM : EqMR m}.
   Context {ITERM : MonadIter m}.
-  Context {HEQP : @EqMR_OK m EQM}.
+  Context {HEQP : @EqmR_OK m EQM}.
   Context {HMLAWS : @MonadLaws m EQM _}.
   Context {ML : @EqmRMonad _ _ _}.
 
@@ -59,20 +46,50 @@ Section Transformer.
      closedness property. It could either be stated as an auxiliary lemma or
      as seen in [DESIGN 2], we can instantiate the PropTM with a special eqm
      closedness on "agrees".
+
+     M : Type -> Type
+
+     M : {A:Type | rel A} -> {B:Type | rel B}
    *)
-  Definition PropTM : Type -> Type :=
-    fun A => m A -> Prop.
+  Definition PropTM (A:Type) := (m A -> Prop).
 
-  Definition eqm' : forall (A B : Type) (R : A -> B -> Prop), PropTM A -> PropTM B -> Prop :=
-    fun A B REL PA PB =>
-      (forall (Ra : A -> A -> Prop), closed_eqmR Ra PA PA) /\
-      (forall (Rb : B -> B -> Prop), closed_eqmR Rb PB PB) /\      
-      closed_eqmR REL PA PB.
+  (* Notation "! t" := (proj1_sig t) (at level 70). *)
 
 
+   Definition agreesP {A : Type} := 
+    fun (x : m A) (P : PropTM A) => P x.
+
+  (* NB: ∈ is the notation for [eqmR agrees], since if we think of (A -> Prop) as
+       a set of elements of type A,
+
+       eqmR agrees : A -> (A -> Prop) -> Prop
+
+   is intuitively a proposition equivalent  for the set inclusion of an element of
+   type A in a set of elements of type A.
+ *)
+ Infix "∈" := (eqmR agreesP) (at level 70). 
+
+  
+  Definition eqm' : forall (A B : Type) (R: A -> B -> Prop), PropTM A -> PropTM B -> Prop :=
+    fun A B R PA PB =>
+      (forall ma, PA ma -> exists mb, PB mb /\ eqmR R ma mb) /\
+      (forall mb, PB mb -> exists ma, PA ma /\ eqmR R ma mb) /\
+      closed_eqmR R PA PB.
+
+      
+    
   Global Instance EqMR_PropTM : EqMR PropTM := eqm'.
 
-  Definition ret_f := (fun A (a : A) (ma : m A) => eqm ma (ret a)).
+  Definition ret_f {A} (a:A) := (fun (x : m A) => eqm x (ret a)).
+
+  (*
+  Program Definition ret_f : forall A, A -> PropTM A := fun A (a : A) => _.
+  Next Obligation.
+    exists (ret_f' a).
+    repeat red. unfold ret_f'. intros.
+    split; intros. rewrite <- H0. assumption. intros. rewrite H0. assumption.
+  Defined.
+    *)                                   
 
   (*
     Binding a PropTM monad (PA : PropTM A) and a continuation (K : A -> PropTM)
@@ -95,24 +112,42 @@ Section Transformer.
     We would like the resulting set of nondeterministic computation to be:
        {ret 1; ret 2; ret 2}.
    *)
-  Definition bind_f :=
+  Definition bind_f' :=
   fun A B (PA : PropTM A) (K : A -> PropTM B) (mb : m B) =>
     exists (ma : m A) (kb : A -> m B),
       Monad.eqm mb (bind ma kb) /\
-      PA ma /\
+      (PA) ma /\
       (Functor.fmap kb ma) ∈ (Functor.fmap K ma).
+
+  (*
+  Lemma bind_f'_Proper :
+    forall A B (PA : PropTM A) (K : A -> PropTM B),
+      Proper (eqm ==> iff) (bind_f' A B PA K).
+  Proof.
+    intros.
+    repeat red; unfold bind_f'; intros.
+    split. intros.
+    destruct H1 as (ma & kb & Hma & Hf).
+    exists ma. exists kb. split. rewrite <- H0. assumption. assumption.
+    intros.
+    destruct H1 as (ma & kb & Hma & Hf).
+    exists ma. exists kb. split. rewrite H0. assumption. assumption.
+  Qed.
+*)
 
   Global Instance Monad_PropTM : Monad (PropTM) :=
     {|
-      ret:= fun A (a: A) => (ret_f A a)
-      ; bind := fun A B (PA : PropTM A) (K : A -> PropTM B) =>
-                  (bind_f A B PA K)
+      ret:= @ret_f
+      ; bind := bind_f'
     |}.
 
+  (*
   Instance eqmR_MonadProp_Proper {A} r (P : PropTM A) : Proper (eqmR r ==> iff) P.
   Proof.
     repeat red. intros x y Heq; split; [intros Px | intros Py].
+    unfold eqmR in Heq.
   Admitted.
+   *)
 
   Ltac solve_equiv :=
     unfold eqmR, EqMR_PropTM, eqm';
@@ -121,9 +156,20 @@ Section Transformer.
     [ rewrite Heq in Hx | rewrite <- Heq in Hx |
         rewrite Heq in Hx | rewrite <- Heq in Hx ].
 
-  Global Instance EqMR_OK_PropTM : @EqMR_OK PropTM EqMR_PropTM.
+  Global Instance EqMR_OK_PropTM : @EqmR_OK PropTM EqMR_PropTM.
   split; intros A R.
-  - solve_equiv; assumption.
+  - 
+
+    unfold eqmR, EqMR_PropTM, eqm'.
+    intros RR; constructor.
+    intros. exists ma. split. assumption. reflexivity.
+    
+    intros ma ma'; [intros r |]; intros Heq; split; intros Hx;
+    [ rewrite Heq in Hx | rewrite <- Heq in Hx |
+        rewrite Heq in Hx | rewrite <- Heq in Hx ].
+
+solve_equiv; assumption.
+
   - solve_equiv; edestruct H0 as (Hr & HR); unfold closed_eqmR in *;
       specialize (Hr ma ma' _ Heq); apply Hr in Hx;
          [ rewrite Heq in Hx | rewrite <- Heq in Hx |
