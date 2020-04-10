@@ -21,6 +21,18 @@ From Coq Require Import Morphisms
 Require Import Classical_Prop.
 (* See [PropT.v] in the Vellvm repo for the exact framework to follow with respect to typeclasses, as well as a proof of most monad laws for [PropTM (itree E)] *)
 
+Definition agrees {A : Type} :=
+    fun (x : A) (P : A -> Prop) => P x.
+
+(* NB: ∈ is the notation for [eqmR agrees], since if we think of (A -> Prop) as
+       a set of elements of type A,
+
+       eqmR agrees : A -> (A -> Prop) -> Prop
+
+   is equivalent to set inclusion.
+ *)
+Infix "∈" := (eqmR agrees) (at level 70).
+
 Section Transformer.
 
   Variable (m : Type -> Type).
@@ -32,7 +44,7 @@ Section Transformer.
   Context {ML : @EqmRMonad _ _ _}.
 
   Definition closed_eqmR {A B} (REL : A -> B -> Prop) (PA : m A -> Prop) (PB : m B -> Prop)  :=
-    forall a b, eqmR REL a b -> (PA a <-> PB b).
+    forall ma mb, eqmR REL ma mb -> (PA ma <-> PB mb).
 
   (* === DESIGN 1 : Eqm Closure defined on definition of EQMR Instance. === *)
 
@@ -53,23 +65,7 @@ Section Transformer.
    *)
   Definition PropTM (A:Type) := (m A -> Prop).
 
-  (* Notation "! t" := (proj1_sig t) (at level 70). *)
 
-
-   Definition agreesP {A : Type} := 
-    fun (x : m A) (P : PropTM A) => P x.
-
-  (* NB: ∈ is the notation for [eqmR agrees], since if we think of (A -> Prop) as
-       a set of elements of type A,
-
-       eqmR agrees : A -> (A -> Prop) -> Prop
-
-   is intuitively a proposition equivalent  for the set inclusion of an element of
-   type A in a set of elements of type A.
- *)
- Infix "∈" := (eqmR agreesP) (at level 70). 
-
-  
   Definition eqm' : forall (A B : Type) (R: A -> B -> Prop), PropTM A -> PropTM B -> Prop :=
     fun A B R PA PB =>
       (forall ma, PA ma -> exists mb, PB mb /\ eqmR R ma mb) /\
@@ -142,12 +138,11 @@ Section Transformer.
     |}.
 
   (*
-  Instance eqmR_MonadProp_Proper {A} r (P : PropTM A) : Proper (eqmR r ==> iff) P.
+  Instance eqmR_MonadProp_Proper_impl {A} R (P : PropTM A) : Proper (eqmR R --> impl) P.
   Proof.
-    repeat red. intros x y Heq; split; [intros Px | intros Py].
-    unfold eqmR in Heq.
   Admitted.
    *)
+
 
   Ltac solve_equiv :=
     unfold eqmR, EqMR_PropTM, eqm';
@@ -159,9 +154,11 @@ Section Transformer.
   Global Instance EqMR_OK_PropTM : @EqmR_OK PropTM EqMR_PropTM.
   split; intros A R.
   - unfold eqmR, EqMR_PropTM, eqm'.
-    intros RR. constructor.
+    intros RR. split.
      + intros. exists ma. split. assumption. reflexivity.
-     + intros. exists mb. split. assumption. reflexivity.
+     + split.
+       intros. exists mb. split. assumption. reflexivity.
+       unfold closed_eqmR. 
     
   - solve_equiv; edestruct H0 as (Hr & HR); unfold closed_eqmR in *;
       specialize (Hr ma ma' _ Heq); apply Hr in Hx;
@@ -257,6 +254,7 @@ Section Laws.
   Context {ITERM : MonadIter m}.
   Context {HEQP: @EqMR_OK m EQM}.
   Context {HMLAWS: @MonadLaws m EQM _}.
+<<<<<<< HEAD
 
 
 
@@ -266,23 +264,53 @@ Section Laws.
     cbv. intros x y Heq.
 
   Admitted.
+=======
+  Context {ML : EqmRMonad m}.
+>>>>>>> fa1ee28772a58325ada40f7ccc78bf8157008a24
 
   Lemma bind_ret_l:
     forall A B (f : A -> PropTM m B) (a : A),
       eqm (bind (ret a) f) (f a).
   Proof.
-    intros A B k a.
-    cbn. unfold bind_f, ret_f. split.
+    cbn; unfold bind_f, ret_f; cbn; unfold liftM.
+    intros A B k a. pose proof EqmRMonad_PropTM as PM.
+    specialize (PM m H EQM ITERM _ _ _).
+    split.
     - intros x y r Heq. split.
       + intros Hm. edestruct Hm as (ma & km & Hma & HeqmR & Hx).
         clear Hm.
-      (*   rewrite Hx in Heq; clear Hx. *)
-      (*   rewrite Hma, bind_ret_l in Heq; clear Hma. *)
-      (*   setoid_rewrite <- Heq; clear Heq x y r. admit. *)
-      (* + intros Hk. setoid_rewrite <- Heq in Hk; clear Heq. *)
-      (*   exists (ret a). exists (fun _ => x). split; [reflexivity | split]. *)
-      (*   * cbn. unfold liftM. rewrite 2 bind_ret_l. *)
-  Admitted.
+        rewrite HeqmR in Hma. rewrite bind_ret_l in Hma.
+        rewrite HeqmR in Hx. rewrite 2 bind_ret_l in Hx.
+        rewrite <- eqmR_ret in Hx; [ | assumption].
+        unfold agrees in Hx.
+         (* IY: Why doesn't rewrite <- Heqmr work directly? (Also, is this proper instance too generalized? )*)
+        eapply eqmR_MonadProp_Proper_impl_flip; try assumption.
+        apply Heq.
+        eapply eqmR_MonadProp_Proper_impl; try assumption.
+        apply Hma. apply Hx.
+      + intros Hk. exists (ret a). exists (fun _ => x).
+        split. rewrite bind_ret_l. reflexivity.
+        split. reflexivity. rewrite 2 bind_ret_l.
+        apply eqmR_ret; [assumption | ].
+        unfold agrees.
+        eapply eqmR_MonadProp_Proper_impl; try assumption.
+        apply Heq. apply Hk.
+    - split. (* Can I split while introducing variable names? *)
+      + intros Hm.
+        edestruct Hm as (ma & kb & Hb & Hma & Heq).
+        rewrite Hma in Heq. rewrite 2 bind_ret_l in Heq.
+        apply eqmR_ret in Heq; [ | assumption]. unfold agrees in Heq.
+        rewrite Hma in Hb. rewrite bind_ret_l in Hb.
+        eapply eqmR_MonadProp_Proper_impl_flip in Heq; try assumption.
+        2 : apply HEQP. 2 : apply HMLAWS. 2 : apply ML. (* Why aren't these discharged? *)
+        apply Heq. rewrite <- Hb. apply H0.
+      + intros K.
+        exists (ret a). exists (fun _ => a0).
+        split. rewrite bind_ret_l. reflexivity.
+        split. reflexivity. rewrite 2 bind_ret_l. apply eqmR_ret; [assumption | ].
+        unfold agrees. eapply eqmR_MonadProp_Proper_impl; try assumption.
+        apply H0. assumption.
+  Qed.
 
   Lemma bind_ret_r:
     forall A (ma : PropTM m A),
@@ -296,11 +324,6 @@ Section Laws.
       split.
       + intros comp.
         destruct comp as (mA & ka & Hpta & Heqmrbind & Heqbind).
-        
-        assert (HProper: Proper (eqmR R --> flip impl) PTmA).
-        admit.
-
-        rewrite <- Heqmr. clear Heqmr. clear HProper.
         (* rewrite Heqbind. clear Heqbind. *)
         (* Want to take (bind mA ka) to mA, which might mean
            that kamA is ret. I think Heqmrbind gives this. *)
@@ -310,10 +333,8 @@ Section Laws.
         * admit.
         *
           (* rewrite bind_ret_r. *)
-
           (* assert (HProper: Proper (eqmR R --> flip impl) (eqm mA1)). *)
           admit.
-
           (* rewrite <- Heqmr. *)
           (* reflexivity. *)
     - split.
@@ -321,7 +342,7 @@ Section Laws.
       + intros comp.
         destruct comp as (mA & ka & Hpta & Heqmrbind & Heqbind).
         (* This rewrite works for some reason?? *)
-        rewrite <- Heqmr. clear Heqmr.
+        (* rewrite <- Heqmr. clear Heqmr. *)
         (* rewrite Heqbind. clear Heqbind. *)
         (* same situation as above *)
         admit.
