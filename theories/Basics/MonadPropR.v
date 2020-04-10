@@ -69,8 +69,7 @@ Section Transformer.
   Definition eqm' : forall (A B : Type) (R: A -> B -> Prop), PropTM A -> PropTM B -> Prop :=
     fun A B R PA PB =>
       (forall ma, PA ma -> exists mb, PB mb /\ eqmR R ma mb) /\
-      (forall mb, PB mb -> exists ma, PA ma /\ eqmR R ma mb) /\
-      closed_eqmR R PA PB.
+      (forall mb, PB mb -> exists ma, PA ma /\ eqmR R ma mb).
 
       
     
@@ -152,14 +151,60 @@ Section Transformer.
         rewrite Heq in Hx | rewrite <- Heq in Hx ].
 
   Global Instance EqMR_OK_PropTM : @EqmR_OK PropTM EqMR_PropTM.
-  split; intros A R.
-  - unfold eqmR, EqMR_PropTM, eqm'.
+  split. 
+  - intros A R. unfold eqmR, EqMR_PropTM, eqm'.
     intros RR. split.
      + intros. exists ma. split. assumption. reflexivity.
-     + split.
-       intros. exists mb. split. assumption. reflexivity.
-       unfold closed_eqmR. 
-    
+     + intros. exists mb. split. assumption. reflexivity.
+
+  - intros A R. unfold eqmR, EqMR_PropTM, eqm'.
+    intros RR. split; intros.
+    + destruct H0 as (HL & HR).
+      apply HR in H1.  destruct H1 as (mb & MB & MB').
+      exists mb. split. assumption. symmetry. assumption.
+    + destruct H0 as (HL & HR).
+      apply HL in H1.  destruct H1 as (ma & MB & MB').
+      exists ma. split. assumption. symmetry. assumption.
+  - intros A R. unfold eqmR, EqMR_PropTM, eqm'.
+    intros RR. split; intros.
+    + destruct H0 as (HL & HR).
+      destruct H1 as (KL & KR).
+      apply HL in H2. destruct H2 as (mb & MB & MB').
+      apply KL in MB. destruct MB as (mc & MC & MC').
+      exists mc. split. assumption. eapply transitivity; eassumption.
+    + destruct H0 as (HL & HR).
+      destruct H1 as (KL & KR).
+      apply KR in H2. destruct H2 as (ma & MA & MA').
+      apply HR in MA. destruct MA as (mc & MC & MC').
+      exists mc. split. assumption. eapply transitivity; eassumption.
+
+  - intros A B. 
+    unfold eqmR, EqMR_PropTM, eqm'.
+    repeat red.
+    intros R1 R2 EQR PA1 PA2.
+    intros (MA1 & MB1) PB1 PB2 (MA2 & MB2).
+    split; intros (MC1 & MC2); split; intros ma Hma.
+    + apply MB1 in Hma. destruct Hma as (ma' & MA' & EQ').
+      apply MC1 in MA'. destruct MA' as (ma'' & MA'' & EQ'').
+      apply MA2 in MA''. destruct MA'' as (ma''' & MA''' & EQ''').
+      exists ma'''. split. assumption.
+      apply MB2 in MA'''. destruct MA''' as (ma'''' & MA'''' & EQ'''').
+      rewrite EQR in EQ''.
+
+      (* SAZ :
+      
+          It looks like we need another property in the eqmR typeclass that
+          acts like a kind of transitivity:
+
+           eqmR R1 ma mb -> eqmR R2 mb mc -> eqmR (R1 ∘ R2) ma mc
+
+         Then we can conclude this case by observing that 
+            - eq_rel (eq ∘ R2) R2
+            - eq_rel R2 (R2 ∘ eq) 
+         and so by the property above (and symmetry for eq) we have:
+             symmetry (EQ') ; EQ'' ; Eq ''' relates ma to ma'''
+
+       *)
   - solve_equiv; edestruct H0 as (Hr & HR); unfold closed_eqmR in *;
       specialize (Hr ma ma' _ Heq); apply Hr in Hx;
          [ rewrite Heq in Hx | rewrite <- Heq in Hx |
