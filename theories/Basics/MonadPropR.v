@@ -158,18 +158,11 @@ Section Transformer.
 
   Global Instance EqMR_OK_PropTM : @EqmR_OK PropTM EqMR_PropTM.
   split; intros A R.
-  - 
-
-    unfold eqmR, EqMR_PropTM, eqm'.
-    intros RR; constructor.
-    intros. exists ma. split. assumption. reflexivity.
+  - unfold eqmR, EqMR_PropTM, eqm'.
+    intros RR. constructor.
+     + intros. exists ma. split. assumption. reflexivity.
+     + intros. exists mb. split. assumption. reflexivity.
     
-    intros ma ma'; [intros r |]; intros Heq; split; intros Hx;
-    [ rewrite Heq in Hx | rewrite <- Heq in Hx |
-        rewrite Heq in Hx | rewrite <- Heq in Hx ].
-
-solve_equiv; assumption.
-
   - solve_equiv; edestruct H0 as (Hr & HR); unfold closed_eqmR in *;
       specialize (Hr ma ma' _ Heq); apply Hr in Hx;
          [ rewrite Heq in Hx | rewrite <- Heq in Hx |
