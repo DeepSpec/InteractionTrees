@@ -205,27 +205,75 @@ Section Laws.
   Context {HEQP: @EqMR_OK m EQM}.
   Context {HMLAWS: @MonadLaws m EQM _}.
 
-  Lemma ret_bind_l:
-    forall A B (k : A -> PropTM m B) (a : A),
-      eqm (bind (ret a) k) (k a).
+  Instance eqm_MonadProp_Proper {A} (P: PropTM m A) : Proper (@eqm _ _ A ==> iff) P.
+  Proof.
+    cbv. intros x y Heq.
+  Admitted.
+
+  Lemma bind_ret_l:
+    forall A B (f : A -> PropTM m B) (a : A),
+      eqm (bind (ret a) f) (f a).
   Proof.
     intros A B k a.
     cbn. unfold bind_f, ret_f. split.
     - intros x y r Heq. split.
       + intros Hm. edestruct Hm as (ma & km & Hma & HeqmR & Hx).
-        clear Hm. rewrite Hx in Heq; clear Hx.
-        rewrite Hma, bind_ret_l in Heq; clear Hma.
-        setoid_rewrite <- Heq; clear Heq x y r. admit.
-      + intros Hk. setoid_rewrite <- Heq in Hk; clear Heq.
-        exists (ret a). exists (fun _ => x). split; [reflexivity | split].
-        * cbn. unfold liftM. rewrite 2 bind_ret_l.
+        clear Hm.
+      (*   rewrite Hx in Heq; clear Hx. *)
+      (*   rewrite Hma, bind_ret_l in Heq; clear Hma. *)
+      (*   setoid_rewrite <- Heq; clear Heq x y r. admit. *)
+      (* + intros Hk. setoid_rewrite <- Heq in Hk; clear Heq. *)
+      (*   exists (ret a). exists (fun _ => x). split; [reflexivity | split]. *)
+      (*   * cbn. unfold liftM. rewrite 2 bind_ret_l. *)
   Admitted.
 
-  Lemma ret_bind_r:
+  Lemma bind_ret_r:
     forall A (ma : PropTM m A),
       eqm (bind ma (fun x => ret x)) ma.
   Proof.
-  Admitted.
+    intros A PTmA.
+    cbn in *. unfold bind_f, ret_f in *.
+    cbn in *. unfold liftM in *.
+    split.
+    - intros mA1 mA2 R. intros Heqmr.
+      split.
+      + intros comp.
+        destruct comp as (mA & ka & Hpta & Heqmrbind & Heqbind).
+        
+        assert (HProper: Proper (eqmR R --> flip impl) PTmA).
+        admit.
+
+        rewrite <- Heqmr. clear Heqmr. clear HProper.
+        (* rewrite Heqbind. clear Heqbind. *)
+        (* Want to take (bind mA ka) to mA, which might mean
+           that kamA is ret. I think Heqmrbind gives this. *)
+        admit.
+      + intros Hpta2.
+        exists mA2, (fun x => ret x). split; auto.
+        * admit.
+        *
+          (* rewrite bind_ret_r. *)
+
+          (* assert (HProper: Proper (eqmR R --> flip impl) (eqm mA1)). *)
+          admit.
+
+          (* rewrite <- Heqmr. *)
+          (* reflexivity. *)
+    - split.
+      rename a into mA1. rename b into mA2. rename H0 into Heqmr.
+      + intros comp.
+        destruct comp as (mA & ka & Hpta & Heqmrbind & Heqbind).
+        (* This rewrite works for some reason?? *)
+        rewrite <- Heqmr. clear Heqmr.
+        (* rewrite Heqbind. clear Heqbind. *)
+        (* same situation as above *)
+        admit.
+      + intros Hpta2. 
+        rename a into mA1. rename b into mA2. rename H0 into Heqmr.
+        exists mA2, (fun x => ret x). split; auto. 
+        * admit.
+        (* * rewrite bind_ret_r. auto. *)
+Admitted.
 
   Lemma bind_bind:
     forall A B C (ma : PropTM m A) (mab : A -> PropTM m B)
@@ -240,8 +288,8 @@ Section Laws.
   Admitted.
 
   Global Instance PropTM_Laws : @MonadLaws (PropTM m) _ _.
-  split. apply ret_bind_l.
-  apply ret_bind_r. apply bind_bind.
+  split. apply bind_ret_l.
+  apply bind_ret_r. apply bind_bind.
   apply respect_bind.
   Qed.
 
