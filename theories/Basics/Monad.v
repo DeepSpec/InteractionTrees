@@ -154,6 +154,8 @@ Section MonadHomomorphism.
 
 End MonadHomomorphism.
 
+(* TO PLUG IN WHENEVER
+
 Section MonadTriggerable.
 
   Local Open Scope monad_scope.
@@ -189,6 +191,8 @@ Section MonadTriggerable.
     }.
 
 End MonadTriggerable.
+
+ *)
 
 Import CatNotations.
 Local Open Scope cat_scope.

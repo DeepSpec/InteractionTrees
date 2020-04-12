@@ -26,7 +26,6 @@ From ITree Require Import
 
 Require Import Fin Utils_tutorial.
 
-Import Monads.
 (* end hide *)
 
 (** ** Syntax *)
@@ -133,6 +132,10 @@ Inductive Exit : Type -> Type :=
 Definition exit {E A} `{Exit -< E} : itree E A :=
   vis Done (fun v => match v : void with end).
 
+(* TO MOVE *)
+(* Instance trigger' {E F: Type -> Type} `{E -< F} : Triggerable (eitherT value (itree F)) E := *)
+  (* fun _ e => Vis (subevent _ e) (fun x => ret (inr x)). *)
+
 Section Denote.
 
   (** Once again, [asm] programs shall be denoted as [itree]s. *)
@@ -155,10 +158,11 @@ Section Denote.
     Definition denote_operand (o : operand) : itree E value :=
       match o with
       | Oimm v => Ret v
-      | Oreg v => ITree.trigger (GetReg v)
+      | Oreg v => trigger (GetReg v)
       end.
 
     (** Instructions offer no suprises either. *)
+    Print Instances Monad.
     Definition denote_instr (i : instr) : itree E unit :=
       match i with
       | Imov d s =>
@@ -184,9 +188,13 @@ Section Denote.
         trigger (Store addr val)
       end.
 
-    Definition returns {B} r: eitherT value (itree E) B := mkEitherT (val <- trigger (GetReg r);; ret (inl val)).
+    Definition returns {B} r: eitherT value (itree E) B := val <- trigger (GetReg r);; ret (inl val).
 
     Notation tree_ret := (eitherT value (itree E)).
+
+    (* TO MOVE *)
+    Definition lift {m T} `{Monad m} {V} (c: m T): eitherT V m T :=
+      bind c (fun x => ret (inr x)).
 
     (** A [branch] returns the computed label whose set of possible values [B]
         is carried by the type of the branch.  If the computation halts
@@ -195,11 +203,10 @@ Section Denote.
       match b with
       | Bjmp l => ret l
       | Bbrz v y n =>
-        lift
-          (val <- trigger (GetReg v) ;;
-           if val:nat then ret y else ret n)
+        val <- trigger (GetReg v) ;;
+        if val:nat then ret (inr y) else ret (inr n)
       | Bret r => returns r
-      | Bhalt => lift exit
+      | Bhalt => exit
       end.
 
     (** The denotation of a basic [block] shares the same type, returning the
@@ -299,12 +306,11 @@ Definition h_memory {E : Type -> Type} `{mapE addr 0 -< E} :
 Definition registers := alist reg value.
 Definition memory    := alist addr value.
 
-
 (* Definition eitherT_stateT_commute {S A M R}: *)
 (*   (stateT S (eitherT A M) R) -> (eitherT A (stateT S M) R). *)
 (* intros ?. *)
 
-From ITree Require Import Interp.InterpEither.
+(* From ITree Require Import Interp.InterpEither. *)
 (** The _asm_ interpreter takes as inputs a starting heap [mem] and register
     state [reg] and interprets an itree in two nested instances of the [map]
     variant of the state monad. To get this type to work out, we have to
@@ -313,11 +319,14 @@ From ITree Require Import Interp.InterpEither.
  *)
 (* Should [eitherT] be on top of [itree E] or on the outside? *)
 
+(*
+
 Definition distribute {A B C: Type}: A * (B + C) -> A * B + A * C :=
   fun '(a,bc) => match bc with
               | inl b => inl (a,b)
               | inr c => inr (a,c)
               end.
+
 Definition interp_either_map {E K V Exc d map} `{M : Map K V map} :
   eitherT Exc (itree (@mapE K V d +' E)) ~>
           stateT map (eitherT (map * Exc) (itree E)) :=
@@ -337,6 +346,13 @@ Definition interp_asm {E A}
   let h := bimap h_reg (bimap h_memory (id_ E)) in
   let t' := interp_either' h _ t in
   fun mem regs => interp_either_map _ (interp_either_map _ t' mem) regs.
+ *)
+
+Definition interp_asm {E A} (t : itree (Reg +' Memory +' E) A) :
+  stateT registers (stateT memory (itree E)) A :=
+  let h := bimap h_reg (bimap h_memory (id_ _)) in
+  let t' := interp h t in
+  fun mem regs => interp_map (interp_map t' mem) regs.
 
 (** We can then define an evaluator for closed assembly programs by interpreting
     both store and heap events into two instances of [mapE], and running them
@@ -347,27 +363,10 @@ Definition run_asm (p: asm 1 0) := interp_asm (denote_asm p Fin.f0) empty empty.
    SAZ: Should this be stated in terms of ktree ?
  *)
 
-Axiom fold: forall E (r b: Type), (itree E r -> b -> b) -> itree E r -> b -> b.
-
-Definition interp {E M : Type -> Type}
-           {FM : Functor M} {MM : Monad M} {IM : MonadIter M}
-           (h : E ~> M) :
-  itree E ~> M.  := fun R =>
-  iter (fun t =>
-    match observe t with
-    | RetF r => ret (inr r)
-    | TauF t => ret (inl t)
-    | VisF e k => fmap (fun x => inl (k x)) (h _ e)
-    end).
-(* TODO: this does a map, and aloop does a bind. We could fuse those
-   by giving aloop a continuation to compose its bind with.
-   (coyoneda...) *)
-
-
 (** The definition [interp_asm] also induces a notion of equivalence (open)
     _asm_ programs, which is just the equivalence of the ktree category *)
 Definition eq_asm_denotations {E A B} (t1 t2 : Kleisli (eitherT value (itree (Reg +' Memory +' E))) A B) : Prop :=
-  forall  a, eqm (interp_asm (t1 a)) (interp_asm (t2 a)).
+  forall  (a: A), eqm (interp_asm (t1 a)) (interp_asm (t2 a)).
 
 Definition eq_asm {A B} (p1 p2 : asm A B) : Prop :=
   eq_asm_denotations (denote_asm p1) (denote_asm p2).
@@ -392,34 +391,18 @@ Section InterpAsmProperties.
 
   (** [interp_asm] commutes with [Ret]. *)
   Lemma interp_asm_ret: forall {R} (r: R),
-      eqm (interp_asm (E := E') (ret (m:= eitherT _ _) r))
-          (ret (m := stateT _ _) r).
+      eqm (interp_asm (E := E') (ret r)) (ret r).
   Proof.
-    unfold interp_asm, interp_either_map.
     intros R r regs mem.
-    unfold ret at 1, Monad_eitherT.
-    unfold eqm. unfold EqM_eitherTM.
-    replace {| unEitherT := ret (m := itree E) (inr r) |} with (ret (m := eitherT _ _) r).
+    unfold interp_asm, interp_map. cbn.
     rewrite interp_ret, 2 interp_state_ret.
     reflexivity.
   Qed.
 
-  Lemma interp_asm_ret: forall {R} (r: R) (regs : registers) (mem: memory),
-      @eutt E' _ _ eq (interp_asm (ret (m:= eitherT _ _) r) regs mem)
-            (ret (mem, (regs, inr r))).
-  Proof.
-    unfold interp_asm, interp_map.
-    intros.
-    unfold ret at 1, Monad_itree.
-    cbn. rewrite interp_ret, 2 interp_state_ret.
-    reflexivity.
-  Qed.
-
   (** [interp_asm] commutes with [bind]. *)
-  Lemma interp_asm_bind: forall {R S} (t: eitherT value (itree E) R) (k: R -> eitherT value (itree _) S) (regs : registers) (mem: memory),
+  Lemma interp_asm_bind: forall {R S} (t: eitherT value (itree E) R) (k: R -> eitherT value (itree _) S) mem regs,
       @eutt E' _ _ eq (interp_asm (bind t k) mem regs)
             (ITree.bind (interp_asm t mem regs) (fun '(mem', (regs', x)) => interp_asm (k x) mem' regs')).
-
   Proof.
     intros.
     unfold interp_asm.
