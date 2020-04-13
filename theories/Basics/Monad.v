@@ -10,6 +10,7 @@ From ExtLib Require Export
 From ITree Require Import
      Basics.Basics
      Basics.CategoryOps
+     Basics.HeterogeneousRelations
      Basics.Function.
 (* end hide *)
 
@@ -32,12 +33,16 @@ Infix "≈" := eqm (at level 70) : monad_scope.
 Section EqmRRel.
   Context (m : Type -> Type).
   Context {EqMR : @EqMR m}.
-  
+
+  Import RelNotations.
+  Local Open Scope relation_scope.
+
   Class EqmR_OK : Type :=
     {
       eqmR_transport_refl :>  forall {A} (R : A -> A -> Prop), Reflexive R -> Reflexive (eqmR R);
       eqmR_transport_symm :>  forall {A} (R : A -> A -> Prop), Symmetric R -> Symmetric (eqmR R);
       eqmR_transport_trans :> forall {A} (R : A -> A -> Prop), Transitive R -> Transitive (eqmR R);
+      eqmR_rel_trans :> forall {A B C} (R1 : A -> B -> Prop) (R2 : B -> C -> Prop) (ma : m A) (mb : m B) (mc : m C), transitiveH A B C -> eqmR R1 ma mb -> eqmR R2 mb mc -> eqmR (R2 ∘ R1) ma mc;
 
       (* Could be generalized with some relation compositions? *)
       eqmR_Proper :> forall {A B},
