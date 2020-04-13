@@ -134,8 +134,13 @@ Section Relations_of_Relations.
     forall (x : A) (y : B),
       R1 x y -> forall z : C, R2 y z -> exists2 y' : B, R2 y z & R1 x y.
 
+  Definition transpose {A B: Type} (R: A -> B -> Prop): B -> A -> Prop :=
+    fun b a => R a b.
+
 End Relations_of_Relations.
 
+Infix "⊑" := inclusion (at level 90).
+Notation "† R" := (transpose R) (at level 5).
 
 Hint Unfold reflexive transitive antisymmetric symmetric: sets.
 
