@@ -6,22 +6,26 @@
 From ITree Require Import
      Basics.Basics
      Basics.Monad
+     Basics.HeterogeneousRelations
      Core.ITreeDefinition
      Eq.Eq
      Eq.UpToTaus.
 
+Import RelNotations.
 Instance EqMR_ITree {E} : EqMR (itree E) := fun a b => eutt.
 
 Instance EqmR_OK_ITree {E} : EqmR_OK (itree E).
 Proof.
   split; intros; try typeclasses eauto.
   unfold eqmR, EqMR_ITree.
-  repeat red.
   intros.
-  split; intros.
-   - rewrite <- H0. rewrite <- H1. rewrite <- H. assumption.
-   - rewrite H0. rewrite H1. rewrite H. assumption.
-Qed.
+  (* unfold compose2. *)
+  (* unfold transitiveH in H. *)
+  
+  Admitted. 
+  (* split; intros. *)
+  (*  - rewrite <- H0. rewrite <- H1. rewrite <- H. assumption. *)
+  (*  - rewrite H0. rewrite H1. rewrite H. assumption. *)
 
 Instance EqMRMonad_ITree {E} : EqmRMonad (itree E).
 Proof.

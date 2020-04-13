@@ -7,6 +7,7 @@ From ITree Require Import
      Basics.Category
      Basics.CategoryKleisli
      Basics.CategoryKleisliFacts
+     Basics.HeterogeneousRelations
      Basics.Monad.
 
 From Paco Require Import paco.
@@ -98,6 +99,7 @@ Section Transformer.
       ; bind := bind_f'
     |}.
 
+  Import RelNotations. 
   Global Instance EqMR_OK_PropTM : @EqmR_OK PropTM EqMR_PropTM.
   split.
   - intros A R. unfold eqmR, EqMR_PropTM, eqm'. intros RR.
@@ -125,16 +127,16 @@ Section Transformer.
   - intros A B.
     unfold eqmR, EqMR_PropTM, eqm'.
     repeat red.
-    intros R1 R2 EQR PA1 PA2.
-    intros (MA1 & MB1) PB1 PB2 (MA2 & MB2).
-    split; intros (MC1 & MC2); split; intros ma Hma.
-    + apply MB1 in Hma. destruct Hma as (ma' & MA' & EQ').
-      apply MC1 in MA'. destruct MA' as (ma'' & MA'' & EQ'').
-      apply MA2 in MA''. destruct MA'' as (ma''' & MA''' & EQ''').
-      exists ma'''. split. assumption.
-      apply MB2 in MA'''. destruct MA''' as (ma'''' & MA'''' & EQ'''').
-      rewrite EQR in EQ''.
-
+    intros C R1 R2 EQR PA1 PA2.
+    intros Htr (MA1 & MB1) (MB2 & MC1).
+    split.
+    + intros ma Hma.
+      specialize (MA1 ma Hma). edestruct MA1 as (mb & HPA1 & EQ).
+      specialize (MB2 mb HPA1). edestruct MB2 as (mc & HPA2 & EQ').
+      exists mc. split. assumption. unfold compose.
+      epose proof compose_id_l.
+      epose proof compose_id_r.
+      specialize (H0 R2). specialize (H1 R2).
       (* SAZ :
       
           It looks like we need another property in the eqmR typeclass that
@@ -149,6 +151,7 @@ Section Transformer.
              symmetry (EQ') ; EQ'' ; Eq ''' relates ma to ma'''
 
        *)
+  Admitted.
 
   Lemma ret_ok : forall (A1 A2 : Type) (RA : A1 -> A2 -> Prop) (a1 : A1) (a2 : A2),
       RA a1 a2 <-> (eqmR RA (ret a1) (ret a2)).
