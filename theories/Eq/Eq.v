@@ -24,6 +24,7 @@ From Paco Require Import paco.
 
 From ITree Require Import
      Basics.Basics
+     Basics.HeterogeneousRelations
      Core.ITreeDefinition.
 
 From ITree Require Export
@@ -171,7 +172,7 @@ Global Instance eqitF_Proper_R {E : Type -> Type} {R1 R2:Type} : Proper ( (@eq_r
                                                                        (@eqitF E R1 R2).
 Proof.
   repeat red.
-  intros. subst. split; intros.
+  intros. subst. split; unfold inclusion; intros.
   - induction H0; try auto.
     econstructor. apply H. assumption.
     econstructor. apply H3. assumption.
@@ -196,13 +197,13 @@ Qed.
 
 Definition flip_clo {A B C} clo r := @flip A B C (clo (@flip B A C r)).
 
-Lemma eqitF_flip {E R1 R2} (RR : R1 -> R2 -> Prop) b1 b2 vclo r:
+Lemma eqitF_flip {E R1 R2} (RR : relation R1 R2) b1 b2 vclo r:
   flip (eqitF (flip RR) b2 b1 (flip_clo vclo) (flip r)) <2= @eqitF E R1 R2 RR b1 b2 vclo r.
 Proof.
   intros. induction PR; eauto.
 Qed.
 
-Lemma eqit_flip {E R1 R2} (RR : R1 -> R2 -> Prop) b1 b2:
+Lemma eqit_flip {E R1 R2} (RR : relation R1 R2) b1 b2:
   forall (u : itree E R1) (v : itree E R2),
     eqit (flip RR) b2 b1 v u -> eqit RR b1 b2 u v.
 Proof.
@@ -239,12 +240,12 @@ Infix "≳" := (euttge eq) (at level 70) : itree_scope.
 
 Section eqit_closure.
   
-Context {E : Type -> Type} {R1 R2 : Type} (RR : R1 -> R2 -> Prop).
+Context {E : Type -> Type} {R1 R2 : Type} (RR : relation R1 R2).
 
 (** *** "Up-to" principles for coinduction. *)
 
-Inductive eqit_trans_clo b1 b2 b1' b2' (r : itree E R1 -> itree E R2 -> Prop)
-  : itree E R1 -> itree E R2 -> Prop :=
+Inductive eqit_trans_clo b1 b2 b1' b2' (r : relation (itree E R1) (itree E R2))
+  : relation (itree E R1) (itree E R2) :=
 | eqit_trans_clo_intro t1 t2 t1' t2' RR1 RR2
       (EQVl: eqit RR1 b1 b1' t1 t1')
       (EQVr: eqit RR2 b2 b2' t2 t2')
@@ -270,7 +271,7 @@ Hint Resolve eqitC_mon : paco.
 
 Lemma eqitC_wcompat b1 b2 vclo
       (MON: monotone2 vclo)
-      (CMP: compose (eqitC b1 b2) vclo <3= compose vclo (eqitC b1 b2)):
+      (CMP: Basics.compose (eqitC b1 b2) vclo <3= Basics.compose vclo (eqitC b1 b2)):
   wcompatible2 (@eqit_ E R1 R2 RR b1 b2 vclo) (eqitC b1 b2).
 Proof.
   econstructor. pmonauto.
@@ -305,7 +306,7 @@ Qed.
 
 Hint Resolve eqitC_wcompat : paco.
 
-Lemma eqit_idclo_compat b1 b2: compose (eqitC b1 b2) id <3= compose id (eqitC b1 b2).
+Lemma eqit_idclo_compat b1 b2: Basics.compose (eqitC b1 b2) id <3= Basics.compose id (eqitC b1 b2).
 Proof.
   intros. apply PR.
 Qed.
@@ -321,7 +322,7 @@ Hint Resolve eqitC_dist : paco.
 
 Lemma eqit_clo_trans b1 b2 vclo
       (MON: monotone2 vclo)
-      (CMP: compose (eqitC b1 b2) vclo <3= compose vclo (eqitC b1 b2)):
+      (CMP: Basics.compose (eqitC b1 b2) vclo <3= Basics.compose vclo (eqitC b1 b2)):
   eqit_trans_clo b1 b2 false false <3= gupaco2 (eqit_ RR b1 b2 vclo) (eqitC b1 b2).
 Proof.
   intros. destruct PR. gclo. econstructor; eauto with paco.
@@ -901,7 +902,7 @@ Hint Constructors eqit_bind_clo.
 
 Lemma eqit_clo_bind b1 b2 vclo
       (MON: monotone2 vclo)
-      (CMP: compose (eqitC RR b1 b2) vclo <3= compose vclo (eqitC RR b1 b2))      
+      (CMP: Basics.compose (eqitC RR b1 b2) vclo <3= Basics.compose vclo (eqitC RR b1 b2))      
       (ID: id <3= vclo):
   eqit_bind_clo b1 b2 <3= gupaco2 (eqit_ RR b1 b2 vclo) (eqitC RR b1 b2).
 Proof.

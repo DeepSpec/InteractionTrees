@@ -128,15 +128,15 @@ Section Transformer.
     unfold eqmR, EqMR_PropTM, eqm'.
     repeat red.
     intros C R1 R2 EQR PA1 PA2.
-    intros Htr (MA1 & MB1) (MB2 & MC1).
-    split.
-    + intros ma Hma.
-      specialize (MA1 ma Hma). edestruct MA1 as (mb & HPA1 & EQ).
-      specialize (MB2 mb HPA1). edestruct MB2 as (mc & HPA2 & EQ').
-      exists mc. split. assumption. unfold compose.
-      epose proof compose_id_l.
-      epose proof compose_id_r.
-      specialize (H0 R2). specialize (H1 R2).
+    (* intros Htr (MA1 & MB1) (MB2 & MC1). *)
+    (* split. *)
+    (* + intros ma Hma. *)
+    (*   specialize (MA1 ma Hma). edestruct MA1 as (mb & HPA1 & EQ). *)
+    (*   specialize (MB2 mb HPA1). edestruct MB2 as (mc & HPA2 & EQ'). *)
+    (*   exists mc. split. assumption. unfold compose. *)
+    (*   epose proof compose_id_l. *)
+    (*   epose proof compose_id_r. *)
+    (*   specialize (H0 R2). specialize (H1 R2). *)
       (* SAZ :
       
           It looks like we need another property in the eqmR typeclass that

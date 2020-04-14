@@ -11,6 +11,7 @@ From ITree Require Import
      Basics.Category
      Basics.CategoryKleisli
      Basics.CategoryKleisliFacts
+     Basics.HeterogeneousRelations
      Basics.Monad.
 
 Import ITree.Basics.Basics.Monads.

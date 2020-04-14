@@ -42,14 +42,19 @@ Section EqmRRel.
       eqmR_transport_refl :>  forall {A} (R : A -> A -> Prop), Reflexive R -> Reflexive (eqmR R);
       eqmR_transport_symm :>  forall {A} (R : A -> A -> Prop), Symmetric R -> Symmetric (eqmR R);
       eqmR_transport_trans :> forall {A} (R : A -> A -> Prop), Transitive R -> Transitive (eqmR R);
-      eqmR_rel_trans :> forall {A B C} (R1 : A -> B -> Prop) (R2 : B -> C -> Prop) (ma : m A) (mb : m B) (mc : m C), transitiveH A B C -> eqmR R1 ma mb -> eqmR R2 mb mc -> eqmR (R2 ∘ R1) ma mc;
+      eqmR_rel_trans :> forall {A B C} (R1 : A -> B -> Prop) (R2 : B -> C -> Prop) (ma : m A) (mb : m B) (mc : m C), eqmR R1 ma mb -> eqmR R2 mb mc -> eqmR (R2 ∘ R1) ma mc;
 
       (* Could be generalized with some relation compositions? *)
+      (* This may follow from eqmR_Proper_mono. *)
       eqmR_Proper :> forall {A B},
           Proper (@eq_rel A B ==> eqmR eq ==> eqmR eq ==> iff) (eqmR);
+
+      eqmR_Proper_mono :> forall {A B},
+          Proper (inclusion ==> inclusion) (@eqmR m _ A B)
     }.
 
 End EqmRRel.
+
 
 Instance eqm_equiv (m:Type -> Type) `{EqMR m} `{@EqmR_OK m _} : forall a, Equivalence (@eqm m _ a).
 unfold eqm. split; typeclasses eauto.
@@ -162,7 +167,7 @@ Section MONAD.
       unfold pointwise_relation in H4.
       rewrite H6.
       apply H4.
-Defined.      
+Defined.
 End MONAD.
 
 
