@@ -19,19 +19,6 @@ Section Relation_Definition.
 
 End Relation_Definition.
 
-Module RelNotations.
-
-  Declare Scope relation_scope.
-  Open Scope relation_scope.
-
-  Notation " g ∘ f " := (compose g f)
-    (at level 40, left associativity) : relation_scope.
-
-End RelNotations.
-
-Import RelNotations.
-Open Scope relation_scope.
-
 (* IY : Probably good to typeclassify this. *)
 Section Relations_of_Relations.
 
@@ -46,8 +33,21 @@ Section Relations_of_Relations.
 
 End Relations_of_Relations.
 
-Infix "⊑" := inclusion (at level 90).
-Notation "† R" := (transpose R) (at level 5).
+Module RelNotations.
+
+  Declare Scope relation_scope.
+  Open Scope relation_scope.
+
+  Notation " g ∘ f " := (compose g f)
+    (at level 40, left associativity) : relation_scope.
+
+  Infix "⊑" := inclusion (at level 90) : relation_scope.
+  Notation "† R" := (transpose R) (at level 5) : relation_scope.
+
+End RelNotations.
+
+Import RelNotations.
+Open Scope relation_scope.
 
 (* SAZ: There is probably a nice way to typeclassify the eq_rel proofs *)
 Section Relation_Classes.
