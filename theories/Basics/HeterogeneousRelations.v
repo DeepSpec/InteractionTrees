@@ -41,7 +41,13 @@ Section Relations_of_Relations.
 
   (* For future: Maybe add transpose of relation? *)
 
+  Definition transpose {A B: Type} (R: A -> B -> Prop): B -> A -> Prop :=
+    fun b a => R a b.
+
 End Relations_of_Relations.
+
+Infix "⊑" := inclusion (at level 90).
+Notation "† R" := (transpose R) (at level 5).
 
 (* SAZ: There is probably a nice way to typeclassify the eq_rel proofs *)
 Section Relation_Classes.

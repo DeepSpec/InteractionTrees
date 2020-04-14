@@ -55,16 +55,63 @@ Section Transformer.
    *)
   Definition PropTM (A:Type) := (m A -> Prop).
 
+  Definition sub_predicate {A B: Type} (R: A -> B -> Prop): PropTM A -> PropTM B -> Prop :=
+    fun PA PB => forall ma, PA ma -> exists mb, PB mb /\ eqmR R ma mb.
+  Notation "PA '[⊆' R ']' PB" := (sub_predicate R PA PB) (at level 80).
+  (* Note: the following could me more cleanly defined as (PA [⊆ †R] PB),
+     but we need to assume that (eqmR †R ≈ †(eqmR R)) then
+   *)
+  Definition sub_predicate_rev {A B: Type} (R: A -> B -> Prop): PropTM A -> PropTM B -> Prop :=
+    fun PA PB => forall mb, PB mb -> exists ma, PA ma /\ eqmR R ma mb.
 
-  Definition eqm' : forall (A B : Type) (R: A -> B -> Prop), PropTM A -> PropTM B -> Prop :=
+  (* YZ: We probably want _some_ notion of closure here additionally in the definition of [eqm].
+     Has been tried and appeared to be too strong:
+   *)
+  Definition relatively_closed_by_R {A B: Type} (R: A -> B -> Prop) (PA: PropTM A) (PB: PropTM B)
+    := forall ma mb, eqmR R ma mb -> (PA ma <-> PB mb).
+
+  (* Could be tried: *)
+  Definition relatively_closed_by_R_weak {A B: Type} (R: A -> B -> Prop) (PA: PropTM A) (PB: PropTM B)
+    := forall ma mb, eqmR R ma mb -> PA ma -> PB mb ->
+                (forall (ma': m A), eqmR R ma' mb -> PA ma') /\
+                (forall (mb': m B), eqmR R ma mb' -> PB mb').
+
+  (* Note that we have: *)
+  Lemma relatively_closed_strong_weak:
+    forall {A B: Type} (R: A -> B -> Prop) (PA: PropTM A) (PB: PropTM B),
+      relatively_closed_by_R R PA PB ->
+      relatively_closed_by_R_weak R PA PB.
+  Proof.
+    split; intros;
+      match goal with
+      | h: relatively_closed_by_R _ _ _ |- _ => eapply h; eauto
+      end.
+  Qed.
+
+  (* But not the converse (there can be a computation in PA linked to another one that is not in PB as long as it is not linked to anyone in PB *)
+  (* However we have: *)
+  Lemma relatively_closed_weak_bij_strong:
+    forall {A B: Type} (R: A -> B -> Prop) (PA: PropTM A) (PB: PropTM B),
+      PA [⊆ R] PB ->
+      sub_predicate_rev R PA PB ->
+      (* PB [⊆ †R] PA -> *)
+      relatively_closed_by_R_weak R PA PB ->
+      relatively_closed_by_R R PA PB.
+  Proof.
+    intros A B R PA PB INA INB REL;
+      split; intros.
+    edestruct INA as (x & ? & ?); eauto; eapply REL; eauto.
+    edestruct INB as (x & ? & ?); eauto; eapply REL; eauto.
+  Qed.
+
+  Definition eqm_PropT : forall (A B : Type) (R: A -> B -> Prop), PropTM A -> PropTM B -> Prop :=
     fun A B R PA PB =>
-      (forall ma, PA ma -> exists mb, PB mb /\ eqmR R ma mb) /\
-      (forall mb, PB mb -> exists ma, PA ma /\ eqmR R ma mb).
+      PA [⊆ R] PB /\
+      PB [⊆ †R] PA.
 
-  Global Instance EqMR_PropTM : EqMR PropTM := eqm'.
+  Global Instance EqMR_PropTM : EqMR PropTM := eqm_PropT.
 
   Definition ret_f {A} (a:A) := (fun (x : m A) => eqm x (ret a)).
-
 
   (*
     Binding a PropTM monad (PA : PropTM A) and a continuation (K : A -> PropTM)
@@ -99,7 +146,7 @@ Section Transformer.
       ; bind := bind_f'
     |}.
 
-  Import RelNotations. 
+  Import RelNotations.
   Global Instance EqMR_OK_PropTM : @EqmR_OK PropTM EqMR_PropTM.
   split.
   - intros A R. unfold eqmR, EqMR_PropTM, eqm'. intros RR.
@@ -138,15 +185,15 @@ Section Transformer.
     (*   epose proof compose_id_r. *)
     (*   specialize (H0 R2). specialize (H1 R2). *)
       (* SAZ :
-      
+
           It looks like we need another property in the eqmR typeclass that
           acts like a kind of transitivity:
 
            eqmR R1 ma mb -> eqmR R2 mb mc -> eqmR (R1 ∘ R2) ma mc
 
-         Then we can conclude this case by observing that 
+         Then we can conclude this case by observing that
             - eq_rel (eq ∘ R2) R2
-            - eq_rel R2 (R2 ∘ eq) 
+            - eq_rel R2 (R2 ∘ eq)
          and so by the property above (and symmetry for eq) we have:
              symmetry (EQ') ; EQ'' ; Eq ''' relates ma to ma'''
 
@@ -192,7 +239,7 @@ Section Transformer.
       closed_eqmR_agrees (bind_f A B PA K).
   Proof.
   Admitted.
-  
+
 End Transformer.
 
 Section PropT_EqmRMonad.
@@ -219,7 +266,7 @@ Section Laws.
 
 
 
-  
+
   Instance eqm_MonadProp_Proper {A} (P: PropTM m A) : Proper (@eqm _ _ A ==> iff) P.
   Proof.
     cbv. intros x y Heq.
@@ -307,9 +354,9 @@ Section Laws.
         (* rewrite Heqbind. clear Heqbind. *)
         (* same situation as above *)
         admit.
-      + intros Hpta2. 
+      + intros Hpta2.
         rename a into mA1. rename b into mA2. rename H0 into Heqmr.
-        exists mA2, (fun x => ret x). split; auto. 
+        exists mA2, (fun x => ret x). split; auto.
         * admit.
         (* * rewrite bind_ret_r. auto. *)
 Admitted.
