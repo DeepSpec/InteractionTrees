@@ -25,11 +25,11 @@ Open Scope monad_scope.
 Section BasicFacts.
 
   Context {m : Type -> Type}.
-  Context {EqMR : EqMR m}.
+  Context {EqmRm : EqmR m}.
   Context {Mm : Monad m}.
-  Context {EqMROK : @EqmR_OK m EqMR}.
-  Context {ML : @EqmRMonad m EqMR Mm}.
-  
+  Context {EqmROKm : EqmR_OK m}.
+  Context {ML : EqmRMonad m}.
+
   Instance Proper_Kleisli_apply {a b} :
     Proper (eq2 ==> eq ==> eqm) (@Kleisli_apply m a b).
   Proof.
@@ -38,7 +38,7 @@ Section BasicFacts.
 
   Lemma fold_Kleisli {a b} (f : Kleisli m a b) (x : a) : f x = Kleisli_apply f x.
   Proof. reflexivity. Qed.
-  
+
   Global Instance Equivalence_Kleisli_eq2 {a b} : @Equivalence (Kleisli m a b) eq2.
   Proof.
     split; repeat intro.
@@ -91,7 +91,7 @@ Qed.
 
 Global Instance CatAssoc_Kleisli : CatAssoc (Kleisli m).
 Proof.
-  red. intros a b c d f g h. 
+  red. intros a b c d f g h.
   unfold cat, Cat_Kleisli.
   cbv. intros x.
   setoid_rewrite bind_bind.
@@ -275,7 +275,7 @@ Fact bimap_id_pure {A B C} (f : B -> C) :
 Proof.
   unfold bimap, Bimap_Coproduct.
   rewrite !cat_id_l. rewrite <- !case_pure. rewrite <- !compose_pure. rewrite <- pure_id.
-  rewrite !cat_id_l. 
+  rewrite !cat_id_l.
   reflexivity.
 Qed.
 
@@ -317,7 +317,7 @@ Proof.
   rewrite case_pure.
   unfold pure, id_, case_, Case_Kleisli, case_sum, Id_Kleisli, pure.
   red. intro. destruct a0; reflexivity.
-Qed.  
+Qed.
 
   Lemma map_inl_case_kleisli:
     forall (a1 b1 b2 c1 c2 : Type) (f1 : Kleisli m a1 b1) (g1 : Kleisli m b1 c1) (g2 : Kleisli m b2 c2),
