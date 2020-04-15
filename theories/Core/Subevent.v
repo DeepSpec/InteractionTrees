@@ -80,14 +80,14 @@ Notation trigger e := (ITree.trigger (subevent _ e)).
 ]]
  *)
 Class Embeddable U V :=
-  embed : U -> V.
+ { embed : U -> V }.
 
 Instance Embeddable_forall {A : Type} {U : A -> Type} {V : A -> Type}
          `(forall a, Embeddable (U a) (V a)) :
   Embeddable (forall a, U a) (forall a, V a) :=
-  fun u a => embed (u a).
+  {| embed := fun u a => embed (u a) |}.
 
 Instance Embeddable_itree {E F : Type -> Type} {R : Type}
          `(E -< F) :
   Embeddable (E R) (itree F R) :=
-  fun e => trigger e.
+  {| embed := fun e => trigger e |}.
