@@ -20,7 +20,7 @@ Set Primitive Projections.
 (* Rq: if we make [EqMR] a singleton class, the type checker tends to craft dumb instances for itself behind our back.
    I wrapped it up in a record, it seems to prevent this behavior.
  *)
-Class EqMR (m:Type -> Type) : Type :=
+Class EqmR (m:Type -> Type) : Type :=
   { eqmR : forall A B (R : A -> B -> Prop), m A -> m B -> Prop}.
 
 Arguments eqmR {m _} [A B].
@@ -29,7 +29,7 @@ Arguments eqmR {m _} [A B].
   The more traditional notion of monadic equivalence is recovered at the equality relation
   [forall A,  m A -> m A -> Prop]
 *)
-Definition eqm {m:Type -> Type} `{EqMR m} {A} := eqmR (@eq A).
+Definition eqm {m:Type -> Type} `{EqmR m} {A} := eqmR (@eq A).
 
 (* YZ: I don't think [A] should be maximally inserted, but putting it back as is for now for retro-compatibility *)
 Arguments eqm {m _ A}.
@@ -37,7 +37,7 @@ Infix "≈" := eqm (at level 70) : monad_scope.
 
 Section EqmRRel.
   Context (m : Type -> Type).
-  Context {EqMR : EqMR m}.
+  Context {EqMR : EqmR m}.
 
   Import RelNotations.
   Local Open Scope relation_scope.
@@ -72,7 +72,7 @@ Section EqmRRel.
 End EqmRRel.
 
 (* In particular, well-formedness of [eqmR] recovers that [eqm] is an equivalence relation *)
-Instance eqm_equiv (m:Type -> Type) `{EqMR m} `{@EqmR_OK m _}
+Instance eqm_equiv (m:Type -> Type) `{EqmR m} `{@EqmR_OK m _}
   : forall A, Equivalence (@eqm m _ A).
 Proof.
   unfold eqm; split; typeclasses eauto.
@@ -80,7 +80,7 @@ Qed.
 
 Section EqmRMonad.
   Context (m : Type -> Type).
-  Context {EqMRm : EqMR m}.
+  Context {EqMRm : EqmR m}.
   Context {Mm : Monad m}.
 
   (* Generalization of monadic laws.
@@ -147,7 +147,7 @@ End EqmRMonad.
 Section Laws.
 
   Context (m : Type -> Type).
-  Context {EqMR : EqMR m}.
+  Context {EqMR : EqmR m}.
   Context {Mm : Monad m}.
 
   Local Open Scope monad_scope.
