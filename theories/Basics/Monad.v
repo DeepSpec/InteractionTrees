@@ -31,7 +31,8 @@ Arguments eqmR {m _} [A B].
 *)
 Definition eqm {m:Type -> Type} `{EqMR m} {A} := eqmR (@eq A).
 
-Arguments eqm {m _} [A].
+(* YZ: I don't think [A] should be maximally inserted, but putting it back as is for now for retro-compatibility *)
+Arguments eqm {m _ A}.
 Infix "≈" := eqm (at level 70) : monad_scope.
 
 Section EqmRRel.
