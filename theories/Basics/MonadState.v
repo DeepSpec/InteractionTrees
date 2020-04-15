@@ -38,23 +38,22 @@ Section State.
     - red. reflexivity.
     - red. symmetry; auto.
     - red. intros. eapply transitivity; eauto.
+    - admit.
     - do 3 red. intros. split; intros.
-         +  specialize (H0 s). specialize (H1 s). specialize (H2 s).
-            rewrite eq_rel_prod_eq in H0.
-            rewrite eq_rel_prod_eq in H1.
-            rewrite <- H0.
-            rewrite <- H1.
-            rewrite H in H2.
-            assumption.
-         + specialize (H0 s). specialize (H1 s). specialize (H2 s).
-           rewrite eq_rel_prod_eq in H0.
-           rewrite eq_rel_prod_eq in H1.
-           assert (eq_rel (prod_rel (@eq S) x) (prod_rel eq y)).
-           { rewrite H. reflexivity. }
-           rewrite H3. rewrite H1. rewrite H0. assumption.
+      +  specialize (H0 s). specialize (H1 s). specialize (H2 s).
+         rewrite eq_rel_prod_eq in H0.
+         rewrite eq_rel_prod_eq in H1.
+         rewrite <- H0.
+         rewrite <- H1.
+         rewrite H in H2.
+         assumption.
+      + specialize (H0 s). specialize (H1 s). specialize (H2 s).
+        rewrite eq_rel_prod_eq in H0.
+        rewrite eq_rel_prod_eq in H1.
+        assert (eq_rel (prod_rel (@eq S) x) (prod_rel eq y)).
+        { rewrite H. reflexivity. }
+        rewrite H3. rewrite H1. rewrite H0. assumption.
   Qed.
-
-
 
   (* Global Instance EqMProps_stateT : @EqMProps (stateT S M) _ EqM_stateT. *)
   (* Proof. *)

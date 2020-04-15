@@ -66,7 +66,7 @@ Section EqmRRel.
 
       (* [eqmR] is monotone as a morphism on relations *)
       eqmR_Proper_mono :> forall {A B},
-          Proper (inclusion ==> inclusion) (@eqmR m _ A B)
+          Proper (@inclusion _ _ ==> @inclusion _ _) (@eqmR m _ A B)
     }.
 
 End EqmRRel.
