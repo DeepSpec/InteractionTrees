@@ -26,8 +26,6 @@ Section Relations_of_Relations.
   Definition inclusion {A B} (R1 R2 : relation A B) : Prop :=
     forall (x : A) (y : B), R1 x y -> R2 x y.
 
-  (* For future: Maybe add transpose of relation? *)
-
   Definition transpose {A B: Type} (R: A -> B -> Prop): B -> A -> Prop :=
     fun b a => R a b.
 
@@ -52,10 +50,10 @@ Open Scope relation_scope.
 (* SAZ: There is probably a nice way to typeclassify the eq_rel proofs *)
 Section Relation_Classes.
 
-Definition eq_rel {A B} (R : A -> B -> Prop) (S : A -> B -> Prop) :=
+Definition eq_rel {A B} (R : relation A B) (S : relation A B) :=
   inclusion R S /\ inclusion S R.
 
-Lemma eq_rel_prod_eq : forall A B, eq_rel (prod_rel eq eq) (eq : A * B -> A * B -> Prop).
+Lemma eq_rel_prod_eq : forall A B, eq_rel (prod_rel eq eq) (eq : relation (A * B) (A * B)).
 Proof.
   intros.
   unfold eq_rel; split; unfold inclusion; intros.
@@ -79,10 +77,30 @@ Proof.
   destruct H, H0. split; eauto.
 Qed.
 
+Global Instance eq_rel_Equiv {A B} : Equivalence (@eq_rel A B).
+  split; typeclasses eauto.
+Qed.
+
 Global Instance eq_rel_Proper {A B} : Proper (eq_rel ==> eq_rel ==> iff) (@eq_rel A B).
 Proof.
   repeat red; unfold eq_rel, inclusion; split; intros;
   destruct H, H0, H1; split; eauto.
+Qed.
+
+Global Instance transpose_Reflexive {A} (R : relation A A) {RR: Reflexive R} : Reflexive † R.
+Proof.
+  red. intros x. unfold transpose. reflexivity.
+Qed.
+
+Global Instance transpose_Symmetric {A} (R : relation A A) {RS: Symmetric R} : Symmetric † R.
+Proof.
+  red; intros x; unfold transpose; intros. symmetry. assumption.
+Qed.
+
+
+Global Instance transpose_Transitive {A} (R : relation A A) {RT : Transitive R} : Transitive † R.
+Proof.
+  red; intros x; unfold transpose; intros. etransitivity; eauto.
 Qed.
 
 End Relation_Classes.

@@ -153,38 +153,38 @@ Section Transformer.
   split.
   - intros A R. unfold eqmR, EqmR_PropT, eqm_PropT. intros RR.
     split; intros mx ; exists mx; split; try assumption; try reflexivity.
-  - intros A R. unfold eqmR, EqmR_PropT, eqm'.
-    intros RR. split; intros.
-    + destruct H0 as (HL & HR).
-      apply HR in H1.  destruct H1 as (mb & MB & MB').
-      exists mb. split. assumption. symmetry. assumption.
-    + destruct H0 as (HL & HR).
-      apply HL in H1.  destruct H1 as (ma & MB & MB').
-      exists ma. split. assumption. symmetry. assumption.
-  - intros A R. unfold eqmR, EqmR_PropT, eqm'.
-    intros RR. split; intros.
-    + destruct H0 as (HL & HR).
-      destruct H1 as (KL & KR).
-      apply HL in H2. destruct H2 as (mb & MB & MB').
-      apply KL in MB. destruct MB as (mc & MC & MC').
-      exists mc. split. assumption. eapply transitivity; eassumption.
-    + destruct H0 as (HL & HR).
-      destruct H1 as (KL & KR).
-      apply KR in H2. destruct H2 as (ma & MA & MA').
-      apply HR in MA. destruct MA as (mc & MC & MC').
-      exists mc. split. assumption. eapply transitivity; eassumption.
-  - intros A B.
-    unfold eqmR, EqmR_PropT, eqm'.
-    repeat red.
-    intros C R1 R2 EQR PA1 PA2.
-    (* intros Htr (MA1 & MB1) (MB2 & MC1). *)
-    (* split. *)
-    (* + intros ma Hma. *)
-    (*   specialize (MA1 ma Hma). edestruct MA1 as (mb & HPA1 & EQ). *)
-    (*   specialize (MB2 mb HPA1). edestruct MB2 as (mc & HPA2 & EQ'). *)
-    (*   exists mc. split. assumption. unfold compose. *)
-    (*   epose proof compose_id_l. *)
-    (*   epose proof compose_id_r. *)
+  - intros A R. unfold eqmR, EqmR_PropT, eqm_PropT.
+    intros RR. split; red; intros.
+    + destruct H as (HL & HR).
+  (*     apply HR in H1.  destruct H1 as (mb & MB & MB'). *)
+  (*     exists mb. split. assumption. symmetry. assumption. *)
+  (*   + destruct H0 as (HL & HR). *)
+  (*     apply HL in H1.  destruct H1 as (ma & MB & MB'). *)
+  (*     exists ma. split. assumption. symmetry. assumption. *)
+  (* - intros A R. unfold eqmR, EqmR_PropT, eqm'. *)
+  (*   intros RR. split; intros. *)
+  (*   + destruct H0 as (HL & HR). *)
+  (*     destruct H1 as (KL & KR). *)
+  (*     apply HL in H2. destruct H2 as (mb & MB & MB'). *)
+  (*     apply KL in MB. destruct MB as (mc & MC & MC'). *)
+  (*     exists mc. split. assumption. eapply transitivity; eassumption. *)
+  (*   + destruct H0 as (HL & HR). *)
+  (*     destruct H1 as (KL & KR). *)
+  (*     apply KR in H2. destruct H2 as (ma & MA & MA'). *)
+  (*     apply HR in MA. destruct MA as (mc & MC & MC'). *)
+  (*     exists mc. split. assumption. eapply transitivity; eassumption. *)
+  (* - intros A B. *)
+  (*   unfold eqmR, EqmR_PropT, eqm'. *)
+  (*   repeat red. *)
+  (*   intros C R1 R2 EQR PA1 PA2. *)
+  (*   intros Htr (MA1 & MB1) (MB2 & MC1). *)
+  (*   split. *)
+  (*   + intros ma Hma. *)
+  (*     specialize (MA1 ma Hma). edestruct MA1 as (mb & HPA1 & EQ). *)
+  (*     specialize (MB2 mb HPA1). edestruct MB2 as (mc & HPA2 & EQ'). *)
+  (*     exists mc. split. assumption. unfold compose. *)
+  (*     epose proof compose_id_l. *)
+  (*     epose proof compose_id_r. *)
     (*   specialize (H0 R2). specialize (H1 R2). *)
       (* SAZ :
 
@@ -211,174 +211,9 @@ Section Transformer.
   Instance EqmRMonad_PropT : @EqmRMonad PropT _ _.
   Proof.
     pose proof EqmR_OK_PropT.
-    constructor; unfold eqmR, EqmR_PropT, eqm'.
+    constructor; unfold eqmR, EqmR_PropT, eqm_PropT.
     - apply ret_ok.
-    - intros A1 A2 B1 B2 RA RB ma1 ma2 kb1 kb2 HA HB.
-      split; intros mb1 mb2 RB'.
-      destruct HA as (HAeq & HAclo).
-      + intros Heq. split. intros Hbind.
-  Admitted.
-
-  (* ===== DESIGN 2 : Defining "agrees-closed-eqm" by Construction ======== *)
-
-  Definition closed_eqmR_agrees {A} (P : m A -> Prop) :=
-    forall (ma : m A) (P' : m (A -> Prop)) (WP : m (A -> Prop) -> Prop),
-      ma ∈ P' -> (P ma <-> WP P').
-
-  (* Alternative definition, based on agrees. *)
-  Definition PropT' : Type -> Type :=
-    fun A => {P : m A -> Prop | closed_eqmR_agrees P}.
-
-  Lemma ret_f_closed_eqmR_agrees :
-    forall A (a : A), closed_eqmR_agrees (ret_f A a).
-  Proof.
-    intros. red. intros; split; intros.
-    - unfold ret_f in H1. rewrite H1 in H0.
-  Admitted.
-
-  Lemma bind_f_closed_eqmR_agrees:
-    forall A B (PA : PropT A) (K : A -> PropT B),
-      closed_eqmR_agrees (bind_f A B PA K).
-  Proof.
+    -
   Admitted.
 
 End Transformer.
-
-Section PropT_EqmRMonad.
-
-  Variable (m: Type -> Type).
-  Context `{Monad m}.
-  Context {EQMR : EqmR m}.
-  Context {ITERM : MonadIter m}.
-  Context {HEQP: @EqmR_OK m EQMR}.
-  Context {HM: @EqmRMonad m EQMR _}.
-
-  Instance eqmR_OK_PropT : EqmR_OK (PropT m).
-End PropT_EqmRMonad.
-
-Section Laws.
-
-  Variable (m: Type -> Type).
-  Context `{Monad m}.
-  Context {EQM : EqmR m}.
-  Context {ITERM : MonadIter m}.
-  Context {HEQP: @EqmR_OK m EQM}.
-  Context {HMLAWS: @MonadLaws m EQM _}.
-<<<<<<< HEAD
-
-
-
-
-  Instance eqm_MonadProp_Proper {A} (P: PropT m A) : Proper (@eqm _ _ A ==> iff) P.
-  Proof.
-    cbv. intros x y Heq.
-
-  Admitted.
-=======
-  Context {ML : EqmRMonad m}.
->>>>>>> fa1ee28772a58325ada40f7ccc78bf8157008a24
-
-  Lemma bind_ret_l:
-    forall A B (f : A -> PropT m B) (a : A),
-      eqm (bind (ret a) f) (f a).
-  Proof.
-    cbn; unfold bind_f, ret_f; cbn; unfold liftM.
-    intros A B k a. pose proof EqmRMonad_PropT as PM.
-    specialize (PM m H EQM ITERM _ _ _).
-    split.
-    - intros x y r Heq. split.
-      + intros Hm. edestruct Hm as (ma & km & Hma & HeqmR & Hx).
-        clear Hm.
-        rewrite HeqmR in Hma. rewrite bind_ret_l in Hma.
-        rewrite HeqmR in Hx. rewrite 2 bind_ret_l in Hx.
-        rewrite <- eqmR_ret in Hx; [ | assumption].
-        unfold agrees in Hx.
-         (* IY: Why doesn't rewrite <- Heqmr work directly? (Also, is this proper instance too generalized? )*)
-        eapply eqmR_MonadProp_Proper_impl_flip; try assumption.
-        apply Heq.
-        eapply eqmR_MonadProp_Proper_impl; try assumption.
-        apply Hma. apply Hx.
-      + intros Hk. exists (ret a). exists (fun _ => x).
-        split. rewrite bind_ret_l. reflexivity.
-        split. reflexivity. rewrite 2 bind_ret_l.
-        apply eqmR_ret; [assumption | ].
-        unfold agrees.
-        eapply eqmR_MonadProp_Proper_impl; try assumption.
-        apply Heq. apply Hk.
-    - split. (* Can I split while introducing variable names? *)
-      + intros Hm.
-        edestruct Hm as (ma & kb & Hb & Hma & Heq).
-        rewrite Hma in Heq. rewrite 2 bind_ret_l in Heq.
-        apply eqmR_ret in Heq; [ | assumption]. unfold agrees in Heq.
-        rewrite Hma in Hb. rewrite bind_ret_l in Hb.
-        eapply eqmR_MonadProp_Proper_impl_flip in Heq; try assumption.
-        2 : apply HEQP. 2 : apply HMLAWS. 2 : apply ML. (* Why aren't these discharged? *)
-        apply Heq. rewrite <- Hb. apply H0.
-      + intros K.
-        exists (ret a). exists (fun _ => a0).
-        split. rewrite bind_ret_l. reflexivity.
-        split. reflexivity. rewrite 2 bind_ret_l. apply eqmR_ret; [assumption | ].
-        unfold agrees. eapply eqmR_MonadProp_Proper_impl; try assumption.
-        apply H0. assumption.
-  Qed.
-
-  Lemma bind_ret_r:
-    forall A (ma : PropT m A),
-      eqm (bind ma (fun x => ret x)) ma.
-  Proof.
-    intros A PTmA.
-    cbn in *. unfold bind_f, ret_f in *.
-    cbn in *. unfold liftM in *.
-    split.
-    - intros mA1 mA2 R. intros Heqmr.
-      split.
-      + intros comp.
-        destruct comp as (mA & ka & Hpta & Heqmrbind & Heqbind).
-        (* rewrite Heqbind. clear Heqbind. *)
-        (* Want to take (bind mA ka) to mA, which might mean
-           that kamA is ret. I think Heqmrbind gives this. *)
-        admit.
-      + intros Hpta2.
-        exists mA2, (fun x => ret x). split; auto.
-        * admit.
-        *
-          (* rewrite bind_ret_r. *)
-          (* assert (HProper: Proper (eqmR R --> flip impl) (eqm mA1)). *)
-          admit.
-          (* rewrite <- Heqmr. *)
-          (* reflexivity. *)
-    - split.
-      rename a into mA1. rename b into mA2. rename H0 into Heqmr.
-      + intros comp.
-        destruct comp as (mA & ka & Hpta & Heqmrbind & Heqbind).
-        (* This rewrite works for some reason?? *)
-        (* rewrite <- Heqmr. clear Heqmr. *)
-        (* rewrite Heqbind. clear Heqbind. *)
-        (* same situation as above *)
-        admit.
-      + intros Hpta2.
-        rename a into mA1. rename b into mA2. rename H0 into Heqmr.
-        exists mA2, (fun x => ret x). split; auto.
-        * admit.
-        (* * rewrite bind_ret_r. auto. *)
-Admitted.
-
-  Lemma bind_bind:
-    forall A B C (ma : PropT m A) (mab : A -> PropT m B)
-           (mbc : B -> PropT m C),
-      eqm (bind (bind ma mab) mbc) (bind ma (fun x => bind (mab x) mbc)).
-  Proof.
-  Admitted.
-
-  Lemma respect_bind :
-  forall a b : Type, Proper (eqm ==> pointwise_relation a eqm ==> @eqm (PropT m) _ b) bind.
-  Proof.
-  Admitted.
-
-  Global Instance PropT_Laws : @MonadLaws (PropT m) _ _.
-  split. apply bind_ret_l.
-  apply bind_ret_r. apply bind_bind.
-  apply respect_bind.
-  Qed.
-
-End Laws.

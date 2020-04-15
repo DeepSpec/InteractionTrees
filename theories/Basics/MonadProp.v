@@ -27,7 +27,7 @@ Section Transformer.
 
   Variable (m: Type -> Type).
   Context `{Monad m}.
-  Context {EQM : EqM m}.
+  Context {EQM : EqmR m}.
   Context {ITERM : MonadIter m}.
 
   Definition PropTM : Type -> Type :=
@@ -42,7 +42,7 @@ Section Transformer.
   (* Design choice 2: (ma = ret a) or eqm ma (ret a)? *)
   Definition ret' : forall A, A -> PropTM A :=
     fun A (a: A) (ma: m A) => eqm ma (ret a).
-
+  
   Definition eqm1: forall A, PropTM A -> PropTM A -> Prop:=
     fun A PA PA' => forall a, PA a <-> PA' a.
 
@@ -68,7 +68,7 @@ kb : nat -> m nat
 
    *)
 
-  Global Instance EqM_PropTM : EqM PropTM := eqm2.
+  Global Instance EqmR_PropTM : EqmR PropTM := eqm2.
 
   (* This should be a typeclass rather? *)
   Inductive MayRet {m: Type -> Type} {M: Monad m}: forall {A}, m A -> A -> Prop :=

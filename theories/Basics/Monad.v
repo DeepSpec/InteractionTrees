@@ -59,7 +59,9 @@ Section EqmRRel.
           eqmR R2 mb mc ->
           eqmR (R2 ∘ R1) ma mc;
 
-      (* [eqmR] respects extensional equality of the underlying relation
+      eqmR_lift_transpose : forall {A B} (R : A -> B -> Prop), eq_rel (eqmR †R) (†(eqmR R));
+      
+          (* [eqmR] respects extensional equality of the underlying relation
          and [eqm] on both arguments over the monad *)
       eqmR_Proper :> forall {A B},
           Proper (eq_rel ==> eqmR eq ==> eqmR eq ==> iff) (@eqmR _ _ A B);
@@ -72,7 +74,7 @@ Section EqmRRel.
 End EqmRRel.
 
 (* In particular, well-formedness of [eqmR] recovers that [eqm] is an equivalence relation *)
-Instance eqm_equiv (m:Type -> Type) `{EqmR m} `{@EqmR_OK m _}
+Instance eqm_equiv (m:Type -> Type) `{EqmR m} `{EqmR_OK m}
   : forall A, Equivalence (@eqm m _ A).
 Proof.
   unfold eqm; split; typeclasses eauto.
