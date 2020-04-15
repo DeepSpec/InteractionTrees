@@ -169,6 +169,12 @@ Section SumRelProps.
       all: econstructor; eexists; eauto.
   Qed.
 
+  (* What's the right way to avoid having to refer to H here? *)
+  Global Instance Proper_sum_rel {A B C D}: Proper (eq_rel ==> eq_rel ==> eq_rel) (@sum_rel A B C D).
+  Proof.
+    intros!; split; intros!; invn sum_rel; econstructor; (apply H || apply H0); auto.
+  Qed.
+
 End SumRelProps.
 
 Section Relation_Category.

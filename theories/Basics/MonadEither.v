@@ -55,20 +55,16 @@ Section Monad_Either.
 
   Global Instance EqMProps_eitherT : EqmR_OK eitherT.
   Proof with unfold_either.
-  constructor...
-  - intros!; reflexivity.
-  - intros!; symmetry; auto.
-  - intros!; etransitivity; eauto.
-  - intros.
-    rewrite <- (eq_id_r eq).
+    constructor...
+    - intros!; reflexivity.
+    - intros!; symmetry; auto.
+    - intros!; etransitivity; eauto.
+    - intros.
+      rewrite <- (eq_id_r eq), sum_compose.
+      eapply eqmR_rel_trans; eauto.
+    -
 
-    Check ((@eq exn ⊕ R2) ∘ (@eq exn ⊕ R1)).
 
-    Set Printing Implicit.
-
-    eq_rel (eq ⊕ (R2 ∘ R1)) ((eq ∘ ⊕ (R2 ∘ R1))
-
-    eapply eqmR_rel_trans.
   Qed.
 
   Instance MonadLaws_eitherT : @MonadLaws (eitherT exn M) _ _.
