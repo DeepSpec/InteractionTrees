@@ -46,3 +46,32 @@ Ltac destructn f :=
     | [ id: f _ _ _ _ _ _ _ _ |- _ ] => destruct id
     end.
 
+(* apply by name of the Inductive relation *)
+Ltac appn f :=
+    match goal with
+    | [ id: f |- _ ] => apply id
+    | [ id: f _ |- _ ] => apply id
+    | [ id: f _ _ |- _ ] => apply id
+    | [ id: f _ _ _ |- _ ] => apply id
+    | [ id: f _ _ _ _ |- _ ] => apply id
+    | [ id: f _ _ _ _ _ |- _ ] => apply id
+    | [ id: f _ _ _ _ _ _ |- _ ] => apply id
+    | [ id: f _ _ _ _ _ _ _ |- _ ] => apply id
+    | [ id: f _ _ _ _ _ _ _ _ |- _ ] => apply id
+    end.
+
+(* eapply by name of the Inductive relation *)
+Ltac eappn f :=
+    match goal with
+    | [ id: f |- _ ] => eapply id
+    | [ id: f _ |- _ ] => eapply id
+    | [ id: f _ _ |- _ ] => eapply id
+    | [ id: f _ _ _ |- _ ] => eapply id
+    | [ id: f _ _ _ _ |- _ ] => eapply id
+    | [ id: f _ _ _ _ _ |- _ ] => eapply id
+    | [ id: f _ _ _ _ _ _ |- _ ] => eapply id
+    | [ id: f _ _ _ _ _ _ _ |- _ ] => eapply id
+    | [ id: f _ _ _ _ _ _ _ _ |- _ ] => eapply id
+    end.
+
+

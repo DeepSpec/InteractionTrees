@@ -119,10 +119,29 @@ Section Relation_Classes.
     red; intros x; unfold transpose; intros. symmetry. assumption.
   Qed.
 
-
   Global Instance transpose_Transitive {A} (R : relation A A) {RT : Transitive R} : Transitive † R.
   Proof.
     red; intros x; unfold transpose; intros. etransitivity; eauto.
+  Qed.
+
+  (* This instance allows to rewrite [H: R ≡ S] in a goal of the form [R x y] *)
+  Global Instance eq_rel_rewrite {A B}: subrelation eq_rel (pointwise_relation A (pointwise_relation B iff)).
+  Proof.
+    intros!; destructn @eq_rel; split; intro; appn inclusion; auto.
+  Qed.
+
+  Lemma transpose_compose {A B C : Type}
+        (R : relation A B) (S : relation B C)
+    : † (S ∘ R) ≡ (†R ∘ †S).
+  Proof.
+    split; unfold transpose; cbn; intros!;
+    invn compose; invn and; eexists; eauto.
+  Qed.
+
+  Lemma transpose_sym {A : Type} (R : relation A A) {RS: Symmetric R}
+    : † R ≡ R.
+  Proof.
+    unfold transpose; split; intros!; symmetry; auto.
   Qed.
 
 End Relation_Classes.
@@ -159,7 +178,7 @@ Section SumRelProps.
   Lemma sum_compose {A B C D E F: Type}
         (R: relation A B) (S: relation B C)
         (T: relation D E) (U: relation E F)
-  : eq_rel ((S ∘ R) ⊕ (U ∘ T)) ((S ⊕ U) ∘ (R ⊕ T)).
+  : (S ∘ R) ⊕ (U ∘ T) ≡ (S ⊕ U) ∘ (R ⊕ T).
   Proof.
     split; intros!.
     - invn sum_rel; invn compose; invn and.
@@ -167,6 +186,13 @@ Section SumRelProps.
     - invn compose; invn and; do 2 invn sum_rel.
       eauto.
       all: econstructor; eexists; eauto.
+  Qed.
+
+  Lemma transpose_sum {A B C D: Type}
+        (R: relation A B) (S: relation C D)
+    : † (S ⊕ R) ≡ (†S ⊕ †R).
+  Proof.
+    split; unfold transpose; cbn; intros!; invn sum_rel; auto.
   Qed.
 
   (* What's the right way to avoid having to refer to H here? *)

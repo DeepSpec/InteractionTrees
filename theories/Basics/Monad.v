@@ -60,7 +60,7 @@ Section EqmRRel.
           eqmR (R2 ∘ R1) ma mc;
 
       eqmR_lift_transpose : forall {A B} (R : A -> B -> Prop), eq_rel (eqmR †R) (†(eqmR R));
-      
+
           (* [eqmR] respects extensional equality of the underlying relation
          and [eqm] on both arguments over the monad *)
       eqmR_Proper :> forall {A B},

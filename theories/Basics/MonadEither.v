@@ -29,7 +29,7 @@ Definition either (exn A : Type) : Type :=
 Section Monad_Either.
   Variable m : Type -> Type.
   Variable exn : Type.
-  Context {EqMRm : EqmR m}.
+  Context {EqmRm : EqmR m}.
   Context {Mm: Monad m}.
   Context {EqmROKm : EqmR_OK m}.
   Context {MLm: EqmRMonad m}.
@@ -53,6 +53,12 @@ Section Monad_Either.
 
   Ltac unfold_either := unfold eqmR, Eqm_eitherT.
 
+  Lemma sum_eq_eq {A B : Type}
+    : @eq A ⊕ @eq B ≡ eq.
+  Proof.
+    split; intros!; [invn sum_rel; auto | subst; reflexivity].
+  Qed.
+
   Global Instance EqMProps_eitherT : EqmR_OK eitherT.
   Proof with unfold_either.
     constructor...
@@ -62,10 +68,33 @@ Section Monad_Either.
     - intros.
       rewrite <- (eq_id_r eq), sum_compose.
       eapply eqmR_rel_trans; eauto.
-    -
-
-
-  Qed.
+    - intros!; split; intros!.
+      + (* TODO: Rewrite fails here for a reason unbeknownst to me.
+           See https://coq.discourse.group/t/confused-with-a-failure-of-a-generalized-rewrite/783
+         *)
+        apply (eqmR_lift_transpose _ (@eq exn ⊕ R)).
+        rewrite transpose_sum, transpose_sym; auto.
+      + rewrite <- transpose_sym, <- transpose_sum; auto.
+        apply eqmR_lift_transpose; auto.
+    - (* TODO: Define a better intro tactic in the style of Chargueraud or Boutiller *)
+      intros ? ? ? ? EQ1 ? ? EQ2 ? ? EQ3; split; intros EQR.
+      + rewrite <- EQ1.
+        rewrite sum_eq_eq in EQ2.
+        rewrite sum_eq_eq in EQ3.
+        (* TODO: These rewrites in the goal loops, not sure why yet. A similar one goes fine in MonadState *)
+        Fail Timeout 1 rewrite <- EQ2.
+        Fail Timeout 1 rewrite <- EQ3.
+        (* While the reverse direction in EQR goes through *)
+        rewrite EQ2, EQ3 in EQR; auto.
+      + rewrite sum_eq_eq in EQ2.
+        rewrite sum_eq_eq in EQ3.
+        rewrite EQ1, EQ2, EQ3; auto.
+    - intros!.
+      (* TODO: [inclusion] should be Class (and renamed [subrelation]).
+         We should have instances for [R ⊑ R] as well as sum_rel and prod_rel
+       *)
+      admit.
+  Admitted.
 
   Instance MonadLaws_eitherT : @MonadLaws (eitherT exn M) _ _.
   Proof.
@@ -236,4 +265,3 @@ Section Iter_Either.
   Qed.
 
 End Iter_Either.
-
