@@ -35,6 +35,8 @@ From ITree Require Import
 Import ITreeNotations.
 (* end hide *)
 
+Typeclasses eauto := 5.
+
 Instance Equivalence_eq_Handler {E F : Type -> Type}
   : Equivalence (@eq_Handler E F).
 Proof.
@@ -128,7 +130,8 @@ Instance eq_itree_interp' {E F R f}
 Proof.
   repeat red.
   eapply eq_itree_interp.
-  reflexivity.
+  reflexivity. (* IY: Typeclass resolution gets stuck here without
+                  Typeclasses eauto := 5. *)
 Qed.
 
 Instance eutt_interp (E F : Type -> Type)

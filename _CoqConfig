@@ -11,6 +11,7 @@ theories/Basics/CategoryTheory.v
 theories/Basics/CategoryFacts.v
 theories/Basics/CategorySub.v
 theories/Basics/CategoryFunctor.v
+theories/Basics/Tacs.v
 theories/Basics/HeterogeneousRelations.v
 theories/Basics/Monad.v
 theories/Basics/MonadState.v

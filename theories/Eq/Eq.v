@@ -74,7 +74,7 @@ Section eqit.
       Then the desired equivalence relation is obtained by setting
       [RR := eq] (with [R1 = R2]).
    *)
-  Context {E : Type -> Type} {R1 R2 : Type} (RR : R1 -> R2 -> Prop).
+  Context {E : Type -> Type} {R1 R2 : Type} (RR : relation R1 R2).
 
   (** We also need to do some gymnastics to work around the
       two-layered definition of [itree]. We first define a
@@ -86,7 +86,7 @@ Section eqit.
       pattern-matching is not allowed on [itree].
    *)
 
-  Inductive eqitF (b1 b2: bool) vclo (sim : itree E R1 -> itree E R2 -> Prop) :
+  Inductive eqitF (b1 b2: bool) vclo (sim : relation (itree E R1) (itree E R2)) :
     itree' E R1 -> itree' E R2 -> Prop :=
   | EqRet r1 r2
        (REL: RR r1 r2):
