@@ -87,18 +87,23 @@ Proof.
   destruct H, H0, H1; split; eauto.
 Qed.
 
-Global Instance transpose_Reflexive {A} (R : relation A A) {RR: Reflexive R} : Reflexive † R.
+(* SAZ: Unfortunately adding these typeclass instances can cause typeclass resolution
+   to loop when looking for a reflexive instance.  
+   e.t. in InterpFacts we get a loop.
+         
+*)
+Global Instance transpose_Reflexive {A} (R : relation A A) {RR: Reflexive R} : Reflexive † R | 100.
 Proof.
   red. intros x. unfold transpose. reflexivity.
 Qed.
 
-Global Instance transpose_Symmetric {A} (R : relation A A) {RS: Symmetric R} : Symmetric † R.
+Global Instance transpose_Symmetric {A} (R : relation A A) {RS: Symmetric R} : Symmetric † R | 100.
 Proof.
   red; intros x; unfold transpose; intros. symmetry. assumption.
 Qed.
 
 
-Global Instance transpose_Transitive {A} (R : relation A A) {RT : Transitive R} : Transitive † R.
+Global Instance transpose_Transitive {A} (R : relation A A) {RT : Transitive R} : Transitive † R | 100.
 Proof.
   red; intros x; unfold transpose; intros. etransitivity; eauto.
 Qed.

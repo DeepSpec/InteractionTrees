@@ -92,8 +92,17 @@ Section EqmRMonad.
    *)
   Class EqmRMonad :=
     {
-    eqmR_ret : forall {A1 A2} (RA : A1 -> A2 -> Prop) (a1:A1) (a2:A2),
-        RA a1 a2 <-> eqmR RA (ret a1) (ret a2);
+      (* SAZ: we can prove only one direction of this law. 
+          - for PropT we can take the proposition (fun _ => False)
+            which accepts no computations.  Then it is true that (ret a1) and (ret a2)
+            are equi-accepted by that proposition, but there doesn't have to be any relation
+            between 
+
+          - for StateT we can take the void state, which also cannot be inverted.
+       *)
+      eqmR_ret : forall {A1 A2} (RA : A1 -> A2 -> Prop) (a1:A1) (a2:A2),
+        (* RA a1 a2 <-> eqmR RA (ret a1) (ret a2); *)
+        RA a1 a2 -> eqmR RA (ret a1) (ret a2);
 
     (* YZ: [eqmR_bind] is _exactly_ (well, with order of arguments reshuffled) the same as [eqmR_Proper_bind].
        Commenting it out for now, to remove later.
