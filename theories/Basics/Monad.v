@@ -21,7 +21,7 @@ Set Primitive Projections.
    I wrapped it up in a record, it seems to prevent this behavior.
  *)
 Class EqmR (m:Type -> Type) : Type :=
-  { eqmR : forall A B (R : A -> B -> Prop), m A -> m B -> Prop}.
+  { eqmR : forall A B (R : relationH A B), relationH (m A) (m B)}.
 
 Arguments eqmR {m _} [A B].
 
@@ -40,7 +40,7 @@ Section EqmRRel.
   Context {EqMR : EqmR m}.
 
   Import RelNotations.
-  Local Open Scope relation_scope.
+  Local Open Scope relationH_scope.
 
   (* Requirements of well-formedness of [eqmR] *)
   Class EqmR_OK : Type :=
@@ -48,32 +48,32 @@ Section EqmRRel.
     (* [eqmR] should transport elementary structures of the relation [R] *)
     (* Question: should it transport anti-symmetry? *)
 
-      eqmR_transport_refl :>  forall {A} (R : A -> A -> Prop), Reflexive R  -> Reflexive (eqmR R);
-      eqmR_transport_symm :>  forall {A} (R : A -> A -> Prop), Symmetric R  -> Symmetric (eqmR R);
-      eqmR_transport_trans :> forall {A} (R : A -> A -> Prop), Transitive R -> Transitive (eqmR R);
+      eqmR_transport_refl :>  forall {A} (R : relationH A A), Reflexive R  -> Reflexive (eqmR R);
+      eqmR_transport_symm :>  forall {A} (R : relationH A A), Symmetric R  -> Symmetric (eqmR R);
+      eqmR_transport_trans :> forall {A} (R : relationH A A), Transitive R -> Transitive (eqmR R);
 
-      (* [eqmR] is associative by composing the underlying relations *)
-      eqmR_rel_trans : forall {A B C} (R1 : A -> B -> Prop) (R2 : B -> C -> Prop)
+      (* [eqmR] is associative by composing the underlying relationHs *)
+      eqmR_rel_trans : forall {A B C} (R1 : relationH A B) (R2 : relationH B C)
                          (ma : m A) (mb : m B) (mc : m C),
           eqmR R1 ma mb ->
           eqmR R2 mb mc ->
           eqmR (R2 ∘ R1) ma mc;
 
-      eqmR_lift_transpose : forall {A B} (R : A -> B -> Prop), eq_rel (eqmR †R) (†(eqmR R));
-      
-          (* [eqmR] respects extensional equality of the underlying relation
+      eqmR_lift_transpose : forall {A B} (R : relationH A B), eq_rel (eqmR †R) (†(eqmR R));
+
+      (* [eqmR] respects extensional equality of the underlying relationH
          and [eqm] on both arguments over the monad *)
       eqmR_Proper :> forall {A B},
           Proper (eq_rel ==> eqmR eq ==> eqmR eq ==> iff) (@eqmR _ _ A B);
 
-      (* [eqmR] is monotone as a morphism on relations *)
+      (* [eqmR] is monotone as a morphism on relationHs *)
       eqmR_Proper_mono :> forall {A B},
-          Proper (inclusion ==> inclusion) (@eqmR m _ A B)
+          Proper (@subrelationH _ _ ==> @subrelationH _ _) (@eqmR m _ A B)
     }.
 
 End EqmRRel.
 
-(* In particular, well-formedness of [eqmR] recovers that [eqm] is an equivalence relation *)
+(* In particular, well-formedness of [eqmR] recovers that [eqm] is an equivalence relationH *)
 Instance eqm_equiv (m:Type -> Type) `{EqmR m} `{EqmR_OK m}
   : forall A, Equivalence (@eqm m _ A).
 Proof.
@@ -132,7 +132,6 @@ Section EqmRMonad.
                         (a : A)
                         (a_OK : RA a a),
         eqmR RB (bind (ret a) f) (f a);
-
 
     eqmR_bind_ret_r : forall {A}
                         (RA : A -> A -> Prop)
@@ -198,7 +197,7 @@ Section MONAD.
       rewrite H.
       (* Interesting (or annoying I guess):
          if [EqMR] is defined as a singleton class, then here [eapply eqmR_Proper_bind]
-         leads the type checker to happily craft its own stupid relation as an instance:
+         leads the type checker to happily craft its own stupid relationH as an instance:
          [(fun (A B : Type) (_ : A -> B -> Prop) (_ : m A) (_ : m B) => @bind m Mm a b y x0 ≈ @bind m Mm a b y y0)]
          where of course we would have expected it to pick the [EqMRm: EqMR m] that we have in the context.
          If we make [eqmR] a proper class with a single field however, it works as expected.

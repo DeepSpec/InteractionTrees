@@ -58,7 +58,6 @@ Section State.
            rewrite H3. rewrite H1. rewrite H0. assumption.
 Admitted. 
 
-
   (* Global Instance EqMProps_stateT : @EqMProps (stateT S M) _ EqM_stateT. *)
   (* Proof. *)
   (* constructor. *)
