@@ -21,7 +21,7 @@ Set Primitive Projections.
    I wrapped it up in a record, it seems to prevent this behavior.
  *)
 Class EqmR (m:Type -> Type) : Type :=
-  { eqmR : forall A B (R : A -> B -> Prop), m A -> m B -> Prop}.
+  { eqmR : forall A B (R : relation A B), relation (m A) (m B)}.
 
 Arguments eqmR {m _} [A B].
 
@@ -48,20 +48,20 @@ Section EqmRRel.
     (* [eqmR] should transport elementary structures of the relation [R] *)
     (* Question: should it transport anti-symmetry? *)
 
-      eqmR_transport_refl :>  forall {A} (R : A -> A -> Prop), Reflexive R  -> Reflexive (eqmR R);
-      eqmR_transport_symm :>  forall {A} (R : A -> A -> Prop), Symmetric R  -> Symmetric (eqmR R);
-      eqmR_transport_trans :> forall {A} (R : A -> A -> Prop), Transitive R -> Transitive (eqmR R);
+      eqmR_transport_refl :>  forall {A} (R : relation A A), Reflexive R  -> Reflexive (eqmR R);
+      eqmR_transport_symm :>  forall {A} (R : relation A A), Symmetric R  -> Symmetric (eqmR R);
+      eqmR_transport_trans :> forall {A} (R : relation A A), Transitive R -> Transitive (eqmR R);
 
       (* [eqmR] is associative by composing the underlying relations *)
-      eqmR_rel_trans : forall {A B C} (R1 : A -> B -> Prop) (R2 : B -> C -> Prop)
+      eqmR_rel_trans : forall {A B C} (R1 : relation A B) (R2 : relation B C)
                          (ma : m A) (mb : m B) (mc : m C),
           eqmR R1 ma mb ->
           eqmR R2 mb mc ->
           eqmR (R2 ∘ R1) ma mc;
 
-      eqmR_lift_transpose : forall {A B} (R : A -> B -> Prop), eq_rel (eqmR †R) (†(eqmR R));
+      eqmR_lift_transpose : forall {A B} (R : relation A B), eq_rel (eqmR †R) (†(eqmR R));
 
-          (* [eqmR] respects extensional equality of the underlying relation
+      (* [eqmR] respects extensional equality of the underlying relation
          and [eqm] on both arguments over the monad *)
       eqmR_Proper :> forall {A B},
           Proper (eq_rel ==> eqmR eq ==> eqmR eq ==> iff) (@eqmR _ _ A B);

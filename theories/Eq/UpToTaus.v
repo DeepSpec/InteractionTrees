@@ -380,7 +380,9 @@ Proof.
         eapply MON; [|intros; gbase; eapply CIH; eauto].
         eapply CLOV.
         { intros. destruct PR, EQR.
-          econstructor; [|eauto|]; eauto using eqit_trans; auto_ctrans. }
+          econstructor; [|eauto|]; eauto using eqit_trans; auto_ctrans.
+          admit. 
+        }
         econstructor; eauto.
         eapply MON; eauto. intros.
         econstructor; try reflexivity; auto_ctrans.
@@ -397,7 +399,9 @@ Proof.
       eapply MON; [|intros; gbase; eapply CIH; eauto].
       eapply CLOV.
       { intros. destruct PR, EQR.
-        econstructor; swap 1 2; eauto using eqit_trans; auto_ctrans. }
+        econstructor; swap 1 2; eauto using eqit_trans; auto_ctrans.
+        admit. (* IY: Why doesn't this go through anymore? *)
+      }
       econstructor; eauto.
       eapply MON; eauto. intros.
       econstructor; auto_ctrans_eq; try reflexivity.
@@ -415,7 +419,7 @@ Proof.
       * eapply IHEQL; eauto.
         simpobs. econstructor; eauto.
         punfold H.
-Qed.
+Admitted.
 
 Lemma euttVC_transL gH r:
   transL (euttVC RR gH r) <2= euttVC RR gH r.

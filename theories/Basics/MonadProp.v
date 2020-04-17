@@ -148,59 +148,168 @@ Section Transformer.
       ; bind := bind_f'
     |}.
 
-  Import RelNotations.
+  Ltac eq_hyp_specialize :=
+    repeat match goal with
+    | [H0 : forall (x : m ?A), ?b x -> _ , H' : m ?A |- _] =>
+      remember H' as e;
+        match goal with
+          | [H : b e |- _] =>
+      specialize (H0 _ H); edestruct H0 as (? & ? & ?); clear H0; subst
+        end
+            end.
+
   Global Instance EqmR_OK_PropT : @EqmR_OK PropT EqmR_PropT.
   split.
   - intros A R. unfold eqmR, EqmR_PropT, eqm_PropT. intros RR.
     split; intros mx ; exists mx; split; try assumption; try reflexivity.
   - intros A R. unfold eqmR, EqmR_PropT, eqm_PropT.
-    intros RR. split; red; intros.
+    intros RR. split; red; intros ma H1.
     + destruct H as (HL & HR).
-  (*     apply HR in H1.  destruct H1 as (mb & MB & MB'). *)
-  (*     exists mb. split. assumption. symmetry. assumption. *)
-  (*   + destruct H0 as (HL & HR). *)
-  (*     apply HL in H1.  destruct H1 as (ma & MB & MB'). *)
-  (*     exists ma. split. assumption. symmetry. assumption. *)
-  (* - intros A R. unfold eqmR, EqmR_PropT, eqm'. *)
-  (*   intros RR. split; intros. *)
-  (*   + destruct H0 as (HL & HR). *)
-  (*     destruct H1 as (KL & KR). *)
-  (*     apply HL in H2. destruct H2 as (mb & MB & MB'). *)
-  (*     apply KL in MB. destruct MB as (mc & MC & MC'). *)
-  (*     exists mc. split. assumption. eapply transitivity; eassumption. *)
-  (*   + destruct H0 as (HL & HR). *)
-  (*     destruct H1 as (KL & KR). *)
-  (*     apply KR in H2. destruct H2 as (ma & MA & MA'). *)
-  (*     apply HR in MA. destruct MA as (mc & MC & MC'). *)
-  (*     exists mc. split. assumption. eapply transitivity; eassumption. *)
-  (* - intros A B. *)
-  (*   unfold eqmR, EqmR_PropT, eqm'. *)
-  (*   repeat red. *)
-  (*   intros C R1 R2 EQR PA1 PA2. *)
-  (*   intros Htr (MA1 & MB1) (MB2 & MC1). *)
-  (*   split. *)
-  (*   + intros ma Hma. *)
-  (*     specialize (MA1 ma Hma). edestruct MA1 as (mb & HPA1 & EQ). *)
-  (*     specialize (MB2 mb HPA1). edestruct MB2 as (mc & HPA2 & EQ'). *)
-  (*     exists mc. split. assumption. unfold compose. *)
-  (*     epose proof compose_id_l. *)
-  (*     epose proof compose_id_r. *)
-    (*   specialize (H0 R2). specialize (H1 R2). *)
-      (* SAZ :
-
-          It looks like we need another property in the eqmR typeclass that
-          acts like a kind of transitivity:
-
-           eqmR R1 ma mb -> eqmR R2 mb mc -> eqmR (R1 ∘ R2) ma mc
-
-         Then we can conclude this case by observing that
-            - eq_rel (eq ∘ R2) R2
-            - eq_rel R2 (R2 ∘ eq)
-         and so by the property above (and symmetry for eq) we have:
-             symmetry (EQ') ; EQ'' ; Eq ''' relates ma to ma'''
-
-       *)
-  Admitted.
+      apply HR in H1.  destruct H1 as (mb & MB & MB').
+      exists mb. split. assumption.
+      pose proof eqmR_lift_transpose.
+      symmetry in H. apply H. assumption.
+      symmetry. apply MB'.
+    + destruct H as (HL & HR).
+      apply HL in H1.  destruct H1 as (mb & MB & MB').
+      exists mb. split. assumption. symmetry.
+      apply eqmR_lift_transpose. assumption. unfold transpose.
+      assumption.
+  - intros A R. unfold eqmR, EqmR_PropT, eqm_PropT.
+    intros RR. repeat intro.
+    destruct H0 as (HL & HR).
+    destruct H as (KL & KR).
+    repeat red in KL, KR, HL, HR.
+    split.
+    + repeat red. intros ma H.
+      eq_hyp_specialize.
+      exists x1. split. assumption.
+      etransitivity; eassumption.
+    + repeat red. intros ma H.
+      eq_hyp_specialize.
+      exists x2. split. assumption.
+      etransitivity; eassumption.
+  - intros A B C R1 R2 a b c EQ EQ'.
+    unfold eqmR, EqmR_PropT, eqm_PropT in *.
+    destruct EQ as (HL & HR).
+    destruct EQ' as (KL & KR).
+    repeat red in HL, HR, KL, KR.
+    split.
+    + repeat red. intros ma H.
+      eq_hyp_specialize.
+      exists x0. split. assumption.
+      eapply eqmR_rel_trans; eassumption.
+    + repeat red. intros ma H.
+      eq_hyp_specialize.
+      exists x1. split. assumption.
+      apply eqmR_lift_transpose. (* IY: Why is the typeclass instance not immediately found? *)
+      assumption.
+      red.
+      eapply eqmR_rel_trans. assumption.
+      apply eqmR_lift_transpose. assumption. apply H5.
+      apply eqmR_lift_transpose. assumption. apply H1.
+  - intros A B R. unfold eq_rel. split.
+    + repeat red. intros a b EQ. split.
+      * repeat red in EQ. repeat red.
+        destruct EQ. repeat red in H, H0.
+        intros ma Hb.
+        eq_hyp_specialize.
+        exists x. split. assumption.
+        apply H2.
+      * repeat red in EQ. repeat red.
+        destruct EQ. repeat red in H, H0.
+        intros ma Hb.
+        eq_hyp_specialize.
+        exists x. split; assumption.
+    + repeat red. intros a b EQ. split.
+      * repeat red. intros ma H. repeat red in EQ.
+        destruct EQ. repeat red in H0, H1.
+        eq_hyp_specialize.
+        exists x. split; assumption.
+      * repeat red. intros ma H. repeat red in EQ.
+        destruct EQ. repeat red in H0, H1.
+        eq_hyp_specialize.
+        exists x. split; assumption.
+  - intros A B. split; intros.
+    + repeat red. split; repeat red.
+      * intros ma H'.
+        (* IY: This chain of destructs is super cumbersome. Also defeats the
+         purpose of notations.. *)
+        repeat red in H0, H1, H2.
+        destruct H0, H1, H2.
+        repeat red in H0, H1, H2, H3, H4, H5.
+        eq_hyp_specialize.
+        exists x6. split. assumption. rewrite <- H.
+        rewrite <- H11. (* IY : ugly rewriting.. Can we get around this?*)
+        eassert († eq ≡ eq). { (* IY : Put this in HeterogeneousRelations *)
+          repeat red. split; repeat red; intros; eauto.
+        }
+        rewrite H4 in H7.
+        rewrite H7. apply H8.
+      * intros ma H'.
+        repeat red in H0, H1, H2.
+        destruct H0, H1, H2.
+        repeat red in H0, H1, H2, H3, H4, H5.
+        eq_hyp_specialize.
+        exists x6. split. assumption. (* IY : Rewriting under transpose? *)
+        apply eqmR_lift_transpose. assumption.
+        unfold transpose. rewrite <- H.
+        eassert († eq ≡ eq). {
+          repeat red. split; repeat red; intros; eauto.
+        }
+        rewrite <- H11.
+        rewrite H3 in H7. rewrite <- H7 in H8.
+        pose proof eqmR_lift_transpose. (* Janky transpose rewriting, again. LTac?*)
+        symmetry in H13. apply H13 in H8.
+        unfold transpose in H8.
+        assumption. assumption.
+    + repeat red. split; repeat red.
+      * intros ma H'.
+        (* IY: This chain of destructs is super cumbersome. Also defeats the
+         purpose of notations.. *)
+        repeat red in H0, H1, H2.
+        destruct H0, H1, H2.
+        repeat red in H0, H1, H2, H3, H4, H5.
+        eq_hyp_specialize.
+        eassert († eq ≡ eq). { (* IY : Put this in HeterogeneousRelations *)
+          repeat red. split; repeat red; intros; eauto.
+        }
+        exists x6. split. assumption. rewrite H1 in H11.
+        rewrite <- H11.
+        rewrite <- H7 in H8.
+        rewrite H. assumption.
+      * intros ma H'.
+        repeat red in H0, H1, H2.
+        destruct H0, H1, H2.
+        repeat red in H0, H1, H2, H3, H4, H5.
+        eq_hyp_specialize.
+        exists x6. split. assumption. (* IY : Rewriting under transpose? *)
+        apply eqmR_lift_transpose. assumption.
+        unfold transpose. rewrite H7.
+        rewrite H.
+        eassert († eq ≡ eq). {
+          repeat red. split; repeat red; intros; eauto.
+        }
+        rewrite H0 in H11.
+        pose proof eqmR_lift_transpose.
+        symmetry in H13. apply H13 in H8.
+        unfold transpose in H8.
+        rewrite H11 in H8. assumption. assumption.
+  - intros A B. split.
+    destruct H0. repeat red in H0, H1.
+    + repeat red. intros.
+      eq_hyp_specialize.
+      exists x1. split. assumption.
+      eapply eqmR_Proper_mono; eassumption.
+    + repeat red. intros. destruct H0.
+      repeat red in H0, H2.
+      eq_hyp_specialize.
+      exists x1. split. assumption.
+      apply eqmR_lift_transpose. assumption. unfold transpose.
+      eapply eqmR_Proper_mono. assumption. eassumption.
+      pose proof eqmR_lift_transpose. symmetry in H0.
+      apply H0. assumption. assumption.
+  Qed.
 
   Lemma ret_ok : forall (A1 A2 : Type) (RA : A1 -> A2 -> Prop) (a1 : A1) (a2 : A2),
       RA a1 a2 <-> (eqmR RA (ret a1) (ret a2)).
