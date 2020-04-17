@@ -108,21 +108,20 @@ Section EqmRMonad.
        Commenting it out for now, to remove later.
      *)
 
-    (*
-    eqmR_bind : forall {A1 A2 B1 B2}
-                  (RA : A1 -> A2 -> Prop)
-                  (RB : B1 -> B2 -> Prop)
-                  ma1 ma2 (kb1 : A1 -> m B1) (kb2 : A2 -> m B2),
-        eqmR RA ma1 ma2 ->
-        (forall a1 a2, RA a1 a2 -> eqmR RB (kb1 a1) (kb2 a2)) ->
-        eqmR RB (bind ma1 kb1) (bind ma2 kb2);
-     *)
+      eqmR_bind_ProperH : forall {A1 A2 B1 B2}
+                            (RA : A1 -> A2 -> Prop)
+                            (RB : B1 -> B2 -> Prop)
+                            ma1 ma2
+                            (kb1 : A1 -> m B1) (kb2 : A2 -> m B2),
+          eqmR RA ma1 ma2 ->
+          (forall a1 a2, RA a1 a2 -> eqmR RB (kb1 a1) (kb2 a2)) ->
+          eqmR RB (bind ma1 kb1) (bind ma2 kb2);
 
     (* Question: The following helps _proving_ [eqmR _ (bind _ _)].
        Should we require something to invert such an hypothesis?
-     *)
-    eqmR_Proper_bind :> forall {A B} (RA : A -> A -> Prop) (RB : B -> B -> Prop),
+    eqmR_Proper_bind :> forall {A1 A2 B1 B2} (RA : A1 -> A2 -> Prop) (RB : B1 -> B2 -> Prop),
         (Proper (eqmR RA ==> (RA ==> (eqmR RB)) ==> eqmR RB) bind);
+     *)
 
     eqmR_bind_ret_l : forall {A B}
                         (RA : A -> A -> Prop)
@@ -152,7 +151,18 @@ Section EqmRMonad.
         eqmR RC (bind (bind ma f) g)  (bind ma (fun y => bind (f y) g))
     }.
 
+
+  Global Instance eqmR_Proper_bind `{EqmRMonad}:
+    forall {A B} (RA : A -> A -> Prop) (RB : B -> B -> Prop),
+      (Proper (eqmR RA ==> (RA ==> (eqmR RB)) ==> eqmR RB) bind).
+  Proof.
+    intros A B RA RB.
+    repeat intro.
+    eapply eqmR_bind_ProperH. eassumption. apply H1.
+  Qed.
+
 End EqmRMonad.
+
 
 Section Laws.
 
