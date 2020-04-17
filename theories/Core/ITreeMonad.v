@@ -38,7 +38,43 @@ Proof.
     intros R1 R2 ma mb mc HR1 HR2.
     setoid_rewrite <- compose_rcompose_equiv.
     eapply eqit_trans; eassumption.
-  - admit (* transpose *).
+  - intros A B. unfold eq_rel. split.
+    + pcofix CIH. intros x y H.
+      pstep. red. punfold H. red in H.
+      remember (observe x) as x'.
+      remember (observe y) as y'.
+      generalize dependent x. generalize dependent y.
+      induction H; intros.
+      * constructor. red in REL. assumption.
+      * constructor. destruct REL. right.
+        eapply CIH. apply H.
+        destruct H.
+      * constructor. red in REL. intros. unfold id.
+        specialize (REL v).
+        destruct REL. right. eapply CIH. apply H.
+        destruct H.
+      * constructor. assumption. eapply IHeqitF. eassumption.
+        reflexivity.
+      * constructor. assumption. eapply IHeqitF. reflexivity.
+        eassumption.
+    + pcofix CIH. intros x y H.
+      pstep. red. punfold H. red in H.
+      remember (observe x) as x'.
+      remember (observe y) as y'.
+      generalize dependent x. generalize dependent y.
+      induction H; intros.
+      * constructor. red. assumption.
+      * constructor. destruct REL. right.
+        eapply CIH. apply H.
+        destruct H.
+      * constructor. red in REL. intros. unfold id.
+        specialize (REL v).
+        destruct REL. right. eapply CIH. apply H.
+        destruct H.
+      * constructor. assumption. eapply IHeqitF.
+        reflexivity. eassumption.
+      * constructor. assumption. eapply IHeqitF.
+        eassumption. reflexivity.
   - intros A B. constructor.
     + intro H2. rewrite <- H.
       Typeclasses eauto := 7.
@@ -50,9 +86,21 @@ Proof.
       rewrite <- H0 in H2.
       rewrite H1. apply H2.
   - intros A B. do 3 red.
-    intros r1 r2 Hin x y EQ.
-    admit.
-Admitted.
+    intros x y. pcofix CIH. pstep. red.
+    intros sub a b H.
+    do 2 red in H. punfold H. red in H.
+    remember (observe a) as a'.
+    remember (observe b) as b'.
+    generalize dependent a. generalize dependent b.
+    induction H; intros; eauto.
+    + constructor. red in REL. destruct REL.
+      right. apply CIH. assumption. assumption.
+      destruct H.
+    + constructor. red in REL. intros.
+      specialize (REL v). unfold id.
+      destruct REL. right. apply CIH. assumption. assumption.
+      destruct H.
+Qed.
 
 Instance EqmRMonad_ITree {E} : EqmRMonad (itree E).
 Proof.

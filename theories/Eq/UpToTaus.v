@@ -381,7 +381,7 @@ Proof.
         eapply CLOV.
         { intros. destruct PR, EQR.
           econstructor; [|eauto|]; eauto using eqit_trans; auto_ctrans.
-          admit. 
+          admit.
         }
         econstructor; eauto.
         eapply MON; eauto. intros.

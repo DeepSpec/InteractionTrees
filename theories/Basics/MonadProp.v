@@ -210,24 +210,24 @@ Section Transformer.
       apply eqmR_lift_transpose. assumption. apply H1.
   - intros A B R. unfold eq_rel. split.
     + repeat red. intros a b EQ. split.
-      * repeat red in EQ. repeat red.
-        destruct EQ. repeat red in H, H0.
+      * destruct EQ.
+        repeat red in H, H0.
         intros ma Hb.
         eq_hyp_specialize.
         exists x. split. assumption.
         apply H2.
-      * repeat red in EQ. repeat red.
+      * repeat red.
         destruct EQ. repeat red in H, H0.
         intros ma Hb.
         eq_hyp_specialize.
         exists x. split; assumption.
     + repeat red. intros a b EQ. split.
-      * repeat red. intros ma H. repeat red in EQ.
+      * repeat red. intros ma H.
         destruct EQ. repeat red in H0, H1.
         eq_hyp_specialize.
         exists x. split; assumption.
       * repeat red. intros ma H. repeat red in EQ.
-        destruct EQ. repeat red in H0, H1.
+        repeat red in H0, H1.
         eq_hyp_specialize.
         exists x. split; assumption.
   - intros A B. split; intros.
