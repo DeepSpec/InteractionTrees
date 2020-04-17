@@ -95,14 +95,11 @@ Section Monad_Either.
   Instance MonadLaws_eitherT : EqmRMonad eitherT.
   Proof with unfold_either.
     constructor...
-    - cbn; split; intros H.
-      + rewrite <- eqmR_ret; auto.
-      + rewrite <- eqmR_ret in H; auto; invn sum_rel; auto.
-    - cbn.
-      intros; intros ? ? EQ1 ? ? EQ2.
-      (* TODO: Why does this rewrite fail? *)
-      Fail setoid_rewrite EQ1.
-      eapply eqmR_Proper_bind; [auto | apply EQ1 |].
+    - cbn; intros!.
+      apply eqmR_ret; auto.
+    - (* TODO: Define a better intro tactic in the style of Chargueraud or Boutiller *)
+      cbn; do 10 intro; intros EQ1 EQ2.
+      eapply eqmR_bind_ProperH; [auto | apply EQ1 |].
       intros [] [] EQ3; invn sum_rel; auto.
       apply eqmR_ret; auto.
     - intros!; cbn.
@@ -121,42 +118,32 @@ Section Monad_Either.
       (* rewrite <- EQ. *)
       (* Instead we go the hard way, but I'm not sure if it's necessary or something missing in our setup *)
       setoid_rewrite <- eq_id_l.
-      apply eqmR_rel_trans with (mb := y <- ma;; ret y); [auto | | auto].
-      apply eqmR_Proper_bind with (RA := eq ⊕ RA); auto.
-      (* apply eqmR_Proper_bind with (RA := eq); auto. *)
-      intros [] [] EQ'; invn sum_rel; auto.
-      apply eqmR_ret; auto.
-      apply eqmR_ret; auto.
-      (* ??? *)
-      admit.
-    - intros.
-      cbn.
-      rewrite eqmR_bind_bind with (RA := eq ⊕ RA) (RB := eq ⊕ RB); auto.
-      + apply eqmR_Proper_bind with (RA := eq ⊕ RA); auto.
-        intros [] [] EQ; invn sum_rel.
-        * (* First computation fails *)
-          rewrite bind_ret_l.
-          (* I think here (and in the case before) we need something about respecting [sum_rel].
-             So that in this case it is equivalent to 
-             [eqmR eq (ret e0) (ret e0)] which is true due to the [Reflexivity] of [eq]
-           *)
-          admit.
-        * apply eqmR_Proper_bind with (RA := eq ⊕ RB); auto.
-          intros [] [] EQ; invn sum_rel.
-          ** (* Second computation fails *)
-             (* Same as above *)
-            admit.
-          ** (* Success *)
-            auto.
-      + intros ? ? EQ; invn sum_rel; auto.
-        (* Once again *)
-        admit.
-      + intros ? ? EQ; invn sum_rel; auto.
-        (* And again *)
-        admit.
-      (* This confuses me, why did I end up with [eq] instead of [eq ⊕ RB] here?? *)
-        admit.
- Admitted.
+      apply eqmR_rel_trans with (mb := y <- ma;; ret y); [auto | | apply EQ].
+      (* apply eqmR_Proper_bind with (RA := eq ⊕ RA); auto.
+         intros [] [] EQ'; invn sum_rel.
+         apply eqmR_ret; auto.
+         apply eqmR_ret; auto.
+       *)
+      apply eqmR_Proper_bind with (RA := eq); auto.
+      2:intros [] [] EQ'; inv EQ'; apply eqmR_ret; auto.
+      reflexivity.
+    - intros; cbn.
+      setoid_rewrite <- eq_id_r.
+      eapply eqmR_rel_trans; [auto | |].
+      + apply eqmR_bind_bind with (RA := eq ⊕ RA) (RB := eq ⊕ RB); auto.
+        * intros [] [] EQ; invn sum_rel; auto.
+          apply eqmR_ret; auto.
+        * intros [] [] EQ; invn sum_rel; auto.
+          apply eqmR_ret; auto.
+      + apply eqmR_Proper_bind with (RA := eq); auto.
+        reflexivity.
+        intros ? ? ->; destructn sum.
+        * rewrite bind_ret_l.
+          reflexivity.
+        * apply eqmR_Proper_bind with (RA := eq); auto.
+          reflexivity.
+          intros ? ? ->; destructn sum; reflexivity.
+  Qed.
 
 End Monad_Either.
 

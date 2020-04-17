@@ -72,8 +72,8 @@ Import RelNotations.
     split.
     - unfold subrelationH. unfold transpose. tauto.
     - unfold subrelationH, transpose. tauto.
-  Qed. 
-  
+  Qed.
+
   Lemma transpose_inclusion : forall {A B} (R1 : relationH A B) (R2 : relationH A B),
       R1 ⊑ R2 <-> († R1 ⊑ † R2).
   Proof.
@@ -92,7 +92,7 @@ Import RelNotations.
     - reflexivity.
     - red in H. auto.
   Qed.
-  
+
   Lemma eq_rel_compose_id_l : forall {A B} (R : relationH A B),
       eq_rel R (eq ∘ R).
   Proof.
@@ -118,8 +118,8 @@ Import RelNotations.
     - apply transpose_inclusion in Hab. assumption.
     - apply transpose_inclusion in Hba. assumption.
   Qed.
-    
-  
+
+
 Section Transformer.
 
   Variable (m : Type -> Type).
@@ -234,7 +234,7 @@ Section Transformer.
 
 
 
-  
+
   Import RelNotations.
   Global Instance EqmR_OK_PropT : @EqmR_OK PropT EqmR_PropT.
   split.
@@ -255,7 +255,7 @@ Section Transformer.
       apply Hba in Hmb. destruct Hmb as (mc & Hmc & EQbc).
       exists mc. split. assumption. eapply transitivity; eassumption.
   - intros A B C R1 R2 PA PB PC (Sab & Sba) (Sbc & Scb).
-    unfold eqmR, EqmR_PropT, eqm_PropT in *. 
+    unfold eqmR, EqmR_PropT, eqm_PropT in *.
     split.
     + intros ma Hma.
       apply Sab in Hma. destruct Hma as (mb & Hmb  & EQab).
@@ -321,7 +321,7 @@ Section Transformer.
         apply Hb2 in Hmb2. destruct Hmb2 as (mb1 & Hmb1 & EQb1b).
         exists mb1. split. assumption. rewrite EQR.
         rewrite (@eq_rel_compose_id_r _ _ R2).
-        eapply eqmR_rel_trans. assumption. apply EQab. rewrite <- transpose_eq in EQb1b. 
+        eapply eqmR_rel_trans. assumption. apply EQab. rewrite <- transpose_eq in EQb1b.
         rewrite (@eq_rel_compose_id_l _ _ R2).
         eapply eqmR_rel_trans; eauto.
       * intros mb1 Hmb1.
@@ -350,7 +350,7 @@ Section Transformer.
 
   Qed.
 
-  
+
 
   Lemma ret_ok : forall (A1 A2 : Type) (RA : A1 -> A2 -> Prop) (a1 : A1) (a2 : A2),
       RA a1 a2 -> (eqmR RA (ret a1) (ret a2)).
@@ -363,9 +363,9 @@ Section Transformer.
         rewrite Hma. apply eqmR_ret; assumption.
       + intros ma Hma. exists (ret a1). split. repeat red. reflexivity.
         repeat red in Hma.
-        rewrite Hma. apply eqmR_ret; assumption. 
+        rewrite Hma. apply eqmR_ret; assumption.
   Qed.
-        
+
   Lemma propT_eqmR_bind_bind : forall {A B C}
                        (RA : A -> A -> Prop)
                        (RB : B -> B -> Prop)
@@ -391,21 +391,13 @@ Section Transformer.
       repeat split.
       + rewrite EQma. apply bind_bind.
       + assumption.
-      + cbn. 
+      + cbn.
         unfold liftM.
         unfold agrees.
         eapply eqmR_bind_ProperH. assumption.
   Abort.
-  
 
-      match goal with
-        | |- eqmR ?P ?C1 ?C2 => generalize (eqmR_Proper_bind m eq P)
-        end.
-        
-        
 
-  Abort.
-  
   Instance EqmRMonad_PropT : @EqmRMonad PropT _ _.
   Proof.
     pose proof EqmR_OK_PropT.
@@ -416,7 +408,7 @@ Section Transformer.
 
 End Transformer.
 
-(* 
+(*
   Possible way to define mayRet based on impurity?
 *)
 
@@ -430,18 +422,18 @@ Context {E : EqmR m}.
   | mayRet_bind : forall A B (mb : m B) (k : B -> m A) a b,
       mayRet B mb b -> mayRet A (k b) a -> impure mb ->
       mayRet A (bind mb k) a.
-  
+
   Definition atomic {A} (ma : m A) :=
     (forall B (mb : m B) (k : B -> m A),
         eqm ma (bind mb k) -> impure ma -> (forall (v:B), mayRet B mb v -> impure (k v)))
     /\ impure ma.
-                                                 
-  
+
+
 
 (*  ------------------------------------------------------------------------- *)
 (*
    Misc. notes from discussion:
-             
+
   (* Class Triggerable (M : (Type -> Type) -> Type -> type := *)
   (*                            { trigger : forall E, E ~> M E }. *)
 
@@ -450,13 +442,9 @@ Context {E : EqmR m}.
         (exists B, (p : m B) (k : B -> m A), impure p /\ eqm ma (bind p k))
       \/ exists (a:A), eqm ma (ret a).
 
-                           
+
 
         Diverges m := eqmR (fun a b => False) m m
         Halts m := exists k1 k2 : A -> m bool, ~ eqm (bind m k1) (bind m k2)
         Fails m := forall k, eqm m (bind m k)
-*)        
-        { admit. }
-
-  
-  
+*)

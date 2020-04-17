@@ -142,13 +142,13 @@ Section EqmRMonad.
                        (RA : A -> A -> Prop)
                        (RB : B -> B -> Prop)
                        (RC : C -> C -> Prop)
+                       (ma : m A)
+                       (ma_OK : eqmR RA ma ma)
                        (f : A -> m B)
                        (f_OK : Proper (RA ==> (eqmR RB)) f)
                        (g : B -> m C)
-                       (g_OK : Proper (RB ==> (eqmR RC)) g)
-                       (ma : m A)
-                       (ma_OK : eqmR RA ma ma),
-        eqmR RC (bind (bind ma f) g)  (bind ma (fun y => bind (f y) g))
+                       (g_OK : Proper (RB ==> (eqmR RC)) g),
+       eqmR RC (bind (bind ma f) g)  (bind ma (fun y => bind (f y) g))
     }.
 
 
@@ -200,9 +200,9 @@ Section MONAD.
     - unfold eqm. apply eqmR_bind_ret_r with (RA := eq); auto.
       reflexivity.
     - unfold eqm. apply eqmR_bind_bind with (RA := eq)(RB := eq); auto.
-      repeat intro; subst; reflexivity.
-      repeat intro; subst; reflexivity.
       reflexivity.
+      repeat intro; subst; reflexivity.
+      repeat intro; subst; reflexivity.
     - repeat intro.
       rewrite H.
       (* Interesting (or annoying I guess):

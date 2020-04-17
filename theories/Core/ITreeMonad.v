@@ -106,8 +106,7 @@ Instance EqmRMonad_ITree {E} : EqmRMonad (itree E).
 Proof.
   split.
   - intros. apply eqit_Ret. assumption.
-  - intros. do 3 red.
-    intros x y EQ k k' HP.
+  - intros.
     eapply eqit_bind'; eassumption.
   - intros.
     unfold bind, ret, Monad_itree. rewrite bind_ret_l.
