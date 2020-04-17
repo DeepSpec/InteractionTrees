@@ -129,7 +129,33 @@ Section Monad_Either.
       apply eqmR_ret; auto.
       (* ??? *)
       admit.
-    - admit.
+    - intros.
+      cbn.
+      rewrite eqmR_bind_bind with (RA := eq ⊕ RA) (RB := eq ⊕ RB); auto.
+      + apply eqmR_Proper_bind with (RA := eq ⊕ RA); auto.
+        intros [] [] EQ; invn sum_rel.
+        * (* First computation fails *)
+          rewrite bind_ret_l.
+          (* I think here (and in the case before) we need something about respecting [sum_rel].
+             So that in this case it is equivalent to 
+             [eqmR eq (ret e0) (ret e0)] which is true due to the [Reflexivity] of [eq]
+           *)
+          admit.
+        * apply eqmR_Proper_bind with (RA := eq ⊕ RB); auto.
+          intros [] [] EQ; invn sum_rel.
+          ** (* Second computation fails *)
+             (* Same as above *)
+            admit.
+          ** (* Success *)
+            auto.
+      + intros ? ? EQ; invn sum_rel; auto.
+        (* Once again *)
+        admit.
+      + intros ? ? EQ; invn sum_rel; auto.
+        (* And again *)
+        admit.
+      (* This confuses me, why did I end up with [eq] instead of [eq ⊕ RB] here?? *)
+        admit.
  Admitted.
 
 End Monad_Either.
