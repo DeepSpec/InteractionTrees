@@ -48,10 +48,11 @@ Section Monad_Either.
                     end)
       |}.
 
+  (* NOTE: For now we work with [eq] over the exception type. We might be able to generalize *)
   Global Instance Eqm_eitherT : EqmR eitherT :=
     {| eqmR := fun _ _ R => eqmR (sum_rel eq R) |}.
 
-  Ltac unfold_either := unfold eqmR, Eqm_eitherT.
+  Ltac unfold_either := unfold eqmR, Eqm_eitherT, eitherT in *.
 
   Lemma sum_eq_eq {A B : Type}
     : @eq A ⊕ @eq B ≡ eq.
@@ -81,42 +82,81 @@ Section Monad_Either.
       + rewrite <- EQ1.
         rewrite sum_eq_eq in EQ2.
         rewrite sum_eq_eq in EQ3.
-        (* TODO: These rewrites in the goal loops, not sure why yet. A similar one goes fine in MonadState *)
-        Fail Timeout 1 rewrite <- EQ2.
-        Fail Timeout 1 rewrite <- EQ3.
-        (* While the reverse direction in EQR goes through *)
-        rewrite EQ2, EQ3 in EQR; auto.
+        rewrite <- EQ2, <- EQ3; auto.
       + rewrite sum_eq_eq in EQ2.
         rewrite sum_eq_eq in EQ3.
         rewrite EQ1, EQ2, EQ3; auto.
     - intros!.
-      (* TODO: [inclusion] should be Class (and renamed [subrelation]).
-         We should have instances for [R ⊑ R] as well as sum_rel and prod_rel
-       *)
-      admit.
-  Admitted.
-
-  Instance MonadLaws_eitherT : @MonadLaws (eitherT exn M) _ _.
-  Proof.
-  constructor.
-  - cbn. intros a b f x.
-    repeat red.
-    rewrite bind_ret_l; cbn.
-    reflexivity.
-  - cbn; intros a x. unfold eitherT in x.
-    unfold eqm, EqM_eitherT.
-    match goal with
-      |- _ ≈ ?h => rewrite <- (bind_ret_r _ h) at 2
-    end.
-    apply Proper_bind; [reflexivity | intros [b | m]; reflexivity].
-  - cbn. intros a b c x f g; cbn.
-    rewrite bind_bind. do 2 red.
-    apply Proper_bind; [reflexivity | intros [? | m]].
-    + rewrite bind_ret_l; reflexivity.
-    + reflexivity.
-  - cbn; intros a b x y EQ x' y' H'; cbn in *.
-    do 2 red; apply Proper_bind; [auto | intros [? | ?]]; [reflexivity | apply H'].
+      (* TODO: Be able to rewrite ⊑ ? *)
+      eapply eqmR_Proper_mono; eauto.
+      typeclasses eauto.
   Qed.
+
+  Instance MonadLaws_eitherT : EqmRMonad eitherT.
+  Proof with unfold_either.
+    constructor...
+    - cbn; split; intros H.
+      + rewrite <- eqmR_ret; auto.
+      + rewrite <- eqmR_ret in H; auto; invn sum_rel; auto.
+    - cbn.
+      intros; intros ? ? EQ1 ? ? EQ2.
+      (* TODO: Why does this rewrite fail? *)
+      Fail setoid_rewrite EQ1.
+      eapply eqmR_Proper_bind; [auto | apply EQ1 |].
+      intros [] [] EQ3; invn sum_rel; auto.
+      apply eqmR_ret; auto.
+    - intros!; cbn.
+      apply eqmR_bind_ret_l with (RA := @eq exn ⊕ RA); auto.
+      intros!; invn sum_rel; eauto.
+      apply eqmR_ret; auto.
+    - intros!; cbn.
+      match goal with
+        |- eqmR ?RA _ ?ma => generalize (eqmR_bind_ret_r m RA ma ma_OK)
+      end.
+      intros EQ.
+      (* TODO: Why can't I rewrite EQ here?? *)
+      (* Even simpler case: *)
+      (* assert (eqmR (eq ⊕ RA) ma ma). *)
+      (* This loops *)
+      (* rewrite <- EQ. *)
+      (* Instead we go the hard way, but I'm not sure if it's necessary or something missing in our setup *)
+      setoid_rewrite <- eq_id_l.
+      apply eqmR_rel_trans with (mb := y <- ma;; ret y); [auto | | auto].
+      apply eqmR_Proper_bind with (RA := eq ⊕ RA); auto.
+      (* apply eqmR_Proper_bind with (RA := eq); auto. *)
+      intros [] [] EQ'; invn sum_rel; auto.
+      apply eqmR_ret; auto.
+      apply eqmR_ret; auto.
+      (* ??? *)
+      admit.
+    - intros.
+      cbn.
+      rewrite eqmR_bind_bind with (RA := eq ⊕ RA) (RB := eq ⊕ RB); auto.
+      + apply eqmR_Proper_bind with (RA := eq ⊕ RA); auto.
+        intros [] [] EQ; invn sum_rel.
+        * (* First computation fails *)
+          rewrite bind_ret_l.
+          (* I think here (and in the case before) we need something about respecting [sum_rel].
+             So that in this case it is equivalent to 
+             [eqmR eq (ret e0) (ret e0)] which is true due to the [Reflexivity] of [eq]
+           *)
+          admit.
+        * apply eqmR_Proper_bind with (RA := eq ⊕ RB); auto.
+          intros [] [] EQ; invn sum_rel.
+          ** (* Second computation fails *)
+             (* Same as above *)
+            admit.
+          ** (* Success *)
+            auto.
+      + intros ? ? EQ; invn sum_rel; auto.
+        (* Once again *)
+        admit.
+      + intros ? ? EQ; invn sum_rel; auto.
+        (* And again *)
+        admit.
+      (* This confuses me, why did I end up with [eq] instead of [eq ⊕ RB] here?? *)
+        admit.
+ Admitted.
 
 End Monad_Either.
 

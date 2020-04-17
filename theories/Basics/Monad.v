@@ -68,7 +68,7 @@ Section EqmRRel.
 
       (* [eqmR] is monotone as a morphism on relations *)
       eqmR_Proper_mono :> forall {A B},
-          Proper (@inclusion _ _ ==> @inclusion _ _) (@eqmR m _ A B)
+          Proper (@subrelation _ _ ==> @subrelation _ _) (@eqmR m _ A B)
     }.
 
 End EqmRRel.
@@ -123,7 +123,6 @@ Section EqmRMonad.
                         (a : A)
                         (a_OK : RA a a),
         eqmR RB (bind (ret a) f) (f a);
-
 
     eqmR_bind_ret_r : forall {A}
                         (RA : A -> A -> Prop)
