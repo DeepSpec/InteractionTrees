@@ -37,7 +37,7 @@ Definition agrees {A : Type} :=
 Infix "∈" := (eqmR agrees) (at level 70).
 
 Import RelNotations.
-Open Scope relation_scope.
+
 
 (* SAZ: TODO: The following lemmas belong in HeterogeneousRelations *)
 
@@ -52,7 +52,7 @@ Open Scope relation_scope.
     - intros x y HR. unfold transpose. symmetry. assumption.
   Qed.
 
-  Lemma transpose_compose : forall {A B C} (R1 : relation A B) (R2 : relation B C),
+  Lemma transpose_compose : forall {A B C} (R1 : relationH A B) (R2 : relationH B C),
       eq_rel † (R2 ∘ R1) ((† R1) ∘ († R2)).
   Proof.
     intros A B C R1 R2.
@@ -67,53 +67,53 @@ Open Scope relation_scope.
       exists b; auto.
   Qed.
 
-  Lemma transpose_transpose : forall {A B} (R : relation A B),
+  Lemma transpose_transpose : forall {A B} (R : relationH A B),
       eq_rel R († † R).
   Proof.
     intros A B R.
     split.
-    - unfold inclusion. intros. unfold transpose. assumption.
-    - unfold inclusion. intros. unfold transpose. assumption.
-  Qed.
+    - unfold subrelationH. unfold transpose. tauto.
+    - unfold subrelationH, transpose. tauto.
+  Qed. 
   
-  Lemma transpose_inclusion : forall {A B} (R1 : relation A B) (R2 : relation A B),
+  Lemma transpose_inclusion : forall {A B} (R1 : relationH A B) (R2 : relationH A B),
       R1 ⊑ R2 <-> († R1 ⊑ † R2).
   Proof.
     intros A B R1 R2.
     split.
     - intros HS.
-      unfold inclusion, transpose in *. eauto.
+      unfold subrelationH, transpose in *. eauto.
     - intros HS.
-      unfold inclusion, transpose in *. eauto.
+      unfold subrelationH, transpose in *. eauto.
   Qed.
 
   Lemma transpose_eq : forall A, eq_rel (@eq A) († eq).
   Proof.
     intros A.
-    repeat red. split; unfold inclusion; intros; subst.
+    repeat red. split; unfold subrelationH; intros; subst.
     - reflexivity.
     - red in H. auto.
   Qed.
   
-  Lemma eq_rel_compose_id_l : forall {A B} (R : relation A B),
+  Lemma eq_rel_compose_id_l : forall {A B} (R : relationH A B),
       eq_rel R (eq ∘ R).
   Proof.
     intros A B R.
-    repeat red. unfold inclusion. split; intros.
+    repeat red. unfold subrelationH. split; intros.
     repeat red. exists y. tauto. red in H. destruct H as (b & Hb & eq).
     subst; auto.
   Qed.
 
-  Lemma eq_rel_compose_id_r : forall {A B} (R : relation A B),
+  Lemma eq_rel_compose_id_r : forall {A B} (R : relationH A B),
       eq_rel R (R ∘ eq).
   Proof.
     intros A B R.
-    repeat red. unfold inclusion. split; intros.
+    repeat red. unfold subrelationH. split; intros.
     repeat red. exists x. tauto. red in H. destruct H as (b & Hb & eq).
     subst; auto.
   Qed.
 
-  Global Instance transpose_Proper :forall A B, Proper (@eq_rel A B ==> eq_rel) transpose.
+  Global Instance transpose_Proper :forall A B, Proper (@eq_rel A B ==> eq_rel) (@transpose A B).
   Proof.
     intros A B R1 R2 (Hab & Hba).
     split.
@@ -397,34 +397,10 @@ Section Transformer.
         unfold liftM.
 
         unfold agrees.
-        assert (
-            forall A1 A2 B1 B2 (RA : A1 -> A2 -> Prop) (RB : B1 -> B2 -> Prop)
-              (m1 : m A1) (m2 : m A2) (EQA: eqmR RA m1 m2)
-              (k1 : A1 -> m B1) (k2 : A2 -> m B2)
-              (HK : forall (a1:A1) (a2:A2), RA a1 a2 -> eqmR RB (k1 a1) (k2 a2)),
-              eqmR RB (bind m1 k1) (bind m2 k2) ).
-        { admit. }
+        eapply eqmR_Proper_bind.
+        
 
-        eapply H with (RA := RA).
-        2: { intros a1 a2 HR. subst.
-             apply eqmR_ret. assumption.
-             unfold bind_f'.
-             exists (Kab a2).
-             exists Kbc.
-             repeat split.
-             
-             
-             
-             
-        repeat red in PA_OK. 
-        destruct PA_OK as (HX & HY).
-        apply HX in Hma.
-        
-        intros.
-        subst. eapply eqmR_ret. assumption.
-        unfold bind_f'.
-        
-    
+  Abort.
   
   Instance EqmRMonad_PropT : @EqmRMonad PropT _ _.
   Proof.
