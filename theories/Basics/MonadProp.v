@@ -34,7 +34,7 @@ Definition agrees {A : Type} :=
 Infix "∈" := (eqmR agrees) (at level 70).
 
 Import RelNotations.
-Open Scope relation_scope.
+Open Scope relationH_scope.
 
 Section Transformer.
 

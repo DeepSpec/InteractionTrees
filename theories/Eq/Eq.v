@@ -74,7 +74,7 @@ Section eqit.
       Then the desired equivalence relation is obtained by setting
       [RR := eq] (with [R1 = R2]).
    *)
-  Context {E : Type -> Type} {R1 R2 : Type} (RR : relation R1 R2).
+  Context {E : Type -> Type} {R1 R2 : Type} (RR : relationH R1 R2).
 
   (** We also need to do some gymnastics to work around the
       two-layered definition of [itree]. We first define a
@@ -86,7 +86,7 @@ Section eqit.
       pattern-matching is not allowed on [itree].
    *)
 
-  Inductive eqitF (b1 b2: bool) vclo (sim : relation (itree E R1) (itree E R2)) :
+  Inductive eqitF (b1 b2: bool) vclo (sim : relationH (itree E R1) (itree E R2)) :
     itree' E R1 -> itree' E R2 -> Prop :=
   | EqRet r1 r2
        (REL: RR r1 r2):
@@ -172,7 +172,7 @@ Global Instance eqitF_Proper_R {E : Type -> Type} {R1 R2:Type} : Proper ( (@eq_r
                                                                        (@eqitF E R1 R2).
 Proof.
   repeat red.
-  intros. subst. split; unfold inclusion; intros.
+  intros. subst. split; unfold subrelationH; intros.
   - induction H0; try auto.
     econstructor. apply H. assumption.
     econstructor. apply H3. assumption.
@@ -197,13 +197,13 @@ Qed.
 
 Definition flip_clo {A B C} clo r := @flip A B C (clo (@flip B A C r)).
 
-Lemma eqitF_flip {E R1 R2} (RR : relation R1 R2) b1 b2 vclo r:
+Lemma eqitF_flip {E R1 R2} (RR : relationH R1 R2) b1 b2 vclo r:
   flip (eqitF (flip RR) b2 b1 (flip_clo vclo) (flip r)) <2= @eqitF E R1 R2 RR b1 b2 vclo r.
 Proof.
   intros. induction PR; eauto.
 Qed.
 
-Lemma eqit_flip {E R1 R2} (RR : relation R1 R2) b1 b2:
+Lemma eqit_flip {E R1 R2} (RR : relationH R1 R2) b1 b2:
   forall (u : itree E R1) (v : itree E R2),
     eqit (flip RR) b2 b1 v u -> eqit RR b1 b2 u v.
 Proof.
@@ -240,12 +240,12 @@ Infix "≳" := (euttge eq) (at level 70) : itree_scope.
 
 Section eqit_closure.
   
-Context {E : Type -> Type} {R1 R2 : Type} (RR : relation R1 R2).
+Context {E : Type -> Type} {R1 R2 : Type} (RR : relationH R1 R2).
 
 (** *** "Up-to" principles for coinduction. *)
 
-Inductive eqit_trans_clo b1 b2 b1' b2' (r : relation (itree E R1) (itree E R2))
-  : relation (itree E R1) (itree E R2) :=
+Inductive eqit_trans_clo b1 b2 b1' b2' (r : relationH (itree E R1) (itree E R2))
+  : relationH (itree E R1) (itree E R2) :=
 | eqit_trans_clo_intro t1 t2 t1' t2' RR1 RR2
       (EQVl: eqit RR1 b1 b1' t1 t1')
       (EQVr: eqit RR2 b2 b2' t2 t2')
@@ -806,11 +806,10 @@ Qed.
 
 (* TODO (LATER): I keep these [...bind_] lemmas around temporarily
    in case I run some issues with slow typeclass resolution. *)
-
 Lemma unfold_bind {E R S}
            (t : itree E R) (k : R -> itree E S) :
   ITree.bind t k ≅ ITree._bind k (fun t => ITree.bind t k) (observe t).
-Proof. rewrite unfold_bind_. reflexivity. Qed.
+Proof. try rewrite unfold_bind_. reflexivity. Qed.
 
 Lemma bind_ret_l {E R S} (r : R) (k : R -> itree E S) :
   ITree.bind (Ret r) k ≅ (k r).

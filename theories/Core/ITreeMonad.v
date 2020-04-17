@@ -13,17 +13,19 @@ From ITree Require Import
      Eq.UpToTaus.
 
 Import RelNotations.
+Open Scope relationH_scope.
+
 Instance EqmR_ITree {E} : EqmR (itree E) := {| eqmR := fun a b => eutt |}.
 
 From Coq Require Import
      Morphisms
      Program.Equality.
 
-Lemma compose_rcompose_equiv : forall {A B C} (R1 : relation A B) (R2 : relation B C),
+Lemma compose_rcompose_equiv : forall {A B C} (R1 : relationH A B) (R2 : relationH B C),
   (rcompose R1 R2) ≡ (compose R2 R1) .
 Proof.
   intros.
-  split; unfold compose, inclusion.
+  split; unfold compose, subrelationH.
   - intros. inversion H. exists r2; split; assumption.
   - intros. edestruct H as (? & ? & ?).
     econstructor; eassumption.

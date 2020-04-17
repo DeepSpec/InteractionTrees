@@ -11,87 +11,87 @@ From ITree Require Import
 
 (* Heterogeneous relation definition, modified from https://coq.inria.fr/stdlib/Coq.Relations.Relation_Definitions.html. *)
 
-Section Relation_Definition.
+Section RelationH_Definition.
 
-  Definition relation (A B : Type) := A -> B -> Prop.
+  Definition relationH (A B : Type) := A -> B -> Prop.
 
-  (* Heterogeneous notion of subrelation.  *)
-  Class subrelation {A B} (R S : relation A B) : Prop :=
-    is_subrelation: forall (x : A) (y : B), R x y -> S x y.
+  (* Heterogeneous notion of subrelationH.  *)
+  Class subrelationH {A B} (R S : relationH A B) : Prop :=
+    is_subrelationH: forall (x : A) (y : B), R x y -> S x y.
 
   Definition transpose {A B: Type} (R: A -> B -> Prop): B -> A -> Prop :=
     fun b a => R a b.
 
   Definition eq_rel {A B} (R : A -> B -> Prop) (S : A -> B -> Prop) :=
-    subrelation R S /\ subrelation S R.
+    subrelationH R S /\ subrelationH S R.
 
-  Definition compose {A B C} (S : relation B C) (R : relation A B) :=
+  Definition compose {A B C} (S : relationH B C) (R : relationH A B) :=
     fun (a : A) (c : C) => exists b, (R a b) /\ (S b c).
 
-End Relation_Definition.
+End RelationH_Definition.
 
 Arguments compose [A B C] S R.
-Arguments subrelation [A B] R S.
+Arguments subrelationH [A B] R S.
 Arguments transpose [A B] R.
 
 Module RelNotations.
 
-  Declare Scope relation_scope.
-  Open Scope relation_scope.
+  Declare Scope relationH_scope.
+  Open Scope relationH_scope.
 
   (* Notice the levels: (R ⊕ S ⊗ T ∘ U) is parsed as ((R ⊕ (S ⊗ T)) ∘ U) *)
-  Infix "∘" := compose (at level 40, left associativity) : relation_scope.
-  Infix "⊕" := sum_rel (at level 39, left associativity) : relation_scope.
-  Infix "⊗" := prod_rel (at level 38, left associativity) : relation_scope.
+  Infix "∘" := compose (at level 40, left associativity) : relationH_scope.
+  Infix "⊕" := sum_rel (at level 39, left associativity) : relationH_scope.
+  Infix "⊗" := prod_rel (at level 38, left associativity) : relationH_scope.
 
-  Infix "⊑" := subrelation (at level 90, no associativity) : relation_scope.
-  Notation "† R" := (transpose R) (at level 5) : relation_scope.
+  Infix "⊑" := subrelationH (at level 90, no associativity) : relationH_scope.
+  Notation "† R" := (transpose R) (at level 5) : relationH_scope.
 
-  Infix "≡" := eq_rel (at level 89, no associativity) : relation_scope.
+  Infix "≡" := eq_rel (at level 89, no associativity) : relationH_scope.
 
 End RelNotations.
 
 Import RelNotations.
-Local Open Scope relation_scope.
+Local Open Scope relationH_scope.
 
-Section SubRelation.
+Section SubRelationH.
 
-  Global Instance subrelation_refl {A B: Type} (R: relation A B): R ⊑ R.
+  Global Instance subrelationH_refl {A B: Type} (R: relationH A B): R ⊑ R.
   Proof.
     intros!; auto.
   Qed.
 
-  (* TODO: Instances for directed rewriting by [subrelation] *)
-  Global Instance subrelation_sum
-         {A B C D: Type} (R R': relation A B) (S S': relation C D)
+  (* TODO: Instances for directed rewriting by [subrelationH] *)
+  Global Instance subrelationH_sum
+         {A B C D: Type} (R R': relationH A B) (S S': relationH C D)
          `{R ⊑ R'} `{S ⊑ S'}
     : R ⊕ S ⊑ R' ⊕ S'.
   Proof.
-    intros!; invn sum_rel; constructor; appn subrelation; auto.
+    intros!; invn sum_rel; constructor; appn subrelationH; auto.
   Qed.
 
-  Global Instance subrelation_prod
-         {A B C D: Type} (R R': relation A B) (S S': relation C D)
+  Global Instance subrelationH_prod
+         {A B C D: Type} (R R': relationH A B) (S S': relationH C D)
          `{R ⊑ R'} `{S ⊑ S'}
     : R ⊗ S ⊑ R' ⊗ S'.
   Proof.
-    intros!; invn prod_rel; constructor; appn subrelation; auto.
+    intros!; invn prod_rel; constructor; appn subrelationH; auto.
   Qed.
 
-  Global Instance subrelation_transpose
-         {A B: Type} (R S: relation A B) `{R ⊑ S}
+  Global Instance subrelationH_transpose
+         {A B: Type} (R S: relationH A B) `{R ⊑ S}
     : †R ⊑ †S.
   Proof.
-    unfold transpose; intros!; appn subrelation; auto.
+    unfold transpose; intros!; appn subrelationH; auto.
   Qed.
 
-End SubRelation.
+End SubRelationH.
 
 (* SAZ: There is probably a nice way to typeclassify the eq_rel proofs *)
-Section Relation_Classes.
+Section RelationH_Classes.
 
   (* The names are picked to line up with the categorical names we will have later, where composition is the other way around *)
-  Lemma eq_id_r: forall {A B} (R : relation A B),
+  Lemma eq_id_r: forall {A B} (R : relationH A B),
     eq ∘ R ≡ R.
   Proof.
     split; intros!.
@@ -99,7 +99,7 @@ Section Relation_Classes.
     - exists y; auto.
   Qed.
 
-  Lemma eq_id_l: forall {A B} (R : relation A B),
+  Lemma eq_id_l: forall {A B} (R : relationH A B),
     R ∘ eq ≡ R.
   Proof.
     split; intros!.
@@ -107,27 +107,27 @@ Section Relation_Classes.
     - exists x; auto.
   Qed.
 
-  Lemma eq_rel_prod_eq : forall A B, eq_rel (prod_rel eq eq) (eq : relation (A * B) (A * B)).
+  Lemma eq_rel_prod_eq : forall A B, eq_rel (prod_rel eq eq) (eq : relationH (A * B) (A * B)).
   Proof.
     intros.
-    unfold eq_rel; split; unfold subrelation; intros.
+    unfold eq_rel; split; unfold subrelationH; intros.
     - inversion H; subst. reflexivity.
     - destruct x; destruct y; inversion H; subst; constructor; reflexivity.
   Qed.
 
   Global Instance eq_rel_Reflexive {A B} : Reflexive (@eq_rel A B).
   Proof.
-    red. unfold eq_rel, subrelation. tauto.
+    red. unfold eq_rel, subrelationH. tauto.
   Qed.
 
   Global Instance eq_rel_Symmetric {A B} : Symmetric (@eq_rel A B).
   Proof.
-    red. unfold eq_rel, subrelation. tauto.
+    red. unfold eq_rel, subrelationH. tauto.
   Qed.
 
   Global Instance eq_rel_Transitive {A B} : Transitive (@eq_rel A B).
   Proof.
-    red. unfold eq_rel, subrelation. intros.
+    red. unfold eq_rel, subrelationH. intros.
     destruct H, H0. split; eauto.
   Qed.
 
@@ -138,51 +138,51 @@ Section Relation_Classes.
 
   Global Instance eq_rel_Proper {A B} : Proper (eq_rel ==> eq_rel ==> iff) (@eq_rel A B).
   Proof.
-    repeat red; unfold eq_rel, subrelation; split; intros;
+    repeat red; unfold eq_rel, subrelationH; split; intros;
       destruct H, H0, H1; split; eauto.
   Qed.
 
-  Global Instance transpose_Reflexive {A} (R : relation A A) {RR: Reflexive R} : Reflexive † R.
+  Global Instance transpose_Reflexive {A} (R : relationH A A) {RR: Reflexive R} : Reflexive † R.
   Proof.
     red. intros x. unfold transpose. reflexivity.
   Qed.
 
-  Global Instance transpose_Symmetric {A} (R : relation A A) {RS: Symmetric R} : Symmetric † R.
+  Global Instance transpose_Symmetric {A} (R : relationH A A) {RS: Symmetric R} : Symmetric † R.
   Proof.
     red; intros x; unfold transpose; intros. symmetry. assumption.
   Qed.
 
-  Global Instance transpose_Transitive {A} (R : relation A A) {RT : Transitive R} : Transitive † R.
+  Global Instance transpose_Transitive {A} (R : relationH A A) {RT : Transitive R} : Transitive † R.
   Proof.
     red; intros x; unfold transpose; intros. etransitivity; eauto.
   Qed.
 
   (* This instance allows to rewrite [H: R ≡ S] in a goal of the form [R x y] *)
-  Global Instance eq_rel_rewrite {A B}: subrelation eq_rel (pointwise_relation A (pointwise_relation B iff)).
+  Global Instance eq_rel_rewrite {A B}: subrelationH eq_rel (pointwise_relation A (pointwise_relation B iff)).
   Proof.
-    intros!; destructn @eq_rel; split; intro; appn subrelation; auto.
+    intros!; destructn @eq_rel; split; intro; appn subrelationH; auto.
   Qed.
 
   Lemma transpose_compose {A B C : Type}
-        (R : relation A B) (S : relation B C)
+        (R : relationH A B) (S : relationH B C)
     : † (S ∘ R) ≡ (†R ∘ †S).
   Proof.
     split; unfold transpose; cbn; intros!;
     invn compose; invn and; eexists; eauto.
   Qed.
 
-  Lemma transpose_sym {A : Type} (R : relation A A) {RS: Symmetric R}
+  Lemma transpose_sym {A : Type} (R : relationH A A) {RS: Symmetric R}
     : † R ≡ R.
   Proof.
     unfold transpose; split; intros!; symmetry; auto.
   Qed.
 
-End Relation_Classes.
+End RelationH_Classes.
 
 Section SumRelInstances.
   Context {A B : Type}.
-  Context (R : relation A A).
-  Context (S : relation B B).
+  Context (R : relationH A A).
+  Context (S : relationH B B).
 
   Global Instance sum_rel_refl {RR: Reflexive R} {SR: Reflexive S} : Reflexive (R ⊕ S).
   Proof.
@@ -209,8 +209,8 @@ End SumRelInstances.
 Section SumRelProps.
 
   Lemma sum_compose {A B C D E F: Type}
-        (R: relation A B) (S: relation B C)
-        (T: relation D E) (U: relation E F)
+        (R: relationH A B) (S: relationH B C)
+        (T: relationH D E) (U: relationH E F)
   : (S ∘ R) ⊕ (U ∘ T) ≡ (S ⊕ U) ∘ (R ⊕ T).
   Proof.
     split; intros!.
@@ -222,7 +222,7 @@ Section SumRelProps.
   Qed.
 
   Lemma transpose_sum {A B C D: Type}
-        (R: relation A B) (S: relation C D)
+        (R: relationH A B) (S: relationH C D)
     : † (S ⊕ R) ≡ (†S ⊕ †R).
   Proof.
     split; unfold transpose; cbn; intros!; invn sum_rel; auto.
@@ -236,30 +236,30 @@ Section SumRelProps.
 
 End SumRelProps.
 
-Section Relation_Category.
+Section RelationH_Category.
 
-  Instance rel_Eq2C : Eq2 relation := fun _ _ f g => eq_rel f g.
+  Instance rel_Eq2C : Eq2 relationH := fun _ _ f g => eq_rel f g.
 
-  Instance rel_IdC : Id_ relation := fun _ => eq.
+  Instance rel_IdC : Id_ relationH := fun _ => eq.
 
-  Instance rel_Cat : Cat relation := fun _ _ _ f g => compose g f.
+  Instance rel_Cat : Cat relationH := fun _ _ _ f g => compose g f.
 
-  Global Instance rel_CatIdL: CatIdL relation.
-  constructor; unfold subrelation, cat, id_, rel_Cat, rel_IdC, compose; intros.
+  Global Instance rel_CatIdL: CatIdL relationH.
+  constructor; unfold subrelationH, cat, id_, rel_Cat, rel_IdC, compose; intros.
   - edestruct H as (B' & EQ & R). rewrite <- EQ in R.
     assumption.
   - exists x. split. reflexivity. assumption.
   Qed.
 
-  Global Instance rel_CatIdR: CatIdR relation.
-  constructor; unfold subrelation, cat, id_, rel_Cat, rel_IdC, compose; intros.
+  Global Instance rel_CatIdR: CatIdR relationH.
+  constructor; unfold subrelationH, cat, id_, rel_Cat, rel_IdC, compose; intros.
   - edestruct H as (B' & R & EQ). rewrite EQ in R.
     assumption.
   - exists y. split. assumption. reflexivity.
   Qed.
 
-  Global Instance rel_CatAssoc: CatAssoc relation.
-  constructor; unfold subrelation, cat, id_, rel_Cat, rel_IdC, compose;
+  Global Instance rel_CatAssoc: CatAssoc relationH.
+  constructor; unfold subrelationH, cat, id_, rel_Cat, rel_IdC, compose;
     intros A D H.
   - edestruct H as (C & (B & Rf & Rg) & Rh); clear H.
     exists B. split; [assumption | ].
@@ -270,25 +270,25 @@ Section Relation_Category.
   Qed.
 
   Global Instance rel_ProperCat: forall a b c,
-      @Proper (relation a b -> relation b c -> relation a c)
+      @Proper (relationH a b -> relationH b c -> relationH a c)
               (eq2 ==> eq2 ==> eq2) cat.
   intros a b c.
-  constructor; unfold subrelation, cat, id_, rel_Cat, rel_IdC, compose;
+  constructor; unfold subrelationH, cat, id_, rel_Cat, rel_IdC, compose;
     intros A C He.
   - edestruct He as (B & Hx & Hx0).
-    unfold eq2, rel_Eq2C, eq_rel, subrelation in *.
+    unfold eq2, rel_Eq2C, eq_rel, subrelationH in *.
     destruct H, H0.
     exists B. split. specialize (H A B Hx). assumption.
     specialize (H0 _ _ Hx0). assumption.
   - edestruct He as (B & Hy & Hy0).
-    unfold eq2, rel_Eq2C, eq_rel, subrelation in *.
+    unfold eq2, rel_Eq2C, eq_rel, subrelationH in *.
     destruct H, H0.
     exists B. split. specialize (H1 _ _ Hy). assumption.
     specialize (H2 _ _ Hy0). assumption.
   Qed.
 
 
-  Global Instance rel_Category : Category relation :=
+  Global Instance rel_Category : Category relationH :=
     {|
     category_cat_id_l := rel_CatIdL;
     category_cat_id_r := rel_CatIdR;
@@ -296,4 +296,4 @@ Section Relation_Category.
     category_proper_cat := rel_ProperCat
     |}.
 
-End Relation_Category.
+End RelationH_Category.
