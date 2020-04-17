@@ -9,8 +9,6 @@ From Coq Require Import Morphisms
 
 
 From ITree Require Import
-     ITree
-     Eq.Eq
      Basics.Basics
      Basics.Category
      Basics.CategoryKleisli
@@ -395,9 +393,15 @@ Section Transformer.
       + assumption.
       + cbn. 
         unfold liftM.
-
         unfold agrees.
-        eapply eqmR_Proper_bind.
+        eapply eqmR_bind_ProperH. assumption.
+  Abort.
+  
+
+      match goal with
+        | |- eqmR ?P ?C1 ?C2 => generalize (eqmR_Proper_bind m eq P)
+        end.
+        
         
 
   Abort.
@@ -411,3 +415,48 @@ Section Transformer.
   Admitted.
 
 End Transformer.
+
+(* 
+  Possible way to define mayRet based on impurity?
+*)
+
+Context {m : Type -> Type}.
+Context {M : Monad m}.
+Context {E : EqmR m}.
+  Definition impure {A} (ma : m A) := ~exists a, eqm ma (ret a).
+
+  Inductive mayRet  : forall A, (m A) -> A -> Prop :=
+  | mayRet_ret : forall A (a:A), mayRet A (ret a) a
+  | mayRet_bind : forall A B (mb : m B) (k : B -> m A) a b,
+      mayRet B mb b -> mayRet A (k b) a -> impure mb ->
+      mayRet A (bind mb k) a.
+  
+  Definition atomic {A} (ma : m A) :=
+    (forall B (mb : m B) (k : B -> m A),
+        eqm ma (bind mb k) -> impure ma -> (forall (v:B), mayRet B mb v -> impure (k v)))
+    /\ impure ma.
+                                                 
+  
+
+(*  ------------------------------------------------------------------------- *)
+(*
+   Misc. notes from discussion:
+             
+  (* Class Triggerable (M : (Type -> Type) -> Type -> type := *)
+  (*                            { trigger : forall E, E ~> M E }. *)
+
+
+  monadic_cases : forall (ma : m A),
+        (exists B, (p : m B) (k : B -> m A), impure p /\ eqm ma (bind p k))
+      \/ exists (a:A), eqm ma (ret a).
+
+                           
+
+        Diverges m := eqmR (fun a b => False) m m
+        Halts m := exists k1 k2 : A -> m bool, ~ eqm (bind m k1) (bind m k2)
+        Fails m := forall k, eqm m (bind m k)
+*)        
+        { admit. }
+
+  
+  
