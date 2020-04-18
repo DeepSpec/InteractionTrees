@@ -36,7 +36,8 @@ Arguments transpose [A B] R.
 
 Module RelNotations.
 
-  Declare Scope relationH_scope.
+  (* Declare Scope relationH_scope. *)
+  Delimit Scope relationH_scope with relationH.
   Open Scope relationH_scope.
 
   (* Notice the levels: (R ⊕ S ⊗ T ∘ U) is parsed as ((R ⊕ (S ⊗ T)) ∘ U) *)
