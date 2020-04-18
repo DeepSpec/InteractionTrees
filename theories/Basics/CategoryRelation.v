@@ -2,6 +2,7 @@ From Coq Require Import
      Morphisms.
 
 From ITree Require Import
+     Basics.Tacs
      Basics.Basics
      Basics.CategoryOps
      Basics.CategoryTheory
@@ -54,55 +55,101 @@ Section Operations.
 
 End Operations.
 
-Global Instance CatIdL_rel: CatIdL relationH.
-constructor; unfold subrelationH, cat, id_, Cat_rel, Id_rel, compose; intros.
-- edestruct H as (B' & EQ & R). rewrite <- EQ in R.
-  assumption.
-- exists x. split. reflexivity. assumption.
-Qed.
+Section Facts.
 
-Global Instance rel_CatIdR: CatIdR relationH.
-constructor; unfold subrelationH, cat, id_, Cat_rel, Id_rel, compose; intros.
-- edestruct H as (B' & R & EQ). rewrite EQ in R.
-  assumption.
-- exists y. split. assumption. reflexivity.
-Qed.
+  Global Instance CatIdL_rel: CatIdL relationH.
+  Proof.
+    constructor; unfold subrelationH, cat, id_, Cat_rel, Id_rel, compose; intros.
+    - edestruct H as (B' & EQ & R). rewrite <- EQ in R.
+      assumption.
+    - exists x. split. reflexivity. assumption.
+  Qed.
 
-Global Instance rel_CatAssoc: CatAssoc relationH.
-constructor; unfold subrelationH, cat, id_, Cat_rel, Id_rel, compose;
-  intros A D H.
-- edestruct H as (C & (B & Rf & Rg) & Rh); clear H.
-  exists B. split; [assumption | ].
-  exists C. split; assumption.
-- edestruct H as (B & Rf & (C & Rg & Rh)); clear H.
-  exists C. split; [ | assumption].
-  exists B; split; assumption.
-Qed.
+  Global Instance CatIdR_rel: CatIdR relationH.
+  Proof.
+    constructor; unfold subrelationH, cat, id_, Cat_rel, Id_rel, compose; intros.
+    - edestruct H as (B' & R & EQ). rewrite EQ in R.
+      assumption.
+    - exists y. split. assumption. reflexivity.
+  Qed.
 
-Global Instance rel_ProperCat: forall a b c,
-    @Proper (relationH a b -> relationH b c -> relationH a c)
-            (eq2 ==> eq2 ==> eq2) cat.
-intros a b c.
-constructor; unfold subrelationH, cat, id_, Cat_rel, Id_rel, compose;
-  intros A C He.
-- edestruct He as (B & Hx & Hx0).
-  unfold eq2, Eq2_rel, eq_rel, subrelationH in *.
-  destruct H, H0.
-  exists B. split. specialize (H A B Hx). assumption.
-  specialize (H0 _ _ Hx0). assumption.
-- edestruct He as (B & Hy & Hy0).
-  unfold eq2, Eq2_rel, eq_rel, subrelationH in *.
-  destruct H, H0.
-  exists B. split. specialize (H1 _ _ Hy). assumption.
-  specialize (H2 _ _ Hy0). assumption.
-Qed.
+  Global Instance CatAssoc_rel: CatAssoc relationH.
+  Proof.
+    constructor; unfold subrelationH, cat, id_, Cat_rel, Id_rel, compose;
+      intros A D H.
+    - edestruct H as (C & (B & Rf & Rg) & Rh); clear H.
+      exists B. split; [assumption | ].
+      exists C. split; assumption.
+    - edestruct H as (B & Rf & (C & Rg & Rh)); clear H.
+      exists C. split; [ | assumption].
+      exists B; split; assumption.
+  Qed.
 
+  Global Instance ProperCat_rel: forall a b c,
+      @Proper (relationH a b -> relationH b c -> relationH a c)
+              (eq2 ==> eq2 ==> eq2) cat.
+  Proof.
+    intros a b c.
+    constructor; unfold subrelationH, cat, id_, Cat_rel, Id_rel, compose;
+      intros A C He.
+    - edestruct He as (B & Hx & Hx0).
+      unfold eq2, Eq2_rel, eq_rel, subrelationH in *.
+      destruct H, H0.
+      exists B. split. specialize (H A B Hx). assumption.
+      specialize (H0 _ _ Hx0). assumption.
+    - edestruct He as (B & Hy & Hy0).
+      unfold eq2, Eq2_rel, eq_rel, subrelationH in *.
+      destruct H, H0.
+      exists B. split. specialize (H1 _ _ Hy). assumption.
+      specialize (H2 _ _ Hy0). assumption.
+  Qed.
 
-Global Instance rel_Category : Category relationH :=
-  {|
-  category_cat_id_l := CatIdL_rel;
-  category_cat_id_r := rel_CatIdR;
-  category_cat_assoc := rel_CatAssoc;
-  category_proper_cat := rel_ProperCat
-  |}.
+  Global Instance Category_rel : Category relationH :=
+    {|
+    category_cat_id_l := CatIdL_rel;
+    category_cat_id_r := CatIdR_rel;
+    category_cat_assoc := CatAssoc_rel;
+    category_proper_cat := ProperCat_rel
+    |}.
 
+  Global Instance InitialObject_rel : InitialObject relationH void.
+  Proof.
+    split; intros [].
+  Qed.
+
+  Global Instance Coproduct_rel : Coproduct relationH sum.
+  Proof.
+    constructor.
+    - split.
+      intros ? ? [[] [H1 H2]]; inv H1; apply H2.
+      intros x ? ?.
+      exists (inl x); split; auto; reflexivity.
+    - split.
+      intros ? ? [[] [H1 H2]]; inv H1; apply H2.
+      intros x ? ?.
+      exists (inr x); split; auto; reflexivity.
+    - intros a b c R S T [TR RT] [TS ST].
+      split.
+      intros [] ? ?; cbn; [apply TR | apply TS]; eexists; split; eauto; reflexivity.
+      intros [] ? HR; [apply RT in HR | apply ST in HR];
+        destruct HR as [? [EQ ?]]; repeat red in EQ; subst; auto.
+    - intros ? ? ? R S [RS SR] T U [TU UT]; split; intros [] ? ?; cbn in *;
+        [apply RS | apply TU | apply SR | apply UT]; auto.
+  Qed.
+
+  (* Actually the product is _not_ a product.
+     pair_ f g >>> fst_ ≈ f does not hold.
+     More specifically, f ⊏ pair_ f g does not hold since the left
+     hand side requires us to find an image by g of the element considered
+     even if we drop it right after.
+   *)
+  Global Instance Product_rel : Product relationH prod.
+  Proof.
+    constructor.
+    - red. intros. unfold cat, Cat_rel. split.
+      intros ? ? [[] [H EQ]]; inv EQ; apply H.
+      intros ? ? ?. cbv.
+      (* Impossible *)
+  Abort.
+
+End Facts.

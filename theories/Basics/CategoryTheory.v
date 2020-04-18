@@ -176,6 +176,49 @@ Arguments case_universal {obj C _ _ bif _ _ _ _} [a b c] f g fg.
 Notation inl_case := case_inl.
 Notation inr_case := case_inr.
 
+(** ** Products *)
+
+(** These laws capture the essence of products. *)
+
+Section ProductLaws.
+
+Context {obj : Type} (C : Hom obj).
+Context {Eq2_C : Eq2 C} {Id_C : Id_ C} {Cat_C : Cat C}.
+Context (bif : binop obj).
+Context {Pair_C : Pair C bif}
+        {Fst_C : Fst C bif}
+        {Snd_C : Snd C bif}.
+
+Class PairFst : Prop :=
+  pair_fst : forall a b c (f : C a b) (g : C a c),
+    pair_ f g >>> fst_ ⩯ f.
+
+Class PairSnd : Prop :=
+  pair_snd : forall a b c (f : C a b) (g : C a c),
+    pair_ f g >>> snd_ ⩯ g.
+
+(** Uniqueness of products *)
+Class PairUniversal : Prop :=
+  pair_universal :
+    forall a b c (f : C c a) (g : C c b) (fg : C c (bif a b)),
+      (fg >>> fst_ ⩯ f) ->
+      (fg >>> snd_ ⩯ g) ->
+      fg ⩯ pair_ f g.
+
+Class Product : Prop := {
+  product_pair_fst :> PairFst;
+  product_pair_snd :> PairSnd;
+  product_pair_universal :> PairUniversal;
+  product_proper_pair :> forall a b c,
+      @Proper (C c a -> C c b -> C c _) (eq2 ==> eq2 ==> eq2) pair_
+}.
+
+End ProductLaws.
+
+Arguments pair_fst {obj C Eq2_C Cat_C bif Pair_C Fst_C PairFst} [a b c] f g.
+Arguments pair_snd {obj C Eq2_C Cat_C bif Pair_C Snd_C PairSnd} [a b c] f g.
+Arguments pair_universal {obj C _ _ bif _ _ _ _} [a b c] f g fg.
+
 (** ** Monoidal categories *)
 
 Section MonoidalLaws.
