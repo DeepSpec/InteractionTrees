@@ -63,11 +63,11 @@ Arguments prod_morphism {A1 A2 B1 B2 RA RB}.
 Hint Constructors sum_rel.
 Hint Constructors prod_rel.
 
+Delimit Scope relationH_scope with relationH.
+
 Module RelNotations.
 
   (* Declare Scope relationH_scope. *)
-  Delimit Scope relationH_scope with relationH.
-  Open Scope relationH_scope.
 
   (* Notice the levels: (R ⊕ S ⊗ T ∘ U) is parsed as ((R ⊕ (S ⊗ T)) ∘ U) *)
   Infix "∘" := compose (at level 40, left associativity) : relationH_scope.

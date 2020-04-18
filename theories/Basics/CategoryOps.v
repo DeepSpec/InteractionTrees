@@ -333,43 +333,47 @@ End CocartesianConstruct.
 
 Section CartesianConstruct.
 
+  (* These Instances are kept local and should be made explicit locally using
+     [Existing Instance] to avoid clashes with the cocartesian instances
+   *)
+
 Context {obj : Type} (C : Hom obj) (Cat_C : Cat C).
 Variables (PROD : binop obj) (Prod_PROD : Pair C PROD)
           (Fst_PROD : Fst C PROD)
           (Snd_PROD : Snd C PROD).
 
 (** Products are bifunctors. *)
-Global Instance Bimap_Product : Bimap C PROD :=
+Instance Bimap_Product : Bimap C PROD :=
   fun a b c d (f : C a c) (g : C b d) =>
     pair_ (fst_ >>> f) (snd_ >>> g).
 
 (** Products are symmetric. *)
 
-Global Instance Swap_Product : Swap C PROD :=
+Instance Swap_Product : Swap C PROD :=
   fun a b => pair_ snd_ fst_.
 
 (** Products are associative. *)
 
-Global Instance AssocR_Product : AssocR C PROD :=
+Instance AssocR_Product : AssocR C PROD :=
   fun a b c => pair_ (fst_ >>> fst_) (pair_ (fst_ >>> snd_) snd_).
 
-Global Instance AssocL_Product : AssocL C PROD :=
+Instance AssocL_Product : AssocL C PROD :=
   fun a b c => pair_ (pair_ fst_ (snd_ >>> fst_)) (snd_ >>> snd_).
 
 Variables (Id_C : Id_ C) (T : obj) (Terminal_T : Terminal C T).
 
 (** The initial object is a unit for the product. *)
 
-Global Instance UnitL_Product : UnitL C PROD T :=
+Instance UnitL_Product : UnitL C PROD T :=
   fun a => snd_.
 
-Global Instance UnitL'_Product : UnitL' C PROD T :=
+Instance UnitL'_Product : UnitL' C PROD T :=
   fun a => pair_ one (id_ a).
 
-Global Instance UnitR_Product : UnitR C PROD T :=
+Instance UnitR_Product : UnitR C PROD T :=
   fun a => fst_.
 
-Global Instance UnitR'_Product : UnitR' C PROD T :=
+Instance UnitR'_Product : UnitR' C PROD T :=
   fun a => pair_ (id_ a) one.
 
 End CartesianConstruct.
