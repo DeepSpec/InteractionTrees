@@ -134,7 +134,7 @@ Section eqit.
   Proof. unfold id. eauto. Qed.
 
   Hint Resolve eqit_idclo_mono : paco.
-  
+
   Definition eqit b1 b2 : itree E R1 -> itree E R2 -> Prop :=
     paco2 (eqit_ b1 b2 id) bot2.
 
@@ -142,7 +142,7 @@ Section eqit.
       we say that [t1] and [t2] are (strongly) bisimilar. As hinted
       at above, bisimilarity can be intuitively thought of as
       equality. *)
-  
+
   Definition eq_itree := eqit false false.
 
   Definition eutt := eqit true true.
@@ -181,7 +181,7 @@ Proof.
     econstructor. apply H. assumption.
     econstructor. apply H3. assumption.
     econstructor. intros. specialize (REL v). specialize (H2 x3 y3). apply H2 in H3. apply H3. assumption.
-Qed.    
+Qed.
 
 Global Instance eqitF_Proper_R2 {E : Type -> Type} {R1 R2:Type} : Proper ( (@eq_rel R1 R2) ==> eq ==> eq ==> eq ==> eq ==> eq ==> eq ==> iff)
                                                                        (@eqitF E R1 R2).
@@ -192,7 +192,7 @@ Proof.
     econstructor. apply H. assumption.
   - induction H0; try auto.
     econstructor. apply H. assumption.
-Qed.    
+Qed.
 
 
 Definition flip_clo {A B C} clo r := @flip A B C (clo (@flip B A C r)).
@@ -239,7 +239,7 @@ Infix "≈" := (eutt eq) (at level 70) : itree_scope.
 Infix "≳" := (euttge eq) (at level 70) : itree_scope.
 
 Section eqit_closure.
-  
+
 Context {E : Type -> Type} {R1 R2 : Type} (RR : relationH R1 R2).
 
 (** *** "Up-to" principles for coinduction. *)
@@ -260,7 +260,7 @@ Definition eqitC b1 b2 := eqit_trans_clo b1 b2 false false.
 Hint Unfold eqitC.
 
 Lemma eqitC_mon b1 b2 r1 r2 t1 t2
-      (IN: eqitC b1 b2 r1 t1 t2)      
+      (IN: eqitC b1 b2 r1 t1 t2)
       (LE: r1 <2= r2):
   eqitC b1 b2 r2 t1 t2.
 Proof.
@@ -395,7 +395,7 @@ Proof.
   ginit. gcofix CIH. intros.
   punfold H0. gstep. red in H0 |- *.
   hinduction H0 before CIH; subst; econstructor; try inv CHECK; pclearbot; eauto 7 with paco.
-Qed.  
+Qed.
 
 Global Instance euttge_sub_eutt:
   subrelation (@euttge E _ _ RR) (eutt RR).
@@ -566,8 +566,8 @@ Proof.
     + pclearbot. punfold REL. pstep. red. simpobs. eauto.
     + pstep. red. simpobs. econstructor; eauto. pstep_reverse. apply IHeqitF; eauto.
   - inv Heqtt2. inv H; eauto.
-    + pclearbot. punfold REL. pstep. red. simpobs. eauto.    
-    + pstep. red. simpobs. econstructor; eauto. pstep_reverse. apply IHeqitF; eauto.    
+    + pclearbot. punfold REL. pstep. red. simpobs. eauto.
+    + pstep. red. simpobs. econstructor; eauto. pstep_reverse. apply IHeqitF; eauto.
 Qed.
 
 Lemma eqit_tauL {E R1 R2 RR} b2 (t1 : itree E R1) (t2 : itree E R2) :
@@ -624,7 +624,7 @@ Proof.
      + apply EqVis. intros. red. right. apply CIH.
        specialize (REL v).
        red in REL. pclearbot. pinversion REL.
-Qed.       
+Qed.
 
 Global Instance eutt_Proper_R {E : Type -> Type} {R1 R2:Type}
   : Proper ( (@eq_rel R1 R2) ==> eq ==> eq ==> iff) (@eutt E R1 R2).
@@ -633,8 +633,8 @@ Proof.
   intros. split; intros; subst.
   - rewrite <- H. assumption.
   - rewrite H. assumption.
-Qed.  
-  
+Qed.
+
 
 (** *** Transitivity properties *)
 
@@ -901,7 +901,7 @@ Hint Constructors eqit_bind_clo.
 
 Lemma eqit_clo_bind b1 b2 vclo
       (MON: monotone2 vclo)
-      (CMP: Basics.compose (eqitC RR b1 b2) vclo <3= Basics.compose vclo (eqitC RR b1 b2))      
+      (CMP: Basics.compose (eqitC RR b1 b2) vclo <3= Basics.compose vclo (eqitC RR b1 b2))
       (ID: id <3= vclo):
   eqit_bind_clo b1 b2 <3= gupaco2 (eqit_ RR b1 b2 vclo) (eqitC RR b1 b2).
 Proof.
@@ -911,7 +911,7 @@ Proof.
   punfold EQV. unfold_eqit.
   hinduction EQV before CIH; intros; pclearbot.
   - guclo eqit_clo_trans.
-    econstructor; auto_ctrans_eq; try (rewrite <- !itree_eta; reflexivity). 
+    econstructor; auto_ctrans_eq; try (rewrite <- !itree_eta; reflexivity).
     eauto with paco.
   - gstep. econstructor. eauto with paco.
   - gstep. econstructor. eauto 7 with paco.

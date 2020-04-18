@@ -6,8 +6,8 @@ From ITree Require Import
      Basics.Tacs
      Basics.Basics
      Basics.Function
-     Basics.CategoryTheory
-     Basics.CategoryOps
+     (* Basics.CategoryTheory *)
+     (* Basics.CategoryOps *)
 .
 
 (* Heterogeneous relation definition, modified from https://coq.inria.fr/stdlib/Coq.Relations.Relation_Definitions.html. *)
@@ -167,7 +167,7 @@ Section RelationH_Classes.
   Qed.
 
   Lemma eq_id_l: forall {A B} (R : relationH A B),
-    R ∘ eq ≡ R.
+      R ∘ eq ≡ R.
   Proof.
     split; intros!.
     - invn compose; invn and; subst; auto.
@@ -210,25 +210,25 @@ Section RelationH_Classes.
   Qed.
 
 
-(* SAZ: Unfortunately adding these typeclass instances can cause typeclass resolution
+  (* SAZ: Unfortunately adding these typeclass instances can cause typeclass resolution
    to loop when looking for a reflexive instance.
    e.t. in InterpFacts we get a loop.
 
-*)
-Global Instance transpose_Reflexive {A} (R : relationH A A) {RR: Reflexive R} : Reflexive † R | 100.
-Proof.
-  red. intros x. unfold transpose. reflexivity.
-Qed.
+   *)
+  Global Instance transpose_Reflexive {A} (R : relationH A A) {RR: Reflexive R} : Reflexive † R | 100.
+  Proof.
+    red. intros x. unfold transpose. reflexivity.
+  Qed.
 
-Global Instance transpose_Symmetric {A} (R : relationH A A) {RS: Symmetric R} : Symmetric † R | 100.
-Proof.
-  red; intros x; unfold transpose; intros. symmetry. assumption.
-Qed.
+  Global Instance transpose_Symmetric {A} (R : relationH A A) {RS: Symmetric R} : Symmetric † R | 100.
+  Proof.
+    red; intros x; unfold transpose; intros. symmetry. assumption.
+  Qed.
 
-Global Instance transpose_Transitive {A} (R : relationH A A) {RT : Transitive R} : Transitive † R | 100.
-Proof.
-  red; intros x; unfold transpose; intros. etransitivity; eauto.
-Qed.
+  Global Instance transpose_Transitive {A} (R : relationH A A) {RT : Transitive R} : Transitive † R | 100.
+  Proof.
+    red; intros x; unfold transpose; intros. etransitivity; eauto.
+  Qed.
 
 
   (* This instance allows to rewrite [H: R ≡ S] in a goal of the form [R x y] *)
@@ -242,7 +242,7 @@ Qed.
     : † (S ∘ R) ≡ (†R ∘ †S).
   Proof.
     split; unfold transpose; cbn; intros!;
-    invn compose; invn and; eexists; eauto.
+                                        invn compose; invn and; eexists; eauto.
   Qed.
 
   Lemma transpose_sym {A : Type} (R : relationH A A) {RS: Symmetric R}
@@ -312,86 +312,101 @@ Section SumRelProps.
 
 End SumRelProps.
 
-Section RelationH_Category.
+(* Section RelationH_Category. *)
 
-  Section Operations.
+(*   Section Operations. *)
 
-    Global Instance Eq2_rel : Eq2 relationH := @eq_rel.
+(*     Global Instance Eq2_rel : Eq2 relationH := @eq_rel. *)
 
-    Global Instance Cat_rel : Cat relationH := fun _ _ _ f g => compose g f.
+(*     Global Instance Cat_rel : Cat relationH := fun _ _ _ f g => compose g f. *)
 
-    Global Instance Id_rel : Id_ relationH := @eq.
+(*     Global Instance Id_rel : Id_ relationH := @eq. *)
 
-    Global Instance Initial_rel : Initial relationH void :=
-      fun _ v => match v : void with end.
+(*     Global Instance Initial_rel : Initial relationH void := *)
+(*       fun _ v => match v : void with end. *)
 
-    Global Instance Bimap_sum_rel : Bimap relationH sum :=
-      fun (a b c d : Type) R S => R ⊕ S.
+(*     (* I'm not sure how we would actually want to work with these *)
+(*        since we have two instances of [Bimap], ⊕ and ⊗, that we actually use. *)
+(*        Additionally of course we have the two that are derived from *)
+(*        the respective product and coproduct, which should be provably *)
+(*        isomorphic to respectively ⊗ and ⊕. *)
+(*      *) *)
+(*     Global Instance Bimap_sum_rel : Bimap relationH sum := *)
+(*       fun (a b c d : Type) R S => R ⊕ S. *)
 
-    Global Instance Bimap_prod_rel : Bimap relationH prod :=
-      fun (a b c d : Type) R S => R ⊗ S.
+(*     Global Instance Bimap_prod_rel : Bimap relationH prod := *)
+(*       fun (a b c d : Type) R S => R ⊗ S. *)
 
-    Global Instance Case_rel : Case relationH sum :=
-      fun _ _ _ l r => case_sum _ _ _ l r.
+(*     Global Instance Case_rel : Case relationH sum := *)
+(*       fun _ _ _ l r => case_sum _ _ _ l r. *)
 
-    Global Instance Inl_rel : Inl relationH sum :=
-      fun A B => fun_rel inl.
+(*     Global Instance Inl_rel : Inl relationH sum := *)
+(*       fun A B => fun_rel inl. *)
 
-    Global Instance Inr_rel : Inr relationH sum :=
-      fun _ _ => fun_rel inr.
+(*     Global Instance Inr_rel : Inr relationH sum := *)
+(*       fun _ _ => fun_rel inr. *)
 
-  End Operations.
+(*     Global Instance Pair_rel : Pair relationH prod := *)
+(*       fun _ _ _ l r c '(a,b) => l c a /\ r c b. *)
 
-    Global Instance CatIdL_rel: CatIdL relationH.
-    constructor; unfold subrelationH, cat, id_, rel_Cat, rel_IdC, compose; intros.
-    - edestruct H as (B' & EQ & R). rewrite <- EQ in R.
-      assumption.
-    - exists x. split. reflexivity. assumption.
-    Qed.
+(*     Global Instance Fst_rel : Fst relationH prod := *)
+(*       fun A B => fun_rel fst. *)
 
-    Global Instance rel_CatIdR: CatIdR relationH.
-    constructor; unfold subrelationH, cat, id_, rel_Cat, rel_IdC, compose; intros.
-    - edestruct H as (B' & R & EQ). rewrite EQ in R.
-      assumption.
-    - exists y. split. assumption. reflexivity.
-    Qed.
+(*     Global Instance Snd_rel : Snd relationH prod := *)
+(*       fun _ _ => fun_rel snd. *)
 
-  Global Instance rel_CatAssoc: CatAssoc relationH.
-  constructor; unfold subrelationH, cat, id_, rel_Cat, rel_IdC, compose;
-    intros A D H.
-  - edestruct H as (C & (B & Rf & Rg) & Rh); clear H.
-    exists B. split; [assumption | ].
-    exists C. split; assumption.
-  - edestruct H as (B & Rf & (C & Rg & Rh)); clear H.
-    exists C. split; [ | assumption].
-    exists B; split; assumption.
-  Qed.
+(*   End Operations. *)
 
-  Global Instance rel_ProperCat: forall a b c,
-      @Proper (relationH a b -> relationH b c -> relationH a c)
-              (eq2 ==> eq2 ==> eq2) cat.
-  intros a b c.
-  constructor; unfold subrelationH, cat, id_, rel_Cat, rel_IdC, compose;
-    intros A C He.
-  - edestruct He as (B & Hx & Hx0).
-    unfold eq2, rel_Eq2C, eq_rel, subrelationH in *.
-    destruct H, H0.
-    exists B. split. specialize (H A B Hx). assumption.
-    specialize (H0 _ _ Hx0). assumption.
-  - edestruct He as (B & Hy & Hy0).
-    unfold eq2, rel_Eq2C, eq_rel, subrelationH in *.
-    destruct H, H0.
-    exists B. split. specialize (H1 _ _ Hy). assumption.
-    specialize (H2 _ _ Hy0). assumption.
-  Qed.
+(*   Global Instance CatIdL_rel: CatIdL relationH. *)
+(*   constructor; unfold subrelationH, cat, id_, Cat_rel, Id_rel, compose; intros. *)
+(*   - edestruct H as (B' & EQ & R). rewrite <- EQ in R. *)
+(*     assumption. *)
+(*   - exists x. split. reflexivity. assumption. *)
+(*   Qed. *)
+
+(*   Global Instance rel_CatIdR: CatIdR relationH. *)
+(*   constructor; unfold subrelationH, cat, id_, Cat_rel, Id_rel, compose; intros. *)
+(*   - edestruct H as (B' & R & EQ). rewrite EQ in R. *)
+(*     assumption. *)
+(*   - exists y. split. assumption. reflexivity. *)
+(*   Qed. *)
+
+(*   Global Instance rel_CatAssoc: CatAssoc relationH. *)
+(*   constructor; unfold subrelationH, cat, id_, Cat_rel, Id_rel, compose; *)
+(*     intros A D H. *)
+(*   - edestruct H as (C & (B & Rf & Rg) & Rh); clear H. *)
+(*     exists B. split; [assumption | ]. *)
+(*     exists C. split; assumption. *)
+(*   - edestruct H as (B & Rf & (C & Rg & Rh)); clear H. *)
+(*     exists C. split; [ | assumption]. *)
+(*     exists B; split; assumption. *)
+(*   Qed. *)
+
+(*   Global Instance rel_ProperCat: forall a b c, *)
+(*       @Proper (relationH a b -> relationH b c -> relationH a c) *)
+(*               (eq2 ==> eq2 ==> eq2) cat. *)
+(*   intros a b c. *)
+(*   constructor; unfold subrelationH, cat, id_, Cat_rel, Id_rel, compose; *)
+(*     intros A C He. *)
+(*   - edestruct He as (B & Hx & Hx0). *)
+(*     unfold eq2, Eq2_rel, eq_rel, subrelationH in *. *)
+(*     destruct H, H0. *)
+(*     exists B. split. specialize (H A B Hx). assumption. *)
+(*     specialize (H0 _ _ Hx0). assumption. *)
+(*   - edestruct He as (B & Hy & Hy0). *)
+(*     unfold eq2, Eq2_rel, eq_rel, subrelationH in *. *)
+(*     destruct H, H0. *)
+(*     exists B. split. specialize (H1 _ _ Hy). assumption. *)
+(*     specialize (H2 _ _ Hy0). assumption. *)
+(*   Qed. *)
 
 
-  Global Instance rel_Category : Category relationH :=
-    {|
-    category_cat_id_l := rel_CatIdL;
-    category_cat_id_r := rel_CatIdR;
-    category_cat_assoc := rel_CatAssoc;
-    category_proper_cat := rel_ProperCat
-    |}.
+(*   Global Instance rel_Category : Category relationH := *)
+(*     {| *)
+(*     category_cat_id_l := CatIdL_rel; *)
+(*     category_cat_id_r := rel_CatIdR; *)
+(*     category_cat_assoc := rel_CatAssoc; *)
+(*     category_proper_cat := rel_ProperCat *)
+(*     |}. *)
 
-End RelationH_Category.
+(* End RelationH_Category. *)
