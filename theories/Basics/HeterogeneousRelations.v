@@ -5,6 +5,7 @@ From Coq Require Import
 From ITree Require Import
      Basics.Tacs
      Basics.Basics
+     Basics.Function
      Basics.CategoryTheory
      Basics.CategoryOps
 .
@@ -15,24 +16,52 @@ Section RelationH_Definition.
 
   Definition relationH (A B : Type) := A -> B -> Prop.
 
-  (* Heterogeneous notion of subrelationH.  *)
+  Definition compose {A B C} (S : relationH B C) (R : relationH A B) :=
+    fun (a : A) (c : C) => exists b, (R a b) /\ (S b c).
+
+  (* Heterogeneous notion of [subrelation] *)
   Class subrelationH {A B} (R S : relationH A B) : Prop :=
     is_subrelationH: forall (x : A) (y : B), R x y -> S x y.
-
-  Definition transpose {A B: Type} (R: A -> B -> Prop): B -> A -> Prop :=
-    fun b a => R a b.
 
   Definition eq_rel {A B} (R : A -> B -> Prop) (S : A -> B -> Prop) :=
     subrelationH R S /\ subrelationH S R.
 
-  Definition compose {A B C} (S : relationH B C) (R : relationH A B) :=
-    fun (a : A) (c : C) => exists b, (R a b) /\ (S b c).
+  Definition transpose {A B: Type} (R: A -> B -> Prop): B -> A -> Prop :=
+    fun b a => R a b.
+
+  (* The graph of a function forms a relation *)
+  Definition fun_rel {A B: Type} (f: A -> B): relationH A B :=
+    fun a b => b = f a.
+
+  (** ** Relations for morphisms/parametricity *)
+
+  (** Logical relation for the [sum] type. *)
+  Variant sum_rel {A1 A2 B1 B2 : Type}
+          (RA : relationH A1 A2) (RB : relationH B1 B2)
+    : relationH (A1 + B1) (A2 + B2) :=
+  | inl_morphism a1 a2 : RA a1 a2 -> sum_rel RA RB (inl a1) (inl a2)
+  | inr_morphism b1 b2 : RB b1 b2 -> sum_rel RA RB (inr b1) (inr b2)
+  .
+
+  (** Logical relation for the [prod] type. *)
+  Variant prod_rel {A1 A2 B1 B2 : Type}
+          (RA : relationH A1 A2) (RB : relationH B1 B2)
+    : relationH (A1 * B1) (A2 * B2) :=
+  | prod_morphism a1 a2 b1 b2 : RA a1 a2 -> RB b1 b2 -> prod_rel RA RB (a1, b1) (a2, b2)
+  .
 
 End RelationH_Definition.
 
 Arguments compose [A B C] S R.
 Arguments subrelationH [A B] R S.
 Arguments transpose [A B] R.
+Arguments sum_rel [A1 A2 B1 B2] RA RB.
+Arguments inl_morphism {A1 A2 B1 B2 RA RB}.
+Arguments inr_morphism {A1 A2 B1 B2 RA RB}.
+Arguments prod_rel [A1 A2 B1 B2] RA RB.
+Arguments prod_morphism {A1 A2 B1 B2 RA RB}.
+Hint Constructors sum_rel.
+Hint Constructors prod_rel.
 
 Module RelNotations.
 
@@ -86,6 +115,43 @@ Section SubRelationH.
   Qed.
 
 End SubRelationH.
+
+Section ProdRelInstances.
+  Context {R S : Type}.
+  Context (RR : R -> R -> Prop).
+  Context (SS : S -> S -> Prop).
+
+  Global Instance prod_rel_refl `{Reflexive _ RR} `{Reflexive _ SS} : Reflexive (prod_rel RR SS).
+  Proof.
+    red. destruct x. constructor; auto.
+  Qed.
+
+  Global Instance prod_rel_sym `{Symmetric _ RR} `{Symmetric _ SS}  : Symmetric (prod_rel RR SS).
+  Proof.
+    red. intros.
+    inversion H1. subst.
+    constructor; symmetry; auto.
+  Qed.
+
+  Global Instance prod_rel_trans `{Transitive _ RR} `{Transitive _ SS}  : Transitive (prod_rel RR SS).
+  Proof.
+    red.
+    intros.
+    inversion H1.
+    inversion H2.
+    subst.
+    inversion H9; subst.
+    constructor; etransitivity; eauto.
+  Qed.
+
+  Global Instance prod_rel_eqv `{Equivalence _ RR} `{Equivalence _ SS} : Equivalence (prod_rel RR SS).
+  Proof.
+    constructor; typeclasses eauto.
+  Qed.
+
+End ProdRelInstances.
+
+
 
 (* SAZ: There is probably a nice way to typeclassify the eq_rel proofs *)
 Section RelationH_Classes.
@@ -144,9 +210,9 @@ Section RelationH_Classes.
 
 
 (* SAZ: Unfortunately adding these typeclass instances can cause typeclass resolution
-   to loop when looking for a reflexive instance.  
+   to loop when looking for a reflexive instance.
    e.t. in InterpFacts we get a loop.
-         
+
 *)
 Global Instance transpose_Reflexive {A} (R : relationH A A) {RR: Reflexive R} : Reflexive † R | 100.
 Proof.
@@ -247,25 +313,47 @@ End SumRelProps.
 
 Section RelationH_Category.
 
-  Instance rel_Eq2C : Eq2 relationH := fun _ _ f g => eq_rel f g.
+  Section Operations.
 
-  Instance rel_IdC : Id_ relationH := fun _ => eq.
+    Global Instance Eq2_rel : Eq2 relationH := @eq_rel.
 
-  Instance rel_Cat : Cat relationH := fun _ _ _ f g => compose g f.
+    Global Instance Cat_rel : Cat relationH := fun _ _ _ f g => compose g f.
 
-  Global Instance rel_CatIdL: CatIdL relationH.
-  constructor; unfold subrelationH, cat, id_, rel_Cat, rel_IdC, compose; intros.
-  - edestruct H as (B' & EQ & R). rewrite <- EQ in R.
-    assumption.
-  - exists x. split. reflexivity. assumption.
-  Qed.
+    Global Instance Id_rel : Id_ relationH := @eq.
 
-  Global Instance rel_CatIdR: CatIdR relationH.
-  constructor; unfold subrelationH, cat, id_, rel_Cat, rel_IdC, compose; intros.
-  - edestruct H as (B' & R & EQ). rewrite EQ in R.
-    assumption.
-  - exists y. split. assumption. reflexivity.
-  Qed.
+    Global Instance Initial_rel : Initial relationH void :=
+      fun _ v => match v : void with end.
+
+    Global Instance Bimap_sum_rel : Bimap relationH sum :=
+      fun (a b c d : Type) R S => R ⊕ S.
+
+    Global Instance Bimap_prod_rel : Bimap relationH prod :=
+      fun (a b c d : Type) R S => R ⊗ S.
+
+    Global Instance Case_rel : Case relationH sum :=
+      fun _ _ _ l r => case_sum _ _ _ l r.
+
+    Global Instance Inl_rel : Inl relationH sum :=
+      fun A B => fun_rel inl.
+
+    Global Instance Inr_rel : Inr relationH sum :=
+      fun _ _ => fun_rel inr.
+
+  End Operations.
+
+    Global Instance CatIdL_rel: CatIdL relationH.
+    constructor; unfold subrelationH, cat, id_, rel_Cat, rel_IdC, compose; intros.
+    - edestruct H as (B' & EQ & R). rewrite <- EQ in R.
+      assumption.
+    - exists x. split. reflexivity. assumption.
+    Qed.
+
+    Global Instance rel_CatIdR: CatIdR relationH.
+    constructor; unfold subrelationH, cat, id_, rel_Cat, rel_IdC, compose; intros.
+    - edestruct H as (B' & R & EQ). rewrite EQ in R.
+      assumption.
+    - exists y. split. assumption. reflexivity.
+    Qed.
 
   Global Instance rel_CatAssoc: CatAssoc relationH.
   constructor; unfold subrelationH, cat, id_, rel_Cat, rel_IdC, compose;
