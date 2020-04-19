@@ -43,9 +43,16 @@ Section State.
     - red. symmetry; auto.
     - red. intros. eapply transitivity; eauto.
     - specialize (H s). specialize (H0 s).
-    - split; unfold subrelationH; unfold transpose in *; intros smb sma Heq s.
-      + try pose proof s Heq. (* ?? *)
-        admit.
+      rewrite <- (eq_id_r eq). 
+      rewrite prod_compose.
+      eapply eqmR_rel_trans; auto.
+      + apply H.
+      + apply H0.
+    - split; unfold subrelationH; intros smb sma Heq s.
+      + specialize (Heq s).
+        apply eqmR_lift_transpose in Heq; auto.
+        rewrite transpose_prod in Heq.
+        rewrite transpose_sym in Heq; auto.
       + admit.
     - do 3 red. intros. split; intros.
          +  specialize (H0 s). specialize (H1 s). specialize (H2 s).
