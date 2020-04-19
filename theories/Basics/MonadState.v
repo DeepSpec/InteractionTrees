@@ -12,10 +12,13 @@ From ITree Require Import
      Basics.CategoryKleisli
      Basics.CategoryKleisliFacts
      Basics.HeterogeneousRelations
+     Basics.Tacs
      Basics.Monad.
 
 Import ITree.Basics.Basics.Monads.
 Import CatNotations.
+Import RelNotations.
+Local Open Scope relationH_scope.
 Local Open Scope cat_scope.
 Local Open Scope cat.
 
@@ -39,7 +42,7 @@ Section State.
     - red. reflexivity.
     - red. symmetry; auto.
     - red. intros. eapply transitivity; eauto.
-    - (* KS: Cannot unfold *) unfold eqmR. admit.
+    - specialize (H s). specialize (H0 s).
     - split; unfold subrelationH; unfold transpose in *; intros smb sma Heq s.
       + try pose proof s Heq. (* ?? *)
         admit.
