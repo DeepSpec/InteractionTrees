@@ -116,6 +116,8 @@ Class Initial (i : obj) :=
 Class Terminal (t : obj) :=
   one : forall a, C a t.
 
+Definition op: Hom obj := fun (A B: obj) => C B A.
+
 End CatOps.
 
 Arguments eq2 {obj C Eq2 a b}.
@@ -123,6 +125,7 @@ Arguments id_ {obj C Id_}.
 Arguments cat {obj C Cat a b c}.
 Arguments empty {obj C i Initial a}.
 Arguments one {obj C t Terminal a}.
+Arguments op {obj} C.
 
 (** ** Bifunctors *)
 
@@ -377,6 +380,16 @@ Instance UnitR'_Product : UnitR' C PROD T :=
   fun a => pair_ (id_ a) one.
 
 End CartesianConstruct.
+
+Section Dagger.
+  Context {obj : Type} (C : Hom obj) (Cat_C : Cat C).
+
+  Class Dagger : Type :=
+    dagger : forall a b, op C a b -> C a b.
+
+End Dagger.
+
+Arguments dagger {obj C _ a b}.
 
 (** ** Iteration, fixed points *)
 

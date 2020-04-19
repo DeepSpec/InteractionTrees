@@ -5,8 +5,7 @@ From Coq Require Import
      Morphisms.
 
 From ITree Require Import
-     CategoryOps
-     CategoryTheory.
+     CategoryOps.
 
 Import CatNotations.
 Local Open Scope cat_scope.
@@ -29,7 +28,7 @@ Class Functor : Prop :=
   ; fmap_proper : forall a b, Proper (eq2 ==> eq2) (@fmap a b)
   }.
 
-End Functor.  
+End Functor.
 
 Arguments Functor : clear implicits.
 Arguments Functor {_ _} C1 C2 F fmap {_ _ _ _ _ _}.

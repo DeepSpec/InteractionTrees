@@ -7,7 +7,8 @@
 From Coq Require Import Setoid Morphisms.
 
 From ITree.Basics Require Import
-     CategoryOps.
+     CategoryOps
+     CategoryFunctor.
 
 Import Carrier.
 Import CatNotations.
@@ -94,6 +95,45 @@ Class Iso {a b : obj} (f : C a b) (f' : C b a) : Type := {
 End SemiIso.
 
 Arguments semi_iso {obj C Eq2C IdC CatC a b} f f' {SemiIso}.
+
+(** ** Opposite *)
+
+Section OppositeCat.
+
+  Context {obj : Type} (C : Hom obj).
+  Context {Eq2C : Eq2 C} {IdC : Id_ C} {CatC : Cat C}.
+
+  Global Instance Eq2_Op : Eq2 (op C) :=
+    fun a b => eq2 (C := C).
+
+  Global Instance Id_Op : Id_ (op C) :=
+    id_ (C := C).
+
+  Global Instance Cat_Op : Cat (op C) :=
+    fun a b c f g => cat (C := C) g f.
+
+End OppositeCat.
+
+(** ** Dagger *)
+
+Section DaggerLaws.
+
+  Context {obj : Type} (C : Hom obj).
+  Context {Eq2C : Eq2 C} {IdC : Id_ C} {CatC : Cat C}.
+  Context {DagC : Dagger C}.
+
+  Global Instance Dagger_Op : Dagger (op C) :=
+    fun a b f => dagger (C := C) f.
+
+  Class DaggerInvolution : Prop :=
+    dagger_invol : forall a b (f: C a b), dagger (dagger f) ⩯ f.
+
+  Class DaggerLaws : Prop := {
+    dagger_involution :> DaggerInvolution ;
+    dagger_functor :> Functor (op C) C id (@dagger obj C _)
+   }.
+
+End DaggerLaws.
 
 (** ** Bifunctors *)
 
