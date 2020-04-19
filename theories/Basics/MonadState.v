@@ -29,7 +29,8 @@ Section State.
 
   Global Instance EqmR_stateT : EqmR (stateT S m) :=
     {| eqmR :=
-         fun a b (R : a -> b -> Prop) (f : stateT S m a) (g : stateT S m b) =>
+         fun A B (R : A -> B -> Prop)
+             (f : stateT S m A) (g : stateT S m B) =>
            forall (s : S), eqmR (prod_rel eq R) (f s) (g s) |}.
 
   Global Instance EqmR_OK_stateT : EqmR_OK (stateT S m).
@@ -38,14 +39,18 @@ Section State.
     - red. reflexivity.
     - red. symmetry; auto.
     - red. intros. eapply transitivity; eauto.
-    - admit.
-    - admit.
+    - (* KS: Cannot unfold *) unfold eqmR. admit.
+    - split; unfold subrelationH; unfold transpose in *; intros smb sma Heq s.
+      + try pose proof s Heq. (* ?? *)
+        admit.
+      + admit.
     - do 3 red. intros. split; intros.
          +  specialize (H0 s). specialize (H1 s). specialize (H2 s).
             rewrite eq_rel_prod_eq in H0.
             rewrite eq_rel_prod_eq in H1.
             rewrite <- H0.
             rewrite <- H1.
+
             admit.
             (* rewrite H in H2. *)
             (* assumption. *)
