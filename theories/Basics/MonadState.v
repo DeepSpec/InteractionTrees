@@ -12,10 +12,13 @@ From ITree Require Import
      Basics.CategoryKleisli
      Basics.CategoryKleisliFacts
      Basics.HeterogeneousRelations
+     Basics.Tacs
      Basics.Monad.
 
 Import ITree.Basics.Basics.Monads.
 Import CatNotations.
+Import RelNotations.
+Local Open Scope relationH_scope.
 Local Open Scope cat_scope.
 Local Open Scope cat.
 
@@ -29,7 +32,8 @@ Section State.
 
   Global Instance EqmR_stateT : EqmR (stateT S m) :=
     {| eqmR :=
-         fun a b (R : a -> b -> Prop) (f : stateT S m a) (g : stateT S m b) =>
+         fun A B (R : A -> B -> Prop)
+             (f : stateT S m A) (g : stateT S m B) =>
            forall (s : S), eqmR (prod_rel eq R) (f s) (g s) |}.
 
   Global Instance EqmR_OK_stateT : EqmR_OK (stateT S m).
@@ -38,14 +42,25 @@ Section State.
     - red. reflexivity.
     - red. symmetry; auto.
     - red. intros. eapply transitivity; eauto.
-    - admit.
-    - admit.
+    - specialize (H s). specialize (H0 s).
+      rewrite <- (eq_id_r eq). 
+      rewrite prod_compose.
+      eapply eqmR_rel_trans; auto.
+      + apply H.
+      + apply H0.
+    - split; unfold subrelationH; intros smb sma Heq s.
+      + specialize (Heq s).
+        apply eqmR_lift_transpose in Heq; auto.
+        rewrite transpose_prod in Heq.
+        rewrite transpose_sym in Heq; auto.
+      + admit.
     - do 3 red. intros. split; intros.
          +  specialize (H0 s). specialize (H1 s). specialize (H2 s).
             rewrite eq_rel_prod_eq in H0.
             rewrite eq_rel_prod_eq in H1.
             rewrite <- H0.
             rewrite <- H1.
+
             admit.
             (* rewrite H in H2. *)
             (* assumption. *)

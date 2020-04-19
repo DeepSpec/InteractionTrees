@@ -312,6 +312,28 @@ Section SumRelProps.
 
 End SumRelProps.
 
+Section ProdRelProps.
+
+  Lemma prod_compose {A B C D E F: Type}
+        (R: relationH A B) (S: relationH B C)
+        (T: relationH D E) (U: relationH E F)
+  : (S ∘ R) ⊗ (U ∘ T) ≡ (S ⊗ U) ∘ (R ⊗ T).
+  Proof.
+  Admitted.
+
+  Lemma transpose_prod {A B C D: Type}
+        (R: relationH A B) (S: relationH C D)
+    : † (S ⊗ R) ≡ (†S ⊗ †R).
+  Proof.
+  Admitted.
+
+  (* What's the right way to avoid having to refer to H here? *)
+  Global Instance Proper_prod_rel {A B C D}: Proper (eq_rel ==> eq_rel ==> eq_rel) (@prod_rel A B C D).
+  Proof.
+  Admitted.
+
+End ProdRelProps.
+
 (* Section RelationH_Category. *)
 
 (*   Section Operations. *)
