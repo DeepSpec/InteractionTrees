@@ -103,13 +103,21 @@ Section OppositeCat.
   Context {obj : Type} (C : Hom obj).
   Context {Eq2C : Eq2 C} {IdC : Id_ C} {CatC : Cat C}.
 
-  Global Instance Eq2_Op : Eq2 (op C) :=
+  (* All these opposite instances are prone to trigger loops in instance
+     resolution, notably if the category C for which an instance is looked after is a
+     meta-variable.
+     It also loops easily with the [Fun] since it can interpret it as being [Op]
+     too easily.
+     I therefore don't declare them [Global] and use [Local Existing Instance] where
+     needed. I don't know if there's a better way to go.
+   *)
+  Instance Eq2_Op : Eq2 (op C) :=
     fun a b => eq2 (C := C).
 
-  Global Instance Id_Op : Id_ (op C) :=
+  Instance Id_Op : Id_ (op C) :=
     id_ (C := C).
 
-  Global Instance Cat_Op : Cat (op C) :=
+  Instance Cat_Op : Cat (op C) :=
     fun a b c f g => cat (C := C) g f.
 
 End OppositeCat.
@@ -122,12 +130,15 @@ Section DaggerLaws.
   Context {Eq2C : Eq2 C} {IdC : Id_ C} {CatC : Cat C}.
   Context {DagC : Dagger C}.
 
-  Global Instance Dagger_Op : Dagger (op C) :=
+   Instance Dagger_Op : Dagger (op C) :=
     fun a b f => dagger (C := C) f.
 
   Class DaggerInvolution : Prop :=
     dagger_invol : forall a b (f: C a b), dagger (dagger f) ⩯ f.
 
+  Local Existing Instance Eq2_Op.
+  Local Existing Instance Id_Op.
+  Local Existing Instance Cat_Op.
   Class DaggerLaws : Prop := {
     dagger_involution :> DaggerInvolution ;
     dagger_functor :> Functor (op C) C id (@dagger obj C _)

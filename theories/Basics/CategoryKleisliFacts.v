@@ -274,7 +274,7 @@ Fact bimap_id_pure {A B C} (f : B -> C) :
   bimap (id_ A) (pure f) ⩯ pure (bimap (id_ A) f).
 Proof.
   unfold bimap, Bimap_Coproduct.
-  rewrite !cat_id_l. rewrite <- !case_pure. rewrite <- !compose_pure. rewrite <- pure_id.
+  rewrite !cat_id_l; rewrite <- !case_pure. rewrite <- !compose_pure. rewrite <- pure_id.
   rewrite !cat_id_l.
   reflexivity.
 Qed.

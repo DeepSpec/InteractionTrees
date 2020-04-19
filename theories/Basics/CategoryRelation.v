@@ -92,6 +92,9 @@ Section Operations.
 
 End Operations.
 
+(** The following instances prove that the operations claimed above to be what
+they are are indeed what the are **)
+
 Section Facts.
 
   Section CategoryRel.
@@ -241,6 +244,10 @@ Section Facts.
     Proof.
       split; intros ? ? H; apply H.
     Qed.
+
+    Local Existing Instance Eq2_Op.
+    Local Existing Instance Id_Op.
+    Local Existing Instance Cat_Op.
 
     Global Instance DaggerFunctor_rel : Functor (op relationH) relationH id (@dagger _ _ _).
     Proof.
