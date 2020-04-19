@@ -44,14 +44,23 @@ Section Operations.
   Global Instance Inr_rel : Inr relationH sum :=
     fun _ _ => fun_rel inr.
 
-  Global Instance Pair_rel : Pair relationH prod :=
-    fun _ _ _ l r c '(a,b) => l c a /\ r c b.
+  Global Instance Pair_rel : Pair relationH sum :=
+    fun A B C l r c => case_sum _ _ _ (l c) (r c).
 
-  Global Instance Fst_rel : Fst relationH prod :=
-    fun A B => fun_rel fst.
+  Global Instance Fst_rel : Fst relationH sum :=
+    fun _ _ x a => x = inl a.
 
-  Global Instance Snd_rel : Snd relationH prod :=
-    fun _ _ => fun_rel snd.
+  Global Instance Snd_rel : Snd relationH sum :=
+    fun _ _ x a => x = inr a.
+
+  (* Global Instance Pair_rel : Pair relationH prod := *)
+  (*   fun _ _ _ l r c '(a,b) => l c a /\ r c b. *)
+
+  (* Global Instance Fst_rel : Fst relationH prod := *)
+  (*   fun A B => fun_rel fst. *)
+
+  (* Global Instance Snd_rel : Snd relationH prod := *)
+  (*   fun _ _ => fun_rel snd. *)
 
 End Operations.
 
@@ -137,19 +146,24 @@ Section Facts.
         [apply RS | apply TU | apply SR | apply UT]; auto.
   Qed.
 
-  (* Actually the product is _not_ a product.
-     pair_ f g >>> fst_ ≈ f does not hold.
-     More specifically, f ⊏ pair_ f g does not hold since the left
-     hand side requires us to find an image by g of the element considered
-     even if we drop it right after.
-   *)
-  Global Instance Product_rel : Product relationH prod.
+  Global Instance Product_rel : Product relationH sum.
   Proof.
     constructor.
-    - red. intros. unfold cat, Cat_rel. split.
-      intros ? ? [[] [H EQ]]; inv EQ; apply H.
-      intros ? ? ?. cbv.
-      (* Impossible *)
-  Abort.
+    - split.
+      + intros ? ? ([] & ? & EQ); inv EQ; auto.
+      + intros ? ? ?.
+        exists (inl y); cbv; auto.
+    - split.
+      + intros ? ? ([] & ? & EQ); inv EQ; auto.
+      + intros ? ? ?.
+        exists (inr y); cbv; auto.
+    - intros ? ? ? R S RS [RSR RRS] [RSS SRS]; split.
+      + cbv. intros ? [] ?; [apply RSR | apply RSS];
+               (eexists; split; [| reflexivity]; auto).
+      + cbv. intros ? [] EQ; [apply RRS in EQ | apply SRS in EQ]; destruct EQ as [[] [? EQ]]; inv EQ; auto. 
+    - intros ? ? ? R S [RS SR] T U [TU UT]; split.
+      cbv; intros ? [] ?; [apply RS | apply TU]; auto.
+      cbv; intros ? [] ?; [apply SR | apply UT]; auto.
+  Qed.
 
 End Facts.
