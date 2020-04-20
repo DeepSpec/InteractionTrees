@@ -319,18 +319,27 @@ Section ProdRelProps.
         (T: relationH D E) (U: relationH E F)
   : (S ∘ R) ⊗ (U ∘ T) ≡ (S ⊗ U) ∘ (R ⊗ T).
   Proof.
-  Admitted.
+    split; intros!.
+    - invn prod_rel; invn compose; invn and.
+      inversion H0. destruct H.
+      all: eexists; split; econstructor; eauto.
+    - invn compose; invn and; do 2 invn prod_rel.
+      eauto.
+      all: econstructor; eexists; eauto.
+  Qed.
 
   Lemma transpose_prod {A B C D: Type}
         (R: relationH A B) (S: relationH C D)
     : † (S ⊗ R) ≡ (†S ⊗ †R).
   Proof.
-  Admitted.
+    split; unfold transpose; cbn; intros!; invn prod_rel; auto.
+  Qed.
 
   (* What's the right way to avoid having to refer to H here? *)
   Global Instance Proper_prod_rel {A B C D}: Proper (eq_rel ==> eq_rel ==> eq_rel) (@prod_rel A B C D).
   Proof.
-  Admitted.
+    intros!; split; intros!; invn prod_rel; econstructor; (apply H || apply H0); auto.
+  Qed.
 
 End ProdRelProps.
 

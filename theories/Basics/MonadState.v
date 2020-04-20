@@ -44,7 +44,6 @@ Section State.
     - red. intros. eapply transitivity; eauto.
     - specialize (H s). specialize (H0 s).
       rewrite <- (eq_id_r eq). 
-      (* KS: Unproven prod lemmas in Heteregenous *)
       rewrite prod_compose.
       eapply eqmR_rel_trans; auto.
       + apply H.
@@ -78,16 +77,6 @@ Section State.
       + apply EqmROKm.
       + apply  subrelationH_prod; auto. apply subrelationH_refl.
   Qed.
-      
-
-  (* Global Instance EqMProps_stateT : @EqMProps (stateT S M) _ EqM_stateT. *)
-  (* Proof. *)
-  (* constructor. *)
-  (* - repeat red. *)
-  (*   reflexivity. *)
-  (* - repeat red. intros. symmetry. apply H. *)
-  (* - repeat red. intros. etransitivity; eauto. apply H.  apply H0. *)
-  (* Qed. *)
 
   Lemma ret_ok :  forall (HS: inhabited S) {A1 A2} (RA : A1 -> A2 -> Prop) (a1:A1) (a2:A2),
       RA a1 a2 <-> (eqmR RA (ret a1) (ret a2)).
@@ -138,12 +127,9 @@ Section State.
      unfold eqmR, EqmR_stateT in *. intros.
      specialize (ma_OK s).
      cbn in *.
-     assert (Hpair: (fun sa : S * A => ret (fst sa, snd sa)) =
-                    (fun sa : S * A => ret sa)).
-     (* KS: There must be a cleaner way to rewrite the 
-            pairs with surjective_pairing *)
-     { apply functional_extensionality. intros.
-       rewrite <- surjective_pairing. auto. }
+     Typeclasses eauto := 5.
+     setoid_rewrite <- surjective_pairing.
+     auto.
      rewrite Hpair.
      eapply eqmR_bind_ret_r; assumption.
    - unfold eqmR, EqmR_stateT in *.
