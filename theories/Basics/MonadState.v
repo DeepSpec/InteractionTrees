@@ -94,11 +94,6 @@ Section State.
       + apply ML.
   Admitted.
 
-  (* KS: Used in eqmR_bind_ret_r case below to rewrite 
-     pair (S * A) in function. *)
-  Axiom functional_extensionality : forall {A B} (f g : A -> B),
-  (forall x, f x = g x) -> f = g.
-
   Instance EqmRMonad_stateT (HS: inhabited S) : @EqmRMonad (stateT S m) _ _.
   Proof.
   constructor.
@@ -130,7 +125,6 @@ Section State.
      Typeclasses eauto := 5.
      setoid_rewrite <- surjective_pairing.
      auto.
-     rewrite Hpair.
      eapply eqmR_bind_ret_r; assumption.
    - unfold eqmR, EqmR_stateT in *.
      intros.

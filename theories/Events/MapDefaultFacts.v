@@ -20,6 +20,7 @@ From Paco Require Import paco.
 From ITree Require Import
      Basics.Basics
      Basics.CategoryOps
+     Basics.HeterogeneousRelations
      ITree
      ITreeFacts
      Indexed.Sum
