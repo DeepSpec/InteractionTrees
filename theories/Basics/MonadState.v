@@ -44,6 +44,7 @@ Section State.
     - red. intros. eapply transitivity; eauto.
     - specialize (H s). specialize (H0 s).
       rewrite <- (eq_id_r eq). 
+      (* KS: Unproven prod lemmas in Heteregenous *)
       rewrite prod_compose.
       eapply eqmR_rel_trans; auto.
       + apply H.
@@ -97,8 +98,17 @@ Section State.
         constructor; auto.
     - inversion HS.
       specialize (H X).
-      apply eqmR_ret in H. inversion H. assumption. assumption.
-  Qed.
+      eapply eqmR_ret in H.
+      + (* KS: This is the reverse direction that was left out
+           from eqmR_ret in Monad.v *)
+        admit.
+      + apply ML.
+  Admitted.
+
+  (* KS: Used in eqmR_bind_ret_r case below to rewrite 
+     pair (S * A) in function. *)
+  Axiom functional_extensionality : forall {A B} (f g : A -> B),
+  (forall x, f x = g x) -> f = g.
 
   Instance EqmRMonad_stateT (HS: inhabited S) : @EqmRMonad (stateT S m) _ _.
   Proof.
@@ -107,52 +117,47 @@ Section State.
   - intros.
     unfold eqmR, EqmR_stateT.
     intros s.
-(*     eapply eqmR_bind. assumption. *)
-(*     apply H. *)
-(*     intros. destruct a1. destruct a2. *)
-(*     cbn. unfold eqmR, EqmR_stateT in H0. *)
-(*     inversion H1; subst. *)
-(*     apply H0. assumption. *)
-(*   - intros A B RA RB. *)
-(*     do 5 red. intros x y H x0 y0 H0 s. *)
-(*     unfold eqmR, EqmR_stateT. *)
-(*     eapply eqmR_Proper_bind. *)
-(*     + assumption. *)
-(*     + apply H. *)
-(*     + red. intros. *)
-(*       destruct x1. destruct y1. simpl. *)
-(*       inversion H1. subst. apply H0 in H7. apply H7. *)
-(*   - intros. *)
-(*     unfold eqmR, EqmR_stateT. *)
-(*     intros. unfold eqmR. *)
-(*     eapply eqmR_bind_ret_l. *)
-(*     3: { eapply prod_morphism. reflexivity. apply a_OK. } *)
-(*     assumption. *)
-(*     repeat red. intros. destruct x. destruct y. simpl. *)
-(*     inversion H. subst. apply f_OK. assumption. *)
-(*   - unfold eqmR, EqmR_stateT in *. *)
-(*     intros. *)
-(*     unfold bind, Monad_stateT. *)
-(*     cbn. *)
-(*     assert (forall (x:S * A), EQmR _ _ eq ((fun (sa : S * A) => ret (fst sa, snd sa)) x)  ((fun (sa : S * A) => ret sa) x)). *)
-(*     { intros. destruct x. cbn. apply eqmR_ret. assumption. reflexivity. } *)
-(*     setoid_rewrite H. *)
-(*     eapply eqmR_bind_ret_r. assumption. *)
-(*     apply ma_OK. *)
-(*   - intros A B C RA RB RC f f_OK g g_OK ma ma_OK. *)
-(*     unfold eqmR, EqmR_stateT in *. cbn in *. *)
-(*     intros. *)
-(*     eapply eqmR_bind_bind. *)
-(*     4 : apply ma_OK. *)
-(*     + assumption. *)
-(*     + repeat red. *)
-(*       intros. destruct x. destruct y. *)
-(*       cbn. inversion H. subst. apply f_OK. assumption. *)
-(*     + repeat red. *)
-(*       intros. destruct x. destruct y. *)
-(*       cbn. inversion H. subst. apply g_OK. assumption. *)
-(* Qed. *)
-Admitted. 
+    eapply eqmR_bind_ProperH. assumption.
+    apply H.
+    intros. destruct a1. destruct a2.
+    cbn. unfold eqmR, EqmR_stateT in H0.
+    inversion H1; subst.
+    apply H0. assumption.
+   - intros A B RA RB.
+     red. intros k HProper a HRA s.
+     eapply eqmR_bind_ret_l; auto.
+     + instantiate (1:=eq ⊗ RA).
+       do 2 red.
+       intros sa1 sa2 Hsa.
+       destruct sa1 as (s1 & a1). simpl.
+       destruct sa2 as (s2 & a2). simpl.
+       inversion Hsa. subst.
+       apply HProper. assumption.
+     + auto.
+   - intros.
+     unfold eqmR, EqmR_stateT in *. intros.
+     specialize (ma_OK s).
+     cbn in *.
+     assert (Hpair: (fun sa : S * A => ret (fst sa, snd sa)) =
+                    (fun sa : S * A => ret sa)).
+     (* KS: There must be a cleaner way to rewrite the 
+            pairs with surjective_pairing *)
+     { apply functional_extensionality. intros.
+       rewrite <- surjective_pairing. auto. }
+     rewrite Hpair.
+     eapply eqmR_bind_ret_r; assumption.
+   - unfold eqmR, EqmR_stateT in *.
+     intros.
+     cbn in *.
+     eapply eqmR_bind_bind; try assumption.
+     + apply ma_OK.
+     + repeat red.
+       intros. destruct x. destruct y.
+       cbn. inversion H. subst. apply f_OK. assumption.
+     + repeat red.
+       intros. destruct x. destruct y.
+       cbn. inversion H. subst. apply g_OK. assumption.
+  Qed.
 
   Context {Im: Iter (Kleisli m) sum}.
   Context {Cm: Iterative (Kleisli m) sum}.
