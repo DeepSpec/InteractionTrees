@@ -73,17 +73,74 @@ Section Operations.
   (* Global Instance Snd_rel : Snd relationH prod := *)
   (*   fun _ _ => fun_rel snd. *)
 
-  (* I'm not sure how we would actually want to work with these
-       since we have two instances of [Bimap], ⊕ and ⊗, that we actually use.
-       Additionally of course we have the two that are derived from
-       the respective product and coproduct, which should be provably
-       isomorphic to respectively ⊗ and ⊕.
+  (* Both ⊕ and ⊗ are bimaps with respect to with relationH forms a monoidal category.
+     I am not sure if they are isomorphic to the bimaps derived from the product and coproduct?
    *)
   Global Instance Bimap_sum_rel : Bimap relationH sum :=
     fun (a b c d : Type) R S => R ⊕ S.
 
+  Global Instance AssocR_sum : AssocR relationH sum :=
+    fun A B C ab_c a_bc =>
+      match ab_c, a_bc with
+      | inl (inl a), inl a'       => a = a'
+      | inl (inr b), inr (inl b') => b = b'
+      | inr c, inr (inr c')       => c = c'
+      | _, _                      => False
+      end.
+
+  Global Instance AssocL_sum : AssocL relationH sum :=
+    fun A B C ab_c a_bc =>
+      match ab_c, a_bc with
+      | inl a, inl (inl a')       => a = a'
+      | inr (inl b), inl (inr b') => b = b'
+      | inr (inr c), inr c'       => c = c'
+      | _, _                      => False
+      end.
+
+  Global Instance UnitL_sum : UnitL relationH sum void :=
+    fun _ ma a' => match ma with
+                | inl abs => match abs with end
+                | inr a => a = a'
+                end.
+
+  Global Instance UnitR_sum : UnitR relationH sum void :=
+    fun _ ma a' => match ma with
+                | inr abs => match abs with end
+                | inl a => a = a'
+                end.
+
+  Global Instance UnitL'_sum : UnitL' relationH sum void :=
+    fun _ a ma' => match ma' with
+                | inl abs => match abs with end
+                | inr a' => a = a'
+                end.
+
+  Global Instance UnitR'_sum : UnitR' relationH sum void :=
+    fun _ a ma' => match ma' with
+                | inr abs => match abs with end
+                | inl a' => a = a'
+                end.
+
   Global Instance Bimap_prod_rel : Bimap relationH prod :=
     fun (a b c d : Type) R S => R ⊗ S.
+
+  Global Instance AssocR_prod : AssocR relationH prod :=
+    fun A B C '(a,b,c) '(a',(b',c')) => a = a' /\ b = b' /\ c = c'.
+
+  Global Instance AssocL_prod : AssocL relationH prod :=
+    fun A B C '(a,(b,c)) '(a',b',c') => a = a' /\ b = b' /\ c = c'.
+
+  Global Instance UnitL_prod : UnitL relationH prod unit :=
+    fun _ '(_,a) a' =>  a = a'.
+
+  Global Instance UnitR_prod : UnitR relationH prod unit :=
+    fun _ '(a,_) a' => a = a'.
+
+  Global Instance UnitL'_prod : UnitL' relationH prod unit :=
+    fun _ a '(_,a') => a = a'.
+
+  Global Instance UnitR'_prod : UnitR' relationH prod unit :=
+    fun _ a '(a',_) => a = a'.
 
   (* The [transpose] operation forms a [dagger] category *)
 
@@ -264,5 +321,205 @@ Section Facts.
     Qed.
 
   End DaggerRel.
+
+  Section BifunctorProd.
+
+    Global Instance BimapId_prod_rel : BimapId relationH prod.
+    Proof.
+      split.
+      cbv; intros ? ? []; subst; auto.
+      cbv; intros [] [] EQ; inv EQ; auto.
+    Qed.
+
+    Global Instance BimapCat_prod_rel : BimapCat relationH prod.
+    Proof.
+      split.
+      cbv; intros [] [] ([] & ? & ?); do 2 invn prod_rel; eexists; eauto.
+      cbv; intros [] [] ?; invn prod_rel; do 2 destructn ex; do 2 destructn and; eauto.
+    Qed.
+
+    Global Instance Bifunctor_prod_rel : Bifunctor relationH prod.
+    Proof.
+      constructor; try typeclasses eauto.
+    Qed.
+
+    Global Instance Iso_Assoc_prod_rel : forall a b c : Type, Iso relationH (@assoc_r _ relationH prod _ a b c) assoc_l.
+    Proof.
+      split.
+      - cbv; split.
+        + intros ? ? ?; repeat destructn prod.
+          destructn ex; repeat destructn prod; repeat destructn and; subst; auto.
+        + intros ((? & ?) & ?) ((x & y) & z) EQ; inv EQ.
+          exists (x,(y,z)); intuition.
+      - cbv; split.
+        + intros ? ? ?; destructn ex; repeat destructn prod; intuition subst; auto.
+        + intros ? (x & y & z) ->; repeat destructn prod.
+          exists (x,y,z); intuition.
+    Qed.
+
+    Global Instance Iso_UnitL_prod_rel: forall a : Type, Iso relationH (@unit_l _ relationH prod _ _ a) unit_l'.
+    Proof.
+      split; cbv; split; intros; repeat (subst || destructn ex || destructn prod || invn @eq || destructn unit); intuition subst; auto.
+      eexists; intuition.
+      exists (tt,y); auto.
+    Qed.
+
+    Global Instance Iso_UnitR_prod_rel: forall a : Type, Iso relationH (@unit_r _ relationH prod _ _ a) unit_r'.
+    Proof.
+      split; cbv; split; intros; repeat (subst || destructn ex || destructn prod || invn @eq || destructn unit); intuition subst; auto.
+      eexists; intuition.
+      exists (y,tt); auto.
+    Qed.
+
+    Global Instance UnitLNatural_prod_rel : UnitLNatural relationH prod unit.
+    Proof.
+      split;
+        cbv; intros; repeat (subst || destructn ex || destructn prod || invn @eq || destructn unit || destructn and
+                             || invn prod_rel).
+      eexists; intuition subst; eauto.
+      eexists; intuition subst; eauto.
+    Qed.
+
+    Global Instance UnitL'Natural_prod_rel : UnitL'Natural relationH prod unit.
+    Proof.
+      split;
+        cbv; intros; repeat (subst || destructn ex || destructn prod || invn @eq || destructn unit || destructn and
+                             || invn prod_rel).
+      eexists; intuition subst; eauto.
+      exists (tt,x); intuition subst; auto.
+    Qed.
+
+    Global Instance AssocRUnit_prod_rel : AssocRUnit relationH prod unit.
+    Proof.
+      split;
+        cbv; intros; repeat (subst || destructn ex || destructn prod || invn @eq || destructn unit || destructn and
+                             || invn prod_rel).
+      eauto.
+      exists (a0, (tt,b0)); intuition subst; auto.
+    Qed.
+
+    Global Instance AssocRAssocR_prod_rel : AssocRAssocR relationH prod.
+    Proof.
+      split;
+        cbv; intros; repeat (subst || destructn ex || destructn prod || invn @eq || destructn unit || destructn and
+                             || invn prod_rel).
+      exists (a1,b1,(c1,d1)); intuition; auto.
+      exists (a1,(b1,c1,d1)); intuition; auto.
+      exists (a1,(b1,c1),d1); intuition; auto.
+    Qed.
+
+    Global Instance Monoidal_prod_rel : Monoidal relationH prod unit.
+    Proof.
+      constructor; typeclasses eauto.
+    Qed.
+
+  End BifunctorProd.
+
+  Section BifunctorSum.
+
+    Global Instance BimapId_sum_rel : BimapId relationH sum.
+    Proof.
+      split.
+      cbv; intros ? ? []; subst; auto.
+      cbv; intros [] [] EQ; inv EQ; auto.
+    Qed.
+
+    Global Instance BimapCat_sum_rel : BimapCat relationH sum.
+    Proof.
+      split.
+      cbv; intros [] [] [[] [? ?]]; do 2 invn sum_rel; eauto.
+      cbv; intros [] [] ?; invn sum_rel; invn ex; invn and; eauto.
+    Qed.
+
+    Global Instance Bifunctor_sum_rel : Bifunctor relationH sum.
+    Proof.
+      constructor; try typeclasses eauto.
+    Qed.
+
+    Global Instance Iso_Assoc_sum_rel : forall a b c : Type, Iso relationH (@assoc_r _ relationH sum _ a b c) assoc_l.
+    Proof.
+      split.
+      - cbv; split;
+          intros;
+          repeat (subst || destructn ex || destructn sum || invn @eq || destructn unit || destructn and
+                  || invn prod_rel); intuition.
+        exists (inl a0); intuition.
+        exists (inr (inl b0)); intuition.
+        exists (inr (inr c0)); intuition.
+      - cbv; split; intros;
+          repeat (subst || destructn ex || destructn sum || invn @eq || destructn unit || destructn and
+                  || invn prod_rel); intuition.
+        exists (inl (inl a0)); intuition.
+        exists (inl (inr b0)); intuition.
+        exists (inr c0); intuition.
+    Qed.
+
+    Global Instance Iso_UnitL_sum_rel: forall a : Type, Iso relationH (@unit_l _ relationH sum _ _ a) unit_l'.
+    Proof.
+      split; cbv; split; intros; repeat (subst || destructn ex || destructn sum || invn @eq || destructn unit); intuition subst; auto.
+      eexists; intuition.
+      exists (inr y); auto.
+    Qed.
+
+    Global Instance Iso_UnitR_sum_rel: forall a : Type, Iso relationH (@unit_r _ relationH sum _ _ a) unit_r'.
+    Proof.
+      split; cbv; split; intros; repeat (subst || destructn ex || destructn sum || invn @eq || destructn unit); intuition subst; auto.
+      eexists; intuition.
+      exists (inl y); auto.
+    Qed.
+
+    Global Instance UnitLNatural_sum_rel : UnitLNatural relationH sum void.
+    Proof.
+      split;
+        cbv; intros; repeat (subst || destructn ex || destructn sum || invn @eq || destructn unit || destructn and
+                             || invn sum_rel || invn void).
+      eexists; intuition subst; eauto.
+      eexists; intuition subst; eauto.
+    Qed.
+
+    Global Instance UnitL'Natural_sum_rel : UnitL'Natural relationH sum void.
+    Proof.
+      split;
+        cbv; intros; repeat (subst || destructn ex || destructn sum || invn @eq || destructn unit || destructn and
+                             || invn sum_rel || invn void).
+      eexists; intuition subst; eauto.
+      exists (inr x); intuition subst; auto.
+    Qed.
+
+    Global Instance AssocRUnit_sum_rel : AssocRUnit relationH sum void.
+    Proof.
+      split;
+        cbv; intros; repeat (subst || destructn ex || destructn sum || invn @eq || destructn unit || destructn and
+                             || invn sum_rel || invn void); intuition eauto.
+      exists (inl a0); intuition subst; auto.
+      exists (inr (inr b0)); intuition subst; auto.
+    Qed.
+
+    Global Instance AssocRAssocR_sum_rel : AssocRAssocR relationH sum.
+    Proof.
+      split;
+        cbv; intros;
+          repeat (invn False || subst || destructn ex || destructn and || invn sum_rel
+                  || destructn sum || invn @eq || destructn unit).
+      - exists (inl (inl a2)); intuition; auto.
+      - exists (inl (inr b0)); intuition; auto.
+      - exists (inr (inl c0)); intuition; auto.
+      - exists (inr (inr d0)); intuition; auto.
+      - exists (inl a1); intuition; auto.
+        exists (inl (inl a1)); intuition; auto.
+      - exists (inr (inl (inl b1))); intuition; auto.
+        exists (inl (inr (inl b1))); intuition; auto.
+      - exists (inr (inl (inr c0))); intuition; auto.
+        exists (inl (inr (inr c0))); intuition; auto.
+      - exists (inr (inr d0)); intuition; auto.
+        exists (inr d0); intuition; auto.
+     Qed.
+
+    Global Instance Monoidal_sum_rel : Monoidal relationH sum void.
+    Proof.
+      constructor; typeclasses eauto.
+    Qed.
+
+  End BifunctorSum.
 
 End Facts.
