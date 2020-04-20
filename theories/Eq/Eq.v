@@ -74,7 +74,7 @@ Section eqit.
       Then the desired equivalence relation is obtained by setting
       [RR := eq] (with [R1 = R2]).
    *)
-  Context {E : Type -> Type} {R1 R2 : Type} (RR : relationH R1 R2).
+  Context {E : Type -> Type} {R1 R2 : Type} (RR : R1 -> R2 -> Prop).
 
   (** We also need to do some gymnastics to work around the
       two-layered definition of [itree]. We first define a
