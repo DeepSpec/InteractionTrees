@@ -11,13 +11,17 @@ From Coq Require Import
 Import ListNotations.
 
 From ExtLib Require Import
-     Structures.Functor
-     Structures.Monad
+(*      Structures.Functor *)
+(*      Structures.Monad *)
      Structures.Monoid.
 
 From ITree Require Import
      Basics.Basics
      Basics.CategoryOps
+     Basics.Functor
+     Basics.Monad
+     Basics.MonadState
+     Basics.MonadWriter
      Core.ITreeDefinition
      Indexed.Sum
      Core.Subevent
@@ -25,7 +29,6 @@ From ITree Require Import
      Interp.Handler
      Events.State.
 
-Import Basics.Basics.Monads.
 (* end hide *)
 
 (** Event to output values of type [W]. *)
@@ -68,7 +71,7 @@ Definition handle_writer {W E} (Monoid_W : Monoid W)
   : writerE W ~> stateT W (itree E)
   := fun _ e s =>
        match e with
-       | Tell w => Ret (monoid_plus Monoid_W s w, tt) 
+       | Tell w => Ret (monoid_plus Monoid_W s w, tt)
        end.
 
 Definition run_writer {W E} (Monoid_W : Monoid W)

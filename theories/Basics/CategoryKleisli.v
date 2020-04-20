@@ -18,9 +18,6 @@
 From Coq Require Import
      Morphisms.
 
-From ExtLib Require Import
-     Structures.Monad.
-
 From ITree Require Import
      Basics.Basics
      Basics.CategoryOps
@@ -56,7 +53,7 @@ Section Instances.
 
   Definition map {a b c} (g:b -> c) (ab : Kleisli m a b) : Kleisli m a c :=
      cat ab (pure g).
-  
+
   Global Instance Initial_Kleisli : Initial (Kleisli m) void :=
     fun _ v => match v : void with end.
 
@@ -73,6 +70,15 @@ Section Instances.
     fun _ _ => pure inr.
 
   Global Instance Iter_Kleisli `{MonadIter m} : Iter (Kleisli m) sum :=
-    fun a b => Basics.iter.
+    fun a b => iter.
 
 End Instances.
+
+(* Convenient equation to switch perspective between the monadic and categorical view. *)
+Lemma iter_monad_to_cat:
+  forall {M} {IM: MonadIter M} a b,
+    @Monad.iter M IM a b = @CategoryOps.iter Type (Kleisli M) sum _ b a.
+Proof.
+  reflexivity.
+Qed.
+

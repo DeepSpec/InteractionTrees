@@ -152,7 +152,7 @@ Lemma unfold_iter_ktree {E A B} (f : ktree E A (A + B)) (a0 : A) :
     | inr b => Ret b
     end.
 Proof.
-  unfold iter, Iter_Kleisli, Basics.iter, MonadIter_itree, cat.
+  unfold iter, Iter_Kleisli, Monad.iter, MonadIter_itree, cat.
   rewrite unfold_iter; cbn.
   eapply eqit_bind; try reflexivity.
 Qed.

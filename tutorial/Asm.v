@@ -13,21 +13,19 @@ From Coq Require Import
      Setoid
      RelationClasses.
 
-Require Import ExtLib.Structures.Monad.
-
-  (* SAZ: Should we add ITreeMonad to ITree? *)
 From ITree Require Import
      ITree
      ITreeFacts
      ITreeMonad
      Basics.Monad
+     Basics.MonadEither
+     Basics.MonadState
      Basics.CategorySub
      Events.State
      Events.StateFacts.
 
 Require Import Fin Utils_tutorial.
 
-Import Monads.
 (* end hide *)
 
 (** ** Syntax *)
@@ -61,6 +59,7 @@ Variant instr : Set :=
 Variant branch {label : Type} : Type :=
 | Bjmp (_ : label)                (* jump to label *)
 | Bbrz (_ : reg) (yes no : label) (* conditional jump *)
+| Bret (_: reg)
 | Bhalt
 .
 Global Arguments branch _ : clear implicits.
@@ -72,8 +71,6 @@ Inductive block {label : Type} : Type :=
 | bbi (_ : instr) (_ : block)
 | bbb (_ : branch label).
 Global Arguments block _ : clear implicits.
-
-
 
 (** A piece of code should expose the set of labels allowing to enter into it,
     as well as the set of outer labels it might jump to.  To this end, [bks]
@@ -123,7 +120,6 @@ Inductive Memory : Type -> Type :=
 | Load  (a : addr) : Memory value
 | Store (a : addr) (val : value) : Memory unit.
 
-
 (* SAZ: Move Exit to the itrees library? *)
 (** We also introduce a special event to model termination of the computation.
     Note that it expects _actively_ no answer from the environment: [Done] is
@@ -136,17 +132,18 @@ Inductive Exit : Type -> Type :=
 Definition exit {E A} `{Exit -< E} : itree E A :=
   vis Done (fun v => match v : void with end).
 
+(* TO MOVE *)
+(* Instance trigger' {E F: Type -> Type} `{E -< F} : Triggerable (eitherT value (itree F)) E := *)
+  (* fun _ e => Vis (subevent _ e) (fun x => ret (inr x)). *)
 
 Section Denote.
 
   (** Once again, [asm] programs shall be denoted as [itree]s. *)
 
   (* begin hide *)
-  Import ExtLib.Structures.Monad.
   Import MonadNotation.
   Local Open Scope monad_scope.
   (* end hide *)
-
 
   Section with_event.
 
@@ -165,6 +162,7 @@ Section Denote.
       end.
 
     (** Instructions offer no suprises either. *)
+    Print Instances Monad.
     Definition denote_instr (i : instr) : itree E unit :=
       match i with
       | Imov d s =>
@@ -190,26 +188,34 @@ Section Denote.
         trigger (Store addr val)
       end.
 
+    Definition returns {B} r: eitherT value (itree E) B := val <- trigger (GetReg r);; ret (inl val).
+
+    Notation tree_ret := (eitherT value (itree E)).
+
+    (* TO MOVE *)
+    Definition lift {m T} `{Monad m} {V} (c: m T): eitherT V m T :=
+      bind c (fun x => ret (inr x)).
+
     (** A [branch] returns the computed label whose set of possible values [B]
         is carried by the type of the branch.  If the computation halts
         instead of branching, we return the [exit] tree.  *)
-    Definition denote_br {B} (b : branch B) : itree E B :=
+    Definition denote_br {B} (b : branch B) : tree_ret B :=
       match b with
       | Bjmp l => ret l
       | Bbrz v y n =>
         val <- trigger (GetReg v) ;;
-        if val:nat then ret y else ret n
+        if val:nat then ret (inr y) else ret (inr n)
+      | Bret r => returns r
       | Bhalt => exit
       end.
-
 
     (** The denotation of a basic [block] shares the same type, returning the
         [label] of the next [block] it shall jump to.  It recursively denote
         its instruction before that.  *)
-    Fixpoint denote_bk {B} (b : block B) : itree E B :=
+    Fixpoint denote_bk {B} (b : block B) : tree_ret B :=
       match b with
       | bbi i b =>
-        denote_instr i ;; denote_bk b
+        lift (denote_instr i) ;; denote_bk b
       | bbb b =>
         denote_br b
       end.
@@ -225,10 +231,10 @@ Section Denote.
         They have a nice algebraic structure, supported by the library,
         including a [loop] combinator that we can use to link collections of
         basic blocks. (See below.) *)
-    Definition denote_bks {A B : nat} (bs: bks A B): sub (ktree E) fin A B :=
+    Definition denote_bks {A B : nat} (bs: bks A B): sub (Kleisli tree_ret) fin A B :=
       fun a => denote_bk (bs a).
 
-  (** One can think of an [asm] program as a circuit/diagram where wires
+    (** One can think of an [asm] program as a circuit/diagram where wires
       correspond to jumps/program links.  [denote_bks] computes the meaning of
       each basic block as an [itree] that returns the label of the next block to
       jump to, laying down all our elementary wires.  In order to denote an [asm
@@ -238,7 +244,7 @@ Section Denote.
       accomplish this with the same [loop] combinator we used to denote _Imp_'s
       [while] loop.  It directly takes our [denote_bks (code s): ktree E (I + A)
       (I + B)] and hides [I] as desired.  *)
-    Definition denote_asm {A B} : asm A B -> sub (ktree E) fin A B :=
+    Definition denote_asm {A B} : asm A B -> sub (Kleisli tree_ret) fin A B :=
       fun s => loop (denote_bks (code s)).
 
   End with_event.
@@ -300,19 +306,53 @@ Definition h_memory {E : Type -> Type} `{mapE addr 0 -< E} :
 Definition registers := alist reg value.
 Definition memory    := alist addr value.
 
+(* Definition eitherT_stateT_commute {S A M R}: *)
+(*   (stateT S (eitherT A M) R) -> (eitherT A (stateT S M) R). *)
+(* intros ?. *)
 
+(* From ITree Require Import Interp.InterpEither. *)
 (** The _asm_ interpreter takes as inputs a starting heap [mem] and register
     state [reg] and interprets an itree in two nested instances of the [map]
     variant of the state monad. To get this type to work out, we have to
     do a bit of post-processing to swap the order of the "state components"
     introduced by the interpretation.
-*)
+ *)
+(* Should [eitherT] be on top of [itree E] or on the outside? *)
+
+(*
+
+Definition distribute {A B C: Type}: A * (B + C) -> A * B + A * C :=
+  fun '(a,bc) => match bc with
+              | inl b => inl (a,b)
+              | inr c => inr (a,c)
+              end.
+
+Definition interp_either_map {E K V Exc d map} `{M : Map K V map} :
+  eitherT Exc (itree (@mapE K V d +' E)) ~>
+          stateT map (eitherT (map * Exc) (itree E)) :=
+  fun T t s =>
+    let '(mkEitherT t') :=
+         interp_either' (M := stateT _ _) (case_ (@handle_map K V _ _ E d) pure_state) _ t in
+    mkEitherT (ITree.map distribute (t' s)).
+
+(*
+Definition MAS {m: Type -> Type} (S: Type) (Exc: Type): Type -> Type :=
+    fun (A: Type) => m ((Exc * S) + (A * S)).
+ *)
+
+Definition interp_asm {E A}
+           (t : eitherT value (itree (Reg +' Memory +' E)) A) :
+  stateT registers (stateT memory (eitherT (memory * (registers * value)) (itree E))) A :=
+  let h := bimap h_reg (bimap h_memory (id_ E)) in
+  let t' := interp_either' h _ t in
+  fun mem regs => interp_either_map _ (interp_either_map _ t' mem) regs.
+ *)
+
 Definition interp_asm {E A} (t : itree (Reg +' Memory +' E) A) :
-  memory -> registers -> itree E (memory * (registers * A)) :=
+  stateT registers (stateT memory (itree E)) A :=
   let h := bimap h_reg (bimap h_memory (id_ _)) in
   let t' := interp h t in
-  fun  mem regs => interp_map (interp_map t' regs) mem.
-
+  fun mem regs => interp_map (interp_map t' mem) regs.
 
 (** We can then define an evaluator for closed assembly programs by interpreting
     both store and heap events into two instances of [mapE], and running them
@@ -322,10 +362,11 @@ Definition run_asm (p: asm 1 0) := interp_asm (denote_asm p Fin.f0) empty empty.
 (* SAZ: Should some of thes notions of equivalence be put into the library?
    SAZ: Should this be stated in terms of ktree ?
  *)
+
 (** The definition [interp_asm] also induces a notion of equivalence (open)
     _asm_ programs, which is just the equivalence of the ktree category *)
-Definition eq_asm_denotations {E A B} (t1 t2 : Kleisli (itree (Reg +' Memory +' E)) A B) : Prop :=
-  forall a mem regs, interp_asm (t1 a) mem regs ≈ interp_asm (t2 a) mem regs.
+Definition eq_asm_denotations {E A B} (t1 t2 : Kleisli (eitherT value (itree (Reg +' Memory +' E))) A B) : Prop :=
+  forall  (a: A), eqm (interp_asm (t1 a)) (interp_asm (t2 a)).
 
 Definition eq_asm {A B} (p1 p2 : asm A B) : Prop :=
   eq_asm_denotations (denote_asm p1) (denote_asm p2).
@@ -336,35 +377,32 @@ Section InterpAsmProperties.
   Notation E := (Reg +' Memory +' E').
 
   (** This interpreter is compatible with the equivalence-up-to-tau. *)
-  Global Instance eutt_interp_asm {R}:
-    Proper (@eutt E R R eq ==> eq ==> eq ==> @eutt E' (prod memory (prod registers R)) (prod _ (prod _ R)) eq) interp_asm.
-  Proof.
-    repeat intro.
-    unfold interp_asm.
-    unfold interp_map.
-    rewrite H0.
-    rewrite H.
-    rewrite H1.
-    reflexivity.
-  Qed.
+  (* Global Instance eutt_interp_asm {R}: *)
+  (*   Proper (@eutt E R R eq ==> eq ==> eq ==> @eutt E' (prod memory (prod registers R)) (prod _ (prod _ R)) eq) interp_asm. *)
+  (* Proof. *)
+  (*   repeat intro. *)
+  (*   unfold interp_asm. *)
+  (*   unfold interp_map. *)
+  (*   rewrite H0. *)
+  (*   rewrite H. *)
+  (*   rewrite H1. *)
+  (*   reflexivity. *)
+  (* Qed. *)
 
   (** [interp_asm] commutes with [Ret]. *)
-  Lemma interp_asm_ret: forall {R} (r: R) (regs : registers) (mem: memory),
-      @eutt E' _ _ eq (interp_asm (ret r) mem regs)
-            (ret (mem, (regs, r))).
+  Lemma interp_asm_ret: forall {R} (r: R),
+      eqm (interp_asm (E := E') (ret r)) (ret r).
   Proof.
-    unfold interp_asm, interp_map.
-    intros.
-    unfold ret at 1, Monad_itree.
+    intros R r regs mem.
+    unfold interp_asm, interp_map. cbn.
     rewrite interp_ret, 2 interp_state_ret.
     reflexivity.
   Qed.
 
   (** [interp_asm] commutes with [bind]. *)
-  Lemma interp_asm_bind: forall {R S} (t: itree E R) (k: R -> itree _ S) (regs : registers) (mem: memory),
-      @eutt E' _ _ eq (interp_asm (ITree.bind t k) mem regs)
+  Lemma interp_asm_bind: forall {R S} (t: eitherT value (itree E) R) (k: R -> eitherT value (itree _) S) mem regs,
+      @eutt E' _ _ eq (interp_asm (bind t k) mem regs)
             (ITree.bind (interp_asm t mem regs) (fun '(mem', (regs', x)) => interp_asm (k x) mem' regs')).
-
   Proof.
     intros.
     unfold interp_asm.
