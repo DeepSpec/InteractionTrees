@@ -78,26 +78,19 @@ Section State.
       + apply  subrelationH_prod; auto. apply subrelationH_refl.
   Qed.
 
-  Lemma ret_ok :  forall (HS: inhabited S) {A1 A2} (RA : A1 -> A2 -> Prop) (a1:A1) (a2:A2),
-      RA a1 a2 <-> (eqmR RA (ret a1) (ret a2)).
+  Lemma ret_ok :  forall {A1 A2} (RA : A1 -> A2 -> Prop) (a1:A1) (a2:A2),
+      RA a1 a2 -> (eqmR RA (ret a1) (ret a2)).
   Proof.
     unfold eqmR, EqmR_stateT.
-    split; intros.
-    - repeat red. apply eqmR_ret. assumption.
-        constructor; auto.
-    - inversion HS.
-      specialize (H X).
-      eapply eqmR_ret in H.
-      + (* KS: This is the reverse direction that was left out
-           from eqmR_ret in Monad.v *)
-        admit.
-      + apply ML.
-  Admitted.
+    intros.
+    repeat red. apply eqmR_ret. assumption.
+    constructor; auto.
+  Qed.
 
   Instance EqmRMonad_stateT (HS: inhabited S) : @EqmRMonad (stateT S m) _ _.
   Proof.
   constructor.
-  - apply ret_ok. assumption.
+  - intros; apply ret_ok. assumption.
   - intros.
     unfold eqmR, EqmR_stateT.
     intros s.
