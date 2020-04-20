@@ -48,30 +48,36 @@ Section State.
       eapply eqmR_rel_trans; auto.
       + apply H.
       + apply H0.
-    - split; unfold subrelationH; intros smb sma Heq s.
+    - split; intros smb sma Heq s.
       + specialize (Heq s).
         apply eqmR_lift_transpose in Heq; auto.
         rewrite transpose_prod in Heq.
         rewrite transpose_sym in Heq; auto.
-      + admit.
+      + unfold transpose in Heq. specialize (Heq s).
+        rewrite <- transpose_sym; auto.
+        rewrite <- transpose_prod.
+        apply eqmR_lift_transpose; auto.
     - do 3 red. intros. split; intros.
-         +  specialize (H0 s). specialize (H1 s). specialize (H2 s).
-            rewrite eq_rel_prod_eq in H0.
-            rewrite eq_rel_prod_eq in H1.
-            rewrite <- H0.
-            rewrite <- H1.
-
-            admit.
-            (* rewrite H in H2. *)
-            (* assumption. *)
-         + specialize (H0 s). specialize (H1 s). specialize (H2 s).
-           rewrite eq_rel_prod_eq in H0.
-           rewrite eq_rel_prod_eq in H1.
-           assert (eq_rel (prod_rel (@eq S) x) (prod_rel eq y)).
-           admit. 
-           (* { admit. rewrite H. reflexivity. } *)
-           rewrite H3. rewrite H1. rewrite H0. assumption.
-Admitted. 
+      +  specialize (H0 s). specialize (H1 s). specialize (H2 s).
+         rewrite eq_rel_prod_eq in H0.
+         rewrite eq_rel_prod_eq in H1.
+         rewrite <- H0.
+         rewrite <- H1.
+         rewrite H in H2.
+         assumption.
+      + specialize (H0 s). specialize (H1 s). specialize (H2 s).
+        rewrite eq_rel_prod_eq in H0.
+        rewrite eq_rel_prod_eq in H1.
+        assert (eq_rel (prod_rel (@eq S) x) (prod_rel eq y)).
+        rewrite H. reflexivity.
+        rewrite H3. rewrite H1. rewrite H0. assumption.
+    - do 3 red. intros. specialize (H0 s).
+      eapply (eqmR_Proper_mono) in H0.
+      + apply H0.
+      + apply EqmROKm.
+      + apply  subrelationH_prod; auto. apply subrelationH_refl.
+  Qed.
+      
 
   (* Global Instance EqMProps_stateT : @EqMProps (stateT S M) _ EqM_stateT. *)
   (* Proof. *)
