@@ -48,12 +48,15 @@ Section State.
       eapply eqmR_rel_trans; auto.
       + apply H.
       + apply H0.
-    - split; unfold subrelationH; intros smb sma Heq s.
+    - split; intros smb sma Heq s.
       + specialize (Heq s).
         apply eqmR_lift_transpose in Heq; auto.
         rewrite transpose_prod in Heq.
         rewrite transpose_sym in Heq; auto.
-      + admit.
+      + unfold transpose in Heq. specialize (Heq s).
+        rewrite <- transpose_sym; auto.
+        rewrite <- transpose_prod.
+        apply eqmR_lift_transpose; auto.
     - do 3 red. intros. split; intros.
          +  specialize (H0 s). specialize (H1 s). specialize (H2 s).
             rewrite eq_rel_prod_eq in H0.
