@@ -20,6 +20,7 @@ Import MonadNotation.
 Import RelNotations.
 Local Open Scope cat_scope.
 Local Open Scope monad_scope.
+Local Open Scope relationH_scope.
 
 Definition eitherT (exn: Type) (m: Type -> Type) (A: Type) : Type :=
   m (sum exn A).
@@ -54,12 +55,6 @@ Section Monad_Either.
 
   Ltac unfold_either := unfold eqmR, Eqm_eitherT, eitherT in *.
 
-  Lemma sum_eq_eq {A B : Type}
-    : @eq A ⊕ @eq B ≡ eq.
-  Proof.
-    split; intros!; [invn sum_rel; auto | subst; reflexivity].
-  Qed.
-
   Global Instance EqMProps_eitherT : EqmR_OK eitherT.
   Proof with unfold_either.
     constructor...
@@ -74,17 +69,17 @@ Section Monad_Either.
            See https://coq.discourse.group/t/confused-with-a-failure-of-a-generalized-rewrite/783
          *)
         apply (eqmR_lift_transpose _ (@eq exn ⊕ R)).
-        rewrite transpose_sum, transpose_sym; auto.
-      + rewrite <- transpose_sym, <- transpose_sum; auto.
+        rewrite transpose_sum, transpose_sym_eq_rel; auto.
+      + rewrite <- transpose_sym_eq_rel, <- transpose_sum; auto.
         apply eqmR_lift_transpose; auto.
     - (* TODO: Define a better intro tactic in the style of Chargueraud or Boutiller *)
       intros ? ? ? ? EQ1 ? ? EQ2 ? ? EQ3; split; intros EQR.
       + rewrite <- EQ1.
-        rewrite sum_eq_eq in EQ2.
-        rewrite sum_eq_eq in EQ3.
+        rewrite sum_rel_eq in EQ2.
+        rewrite sum_rel_eq in EQ3.
         rewrite <- EQ2, <- EQ3; auto.
-      + rewrite sum_eq_eq in EQ2.
-        rewrite sum_eq_eq in EQ3.
+      + rewrite sum_rel_eq in EQ2.
+        rewrite sum_rel_eq in EQ3.
         rewrite EQ1, EQ2, EQ3; auto.
     - intros!.
       (* TODO: Be able to rewrite ⊑ ? *)
@@ -147,13 +142,15 @@ Section Monad_Either.
 
 End Monad_Either.
 
+(* TODO: Fix iter *)
+(*
 Section Iter_Either.
 
   Variable M : Type -> Type.
   Variable exn : Type.
-  Context {EQM : EqM M}.
+  Context {EQM : EqmR M}.
   Context {HM: Monad M}.
-  Context {HEQP: @EqMProps M HM EQM}.
+  Context {HEQP: EqMProps M}
   Context {ML: @MonadLaws M EQM HM}.
   Context {IM: MonadIter M}.
   Context {CM: Iterative (Kleisli M) sum}.
@@ -292,3 +289,4 @@ Section Iter_Either.
   Qed.
 
 End Iter_Either.
+*)

@@ -20,7 +20,6 @@ From Paco Require Import paco.
 
 
 Require Import Classical_Prop.
-(* See [PropT.v] in the Vellvm repo for the exact framework to follow with respect to typeclasses, as well as a proof of most monad laws for [PropT (itree E)] *)
 
 Definition agrees {A : Type} :=
     fun (x : A) (P : A -> Prop) => P x.
@@ -35,90 +34,7 @@ Definition agrees {A : Type} :=
 Infix "∈" := (eqmR agrees) (at level 70).
 
 Import RelNotations.
-
-
-(* SAZ: TODO: The following lemmas belong in HeterogeneousRelations *)
-
-(* SAZ: There is a conflice between RelationClasses.relation and HeterogeneousRelations.relation *)
-
-  Lemma symmetric_eq_rel_transpose : forall {A} (R : A -> A -> Prop) `{@Symmetric A R},
-    eq_rel R (†R).
-  Proof.
-    intros A R H.
-    split.
-    - intros x y HR. unfold transpose. symmetry. assumption.
-    - intros x y HR. unfold transpose. symmetry. assumption.
-  Qed.
-
-  Lemma transpose_compose : forall {A B C} (R1 : relationH A B) (R2 : relationH B C),
-      eq_rel † (R2 ∘ R1) ((† R1) ∘ († R2)).
-  Proof.
-    intros A B C R1 R2.
-    split.
-    - unfold inclusion. intros x y H.
-      red. unfold transpose in H. red in H.
-      destruct H as (b & R1b & R2b).
-      exists b; auto.
-    - unfold inclusion. intros x y H.
-      red. unfold transpose in H. red in H.
-      destruct H as (b & R1b & R2b).
-      exists b; auto.
-  Qed.
-
-  Lemma transpose_transpose : forall {A B} (R : relationH A B),
-      eq_rel R († † R).
-  Proof.
-    intros A B R.
-    split.
-    - unfold subrelationH. unfold transpose. tauto.
-    - unfold subrelationH, transpose. tauto.
-  Qed.
-
-  Lemma transpose_inclusion : forall {A B} (R1 : relationH A B) (R2 : relationH A B),
-      R1 ⊑ R2 <-> († R1 ⊑ † R2).
-  Proof.
-    intros A B R1 R2.
-    split.
-    - intros HS.
-      unfold subrelationH, transpose in *. eauto.
-    - intros HS.
-      unfold subrelationH, transpose in *. eauto.
-  Qed.
-
-  Lemma transpose_eq : forall A, eq_rel (@eq A) († eq).
-  Proof.
-    intros A.
-    repeat red. split; unfold subrelationH; intros; subst.
-    - reflexivity.
-    - red in H. auto.
-  Qed.
-
-  Lemma eq_rel_compose_id_l : forall {A B} (R : relationH A B),
-      eq_rel R (eq ∘ R).
-  Proof.
-    intros A B R.
-    repeat red. unfold subrelationH. split; intros.
-    repeat red. exists y. tauto. red in H. destruct H as (b & Hb & eq).
-    subst; auto.
-  Qed.
-
-  Lemma eq_rel_compose_id_r : forall {A B} (R : relationH A B),
-      eq_rel R (R ∘ eq).
-  Proof.
-    intros A B R.
-    repeat red. unfold subrelationH. split; intros.
-    repeat red. exists x. tauto. red in H. destruct H as (b & Hb & eq).
-    subst; auto.
-  Qed.
-
-  Global Instance transpose_Proper :forall A B, Proper (@eq_rel A B ==> eq_rel) (@transpose A B).
-  Proof.
-    intros A B R1 R2 (Hab & Hba).
-    split.
-    - apply transpose_inclusion in Hab. assumption.
-    - apply transpose_inclusion in Hba. assumption.
-  Qed.
-
+Open Scope relationH_scope.
 
 Section Transformer.
 
@@ -243,9 +159,9 @@ Section Transformer.
   - intros A R. unfold eqmR, EqmR_PropT, eqm_PropT.
     intros RR PA PB (Hab & Hba). split; red; intros ma Hma.
     + apply Hba in Hma.  destruct Hma as (mb & MB & MB').
-      exists mb. split. assumption. rewrite <- symmetric_eq_rel_transpose in MB'; auto.
+      exists mb. split. assumption. rewrite transpose_sym_eq_rel in MB'; auto.
     + apply Hab in Hma.  destruct Hma as (mb & MB & MB').
-      exists mb. split. assumption. rewrite <- symmetric_eq_rel_transpose; auto.
+      exists mb. split. assumption. rewrite transpose_sym_eq_rel; auto.
   - intros A R. unfold eqmR, EqmR_PropT, eqm_PropT.
     intros RR PA PB PC (Hab & Hba) (Hbc & Hcb). split; red; intros ma Hma.
     + apply Hab in Hma. destruct Hma as (mb & Hmb & EQab).
@@ -275,7 +191,7 @@ Section Transformer.
       red. split.
       * intros ma Hma.
         apply Hab in Hma. destruct Hma as (mb & Hmb & EQab).
-        exists mb. split. assumption.  rewrite <- transpose_transpose in EQab. assumption.
+        exists mb. split. assumption.  rewrite transpose_involution in EQab. assumption.
       * intros mb Hmb.
         apply Hba in Hmb. destruct Hmb as (ma & Hma & EQba).
         exists ma. split. assumption. assumption.
@@ -286,7 +202,7 @@ Section Transformer.
         exists ma. split. assumption. assumption.
       * intros ma Hma.
         apply Hab in Hma. destruct Hma as (mb & Hmb & EQab).
-        exists mb. split. assumption.  rewrite <- transpose_transpose. assumption.
+        exists mb. split. assumption.  rewrite transpose_involution. assumption.
 
   - intros A B.
     repeat red.
@@ -299,19 +215,19 @@ Section Transformer.
         apply Hab in Hma1. destruct Hma1 as (mb1 & Hmb1 & EQa1b).
         apply Hb1 in Hmb1. destruct Hmb1 as (mb2 & Hmb2 & EQb1b).
         exists mb2. split. assumption. rewrite <- EQR.
-        rewrite (@eq_rel_compose_id_r _ _ R1).
-        eapply eqmR_rel_trans. assumption. rewrite <- transpose_eq in EQab. apply EQab.
-        rewrite (@eq_rel_compose_id_l _ _ R1).
+        rewrite <- (@eq_id_l _ _ R1).
+        eapply eqmR_rel_trans. assumption. rewrite transpose_eq in EQab. apply EQab.
+        rewrite <- (@eq_id_r _ _ R1).
         eapply eqmR_rel_trans; eauto.
       * intros mb2 Hmb2.
         apply Hb2 in Hmb2. destruct Hmb2 as (mb1 & Hmb1 & EQb1b).
         apply Hba in Hmb1. destruct Hmb1 as (ma1 & Hma1 & EQb1a).
         apply Ha1 in Hma1. destruct Hma1 as (ma2 & Hma2 & EQa1a).
         exists ma2. split. assumption. rewrite <- EQR.
-        rewrite <- transpose_eq in EQb1b.
-        rewrite (@eq_rel_compose_id_r _ _ († R1)).
+        rewrite transpose_eq in EQb1b.
+        rewrite <- (@eq_id_l _ _ († R1)).
         eapply eqmR_rel_trans. assumption. apply EQb1b.
-        rewrite (@eq_rel_compose_id_l _ _ († R1)).
+        rewrite <- (@eq_id_r _ _ († R1)).
         eapply eqmR_rel_trans; eauto.
    +  intros (Hab & Hba).
       split.
@@ -320,9 +236,9 @@ Section Transformer.
         apply Hab in Hma2. destruct Hma2 as (mb2 & Hmb2 & EQa2b).
         apply Hb2 in Hmb2. destruct Hmb2 as (mb1 & Hmb1 & EQb1b).
         exists mb1. split. assumption. rewrite EQR.
-        rewrite (@eq_rel_compose_id_r _ _ R2).
+        rewrite <- (@eq_id_l _ _ R2).
         eapply eqmR_rel_trans. assumption. apply EQab. rewrite <- transpose_eq in EQb1b.
-        rewrite (@eq_rel_compose_id_l _ _ R2).
+        rewrite <- (@eq_id_r _ _ R2).
         eapply eqmR_rel_trans; eauto.
       * intros mb1 Hmb1.
         apply Hb1 in Hmb1. destruct Hmb1 as (mb2 & Hmb2 & EQb2b).
@@ -330,9 +246,9 @@ Section Transformer.
         apply Ha2 in Hma2. destruct Hma2 as (ma1 & Hma1 & EQa1a).
         exists ma1. split. assumption. rewrite EQR.
         rewrite <- transpose_eq in EQa1a.
-        rewrite (@eq_rel_compose_id_r _ _ († R2)).
+        rewrite <- (@eq_id_l _ _ († R2)).
         eapply eqmR_rel_trans. assumption. apply EQb2b.
-        rewrite (@eq_rel_compose_id_l _ _ († R2)).
+        rewrite <- (@eq_id_r _ _ († R2)).
         eapply eqmR_rel_trans; eauto.
 
   - intros A B.   unfold eqmR, EqmR_PropT, eqm_PropT in *.
