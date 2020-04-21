@@ -35,7 +35,7 @@ Definition agrees {A : Type} :=
 Infix "∈" := (eqmR agrees) (at level 70).
 
 Import RelNotations.
-
+Local Open Scope relationH_scope.
 
 (* SAZ: TODO: The following lemmas belong in HeterogeneousRelations *)
 
@@ -160,7 +160,7 @@ Section Transformer.
   Definition relatively_closed_by_R_weak {A B: Type} (R: A -> B -> Prop) (PA: PropT A) (PB: PropT B)
     := forall ma mb, eqmR R ma mb -> PA ma -> PB mb ->
                 (forall (ma': m A), eqmR R ma' mb -> PA ma') /\
-                (forall (mb': m B), eqmR R ma mb' -> PB mb').
+                (forall (mb': m B), eqmR †R mb' ma -> PB mb').
 
   (* Note that we have: *)
   Lemma relatively_closed_strong_weak:
@@ -171,7 +171,8 @@ Section Transformer.
     split; intros;
       match goal with
       | h: relatively_closed_by_R _ _ _ |- _ => eapply h; eauto
-      end.
+      end. assert ((† (eqmR R)) mb' ma). apply eqmR_lift_transpose. assumption. apply H3. 
+     apply H4.
   Qed.
 
   (* But not the converse (there can be a computation in PA linked to another one that is not in PB as long as it is not linked to anyone in PB *)
@@ -179,8 +180,7 @@ Section Transformer.
   Lemma relatively_closed_weak_bij_strong:
     forall {A B: Type} (R: A -> B -> Prop) (PA: PropT A) (PB: PropT B),
       PA [⊆ R] PB ->
-      sub_predicate_rev R PA PB ->
-      (* PB [⊆ †R] PA -> *)
+      PB [⊆ †R] PA -> 
       relatively_closed_by_R_weak R PA PB ->
       relatively_closed_by_R R PA PB.
   Proof.
@@ -188,14 +188,30 @@ Section Transformer.
       split; intros.
     edestruct INA as (x & ? & ?); eauto; eapply REL; eauto.
     edestruct INB as (x & ? & ?); eauto; eapply REL; eauto.
+    eapply H0. unfold relatively_closed_by_R_weak in REL.
+    
   Qed.
 
   Definition eqm_PropT : forall (A B : Type) (R: A -> B -> Prop), PropT A -> PropT B -> Prop :=
     fun A B R PA PB =>
       PA [⊆ R] PB /\
-      PB [⊆ †R] PA.
+      PB [⊆ †R] PA /\
+      
+         
+      
 
   Global Instance EqmR_PropT : EqmR PropT := {| eqmR := eqm_PropT |}.
+
+  Lemma eqmR_PropT_sane : forall A (R: A -> A -> Prop) (PA : PropT A),
+      eqm_PropT A A R PA PA -> Proper (eqmR R ==> iff) PA.
+  Proof.
+    intros A R PA H.
+    repeat red.
+    unfold eqm_PropT in H.
+    intros ma mb H.
+    specialize (E ma mb H). apply E. 
+  Qed.
+    
 
   Definition ret_f {A} (a:A) := (fun (x : m A) => eqm x (ret a)).
 
@@ -238,6 +254,26 @@ Section Transformer.
   Import RelNotations.
   Global Instance EqmR_OK_PropT : @EqmR_OK PropT EqmR_PropT.
   split.
+  - intros A R H.
+    unfold eqmR, EqmR_PropT, eqm_PropT in *.
+    repeat red. intros PA.
+    repeat split.
+    + intros mx ; exists mx; split; try assumption; try reflexivity.
+    + intros mx ; exists mx; split; try assumption; try reflexivity.
+    + intros HPA. 
+
+  - intros A R H.
+    unfold eqmR, EqmR_PropT, eqm_PropT. intros PA PB HAB ma mb EQ.
+    apply symmetry. apply HAB. symmetry. assumption.
+
+  - intros A R H.
+    unfold eqmR, EqmR_PropT, eqm_PropT. intros PA PB PC HAB HBC ma mb EQ.
+    specialize (HAB ma mb EQ).
+    specialize (HBC ma mb EQ).
+    eapply transitivity.
+    
+
+  
   - intros A R. unfold eqmR, EqmR_PropT, eqm_PropT. intros RR.
     split; intros mx ; exists mx; split; try assumption; try reflexivity.
   - intros A R. unfold eqmR, EqmR_PropT, eqm_PropT.
@@ -385,16 +421,32 @@ Section Transformer.
     - repeat red. intros mc HB.
       unfold bind_f' in HB.
       destruct HB as (mb & Kbc & EQmc & (ma & Kab & EQma & Hma & HF) & HFfm).
+      destruct PA_OK as (OK1 & OK2).
+      apply OK1 in Hma. destruct Hma as (ma' & Hma' & EQaa').
+      
+      
       exists (bind mb Kbc). split.
       repeat red.
       exists ma. exists (fun a => bind (Kab a) Kbc).
       repeat split.
       + rewrite EQma. apply bind_bind.
       + assumption.
-      + cbn.
-        unfold liftM.
-        unfold agrees.
+      + cbn in *.
+        unfold liftM in *.
+        unfold agrees in *.
         eapply eqmR_bind_ProperH. assumption.
+        2: {
+          
+          
+          
+        reflexivity.
+        intros. subst.
+        eapply eqmR_ret. assumption.
+        unfold bind_f'.
+        exists mb. exists Kbc. repeat split.
+        rewrite EQma. rewrite eqmR_bind_bind.
+        
+        
   Abort.
 
 
