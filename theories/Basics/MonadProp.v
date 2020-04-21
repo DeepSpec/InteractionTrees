@@ -55,7 +55,7 @@ Section Transformer.
      One thing that we would need to resolve now, though, is how we state the EqMR
      closedness property.
    *)
-  Definition PropT (A:Type) := (m A -> Prop).
+  Definition PropT (A:Type) := m A -> Prop. (* { p : (m A -> Prop) | Proper (eqmR eq ==> iff) p}. *)
 
   Definition sub_predicate {A B: Type} (R: A -> B -> Prop): PropT A -> PropT B -> Prop :=
     fun PA PB => forall ma, PA ma -> exists mb, PB mb /\ eqmR R ma mb.
@@ -95,22 +95,23 @@ Section Transformer.
   Lemma relatively_closed_weak_bij_strong:
     forall {A B: Type} (R: A -> B -> Prop) (PA: PropT A) (PB: PropT B),
       PA [⊆ R] PB ->
-      sub_predicate_rev R PA PB ->
-      (* PB [⊆ †R] PA -> *)
+      PB [⊆ †R] PA -> 
       relatively_closed_by_R_weak R PA PB ->
       relatively_closed_by_R R PA PB.
   Proof.
     intros A B R PA PB INA INB REL;
       split; intros.
-    edestruct INA as (x & ? & ?); eauto; eapply REL; eauto.
-    edestruct INB as (x & ? & ?); eauto; eapply REL; eauto.
+    - edestruct INA as (x & ? & ?).  eauto. eapply REL; eauto.
+    - edestruct INB as (x & ? & ?). eauto.
+      assert († (eqmR R) mb x). { apply eqmR_lift_transpose; eauto. }
+      red in H3. eapply REL; eauto.
   Qed.
 
   Definition eqm_PropT : forall (A B : Type) (R: A -> B -> Prop), PropT A -> PropT B -> Prop :=
     fun A B R PA PB =>
       PA [⊆ R] PB /\
-      PB [⊆ †R] PA
-  .
+      PB [⊆ †R] PA /\
+      relatively_closed_by_R_weak R PA PB.
 
   Global Instance EqmR_PropT : EqmR PropT := {| eqmR := eqm_PropT |}.
 
@@ -122,15 +123,11 @@ Section Transformer.
   Lemma eqmR_PropT_sane : forall A (R: A -> A -> Prop) (PA : PropT A),
       eqm_PropT A A R PA PA -> Proper (eqmR R ==> iff) PA.
   Proof.
-    intros A R PA H.
-    repeat red.
-    unfold eqm_PropT in H.
-    intros ma mb Hab.
-  Abort.
-  (*
-    specialize (E ma mb H). apply E. 
+    intros A R PA (INA & INB & REL).
+    specialize (relatively_closed_weak_bij_strong _ _ _ INA INB REL) as H.
+    apply H.
   Qed.
-  *)
+
   
   Definition ret_f {A} (a:A) := (fun (x : m A) => eqm x (ret a)).
 
@@ -215,20 +212,57 @@ Section Transformer.
     | [H : eqmR eq _ ?ma |- eqmR _ _ ?ma ] => rewrite <- H
     end.
 
+  Lemma eqmR_transpose: forall A (R : relationH A A) (ma mb: m A) , eqmR †R ma mb <-> eqmR R mb ma.
+  Proof.
+    intros A R ma mb.
+    split; intros H.
+    - assert († (eqmR R) ma mb). apply eqmR_lift_transpose. assumption. assumption.
+      apply H0.
+    - apply eqmR_lift_transpose; assumption.
+  Qed.
+
   Global Instance EqmR_OK_PropT : @EqmR_OK PropT EqmR_PropT.
   Proof with eauto.
   split.
   - intros A R. unfold eqmR, EqmR_PropT, eqm_PropT. intros RR.
-    constructor;
-    intros mx ; exists mx; split; try assumption; try reflexivity.
+    repeat red.
+    intros PA.
+    repeat split.
+    + intros ma Hma. exists ma. split; try assumption. try reflexivity.
+    + intros ma Hma. exists ma. split; try assumption. try reflexivity.
+    + intros ma' Hma'. 
+
+                       
+                             
+
+      (* SAZ: I'm not sure that we can always show that Reflexivity lifts this way... *)
+      (* If we only require eqmR to lift symmetry and transitivity, that might just be enough. *)
+      admit.
+    + admit.    
+
   - intros A R. unfold eqmR, EqmR_PropT, eqm_PropT.
-    intros RR. split; red; intros ma H1.
-    + try_eqmR_solve...
-      rewrite_transpose_l in H3.
-      symmetry... assumption.
-    + destruct H. try_eqmR_solve...
-      symmetry.
-      apply eqmR_lift_transpose...
+    intros RR. repeat red. intros PA PB (INA & INB & REL).
+    repeat split.
+    + destruct_eq.
+      repeat red. intros ma Hma.
+      specialize (INB _ Hma).
+      destruct INB as (mb & Hmb & EQ).
+      apply eqmR_transpose in EQ.
+      exists mb. split. assumption. symmetry. assumption.
+
+    + destruct_eq.
+      repeat red. intros ma Hma.
+      specialize (INA _ Hma).
+      destruct INA as (mb & Hmb & EQ).
+      exists mb. split. assumption. symmetry. apply eqmR_transpose. assumption.
+
+    + unfold relatively_closed_by_R_weak in REL.
+      intros ma2 H2.
+      specialize (REL mb ma).
+      assert (eqmR R mb ma). {  symmetry. assumption. }
+      specialize (REL H3 H1 H0).
+      apply REL. symmetry. assumption.
+
   - intros A R. unfold eqmR, EqmR_PropT, eqm_PropT.
     intros RR. repeat intro;
     split; repeat red; intros ma H';
@@ -340,7 +374,7 @@ Context {E : EqmR m}.
 
   Definition atomic {A} (ma : m A) :=
     (forall B (mb : m B) (k : B -> m A),
-        eqm ma (bind mb k) -> impure ma -> (forall (v:B), mayRet B mb v -> impure (k v)))
+        eqm ma (bind mb k) -> impure mb -> (forall (v:B), mayRet B mb v -> ~impure (k v)))
     /\ impure ma.
 
 
@@ -352,9 +386,21 @@ Context {E : EqmR m}.
   (* Class Triggerable (M : (Type -> Type) -> Type -> type := *)
   (*                            { trigger : forall E, E ~> M E }. *)
 
+  Trying to prove this relation between fmap and mayRet:
 
+     mayRet ma x <->
+     mayRet (fmap f ma) (f x)
+
+
+  Test theorems for the state monad:
+  impure (get)
+  impure (set 3)
+  atomic (get)
+  atomic ma -> eqmR eq ma (get) \/ exists x, eqmR ma (set x)
+
+  More general case analysis for monadic compuations:
   monadic_cases : forall (ma : m A),
-        (exists B, (p : m B) (k : B -> m A), impure p /\ eqm ma (bind p k))
+        (exists B, (p : m B) (k : B -> m A), atomic p /\ eqm ma (bind p k))
       \/ exists (a:A), eqm ma (ret a).
 
 
