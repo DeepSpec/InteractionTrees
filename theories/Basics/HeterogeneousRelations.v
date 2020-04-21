@@ -240,6 +240,12 @@ Section TransposeFacts.
     split; unfold transpose; intros!; subst; auto.
   Qed.
 
+  Lemma transpose_sym {A : Type} (R : relationH A A) {RS: Symmetric R}
+    : † R ≡ R.
+  Proof.
+    unfold transpose; split; intros!; symmetry; auto.
+  Qed.
+
   Lemma transpose_compose {A B C : Type}
         (R : relationH A B) (S : relationH B C)
     : † (S ∘ R) ≡ (†R ∘ †S).
@@ -252,6 +258,7 @@ Section TransposeFacts.
   Proof.
     intros ? ? EQ; split; unfold transpose; intros!; apply EQ; auto.
   Qed.
+
   (* end
      [transpose] is a functor
    *)
@@ -269,6 +276,25 @@ Section TransposeFacts.
     - unfold subrelationH, transpose. tauto.
   Qed.
 
+  Lemma transpose_inclusion : forall {A B} (R1 : relationH A B) (R2 : relationH A B),
+      R1 ⊑ R2 <-> († R1 ⊑ † R2).
+  Proof.
+    intros A B R1 R2.
+    split.
+    - intros HS.
+      unfold subrelationH, transpose in *. eauto.
+    - intros HS.
+      unfold subrelationH, transpose in *. eauto.
+  Qed.
+
+  Global Instance transpose_Proper :forall A B, Proper (@eq_rel A B ==> eq_rel) (@transpose A B).
+  Proof.
+    intros A B R1 R2 (Hab & Hba).
+    split.
+    - apply transpose_inclusion in Hab. assumption.
+    - apply transpose_inclusion in Hba. assumption.
+  Qed.
+
   (* [transpose] is the identity over symmetric relations *)
   Lemma transpose_sym_eq_rel {A : Type} (R : relationH A A) {RS: Symmetric R}
     : † R ≡ R.
@@ -282,18 +308,6 @@ Section TransposeFacts.
     : †R ⊑ †S.
   Proof.
     unfold transpose; intros!; appn subrelationH; auto.
-  Qed.
-
-  (* This is redundant with [transpose_monotone] and [transpose_involution] I believe but might be convenient to use *)
-  Lemma transpose_inclusion : forall {A B} (R1 : relationH A B) (R2 : relationH A B),
-      R1 ⊑ R2 <-> († R1 ⊑ † R2).
-  Proof.
-    intros A B R1 R2.
-    split.
-    - intros HS.
-      unfold subrelationH, transpose in *. eauto.
-    - intros HS.
-      unfold subrelationH, transpose in *. eauto.
   Qed.
 
 End TransposeFacts.
