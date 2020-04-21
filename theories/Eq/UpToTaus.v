@@ -381,7 +381,6 @@ Proof.
         eapply CLOV.
         { intros. destruct PR, EQR.
           econstructor; [|eauto|]; eauto using eqit_trans; auto_ctrans.
-          admit.
         }
         econstructor; eauto.
         eapply MON; eauto. intros.
@@ -400,7 +399,6 @@ Proof.
       eapply CLOV.
       { intros. destruct PR, EQR.
         econstructor; swap 1 2; eauto using eqit_trans; auto_ctrans.
-        admit. (* IY: Why doesn't this go through anymore? *)
       }
       econstructor; eauto.
       eapply MON; eauto. intros.
@@ -419,7 +417,7 @@ Proof.
       * eapply IHEQL; eauto.
         simpobs. econstructor; eauto.
         punfold H.
-Admitted.
+Qed.
 
 Lemma euttVC_transL gH r:
   transL (euttVC RR gH r) <2= euttVC RR gH r.

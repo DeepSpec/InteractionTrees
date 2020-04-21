@@ -638,8 +638,8 @@ Qed.
 
 (** *** Transitivity properties *)
 
-Inductive rcompose {R1 R2 R3} (RR1: R1->R2->Prop) (RR2: R2->R3->Prop) (r1: R1) (r3: R3) : Prop :=
-| rcompose_intro r2 (REL1: RR1 r1 r2) (REL2: RR2 r2 r3)
+Inductive rcompose {R1 R2 R3} (RR1: relationH R1 R2) (RR2: relationH R2 R3): relationH R1 R3 :=
+| rcompose_intro r1 r2 r3 (REL1: RR1 r1 r2) (REL2: RR2 r2 r3) : rcompose RR1 RR2 r1 r3
 .
 Hint Constructors rcompose.
 

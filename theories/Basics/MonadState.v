@@ -52,22 +52,22 @@ Section State.
       + specialize (Heq s).
         apply eqmR_lift_transpose in Heq; auto.
         rewrite transpose_prod in Heq.
-        rewrite transpose_sym in Heq; auto.
+        rewrite transpose_sym_eq_rel in Heq; auto.
       + unfold transpose in Heq. specialize (Heq s).
-        rewrite <- transpose_sym; auto.
+        rewrite <- transpose_sym_eq_rel; auto.
         rewrite <- transpose_prod.
         apply eqmR_lift_transpose; auto.
     - do 3 red. intros. split; intros.
       +  specialize (H0 s). specialize (H1 s). specialize (H2 s).
-         rewrite eq_rel_prod_eq in H0.
-         rewrite eq_rel_prod_eq in H1.
+         rewrite prod_rel_eq in H0.
+         rewrite prod_rel_eq in H1.
          rewrite <- H0.
          rewrite <- H1.
          rewrite H in H2.
          assumption.
       + specialize (H0 s). specialize (H1 s). specialize (H2 s).
-        rewrite eq_rel_prod_eq in H0.
-        rewrite eq_rel_prod_eq in H1.
+        rewrite prod_rel_eq in H0.
+        rewrite prod_rel_eq in H1.
         assert (eq_rel (prod_rel (@eq S) x) (prod_rel eq y)).
         rewrite H. reflexivity.
         rewrite H3. rewrite H1. rewrite H0. assumption.
@@ -75,29 +75,22 @@ Section State.
       eapply (eqmR_Proper_mono) in H0.
       + apply H0.
       + apply EqmROKm.
-      + apply  subrelationH_prod; auto. apply subrelationH_refl.
+      + apply prod_rel_monotone; auto. apply subrelationH_Reflexive.
   Qed.
 
-  Lemma ret_ok :  forall (HS: inhabited S) {A1 A2} (RA : A1 -> A2 -> Prop) (a1:A1) (a2:A2),
-      RA a1 a2 <-> (eqmR RA (ret a1) (ret a2)).
+  Lemma ret_ok :  forall {A1 A2} (RA : A1 -> A2 -> Prop) (a1:A1) (a2:A2),
+      RA a1 a2 -> (eqmR RA (ret a1) (ret a2)).
   Proof.
     unfold eqmR, EqmR_stateT.
-    split; intros.
-    - repeat red. apply eqmR_ret. assumption.
-        constructor; auto.
-    - inversion HS.
-      specialize (H X).
-      eapply eqmR_ret in H.
-      + (* KS: This is the reverse direction that was left out
-           from eqmR_ret in Monad.v *)
-        admit.
-      + apply ML.
-  Admitted.
+    intros.
+    repeat red. apply eqmR_ret. assumption.
+    constructor; auto.
+  Qed.
 
   Instance EqmRMonad_stateT (HS: inhabited S) : @EqmRMonad (stateT S m) _ _.
   Proof.
   constructor.
-  - apply ret_ok. assumption.
+  - intros; apply ret_ok. assumption.
   - intros.
     unfold eqmR, EqmR_stateT.
     intros s.
@@ -164,15 +157,14 @@ Section State.
     - intros.
       repeat red. destruct a0.
       unfold internalize. cbn.  specialize (H a0 s). unfold eqmR in H.
-      rewrite eq_rel_prod_eq in H. apply H.
+      rewrite prod_rel_eq in H. apply H.
     - intros.
       repeat red. intros.
       unfold internalize in H.
       specialize (H (s, a0)).
-      rewrite eq_rel_prod_eq.
+      rewrite prod_rel_eq.
       apply H.
   Qed.
-
 
   Lemma internalize_cat {a b c} (f : Kleisli (stateT S m) a b) (g : Kleisli (stateT S m) b c) :
     (internalize (f >>> g)) ⩯ ((internalize f) >>> (internalize g)).
@@ -185,7 +177,6 @@ Section State.
     cbn.
     reflexivity.
   Qed.
-
 
   Lemma internalize_pure {a b c} (f : Kleisli (stateT S m) a b) (g : S * b -> S * c) :
     internalize f >>> pure g   ⩯   (internalize (f >>> (fun b s => ret (g (s,b))))).
@@ -200,7 +191,6 @@ Section State.
       unfold pure. reflexivity.
   Qed.
 
-
   Global Instance Iter_stateT : Iter (Kleisli (stateT S m)) sum.
   Proof.
     exact
@@ -213,15 +203,15 @@ Section State.
     destruct Cm.
     repeat red.
     intros a b x y H a0 s.
-    rewrite eq_rel_prod_eq.
+    rewrite prod_rel_eq.
     apply iterative_proper_iter.
     repeat red.
     destruct a1.
     cbn.
     apply Proper_bind.
-    - unfold internalize. cbn. (specialize (H a1 s0)). rewrite eq_rel_prod_eq in H. apply H.
+    - unfold internalize. cbn. (specialize (H a1 s0)). rewrite prod_rel_eq in H. apply H.
     - repeat red. destruct a2 as [s' [x1|y1]]; reflexivity.
- Qed.
+  Qed.
 
   Global Instance IterUnfold_stateT : IterUnfold (Kleisli (stateT S m)) sum.
   Proof.
@@ -235,7 +225,7 @@ Section State.
   rewrite iterative_unfold.  (* SAZ: why isn't iter_unfold exposed here? *)
   unfold cat, Cat_Kleisli.
   simpl.
-  rewrite bind_bind. rewrite eq_rel_prod_eq.
+  rewrite bind_bind. rewrite prod_rel_eq.
   apply Proper_bind.
   + reflexivity.
   + repeat red. destruct a1 as [s' [x | y]]; simpl.
@@ -252,7 +242,7 @@ Section State.
     intros a b c f g.
     repeat red.
     intros a0 s.
-    setoid_rewrite iterative_natural. rewrite eq_rel_prod_eq.
+    setoid_rewrite iterative_natural. rewrite prod_rel_eq.
     apply iterative_proper_iter.
     repeat red.
     destruct a1.
@@ -285,16 +275,14 @@ Section State.
     reflexivity.
   Qed.
 
-
   Lemma eq2_to_eqm : forall a b (f g : Kleisli (stateT S m) a b) (x:a) (s:S),
       eq2 f g ->
       eqm (f x s) (g x s).
   Proof.
     intros a b f g x s H.
-    specialize (H x s). rewrite eq_rel_prod_eq in H.
+    specialize (H x s). rewrite prod_rel_eq in H.
     apply H.
   Qed.
-
 
   Lemma iter_dinatural_helper:
     forall (a b c : Type) (f : Kleisli (stateT S m) a (b + c)) (g : Kleisli (stateT S m) b (a + c)),
@@ -329,14 +317,14 @@ Section State.
     repeat red.
     intros a b c f g a0 a1.
     unfold iter, Iter_stateT.
-    eapply transitivity. rewrite eq_rel_prod_eq.
+    eapply transitivity. rewrite prod_rel_eq.
     eapply iterative_proper_iter.
     apply iter_dinatural_helper.
     rewrite iterative_dinatural.
     cbn.
     unfold cat, Cat_Kleisli.
     rewrite bind_bind.
-    unfold internalize. cbn. rewrite eq_rel_prod_eq.
+    unfold internalize. cbn. rewrite prod_rel_eq.
     apply Proper_bind.
     - reflexivity.
     - repeat red.
@@ -371,7 +359,7 @@ Section State.
     unfold iter, Iter_stateT.
     repeat red.
     intros.
-    eapply transitivity. rewrite eq_rel_prod_eq.
+    eapply transitivity. rewrite prod_rel_eq.
     eapply iterative_proper_iter.
     eapply Proper_cat_Kleisli.
 
@@ -386,11 +374,11 @@ Section State.
     }
    apply H.
    reflexivity.
-   eapply transitivity. rewrite eq_rel_prod_eq.
+   eapply transitivity. rewrite prod_rel_eq.
 
    eapply iterative_proper_iter.
    apply iterative_natural.
-   rewrite iterative_codiagonal. rewrite eq_rel_prod_eq.
+   rewrite iterative_codiagonal. rewrite prod_rel_eq.
    eapply iterative_proper_iter.
    rewrite internalize_cat.
    (* SAZ This proof can probably use less unfolding *)

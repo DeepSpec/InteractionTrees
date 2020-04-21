@@ -109,12 +109,29 @@ Section Transformer.
   Definition eqm_PropT : forall (A B : Type) (R: A -> B -> Prop), PropT A -> PropT B -> Prop :=
     fun A B R PA PB =>
       PA [⊆ R] PB /\
-      PB [⊆ †R] PA /\
-      relatively_closed_by_R_weak R PA PB
+      PB [⊆ †R] PA
   .
 
   Global Instance EqmR_PropT : EqmR PropT := {| eqmR := eqm_PropT |}.
 
+  
+  (* SAZ: I believe that any "good" definition of eqm_PropT should allow us 
+     to prove this lemma: It just says that a "good" PropT predicate respects  
+     the underlying monad equivalence.
+  *)
+  Lemma eqmR_PropT_sane : forall A (R: A -> A -> Prop) (PA : PropT A),
+      eqm_PropT A A R PA PA -> Proper (eqmR R ==> iff) PA.
+  Proof.
+    intros A R PA H.
+    repeat red.
+    unfold eqm_PropT in H.
+    intros ma mb Hab.
+  Abort.
+  (*
+    specialize (E ma mb H). apply E. 
+  Qed.
+  *)
+  
   Definition ret_f {A} (a:A) := (fun (x : m A) => eqm x (ret a)).
 
   (*
@@ -153,8 +170,9 @@ Section Transformer.
   Ltac destruct_eq :=
     repeat lazymatch goal with
     | [ H : eqmR _ _ _ |- _ ] => repeat red in H
-    | [ H : _ /\ _ /\ _ |- _ ] => destruct H as (? & ? & ?)
-    | [ H : _ [⊆ _] _, H' : _ [⊆† _] _ |- _] => repeat red in H, H'
+    | [ H : _ /\ _ |- _ ] => destruct H as (? & ?)
+    | [ H : _ [⊆ _] _ |- _] => repeat red in H
+    | [ H : _ [⊆ † _] _ |- _] => repeat red in H
     end.
 
   Ltac eq_hyp_specialize :=
@@ -201,83 +219,147 @@ Section Transformer.
   Proof with eauto.
   split.
   - intros A R. unfold eqmR, EqmR_PropT, eqm_PropT. intros RR.
-    constructor; [ | split ].
+    constructor;
     intros mx ; exists mx; split; try assumption; try reflexivity.
-    repeat intro. exists ma. split... reflexivity.
-    red. intros ma ma' EQ H H'. split.
-    + intros ma'' EQ'. admit.
-    + admit.
   - intros A R. unfold eqmR, EqmR_PropT, eqm_PropT.
-    intros RR. split; [ | split]; red; intros ma H1.
-    + try_eqmR_solve.
-      rewrite_transpose_l in H4. symmetry... assumption.
-    + try_eqmR_solve.
+    intros RR. split; red; intros ma H1.
+    + try_eqmR_solve...
+      rewrite_transpose_l in H3.
+      symmetry... assumption.
+    + destruct H. try_eqmR_solve...
       symmetry.
       apply eqmR_lift_transpose...
-    + admit.
   - intros A R. unfold eqmR, EqmR_PropT, eqm_PropT.
-    intros RR. repeat intro.
-    split; [ | split]; [ | | shelve ]; repeat red; intros ma H';
+    intros RR. repeat intro;
+    split; repeat red; intros ma H';
     try_eqmR_solve; etransitivity...
   - intros A B C R1 R2 a b c EQ EQ'.
     unfold eqmR, EqmR_PropT, eqm_PropT in *.
-    split; [ | split]; [ | | shelve]; repeat red; intros ma H; try_eqmR_solve...
+    split; repeat red; intros ma H; try_eqmR_solve...
     + eapply eqmR_rel_trans...
-    + apply eqmR_lift_transpose. (* IY: Why is the typeclass instance not immediately found? *)
-      assumption.
-      red.
-      eapply eqmR_rel_trans. assumption.
+    + apply eqmR_lift_transpose...
+      red. rewrite_transpose_l in H7...
+      clear H8.
+      eapply eqmR_rel_trans...
       apply eqmR_lift_transpose...
-      apply eqmR_lift_transpose...
-  - intros A B R. unfold eq_rel. split; repeat red; intros a b EQ.
-    + split ; [ | split]; [ | | shelve];
-      intros ma H; repeat red in EQ; try_eqmR_solve...
-    + split; [ | split]; [ | | shelve];
+  - intros A B R. unfold eq_rel.
+    split; repeat red; intros a b EQ; split ;
       intros ma H; repeat red in EQ; try_eqmR_solve...
   - intros A B. split; intros; repeat red.
-    + repeat red. split; [ | split ]; [ | | shelve]; repeat red;
-      intros ma H'; try_eqmR_solve.
-      * rewrite <- H14.
-        rewrite transpose_sym in H10.
-        rewrite H10...
-        typeclasses eauto. (* Why does this get generated? *)
-      * rewrite transpose_sym in H10.
-        rewrite H10. (* IY : ugly rewriting.. Can we get around this?*)
-        rewrite_transpose_l...
-        rewrite <- H14. setoid_rewrite <- H.
-        rewrite_transpose_l in H11...
-        eauto.
+    + repeat red. split; repeat red;
+      intros ma H'; try_eqmR_solve;
+      rewrite transpose_sym in H7; eauto; rewrite H7...
+      * rewrite <- H11...
+      * rewrite_transpose_l...
+        rewrite <- H11... setoid_rewrite <- H.
+        rewrite_transpose_l in H8...
     + repeat red.
-      split; [ | split ]; [ | | shelve];
-        repeat red; intros ma H'; try_eqmR_solve.
-      * rewrite transpose_sym in H14.
-        rewrite <- H14... rewrite_eqm_eq... eauto.
-      * rewrite transpose_sym in H14.
-        rewrite <- H14. rewrite_transpose_l...
-        rewrite H10. rewrite_transpose_l in H11. setoid_rewrite H...
-        eauto. eauto.
-  - intros A B. split; [ | split]; [| | shelve];
-                  repeat red; intros ma H'; try_eqmR_solve.
+      split; repeat red; intros ma H'; try_eqmR_solve;
+        rewrite transpose_sym in H11...
+      * rewrite <- H11... rewrite_eqm_eq...
+      * rewrite <- H11... rewrite_transpose_l...
+        rewrite H7. rewrite_transpose_l in H8... setoid_rewrite H...
+  - intros A B. split; repeat red; intros ma H'; try_eqmR_solve.
     + eapply eqmR_Proper_mono; eassumption.
     + apply eqmR_lift_transpose. assumption. unfold transpose.
       eapply eqmR_Proper_mono. assumption. eassumption.
       pose proof eqmR_lift_transpose. symmetry in H0.
       apply H0. assumption. assumption.
-  Unshelve.
-  Admitted. (* relatively_closed properties. *)
+ Qed.
 
   Lemma ret_ok : forall (A1 A2 : Type) (RA : A1 -> A2 -> Prop) (a1 : A1) (a2 : A2),
-      RA a1 a2 <-> (eqmR RA (ret a1) (ret a2)).
+      RA a1 a2 -> (eqmR RA (ret a1) (ret a2)).
   Proof.
-    unfold eqmR, EqmR_PropT.
-  Admitted.
+    intros A1 A2 RA a1 a2.
+    unfold eqmR, EqmR_PropT, eqm_PropT.
+    intros HR. split.
+      + intros ma Hma. exists (ret a2). split. repeat red. reflexivity.
+        repeat red in Hma.
+        rewrite Hma. apply eqmR_ret; assumption.
+      + intros ma Hma. exists (ret a1). split. repeat red. reflexivity.
+        repeat red in Hma.
+        rewrite Hma. apply eqmR_ret; assumption.
+  Qed.
+
+  Lemma propT_eqmR_bind_bind : forall {A B C}
+                       (RA : A -> A -> Prop)
+                       (RB : B -> B -> Prop)
+                       (RC : C -> C -> Prop)
+                       (f : A -> (PropT B))
+                       (f_OK : Proper (RA ==> (eqmR RB)) f)
+                       (g : B -> (PropT C))
+                       (g_OK : Proper (RB ==> (eqmR RC)) g)
+                       (PA : (PropT A))
+                       (PA_OK : eqmR RA PA PA),
+      eqmR RC (bind (bind PA f) g)  (bind PA (fun y => bind (f y) g)).
+  Proof.
+    intros A B C RA RB RC f f_OK g g_OK PA PA_OK.
+    unfold eqmR, EqmR_PropT, eqm_PropT.
+    unfold bind, Monad_PropT.
+    split.
+    - repeat red. intros mc HB.
+      unfold bind_f' in HB.
+      destruct HB as (mb & Kbc & EQmc & (ma & Kab & EQma & Hma & HF) & HFfm).
+      exists (bind mb Kbc). split.
+      repeat red.
+      exists ma. exists (fun a => bind (Kab a) Kbc).
+      repeat split.
+      + rewrite EQma. apply bind_bind.
+      + assumption.
+      + cbn.
+        unfold liftM.
+        unfold agrees.
+        eapply eqmR_bind_ProperH. assumption.
+  Abort.
 
   Instance EqmRMonad_PropT : @EqmRMonad PropT _ _.
   Proof.
     pose proof EqmR_OK_PropT.
     constructor; unfold eqmR, EqmR_PropT, eqm_PropT.
     - apply ret_ok.
-    -
+    - 
   Admitted.
 
 End Transformer.
+
+
+(*
+  Possible way to define mayRet based on impurity?
+*)
+
+Context {m : Type -> Type}.
+Context {M : Monad m}.
+Context {E : EqmR m}.
+  Definition impure {A} (ma : m A) := ~exists a, eqm ma (ret a).
+
+  Inductive mayRet  : forall A, (m A) -> A -> Prop :=
+  | mayRet_ret : forall A (a:A), mayRet A (ret a) a
+  | mayRet_bind : forall A B (mb : m B) (k : B -> m A) a b,
+      mayRet B mb b -> mayRet A (k b) a -> impure mb ->
+      mayRet A (bind mb k) a.
+
+  Definition atomic {A} (ma : m A) :=
+    (forall B (mb : m B) (k : B -> m A),
+        eqm ma (bind mb k) -> impure ma -> (forall (v:B), mayRet B mb v -> impure (k v)))
+    /\ impure ma.
+
+
+
+(*  ------------------------------------------------------------------------- *)
+(*
+   Misc. notes from discussion:
+
+  (* Class Triggerable (M : (Type -> Type) -> Type -> type := *)
+  (*                            { trigger : forall E, E ~> M E }. *)
+
+
+  monadic_cases : forall (ma : m A),
+        (exists B, (p : m B) (k : B -> m A), impure p /\ eqm ma (bind p k))
+      \/ exists (a:A), eqm ma (ret a).
+
+
+
+        Diverges m := eqmR (fun a b => False) m m
+        Halts m := exists k1 k2 : A -> m bool, ~ eqm (bind m k1) (bind m k2)
+        Fails m := forall k, eqm m (bind m k)
+*)

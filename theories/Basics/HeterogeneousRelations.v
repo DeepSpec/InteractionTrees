@@ -11,12 +11,13 @@ From ITree Require Import
 .
 
 (* Heterogeneous relation definition, modified from https://coq.inria.fr/stdlib/Coq.Relations.Relation_Definitions.html. *)
+(* A categorical account of this file is given in [CategoryRelation.v] *)
 
-Section RelationH_Definition.
+Definition relationH (A B : Type) := A -> B -> Prop.
 
-  Definition relationH (A B : Type) := A -> B -> Prop.
+Section RelationH_Operations.
 
-  Definition compose {A B C} (S : relationH B C) (R : relationH A B) :=
+  Definition compose {A B C} (S : relationH B C) (R : relationH A B): relationH A C :=
     fun (a : A) (c : C) => exists b, (R a b) /\ (S b c).
 
   (* Heterogeneous notion of [subrelation] *)
@@ -50,7 +51,7 @@ Section RelationH_Definition.
   | prod_morphism a1 a2 b1 b2 : RA a1 a2 -> RB b1 b2 -> prod_rel RA RB (a1, b1) (a2, b2)
   .
 
-End RelationH_Definition.
+End RelationH_Operations.
 
 Arguments compose [A B C] S R.
 Arguments subrelationH [A B] R S.
@@ -84,104 +85,44 @@ End RelNotations.
 Import RelNotations.
 Local Open Scope relationH_scope.
 
+(** ** subrelationH *)
 Section SubRelationH.
 
-  Global Instance subrelationH_refl {A B: Type} (R: relationH A B): R ⊑ R.
+  (* YZ TODO: Study how [subrelation] is manipulated. Notably:
+     * Relevance of using [flip] exactly, and how it relates to us using [transpose]
+     * Definition of [relation_equivalence] in terms of [predicate_equivalence]
+   *)
+  (* TODO: Instances for directed rewriting by [subrelationH] *)
+
+  Global Instance subrelationH_Reflexive {A B: Type} (R: relationH A B): R ⊑ R.
   Proof.
     intros!; auto.
   Qed.
 
-  (* TODO: Instances for directed rewriting by [subrelationH] *)
-  Global Instance subrelationH_sum
-         {A B C D: Type} (R R': relationH A B) (S S': relationH C D)
-         `{R ⊑ R'} `{S ⊑ S'}
-    : R ⊕ S ⊑ R' ⊕ S'.
+  (* TODO: Figure out how all of this should be organized w.r.t. typeclasses.
+     Should be an instance of [Preorder eq_rel subrelationH] most likely?
+   *)
+  Definition subrelationH_antisym {A B: Type} (R S: relationH A B) `{R ⊑ S} `{S ⊑ R}: R ≡ S.
   Proof.
-    intros!; invn sum_rel; constructor; appn subrelationH; auto.
+    split; auto.
   Qed.
 
-  Global Instance subrelationH_prod
-         {A B C D: Type} (R R': relationH A B) (S S': relationH C D)
-         `{R ⊑ R'} `{S ⊑ S'}
-    : R ⊗ S ⊑ R' ⊗ S'.
+  Global Instance subrelationH_trans {A B: Type} (R S T: relationH A B)
+         `{R ⊑ S} `{S ⊑ T} : R ⊑ T.
   Proof.
-    intros!; invn prod_rel; constructor; appn subrelationH; auto.
+    intros!; auto.
   Qed.
 
-  Global Instance subrelationH_transpose
-         {A B: Type} (R S: relationH A B) `{R ⊑ S}
-    : †R ⊑ †S.
+  Global Instance subrelationH_refl_eq {A: Type} (R: relationH A A) `{Reflexive _ R}: eq ⊑ R.
   Proof.
-    unfold transpose; intros!; appn subrelationH; auto.
+    intros!; subst; auto.
   Qed.
 
 End SubRelationH.
 
-Section ProdRelInstances.
-  Context {R S : Type}.
-  Context (RR : R -> R -> Prop).
-  Context (SS : S -> S -> Prop).
+Section RelationEqRel.
 
-  Global Instance prod_rel_refl `{Reflexive _ RR} `{Reflexive _ SS} : Reflexive (prod_rel RR SS).
-  Proof.
-    red. destruct x. constructor; auto.
-  Qed.
-
-  Global Instance prod_rel_sym `{Symmetric _ RR} `{Symmetric _ SS}  : Symmetric (prod_rel RR SS).
-  Proof.
-    red. intros.
-    inversion H1. subst.
-    constructor; symmetry; auto.
-  Qed.
-
-  Global Instance prod_rel_trans `{Transitive _ RR} `{Transitive _ SS}  : Transitive (prod_rel RR SS).
-  Proof.
-    red.
-    intros.
-    inversion H1.
-    inversion H2.
-    subst.
-    inversion H9; subst.
-    constructor; etransitivity; eauto.
-  Qed.
-
-  Global Instance prod_rel_eqv `{Equivalence _ RR} `{Equivalence _ SS} : Equivalence (prod_rel RR SS).
-  Proof.
-    constructor; typeclasses eauto.
-  Qed.
-
-End ProdRelInstances.
-
-
-
-(* SAZ: There is probably a nice way to typeclassify the eq_rel proofs *)
-Section RelationH_Classes.
-
-  (* The names are picked to line up with the categorical names we will have later, where composition is the other way around *)
-  Lemma eq_id_r: forall {A B} (R : relationH A B),
-    eq ∘ R ≡ R.
-  Proof.
-    split; intros!.
-    - invn compose; invn and; subst; auto.
-    - exists y; auto.
-  Qed.
-
-  Lemma eq_id_l: forall {A B} (R : relationH A B),
-      R ∘ eq ≡ R.
-  Proof.
-    split; intros!.
-    - invn compose; invn and; subst; auto.
-    - exists x; auto.
-  Qed.
-
-  Lemma eq_rel_prod_eq : forall A B, eq_rel (prod_rel eq eq) (eq : relationH (A * B) (A * B)).
-  Proof.
-    intros.
-    unfold eq_rel; split; unfold subrelationH; intros.
-    - inversion H; subst. reflexivity.
-    - destruct x; destruct y; inversion H; subst; constructor; reflexivity.
-  Qed.
-
+  (* [eq_rel] is an equivalence relation *)
   Global Instance eq_rel_Reflexive {A B} : Reflexive (@eq_rel A B).
   Proof.
     red. unfold eq_rel, subrelationH. tauto.
@@ -203,18 +144,75 @@ Section RelationH_Classes.
     split; typeclasses eauto.
   Qed.
 
+  (* YZ: I believe that this instance is redundant with the [Transitive] instance, as illustrated by its proof *)
   Global Instance eq_rel_Proper {A B} : Proper (eq_rel ==> eq_rel ==> iff) (@eq_rel A B).
   Proof.
-    repeat red; unfold eq_rel, subrelationH; split; intros;
-      destruct H, H0, H1; split; eauto.
+    intros ? ? EQ1 ? ? EQ2.
+    rewrite EQ1,EQ2; reflexivity.
   Qed.
 
+  (* This instance should allow to rewrite [H: R ≡ S] in a goal of the form [R x y] *)
+  (* It works in simple contxets, however, it fails weirdly quickly. See:
+     https://github.com/coq/coq/issues/12141
+   *)
+  Global Instance eq_rel_rewrite {A B}: subrelationH eq_rel (pointwise_relation A (pointwise_relation B iff)).
+  Proof.
+    intros!; destructn @eq_rel; split; intro; appn subrelationH; auto.
+  Qed.
+
+End RelationEqRel.
+
+Section RelationCompose.
+
+  (* [eq] define identities *)
+  Lemma eq_id_r: forall {A B} (R : relationH A B),
+    eq ∘ R ≡ R.
+  Proof.
+    split; intros!.
+    - invn compose; invn and; subst; auto.
+    - exists y; auto.
+  Qed.
+
+  Lemma eq_id_l: forall {A B} (R : relationH A B),
+      R ∘ eq ≡ R.
+  Proof.
+    split; intros!.
+    - invn compose; invn and; subst; auto.
+    - exists x; auto.
+  Qed.
+
+  (* Composition is associative *)
+
+  Lemma compose_assoc: forall {A B C D} (R : relationH A B) (S : relationH B C) (T : relationH C D),
+      T ∘ S ∘ R ≡ (T ∘ S) ∘ R.
+  Proof.
+    split; intros!; repeat (destructn compose || destructn and); repeat (eexists; split; eauto).
+  Qed.
+
+  Global Instance Proper_compose: forall A B C,
+      @Proper (relationH B C -> relationH A B -> relationH A C)
+              (eq_rel ==> eq_rel ==> eq_rel) (@compose A B C).
+  Proof.
+    intros ? ? ? S S' EQS R R' EQR.
+    split; intros ? ? EQ; destruct EQ as (? & ? & ?); econstructor; split; (apply EQR || apply EQS); eauto.
+  Qed.
+
+End RelationCompose.
+
+Section TransposeFacts.
 
   (* SAZ: Unfortunately adding these typeclass instances can cause typeclass resolution
    to loop when looking for a reflexive instance.
    e.t. in InterpFacts we get a loop.
 
+     YZ: If it's indeed too much of a problem, one solution is to not declare them [Global] and use
+     [Existing Instance] locally in section where we them.
    *)
+
+  (* begin
+     [transpose] is closed on equivalence relations
+   *)
+  (* YZ: Would it be worth to typeclass this property? *)
   Global Instance transpose_Reflexive {A} (R : relationH A A) {RR: Reflexive R} : Reflexive † R | 100.
   Proof.
     red. intros x. unfold transpose. reflexivity.
@@ -229,20 +227,17 @@ Section RelationH_Classes.
   Proof.
     red; intros x; unfold transpose; intros. etransitivity; eauto.
   Qed.
+  (* end
+     [transpose] is closed on equivalence relations
+   *)
 
-
-  (* This instance allows to rewrite [H: R ≡ S] in a goal of the form [R x y] *)
-  Global Instance eq_rel_rewrite {A B}: subrelationH eq_rel (pointwise_relation A (pointwise_relation B iff)).
+  (* begin
+     [transpose] is a functor (from the opposite category into itself)
+   *)
+  Lemma transpose_eq {A: Type}
+    : † (@eq A) ≡ eq.
   Proof.
-    intros!; destructn @eq_rel; split; intro; appn subrelationH; auto.
-  Qed.
-
-  Lemma transpose_compose {A B C : Type}
-        (R : relationH A B) (S : relationH B C)
-    : † (S ∘ R) ≡ (†R ∘ †S).
-  Proof.
-    split; unfold transpose; cbn; intros!;
-                                        invn compose; invn and; eexists; eauto.
+    split; unfold transpose; intros!; subst; auto.
   Qed.
 
   Lemma transpose_sym {A : Type} (R : relationH A A) {RS: Symmetric R}
@@ -251,37 +246,207 @@ Section RelationH_Classes.
     unfold transpose; split; intros!; symmetry; auto.
   Qed.
 
-
-End RelationH_Classes.
-
-Section SumRelInstances.
-  Context {A B : Type}.
-  Context (R : relationH A A).
-  Context (S : relationH B B).
-
-  Global Instance sum_rel_refl {RR: Reflexive R} {SR: Reflexive S} : Reflexive (R ⊕ S).
+  Lemma transpose_compose {A B C : Type}
+        (R : relationH A B) (S : relationH B C)
+    : † (S ∘ R) ≡ (†R ∘ †S).
   Proof.
-    intros []; auto.
+    split; unfold transpose; cbn; intros!; invn compose; invn and; eexists; eauto.
   Qed.
 
-  Global Instance sum_rel_sym {RS: Symmetric R} {SS: Symmetric S}  : Symmetric (R ⊕ S).
+  Global Instance Proper_transpose {A B : Type}
+    : Proper (eq_rel ==> eq_rel) (@transpose A B).
   Proof.
-    intros ? ? []; auto.
+    intros ? ? EQ; split; unfold transpose; intros!; apply EQ; auto.
   Qed.
 
-  Global Instance sum_rel_trans {RT: Transitive R} {ST: Transitive S}  : Transitive (R ⊕ S).
+  (* end
+     [transpose] is a functor
+   *)
+
+  (* [transpose] is an involution *)
+  (* YZ: Why do we need these parentheses?
+     TODO: Fix notation?
+   *)
+  Lemma transpose_involution : forall {A B} (R : relationH A B),
+      († † R) ≡ R.
   Proof.
-    intros ? ? ? H1 H2; inv H1; inv H2; eauto.
+    intros A B R.
+    split.
+    - unfold subrelationH. unfold transpose. tauto.
+    - unfold subrelationH, transpose. tauto.
   Qed.
 
-  Global Instance sum_rel_eqv {RE: Equivalence R} {SE: Equivalence S} : Equivalence (R ⊕ S).
+  Lemma transpose_inclusion : forall {A B} (R1 : relationH A B) (R2 : relationH A B),
+      R1 ⊑ R2 <-> († R1 ⊑ † R2).
   Proof.
-    constructor; typeclasses eauto.
+    intros A B R1 R2.
+    split.
+    - intros HS.
+      unfold subrelationH, transpose in *. eauto.
+    - intros HS.
+      unfold subrelationH, transpose in *. eauto.
   Qed.
 
-End SumRelInstances.
+  Global Instance transpose_Proper :forall A B, Proper (@eq_rel A B ==> eq_rel) (@transpose A B).
+  Proof.
+    intros A B R1 R2 (Hab & Hba).
+    split.
+    - apply transpose_inclusion in Hab. assumption.
+    - apply transpose_inclusion in Hba. assumption.
+  Qed.
 
-Section SumRelProps.
+  (* [transpose] is the identity over symmetric relations *)
+  Lemma transpose_sym_eq_rel {A : Type} (R : relationH A A) {RS: Symmetric R}
+    : † R ≡ R.
+  Proof.
+    unfold transpose; split; intros!; symmetry; auto.
+  Qed.
+
+  (* [transpose] is monotone *)
+  Global Instance transpose_monotone
+         {A B: Type} (R S: relationH A B) `{R ⊑ S}
+    : †R ⊑ †S.
+  Proof.
+    unfold transpose; intros!; appn subrelationH; auto.
+  Qed.
+
+End TransposeFacts.
+
+Section ProdRelFacts.
+
+  (* [prod_rel] preserves the structure of equivalence relations (what does one call it for a [bifunctor]?) *)
+  Section Equivalence.
+    Context {R S : Type}.
+    Context (RR : R -> R -> Prop).
+    Context (SS : S -> S -> Prop).
+
+    Global Instance prod_rel_refl `{Reflexive _ RR} `{Reflexive _ SS} : Reflexive (RR ⊗ SS).
+    Proof.
+      intros []; auto.
+    Qed.
+
+    Global Instance prod_rel_sym `{Symmetric _ RR} `{Symmetric _ SS}  : Symmetric (RR ⊗ SS).
+    Proof.
+      intros ? ? ?; invn prod_rel; auto.
+    Qed.
+
+    Global Instance prod_rel_trans `{Transitive _ RR} `{Transitive _ SS}  : Transitive (RR ⊗ SS).
+    Proof.
+      intros!; do 2 invn prod_rel; eauto.
+    Qed.
+
+    Global Instance prod_rel_eqv `{Equivalence _ RR} `{Equivalence _ SS} : Equivalence (RR ⊗ SS).
+    Proof.
+      constructor; typeclasses eauto.
+    Qed.
+
+  End Equivalence.
+
+  (* [prod_rel] is monotone in both parameters *)
+  Global Instance prod_rel_monotone
+         {A B C D: Type} (R R': relationH A B) (S S': relationH C D)
+         `{R ⊑ R'} `{S ⊑ S'}
+  : R ⊗ S ⊑ R' ⊗ S'.
+  Proof.
+    intros!; invn prod_rel; constructor; appn subrelationH; auto.
+  Qed.
+
+  (* begin
+   [prod_rel] is a bifunctor
+   *)
+
+  Lemma prod_rel_eq : forall A B,  eq ⊗ eq ≡ @eq (A * B).
+  Proof.
+    intros.
+    unfold eq_rel; split; unfold subrelationH; intros.
+    - inversion H; subst. reflexivity.
+    - destruct x; destruct y; inversion H; subst; constructor; reflexivity.
+  Qed.
+
+  Lemma prod_compose {A B C D E F: Type}
+        (R: relationH A B) (S: relationH B C)
+        (T: relationH D E) (U: relationH E F)
+    : (S ∘ R) ⊗ (U ∘ T) ≡ (S ⊗ U) ∘ (R ⊗ T).
+  Proof.
+    split; intros!.
+    - repeat (invn prod_rel || invn compose || invn and).
+      eexists; eauto.
+    - repeat (invn prod_rel || invn compose || invn and).
+      do 2 eexists; eauto.
+  Qed.
+
+  Global Instance Proper_prod_rel {A B C D}: Proper (eq_rel ==> eq_rel ==> eq_rel) (@prod_rel A B C D).
+  Proof.
+    intros!; split; intros!; invn prod_rel;
+      econstructor; appn @eq_rel; auto.
+  Qed.
+
+  (* end
+   [prod_rel] is a bifunctor
+   *)
+
+(* Note: we also have associators and unitors, forming a monoidal category.
+     See [CategoryRelation.v] if needed.
+ *)
+
+  (* Distributivity of [transpose] over [prod_rel] *)
+  Lemma transpose_prod {A B C D: Type}
+        (R: relationH A B) (S: relationH C D)
+    : † (S ⊗ R) ≡ (†S ⊗ †R).
+  Proof.
+    split; unfold transpose; cbn; intros!; invn prod_rel; auto.
+  Qed.
+
+End ProdRelFacts.
+
+Section SumRelFacts.
+
+  (* [sum_rel] preserves the structure of equivalence relations (what does one call it for a [bifunctor]?) *)
+  Section Equivalence.
+    Context {A B : Type}.
+    Context (R : relationH A A).
+    Context (S : relationH B B).
+
+    Global Instance sum_rel_refl {RR: Reflexive R} {SR: Reflexive S} : Reflexive (R ⊕ S).
+    Proof.
+      intros []; auto.
+    Qed.
+
+    Global Instance sum_rel_sym {RS: Symmetric R} {SS: Symmetric S}  : Symmetric (R ⊕ S).
+    Proof.
+      intros ? ? []; auto.
+    Qed.
+
+    Global Instance sum_rel_trans {RT: Transitive R} {ST: Transitive S}  : Transitive (R ⊕ S).
+    Proof.
+      intros ? ? ? H1 H2; inv H1; inv H2; eauto.
+    Qed.
+
+    Global Instance sum_rel_eqv {RE: Equivalence R} {SE: Equivalence S} : Equivalence (R ⊕ S).
+    Proof.
+      constructor; typeclasses eauto.
+    Qed.
+
+  End Equivalence.
+
+  (* [sum_rel] is monotone in both parameters *)
+  Global Instance sum_rel_monotone
+         {A B C D: Type} (R R': relationH A B) (S S': relationH C D)
+         `{R ⊑ R'} `{S ⊑ S'}
+    : R ⊕ S ⊑ R' ⊕ S'.
+  Proof.
+    intros!; invn sum_rel; constructor; appn subrelationH; auto.
+  Qed.
+
+  (* begin
+   [sum_rel] is a bifunctor
+   *)
+
+  Lemma sum_rel_eq : forall A B,  eq ⊕ eq ≡ @eq (A + B).
+  Proof.
+    intros.
+    split; intros!; [invn sum_rel | destructn sum; subst]; eauto.
+  Qed.
 
   Lemma sum_compose {A B C D E F: Type}
         (R: relationH A B) (S: relationH B C)
@@ -296,6 +461,20 @@ Section SumRelProps.
       all: econstructor; eexists; eauto.
   Qed.
 
+  Global Instance Proper_sum_rel {A B C D}: Proper (eq_rel ==> eq_rel ==> eq_rel) (@sum_rel A B C D).
+  Proof.
+    intros!; split; intros!; invn sum_rel; econstructor; appn @eq_rel; eauto.
+  Qed.
+
+  (* end
+   [sum_rel] is a bifunctor
+   *)
+
+(* Note: we also have associators and unitors, forming a monoidal category.
+     See [CategoryRelation.v] if needed.
+ *)
+
+  (* Distributivity of [transpose] over [sum_rel] *)
   Lemma transpose_sum {A B C D: Type}
         (R: relationH A B) (S: relationH C D)
     : † (S ⊕ R) ≡ (†S ⊕ †R).
@@ -303,141 +482,6 @@ Section SumRelProps.
     split; unfold transpose; cbn; intros!; invn sum_rel; auto.
   Qed.
 
-  (* What's the right way to avoid having to refer to H here? *)
-  Global Instance Proper_sum_rel {A B C D}: Proper (eq_rel ==> eq_rel ==> eq_rel) (@sum_rel A B C D).
-  Proof.
-    intros!; split; intros!; invn sum_rel; econstructor; (apply H || apply H0); auto.
-  Qed.
+End SumRelFacts.
 
 
-End SumRelProps.
-
-Section ProdRelProps.
-
-  Lemma prod_compose {A B C D E F: Type}
-        (R: relationH A B) (S: relationH B C)
-        (T: relationH D E) (U: relationH E F)
-  : (S ∘ R) ⊗ (U ∘ T) ≡ (S ⊗ U) ∘ (R ⊗ T).
-  Proof.
-    split; intros!.
-    - invn prod_rel; invn compose; invn and.
-      inversion H0. destruct H.
-      all: eexists; split; econstructor; eauto.
-    - invn compose; invn and; do 2 invn prod_rel.
-      eauto.
-      all: econstructor; eexists; eauto.
-  Qed.
-
-  Lemma transpose_prod {A B C D: Type}
-        (R: relationH A B) (S: relationH C D)
-    : † (S ⊗ R) ≡ (†S ⊗ †R).
-  Proof.
-    split; unfold transpose; cbn; intros!; invn prod_rel; auto.
-  Qed.
-
-  (* What's the right way to avoid having to refer to H here? *)
-  Global Instance Proper_prod_rel {A B C D}: Proper (eq_rel ==> eq_rel ==> eq_rel) (@prod_rel A B C D).
-  Proof.
-    intros!; split; intros!; invn prod_rel; econstructor; (apply H || apply H0); auto.
-  Qed.
-
-End ProdRelProps.
-
-(* Section RelationH_Category. *)
-
-(*   Section Operations. *)
-
-(*     Global Instance Eq2_rel : Eq2 relationH := @eq_rel. *)
-
-(*     Global Instance Cat_rel : Cat relationH := fun _ _ _ f g => compose g f. *)
-
-(*     Global Instance Id_rel : Id_ relationH := @eq. *)
-
-(*     Global Instance Initial_rel : Initial relationH void := *)
-(*       fun _ v => match v : void with end. *)
-
-(*     (* I'm not sure how we would actually want to work with these *)
-(*        since we have two instances of [Bimap], ⊕ and ⊗, that we actually use. *)
-(*        Additionally of course we have the two that are derived from *)
-(*        the respective product and coproduct, which should be provably *)
-(*        isomorphic to respectively ⊗ and ⊕. *)
-(*      *) *)
-(*     Global Instance Bimap_sum_rel : Bimap relationH sum := *)
-(*       fun (a b c d : Type) R S => R ⊕ S. *)
-
-(*     Global Instance Bimap_prod_rel : Bimap relationH prod := *)
-(*       fun (a b c d : Type) R S => R ⊗ S. *)
-
-(*     Global Instance Case_rel : Case relationH sum := *)
-(*       fun _ _ _ l r => case_sum _ _ _ l r. *)
-
-(*     Global Instance Inl_rel : Inl relationH sum := *)
-(*       fun A B => fun_rel inl. *)
-
-(*     Global Instance Inr_rel : Inr relationH sum := *)
-(*       fun _ _ => fun_rel inr. *)
-
-(*     Global Instance Pair_rel : Pair relationH prod := *)
-(*       fun _ _ _ l r c '(a,b) => l c a /\ r c b. *)
-
-(*     Global Instance Fst_rel : Fst relationH prod := *)
-(*       fun A B => fun_rel fst. *)
-
-(*     Global Instance Snd_rel : Snd relationH prod := *)
-(*       fun _ _ => fun_rel snd. *)
-
-(*   End Operations. *)
-
-(*   Global Instance CatIdL_rel: CatIdL relationH. *)
-(*   constructor; unfold subrelationH, cat, id_, Cat_rel, Id_rel, compose; intros. *)
-(*   - edestruct H as (B' & EQ & R). rewrite <- EQ in R. *)
-(*     assumption. *)
-(*   - exists x. split. reflexivity. assumption. *)
-(*   Qed. *)
-
-(*   Global Instance rel_CatIdR: CatIdR relationH. *)
-(*   constructor; unfold subrelationH, cat, id_, Cat_rel, Id_rel, compose; intros. *)
-(*   - edestruct H as (B' & R & EQ). rewrite EQ in R. *)
-(*     assumption. *)
-(*   - exists y. split. assumption. reflexivity. *)
-(*   Qed. *)
-
-(*   Global Instance rel_CatAssoc: CatAssoc relationH. *)
-(*   constructor; unfold subrelationH, cat, id_, Cat_rel, Id_rel, compose; *)
-(*     intros A D H. *)
-(*   - edestruct H as (C & (B & Rf & Rg) & Rh); clear H. *)
-(*     exists B. split; [assumption | ]. *)
-(*     exists C. split; assumption. *)
-(*   - edestruct H as (B & Rf & (C & Rg & Rh)); clear H. *)
-(*     exists C. split; [ | assumption]. *)
-(*     exists B; split; assumption. *)
-(*   Qed. *)
-
-(*   Global Instance rel_ProperCat: forall a b c, *)
-(*       @Proper (relationH a b -> relationH b c -> relationH a c) *)
-(*               (eq2 ==> eq2 ==> eq2) cat. *)
-(*   intros a b c. *)
-(*   constructor; unfold subrelationH, cat, id_, Cat_rel, Id_rel, compose; *)
-(*     intros A C He. *)
-(*   - edestruct He as (B & Hx & Hx0). *)
-(*     unfold eq2, Eq2_rel, eq_rel, subrelationH in *. *)
-(*     destruct H, H0. *)
-(*     exists B. split. specialize (H A B Hx). assumption. *)
-(*     specialize (H0 _ _ Hx0). assumption. *)
-(*   - edestruct He as (B & Hy & Hy0). *)
-(*     unfold eq2, Eq2_rel, eq_rel, subrelationH in *. *)
-(*     destruct H, H0. *)
-(*     exists B. split. specialize (H1 _ _ Hy). assumption. *)
-(*     specialize (H2 _ _ Hy0). assumption. *)
-(*   Qed. *)
-
-
-(*   Global Instance rel_Category : Category relationH := *)
-(*     {| *)
-(*     category_cat_id_l := CatIdL_rel; *)
-(*     category_cat_id_r := rel_CatIdR; *)
-(*     category_cat_assoc := rel_CatAssoc; *)
-(*     category_proper_cat := rel_ProperCat *)
-(*     |}. *)
-
-(* End RelationH_Category. *)
