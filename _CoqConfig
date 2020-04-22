@@ -22,6 +22,7 @@ theories/Core/KTree.v
 theories/Core/KTreeFacts.v
 theories/Core/Subevent.v
 theories/Core/ITreeMonad.v
+theories/Core/Divergence.v
 
 theories/Eq.v
 theories/Eq/Shallow.v
@@ -59,5 +60,13 @@ theories/Events/Concurrency.v
 theories/Events/Dependent.v
 
 theories/Dijkstra/DijkstraMonad.v
-theories/Dijkstra/DijkstraMonadExamples.v
+theories/Dijkstra/IterRel.v
+theories/Dijkstra/PureITreeBasics.v
+theories/Dijkstra/PureITreeDijkstra.v
+theories/Dijkstra/DelaySpecMonad.v
+theories/Dijkstra/StateSpecT.v
+theories/Dijkstra/EuttEv.v
+theories/Dijkstra/IBranch.v
+theories/Dijkstra/EuttDiv.v
+theories/Dijkstra/TracesIT.v
 theories/Dijkstra/ITreeDijkstra.v
