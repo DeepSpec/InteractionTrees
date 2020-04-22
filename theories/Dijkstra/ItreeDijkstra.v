@@ -367,7 +367,8 @@ Section ITreeDijkstra.
 
 
   Program Definition bind_ex (A B: Type) (w: ITreeSpec A) (g : A -> ITreeSpec B) : ITreeSpec B :=
-    fun p => w (fun t => (exists a, can_converge a t /\ g a p) \/ (must_diverge t /\  p (div_cast t)) ).
+    fun p  => 
+      w (fun t => (exists a, can_converge a t /\ g a p) \/ (must_diverge t /\  p (div_cast t)) ).
   Next Obligation.
   Proof.
     repeat red. split; intros; basic_solve.
@@ -517,10 +518,166 @@ Section ITreeDijkstra.
 
   CoInductive stream (A : Type) : Type := go {_observe : @streamF A (stream A) } .
 
+  Notation stream' A := (@streamF A (stream A)).
+
   Definition Nil {A} : stream A:=
     {| _observe := NilF |}.
 
   Definition Cons {A} (h : A) (t : stream A) := {| _observe := ConsF h t |}.
+
+  Definition observe_stream {A} : stream A -> stream' A := @_observe A.
+
+  Variant is_infF {A : Type}  (F : stream A -> Prop) : stream' A -> Prop :=
+    is_inf_cons (h : A) (t : stream A) : F t -> is_infF F (ConsF h t).
+
+  Hint Constructors is_infF.
+
+  Definition is_inf_ {A : Type} (F : stream A -> Prop) : stream A -> Prop :=
+    fun s => is_infF F (observe_stream s).
+
+  Definition is_inf {A : Type} := paco1 (@is_inf_ A) bot1.
+
+  Lemma is_inf_monot {A} : monotone1 (@is_inf_ A).
+  Proof.
+    red. intros. red in IN. red. induction IN; auto.
+  Qed.
+  
+  Hint Resolve is_inf_monot : paco.
+
+
+  CoFixpoint app' {A : Type} (osl: stream' A) (sr : stream A) : stream A :=
+    match osl with
+    | NilF => sr
+    | ConsF h t => Cons h (app' (observe_stream t) sr) 
+    end.
+
+  Definition app {A : Type} (sl : stream A) : stream A -> stream A :=
+    app' (observe_stream sl).
+
+  Variant bisimF {A : Type} (F : stream A -> stream A -> Prop) : stream' A -> stream' A -> Prop :=
+    | bisimNil : bisimF F NilF NilF
+    | bisimConsF (h : A) (s1 s2 : stream A) : F s1 s2 -> bisimF F (ConsF h s1) (ConsF h s2).
+
+  Hint Constructors bisimF.
+
+  Definition bisim_ {A : Type} (F : stream A -> stream A -> Prop) : stream A -> stream A -> Prop :=
+    fun s1 s2 => bisimF F (observe_stream s1) (observe_stream s2).
+
+  Definition bisim {A : Type} := paco2 (@bisim_ A) bot2.
+
+  Lemma bisim_monot {A} : monotone2 (@bisim_ A).
+  Proof.
+    red. intros. red in IN. red. induction IN; auto.
+  Qed.
+
+  Hint Resolve bisim_monot : paco.
+
+  Instance bisim_equiv {A} : Equivalence (@bisim A).
+  Proof.
+    constructor; red.
+    - pcofix CIH. intros. pfold. red. destruct (observe_stream x); auto.
+    - pcofix CIH. intros.
+      pfold. red.
+      pinversion H0; subst; auto.
+    - pcofix CIH. intros. pfold. red.
+      pinversion H0; pinversion H1; auto.
+      + rewrite <- H in H3. discriminate.
+      + rewrite <- H2 in H5. discriminate.
+      + rewrite <- H2 in H4. injection H4; intros; subst.
+        constructor. right. eauto.
+   Qed.
+
+  Instance proper_bisim_app {A} : Proper (@bisim A ==> bisim ==> bisim) app.
+  Proof.
+    repeat red. pcofix CIH.  intros s1 s2 H12 s3 s4 H34.
+    pfold. red. unfold app. pinversion H12.
+    - simpl. destruct s3. destruct s4. pinversion H34; simpl in *; subst; auto.
+      constructor. left. eapply paco2_mon; eauto. intuition.
+    - cbn. constructor. right. apply CIH; auto.
+  Qed.
+
+  Instance proper_bisim_inf_imp {A} : Proper (@bisim A ==> impl) is_inf.
+  Proof.
+    repeat red. pcofix CIH.
+    intros s1 s2 H12 H. pfold. red. punfold H. red in H.
+    punfold H12. red in H12. inversion H12; subst; auto.
+    - rewrite <- H1 in H. inversion H.
+    - inversion H. subst. pclearbot. destruct H2; intuition. constructor. right. eapply CIH; eauto.
+      rewrite <- H3 in H0. injection H0 as H0 . subst. auto.
+  Qed.
+
+  Instance proper_bisim_inf {A} : Proper (@bisim A ==> iff) (is_inf).
+  Proof.
+    split; try apply proper_bisim_inf_imp; auto.
+    apply bisim_equiv. auto.
+  Qed.
+
+  Lemma app_inf : forall (A : Type) (s1 s2 : stream A), is_inf s1 -> bisim (app s1 s2) s1.
+  Proof.
+    intros A. pcofix CIH. intros s1 s2 Hinf. pfold. unfold app.
+    pinversion Hinf.
+    red. cbn. rewrite <- H. constructor. right. apply CIH; auto.
+  Qed. 
+
+  Variant forall_streamF {A : Type} (P : A -> Prop) (F : stream A -> Prop) : stream' A -> Prop :=
+    | forall_nil : forall_streamF P F NilF
+    | forall_cons (h : A) (t : stream A) : P h -> F t -> forall_streamF P F (ConsF h t).
+
+  Hint Constructors forall_streamF.
+
+  Definition forall_stream_ {A : Type} (P : A -> Prop) (F : stream A -> Prop) : stream A -> Prop :=
+    fun s => forall_streamF P F (observe_stream s).
+
+  Lemma forall_stream_monot (A : Type) (P : A -> Prop) : monotone1 (forall_stream_ P).
+  Proof.
+    red. intros. red. red in IN. destruct IN; auto.
+  Qed.
+
+  Hint Resolve forall_stream_monot : paco.
+
+  Definition forall_stream {A : Type} (P : A -> Prop) := paco1 (forall_stream_ P) bot1.
+  
+  Inductive inf_manyF {A : Type} (P : A -> Prop) (F : stream A -> Prop) : stream' A -> Prop :=
+    | cons_search (h : A) (t : stream A) : inf_manyF P F (observe_stream t) -> inf_manyF P F (ConsF h t)
+    | cons_found (h : A) (t : stream A) : P h -> F t -> inf_manyF P F (ConsF h t)
+  .
+
+  Hint Constructors inf_manyF.
+
+  Definition inf_many_ {A : Type} (P : A -> Prop) (F : stream A -> Prop) : stream A -> Prop :=
+    fun s => inf_manyF P F (observe_stream s).
+
+  Lemma inf_many_monot (A : Type) (P : A -> Prop) : monotone1 (inf_many_ P).
+  Proof.
+    red. intros. red in IN. red. induction IN; auto.
+  Qed.
+
+  Hint Resolve inf_many_monot : paco.
+
+  Definition inf_many {A : Type} (P : A -> Prop) := paco1 (inf_many_ P) bot1.
+
+  Lemma inf_many_inf : forall (A : Type) (P : A -> Prop) (s : stream A),
+      inf_many P s -> is_inf s.
+  Proof.
+    intros A P. pcofix CIH. intros s Him.
+    punfold Him. red in Him. pfold. red.
+    induction Him; auto. pclearbot.
+    auto.
+  Qed.
+
+  Lemma inf_and_forall : forall (A : Type) (P : A -> Prop) (s : stream A),
+      is_inf s -> forall_stream P s -> inf_many P s.
+  Proof.
+    intros A P. pcofix CIH. intros s Hinf Hforall.
+    pfold. red. punfold Hinf. red in Hinf. punfold Hforall.
+    red in Hforall. inversion Hinf.
+    inversion Hforall.
+    - rewrite <- H in H2. discriminate.
+    - pclearbot. rewrite <- H in H1. injection H1 as H1. subst.
+      apply cons_found; auto.
+  Qed.
+
+  (*bisim is proper under app*)
 
   (*need a way to relate trees across event types if they never use it*)
 
@@ -638,6 +795,31 @@ Section ITreeDijkstra.
     - rewrite <- x. constructor. eapply IHeqitF; eauto.
   Qed.
 
+  Lemma eventless_div : forall (R : Type) (t : itree E R),
+      eventless t -> must_diverge t -> t ≈ spin.
+  Proof.
+    intros R. pcofix CIH. intros.
+    pinversion H0.
+    - specialize (itree_eta t) as Ht. rewrite <- H2 in Ht.
+      rewrite Ht in H1. pinversion H1.
+    - pfold. red. cbn. rewrite <- H.
+      red in H0. rewrite <- H in H0.
+      constructor.
+      right. apply CIH; auto.
+      specialize (itree_eta t) as Ht. rewrite <- H in Ht.
+      rewrite Ht in H1. punfold H1. red in H1. cbn in H1.
+      inversion H1. subst. pclearbot. auto.
+  Qed.
+
+  Lemma eventless_ret : forall (R : Type) (t : itree E R) (r : R),
+      eventless t -> can_converge r t -> t ≈ Ret r.
+  Proof.
+    intros R t r.
+    intros. induction H0; auto. rewrite H0 in H.
+    pinversion H.
+  Qed.
+
+
   Lemma eqitE_imp_eutt : forall (E : Type -> Type) (R1 R2 : Type) (RR : R1 -> R2 -> Prop)
                                 (t1 : itree E R1) (t2 : itree E R2),
       eqitE RR t1 t2 -> eutt RR t1 t2.
@@ -673,6 +855,56 @@ Section ITreeDijkstra.
     constructor. right. eapply CIH; eauto.
   Qed.
 
+  Lemma eventless_spin : forall (E1 : Type -> Type) (R : Type),
+      eventless (@spin E1 R).
+  Proof.
+    intros E1 R. pcofix CIH. pfold. red. cbn. constructor.
+    right. auto.
+  Qed.
+
+  CoFixpoint remove_events' {E1 E2 : Type -> Type} {A : Type}
+              (t : itree' E1 A) : itree E2 A :=
+    match t with
+    | RetF r => Ret r
+    | TauF t' => Tau (remove_events' (observe t'))
+    | VisF _ _ => spin end.
+
+  Definition remove_events {E1 E2 A} (t : itree E1 A) : itree E2 A :=
+    remove_events' (observe t).
+
+  Lemma remove_events_eventless_equivE : forall (E1 E2 : Type -> Type) (A : Type)
+                                         (t : itree E1 A),
+      eventless t -> @equivE E1 E2 A t (remove_events t).
+  Proof.
+    intros E1 E2 A. pcofix CIH. intros.
+    pfold. red. pinversion H0.
+    - cbn. unfold remove_events. rewrite <- H1. cbn. auto.
+    - unfold remove_events. rewrite <- H. cbn. constructor. right. apply CIH.
+      auto.
+  Qed.
+
+  (* Lemma remove_events_eventless_eutt : forall *)
+
+  Lemma remove_events_eventless : forall (E1 E2: Type -> Type) (A : Type)
+                                         (t : itree E1 A),
+      eventless (@remove_events E1 E2 A t).
+  Proof.
+    intros E1 E2 A. pcofix CIH. intros.
+    pfold. red. unfold remove_events. destruct (observe t) eqn : Heq.
+    - cbn. constructor.
+    - cbn. constructor. right. apply CIH.
+    - cbn. constructor. left. 
+      eapply paco1_mon with (r := bot1); intuition.
+      apply eventless_spin.
+  Qed.
+
+  Lemma delay_eventless : forall (A : Type) (d : Delay A),
+      eventless d.
+  Proof.
+    intros A. pcofix CIH. intros.
+    pfold. red. destruct (observe d); auto.
+    destruct e.
+  Qed.
 
   (*need to get this done at some point*)
   Lemma eqitE_inv_tauLR : forall (E1 E2 : Type -> Type) (R1 R2 : Type) (RR : R1 -> R2 -> Prop)
@@ -689,73 +921,143 @@ Section ITreeDijkstra.
     - pclearbot. injection Heqtt1 as Heqtt1. injection Heqtt2 as Heqtt2. subst.
       punfold H. red in H. auto. eapply eqitE_monot; eauto.
       intros. pclearbot. left. eapply paco2_mon; try apply PR. intros. contradiction.
-   Admitted.
+   Abort.
+
+  Lemma inv_remove_events : forall (E1 E2 : Type -> Type) (R : Type)
+                                   (t1 : itree E1 R) (t2 : itree E2 R),
+      eventless t1 -> eventless t2 -> @remove_events E1 E2 R t1 ≈ @remove_events E2 E2 R t2 ->
+      equivE t1 t2.
+  Proof.
+    intros E1 E2 R. pcofix CIH.
+    intros t1 t2 Hev1 Hev2 Heutt. pfold. red.
+    punfold Heutt. unfold_eqit. dependent induction Heutt; subst. 
+    - unfold remove_events in x0, x. 
+      destruct (observe t1); destruct (observe t2); try discriminate.
+      constructor. cbn in *. injection x0. injection x. intros. subst. auto.
+    - unfold remove_events in x0, x. 
+      destruct (observe t1) eqn : Heq1; destruct (observe t2) eqn : Heq2; try discriminate.
+      + cbn in *. constructor. 
+        injection x0. injection x. intros. subst. pclearbot.
+        right. apply CIH; auto. 
+        * specialize (itree_eta t1) as Ht1. rewrite Heq1 in Ht1.
+          assert (t ≈ t1).
+          { rewrite Ht1. rewrite tau_eutt. reflexivity. }
+          rewrite H. auto.
+        * specialize (itree_eta t2) as Ht2. rewrite Heq2 in Ht2.
+          assert (t0 ≈ t2).
+          { rewrite Ht2. rewrite tau_eutt. reflexivity. }
+          rewrite H. auto.
+      + pinversion Hev2.
+        * rewrite Heq2 in H0. discriminate.
+        * rewrite Heq2 in H. discriminate.
+      + pinversion Hev1.
+        * rewrite Heq1 in H0. discriminate.
+        * rewrite Heq1 in H. discriminate.
+      + pinversion Hev1.
+        * rewrite Heq1 in H0. discriminate.
+        * rewrite Heq1 in H. discriminate.
+    - unfold remove_events in *. destruct (observe t1); cbn in x0; discriminate.
+    - unfold remove_events in x. destruct (observe t1) eqn : Heq; cbn in *; try discriminate.
+      + injection x as x. constructor.
+        apply IHHeutt; auto.
+        * specialize (itree_eta t1) as Ht1. rewrite Heq in Ht1.
+          assert (t ≈ t1).
+          { rewrite Ht1. rewrite tau_eutt. reflexivity. }
+           rewrite  H. auto.
+        * unfold remove_events. rewrite x. auto.
+      + exfalso. specialize (itree_eta t1) as Ht1. rewrite Heq in Ht1.
+        rewrite Ht1 in Hev1. pinversion Hev1.
+    - unfold remove_events in x. destruct (observe t2) eqn : Heq; cbn in *; try discriminate.
+      + injection x as x. constructor.
+        apply IHHeutt; auto.
+        * specialize (itree_eta t2) as Ht2. rewrite Heq in Ht2.
+          assert (t ≈ t2).
+          { rewrite Ht2. rewrite tau_eutt. reflexivity. }
+          rewrite H. auto.
+        * unfold remove_events. rewrite x. auto.
+      + exfalso. specialize (itree_eta t2) as Ht2. rewrite Heq in Ht2.
+        rewrite Ht2 in Hev2. pinversion Hev2.
+  Qed.
+
+  Lemma remove_events_eqitE : forall (E1 E2 E3 E4 : Type -> Type) (R1 R2 : Type)
+                                      (RR : R1 -> R2 -> Prop)
+                                      (t1 : itree E1 R1) (t2 : itree E2 R2),
+      eqitE RR t1 t2 -> eqitE RR (@remove_events E1 E3 R1 t1) (@remove_events E2 E4 R2 t2).
+  Proof.
+    intros E1 E2 E3 E4 R1 R2 RR. pcofix CIH. intros.
+    punfold H0. red in H0. pfold. red. unfold remove_events.
+    induction H0; cbn; auto.
+    pclearbot. constructor. right. apply CIH; auto.
+  Qed.
+
 
   Lemma eqitE_trans : forall (E1 E2 E3 : Type -> Type) (R : Type) 
                              (t1 : itree E1 R) (t2 : itree E2 R) (t3 : itree E3 R),
       equivE t1 t2 -> equivE t2 t3 -> equivE t1 t3.
   Proof.
-    intros E1 E2 E3 R.
-    pcofix CIH. intros t1 t2 t3 INL INR.
-    pstep. punfold INL. punfold INR. red in INL, INR |- *. genobs_clear t3 ot3.
-    hinduction INL before CIH; intros; subst; clear t1 t2; eauto.
-    - remember (RetF r2) as ot.
-      hinduction INR before CIH; intros; inv Heqot; eauto with paco.
-    - assert (DEC: (exists m3, ot3 = TauF m3) \/ (forall m3, ot3 <> TauF m3)).
-      { destruct ot3; eauto; right; red; intros; inv H; discriminate. }
-      destruct DEC as [EQ | EQ].
-      + destruct EQ as [m3 ?]; subst.
-        econstructor. right. pclearbot. eapply CIH; eauto with paco.
-        eapply eqitE_inv_tauLR.  (* eauto.  pfold. constructor.
-        left.
+    intros E1 E2 E3 R t1 t2 t3 Ht12 Ht23.
+    assert (Ht1 : eventless t1).
+    { eapply eqitE_imp_eventlessl; eauto. }
+    assert (Ht2 : eventless t2).
+    { eapply eqitE_imp_eventlessl; eauto. }
+    assert (Ht3 : eventless t3).
+    { eapply eqitE_imp_eventlessr; eauto. }
+    apply inv_remove_events; auto.
+    assert (remove_events t1 ≈ @remove_events E2 E3 _ t2).
+    { 
+      apply eqitE_imp_eutt. apply remove_events_eqitE. auto.
+    }
+    assert (remove_events t2 ≈ @remove_events E3 E3 _ t3).
+    {
+      apply eqitE_imp_eutt. apply remove_events_eqitE. auto.
+    }
+    rewrite H. auto.
+  Qed.
 
-
-
-      + inv INR; try (exfalso; eapply EQ; eauto; fail).
-        econstructor; eauto.
-        pclearbot. punfold REL. red in REL.
-        hinduction REL0 before CIH; intros; try (exfalso; eapply EQ; eauto; fail).
-        * remember (RetF r1) as ot.
-          hinduction REL0 before CIH; intros; inv Heqot; eauto with paco.
-        * remember (VisF e k1) as ot.
-          hinduction REL0 before CIH; intros; dependent destruction Heqot; eauto with paco.
-          econstructor. intros. right.
-          destruct (REL v), (REL0 v); try contradiction. eauto.
-        * eapply IHREL0; eauto. pstep_reverse.
-          destruct b1; inv CHECK0.
-          apply eqit_inv_tauR. eauto.
-    - remember (VisF e k2) as ot.
-      hinduction INR before CIH; intros; dependent destruction Heqot; eauto.
-      econstructor. intros.
-      destruct (REL v), (REL0 v); try contradiction; eauto.
-    - remember (TauF t0) as ot.
-      hinduction INR before CIH; intros; dependent destruction Heqot; eauto.
-      eapply IHINL; eauto. pclearbot. punfold REL.
-  Qed. *) Admitted.
+  Lemma equivE_sym : forall (E1 E2 : Type -> Type) (R : Type)
+                            (t1 : itree E1 R) (t2 : itree E2 R),
+      equivE t1 t2 -> equivE t2 t1.
+  Proof.
+    intros E1 E2 R. pcofix CIH. intros.
+    punfold H0. red in H0. pfold. red.
+    induction H0; eauto.
+    pclearbot. constructor. right. apply CIH; auto.
+  Qed.
   
 
-  Instance proper_eqitE_imp {E1 E2} {R1 R2} {RR} :Proper (  eutt eq ==> (eutt eq) ==> impl) (@eqitE E1 E2 R1 R2 RR).
+  Instance proper_eutt_equivE_imp {E1 E2} {R}  :Proper (  eutt eq ==> (eutt eq) ==> impl) (@equivE E1 E2 R).
   Proof.
-    repeat red.
-    intros t1 t2 Ht12 t3 t4 Ht34. intros.
+    intros t1 t2 Ht12 t3 t4 Ht34. intro.
     apply eqitE_imp_eventlessl in H as Ht1.
     apply eqitE_imp_eventlessr in H as Ht3.
     assert (Ht2 : eventless t2). 
     { rewrite <- Ht12. auto. }
     assert (Ht4 : eventless t4).
     { rewrite <- Ht34. auto. }
+    apply eqitE_trans with (t2 := t1).
+    - symmetry in Ht12. apply eutt_eventless; auto.
+    - apply eqitE_trans with (t2 := t3); auto.
+      apply eutt_eventless; auto.
+  Qed.
 
-    pcofix CIH.
+  Instance proper_eutt_equivE  {E1 E2} {R}  :Proper (  eutt eq ==> (eutt eq) ==> iff) (@equivE E1 E2 R).
+  Proof.
+    split; intros.
+    - rewrite <- H. rewrite <- H0. auto.
+    - symmetry in H. symmetry in H0.
+      rewrite <- H. rewrite <- H0. auto.
+  Qed.
 
-  Admitted.
+  
   (*could also use an eventless predicate*)
 
   (*gets the idea across, obviously I want to pacoize this*)
-  CoInductive itree_includes {R : Type} : itree E R -> stream Ev -> Delay R -> Prop := 
-    | includes_base (t : itree E R) (d : Delay R) : equivE t d -> itree_includes t Nil d
+  (*this is a key part of an effect observation from *)
+  CoInductive itree_includes' {R : Type} : itree E R -> stream Ev -> Delay R -> Prop := 
+    | includes_base (t : itree E R) (d : Delay R) : equivE t d -> itree_includes' t Nil d
     | cont_vis {A} (e : E A) (a : A) (k : A -> itree E R) (t : itree E R) (s : stream Ev ) (d : Delay R) :
         Vis e k ≈ t -> 
-        itree_includes (k a) s d -> itree_includes t (Cons (ev A e a) s ) (Tau d).
+        itree_includes' (k a) s d -> itree_includes' t (Cons (ev A e a) s ) (Tau d).
 
   Variant itree_includesF {R : Type} (F : itree E R -> stream Ev -> Delay R -> Prop) : 
     itree E R -> stream Ev -> Delay R -> Prop :=
@@ -763,6 +1065,11 @@ Section ITreeDijkstra.
     | cont_visF {A} (e : E A) (a : A) (k : A -> itree E R) (t : itree E R) (s : stream Ev) (d : Delay R) :
         Vis e k ≈ t ->
         F (k a) s d -> itree_includesF F t (Cons (ev A e a) s) (Tau d).
+
+  
+
+  Definition itree_includes {R : Type} : itree E R -> stream Ev -> Delay R -> Prop :=
+    paco3 (@itree_includesF R) bot3.
 
 
 
