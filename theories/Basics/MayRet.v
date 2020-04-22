@@ -85,6 +85,12 @@ Section MayRet.
       pose proof bind_bind.
   Admitted. (* IY: absurd: doesn't work unless f is injective. *)
 
+  Lemma monadic_cases {A} : forall (ma : m A),
+    (exists B (p : m B) (k : B -> m A), atomic p /\ eqm ma (bind p k))
+    \/ exists (a:A), eqm ma (ret a).
+  Proof.
+  Admitted.
+
 End MayRet.
 
 (*  ------------------------------------------------------------------------- *)
@@ -98,7 +104,6 @@ End MayRet.
 
      mayRet ma x <->
      mayRet (fmap f ma) (f x)
-
 
   Test theorems for the state monad:
   impure (get)
