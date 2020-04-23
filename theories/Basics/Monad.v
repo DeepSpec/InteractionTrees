@@ -48,7 +48,6 @@ Section EqmRRel.
     (* [eqmR] should transport elementary structures of the relation [R] *)
     (* Question: should it transport anti-symmetry? *)
 
-      eqmR_transport_refl :>  forall {A} (R : relationH A A), Reflexive R  -> Reflexive (eqmR R);
       eqmR_transport_symm :>  forall {A} (R : relationH A A), Symmetric R  -> Symmetric (eqmR R);
       eqmR_transport_trans :> forall {A} (R : relationH A A), Transitive R -> Transitive (eqmR R);
 
@@ -73,12 +72,16 @@ Section EqmRRel.
 
 End EqmRRel.
 
+(* KS: removing flexivity for experiment so no longer an
+       equivalence relation *)
 (* In particular, well-formedness of [eqmR] recovers that [eqm] is an equivalence relationH *)
+(* 
 Instance eqm_equiv (m:Type -> Type) `{EqmR m} `{EqmR_OK m}
   : forall A, Equivalence (@eqm m _ A).
 Proof.
   unfold eqm; split; typeclasses eauto.
 Qed.
+*)
 
 Section EqmRMonad.
   Context (m : Type -> Type).
@@ -194,16 +197,16 @@ Section MONAD.
   Global Instance monad_eqmR {m} `{EqmRm: EqmRMonad m} {EqmROKm: EqmR_OK m} : MonadLaws m.
   Proof.
     split; intros.
-
     - unfold eqm. apply eqmR_bind_ret_l with (RA := eq); auto.
-      repeat intro; subst; reflexivity.
+      repeat intro. subst. admit.
     - unfold eqm. apply eqmR_bind_ret_r with (RA := eq); auto.
-      reflexivity.
+      admit.
     - unfold eqm. apply eqmR_bind_bind with (RA := eq)(RB := eq); auto.
-      reflexivity.
-      repeat intro; subst; reflexivity.
-      repeat intro; subst; reflexivity.
-    - repeat intro.
+      admit.
+      repeat intro; subst. admit.
+      repeat intro; subst. admit.
+    - repeat intro. admit.
+      (* 
       rewrite H.
       (* Interesting (or annoying I guess):
          if [EqMR] is defined as a singleton class, then here [eapply eqmR_Proper_bind]
@@ -215,6 +218,7 @@ Section MONAD.
       eapply eqmR_Proper_bind; eauto.
       reflexivity.
       repeat intro; subst; apply H0.
-  Qed.
+  Qed. *)
+  Admitted.
 
 End MONAD.
