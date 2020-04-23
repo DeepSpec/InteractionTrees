@@ -31,6 +31,7 @@ Arguments eqmR {m _} [A B].
 *)
 Definition eqm {m:Type -> Type} `{EqmR m} {A} := eqmR (@eq A).
 
+
 (* YZ: I don't think [A] should be maximally inserted, but putting it back as is for now for retro-compatibility *)
 Arguments eqm {m _ A}.
 Infix "≈" := eqm (at level 70) : monad_scope.
@@ -75,12 +76,14 @@ End EqmRRel.
 (* KS: removing flexivity for experiment so no longer an
        equivalence relation *)
 (* In particular, well-formedness of [eqmR] recovers that [eqm] is an equivalence relationH *)
+
 (* 
-Instance eqm_equiv (m:Type -> Type) `{EqmR m} `{EqmR_OK m}
+
+Global Instance eqm_equiv (m:Type -> Type) `{EqmR m} `{EqmR_OK m}
   : forall A, Equivalence (@eqm m _ A).
 Proof.
   unfold eqm; split; typeclasses eauto.
-Qed.
+Defined.
 *)
 
 Section EqmRMonad.
