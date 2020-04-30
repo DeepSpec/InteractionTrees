@@ -175,6 +175,19 @@ Section TraceSpec.
           apply eutt_div_sym. apply div_bind_nop. auto.
    Qed.
 
+(*  
+  x := Read;
+  while x
+        Write;
+        x := Read
+
+  do b := Decide () while b 
+        b := Decide()
+
+  iter (fun _ => b <- trigger Decide;; if b then ret inl tt else ret inr tt) tt
+*)
+
+
 End TraceSpec.
 
 Section TraceSpec2.

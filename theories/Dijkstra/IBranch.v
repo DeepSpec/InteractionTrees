@@ -31,9 +31,23 @@ Import MonadNotation.
 Local Open Scope monad_scope.
 
 Variant EvAns (E : Type -> Type) : Type -> Type :=
-  evans : forall {A : Type} (ev : E A) (ans : A), EvAns E unit.
+  | evans : forall {A : Type} (ev : E A) (ans : A), EvAns E unit
+  (*if you can prove there is no answers, don't need to proved one*)
+  | evempty : forall {A : Type} (Hempty : A -> void) (ev : E A), EvAns E void
+.
+(*I can use classical reasoning to say there either exists an answer or a 
+  function into void*)
+Lemma classic_empty : forall (A : Type), ( exists e : A + (A -> void), True ).
+Proof.
+  intros. destruct (classic (exists a : A, True)).
+  - destruct H; eauto.
+  - assert (f : A -> void); eauto. intros.
+    exfalso. apply H; eauto.
+Qed.
+
 
 Arguments evans {E}.
+Arguments evempty {E}.
 
 Definition ibranch (E : Type -> Type) (R : Type) := itree (EvAns E) R.
 
@@ -76,6 +90,8 @@ Proof.
       auto.
 Qed.
 
+Ltac contra_void := try match goal with | a : void |- _ => contradiction end. 
+
 Lemma can_converge_branch : forall (E : Type -> Type) (R : Type) 
                                    (b : ibranch E R) (r1 r2 : R),
     can_converge r1 b -> can_converge r2 b -> r1 = r2.
@@ -83,19 +99,23 @@ Proof.
   intros. induction H; inversion H0; subst.
   - rewrite H in H1. pinversion H1. subst. auto.
   - rewrite H in H1. pinversion H1.
-  - destruct e. destruct b. apply IHcan_converge. rewrite H in H0. inversion H0; subst.
+  - destruct e. destruct b. apply IHcan_converge. rewrite H in H0. inversion H0; subst;
+                                                                    contra_void.
     + pinversion H3.
     + destruct e. destruct b. 
       pinversion H3. apply inj_pair2 in H7. apply inj_pair2 in H8.
       apply inj_pair2 in H9. apply inj_pair2 in H10. subst.
       enough (k tt ≈ k0 tt); try apply REL.
-      rewrite H5. auto.
+      rewrite H5. auto. contradiction.
+    + contradiction.
  - destruct e. destruct e0. destruct b. destruct b0.
    apply IHcan_converge. rewrite H in H2.
    pinversion H2.
    repeat match goal with | H : existT _ _ _ = _ |- _ => apply inj_pair2 in H end.
    subst. enough (k tt ≈ k0 tt); try apply REL.
-   rewrite H4. auto.
+   rewrite H4. auto; contra_void.
+   + destruct b0.
+   + destruct b.
 Qed.
 
 Definition finite {E : Type -> Type} (s : ev_stream E) : Prop := can_converge tt s.
@@ -123,6 +143,7 @@ Proof.
     exists (e:: l). simpl. rewrite H.
     destruct b. pfold. red. cbn. constructor.
     intros. destruct v. left. auto.
+    subst. contradiction.
 Qed.
 
 
@@ -248,6 +269,7 @@ Proof.
     constructor. reflexivity.
   - rewrite H. inversion e. subst. rewrite append_vis.
     eapply conv_vis with (e0 := e) (k0 := fun a => k a ++ Ret r); eauto; try reflexivity.
+    subst. contradiction.
 Qed.
 
 Lemma converge_ibranch_ev_list : forall (E : Type -> Type) (R : Type) 
@@ -260,8 +282,9 @@ Proof.
   - destruct IHcan_converge as [log Hlog]. inversion e. subst.
     exists (e :: log). cbn. rewrite append_vis. rewrite H.
     pfold. red. cbn. constructor. cbn. intros. destruct v.
-    left. destruct b. apply Hlog.
+    left. destruct b. apply Hlog. subst. contradiction.
 Qed.
+
 Lemma classic_converge_ibranch : forall (E : Type -> Type) (R : Type) (b : ibranch E R),
     (exists r, exists log, ( (ev_list_to_stream log) ++ Ret r ≈ b)%itree ) \/ must_diverge b.
 Proof.
@@ -302,3 +325,150 @@ Proof.
     apply inj_pair2 in H2. apply inj_pair2 in H3. subst.
     apply H1.
 Qed.
+
+
+Variant REvRef (E : Type -> Type) : forall (A B : Type), EvAns E A -> E B -> Prop := 
+  | rer {A : Type} (e : E A) (a : A) : REvRef E unit A (evans A e a) e
+  | ree {A : Type} (e : E A) (Hempty : A -> void) : REvRef E void A (evempty A Hempty e) e
+.
+Hint Constructors REvRef.
+
+(*shouldn't need an empty case*)
+Variant RAnsRef (E : Type -> Type) : forall (A B : Type), EvAns E A -> A -> E B -> B -> Prop :=
+  | rar {A : Type} (e : E A) (a : A) : RAnsRef E unit A (evans A e a) tt e a.
+Hint Constructors RAnsRef.
+
+Definition branch_refine {E R}  (b : ibranch E R) (t : itree E R) := 
+   euttEv (REvRef E) (RAnsRef E) eq b t.
+(*
+(*a bit hacky, but I can worry about elegance of definition later*)
+Definition branch_refine {E R} (b : ibranch E R) (t : itree E R) : Prop :=
+  exists t', exists b', (b' ≈ b)%itree /\ t' ≈ t /\ euttEv (REvRef E) (RAnsRef E) eq b' t'.
+*)
+Notation "b ⊑ t" := (branch_refine b t) (at level 70).
+
+
+
+Lemma branch_refine_proper_left' : forall (E : Type -> Type) (R : Type) (b1 b2 : ibranch E R)
+                (t : itree E R), (b1 ≈ b2)%itree -> euttEv (REvRef E) (RAnsRef E) eq b1 t -> 
+                                 euttEv (REvRef E) (RAnsRef E) eq b2 t.
+Proof. 
+  intros E R. pcofix CIH. intros. pfold. red.
+  punfold H1. red in H1.  punfold H0. red in H0.
+  genobs_clear t ot3.
+  hinduction H0 before CIH; intros; clear b1 b2; eauto.
+  - remember (RetF r1) as ot1. hinduction H1 before CIH; intros; inv Heqot1; eauto with paco.
+    + constructor. auto.
+    + constructor. eapply IHeuttEvF; eauto.
+  -  assert (DEC: (exists m3, ot3 = TauF m3) \/ (forall m3, ot3 <> TauF m3)).
+    { destruct ot3; eauto; right; red; intros; inv H. }
+    destruct DEC as [EQ | EQ].
+    + destruct EQ as [m3 ?]; subst. pclearbot.
+      constructor. right. eapply CIH; eauto.
+      apply euttEv_inv_tauLR. pfold. auto.
+    + inv H1; try (exfalso; eapply EQ; eauto; fail). 
+      pclearbot. constructor.
+      punfold REL. red in REL.
+      hinduction H0 before CIH; intros; subst; try (exfalso; eapply EQ; eauto; fail). 
+      * dependent induction REL; rewrite <- x.
+        ++ constructor. auto.
+        ++ constructor. eapply IHREL; eauto.
+      * eapply IHeuttEvF; eauto. clear IHeuttEvF.
+        dependent induction REL; try (exfalso; eapply EQ; eauto; fail).  
+        ++ pclearbot. rewrite <- x. constructor; auto. pstep_reverse.
+        ++ auto. 
+        ++ rewrite <- x. constructor; auto. eapply IHREL; eauto.
+      * dependent induction REL; rewrite <- x.
+        ++ constructor; auto. intros. apply H0 in H1. right.
+           pclearbot. eapply CIH; eauto.
+        ++ constructor. eapply IHREL; eauto.
+  - remember (VisF e k1) as ot1.
+    hinduction H1 before CIH; intros; dependent destruction Heqot1.
+    + constructor. eapply IHeuttEvF; eauto.
+    + pclearbot. constructor; auto. intros. apply H0 in H1. 
+      pclearbot. right.
+      eapply CIH; eauto.
+  - eapply IHeqitF. remember (TauF t1) as otf1. 
+    hinduction H1 before CIH; intros;  dependent destruction Heqotf1; eauto.
+    + constructor. pclearbot. pstep_reverse.
+    + constructor. eapply IHeuttEvF; eauto.
+  - constructor. eapply IHeqitF. eauto.
+
+Qed. 
+
+Lemma branch_refine_proper_right' : forall (E : Type -> Type) (R : Type) (b : ibranch E R)
+                                   (t1 t2 : itree E R), t1 ≈ t2 -> euttEv (REvRef E) (RAnsRef E) eq b t1 -> 
+                                 euttEv (REvRef E) (RAnsRef E) eq b t2.
+Proof.
+  intros E R. pcofix CIH. intros. punfold H1. red in H1.
+  punfold H0. red in H0. pfold. red.
+  genobs_clear t2 ot2.
+  hinduction H0 before CIH; intros; clear t1; subst; eauto.
+  - remember (RetF r2) as ot1. hinduction H1 before CIH; intros; inv Heqot1; eauto with paco.
+    + constructor; auto.
+    + constructor. eauto.
+  - pclearbot. remember (TauF m1) as otm1.
+    hinduction H1 before CIH; intros; subst; try (inv Heqotm1).
+    + constructor. pclearbot. right. eapply CIH; eauto.
+    + constructor. right. eapply CIH; eauto.
+      apply euttEv_inv_tauR. pfold. auto.
+    + punfold REL. red in REL. 
+      dependent induction REL; subst.
+      * constructor. clear IHeuttEvF.
+        hinduction H1 before CIH; intros; dependent destruction x0.
+        ++ rewrite <- x. constructor. auto.
+        ++ constructor. auto.
+      * eapply IHeuttEvF with (m2 := m0); auto.
+        pclearbot. pfold. red. rewrite <- x. constructor; auto.
+        punfold REL.
+      * constructor. rewrite <- x.
+        clear IHeuttEvF. hinduction H1 before CIH; intros; dependent destruction x0.
+        ++ constructor. eapply IHeuttEvF; eauto.
+        ++ constructor; auto. intros. apply H0 in H1.
+           pclearbot. right. eapply CIH; eauto. apply REL.
+      * eapply IHeuttEvF; eauto.
+      * constructor. rewrite <- x. eapply IHREL; eauto.
+  - remember (VisF e k1) as ot1. hinduction H1 before CIH; intros; inv Heqot1.
+    + constructor. eauto.
+    + apply inj_pair2 in H4. apply inj_pair2 in H3. subst.
+      constructor; auto. intros. apply H0 in H1.
+      right. pclearbot. eapply CIH; eauto; apply REL.
+  - eapply IHeqitF; eauto. remember (TauF t0) as otf0.
+    hinduction H1 before CIH; intros; dependent destruction Heqotf0; eauto.
+    + constructor. pclearbot. pstep_reverse.
+    + constructor. eapply IHeuttEvF; eauto.
+  - constructor. eapply IHeqitF. eauto.
+Qed.
+
+Instance branch_refine_proper {E R} : Proper (eutt eq ==> @eutt E R R eq ==> iff) branch_refine.
+Proof.
+  intros b1 b2 Heuttb t1 t2 Heuttt.
+  split; intros;
+  try (eapply branch_refine_proper_right'; [eauto | eapply branch_refine_proper_left'; eauto]);
+  symmetry; auto.
+Qed.
+
+Lemma branch_refine_vis_inv : forall (E : Type -> Type) (R A: Type) (e : E A) (a : A)
+                                     (b :ibranch E R) (k : A -> itree E R),
+    branch_refine (Vis (evans A e a) (fun _ => b)) (Vis e k) -> branch_refine b (k a).
+Proof.
+  intros E R A e a. intros.
+  red in H. red. punfold H. red in H. inversion H. 
+  repeat match goal with H : existT _ _ _ = _ |- _ => apply inj_pair2 in H end.
+  subst. 
+  assert (RAnsRef E unit A (evans A e a) tt e a); eauto.
+  apply H7 in H0. pclearbot. auto.
+Qed.
+ 
+Lemma refine_set_eq_to_eutt : forall (E : Type -> Type) (R : Type) (t1 t2 : itree E R),
+    (forall b, b ⊑ t1 <-> b ⊑ t2) -> t1 ≈ t2.
+Proof.
+  intros E R. pcofix CIH. intros.
+  pfold. red.
+
+
+Lemma EvAns_unit : forall (E : Type -> Type) (A : Type), EvAns E A -> A = unit.
+Proof.
+  intros. inversion X. auto.
+Qed.
+
