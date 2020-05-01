@@ -17,7 +17,7 @@ Definition rel A := A -> A -> Prop.
    _Warning_: you want to be a bit careful with what goes on behind the scene with this version.
    Jumping ahead to the definition of the product, you can readily write the following:
    Instance prod_typ (TA TB: typ) : typ :=
-     Typ (fun '(pa,pb) '(qa,qb) => equal pa qa /\ equal pb qb).
+     Typ (fun '(pa,pb) '(qa,qb) => equal pa qa /\ equal (pb: TB) qb).
    But you won't get what you're looking for!
  *)
 Class typ : Type :=
@@ -69,6 +69,7 @@ Fact bot_typ_empty : forall A (a: A), ~a ∈ (bot_typ A).
 Proof.
   intros ? ? abs; inversion abs.
 Qed.  
+
 (** ** prod
     Cartesian product of two [typ].
     In this approach, we have a lot of type annotations, but the term is straightforward to write.
@@ -79,9 +80,9 @@ Notation "e × f" := (prod_typ e f) (at level 70).
 
 (* We indeed picked the most general product of typs in that all pairs of elements _belonging_ to the crossed typs are in: *)
 Fact prod_typ_gen : forall (TA TB: typ) (a: TA) (b : TB),
-    a ∈ TA -> b ∈ TB -> (a,b) ∈ TA × TB.
+    (a ∈ TA /\ b ∈ TB) <-> (a,b) ∈ TA × TB.
 Proof.
-  intros * INA INB; split; [apply INA | apply INB].
+  intros *; split; (intros [INA INB]; split; [apply INA | apply INB]).
 Qed.
 
 (** ** arr
@@ -97,4 +98,3 @@ Fact arr_typ_gen : forall (TA TB: typ) (f: TA -> TB),
 Proof.
   intros *; split; intros H; apply H.
 Qed.
-
