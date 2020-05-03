@@ -875,6 +875,15 @@ End eqit_h.
 Arguments eqit_clo_bind : clear implicits.
 Hint Constructors eqit_bind_clo: core.
 
+(* Specialization of [eutt_clo_bind] to the recurrent case where [UU := eq]
+   in order to avoid having to provide the relation manually everytime *)
+Lemma eutt_eq_bind : forall E R U (t: itree E U) (k1 k2: U -> itree E R), (forall u, k1 u ≈ k2 u) -> ITree.bind t k1 ≈ ITree.bind t k2.
+Proof.
+  intros.
+  apply eutt_clo_bind with (UU := Logic.eq); [reflexivity |].
+  intros ? ? ->; apply H.
+Qed.
+
 Lemma eqit_bind' {E R1 R2 S1 S2} (RR : R1 -> R2 -> Prop) b1 b2
       (RS : S1 -> S2 -> Prop)
       t1 t2 k1 k2 :
