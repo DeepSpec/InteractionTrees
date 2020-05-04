@@ -21,8 +21,15 @@ Section TypCat.
 
   Definition typ_proper (TA TB : typ) := {f | Proper (equalE TA ==> equalE TB) f}.
 
-  Instance eq2_typ_proper : Eq2 typ_proper :=
-    (fun a b tp tp' => proj1_sig tp = proj1_sig tp').
+  Instance eq2_typ_proper : Eq2 typ_proper := 
+    (fun a b tp tp' =>
+       let f := proj1_sig tp in
+       let g := proj1_sig tp' in
+       forall x, x ∈ a ->  equalE b (f x) (g x)).
+    
+         
+                    
+    
 
   Lemma id_ok: forall (TA : typ),
       Proper (equalE TA ==> equalE TA) (fun x => x).
