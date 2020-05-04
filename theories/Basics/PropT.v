@@ -5,186 +5,139 @@ From Coq Require Import
      RelationClasses.
 
 Import ProperNotations.
+From ITree Require Import
+     Typ_Class2
+     Basics.CategoryOps
+     Basics.CategoryTheory
+     Basics.CategoryFunctor
+.
 
-Definition rel A := A -> A -> Prop.
-
-(* 
-  DELAY_SPEC A := (DELAY A -> Prop) -> Prop
-  DELAY A, ≈   
+(*  We are working in a category C.
+    Objects:    Typ
+    Hom (Typ eqA) (Typ eqB) := { f | Proper (eqA ==> eqB) f }
+    ID in Hom (Typ eqA) (Typ eqA) := fun (x:A) => x
 *)
+Section TypCat.
 
-(* Type TYP : Type := *)
-(*   { t :> Type ; eq : rel t }. *)
+  Definition typ_proper (TA TB : typ) := {f | Proper (equalE TA ==> equalE TB) f}.
 
-Class TYP {A:Type} (eq:rel A) : Type.
+  Instance eq2_typ_proper : Eq2 typ_proper :=
+    (fun a b tp tp' => proj1_sig tp = proj1_sig tp').
 
-Definition contains {A} {eq} (T:TYP eq) (a:A) : Prop := eq a a.
-Notation "a ∈ T" := (contains T a) (at level 70).
-  
-Instance nat_eq_TYP : TYP (@eq nat).
-Defined.
-Instance bool_eq_TYP : TYP (@eq bool).
-Defined.
+  Lemma id_ok: forall (TA : typ),
+      Proper (equalE TA ==> equalE TA) (fun x => x).
+  Proof.
+    intros.
+    repeat red. tauto.
+  Qed.
 
-Goal 3 ∈ (_:TYP (@eq nat)).
-Proof.
-  reflexivity.
-Qed.  
+  Lemma compose: forall (TA TB TC : typ) (f : TA -> TB) (g : TB -> TC)
+      (P1: Proper (equalE TA ==> equalE TB) f)
+      (P2: Proper (equalE TB ==> equalE TC) g),
+      Proper (equalE TA ==> equalE TC) (fun x => g (f x)).
+  Proof.
+    intros TA TB TC f g P1 P2.
+    repeat red.
+    intros.
+    apply P2. apply P1. assumption.
+  Qed.
 
-Definition top {A} : rel A := fun a b => True.
-Definition bot {A} : rel A := fun a b => False.
+  Instance id_typ_proper : Id_ typ_proper :=
+    fun TA : typ =>
+    exist (fun f : TA -> TA => Proper (equalE TA ==> equalE TA) f)
+      (fun x : TA => x) (id_ok TA).
 
+  Instance cat_typ_proper : Cat typ_proper :=
+    fun (a b c : typ) (TA : typ_proper a b) (TB : typ_proper b c) =>
+    exist (fun f : a -> c => Proper (equalE a ==> equalE c) f)
+      (fun x : a => (` TB) ((` TA) x))
+      (compose a b c (` TA) (` TB) (proj2_sig TA) (proj2_sig TB)).
 
-Instance nat_total_TYP : TYP (fun (n m:nat) => True).
-Defined.
+  Instance cat_IdL_typ_proper : CatIdL typ_proper :=
+    fun (a b : typ) (TA : typ_proper a b) => eq_refl.
 
-Definition prjtyp {A} {eq} `{T:TYP A eq} := A.
-Definition prjeq {A} {eq} `{T:TYP A eq} := eq.
+  Instance cat_IdR_typ_proper : CatIdR typ_proper :=
+    fun (a b : typ) (TA : typ_proper a b) => eq_refl.
 
+  Instance cat_assoc_typ_proper : CatAssoc typ_proper :=
+    (fun a b c d TA TB TC => eq_refl).
 
-Definition prod_rel {A} {B} (eqa : rel A) (eqb : rel B) : rel (A * B) :=
-  fun p q => eqa (fst p) (fst q) /\ eqb (snd p) (snd q).
+  Instance proper_typ_proper (a b c : typ) : Proper (eq2 ==> eq2 ==> eq2) cat.
+    repeat red. repeat intro. repeat cbn.
+    rewrite H0. rewrite H. reflexivity.
+  Defined.
 
-Notation "e × f" := (prod_rel e f) (at level 70).
-
-Instance prod_TYP {A B} {eqa} {eqb} `{TYP A eqa} `{TYP B eqb} :  TYP (eqa × eqb).
-Defined.
-
-Definition arr_rel {A} {B} (eqa : rel A) (eqb : rel B) : rel (A -> B) :=
-  fun f g => forall a1 a2, eqa a1 a2 -> eqb (f a1) (g a2).
-
-Notation "e ~~> f" := (arr_rel e f) (at level 60).
-
-Instance arrow_TYP {A B} {eqa} {eqb} `{TYP A eqa} `{TYP B eqb} : TYP (eqa ~~> eqb).
-Defined.
-
-Goal TYP ((@eq nat) ~~> ((@eq nat) × (@eq nat))).
-Proof.
-  typeclasses eauto.
-Qed.
-
-Goal (fun n => (n, n)) ∈ (_: TYP ((@eq nat) ~~> ((@eq nat) × (@eq nat)))).
-Proof.
-  repeat red. intros. subst. split; reflexivity.
-Qed.  
-
-Lemma arrow_TYP_Proper :
-  forall {A B} {eqa} {eqb} `{TYP A eqa} `{TYP B eqb}
-    (f : A -> B), f ∈ (_ : TYP (eqa ~~> eqb)) <-> Proper (eqa ==> eqb) f.
-Proof.
-  intros A B eqa eqb TA TB f.
-  split. intros TAB. apply TAB.
-  intros H. apply H.
-Qed.
-  
-Goal TYP ((@eq nat) ~~> (@bot nat)).
-Proof.
-  Fail typeclasses eauto. (* no instance *)
-Abort.
-
-Lemma id_ok: forall A eqa `{TYP A eqa},
-    Proper (eqa ==> eqa) (fun (x:A) => x).
-Proof.
-  intros.
-  repeat red. tauto.
-Qed.  
-
-Lemma cmp: forall A eqa B eqb C eqc `{TYP A eqa} `{TYP B eqb} `{TYP C eqc} (f : A -> B) (g : B -> C)
-    (P1: Proper (eqa ==> eqb) f) 
-    (P2: Proper (eqb ==> eqc) g),
-    Proper (eqa ==> eqc) (fun x => g (f x)).
-Proof.
-  intros A eqa B eqb C eqc H H0 H1 f g P1 P2.
-  repeat red.
-  intros.
-  apply P2. apply P1. assumption.
-Qed.  
+  Instance category_typ_proper : Category typ_proper.
+    constructor; try typeclasses eauto.
+    (* IY: Why can't we apply proper_typ_proper here? *)
+    repeat red. repeat intro. repeat cbn.
+    rewrite H0. rewrite H. reflexivity.
+  Qed.
 
 
-(*  We are working in a category  C
-    Objects:    TYP eqA
-    Hom (TYP eqA) (TYP eqB) := { f | Proper (eqA ==> eqB) f }
-    ID in Hom (TYP eqA) (TYP eqA) := fun (x:A) => x
-    
-    An endo functor: F C => C is a pair:
-       F : Type -> Type      
-       eqF : forall a (eqa : Rel A), Rel (F A) (F A)
-*)
-(* 
+  (*
+    FUNCTOR:
+    obj: TYP -> TYP
+    fmap:  (TYP -> TYP) -> (TYP -> TYP)
 
- Definition: TYP := 
-   {|
-   A <: Type; 
-   eqa <: rel A
-   |}
+      An endo functor: F C => C is a pair:
+        F : Type -> Type
+        eqF : forall a (eqa : Rel A), Rel (F A) (F A)
+  *)
 
- FUNCTOR:
-   obj: TYP -> TYP
-   fmap:  (TYP -> TYP) -> (TYP -> TYP)
-
-class FUNCTOR (F : TYP -> TYP) := { ... }
-
-*)          
-Class FUNCTOR (F : Type -> Type)  :=
+  (* IY: Not sure how to state these with the functor definitions in
+     [CategoryFunctor.v] *)
+  Class FUNCTOR (F : Type -> Type)  :=
   {
-    feq : forall {A} {eqa:rel A} (T:TYP eqa), rel (F A);
-
-    feq_ok : forall {A} {eqa : rel A} `{TYP _ eqa}, TYP (@feq A eqa _); 
-    
-    fmap : forall {A} {eqa: rel A} `{TYP _ eqa} {B} {eqb: rel B} `{TYP _ eqb}, (A -> B) -> (F A -> F B);
-
-    fmap_ok : forall {A B} {eqa} {eqb} `{TYP A eqa} `{TYP B eqb} (f : A -> B)
-                (WF: f ∈ (_ : TYP (eqa ~~> eqb))),
-                     (fmap f) ∈ (_ : TYP (@feq A eqa _ ~~> @feq B eqb _))
-                  
+    feq : forall {A : typ}, rel (F A);
+    (* feq_ok : forall (A : typ), Typ (@feq A); *)
+    fmap : forall {A B : typ}, (A -> B) -> (F A -> F B);
+    fmap_ok : forall {A B : typ} (f : A -> B)
+                (WF: f ∈ (A ~~> B)),
+                (fmap f) ∈ (@feq A ~~> @feq B)
   }.
-
-  
 
   Class MONAD (M : Type -> Type) :=
    {
-     ret  : forall {A} {eqa: rel A} `{TYP _ eqa}, A -> M A  ;
-     bind : forall {A} {eqa: rel A} `{TYP _ eqa} {B} {eqb: rel B} `{TYP _ eqb},
+     ret  : forall {A : typ}, A -> M A  ;
+     bind : forall {A B : typ},
          M A -> (A -> M B) -> M B
    }.
 
+End TypCat.
+
 Section MonadLaws.
+
   Context {M : Type -> Type}.
   Context {FM : FUNCTOR M}.
   Context {MM : MONAD M}.
 
-  
   Class MonadProperties : Prop :=
     {
-      mon_ret_proper  :> forall A {eqa : rel A} `{PER A eqa} `{TYP _ eqa},
-          Proper ((eqa) ==> (feq _)) ret;
-      
-      mon_bind_proper :> forall {A} {eqa: rel A} `{PER A eqa} `{TYP _ eqa}
-                           {B} {eqb: rel B} `{PER B eqb} `{TYP _ eqb},
-                      Proper ((feq _) ==> (eqa ==> (feq _)) ==> (feq _))
+      mon_ret_proper  :> forall {A : typ} `{PER A (equalE A)},
+          Proper ((equalE A) ==> feq) ret;
+
+      mon_bind_proper :> forall {A B : typ} `{PER A (equalE A)} `{PER B (equalE B)},
+                      Proper (feq ==> (equalE A ==> feq) ==> feq)
                       bind;
 
-      bind_ret_l : forall {A} {eqa: rel A} `{PER A eqa} `{TYP _ eqa}
-                           {B} {eqb: rel B} `{PER B eqb} `{TYP _ eqb}
-          (f : A -> M B) (PF:Proper (eqa ==> (feq _)) f), 
-        (eqa ~~> (feq _)) (fun (a:A) => bind (ret a) f)  f;
+      bind_ret_l : forall {A B : typ} `{PER A (equalE A)} `{PER B (equalE B)}
+          (f : A -> M B) (PF:Proper (equalE A ==> feq) f),
+        (equalE (equalE A ~~> feq)) (fun (a:A) => bind (ret a) f)  f;
 
-      bind_ret_r : forall A {eqa : rel A} `{PER A eqa} `{TYP _ eqa},
-          ((feq _) ~~> (feq _)) (fun x => bind x ret) (id);
+      bind_ret_r : forall {A : typ} `{PER A (equalE A)},
+          (equalE (feq ~~> feq)) (fun x => bind x ret) (id);
 
-      
-      bind_bind : forall {A} {eqa: rel A} `{PER A eqa} `{TYP _ eqa}
-                    {B} {eqb: rel B} `{PER B eqb} `{TYP _ eqb}
-                    {C} {eqc: rel C} `{PER C eqc} `{TYP _ eqc}
+      bind_bind : forall {A B C : typ}
+                    `{PER A (equalE A)} `{PER B (equalE B)} `{PER C (equalE C)}
                     (f : A -> M B) (g : B -> M C)
-                    (PF:Proper (eqa ==> (feq _)) f)  (* f \in TYP (eqa ~~> eqb) *) 
-                    (PG:Proper (eqb ==> (feq _)) g), 
-        ((feq _) ~~> (feq _))
-          (fun (x:M A) => (@bind M _ B eqb _ C eqc _ (@bind M _ A eqa _ B eqb _ x f) g))
-          (fun (x: M A) => (@bind M _ A eqa _ C eqc _ x (fun (y : A) => (bind (f y) g))))
+                    (PF:Proper (equalE A ==> feq) f)  (* f \in TYP (eqa ~~> eqb) *)
+                    (PG:Proper (equalE B ==> feq) g),
+        (equalE (feq ~~> feq))
+          (fun (x: M A) => (@bind M _ B C (bind x f) g))
+          (fun (x: M A) => (@bind M _ A C x (fun (y : A) => (bind (f y) g))))
     }.
 End MonadLaws.
-
 
 About MonadProperties.
 
@@ -194,52 +147,58 @@ Section MonadPropT.
   Context {FM : FUNCTOR M}.
   Context {MM : MONAD M}.
 
-  Context {A B C : Type}.                             
-  Context {eqa : rel A} {eqb : rel B} {eqc : rel C}.
-  Context (TA: TYP eqa).
-  Context (TB: TYP eqb).
-  Context (TC: TYP eqc).
-  
+  Context {A B C : typ}.
 
-  (* 
+  (*
      PropT : TYP -> TYP
-       
+
      Instance Prop_TYP : TYP :=
-       { 
+       {
          A = Prop;
          eqa := fun p q => forall x, eqx x p x <-> q x
        }
   *)
-  Definition PropT {X : Type} {eqx: rel X} (TX:TYP eqx) := { p : M X -> Prop | Proper (feq TX ==> iff) p }.
+  Definition PropT {X : typ} := { p : M X -> Prop | Proper (feq ==> iff) p }.
 
   Notation "! p" := (proj1_sig p) (at level 5).
 
-About feq.
-  
-  Definition feq_PM : forall {A} {eqa:rel A} (TA:TYP eqa), rel (PropT TA) :=
-    fun A eqa T PA1 PA2 =>
-      (forall (ma : M A), (@feq M _ A eqa _) ma ma -> !PA1 ma <-> !PA2 ma).
+  About feq.
 
-  Lemma transport_refl_feq_PM: forall {X} {eqx: rel X} (T: TYP eqa),
-      Reflexive eqa -> Reflexive (feq_PM T).
+  Definition feq_PM : forall (A : typ), rel (@PropT A) :=
+    fun D PA1 PA2 => forall (ma : M D), feq ma ma -> !PA1 ma <-> !PA2 ma.
+
+  Lemma transport_refl_feq_PM: forall {X : typ},
+      Reflexive (equalE X) -> Reflexive (feq_PM X).
   Proof.
     intros X eqx T H.
     repeat red.
     tauto.
   Qed.
 
+  Lemma transport_symm_feq_PM : forall {X : typ},
+      Symmetric (equalE X) -> Symmetric (feq_PM X).
+  Proof.
+    repeat red. intros X H x y H0 ma H1.
+    split. Admitted.
 
+  Lemma transport_symm_feq :
+    forall {X : typ}, (Symmetric (equalE X) -> Symmetric feq).
+  Proof. Admitted.
 
-  
-  Program Definition ret_PM {A} {eqa:rel A} `{Symmetric A eqa} `{Transitive A eqa} (TA:TYP eqa) (a:A) : PropT TA :=
-    exist _ (fun (x:M A) => (@feq M _ A eqa _) (ret a) x) _.
+  Lemma transport_trans_feq :
+    forall {X : typ}, (Transitive (equalE X) -> Transitive feq).
+  Proof. Admitted.
+
+  Program Definition ret_PM {A : typ} `{Symmetric A (equalE A)} `{Transitive A (equalE A)} (a : A) : @PropT A :=
+    exist _ (fun (x:M A) => feq (ret a) x) _.
   Next Obligation.
     repeat red.
     intros. split. intros. eapply transitivity. eassumption. eassumption.
-    intros. eapply transitivity. eassumption. symmetry. assumption.
+    intros. eapply transitivity. eassumption.
+    apply (transport_symm_feq H). assumption.
+    Unshelve. apply transport_trans_feq. assumption.
+    Unshelve. apply transport_trans_feq. assumption.
   Defined.
-    
-  
 
 
 (*  

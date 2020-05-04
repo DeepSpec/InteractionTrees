@@ -1,5 +1,8 @@
 -Q theories ITree
 
+theories/Basics/Typ_Class2.v
+theories/Basics/PropT.v
+
 theories/Simple.v
 theories/ITree.v
 theories/ITreeFacts.v

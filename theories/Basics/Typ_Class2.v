@@ -4,6 +4,12 @@ From Coq Require Import
      Morphisms
      RelationClasses.
 
+From ITree Require Import
+     Basics.CategoryOps
+     Basics.CategoryTheory
+     Basics.CategoryFunctor
+.
+
 Import ProperNotations.
 
 Definition rel A := A -> A -> Prop.
@@ -98,3 +104,8 @@ Fact arr_typ_gen : forall (TA TB: typ) (f: TA -> TB),
 Proof.
   intros *; split; intros H; apply H.
 Qed.
+
+Goal ((Typ (@eq nat)) ~~> (bot_typ nat)).
+Proof.
+  Fail typeclasses eauto. (* Still no instance with new Typ definition. *)
+Abort.
