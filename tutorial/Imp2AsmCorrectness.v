@@ -421,7 +421,7 @@ Section Bisimulation.
     unfold lookup_def; cbn.
     unfold embed, Embeddable_itree, Embeddable_forall, embed.
     rewrite interp_trigger.
-    rewrite interp_state_trigger.
+    rewrite interp_state_trigger_eqit.
     cbn.
     rewrite bind_ret_l, tau_eutt.
     rewrite interp_state_ret.
@@ -599,6 +599,8 @@ Section Correctness.
     induction e; simpl; intros.
     - (* Var case *)
       (* We first compute and eliminate taus on both sides. *)
+      force_left.
+      rewrite tau_eutt.
 
       tau_steps.
 
