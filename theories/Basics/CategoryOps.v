@@ -223,6 +223,10 @@ Class UnitR' (i : obj) :=
 Class Swap :=
   swap : forall a b, C (bif a b) (bif b a).
 
+(** **** Exponential *)
+Class Exp (cb : obj) :=
+  eval : forall b c, C (bif cb b) c.
+
 End CocartesianOps.
 
 Arguments bimap {obj C bif Bimap a b c d}.
@@ -312,6 +316,7 @@ Global Instance AssocL_Coproduct : AssocL C SUM :=
                     (case_ (inr_ >>> inl_) inr_).
 
 Variables (Id_C : Id_ C) (I : obj) (Initial_I : Initial C I).
+
 
 (** The initial object is a unit for the coproduct. *)
 
@@ -477,11 +482,3 @@ Transparent inr_.
 *)
 
 End RESUM.
-
-Section Exponential.
-  Context {obj : Type}
-          (C : Hom obj)
-  (*         (eval : forall zy y z, Pair zy y -> C (@pair_ obj C _ _) z). *)
-  (* Context `{Id_ _ C} `{Cat _ C}. *)
-  (* Context `{Case _ C bif} `{Inl _ C bif} `{Inr _ C bif}. *)
-End Exponential.

@@ -270,6 +270,41 @@ Arguments pair_fst {obj C Eq2_C Cat_C bif Pair_C Fst_C PairFst} [a b c] f g.
 Arguments pair_snd {obj C Eq2_C Cat_C bif Pair_C Snd_C PairSnd} [a b c] f g.
 Arguments pair_universal {obj C _ _ bif _ _ _ _} [a b c] f g fg.
 
+(** ** Exponentials *)
+
+(** These laws capture the essence of exponentials. *)
+
+Section ExponentialLaws.
+
+  Context {obj : Type} (C : Hom obj).
+  Context {Eq2_C : Eq2 C} {Id_C : Id_ C} {Cat_C : Cat C}.
+
+  (* Category must have binary products. *)
+  Context {PROD : binop obj}.
+  Context {Prod_PROD : Pair C PROD}.
+  Context {Fst_PROD : Fst C PROD}.
+  Context {Snd_PROD : Snd C PROD}.
+  Context {Prod_bif : Product C PROD}.
+
+  (* Eval *)
+  Context (cb : obj).
+  Context {Exp_eval : Exp C PROD cb}.
+
+  Existing Instance Bimap_Product.
+
+  (* Given a function, there is a unique currying and evaluation of the function. *)
+  Class EvalUniversal (a b c : obj) (f : C (PROD a b) c) : Prop :=
+  {
+    f' : C a cb;
+    f'_universal : forall (f'' : C a cb), f' ⩯ f'';
+    eval_universal :
+      forall ev' : C (PROD cb b) c,
+        (bimap f' (id_ b) >>> ev') ⩯ f ->
+        eval C PROD b c ⩯ ev'
+  }.
+
+End ExponentialLaws.
+
 (** ** Monoidal categories *)
 
 Section MonoidalLaws.
