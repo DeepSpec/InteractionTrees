@@ -141,8 +141,9 @@ Section DaggerLaws.
   Local Existing Instance Cat_Op.
   Class DaggerLaws : Prop := {
     dagger_involution :> DaggerInvolution ;
-    dagger_functor :> Functor (op C) C id (@dagger obj C _)
    }.
+
+  Global Instance DaggerFunctor : @Functor obj obj (op C) C id := @dagger obj C _.
 
 End DaggerLaws.
 

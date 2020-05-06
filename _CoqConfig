@@ -1,5 +1,6 @@
 -Q theories ITree
 
+theories/Basics/CategoryMonad.v
 theories/Basics/Typ_Class2.v
 theories/Basics/PropT.v
 

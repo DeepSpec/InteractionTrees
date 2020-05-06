@@ -10,6 +10,7 @@ From ITree Require Import
      Basics.CategoryOps
      Basics.CategoryTheory
      Basics.CategoryFunctor
+     Basics.CategoryMonad
 .
 
 (*  We are working in a category C.
@@ -95,9 +96,9 @@ Section TypCat.
   (* Definition fmap (F : typ -> typ) : forall a b : typ, typ_proper a b -> typ_proper (F a) (F b). *)
   (* Admitted. *)
 
-  Infix "⭌" := typ_proper (at level 40, left associativity).
+  (* IY: We get "OK Laws" for free from the definition of arrows in our category,
+   *     and can use the functor definition in [CategoryFunctor.v] *)
 
-  (* We get this for free from the definition of arrows in our category, and can use   * the Functor definition in [CategoryFunctor.v] *)
   (* Class FUNCTOR (F : typ -> typ) := *)
   (* { *)
   (*   feq : forall {A : typ}, rel (F A); *)
@@ -108,59 +109,56 @@ Section TypCat.
   (*               (fmap f) ∈ (@feq A ~~> @feq B) *)
   (* }. *)
 
-  (* TODO : Prove functor laws here. Instantiate the Functor *)
 
-  Class MONAD (M : typ -> typ) :=
-   {
-     ret  : forall {A : typ}, typ_proper A (M A);
-     bind : forall {A B : typ},
-         M A -> (A -> M B) -> M B
-   }.
+  (* IY : Defined [CategoryMonad.v]. *)
+  
+  (* Class MONAD (M : typ -> typ) := *)
+  (*  { *)
+  (*    ret  : forall {A : typ}, typ_proper A (M A); *)
+  (*    bind : forall {A B : typ}, *)
+  (*        M A -> (A -> M B) -> M B *)
+  (*  }. *)
 
 End TypCat.
 
-Section MonadLaws.
+(* Section MonadLaws. *)
 
-  Context {M : typ -> typ}.
-  Context {FM : FUNCTOR M}.
-  Context {MM : MONAD M}.
 
-  Class MonadProperties : Prop :=
-    {
-      (* mon_ret_proper  :> forall {A : typ} `{PER A (equalE A)}, *)
-      (*     Proper ((equalE A) ==> feq) ret; *)
+(*   Class MonadProperties : Prop := *)
+(*     { *)
+(*       (* mon_ret_proper  :> forall {A : typ} `{PER A (equalE A)}, *) *)
+(*       (*     Proper ((equalE A) ==> feq) ret; *) *)
 
-      (* mon_bind_proper :> forall {A B : typ} `{PER A (equalE A)} `{PER B (equalE B)}, *)
-      (*                 Proper (feq ==> (equalE A ==> feq) ==> feq) *)
-      (*                 bind; *)
+(*       (* mon_bind_proper :> forall {A B : typ} `{PER A (equalE A)} `{PER B (equalE B)}, *) *)
+(*       (*                 Proper (feq ==> (equalE A ==> feq) ==> feq) *) *)
+(*       (*                 bind; *) *)
 
-      bind_ret_l : forall {A B : typ} `{PER A (equalE A)} `{PER B (equalE B)}
-          (f : A -> M B) (PF:Proper (equalE A ==> feq) f),
-        (equalE (equalE A ~~> feq)) (fun (a:A) => bind (ret a) f)  f;
+(*       bind_ret_l : forall {A B : typ} `{PER A (equalE A)} `{PER B (equalE B)} *)
+(*           (f : A -> M B) (PF:Proper (equalE A ==> feq) f), *)
+(*         (equalE (equalE A ~~> feq)) (fun (a:A) => bind (ret a) f)  f; *)
 
-      bind_ret_r : forall {A : typ} `{PER A (equalE A)},
-          (equalE (feq ~~> feq)) (fun x => bind x ret) (id);
+(*       bind_ret_r : forall {A : typ} `{PER A (equalE A)}, *)
+(*           (equalE (feq ~~> feq)) (fun x => bind x ret) (id); *)
 
-      bind_bind : forall {A B C : typ}
-                    `{PER A (equalE A)} `{PER B (equalE B)} `{PER C (equalE C)}
-                    (f : A -> M B) (g : B -> M C)
-                    (PF:Proper (equalE A ==> feq) f)  (* f \in TYP (eqa ~~> eqb) *)
-                    (PG:Proper (equalE B ==> feq) g),
-        (equalE (feq ~~> feq))
-          (fun (x: M A) => (@bind M _ B C (bind x f) g))
-          (fun (x: M A) => (@bind M _ A C x (fun (y : A) => (bind (f y) g))))
-    }.
-End MonadLaws.
+(*       bind_bind : forall {A B C : typ} *)
+(*                     `{PER A (equalE A)} `{PER B (equalE B)} `{PER C (equalE C)} *)
+(*                     (f : A -> M B) (g : B -> M C) *)
+(*                     (PF:Proper (equalE A ==> feq) f)  (* f \in TYP (eqa ~~> eqb) *) *)
+(*                     (PG:Proper (equalE B ==> feq) g), *)
+(*         (equalE (feq ~~> feq)) *)
+(*           (fun (x: M A) => (@bind M _ B C (bind x f) g)) *)
+(*           (fun (x: M A) => (@bind M _ A C x (fun (y : A) => (bind (f y) g)))) *)
+(*     }. *)
+(* End MonadLaws. *)
 
-About MonadProperties.
 
 Section MonadPropT.
 
-  Context {M : Type -> Type}.
-  Context {FM : FUNCTOR M}.
-  Context {MM : MONAD M}.
-
-  Context {A B C : typ}.
+  Context {M : typ -> typ}.
+  Context `{F : Functor typ typ typ_proper typ_proper M}.
+  Context `{FL : FunctorLaws typ typ typ_proper typ_proper M}.
+  Context `{CM : Monad typ typ_proper M}.
+  Context `{ML : MonadLaws typ typ_proper M}.
 
   (*
      PropT : TYP -> TYP
@@ -170,53 +168,65 @@ Section MonadPropT.
          A = Prop;
          eqa := fun p q => forall x, eqx x p x <-> q x
        }
-  *)
-  Definition PropT {X : typ} := { p : M X -> Prop | Proper (feq ==> iff) p }.
+   *)
 
-  Notation "! p" := (proj1_sig p) (at level 5).
+  (* IY: feq is equalE (M X). *)
+  (* Context {feq : forall (A : typ), rel (M A)}. *)
 
-  About feq.
+  Definition PropT : typ -> typ :=
+    fun (X : typ) =>
+      {|
+        Ty := { p : M X -> Prop | Proper (equalE (M X) ==> iff) p };
+        equal :=
+          fun PA1 PA2 =>
+            forall (ma : M X), equalE (M X) ma ma -> ` PA1 ma <-> ` PA2 ma
+      |}.
 
-  Definition feq_PM : forall (A : typ), rel (@PropT A) :=
-    fun D PA1 PA2 => forall (ma : M D), feq ma ma -> !PA1 ma <-> !PA2 ma.
-
-  (* TODO: Prove PropT as a functor. feq_OK *)
-  Lemma transport_refl_feq_PM: forall {X : typ},
-      Reflexive (equalE X) -> Reflexive (feq_PM X).
-  Proof.
-    intros X eqx T H.
-    repeat red.
-    tauto.
-  Qed.
-
-  Lemma transport_symm_feq_PM : forall {X : typ},
-      Symmetric (equalE X) -> Symmetric (feq_PM X).
-  Proof.
-    repeat red. intros X H x y H0 ma H1.
-    split. Admitted.
-
-  Lemma transport_symm_feq :
-    forall {X : typ}, (Symmetric (equalE X) -> Symmetric feq).
-  Proof.
-    intros.
+  Instance PropT_Monad : Monad typ_proper PropT.
   Admitted.
 
-  Lemma transport_trans_feq :
-    forall {X : typ}, (Transitive (equalE X) -> Transitive feq).
-  Proof.
-    intros. red in H.
+  Instance PropT_MonadLaws : MonadLaws PropT_Monad.
   Admitted.
 
-  Program Definition ret_PM {A : typ} `{Symmetric A (equalE A)} `{Transitive A (equalE A)} (a : A) : @PropT A :=
-    exist _ (fun (x:M A) => feq (ret a) x) _.
-  Next Obligation.
-    repeat red.
-    intros. split. intros. eapply transitivity. eassumption. eassumption.
-    intros. eapply transitivity. eassumption.
-    apply (transport_symm_feq H). assumption.
-    Unshelve. apply transport_trans_feq. assumption.
-    Unshelve. apply transport_trans_feq. assumption.
-  Defined.
+End MonadPropT.
+
+(* Outdated sketches. *)
+  (* Lemma transport_refl_feq_PM: forall {X : typ}, *)
+  (*     Reflexive (equalE X) -> Reflexive (feq_PM X). *)
+  (* Proof. *)
+  (*   intros X eqx T H. *)
+  (*   repeat red. *)
+  (*   tauto. *)
+  (* Qed. *)
+
+  (* Lemma transport_symm_feq_PM : forall {X : typ}, *)
+  (*     Symmetric (equalE X) -> Symmetric (feq_PM X). *)
+  (* Proof. *)
+  (*   repeat red. intros X H x y H0 ma H1. *)
+  (*   split. Admitted. *)
+
+  (* Lemma transport_symm_feq : *)
+  (*   forall {X : typ}, (Symmetric (equalE X) -> Symmetric feq). *)
+  (* Proof. *)
+  (*   intros. *)
+  (* Admitted. *)
+
+  (* Lemma transport_trans_feq : *)
+  (*   forall {X : typ}, (Transitive (equalE X) -> Transitive feq). *)
+  (* Proof. *)
+  (*   intros. red in H. *)
+  (* Admitted. *)
+
+  (* Program Definition ret_PM {A : typ} `{Symmetric A (equalE A)} `{Transitive A (equalE A)} (a : A) : @PropT A := *)
+  (*   exist _ (fun (x:M A) => feq (ret a) x) _. *)
+  (* Next Obligation. *)
+  (*   repeat red. *)
+  (*   intros. split. intros. eapply transitivity. eassumption. eassumption. *)
+  (*   intros. eapply transitivity. eassumption. *)
+  (*   apply (transport_symm_feq H). assumption. *)
+  (*   Unshelve. apply transport_trans_feq. assumption. *)
+  (*   Unshelve. apply transport_trans_feq. assumption. *)
+  (* Defined. *)
 
 
 (*  

@@ -16,23 +16,25 @@ Local Open Scope cat_scope.
 Section Monad.
 
   Context {obj : Type} {C : obj -> obj -> Type}
-          {M : obj -> obj} (* An endofunctor. *)
-          {ret : forall a, C a (M a)}
-          {bind : forall a b (f : C a (M b)), C (M a) (M b)}
-          `{Eq2 _ C} `{Id_ _ C} `{Cat _ C}
+          `{Eq2 _ C} `{Id_ _ C} `{Cat _ C}.
 
-(* IY: Do we want to show that a monad is a monoid in the category of endofunctors?        We don't *need* these definitions here for stating the monad laws. *)
-          {bif : binop obj}
-          {fmap : forall a b, C a b -> C (M a) (M b)}
-          {endofunctor : Functor C C M (@fmap)}
-          .
+(* IY: Do we want to show that a monad is a monoid in the category of endofunctors?
+       We don't *need* these definitions here for stating the monad laws. *)
+(* {bif : binop obj} *)
+(* {fmap : forall a b, C a b -> C (M a) (M b)} *)
+(* {endofunctor : Functor C C M (@fmap)} *)
 
-  Arguments fmap {a b}.
-  Arguments ret {a}.
-  Arguments bind {a b}.
+  (* A monad is defined with an endofunctor. *)
+  Class Monad (M : obj -> obj) : Type :=
+  {
+    ret {a} : C a (M a);
+    bind {a b} (f : C a (M b)) : C (M a) (M b);
+  }.
+
+  Context {M : obj -> obj}.
 
   (* Monad laws, annotated with equivalent Haskell-like monad laws in comments. *)
-  Class Monad : Prop :=
+  Class MonadLaws `(Monad M) : Prop :=
   {
     (* bind (ret x) f = f a *)
     bind_ret_l {a b} (f : C a (M b)): ret >>> bind f ⩯ f;
@@ -44,13 +46,11 @@ Section Monad.
     bind_bind {a b c} (f : C a (M b)) (g : C b (M c)) :
       bind f >>> bind g ⩯ bind (f >>> bind g);
 
-    bind_proper {a b} : Proper (eq2 ==> eq2) (@bind a b)
+    bind_proper {a b} : Proper (eq2 ==> eq2) (@bind _ _ a b)
   }.
-
-  Notation "m >>= f" := (bind f m) (at level 42, right associativity).
 
 End Monad.
 
 Arguments Monad : clear implicits.
-Arguments Monad {_} C M ret bind {_ _ _}.
-
+Arguments Monad {_} C M.
+Arguments MonadLaws {_ _ _ _ _ _} monad : rename.
