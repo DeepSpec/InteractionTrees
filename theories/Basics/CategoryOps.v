@@ -477,3 +477,11 @@ Transparent inr_.
 *)
 
 End RESUM.
+
+Section Exponential.
+  Context {obj : Type}
+          (C : Hom obj)
+  (*         (eval : forall zy y z, Pair zy y -> C (@pair_ obj C _ _) z). *)
+  (* Context `{Id_ _ C} `{Cat _ C}. *)
+  (* Context `{Case _ C bif} `{Inl _ C bif} `{Inr _ C bif}. *)
+End Exponential.

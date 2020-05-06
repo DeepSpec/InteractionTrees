@@ -21,15 +21,11 @@ Section TypCat.
 
   Definition typ_proper (TA TB : typ) := {f | Proper (equalE TA ==> equalE TB) f}.
 
-  Instance eq2_typ_proper : Eq2 typ_proper := 
+  Instance eq2_typ_proper : Eq2 typ_proper :=
     (fun a b tp tp' =>
        let f := proj1_sig tp in
        let g := proj1_sig tp' in
-       forall x, x ∈ a ->  equalE b (f x) (g x)).
-    
-         
-                    
-    
+       forall x y, x ∈ a -> y ∈ a -> equalE a x y -> equalE b (f x) (g y)).
 
   Lemma id_ok: forall (TA : typ),
       Proper (equalE TA ==> equalE TA) (fun x => x).
@@ -60,27 +56,31 @@ Section TypCat.
       (fun x : a => (` TB) ((` TA) x))
       (compose a b c (` TA) (` TB) (proj2_sig TA) (proj2_sig TB)).
 
-  Instance cat_IdL_typ_proper : CatIdL typ_proper :=
-    fun (a b : typ) (TA : typ_proper a b) => eq_refl.
-
-  Instance cat_IdR_typ_proper : CatIdR typ_proper :=
-    fun (a b : typ) (TA : typ_proper a b) => eq_refl.
-
-  Instance cat_assoc_typ_proper : CatAssoc typ_proper :=
-    (fun a b c d TA TB TC => eq_refl).
-
-  Instance proper_typ_proper (a b c : typ) : Proper (eq2 ==> eq2 ==> eq2) cat.
-    repeat red. repeat intro. repeat cbn.
-    rewrite H0. rewrite H. reflexivity.
+  Instance cat_IdL_typ_proper : CatIdL typ_proper.
+    repeat intro. destruct f. cbn. apply p. assumption.
   Defined.
 
-  Instance category_typ_proper : Category typ_proper.
-    constructor; try typeclasses eauto.
-    (* IY: Why can't we apply proper_typ_proper here? *)
-    repeat red. repeat intro. repeat cbn.
-    rewrite H0. rewrite H. reflexivity.
-  Qed.
+  Instance cat_IdR_typ_proper : CatIdR typ_proper.
+    repeat intro. destruct f. cbn. apply p. assumption.
+  Defined.
 
+  Instance cat_assoc_typ_proper : CatAssoc typ_proper.
+    refine (fun a b c d TA TB TC => _). repeat intro.
+    destruct TA, TB, TC. eapply p1. eapply p0. eapply p. assumption.
+  Defined.
+
+  Instance proper_typ_proper (a b c : typ) : Proper ((@eq2 typ _ _ a b) ==> (@eq2 typ _ _ b c) ==> (@eq2 typ _ _ a c)) (cat).
+    repeat intro.
+    destruct x, y, x0, y0. unfold eq2, eq2_typ_proper in H0.
+    cbn in H0. unfold eq2, eq2_typ_proper in H. cbn in H. cbn.
+    specialize (H x1 y1 H1 H2 H3).
+    specialize (H0 (x x1) (x2 y1)).
+    apply H0. 3 : apply H. apply p. apply H1. apply p0. apply H2.
+  Defined.
+
+  Global Instance category_typ_proper : Category typ_proper.
+    constructor; try typeclasses eauto.
+  Defined.
 
   (*
     FUNCTOR:
@@ -90,23 +90,29 @@ Section TypCat.
       An endo functor: F C => C is a pair:
         F : Type -> Type
         eqF : forall a (eqa : Rel A), Rel (F A) (F A)
-  *)
+   *)
 
-  (* IY: Not sure how to state these with the functor definitions in
-     [CategoryFunctor.v] *)
-  Class FUNCTOR (F : Type -> Type)  :=
-  {
-    feq : forall {A : typ}, rel (F A);
-    (* feq_ok : forall (A : typ), Typ (@feq A); *)
-    fmap : forall {A B : typ}, (A -> B) -> (F A -> F B);
-    fmap_ok : forall {A B : typ} (f : A -> B)
-                (WF: f ∈ (A ~~> B)),
-                (fmap f) ∈ (@feq A ~~> @feq B)
-  }.
+  (* Definition fmap (F : typ -> typ) : forall a b : typ, typ_proper a b -> typ_proper (F a) (F b). *)
+  (* Admitted. *)
 
-  Class MONAD (M : Type -> Type) :=
+  Infix "⭌" := typ_proper (at level 40, left associativity).
+
+  (* We get this for free from the definition of arrows in our category, and can use   * the Functor definition in [CategoryFunctor.v] *)
+  (* Class FUNCTOR (F : typ -> typ) := *)
+  (* { *)
+  (*   feq : forall {A : typ}, rel (F A); *)
+  (*   (* feq_ok : forall (A : typ), Typ (@feq A); *) *)
+  (*   fmap : forall {A B : typ}, (A -> B) -> (F A -> F B); *)
+  (*   fmap_ok : forall {A B : typ} (f : A -> B) *)
+  (*               (WF: f ∈ (A ~~> B)), *)
+  (*               (fmap f) ∈ (@feq A ~~> @feq B) *)
+  (* }. *)
+
+  (* TODO : Prove functor laws here. Instantiate the Functor *)
+
+  Class MONAD (M : typ -> typ) :=
    {
-     ret  : forall {A : typ}, A -> M A  ;
+     ret  : forall {A : typ}, typ_proper A (M A);
      bind : forall {A B : typ},
          M A -> (A -> M B) -> M B
    }.
@@ -115,18 +121,18 @@ End TypCat.
 
 Section MonadLaws.
 
-  Context {M : Type -> Type}.
+  Context {M : typ -> typ}.
   Context {FM : FUNCTOR M}.
   Context {MM : MONAD M}.
 
   Class MonadProperties : Prop :=
     {
-      mon_ret_proper  :> forall {A : typ} `{PER A (equalE A)},
-          Proper ((equalE A) ==> feq) ret;
+      (* mon_ret_proper  :> forall {A : typ} `{PER A (equalE A)}, *)
+      (*     Proper ((equalE A) ==> feq) ret; *)
 
-      mon_bind_proper :> forall {A B : typ} `{PER A (equalE A)} `{PER B (equalE B)},
-                      Proper (feq ==> (equalE A ==> feq) ==> feq)
-                      bind;
+      (* mon_bind_proper :> forall {A B : typ} `{PER A (equalE A)} `{PER B (equalE B)}, *)
+      (*                 Proper (feq ==> (equalE A ==> feq) ==> feq) *)
+      (*                 bind; *)
 
       bind_ret_l : forall {A B : typ} `{PER A (equalE A)} `{PER B (equalE B)}
           (f : A -> M B) (PF:Proper (equalE A ==> feq) f),
@@ -174,6 +180,7 @@ Section MonadPropT.
   Definition feq_PM : forall (A : typ), rel (@PropT A) :=
     fun D PA1 PA2 => forall (ma : M D), feq ma ma -> !PA1 ma <-> !PA2 ma.
 
+  (* TODO: Prove PropT as a functor. feq_OK *)
   Lemma transport_refl_feq_PM: forall {X : typ},
       Reflexive (equalE X) -> Reflexive (feq_PM X).
   Proof.
@@ -190,11 +197,15 @@ Section MonadPropT.
 
   Lemma transport_symm_feq :
     forall {X : typ}, (Symmetric (equalE X) -> Symmetric feq).
-  Proof. Admitted.
+  Proof.
+    intros.
+  Admitted.
 
   Lemma transport_trans_feq :
     forall {X : typ}, (Transitive (equalE X) -> Transitive feq).
-  Proof. Admitted.
+  Proof.
+    intros. red in H.
+  Admitted.
 
   Program Definition ret_PM {A : typ} `{Symmetric A (equalE A)} `{Transitive A (equalE A)} (a : A) : @PropT A :=
     exist _ (fun (x:M A) => feq (ret a) x) _.
