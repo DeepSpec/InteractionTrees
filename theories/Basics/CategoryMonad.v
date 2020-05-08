@@ -4,6 +4,7 @@ From Coq Require Import
 
 From ITree Require Import
      CategoryOps
+     CategoryTheory
      CategoryFunctor.
 
 Import Carrier.
@@ -28,7 +29,7 @@ Section Monad.
   Class Monad (M : obj -> obj) : Type :=
   {
     ret {a} : C a (M a);
-    bind {a b} (f : C a (M b)) : C (M a) (M b);
+    bind {a b} (f : C a (M b)) : C (M a) (M b)
   }.
 
   Context {M : obj -> obj}.
@@ -46,7 +47,7 @@ Section Monad.
     bind_bind {a b c} (f : C a (M b)) (g : C b (M c)) :
       bind f >>> bind g ⩯ bind (f >>> bind g);
 
-    bind_proper {a b} : Proper (eq2 ==> eq2) (@bind _ _ a b)
+    bind_proper {a b} :> Proper (eq2 ==> eq2) (@bind _ _ a b)
   }.
 
 End Monad.
@@ -54,3 +55,24 @@ End Monad.
 Arguments Monad : clear implicits.
 Arguments Monad {_} C M.
 Arguments MonadLaws {_ _ _ _ _ _} monad : rename.
+
+Section MonadFunctor.
+
+  Context {obj : Type} {C : obj -> obj -> Type}
+          `{Eq2 _ C} `{Id_ _ C} `{Cat _ C} `{Category _ C}.
+
+  Context `{forall (a b : obj), PER (@eq2 obj C _ a b)}.
+  Context (M : obj -> obj) (CM : Monad C M) (ML : MonadLaws CM).
+
+  Instance Monad_Functor : @Functor _ _  C C M.
+    red. intros. refine (bind (X >>> ret)).
+  Defined.
+
+  Instance Monad_FunctorLaws : FunctorLaws Monad_Functor.
+  constructor.
+  - intros a. cbn. unfold fmap, Monad_Functor.
+    rewrite cat_id_l. apply bind_ret_r.
+  - intros a b c f g.
+  Admitted.
+
+End MonadFunctor.
