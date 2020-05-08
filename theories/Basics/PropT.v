@@ -182,8 +182,46 @@ Section MonadPropT.
             forall (ma : M X), equalE (M X) ma ma -> ` PA1 ma <-> ` PA2 ma
       |}.
 
-  Instance PropT_Monad : Monad typ_proper PropT.
+  (* IY: Morally, we want something that lifts PER-ness through returns. *)
+  Lemma PER_equalE_transport : forall {X : typ},
+      PER (equalE X) -> PER (equalE (M X)).
+  Proof.
   Admitted.
+
+  Instance PropT_Monad : Monad typ_proper PropT.
+  constructor.
+  - refine
+    (fun A => exist _
+      (fun a => exist _ (fun ma => equalE (M A) (` ret a) ma) _)
+      (fun x y EQ ma EQ' => _)).
+    cbn.
+
+    (* Properness proof inner case *)
+    Unshelve. 2 : {
+      repeat red.
+      refine (fun x y EQ => _).
+      (* Introduce a proper instance for rewriting under equalE (M A). *)
+      assert (Proper (equalE (M A) ==> impl) (equalE (M A) ((` ret) a))). {
+        destruct ret. cbn in *.
+        do 2 red in p. admit.
+      }
+      split; intros EQ'.
+      + eapply H10; eassumption.
+      + assert (Symmetric (equalE (M A))). admit. (* PER_equalE_transport. *)
+        eapply H10; [symmetry | ]; eauto.
+    }
+
+    (* Properness proof of outer case. *)
+    split; intros EQ''.
+    + assert (Proper (equalE A ==> impl) (fun x' => equalE (M A) ((` ret) x') ma)).
+      admit.
+      eapply H10. apply EQ. apply EQ''.
+    + assert (Proper (equalE A ==> impl) (fun x' => equalE (M A) ((` ret) x') ma)).
+      admit.
+      assert (Symmetric (equalE A)). admit.
+      eapply H10; [symmetry | ]; eauto.
+
+  - (* Bind *) Admitted.
 
   Instance PropT_MonadLaws : MonadLaws PropT_Monad.
   Admitted.
