@@ -76,6 +76,10 @@ Section MonadFunctor.
     unfold fmap, Monad_Functor.
     rewrite cat_assoc. rewrite bind_bind.
     rewrite cat_assoc.
+    (* KS: These rewrites and reflexities should finish the proof
+       but there's a setoid rewrite error. Maybe the proper def
+       is off. Also, this needs specific proof uses reflexivity
+       which might be a problem *)
     try rewrite bind_ret_l.
     try reflexivity.
     admit.
