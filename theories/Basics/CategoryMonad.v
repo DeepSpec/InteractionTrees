@@ -73,6 +73,16 @@ Section MonadFunctor.
   - intros a. cbn. unfold fmap, Monad_Functor.
     rewrite cat_id_l. apply bind_ret_r.
   - intros a b c f g.
+    unfold fmap, Monad_Functor.
+    rewrite cat_assoc. rewrite bind_bind.
+    rewrite cat_assoc.
+    try rewrite bind_ret_l.
+    try reflexivity.
+    admit.
+  - do 2 red. intros.
+    try rewrite H4.
+    try reflexivity.
+    admit.
   Admitted.
-
+    
 End MonadFunctor.
