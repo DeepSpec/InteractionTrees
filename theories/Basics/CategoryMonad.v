@@ -17,7 +17,7 @@ Local Open Scope cat_scope.
 Section Monad.
 
   Context {obj : Type} {C : obj -> obj -> Type}
-          `{Eq2 _ C} `{Id_ _ C} `{Cat _ C}.
+          `{Eq2 _ C} `{Id_ _ C} `{Cat _ C} `{Category obj C}.
 
 (* IY: Do we want to show that a monad is a monoid in the category of endofunctors?
        We don't *need* these definitions here for stating the monad laws. *)
@@ -68,6 +68,10 @@ Section MonadFunctor.
     red. intros. refine (bind (X >>> ret)).
   Defined.
 
+  (* IY: Here is a weird way to show reflexivity with Eq2. *)
+  Ltac cat_reflexivity :=
+    rewrite <- cat_id_l at 1; apply cat_id_l.
+
   Instance Monad_FunctorLaws : FunctorLaws Monad_Functor.
   constructor.
   - intros a. cbn. unfold fmap, Monad_Functor.
@@ -76,17 +80,14 @@ Section MonadFunctor.
     unfold fmap, Monad_Functor.
     rewrite cat_assoc. rewrite bind_bind.
     rewrite cat_assoc.
-    (* KS: These rewrites and reflexities should finish the proof
-       but there's a setoid rewrite error. Maybe the proper def
-       is off. Also, this needs specific proof uses reflexivity
-       which might be a problem *)
-    try rewrite bind_ret_l.
-    try reflexivity.
-    admit.
-  - do 2 red. intros.
-    try rewrite H4.
-    try reflexivity.
-    admit.
-  Admitted.
-    
+    apply bind_proper.
+    apply category_proper_cat.
+    cat_reflexivity.
+    rewrite bind_ret_l.
+    apply category_proper_cat; cat_reflexivity.
+  - do 2 red. intros. unfold fmap, Monad_Functor.
+    apply bind_proper. apply category_proper_cat. apply H4.
+    cat_reflexivity.
+  Qed.
+
 End MonadFunctor.
