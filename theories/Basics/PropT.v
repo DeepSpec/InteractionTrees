@@ -127,6 +127,21 @@ End TypCat.
 Import CatNotations.
 Open Scope cat_scope.
 
+Section MonadProp.
+  Definition PropM : typ -> typ :=
+    fun (A : typ) =>
+      {|
+        Ty := {p : A -> Prop | Proper (equalE A ==> iff) p};
+        equal :=
+          fun pm1 pm2 =>
+            forall (a : A), ` pm1 a <-> ` pm2 a
+      |}.
+  Instance PropM_Monad : Monad typ_proper PropM.
+  constructor.
+  - repeat red.
+  Admitted.
+
+End MonadProp.
 Section NaturalTransformation.
 
   Context {obj1 obj2 : Type}
