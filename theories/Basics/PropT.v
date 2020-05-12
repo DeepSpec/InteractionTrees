@@ -118,6 +118,71 @@ End TypCat.
 Import CatNotations.
 Open Scope cat_scope.
 
+Section MonadProp.
+  Definition PropM : typ -> typ :=
+    fun (A : typ) =>
+      {|
+        Ty := {p : A -> Prop | Proper (equalE A ==> iff) p};
+        equal :=
+          fun pm1 pm2 =>
+            forall (a : A), ` pm1 a <-> ` pm2 a
+      |}.
+  Instance PropM_Monad : Monad typ_proper PropM.
+  constructor.
+  - repeat red.
+  Admitted.
+
+End MonadProp.
+Section NaturalTransformation.
+
+  Context {obj1 obj2 : Type}
+          {C1 : obj1 -> obj1 -> Type}
+          {C2 : obj2 -> obj2 -> Type}
+          `{Cat _ C1} `{Cat _ C2} `{Eq2 _ C1} `{Eq2 _ C2}
+          {F : obj1 -> obj2}
+          {G : obj1 -> obj2}
+          {F_FUN : Functor (C1 := C1) (C2 := C2) F}
+          {G_FUN : Functor (C1 := C1) (C2 := C2) G}.
+
+  Class NaturalTransformation : Type :=
+    {
+      eta: forall (a : obj1), C2 (F a) (G a)
+    }.
+
+  Context `{NaturalTransformation}.
+  Class NaturalTransformationLaw : Prop :=
+    {
+      naturality: forall (a b : obj1) (f : C1 a b),
+        fmap (F := F) _ _ f >>> eta b ⩯ eta a >>> fmap (F := G) _ _ f
+    }.
+
+End NaturalTransformation.
+
+
+Section MonadTransformer.
+  (* Instance Natural_MonadTransfomer : MonadTransformer N.  *)
+
+  (* OPTION 2 : Have a NaturalTransformation Instance in Context. *)
+  Context {obj: Type}
+          {C: obj-> obj-> Type}
+          `{Cat _ C} `{Eq2 _ C}
+          {M : obj-> obj}
+          {N : obj-> obj}
+  .
+
+  (* Class MonadTransfomer : Type := *)
+  (*   { *)
+  (*     m : Monad C M; *)
+  (*     n : Monad C N; *)
+  (*     natural_transformation :> @NaturalTransformation _ _ C M N; *)
+  (*     natural_transformation_law :> @NaturalTransformationLaw _ _ C C _ _ M N *)
+  (*   }. *)
+
+  (* TODO Prove MonadTransformer laws using natural transformation laws. *)
+  (* TODO Give StateT Instance of MonadTransformer. *)
+  (* TODO Prove MonadLaws for Prop. *)
+
+End MonadTransformer.
 
 (* TODO Prove MonadLaws for Prop. *)
 Section MonadPropT.
