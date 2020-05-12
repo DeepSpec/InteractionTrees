@@ -128,7 +128,7 @@ Import CatNotations.
 Open Scope cat_scope.
 
 Section MonadProp.
-  Definition PropM : typ -> typ :=
+  Program Definition PropM : typ -> typ :=
     fun (A : typ) =>
       {|
         Ty := {p : A -> Prop | Proper (equalE A ==> iff) p};
@@ -136,9 +136,19 @@ Section MonadProp.
           fun pm1 pm2 =>
             forall (a : A), ` pm1 a <-> ` pm2 a
       |}.
+  Next Obligation.
+    split.
+    repeat red. intros x y H a.
+    split. apply H. apply H.
+    repeat red. intros x y z H H0 a.
+    split. intros. apply H0, H, H1. intros. apply H, H0, H1.
+  Qed.
+
   Instance PropM_Monad : Monad typ_proper PropM.
-  constructor.
+  split.
   - repeat red.
+    intros.
+    refine (exist _ (fun (x:a) =>  (exist _ (fun y => equalE a x y) _)) _).    
   Admitted.
 
 End MonadProp.
