@@ -83,15 +83,6 @@ Section TypCat.
     constructor; try typeclasses eauto.
   Defined.
 
-  (*
-    FUNCTOR:
-    obj: TYP -> TYP
-    fmap:  (TYP -> TYP) -> (TYP -> TYP)
-
-      An endo functor: F C => C is a pair:
-        F : Type -> Type
-        eqF : forall a (eqa : Rel A), Rel (F A) (F A)
-   *)
 End TypCat.
 
 (* Section MonadLaws. *)
@@ -203,6 +194,7 @@ Section MonadTransformer.
 
 End MonadTransformer.
 
+(* TODO Prove MonadLaws for Prop. *)
 Section MonadPropT.
 
   Context {M : typ -> typ}.
