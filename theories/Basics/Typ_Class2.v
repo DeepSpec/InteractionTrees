@@ -29,14 +29,15 @@ Definition rel A := A -> A -> Prop.
 Class typ : Type :=
   Typ {
       Ty : Type; 
-      equal : rel Ty
+      equal : rel Ty;
+      equal_PER :> PER equal                  
     }.
 Arguments equal {T}: rename.
-Arguments Typ {Ty}.
+Arguments Typ {Ty} _ {equal_PER}.
 Notation "'equalE' T" := (@equal T) (at level 5).
 (* This coercion allows us to write [(a: T)] to mean [(a : Ty T)] *)
 Coercion Ty  : typ >-> Sortclass.
-Coercion Typ : rel >-> typ.
+(* Coercion Typ : rel >-> typ. *)
 
 (* Our usual [Type]s are recovered by setting the relation to [eq] *)
 Instance typ_eq (A: Type) : typ := Typ (@eq A).
@@ -61,6 +62,16 @@ Qed.
     and [bot] which is basically the empty type seen as a subtype of [A]
     (no reflexive elements for the relation, so no elements in [bot A])
  *)
+Instance top_PER {A} : PER (fun a b : A => True).
+Proof.
+  split; eauto.
+Qed.
+
+Instance bot_PER {A} : PER (fun a b : A => False).
+Proof.
+  split; eauto.
+Qed.
+  
 Definition top_typ A : typ := Typ (fun a b : A => True).
 Definition bot_typ A : typ := Typ (fun a b : A => False).
 
@@ -80,6 +91,25 @@ Qed.
     Cartesian product of two [typ].
     In this approach, we have a lot of type annotations, but the term is straightforward to write.
  *)
+
+Instance pair_PER (A B:Type) (RA : rel A) `{PER A RA} (RB : rel B) `{PER B RB}:
+  PER (fun (p q: A * B) => RA (fst p) (fst q) /\ RB (snd p) (snd q)).
+Proof.
+  split.
+  repeat red. intros x y (H1 & H2). split; symmetry; assumption.
+  repeat red. intros x y z (H1 & H2) (H3 & H4). split; eapply transitivity; eauto.
+Qed.
+
+(*
+Instance pair_PER (TA TB:typ) :
+  PER (fun (p q: TA * TB) => equal (fst p) (fst q) /\ equal (snd p) (snd q)).
+Proof.
+  split.
+  repeat red. intros x y (H1 & H2). split; symmetry; assumption.
+  repeat red. intros x y z (H1 & H2) (H3 & H4). split; eapply transitivity; eauto.
+Qed.
+*)  
+
 Instance prod_typ (TA TB: typ) : typ :=
   Typ (fun (p q: TA * TB) => equal (fst p) (fst q) /\ equal (snd p) (snd q)).
 Notation "e × f" := (prod_typ e f) (at level 70).
@@ -90,6 +120,15 @@ Fact prod_typ_gen : forall (TA TB: typ) (a: TA) (b : TB),
 Proof.
   intros *; split; (intros [INA INB]; split; [apply INA | apply INB]).
 Qed.
+
+Instance fun_PER (A B:Type) (RA : rel A) `{PER A RA} (RB : rel B) `{PER B RB}
+  : PER (fun (f g: A -> B) => forall a1 a2, RA a1 a2 -> RB (f a1) (g a2)).
+Proof.
+  split.
+  - repeat red. intros x y H1 a1 a2 H2.  symmetry. apply H1. symmetry. apply H2.
+  - repeat red. intros x y z H1 H2 a1 a2 H3. 
+    eapply transitivity. apply H1. apply H3. apply H2. eapply transitivity. symmetry. apply H3. apply H3.
+Qed.    
 
 (** ** arr
     Exponential of two [typ].
