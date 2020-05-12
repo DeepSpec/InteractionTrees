@@ -47,6 +47,8 @@ Proof.
     exfalso. apply H; eauto.
 Qed.
 
+(* find where I can import this axiom from *)
+Axiom classicT : forall (P : Prop), {P} + {~ P}.
 
 Arguments evans {E}.
 Arguments evempty {E}.
@@ -886,222 +888,166 @@ Proof.
     eapply refine_set_eq_to_eutt_vis_aux; eauto.
 Qed.
 
+Definition peel_vis {E R S A B} (e0 : E A) (a : A) (k0 : unit -> ibranch E R)
+           (e1 : E B) (k1 : B -> itree E S) 
+           (peel : ibranch' E R -> itree' E S -> ibranch E S) : ibranch E S.
+destruct (classicT (A = B) ).
+- subst. apply (Vis (evans _ e0 a) (fun _ => peel (observe (k0 tt)) (observe (k1 a) ) ) ).
+- apply ITree.spin.
+Defined.
+
 CoFixpoint peel_ {E R S} (ob : ibranch' E R) (ot : itree' E S) : ibranch E S :=
   match ob, ot with
   | TauF b, TauF t => Tau (peel_ (observe b) (observe t))
+  | _, RetF s => Ret s
   | TauF b, ot => Tau (peel_ (observe b) ot )
   | ob, TauF t => Tau (peel_ ob (observe t) )
+  | VisF (evempty _ Hempty e) _ , _ => Vis (evempty _ Hempty e) (fun v : void => match v with end)
   (* The type of this is problematic need some tricky dependently typed programming
      in order to have this work
   *)
-  (* may need the euttEv proof  *)
-(*
-  | VisF (evans _ e a) k0, VisF _ k1 => VisF (evans _ e a) 
-                                             (fun _ => peel_ (observe (k0 tt)) (observe (k1 a)) )
-*)
-  | _, RetF s => Ret s
-  | _, _ => ITree.spin end.
 
-Lemma refine_ret_vis_contra : forall (E : Type -> Type) (R A: Type)
+  | VisF (evans _ e0 a) k0, VisF e1 k1 => peel_vis e0 a k0 e1 k1 peel_
+  | _, _ => ITree.spin 
+  end.
+
+Definition peel {E R S} (b : ibranch E R) (t : itree E S) : ibranch E S :=
+  peel_ (observe b) (observe t).
+ 
+Inductive branch_prefix {E : Type -> Type} {R S: Type} 
+          (F : ibranch E R -> ibranch E S -> Prop) : ibranch' E R -> ibranch' E S -> Prop := 
+| ret_prefix (r : R) (ob : ibranch' E S) : branch_prefix F (RetF r) ob
+| vis_ans_prefix {A : Type} (e : E A) (a : A) (br :ibranch E R) (bs :ibranch E S) :
+    F br bs -> branch_prefix F (VisF (evans A e a) (fun _ => br) ) (VisF (evans A e a) (fun _ => bs))
+| vis_empty_prefix {A : Type} (e : E A) (Hempty : A -> void) :
+    branch_prefix F (VisF (evempty A Hempty e) (fun v : void => match v with end) )
+                    (VisF (evempty A Hempty e) (fun v : void => match v with end) )
+| tau_lr_prefix (br : ibranch E R) (bs : ibranch E S) : 
+    F br bs -> branch_prefix F (TauF br) (TauF bs)
+(* can add eutt style inductive tau rules *)
+
+
+.
+
+
+
+Lemma refine_ret_vis_contra : forall (E: Type -> Type) (R A: Type)
                      (r : R) (e : E A) (k : A -> itree E R),
     ~ (Ret r ⊑ Vis e k).
 Proof.
   intros. intro Hcontra. pinversion Hcontra.
 Qed.
 
-Definition peel_tau_l:
-     (forall (E : Type -> Type) (R S : Type) (b : ibranch E S) (t : itree E R)
-             (f : R -> itree E S), b ⊑ ITree.bind t f -> ibranch E R) ->
-     forall (E : Type -> Type) (R S : Type) (b : ibranch E S) (t : itree E R) (f : R -> itree E S) (t0 : itree E R),
-       TauF t0 = observe t -> b ⊑ ITree.bind t f -> ibranch E R.
-Proof.
-  intros peel E R S b t f t0 Heqot HeuttEv.
-  assert (b ⊑ ITree.bind t0 f).
-  { 
-    apply simpobs in Heqot. apply eq_sub_eutt in Heqot. rewrite tau_eutt in Heqot.
-    rewrite <- Heqot. auto.
-  }
-  apply (Tau (peel _ _ _ b t0 f H)).
-Defined.
+(* maybe a better way of doing it is to use strong LEM to see if X = A in the vis case
+   then I can remove that if statement given
 
-Definition peel_tau_lr:
-  (forall (E : Type -> Type) (R S : Type) (b : ibranch E S) (t : itree E R)
-     (f : R -> itree E S), b ⊑ ITree.bind t f -> ibranch E R) ->
-  forall (E : Type -> Type) (R S : Type) (b : ibranch E S) (t : itree E R) (f : R -> itree E S)
-    (t0 : itree E R) (t1 : ibranch E S),
-    b ⊑ ITree.bind t f -> TauF t0 = observe t -> TauF t1 = observe b -> ibranch E R.
-Proof.
-  intros peel E R S b t f t0 t1 HeuttEv Heqot Heqob.
-  assert (t1 ⊑ ITree.bind t0 f).
-  {
-    apply simpobs in Heqot. apply simpobs in Heqob.
-    apply eq_sub_eutt in Heqot. apply eq_sub_eutt in Heqob.
-    rewrite tau_eutt in Heqot. rewrite tau_eutt in Heqob.
-    rewrite <- Heqot. rewrite <- Heqob. auto.
-  }
-  apply (Tau (peel _ _ _ t1 t0 f H)).
-Defined.
+ *)
 
-Definition peel_vis_ret_contra:
-     forall (E : Type -> Type) (R S X: Type)
-            (b : ibranch E S) (t : itree E R)
-            (f : R -> itree E S) (e : E X) (k : X -> itree E R) (r : S),
-       b ⊑ ITree.bind t f -> VisF e k = observe t -> RetF r = observe b -> False.
+Lemma peel_t_ret : forall E R S (b : ibranch E S) (t : itree E R) r, t ≅ Ret r -> (peel b t ≅ Ret r)%itree.
 Proof.
-  intros E R S X b t f e k r HeuttEv Heqot Heqob.
-  apply simpobs in Heqob. apply simpobs in Heqot.
-  rewrite Heqob in HeuttEv. rewrite Heqot in HeuttEv.
-  rewrite bind_vis in HeuttEv. eapply refine_ret_vis_contra; eauto.
+  intros.  unfold peel.
+  pinversion H; subst; try inv CHECK.
+  destruct (observe b); cbn; auto. 
+  - pfold. red. cbn. constructor. auto.
+  - pfold. red. cbn. constructor; auto.
+  - pfold. red. cbn. simpl. destruct e.
+    + cbn. constructor. auto.
+    + cbn. constructor. auto.
 Qed.
-
-Lemma peel_tau_r:
-  (forall (E : Type -> Type) (R S : Type)
-     (b : ibranch E S) (t : itree E R)
-     (f : R -> itree E S),
-      b ⊑ ITree.bind t f -> ibranch E R) ->
-  forall (E : Type -> Type) (R S X: Type)
-    (b : ibranch E S) (t : itree E R)
-    (f : R -> itree E S) (e : E X) (k : X -> itree E R) (t0 : ibranch E S),
-    b ⊑ ITree.bind t f -> VisF e k = observe t -> TauF t0 = observe b -> ibranch E R.
-Proof.
-  intros peel E R S X b t f e k t0 HeuttEv Heqot Heqob.
-  apply simpobs in Heqob. rewrite Heqob in HeuttEv.
-  rewrite tau_eutt in HeuttEv.
-  apply (Tau (peel _ _ _ t0 t f HeuttEv)).
-Defined. 
-
-Lemma peel_vis_vis_type_eq:
-  forall (E : Type -> Type) (R S : Type)
-    (f : R -> itree E S) (X : Type) (e : E X)
-    (k : X -> itree E R) (A : Type) (ev : E A) 
-    (ans : A) (k0 : unit -> itree (EvAns E) S),
-    Vis (evans A ev ans) k0
-        ⊑ Vis e (fun x : X => ITree.bind (k x) f) -> 
-    X = A.
-Proof.
-  intros E R S f X e k A ev ans k0 HeuttEv.
-  pinversion HeuttEv. inj_existT. subst.
-  inversion H1; subst; inj_existT; subst. auto.
-Qed.
-
-Lemma peel_vis_vis_ev_eq:
-  forall (E : Type -> Type) (R S : Type)
-    (f : R -> itree E S) (A : Type) (k : A -> itree E R)
-    (e ev : E A) (ans : A)
-    (k0 : unit -> itree (EvAns E) S),
-    Vis (evans A ev ans) k0
-        ⊑ Vis e (fun x : A => ITree.bind (k x) f) -> 
-    ev = e.
-Proof.
-  intros E R S f A k e ev ans k0 HeuttEv.
-  pinversion HeuttEv. inj_existT. subst.
-  inversion H1. subst. inj_existT. subst.
-  auto.
-Qed.
-
-Lemma peel_vis_vis_refine:
-  forall (E : Type -> Type) (R S : Type)
-    (f : R -> itree E S) (A : Type) (k : A -> itree E R)
-    (e : E A) (ans : A) (k0 : unit -> itree (EvAns E) S),
-    Vis (evans A e ans) k0
-        ⊑ Vis e (fun x : A => ITree.bind (k x) f) ->
-    k0 tt ⊑ ITree.bind (k ans) f.
-Proof.
-  intros E R S f A k e ans k0 HeuttEv.
-  pinversion HeuttEv. subst. inj_existT. subst.
-  assert (RAnsRef E unit A (evans A e ans) tt e ans). constructor.
-  apply H6 in H. pclearbot. auto.
-Qed.
-(*factor out into helper functions*)
-(*extensively comment this function after lunch*)
-(*key for a construction on finding bind prefixes on branches*)
-CoFixpoint peel {E R S} (b : ibranch E S) (t : itree E R) (f : R -> itree E S) 
-           (HeuttEv : b ⊑ ITree.bind t f) : ibranch E R.
-remember (observe t) as ot. remember (observe b) as ob.
-destruct (ot).
-(*t = Ret r*)
-- apply (Ret r).
-- destruct ob.
-  (*t = Tau t0*)
-  + eapply peel_tau_l; eauto.
-  (*t = Tau t0*) (*b = Tau t1*)
-  + eapply peel_tau_lr; eauto.
-  (*t = Tau t0*)
-  + eapply peel_tau_l; eauto. 
-- destruct ob.
-  (*t = Vis e k*) (*b = Ret r*)
-  + exfalso. eapply peel_vis_ret_contra; eauto.
-  (*b = Tau t0*)
-  + eapply peel_tau_r; eauto.
-  + (*t = Vis e k*) (*b = Vis e0 k0 *)
-    apply simpobs in Heqot. apply simpobs in Heqob.
-    rewrite Heqot in HeuttEv. rewrite Heqob in HeuttEv.
-    rewrite bind_vis in HeuttEv. destruct e0.
-    * assert (X = A). { eapply peel_vis_vis_type_eq. eauto. }
-      subst.
-      assert (ev = e).
-      { eapply peel_vis_vis_ev_eq. eauto. }
-      subst.
-      assert (k0 tt ⊑  ITree.bind (k ans) f ).
-      { eapply peel_vis_vis_refine. eauto. }
-      apply (Vis (evans A e ans) (fun _ => peel _ _ _ (k0 tt) (k ans) f H ) ).
-   * apply (Vis (evempty A Hempty ev) (fun v : void => match v with end)).
-Defined.
-
-CoFixpoint peel_ {E R S} (ob : ibranch' E S) (ot : itree' E R) (f : R -> itree E S)
-                    (HeuttEv : go ob ⊑ ITree.bind (go ot) f) : ibranch E R.
-assert (peel : forall  (b : ibranch E S) (t : itree E R) f, b ⊑ ITree.bind t f -> ibranch E R).
-{ intros. eapply peel_ with (ob := ob) (ot := ot) (f := f). auto. }
-destruct ot.
-
-(* t = Ret r  *)
-- apply (Ret r).
-- destruct ob.
-  + eapply peel_tau_l; eauto.
-
-(*getting weird type errors here*)
-Lemma peel_t_ret : forall E R S (b : ibranch E S) (t : itree E R) f r H, t ≅ Ret r -> observe (peel b t f H) = RetF  r.
-Proof.
-  intros. pinversion H0; subst; try inv CHECK.
-  
-    
-    rewrite <- H2.
 
 (*doing these proofs, may require some techniques you don't really know*)
 
 Lemma peel_refine_t : forall (E : Type -> Type) (R S : Type)
                   (b : ibranch E S) (t : itree E R) (f : R -> itree E S)
      (HeuttEv : b ⊑ ITree.bind t f),
-    peel b t f HeuttEv ⊑ t.
+    peel b t ⊑ t.
 Proof.
   intros E R S b t f. generalize dependent b. generalize dependent t.
-  pcofix CIH. intros. rename HeuttEv into H.
-  assert (HeuttEv : b ⊑ ITree.bind t f). auto.
+  pcofix CIH. intros.
   punfold HeuttEv. red in HeuttEv. cbn in HeuttEv. pfold. red.
-  simpl. dependent induction HeuttEv.
-  - destruct (observe t) eqn : Heq. 
-    + unfold peel. cbn.
-    unfold peel. destruct (observe t) eqn : Heq.
-
-Admitted.
-
-
-
-CoFixpoint peel' {E R S} (ob : ibranch' E R) (ot : itree' E S) : ibranch E S.
-Proof.
-  remember ot as ot'. destruct ot.
-  - apply (Ret r).
-  - remember ob as ob'. destruct ob.
-    + apply (Tau (peel' _ _ _ ob' (observe t))).
-    + apply (Tau (peel' _ _ _ (observe t0) (observe t) ) ).
-    + apply (Tau (peel' _ _ _ ob' (observe t))).
-  - remember ob as ob'. destruct ob.
-    + apply ITree.spin.
-    + apply (Tau (peel' _ _ _ (observe t) ot') ).
-    + 
-      (*if I have that b <= t, then maybe I can explicitly ignore bs cases*)
-      (*I am a bit worried about reduction rule things*)
-
-
-(*Maybe consider other ways, this is looking like it makes less sense than I thought
-  it did *)
+  unfold peel.
+  destruct (observe t) eqn : Heq.
+  - destruct (observe b); cbn; try (constructor; auto).
+    destruct e; cbn; constructor; auto.
+  - dependent induction HeuttEv.
+    + exfalso. symmetry in Heq. apply simpobs in Heq. apply simpobs in x.
+      rewrite Heq in x. rewrite bind_tau in x. pinversion x.
+      inv CHECK.
+    + rewrite <- x0. cbn. constructor. right. eapply CIH.
+      pclearbot. symmetry in Heq. apply simpobs in x0.
+      apply simpobs in x. apply simpobs in Heq.
+      apply eq_sub_eutt in x0. apply eq_sub_eutt in Heq.
+      rewrite tau_eutt in Heq. rewrite tau_eutt in x0.
+      rewrite <- Heq. rewrite x. rewrite tau_eutt. auto.
+    + rewrite <- x. cbn. constructor. right. eapply CIH.
+      clear IHHeuttEv. symmetry in Heq. apply simpobs in Heq.
+      apply eq_sub_eutt in Heq. rewrite tau_eutt in Heq.
+      rewrite <- Heq. pfold. auto.
+    + cbn. destruct (observe b) eqn : Heq'.
+      * cbn. rewrite <- Heq'. constructor. right. eapply CIH. 
+        symmetry in Heq'.
+        apply simpobs in Heq'. rewrite Heq'.
+        symmetry in Heq. apply simpobs in Heq.
+        apply eq_sub_eutt in Heq. rewrite tau_eutt in Heq.
+        rewrite <- Heq. apply simpobs in x. rewrite x.
+        rewrite tau_eutt. pfold. auto.
+      * cbn. clear IHHeuttEv. 
+        constructor. right. eapply CIH. 
+        symmetry in Heq. apply simpobs in Heq.
+        apply eq_sub_eutt in Heq. rewrite tau_eutt in Heq.
+        rewrite <- Heq.
+        apply simpobs in x. apply eq_sub_eutt in x.
+        rewrite tau_eutt in x. rewrite x.
+        enough (Tau t1 ⊑ t2). 
+        { rewrite tau_eutt in H. auto. }
+        pfold. auto.
+      * destruct e; cbn.
+        ++ constructor. right. rewrite <- Heq'. clear IHHeuttEv.
+           eapply CIH. symmetry in Heq.
+           apply simpobs in Heq. apply eq_sub_eutt in Heq. 
+           rewrite tau_eutt in Heq. apply simpobs in x.
+           apply eq_sub_eutt in x. rewrite tau_eutt in x.
+           rewrite <- Heq. rewrite x. pfold. red.
+           rewrite Heq'. auto.
+        ++ constructor. right. rewrite <- Heq'. clear IHHeuttEv.
+           eapply CIH. symmetry in Heq.
+           apply simpobs in Heq. apply eq_sub_eutt in Heq. 
+           rewrite tau_eutt in Heq. apply simpobs in x.
+           apply eq_sub_eutt in x. rewrite tau_eutt in x.
+           rewrite <- Heq. rewrite x. pfold. red.
+           rewrite Heq'. auto.
+    + exfalso. symmetry in Heq. apply simpobs in Heq.
+      apply simpobs in x.
+      rewrite Heq in x. rewrite bind_tau in x. pinversion x.
+      inv CHECK.
+  - dependent induction HeuttEv.
+    + exfalso. symmetry in Heq. apply simpobs in Heq. apply simpobs in x.
+      rewrite Heq in x. rewrite bind_vis in x.
+      pinversion x.
+    + exfalso. symmetry in Heq. apply simpobs in Heq. apply simpobs in x.
+      rewrite Heq in x. rewrite bind_vis in x.
+      pinversion x; inv CHECK.
+    + rewrite <- x. cbn. constructor. eapply IHHeuttEv; eauto.
+    + exfalso. symmetry in Heq. apply simpobs in x. apply simpobs in Heq.
+      rewrite Heq in x. rewrite bind_vis in x.
+      pinversion x; inv CHECK.
+    + rewrite <- x0.
+      symmetry in Heq. apply simpobs in Heq. apply simpobs in x.
+      rewrite Heq in x. rewrite bind_vis in x. pinversion x.
+      subst. inj_existT; subst.
+      inversion H; subst; inj_existT; subst.
+      * unfold observe. cbn. unfold peel_vis.
+        assert (B = B). auto.
+        destruct (classicT (B = B) ); try contradiction.
+        unfold eq_rect_r, eq_rect. 
+        remember (eq_sym e) as He. clear HeqHe.
+        dependent destruction He. cbn. constructor; eauto.
+        intros. inversion H2. subst; inj_existT; subst.
+        apply H0 in H2. pclearbot. unfold id. right. eapply CIH.
+        enough (k2 b0 ≈ ITree.bind (k b0) f ).
+        { rewrite <- H3. auto. }
+        red in x1. cbn in x1. inversion x1. subst; inj_existT; subst.
+        symmetry. pclearbot. specialize ( REL0 b0).
+        apply eq_sub_eutt. auto.
+      * cbn. constructor; eauto. intros. contradiction.
+Qed.
