@@ -64,20 +64,15 @@ Section MonadFunctor.
   Context `{forall (a b : obj), PER (@eq2 obj C _ a b)}.
   Context (M : obj -> obj) (CM : Monad C M) (ML : MonadLaws CM).
 
-  Instance Monad_Functor : @Functor _ _  C C M.
-    red. intros. refine (bind (X >>> ret)).
-  Defined.
-
   (* IY: Here is a weird way to show reflexivity with Eq2. *)
   Ltac cat_reflexivity :=
     rewrite <- cat_id_l at 1; apply cat_id_l.
 
-  Instance Monad_FunctorLaws : FunctorLaws Monad_Functor.
+  Global Instance Monad_Functor : Functor C C M (fun a b X => bind (X >>> ret)).
   constructor.
-  - intros a. cbn. unfold fmap, Monad_Functor.
+  - intros a. cbn.
     rewrite cat_id_l. apply bind_ret_r.
   - intros a b c f g.
-    unfold fmap, Monad_Functor.
     rewrite cat_assoc. rewrite bind_bind.
     rewrite cat_assoc.
     apply bind_proper.
@@ -85,9 +80,9 @@ Section MonadFunctor.
     cat_reflexivity.
     rewrite bind_ret_l.
     apply category_proper_cat; cat_reflexivity.
-  - do 2 red. intros. unfold fmap, Monad_Functor.
+  - do 3 red. intros.
     apply bind_proper. apply category_proper_cat. apply H4.
     cat_reflexivity.
-  Qed.
+  Defined.
 
 End MonadFunctor.
