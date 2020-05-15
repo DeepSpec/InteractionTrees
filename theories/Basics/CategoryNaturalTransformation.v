@@ -21,19 +21,19 @@ Section NaturalTransformation.
           {C2 : obj2 -> obj2 -> Type}
           `{Category obj1 C1} `{Category obj2 C2}
           {F : obj1 -> obj2} {G : obj1 -> obj2}
-          {eta: forall (a : obj1), C2 (F a) (G a)}.
+  .
 
   Context {f_fmap : forall a b, C1 a b -> C2 (F a) (F b)}
           {g_fmap : forall a b, C1 a b -> C2 (G a) (G b)}
           {F_Functor: Functor C1 C2 F f_fmap}
           {G_Functor: Functor C1 C2 G g_fmap}
-  .
+          {eta: forall (a : obj1), C2 (F a) (G a)}.
 
   Class NaturalTransformation: Prop :=
       naturality: forall (a b : obj1) (f : C1 a b),
           f_fmap _ _ f >>> eta b ⩯ eta a >>> g_fmap _ _ f
-    .
+  .
 
 End NaturalTransformation.
 
-Arguments NaturalTransformation {_ _} _ _ _.
+Arguments NaturalTransformation {_ _} _ _ {_ _}.

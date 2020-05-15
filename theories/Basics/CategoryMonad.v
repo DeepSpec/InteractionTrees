@@ -34,6 +34,7 @@ Section Monad.
 
   Context {M : obj -> obj}.
 
+
   (* Monad laws, annotated with equivalent Haskell-like monad laws in comments. *)
   Class MonadLaws `(Monad M) : Prop :=
   {
@@ -68,8 +69,10 @@ Section MonadFunctor.
   Ltac cat_reflexivity :=
     rewrite <- cat_id_l at 1; apply cat_id_l.
 
-  Global Instance Monad_Functor : Functor C C M (fun a b X => bind (X >>> ret)).
-  constructor.
+  Definition monad_fmap := (fun (a b : obj) (X : C a b) => bind (X >>> ret)).
+
+  Global Instance Monad_Functor : Functor C C M monad_fmap.
+  constructor; unfold monad_fmap.
   - intros a. cbn.
     rewrite cat_id_l. apply bind_ret_r.
   - intros a b c f g.
@@ -86,3 +89,5 @@ Section MonadFunctor.
   Defined.
 
 End MonadFunctor.
+
+Arguments monad_fmap {_ _ _} _ {_}.
