@@ -29,8 +29,8 @@ Section MonadProp.
     split.
     repeat red. intros x y H a.
     split. apply H. apply H.
-    repeat red. intros x y z H H0 a.
-    split. intros. apply H0, H, H1. intros. apply H, H0, H1.
+    repeat red. intros x y z H H0 a.  
+    split. intros. apply H0, H, H1; auto. intros. apply H, H0, H1; auto.
   Qed.
 
   Instance PropM_Monad : Monad typ_proper PropM.
@@ -76,17 +76,15 @@ Section MonadPropT.
     forall X : typ,
       PER
         (fun PA1 PA2 : {p : M X -> Prop | Proper (equalE (M X) ==> iff) p} =>
-            forall ma : M X, equalE (M X) ma ma -> (` PA1) ma <-> (` PA2) ma).
+            forall ma : M X, (` PA1) ma <-> (` PA2) ma).
   Proof.
     intros X.
     split.
-    - repeat red. intros x y H6 ma H7.
-      apply H6 in H7. destruct H7.
-      split; eauto.
-    - repeat red. intros x y z H6 H7 ma H8.
-      specialize (H6 _ H8). destruct H6.
-      specialize (H7 _ H8). destruct H7.
-      split; eauto.
+    - repeat red. intros x y H6 ma.
+      split; eauto. apply H6. apply H6.
+    - repeat red. intros x y z H6 H7 ma. 
+      split; eauto. intros.  apply H7. apply H6. apply H8.
+      intros. apply H6. apply H7. apply H8.
   Qed.
 
   Definition PropT : typ -> typ :=
@@ -95,7 +93,7 @@ Section MonadPropT.
         Ty := { p : M X -> Prop | Proper (equalE (M X) ==> iff) p };
         equal :=
           fun PA1 PA2 =>
-            forall (ma : M X), equalE (M X) ma ma -> ` PA1 ma <-> ` PA2 ma;
+            forall (ma : M X), ` PA1 ma <-> ` PA2 ma;
         equal_PER := PropT_PER_equal X
       |}.
 
@@ -143,17 +141,16 @@ Section MonadPropT.
     forall (A : typ) (x y : A),
       equalE A x y ->
       forall ma : M A,
-        equalE (M A) ma ma ->
         (` (exist (Proper (equalE (M A) ==> iff)) (fun ma0 : M A => equalE (M A) ((` ret) x) ma0) (ret_proper_inner A x))) ma <->
         (` (exist (Proper (equalE (M A) ==> iff)) (fun ma0 : M A => equalE (M A) ((` ret) y) ma0) (ret_proper_inner A y))) ma.
   Proof.
-    intros A x y EQ ma EQ'.
+    intros A x y H6 ma. 
     (* Properness proof of outer case. *)
     split; intros EQ''.
     + cbn. rewrite <- EQ''.
-      eapply ret_equalE_proper. apply EQ. symmetry. eauto. eauto.
+      eapply ret_equalE_proper. apply H6. symmetry. eauto. eauto.
     + cbn. rewrite <- EQ''.
-      eapply ret_equalE_proper. symmetry. apply EQ. symmetry; eauto.
+      eapply ret_equalE_proper. symmetry. apply H6. symmetry; eauto.
       assumption.
   Qed.
 
@@ -177,9 +174,11 @@ Section MonadPropT.
       apply H8.
   Qed.
 
+  (*
   (* IY : Need equalE to be an Equivalence, not a PER. *)
   Lemma equalE_refl : forall A, Reflexive (equalE A).
   Admitted.
+*)
 
   Lemma bind_proper_outer:
     forall (A B : typ) (K : typ_proper A (PropT B)),
@@ -192,17 +191,16 @@ Section MonadPropT.
     split; intros EQ''; cbn in EQ''; cbn.
     + edestruct EQ'' as (ma0 & kb & Hx & EQ & Hagr).
       exists ma0, kb. split.
-      apply H6. 2 : assumption.
-      2 : split ; assumption.
-      apply equalE_refl.
+      apply H6. assumption.
+      split ; assumption.
+
     + edestruct EQ'' as (? & ? & ? & ? & ?).
       exists x0, x1. split.
-      apply H6.  2 : apply H8.
-      2 : split; assumption.
-      apply equalE_refl.
+      apply H6.  apply H7.
+      split; assumption.
   Qed.
 
-  Instance PropT_Monad : Monad typ_proper PropT :=
+  Instance PropT_Monad : Monad typ_proper PropT := 
     {|
       ret := (fun A => exist _
                 (fun a => exist _ (fun ma => ret_f A a ma) (ret_proper_inner A a))
@@ -216,7 +214,9 @@ Section MonadPropT.
   Instance PropT_MonadLaws : MonadLaws PropT_Monad.
   constructor.
   - intros a b f.
-    unfold ret, bind, PropT_Monad. repeat cbn.
+    unfold ret, bind, PropT_Monad. 
+    
+    
   Admitted.
 
 End MonadPropT.
