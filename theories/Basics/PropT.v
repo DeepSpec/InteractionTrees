@@ -33,7 +33,6 @@ Section MonadProp.
     split. intros. apply H0, H, H1. intros. apply H, H0, H1.
   Qed.
 
-  (* TODO Prove MonadLaws for Prop. *)
   Instance PropM_Monad : Monad typ_proper PropM.
   split.
   - repeat red.
@@ -41,6 +40,7 @@ Section MonadProp.
     refine (exist _ (fun (x:a) =>  (exist _ (fun y => equalE a x y) _)) _).
   Admitted.
 
+  (* TODO Prove MonadLaws for Prop. *)
 End MonadProp.
 
 Section MonadPropT.
@@ -50,7 +50,7 @@ Section MonadPropT.
   Context `{CM : Monad typ typ_proper M}.
   Context `{ML : MonadLaws typ typ_proper M}.
 
-  Definition PropT : typ -> typ :=
+  Program Definition PropT : typ -> typ :=
     fun (X : typ) =>
       {|
         Ty := { p : M X -> Prop | Proper (equalE (M X) ==> iff) p };
@@ -58,19 +58,33 @@ Section MonadPropT.
           fun PA1 PA2 =>
             forall (ma : M X), equalE (M X) ma ma -> ` PA1 ma <-> ` PA2 ma
       |}.
+  Next Obligation.
+    split.
+    - repeat red. intros x y H6 ma H7.
+      apply H6 in H7. destruct H7.
+      split; eauto.
+    - repeat red. intros x y z H6 H7 ma H8.
+      specialize (H6 _ H8). destruct H6.
+      specialize (H7 _ H8). destruct H7.
+      split; eauto.
+  Defined.
 
-  (* IY: Morally, we want something that lifts PER-ness through returns. *)
-  Lemma PER_equalE_transport : forall {X : typ},
-      PER (equalE X) -> PER (equalE (M X)).
+  Instance ret_equalE_proper {A}:
+    Proper (equalE A ==> equalE (M A) ==> impl) (fun x => equalE (M A) ((` ret) x)).
   Proof.
-  Admitted.
+    destruct ret. cbn in *.
+    do 2 red in p. do 3 red. intros x0 y H6 x1 y0 H7.
+    rewrite <- H7.
+    specialize (p _ _ H6).
+    rewrite p. reflexivity.
+  Qed.
 
   Instance PropT_Monad : Monad typ_proper PropT.
   constructor.
   - refine
-    (fun A => exist _
-      (fun a => exist _ (fun ma => equalE (M A) (` ret a) ma) _)
-      (fun x y EQ ma EQ' => _)).
+      (fun A => exist _
+        (fun a => exist _ (fun ma => equalE (M A) (` ret a) ma) _)
+        (fun x y EQ ma EQ' => _)).
     cbn.
 
     (* Properness proof inner case *)
@@ -78,27 +92,25 @@ Section MonadPropT.
       repeat red.
       refine (fun x y EQ => _).
       (* Introduce a proper instance for rewriting under equalE (M A). *)
-      assert (Proper (equalE (M A) ==> impl) (equalE (M A) ((` ret) a))). {
-        destruct ret. cbn in *.
-        do 2 red in p. admit.
-      }
       split; intros EQ'.
-      + eapply H10; eassumption.
-      + assert (Symmetric (equalE (M A))). admit. (* PER_equalE_transport. *)
-        eapply H10; [symmetry | ]; eauto.
+      + rewrite EQ in EQ'. eapply EQ'.
+      + rewrite <- EQ in EQ'. apply EQ'.
     }
 
     (* Properness proof of outer case. *)
     split; intros EQ''.
-    + assert (Proper (equalE A ==> impl) (fun x' => equalE (M A) ((` ret) x') ma)).
-      admit.
-      eapply H10. apply EQ. apply EQ''.
-    + assert (Proper (equalE A ==> impl) (fun x' => equalE (M A) ((` ret) x') ma)).
-      admit.
-      assert (Symmetric (equalE A)). admit.
-      eapply H10; [symmetry | ]; eauto.
+    + rewrite <- EQ''.
+      eapply ret_equalE_proper. apply EQ. symmetry. eauto. eauto.
+    + rewrite <- EQ''.
+      eapply ret_equalE_proper. symmetry. apply EQ. symmetry; eauto.
+      assumption.
 
-  - (* Bind *) Admitted.
+  - refine
+      (fun A B ma => exist _
+        (fun a => exist _ (fun ma => _) _)
+        _).
+  Admitted.
+
 
   Instance PropT_MonadLaws : MonadLaws PropT_Monad.
   Admitted.
@@ -211,7 +223,6 @@ Section MonadPropLaws.
       destruct H1 as (a1 & I & J & K).
       unfold id. unfold transport in H. unfold functor_PM in H.
 
-                                                  
 *)
 
 
