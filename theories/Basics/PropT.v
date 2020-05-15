@@ -35,12 +35,33 @@ Section MonadProp.
 
   Instance PropM_Monad : Monad typ_proper PropM.
   split.
-  - repeat red.
-    intros.
-    refine (exist _ (fun (x:a) =>  (exist _ (fun y => equalE a x y) _)) _).
-  Admitted.
-
-  (* TODO Prove MonadLaws for Prop. *)
+  - repeat red. intros A.
+    refine (exist _ (fun (a:A) => (exist _ (fun x => equalE A a x) _)) _).
+    repeat red. cbn. intros x y Heq a_term.
+    rewrite Heq. auto.
+    Unshelve.
+    repeat red. intros.
+    rewrite H.
+    auto.
+  - repeat red. intros A B HK. 
+    destruct HK as (K & KProper).
+    refine (exist _ (fun PA: PropM A => (exist _ (fun b: B =>
+            exists a : A, `PA a /\ (proj1_sig (K a)) b) _)) _).
+    (* KS: For some reason the back-tick didn't work here *)
+    repeat red. cbn. intros ma1 ma2 Heq b.
+    split; intros; destruct H; exists x; specialize (Heq x).
+    + rewrite <- Heq. auto.
+    + rewrite Heq. auto.
+    Unshelve.
+    repeat red. intros b1 b2 Heq.
+    split; intros; destruct H; exists x; destruct H; split; auto.
+      * cbn in *. destruct K.
+        (* KS: Coq can't find the necessary Proper instance to
+               rewrite unless K is destructed. *)
+        rewrite <- Heq. auto.
+      * cbn in *; destruct K; rewrite Heq; auto.
+  Qed.
+  
 End MonadProp.
 
 Section MonadPropT.
