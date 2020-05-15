@@ -43,7 +43,7 @@ Section MonadProp.
     repeat red. intros.
     rewrite H.
     auto.
-  - repeat red. intros A B HK. 
+  - repeat red. intros A B HK.
     destruct HK as (K & KProper).
     refine (exist _ (fun PA: PropM A => (exist _ (fun b: B =>
             exists a : A, `PA a /\ (proj1_sig (K a)) b) _)) _).
@@ -61,10 +61,11 @@ Section MonadProp.
         rewrite <- Heq. auto.
       * cbn in *; destruct K; rewrite Heq; auto.
   Qed.
-  
+
 End MonadProp.
 
 Section MonadPropT.
+
 
   Context {M : typ -> typ}.
   Context `{F : Functor typ typ typ_proper typ_proper M}.
@@ -100,16 +101,37 @@ Section MonadPropT.
     rewrite p. reflexivity.
   Qed.
 
+  Arguments fmap {_ _}.
+
+  Definition agrees {A B} : typ_proper A (M B) -> typ_proper A ((PropT B)) -> Prop :=
+    fun TA TB => forall (a : A), exists (mb : M B),
+          equalE (M B) mb (` TA a) /\ ` (` TB a) mb.
+
+  Definition ret_f :=
+    fun A a (ma : M A) => equalE (M A) (` ret a) ma.
+
+  Definition bind_f :=
+    fun A B (PA : PropT A) (K : typ_proper A (PropT B)) (mb : M B) =>
+      exists (ma : M A) (kb : typ_proper A (M B)), `PA ma /\
+        (forall (x : M A), equalE (M A) ma x ->
+        equalE (M B) mb ((` (bind kb)) x)) /\
+        agrees kb K.
+
+
+  Lemma equalE_refl : forall A, Reflexive (equalE A).
+  Admitted.
+
   Instance PropT_Monad : Monad typ_proper PropT.
   constructor.
   - refine
       (fun A => exist _
-        (fun a => exist _ (fun ma => equalE (M A) (` ret a) ma) _)
-        (fun x y EQ ma EQ' => _)).
+        (fun a => exist _ (fun ma => ret_f A a ma) _)
+        (fun x y EQ ma EQ' => _)); unfold ret_f.
     cbn.
 
     (* Properness proof inner case *)
     Unshelve. 2 : {
+      unfold ret_f.
       repeat red.
       refine (fun x y EQ => _).
       (* Introduce a proper instance for rewriting under equalE (M A). *)
@@ -127,13 +149,46 @@ Section MonadPropT.
       assumption.
 
   - refine
-      (fun A B ma => exist _
-        (fun a => exist _ (fun ma => _) _)
+      (fun A B K => exist _
+        (fun (PA : PropT A) => exist _
+          (fun (mb : M B) => bind_f A B PA K mb) _)
         _).
-  Admitted.
+    cbn.
 
+    Unshelve. 2 : {
+      unfold bind_f.
+      repeat red.
+      intros x y EQ.
+      split; intros EQ'.
+      - edestruct EQ' as (? & ? & ? & ? & ?).
+        exists x0, x1. split. apply H6.
+        split. intros. specialize (H7 _ H9).
+        rewrite <- EQ.
+        apply H7. apply H8.
+      - edestruct EQ' as (? & ? & ? & ? & ?).
+        exists x0, x1. split. apply H6.
+        split. intros. specialize (H7 _ H9). rewrite EQ. apply H7.
+        apply H8.
+    }
+
+    unfold bind_f.
+    split; intros EQ''; cbn in EQ''; cbn.
+    + edestruct EQ'' as (ma0 & kb & Hx & EQ & Hagr).
+      exists ma0, kb. split.
+      apply H6. 2 : assumption.
+      2 : split ; assumption.
+      apply equalE_refl.
+    + edestruct EQ'' as (? & ? & ? & ? & ?).
+      exists x0, x1. split.
+      apply H6.  2 : apply H8.
+      2 : split; assumption.
+      apply equalE_refl.
+  Qed.
 
   Instance PropT_MonadLaws : MonadLaws PropT_Monad.
+  constructor.
+  - intros a b f.
+    jk
   Admitted.
 
 End MonadPropT.
