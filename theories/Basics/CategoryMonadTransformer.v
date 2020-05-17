@@ -42,6 +42,7 @@ Section MonadTransformer.
 
   Arguments monad_fmap {_ _ _} _ {_}.
 
+  (* TODO : Package laws as separate classes. *)
   Class MonadTransformer :=
     {
       lift_NT :> NaturalTransformation C C M N (monad_fmap M) (monad_fmap N) lift;
@@ -57,5 +58,51 @@ Section MonadTransformer.
 
   Context `{forall (a b : obj), PER (@eq2 obj C _ a b)}.
 
-  (* TODO Give StateT Instance of MonadTransformer. *)
 End MonadTransformer.
+
+
+(* StateT is an instance of a MonadTransformer. *)
+From ITree Require Import
+     Basics.Basics.
+
+Import Basics.Basics.Monads.
+
+
+
+Section StateT.
+
+  Context {obj: Type}
+          {C: obj-> obj-> Type}
+          `{Category_C: Category obj C}
+          {M : obj -> obj}
+          {bif : obj -> obj -> obj}
+  .
+
+  Context {Pair_C : Pair C bif}
+          {Fst_C : Fst C bif}
+          {Snd_C : Snd C bif}.
+
+  Context {M_Monad : Monad C M} {M_ML : MonadLaws M_Monad}.
+
+  Definition stateT (s : obj) : obj -> obj :=
+    fun (a : obj) => M (bif s a).
+
+  Context {S : obj}.
+
+  Instance stateT_Monad : Monad C (stateT S).
+  Proof.
+    constructor.
+    (* ret case *)
+    - intros a. unfold stateT.
+      
+
+  (* Definition state (s a : Type) := s -> prod s a. *)
+  Definition state (s a : obj) := C s (bif s a).
+
+
+  Context {lift : forall a, C (M a) (N a)}.
+
+  Definition N : obj -> obj := stateT S M.
+
+
+End StateT. 

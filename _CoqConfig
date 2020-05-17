@@ -1,17 +1,19 @@
 -Q theories ITree
 
-theories/Basics/CategoryNaturalTransformation.v
-theories/Basics/CategoryMonad.v
-theories/Basics/CategoryMonadTransformer.v
-theories/Basics/Typ_Class2.v
-theories/Basics/PropT.v
 
 theories/Simple.v
 theories/ITree.v
 theories/ITreeFacts.v
 
 theories/Basics/Basics.v
+theories/Basics/HeterogeneousRelations.v
 theories/Basics/Category.v
+theories/Basics/Typ_Class2.v
+theories/Basics/CategoryNaturalTransformation.v
+theories/Basics/CategoryMonad.v
+theories/Basics/CategoryMonadTransformer.v
+theories/Basics/PropT.v
+theories/Basics/MonadState.v
 theories/Basics/CategoryOps.v
 theories/Basics/CategoryTheory.v
 theories/Basics/CategoryFacts.v
@@ -19,10 +21,8 @@ theories/Basics/CategorySub.v
 theories/Basics/CategoryFunctor.v
 theories/Basics/CategoryRelation.v
 theories/Basics/Tacs.v
-theories/Basics/HeterogeneousRelations.v
 theories/Basics/MayRet.v
 theories/Basics/Monad.v
-theories/Basics/MonadState.v
 theories/Basics/CategoryKleisli.v
 theories/Basics/CategoryKleisliFacts.v
 theories/Basics/Function.v

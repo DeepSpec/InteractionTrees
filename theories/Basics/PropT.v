@@ -16,6 +16,7 @@ From ITree Require Import
 Import CatNotations.
 Open Scope cat_scope.
 
+
 Section MonadProp.
   Program Definition PropM : typ -> typ :=
     fun (A : typ) =>
@@ -97,6 +98,7 @@ Section MonadPropT.
         equal_PER := PropT_PER_equal X
       |}.
 
+
   Instance ret_equalE_proper {A}:
     Proper (equalE A ==> equalE (M A) ==> impl) (fun x => equalE (M A) ((` ret) x)).
   Proof.
@@ -107,28 +109,14 @@ Section MonadPropT.
     rewrite p. reflexivity.
   Qed.
 
-  Arguments fmap {_ _}.
+  (* Ret definition. *)
+  Definition ret_ty_fn {A : typ} (a : A) : M A -> Prop :=
+    fun (ma : M A) => equalE (M A) (` ret a) ma.
 
-  Definition agrees {A B} : typ_proper A (M B) -> typ_proper A ((PropT B)) -> Prop :=
-    fun TA TB => forall (a : A), exists (mb : M B),
-          equalE (M B) mb (` TA a) /\ ` (` TB a) mb.
-
-  Definition ret_f :=
-    fun A a (ma : M A) => equalE (M A) (` ret a) ma.
-
-  Definition bind_f :=
-    fun A B (PA : PropT A) (K : typ_proper A (PropT B)) (mb : M B) =>
-      exists (ma : M A) (kb : typ_proper A (M B)), `PA ma /\
-        (forall (x : M A), equalE (M A) ma x ->
-        equalE (M B) mb ((` (bind kb)) x)) /\
-        agrees kb K.
-
-
-  Lemma ret_proper_inner:
-    forall (A : typ) (a : A), Proper (equalE (M A) ==> iff) (fun ma : M A => ret_f A a ma).
+  Lemma ret_ty_proper {A : typ} (a : A) :
+    Proper (equalE (M A) ==> iff) (ret_ty_fn a).
   Proof.
-    intros A a.
-    unfold ret_f.
+    unfold ret_ty_fn.
     repeat red.
     refine (fun x y EQ => _).
     (* Introduce a proper instance for rewriting under equalE (M A). *)
@@ -137,29 +125,59 @@ Section MonadPropT.
     + rewrite <- EQ in EQ'. apply EQ'.
   Qed.
 
-  Lemma ret_proper_outer:
-    forall (A : typ) (x y : A),
-      equalE A x y ->
-      forall ma : M A,
-        (` (exist (Proper (equalE (M A) ==> iff)) (fun ma0 : M A => equalE (M A) ((` ret) x) ma0) (ret_proper_inner A x))) ma <->
-        (` (exist (Proper (equalE (M A) ==> iff)) (fun ma0 : M A => equalE (M A) ((` ret) y) ma0) (ret_proper_inner A y))) ma.
+  Definition ret_ty {A : typ} : A -> PropT A :=
+    fun a => exist _ (ret_ty_fn a) (ret_ty_proper a).
+
+  Lemma ret_prop_proper :
+    forall {A : typ}, Proper (equalE (A) ==> equalE (PropT A)) ret_ty.
   Proof.
-    intros A x y H6 ma. 
+    unfold ret_ty.
+    intros A a f.
     (* Properness proof of outer case. *)
     split; intros EQ''.
-    + cbn. rewrite <- EQ''.
+    + cbn. unfold ret_ty_fn. rewrite <- EQ''.
       eapply ret_equalE_proper. apply H6. symmetry. eauto. eauto.
-    + cbn. rewrite <- EQ''.
+    + cbn. unfold ret_ty_fn. rewrite <- EQ''.
       eapply ret_equalE_proper. symmetry. apply H6. symmetry; eauto.
       assumption.
   Qed.
 
-  Lemma bind_proper_inner:
-    forall (A B : typ) (K : typ_proper A (PropT B)) (PA : PropT A),
-      Proper (equalE (M B) ==> iff) (fun mb : M B => bind_f A B PA K mb).
+  (* IY: We could try having this kind of definition, but trying to use this
+    is more cumbersome... Maybe there's a better way to write this *)
+  Definition propT {A B : typ} {X}
+             (f : X -> M A -> Prop) :=
+    fun (prop_f : forall (x : X), Proper (equalE (M A) ==> iff) (f x)) (x : X) =>
+      let fn := f x in
+      let prop_fn := prop_f x in
+      let ty := exist _ fn prop_fn in
+      let fn_ty := fun (b : B) => ty in
+      fun (p : Proper (equalE B ==> equalE (PropT A)) fn_ty) => exist _ f p.
+
+  (* Definition ret_propT {A : typ} (a : A) : typ_proper A (PropT A) := *)
+  (*   propT ret_ty_fn ret_ty_proper a _. *)
+
+  Definition ret_propT {A} : typ_proper A (PropT A) :=
+    exist _ (fun a => ret_ty a) ret_prop_proper.
+
+  (* Bind definition. *)
+  Definition agrees {A B} : typ_proper A (M B) -> typ_proper A ((PropT B)) -> Prop :=
+    fun TA TB => forall (a : A), exists (mb : M B),
+          equalE (M B) mb (` TA a) /\ ` (` TB a) mb.
+
+  Definition bind_ty_fn {A B} (k : typ_proper A (PropT B)) (PA : PropT A)  :
+    M B -> Prop :=
+    fun (mb : M B) =>
+      exists (ma : M A) (kb : typ_proper A (M B)), `PA ma /\
+        (forall (x : M A), equalE (M A) ma x ->
+        equalE (M B) mb ((` (bind kb)) x)) /\
+        agrees kb k.
+
+  Lemma bind_ty_proper :
+    forall {A B : typ} (k : typ_proper A (PropT B)) (PA : PropT A) ,
+      Proper (equalE (M B) ==> iff) (bind_ty_fn k PA).
   Proof.
-    intros A B K PA.
-    unfold bind_f.
+    intros A B k PA.
+    unfold bind_ty_fn.
     repeat red.
     intros x y EQ.
     split; intros EQ'.
@@ -174,20 +192,15 @@ Section MonadPropT.
       apply H8.
   Qed.
 
-  (*
-  (* IY : Need equalE to be an Equivalence, not a PER. *)
-  Lemma equalE_refl : forall A, Reflexive (equalE A).
-  Admitted.
-*)
+  Definition bind_ty {A B} (k : typ_proper A (PropT B)) : PropT A -> PropT B :=
+    fun PA => exist _ (bind_ty_fn k PA) (bind_ty_proper k PA).
 
-  Lemma bind_proper_outer:
-    forall (A B : typ) (K : typ_proper A (PropT B)),
-      Proper (equalE (PropT A) ==> equalE (PropT B))
-            (fun PA : PropT A =>
-                exist (Proper (equalE (M B) ==> iff)) (fun mb : M B => bind_f A B PA K mb) (bind_proper_inner A B K PA)).
+  Lemma bind_prop_proper:
+    forall {A B : typ} (k : typ_proper A (PropT B)),
+      Proper (equalE (PropT A) ==> equalE (PropT B)) (bind_ty k).
   Proof.
     intros A B K. cbn.
-    unfold bind_f.
+    unfold bind_ty, bind_ty_fn.
     split; intros EQ''; cbn in EQ''; cbn.
     + edestruct EQ'' as (ma0 & kb & Hx & EQ & Hagr).
       exists ma0, kb. split.
@@ -200,23 +213,20 @@ Section MonadPropT.
       split; assumption.
   Qed.
 
-  Instance PropT_Monad : Monad typ_proper PropT := 
+  Definition bind_propT {A B} (k : typ_proper A (PropT B)) :
+    typ_proper (PropT A) (PropT B):=
+    exist _ (fun PA => bind_ty k PA) (bind_prop_proper k).
+
+  Instance PropT_Monad : Monad typ_proper PropT :=
     {|
-      ret := (fun A => exist _
-                (fun a => exist _ (fun ma => ret_f A a ma) (ret_proper_inner A a))
-                (ret_proper_outer A));
-      bind := (fun A B K => exist _
-                (fun (PA : PropT A) => exist _
-                  (fun (mb : M B) => bind_f A B PA K mb) (bind_proper_inner A B K PA))
-                (bind_proper_outer A B K))
+      ret := @ret_propT;
+      bind := @bind_propT
     |}.
 
   Instance PropT_MonadLaws : MonadLaws PropT_Monad.
   constructor.
   - intros a b f.
-    unfold ret, bind, PropT_Monad. 
-    
-    
+    unfold ret, bind, PropT_Monad.
   Admitted.
 
 End MonadPropT.
