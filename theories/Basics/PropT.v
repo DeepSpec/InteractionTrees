@@ -17,6 +17,16 @@ Import CatNotations.
 Open Scope cat_scope.
 
 
+(* Proper Instance for typ_proper. *)
+Lemma typ_proper_proj :
+  forall (A B : typ) (P : typ_proper A B), Proper (equalE A ==> equalE B) (` P).
+Proof.
+  destruct P. cbn. apply p.
+Defined.
+
+Existing Instance typ_proper_proj.
+
+
 Section MonadProp.
   Program Definition PropM : typ -> typ :=
     fun (A : typ) =>
@@ -232,6 +242,19 @@ Section MonadPropT.
   Tactic Notation "unfold_cat" "in" hyp(H) :=
     unfold cat, cat_typ_proper, eq2, eq2_typ_proper in H; cbn in H.
 
+  Lemma typ_proper_propT :
+    forall {A B : typ} (P : typ_proper A (PropT B)) (a : A), Proper (equalE (M B) ==> iff)  (` ((` P) a)).
+  Proof.
+    intros. destruct P. cbn.
+    pose proof (proj2_sig (x a)). apply H.
+  Qed.
+
+  Existing Instance typ_proper_propT.
+  Existing Instance ret_ty_proper.
+  Existing Instance bind_ty_proper.
+  Existing Instance ret_prop_proper.
+  Existing Instance bind_prop_proper.
+
   Instance PropT_MonadLaws : MonadLaws PropT_Monad.
   constructor.
   - intros a b k.
@@ -241,29 +264,21 @@ Section MonadPropT.
     split; unfold bind_ty_fn.
     + intros Hb.
       edestruct Hb as (ma & kb & Hret & EQ' & Ha); clear Hb.
-      unfold ret_ty, ret_ty_fn in Hret. cbn in Hret.
       unfold agrees in Ha.
       specialize (Ha y).
       edestruct Ha as (mb' & EQ'' & Hmb); clear Ha.
+      rewrite <- Hret in EQ'.
+      rewrite EQ'' in Hmb.
+
       epose proof bind_ret_l as Hbr.
       specialize (Hbr kb). unfold_cat in Hbr.
-      cbn in Hbr.
-      unfold typ_proper in kb.
-      unfold ret_ty_fn in Hret. symmetry in Hret.
+
       unfold typ_proper in k; destruct k as (k_f & k_proper). cbn in *.
       destruct k_f as (mb_prop & mb_prop_proper). cbn in *.
       eapply mb_prop_proper. apply EQ'.
-      rewrite EQ'' in Hmb.
       eapply mb_prop_proper in Hmb.
       apply Hmb.
-
-      (* IY: We want this proposition to be about the bind rule that is in the context. *)
-      match goal with
-       | |- equalE _ ((`  ?P) _) _ => remember P as P'
-      end.
-      pose proof (proj2_sig P') as bind_proper.
-      cbn in bind_proper.
-      rewrite Hret. apply Hbr; assumption.
+      apply Hbr; assumption.
 
     + intros H.
       cbn in H.
@@ -274,6 +289,13 @@ Section MonadPropT.
       pose proof @bind as bind_M. specialize (bind_M typ typ_proper M M_Monad a b).
       destruct ret_M as (ret_M_f & ret_M_proper).
       exists (ret_M_f x).
+      match goal with
+        | |- exists _, (` ?ret) _ /\ _ => remember ret as ret'
+      end.
+      pose proof (proj2_sig ret').
+      eexists _.
+      split. subst. eapply H0.
+
       destruct bind_PropT as (bind_PropT_f & bind_PropT_proper).
       repeat red in bind_PropT_proper.
       cbn in bind_PropT_proper.
