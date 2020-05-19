@@ -173,9 +173,12 @@ Section MonadPropT.
     exist _ (fun a => ret_ty a) ret_prop_proper.
 
   (* Bind definition. *)
-  Definition agrees {A B} : typ_proper A (M B) -> typ_proper A ((PropT B)) -> Prop :=
-    fun TA TB => forall (a : A), exists (mb : M B),
-          equalE (M B) mb (` TA a) /\ ` (` TB a) mb.
+
+  Definition agrees (A B : typ) (ma : M A)
+              (kb : typ_proper A (M B)) (k : typ_proper A (PropT B)) :=
+      forall x y, x ∈ A -> y ∈ A -> equalE A x y ->
+          ( ` (ret_ty x)) ma ->
+      (` ((` k) x)) ((` kb) x).
 
   Definition bind_ty_fn {A B} (k : typ_proper A (PropT B)) (PA : PropT A)  :
     M B -> Prop :=
@@ -183,7 +186,7 @@ Section MonadPropT.
       exists (ma : M A) (kb : typ_proper A (M B)),
         `PA ma /\
         (equalE (M B) mb ((` (bind kb)) ma)) /\
-        agrees kb k.
+        agrees A B ma kb k.
 
   Lemma bind_ty_proper :
     forall {A B : typ} (k : typ_proper A (PropT B)) (PA : PropT A) ,
@@ -242,6 +245,16 @@ Section MonadPropT.
   Tactic Notation "unfold_cat" "in" hyp(H) :=
     unfold cat, cat_typ_proper, eq2, eq2_typ_proper in H; cbn in H.
 
+
+  Lemma ret_proper :
+    (forall (a : typ) (ma : M a),
+        Proper (equalE a ==> iff) (fun x => (` (ret_ty x)) ma)).
+  Proof.
+    intros a ma. repeat red. intros. unfold ret_ty. cbn. unfold ret_ty_fn.
+    split. intros. rewrite <- H. assumption.
+    intros. rewrite H. assumption.
+  Qed.
+
   Lemma typ_proper_propT :
     forall {A B : typ} (P : typ_proper A (PropT B)) (a : A), Proper (equalE (M B) ==> iff)  (` ((` P) a)).
   Proof.
@@ -249,93 +262,176 @@ Section MonadPropT.
     pose proof (proj2_sig (x a)). apply H.
   Qed.
 
+  Existing Instance ret_proper.
   Existing Instance typ_proper_propT.
   Existing Instance ret_ty_proper.
   Existing Instance bind_ty_proper.
   Existing Instance ret_prop_proper.
   Existing Instance bind_prop_proper.
 
+  Axiom monad_reflexivity: forall a ma, equalE (M a) ma ma.
+
+  Lemma propT_bind_ret_l : forall (a b : typ) (f : typ_proper a (PropT b)),
+    ret >>> bind f ⩯ f.
+  Proof.
+  intros a b k.
+  unfold ret, bind, PropT_Monad, ret_propT, bind_propT.
+  cbn. red. unfold eq2_typ_proper. cbn.
+  intros x y Hx Hy EQ mb.
+  split; unfold bind_ty_fn.
+  - intros Hb.
+    edestruct Hb as (ma & kb & Hret & EQ' & Ha); clear Hb.
+    rewrite EQ'. rewrite <- Hret.
+    epose proof bind_ret_l as Hbr.
+    specialize (Hbr kb x y Hx Hy EQ). unfold_cat in Hbr.
+    rewrite Hbr.
+    unfold agrees in Ha.
+    eapply Ha; try eassumption.
+    eapply ret_proper; [symmetry | ]; eassumption.
+  - intros H.
+    epose proof bind_ret_l as Hbr.
+    unfold_cat in Hbr.
+    eexists ?[ma]; eexists ?[kb].
+    split; [ | split].
+    + eapply ret_ty_proper.
+
+      (* TODO: Do we introduce reflexivity for monad equality? *)
+      apply monad_reflexivity. unfold ret_ty_fn. apply monad_reflexivity.
+    + (* Equality on bind_ret_l. *)
+      destruct k as (k_f & k_proper). cbn in H.
+      repeat red in k_proper.
+      rewrite Hbr. 2 : apply Hx. 2 : apply Hy. 2 : apply EQ.
+
+      (* TODO : We need some kind of inversion principle here (or reflexivity defined on monadic computations). *)
+      (* Need to define MayRet for this monad? *)
+      Unshelve. 2 : { refine (exist _ (fun a => mb) _). repeat intro.
+                      apply monad_reflexivity. (* IY: reflexivity? *) }
+      cbn. (* reflexivity, again. *) apply monad_reflexivity.
+    + (* Agrees. *)
+      unfold agrees. intros x' y' Hx' Hy' EQ' Hret. cbn.
+      unfold ret_ty in Hret. cbn in Hret. unfold ret_ty_fn in Hret.
+
+      (* TODO: Monad ret inversion. *)
+      assert (ret_inv: equalE (M a) ((` ret) x') ((` ret) x) -> equalE a x' x). admit.
+      specialize (ret_inv Hret).
+
+      (* TODO: Another proper instance. *)
+      assert (HP: Proper (equalE a ==> iff) (fun x' => (` ((` k) x')) mb)). {
+        admit.
+      }
+
+     eapply HP. rewrite ret_inv. apply EQ. apply H.
+  Admitted.
+
+  Lemma propT_bind_ret_r : forall a : typ,
+    bind ret ⩯ id_ (PropT a).
+  Proof.
+    cbn. red. unfold eq2_typ_proper.
+    intros a x y Hx Hy Hxy ma. cbn.
+    unfold bind_ty_fn. split.
+    - intros.
+      edestruct H as (ma' & kb & Hma & EQ & Agr).
+      apply Hxy.
+
+      (* TODO: Proper instance. *)
+      assert (HP : Proper (equalE (M a) ==> iff) (` x)). admit.
+      rewrite EQ. epose proof bind_ret_r as Hbr.
+      unfold_cat in Hbr.
+
+      (* Use monad reflexivity. *)
+      pose proof (monad_reflexivity a ma') as Refl.
+      specialize (Hbr ma' ma' Refl Refl Refl).
+
+      (* TODO: Proper instance that depends on Agrees. *)
+      (* Agr : agrees a a ma' kb ret_propT *)
+      assert (H' : (equalE (M a) ((` (bind ret)) ma') ma' <-> equalE (M a) ((` (bind kb) ma')) ma')). admit.
+      rewrite H' in Hbr. rewrite Hbr. apply Hma.
+    - intros.
+      eexists ?[ma]; eexists ?[kb].
+      split ; [ | split].
+
+      + (* TODO : Proper instance. *)
+        assert (HP : Proper (equalE (PropT a) ==> iff) (fun x => (` x) ma)). admit.
+        eapply HP. apply Hxy. apply H.
+
+      + epose proof bind_ret_r as Hbr.
+        unfold_cat in Hbr.
+
+        (* Use monad reflexivity. *)
+        pose proof (monad_reflexivity a ma) as Refl.
+        specialize (Hbr ma ma Refl Refl Refl).
+        symmetry. apply Hbr.
+
+      + unfold agrees. intros a1 a2 Ha1 Ha2 EQ Hret.
+        unfold ret_ty in Hret. cbn in Hret. unfold ret_ty_fn in Hret.
+        unfold ret_propT. cbn. unfold ret_ty_fn. apply monad_reflexivity.
+  Admitted.
+
+
+  Lemma propT_bind_bind :
+    forall (a b c : typ) (f : typ_proper a (PropT b)) (g : typ_proper b (PropT c)),
+      bind f >>> bind g ⩯ bind (f >>> bind g).
+  Proof.
+    cbn. red. unfold eq2_typ_proper.
+    intros a b c f g x y Hx Hy Hxy. cbn. intros mc.
+    unfold bind_ty_fn. split.
+    - intros H.
+      edestruct H as (mb & kbc & Hmb & EQ & Agr); clear H.
+      unfold bind_ty, bind_ty_fn in Hmb. cbn in Hmb.
+      edestruct Hmb as (ma & kab & Hma & EQ' & Agr'); clear Hmb.
+      exists ma. eexists ?[kac].
+      split ; [ | split].
+
+      + assert (HP : forall ma, Proper (equalE (PropT a) ==> iff) (fun x => (` x) ma)). admit.
+        eapply HP. symmetry. apply Hxy. apply Hma.
+      + rewrite EQ.
+        epose proof bind_bind as Hbb.
+        specialize (Hbb kab kbc).
+        unfold_cat in Hbb.
+        pose proof (monad_reflexivity a ma) as Refl.
+        specialize (Hbb ma ma Refl Refl Refl). rewrite <- EQ' in Hbb.
+        rewrite Hbb. apply monad_reflexivity.
+      + unfold agrees. intros a1 a2 Ha1 Ha2 EQ'' Hret. cbn.
+        unfold bind_ty_fn.
+        unfold ret_ty in Hret. cbn in Hret. unfold ret_ty_fn in Hret.
+        exists mb; eexists ?[kb].
+        split; [ | split].
+        * rewrite EQ'.
+          rewrite <- Hret.
+          epose proof bind_ret_l.
+          unfold_cat in H. rewrite H. 2 : apply Ha1. 2 : apply Ha2. 2 : apply EQ''.
+          unfold agrees in Agr'.
+
+          assert (HP: Proper (equalE a ==> iff) (fun x' => (` ((` f) x')) ((`kab) a2))). {
+            admit.
+          }
+          eapply HP. apply EQ''. eapply Agr'. apply Ha2. apply Ha1. symmetry. apply EQ''.
+          eapply ret_proper. symmetry. apply EQ''. apply Hret.
+        * rewrite <- EQ. clear EQ.
+          epose proof bind_bind as Hbb.
+          specialize (Hbb kab kbc).
+          unfold_cat in Hbb.
+          pose proof (monad_reflexivity a ma) as Refl.
+          specialize (Hbb ma ma Refl Refl Refl). rewrite <- Hret in Hbb.
+          epose proof bind_ret_l as bind_ret_l. unfold_cat in bind_ret_l.
+          rewrite bind_ret_l in Hbb; clear bind_ret_l.
+          2 : assumption. 2 : apply Ha2. 2 : assumption.
+          rewrite <- EQ'' in Hbb. rewrite Hbb; clear Hbb.
+          rewrite Hret.
+          match goal with
+          | |- equalE _ ((` (bind ?K)) _) _ => remember K as F
+          end.
+
+          (* TODO: Proper instance that depends on Agrees. *)
+          (* Agr : agrees a a ma' kb ret_propT *)
+          (* assert (H' : (equalE (M a) ((` (bind ret)) ma') ma' <-> equalE (M a) ((` (bind kb) ma')) ma')). admit. *)
+  Admitted.
+
   Instance PropT_MonadLaws : MonadLaws PropT_Monad.
   constructor.
-  - intros a b k.
-    unfold ret, bind, PropT_Monad, ret_propT, bind_propT.
-    cbn. red. unfold eq2_typ_proper. cbn.
-    intros x y Hx Hy EQ mb.
-    split; unfold bind_ty_fn.
-    + intros Hb.
-      edestruct Hb as (ma & kb & Hret & EQ' & Ha); clear Hb.
-      unfold agrees in Ha.
-      specialize (Ha y).
-      edestruct Ha as (mb' & EQ'' & Hmb); clear Ha.
-      rewrite <- Hret in EQ'.
-      rewrite EQ'' in Hmb.
-
-      epose proof bind_ret_l as Hbr.
-      specialize (Hbr kb). unfold_cat in Hbr.
-
-      unfold typ_proper in k; destruct k as (k_f & k_proper). cbn in *.
-      destruct k_f as (mb_prop & mb_prop_proper). cbn in *.
-      eapply mb_prop_proper. apply EQ'.
-      eapply mb_prop_proper in Hmb.
-      apply Hmb.
-      apply Hbr; assumption.
-
-    + intros H.
-      cbn in H.
-      assert (ret_M : typ_proper a (M a)) by exact ret.
-      assert (ret_PropT : typ_proper a (PropT a)) by exact ret.
-      epose proof bind as bind_PropT. specialize (bind_propT k); clear bind_PropT.
-      intros bind_PropT.
-      pose proof @bind as bind_M. specialize (bind_M typ typ_proper M M_Monad a b).
-      destruct ret_M as (ret_M_f & ret_M_proper).
-      exists (ret_M_f x).
-      match goal with
-        | |- exists _, (` ?ret) _ /\ _ => remember ret as ret'
-      end.
-      pose proof (proj2_sig ret').
-      eexists _.
-      split. subst. eapply H0.
-
-      destruct bind_PropT as (bind_PropT_f & bind_PropT_proper).
-      repeat red in bind_PropT_proper.
-      cbn in bind_PropT_proper.
-      unfold equalE in bind_PropT_proper.
-      unfold typ_proper in k; destruct k as (k_f & k_proper).
-      cbn in H. eapply k_proper in H. 2 : exact EQ.
-     
-      exists 
-
-      pose proof @id_typ_proper. unfold Id_ in X.
-      unfold ret_ty. cbn. unfold ret_ty_fn.
-
-
-
-      specialize (X (M a)). destruct X.
-      eexists _. eexists _.
-      Unshelve. 2 : { refine ((` ret) x). }
-      split. pose proof id_ok. specialize (H0 (M a)).
-      apply p.
-      eexists (exist _ (fun x => mb) _).
-      red in Hx.
-      * split.
-        --
-           symmetry.
-           specialize (Hbr kb').
-           destruct kb'. cbn in Hbr.
-           eapply Hbr.
-      eexists ((` (k_f x))).
-      Unshelve. 2 : {
-        
-      }
-      specialize (Hbr (exist _ (fun a => mb) _)).
-      cbn.
-
-      split.
-      * unfold ret_ty_fn. etransitivity. admit.
-        admit.
-      * 
-
-
+  - apply propT_bind_ret_l.
+  - apply propT_bind_ret_r.
+  - apply propT_bind_bind.
   Admitted.
 
 End MonadPropT.
