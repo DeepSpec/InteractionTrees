@@ -155,20 +155,6 @@ Section MonadPropT.
       assumption.
   Qed.
 
-  (* IY: We could try having this kind of definition, but trying to use this
-    is more cumbersome... Maybe there's a better way to write this *)
-  Definition propT {A B : typ} {X}
-             (f : X -> M A -> Prop) :=
-    fun (prop_f : forall (x : X), Proper (equalE (M A) ==> iff) (f x)) (x : X) =>
-      let fn := f x in
-      let prop_fn := prop_f x in
-      let ty := exist _ fn prop_fn in
-      let fn_ty := fun (b : B) => ty in
-      fun (p : Proper (equalE B ==> equalE (PropT A)) fn_ty) => exist _ f p.
-
-  (* Definition ret_propT {A : typ} (a : A) : typ_proper A (PropT A) := *)
-  (*   propT ret_ty_fn ret_ty_proper a _. *)
-
   Definition ret_propT {A} : typ_proper A (PropT A) :=
     exist _ (fun a => ret_ty a) ret_prop_proper.
 
@@ -238,6 +224,8 @@ Section MonadPropT.
       bind := @bind_propT
     |}.
 
+  (* ==== Monad Laws for PropT ====================================================== *)
+
   (* IY: Is there a better generalized Ltac for this? *)
   Ltac unfold_cat :=
      unfold cat, cat_typ_proper, eq2, eq2_typ_proper; cbn.
@@ -270,6 +258,10 @@ Section MonadPropT.
   Existing Instance bind_prop_proper.
 
   Axiom monad_reflexivity: forall a ma, equalE (M a) ma ma.
+
+  (* Inductive mayRet : forall (a : typ), M a -> a -> Prop := *)
+  (* | mayRet_ret : forall (A : typ) (x : A), mayRet A x *)
+  (* . *)
 
   Lemma propT_bind_ret_l : forall (a b : typ) (f : typ_proper a (PropT b)),
     ret >>> bind f ⩯ f.
