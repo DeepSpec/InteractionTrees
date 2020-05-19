@@ -28,6 +28,7 @@ From ITree Require Import
      Dijkstra.IterRel
      Dijkstra.DelaySpecMonad
      Dijkstra.IBranch
+     Dijkstra.IBranchBind
      Dijkstra.EuttDiv
    (*  Simple *)
 .
@@ -175,6 +176,87 @@ Section TraceSpec.
           apply eutt_div_sym. apply div_bind_nop. auto.
    Qed.
 
+  Program Definition obs_trace (A : Type) (t : itree E A) : TraceSpec A :=
+    fun log p => forall b, b ⊑ t -> p (↑log ++ b).
+
+  Instance TraceSpecObs : EffectObs (itree E) TraceSpec := obs_trace.
+
+  Lemma bind_split_diverge:
+    forall (A B : Type) (log : ev_list E) (p : TraceSpecInput B) (b : ibranch E B)
+      (b' : itree (EvAns E) A) (g' : A -> itree (EvAns E) B),
+      (ITree.bind b' g' ≈ b)%itree ->
+      must_diverge (↑ log ++ b') ->
+      p ∋ ITree.bind (↑ log ++ b') (fun _ : A => spin) -> p ∋ ↑ log ++ b.
+  Proof.
+    intros A B log p b b' g' Hsplit Hdiv Hp.
+    rewrite <- Hsplit.
+    enough (↑ log ++ ITree.bind b' g' ≈ ITree.bind (↑ log ++ b') (fun _ => spin) ).
+    { rewrite H. auto. }
+    unfold append. rewrite bind_bind. 
+    eapply eutt_clo_bind with (RR := eq) (UU := eq); try reflexivity.
+    intros. apply eutt_div_subrel. eapply eutt_div_trans with (t2 := b').
+    + apply eutt_div_sym. apply div_bind_nop. eapply must_diverge_bind_append; eauto.
+    + apply div_bind_nop. eapply must_diverge_bind_append; eauto.
+  Qed.
+      
+        
+                   
+
+  Instance TraceSpecMorph : MonadMorphism (itree E) TraceSpec TraceSpecObs.
+  Proof.
+    constructor.
+    - intros. repeat red. unfold obs, TraceSpecObs. cbn. split; intros.
+      + apply H. apply branch_refine_ret.
+      + apply branch_refine_ret_inv_l in H0.
+        rewrite H0. auto.
+    - intros. repeat red. cbn. split; intros.
+      + destruct (classic_converge_ibranch b); basic_solve.
+        * left. exists r. setoid_rewrite <- H1. 
+          exists (log ++ log0)%list. split.
+          ++ rewrite append_assoc. reflexivity.
+          ++ intros bf Hbf.
+             set (fun r : A => bf) as g.
+             assert ( ITree.bind b g ≈ (↑log0 ++ bf) ).
+             {
+               rewrite <- H1. unfold append. rewrite bind_bind.
+               setoid_rewrite bind_ret. unfold g. reflexivity.
+             }
+             rewrite append_assoc. rewrite <- H2. apply H.
+             unfold g. apply branch_refine_converge_bind with (r := r); auto.
+             rewrite <- H1. apply can_converge_append. apply can_converge_list_to_stream.
+        * right. split.
+          ++ apply append_div; auto.
+          ++ unfold append. 
+             rewrite bind_bind. apply H.
+             apply branch_refine_diverge_bind; auto.
+     + apply decompose_branch_refine_bind in H0 as Hbind.
+       basic_solve. apply H in H2 as ?H. destruct (classic_converge_ibranch b'); basic_solve.
+       * assert (Hbind : (ITree.bind b' g' ⊑ ITree.bind m f)).
+         { rewrite H1. auto. }
+         rewrite <- H4 in H1.
+         setoid_rewrite bind_bind in H1. 
+         setoid_rewrite bind_ret in H1.
+         assert (↑ log0 ++ (g' r) ≈ b)%itree; auto. clear H1.
+         specialize (H5 (g' r) ).  rewrite <- H6 in H0.
+         assert (↑log ++ b ≈ ↑log' ++ g' r /\ a = r)%itree.
+         {
+           rewrite <- H6. rewrite <- H4 in H3.
+           rewrite <- append_assoc. rewrite <- append_assoc in H3. apply inv_append_eutt in H3.
+           destruct H3. subst. split; reflexivity.
+         } 
+         destruct H1 as [Hevsplit ?]. subst. rewrite Hevsplit.
+         apply H5. rewrite H6 in H0.
+         apply branch_refine_bind_cont_inv with (r:= r) in Hbind; auto.
+         rewrite <- H4. eapply can_converge_append. apply can_converge_list_to_stream.
+       * eapply bind_split_diverge; eauto.
+       * assert (can_converge a b').
+         { eapply can_converge_two_list; eauto. }
+         exfalso. eapply must_diverge_not_converge; eauto.
+       * eapply bind_split_diverge; eauto.
+  Qed.
+
+
+
 (*  
   x := Read;
   while x
@@ -190,69 +272,3 @@ Section TraceSpec.
 
 End TraceSpec.
 
-Section TraceSpec2.
-
-  Context (E : Type -> Type).
-  Arguments resp_eutt {E} {A}.
-
-  Definition TraceSpecIn (A : Type) := {p : ibranch E A -> Prop | resp_eutt p}.
-
-  Definition TraceSpec2 (A : Type) := {w : TraceSpecIn A -> Prop |  forall (p p' : TraceSpecIn A), (forall b, b ∈ p -> b ∈ p') -> w p -> w p'}.
-
-  Program Definition ret_ts (A : Type) (a : A) : TraceSpec2 A := fun p => p (Ret a).
-
-  Program Definition bind_ts (A B : Type) (w : TraceSpec2 A) (g : A -> TraceSpec2 B) : TraceSpec2 B := 
-    fun p => w (fun b : itree (EvAns E) A => 
-                  (exists a, can_converge a b /\ g a p) \/ (must_diverge b /\ p (div_cast b) ) ).
-  Next Obligation.
-    intros b1 b2 Heutt. split; intros; basic_solve.
-    - left. exists a. split; auto. rewrite <- Heutt. auto.
-    - right. rewrite <- Heutt at 1. split; auto. destruct p as [p Hp]. simpl in *.
-      eapply Hp; eauto. rewrite Heutt. reflexivity.
-    - left. exists a. rewrite Heutt. auto.
-    - right. rewrite Heutt at 1. split; auto. destruct p as [p Hp]. simpl in *.
-      eapply Hp; eauto. rewrite Heutt. reflexivity.
-  Qed.
-  Next Obligation.
-    destruct w as [w Hw]. simpl in *. eapply Hw; try apply H0.
-    clear H0. simpl. intros. basic_solve.
-    - left. exists a. split; auto. destruct (g a) as [ga Hga]. simpl in *.
-      eauto.
-    - right. split; auto.
-  Qed.
-
-  Instance EqM_TraceSpec2 : EqM TraceSpec2 := fun _ w1 w2 => forall p, w1 ∋ p <-> w2 ∋ p. 
-
-  Instance MonadTraceSpec2 : Monad TraceSpec2 :=
-    {
-      ret := ret_ts;
-      bind := bind_ts
-    }.
-
-  Lemma apply_monot' : forall (A : Type) (w : TraceSpec2 A) (p p' : TraceSpecIn A),
-      (forall b, p ∋ b -> p' ∋ b) -> w ∋ p -> w ∋ p'.
-  Proof.
-    intros. destruct w as [w' Hw'].
-    simpl in *. eauto.
-  Qed.
-
-
-  Program Instance MonadLawsTraceSpec2 : MonadLaws TraceSpec2.
-  Next Obligation.
-    rename a into A. rename b into B. rename x into a. red. red. cbn.
-    split; intros; basic_solve.
-    - admit. (*basic can_converge lemma*)
-    - pinversion H.
-    - left. exists a. split; auto. apply conv_ret. reflexivity.
-  Admitted.
-  Next Obligation.
-    rename a into A. rename x into w. red. red. cbn. 
-    split; intros.
-    - eapply apply_monot'; try apply H. simpl. intros.
-      basic_solve.
-      + (*significant problem*)
-  Admitted.
-  Next Obligation.
-    Admitted.
-
-End TraceSpec2.

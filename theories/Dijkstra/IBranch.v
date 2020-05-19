@@ -578,7 +578,7 @@ Proof.
     + constructor; auto. intros. contradiction. 
 Qed.
 
-    Lemma refine_set_eq_to_eutt_vis_aux : forall (E : Type -> Type) (R : Type) (r : itree E R -> itree E R -> Prop)
+Lemma refine_set_eq_to_eutt_vis_aux : forall (E : Type -> Type) (R : Type) (r : itree E R -> itree E R -> Prop)
       (CIH : forall t1 t2 : itree E R, (forall b : ibranch E R, b ⊑ t1 <-> b ⊑ t2) -> r t1 t2)
       (t1 t2 : itree E R)
       (H0 : forall b : ibranch E R, b ⊑ t1 <-> b ⊑ t2)
@@ -888,166 +888,68 @@ Proof.
     eapply refine_set_eq_to_eutt_vis_aux; eauto.
 Qed.
 
-Definition peel_vis {E R S A B} (e0 : E A) (a : A) (k0 : unit -> ibranch E R)
-           (e1 : E B) (k1 : B -> itree E S) 
-           (peel : ibranch' E R -> itree' E S -> ibranch E S) : ibranch E S.
-destruct (classicT (A = B) ).
-- subst. apply (Vis (evans _ e0 a) (fun _ => peel (observe (k0 tt)) (observe (k1 a) ) ) ).
-- apply ITree.spin.
-Defined.
-
-CoFixpoint peel_ {E R S} (ob : ibranch' E R) (ot : itree' E S) : ibranch E S :=
-  match ob, ot with
-  | TauF b, TauF t => Tau (peel_ (observe b) (observe t))
-  | _, RetF s => Ret s
-  | TauF b, ot => Tau (peel_ (observe b) ot )
-  | ob, TauF t => Tau (peel_ ob (observe t) )
-  | VisF (evempty _ Hempty e) _ , _ => Vis (evempty _ Hempty e) (fun v : void => match v with end)
-  (* The type of this is problematic need some tricky dependently typed programming
-     in order to have this work
-  *)
-
-  | VisF (evans _ e0 a) k0, VisF e1 k1 => peel_vis e0 a k0 e1 k1 peel_
-  | _, _ => ITree.spin 
-  end.
-
-Definition peel {E R S} (b : ibranch E R) (t : itree E S) : ibranch E S :=
-  peel_ (observe b) (observe t).
- 
-Inductive branch_prefix {E : Type -> Type} {R S: Type} 
-          (F : ibranch E R -> ibranch E S -> Prop) : ibranch' E R -> ibranch' E S -> Prop := 
-| ret_prefix (r : R) (ob : ibranch' E S) : branch_prefix F (RetF r) ob
-| vis_ans_prefix {A : Type} (e : E A) (a : A) (br :ibranch E R) (bs :ibranch E S) :
-    F br bs -> branch_prefix F (VisF (evans A e a) (fun _ => br) ) (VisF (evans A e a) (fun _ => bs))
-| vis_empty_prefix {A : Type} (e : E A) (Hempty : A -> void) :
-    branch_prefix F (VisF (evempty A Hempty e) (fun v : void => match v with end) )
-                    (VisF (evempty A Hempty e) (fun v : void => match v with end) )
-| tau_lr_prefix (br : ibranch E R) (bs : ibranch E S) : 
-    F br bs -> branch_prefix F (TauF br) (TauF bs)
-(* can add eutt style inductive tau rules *)
-
-
-.
-
-
-
-Lemma refine_ret_vis_contra : forall (E: Type -> Type) (R A: Type)
-                     (r : R) (e : E A) (k : A -> itree E R),
-    ~ (Ret r ⊑ Vis e k).
+Lemma paco2_eqit_refl : forall E R r (t : itree E R), paco2 (eqit_ eq true true id) r t t.
 Proof.
-  intros. intro Hcontra. pinversion Hcontra.
+  intros. eapply paco2_mon with (r := bot2); intuition.
+  enough (t ≈ t); auto. reflexivity.
 Qed.
 
-(* maybe a better way of doing it is to use strong LEM to see if X = A in the vis case
-   then I can remove that if statement given
-
- *)
-
-Lemma peel_t_ret : forall E R S (b : ibranch E S) (t : itree E R) r, t ≅ Ret r -> (peel b t ≅ Ret r)%itree.
+Lemma branch_refine_bind_cont_inv : forall (E : Type -> Type) (R S : Type)
+         (b : ibranch E R) (m : itree E R) (g : R -> ibranch E S)
+         (f : R -> itree E S) (r : R),
+    can_converge r b -> b ⊑ m -> ITree.bind b g ⊑ ITree.bind m f -> g r ⊑ f r.
 Proof.
-  intros.  unfold peel.
-  pinversion H; subst; try inv CHECK.
-  destruct (observe b); cbn; auto. 
-  - pfold. red. cbn. constructor. auto.
-  - pfold. red. cbn. constructor; auto.
-  - pfold. red. cbn. simpl. destruct e.
-    + cbn. constructor. auto.
-    + cbn. constructor. auto.
+  intros E R S. pcofix CIH. intros b m g f a Hconv Hrefb Hrefbind.
+  generalize  dependent m.
+  dependent induction  Hconv; intros m Hrefb Hrefbind.
+  - rewrite H in Hrefbind. rewrite bind_ret in Hrefbind. rewrite H in Hrefb.
+    apply branch_refine_ret_inv_r in Hrefb. rewrite Hrefb in Hrefbind.
+    rewrite bind_ret in Hrefbind. eapply paco2_mon; eauto. intuition.
+  - (*m must be a vis, the continuations must refine then continuation in the m I use in the 
+      inductive hypothesis *)
+    destruct e; try contradiction. rewrite H in Hrefb.
+    rewrite H in Hrefbind. rewrite bind_vis in Hrefbind.
+    apply branch_refine_vis_l in Hrefb as Hvis. destruct Hvis as [X [e' [k' Hvis ] ] ].
+    rewrite Hvis in Hrefbind. rewrite bind_vis in Hrefbind.
+    punfold Hrefbind. red in Hrefbind. cbn in Hrefbind. inv Hrefbind.
+    inj_existT; subst. inv H2. inj_existT; subst.
+    rewrite Hvis in Hrefb. punfold Hrefb. red in Hrefb. cbn in Hrefb. inv Hrefb.
+    inj_existT; subst.
+    assert (RAnsRef E unit A (evans _ ev ans) tt ev ans ); try (constructor; auto; fail).
+    specialize (IHHconv (k' ans) ). apply IHHconv.
+    + apply H8 in H0. pclearbot. destruct b. auto.
+    + apply H7 in H0. pclearbot. destruct b. auto.
 Qed.
 
-(*doing these proofs, may require some techniques you don't really know*)
-
-Lemma peel_refine_t : forall (E : Type -> Type) (R S : Type)
-                  (b : ibranch E S) (t : itree E R) (f : R -> itree E S)
-     (HeuttEv : b ⊑ ITree.bind t f),
-    peel b t ⊑ t.
+Lemma can_converge_two_list:
+  forall (E : Type -> Type) (A B : Type) (log : ev_list E) (b : ibranch E A) 
+    (a : A) (log' : ev_list E),
+    (ev_list_to_stream log) ++ b ≈ (ev_list_to_stream log') ++ Ret a -> can_converge a b.
 Proof.
-  intros E R S b t f. generalize dependent b. generalize dependent t.
-  pcofix CIH. intros.
-  punfold HeuttEv. red in HeuttEv. cbn in HeuttEv. pfold. red.
-  unfold peel.
-  destruct (observe t) eqn : Heq.
-  - destruct (observe b); cbn; try (constructor; auto).
-    destruct e; cbn; constructor; auto.
-  - dependent induction HeuttEv.
-    + exfalso. symmetry in Heq. apply simpobs in Heq. apply simpobs in x.
-      rewrite Heq in x. rewrite bind_tau in x. pinversion x.
-      inv CHECK.
-    + rewrite <- x0. cbn. constructor. right. eapply CIH.
-      pclearbot. symmetry in Heq. apply simpobs in x0.
-      apply simpobs in x. apply simpobs in Heq.
-      apply eq_sub_eutt in x0. apply eq_sub_eutt in Heq.
-      rewrite tau_eutt in Heq. rewrite tau_eutt in x0.
-      rewrite <- Heq. rewrite x. rewrite tau_eutt. auto.
-    + rewrite <- x. cbn. constructor. right. eapply CIH.
-      clear IHHeuttEv. symmetry in Heq. apply simpobs in Heq.
-      apply eq_sub_eutt in Heq. rewrite tau_eutt in Heq.
-      rewrite <- Heq. pfold. auto.
-    + cbn. destruct (observe b) eqn : Heq'.
-      * cbn. rewrite <- Heq'. constructor. right. eapply CIH. 
-        symmetry in Heq'.
-        apply simpobs in Heq'. rewrite Heq'.
-        symmetry in Heq. apply simpobs in Heq.
-        apply eq_sub_eutt in Heq. rewrite tau_eutt in Heq.
-        rewrite <- Heq. apply simpobs in x. rewrite x.
-        rewrite tau_eutt. pfold. auto.
-      * cbn. clear IHHeuttEv. 
-        constructor. right. eapply CIH. 
-        symmetry in Heq. apply simpobs in Heq.
-        apply eq_sub_eutt in Heq. rewrite tau_eutt in Heq.
-        rewrite <- Heq.
-        apply simpobs in x. apply eq_sub_eutt in x.
-        rewrite tau_eutt in x. rewrite x.
-        enough (Tau t1 ⊑ t2). 
-        { rewrite tau_eutt in H. auto. }
-        pfold. auto.
-      * destruct e; cbn.
-        ++ constructor. right. rewrite <- Heq'. clear IHHeuttEv.
-           eapply CIH. symmetry in Heq.
-           apply simpobs in Heq. apply eq_sub_eutt in Heq. 
-           rewrite tau_eutt in Heq. apply simpobs in x.
-           apply eq_sub_eutt in x. rewrite tau_eutt in x.
-           rewrite <- Heq. rewrite x. pfold. red.
-           rewrite Heq'. auto.
-        ++ constructor. right. rewrite <- Heq'. clear IHHeuttEv.
-           eapply CIH. symmetry in Heq.
-           apply simpobs in Heq. apply eq_sub_eutt in Heq. 
-           rewrite tau_eutt in Heq. apply simpobs in x.
-           apply eq_sub_eutt in x. rewrite tau_eutt in x.
-           rewrite <- Heq. rewrite x. pfold. red.
-           rewrite Heq'. auto.
-    + exfalso. symmetry in Heq. apply simpobs in Heq.
-      apply simpobs in x.
-      rewrite Heq in x. rewrite bind_tau in x. pinversion x.
-      inv CHECK.
-  - dependent induction HeuttEv.
-    + exfalso. symmetry in Heq. apply simpobs in Heq. apply simpobs in x.
-      rewrite Heq in x. rewrite bind_vis in x.
-      pinversion x.
-    + exfalso. symmetry in Heq. apply simpobs in Heq. apply simpobs in x.
-      rewrite Heq in x. rewrite bind_vis in x.
-      pinversion x; inv CHECK.
-    + rewrite <- x. cbn. constructor. eapply IHHeuttEv; eauto.
-    + exfalso. symmetry in Heq. apply simpobs in x. apply simpobs in Heq.
-      rewrite Heq in x. rewrite bind_vis in x.
-      pinversion x; inv CHECK.
-    + rewrite <- x0.
-      symmetry in Heq. apply simpobs in Heq. apply simpobs in x.
-      rewrite Heq in x. rewrite bind_vis in x. pinversion x.
-      subst. inj_existT; subst.
-      inversion H; subst; inj_existT; subst.
-      * unfold observe. cbn. unfold peel_vis.
-        assert (B = B). auto.
-        destruct (classicT (B = B) ); try contradiction.
-        unfold eq_rect_r, eq_rect. 
-        remember (eq_sym e) as He. clear HeqHe.
-        dependent destruction He. cbn. constructor; eauto.
-        intros. inversion H2. subst; inj_existT; subst.
-        apply H0 in H2. pclearbot. unfold id. right. eapply CIH.
-        enough (k2 b0 ≈ ITree.bind (k b0) f ).
-        { rewrite <- H3. auto. }
-        red in x1. cbn in x1. inversion x1. subst; inj_existT; subst.
-        symmetry. pclearbot. specialize ( REL0 b0).
-        apply eq_sub_eutt. auto.
-      * cbn. constructor; eauto. intros. contradiction.
+  intros. generalize dependent log'.
+  induction log; cbn; intros.
+  - simpl in H. setoid_rewrite bind_ret in H. rewrite H.
+    apply can_converge_append. apply can_converge_list_to_stream.
+  - assert ((Vis a0 (fun _ => ev_list_to_stream log)) ≈ ev_list_to_stream (a0 :: log) )%itree.
+    { cbn. reflexivity. }
+    rewrite H0 in H.
+    destruct log' as [ | h t ].
+    + setoid_rewrite bind_ret in H. simpl in H. pinversion H.
+    + simpl in H. unfold append in H. repeat rewrite bind_vis in H. pinversion H.
+      inj_existT; subst.
+      assert (ev_list_to_stream log ++ b ≈ ev_list_to_stream t ++ Ret a).
+      { apply REL. apply tt. }
+      eapply IHlog; eauto.
 Qed.
+
+Lemma must_diverge_bind_append: forall (E : Type -> Type) (A : Type) 
+                                  (log : ev_list E) (b' : itree (EvAns E) A),
+    must_diverge (ev_list_to_stream log ++ b') -> must_diverge b'.
+Proof.
+  intros E A log b' Hdiv. induction log.
+  - cbn in Hdiv. setoid_rewrite bind_ret in Hdiv. auto.
+  - apply IHlog. simpl in Hdiv. unfold append in Hdiv.
+    rewrite bind_vis in Hdiv. pinversion Hdiv. inj_existT. subst. apply H0.
+    apply tt.
+Qed.
+      

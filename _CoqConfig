@@ -67,6 +67,7 @@ theories/Dijkstra/DelaySpecMonad.v
 theories/Dijkstra/StateSpecT.v
 theories/Dijkstra/EuttEv.v
 theories/Dijkstra/IBranch.v
+theories/Dijkstra/IBranchBind.v
 theories/Dijkstra/EuttDiv.v
 theories/Dijkstra/TracesIT.v
 theories/Dijkstra/ITreeDijkstra.v
