@@ -259,6 +259,36 @@ Section MonadPropT.
 
   Axiom monad_reflexivity: forall a ma, equalE (M a) ma ma.
 
+  Definition typ_proper_app : forall {a b : typ} (f : typ_proper a b) (x : a), b.
+    intros a b f x.
+    destruct f.
+    apply x0. apply x.
+  Defined.
+
+  Lemma proper_typ_proper_app : forall {a b : typ},
+      Proper (eq2 ==> equalE a ==> equalE b) 
+             (@typ_proper_app a b).
+  Proof.
+    repeat intro.
+    destruct x, y.
+    cbn in *.
+    specialize (H x0 y0).
+    cbn in H.
+    apply H. unfold contains. etransitivity. apply H0. symmetry. apply H0.
+    unfold contains. etransitivity. symmetry. apply H0. apply H0.
+    assumption.
+  Qed.
+    
+  Notation "f @ x" := (typ_proper_app f x) (at level 40).
+
+(*
+  Lemma typ_proper_app_ok : forall (a b : typ) (f : typ_proper a b) x (X:x ∈ a), (f @ x) ∈ b.
+  Proof.
+    intros a b f x X.
+    destruct f. cbn. apply p. apply X.
+  Qed.
+*)
+  
   (* Inductive mayRet : forall (a : typ), M a -> a -> Prop := *)
   (* | mayRet_ret : forall (A : typ) (x : A), mayRet A x *)
   (* . *)
@@ -283,12 +313,22 @@ Section MonadPropT.
   - intros H.
     epose proof bind_ret_l as Hbr.
     unfold_cat in Hbr.
-    eexists ?[ma]; eexists ?[kb].
+    exists (ret @ x). eexists ?[kb].
     split; [ | split].
-    + eapply ret_ty_proper.
-
+    + apply ret_ty_proper with (y0:=(ret @ y)).
+      cbn.
+      apply proper_typ_proper_app.
+      { admit. }
+      assumption.
+      unfold ret_ty_fn. unfold typ_proper_app.
+      (* TODO: replace ` proj1_sig by @ 
+          -- that should lead to some cleanups ??
+         TODO: ensure that eq2 is at least a preorder [doublecheck]
+       *)
+      admit.
+      
       (* TODO: Do we introduce reflexivity for monad equality? *)
-      apply monad_reflexivity. unfold ret_ty_fn. apply monad_reflexivity.
+    (*      apply monad_reflexivity. unfold ret_ty_fn. apply monad_reflexivity. *)
     + (* Equality on bind_ret_l. *)
       destruct k as (k_f & k_proper). cbn in H.
       repeat red in k_proper.
