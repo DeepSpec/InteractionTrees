@@ -31,28 +31,30 @@ defaults: &defaults
       command: opam remove .
 
 jobs:
-  coq 8_8:
-    <<: *defaults
+  test:
+    parameters:
+      coq:
+        type: string
     docker:
-    - image: coqorg/coq:8.8
-  coq 8_9:
+    - image: coqorg/coq:<<parameters.coq>>
     <<: *defaults
-    docker:
-    - image: coqorg/coq:8.9
-  coq 8_10:
-    <<: *defaults
-    docker:
-    - image: coqorg/coq:8.10
-  coq 8_11:
-    <<: *defaults
-    docker:
-    - image: coqorg/coq:8.11
 
 workflows:
   version: 2
   build:
     jobs:
-    - coq 8_8
-    - coq 8_9
-    - coq 8_10
-    - coq 8_11
+    - test:
+        name: "Coq 8.8"
+        coq: "8.8"
+    - test:
+        name: "Coq 8.9"
+        coq: "8.9"
+    - test:
+        name: "Coq 8.10"
+        coq: "8.10"
+    - test:
+        name: "Coq 8.11"
+        coq: "8.11"
+    - test:
+        name: "Coq dev"
+        coq: "dev"
