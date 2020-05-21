@@ -223,10 +223,6 @@ Class UnitR' (i : obj) :=
 Class Swap :=
   swap : forall a b, C (bif a b) (bif b a).
 
-(** **** Exponential *)
-Class Exp (cb : obj) :=
-  eval : forall b c, C (bif cb b) c.
-
 End CocartesianOps.
 
 Arguments bimap {obj C bif Bimap a b c d}.
@@ -482,3 +478,21 @@ Transparent inr_.
 *)
 
 End RESUM.
+
+Section Exponential.
+
+  Context {obj : Type} (C : obj -> obj -> Type)
+          (prod : binop obj) (exp : binop obj).
+
+(** **** Evaluation for exponential. *)
+Class Eval_ :=
+  eval : forall b c, C (prod (exp c b) b) c.
+
+
+(* TODO *)
+(** **** Categorical transpose. *)
+(* NB : This is equivalent to currying. *)
+(* Class Transpose := *)
+(*   transpose : forall a b c, C a (exp c b). *)
+
+End Exponential.

@@ -4,40 +4,50 @@
 From Coq Require Import
      Morphisms.
 
-From ExtLib Require Export
-     Structures.Monad.
-
 From ITree Require Import
      Basics.Basics
      Basics.CategoryOps
+     Basics.CategoryMonad
+     Basics.CategoryTheory
      Basics.HeterogeneousRelations
+     Basics.Typ_Class2
      Basics.Function.
 (* end hide *)
 
 Set Primitive Projections.
 
-(* We consider heterogeneous relations on computations parameterized by a relation on the return types *)
-(* Rq: if we make [EqMR] a singleton class, the type checker tends to craft dumb instances for itself behind our back.
-   I wrapped it up in a record, it seems to prevent this behavior.
- *)
-Class EqmR (m:Type -> Type) : Type :=
-  { eqmR : forall A B (R : relationH A B), relationH (m A) (m B)}.
+Import Carrier.
+Import CatNotations.
+Local Open Scope cat_scope.
 
-Arguments eqmR {m _} [A B].
+Section EqmR.
 
-(*
-  The more traditional notion of monadic equivalence is recovered at the equality relation
-  [forall A,  m A -> m A -> Prop]
-*)
-Definition eqm {m:Type -> Type} `{EqmR m} {A} := eqmR (@eq A).
+  (* We consider heterogeneous relations on computations parameterized by a relation on the return types *)
+  (* Rq: if we make [EqMR] a singleton class, the type checker tends to craft dumb instances for itself behind our back.
+    I wrapped it up in a record, it seems to prevent this behavior.
+  *)
+  Class EqmR (m : typ -> typ) : Type :=
+    { eqmR : forall (A B : typ) (R : relationH A B), relationH (m A) (m B) ;
+      eqmR_equal : forall A, eqmR A A (equalE A) = equalE (m A)
+    }.
 
+  Arguments eqmR {m _ A B}.
+
+  (*
+    The more traditional notion of monadic equivalence is recovered at the equality relation
+    [forall A,  m A -> m A -> Prop]
+   *)
+  Definition eqm {m : typ -> typ} `{@EqmR m} {A: typ} := eqmR (equalE A).
+
+End EqmR.
 
 (* YZ: I don't think [A] should be maximally inserted, but putting it back as is for now for retro-compatibility *)
 Arguments eqm {m _ A}.
+Arguments eqmR {_ _ _ _}.
 Infix "≈" := eqm (at level 70) : monad_scope.
 
 Section EqmRRel.
-  Context (m : Type -> Type).
+  Context (m : typ -> typ).
   Context {EqMR : EqmR m}.
 
   Import RelNotations.
@@ -49,17 +59,17 @@ Section EqmRRel.
     (* [eqmR] should transport elementary structures of the relation [R] *)
     (* Question: should it transport anti-symmetry? *)
 
-      eqmR_transport_symm :>  forall {A} (R : relationH A A), Symmetric R  -> Symmetric (eqmR R);
-      eqmR_transport_trans :> forall {A} (R : relationH A A), Transitive R -> Transitive (eqmR R);
+      eqmR_transport_symm :>  forall {A : typ} (R : relationH A A), Symmetric R  -> Symmetric (eqmR R);
+      eqmR_transport_trans :> forall {A : typ} (R : relationH A A), Transitive R -> Transitive (eqmR R);
 
       (* [eqmR] is associative by composing the underlying relationHs *)
-      eqmR_rel_trans : forall {A B C} (R1 : relationH A B) (R2 : relationH B C)
+      eqmR_rel_trans : forall {A B C : typ} (R1 : relationH A B) (R2 : relationH B C)
                          (ma : m A) (mb : m B) (mc : m C),
           eqmR R1 ma mb ->
           eqmR R2 mb mc ->
           eqmR (R2 ∘ R1) ma mc;
 
-      eqmR_lift_transpose : forall {A B} (R : relationH A B), eq_rel (eqmR †R) (†(eqmR R));
+      eqmR_lift_transpose : forall {A B : typ} (R : relationH A B), eq_rel (eqmR †R) (†(eqmR R));
 
       (* [eqmR] respects extensional equality of the underlying relationH
          and [eqm] on both arguments over the monad *)
@@ -73,23 +83,13 @@ Section EqmRRel.
 
 End EqmRRel.
 
-(* KS: removing flexivity for experiment so no longer an
-       equivalence relation *)
 (* In particular, well-formedness of [eqmR] recovers that [eqm] is an equivalence relationH *)
 
-(* 
-
-Global Instance eqm_equiv (m:Type -> Type) `{EqmR m} `{EqmR_OK m}
-  : forall A, Equivalence (@eqm m _ A).
-Proof.
-  unfold eqm; split; typeclasses eauto.
-Defined.
-*)
-
 Section EqmRMonad.
-  Context (m : Type -> Type).
+  Context (m : typ -> typ).
   Context {EqMRm : EqmR m}.
-  Context {Mm : Monad m}.
+  Context {Mm : Monad typ_proper m}.
+  Context {MmL : MonadLaws Mm}.
 
   (* Generalization of monadic laws.
      These are of two quite distinct natures:
@@ -102,26 +102,26 @@ Section EqmRMonad.
           - for PropT we can take the proposition (fun _ => False)
             which accepts no computations.  Then it is true that (ret a1) and (ret a2)
             are equi-accepted by that proposition, but there doesn't have to be any relation
-            between 
+            between
 
           - for StateT we can take the void state, which also cannot be inverted.
        *)
-      eqmR_ret : forall {A1 A2} (RA : A1 -> A2 -> Prop) (a1:A1) (a2:A2),
+      eqmR_ret : forall {A1 A2 : typ} (RA : A1 -> A2 -> Prop) (a1:A1) (a2:A2),
         (* RA a1 a2 <-> eqmR RA (ret a1) (ret a2); *)
-        RA a1 a2 -> eqmR RA (ret a1) (ret a2);
+        RA a1 a2 -> eqmR RA (ret @ a1) (ret @ a2);
 
     (* YZ: [eqmR_bind] is _exactly_ (well, with order of arguments reshuffled) the same as [eqmR_Proper_bind].
        Commenting it out for now, to remove later.
      *)
 
-      eqmR_bind_ProperH : forall {A1 A2 B1 B2}
+      eqmR_bind_ProperH : forall {A1 A2 B1 B2 : typ}
                             (RA : A1 -> A2 -> Prop)
                             (RB : B1 -> B2 -> Prop)
                             ma1 ma2
-                            (kb1 : A1 -> m B1) (kb2 : A2 -> m B2),
+                            (kb1 : A1 -=-> m B1) (kb2 : A2 -=-> m B2),
           eqmR RA ma1 ma2 ->
-          (forall a1 a2, RA a1 a2 -> eqmR RB (kb1 a1) (kb2 a2)) ->
-          eqmR RB (bind ma1 kb1) (bind ma2 kb2);
+          (forall a1 a2, RA a1 a2 -> eqmR RB (kb1 @ a1) (kb2 @ a2)) ->
+          eqmR RB (bind kb1 @ ma1) (bind kb2 @ ma2);
 
     (* Question: The following helps _proving_ [eqmR _ (bind _ _)].
        Should we require something to invert such an hypothesis?
@@ -129,99 +129,67 @@ Section EqmRMonad.
         (Proper (eqmR RA ==> (RA ==> (eqmR RB)) ==> eqmR RB) bind);
      *)
 
-    eqmR_bind_ret_l : forall {A B}
-                        (RA : A -> A -> Prop)
-                        (RB : B -> B -> Prop)
-                        (f : A -> m B)
-                        (f_OK : Proper (RA ==> (eqmR RB)) f)
+    eqmR_bind_ret_l : forall {A B : typ}
+                        (f : A -=-> m B)
                         (a : A)
-                        (a_OK : RA a a),
-        eqmR RB (bind (ret a) f) (f a);
+                        (a_OK : a ∈ A),
+        equalE (m B) (bind f @ (ret @ a)) (f @ a);
 
-    eqmR_bind_ret_r : forall {A}
-                        (RA : A -> A -> Prop)
+    eqmR_bind_ret_r : forall {A : typ}
                         (ma : m A)
-                        (ma_OK : eqmR RA ma ma),
-        eqmR RA (bind ma (fun y => ret y)) ma;
+                        (ma_OK : ma ∈ m A),
+        equalE (m A) (bind ret @ ma) ma;
 
-    eqmR_bind_bind : forall {A B C}
-                       (RA : A -> A -> Prop)
-                       (RB : B -> B -> Prop)
-                       (RC : C -> C -> Prop)
+       (* forall (a b c : obj) (f : C a (M b)) (g : C b (M c)), bind f >>> bind g ⩯ bind (f >>> bind g) *)
+    eqmR_bind_bind : forall {A B C : typ}
                        (ma : m A)
-                       (ma_OK : eqmR RA ma ma)
-                       (f : A -> m B)
-                       (f_OK : Proper (RA ==> (eqmR RB)) f)
-                       (g : B -> m C)
-                       (g_OK : Proper (RB ==> (eqmR RC)) g),
-       eqmR RC (bind (bind ma f) g)  (bind ma (fun y => bind (f y) g))
+                       (ma_OK : ma ∈ m A)
+                       (f : A -=-> m B)
+                       (g : B -=-> m C),
+        equalE (m C) ((bind f >>> bind g) @ ma) (bind (f >>> bind g) @ ma)
     }.
-
-
-  Global Instance eqmR_Proper_bind `{EqmRMonad}:
-    forall {A B} (RA : A -> A -> Prop) (RB : B -> B -> Prop),
-      (Proper (eqmR RA ==> (RA ==> (eqmR RB)) ==> eqmR RB) bind).
-  Proof.
-    intros A B RA RB.
-    repeat intro.
-    eapply eqmR_bind_ProperH. eassumption. apply H1.
-  Qed.
 
 End EqmRMonad.
 
+Arguments eqmR_bind_ret_l {_ _ _ _}.
 
 Section Laws.
 
-  Context (m : Type -> Type).
-  Context {EqMR : EqmR m}.
-  Context {Mm : Monad m}.
+  Context (m : typ -> typ).
+  Context {Mm : Monad typ_proper m}.
+  Context {EqMR : EqmR m} {EqmRm: EqmRMonad m} {EqmROKm : EqmR_OK m}.
 
   Local Open Scope monad_scope.
 
-  Class MonadLaws :=
-    { bind_ret_l : forall a b (f : a -> m b) (x : a), bind (ret x) f ≈ f x
-    ; bind_ret_r : forall a (x : m a), bind x (fun y => ret y) ≈ x
-    ; bind_bind : forall a b c (x : m a) (f : a -> m b) (g : b -> m c), bind (bind x f) g ≈ bind x (fun y => bind (f y) g)
-    ; Proper_bind :> forall {a b},
-        (Proper (eqm (A := a) ==> pointwise_relation _ (eqm (A := b)) ==> eqm (A := _)) bind)
-    }.
+  Global Instance monad_eqmR : MonadLaws Mm.
+  Proof.
+    split; intros.
+    - intros x y H. cbn.
+      pose proof eqmR_bind_ret_l as Hbr.
+      specialize (Hbr a b f).
+      assert (x == x). etransitivity; [ | symmetry ]; eassumption.
+      specialize (Hbr _ H0); clear H0.
+      rewrite <- H.
+      apply Hbr.
+    - intros x y H. cbn.
+      rewrite eqmR_bind_ret_r. apply H. apply EqmRm. unfold contains.
+      etransitivity; [ | symmetry ]; eassumption.
+    - repeat intro.
+      pose proof eqmR_bind_bind.
+      rewrite H.
+      unfold contains in H0.
+      assert (x == x). etransitivity; [ | symmetry ]; eassumption.
+      specialize (H0 m _ _ _ _ _ _ _ H1 f g). rewrite <- H.
+      apply H0.
+    - repeat intro. rewrite H0.
+      pose proof (eqmR_bind_ProperH).
+      specialize (H1 _ _ _ _ a a b b equal equal x0 y0 x y).
+      rewrite eqmR_equal in H1. specialize (H1 H0).
+      rewrite eqmR_equal in H1.
+      rewrite <- H0 at 1.
+      apply H1. intros. rewrite H2. apply Proper_typ_proper_app.
+      apply H. etransitivity ; [ symmetry | ]; eassumption.
+  Qed.
 
 End Laws.
 
-Arguments bind_ret_l {m _ _ _} [a b] f x.
-Arguments bind_ret_r {m _ _ _} [a] x.
-Arguments bind_bind {m _ _ _} [a b c] x f g.
-Arguments Proper_bind {m _ _ _} [a b].
-
-Section MONAD.
-
-  Local Open Scope monad_scope.
-
-  Global Instance monad_eqmR {m} `{EqmRm: EqmRMonad m} {EqmROKm: EqmR_OK m} : MonadLaws m.
-  Proof.
-    split; intros.
-    - unfold eqm. apply eqmR_bind_ret_l with (RA := eq); auto.
-      repeat intro. subst. admit.
-    - unfold eqm. apply eqmR_bind_ret_r with (RA := eq); auto.
-      admit.
-    - unfold eqm. apply eqmR_bind_bind with (RA := eq)(RB := eq); auto.
-      admit.
-      repeat intro; subst. admit.
-      repeat intro; subst. admit.
-    - repeat intro. admit.
-      (* 
-      rewrite H.
-      (* Interesting (or annoying I guess):
-         if [EqMR] is defined as a singleton class, then here [eapply eqmR_Proper_bind]
-         leads the type checker to happily craft its own stupid relationH as an instance:
-         [(fun (A B : Type) (_ : A -> B -> Prop) (_ : m A) (_ : m B) => @bind m Mm a b y x0 ≈ @bind m Mm a b y y0)]
-         where of course we would have expected it to pick the [EqMRm: EqMR m] that we have in the context.
-         If we make [eqmR] a proper class with a single field however, it works as expected.
-       *)
-      eapply eqmR_Proper_bind; eauto.
-      reflexivity.
-      repeat intro; subst; apply H0.
-  Qed. *)
-  Admitted.
-
-End MONAD.

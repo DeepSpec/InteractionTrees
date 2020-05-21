@@ -1,3 +1,4 @@
+
 From Coq Require Import
      Program
      Setoid
@@ -11,220 +12,38 @@ From ITree Require Import
      Basics.CategoryTheory
      Basics.CategoryFunctor
      Basics.CategoryMonad
+     Basics.Monad
+     Basics.HeterogeneousRelations
 .
 
 Import CatNotations.
 Open Scope cat_scope.
 
-
-(* Proper Instance for typ_proper. *)
-Lemma typ_proper_proj :
-  forall (A B : typ) (P : typ_proper A B), Proper (equalE A ==> equalE B) (` P).
-Proof.
-  destruct P. cbn. apply p.
-Defined.
-
-Existing Instance typ_proper_proj.
-
-
-Section MonadProp.
-  Program Definition PropM : typ -> typ :=
-    fun (A : typ) =>
-      {|
-        Ty := {p : A -> Prop | Proper (equalE A ==> iff) p};
-        equal :=
-          fun pm1 pm2 =>
-            forall (a : A), ` pm1 a <-> ` pm2 a
-      |}.
-  Next Obligation.
-    split.
-    repeat red. intros x y H a.
-    split. apply H. apply H.
-    repeat red. intros x y z H H0 a.  
-    split. intros. apply H0, H, H1; auto. intros. apply H, H0, H1; auto.
-  Qed.
-
-  Instance PropM_Monad : Monad typ_proper PropM.
-  split.
-  - repeat red. intros A.
-    refine (exist _ (fun (a:A) => (exist _ (fun x => equalE A a x) _)) _).
-    repeat red. cbn. intros x y Heq a_term.
-    rewrite Heq. auto.
-    Unshelve.
-    repeat red. intros.
-    rewrite H.
-    auto.
-  - repeat red. intros A B HK.
-    destruct HK as (K & KProper).
-    refine (exist _ (fun PA: PropM A => (exist _ (fun b: B =>
-            exists a : A, `PA a /\ (proj1_sig (K a)) b) _)) _).
-    (* KS: For some reason the back-tick didn't work here *)
-    repeat red. cbn. intros ma1 ma2 Heq b.
-    split; intros; destruct H; exists x; specialize (Heq x).
-    + rewrite <- Heq. auto.
-    + rewrite Heq. auto.
-    Unshelve.
-    repeat red. intros b1 b2 Heq.
-    split; intros; destruct H; exists x; destruct H; split; auto.
-      * cbn in *. destruct K.
-        (* KS: Coq can't find the necessary Proper instance to
-               rewrite unless K is destructed. *)
-        rewrite <- Heq. auto.
-      * cbn in *; destruct K; rewrite Heq; auto.
-  Qed.
-
-End MonadProp.
-
 Section MonadPropT.
 
   Context {M : typ -> typ}.
-  Context {M_Monad: Monad typ_proper M}.
+  Context {M_Monad : Monad typ_proper M}.
+  Context {EqM: EqmR M} {EqmR : EqmR_OK M} {EqmRMonad : EqmRMonad M}.
 
-  Existing Instance eq2_typ_proper.
-  Existing Instance cat_typ_proper.
-  Existing Instance id_typ_proper.
+  (* Old PropT Definition. *)
+    (* {| *)
+    (*   Ty := { p : M X -> Prop | Proper (equalE (M X) ==> iff) p }; *)
+    (*   equal := *)
+    (*     fun PA1 PA2 => *)
+    (*       forall (ma : M X), ` PA1 ma <-> ` PA2 ma; *)
+    (*   equal_PER := PropT_PER_equal X *)
+    (* |}. *)
 
-  Context {ML : MonadLaws M_Monad}.
+  Definition prop_typ : typ := Typ (iff).
 
-  Lemma PropT_PER_equal:
-    forall X : typ,
-      PER
-        (fun PA1 PA2 : {p : M X -> Prop | Proper (equalE (M X) ==> iff) p} =>
-            forall ma : M X, (` PA1) ma <-> (` PA2) ma).
-  Proof.
-    intros X.
-    split.
-    - repeat red. intros x y H6 ma.
-      split; eauto. apply H6. apply H6.
-    - repeat red. intros x y z H6 H7 ma.
-      split; eauto. intros.  apply H7. apply H6. apply H.
-      intros. apply H6. apply H7. apply H.
-  Qed.
-
-  Definition PropT : typ -> typ :=
-    fun (X : typ) =>
-      {|
-        Ty := { p : M X -> Prop | Proper (equalE (M X) ==> iff) p };
-        equal :=
-          fun PA1 PA2 =>
-            forall (ma : M X), ` PA1 ma <-> ` PA2 ma;
-        equal_PER := PropT_PER_equal X
-      |}.
+  (* TODO: For later, maybe : prove exponential? *)
+  Definition PropT (X : typ) : typ := (M X) ~=~> prop_typ.
 
 
-  Instance ret_equalE_proper {A}:
-    Proper (equalE A ==> equalE (M A) ==> impl) (fun x => equalE (M A) ((` ret) x)).
-  Proof.
-    destruct ret. cbn in *.
-    do 2 red in p. do 3 red. intros x0 y H6 x1 y0 H7.
-    rewrite <- H7.
-    specialize (p _ _ H6).
-    rewrite p. reflexivity.
-  Qed.
+  Goal forall (X : typ), equalE (PropT X) = equalE (PropT X).
+    repeat intro. cbn. Abort.
 
-  (* Ret definition. *)
-  Definition ret_ty_fn {A : typ} (a : A) : M A -> Prop :=
-    fun (ma : M A) => equalE (M A) (` ret a) ma.
-
-  Lemma ret_ty_proper {A : typ} (a : A) :
-    Proper (equalE (M A) ==> iff) (ret_ty_fn a).
-  Proof.
-    unfold ret_ty_fn.
-    repeat red.
-    refine (fun x y EQ => _).
-    (* Introduce a proper instance for rewriting under equalE (M A). *)
-    split; intros EQ'.
-    + rewrite EQ in EQ'. eapply EQ'.
-    + rewrite <- EQ in EQ'. apply EQ'.
-  Qed.
-
-  Definition ret_ty {A : typ} : A -> PropT A :=
-    fun a => exist _ (ret_ty_fn a) (ret_ty_proper a).
-
-  Lemma ret_prop_proper :
-    forall {A : typ}, Proper (equalE (A) ==> equalE (PropT A)) ret_ty.
-  Proof.
-    unfold ret_ty.
-    intros A a f.
-    (* Properness proof of outer case. *)
-    split; intros EQ''.
-    + cbn. unfold ret_ty_fn. rewrite <- EQ''.
-      eapply ret_equalE_proper. apply H. symmetry. eauto. eauto.
-    + cbn. unfold ret_ty_fn. rewrite <- EQ''.
-      eapply ret_equalE_proper. symmetry. apply H. symmetry; eauto.
-      assumption.
-  Qed.
-
-  Definition ret_propT {A} : typ_proper A (PropT A) :=
-    exist _ (fun a => ret_ty a) ret_prop_proper.
-
-  (* Bind definition. *)
-
-  Definition agrees (A B : typ) (ma : M A)
-              (kb : typ_proper A (M B)) (k : typ_proper A (PropT B)) :=
-      forall x y, x ∈ A -> y ∈ A -> equalE A x y ->
-          ( ` (ret_ty x)) ma ->
-      (` ((` k) x)) ((` kb) x).
-
-  Definition bind_ty_fn {A B} (k : typ_proper A (PropT B)) (PA : PropT A)  :
-    M B -> Prop :=
-    fun (mb : M B) =>
-      exists (ma : M A) (kb : typ_proper A (M B)),
-        `PA ma /\
-        (equalE (M B) mb ((` (bind kb)) ma)) /\
-        agrees A B ma kb k.
-
-  Lemma bind_ty_proper :
-    forall {A B : typ} (k : typ_proper A (PropT B)) (PA : PropT A) ,
-      Proper (equalE (M B) ==> iff) (bind_ty_fn k PA).
-  Proof.
-    intros A B k PA.
-    unfold bind_ty_fn.
-    repeat red.
-    intros x y EQ.
-    split; intros EQ'.
-    - edestruct EQ' as (? & ? & ? & ? & ?).
-      exists x0, x1. split. apply H.
-      split. intros.
-      rewrite <- EQ. assumption. assumption.
-    - edestruct EQ' as (? & ? & ? & ? & ?).
-      exists x0, x1. split. apply H.
-      split. intros. rewrite EQ.
-      assumption. assumption.
-  Qed.
-
-  Definition bind_ty {A B} (k : typ_proper A (PropT B)) : PropT A -> PropT B :=
-    fun PA => exist _ (bind_ty_fn k PA) (bind_ty_proper k PA).
-
-  Lemma bind_prop_proper:
-    forall {A B : typ} (k : typ_proper A (PropT B)),
-      Proper (equalE (PropT A) ==> equalE (PropT B)) (bind_ty k).
-  Proof.
-    intros A B K. cbn.
-    unfold bind_ty, bind_ty_fn.
-    split; intros EQ''; cbn in EQ''; cbn.
-    + edestruct EQ'' as (ma0 & kb & Hx & EQ & Hagr).
-      exists ma0, kb. split.
-      apply H. assumption.
-      split ; assumption.
-
-    + edestruct EQ'' as (? & ? & ? & ? & ?).
-      exists x0, x1. split.
-      apply H. assumption.
-      split; assumption.
-  Qed.
-
-  Definition bind_propT {A B} (k : typ_proper A (PropT B)) :
-    typ_proper (PropT A) (PropT B):=
-      exist _ (fun PA => bind_ty k PA) (bind_prop_proper k).
-
-  Instance PropT_Monad : Monad typ_proper PropT :=
-    {|
-      ret := @ret_propT;
-      bind := @bind_propT
-    |}.
-
-  (* ==== Monad Laws for PropT ====================================================== *)
+  Notation "-=->!" := (exist _) (right associativity, at level 50).
 
   (* IY: Is there a better generalized Ltac for this? *)
   Ltac unfold_cat :=
@@ -233,126 +52,133 @@ Section MonadPropT.
   Tactic Notation "unfold_cat" "in" hyp(H) :=
     unfold cat, cat_typ_proper, eq2, eq2_typ_proper in H; cbn in H.
 
+  (* TODO : Automate properness proofs. *)
+  Ltac find_proper :=
+    match goal with
+    | |- Proper (equalE ?A ==> iff) _ => apply Proper_equal_partial
+    end.
 
-  Lemma ret_proper :
-    (forall (a : typ) (ma : M a),
-        Proper (equalE a ==> iff) (fun x => (` (ret_ty x)) ma)).
-  Proof.
-    intros a ma. repeat red. intros. unfold ret_ty. cbn. unfold ret_ty_fn.
-    split. intros. rewrite <- H. assumption.
-    intros. rewrite H. assumption.
-  Qed.
+  Local Obligation Tactic := program_simpl; try find_proper.
 
-  Lemma typ_proper_propT :
-    forall {A B : typ} (P : typ_proper A (PropT B)) (a : A), Proper (equalE (M B) ==> iff)  (` ((` P) a)).
-  Proof.
-    intros. destruct P. cbn.
-    pose proof (proj2_sig (x a)). apply H.
-  Qed.
+  Program Definition ret_ {A : typ} : A -> PropT A :=
+    fun a => (-=->! (equal (ret @ a))) _.
 
-  Existing Instance ret_proper.
-  Existing Instance typ_proper_propT.
-  Existing Instance ret_ty_proper.
-  Existing Instance bind_ty_proper.
-  Existing Instance ret_prop_proper.
-  Existing Instance bind_prop_proper.
-
-  Axiom monad_reflexivity: forall a ma, equalE (M a) ma ma.
-
-  Definition typ_proper_app : forall {a b : typ} (f : typ_proper a b) (x : a), b.
-    intros a b f x.
-    destruct f.
-    apply x0. apply x.
+  Program Definition retP {A : typ} : A -=-> PropT A :=
+    -=->! ret_ _.
+  Next Obligation.
+  repeat red. intros x y H a1 a2 H0.
+  split; intros.
+  - rewrite <- H0.
+    unfold ret_ in *. cbn.
+    etransitivity. apply eq2_Reflexive. symmetry.
+    eassumption. eassumption.
+  - rewrite H0. unfold ret_ in *. cbn.
+    etransitivity. apply eq2_Reflexive.
+    eassumption. eassumption.
   Defined.
 
-  Lemma proper_typ_proper_app : forall {a b : typ},
-      Proper (eq2 ==> equalE a ==> equalE b) 
-             (@typ_proper_app a b).
-  Proof.
-    repeat intro.
-    destruct x, y.
-    cbn in *.
-    specialize (H x0 y0).
-    cbn in H.
-    apply H. unfold contains. etransitivity. apply H0. symmetry. apply H0.
-    unfold contains. etransitivity. symmetry. apply H0. apply H0.
-    assumption.
-  Qed.
-    
-  Notation "f @ x" := (typ_proper_app f x) (at level 40).
+  (* Bind definition. *)
+  Definition prop_agrees {A : typ} : relationH (A) (A ~=~> prop_typ) :=
+    fun (x : A) (P : A ~=~> prop_typ) => P @ x.
 
-(*
-  Lemma typ_proper_app_ok : forall (a b : typ) (f : typ_proper a b) x (X:x ∈ a), (f @ x) ∈ b.
-  Proof.
-    intros a b f x X.
-    destruct f. cbn. apply p. apply X.
-  Qed.
-*)
-  
-  (* Inductive mayRet : forall (a : typ), M a -> a -> Prop := *)
-  (* | mayRet_ret : forall (A : typ) (x : A), mayRet A x *)
-  (* . *)
+  Definition agrees {A B : typ} (ma : M A) (kb : A -=-> M B) (k : A -=-> PropT B) :=
+    let kb' : M A -=-> M (M B) := (monad_fmap M A (M B) kb) in
+    let k'  : M A -=-> M (PropT B) := (monad_fmap M A (PropT B) k) in
+    @eqmR M _ (M B) (M B ~=~> prop_typ) prop_agrees (kb' @ ma) (k' @ ma).
 
-  Lemma propT_bind_ret_l : forall (a b : typ) (f : typ_proper a (PropT b)),
+  Lemma agrees_ret :
+    forall {A B : typ} (ma : M A) (kb :  A -=-> M B) (k : A -=-> PropT B),
+    forall x, agrees ma kb k /\ ma == (ret @ x) -> (k @ x) @ (kb @ x).
+  Proof. Admitted.
+
+  Program Definition bind_ {A B : typ} (k : A -=-> PropT B) : PropT A -> PropT B :=
+    fun (PA : PropT A) => fun (mb : M B) =>
+                         (exists (ma : M A) (kb : A -=-> M B), ma ∈ M A /\
+                             PA @ ma /\ bind kb @ ma == mb /\ agrees ma kb k).
+  Next Obligation.
+    epose proof @Proper_equal_partial.
+    repeat red. intros x y EQ. split; intros H'.
+    - edestruct H' as (ma & kb & HP & Hb & Agr).
+      exists ma, kb. split ; [ | split]; try assumption.
+      rewrite <- EQ. assumption.
+    - edestruct H' as (ma & kb & HP & Hb & Agr).
+      exists ma, kb. split ; [ | split]; try assumption.
+      rewrite EQ. assumption.
+  Defined.
+
+  Ltac apply_proper A :=
+    eapply (@Proper_typ_proper_app _ _ _ _ A).
+
+  Program Definition bindP {A B : typ} (k : A -=-> PropT B) : PropT A -=-> PropT B :=
+    -=->! (bind_ k) _.
+  Next Obligation.
+    intros Pma Pma' EQ mb mb' EQ'.
+    split; intros; unfold bind_ in *.
+    - edestruct H as (ma & kb & HP & Hb & Agr); clear H.
+      exists ma, kb.
+      rewrite <- EQ'. split; [ | split ] ; try assumption.
+      apply_proper EQ. apply HP. apply Hb.
+    - edestruct H as (ma & kb & Hma & HP & Hb & Agr).
+      exists ma, kb.
+      rewrite EQ'. split; [ | split ; [ | split ]] ; try assumption.
+      apply_proper EQ; eassumption.
+  Defined.
+
+  Instance PropT_Monad : Monad typ_proper PropT :=
+    {|
+      ret := @retP;
+      bind := @bindP
+    |}.
+
+  Ltac PER_reflexivity := etransitivity; [ | symmetry ]; eassumption.
+
+  Lemma ret_equal :
+    forall {A : typ} (x y: A), x == y -> ret @ x == ret @ x.
+  Proof.
+    intros.
+    match goal with
+    | |- ?r @ _ == _ => remember r as r'
+    end.
+    assert (Eq2 : r' ⩯ r') by reflexivity.
+    apply_proper Eq2. PER_reflexivity.
+  Qed.
+
+  (* ==== Monad Laws for PropT ====================================================== *)
+  Lemma bind_ret_l_ : forall (a b : typ) (f : a -=-> (PropT b)),
     ret >>> bind f ⩯ f.
-  Proof.
-  intros a b k.
-  unfold ret, bind, PropT_Monad, ret_propT, bind_propT.
-  cbn. red. unfold eq2_typ_proper. cbn.
-  intros x y Hx Hy EQ mb.
-  split; unfold bind_ty_fn.
-  - intros Hb.
-    edestruct Hb as (ma & kb & Hret & EQ' & Ha); clear Hb.
-    rewrite EQ'. rewrite <- Hret.
-    epose proof bind_ret_l as Hbr.
-    specialize (Hbr kb x y Hx Hy EQ). unfold_cat in Hbr.
-    rewrite Hbr.
-    unfold agrees in Ha.
-    eapply Ha; try eassumption.
-    eapply ret_proper; [symmetry | ]; eassumption.
+  Proof with eauto.
+  intros A B k x y EQ mb mb' EQ'.
+  split; unfold bind_.
+
   - intros H.
-    epose proof bind_ret_l as Hbr.
-    unfold_cat in Hbr.
-    exists (ret @ x). eexists ?[kb].
-    split; [ | split].
-    + apply ret_ty_proper with (y0:=(ret @ y)).
-      cbn.
-      apply proper_typ_proper_app.
-      { admit. }
-      assumption.
-      unfold ret_ty_fn. unfold typ_proper_app.
-      (* TODO: replace ` proj1_sig by @ 
-          -- that should lead to some cleanups ??
-         TODO: ensure that eq2 is at least a preorder [doublecheck]
-       *)
-      admit.
-      
-      (* TODO: Do we introduce reflexivity for monad equality? *)
-    (*      apply monad_reflexivity. unfold ret_ty_fn. apply monad_reflexivity. *)
-    + (* Equality on bind_ret_l. *)
-      destruct k as (k_f & k_proper). cbn in H.
-      repeat red in k_proper.
-      rewrite Hbr. 2 : apply Hx. 2 : apply Hy. 2 : apply EQ.
+    assert (Eq2 : k ⩯ k) by reflexivity.
+    apply_proper Eq2. symmetry. apply EQ. symmetry. apply EQ'.
+    cbn in H.
+    edestruct H as (ma & kb & H'); clear H.
+    edestruct H' as (Hm & Hret & Hbind & Agr); clear H'.
+    rewrite <- Hbind. rewrite <- Hret. epose proof bind_ret_l as Hbr.
+    unfold_cat in Hbr; rewrite Hbr.
+    pose proof (agrees_ret ma kb k x) as Hagr.
+    apply Hagr. split; [ | symmetry ]; eassumption. PER_reflexivity.
 
-      (* TODO : We need some kind of inversion principle here (or reflexivity defined on monadic computations). *)
-      (* Need to define MayRet for this monad? *)
-      Unshelve. 2 : { refine (exist _ (fun a => mb) _). repeat intro.
-                      apply monad_reflexivity. (* IY: reflexivity? *) }
-      cbn. (* reflexivity, again. *) apply monad_reflexivity.
-    + (* Agrees. *)
-      unfold agrees. intros x' y' Hx' Hy' EQ' Hret. cbn.
-      unfold ret_ty in Hret. cbn in Hret. unfold ret_ty_fn in Hret.
-
-      (* TODO: Monad ret inversion. *)
-      assert (ret_inv: equalE (M a) ((` ret) x') ((` ret) x) -> equalE a x' x). admit.
-      specialize (ret_inv Hret).
-
-      (* TODO: Another proper instance. *)
-      assert (HP: Proper (equalE a ==> iff) (fun x' => (` ((` k) x')) mb)). {
-        admit.
+  - intros H.
+    exists (ret @ x).
+    eexists ?[kb].
+    split; [ eapply ret_equal; eassumption | split; [ eapply ret_equal; eassumption | split ]].
+    + pose proof (bind_ret_l (M := M) (a := A)) as Hbr.
+      unfold_cat in Hbr; rewrite Hbr. 2 : apply EQ. rewrite EQ'.
+      Unshelve. 2 : {
+        refine (-=->! (fun x => mb') _).
+        do 2 red. intros. symmetry in EQ'; PER_reflexivity.
       }
-
-     eapply HP. rewrite ret_inv. apply EQ. apply H.
+      cbn. symmetry in EQ'; PER_reflexivity.
+    + unfold agrees. unfold monad_fmap.
+      (* IY: Something is fishy here.. *)
+      eapply eqmR_bind_ProperH...
+      rewrite eqmR_equal. eapply ret_equal...
+      cbn.
+      intros; cbn; apply eqmR_ret...
+      unfold prop_agrees.
   Admitted.
 
   Lemma propT_bind_ret_r : forall a : typ,

@@ -123,29 +123,6 @@ Qed.
 
 
 Arguments equal _ {_}.
-
-Instance Proper_equal_equal A `{EqType A} :
-  Proper (equal A --> equal A ==> Basics.impl) (equal A).
-Proof.
-  repeat intro. red in H0.
-  transitivity x0; [ | assumption]. transitivity x; assumption.
-Qed.
-
-Instance Proper_equal A `{EqType A} :
-  Proper (equal A --> equal A --> iff) (equal A).
-Proof.
-  repeat intro. red in H0, H1. split.
-  - intro. transitivity x ; [ assumption | ]. transitivity x0 ; [ assumption | ].
-    symmetry; assumption.
-  - intro. transitivity y0 ; [ | assumption ]. transitivity y; [ symmetry; assumption | assumption ].
-Qed.
-
-Instance Proper_equal_partial A `{EqType A} (a : A):
-  Proper (equal A --> Basics.flip Basics.impl) (equal A a).
-Proof.
-  repeat intro. red in H1. transitivity y ; assumption.
-Qed.
-
 (*
     Typ forms a Category. We are working in a category C, where:
 

@@ -57,6 +57,8 @@ Arguments cat_assoc {obj C Eq2C CatC CatAssoc} [a b c d] f g.
 Arguments category_proper_cat {obj C Eq2C IdC CatC Category} [a b c].
 Arguments initial_object {obj C Eq2C i Initial_i InitialObject} [a] f.
 
+
+
 (** Synonym of [initial_object]. *)
 Notation unique_initial := initial_object.
 
@@ -286,22 +288,24 @@ Section ExponentialLaws.
   Context {Snd_PROD : Snd C PROD}.
   Context {Prod_bif : Product C PROD}.
 
-  (* Eval *)
+  Context {EXP : binop obj}.
   Context (cb : obj).
-  Context {Exp_eval : Exp C PROD cb}.
 
-  Existing Instance Bimap_Product.
+  (* TODO: Clean this up using new Exp definitions in [CategoryOps.v] *)
+  (* Context {Exp_eval : Exp C PROD (EXP a b)}. *)
 
-  (* Given a function, there is a unique currying and evaluation of the function. *)
-  Class EvalUniversal (a b c : obj) (f : C (PROD a b) c) : Prop :=
-  {
-    f' : C a cb;
-    f'_universal : forall (f'' : C a cb), f' ⩯ f'';
-    eval_universal :
-      forall ev' : C (PROD cb b) c,
-        (bimap f' (id_ b) >>> ev') ⩯ f ->
-        eval C PROD b c ⩯ ev'
-  }.
+  (* Existing Instance Bimap_Product. *)
+
+  (* (* Given a function, there is a unique currying and evaluation of the function. *) *)
+  (* Class EvalUniversal (a b c : obj) (f : C (PROD a b) c) : Prop := *)
+  (*   { *)
+  (*   f' : C a cb; *)
+  (*   f'_universal : forall (f'' : C a cb), f' ⩯ f''; *)
+  (*   eval_universal : *)
+  (*     forall ev' : C (PROD cb b) c, *)
+  (*       (bimap f' (id_ b) >>> ev') ⩯ f -> *)
+  (*       eval C PROD b c ⩯ ev' *)
+  (* }. *)
 
 End ExponentialLaws.
 
