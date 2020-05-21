@@ -23,9 +23,16 @@ Section MonadPropT.
 
   Context {M : typ -> typ}.
   Context {M_Monad : Monad typ_proper M}.
+
+  (* We go back to our EqmR definition, which is necessary if we want a notion
+   * of "agrees" for our bind function.
+   *
+   * EqmRMonad is defined using typ's and fufills [CategoryMonad] monad laws.
+   *)
   Context {EqM: EqmR M} {EqmR : EqmR_OK M} {EqmRMonad : EqmRMonad M}.
 
-  (* Old PropT Definition. *)
+  (* For comparison: old PropT definition. *)
+
     (* {| *)
     (*   Ty := { p : M X -> Prop | Proper (equalE (M X) ==> iff) p }; *)
     (*   equal := *)
@@ -34,34 +41,22 @@ Section MonadPropT.
     (*   equal_PER := PropT_PER_equal X *)
     (* |}. *)
 
+  (* We can define a typ for Prop using `iff` as equality. *)
   Definition prop_typ : typ := Typ (iff).
 
-  (* TODO: For later, maybe : prove exponential? *)
+  (* The typ that PropT returns that we want coincides with the typ version of typ_proper. *)
   Definition PropT (X : typ) : typ := (M X) ~=~> prop_typ.
-
 
   Goal forall (X : typ), equalE (PropT X) = equalE (PropT X).
     repeat intro. cbn. Abort.
 
-  Notation "-=->!" := (exist _) (right associativity, at level 50).
-
-  (* IY: Is there a better generalized Ltac for this? *)
-  Ltac unfold_cat :=
-     unfold cat, cat_typ_proper, eq2, eq2_typ_proper; cbn.
-
-  Tactic Notation "unfold_cat" "in" hyp(H) :=
-    unfold cat, cat_typ_proper, eq2, eq2_typ_proper in H; cbn in H.
-
-  (* TODO : Automate properness proofs. *)
-  Ltac find_proper :=
-    match goal with
-    | |- Proper (equalE ?A ==> iff) _ => apply Proper_equal_partial
-    end.
-
-  Local Obligation Tactic := program_simpl; try find_proper.
-
+  (* Ret Definition ************************************ *)
+  (* Using Program Definition to give the properess proofs through obligations. *)
   Program Definition ret_ {A : typ} : A -> PropT A :=
-    fun a => (-=->! (equal (ret @ a))) _.
+    fun a => (-=->! (equal (ret @ a))) _. (* Define the data here. *)
+  Next Obligation. (* Properness proof goes here. *)
+    apply Proper_equal_partial.
+  Defined.
 
   Program Definition retP {A : typ} : A -=-> PropT A :=
     -=->! ret_ _.
@@ -77,7 +72,7 @@ Section MonadPropT.
     eassumption. eassumption.
   Defined.
 
-  (* Bind definition. *)
+  (* Bind definition. ********************************* *)
   Definition prop_agrees {A : typ} : relationH (A) (A ~=~> prop_typ) :=
     fun (x : A) (P : A ~=~> prop_typ) => P @ x.
 
@@ -86,6 +81,7 @@ Section MonadPropT.
     let k'  : M A -=-> M (PropT B) := (monad_fmap M A (PropT B) k) in
     @eqmR M _ (M B) (M B ~=~> prop_typ) prop_agrees (kb' @ ma) (k' @ ma).
 
+  (* Sanity Check. *)
   Lemma agrees_ret :
     forall {A B : typ} (ma : M A) (kb :  A -=-> M B) (k : A -=-> PropT B),
     forall x, agrees ma kb k /\ ma == (ret @ x) -> (k @ x) @ (kb @ x).
@@ -130,6 +126,8 @@ Section MonadPropT.
       bind := @bindP
     |}.
 
+  (* ==== Monad Laws for PropT ====================================================== *)
+
   Ltac PER_reflexivity := etransitivity; [ | symmetry ]; eassumption.
 
   Lemma ret_equal :
@@ -143,7 +141,6 @@ Section MonadPropT.
     apply_proper Eq2. PER_reflexivity.
   Qed.
 
-  (* ==== Monad Laws for PropT ====================================================== *)
   Lemma bind_ret_l_ : forall (a b : typ) (f : a -=-> (PropT b)),
     ret >>> bind f ⩯ f.
   Proof with eauto.
@@ -172,6 +169,7 @@ Section MonadPropT.
         do 2 red. intros. symmetry in EQ'; PER_reflexivity.
       }
       cbn. symmetry in EQ'; PER_reflexivity.
+
     + unfold agrees. unfold monad_fmap.
       (* IY: Something is fishy here.. *)
       eapply eqmR_bind_ProperH...

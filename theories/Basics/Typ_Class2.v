@@ -337,3 +337,24 @@ Proof.
   pose proof fun_PER.
   cbn. intros. specialize (H a b (equalE a) _ (equalE b) _). eapply H.
 Defined.
+
+
+(* Misc. Utilities ********************************************************** *)
+
+
+Notation "-=->!" := (exist _) (right associativity, at level 50).
+
+(* IY: Is there a better generalized Ltac for this? *)
+Ltac unfold_cat :=
+    unfold cat, cat_typ_proper, eq2, eq2_typ_proper; cbn.
+
+Tactic Notation "unfold_cat" "in" hyp(H) :=
+  unfold cat, cat_typ_proper, eq2, eq2_typ_proper in H; cbn in H.
+
+(* TODO : Automate properness proofs. *)
+Ltac find_proper :=
+  match goal with
+  | |- Proper (equalE ?A ==> iff) _ => apply Proper_equal_partial
+  end.
+
+Local Obligation Tactic := program_simpl; try find_proper.
