@@ -133,8 +133,8 @@ Context {obj : Type} (C : Hom obj) (bif : binop obj).
 
     The composition [bimap f g] is also called _tensor product_ of [f] and [g].
 
-    Many of the following typeclases are _derived_ from just three basic 
-    Coproduc constructions:
+    Many of the following typeclases are _derived_ from just three basic
+    Coproduct constructions:
        - [Case]  (case analysis)
        - [Inl]   (left injection)
        - [Inr]   (right injection)
