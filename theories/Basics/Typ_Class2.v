@@ -12,6 +12,8 @@ From ITree Require Import
      Basics.HeterogeneousRelations
 .
 
+Import CatNotations.
+Open Scope cat_scope.
 Import ProperNotations.
 
 Definition rel A := A -> A -> Prop.
@@ -173,13 +175,13 @@ Section TypCat.
   Lemma compose: forall (TA TB TC : typ) (f : TA -> TB) (g : TB -> TC)
       (P1: Proper (equalE TA ==> equalE TB) f)
       (P2: Proper (equalE TB ==> equalE TC) g),
-      Proper (equalE TA ==> equalE TC) (fun x => g (f x)).
+      Proper (equalE TA ==> equalE TC) (f >>> g).
   Proof.
     intros TA TB TC f g P1 P2.
     repeat red.
     intros.
     apply P2. apply P1. assumption.
-  Qed.
+  Defined.
 
   Instance id_typ_proper : Id_ typ_proper :=
     fun TA : typ =>

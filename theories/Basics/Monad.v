@@ -28,6 +28,7 @@ Section EqmR.
   *)
   Class EqmR (m : typ -> typ) : Type :=
     { eqmR : forall (A B : typ) (R : relationH A B), relationH (m A) (m B) ;
+      (* IY: Is there an alternative way to define this? *)
       eqmR_equal : forall A, eqmR A A (equalE A) = equalE (m A)
     }.
 
@@ -52,7 +53,7 @@ Section EqmRRel.
 
   Import RelNotations.
   Local Open Scope relationH_scope.
-
+  
   (* Requirements of well-formedness of [eqmR] *)
   Class EqmR_OK : Type :=
     {
@@ -74,11 +75,13 @@ Section EqmRRel.
       (* [eqmR] respects extensional equality of the underlying relationH
          and [eqm] on both arguments over the monad *)
       eqmR_Proper :> forall {A B},
-          Proper (eq_rel ==> eqmR eq ==> eqmR eq ==> iff) (@eqmR _ _ A B);
+          Proper (eq_rel ==> eqmR (equalE A) ==> eqmR (equalE B) ==> iff) (@eqmR _ _ A B);
 
       (* [eqmR] is monotone as a morphism on relationHs *)
       eqmR_Proper_mono :> forall {A B},
-          Proper (@subrelationH _ _ ==> @subrelationH _ _) (@eqmR m _ A B)
+          Proper (@subrelationH _ _ ==> @subrelationH _ _) (@eqmR m _ A B);
+
+
     }.
 
 End EqmRRel.
@@ -90,6 +93,7 @@ Section EqmRMonad.
   Context {EqMRm : EqmR m}.
   Context {Mm : Monad typ_proper m}.
   Context {MmL : MonadLaws Mm}.
+
 
   (* Generalization of monadic laws.
      These are of two quite distinct natures:
@@ -106,8 +110,9 @@ Section EqmRMonad.
 
           - for StateT we can take the void state, which also cannot be inverted.
        *)
+
+      (* IY: Let's try assuming injectivity on eqmR ret. *)
       eqmR_ret : forall {A1 A2 : typ} (RA : A1 -> A2 -> Prop) (a1:A1) (a2:A2),
-        (* RA a1 a2 <-> eqmR RA (ret a1) (ret a2); *)
         RA a1 a2 -> eqmR RA (ret @ a1) (ret @ a2);
 
     (* YZ: [eqmR_bind] is _exactly_ (well, with order of arguments reshuffled) the same as [eqmR_Proper_bind].
@@ -135,7 +140,7 @@ Section EqmRMonad.
                         (a_OK : a ∈ A),
         equalE (m B) (bind f @ (ret @ a)) (f @ a);
 
-    eqmR_bind_ret_r : forall {A : typ}
+    eqmR_bind_ret_r : forall {A B : typ}
                         (ma : m A)
                         (ma_OK : ma ∈ m A),
         equalE (m A) (bind ret @ ma) ma;
@@ -158,7 +163,7 @@ Section Laws.
   Context (m : typ -> typ).
   Context {Mm : Monad typ_proper m}.
   Context {EqMR : EqmR m} {EqmRm: EqmRMonad m} {EqmROKm : EqmR_OK m}.
-
+  
   Local Open Scope monad_scope.
 
   Global Instance monad_eqmR : MonadLaws Mm.
@@ -172,7 +177,7 @@ Section Laws.
       rewrite <- H.
       apply Hbr.
     - intros x y H. cbn.
-      rewrite eqmR_bind_ret_r. apply H. apply EqmRm. unfold contains.
+      rewrite eqmR_bind_ret_r. apply H. apply EqmRm. eauto. unfold contains.
       etransitivity; [ | symmetry ]; eassumption.
     - repeat intro.
       pose proof eqmR_bind_bind.

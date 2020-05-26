@@ -35,6 +35,10 @@ Section Monad.
   Context {M : obj -> obj}.
 
 
+  (* TODO : Make singleton classes for monad laws. *)
+  (* Class BindRetL : Prop  := *)
+  (*   bind_ret_l : forall [a b] (f : C a (M b)) : ret >>> bind f ⩯ f.  *)
+
   (* Monad laws, annotated with equivalent Haskell-like monad laws in comments. *)
   Class MonadLaws `(Monad M) : Prop :=
   {
