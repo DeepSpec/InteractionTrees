@@ -115,6 +115,7 @@ for testing.
 
     + `Monad`: Properties of monads (in the category of functions).
     + `MonadState`: The state monad transformer.
+    + `MonadProp`: The nondeterminism monad.
 
 - `Core`: Main definitions for interaction trees.
 

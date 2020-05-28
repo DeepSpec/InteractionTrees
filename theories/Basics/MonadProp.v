@@ -19,7 +19,7 @@ Local Open Scope cat_scope.
 Local Open Scope cat.
 
 Section prop.
-  Global Instance Monad_Prop : Monad Ensembles.Ensemble :=
+  Global Instance Monad_Prop : Monad Ensemble :=
     {|
     ret := fun _ x y => x = y;
     bind := fun _ _ Pa K b => exists a, In _ Pa a /\ In _ (K a) b
@@ -33,16 +33,6 @@ Section prop.
     - split; repeat intro; auto.
     - repeat intro. destruct H. split; auto.
     - repeat intro. destruct H, H0. split; repeat intro; auto.
-  Qed.
-
-  Lemma bind_bind_Prop :
-    forall A B C (Pa : Ensembles.Ensemble A)
-      (f : A -> Ensembles.Ensemble B) (g : B -> Ensembles.Ensemble C),
-      eqm (bind (bind Pa f) g) (bind Pa (fun y => bind (f y) g)).
-  Proof.
-    intros. split; repeat intro; simpl in *;
-              [destruct H as (? & (? & ? & ?) & ?) | destruct H as (? & ? & (? & ? & ?))];
-              do 2 (eexists; split; eauto).
   Qed.
 
   Instance MonadLaws_Prop : MonadLaws Ensemble.

@@ -3,7 +3,7 @@
 (** Not specific to itrees. *)
 
 (* begin hide *)
-From Coq Require 
+From Coq Require
      Ensembles.
 
 From Coq Require Import
@@ -77,10 +77,10 @@ Section ProdRelInstances.
   Proof.
     red. destruct x. constructor; auto.
   Qed.
-  
+
   Global Instance prod_rel_sym `{Symmetric _ RR} `{Symmetric _ SS}  : Symmetric (prod_rel RR SS).
   Proof.
-    red. intros. 
+    red. intros.
     inversion H1. subst.
     constructor; symmetry; auto.
   Qed.
