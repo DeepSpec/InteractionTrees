@@ -6,6 +6,7 @@ From ITree Require Import
      Basics.Tacs
      Basics.Basics
      Basics.Function
+     Basics.Typ_Class2
      (* Basics.CategoryTheory *)
      (* Basics.CategoryOps *)
 .
@@ -24,6 +25,8 @@ Section RelationH_Operations.
   Class subrelationH {A B} (R S : relationH A B) : Prop :=
     is_subrelationH: forall (x : A) (y : B), R x y -> S x y.
 
+  Definition superrelationH {A B} (R S : relationH A B) : Prop := subrelationH S R.
+  
   Definition eq_rel {A B} (R : A -> B -> Prop) (S : A -> B -> Prop) :=
     subrelationH R S /\ subrelationH S R.
 

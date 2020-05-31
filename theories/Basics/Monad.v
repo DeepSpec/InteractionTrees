@@ -74,26 +74,31 @@ Section EqmRRel.
 
       (* [eqmR] respects extensional equality of the underlying relationH
          and [eqm] on both arguments over the monad *)
-      eqmR_Proper :> forall {A B},
-          Proper (eq_rel ==> eqmR (equalE A) ==> eqmR (equalE B) ==> iff) (@eqmR _ _ A B);
+      (* SAZ: We need to restrict this to only Proper relations R, otherwise even
+         the identity monad doesn't work.  
+         - option 1 : change relationH to be A -=-> B -=-> Prop_type
+           keep the old fully-general version
+
+         - option 2 : restrict eqmR_Proper as shown:
+      *)
+      eqmR_Proper :> forall {A B : typ}
+          (R : relationH A B),
+          Proper (equalE A ==> equalE B ==> iff) R ->
+          Proper (eqmR (equalE A) ==> eqmR (equalE B) ==> iff) (@eqmR _ _ A B R);
 
       (* [eqmR] is monotone as a morphism on relationHs *)
       eqmR_Proper_mono :> forall {A B},
           Proper (@subrelationH _ _ ==> @subrelationH _ _) (@eqmR m _ A B);
-
 
     }.
 
 End EqmRRel.
 
 (* In particular, well-formedness of [eqmR] recovers that [eqm] is an equivalence relationH *)
-
 Section EqmRMonad.
   Context (m : typ -> typ).
   Context {EqMRm : EqmR m}.
   Context {Mm : Monad typ_proper m}.
-  Context {MmL : MonadLaws Mm}.
-
 
   (* Generalization of monadic laws.
      These are of two quite distinct natures:
@@ -109,15 +114,14 @@ Section EqmRMonad.
             between
 
           - for StateT we can take the void state, which also cannot be inverted.
+          
+          - However, for some monads we do get the other direction:
+            (itree E) and StateT S when S is non-void, for example.  So we
+            break the other direction out into a different typeclass that
+            can be instantiated differently.
        *)
-
-      (* IY: Let's try assuming injectivity on eqmR ret. *)
       eqmR_ret : forall {A1 A2 : typ} (RA : A1 -> A2 -> Prop) (a1:A1) (a2:A2),
         RA a1 a2 -> eqmR RA (ret @ a1) (ret @ a2);
-
-    (* YZ: [eqmR_bind] is _exactly_ (well, with order of arguments reshuffled) the same as [eqmR_Proper_bind].
-       Commenting it out for now, to remove later.
-     *)
 
       eqmR_bind_ProperH : forall {A1 A2 B1 B2 : typ}
                             (RA : A1 -> A2 -> Prop)
@@ -154,6 +158,12 @@ Section EqmRMonad.
         equalE (m C) ((bind f >>> bind g) @ ma) (bind (f >>> bind g) @ ma)
     }.
 
+  Class EqmRMonadInverses :=
+    {
+    eqmR_ret_inv : forall {A1 A2 : typ} (RA : A1 -> A2 -> Prop) (a1:A1) (a2:A2),
+        eqmR RA (ret @ a1) (ret @ a2) -> RA a1 a2
+    }.
+  
 End EqmRMonad.
 
 Arguments eqmR_bind_ret_l {_ _ _ _}.
@@ -197,4 +207,89 @@ Section Laws.
   Qed.
 
 End Laws.
+
+
+Section Domain.
+
+  Context (m : typ -> typ).
+  Context {Mm : Monad typ_proper m}.
+  Context {EqMR : EqmR m} {EqmRm: EqmRMonad m} {EqmROKm : EqmR_OK m}.
+  Context {EqMRI: EqmRMonadInverses m}.
+
+  Definition domain {A:typ} (m : m A) : A -> A -> Prop :=
+    fun x y =>
+      forall (R : A -> A -> Prop), PER R -> eqmR R m m -> R x y.
+
+
+  Global Instance domain_symmetric {A} (ma : m A) : Symmetric (domain ma).
+  Proof.
+    repeat red.
+    intros.
+    unfold domain in H. symmetry. apply (H R); tauto.
+  Qed.
+
+  Global Instance domain_transitive {A} (ma : m A) : Transitive (domain ma).
+  Proof.
+    repeat red.
+    intros.
+    unfold domain in *.
+    eapply transitivity. apply H; eauto. apply H0; eauto.
+  Qed.
+  
+  Lemma domain_least {A} (ma : m A) (R : A -> A -> Prop) `{PER _ R} : eqmR R ma ma -> subrelationH (domain ma) R.
+  Proof.
+    intros G.
+    repeat red.
+    unfold domain.
+    intros.
+    apply (H0 R); tauto.
+  Qed.
+
+  (* A sanity check about the domains: *)
+  Definition singletonR {A:typ} (x:A) : A -> A -> Prop := (fun (a b : A) => a = b /\ a = x).
+
+  Global Instance singletonR_symetric {A:typ} (x:A) : Symmetric (singletonR x).
+  Proof.
+    repeat red. intros. unfold singletonR in H.
+    destruct H; subst; tauto.
+  Qed.
+
+  Global Instance singletonR_transitive {A:typ} (x:A) : Transitive (singletonR x).
+  Proof.
+      repeat red. intros. unfold singletonR in *.
+      destruct H, H0; subst; tauto.
+  Qed.
+
+  Global Instance singletonR_PER {A:typ} (x:A) : PER (singletonR x).
+  Proof.
+    split; typeclasses eauto.
+  Qed.
+
+  Lemma ret_domain {A:typ} (x:A) : eq_rel (domain (ret @ x)) (singletonR x).
+  Proof.
+    split.
+    - repeat red. intros. 
+      unfold domain in H.
+      specialize (H (singletonR x) _).
+      assert (eqmR (singletonR x) (ret @ x) (ret @ x)).
+      { apply eqmR_ret. typeclasses eauto. repeat red. tauto. }
+      apply H in H0. red in H0. assumption.
+    - repeat red. intros.
+      unfold singletonR in H. destruct H; subst.
+      eapply eqmR_ret_inv; eauto.
+  Qed.
+
+  (*
+  Lemma domain_eqmR {A} (m : m A) (R : A -> A -> Prop) `{PER _ R} : eqmR R m m -> eqmR (domain m) m m.
+  Proof.
+    intros EQ.
+
+    eqmR R m1 m2 -> eqmR S m1 m2 -> eqmR (R /\ S) m1 m2
+    
+    specialize (eqmR_Proper_mono M (domain m) R (domain_least m R EQ)).
+    intros S.
+    unfold superrelationH in S. repeat red in S.
+   *)
+End Domain.
+
 

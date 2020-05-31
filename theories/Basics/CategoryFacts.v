@@ -135,8 +135,8 @@ Section PER_CategoryFacts.
     repeat intro.
     destruct CategoryC.
     unfold CatIdL in *.
-    specialize (category_cat_id_l0 a b x).
-    etransitivity. symmetry. apply category_cat_id_l0. apply category_cat_id_l0.
+    specialize (category_cat_id_l a b x).
+    etransitivity. symmetry. apply category_cat_id_l. apply category_cat_id_l.
   Qed.
 
   Instance Eq2_Equivalence : forall a b, Equivalence (eq2 (a := a) (b := b)).

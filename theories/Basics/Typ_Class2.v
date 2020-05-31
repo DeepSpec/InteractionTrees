@@ -8,8 +8,7 @@ From ITree Require Import
      Basics.CategoryOps
      Basics.CategoryTheory
      Basics.CategoryFunctor
-     Basics.CategoryRelation
-     Basics.HeterogeneousRelations
+     Basics.Function
 .
 
 Import CatNotations.
@@ -116,6 +115,89 @@ Proof.
   intros *; split; (intros [INA INB]; split; [apply INA | apply INB]).
 Qed.
 
+
+Global Instance Proper_pair {TA TB : typ} :
+  Proper (equalE TA ==> equalE TB ==> equalE (TA × TB)) (fun x y => (x, y)).
+Proof.
+  repeat red; intros.
+  split; cbn; assumption.
+Qed.
+
+Global Instance Proper_fst {TA TB : typ} :
+  Proper (equalE (TA × TB) ==> equalE TA) fst.
+Proof.
+  repeat red; intros; cbn.
+  destruct TA. cbn. destruct x. destruct y. cbn. destruct H. assumption.
+Qed.
+
+Global Instance Proper_snd {TA TB : typ} :
+  Proper (equalE (TA × TB) ==> equalE TB) snd.
+Proof.
+  repeat red; intros; cbn.
+  destruct TA. cbn. destruct x. destruct y. cbn. destruct H. assumption.
+Qed.
+
+
+(** ** sum 
+  Coproduct of two [typ].
+ *)
+
+Instance sum_PER (A B:Type) (RA : rel A) `{PER A RA} (RB : rel B) `{PER B RB} :
+  PER (fun (p q : A + B) =>
+          match (p, q) with
+          | (inl x, inl y) => RA x y
+          | (inr x, inr y) => RB x y
+          | (_, _) => False
+          end).
+Proof.
+  split; repeat red; intros.
+  - destruct x; destruct y; try tauto; symmetry; auto.
+  - destruct x; destruct y; destruct z; try tauto; etransitivity; eauto.
+Qed.
+
+Instance sum_typ (TA TB : typ) : typ :=
+  Typ (fun (p q : TA + TB) =>
+          match (p, q) with
+          | (inl x, inl y) => equal x y
+          | (inr x, inr y) => equal x y
+          | (_, _) => False
+          end).
+Notation "e ⨥ f" := (sum_typ e f) (at level 80).
+
+
+Global Instance Proper_inl {TA TB : typ} :
+  Proper (equalE TA ==> equalE (TA ⨥ TB)) inl.
+Proof.
+  repeat red; intros; cbn.
+  destruct TA. cbn. assumption.
+Qed.
+
+Global Instance Proper_inr {TA TB : typ} :
+  Proper (equalE TB ==> equalE (TA ⨥ TB)) inr.
+Proof.
+  repeat red; intros; cbn.
+  destruct TA. cbn. assumption.
+Qed.
+
+Fact sum_typ_gen1 : forall (TA TB : typ) (a : TA),
+    (a ∈ TA) <-> (inl a) ∈ (TA ⨥ TB).
+Proof.
+  intros TA TB a.
+  split.
+  - intros IN. apply Proper_inl. assumption.
+  - intros. red in H. red. destruct TA. cbn in *. assumption.
+Qed.  
+
+Fact sum_typ_gen2 : forall (TA TB : typ) (b : TB),
+    (b ∈ TB) <-> (inr b) ∈ (TA ⨥ TB).
+Proof.
+  intros TA TB b.
+  split.
+  - intros IN. apply Proper_inr. assumption.
+  - intros. red in H. red. destruct TB. cbn in *. assumption.
+Qed.  
+
+
 Instance fun_PER (A B:Type) (RA : rel A) `{PER A RA} (RB : rel B) `{PER B RB}
   : PER (fun (f g: A -> B) => forall a1 a2, RA a1 a2 -> RB (f a1) (g a2)).
 Proof.
@@ -157,7 +239,7 @@ Section TypCat.
   Definition typ_proper (TA TB : typ) : Type := { f | Proper (equalE TA ==> equalE TB) f}.
 
   Definition typ_proper_app : forall {a b : typ} (f : typ_proper a b) (x : a), b :=
-    (fun a b f x => (` f) x).
+    (fun _ _ f x => (` f) x).
 
   Notation "A '-=->' B" := (typ_proper A B) (right associativity, at level 70).
   Notation "f @ x" := (typ_proper_app f x) (at level 40).
@@ -183,30 +265,30 @@ Section TypCat.
     apply P2. apply P1. assumption.
   Defined.
 
-  Instance id_typ_proper : Id_ typ_proper :=
+  Global Instance id_typ_proper : Id_ typ_proper :=
     fun TA : typ =>
     exist (fun f : TA -> TA => Proper (equalE TA ==> equalE TA) f)
       (fun x : TA => x) (id_ok TA).
 
-  Instance cat_typ_proper : Cat typ_proper :=
+  Global Instance cat_typ_proper : Cat typ_proper :=
     fun (a b c : typ) (TA : a -=-> b) (TB : b -=-> c) =>
     exist (fun f : a -> c => Proper (equalE a ==> equalE c) f)
       (fun x : a => TB @ (TA @ x)) (compose a b c _ _ (proj2_sig TA) (proj2_sig TB)).
 
-  Instance cat_IdL_typ_proper : CatIdL typ_proper.
+  Global Instance cat_IdL_typ_proper : CatIdL typ_proper.
     repeat intro. destruct f. cbn. apply p. assumption.
   Defined.
 
-  Instance cat_IdR_typ_proper : CatIdR typ_proper.
+  Global Instance cat_IdR_typ_proper : CatIdR typ_proper.
     repeat intro. destruct f. cbn. apply p. assumption.
   Defined.
 
-  Instance cat_assoc_typ_proper : CatAssoc typ_proper.
+  Global Instance cat_assoc_typ_proper : CatAssoc typ_proper.
     refine (fun a b c d TA TB TC => _). repeat intro.
     destruct TA, TB, TC. eapply p1. eapply p0. eapply p. assumption.
   Defined.
 
-  Instance proper_typ_proper (a b c : typ) : Proper ((@eq2 typ _ _ a b) ==> (@eq2 typ _ _ b c) ==> (@eq2 typ _ _ a c)) (cat).
+  Global Instance proper_typ_proper (a b c : typ) : Proper ((@eq2 typ _ _ a b) ==> (@eq2 typ _ _ b c) ==> (@eq2 typ _ _ a c)) (cat).
     repeat intro.
     destruct x, y, x0, y0. unfold eq2, eq2_typ_proper in H0.
     cbn in H0. unfold eq2, eq2_typ_proper in H. cbn in H. cbn.
@@ -219,13 +301,70 @@ Section TypCat.
     constructor; try typeclasses eauto.
   Defined.
 
-
+  
 End TypCat.
 
 
 Notation "A '-=->' B" := (typ_proper A B) (right associativity, at level 70).
 Notation "f @ x" := (typ_proper_app f x) (at level 40).
 
+
+Section TypCatCoproducts.
+
+(** *** Coproducts *)
+
+Program Definition case_typ_proper
+  {A B C : typ} (f : A -=-> C) (g : B -=-> C) : (A ⨥ B) -=-> C :=
+    (fun (x : A ⨥ B) =>
+      match x with
+      | inl a => f @ a
+      | inr b => g @ b
+      end).
+Next Obligation.
+  repeat red.
+  intros x y.
+  destruct C; destruct x; destruct y; cbn in *; try tauto.
+  - intros. destruct f. cbn. apply p. assumption. 
+  - intros. destruct g. cbn. apply p. assumption. 
+Qed.
+
+
+(** Coproduct elimination *)
+Instance case_sum : Case typ_proper sum_typ := @case_typ_proper.
+
+Program Definition prod_typ_proper
+        {A B C : typ} (f : C -=-> A) (g : C -=-> B) : C -=-> (A × B) :=
+  fun (c: C) => (f c, g c).
+Next Obligation.
+  repeat red.
+  intros x y H.
+  destruct f; destruct g; cbn in *.
+  split.
+  - apply p. assumption.
+  - apply p0. assumption.
+Qed.
+
+Instance pair_prod: Pair typ_proper prod_typ := @ prod_typ_proper.
+
+(** Injections *)
+
+Program Definition inl_typ_proper {A B : typ} : A -=-> (A ⨥ B) :=
+  inl.
+Next Obligation.
+  repeat red. intros x y EQ. destruct A. assumption.
+Qed.  
+
+Program Definition inr_typ_proper {A B : typ} : B -=-> (A ⨥ B) :=
+  inr.
+Next Obligation.
+  repeat red. intros x y EQ. destruct B. assumption.
+Qed.  
+
+
+Instance sum_inl : Inl typ_proper sum_typ := @inl_typ_proper.
+Instance sum_inr : Inr typ_proper sum_typ := @inr_typ_proper.
+
+End TypCatCoproducts.  
 
 (* Add proper instances to hint database. *)
 Existing Instance eq2_typ_proper.
@@ -341,6 +480,14 @@ Proof.
 Defined.
 
 
+
+(* Non-empty typ ------------------------------------------------------------ *)
+
+Class NonEmpty (T:typ) : Prop:=
+  {
+   nonempty: exists (t:T), t == t
+  }.
+
 (* Misc. Utilities ********************************************************** *)
 
 
@@ -360,3 +507,14 @@ Ltac find_proper :=
   end.
 
 Local Obligation Tactic := program_simpl; try find_proper.
+
+
+Ltac PER_reflexivity :=
+  match goal with
+  | [ H : ?eq ?X ?Y |- ?eq ?X ?X ] =>  eapply transitivity; [apply H | symmetry; apply H]
+  | [ H : ?eq ?Y ?X |- ?eq ?X ?X ] =>  eapply transitivity; [symmetry; apply H | apply H]
+  | [H : ?x == _ |- ?x == _] => etransitivity; [ | symmetry ]; eassumption
+  | [H : _ == ?y |- ?x == _] => symmetry in H; etransitivity; [ | symmetry ]; eassumption
+  end.
+
+

@@ -19,6 +19,7 @@ From ITree Require Import
 Import CatNotations.
 Open Scope cat_scope.
 
+  
 Section MonadPropT.
 
   Context {M : typ -> typ}.
@@ -31,14 +32,24 @@ Section MonadPropT.
    *)
   Context {EqM: EqmR M} {EqmR : EqmR_OK M} {EqmRMonad : EqmRMonad M}.
 
+  (* Moreover, we need monads that have well-defined "inversion principles" *)
+  Context {EqmRMonadInverses : EqmRMonadInverses M}.
+
   (* We can define a typ for Prop using `iff` as equality. *)
   Definition prop_typ : typ := Typ (iff).
 
   (* The typ that PropT returns that we want coincides with the typ version of typ_proper. *)
   Definition PropT (X : typ) : typ := (M X) ~=~> prop_typ.
 
+  Lemma sanity : forall (A:typ) (P:PropT A) (ma ma' : M A) (EQ: ma == ma'), (P @ ma) == (P @ ma').
+  Proof.
+    intros A P ma ma' EQ.
+    repeat red. split; intros.
+    rewrite <- EQ. assumption. rewrite EQ. assumption.
+  Qed.
+  
   (* Ret Definition ************************************ *)
-  (* Using Program Definition to give the properess proofs through obligations. *)
+  (* Using Program Definition to give the properness proofs through obligations. *)
   Program Definition ret_ {A : typ} : A -> PropT A :=
     fun a => (-=->! (equal (ret @ a))) _. (* Define the data here. *)
   Next Obligation. (* Properness proof goes here. *)
@@ -63,17 +74,27 @@ Section MonadPropT.
   Definition prop_agrees {A : typ} : relationH (A) (A ~=~> prop_typ) :=
     fun (x : A) (P : A ~=~> prop_typ) => P @ x.
 
-  Definition agrees {A B : typ} (ma : M A) (kb : A -=-> M B) (k : A -=-> PropT B) :=
+  Definition agrees {A B : typ} (ma : M A) (kb : A -=-> M B) (k : A -=-> PropT B) : Prop :=
     let kb' : M A -=-> M (M B) := (monad_fmap M A (M B) kb) in
     let k'  : M A -=-> M (PropT B) := (monad_fmap M A (PropT B) k) in
     @eqmR M _ (M B) (PropT B) prop_agrees (kb' @ ma) (k' @ ma).
 
+
+
+ (*  
   Lemma agrees_retP_eq {A : typ} :
     forall (ma : M A) (kb : A -=-> M A),
       agrees ma kb retP -> kb ⩯ ret.
   Proof with eauto.
-    intros. unfold agrees. unfold_cat. intros.
+    intros. unfold_cat. intros.
     unfold agrees, monad_fmap in H.
+
+
+    
+
+    
+    exists S, eqmR S m1 m2 /\ forall s1, s2, S s1 s2 -> eqmR R (k1 s1) (k2 s2)
+    
     unfold retP in H.
     eapply eqmR_Proper in H... 2 : reflexivity.
     2 : { Unshelve. 2 : { refine ( (bind kb >>> ret) @ ma). }
@@ -82,12 +103,18 @@ Section MonadPropT.
             admit.
           }
   Admitted.
+   *)
 
+  
+  (*
   Lemma agrees_ret_inv {A B : typ} :
     forall (x : A) (kb : A -=-> M B) (k : A -=-> PropT B),
     eqmR prop_agrees (ret @ (kb @ x)) (ret @ (k @ x)) -> prop_agrees (kb @ x) (k @ x).
-  Proof. Admitted.
-
+  Proof.
+    intros x kb k H.
+  Admitted.
+   *)  
+  
   Program Definition bind_ {A B : typ} (k : A -=-> PropT B) : PropT A -> PropT B :=
     fun (PA : PropT A) => fun (mb : M B) =>
                          (exists (ma : M A) (kb : A -=-> M B), ma ∈ M A /\
@@ -102,6 +129,7 @@ Section MonadPropT.
       exists ma, kb. split ; [ | split]; try assumption.
       rewrite EQ. assumption.
   Defined.
+
 
   Arguments Proper_typ_proper_app {_ _ _ _}.
   Ltac apply_proper A := eapply (Proper_typ_proper_app A).
@@ -129,26 +157,28 @@ Section MonadPropT.
 
   (* ==== Monad Laws for PropT ====================================================== *)
 
-  Ltac PER_reflexivity :=
-    match goal with
-      | [H : ?x == _ |- ?x == _] => etransitivity; [ | symmetry ]; eassumption
-      | [H : _ == ?y |- ?x == _] => symmetry in H; etransitivity; [ | symmetry ]; eassumption
-    end.
 
   Lemma ret_equal :
-    forall {A : typ} (x y: A), x == y -> ret @ x == ret @ x.
+    forall {A : typ} (x y: A), x == y -> ret @ x == ret @ y.
   Proof.
     intros.
     match goal with
     | |- ?r @ _ == _ => remember r as r'
     end.
     assert (Eq2 : r' ⩯ r') by reflexivity.
-    apply_proper Eq2. PER_reflexivity.
+    apply_proper Eq2. assumption.
   Qed.
 
   Ltac app_proper X :=
     assert (Hz : X ⩯ X) by reflexivity; apply_proper Hz; clear Hz.
 
+  Lemma typ_fun_in : forall (a b : typ) (f : a -=-> b), `f ∈ (a ~~> b).
+  Proof.
+    intros a b f.
+    cbn. intros a1 a2 H.
+    destruct f. cbn. apply p. assumption.
+  Qed.
+  
   Lemma PropT_bind_ret_l : forall (a b : typ) (f : a -=-> (PropT b)),
     ret >>> bind f ⩯ f.
   Proof with eauto.
@@ -166,10 +196,10 @@ Section MonadPropT.
     (* Agr *)
 
     Typeclasses eauto := 3.
-    clear -Hret Agr EqmR EqmRMonad EQ. unfold agrees, monad_fmap in Agr.
+    unfold agrees, monad_fmap in Agr.
 
     eapply eqmR_Proper in Agr...
-    2 : reflexivity. 2 : {
+    2 : {
       Unshelve. 2 : {  refine ((bind (kb >>> ret)) @ (ret @ x)). }
       2 : { refine ((bind (k >>> ret)) @ (ret @ x)). }
       eapply eqmR_bind_ProperH...
@@ -200,12 +230,13 @@ Section MonadPropT.
     cbn in Agr.
 
     change (prop_agrees (kb @ x) (k @ x)).
-    apply agrees_ret_inv...
+    apply eqmR_ret_inv in Agr; assumption...
+
   (* <- *)
   - intros H.
     exists (ret @ x).
     eexists ?[kb].
-    split; [ eapply ret_equal; eassumption | split; [ eapply ret_equal; eassumption | split ]].
+    split; [ eapply ret_equal; PER_reflexivity | split; [eapply ret_equal; PER_reflexivity |split ]].
 
     (* bind ?kb @ (ret @ x) == mb *)
     + pose proof (bind_ret_l (M := M) (a := A)) as Hbr.
@@ -255,8 +286,10 @@ Section MonadPropT.
         rewrite <- Hbr at 2.
         rewrite <- eqmR_equal. eapply eqmR_bind_ProperH... rewrite eqmR_equal...
         intros. rewrite eqmR_equal...
-        unfold agrees, monad_fmap in Agr.
-        eapply agrees_retP_eq...
+
+        admit.
+        
+(*        eapply agrees_retP_eq... *)
       }
       app_proper Pa...
 
@@ -271,7 +304,7 @@ Section MonadPropT.
         rewrite eqmR_equal. PER_reflexivity.
         intros. cbn. apply eqmR_ret... cbn.
         symmetry. rewrite H0. rewrite <- eqmR_equal. apply eqmR_ret... PER_reflexivity.
-  Qed.
+Admitted.
 
   Lemma PropT_bind_bind :
     forall (a b c : typ) (f : typ_proper a (PropT b)) (g : typ_proper b (PropT c)),

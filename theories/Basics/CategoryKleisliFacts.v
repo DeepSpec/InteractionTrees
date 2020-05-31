@@ -13,6 +13,7 @@ From ITree Require Import
      Basics.Basics
      Basics.Category
      Basics.Monad
+     Basics.Typ_Class2
      Basics.CategoryFunctor
      Basics.CategoryKleisli
      Basics.Function.
@@ -24,7 +25,7 @@ Open Scope monad_scope.
 
 Section BasicFacts.
 
-  Context {m : Type -> Type}.
+  Context {m : typ -> typ}.
   Context {EqmRm : EqmR m}.
   Context {Mm : Monad m}.
   Context {EqmROKm : EqmR_OK m}.
