@@ -127,7 +127,7 @@ Section EqmRMonad.
      These are of two quite distinct natures:
      * Heterogeneous generalizations of the usual three monad laws
      * Reasoning principles relating [eqmR R] to [R]
-   *)
+     *)
   Class EqmRMonad :=
     {
       (* SAZ: we can prove only one direction of this law. 
@@ -257,58 +257,152 @@ Section Domain.
   Program Definition domain {A:typ} (m : m A) : relationH A A :=
     fun p =>
       forall (R : relationH A A)
+        (RR : ReflexiveH R)
+        (HS : SymmetricH R)
+        (TS : TransitiveH R)
         (EQ: eqmR R @ (m, m)), R @ p.
   Next Obligation.
     do 2 red.
     intros (x1 & y1) (x2 & y) (H1 & H2). cbn in *.
     split; intros.
     - specialize (H R).
-      destruct R.
-      cbn in *. 
-      pose proof (p (x1, y1) (x2, y)). cbn in *. apply H0. split; auto. 
-      apply H. assumption.
-   - 
-      
-
-
-  Global Instance domain_symmetric {A} (ma : m A) : Symmetric (domain ma).
-  Proof.
-    repeat red.
-    intros.
-    unfold domain in H. symmetry. apply (H R); tauto.
+      eapply rewrite_app_l. apply H1.
+      eapply rewrite_app_r. apply H2. apply H; assumption.
+    - specialize (H R).
+      eapply rewrite_app_l. symmetry. apply H1.
+      eapply rewrite_app_r. symmetry. apply H2. apply H; assumption.
   Qed.
 
-  Global Instance domain_transitive {A} (ma : m A) : Transitive (domain ma).
+
+  Lemma transpose_eq {A} (R : relationH A A) (x:A) :
+    R @ (x, x) <-> (transpose R) @ (x, x).
   Proof.
-    repeat red.
-    intros.
-    unfold domain in *.
-    eapply transitivity. apply H; eauto. apply H0; eauto.
+    split; intros.
+    destruct R; cbn in *.
+    assumption.
+    destruct R; cbn in *.
+    assumption.
+  Qed.
+
+  Lemma domain_reflexive {A} (ma : m A) : ReflexiveH (domain ma).
+  Proof.
+    red.
+    intros a.
+    repeat intro.
+    apply RR.
   Qed.
   
-  Lemma domain_least {A} (ma mb : m A) (R : A -> A -> Prop) `{PER _ R}
-        `{Proper _ (equalE A ==> equalE A ==> iff)%signature R}
-        (G: eqmR R ma mb) 
+  Lemma domain_symmetric {A} (ma : m A) : SymmetricH (domain ma).
+  Proof.
+    red.
+    intros p.
+    destruct p. cbn.
+    intros.
+    pose proof (HS (t, t0)). apply H0. apply H; assumption.
+  Qed.
+
+  Lemma domain_transitive {A} (ma : m A) : TransitiveH (domain ma).
+  Proof.
+    red.
+    intros.
+    destruct p; destruct q; cbn in *.
+    intros.
+    pose proof (TS (t, t0) (t1, t2)). apply H2. apply H; assumption.
+    apply H0; assumption. apply H1.
+  Qed.
+  
+  Lemma domain_least {A} (ma : m A) (R : relationH A A)
+        (RR : ReflexiveH R)
+        (HS : SymmetricH R)
+        (TS : TransitiveH R)
+        (G: eqmR R @ (ma, ma))
     : subrelationH (domain ma) R.
   Proof.
     intros x y D.
     unfold domain in D.
-    apply (D R); try tauto. PER_reflexivity.
+    cbn in *.
+    apply D; assumption.
   Qed.
 
   Global Instance Proper_domain {A} (ma : m A) :
-    Proper (equalE A ==> equalE A ==> iff) (domain ma).
+    Proper (equalE A ==> equalE A ==> iff) ↓(domain ma).
   Proof.
-    repeat red. unfold domain.
+    repeat red.
     intros; split; intros.
-    - apply HP in H. apply H in H0. apply H0. apply H1; auto.
-    - apply HP in H. apply H in H0. apply H0. apply H1; auto.
+    - rewrite <- H. rewrite <- H0. assumption.
+    - rewrite H. rewrite H0. assumption.
   Qed.
-    
+
+  (* SAZ: TODO - move these to HeterogeneousRelations *)
+  Lemma relationH_reflexive : forall (A:typ), ReflexiveH A.
+  Proof.
+    intros A.
+    destruct A; cbn. 
+    repeat red. intros. cbn. reflexivity.
+  Qed.
+
+  (* SAZ: TODO - move these to HeterogeneousRelations *)
+  Lemma relationH_symmetric : forall (A:typ), SymmetricH A.
+  Proof.
+    intros A.
+    destruct A; cbn. 
+    repeat red. intros. cbn in *. symmetry; assumption.
+  Qed.
+
+    (* SAZ: TODO - move these to HeterogeneousRelations *)
+  Lemma relationH_transitive : forall (A:typ), TransitiveH A.
+  Proof.
+    intros A.
+    destruct A; cbn. 
+    repeat red. intros. cbn in *.
+    destruct p, q. cbn in *.
+    eapply transitivity. apply H. eapply transitivity. apply H1. assumption.
+  Qed.
+
+  
+  Lemma domain_subset {A:typ} (ma : m A) :
+    subrelationH (eqmR (domain ma)) (m A).
+  Proof.
+    unfold subrelationH.
+    intros.
+    apply eqmR_equal.
+    specialize (@domain_least A ma).
+    intros P.
+    specialize (P (relationH_of_typ A)).
+    eapply eqmR_Proper_mono; eauto.
+    apply P.
+    - apply relationH_reflexive.
+    - apply relationH_symmetric.
+    - apply relationH_transitive.
+    - apply eqmR_equal. apply (@relationH_reflexive (m A)).
+  Qed.
+
+
+  (* Maybe this is what we axiomatize by typeclasses in the interface? *)
+  Lemma domain_eqmR {A : typ} (ma : m A) :
+      eqmR (domain ma) @ (ma, ma).
+  Proof.
+  Abort.
+
   
   (* A sanity check about the domains: *)
-  Definition singletonR {A:typ} (x:A) : A -> A -> Prop := (fun (a b : A) => a == b /\ a == x).
+  Program Definition singletonR {A:typ} (x:A) : relationH A A :=
+    (fun p => (fst p) == (snd p) /\ (fst p) == x).
+  Next Obligation.
+    do 2 red.
+    intros.
+    destruct x0, y; cbn in *.
+    destruct H.
+    split; intros (HA & HB); split.
+    - rewrite <- H. rewrite <- H0. assumption.
+    - rewrite <- H. assumption.
+    - rewrite H. rewrite H0. assumption.
+    - rewrite H. assumption.
+  Qed.
 
+
+  (* SAZ : TODO - port these *)
+  (*
   Global Instance singletonR_symetric {A:typ} (x:A) : Symmetric (singletonR x).
   Proof.
     repeat red. intros. unfold singletonR in H.
@@ -336,28 +430,8 @@ Section Domain.
     - rewrite H. assumption.
   Qed.
 
-  Lemma domain_subset {A:typ} (ma : m A) (IN : ma ∈ m A) :
-    subrelationH (eqmR (domain ma)) (equalE (m A)).
-  Proof.
-    unfold subrelationH.
-    intros.
-    apply eqmR_equal.
-    unfold contains in IN.
-    apply eqmR_equal in IN.
-    specialize (@domain_least A ma ma).
-    intros P.
-    specialize (P (equalE A) equal_PER).
-    assert (Proper (equalE A ==> equalE A ==> iff) equalE A).
-    { typeclasses eauto. }
-    apply P in H0; auto.
-    eapply eqmR_Proper_mono in H0; eauto.
-  Qed.
     
-  Lemma domain_eqmR {A} (ma : m A) (IN : ma ∈ m A) :
-      eqmR (domain ma) ma ma.
-  Proof.
-  Abort.
-
+  
              
   Lemma ret_domain {A:typ} (x:A) (IN : x ∈ A) : eq_rel (domain (ret @ x)) (singletonR x).
   Proof.
@@ -379,7 +453,7 @@ Section Domain.
 
     
     
-    
+    *)
 End Domain.
 
 
