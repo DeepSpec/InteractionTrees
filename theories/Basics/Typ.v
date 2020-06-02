@@ -15,7 +15,10 @@ Import CatNotations.
 Open Scope cat_scope.
 Import ProperNotations.
 
-Definition rel (A : Type) := A -> A -> Prop.
+Declare Scope typ_scope.
+Open Scope typ_scope.
+
+(* SAZ: Yet another try at Typ but this time with equivalence relations and an "elt" predicate. *)
 
 (**
    Definition of [typ] as a class whose carrier is internal to the class.
@@ -32,13 +35,13 @@ Definition rel (A : Type) := A -> A -> Prop.
 Class typ : Type :=
   Typ {
       Ty : Type;
-      equal : rel Ty;
-      equal_PER :> PER equal
+      equal : relation Ty;
+      equal_Equivalence :> Equivalence equal
     }.
 Arguments equal {T}: rename.
-Arguments Typ {Ty} _ {equal_PER}.
-Notation "'equalE' T" := (@equal T) (at level 5).
-Notation "A '==' B" := (equalE _ A B) (at level 50).
+Arguments Typ {Ty} _ {equal_Equivalence}.
+Notation "'equalE' T" := (@equal T) (at level 5) : typ_scope.
+Notation "A '==' B" := (equalE _ A B) (at level 50) : typ_scope.
 (* This coercion allows us to write [(a: T)] to mean [(a : Ty T)] *)
 Coercion Ty  : typ >-> Sortclass.
 (* Coercion Typ : rel >-> typ. *)
@@ -51,78 +54,131 @@ But that the simplest version cannot be inferred:
 Instance typ_eq (A: Type) : typ := @eq A.
 *)
 
-(* A [typ A] can be thought as the sub-type of elements of [A] over which [equal] is reflexive *)
-Definition contains (T : typ) (a:T) : Prop := equal a a.
-Notation "a ∈ T" := (contains T a) (at level 75).
-
-Record elt (T:typ) :=
-  mk_elt {
-      it :> T;
-      IN : it ∈ T
-    }.
-
-Lemma elt_in : forall (T : typ) (x : elt T), x == x.
-Proof. intros T (x & I). cbn. assumption.
+Lemma elt_in : forall (T : typ) (x : T), x == x.
+Proof. intros T x. reflexivity.
 Qed.      
 
-(* In particular, all elements are in their [typ_eq] *)
-Fact type_eq_full : forall A (a: A), a ∈ (typ_eq A).
-Proof.
-  reflexivity.
-Qed.
 
-(** ** top, bot
-    Given a carrier [A], two particular [typ A] can be defined: [top] where no elements are distinguished,
-    and [bot] which is basically the empty type seen as a subtype of [A]
-    (no reflexive elements for the relation, so no elements in [bot A])
+(** ** top
+    Given a carrier [A], the [top] relation has no elements distinguished.
  *)
-Instance top_PER {A} : PER (fun a b : A => True).
+Instance top_Equivalence {A} : Equivalence (fun a b : A => True).
 Proof.
   split; eauto.
 Qed.
 
-Instance bot_PER {A} : PER (fun a b : A => False).
-Proof.
-  split; eauto.
-Qed.
-
+(* The (any) top typ is the (a) terminal object of the category. *)
 Definition top_typ A : typ := Typ (fun a b : A => True).
-Definition bot_typ A : typ := Typ (fun a b : A => False).
 
-(* All elements are also in [top_typ] *)
-Fact top_typ_full : forall A (a: A), a ∈ (top_typ A).
+(** ** Prop
+    We can define a typ for Prop using `iff` as equality. 
+
+    SAZ: TODO - better notations?
+ *)
+Definition prop_typ : typ := Typ (iff).
+
+
+(** ** Hom Set *)
+
+(* typ_proper forms the morphisms of the category *)
+
+Definition typ_proper (a b : typ) := {f | Proper (equalE a ==> equalE b) f}. 
+Notation "TA -=-> TB" := (typ_proper TA TB) (at level 40).
+
+Definition typ_proper_app {a b : typ} (f : a -=-> b) (x : a) : b := (` f) x.
+
+Notation "f @ x" := (typ_proper_app f x) (at level 40).
+
+Instance eq2_typ_proper : Eq2 typ_proper :=
+    (fun a b f g => forall (x : a) (y : a), equalE a x y -> equalE b (f @ x) (g @ y)).
+
+Global Instance Proper_typ_proper_app : forall {a b : typ},
+    Proper (eq2 ==> equalE a ==> equalE b)
+            (@typ_proper_app a b).
 Proof.
-  reflexivity.
+  repeat intro.
+  destruct x, y.
+  cbn in *.
+  specialize (H x0 y0).
+  cbn in H.
+  apply H. assumption.
 Qed.
 
-(* But none are in [bot_typ] *)
-Fact bot_typ_empty : forall A (a: A), ~a ∈ (bot_typ A).
-Proof.
-  intros ? ? abs; inversion abs.
-Qed.
+ 
+(* arrow_typ internalizes the hom set as an object in the category *)
+Program Instance arrow_typ (TA TB : typ) : typ :=
+  @Typ (TA -=-> TB) (fun (f g : TA -=-> TB) => forall a1 a2, (equalE TA a1 a2) -> (equalE TB (` f a1) (` g a2))) _.
+Next Obligation.
+  destruct TA; destruct TB; split.
+  - repeat red. intros. destruct x; cbn in *. apply p. assumption.
+  - repeat red. intros x y H1 a1 a2 H2. destruct y. cbn in *.
+    symmetry. apply H1. symmetry. apply H2.
+  - repeat red. intros x y z H1 H2 a1 a2 H3. destruct x; destruct z; destruct y; cbn in *.
+    eapply transitivity. apply H1. apply H3. apply H2. eapply transitivity. symmetry. apply H3. apply H3.
+Qed.  
+
+Notation "TA ~~> TB" := (arrow_typ TA TB) (at level 40) : typ_scope.
+
+Program Definition internalize_arrow {TA TB : typ} (f : TA -=-> TB) : TA ~~> TB := f.
+Program Definition externalize_arrow {TA TB : typ} (f : TA ~~> TB) : TA -=-> TB := f.
 
 (** ** prod
     Cartesian product of two [typ].
     In this approach, we have a lot of type annotations, but the term is straightforward to write.
  *)
 
-Instance pair_PER (A B:Type) (RA : rel A) `{PER A RA} (RB : rel B) `{PER B RB}:
-  PER (fun (p q: A * B) => RA (fst p) (fst q) /\ RB (snd p) (snd q)).
+Instance pair_Equivalence (A B:Type) (RA : relation A)
+         `{Equivalence A RA} (RB : relation B) `{Equivalence B RB}:
+  Equivalence (fun (p q: A * B) => RA (fst p) (fst q) /\ RB (snd p) (snd q)).
 Proof.
   split.
+  repeat red. intros; split; reflexivity.
   repeat red. intros x y (H1 & H2). split; symmetry; assumption.
   repeat red. intros x y z (H1 & H2) (H3 & H4). split; eapply transitivity; eauto.
 Qed.
+
 
 Instance prod_typ (TA TB: typ) : typ :=
   Typ (fun (p q: TA * TB) => equal (fst p) (fst q) /\ equal (snd p) (snd q)).
 Notation "e × f" := (prod_typ e f) (at level 70).
 
-(* We indeed picked the most general product of typs in that all pairs of elements _belonging_ to the crossed typs are in: *)
-Fact prod_typ_gen : forall (TA TB: typ) (a: TA) (b : TB),
-    (a ∈ TA /\ b ∈ TB) <-> (a,b) ∈ TA × TB.
+
+Definition pair_typ {a b : typ} (x : a) (y : b) : a × b := pair x y.
+Definition fst_typ {a b : typ} (x : a × b) : a := fst x.
+Definition snd_typ {a b : typ} (x : a × b) : b := snd x.
+
+Notation "( x , y )" := (pair_typ x y) : typ_scope.
+
+Program Definition curry_ {a b c : typ} (f : (a × b) -=-> c) : a -> (b ~~> c) :=
+  fun (x:a) => _.
+Next Obligation.
+  exists (fun b => f @ (x, b)).
+  do 2 red. intros b1 b2 EQB. destruct f; cbn in *. apply p. cbn.
+  split; [ reflexivity | assumption].
+Defined.  
+  
+Program Definition curry {a b c : typ} (f : (a × b) -=-> c) : a -=-> (b ~~> c) :=
+  exist _ (fun x => curry_ f x) _.
+Next Obligation.
+  do 2 red.
+  intros x y H a1 a2 H0.
+  destruct f; cbn in *. apply p. cbn. tauto.
+Defined.  
+
+Goal ((3 : top_typ nat) == (4 : top_typ nat)) .
 Proof.
-  intros *; split; (intros [INA INB]; split; [apply INA | apply INB]).
+  repeat red; auto.
+Qed.
+
+Fact prod_typ_gen : forall (TA TB : typ) (x : TA × TB), x == (fst x, snd x).
+Proof.
+  intros TA TB x.
+  destruct x; reflexivity.
+Qed.  
+
+Goal ((3 : top_typ nat), (4 : top_typ nat)) == ((4 : top_typ nat), (4 : top_typ nat)).
+Proof.
+  repeat red. split; reflexivity. 
 Qed.
 
 
@@ -132,6 +188,13 @@ Proof.
   repeat red; intros.
   split; cbn; assumption.
 Qed.
+
+Goal forall (x: top_typ nat), (x == 4) -> ((x, x)  == ((3 : top_typ nat), (3 : top_typ nat))).
+  intros.
+  rewrite H.
+  apply Proper_pair; reflexivity.
+Qed.
+
 
 Global Instance Proper_fst {TA TB : typ} :
   Proper (equalE (TA × TB) ==> equalE TA) fst.
@@ -152,27 +215,33 @@ Qed.
   Coproduct of two [typ].
  *)
 
-Instance sum_PER (A B:Type) (RA : rel A) `{PER A RA} (RB : rel B) `{PER B RB} :
-  PER (fun (p q : A + B) =>
-          match (p, q) with
-          | (inl x, inl y) => RA x y
-          | (inr x, inr y) => RB x y
-          | (_, _) => False
+Instance sum_PER (A B:Type)
+         (RA : relation A) `{Equivalence A RA}
+         (RB : relation B) `{Equivalence B RB} :
+  Equivalence (fun (p q : A + B) =>
+          match pair p q with
+          | pair (inl x) (inl y) => RA x y
+          | pair (inr x) (inr y) => RB x y
+          | pair _ _ => False
           end).
 Proof.
   split; repeat red; intros.
+  - destruct x; try reflexivity.
   - destruct x; destruct y; try tauto; symmetry; auto.
   - destruct x; destruct y; destruct z; try tauto; etransitivity; eauto.
 Qed.
 
 Instance sum_typ (TA TB : typ) : typ :=
   Typ (fun (p q : TA + TB) =>
-          match (p, q) with
-          | (inl x, inl y) => equal x y
-          | (inr x, inr y) => equal x y
-          | (_, _) => False
+          match pair p q with
+          | pair (inl x) (inl y) => equalE TA x y
+          | pair (inr x) (inr y) => equalE TB x y
+          | pair _ _ => False
           end).
-Notation "e ⨥ f" := (sum_typ e f) (at level 80).
+Notation "e ⨥ f" := (sum_typ e f) (at level 80) : typ_scope.
+
+Definition inl_typ {a b : typ} (x : a) : a ⨥ b := inl x.
+Definition inr_typ {a b : typ} (x : b) : a ⨥ b := inr x.
 
 
 Global Instance Proper_inl {TA TB : typ} :
@@ -189,86 +258,6 @@ Proof.
   destruct TA. cbn. assumption.
 Qed.
 
-Fact sum_typ_gen1 : forall (TA TB : typ) (a : TA),
-    (a ∈ TA) <-> (inl a) ∈ (TA ⨥ TB).
-Proof.
-  intros TA TB a.
-  split.
-  - intros IN. apply Proper_inl. assumption.
-  - intros. red in H. red. destruct TA. cbn in *. assumption.
-Qed.  
-
-Fact sum_typ_gen2 : forall (TA TB : typ) (b : TB),
-    (b ∈ TB) <-> (inr b) ∈ (TA ⨥ TB).
-Proof.
-  intros TA TB b.
-  split.
-  - intros IN. apply Proper_inr. assumption.
-  - intros. red in H. red. destruct TB. cbn in *. assumption.
-Qed.
-
-Class typ2 : Type :=
-  Typ2 {
-      Ty2 : Type;
-      equal2 : rel Ty2;
-      equal_PER2 :> Equivalence equal2
-    }.
-
-
-Instance fun_PER (A B:Type) (RA : rel A) `{Equivalence A RA} (RB : rel B) `{Equivalence B RB}
-  : typ2.
-Proof.
-  eapply (Typ2 ({f | Proper (RA ==> RB) f})
-               (fun f g => forall a1 a2, RA a1 a2 -> RB (` f a1) (` g a2))).
-  split.
-  - repeat red. intros.  destruct x. cbn. apply p. assumption.
-  - repeat red. intros x y H1 a1 a2 H2.
-
-    symmetry. apply H1. symmetry. apply H2.
-  - repeat red. intros x y z H1 H2 a1 a2 H3.
-    eapply transitivity. apply H1. apply H3. apply H2. eapply transitivity. symmetry. apply H3. apply H3.
-Qed.
-
-
-
-
-Instance fun_PER (A B:Type) (RA : rel A) `{PER A RA} (RB : rel B) `{PER B RB}
-  : PER (fun (f g: A -> B) => forall a1 a2, RA a1 a2 -> RB (f a1) (g a2)).
-Proof.
-  split.
-  - repeat red. intros x y H1 a1 a2 H2.  symmetry. apply H1. symmetry. apply H2.
-  - repeat red. intros x y z H1 H2 a1 a2 H3.
-    eapply transitivity. apply H1. apply H3. apply H2. eapply transitivity. symmetry. apply H3. apply H3.
-Qed.
-
-(** ** arr
-    Exponential of two [typ].
- *)
-Definition arr_typ (TA TB: typ) : typ :=
-  Typ (fun (f g: TA -> TB) => forall a1 a2, equal a1 a2 -> equal (f a1) (g a2)).
-
-Notation "e ~~> f" := (arr_typ e f) (at level 60).
-
-(* Elements in the arrow [typ] are exactly the functions respecting the equivalences *)
-Fact arr_typ_gen : forall (TA TB: typ) (f: TA -> TB),
-     f ∈ TA ~~> TB <-> Proper (equalE TA ==> equalE TB) f.
-Proof.
-  intros *; split; intros H; apply H.
-Qed.
-
-Goal ((Typ (@eq nat)) ~~> (bot_typ nat)).
-Proof.
-  Fail typeclasses eauto. (* Still no instance with new Typ definition. *)
-Abort.
-
-
-(** ** Prop
-    We can define a typ for Prop using `iff` as equality. 
-
-    SAZ: TODO - better notations?
-*)
-Definition prop_typ : typ := Typ (iff).
-
 
 (*
     Typ forms a Category. We are working in a category C, where:
@@ -279,16 +268,6 @@ Definition prop_typ : typ := Typ (iff).
 *)
 Section TypCat.
 
-  Definition typ_proper (a b : typ) := (elt (a ~~> b)).
-  Notation "TA -=-> TB" := (typ_proper TA TB) (at level 40).
-
-  Definition typ_proper_app {a b : typ} (f : a -=-> b) (x : elt a) : b :=
-    (it f) (it x).
-
-  Notation "f @ x" := (typ_proper_app f x) (at level 40).
-
-  Instance eq2_typ_proper : Eq2 typ_proper :=
-    (fun a b f g => forall (x : elt a) (y : elt a), equalE a x y -> equalE b (f @ x) (g @ y)).
 
   Lemma id_ok: forall (TA : typ),
       Proper (equalE TA ==> equalE TA) (fun x => x).
@@ -297,15 +276,16 @@ Section TypCat.
     repeat red. tauto.
   Defined.
 
-  Lemma compose_ : forall (TA TB TC : typ)
-                   (f : elt (TA ~~> TB))
-                   (g : elt (TB ~~> TC))
-      (it f >>> it g) ∈ (TA ~~> TC).
+  Instance compose_Proper:
+    forall (TA TB TC : typ)
+      (f : TA -=-> TB)
+      (g : TB -=-> TC),
+      Proper (equalE TA ==> equalE TC) ((` f) >>> (` g)).
   Proof.
-    intros TA TB TC f g P1 P2.
+    intros TA TB TC f g a1 a2 EQ.
     repeat red.
-    intros.
-    apply P2. apply P1. assumption.
+    destruct TC; cbn. destruct g; destruct f; cbn in *.
+    apply p. apply p0. assumption.
   Defined.
 
   Global Instance id_typ_proper : Id_ typ_proper :=
@@ -314,9 +294,9 @@ Section TypCat.
       (fun x : TA => x) (id_ok TA).
 
   Global Instance cat_typ_proper : Cat typ_proper :=
-    fun (a b c : typ) (TA : a -=-> b) (TB : b -=-> c) =>
-    exist (fun f : a -> c => Proper (equalE a ==> equalE c) f)
-      (fun x : a => TB @ (TA @ x)) (compose a b c _ _ (proj2_sig TA) (proj2_sig TB)).
+    fun (a b c : typ) (f : a -=-> b) (g : b -=-> c) =>
+    exist (fun x : a -> c => Proper (equalE a ==> equalE c) x)
+      ((` f) >>> (` g)) (compose_Proper a b c f g).
 
   Global Instance cat_IdL_typ_proper : CatIdL typ_proper.
     repeat intro. destruct f. cbn. apply p. assumption.
@@ -346,10 +326,6 @@ Section TypCat.
 
   
 End TypCat.
-
-
-Notation "A '-=->' B" := (typ_proper A B) (right associativity, at level 70).
-Notation "f @ x" := (typ_proper_app f x) (at level 40).
 
 
 Section TypCatCoproducts.
@@ -417,18 +393,6 @@ Existing Instance id_typ_proper.
 
 (* Proper instances for typ and typ_proper. ********************************* *)
 
-Lemma Proper_typ_proper_app : forall {a b : typ},
-    Proper (eq2 ==> equalE a ==> equalE b)
-            (@typ_proper_app a b).
-Proof.
-  repeat intro.
-  destruct x, y.
-  cbn in *.
-  specialize (H x0 y0).
-  cbn in H.
-  apply H. unfold contains. etransitivity. apply H0. symmetry.
-  unfold contains. etransitivity. symmetry. apply H0. apply H0.
-Qed.
 
 (* Lemma Proper_typ_proper_app_partial : forall {a b : typ}  *)
 (*     Proper (equalE a ==> equalE b) *)
@@ -451,7 +415,7 @@ Qed.
 (*   transitivity x0; [ | assumption]. transitivity x; assumption. *)
 (* Qed. *)
 
-Instance Proper_equal (A : typ) :
+Global Instance Proper_equal (A : typ) :
   Proper (equalE A ==> equalE A ==> iff) (equalE A).
 Proof.
   repeat intro. split.
@@ -484,13 +448,11 @@ Existing Instance Proper_equal_partial.
 
 Instance eq2_PER : forall a b, PER (eq2 (a := a) (b := b)).
 Proof.
-  pose proof fun_PER.
   unfold eq2, eq2_typ_proper. intros.
-  specialize (H a b (equalE a) _ (equalE b) _).
   econstructor.
-  - red. repeat intro. destruct x, y. cbn in *. apply H. apply H0. apply H1.
-  - red. repeat intro. destruct x, y. cbn in *. destruct H. eapply PER_Transitive.
-    eassumption. eassumption. assumption.
+  - red. repeat intro. destruct x, y. cbn in *. symmetry. apply H. symmetry. assumption.
+  - red. repeat intro. destruct x, y. cbn in *.  eapply PER_Transitive.
+    apply H. eassumption. apply H0. reflexivity.
 Qed.
 
 Global Instance eq2_Reflexive : forall a b, Reflexive (eq2 (a := a) (b := b)).
@@ -512,29 +474,24 @@ Defined.
 Definition typ_proper_typ a b : typ :=
   Typ (eq2 (a := a) (b := b)).
 
-Notation "A ~=~> B" := (typ_proper_typ A B) (at level 80).
+
 
 (* (* Properness property about exponentials *********************************** *) *)
 
 Global Instance arr_PER: forall a b, PER (equalE (a ~~> b)).
 Proof.
-  pose proof fun_PER.
-  cbn. intros. specialize (H a b (equalE a) _ (equalE b) _). eapply H.
+  destruct a, b; cbn.
+  split.
+  - repeat red. intros. destruct x,y; cbn in *. symmetry. apply H. symmetry. assumption.
+  - repeat red. intros. destruct x,y,z; cbn in *. etransitivity. apply H. eassumption. apply H0. reflexivity.
 Defined.
 
 
 
-(* Non-empty typ ------------------------------------------------------------ *)
-
-Class NonEmpty (T:typ) : Prop:=
-  {
-   nonempty: exists (t:T), t == t
-  }.
-
 (* Misc. Utilities ********************************************************** *)
 
 
-Notation "-=->!" := (exist _) (right associativity, at level 50).
+Notation "-=->!" := (exist _) (right associativity, at level 50) : typ_scope.
 
 (* IY: Is there a better generalized Ltac for this? *)
 Ltac unfold_cat :=

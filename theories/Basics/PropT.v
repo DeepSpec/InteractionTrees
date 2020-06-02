@@ -35,9 +35,6 @@ Section MonadPropT.
   (* Moreover, we need monads that have well-defined "inversion principles" *)
   Context {EqmRMonadInverses : EqmRMonadInverses M}.
 
-  (* We can define a typ for Prop using `iff` as equality. *)
-  Definition prop_typ : typ := Typ (iff).
-
   (* The typ that PropT returns that we want coincides with the typ version of typ_proper. *)
   Definition PropT (X : typ) : typ := (M X) ~=~> prop_typ.
 

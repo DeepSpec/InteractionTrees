@@ -7,7 +7,7 @@ From Coq Require Import
 
 Import ProperNotations.
 From ITree Require Import
-     Typ_Class2
+     Basics.Typ_Class2
      Basics.CategoryOps
      Basics.CategoryTheory
      Basics.CategoryFunctor
@@ -28,8 +28,6 @@ split.
 - unfold ID. intros a b f. exact f.
 Defined.
 
-About EqmR.
-
 Definition eqmR_ID : forall (A B : typ) (R : relationH A B), relationH (ID A) (ID B) :=
   fun _ _ R => R.
 
@@ -37,6 +35,9 @@ Program Instance EqmR_ID : EqmR ID :=
   {
   eqmR := eqmR_ID;
   }.
+Next Obligation.
+  split; red; tauto.
+Qed.
 
 Instance EqmR_OK_ID : EqmR_OK ID.
 split; try tauto.
