@@ -1,13 +1,14 @@
 -Q theories ITree
 
 
-theories/Basics/CategoryRelation.v
 theories/Basics/Typ.v
 theories/Basics/CategoryMonad.v
 theories/Basics/Monad.v
 theories/Basics/MonadID.v
 theories/Basics/MonadProp.v
 theories/Basics/PropT.v
+
+theories/Basics/CategoryRelation.v
 
 theories/Simple.v
 theories/ITree.v

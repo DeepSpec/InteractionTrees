@@ -7,13 +7,13 @@ From Coq Require Import
 
 Import ProperNotations.
 From ITree Require Import
-     Basics.Typ_Class2
+     Basics.Typ
+     Basics.HeterogeneousRelations
      Basics.CategoryOps
      Basics.CategoryTheory
      Basics.CategoryFunctor
      Basics.CategoryMonad
      Basics.Monad
-     Basics.HeterogeneousRelations
 .
 
 Import CatNotations.
@@ -42,12 +42,13 @@ Qed.
 Instance EqmR_OK_ID : EqmR_OK ID.
 split; try tauto.
 - intros. cbn in *. unfold eqmR_ID in *.
-  red. exists mb. tauto.
+  exists mb. tauto.
 - intros. cbn in *. unfold eqmR_ID in *.
   reflexivity.
 - intros.
   repeat red.
-  intros. apply H. apply H0.
+  intros. apply H.
+- intros. do 2 red. cbn. unfold eqmR_ID. tauto.
 Qed.  
 
 
@@ -62,13 +63,8 @@ Qed.
 
 Instance EqmRMonad_ID : EqmRMonad ID.
 split; try tauto.
-- intros.
-  repeat red. unfold bind. cbn.  apply H0. apply H.
-- intros.
-  repeat red. destruct B. cbn.
-  destruct f. apply p. assumption.
-- intros. repeat red.
-  destruct C. cbn.
-  destruct f. destruct g.
-  cbn. apply p0. apply p. assumption.
+- intros. apply H0. apply H.
+- intros. reflexivity.
+- intros. reflexivity.
+- intros. reflexivity.
 Qed.
