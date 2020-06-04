@@ -24,7 +24,7 @@ From Coq Require Import
 Import ProperNotations.
 
 From ITree Require Import
-     Typ_Class2
+     Typ
      Basics.CategoryOps
      Basics.CategoryTheory
      Basics.CategoryFunctor
@@ -47,7 +47,6 @@ Definition Kleisli m a b : Type := a -=-> m b.
 (* Definition Kleisli_arrow {m a b} : (a -> m b) -> Kleisli m a b := fun f => f. *)
 Definition Kleisli_apply {m a b} : Kleisli m a b -> (a -> m b) := typ_proper_app.
 
-
 Section Pure.
   Context {m : typ -> typ}.
   Context {m_Monad : Monad typ_proper m}.
@@ -58,25 +57,38 @@ Section Pure.
    * EqmRMonad is defined using typ's and fufills [CategoryMonad] monad laws.
    *)
   Context {EqM: EqmR m} {EqmR : EqmR_OK m} {EqmRMonad : EqmRMonad m}.
-  
+
 
   Definition pure_ {a b} (f : a -=-> b) : a -> m b :=
     fun x => ret @ (f @ x).
 
+
+  (* IY: Should we have this? *)
+  (* Definition relation_to_relationH {A : typ} (R : relation A) : relationH A A := *)
+  (*   relationH_of_typ A. *)
+  (* Local Coercion relation_to_relationH : relation >-> relationH. *)
+
   Program Definition pure {a b} (f : a -=-> b) : a -=-> m b :=
     -=->! (pure_ f) _.
   Next Obligation.
-    rewrite <- eqmR_equal.
-    do 2 red.
-    intros x y H.
-    unfold pure_ in *.
-    red in f.
-    destruct f.
-    cbn.
-    specialize (p _ _ H).
-    eapply eqmR_ret; eauto.
-  Qed.
-End Pure.    
+    repeat intro.
+    specialize (eqmR_equal b). intros.
+    unfold equal.
+    (* pose proof (relation_to_relationH (@equal (m b))). *)
+    (* IY: Coercion is not working... *)
+    (* rewrite <- eqmR_equal. *)
+    Admitted.
+  (*   do 2 red. *)
+  (*   intros x y H. *)
+  (*   unfold pure_ in *. *)
+  (*   red in f. *)
+  (*   destruct f. *)
+  (*   cbn. *)
+  (*   specialize (p _ _ H). *)
+  (*   eapply eqmR_ret; eauto. *)
+  (* Qed. *)
+
+End Pure.
 
 Section Instances.
   Context {m : typ -> typ}.
@@ -89,9 +101,9 @@ Section Instances.
    *)
   Context {EqM: EqmR m} {EqmR : EqmR_OK m} {EqmRMonad : EqmRMonad m}.
 
-  Global Instance Eq2_Kleisli : Eq2 (Kleisli m) := 
-    fun (a:typ) (b:typ) f g => pointwise_relation _ eqm (` f) (` g).
-
+  (* IY: Why doesn't coercion work here?*)
+  Global Instance Eq2_Kleisli : Eq2 (Kleisli m) :=
+    fun (a:typ) (b:typ) f g => pointwise_relation _ (relationH_to_relation (eqm (m := m) (A := b))) (` f) (` g).
 
   Definition cat_ a b c (u : (Kleisli m a b)) (v : Kleisli m b c) : a -> m c := 
     fun (x:a) => (@bind _ _ m m_Monad _ _ v) @ (u @ x).
@@ -115,6 +127,7 @@ Section Instances.
   Definition map {a b c} (g:b -=-> c) (ab : Kleisli m a b) : Kleisli m a c :=
      cat ab (pure g).
 
+  (* IY : Can't define these, because bot_typ DNE. *)
   Program Definition initialK : Initial (Kleisli m) (bot_typ Empty_set) :=
     fun a => -=->! (fun v => match v : Empty_set with end) _.
   Next Obligation.

@@ -177,7 +177,7 @@ Proof.
     rewrite H. rewrite H0. reflexivity. assumption.
   - specialize (p (x0, x1) (y, y0)).  apply p.
     rewrite H. rewrite H0. reflexivity. assumption.
-Qed.    
+Qed.
 
 
 Coercion relationH_to_relation : relationH >-> relation.
@@ -190,6 +190,29 @@ Definition SymmetricH {A: typ} (R : relationH A A) : Prop :=
 
 Definition TransitiveH {A: typ} (R : relationH A A) : Prop :=
   forall (p q: A × A), R @ p -> R @ q -> equalE A (snd p) (fst q) -> R @ (fst p, snd q).
+
+Lemma relationH_reflexive : forall (A:typ), ReflexiveH A.
+Proof.
+  intros A.
+  destruct A; cbn. 
+  repeat red. intros. cbn. reflexivity.
+Qed.
+
+Lemma relationH_symmetric : forall (A:typ), SymmetricH A.
+Proof.
+  intros A.
+  destruct A; cbn. 
+  repeat red. intros. cbn in *. symmetry; assumption.
+Qed.
+
+Lemma relationH_transitive : forall (A:typ), TransitiveH A.
+Proof.
+  intros A.
+  destruct A; cbn. 
+  repeat red. intros. cbn in *.
+  destruct p, q. cbn in *.
+  eapply transitivity. apply H. eapply transitivity. apply H1. assumption.
+Qed.
 
 Lemma ReflexiveH_Reflexive {A: typ} (R : relationH A A) :
   ReflexiveH R <-> Reflexive ↓R.

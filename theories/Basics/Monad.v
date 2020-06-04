@@ -23,18 +23,19 @@ Local Open Scope typ_scope.
 Section EqmR.
 
 (* SAZ: really HeterogenousRelations should be proper.  We could remove all those assumptions here. *)
-  
+
   (* We consider heterogeneous relations on computations parameterized by a relation on the return types *)
   (* Rq: if we make [EqMR] a singleton class, the type checker tends to craft dumb instances for itself behind our back.
     I wrapped it up in a record, it seems to prevent this behavior.
   *)
   Class EqmR (m : typ -> typ) : Type :=
-    { eqmR : forall (A B : typ) (R : relationH A B), relationH (m A) (m B) ;
+    {
+      eqmR : forall (A B : typ) (R : relationH A B), relationH (m A) (m B) ;
       eqmR_equal : forall (A : typ), eq_rel (eqmR A A A) (m A)
     }.
 
   Arguments eqmR {m _ A B}.
-
+  
   (*
     The more traditional notion of monadic equivalence is recovered at the equality relation
     [forall A,  m A -> m A -> Prop]
@@ -332,33 +333,6 @@ Section Domain.
     - rewrite <- H. rewrite <- H0. assumption.
     - rewrite H. rewrite H0. assumption.
   Qed.
-
-  (* SAZ: TODO - move these to HeterogeneousRelations *)
-  Lemma relationH_reflexive : forall (A:typ), ReflexiveH A.
-  Proof.
-    intros A.
-    destruct A; cbn. 
-    repeat red. intros. cbn. reflexivity.
-  Qed.
-
-  (* SAZ: TODO - move these to HeterogeneousRelations *)
-  Lemma relationH_symmetric : forall (A:typ), SymmetricH A.
-  Proof.
-    intros A.
-    destruct A; cbn. 
-    repeat red. intros. cbn in *. symmetry; assumption.
-  Qed.
-
-    (* SAZ: TODO - move these to HeterogeneousRelations *)
-  Lemma relationH_transitive : forall (A:typ), TransitiveH A.
-  Proof.
-    intros A.
-    destruct A; cbn. 
-    repeat red. intros. cbn in *.
-    destruct p, q. cbn in *.
-    eapply transitivity. apply H. eapply transitivity. apply H1. assumption.
-  Qed.
-
   
   Lemma domain_subset {A:typ} (ma : m A) :
     subrelationH (eqmR (domain ma)) (m A).

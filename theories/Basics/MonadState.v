@@ -14,7 +14,6 @@ From ITree Require Import
      Basics.HeterogeneousRelations
      Basics.Tacs
      Basics.Monad
-     Basics.MayRet
 .
 
 Import ITree.Basics.Basics.Monads.

@@ -56,7 +56,7 @@ Instance typ_eq (A: Type) : typ := @eq A.
 
 Lemma elt_in : forall (T : typ) (x : T), x == x.
 Proof. intros T x. reflexivity.
-Qed.      
+Qed.
 
 
 (** ** top
@@ -70,19 +70,30 @@ Qed.
 (* The (any) top typ is the (a) terminal object of the category. *)
 Definition top_typ A : typ := Typ (fun a b : A => True).
 
+(** ** bot *)
+(* IY: Can't define bot typ, which should be the initial object in the category
+   , since there are no elements of bot and we can't get reflexivity.
+ *)
+Instance bot_Equivalence {A} : Equivalence (fun a b : A => False).
+Proof.
+  split; eauto.
+Abort.
+
+(* The bot typ is the initial object of the category. *)
+Fail Definition bot_typ A : typ := Typ (fun a b : A => False).
+
 (** ** Prop
-    We can define a typ for Prop using `iff` as equality. 
+    We can define a typ for Prop using `iff` as equality.
 
     SAZ: TODO - better notations?
  *)
 Definition prop_typ : typ := Typ (iff).
 
-
 (** ** Hom Set *)
 
-(* typ_proper forms the morphisms of the category *)
+(* [typ_proper] forms the morphisms of the category. *)
 
-Definition typ_proper (a b : typ) := {f | Proper (equalE a ==> equalE b) f}. 
+Definition typ_proper (a b : typ) := {f | Proper (equalE a ==> equalE b) f}.
 Notation "TA -=-> TB" := (typ_proper TA TB) (at level 40).
 
 Definition typ_proper_app {a b : typ} (f : a -=-> b) (x : a) : b := (` f) x.
@@ -90,7 +101,8 @@ Definition typ_proper_app {a b : typ} (f : a -=-> b) (x : a) : b := (` f) x.
 Notation "f @ x" := (typ_proper_app f x) (at level 40).
 
 Instance eq2_typ_proper : Eq2 typ_proper :=
-    (fun a b f g => forall (x : a) (y : a), equalE a x y -> equalE b (f @ x) (g @ y)).
+  (fun a b f g => forall (x : a) (y : a), equalE a x y ->
+                                          equalE b (f @ x) (g @ y)).
 
 Global Instance Proper_typ_proper_app : forall {a b : typ},
     Proper (eq2 ==> equalE a ==> equalE b)
@@ -104,10 +116,10 @@ Proof.
   apply H. assumption.
 Qed.
 
- 
-(* arrow_typ internalizes the hom set as an object in the category *)
+(* [arrow_typ] internalizes the hom set as an object in the category. *)
 Program Instance arrow_typ (TA TB : typ) : typ :=
-  @Typ (TA -=-> TB) (fun (f g : TA -=-> TB) => forall a1 a2, (equalE TA a1 a2) -> (equalE TB (` f a1) (` g a2))) _.
+  @Typ (TA -=-> TB)
+       (fun (f g : TA -=-> TB) => forall a1 a2, (equalE TA a1 a2) -> (equalE TB (` f a1) (` g a2))) _.
 Next Obligation.
   destruct TA; destruct TB; split.
   - repeat red. intros. destruct x; cbn in *. apply p. assumption.
@@ -115,12 +127,14 @@ Next Obligation.
     symmetry. apply H1. symmetry. apply H2.
   - repeat red. intros x y z H1 H2 a1 a2 H3. destruct x; destruct z; destruct y; cbn in *.
     eapply transitivity. apply H1. apply H3. apply H2. eapply transitivity. symmetry. apply H3. apply H3.
-Qed.  
+Qed.
 
 Notation "TA ~~> TB" := (arrow_typ TA TB) (at level 40) : typ_scope.
 
-Program Definition internalize_arrow {TA TB : typ} (f : TA -=-> TB) : TA ~~> TB := f.
-Program Definition externalize_arrow {TA TB : typ} (f : TA ~~> TB) : TA -=-> TB := f.
+Program Definition internalize_arrow {TA TB : typ} (f : TA -=-> TB) : TA ~~> TB :=
+  f.
+Program Definition externalize_arrow {TA TB : typ} (f : TA ~~> TB) : TA -=-> TB :=
+  f.
 
 (** ** prod
     Cartesian product of two [typ].
@@ -137,11 +151,9 @@ Proof.
   repeat red. intros x y z (H1 & H2) (H3 & H4). split; eapply transitivity; eauto.
 Qed.
 
-
 Instance prod_typ (TA TB: typ) : typ :=
   Typ (fun (p q: TA * TB) => equal (fst p) (fst q) /\ equal (snd p) (snd q)).
 Notation "e × f" := (prod_typ e f) (at level 70).
-
 
 Definition pair_typ {a b : typ} (x : a) (y : b) : a × b := pair x y.
 Definition fst_typ {a b : typ} (x : a × b) : a := fst x.
@@ -155,15 +167,15 @@ Next Obligation.
   exists (fun b => f @ (x, b)).
   do 2 red. intros b1 b2 EQB. destruct f; cbn in *. apply p. cbn.
   split; [ reflexivity | assumption].
-Defined.  
-  
+Defined.
+
 Program Definition curry {a b c : typ} (f : (a × b) -=-> c) : a -=-> (b ~~> c) :=
   exist _ (fun x => curry_ f x) _.
 Next Obligation.
   do 2 red.
   intros x y H a1 a2 H0.
   destruct f; cbn in *. apply p. cbn. tauto.
-Defined.  
+Defined.
 
 Goal ((3 : top_typ nat) == (4 : top_typ nat)) .
 Proof.
