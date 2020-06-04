@@ -104,10 +104,9 @@ Proof.
   apply H. assumption.
 Qed.
 
- 
 (* arrow_typ internalizes the hom set as an object in the category *)
 Program Instance arrow_typ (TA TB : typ) : typ :=
-  @Typ (TA -=-> TB) (fun (f g : TA -=-> TB) => forall a1 a2, (equalE TA a1 a2) -> (equalE TB (` f a1) (` g a2))) _.
+  @Typ (TA -=-> TB) (@eq2_typ_proper TA TB) _.
 Next Obligation.
   destruct TA; destruct TB; split.
   - repeat red. intros. destruct x; cbn in *. apply p. assumption.
@@ -118,6 +117,12 @@ Next Obligation.
 Qed.  
 
 Notation "TA ~~> TB" := (arrow_typ TA TB) (at level 40) : typ_scope.
+
+Global Instance Proper_typ_proper_app2 : forall {a b : typ},
+    Proper (equalE (arrow_typ a b) ==> equalE a ==> equalE b) (@typ_proper_app a b).
+intros.
+apply Proper_typ_proper_app.
+Qed.
 
 Program Definition internalize_arrow {TA TB : typ} (f : TA -=-> TB) : TA ~~> TB := f.
 Program Definition externalize_arrow {TA TB : typ} (f : TA ~~> TB) : TA -=-> TB := f.

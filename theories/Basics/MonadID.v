@@ -52,13 +52,14 @@ split; try tauto.
 Qed.  
 
 
-Instance MonadLaws_ID : MonadLaws MonadID.
-split.
-- cbn. intros. apply cat_id_l.
-- cbn. unfold ID. intros. reflexivity.
-- intros.  cbn. reflexivity.
-- intros. unfold bind. cbn. repeat red. intros. destruct b. apply H. assumption.
-Qed.
+(* SAZ: This instance should be implied by the one below. *)
+(* Instance MonadLaws_ID : MonadLaws MonadID. *)
+(* split. *)
+(* - cbn. intros. apply cat_id_l. *)
+(* - cbn. unfold ID. intros. reflexivity. *)
+(* - intros.  cbn. reflexivity. *)
+(* - intros. unfold bind. cbn. repeat red. intros. destruct b. apply H. assumption. *)
+(* Qed. *)
 
 
 Instance EqmRMonad_ID : EqmRMonad ID.

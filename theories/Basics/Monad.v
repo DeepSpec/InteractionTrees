@@ -246,18 +246,29 @@ Proof.
  pose proof (p (x, y1) (x, y2)). cbn in *. apply H0. split; auto. reflexivity.
  apply H. 
 Qed.
-  
-Section Domain.
+
+
+(* SAZ: Renamed "Domain" to "Image" -- more accurate *)
+Section Image.
 
   Context (m : typ -> typ).
   Context {Mm : Monad typ_proper m}.
   Context {EqMR : EqmR m} {EqmRm: EqmRMonad m} {EqmROKm : EqmR_OK m}.
   Context {EqMRI: EqmRMonadInverses m}.
 
-  Program Definition domain {A:typ} (m : m A) : relationH A A :=
+
+  (* SAZ:
+     We *don't* want the image to be reflexive because it's not true.
+
+     Consider itrees then [image spin] is the empty PER because there
+     are no elements that can be returned.
+
+
+     Q: should we instead define this as a predicate of type A -=-> prop_typ ?
+   *)
+  Program Definition image {A:typ} (m : m A) : relationH A A :=
     fun p =>
       forall (R : relationH A A)
-        (RR : ReflexiveH R)
         (HS : SymmetricH R)
         (TS : TransitiveH R)
         (EQ: eqmR R @ (m, m)), R @ p.
@@ -283,16 +294,8 @@ Section Domain.
     destruct R; cbn in *.
     assumption.
   Qed.
-
-  Lemma domain_reflexive {A} (ma : m A) : ReflexiveH (domain ma).
-  Proof.
-    red.
-    intros a.
-    repeat intro.
-    apply RR.
-  Qed.
   
-  Lemma domain_symmetric {A} (ma : m A) : SymmetricH (domain ma).
+  Lemma image_symmetric {A} (ma : m A) : SymmetricH (image ma).
   Proof.
     red.
     intros p.
@@ -301,7 +304,7 @@ Section Domain.
     pose proof (HS (t, t0)). apply H0. apply H; assumption.
   Qed.
 
-  Lemma domain_transitive {A} (ma : m A) : TransitiveH (domain ma).
+  Lemma image_transitive {A} (ma : m A) : TransitiveH (image ma).
   Proof.
     red.
     intros.
@@ -311,26 +314,38 @@ Section Domain.
     apply H0; assumption. apply H1.
   Qed.
   
-  Lemma domain_least {A} (ma : m A) (R : relationH A A)
-        (RR : ReflexiveH R)
+  Lemma image_least {A} (ma : m A) (R : relationH A A)
         (HS : SymmetricH R)
         (TS : TransitiveH R)
         (G: eqmR R @ (ma, ma))
-    : subrelationH (domain ma) R.
+    : subrelationH (image ma) R.
   Proof.
     intros x y D.
-    unfold domain in D.
+    unfold image in D.
     cbn in *.
     apply D; assumption.
   Qed.
 
-  Global Instance Proper_domain {A} (ma : m A) :
-    Proper (equalE A ==> equalE A ==> iff) ↓(domain ma).
+  Global Instance Proper_image {A} (ma : m A) :
+    Proper (equalE (m A) ==> eq_rel) image.
   Proof.
-    repeat red.
-    intros; split; intros.
-    - rewrite <- H. rewrite <- H0. assumption.
-    - rewrite H. rewrite H0. assumption.
+    do 2 red.
+    intros x y EQ.
+    split.
+    - red. intros a b H.
+      repeat red.
+      intros.
+      repeat red in H.
+      rewrite <- EQ in EQ0.
+      specialize (H R HS TS EQ0).
+      apply H.
+    - red. intros a b H.
+      repeat red.
+      intros.
+      repeat red in H.
+      rewrite  EQ in EQ0.
+      specialize (H R HS TS EQ0).
+      apply H.
   Qed.
 
   (* SAZ: TODO - move these to HeterogeneousRelations *)
@@ -360,18 +375,17 @@ Section Domain.
   Qed.
 
   
-  Lemma domain_subset {A:typ} (ma : m A) :
-    subrelationH (eqmR (domain ma)) (m A).
+  Lemma image_subset {A:typ} (ma : m A) :
+    subrelationH (eqmR (image ma)) (m A).
   Proof.
     unfold subrelationH.
     intros.
     apply eqmR_equal.
-    specialize (@domain_least A ma).
+    specialize (@image_least A ma).
     intros P.
     specialize (P (relationH_of_typ A)).
     eapply eqmR_Proper_mono; eauto.
     apply P.
-    - apply relationH_reflexive.
     - apply relationH_symmetric.
     - apply relationH_transitive.
     - apply eqmR_equal. apply (@relationH_reflexive (m A)).
@@ -379,13 +393,13 @@ Section Domain.
 
 
   (* Maybe this is what we axiomatize by typeclasses in the interface? *)
-  Lemma domain_eqmR {A : typ} (ma : m A) :
-      eqmR (domain ma) @ (ma, ma).
+  Lemma image_eqmR {A : typ} (ma : m A) :
+      eqmR (image ma) @ (ma, ma).
   Proof.
   Abort.
 
   
-  (* A sanity check about the domains: *)
+  (* A sanity check about the images: *)
   Program Definition singletonR {A:typ} (x:A) : relationH A A :=
     (fun p => (fst p) == (snd p) /\ (fst p) == x).
   Next Obligation.
@@ -401,25 +415,40 @@ Section Domain.
   Qed.
 
 
-  (* SAZ : TODO - port these *)
-  (*
-  Global Instance singletonR_symetric {A:typ} (x:A) : Symmetric (singletonR x).
+  Lemma singletonR_SymmetricH {A:typ} (x:A) : SymmetricH (singletonR x).
   Proof.
-    repeat red. intros. unfold singletonR in H.
+    repeat red. intros (a1 & a2) H. unfold singletonR in H. cbn in *.
     destruct H. split; symmetry. tauto. rewrite <- H. symmetry. assumption.
   Qed.
 
+    
+  (* Global Instance singletonR_symetric  *)
+  (* Proof. *)
+  (*   repeat red. intros. unfold singletonR in H. *)
+  (*   destruct H. split; symmetry. tauto. rewrite <- H. symmetry. assumption. *)
+  (* Qed. *)
+
+  Lemma singletonR_TransitiveH {A:typ} (x:A) : TransitiveH (singletonR x).
+  Proof.
+      repeat red. intros (a1 & a2) (b1 & b2) HA HB H. unfold singletonR in *. cbn in *.
+      destruct HA, HB; split; etransitivity; eauto. rewrite <- H3. assumption. PER_reflexivity.
+  Qed.
+
+(*    
   Global Instance singletonR_transitive {A:typ} (x:A) : Transitive (singletonR x).
   Proof.
       repeat red. intros. unfold singletonR in *.
       destruct H, H0; split; etransitivity; eauto. rewrite <- H2. assumption. PER_reflexivity.
   Qed.
+ *)
 
+  (*
   Global Instance singletonR_PER {A:typ} (x:A) : PER (singletonR x).
   Proof.
     split; typeclasses eauto.
   Qed.
-
+   *)
+(*
   Global Instance Proper_singletonR {A:typ} (x:A) : Proper (equalE A ==> equalE A ==> iff) (singletonR x).
   Proof.
     repeat red; intros; unfold singletonR in *.
@@ -429,31 +458,31 @@ Section Domain.
     - rewrite H. rewrite H0. assumption.
     - rewrite H. assumption.
   Qed.
-
+*)
     
-  
-             
-  Lemma ret_domain {A:typ} (x:A) (IN : x ∈ A) : eq_rel (domain (ret @ x)) (singletonR x).
+  Lemma ret_image {A:typ} (x:A) : eq_rel (image (ret @ x)) (singletonR x).
   Proof.
     split.
     - repeat red. intros. 
-      unfold domain in H.
-      specialize (H (singletonR x) _).
-      specialize (H (Proper_singletonR x)).
-      assert (eqmR (singletonR x) (ret @ x) (ret @ x)).
-      { apply eqmR_ret. typeclasses eauto.  repeat red. split; assumption. }
-      apply H in H0. red in H0. assumption.
-    - repeat red. intros.
-      unfold singletonR in H. destruct H.
-      specialize (HP _ _ H0).
-      assert (y == x). { symmetry in H.  etransitivity; eauto. }
-      specialize (HP _ _ H1). apply HP.
+      unfold image in H. cbn in *.
+      specialize (H (singletonR x)).
+      assert (SymmetricH (singletonR x)).
+      { apply singletonR_SymmetricH. }
+      assert (TransitiveH (singletonR x)).
+      { apply singletonR_TransitiveH. }
+      specialize (H H0 H1).
+      assert (eqmR (singletonR x) @ (ret @ x, ret @ x)).
+      { apply eqmR_ret. typeclasses eauto.  repeat red. cbn. split. reflexivity. reflexivity. }
+      apply H in H2. repeat red in H2. assumption.
+    - do 4 red. intros.
+      unfold singletonR in H. destruct H. cbn in *.
+      eapply rewrite_app_l. symmetry. apply H0.
+      eapply rewrite_app_r. apply H. eapply rewrite_app_r. symmetry. apply H0.
+
       eapply eqmR_ret_inv; eauto.
   Qed.
 
-    
-    
-    *)
-End Domain.
+
+End Image.
 
 
