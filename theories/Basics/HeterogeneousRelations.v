@@ -317,13 +317,11 @@ Section RelationEqRel.
   (* It works in simple contxets, however, it fails weirdly quickly. See:
      https://github.com/coq/coq/issues/12141
    *)
-  (* SAZ: BROKE THIS *)
-  (*
-  Global Instance eq_rel_rewrite {A B}: subrelationH eq_rel (pointwise_relation A (pointwise_relation B iff)).
-  Proof.
-    intros!; destructn @eq_rel; split; intro; appn subrelationH; auto.
-  Qed.
-   *)
+
+  (* Global Instance eq_rel_rewrite {A B}: subrelationH eq_rel (pointwise_relation A (pointwise_relation B iff)). *)
+  (* Proof. *)
+  (*   intros!; destructn @eq_rel; split; intro; appn subrelationH; auto. *)
+  (* Qed. *)
 End RelationEqRel.
 
 Section RelationCompose.

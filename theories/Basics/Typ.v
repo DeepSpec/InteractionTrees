@@ -54,10 +54,17 @@ But that the simplest version cannot be inferred:
 Instance typ_eq (A: Type) : typ := @eq A.
 *)
 
+(* More coercion definitions that may be useful for monads (typ -> typ). *)
+Definition typ_fn := typ -> typ.
+Definition type_fn := Type -> Type.
+
+Definition typ_fn_coercion (f : typ_fn) : type_fn := fun x => f (typ_eq x).
+Coercion typ_fn_coercion : typ_fn >-> type_fn.
+
+
 Lemma elt_in : forall (T : typ) (x : T), x == x.
 Proof. intros T x. reflexivity.
 Qed.
-
 
 (** ** top
     Given a carrier [A], the [top] relation has no elements distinguished.
@@ -74,13 +81,13 @@ Definition top_typ A : typ := Typ (fun a b : A => True).
 (* IY: Can't define bot typ, which should be the initial object in the category
    , since there are no elements of bot and we can't get reflexivity.
  *)
-Instance bot_Equivalence {A} : Equivalence (fun a b : A => False).
+Instance bot_Equivalence : Equivalence (fun a b : False => False).
 Proof.
   split; eauto.
-Abort.
+Qed.
 
 (* The bot typ is the initial object of the category. *)
-Fail Definition bot_typ A : typ := Typ (fun a b : A => False).
+Definition bot_typ := Typ (fun a b : False => False).
 
 (** ** Prop
     We can define a typ for Prop using `iff` as equality.
@@ -130,6 +137,7 @@ Next Obligation.
 Qed.
 
 Notation "TA ~~> TB" := (arrow_typ TA TB) (at level 40) : typ_scope.
+
 
 Program Definition internalize_arrow {TA TB : typ} (f : TA -=-> TB) : TA ~~> TB :=
   f.
@@ -186,11 +194,11 @@ Fact prod_typ_gen : forall (TA TB : typ) (x : TA × TB), x == (fst x, snd x).
 Proof.
   intros TA TB x.
   destruct x; reflexivity.
-Qed.  
+Qed.
 
 Goal ((3 : top_typ nat), (4 : top_typ nat)) == ((4 : top_typ nat), (4 : top_typ nat)).
 Proof.
-  repeat red. split; reflexivity. 
+  repeat red. split; reflexivity.
 Qed.
 
 
@@ -223,7 +231,7 @@ Proof.
 Qed.
 
 
-(** ** sum 
+(** ** sum
   Coproduct of two [typ].
  *)
 
@@ -336,7 +344,7 @@ Section TypCat.
     constructor; try typeclasses eauto.
   Defined.
 
-  
+
 End TypCat.
 
 
@@ -355,8 +363,8 @@ Next Obligation.
   repeat red.
   intros x y.
   destruct C; destruct x; destruct y; cbn in *; try tauto.
-  - intros. destruct f. cbn. apply p. assumption. 
-  - intros. destruct g. cbn. apply p. assumption. 
+  - intros. destruct f. cbn. apply p. assumption.
+  - intros. destruct g. cbn. apply p. assumption.
 Qed.
 
 
@@ -383,19 +391,19 @@ Program Definition inl_typ_proper {A B : typ} : A -=-> (A ⨥ B) :=
   inl.
 Next Obligation.
   repeat red. intros x y EQ. destruct A. assumption.
-Qed.  
+Qed.
 
 Program Definition inr_typ_proper {A B : typ} : B -=-> (A ⨥ B) :=
   inr.
 Next Obligation.
   repeat red. intros x y EQ. destruct B. assumption.
-Qed.  
+Qed.
 
 
 Instance sum_inl : Inl typ_proper sum_typ := @inl_typ_proper.
 Instance sum_inr : Inr typ_proper sum_typ := @inr_typ_proper.
 
-End TypCatCoproducts.  
+End TypCatCoproducts.
 
 (* Add proper instances to hint database. *)
 Existing Instance eq2_typ_proper.
@@ -406,27 +414,6 @@ Existing Instance id_typ_proper.
 (* Proper instances for typ and typ_proper. ********************************* *)
 
 
-(* Lemma Proper_typ_proper_app_partial : forall {a b : typ}  *)
-(*     Proper (equalE a ==> equalE b) *)
-(*             (@typ_proper_app a b x). *)
-(* Proof. *)
-(*   repeat intro. *)
-(*   destruct x, y. *)
-(*   cbn in *. *)
-(*   specialize (H x0 y0). *)
-(*   cbn in H. *)
-(*   apply H. unfold contains. etransitivity. apply H0. symmetry. apply H0. *)
-(*   unfold contains. etransitivity. symmetry. apply H0. apply H0. *)
-(*   assumption. *)
-(* Qed. *)
-
-(* Instance Proper_equal_equal (A : typ) : *)
-(*   Proper (equalE A --> equalE A ==> Basics.impl) (equalE A). *)
-(* Proof. *)
-(*   repeat intro. red in H0. *)
-(*   transitivity x0; [ | assumption]. transitivity x; assumption. *)
-(* Qed. *)
-
 Global Instance Proper_equal (A : typ) :
   Proper (equalE A ==> equalE A ==> iff) (equalE A).
 Proof.
@@ -435,12 +422,6 @@ Proof.
     symmetry. apply H0. transitivity x; [ symmetry | ]; assumption.
   - intro. etransitivity. apply H. transitivity y0; [ | symmetry ]; assumption.
 Qed.
-
-(* Instance Proper_equal_partial (A : typ) (a : A) : *)
-(*   Proper (equalE A --> Basics.flip Basics.impl) (equalE A a). *)
-(* Proof. *)
-(*   repeat intro. red in H. transitivity y ; assumption. *)
-(* Qed. *)
 
 Instance Proper_equal_partial (A : typ) (a : A) :
   Proper (equalE A ==> iff) (equalE A a).
@@ -528,5 +509,3 @@ Ltac PER_reflexivity :=
   | [H : ?x == _ |- ?x == _] => etransitivity; [ | symmetry ]; eassumption
   | [H : _ == ?y |- ?x == _] => symmetry in H; etransitivity; [ | symmetry ]; eassumption
   end.
-
-
