@@ -187,13 +187,30 @@ Section PropT.
   Definition emptyH {A:typ} (R : relationH A A) : Prop :=
     ~exists(a:A), R @ (a, a).
 
+  (* SAZ: This one is probably not needed *)
+  Lemma empty_image {A:typ} (ma : m A) : 
+    emptyH (image m ma) -> forall (k : A -=-> m A), bind k @ ma == ma.
+  Admitted.
+
+  (* Add to typeclass? *)
+  Lemma image_ret_bind {A:typ} (ma : m A) (k : A -=-> m A) : 
+      (forall (a : A), image m ma @ (a, a) -> k @ a == ret @ a) -> bind k @ ma == ma.
+  Admitted.
+
+  (* SAZ: This formulation doesn't seem right:
+     The predicate P is over the "whole" computation 
+   *)
+  Lemma image_bind_P {A B:typ} (ma : m A) (k : A -=-> m B) (P : m B -=-> prop_typ)
+        (HI : forall (a:A), image m ma @ (a, a) -> P @ (k @ a)) :
+    P @ (bind k @ ma).
+  Admitted.
   
   Definition bindT_ (A B : typ) (K : A -=-> PropT B) (PA : PropT A) :=
-    (fun mb:m B => exists (ma:m A),
-         PA @ ma /\
-(*         ((emptyH (image m ma)) \/ *)
-          exists (k : A -=-> m B),
-            mb == (bind k @ ma) /\ forall (a:A), (image m ma) @ (a, a) -> (K @ a) @ (k @ a)). (* ). *)
+    (fun mb:m B =>
+       exists (ma:m A) (k : A -=-> m B),
+         PA @ ma
+         /\ mb == (bind k @ ma)
+         /\ forall (a:A), (image m ma) @ (a, a) -> (K @ a) @ (k @ a)).
                           
   
 Program Definition bind_PropT (A B : typ) (K : A -=-> PropT B) : (PropT A) -=-> (PropT B) :=
@@ -201,29 +218,22 @@ Program Definition bind_PropT (A B : typ) (K : A -=-> PropT B) : (PropT A) -=-> 
 Next Obligation.
   unfold bindT_.
   do 2 red.
-  intros mb1 mb2 HB.
-  split; intros (ma & HX & [E | (k & HMA & HEQ)]); exists ma; split; try auto.
-  - right. exists k. split; auto. rewrite <- HB. assumption. 
-  - right. exists k. split; auto. rewrite  HB. assumption. 
+  intros mb1 mb2 HB. 
+  split; intros (ma & k & HMA & HK & HI); exists ma; exists k; repeat split; auto.
+  - rewrite <- HB. assumption. 
+  - rewrite  HB. assumption. 
 Qed.
- Next Obligation. 
+Next Obligation.
   do 2 red.
   unfold bind_.
   intros PMA1 PMA2 HP mb1 mb2 HMB; cbn.
-  split; intros (ma & HX & [E | (k & HMA & HEQ)]); exists ma; split; try auto.
+  split; intros (ma & k & HMA & HK & HI); exists ma; exists k; repeat split; try auto.
   - rewrite <- HP. assumption.
-  - rewrite <- HP. assumption.
-  - right.
-    exists k. split; auto.
-    rewrite <- HMB. assumption.
-
+  - rewrite <- HMB. assumption.
   - rewrite HP. assumption.
-  - rewrite HP. assumption.
-  - right.
-    exists k; split; auto.
-    rewrite HMB. assumption.
-
+  - rewrite HMB. assumption.
 Qed.
+
 
 Instance MonadPropT : Monad typ_proper PropT.
 split.
@@ -239,35 +249,32 @@ constructor.
     cbn.
     intros mb1 mb2 HMB; cbn in *.
     split.
-    + intros (ma & ka & HMA & HEQ & HKA).
+    + intros (ma & k & HMA & HK & HI).
       red in HMA. unfold retT_ in HMA.
-      specialize (HKA a1).
+      cbn in *.
+      specialize (HI a1).
       assert (image m ma @ (a1, a1)).
-      { assert (eq_rel (image m ma) (image m (ret @ a1))).
-        split.
-        + red. intros. apply ret_image; auto.
-          repeat red. cbn.
-          (* SAZ: ARGH! Emacs crashed and I lost this whole proof! *)  
-             admit.                                                 
-        + admit.
-        + admit.
-      }
-      apply HKA in H. rewrite <- HMB. 
-      assert (mb1 == ka @ a1).
-      { (* SAZ: THIS CASE TOO :-( *)
-        admit. }
+      { rewrite (rewrite_image_app _ _ _ _ HMA).
+        apply ret_image; auto.
+        cbn. split; reflexivity. }
+      apply HI in H. rewrite <- HMB. 
+      assert (mb1 == k @ a1).
+      { etransitivity. apply HK. rewrite HMA.
+        apply eqmR_bind_ret_l. }
       rewrite H0.
       rewrite <- HA. apply H.
     + intros.
-      red. exists (ret @ a1). 
+      red. exists (ret @ a1).
       eexists (-=->! (fun (y:A) => mb2) _).
       Unshelve.
       2 : { do 2 red. intros; reflexivity. }
-      cbn.
-      split; [| split].
-      * unfold retT_. reflexivity.
-      * rewrite eqmR_bind_ret_l. cbn. assumption.
-      * intros.
+
+      split.
+      * cbn. red. reflexivity.
+      * cbn.
+        split.
+        ** rewrite eqmR_bind_ret_l. cbn. assumption.
+        ** intros.
         assert (a == a2).
         { specialize (H0 (singletonR a1) (singletonR_SymmetricH a1) (singletonR_TransitiveH a1)).
           assert (eqmR (singletonR a1) @ (ret @ a1, ret @ a1)).
@@ -289,14 +296,75 @@ constructor.
     intros ma1 ma2 HMA.
     do 2 red.
     split.
-    + intros H. cbn in *. red in H.
-      destruct H as (ma & ka & HMA2 & HB & HI).
+    + intros (ma & k & HMB & HK & HI).
+      cbn.
       rewrite <- HPA.
-      rewrite <- HMA.
-      rewrite HB.
-      do 4 red in HI.
-      emptyH (image m ma) -> 
+      apply image_ret_bind in HI.
+      assert (ma1 == ma).
+      etransitivity. apply HK. apply HI.
+      rewrite <- HMA. rewrite H. assumption.
+    + intros. red in H. cbn in H.
+      repeat red.
+      exists ma2. exists ret. split; [|split].
+      rewrite HPA. assumption.
+      rewrite bind_ret_r. cbn. assumption.
+      intros. red. cbn. red. reflexivity.
 
+  - intros A B C KA KB.
+    do 2 red.
+    intros PA1 PA2 HPA.
+    do 4 red.
+    intros ma1 ma2 HMA.
+    cbn. unfold bindT_. Opaque image. cbn.
+    split. 
+    + intros (mb & kb & HA & HKB & HIB); cbn in *.
+      destruct HA as (ma & ka & HA & HKA & HIA).
+      exists ma. eexists (-=->! (fun a => bind kb @ (ka @ a)) _).
+      
+      split; [| split].
+      * rewrite <- HPA. assumption.
+      * rewrite <- HMA. rewrite HKB. rewrite HKA.
+        eapply eqmR_bind_bind. assumption.
+      * intros.
+        red. exists mb. exists kb.
+        split; [|split].
+        ** rewrite HKA.
+           apply image_bind_P.  
+           (* SAZ: This fails: apply HIA.  why?  Different Univese levels? *)
+           admit.
+        ** cbn. rewrite HKA.
+           apply eqmR_equal.
+           eapply eqmR_bind_ProperH.
+           --- assumption.
+           --- apply eqmR_equal.  admit.
+           --- destruct kb. cbn in *.
+               intros. apply eqmR_equal. apply p. assumption.
+        ** apply HIB.
+    + intros (ma & ka & HA & HKA & HI).
+      red in HI.
+      eexists. eexists.
+      split; [|split].
+      exists ma. 
+      
+      assert ((exists (a:A), image m mb @ (a, a)) \/ ~exists(a:A), image m mb @ (a, a)).
+      { admit. (* TODO: Classical logic *) }
+      destruct H.
+      * destruct H as (a & IM).
+        specialize (HIB a IM).
+        destruct HIB as (mbb & k & HKA & HK & HI).
+        exists mbb. exists k.
+        split; [|split].
+        ** exists (ret @ a). eexists (-=->! (fun a => mbb) _).
+           split;[|split].
+           -- 
+
+                                                                 
+
+      cbn. split.
+
+
+      
+      
 
 End PropT.
 

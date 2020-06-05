@@ -227,6 +227,7 @@ Section Laws.
 
 End Laws.
 
+(* SAZ: I think these are no longer needed and can be replaced with rewrite. *)
 Lemma rewrite_app_l {A B C:typ} (R: (A × B) -=-> prop_typ) (x1 x2 : A) (y : B)
       (EQ : x1 == x2)
       (H : R @ (x1, y)) : R @ (x2, y).
@@ -325,8 +326,8 @@ Section Image.
     cbn in *.
     apply D; assumption.
   Qed.
-
-  Global Instance Proper_image {A} (ma : m A) :
+  
+  Global Instance Proper_image {A} :
     Proper (equalE (m A) ==> eq_rel) image.
   Proof.
     do 2 red.
@@ -348,6 +349,28 @@ Section Image.
       apply H.
   Qed.
 
+  Global Instance Proper_image2 {A}  :
+    Proper (equalE (m A) ==> equalE (A × A) ==> iff) (fun ma => (proj1_sig (image ma))).
+  Proof.
+    do 3 red.
+    intros a b H (p1 & p2) (q1 & q2) (HP & HQ).
+    split; intros; cbn in *;  intros.
+    - rewrite <- HP.
+      rewrite <- HQ.
+      apply H0; auto. rewrite H. assumption.
+    - rewrite HP.
+      rewrite HQ.
+      apply H0; auto. rewrite <- H. assumption.
+  Qed.
+
+  Lemma rewrite_image_app {A} (ma mb : (m A)) p (EQ : ma == mb) :
+    image ma @ p <-> image mb @ p.
+  Proof.
+    red. cbn. split; intros; apply H; auto.
+    rewrite EQ. assumption.
+    rewrite <- EQ. assumption.
+  Qed.    
+  
   (* SAZ: TODO - move these to HeterogeneousRelations *)
   Lemma relationH_reflexive : forall (A:typ), ReflexiveH A.
   Proof.

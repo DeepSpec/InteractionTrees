@@ -194,6 +194,14 @@ Proof.
   split; cbn; assumption.
 Qed.
 
+Global Instance Proper_prod_typ {TA TB : typ} :
+  Proper (equalE TA ==> equalE TB ==> equalE (TA × TB)) pair_typ.
+Proof.
+  repeat red; intros.
+  split; cbn; assumption.
+Qed.
+
+
 Goal forall (x: top_typ nat), (x == 4) -> ((x, x)  == ((3 : top_typ nat), (3 : top_typ nat))).
   intros.
   rewrite H.
