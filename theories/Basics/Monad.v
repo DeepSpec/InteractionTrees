@@ -179,11 +179,6 @@ Section EqmRMonad.
           equalE (m C) ((bind f >>> bind g) @ ma) (bind (f >>> bind g) @ ma)
     }.
 
-  Class EqmRMonadInverses :=
-    {
-    eqmR_ret_inv : forall {A1 A2 : typ} (RA : relationH A1 A2) (a1:A1) (a2:A2),
-        eqmR RA @ (ret @ a1, ret @ a2) -> RA @ (a1, a2)
-    }.
   
 End EqmRMonad.
 
@@ -255,7 +250,6 @@ Section Image.
   Context (m : typ -> typ).
   Context {Mm : Monad typ_proper m}.
   Context {EqMR : EqmR m} {EqmRm: EqmRMonad m} {EqmROKm : EqmR_OK m}.
-  Context {EqMRI: EqmRMonadInverses m}.
 
 
   (* SAZ:
@@ -285,6 +279,19 @@ Section Image.
       eapply rewrite_app_r. symmetry. apply H2. apply H; assumption.
   Qed.
 
+  (* Using image we can define the [mayRet] predicate, which identifies
+     the subset of A on which the computation ma can halt with
+     a [ret x]
+
+  *)
+  Program Definition mayRet {A:typ} (ma : m A) : A -=-> prop_typ :=
+    (fun (a:A) => image ma @ (a, a)).
+  Next Obligation.
+    do 2 red.
+    intros a1 a2 HA; split; intros.
+    - rewrite <- HA. apply H; auto.
+    - rewrite HA; apply H; auto.
+  Qed.
 
   Lemma transpose_eq {A} (R : relationH A A) (x:A) :
     R @ (x, x) <-> (transpose R) @ (x, x).
@@ -414,12 +421,123 @@ Section Image.
     - apply eqmR_equal. apply (@relationH_reflexive (m A)).
   Qed.
 
+End Image.
 
-  (* Maybe this is what we axiomatize by typeclasses in the interface? *)
-  Lemma image_eqmR {A : typ} (ma : m A) :
-      eqmR (image ma) @ (ma, ma).
+Section EqmRInversion.
+  Context (m : typ -> typ).
+  Context {Mm : Monad typ_proper m}.
+  Context {EqMR : EqmR m} {EqmRm: EqmRMonad m} {EqmROKm : EqmR_OK m}.
+
+
+  Class EqmRMonadInverses :=
+    {
+    image_eqmR {A : typ} (ma : m A) : eqmR (image m ma) @ (ma, ma);
+    
+    eqmR_ret_inv : forall {A1 A2 : typ} (RA : relationH A1 A2) (a1:A1) (a2:A2),
+        eqmR RA @ (ret @ a1, ret @ a2) -> RA @ (a1, a2);
+
+    eqmR_bind_inv : forall {A : typ} {B1 B2 : typ} (RB : relationH B1 B2)
+                      (ma : m A)
+                      (k1 : A -=-> m B1)
+                      (k2 : A -=-> m B2),
+        eqmR RB @ (bind k1 @ ma, bind k2 @ ma) ->
+        forall (a : A), mayRet m ma @ a -> eqmR RB @ (k1 @ a, k2 @ a);
+
+    eqmR_cast : forall {A B : typ} (ma : m A),
+        ~(exists (a:A), mayRet m ma @ a) ->
+        exists (mb : m B), forall (R : relationH A B), eqmR R @ (ma, mb)
+            
+    }.
+
+End EqmRInversion.
+
+Section InversionFacts.
+  Context (m : typ -> typ).
+  Context {Mm : Monad typ_proper m}.
+  Context {EqMR : EqmR m} {EqmRm: EqmRMonad m} {EqmROKm : EqmR_OK m}.
+  Context {MI : EqmRMonadInverses m}.
+
+  Lemma mayRet_choice {A:typ} (ma : m A) :
+    (exists a, mayRet m ma @ a) \/ ~(exists a, mayRet m ma @ a).
   Proof.
-  Abort.
+    admit. (* TODO: import classical logic *)
+  Admitted.
+
+  Lemma image_Reflexive_l {A:typ} (ma : m A) (a1 a2:A) 
+    (H : image m ma @ (a1, a2)) : image m ma @ (a1, a1).
+  Proof.
+    assert (image m ma @ (a2, a1)).
+    { apply image_symmetric in H. apply H. }
+    eapply image_transitive in H. apply H in H0. apply H0. reflexivity.
+  Qed.
+
+  Lemma image_Reflexive_r {A:typ} (ma : m A) (a1 a2:A) 
+    (H : image m ma @ (a1, a2)) : image m ma @ (a2, a2).
+  Proof.
+    assert (image m ma @ (a2, a1)).
+    { apply image_symmetric in H. apply H. }
+    eapply image_transitive in H0. apply H0 in H. apply H. reflexivity.
+  Qed.
+
+  
+  (* SAZ: This one is probably not needed 
+     It is unfortunate that k can't have type A -=-> m B -- we need
+     some kind of typecast "conversion lemma":
+  *)
+  Lemma empty_image {A:typ} (ma : m A) : 
+    ~(exists a, mayRet m ma @ a) -> forall (k : A -=-> m A), bind k @ ma == ma.
+  Proof.
+    intros N K.
+    assert (ma == (bind ret @ ma)).
+    { rewrite bind_ret_r. cbn. reflexivity. }
+    rewrite H at 2.
+    apply eqmR_equal.
+    apply eqmR_bind_ProperH with (RA := (image m ma)). assumption.
+    eapply image_eqmR. apply MI. 
+    intros. unfold mayRet in N. cbn in N.
+    assert (exists a, image m ma @ (a, a)).
+    { exists a1. eapply image_Reflexive_l. apply H0. }
+    contradiction.
+  Qed.
+
+  Import RelNotations.
+  Local Open Scope relationH_scope.
+
+
+  Lemma mayret_eqmR {A B:typ} (ma : m A) (mb : m B)
+        (R : relationH A B)
+        (* SAZ : Not sure if we need these assumptions *)
+        (RS: SymmetricH (†R ∘ R)) (RT: TransitiveH (†R ∘ R))
+        (EQ : eqmR R @ (ma, mb)):
+    forall (a : A), mayRet m ma @ a -> exists (b:B), mayRet m mb @ b /\ R @ (a, b).
+  Proof.
+    intros a HA.
+    do 6 red in HA.
+    specialize (HA (†R ∘ R) RS RT).
+    assert (eqmR (†R) @ (mb, ma)).
+    { apply eqmR_lift_transpose; assumption. }
+    specialize (eqmR_rel_trans m _ _ _ _ _ EQ H) as HR.
+    apply HA in HR.
+    repeat red in HR. destruct HR as (b & Rab & Rba). cbn in *.
+    exists b; split; [|assumption].
+    intros.
+  Admitted.    
+    
+    
+  
+  Lemma mayret_bind {A B:typ} (ma : m A) (k : A -=-> m B) (b : B) :
+    mayRet m (bind k @ ma) @ b -> exists a, mayRet m ma @ a /\ mayRet m (k @ a) @ b.
+  Proof.
+    intros HM.
+    unfold mayRet in HM. cbn in HM.
+    assert ((exists a : A, mayRet m ma @ a /\ mayRet m (k @ a) @ b) \/
+            ~((exists a : A, mayRet m ma @ a /\ mayRet m (k @ a) @ b))).
+    { admit. (* TODO: classical logic *) }
+    destruct H; auto.
+    assert (forall a, ~(mayRet m ma @ a /\ mayRet m (k @ a) @ b)).
+    { intros. intros E. assert (exists a : A, mayRet m ma @ a /\ mayRet m (k @ a) @ b).
+      exists a. assumption. contradiction. }
+  Admitted.
 
   
   (* A sanity check about the images: *)
@@ -483,7 +601,7 @@ Section Image.
   Qed.
 *)
     
-  Lemma ret_image {A:typ} (x:A) : eq_rel (image (ret @ x)) (singletonR x).
+  Lemma ret_image {A:typ} (x:A) : eq_rel (image m (ret @ x)) (singletonR x).
   Proof.
     split.
     - repeat red. intros. 
@@ -505,7 +623,5 @@ Section Image.
       eapply eqmR_ret_inv; eauto.
   Qed.
 
-
-End Image.
-
-
+  
+End InversionFacts.
