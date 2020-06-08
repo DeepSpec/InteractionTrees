@@ -245,7 +245,215 @@ Next Obligation.
     assert (b == b) by reflexivity. specialize (p _ _ H _ _ EQC).  rewrite p. assumption.
 Qed.    
 
+
+Lemma PER_reflexivityH1 : forall {A:typ} (R : relationH A A) (RS: SymmetricH R) (RT: TransitiveH R)
+                            (a b : A), R @ (a, b) -> R @ (a, a).
+Proof.
+  intros.
+  assert (R @ (b, a)). { specialize (RS (a, b)). apply RS. assumption. }
+  specialize (RT (a,b) (b,a)). apply RT; auto. reflexivity.                      
+Qed.  
+
+Lemma PER_reflexivityH2 : forall {A:typ} (R : relationH A A) (RS: SymmetricH R) (RT: TransitiveH R)
+                            (a b : A), R @ (b, a) -> R @ (a, a).
+Proof.
+  intros.
+  assert (R @ (a, b)). { specialize (RS (b, a)). apply RS. assumption. }
+  specialize (RT (a,b) (b,a)). apply RT; auto. reflexivity.                      
+Qed.  
+
+Ltac PER_reflexivityH :=
+  match goal with
+  | [ H : ?R @ (?X, ?Y) |- ?R @ (?X, ?X) ] =>  eapply PER_reflexivityH1; eauto
+  | [ H : ?R @ (?Y, ?X) |- ?R @ (?X, ?X) ] =>  eapply PER_reflexivityH2; eauto
+  end.
+
+
+Program Definition diagonal_prop {A : typ} (P : A -=-> prop_typ) : relationH A A :=
+  fun p => (P @ (fst p) /\ P @ (snd p)). 
+Next Obligation.
+  repeat red.
+Admitted.
+
+Lemma diagonal_prop_SymmetricH {A : typ} (P : A -=-> prop_typ) : SymmetricH (diagonal_prop P).
+Proof.
+  red. intros (a1 & a2) H. 
+  cbn in *. tauto.
+Qed.
+
+Lemma diagonal_prop_TransitiveH {A : typ} (P : A -=-> prop_typ) : TransitiveH (diagonal_prop P).
+Proof.
+  red. intros (a1 & a2) (b1 & b2) HA HB EQ. 
+  cbn in *.
+  tauto.
+Qed.
+
+
+
+
+(*  The PropM Monad doesn't have this inversion principle because of nondeterminism: 
+
+
+  consider:   ma : PropM nat := fun (n:nat) => n = 3 \/ n = 4
+
+              k1 : nat -> PropM nat := 
+
+
+*)
+
+Definition nat_typ := Typ (@eq nat).
+Program Definition ambiguous : PropM nat_typ :=
+  (-=->! (fun (n:nat) => n = 3 \/ n = 4) _).
+Next Obligation.
+  repeat red. intros. split; intros. subst; tauto. subst; tauto.
+Qed.
+
+Program Definition k1 : nat_typ -=-> PropM nat_typ :=
+  (-=->! (fun (n:nat) => (-=->! (fun m => n = 3 /\ m = 5 \/ n = 4 /\ m = 0) _)) _).
+Next Obligation.
+  repeat red. intros. split; intros. subst; tauto. subst; tauto.
+Qed.
+Next Obligation.
+  repeat red; intros; split; intros; cbn in *; subst; try tauto.
+Qed.  
+
+Program Definition k2 : nat_typ -=-> PropM nat_typ :=
+  (-=->! (fun (n:nat) => (-=->! (fun m => (n = 3 /\ m = 0) \/ (n = 4 /\ m = 5)) _)) _).
+Next Obligation.
+  repeat red. intros. split; intros. subst; tauto. subst; tauto.
+Qed.
+Next Obligation.
+  repeat red; intros; split; intros; cbn in *; subst; try tauto.
+Qed.  
+
+Program Definition eq_typ (A:typ) : relationH A A :=
+  fun p => (fst p) == (snd p).
+Next Obligation.
+  repeat red.
+  intros (x1 & x2) (y1 & y2); intros (EQA & EQB); split; intros X; cbn in *.
+  - rewrite <- EQA, <- EQB. assumption.
+  - rewrite EQA, EQB. assumption.
+Qed.
+
+Ltac crunch :=
+  repeat match goal with
+         | [ H : exists X, _ |- _ ] => destruct H
+         | [ H : _ /\ _ |- _ ] => destruct H
+         | [ H : _ \/ _ |- _ ] => destruct H
+         | [ |- _ /\ _ ] => split
+         end.
+
+
+Lemma binds_equal : (@eqmR PropM _ _ _ (eq_typ nat_typ)) @ (bind k1 @ ambiguous, bind k2 @ ambiguous).
+Proof.
+  repeat red; split; intros; cbn in *.
+  - unfold bind_, ambiguous in *.  cbn in *.
+    crunch; subst. 
+    + exists 5. split; auto. exists 4. tauto.
+    + exists 5. split; auto. exists 4. tauto.
+    + exists 0. split; auto. exists 3. tauto.
+    + exists 0. split; auto. exists 3. tauto.
+  - unfold bind_, ambiguous in *.  cbn in *.
+    crunch; subst. 
+    + exists 0. split; auto. exists 4. tauto.
+    + exists 0. split; auto. exists 4. tauto.
+    + exists 5. split; auto. exists 3. tauto.
+    + exists 5. split; auto. exists 3. tauto.
+Qed.
+
+Lemma ambiguous_mayRet3 : mayRet PropM ambiguous @ 3.
+Proof.
+  repeat red.
+  intros. red in EQ. cbn in EQ.
+  destruct R. cbn in *.
+  crunch.
+  specialize (H 3).
+  assert (3 = 3 \/ 3 = 4). { left; auto. } apply H in H1. 
+  crunch.
+  subst. auto. subst.
+  specialize (H0 3).
+  assert (3 = 3 \/ 3 = 4). { left; auto. } apply H0 in H2.
+  crunch.
+  subst. auto.
+  subst. unfold TransitiveH in TS.
+  specialize (TS _ _ H1 H2). cbn in TS. apply TS. reflexivity.
+Qed.  
+
+Lemma ambiguous_mayRet :
+      ~(forall (a : nat_typ), mayRet PropM ambiguous @ a -> eqmR (eq_typ nat_typ) @ (k1 @ a, k2 @ a)).
+Proof.
+  intro H.
+  specialize (H 3). specialize (H ambiguous_mayRet3).
+  repeat red in H.
+  destruct H.
+  cbn in *.
+  specialize (H 5). crunch.
+  assert (3 = 3 /\ 5 = 5 \/ 3 = 4 /\ 5 = 0).
+  left; tauto.
+  apply H in H1. crunch.
+  subst. inversion H3.
+  subst. inversion H2.
+Qed.  
+
+(* PropM doesn't satisfy this inversion principle -- see the counter example above *)
+Lemma eqmR_bind_inv_PropM
+  : forall {A : typ} {B1 B2 : typ} (RB : relationH B1 B2)
+      (ma : PropM A)
+      (k1 : A -=-> PropM B1)
+      (k2 : A -=-> PropM B2),
+    eqmR RB @ (bind k1 @ ma, bind k2 @ ma) ->
+    forall (a : A), mayRet PropM ma @ a -> eqmR RB @ (k1 @ a, k2 @ a).
+Proof.
+  intros A B1 B2 RB PA k1 k2 (HA & HB) a MA.
+  do 4 red. 
+  cbn in *.
+  split.
+  - intros b1 HK1.
+    (* SAZ: This is a nice trick to "manufacture" an element out of an image *)
+    assert (diagonal_prop PA @ (a, a)).
+    { specialize (MA (diagonal_prop PA) (diagonal_prop_SymmetricH PA) (diagonal_prop_TransitiveH PA)).
+      apply MA.
+      split.
+      + intros. exists a0. split; auto. cbn. tauto.
+      + intros. exists b. split; auto. cbn. tauto.
+    }
+    destruct H as (HX & HY). cbn in *.
+    assert (bind_ A B1 k1 PA b1).
+    { red. exists a. split.  assumption. apply HK1. }
+    apply HA in H.
+    destruct H as (b2 & HB2 & HK2).
+    destruct HK2 as (a1 & Ha2 & HKK).
+    exists b2. split. assumption.
+
+Abort.
     
+      
+
+Program Instance EqmRMonadInverses_PropM : EqmRMonadInverses PropM.
+Next Obligation.
+  split; intros.
+  - exists a; split; intros; auto.
+    destruct EQ. destruct (H0 _ H) as (b & HB & _). 
+    PER_reflexivityH.
+  - exists b; split; intros; auto.
+    destruct EQ. destruct (H1 _ H) as (a & Ha & _). 
+    PER_reflexivityH.
+Qed.
+Next Obligation.
+  unfold ret_ in *.
+  assert (a1 == a1) by reflexivity.
+  specialize (H _ H1). destruct H as (b & HB & EQ).
+  rewrite EQ. assumption.
+Qed.
+Next Obligation.
+Admitted.
+Next Obligation.  
+eexists (-=->! (fun (b:B) => False) _).
+Unshelve. 2 : { repeat red. intros. tauto. }
+
+intros R. split.
+- intros. 
+
 End PropM.
 
 Section PropT.
