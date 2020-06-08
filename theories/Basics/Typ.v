@@ -159,7 +159,7 @@ Proof.
   repeat red. intros x y z (H1 & H2) (H3 & H4). split; eapply transitivity; eauto.
 Qed.
 
-Instance prod_typ (TA TB: typ) : typ :=
+Instance prod_typ (TA TB: typ) : typ := 
   Typ (fun (p q: TA * TB) => equal (fst p) (fst q) /\ equal (snd p) (snd q)).
 Notation "e × f" := (prod_typ e f) (at level 70).
 

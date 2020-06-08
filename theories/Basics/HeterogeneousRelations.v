@@ -41,6 +41,8 @@ Section RelationH_Operations.
       rewrite HC. assumption.
   Qed.
     
+  (* Given any typ we can project out a relation: *)
+
 
   (* Heterogeneous notion of [subrelation] *)
   Class subrelationH {A B} (R S : relationH A B) : Prop :=
@@ -117,7 +119,7 @@ Section RelationH_Operations.
     - rewrite <- HA1. rewrite <- HA2. rewrite <- HB1. rewrite <- HB2. assumption.
     - rewrite HA1. rewrite HA2. rewrite HB1. rewrite  HB2. assumption.
   Qed.
-    
+
 
 End RelationH_Operations.
 
@@ -149,8 +151,6 @@ Import RelNotations.
 Local Open Scope relationH_scope.
 
 
-(* Given any typ we can project out a relation: *)
-
 Program Definition relationH_of_typ (A : typ) : relationH A A :=
   fun p => equalE A (fst p) (snd p).
 Next Obligation.
@@ -166,6 +166,7 @@ Definition relationH_to_relation {A: typ} (R : relationH A A) : relation A :=
   fun (x : @Ty A) (y : @Ty A) => R @ (x, y).
 
 Notation "↓ R" := (relationH_to_relation R) (at level 5).
+
 
 Instance Proper_relation {A: typ} (R : relationH A A) :
   Proper (equalE A ==> equalE A ==> iff) (↓ R).

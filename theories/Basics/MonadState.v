@@ -35,20 +35,47 @@ Section State.
   Definition stateT (s : typ) (m : typ -> typ) (a : typ) : typ :=
     s ~~> m (prod_typ s a).
 
-  Global Instance EqmR_stateT : EqmR (stateT S m) :=
-    {| eqmR :=
-         fun A B (R : relationH A B)
-             (f : stateT S m A) (g : stateT S m B) =>
-           forall (s : S), eqmR (prod_rel eq R) (f s) (g s) |}.
+
+  Lemma prod_eq_rel :
+    forall {A B : typ}, S × A ≡ S ⊗ A.
+  Proof.
+    repeat intro; split; repeat intro; destruct x, y; cbn in *;
+      destruct H; split; assumption.
+  Qed.
+
+  Global Instance EqmR_stateT : EqmR (stateT S m).
+  econstructor. Unshelve. 2 : {
+    refine (
+        fun A B (R : relationH A B) =>
+        -=->! (fun (p : stateT S m A × stateT S m B) =>
+           forall (s : S), eqmR (S ⊗ R) @ ((fst p) @ s, (snd p) @ s)) _).
+    repeat intro. setoid_rewrite H. reflexivity.
+  }
+  repeat intro; split; repeat intro; cbn in *.
+  - rewrite H0.
+    assert (forall s : S, eqmR (S × A) @ (x @ s, y @ s)). {
+      intros. eapply eqmR_Proper_mono; eauto.
+      apply prod_eq_rel.
+    }
+    pose proof eqmR_equal.
+    eapply H2 in H1. cbn in H1.
+    apply H1.
+  - eapply eqmR_Proper_mono; eauto.
+    2 : { eapply eqmR_equal in H. 2 : reflexivity. apply H. }
+    apply prod_eq_rel.
+  Defined.
 
   Global Instance EqmR_OK_stateT : EqmR_OK (stateT S m).
   Proof.
     split; unfold eqmR, EqmR_stateT; intros.
-    - red. reflexivity.
-    - red. symmetry; auto.
+    - red. cbn. intros.
+      (* IY: Pointwise lifting of relations to eqmR? *)
+      admit. 
+    - red. cbn. intros.
+      symmetry; auto.
     - red. intros. eapply transitivity; eauto.
     - specialize (H s). specialize (H0 s).
-      rewrite <- (eq_id_r eq). 
+      rewrite <- (eq_id_r eq).
       rewrite prod_compose.
       eapply eqmR_rel_trans; auto.
       + apply H.

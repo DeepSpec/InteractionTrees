@@ -34,19 +34,18 @@ Section EqmR.
       eqmR_equal : forall (A : typ), eq_rel (eqmR A A A) (m A)
     }.
 
-  Arguments eqmR {m _ A B}.
-
   (*
     The more traditional notion of monadic equivalence is recovered at the equality relation
     [forall A,  m A -> m A -> Prop]
    *)
-  Definition eqm {m : typ -> typ} `{@EqmR m} {A: typ} := eqmR A.
+  Definition eqm {m : typ -> typ} `{@EqmR m} {A: typ} := eqmR A A A.
 
 End EqmR.
 
 (* YZ: I don't think [A] should be maximally inserted, but putting it back as is for now for retro-compatibility *)
-Arguments eqm {m _ A}.
 Arguments eqmR {m _ A B}.
+Arguments eqm {m _ A}.
+Arguments eqmR_equal {m _}.
 Infix "A ≈ B" := (eqm @ (A, B)) (at level 70) : monad_scope.
 
 Section EqmRRel.
@@ -221,7 +220,7 @@ Section Laws.
       { apply eqmR_equal. assumption. }
       specialize (H1 H2).
       rewrite <- H0 at 1.
-      apply eqmR_equal.
+      eapply eqmR_equal.
       apply H1. intros. apply eqmR_equal. rewrite H3. apply Proper_typ_proper_app.
       apply H. reflexivity.
   Qed.
@@ -339,7 +338,7 @@ Section Domain.
   Proof.
     unfold subrelationH.
     intros.
-    apply eqmR_equal.
+    eapply eqmR_equal; cbn.
     specialize (@domain_least A ma).
     intros P.
     specialize (P (relationH_of_typ A)).
