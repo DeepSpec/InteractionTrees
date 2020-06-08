@@ -123,10 +123,9 @@ Proof.
   apply H. assumption.
 Qed.
 
-(* [arrow_typ] internalizes the hom set as an object in the category. *)
+(* arrow_typ internalizes the hom set as an object in the category *)
 Program Instance arrow_typ (TA TB : typ) : typ :=
-  @Typ (TA -=-> TB)
-       (fun (f g : TA -=-> TB) => forall a1 a2, (equalE TA a1 a2) -> (equalE TB (` f a1) (` g a2))) _.
+  @Typ (TA -=-> TB) (@eq2_typ_proper TA TB) _.
 Next Obligation.
   destruct TA; destruct TB; split.
   - repeat red. intros. destruct x; cbn in *. apply p. assumption.
@@ -139,10 +138,15 @@ Qed.
 Notation "TA ~~> TB" := (arrow_typ TA TB) (at level 40) : typ_scope.
 
 
-Program Definition internalize_arrow {TA TB : typ} (f : TA -=-> TB) : TA ~~> TB :=
-  f.
-Program Definition externalize_arrow {TA TB : typ} (f : TA ~~> TB) : TA -=-> TB :=
-  f.
+Global Instance Proper_typ_proper_app2 : forall {a b : typ},
+    Proper (equalE (arrow_typ a b) ==> equalE a ==> equalE b) (@typ_proper_app a b).
+intros.
+apply Proper_typ_proper_app.
+Qed.
+
+Program Definition internalize_arrow {TA TB : typ} (f : TA -=-> TB) : TA ~~> TB := f.
+Program Definition externalize_arrow {TA TB : typ} (f : TA ~~> TB) : TA -=-> TB := f.
+
 
 (** ** prod
     Cartesian product of two [typ].
@@ -208,6 +212,14 @@ Proof.
   repeat red; intros.
   split; cbn; assumption.
 Qed.
+
+Global Instance Proper_prod_typ {TA TB : typ} :
+  Proper (equalE TA ==> equalE TB ==> equalE (TA × TB)) pair_typ.
+Proof.
+  repeat red; intros.
+  split; cbn; assumption.
+Qed.
+
 
 Goal forall (x: top_typ nat), (x == 4) -> ((x, x)  == ((3 : top_typ nat), (3 : top_typ nat))).
   intros.

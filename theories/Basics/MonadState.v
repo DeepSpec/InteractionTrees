@@ -65,17 +65,28 @@ Section State.
     apply prod_eq_rel.
   Defined.
 
+
+
   Global Instance EqmR_OK_stateT : EqmR_OK (stateT S m).
   Proof.
     split; unfold eqmR, EqmR_stateT; intros.
     - red. cbn. intros.
-      (* IY: Pointwise lifting of relations to eqmR? *)
-      admit. 
+      epose proof @prod_rel_sym.
+      specialize (H1 S A S R _ H).
+      apply eqmR_transport_symm; eauto.
+      eapply eqmR_transport_symm in H0; eauto.
+      symmetry. apply H0.
     - red. cbn. intros.
-      symmetry; auto.
-    - red. intros. eapply transitivity; eauto.
-    - specialize (H s). specialize (H0 s).
-      rewrite <- (eq_id_r eq).
+      epose proof @prod_rel_trans.
+      specialize (H2 S A S R _ H).
+      eapply eqmR_transport_trans; eauto.
+      2 : {
+        red. apply H1.
+      } apply H0.
+    - red; cbn; repeat intro. cbn in *.
+      specialize (H s). specialize (H0 s).
+      (* rewrite <- (eq_id_r eq). *)
+      (* IY: Got to here. Proving more stuff in HetRelations.. *)
       rewrite prod_compose.
       eapply eqmR_rel_trans; auto.
       + apply H.
