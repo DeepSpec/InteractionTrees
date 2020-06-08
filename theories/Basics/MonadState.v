@@ -3,18 +3,16 @@ From Coq Require Import
      Setoid
      Morphisms.
 
-From ExtLib Require Import
-     Structures.Monad.
-
 From ITree Require Import
      Basics.Basics
      Basics.Category
      Basics.CategoryKleisli
      Basics.CategoryKleisliFacts
+     Basics.CategoryMonad
      Basics.HeterogeneousRelations
-     Basics.Tacs
      Basics.Monad
-     Basics.MayRet
+     Basics.Tacs
+     Basics.Typ
 .
 
 Import ITree.Basics.Basics.Monads.
@@ -25,16 +23,21 @@ Local Open Scope cat_scope.
 Local Open Scope cat.
 
 Section State.
-  Variable m : Type -> Type.
-  Variable S : Type.
+  Variable m : typ -> typ.
+  Variable S : typ.
+  Context {Mm : Monad typ_proper m}.
   Context {EqmRm : EqmR m}.
-  Context {Mm : Monad m}.
   Context {EqmROKm : EqmR_OK m}.
   Context {ML : EqmRMonad m}.
 
+  (* Ported from Basics, the monad definitions on Basics should all change with
+     typ. *)
+  Definition stateT (s : typ) (m : typ -> typ) (a : typ) : typ :=
+    s ~~> m (prod_typ s a).
+
   Global Instance EqmR_stateT : EqmR (stateT S m) :=
     {| eqmR :=
-         fun A B (R : A -> B -> Prop)
+         fun A B (R : relationH A B)
              (f : stateT S m A) (g : stateT S m B) =>
            forall (s : S), eqmR (prod_rel eq R) (f s) (g s) |}.
 

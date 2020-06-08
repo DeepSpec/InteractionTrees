@@ -23,13 +23,14 @@ Local Open Scope typ_scope.
 Section EqmR.
 
 (* SAZ: really HeterogenousRelations should be proper.  We could remove all those assumptions here. *)
-  
+
   (* We consider heterogeneous relations on computations parameterized by a relation on the return types *)
   (* Rq: if we make [EqMR] a singleton class, the type checker tends to craft dumb instances for itself behind our back.
     I wrapped it up in a record, it seems to prevent this behavior.
   *)
   Class EqmR (m : typ -> typ) : Type :=
-    { eqmR : forall (A B : typ) (R : relationH A B), relationH (m A) (m B) ;
+    {
+      eqmR : forall (A B : typ) (R : relationH A B), relationH (m A) (m B) ;
       eqmR_equal : forall (A : typ), eq_rel (eqmR A A A) (m A)
     }.
 
@@ -46,7 +47,7 @@ End EqmR.
 (* YZ: I don't think [A] should be maximally inserted, but putting it back as is for now for retro-compatibility *)
 Arguments eqm {m _ A}.
 Arguments eqmR {m _ A B}.
-Infix "≈" := eqm (at level 70) : monad_scope.
+Infix "A ≈ B" := (eqm @ (A, B)) (at level 70) : monad_scope.
 
 Section EqmRRel.
   Context (m : typ -> typ).
@@ -67,14 +68,14 @@ Section EqmRRel.
          (R1: relationH A B)
          (R2 : relationH B C)
          `{Proper _ (equalE A ==> equalE B ==> iff)%signature R1}
-         `{Proper _ (equalE B ==> equalE C ==> iff)%signature R2} 
+         `{Proper _ (equalE B ==> equalE C ==> iff)%signature R2}
     : Proper (equalE A ==> equalE C ==> iff) (R2 ∘ R1).
   Proof.
     repeat red. unfold HeterogeneousRelations.compose.
     intros; cbn in *.
     split; intros (b & Hxb & Hbx); exists b; split; intros.
-    - specialize (H _ _ H1). 
-*)  
+    - specialize (H _ _ H1).
+*)
 
   (* Requirements of well-formedness of [eqmR] *)
   Class EqmR_OK : Type :=
@@ -94,14 +95,14 @@ Section EqmRRel.
         eqmR R1 @ (ma, mb) ->
         eqmR R2 @ (mb, mc) ->
         eqmR (R2 ∘ R1) @ (ma, mc);
-  
+
     eqmR_lift_transpose : forall {A B : typ} (R : relationH A B)
       , eq_rel (eqmR †R) (†(eqmR R));
 
       (* [eqmR] respects extensional equality of the underlying relationH
          and [eqm] on both arguments over the monad *)
       (* SAZ: We need to restrict this to only Proper relations R, otherwise even
-         the identity monad doesn't work.  
+         the identity monad doesn't work.
          - option 1 : change relationH to be A -=-> B -=-> Prop_type
            keep the old fully-general version
 
@@ -130,14 +131,14 @@ Section EqmRMonad.
      *)
   Class EqmRMonad :=
     {
-      (* SAZ: we can prove only one direction of this law. 
+      (* SAZ: we can prove only one direction of this law.
           - for PropT we can take the proposition (fun _ => False)
             which accepts no computations.  Then it is true that (ret a1) and (ret a2)
             are equi-accepted by that proposition, but there doesn't have to be any relation
             between
 
           - for StateT we can take the void state, which also cannot be inverted.
-          
+
           - However, for some monads we do get the other direction:
             (itree E) and StateT S when S is non-void, for example.  So we
             break the other direction out into a different typeclass that
@@ -179,7 +180,6 @@ Section EqmRMonad.
           equalE (m C) ((bind f >>> bind g) @ ma) (bind (f >>> bind g) @ ma)
     }.
 
-  
 End EqmRMonad.
 
 Arguments eqmR_bind_ret_l {_ _ _ _}.
@@ -189,7 +189,7 @@ Section Laws.
   Context (m : typ -> typ).
   Context {Mm : Monad typ_proper m}.
   Context {EqMR : EqmR m} {EqmRm: EqmRMonad m} {EqmROKm : EqmR_OK m}.
-  
+
   Local Open Scope monad_scope.
 
   Global Instance monad_eqmR : MonadLaws Mm.
@@ -202,13 +202,13 @@ Section Laws.
       rewrite <- H.
       apply Hbr.
     - intros x y H. cbn.
-      rewrite eqmR_bind_ret_r. apply H. apply EqmRm. eauto. 
+      rewrite eqmR_bind_ret_r. apply H. apply EqmRm. eauto.
     - repeat intro.
       pose proof eqmR_bind_bind.
       rewrite H.
-      specialize (H0 m _ _ _ _ _ _ y f g). 
+      specialize (H0 m _ _ _ _ _ _ y f g).
       assumption.
-    - repeat intro. rewrite H0. 
+    - repeat intro. rewrite H0.
       pose proof (eqmR_bind_ProperH).
       specialize (H1 _ _ _ _ a a b b a b x0 y0 x y).
       assert (eqmR a @ (x0, y0)).
@@ -228,9 +228,9 @@ Lemma rewrite_app_l {A B C:typ} (R: (A × B) -=-> prop_typ) (x1 x2 : A) (y : B)
       (H : R @ (x1, y)) : R @ (x2, y).
 Proof.
  destruct R.
- cbn in *. 
+ cbn in *.
  pose proof (p (x1, y) (x2, y)). cbn in *. apply H0. split; auto. reflexivity.
- apply H. 
+ apply H.
 Qed.
 
 Lemma rewrite_app_r {A B C:typ} (R: (A × B) -=-> prop_typ) (x : A) (y1 y2 : B)
@@ -238,15 +238,13 @@ Lemma rewrite_app_r {A B C:typ} (R: (A × B) -=-> prop_typ) (x : A) (y1 y2 : B)
       (H : R @ (x, y1)) : R @ (x, y2).
 Proof.
  destruct R.
- cbn in *. 
+ cbn in *.
  pose proof (p (x, y1) (x, y2)). cbn in *. apply H0. split; auto. reflexivity.
- apply H. 
+ apply H.
 Qed.
-
 
 (* SAZ: Renamed "Domain" to "Image" -- more accurate *)
 Section Image.
-
   Context (m : typ -> typ).
   Context {Mm : Monad typ_proper m}.
   Context {EqMR : EqmR m} {EqmRm: EqmRMonad m} {EqmROKm : EqmR_OK m}.
@@ -302,14 +300,14 @@ Section Image.
     destruct R; cbn in *.
     assumption.
   Qed.
+
   
   Lemma image_symmetric {A} (ma : m A) : SymmetricH (image ma).
   Proof.
     red.
-    intros p.
-    destruct p. cbn.
-    intros.
-    pose proof (HS (t, t0)). apply H0. apply H; assumption.
+    intros a.
+    repeat intro.
+    apply HS. apply H; auto.
   Qed.
 
   Lemma image_transitive {A} (ma : m A) : TransitiveH (image ma).
@@ -321,6 +319,7 @@ Section Image.
     pose proof (TS (t, t0) (t1, t2)). apply H2. apply H; assumption.
     apply H0; assumption. apply H1.
   Qed.
+
   
   Lemma image_least {A} (ma : m A) (R : relationH A A)
         (HS : SymmetricH R)
@@ -377,33 +376,6 @@ Section Image.
     rewrite EQ. assumption.
     rewrite <- EQ. assumption.
   Qed.    
-  
-  (* SAZ: TODO - move these to HeterogeneousRelations *)
-  Lemma relationH_reflexive : forall (A:typ), ReflexiveH A.
-  Proof.
-    intros A.
-    destruct A; cbn. 
-    repeat red. intros. cbn. reflexivity.
-  Qed.
-
-  (* SAZ: TODO - move these to HeterogeneousRelations *)
-  Lemma relationH_symmetric : forall (A:typ), SymmetricH A.
-  Proof.
-    intros A.
-    destruct A; cbn. 
-    repeat red. intros. cbn in *. symmetry; assumption.
-  Qed.
-
-    (* SAZ: TODO - move these to HeterogeneousRelations *)
-  Lemma relationH_transitive : forall (A:typ), TransitiveH A.
-  Proof.
-    intros A.
-    destruct A; cbn. 
-    repeat red. intros. cbn in *.
-    destruct p, q. cbn in *.
-    eapply transitivity. apply H. eapply transitivity. apply H1. assumption.
-  Qed.
-
   
   Lemma image_subset {A:typ} (ma : m A) :
     subrelationH (eqmR (image ma)) (m A).
@@ -539,7 +511,6 @@ Section InversionFacts.
       exists a. assumption. contradiction. }
   Admitted.
 
-  
   (* A sanity check about the images: *)
   Program Definition singletonR {A:typ} (x:A) : relationH A A :=
     (fun p => (fst p) == (snd p) /\ (fst p) == x).
@@ -600,7 +571,6 @@ Section InversionFacts.
     - rewrite H. assumption.
   Qed.
 *)
-    
   Lemma ret_image {A:typ} (x:A) : eq_rel (image m (ret @ x)) (singletonR x).
   Proof.
     split.
