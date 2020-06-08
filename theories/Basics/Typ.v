@@ -369,7 +369,7 @@ Qed.
 
 
 (** Coproduct elimination *)
-Instance case_sum : Case typ_proper sum_typ := @case_typ_proper.
+Global Instance case_sum : Case typ_proper sum_typ := @case_typ_proper.
 
 Program Definition prod_typ_proper
         {A B C : typ} (f : C -=-> A) (g : C -=-> B) : C -=-> (A × B) :=
@@ -383,7 +383,7 @@ Next Obligation.
   - apply p0. assumption.
 Qed.
 
-Instance pair_prod: Pair typ_proper prod_typ := @ prod_typ_proper.
+Global Instance pair_prod: Pair typ_proper prod_typ := @ prod_typ_proper.
 
 (** Injections *)
 
@@ -400,8 +400,8 @@ Next Obligation.
 Qed.
 
 
-Instance sum_inl : Inl typ_proper sum_typ := @inl_typ_proper.
-Instance sum_inr : Inr typ_proper sum_typ := @inr_typ_proper.
+Global Instance sum_inl : Inl typ_proper sum_typ := @inl_typ_proper.
+Global Instance sum_inr : Inr typ_proper sum_typ := @inr_typ_proper.
 
 End TypCatCoproducts.
 

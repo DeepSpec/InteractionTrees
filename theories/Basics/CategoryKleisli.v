@@ -84,7 +84,7 @@ Section Instances.
 
   (* IY: Why doesn't coercion work here?*)
   Global Instance Eq2_Kleisli : Eq2 (Kleisli m) :=
-    fun (a:typ) (b:typ) f g => pointwise_relation _ (relationH_to_relation (eqm (m := m) (A := b))) (` f) (` g).
+    fun (a:typ) (b:typ) f g => pointwise_relation _ (↓ (eqm (m := m) (A := b))) (` f) (` g).
 
   Definition cat_ a b c (u : (Kleisli m a b)) (v : Kleisli m b c) : a -> m c := 
     fun (x:a) => (@bind _ _ m m_Monad _ _ v) @ (u @ x).
