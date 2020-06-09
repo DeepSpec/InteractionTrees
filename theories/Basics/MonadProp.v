@@ -294,14 +294,32 @@ Qed.
 (*  The PropM Monad doesn't have this inversion principle because of nondeterminism: 
 
 
+  eqmR == ({3, 4} >>= k1) ({3, 4} >>=> k2)
+           {5, 0}      ==    {0, 5}
+         
+
   consider:   ma : PropM nat := fun (n:nat) => n = 3 \/ n = 4
 
               k1 : nat -> PropM nat := 
+                 3 -> 5
+                 4 -> 0
 
-
+              k2 : nat -> PropM nat :=
+                 3 -> 0
+                 4 -> 5
 *)
 
 Definition nat_typ := Typ (@eq nat).
+
+Ltac crunch :=
+  repeat match goal with
+         | [ H : exists X, _ |- _ ] => destruct H
+         | [ H : _ /\ _ |- _ ] => destruct H
+         | [ H : _ \/ _ |- _ ] => destruct H
+         | [ |- _ /\ _ ] => split
+         end.
+
+
 Program Definition ambiguous : PropM nat_typ :=
   (-=->! (fun (n:nat) => n = 3 \/ n = 4) _).
 Next Obligation.
@@ -335,13 +353,6 @@ Next Obligation.
   - rewrite EQA, EQB. assumption.
 Qed.
 
-Ltac crunch :=
-  repeat match goal with
-         | [ H : exists X, _ |- _ ] => destruct H
-         | [ H : _ /\ _ |- _ ] => destruct H
-         | [ H : _ \/ _ |- _ ] => destruct H
-         | [ |- _ /\ _ ] => split
-         end.
 
 
 Lemma binds_equal : (@eqmR PropM _ _ _ (eq_typ nat_typ)) @ (bind k1 @ ambiguous, bind k2 @ ambiguous).
@@ -401,12 +412,36 @@ Lemma eqmR_bind_inv_PropM
       (ma : PropM A)
       (k1 : A -=-> PropM B1)
       (k2 : A -=-> PropM B2),
-    eqmR RB @ (bind k1 @ ma, bind k2 @ ma) ->
-    forall (a : A), mayRet PropM ma @ a -> eqmR RB @ (k1 @ a, k2 @ a).
+    eqmR RB @ (bind k1 @ ma, bind k2 @ ma) -> 
+    forall (a1 : A), mayRet PropM ma @ a1 ->
+               exists (a2: A), (mayRet PropM ma @ a2) /\
+                          eqmR RB @ (k1 @ a1, k2 @ a2). 
 Proof.
-  intros A B1 B2 RB PA k1 k2 (HA & HB) a MA.
-  do 4 red. 
-  cbn in *.
+  intros A B1 B2 RB PA k1 k2 (HA & HB) a1 MA1.
+  cbn in HA, HB.
+  assert ((exists a2 : A, mayRet PropM PA @ a2 /\ eqmR RB @ (k1 @ a1, k2 @ a2))
+          \/ ~(exists a2 : A, mayRet PropM PA @ a2 /\ eqmR RB @ (k1 @ a1, k2 @ a2))).
+  { admit. (* TODO: classical logic *) }
+  destruct H; [assumption|].
+  assert (forall (a2:A), ~(mayRet PropM PA @ a2 /\ eqmR RB @ (k1 @ a1, k2 @a2))).
+  intros a2.  intros N. apply H. exists a2. apply N.
+  
+  
+  
+  assert (diagonal_prop PA @ (a, a)).
+    { specialize (MA (diagonal_prop PA) (diagonal_prop_SymmetricH PA) (diagonal_prop_TransitiveH PA)).
+      apply MA.
+      split.
+      + intros. exists a0. split; auto. cbn. tauto.
+      + intros. exists b. split; auto. cbn. tauto.
+    }
+    destruct H as (HX & HY). cbn in *.
+    
+    
+    assert (bind_ A B1 k1 PA b1).
+    { red. exists a. split.  assumption. apply HK1. }
+  
+  
   split.
   - intros b1 HK1.
     (* SAZ: This is a nice trick to "manufacture" an element out of an image *)
@@ -446,6 +481,8 @@ Next Obligation.
   rewrite EQ. assumption.
 Qed.
 Next Obligation.
+  
+  
 Admitted.
 Next Obligation.  
 eexists (-=->! (fun (b:B) => False) _).

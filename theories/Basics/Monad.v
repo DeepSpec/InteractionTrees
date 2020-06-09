@@ -118,136 +118,11 @@ Section EqmRRel.
 
 End EqmRRel.
 
-(* In particular, well-formedness of [eqmR] recovers that [eqm] is an equivalence relationH *)
-Section EqmRMonad.
-  Context (m : typ -> typ).
-  Context {EqMRm : EqmR m}.
-  Context {Mm : Monad typ_proper m}.
-
-  (* Generalization of monadic laws.
-     These are of two quite distinct natures:
-     * Heterogeneous generalizations of the usual three monad laws
-     * Reasoning principles relating [eqmR R] to [R]
-     *)
-  Class EqmRMonad :=
-    {
-      (* SAZ: we can prove only one direction of this law.
-          - for PropT we can take the proposition (fun _ => False)
-            which accepts no computations.  Then it is true that (ret a1) and (ret a2)
-            are equi-accepted by that proposition, but there doesn't have to be any relation
-            between
-
-          - for StateT we can take the void state, which also cannot be inverted.
-
-          - However, for some monads we do get the other direction:
-            (itree E) and StateT S when S is non-void, for example.  So we
-            break the other direction out into a different typeclass that
-            can be instantiated differently.
-       *)
-      eqmR_ret : forall {A1 A2 : typ} (RA : relationH A1 A2) (a1:A1) (a2:A2),
-        RA @ (a1, a2) -> eqmR RA @ (ret @ a1, ret @ a2);
-
-      eqmR_bind_ProperH : forall {A1 A2 B1 B2 : typ}
-                            (RA : relationH A1 A2)
-                            (RB : relationH B1 B2)
-                            ma1 ma2
-                            (kb1 : A1 -=-> m B1) (kb2 : A2 -=-> m B2),
-          eqmR RA @ (ma1, ma2) ->
-          (forall a1 a2, RA @ (a1 , a2) -> eqmR RB @ (kb1 @ a1, kb2 @ a2)) ->
-          eqmR RB @ (bind kb1 @ ma1, bind kb2 @ ma2);
-
-    (* Question: The following helps _proving_ [eqmR _ (bind _ _)].
-       Should we require something to invert such an hypothesis?
-    eqmR_Proper_bind :> forall {A1 A2 B1 B2} (RA : A1 -> A2 -> Prop) (RB : B1 -> B2 -> Prop),
-        (Proper (eqmR RA ==> (RA ==> (eqmR RB)) ==> eqmR RB) bind);
-     *)
-
-      eqmR_bind_ret_l : forall {A B : typ}
-                          (f : A -=-> m B)
-                          (a : A),
-
-          equalE (m B) (bind f @ (ret @ a)) (f @ a);
-
-      eqmR_bind_ret_r : forall {A B : typ}
-                          (ma : m A),
-          equalE (m A) (bind ret @ ma) ma;
-
-       (* forall (a b c : obj) (f : C a (M b)) (g : C b (M c)), bind f >>> bind g ⩯ bind (f >>> bind g) *)
-      eqmR_bind_bind : forall {A B C : typ}
-                       (ma : m A)
-                       (f : A -=-> m B)
-                       (g : B -=-> m C),
-          equalE (m C) ((bind f >>> bind g) @ ma) (bind (f >>> bind g) @ ma)
-    }.
-
-End EqmRMonad.
-
-Arguments eqmR_bind_ret_l {_ _ _ _}.
-
-Section Laws.
-
-  Context (m : typ -> typ).
-  Context {Mm : Monad typ_proper m}.
-  Context {EqMR : EqmR m} {EqmRm: EqmRMonad m} {EqmROKm : EqmR_OK m}.
-
-  Local Open Scope monad_scope.
-
-  Global Instance monad_eqmR : MonadLaws Mm.
-  Proof.
-    split; intros.
-    - intros x y H.
-      pose proof eqmR_bind_ret_l as Hbr.
-      specialize (Hbr a b f).
-      specialize (Hbr x).
-      rewrite <- H.
-      apply Hbr.
-    - intros x y H. cbn.
-      rewrite eqmR_bind_ret_r. apply H. apply EqmRm. eauto.
-    - repeat intro.
-      pose proof eqmR_bind_bind.
-      rewrite H.
-      specialize (H0 m _ _ _ _ _ _ y f g).
-      assumption.
-    - repeat intro. rewrite H0.
-      pose proof (eqmR_bind_ProperH).
-      specialize (H1 _ _ _ _ a a b b a b x0 y0 x y).
-      assert (eqmR a @ (x0, y0)).
-      { apply eqmR_equal. assumption. }
-      specialize (H1 H2).
-      rewrite <- H0 at 1.
-      apply eqmR_equal.
-      apply H1. intros. apply eqmR_equal. rewrite H3. apply Proper_typ_proper_app.
-      apply H. reflexivity.
-  Qed.
-
-End Laws.
-
-(* SAZ: I think these are no longer needed and can be replaced with rewrite. *)
-Lemma rewrite_app_l {A B C:typ} (R: (A × B) -=-> prop_typ) (x1 x2 : A) (y : B)
-      (EQ : x1 == x2)
-      (H : R @ (x1, y)) : R @ (x2, y).
-Proof.
- destruct R.
- cbn in *.
- pose proof (p (x1, y) (x2, y)). cbn in *. apply H0. split; auto. reflexivity.
- apply H.
-Qed.
-
-Lemma rewrite_app_r {A B C:typ} (R: (A × B) -=-> prop_typ) (x : A) (y1 y2 : B)
-      (EQ : y1 == y2)
-      (H : R @ (x, y1)) : R @ (x, y2).
-Proof.
- destruct R.
- cbn in *.
- pose proof (p (x, y1) (x, y2)). cbn in *. apply H0. split; auto. reflexivity.
- apply H.
-Qed.
-
 (* SAZ: Renamed "Domain" to "Image" -- more accurate *)
 Section Image.
   Context (m : typ -> typ).
   Context {Mm : Monad typ_proper m}.
-  Context {EqMR : EqmR m} {EqmRm: EqmRMonad m} {EqmROKm : EqmR_OK m}.
+  Context {EqMR : EqmR m} {EqmROKm : EqmR_OK m}.
 
 
   (* SAZ:
@@ -270,11 +145,12 @@ Section Image.
     intros (x1 & y1) (x2 & y) (H1 & H2). cbn in *.
     split; intros.
     - specialize (H R).
-      eapply rewrite_app_l. apply H1.
-      eapply rewrite_app_r. apply H2. apply H; assumption.
+      rewrite <- H1.
+      rewrite <- H2.
+      apply H; assumption.
     - specialize (H R).
-      eapply rewrite_app_l. symmetry. apply H1.
-      eapply rewrite_app_r. symmetry. apply H2. apply H; assumption.
+      rewrite H1, H2.
+      apply H; assumption.
   Qed.
 
   (* Using image we can define the [mayRet] predicate, which identifies
@@ -300,7 +176,6 @@ Section Image.
     destruct R; cbn in *.
     assumption.
   Qed.
-
   
   Lemma image_symmetric {A} (ma : m A) : SymmetricH (image ma).
   Proof.
@@ -320,6 +195,22 @@ Section Image.
     apply H0; assumption. apply H1.
   Qed.
 
+    Lemma image_Reflexive_l {A:typ} (ma : m A) (a1 a2:A) 
+    (H : image ma @ (a1, a2)) : image ma @ (a1, a1).
+  Proof.
+    assert (image ma @ (a2, a1)).
+    { apply image_symmetric in H. apply H. }
+    eapply image_transitive in H. apply H in H0. apply H0. reflexivity.
+  Qed.
+
+  Lemma image_Reflexive_r {A:typ} (ma : m A) (a1 a2:A) 
+    (H : image ma @ (a1, a2)) : image ma @ (a2, a2).
+  Proof.
+    assert (image ma @ (a2, a1)).
+    { apply image_symmetric in H. apply H. }
+    eapply image_transitive in H0. apply H0 in H. apply H. reflexivity.
+  Qed.
+  
   
   Lemma image_least {A} (ma : m A) (R : relationH A A)
         (HS : SymmetricH R)
@@ -395,6 +286,121 @@ Section Image.
 
 End Image.
 
+
+
+(* In particular, well-formedness of [eqmR] recovers that [eqm] is an equivalence relationH *)
+Section EqmRMonad.
+  Context (m : typ -> typ).
+  Context {EqMRm : EqmR m}.
+  Context {Mm : Monad typ_proper m}.
+
+  (* Generalization of monadic laws.
+     These are of two quite distinct natures:
+     * Heterogeneous generalizations of the usual three monad laws
+     * Reasoning principles relating [eqmR R] to [R]
+     *)
+  Class EqmRMonad :=
+    {
+      (* SAZ: we can prove only one direction of this law.
+          - for StateT we can take the void state, which also cannot be inverted.
+
+          - However, for some monads we do get the other direction:
+            (itree E) and StateT S when S is non-void, for example.  So we
+            break the other direction out into a different typeclass that
+            can be instantiated differently.
+       *)
+      eqmR_ret : forall {A1 A2 : typ} (RA : relationH A1 A2) (a1:A1) (a2:A2),
+        RA @ (a1, a2) -> eqmR RA @ (ret @ a1, ret @ a2);
+
+      eqmR_bind_ProperH : forall {A1 A2 B1 B2 : typ}
+                            (RA : relationH A1 A2)
+                            (RB : relationH B1 B2)
+                            ma1 ma2
+                            (kb1 : A1 -=-> m B1) (kb2 : A2 -=-> m B2),
+          eqmR RA @ (ma1, ma2) ->
+          (forall a1, mayRet m ma1 @ a1 ->
+                 exists (a2:A2), RA @ (a1, a2) /\ eqmR RB @ (kb1 @ a1, kb2 @ a2))
+          ->
+          (forall a2, mayRet m ma2 @ a2 ->
+                 exists (a1:A1), RA @ (a1, a2) /\ eqmR RB @ (kb1 @ a1, kb2 @ a2))
+          ->
+          eqmR RB @ (bind kb1 @ ma1, bind kb2 @ ma2);
+
+    (* Question: The following helps _proving_ [eqmR _ (bind _ _)].
+       Should we require something to invert such an hypothesis?
+    eqmR_Proper_bind :> forall {A1 A2 B1 B2} (RA : A1 -> A2 -> Prop) (RB : B1 -> B2 -> Prop),
+        (Proper (eqmR RA ==> (RA ==> (eqmR RB)) ==> eqmR RB) bind);
+     *)
+
+      eqmR_bind_ret_l : forall {A B : typ}
+                          (f : A -=-> m B)
+                          (a : A),
+
+          equalE (m B) (bind f @ (ret @ a)) (f @ a);
+
+      eqmR_bind_ret_r : forall {A B : typ}
+                          (ma : m A),
+          equalE (m A) (bind ret @ ma) ma;
+
+       (* forall (a b c : obj) (f : C a (M b)) (g : C b (M c)), bind f >>> bind g ⩯ bind (f >>> bind g) *)
+      eqmR_bind_bind : forall {A B C : typ}
+                       (ma : m A)
+                       (f : A -=-> m B)
+                       (g : B -=-> m C),
+          equalE (m C) ((bind f >>> bind g) @ ma) (bind (f >>> bind g) @ ma)
+    }.
+
+End EqmRMonad.
+
+Arguments eqmR_bind_ret_l {_ _ _ _}.
+
+Section Laws.
+
+  Context (m : typ -> typ).
+  Context {Mm : Monad typ_proper m}.
+  Context {EqMR : EqmR m} {EqmRm: EqmRMonad m} {EqmROKm : EqmR_OK m}.
+
+  Local Open Scope monad_scope.
+
+  Global Instance monad_eqmR : MonadLaws Mm.
+  Proof.
+    split; intros.
+    - intros x y H.
+      pose proof eqmR_bind_ret_l as Hbr.
+      specialize (Hbr a b f).
+      specialize (Hbr x).
+      rewrite <- H.
+      apply Hbr.
+    - intros x y H. cbn.
+      rewrite eqmR_bind_ret_r. apply H. apply EqmRm. eauto.
+    - repeat intro.
+      pose proof eqmR_bind_bind.
+      rewrite H.
+      specialize (H0 m _ _ _ _ _ _ y f g).
+      assumption.
+    - repeat intro. rewrite H0.
+      pose proof (eqmR_bind_ProperH).
+      specialize (H1 _ _ _ _ a a b b a b x0 y0 x y).
+      assert (eqmR a @ (x0, y0)).
+      { apply eqmR_equal. assumption. }
+      specialize (H1 H2).
+      rewrite <- H0 at 1.
+      apply eqmR_equal.
+      apply H1.
+      + intros. exists a1. split.
+        * cbn. reflexivity.
+        * apply eqmR_equal. apply Proper_typ_proper_app. 
+          apply H. reflexivity.
+      + intros. exists a2. split.
+        * cbn. reflexivity.
+        * apply eqmR_equal. apply Proper_typ_proper_app. 
+          apply H. reflexivity.
+  Qed.
+
+End Laws.
+
+
+
 Section EqmRInversion.
   Context (m : typ -> typ).
   Context {Mm : Monad typ_proper m}.
@@ -408,17 +414,16 @@ Section EqmRInversion.
     eqmR_ret_inv : forall {A1 A2 : typ} (RA : relationH A1 A2) (a1:A1) (a2:A2),
         eqmR RA @ (ret @ a1, ret @ a2) -> RA @ (a1, a2);
 
-    eqmR_bind_inv : forall {A : typ} {B1 B2 : typ} (RB : relationH B1 B2)
-                      (ma : m A)
-                      (k1 : A -=-> m B1)
-                      (k2 : A -=-> m B2),
-        eqmR RB @ (bind k1 @ ma, bind k2 @ ma) ->
-        forall (a : A), mayRet m ma @ a -> eqmR RB @ (k1 @ a, k2 @ a);
-
-    eqmR_cast : forall {A B : typ} (ma : m A),
-        ~(exists (a:A), mayRet m ma @ a) ->
-        exists (mb : m B), forall (R : relationH A B), eqmR R @ (ma, mb)
-            
+    eqmR_bind_inv : forall {A1 A2 : typ} {B1 B2 : typ} (RB : relationH B1 B2)
+                      (ma1 : m A1) (ma2 : m A2)
+                      (k1 : A1 -=-> m B1)
+                      (k2 : A2 -=-> m B2),
+        eqmR RB @ (bind k1 @ ma1, bind k2 @ ma2) ->
+        exists (RA : relationH A1 A2),
+          eqmR RA @ (ma1, ma2) /\
+          (forall a1, mayRet m ma1 @ a1 -> exists (a2:A2), RA @ (a1, a2) /\ eqmR RB @ (k1 @ a1, k2 @ a2))
+          /\
+          (forall a2, mayRet m ma2 @ a2 -> exists (a1:A1), RA @ (a1, a2) /\ eqmR RB @ (k1 @ a1, k2 @ a2))
     }.
 
 End EqmRInversion.
@@ -435,21 +440,6 @@ Section InversionFacts.
     admit. (* TODO: import classical logic *)
   Admitted.
 
-  Lemma image_Reflexive_l {A:typ} (ma : m A) (a1 a2:A) 
-    (H : image m ma @ (a1, a2)) : image m ma @ (a1, a1).
-  Proof.
-    assert (image m ma @ (a2, a1)).
-    { apply image_symmetric in H. apply H. }
-    eapply image_transitive in H. apply H in H0. apply H0. reflexivity.
-  Qed.
-
-  Lemma image_Reflexive_r {A:typ} (ma : m A) (a1 a2:A) 
-    (H : image m ma @ (a1, a2)) : image m ma @ (a2, a2).
-  Proof.
-    assert (image m ma @ (a2, a1)).
-    { apply image_symmetric in H. apply H. }
-    eapply image_transitive in H0. apply H0 in H. apply H. reflexivity.
-  Qed.
 
   
   (* SAZ: This one is probably not needed 
@@ -459,16 +449,20 @@ Section InversionFacts.
   Lemma empty_image {A:typ} (ma : m A) : 
     ~(exists a, mayRet m ma @ a) -> forall (k : A -=-> m A), bind k @ ma == ma.
   Proof.
-    intros N K.
+    intros N k.
     assert (ma == (bind ret @ ma)).
     { rewrite bind_ret_r. cbn. reflexivity. }
     rewrite H at 2.
     apply eqmR_equal.
     apply eqmR_bind_ProperH with (RA := (image m ma)). assumption.
     eapply image_eqmR. apply MI. 
-    intros. unfold mayRet in N. cbn in N.
+    intros.
     assert (exists a, image m ma @ (a, a)).
     { exists a1. eapply image_Reflexive_l. apply H0. }
+    contradiction.
+    intros.
+    assert (exists a, image m ma @ (a, a)).
+    { exists a2. eapply image_Reflexive_l. apply H0. }
     contradiction.
   Qed.
 
@@ -587,9 +581,7 @@ Section InversionFacts.
       apply H in H2. repeat red in H2. assumption.
     - do 4 red. intros.
       unfold singletonR in H. destruct H. cbn in *.
-      eapply rewrite_app_l. symmetry. apply H0.
-      eapply rewrite_app_r. apply H. eapply rewrite_app_r. symmetry. apply H0.
-
+      rewrite <- H. rewrite H0.
       eapply eqmR_ret_inv; eauto.
   Qed.
 
