@@ -105,6 +105,7 @@ Section State.
         rewrite <- transpose_prod.
         reflexivity. typeclasses eauto.
         cbn in *. apply eqmR_lift_transpose; auto.
+    - admit.
     - repeat intro. cbn in *. split.
       +  repeat intro. cbn.
           specialize (H0 s). cbn in *.
@@ -117,7 +118,7 @@ Section State.
     - repeat red. repeat intro. specialize (H0 s).
       eapply (eqmR_Proper_mono) in H0; eauto.
       apply prod_rel_monotone. intuition. eauto.
-  Qed.
+  Admitted.
 
   (* ret and bind definition for stateT. *)
   Instance stateT_Monad : Monad typ_proper (stateT S m).
@@ -151,7 +152,8 @@ Section State.
     }
     repeat intro. unfold uncurry. cbn. rewrite H.
     rewrite H0. reflexivity.
-  Qed.
+  Defined.
+
 
   (* Lemma ret_ok :  forall {A1 A2} (RA : A1 -> A2 -> Prop) (a1:A1) (a2:A2), *)
   (*     RA a1 a2 -> (eqmR RA (ret a1) (ret a2)). *)
@@ -167,8 +169,10 @@ Section State.
   constructor.
   - repeat intro; cbn. pose proof (eqmR_ret _ _ _ _ H).
     assert (s == s) by reflexivity.
-    (* IY : Need inversion principle for eqmR prod_rel. pointwise equality? *)
-
+    pose proof eqmR_rel_prod.
+    specialize (H2 _ _ _ _ _ _ _ S RA).
+    specialize (H2 (fun x1 s1 => (ret @ (x1, s1))) (fun x1 s1 => (ret @ (x1, s1)))).
+    specialize (H2 s s a1 a2 H1 H). apply H2.
   (*   apply eqmR_ret *)
   (*   repeat intro. *)
   (*   cbn. *)

@@ -45,12 +45,12 @@ split; try tauto.
   exists mb. tauto.
 - intros. cbn in *. unfold eqmR_ID in *.
   reflexivity.
+- admit. 
 - intros.
-  repeat red.
+  repeat red. 
   intros. apply H.
 - intros. do 2 red. cbn. unfold eqmR_ID. tauto.
-Qed.  
-
+Admitted.
 
 (* SAZ: This instance should be implied by the one below. *)
 (* Instance MonadLaws_ID : MonadLaws MonadID. *)
