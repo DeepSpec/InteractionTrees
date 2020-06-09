@@ -135,6 +135,44 @@ Section Image.
   Context {EqMR : EqmR m} {EqmROKm : EqmR_OK m}.
 
 
+  Definition eq_rel' {A B: Type} (R S : A -> B -> Prop)  :=
+    forall a b, R a b <-> S a b.
+
+  Definition transpose' {A B:Type} (R : A -> B -> Prop) : B -> A -> Prop :=
+    fun x y => R y x.
+
+  Definition subrelation' {A B:Type} (R S : A -> B -> Prop) : Prop :=
+    forall a b, R a b -> S a b.
+
+  Definition comp' {A B C} (R : A -> B -> Prop) (S : B -> C -> Prop) : A -> C -> Prop :=
+    fun a c => exists b, R a b /\ S b c.
+  
+  Definition Property (A B : Type) (R : A -> B -> Prop) :=
+    subrelation' R (comp' R (comp' (transpose' R) R))
+    /\
+    subrelation' (transpose' R) (comp' (transpose' R) (comp' R (transpose' R))).
+
+  
+  Lemma symmetric_property (A:Type) (R : A -> A -> Prop) (HP: Property A A R) : Symmetric R.
+  Proof.
+    repeat red. intros.
+    repeat red in HP. destruct HP.  cbn in *.
+    apply H0 in H. red in H. destruct H as (b & Rb & (a & Ra)).
+
+  Lemma transitive_property (A:Type) (R : A -> A -> Prop) (HP: Property A A R) : Transitive R.
+    
+  
+  Program Definition imageH {A1 A2:typ} (m1 : m A1) (m2 : m A2) : relationH A1 A2 :=
+    fun (p : A1 × A2) =>
+      forall (R : relationH A1 A2)
+        (HS : SymmetricH R) 
+        (TS : TransitiveH R)
+        (EQ: eqmR R @ (m1, m2)), R @ p.
+
+  Definition image {A:typ} (m : m A) : relationH A A := imageH A A m m.
+
+  
+
   (* SAZ:
      We *don't* want the image to be reflexive because it's not true.
 
@@ -455,8 +493,8 @@ Section EqmRInversion.
                       (k1 : A1 -=-> m B1)
                       (k2 : A2 -=-> m B2),
         eqmR RB @ (bind k1 @ ma1, bind k2 @ ma2) ->
-        exists (RA : relationH A1 A2),
-          eqmR RA @ (ma1, ma2) /\
+        forall (RA : relationH A1 A2),   (* P a1 a2 <-> mayRet ma1 @ a1 <-> mayRet ma2 @ a2  *)
+          eqmR RA @ (ma1, ma2) ->
           (forall a1, mayRet m ma1 @ a1 -> exists (a2:A2), RA @ (a1, a2) /\ eqmR RB @ (k1 @ a1, k2 @ a2))
           /\
           (forall a2, mayRet m ma2 @ a2 -> exists (a1:A1), RA @ (a1, a2) /\ eqmR RB @ (k1 @ a1, k2 @ a2))
