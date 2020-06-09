@@ -138,6 +138,69 @@ Qed.
 Notation "TA ~~> TB" := (arrow_typ TA TB) (at level 40) : typ_scope.
 
 
+(*
+    Typ forms a Category. We are working in a category C, where:
+
+    Objects:    Typ
+    Hom (Typ eqA) (Typ eqB) := { f | Proper (eqA ==> eqB) f }
+    ID in Hom (Typ eqA) (Typ eqA) := fun (x:A) => x
+*)
+
+Lemma id_ok: forall (TA : typ),
+    Proper (equalE TA ==> equalE TA) (fun x => x).
+Proof.
+  intros.
+  repeat red. tauto.
+Defined.
+
+Instance compose_Proper:
+  forall (TA TB TC : typ)
+    (f : TA -=-> TB)
+    (g : TB -=-> TC),
+    Proper (equalE TA ==> equalE TC) ((` f) >>> (` g)).
+Proof.
+  intros TA TB TC f g a1 a2 EQ.
+  repeat red.
+  destruct TC; cbn. destruct g; destruct f; cbn in *.
+  apply p. apply p0. assumption.
+Defined.
+
+Global Instance id_typ_proper : Id_ typ_proper :=
+  fun TA : typ =>
+  exist (fun f : TA -> TA => Proper (equalE TA ==> equalE TA) f)
+    (fun x : TA => x) (id_ok TA).
+
+Global Instance cat_typ_proper : Cat typ_proper :=
+  fun (a b c : typ) (f : a -=-> b) (g : b -=-> c) =>
+  exist (fun x : a -> c => Proper (equalE a ==> equalE c) x)
+    ((` f) >>> (` g)) (compose_Proper a b c f g).
+
+Global Instance cat_IdL_typ_proper : CatIdL typ_proper.
+  repeat intro. destruct f. cbn. apply p. assumption.
+Defined.
+
+Global Instance cat_IdR_typ_proper : CatIdR typ_proper.
+  repeat intro. destruct f. cbn. apply p. assumption.
+Defined.
+
+Global Instance cat_assoc_typ_proper : CatAssoc typ_proper.
+  refine (fun a b c d TA TB TC => _). repeat intro.
+  destruct TA, TB, TC. eapply p1. eapply p0. eapply p. assumption.
+Defined.
+
+Global Instance proper_typ_proper (a b c : typ) : Proper ((@eq2 typ _ _ a b) ==> (@eq2 typ _ _ b c) ==> (@eq2 typ _ _ a c)) (cat).
+  repeat intro.
+  destruct x, y, x0, y0. unfold eq2, eq2_typ_proper in H0.
+  cbn in H0. unfold eq2, eq2_typ_proper in H. cbn in H. cbn.
+  specialize (H x1 y1 H1).
+  specialize (H0 (x x1) (x2 y1)).
+  apply H0. apply H.
+Defined.
+
+Global Instance category_typ_proper : Category typ_proper.
+  constructor; try typeclasses eauto.
+Defined.
+
 Global Instance Proper_typ_proper_app2 : forall {a b : typ},
     Proper (equalE (arrow_typ a b) ==> equalE a ==> equalE b) (@typ_proper_app a b).
 intros.
@@ -187,6 +250,24 @@ Next Obligation.
   do 2 red.
   intros x y H a1 a2 H0.
   destruct f; cbn in *. apply p. cbn. tauto.
+Defined.
+
+Program Definition uncurry {a b c : typ} (f : a -=-> (b ~~> c)) :
+  (a × b) -=-> c :=
+  exist _ (fun x => _) _.
+Next Obligation.
+  exact (f @ t @ t0).
+Defined.
+Next Obligation.
+  repeat intro. destruct x, y. cbn in *. destruct H.
+  apply Proper_typ_proper_app2. 2 : eauto.
+  apply Proper_typ_proper_app.
+  pose proof @Proper_typ_proper_app.
+  repeat red in H1.
+  specialize (H1 _ _ f f).
+  assert (f ⩯ f).
+  pose proof cat_id_l. apply H2.
+  specialize (H1 H2 _ _ H). apply H1.
 Defined.
 
 Goal ((3 : top_typ nat) == (4 : top_typ nat)) .
@@ -289,76 +370,6 @@ Proof.
   repeat red; intros; cbn.
   destruct TA. cbn. assumption.
 Qed.
-
-
-(*
-    Typ forms a Category. We are working in a category C, where:
-
-    Objects:    Typ
-    Hom (Typ eqA) (Typ eqB) := { f | Proper (eqA ==> eqB) f }
-    ID in Hom (Typ eqA) (Typ eqA) := fun (x:A) => x
-*)
-Section TypCat.
-
-
-  Lemma id_ok: forall (TA : typ),
-      Proper (equalE TA ==> equalE TA) (fun x => x).
-  Proof.
-    intros.
-    repeat red. tauto.
-  Defined.
-
-  Instance compose_Proper:
-    forall (TA TB TC : typ)
-      (f : TA -=-> TB)
-      (g : TB -=-> TC),
-      Proper (equalE TA ==> equalE TC) ((` f) >>> (` g)).
-  Proof.
-    intros TA TB TC f g a1 a2 EQ.
-    repeat red.
-    destruct TC; cbn. destruct g; destruct f; cbn in *.
-    apply p. apply p0. assumption.
-  Defined.
-
-  Global Instance id_typ_proper : Id_ typ_proper :=
-    fun TA : typ =>
-    exist (fun f : TA -> TA => Proper (equalE TA ==> equalE TA) f)
-      (fun x : TA => x) (id_ok TA).
-
-  Global Instance cat_typ_proper : Cat typ_proper :=
-    fun (a b c : typ) (f : a -=-> b) (g : b -=-> c) =>
-    exist (fun x : a -> c => Proper (equalE a ==> equalE c) x)
-      ((` f) >>> (` g)) (compose_Proper a b c f g).
-
-  Global Instance cat_IdL_typ_proper : CatIdL typ_proper.
-    repeat intro. destruct f. cbn. apply p. assumption.
-  Defined.
-
-  Global Instance cat_IdR_typ_proper : CatIdR typ_proper.
-    repeat intro. destruct f. cbn. apply p. assumption.
-  Defined.
-
-  Global Instance cat_assoc_typ_proper : CatAssoc typ_proper.
-    refine (fun a b c d TA TB TC => _). repeat intro.
-    destruct TA, TB, TC. eapply p1. eapply p0. eapply p. assumption.
-  Defined.
-
-  Global Instance proper_typ_proper (a b c : typ) : Proper ((@eq2 typ _ _ a b) ==> (@eq2 typ _ _ b c) ==> (@eq2 typ _ _ a c)) (cat).
-    repeat intro.
-    destruct x, y, x0, y0. unfold eq2, eq2_typ_proper in H0.
-    cbn in H0. unfold eq2, eq2_typ_proper in H. cbn in H. cbn.
-    specialize (H x1 y1 H1).
-    specialize (H0 (x x1) (x2 y1)).
-    apply H0. apply H.
-  Defined.
-
-  Global Instance category_typ_proper : Category typ_proper.
-    constructor; try typeclasses eauto.
-  Defined.
-
-
-End TypCat.
-
 
 Section TypCatCoproducts.
 

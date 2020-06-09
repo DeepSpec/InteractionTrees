@@ -98,6 +98,16 @@ Section EqmRRel.
     eqmR_lift_transpose : forall {A B : typ} (R : relationH A B)
       , eq_rel (eqmR †R) (†(eqmR R));
 
+    eqmR_rel_prod : forall {A1 A2 B1 B2 : typ}
+                          (RA : relationH A1 A2)
+                          (RB : relationH B1 B2)
+                          (f : A1 -> B1 -> m (A1 × B1))
+                          (g : A2 -> B2 -> m (A2 × B2))
+                          (x1 : A1) (x2 : A2) (y1 : B1) (y2 : B2),
+      RA @ (x1, x2) ->
+      RB @ (y1, y2) ->
+      eqmR (RA ⊗ RB) @ (f x1 y1, g x2 y2);
+
       (* [eqmR] respects extensional equality of the underlying relationH
          and [eqm] on both arguments over the monad *)
       (* SAZ: We need to restrict this to only Proper relations R, otherwise even
@@ -108,7 +118,7 @@ Section EqmRRel.
          - option 2 : restrict eqmR_Proper as shown:
       *)
     eqmR_Proper :> forall {A B : typ},
-        Proper (eq_rel ==> eq_rel) eqmR;
+        Proper (@eq_rel A B ==> eq_rel) eqmR;
 
       (* [eqmR] is monotone as a morphism on relationHs *)
     eqmR_Proper_mono :> forall {A B},
