@@ -64,7 +64,19 @@ Qed.
 
 Instance EqmRMonad_ID : EqmRMonad ID.
 split; try tauto.
-- intros. apply H0. apply H.
+- intros.
+  unfold ID in ma1, ma2.
+  assert (mayRet ID ma1 @ ma1).
+  { repeat red. cbn. intros. apply EQ. }
+  specialize (H0 ma1 H2). destruct H0 as (a2 & RA1 & MR2 & EQ).
+  do 6 red in MR2.
+  epose ((-=->! (fun a => (a == ma2)) _) : A2 -=-> prop_typ) as Q.
+  Unshelve. 2 : { repeat red. intros. split; intros. rewrite <- H0. assumption. rewrite H0. assumption. }
+  assert (eqmR (diagonal_prop Q) @ (ma2, ma2)).
+  { repeat red. split; cbn; reflexivity. }
+  specialize (MR2 (diagonal_prop Q) (diagonal_prop_SymmetricH Q) (diagonal_prop_TransitiveH Q) H0).
+  repeat red in MR2. destruct MR2 as (EQ2 & _).
+  cbn in EQ2. rewrite <- EQ2. assumption.
 - intros. reflexivity.
 - intros. reflexivity.
 - intros. reflexivity.

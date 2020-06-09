@@ -128,8 +128,6 @@ Section Instances.
   Global Instance Inr_Kleisli : Inr (Kleisli m) sum_typ :=
     fun _ _ => pure inr_typ_proper.
 
-  Print Graph.
-
   (* IY TODO: Category theory version (or typ version) of Basics? *)
   Class MonadIter (M : typ -> typ) :=
     iter : forall {R I: typ}, (I -=-> M (I ⨥ R)%type) -> (I -=-> M R).

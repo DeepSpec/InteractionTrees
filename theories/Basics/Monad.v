@@ -34,19 +34,18 @@ Section EqmR.
       eqmR_equal : forall (A : typ), eq_rel (eqmR A A A) (m A)
     }.
 
-  Arguments eqmR {m _ A B}.
-
   (*
     The more traditional notion of monadic equivalence is recovered at the equality relation
     [forall A,  m A -> m A -> Prop]
    *)
-  Definition eqm {m : typ -> typ} `{@EqmR m} {A: typ} := eqmR A.
+  Definition eqm {m : typ -> typ} `{@EqmR m} {A: typ} := eqmR A A A.
 
 End EqmR.
 
 (* YZ: I don't think [A] should be maximally inserted, but putting it back as is for now for retro-compatibility *)
-Arguments eqm {m _ A}.
 Arguments eqmR {m _ A B}.
+Arguments eqm {m _ A}.
+Arguments eqmR_equal {m _}.
 Infix "A ≈ B" := (eqm @ (A, B)) (at level 70) : monad_scope.
 
 Section EqmRRel.
@@ -117,6 +116,7 @@ Section EqmRRel.
     }.
 
 End EqmRRel.
+
 
 (* SAZ: Renamed "Domain" to "Image" -- more accurate *)
 Section Image.
@@ -260,13 +260,37 @@ Section Image.
       apply H0; auto. rewrite <- H. assumption.
   Qed.
 
-  Lemma rewrite_image_app {A} (ma mb : (m A)) p (EQ : ma == mb) :
-    image ma @ p <-> image mb @ p.
+  Global Instance Proper_image3 {A}  :
+    Proper (equalE (m A) ==> (@eq2 typ typ_proper _ _ _)) image.
   Proof.
-    red. cbn. split; intros; apply H; auto.
-    rewrite EQ. assumption.
-    rewrite <- EQ. assumption.
-  Qed.    
+    do 3 red.
+    intros a b H (p1 & p2) (q1 & q2) (HP & HQ).
+    cbn in HP, HQ. rewrite HP. rewrite HQ. 
+    split; intros; cbn in *;  intros.
+    - apply H0; auto. rewrite H. assumption.
+    - apply H0; auto. rewrite <- H. assumption.
+  Qed.
+
+  
+  Global Instance Proper_mayRet {A:typ} :
+    Proper (equalE (m A) ==> (equalE A) ==> iff) (fun ma => (proj1_sig (mayRet ma))).
+  Proof.
+    do 3 red.
+    intros x y H x0 y0 H0.
+    split; intros; cbn in *; intros.
+    - rewrite <- H0. apply H1; auto. rewrite H. assumption.
+    - rewrite H0. apply H1; auto. rewrite <- H. assumption.
+  Qed.      
+
+  Global Instance Proper_mayRet2 {A}  :
+    Proper (equalE (m A) ==> (@eq2 typ typ_proper _ _ _)) mayRet.
+  Proof.
+    repeat red.
+    intros; split; intros; cbn in *; intros.
+    - rewrite <- H0. apply H1; auto. rewrite H. auto.
+    - rewrite H0. apply H1; auto. rewrite <- H. auto.
+  Qed.
+
   
   Lemma image_subset {A:typ} (ma : m A) :
     subrelationH (eqmR (image ma)) (m A).
@@ -319,10 +343,10 @@ Section EqmRMonad.
                             (kb1 : A1 -=-> m B1) (kb2 : A2 -=-> m B2),
           eqmR RA @ (ma1, ma2) ->
           (forall a1, mayRet m ma1 @ a1 ->
-                 exists (a2:A2), RA @ (a1, a2) /\ eqmR RB @ (kb1 @ a1, kb2 @ a2))
+                 exists (a2:A2), RA @ (a1, a2) /\ (mayRet m ma2 @ a2) /\ eqmR RB @ (kb1 @ a1, kb2 @ a2))
           ->
           (forall a2, mayRet m ma2 @ a2 ->
-                 exists (a1:A1), RA @ (a1, a2) /\ eqmR RB @ (kb1 @ a1, kb2 @ a2))
+                 exists (a1:A1), RA @ (a1, a2) /\ (mayRet m ma1 @ a1) /\ eqmR RB @ (kb1 @ a1, kb2 @ a2))
           ->
           eqmR RB @ (bind kb1 @ ma1, bind kb2 @ ma2);
 
@@ -387,12 +411,14 @@ Section Laws.
       rewrite <- H0 at 1.
       apply eqmR_equal.
       apply H1.
-      + intros. exists a1. split.
+      + intros. exists a1. split; [|split].
         * cbn. reflexivity.
+        * rewrite <- H0. assumption.
         * apply eqmR_equal. apply Proper_typ_proper_app. 
           apply H. reflexivity.
-      + intros. exists a2. split.
+      + intros. exists a2. split; [| split].
         * cbn. reflexivity.
+        * rewrite H0. assumption.
         * apply eqmR_equal. apply Proper_typ_proper_app. 
           apply H. reflexivity.
   Qed.

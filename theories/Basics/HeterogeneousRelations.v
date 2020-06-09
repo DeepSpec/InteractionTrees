@@ -41,6 +41,8 @@ Section RelationH_Operations.
       rewrite HC. assumption.
   Qed.
     
+  (* Given any typ we can project out a relation: *)
+
 
   (* Heterogeneous notion of [subrelation] *)
   Class subrelationH {A B} (R S : relationH A B) : Prop :=
@@ -117,7 +119,7 @@ Section RelationH_Operations.
     - rewrite <- HA1. rewrite <- HA2. rewrite <- HB1. rewrite <- HB2. assumption.
     - rewrite HA1. rewrite HA2. rewrite HB1. rewrite  HB2. assumption.
   Qed.
-    
+
 
 End RelationH_Operations.
 
@@ -149,8 +151,6 @@ Import RelNotations.
 Local Open Scope relationH_scope.
 
 
-(* Given any typ we can project out a relation: *)
-
 Program Definition relationH_of_typ (A : typ) : relationH A A :=
   fun p => equalE A (fst p) (snd p).
 Next Obligation.
@@ -166,6 +166,7 @@ Definition relationH_to_relation {A: typ} (R : relationH A A) : relation A :=
   fun (x : @Ty A) (y : @Ty A) => R @ (x, y).
 
 Notation "↓ R" := (relationH_to_relation R) (at level 5).
+
 
 Instance Proper_relation {A: typ} (R : relationH A A) :
   Proper (equalE A ==> equalE A ==> iff) (↓ R).
@@ -564,23 +565,31 @@ Section ProdRelFacts.
 (* SAZ: Got to here 
     - add tactics invn_prod_rel and invn_compose? 
 *)
-  (*
+  
   Lemma prod_compose {A B C D E F: typ}
         (R: relationH A B) (S: relationH B C)
         (T: relationH D E) (U: relationH E F)
     : (S ∘ R) ⊗ (U ∘ T) ≡ (S ⊗ U) ∘ (R ⊗ T).
   Proof.
     split; intros!.
-    - repeat (invn prod_rel || invn compose || invn and).
-      eexists; eauto.
-    - repeat (invn prod_rel || invn compose || invn and).
-      do 2 eexists; eauto.
+    - destruct x, y. repeat red. repeat red in H. destruct H.
+      unfold fst, snd. cbn in H, H0.
+      edestruct H as (b & HR & HS).
+      edestruct H0 as (e & HT & HU).
+      exists (b, e). split; cbn; split; eauto.
+    - destruct x, y. repeat red. repeat red in H. destruct H.
+      unfold fst, snd in H. destruct H.
+      cbn.
+      split. exists (fst x). split.
+      destruct x. cbn. cbn in H. tauto.
+      destruct x. cbn in *. tauto.
+      exists (snd x). split; destruct x; cbn in *; tauto.
   Qed.
 
   Global Instance Proper_prod_rel {A B C D}: Proper (eq_rel ==> eq_rel ==> eq_rel) (@prod_rel A B C D).
   Proof.
-    intros!; split; intros!; invn prod_rel;
-      econstructor; appn @eq_rel; auto.
+    intros!. split; intros!; destruct x1, y1; cbn in *; destruct H1; split;
+    try apply H; try apply H0; eauto.
   Qed.
 
   (* end
@@ -592,40 +601,56 @@ Section ProdRelFacts.
  *)
 
   (* Distributivity of [transpose] over [prod_rel] *)
-  Lemma transpose_prod {A B C D: Type}
+  Lemma transpose_prod {A B C D: typ}
         (R: relationH A B) (S: relationH C D)
     : † (S ⊗ R) ≡ (†S ⊗ †R).
   Proof.
-    split; unfold transpose; cbn; intros!; invn prod_rel; auto.
+    split; unfold transpose; cbn; intros!; destruct x, y; cbn in *;
+    destruct H; split; eauto.
   Qed.
-*)
 End ProdRelFacts.
 
-(*
+
 Section SumRelFacts.
 
   (* [sum_rel] preserves the structure of equivalence relations (what does one call it for a [bifunctor]?) *)
   Section Equivalence.
-    Context {A B : Type}.
+    Context {A B : typ}.
     Context (R : relationH A A).
     Context (S : relationH B B).
 
-    Global Instance sum_rel_refl {RR: Reflexive R} {SR: Reflexive S} : Reflexive (R ⊕ S).
+    Global Instance sum_rel_refl {RR: Reflexive ↓R} {SR: Reflexive ↓S} : Reflexive ↓(R ⊕ S).
     Proof.
-      intros []; auto.
+      intros []. apply ReflexiveH_Reflexive in RR.
+      apply ReflexiveH_Reflexive in SR.
+      cbn. apply RR. apply SR.
     Qed.
 
-    Global Instance sum_rel_sym {RS: Symmetric R} {SS: Symmetric S}  : Symmetric (R ⊕ S).
+    Global Instance sum_rel_sym {RS: Symmetric ↓R} {SS: Symmetric ↓S} : Symmetric ↓(R ⊕ S).
     Proof.
-      intros ? ? []; auto.
+      intros ? ? ?. apply SymmetricH_Symmetric in RS.
+      apply SymmetricH_Symmetric in SS.
+      red. red in H.
+      destruct x, y.
+      - apply RS in H. cbn in H. apply H.
+      - inversion H.
+      - inversion H.
+      - apply SS in H. cbn in H. apply H.
     Qed.
 
-    Global Instance sum_rel_trans {RT: Transitive R} {ST: Transitive S}  : Transitive (R ⊕ S).
+    Global Instance sum_rel_trans {RT: Transitive ↓R} {ST: Transitive ↓S}  : Transitive ↓(R ⊕ S).
     Proof.
-      intros ? ? ? H1 H2; inv H1; inv H2; eauto.
+      intros!.
+      apply TransitiveH_Transitive in RT. apply TransitiveH_Transitive in ST.
+      unfold TransitiveH in *.
+      red in H, H0. destruct x, y, z; try contradiction. cbn in *.
+      specialize (RT (t, t0) (t0, t1) H H0).
+      apply RT; reflexivity.
+      specialize (ST (t, t0) (t0, t1) H H0).
+      apply ST; reflexivity.
     Qed.
 
-    Global Instance sum_rel_eqv {RE: Equivalence R} {SE: Equivalence S} : Equivalence (R ⊕ S).
+    Global Instance sum_rel_eqv {RE: Equivalence ↓R} {SE: Equivalence ↓S} : Equivalence ↓(R ⊕ S).
     Proof.
       constructor; typeclasses eauto.
     Qed.
@@ -634,39 +659,54 @@ Section SumRelFacts.
 
   (* [sum_rel] is monotone in both parameters *)
   Global Instance sum_rel_monotone
-         {A B C D: Type} (R R': relationH A B) (S S': relationH C D)
+         {A B C D: typ} (R R': relationH A B) (S S': relationH C D)
          `{R ⊑ R'} `{S ⊑ S'}
     : R ⊕ S ⊑ R' ⊕ S'.
   Proof.
-    intros!; invn sum_rel; constructor; appn subrelationH; auto.
+    intros!; destruct x, y; repeat red; repeat red in H1.
+    apply H in H1. apply H1.
+    inversion H1. inversion H1.
+    apply H0 in H1. apply H1.
   Qed.
 
   (* begin
    [sum_rel] is a bifunctor
    *)
 
-  Lemma sum_rel_eq : forall A B,  eq ⊕ eq ≡ @eq (A + B).
+  Lemma sum_rel_eq : forall (A B: typ),  A ⊕ B ≡ A ⨥ B.
   Proof.
     intros.
-    split; intros!; [invn sum_rel | destructn sum; subst]; eauto.
+    unfold eq_rel; split; unfold subrelationH; intros; destruct x, y; apply H.
   Qed.
 
-  Lemma sum_compose {A B C D E F: Type}
+  Lemma sum_compose {A B C D E F: typ}
         (R: relationH A B) (S: relationH B C)
         (T: relationH D E) (U: relationH E F)
   : (S ∘ R) ⊕ (U ∘ T) ≡ (S ⊕ U) ∘ (R ⊕ T).
   Proof.
     split; intros!.
-    - invn sum_rel; invn compose; invn and.
-      all: eexists; split; econstructor; eauto.
-    - invn compose; invn and; do 2 invn sum_rel.
-      eauto.
-      all: econstructor; eexists; eauto.
+    - destruct x, y. repeat red. repeat red in H. destruct H.
+      unfold fst, snd. cbn in H.
+      destruct H. exists (inl x). cbn. split; eassumption.
+      destruct H. destruct H.
+      destruct H. cbn in H. exists (inr x). cbn. destruct H. split; eassumption.
+    - destruct x, y. repeat red. repeat red in H. destruct H.
+      unfold fst, snd in H. destruct H. cbn.
+      destruct x. cbn in *. exists t1; split; eauto.
+      edestruct H. destruct H. destruct H.
+      destruct x. cbn in H0. destruct H0; contradiction.
+      cbn in *. contradiction.
+      destruct H. destruct x. destruct H. cbn in *. contradiction.
+      destruct H. cbn in *. contradiction.
+      destruct H. destruct x. destruct H. cbn in *. contradiction.
+      destruct H. cbn in *. exists t1; eauto.
   Qed.
 
   Global Instance Proper_sum_rel {A B C D}: Proper (eq_rel ==> eq_rel ==> eq_rel) (@sum_rel A B C D).
   Proof.
-    intros!; split; intros!; invn sum_rel; econstructor; appn @eq_rel; eauto.
+    intros!.
+    split; intros!; destruct x1, y1; cbn in *; try inversion H1;
+      try apply H; try apply H0; eauto.
   Qed.
 
   (* end
@@ -678,13 +718,63 @@ Section SumRelFacts.
  *)
 
   (* Distributivity of [transpose] over [sum_rel] *)
-  Lemma transpose_sum {A B C D: Type}
+  Lemma transpose_sum {A B C D: typ}
         (R: relationH A B) (S: relationH C D)
     : † (S ⊕ R) ≡ (†S ⊕ †R).
   Proof.
-    split; unfold transpose; cbn; intros!; invn sum_rel; auto.
+    split; unfold transpose; cbn; intros!; destruct x, y; cbn in *;
+      try inversion H; eauto.
   Qed.
 
 End SumRelFacts.
 
-*)
+
+
+
+Lemma PER_reflexivityH1 : forall {A:typ} (R : relationH A A) (RS: SymmetricH R) (RT: TransitiveH R)
+                            (a b : A), R @ (a, b) -> R @ (a, a).
+Proof.
+  intros.
+  assert (R @ (b, a)). { specialize (RS (a, b)). apply RS. assumption. }
+  specialize (RT (a,b) (b,a)). apply RT; auto. reflexivity.                      
+Qed.  
+
+Lemma PER_reflexivityH2 : forall {A:typ} (R : relationH A A) (RS: SymmetricH R) (RT: TransitiveH R)
+                            (a b : A), R @ (b, a) -> R @ (a, a).
+Proof.
+  intros.
+  assert (R @ (a, b)). { specialize (RS (b, a)). apply RS. assumption. }
+  specialize (RT (a,b) (b,a)). apply RT; auto. reflexivity.                      
+Qed.  
+
+Ltac PER_reflexivityH :=
+  match goal with
+  | [ H : ?R @ (?X, ?Y) |- ?R @ (?X, ?X) ] =>  eapply PER_reflexivityH1; eauto
+  | [ H : ?R @ (?Y, ?X) |- ?R @ (?X, ?X) ] =>  eapply PER_reflexivityH2; eauto
+  end.
+
+
+Program Definition diagonal_prop {A : typ} (P : A -=-> prop_typ) : relationH A A :=
+  fun p => (P @ (fst p) /\ P @ (snd p)). 
+Next Obligation.
+  repeat red.
+  intros (a1 & a2) (b1 & b2) (EQA & EQB).
+  split; intros (HX & HY); split; cbn in *.
+  - rewrite <- EQA; auto.
+  - rewrite <- EQB; auto.
+  - rewrite EQA; auto.
+  - rewrite EQB; auto.
+Qed.
+
+Lemma diagonal_prop_SymmetricH {A : typ} (P : A -=-> prop_typ) : SymmetricH (diagonal_prop P).
+Proof.
+  red. intros (a1 & a2) H. 
+  cbn in *. tauto.
+Qed.
+
+Lemma diagonal_prop_TransitiveH {A : typ} (P : A -=-> prop_typ) : TransitiveH (diagonal_prop P).
+Proof.
+  red. intros (a1 & a2) (b1 & b2) HA HB EQ. 
+  cbn in *.
+  tauto.
+Qed.
