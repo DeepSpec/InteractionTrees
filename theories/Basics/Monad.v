@@ -89,7 +89,7 @@ Section EqmRRel.
      *)
 
     eqmR_transport_refl :  forall {A : typ} (R : relationH A A), ReflexiveH R -> ReflexiveH (eqmR R);
-    
+
     eqmR_transport_symm :  forall {A : typ} (R : relationH A A), SymmetricH R -> SymmetricH (eqmR R);
 
     eqmR_transport_trans : forall {A : typ} (R : relationH A A), TransitiveH R -> TransitiveH (eqmR R);

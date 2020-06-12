@@ -28,6 +28,7 @@ Section State.
   Context {Mm : Monad typ_proper m}.
   Context {EqmRm : EqmR m}.
   Context {EqmROKm : EqmR_OK m}.
+  Context {EqmRInv : EqmRMonadInverses m}.
   Context {ML : EqmRMonad m}.
 
   (* Ported from Basics, the monad definitions on Basics should all change with
@@ -71,18 +72,29 @@ Section State.
   Proof.
     split; unfold eqmR, EqmR_stateT; intros.
     - red. cbn. intros.
-      epose proof @prod_rel_sym.
-      specialize (H1 S A S R _ H).
-      apply eqmR_transport_symm; eauto.
-      eapply eqmR_transport_symm in H0; eauto.
-      symmetry. apply H0.
+      epose proof @prod_rel_refl.
+      rewrite ReflexiveH_Reflexive in H.
+      specialize (H0 _ _ S _ _ H).
+      eapply eqmR_transport_refl in H0; eauto.
     - red. cbn. intros.
+      epose proof @prod_rel_sym.
+      apply SymmetricH_Symmetric in H.
+      specialize (H1 S A S R _ H).
+      eapply eqmR_transport_symm in H0; eauto.
+      2 : { apply SymmetricH_Symmetric; eauto. }
+      cbn in H0. apply H0.
+    - cbn . intros!. cbn in *.
+      apply TransitiveH_Transitive in H.
       epose proof @prod_rel_trans.
-      specialize (H2 S A S R _ H).
-      eapply eqmR_transport_trans; eauto.
-      2 : {
-        red. apply H1.
-      } apply H0.
+      specialize (H3 S A S R _ H).
+      pose proof @eqmR_transport_trans.
+      apply TransitiveH_Transitive in H3.
+      specialize (H4 m _ _ _ _ H3).
+      red in H4. red in H2.
+      specialize (H4 (fst p @ s, snd p @ s) (fst q @ s, snd q @ s)).
+      specialize (H4 (H0 s) (H1 s)).
+      cbn in H4. apply H4.
+      apply H2. reflexivity.
     - red; cbn; repeat intro. cbn in *.
       specialize (H s). specialize (H0 s).
       eapply eqmR_Proper; eauto.
@@ -105,12 +117,6 @@ Section State.
         rewrite <- transpose_prod.
         reflexivity. typeclasses eauto.
         cbn in *. apply eqmR_lift_transpose; auto.
-    - cbn. intros.
-      pose proof eqmR_rel_prod.
-      specialize (H1 m _ _ _ _ _ _ S (RA ⊗ RB) s s (x1, y1) (x2, y2)).
-      specialize (H1 (fun x => f (snd x) @ (fst x))).
-      specialize (H1 (fun x => g (snd x) @ (fst x))).
-      eapply H1. cbn. reflexivity. cbn. split; eauto.
     - repeat intro. cbn in *. split.
       +  repeat intro. cbn.
           specialize (H0 s). cbn in *.
@@ -168,24 +174,25 @@ Section State.
   (*   repeat red. apply eqmR_ret. assumption. *)
   (*   constructor; auto. *)
   (* Qed. *)
- 
+
   Instance EqmRMonad_stateT (HS: inhabited S) : @EqmRMonad (stateT S m) _ _.
   Proof.
   constructor.
   - repeat intro; cbn. pose proof (eqmR_ret _ _ _ _ H).
     assert (s == s) by reflexivity.
-    pose proof eqmR_rel_prod.
-    specialize (H2 _ _ _ _ _ _ _ S RA).
-    eapply eqmR_rel_prod; eauto.
-  - repeat intro.
-    change (eqmR (S ⊗ RB) @ (((bind kb1 @ ma1) @ s), ((bind kb2 @ ma2) @ s))).
-    pose proof eqmR_rel_prod.
-    specialize (H2 m _ _ _ _ _ _ S RB s s).
-    (* eapply eqmR_bind_ProperH; eauto. repeat intro. *)
-    (* (* specialize (H2 _ _ ) *) *)
-    (* destruct a1. specialize (H0 t0). *)
-    (* specialize (H2 (fun x1 s1 => (ret @ (x1, s1))) (fun x1 s1 => (ret @ (x1, s1)))). *)
-    (* specialize (H2 s s a1 a2 H1 H). apply H2. *)
+    (* repeat.r *)
+    (* pose proof eqmR_rel_prod. *)
+    (* specialize (H2 _ _ _ _ _ _ _ S RA). *)
+    (* eapply eqmR_rel_prod; eauto. *)
+  (* - repeat intro. *)
+  (*   change (eqmR (S ⊗ RB) @ (((bind kb1 @ ma1) @ s), ((bind kb2 @ ma2) @ s))). *)
+  (*   pose proof eqmR_rel_prod. *)
+  (*   specialize (H2 m _ _ _ _ _ _ S RB s s). *)
+  (*   eapply eqmR_bind_ProperH; eauto. repeat intro. *)
+  (*   (* specialize (H2 _ _ ) *) *)
+  (*   destruct a1. specialize (H0 t0). *)
+  (*   specialize (H2 (fun x1 s1 => (ret @ (x1, s1))) (fun x1 s1 => (ret @ (x1, s1)))). *)
+  (*   specialize (H2 s s a1 a2 H1 H). apply H2. *)
   (*   apply eqmR_ret *)
   (*   repeat intro. *)
   (*   cbn. *)

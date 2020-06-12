@@ -45,8 +45,8 @@ Section BasicFacts.
   Proof.
     split; repeat intro.
     - apply eqmR_equal. cbn. reflexivity.
-    - symmetry; auto.
-    - etransitivity; eauto.
+    - red. rewrite H. eapply eqmR_equal. cbn. reflexivity.
+    - red. rewrite H. rewrite H0. eapply eqmR_equal. cbn. reflexivity.
   Qed.
 
   Global Instance Functor_pure
