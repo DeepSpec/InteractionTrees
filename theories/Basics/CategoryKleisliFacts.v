@@ -80,8 +80,14 @@ Proof.
   unfold cat, Cat_Kleisli.
   eapply eqmR_bind_ProperH; eauto.
   apply H. intros. cbn in *.
-  apply eqmR_equal. rewrite H1.
+  - exists a1. split. reflexivity. split. repeat intro.
+    apply H1; eauto. rewrite H. apply EQ.
+    apply eqmR_equal. cbn.
   apply eqmR_equal. apply H0.
+  - repeat intro. exists a2. split; cbn. reflexivity.
+    split; repeat intros.
+    apply H1; eauto. rewrite <- H. apply EQ.
+    apply eqmR_equal. cbn. rewrite <- H0. reflexivity.
 Qed.
 
 Local Opaque bind ret eqm.
@@ -202,9 +208,14 @@ Proof.
   apply eqmR_equal.
   eapply eqmR_bind_ProperH; eauto.
   Unshelve.
-  3 : { refine b. }
   apply eqmR_equal; cbn. reflexivity.
-  intros. cbn. apply eqmR_equal. cbn. cbn in H0. rewrite H0. reflexivity.
+  intros. cbn.
+  - exists a1. split. reflexivity. split; cbn. repeat intro.
+    eapply PER_reflexivityH1; eauto.
+    apply eqmR_equal. cbn. reflexivity.
+  - repeat intro. exists a2. cbn. split. reflexivity.
+    split. repeat intro. eapply PER_reflexivityH1; eauto.
+    apply eqmR_equal. cbn. reflexivity.
 Qed.
 
 (** *** [id_ktree] respect identity laws *)
@@ -236,7 +247,11 @@ Proof.
   rewrite <- H.
   apply eqmR_equal. eapply eqmR_bind_ProperH; eauto.
   apply eqmR_equal; cbn; reflexivity.
-  intros. apply eqmR_equal; cbn in *. rewrite H0. reflexivity.
+  intros. exists a1. cbn. split. reflexivity.
+  split. repeat intro. eapply PER_reflexivityH1; eauto.
+  eapply eqmR_equal; cbn. reflexivity.
+  intros. exists a2. split. cbn; reflexivity.
+  split; eauto. eapply eqmR_equal. cbn. reflexivity.
 Qed.
 
 Global Instance Category_Kleisli : Category (Kleisli m).
@@ -540,8 +555,14 @@ Proof.
   unfold inl_, map, inr_.
   unfold cat, Cat_Fun, Cat_Kleisli, case_.
   intros. setoid_rewrite eqmR_bind_ret_l. cbn.
-  unfold cat_. rewrite H.
+  unfold cat_.
+  exists a0. split. reflexivity. split; eauto.
   apply eqmR_equal; cbn; reflexivity.
+  intros. exists a2. split. cbn. reflexivity. split; eauto.
+  unfold cat_. apply eqmR_equal. cbn.
+  unfold pure_. cbn. unfold cat, Cat_Fun, Cat_Kleisli, case_.
+  setoid_rewrite eqmR_bind_ret_l. cbn. unfold cat_.
+  reflexivity.
 Qed.
 
   Lemma map_inr_case_kleisli:
@@ -554,13 +575,22 @@ Qed.
     setoid_rewrite eqmR_bind_bind; eauto.
     eapply eqmR_bind_ProperH; eauto.
     apply eqmR_equal; red; cbn; reflexivity.
-    cbn.
-    unfold pure_, case_, inl_, inr_. cbn.
-    unfold inl_, map, inr_.
-    unfold cat, Cat_Fun, Cat_Kleisli, case_.
-    intros. setoid_rewrite eqmR_bind_ret_l. cbn.
-    unfold cat_. rewrite H.
-    apply eqmR_equal; cbn; reflexivity.
+    - cbn.
+      unfold pure_, case_, inl_, inr_. cbn.
+      unfold inl_, map, inr_.
+      unfold cat, Cat_Fun, Cat_Kleisli, case_.
+      intros. setoid_rewrite eqmR_bind_ret_l. cbn.
+      unfold cat_.
+      exists a1. split. reflexivity. split; eauto.
+      apply eqmR_equal; cbn; reflexivity.
+    - cbn.
+      unfold pure_, case_, inl_, inr_. cbn.
+      unfold inl_, map, inr_.
+      unfold cat, Cat_Fun, Cat_Kleisli, case_.
+      intros. setoid_rewrite eqmR_bind_ret_l. cbn.
+      unfold cat_.
+      exists a0. split. reflexivity. split; eauto.
+      apply eqmR_equal; cbn; reflexivity.
   Qed.
 
 
@@ -582,13 +612,28 @@ Proof.
   repeat intro.
   unfold bimap, Bimap_Coproduct. cbn.
   red. eqm_to_eqmR (c ⨥ d). destruct a0.
-  unfold cat_.
-  eapply eqmR_bind_ProperH; eauto.
-  rewrite H. apply eqmR_equal; cbn; reflexivity.
-  intros. cbn in H1; rewrite H1. apply eqmR_equal; cbn; reflexivity.
-  eapply eqmR_bind_ProperH; eauto.
-  rewrite H0. apply eqmR_equal; cbn; reflexivity.
-  intros. cbn in H1; rewrite H1. apply eqmR_equal; cbn; reflexivity.
+  - unfold cat_.
+    eapply eqmR_bind_ProperH; eauto.
+    rewrite H. apply eqmR_equal; cbn; reflexivity.
+    intros.
+    exists a1. split; cbn. reflexivity. split; eauto.
+    intros. apply H1; eauto. rewrite H; eauto.
+    eapply eqmR_equal; eauto. cbn; reflexivity.
+    intros.
+    exists a2. split; cbn. reflexivity. split; eauto.
+    intros. apply H1; eauto. rewrite <- H; eauto.
+    eapply eqmR_equal; eauto. cbn; reflexivity.
+  - unfold cat_.
+    eapply eqmR_bind_ProperH; eauto.
+    rewrite H0. apply eqmR_equal; cbn; reflexivity.
+    intros.
+    exists a1. split; cbn. reflexivity. split; eauto.
+    intros. apply H1; eauto. rewrite H0; eauto.
+    eapply eqmR_equal; eauto. cbn; reflexivity.
+    intros.
+    exists a2. split; cbn. reflexivity. split; eauto.
+    intros. apply H1; eauto. rewrite <- H0; eauto.
+    eapply eqmR_equal; eauto. cbn; reflexivity.
 Qed.
 
 Global Instance Bifunctor_Kleisli : Bifunctor (Kleisli m) sum_typ.
