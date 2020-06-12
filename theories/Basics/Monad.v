@@ -80,11 +80,18 @@ Section EqmRRel.
   Class EqmR_OK : Type :=
     {
     (* [eqmR] should transport elementary structures of the relation [R] *)
-    (* Question: should it transport anti-symmetry? *)
+    (* Question: should it transport anti-symmetry? 
 
-    eqmR_transport_symm :>  forall {A : typ} (R : relationH A A), Symmetric ↓R -> Symmetric ↓(eqmR R);
 
-    eqmR_transport_trans :> forall {A : typ} (R : relationH A A), Transitive ↓R -> Transitive ↓(eqmR R);
+       Could remove reflexivity: It isn't satisfied by [StateT void] (but could
+       also add the non-emptyness predicate for StateT instance.
+     *)
+
+    eqmR_transport_refl :  forall {A : typ} (R : relationH A A), ReflexiveH R -> ReflexiveH (eqmR R);
+    
+    eqmR_transport_symm :  forall {A : typ} (R : relationH A A), SymmetricH R -> SymmetricH (eqmR R);
+
+    eqmR_transport_trans : forall {A : typ} (R : relationH A A), TransitiveH R -> TransitiveH (eqmR R);
 
       (* [eqmR] is associative by composing the underlying relationHs *)
     eqmR_rel_trans : forall {A B C : typ}
@@ -98,6 +105,14 @@ Section EqmRRel.
     eqmR_lift_transpose : forall {A B : typ} (R : relationH A B)
       , eq_rel (eqmR †R) (†(eqmR R));
 
+
+    (* SAZ: I don't think that this can hold in general as stated -- at least it doesn't
+       seem to be true of the ID monad.
+
+       I think that we might insist that f and g be "pairing" -- that is 
+       f must be [fun a b -> ret (a, b)] and similarly for g.  
+     *)
+    (*
     eqmR_rel_prod : forall {A1 A2 B1 B2 : typ}
                           (RA : relationH A1 A2)
                           (RB : relationH B1 B2)
@@ -107,6 +122,7 @@ Section EqmRRel.
       RA @ (x1, x2) ->
       RB @ (y1, y2) ->
       eqmR (RA ⊗ RB) @ (f x1 y1, g x2 y2);
+     *)
 
       (* [eqmR] respects extensional equality of the underlying relationH
          and [eqm] on both arguments over the monad *)
@@ -127,6 +143,12 @@ Section EqmRRel.
 
 End EqmRRel.
 
+(* SAZ : TODO Add typeclass instances of the form:
+
+    EqmR_OK m -> `{Reflexive R} : Reflexive (` emqR m R)
+    etc.
+*)
+
 
 (* SAZ: Renamed "Domain" to "Image" -- more accurate *)
 Section Image.
@@ -134,7 +156,11 @@ Section Image.
   Context {Mm : Monad typ_proper m}.
   Context {EqMR : EqmR m} {EqmROKm : EqmR_OK m}.
 
-
+  (* SAZ: I don' think that this idea of "generalizing" PERS to heterogeneous relations
+     can work: Since the property must be defined in terms of (R : A -> B -> Prop), 
+     there is no amount of manipulation that can put the [y] of [R x y] into the A-typed
+     slot to let us conclude [R y x].  So symmetry seems entirely hopeless.
+  *)
   Definition eq_rel' {A B: Type} (R S : A -> B -> Prop)  :=
     forall a b, R a b <-> S a b.
 
@@ -148,31 +174,34 @@ Section Image.
     fun a c => exists b, R a b /\ S b c.
   
   Definition Property (A B : Type) (R : A -> B -> Prop) :=
-    subrelation' R (comp' R (comp' (transpose' R) R))
-    /\
-    subrelation' (transpose' R) (comp' (transpose' R) (comp' R (transpose' R))).
+    Symmetric (comp' R (transpose' R)) /\ Symmetric (comp' (transpose' R) R).
+    
+  Ltac crunch :=
+  repeat match goal with
+         | [ H : exists X, _ |- _ ] => destruct H
+         | [ H : _ /\ _ |- _ ] => destruct H
+         | [ H : _ \/ _ |- _ ] => destruct H
+         | [ |- _ /\ _ ] => split
+         end.
 
+  Ltac saturate H :=
+    match goal with
+           | [ H1 : forall a b, ?R a b -> _,
+               H2 : forall a b, ?R b a -> _,
+               H : ?R ?A ?B  |- _ ] => pose proof (H1 A B H); pose proof (H2 B A H); clear H; crunch
+           end.
   
   Lemma symmetric_property (A:Type) (R : A -> A -> Prop) (HP: Property A A R) : Symmetric R.
   Proof.
     repeat red. intros.
-    repeat red in HP. destruct HP.  cbn in *.
-    apply H0 in H. red in H. destruct H as (b & Rb & (a & Ra)).
-
-  Lemma transitive_property (A:Type) (R : A -> A -> Prop) (HP: Property A A R) : Transitive R.
+    repeat red in HP. 
+    unfold transpose', comp', subrelation' in *.
+    crunch.
+    unfold Symmetric in H0, H1.
+    specialize (H0 x y).
+  Abort.
     
   
-  Program Definition imageH {A1 A2:typ} (m1 : m A1) (m2 : m A2) : relationH A1 A2 :=
-    fun (p : A1 × A2) =>
-      forall (R : relationH A1 A2)
-        (HS : SymmetricH R) 
-        (TS : TransitiveH R)
-        (EQ: eqmR R @ (m1, m2)), R @ p.
-
-  Definition image {A:typ} (m : m A) : relationH A A := imageH A A m m.
-
-  
-
   (* SAZ:
      We *don't* want the image to be reflexive because it's not true.
 
@@ -471,6 +500,7 @@ Section Laws.
           apply H. reflexivity.
   Qed.
 
+  
 End Laws.
 
 
@@ -483,18 +513,43 @@ Section EqmRInversion.
 
   Class EqmRMonadInverses :=
     {
+    (* SAZ : Move this requirement earlier? *)
     image_eqmR {A : typ} (ma : m A) : eqmR (image m ma) @ (ma, ma);
-    
+
+    (* SAZ : This property doesn't quite overlap with the next two - if the
+       monad is such that [ret @ a] doesn't actually return a (e.g. StateT Void)
+       then this is not the same.  
+
+       We could also replace this with:
+       [forall a, mayRet m (ret @ a) @ a] which should be inter-derivable
+    *)
     eqmR_ret_inv : forall {A1 A2 : typ} (RA : relationH A1 A2) (a1:A1) (a2:A2),
         eqmR RA @ (ret @ a1, ret @ a2) -> RA @ (a1, a2);
+
+    mayRet_bind : forall {A B:typ} (ma : m A) (k : A -=-> m B) (b : B),
+                    mayRet m (bind k @ ma) @ b -> exists a, mayRet m ma @ a /\ mayRet m (k @ a) @ b;
+
+    
+    eqmr_mayRet_l : forall {A1 A2 : typ}
+                      (ma1 : m A1) (ma2 : m A2)
+                      (RA : relationH A1 A2)
+                      (EQ : eqmR RA @ (ma1, ma2)),
+        forall a1, mayRet m ma1 @ a1 -> exists a2, RA @ (a1, a2) /\ mayRet m ma2 @ a2;
+
+    eqmr_mayRet_r : forall {A1 A2 : typ}
+                      (ma1 : m A1) (ma2 : m A2)
+                      (RA : relationH A1 A2)
+                      (EQ : eqmR RA @ (ma1, ma2)),
+        forall a2, mayRet m ma2 @ a2 -> exists a1, RA @ (a1, a2) /\ mayRet m ma1 @ a1;
+
 
     eqmR_bind_inv : forall {A1 A2 : typ} {B1 B2 : typ} (RB : relationH B1 B2)
                       (ma1 : m A1) (ma2 : m A2)
                       (k1 : A1 -=-> m B1)
                       (k2 : A2 -=-> m B2),
         eqmR RB @ (bind k1 @ ma1, bind k2 @ ma2) ->
-        forall (RA : relationH A1 A2),   (* P a1 a2 <-> mayRet ma1 @ a1 <-> mayRet ma2 @ a2  *)
-          eqmR RA @ (ma1, ma2) ->
+        exists (RA : relationH A1 A2),   (* P a1 a2 <-> mayRet ma1 @ a1 <-> mayRet ma2 @ a2  *)
+          eqmR RA @ (ma1, ma2) /\
           (forall a1, mayRet m ma1 @ a1 -> exists (a2:A2), RA @ (a1, a2) /\ eqmR RB @ (k1 @ a1, k2 @ a2))
           /\
           (forall a2, mayRet m ma2 @ a2 -> exists (a1:A1), RA @ (a1, a2) /\ eqmR RB @ (k1 @ a1, k2 @ a2))
@@ -502,17 +557,36 @@ Section EqmRInversion.
 
 End EqmRInversion.
 
+
 Section InversionFacts.
   Context (m : typ -> typ).
   Context {Mm : Monad typ_proper m}.
   Context {EqMR : EqmR m} {EqmRm: EqmRMonad m} {EqmROKm : EqmR_OK m}.
   Context {MI : EqmRMonadInverses m}.
 
-  Lemma mayRet_choice {A:typ} (ma : m A) :
-    (exists a, mayRet m ma @ a) \/ ~(exists a, mayRet m ma @ a).
+
+  Lemma eqmR_bind_ProperH_simple : forall {A1 A2 B1 B2 : typ}
+                                     (RA : relationH A1 A2)
+                                     (RB : relationH B1 B2)
+                                     (ma1 : m A1) (ma2 : m A2)
+                                     (kb1 : A1 -=-> m B1) (kb2 : A2 -=-> m B2),
+      eqmR RA @ (ma1, ma2) ->
+      (forall a1 a2, RA @ (a1, a2) -> eqmR RB @ (kb1 @ a1, kb2 @ a2)) ->
+      eqmR RB @ (bind kb1 @ ma1, bind kb2 @ ma2).
   Proof.
-    admit. (* TODO: import classical logic *)
-  Admitted.
+    intros A1 A2 B1 B2 RA RB ma1 ma2 kb1 kb2 HMA HK.
+    apply eqmR_bind_ProperH with (RA:=RA); auto.
+    - intros. cbn in H.
+      assert (exists a2 : A2, RA @ (a1, a2) /\ mayRet m ma2 @ a2).
+      { eapply eqmr_mayRet_l; eauto. }
+      destruct H0 as (a2 & HRA & HM2).
+      exists a2. split; auto.
+    - intros. cbn in H.
+      assert (exists a1 : A1, RA @ (a1, a2) /\ mayRet m ma1 @ a1).
+      { eapply eqmr_mayRet_r; eauto. }
+      destruct H0 as (a1 & HRA & HM2).
+      exists a1. split; auto.
+  Qed.
 
 
   
@@ -544,40 +618,89 @@ Section InversionFacts.
   Local Open Scope relationH_scope.
 
 
-  Lemma mayret_eqmR {A B:typ} (ma : m A) (mb : m B)
-        (R : relationH A B)
-        (* SAZ : Not sure if we need these assumptions *)
-        (RS: SymmetricH (†R ∘ R)) (RT: TransitiveH (†R ∘ R))
-        (EQ : eqmR R @ (ma, mb)):
-    forall (a : A), mayRet m ma @ a -> exists (b:B), mayRet m mb @ b /\ R @ (a, b).
-  Proof.
-    intros a HA.
-    do 6 red in HA.
-    specialize (HA (†R ∘ R) RS RT).
-    assert (eqmR (†R) @ (mb, ma)).
-    { apply eqmR_lift_transpose; assumption. }
-    specialize (eqmR_rel_trans m _ _ _ _ _ EQ H) as HR.
-    apply HA in HR.
-    repeat red in HR. destruct HR as (b & Rab & Rba). cbn in *.
-    exists b; split; [|assumption].
-    intros.
-  Admitted.    
+  (* SAZ: I added the next two to the typeclass. *)
+  
+
+
+  (* Lemma mayret_bind {A B:typ} (ma : m A) (k : A -=-> m B) (b : B) : *)
+  (*   mayRet m (bind k @ ma) @ b -> exists a, mayRet m ma @ a /\ mayRet m (k @ a) @ b. *)
+  (* Proof. *)
+  (*   intros HM. *)
+  (*   cbn in HM. *)
+    
+  (*   epose ((-=->! (fun y => (exists a, mayRet m ma @ a /\ mayRet m (k @ a) @ b)) _) : B -=-> prop_typ) as Q. *)
+  (*   epose (diagonal_prop Q) as P. *)
+
+  (*   assert (ReflexiveH P). *)
+  (*   { repeat red. intros b'. cbn. split. exists a1. split. *)
+  (*     intros. apply H0; auto. *)
+  (*     intros. apply HM; auto. eapply eqmR_bind_ProperH; auto. eapply image_eqmR. assumption. *)
+  (*     intros. exists a0. split; auto.  *)
+    
+    
+  (*   pose proof (HM P (diagonal_prop_SymmetricH Q) (diagonal_prop_TransitiveH Q)). *)
+  (*   assert (eqmR P @ (bind k @ ma, bind k @ ma)). *)
+  (*   { apply eqmR_bind_ProperH with (RA := image m ma); auto. *)
+  (*     eapply image_eqmR. assumption. *)
+  (*     intros. exists a1. split; auto. split; auto. *)
+
+
+    
+    
+  (*   assert ((exists a : A, mayRet m ma @ a /\ mayRet m (k @ a) @ b) \/ *)
+  (*           ~((exists a : A, mayRet m ma @ a /\ mayRet m (k @ a) @ b))). *)
+  (*   { admit. (* TODO: classical logic *) } *)
+  (*   destruct H; auto. *)
+  (*   assert (forall a, ~(mayRet m ma @ a /\ mayRet m (k @ a) @ b)). *)
+  (*   { intros. intros E. assert (exists a : A, mayRet m ma @ a /\ mayRet m (k @ a) @ b). *)
+  (*     exists a. assumption. contradiction. } *)
+
+
+  (*   assert (eqmR P @ (bind k @ ma, bind k @ ma)). *)
+  (*   { apply eqmR_bind_ProperH with (RA := image m ma); auto. *)
+  (*     eapply image_eqmR. assumption. *)
+  (*     intros. exists a1. split; auto. split; auto. *)
+
+  (*     assert (ReflexiveH P). *)
+  (*     { repeat red. intros b'. cbn. split. exists a1. split. *)
+  (*       intros. repeat red in H1. apply H1; eauto. *)
+  (*       intros.  specialize (H0 a1).  *)
+    
+    
+  (* Admitted. *)
+
+
+  (* Lemma mayret_eqmR {A B:typ} (ma : m A) (mb : m B) *)
+  (*       (R : relationH A B) *)
+  (*       (* SAZ : Not sure if we need these assumptions *) *)
+  (*       (EQ : eqmR R @ (ma, mb)): *)
+  (*   forall (a : A), mayRet m ma @ a -> exists (b:B), mayRet m mb @ b /\ R @ (a, b). *)
+  (* Proof. *)
+  (*   intros a HA. *)
+  (*   do 6 red in HA. *)
+  (*   assert ((exists b : B, mayRet m mb @ b /\ R @ (a, b)) \/ ~(exists b : B, mayRet m mb @ b /\ R @ (a, b))). *)
+  (*   { admit. (* TODO: Classical logic *) } *)
+  (*   destruct H; auto. *)
+  (*   assert (forall b, ~ (mayRet m mb @ b) \/ ~ R @ (a, b)). *)
+  (*   intros b. *)
+  (*   assert (R @ (a, b) \/ ~ R @ (a, b)). *)
+  (*   { admit. (* TODO: Classical logic *) } *)
+  (*   destruct H0. *)
+  (*   - left. intro N.  apply H. exists b. tauto. *)
+  (*   - right. tauto. *)
+  (*   - clear H. assert False. *)
+  (*     + epose ((-=->! (fun x => (exists b, a == x /\ R @ (x, b) )) _) : A -=-> prop_typ) as Q. *)
+  (*       epose (diagonal_prop Q) as P. *)
+  (*       specialize (HA P (diagonal_prop_SymmetricH Q) (diagonal_prop_TransitiveH Q)). *)
+  (*       assert (eqmR P @ (ma, ma)). *)
+        
+        
+      
+    
+  (* Admitted.     *)
     
     
   
-  Lemma mayret_bind {A B:typ} (ma : m A) (k : A -=-> m B) (b : B) :
-    mayRet m (bind k @ ma) @ b -> exists a, mayRet m ma @ a /\ mayRet m (k @ a) @ b.
-  Proof.
-    intros HM.
-    unfold mayRet in HM. cbn in HM.
-    assert ((exists a : A, mayRet m ma @ a /\ mayRet m (k @ a) @ b) \/
-            ~((exists a : A, mayRet m ma @ a /\ mayRet m (k @ a) @ b))).
-    { admit. (* TODO: classical logic *) }
-    destruct H; auto.
-    assert (forall a, ~(mayRet m ma @ a /\ mayRet m (k @ a) @ b)).
-    { intros. intros E. assert (exists a : A, mayRet m ma @ a /\ mayRet m (k @ a) @ b).
-      exists a. assumption. contradiction. }
-  Admitted.
 
   (* A sanity check about the images: *)
   Program Definition singletonR {A:typ} (x:A) : relationH A A :=
