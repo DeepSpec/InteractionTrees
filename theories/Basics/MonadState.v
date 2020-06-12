@@ -105,7 +105,12 @@ Section State.
         rewrite <- transpose_prod.
         reflexivity. typeclasses eauto.
         cbn in *. apply eqmR_lift_transpose; auto.
-    - admit.
+    - cbn. intros.
+      pose proof eqmR_rel_prod.
+      specialize (H1 m _ _ _ _ _ _ S (RA ⊗ RB) s s (x1, y1) (x2, y2)).
+      specialize (H1 (fun x => f (snd x) @ (fst x))).
+      specialize (H1 (fun x => g (snd x) @ (fst x))).
+      eapply H1. cbn. reflexivity. cbn. split; eauto.
     - repeat intro. cbn in *. split.
       +  repeat intro. cbn.
           specialize (H0 s). cbn in *.
@@ -118,7 +123,7 @@ Section State.
     - repeat red. repeat intro. specialize (H0 s).
       eapply (eqmR_Proper_mono) in H0; eauto.
       apply prod_rel_monotone. intuition. eauto.
-  Admitted.
+  Qed.
 
   (* ret and bind definition for stateT. *)
   Instance stateT_Monad : Monad typ_proper (stateT S m).
@@ -171,8 +176,16 @@ Section State.
     assert (s == s) by reflexivity.
     pose proof eqmR_rel_prod.
     specialize (H2 _ _ _ _ _ _ _ S RA).
-    specialize (H2 (fun x1 s1 => (ret @ (x1, s1))) (fun x1 s1 => (ret @ (x1, s1)))).
-    specialize (H2 s s a1 a2 H1 H). apply H2.
+    eapply eqmR_rel_prod; eauto.
+  - repeat intro.
+    change (eqmR (S ⊗ RB) @ (((bind kb1 @ ma1) @ s), ((bind kb2 @ ma2) @ s))).
+    pose proof eqmR_rel_prod.
+    specialize (H2 m _ _ _ _ _ _ S RB s s).
+    (* eapply eqmR_bind_ProperH; eauto. repeat intro. *)
+    (* (* specialize (H2 _ _ ) *) *)
+    (* destruct a1. specialize (H0 t0). *)
+    (* specialize (H2 (fun x1 s1 => (ret @ (x1, s1))) (fun x1 s1 => (ret @ (x1, s1)))). *)
+    (* specialize (H2 s s a1 a2 H1 H). apply H2. *)
   (*   apply eqmR_ret *)
   (*   repeat intro. *)
   (*   cbn. *)

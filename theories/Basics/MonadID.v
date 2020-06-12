@@ -45,7 +45,12 @@ split; try tauto.
   exists mb. tauto.
 - intros. cbn in *. unfold eqmR_ID in *.
   reflexivity.
-- admit. 
+- intros.
+  (* IY: We need parametricity... *)
+  destruct (f (x1, y1)) eqn: Hf.
+  destruct (g (x2, y2)) eqn: Hg.
+  cbn in *.
+  unfold eqmR_ID in *. admit.
 - intros.
   repeat red. 
   intros. apply H.
