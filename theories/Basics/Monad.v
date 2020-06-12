@@ -12,6 +12,7 @@ From ITree Require Import
      Basics.Typ
      Basics.HeterogeneousRelations
      Basics.Function.
+
 (* end hide *)
 
 Set Primitive Projections.
@@ -48,12 +49,12 @@ Arguments eqm {m _ A}.
 Arguments eqmR_equal {m _}.
 Infix "A ≈ B" := (eqm @ (A, B)) (at level 70) : monad_scope.
 
+Import RelNotations.
+Local Open Scope relationH_scope.
+
 Section EqmRRel.
   Context (m : typ -> typ).
   Context {EqMR : EqmR m}.
-
-  Import RelNotations.
-  Local Open Scope relationH_scope.
 
 (*
   Global Instance Proper_transpose_relationH {A B : typ} (R: relationH A B) `{Proper _ (equalE A ==> equalE B ==> iff)%signature R} : Proper (equalE B ==> equalE A ==> iff) (†R).
@@ -135,43 +136,22 @@ Section Image.
   Context {EqMR : EqmR m} {EqmROKm : EqmR_OK m}.
 
 
-  Definition eq_rel' {A B: Type} (R S : A -> B -> Prop)  :=
-    forall a b, R a b <-> S a b.
+  (** *Partitions on Heterogeneous Relations
+    *
+    * https://en.wikipedia.org/wiki/Heterogeneous_relation#Difunctional
+    * Among homogeneous relations, equivalence relations partition the set.
+    *
+    * For heterogeneous relations, a partitioning relation is a
+    * _difunctional_ relation, R = F (†G), where F and G are univalent
+    * (functional), i.e. forall x y z, F x y /\ F x z => y = z.
+    *
+    * N.B.: For homogeneous relations, PER's are _difunctional_.
+    * *)
 
-  Definition transpose' {A B:Type} (R : A -> B -> Prop) : B -> A -> Prop :=
-    fun x y => R y x.
+  (* Riguet's characterization of difunctional relations. *)
+  Definition difunctional {A B : typ} (R : relationH A B) : Prop :=
+    R ∘ († R ∘ R) ⊑ R.
 
-  Definition subrelation' {A B:Type} (R S : A -> B -> Prop) : Prop :=
-    forall a b, R a b -> S a b.
-
-  Definition comp' {A B C} (R : A -> B -> Prop) (S : B -> C -> Prop) : A -> C -> Prop :=
-    fun a c => exists b, R a b /\ S b c.
-  
-  Definition Property (A B : Type) (R : A -> B -> Prop) :=
-    subrelation' R (comp' R (comp' (transpose' R) R))
-    /\
-    subrelation' (transpose' R) (comp' (transpose' R) (comp' R (transpose' R))).
-
-  
-  Lemma symmetric_property (A:Type) (R : A -> A -> Prop) (HP: Property A A R) : Symmetric R.
-  Proof.
-    repeat red. intros.
-    repeat red in HP. destruct HP.  cbn in *.
-    apply H0 in H. red in H. destruct H as (b & Rb & (a & Ra)).
-
-  Lemma transitive_property (A:Type) (R : A -> A -> Prop) (HP: Property A A R) : Transitive R.
-    
-  
-  Program Definition imageH {A1 A2:typ} (m1 : m A1) (m2 : m A2) : relationH A1 A2 :=
-    fun (p : A1 × A2) =>
-      forall (R : relationH A1 A2)
-        (HS : SymmetricH R) 
-        (TS : TransitiveH R)
-        (EQ: eqmR R @ (m1, m2)), R @ p.
-
-  Definition image {A:typ} (m : m A) : relationH A A := imageH A A m m.
-
-  
 
   (* SAZ:
      We *don't* want the image to be reflexive because it's not true.
@@ -182,7 +162,40 @@ Section Image.
 
      Q: should we instead define this as a predicate of type A -=-> prop_typ ?
    *)
+
+  (*
+   * An _image_ is a (unary) logical predicate that specifies the intersection
+   * of PER's that a monadic value satisfies. Intuitively, what this entails is
+   * the possible set of elements of the specified type [A] that a monadic
+   * value can return. In this sense, it is an "image" as in set theory,
+   * indicating the set of all output values that a monad may produce.
+   *
+   * Notice the definition of _image_ takes the universal quantification over
+   * all PER's satisfying [EQ], giving the smallest relation which will
+   * describe the set of elements that a monadic value may return.
+   *
+   * Consider [image spin] in ITrees, or more simply, [image Nothing] for the
+   * option monad, where the carrier type is [A].
+   *
+   * There exists no PER over any carrier type that this option monad may have
+   * in which [Nothing] can give an image to, i.e. the smallest relation over
+   * [Nothing] cannot say anything about values of type [A].
+   *)
+  Program Definition imageH {A1 A2:typ} (m1 : m A1) (m2 : m A2) : relationH A1 A2 :=
+    fun (p : A1 × A2) =>
+      forall (R : relationH A1 A2)
+        (H : difunctional R)
+        (EQ: eqmR R @ (m1, m2)), R @ p.
+  Next Obligation.
+    repeat intro. destruct x, y, H. cbn in *. split.
+    - repeat intro. rewrite <- H. rewrite <- H0.
+      apply H1; eauto.
+    - repeat intro. rewrite H, H0. apply H1; eauto.
+  Defined.
+
+  (* NB: Every PER is difunctional, but the converse does not hold. *)
   Program Definition image {A:typ} (m : m A) : relationH A A :=
+    (* imageH m m. *)
     fun p =>
       forall (R : relationH A A)
         (HS : SymmetricH R)
@@ -201,11 +214,10 @@ Section Image.
       apply H; assumption.
   Qed.
 
-  (* Using image we can define the [mayRet] predicate, which identifies
-     the subset of A on which the computation ma can halt with
-     a [ret x]
-
-  *)
+  (* Using [image] we can define the [mayRet] predicate, which identifies
+   * the subset of A on which the computation [ma] can halt with
+   * a [ret x]. (When we characterize monadic computations, we use [mayRet]
+   * and we only care about this unary form.) *)
   Program Definition mayRet {A:typ} (ma : m A) : A -=-> prop_typ :=
     (fun (a:A) => image ma @ (a, a)).
   Next Obligation.
@@ -224,7 +236,7 @@ Section Image.
     destruct R; cbn in *.
     assumption.
   Qed.
-  
+
   Lemma image_symmetric {A} (ma : m A) : SymmetricH (image ma).
   Proof.
     red.
