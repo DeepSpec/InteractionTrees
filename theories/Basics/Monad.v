@@ -173,26 +173,6 @@ Section Image.
   Definition difunctional {A B : typ} (R : relationH A B) : Prop :=
     R ∘ († R ∘ R) ⊑ R.
 
-  (* SAZ: I don' think that this idea of "generalizing" PERS to heterogeneous relations
-     can work: Since the property must be defined in terms of (R : A -> B -> Prop), 
-     there is no amount of manipulation that can put the [y] of [R x y] into the A-typed
-     slot to let us conclude [R y x].  So symmetry seems entirely hopeless.
-  *)
-  Definition eq_rel' {A B: Type} (R S : A -> B -> Prop)  :=
-    forall a b, R a b <-> S a b.
-
-  Definition transpose' {A B:Type} (R : A -> B -> Prop) : B -> A -> Prop :=
-    fun x y => R y x.
-
-  Definition subrelation' {A B:Type} (R S : A -> B -> Prop) : Prop :=
-    forall a b, R a b -> S a b.
-
-  Definition comp' {A B C} (R : A -> B -> Prop) (S : B -> C -> Prop) : A -> C -> Prop :=
-    fun a c => exists b, R a b /\ S b c.
-  
-  Definition Property (A B : Type) (R : A -> B -> Prop) :=
-    Symmetric (comp' R (transpose' R)) /\ Symmetric (comp' (transpose' R) R).
-    
   Ltac crunch :=
   repeat match goal with
          | [ H : exists X, _ |- _ ] => destruct H
@@ -207,17 +187,7 @@ Section Image.
                H2 : forall a b, ?R b a -> _,
                H : ?R ?A ?B  |- _ ] => pose proof (H1 A B H); pose proof (H2 B A H); clear H; crunch
            end.
-  
-  Lemma symmetric_property (A:Type) (R : A -> A -> Prop) (HP: Property A A R) : Symmetric R.
-  Proof.
-    repeat red. intros.
-    repeat red in HP. 
-    unfold transpose', comp', subrelation' in *.
-    crunch.
-    unfold Symmetric in H0, H1.
-    specialize (H0 x y).
-  Abort.
-    
+
   (* SAZ:
      We *don't* want the image to be reflexive because it's not true.
 
@@ -575,16 +545,15 @@ Section EqmRInversion.
         eqmR RA @ (ret @ a1, ret @ a2) -> RA @ (a1, a2);
 
     mayRet_bind : forall {A B:typ} (ma : m A) (k : A -=-> m B) (b : B),
-                    mayRet m (bind k @ ma) @ b -> exists a, mayRet m ma @ a /\ mayRet m (k @ a) @ b;
+        mayRet m (bind k @ ma) @ b -> exists a, mayRet m ma @ a /\ mayRet m (k @ a) @ b;
 
-    
-    eqmr_mayRet_l : forall {A1 A2 : typ}
+    eqmR_mayRet_l : forall {A1 A2 : typ}
                       (ma1 : m A1) (ma2 : m A2)
                       (RA : relationH A1 A2)
                       (EQ : eqmR RA @ (ma1, ma2)),
         forall a1, mayRet m ma1 @ a1 -> exists a2, RA @ (a1, a2) /\ mayRet m ma2 @ a2;
 
-    eqmr_mayRet_r : forall {A1 A2 : typ}
+    eqmR_mayRet_r : forall {A1 A2 : typ}
                       (ma1 : m A1) (ma2 : m A2)
                       (RA : relationH A1 A2)
                       (EQ : eqmR RA @ (ma1, ma2)),
@@ -626,12 +595,12 @@ Section InversionFacts.
     apply eqmR_bind_ProperH with (RA:=RA); auto.
     - intros. cbn in H.
       assert (exists a2 : A2, RA @ (a1, a2) /\ mayRet m ma2 @ a2).
-      { eapply eqmr_mayRet_l; eauto. }
+      { eapply eqmR_mayRet_l; eauto. }
       destruct H0 as (a2 & HRA & HM2).
       exists a2. split; auto.
     - intros. cbn in H.
       assert (exists a1 : A1, RA @ (a1, a2) /\ mayRet m ma1 @ a1).
-      { eapply eqmr_mayRet_r; eauto. }
+      { eapply eqmR_mayRet_r; eauto. }
       destruct H0 as (a1 & HRA & HM2).
       exists a1. split; auto.
   Qed.
