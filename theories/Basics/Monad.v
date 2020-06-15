@@ -555,7 +555,7 @@ Section EqmRInversion.
       forall {A : typ} {B : typ}
         (RB : relationH B B) (SH: SymmetricH RB) (TH: TransitiveH RB)
         (ma : m A) 
-        (k : A -=-> m B),
+        (k1 k2 : A -=-> m B),
         eqmR RB @ (bind k1 @ ma, bind k2 @ ma) ->
           eqmR (image m ma) @ (ma, ma) /\
           (forall a, mayRet m ma @ a -> eqmR RB @ (k1 @ a, k2 @ a))

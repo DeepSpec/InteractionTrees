@@ -104,10 +104,9 @@ Qed.
 
 Instance EqmRMonadInverses_ID : EqmRMonadInverses ID.
 split; intros; unfold ID in *; try tauto.
-
-- exists A.
+- cbn. 
   split.
-  + repeat red. reflexivity.
+  + intros. apply EQ.
   + intros. apply mayRet_Id in H0.
     rewrite H0. apply H.
 Qed.
