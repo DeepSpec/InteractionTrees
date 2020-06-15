@@ -562,10 +562,34 @@ Section ProdRelFacts.
     - destruct x; destruct y. cbn in H. repeat red. split; tauto.
   Qed.
 
-(* SAZ: Got to here 
-    - add tactics invn_prod_rel and invn_compose? 
-*)
-  
+  Definition prod_fst_rel {A B : typ} (R : relationH (A × B) (A × B)) :
+    relationH A A.
+    refine (-=->! (fun p => forall (b1 b2 : B), R @ ((fst p, b1), (snd p, b2))) _).
+    repeat red. cbn. repeat intro. destruct x, y. destruct H.
+    cbn in *. split.
+    intros. rewrite <- H; rewrite <- H0. apply H1.
+    intros. rewrite H, H0. apply H1.
+  Defined.
+
+  Definition prod_snd_rel {A B : typ} (R : relationH (A × B) (A × B)) :
+    relationH B B.
+    refine (-=->! (fun p => forall (a1 a2 : A), R @ ((a1, fst p), (a2, snd p))) _).
+    repeat red. cbn. repeat intro. destruct x, y. destruct H.
+    cbn in *. split.
+    intros. rewrite <- H; rewrite <- H0. apply H1.
+    intros. rewrite H, H0. apply H1.
+  Defined.
+
+  Lemma prod_inv (A B : typ) :
+    forall (R : relationH (A × B) (A × B)) (x1 x2 : A) (y1 y2 : B),
+        prod_fst_rel R @ (x1, x2) /\ prod_snd_rel R @ (y1, y2) ->
+        R @ ((x1, y1), (x2, y2)).
+  Proof.
+    intros.
+    destruct H. unfold prod_fst_rel, prod_snd_rel in *. cbn in *.
+    apply H0.
+  Qed.
+
   Lemma prod_compose {A B C D E F: typ}
         (R: relationH A B) (S: relationH B C)
         (T: relationH D E) (U: relationH E F)

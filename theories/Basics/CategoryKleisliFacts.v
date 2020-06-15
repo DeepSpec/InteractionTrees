@@ -45,12 +45,9 @@ Section BasicFacts.
   Proof.
     split; repeat intro.
     - apply eqmR_equal. cbn. reflexivity.
-    - (* TODO: fixme *)
-      admit.
-      (* destruct EqmROKm. *)
-      (* symmetry; auto. *)
-    - admit. (* TODO: fixme etransitivity; eauto. *)
-  Admitted.
+    - red. rewrite H. eapply eqmR_equal. cbn. reflexivity.
+    - red. rewrite H. rewrite H0. eapply eqmR_equal. cbn. reflexivity.
+  Qed.
 
   Global Instance Functor_pure
     : Functor arrow_typ (Kleisli m) (fun x => x) (@pure m _ _ _).
@@ -83,14 +80,8 @@ Proof.
   unfold cat, Cat_Kleisli.
   eapply eqmR_bind_ProperH; eauto.
   apply H. intros. cbn in *.
-  - exists a1. split. reflexivity. split. repeat intro.
-    apply H1; eauto. rewrite H. apply EQ.
-    apply eqmR_equal. cbn.
-  apply eqmR_equal. apply H0.
-  - repeat intro. exists a2. split; cbn. reflexivity.
-    split; repeat intros.
-    apply H1; eauto. rewrite <- H. apply EQ.
-    apply eqmR_equal. cbn. rewrite <- H0. reflexivity.
+  repeat red in H0.
+  rewrite H3. apply H0.
 Qed.
 
 Local Opaque bind ret eqm.
@@ -213,12 +204,7 @@ Proof.
   Unshelve.
   apply eqmR_equal; cbn. reflexivity.
   intros. cbn.
-  - exists a1. split. reflexivity. split; cbn. repeat intro.
-    eapply PER_reflexivityH1; eauto.
-    apply eqmR_equal. cbn. reflexivity.
-  - repeat intro. exists a2. cbn. split. reflexivity.
-    split. repeat intro. eapply PER_reflexivityH1; eauto.
-    apply eqmR_equal. cbn. reflexivity.
+  apply eqmR_equal. cbn.  rewrite H2. cbn. reflexivity.
 Qed.
 
 (** *** [id_ktree] respect identity laws *)
@@ -250,11 +236,8 @@ Proof.
   rewrite <- H.
   apply eqmR_equal. eapply eqmR_bind_ProperH; eauto.
   apply eqmR_equal; cbn; reflexivity.
-  intros. exists a1. cbn. split. reflexivity.
-  split. repeat intro. eapply PER_reflexivityH1; eauto.
-  eapply eqmR_equal; cbn. reflexivity.
-  intros. exists a2. split. cbn; reflexivity.
-  split; eauto. eapply eqmR_equal. cbn. reflexivity.
+  intros.
+  eapply eqmR_equal. cbn. rewrite H2. reflexivity.
 Qed.
 
 Global Instance Category_Kleisli : Category (Kleisli m).
@@ -559,13 +542,7 @@ Proof.
   unfold cat, Cat_Fun, Cat_Kleisli, case_.
   intros. setoid_rewrite eqmR_bind_ret_l. cbn.
   unfold cat_.
-  exists a0. split. reflexivity. split; eauto.
-  apply eqmR_equal; cbn; reflexivity.
-  intros. exists a2. split. cbn. reflexivity. split; eauto.
-  unfold cat_. apply eqmR_equal. cbn.
-  unfold pure_. cbn. unfold cat, Cat_Fun, Cat_Kleisli, case_.
-  setoid_rewrite eqmR_bind_ret_l. cbn. unfold cat_.
-  reflexivity.
+  apply eqmR_equal; cbn. rewrite H1. reflexivity.
 Qed.
 
   Lemma map_inr_case_kleisli:
@@ -584,16 +561,8 @@ Qed.
       unfold cat, Cat_Fun, Cat_Kleisli, case_.
       intros. setoid_rewrite eqmR_bind_ret_l. cbn.
       unfold cat_.
-      exists a1. split. reflexivity. split; eauto.
-      apply eqmR_equal; cbn; reflexivity.
-    - cbn.
-      unfold pure_, case_, inl_, inr_. cbn.
-      unfold inl_, map, inr_.
-      unfold cat, Cat_Fun, Cat_Kleisli, case_.
-      intros. setoid_rewrite eqmR_bind_ret_l. cbn.
-      unfold cat_.
-      exists a0. split. reflexivity. split; eauto.
-      apply eqmR_equal; cbn; reflexivity.
+      rewrite H1.
+      apply eqmR_equal; cbn; reflexivity.      
   Qed.
 
 
@@ -619,24 +588,11 @@ Proof.
     eapply eqmR_bind_ProperH; eauto.
     rewrite H. apply eqmR_equal; cbn; reflexivity.
     intros.
-    exists a1. split; cbn. reflexivity. split; eauto.
-    intros. apply H1; eauto. rewrite H; eauto.
-    eapply eqmR_equal; eauto. cbn; reflexivity.
-    intros.
-    exists a2. split; cbn. reflexivity. split; eauto.
-    intros. apply H1; eauto. rewrite <- H; eauto.
-    eapply eqmR_equal; eauto. cbn; reflexivity.
+    eapply eqmR_equal; eauto. rewrite H3; cbn; reflexivity.
   - unfold cat_.
     eapply eqmR_bind_ProperH; eauto.
     rewrite H0. apply eqmR_equal; cbn; reflexivity.
-    intros.
-    exists a1. split; cbn. reflexivity. split; eauto.
-    intros. apply H1; eauto. rewrite H0; eauto.
-    eapply eqmR_equal; eauto. cbn; reflexivity.
-    intros.
-    exists a2. split; cbn. reflexivity. split; eauto.
-    intros. apply H1; eauto. rewrite <- H0; eauto.
-    eapply eqmR_equal; eauto. cbn; reflexivity.
+    intros. rewrite H3. eapply eqmR_equal; eauto. cbn; reflexivity.
 Qed.
 
 Global Instance Bifunctor_Kleisli : Bifunctor (Kleisli m) sum_typ.

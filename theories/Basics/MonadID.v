@@ -45,13 +45,6 @@ split; try tauto.
   exists mb. tauto.
 - intros. cbn in *. unfold eqmR_ID in *.
   reflexivity.
-(* - intros. *)
-(*   (* IY: We need parametricity... *) *)
-(*   destruct (f (x1, y1)) eqn: Hf. *)
-(*   destruct (g (x2, y2)) eqn: Hg. *)
-(*   cbn in *. *)
-(*   unfold eqmR_ID in *. admit. *)
-(* >>>>>>> f3d8fab3903cb9b36bd55aeef9e28cb06229e343 *)
 - intros.
   repeat red. 
   intros. apply H.
@@ -81,25 +74,8 @@ Proof.
 Qed.  
 
 Instance EqmRMonad_ID : EqmRMonad ID.
-split; try tauto.
-- intros.
-  unfold ID in ma1, ma2.
-  assert (mayRet ID ma1 @ ma1).
-  { repeat red. cbn. intros. apply EQ. }
-  specialize (H0 ma1 H2). destruct H0 as (a2 & RA1 & MR2 & EQ).
-  apply mayRet_Id in MR2.
-  rewrite <- MR2. assumption.
-- intros. reflexivity.
-- intros. reflexivity.
-- intros. reflexivity.
-Qed.
-
-
-Instance EqmRMonadInverses_ID : EqmRMonadInverses ID.
-split; intros; unfold ID in *; try tauto.
-
+split; intros; try tauto.
 - repeat red. intros. cbn in EQ. unfold eqmR_ID in EQ. assumption.
-
 - repeat red in H. unfold bind in H. cbn in H.
   unfold eqmR_ID in H.
   exists ma.
@@ -111,6 +87,23 @@ split; intros; unfold ID in *; try tauto.
 
 - exists ma1. split; auto. apply mayRet_Id in H. rewrite H. assumption.
   repeat red; intros; assumption.
+
+- intros.
+  unfold ID in ma1, ma2.
+  assert (mayRet ID ma1 @ ma1).
+  { repeat red. cbn. intros. apply EQ. }
+  assert (mayRet ID ma2 @ ma2).
+  { repeat red. cbn. intros. apply EQ. }
+  cbn. apply H0. assumption.  assumption.
+  apply H.
+- intros. reflexivity.
+- intros. reflexivity.
+- intros. reflexivity.
+Qed.
+
+
+Instance EqmRMonadInverses_ID : EqmRMonadInverses ID.
+split; intros; unfold ID in *; try tauto.
 
 - exists A.
   split.

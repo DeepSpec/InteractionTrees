@@ -28,20 +28,13 @@ Section State.
   Context {Mm : Monad typ_proper m}.
   Context {EqmRm : EqmR m}.
   Context {EqmROKm : EqmR_OK m}.
+  Context {EqmRInv : EqmRMonadInverses m}.
   Context {ML : EqmRMonad m}.
 
   (* Ported from Basics, the monad definitions on Basics should all change with
      typ. *)
   Definition stateT (s : typ) (m : typ -> typ) (a : typ) : typ :=
     s ~~> m (prod_typ s a).
-
-
-  Lemma prod_eq_rel :
-    forall {A B : typ}, S × A ≡ S ⊗ A.
-  Proof.
-    repeat intro; split; repeat intro; destruct x, y; cbn in *;
-      destruct H; split; assumption.
-  Qed.
 
   Global Instance EqmR_stateT : EqmR (stateT S m).
   econstructor. Unshelve. 2 : {
@@ -55,34 +48,43 @@ Section State.
   - rewrite H0.
     assert (forall s : S, eqmR (S × A) @ (x @ s, y @ s)). {
       intros. eapply eqmR_Proper_mono; eauto.
-      apply prod_eq_rel.
+      apply prod_rel_eq.
     }
     pose proof eqmR_equal.
     eapply H2 in H1. cbn in H1.
     apply H1.
   - eapply eqmR_Proper_mono; eauto.
     2 : { eapply eqmR_equal in H. 2 : reflexivity. apply H. }
-    apply prod_eq_rel.
+    apply prod_rel_eq.
   Defined.
-
-
 
   Global Instance EqmR_OK_stateT : EqmR_OK (stateT S m).
   Proof.
     split; unfold eqmR, EqmR_stateT; intros.
     - red. cbn. intros.
-      epose proof @prod_rel_sym.
-      specialize (H1 S A S R _ H).
-      apply eqmR_transport_symm; eauto.
-      eapply eqmR_transport_symm in H0; eauto.
-      symmetry. apply H0.
+      epose proof @prod_rel_refl.
+      rewrite ReflexiveH_Reflexive in H.
+      specialize (H0 _ _ S _ _ H).
+      eapply eqmR_transport_refl in H0; eauto.
     - red. cbn. intros.
+      epose proof @prod_rel_sym.
+      apply SymmetricH_Symmetric in H.
+      specialize (H1 S A S R _ H).
+      eapply eqmR_transport_symm in H0; eauto.
+      2 : { apply SymmetricH_Symmetric; eauto. }
+      cbn in H0. apply H0.
+    - cbn . intros!. cbn in *.
+      apply TransitiveH_Transitive in H.
       epose proof @prod_rel_trans.
-      specialize (H2 S A S R _ H).
-      eapply eqmR_transport_trans; eauto.
-      2 : {
-        red. apply H1.
-      } apply H0.
+      specialize (H3 S A S R _ H).
+      pose proof @eqmR_transport_trans.
+      apply TransitiveH_Transitive in H3.
+      specialize (H4 m _ _ _ _ H3).
+      red in H4. red in H2.
+      specialize (H4 (fst p @ s, snd p @ s) (fst q @ s, snd q @ s)).
+      specialize (H4 (H0 s) (H1 s)).
+      cbn in H4. apply H4.
+      apply H2. reflexivity.
     - red; cbn; repeat intro. cbn in *.
       specialize (H s). specialize (H0 s).
       eapply eqmR_Proper; eauto.
@@ -105,12 +107,6 @@ Section State.
         rewrite <- transpose_prod.
         reflexivity. typeclasses eauto.
         cbn in *. apply eqmR_lift_transpose; auto.
-    - cbn. intros.
-      pose proof eqmR_rel_prod.
-      specialize (H1 m _ _ _ _ _ _ S (RA ⊗ RB) s s (x1, y1) (x2, y2)).
-      specialize (H1 (fun x => f (snd x) @ (fst x))).
-      specialize (H1 (fun x => g (snd x) @ (fst x))).
-      eapply H1. cbn. reflexivity. cbn. split; eauto.
     - repeat intro. cbn in *. split.
       +  repeat intro. cbn.
           specialize (H0 s). cbn in *.
@@ -125,67 +121,220 @@ Section State.
       apply prod_rel_monotone. intuition. eauto.
   Qed.
 
-  (* ret and bind definition for stateT. *)
-  Instance stateT_Monad : Monad typ_proper (stateT S m).
-  constructor.
-  - intros. unfold stateT. refine (-=->! (fun x => _) _).
-    Unshelve. 2 : {
-      refine (-=->! (fun s => ret @ (s, x)) _).
-      repeat intro. rewrite H. reflexivity.
-    }
+  (* Making properness proofs opaque, so it's doesn't do the ugly unfolding in
+   proof contexts *)
+  Lemma Proper_ret :
+    forall (a : typ) (x : a),
+      Proper (equalE S ==> equalE (m (S × a))) (fun s : S => ret @ (s, x)).
+  Proof.
+    repeat intro. rewrite H. reflexivity.
+  Qed.
+
+  Lemma Proper_ret_2 :
+    forall (a : typ),
+      Proper (equalE a ==> equalE (S ~~> m (S × a)))
+         (fun x : a => (-=->!) (fun s : S => ret @ (s, x)) (Proper_ret a x)).
+  Proof.
     repeat intro. cbn. rewrite H0, H. reflexivity.
-  - unfold stateT. intros.
-    refine (-=->! (fun k => _) _).
-    Unshelve. 2 : {
-      refine (-=->! (fun x => _) _).
-      Unshelve. 2 : {
-        pose proof (uncurry f).
-        assert ((S × a) -=-> m (S × b)). {
-          refine (-=->! (fun y => _) _).
-          Unshelve. 2 : {
-            destruct y. pose proof (X @ (t0, t)). eauto.
-          }
-          repeat intro. destruct x0, y. cbn.
-          destruct H. cbn in *. rewrite H, H0. reflexivity.
-        }
-        pose proof (bind X0).
-        pose proof (k @ x).
-        apply (X1 @ X2).
-      }
-      repeat intro. unfold uncurry. cbn. rewrite H.
-      reflexivity.
-    }
+  Qed.
+
+  Lemma Proper_bind:
+    forall (a b : typ) (f : a -=-> stateT S m b),
+      S ~~> m (S × a) ->
+      S ->
+      Proper (equalE (S × a) ==> equalE (m (S × b)))
+              (fun y : S * a => uncurry f @ (snd y, fst y)).
+  Proof.
+    repeat intro.
+    destruct x, y. cbn.
+    destruct H. cbn in *. rewrite H, H0. reflexivity.
+  Defined.
+
+  Lemma Proper_bind_2:
+    forall (a b : typ) (f : a -=-> stateT S m b) (k : S ~~> m (S × a)),
+      Proper (equalE S ==> equalE (m (S × b)))
+          (fun x : S =>
+            let X :=
+                (-=->!) (fun y : S * a => uncurry f @ (snd y, fst y))
+                        (Proper_bind a b f k x) in
+            @bind typ typ_proper m Mm (S × a) (S × b) X @ (k @ x)).
+  Proof.
+    repeat intro. unfold uncurry. cbn. unfold Proper_bind.
+    rewrite H.
+    reflexivity.
+  Qed.
+
+  Lemma Proper_bind_3:
+    forall (a b : typ) (f : a -=-> stateT S m b),
+      @Proper (S ~~> m (S × a) -> S ~~> m (S × b))
+              (equalE (S ~~> m (S × a)) ==> equalE (S ~~> m (S × b)))
+              (fun k : S ~~> m (S × a) =>
+                  (-=->!)
+                    (fun x : S =>
+                      let X :=
+                          (-=->!)
+                            (fun y : S * a =>
+                                @uncurry a S (m (S × b)) f @ (@snd S a y, @fst S a y))
+                            (Proper_bind a b f k x) in
+                      @bind typ typ_proper m Mm (S × a) (S × b) X @ (k @ x))
+                    (Proper_bind_2 a b f k)).
+  Proof.
+    intros a b f. unfold Proper_bind.
     repeat intro. unfold uncurry. cbn. rewrite H.
     rewrite H0. reflexivity.
+  Qed.
+
+  Set Transparent Obligations.
+  (* ret and bind definition for stateT. *)
+  Program Instance stateT_Monad : Monad typ_proper (stateT S m).
+  Next Obligation.
+  intros. unfold stateT. refine (-=->! (fun x => _) _).
+  Unshelve. 2 : {
+      refine (-=->! (fun s => ret @ (s, x)) _). apply Proper_ret.
+  } apply Proper_ret_2.
+  Defined.
+  Next Obligation.
+  unfold stateT. intros.
+  refine (-=->! (fun k => _) _).
+  Unshelve. 2 : {
+    refine (-=->! (fun x => _) _).
+    Unshelve. 2 : {
+      assert ((S × a) -=-> m (S × b)). {
+        refine (-=->! (fun y => uncurry f @ (snd y, fst y)) _).
+        apply Proper_bind; eauto.
+      }
+      exact ((bind X) @ (k @ x)).
+    }
+      apply Proper_bind_2; eauto.
+  }
+  apply Proper_bind_3; eauto.
+  Defined.
+
+  Lemma relate_state_proper:
+    forall (A1 : typ) (R : relationH A1 A1),
+      Proper (equalE ((S × A1) × (S × A1)) ==> equalE prop_typ)
+             (fun p : S * A1 * (S * A1) =>
+                fst (fst p) == fst (snd p) /\ R @ (snd (fst p), snd (snd p))).
+  Proof.
+    repeat intro. destruct x, y. destruct t, t0, t1, t2. cbn.
+    split; intro.
+    destruct H. cbn in H, H1. destruct H, H0, H1.
+    split. rewrite <- H. rewrite <- H1. auto.
+    rewrite <- H2. rewrite <- H4. auto.
+    destruct H. cbn in H, H1. destruct H, H0, H1.
+    split. rewrite H. rewrite H1. auto.
+    rewrite H2. rewrite H4. auto.
+  Qed.
+
+  Program Definition relate_state {A1 : typ} (R : relationH A1 A1) : relationH (S × A1) (S × A1).
+  refine (-=->! (fun (p : (S * A1) * (S * A1)) => fst (fst p) == fst (snd p) /\ R @ (snd (fst p), snd (snd p))) _).
+  apply relate_state_proper; auto.
   Defined.
 
 
-  (* Lemma ret_ok :  forall {A1 A2} (RA : A1 -> A2 -> Prop) (a1:A1) (a2:A2), *)
-  (*     RA a1 a2 -> (eqmR RA (ret a1) (ret a2)). *)
-  (* Proof. *)
-  (*   unfold eqmR, EqmR_stateT. *)
-  (*   intros. *)
-  (*   repeat red. apply eqmR_ret. assumption. *)
-  (*   constructor; auto. *)
-  (* Qed. *)
- 
+  Lemma relate_state_Symmetric {A1 : typ} (R : relationH A1 A1)
+        (RH: SymmetricH R): SymmetricH (relate_state R).
+  Proof.
+    repeat intro. cbn. destruct p. destruct t, t0. destruct H.
+    cbn in *. split. symmetry; auto. apply SymmetricH_Symmetric in RH.
+    apply RH. apply H0.
+  Qed.
+
+  Lemma relate_state_Transitive {A1 : typ} (R : relationH A1 A1)
+        (RH: TransitiveH R) : TransitiveH (relate_state R).
+  Proof.
+    repeat intro. cbn. destruct p. destruct t, t0. destruct H.
+    cbn in *. destruct H0, H1. destruct q, p, p0. cbn in *. split.
+    rewrite <- H0. rewrite <- H1. apply H.
+    apply TransitiveH_Transitive in RH.
+    eapply RH. apply H2. rewrite H4. apply H3.
+  Qed.
+
   Instance EqmRMonad_stateT (HS: inhabited S) : @EqmRMonad (stateT S m) _ _.
   Proof.
-  constructor.
+    constructor.
+    -  (* admit.  (* SAZ Trying not to need this one *) *)
+      (*  intros.
+       do 3 red. cbn. intro s.
+      assert (s == s) by reflexivity. *)
+      admit.
+
+   - intros.
+      
   - repeat intro; cbn. pose proof (eqmR_ret _ _ _ _ H).
     assert (s == s) by reflexivity.
-    pose proof eqmR_rel_prod.
-    specialize (H2 _ _ _ _ _ _ _ S RA).
-    eapply eqmR_rel_prod; eauto.
+    eapply eqmR_ret; eauto. cbn. split; eauto.
   - repeat intro.
     change (eqmR (S ⊗ RB) @ (((bind kb1 @ ma1) @ s), ((bind kb2 @ ma2) @ s))).
-    pose proof eqmR_rel_prod.
-    specialize (H2 m _ _ _ _ _ _ S RB s s).
-    (* eapply eqmR_bind_ProperH; eauto. repeat intro. *)
-    (* (* specialize (H2 _ _ ) *) *)
-    (* destruct a1. specialize (H0 t0). *)
-    (* specialize (H2 (fun x1 s1 => (ret @ (x1, s1))) (fun x1 s1 => (ret @ (x1, s1)))). *)
-    (* specialize (H2 s s a1 a2 H1 H). apply H2. *)
+    eapply eqmR_bind_ProperH; eauto.
+    intros. destruct a1 as (s1 & a1).
+    cbn in H.
+    pose proof eqmR_mayRet_l as Heq.
+    specialize (Heq _ _ _ _ _ _ (ma1 @ s) (ma2 @ s) (S ⊗ RA) (H s) _ H2).
+    edestruct Heq as (x & SRA & Hmr).
+    exists x. clear Heq.
+    split; eauto. split; eauto.
+    cbn. destruct x as (s2 & a2). cbn.
+    destruct SRA as (Seq & Aeq). cbn in Seq, Aeq.
+    rewrite Seq in *. clear Seq.
+    + 
+
+
+      specialize (H0 a1).
+      assert (Hma: mayRet (stateT S m) ma1 @ a1). {
+        cbn. intros. cbn in H2.
+        specialize (H2 (S ⊗ R)).
+        assert (SymmetricH (S ⊗ R)). {
+          apply SymmetricH_Symmetric.
+          eapply prod_rel_sym. repeat intro. rewrite H3. reflexivity.
+          apply SymmetricH_Symmetric. apply HS0. }
+        assert (TransitiveH (S ⊗ R)). {
+          apply TransitiveH_Transitive.
+          eapply prod_rel_trans. repeat intro. rewrite H4. auto.
+          apply TransitiveH_Transitive. auto. }
+        specialize (H2 H3 H4 (EQ s)). cbn in H2. apply H2.
+      }
+      specialize (H0 Hma).
+      edestruct H0 as (a2' & HRA & Hmr' & Heqm); clear H0.
+      specialize (H1 a2).
+      assert (Hmb: mayRet (stateT S m) ma2 @ a2). {
+        cbn. intros. cbn in Hmr.
+        specialize (Hmr (S ⊗ R)).
+        assert (SymmetricH (S ⊗ R)) as SYM. {
+        apply SymmetricH_Symmetric.
+        eapply prod_rel_sym. repeat intro. rewrite H0. reflexivity.
+        apply SymmetricH_Symmetric. apply HS0. }
+        assert (TransitiveH (S ⊗ R)). {
+          apply TransitiveH_Transitive.
+          eapply prod_rel_trans. repeat intro. rewrite H0. auto.
+          apply TransitiveH_Transitive. auto. }
+        specialize (Hmr SYM H0 (EQ s)). cbn in Hmr. apply Hmr.
+      }
+      specialize (H1 Hmb).
+      edestruct H1 as (a1' & HRA' & Hmr'' & Heqm'); clear H1.
+      assert (TransitiveH (S ⊗ RB)).
+      
+      
+
+      
+      edestruct H1 as (a1' & HRA' & Hmr'' & Heqm'); clear H1.
+      repeat red in Heqm'. specialize (Heqm' s2).
+      cbn in Heqm'.
+      repeat red in Heqm. specialize (Heqm s2). cbn in Heqm.
+      
+      (* IY: Need to generalize EqmRMonadInverses lemmas to EqmR? *)
+  Admitted.
+
+
+  (* - repeat intro. *)
+  (*   change (eqmR (S ⊗ RB) @ (((bind kb1 @ ma1) @ s), ((bind kb2 @ ma2) @ s))). *)
+  (*   pose proof eqmR_rel_prod. *)
+  (*   specialize (H2 m _ _ _ _ _ _ S RB s s). *)
+  (*   eapply eqmR_bind_ProperH; eauto. repeat intro. *)
+  (*   (* specialize (H2 _ _ ) *) *)
+  (*   destruct a1. specialize (H0 t0). *)
+  (*   specialize (H2 (fun x1 s1 => (ret @ (x1, s1))) (fun x1 s1 => (ret @ (x1, s1)))). *)
+  (*   specialize (H2 s s a1 a2 H1 H). apply H2. *)
   (*   apply eqmR_ret *)
   (*   repeat intro. *)
   (*   cbn. *)
