@@ -45,9 +45,12 @@ Section BasicFacts.
   Proof.
     split; repeat intro.
     - apply eqmR_equal. cbn. reflexivity.
-    - symmetry; auto.
-    - etransitivity; eauto.
-  Qed.
+    - (* TODO: fixme *)
+      admit.
+      (* destruct EqmROKm. *)
+      (* symmetry; auto. *)
+    - admit. (* TODO: fixme etransitivity; eauto. *)
+  Admitted.
 
   Global Instance Functor_pure
     : Functor arrow_typ (Kleisli m) (fun x => x) (@pure m _ _ _).

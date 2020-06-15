@@ -130,26 +130,51 @@ Next Obligation.
     exists b. split; [reflexivity|]. rewrite HP. assumption.
 Qed.
 
+Ltac destruct_all :=
+  repeat match goal with
+         | [ H : exists X, _ |- _ ] => destruct H
+         | [ H : _ /\ _ |- _ ] => destruct H
+         | [ H : _ \/ _ |- _ ] => destruct H
+         | [ |- _ /\ _ ] => split
+         end.
+
+Ltac PER_symmetry :=
+  match goal with
+  | [ H : SymmetricH ?R,
+      H1 : ?R @ (?x, ?y)
+      |- ?R @ (?y, ?x) ] => apply (H _ H1)
+  end.
+
 Program Instance eqmR_OK_PropM : EqmR_OK PropM.
 Next Obligation.
   repeat red.
-  intros PA1 PA2 (HX & HY).
+  intros PA.
   split; intros; cbn in *.
-  - apply HY in H0. destruct H0 as (a2 & HR & HA2).
-    exists a2. split. apply SymmetricH_Symmetric in H. apply H in HR. apply HR. assumption.
-  - apply HX in H0.  destruct H0 as (a1 & HR & HA1).
-    exists a1. split. apply SymmetricH_Symmetric in H. apply H in HR. apply HR. assumption.
-Qed.  
+  - exists a. split; auto. 
+  - exists b. split; auto.
+Qed.
 Next Obligation.
-  intros PA PB PC (HA1 & HA2) (HB1 & HB2).
-  apply TransitiveH_Transitive in H; cbn in *.
+  red.
+  intros (PA & PB) (HA & HB); split; intros; cbn in *.
+  - specialize (HB a H0). destruct_all.
+    exists x. split; auto. PER_symmetry.
+  - specialize (HA b H0). destruct_all.
+    exists x. split; auto. PER_symmetry.
+Qed.
+Next Obligation.
+  red.
+  intros (P1 & P2) (Q1 & Q2) (EQP1 & EQP2) (EQQ1 & EQQ2) EQ; cbn in *.
   split; intros; cbn in *.
-  - apply HA1 in H0. destruct H0 as (b & HR1 & HB).
-    apply HB1 in HB. destruct HB as (c & HR2 & HC).
-    exists c. split. apply (H (a,b) (b,c)); auto. reflexivity. auto.
+  - apply EQP1 in H0. destruct H0 as (b & HR1 & HB).
+    rewrite EQ in HB.
+    apply EQQ1 in HB.
+    destruct_all.
+    exists x. split. apply (H (a,b) (b,x)); auto. reflexivity. auto.
 
-  - apply HB2 in H0. destruct H0 as (a & HR1 & HA).
-    apply HA2 in HA. destruct HA as (c & HR2 & HC).
+
+  - apply EQQ2 in H0. destruct H0 as (a & HR1 & HA).
+    rewrite <- EQ in HA.
+    apply EQP2 in HA. destruct HA as (c & HR2 & HC).
     exists c. split. apply (H (c,a) (a,b)); auto. reflexivity. auto.
 Qed.    
 Next Obligation.
@@ -336,6 +361,141 @@ Proof.
 Qed.  
 
 
+Lemma mayRet_bind_PropM : forall {A B:typ} (ma : PropM A) (k : A -=-> PropM B) (b : B),
+                    mayRet PropM (bind k @ ma) @ b -> exists a, mayRet PropM ma @ a /\ mayRet PropM (k @ a) @ b.
+Proof.
+  intros.
+  rewrite <- mayRet_PropM in H.
+  cbn in H. unfold bind_ in H.
+  destruct H as (a & HA & HK).
+  exists a. split. rewrite <- mayRet_PropM. assumption. rewrite <- mayRet_PropM. assumption.
+Qed.
+
+Lemma eqmr_mayRet_l_PropM : forall {A1 A2 : typ}
+                      (ma1 : PropM A1) (ma2 : PropM A2)
+                      (RA : relationH A1 A2)
+                      (EQ : eqmR RA @ (ma1, ma2)),
+    forall a1, mayRet PropM ma1 @ a1 -> exists a2, RA @ (a1, a2) /\ mayRet PropM ma2 @ a2.
+Proof.
+  intros.
+  destruct EQ as (HA & HB). cbn in HA, HB.
+  rewrite <- mayRet_PropM in H.
+  destruct (HA _ H) as (b & HR & HM).
+  exists b. split; auto. rewrite <- mayRet_PropM. auto.
+Qed.  
+  
+
+Lemma eqmr_mayRet_r_PropM : forall {A1 A2 : typ}
+                      (ma1 : PropM A1) (ma2 : PropM A2)
+                      (RA : relationH A1 A2)
+                      (EQ : eqmR RA @ (ma1, ma2)),
+        forall a2, mayRet PropM ma2 @ a2 -> exists a1, RA @ (a1, a2) /\ mayRet PropM ma1 @ a1.
+  intros.
+  destruct EQ as (HA & HB). cbn in HA, HB.
+  rewrite <- mayRet_PropM in H.
+  destruct (HB _ H) as (a & HR & HM).
+  exists a. split; auto. rewrite <- mayRet_PropM. auto.
+Qed.  
+
+
+Lemma eqmR_bind_refl_inv_PropM :
+  forall {A : typ} {B : typ}
+    (RB : relationH B B) (SH: SymmetricH RB) (TH: TransitiveH RB)
+    (ma : PropM A) 
+    (k : A -=-> PropM B),
+    eqmR RB @ (bind k @ ma, bind k @ ma) ->
+    exists (RA : relationH A A), 
+      eqmR RA @ (ma, ma) /\
+      (forall a, mayRet PropM ma @ a -> eqmR RB @ (k @ a, k @ a)).
+Proof.
+  intros.
+  destruct H as (HX & HY).
+  exists (A).
+  split; intros; split; intros.
+  - exists a. split. repeat red. cbn. reflexivity. assumption.
+  - exists b. split. repeat red. cbn. reflexivity. assumption.
+  - specialize (HX a0).
+    assert (bind k @ ma @ a0).
+    { repeat red. exists a. split. rewrite <- mayRet_PropM in H. apply H. apply H0. }
+    apply HX in H1. destruct H1.
+    specialize (HY a0).
+    assert (bind k @ ma @ a0).
+    { repeat red. exists a. split. rewrite <- mayRet_PropM in H. apply H. apply H0.  } 
+    apply HY in H2. destruct H2.
+    exists a0.
+    destruct H1 as (HR & HB).
+    destruct H2 as (HS & HC).
+    split. PER_reflexivityH. cbn.  apply H0.
+  - specialize (HX b).
+    assert (bind k @ ma @ b).
+    { repeat red. exists a. split. rewrite <- mayRet_PropM in H. apply H. apply H0. }
+    apply HX in H1. destruct H1.
+    specialize (HY b).
+    assert (bind k @ ma @ b).
+    { repeat red. exists a. split. rewrite <- mayRet_PropM in H. apply H. apply H0.  } 
+    apply HY in H2. destruct H2.
+    exists b.
+    destruct H1 as (HR & HB).
+    destruct H2 as (HS & HC).
+    split. PER_reflexivityH. cbn. apply H0.
+Qed.    
+    
+
+Global Instance EqmRMonadInverses_PropM : EqmRMonadInverses PropM :=
+  {
+  image_eqmR := @image_eqmR_PropM;
+  eqmR_ret_inv := @eqmR_ret_inv_PropM;
+  mayRet_bind := @mayRet_bind_PropM;
+  eqmr_mayRet_l := @eqmr_mayRet_l_PropM;
+  eqmr_mayRet_r := @eqmr_mayRet_r_PropM;
+  eqmR_bind_refl_inv := @eqmR_bind_refl_inv_PropM;
+  }.
+
+
+(* 
+
+   P(a, b) ==  eqmR RB (k1 @ a) (k2 @ b)
+
+   {x, y, z} >>= k1 = {1, 2, 3}       [k1 x = 1, k1 y = 2, k1 z = 2]
+ 
+   {b, c} >>= k2 = {1, 2, 3}       [k2 b = 1, k2 c = {2, 3}]
+
+   x ~ b    y ~ c    z ~ c
+   
+
+   a1 ~ a2 iff   forall b1, k1 @ a1 @ b1 -> exists b2, RB @ (b1, b2) /\ k2 @ a2 @ b2
+             /\  forall b2, k2 @ a2 @ b2 -> exists b1, RB @ (b1, b2) /\ k1 @ a1 @ b1
+
+
+
+   (exists b, mayRet (bind k1 @ ma1) @ b) \/ ~(exists b, mayRet (bind k1 @ ma1 @ b))
+
+
+*)
+
+Definition PropM_INV_
+  {A1 A2 : typ} {B1 B2 : typ} (RB : relationH B1 B2)
+  (k1 : A1 -=-> PropM B1)
+  (k2 : A2 -=-> PropM B2) : (A1 × A2) -> Prop :=
+  fun p =>
+    (forall b1, k1 @ (fst p) @ b1 -> exists b2, RB @ (b1, b2) /\ k2 @ (snd p) @ b2) /\
+    (forall b2, k2 @ (snd p) @ b2 -> exists b1, RB @ (b1, b2) /\ k1 @ (fst p) @ b1).
+
+Program Definition PropM_INV   {A1 A2 : typ} {B1 B2 : typ} (RB : relationH B1 B2)
+  (k1 : A1 -=-> PropM B1)
+  (k2 : A2 -=-> PropM B2) : (A1 × A2) -=-> prop_typ := (-=->! (PropM_INV_ RB k1 k2) _).
+Next Obligation.
+Admitted.  
+
+(*  SAZ: The following inversion lemma is false for PropM.
+
+    Consider:  ma1 = {1},  ka1 = fun x => {}
+               ma2 = {},   ka2 = anything
+
+    Then it is definitely _not_ the case that eqmR RA ma1 ma2 for any RA.  It is also
+    not the case that [eqmR RB (ka1 @ a1) (ka2 @ a2)]
+*)
+
 Lemma  eqmR_bind_inv_PropM :
   forall {A1 A2 : typ} {B1 B2 : typ} (RB : relationH B1 B2)
     (ma1 : PropM A1) (ma2 : PropM A2)
@@ -348,36 +508,109 @@ Lemma  eqmR_bind_inv_PropM :
       /\
       (forall a2, mayRet PropM ma2 @ a2 -> exists (a1:A1), RA @ (a1, a2) /\ eqmR RB @ (k1 @ a1, k2 @ a2)).
 Proof.
-  intros A1 A2 B1 B2 RB ma1 ma2 k1 k2 H.
-  destruct H as (HX & HY).
-  cbn in HX, HY.
-  unfold bind_ in HX.
+  intros A1 A2 B1 B2 RB ma1 ma2 k1 k2 (HX & HY).
+  (* Unshelve. 2 : {repeat red. intros. split; intros. rewrite H in H0. assumption. rewrite <- H in H0. assumption. } *)
+  exists (PropM_INV RB k1 k2).
+  split; [|split].
+  - repeat red. split.
+    intros. 
 Abort.  
-  
-(*  
-        
-
-  Class EqmRMonadInverses :=
-    {
-    image_eqmR := @image_eqmR_PropM;
-    
-    eqmR_ret_inv := @eqmr_ret_inv_PropM;
 
 
-    eqmR_bind_inv : forall {A1 A2 : typ} {B1 B2 : typ} (RB : relationH B1 B2)
-                      (ma1 : m A1) (ma2 : m A2)
-                      (k1 : A1 -=-> m B1)
-                      (k2 : A2 -=-> m B2),
-        eqmR RB @ (bind k1 @ ma1, bind k2 @ ma2) ->
-        exists (RA : relationH A1 A2),
-          eqmR RA @ (ma1, ma2) /\
-          (forall a1, mayRet m ma1 @ a1 -> exists (a2:A2), RA @ (a1, a2) /\ eqmR RB @ (k1 @ a1, k2 @ a2))
-          /\
-          (forall a2, mayRet m ma2 @ a2 -> exists (a1:A1), RA @ (a1, a2) /\ eqmR RB @ (k1 @ a1, k2 @ a2))
-    }.
+(* SAZ: These can be proved generically, I think, for any EqmRMonadInverses *)
+Lemma eqmr_not_mayRet_l : forall {A1 A2 : typ}
+                      (ma1 : PropM A1) (ma2 : PropM A2)
+                      (RA : relationH A1 A2)
+                      (EQ : eqmR RA @ (ma1, ma2)),
+        (~ exists a1, mayRet PropM ma1 @ a1) -> ~exists a2, mayRet PropM ma2 @ a2.
+Proof.
+  intros.
+  intro N.
+  apply H.
+  destruct N as (a2 & HA).
+  destruct EQ as (HX & HY).
+  rewrite <- mayRet_PropM in HA.
+  specialize (HY _ HA).
+  destruct HY as (a1 & _ & HA1).
+  exists a1. rewrite <- mayRet_PropM. assumption.
+Qed.  
 
+Lemma eqmr_not_mayRet_r : forall {A1 A2 : typ}
+                      (ma1 : PropM A1) (ma2 : PropM A2)
+                      (RA : relationH A1 A2)
+                      (EQ : eqmR RA @ (ma1, ma2)),
+        (~ exists a2, mayRet PropM ma2 @ a2) -> ~exists a1, mayRet PropM ma1 @ a1.
+Proof.
+  intros.
+  intro N.
+  apply H.
+  destruct N as (a1 & HA).
+  destruct EQ as (HX & HY).
+  rewrite <- mayRet_PropM in HA.
+  specialize (HX _ HA).
+  destruct HX as (a2 & _ & HA2).
+  exists a2. rewrite <- mayRet_PropM. assumption.
+Qed.  
+
+Lemma  eqmR_bind_inv_PropM_part :
+  forall {A1 A2 : typ} {B1 B2 : typ} (RB : relationH B1 B2)
+    (ma1 : PropM A1) (ma2 : PropM A2)
+    (k1 : A1 -=-> PropM B1)
+    (k2 : A2 -=-> PropM B2),
+    eqmR RB @ (bind k1 @ ma1, bind k2 @ ma2) ->
+    (forall (a1:A1), mayRet PropM ma1 @ a1 -> exists (a2:A2), eqmR RB @ (k1 @ a1, k2 @ a2)) ->
+    (forall (a2:A2), mayRet PropM ma2 @ a2 -> exists (a1:A1), eqmR RB @ (k1 @ a1, k2 @ a2)) ->
+      eqmR (PropM_INV RB k1 k2)  @ (ma1, ma2) .
+Proof.
+Abort.
+(*
+  intros.
+  repeat red.
+  split; cbn; intros.
+  destruct H as (HX & HY). cbn in HX, HY.
+  rewrite mayRet_PropM in H2.
+  apply H0 in H2.
+  destruct H2 as (a2 & HA).
+  exists a2. split; auto. 
+  cbn in HX. cbn in HY.
 *)
 
+(*
+Lemma  eqmR_bind_inv_PropM_part :
+  forall {A1 A2 : typ} {B1 B2 : typ} (RB : relationH B1 B2)
+    (ma1 : PropM A1) (m : PropM B2)
+    (k1 : A1 -=-> PropM B1),
+    eqmR RB @ (bind k1 @ ma1, m) ->
+    exists (RA : relationH A1 A2), exists (ma2 : PropM A2), exists (k2 : A2 -=-> PropM B2),
+      m == (bind k2 @ ma2) /\
+      eqmR RA @ (ma1, ma2) /\
+      (forall a1, mayRet PropM ma1 @ a1 -> exists (a2:A2), RA @ (a1, a2) /\ eqmR RB @ (k1 @ a1, k2 @ a2))
+      /\
+      (forall a2, mayRet PropM ma2 @ a2 -> exists (a1:A1), RA @ (a1, a2) /\ eqmR RB @ (k1 @ a1, k2 @ a2)).
+Proof.
+  intros A1 A2 B1 B2 RB ma1 m k1 (HX & HY).
+
+  assert ((exists b1, mayRet PropM (bind k1 @ ma1) @ b1) \/ ~(exists b1, mayRet PropM (bind k1 @ ma1) @ b1)).
+  { admit. (* TODO: Classical logic *) }  
+  assert ((exists a1, mayRet PropM ma1 @ a1) \/ ~(exists a1, mayRet PropM ma1 @ a1)).
+  { admit. (* TODO: Classical logic *) }
+  destruct H as [(b1 & HB1) | NB]; destruct H0 as [(a1 & HA) | NA].
+  - rewrite <- mayRet_PropM in HB1. rewrite <- mayRet_PropM in HA.
+    specialize (HX b1 HB1).
+    destruct HX as (b2 & RB2 & HB2).
+    cbn in HB2.
+    
+    epose ((-=->! (fun p => (fst p == a1 -> snd p == a2)) _) : relationH A1 A2) as Q.
+  
+  
+  (* Unshelve. 2 : {repeat red. intros. split; intros. rewrite H in H0. assumption. rewrite <- H in H0. assumption. } *)
+  exists (PropM_INV RB k1 k2).
+  split; [|split].
+  - repeat red. split.
+    intros. 
+  
+Abort.  
+*)
 
 (*  The PropM Monad doesn't have this inversion principle because of nondeterminism: 
 
@@ -505,71 +738,7 @@ Lemma eqmR_bind_inv_PropM
                exists (a2: A), (mayRet PropM ma @ a2) /\
                           eqmR RB @ (k1 @ a1, k2 @ a2). 
 Proof.
-  intros A B1 B2 RB PA k1 k2 (HA & HB) a1 MA1.
-  cbn in HA, HB.
-  assert ((exists a2 : A, mayRet PropM PA @ a2 /\ eqmR RB @ (k1 @ a1, k2 @ a2))
-          \/ ~(exists a2 : A, mayRet PropM PA @ a2 /\ eqmR RB @ (k1 @ a1, k2 @ a2))).
-  { admit. (* TODO: classical logic *) }
-  destruct H; [assumption|].
-  assert (forall (a2:A), ~(mayRet PropM PA @ a2 /\ eqmR RB @ (k1 @ a1, k2 @a2))).
-  intros a2.  intros N. apply H. exists a2. apply N.
-  
-  
-  
-  assert (diagonal_prop PA @ (a1, a1)).
-    { specialize (MA1 (diagonal_prop PA) (diagonal_prop_SymmetricH PA) (diagonal_prop_TransitiveH PA)).
-      apply MA1.
-      split.
-      + intros. exists a. split; auto. cbn. tauto.
-      + intros. exists b. split; auto. cbn. tauto.
-    }
-
-(*    
-    assert (bind_ A B1 k1 PA ).
-    { red. exists a. split.  assumption. apply HK1. }
-  
-  
-  split.
-  - intros b1 HK1.
-    (* SAZ: This is a nice trick to "manufacture" an element out of an image *)
-    assert (diagonal_prop PA @ (a, a)).
-    { specialize (MA (diagonal_prop PA) (diagonal_prop_SymmetricH PA) (diagonal_prop_TransitiveH PA)).
-      apply MA.
-      split.
-      + intros. exists a0. split; auto. cbn. tauto.
-      + intros. exists b. split; auto. cbn. tauto.
-    }
-    destruct H as (HX & HY). cbn in *.
-    assert (bind_ A B1 k1 PA b1).
-    { red. exists a. split.  assumption. apply HK1. }
-    apply HA in H.
-    destruct H as (b2 & HB2 & HK2).
-    destruct HK2 as (a1 & Ha2 & HKK).
-    exists b2. split. assumption.
-
 Abort.
-    
- *)     
-(*
-Program Instance EqmRMonadInverses_PropM : EqmRMonadInverses PropM.
-    destruct EQ. destruct (H1 _ H) as (a & Ha & _). 
-    PER_reflexivityH.
-Qed.
-Next Obligation.
-  unfold ret_ in *.
-  assert (a1 == a1) by reflexivity.
-  specialize (H _ H1). destruct H as (b & HB & EQ).
-  rewrite EQ. assumption.
-Qed.
-Next Obligation.
-*)  
-(*
-Next Obligation.  
-eexists (-=->! (fun (b:B) => False) _).
-Unshelve. 2 : { repeat red. intros. tauto. }
-
-intros R. split.
-- intros. 
 
 End PropM.
 
@@ -580,7 +749,6 @@ Section PropT.
   Context {EqmRInverses : EqmRMonadInverses m}.
   
   Definition PropT (X:typ) : typ := (m X) ~~> prop_typ.
-
 
   Program Definition lift {A:typ} (ma : m A) : PropT A :=
     fun mb : m A => mb == ma.
@@ -611,61 +779,48 @@ Section PropT.
     rewrite H0. rewrite H. assumption.
   Qed.  
 
-
-
-
-  Lemma mayret_bind {A B:typ} (ma : m A) (k : A -=-> m B) (b : B) :
-    mayRet m (bind k @ ma) @ b -> exists a, mayRet m ma @ a /\ mayRet m (k @ a) @ b.
-  Proof.
-    pose proof (image_eqmR m (bind k @ ma)).
-    
-    
-    intros HM.
-    unfold mayRet in HM. cbn in HM.
-    
-    
-    assert ((exists a, mayRet m ma @ a /\ mayRet m (k @ a) @ b) \/ not(exists a, mayRet m ma @ a /\ mayRet m (k @ a) @ b)).
-    { admit. (* TODO: classical logic *) }
-    destruct H.
-    - assumption.
-    - assert (forall (a:A), ~(mayRet m ma @ a /\ (mayRet m (k @ a) @ b))).
-      { intros a N. apply H. exists a. assumption. }
-      
-    
-  
-  (*
-  Lemma image_bind_pred {A B:typ} (ma : m A) (k : A -=-> m B)
-        (PA : (m A) -=-> prop_typ) (HPA: PA @ ma)
-        (PB : (m B) -=-> prop_typ)
-        (HA: forall (a:A), mayRet m ma @ a -> PB @ (k @ a)) :
-    PB @ (bind k @ ma).
-  *)
-*)
-  
-  (* Add to a typeclass?
-
-     SAZ: This seems like something that should be provable for both
-     itree and stateT 
-  *)
-Abort.
-    Lemma image_bind {A B:typ} (ma1 ma2 : m A) (k1 k2 : A -=-> m B)
+  (* SAZ: TODO: Move this over to Monad.v as a consequence of the EqmRMonadInverses *)
+  Lemma mayRet_bind_eq {A B:typ} (ma1 ma2 : m A) (k1 k2 : A -=-> m B)
         (HM : ma1 == ma2)
         (HK : forall (a : A), mayRet m ma1 @ a -> (k1 @ a) == (k2 @ a)) :
     (bind k1) @ ma1 == (bind k2) @ ma2.
-  Admitted.
+  Proof.
+    rewrite HM.
+    apply eqmR_equal.
+    eapply eqmR_bind_ProperH with (RA := (image m ma2)); auto.
+    eapply image_eqmR. assumption.
+    - intros. exists a1. split.
+      apply H. split; auto.
+      apply eqmR_equal. apply HK. rewrite HM. assumption.
+    - intros. exists a2. split.
+      apply H. split; auto.
+      apply eqmR_equal. apply HK. rewrite HM. assumption.
+  Qed.
 
-
-  
-
-  
 
   Lemma image_ret_bind {A:typ} (ma : m A) (k : A -=-> m A) : 
       (forall (a : A), mayRet m ma @ a -> k @ a == ret @ a) -> bind k @ ma == (bind ret) @ ma.
   Proof. 
     intros H.
-    apply image_bind.
+    apply mayRet_bind_eq.
     - reflexivity.
     - assumption.
+  Qed.
+
+
+  Lemma mayRet_bind {A B: typ} (ma : m A) (k : A -=-> m B) (a:A) (b:B) :
+    mayRet m ma @ a ->
+    mayRet m (k @ a) @ b ->
+    mayRet m (bind k @ ma) @ b.
+  Proof.
+    intros HM HK.
+    repeat red.
+    intros.
+    apply eqmR_bind_refl_inv in EQ; auto.
+    destruct EQ as (RA & Hma & HMK).
+    apply HMK in HM.
+    cbn in HK.
+    specialize (HK R HS TS HM). assumption.
   Qed.
     
   
@@ -705,6 +860,21 @@ split.
 - exact bind_PropT.
 Defined.  
 
+Require Import Coq.Logic.ChoiceFacts.
+
+(* SAZ: is this the rigth way to do this ? *)
+(* NOTE: we would choose to sue this statement from the library: 
+Axiom guarded_choice : GuardedFunctionalChoice.
+*)
+(* But we additionally need some properness information: *)
+Definition GuardedFunctionalChoice_typ :=
+  forall (A B:typ), forall P : A -> Prop, forall R : A -> B -> Prop, 
+    inhabited B ->
+    (forall x : A, P x -> exists y : B, R x y) ->
+    (exists f : A -=-> B, forall x, P x -> R x (f @ x)).
+Axiom guarded_choice : GuardedFunctionalChoice_typ.
+
+
 Instance MonadLaws_PropT : MonadLaws MonadPropT.
 constructor.
   - intros A B K.
@@ -718,7 +888,7 @@ constructor.
       cbn in *.
       specialize (HI a1).
       assert (image m ma @ (a1, a1)).
-      { rewrite (rewrite_image_app _ _ _ _ HMA).
+      { rewrite HMA.
         apply ret_image; auto.
         cbn. split; reflexivity. }
       apply HI in H. rewrite <- HMB. 
@@ -785,52 +955,53 @@ constructor.
     + intros (mb & kb & HA & HKB & HIB); cbn in *.
       destruct HA as (ma & ka & HA & HKA & HIA).
       exists ma. eexists (-=->! (fun a => bind kb @ (ka @ a)) _).
-      
       split; [| split].
       * rewrite <- HPA. assumption.
       * rewrite <- HMA. rewrite HKB. rewrite HKA.
         eapply eqmR_bind_bind. assumption.
       * intros.
-        red. exists mb. exists kb.
+        red. exists (ka @ a). exists kb.
         split; [|split].
-        ** rewrite HKA.
-           exists Q, Q @ ma /\ forall (a:A), mayRet m ma @ a -> P (ka a)
+        ** apply HIA. assumption.
+        ** cbn. reflexivity.
+        ** intros. apply HIB. 
+           rewrite HKA.
+           eapply mayRet_bind. apply H. apply H0.
 
-           P @ (bind ka @ ma)
-           
-           (* SAZ: This fails: apply HIA.  why?  Different Univese levels? *)
-           admit.
-        ** cbn. rewrite HKA.
-           apply eqmR_equal.
-           eapply eqmR_bind_ProperH.
-           --- assumption.
-           --- apply eqmR_equal.
-               
-               
-           --- destruct kb. cbn in *.
-               intros. apply eqmR_equal. apply p. assumption.
-        ** apply HIB.
+          
     + intros (ma & ka & HA & HKA & HI).
       red in HI.
-      eexists. eexists.
-      split; [|split].
-      exists ma. 
+      apply guarded_choice in HI.
+      destruct HI as (kab & HKAB).
+      exists (bind kab @ ma). eexists. split; [|split]. 
       
-      assert ((exists (a:A), image m mb @ (a, a)) \/ ~exists(a:A), image m mb @ (a, a)).
-      { admit. (* TODO: Classical logic *) }
-      destruct H.
-      * destruct H as (a & IM).
-        specialize (HIB a IM).
-        destruct HIB as (mbb & k & HKA & HK & HI).
-        exists mbb. exists k.
-        split; [|split].
-        ** exists (ret @ a). eexists (-=->! (fun a => mbb) _).
-           split;[|split].
-           -- 
+      ** exists ma. exists kab. split; [|split].
+         --- rewrite HPA. assumption.
+         --- reflexivity.
+         --- intros. apply HKAB in H. destruct H as (_ & HX & _).
+             assumption.
+               
+      ** rewrite HMA. rewrite HKA.
+             
+      
+      assert ((exists a, mayRet m ma @ a) \/ ~(exists a, mayRet m ma @ a)).
+      { admit. (* TODO CLASSICAL LOGIC *) }
+      destruct H as [(a & HR) | N].
+       * specialize (K a HR).
+         destruct K as (kb & HKB1 & HEQ & HM2).
+         exists kb.
+         split; [|split].
 
-                                                                 
-
-      cbn. split.
+         2 : { rewrite HMA. rewrite HKA.
+               specialize (eqmR_bind_bind). intros.
+               
+         
+         ** exists ma. epose ((-=->! (fun _ => (k a)) _) : A -=-> m B) as kab.
+            exists kab.
+            split; [|split].
+            *** rewrite HPA. assumption.
+            *** 
+      
 
 
       

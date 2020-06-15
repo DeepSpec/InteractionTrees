@@ -558,7 +558,9 @@ Section EqmRInversion.
   Context {Mm : Monad typ_proper m}.
   Context {EqMR : EqmR m} {EqmRm: EqmRMonad m} {EqmROKm : EqmR_OK m}.
 
-
+  (* TODO: We need to rearrange / rationalize this typeclass.  This one should
+     probably be named something to do with mayRet
+  *)
   Class EqmRMonadInverses :=
     {
     (* SAZ : Move this requirement earlier? *)
@@ -590,7 +592,26 @@ Section EqmRInversion.
                       (EQ : eqmR RA @ (ma1, ma2)),
         forall a2, mayRet m ma2 @ a2 -> exists a1, RA @ (a1, a2) /\ mayRet m ma1 @ a1;
 
+    (* SAZ: This is a much less general inversion principle, but it seems more likely
+       to be true.  It also may be all that we need. *)
+    eqmR_bind_refl_inv :
+      forall {A : typ} {B : typ}
+        (RB : relationH B B) (SH: SymmetricH RB) (TH: TransitiveH RB)
+        (ma : m A) 
+        (k : A -=-> m B),
+        eqmR RB @ (bind k @ ma, bind k @ ma) ->
+        exists (RA : relationH A A), 
+          eqmR RA @ (ma, ma) /\
+          (forall a, mayRet m ma @ a -> eqmR RB @ (k @ a, k @ a))
 
+    }.
+
+  (* SAZ :
+     The following inversion principle is way too strong.  I'm not sure that it holds
+     in any monad except for very trivial cases (like ID).  We cannot rely on it.
+  *)
+  Class EqmRBindInversion :=
+    {
     eqmR_bind_inv : forall {A1 A2 : typ} {B1 B2 : typ} (RB : relationH B1 B2)
                       (ma1 : m A1) (ma2 : m A2)
                       (k1 : A1 -=-> m B1)
@@ -600,9 +621,9 @@ Section EqmRInversion.
           eqmR RA @ (ma1, ma2) /\
           (forall a1, mayRet m ma1 @ a1 -> exists (a2:A2), RA @ (a1, a2) /\ eqmR RB @ (k1 @ a1, k2 @ a2))
           /\
-          (forall a2, mayRet m ma2 @ a2 -> exists (a1:A1), RA @ (a1, a2) /\ eqmR RB @ (k1 @ a1, k2 @ a2))
+          (forall a2, mayRet m ma2 @ a2 -> exists (a1:A1), RA @ (a1, a2) /\ eqmR RB @ (k1 @ a1, k2 @ a2));
     }.
-
+  
 End EqmRInversion.
 
 

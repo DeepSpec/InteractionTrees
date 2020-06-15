@@ -45,15 +45,13 @@ split; try tauto.
   exists mb. tauto.
 - intros. cbn in *. unfold eqmR_ID in *.
   reflexivity.
-<<<<<<< HEAD
-- intros.
-  (* IY: We need parametricity... *)
-  destruct (f (x1, y1)) eqn: Hf.
-  destruct (g (x2, y2)) eqn: Hg.
-  cbn in *.
-  unfold eqmR_ID in *. admit.
-=======
->>>>>>> f3d8fab3903cb9b36bd55aeef9e28cb06229e343
+(* - intros. *)
+(*   (* IY: We need parametricity... *) *)
+(*   destruct (f (x1, y1)) eqn: Hf. *)
+(*   destruct (g (x2, y2)) eqn: Hg. *)
+(*   cbn in *. *)
+(*   unfold eqmR_ID in *. admit. *)
+(* >>>>>>> f3d8fab3903cb9b36bd55aeef9e28cb06229e343 *)
 - intros.
   repeat red. 
   intros. apply H.
@@ -97,7 +95,6 @@ split; try tauto.
 Qed.
 
 
-About EqmRMonadInverses.
 Instance EqmRMonadInverses_ID : EqmRMonadInverses ID.
 split; intros; unfold ID in *; try tauto.
 
@@ -115,7 +112,17 @@ split; intros; unfold ID in *; try tauto.
 - exists ma1. split; auto. apply mayRet_Id in H. rewrite H. assumption.
   repeat red; intros; assumption.
 
-- epose ((-=->! ( fun p => True) _) : (A1 × A2) -=-> prop_typ) as Q.
+- exists A.
+  split.
+  + repeat red. reflexivity.
+  + intros. apply mayRet_Id in H0.
+    rewrite H0. apply H.
+Qed.
+
+Instance EqmRBindInversion_ID : EqmRBindInversion ID.
+constructor.
+intros; unfold ID in *.
+  epose ((-=->! ( fun p => True) _) : (A1 × A2) -=-> prop_typ) as Q.
   Unshelve. 2 : {repeat red. intros; tauto. } 
   
   (*
@@ -131,7 +138,6 @@ split; intros; unfold ID in *; try tauto.
     unfold bind in H. cbn in H. cbn.
     apply mayRet_Id in H0. rewrite H0. assumption.
 Qed.
-  
   
   
   
