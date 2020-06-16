@@ -113,17 +113,16 @@ Section EqmRRel.
        I think that we might insist that f and g be "pairing" -- that is 
        f must be [fun a b -> ret (a, b)] and similarly for g.  
      *)
-    (*
-    eqmR_rel_prod : forall {A1 A2 B1 B2 : typ}
-                          (RA : relationH A1 A2)
-                          (RB : relationH B1 B2)
-                          (x1 : A1) (x2 : A2) (y1 : B1) (y2 : B2)
-                          (f : A1 × B1 -> m (A1 × B1))
-                          (g : A2 × B2 -> m (A2 × B2)),
-      RA @ (x1, x2) ->
-      RB @ (y1, y2) ->
-      eqmR (RA ⊗ RB) @ (f (x1, y1), g (x2, y2));
-     *)
+    (* eqmR_rel_prod : forall {A1 A2 B1 B2 : typ} *)
+    (*                       (RA : relationH A1 A2) *)
+    (*                       (RB : relationH B1 B2) *)
+    (*                        (x1 : A1) (x2 : A2) (y1 : B1) (y2 : B2) *)
+    (*                        (f : A1 × B1 -> m A1 × m B1) *)
+
+    (*                       (f : forall (X Y : typ), X × Y -> m (X × Y)), *)
+    (*   RA @ (x1, x2) -> *)
+    (*   RB @ (y1, y2) -> *)
+    (*   eqmR (RA ⊗ RB) @ (m1 *)
 
       (* [eqmR] respects extensional equality of the underlying relationH
          and [eqm] on both arguments over the monad *)
@@ -139,7 +138,7 @@ Section EqmRRel.
 
       (* [eqmR] is monotone as a morphism on relationHs *)
     eqmR_Proper_mono :> forall {A B},
-        Proper (@subrelationH _ _ ==> @subrelationH _ _) (@eqmR m _ A B);
+        Proper ((@subrelationH _ _) ==> (@subrelationH _ _)) (@eqmR m _ A B);
     }.
 
 End EqmRRel.
@@ -232,9 +231,7 @@ Section Image.
   Program Definition image {A:typ} (m : m A) : relationH A A :=
     (* imageH m m. *)
     fun p =>
-      forall (R : relationH A A)
-        (HS : SymmetricH R)
-        (TS : TransitiveH R)
+      forall (R : relationH A A) (PH : PER R)
         (EQ: eqmR R @ (m, m)), R @ p.
   Next Obligation.
     do 2 red.
@@ -272,44 +269,41 @@ Section Image.
     assumption.
   Qed.
 
-  Lemma image_symmetric {A} (ma : m A) : SymmetricH (image ma).
+  Global Instance image_PER {A} (ma : m A) : PER (image ma).
   Proof.
-    red.
-    intros a.
-    repeat intro.
-    apply HS. apply H; auto.
-  Qed.
+    constructor.
+    - red.
+      intros a.
+      repeat intro.
+      apply per_symm.
+      apply H; auto.
+    - red.
+      intros.
+      destruct p; destruct q; cbn in *.
+      intros.
+      pose proof (per_trans (t, t0) (t1, t2)). apply H2. apply H; assumption.
+      apply H0; assumption. apply H1.
+  Defined.
 
-  Lemma image_transitive {A} (ma : m A) : TransitiveH (image ma).
-  Proof.
-    red.
-    intros.
-    destruct p; destruct q; cbn in *.
-    intros.
-    pose proof (TS (t, t0) (t1, t2)). apply H2. apply H; assumption.
-    apply H0; assumption. apply H1.
-  Qed.
-
-    Lemma image_Reflexive_l {A:typ} (ma : m A) (a1 a2:A) 
+  Lemma image_Reflexive_l {A:typ} (ma : m A) (a1 a2:A) 
     (H : image ma @ (a1, a2)) : image ma @ (a1, a1).
   Proof.
     assert (image ma @ (a2, a1)).
-    { apply image_symmetric in H. apply H. }
-    eapply image_transitive in H. apply H in H0. apply H0. reflexivity.
+    { apply per_symm in H. apply H. }
+    eapply per_trans in H. apply H in H0. apply H0. reflexivity.
   Qed.
 
   Lemma image_Reflexive_r {A:typ} (ma : m A) (a1 a2:A) 
     (H : image ma @ (a1, a2)) : image ma @ (a2, a2).
   Proof.
     assert (image ma @ (a2, a1)).
-    { apply image_symmetric in H. apply H. }
-    eapply image_transitive in H0. apply H0 in H. apply H. reflexivity.
+    { apply per_symm in H. apply H. }
+    eapply per_trans in H0. apply H0 in H. apply H. reflexivity.
   Qed.
   
   
-  Lemma image_least {A} (ma : m A) (R : relationH A A)
-        (HS : SymmetricH R)
-        (TS : TransitiveH R)
+  Lemma image_least {A} (ma : m A)
+        (R : relationH A A) (PH : PER R)
         (G: eqmR R @ (ma, ma))
     : subrelationH (image ma) R.
   Proof.
@@ -330,14 +324,14 @@ Section Image.
       intros.
       repeat red in H.
       rewrite <- EQ in EQ0.
-      specialize (H R HS TS EQ0).
+      specialize (H R PH EQ0).
       apply H.
     - red. intros a b H.
       repeat red.
       intros.
       repeat red in H.
       rewrite  EQ in EQ0.
-      specialize (H R HS TS EQ0).
+      specialize (H R PH EQ0).
       apply H.
   Qed.
 
@@ -397,9 +391,8 @@ Section Image.
     intros P.
     specialize (P (relationH_of_typ A)).
     eapply eqmR_Proper_mono; eauto.
-    apply P.
-    - apply relationH_symmetric.
-    - apply relationH_transitive.
+    apply image_least.
+    apply typ_PER.
     - apply eqmR_equal. apply (@relationH_reflexive (m A)).
   Qed.
 
@@ -436,21 +429,21 @@ Section EqmRMonad.
         mayRet m (bind k @ ma) @ b -> exists a, mayRet m ma @ a /\ mayRet m (k @ a) @ b;
 
     eqmR_mayRet_l : forall {A1 A2 : typ}
-                      (ma1 : m A1) (ma2 : m A2)
                       (RA : relationH A1 A2)
+                      (ma1 : m A1) (ma2 : m A2)
                       (EQ : eqmR RA @ (ma1, ma2)),
         forall a1, mayRet m ma1 @ a1 -> exists a2, RA @ (a1, a2) /\ mayRet m ma2 @ a2;
 
     eqmR_mayRet_r : forall {A1 A2 : typ}
-                      (ma1 : m A1) (ma2 : m A2)
                       (RA : relationH A1 A2)
+                      (ma1 : m A1) (ma2 : m A2)
                       (EQ : eqmR RA @ (ma1, ma2)),
         forall a2, mayRet m ma2 @ a2 -> exists a1, RA @ (a1, a2) /\ mayRet m ma1 @ a1;
 
 
     eqmR_ret : forall {A1 A2 : typ} (RA : relationH A1 A2) (a1:A1) (a2:A2),
         RA @ (a1, a2) -> eqmR RA @ (ret @ a1, ret @ a2);
-    
+
     eqmR_bind_ProperH : forall {A1 A2 B1 B2 : typ}
                           (RA : relationH A1 A2)
                           (RB : relationH B1 B2)
@@ -553,9 +546,9 @@ Section EqmRInversion.
        to be true.  It also may be all that we need. *)
     eqmR_bind_refl_inv :
       forall {A : typ} {B : typ}
-        (RB : relationH B B) (SH: SymmetricH RB) (TH: TransitiveH RB)
-        (ma : m A) 
-        (k1 k2 : A -=-> m B),
+        (RB : relationH B B) (PH: PER RB)
+        (ma : m A)
+        (k1 k2  : A -=-> m B),
         eqmR RB @ (bind k1 @ ma, bind k2 @ ma) ->
           eqmR (image m ma) @ (ma, ma) /\
           (forall a, mayRet m ma @ a -> eqmR RB @ (k1 @ a, k2 @ a))
@@ -779,14 +772,13 @@ Section InversionFacts.
     - repeat red. intros. 
       unfold image in H. cbn in *.
       specialize (H (singletonR x)).
-      assert (SymmetricH (singletonR x)).
-      { apply singletonR_SymmetricH. }
-      assert (TransitiveH (singletonR x)).
-      { apply singletonR_TransitiveH. }
-      specialize (H H0 H1).
+      assert (PER (singletonR x)).
+      { split. apply singletonR_SymmetricH. 
+        apply singletonR_TransitiveH. }
+      specialize (H H0).
       assert (eqmR (singletonR x) @ (ret @ x, ret @ x)).
       { apply eqmR_ret. typeclasses eauto.  repeat red. cbn. split. reflexivity. reflexivity. }
-      apply H in H2. repeat red in H2. assumption.
+      apply H in H1. repeat red in H2. assumption.
     - do 4 red. intros.
       unfold singletonR in H. destruct H. cbn in *.
       rewrite <- H. rewrite H0.

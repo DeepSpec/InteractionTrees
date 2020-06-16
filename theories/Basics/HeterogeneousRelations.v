@@ -192,6 +192,7 @@ Definition SymmetricH {A: typ} (R : relationH A A) : Prop :=
 Definition TransitiveH {A: typ} (R : relationH A A) : Prop :=
   forall (p q: A × A), R @ p -> R @ q -> equalE A (snd p) (fst q) -> R @ (fst p, snd q).
 
+
 Lemma relationH_reflexive : forall (A:typ), ReflexiveH A.
 Proof.
   intros A.
@@ -243,6 +244,18 @@ Proof.
     eapply H. apply HP.  rewrite EQ. apply HQ.
 Qed.    
 
+
+Class PER {A : typ} (R : relationH A A) :=
+  {
+    per_symm : SymmetricH R;
+    per_trans : TransitiveH R
+  }.
+
+Global Instance typ_PER {A : typ} : PER A.
+  constructor.
+  eapply relationH_symmetric.
+  eapply relationH_transitive.
+Defined.
 
 (** ** subrelationH *)
 Section SubRelationH.

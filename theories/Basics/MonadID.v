@@ -68,7 +68,12 @@ Proof.
   Unshelve. 2 : { repeat red. intros. split; intros. rewrite <- H0. assumption. rewrite H0. assumption. }
   assert (eqmR (diagonal_prop Q) @ (ma, ma)).
   { repeat red. split; cbn; reflexivity. }
-  specialize (H (diagonal_prop Q) (diagonal_prop_SymmetricH Q) (diagonal_prop_TransitiveH Q) H0).
+  assert (PER (diagonal_prop Q)). {
+    split.
+    exact (diagonal_prop_SymmetricH Q).
+    exact (diagonal_prop_TransitiveH Q).
+  }
+  specialize (H (diagonal_prop Q) H1 H0).
   repeat red in H. destruct H as (EQ2 & _).
   apply EQ2.
 Qed.  
