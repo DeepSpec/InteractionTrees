@@ -23,6 +23,182 @@ Local Open Scope cat_scope.
 Local Open Scope cat.
 
 Section State.
+  Variable S : typ.
+
+  Definition state (s : typ) (a : typ) : typ :=
+    s ~~> prod_typ s a.
+
+  Definition eqmR_state (A B : typ) (R : relationH A B) :=
+    (fun (p : state S A × state S B) =>
+        forall s, S ⊗ R @ (fst p @ s, snd p @ s)).
+
+  Program Instance EqmR_state : EqmR (state S) :=
+    {
+      eqmR := eqmR_state
+    }.
+  Next Obligation.
+    repeat intro. destruct x2, y. cbn in *. destruct H.
+    unfold eqmR_state. cbn. split. intros.
+    specialize (H1 s).
+    specialize (H s s).
+    assert (s == s) by reflexivity.
+    specialize (H H2). specialize (H0 s s H2).
+    destruct (t @ s). destruct (t0 @ s). destruct (t1 @ s). destruct (t2 @ s).
+    destruct H, H0. cbn in *; destruct H1. rewrite <- H. rewrite <- H0.
+    split. auto. rewrite <- H3. rewrite <- H4. auto.
+    intros.
+    specialize (H1 s).
+    specialize (H s s).
+    assert (s == s) by reflexivity.
+    specialize (H H2). specialize (H0 s s H2).
+    destruct (t @ s). destruct (t0 @ s). destruct (t1 @ s). destruct (t2 @ s).
+    destruct H, H0. cbn in *; destruct H1. rewrite H. rewrite H0.
+    split. auto. rewrite H3. rewrite H4. auto.
+  Qed.
+  Next Obligation.
+    split; repeat intro. cbn in *. rewrite H0.
+    - unfold eqmR_state in H.
+      specialize (H x0).
+      change (S ⊗ A @ (x @ x0, y @ x0)) in H.
+      rewrite <- H0. destruct (x @ x0). destruct (y @ x0).
+      cbn in *. apply H.
+    - change (S ⊗ A @ (x @ s, y @ s)).
+      unfold state in *.
+      repeat red in H. cbn in H. specialize (H s s).
+      assert (s == s) by reflexivity.
+      specialize (H H0). destruct (x @ s). destruct (y @ s).
+      cbn in *. apply H.
+  Qed.
+
+  Lemma equal_typ {s} : s == s. reflexivity. Qed.
+
+  Instance EqmR_OK_state : EqmR_OK (state S).
+  constructor.
+  - intros. repeat intro. unfold ReflexiveH in H.
+    change (S ⊗ R @ (a @ s, a @ s)).
+    unfold state in a.
+    destruct (a @ s). cbn in *. split. reflexivity. auto.
+  - intros. repeat intro. unfold SymmetricH in H.
+    destruct p.
+    change (S ⊗ R @ (t0 @ s, t @ s)).
+    cbn in H0. unfold eqmR_state in H0.
+    specialize (H0 s).
+    change (S ⊗ R @ (t @ s, t0 @ s)) in H0.
+    destruct (t0 @ s). destruct (t @ s).
+    cbn in *. destruct H0. split. symmetry. apply H0.
+    specialize (H (t4, t2) H1). apply H.
+  - intros. repeat intro. unfold TransitiveH in H.
+    destruct p, q. cbn in H2. red in H2.
+    specialize (H2 s s equal_typ).
+    change (S ⊗ R @ (t @ s, t2 @ s)).
+    cbn in H0, H1; unfold eqmR_state in H0, H1.
+    specialize (H0 s). specialize (H1 s).
+    change (S ⊗ R @ (t @ s, t0 @ s)) in H0.
+    change (S ⊗ R @ (t1 @ s, t2 @ s)) in H1.
+    rewrite H2 in H0. clear H2; clear t0.
+    destruct (t @ s), (t1 @ s), (t2 @ s).
+    cbn in *. destruct H0, H1. split. etransitivity; eauto.
+    specialize (H (t3, t5) (t5, t7) H2 H3). apply H. reflexivity.
+  - repeat intro. cbn in H, H0. unfold eqmR_state in H, H0.
+    specialize (H s); specialize (H0 s).
+    change (S ⊗ R1 @ (ma @ s, mb @ s)) in H.
+    change (S ⊗ R2 @ (mb @ s, mc @ s)) in H0.
+    change (S ⊗ (R2 ∘ R1) @ (ma @ s, mc @ s)).
+    destruct (ma @ s), (mb @ s), (mc @ s).
+    cbn in *. destruct H, H0. split. etransitivity; eauto.
+    exists t2. split; eauto.
+  - intros. split; repeat intro.
+    cbn in H; unfold eqmR_state in H.
+    specialize (H s).
+    change (S ⊗ † R @ (x @ s, y @ s)) in H.
+    change (S ⊗ R @ (y @ s, x @ s)).
+    destruct (x @ s), (y @ s).
+    cbn in *. destruct H; split. symmetry; auto. auto.
+    cbn in H; unfold eqmR_state in H.
+    specialize (H s).
+    change (S ⊗ R @ (y @ s, x @ s)) in H.
+    change (S ⊗ † R @ (x @ s, y @ s)).
+    destruct (x @ s), (y @ s).
+    cbn in *. destruct H; split. symmetry; auto. auto.
+  - repeat intro.
+    red in H. destruct H. red in H, H0.
+    split; repeat intro.
+    + change (S ⊗ y @ (x0 @ s, y0 @ s)).
+      cbn in H1. unfold eqmR_state in H1.
+      specialize (H1 s).
+      change (S ⊗ x @ (x0 @ s, y0 @ s)) in H1.
+      destruct (x0 @ s), (y0 @ s).
+      cbn in *. destruct H1. split; auto.
+    + change (S ⊗ x @ (x0 @ s, y0 @ s)).
+      cbn in H1. unfold eqmR_state in H1.
+      specialize (H1 s).
+      change (S ⊗ y @ (x0 @ s, y0 @ s)) in H1.
+      destruct (x0 @ s), (y0 @ s).
+      cbn in *. destruct H1. split; auto.
+  - repeat intro.
+    cbn in H0; unfold eqmR_state in H0.
+    specialize (H0 s). red in H.
+    change (S ⊗ y @ (x0 @ s, y0 @ s)).
+    change (S ⊗ x @ (x0 @ s, y0 @ s)) in H0.
+    destruct (x0 @ s), (y0 @ s). cbn in *.
+    destruct H0. split; auto.
+  Qed.
+
+  Lemma ret_stateT_P:
+    forall (a : typ) (x : a),
+      Proper (equalE S ==> equalE (S × a)) (fun s : S => (s, x)).
+  Proof.
+    intros a x.
+    repeat intro. rewrite H. reflexivity.
+  Qed.
+
+  Lemma ret_stateT_P':
+    forall a : typ,
+      Proper (equalE a ==> equalE (state S a))
+              (fun x : a => (-=->!) (fun s : S => (s, x)) (ret_stateT_P a x)).
+  Proof.
+    intros a.
+    repeat intro. cbn. split; auto.
+  Qed.
+
+  Lemma bind_stateT_P:
+    forall (a b : typ) (f : a -=-> state S b) (sa : state S a),
+      Proper (equalE S ==> equalE (S × b)) (fun s : S => (f @ snd (sa @ s)) @ s).
+  Proof.
+    intros a b f sa.
+    repeat intro. rewrite H. reflexivity.
+  Qed.
+
+  Lemma bind_stateT_P2:
+    forall (a b : typ) (f : a -=-> state S b),
+      Proper (equalE (state S a) ==> equalE (state S b))
+              (fun sa : state S a =>
+                (-=->!) (fun s : S => (f @ snd (sa @ s)) @ s) (bind_stateT_P a b f sa)).
+  Proof.
+    intros a b f.
+    repeat intro. cbn. rewrite H, H0. split; reflexivity.
+  Qed.
+
+  Instance MonadState : Monad typ_proper (state S).
+  split.
+  - intros. refine (-=->! (fun x => _) (ret_stateT_P' a)).
+  - intros. refine (-=->! (fun sa => _) (bind_stateT_P2 a b f)).
+  Defined.
+
+  Instance EqmRMonadInverses_state : EqmRMonadInverses (state S).
+  constructor.
+  Admitted.
+
+  Instance EqmRMonad_state : EqmRMonad (state S).
+  constructor.
+  Admitted.
+
+End State.
+
+
+
+
+Section StateT.
   Variable m : typ -> typ.
   Variable S : typ.
   Context {Mm : Monad typ_proper m}.
@@ -53,6 +229,12 @@ Section State.
     2 : { eapply eqmR_equal in H. 2 : reflexivity. apply H. }
     apply prod_rel_eq.
   Defined.
+
+  (* Lemma eqmR_rel_prod : forall {A B : typ} *)
+  (*                       (R : relationH A B) *)
+  (*                       (x : A) (y : B) (s : S), *)
+  (*   R @ (x, y) -> *)
+  (*   eqmR (m := stateT S m) (S ⊗ R) @ (ret @ ((s, x),(s, y))). *)
 
   Global Instance EqmR_OK_stateT : EqmR_OK (stateT S m).
   Proof.
@@ -287,10 +469,22 @@ Section State.
     forall {A B : typ} (ma : stateT S m A)
       (k : A -=-> stateT S m B) (b : B),
       mayRet (stateT S m) (bind k @ ma) @ b ->
-      forall (ma' : m A), exists (k' : A -=-> m B),
+      exists (ma' : m A) (k' : A -=-> m B),
       mayRet m (bind k' @ ma') @ b.
   Proof.
     intros. Admitted.
+
+  (* Lemma stateT_image_refl {A : typ} : *)
+  (*   forall (x : m A) (ma' : m A), *)
+  (*   eqmR (image m ma') @ (x, x) -> eqmR (image (stateT S m)) @ (x, x). *)
+  (* Proof. *)
+  (* Admitted. *)
+
+  Lemma eqmR_prod_inv {A : typ}:
+    forall (ma' : m A) (ma : stateT S m A) (s : S) (R : relationH A A),
+      eqmR R @ (ma', ma') ->
+      eqmR (S ⊗ R) @ (ma @ s, ma @ s).
+  Admitted.
 
   Lemma stateT_mayRet_bind :
     forall (A B : typ) (ma : stateT S m A) (k : A -=-> stateT S m B) (b : B),
@@ -298,45 +492,63 @@ Section State.
     exists a : A, mayRet (stateT S m) ma @ a /\ mayRet (stateT S m) (k @ a) @ b.
   Proof.
     intros.
-
-    eexists ?[a]. split. 
+    pose proof mayRet_bind as HMB.
+    specialize (HMB m _ _ _).
+    pose proof (mayRet_stateT_bind _ _ _ H) as HBind.
+    edestruct HBind as (ma' & k' & bind'); clear HBind.
+    specialize (HMB A B _ _ _ bind').
+    edestruct HMB as (a & prefix & cont); clear HMB.
+    exists a. split.
+    - eapply prefix. eapply image_PER.
+      eapply eqmR_Proper; eauto.
+      + Unshelve.
+        2 : { exact (image m ma'). }
+        split; repeat intro.
+        * apply H0; eauto. intro. cbn.
+          remember (ma @ s).
+          admit.
+        * apply H0; eauto. cbn in EQ. admit.
+      + admit. 
     - pose proof mayRet_bind as HMB.
       specialize (HMB m _ _ _).
-      pose proof (mayRet_stateT_bind _ _ _ H).
+      pose proof (mayRet_stateT_bind _ _ _ H) as HBind.
+      edestruct HBind as (? & ? & ?).
+      specialize (HMB A B _ _ _ H0).
+      edestruct HMB.
+      destruct H1.
+      intro. cbn. intros. apply H2. 
+    (*   intro. intro.  *)
+    (*   edestruct HMB as (? & ? & ?). *)
 
-      edestruct H0 as (? & ? & ?).
-      specialize (HMB _ _ _ _ _ H1).
-      edestruct HMB as (? & ? & ?).
+    (*   repeat intro.  *)
+    (*   repeat red in H. cbn in H. *)
+    (*   cbn.  *)
+    (*   unfold stateT in *. *)
+    (*   edestruct HMB; eauto. *)
+    (*   + repeat red. intros. apply H; eauto. repeat intro. cbn. *)
+    (*     eapply eqmR_bind_ProperH; eauto. *)
+    (*     * eapply eqmR_equal. cbn. reflexivity. *)
+    (*     * cbn. intros. destruct a1, a2. cbn in *. destruct H2. *)
+    (*       rewrite H2, H3. *)
 
-      repeat intro. 
-      repeat red in H. cbn in H.
-      cbn. 
-      unfold stateT in *.
-      edestruct HMB; eauto.
-      + repeat red. intros. apply H; eauto. repeat intro. cbn.
-        eapply eqmR_bind_ProperH; eauto.
-        * eapply eqmR_equal. cbn. reflexivity.
-        * cbn. intros. destruct a1, a2. cbn in *. destruct H2.
-          rewrite H2, H3.
+    (*       eapply eqmR_Proper_mono; eauto. *)
+    (*       eapply image_least. eapply prod_rel_PER; auto. *)
+    (*       eapply relationH_PER. *)
+    (*       -- admit. *)
+    (*       -- eapply image_eqmR; eauto. *)
+    (*   + destruct H0. *)
+    (*     apply H0.  *)
+    (*     repeat intro. *)
 
-          eapply eqmR_Proper_mono; eauto.
-          eapply image_least. eapply prod_rel_PER; auto.
-          eapply relationH_PER.
-          -- admit.
-          -- eapply image_eqmR; eauto.
-      + destruct H0.
-        apply H0. 
-        repeat intro.
+    (* - cbn. intros. cbn in H. apply H; eauto. intros. *)
+    (*   eapply eqmR_bind_ProperH; eauto. *)
+    (*   + eapply eqmR_equal. cbn. reflexivity. *)
+    (*   + pose proof mayRet_bind. specialize (EQ s). intros. cbn. *)
+    (*     destruct a1, a2. cbn in *. *)
+    (*     destruct H3. rewrite H3. rewrite H4. *)
 
-    - cbn. intros. cbn in H. apply H; eauto. intros.
-      eapply eqmR_bind_ProperH; eauto.
-      + eapply eqmR_equal. cbn. reflexivity.
-      + pose proof mayRet_bind. specialize (EQ s). intros. cbn.
-        destruct a1, a2. cbn in *.
-        destruct H3. rewrite H3. rewrite H4.
-
-        eapply eqmR_transport_refl; eauto.
-        red. intro. destruct a. cbn. split. reflexivity.
+    (*     eapply eqmR_transport_refl; eauto. *)
+    (*     red. intro. destruct a. cbn. split. reflexivity. *)
         (* reflexivity.  *)
   Admitted.
 
@@ -681,4 +893,4 @@ Section State.
 (*   typeclasses eauto. *)
 (*   Qed. *)
 
-End State.
+End StateT.
