@@ -232,13 +232,16 @@ Proof.
     cbn in *.
     specialize (H a HM).
     destruct H as (b & RB & MAB).
-    PER_reflexivityH.
+    PER_reflexivityH; apply PH. 
   - intros HM.
     repeat red in HM.
     epose ((-=->! (fun a => (ma @ a)) _) : A -=-> prop_typ) as Q.
     assert (eqmR (diagonal_prop Q) @ (ma, ma)).
     { repeat red. split; cbn; intros; eauto. }
-    specialize (HM (diagonal_prop Q) (diagonal_prop_SymmetricH Q) (diagonal_prop_TransitiveH Q) H).
+    assert (PER (diagonal_prop Q)) as PP.
+    { constructor. apply (diagonal_prop_SymmetricH Q). apply (diagonal_prop_TransitiveH Q). }
+    
+    specialize (HM (diagonal_prop Q) PP H).
     destruct H as (HA & HB).
     cbn in *.
     tauto.
@@ -300,12 +303,12 @@ Proof.
     exists a. split; auto. do 3 red. intros.
     destruct EQ as (HX & HY).
     specialize (HX a HMA). destruct HX as (b & RB & HB).
-    PER_reflexivityH.
+    PER_reflexivityH; apply PH.
   - intros a HMA; cbn in HMA.
     exists a. split; auto. do 3 red. intros.
     destruct EQ as (HX & HY).
     specialize (HX a HMA). destruct HX as (b & RB & HB).
-    PER_reflexivityH.
+    PER_reflexivityH; apply PH.
 Qed.    
 
 Lemma eqmR_ret_inv_PropM : forall {A1 A2 : typ} (RA : relationH A1 A2) (a1:A1) (a2:A2),
@@ -420,10 +423,10 @@ Proof.
     assert (mayRet PropM ma1 @ a1).
     Transparent mayRet. 
     { cbn.  intros. destruct EQ as (HX &  HY). specialize (HX a1 HA1).
-      destruct HX as (b & HR & _). PER_reflexivityH. }
+      destruct HX as (b & HR & _). PER_reflexivityH; apply PH. }
     assert (mayRet PropM ma2 @ a2).
     { cbn.  intros. destruct EQ as (HX &  HY). specialize (HX a2 HM2).
-      destruct HX as (b & HR & _). PER_reflexivityH. }
+      destruct HX as (b & HR & _). PER_reflexivityH; apply PH. }
     specialize (H0 H H1 HA2).
     destruct H0.
     specialize (H0 a HK1). destruct H0 as (b2 & HB2 & HKB2).
@@ -435,10 +438,10 @@ Proof.
     assert (mayRet PropM ma1 @ a1).
     Transparent mayRet. 
     { cbn.  intros. destruct EQ as (HX &  HY). specialize (HX a1 HK1).
-      destruct HX as (b1 & HR & _). PER_reflexivityH. }
+      destruct HX as (b1 & HR & _). PER_reflexivityH; apply PH. }
     assert (mayRet PropM ma2 @ a2).
     { cbn.  intros. destruct EQ as (HX &  HY). specialize (HX a2 HA2).
-      destruct HX as (b2 & HR & _). PER_reflexivityH. }
+      destruct HX as (b2 & HR & _). PER_reflexivityH; apply PH. }
     specialize (H0 H H2 HA1).
     destruct H0.
     specialize (H3 b HM2). destruct H3 as (b2 & HB2 & HKB2).
@@ -498,12 +501,12 @@ Proof.
   intros.
   destruct H as (HX & HY).
   split; intros; split; intros.
-  - exists a. split. cbn. intros R SR TR (HL & HR).
+  - exists a. split. cbn. intros R HRB (HL & HR).
     specialize (HL a H). destruct HL as (b & Rb & Mb).
-    PER_reflexivityH. cbn. apply H.
-  - exists b. split. cbn. intros R SR TR (HL & HR).
+    PER_reflexivityH; apply HRB. cbn. apply H.
+  - exists b. split. cbn. intros R HRB (HL & HR).
     specialize (HR b H). destruct HR as (a & Ra & Ma).
-    PER_reflexivityH. cbn. apply H.
+    PER_reflexivityH; apply HRB. cbn. apply H.
   - cbn.
     assert ((bind k @ ma) @ a0).
     { repeat red. exists a. split.
@@ -556,7 +559,10 @@ Qed.
 
 Lemma image_PropM : forall (A:typ) (ma : PropM A) (a1 a2 : A), image PropM ma @ (a1, a2) -> ma @ a1 /\ ma @ a2.
 Proof.
-  intros. specialize (H (PropM_INV ma) (SymmetricH_PropM_INV ma) (TransitiveH_PropM_INV ma) (PropM_INV_refl ma)).
+  intros.
+  assert (PER (PropM_INV ma)). { constructor. apply (SymmetricH_PropM_INV ma). apply (TransitiveH_PropM_INV ma). }
+
+  specialize (H (PropM_INV ma) H0 (PropM_INV_refl ma)).
   apply H.
 Qed.  
   
@@ -573,7 +579,8 @@ Proof.
   unfold ret_ in H0. exists a1. rewrite <- H0. split; auto. reflexivity.
 Qed.
 
-
+(* TODO: FIX *)
+(*
 Program Instance eqmR_Monad_PropM : EqmRMonad PropM :=
   {
   image_eqmR := @image_eqmR_PropM;
@@ -611,7 +618,7 @@ Next Obligation.
     exists b. split. exists a. tauto. destruct g. cbn in *.
     assert (b == b) by reflexivity. specialize (p _ _ H _ _ EQC).  rewrite p. assumption.
 Qed.    
-
+*)
     
 
 Global Instance EqmRMonadInverses_PropM : EqmRMonadInverses PropM :=
@@ -860,8 +867,8 @@ Proof.
   assert (3 = 3 \/ 3 = 4). { left; auto. } apply H0 in H2.
   crunch.
   subst. auto.
-  subst. unfold TransitiveH in TS.
-  specialize (TS _ _ H1 H2). cbn in TS. apply TS. reflexivity.
+  subst. destruct PH. unfold TransitiveH in per_trans.
+  specialize (per_trans _ _ H1 H2). cbn in per_trans. apply per_trans. reflexivity.
 Qed.  
 
 Lemma ambiguous_mayRet :
@@ -1021,7 +1028,10 @@ constructor.
         ** intros.
         destruct p as (a & c).
         assert (a == a2).
-        { specialize (H0 (singletonR a1) (singletonR_SymmetricH a1) (singletonR_TransitiveH a1)).
+        { assert (PER (singletonR a1)) as PP. { constructor. apply (singletonR_SymmetricH a1).
+                                                apply (singletonR_TransitiveH a1). }
+
+          specialize (H0 (singletonR a1) PP).
           assert (eqmR (singletonR a1) @ (ret @ a1, ret @ a1)).
           { apply (eqmR_ret m). cbn.  split; reflexivity. }
           apply H0 in H1.
@@ -1053,7 +1063,7 @@ constructor.
       assert (ma1 == ma).
       { etransitivity. apply HK. apply H. intros.
         specialize (HI (a2, a1)). cbn in HI.
-        apply HI. intros. apply SymmetricH_Symmetric; auto. apply H0; auto. }
+        apply HI. intros. apply SymmetricH_Symmetric; auto. apply PH. apply H0; auto. }
       rewrite <- HK. assumption. }
       rewrite <- HMA. rewrite H. assumption.
     + intros. red in H. cbn in H.
@@ -1063,11 +1073,12 @@ constructor.
       rewrite bind_ret_r. cbn. assumption.
       intros. red. cbn. red. apply eqmR_equal. apply eqmR_ret. assumption.
       cbn in H0. specialize (H0 (A)).
-      assert (SymmetricH A) by (apply relationH_symmetric).
-      assert (TransitiveH A) by (apply relationH_transitive).
+      assert (PER A) by apply relationH_PER. apply H0 in H1.
       destruct p as (a1 & a2). cbn.
       symmetry.
       apply H0; auto.
+      apply relationH_PER.
+      apply eqmR_equal. change (ma2 == ma2). reflexivity.
       apply eqmR_equal. change (ma2 == ma2). reflexivity.
       
   - intros A B C KA KB.
@@ -1096,7 +1107,7 @@ constructor.
           
     + intros (ka & ma & HA & HKA & HI). 
       red in HI. red in HI.
-      apply guarded_choice in HI.
+      
       destruct HI as (kab & HKAB).
       red.
       epose ((-=->! (fun a => kab @ (a, a)) _) : A -=-> m B) as k.
