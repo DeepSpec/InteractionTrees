@@ -73,8 +73,8 @@ Proof.
   { repeat red. intros (x, y) HP; split; cbn in *; tauto. }
   assert (TransitiveH Q).
   { repeat red. intros (x, y1) (y2, z) (HX & HY) (HY' & HZ); split; intros; cbn in *; tauto. }
-  
-  specialize (H Q H1 H2 H0).
+  assert (PER Q). constructor; auto.
+  specialize (H Q H3 H0).
   repeat red in H. 
   apply H.
 Qed.  
@@ -87,7 +87,12 @@ Proof.
   Unshelve. 2 : { repeat red. intros. split; intros. rewrite <- H0. assumption. rewrite H0. assumption. }
   assert (eqmR (diagonal_prop Q) @ (ma, ma)).
   { repeat red. split; cbn; reflexivity. }
-  specialize (H (diagonal_prop Q) (diagonal_prop_SymmetricH Q) (diagonal_prop_TransitiveH Q) H0).
+  assert (PER (diagonal_prop Q)). {
+    split.
+    exact (diagonal_prop_SymmetricH Q).
+    exact (diagonal_prop_TransitiveH Q).
+  }
+  specialize (H (diagonal_prop Q) H1 H0).
   repeat red in H. destruct H as (EQ2 & _).
   apply EQ2.
 Qed.  

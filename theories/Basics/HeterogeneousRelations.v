@@ -192,6 +192,7 @@ Definition SymmetricH {A: typ} (R : relationH A A) : Prop :=
 Definition TransitiveH {A: typ} (R : relationH A A) : Prop :=
   forall (p q: A × A), R @ p -> R @ q -> equalE A (snd p) (fst q) -> R @ (fst p, snd q).
 
+
 Lemma relationH_reflexive : forall (A:typ), ReflexiveH A.
 Proof.
   intros A.
@@ -243,6 +244,18 @@ Proof.
     eapply H. apply HP.  rewrite EQ. apply HQ.
 Qed.    
 
+
+Class PER {A : typ} (R : relationH A A) : Type :=
+  {
+    per_symm : SymmetricH R;
+    per_trans : TransitiveH R
+  }.
+
+Global Instance relationH_PER {A : typ} : PER A.
+  constructor.
+  eapply relationH_symmetric.
+  eapply relationH_transitive.
+Defined.
 
 (** ** subrelationH *)
 Section SubRelationH.
@@ -531,9 +544,26 @@ Section ProdRelFacts.
       cbn in *. split. apply H. reflexivity. apply H0. reflexivity.
     Qed.
 
+
     Global Instance prod_rel_eqv `{Equivalence _ ↓RR} `{Equivalence _ ↓SS} : Equivalence ↓(RR ⊗ SS).
     Proof.
       constructor; typeclasses eauto.
+    Qed.
+
+    Global Instance prod_rel_PER `{@PER _ RR} `{@PER _ SS} : @PER _ (RR ⊗ SS).
+    Proof.
+      constructor. destruct H, H0.
+      eapply SymmetricH_Symmetric.
+      eapply prod_rel_sym.
+      eapply TransitiveH_Transitive.
+      eapply prod_rel_trans.
+      Unshelve.
+      eapply SymmetricH_Symmetric; eauto.
+      eapply SymmetricH_Symmetric; eauto.
+      destruct H, H0.
+      eapply TransitiveH_Transitive; eauto. 
+      destruct H, H0.
+      eapply TransitiveH_Transitive; eauto. 
     Qed.
 
   End Equivalence.
