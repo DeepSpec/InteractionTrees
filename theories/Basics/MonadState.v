@@ -253,6 +253,18 @@ Section State.
     intros. rewrite H, H0. auto.
   Defined.
 
+  Lemma stateT_inv_equal {A1 A2 : typ} :
+    forall (RA : relationH A1 A2) (sma1 : stateT S m A1)
+      (sma2 : stateT S m A2),
+      eqmR RA @ (sma1, sma2) ->
+      forall (ma1 : m A1), exists (ma2 : m A2), eqmR RA @ (ma1, ma2).
+  Admitted.
+
+
+  Lemma stateT_image:
+    forall (A : typ) (ma : stateT S m A), eqmR (image (stateT S m) ma) @ (ma, ma).
+  Admitted.
+
   Definition curry_swap' {A B} (k : A -=-> (S ~~> m (S × B))) : (S × A) -> m (S × B) := fun p => k @ (snd p) @ (fst p).
 
   Lemma curry_swap_Proper:
@@ -267,45 +279,65 @@ Section State.
 
   Definition curry_swap {A B} (k : A -=-> (S ~~> m (S × B))) : (S × A) -=-> m (S × B) := (-=->! (curry_swap' k) (curry_swap_Proper k)).
 
+
+  (* Lemma mayRet_stateT {A:typ} (ma : stateT S m A) (a : A) : *)
+  (*   forall s, (ma @ s) <-> mayRet (stateT S m) ma @ a. *)
+
+  Lemma mayRet_stateT_bind :
+    forall {A B : typ} (ma : stateT S m A)
+      (k : A -=-> stateT S m B) (b : B),
+      mayRet (stateT S m) (bind k @ ma) @ b ->
+      forall (ma' : m A), exists (k' : A -=-> m B),
+      mayRet m (bind k' @ ma') @ b.
+  Proof.
+    intros. Admitted.
+
   Lemma stateT_mayRet_bind :
     forall (A B : typ) (ma : stateT S m A) (k : A -=-> stateT S m B) (b : B),
     mayRet (stateT S m) (bind k @ ma) @ b ->
     exists a : A, mayRet (stateT S m) ma @ a /\ mayRet (stateT S m) (k @ a) @ b.
   Proof.
-    intros. eexists ?[a]. split.
-    - admit.
+    intros.
+
+    eexists ?[a]. split. 
+    - pose proof mayRet_bind as HMB.
+      specialize (HMB m _ _ _).
+      pose proof (mayRet_stateT_bind _ _ _ H).
+
+      edestruct H0 as (? & ? & ?).
+      specialize (HMB _ _ _ _ _ H1).
+      edestruct HMB as (? & ? & ?).
+
+      repeat intro. 
+      repeat red in H. cbn in H.
+      cbn. 
+      unfold stateT in *.
+      edestruct HMB; eauto.
+      + repeat red. intros. apply H; eauto. repeat intro. cbn.
+        eapply eqmR_bind_ProperH; eauto.
+        * eapply eqmR_equal. cbn. reflexivity.
+        * cbn. intros. destruct a1, a2. cbn in *. destruct H2.
+          rewrite H2, H3.
+
+          eapply eqmR_Proper_mono; eauto.
+          eapply image_least. eapply prod_rel_PER; auto.
+          eapply relationH_PER.
+          -- admit.
+          -- eapply image_eqmR; eauto.
+      + destruct H0.
+        apply H0. 
+        repeat intro.
+
     - cbn. intros. cbn in H. apply H; eauto. intros.
       eapply eqmR_bind_ProperH; eauto.
       + eapply eqmR_equal. cbn. reflexivity.
       + pose proof mayRet_bind. specialize (EQ s). intros. cbn.
         destruct a1, a2. cbn in *.
+        destruct H3. rewrite H3. rewrite H4.
 
-      (*   destruct H2. *)
-      (* rewrite H2, H3. *)
-      (* eapply EQ.  *)
-      (* eapply eqmR_transport_refl; eauto. *)
-
-      (* eapply eqmR_Proper_mono; eauto. *)
-      (* (* Unshelve. *) *)
-      (* (* 4 : { exact (S ⊗ B). } *) *)
-      (* (* repeat intro. destruct x, y. cbn in *. split. destruct H4. *) *)
-      (* (* apply H4. destruct H4. rewrite H5.  *) *)
-      (* eapply eqmR_transport_refl; eauto.  *)
-
-
-      (* apply H. eapply H.                 eapply H. *)
-  Admitted.
-
-  Lemma stateT_inv_equal {A1 A2 : typ} :
-    forall (RA : relationH A1 A2) (sma1 : stateT S m A1)
-      (sma2 : stateT S m A2),
-      eqmR RA @ (sma1, sma2) ->
-      forall (ma1 : m A1), exists (ma2 : m A2), eqmR RA @ (ma1, ma2).
-  Admitted.
-
-
-  Lemma stateT_image:
-    forall (A : typ) (ma : stateT S m A), eqmR (image (stateT S m) ma) @ (ma, ma).
+        eapply eqmR_transport_refl; eauto.
+        red. intro. destruct a. cbn. split. reflexivity.
+        (* reflexivity.  *)
   Admitted.
 
   Lemma stateT_eqmR_mayRet_l :

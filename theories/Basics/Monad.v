@@ -106,7 +106,6 @@ Section EqmRRel.
     eqmR_lift_transpose : forall {A B : typ} (R : relationH A B)
       , eq_rel (eqmR †R) (†(eqmR R));
 
-
     (* SAZ: I don't think that this can hold in general as stated -- at least it doesn't
        seem to be true of the ID monad.
 
@@ -300,8 +299,8 @@ Section Image.
     { apply per_symm in H. apply H. }
     eapply per_trans in H0. apply H0 in H. apply H. reflexivity.
   Qed.
-  
-  
+
+
   Lemma image_least {A} (ma : m A)
         (R : relationH A A) (PH : PER R)
         (G: eqmR R @ (ma, ma))
@@ -312,7 +311,7 @@ Section Image.
     cbn in *.
     apply D; assumption.
   Qed.
-  
+
   Global Instance Proper_image {A} :
     Proper (equalE (m A) ==> eq_rel) image.
   Proof.
@@ -392,9 +391,38 @@ Section Image.
     specialize (P (relationH_of_typ A)).
     eapply eqmR_Proper_mono; eauto.
     apply image_least.
-    apply typ_PER.
+    apply relationH_PER.
     - apply eqmR_equal. apply (@relationH_reflexive (m A)).
   Qed.
+
+  Lemma image_surj:
+    forall {A B : typ} (ma : m A) (a1 a2 : A),
+        image ma @ (a1, a2) -> exists (R : relationH A A), R @ (a1, a2).
+  Proof.
+    repeat intro. eexists ?[R]. repeat red in H. apply H.
+    apply relationH_PER. eapply eqmR_equal. cbn. reflexivity.
+  Qed.
+
+  Lemma image_inv:
+    forall {A B : typ} (ma : m A) (a1 a2 : A),
+      image ma @ (a1, a2) ->
+      forall (R : relationH A A) (H : PER R), eqmR R @ (ma, ma) -> R @ (a1, a2).
+  Proof.
+    repeat intro. unfold image in *.
+    cbn in H. apply H; eauto.
+  Qed.
+
+  (* IY: What we might want is this lemma, combined with the axiom of choice. *)
+  Lemma eqmR_image:
+    forall {A : typ} (ma : m A) (a1 : A),
+      (forall a2, image ma @ (a1, a2)) ->
+      eqmR (image ma) @ (ma, ma).
+  Proof.
+    intros. eapply eqmR_transport_refl; eauto.
+    repeat intro. eapply image_inv; eauto.
+    eapply image_Reflexive_r. apply H.
+  Qed.
+
 
 End Image.
 
@@ -421,10 +449,32 @@ Section EqmRMonad.
             break the other direction out into a different typeclass that
             can be instantiated differently.
      *)
+
+
     (* SAZ : Move this requirement earlier? *)
     (* SAZ: Do we need this? Maybe try to do without everywhere. *)
+
+    (* IY: Don't we want this to always hold true? [image m ma] describes the
+     * "set of A" that is described by [ma]. Perhaps what we need is that
+     * eqmR/image is a "function", so that the resulting set is always equal
+     * to each other. This makes me wonder if we want to introduce classical
+     * reasoning here, when we're introducing images. (Because the intuition
+     * should be similar to dealing with sets of computations, where we can
+     * choose elements from the image to reason about them..)*)
+    (* IY: Otherwise, we need to have a way of knowing that there is already
+     * an element to be in the image. See [eqmR_image] lemma above. *)
     image_eqmR {A : typ} (ma : m A) : eqmR (image m ma) @ (ma, ma);
 
+    (* eqmR_bind_refl_inv : *)
+    (*   forall {A : typ} {B : typ} *)
+    (*     (RB : relationH B B) (PH: PER RB) *)
+    (*     (ma : m A) *)
+    (*     (k1 k2  : A -=-> m B), *)
+    (*     eqmR RB @ (bind k1 @ ma, bind k2 @ ma) -> *)
+    (*       eqmR (image m ma) @ (ma, ma) /\ *)
+    (*       (forall a, mayRet m ma @ a -> eqmR RB @ (k1 @ a, k2 @ a)) *)
+
+    (* IY : Is this the same as eqmR_bind_refl_inv? *)
     mayRet_bind : forall {A B:typ} (ma : m A) (k : A -=-> m B) (b : B),
         mayRet m (bind k @ ma) @ b -> exists a, mayRet m ma @ a /\ mayRet m (k @ a) @ b;
 
