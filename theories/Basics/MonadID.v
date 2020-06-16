@@ -61,6 +61,25 @@ Qed.
 (* Qed. *)
 
 
+Lemma image_Id : forall (A:typ) (ma : ID A) (a1 a2 : A), image ID ma @ (a1, a2) -> a1 == ma /\ a2 == ma.
+Proof.
+  intros.
+  epose ((-=->! (fun p => (fst p == ma) /\ (snd p == ma)) _) : relationH A A) as Q.
+  Unshelve. 2 : { repeat red. intros. split; intros. rewrite <- H0. assumption. rewrite H0. assumption. }
+  assert (eqmR Q @ (ma, ma)).
+  { repeat red. split; cbn; reflexivity. }
+
+  assert (SymmetricH Q).
+  { repeat red. intros (x, y) HP; split; cbn in *; tauto. }
+  assert (TransitiveH Q).
+  { repeat red. intros (x, y1) (y2, z) (HX & HY) (HY' & HZ); split; intros; cbn in *; tauto. }
+  
+  specialize (H Q H1 H2 H0).
+  repeat red in H. 
+  apply H.
+Qed.  
+
+
 Lemma mayRet_Id : forall (A:typ) (ma : ID A) (a : A), mayRet ID ma @ a -> a == ma.
 Proof.
   intros.
@@ -95,7 +114,6 @@ split; intros; try tauto.
   assert (mayRet ID ma2 @ ma2).
   { repeat red. cbn. intros. apply EQ. }
   cbn. apply H0. assumption.  assumption.
-  apply H.
 - intros. reflexivity.
 - intros. reflexivity.
 - intros. reflexivity.
@@ -104,11 +122,12 @@ Qed.
 
 Instance EqmRMonadInverses_ID : EqmRMonadInverses ID.
 split; intros; unfold ID in *; try tauto.
-- cbn. 
-  split.
-  + intros. apply EQ.
-  + intros. apply mayRet_Id in H0.
-    rewrite H0. apply H.
+- split.
+  + cbn. intros. apply EQ.
+  + intros.
+    apply image_Id in H0. destruct H0 as (HA1 & HA2).
+    rewrite HA1. 
+    apply H.
 Qed.
 
 Instance EqmRBindInversion_ID : EqmRBindInversion ID.
@@ -130,7 +149,3 @@ intros; unfold ID in *.
     unfold bind in H. cbn in H. cbn.
     apply mayRet_Id in H0. rewrite H0. assumption.
 Qed.
-  
-  
-  
-

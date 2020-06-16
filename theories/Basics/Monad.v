@@ -450,16 +450,26 @@ Section EqmRMonad.
 
     eqmR_ret : forall {A1 A2 : typ} (RA : relationH A1 A2) (a1:A1) (a2:A2),
         RA @ (a1, a2) -> eqmR RA @ (ret @ a1, ret @ a2);
-    
+
+    (* SAZ: This used to be: 
+       forall (a1:A1) mayRet m ma1 @ a1 -> exists a2, RA @ (a1, a2) /\ eqmR RB @ (kb1 @ a1, kb2 @ a2)
+      /\ (...vice versa...)
+
+
+      This vesion causes problems with later proofs.
+      Try stating like Lemma eqmR_bind_ProperH_PropM'
+     *)
     eqmR_bind_ProperH : forall {A1 A2 B1 B2 : typ}
                           (RA : relationH A1 A2)
                           (RB : relationH B1 B2)
                           ma1 ma2
-                          (kb1 : A1 -=-> m B1) (kb2 : A2 -=-> m B2),
-        eqmR RA @ (ma1, ma2) ->
-        (forall (a1 : A1) (a2 : A2), mayRet m ma1 @ a1 -> mayRet m ma2 @ a2 -> RA @ (a1, a2) -> eqmR RB @ (kb1 @ a1, kb2 @ a2))
-        ->
-        eqmR RB @ (bind kb1 @ ma1, bind kb2 @ ma2);
+        (kb1 : A1 -=-> m B1) (kb2 : A2 -=-> m B2),
+      eqmR RA @ (ma1, ma2) ->
+      (forall (a1 : A1), mayRet m ma1 @ a1 -> forall a2, RA @ (a1, a2) -> eqmR RB @ (kb1 @ a1, kb2 @ a2))
+      ->
+      (forall (a2 : A2), mayRet m ma2 @ a2 -> forall a1, RA @ (a1, a2) -> eqmR RB @ (kb1 @ a1, kb2 @ a2))
+      ->
+      eqmR RB @ (bind kb1 @ ma1, bind kb2 @ ma2);
 
     (* Question: The following helps _proving_ [eqmR _ (bind _ _)].
        Should we require something to invert such an hypothesis?
@@ -489,7 +499,7 @@ End EqmRMonad.
 
 Arguments eqmR_bind_ret_l {_ _ _ _}.
 
-Section Laws.
+Section EqmRConsequences.
 
   Context (m : typ -> typ).
   Context {Mm : Monad typ_proper m}.
@@ -521,11 +531,135 @@ Section Laws.
       specialize (H1 H2).
       apply eqmR_equal.
       apply H1.
-      intros.
-      apply eqmR_equal. cbn. apply H. apply H5.
+      + intros.
+        apply eqmR_equal. cbn. apply H. apply H4.
+      + intros.
+        apply eqmR_equal. cbn. apply H. apply H4.
+      
   Qed.
 
-End Laws.
+
+  Lemma eqmR_bind_ProperH_simple : forall {A1 A2 B1 B2 : typ}
+                                     (RA : relationH A1 A2)
+                                     (RB : relationH B1 B2)
+                                     (ma1 : m A1) (ma2 : m A2)
+                                     (kb1 : A1 -=-> m B1) (kb2 : A2 -=-> m B2),
+      eqmR RA @ (ma1, ma2) ->
+      (forall a1 a2, RA @ (a1, a2) -> eqmR RB @ (kb1 @ a1, kb2 @ a2)) ->
+      eqmR RB @ (bind kb1 @ ma1, bind kb2 @ ma2).
+  Proof.
+    intros A1 A2 B1 B2 RA RB ma1 ma2 kb1 kb2 HMA HK.
+    apply eqmR_bind_ProperH with (RA:=RA); auto.
+  Qed.
+
+
+
+  (* SAZ: TODO: Move this over to Monad.v as a consequence of the EqmRMonadInverses *)
+  Lemma image_bind_eq {A B:typ} (ma : m A) (k1 k2 : A -=-> m B)
+        (HK : forall (a1 a2 : A), image m ma @ (a1, a2)  -> (k1 @ a1) == (k2 @ a2)) :
+    (bind k1) @ ma == (bind k2) @ ma.
+  Proof.
+    apply eqmR_equal.
+    cbn.
+    change (eqmR B @ (bind k1 @ ma, bind k2 @ ma)).
+    eapply eqmR_bind_ProperH with (RA := image m ma); auto.
+    eapply image_eqmR. auto.
+    - intros. 
+      apply eqmR_equal. apply HK. assumption.
+    - intros. 
+      apply eqmR_equal. apply HK. assumption.
+  Qed.
+
+
+  Lemma image_ret_bind {A:typ} (ma : m A) (k : A -=-> m A) : 
+      (forall (a1 a2 : A), image m ma @ (a1, a2)  -> k @ a1 == ret @ a2) -> bind k @ ma == (bind ret) @ ma.
+  Proof. 
+    intros H.
+    apply image_bind_eq. intros.
+    apply H. assumption.
+  Qed.
+
+
+  Program Definition bind_INV {A B:typ} (ma : m A) (k1 k2 : A -=-> m B) :=
+    (-=->! (fun p => mayRet m ma @ (fst p) /\ mayRet m ma @ (snd p) /\ k1 @ (fst p) == k2 @ (snd p) /\ k1 @ (snd p) == k2 @ (fst p)) _) : relationH A A.
+  Next Obligation.
+  Admitted.
+
+  Lemma mayRet_image1 {A:typ} (ma : m A) (a1 a2 : A) (HI : image m ma @ (a1, a2)) : mayRet m ma @ a1.
+  Proof.
+    repeat red.
+    intros.
+    specialize (HI R HS TS EQ).
+    change (R @ (a1, a1)).
+    PER_reflexivityH.
+  Qed.
+
+
+  Lemma mayRet_image2 {A:typ} (ma : m A) (a1 a2 : A) (HI : image m ma @ (a1, a2)) : mayRet m ma @ a2.
+  Proof.
+    repeat red.
+    intros.
+    specialize (HI R HS TS EQ).
+    change (R @ (a2, a2)).
+    PER_reflexivityH.
+  Qed.
+  
+  Lemma SymmetricH_bind_INV {A B : typ} (ma : m A) (k1 k2 : A -=-> m B) : SymmetricH (bind_INV ma k1 k2).
+  Proof.
+  repeat red. intros (x & y). intros; cbn in *. tauto.
+  Qed.
+
+  Lemma Transitive_bind_INV {A B : typ} (ma : m A) (k1 k2 : A -=-> m B) (HK : forall (a : A), mayRet m ma @ a  -> (k1 @ a) == (k2 @ a)) : TransitiveH (bind_INV ma k1 k2).
+  Proof.
+    repeat red. intros (x & y1) (y2 & z) (HRX & HRY1 & HX & HY1) (HRY2 & HRZ & HY2 & HZ) EQ.
+    Opaque mayRet.
+    repeat split; try tauto.
+    - cbn in *.
+      rewrite EQ in *. rewrite HX. rewrite <- HZ. apply HK. assumption.
+    - cbn in *.
+      rewrite EQ in *. rewrite <- HY1. rewrite HY2. apply HK. assumption.
+  Qed.
+
+  Lemma bind_INV_refl {A B:typ} (ma : m A) (k1 k2 : A -=-> m B) : eqmR (bind_INV ma k1 k2) @ (ma, ma).
+  Proof.
+    eapply eqmR_Proper_mono; auto. 2 : { eapply image_eqmR. assumption. }
+    repeat red.
+    intros. repeat split; cbn.
+    - eapply mayRet_image1. apply H.
+    - eapply mayRet_image2. apply H.
+    - 
+  
+  
+    (* SAZ: TODO: Move this over to Monad.v as a consequence of the EqmRMonadInverses *)
+  Lemma mayRet_bind_eq {A B:typ} (ma : m A) (k1 k2 : A -=-> m B)
+        (HK : forall (a : A), mayRet m ma @ a  -> (k1 @ a) == (k2 @ a)) :
+    (bind k1) @ ma == (bind k2) @ ma.
+  Proof.
+    apply eqmR_equal.
+    cbn.
+    change (eqmR B @ (bind k1 @ ma, bind k2 @ ma)).
+    eapply eqmR_bind_ProperH. assumption.
+    eapply image_eqmR. auto.
+    - intros.
+      specialize (H0 (bind_INV ma k1 k2) (SymmetricH_bind_INV ma k1 k2) (Transitive_bind_INV ma k1 k2 HK)).
+      
+      
+    - intros. 
+      apply eqmR_equal. apply HK. assumption.
+  Qed.
+
+
+  Lemma mayRet_ret_bind {A:typ} (ma : m A) (k : A -=-> m A) : 
+      (forall (a : A), mayRet m ma @ a  -> k @ a == ret @ a) -> bind k @ ma == (bind ret) @ ma.
+  Proof. 
+    intros H.
+    apply mayRet_bind_eq. intros.
+    apply H. assumption.
+  Qed.
+
+
+  
+End EqmRConsequences.
 
 
 
@@ -550,15 +684,21 @@ Section EqmRInversion.
         eqmR RA @ (ret @ a1, ret @ a2) -> RA @ (a1, a2);
 
     (* SAZ: This is a much less general inversion principle, but it seems more likely
-       to be true.  It also may be all that we need. *)
+       to be true.  It also may be all that we need. 
+
+       SAZ: I don't think that this holds with distinct continuations k1 and k2:
+          in the case on nondeterminism, ma = {3, 4} and k1 = [3 -> {5}, 4 -> {6}] and
+          k2 = [3 -> {6}, 4 -> {5}] then the resulting binds are quivalent but k1 != k2
+
+     *)
     eqmR_bind_refl_inv :
       forall {A : typ} {B : typ}
         (RB : relationH B B) (SH: SymmetricH RB) (TH: TransitiveH RB)
         (ma : m A) 
-        (k1 k2 : A -=-> m B),
-        eqmR RB @ (bind k1 @ ma, bind k2 @ ma) ->
+        (k : A -=-> m B),
+        eqmR RB @ (bind k @ ma, bind k @ ma) ->
           eqmR (image m ma) @ (ma, ma) /\
-          (forall a, mayRet m ma @ a -> eqmR RB @ (k1 @ a, k2 @ a))
+          (forall a, mayRet m ma @ a -> eqmR RB @ (k @ a, k @ a))
 
     }.
 
@@ -590,20 +730,40 @@ Section InversionFacts.
   Context {MI : EqmRMonadInverses m}.
 
 
-  Lemma eqmR_bind_ProperH_simple : forall {A1 A2 B1 B2 : typ}
-                                     (RA : relationH A1 A2)
-                                     (RB : relationH B1 B2)
-                                     (ma1 : m A1) (ma2 : m A2)
-                                     (kb1 : A1 -=-> m B1) (kb2 : A2 -=-> m B2),
-      eqmR RA @ (ma1, ma2) ->
-      (forall a1 a2, RA @ (a1, a2) -> eqmR RB @ (kb1 @ a1, kb2 @ a2)) ->
-      eqmR RB @ (bind kb1 @ ma1, bind kb2 @ ma2).
+  Lemma image_bind {A B: typ} (ma : m A) (k : A -=-> m B) (a1 a2:A) (b1 b2:B) :
+    image m ma @ (a1, a2) ->
+    image m (k @ a2) @ (b1, b2) ->
+    image m (bind k @ ma) @ (b1, b2).
   Proof.
-    intros A1 A2 B1 B2 RA RB ma1 ma2 kb1 kb2 HMA HK.
-    apply eqmR_bind_ProperH with (RA:=RA); auto.
+    intros HM HK.
+    repeat red.
+    intros.
+    apply eqmR_bind_refl_inv in EQ; auto.
+    destruct EQ as (RA & Hma).
+    cbn in HK.
+    specialize (HK R HS TS). apply HK.
+    apply Hma. repeat red. intros.
+    specialize (HM R0 HS0 TS0 EQ).
+    change (R0 @ (a2, a2)).
+    PER_reflexivityH. 
   Qed.
-
-
+  
+  Lemma mayRet_bind_inv {A B: typ} (ma : m A) (k : A -=-> m B) (a:A) (b:B) :
+    mayRet m ma @ a ->
+    mayRet m (k @ a) @ b ->
+    mayRet m (bind k @ ma) @ b.
+  Proof.
+    intros HM HK.
+    repeat red.
+    intros.
+    apply eqmR_bind_refl_inv in EQ; auto.
+    destruct EQ as (RA & Hma).
+    apply Hma in HM.
+    cbn in HK.
+    specialize (HK R HS TS HM). assumption.
+  Qed.
+  
+  
   
   (* SAZ: This one is probably not needed 
      It is unfortunate that k can't have type A -=-> m B -- we need
@@ -622,6 +782,10 @@ Section InversionFacts.
     intros.
     assert (exists a, image m ma @ (a, a)).
     { exists a1. eapply image_Reflexive_l. apply H0. }
+    contradiction.
+    intros.
+    assert (exists a, image m ma @ (a, a)).
+    { exists a1. eapply image_Reflexive_l. apply H1. }
     contradiction.
   Qed.
 
