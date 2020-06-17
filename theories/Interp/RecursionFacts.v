@@ -46,6 +46,12 @@ Definition _interp_mrec {R : Type} (ot : itreeF (D +' E) R _) : itree E R :=
     end
   end.
 
+(* Implementation note: in [_interp_mrec], the [Tau] in the [inr1] branch
+   might look superfluous. It gets inserted by [iter] (which behaves uniformly
+   in both the [inl1] and [inr1] branches). This [Tau] could be avoided, but
+   it makes the implementation and proofs more complicated for too little gain.
+*)
+
 Lemma unfold_interp_mrec R (t : itree (D +' E) R) :
   interp_mrec ctx t ≅ _interp_mrec (observe t).
 Proof.
