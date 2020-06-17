@@ -40,7 +40,7 @@ Section RelationH_Operations.
       rewrite HA. assumption.
       rewrite HC. assumption.
   Qed.
-    
+
   (* Given any typ we can project out a relation: *)
 
 
@@ -49,7 +49,7 @@ Section RelationH_Operations.
     is_subrelationH: forall (x : A) (y : B), R @ (x, y) -> S @ (x, y).
 
   Definition superrelationH {A B} (R S : relationH A B) : Prop := subrelationH S R.
-  
+
   Definition eq_rel {A B} (R S : relationH A B) :=
     subrelationH R S /\ subrelationH S R.
 
@@ -101,8 +101,8 @@ Section RelationH_Operations.
     intros (x1 & x2) (y1 & y2); destruct x1; destruct x2; destruct y1; destruct y2; cbn in *; intros; try tauto.
     - destruct H. destruct RA. cbn. rewrite H. rewrite H0. reflexivity.
     - destruct H. destruct RB. cbn. rewrite H. rewrite H0. reflexivity.
-  Qed.      
-    
+  Qed.
+
 
   (** Logical relation for the [prod] type. *)
   Program Definition prod_rel {A1 A2 B1 B2 : typ}
@@ -183,38 +183,60 @@ Qed.
 
 Coercion relationH_to_relation : relationH >-> relation.
 
-Definition ReflexiveH {A: typ} (R : relationH A A) : Prop :=
-  forall (a:A), R @ (a, a).
+(* Properties of Heterogeneous Relations ************************************ *)
 
-Definition SymmetricH {A: typ} (R : relationH A A) : Prop :=
-  forall (p: A × A), R @ p -> R @ (snd p, fst p).
+Class ReflexiveH {A: typ} (R : relationH A A) : Prop :=
+  reflexive : forall (a:A), R @ (a, a).
 
-Definition TransitiveH {A: typ} (R : relationH A A) : Prop :=
-  forall (p q: A × A), R @ p -> R @ q -> equalE A (snd p) (fst q) -> R @ (fst p, snd q).
+Class SymmetricH {A: typ} (R : relationH A A) : Prop :=
+  symmetric : forall (p: A × A), R @ p -> R @ (snd p, fst p).
 
+Class TransitiveH {A: typ} (R : relationH A A) : Prop :=
+  transitive : forall (p q: A × A), R @ p -> R @ q -> equalE A (snd p) (fst q) -> R @ (fst p, snd q).
 
-Lemma relationH_reflexive : forall (A:typ), ReflexiveH A.
+Class PER {A : typ} (R : relationH A A) : Type :=
+  {
+    per_symm : SymmetricH R;
+    per_trans : TransitiveH R
+  }.
+
+Class EquivalenceH {A : typ} (R : relationH A A) : Type :=
+  {
+    equiv_refl : ReflexiveH R;
+    equiv_symm : SymmetricH R;
+    equiv_trans : TransitiveH R
+  }.
+
+Global Instance relationH_reflexive : forall (A:typ), ReflexiveH A.
 Proof.
   intros A.
-  destruct A; cbn. 
+  destruct A; cbn.
   repeat red. intros. cbn. reflexivity.
-Qed.
+Defined.
 
-Lemma relationH_symmetric : forall (A:typ), SymmetricH A.
+Global Instance relationH_symmetric : forall (A:typ), SymmetricH A.
 Proof.
   intros A.
-  destruct A; cbn. 
+  destruct A; cbn.
   repeat red. intros. cbn in *. symmetry; assumption.
-Qed.
+Defined.
 
-Lemma relationH_transitive : forall (A:typ), TransitiveH A.
+Global Instance relationH_transitive : forall (A:typ), TransitiveH A.
 Proof.
   intros A.
-  destruct A; cbn. 
+  destruct A; cbn.
   repeat red. intros. cbn in *.
   destruct p, q. cbn in *.
   eapply transitivity. apply H. eapply transitivity. apply H1. assumption.
-Qed.
+Defined.
+
+Global Instance relationH_PER {A : typ} : PER A.
+  constructor; typeclasses eauto.
+Defined.
+
+Global Instance relationH_Equiv {A : typ} : EquivalenceH A.
+  constructor; typeclasses eauto.
+Defined.
 
 Lemma ReflexiveH_Reflexive {A: typ} (R : relationH A A) :
   ReflexiveH R <-> Reflexive ↓R.
@@ -222,7 +244,7 @@ Proof.
   split; intros.
   - red. apply H.
   - apply H.
-Qed.    
+Qed.
 
 Lemma SymmetricH_Symmetric {A: typ} (R : relationH A A) :
   SymmetricH R <-> Symmetric ↓R.
@@ -231,7 +253,7 @@ Proof.
   - red. unfold SymmetricH in H. intros. specialize (H (x ,y)). cbn in H.
     apply H. assumption.
   - red. intros p HP. destruct p. cbn in *. apply H. assumption.
-Qed.    
+Qed.
 
 Lemma TransitiveH_Transitive {A: typ} (R : relationH A A) :
   TransitiveH R <-> Transitive ↓R.
@@ -242,20 +264,8 @@ Proof.
   - red. intros p q HP HQ EQ. destruct p; destruct q; cbn.
     unfold Transitive in H. cbn in EQ.
     eapply H. apply HP.  rewrite EQ. apply HQ.
-Qed.    
+Qed.
 
-
-Class PER {A : typ} (R : relationH A A) : Type :=
-  {
-    per_symm : SymmetricH R;
-    per_trans : TransitiveH R
-  }.
-
-Global Instance relationH_PER {A : typ} : PER A.
-  constructor.
-  eapply relationH_symmetric.
-  eapply relationH_transitive.
-Defined.
 
 (** ** subrelationH *)
 Section SubRelationH.
@@ -287,7 +297,7 @@ Section SubRelationH.
 
   Global Instance subrelationH_refl_eq {A: typ} (R: relationH A A) (H : Reflexive ↓R) : A ⊑ R.
   Proof.
-    intros!. 
+    intros!.
     destruct R. cbn in *.
     rewrite H0.
     apply H.
@@ -495,7 +505,7 @@ Section TransposeFacts.
   Proof.
     unfold transpose; split; intros!; cbn in *.
     - apply SymmetricH_Symmetric in RS. unfold SymmetricH in RS. apply (RS (pair y x)). assumption.
-    - apply SymmetricH_Symmetric in RS. unfold SymmetricH in RS. apply (RS (pair x y)). assumption.      
+    - apply SymmetricH_Symmetric in RS. unfold SymmetricH in RS. apply (RS (pair x y)). assumption.
   Qed.
 
   (* [transpose] is monotone *)
@@ -509,6 +519,7 @@ Section TransposeFacts.
 End TransposeFacts.
 
 Section ProdRelFacts.
+
 
   (* [prod_rel] preserves the structure of equivalence relations (what does one call it for a [bifunctor]?) *)
   Section Equivalence.
@@ -525,10 +536,10 @@ Section ProdRelFacts.
     Global Instance prod_rel_sym `{Symmetric _ ↓RR} `{Symmetric _ ↓SS}  : Symmetric ↓(RR ⊗ SS).
     Proof.
       intros ? ? ?. apply SymmetricH_Symmetric in H. apply SymmetricH_Symmetric in H0.
-      red. red in H1. 
+      red. red in H1.
       destruct x; destruct y; cbn in *. destruct H1. split.
       - unfold SymmetricH in H. specialize (H (t, t1)). apply H. assumption.
-      - unfold SymmetricH in H0. specialize (H0 (t0, t2)). apply H0. assumption.      
+      - unfold SymmetricH in H0. specialize (H0 (t0, t2)). apply H0. assumption.
     Qed.
 
     Global Instance prod_rel_trans `{Transitive _ ↓RR} `{Transitive _ ↓SS}  : Transitive ↓(RR ⊗ SS).
@@ -561,9 +572,9 @@ Section ProdRelFacts.
       eapply SymmetricH_Symmetric; eauto.
       eapply SymmetricH_Symmetric; eauto.
       destruct H, H0.
-      eapply TransitiveH_Transitive; eauto. 
+      eapply TransitiveH_Transitive; eauto.
       destruct H, H0.
-      eapply TransitiveH_Transitive; eauto. 
+      eapply TransitiveH_Transitive; eauto.
     Qed.
 
   End Equivalence.
@@ -790,26 +801,26 @@ Lemma PER_reflexivityH1 : forall {A:typ} (R : relationH A A) (RS: SymmetricH R) 
 Proof.
   intros.
   assert (R @ (b, a)). { specialize (RS (a, b)). apply RS. assumption. }
-  specialize (RT (a,b) (b,a)). apply RT; auto. reflexivity.                      
-Qed.  
+  specialize (RT (a,b) (b,a)). apply RT; auto. reflexivity.
+Qed.
 
 Lemma PER_reflexivityH2 : forall {A:typ} (R : relationH A A) (RS: SymmetricH R) (RT: TransitiveH R)
                             (a b : A), R @ (b, a) -> R @ (a, a).
 Proof.
   intros.
   assert (R @ (a, b)). { specialize (RS (b, a)). apply RS. assumption. }
-  specialize (RT (a,b) (b,a)). apply RT; auto. reflexivity.                      
-Qed.  
+  specialize (RT (a,b) (b,a)). apply RT; auto. reflexivity.
+Qed.
 
 Ltac PER_reflexivityH :=
   match goal with
   | [ H : ?R @ (?X, ?Y) |- ?R @ (?X, ?X) ] =>  eapply PER_reflexivityH1; eauto
   | [ H : ?R @ (?Y, ?X) |- ?R @ (?X, ?X) ] =>  eapply PER_reflexivityH2; eauto
-  end.
+  end; [ apply per_symm | apply per_trans].
 
 
 Program Definition diagonal_prop {A : typ} (P : A -=-> prop_typ) : relationH A A :=
-  fun p => (P @ (fst p) /\ P @ (snd p)). 
+  fun p => (P @ (fst p) /\ P @ (snd p)).
 Next Obligation.
   repeat red.
   intros (a1 & a2) (b1 & b2) (EQA & EQB).
@@ -822,13 +833,22 @@ Qed.
 
 Lemma diagonal_prop_SymmetricH {A : typ} (P : A -=-> prop_typ) : SymmetricH (diagonal_prop P).
 Proof.
-  red. intros (a1 & a2) H. 
+  red. intros (a1 & a2) H.
   cbn in *. tauto.
 Qed.
 
 Lemma diagonal_prop_TransitiveH {A : typ} (P : A -=-> prop_typ) : TransitiveH (diagonal_prop P).
 Proof.
-  red. intros (a1 & a2) (b1 & b2) HA HB EQ. 
+  red. intros (a1 & a2) (b1 & b2) HA HB EQ.
   cbn in *.
   tauto.
+Qed.
+
+Lemma diagonal_prop_PER {A : typ} (P : A -=-> prop_typ) : PER (diagonal_prop P).
+Proof.
+  constructor.
+  red. intros (a1 & a2) H.
+  cbn in *. tauto.
+  red. intros (a1 & a2) H.
+  cbn in *. tauto.
 Qed.

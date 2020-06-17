@@ -185,18 +185,85 @@ Section State.
   - intros. refine (-=->! (fun sa => _) (bind_stateT_P2 a b f)).
   Defined.
 
-  Instance EqmRMonadInverses_state : EqmRMonadInverses (state S).
+  Instance EqmRMonadInverses_state `{inhabited S} : EqmRMonadInverses (state S).
   constructor.
+  - intros. cbn in H. unfold eqmR_state in H.
+    cbn in H.
+    (* Need [inhabited S] here. *)
+    inversion inhabited0.
+    specialize (H X).
+    destruct H; auto.
+  - intros. cbn in *. unfold eqmR_state in *.
+    split.
+    + intros. specialize (H s).
+    (*   change (S ⊗ RB @ (((-=->!) (fun s : S => (k1 @ snd (ma @ s)) @ s) *)
+    (*                              (bind_stateT_P A B k1 ma)) @ s, *)
+    (*                     (-=->! (fun s : S => (k2 @ snd (ma @ s)) @ s) *)
+    (*                            (bind_stateT_P A B k2 ma)) @ s)) in H. *)
+    (*   destruct (S ⊗ RB). cbn in H. *)
+    (*   change (S ⊗ image (state S) ma @ (ma @ s, ma @ s)). *)
+    (*   destruct (ma @ s) eqn: H'. cbn in *. split. reflexivity. *)
+    (*   intros. *)
+    (*   unfold eqmR_state in EQ. *)
+    (*   change (forall s : S, S ⊗ R @ (ma @ s, ma @ s)) in EQ. *)
+    (*   specialize (EQ s). rewrite H' in EQ. cbn in EQ. destruct EQ. *)
+    (*   auto. *)
+    (* + intros. specialize (H s). *)
+    (*   change (S ⊗ RB @ ((-=->! (fun s : S => (k1 @ snd (ma @ s)) @ s) (bind_stateT_P A B k1 ma)) @ s, *)
+    (*                     (-=->! (fun s : S => (k2 @ snd (ma @ s)) @ s) *)
+    (*                            (bind_stateT_P A B k2 ma)) @ s)) in H. *)
+    (*   change (S ⊗ RB @ (k1 @ snd (ma @ s) @ s, *)
+    (*                     k2 @ snd (ma @ s) @ s)) in H. *)
+    (*   change (forall R : relationH A A, PER R -> *)
+    (*    (forall s : S, S ⊗ R @ (ma @ s, ma @ s)) -> R @ (a, a)) in H0. *)
+    (*   pose proof @prod_rel_PER. *)
+    (*   specialize (H1 S B S RB relationH_PER PH). *)
+    (*   change (S ⊗ RB @ (k1 @ a @ s, k2 @ a @ s)). *)
+      admit.
+  Admitted.
+
+  Lemma eqmR_bind_ProperH_state :
+    forall (s : S) (A1 A2 B1 B2 : typ) (RA : relationH A1 A2) (RB : relationH B1 B2)
+      (ma1 : state S A1) (ma2 : state S A2) (kb1 : A1 -=-> state S B1)
+      (kb2 : A2 -=-> state S B2),
+    eqmR RA @ (ma1, ma2) ->
+    (forall (a1 : A1) (a2 : A2),
+    mayRet (state S) ma1 @ a1 ->
+    mayRet (state S) ma2 @ a2 -> RA @ (a1, a2) -> eqmR RB @ (kb1 @ a1, kb2 @ a2)) ->
+    eqmR RB @ (bind kb1 @ ma1, bind kb2 @ ma2).
+  Proof.
+    intros.
+
   Admitted.
 
   Instance EqmRMonad_state : EqmRMonad (state S).
   constructor.
+  - intros. cbn. unfold eqmR_state. intro.
+    change (S ⊗ image (state S) ma @ (ma @ s, ma @ s)).
+    destruct (ma @ s) eqn: H'. cbn. split. reflexivity.
+    intros. unfold eqmR_state in EQ.
+    change (forall s, S ⊗ R @ (ma @ s, ma @ s)) in EQ.
+    specialize (EQ s). rewrite H' in EQ. cbn in EQ. destruct EQ. auto.
+  - intros. cbn in *.
+    unfold eqmR_state in H.
+    eexists ?[a]. split.
+    + intros.
+      change (forall s, S ⊗ R @ (ma @ s, ma @ s)) in EQ.
+      assert (inhabited S). admit. (* Need to assume [inhabited S]. *)
+      admit.
+    + intros. apply H; auto. intros. admit.
+      (* Trying to play with alternative.. *)
+  - intros. admit.
+  - admit.
+  - admit.
+  -  admit. 
   Admitted.
 
+  (* Instance EqmRMonad_state : EqmRMonad (state S). *)
+  (* constructor. *)
+  (* Admitted. *)
+
 End State.
-
-
-
 
 Section StateT.
   Variable m : typ -> typ.

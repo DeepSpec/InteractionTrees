@@ -232,21 +232,16 @@ Proof.
     cbn in *.
     specialize (H a HM).
     destruct H as (b & RB & MAB).
-    PER_reflexivityH; apply PH. 
+    PER_reflexivityH.
   - intros HM.
     repeat red in HM.
     epose ((-=->! (fun a => (ma @ a)) _) : A -=-> prop_typ) as Q.
     assert (eqmR (diagonal_prop Q) @ (ma, ma)).
     { repeat red. split; cbn; intros; eauto. }
-    assert (PER (diagonal_prop Q)) as PP.
-    { constructor. apply (diagonal_prop_SymmetricH Q). apply (diagonal_prop_TransitiveH Q). }
-    
-    specialize (HM (diagonal_prop Q) PP H).
+    specialize (HM (diagonal_prop Q) (diagonal_prop_PER Q) H).
     destruct H as (HA & HB).
     cbn in *.
     tauto.
-    
-    
     Unshelve.
     cbn. repeat red. intros. split; intros. rewrite <- H. assumption. rewrite H. assumption. 
     
@@ -303,12 +298,12 @@ Proof.
     exists a. split; auto. do 3 red. intros.
     destruct EQ as (HX & HY).
     specialize (HX a HMA). destruct HX as (b & RB & HB).
-    PER_reflexivityH; apply PH.
+    PER_reflexivityH. 
   - intros a HMA; cbn in HMA.
     exists a. split; auto. do 3 red. intros.
     destruct EQ as (HX & HY).
     specialize (HX a HMA). destruct HX as (b & RB & HB).
-    PER_reflexivityH; apply PH.
+    PER_reflexivityH.
 Qed.    
 
 Lemma eqmR_ret_inv_PropM : forall {A1 A2 : typ} (RA : relationH A1 A2) (a1:A1) (a2:A2),
@@ -385,7 +380,7 @@ Proof.
     specialize (HY b).
     exists a0. cbn in *.
 
-    split. PER_reflexivityH. cbn.  apply H0.
+    split. PER_reflexivityH. apply H0.
   - specialize (HX b).
     assert (bind k @ ma @ b).
     { repeat red. exists a. split. rewrite <- mayRet_PropM in H. apply H. apply H0. }
@@ -397,7 +392,7 @@ Proof.
     exists b.
     destruct H1 as (HR & HB).
     destruct H2 as (HS & HC).
-    split. PER_reflexivityH. cbn. apply H0.
+    split. PER_reflexivityH. apply H0.
 Qed.    
 
 Lemma eqmR_bind_ProperH_PropM :
@@ -503,10 +498,10 @@ Proof.
   split; intros; split; intros.
   - exists a. split. cbn. intros R HRB (HL & HR).
     specialize (HL a H). destruct HL as (b & Rb & Mb).
-    PER_reflexivityH; apply HRB. cbn. apply H.
+    PER_reflexivityH. cbn. apply H.
   - exists b. split. cbn. intros R HRB (HL & HR).
     specialize (HR b H). destruct HR as (a & Ra & Ma).
-    PER_reflexivityH; apply HRB. cbn. apply H.
+    PER_reflexivityH. cbn. apply H.
   - cbn.
     assert ((bind k @ ma) @ a0).
     { repeat red. exists a. split.

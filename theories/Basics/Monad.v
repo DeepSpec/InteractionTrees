@@ -115,13 +115,10 @@ Section EqmRRel.
     (* eqmR_rel_prod : forall {A1 A2 B1 B2 : typ} *)
     (*                       (RA : relationH A1 A2) *)
     (*                       (RB : relationH B1 B2) *)
-    (*                        (x1 : A1) (x2 : A2) (y1 : B1) (y2 : B2) *)
-    (*                        (f : A1 × B1 -> m A1 × m B1) *)
-
-    (*                       (f : forall (X Y : typ), X × Y -> m (X × Y)), *)
+    (*                        (x1 : A1) (x2 : A2) (y1 : B1) (y2 : B2), *)
     (*   RA @ (x1, x2) -> *)
     (*   RB @ (y1, y2) -> *)
-    (*   eqmR (RA ⊗ RB) @ (m1 *)
+    (*   eqmR (RA ⊗ RB) @ (ret @ ((x1, y1),(x2, y2))); *)
 
       (* [eqmR] respects extensional equality of the underlying relationH
          and [eqm] on both arguments over the monad *)
@@ -474,9 +471,14 @@ Section EqmRMonad.
     (*       eqmR (image m ma) @ (ma, ma) /\ *)
     (*       (forall a, mayRet m ma @ a -> eqmR RB @ (k1 @ a, k2 @ a)) *)
 
-    (* IY : Is this the same as eqmR_bind_refl_inv? *)
+    (* IY : Do we need both this and eqmR_bind_refl_inv? *)
     mayRet_bind : forall {A B:typ} (ma : m A) (k : A -=-> m B) (b : B),
-        mayRet m (bind k @ ma) @ b -> exists a, mayRet m ma @ a /\ mayRet m (k @ a) @ b;
+        mayRet m (bind k @ ma) @ b ->
+        (exists a, mayRet m ma @ a /\ mayRet m (k @ a) @ b);
+
+    (* mayRet_bind' : forall {A B:typ} (ma : m A) (k : A -=-> m B) (b : B), *)
+    (*     mayRet m (bind k @ ma) @ b -> *)
+    (*     (forall a, mayRet m ma @ a -> mayRet m (k @ a) @ b); *)
 
     eqmR_mayRet_l : forall {A1 A2 : typ}
                       (RA : relationH A1 A2)
@@ -635,7 +637,7 @@ Section EqmRConsequences.
     intros.
     specialize (HI R PH EQ).
     change (R @ (a1, a1)).
-    PER_reflexivityH. apply PH. apply PH.
+    PER_reflexivityH.
   Qed.
 
 
@@ -645,7 +647,7 @@ Section EqmRConsequences.
     intros.
     specialize (HI R PH EQ).
     change (R @ (a2, a2)).
-    PER_reflexivityH. apply PH. apply PH.
+    PER_reflexivityH.
   Qed.
   
   Lemma SymmetricH_bind_INV {A B : typ} (ma : m A) (k1 k2 : A -=-> m B) : SymmetricH (bind_INV ma k1 k2).
