@@ -816,7 +816,7 @@ Ltac PER_reflexivityH :=
   match goal with
   | [ H : ?R @ (?X, ?Y) |- ?R @ (?X, ?X) ] =>  eapply PER_reflexivityH1; eauto
   | [ H : ?R @ (?Y, ?X) |- ?R @ (?X, ?X) ] =>  eapply PER_reflexivityH2; eauto
-  end; [ apply per_symm | apply per_trans].
+  end; try apply per_symm ; try apply per_trans.
 
 
 Program Definition diagonal_prop {A : typ} (P : A -=-> prop_typ) : relationH A A :=
