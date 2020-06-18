@@ -133,6 +133,10 @@ split; intros; unfold ID in *; try tauto.
     apply image_Id in H0. destruct H0 as (HA1 & HA2).
     rewrite HA1. 
     apply H.
+- split. cbn. intros. apply EQ.
+  apply image_Id in H. destruct H.
+  exists ma. intros. apply image_Id in H1.
+  destruct H1. cbn. intros. rewrite H. cbn. apply EQ.
 Qed.
 
 Instance EqmRBindInversion_ID : EqmRBindInversion ID.
@@ -154,3 +158,27 @@ intros; unfold ID in *.
     unfold bind in H. cbn in H. cbn.
     apply mayRet_Id in H0. rewrite H0. assumption.
 Qed.
+  
+(* Instance EqmRMonad_ID : EqmRMonad ID. *)
+(* split; intros; try tauto. *)
+(* - repeat red. intros. cbn in EQ. unfold eqmR_ID in EQ. assumption. *)
+(* - exists ma. *)
+(*   split; auto. *)
+(*   repeat red. intros. assumption. *)
+(* - exists ma2. split; auto. apply mayRet_Id in H. rewrite H. assumption. *)
+(*   repeat red. intros. assumption. *)
+
+(* - exists ma1. split; auto. apply mayRet_Id in H. rewrite H. assumption. *)
+(*   repeat red; intros; assumption. *)
+
+(* - intros. *)
+(*   unfold ID in ma1, ma2. *)
+(*   assert (mayRet ID ma1 @ ma1). *)
+(*   { repeat red. cbn. intros. apply EQ. } *)
+(*   assert (mayRet ID ma2 @ ma2). *)
+(*   { repeat red. cbn. intros. apply EQ. } *)
+(*   cbn. apply H0. assumption.  assumption. *)
+(* - intros. reflexivity. *)
+(* - intros. reflexivity. *)
+(* - intros. reflexivity. *)
+(* Qed. *)

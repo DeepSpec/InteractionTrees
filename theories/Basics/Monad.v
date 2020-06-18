@@ -115,13 +115,10 @@ Section EqmRRel.
     (* eqmR_rel_prod : forall {A1 A2 B1 B2 : typ} *)
     (*                       (RA : relationH A1 A2) *)
     (*                       (RB : relationH B1 B2) *)
-    (*                        (x1 : A1) (x2 : A2) (y1 : B1) (y2 : B2) *)
-    (*                        (f : A1 × B1 -> m A1 × m B1) *)
-
-    (*                       (f : forall (X Y : typ), X × Y -> m (X × Y)), *)
+    (*                        (x1 : A1) (x2 : A2) (y1 : B1) (y2 : B2), *)
     (*   RA @ (x1, x2) -> *)
     (*   RB @ (y1, y2) -> *)
-    (*   eqmR (RA ⊗ RB) @ (m1 *)
+    (*   eqmR (RA ⊗ RB) @ (ret @ ((x1, y1),(x2, y2))); *)
 
       (* [eqmR] respects extensional equality of the underlying relationH
          and [eqm] on both arguments over the monad *)
@@ -489,7 +486,12 @@ Section EqmRMonad.
        renamed to mayRet_bind)
     *)
     mayRet_bind : forall {A B:typ} (ma : m A) (k : A -=-> m B) (b : B),
-        mayRet m (bind k @ ma) @ b -> exists a, mayRet m ma @ a /\ mayRet m (k @ a) @ b;
+        mayRet m (bind k @ ma) @ b ->
+        (exists a, mayRet m ma @ a /\ mayRet m (k @ a) @ b);
+
+    (* mayRet_bind' : forall {A B:typ} (ma : m A) (k : A -=-> m B) (b : B), *)
+    (*     mayRet m (bind k @ ma) @ b -> *)
+    (*     (forall a, mayRet m ma @ a -> mayRet m (k @ a) @ b); *)
 
     eqmR_mayRet_l : forall {A1 A2 : typ}
                       (RA : relationH A1 A2)
@@ -647,7 +649,7 @@ Section EqmRConsequences.
     intros.
     specialize (HI R PH EQ).
     change (R @ (a1, a1)).
-    PER_reflexivityH. apply PH. apply PH.
+    PER_reflexivityH.
   Qed.
 
 
@@ -657,7 +659,7 @@ Section EqmRConsequences.
     intros.
     specialize (HI R PH EQ).
     change (R @ (a2, a2)).
-    PER_reflexivityH. apply PH. apply PH.
+    PER_reflexivityH.
   Qed.
 
   Lemma mayRet_bind_eq {A B:typ} (ma : m A) (k1 k2 : A -=-> m B)
@@ -712,12 +714,25 @@ Section EqmRInversion.
     eqmR_bind_refl_inv :
       forall {A : typ} {B : typ}
         (RB : relationH B B) (SH: SymmetricH RB) (TH: TransitiveH RB)
-        (ma : m A) 
+        (ma : m A)
         (k : A -=-> m B),
         eqmR RB @ (bind k @ ma, bind k @ ma) ->
           eqmR (image m ma) @ (ma, ma) /\
-          (forall a, mayRet m ma @ a -> eqmR RB @ (k @ a, k @ a))
+          (forall a, mayRet m ma @ a -> eqmR RB @ (k @ a, k @ a));
 
+    (* IY : Attempting to state bind inversion in terms of mayRet. *)
+    (* SAZ: I don't think we need this -- it is actually weaker than the combination
+       of image_eqmR and mayRet_bind.  (See the proof in MonadProp.)
+       I propose that we cut it.
+    *)
+    eqmR_bind_refl_inv_mayRet :
+      forall {A : typ} {B : typ}
+        (RB : relationH B B) (SH: SymmetricH RB) (TH: TransitiveH RB)
+        (ma : m A) (k : A -=-> m B) (b : B),
+        mayRet m (bind k @ ma) @ b ->
+        eqmR (image m ma) @ (ma, ma) /\
+        (exists a : A, mayRet m ma @ a ->
+                  mayRet m (k @ a) @ b)
     }.
 
   (* SAZ :
