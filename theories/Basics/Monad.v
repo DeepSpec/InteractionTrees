@@ -741,12 +741,21 @@ Section EqmRInversion.
     eqmR_bind_refl_inv :
       forall {A : typ} {B : typ}
         (RB : relationH B B) (SH: SymmetricH RB) (TH: TransitiveH RB)
-        (ma : m A) 
+        (ma : m A)
         (k : A -=-> m B),
         eqmR RB @ (bind k @ ma, bind k @ ma) ->
           eqmR (image m ma) @ (ma, ma) /\
-          (forall a, mayRet m ma @ a -> eqmR RB @ (k @ a, k @ a))
+          (forall a, mayRet m ma @ a -> eqmR RB @ (k @ a, k @ a));
 
+    (* IY : Attempting to state bind inversion in terms of mayRet. *)
+    eqmR_bind_refl_inv_mayRet :
+      forall {A : typ} {B : typ}
+        (RB : relationH B B) (SH: SymmetricH RB) (TH: TransitiveH RB)
+        (ma : m A) (k : A -=-> m B) (b : B),
+        mayRet m (bind k @ ma) @ b ->
+        eqmR (image m ma) @ (ma, ma) /\
+        (exists a : A, mayRet m ma @ a ->
+                  mayRet m (k @ a) @ b)
     }.
 
   (* SAZ :
