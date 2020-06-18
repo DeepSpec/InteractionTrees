@@ -490,34 +490,27 @@ Lemma eqmR_bind_inv_PropM :
     (ma : PropM A) 
     (k : A -=-> PropM B),
     eqmR RB @ (bind k @ ma, bind k @ ma) ->
-      eqmR (image PropM ma) @ (ma, ma) /\
       (forall a, mayRet PropM ma @ a -> eqmR RB @ (k @ a, k @ a)).
 Proof.
   intros.
   destruct H as (HX & HY).
-  split; intros; split; intros.
-  - exists a. split. cbn. intros R HRB (HL & HR).
-    specialize (HL a H). destruct HL as (b & Rb & Mb).
-    PER_reflexivityH. cbn. apply H.
-  - exists b. split. cbn. intros R HRB (HL & HR).
-    specialize (HR b H). destruct HR as (a & Ra & Ma).
-    PER_reflexivityH. cbn. apply H.
+  split; intros.
   - cbn.
     assert ((bind k @ ma) @ a0).
     { repeat red. exists a. split.
-      apply mayRet_PropM in H. apply H. apply H0.  }
+      apply mayRet_PropM in H0. apply H0. apply H.  }
     apply HX in H1. destruct H1 as (b & HB & HK2).
     exists a0. split. 
     + PER_reflexivityH.
-    + cbn. apply H0.
+    + cbn. apply H.
   - cbn.
     assert ((bind k @ ma) @ b).
     { repeat red. exists a. split.
-      apply mayRet_PropM in H. apply H. apply H0.  }
+      apply mayRet_PropM in H0. apply H0. apply H.  }
     apply HY in H1. destruct H1 as (a0 & HA & HK2).
     exists b. split. 
     + PER_reflexivityH.
-    + apply H0.
+    + apply H.
 Qed.    
 
 Program Definition PropM_INV {A:typ} (ma : PropM A) : relationH A A :=
@@ -634,7 +627,6 @@ Global Instance EqmRMonadInverses_PropM : EqmRMonadInverses PropM :=
   {
   eqmR_ret_inv := @eqmR_ret_inv_PropM;
   eqmR_bind_refl_inv := @eqmR_bind_inv_PropM;
-  eqmR_bind_refl_inv_mayRet := @eqmR_bind_refl_inv_mayRet_PropM;
   }.
 
 (* 

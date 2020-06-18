@@ -127,16 +127,9 @@ Qed.
 
 Instance EqmRMonadInverses_ID : EqmRMonadInverses ID.
 split; intros; unfold ID in *; try tauto.
-- split.
-  + cbn. intros. apply EQ.
-  + intros.
-    apply image_Id in H0. destruct H0 as (HA1 & HA2).
-    rewrite HA1. 
+apply image_Id in H0.  destruct H0 as (HA1 & _).
+rewrite HA1. 
     apply H.
-- split. cbn. intros. apply EQ.
-  apply image_Id in H. destruct H.
-  exists ma. intros. apply image_Id in H1.
-  destruct H1. cbn. intros. rewrite H. cbn. apply EQ.
 Qed.
 
 Instance EqmRBindInversion_ID : EqmRBindInversion ID.

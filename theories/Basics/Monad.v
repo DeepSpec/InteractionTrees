@@ -710,6 +710,9 @@ Section EqmRInversion.
           in the case on nondeterminism, ma = {3, 4} and k1 = [3 -> {5}, 4 -> {6}] and
           k2 = [3 -> {6}, 4 -> {5}] then the resulting binds are quivalent but k1 != k2
 
+
+       SAZ: The part about eqmR (image m ma) @ (ma, ma) is redundant with 
+       image_eqmR, so we should drop it.
      *)
     eqmR_bind_refl_inv :
       forall {A : typ} {B : typ}
@@ -717,14 +720,12 @@ Section EqmRInversion.
         (ma : m A)
         (k : A -=-> m B),
         eqmR RB @ (bind k @ ma, bind k @ ma) ->
-          eqmR (image m ma) @ (ma, ma) /\
           (forall a, mayRet m ma @ a -> eqmR RB @ (k @ a, k @ a));
 
     (* IY : Attempting to state bind inversion in terms of mayRet. *)
     (* SAZ: I don't think we need this -- it is actually weaker than the combination
        of image_eqmR and mayRet_bind.  (See the proof in MonadProp.)
        I propose that we cut it.
-    *)
     eqmR_bind_refl_inv_mayRet :
       forall {A : typ} {B : typ}
         (RB : relationH B B) (SH: SymmetricH RB) (TH: TransitiveH RB)
@@ -733,7 +734,9 @@ Section EqmRInversion.
         eqmR (image m ma) @ (ma, ma) /\
         (exists a : A, mayRet m ma @ a ->
                   mayRet m (k @ a) @ b)
+    *)
     }.
+
 
   (* SAZ :
      The following inversion principle is way too strong.  I'm not sure that it holds
@@ -771,15 +774,13 @@ Section InversionFacts.
     intros HM HK.
     repeat red.
     intros.
-    apply eqmR_bind_refl_inv in EQ; auto.
-    destruct EQ as (RA & Hma).
+    specialize (eqmR_bind_refl_inv m R _ _ ma k EQ) as Hma.
     cbn in HK.
     specialize (HK R PH). apply HK.
     apply Hma. repeat red. intros.
-    specialize (HM R0 PH0 EQ).
-    change (R0 @ (a2, a2)).
-    PER_reflexivityH;  apply PH0.
-    apply PH. apply PH.
+    specialize (HM R0 PH0 EQ0). 
+    change (R0 @ (a2, a2)). 
+    PER_reflexivityH.
   Qed.
   
   Lemma mayRet_bind_inv {A B: typ} (ma : m A) (k : A -=-> m B) (a:A) (b:B) :
@@ -790,14 +791,11 @@ Section InversionFacts.
     intros HM HK.
     repeat red.
     intros.
-    apply eqmR_bind_refl_inv in EQ; auto.
-    destruct EQ as (RA & Hma).
+    specialize (eqmR_bind_refl_inv m R _ _ ma k EQ) as Hma.
     apply Hma in HM.
     cbn in HK.
-    specialize (HK R PH HM). assumption. apply PH. apply PH.
+    specialize (HK R PH HM). assumption. 
   Qed.
-  
-  
   
   (* SAZ: This one is probably not needed 
      It is unfortunate that k can't have type A -=-> m B -- we need
