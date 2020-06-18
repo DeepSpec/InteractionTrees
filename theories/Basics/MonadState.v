@@ -529,8 +529,7 @@ Section State.
     specialize (H a1 equal_typ). edestruct H as (? & ? & ?); clear H.
     specialize (H1 a2 equal_typ). edestruct H1 as (? & ? & ?); clear H1.
     rewrite H3. auto.
-  - admit.
-  - apply eqmR_bind_inv_state.
+  - intros.
   Admitted.
 
 End State.

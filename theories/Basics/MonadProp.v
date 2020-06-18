@@ -331,8 +331,8 @@ Proof.
 Qed.
 
 Lemma eqmR_mayRet_l_PropM : forall {A1 A2 : typ}
-                      (ma1 : PropM A1) (ma2 : PropM A2)
                       (RA : relationH A1 A2)
+                      (ma1 : PropM A1) (ma2 : PropM A2)
                       (EQ : eqmR RA @ (ma1, ma2)),
     forall a1, mayRet PropM ma1 @ a1 -> exists a2, RA @ (a1, a2) /\ mayRet PropM ma2 @ a2.
 Proof.
@@ -345,8 +345,8 @@ Qed.
   
 
 Lemma eqmR_mayRet_r_PropM : forall {A1 A2 : typ}
-                      (ma1 : PropM A1) (ma2 : PropM A2)
                       (RA : relationH A1 A2)
+                      (ma1 : PropM A1) (ma2 : PropM A2)
                       (EQ : eqmR RA @ (ma1, ma2)),
         forall a2, mayRet PropM ma2 @ a2 -> exists a1, RA @ (a1, a2) /\ mayRet PropM ma1 @ a1.
   intros.
@@ -490,34 +490,27 @@ Lemma eqmR_bind_inv_PropM :
     (ma : PropM A) 
     (k : A -=-> PropM B),
     eqmR RB @ (bind k @ ma, bind k @ ma) ->
-      eqmR (image PropM ma) @ (ma, ma) /\
       (forall a, mayRet PropM ma @ a -> eqmR RB @ (k @ a, k @ a)).
 Proof.
   intros.
   destruct H as (HX & HY).
-  split; intros; split; intros.
-  - exists a. split. cbn. intros R HRB (HL & HR).
-    specialize (HL a H). destruct HL as (b & Rb & Mb).
-    PER_reflexivityH. cbn. apply H.
-  - exists b. split. cbn. intros R HRB (HL & HR).
-    specialize (HR b H). destruct HR as (a & Ra & Ma).
-    PER_reflexivityH. cbn. apply H.
+  split; intros.
   - cbn.
     assert ((bind k @ ma) @ a0).
     { repeat red. exists a. split.
-      apply mayRet_PropM in H. apply H. apply H0.  }
+      apply mayRet_PropM in H0. apply H0. apply H.  }
     apply HX in H1. destruct H1 as (b & HB & HK2).
     exists a0. split. 
     + PER_reflexivityH.
-    + cbn. apply H0.
+    + cbn. apply H.
   - cbn.
     assert ((bind k @ ma) @ b).
     { repeat red. exists a. split.
-      apply mayRet_PropM in H. apply H. apply H0.  }
+      apply mayRet_PropM in H0. apply H0. apply H.  }
     apply HY in H1. destruct H1 as (a0 & HA & HK2).
     exists b. split. 
     + PER_reflexivityH.
-    + apply H0.
+    + apply H.
 Qed.    
 
 Program Definition PropM_INV {A:typ} (ma : PropM A) : relationH A A :=
@@ -574,8 +567,6 @@ Proof.
   unfold ret_ in H0. exists a1. rewrite <- H0. split; auto. reflexivity.
 Qed.
 
-(* TODO: FIX *)
-(*
 Program Instance eqmR_Monad_PropM : EqmRMonad PropM :=
   {
   image_eqmR := @image_eqmR_PropM;
@@ -613,15 +604,30 @@ Next Obligation.
     exists b. split. exists a. tauto. destruct g. cbn in *.
     assert (b == b) by reflexivity. specialize (p _ _ H _ _ EQC).  rewrite p. assumption.
 Qed.    
-*)
-    
+
+Lemma eqmR_bind_refl_inv_mayRet_PropM :
+      forall {A : typ} {B : typ}
+        (RB : relationH B B) (SH: SymmetricH RB) (TH: TransitiveH RB)
+        (ma : PropM A) (k : A -=-> PropM B) (b : B),
+        mayRet PropM (bind k @ ma) @ b ->
+        eqmR (image PropM ma) @ (ma, ma) /\
+        (exists a : A, mayRet PropM ma @ a ->
+                  mayRet PropM (k @ a) @ b).
+Proof.
+  intros.
+  split.
+  - apply image_eqmR_PropM.
+  - apply mayRet_bind in H.
+    destruct H as (a & _ & HX).
+    exists a. intros.  assumption. apply eqmR_Monad_PropM.
+Qed.    
+  
 
 Global Instance EqmRMonadInverses_PropM : EqmRMonadInverses PropM :=
   {
   eqmR_ret_inv := @eqmR_ret_inv_PropM;
   eqmR_bind_refl_inv := @eqmR_bind_inv_PropM;
   }.
-
 
 (* 
 
@@ -934,14 +940,13 @@ Section PropT.
     rewrite H0. rewrite H. assumption.
   Qed.  
 
-    
   
   Definition bindT_ (A B : typ) (K : A -=-> PropT B) (PA : PropT A) :=
     (fun mb:m B =>
-       exists (k : (A -=-> m B)), exists ma : m A,
-         PA @ ma
-         /\ mb == (bind k @ ma)
-         /\ forall (p:A × A), image m ma @ p -> (K @ (fst_typ p)) @ (k @ snd_typ p)).
+        exists ma : m A, PA @ ma /\
+                    exists (k : (A -=-> m B)),
+                      mb == (bind k @ ma)
+                      /\ forall (a:A), mayRet m ma @ a -> (K @ a) @ (k @ a)).
   
 Program Definition bind_PropT (A B : typ) (K : A -=-> PropT B) : (PropT A) -=-> (PropT B) :=
   -=->! (bindT_ A B K) _.
@@ -949,7 +954,7 @@ Next Obligation.
   unfold bindT_.
   do 2 red.
   intros mb1 mb2 HB. 
-  split; intros (k & ma & HMA & HK & HI); exists k; exists ma; repeat split; auto.
+  split; intros (ma & HMA & k & HMB & HI); exists ma; split; auto; exists k; repeat split; auto.
   - rewrite <- HB. assumption. 
   - rewrite  HB. assumption. 
 Qed.
@@ -957,11 +962,11 @@ Next Obligation.
   do 2 red.
   unfold bind_.
   intros PMA1 PMA2 HP mb1 mb2 HMB; cbn.
-  split; intros (k & ma & HMA & HK & HI); exists k; exists ma; repeat split; try auto.
+  split; intros ( ma & HMA & k & HK & HI); exists ma; split; try auto. 
   - rewrite <- HP. assumption.
-  - rewrite <- HMB. assumption.
+  - exists k; repeat split; try auto. rewrite <- HMB. assumption.
   - rewrite HP. assumption.
-  - rewrite HMB. assumption.
+  - exists k; repeat split; try auto. rewrite HMB. assumption.
 Qed.
 
 
@@ -971,13 +976,24 @@ split.
 - exact bind_PropT.
 Defined.  
 
-Require Import Coq.Logic.ChoiceFacts.
 
-(* SAZ: is this the rigth way to do this ? *)
-(* NOTE: we would choose to sue this statement from the library: 
+(* SAZ: is this the right way to do this ? *)
+(* NOTE: we would choose to use this statement from the library: 
 Axiom guarded_choice : GuardedFunctionalChoice.
 *)
-(* But we additionally need some properness information: *)
+(* But we additionally need some properness information: 
+   SAZ: we might additionally impose 
+   P : A -=-> prop_typ and 
+   R : relationH A B
+
+Definition GuardedFunctionalChoice_typ_mayRet :=
+  forall (A B:typ) (ma : m A), forall R : A -> B -> Prop, 
+    inhabited B ->
+    (forall x : A, mayRet ma @ x -> exists y : B, R x y) ->
+    (exists f : A -=-> B, forall (x:A), R x (f @ x)).
+Axiom guarded_choice : GuardedFunctionalChoice_typ.
+
+*)
 Definition GuardedFunctionalChoice_typ :=
   forall (A B:typ), forall P : A -> Prop, forall R : A -> B -> Prop, 
     inhabited B ->
@@ -985,7 +1001,8 @@ Definition GuardedFunctionalChoice_typ :=
     (exists f : A -=-> B, forall x, P x -> R x (f @ x)).
 Axiom guarded_choice : GuardedFunctionalChoice_typ.
 
-
+Axiom choose_mayRet : forall {A:typ} (ma : m A), A.
+Axiom choose_mayRet_decides : forall {A:typ} (ma : m A), mayRet m ma @ (choose_mayRet ma).
 
 
 Instance MonadLaws_PropT : MonadLaws MonadPropT.
@@ -996,10 +1013,10 @@ constructor.
     cbn.
     intros mb1 mb2 HMB; cbn in *.
     split.
-    + intros (k & ma & HMA & HK & HI).
+    + intros ( ma & HMA & k & HK & HI).
       red in HMA. unfold retT_ in HMA.
       cbn in *.
-      specialize (HI (a1, a1)).
+      specialize (HI a1).
       assert (image m ma @ (a1, a1)).
       { rewrite HMA.
         apply ret_image; auto.
@@ -1010,18 +1027,18 @@ constructor.
         apply eqmR_bind_ret_l. }
       rewrite H0.
       rewrite <- HA. apply H.
+      
     + intros.
-      red.  eexists (-=->! (fun (y:A) => mb2) _). exists (ret @ a1).
-      Unshelve.
-      2 : { do 2 red. intros; reflexivity. }
-
+      red. exists (ret @ a1).
       split.
       * cbn. red. reflexivity.
-      * cbn.
+      * eexists (-=->! (fun (y:A) => mb2) _). 
+        Unshelve.
+        2 : { do 2 red. intros; reflexivity. }
+        cbn.
         split.
         ** rewrite eqmR_bind_ret_l. cbn. assumption.
         ** intros.
-        destruct p as (a & c).
         assert (a == a2).
         { assert (PER (singletonR a1)) as PP. { constructor. apply (singletonR_SymmetricH a1).
                                                 apply (singletonR_TransitiveH a1). }
@@ -1046,35 +1063,30 @@ constructor.
     intros ma1 ma2 HMA.
     do 2 red.
     split.
-    + intros (k & ma & HMB & HK & HI).
+    + intros (ma & HMB & k & HK & HI).
       cbn.
       rewrite <- HPA.
       assert (ma1 == ma).
       { etransitivity. apply HK.
         repeat red in HI.
 
-      specialize (image_ret_bind m ma k). intros. cbn in HI. 
+      specialize (mayRet_ret_bind m ma k). intros. cbn in HI. 
       rewrite bind_ret_r in H. cbn in H.
       assert (ma1 == ma).
       { etransitivity. apply HK. apply H. intros.
-        specialize (HI (a2, a1)). cbn in HI.
+        specialize (HI a). cbn in HI.
         apply HI. intros. apply SymmetricH_Symmetric; auto. apply PH. apply H0; auto. }
       rewrite <- HK. assumption. }
       rewrite <- HMA. rewrite H. assumption.
     + intros. red in H. cbn in H.
-      repeat red. exists ret. exists ma2.
-      split; [|split].
-      rewrite HPA. assumption.
-      rewrite bind_ret_r. cbn. assumption.
-      intros. red. cbn. red. apply eqmR_equal. apply eqmR_ret. assumption.
-      cbn in H0. specialize (H0 (A)).
-      assert (PER A) by apply relationH_PER. apply H0 in H1.
-      destruct p as (a1 & a2). cbn.
-      symmetry.
-      apply H0; auto.
-      apply relationH_PER.
-      apply eqmR_equal. change (ma2 == ma2). reflexivity.
-      apply eqmR_equal. change (ma2 == ma2). reflexivity.
+      repeat red. exists ma2. 
+      split.
+      ** rewrite HPA. assumption.
+      ** exists ret. 
+         split.
+      -- rewrite bind_ret_r. cbn. assumption.
+      --  intros. red. cbn. red. apply eqmR_equal. apply eqmR_ret. assumption.
+          change (a == a). reflexivity.
       
   - intros A B C KA KB.
     do 2 red.
@@ -1083,213 +1095,40 @@ constructor.
     intros ma1 ma2 HMA.
     cbn.
     split. 
-    + intros (kb & mb & HA & HKB & HIB); cbn in *. 
-      destruct HA as (ka & ma & HA & HKA & HIA). 
-      eexists (-=->! (fun a => bind kb @ (ka @ a)) _). exists ma.
-      split; [| split].
+    + intros (mb & HA & kb & HKB & HIB).
+      destruct HA as (ma & HA & ka & HKA & HIA). red.
+      exists ma. split.
       * rewrite <- HPA. assumption.
-      * rewrite <- HMA. rewrite HKB. rewrite HKA.
-        eapply eqmR_bind_bind. assumption.
-      * intros. destruct p as (a1 & a2).
-        red. cbn.   exists kb. exists (ka @ a2).
-        split; [|split].
-        ** cbn. cbn in HIA. apply (HIA (a1, a2)). assumption.
-        ** cbn. reflexivity.
-        ** intros. apply HIB.
-           destruct p as (b1 & b2).
-           change (image m mb @ (b1, b2)).
-           rewrite HKA. eapply image_bind; eauto.
-          
-    + intros (ka & ma & HA & HKA & HI). 
-      red in HI. red in HI.
-      
-      destruct HI as (kab & HKAB).
-      red.
-      epose ((-=->! (fun a => kab @ (a, a)) _) : A -=-> m B) as k.
-      
-      exists (bind k @ ma).
-      
-      ** exists ma. exists kab. split; [|split].
-         --- rewrite HPA. assumption.
-         --- reflexivity.
-         --- intros. apply HKAB in H. destruct H as (_ & HX & _).
-             assumption.
-               
-      ** rewrite HMA. rewrite HKA.
-             
-      
-      assert ((exists a, mayRet m ma @ a) \/ ~(exists a, mayRet m ma @ a)).
-      { admit. (* TODO CLASSICAL LOGIC *) }
-      destruct H as [(a & HR) | N].
-       * specialize (K a HR).
-         destruct K as (kb & HKB1 & HEQ & HM2).
-         exists kb.
-         split; [|split].
+      * eexists (-=->! (fun a => bind kb @ (ka @ a)) _).
+        split.
+        -- rewrite <- HMA. rewrite HKB. rewrite HKA.
+           eapply eqmR_bind_bind. assumption.
+        -- intros. 
+           red. cbn. exists (ka @ a).
+           split.
+           ** apply (HIA a). assumption.
+           ** exists kb. split.
+           ++ reflexivity.
+           ++ intros. apply HIB.
+              rewrite HKA. eapply mayRet_bind_inv; eauto.
 
-         2 : { rewrite HMA. rewrite HKA.
-               specialize (eqmR_bind_bind). intros.
-               
-         
-         ** exists ma. epose ((-=->! (fun _ => (k a)) _) : A -=-> m B) as kab.
-            exists kab.
-            split; [|split].
-            *** rewrite HPA. assumption.
-            *** 
-      
-
-
+    + Opaque mayRet. repeat red. cbn. unfold bindT_. unfold bind_PropT. cbn. unfold bindT_. cbn.
+      intros (ma & HA & ka & HKA & HI). 
+      apply guarded_choice in HI.
+      destruct HI as (kb & HKB).
+      exists (bind kb @ ma).
+      split.
+      * cbn. repeat red. exists ma.
+        split. rewrite HPA. assumption.
+        exists kb. split. reflexivity. intros.
+        specialize (HKB a H).
+        destruct HKB as (HX & _). apply HX.
+      * specialize (HKB (choose_mayRet ma) (choose_mayRet_decides ma)).
+        destruct HKB as (HC & kbc & HK & HI).
+        exists kbc. split.
+        -- rewrite HMA. rewrite HKA.
+Abort.        
       
       
 
 End PropT.
-
-
-
-
-
-
-Program Definition eqmR_PropM {A B : typ} (R : relationH A B) : relationH (PropM A) (PropM B) := 
-  fun (P : PropM A × PropM B) =>
-    let PA := fst P in
-    let PB := snd P in
-    (forall (a:A) (b:B), PA @ a -> R @ (a, b) -> PB @ b) 
-    /\
-    (forall (a:A) (b:B), PA @ a -> R @ (a, b) -> PB @ b)     
-    /\ 
-    (forall (a:A),
-        ~ (PA @ a) -> forall (b:B), R @ (a, b) -> ~(PB @ b))
-    /\
-    (forall (b:B),
-        ~ (PB @ b) -> forall (a:A), R @ (a, b) -> ~(PA @ a)).
-(*      
-      ((fst P @ a) -> (forall (b2:B), R @ (a, b2) -> (snd P @ b2))) /\
-      ((snd P @ b) -> (forall (a2:A), R @ (a2, b) -> (fst P @ a2))).
-*)
-Next Obligation.
-(*
-  do 2 red.
-  intros (x1 & x2) (y1 & y2) (HA & HB); split;
-    intros H; intros p; destruct p as (a & b); cbn in *; intros (HX & HY).
-  - specialize (H (a, b)).
-    cbn in *.
-    apply H.
-    split.
-    + assert (a == a) by reflexivity. apply HA in H0. tauto.
-    + assert (b == b) by reflexivity. apply HB in H0. tauto.
- -  specialize (H (a, b)).
-    cbn in *.
-    apply H.
-    split.
-    + assert (a == a) by reflexivity. apply HA in H0. tauto.
-    + assert (b == b) by reflexivity. apply HB in H0. tauto.
-Qed.
- *)
-Admitted.
-
-Program Instance EqmR_PropM : EqmR PropM :=
-  {
-  eqmR := @eqmR_PropM;
-  }.
-Next Obligation.
-  split.
-  - red. intros PA PB (HEQ & HPA & HPB).
-    cbn in *.
-    intros a1 a2 HA.
-    split; intros HX.
-    + assert ((PB @ a2) \/ ~(PB @ a2)) as [HY | HY].
-      { admit. (* CLASSICAL *) }
-      * assumption.
-      * specialize (HPB a2 HY a1 HA). contradiction.
-    + assert ((PA @ a1) \/ ~(PA @ a1)) as [HY | HY].
-      { admit. (* CLASSICAL *) }
-      * assumption.
-      * specialize (HPA a1 HY a2 HA). contradiction.
-  - red. intros PA PB H.
-    cbn in *.
-    split.
-    + intros a H0 b H1. apply H in H1.  intro. apply H0. apply H1. assumption. 
-    + intros a H0 b H1. apply H in H1.  intro. apply H0. apply H1. assumption.     
-Admitted.
-(*
-  split.
-  - red. intros. cbn in *.
-    intros.
-    specialize (H (a1, a2)).
-    apply H.
-    tauto.
-  - red. intros. cbn in *.
-    intros (a1 & a2).
-    cbn. intros.  apply H.
-    assumption.
-Qed.
- *)
-
-Instance EqmR_OK_PropM : EqmR_OK PropM.
-split; try tauto.
-Admitted.
-
-
-Instance EqmRMonad_PropM : EqmRMonad PropM.
-split; intros.
-- do 2 red. cbn.
-  split; intros. intro. apply H0. red. red in H2. 
-
-    
-  intros (a11 & a21). cbn. intros (HA1 & HA2).
-  red in HA1. red in HA2.
-  eapply rewrite_app_l. apply HA1.
-  eapply rewrite_app_r. apply HA2.
-  assumption.
-
-- cbn. intros (b1 & b2). cbn.
-  intros ((a1 & HM1 & K1) & (a2 & HM2 & K2)). cbn in *.
-  specialize (H (a1, a2)). cbn in *.
-  assert (RA @ (a1, a2)).
-  { apply H. tauto. }
-  specialize (H0 _ _ H1).
-  specialize (H0 (b1, b2)).
-  cbn in *. apply H0. tauto.
-
-- repeat red.
-  intros a1 a2 H.
-  split.
-  + intros (b & HM & K). cbn in *. red in HM.
-    destruct f. cbn in *.
-    symmetry in HM.
-    specialize (p _ _ HM).
-    cbn in p.
-    specialize (p _ _ H). 
-    apply p. assumption.
-  + destruct f. intros HX.
-    repeat (red; cbn).
-    exists a. split.  red. reflexivity. eapply p in H. apply H. apply HX. reflexivity.
-
-- red. cbn.
-  intros a1 a2 HEQ.
-  split.
-  + intros (a & HM & K).
-    destruct ma. cbn in *. rewrite <- HEQ. red in K. rewrite <- K. assumption.
-  + intros.
-    red. cbn.
-    exists a1. split.  destruct ma. cbn in *. rewrite HEQ. assumption. red. reflexivity.
-
-- cbn.
-  intros c1 c2 HC.
-  split; red.
-  + intros (b & HB & KB). cbn in *.
-    red in HB.
-    destruct HB as (a & HA & KA).
-    exists a. split. assumption. exists b. split.  assumption. rewrite <- HC. assumption.
-  + cbn.
-    intros (a & HA & KA).
-    cbn in *.
-    destruct KA as (b & HB & KB).
-    exists b. split.  exists a.  tauto. cbn.
-    destruct g. cbn.
-    assert (b == b) by reflexivity.
-    cbn in KB.
-    specialize (p _ _ H).
-    cbn in p.
-    specialize (p c1 c2 HC).
-    apply p. assumption.
-Qed.    
