@@ -135,8 +135,8 @@ split; intros; unfold ID in *; try tauto.
     apply H.
 - split. cbn. intros. apply EQ.
   apply image_Id in H. destruct H.
-  exists ma. intros. apply image_Id in H1.
-  destruct H1. cbn. intros. rewrite H. cbn. apply EQ.
+  exists ma. split. repeat intro. apply EQ.
+  repeat intro. rewrite H. apply EQ.
 Qed.
 
 Instance EqmRBindInversion_ID : EqmRBindInversion ID.

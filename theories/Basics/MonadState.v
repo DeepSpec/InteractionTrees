@@ -488,7 +488,7 @@ Section State.
     forall (ma : state S A) (k : A -=-> state S B) (b : B),
     mayRet (state S) (bind k @ ma) @ b ->
     eqmR (image (state S) ma) @ (ma, ma) /\
-    (exists a : A, mayRet (state S) ma @ a ->
+    (exists a : A, mayRet (state S) ma @ a /\
               mayRet (state S) (k @ a) @ b).
   Proof.
     repeat intro.
@@ -513,10 +513,10 @@ Section State.
       rewrite <- mayRet_state in H1. edestruct H1 as (? & ? & ?); clear H1.
       cbn in H2. destruct H2.
       destruct (ma @ x) eqn: H'. cbn in *.
-      exists t0. intros.
-      rewrite <- mayRet_state in H3. edestruct H3 as (? & ? & ?); clear H3.
-      rewrite <- mayRet_state.
-      exists t. exists x0. destruct ((k @ t0) @ t). cbn in *. split; auto.
+      exists t0. split. rewrite <- mayRet_state.
+      exists x. exists t. rewrite H'. reflexivity.
+      rewrite <- mayRet_state. exists t. exists x0.
+      destruct ((k @ t0) @ t). cbn in *. intuition.
   Qed.
 
   Context `{inhabited S}.

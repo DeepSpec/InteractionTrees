@@ -754,7 +754,7 @@ Section EqmRInversion.
         (ma : m A) (k : A -=-> m B) (b : B),
         mayRet m (bind k @ ma) @ b ->
         eqmR (image m ma) @ (ma, ma) /\
-        (exists a : A, mayRet m ma @ a ->
+        (exists a : A, mayRet m ma @ a /\
                   mayRet m (k @ a) @ b)
     }.
 
