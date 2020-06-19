@@ -526,6 +526,41 @@ Section State.
       destruct ((k @ t0) @ t). cbn in *. intuition.
   Qed.
 
+  Program Definition imageA {A : typ} : relationH A A :=
+    fun p =>
+      forall (R : relationH A A) (PH : PER R), R @ p.
+  Next Obligation.
+    repeat intro. destruct x, y. cbn in H.
+    destruct H. split.
+    intros. rewrite <-H, <-H0. eauto.
+    intros. rewrite H, H0. eauto.
+  Defined.
+
+  Program Definition mayRetA {A : typ} : A -=-> prop_typ :=
+    (fun (a : A) => imageA @ (a, a)).
+  Next Obligation.
+    repeat intro. split; intros.
+    rewrite <- H. eauto.
+    rewrite H. eauto.
+  Defined.
+
+  Lemma mayRet_bind_inv {A B: typ} (ma : state S A)
+        (k : A -=-> state S B) (a : A) (b : B) :
+    mayRet (state S) ma @ a ->
+    mayRet (state S) (k @ a) @ b /\ (forall s, mayRetA @ (snd ((k @ a) @ s))) ->
+    mayRet (state S) (bind k @ ma) @ b.
+  Proof.
+    intros.
+    Transparent mayRet. repeat cbn.
+    repeat cbn in H, H0. intros. destruct H0.
+    apply H0. auto.
+    repeat intro. split. split. intros.
+    3 : cbn; reflexivity.
+    cbn in *. exists a0. split; auto.
+    rewrite <- H2. apply H1. auto.
+    intros. cbn in *. exists b0. split; auto.
+    rewrite <- H2. apply H1. auto.
+  Qed.
 
   (*
       WTS:
