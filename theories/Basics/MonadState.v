@@ -481,6 +481,13 @@ Section State.
   - apply eqmR_bind_bind_state.
   Qed.
 
+  Lemma are_continuations_functions:
+    forall {A B : typ} (a : A) (k : A -=-> state S B) (mb mb' : state S B),
+      k @ a == mb /\ k @ a == mb' -> mb == mb'.
+  Proof.
+    intros. destruct H. rewrite <- H, <- H0. reflexivity.
+  Qed.
+
   Lemma eqmR_bind_inv_state':
     forall (A B : typ) (RB : relationH B B),
     SymmetricH RB ->
@@ -519,6 +526,32 @@ Section State.
       destruct ((k @ t0) @ t). cbn in *. intuition.
   Qed.
 
+
+  (*
+      WTS:
+
+      eqmR RB @ (bind k @ ma, bind k @ ma) ->
+      forall a : A, mayRet (state S) ma @ a -> eqmR RB @ (k @ a, k @ a).
+
+      -------------------------------------------------------------
+
+      Example:
+
+            bind :: m a -> (a -> m b) -> m b
+            bind ma k = \s -> let (s', x) = ma @ s in k @ x @ s'
+
+      ma :: state Int Int
+      [ ma = {| x <- get; put (x + 1); return x |} ]
+
+      k :: Int -> state Int String
+      [ k = \a -> {| put a; return (to_string (a)) |} ]
+
+      If we assume that:
+               eqmR String (bind k @ ma, bind k @ ma)
+               mayRet (state Int) ma @ {x | x > 0}
+
+      k @ {x | x > 0} should always agree with itself, because k is a function.
+   *)
   Lemma eqmR_bind_inv_state:
     forall (A B : typ) (RB : relationH B B),
     SymmetricH RB ->
@@ -531,10 +564,12 @@ Section State.
     intros*. intros Sym Tra ma k EQ a MR.
     cbn in EQ. unfold eqmR_state in EQ. cbn in EQ.
     apply mayRet_state in MR. destruct MR as (? & ? & ?).
-    split; intros; specialize (EQ x); destruct EQ as ((HX & HY) & HS);
+    split; intros; specialize (EQ s); destruct EQ as ((HX & HY) & HS);
       [ split | ]; cbn.
     - intros b Hs.
       assert (HK: snd ((k @ snd (ma @ x)) @ fst (ma @ x)) == b). {
+        (* There is no guarantee that this state "s" will be returned by
+           [ma @ x]. *)
         rewrite H. cbn. setoid_rewrite <- Hs.
         setoid_rewrite H in HS. cbn in HS.
 
@@ -556,7 +591,7 @@ Section State.
 
           << Counterexamples >>
 
-          For example, if [ma = {| put 5; return 'X' |} ]
+          For example, if [ ma = {| put 5; return 'X' |} ]
 
           mayRet (state S) ma @ 'X' -> forall s, ma @ s == (5, 'X')
 
@@ -566,7 +601,7 @@ Section State.
 
           An incrementing state monad.
 
-          [ma = {| x <- get; put (x + 1); return x |}]
+          [ ma = {| x <- get; put (x + 1); return x |} ]
 
           mayRet (state S) ma @ 3 ->
                  ma @ 3 == (3, 4)
@@ -596,6 +631,7 @@ Section State.
       + auto.
     - reflexivity.
   Admitted.
+
 
   Context `{inhabited S}.
   Instance EqmRMonadInverses_state : EqmRMonadInverses (state S).
