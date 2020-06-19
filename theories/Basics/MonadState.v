@@ -257,7 +257,7 @@ Section State.
     split. intro.
     - cbn. intros. cbn in *. unfold eqmR_state in EQ.
       cbn in *.
-      edestruct H as (? & ? & ?). clear H.
+      edestruct H as (? & ? & ?); clear H.
       specialize (EQ x). destruct EQ. destruct H, H0.
       specialize (H _ H3).
       edestruct H as (? & ? & ?).
@@ -552,6 +552,7 @@ Section State.
 
       k @ {x | x > 0} should always agree with itself, because k is a function.
    *)
+
   Lemma eqmR_bind_inv_state:
     forall (A B : typ) (RB : relationH B B),
     SymmetricH RB ->
@@ -564,14 +565,22 @@ Section State.
     intros*. intros Sym Tra ma k EQ a MR.
     cbn in EQ. unfold eqmR_state in EQ. cbn in EQ.
     apply mayRet_state in MR. destruct MR as (? & ? & ?).
-    split; intros; specialize (EQ s); destruct EQ as ((HX & HY) & HS);
+    split; intros; specialize (EQ x); destruct EQ as ((HX & HY) & HS);
       [ split | ]; cbn.
     - intros b Hs.
+      (* pose proof image_eqmR as IMG. *)
+      (* specialize (IMG (state S) _ _ _ _ (k @ a)). *)
+      (* cbn in IMG; unfold eqmR_state in IMG; cbn in IMG. *)
+      (* specialize (IMG s). *)
+      (* destruct IMG as ((HX' & HY') & HS'). *)
+      (* specialize (HX' _ Hs). *)
+      (* destruct HX' as (b' & PR & EQ). *)
+      (* exists b'. split. apply PR. constructor; eauto. *)
       assert (HK: snd ((k @ snd (ma @ x)) @ fst (ma @ x)) == b). {
         (* There is no guarantee that this state "s" will be returned by
-           [ma @ x]. *)
+           [(fst (ma @ x) == s]. *)
         rewrite H. cbn. setoid_rewrite <- Hs.
-        setoid_rewrite H in HS. cbn in HS.
+        cbn.
 
         (* IY : Since what we know about [mayRet_state] is that for *some* state
          it will return a certain resulting state (they are both existentially)
@@ -591,28 +600,54 @@ Section State.
 
           << Counterexamples >>
 
-          For example, if [ ma = {| put 5; return 'X' |} ]
+          For example,
 
-          mayRet (state S) ma @ 'X' -> forall s, ma @ s == (5, 'X')
+              [ ma = {| put 5; return 'X' |} ]
+
+              mayRet (state S) ma @ 'X' -> forall s, ma @ s == (5, 'X')
 
           So, (2) is false.
 
                  ---------------------------------------------
 
-          An incrementing state monad.
+              An incrementing state monad.
 
-          [ ma = {| x <- get; put (x + 1); return x |} ]
+              [ ma = {| x <- get; put (x + 1); return x |} ]
 
-          mayRet (state S) ma @ 3 ->
-                 ma @ 3 == (3, 4)
+              mayRet (state S) ma @ 3 -> ma @ 42 == (?, 3)
 
-          So, (1) is false.
+          Does not hold. So, (1) is false.
 
           -----------------------------------------------------------
 
           So, that means that we *must* existentially quantify over the
           beginning and ending states. What are some other properties that we
           can state about state that will help?
+
+
+          No! There is yet a third option!
+
+          (3) (forall (s' : S), exists (s : S), ma @ s == (s', a)) <->
+                 mayRet (state S) ma @ a
+
+          Yet this one fails, again.
+
+              An incrementing state monad.
+
+              [ ma = {| x <- get; put (x + 1); return x |} ]
+
+              mayRet (state S) ma @ 0 -> ma @ ? == (0 , 0)
+
+          This cannot be satisfied by any initial state.
+
+          -----------------------------------------------------------
+
+          The problem is that while mayRet can only talk about "a", for the
+          state monad we must almost talk about the image of the state, which
+          the value of "a" may depend on.
+
+          -----------------------------------------------------------
+
          *)
 
         admit.
