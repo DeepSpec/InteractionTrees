@@ -481,7 +481,7 @@ Section State.
   - apply eqmR_bind_bind_state.
   Qed.
 
-  Lemma eqmR_bind_inv_state:
+  Lemma eqmR_bind_inv_state':
     forall (A B : typ) (RB : relationH B B),
     SymmetricH RB ->
     TransitiveH RB ->
@@ -518,6 +518,84 @@ Section State.
       rewrite <- mayRet_state. exists t. exists x0.
       destruct ((k @ t0) @ t). cbn in *. intuition.
   Qed.
+
+  Lemma eqmR_bind_inv_state:
+    forall (A B : typ) (RB : relationH B B),
+    SymmetricH RB ->
+    TransitiveH RB ->
+    forall (ma : state S A) (k : A -=-> state S B),
+    eqmR RB @ (bind k @ ma, bind k @ ma) ->
+    forall a : A, mayRet (state S) ma @ a -> eqmR RB @ (k @ a, k @ a).
+  Proof.
+    (* IY: Following proof method from MonadProp [eqmR_bind_inv_state] *)
+    intros*. intros Sym Tra ma k EQ a MR.
+    cbn in EQ. unfold eqmR_state in EQ. cbn in EQ.
+    apply mayRet_state in MR. destruct MR as (? & ? & ?).
+    split; intros; specialize (EQ x); destruct EQ as ((HX & HY) & HS);
+      [ split | ]; cbn.
+    - intros b Hs.
+      assert (HK: snd ((k @ snd (ma @ x)) @ fst (ma @ x)) == b). {
+        rewrite H. cbn. setoid_rewrite <- Hs.
+        setoid_rewrite H in HS. cbn in HS.
+
+        (* IY : Since what we know about [mayRet_state] is that for *some* state
+         it will return a certain resulting state (they are both existentially)
+         quantified, there is no good way to chain the states together so that
+         we can conclude this here.
+
+         Some alternative definitions of [mayRet_state] that I tried and failed
+         to prove:
+
+         (1) (forall (s : S), exists (s' : S), ma @ s == (s', a)) <->
+                mayRet (state S) ma @ a
+
+         (2) (forall (s s' : S), ma @ s == (s', a)) <->
+                mayRet (state S) ma @ a
+
+          -----------------------------------------------------------
+
+          << Counterexamples >>
+
+          For example, if [ma = {| put 5; return 'X' |} ]
+
+          mayRet (state S) ma @ 'X' -> forall s, ma @ s == (5, 'X')
+
+          So, (2) is false.
+
+                 ---------------------------------------------
+
+          An incrementing state monad.
+
+          [ma = {| x <- get; put (x + 1); return x |}]
+
+          mayRet (state S) ma @ 3 ->
+                 ma @ 3 == (3, 4)
+
+          So, (1) is false.
+
+          -----------------------------------------------------------
+
+          So, that means that we *must* existentially quantify over the
+          beginning and ending states. What are some other properties that we
+          can state about state that will help?
+         *)
+
+        admit.
+      }
+      apply HX in HK. destruct HK as (b' & HB & HK2).
+      exists b. split.
+      + PER_reflexivityH.
+      + auto.
+    - intros b Hs.
+      assert (HK: snd ((k @ snd (ma @ x)) @ fst (ma @ x)) == b). {
+        admit.
+      }
+      apply HX in HK. destruct HK as (b' & HB & HK2).
+      exists b. split.
+      + PER_reflexivityH.
+      + auto.
+    - reflexivity.
+  Admitted.
 
   Context `{inhabited S}.
   Instance EqmRMonadInverses_state : EqmRMonadInverses (state S).
