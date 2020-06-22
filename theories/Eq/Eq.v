@@ -1277,3 +1277,64 @@ Proof.
   - intros. inversion Heqtr.
 Qed.
 
+Lemma eutt_Ret_spin_abs: forall {E R1 R2} {RR: R1 -> R2 -> Prop} (v: R1),
+    eutt RR (Ret v) (@ITree.spin E R2) -> False.
+Proof.
+  intros.
+  punfold H.
+  unfold eqit_ in H.
+  remember (observe (Ret v)) as x.
+  remember (observe (ITree.spin)) as sp.
+  revert Heqx Heqsp.
+  induction H; intros EQ1 EQ2; try (now inv EQ1 || now inv EQ2).
+  - apply IHeqitF; auto.
+    inv EQ2.
+    reflexivity.
+Qed.
+
+Lemma eutt_spin_Ret_abs: forall {E R1 R2} {RR: R1 -> R2 -> Prop} (v: R2),
+    eutt RR (@ITree.spin E R1) (Ret v) -> False.
+Proof.
+  intros.
+  punfold H.
+  unfold eqit_ in H.
+  remember (observe (Ret v)) as x.
+  remember (observe (ITree.spin)) as sp.
+  revert Heqx Heqsp.
+  induction H; intros EQ1 EQ2; try (now inv EQ1 || now inv EQ2).
+  - apply IHeqitF; auto.
+    inv EQ2.
+    reflexivity.
+Qed.
+
+Lemma eutt_Vis_spin_abs: forall {E R1 R2} {RR: R1 -> R2 -> Prop} {X} (e: E X) (k: X -> itree E R1),
+    eutt RR (Vis e k) (@ITree.spin E R2) -> False.
+Proof.
+  intros.
+  punfold H.
+  unfold eqit_ in H.
+  remember (observe (Vis e k)) as x.
+  remember (observe (ITree.spin)) as sp.
+  revert Heqx Heqsp.
+  induction H; intros EQ1 EQ2; try (now inv EQ1 || now inv EQ2).
+  - apply IHeqitF; auto.
+    inv EQ2.
+    reflexivity.
+Qed.
+
+Lemma eutt_spin_Vis_abs: forall {E R1 R2} {RR: R1 -> R2 -> Prop} {X} (e: E X) (k: X -> itree E R2),
+    eutt RR (@ITree.spin E R1) (Vis e k) -> False.
+Proof.
+  intros.
+  punfold H.
+  unfold eqit_ in H.
+  remember (observe (Vis e k)) as x.
+  remember (observe (ITree.spin)) as sp.
+  revert Heqx Heqsp.
+  induction H; intros EQ1 EQ2; try (now inv EQ1 || now inv EQ2).
+  - apply IHeqitF; auto.
+    inv EQ2.
+    reflexivity.
+Qed.
+
+
