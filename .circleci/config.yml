@@ -1,0 +1,60 @@
+version: 2.1
+
+defaults: &defaults
+  environment:
+    OPAMBESTEFFORT: true
+    OPAMJOBS: 2
+    OPAMVERBOSE: 1
+    OPAMWITHTEST: true
+    OPAMYES: true
+    TERM: xterm
+  resource_class: medium
+  steps:
+  - checkout
+  - run:
+      name: Configure environment
+      command: echo . ~/.profile >> $BASH_ENV
+  - run:
+      name: Install dependencies
+      command: |
+          opam repo -a add coq-extra-dev https://coq.inria.fr/opam/extra-dev
+          opam update
+          opam install --deps-only .
+  - run:
+      name: List installed packages
+      command: opam list
+  - run:
+      name: Build, test, and install package
+      command: opam install .
+  - run:
+      name: Uninstall package
+      command: opam remove .
+
+jobs:
+  test:
+    parameters:
+      coq:
+        type: string
+    docker:
+    - image: coqorg/coq:<<parameters.coq>>
+    <<: *defaults
+
+workflows:
+  version: 2
+  build:
+    jobs:
+    - test:
+        name: "Coq 8.8"
+        coq: "8.8"
+    - test:
+        name: "Coq 8.9"
+        coq: "8.9"
+    - test:
+        name: "Coq 8.10"
+        coq: "8.10"
+    - test:
+        name: "Coq 8.11"
+        coq: "8.11"
+    - test:
+        name: "Coq dev"
+        coq: "dev"

@@ -33,3 +33,8 @@ Variant void1 : Type -> Type := .
 (** This sum type equips the space of indexed functions [_ ~> _] with
     the structure of a cocartesian category, see [Indexed.Function].
  *)
+
+(* Eliminate [void1]. *)
+Polymorphic Definition elim_void1@{u v} {E : Type@{u} -> Type@{v}}
+  : forall T : Type@{u}, void1 T -> E T :=
+  fun T (v : void1 T) => match v with end.

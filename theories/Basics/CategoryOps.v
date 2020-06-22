@@ -81,6 +81,10 @@ Notation binop obj := (obj -> obj -> obj) (only parsing).
 End Carrier.
 
 (** Scope for category notations. *)
+(*
+  The following line removes the warning on >=8.10, but is incompatible for <8.10
+*)
+(* Declare Scope cat_scope. *)
 Delimit Scope cat_scope with cat.
 
 (** ** Categories *)
@@ -129,8 +133,8 @@ Context {obj : Type} (C : Hom obj) (bif : binop obj).
 
     The composition [bimap f g] is also called _tensor product_ of [f] and [g].
 
-    Many of the following typeclases are _derived_ from just three basic 
-    Coproduc constructions:
+    Many of the following typeclases are _derived_ from just three basic
+    Coproduct constructions:
        - [Case]  (case analysis)
        - [Inl]   (left injection)
        - [Inr]   (right injection)

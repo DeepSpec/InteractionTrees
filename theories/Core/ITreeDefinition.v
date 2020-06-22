@@ -59,6 +59,10 @@ Section itree.
 End itree.
 
 (* begin hide *)
+(*
+  The following line removes the warning on >=8.10, but is incompatible for <8.10
+ *)
+(* Declare Scope itree_scope. *)
 Bind Scope itree_scope with itree.
 Delimit Scope itree_scope with itree.
 Local Open Scope itree_scope.
@@ -239,9 +243,11 @@ End ITree.
 
 Module ITreeNotations.
 Notation "t1 >>= k2" := (ITree.bind t1 k2)
-  (at level 50, left associativity) : itree_scope.
+  (at level 58, left associativity) : itree_scope.
 Notation "x <- t1 ;; t2" := (ITree.bind t1 (fun x => t2))
   (at level 61, t1 at next level, right associativity) : itree_scope.
+Notation "` x : t <- t1 ;; t2" := (ITree.bind t1 (fun x : t => t2))
+  (at level 61, t at next level, t1 at next level, x ident, right associativity) : itree_scope.
 Notation "t1 ;; t2" := (ITree.bind t1 (fun _ => t2))
   (at level 61, right associativity) : itree_scope.
 Notation "' p <- t1 ;; t2" :=

@@ -47,7 +47,7 @@ Inductive observing {E R1 R2}
            (t1 : itree E R1) (t2 : itree E R2) : Prop :=
 | observing_intros :
     eq_ (observe t1) (observe t2) -> observing eq_ t1 t2.
-Hint Constructors observing.
+Hint Constructors observing: core.
 
 Section observing_relations.
 
@@ -127,7 +127,7 @@ Proof. econstructor. reflexivity. Qed.
 Inductive going {E R1 R2} (r : itree E R1 -> itree E R2 -> Prop)
           (ot1 : itree' E R1) (ot2 : itree' E R2) : Prop :=
 | going_intros : r (go ot1) (go ot2) -> going r ot1 ot2.
-Hint Constructors going.
+Hint Constructors going: core.
 
 Lemma observing_going {E R1 R2} (eq_ : itree' E R1 -> itree' E R2 -> Prop) ot1 ot2 :
   going (observing eq_) ot1 ot2 <-> eq_ ot1 ot2.

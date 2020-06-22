@@ -82,11 +82,11 @@ Context {Eq2C : Eq2 C} {IdC : Id_ C} {CatC : Cat C}.
 
 (** An instance [SemiIso C f f'] means that [f] is a section of
     [f'] in the category [C]. *)
-Class SemiIso {a b : obj} (f : C a b) (f' : C b a) : Type :=
+Class SemiIso {a b : obj} (f : C a b) (f' : C b a) : Prop :=
   semi_iso : f >>> f' ⩯ id_ _.
 
 (** The class of isomorphisms *)
-Class Iso {a b : obj} (f : C a b) (f' : C b a) : Type := {
+Class Iso {a b : obj} (f : C a b) (f' : C b a) : Prop := {
   iso_mono :> SemiIso f f';
   iso_epi :> SemiIso f' f;
 }.

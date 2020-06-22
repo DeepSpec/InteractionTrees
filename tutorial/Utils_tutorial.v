@@ -15,6 +15,7 @@
 
 (* begin hide *)
 From Coq Require Import
+     Ascii
      Strings.String
      List
      Arith.Arith

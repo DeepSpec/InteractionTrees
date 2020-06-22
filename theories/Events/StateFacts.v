@@ -97,13 +97,26 @@ Proof.
   rewrite unfold_interp_state; reflexivity.
 Qed.
 
-Lemma interp_state_trigger {E F : Type -> Type} {R S : Type}
+Lemma interp_state_trigger_eqit {E F : Type -> Type} {R S : Type}
       (e : E R) (f : E ~> Monads.stateT S (itree F)) (s : S)
   : (interp_state f (ITree.trigger e) s) ≅ (f _ e s >>= fun x => Tau (Ret x)).
 Proof.
   unfold ITree.trigger. rewrite interp_state_vis.
   eapply eqit_bind; try reflexivity.
   intros []. rewrite interp_state_ret. reflexivity.
+Qed.
+
+Lemma interp_state_trigger {E F : Type -> Type} {R S : Type}
+      (e : E R) (f : E ~> Monads.stateT S (itree F)) (s : S)
+  : interp_state f (ITree.trigger e) s ≈ f _ e s.
+Proof.
+  unfold ITree.trigger. rewrite interp_state_vis.
+  match goal with
+    |- ?y ≈ ?x => remember y; rewrite <- (bind_ret_r x); subst
+  end.
+  eapply eqit_bind; try reflexivity.
+  intros []; rewrite interp_state_ret,tau_eutt.
+  reflexivity.
 Qed.
 
 Lemma interp_state_bind {E F : Type -> Type} {A B S : Type}
@@ -147,8 +160,8 @@ Proof.
   - ebind. econstructor; [reflexivity|].
     intros; subst.
     etau. ebase.
-  - rewrite tau_eutt, unfold_interp_state; eauto.
-  - rewrite tau_eutt, unfold_interp_state; eauto.
+  - rewrite tau_euttge, unfold_interp_state; eauto.
+  - rewrite tau_euttge, unfold_interp_state; eauto.
 Qed.
 
 Instance eutt_interp_state_eq {E F: Type -> Type} {S : Type}
@@ -165,8 +178,8 @@ Proof.
   - ebind. econstructor; [reflexivity|].
     intros; subst.
     etau. ebase.
-  - rewrite tau_eutt, unfold_interp_state; eauto.
-  - rewrite tau_eutt, unfold_interp_state; eauto.
+  - rewrite tau_euttge, unfold_interp_state; eauto.
+  - rewrite tau_euttge, unfold_interp_state; eauto.
 Qed.
 
 

@@ -22,6 +22,7 @@ Require Import Imp Asm Fin Utils_tutorial AsmCombinators.
 Require Import Psatz.
 
 From Coq Require Import
+     List
      String
      Morphisms
      Setoid

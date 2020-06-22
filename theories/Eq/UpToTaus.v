@@ -104,8 +104,8 @@ Variant euttG rH rL gL gH t1 t2 : Prop :=
     (IN: gpaco2 (@eqit_ E R1 R2 RR true true (euttVC gH)) transD (transU rH \2/ rL) gL t1 t2)
 .
 
-Hint Unfold transU transD bindC euttVC.
-Hint Constructors euttG.
+Hint Unfold transU transD bindC euttVC: core.
+Hint Constructors euttG: core.
 
 Lemma transD_mon r1 r2 t1 t2
       (IN: transD r1 t1 t2)
@@ -178,8 +178,8 @@ Hint Resolve euttVC_id : paco.
 
 End EUTTG.
 
-Hint Unfold transU transD bindC euttVC.
-Hint Constructors euttG.
+Hint Unfold transU transD bindC euttVC: core.
+Hint Constructors euttG: core.
 Hint Resolve transD_mon transU_mon : paco.
 Hint Resolve euttVC_mon : paco.
 Hint Resolve euttVC_compat : paco.
@@ -301,7 +301,7 @@ Variant transL (r: itree E R1 -> itree E R2 -> Prop) (t1: itree E R1) (t2: itree
                (LERR: forall x x' y, RR1 x x' -> RR x' y -> RR x y)
   : transL r t1 t2
 .
-Hint Constructors transL.
+Hint Constructors transL: core.
 
 Lemma transD_transL r:
   transD RR (transL r) <2= transL (transD RR r).
@@ -350,14 +350,14 @@ Proof.
     + gstep. red. simpobs. eauto.
     + gclo. econstructor; auto_ctrans_eq.
       * rewrite (simpobs Heqot1). reflexivity.
-      * rewrite (simpobs Heqot2), tau_eutt. reflexivity.
+      * rewrite (simpobs Heqot2), tau_euttge. reflexivity.
   - pclearbot. apply eqit_tauR in REL. rewrite Heqot' in REL, REL0. clear m2 Heqot'.
     genobs t' ot'. genobs t2 ot2.
     hinduction REL0 before CIH; intros; subst.
     + apply eqit_ret_gen in REL0.
       gclo. econstructor.
       * eapply eqit_trans; [rewrite (simpobs Heqot1); reflexivity|].
-        eapply eqit_trans; [rewrite tau_eutt; reflexivity|].
+        eapply eqit_trans; [rewrite tau_euttge; reflexivity|].
         eauto.
       * rewrite (simpobs Heqot2). reflexivity.
       * gstep. econstructor. eauto.
@@ -375,7 +375,7 @@ Proof.
       remember (VisF e k1) as ot. genobs m1 ot2.
       hinduction REL0 before CIH; intros; subst; try dependent destruction Heqot; cycle 1.
       * gclo; econstructor; auto_ctrans_eq; try reflexivity.
-        rewrite (simpobs Heqot1), tau_eutt. reflexivity.
+        rewrite (simpobs Heqot1), tau_euttge. reflexivity.
       * pclearbot. gstep. red. do 2 (simpobs; econstructor; eauto). intros.
         eapply MON; [|intros; gbase; eapply CIH; eauto].
         eapply CLOV.
@@ -388,11 +388,11 @@ Proof.
     + eapply IHREL0; try eapply eqit_trans; auto_ctrans_eq.
       rewrite <-itree_eta, tau_eutt. reflexivity.
     + gclo; econstructor; auto_ctrans_eq; try reflexivity.
-      rewrite (simpobs Heqot2), tau_eutt. reflexivity.
+      rewrite (simpobs Heqot2), tau_euttge. reflexivity.
   - remember (VisF e k2) as ot. genobs t2 ot2.
     hinduction REL0 before CIH; intros; subst; try dependent destruction Heqot; cycle 1.
     + gclo; econstructor; auto_ctrans_eq; try reflexivity.
-      rewrite (simpobs Heqot2), tau_eutt. reflexivity.
+      rewrite (simpobs Heqot2), tau_euttge. reflexivity.
     + pclearbot. gstep. red. simpobs. econstructor; eauto. intros.
       eapply MON; [|intros; gbase; eapply CIH; eauto].
       eapply CLOV.
@@ -403,15 +403,15 @@ Proof.
       econstructor; auto_ctrans_eq; try reflexivity.
       gfinal. destruct PR; eauto.
   - gclo; econstructor; auto_ctrans_eq; try reflexivity.
-    rewrite (simpobs Heqot1), tau_eutt. reflexivity.
+    rewrite (simpobs Heqot1), tau_euttge. reflexivity.
   - clear t' Heqot'. remember (TauF t2) as ot. genobs t0 ot0.
     hinduction REL before EQL; intros; subst; try inv Heqot; eauto; cycle 1.
     + gclo; econstructor; auto_ctrans_eq; try reflexivity.
-      rewrite (simpobs Heqot0), tau_eutt. reflexivity.
+      rewrite (simpobs Heqot0), tau_euttge. reflexivity.
     + destruct REL; cycle 1.
       * gbase. apply CLOL. econstructor; eauto.
         apply CLOD. econstructor; auto_ctrans_eq; try reflexivity.
-        rewrite (simpobs Heqot0), tau_eutt. reflexivity.
+        rewrite (simpobs Heqot0), tau_euttge. reflexivity.
       * eapply IHEQL; eauto.
         simpobs. econstructor; eauto.
         punfold H.

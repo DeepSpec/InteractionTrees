@@ -98,7 +98,7 @@ Lemma interp_trigger {E F : Type -> Type} {R : Type}
 Proof.
   unfold ITree.trigger. rewrite interp_vis.
   setoid_rewrite interp_ret.
-  setoid_rewrite tau_eutt. rewrite bind_ret_r.
+  setoid_rewrite tau_euttge. rewrite bind_ret_r.
   reflexivity.
 Qed.
 
@@ -147,8 +147,8 @@ Proof.
   - guclo eqit_clo_bind; econstructor; [apply H|].
     intros; subst.
     gstep; constructor; eauto with paco.
-  - rewrite tau_eutt, unfold_interp. auto.
-  - rewrite tau_eutt, unfold_interp. auto.
+  - rewrite tau_euttge, unfold_interp. auto.
+  - rewrite tau_euttge, unfold_interp. auto.
 Qed.
 
 Instance euttge_interp (E F : Type -> Type)
@@ -168,7 +168,7 @@ Proof.
   - guclo eqit_clo_bind; econstructor; [apply H|].
     intros; subst.
     gstep; constructor; eauto with paco.
-  - rewrite tau_eutt, unfold_interp. auto.
+  - rewrite tau_euttge, unfold_interp. auto.
   - discriminate.
 Qed.
 
@@ -190,9 +190,9 @@ Proof.
     + intros; subst.
       estep.
       ebase.
-  - rewrite tau_eutt, unfold_interp.
+  - rewrite tau_euttge, unfold_interp.
     eauto.
-  - rewrite tau_eutt, unfold_interp.
+  - rewrite tau_euttge, unfold_interp.
     eauto.
 Qed.
 
@@ -250,7 +250,7 @@ Proof.
   rewrite (itree_eta t), unfold_interp.
   destruct (observe t); try (gstep; constructor; auto with paco).
   cbn. gstep. red; cbn. constructor; red; intros.
-  rewrite bind_ret_l, tau_eutt. eauto with paco.
+  rewrite bind_ret_l, tau_euttge. eauto with paco.
 Qed.
 
 Lemma interp_trigger_h {E R} (t : itree E R) :
@@ -260,7 +260,7 @@ Proof.
   rewrite unfold_interp. rewrite (itree_eta t) at 2.
   destruct (observe t); try estep.
   unfold ITree.trigger. simpl. rewrite bind_vis.
-  evis. intros. rewrite bind_ret_l, tau_eutt.
+  evis. intros. rewrite bind_ret_l, tau_euttge.
   auto with paco.
 Qed.
 
@@ -310,7 +310,7 @@ Proof.
   rewrite unfold_interp.
   destruct (observe t); try estep.
   unfold ITree.trigger. simpl. rewrite bind_vis.
-  evis. intros. rewrite bind_ret_l, tau_eutt. auto with paco.
+  evis. intros. rewrite bind_ret_l, tau_euttge. auto with paco.
 Qed.
 
 Lemma interp_forever {E F} (f : E ~> itree F) {R S}

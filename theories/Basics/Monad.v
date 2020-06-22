@@ -32,12 +32,12 @@ Section Laws.
   Context {EqMP : @EqMProps m _ EqM}.
 
   Local Open Scope monad_scope.
-  
+
   (* This should go coq-ext-lib. *)
   Class MonadLaws :=
-    { bind_ret_l :> forall a b (f : a -> m b) (x : a), bind (ret x) f ≈ f x
-    ; bind_ret_r :> forall a (x : m a), bind x (fun y => ret y) ≈ x
-    ; bind_bind :> forall a b c (x : m a) (f : a -> m b) (g : b -> m c), bind (bind x f) g ≈ bind x (fun y => bind (f y) g)
+    { bind_ret_l : forall a b (f : a -> m b) (x : a), bind (ret x) f ≈ f x
+    ; bind_ret_r : forall a (x : m a), bind x (fun y => ret y) ≈ x
+    ; bind_bind : forall a b c (x : m a) (f : a -> m b) (g : b -> m c), bind (bind x f) g ≈ bind x (fun y => bind (f y) g)
     ; Proper_bind :> forall {a b},
         (@Proper (m a%type -> (a -> m b) -> m b)
          (eqm ==> pointwise_relation _ eqm ==> eqm)

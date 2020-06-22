@@ -31,9 +31,7 @@ Section SYNTAX.
   | Base
   | Arr (s:typ) (t:typ).
 
-
   Variable V : typ -> Type.  (* PHOAS variables *)
-  
   Inductive tm : typ -> Type :=
   | Lit (n:nat) : tm Base
   | Var : forall (t:typ), V t -> tm t
@@ -59,7 +57,6 @@ Arguments Lam {V t1 t2}.
 Arguments Opr {V}.
 
 Section DENOTATION.
-
   Fixpoint denote_typ E (t:typ) : Type :=
     match t with
     | Base => nat

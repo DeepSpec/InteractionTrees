@@ -58,6 +58,7 @@ Require Import Psatz.
 
 From Coq Require Import
      Strings.String
+     List
      Program.Basics
      Morphisms
      ZArith
@@ -420,7 +421,7 @@ Section Bisimulation.
     unfold lookup_def; cbn.
     unfold embed, Embeddable_itree, Embeddable_forall, embed.
     rewrite interp_trigger.
-    rewrite interp_state_trigger.
+    rewrite interp_state_trigger_eqit.
     cbn.
     rewrite bind_ret_l, tau_eutt.
     rewrite interp_state_ret.
@@ -598,6 +599,8 @@ Section Correctness.
     induction e; simpl; intros.
     - (* Var case *)
       (* We first compute and eliminate taus on both sides. *)
+      force_left.
+      rewrite tau_eutt.
 
       tau_steps.
 
@@ -751,7 +754,7 @@ Section Correctness.
      relation.
    *)
   Definition TT {A B}: A -> B -> Prop  := fun _ _ => True.
-  Hint Unfold TT.
+  Hint Unfold TT: core.
 
   Definition equivalent (s:stmt) (t:asm 1 1) : Prop :=
     bisimilar TT (denote_imp s) (denote_asm t f0).
