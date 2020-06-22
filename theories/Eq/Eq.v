@@ -543,6 +543,89 @@ Proof.
     + pstep. red. simpobs. econstructor; eauto. pstep_reverse. apply IHeqitF; eauto.
 Qed.
 
+Lemma eqit_inv_ret_vis: forall {E X R1 R2 RR} b1 b2 (r: R1) (e: E X) k,
+    @eqit E R1 R2 RR b1 b2 (Ret r) (Vis e k) -> False.
+Proof.
+  intros.
+  punfold H; inv H.
+Qed.
+
+Lemma eutt_inv_ret_vis: forall {X Y E} (x: X) (e: E Y) k, Ret x ≈ Vis e k -> False.
+Proof.
+  intros; eapply eqit_inv_ret_vis; eauto.
+Qed.
+
+Lemma eqitree_inv_ret_vis: forall {X Y E} (x: X) (e: E Y) k, Ret x ≅ Vis e k -> False.
+Proof.
+  intros; eapply eqit_inv_ret_vis; eauto.
+Qed.
+
+Lemma eqit_inv_tau_vis: forall {E X R1 R2 RR} b2 (e: E X) k t,
+    @eqit E R1 R2 RR false b2 (Tau t) (Vis e k) -> False.
+Proof.
+  intros.
+  punfold H; inv H.
+  inv CHECK.
+Qed.
+
+Lemma eqit_inv_vis_tau: forall {E X R1 R2 RR} b1 (e: E X) k t,
+    @eqit E R1 R2 RR b1 false (Vis e k) (Tau t) -> False.
+Proof.
+  intros.
+  punfold H; inv H.
+  inv CHECK.
+Qed.
+
+Lemma euttge_inv_tau_vis: forall {E A B} (e: E A) (k : A -> itree E B) (a : itree E B), Vis e k ≳ Tau a -> False.
+Proof.
+  intros; eapply eqit_inv_vis_tau; eauto.
+Qed.
+
+Lemma eqitree_inv_tau_vis: forall {E A B} (e: E A) (k : A -> itree E B) (a : itree E B), Tau a ≅ Vis e k -> False.
+Proof.
+  intros; eapply eqit_inv_tau_vis; eauto.
+Qed.
+
+Lemma eqit_inv_ret_tau: forall {E R1 R2 RR} b1 (r: R1) t,
+    @eqit E R1 R2 RR b1 false (Ret r) (Tau t) -> False.
+Proof.
+  intros.
+  punfold H; inv H.
+  inv CHECK.
+Qed.
+
+Lemma eqit_inv_tau_ret: forall {E R1 R2 RR} b2 (r: R2) t,
+    @eqit E R1 R2 RR false b2 (Tau t) (Ret r) -> False.
+Proof.
+  intros.
+  punfold H; inv H.
+  inv CHECK.
+Qed.
+
+Lemma euttge_inv_ret_tau: forall {E A} (r : A) (a : itree E A),
+    Ret r ≳ Tau a -> False.
+Proof.
+  intros; eapply eqit_inv_ret_tau; eauto.
+Qed.
+
+Lemma eqitree_inv_ret_tau: forall {E A} (r : A) (a : itree E A),
+    Ret r ≅ Tau a -> False.
+Proof.
+  intros; eapply eqit_inv_ret_tau; eauto.
+Qed.
+
+Lemma eutt_inv_ret {E R} r1 r2 :
+  (Ret r1: itree E R) ≈ (Ret r2) -> r1 = r2.
+Proof.
+  intros; eapply eqit_inv_ret; eauto.
+Qed.
+
+Lemma eqitree_inv_ret {E R} r1 r2 :
+  (Ret r1: itree E R) ≅ (Ret r2) -> r1 = r2.
+Proof.
+  intros; eapply eqit_inv_ret; eauto.
+Qed.
+
 Lemma eqit_tauL {E R1 R2 RR} b2 (t1 : itree E R1) (t2 : itree E R2) :
   eqit RR true b2 t1 t2 -> eqit RR true b2 (Tau t1) t2.
 Proof.
@@ -872,6 +955,18 @@ Qed.
 
 End eqit_h.
 
+Lemma eutt_Tau {E R} (t1 t2 : itree E R):
+  Tau t1 ≈ Tau t2 <-> t1 ≈ t2.
+Proof.
+  apply eqit_Tau.
+Qed.
+
+Lemma eqitree_Tau {E R} (t1 t2 : itree E R):
+  Tau t1 ≅ Tau t2 <-> t1 ≅ t2.
+Proof.
+  apply eqit_Tau.
+Qed.
+
 Arguments eqit_clo_bind : clear implicits.
 Hint Constructors eqit_bind_clo: core.
 
@@ -1026,3 +1121,159 @@ Ltac tau_steps_right :=
 Ltac tau_steps :=
   tau_steps_left;
   tau_steps_right.
+
+Lemma eqit_inv_bind_ret:
+  forall {E X R1 R2 RR} b1 b2
+    (ma : itree E X) (kb : X -> itree E R1) (b: R2),
+    @eqit E R1 R2 RR b1 b2 (ITree.bind ma kb) (Ret b) ->
+    exists a, @eqit E X X eq b1 b2 ma (Ret a) /\
+         @eqit E R1 R2 RR b1 b2 (kb a) (Ret b).
+Proof.
+  intros.
+  punfold H.
+  unfold eqit_ in *.
+  cbn in *.
+  remember (ITree.bind ma kb) as tl.
+  assert (tl ≅ ITree.bind ma kb) by (subst; reflexivity).
+  clear Heqtl.
+  genobs tl tl'.
+  remember (RetF b) as tr.
+  revert ma kb tl Heqtl' H0 b Heqtr.
+  induction H.
+  - intros; subst.
+    inv Heqtr.
+    destruct (observe tl) eqn: Hobtl; inv Heqtl'.
+    rewrite unfold_bind in H0.
+    destruct (observe ma) eqn: Hobma.
+    * exists r0. split. rewrite <- Hobma. tau_steps. reflexivity.
+      cbn in *. rewrite <- H0. rewrite itree_eta, Hobtl.
+      apply eqit_Ret; auto.
+    * cbn in H0. rewrite itree_eta in H0. rewrite Hobtl in H0.
+      apply eqitree_inv_ret_tau in H0. contradiction.
+    * cbn in H0. rewrite itree_eta, Hobtl in H0.
+      apply eqitree_inv_ret_vis in H0. contradiction.
+  - intros. inversion Heqtr.
+  - intros. inversion Heqtr.
+  - intros. subst.
+    apply simpobs in Heqtl'. rewrite Heqtl' in H0; clear tl Heqtl'.
+    rewrite unfold_bind in H0.
+    destruct (observe ma) eqn: Hobma.
+    + cbn in *.
+      specialize (IHeqitF ma (fun _ => t1) t1 eq_refl).
+      edestruct IHeqitF as (a & ? & ?);[| reflexivity |].
+      * setoid_rewrite itree_eta at 4.
+        rewrite Hobma, Eq.bind_ret_l.
+        reflexivity.
+      * exists a; split; auto.
+        rewrite itree_eta, Hobma in H1.
+        apply eqit_inv_ret in H1; subst.
+        rewrite <- H0.
+        destruct b1; [| inv CHECK].
+        apply eqit_tauL; auto.
+    + cbn in *. rewrite eqitree_Tau in H0.
+      edestruct IHeqitF as (a & ? & ?);[reflexivity | apply H0 | reflexivity |].
+      exists a; split; [| assumption].
+      destruct b1; [| inv CHECK].
+      rewrite itree_eta, Hobma; apply eqit_tauL; auto.
+    + exfalso. cbn in H0; apply eqitree_inv_tau_vis in H0; contradiction.
+  - intros. inversion Heqtr.
+Qed.
+
+Lemma eutt_inv_bind_ret:
+  forall {E A B} (ma : itree E A) (kb : A -> itree E B) b,
+    ITree.bind ma kb ≈ Ret b ->
+    exists a, ma ≈ Ret a /\ kb a ≈ Ret b.
+Proof.
+  intros; apply eqit_inv_bind_ret; auto.
+Qed.
+
+Lemma eqitree_inv_bind_ret:
+  forall {E A B} (ma : itree E A) (kb : A -> itree E B) b,
+    ITree.bind ma kb ≅ Ret b ->
+    exists a, ma ≅ Ret a /\ kb a ≅ Ret b.
+Proof.
+  intros; apply eqit_inv_bind_ret; auto.
+Qed.
+
+Lemma eutt_inv_bind_vis:
+  forall {A B E X} (ma : itree E A) (kab : A -> itree E B) (e : E X)
+    (kxb : X -> itree E B),
+    ITree.bind ma kab ≈ Vis e kxb ->
+    (exists (kca : X -> itree E A), (ma ≈ Vis e kca)) \/
+    (exists (a : A), (ma ≈ Ret a) /\ (kab a ≈ Vis e kxb)).
+Proof.
+  intros. punfold H.
+  unfold eqit_ in *.
+  cbn in *.
+  remember (ITree.bind ma kab) as tl.
+  assert (tl ≅ ITree.bind ma kab) by (subst; reflexivity).
+  clear Heqtl.
+  genobs tl tl'.
+  remember (VisF e kxb) as tr.
+  revert ma kab tl Heqtl' H0 kxb Heqtr.
+  revert A.
+  induction H.
+  - intros; subst; inv Heqtr.
+  - intros; subst; inv Heqtr.
+  - intros; subst.
+    rewrite unfold_bind in H0.
+    destruct (observe ma) eqn: Hobma.
+    + cbn in *; rewrite itree_eta in H0; rewrite <- Heqtl' in H0.
+      right. exists r. split. rewrite itree_eta. rewrite Hobma. reflexivity.
+      rewrite <- H0. apply eqit_Vis.
+      unfold id in REL.
+      unfold upaco2 in REL.
+      intros.
+      destruct (REL u0).
+      * unfold eqit. unfold eqit_. intros. apply H.
+      * inversion H.
+    + cbn in *; rewrite itree_eta in H0; rewrite <- Heqtl' in H0.
+      symmetry in H0.
+      apply eqitree_inv_tau_vis in H0. contradiction.
+    + cbn in *; rewrite itree_eta in H0; rewrite <- Heqtl' in H0.
+      clear Heqtl'.
+      left. unfold id in REL.
+      unfold upaco2 in REL.
+      setoid_rewrite itree_eta at 1.
+      rewrite Hobma. clear Hobma.
+      inv Heqtr.
+      dependent destruction H3.
+      dependent destruction H2.
+      apply eq_itree_inv_vis in H0.
+      edestruct H0 as (? & ? & ?).
+      inv H. dependent destruction H5.
+      dependent destruction H4.
+      exists k. reflexivity.
+  - intros. inv Heqtr.
+    apply simpobs in Heqtl'. rewrite Heqtl' in H0; clear tl Heqtl'.
+    rewrite unfold_bind in H0.
+    destruct (observe ma) eqn: Hobma.
+    + cbn in *.
+      specialize (IHeqitF A ma (fun _ => t1) t1 eq_refl).
+      edestruct IHeqitF as [a | a];[| reflexivity | | ].
+      * setoid_rewrite itree_eta at 4.
+        rewrite Hobma, Eq.bind_ret_l.
+        reflexivity.
+      * left. apply a.
+      * right.
+        destruct a.
+        setoid_rewrite itree_eta in H1 at 1.
+        rewrite Hobma in H1. destruct H1.
+        apply eutt_inv_ret in H1; subst.
+        setoid_rewrite itree_eta at 1.
+        rewrite Hobma.
+        rewrite <- tau_eutt in H2.
+        rewrite H0 in H2.
+        exists x. split; try assumption; reflexivity.
+    + cbn in *. rewrite eqitree_Tau in H0.
+      edestruct IHeqitF as [a | ?];[reflexivity | apply H0 | reflexivity | |].
+      * left. setoid_rewrite itree_eta at 1.
+        rewrite Hobma. setoid_rewrite tau_eutt at 1.
+        assumption.
+      * right. setoid_rewrite itree_eta at 1.
+        rewrite Hobma. setoid_rewrite tau_eutt at 1.
+        assumption.
+    + exfalso. cbn in H0; apply eqitree_inv_tau_vis in H0; contradiction.
+  - intros. inversion Heqtr.
+Qed.
+
