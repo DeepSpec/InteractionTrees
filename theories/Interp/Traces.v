@@ -1,11 +1,6 @@
 (** * ITrees as sets of traces *)
 
 (* begin hide *)
-From Coq Require Import
-     List.
-
-Import ListNotations.
-
 From Paco Require Import
      paco.
 

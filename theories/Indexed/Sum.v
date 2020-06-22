@@ -4,9 +4,6 @@
     using this sum type. *)
 
 (* begin hide *)
-From Coq Require Import
-     Lists.List.
-
 From ITree Require Import
      Basics.Basics.
 
