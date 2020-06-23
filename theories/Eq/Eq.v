@@ -1199,7 +1199,7 @@ Lemma eutt_inv_bind_vis:
   forall {A B E X} (ma : itree E A) (kab : A -> itree E B) (e : E X)
     (kxb : X -> itree E B),
     ITree.bind ma kab ≈ Vis e kxb ->
-    (exists (kca : X -> itree E A), (ma ≈ Vis e kca)) \/
+    (exists (kca : X -> itree E A), (ma ≈ Vis e kca) /\ forall (x:X), (ITree.bind (kca x) kab) ≈ (kxb x)) \/
     (exists (a : A), (ma ≈ Ret a) /\ (kab a ≈ Vis e kxb)).
 Proof.
   intros. punfold H.
@@ -1232,8 +1232,6 @@ Proof.
       apply eqitree_inv_tau_vis in H0. contradiction.
     + cbn in *; rewrite itree_eta in H0; rewrite <- Heqtl' in H0.
       clear Heqtl'.
-      left. unfold id in REL.
-      unfold upaco2 in REL.
       setoid_rewrite itree_eta at 1.
       rewrite Hobma. clear Hobma.
       inv Heqtr.
@@ -1242,8 +1240,16 @@ Proof.
       apply eq_itree_inv_vis in H0.
       edestruct H0 as (? & ? & ?).
       inv H. dependent destruction H5.
+      left. 
+      exists k.
       dependent destruction H4.
-      exists k. reflexivity.
+      split;[reflexivity|].
+      intros. specialize (H1 x0). rewrite <- H1.       
+      specialize (REL x0).
+      unfold id in REL.
+      unfold upaco2 in REL. 
+      destruct REL. apply H. inversion H.
+      
   - intros. inv Heqtr.
     apply simpobs in Heqtl'. rewrite Heqtl' in H0; clear tl Heqtl'.
     rewrite unfold_bind in H0.
@@ -1254,7 +1260,12 @@ Proof.
       * setoid_rewrite itree_eta at 4.
         rewrite Hobma, Eq.bind_ret_l.
         reflexivity.
-      * left. apply a.
+      * left.
+        destruct a as (kca & HMA & HEQ).
+        assert (ma ≈ Ret r).
+        rewrite itree_eta. rewrite Hobma. reflexivity.
+        rewrite HMA in H1. symmetry in H1. apply eutt_inv_ret_vis in H1. inversion H1.
+        
       * right.
         destruct a.
         setoid_rewrite itree_eta in H1 at 1.
