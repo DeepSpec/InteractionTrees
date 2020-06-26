@@ -1,19 +1,8 @@
-.PHONY: all extraction clean
+.PHONY: extraction clean
 
-all: coq extraction
-
-coq: output
-
-EXTRDIR:=output
-
-$(EXTRDIR):
-	mkdir -p $(EXTRDIR)
-
-include ../common.mk
-
-extraction: coq
+extraction:
 	sh extraction-test.sh
 
-clean: clean-coq
-	$(RM) -rf output
-	$(RM) extraction/*.ml{i,}
+clean:
+	rm -rf output
+	rm -f **/.*.aux **/*.{vo,vos,vok,glob}

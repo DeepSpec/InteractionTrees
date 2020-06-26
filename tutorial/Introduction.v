@@ -4,7 +4,7 @@
     Interaction Trees library, via the simplified
     interface of [theories/ITree/Simple.v].
 
-    The solutions can be found in [examples/Introduction.v].
+    The solutions can be found in [examples/IntroductionSolutions.v].
  *)
 
 (* begin hide *)

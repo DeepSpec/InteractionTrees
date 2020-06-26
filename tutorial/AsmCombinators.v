@@ -38,7 +38,7 @@ From ITree Require Import
      Basics.Category
      Basics.CategorySub.
 
-Require Import Asm Utils_tutorial Fin KTreeFin CatTheory.
+From ITreeTutorial Require Import Asm Utils_tutorial Fin KTreeFin CatTheory.
 
 Import CatNotations.
 Local Open Scope cat_scope.

@@ -36,7 +36,7 @@ Open Scope string_scope.
 Import CatNotations.
 Open Scope cat_scope.
 
-Require Import Fin Asm AsmCombinators Utils_tutorial.
+From ITreeTutorial Require Import Fin Asm AsmCombinators Utils_tutorial.
 
 (* end hide *)
 

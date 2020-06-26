@@ -1,0 +1,8 @@
+(coq.extraction
+ (prelude Tests)
+ (theories ITree)
+ (extracted_modules test))
+
+(tests
+ (flags -w -20-33-3)
+ (names test))

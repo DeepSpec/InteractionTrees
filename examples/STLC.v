@@ -45,7 +45,7 @@ Section SYNTAX.
     | [] => tm u
     | t::ts =>  V t -> (open_tm ts u)
     end.
-  
+
 End SYNTAX.
 
 Definition Term (G : list typ) (u:typ) := forall (V : typ -> Type), open_tm V G u.
@@ -80,9 +80,9 @@ Section DENOTATION.
     | Lam body => ret (fun x => denote_closed_term (body x))
     | Opr m1 m2 => x <- (denote_closed_term m1) ;;
                   y <- (denote_closed_term m2) ;;
-                  Ret (x + y)  
+                  Ret (x + y)
     end.
-  
+
   Program Fixpoint denote_rec
           (V:typ -> Type) E
           (base : forall u (m : tm V u), itree E (V u))
@@ -100,8 +100,8 @@ Section DENOTATION.
     simpl in m.
     apply m in x.
     exact x.
-  Defined.  
-  
+  Defined.
+
   Program Definition denote E (G : list typ) (u:typ) (m : Term G u)
     : denotation_tm_typ E (denote_typ E) G u :=
     denote_rec (denote_typ E) E (@denote_closed_term E) G u _.
@@ -111,9 +111,9 @@ Section DENOTATION.
     exact m.
   Defined.
 
-End DENOTATION.    
+End DENOTATION.
 
-  
+
 Definition id_tm : Term [] (Arr Base Base) :=
   fun V => Lam (fun x => Var x).
 
@@ -138,7 +138,7 @@ Proof.
   cbn.
   repeat rewrite bind_ret_l.
   reflexivity.
-Qed.  
+Qed.
 
 Definition add_2_tm : Term [] (Arr Base Base) :=
   fun V => Lam (fun x => (Opr (Var x) (Lit 2))).

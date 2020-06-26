@@ -1,0 +1,4 @@
+-Q _build/default/theories ITree
+-Q _build/default/examples ITreeExamples
+-Q _build/default/tutorial ITreeTutorial
+-Q _build/default/tests ITreeTests

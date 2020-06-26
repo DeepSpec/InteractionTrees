@@ -5,7 +5,7 @@
 coq: Makefile.coq
 	$(MAKE) -f Makefile.coq
 
-clean-coq:
+clean-coq: _CoqProject
 	if [ -e Makefile.coq ] ; then $(MAKE) -f Makefile.coq cleanall ; fi
 	$(RM) Makefile.coq Makefile.coq.conf
 

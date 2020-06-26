@@ -1,4 +1,4 @@
-.PHONY: clean all coq test tests examples tutorial install uninstall depgraph
+.PHONY: clean all coq test tests examples tutorial install uninstall depgraph for-dune
 
 COQPATHFILE=$(wildcard _CoqPath)
 
