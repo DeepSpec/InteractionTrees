@@ -25,7 +25,7 @@ From ITree Require Import
      Events.State
      Events.StateFacts.
 
-Require Import Fin Utils_tutorial.
+From ITreeTutorial Require Import Fin Utils_tutorial.
 
 Import Monads.
 (* end hide *)

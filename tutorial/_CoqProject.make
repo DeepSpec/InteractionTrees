@@ -1,5 +1,5 @@
 -Q ../theories/ ITree
--R . tutorial
+-R . ITreeTutorial
 
 Introduction.v
 
@@ -15,4 +15,4 @@ Imp2AsmCorrectness.v
 AsmOptimization.v
 PrintAssumptions.v
 
-Test.v
+extract-imptest/ImpTest.v

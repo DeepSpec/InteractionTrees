@@ -17,11 +17,10 @@
 *)
 
 (* begin hide *)
-Require Import Imp Asm Fin Utils_tutorial AsmCombinators.
-
-Require Import Psatz.
+From ITreeTutorial Require Import Imp Asm Fin Utils_tutorial AsmCombinators.
 
 From Coq Require Import
+     Psatz
      List
      String
      Morphisms

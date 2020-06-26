@@ -1,5 +1,5 @@
 From ITree Require Import ITree.
-From tutorial Require Import Imp.
+From ITreeTutorial Require Import Imp.
 From Coq Require Import NArith String.
 
 Local Open Scope string_scope.
@@ -44,7 +44,7 @@ Extract Constant print_binding =>
      print_string v;
      print_string "":="";
      print_int n;
-     print_string ""; """.
+     print_string "";""".
 
 Parameter print_newline : io.
 Extract Inlined Constant print_newline => "print_newline".

@@ -27,7 +27,7 @@ opam install coq-itree
 
 ### Dependencies
 
-- [coq](https://coq.inria.fr/) (8.9 - 8.13)
+- [coq](https://coq.inria.fr/) (8.10 - 8.13)
 - [coq-paco](https://github.com/snu-sf/paco)
 - [coq-ext-lib](https://github.com/coq-community/coq-ext-lib)
 

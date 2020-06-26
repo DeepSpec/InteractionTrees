@@ -1,12 +1,10 @@
 -Q ../theories ITree
--R . Examples
+-R . ITreeExamples
 
 ReadmeExample.v
-Introduction.v
+IntroductionSolutions.v
 
-IO.v
 MultiThreadedPrinting.v
-ExtractThreadsExample.v
 
 Nimp.v
 LC.v
