@@ -30,6 +30,8 @@ From ITree Require Import
      Dijkstra.IBranch
      Dijkstra.IBranchBind
      Dijkstra.EuttDiv
+     Dijkstra.IBranchPreds
+     Dijkstra.IBranchBindTrigger
    (*  Simple *)
 .
 
@@ -209,12 +211,13 @@ Section TraceSpec.
       + apply H. apply branch_refine_ret.
       + apply branch_refine_ret_inv_l in H0.
         rewrite H0. auto.
-    - intros. repeat red. cbn. split; intros.
+    - intros. repeat red. cbn. 
+      split; intros.
       + destruct (classic_converge_ibranch b); basic_solve.
         * left. exists r. setoid_rewrite <- H1. 
           exists (log ++ log0)%list. split.
           ++ rewrite append_assoc. reflexivity.
-          ++ intros bf Hbf.
+          ++ intros bf Hbf. 
              set (fun r : A => bf) as g.
              assert ( ITree.bind b g ≈ (↑log0 ++ bf) ).
              {
@@ -231,13 +234,20 @@ Section TraceSpec.
              apply branch_refine_diverge_bind; auto.
      + apply decompose_branch_refine_bind in H0 as Hbind.
        basic_solve. apply H in H2 as ?H. destruct (classic_converge_ibranch b'); basic_solve.
-       * assert (Hbind : (ITree.bind b' g' ⊑ ITree.bind m f)).
+       (*This case I am not really sure how to explain*)
+       * 
+         (* easily convince myself that H is unused without needing the refactor rest*)
+         clear H. assert (H : True); auto. 
+         
+         assert (Hbind : (ITree.bind b' g' ⊑ ITree.bind m f)).
          { rewrite H1. auto. }
          rewrite <- H4 in H1.
          setoid_rewrite bind_bind in H1. 
          setoid_rewrite bind_ret in H1.
          assert (↑ log0 ++ (g' r) ≈ b)%itree; auto. clear H1.
          specialize (H5 (g' r) ).  rewrite <- H6 in H0.
+
+
          assert (↑log ++ b ≈ ↑log' ++ g' r /\ a = r)%itree.
          {
            rewrite <- H6. rewrite <- H4 in H3.
@@ -245,7 +255,13 @@ Section TraceSpec.
            destruct H3. subst. split; reflexivity.
          } 
          destruct H1 as [Hevsplit ?]. subst. rewrite Hevsplit.
-         apply H5. rewrite H6 in H0.
+         (*Hevsplit : log ++ n ≈ log' ++ g' r*)
+         apply H5. 
+         (* then need to show g' r ⊑ f r*)
+         rewrite H6 in H0.
+         (* comes from branch_refine_bind_cont_inv 
+            because b' converges to r and b' >>= g' ⊑ m >>= f
+          *)
          apply branch_refine_bind_cont_inv with (r:= r) in Hbind; auto.
          rewrite <- H4. eapply can_converge_append. apply can_converge_list_to_stream.
        * eapply bind_split_diverge; eauto.
@@ -255,8 +271,36 @@ Section TraceSpec.
        * eapply bind_split_diverge; eauto.
   Qed.
 
+  Instance TraceSpecOrder : OrderM TraceSpec := 
+    fun _ w1 w2 => forall log p, p ∈ (w2 log) -> p ∈ (w1 log).
 
+  Instance TraceSpecOrderLaws : OrderedMonad TraceSpec.
+  Proof.
+    constructor.
+    - intros. repeat red. auto.
+    - intros. repeat red in H. repeat red in H0.
+      repeat red. intros. apply H. apply H0. auto.
+    - intros. repeat red in H0. repeat red in H. repeat red. intros. repeat red in H1.
+      eapply H. destruct (w2 log) as [w2' Hw2]. cbn. eapply Hw2; try apply H1.
+      intros. cbn in *. basic_solve.
+      + left. exists a. exists log'. split; auto.
+        eapply H0. auto.
+      + right. auto.
+  Qed.
 
+  Definition verify_cond {A : Type} : TraceSpec A -> itree E A -> Prop := 
+    DijkstraProp (itree E) TraceSpec TraceSpecObs A.
+
+  Program Definition encode {A : Type} (post : ibranch E A -> Prop) (pre : ev_list E -> Prop) : TraceSpec A :=
+    fun log p => pre log /\ forall b, post (↑ log ++ b) -> p (↑ log ++ b).
+
+  Program Definition encode_dyn {A : Type} (post : ev_list E -> ibranch E A -> Prop) (pre : ev_list E -> Prop) : TraceSpec A :=
+    fun log p => pre log /\ forall b, post log (↑ log ++ b) -> p (↑ log ++ b).
+
+(*
+  Program Definition encode_ignore_prefix {A : Type} (post : ibranch E A -> Prop) : TraceSpec A :=
+    encode_dyn
+*)
 (*  
   x := Read;
   while x
@@ -272,3 +316,78 @@ Section TraceSpec.
 
 End TraceSpec.
 
+Section NonDetExample.
+
+Variant NonDet : Type -> Type :=
+  Decide : NonDet bool.
+
+
+Definition decide_ex : itree NonDet unit := 
+  ITree.iter (fun _ => ITree.bind (trigger Decide) (fun b : bool => if b then Ret (inl tt) else Ret (inr tt) )) tt.
+
+Definition decide_ex_prefix : ev_list NonDet -> Prop := fun log => log = nil.
+
+Variant is_bool (b : bool) : forall A, EvAns NonDet A -> Prop := 
+  | is_bool_matches : is_bool b unit (evans bool Decide b)
+. 
+
+Hint Constructors is_bool.
+
+Definition fal_decide_ex : ibranch NonDet unit -> Prop :=
+  front_and_last (is_bool true) (is_bool false) (fun _ => True).
+
+Definition decide_ex_post : ibranch NonDet unit -> Prop := 
+  fun b => (must_diverge b -> branch_forall (is_bool true) (fun _ => True) b) /\ 
+        (can_converge tt b -> fal_decide_ex b).
+
+Lemma decide_ex_satisfies_spec : verify_cond NonDet (encode NonDet decide_ex_post decide_ex_prefix ) decide_ex.
+Proof.
+  repeat red. cbn. intros. destruct H as [Hlog H].
+  red in Hlog. apply H. clear H. subst. cbn. red. split; intros.
+  - unfold append in *. rewrite bind_ret in H. rewrite bind_ret.
+    unfold decide_ex in *. 
+    generalize dependent b. pcofix CIH. intros b Hb Hdiv.
+    pfold. red.
+    rewrite unfold_iter in Hb at 1. rewrite bind_bind in Hb.
+    apply bind_trigger_refine in Hb as Hb'; try (exists true; auto).
+    basic_solve. destruct a.
+    + rewrite bind_ret in H0. cbn in H0. rewrite tau_eutt in H0. 
+      punfold H. red in H. cbn in H. clear Hb. 
+      enough (paco1 (branch_forall_ (is_bool true) (fun _ => True) ) r b). 
+      { punfold H1. }
+      dependent induction H.
+      *  pfold. red. rewrite <- x. constructor; auto. intros.
+        destruct a. right. pclearbot. eapply CIH.
+        ++ assert (k1 tt ≈ k' tt)%itree; try apply REL.
+           rewrite H. auto.
+        ++ apply simpobs in x. rewrite x in Hdiv. pinversion Hdiv.
+           inj_existT; subst. apply H1.
+      *  pfold. red. rewrite <- x. constructor. left.  eapply IHeqitF; eauto. 
+         apply simpobs in x. rewrite x in Hdiv. rewrite tau_eutt in Hdiv. auto. 
+   + rewrite bind_ret in H0. cbn in H0. apply branch_refine_ret_inv_l in H0.
+     rewrite H in Hdiv. pinversion Hdiv. inj_existT. subst.
+     assert (must_diverge (k' tt)); try apply H2. rewrite H0 in H1. pinversion H1.
+  - red. rewrite append_nil. rewrite append_nil in H. unfold decide_ex in *.
+    induction H.
+    + exfalso. rewrite H in H0. rewrite unfold_iter in H0.
+      rewrite bind_bind in H0. rewrite bind_trigger in H0. pinversion H0.
+    + rewrite H. destruct e; try contradiction.
+      destruct b. destruct ev. destruct ans.
+      * eapply front_and_last_cons; eauto; try reflexivity. apply IHcan_converge.
+        clear IHcan_converge. rewrite unfold_iter in H0. rewrite bind_bind in H0.
+        rewrite H in H0. eapply bind_trigger_refine in H0; try (exists true; auto).
+        basic_solve.
+        pinversion H0. inj_existT; subst. injection H7 as Hbool. inj_existT; subst.
+        assert (k tt ≈ k' tt)%itree; try apply REL. rewrite bind_ret in H2.
+        cbn in *. rewrite tau_eutt in H2. rewrite H3. auto.
+      * clear IHcan_converge. rewrite unfold_iter in H0. rewrite bind_bind in H0.
+        rewrite H in H0. eapply bind_trigger_refine in H0; try (exists true; auto).
+        basic_solve.
+        pinversion H0. inj_existT; subst. injection H7 as Hbool. inj_existT; subst.
+        rewrite bind_ret in H2. cbn in H2.
+        apply branch_refine_ret_inv_l in H2. eapply front_and_last_base with (r := tt); eauto.
+        pfold. red. cbn. constructor. intros. left. 
+        rewrite <- H2. destruct v. auto.
+  Qed.
+
+End NonDetExample.

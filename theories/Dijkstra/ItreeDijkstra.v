@@ -424,6 +424,9 @@ Section ITreeDijkstra.
     intros. inversion H; subst; basic_solve; auto.
     pinversion H0.
   Qed.
+
+  
+
     
   Program Instance ItreeSpecMonadLaws : MonadLaws ITreeSpec.
   Next Obligation.
@@ -1086,3 +1089,66 @@ Section ITreeDijkstra.
   Definition PredDeriv ()
 *)
 End ITreeDijkstra.
+
+Section RetBindCounter.
+
+  Variant Sound : Type -> Type :=
+    Ring : Sound unit.
+
+  (* Program Definition ret_itree (A : Type) (a : A) : ITreeSpec A := fun p => p (Ret a). *)
+
+  (* Program Definition bind_ex (A B: Type) (w: ITreeSpec A) (g : A -> ITreeSpec B) : ITreeSpec B :=
+    fun p  => 
+      w (fun t => (exists a, can_converge a t /\ g a p) \/ (must_diverge t /\  p (div_cast t)) ).
+*)
+
+  (* ret_bind : forall (a : Type) (x : DelaySpec a), bind x (fun y : a => ret y) ≈ x*)
+
+  Program Definition p : ITDInput Sound unit := fun t => t ≈ Vis Ring (fun _ => Ret tt).
+  Next Obligation.
+    repeat red. intros. split; rewrite H; auto.
+  Qed.
+
+  
+(*PROBLEM: if p just respects eutt, then p (ret a0) might mean
+          p expects no events
+          consider p := fun t => exists a, t ~ ret a
+          but the evidence can_converge a0 t does not force t to be a Ret
+          the issue seems to be that 
+         *)
+
+        (*
+          The obvious solution is to further restrict predicates from resp eutt
+          to respecting possible convergence. This is a bad solution,
+          we want to be able to do something like have a predicate that 
+          accepts all trees that print 5 and then return 6. This would be 
+          an illegal predicate
+         *)
+
+
+  
+  Program Definition w : ITreeSpec Sound unit := fun p => p (Vis Ring (fun _ => Ret tt) ).
+  (*This proof is hideous for a few reasons but it is a good start,
+    and great confirmation that our whole IBranch excursion wasn't a 
+    soul crushing waste of time
+   *)
+  Lemma bind_ret_failure : ~ forall p, p ∈ w -> p ∈ (bind_ex Sound _ _ w (fun a => ret_itree Sound _ a) ).
+  Proof.
+    cbn. intros Hcontra.
+    specialize (Hcontra p).
+    assert (p ∋ Vis Ring (fun _ => Ret tt)).
+    {
+      unfold p. cbn. reflexivity.
+    }
+    apply Hcontra in H. clear Hcontra. basic_solve.
+    - unfold p in H0. cbn in H0. pinversion H0.
+    - clear H0. pinversion H; try apply must_divergeF_mono'.
+      apply inj_pair2 in H3. subst. specialize (H1 tt). punfold H1;
+                                                          try apply must_divergeF_mono'.
+      inv H1.
+  Qed.
+
+
+  End RetBindCounter. 
+
+  (*how to make the w*)
