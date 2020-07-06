@@ -1,3 +1,4 @@
+
 (** * Strong bisimulation *)
 
 (** Because [itree] is a coinductive type, the naive [eq] relation
@@ -1347,5 +1348,6 @@ Proof.
     inv EQ2.
     reflexivity.
 Qed.
+
 
 
