@@ -25,13 +25,13 @@ Open Scope monad_scope.
 Section BasicFacts.
 
   Context {m : Type -> Type}.
-  Context {EqM : EqM m}.
+  Context {Eq1 : Eq1 m}.
   Context {Mm : Monad m}.
-  Context {EqMP : @EqMProps m _ EqM}.
-  Context {ML : @MonadLaws m EqM Mm}.
+  Context {Eq1P : @Eq1Equivalence m _ Eq1}.
+  Context {ML : @MonadLawsE m Eq1 Mm}.
   
   Instance Proper_Kleisli_apply {a b} :
-    Proper (eq2 ==> eq ==> eqm) (@Kleisli_apply m a b).
+    Proper (eq2 ==> eq ==> eq1) (@Kleisli_apply m a b).
   Proof.
     cbv; intros; subst; auto.
   Qed.
@@ -74,7 +74,7 @@ Proof.
   apply Proper_bind; auto.
 Qed.
 
-Local Opaque bind ret eqm.
+Local Opaque bind ret eq1.
 
 Lemma pure_assoc_l {a b c : Type}
   : assoc_l (C := Kleisli m) (bif := sum)
@@ -373,5 +373,5 @@ End BasicFacts.
 
 Notation Proper_iter m a b :=
   (@Proper (Kleisli m a (sum a b)%type -> (Kleisli m a b))
-           (pointwise_relation _ eqm ==> pointwise_relation _ eqm)
+           (pointwise_relation _ eq1 ==> pointwise_relation _ eq1)
            iter).

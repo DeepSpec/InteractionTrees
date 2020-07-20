@@ -1,6 +1,6 @@
 (* SAZ: I'm not sure where in the library this should live.
     The Monad instance for itree is in ITreeDefinition but we want
-    to define EqM and MonadLaws instances too.
+    to define Eq1 and MonadLawsE instances too.
 *)
 
 From ITree Require Import
@@ -10,25 +10,25 @@ From ITree Require Import
      Eq.Eq
      Eq.UpToTaus.
 
-Instance EqM_ITree {E} : EqM (itree E) := fun a => eutt eq.
+Instance Eq1_ITree {E} : Eq1 (itree E) := fun a => eutt eq.
 
-Instance EqMProps_ITree {E} : EqMProps (itree E).
+Instance Eq1Equivalence_ITree {E} : Eq1Equivalence (itree E).
 Proof.
   repeat red.
   intros a.
   typeclasses eauto.
 Qed.
 
-Instance MonadLaws_ITree {E} : MonadLaws (itree E).
+Instance MonadLawsE_ITree {E} : MonadLawsE (itree E).
 Proof.
   constructor.
   - intros a b f x.
     unfold Monad.bind, Monad.ret, Monad_itree.
-    unfold eqm, EqM_ITree. rewrite bind_ret_l. reflexivity.
+    unfold eq1, Eq1_ITree. rewrite bind_ret_l. reflexivity.
   - intros a x.    unfold Monad.bind, Monad.ret, Monad_itree.
-    unfold eqm, EqM_ITree. rewrite bind_ret_r. reflexivity.
+    unfold eq1, Eq1_ITree. rewrite bind_ret_r. reflexivity.
   - intros a b c x f g. unfold Monad.bind, Monad.ret, Monad_itree.
-    unfold eqm, EqM_ITree. rewrite bind_bind. reflexivity.
+    unfold eq1, Eq1_ITree. rewrite bind_bind. reflexivity.
   - unfold Monad.bind, Monad_itree.
     intros.
     repeat red.

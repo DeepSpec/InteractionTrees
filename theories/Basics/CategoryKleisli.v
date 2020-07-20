@@ -7,7 +7,7 @@
   category [Fun], as the notion of morphism equivalence is
   different. The category [Fun] uses pointwise equality,
   [eq ==> eq], while [Kleisli m] uses pointwise equivalence,
-  [eq ==> eqm], for an equivalence relation [eqm] associated
+  [eq ==> eq1], for an equivalence relation [eq1] associated
   with the monad [m]. The right underlying category for [Kleisli]
   would be a category of setoids and respectful functions, but
   this seems awkward to program with. Investigating this
@@ -45,10 +45,10 @@ Definition pure {m} `{Monad m} {a b} (f : a -> b) : Kleisli m a b :=
 Section Instances.
   Context {m : Type -> Type}.
   Context `{Monad m}.
-  Context `{EqM m}.
+  Context `{Eq1 m}.
 
   Global Instance Eq2_Kleisli : Eq2 (Kleisli m) :=
-    fun _ _ => pointwise_relation _ eqm.
+    fun _ _ => pointwise_relation _ eq1.
 
   Global Instance Cat_Kleisli : Cat (Kleisli m) :=
     fun _ _ _ u v x =>
