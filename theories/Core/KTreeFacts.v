@@ -39,14 +39,14 @@ Lemma bind_iter {E A B C} (f : A -> itree E (A + B)) (g : B -> itree E (B + C))
        end) (inl x).
 Proof.
   einit. ecofix CIH. intros.
-  rewrite !unfold_iter. unfold ITree._iter.
+  rewrite !unfold_iter.
   rewrite bind_map, bind_bind.
   ebind; econstructor; try reflexivity.
   intros [a | b] _ [].
   - rewrite bind_tau. etau.
   - rewrite bind_ret_l, tau_euttge.
     revert b. ecofix CIH'. intros.
-    rewrite !unfold_iter. unfold ITree._iter.
+    rewrite !unfold_iter.
     rewrite bind_map.
     ebind; econstructor; try reflexivity.
     intros [b' | c] _ []; cbn.

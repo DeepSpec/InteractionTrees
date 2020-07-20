@@ -1,11 +1,18 @@
-.PHONY: all build extraction clean
+.PHONY: all extraction clean
 
 all: coq extraction
+
+coq: output
+
+EXTRDIR:=output
+
+$(EXTRDIR):
+	mkdir -p $(EXTRDIR)
 
 include ../common.mk
 
 extraction: coq
-	ocamlbuild extraction/MetaModule.native -no-links
+	sh extraction-test.sh
 
 clean: clean-coq
 	$(RM) -rf _build/

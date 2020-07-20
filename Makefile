@@ -22,6 +22,7 @@ test: examples tests
 
 tests:
 	$(MAKE) -C tests
+	$(MAKE) -C tutorial test
 
 examples:
 	$(MAKE) -C examples
