@@ -41,5 +41,7 @@ tests/extraction/*.mli
 examples/io.ml
 examples/io.mli
 examples/extracted/
+tutorial/imp_test.ml
+tutorial/imp_test.mli
 
 *.native
