@@ -14,3 +14,13 @@ Proof.
   rewrite interp_id_h.
   reflexivity.
 Qed.
+
+(* Regression test for #182 ([ITree.iter] should be executable even when the loop is infinite
+   (the body is always [Ret (inl _)]) *)
+Definition iter_spin : itree void1 void :=
+  iter (C := ktree _) (fun _ : unit => Ret (@inl unit void tt)) tt.
+
+Require Extraction.
+
+(* This should NOT loop forever. *)
+Extraction "output/test.ml" iter_spin.

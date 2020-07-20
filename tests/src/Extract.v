@@ -1,10 +1,10 @@
-Require TestExtraction.MetaModule.
+Require ITreeTest.MetaModule.
 
 Require Extraction.
 
 Extraction Language OCaml.
 Extraction Blacklist String List Char Core Z.
 
-Cd "extraction".
+Cd "output".
 Recursive Extraction Library MetaModule.
 Cd "..".
