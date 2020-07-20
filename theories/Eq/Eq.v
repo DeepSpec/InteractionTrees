@@ -855,7 +855,7 @@ Proof.
 Qed.
 
 Lemma unfold_iter {E A B} (f : A -> itree E (A + B)) (x : A) :
-  (ITree.iter f x) ≅ (f x >>= ITree._iter (fun t => Tau t) (ITree.iter f)).
+  (ITree.iter f x) ≅ (f x >>= fun lr => ITree.on_left lr l (Tau (ITree.iter f l))).
 Proof.
   rewrite unfold_aloop_. reflexivity.
 Qed.
@@ -1163,7 +1163,7 @@ Proof.
       specialize (IHeqitF ma (fun _ => t1) t1 eq_refl).
       edestruct IHeqitF as (a & ? & ?);[| reflexivity |].
       * setoid_rewrite itree_eta at 4.
-        rewrite Hobma, Eq.bind_ret_l.
+        rewrite Hobma, bind_ret_l.
         reflexivity.
       * exists a; split; auto.
         rewrite itree_eta, Hobma in H1.
@@ -1259,7 +1259,7 @@ Proof.
       specialize (IHeqitF A ma (fun _ => t1) t1 eq_refl).
       edestruct IHeqitF as [a | a];[| reflexivity | | ].
       * setoid_rewrite itree_eta at 4.
-        rewrite Hobma, Eq.bind_ret_l.
+        rewrite Hobma, bind_ret_l.
         reflexivity.
       * left.
         destruct a as (kca & HMA & HEQ).

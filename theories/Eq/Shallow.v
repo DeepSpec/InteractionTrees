@@ -112,7 +112,7 @@ Proof. apply @unfold_bind_. Qed.
 Lemma unfold_aloop_ {E A B} (f : A -> itree E (A + B)) (x : A) :
   observing eq
     (ITree.iter f x)
-    (ITree.bind (f x) (ITree._iter (fun t => Tau t) (ITree.iter f))).
+    (ITree.bind (f x) (fun lr => ITree.on_left lr l (Tau (ITree.iter f l)))).
 Proof.
   constructor; reflexivity.
 Qed.
