@@ -14,6 +14,7 @@ From ITree Require Import
      Basics.Category
      Basics.CategoryKleisli
      Basics.Monad
+     Basics.HeterogeneousRelations
      Core.ITreeDefinition
      Core.KTree
      Core.KTreeFacts

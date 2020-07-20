@@ -24,6 +24,8 @@ From Coq Require Import
 From Paco Require Import paco.
 
 From ITree Require Import
+     Basics.Basics
+     Basics.HeterogeneousRelations
      Core.ITreeDefinition.
 
 From ITree Require Export
@@ -73,7 +75,7 @@ Section eqit.
       Then the desired equivalence relation is obtained by setting
       [RR := eq] (with [R1 = R2]).
    *)
-  Context {E : Type -> Type} {R1 R2 : Type} (RR : R1 -> R2 -> Prop).
+  Context {E : Type -> Type} {R1 R2 : Type} (RR : relationH R1 R2).
 
   (** We also need to do some gymnastics to work around the
       two-layered definition of [itree]. We first define a
@@ -85,7 +87,7 @@ Section eqit.
       pattern-matching is not allowed on [itree].
    *)
 
-  Inductive eqitF (b1 b2: bool) vclo (sim : itree E R1 -> itree E R2 -> Prop) :
+  Inductive eqitF (b1 b2: bool) vclo (sim : relationH (itree E R1) (itree E R2)) :
     itree' E R1 -> itree' E R2 -> Prop :=
   | EqRet r1 r2
        (REL: RR r1 r2):
@@ -161,19 +163,48 @@ Hint Unfold eutt: core.
 Hint Unfold euttge: core.
 Hint Unfold id: core.
 
+
 Ltac unfold_eqit :=
   (try match goal with [|- eqit_ _ _ _ _ _ _ _ ] => red end);
   (repeat match goal with [H: eqit_ _ _ _ _ _ _ _ |- _ ] => red in H end).
 
+
+Global Instance eqitF_Proper_R {E : Type -> Type} {R1 R2:Type} : Proper ( (@eq_rel R1 R2) ==> eq ==> eq ==> (eq_rel ==> eq_rel) ==> eq_rel ==> eq_rel)
+                                                                       (@eqitF E R1 R2).
+Proof.
+  repeat red.
+  intros. subst. split; unfold subrelationH; intros.
+  - induction H0; try auto.
+    econstructor. apply H. assumption.
+    econstructor. apply H3. assumption.
+    econstructor. intros. specialize (REL v). specialize (H2 x3 y3). apply H2 in H3. apply H3. assumption.
+  - induction H0; try auto.
+    econstructor. apply H. assumption.
+    econstructor. apply H3. assumption.
+    econstructor. intros. specialize (REL v). specialize (H2 x3 y3). apply H2 in H3. apply H3. assumption.
+Qed.
+
+Global Instance eqitF_Proper_R2 {E : Type -> Type} {R1 R2:Type} : Proper ( (@eq_rel R1 R2) ==> eq ==> eq ==> eq ==> eq ==> eq ==> eq ==> iff)
+                                                                       (@eqitF E R1 R2).
+Proof.
+  repeat red.
+  intros. subst. split; intros.
+  - induction H0; try auto.
+    econstructor. apply H. assumption.
+  - induction H0; try auto.
+    econstructor. apply H. assumption.
+Qed.
+
+
 Definition flip_clo {A B C} clo r := @flip A B C (clo (@flip B A C r)).
 
-Lemma eqitF_flip {E R1 R2} (RR : R1 -> R2 -> Prop) b1 b2 vclo r:
+Lemma eqitF_flip {E R1 R2} (RR : relationH R1 R2) b1 b2 vclo r:
   flip (eqitF (flip RR) b2 b1 (flip_clo vclo) (flip r)) <2= @eqitF E R1 R2 RR b1 b2 vclo r.
 Proof.
   intros. induction PR; eauto.
 Qed.
 
-Lemma eqit_flip {E R1 R2} (RR : R1 -> R2 -> Prop) b1 b2:
+Lemma eqit_flip {E R1 R2} (RR : relationH R1 R2) b1 b2:
   forall (u : itree E R1) (v : itree E R2),
     eqit (flip RR) b2 b1 v u -> eqit RR b1 b2 u v.
 Proof.
@@ -214,12 +245,12 @@ Infix "≳" := (euttge eq) (at level 70) : itree_scope.
 
 Section eqit_closure.
 
-Context {E : Type -> Type} {R1 R2 : Type} (RR : R1 -> R2 -> Prop).
+Context {E : Type -> Type} {R1 R2 : Type} (RR : relationH R1 R2).
 
 (** *** "Up-to" principles for coinduction. *)
 
-Inductive eqit_trans_clo b1 b2 b1' b2' (r : itree E R1 -> itree E R2 -> Prop)
-  : itree E R1 -> itree E R2 -> Prop :=
+Inductive eqit_trans_clo b1 b2 b1' b2' (r : relationH (itree E R1) (itree E R2))
+  : relationH (itree E R1) (itree E R2) :=
 | eqit_trans_clo_intro t1 t2 t1' t2' RR1 RR2
       (EQVl: eqit RR1 b1 b1' t1 t1')
       (EQVr: eqit RR2 b2 b2' t2 t2')
@@ -245,7 +276,7 @@ Hint Resolve eqitC_mon : paco.
 
 Lemma eqitC_wcompat b1 b2 vclo
       (MON: monotone2 vclo)
-      (CMP: compose (eqitC b1 b2) vclo <3= compose vclo (eqitC b1 b2)):
+      (CMP: Basics.compose (eqitC b1 b2) vclo <3= Basics.compose vclo (eqitC b1 b2)):
   wcompatible2 (@eqit_ E R1 R2 RR b1 b2 vclo) (eqitC b1 b2).
 Proof.
   econstructor. pmonauto.
@@ -280,7 +311,7 @@ Qed.
 
 Hint Resolve eqitC_wcompat : paco.
 
-Lemma eqit_idclo_compat b1 b2: compose (eqitC b1 b2) id <3= compose id (eqitC b1 b2).
+Lemma eqit_idclo_compat b1 b2: Basics.compose (eqitC b1 b2) id <3= Basics.compose id (eqitC b1 b2).
 Proof.
   intros. apply PR.
 Qed.
@@ -296,7 +327,7 @@ Hint Resolve eqitC_dist : paco.
 
 Lemma eqit_clo_trans b1 b2 vclo
       (MON: monotone2 vclo)
-      (CMP: compose (eqitC b1 b2) vclo <3= compose vclo (eqitC b1 b2)):
+      (CMP: Basics.compose (eqitC b1 b2) vclo <3= Basics.compose vclo (eqitC b1 b2)):
   eqit_trans_clo b1 b2 false false <3= gupaco2 (eqit_ RR b1 b2 vclo) (eqitC b1 b2).
 Proof.
   intros. destruct PR. gclo. econstructor; eauto with paco.
@@ -656,10 +687,47 @@ Proof.
   pstep. repeat red. simpobs. simpl. subst. pstep_reverse. apply Reflexive_eqit; eauto.
 Qed.
 
+(** *** E*)
+
+
+Global Instance eqit_Proper_R {E : Type -> Type} {R1 R2:Type}
+  : Proper ( (@eq_rel R1 R2) ==> eq ==> eq ==> eq ==> eq ==> iff) (@eqit E R1 R2).
+Proof.
+  repeat red.
+  intros. subst.
+  split.
+  -  revert_until y1. pcofix CIH. intros.
+     pstep. punfold H1. red in H1. red.
+     hinduction H1 before CIH; intros; eauto.
+     + apply EqRet. apply H. assumption.
+     + apply EqTau. right. apply CIH. pclearbot. pinversion REL.
+     + apply EqVis. intros. red. right. apply CIH.
+       specialize (REL v).
+       red in REL. pclearbot. pinversion REL.
+  -  revert_until y1. pcofix CIH. intros.
+     pstep. punfold H1. red in H1. red.
+     hinduction H1 before CIH; intros; eauto.
+     + apply EqRet. apply H. assumption.
+     + apply EqTau. right. apply CIH. pclearbot. pinversion REL.
+     + apply EqVis. intros. red. right. apply CIH.
+       specialize (REL v).
+       red in REL. pclearbot. pinversion REL.
+Qed.
+
+Global Instance eutt_Proper_R {E : Type -> Type} {R1 R2:Type}
+  : Proper ( (@eq_rel R1 R2) ==> eq ==> eq ==> iff) (@eutt E R1 R2).
+Proof.
+  unfold eutt. repeat red.
+  intros. split; intros; subst.
+  - rewrite <- H. assumption.
+  - rewrite H. assumption.
+Qed.
+
+
 (** *** Transitivity properties *)
 
-Inductive rcompose {R1 R2 R3} (RR1: R1->R2->Prop) (RR2: R2->R3->Prop) (r1: R1) (r3: R3) : Prop :=
-| rcompose_intro r2 (REL1: RR1 r1 r2) (REL2: RR2 r2 r3)
+Inductive rcompose {R1 R2 R3} (RR1: relationH R1 R2) (RR2: relationH R2 R3): relationH R1 R3 :=
+| rcompose_intro r1 r2 r3 (REL1: RR1 r1 r2) (REL2: RR2 r2 r3) : rcompose RR1 RR2 r1 r3
 .
 Hint Constructors rcompose: core.
 
@@ -826,11 +894,10 @@ Qed.
 
 (* TODO (LATER): I keep these [...bind_] lemmas around temporarily
    in case I run some issues with slow typeclass resolution. *)
-
 Lemma unfold_bind {E R S}
            (t : itree E R) (k : R -> itree E S) :
   ITree.bind t k ≅ ITree._bind k (fun t => ITree.bind t k) (observe t).
-Proof. rewrite unfold_bind_. reflexivity. Qed.
+Proof. try rewrite unfold_bind_. reflexivity. Qed.
 
 Lemma bind_ret_l {E R S} (r : R) (k : R -> itree E S) :
   ITree.bind (Ret r) k ≅ (k r).
@@ -922,7 +989,11 @@ Hint Constructors eqit_bind_clo: core.
 
 Lemma eqit_clo_bind b1 b2 vclo
       (MON: monotone2 vclo)
+<<<<<<< HEAD
       (CMP: compose (eqitC RR b1 b2) vclo <3= compose vclo (eqitC RR b1 b2))
+=======
+      (CMP: Basics.compose (eqitC RR b1 b2) vclo <3= Basics.compose vclo (eqitC RR b1 b2))
+>>>>>>> c2ea0c2ff2110057be93fd69cf8af4de13c7eae2
       (ID: id <3= vclo):
   eqit_bind_clo b1 b2 <3= gupaco2 (eqit_ RR b1 b2 vclo) (eqitC RR b1 b2).
 Proof.

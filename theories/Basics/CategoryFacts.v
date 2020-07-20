@@ -121,6 +121,31 @@ Qed.
 
 End CategoryFacts.
 
+(* If we have a PER defined on the equivalence of a category, eq2 is an equivalence. *)
+Section PER_CategoryFacts.
+
+  Context {obj : Type} (C : Hom obj).
+  Context {Eq2C : Eq2 C} {IdC : Id_ C} {CatC : Cat C}.
+  Context {CategoryC : Category C}.
+
+  Context {PER_Eq2 : forall a b, PER (eq2 (a := a) (b := b))}.
+
+  Instance Eq2_Reflexive : forall a b, Reflexive (eq2 (a := a) (b := b)).
+  Proof.
+    repeat intro.
+    destruct CategoryC.
+    unfold CatIdL in *.
+    specialize (category_cat_id_l a b x).
+    etransitivity. symmetry. apply category_cat_id_l. apply category_cat_id_l.
+  Qed.
+
+  Instance Eq2_Equivalence : forall a b, Equivalence (eq2 (a := a) (b := b)).
+  Proof.
+    intros a b; constructor; typeclasses eauto.
+  Qed.
+
+End PER_CategoryFacts.
+
 Hint Resolve @initial_unique : cat.
 
 (** ** Bifunctors *)

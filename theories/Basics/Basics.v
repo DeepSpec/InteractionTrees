@@ -7,6 +7,8 @@ From Coq Require
      Ensembles.
 
 From Coq Require Import
+     Morphisms
+     Setoid
      RelationClasses.
 
 From ExtLib Require Import

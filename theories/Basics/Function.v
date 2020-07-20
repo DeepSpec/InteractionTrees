@@ -44,6 +44,10 @@ Instance case_sum : Case Fun sum :=
     | inr b => g b
     end.
 
+Instance pair_prod: Pair Fun prod :=
+  fun {A B C} (f : C -> A) (g : C -> B) (c: C) =>
+    (f c, g c).
+
 (** Injections *)
 Instance sum_inl : Inl Fun sum := @inl.
 Instance sum_inr : Inr Fun sum := @inr.

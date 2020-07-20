@@ -43,3 +43,8 @@ examples/io.mli
 examples/extracted/
 
 *.native
+
+# Emacs Generated Files
+*~
+\#*\#
+.\#*

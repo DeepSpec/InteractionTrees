@@ -380,7 +380,8 @@ Proof.
         eapply MON; [|intros; gbase; eapply CIH; eauto].
         eapply CLOV.
         { intros. destruct PR, EQR.
-          econstructor; [|eauto|]; eauto using eqit_trans; auto_ctrans. }
+          econstructor; [|eauto|]; eauto using eqit_trans; auto_ctrans.
+        }
         econstructor; eauto.
         eapply MON; eauto. intros.
         econstructor; try reflexivity; auto_ctrans.
@@ -397,7 +398,8 @@ Proof.
       eapply MON; [|intros; gbase; eapply CIH; eauto].
       eapply CLOV.
       { intros. destruct PR, EQR.
-        econstructor; swap 1 2; eauto using eqit_trans; auto_ctrans. }
+        econstructor; swap 1 2; eauto using eqit_trans; auto_ctrans.
+      }
       econstructor; eauto.
       eapply MON; eauto. intros.
       econstructor; auto_ctrans_eq; try reflexivity.

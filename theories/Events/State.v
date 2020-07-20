@@ -9,8 +9,12 @@ From ExtLib Require Import
 
 From ITree Require Import
      Basics.Basics
+     Basics.Monad
      Basics.CategoryOps
      Basics.CategoryKleisli
+     Basics.MayRet
+     Eq.Eq
+     Core.ITreeMonad
      Core.ITreeDefinition
      Indexed.Function
      Indexed.Sum
@@ -20,6 +24,9 @@ From ITree Require Import
 Import ITree.Basics.Basics.Monads.
 Import ITreeNotations.
 
+Import CatNotations.
+Local Open Scope cat_scope.
+Local Open Scope cat.
 Open Scope itree_scope.
 (* end hide *)
 
@@ -61,13 +68,75 @@ Section State.
   Definition run_state {E}
     : itree (stateE +' E) ~> stateT S (itree E)
     := interp_state (case_ h_state pure_state).
-
 End State.
 
 Arguments get {S E _}.
 Arguments put {S E _}.
 Arguments run_state {S E} [_] _ _.
 
+
+Section MayRet.
+
+  Context {S : Type}.
+  Context {E : Type -> Type}.
+  Context `{stateE S -< E}.
+
+  From Paco Require Import paco.
+  Lemma impure_get:
+    impure get.
+  Proof.
+    unfold impure. unfold not. intros.
+    edestruct H0.
+    destruct (observe get) eqn: H' in *; try inversion H'.
+    subst. unfold get in *. cbn in *.
+    unfold trigger in H1. punfold H1. unfold eqit_ in H1.
+    inversion H1.
+  Qed.
+
+  Lemma impure_put:
+    forall x, impure (put x).
+  Proof.
+    unfold impure, not. intros.
+    edestruct H0.
+    destruct (observe (put x)) eqn: H' in *; try inversion H'.
+    subst. unfold put in *. cbn in *.
+    unfold trigger in H1. punfold H1. unfold eqit_ in H1.
+    inversion H1.
+  Qed.
+
+  Lemma atomic_get:
+    atomic get.
+  Proof.
+    unfold atomic. split; [ | apply impure_get].
+    intros B mb k EQ Hi v Hm.
+    unfold impure, not. intros.
+    apply H0.
+    generalize dependent (k v).
+    generalize dependent k.
+    generalize dependent Hi.
+    induction Hm. intros.
+    - unfold impure, not in Hi.
+      edestruct Hi. exists a. reflexivity.
+    - specialize (IHHm1 H0). intros.
+      setoid_rewrite bind_bind in EQ.
+      specialize (IHHm1 _ EQ _ H1).
+      apply IHHm1.
+  Qed.
+
+  (* IY: This isn't quite the right type.. Doesn't really make sense, since
+     get and put return different types.
+   *)
+  Lemma atomic_ma_eqmR :
+    forall ma, atomic ma -> ma ≈ get \/ exists (x : S), ma ≈ put x.
+  Proof.
+    intros * HA.
+    destruct HA as (HA & HI).
+    unfold impure, not in HI.
+    unfold get, put, embed, Embeddable_itree, Embeddable_forall, embed, trigger.
+    unfold not in HA.
+  Admitted.
+
+End MayRet.
 
 (* ----------------------------------------------------------------------- *)
 (* SAZ: The code from here to <END> below doesn't belong to State.v  it should 

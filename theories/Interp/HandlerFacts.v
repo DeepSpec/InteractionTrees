@@ -184,6 +184,7 @@ Proof.
       Local Transparent eutt.
       ebind. apply (pbc_intro_h _ _ _ _ _ eq).
       { rewrite interp_mrec_as_interp, interp_interp.
+        Typeclasses eauto := 7. (* IY : rewriting interp_id_h requires this. *)
         rewrite <- interp_id_h at 1.
         eapply eutt_interp; try reflexivity.
         intros ? ?.
