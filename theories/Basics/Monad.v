@@ -15,38 +15,42 @@ From ITree Require Import
 
 Set Primitive Projections.
 
-Class EqM (m:Type -> Type) : Type :=
-  eqm : forall a, m a -> m a -> Prop.
+(* Canonical equivalence relation for a unary type family. *)
+Class Eq1 (M : Type -> Type) : Type :=
+  eq1 : forall A, M A -> M A -> Prop.
 
-Class EqMProps (m:Type -> Type) `{Monad m} `{EqM m} :=
-      eqm_equiv :> forall a, Equivalence (eqm a).
+(* Proof that [eq1] is an equivalence relation. *)
+Class Eq1Equivalence (M : Type -> Type) `{Monad M} `{Eq1 M} :=
+  eq1_equiv :> forall A, Equivalence (eq1 A).
 
-Arguments eqm {m _ _}.
-Infix "≈" := eqm (at level 70) : monad_scope.
+Arguments eq1 {M _ _}.
+Infix "≈" := eq1 (at level 70) : monad_scope.
 
 Section Laws.
 
-  Context (m : Type -> Type).
-  Context {EqM : @EqM m}.
-  Context {Mm : Monad m}.
-  Context {EqMP : @EqMProps m _ EqM}.
+  Context (M : Type -> Type).
+  Context {Eq1 : @Eq1 M}.
+  Context {Monad : Monad M}.
 
   Local Open Scope monad_scope.
 
-  (* This should go coq-ext-lib. *)
-  Class MonadLaws :=
-    { bind_ret_l : forall a b (f : a -> m b) (x : a), bind (ret x) f ≈ f x
-    ; bind_ret_r : forall a (x : m a), bind x (fun y => ret y) ≈ x
-    ; bind_bind : forall a b c (x : m a) (f : a -> m b) (g : b -> m c), bind (bind x f) g ≈ bind x (fun y => bind (f y) g)
-    ; Proper_bind :> forall {a b},
-        (@Proper (m a%type -> (a -> m b) -> m b)
-         (eqm ==> pointwise_relation _ eqm ==> eqm)
+  (* Monad laws up to [M]'s canonical equivalence relation. *)
+  (* This differs coq-ext-lib's [MonadLaws] in that the equiv. relation may be
+     distinct from [eq]. *)
+  Class MonadLawsE : Prop :=
+    { bind_ret_l : forall A B (f : A -> M B) (x : A), bind (ret x) f ≈ f x
+    ; bind_ret_r : forall A (x : M A), bind x (fun y => ret y) ≈ x
+    ; bind_bind : forall A B C (x : M A) (f : A -> M B) (g : B -> M C),
+        bind (bind x f) g ≈ bind x (fun y => bind (f y) g)
+    ; Proper_bind :> forall {A B},
+        (@Proper (M A -> (A -> M B) -> M B)
+         (eq1 ==> pointwise_relation _ eq1 ==> eq1)
          bind)
     }.
 
 End Laws.
 
-Arguments bind_ret_l {m _ _ _}.
-Arguments bind_ret_r {m _ _ _}.
-Arguments bind_bind {m _ _ _}.
-Arguments Proper_bind {m _ _ _}.
+Arguments bind_ret_l {M _ _ _}.
+Arguments bind_ret_r {M _ _ _}.
+Arguments bind_bind {M _ _ _}.
+Arguments Proper_bind {M _ _ _}.

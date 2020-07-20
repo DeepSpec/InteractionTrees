@@ -21,17 +21,17 @@ Local Open Scope cat.
 Section State.
   Variable M : Type -> Type.
   Variable S : Type.
-  Context {EQM : EqM M}.
+  Context {EQM : Eq1 M}.
   Context {HM: Monad M}.
-  Context {HEQP: @EqMProps M _ EQM}.
-  Context {ML: @MonadLaws M _ HM}.
+  Context {HEQP: @Eq1Equivalence M _ EQM}.
+  Context {ML: @MonadLawsE M _ HM}.
 
-  Global Instance EqM_stateTM : EqM (stateT S M).
+  Global Instance Eq1_stateTM : Eq1 (stateT S M).
   Proof.
-    exact (fun a => pointwise_relation _ eqm).
+    exact (fun a => pointwise_relation _ eq1).
   Defined.
 
-  Global Instance EqMProps_stateTM : @EqMProps (stateT S M) _ EqM_stateTM.
+  Global Instance Eq1Equivalence_stateTM : @Eq1Equivalence (stateT S M) _ Eq1_stateTM.
   Proof.
   constructor.
   - repeat red.
@@ -40,7 +40,7 @@ Section State.
   - repeat red. intros. etransitivity; eauto. apply H.  apply H0.
   Qed.
 
-  Instance MonadLaws_stateTM : @MonadLaws (stateT S M) _ _.
+  Instance MonadLawsE_stateTM : @MonadLawsE (stateT S M) _ _.
   Proof.
   constructor.
   - cbn. intros a b f x.
@@ -210,9 +210,9 @@ Section State.
   Qed.
 
 
-  Lemma eq2_to_eqm : forall a b (f g : Kleisli (stateT S M) a b) (x:a) (s:S),
+  Lemma eq2_to_eq1 : forall a b (f g : Kleisli (stateT S M) a b) (x:a) (s:S),
       eq2 f g ->
-      eqm (f x s) (g x s).
+      eq1 (f x s) (g x s).
   Proof.
     intros a b f g x s H.
     apply H.

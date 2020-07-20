@@ -25,9 +25,9 @@ Section prop.
     bind := fun _ _ Pa K b => exists a, In _ Pa a /\ In _ (K a) b
     |}.
 
-  Global Instance EqM_Prop : EqM Ensemble := Same_set.
+  Global Instance Eq1_Prop : Eq1 Ensemble := Same_set.
 
-  Global Instance EqMProps_Prop : EqMProps Ensemble.
+  Global Instance Eq1Equivalence_Prop : Eq1Equivalence Ensemble.
   Proof.
     constructor.
     - split; repeat intro; auto.
@@ -35,7 +35,7 @@ Section prop.
     - repeat intro. destruct H, H0. split; repeat intro; auto.
   Qed.
 
-  Instance MonadLaws_Prop : MonadLaws Ensemble.
+  Instance MonadLawsE_Prop : MonadLawsE Ensemble.
   Proof.
     constructor.
     - split; repeat intro; simpl in *.
