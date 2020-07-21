@@ -1,3 +1,24 @@
+3.2.0
+=====
+
+- Add module `ITree.Basics.MonadProp`: the nondeterminism monad (`_ -> Prop`)
+
+- Rename concepts related to monad-specific equivalence:
+
+    + `EqM` -> `Eq1`
+    + `eqm` -> `eq1`
+    + `EqMProps` -> `Eq1Equivalence`
+    + `MonadLaws` -> `MonadLawsE` (to avoid confusion with coq-ext-lib)
+
+- Fix the definition of `iter` to be more extractable.
+  It no longer loops when the body always evaluates to a simple `Ret _`.
+
+- Add some inversion lemmas
+
+- Add `handle` and `handling` to convert explicitly between `Handler` and `_ ~> itree _`
+
+- In `Simple.v`, fix the precedence level of the infix notation for `eutt` to 70.
+
 3.1.0
 =====
 
