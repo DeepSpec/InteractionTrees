@@ -1,14 +1,15 @@
 (* begin hide *)
 From ITree Require Import
      Basics.Basics
+     Basics.Monad
      Basics.Category
      Core.ITreeDefinition
      Indexed.Sum.
 
 Import ITree.Basics.Basics.Monads.
-Import ITreeNotations.
+Import MonadNotation.
 
-Open Scope itree_scope.
+Local Open Scope monad_scope.
 
 (* end hide *)
 (** * General recursion *)

@@ -5,17 +5,16 @@
 (* begin hide *)
 From ITree Require Import
      Basics.Basics
-     Basics.CategoryOps
-     Basics.CategoryKleisli
      Basics.Monad
+     Basics.CategoryOps
      Basics.CategoryKleisli
      Basics.Function
      Core.ITreeDefinition
      Eq.Eq
      Eq.UpToTaus.
 
-Import ITreeNotations.
-Local Open Scope itree_scope.
+Import MonadNotation.
+Local Open Scope monad_scope.
 
 From Coq Require Import
      Morphisms.

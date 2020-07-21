@@ -15,7 +15,7 @@
 
 (** A rewrite hint database named [itree] is available via the tactic
     [autorewrite with itree] as a custom simplifier of expressions using
-    mainly [Ret], [Tau], [Vis], [ITree.bind] and [ITree.Interp.Interp.interp].
+    mainly [Ret], [Tau], [Vis], [bind] and [ITree.Interp.Interp.interp].
  *)
 
 (** This file contains only the definition of the [eutt] relation.
@@ -35,14 +35,17 @@
  *)
 
 (* begin hide *)
-Require Import Paco.paco Program Setoid Morphisms RelationClasses.
+From Coq Require Import Program Setoid Morphisms RelationClasses.
+
+From Paco Require Import paco.
 
 From ITree Require Import
+     Basics.Monad
      Core.ITreeDefinition
      Eq.Eq.
 
-Import ITreeNotations.
-Local Open Scope itree.
+Import MonadNotation.
+Local Open Scope monad_scope.
 (* end hide *)
 
 

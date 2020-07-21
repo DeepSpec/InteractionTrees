@@ -25,6 +25,7 @@ From Coq Require Import
      Relations.Relations.
 
 From ITree Require Import
+     Basics.Monad
      Core.ITreeDefinition.
 
 From ITree Require Import
@@ -190,14 +191,14 @@ Lemma sutt_bind' {E R1 R2 S1 S2} {RR: R1 -> R2 -> Prop} {SS: S1 -> S2 -> Prop}:
   forall t1 t2,
     sutt RR t1 t2 ->
     forall s1 s2, (forall r1 r2, RR r1 r2 -> sutt SS (s1 r1) (s2 r2)) ->
-                  @sutt E _ _ SS (ITree.bind t1 s1) (ITree.bind t2 s2).
+                  @sutt E _ _ SS (bind t1 s1) (bind t2 s2).
 Proof.
   pcofix self. pstep. intros.
   punfold H0.
   rewrite 2 unfold_bind_.
   induction H0; intros.
-  - simpl. apply H1 in H. punfold H. eapply monotone_suttF; eauto using upaco2_mon_bot.
-  - simpl. pclearbot. econstructor. eauto.
+  - cbn. apply H1 in H. punfold H. eapply monotone_suttF; eauto using upaco2_mon_bot.
+  - cbn. pclearbot. econstructor. eauto.
   - constructor. eauto with paco.
   - constructor. pclearbot. rewrite (itree_eta' ot2), <- unfold_bind_. eauto.
 Qed.

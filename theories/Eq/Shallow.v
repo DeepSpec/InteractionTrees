@@ -19,6 +19,10 @@ From Coq Require Import
      Setoids.Setoid
      Relations.Relations
      JMeq.
+
+From ExtLib Require Import Structures.Monad.
+Import MonadNotation.
+Local Open Scope monad_scope.
 (* end hide *)
 
 (* This exists in the stdlib as [ProofIrrelevance.inj_pair2], but we reprove
@@ -81,30 +85,30 @@ End observing_relations.
 Lemma unfold_bind_ {E R S}
       (t : itree E R) (k : R -> itree E S) :
   observing eq
-    (ITree.bind t k)
-    (ITree._bind k (fun t => ITree.bind t k) (observe t)).
+    (bind t k)
+    (ITree._bind k (fun t => bind t k) (observe t)).
 Proof. eauto. Qed.
 
 Instance observing_bind {E R S} :
-  Proper (eq ==> observing eq ==> observing eq) (@ITree.bind' E R S).
+  Proper (observing eq ==> eq ==> observing eq) (@bind (itree E) _ R S).
 Proof.
   repeat intro; subst.
-  do 2 rewrite unfold_bind_; rewrite H0.
+  do 2 rewrite unfold_bind_; rewrite H.
   reflexivity.
 Qed.
 
 Lemma bind_ret_ {E R S} (r : R) (k : R -> itree E S) :
-  observing eq (ITree.bind (Ret r) k) (k r).
+  observing eq (bind (Ret r) k) (k r).
 Proof. apply unfold_bind_. Qed.
 
 Lemma bind_tau_ {E R} U t (k: U -> itree E R) :
-  observing eq (ITree.bind (Tau t) k) (Tau (ITree.bind t k)).
+  observing eq (bind (Tau t) k) (Tau (bind t k)).
 Proof. apply @unfold_bind_. Qed.
 
 Lemma bind_vis_ {E R U V} (e: E V) (ek: V -> itree E U) (k: U -> itree E R) :
   observing eq
-    (ITree.bind (Vis e ek) k)
-    (Vis e (fun x => ITree.bind (ek x) k)).
+    (bind (Vis e ek) k)
+    (Vis e (fun x => bind (ek x) k)).
 Proof. apply @unfold_bind_. Qed.
 
 (** Unfolding lemma for [aloop]. There is also a variant [unfold_aloop]
@@ -112,14 +116,14 @@ Proof. apply @unfold_bind_. Qed.
 Lemma unfold_aloop_ {E A B} (f : A -> itree E (A + B)) (x : A) :
   observing eq
     (ITree.iter f x)
-    (ITree.bind (f x) (fun lr => ITree.on_left lr l (Tau (ITree.iter f l)))).
+    (bind (f x) (fun lr => ITree.on_left lr l (Tau (ITree.iter f l)))).
 Proof.
   constructor; reflexivity.
 Qed.
 
 (** Unfolding lemma for [forever]. *)
 Lemma unfold_forever_ {E R S} (t: itree E R):
-  observing eq (@ITree.forever E R S t) (ITree.bind t (fun _ => Tau (ITree.forever t))).
+  observing eq (@ITree.forever E R S t) (bind t (fun _ => Tau (ITree.forever t))).
 Proof. econstructor. reflexivity. Qed.
 
 (** ** [going]: Lift relations through [go]. *)

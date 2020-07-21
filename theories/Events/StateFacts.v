@@ -26,9 +26,9 @@ From ITree Require Import
      Events.State.
 
 Import ITree.Basics.Basics.Monads.
-Import ITreeNotations.
+Import MonadNotation.
 
-Open Scope itree_scope.
+Local Open Scope monad_scope.
 
 Import Monads.
 (* end hide *)
@@ -49,12 +49,12 @@ Lemma unfold_interp_state {E F S R} (h : E ~> Monads.stateT S (itree F))
       (_interp_state h (observe t) s).
 Proof.
   unfold interp_state, interp, Basics.iter, MonadIter_stateT0, Basics.iter, MonadIter_itree; cbn.
-  rewrite unfold_iter; cbn.
+  rewrite unfold_iter, !unfold_ret_itree; cbn.
   destruct observe; cbn.
   - rewrite 2 bind_ret_l. reflexivity.
   - rewrite 2 bind_ret_l.
     reflexivity.
-  - rewrite bind_map, bind_bind; cbn. setoid_rewrite bind_ret_l.
+  - rewrite unfold_fmap_itree, bind_map, bind_bind; cbn. setoid_rewrite bind_ret_l.
     apply eqit_bind; reflexivity.
 Qed.
 
@@ -241,8 +241,8 @@ Lemma eutt_interp_state_loop {E F S A B C} (RS : S -> S -> Prop)
           (interp_state h (loop t2 a) s2)).
 Proof.
   intros.
-  unfold loop, bimap, Bimap_Coproduct, case_, Case_Kleisli, Function.case_sum, id_, Id_Kleisli, cat, Cat_Kleisli; cbn.
-  rewrite 2 bind_ret_l.
+  unfold loop, bimap, Bimap_Coproduct, case_, Case_Kleisli, Function.case_sum, id_, Id_Kleisli, inr_, Inr_Kleisli, inl_, Inl_Kleisli, lift_ktree_, cat, Cat_Kleisli; cbn.
+  rewrite unfold_ret_itree, 2 bind_ret_l.
   eapply (eutt_interp_state_iter eq eq); auto; intros.
   rewrite 2 interp_state_bind.
   subst.

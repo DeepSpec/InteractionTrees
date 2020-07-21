@@ -11,6 +11,7 @@ From Paco Require Import paco.
 
 From ITree Require Import
      Basics.Basics
+     Basics.Monad
      Basics.CategoryOps
      Basics.CategoryTheory
      Basics.CategoryKleisli
@@ -22,10 +23,20 @@ From ITree Require Import
      Eq.Eq
      Eq.UpToTaus.
 
-Import ITreeNotations.
+Import MonadNotation.
 Import CatNotations.
-Local Open Scope itree.
+Local Open Scope monad_scope.
 (* end hide *)
+
+Ltac unfold_ktree :=
+  unfold bimap, Bimap_Coproduct,
+    case_, Case_Kleisli, case_sum,
+    cat, Cat_Kleisli,
+    id_, Id_Kleisli,
+    inl_, Inl_Kleisli,
+    inr_, Inr_Kleisli,
+    lift_ktree_;
+  try rewrite !unfold_ret_itree.
 
 (** ** [ITree.aloop] *)
 
@@ -108,7 +119,7 @@ Instance eq_itree_iter {E A B} :
           iter.
 Proof.
   intros body1 body2 EQ_BODY a. repeat red in EQ_BODY.
-  unfold iter, Iter_Kleisli.
+  unfold_ktree.
   eapply (eq_itree_iter' eq); auto.
   intros; eapply eqit_mon, EQ_BODY; auto.
   intros [] _ []; auto.
@@ -168,8 +179,7 @@ Qed.
 
 Instance IterNatural_ktree {E} : IterNatural (ktree E) sum.
 Proof.
-  repeat intro.
-  unfold bimap, Bimap_Coproduct, case_, Case_Kleisli, case_sum, cat, Cat_Kleisli.
+  repeat intro. unfold_ktree.
   cbn.
   revert a0.
   einit. ecofix CIH. intros.

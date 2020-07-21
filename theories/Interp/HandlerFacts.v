@@ -10,6 +10,7 @@ From Paco Require Import paco.
 
 From ITree Require Import
      Basics.Basics
+     Basics.Monad
      Basics.Category
      Core.ITreeDefinition
      Eq.Eq
@@ -22,15 +23,15 @@ From ITree Require Import
      Interp.RecursionFacts.
 
 Import ITree.Basics.Basics.Monads.
-Import ITreeNotations.
+Import MonadNotation.
 
-Open Scope itree_scope.
+Local Open Scope monad_scope.
 
 (* end hide *)
 
 Section HandlerCategory.
 
-Local Opaque eutt ITree.bind' interp ITree.trigger.
+Local Opaque eutt bind Monad_itree interp ITree.trigger.
 
 Instance Proper_Cat_Handler {A B C}
   : @Proper (Handler A B -> Handler B C -> Handler A C)
@@ -150,7 +151,11 @@ Proof.
        so we try to rewrite with EQh only when necessary. *)
   end.
   remember (Tau (f T a0)) as t eqn:tmp_t. clear tmp_t.
-  revert t; einit; ecofix CIH; intros t.
+  match goal with
+  | [ |- _ ?lhs ?rhs ] =>
+    remember lhs as LHS eqn:EL
+  end.
+  revert t LHS EL; einit; ecofix CIH; intros t LHS ?; subst LHS.
   rewrite (itree_eta t).
   destruct (observe t).
   - rewrite unfold_interp_mrec; cbn.
@@ -239,7 +244,7 @@ Proof.
         change (g X b) with (Tau (g0 X b)).
         rewrite bind_tau, unfold_interp_mrec; cbn.
         etau. rewrite tau_euttge. ebase.
-      * unfold inr_ at 3, Inr_sum1_Handler at 3, Handler.inr_, Handler.htrigger.
+      * unfold inr_ at 2, Inr_sum1_Handler at 2, Handler.inr_, Handler.htrigger.
         rewrite bind_trigger.
         rewrite unfold_interp_mrec; cbn.
         evis; intros; etau. rewrite tau_euttge. ebase.
@@ -255,7 +260,7 @@ Proof.
         change (f X a) with (Tau (f0 X a)).
         rewrite !bind_tau, (unfold_interp_mrec _ _ (Tau _)); cbn.
         etau. rewrite tau_euttge. ebase.
-      * unfold inr_ at 4, Inr_sum1_Handler at 4, Handler.inr_, Handler.htrigger.
+      * unfold inr_ at 3, Inr_sum1_Handler at 3, Handler.inr_, Handler.htrigger.
         rewrite bind_trigger.
         rewrite unfold_interp_mrec; cbn.
         evis; intros; etau. rewrite tau_euttge. ebase.

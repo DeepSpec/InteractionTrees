@@ -14,18 +14,22 @@ From ITree Require Import
 (** Reexported from the library. *)
 
 Require Export ITree.Core.ITreeDefinition.
-Import ITreeNotations.
-Open Scope itree_scope.
 (**
    - [itree : (Type -> Type) -> Type -> Type] type
    - [Ret], [Tau], [Vis] notations
-   - [ITree.bind : itree E R -> (R -> itree E S) -> itree E S]
    - [ITree.map : (R -> S) -> itree E R -> itree E S]
    - [ITree.trigger : E R -> itree E R]
+ *)
+
+Require Export ExtLib.Structures.Monad.
+Import MonadNotation.
+Local Open Scope monad_scope.
+(**
+   - [bind : itree E R -> (R -> itree E S) -> itree E S]
    - Notations for [bind t k]: ["t >>= k"], ["x <- t ;; k x"]
  *)
 
-(** The main functions are meant to be imported qualified, e.g., [ITree.bind],
+(** The main functions are meant to be imported qualified, e.g., [bind],
     [ITree.trigger], to avoid ambiguity with identifiers of the same
     name (some of which are overloaded generalizations of these).
  *)
@@ -117,26 +121,26 @@ Infix "≈" := eutt (at level 40).
 
 Parameter unfold_bind
   : forall {E R S} (t : itree E R) (k : R -> itree E S),
-    ITree.bind t k
-  ≈ ITree._bind k (fun t => ITree.bind t k) (observe t).
+    bind t k
+  ≈ ITree._bind k (fun t => bind t k) (observe t).
 
 (** The next two are immediate corollaries of [unfold_bind]. *)
 Parameter bind_ret : forall {E R S} (r : R) (k : R -> itree E S),
-    ITree.bind (Ret r) k ≈ k r.
+    bind (Ret r) k ≈ k r.
 
 Parameter bind_vis
   : forall {E R} U V (e: E V) (ek: V -> itree E U) (k: U -> itree E R),
-    ITree.bind (Vis e ek) k
-  ≈ Vis e (fun x => ITree.bind (ek x) k).
+    bind (Vis e ek) k
+  ≈ Vis e (fun x => bind (ek x) k).
 
 Parameter bind_ret_r : forall {E R} (s : itree E R),
-    ITree.bind s (fun x => Ret x) ≈ s.
+    bind s (fun x => Ret x) ≈ s.
 
 Parameter bind_bind
   : forall {E R S T}
            (s : itree E R) (k : R -> itree E S) (h : S -> itree E T),
-    ITree.bind (ITree.bind s k) h
-  ≈ ITree.bind s (fun r => ITree.bind (k r) h).
+    bind (bind s k) h
+  ≈ bind s (fun r => bind (k r) h).
 
 Hint Rewrite @tau_eutt : itree.
 Hint Rewrite @bind_ret : itree.
@@ -166,7 +170,7 @@ Parameter interp_ret
 Parameter interp_vis
   : forall {E F R} {f : E ~> itree F} U (e: E U) (k: U -> itree E R),
     interp f (Vis e k)
-  ≈ ITree.bind (f _ e) (fun x => interp f (k x)).
+  ≈ bind (f _ e) (fun x => interp f (k x)).
 
 Parameter interp_trigger : forall {E F : Type -> Type} {R : Type}
       (f : E ~> (itree F)) (e : E R),
@@ -174,8 +178,8 @@ Parameter interp_trigger : forall {E F : Type -> Type} {R : Type}
 
 Parameter interp_bind : forall {E F R S}
       (f : E ~> itree F) (t : itree E R) (k : R -> itree E S),
-    interp f (ITree.bind t k)
-  ≈ ITree.bind (interp f t) (fun r => interp f (k r)).
+    interp f (bind t k)
+  ≈ bind (interp f t) (fun r => interp f (k r)).
 
 Hint Rewrite @interp_ret : itree.
 Hint Rewrite @interp_vis : itree.
@@ -234,8 +238,8 @@ Declare Instance eutt_VisF {E R X} (e: E X) :
   Proper (pointwise_relation _ (@eutt E R) ==> going eutt) (VisF e).
 
 Declare Instance eutt_bind {E R S} :
-  Proper (pointwise_relation _ eutt ==> eutt ==> eutt)
-         (@ITree.bind' E R S).
+  Proper (eutt ==> pointwise_relation _ eutt ==> eutt)
+         (@bind (itree E) _ R S).
 
 Declare Instance eutt_map {E R S} :
   Proper (pointwise_relation _ eq ==> eutt ==> eutt)
@@ -327,34 +331,34 @@ Infix "≈" := eutt (at level 40).
 
 Lemma unfold_bind
   : forall {E R S} (t : itree E R) (k : R -> itree E S),
-    ITree.bind t k
-  ≈ ITree._bind k (fun t => ITree.bind t k) (observe t).
+    bind t k
+  ≈ ITree._bind k (fun t => bind t k) (observe t).
 Proof. intros; rewrite <- ITree.Eq.Shallow.unfold_bind_; reflexivity. Qed.
 
 (** The next two are immediate corollaries of [unfold_bind]. *)
 Lemma bind_ret : forall {E R S} (r : R) (k : R -> itree E S),
-    ITree.bind (Ret r) k ≈ k r.
+    bind (Ret r) k ≈ k r.
 Proof. intros; rewrite ITree.Eq.Shallow.bind_ret_; reflexivity. Qed.
 
 Lemma bind_tau {E R} U t (k: U -> itree E R) :
-  ITree.bind (Tau t) k ≈ Tau (ITree.bind t k).
+  bind (Tau t) k ≈ Tau (bind t k).
 Proof. rewrite bind_tau_. reflexivity. Qed.
 
 Lemma bind_vis
   : forall {E R} U V (e: E V) (ek: V -> itree E U) (k: U -> itree E R),
-    ITree.bind (Vis e ek) k
-  ≈ Vis e (fun x => ITree.bind (ek x) k).
+    bind (Vis e ek) k
+  ≈ Vis e (fun x => bind (ek x) k).
 Proof. intros; rewrite ITree.Eq.Shallow.bind_vis_; reflexivity. Qed.
 
 Lemma bind_ret_r : forall {E R} (s : itree E R),
-    ITree.bind s (fun x => Ret x) ≈ s.
+    bind s (fun x => Ret x) ≈ s.
 Proof. intros; rewrite ITree.Eq.Eq.bind_ret_r; reflexivity. Qed.
 
 Lemma bind_bind
   : forall {E R S T}
            (s : itree E R) (k : R -> itree E S) (h : S -> itree E T),
-    ITree.bind (ITree.bind s k) h
-  ≈ ITree.bind s (fun r => ITree.bind (k r) h).
+    bind (bind s k) h
+  ≈ bind s (fun r => bind (k r) h).
 Proof. intros; rewrite ITree.Eq.Eq.bind_bind; reflexivity. Qed.
 
 Hint Rewrite @tau_eutt : itree.
@@ -393,7 +397,7 @@ Qed.
 Lemma interp_vis
   : forall {E F R} {f : E ~> itree F} U (e: E U) (k: U -> itree E R),
     interp f (Vis e k)
-  ≈ ITree.bind (f _ e) (fun x => interp f (k x)).
+  ≈ bind (f _ e) (fun x => interp f (k x)).
 Proof.
   intros; rewrite InterpFacts.interp_vis; setoid_rewrite tau_eutt; reflexivity.
 Qed.
@@ -408,8 +412,8 @@ Qed.
 
 Lemma interp_bind : forall {E F R S}
       (f : E ~> itree F) (t : itree E R) (k : R -> itree E S),
-    interp f (ITree.bind t k)
-  ≈ ITree.bind (interp f t) (fun r => interp f (k r)).
+    interp f (bind t k)
+  ≈ bind (interp f t) (fun r => interp f (k r)).
 Proof.
   intros; rewrite ITree.Interp.InterpFacts.interp_bind.
   reflexivity.
@@ -490,8 +494,8 @@ Instance eutt_VisF {E R X} (e: E X) :
 Proof. repeat red; intros. rewrite H. apply reflexivity. Qed.
 
 Instance eutt_bind {E R S} :
-  Proper (pointwise_relation _ eutt ==> eutt ==> eutt)
-         (@ITree.bind' E R S).
+  Proper (eutt ==> pointwise_relation _ eutt ==> eutt)
+         (@bind (itree E) _ R S).
 Proof. repeat red; intros. rewrite H, H0. apply reflexivity. Qed.
 
 Instance eutt_map {E R S} :
