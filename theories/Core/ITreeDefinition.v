@@ -173,10 +173,7 @@ Section bind.
 
 End bind.
 
-Arguments _bind _ _ /.
-
-
-Notation bind c k := (bind' k c).
+Definition bind {E T U} (t : itree E T) (k : T -> itree E U) : itree E U := bind' k t.
 
 
 (** Monadic composition of continuations (i.e., Kleisli composition).
@@ -184,7 +181,7 @@ Notation bind c k := (bind' k c).
 Definition cat {E T U V}
            (k : T -> itree E U) (h : U -> itree E V) :
   T -> itree E V :=
-  fun t => bind' h (k t).
+  fun t => bind (k t) h.
 
 (** [iter]: See [Basics.Basics.MonadIter]. *)
 
@@ -234,32 +231,6 @@ Definition forever {E R S} (t : itree E R) : itree E S :=
 
 End ITree.
 
-(** ** Notations *)
-
-(** Sometimes it's more convenient to work without the type classes
-    [Monad], etc. When functions using type classes are specialized,
-    they simplify easily, so lemmas without classes are easier
-    to apply than lemmas with.
-
-    We can also make ExtLib's [bind] opaque, in which case it still
-    doesn't hurt to have these notations around.
- *)
-
-Module ITreeNotations.
-Notation "t1 >>= k2" := (ITree.bind t1 k2)
-  (at level 58, left associativity) : itree_scope.
-Notation "x <- t1 ;; t2" := (ITree.bind t1 (fun x => t2))
-  (at level 61, t1 at next level, right associativity) : itree_scope.
-Notation "` x : t <- t1 ;; t2" := (ITree.bind t1 (fun x : t => t2))
-  (at level 61, t at next level, t1 at next level, x ident, right associativity) : itree_scope.
-Notation "t1 ;; t2" := (ITree.bind t1 (fun _ => t2))
-  (at level 61, right associativity) : itree_scope.
-Notation "' p <- t1 ;; t2" :=
-  (ITree.bind t1 (fun x_ => match x_ with p => t2 end))
-  (at level 61, t1 at next level, p pattern, right associativity) : itree_scope.
-Infix ">=>" := ITree.cat (at level 61, right associativity) : itree_scope.
-End ITreeNotations.
-
 (** ** Instances *)
 
 Instance Functor_itree {E} : Functor (itree E) :=
@@ -276,11 +247,26 @@ Instance Applicative_itree {E} : Applicative (itree E) :=
 
 Instance Monad_itree {E} : Monad (itree E) :=
 {| ret := fun _ x => Ret x
-;  bind := fun T U t k => @ITree.bind' E T U k t
+;  bind := @ITree.bind E
 |}.
 
 Instance MonadIter_itree {E} : MonadIter (itree E) :=
   fun _ _ => ITree.iter.
+
+Arguments Functor_itree : simpl never.
+Arguments Applicative_itree : simpl never.
+Arguments Monad_itree : simpl never.
+
+(* *** Replacing type class methods with their definitions. *)
+
+Definition unfold_fmap_itree {E} : @fmap (itree E) _ = @ITree.map E
+  := eq_refl.
+
+Definition unfold_bind_itree {E} : @bind (itree E) _ = @ITree.bind E
+  := eq_refl.
+
+Definition unfold_ret_itree {E} : @ret (itree E) _ = (fun R (r : R) => Ret r)
+  := eq_refl.
 
 (** ** Tactics *)
 

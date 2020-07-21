@@ -35,14 +35,16 @@
  *)
 
 (* begin hide *)
-Require Import Paco.paco Program Setoid Morphisms RelationClasses.
+From Coq Require Import Program Setoid Morphisms RelationClasses.
+From Paco Require Import paco.
+From ExtLib Require Import Monad.
 
 From ITree Require Import
      Core.ITreeDefinition
      Eq.Eq.
 
-Import ITreeNotations.
-Local Open Scope itree.
+Import MonadNotation.
+Local Open Scope monad_scope.
 (* end hide *)
 
 

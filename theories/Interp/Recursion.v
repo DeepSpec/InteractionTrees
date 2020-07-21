@@ -1,14 +1,14 @@
 (* begin hide *)
+From ExtLib Require Import Structures.Monad.
+
 From ITree Require Import
      Basics.Basics
      Basics.Category
      Core.ITreeDefinition
      Indexed.Sum.
 
-Import ITree.Basics.Basics.Monads.
-Import ITreeNotations.
-
-Open Scope itree_scope.
+Import MonadNotation.
+Local Open Scope monad_scope.
 
 (* end hide *)
 (** * General recursion *)

@@ -9,6 +9,7 @@ From Coq Require Import
 
 From ITree Require Import
      Basics.Basics
+     Basics.Monad
      Basics.Category
      Core.ITreeDefinition
      Eq.Eq
@@ -19,7 +20,7 @@ From ITree Require Import
      Interp.Recursion.
 
 Import ITree.Basics.Basics.Monads.
-Import ITreeNotations.
+Import MonadNotation.
 
 Open Scope itree_scope.
 

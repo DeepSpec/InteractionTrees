@@ -10,6 +10,7 @@ From Paco Require Import paco.
 
 From ITree Require Import
      Basics.Basics
+     Basics.Monad
      Basics.Category
      Core.ITreeDefinition
      Eq.Eq
@@ -22,9 +23,8 @@ From ITree Require Import
      Interp.RecursionFacts.
 
 Import ITree.Basics.Basics.Monads.
-Import ITreeNotations.
-
-Open Scope itree_scope.
+Import MonadNotation.
+Local Open Scope monad_scope.
 
 (* end hide *)
 
@@ -154,7 +154,7 @@ Proof.
   rewrite (itree_eta t).
   destruct (observe t).
   - rewrite unfold_interp_mrec; cbn.
-    rewrite 2 interp_ret.
+    rewrite 2 interp_ret_.
     rewrite unfold_interp_mrec.
     reflexivity.
   - rewrite unfold_interp_mrec; cbn.
@@ -228,7 +228,7 @@ Proof.
   induction H0.
   - rewrite 2 unfold_interp_mrec; cbn. estep.
   - rewrite (itree_eta t); destruct (observe t).
-    + rewrite interp_ret, 2 bind_ret_l. auto.
+    + rewrite interp_ret_, 2 bind_ret_l_. auto.
     + rewrite interp_tau, 2 bind_tau, 2 unfold_interp_mrec; cbn.
       estep.
     + rewrite interp_vis, bind_vis.
@@ -239,12 +239,12 @@ Proof.
         change (g X b) with (Tau (g0 X b)).
         rewrite bind_tau, unfold_interp_mrec; cbn.
         etau. rewrite tau_euttge. ebase.
-      * unfold inr_ at 3, Inr_sum1_Handler at 3, Handler.inr_, Handler.htrigger.
+      * unfold inr_ at 2, Inr_sum1_Handler at 2, Handler.inr_, Handler.htrigger.
         rewrite bind_trigger.
         rewrite unfold_interp_mrec; cbn.
         evis; intros; etau. rewrite tau_euttge. ebase.
   - rewrite (itree_eta t); destruct (observe t).
-    + rewrite interp_ret, 2 bind_ret_l. auto.
+    + rewrite interp_ret_, 2 bind_ret_l_. auto.
     + rewrite interp_tau, 2 bind_tau, 2 unfold_interp_mrec; cbn.
       estep.
     + rewrite interp_vis, bind_vis.
@@ -255,7 +255,7 @@ Proof.
         change (f X a) with (Tau (f0 X a)).
         rewrite !bind_tau, (unfold_interp_mrec _ _ (Tau _)); cbn.
         etau. rewrite tau_euttge. ebase.
-      * unfold inr_ at 4, Inr_sum1_Handler at 4, Handler.inr_, Handler.htrigger.
+      * unfold inr_ at 3, Inr_sum1_Handler at 3, Handler.inr_, Handler.htrigger.
         rewrite bind_trigger.
         rewrite unfold_interp_mrec; cbn.
         evis; intros; etau. rewrite tau_euttge. ebase.

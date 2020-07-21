@@ -11,6 +11,7 @@ From Paco Require Import paco.
 
 From ITree Require Import
      Basics.Basics
+     Basics.Monad
      Basics.CategoryOps
      Basics.CategoryTheory
      Basics.CategoryKleisli
@@ -22,9 +23,9 @@ From ITree Require Import
      Eq.Eq
      Eq.UpToTaus.
 
-Import ITreeNotations.
+Import MonadNotation.
 Import CatNotations.
-Local Open Scope itree.
+Local Open Scope monad_scope.
 (* end hide *)
 
 (** ** [ITree.aloop] *)
@@ -44,7 +45,7 @@ Proof.
   ebind; econstructor; try reflexivity.
   intros [a | b] _ [].
   - rewrite bind_tau. etau.
-  - rewrite bind_ret_l, tau_euttge.
+  - rewrite bind_ret_l_, tau_euttge.
     revert b. ecofix CIH'. intros.
     rewrite !unfold_iter.
     rewrite bind_map.
@@ -169,7 +170,7 @@ Qed.
 Instance IterNatural_ktree {E} : IterNatural (ktree E) sum.
 Proof.
   repeat intro.
-  unfold bimap, Bimap_Coproduct, case_, Case_Kleisli, case_sum, cat, Cat_Kleisli.
+  unfold bimap, Bimap_Coproduct, case_, Case_Kleisli, case_sum, cat, Cat_Kleisli, id_, Id_Kleisli, inl_, Inl_Kleisli,  inr_, Inr_Kleisli, lift_ktree_, id.
   cbn.
   revert a0.
   einit. ecofix CIH. intros.
@@ -177,8 +178,8 @@ Proof.
   rewrite !bind_bind.
   ebind; econstructor; try reflexivity.
   intros [] ? [].
-  - rewrite bind_tau, 2 bind_ret_l. etau.
-  - rewrite bind_ret_l, !bind_bind. setoid_rewrite bind_ret_l. rewrite bind_ret_r.
+  - rewrite bind_tau. rewrite unfold_ret_itree, 2 bind_ret_l_. etau.
+  - rewrite bind_ret_l_, !bind_bind. setoid_rewrite bind_ret_l. rewrite bind_ret_r.
     reflexivity.
 Qed.
 
@@ -217,9 +218,9 @@ Proof.
     * rewrite bind_tau.
       gstep; constructor.
       eauto with paco.
-    * rewrite bind_ret_l. gstep; econstructor; auto.
+    * rewrite bind_ret_l_. gstep; econstructor; auto.
   }
-  { rewrite bind_ret_l. gstep; constructor; auto. }
+  { rewrite bind_ret_l_. gstep; constructor; auto. }
 Qed.
 
 Instance IterDinatural_ktree {E} : IterDinatural (ktree E) sum.
@@ -270,7 +271,7 @@ Proof.
   rewrite unfold_iter_ktree, !bind_bind.
   guclo eqit_clo_bind. econstructor. reflexivity.
   intros [| []] ? [].
-  - rewrite bind_ret_l, bind_tau.
+  - rewrite bind_ret_l_, bind_tau.
     gstep. constructor.
     revert a.
     gcofix CIH'. intros.
@@ -279,12 +280,12 @@ Proof.
     rewrite !bind_bind.
     guclo eqit_clo_bind. econstructor. reflexivity.
     intros [| []] ? [].
-    + rewrite bind_tau, bind_ret_l. gstep; constructor; auto with paco.
-    + rewrite 2 bind_ret_l. gstep; constructor; auto with paco.
-    + rewrite 2 bind_ret_l. gstep; constructor; auto.
-  - rewrite 2 bind_ret_l.
+    + rewrite bind_tau, bind_ret_l_. gstep; constructor; auto with paco.
+    + rewrite 2 bind_ret_l_. gstep; constructor; auto with paco.
+    + rewrite 2 bind_ret_l_. gstep; constructor; auto.
+  - rewrite 2 bind_ret_l_.
     gstep; constructor; auto with paco.
-  - rewrite 2 bind_ret_l.
+  - rewrite 2 bind_ret_l_.
     gstep; reflexivity.
 Qed.
 

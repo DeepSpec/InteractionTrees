@@ -6,6 +6,7 @@ From ExtLib Require
 
 From ITree Require Import
      Basics.Basics
+     Basics.Monad
      Basics.Category
      Core.ITreeDefinition
      Core.Subevent
@@ -16,7 +17,8 @@ From ITree Require Import
      Indexed.Relation
      Interp.Interp.
 
-Import ITreeNotations.
+Import MonadNotation.
+Local Open Scope monad_scope.
 
 From Paco Require Import paco.
 

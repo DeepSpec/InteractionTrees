@@ -23,14 +23,16 @@ From Coq Require Import
 
 From Paco Require Import paco.
 
+From ExtLib Require Import Structures.Monad.
+
 From ITree Require Import
      Core.ITreeDefinition.
 
 From ITree Require Export
      Eq.Shallow.
 
-Import ITreeNotations.
-Local Open Scope itree.
+Import MonadNotation.
+Local Open Scope monad_scope.
 
 (* TODO: Send to paco *)
 Global Instance Symmetric_bot2 (A : Type) : @Symmetric A bot2.
@@ -829,29 +831,32 @@ Qed.
 
 Lemma unfold_bind {E R S}
            (t : itree E R) (k : R -> itree E S) :
-  ITree.bind t k ≅ ITree._bind k (fun t => ITree.bind t k) (observe t).
-Proof. rewrite unfold_bind_. reflexivity. Qed.
+  bind t k ≅ ITree._bind k (fun t => bind t k) (observe t).
+Proof. rewrite unfold_bind_itree, unfold_bind_. reflexivity. Qed.
 
 Lemma bind_ret_l {E R S} (r : R) (k : R -> itree E S) :
-  ITree.bind (Ret r) k ≅ (k r).
-Proof. rewrite bind_ret_. reflexivity. Qed.
+  bind (ret r) k ≅ (k r).
+Proof. exact (unfold_bind _ _). Qed.
+
+Lemma bind_ret_l_ {E R S} (r : R) (k : R -> itree E S) :
+  bind (Ret r) k ≅ (k r).
+Proof. exact (unfold_bind _ _). Qed.
 
 Lemma bind_tau {E R} U t (k: U -> itree E R) :
-  ITree.bind (Tau t) k ≅ Tau (ITree.bind t k).
-Proof. rewrite bind_tau_. reflexivity. Qed.
+  bind (Tau t) k ≅ Tau (bind t k).
+Proof. exact (unfold_bind _ _). Qed.
 
 Lemma bind_vis {E R} U V (e: E V) (ek: V -> itree E U) (k: U -> itree E R) :
-  ITree.bind (Vis e ek) k ≅ Vis e (fun x => ITree.bind (ek x) k).
-Proof. rewrite bind_vis_. reflexivity. Qed.
+  bind (Vis e ek) k ≅ Vis e (fun x => bind (ek x) k).
+Proof. exact (unfold_bind _ _). Qed.
 
 Lemma bind_trigger {E R} U (e : E U) (k : U -> itree E R)
-  : ITree.bind (ITree.trigger e) k ≅ Vis e (fun x => k x).
+  : bind (ITree.trigger e) k ≅ Vis e (fun x => k x).
 Proof.
   rewrite unfold_bind; cbn.
   pstep.
   constructor.
-  intros; red. left. rewrite bind_ret_l.
-  apply Reflexive_eqit; eauto.
+  intros; red. left. apply bind_ret_l.
 Qed.
 
 Lemma unfold_iter {E A B} (f : A -> itree E (A + B)) (x : A) :
@@ -916,7 +921,7 @@ Inductive eqit_bind_clo b1 b2 (r : itree E R1 -> itree E R2 -> Prop) :
 | pbc_intro_h U1 U2 (RU : U1 -> U2 -> Prop) t1 t2 k1 k2
       (EQV: eqit RU b1 b2 t1 t2)
       (REL: forall u1 u2, RU u1 u2 -> r (k1 u1) (k2 u2))
-  : eqit_bind_clo b1 b2 r (ITree.bind t1 k1) (ITree.bind t2 k2)
+  : eqit_bind_clo b1 b2 r (bind t1 k1) (bind t2 k2)
 .
 Hint Constructors eqit_bind_clo: core.
 
@@ -973,7 +978,7 @@ Hint Constructors eqit_bind_clo: core.
 
 (* Specialization of [eutt_clo_bind] to the recurrent case where [UU := eq]
    in order to avoid having to provide the relation manually everytime *)
-Lemma eutt_eq_bind : forall E R U (t: itree E U) (k1 k2: U -> itree E R), (forall u, k1 u ≈ k2 u) -> ITree.bind t k1 ≈ ITree.bind t k2.
+Lemma eutt_eq_bind : forall E R U (t: itree E U) (k1 k2: U -> itree E R), (forall u, k1 u ≈ k2 u) -> bind t k1 ≈ bind t k2.
 Proof.
   intros.
   apply eutt_clo_bind with (UU := Logic.eq); [reflexivity |].
@@ -985,16 +990,16 @@ Lemma eqit_bind' {E R1 R2 S1 S2} (RR : R1 -> R2 -> Prop) b1 b2
       t1 t2 k1 k2 :
   eqit RR b1 b2 t1 t2 ->
   (forall r1 r2, RR r1 r2 -> eqit RS b1 b2 (k1 r1) (k2 r2)) ->
-  @eqit E _ _ RS b1 b2 (ITree.bind t1 k1) (ITree.bind t2 k2).
+  @eqit E _ _ RS b1 b2 (bind t1 k1) (bind t2 k2).
 Proof.
   intros. ginit. guclo eqit_clo_bind. unfold eqit in *.
   econstructor; eauto with paco.
 Qed.
 
 Global Instance eqit_bind {E R S} b1 b2 :
-  Proper (pointwise_relation _ (eqit eq b1 b2) ==>
-          eqit eq b1 b2 ==>
-          eqit eq b1 b2) (@ITree.bind' E R S).
+  Proper (eqit eq b1 b2 ==>
+          pointwise_relation _ (eqit eq b1 b2) ==>
+          eqit eq b1 b2) (@bind (itree E) _ R S).
 Proof.
   repeat intro; eapply eqit_bind'; eauto.
   intros; subst; auto.
@@ -1002,7 +1007,7 @@ Qed.
 
 Global Instance eqit_bind_ {E R S} b1 b2 k :
   Proper (going (eqit eq b1 b2) ==>
-          eqit eq b1 b2) (@ITree._bind E R S k (@ITree.bind' E R S k)).
+          eqit eq b1 b2) (@ITree._bind E R S k (fun t => bind t k)).
 Proof.
   ginit. intros. destruct H0.
   rewrite (itree_eta' x), (itree_eta' y), <- !unfold_bind.
@@ -1031,62 +1036,65 @@ Proof.
   intros; subst; auto.
 Qed.
 
-Lemma bind_ret_r {E R} :
+Lemma bind_ret_r_ {E R} :
   forall s : itree E R,
-    ITree.bind s (fun x => Ret x) ≅ s.
+    bind s (fun x => Ret x) ≅ s.
 Proof.
   ginit. gcofix CIH. intros.
   rewrite !unfold_bind. gstep. repeat red.
-  genobs s os. destruct os; simpl; eauto with paco.
+  genobs s os. destruct os; cbn; eauto with paco.
 Qed.
+
+Lemma bind_ret_r {E R} :
+  forall s : itree E R,
+    bind s ret ≅ s.
+Proof. exact bind_ret_r_. Qed.
 
 Lemma bind_ret_r' {E R} (u : itree E R) (f : R -> R) :
   (forall x, f x = x) ->
-  (r <- u ;; Ret (f r)) ≅ u.
+  (r <- u ;; ret (f r)) ≅ u.
 Proof.
   intro H. rewrite <- (bind_ret_r u) at 2. apply eqit_bind.
-  - hnf. intros. apply eqit_Ret. auto.
   - reflexivity.
+  - intros ?. apply eqit_Ret. auto.
 Qed.
 
 Lemma bind_bind {E R S T} :
   forall (s : itree E R) (k : R -> itree E S) (h : S -> itree E T),
-    ITree.bind (ITree.bind s k) h ≅ ITree.bind s (fun r => ITree.bind (k r) h).
+    bind (bind s k) h ≅ bind s (fun r => bind (k r) h).
 Proof.
   ginit. gcofix CIH. intros. rewrite !unfold_bind.
-  gstep. repeat red. destruct (observe s); simpl; eauto with paco.
-  apply reflexivity.
+  gstep. repeat red. destruct (observe s); cbn; eauto with paco.
+  reflexivity.
 Qed.
+
+Lemma unfold_map {E R S} : forall (f : R -> S) (t : itree E R),
+  ITree.map f t = bind t (fun x => ret (f x)).
+Proof. reflexivity. Qed.
 
 Lemma map_map {E R S T}: forall (f : R -> S) (g : S -> T) (t : itree E R),
     ITree.map g (ITree.map f t) ≅ ITree.map (fun x => g (f x)) t.
 Proof.
-  unfold ITree.map. intros.
+  intros. rewrite 3 unfold_map.
   rewrite bind_bind. setoid_rewrite bind_ret_l. reflexivity.
 Qed.
 
 Lemma bind_map {E R S T}: forall (f : R -> S) (k: S -> itree E T) (t : itree E R),
-    ITree.bind (ITree.map f t) k ≅ ITree.bind t (fun x => k (f x)).
+    bind (ITree.map f t) k ≅ bind t (fun x => k (f x)).
 Proof.
-  unfold ITree.map. intros.
-  rewrite bind_bind. setoid_rewrite bind_ret_l. reflexivity.
+  intros. rewrite unfold_map, bind_bind. setoid_rewrite bind_ret_l. reflexivity.
 Qed.
 
 Lemma map_bind {E X Y Z} (t: itree E X) (k: X -> itree E Y) (f: Y -> Z) :
   (ITree.map f (x <- t;; k x)) ≅ (x <- t;; ITree.map f (k x)).
 Proof.
-  intros.
-  unfold ITree.map.
-  rewrite bind_bind.
-  reflexivity.
+  rewrite unfold_map, bind_bind. apply eqit_bind; reflexivity.
 Qed.
 
 Lemma map_ret {E A B} (f : A -> B) (a : A) :
-    @ITree.map E _ _ f (Ret a) ≅ Ret (f a).
+    @ITree.map E _ _ f (ret a) ≅ ret (f a).
 Proof.
-  intros.
-  unfold ITree.map.
-  rewrite bind_ret_l; reflexivity.
+  rewrite unfold_map, bind_ret_l; reflexivity.
 Qed.
 
 Hint Rewrite @bind_ret_l : itree.
@@ -1126,7 +1134,7 @@ Ltac tau_steps :=
 Lemma eqit_inv_bind_ret:
   forall {E X R1 R2 RR} b1 b2
     (ma : itree E X) (kb : X -> itree E R1) (b: R2),
-    @eqit E R1 R2 RR b1 b2 (ITree.bind ma kb) (Ret b) ->
+    @eqit E R1 R2 RR b1 b2 (bind ma kb) (Ret b) ->
     exists a, @eqit E X X eq b1 b2 ma (Ret a) /\
          @eqit E R1 R2 RR b1 b2 (kb a) (Ret b).
 Proof.
@@ -1134,8 +1142,8 @@ Proof.
   punfold H.
   unfold eqit_ in *.
   cbn in *.
-  remember (ITree.bind ma kb) as tl.
-  assert (tl ≅ ITree.bind ma kb) by (subst; reflexivity).
+  remember (bind ma kb) as tl.
+  assert (tl ≅ bind ma kb) by (subst; reflexivity).
   clear Heqtl.
   genobs tl tl'.
   remember (RetF b) as tr.
@@ -1153,8 +1161,8 @@ Proof.
       apply eqitree_inv_ret_tau in H0. contradiction.
     * cbn in H0. rewrite itree_eta, Hobtl in H0.
       apply eqitree_inv_ret_vis in H0. contradiction.
-  - intros. inversion Heqtr.
-  - intros. inversion Heqtr.
+  - intros. discriminate.
+  - intros. discriminate.
   - intros. subst.
     apply simpobs in Heqtl'. rewrite Heqtl' in H0; clear tl Heqtl'.
     rewrite unfold_bind in H0.
@@ -1162,9 +1170,7 @@ Proof.
     + cbn in *.
       specialize (IHeqitF ma (fun _ => t1) t1 eq_refl).
       edestruct IHeqitF as (a & ? & ?);[| reflexivity |].
-      * setoid_rewrite itree_eta at 4.
-        rewrite Hobma, bind_ret_l.
-        reflexivity.
+      * rewrite (itree_eta ma), Hobma. symmetry; apply bind_ret_l.
       * exists a; split; auto.
         rewrite itree_eta, Hobma in H1.
         apply eqit_inv_ret in H1; subst.
@@ -1182,7 +1188,7 @@ Qed.
 
 Lemma eutt_inv_bind_ret:
   forall {E A B} (ma : itree E A) (kb : A -> itree E B) b,
-    ITree.bind ma kb ≈ Ret b ->
+    bind ma kb ≈ Ret b ->
     exists a, ma ≈ Ret a /\ kb a ≈ Ret b.
 Proof.
   intros; apply eqit_inv_bind_ret; auto.
@@ -1190,7 +1196,7 @@ Qed.
 
 Lemma eqitree_inv_bind_ret:
   forall {E A B} (ma : itree E A) (kb : A -> itree E B) b,
-    ITree.bind ma kb ≅ Ret b ->
+    bind ma kb ≅ Ret b ->
     exists a, ma ≅ Ret a /\ kb a ≅ Ret b.
 Proof.
   intros; apply eqit_inv_bind_ret; auto.
@@ -1199,15 +1205,15 @@ Qed.
 Lemma eutt_inv_bind_vis:
   forall {A B E X} (ma : itree E A) (kab : A -> itree E B) (e : E X)
     (kxb : X -> itree E B),
-    ITree.bind ma kab ≈ Vis e kxb ->
-    (exists (kca : X -> itree E A), (ma ≈ Vis e kca) /\ forall (x:X), (ITree.bind (kca x) kab) ≈ (kxb x)) \/
+    bind ma kab ≈ Vis e kxb ->
+    (exists (kca : X -> itree E A), (ma ≈ Vis e kca) /\ forall (x:X), (bind (kca x) kab) ≈ (kxb x)) \/
     (exists (a : A), (ma ≈ Ret a) /\ (kab a ≈ Vis e kxb)).
 Proof.
   intros. punfold H.
   unfold eqit_ in *.
   cbn in *.
-  remember (ITree.bind ma kab) as tl.
-  assert (tl ≅ ITree.bind ma kab) by (subst; reflexivity).
+  remember (bind ma kab) as tl.
+  assert (tl ≅ bind ma kab) by (subst; reflexivity).
   clear Heqtl.
   genobs tl tl'.
   remember (VisF e kxb) as tr.
@@ -1258,9 +1264,7 @@ Proof.
     + cbn in *.
       specialize (IHeqitF A ma (fun _ => t1) t1 eq_refl).
       edestruct IHeqitF as [a | a];[| reflexivity | | ].
-      * setoid_rewrite itree_eta at 4.
-        rewrite Hobma, bind_ret_l.
-        reflexivity.
+      * rewrite (itree_eta ma), Hobma; symmetry; apply bind_ret_l.
       * left.
         destruct a as (kca & HMA & HEQ).
         assert (ma ≈ Ret r).
@@ -1348,6 +1352,3 @@ Proof.
     inv EQ2.
     reflexivity.
 Qed.
-
-
-

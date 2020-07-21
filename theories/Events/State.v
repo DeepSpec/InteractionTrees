@@ -18,9 +18,8 @@ From ITree Require Import
      Interp.Interp.
 
 Import ITree.Basics.Basics.Monads.
-Import ITreeNotations.
-
-Open Scope itree_scope.
+Import MonadNotation.
+Local Open Scope monad_scope.
 (* end hide *)
 
 (* Stateful handlers [E ~> stateT S (itree F)] and morphisms

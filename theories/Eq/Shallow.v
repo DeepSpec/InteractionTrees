@@ -78,19 +78,32 @@ End observing_relations.
 
 (** ** Unfolding lemmas for [bind] *)
 
+Lemma unfold_bind'_ {E R S}
+      (t : itree E R) (k : R -> itree E S) :
+  observing eq
+    (ITree.bind' k t)
+    (ITree._bind k (fun t => ITree.bind t k) (observe t)).
+Proof. eauto. Qed.
+
 Lemma unfold_bind_ {E R S}
       (t : itree E R) (k : R -> itree E S) :
   observing eq
     (ITree.bind t k)
     (ITree._bind k (fun t => ITree.bind t k) (observe t)).
-Proof. eauto. Qed.
+Proof. apply unfold_bind'_. Qed.
 
-Instance observing_bind {E R S} :
+Instance observing_bind' {E R S} :
   Proper (eq ==> observing eq ==> observing eq) (@ITree.bind' E R S).
 Proof.
   repeat intro; subst.
-  do 2 rewrite unfold_bind_; rewrite H0.
+  do 2 rewrite unfold_bind'_; rewrite H0.
   reflexivity.
+Qed.
+
+Instance observing_bind {E R S} :
+  Proper (observing eq ==> eq ==> observing eq) (@ITree.bind E R S).
+Proof.
+  repeat intro; apply observing_bind'; auto.
 Qed.
 
 Lemma bind_ret_ {E R S} (r : R) (k : R -> itree E S) :

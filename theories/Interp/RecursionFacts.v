@@ -15,6 +15,7 @@ From Coq Require Import
 
 From ITree Require Import
      Basics.Category
+     Basics.Monad
      Basics.Basics
      Basics.Function
      Core.ITreeDefinition
@@ -27,7 +28,8 @@ From ITree Require Import
      Interp.InterpFacts
      Interp.Recursion.
 
-Import ITreeNotations.
+Import MonadNotation.
+Local Open Scope monad_scope.
 
 Section Facts.
 
@@ -58,13 +60,13 @@ Proof.
   unfold interp_mrec.
   rewrite unfold_iter.
   destruct observe; cbn.
-  - rewrite bind_ret_l; reflexivity.
-  - rewrite bind_ret_l; reflexivity.
+  - rewrite bind_ret_l_; reflexivity.
+  - rewrite bind_ret_l_; reflexivity.
   - destruct e; cbn.
-    + rewrite bind_ret_l; reflexivity.
+    + rewrite bind_ret_l_; reflexivity.
     + rewrite bind_vis.
       pstep; constructor. intros. left.
-      rewrite bind_ret_l.
+      rewrite bind_ret_l_.
       apply reflexivity.
 Qed.
 
@@ -87,8 +89,8 @@ Proof.
 Qed.
 
 Theorem interp_mrec_bind {U T} (t : itree _ U) (k : U -> itree _ T) :
-  interp_mrec ctx (ITree.bind t k) ≅
-  ITree.bind (interp_mrec ctx t) (fun x => interp_mrec ctx (k x)).
+  interp_mrec ctx (bind t k) ≅
+  bind (interp_mrec ctx t) (fun x => interp_mrec ctx (k x)).
 Proof.
   revert t k; ginit. gcofix CIH; intros.
   rewrite (unfold_interp_mrec _ t).
@@ -96,7 +98,7 @@ Proof.
   destruct (observe t); cbn;
     [| |destruct e];
     autorewrite with itree.
-  1: apply reflexivity.
+  1: rewrite bind_ret_l_; apply reflexivity.
   all: rewrite unfold_interp_mrec.
   all: try (gstep; econstructor; eauto with paco).
   - rewrite <- bind_bind; eauto with paco.
@@ -121,17 +123,17 @@ Proof.
   rewrite <- (tau_eutt (interp _ _)).
   revert_until T. ginit. gcofix CIH. intros.
   rewrite unfold_interp_mrec, unfold_interp.
-  destruct (observe c); [| |destruct e]; simpl; eauto with paco.
+  destruct (observe c); [| |destruct e]; cbn; eauto with paco.
   - gstep; repeat econstructor; eauto.
   - gstep; constructor; eauto with paco.
   - rewrite interp_mrec_bind. unfold mrec.
     gstep; constructor.
     guclo eqit_clo_bind; econstructor; [reflexivity|].
     intros ? _ []; eauto with paco.
-  - rewrite tau_euttge. unfold ITree.trigger, case_; simpl. rewrite bind_vis.
+  - rewrite tau_euttge. unfold ITree.trigger, case_; cbn. rewrite bind_vis.
     gstep. constructor.
     intros; red.
-    rewrite bind_ret_l. rewrite tau_euttge. auto with paco.
+    rewrite bind_ret_l_. rewrite tau_euttge. auto with paco.
 Qed.
 
 Theorem mrec_as_interp {T} (d : D T) :
@@ -153,22 +155,28 @@ Theorem unfold_interp_mrec_h {T} (t : itree _ T)
 Proof.
   rewrite <- tau_eutt.
   revert t. ginit; gcofix CIH. intros.
-  rewrite (itree_eta t); destruct (observe t);
-    try (rewrite 2 unfold_interp_mrec; cbn; gstep; repeat constructor; auto with paco; fail).
-  rewrite interp_vis.
-  rewrite (unfold_interp_mrec _ (Vis _ _)).
-  destruct e; cbn.
-  - rewrite 2 interp_mrec_bind.
-    gstep; constructor.
-    guclo eqit_clo_bind; econstructor; [reflexivity|].
-    intros ? _ []; rewrite unfold_interp_mrec; cbn; auto with paco.
-  - unfold inr_, Handler.Inr_sum1_Handler, Handler.Handler.inr_, Handler.Handler.htrigger.
-    rewrite bind_trigger, unfold_interp_mrec; cbn.
-    rewrite tau_euttge.
-    gstep; constructor.
-    intros; red. gstep; constructor.
-    rewrite unfold_interp_mrec; cbn.
-    auto with paco.
+  rewrite (itree_eta t); destruct (observe t).
+  - rewrite tau_euttge.
+    rewrite unfold_interp.
+    rewrite 2 unfold_interp_mrec. cbn.
+    gstep. do 2 constructor.
+  - rewrite unfold_interp.
+    rewrite 2 unfold_interp_mrec. cbn.
+    gstep. constructor. auto with paco.
+  - rewrite interp_vis.
+    rewrite (unfold_interp_mrec _ (Vis _ _)).
+    destruct e; cbn.
+    + rewrite 2 interp_mrec_bind.
+      gstep; constructor.
+      guclo eqit_clo_bind; econstructor; [reflexivity|].
+      intros ? _ []; rewrite unfold_interp_mrec; cbn; auto with paco.
+    + unfold inr_, Handler.Inr_sum1_Handler, Handler.Handler.inr_, Handler.Handler.htrigger.
+      rewrite bind_trigger, unfold_interp_mrec; cbn.
+      rewrite tau_euttge.
+      gstep; constructor.
+      intros; red. gstep; constructor.
+      rewrite unfold_interp_mrec; cbn.
+      auto with paco.
 Qed.
 
 End Facts.

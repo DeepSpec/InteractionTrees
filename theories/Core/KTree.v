@@ -14,8 +14,8 @@ From ITree Require Import
      Eq.Eq
      Eq.UpToTaus.
 
-Import ITreeNotations.
-Local Open Scope itree_scope.
+Import MonadNotation.
+Local Open Scope monad_scope.
 
 From Coq Require Import
      Morphisms.
