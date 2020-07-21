@@ -84,7 +84,7 @@ Context {E : Type -> Type} {R : Type}.
     ([eutt] for short), or _weak bisimulation_. *)
 Parameter eutt : itree E R -> itree E R -> Prop.
 
-Infix "≈" := eutt (at level 40).
+Infix "≈" := eutt (at level 70).
 
 (** [eutt] is an equivalence relation. *)
 Global Declare Instance Equivalence_eutt :
@@ -111,7 +111,7 @@ Parameter eutt_inv_vis : forall {U : Type} (e : E U) (k1 k2 : U -> itree E R),
 
 End EquivalenceUpToTaus.
 
-Infix "≈" := eutt (at level 40).
+Infix "≈" := eutt (at level 70).
 
 (** *** Rewriting lemmas *)
 
@@ -280,7 +280,7 @@ Context {E : Type -> Type} {R : Type}.
 Definition eutt : itree E R -> itree E R -> Prop :=
   ITree.Eq.Eq.eutt eq.
 
-Infix "≈" := eutt (at level 40).
+Infix "≈" := eutt (at level 70).
 
 (** [eutt] is an equivalence relation. *)
 Global Instance Equivalence_eutt : Equivalence eutt.
@@ -321,7 +321,7 @@ Proof. apply ITree.Eq.Eq.eqit_inv_vis; auto. Qed.
 
 End EquivalenceUpToTaus.
 
-Infix "≈" := eutt (at level 40).
+Infix "≈" := eutt (at level 70).
 
 (** *** Rewriting lemmas *)
 
