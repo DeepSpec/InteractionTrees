@@ -22,9 +22,8 @@ From ITree Require Import
      Simple.
 
 Import ListNotations.
-Import ITreeNotations.
 Import MonadNotation.
-Open Scope monad_scope.
+Local Open Scope monad_scope.
 (* end hide *)
 
 (** * Events *)
