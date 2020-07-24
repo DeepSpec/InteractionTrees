@@ -25,6 +25,22 @@ Open Scope typ_scope.
 
 Definition relationH (A B : typ) := (A × B) -=-> prop_typ.
 
+(* Program Definition curry (A B : typ) (R : relationH A B) : A -=-> B ~~> prop_typ := *)
+(*   let (x, p) := R in *)
+(*     fun X : A => *)
+(*       (-=->!) (fun X0 : B => x (X, X0)) _. *)
+(* Next Obligation. *)
+(*   repeat intro. cbn. rewrite H. reflexivity. *)
+(* Qed. *)
+
+Program Definition uncurry (A B : typ) (f : A -=-> (B ~~> prop_typ)) : relationH A B :=
+  (-=->!) (fun X : A × B => f @ (fst X) @ snd X) _.
+Next Obligation.
+  repeat intro. cbn. destruct x, y. cbn. destruct H. cbn in *.
+  destruct f. rewrite H, H0. reflexivity.
+Qed.
+
+
 Section RelationH_Operations.
 
   Program Definition compose {A B C} (S : relationH B C) (R : relationH A B): relationH A C :=

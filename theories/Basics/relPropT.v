@@ -184,7 +184,11 @@ Qed.
 
 End PredProof.
 
+
 End Pred.
+
+Section PredT.
+  
 
 Section ITrees.
 

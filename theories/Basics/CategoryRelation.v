@@ -33,14 +33,27 @@ Section Operations.
   Global Instance Cat_rel : Cat relationH := fun _ _ _ f g => compose g f.
 
   (* Identities are defined by the [eq] relations *)
-  Global Instance Id_rel : Id_ relationH := @eq.
+  Global Program Instance Id_rel : Id_ relationH :=
+    fun a : typ => (-=->!) (fun p : a × a => fst p == snd p) _.
+  Next Obligation.
+    repeat intro. cbn.
+    destruct x, y; cbn; intuition.
+    cbn in *. rewrite <- H0, <- H1. assumption.
+    cbn in *. rewrite H0, H1; assumption.
+  Qed.
 
   (* As usual, [void] is the initial element *)
-  Global Instance Initial_rel : Initial relationH void :=
-    fun _ v => match v : void with end.
+  Global Program Instance Initial_rel : Initial relationH bot_typ :=
+    fun a : typ => (-=->! (fun p => match (fst p : bot_typ) with end) _).
+  Next Obligation.
+    repeat intro. cbn. destruct x, y. cbn in *. contradiction.
+  Qed.
 
+  (* TODO : Rewrite using typ *)
+  (*
   (* [sum] with its injection functions seen as relations form the coproduct *)
-  Global Instance Case_rel : Case relationH sum :=
+  Global Instance Case_rel : Case relationH sum_typ.
+  repeat intro.
     fun _ _ _ l r => case_sum _ _ _ l r.
 
   Global Instance Inl_rel : Inl relationH sum :=
@@ -148,6 +161,7 @@ Section Operations.
   Global Instance Dagger_rel : Dagger relationH :=
     fun a b R =>  transpose R.
 
+*)
 End Operations.
 
 (** The following instances prove that the operations claimed above to be what
@@ -162,7 +176,7 @@ Section Facts.
       constructor; unfold subrelationH, cat, id_, Cat_rel, Id_rel, compose; intros.
       - edestruct H as (B' & EQ & R). rewrite <- EQ in R.
         assumption.
-      - exists x. split. reflexivity. assumption.
+      - exists x. split. cbn. reflexivity. assumption.
     Qed.
 
     Global Instance CatIdR_rel: CatIdR relationH.
@@ -170,7 +184,7 @@ Section Facts.
       constructor; unfold subrelationH, cat, id_, Cat_rel, Id_rel, compose; intros.
       - edestruct H as (B' & R & EQ). rewrite EQ in R.
         assumption.
-      - exists y. split. assumption. reflexivity.
+      - exists y. split. assumption. cbn. reflexivity.
     Qed.
 
     Global Instance CatAssoc_rel: CatAssoc relationH.
@@ -211,6 +225,7 @@ Section Facts.
 
   End CategoryRel.
 
+  (*
   Global Instance InitialObject_rel : InitialObject relationH void.
   Proof.
     split; intros [].
@@ -523,4 +538,5 @@ Section Facts.
 
   End BifunctorSum.
 
+*)
 End Facts.
