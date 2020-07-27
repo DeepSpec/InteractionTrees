@@ -13,6 +13,7 @@ From Coq Require Import
 
 Import ProperNotations.
 From ITree Require Import
+     Basics.Basics
      Basics.CategoryOps
      Basics.CategoryTheory
      Basics.CategoryFunctor
@@ -24,6 +25,137 @@ From ITree Require Import
 
 Import CatNotations.
 Open Scope cat_scope.
+
+(* Testing definition of relational monad *)
+(* We have a suspicion that Li-yao's definition of *prop_rel* is not quite right, i.e. it's not possible to define the
+   substitution rules for meaningful monads. Let's try the definition on basic monads. *)
+Section RelMonadExp.
+
+
+  Class RelMonad (M : Type -> Type) : Type :=
+    { rret : forall A, A -> M A -> Prop
+    ; rsubst : forall A B, (A -> M B -> Prop) -> M A -> M B -> Prop
+    }.
+
+  Arguments rret {M _ _}.
+  Arguments rsubst {M _ _ _}.
+
+  Definition eq_rel {A B} (RL RR : A -> B -> Prop) : Prop :=
+    forall a b, RL a b <-> RR a b.
+
+  Infix "≂" := eq_rel (at level 40).
+
+  Definition catrel {A B C} (RL : A -> B -> Prop) (RR : B -> C -> Prop)
+    : A -> C -> Prop :=
+    fun a c => exists b, RL a b /\ RR b c.
+
+  Class RelMonadLaws (M : Type -> Type) {RM : RelMonad M} : Prop :=
+    { Proper_rsubst : forall A B, Proper (eq_rel ==> eq_rel) (rsubst (A := A) (B := B))
+    ; rsubst_rret : forall A,
+        rsubst rret ≂ @eq (M A)
+    ; cat_rsubst_rret : forall A B (f : A -> M B -> Prop),
+        catrel rret (rsubst f) ≂ f
+    ; rsubst_rsubst : forall A B C (f : A -> M B -> Prop) (g : B -> M C -> Prop),
+        catrel (rsubst f) (rsubst g) ≂ rsubst (catrel f (rsubst g))
+    }.
+
+  (* Identity Monad *)
+  Definition ID (X:Type) := X.
+
+  Definition ID_ret {X:Type} (a : X) : X := a.
+  Definition ID_bind {X:Type} (a : X) (f: X->X) : X := f a.
+
+  Instance RelIDMonad : RelMonad ID.
+  split.
+  - intros A a ma.
+    refine (ma = ID_ret a).
+  - intros A B f ma mb.
+    refine (f ma mb).
+  Defined.
+
+  Lemma rsubst_rsubst_ID :
+    forall A B C (f : A -> ID B -> Prop) (g : B -> ID C -> Prop),
+        catrel (rsubst f) (rsubst g) ≂ rsubst (catrel f (rsubst g)).
+  Proof.
+    cbn. intros. repeat intro.
+    unfold catrel. split; auto.
+  Qed. (* ! We proved it.. *)
+
+  (* OK, Perhaps for the ID Monad it is too trivial to prove. Let's look at the state monad. *)
+
+
+  (* General RelMonad transformer *)
+  Definition lift_ret {M : Type -> Type} `{Monad.Monad M} {A} : A -> M A -> Prop :=
+    fun a ma => Monad.ret a = ma.
+
+  (* Definition in_domain {M} `{Monad.Monad M} {A} (a : A) (ma : M A) := Prop. *)
+
+  Definition lift_rsubst {M} `{Monad.Monad M} (in_image : forall X, X -> M X -> Prop) {A B} : (A -> M B -> Prop) -> M A -> M B -> Prop :=
+    (fun P ma mb => forall a, in_image A a ma -> forall f, P a (f a) -> Monad.bind ma f = mb).
+
+
+  Instance RelMonadT (M : Type -> Type) `{Monad.Monad M} (in_image : forall A, A -> M A -> Prop): RelMonad M.
+  split.
+  - exact (@lift_ret M H).
+  - exact (@lift_rsubst M H in_image).
+  Defined.
+
+  Definition state (S A : Type) := S -> (S * A)%type.
+  Instance stateMonad S : Monad.Monad (state S).
+  split.
+  - intros. unfold state. intros. split. apply X0. apply X.
+  - intros. unfold state in *. intros. specialize (X X1). clear X1. destruct X.
+    specialize (X0 t0 s). apply X0.
+  Defined.
+
+  Instance RelStateMonad (S : Type) : RelMonad (state S) := RelMonadT (state S) (fun X a ma => exists s, (snd (ma s)) = a).
+
+  Lemma rsubst_rsubst_state (S : Type) :
+    forall A B C (f : A -> state S B -> Prop) (g : B -> state S C -> Prop),
+      catrel (rsubst f) (rsubst g) ≂ rsubst (catrel f (rsubst g)).
+  Proof.
+    cbn. intros A B C f g ma mc.
+    unfold catrel. split.
+    - intros. destruct H as (mb & bindF & bindG).
+      unfold lift_rsubst in *. intros a HA h bindH.
+      destruct bindH as (mb' & fmb' & H).
+      specialize (bindF a HA).
+      destruct HA as (s & HA).
+      specialize (H (snd (mb' s))).
+      assert (exists s0 : S, snd (mb' s0) = snd (mb' s)).  {
+        exists s; auto.
+      }
+      specialize (H H0); clear H0.
+      From Coq Require Import Logic.FunctionalExtensionality.
+      apply functional_extensionality.
+      intros s'.
+      (* While the predicate quantifies over the domain, the equality of state monads depend more so on the state..!
+       There needs to be something in the relation that talks about the "choice" taken for the effectful part of the
+       computation. How do we express this?
+
+       (Similar to the problem that we had before, where we could not gain enough information about the "state" that was
+       being piped through.)
+
+       In terms of ITrees, it makes sense to look at the "History", but what does it mean for states?
+       *)
+      (* 2 : { *)
+      (*   specialize (H ) *)
+      (* } *)
+      (* apply H1. *)
+      (* destruct H0. specialize (H a ) *)
+Abort.
+
+
+  Opaque StateMonad.Monad_state.
+  Lemma rsubst_rsubst_state_F (S : Type) :
+    forall A B C (f : A -> state S B -> Prop) (g : B -> state S C -> Prop),
+      not (catrel (rsubst f) (rsubst g) ≂ rsubst (catrel f (rsubst g))).
+  Proof.
+    (* intros A B C f g. cbn. unfold lift_rsubst, catrel. *)
+    (* intro. cbn in H. edestruct H. cbn in *.  *)
+  Abort.
+
+End RelMonadExp.
 
 Section PropT.
 
@@ -52,12 +184,15 @@ Section PropT.
     fun a : typ =>
     (-=->!)
       (fun X : a × m a ~~> prop_typ =>
-         let (t, t0) := X in rret @ (t, ret @ t)) _.
+        let (t, t0) := X in
+          forall m, t0 m <-> m == ret @ t) _.
+         (* rret @ (t, ret @ t)) _. *)
   Next Obligation.
-    repeat intro. cbn in *. destruct x, y. cbn in *.
-    destruct t0, t2. cbn in *. destruct H.
-    rewrite H. reflexivity.
-  Qed.
+  Admitted.
+  (*   repeat intro. cbn in *. destruct x, y. cbn in *. *)
+  (*   destruct t0, t2. cbn in *. destruct H. *)
+  (*   rewrite H. reflexivity. *)
+  (* Qed. *)
 
   Program Definition bindT :
     forall a b : typ, relationH a (PropT b) -> relationH (PropT a) (PropT b).
@@ -206,4 +341,8 @@ Section PropT.
   - apply bind_ret_l_.
   - apply bind_ret_r_.
   - apply bind_bind_.
+  - epose proof bind_proper. repeat intro. cbn.
+    assert (uncurry x ⩯ uncurry y). admit.
+    repeat red in H.
+    (* specialize (H (uncurry x)).  H3).  *)
   Admitted.
