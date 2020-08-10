@@ -65,6 +65,7 @@ theories/Dijkstra/PureITreeBasics.v
 theories/Dijkstra/PureITreeDijkstra.v
 theories/Dijkstra/DelaySpecMonad.v
 theories/Dijkstra/StateSpecT.v
+theories/Dijkstra/StateDelaySpec.v
 theories/Dijkstra/EuttEv.v
 theories/Dijkstra/IBranch.v
 theories/Dijkstra/BranchPrefix.v
