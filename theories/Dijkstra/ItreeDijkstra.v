@@ -401,7 +401,7 @@ Section ITreeDijkstra.
     - right. split; auto.
   Qed.
 
-  Instance ItreeSpecEq : EqM ITreeSpec :=
+  Instance ItreeSpecEq : Eq1 ITreeSpec :=
     fun _ w1 w2 => forall p, p ∈ w1 <-> p ∈ w2.
 
   Instance ItreeSpecEquiv {A : Type} : Equivalence (ItreeSpecEq A).
@@ -744,7 +744,7 @@ Section ITreeDijkstra.
   Hint Resolve eventless_monot : paco.
 
 
-  Instance proper_eventless_imp {E R} : Proper (eutt eq ==> impl) (@eventless E R) .
+  Instance proper_eventless_imp {E1 R} : Proper (eutt eq ==> impl) (@eventless E1 R) .
   Proof.
     repeat red. pcofix CIH.
     intros t1 t2 Heutt Hev.
@@ -764,7 +764,7 @@ Section ITreeDijkstra.
     - rewrite <- x. constructor. right. eapply CIH; eauto.
   Qed.
 
-  Instance proper_eventless {E R} : Proper (eutt eq ==> iff) (@eventless E R).
+  Instance proper_eventless {E1 R} : Proper (eutt eq ==> iff) (@eventless E1 R).
   Proof.
     intros t1 t2 Heutt. split; intros Hev.
     - rewrite <- Heutt. auto.
@@ -773,8 +773,8 @@ Section ITreeDijkstra.
 
 
   
-  Lemma eutt_eventless : forall (E : Type -> Type) (R1 R2 : Type) (RR : R1 -> R2 -> Prop) 
-                 (t1 : itree E R1) (t2 : itree E R2), 
+  Lemma eutt_eventless : forall (E1 : Type -> Type) (R1 R2 : Type) (RR : R1 -> R2 -> Prop) 
+                 (t1 : itree E1 R1) (t2 : itree E1 R2), 
       eventless t1 -> eutt RR t1 t2 -> eqitE RR t1 t2.
   Proof.
     intros E1 R1 R2 RR. pcofix CIH. intros.
@@ -1039,7 +1039,7 @@ Section ITreeDijkstra.
     assert (Ht4 : eventless t4).
     { rewrite <- Ht34. auto. }
     apply eqitE_trans with (t2 := t1).
-    - symmetry in Ht12. apply eutt_eventless; auto.
+    - symmetry in Ht12. red. apply eutt_eventless; auto.
     - apply eqitE_trans with (t2 := t3); auto.
       apply eutt_eventless; auto.
   Qed.

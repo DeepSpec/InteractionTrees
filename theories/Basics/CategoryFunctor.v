@@ -1,3 +1,5 @@
+(** * Definition of a functor *)
+
 From Coq Require Import
      Setoid
      Morphisms.

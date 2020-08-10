@@ -239,7 +239,7 @@ Proof.
   unfold interpret_stateF.
   punfold H0. repeat red in H0.
   destruct (observe t); cbn.
-  - rewrite !bind_ret. gstep. econstructor. eauto.
+  - rewrite !bind_ret_l. gstep. econstructor. eauto.
   - rewrite !bind_tau. gstep. econstructor.
     gbase. eapply CIH.
     inversion H0. subst. pclearbot. assumption.
@@ -271,7 +271,7 @@ Proof.
   unfold interpret_stateF.
   punfold H0. repeat red in H0.
   destruct (observe t); cbn.
-  - rewrite !bind_ret. gfinal. right.
+  - rewrite !bind_ret_l. gfinal. right.
     eapply paco2_mon_bot; eauto with paco. apply INV.
   - rewrite !bind_tau. gstep. econstructor.
     gbase. eapply CIH; auto.

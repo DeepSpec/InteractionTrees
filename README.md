@@ -32,7 +32,7 @@ See also [the tutorial](./tutorial/README.md).
 
 ## Dependencies
 
-- [coq](https://coq.inria.fr/) (8.8 or 8.9)
+- [coq](https://coq.inria.fr/) (8.8, 8.9, or 8.10)
 - [coq-paco](https://github.com/snu-sf/paco)
 - [coq-ext-lib](https://github.com/coq-ext-lib/coq-ext-lib)
 
@@ -105,25 +105,27 @@ for testing.
         * `CategoryOps`: Interfaces of operations to define categories.
         * `CategoryTheory`: Properties of categories.
         * `CategoryFacts`: General facts about categories.
-	* `CategoryFunctor`: Classes of functors.
-	* `CategorySub`: Definition of sub-categories.
+	    * `CategoryFunctor`: Classes of functors.
+	    * `CategorySub`: Definition of sub-categories.
+        * `CategoryKleisli`: Kleisli categories (for monads in the category of functions).
+        * `CategoryKleisliFacts`
 
-    + `Function`: The category of Coq functions `A -> B` (symmetric monoidal).
+    + `Function`: The category of Coq functions `A -> B`.
     + `FunctionFacts`
 
-    + `MonadTheory`: Properties of monads (in the category of functions).
-    + `CategoryKleisli`: The Kleisli category (over the category of functions).
-    + `CategoryKleisliFacts`
+    + `Monad`: Properties of monads (in the category of functions).
+    + `MonadState`: The state monad transformer.
+    + `MonadProp`: The nondeterminism monad.
 
 - `Core`: Main definitions for interaction trees.
 
     + `ITreeDefinition`: Interaction trees, type declaration and primitives.
     + `KTree`: Continuation trees `A -> itree E B`, the first Kleisli category
       of `itree`.
-    + `KTreeFacts`, `KTreeBasicFacts`
+    + `KTreeFacts`
     + `Subevent`: Combinators for extensible effects, injecting events into
-      sums. (Experimental)
-    + `ITreeMonad`: Instantiation of the `Basics.MonadTheory` interface with
+      sums.
+    + `ITreeMonad`: Instantiation of the `Basics.Monad` interface with
       `itree`.
 
 - `Eq`: Equational theory of interaction trees.
@@ -139,18 +141,20 @@ for testing.
 
     + `Sum`: Sum of indexed types.
     + `Function`: The category of parametric functions between indexed types,
-      i.e., event morphisms `E ~> F` (symmetric monoidal).
+      i.e., event morphisms `E ~> F`.
     + `FunctionFacts`
+    + `Relation`: Relations on indexed types, i.e.,
+      `forall T, E T -> E T -> Prop`.
 
 - `Interp`: Interaction tree transformations.
 
-    + `Interp`: Interpret itrees (`translate`, `interp`)
+    + `Interp`: Interpret itrees (`translate`, `interp`).
     + `TranslateFacts`, `InterpFacts`
     + `Handlers`: Event handlers `E ~> itree F`, the second Kleisli category
-      of `itree` (traced symmetric monoidal).
+      of `itree`.
     + `HandlerFacts`
-    + `Recursion`: Recursion combinators (`mrec`, `rec`)
+    + `Recursion`: Recursion combinators (`mrec`, `rec`).
     + `RecursionFacts`
     + `Traces`: Interpretation of itrees as sets of traces.
 
-- `Events`: Common event types (see `theories/Events.v` for a summary).
+- `Events`: Common event types (see [`theories/Events.v`](./theories/Events.v) for a summary).

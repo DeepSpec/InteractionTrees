@@ -57,7 +57,7 @@ Section TraceSpec.
   Definition TraceSpec (A : Type) := ev_list E -> {w : TraceSpecInput A -> Prop | 
                                       forall (p p' : TraceSpecInput A), (forall b, b ∈ p -> b ∈ p') -> w p -> w p'  }.
 
-  Instance EqM_TraceSpec : EqM TraceSpec := fun _ w1 w2 => forall log p, w1 log ∋ p <-> w2 log ∋ p. 
+  Instance EqM_TraceSpec : Eq1 TraceSpec := fun _ w1 w2 => forall log p, w1 log ∋ p <-> w2 log ∋ p. 
   (* look over this code *)
   (* https://github.com/FStarLang/FStar/blob/dm4all/examples/dm4all/IORWLocal.fst *)
 
@@ -126,9 +126,9 @@ Section TraceSpec.
 
 
 
-  Program Instance TraceSpecMonadLaws : MonadLaws TraceSpec.
+  Program Instance TraceSpecMonadLaws : MonadLawsE TraceSpec.
   Next Obligation.
-    rename a into A. rename b into B. rename x into a.
+    rename x into a.
     red. red. cbn. split; intros; basic_solve.
     - apply inv_append_eutt in H. destruct H. subst. auto. 
     - exfalso. assert (can_converge a (↑ log ++ Ret a) ).
@@ -137,7 +137,7 @@ Section TraceSpec.
     - left. exists a. exists log. split; auto. reflexivity.
   Qed.
   Next Obligation.
-    rename a into A. rename x into w. red. red. cbn. split; intros; basic_solve.
+    rename x into w. red. red. cbn. split; intros; basic_solve.
     - eapply apply_monot; try apply H. clear H.
       simpl. intros. basic_solve.
       + rewrite H. auto.
@@ -151,7 +151,7 @@ Section TraceSpec.
       + right. split; auto. rewrite div_cast_nop in H; auto. 
   Qed.
   Next Obligation.
-    rename a into A. rename b into B. rename c into C. rename x into w.
+    rename x into w.
     red. red. cbn. split; intros; basic_solve.
     - eapply apply_monot; try apply H. clear H. simpl. intros.
       basic_solve.
@@ -177,6 +177,17 @@ Section TraceSpec.
           eapply eutt_clo_bind with (UU := fun a b => False); intuition.
           apply eutt_div_sym. apply div_bind_nop. auto.
    Qed.
+  Next Obligation.
+    intros w1 w2 Hw k1 k2 Hk. do 2 red in Hw. do 3 red in Hk. 
+    repeat red. unfold bind_ts1. simpl. split; intros.
+    - rewrite <- Hw. destruct (w1 log) as [w1l Hw1l]; simpl in *. eapply Hw1l; try apply H;
+      simpl. intros. basic_solve; auto.
+      left. exists a. exists log'. split; auto. rewrite <- Hk. auto.
+    - rewrite Hw. destruct (w2 log) as [w2l Hw2l]; simpl in *. eapply Hw2l; try apply H;
+      simpl. intros. basic_solve; auto.
+      left. exists a. exists log'. split; auto. rewrite Hk. auto.
+  Qed.
+      
 
   Program Definition obs_trace (A : Type) (t : itree E A) : TraceSpec A :=
     fun log p => forall b, b ⊑ t -> p (↑log ++ b).
@@ -222,7 +233,7 @@ Section TraceSpec.
              assert ( ITree.bind b g ≈ (↑log0 ++ bf) ).
              {
                rewrite <- H1. unfold append. rewrite bind_bind.
-               setoid_rewrite bind_ret. unfold g. reflexivity.
+               setoid_rewrite bind_ret_l. unfold g. reflexivity.
              }
              rewrite append_assoc. rewrite <- H2. apply H.
              unfold g. apply branch_refine_converge_bind with (r := r); auto.
@@ -243,7 +254,7 @@ Section TraceSpec.
          { rewrite H1. auto. }
          rewrite <- H4 in H1.
          setoid_rewrite bind_bind in H1. 
-         setoid_rewrite bind_ret in H1.
+         setoid_rewrite bind_ret_l in H1.
          assert (↑ log0 ++ (g' r) ≈ b)%itree; auto. clear H1.
          specialize (H5 (g' r) ).  rewrite <- H6 in H0.
 
@@ -344,14 +355,14 @@ Lemma decide_ex_satisfies_spec : verify_cond NonDet (encode NonDet decide_ex_pos
 Proof.
   repeat red. cbn. intros. destruct H as [Hlog H].
   red in Hlog. apply H. clear H. subst. cbn. red. split; intros.
-  - unfold append in *. rewrite bind_ret in H. rewrite bind_ret.
+  - unfold append in *. rewrite bind_ret_l in H. rewrite bind_ret_l.
     unfold decide_ex in *. 
     generalize dependent b. pcofix CIH. intros b Hb Hdiv.
     pfold. red.
     rewrite unfold_iter in Hb at 1. rewrite bind_bind in Hb.
     apply bind_trigger_refine in Hb as Hb'; try (exists true; auto).
     basic_solve. destruct a.
-    + rewrite bind_ret in H0. cbn in H0. rewrite tau_eutt in H0. 
+    + rewrite bind_ret_l in H0. cbn in H0. rewrite tau_eutt in H0. 
       punfold H. red in H. cbn in H. clear Hb. 
       enough (paco1 (branch_forall_ (is_bool true) (fun _ => True) ) r b). 
       { punfold H1. }
@@ -364,7 +375,7 @@ Proof.
            inj_existT; subst. apply H1.
       *  pfold. red. rewrite <- x. constructor. left.  eapply IHeqitF; eauto. 
          apply simpobs in x. rewrite x in Hdiv. rewrite tau_eutt in Hdiv. auto. 
-   + rewrite bind_ret in H0. cbn in H0. apply branch_refine_ret_inv_l in H0.
+   + rewrite bind_ret_l in H0. cbn in H0. apply branch_refine_ret_inv_l in H0.
      rewrite H in Hdiv. pinversion Hdiv. inj_existT. subst.
      specialize (H2 tt).
      rewrite H0 in H2. pinversion H2.
@@ -379,13 +390,13 @@ Proof.
         rewrite H in H0. eapply bind_trigger_refine in H0; try (exists true; auto).
         basic_solve.
         pinversion H0. inj_existT; subst. injection H7 as Hbool. inj_existT; subst.
-        assert (k tt ≈ k' tt)%itree; try apply REL. rewrite bind_ret in H2.
+        assert (k tt ≈ k' tt)%itree; try apply REL. rewrite bind_ret_l in H2.
         cbn in *. rewrite tau_eutt in H2. rewrite H3. auto.
       * clear IHcan_converge. rewrite unfold_iter in H0. rewrite bind_bind in H0.
         rewrite H in H0. eapply bind_trigger_refine in H0; try (exists true; auto).
         basic_solve.
         pinversion H0. inj_existT; subst. injection H7 as Hbool. inj_existT; subst.
-        rewrite bind_ret in H2. cbn in H2.
+        rewrite bind_ret_l in H2. cbn in H2.
         apply branch_refine_ret_inv_l in H2. eapply front_and_last_base with (r := tt); eauto.
         pfold. red. cbn. constructor. intros. left. 
         rewrite <- H2. destruct v. auto.

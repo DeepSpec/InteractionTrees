@@ -16,7 +16,7 @@ From ITree Require Import
      Basics.Basics
      Basics.CategoryOps
      Basics.Function
-     Basics.MonadTheory
+     Basics.Monad
 .
 
 
@@ -34,9 +34,9 @@ Infix "<≈" := lem (at level 70).
 Section OrderedMonad.
   
   Context (W : Type -> Type).
-  Context {Eq : EqM W}.
+  Context {Eq : Eq1 W}.
   Context {MonadW : Monad W}.
-  Context {MonadLawsW : MonadLaws W}.
+  Context {MonadLawsW : MonadLawsE W}.
   Context {OrderW : OrderM W}.
   Class OrderedMonad :=
     {
@@ -73,13 +73,13 @@ Section EffectObservation.
   Context (M W : Type -> Type).
   Context {MMonad : Monad M}.
   Context {WMonad : Monad W}.
-  Context {EqW : EqM W}.
-  Context {MonadLawsW : MonadLaws W}.
+  Context {EqW : Eq1 W}.
+  Context {MonadLawsW : MonadLawsE W}.
   Context {WOrder : OrderM W}.
   Context {WOrderLaws : OrderedMonad W}.
   Context (Obs : EffectObs M W). 
 
-  Global Class MonadMorphism :=
+  Class MonadMorphism :=
     {
       ret_pres : forall A (a : A), obs A (ret a) ≈ ret a; 
       bind_pres : forall A B (m : M A) (f : A -> M B),
@@ -93,8 +93,8 @@ Section DijkstraMonad.
   Context (M W : Type -> Type).
   Context {MMonad : Monad M}.
   Context {WMonad : Monad W}.
-  Context {EqW : EqM W}.
-  Context {MonadLawsW : MonadLaws W}.
+  Context {EqW : Eq1 W}.
+  Context {MonadLawsW : MonadLawsE W}.
   Context {WOrder : OrderM W}.
   Context { WOrderLaws : OrderedMonad W }.
   Context ( Obs : EffectObs M W ).

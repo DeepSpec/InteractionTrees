@@ -73,72 +73,76 @@ Local Open Scope string_scope.
 (* ================================================================= *)
 (** ** Syntax *)
 
-Inductive aexp : Type :=
-  | ANum (n : nat)
-  | AId (x : string)
-  | APlus (a1 a2 : aexp)
-  | AMinus (a1 a2 : aexp)
-  | AMult (a1 a2 : aexp).
+(** Imp manipulates a countable set of variables represented as [string]s: *)
+Definition var : Set := string.
 
-Inductive bexp : Type :=
-  | BTrue
-  | BFalse
-  | BEq (a1 a2 : aexp)
-  | BLe (a1 a2 : aexp)
-  | BNot (b : bexp)
-  | BAnd (b1 b2 : bexp).
+(** For simplicity, the language manipulates [nat]s as values. *)
+Definition value : Type := nat.
 
-Inductive com : Set :=
-    CSkip : com
-  | CAss : string -> aexp -> com
-  | CSeq : com -> com -> com
-  | CIf : bexp -> com -> com -> com
-  | CWhile : bexp -> com -> com.
+(** Expressions are made of variables, constant literals, and arithmetic operations. *)
+Inductive expr : Type :=
+| Var (_ : var)
+| Lit (_ : value)
+| Plus  (_ _ : expr)
+| Minus (_ _ : expr)
+| Mult  (_ _ : expr).
+
+(** The statements are straightforward. The [While] statement is the only
+ potentially diverging one. *)
+
+Inductive stmt : Type :=
+| Assign (x : var) (e : expr)    (* x = e *)
+| Seq    (a b : stmt)            (* a ; b *)
+| If     (i : expr) (t e : stmt) (* if (i) then { t } else { e } *)
+| While  (t : expr) (b : stmt)   (* while (t) { b } *)
+| Skip                           (* ; *)
+.
 
 (* ========================================================================== *)
 (** ** Notations *)
 
 Module ImpNotations.
 
-  Coercion AId : string >-> aexp.
-  Coercion ANum : nat >-> aexp.
+  (** A few notations for convenience.  *)
+  Definition Var_coerce: string -> expr := Var.
+  Definition Lit_coerce: nat -> expr := Lit.
+  Coercion Var_coerce: string >-> expr.
+  Coercion Lit_coerce: nat >-> expr.
 
-  Definition bool_to_bexp (b : bool) : bexp :=
-    if b then BTrue else BFalse.
-  Coercion bool_to_bexp : bool >-> bexp.
+  Bind Scope expr_scope with expr.
 
-  Bind Scope imp_scope with aexp.
-  Bind Scope imp_scope with bexp.
-  Delimit Scope imp_scope with imp.
-  Notation "x + y" := (APlus x y) (at level 50, left associativity) : imp_scope.
-  Notation "x - y" := (AMinus x y) (at level 50, left associativity) : imp_scope.
-  Notation "x * y" := (AMult x y) (at level 40, left associativity) : imp_scope.
-  Notation "x <= y" := (BLe x y) (at level 70, no associativity) : imp_scope.
-  Notation "x = y" := (BEq x y) (at level 70, no associativity) : imp_scope.
-  Notation "x && y" := (BAnd x y) (at level 40, left associativity) : imp_scope.
-  Notation "'~' b" := (BNot b) (at level 75, right associativity) : imp_scope.
+  Infix "+" := Plus : expr_scope.
+  Infix "-" := Minus : expr_scope.
+  Infix "*" := Mult : expr_scope.
 
-  Notation "'SKIP'" :=
-    CSkip : imp_scope.
-  Notation "x '::=' a" :=
-    (CAss x a) (at level 60) : imp_scope.
-  (* Triple ;;; rather than double to avoid conflict with bind *)
-  Notation "c1 ;;; c2" :=
-    (CSeq c1 c2) (at level 80, right associativity) : imp_scope.
-  Notation "'WHILE' b 'DO' c 'END'" :=
-    (CWhile b c) (at level 80, right associativity) : imp_scope.
-  Notation "'TEST' c1 'THEN' c2 'ELSE' c3 'FI'" :=
-    (CIf c1 c2 c3) (at level 80, right associativity) : imp_scope.
+  Bind Scope stmt_scope with stmt.
+
+  Notation "x '←' e" :=
+    (Assign x e) (at level 60, e at level 50): stmt_scope.
+
+  Notation "a ';;;' b" :=
+    (Seq a b)
+      (at level 100, right associativity,
+       format
+         "'[v' a  ';;;' '/' '[' b ']' ']'"
+      ): stmt_scope.
+
+  Notation "'IF' i 'THEN' t 'ELSE' e 'FI'" :=
+    (If i t e)
+      (at level 100,
+       right associativity,
+       format
+         "'[v ' 'IF'  i '/' '[' 'THEN'  t  ']' '/' '[' 'ELSE'  e ']' 'FI' ']'").
+
+  Notation "'WHILE' t 'DO' b" :=
+    (While t b)
+      (at level 100,
+       right associativity,
+       format
+         "'[v  ' 'WHILE'  t  'DO' '/' '[v' b  ']' ']'").
 
 End ImpNotations.
 
-(** Imp manipulates a countable set of variables represented as [string]s: *)
-Notation var := string.
-(* Definition var : Set := string. *)
-
-(** For simplicity, the language manipulates [nat]s as values. *)
-(* Definition value : Type := nat. *)
-Notation value := nat.
 
 (*
 (** Expressions are made of variables, constant literals, and arithmetic operations. *)
@@ -247,23 +251,13 @@ Section Denote.
       other cases. A constant (literal) is simply returned, while we can [bind]
       recursive computations in the case of operators as one would expect.  *)
 
-  Fixpoint denote_aexp (e : aexp) : itree eff value :=
+   Fixpoint denote_expr (e : expr) : itree eff value :=
     match e with
-    | AId v      => trigger (GetVar v)
-    | ANum n     => ret n
-    | APlus a b  => l <- denote_aexp a ;; r <- denote_aexp b ;; ret (l + r)
-    | AMinus a b => l <- denote_aexp a ;; r <- denote_aexp b ;; ret (l - r)
-    | AMult a b  => l <- denote_aexp a ;; r <- denote_aexp b ;; ret (l * r)
-    end.
-
-  Fixpoint denote_bexp (e : bexp) : itree eff bool :=
-    match e with
-    | BTrue    => ret true
-    | BFalse   => ret false
-    | BEq a b  => l <- denote_aexp a ;; r <- denote_aexp b ;; ret (Nat.eqb l r)
-    | BLe a b  => l <- denote_aexp a ;; r <- denote_aexp b ;; ret (Nat.leb l r)
-    | BNot a   => b <- denote_bexp a ;; ret (negb b)
-    | BAnd a b => l <- denote_bexp a ;; r <- denote_bexp b ;; ret (andb l r)
+    | Var v     => trigger (GetVar v)
+    | Lit n     => ret n
+    | Plus a b  => l <- denote_expr a ;; r <- denote_expr b ;; ret (l + r)
+    | Minus a b => l <- denote_expr a ;; r <- denote_expr b ;; ret (l - r)
+    | Mult a b  => l <- denote_expr a ;; r <- denote_expr b ;; ret (l * r)
     end.
 
   (** We turn to the denotation of statements. As opposed to expressions,
@@ -296,29 +290,35 @@ Section Denote.
       while the [inl tt] says to continue. *)
 
 
+
   (* SAZ + LX - for some reason typeclass resolution can't see the instance for 
      Iter_ktree, even though it seems to be in scope. *)
   Definition while (step : itree eff (unit + unit)) : itree eff unit :=
     @iter _ _ _ Iter_Kleisli _ _ (fun _ => step) tt.
     
-  (** The meaning of statements is now easy to define.  They are all
+  (** Casting values into [bool]:  [0] corresponds to [false] and any nonzero
+      value corresponds to [true].  *)
+  Definition is_true (v : value) : bool := if (v =? 0)%nat then false else true.
+
+ (** The meaning of Imp statements is now easy to define.  They are all
       straightforward, except for [While], which uses our new [while] combinator
       over the computation that evaluates the conditional, and then the body if
       the former was true.  *)
-  Fixpoint denote_com (s : com) : itree eff unit :=
+  Fixpoint denote_imp (s : stmt) : itree eff unit :=
     match s with
-    | CAss x e =>  v <- denote_aexp e ;; trigger (SetVar x v)
-    | CSeq a b    =>  denote_com a ;; denote_com b
-    | CIf i t e   =>
-      b <- denote_bexp i ;;
-      if (b: bool) then denote_com t else denote_com e
+    | Assign x e =>  v <- denote_expr e ;; trigger (SetVar x v)
+    | Seq a b    =>  denote_imp a ;; denote_imp b
+    | If i t e   =>
+      v <- denote_expr i ;;
+      if is_true v then denote_imp t else denote_imp e
 
-    | CWhile t body =>
-      while (b <- denote_bexp t ;;
-	       if (b: bool)
-               then denote_com body ;; ret (inl tt)
-               else ret (inr tt))
-    | CSkip => ret tt
+    | While t b =>
+      while (v <- denote_expr t ;;
+	           if is_true v
+             then denote_imp b ;; ret (inl tt)
+             else ret (inr tt))
+
+    | Skip => ret tt
     end.
 
 End Denote.
@@ -418,6 +418,7 @@ Definition interp_imp  {E A} (t : itree (ImpState +' E) A) : stateT env (itree E
 Definition eval_imp (s: com) : itree void1 (env * unit) :=
   interp_imp (denote_com s) empty.
 
+
 (** Equipped with this evaluator, we can now compute.
     Naturally since Coq is total, we cannot do it directly inside of it.
     We can either rely on extraction, or use some fuel.
@@ -452,7 +453,7 @@ Section InterpImpProperties.
     repeat intro.
     unfold interp_imp.
     unfold interp_map.
-    rewrite H0. eapply eutt_interp_state; auto.
+    rewrite H0. eapply eutt_interp_state_eq; auto.
     rewrite H. reflexivity.
   Qed.
 

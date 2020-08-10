@@ -76,15 +76,15 @@ Proof.
     tau_steps. reflexivity.
   - basic_solve. exists (n0 + n)%nat.
     cbn. setoid_rewrite interp_imp_bind. rewrite IHae1.
-    setoid_rewrite bind_ret. setoid_rewrite interp_imp_bind. rewrite IHae2.
+    setoid_rewrite bind_ret_l. setoid_rewrite interp_imp_bind. rewrite IHae2.
     tau_steps. reflexivity.
   - basic_solve. exists (n0 - n)%nat.
     cbn. setoid_rewrite interp_imp_bind. rewrite IHae1.
-    setoid_rewrite bind_ret. setoid_rewrite interp_imp_bind. rewrite IHae2.
+    setoid_rewrite bind_ret_l. setoid_rewrite interp_imp_bind. rewrite IHae2.
     tau_steps. reflexivity.
   - basic_solve. exists (n0 * n)%nat.
     cbn. setoid_rewrite interp_imp_bind. rewrite IHae1.
-    setoid_rewrite bind_ret. setoid_rewrite interp_imp_bind. rewrite IHae2.
+    setoid_rewrite bind_ret_l. setoid_rewrite interp_imp_bind. rewrite IHae2.
     tau_steps. reflexivity.
 Qed.
 
@@ -98,18 +98,18 @@ Proof.
   - specialize (aexp_term Void a1 s) as Ha1. specialize (aexp_term Void a2 s) as Ha2.
     basic_solve. exists (n0 =? n).
     cbn. setoid_rewrite interp_imp_bind. rewrite Ha1.
-    setoid_rewrite bind_ret. setoid_rewrite interp_imp_bind.
+    setoid_rewrite bind_ret_l. setoid_rewrite interp_imp_bind.
     rewrite Ha2. tau_steps. reflexivity.
   - specialize (aexp_term Void a1 s) as Ha1. specialize (aexp_term Void a2 s) as Ha2.
     basic_solve. exists (n0 <=? n).
     cbn. setoid_rewrite interp_imp_bind. rewrite Ha1.
-    setoid_rewrite bind_ret. setoid_rewrite interp_imp_bind.
+    setoid_rewrite bind_ret_l. setoid_rewrite interp_imp_bind.
     rewrite Ha2. tau_steps. reflexivity.
   - basic_solve. exists (negb bc). cbn.
     setoid_rewrite interp_imp_bind. rewrite IHbe. tau_steps.
     reflexivity.
   - basic_solve. exists (bc0 && bc)%bool.
-    cbn. setoid_rewrite interp_imp_bind. rewrite IHbe1. setoid_rewrite bind_ret.
+    cbn. setoid_rewrite interp_imp_bind. rewrite IHbe1. setoid_rewrite bind_ret_l.
     cbn. setoid_rewrite interp_imp_bind. rewrite IHbe2. tau_steps.
     reflexivity.
 Qed.
@@ -129,7 +129,7 @@ Proof.
   unfold denote_imp in Hs'. cbn in Hs'. rewrite interp_imp_bind in Hs'. 
   fold (denote_imp c1) in Hs'. fold (denote_imp c2) in Hs'.
   destruct (eutt_reta_or_div _ (denote_imp c1 s) ); basic_solve.
-  - destruct a as [s'' [] ]. rewrite <- H in Hs'. setoid_rewrite bind_ret in Hs'. symmetry in H.
+  - destruct a as [s'' [] ]. rewrite <- H in Hs'. setoid_rewrite bind_ret_l in Hs'. symmetry in H.
     eapply Hc2; eauto.
   - apply div_spin_eutt in H. rewrite H in Hs'. rewrite <- spin_bind in Hs'.
     symmetry in Hs'. exfalso. eapply not_ret_eutt_spin. eauto.
@@ -144,9 +144,9 @@ Proof.
   unfold denote_imp. cbn.
   destruct (classic_bool b s).
   - unfold is_true, is_bool in H. rewrite interp_imp_bind.
-    rewrite H. setoid_rewrite bind_ret. apply Hc1. auto.
+    rewrite H. setoid_rewrite bind_ret_l. apply Hc1. auto.
   - unfold is_false, is_bool in H. rewrite interp_imp_bind.
-    rewrite H. setoid_rewrite bind_ret. apply Hc2. auto.
+    rewrite H. setoid_rewrite bind_ret_l. apply Hc2. auto.
 Qed.
 
 Definition app {A B : Type} (f : A -> B) (a : A) := f a.
@@ -161,7 +161,7 @@ Proof.
   -  unfold state_eq in H. symmetry. auto.
   - unfold state_eq in *. rewrite H. auto.
 Qed.
-
+(*
 Global Instance StateDelayProperOps {S : Type} : MonadProperOps (StateDelay S).
 Proof.
   red. intros A B. repeat intro. red in H0. cbn. red in H. red in H.
@@ -169,7 +169,7 @@ Proof.
   intros. subst. destruct u2 as [s' a]. simpl. red in H0. red in H0.
   apply H0.
 Qed.
-
+*)
 
 Global Instance run_state_proper_eq_itree {E : Type -> Type} {S R : Type} {s : S} : 
   Proper (@state_eq E S R ==> eq_itree eq) (@run_state_itree R S E s).
@@ -206,10 +206,10 @@ Section interp_state_eq_iter.
   Context (a : A).
   
 
-  Lemma interp_state_eq_iter : state_eq (interp_state f (KTree.iter g a) )
+  Lemma interp_state_eq_iter : state_eq (interp_state f (ITree.iter g a) )
                               (MonadIter_stateT0 _ _ (fun a0 => interp_state f (g a0)) a).
   Proof.
-    unfold KTree.iter, Iter_Kleisli, Basics.iter, MonadIter_itree.
+    unfold ITree.iter, Iter_Kleisli, Basics.iter, MonadIter_itree.
     eapply interp_state_iter; reflexivity.
   Qed.
 
@@ -272,7 +272,7 @@ Proof.
   match goal with | |- _ ≈ ?m _ => set m as while_denote; fold while_denote end.
   assert (Hwhile_rewrite : state_eq while_denote while_denote); try reflexivity.
   unfold while_denote in Hwhile_rewrite at 2.
-  rewrite interp_state_eq_iter in Hwhile_rewrite. 
+  setoid_rewrite interp_state_eq_iter in Hwhile_rewrite. 
   fold (run_state_itree s while_denote). rewrite Hwhile_rewrite.
   clear Hwhile_rewrite. unfold run_state_itree.
   match goal with |- MonadIter_stateT0 _ _ (fun _ :unit => ?m1) _ _ ≈ MonadIter_stateT0 _ _ (fun _ : unit => ?m2) _ _ => 
@@ -353,76 +353,76 @@ Proof.
          destruct a as [s'' [] ]. 
          eapply Hq.
          -- cbn. setoid_rewrite bind_bind. rewrite H1.
-            setoid_rewrite bind_ret. simpl.
+            setoid_rewrite bind_ret_l. simpl.
             setoid_rewrite bind_bind. rewrite <- H0.
             tau_steps. reflexivity.
          -- unfold q. left. exists s''. left. reflexivity.
       * do 4 red in H1. unfold interp_imp, interp_map in H1.
         destruct a as [s'' [] ].
         eapply Hq.
-        -- cbn. rewrite H1. setoid_rewrite bind_bind. setoid_rewrite bind_ret.
+        -- cbn. rewrite H1. setoid_rewrite bind_bind. setoid_rewrite bind_ret_l.
            simpl. tau_steps. reflexivity.
         -- unfold q. left. exists s. right. split; auto. reflexivity.
       * do 4 red in H1. unfold interp_imp, interp_map in H1.
         eapply Hq.
-        -- cbn. rewrite H1. setoid_rewrite bind_bind. setoid_rewrite bind_ret.
+        -- cbn. rewrite H1. setoid_rewrite bind_bind. setoid_rewrite bind_ret_l.
            simpl. apply div_spin_eutt in H0. rewrite H0. setoid_rewrite bind_bind.
            rewrite <- spin_bind. reflexivity.
         -- red. right. apply spin_div.
       * do 4 red in H1. unfold interp_imp, interp_map in H1.
         eapply Hq.
-        -- cbn. rewrite H1. setoid_rewrite bind_bind. setoid_rewrite bind_ret.
+        -- cbn. rewrite H1. setoid_rewrite bind_bind. setoid_rewrite bind_ret_l.
            simpl. apply div_spin_eutt in H0. 
            tau_steps. reflexivity.
         -- red. left. exists s. right. split; auto; reflexivity.
    + unfold q,p. unfold DelaySpecMonad.loop_invar_imp. intros.
      basic_solve.
      * cbn in H0. exfalso. destruct (eutt_reta_or_div _ t); basic_solve.
-       -- rewrite <- H1 in H0. setoid_rewrite bind_ret in H0. basic_solve.
+       -- rewrite <- H1 in H0. setoid_rewrite bind_ret_l in H0. basic_solve.
        -- apply div_spin_eutt in H1. rewrite H1 in H0. rewrite <- spin_bind in H0.
           symmetry in H0. eapply not_ret_eutt_spin; eauto.
      * cbn in H0. destruct (eutt_reta_or_div _ t); basic_solve; auto.
-       rewrite <- H2 in H0. setoid_rewrite bind_ret in H0. basic_solve. left.
+       rewrite <- H2 in H0. setoid_rewrite bind_ret_l in H0. basic_solve. left.
        exists s0. split; auto. symmetry. auto.
      * right. destruct (eutt_reta_or_div _ t); basic_solve; auto.
-       cbn in H0. rewrite <- H1 in H0. setoid_rewrite bind_ret in H0.
+       cbn in H0. rewrite <- H1 in H0. setoid_rewrite bind_ret_l in H0.
        pinversion H0.
   + unfold q. 
     unfold DelaySpecMonad.iter_lift, iso_destatify_arrow, reassoc. 
     basic_solve; try (destruct (classic_bool b s0) ); 
       try (destruct (eutt_reta_or_div _ (interp_imp (denote_com c) s0 ) )); basic_solve.
     * eapply Hq.
-      -- cbn. rewrite H0. setoid_rewrite bind_ret.
+      -- cbn. rewrite H0. setoid_rewrite bind_ret_l.
          setoid_rewrite bind_bind. do 4 red in H1. unfold interp_imp, interp_map in H1.
-         rewrite H1. setoid_rewrite bind_ret. simpl.
+         rewrite H1. setoid_rewrite bind_ret_l. simpl.
          destruct a as [s1 [] ]. rewrite <- H2. setoid_rewrite bind_bind.
-         setoid_rewrite bind_ret. simpl. tau_steps. reflexivity.
+         setoid_rewrite bind_ret_l. simpl. tau_steps. reflexivity.
       -- red. left. destruct a as [s'' [] ]. exists s''. left. reflexivity.
     * eapply Hq.
-      -- cbn. rewrite H0. setoid_rewrite bind_ret. setoid_rewrite bind_bind.
+      -- cbn. rewrite H0. setoid_rewrite bind_ret_l. setoid_rewrite bind_bind.
          do 4 red in H1. unfold interp_imp, interp_map in H1. rewrite H1.
-         setoid_rewrite bind_ret. simpl. apply div_spin_eutt in H2. rewrite H2.
+         setoid_rewrite bind_ret_l. simpl. apply div_spin_eutt in H2. rewrite H2.
          setoid_rewrite bind_bind. rewrite <- spin_bind. reflexivity.
       -- right. apply spin_div.
     * destruct a as [s'' [] ]. eapply Hq.
-      -- cbn.  rewrite H0. setoid_rewrite bind_ret.
+      -- cbn.  rewrite H0. setoid_rewrite bind_ret_l.
          do 4 red in H1. unfold interp_imp, interp_map in H1. rewrite H1.
-         setoid_rewrite bind_bind. setoid_rewrite bind_ret. simpl. tau_steps. reflexivity.
+         setoid_rewrite bind_bind. setoid_rewrite bind_ret_l. simpl. tau_steps. reflexivity.
       -- left. exists s0. right. split; auto. reflexivity.
     * eapply Hq.
-      -- cbn.  rewrite H0. setoid_rewrite bind_ret.
+      -- cbn.  rewrite H0. setoid_rewrite bind_ret_l.
          do 4 red in H1. unfold interp_imp, interp_map in H1. rewrite H1.
-         setoid_rewrite bind_bind. setoid_rewrite bind_ret. simpl. tau_steps. reflexivity.
+         setoid_rewrite bind_bind. setoid_rewrite bind_ret_l. simpl. tau_steps. reflexivity.
       -- left. exists s0. right. split; auto. reflexivity.
     * do 4 red in H1. do 4 red in H2. rewrite H1 in H2.
       apply inv_ret in H2. injection H2. discriminate.
     * do 4 red in H1. do 4 red in H2. rewrite H1 in H2.
       apply inv_ret in H2. injection H2. discriminate.
     * eapply Hq.
-      -- cbn.  rewrite H0. setoid_rewrite bind_ret.  reflexivity.
+      -- cbn.  rewrite H0. setoid_rewrite bind_ret_l.  reflexivity.
       -- left. exists s0. right. split; auto. reflexivity.
     * eapply Hq.
-      -- cbn.  rewrite H0. setoid_rewrite bind_ret.  reflexivity.
+      -- cbn.  rewrite H0. setoid_rewrite bind_ret_l.  reflexivity.
       -- left. exists s0. right. split; auto. reflexivity.
     * right. cbn. apply div_spin_eutt in H0. rewrite H0. rewrite <- spin_bind.
       apply spin_div.
@@ -471,7 +471,7 @@ Proof.
              unfold interp_imp, interp_map in H0.
              eapply Hq.
              ++ cbn. setoid_rewrite bind_bind. rewrite H0.
-                setoid_rewrite bind_ret. simpl. setoid_rewrite bind_bind.
+                setoid_rewrite bind_ret_l. simpl. setoid_rewrite bind_bind.
                 rewrite <- H2. tau_steps.
                 reflexivity.
              ++ specialize (H s s''). unfold q. left. exists s''. split; try (left; reflexivity).
@@ -479,30 +479,30 @@ Proof.
           -- apply div_spin_eutt in H2. eapply Hq with (t1 := spin).
              ++ cbn. unfold is_true, is_bool in H0. setoid_rewrite bind_bind.
                 unfold interp_imp, interp_map in H0.  rewrite H0.
-                setoid_rewrite bind_ret. simpl. rewrite H2.
+                setoid_rewrite bind_ret_l. simpl. rewrite H2.
                 setoid_rewrite bind_bind. apply spin_bind.
              ++ unfold q. right. apply spin_div.
         * unfold is_false, is_bool, interp_imp, interp_map in H0. cbn.
           eapply Hq.
-          -- setoid_rewrite bind_bind. rewrite H0. setoid_rewrite bind_ret.
+          -- setoid_rewrite bind_bind. rewrite H0. setoid_rewrite bind_ret_l.
              simpl. cbn. tau_steps. reflexivity.
           -- unfold q. left. exists s. split; auto. right. reflexivity.
       + red. intros. unfold p. unfold q in H0. basic_solve.
         * cbn in H0. 
           destruct (eutt_reta_or_div _ t); basic_solve.
           -- destruct a as [s'' [] ]. rewrite <- H2 in H0.
-             setoid_rewrite bind_ret in H0. basic_solve.
+             setoid_rewrite bind_ret_l in H0. basic_solve.
           -- exfalso. apply div_spin_eutt in H2. rewrite H2 in H0. rewrite <- spin_bind in H0.
              symmetry in H0. apply not_ret_eutt_spin in H0. auto.
         * cbn in H0.
         destruct (eutt_reta_or_div _ t); basic_solve.
         -- destruct a as [s'' [] ]. rewrite <- H2 in H0.
-           setoid_rewrite bind_ret in H0. basic_solve. left. exists s0. 
+           setoid_rewrite bind_ret_l in H0. basic_solve. left. exists s0. 
            symmetry in H2. auto.
         -- exfalso. apply div_spin_eutt in H2. rewrite H2 in H0.
            rewrite <- spin_bind in H0. symmetry in H0. apply not_ret_eutt_spin in H0. auto.
       * cbn in H0. right. destruct (eutt_reta_or_div _ t); auto.
-        basic_solve. rewrite <- H1 in H0. setoid_rewrite bind_ret in H0.
+        basic_solve. rewrite <- H1 in H0. setoid_rewrite bind_ret_l in H0.
         pinversion H0.
     + unfold DelaySpecMonad.iter_lift, iso_destatify_arrow, reassoc.
       intros t Ht. cbn.
@@ -512,11 +512,11 @@ Proof.
         destruct (classic_bool b s''); 
           destruct (eutt_reta_or_div _ (interp_imp (denote_com c) s'' )); basic_solve;
         eapply Hq.
-        -- rewrite <- H0. setoid_rewrite bind_ret.
+        -- rewrite <- H0. setoid_rewrite bind_ret_l.
            setoid_rewrite bind_bind. do 4 red in H1. 
-           unfold interp_imp, interp_map in H1. rewrite H1. setoid_rewrite bind_ret.
+           unfold interp_imp, interp_map in H1. rewrite H1. setoid_rewrite bind_ret_l.
            simpl. setoid_rewrite bind_bind.
-           rewrite <- H2. setoid_rewrite bind_ret. destruct a as [s3 [] ].
+           rewrite <- H2. setoid_rewrite bind_ret_l. destruct a as [s3 [] ].
            simpl. tau_steps. reflexivity.
         -- destruct a as [s3 [] ]. unfold q in Ht. basic_solve.
            ++ rewrite  H3 in H0. basic_solve.
@@ -524,25 +524,25 @@ Proof.
               eapply H; eauto.
            ++ rewrite H3 in H0. basic_solve.
            ++ rewrite <- H0 in H3. pinversion H3.
-        -- rewrite <- H0. setoid_rewrite bind_ret. setoid_rewrite bind_bind.
+        -- rewrite <- H0. setoid_rewrite bind_ret_l. setoid_rewrite bind_bind.
            do 4 red in H1. unfold interp_imp, interp_map in H1. rewrite H1.
-           setoid_rewrite bind_ret. simpl. apply div_spin_eutt in H2.
+           setoid_rewrite bind_ret_l. simpl. apply div_spin_eutt in H2.
            setoid_rewrite bind_bind. rewrite H2.
            rewrite <- spin_bind. reflexivity.
         -- unfold q. right. apply spin_div.
-        -- rewrite <- H0. setoid_rewrite bind_ret. 
+        -- rewrite <- H0. setoid_rewrite bind_ret_l. 
            unfold is_false, is_bool in H1. unfold interp_imp, interp_map in H1.
-           rewrite H1. setoid_rewrite bind_bind. setoid_rewrite bind_ret. simpl.
+           rewrite H1. setoid_rewrite bind_bind. setoid_rewrite bind_ret_l. simpl.
            tau_steps. reflexivity.
         -- unfold q. left. exists s''. split; try (right; reflexivity). unfold q in Ht.
            basic_solve.
            ++ rewrite H3 in H0. basic_solve. auto.
            ++ rewrite H3 in H0. basic_solve.
            ++ rewrite <- H0 in H3. pinversion H3.
-        -- rewrite <- H0. setoid_rewrite bind_ret. 
+        -- rewrite <- H0. setoid_rewrite bind_ret_l. 
            setoid_rewrite bind_bind.
            do 4 red in H1. unfold interp_imp, interp_map in H1.
-           rewrite H1. setoid_rewrite bind_ret. simpl. tau_steps.
+           rewrite H1. setoid_rewrite bind_ret_l. simpl. tau_steps.
            reflexivity.
         -- unfold q. left. exists s''.
            split; try (right; reflexivity). unfold q in Ht.
@@ -551,7 +551,7 @@ Proof.
            ++ rewrite H3 in H0. basic_solve.
            ++ rewrite <- H0 in H3. pinversion H3.
      * destruct b0 as [s'' [] ]. eapply Hq.
-       -- rewrite <- H0. setoid_rewrite bind_ret.
+       -- rewrite <- H0. setoid_rewrite bind_ret_l.
           reflexivity.
        -- unfold q. left. exists s''. split; try (right; reflexivity).
           unfold q in Ht. basic_solve.
@@ -624,8 +624,8 @@ Lemma compute_aexp_sc : forall (a : aexp),
 Proof.
   intros. red. intros. induction a; simpl;
   try (tau_steps; reflexivity);
-  try (rewrite interp_imp_bind; rewrite IHa1; rewrite bind_ret;
-    rewrite interp_imp_bind; rewrite IHa2; rewrite bind_ret; tau_steps; reflexivity).
+  try (rewrite interp_imp_bind; rewrite IHa1; rewrite bind_ret_l;
+    rewrite interp_imp_bind; rewrite IHa2; rewrite bind_ret_l; tau_steps; reflexivity).
 Qed.
 
 Lemma compute_aexp_sc_tree : forall (a : aexp) (s : env),
@@ -641,15 +641,15 @@ Proof.
   intros. red. intros. induction b; simpl;
   try (tau_steps; reflexivity).
   - rewrite interp_imp_bind. rewrite compute_aexp_sc_tree.
-    rewrite bind_ret. rewrite interp_imp_bind. rewrite compute_aexp_sc_tree.
-    rewrite bind_ret. tau_steps. reflexivity.
+    rewrite bind_ret_l. rewrite interp_imp_bind. rewrite compute_aexp_sc_tree.
+    rewrite bind_ret_l. tau_steps. reflexivity.
   - rewrite interp_imp_bind. rewrite compute_aexp_sc_tree.
-    rewrite bind_ret. rewrite interp_imp_bind. rewrite compute_aexp_sc_tree.
-    rewrite bind_ret. tau_steps. reflexivity.
-  - rewrite interp_imp_bind. rewrite IHb. rewrite bind_ret.
+    rewrite bind_ret_l. rewrite interp_imp_bind. rewrite compute_aexp_sc_tree.
+    rewrite bind_ret_l. tau_steps. reflexivity.
+  - rewrite interp_imp_bind. rewrite IHb. rewrite bind_ret_l.
     tau_steps. reflexivity.
-  - rewrite interp_imp_bind. rewrite IHb1. rewrite bind_ret.
-    rewrite interp_imp_bind. rewrite IHb2. rewrite bind_ret.
+  - rewrite interp_imp_bind. rewrite IHb1. rewrite bind_ret_l.
+    rewrite interp_imp_bind. rewrite IHb2. rewrite bind_ret_l.
     tau_steps. reflexivity.
 Qed.
 
@@ -667,7 +667,7 @@ Lemma compute_assign_sc : forall (x : var) (a : aexp),
                   (fun s => Ret (Maps.add x (compute_aexp a s) s, tt) ).
 Proof.
   intros. simpl. intro. rewrite interp_imp_bind.
-  rewrite compute_aexp_sc_tree. rewrite bind_ret. tau_steps. reflexivity.
+  rewrite compute_aexp_sc_tree. rewrite bind_ret_l. tau_steps. reflexivity.
 Qed.
 
 Lemma compute_assign_sc_tree : forall (x : var) (a : aexp) (s : env),
@@ -848,18 +848,6 @@ Section SQRTEx.
            (fun body)
 *)
 
-  Global Instance DelaySpecProper : MonadProperOps DelaySpec.
-  Proof.
-    red. intros A B. repeat intro. red in H0. repeat red in H. unfold bind, DelaySpecMonad, bind_del, _bind_del.
-    simpl. split; intros.
-    - destruct x as [x Hx]. destruct y as [y Hy]. simpl in *.
-      assert (forall p, x p -> y p).
-      {
-        intros. specialize (H p0). tauto.
-      }
-      apply H2. eapply Hx; try apply H1. simpl. intros. basic_solve; auto.
-      + left. exists a. split; auto.
-        Abort.
 
   Lemma compile_nat_sqrt_body : 
     state_eq_eutt (denote_imp (WHILE (~ i * i  = n) DO i ::= i + 1 END)%imp) 
@@ -869,10 +857,10 @@ Section SQRTEx.
                                                          else Ret (s, inr tt) ) tt ) .
   Proof.
     rewrite compile_while. apply state_eutt_iter. intro.
-    rewrite compute_bexp_sc. intro. simpl. rewrite bind_ret. simpl.
+    rewrite compute_bexp_sc. intro. simpl. rewrite bind_ret_l. simpl.
     destruct (lookup_default i 0 s * lookup_default i 0 s =? lookup_default n 0 s); simpl.
     - tau_steps. reflexivity.
-    - unfold denote_imp. rewrite compute_assign_sc_tree. rewrite bind_ret.
+    - unfold denote_imp. rewrite compute_assign_sc_tree. rewrite bind_ret_l.
       cbn. tau_steps. rewrite plus_comm. reflexivity.
   Qed.
 
@@ -1036,12 +1024,12 @@ Section SQRTEx.
       + unfold reassoc. simpl. rewrite Hi0. simpl.
         destruct (lookup_default n 0 s) eqn : Heq; simpl.
         * eapply Hq.
-          -- rewrite bind_ret. reflexivity.
+          -- rewrite bind_ret_l. reflexivity.
           -- red. exists s. split; auto. right. unfold get. split; try reflexivity. unfold n0.
              (*wierd, so it seems to have something to do with different type aliasing for env*) 
              unfold env in Hi0. rewrite Hi0. auto.
         * eapply Hq.
-          -- rewrite bind_ret. reflexivity.
+          -- rewrite bind_ret_l. reflexivity.
           -- red. exists (inc_var i s). split; auto. 
              ++ left. split; try reflexivity. unfold get, inc_var.
                 rewrite lookup_eq. unfold is_square in Hpre. basic_solve. nia.
@@ -1049,32 +1037,32 @@ Section SQRTEx.
       (*Post Condition*)
       + red. cbn. intros. red. red in H. basic_solve.
         * exists s0. destruct (eutt_reta_or_div _ t); basic_solve.
-          -- destruct a as [ s' [] ]. rewrite <- H2 in H. simpl in *. rewrite bind_ret in H.
+          -- destruct a as [ s' [] ]. rewrite <- H2 in H. simpl in *. rewrite bind_ret_l in H.
              basic_solve.
           -- apply div_spin_eutt in H2. rewrite H2 in H.
              rewrite <- spin_bind in H. exfalso. symmetry in H. eapply not_ret_eutt_spin; try apply H.
         * exists s0. destruct (eutt_reta_or_div _ t); basic_solve.
           -- destruct a as [ s' []  ]. symmetry in H2. rewrite H2 in H.
-             simpl in *. rewrite H1. rewrite bind_ret in H. basic_solve. auto.
+             simpl in *. rewrite H1. rewrite bind_ret_l in H. basic_solve. auto.
           -- apply div_spin_eutt in H2. rewrite H2 in H. rewrite <- spin_bind in H.
              exfalso. symmetry in H. eapply not_ret_eutt_spin; try apply H.
        (*Preservation*)
       + intros. simpl. red in H. basic_solve.
         * eapply Hq.
-          -- rewrite H. simpl. rewrite bind_ret. unfold DelaySpecMonad.iter_lift, iso_destatify_arrow, reassoc.
+          -- rewrite H. simpl. rewrite bind_ret_l. unfold DelaySpecMonad.iter_lift, iso_destatify_arrow, reassoc.
              simpl. reflexivity. 
           -- eqbdestruct (lookup_default i 0 s0 * lookup_default i 0 s0) (lookup_default n 0 s0).
-             ++ simpl. red. exists s0. rewrite bind_ret. split; auto. right. unfold get, n0. 
+             ++ simpl. red. exists s0. rewrite bind_ret_l. split; auto. right. unfold get, n0. 
                 split; try reflexivity.
                 unfold env in Heq. rewrite Heq. auto.
-             ++ simpl. red. exists (inc_var i s0). rewrite bind_ret. split; auto.
+             ++ simpl. red. exists (inc_var i s0). rewrite bind_ret_l. split; auto.
                 ** left. split; try reflexivity. unfold get, inc_var. rewrite lookup_eq.
                    unfold get in H1. red in Hpre. basic_solve. unfold get in H0. unfold n0 in *.
                    rewrite <- Hpre. rewrite <- H0 in H1. rewrite <- Hpre in H0. unfold env in *.  rewrite H0 in Heq.
                    assert (lookup_default i 0 s0 < m); nia.
                 ** unfold get, inc_var. rewrite lookup_neq; auto.
          * eapply Hq.
-           -- rewrite H. simpl. rewrite bind_ret. cbn. reflexivity.
+           -- rewrite H. simpl. rewrite bind_ret_l. cbn. reflexivity.
            -- red. exists s0. split; auto. right. split; auto. reflexivity.
   Qed.
     
@@ -1092,7 +1080,7 @@ Section SQRTEx.
       - exists s1. rewrite H. split; auto.
     }
     eapply Hpost.
-    - Opaque Maps.add. simpl. rewrite bind_ret. simpl. reflexivity.
+    - Opaque Maps.add. simpl. rewrite bind_ret_l. simpl. reflexivity.
     - match goal with |- post1 s ?m => enough (post1 (Maps.add i 0 s) m) end.
       { unfold post1. unfold post1 in H. rewrite lookup_neq in H; auto. }
       specialize prepost1_holds_nat_sqrt_loop as Hloop.
@@ -1111,7 +1099,7 @@ Section SQRTEx.
     setoid_rewrite compile_nat_sqrt_body.
     setoid_rewrite compute_assign_sc. repeat red. intros s [p Hp]. intros. simpl in H.
     destruct H as [Hpre H]. apply H. clear H. red in Hpre.
-    simpl. red. rewrite bind_ret. simpl. 
+    simpl. red. rewrite bind_ret_l. simpl. 
     assert (Hs' : ~ is_square (lookup_default n 0 (Maps.add i 0 s)) ).
     { rewrite lookup_neq; auto. } clear Hpre.
     apply diverge_if_not_square_nat_sqrt in Hs' as Hdivs.

@@ -3,7 +3,7 @@
 (** Not specific to itrees. *)
 
 (* begin hide *)
-From Coq Require 
+From Coq Require
      Ensembles.
 
 From Coq Require Import
@@ -54,7 +54,42 @@ Variant sum_rel {A1 A2 B1 B2 : Type}
 .
 Arguments inl_morphism {A1 A2 B1 B2 RA RB}.
 Arguments inr_morphism {A1 A2 B1 B2 RA RB}.
-Hint Constructors sum_rel.
+Hint Constructors sum_rel: core.
+
+Section SumRelInstances.
+  Context {R S : Type}.
+  Context (RR : R -> R -> Prop).
+  Context (SS : S -> S -> Prop).
+
+  Global Instance sum_rel_refl `{Reflexive _ RR} `{Reflexive _ SS} : Reflexive (sum_rel RR SS).
+  Proof.
+    red. destruct x; econstructor; eauto.
+  Qed.
+
+  Global Instance sum_rel_sym `{Symmetric _ RR} `{Symmetric _ SS}  : Symmetric (sum_rel RR SS).
+  Proof.
+    red. intros.
+    inversion H1; econstructor; symmetry; eauto.
+  Qed.
+
+  Global Instance sum_rel_trans `{Transitive _ RR} `{Transitive _ SS}  : Transitive (sum_rel RR SS).
+  Proof.
+    red.
+    intros.
+    inversion H1;
+    inversion H2;
+    subst;
+    inversion H7; subst;
+    econstructor; etransitivity; eauto.
+  Qed.
+
+  Global Instance sum_rel_eqv `{Equivalence _ RR} `{Equivalence _ SS} : Equivalence (sum_rel RR SS).
+  Proof.
+    constructor; typeclasses eauto.
+  Qed.
+
+End SumRelInstances.
+
 
 (** Logical relation for the [prod] type. *)
 Variant prod_rel {A1 A2 B1 B2 : Type}
@@ -64,7 +99,7 @@ Variant prod_rel {A1 A2 B1 B2 : Type}
 .
 
 Arguments prod_morphism {A1 A2 B1 B2 RA RB}.
-Hint Constructors prod_rel.
+Hint Constructors prod_rel: core.
 
 
 (* SAZ: TODO: Move this elsewhere, it belong with the Basics *)
@@ -77,10 +112,10 @@ Section ProdRelInstances.
   Proof.
     red. destruct x. constructor; auto.
   Qed.
-  
+
   Global Instance prod_rel_sym `{Symmetric _ RR} `{Symmetric _ SS}  : Symmetric (prod_rel RR SS).
   Proof.
-    red. intros. 
+    red. intros.
     inversion H1. subst.
     constructor; symmetry; auto.
   Qed.

@@ -29,13 +29,17 @@ From ITree Require Import
 Notation Subevent E F := (@ReSum (Type -> Type) IFun E F)
   (only parsing).
 Notation "E -< F" := (Subevent E F)
-  (at level 90, left associativity) : type_scope.
+  (at level 92, left associativity) : type_scope.
 
 Definition subevent {E F : Type -> Type} `{E -< F} : E ~> F := resum _.
 
 (** Notations to construct and pattern-match on nested sums. *)
 Module Import SumNotations.
 
+(*
+  The following line removes the warning on >=8.10, but is incompatible for <8.10
+ *)
+(* Declare Scope sum_scope. *)
 Delimit Scope sum_scope with sum.
 Bind Scope sum_scope with sum1.
 

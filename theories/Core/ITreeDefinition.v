@@ -59,6 +59,10 @@ Section itree.
 End itree.
 
 (* begin hide *)
+(*
+  The following line removes the warning on >=8.10, but is incompatible for <8.10
+ *)
+(* Declare Scope itree_scope. *)
 Bind Scope itree_scope with itree.
 Delimit Scope itree_scope with itree.
 Local Open Scope itree_scope.
@@ -184,18 +188,22 @@ Definition cat {E T U V}
 
 (** [iter]: See [Basics.Basics.MonadIter]. *)
 
-Definition _iter {E : Type -> Type} {R I : Type}
-           (tau : _)
-           (iter_ : I -> itree E R)
-           (step_i : I + R) : itree E R :=
-  match step_i with
-  | inl i => tau (iter_ i)
+(* [on_left lr l t]: run a computation [t] if the first argument is an [inl l].
+   [l] must be a variable (used as a pattern), free in the expression [t]:
+   - [on_left (inl x) l t = t{l := x}]
+   - [on_left (inr y) l t = Ret y]
+ *)
+Notation on_left lr l t :=
+  (match lr with
+  | inl l => t
   | inr r => Ret r
-  end.
+  end) (only parsing).
 
+(* Note: here we must be careful to call [iter_ l] under [Tau] to avoid an eager
+   infinite loop if [step i] is always of the form [Ret (inl _)] (cf. issue #182). *)
 Definition iter {E : Type -> Type} {R I: Type}
            (step : I -> itree E (I + R)) : I -> itree E R :=
-  cofix iter_ i := bind (step i) (_iter (fun t => Tau t) iter_).
+  cofix iter_ i := bind (step i) (fun lr => on_left lr l (Tau (iter_ l))).
 
 (* note(gmm): There needs to be generic automation for monads to simplify
  * using the monad laws up to a setoid.
@@ -239,15 +247,17 @@ End ITree.
 
 Module ITreeNotations.
 Notation "t1 >>= k2" := (ITree.bind t1 k2)
-  (at level 50, left associativity) : itree_scope.
+  (at level 58, left associativity) : itree_scope.
 Notation "x <- t1 ;; t2" := (ITree.bind t1 (fun x => t2))
-  (at level 60, t1 at next level, right associativity) : itree_scope.
+  (at level 61, t1 at next level, right associativity) : itree_scope.
+Notation "` x : t <- t1 ;; t2" := (ITree.bind t1 (fun x : t => t2))
+  (at level 61, t at next level, t1 at next level, x ident, right associativity) : itree_scope.
 Notation "t1 ;; t2" := (ITree.bind t1 (fun _ => t2))
-  (at level 60, right associativity) : itree_scope.
+  (at level 61, right associativity) : itree_scope.
 Notation "' p <- t1 ;; t2" :=
   (ITree.bind t1 (fun x_ => match x_ with p => t2 end))
-  (at level 60, t1 at next level, p pattern, right associativity) : itree_scope.
-Infix ">=>" := ITree.cat (at level 60, right associativity) : itree_scope.
+  (at level 61, t1 at next level, p pattern, right associativity) : itree_scope.
+Infix ">=>" := ITree.cat (at level 61, right associativity) : itree_scope.
 End ITreeNotations.
 
 (** ** Instances *)

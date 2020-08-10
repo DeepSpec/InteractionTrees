@@ -45,7 +45,7 @@ Section State.
   Definition get {E} `{stateE -< E} : itree E S := embed Get.
   Definition put {E} `{stateE -< E} : S -> itree E unit := embed Put.
 
-  Definition handle_state {E} : stateE ~> stateT S (itree E) :=
+  Definition h_state {E} : stateE ~> stateT S (itree E) :=
     fun _ e s =>
       match e with
       | Get => Ret (s, s)
@@ -60,7 +60,7 @@ Section State.
 
   Definition run_state {E}
     : itree (stateE +' E) ~> stateT S (itree E)
-    := interp_state (case_ handle_state pure_state).
+    := interp_state (case_ h_state pure_state).
 
 End State.
 
@@ -123,7 +123,7 @@ Section eff_hom_e.
 
   Definition interp_e (h : eff_hom_e) : itree E ~> itree F := fun R t =>
     ITree.iter (fun '(s, t) =>
-      match t.(observe) with
+      match observe t with
       | RetF r => Ret (inr r)
       | TauF t => Ret (inl (s, t))
       | VisF e k => ITree.map (fun '(s, x) => inl (s, k x)) (h.(eval) _ e)

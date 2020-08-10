@@ -65,11 +65,11 @@ Notation "a ∋ b" := (proj1_sig a b) (at level 70).
 
 Definition Delay (A : Type) := itree Void A.
 
-Global Instance EqMDelay : EqM Delay := @ITreeMonad.EqM_ITree Void.
+Global Instance EqMDelay : Eq1 Delay := @ITreeMonad.Eq1_ITree Void.
 
 Global Instance MonadDelay : Monad Delay := @Monad_itree Void.
 
-Global Instance MonadIterDelay : MonadIter Delay := fun R I f a => KTree.iter f a.
+Global Instance MonadIterDelay : MonadIter Delay := fun R I f a => ITree.iter f a.
 
 Definition DelaySpecInput (A : Type) := {p : Delay A -> Prop | resp_eutt _ _ p}.
 
@@ -100,7 +100,7 @@ Next Obligation.
   - right. split; auto.
 Qed.
 
-Global Instance DelaySpecEq : EqM DelaySpec :=
+Global Instance DelaySpecEq : Eq1 DelaySpec :=
   fun _ w1 w2 => forall p, p ∈ w1 <-> p ∈ w2.
 
 Global Instance DelaySpecEqEquiv {A : Type} : Equivalence (DelaySpecEq A).
@@ -117,14 +117,13 @@ Global Instance DelaySpecMonad : Monad DelaySpec :=
     bind := bind_del
   }.
 
-Program Instance DelaySpecMonadLaws : MonadLaws DelaySpec.
+Program Instance DelaySpecMonadLaws : MonadLawsE DelaySpec.
 Next Obligation.
   repeat red. cbn. split; intros; basic_solve; auto.
   - pinversion H.
   - left. exists x. split; auto; reflexivity.
 Qed.
 Next Obligation.
-  rename a into A.
   rename x into w.
   repeat red. cbn. split; intros.
   - red in H. simpl in H. destruct w as [w Hw]. simpl in *. eapply Hw; try apply H.
@@ -138,7 +137,7 @@ Next Obligation.
     + right. split; auto. eapply Hp; try apply H0. symmetry. apply div_spin_eutt. auto.
 Qed.
 Next Obligation.
-  rename a into A. rename b into B. rename c into C. rename x into w.
+  rename x into w.
   repeat red. cbn. split; intros. 
   - red. red in H. destruct w as [w Hw]. simpl in *. destruct p as [p Hp]. simpl in *.
     eapply Hw; try apply H. intros. simpl in *. clear H. basic_solve.
@@ -148,6 +147,26 @@ Next Obligation.
     eapply Hw; try apply H. simpl in *. intros. basic_solve.
     + left. exists a. auto.
     + right. split; auto. right. split; try auto using spin_div.
+Qed.
+Next Obligation.
+  intros w1 w2 Hw k1 k2 Hk. unfold pointwise_relation in Hk.
+  repeat red. unfold bind_del, _bind_del; split; intros; destruct w1 as [w1 Hw1]; 
+                destruct w2 as [w2 Hw2]; do 2 red in Hw; 
+                  simpl in *.
+  - rewrite <- Hw. eapply Hw1; try apply H; simpl in *. intros. 
+    destruct H0 as [ [a [Ht Ha] ] | [Hdiv Hspin] ]; auto.
+    left. exists a. split; auto. 
+    specialize (Hk a). destruct (k1 a) as [k1a Hk1a];
+                         destruct (k2 a) as [k2a Hk2a];
+                         do 2 red in Hk; simpl in *.
+    apply Hk. auto.
+  - rewrite Hw. eapply Hw2; try apply H; simpl in *. intros.
+    destruct H0 as [ [a [Ht Ha] ] | [Hdiv Hspin] ]; auto.
+    left. exists a. split; auto. 
+    specialize (Hk a). destruct (k1 a) as [k1a Hk1a];
+                         destruct (k2 a) as [k2a Hk2a];
+                         do 2 red in Hk; simpl in *.
+    apply Hk. auto.    
 Qed.
 
 Global Instance DelaySpecOrderM : OrderM DelaySpec :=
@@ -177,10 +196,10 @@ Proof.
   - repeat red. cbn. split; intros; basic_solve.
     + destruct (eutt_reta_or_div _ m); basic_solve.
       * left. exists a. split; auto. destruct p as [p Hp]. simpl in *. eapply Hp; try apply H.
-        rewrite <- H0. setoid_rewrite bind_ret. reflexivity.
+        rewrite <- H0. setoid_rewrite bind_ret_l. reflexivity.
       * right. split; auto. apply div_spin_eutt in H0. destruct p as [p Hp]. eapply Hp; try apply H.
         rewrite H0. apply spin_bind.
-    + destruct p as [p Hp]. simpl in *. eapply Hp; try apply H0. rewrite <- H. setoid_rewrite bind_ret. reflexivity.
+    + destruct p as [p Hp]. simpl in *. eapply Hp; try apply H0. rewrite <- H. setoid_rewrite bind_ret_l. reflexivity.
     + apply div_spin_eutt in H. destruct p as [p Hp]. simpl in *. eapply Hp; try apply H0. rewrite H. 
       symmetry. apply spin_bind.
 Qed.
@@ -191,11 +210,11 @@ Definition iter_arrow_rel {A B : Type} (g : A -> Delay (A + B) ) (a1 a2 : A) : P
 Notation "x =[ g ]=> y" := (iter_arrow_rel g x y) (at level 70).
 
 Lemma iter_inl_spin : forall (A B : Type) (g : A -> Delay (A + B) ) (a : A),
-    not_wf_from _ (iter_arrow_rel g) a -> KTree.iter g a ≈ spin.
+    not_wf_from _ (iter_arrow_rel g) a -> ITree.iter g a ≈ spin.
 Proof.
   intros A B g. einit. ecofix CIH. intros. pinversion H0; try apply not_wf_F_mono'.
   setoid_rewrite unfold_iter_ktree. unfold iter_arrow_rel in Hrel. apply eutt_ret_euttge in Hrel.
-  rewrite Hrel. rewrite bind_ret. rewrite unfold_spin. etau.
+  rewrite Hrel. rewrite bind_ret_l. rewrite unfold_spin. etau.
 Qed.
 
 (*eventually might want more general reasoning principle, like weaken the second precondition to only apply
@@ -203,18 +222,18 @@ Qed.
 Lemma iter_wf_converge : forall (A B : Type) (g : A -> Delay (A + B) ) (a : A),
     wf_from A (iter_arrow_rel g) a ->
     (forall a, exists (ab : A + B), g a ≈ Ret ab) ->
-    exists b : B, KTree.iter g a ≈ Ret b.
+    exists b : B, ITree.iter g a ≈ Ret b.
 Proof.
   intros A B g a Hwf Hconv.
   induction Hwf.
   - specialize (Hconv a). destruct Hconv as [ [a' | b] Hret ].
     + exfalso. apply (H a'). auto.
-    + exists b. rewrite unfold_iter_ktree. rewrite Hret. rewrite bind_ret.
+    + exists b. rewrite unfold_iter. rewrite Hret. rewrite bind_ret_l.
       reflexivity.
   - specialize (Hconv a). destruct Hconv as [ [a' | b] Hret ].
     + apply H0 in Hret as Hret'. destruct Hret' as [b Hret']. exists b.
-      rewrite unfold_iter_ktree. rewrite Hret. rewrite bind_ret. rewrite tau_eutt. auto.
-    + exists b. rewrite unfold_iter_ktree. rewrite Hret. rewrite bind_ret.
+      rewrite unfold_iter. rewrite Hret. rewrite bind_ret_l. rewrite tau_eutt. auto.
+    + exists b. rewrite unfold_iter. rewrite Hret. rewrite bind_ret_l.
       reflexivity.
 Qed.
 
@@ -236,7 +255,7 @@ Lemma loop_invar : forall (A B : Type) (g : A -> Delay (A + B) ) (a : A)
                           (q : Delay (A + B) -> Prop ) (Hq : resp_eutt _ _ q ),
     (q -+> p) -> (q (g a)) -> 
     (forall t, q t ->  q (bind t (iter_lift g))) ->
-    (p \1/ divergence) (KTree.iter g a).
+    (p \1/ divergence) (ITree.iter g a).
 Proof.
   intros. unfold loop_invar_imp in *.
   set (iter_arrow_rel g) as rg.
@@ -246,27 +265,27 @@ Proof.
       * symmetry in H3. apply H2 in H3. contradiction.
       * apply H. cbn. eapply Hq; try apply H0.
         setoid_rewrite unfold_iter_ktree. rewrite <- H3.
-        repeat setoid_rewrite bind_ret. reflexivity.
+        repeat setoid_rewrite bind_ret_l. reflexivity.
       * apply div_spin_eutt in H3. apply H. cbn.
         eapply Hq; try apply H0. rewrite H3.
-        setoid_rewrite unfold_iter_ktree. rewrite H3.
+        setoid_rewrite unfold_iter. rewrite H3.
         symmetry. setoid_rewrite <- spin_bind. apply spin_bind.
     + unfold rg in *.
       destruct (eutt_reta_or_div _ (g a) ); basic_solve.
-      * rename a0 into a'. apply Hp with (t1 := KTree.iter g a').
-        -- setoid_rewrite unfold_iter_ktree at 2. rewrite <- H4.
-           setoid_rewrite bind_ret. rewrite tau_eutt. reflexivity.
+      * rename a0 into a'. apply Hp with (t1 := ITree.iter g a').
+        -- setoid_rewrite unfold_iter at 2. rewrite <- H4.
+           setoid_rewrite bind_ret_l. rewrite tau_eutt. reflexivity.
         -- symmetry in H4. apply H3; auto. unfold iter_lift in H1. specialize (H1 (g a) H0).
-           eapply Hq; try apply H1. cbn. rewrite H4. setoid_rewrite bind_ret.
+           eapply Hq; try apply H1. cbn. rewrite H4. setoid_rewrite bind_ret_l.
            reflexivity.
       * apply Hp with (t1 := ret b).
-        -- setoid_rewrite unfold_iter_ktree. rewrite <- H4. 
-           setoid_rewrite bind_ret. reflexivity.
+        -- setoid_rewrite unfold_iter. rewrite <- H4. 
+           setoid_rewrite bind_ret_l. reflexivity.
         -- apply H. cbn. eapply Hq; try apply H0.
-           setoid_rewrite bind_ret. auto.
+           setoid_rewrite bind_ret_l. auto.
       * apply div_spin_eutt in H4. apply H. cbn.
         eapply Hq; try apply H0. rewrite H4.
-        setoid_rewrite unfold_iter_ktree. rewrite H4. repeat setoid_rewrite <- spin_bind.
+        setoid_rewrite unfold_iter. rewrite H4. repeat setoid_rewrite <- spin_bind.
         reflexivity.
   - apply iter_inl_spin in H2. right. rewrite H2. apply spin_div.
 Qed.

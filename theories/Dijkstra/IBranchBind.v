@@ -877,7 +877,7 @@ Proof.
   induction H; intros.
   - rewrite <- H0 in H. clear H0. apply peel_ret_inv in H as Ht.
     rewrite Ht in HeuttEv.
-    rewrite bind_ret in HeuttEv.
+    rewrite bind_ret_l in HeuttEv.
     rewrite Ht in H. 
     unfold peel_cont. cbn. rewrite peel_cont_ret_inv; eauto.
   - rewrite H in H1. clear H.
@@ -1077,7 +1077,7 @@ Proof.
         eapply branch_prefix_vis_evans; eauto. pfold. auto.
       * eapply branch_prefix_vis_evempty; eauto.
     + rewrite Heqt in Href. rewrite Ht0 in Href.
-      rewrite tau_eutt in Href. rewrite bind_ret in Href. clear Hvis.
+      rewrite tau_eutt in Href. rewrite bind_ret_l in Href. clear Hvis.
       destruct e.
       * cbn. constructor. eapply branch_prefix_peel_ret_vis; eauto.
       * cbn. constructor. eapply branch_prefix_peel_ret_vis_empty; eauto.

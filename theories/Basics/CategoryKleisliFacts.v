@@ -1,3 +1,5 @@
+(** Proofs that the Kleisli category of a monad is in fact a category. *)
+
 From Coq Require Import
      Program
      Setoid
@@ -10,7 +12,7 @@ From ExtLib Require Import
 From ITree Require Import
      Basics.Basics
      Basics.Category
-     Basics.MonadTheory
+     Basics.Monad
      Basics.CategoryFunctor
      Basics.CategoryKleisli
      Basics.Function.
@@ -23,14 +25,13 @@ Open Scope monad_scope.
 Section BasicFacts.
 
   Context {m : Type -> Type}.
-  Context {EqM : EqM m}.
+  Context {Eq1 : Eq1 m}.
   Context {Mm : Monad m}.
-  Context {EqMP : @EqMProps m _ EqM}.
-  Context {ML : @MonadLaws m EqM Mm}.
-  Context {MP : @MonadProperOps m EqM Mm}.
+  Context {Eq1P : @Eq1Equivalence m _ Eq1}.
+  Context {ML : @MonadLawsE m Eq1 Mm}.
   
   Instance Proper_Kleisli_apply {a b} :
-    Proper (eq2 ==> eq ==> eqm) (@Kleisli_apply m a b).
+    Proper (eq2 ==> eq ==> eq1) (@Kleisli_apply m a b).
   Proof.
     cbv; intros; subst; auto.
   Qed.
@@ -51,12 +52,20 @@ Section BasicFacts.
   Proof.
     constructor; intros.
     - reflexivity.
-    - intros ?. unfold pure, cat, Cat_Kleisli. rewrite bind_ret.
+    - intros ?. unfold pure, cat, Cat_Kleisli. rewrite bind_ret_l.
       reflexivity.
     - intros ? ? ? ?. unfold pure. rewrite H. reflexivity.
   Qed.
 
-Global Instance Proper_cat_Kleisli {a b c}
+(* This is subsumed by [category_proper_cat] and the [Category]
+   instance for Kleisli.
+   Adding this as an instance (i.e., marking this as [Global]) would confuse
+   typeclass search, as it would often be picked for categories whose arrow
+   types are definitionally equal to some [Kleisli m a b]
+   (e.g., [sub (Kleisli m) f]), which puts the rest of the search in the wrong
+   category.
+ *)
+Instance Proper_cat_Kleisli {a b c}
   : @Proper (Kleisli m a b -> Kleisli m b c -> _)
             (eq2 ==> eq2 ==> eq2) cat.
 Proof.
@@ -65,16 +74,19 @@ Proof.
   apply Proper_bind; auto.
 Qed.
 
-Lemma assoc_l_kleisli {a b c : Type} :
-  (@assoc_l _ (Kleisli m) sum _ _ _ _) ⩯ (@pure m _ (a + (b + c))%type _ assoc_l).
+Local Opaque bind ret eq1.
+
+Lemma pure_assoc_l {a b c : Type}
+  : assoc_l (C := Kleisli m) (bif := sum)
+  ⩯ pure (m := m) (a := a + (b + c))%type assoc_l.
 Proof.
-  cbv; intros x; destruct x as [ | []];  try setoid_rewrite bind_ret; reflexivity.
+  cbv; intros x; destruct x as [ | []]; try setoid_rewrite bind_ret_l; reflexivity.
 Qed.
 
-Lemma assoc_r_ktree {a b c : Type} :
+Lemma pure_assoc_r {a b c : Type} :
   (@assoc_r _ (Kleisli m) sum _ _ _ _) ⩯ (@pure m _ ((a + b) + c)%type _ assoc_r).
 Proof.
-  cbv; intros x; destruct x as [[] | ]; try setoid_rewrite bind_ret; reflexivity.  
+  cbv; intros x; destruct x as [[] | ]; try setoid_rewrite bind_ret_l; reflexivity.
 Qed.
 
 Global Instance CatAssoc_Kleisli : CatAssoc (Kleisli m).
@@ -90,13 +102,13 @@ Qed.
 Global Instance CatIdL_Kleisli : CatIdL (Kleisli m).
 Proof.
   intros A B f a; unfold cat, Cat_Kleisli, id_, Id_Kleisli, pure.
-  rewrite bind_ret. reflexivity.
+  rewrite bind_ret_l. reflexivity.
 Qed.
 
 Global Instance CatIdR_Kleisli : CatIdR (Kleisli m).
 Proof.
   intros A B f a; unfold cat, Cat_Kleisli, id_, Id_Kleisli, pure.
-  rewrite ret_bind.
+  rewrite bind_ret_r.
   reflexivity.
 Qed.
 
@@ -125,7 +137,7 @@ Global Instance Proper_pure {A B} :
   Proper (eq2 ==> eq2) (@pure _ _ A B).
 Proof.
   repeat intro.
-  unfold pure, Monad.ret.
+  unfold pure.
   erewrite (H a); reflexivity.
 Qed.
 
@@ -139,7 +151,7 @@ Fact compose_pure {A B C} (ab : A -> B) (bc : B -> C) :
 Proof.
   intros a.
   unfold pure, cat, Cat_Kleisli.
-  rewrite bind_ret.
+  rewrite bind_ret_l.
   reflexivity.
 Qed.
 
@@ -163,8 +175,8 @@ Fact pure_cat {A B C}: forall (f:A -> B) (bc: Kleisli m B C),
     pure f >>> bc ⩯ fun a => bc (f a).
 Proof.
   intros; intro a.
-  unfold pure, pure, Monad.ret, cat, Cat_Kleisli.
-  rewrite bind_ret. reflexivity.
+  unfold pure, pure, cat, Cat_Kleisli.
+  rewrite bind_ret_l. reflexivity.
 Qed.
 
 
@@ -181,8 +193,15 @@ Proof.
   intros []; reflexivity.
 Qed.
 
+Lemma pure_inl {A B}
+  : pure (b := A + B) inl_ ⩯ inl_.
+Proof. reflexivity. Qed.
 
-Fact case_pure {A B C} (ac : A -> C) (bc : B -> C) :
+Lemma pure_inr {A B}
+  : pure (b := A + B) inr_ ⩯ inr_.
+Proof. reflexivity. Qed.
+
+Lemma case_pure {A B C} (ac : A -> C) (bc : B -> C) :
     case_ (pure ac) (pure bc)
   ⩯ pure (@case_ _ Fun _ _ _ _ _ ac bc).
 Proof.
@@ -231,7 +250,7 @@ Lemma case_l' {A B: Type} (f: Kleisli m (void + A) (void + B)) :
 Proof.
   rewrite unit_l'_pure.
   intro. unfold cat, Cat_Kleisli, pure.
-  rewrite bind_ret; reflexivity.
+  rewrite bind_ret_l; reflexivity.
 Qed.
 
 
@@ -247,7 +266,7 @@ Lemma case_r' {A B: Type} (f: Kleisli m (A + void) (B + void)) :
 Proof.
   rewrite unit_r'_pure.
   intro. unfold cat, Cat_Kleisli, pure.
-  rewrite bind_ret; reflexivity.
+  rewrite bind_ret_l; reflexivity.
 Qed.
 
 
@@ -272,18 +291,18 @@ Global Instance Coproduct_Kleisli : Coproduct (Kleisli m) sum.
 Proof.
   constructor.
   - intros a b c f g.
-    unfold inl_, CoprodInl_Kleisli.
+    unfold inl_, Inl_Kleisli.
     rewrite pure_cat.
     reflexivity.
   - intros a b c f g.
-    unfold inr_, CoprodInr_Kleisli.
+    unfold inr_, Inr_Kleisli.
     rewrite pure_cat.
     reflexivity.
   - intros a b c f g fg Hf Hg [x | y].
-    + unfold inl_, CoprodInl_Kleisli in Hf.
+    + unfold inl_, Inl_Kleisli in Hf.
       rewrite pure_cat in Hf.
       specialize (Hf x). simpl in Hf. rewrite Hf. reflexivity.
-    + unfold inr_, CoprodInr_Kleisli in Hg.
+    + unfold inr_, Inr_Kleisli in Hg.
       rewrite pure_cat in Hg.
       specialize (Hg y). simpl in Hg. rewrite Hg. reflexivity.
   - typeclasses eauto.
@@ -294,9 +313,9 @@ Proof.
   unfold BimapId, bimap, Bimap_Coproduct.
   intros.
   rewrite! cat_id_l.
-  unfold inl_, inr_, CoprodInl_Kleisli, CoprodInr_Kleisli.
+  unfold inl_, inr_, Inl_Kleisli, Inr_Kleisli.
   rewrite case_pure.
-  unfold pure, id_, case_, CoprodCase_Kleisli, case_sum, Id_Kleisli, pure.
+  unfold pure, id_, case_, Case_Kleisli, case_sum, Id_Kleisli, pure.
   red. intro. destruct a0; reflexivity.
 Qed.  
 
@@ -305,10 +324,10 @@ Qed.
       map inl f1 >>> case_ (map inl g1) (map inr g2) ⩯ map inl (f1 >>> g1).
   Proof.
     intros a1 b1 b2 c1 c2 f1 g1 g2.
-    unfold cat, Cat_Kleisli, case_, CoprodCase_Kleisli, case_sum.
+    unfold cat, Cat_Kleisli, case_, Case_Kleisli, case_sum.
     unfold map. unfold cat, Cat_Kleisli.
     setoid_rewrite bind_bind.
-    unfold pure. setoid_rewrite bind_ret. reflexivity.
+    unfold pure. setoid_rewrite bind_ret_l. reflexivity.
   Qed.
 
   Lemma map_inr_case_kleisli:
@@ -316,10 +335,10 @@ Qed.
       map inr f2 >>> case_ (map inl g1) (map inr g2) ⩯ map inr (f2 >>> g2).
   Proof.
     intros a2 b1 b2 c1 c2 f2 g1 g2.
-    unfold cat, Cat_Kleisli, case_, CoprodCase_Kleisli, case_sum.
+    unfold cat, Cat_Kleisli, case_, Case_Kleisli, case_sum.
     unfold map. unfold cat, Cat_Kleisli.
     setoid_rewrite bind_bind.
-    unfold pure. setoid_rewrite bind_ret. reflexivity.
+    unfold pure. setoid_rewrite bind_ret_l. reflexivity.
   Qed.
 
 
@@ -327,7 +346,7 @@ Global Instance bimap_cat_kleisli : BimapCat (Kleisli m) sum.
 Proof.
   unfold BimapCat, bimap, Bimap_Coproduct.
   intros.
-  unfold inl_, inr_, CoprodInl_Kleisli, CoprodInr_Kleisli.
+  unfold inl_, inr_, Inl_Kleisli, Inr_Kleisli.
   rewrite! cat_pure. rewrite! cat_case.
   rewrite map_inl_case_kleisli.
   rewrite map_inr_case_kleisli.
@@ -340,7 +359,7 @@ Proof.
   intros.
   repeat intro.
   unfold bimap, Bimap_Coproduct.
-  unfold case_, CoprodCase_Kleisli, case_sum.
+  unfold case_, Case_Kleisli, case_sum.
   destruct a0.
   - unfold cat, Cat_Kleisli, inl_. rewrite H. reflexivity.
   - unfold cat, Cat_Kleisli, inl_. rewrite H0. reflexivity.
@@ -354,5 +373,5 @@ End BasicFacts.
 
 Notation Proper_iter m a b :=
   (@Proper (Kleisli m a (sum a b)%type -> (Kleisli m a b))
-           (pointwise_relation _ eqm ==> pointwise_relation _ eqm)
+           (pointwise_relation _ eq1 ==> pointwise_relation _ eq1)
            iter).

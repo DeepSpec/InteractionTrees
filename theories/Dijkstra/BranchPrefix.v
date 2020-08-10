@@ -287,7 +287,7 @@ Lemma ind_comb_bind : forall E R S (b1 : ibranch E R) (b2 : ibranch E S) (b : ib
     ind_comb b1 b2 b -> (ITree.bind b1 (fun x => b2) ≈ b)%itree.
 Proof.
   intros E R S b1 b2 b Hind. induction Hind.
-  - rewrite H. rewrite bind_ret. auto.
+  - rewrite H. rewrite bind_ret_l. auto.
   - rewrite H. rewrite H0. rewrite bind_vis. pfold. red. constructor. intros.
     left. destruct v. apply IHHind.
 Qed.

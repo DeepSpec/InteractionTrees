@@ -100,12 +100,14 @@ Arguments trigger_inl1 {D E} [T].
 (** Short for endofunctions, used in [mrec_fix] and [rec_fix]. *)
 Local Notation endo T := (T -> T).
 
-Definition mrec_fix {D E : Type -> Type} {A B : Type}
+Definition mrec_fix {D E : Type -> Type}
            (ctx : endo (D ~> itree (D +' E)))
   : D ~> itree E
   := mrec (ctx trigger_inl1).
 
-Notation "'mrec-fix' f d := g" := (mrec_fix (fun f _ d => g))
+Notation "'mrec-fix' f d := g" :=
+	(let D := _ in
+	 mrec_fix (D := D) (fun (f : forall T, D T -> _) T (d : D T) => g))
   (at level 200, f ident, d pattern).
 (* No idea what a good level would be. *)
 

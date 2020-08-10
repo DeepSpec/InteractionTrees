@@ -7,7 +7,7 @@ From ITree Require Import
      Basics.Basics
      Basics.CategoryOps
      Basics.CategoryKleisli
-     Basics.MonadTheory
+     Basics.Monad
      Basics.CategoryKleisli
      Basics.Function
      Core.ITreeDefinition
@@ -26,6 +26,10 @@ Implicit Types a b : Type.
 
 Notation ktree E := (Kleisli (itree E)).
 
+(*
+  The following line removes the warning on >=8.10, but is incompatible for <8.10
+ *)
+(* Declare Scope ktree_scope. *)
 Bind Scope ktree_scope with ktree.
 
 Notation ktree_apply := (@Kleisli_apply (itree _)).
@@ -67,7 +71,3 @@ Local Notation ktree := (ktree E).
  *)
 
 End Operations.
-
-Notation iter := (@iter _ (ktree _) sum _ _ _).
-Notation loop := (@loop _ (ktree _) sum _ _ _ _ _ _ _ _ _).
-

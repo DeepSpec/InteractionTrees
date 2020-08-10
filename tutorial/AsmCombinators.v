@@ -4,7 +4,7 @@
     To this end, we will equip them with four main combinators:
     - [pure_asm], casting pure functions into [asm].
     - [app_asm], linking them vertically
-    - [link_asm], hiding internal links
+    - [loop_asm], hiding internal links
     - [relabel_asm], allowing to rename labels
     Viewing [asm] units as diagrams, whose entry wires are the exposed labels of
     its blocks, and exit wires the external labels to which it may jump, this
@@ -38,7 +38,7 @@ From ITree Require Import
      Basics.Category
      Basics.CategorySub.
 
-Require Import Asm Utils_tutorial Fin KTreeFin.
+Require Import Asm Utils_tutorial Fin KTreeFin CatTheory.
 
 Import CatNotations.
 Local Open Scope cat_scope.
@@ -125,10 +125,6 @@ Definition id_asm {A} : asm A A := pure_asm id.
     the only tricky part is to rename all labels appropriately.
  *)
 
-(** [(A + B) + (C + D) -> (A + C) + (B + D)]*)
-Notation swap4 :=
-(assoc_r >>> bimap (id_ _) (assoc_l >>> bimap swap (id_ _) >>> assoc_r) >>> assoc_l).
-
 (** Combinator to append two asm programs, preserving their internal links.
     Can be thought of as a "vertical composition", or a tensor product.
  *)
@@ -154,7 +150,7 @@ Definition relabel_asm {A B C D} (f : sub Fun fin A B) (g : sub Fun fin C D)
 (** Labels that are exposed both as entry and exit points can be internalized.
     This operation can be seen as linking two programs internal to [ab] together.
  *)
-Definition link_asm {I A B} (ab : asm (I + A) (I + B)) : asm A B :=
+Definition loop_asm {I A B} (ab : asm (I + A) (I + B)) : asm A B :=
   {| internal := ab.(internal) + I;
      code := relabel_bks assoc_r assoc_l ab.(code);
   |}.
@@ -180,39 +176,6 @@ Local Open Scope cat.
 (* end hide *)
 Section Correctness.
 
-Section CategoryTheory.
-
-  Context
-    {obj : Type} {C : obj -> obj -> Type}
-    {bif : obj -> obj -> obj}
-    {Eq2_C : Eq2 C}
-    `{forall a b, Equivalence (eq2 (a := a) (b := b))}
-    `{Category obj C (Eq2C := _)}
-    `{Coproduct obj C (Eq2_C := _) (Cat_C := _) bif}.
-
-  Local Lemma aux_app_asm_correct1 (I J A B : obj) :
-      (assoc_r >>>
-       bimap (id_ I) (assoc_l >>> bimap swap (id_ B) >>> assoc_r) >>>
-       assoc_l)
-    ⩯ bimap swap (id_ (bif A B)) >>>
-      (assoc_r >>>
-      (bimap (id_ J) assoc_l >>>
-      (assoc_l >>> (bimap swap (id_ B) >>> assoc_r)))).
-  Proof. cat_auto. Qed.
-
-  Local Lemma aux_app_asm_correct2 (I J B D : obj) :
-      (assoc_r >>>
-       bimap (id_ I) (assoc_l >>> bimap swap (id_ D) >>> assoc_r) >>>
-       assoc_l)
-    ⩯ assoc_l >>>
-      (bimap swap (id_ D) >>>
-      (assoc_r >>>
-      (bimap (id_ J) assoc_r >>>
-      (assoc_l >>> bimap swap (id_ (bif B D)))))).
-  Proof. cat_auto. Qed.
-
-  End CategoryTheory.
-
   Context {E : Type -> Type}.
   Context {HasRegs : Reg -< E}.
   Context {HasMemory : Memory -< E}.
@@ -222,7 +185,7 @@ Section CategoryTheory.
 
   Lemma fmap_block_map:
     forall  {L L'} b (f: fin L -> fin L'),
-      denote_block (fmap_block f b) ≅ ITree.map f (denote_block b).
+      denote_bk (fmap_block f b) ≅ ITree.map f (denote_bk b).
   Proof.
     (* Induction over the structure of the [block b] *)
     induction b as [i b | br]; intros f.
@@ -253,21 +216,21 @@ Section CategoryTheory.
    *)
   Lemma denote_after :
     forall {label} instrs (b: branch (fin label)),
-      denote_block (after instrs b) ≅ (denote_list instrs ;; denote_branch b).
+      denote_bk (after instrs b) ≅ (denote_list instrs ;; denote_br b).
   Proof.
     induction instrs as [| i instrs IH]; intros b.
-    - simpl; rewrite bind_ret; reflexivity.
+    - simpl; rewrite bind_ret_l; reflexivity.
     - simpl; rewrite bind_bind.
       eapply eqit_bind; try reflexivity.
       intros []; apply IH.
   Qed.
 
   Lemma denote_blk_append : forall lbl (l:list instr) (b:block (fin lbl)),
-      denote_block (blk_append l b) ≈ (x <- denote_list l ;; denote_block b).
+      denote_bk (blk_append l b) ≈ (x <- denote_list l ;; denote_bk b).
   Proof.
     intros lbl.
     induction l; intros b; simpl.
-    - rewrite bind_ret. reflexivity.
+    - rewrite bind_ret_l. reflexivity.
     - rewrite bind_bind.
       eapply eqit_bind'; try reflexivity.
       intros; apply IHl.
@@ -278,12 +241,9 @@ Section CategoryTheory.
     forall is1 is2,
       @denote_list (is1 ++ is2) ≅ (@denote_list is1;; denote_list is2).
   Proof.
-    intros is1 is2; induction is1 as [| i is1 IH]; simpl; intros; [rewrite bind_ret; reflexivity |].
+    intros is1 is2; induction is1 as [| i is1 IH]; simpl; intros; [rewrite bind_ret_l; reflexivity |].
     rewrite bind_bind; setoid_rewrite IH; reflexivity.
   Qed.
-
-  Lemma lift_ktree_inr {A B} : lift_ktree_ E A (B + A) inr = inr_.
-  Proof. reflexivity. Qed.
 
   Lemma unit_l'_id_sktree {n : nat}
     : (unit_l' (C := sub (ktree E) fin) (bif := Nat.add) (i := 0)) ⩯ id_ n.
@@ -302,7 +262,7 @@ Section CategoryTheory.
   Qed.
 
   Lemma raw_asm_correct {A B} (b : bks A B) :
-    denote_asm (raw_asm b) ⩯ (fun a => denote_block (b a)).
+    denote_asm (raw_asm b) ⩯ (fun a => denote_bk (b a)).
   Proof.
     unfold denote_asm; cbn.
     rewrite loop_vanishing_1.
@@ -322,7 +282,7 @@ Section CategoryTheory.
    *)
   Lemma raw_asm_block_correct_lifted {A} (b : block (fin A)) :
     denote_asm (raw_asm_block b) ⩯
-               ((fun _  => denote_block b) : sub (ktree _) fin _ _).
+               ((fun _  => denote_bk b) : sub (ktree _) fin _ _).
   Proof.
     unfold raw_asm_block.
     rewrite raw_asm_correct.
@@ -330,7 +290,7 @@ Section CategoryTheory.
   Qed.
 
   Lemma raw_asm_block_correct {A} (b : block (fin A)) :
-    (denote_asm (raw_asm_block b) f0) ≈ (denote_block b).
+    (denote_asm (raw_asm_block b) f0) ≈ (denote_bk b).
   Proof.
     apply raw_asm_block_correct_lifted.
   Qed.
@@ -371,7 +331,7 @@ Section CategoryTheory.
     unfold subpure, subm, cat, Cat_sub.
     unfold pure, cat, Cat_Kleisli.
     unfold bind, ret; simpl.
-    rewrite fmap_block_map, bind_ret.
+    rewrite fmap_block_map, bind_ret_l.
     reflexivity.
   Qed.
 
@@ -382,26 +342,18 @@ Section CategoryTheory.
     intros ?.
     unfold app_bks, denote_bks.
 
-    unfold case_, CoprodCase_sub, inl_, CoprodInl_sub, cat, Cat_sub.
+    unfold case_, Case_sub, inl_, Inl_sub, cat, Cat_sub.
 
-    unfold case_, CoprodCase_Kleisli, case_sum, inl_, CoprodInl_Kleisli, pure, cat, Cat_Kleisli.
+    unfold case_, Case_Kleisli, case_sum, inl_, Inl_Kleisli, pure, cat, Cat_Kleisli.
 
     unfold from_bif, FromBifunctor_ktree_fin, to_bif, ToBifunctor_ktree_fin; cbn.
 
-    rewrite bind_ret.
+    rewrite bind_ret_l.
 
     destruct split_fin_sum.
     all: rewrite fmap_block_map.
-    all: setoid_rewrite bind_ret.
+    all: setoid_rewrite bind_ret_l.
     all: reflexivity.
-  Qed.
-
-  Lemma subpure_swap4 {A B C D} :
-    subpure (E := E) (n := (A + B) + (C + D)) swap4 ⩯ swap4.
-  Proof.
-    do 2 rewrite !fmap_cat0, fmap_bimap, fmap_id0.
-    rewrite !fmap_assoc_r, !fmap_assoc_l, fmap_swap.
-    reflexivity.
   Qed.
 
   (** Correctness of the [app_asm] combinator.
@@ -467,11 +419,11 @@ Section CategoryTheory.
     reflexivity.
   Qed.
 
-  (** Correctness of the [link_asm] combinator.
+  (** Correctness of the [loop_asm] combinator.
       Linking is exactly looping, it hides internal labels/wires.
    *)
-  Theorem link_asm_correct {I A B} (ab : asm (I + A) (I + B)) :
-    denote_asm (link_asm ab) ⩯ loop (denote_asm ab).
+  Theorem loop_asm_correct {I A B} (ab : asm (I + A) (I + B)) :
+    denote_asm (loop_asm ab) ⩯ loop (denote_asm ab).
   Proof.
     unfold denote_asm.
     rewrite loop_vanishing_2.

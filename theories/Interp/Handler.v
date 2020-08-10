@@ -88,6 +88,12 @@ End Handler.
 
 Definition Handler (E F : Type -> Type) := E ~> itree F.
 
+(** Conversion functions between [Handler] and [_ ~> itree _].
+    Although they are the identity function, they guide type inference
+    and type class search. *)
+Definition handle {E F} (f : Handler E F) : E ~> itree F := f.
+Definition handling {E F} (f : E ~> itree F) : Handler E F := f.
+
 Definition eq_Handler {E F : Type -> Type}
   : Handler E F -> Handler E F -> Prop
   := i_pointwise (fun R => eq_itree eq).
@@ -106,13 +112,13 @@ Instance Id_Handler : Id_ Handler
 Instance Cat_Handler : Cat Handler
   := @Handler.cat.
 
-Instance Case_sum1_Handler : CoprodCase Handler sum1
+Instance Case_sum1_Handler : Case Handler sum1
   := @Handler.case_.
 
-Instance Inl_sum1_Handler : CoprodInl Handler sum1
+Instance Inl_sum1_Handler : Inl Handler sum1
   := @Handler.inl_.
 
-Instance Inr_sum1_Handler : CoprodInr Handler sum1
+Instance Inr_sum1_Handler : Inr Handler sum1
   := @Handler.inr_.
 
 Instance Initial_void1_Handler : Initial Handler void1

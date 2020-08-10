@@ -241,7 +241,7 @@ Section StateDelaySpec.
     destruct (eutt_reta_or_div _ (m s) ); basic_solve.
     - destruct a as [s' a].
       apply Hp with (t1 := f a s').
-      + rewrite <- H5. simpl. rewrite bind_ret. reflexivity.
+      + rewrite <- H5. simpl. rewrite bind_ret_l. reflexivity.
       + apply H4. apply H0.
         symmetry in H5.
         apply H2 with (t1 := m s); auto.

@@ -71,9 +71,9 @@ Section StateSpecT.
   Context {MonadW : Monad W}.
   Context {OrderW : OrderM W}.
   Context {OrderedMonadW : OrderedMonad W}.
-  Context {EqW : EqM W}.
+  Context {EqW : Eq1 W}.
   Context {EquivRel : forall A, Equivalence (EqW A) }.
-  Context {MonadLawsW : MonadLaws W}.
+  Context {MonadLawsW : MonadLawsE W}.
   
 
   Definition StateSpecT (A : Type) := stateT S W A.
@@ -93,22 +93,25 @@ Section StateSpecT.
       repeat red in Hlf. apply Hlf.
   Qed.
   
-  Global Instance StateSpecTEq : EqM StateSpecT :=
+  Global Instance StateSpecTEq : Eq1 StateSpecT :=
     fun _ w1 w2 => forall s, w1 s ≈ w2 s.
 
-  Global Instance StateSpecTMonadLaws : MonadLaws StateSpecT.
+  Global Instance StateSpecTMonadLaws : MonadLawsE StateSpecT.
   Proof.
     destruct MonadLawsW.
     constructor.
     - intros A B f a. intro. repeat red. 
       cbn. 
-      rewrite bind_ret. simpl. reflexivity.
+      rewrite bind_ret_l. simpl. reflexivity.
     - intros A w. intro. cbn.
       assert ((fun sa : S * A => ret (fst sa, snd sa)) = fun sa => ret sa).
       { apply functional_extensionality. intros. 
         destruct x. reflexivity. } rewrite H.
-      rewrite ret_bind. reflexivity.
-     - intros A B C w f g. intro. cbn. rewrite bind_bind. reflexivity.
+      rewrite bind_ret_r. reflexivity.
+    - intros A B C w f g. intro. cbn. rewrite bind_bind. reflexivity.
+    - intros A B w1 w2 Hw k1 k2 Hk. 
+      cbn. do 2 red. intros. do 2 red in Hw. rewrite Hw. do 3 red in Hk.
+      setoid_rewrite Hk. reflexivity.
   Qed.
     
 
@@ -183,8 +186,8 @@ Section LoopInvarSpecific.
   Proof.
     intros.
     set (iso_destatify_arrow g) as g'.
-    enough ((p \1/ divergence) (KTree.iter g' (s,a) )).
-    - assert (KTree.iter g' (s,a) ≈ iter g a s).
+    enough ((p \1/ divergence) (ITree.iter g' (s,a) )).
+    - assert (ITree.iter g' (s,a) ≈ iter g a s).
       + unfold g', iso_destatify_arrow.
         unfold iter, Iter_Kleisli, Basics.iter, MonadIterDelay, StateIter,
         MonadIter_stateT0, reassoc. unfold Basics.iter.
@@ -215,7 +218,7 @@ Section LoopInvarSpecific.
     pcofix CIH. intros. pinversion H0; try apply not_wf_F_mono'. pfold. 
     apply not_wf with (a' := a'); eauto.
     - red in Hrel. destruct a' as [s' a']. simpl. red. simpl. rewrite Hrel.
-      rewrite bind_ret. simpl. reflexivity.
+      rewrite bind_ret_l. simpl. reflexivity.
     - right. destruct a'. eauto.
   Qed.
 
@@ -231,16 +234,16 @@ Section LoopInvarSpecific.
       clear H0 a s.
       destruct x as [s a]. simpl in *. destruct y as [s' a'].
       destruct (eutt_reta_or_div _ (g a s) ); basic_solve.
-      + rewrite <- H0. rewrite <- H0 in H1. simpl in H1. rewrite bind_ret in H1.
+      + rewrite <- H0. rewrite <- H0 in H1. simpl in H1. rewrite bind_ret_l in H1.
         simpl in *. destruct a0. simpl in *. destruct s1; basic_solve.
         reflexivity.
       + apply div_spin_eutt in H0. rewrite H0 in H1. rewrite <- spin_bind in H1.
         symmetry in H1. exfalso. eapply not_ret_eutt_spin; eauto.
    - clear H0 a s. intros [s a]. specialize (H a s). basic_solve.
      destruct ab as [s' [a' | b] ].
-     + exists (inl (s',a') ). simpl. rewrite H. rewrite bind_ret. simpl.
+     + exists (inl (s',a') ). simpl. rewrite H. rewrite bind_ret_l. simpl.
        reflexivity.
-     + exists (inr (s',b)). simpl. rewrite H. rewrite bind_ret. simpl.
+     + exists (inr (s',b)). simpl. rewrite H. rewrite bind_ret_l. simpl.
        reflexivity.
   Qed.
 

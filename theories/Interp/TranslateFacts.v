@@ -8,6 +8,7 @@ From ITree Require Import
      Basics.Basics
      Basics.Category
      Core.ITreeDefinition
+     Core.Subevent
      Eq.Eq
      Eq.UpToTaus
      Indexed.Sum
@@ -188,8 +189,8 @@ Proof.
   - gstep. econstructor. eauto.
   - gstep. econstructor. pclearbot. eauto with paco.
   - gstep. rewrite H. econstructor. pclearbot. red. eauto 7 with paco.
-  - rewrite tau_eutt, unfold_translate. eauto.
-  - rewrite tau_eutt, unfold_translate. eauto.
+  - rewrite tau_euttge, unfold_translate. eauto.
+  - rewrite tau_euttge, unfold_translate. eauto.
 Qed.
 
 Instance eutt_translate' {E F : Type -> Type} {R : Type} (f : E ~> F) :
@@ -200,3 +201,11 @@ Proof.
   apply eutt_translate.
   reflexivity.
 Qed.
+
+Lemma translate_trigger {E F G} `{E -< F} :
+  forall X (e: E X) (h: F ~> G),
+    translate h (trigger e) ≈ trigger (h _ (subevent X e)).
+Proof.
+  intros; unfold trigger; rewrite translate_vis; setoid_rewrite translate_ret; reflexivity.
+Qed.
+

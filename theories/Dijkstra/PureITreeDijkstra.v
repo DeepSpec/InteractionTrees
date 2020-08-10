@@ -293,7 +293,7 @@ Lemma iterF_monotone {A B} (body:  (A -> PureITreeSpec (A + B)))
 
 
   (*Monad equivalence relation for PureITreeSpec monad *)
-  Global Instance PureITreeSpecEq : EqM PureITreeSpec :=
+  Global Instance PureITreeSpecEq : Eq1 PureITreeSpec :=
     fun A w1 w2 => forall (p : itree Void A -> Prop) (Hp : resp_eutt Void A p), proj1_sig w1 p Hp <-> proj1_sig w2 p Hp.
  
   Global Instance PureItreeSpecMonad : Monad PureITreeSpec :=
@@ -358,13 +358,13 @@ Lemma iterF_monotone {A B} (body:  (A -> PureITreeSpec (A + B)))
     Qed.
 
 
-  Instance PureItreeSpecLaws : MonadLaws PureITreeSpec.
+  Instance PureItreeSpecLaws : MonadLawsE PureITreeSpec.
   Proof.
     constructor.
     - apply retpi_bindpi.
     - apply bindpi_retpi.
     - apply bindpi_bindpi.
-  Qed.  
+  Admitted. 
 
   
   Instance PureITreeOrderM : OrderM PureITreeSpec :=
@@ -660,12 +660,12 @@ Lemma iterF_monotone {A B} (body:  (A -> PureITreeSpec (A + B)))
       intros. intros p Hp. cbn. unfold _obsip, _bindpi. split; intros.
       - specialize (eutt_reta_or_div A t) as Hor. destruct Hor.
         + destruct H0 as [a Hreta ]. left. exists a. split; auto.
-          eapply Hp; eauto. specialize (bind_ret a f) as H1. rewrite <- H1.
+          eapply Hp; eauto. specialize (bind_ret_l a f) as H1. rewrite <- H1.
           rewrite Hreta. reflexivity.
         + right. split; auto. apply div_spin_eutt in H0. specialize (spin_bind Void A B f) as H1.
           eapply Hp; eauto. rewrite <- H0 in H1. eapply Hp; eauto. rewrite <- H0. reflexivity.
       - destruct H.
-        + destruct H as [a [Hreta Hpfa] ]. specialize (bind_ret a f) as H1.
+        + destruct H as [a [Hreta Hpfa] ]. specialize (bind_ret_l a f) as H1.
           eapply Hp; eauto.  rewrite <- H1. rewrite Hreta. reflexivity.
         + destruct H. apply div_spin_eutt in H.
           eapply Hp; eauto. rewrite H. symmetry. apply spin_bind.

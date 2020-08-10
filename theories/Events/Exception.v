@@ -57,9 +57,9 @@ Section Exception.
   Section ExcT.
     
     Context (M : Type -> Type).
-    Context {EqMM : EqM M}.
+    Context {EqMM : Eq1 M}.
     Context {MonadM : Monad M}.
-    Context {MonadLawsM : MonadLaws M}.
+    Context {MonadLawsM : MonadLawsE M}.
     Context {EquivRel : forall A, Equivalence (EqMM A) }.
     Context {MonadIterM : MonadIter M}.
 
@@ -77,15 +77,16 @@ Section Exception.
         bind := bind_exc;
       }.
 
-    Global Instance EqExc : EqM Exc := fun _ m1 m2 =>
+    Global Instance EqExc : Eq1 Exc := fun _ m1 m2 =>
            EqMM _ m1 m2.
 
-    Global Instance MonadLawsExc : MonadLaws Exc.
+    Global Instance MonadLawsExc : MonadLawsE Exc.
     Proof.
       destruct MonadLawsM.
       constructor.
-      - intros A B f a. cbn. apply bind_ret.
-      - intros A m. cbn. specialize (ret_bind (E +A)%type m).
-        unfold bind_exc, ret_exc. Admitted.
+      - intros A B f a. cbn. apply bind_ret_l.
+      - intros A m. cbn. specialize (bind_ret_r (E +A)%type m).
+        unfold bind_exc, ret_exc. 
+    Admitted.
    End ExcT.
 End Exception.

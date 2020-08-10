@@ -269,7 +269,7 @@ Lemma can_converge_append : forall (E : Type -> Type) (R : Type)
       finite log -> can_converge r (log ++ Ret r).
 Proof.
   intros. induction H.
-  - unfold append. rewrite H. rewrite bind_ret.
+  - unfold append. rewrite H. rewrite bind_ret_l.
     constructor. reflexivity.
   - rewrite H. inversion e. subst. rewrite append_vis.
     eapply conv_vis with (e0 := e) (k0 := fun a => k a ++ Ret r); eauto; try reflexivity.
@@ -302,7 +302,7 @@ Arguments classic_converge_ibranch {E} {R}.
 Lemma append_nil : forall (E : Type -> Type) (R : Type) (b : ibranch E R),
     (Ret tt ++ b ≈ b)%itree.
 Proof.
-  intros. unfold append. rewrite bind_ret. reflexivity.
+  intros. unfold append. rewrite bind_ret_l. reflexivity.
 Qed.
 
 Lemma append_assoc : forall (E : Type -> Type) (R : Type) (b : ibranch E R)
@@ -321,7 +321,7 @@ Lemma append_div : forall (E : Type -> Type) (R : Type) (b : ibranch E R)
     must_diverge b -> must_diverge ((ev_list_to_stream log) ++ b).
 Proof.
   intros. induction log.
-  - cbn. unfold append. rewrite bind_ret. auto.
+  - cbn. unfold append. rewrite bind_ret_l. auto.
   - cbn. unfold append.
     pfold. red. cbn. constructor. intros. left. auto.
 Qed.
@@ -730,7 +730,7 @@ Lemma branch_refine_converge_bind : forall (E : Type -> Type) (R S : Type)
 Proof.
   intros. generalize dependent t. dependent induction H; intros.
   - rewrite H. rewrite H in H0. apply branch_refine_ret_inv_r in H0. 
-    rewrite H0. repeat rewrite bind_ret. auto.
+    rewrite H0. repeat rewrite bind_ret_l. auto.
   - specialize (IHcan_converge H1). 
     rewrite H in H2. apply branch_refine_vis_l in H2 as Ht.
     destruct Ht as [X [e0 [k0 Ht] ] ].
@@ -900,9 +900,9 @@ Proof.
   intros E R S. pcofix CIH. intros b m g f a Hconv Hrefb Hrefbind.
   generalize  dependent m.
   dependent induction  Hconv; intros m Hrefb Hrefbind.
-  - rewrite H in Hrefbind. rewrite bind_ret in Hrefbind. rewrite H in Hrefb.
+  - rewrite H in Hrefbind. rewrite bind_ret_l in Hrefbind. rewrite H in Hrefb.
     apply branch_refine_ret_inv_r in Hrefb. rewrite Hrefb in Hrefbind.
-    rewrite bind_ret in Hrefbind. eapply paco2_mon; eauto. intuition.
+    rewrite bind_ret_l in Hrefbind. eapply paco2_mon; eauto. intuition.
   - (*m must be a vis, the continuations must refine then continuation in the m I use in the 
       inductive hypothesis *)
     destruct e; try contradiction. rewrite H in Hrefb.
@@ -926,13 +926,13 @@ Lemma can_converge_two_list:
 Proof.
   intros. generalize dependent log'.
   induction log; cbn; intros.
-  - simpl in H. setoid_rewrite bind_ret in H. rewrite H.
+  - simpl in H. setoid_rewrite bind_ret_l in H. rewrite H.
     apply can_converge_append. apply can_converge_list_to_stream.
   - assert ((Vis a0 (fun _ => ev_list_to_stream log)) ≈ ev_list_to_stream (a0 :: log) )%itree.
     { cbn. reflexivity. }
     rewrite H0 in H.
     destruct log' as [ | h t ].
-    + setoid_rewrite bind_ret in H. simpl in H. pinversion H.
+    + setoid_rewrite bind_ret_l in H. simpl in H. pinversion H.
     + simpl in H. unfold append in H. repeat rewrite bind_vis in H. pinversion H.
       inj_existT; subst.
       assert (ev_list_to_stream log ++ b ≈ ev_list_to_stream t ++ Ret a).
@@ -945,7 +945,7 @@ Lemma must_diverge_bind_append: forall (E : Type -> Type) (A : Type)
     must_diverge (ev_list_to_stream log ++ b') -> must_diverge b'.
 Proof.
   intros E A log b' Hdiv. induction log.
-  - cbn in Hdiv. setoid_rewrite bind_ret in Hdiv. auto.
+  - cbn in Hdiv. setoid_rewrite bind_ret_l in Hdiv. auto.
   - apply IHlog. simpl in Hdiv. unfold append in Hdiv.
     rewrite bind_vis in Hdiv. pinversion Hdiv. inj_existT. subst. apply H0.
     apply tt.
