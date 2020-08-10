@@ -236,6 +236,7 @@ Proof.
   destruct IN. econstructor; eauto.
 Qed.
 
+
 Hint Resolve eqitC_mon : paco.
 
 Lemma eqitC_wcompat b1 b2 vclo

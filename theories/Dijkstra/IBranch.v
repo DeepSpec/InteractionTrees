@@ -370,11 +370,8 @@ Hint Constructors RAnsRef.
 
 Definition branch_refine {E R}  (t : itree E R) (b : ibranch E R)  := 
    euttEv (REvRef E) (RAnsRef E) eq b t.
-(*
-(*a bit hacky, but I can worry about elegance of definition later*)
-Definition branch_refine {E R} (b : ibranch E R) (t : itree E R) : Prop :=
-  exists t', exists b', (b' ≈ b)%itree /\ t' ≈ t /\ euttEv (REvRef E) (RAnsRef E) eq b' t'.
-*)
+
+
 Notation "b ⊑ t" := (branch_refine t b) (at level 70).
 
 
@@ -525,7 +522,7 @@ Proof.
   repeat match goal with H : existT _ _ _ = _   |- _ => apply inj_pair2 in H end.
   subst. auto.
 Qed.
-
+(*
 Lemma branch_refine_bind : forall (E : Type -> Type) (R S : Type) 
                    (b : ibranch E R) (t : itree E R) (f : R -> ibranch E S) (g : R -> itree E S),
     b ⊑ t -> (forall r, f r ⊑ g r) -> (ITree.bind b f) ⊑ t >>= g.
@@ -538,7 +535,8 @@ Proof.
      admit.
   - (*this bind stuff is a headache*)
     (*maybe we can see what else we need*)
-Admitted.
+Qed.
+*)
 
 Lemma event_ans_constr : forall (E : Type -> Type) (R : Type) (e : E R),
     exists (A : Type), exists e' : EvAns E A, REvRef E A R e' e.

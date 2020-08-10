@@ -52,7 +52,6 @@ Definition lift_imp_post (P : env -> Prop) : Delay (env * unit) -> Prop :=
   fun (t : Delay (env * unit) ) => (exists (s : env), ret (s, tt) ≈ t /\ P s).
 
 Notation "{{ P }} c {{ Q }}" := (hoare_triple P Q c) (at level 70).
-                                                                     
 
 Definition is_bool (E : Type -> Type) (bc : bool) (be : bexp) (s : env) : Prop :=
    @interp_imp E bool (denote_bexp be) s ≈ ret (s, bc).
@@ -743,23 +742,44 @@ Proof.
   repeat intro. red in H. unfold run_state_itree. rewrite H. reflexivity.
 Qed.
 
+Lemma lookup_nin : forall (x : var) (s : env), (forall v : value, ~ Maps.mapsto x v s) -> Maps.lookup x s = None.
+Proof.
+  intros. red in s. red in s. generalize dependent x. induction s; intros; auto.
+  - cbn. destruct a as [y v]. destruct (Strings.String.string_dec x y).
+    + subst. exfalso. apply H with (v0 := v). red. cbn. red. cbn.
+      rewrite RelDec.rel_dec_eq_true; auto. apply RelDec_string_Correct.
+    + rewrite RelDec.rel_dec_neq_false; auto; try apply RelDec_string_Correct.
+      unfold Maps.lookup in IHs. cbn in *. apply IHs; auto. intros.
+      intro Hcontra. apply H with (v0 := v0). red. cbn.
+      rewrite RelDec.rel_dec_neq_false; auto; try apply RelDec_string_Correct.
+Qed.
+
+
 Lemma lookup_neq : forall (s : env) (x y: var) (v d: value), x <> y -> 
                 lookup_default x d (Maps.add y v s)  = lookup_default x d s.
 Proof.
-  intros. unfold lookup_default.
-  destruct (Maps.lookup x s) eqn : Heq.
-  - assert (Maps.mapsto x n s).
-    {  apply Maps.mapsto_lookup. auto. }
-    assert (Maps.mapsto x n (Maps.add y v s) ).
-    { eapply Maps.mapsto_add_neq in H0; eauto. }
-    apply Maps.mapsto_lookup in H1. rewrite H1. auto.
-  - eapply RelDec.rel_dec_neq_false in H; try apply RelDec_string_Correct. 
-    clear Heq.
-    induction s.
-    + cbn. rewrite H. auto.
-    + simpl. unfold Maps.lookup in IHs. unfold FMapAList.Map_alist in IHs. rewrite H. simpl.
-      unfold Maps.add in IHs. auto.
-Admitted.
+  
+  intros.
+  destruct (classic (exists v', Maps.mapsto x v' s)).
+  - destruct H0 as [v' Hv'].
+    assert (Maps.mapsto x v' (Maps.add y v s)).
+    { 
+      eapply Maps.mapsto_add_neq in Hv'; eauto.
+    }
+    apply Maps.mapsto_lookup in H0. apply Maps.mapsto_lookup in Hv'. unfold lookup_default. 
+    rewrite Hv'. rewrite H0. auto.
+  - assert (forall v',~ Maps.mapsto x v' s).
+    { intros v' Hc. apply H0. exists v'. auto. }
+    clear H0. apply lookup_nin in H1 as Hs. unfold lookup_default.
+    rewrite Hs.
+    assert (forall v', ~Maps.mapsto x v' (Maps.add y v s)).
+    {
+      intros v' Hcontra. apply Maps.mapsto_add_neq in Hcontra; auto.
+      eapply H1; eauto.
+    }
+    apply lookup_nin in H0 as Hs'. rewrite Hs'. auto.
+Qed.
+
 
 Lemma lookup_eq : forall (s : env) (x : var) (v d : value),
     lookup_default x d (Maps.add x v s) = v.

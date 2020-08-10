@@ -35,7 +35,7 @@ Open Scope string_scope.
 Import CatNotations.
 Open Scope cat_scope.
 
-Require Import Fin Asm AsmCombinators Imp2AsmCorrectness Utils_tutorial.
+Require Import Fin Asm AsmCombinators  Utils_tutorial.
 (* end hide *)
 
 (* optimizations ------------------------------------------------------------ *)
@@ -141,13 +141,12 @@ Proof.
   }
   intros.
   inversion H; subst.
-  inversion H3. subst.
+  inversion H3; subst.
   unfold interp_asm.
   unfold interp_map.
   rewrite interp_ret.
   do 2 rewrite interp_state_ret.
-  apply eqit_Ret. constructor. auto. destruct b3.
-  assumption.
+  apply eqit_Ret. destruct b3. auto.
 Qed.
 
 Lemma interp_asm_ret {E A} (x:A) mem reg :
@@ -263,6 +262,16 @@ Proof.
   rewrite bind_vis, interp_state_vis. cbn. rewrite !bind_ret, !tau_eutt.
   rewrite interp_state_ret, bind_ret; cbn.
   reflexivity.
+Qed.
+
+Lemma interp_state_iter' {E F } S (f : E ~> Monads.stateT S (itree F)) {I A}
+      (t  : I -> itree E (I + A))
+  : forall i, state_eq (State.interp_state f (ITree.iter t i))
+                       (Basics.iter (fun i => State.interp_state f (t i)) i).
+Proof.
+  eapply interp_state_iter.
+  intros i.
+  red. reflexivity.
 Qed.
 
 (* peephole optimizations --------------------------------------------------- *)

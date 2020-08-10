@@ -427,7 +427,8 @@ Section ITreeDijkstra.
 
   
 
-    
+  
+  (*
   Program Instance ItreeSpecMonadLaws : MonadLaws ITreeSpec.
   Next Obligation.
     (*bind_ret*)
@@ -499,7 +500,7 @@ Section ITreeDijkstra.
           apply eutt_div_trans with (t2 := t); try apply div_bind_nop; auto.
           apply eutt_div_sym. apply div_bind_nop. auto.
   Qed.
-
+  *)
 
   Inductive Ev : Type := 
     ev (A : Type ) (e : E A) (a : A).

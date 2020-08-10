@@ -422,10 +422,10 @@ Definition eval_imp (s: com) : itree void1 (env * unit) :=
     Naturally since Coq is total, we cannot do it directly inside of it.
     We can either rely on extraction, or use some fuel.
  *)
-
+(*
 (* YZ Is [burn] broken? *)
 Compute (burn 200 (eval_imp (fact "input" "output" 6))). 
-
+*)
 (* ========================================================================== *)
 Section InterpImpProperties.
   (** We can lift the underlying equational theory on [itree]s to include new

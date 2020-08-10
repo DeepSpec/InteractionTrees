@@ -325,7 +325,7 @@ Variant NonDet : Type -> Type :=
 Definition decide_ex : itree NonDet unit := 
   ITree.iter (fun _ => ITree.bind (trigger Decide) (fun b : bool => if b then Ret (inl tt) else Ret (inr tt) )) tt.
 
-Definition decide_ex_prefix : ev_list NonDet -> Prop := fun log => log = nil.
+Definition decide_ex_pre : ev_list NonDet -> Prop := fun log => log = nil.
 
 Variant is_bool (b : bool) : forall A, EvAns NonDet A -> Prop := 
   | is_bool_matches : is_bool b unit (evans bool Decide b)
@@ -340,7 +340,7 @@ Definition decide_ex_post : ibranch NonDet unit -> Prop :=
   fun b => (must_diverge b -> branch_forall (is_bool true) (fun _ => True) b) /\ 
         (can_converge tt b -> fal_decide_ex b).
 
-Lemma decide_ex_satisfies_spec : verify_cond NonDet (encode NonDet decide_ex_post decide_ex_prefix ) decide_ex.
+Lemma decide_ex_satisfies_spec : verify_cond NonDet (encode NonDet decide_ex_post decide_ex_pre ) decide_ex.
 Proof.
   repeat red. cbn. intros. destruct H as [Hlog H].
   red in Hlog. apply H. clear H. subst. cbn. red. split; intros.
@@ -366,7 +366,8 @@ Proof.
          apply simpobs in x. rewrite x in Hdiv. rewrite tau_eutt in Hdiv. auto. 
    + rewrite bind_ret in H0. cbn in H0. apply branch_refine_ret_inv_l in H0.
      rewrite H in Hdiv. pinversion Hdiv. inj_existT. subst.
-     assert (must_diverge (k' tt)); try apply H2. rewrite H0 in H1. pinversion H1.
+     specialize (H2 tt).
+     rewrite H0 in H2. pinversion H2.
   - red. rewrite append_nil. rewrite append_nil in H. unfold decide_ex in *.
     induction H.
     + exfalso. rewrite H in H0. rewrite unfold_iter in H0.

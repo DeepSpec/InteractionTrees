@@ -7,9 +7,7 @@ Utils_tutorial.v
 Fin.v
 KTreeFin.v
 Imp.v
+ImpHoare.v
 Asm.v
 AsmCombinators.v
-Imp2Asm.v
-Imp2AsmCorrectness.v
 AsmOptimization.v
-PrintAssumptions.v
