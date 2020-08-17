@@ -306,4 +306,68 @@ Proof.
   split; typeclasses eauto.
 Qed.
 
+(* Equation merging the sequence of two [iter] into one *)
+Lemma cat_iter: 
+  forall {E: Type -> Type} {a b c} (f: ktree E a (a + b)) (g: ktree E b (b + c)), 
+    ITree.iter f >>> ITree.iter g ⩯ inl_ >>> ITree.iter (case_ (f >>> inl_) (g >>> inr_ >>> assoc_l)).
+Proof.
+  (* We move to the eworld *)
+  einit.
+  intros.
+  revert a0.
+  (* First coinductive point in the simulation: at the entry point of the iteration over f *)
+  ecofix CIH.
+  intros.
+  cbn.
+  rewrite bind_ret_l.
+  (* We unfold one step on both sides *)
+  match goal with
+  |- euttG _ _ _ _ _ ?t _ => remember t; rewrite unfold_iter; subst
+  end.
+  rewrite unfold_iter; cbn.
+  rewrite !bind_bind.
+  ebind.
+  (* We run f a first time on both side *)
+  econstructor; [reflexivity | intros [xa | xb] ? <-].
+  - (* If we loop back to f, we can conclude by coinduction *)
+    rewrite ! bind_ret_l.
+    rewrite bind_tau.
+    etau.
+    specialize (CIH xa).
+    cbn in CIH.
+    match goal with
+      |- euttG _ _ _ _ _ ?t _ => remember t
+    end.
+    rewrite <- bind_ret_l.
+    ebase.
+  - (* If we exit the first loop *)
+    rewrite ! bind_ret_l.
+    (* We setup a second coinductive point in the simulation.
+       We just make sure to first get rid of the additional tau guard
+       that we have encountered in the right of the equation to keep the second part clean. 
+     *)
+    rewrite tau_euttge.
+    generalize xb.
+    ecofix CIH'.
+    
+    intros ?.
+    (* We unfold a new step of computation *)
+    rewrite unfold_iter; cbn.
+    match goal with
+      |- euttG _ _ _ _ _ ?t _ => remember t; rewrite unfold_iter; subst
+    end.
+    cbn.
+    rewrite !bind_bind.
+    (* We run g a first time on both sides *)
+    ebind.
+    econstructor; [reflexivity | intros [xb' | xc] ? <-].
+    + (* We loop back in the second loop *)
+      rewrite !bind_ret_l.
+      cbn; rewrite !bind_ret_l.
+      etau.
+    + rewrite bind_ret_l.
+      cbn; rewrite bind_ret_l.
+      eret.
+Qed.
+
 End KTreeIterative.
