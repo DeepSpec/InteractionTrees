@@ -45,6 +45,12 @@ Notation void := Empty_set.
 
 (** ** Relations for morphisms/parametricity *)
 
+Definition subrelationH {A B} (R S : A -> B -> Prop) : Prop :=
+  forall (x : A) (y : B), R x y -> S x y.
+
+Definition eq_rel {A B} (R S : A -> B -> Prop) :=
+    subrelationH R S /\ subrelationH S R.
+
 (** Logical relation for the [sum] type. *)
 Variant sum_rel {A1 A2 B1 B2 : Type}
         (RA : A1 -> A2 -> Prop) (RB : B1 -> B2 -> Prop)
