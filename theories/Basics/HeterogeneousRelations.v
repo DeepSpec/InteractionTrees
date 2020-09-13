@@ -67,7 +67,7 @@ Arguments transpose [A B] R.
 Arguments sum_rel [A1 A2 B1 B2] RA RB.
 Arguments prod_rel [A1 A2 B1 B2] RA RB.
 
-Declare Scope relationH_scope.
+(* Declare Scope relationH_scope. *)
 Delimit Scope relationH_scope with relationH.
 
 Module RelNotations.
