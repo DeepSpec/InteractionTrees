@@ -115,12 +115,21 @@ Class Cat : Type :=
 Class Initial (i : obj) :=
   empty : forall a, C i a.
 
+(** If there is a terminal object [t], its terminal morphisms are written
+    [one : C a i]. *)
+Class Terminal (t : obj) :=
+  one : forall a, C a t.
+
+Definition op: Hom obj := fun (A B: obj) => C B A.
+
 End CatOps.
 
 Arguments eq2 {obj C Eq2 a b}.
 Arguments id_ {obj C Id_}.
 Arguments cat {obj C Cat a b c}.
 Arguments empty {obj C i Initial a}.
+Arguments one {obj C t Terminal a}.
+Arguments op {obj} C.
 
 (** ** Bifunctors *)
 
@@ -197,6 +206,22 @@ Class UnitR (i : obj) :=
 Class UnitR' (i : obj) :=
   unit_r' : forall a, C a (bif a i).
 
+(** *** Products *)
+
+(** Products are a generalization of product types *)
+
+(** Pairing. *)
+Class Pair :=
+  pair_ : forall a b c, C c a -> C c b -> C c (bif a b).
+
+(** Projection onto the left component. *)
+Class Fst :=
+  fst_ : forall a b, C (bif a b) a.
+
+(** Projection onto the right component. *)
+Class Snd :=
+  snd_ : forall a b, C (bif a b) b.
+
 (** **** Symmetry *)
 
 Class Swap :=
@@ -208,6 +233,9 @@ Arguments bimap {obj C bif Bimap a b c d}.
 Arguments case_ {obj C bif Case a b c}.
 Arguments inl_ {obj C bif Inl a b}.
 Arguments inr_ {obj C bif Inr a b}.
+Arguments pair_ {obj C bif Pair a b c}.
+Arguments fst_ {obj C bif Fst a b}.
+Arguments snd_ {obj C bif Snd a b}.
 Arguments assoc_r {obj C bif AssocR a b c}.
 Arguments assoc_l {obj C bif AssocL a b c}.
 Arguments unit_l  {obj C bif i UnitL a}.
@@ -231,6 +259,8 @@ Notation swap_ a b := (@swap _ _ _ _ a b) (only parsing).
 
 (** With explicit category. *)
 Notation case__ C := (@case_ _ C _ _ _ _ _)
+  (only parsing).
+Notation pair__ C := (@pair_ _ C _ _ _ _ _)
   (only parsing).
 
 (** ** Core notations *)
@@ -302,6 +332,67 @@ Global Instance UnitR'_Coproduct : UnitR' C SUM I :=
   fun a => inl_.
 
 End CocartesianConstruct.
+(** **** Cartesian category *)
+
+(** The product defines a symmetric monoidal category,
+    called a _cartesian category_. *)
+
+Section CartesianConstruct.
+
+  (* These Instances are kept local and should be made explicit locally using
+     [Existing Instance] to avoid clashes with the cocartesian instances
+   *)
+
+Context {obj : Type} (C : Hom obj) (Cat_C : Cat C).
+Variables (PROD : binop obj) (Prod_PROD : Pair C PROD)
+          (Fst_PROD : Fst C PROD)
+          (Snd_PROD : Snd C PROD).
+
+(** Products are bifunctors. *)
+Instance Bimap_Product : Bimap C PROD :=
+  fun a b c d (f : C a c) (g : C b d) =>
+    pair_ (fst_ >>> f) (snd_ >>> g).
+
+(** Products are symmetric. *)
+
+Instance Swap_Product : Swap C PROD :=
+  fun a b => pair_ snd_ fst_.
+
+(** Products are associative. *)
+
+Instance AssocR_Product : AssocR C PROD :=
+  fun a b c => pair_ (fst_ >>> fst_) (pair_ (fst_ >>> snd_) snd_).
+
+Instance AssocL_Product : AssocL C PROD :=
+  fun a b c => pair_ (pair_ fst_ (snd_ >>> fst_)) (snd_ >>> snd_).
+
+Variables (Id_C : Id_ C) (T : obj) (Terminal_T : Terminal C T).
+
+(** The initial object is a unit for the product. *)
+
+Instance UnitL_Product : UnitL C PROD T :=
+  fun a => snd_.
+
+Instance UnitL'_Product : UnitL' C PROD T :=
+  fun a => pair_ one (id_ a).
+
+Instance UnitR_Product : UnitR C PROD T :=
+  fun a => fst_.
+
+Instance UnitR'_Product : UnitR' C PROD T :=
+  fun a => pair_ (id_ a) one.
+
+End CartesianConstruct.
+
+Section Dagger.
+  Context {obj : Type} (C : Hom obj) (Cat_C : Cat C).
+
+  Class Dagger : Type :=
+    dagger : forall a b, op C a b -> C a b.
+
+End Dagger.
+
+Arguments dagger {obj C _ a b}.
 
 (** ** Iteration, fixed points *)
 
