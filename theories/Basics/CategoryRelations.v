@@ -332,17 +332,17 @@ Section Facts.
       destruct x, y.
       cbv; intros. inversion H; subst; auto.
       red. intros. destruct x, y. inversion H. subst. repeat red.
-      repeat red in H. intuition. econstructor; inversion H; subst; reflexivity.
+      repeat red in H. intuition. 
     Qed.
 
     Global Instance BimapCat_prod_rel : BimapCat relationH prod.
     Proof.
       split.
-      cbv; intros. destruct H, x, y. destruct H. destruct x0.
-      inversion H; inversion H0; subst. constructor. exists b. split; auto.
-      exists b0. auto.
-      cbv; intros. destruct x, y. destruct H. destruct H, H0 as (? & ? & ?).
-      destruct H. exists (x, x0). intuition; constructor; eauto.
+      - cbv; intros [] [] ([] & H1 & H2).
+        inv H1; inv H2; eauto 6.
+      - cbv; intros [] [] H; inv H.
+        destruct H3 as (? & ? & ?), H5 as (? & ? & ?).
+        eauto.
     Qed.
 
     Global Instance Bifunctor_prod_rel : Bifunctor relationH prod.
@@ -385,10 +385,6 @@ Section Facts.
                              || invn prod_rel).
       eexists; intuition subst; eauto.
       eexists; intuition subst; eauto.
-      Unshelve. 3 : {
-        split. exact (tt). auto. }
-      split. reflexivity. auto.
-      split.
     Qed.
 
     Global Instance UnitL'Natural_prod_rel : UnitL'Natural relationH prod unit.
@@ -398,7 +394,6 @@ Section Facts.
                              || invn prod_rel).
       eexists; intuition subst; eauto.
       exists (tt,x); intuition subst; auto.
-      constructor; eauto.
     Qed.
 
     Global Instance AssocRUnit_prod_rel : AssocRUnit relationH prod unit.
@@ -418,7 +413,6 @@ Section Facts.
       exists (a1,b1,(c1,d1)); intuition; auto.
       exists (a1,(b1,c1,d1)); intuition; auto.
       exists (a1,(b1,c1),d1); intuition; auto.
-      constructor; eauto. constructor; eauto.
     Qed.
 
     Global Instance Monoidal_prod_rel : Monoidal relationH prod unit.
@@ -495,9 +489,6 @@ Section Facts.
                              || invn sum_rel || invn void).
       eexists; intuition subst; eauto.
       eexists; intuition subst; eauto.
-      Unshelve. 3 : { exact (inr y). }
-      cbn. auto. cbn. auto. constructor. eauto.
-      cbn. reflexivity.
     Qed.
 
     Global Instance UnitL'Natural_sum_rel : UnitL'Natural relationH sum void.
@@ -507,7 +498,6 @@ Section Facts.
                              || invn sum_rel || invn void).
       eexists; intuition subst; eauto.
       exists (inr x); intuition subst; auto.
-      constructor. auto.
     Qed.
 
     Global Instance AssocRUnit_sum_rel : AssocRUnit relationH sum void.
@@ -518,8 +508,8 @@ Section Facts.
         try econstructor; try contradiction; eauto.
       destruct s; try contradiction; subst; eauto.
       inversion H; subst; eauto; try destruct a1; try contradiction; subst.
-      inversion H. subst. exists (inl a2). split; eauto. constructor. auto.
-      inversion H. subst. exists (inr (inr b2)). split; eauto. constructor. eauto.
+      inv H. exists (inl a2); eauto. 
+      inv H; exists (inr (inr b2)); eauto. 
     Qed.
 
     Global Instance AssocRAssocR_sum_rel : AssocRAssocR relationH sum.
@@ -534,7 +524,6 @@ Section Facts.
       - exists (inr (inr d0)); intuition; auto.
       - exists (inl a1); intuition; auto.
         exists (inl (inl a1)); intuition; auto.
-        econstructor. auto. econstructor. auto.
       - exists (inr (inl (inl b1))); intuition; econstructor; auto.
         split. econstructor. Unshelve. 3 : exact ((inr (inl b1))). intuition; auto.
         intuition.

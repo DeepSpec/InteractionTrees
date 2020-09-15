@@ -1,10 +1,10 @@
-
 From Coq Require Import
      Morphisms
      Setoid
      Relation_Definitions
      RelationClasses.
 
+From ITree Require Import Tacs.
 
 (* Heterogeneous relation definition, modified from
    https://coq.inria.fr/stdlib/Coq.Relations.Relation_Definitions.html. *)
@@ -44,10 +44,6 @@ Section RelationH_Operations.
   | inl_morphism a1 a2 : RA a1 a2 -> sum_rel RA RB (inl a1) (inl a2)
   | inr_morphism b1 b2 : RB b1 b2 -> sum_rel RA RB (inr b1) (inr b2).
 
-  Arguments inl_morphism {A1 A2 B1 B2 RA RB}.
-  Arguments inr_morphism {A1 A2 B1 B2 RA RB}.
-  Hint Constructors sum_rel: core.
-
   (** Logical relation for the [prod] type. *)
   Variant prod_rel {A1 A2 B1 B2 : Type}
       (RA : relationH A1 A2) (RB : relationH B1 B2)
@@ -55,10 +51,14 @@ Section RelationH_Operations.
   | prod_morphism a1 a2 b1 b2 : RA a1 a2 -> RB b1 b2 -> prod_rel RA RB (a1, b1) (a2, b2)
   .
 
-  Arguments prod_morphism {A1 A2 B1 B2 RA RB}.
-  Hint Constructors prod_rel: core.
-
 End RelationH_Operations.
+
+Hint Constructors prod_rel: core.
+Hint Constructors sum_rel: core.
+
+Arguments inl_morphism {A1 A2 B1 B2 RA RB}.
+Arguments inr_morphism {A1 A2 B1 B2 RA RB}.
+Arguments prod_morphism {A1 A2 B1 B2 RA RB}.
 
 Arguments rel_compose [A B C] S R.
 Arguments subrelationH [A B] R S.
@@ -658,16 +658,12 @@ Section SumRelFacts.
   : (S ∘ R) ⊕ (U ∘ T) ≡ (S ⊕ U) ∘ (R ⊕ T).
   Proof.
     split; intros!.
-    - destruct x, y. repeat red. repeat red in H. destruct H.
-      unfold fst, snd. cbn in H.
-      destruct H. exists (inl x). cbn; destruct H; split; constructor; tauto.
-      destruct H; destruct H; eauto. 
-      exists (inr x). cbn. split; constructor; eauto.
-      inversion H. inversion H. inversion H; subst; eauto.
-      inversion H2. destruct H0. econstructor; eauto; split; constructor; eauto.
-    - inversion H. inversion H0.
-      inversion H1; inversion H2; subst; inversion H7; eauto;
-        try econstructor; try split; eauto; try split; try econstructor; try split; subst; eauto.
+    - destruct x, y; inv H.
+      destruct H2 as (? & ? & ?); eexists; eauto.
+      destruct H2 as (? & ? & ?); eexists; eauto.
+    - destruct H as (? & H1 & H2); inv H1; inv H2.
+      econstructor; eexists; eauto.
+      econstructor; eexists; eauto.
   Qed.
 
   Global Instance Proper_sum_rel {A B C D}: Proper (eq_rel ==> eq_rel ==> eq_rel) (@sum_rel A B C D).

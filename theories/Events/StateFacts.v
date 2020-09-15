@@ -156,7 +156,7 @@ Proof.
 
   rewrite !unfold_interp_state. punfold H0. red in H0.
   induction H0; intros; subst; simpl; pclearbot.
-  - eret. econstructor; auto.
+  - eret. 
   - etau.
   - ebind. econstructor; [reflexivity|].
     intros; subst.
@@ -254,9 +254,9 @@ Proof.
     pstep.
     constructor.
     cbn.
-    split; auto using (proj1 H2). econstructor. auto.
+    split; auto using (proj1 H2). 
   - rewrite bind_ret_l, 2 interp_state_ret. pstep. constructor. cbn.
-    split; auto using (proj1 H2). econstructor; auto.
+    split; auto using (proj1 H2).
 Qed.
 
 (* SAZ: These are probably too specialized. *)
