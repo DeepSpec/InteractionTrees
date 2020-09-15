@@ -90,7 +90,6 @@ Local Open Scope cat.
 Import Monads.
 Open Scope monad_scope.
 
-Typeclasses eauto := 5.
 (* end hide *)
 
 

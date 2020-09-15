@@ -38,7 +38,6 @@ Open Scope cat_scope.
 
 Require Import Fin Asm AsmCombinators Utils_tutorial.
 
-Typeclasses eauto := 5.
 (* end hide *)
 
 (* optimizations ------------------------------------------------------------ *)
