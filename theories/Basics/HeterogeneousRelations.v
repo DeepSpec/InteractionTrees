@@ -333,18 +333,18 @@ Section TransposeFacts.
      [transpose] is closed on equivalence relations
    *)
   (* YZ: Would it be worth to Typeeclass this property? *)
-  Global Instance transpose_Reflexive {A} (R : relationH A A) {RR: Reflexive ↓R} : Reflexive ↓† R | 100.
+  Instance transpose_Reflexive {A} (R : relationH A A) {RR: Reflexive ↓R} : Reflexive ↓† R | 100.
   Proof.
     red. intros x. apply RR.
   Qed.
 
-  Global Instance transpose_Symmetric {A} (R : relationH A A) {RS: Symmetric ↓R} : Symmetric ↓† R | 100.
+  Instance transpose_Symmetric {A} (R : relationH A A) {RS: Symmetric ↓R} : Symmetric ↓† R | 100.
   Proof.
     red; intros x; unfold transpose; intros. apply SymmetricH_Symmetric in RS.
     apply RS. assumption.
   Qed.
 
-  Global Instance transpose_Transitive {A} (R : relationH A A) {RT : Transitive ↓R} : Transitive ↓† R | 100.
+  Instance transpose_Transitive {A} (R : relationH A A) {RT : Transitive ↓R} : Transitive ↓† R | 100.
   Proof.
     red; intros x; unfold transpose; intros.
     apply TransitiveH_Transitive in RT.

@@ -1239,13 +1239,8 @@ Proof.
         rewrite Hobma, bind_ret_l.
         reflexivity.
       * exists a; split; auto.
-        pose proof @itree_eta.
-        cbn in H1.
-        (* IY: Looping rewriting on hypothesis.. *)
-        assert (eqit (E := E) eq b1 b2 (Ret r) (Ret a)). {
-          rewrite <- Hobma, <- itree_eta. auto.
-        }
-        apply eqit_inv_ret in H4; subst.
+        rewrite itree_eta, Hobma in H1.
+        apply eqit_inv_ret in H1; subst.
         rewrite <- H0.
         destruct b1; [| inv CHECK].
         apply eqit_tauL; auto.
@@ -1322,11 +1317,9 @@ Proof.
         exfalso. eapply eqit_inv_ret_vis. eapply eqit_trans; [| apply HMA].
         apply eqit_flip. rewrite itree_eta. rewrite Hobma. reflexivity.
       * right. destruct a.
-        (* IY: Loop on [rewrite itree_eta in H1] again. *)
-        assert (eqit eq true b2 {| _observe := observe ma |} (Ret x) /\ eqit RR true b2 t1 (Vis e kxc)).
-        rewrite <- itree_eta; auto.
-        rewrite Hobma in H2. destruct H2.
-        apply eqit_inv_ret in H2; subst.
+        destruct H1 as [H1 H2].
+        rewrite itree_eta, Hobma in H1.
+        apply eqit_inv_ret in H1; subst.
         setoid_rewrite itree_eta at 1.
         rewrite Hobma.
         exists x. split; try reflexivity. rewrite <- H0.
