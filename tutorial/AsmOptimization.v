@@ -358,9 +358,8 @@ Proof.
       destruct x.
       repeat rewrite interp_asm_ret.
       apply eqit_Ret. constructor; auto.
-      constructor; auto.
       repeat rewrite interp_asm_ret.
-      apply eqit_Ret. constructor; auto. constructor; auto.
+      apply eqit_Ret. constructor; auto. 
     + unfold interp_asm, interp_map.
       unfold id_, Id_Handler, Handler.id_.
       unfold exit.
@@ -401,7 +400,7 @@ Proof.
        unfold ret, Monad_itree.
        repeat rewrite interp_ret.
        repeat rewrite interp_state_ret.
-       apply eqit_Ret. constructor; auto. constructor; auto.
+       apply eqit_Ret. constructor; auto. 
     -  intros. inversion H0.
        subst. cbn.
        unfold CategorySub.from_bif, FromBifunctor_ktree_fin.
@@ -409,7 +408,7 @@ Proof.
        repeat rewrite interp_state_ret.
        apply eqit_Ret.
        inversion H4; subst.
-       constructor; auto. constructor; auto. }
+       constructor; auto. }
 
   intros.
   inversion H0; subst.
