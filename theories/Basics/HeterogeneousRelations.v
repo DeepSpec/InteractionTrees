@@ -16,19 +16,17 @@ Definition relationH (A B : Type) := A -> B -> Prop.
 
 Section RelationH_Operations.
 
-  Definition compose {A B C} (S : relationH B C) (R : relationH A B): relationH A C :=
+  Definition rel_compose {A B C} (S : relationH B C) (R : relationH A B): relationH A C :=
     fun x y => exists b, R x b /\ S b y.
 
-  (* Given any Type we can project out a relation: *)
+  (** ** Relations for morphisms/parametricity *)
 
   (* Heterogeneous notion of [subrelation] *)
-  Class subrelationH {A B} (R S : relationH A B) : Prop :=
-    is_subrelationH: forall (x : A) (y : B), R  x y -> S x y.
-
-  Definition superrelationH {A B} (R S : relationH A B) : Prop := subrelationH S R.
+  Definition subrelationH {A B} (R S : relationH A B) : Prop :=
+    forall (x : A) (y : B), R x y -> S x y.
 
   Definition eq_rel {A B} (R S : relationH A B) :=
-    subrelationH R S /\ subrelationH S R.
+      subrelationH R S /\ subrelationH S R.
 
   Definition transpose {A B: Type} (R: relationH A B): relationH B A :=
     fun x y => R y x.
@@ -39,29 +37,30 @@ Section RelationH_Operations.
 
   (** ** Relations for morphisms/parametricity *)
 
-  (** Logical relation for the [sum] Typee. *)
-  Definition sum_rel {A1 A2 B1 B2 : Type}
-          (RA : relationH A1 A2) (RB : relationH B1 B2)
-    : relationH (A1 + B1) (A2 + B2) :=
-    fun x y =>
-      match (x, y) with
-      | pair (inl x) (inl y) => RA x y
-      | pair (inr x) (inr y) => RB x y
-      | pair _ _ => False
-      end.
+  (** Logical relation for the [sum] type. *)
+  Variant sum_rel {A1 A2 B1 B2 : Type}
+      (RA : relationH A1 A2) (RB : relationH B1 B2)
+  : relationH (A1 + B1) (A2 + B2) :=
+  | inl_morphism a1 a2 : RA a1 a2 -> sum_rel RA RB (inl a1) (inl a2)
+  | inr_morphism b1 b2 : RB b1 b2 -> sum_rel RA RB (inr b1) (inr b2).
 
+  Arguments inl_morphism {A1 A2 B1 B2 RA RB}.
+  Arguments inr_morphism {A1 A2 B1 B2 RA RB}.
+  Hint Constructors sum_rel: core.
 
-  (** Logical relation for the [prod] Typee. *)
-  Definition prod_rel {A1 A2 B1 B2 : Type}
-          (RA : relationH A1 A2) (RB : relationH B1 B2)
+  (** Logical relation for the [prod] type. *)
+  Variant prod_rel {A1 A2 B1 B2 : Type}
+      (RA : relationH A1 A2) (RB : relationH B1 B2)
     : relationH (A1 * B1) (A2 * B2) :=
-    fun x y => match pair x y with
-          | pair (pair x1 y1) (pair x2 y2) => RA  x1 x2 /\ RB y1 y2
-          end.
+  | prod_morphism a1 a2 b1 b2 : RA a1 a2 -> RB b1 b2 -> prod_rel RA RB (a1, b1) (a2, b2)
+  .
+
+  Arguments prod_morphism {A1 A2 B1 B2 RA RB}.
+  Hint Constructors prod_rel: core.
 
 End RelationH_Operations.
 
-Arguments compose [A B C] S R.
+Arguments rel_compose [A B C] S R.
 Arguments subrelationH [A B] R S.
 Arguments transpose [A B] R.
 Arguments sum_rel [A1 A2 B1 B2] RA RB.
@@ -73,7 +72,7 @@ Delimit Scope relationH_scope with relationH.
 Module RelNotations.
 
   (* Notice the levels: (R ⊕ S ⊗ T ∘ U) is parsed as ((R ⊕ (S ⊗ T)) ∘ U) *)
-  Infix "∘" := compose (at level 40, left associativity) : relationH_scope.
+  Infix "∘" := rel_compose (at level 40, left associativity) : relationH_scope.
   Infix "⊕" := sum_rel (at level 39, left associativity) : relationH_scope.
   Infix "⊗" := prod_rel (at level 38, left associativity) : relationH_scope.
 
@@ -208,23 +207,23 @@ Section SubRelationH.
      * Relevance of using [flip] exactly, and how it relates to us using [transpose]
      * Definition of [relation_equivalence] in terms of [predicate_equivalence]
    *)
-  Global Instance subrelationH_Reflexive {A B: Type} (R: relationH A B): R ⊑ R.
+  Lemma subrelationH_Reflexive {A B: Type} (R: relationH A B): R ⊑ R.
   Proof.
     intros!; auto.
   Qed.
 
-  Definition subrelationH_antisym {A B: Type} (R S: relationH A B) `{R ⊑ S} `{S ⊑ R}: R ≡ S.
+  Lemma subrelationH_antisym {A B: Type} (R S: relationH A B) `{R ⊑ S} `{S ⊑ R}: R ≡ S.
   Proof.
     split; auto.
   Qed.
 
-  Global Instance subrelationH_trans {A B: Type} (R S T: relationH A B)
+  Lemma subrelationH_trans {A B: Type} (R S T: relationH A B)
          `{R ⊑ S} `{S ⊑ T} : R ⊑ T.
   Proof.
     intros!; auto.
   Qed.
 
-  Global Instance subrelationH_refl_eq {A: Type} (R: relationH A A) (H : Reflexive ↓R) : (↑ (@eq A)) ⊑ R.
+  Lemma subrelationH_refl_eq {A: Type} (R: relationH A A) (H : Reflexive ↓R) : (↑ (@eq A)) ⊑ R.
   Proof.
     intros!.
     rewrite H0. cbn. apply H.
@@ -312,7 +311,7 @@ Section RelationCompose.
   Global Instance Proper_compose: forall A B C,
       Proper
         (* (relationH B C -> relationH A B -> relationH A C) *)
-        (eq_rel ==> eq_rel ==> eq_rel) (@compose A B C).
+        (eq_rel ==> eq_rel ==> eq_rel) (@rel_compose A B C).
   Proof.
     intros ? ? ? S S' EQS R R' EQR.
     split; intros ? ? EQ; destruct EQ as (? & ? & ?); econstructor; split; (apply EQR || apply EQS); eauto.
@@ -432,7 +431,7 @@ Section TransposeFacts.
   Qed.
 
   (* [transpose] is monotone *)
-  Global Instance transpose_monotone
+  Lemma transpose_monotone
          {A B} (R S: relationH A B) `{R ⊑ S}
     : †R ⊑ †S.
   Proof.
@@ -462,8 +461,8 @@ Section ProdRelFacts.
       intros ? ? ?. apply SymmetricH_Symmetric in H. apply SymmetricH_Symmetric in H0.
       red. red in H1.
       destruct x; destruct y; cbn in *. destruct H1. split.
-      - unfold SymmetricH in H. specialize (H r r0). apply H. assumption.
-      - unfold SymmetricH in H0. specialize (H0 s s0). apply H0. assumption.
+      - unfold SymmetricH in H. apply H. auto.
+      - unfold SymmetricH in H0. apply H0. auto.
     Qed.
 
     Global Instance prod_rel_trans `{Transitive _ ↓RR} `{Transitive _ ↓SS}  : Transitive ↓(RR ⊗ SS).
@@ -471,12 +470,9 @@ Section ProdRelFacts.
       intros!.
       apply TransitiveH_Transitive in H. apply TransitiveH_Transitive in H0.
       unfold TransitiveH in *.
-      destruct x, y, z.
-      repeat red in H1. repeat red in H2.
-      destruct H1, H2.
-      specialize (H _ _ _ H1 H2).
-      specialize (H0 _ _ _ H3 H4).
-      cbn in *. split. apply H. apply H0.
+      inversion H1; inversion H2; subst; eauto; inversion H9; subst.
+      split. inversion H9.  eapply H;  eauto.
+      eapply H0; eauto.
     Qed.
 
     Global Instance prod_rel_eqv `{Equivalence _ ↓RR} `{Equivalence _ ↓SS} : Equivalence ↓(RR ⊗ SS).
@@ -504,7 +500,7 @@ Section ProdRelFacts.
   End Equivalence.
 
   (* [prod_rel] is monotone in both parameters *)
-  Global Instance prod_rel_monotone
+  Lemma prod_rel_monotone
          {A B C D: Type} (R R': relationH A B) (S S': relationH C D)
          `{R ⊑ R'} `{S ⊑ S'}
   : R ⊗ S ⊑ R' ⊗ S'.
@@ -560,9 +556,11 @@ Section ProdRelFacts.
       unfold fst, snd in H. destruct H.
       cbn.
       split. exists (fst x). split.
-      destruct x. cbn. cbn in H. tauto.
-      destruct x. cbn in *. tauto.
-      exists (snd x). split; destruct x; cbn in *; tauto.
+      destruct x. cbn. cbn in H. inversion H ; inversion H0; subst. tauto.
+      inversion H; inversion H0; inversion H8; subst. inversion H8. subst.
+      cbn; auto.
+      inversion H; inversion H0. subst. inversion H8. subst.
+      esplit. split; eauto.
   Qed.
 
   Global Instance Proper_prod_rel {A B C D}: Proper (eq_rel ==> eq_rel ==> eq_rel) (@prod_rel A B C D).
@@ -600,7 +598,9 @@ Section SumRelFacts.
     Proof.
       intros []. apply ReflexiveH_Reflexive in RR.
       apply ReflexiveH_Reflexive in SR.
-      cbn. apply RR. apply SR.
+      cbn. red.
+      constructor. apply RR.
+      constructor. apply SR.
     Qed.
 
     Global Instance sum_rel_sym {RS: Symmetric ↓R} {SS: Symmetric ↓S} : Symmetric ↓(R ⊕ S).
@@ -609,10 +609,10 @@ Section SumRelFacts.
       apply SymmetricH_Symmetric in SS.
       red. red in H.
       destruct x, y.
-      - apply RS in H. cbn in H. apply H.
+      - constructor. inversion H. subst. apply RS. auto.
       - inversion H.
       - inversion H.
-      - apply SS in H. cbn in H. apply H.
+      - constructor. inversion H. subst. apply SS. auto.
     Qed.
 
     Global Instance sum_rel_trans {RT: Transitive ↓R} {ST: Transitive ↓S}  : Transitive ↓(R ⊕ S).
@@ -620,11 +620,9 @@ Section SumRelFacts.
       intros!.
       apply TransitiveH_Transitive in RT. apply TransitiveH_Transitive in ST.
       unfold TransitiveH in *.
-      red in H, H0. destruct x, y, z; try contradiction. cbn in *.
-      specialize (RT _ _ _ H H0).
-      apply RT; reflexivity.
-      specialize (ST _ _ _ H H0).
-      apply ST; reflexivity.
+      red in H, H0. destruct x, y, z; try contradiction; inversion H; inversion H0; subst.
+      cbn in *.
+      constructor. eauto. constructor. eauto.
     Qed.
 
     Global Instance sum_rel_eqv {RE: Equivalence ↓R} {SE: Equivalence ↓S} : Equivalence ↓(R ⊕ S).
@@ -635,26 +633,23 @@ Section SumRelFacts.
   End Equivalence.
 
   (* [sum_rel] is monotone in both parameters *)
-  Global Instance sum_rel_monotone
+  Lemma sum_rel_monotone
          {A B C D: Type} (R R': relationH A B) (S S': relationH C D)
          `{R ⊑ R'} `{S ⊑ S'}
     : R ⊕ S ⊑ R' ⊕ S'.
   Proof.
-    intros!; destruct x, y; repeat red; repeat red in H1.
-    apply H in H1. apply H1.
-    inversion H1. inversion H1.
-    apply H0 in H1. apply H1.
+    intros!; destruct x, y; repeat red; repeat red in H1;
+    inversion H1; subst; constructor; eauto.
   Qed.
 
-  (* begin *)
 (*    [sum_rel] is a bifunctor *)
-(*    *)
 
   Lemma sum_rel_eq : forall (A B: Type),  @eq A ⊕ @eq B ≡ @eq (A + B).
   Proof.
     intros. red.
-    split; repeat intro; eauto. destruct x, y; red in H; subst ; try reflexivity; try contradiction.
-    subst. reflexivity.
+    split; repeat intro; eauto.
+    inversion H; subst; auto; try reflexivity.
+    subst. destruct y; constructor; eauto.
   Qed.
 
   Lemma sum_compose {A B C D E F: Type}
@@ -665,31 +660,25 @@ Section SumRelFacts.
     split; intros!.
     - destruct x, y. repeat red. repeat red in H. destruct H.
       unfold fst, snd. cbn in H.
-      destruct H. exists (inl x). cbn. split; eassumption.
-      destruct H. destruct H.
-      destruct H. cbn in H. exists (inr x). cbn. destruct H. split; eassumption.
-    - destruct x, y. repeat red. repeat red in H. destruct H.
-      unfold fst, snd in H. destruct H. cbn.
-      destruct x. cbn in *. exists b; split; eauto.
-      edestruct H. destruct H. destruct H.
-      destruct x. cbn in H0. destruct H0; contradiction.
-      cbn in *. contradiction.
-      destruct H. destruct x. destruct H. cbn in *. contradiction.
-      destruct H. cbn in *. contradiction.
-      destruct H. destruct x. destruct H. cbn in *. contradiction.
-      destruct H. cbn in *. exists e. eauto.
+      destruct H. exists (inl x). cbn; destruct H; split; constructor; tauto.
+      destruct H; destruct H; eauto. 
+      exists (inr x). cbn. split; constructor; eauto.
+      inversion H. inversion H. inversion H; subst; eauto.
+      inversion H2. destruct H0. econstructor; eauto; split; constructor; eauto.
+    - inversion H. inversion H0.
+      inversion H1; inversion H2; subst; inversion H7; eauto;
+        try econstructor; try split; eauto; try split; try econstructor; try split; subst; eauto.
   Qed.
 
   Global Instance Proper_sum_rel {A B C D}: Proper (eq_rel ==> eq_rel ==> eq_rel) (@sum_rel A B C D).
   Proof.
     intros!.
     split; intros!; destruct x1, y1; cbn in *; try inversion H1;
-      try apply H; try apply H0; eauto.
+      try apply H; try apply H0; eauto; subst; inversion H1; subst;
+        try econstructor; try apply H; try apply H0; eauto.
   Qed.
 
-  (* end *)
 (*    [sum_rel] is a bifunctor *)
-(*    *)
 
 (* Note: we also have associators and unitors, forming a monoidal category. *)
 (*      See [CategoryRelation.v] if needed. *)
@@ -701,7 +690,7 @@ Section SumRelFacts.
     : † (S ⊕ R) ≡ (†S ⊕ †R).
   Proof.
     split; unfold transpose; cbn; intros!; destruct x, y; cbn in *;
-      try inversion H; eauto.
+      try inversion H; eauto; subst; inversion H; subst; try econstructor; eauto.
   Qed.
 
 End SumRelFacts.
@@ -753,3 +742,4 @@ Proof.
   red. intros.
   cbn in *. unfold diagonal_prop in *; tauto.
 Qed.
+

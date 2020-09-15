@@ -16,6 +16,7 @@ From ITree Require Import
      Basics.CategoryKleisli
      Basics.CategoryKleisliFacts
      Basics.Function
+     Basics.HeterogeneousRelations
      Core.ITreeDefinition
      Core.ITreeMonad
      Core.KTree
@@ -111,7 +112,7 @@ Proof.
   unfold iter, Iter_Kleisli.
   eapply (eq_itree_iter' eq); auto.
   intros; eapply eqit_mon, EQ_BODY; auto.
-  intros [] _ []; auto.
+  intros [] _ []; auto; econstructor; subst; auto.
 Qed.
 
 Instance eutt_iter {E A B} :
@@ -123,7 +124,7 @@ Proof.
   unfold iter, Iter_Kleisli.
   eapply (eutt_iter' eq); auto.
   intros ? _ []; eapply eqit_mon, EQ_BODY; auto.
-  intros [] _ []; auto.
+  intros [] _ []; auto; econstructor; auto.
 Qed.
 
 Definition eutt_iter_gen {F A B R S} :

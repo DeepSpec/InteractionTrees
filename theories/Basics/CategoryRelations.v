@@ -29,7 +29,7 @@ Section Operations.
      the existence of an intermediate witness at the intermediate type
      [(R >>> S) x z <-> exists y, R x y /\ S y z]
    *)
-  Global Instance Cat_rel : Cat relationH := fun _ _ _ f g => compose g f.
+  Global Instance Cat_rel : Cat relationH := fun _ _ _ f g => rel_compose g f.
 
   (* Identities are defined by the [eq] relations *)
   Global Instance Id_rel : Id_ relationH := @eq.
@@ -158,7 +158,7 @@ Section Facts.
 
     Global Instance CatIdL_rel: CatIdL relationH.
     Proof.
-      constructor; unfold subrelationH, cat, id_, Cat_rel, Id_rel, compose; intros.
+      constructor; unfold subrelationH, cat, id_, Cat_rel, Id_rel, rel_compose; intros.
       - edestruct H as (B' & EQ & R). rewrite <- EQ in R.
         assumption.
       - exists x. split. reflexivity. assumption.
@@ -166,7 +166,7 @@ Section Facts.
 
     Global Instance CatIdR_rel: CatIdR relationH.
     Proof.
-      constructor; unfold subrelationH, cat, id_, Cat_rel, Id_rel, compose; intros.
+      constructor; unfold subrelationH, cat, id_, Cat_rel, Id_rel, rel_compose; intros.
       - edestruct H as (B' & R & EQ). rewrite EQ in R.
         assumption.
       - exists y. split. assumption. reflexivity.
@@ -174,7 +174,7 @@ Section Facts.
 
     Global Instance CatAssoc_rel: CatAssoc relationH.
     Proof.
-      constructor; unfold subrelationH, cat, id_, Cat_rel, Id_rel, compose;
+      constructor; unfold subrelationH, cat, id_, Cat_rel, Id_rel, rel_compose;
         intros A D H.
       - edestruct H as (C & (B & Rf & Rg) & Rh); clear H.
         exists B. split; [assumption | ].
@@ -189,7 +189,7 @@ Section Facts.
                 (eq2 ==> eq2 ==> eq2) cat.
     Proof.
       intros a b c.
-      constructor; unfold subrelationH, cat, id_, Cat_rel, Id_rel, compose;
+      constructor; unfold subrelationH, cat, id_, Cat_rel, Id_rel, rel_compose;
         intros A C He.
       - edestruct He as (B & Hx & Hx0).
         unfold eq2, Eq2_rel, eq_rel, subrelationH in *.
@@ -332,17 +332,17 @@ Section Facts.
       destruct x, y.
       cbv; intros. inversion H; subst; auto.
       red. intros. destruct x, y. inversion H. subst. repeat red.
-      repeat red in H. intuition.
+      repeat red in H. intuition. econstructor; inversion H; subst; reflexivity.
     Qed.
 
     Global Instance BimapCat_prod_rel : BimapCat relationH prod.
     Proof.
       split.
       cbv; intros. destruct H, x, y. destruct H. destruct x0.
-      destruct H, H0. intuition. exists b. split; auto.
+      inversion H; inversion H0; subst. constructor. exists b. split; auto.
       exists b0. auto.
       cbv; intros. destruct x, y. destruct H. destruct H, H0 as (? & ? & ?).
-      destruct H. exists (x, x0). intuition.
+      destruct H. exists (x, x0). intuition; constructor; eauto.
     Qed.
 
     Global Instance Bifunctor_prod_rel : Bifunctor relationH prod.
@@ -398,15 +398,16 @@ Section Facts.
                              || invn prod_rel).
       eexists; intuition subst; eauto.
       exists (tt,x); intuition subst; auto.
+      constructor; eauto.
     Qed.
 
     Global Instance AssocRUnit_prod_rel : AssocRUnit relationH prod unit.
     Proof.
       split;
         cbv; intros; repeat (subst || destructn ex || destructn prod || invn @eq || destructn unit || destructn and
-                             || invn prod_rel).
-      eauto.
-      exists (a0, (tt,b0)); intuition subst; auto.
+                             || invn prod_rel);
+      econstructor; eauto. split. Unshelve. 3 : { exact ((a0, (tt, b0))). }
+      cbn. intuition. econstructor; reflexivity.
     Qed.
 
     Global Instance AssocRAssocR_prod_rel : AssocRAssocR relationH prod.
@@ -417,6 +418,7 @@ Section Facts.
       exists (a1,b1,(c1,d1)); intuition; auto.
       exists (a1,(b1,c1,d1)); intuition; auto.
       exists (a1,(b1,c1),d1); intuition; auto.
+      constructor; eauto. constructor; eauto.
     Qed.
 
     Global Instance Monoidal_prod_rel : Monoidal relationH prod unit.
@@ -433,19 +435,20 @@ Section Facts.
       split.
       red. intros ? ? ?. repeat red in H.
       destruct x, y; subst; inversion H; subst; repeat red; auto.
+      inversion H; inversion H2; subst; reflexivity.
+      inversion H; inversion H2; subst; reflexivity.
       red. intros ? ? ?. repeat red in H.
-      subst. reflexivity.
+      subst. repeat red. destruct y; econstructor; reflexivity.
     Qed.
 
     Global Instance BimapCat_sum_rel : BimapCat relationH sum.
     Proof.
       split.
-      cbv. intros; destruct x, y; destruct H; destruct x ; destruct H;
-             eauto; try contradiction.
-      cbv. intros; destruct x, y; try destruct H as (? & ? & ?); intuition;
-      try contradiction.
-      exists (inl x). eauto.
-      exists (inr x). eauto.
+      cbv. intros; destruct x, y; destruct H as (? & ? & ?); inversion H;
+             inversion H0; subst; inversion H5; subst; econstructor; eauto.
+      repeat intro. inversion H; inversion H0; inversion H3; repeat red; subst; eauto. 
+      exists (inl x0). split; econstructor; eauto.
+      exists (inr x0). split; econstructor; eauto.
     Qed.
 
     Global Instance Bifunctor_sum_rel : Bifunctor relationH sum.
@@ -493,7 +496,8 @@ Section Facts.
       eexists; intuition subst; eauto.
       eexists; intuition subst; eauto.
       Unshelve. 3 : { exact (inr y). }
-      cbn. auto. cbn. auto.
+      cbn. auto. cbn. auto. constructor. eauto.
+      cbn. reflexivity.
     Qed.
 
     Global Instance UnitL'Natural_sum_rel : UnitL'Natural relationH sum void.
@@ -503,15 +507,19 @@ Section Facts.
                              || invn sum_rel || invn void).
       eexists; intuition subst; eauto.
       exists (inr x); intuition subst; auto.
+      constructor. auto.
     Qed.
 
     Global Instance AssocRUnit_sum_rel : AssocRUnit relationH sum void.
     Proof.
-      split;
-        cbv; intros; repeat (subst || destructn ex || destructn sum || invn @eq || destructn unit || destructn and
-                             || invn sum_rel || invn void); intuition eauto.
-      exists (inl a0); intuition subst; auto.
-      exists (inr (inr b0)); intuition subst; auto.
+      split; cbv; intros.
+      destruct H.
+      destruct x; try destruct s; try destruct x0; try inversion H; try inversion H1; subst; eauto;
+        try econstructor; try contradiction; eauto.
+      destruct s; try contradiction; subst; eauto.
+      inversion H; subst; eauto; try destruct a1; try contradiction; subst.
+      inversion H. subst. exists (inl a2). split; eauto. constructor. auto.
+      inversion H. subst. exists (inr (inr b2)). split; eauto. constructor. eauto.
     Qed.
 
     Global Instance AssocRAssocR_sum_rel : AssocRAssocR relationH sum.
@@ -520,18 +528,22 @@ Section Facts.
         cbv; intros;
           repeat (invn False || subst || destructn ex || destructn and || invn sum_rel
                   || destructn sum || invn @eq || destructn unit).
-      - exists (inl (inl a0)); intuition; auto.
-      - exists (inl (inr b1)); intuition; auto.
-      - exists (inr (inl c1)); intuition; auto.
+      - exists (inl (inl a2)); intuition; auto.
+      - exists (inl (inr b0)); intuition; auto.
+      - exists (inr (inl c0)); intuition; auto.
       - exists (inr (inr d0)); intuition; auto.
       - exists (inl a1); intuition; auto.
         exists (inl (inl a1)); intuition; auto.
-      - exists (inr (inl (inl b1))); intuition; auto.
-        exists (inl (inr (inl b1))); intuition; auto.
-      - exists (inr (inl (inr c0))); intuition; auto.
-        exists (inl (inr (inr c0))); intuition; auto.
-      - exists (inr (inr d0)); intuition; auto.
-        exists (inr d0); intuition; auto.
+        econstructor. auto. econstructor. auto.
+      - exists (inr (inl (inl b1))); intuition; econstructor; auto.
+        split. econstructor. Unshelve. 3 : exact ((inr (inl b1))). intuition; auto.
+        intuition.
+      - exists (inr (inl (inr c0))); intuition; econstructor; auto.
+        split. Unshelve. econstructor. Unshelve.
+        3 : refine ((inr (inr c0))). intuition; econstructor; auto.
+        intuition.
+      - exists (inr (inr d0)); intuition; econstructor; auto.
+        split. Unshelve. econstructor. reflexivity. cbn. auto.
      Qed.
 
     Global Instance Monoidal_sum_rel : Monoidal relationH sum void.
