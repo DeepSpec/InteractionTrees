@@ -155,3 +155,17 @@ Inductive iter_Prop {R I : Type} (step : I -> I + R -> Prop) (i : I) (r : R)
 .
 
 Polymorphic Instance MonadIter_Prop : MonadIter Ensembles.Ensemble := @iter_Prop.
+
+(* Elementary constructs for predicates. To be moved in their own file eventually *)
+Definition equiv_pred {A : Type} (R S: A -> Prop): Prop :=
+  forall a, R a <-> S a.
+
+Definition sum_pred {A B : Type} (PA : A -> Prop) (PB : B -> Prop) : A + B -> Prop :=
+  fun x => match x with | inl a => PA a | inr b => PB b end.
+
+Definition prod_pred {A B : Type} (PA : A -> Prop) (PB : B -> Prop) : A * B -> Prop :=
+  fun '(a,b) => PA a /\ PB b.
+
+Definition TT {A : Type} : A -> Prop := fun _ => True.
+Hint Unfold TT sum_pred prod_pred: core.
+
