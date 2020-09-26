@@ -167,6 +167,16 @@ Ltac unfold_eqit :=
   (try match goal with [|- eqit_ _ _ _ _ _ _ _ ] => red end);
   (repeat match goal with [H: eqit_ _ _ _ _ _ _ _ |- _ ] => red in H end).
 
+Lemma fold_eqitF:
+  forall {E R1 R2} (RR: R1 -> R2 -> Prop) b1 b2 (t1 : itree E R1) (t2 : itree E R2) ot1 ot2,
+    eqitF RR b1 b2 id (upaco2 (eqit_ RR b1 b2 id) bot2) ot1 ot2 ->
+    ot1 = observe t1 ->
+    ot2 = observe t2 ->
+    eqit RR b1 b2 t1 t2.
+Proof.
+  intros * eq -> ->; pfold; auto.
+Qed.
+
 Instance eqitF_Proper_R {E : Type -> Type} {R1 R2:Type} :
   Proper ((@eq_rel R1 R2) ==> eq ==> eq ==> (eq_rel ==> eq_rel) ==> eq_rel ==> eq_rel)
     (@eqitF E R1 R2).
@@ -1035,15 +1045,6 @@ Qed.
 Arguments eqit_clo_bind : clear implicits.
 Hint Constructors eqit_bind_clo: core.
 
-(* Specialization of [eutt_clo_bind] to the recurrent case where [UU := eq]
-   in order to avoid having to provide the relation manually everytime *)
-Lemma eutt_eq_bind : forall E R U (t: itree E U) (k1 k2: U -> itree E R), (forall u, k1 u ≈ k2 u) -> ITree.bind t k1 ≈ ITree.bind t k2.
-Proof.
-  intros.
-  apply eutt_clo_bind with (UU := Logic.eq); [reflexivity |].
-  intros ? ? ->; apply H.
-Qed.
-
 Lemma eqit_bind' {E R1 R2 S1 S2} (RR : R1 -> R2 -> Prop) b1 b2
       (RS : S1 -> S2 -> Prop)
       t1 t2 k1 k2 :
@@ -1053,6 +1054,14 @@ Lemma eqit_bind' {E R1 R2 S1 S2} (RR : R1 -> R2 -> Prop) b1 b2
 Proof.
   intros. ginit. guclo eqit_clo_bind. unfold eqit in *.
   econstructor; eauto with paco.
+Qed.
+
+Lemma eq_itree_clo_bind {E : Type -> Type} {R1 R2 : Type} (RR : R1 -> R2 -> Prop) {U1 U2 UU} t1 t2 k1 k2
+      (EQT: @eq_itree E U1 U2 UU t1 t2)
+      (EQK: forall u1 u2, UU u1 u2 -> eq_itree RR (k1 u1) (k2 u2)):
+  eq_itree RR (x <- t1;; k1 x) (x <- t2;; k2 x).
+Proof.
+  eapply eqit_bind'; eauto.
 Qed.
 
 Global Instance eqit_bind {E R S} b1 b2 :
@@ -1498,3 +1507,4 @@ Proof.
     inv EQ2.
     reflexivity.
 Qed.
+
