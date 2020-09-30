@@ -160,7 +160,7 @@ Section Simulation_Relation.
     fun '(g_imp', v) '(g_asm', (l_asm', _))  =>
       Renv g_imp' g_asm' /\            (* we don't corrupt any of the imp variables *)
       alist_In n l_asm' v /\           (* we get the right value *)
-      (forall m, m < n -> forall v,              (* we don't mess with anything zon the "stack" *)
+      (forall m, m < n -> forall v,              (* we don't mess with anything on the "stack" *)
             alist_In m l_asm v <-> alist_In m l_asm' v).
 
   Lemma sim_rel_find : forall g_asm g_imp l_asm l_asm' n  v,
@@ -590,21 +590,13 @@ Section Correctness.
       [alist var value * value] for _Imp_). The difference is nonetheless mostly
       transparent for the user, except for the use of the more general lemma [eqit_bind'].
    *)
-  Lemma compile_aexp_correct : forall {E} e g_imp g_asm l n,
+  Lemma compile_expr_correct : forall {E} e g_imp g_asm l n,
       Renv g_imp g_asm ->
       @eutt E _ _ (sim_rel l n)
-            (interp_imp (denote_aexp e) g_imp)
-            (interp_asm (denote_list (compile_aexp n e)) g_asm l).
+            (interp_imp (denote_expr e) g_imp)
+            (interp_asm (denote_list (compile_expr n e)) g_asm l).
   Proof.
     induction e; simpl; intros.
-    - (* Literal case *)
-      (* We reduce both sides to Ret constructs *)
-      tau_steps.
-
-      red; rewrite <-eqit_Ret.
-      (* _Asm_ bind the litteral to [gen_tmp n] while _Imp_ returns it *)
-      apply sim_rel_add; assumption.
-
     - (* Var case *)
       (* We first compute and eliminate taus on both sides. *)
       force_left.
@@ -619,6 +611,14 @@ Section Correctness.
       (* On the _Asm_ side, we bind to [gen_tmp n] a lookup to [varOf v] *)
       (* On the _Imp_ side, we return the value of a lookup to [varOf v] *)
       erewrite Renv_find; [| eassumption].
+      apply sim_rel_add; assumption.
+
+    - (* Literal case *)
+      (* We reduce both sides to Ret constructs *)
+      tau_steps.
+
+      red; rewrite <-eqit_Ret.
+      (* _Asm_ bind the litteral to [gen_tmp n] while _Imp_ returns it *)
       apply sim_rel_add; assumption.
 
     (* The three binary operator cases are identical *)
@@ -707,18 +707,6 @@ Section Correctness.
       erewrite sim_rel_find_tmp_n; eauto.
       eapply sim_rel_binary_op; eauto.
   Qed.
-  
-  (* TODO *)
-  (*
-  Lemma compile_bexp_correct : forall {E} e g_imp g_asm l n,
-      Renv g_imp g_asm ->
-      @eutt E _ _ (sim_rel l n)
-            (interp_imp (denote_bexp e) g_imp)
-            (interp_asm (denote_list (compile_bexp n e)) g_asm l).
-  Proof.
-  Admitted. 
-  *)
- 
 
   (** Correctness of the assign statement.
       The resulting list of instructions is denoted as

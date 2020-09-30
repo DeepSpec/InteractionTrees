@@ -8,7 +8,6 @@ Fin.v
 KTreeFin.v
 CatTheory.v
 Imp.v
-ImpHoare.v
 Asm.v
 AsmCombinators.v
 Imp2Asm.v

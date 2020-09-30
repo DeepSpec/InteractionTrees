@@ -1,0 +1,7 @@
+.PHONY: tutorial test clean
+
+tutorial: coq test
+
+test: coq
+
+clean: clean-coq
