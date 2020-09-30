@@ -27,8 +27,8 @@ From ITree Require Import
      Dijkstra.PureITreeBasics
      Dijkstra.IterRel
      Dijkstra.DelaySpecMonad
-     Dijkstra.IBranch
-     Dijkstra.IBranchBind
+     Dijkstra.ITrace
+     Dijkstra.ITraceBind
      Dijkstra.EuttDiv
    (*  Simple *)
 .
@@ -43,9 +43,9 @@ Lemma bind_trigger_refine : forall (E : Type -> Type) (A R : Type) (b : itree (E
                               (e : E A) (k : A -> itree E R),
     (exists a : A, True) ->
     b ⊑ ITree.bind (ITree.trigger e) k -> 
-    exists a : A, exists (k' : unit -> ibranch E R), b ≈ Vis (evans A e a) k' /\ k' tt ⊑ k a.
+    exists a : A, exists (k' : unit -> itrace E R), b ≈ Vis (evans A e a) k' /\ k' tt ⊑ k a.
 Proof.
-  intros. rewrite bind_trigger in H0. apply branch_refine_vis in H0 as Hvis.
+  intros. rewrite bind_trigger in H0. apply trace_refine_vis in H0 as Hvis.
   destruct Hvis as [X [e' [k' Hbvis] ] ]. setoid_rewrite Hbvis.
   rewrite Hbvis in H0.
   punfold H0. red in H0. cbn in *. inv H0. inj_existT. subst. inv H3; inj_existT; subst.

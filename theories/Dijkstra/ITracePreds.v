@@ -27,8 +27,8 @@ From ITree Require Import
      Dijkstra.PureITreeBasics
      Dijkstra.IterRel
      Dijkstra.DelaySpecMonad
-     Dijkstra.IBranch
-     Dijkstra.IBranchBind
+     Dijkstra.ITrace
+     Dijkstra.ITraceBind
      Dijkstra.EuttDiv
    (*  Simple *)
 .
@@ -40,31 +40,31 @@ Import Monads.
 Import MonadNotation.
 Local Open Scope monad_scope.
 
-Variant branch_forallF {E : Type -> Type} {R : Type} (F : ibranch E R -> Prop) 
-        (PE : forall A, EvAns E A -> Prop) (PR : R -> Prop) : ibranch' E R -> Prop :=
-| branch_forall_ret (r : R) : PR r -> branch_forallF F PE PR (RetF r)
-| branch_forall_tau (b : ibranch E R) : F b -> branch_forallF F PE PR (TauF b)
-| branch_forall_vis {A : Type} (e : EvAns E A) (k : A -> ibranch E R) :
-    PE A e -> (forall (a :A), F (k a) ) -> branch_forallF F PE PR (VisF e k)
+Variant trace_forallF {E : Type -> Type} {R : Type} (F : itrace E R -> Prop) 
+        (PE : forall A, EvAns E A -> Prop) (PR : R -> Prop) : itrace' E R -> Prop :=
+| trace_forall_ret (r : R) : PR r -> trace_forallF F PE PR (RetF r)
+| trace_forall_tau (b : itrace E R) : F b -> trace_forallF F PE PR (TauF b)
+| trace_forall_vis {A : Type} (e : EvAns E A) (k : A -> itrace E R) :
+    PE A e -> (forall (a :A), F (k a) ) -> trace_forallF F PE PR (VisF e k)
 .
 
-Hint Constructors branch_forallF.
+Hint Constructors trace_forallF.
 
-Definition branch_forall_ {E R} PE PR F (b : ibranch E R) :=
-  branch_forallF F PE PR (observe b).
+Definition trace_forall_ {E R} PE PR F (b : itrace E R) :=
+  trace_forallF F PE PR (observe b).
 
-Lemma branch_forall_monot {E R} PE PR : monotone1 (@branch_forall_ E R PE PR).
+Lemma trace_forall_monot {E R} PE PR : monotone1 (@trace_forall_ E R PE PR).
 Proof.
   repeat intro. red in IN. red. induction IN; auto.
 Qed.
 
-Hint Resolve branch_forall_monot : paco.
+Hint Resolve trace_forall_monot : paco.
 
-Definition branch_forall {E R} PE PR := paco1 (@branch_forall_ E R PE PR) bot1.
+Definition trace_forall {E R} PE PR := paco1 (@trace_forall_ E R PE PR) bot1.
 
-Lemma branch_forall_proper_aux: forall (E : Type -> Type) (R : Type) (PE : forall A : Type, EvAns E A -> Prop)
+Lemma trace_forall_proper_aux: forall (E : Type -> Type) (R : Type) (PE : forall A : Type, EvAns E A -> Prop)
                                   (PR : R -> Prop) (b1 b2 : itree (EvAns E) R),
-    (b1 ≈ b2)%itree -> branch_forall PE PR b1 -> branch_forall PE PR b2.
+    (b1 ≈ b2)%itree -> trace_forall PE PR b1 -> trace_forall PE PR b2.
 Proof.
   intros E R PE PR. pcofix CIH. intros b1 b2 Heutt Hforall.
   pfold. red. punfold Hforall. red in Hforall.
@@ -77,50 +77,50 @@ Proof.
   - constructor. left. pfold. red. apply IHHeutt. auto.
 Qed.
 
-Global Instance branch_forall_proper_eutt {E R PE PR} : Proper (eutt eq ==> iff) (@branch_forall E R PE PR).
+Global Instance trace_forall_proper_eutt {E R PE PR} : Proper (eutt eq ==> iff) (@trace_forall E R PE PR).
 Proof.
   intros b1 b2 Heutt. split; intros.
-  - eapply branch_forall_proper_aux; eauto.
-  - symmetry in Heutt. eapply branch_forall_proper_aux; eauto.
+  - eapply trace_forall_proper_aux; eauto.
+  - symmetry in Heutt. eapply trace_forall_proper_aux; eauto.
 Qed.
     
       
 
-Lemma forall_spin : forall E R PE PR, branch_forall PE PR (@ITree.spin (EvAns E) R).
+Lemma forall_spin : forall E R PE PR, trace_forall PE PR (@ITree.spin (EvAns E) R).
 Proof.
   intros. pcofix CIH. pfold. red. cbn. constructor.
   right. auto.
 Qed.
 
-Inductive branch_inf_oftenF {E : Type -> Type} {R : Type} (PE : forall A, EvAns E A -> Prop)
-        (F : ibranch E R -> Prop) : ibranch' E R -> Prop :=
-| branch_inf_often_tau (b : ibranch E R) : branch_inf_oftenF PE F (observe b) -> 
-                                             branch_inf_oftenF PE F (TauF b)
-| branch_inf_often_vis_neg (e : EvAns E unit) (k : unit -> ibranch E R) : 
-    branch_inf_oftenF PE F (observe (k tt)) -> branch_inf_oftenF PE F (VisF e k)
-| branch_inf_often_vis_pos (e : EvAns E unit) (k : unit -> ibranch E R) : 
-    F (k tt) -> PE unit e -> branch_inf_oftenF PE F (VisF e k)
+Inductive trace_inf_oftenF {E : Type -> Type} {R : Type} (PE : forall A, EvAns E A -> Prop)
+        (F : itrace E R -> Prop) : itrace' E R -> Prop :=
+| trace_inf_often_tau (b : itrace E R) : trace_inf_oftenF PE F (observe b) -> 
+                                             trace_inf_oftenF PE F (TauF b)
+| trace_inf_often_vis_neg (e : EvAns E unit) (k : unit -> itrace E R) : 
+    trace_inf_oftenF PE F (observe (k tt)) -> trace_inf_oftenF PE F (VisF e k)
+| trace_inf_often_vis_pos (e : EvAns E unit) (k : unit -> itrace E R) : 
+    F (k tt) -> PE unit e -> trace_inf_oftenF PE F (VisF e k)
 .
 
-Hint Constructors branch_inf_oftenF.
+Hint Constructors trace_inf_oftenF.
 
-Definition branch_inf_often_ {E R} PE F (b : ibranch E R) :=
-  branch_inf_oftenF PE F (observe b).
+Definition trace_inf_often_ {E R} PE F (b : itrace E R) :=
+  trace_inf_oftenF PE F (observe b).
 
-Lemma branch_inf_often_monot {E R} PE : monotone1 (@branch_inf_often_ E R PE).
+Lemma trace_inf_often_monot {E R} PE : monotone1 (@trace_inf_often_ E R PE).
 Proof.
   repeat intro. red in IN. red. induction IN; auto.
 Qed.
 
-Hint Resolve branch_inf_often_monot : paco.
+Hint Resolve trace_inf_often_monot : paco.
 
-Definition branch_inf_often {E R} PE := paco1 (@branch_inf_often_ E R PE) bot1.
+Definition trace_inf_often {E R} PE := paco1 (@trace_inf_often_ E R PE) bot1.
 
 Inductive front_and_last {E : Type -> Type} {R : Type} (PEF : forall A, EvAns E A -> Prop)
-          (PEL : forall A, EvAns E A -> Prop) (PR : R -> Prop) : ibranch E R -> Prop :=
+          (PEL : forall A, EvAns E A -> Prop) (PR : R -> Prop) : itrace E R -> Prop :=
 | front_and_last_base (e : EvAns E unit) (r : R) (b : itree (EvAns E) R) :
     b ≈ Vis e (fun u => Ret r) -> PEL unit e -> PR r -> front_and_last PEF PEL PR b
-  | front_and_last_cons (e : EvAns E unit) (k : unit -> ibranch E R) (b : itree (EvAns E) R ) :
+  | front_and_last_cons (e : EvAns E unit) (k : unit -> itrace E R) (b : itree (EvAns E) R ) :
       b ≈ Vis e k -> PEF unit e -> front_and_last PEF PEL PR (k tt) -> front_and_last PEF PEL PR b
       
 .

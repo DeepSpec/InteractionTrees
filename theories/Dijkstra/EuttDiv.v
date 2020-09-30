@@ -22,7 +22,7 @@ From ITree Require Import
      Core.Divergence
      Dijkstra.PureITreeBasics
      Dijkstra.DelaySpecMonad
-     Dijkstra.IBranch
+     Dijkstra.ITrace
 .
 
 

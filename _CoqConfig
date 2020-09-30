@@ -68,11 +68,11 @@ theories/Dijkstra/DelaySpecMonad.v
 theories/Dijkstra/StateSpecT.v
 theories/Dijkstra/StateDelaySpec.v
 theories/Dijkstra/EuttEv.v
-theories/Dijkstra/IBranch.v
-theories/Dijkstra/BranchPrefix.v
-theories/Dijkstra/IBranchBind.v
+theories/Dijkstra/ITrace.v
+theories/Dijkstra/TracePrefix.v
+theories/Dijkstra/ITraceBind.v
 theories/Dijkstra/EuttDiv.v
-theories/Dijkstra/IBranchPreds.v
-theories/Dijkstra/IBranchBindTrigger.v
+theories/Dijkstra/ITracePreds.v
+theories/Dijkstra/ITraceBindTrigger.v
 theories/Dijkstra/TracesIT.v
 theories/Dijkstra/ITreeDijkstra.v

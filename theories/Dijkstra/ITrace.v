@@ -53,11 +53,11 @@ Axiom classicT : forall (P : Prop), {P} + {~ P}.
 Arguments evans {E}.
 Arguments evempty {E}.
 
-Definition ibranch (E : Type -> Type) (R : Type) := itree (EvAns E) R.
+Definition itrace (E : Type -> Type) (R : Type) := itree (EvAns E) R.
 
-Definition ibranch' (E : Type -> Type) (R : Type) := itree' (EvAns E) R.
+Definition itrace' (E : Type -> Type) (R : Type) := itree' (EvAns E) R.
 
-Definition ev_stream (E : Type -> Type) := ibranch E unit.
+Definition ev_stream (E : Type -> Type) := itrace E unit.
 
 Definition Nil {E : Type -> Type} : ev_stream E := Ret tt.
 
@@ -68,8 +68,8 @@ Fixpoint ev_list_to_stream {E : Type -> Type} (l : ev_list E) : ev_stream E :=
   | nil => Ret tt
   | e :: t => Vis e (fun _ => ev_list_to_stream t) end.
 
-(*one append for branches and streams, get associativity for free from bind_bind*)
-Definition append {E R} (s : ibranch E unit) (b : ibranch E R) :=
+(*one append for traces and streams, get associativity for free from bind_bind*)
+Definition append {E R} (s : itrace E unit) (b : itrace E R) :=
   ITree.bind s (fun _ => b).
 
 Notation "s ++ b" := (append s b).
@@ -96,8 +96,8 @@ Qed.
 
 Ltac contra_void := try match goal with | a : void |- _ => contradiction end. 
 
-Lemma can_converge_branch : forall (E : Type -> Type) (R : Type) 
-                                   (b : ibranch E R) (r1 r2 : R),
+Lemma can_converge_trace : forall (E : Type -> Type) (R : Type) 
+                                   (b : itrace E R) (r1 r2 : R),
     can_converge r1 b -> can_converge r2 b -> r1 = r2.
 Proof.
   intros. induction H; inversion H0; subst.
@@ -247,7 +247,7 @@ Proof.
 Qed.
 
 Lemma append_vis : forall (E : Type -> Type) (R : Type)
-                          (e : EvAns E unit) (k : unit -> ev_stream E) (b : ibranch E R),
+                          (e : EvAns E unit) (k : unit -> ev_stream E) (b : itrace E R),
                           Vis e k ++ b ≈ Vis e (fun a => k a ++ b).
 Proof.
   intros E R. unfold append. intros.
@@ -276,8 +276,8 @@ Proof.
     subst. contradiction.
 Qed.
 
-Lemma converge_ibranch_ev_list : forall (E : Type -> Type) (R : Type) 
-                                        (b : ibranch E R) (r : R),
+Lemma converge_itrace_ev_list : forall (E : Type -> Type) (R : Type) 
+                                        (b : itrace E R) (r : R),
     can_converge r b -> (exists log, (ev_list_to_stream log) ++ Ret r ≈ b)%itree .
 Proof.
   intros. induction H.
@@ -289,23 +289,23 @@ Proof.
     left. destruct b. apply Hlog. subst. contradiction.
 Qed.
 
-Lemma classic_converge_ibranch : forall (E : Type -> Type) (R : Type) (b : ibranch E R),
+Lemma classic_converge_itrace : forall (E : Type -> Type) (R : Type) (b : itrace E R),
     (exists r, exists log, ( (ev_list_to_stream log) ++ Ret r ≈ b)%itree ) \/ must_diverge b.
 Proof.
   intros.
   destruct (classic_converge _ _ b ); auto. destruct H as [r Hr]. left.
-  exists r. apply converge_ibranch_ev_list. auto.
+  exists r. apply converge_itrace_ev_list. auto.
 Qed.
 
-Arguments classic_converge_ibranch {E} {R}.
+Arguments classic_converge_itrace {E} {R}.
 
-Lemma append_nil : forall (E : Type -> Type) (R : Type) (b : ibranch E R),
+Lemma append_nil : forall (E : Type -> Type) (R : Type) (b : itrace E R),
     (Ret tt ++ b ≈ b)%itree.
 Proof.
   intros. unfold append. rewrite bind_ret_l. reflexivity.
 Qed.
 
-Lemma append_assoc : forall (E : Type -> Type) (R : Type) (b : ibranch E R)
+Lemma append_assoc : forall (E : Type -> Type) (R : Type) (b : itrace E R)
                             (log log' : ev_list E),
     ev_list_to_stream (log ++ log')%list ++ b ≈ 
                       (ev_list_to_stream log) ++ (ev_list_to_stream log') ++ b.
@@ -316,7 +316,7 @@ Proof.
     rewrite append_vis. reflexivity.
 Qed.
 
-Lemma append_div : forall (E : Type -> Type) (R : Type) (b : ibranch E R)
+Lemma append_div : forall (E : Type -> Type) (R : Type) (b : itrace E R)
                           (log : ev_list E),
     must_diverge b -> must_diverge ((ev_list_to_stream log) ++ b).
 Proof.
@@ -368,15 +368,15 @@ Variant RAnsRef (E : Type -> Type) : forall (A B : Type), EvAns E A -> A -> E B 
   | rar {A : Type} (e : E A) (a : A) : RAnsRef E unit A (evans A e a) tt e a.
 Hint Constructors RAnsRef.
 
-Definition branch_refine {E R}  (t : itree E R) (b : ibranch E R)  := 
+Definition trace_refine {E R}  (t : itree E R) (b : itrace E R)  := 
    euttEv (REvRef E) (RAnsRef E) eq b t.
 
 
-Notation "b ⊑ t" := (branch_refine t b) (at level 70).
+Notation "b ⊑ t" := (trace_refine t b) (at level 70).
 
 
 
-Lemma branch_refine_proper_left' : forall (E : Type -> Type) (R : Type) (b1 b2 : ibranch E R)
+Lemma trace_refine_proper_left' : forall (E : Type -> Type) (R : Type) (b1 b2 : itrace E R)
                 (t : itree E R), (b1 ≈ b2)%itree -> euttEv (REvRef E) (RAnsRef E) eq b1 t -> 
                                  euttEv (REvRef E) (RAnsRef E) eq b2 t.
 Proof. 
@@ -387,6 +387,7 @@ Proof.
   - remember (RetF r1) as ot1. hinduction H1 before CIH; intros; inv Heqot1; eauto with paco.
     + constructor. auto.
     + constructor. eapply IHeuttEvF; eauto.
+  (* Tau Tau case causes the most problems, seems *)
   -  assert (DEC: (exists m3, ot3 = TauF m3) \/ (forall m3, ot3 <> TauF m3)).
     { destruct ot3; eauto; right; red; intros; inv H. }
     destruct DEC as [EQ | EQ].
@@ -423,7 +424,7 @@ Proof.
 
 Qed. 
 
-Lemma branch_refine_proper_right' : forall (E : Type -> Type) (R : Type) (b : ibranch E R)
+Lemma trace_refine_proper_right' : forall (E : Type -> Type) (R : Type) (b : itrace E R)
                                    (t1 t2 : itree E R), t1 ≈ t2 -> euttEv (REvRef E) (RAnsRef E) eq b t1 -> 
                                  euttEv (REvRef E) (RAnsRef E) eq b t2.
 Proof.
@@ -467,21 +468,21 @@ Proof.
   - constructor. eapply IHeqitF. eauto.
 Qed.
 
-Instance branch_refine_proper {E R} : Proper (@eutt E R R eq ==> eutt eq ==> iff) branch_refine.
+Instance trace_refine_proper {E R} : Proper (@eutt E R R eq ==> eutt eq ==> iff) trace_refine.
 Proof.
   intros b1 b2 Heuttb t1 t2 Heuttt.
   split; intros;
-  try (eapply branch_refine_proper_right'; [eauto | eapply branch_refine_proper_left'; eauto]);
+  try (eapply trace_refine_proper_right'; [eauto | eapply trace_refine_proper_left'; eauto]);
   symmetry; auto.
 Qed.
 
-Lemma branch_refine_ret : forall (E : Type -> Type) (R : Type) (r : R),
-    @branch_refine E R (Ret r) (Ret r).
+Lemma trace_refine_ret : forall (E : Type -> Type) (R : Type) (r : R),
+    @trace_refine E R (Ret r) (Ret r).
 Proof.
   intros. pfold. constructor. auto.
 Qed.
 
-Lemma branch_refine_ret_inv_r : forall (E : Type -> Type) (R : Type) (r : R)
+Lemma trace_refine_ret_inv_r : forall (E : Type -> Type) (R : Type) (r : R)
                                      (t : itree E R),
     Ret r ⊑ t -> t ≈ Ret r.
 Proof.
@@ -491,8 +492,8 @@ Proof.
   - rewrite <- x. constructor; auto.
 Qed.
 
-Lemma branch_refine_ret_inv_l : forall (E : Type -> Type) (R : Type) (r : R)
-                                     (b : ibranch E R),
+Lemma trace_refine_ret_inv_l : forall (E : Type -> Type) (R : Type) (r : R)
+                                     (b : itrace E R),
     b ⊑ Ret r -> (b ≈ Ret r)%itree.
 Proof.
   intros. pfold. red. punfold H. red in H. cbn in *.
@@ -501,9 +502,9 @@ Proof.
   - rewrite <- x. constructor; auto.
 Qed.
 
-Lemma branch_refine_vis_inv : forall (E : Type -> Type) (R A: Type) (e : E A) (a : A)
-                                     (b :ibranch E R) (k : A -> itree E R),
-    branch_refine (Vis e k) (Vis (evans A e a) (fun _ => b))  -> branch_refine (k a) b .
+Lemma trace_refine_vis_inv : forall (E : Type -> Type) (R A: Type) (e : E A) (a : A)
+                                     (b :itrace E R) (k : A -> itree E R),
+    trace_refine (Vis e k) (Vis (evans A e a) (fun _ => b))  -> trace_refine (k a) b .
 Proof.
   intros E R A e a. intros.
   red in H. red. punfold H. red in H. inversion H. 
@@ -513,8 +514,8 @@ Proof.
   apply H7 in H0. pclearbot. auto.
 Qed.
 
-Lemma branch_refine_vis_add : forall (E : Type -> Type) (R A: Type) (e : E A) (a : A)
-                                     (b :ibranch E R) (k : A -> itree E R),
+Lemma trace_refine_vis_add : forall (E : Type -> Type) (R A: Type) (e : E A) (a : A)
+                                     (b :itrace E R) (k : A -> itree E R),
     b ⊑ k a -> Vis (evans A e a) (fun _ => b) ⊑ Vis e k.
 Proof.
   intros. pfold. red. cbn. constructor; eauto.
@@ -523,8 +524,8 @@ Proof.
   subst. auto.
 Qed.
 (*
-Lemma branch_refine_bind : forall (E : Type -> Type) (R S : Type) 
-                   (b : ibranch E R) (t : itree E R) (f : R -> ibranch E S) (g : R -> itree E S),
+Lemma trace_refine_bind : forall (E : Type -> Type) (R S : Type) 
+                   (b : itrace E R) (t : itree E R) (f : R -> itrace E S) (g : R -> itree E S),
     b ⊑ t -> (forall r, f r ⊑ g r) -> (ITree.bind b f) ⊑ t >>= g.
 Proof.
   intros E R S b t f g Hbt Hfg. generalize dependent b. generalize dependent t.
@@ -547,20 +548,20 @@ Proof.
   - exists void. exists (evempty R Hempty e). eauto.
 Qed.
 (* WARNING: this function should not be used for computation  *)
-CoFixpoint determinize_ (E : Type -> Type) (R : Type) (ot : itree' E R) : ibranch E R.
+CoFixpoint determinize_ (E : Type -> Type) (R : Type) (ot : itree' E R) : itrace E R.
   destruct ot.
 - apply (Ret r).
 - apply (Tau (determinize_ E R (observe t) ) ).
 - specialize (classic_empty X) as H. 
   apply constructive_indefinite_description in H. destruct H as [ [x | f] _].
   + apply (Vis (evans X e x) (fun _ =>  (determinize_ E R (observe (k x)) ) )) .
-  + apply (Vis (evempty X f e) (fun v : void => match v return ibranch E R with end)  ).
+  + apply (Vis (evempty X f e) (fun v : void => match v return itrace E R with end)  ).
 Defined.
 
 Definition determinize {E R} t := determinize_ E R (observe t).
 
 Lemma itree_refine_nonempty : forall (E : Type -> Type) (R : Type) (t : itree E R),
-    exists b : ibranch E R, b ⊑ t.
+    exists b : itrace E R, b ⊑ t.
 Proof.
   intros. exists (determinize t). generalize dependent t.
   pcofix CIH. intros. pfold. red. unfold determinize. destruct (observe t).
@@ -577,9 +578,9 @@ Proof.
 Qed.
 
 Lemma refine_set_eq_to_eutt_vis_aux : forall (E : Type -> Type) (R : Type) (r : itree E R -> itree E R -> Prop)
-      (CIH : forall t1 t2 : itree E R, (forall b : ibranch E R, b ⊑ t1 <-> b ⊑ t2) -> r t1 t2)
+      (CIH : forall t1 t2 : itree E R, (forall b : itrace E R, b ⊑ t1 <-> b ⊑ t2) -> r t1 t2)
       (t1 t2 : itree E R)
-      (H0 : forall b : ibranch E R, b ⊑ t1 <-> b ⊑ t2)
+      (H0 : forall b : itrace E R, b ⊑ t1 <-> b ⊑ t2)
       (A B : Type) (e : E A) (e0 : E B)
       (k : A -> itree E R) (k0 : B -> itree E R)
       (Ht1 : t1 ≅ Vis e k) (Ht2 : t2 ≅ Vis e0 k0 ),
@@ -587,10 +588,10 @@ Lemma refine_set_eq_to_eutt_vis_aux : forall (E : Type -> Type) (R : Type) (r : 
 Proof.
   intros.
   destruct (classic_empty A) as [ [a | Ha] _ ].
-  - specialize  branch_refine_vis_add with (e := e) (k := k) (a := a) as Hbrv.
+  - specialize  trace_refine_vis_add with (e := e) (k := k) (a := a) as Hbrv.
     assert (exists b, b ⊑ (k a) ). 
     { apply itree_refine_nonempty. }
-    destruct H as [b Hbk]. apply branch_refine_vis_add with (e := e) in Hbk.
+    destruct H as [b Hbk]. apply trace_refine_vis_add with (e := e) in Hbk.
     rewrite <- Ht1 in Hbk.
     apply H0 in Hbk as Hbk0.
     rewrite Ht1 in Hbk. rewrite Ht2 in Hbk0.
@@ -606,11 +607,11 @@ Proof.
     intros. right. eapply CIH; eauto.
     intros. setoid_rewrite Ht1 in H0. setoid_rewrite Ht2 in H0.
     split; intros.
-    + apply branch_refine_vis_add with (e := e) in H. apply H0 in H.
-      apply branch_refine_vis_inv in H. auto.
-    + apply branch_refine_vis_add with (e := e) in H. apply H0 in H.
-      apply branch_refine_vis_inv in H. auto.
-  - set (fun v : void => match v return ibranch E R with end) as ke.
+    + apply trace_refine_vis_add with (e := e) in H. apply H0 in H.
+      apply trace_refine_vis_inv in H. auto.
+    + apply trace_refine_vis_add with (e := e) in H. apply H0 in H.
+      apply trace_refine_vis_inv in H. auto.
+  - set (fun v : void => match v return itrace E R with end) as ke.
     set (Vis (evempty A Ha e) ke) as b.
     assert (b ⊑ t1).
     {
@@ -632,7 +633,7 @@ Proof.
     split; intros; contradiction.
 Qed.
 
-Lemma branch_refine_vis : forall (E : Type -> Type) (R A : Type) (b : ibranch E R)
+Lemma trace_refine_vis : forall (E : Type -> Type) (R A : Type) (b : itrace E R)
                                  (e : E A) (k : A -> itree E R),
     b ⊑ Vis e k -> exists X, exists e0 : EvAns E X, exists k0, (b ≈ Vis e0 k0)%itree.
 Proof.
@@ -655,8 +656,8 @@ Qed.
 Ltac inj_existT := repeat match goal with | H : existT _ _ _ = _ |- _ => apply inj_pair2 in H end.
 
 
-Lemma branch_refine_vis_l : forall (E : Type -> Type) (R A: Type) (t : itree E R)
-                                   (e : EvAns E A) (k : A -> ibranch E R),
+Lemma trace_refine_vis_l : forall (E : Type -> Type) (R A: Type) (t : itree E R)
+                                   (e : EvAns E A) (k : A -> itrace E R),
     Vis e k ⊑ t -> exists X, exists e0 : E X, exists k0 : X -> itree E R, t ≈ Vis e0 k0.
 Proof.
   intros. punfold H. red in H. cbn in *.
@@ -671,28 +672,28 @@ Proof.
       rewrite <- x in Ht. rewrite Ht. reflexivity.
 Qed.
 
-Lemma branch_refine_can_converge_ex : forall (E : Type -> Type) (R : Type)
+Lemma trace_refine_can_converge_ex : forall (E : Type -> Type) (R : Type)
                          (t : itree E R) (r : R),
     can_converge r t -> exists b, can_converge r b /\ b ⊑ t.
 Proof.
   intros. induction H.
   - exists (Ret r). rewrite H. split.
     + constructor. reflexivity.
-    + apply branch_refine_ret.
+    + apply trace_refine_ret.
   - destruct IHcan_converge as [br [Hrbr Hrefbr] ].
     exists  (Vis (evans B e b) (fun _ => br) ). split.
     + eapply conv_vis with (b0 := tt); try reflexivity. auto.
-    + rewrite H. apply branch_refine_vis_add. auto.
+    + rewrite H. apply trace_refine_vis_add. auto.
 Qed.
 
-Lemma branch_refine_can_converge : forall (E : Type -> Type) (R : Type)
-                         (t : itree E R) (r : R) (b : ibranch E R),
+Lemma trace_refine_can_converge : forall (E : Type -> Type) (R : Type)
+                         (t : itree E R) (r : R) (b : itrace E R),
     can_converge r b -> b ⊑ t -> can_converge r t.
 Proof.
   intros. generalize dependent t. induction H; intros.
-  - rewrite H in H0. apply branch_refine_ret_inv_r in H0.
+  - rewrite H in H0. apply trace_refine_ret_inv_r in H0.
     rewrite H0. constructor. reflexivity.
-  - rewrite H in H1. apply branch_refine_vis_l in H1 as Ht0.
+  - rewrite H in H1. apply trace_refine_vis_l in H1 as Ht0.
     destruct Ht0 as [X [e0 [k0 Ht0] ] ].
     rewrite Ht0 in H1. pinversion H1. subst.
     inj_existT. subst. rewrite Ht0. 
@@ -703,8 +704,8 @@ Proof.
     constructor. apply H9 in H2. pclearbot. destruct b. auto.
 Qed.
 
-Lemma branch_refine_must_diverge : forall (E : Type -> Type) (R : Type)
-                       (t : itree E R) (b : ibranch E R),
+Lemma trace_refine_must_diverge : forall (E : Type -> Type) (R : Type)
+                       (t : itree E R) (b : itrace E R),
     must_diverge t -> b ⊑ t -> must_diverge b.
 Proof.
   intros E R. pcofix CIH. intros. punfold H0. red in H0.
@@ -724,15 +725,15 @@ Proof.
     destruct H0; try contradiction. eauto.
 Qed.
 
-Lemma branch_refine_converge_bind : forall (E : Type -> Type) (R S : Type)
-            (b : ibranch E R) (t : itree E R) (f : R -> ibranch E S) (g : R -> itree E S) (r : R),
+Lemma trace_refine_converge_bind : forall (E : Type -> Type) (R S : Type)
+            (b : itrace E R) (t : itree E R) (f : R -> itrace E S) (g : R -> itree E S) (r : R),
     can_converge r b -> b ⊑ t -> f r ⊑ g r -> ITree.bind b f ⊑ ITree.bind t g.
 Proof.
   intros. generalize dependent t. dependent induction H; intros.
-  - rewrite H. rewrite H in H0. apply branch_refine_ret_inv_r in H0. 
+  - rewrite H. rewrite H in H0. apply trace_refine_ret_inv_r in H0. 
     rewrite H0. repeat rewrite bind_ret_l. auto.
   - specialize (IHcan_converge H1). 
-    rewrite H in H2. apply branch_refine_vis_l in H2 as Ht.
+    rewrite H in H2. apply trace_refine_vis_l in H2 as Ht.
     destruct Ht as [X [e0 [k0 Ht] ] ].
     rewrite Ht in H2. punfold H2. red in H2. cbn in H2. inversion H2; subst.
     inj_existT. subst. pclearbot.
@@ -743,8 +744,8 @@ Proof.
     destruct a0. destruct b. apply IHcan_converge. auto.
 Qed.
 
-Lemma branch_refine_diverge_bind : forall (E : Type -> Type) (R S : Type)
-                  (b : ibranch E R) (t : itree E R) (f : R -> ibranch E S) (g : R -> itree E S),
+Lemma trace_refine_diverge_bind : forall (E : Type -> Type) (R S : Type)
+                  (b : itrace E R) (t : itree E R) (f : R -> itrace E S) (g : R -> itree E S),
     must_diverge b -> b ⊑ t -> ITree.bind b f ⊑ ITree.bind t g.
 Proof.
   intros E R S b t f g. generalize dependent b. generalize dependent t.
@@ -828,7 +829,7 @@ Proof.
     apply H0 in Hbt1 as Hbt2. rewrite Ht1 in Hbt1.
     rewrite tau_eutt in Hbt1. 
     rewrite Ht2 in Hbt2.
-    apply branch_refine_vis in Hbt2 as Hb.
+    apply trace_refine_vis in Hbt2 as Hb.
     destruct Hb as [Y [e0 [k0 Hb] ] ].
     rewrite Hb in Hbt2.
     rewrite Hb in Hbt1. clear Hb b.
@@ -861,7 +862,7 @@ Proof.
     apply H0 in Hbt2 as Hbt1. rewrite Ht1 in Hbt1.
     rewrite Ht2 in Hbt2.
     rewrite tau_eutt in Hbt2. 
-    apply branch_refine_vis in Hbt1 as Hb.
+    apply trace_refine_vis in Hbt1 as Hb.
     destruct Hb as [Y [e0 [k0 Hb] ] ].
     rewrite Hb in Hbt2.
     rewrite Hb in Hbt1. clear Hb b.
@@ -892,8 +893,8 @@ Proof.
   enough (t ≈ t); auto. reflexivity.
 Qed.
 
-Lemma branch_refine_bind_cont_inv : forall (E : Type -> Type) (R S : Type)
-         (b : ibranch E R) (m : itree E R) (g : R -> ibranch E S)
+Lemma trace_refine_bind_cont_inv : forall (E : Type -> Type) (R S : Type)
+         (b : itrace E R) (m : itree E R) (g : R -> itrace E S)
          (f : R -> itree E S) (r : R),
     can_converge r b -> b ⊑ m -> ITree.bind b g ⊑ ITree.bind m f -> g r ⊑ f r.
 Proof.
@@ -901,13 +902,13 @@ Proof.
   generalize  dependent m.
   dependent induction  Hconv; intros m Hrefb Hrefbind.
   - rewrite H in Hrefbind. rewrite bind_ret_l in Hrefbind. rewrite H in Hrefb.
-    apply branch_refine_ret_inv_r in Hrefb. rewrite Hrefb in Hrefbind.
+    apply trace_refine_ret_inv_r in Hrefb. rewrite Hrefb in Hrefbind.
     rewrite bind_ret_l in Hrefbind. eapply paco2_mon; eauto. intuition.
   - (*m must be a vis, the continuations must refine then continuation in the m I use in the 
       inductive hypothesis *)
     destruct e; try contradiction. rewrite H in Hrefb.
     rewrite H in Hrefbind. rewrite bind_vis in Hrefbind.
-    apply branch_refine_vis_l in Hrefb as Hvis. destruct Hvis as [X [e' [k' Hvis ] ] ].
+    apply trace_refine_vis_l in Hrefb as Hvis. destruct Hvis as [X [e' [k' Hvis ] ] ].
     rewrite Hvis in Hrefbind. rewrite bind_vis in Hrefbind.
     punfold Hrefbind. red in Hrefbind. cbn in Hrefbind. inv Hrefbind.
     inj_existT; subst. inv H2. inj_existT; subst.
@@ -920,7 +921,7 @@ Proof.
 Qed.
 
 Lemma can_converge_two_list:
-  forall (E : Type -> Type) (A B : Type) (log : ev_list E) (b : ibranch E A) 
+  forall (E : Type -> Type) (A B : Type) (log : ev_list E) (b : itrace E A) 
     (a : A) (log' : ev_list E),
     (ev_list_to_stream log) ++ b ≈ (ev_list_to_stream log') ++ Ret a -> can_converge a b.
 Proof.
