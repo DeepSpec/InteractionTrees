@@ -21,6 +21,7 @@ theories/Basics/CategoryKleisli.v
 theories/Basics/CategoryKleisliFacts.v
 theories/Basics/Function.v
 theories/Basics/FunctionFacts.v
+theories/Basics/GeneralWFO.v
 
 theories/Core/ITreeDefinition.v
 theories/Core/KTree.v
