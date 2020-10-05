@@ -137,7 +137,7 @@ Section eqit_Definition.
         (REL: sim o' t1 t2)           
         (LTo: wfo_lt o' o)
     : eqitF b1 b2 RR sim o (observe t1) (TauF t2)
-  | EqStutter t1 t2 o'
+  | EqNone t1 t2 o'
         (CHECK1: b1)
         (CHECK2: b2)
         (REL: sim o' t1 t2)           
@@ -844,10 +844,10 @@ Qed.
 Variant euttOrdF (euttOrd : Type) :=
 | OBaseF
 | OTauF (o : euttOrd)
-| OStepF (o : euttOrd)
+| OStutterF (o : euttOrd)
 .
 Arguments OBaseF {euttOrd}.
-Arguments OStepF {euttOrd} o.
+Arguments OStutterF {euttOrd} o.
 Arguments OTauF {euttOrd} o.
 
 CoInductive euttOrd : Type := ord_go
@@ -856,7 +856,7 @@ CoInductive euttOrd : Type := ord_go
 Notation euttOrd' := (euttOrdF euttOrd).
 Notation OBase := {| ord_observe := OBaseF |}.
 Notation OTau o := {| ord_observe := OTauF o |}.
-Notation OStep o := {| ord_observe := OStepF o |}.
+Notation OStutter o := {| ord_observe := OStutterF o |}.
 
 Inductive euttOrd_le': euttOrd' -> euttOrd' -> Prop :=
 | euttOrd_le_refl
@@ -865,7 +865,7 @@ Inductive euttOrd_le': euttOrd' -> euttOrd' -> Prop :=
 | euttOrd_le_step
     o1 o2
     (REL: euttOrd_le' o1 (ord_observe o2))
-  : euttOrd_le' o1 (OStepF o2)
+  : euttOrd_le' o1 (OStutterF o2)
 | euttOrd_le_tau
     o1 o2
     (REL: euttOrd_le' o1 (ord_observe o2))
@@ -880,7 +880,7 @@ Inductive euttOrd_lt': euttOrd' -> euttOrd' -> Prop :=
 | euttOrd_lt_step
     o1 o2
     (REL: euttOrd_le' o1 (ord_observe o2))
-  : euttOrd_lt' o1 (OStepF o2)
+  : euttOrd_lt' o1 (OStutterF o2)
 | euttOrd_tau
     o1 o2
     (REL: euttOrd_lt' o1 (ord_observe o2))
@@ -904,7 +904,7 @@ Proof.
   generalize (ord_observe i) as oi, (ord_observe j) as oj, (ord_observe k) as ok.
   intros. revert ok H0.
   induction H; eauto; intros.
-  - remember (OStepF o2) as o2' in *. induction H0; subst; eauto.
+  - remember (OStutterF o2) as o2' in *. induction H0; subst; eauto.
   - remember (OTauF o2) as o2' in *. induction H0; subst; eauto.
 Qed.
 
@@ -914,7 +914,7 @@ Proof.
   generalize (ord_observe i) as oi, (ord_observe j) as oj, (ord_observe k) as ok.
   intros. revert ok H0.
   induction H; eauto; intros.
-  - remember (OStepF o2) as o2' in *. induction H0; subst; eauto.
+  - remember (OStutterF o2) as o2' in *. induction H0; subst; eauto.
     econstructor. eapply (euttOrd_lt_le (ord_go _)). eauto.
   - remember (OTauF o2) as o2' in *. induction H0; subst; eauto.
     econstructor. eapply (euttOrd_lt_le (ord_go _)). eauto.
@@ -947,8 +947,8 @@ Qed.
 CoFixpoint eutt_ord {E R1 R2} (ot1: itree' E R1) (ot2: itree' E R2) : euttOrd :=
   match ot1, ot2 with
   | TauF t1', TauF t2' => OTau (eutt_ord (observe t1') (observe t2'))
-  | TauF t1', _ => OStep (eutt_ord (observe t1') ot2)
-  | _, TauF t2' => OStep (eutt_ord ot1 (observe t2'))
+  | TauF t1', _ => OStutter (eutt_ord (observe t1') ot2)
+  | _, TauF t2' => OStutter (eutt_ord ot1 (observe t2'))
   | _, _ => OBase
   end.
 
@@ -1190,7 +1190,7 @@ Proof.
         eapply HYP; eauto. eauto with wfo.
     }
     (* [Stutter] t1 = t0 *)
-    { unfold_eta. eapply EqStutter; eauto; cycle 1.
+    { unfold_eta. eapply EqNone; eauto; cycle 1.
       { instantiate (1:= o'0). eauto with wfo wfo_proj. }
       punfold REL1. red in REL1. rewrite H3 in REL1. left. pstep. red.
       revert REL1. clear H2. revert t0.
@@ -1273,7 +1273,7 @@ Proof.
     }
     (* [Stutter] t1 = Tau t0 *)
     { destruct bL, bR; inv CHECK1; inv CHECK2.
-      unfold_eta. eapply EqStutter; eauto with wfo.
+      unfold_eta. eapply EqNone; eauto with wfo.
       punfold REL1. red in REL1. rewrite H3 in REL1. left. pstep. red.
       remember (wfo_add o'1 o'0) as ord. clear H2. revert o'1 t0 LTo REL1 Heqord.
       assert (WF := wfo_wf _ ord). induction WF as [ord _ HYP]. intros.
@@ -1289,7 +1289,7 @@ Proof.
       - rewrite <-x. econstructor; eauto.
         + right. econstructor; eauto with wfo_refl.
         + subst. eauto with wfo.
-      - rewrite <-x0. eapply EqStutter; eauto.
+      - rewrite <-x0. eapply EqNone; eauto.
         + left. pstep. punfold REL1. red in REL1. rewrite x in REL1.
           eapply HYP; try apply REL1; subst; eauto; eauto with wfo.
         + subst. eauto with wfo.
@@ -1320,7 +1320,7 @@ Proof.
     }
     (* [Stutter] t1 = t4 *)
     { destruct bL, bR; inv CHECK1; inv CHECK2.
-      eapply EqStutter; eauto.
+      eapply EqNone; eauto.
       - right. econstructor; cycle 1; eauto with wfo_refl.
         eapply eqiti_inv_tauR; eauto.
         rewrite <-H3. pstep. punfold REL1.
@@ -1705,7 +1705,7 @@ Proof.
   - reflexivity.
 Qed.
 
-(* ----------------- Revised Up Here ------------------ *)
+----------------- Revised Up Here ------------------
 
 Lemma bind_bind {E R S T} :
   forall (s : itree E R) (k : R -> itree E S) (h : S -> itree E T),
