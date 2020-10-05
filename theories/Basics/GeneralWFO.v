@@ -4,7 +4,7 @@ Require Import Arith Relations Max NPeano Program Wellfounded List Lia.
 From Paco Require Import paco.
 Import ListNotations.
 
-Set Implicit Arguments. 
+Set Implicit Arguments.
 Global Set Bullet Behavior "Strict Subproofs".
 
 Ltac ginduction H :=
@@ -107,100 +107,11 @@ Structure bwfo :=
     bwfo_le_le_le: forall i j k, bwfo_le i j -> bwfo_le j k -> bwfo_le i k;
     bwfo_lt_le_lt: forall i j k, bwfo_lt i j -> bwfo_le j k -> bwfo_lt i k;
     bwfo_le_lt_lt: forall i j k, bwfo_le i j -> bwfo_lt j k -> bwfo_lt i k;
-    
+
     bwfo_wf : well_founded bwfo_lt;
 }.
 Arguments bwfo_lt {_} _ _.
 Arguments bwfo_le {_} _ _.
-
-(* **
-  Symmetric Product of Algebraic Wellfounded Orders
- *)
-
-Definition symprod_lt (a b : bwfo) (x y: a * b) :=
-  (bwfo_lt (fst x) (fst y) /\ bwfo_le (snd x) (snd y)) \/
-  (bwfo_le (fst x) (fst y) /\ bwfo_lt (snd x) (snd y)).
-
-Definition symprod_le (a b : bwfo) (x y: a * b) :=
-  bwfo_le (fst x) (fst y) /\ bwfo_le (snd x) (snd y).
-
-Program Definition bwfo_symprod (a b : bwfo) : bwfo :=
-  {| bwfo_lt   := symprod_lt a b;
-     bwfo_le   := symprod_le a b;
-  |}.
-Next Obligation. split; simpl; eauto using bwfo_le_refl. Qed.
-Next Obligation.
-  destruct H as [[]|[]]; split; simpl in *; eauto using bwfo_lt_le, bwfo_le_le_le.
-Qed.
-Next Obligation.
-  destruct H, H0; split; simpl in *; eauto using bwfo_le_le_le.
-Qed.
-Next Obligation.
-  destruct H, H, H0; [left|right]; split; simpl in *; eauto using bwfo_lt_le_lt, bwfo_le_le_le.
-Qed.
-Next Obligation.
-  destruct H, H0, H0; [left|right]; split; simpl in *; eauto using bwfo_le_lt_lt, bwfo_le_le_le.
-Qed.
-Next Obligation.
-  intros [u v].
-  assert (WFu := bwfo_wf _ u). revert v.
-  induction WFu as [u _ HYPu].
-  econstructor; intros [u' v'] LT'.
-  destruct LT', H; simpl in *.
-  - eapply HYPu in H; eauto.
-  - clear v H0.
-    assert (WFv' := bwfo_wf _ v'). revert u' H.
-    induction WFv' as [v' _ HYPv'].
-    econstructor; intros [u'' v''] LT''.
-    destruct LT'', H0; simpl in *.
-    + eapply HYPu; eauto using bwfo_lt_le_lt.
-    + eapply HYPv'; eauto using bwfo_le_le_le.
-Qed.
-
-(* **
-  Lexcographic Product of Algebraic Wellfounded Orders
- *)
-
-Definition lexprod_lt (a b : bwfo) (x y: a * b) :=
-  bwfo_lt (fst x) (fst y) \/
-  (bwfo_le (fst x) (fst y) /\ bwfo_lt (snd x) (snd y)).
-
-Definition lexprod_le (a b : bwfo) (x y: a * b) :=
-  bwfo_lt (fst x) (fst y) \/
-  (bwfo_le (fst x) (fst y) /\ bwfo_le (snd x) (snd y)).
-
-Program Definition bwfo_lexprod (a b : bwfo) : bwfo :=
-  {| bwfo_lt   := lexprod_lt a b;
-     bwfo_le   := lexprod_le a b;
-  |}.
-Next Obligation. right. split; simpl; eauto using bwfo_le_refl. Qed.
-Next Obligation.
-  destruct H as [|[]]; [left|right]; simpl in *; eauto using bwfo_lt_le.
-Qed.
-Next Obligation.
-  destruct H as [|[]], H0 as [|[]]; [..|right]; try left; simpl in *; eauto using bwfo_lt_le, bwfo_lt_le_lt, bwfo_le_lt_lt, bwfo_le_le_le.
-Qed.
-Next Obligation.
-  destruct H as [|[]], H0 as [|[]]; [..|right]; try left; simpl in *; eauto using bwfo_lt_le, bwfo_lt_le_lt, bwfo_le_lt_lt, bwfo_le_le_le.
-Qed.
-Next Obligation.
-  destruct H as [|[]], H0 as [|[]]; [..|right]; try left; simpl in *; eauto using bwfo_lt_le, bwfo_lt_le_lt, bwfo_le_lt_lt, bwfo_le_le_le.
-Qed.
-Next Obligation.
-  intros [u v].
-  assert (WFu := bwfo_wf _ u). revert v.
-  induction WFu as [u _ HYPu].
-  econstructor; intros [u' v'] LT'.
-  destruct LT' as [|[]]; simpl in *.
-  - eapply HYPu in H; eauto.
-  - clear v H0.
-    assert (WFv' := bwfo_wf _ v'). revert u' H.
-    induction WFv' as [v' _ HYPv'].
-    econstructor; intros [u'' v''] LT''.
-    destruct LT'' as [|[]]; simpl in *.
-    + eapply HYPu; eauto using bwfo_lt_le_lt.
-    + eapply HYPv'; eauto using bwfo_le_le_le.
-Qed.
 
 (** **
   Non-trival Non-negative Well-founded Ordered Monoids
@@ -216,12 +127,12 @@ Structure awfo :=
   wfo_le  : wfo_set -> wfo_set -> Prop;
 
 (* Monoid *)
-  
+
   wfo_add_zero_l_le: forall i, wfo_le (wfo_add wfo_zero i) i;
   wfo_add_zero_l_ge: forall i, wfo_le i (wfo_add wfo_zero i);
   wfo_add_zero_r_le: forall i, wfo_le (wfo_add i wfo_zero) i;
   wfo_add_zero_r_ge: forall i, wfo_le i (wfo_add i wfo_zero);
-  
+
   wfo_add_assoc_le: forall i j k, wfo_le (wfo_add i (wfo_add j k)) (wfo_add (wfo_add i j) k);
   wfo_add_assoc_ge: forall i j k, wfo_le (wfo_add (wfo_add i j) k) (wfo_add i (wfo_add j k));
 
@@ -256,246 +167,142 @@ Arguments wfo_one {_}.
 Arguments wfo_add {_} _ _.
 
 (* **
-  General Wellfounded Order in NtNnWfPoMonoid
+  Symmetric Product of Algebraic Wellfounded Orders
  *)
 
-Definition gwf_set : Type := list (sigT bwfo_set).
+Definition symprod_lt (a b : awfo) (x y: a * b) :=
+  (wfo_lt (fst x) (fst y) /\ wfo_le (snd x) (snd y)) \/
+  (wfo_le (fst x) (fst y) /\ wfo_lt (snd x) (snd y)).
 
-Definition gwfel (o: bwfo) (x: o) :=
-  existT _ o x.
+Definition symprod_le (a b : awfo) (x y: a * b) :=
+  wfo_le (fst x) (fst y) /\ wfo_le (snd x) (snd y).
 
-Program Definition unit_wfo : bwfo :=
-  {| bwfo_set := unit;
-     bwfo_lt _ _ := False;
-     bwfo_le _ _ := True;
+Program Definition awfo_symprod (a b : awfo) : awfo :=
+  {| wfo_lt   := symprod_lt a b;
+     wfo_le   := symprod_le a b;
+     wfo_zero := (wfo_zero, wfo_zero);
+     wfo_one  := (wfo_zero, wfo_one);
+     wfo_add  := fun i j => (wfo_add (fst i) (fst j), wfo_add (snd i) (snd j));
   |}.
-Next Obligation. econstructor; intros. contradiction. Qed.
-
-Definition gwf_one : gwf_set := 
-  [ gwfel unit_wfo tt ].
-
-Inductive gwf_lex (b: bool) : gwf_set -> gwf_set -> Prop :=
-| gwf_lex_nil
-    (CHECK: is_true b)
-  : gwf_lex b [] []
-| gwf_lex_lt
-    o x y i j
-    (LT: bwfo_lt x y)
-    (LEN: length i = length j)
-  : gwf_lex b (gwfel o x :: i) (gwfel o y :: j)
-| gwf_lex_step
-    o x y i j
-    (LE: bwfo_le x y)
-    (CMP: gwf_lex b i j)
-  : gwf_lex b (gwfel o x :: i) (gwfel o y :: j)
-.    
-Hint Constructors gwf_lex.
-
-Variant gwf_cmp b : gwf_set -> gwf_set -> Prop :=
-| gwf_cmp_lt
-    o1 o2
-    (LEN: length o1 < length o2)
-  : gwf_cmp b o1 o2
-| gwf_cmp_lex
-    i j
-    (CMP: gwf_lex b i j)
-  : gwf_cmp b i j
-.
-Hint Constructors gwf_cmp.
-
-Lemma gwf_lex_length b o1 o2
-      (LT: gwf_lex b o1 o2)
-  : length o1 = length o2.
-Proof.
-  intros. induction LT; simpl; nia.
-Qed.  
-
-Lemma gwf_cmp_length b o1 o2
-      (CMP: gwf_cmp b o1 o2)
-  : length o1 <= length o2.
-Proof.
-  destruct CMP.
-  - nia.
-  - erewrite gwf_lex_length; eauto. 
+Next Obligation. red. eauto using wfo_add_zero_l_le. Qed.
+Next Obligation. red. eauto using wfo_add_zero_l_ge. Qed.
+Next Obligation. red. eauto using wfo_add_zero_r_le. Qed.
+Next Obligation. red. eauto using wfo_add_zero_r_ge. Qed.
+Next Obligation. red. eauto using wfo_add_assoc_le. Qed.
+Next Obligation. red. eauto using wfo_add_assoc_ge. Qed.
+Next Obligation. split; simpl; eauto using wfo_le_refl. Qed.
+Next Obligation.
+  destruct H as [[]|[]]; split; simpl in *; eauto using wfo_lt_le, wfo_le_le_le.
 Qed.
-
-Lemma gwf_lex_refl: forall i, gwf_lex true i i.
-Proof.
-  induction i; eauto.
-  destruct a. eapply gwf_lex_step; eauto using bwfo_le_refl.
+Next Obligation.
+  destruct H, H0; split; simpl in *; eauto using wfo_le_le_le.
 Qed.
-
-Lemma gwf_le_refl: forall i, gwf_cmp true i i.
-Proof.
-  intros. apply gwf_cmp_lex. eauto using gwf_lex_refl.
+Next Obligation.
+  destruct H, H, H0; [left|right]; split; simpl in *; eauto using wfo_lt_le_lt, wfo_le_le_le.
 Qed.
-
-Lemma gwf_lex_lt_le: forall i j, gwf_lex false i j -> gwf_lex true i j.
-Proof.
-  intros. induction H; eauto.
+Next Obligation.
+  destruct H, H0, H0; [left|right]; split; simpl in *; eauto using wfo_le_lt_lt, wfo_le_le_le.
 Qed.
-
-Lemma gwf_lt_le: forall i j, gwf_cmp false i j -> gwf_cmp true i j.
-Proof.
-  intros. destruct H; eauto using gwf_lex_lt_le.
+Next Obligation.
+  destruct LE; split; simpl in *; eauto using wfo_add_le_left.
 Qed.
-
-Lemma gwf_lex_trans b1 b2 b3 i j k
-      (COND: is_true (b1 && b2) -> is_true b3)
-      (CMP1: gwf_lex b1 i j)
-      (CMP2: gwf_lex b2 j k)
-  : gwf_lex b3 i k.
-Proof.
-  ginduction CMP2; intros.
-  - inversion CMP1; subst. destruct b1, b2, b3; eauto.
-  - dependent destruction CMP1.
-    + eapply gwf_lex_lt; eauto using bwfo_le_lt_lt, bwfo_lt_le.
-      nia.
-    + eapply gwf_lex_lt; eauto using bwfo_le_lt_lt.
-      apply gwf_lex_length in CMP1. nia.
-  - dependent destruction CMP1.
-    + eapply gwf_lex_lt; eauto using bwfo_lt_le_lt.
-      apply gwf_lex_length in CMP2. nia.
-    + eapply gwf_lex_step; eauto using bwfo_le_le_le.
+Next Obligation.
+  destruct LE; split; simpl in *; eauto using wfo_add_le_right.
 Qed.
-
-Lemma gwf_cmp_trans b1 b2 b3 i j k
-      (CMP1: gwf_cmp b1 i j)
-      (CMP2: gwf_cmp b2 j k)
-      (COND: is_true (b1 && b2) -> is_true b3)
-  : gwf_cmp b3 i k.
-Proof.
-  assert (LE1 := gwf_cmp_length CMP1).
-  assert (LE2 := gwf_cmp_length CMP2).
-  destruct CMP1, CMP2; eauto using gwf_lex_trans; apply gwf_cmp_lt; nia.
+Next Obligation.
+  destruct LT, H; [left|right]; split; simpl in *; eauto using wfo_add_lt_left, wfo_add_le_left.
 Qed.
-
-Lemma gwf_add_cmp_left b: forall i i' j (LE: gwf_cmp b i i'), gwf_cmp b (i ++ j) (i' ++ j).
-Proof.
-  intros. inversion LE; subst.
-  - apply gwf_cmp_lt. rewrite !app_length. nia.
-  - apply gwf_cmp_lex.
-    induction CMP; simpl.
-    + destruct b; inversion CHECK. eauto using gwf_lex_refl.
-    + apply gwf_lex_lt; eauto.
-      rewrite !app_length. nia.
-    + apply gwf_lex_step; eauto.
+Next Obligation.
+  destruct LT, H; [left|right]; split; simpl in *; eauto using wfo_add_lt_right, wfo_add_le_right.
 Qed.
-
-Lemma gwf_add_cmp_right b: forall i j j' (LE: gwf_cmp b j j'), gwf_cmp b (i ++ j) (i ++ j').
-Proof.
-  intros. inversion LE; subst.
-  - apply gwf_cmp_lt. rewrite !app_length. nia.
-  - apply gwf_cmp_lex.
-    ginduction CMP; simpl; intros.
-    + destruct b; inversion CHECK. eauto using gwf_lex_refl.
-    + induction i0; simpl; eauto.
-      destruct a; eauto using bwfo_le_refl.
-    + induction i0; simpl; eauto.
-      destruct a; eauto using bwfo_le_refl.
+Next Obligation.
+  intros [u v].
+  assert (WFu := wfo_wf _ u). revert v.
+  induction WFu as [u _ HYPu].
+  econstructor; intros [u' v'] LT'.
+  destruct LT', H; simpl in *.
+  - eapply HYPu in H; eauto.
+  - clear v H0.
+    assert (WFv' := wfo_wf _ v'). revert u' H.
+    induction WFv' as [v' _ HYPv'].
+    econstructor; intros [u'' v''] LT''.
+    destruct LT'', H0; simpl in *.
+    + eapply HYPu; eauto using wfo_lt_le_lt.
+    + eapply HYPv'; eauto using wfo_le_le_le.
 Qed.
-
-Lemma gwf_acc_le: forall i j (WF: Acc (gwf_cmp false) i) (LE: gwf_cmp true j i),
-    Acc (gwf_cmp false) j.
-Proof.
-  econstructor. intros. eapply WF. eauto using gwf_cmp_trans.
+Next Obligation. split; simpl; eauto using wfo_non_negative. Qed.
+Next Obligation.
+  right. simpl. split; eauto using wfo_non_trivial, wfo_le_refl.
 Qed.
-
-Lemma gwf_lt_bottom: forall i, gwf_cmp false i [] -> False.
-Proof.
-  intros. inversion H; subst.
-  - inversion LEN.
-  - inversion CMP. inversion CHECK.
-Qed.
-       
-Lemma gwf_wf: well_founded (gwf_cmp false).
-Proof.
-  cut (forall n i (LEon: length i <= n), Acc (gwf_cmp false) i).
-  { red; eauto. }
-
-  induction n; intros.
-  { destruct i; inversion LEon.
-    econstructor. intros. exfalso. eauto using gwf_lt_bottom. }
-  destruct i.
-  { econstructor. intros. exfalso. eauto using gwf_lt_bottom. }
-
-  destruct s as [o x]. revert i LEon. simpl.
-  assert (WFx := bwfo_wf _ x).
-  induction WFx as [x _ HYPx].
-  econstructor. intros j LTj.
-  dependent destruction LTj.
-  { simpl in *. eapply IHn. nia. }
-  dependent destruction CMP.
-  { eapply HYPx; eauto. nia. }
-  
-  assert (WF: Acc (gwf_cmp false) i0).
-  { apply gwf_lex_length in CMP. eapply IHn. nia. }
-  revert x0 LE. induction WF as [j _ HYPj].
-  econstructor. intros k LTk.
-  assert (LEN := gwf_lex_length CMP).
-  dependent destruction LTk.
-  { simpl in *. eapply IHn. nia. }
-  dependent destruction CMP0.
-  { eapply HYPx; eauto using bwfo_lt_le_lt. nia. }
-  eapply HYPj; eauto using bwfo_le_le_le.
-  eapply gwf_lex_trans; eauto; eauto.
-Qed.
-
-Program Definition gwfo : awfo :=
-  {| wfo_set     := gwf_set;
-     wfo_le x y  := gwf_cmp true x y;
-     wfo_lt x y  := gwf_cmp false x y;
-     wfo_zero    := nil;
-     wfo_one     := gwf_one;
-     wfo_add x y := x ++ y;
-  |}.
-Next Obligation. eauto using gwf_le_refl. Qed.
-Next Obligation. eauto using gwf_le_refl. Qed.
-Next Obligation. rewrite app_nil_r. eauto using gwf_le_refl. Qed.
-Next Obligation. rewrite app_nil_r. eauto using gwf_le_refl. Qed.
-Next Obligation. rewrite app_assoc. eauto using gwf_le_refl. Qed.
-Next Obligation. rewrite app_assoc. eauto using gwf_le_refl. Qed.
-Next Obligation. eauto using gwf_le_refl. Qed.
-Next Obligation. eauto using gwf_lt_le. Qed.
-Next Obligation. eauto using gwf_cmp_trans. Qed.
-Next Obligation. eauto using gwf_cmp_trans. Qed.
-Next Obligation. eauto using gwf_cmp_trans. Qed.
-Next Obligation. eauto using gwf_add_cmp_left. Qed.
-Next Obligation. eauto using gwf_add_cmp_right. Qed.
-Next Obligation. eauto using gwf_add_cmp_left. Qed.
-Next Obligation. eauto using gwf_add_cmp_right. Qed.
-Next Obligation. eauto using gwf_wf. Qed.
-Next Obligation. destruct i; eauto. econstructor. simpl. nia. Qed.
 
 (* **
-   embedding and properties
+  Lexicographic Product of Algebraic Wellfounded Orders
  *)
 
-Definition gwf_embed {o: bwfo} (a: o) : gwfo :=
-  [ gwfel o a ].
+Definition lexprod_lt (a b : awfo) (x y: a * b) :=
+  wfo_lt (fst x) (fst y) \/
+  (wfo_le (fst x) (fst y) /\ wfo_lt (snd x) (snd y)).
 
-Lemma gwf_embed_le_preserve (o: bwfo) (a b: o)
-      (LT: bwfo_le a b):
-  wfo_le (gwf_embed a) (gwf_embed b).
-Proof.
-  repeat red. unfold gwf_embed. eauto.
+Definition lexprod_le (a b : awfo) (x y: a * b) :=
+  wfo_lt (fst x) (fst y) \/
+  (wfo_le (fst x) (fst y) /\ wfo_le (snd x) (snd y)).
+
+Program Definition awfo_lexprod (a b : awfo) : awfo :=
+  {| wfo_lt   := lexprod_lt a b;
+     wfo_le   := lexprod_le a b;
+     wfo_zero := (wfo_zero, wfo_zero);
+     wfo_one := (wfo_zero, wfo_one);
+     wfo_add  := fun i j => (wfo_add (fst i) (fst j), wfo_add (snd i) (snd j));
+  |}.
+Next Obligation. red. eauto using wfo_add_zero_l_le. Qed.
+Next Obligation. red. eauto using wfo_add_zero_l_ge. Qed.
+Next Obligation. red. eauto using wfo_add_zero_r_le. Qed.
+Next Obligation. red. eauto using wfo_add_zero_r_ge. Qed.
+Next Obligation. red. eauto using wfo_add_assoc_le. Qed.
+Next Obligation. red. eauto using wfo_add_assoc_ge. Qed.
+Next Obligation. right. split; simpl; eauto using wfo_le_refl. Qed.
+Next Obligation.
+  destruct H as [|[]]; [left|right]; simpl in *; eauto using wfo_lt_le.
 Qed.
-
-Lemma gwf_embed_lt_preserve (o: bwfo) (a b: o)
-      (LT: bwfo_lt a b):
-  wfo_lt (gwf_embed a) (gwf_embed b).
-Proof.
-  repeat red. unfold gwf_embed. eauto.
+Next Obligation.
+  destruct H as [|[]], H0 as [|[]]; [..|right]; try left; simpl in *; eauto using wfo_lt_le, wfo_lt_le_lt, wfo_le_lt_lt, wfo_le_le_le.
 Qed.
-
-Lemma gwf_embed_reflect (o: bwfo) (a b: o)
-    (LT: wfo_lt (gwf_embed a) (gwf_embed b)):
-  bwfo_lt a b.
-Proof.
-  repeat red in LT. unfold gwf_embed in *. dependent destruction LT; eauto.
-  - simpl in *. nia.
-  - dependent destruction CMP; eauto.
-    inversion CMP. inversion CHECK.
+Next Obligation.
+  destruct H as [|[]], H0 as [|[]]; [..|right]; try left; simpl in *; eauto using wfo_lt_le, wfo_lt_le_lt, wfo_le_lt_lt, wfo_le_le_le.
+Qed.
+Next Obligation.
+  destruct H as [|[]], H0 as [|[]]; [..|right]; try left; simpl in *; eauto using wfo_lt_le, wfo_lt_le_lt, wfo_le_lt_lt, wfo_le_le_le.
+Qed.
+Next Obligation.
+  destruct LE as [|[]]; [left|right]; simpl in *; eauto using wfo_lt_le, wfo_lt_le_lt, wfo_le_lt_lt, wfo_le_le_le, wfo_add_lt_left, wfo_add_le_left.
+Qed.
+Next Obligation.
+  destruct LE as [|[]]; [left|right]; simpl in *; eauto using wfo_lt_le, wfo_lt_le_lt, wfo_le_lt_lt, wfo_le_le_le, wfo_add_lt_right, wfo_add_le_right.
+Qed.
+Next Obligation.
+  destruct LT as [|[]]; [left|right]; simpl in *; eauto using wfo_lt_le, wfo_lt_le_lt, wfo_le_lt_lt, wfo_le_le_le, wfo_add_lt_left, wfo_add_le_left.
+Qed.
+Next Obligation.
+  destruct LT as [|[]]; [left|right]; simpl in *; eauto using wfo_lt_le, wfo_lt_le_lt, wfo_le_lt_lt, wfo_le_le_le, wfo_add_lt_right, wfo_add_le_right.
+Qed.
+Next Obligation.
+  intros [u v].
+  assert (WFu := wfo_wf _ u). revert v.
+  induction WFu as [u _ HYPu].
+  econstructor; intros [u' v'] LT'.
+  destruct LT' as [|[]]; simpl in *.
+  - eapply HYPu in H; eauto.
+  - clear v H0.
+    assert (WFv' := wfo_wf _ v'). revert u' H.
+    induction WFv' as [v' _ HYPv'].
+    econstructor; intros [u'' v''] LT''.
+    destruct LT'' as [|[]]; simpl in *.
+    + eapply HYPu; eauto using wfo_lt_le_lt.
+    + eapply HYPv'; eauto using wfo_le_le_le.
+Qed.
+Next Obligation. right. split; simpl; eauto using wfo_non_negative. Qed.
+Next Obligation.
+  right. simpl. eauto using wfo_non_trivial, wfo_le_refl.
 Qed.
 
 (* **
@@ -513,7 +320,7 @@ Lemma wfo_add_monotone: forall (a: awfo) (i i' j j': a)
     (LEj: wfo_le j j'),
   wfo_le (wfo_add i j) (wfo_add i' j').
 Proof.
-  eauto using wfo_le_le_le, wfo_add_le_left, wfo_add_le_right. 
+  eauto using wfo_le_le_le, wfo_add_le_left, wfo_add_le_right.
 Qed.
 
 Lemma wfo_add_proj_left: forall a i j, @wfo_le a i (wfo_add i j).
@@ -528,7 +335,7 @@ Qed.
 
 Lemma wfo_add_one: forall (a: awfo) (i: a), wfo_lt i (wfo_add wfo_one i).
 Proof.
-  eauto using wfo_le_lt_lt, wfo_add_proj_right, wfo_add_lt_left, wfo_non_trivial.  
+  eauto using wfo_le_lt_lt, wfo_add_proj_right, wfo_add_lt_left, wfo_non_trivial.
 Qed.
 
 (** [wfo_le_n n o o'] means that [o'] can be decreased at least [n] times
@@ -559,7 +366,7 @@ Lemma wfo_le_n_S': forall o n (i i': wfo_set o)
     wfo_le_n n j i'.
 Proof.
   induction n; intros; inversion LE; subst.
-  - inversion GLE. subst. eauto using wfo_le_lt_lt, wfo_le_refl. 
+  - inversion GLE. subst. eauto using wfo_le_lt_lt, wfo_le_refl.
   - edestruct IHn; eauto.
     destruct H. eauto.
 Qed.
@@ -614,7 +421,7 @@ Proof.
 Qed.
 
 (* **
-  wfo_nat  
+  wfo_nat
 *)
 
 Fixpoint wfo_nat {o : awfo} (n: nat) : wfo_set o :=
@@ -642,3 +449,302 @@ Lemma wfo_nat_lt_mon: forall o n m
 Proof.
   intros; induction LE; eauto using wfo_lt_le_lt, wfo_lt_le, wfo_add_one.
 Qed.
+
+
+(* **
+  General Wellfounded Order in NtNnWfPoMonoid
+ *)
+
+(* GWF List *)
+
+Definition gwfL_set : Type := list (sigT bwfo_set).
+
+Definition gwfLel (o: bwfo) (x: o) :=
+  existT _ o x.
+
+Program Definition unit_wfo : bwfo :=
+  {| bwfo_set := unit;
+     bwfo_lt _ _ := False;
+     bwfo_le _ _ := True;
+  |}.
+Next Obligation. econstructor; intros. contradiction. Qed.
+
+Definition gwfL_one : gwfL_set :=
+  [ gwfLel unit_wfo tt ].
+
+Inductive gwfL_lex (b: bool) : gwfL_set -> gwfL_set -> Prop :=
+| gwfL_lex_nil
+    (CHECK: is_true b)
+  : gwfL_lex b [] []
+| gwfL_lex_lt
+    o x y i j
+    (LT: bwfo_lt x y)
+    (LEN: length i = length j)
+  : gwfL_lex b (gwfLel o x :: i) (gwfLel o y :: j)
+| gwfL_lex_step
+    o x y i j
+    (LE: bwfo_le x y)
+    (CMP: gwfL_lex b i j)
+  : gwfL_lex b (gwfLel o x :: i) (gwfLel o y :: j)
+.
+Hint Constructors gwfL_lex.
+
+Variant gwfL_cmp b : gwfL_set -> gwfL_set -> Prop :=
+| gwfL_cmp_lt
+    o1 o2
+    (LEN: length o1 < length o2)
+  : gwfL_cmp b o1 o2
+| gwfL_cmp_lex
+    i j
+    (CMP: gwfL_lex b i j)
+  : gwfL_cmp b i j
+.
+Hint Constructors gwfL_cmp.
+
+Lemma gwfL_lex_length b o1 o2
+      (LT: gwfL_lex b o1 o2)
+  : length o1 = length o2.
+Proof.
+  intros. induction LT; simpl; nia.
+Qed.
+
+Lemma gwfL_cmp_length b o1 o2
+      (CMP: gwfL_cmp b o1 o2)
+  : length o1 <= length o2.
+Proof.
+  destruct CMP.
+  - nia.
+  - erewrite gwfL_lex_length; eauto.
+Qed.
+
+Lemma gwfL_lex_refl: forall i, gwfL_lex true i i.
+Proof.
+  induction i; eauto.
+  destruct a. eapply gwfL_lex_step; eauto using bwfo_le_refl.
+Qed.
+
+Lemma gwfL_le_refl: forall i, gwfL_cmp true i i.
+Proof.
+  intros. apply gwfL_cmp_lex. eauto using gwfL_lex_refl.
+Qed.
+
+Lemma gwfL_lex_lt_le: forall i j, gwfL_lex false i j -> gwfL_lex true i j.
+Proof.
+  intros. induction H; eauto.
+Qed.
+
+Lemma gwfL_lt_le: forall i j, gwfL_cmp false i j -> gwfL_cmp true i j.
+Proof.
+  intros. destruct H; eauto using gwfL_lex_lt_le.
+Qed.
+
+Lemma gwfL_lex_trans b1 b2 b3 i j k
+      (COND: is_true (b1 && b2) -> is_true b3)
+      (CMP1: gwfL_lex b1 i j)
+      (CMP2: gwfL_lex b2 j k)
+  : gwfL_lex b3 i k.
+Proof.
+  ginduction CMP2; intros.
+  - inversion CMP1; subst. destruct b1, b2, b3; eauto.
+  - dependent destruction CMP1.
+    + eapply gwfL_lex_lt; eauto using bwfo_le_lt_lt, bwfo_lt_le.
+      nia.
+    + eapply gwfL_lex_lt; eauto using bwfo_le_lt_lt.
+      apply gwfL_lex_length in CMP1. nia.
+  - dependent destruction CMP1.
+    + eapply gwfL_lex_lt; eauto using bwfo_lt_le_lt.
+      apply gwfL_lex_length in CMP2. nia.
+    + eapply gwfL_lex_step; eauto using bwfo_le_le_le.
+Qed.
+
+Lemma gwfL_cmp_trans b1 b2 b3 i j k
+      (CMP1: gwfL_cmp b1 i j)
+      (CMP2: gwfL_cmp b2 j k)
+      (COND: is_true (b1 && b2) -> is_true b3)
+  : gwfL_cmp b3 i k.
+Proof.
+  assert (LE1 := gwfL_cmp_length CMP1).
+  assert (LE2 := gwfL_cmp_length CMP2).
+  destruct CMP1, CMP2; eauto using gwfL_lex_trans; apply gwfL_cmp_lt; nia.
+Qed.
+
+Lemma gwfL_add_cmp_left b: forall i i' j (LE: gwfL_cmp b i i'), gwfL_cmp b (i ++ j) (i' ++ j).
+Proof.
+  intros. inversion LE; subst.
+  - apply gwfL_cmp_lt. rewrite !app_length. nia.
+  - apply gwfL_cmp_lex.
+    induction CMP; simpl.
+    + destruct b; inversion CHECK. eauto using gwfL_lex_refl.
+    + apply gwfL_lex_lt; eauto.
+      rewrite !app_length. nia.
+    + apply gwfL_lex_step; eauto.
+Qed.
+
+Lemma gwfL_add_cmp_right b: forall i j j' (LE: gwfL_cmp b j j'), gwfL_cmp b (i ++ j) (i ++ j').
+Proof.
+  intros. inversion LE; subst.
+  - apply gwfL_cmp_lt. rewrite !app_length. nia.
+  - apply gwfL_cmp_lex.
+    ginduction CMP; simpl; intros.
+    + destruct b; inversion CHECK. eauto using gwfL_lex_refl.
+    + induction i0; simpl; eauto.
+      destruct a; eauto using bwfo_le_refl.
+    + induction i0; simpl; eauto.
+      destruct a; eauto using bwfo_le_refl.
+Qed.
+
+Lemma gwfL_acc_le: forall i j (WF: Acc (gwfL_cmp false) i) (LE: gwfL_cmp true j i),
+    Acc (gwfL_cmp false) j.
+Proof.
+  econstructor. intros. eapply WF. eauto using gwfL_cmp_trans.
+Qed.
+
+Lemma gwfL_lt_bottom: forall i, gwfL_cmp false i [] -> False.
+Proof.
+  intros. inversion H; subst.
+  - inversion LEN.
+  - inversion CMP. inversion CHECK.
+Qed.
+
+Lemma gwfL_wf: well_founded (gwfL_cmp false).
+Proof.
+  cut (forall n i (LEon: length i <= n), Acc (gwfL_cmp false) i).
+  { red; eauto. }
+
+  induction n; intros.
+  { destruct i; inversion LEon.
+    econstructor. intros. exfalso. eauto using gwfL_lt_bottom. }
+  destruct i.
+  { econstructor. intros. exfalso. eauto using gwfL_lt_bottom. }
+
+  destruct s as [o x]. revert i LEon. simpl.
+  assert (WFx := bwfo_wf _ x).
+  induction WFx as [x _ HYPx].
+  econstructor. intros j LTj.
+  dependent destruction LTj.
+  { simpl in *. eapply IHn. nia. }
+  dependent destruction CMP.
+  { eapply HYPx; eauto. nia. }
+
+  assert (WF: Acc (gwfL_cmp false) i0).
+  { apply gwfL_lex_length in CMP. eapply IHn. nia. }
+  revert x0 LE. induction WF as [j _ HYPj].
+  econstructor. intros k LTk.
+  assert (LEN := gwfL_lex_length CMP).
+  dependent destruction LTk.
+  { simpl in *. eapply IHn. nia. }
+  dependent destruction CMP0.
+  { eapply HYPx; eauto using bwfo_lt_le_lt. nia. }
+  eapply HYPj; eauto using bwfo_le_le_le.
+  eapply gwfL_lex_trans; eauto; eauto.
+Qed.
+
+Program Definition gwfLo : awfo :=
+  {| wfo_set     := gwfL_set;
+     wfo_le x y  := gwfL_cmp true x y;
+     wfo_lt x y  := gwfL_cmp false x y;
+     wfo_zero    := nil;
+     wfo_one     := gwfL_one;
+     wfo_add x y := x ++ y;
+  |}.
+Next Obligation. eauto using gwfL_le_refl. Qed.
+Next Obligation. eauto using gwfL_le_refl. Qed.
+Next Obligation. rewrite app_nil_r. eauto using gwfL_le_refl. Qed.
+Next Obligation. rewrite app_nil_r. eauto using gwfL_le_refl. Qed.
+Next Obligation. rewrite app_assoc. eauto using gwfL_le_refl. Qed.
+Next Obligation. rewrite app_assoc. eauto using gwfL_le_refl. Qed.
+Next Obligation. eauto using gwfL_le_refl. Qed.
+Next Obligation. eauto using gwfL_lt_le. Qed.
+Next Obligation. eauto using gwfL_cmp_trans. Qed.
+Next Obligation. eauto using gwfL_cmp_trans. Qed.
+Next Obligation. eauto using gwfL_cmp_trans. Qed.
+Next Obligation. eauto using gwfL_add_cmp_left. Qed.
+Next Obligation. eauto using gwfL_add_cmp_right. Qed.
+Next Obligation. eauto using gwfL_add_cmp_left. Qed.
+Next Obligation. eauto using gwfL_add_cmp_right. Qed.
+Next Obligation. eauto using gwfL_wf. Qed.
+Next Obligation. destruct i; eauto. econstructor. simpl. nia. Qed.
+
+(* **
+   embedding and properties
+ *)
+
+Definition gwfL_embed {o: bwfo} (a: o) : gwfLo :=
+  [ gwfLel o a ].
+
+Lemma gwfL_embed_le_preserve (o: bwfo) (a b: o)
+      (LT: bwfo_le a b):
+  wfo_le (gwfL_embed a) (gwfL_embed b).
+Proof.
+  repeat red. unfold gwfL_embed. eauto.
+Qed.
+
+Lemma gwfL_embed_lt_preserve (o: bwfo) (a b: o)
+      (LT: bwfo_lt a b):
+  wfo_lt (gwfL_embed a) (gwfL_embed b).
+Proof.
+  repeat red. unfold gwfL_embed. eauto.
+Qed.
+
+Lemma gwfL_embed_le_reflect (o: bwfo) (a b: o)
+    (LT: wfo_le (gwfL_embed a) (gwfL_embed b)):
+  bwfo_le a b.
+Proof.
+  repeat red in LT. unfold gwfL_embed in *. dependent destruction LT; eauto.
+  - simpl in *. nia.
+  - dependent destruction CMP; eauto using bwfo_lt_le.
+Qed.
+
+Lemma gwfL_embed_lt_reflect (o: bwfo) (a b: o)
+    (LT: wfo_lt (gwfL_embed a) (gwfL_embed b)):
+  bwfo_lt a b.
+Proof.
+  repeat red in LT. unfold gwfL_embed in *. dependent destruction LT; eauto.
+  - simpl in *. nia.
+  - dependent destruction CMP; eauto.
+    inversion CMP. inversion CHECK.
+Qed.
+
+(* GWF *)
+
+Definition gwfo := awfo_lexprod gwfLo gwfLo.
+
+Definition gwf_embed {o: bwfo} (a: o) : gwfo :=
+  (wfo_zero, gwfL_embed a).
+
+Lemma gwf_embed_le_preserve (o: bwfo) (a b: o)
+      (LT: bwfo_le a b):
+  wfo_le (gwf_embed a) (gwf_embed b).
+Proof.
+  econstructor 2. simpl. split; eauto.
+  eapply gwfL_embed_le_preserve; eauto.
+Qed.
+
+Lemma gwf_embed_lt_preserve (o: bwfo) (a b: o)
+      (LT: bwfo_lt a b):
+  wfo_lt (gwf_embed a) (gwf_embed b).
+Proof.
+  econstructor 2. simpl. split; eauto.
+  eapply gwfL_embed_lt_preserve; eauto.
+Qed.
+
+Lemma gwf_embed_le_reflect (o: bwfo) (a b: o)
+    (LT: wfo_le (gwf_embed a) (gwf_embed b)):
+  bwfo_le a b.
+Proof.
+  eapply gwfL_embed_le_reflect.
+  inversion LT.
+  - simpl in *. exfalso. eauto using gwfL_lt_bottom.
+  - destruct H. eauto.
+Qed.
+
+Lemma gwf_embed_lt_reflect (o: bwfo) (a b: o)
+    (LT: wfo_lt (gwf_embed a) (gwf_embed b)):
+  bwfo_lt a b.
+Proof.
+  eapply gwfL_embed_lt_reflect.
+  inversion LT.
+  - simpl in *. exfalso. eauto using gwfL_lt_bottom.
+  - destruct H. eauto.
+Qed.
+

@@ -1031,7 +1031,9 @@ Proof. destruct REL. eauto using eqiti_lower_order. Qed.
 Lemma euttOrd_small n (so: euttOrdWf) :
   wfo_lt (gwf_embed so) (wfo_nat (S (S n))).
 Proof.
-  econstructor. simpl. nia.
+  econstructor 2. split.
+  - simpl. induction n; eauto.
+  - econstructor. simpl. nia.
 Qed.
 
 Lemma eq_itree_zero {E} b1 b2 R1 R2 RR t1 t2
