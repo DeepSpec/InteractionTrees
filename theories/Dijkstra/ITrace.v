@@ -887,6 +887,12 @@ Proof.
     eapply refine_set_eq_to_eutt_vis_aux; eauto.
 Qed.
 
+Lemma trace_set_complete : forall E R (t1 t2 : itree E R), (forall b, b ⊑ t1 <-> b ⊑ t2) <-> t1 ≈ t2.
+Proof.
+  intros. split; intros; try apply refine_set_eq_to_eutt; auto.
+  rewrite H. split; auto.
+Qed.
+
 Lemma paco2_eqit_refl : forall E R r (t : itree E R), paco2 (eqit_ eq true true id) r t t.
 Proof.
   intros. eapply paco2_mon with (r := bot2); intuition.
