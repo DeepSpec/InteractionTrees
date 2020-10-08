@@ -40,6 +40,8 @@ Import Monads.
 Import MonadNotation.
 Local Open Scope monad_scope.
 
+(* Defines some useful predicates over ITraces *)
+
 Variant trace_forallF {E : Type -> Type} {R : Type} (F : itrace E R -> Prop) 
         (PE : forall A, EvAns E A -> Prop) (PR : R -> Prop) : itrace' E R -> Prop :=
 | trace_forall_ret (r : R) : PR r -> trace_forallF F PE PR (RetF r)

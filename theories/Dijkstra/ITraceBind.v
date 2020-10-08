@@ -34,6 +34,10 @@ Import Monads.
 Import MonadNotation.
 Local Open Scope monad_scope.
 
+(* Contains the proof of peel_lemma which allows us 
+   to decompose a trace of bind t f into a head that refines t and a tail
+   that refines f *)
+
 Definition peel_vis {E R S A B} (e0 : E A) (a : A) (k0 : unit -> itrace E R)
            (e1 : E B) (k1 : B -> itree E S) 
            (peel : itrace' E R -> itree' E S -> itrace E S) : itrace E S.
@@ -1101,6 +1105,12 @@ Lemma peel_bind : forall (E : Type -> Type) (S R : Type) (b : itrace E R) (t : i
     b ⊑ ITree.bind t f -> exists g, (ITree.bind (peel b t) g ≈ b)%itree.
 Proof.
   intros. apply trace_prefix_bind. eapply trace_prefix_peel; eauto.
+Qed.
+
+Lemma peel_lemma : forall E R S (b : itrace E R) (t : itree E S) (f : S -> itree E R),
+    (b ⊑ ITree.bind t f) -> trace_prefix (peel b t) b /\ (peel b t ⊑ t).
+Proof.
+  intros. split; try eapply peel_refine_t; eauto; eapply trace_prefix_peel; eauto.
 Qed.
 
 Lemma bind_peel_ret_tau_aux:

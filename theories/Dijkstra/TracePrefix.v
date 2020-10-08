@@ -33,6 +33,8 @@ Import Monads.
 Import MonadNotation.
 Local Open Scope monad_scope.
 
+(* Defines and explores a notion of traces being prefixes of other traces *)
+
 Inductive trace_prefixF {E : Type -> Type} {R S : Type} (F : itrace E R -> itrace E S -> Prop) : itrace' E R -> itrace' E S ->  Prop :=
   | ret_prefix (r : R) (b : itrace E S) : trace_prefixF F (RetF r) (observe b)
   | tau_prefix (br : itrace E R) (bs : itrace E S) : F br bs -> trace_prefixF F (TauF br) (TauF bs)

@@ -33,6 +33,8 @@ Import Monads.
 Import MonadNotation.
 Local Open Scope monad_scope.
 
+(** Contains the DelaySpec monad, the specification monad for partial computations with no uninterpretted effects. Also contains an effect observation from the Delay monad into  the DelaySpec monad along with a proof that it is a monad morphism. Also contains a loop invariant principle for iter over Delay*)
+
 Ltac clear_ret_eutt_spin :=
   match goal with | H : ret ?a ≈ spin  |- _ => simpl in H; exfalso; eapply not_ret_eutt_spin; eauto
              | H : Ret ?a ≈ spin  |- _ => exfalso; eapply not_ret_eutt_spin; eauto

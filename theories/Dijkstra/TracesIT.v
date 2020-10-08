@@ -42,6 +42,8 @@ Import Monads.
 Import MonadNotation.
 Local Open Scope monad_scope.
 
+(** Contains TraceSpec, the type family of Specification Monads for uninterpretted ITrees. Also contains the effect observation from ITrees into TraceSpec and the proof that it is a monad morphism *)
+
 Section TraceSpec.
   Context (E : Type -> Type).
   Arguments resp_eutt {E} {A}.
@@ -245,7 +247,6 @@ Section TraceSpec.
              apply trace_refine_diverge_bind; auto.
      + apply decompose_trace_refine_bind in H0 as Hbind.
        basic_solve. apply H in H2 as ?H. destruct (classic_converge_itrace b'); basic_solve.
-       (*This case I am not really sure how to explain*)
        * 
          (* easily convince myself that H is unused without needing the refactor rest*)
          clear H. assert (H : True); auto. 

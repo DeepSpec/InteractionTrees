@@ -32,6 +32,10 @@ Import Monads.
 Import MonadNotation.
 Local Open Scope monad_scope.
 
+(** Defines eutt_div, a relation for relating ITrees 
+    over different return types, that never return and whose events are bisimilar. Also contains div_cast, a function that casts ITrees that never return from one return type to another while preserving its events.
+*)
+
 Definition eutt_div {E} {A B : Type} (ta : itree E A) (tb : itree E B) := 
   eutt (fun a b => False) ta tb.
 

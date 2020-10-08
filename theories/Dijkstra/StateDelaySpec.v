@@ -36,6 +36,7 @@ Import Monads.
 Import MonadNotation.
 Local Open Scope monad_scope.
 
+(* Defines a specification monad for the state transform of the Delay monad. Also includes encodings for pre post condition specifications. *)
 
 Section StateDelaySpec.
 

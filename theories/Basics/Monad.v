@@ -9,8 +9,7 @@ From ExtLib Require Export
 
 From ITree Require Import
      Basics.Basics
-     Basics.CategoryOps
-     Basics.Function.
+     Basics.CategoryOps.
 (* end hide *)
 
 Set Primitive Projections.

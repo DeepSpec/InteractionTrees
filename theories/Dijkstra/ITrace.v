@@ -30,6 +30,10 @@ From Paco Require Import paco.
 Import Monads.
 Import MonadNotation.
 Local Open Scope monad_scope.
+(* Defines ITraces, a type of linear ITrees that pair an event with a possible
+   interpretation of that event. ITrees can be interpretted as a set of 
+   ITraces, and this interpretation is sound and complete wrt eutt *)
+
 
 Variant EvAns (E : Type -> Type) : Type -> Type :=
   | evans : forall {A : Type} (ev : E A) (ans : A), EvAns E unit

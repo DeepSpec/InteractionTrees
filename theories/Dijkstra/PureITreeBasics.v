@@ -32,6 +32,8 @@ Import Monads.
 Import MonadNotation.
 Local Open Scope monad_scope.
 
+(* Contains some useful definitions and lemmas regarding ITrees with no events*)
+
 (** The itree Tau (Tau (Tau ...))*)
 Definition spin {E: Type -> Type} {A : Type}  : itree E A := ITree.spin.
 

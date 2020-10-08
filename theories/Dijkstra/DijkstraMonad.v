@@ -22,7 +22,7 @@ From ITree Require Import
 
 Import MonadNotation.
 Local Open Scope monad.
-Axiom proof_irrel : forall (P : Prop) (H1 H2 : P), H1 = H2.
+(** Implementation of Dijkstra Monad framework in a series of Typeclasses *)
 
 Class OrderM (M : Type -> Type) :=
   lem : forall A, M A -> M A -> Prop.
