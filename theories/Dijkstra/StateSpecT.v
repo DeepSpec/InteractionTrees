@@ -35,6 +35,9 @@ Import Monads.
 Import MonadNotation.
 Local Open Scope monad_scope.
 
+(* Defines a specification monad transformer for state as well as 
+   a stateful loop invariant principle *)
+
 Ltac clear_ret_eutt_spin :=
   match goal with | H : ret ?a ≈ spin  |- _ => simpl in H; exfalso; eapply not_ret_eutt_spin; eauto
              | H : Ret ?a ≈ spin  |- _ => exfalso; eapply not_ret_eutt_spin; eauto

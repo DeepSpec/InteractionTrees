@@ -29,12 +29,7 @@ Import MonadNotation.
 Local Open Scope monad_scope.
 
 
-(*
-
-
-
-
-
+(** Defines the euttEv relation, an extension of eutt that allows you to choose relate events across different event type families and restrict the values you continue on in the corecursive call based on these events. It is used to define the branch_refine relation.
 *)
 Section EuttEvF.
 

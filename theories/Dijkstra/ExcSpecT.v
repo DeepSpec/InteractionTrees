@@ -33,6 +33,8 @@ Import Monads.
 Import MonadNotation.
 Local Open Scope monad_scope.
 
+(* Contains a specification monad transformer for exceptions*)
+
 Section ExcT.
   Context (E : Type).
   Context (W : Type -> Type).
