@@ -294,10 +294,3 @@ Proof.
   intros.
   reflexivity.
 Qed.  
-
-
-(* Using Dijkstra Monads -------------------------------------------- *)
-
-(* Specificaton monads for the uninterpreted and interpreted ITree states. *)
-
- (* stateT S (itree void1) R *)
