@@ -3,7 +3,7 @@ From Paco Require Import paco.
 From Coq Require Import Init.Wf.
 From Coq Require Import Arith.Wf_nat.
 From Coq Require Import Program.Equality.
-Require Import Omega.
+From Coq Require Import Lia.
 Section IterRel.
 
   Context (A : Type).
@@ -87,12 +87,12 @@ Section IterRel.
       P a -> (forall a1 a2, P a1 -> r a1 a2 -> P a2 ) -> 
       (forall a1 a2, P a1 -> r a1 a2 -> m a2 < m a1) -> wf_from a.
   Proof.
-    intros. remember (m a) as ma. assert (m a <= ma). omega. clear Heqma. 
+    intros. remember (m a) as ma. assert (m a <= ma). lia. clear Heqma. 
     generalize dependent a.  
     induction (ma) as [  | n IHn] eqn : Heq.
     - subst. intros. apply base. intros. intro.  
       assert (~ m a' < m a).
-      {  omega. }
+      {  lia. }
       apply H4. clear H4. auto.
     - intros. Abort.
 
@@ -128,8 +128,8 @@ Proof.
   intros.
   enough (forall n', n' <= n -> wf_from nat (fun n0 n1 => n0 > n1) n' ); auto.
   induction n; intros.
-  - assert (n' = 0); try omega. subst. apply base. intros. omega.
-  - apply step. intros n'' Hn''. assert (n'' <= n); try omega. auto.
+  - assert (n' = 0); try lia. subst. apply base. intros. lia.
+  - apply step. intros n'' Hn''. assert (n'' <= n); try lia. auto.
 Qed.
 (*induct on f a*)
 Lemma no_inf_dec_seq_aux : forall  (r : nat -> nat -> Prop) (n: nat),
@@ -152,15 +152,15 @@ Proof.
   generalize dependent a. 
   enough (forall a, f a <= n0 -> inv a -> wf_from A r a).
   {
-    intros. apply H. omega. auto.
+    intros. apply H. lia. auto.
   }
   induction n0; intros.
-  - apply base. assert (f a = 0); try omega. 
+  - apply base. assert (f a = 0); try lia. 
     intros a' Hcontra. 
-    specialize (Hgt a a' H0 Hcontra). omega. 
+    specialize (Hgt a a' H0 Hcontra). lia. 
   - apply step. intros a' Ha'. 
     apply IHn0; eauto.
-    assert (f a > f a'); eauto. omega.
+    assert (f a > f a'); eauto. lia.
 Qed.
 
 

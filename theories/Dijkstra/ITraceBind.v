@@ -1103,6 +1103,12 @@ Proof.
   intros. apply trace_prefix_bind. eapply trace_prefix_peel; eauto.
 Qed.
 
+Lemma peel_lemma : forall E R S (b : itrace E R) (t : itree E S) (f : S -> itree E R),
+    (b ⊑ ITree.bind t f) -> trace_prefix (peel b t) b /\ (peel b t ⊑ t).
+Proof.
+  intros. split; try eapply peel_refine_t; eauto; eapply trace_prefix_peel; eauto.
+Qed.
+
 Lemma bind_peel_ret_tau_aux:
   forall (E : Type -> Type) (S R : Type) (f : R -> itree E S) 
     (r0 : S) (t0 : itree E R),

@@ -301,4 +301,3 @@ Qed.
 (* Specificaton monads for the uninterpreted and interpreted ITree states. *)
 
  (* stateT S (itree void1) R *)
-Definition W_stateT : 
