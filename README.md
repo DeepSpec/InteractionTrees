@@ -2,6 +2,10 @@
 
 A Library for Representing Recursive and Impure Programs in Coq
 
+##For POPL Artifact Reviewers!
+
+Run `make all` in order to build all code relevant to the paper. Look at DMonadREADME.md for more specific guidance about the parts of the repo relavant to Dijkstra Monads
+
 ## Installation
 
 ### Via opam
