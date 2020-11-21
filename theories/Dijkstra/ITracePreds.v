@@ -145,3 +145,55 @@ Proof.
   - symmetry in Heutt. eapply fal_proper_aux; eauto.
 Qed.
      
+Section StateMachine.
+(*Note that this state machine definition is not able to deal with empty event parameter types*)
+(*Nor can it encode predicates that can accept silent divergence under certain conditions *)
+(*Pretty sure it could be extended to handle that,but that is a job for another day*)
+Context {E : Type -> Type}.
+Context {R : Type}.
+Context (EvTrans : forall A, E A -> A -> forall B, E B -> B -> Prop).
+Context (RetTrans : forall A, E A -> A -> R -> Prop).
+
+Inductive state_machineF (PEv : forall A, E A -> A -> Prop) (PRet : R -> Prop) 
+          (F : (forall A, E A -> A -> Prop) -> (R -> Prop) -> itrace E R -> Prop) : itrace' E R -> Prop :=
+  | smRet r : PRet r -> state_machineF PEv PRet F (RetF r)
+  | smTau t : state_machineF PEv PRet F (observe t) -> state_machineF PEv PRet F (TauF t)
+  | smVis A (e : E A) (a : A) (k : unit -> itrace E R) : 
+      PEv A e a -> F (EvTrans A e a) (RetTrans A e a) (k tt) -> state_machineF PEv PRet F (VisF (evans A e a) k)
+.
+
+Hint Constructors state_machineF.
+
+Definition state_machine_ F PEv PRet (tr : itrace E R) :=
+  state_machineF PEv PRet F (observe tr).
+
+Lemma monotone_state_machine : monotone3 state_machine_.
+Proof.
+  red. intros. red. red in IN. induction IN; auto.
+Qed.
+Hint Resolve trace_inf_often_monot : paco.
+Definition state_machine PEv PRet (tr : itrace E R) :  Prop := paco3 (state_machine_) bot3 PEv PRet tr.
+
+Lemma state_machine_proper_aux : forall PEv PRet (t1 t2 : itrace E R), 
+    (t1 ≈ t2)%itree -> state_machine PEv PRet t1 -> state_machine PEv PRet t2.
+Proof.
+  pcofix CIH. intros PEV PREt t1 t2 Heutt Hsm. pfold. red.
+  punfold Hsm; try apply monotone_state_machine.
+  punfold Heutt. red in Heutt. red in Hsm. 
+  induction Hsm.
+  - remember (RetF r0) as ot1. induction Heutt; subst; auto; try discriminate.
+    injection Heqot1; intros; subst; auto.
+  - apply IHHsm. pstep_reverse. assert (Tau t ≈ t2)%itree; auto.
+    rewrite tau_eutt in H. auto.
+  - remember (VisF (evans A e a) k ) as ot1. induction Heutt; subst; auto; try discriminate.
+    injection Heqot1; intros; subst. apply inj_pair2 in H2. apply inj_pair2 in H1.
+    subst. constructor; auto. right. pclearbot. eapply CIH; eauto.
+    destruct H0; tauto.
+Qed.
+
+Global Instance state_machine_proper_eutt {PEv PRet} : Proper (eutt eq ==> iff) (@state_machine PEv PRet).
+Proof.
+  intros t1 t2 Heutt. split; intros; try eapply state_machine_proper_aux; eauto; symmetry; auto.
+Qed.
+
+End StateMachine.
