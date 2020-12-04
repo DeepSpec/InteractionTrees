@@ -13,6 +13,7 @@ From ITree Require Import
      Basics.Basics
      Basics.Category
      Basics.CategoryKleisli
+     Basics.HeterogeneousRelations
      Basics.Monad
      Core.ITreeDefinition
      Core.KTree
@@ -155,7 +156,7 @@ Proof.
 
   rewrite !unfold_interp_state. punfold H0. red in H0.
   induction H0; intros; subst; simpl; pclearbot.
-  - eret.
+  - eret. 
   - etau.
   - ebind. econstructor; [reflexivity|].
     intros; subst.
@@ -253,7 +254,7 @@ Proof.
     pstep.
     constructor.
     cbn.
-    split; auto using (proj1 H2).
+    split; auto using (proj1 H2). 
   - rewrite bind_ret_l, 2 interp_state_ret. pstep. constructor. cbn.
     split; auto using (proj1 H2).
 Qed.

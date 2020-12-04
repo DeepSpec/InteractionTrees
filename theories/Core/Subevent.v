@@ -95,3 +95,23 @@ Instance Embeddable_itree {E F : Type -> Type} {R : Type}
          `(E -< F) :
   Embeddable (E R) (itree F R) :=
   fun e => trigger e.
+
+(* Some rewriting lemmas sometimes expose [resum]. The following lemmas help reshape the goal properly *)
+Lemma resum_to_subevent : forall (E F : Type -> Type) H T e,
+    @resum _ IFun E F H T e = subevent _ e.
+Proof.
+  intros; reflexivity.
+Qed.
+
+Lemma subevent_subevent' : forall {E F} `{E -< F} {X} (e : E X),
+    @subevent F F _ X (@subevent E F _ X e) = subevent X e.
+Proof.
+  reflexivity.
+Qed.
+
+Lemma subevent_subevent : forall {E F G :Type -> Type} (SEF: E -< F) (SFG: F -< G) T (e : E T),
+    @subevent F G SFG T (@subevent E F SEF T e) =
+    @subevent E G (fun x f => SFG _ (SEF _ f)) T e.
+Proof.
+  reflexivity.
+Qed.
