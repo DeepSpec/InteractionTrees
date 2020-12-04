@@ -76,3 +76,4 @@ theories/Dijkstra/ITracePreds.v
 theories/Dijkstra/ITraceBindTrigger.v
 theories/Dijkstra/TracesIT.v
 theories/Dijkstra/ITreeDijkstra.v
+theories/Dijkstra/StateIOTrace.v
