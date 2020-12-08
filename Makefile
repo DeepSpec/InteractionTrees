@@ -1,4 +1,4 @@
-.PHONY: clean all coq test tests examples tutorial install uninstall depgraph
+.PHONY: clean all coq test tests examples tutorial hoare_example install uninstall depgraph
 
 COQPATHFILE=$(wildcard _CoqPath)
 
@@ -9,8 +9,7 @@ include common.mk
 all:
 	# Build the library before tests
 	$(MAKE) coq
-	$(MAKE) tutorial
-	$(MAKE) test
+	$(MAKE) hoare_example
 
 install: Makefile.coq coq
 	$(MAKE) -f $< $@
@@ -30,11 +29,16 @@ examples:
 tutorial:
 	$(MAKE) -C tutorial
 
+hoare_example:
+	$(MAKE) -C hoare_example
+
+
 clean: clean-coq
 	$(RM) _CoqProject
 	$(MAKE) -C tests clean
 	$(MAKE) -C examples clean
 	$(MAKE) -C tutorial clean
+	$(MAKE) -C hoare_example clean
 
 _CoqProject: $(COQPATHFILE) _CoqConfig Makefile
 	@ echo "# Generating _CoqProject"

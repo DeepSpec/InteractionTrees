@@ -91,6 +91,7 @@ Polymorphic Class MonadIter (M : Type -> Type) : Type :=
 
     Quite easily in fact, no [Monad] assumption needed.
  *)
+(** I needed to make a change for this to typecheck*)
 
 Instance MonadIter_stateT {M S} {MM : Monad M} {AM : MonadIter M}
   : MonadIter (stateT S M) :=
@@ -116,7 +117,7 @@ Polymorphic Instance MonadIter_stateT0 {M S} {MM : Monad M} {AM : MonadIter M}
           | inr r => inr (fst si', r)
           end) (s, i).
 
-Instance MonadIter_readerT {M S} {AM : MonadIter M} : MonadIter (readerT S M) :=
+Instance Monaditer_readerT {M S} {AM : MonadIter M} : MonadIter (readerT S M) :=
   fun _ _ step i => mkReaderT (fun s =>
     iter (fun i => runReaderT (step i) s) i).
 
@@ -168,4 +169,22 @@ Definition prod_pred {A B : Type} (PA : A -> Prop) (PB : B -> Prop) : A * B -> P
 
 Definition TT {A : Type} : A -> Prop := fun _ => True.
 Hint Unfold TT sum_pred prod_pred: core.
+
+Global Instance equiv_pred_refl  {A} : Reflexive (@equiv_pred A).
+Proof.
+  split; auto.
+Qed.
+Global Instance equiv_pred_symm  {A} : Symmetric (@equiv_pred A).
+
+Proof.
+  red; intros * EQ; split; intros; eapply EQ; auto.
+Qed.
+Global Instance equiv_pred_trans {A} : Transitive (@equiv_pred A).
+Proof.
+  red; intros * EQ1 EQ2; split; intros; (apply EQ1,EQ2 || apply EQ2,EQ1); auto.
+Qed.
+Global Instance equiv_pred_equiv {A} : Equivalence (@equiv_pred A).
+Proof.
+  split; typeclasses eauto.
+Qed.
 

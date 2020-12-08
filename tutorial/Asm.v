@@ -54,6 +54,10 @@ Variant instr : Set :=
 | Iadd   (dest : reg) (src : reg) (o : operand)
 | Isub   (dest : reg) (src : reg) (o : operand)
 | Imul   (dest : reg) (src : reg) (o : operand)
+| IEq    (dest : reg) (src : reg) (o : operand)
+| ILe    (dest : reg) (src : reg) (o : operand)
+| IAnd   (dest : reg) (src : reg) (o : operand)
+| INot   (dest : reg) (o : operand)
 | Iload  (dest : reg) (addr : addr)
 | Istore (addr : addr) (val : operand).
 
@@ -182,12 +186,27 @@ Section Denote.
         lv <- trigger (GetReg l) ;;
         rv <- denote_operand r ;;
         trigger (SetReg d (lv * rv))
+      | IEq d l r =>
+        lv <- trigger (GetReg l) ;;
+        rv <- denote_operand r ;;
+        trigger (SetReg d (if Nat.eqb lv rv then 1 else 0))
+      | ILe d l r =>
+        lv <- trigger (GetReg l) ;;
+        rv <- denote_operand r ;;
+        trigger (SetReg d (if Nat.leb lv rv then 1 else 0))
+      | INot d r =>
+        rv <- denote_operand r ;;
+        trigger (SetReg d (match rv with | 0 => 1 | _ => 0 end))
+      | IAnd d l r =>
+        lv <- trigger (GetReg l) ;;
+        rv <- denote_operand r ;;
+        trigger (SetReg d (match lv,rv with | 0,0 | 0,1 | 1,0 => 0 | _,_ => 1 end))
       | Iload d addr =>
         val <- trigger (Load addr) ;;
-        trigger (SetReg d val)
+            trigger (SetReg d val)
       | Istore addr v =>
         val <- denote_operand v ;;
-        trigger (Store addr val)
+            trigger (Store addr val)
       end.
 
     (** A [branch] returns the computed label whose set of possible values [B]

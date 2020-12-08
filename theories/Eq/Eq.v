@@ -315,6 +315,7 @@ Proof.
   destruct IN. econstructor; eauto.
 Qed.
 
+
 Hint Resolve eqitC_mon : paco.
 
 Lemma eqitC_wcompat b1 b2 vclo
@@ -1205,6 +1206,23 @@ Ltac tau_steps :=
   tau_steps_left;
   tau_steps_right.
 
+
+Ltac force_left_in H :=
+  match type of H with _ ?x _ => rewrite (itree_eta x) in H; cbn in H end.
+
+Ltac force_right_in H :=
+  match type of H with _ _ ?x => rewrite (itree_eta x) in H; cbn in H end.
+
+Ltac tau_steps_left_in H :=
+  repeat (force_left_in H; rewrite tau_eutt in H); force_left_in H.
+
+Ltac tau_steps_right_in H :=
+  repeat (force_right_in H; rewrite tau_eutt in H); force_right_in H.
+
+Ltac tau_steps_in H :=
+  tau_steps_left_in H;
+  tau_steps_right_in H.
+
 Lemma eqit_inv_bind_ret:
   forall {E X R1 R2 RR} b1 b2
     (ma : itree E X) (kb : X -> itree E R1) (b: R2),
@@ -1507,4 +1525,5 @@ Proof.
     inv EQ2.
     reflexivity.
 Qed.
+
 

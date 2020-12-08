@@ -27,6 +27,7 @@ theories/Core/KTree.v
 theories/Core/KTreeFacts.v
 theories/Core/Subevent.v
 theories/Core/ITreeMonad.v
+theories/Core/Divergence.v
 
 theories/Eq.v
 theories/Eq/Shallow.v
@@ -61,3 +62,21 @@ theories/Events/MapDefault.v
 theories/Events/MapDefaultFacts.v
 theories/Events/Concurrency.v
 theories/Events/Dependent.v
+
+theories/Dijkstra/DijkstraMonad.v
+theories/Dijkstra/IterRel.v
+theories/Dijkstra/PureITreeBasics.v
+theories/Dijkstra/PureITreeDijkstra.v
+theories/Dijkstra/DelaySpecMonad.v
+theories/Dijkstra/StateSpecT.v
+theories/Dijkstra/StateDelaySpec.v
+theories/Dijkstra/EuttEv.v
+theories/Dijkstra/ITrace.v
+theories/Dijkstra/TracePrefix.v
+theories/Dijkstra/ITraceBind.v
+theories/Dijkstra/EuttDiv.v
+theories/Dijkstra/ITracePreds.v
+theories/Dijkstra/ITraceBindTrigger.v
+theories/Dijkstra/TracesIT.v
+theories/Dijkstra/ITreeDijkstra.v
+theories/Dijkstra/StateIOTrace.v

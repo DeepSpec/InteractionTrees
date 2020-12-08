@@ -1,16 +1,43 @@
 (** * Exception event *)
 
 (* begin hide *)
-Set Implicit Arguments.
-Set Contextual Implicit.
+
+From Coq Require Import
+     Arith.PeanoNat
+     Lists.List
+     Strings.String
+     Morphisms
+     Setoid
+     RelationClasses
+     Logic.Classical_Prop
+     Logic.FunctionalExtensionality
+.
+
+From ExtLib Require Import
+     Data.String
+     Structures.Monad
+     Structures.Traversable
+     Data.List.
 
 From ITree Require Import
-     Basics.Basics
-     Core.ITreeDefinition
-     Indexed.Sum
-     Core.Subevent
-     Interp.Interp.
+     ITree
+     ITreeFacts
+     Events.MapDefault
+     Events.State
+     Events.StateFacts
+     Dijkstra.DijkstraMonad
+     Dijkstra.PureITreeBasics
+     Dijkstra.IterRel
+     Dijkstra.DelaySpecMonad
+     Dijkstra.StateSpecT
+   (*  Simple *)
+.
+
 (* end hide *)
+
+Import Monads.
+Import MonadNotation.
+Local Open Scope monad_scope.
 
 (** Throw exceptions of type [Err]. *)
 Variant exceptE (Err : Type) : Type -> Type :=
@@ -21,4 +48,45 @@ Variant exceptE (Err : Type) : Type -> Type :=
 Definition throw {Err : Type} {E : Type -> Type} `{exceptE Err -< E} {X}
            (e : Err)
   : itree E X
-  := vis (Throw e) (fun v : void => match v with end).
+  := vis (Throw _ e) (fun v : void => match v with end).
+
+Section Exception.
+  
+  Context (E : Type).
+  
+  Section ExcT.
+    
+    Context (M : Type -> Type).
+    Context {EqMM : Eq1 M}.
+    Context {MonadM : Monad M}.
+    Context {MonadLawsM : MonadLawsE M}.
+    Context {EquivRel : forall A, Equivalence (EqMM A) }.
+    Context {MonadIterM : MonadIter M}.
+
+
+    Definition Exc (A : Type) := M (E + A).
+
+    Definition ret_exc (A : Type) (a : A) : Exc A := ret (inr a).
+
+    Definition bind_exc (A B : Type) (m : M (E + A) ) (f : A -> Exc B) :=
+      bind m (fun x  => match x with | inl e => ret (inl e) | inr a => f a end).
+
+    Global Instance MonadExc : Monad Exc :=
+      {
+        ret := ret_exc ;
+        bind := bind_exc;
+      }.
+
+    Global Instance EqExc : Eq1 Exc := fun _ m1 m2 =>
+           EqMM _ m1 m2.
+
+    Global Instance MonadLawsExc : MonadLawsE Exc.
+    Proof.
+      destruct MonadLawsM.
+      constructor.
+      - intros A B f a. cbn. apply bind_ret_l.
+      - intros A m. cbn. specialize (bind_ret_r (E +A)%type m).
+        unfold bind_exc, ret_exc. 
+    Admitted.
+   End ExcT.
+End Exception.

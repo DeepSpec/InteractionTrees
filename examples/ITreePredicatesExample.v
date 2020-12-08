@@ -17,7 +17,8 @@ From ExtLib Require Import
 
 From ITree Require Import
      ITree
-     ITreeFacts.
+     ITreeFacts
+     DijkstraMonad.
 
 From Paco Require Import paco.
 
@@ -293,3 +294,5 @@ Proof.
   intros.
   reflexivity.
 Qed.  
+
+
