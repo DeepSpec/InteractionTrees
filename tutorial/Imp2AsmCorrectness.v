@@ -69,6 +69,7 @@ From ITree Require Import
      ITree
      ITreeFacts
      Basics.CategorySub
+     Basics.HeterogeneousRelations
      Events.StateFacts
      Events.MapDefault.
 
@@ -88,6 +89,7 @@ Local Open Scope cat.
 
 Import Monads.
 Open Scope monad_scope.
+
 (* end hide *)
 
 
@@ -788,7 +790,7 @@ Section Correctness.
     - intros _ _ [].
       rewrite <- bind_ret_r at 1.
       eapply eutt_clo_bind; try reflexivity.
-      intros [|[]] _ []; apply eqit_Ret; auto.
+      intros [|[]] _ []; apply eqit_Ret; auto; constructor; auto.
     - constructor.
   Qed.
 
@@ -942,7 +944,7 @@ Section Correctness.
         red.
         rewrite <- eqit_Ret.
         unfold state_invariant. simpl.
-        split; auto.
+        split; auto; constructor; auto.
 
       + (* In the true case, we line up the body of the loop to use the induction hypothesis *)
         rewrite !interp_asm_bind.

@@ -20,6 +20,7 @@ From Paco Require Import paco.
 From ITree Require Import
      Basics.Basics
      Basics.CategoryOps
+     Basics.HeterogeneousRelations
      ITree
      ITreeFacts
      Indexed.Sum
@@ -216,7 +217,7 @@ Section MapFacts.
     punfold H0. red in H0.
     revert s1 s2 H1.
     induction H0; intros; subst; simpl; pclearbot.
-    - eret.
+    - eret. 
     - etau.
     - ebind.
       apply pbc_intro_h with (RU := prod_rel (@eq_map _ _ _ _ d) eq).

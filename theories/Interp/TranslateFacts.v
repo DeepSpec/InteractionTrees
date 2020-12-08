@@ -202,6 +202,25 @@ Proof.
   reflexivity.
 Qed.
 
+Lemma eutt_translate_gen :
+      forall {E F X Y} (f : E ~> F) (RR : X -> Y -> Prop) (t : itree E X) (s : itree E Y),
+        eutt RR t s ->
+        eutt RR (translate f t) (translate f s).
+Proof.
+  intros *.
+  revert t s.
+  einit.
+  ecofix CIH.
+  intros * EUTT.
+  rewrite !unfold_translate. punfold EUTT. red in EUTT.
+  induction EUTT; intros; subst; simpl; pclearbot.
+  - estep.
+  - estep. 
+  - estep; intros ?; ebase.
+  - rewrite tau_euttge, unfold_translate. eauto.
+  - rewrite tau_euttge, unfold_translate. eauto.
+Qed. 
+
 Lemma translate_trigger {E F G} `{E -< F} :
   forall X (e: E X) (h: F ~> G),
     translate h (trigger e) ≈ trigger (h _ (subevent X e)).

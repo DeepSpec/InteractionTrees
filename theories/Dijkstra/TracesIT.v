@@ -59,7 +59,14 @@ Section TraceSpec.
   Definition TraceSpec (A : Type) := ev_list E -> {w : TraceSpecInput A -> Prop | 
                                       forall (p p' : TraceSpecInput A), (forall b, b ∈ p -> b ∈ p') -> w p -> w p'  }.
 
-  Instance EqM_TraceSpec : Eq1 TraceSpec := fun _ w1 w2 => forall log p, w1 log ∋ p <-> w2 log ∋ p. 
+  Global Instance EqM_TraceSpec : Eq1 TraceSpec := fun _ w1 w2 => forall log p, w1 log ∋ p <-> w2 log ∋ p.
+  Global Instance EqMTS_equiv {R}: Equivalence (EqM_TraceSpec R).
+  Proof.
+    do 2 constructor; unfold EqM_TraceSpec in *; intros; try apply H0; try apply H; auto.
+    apply H0. auto.
+  Qed.
+  
+ 
   (* look over this code *)
   (* https://github.com/FStarLang/FStar/blob/dm4all/examples/dm4all/IORWLocal.fst *)
 
@@ -109,7 +116,7 @@ Section TraceSpec.
  Qed.
     
 
-  Instance TraceSpecMonad : Monad TraceSpec :=
+  Global Instance TraceSpecMonad : Monad TraceSpec :=
     {
       ret := @ret_ts2;
       bind := @bind_ts1;
@@ -128,7 +135,7 @@ Section TraceSpec.
 
 
 
-  Program Instance TraceSpecMonadLaws : MonadLawsE TraceSpec.
+  Global Program Instance TraceSpecMonadLaws : MonadLawsE TraceSpec.
   Next Obligation.
     rename x into a.
     red. red. cbn. split; intros; basic_solve.
@@ -194,7 +201,7 @@ Section TraceSpec.
   Program Definition obs_trace (A : Type) (t : itree E A) : TraceSpec A :=
     fun log p => forall b, b ⊑ t -> p (↑log ++ b).
 
-  Instance TraceSpecObs : EffectObs (itree E) TraceSpec := obs_trace.
+  Global Instance TraceSpecObs : EffectObs (itree E) TraceSpec := obs_trace.
 
   Lemma bind_split_diverge:
     forall (A B : Type) (log : ev_list E) (p : TraceSpecInput B) (b : itrace E B)
@@ -217,7 +224,7 @@ Section TraceSpec.
         
                    
 
-  Instance TraceSpecMorph : MonadMorphism (itree E) TraceSpec TraceSpecObs.
+  Global Instance TraceSpecMorph : MonadMorphism (itree E) TraceSpec TraceSpecObs.
   Proof.
     constructor.
     - intros. repeat red. unfold obs, TraceSpecObs. cbn. split; intros.
@@ -283,10 +290,10 @@ Section TraceSpec.
        * eapply bind_split_diverge; eauto.
   Qed.
 
-  Instance TraceSpecOrder : OrderM TraceSpec := 
+  Global Instance TraceSpecOrder : OrderM TraceSpec := 
     fun _ w1 w2 => forall log p, p ∈ (w2 log) -> p ∈ (w1 log).
 
-  Instance TraceSpecOrderLaws : OrderedMonad TraceSpec.
+  Global Instance TraceSpecOrderLaws : OrderedMonad TraceSpec.
   Proof.
     constructor.
     - intros. repeat red. auto.
@@ -309,6 +316,8 @@ Section TraceSpec.
   Program Definition encode_dyn {A : Type} (post : ev_list E -> itrace E A -> Prop) (pre : ev_list E -> Prop) : TraceSpec A :=
     fun log p => pre log /\ forall b, post log (↑ log ++ b) -> p (↑ log ++ b).
 
+  
+
 (*
   Program Definition encode_ignore_prefix {A : Type} (post : itrace E A -> Prop) : TraceSpec A :=
     encode_dyn
@@ -327,6 +336,13 @@ Section TraceSpec.
 
 
 End TraceSpec.
+
+Arguments TraceSpecMonad {E}.
+Arguments TraceSpecMonadLaws {E}.
+Arguments TraceSpecOrder {E}.
+Arguments TraceSpecOrderLaws {E}.
+Arguments TraceSpecObs {E}.
+Arguments TraceSpecMorph {E}.
 
 Section NonDetExample.
 

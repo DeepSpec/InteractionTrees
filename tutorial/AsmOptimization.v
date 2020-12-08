@@ -11,6 +11,7 @@ From Coq Require Import
 
 From ITree Require Import
      Basics.Category
+     Basics.HeterogeneousRelations
      Basics.Monad
      ITree
      ITreeMonad
@@ -157,6 +158,13 @@ Proof.
   rewrite interp_ret.
   repeat rewrite interp_state_ret.
   reflexivity.
+Qed.
+
+Global Instance rel_asm_eqv :
+  forall A, Equivalence (@rel_asm A).
+Proof.
+  intros.
+  unfold rel_asm. eapply prod_rel_eqv; try typeclasses eauto.
 Qed.
 
 Lemma interp_asm_GetReg {E A} f r mem reg :
@@ -351,7 +359,7 @@ Proof.
       rewrite interp_ret.
       unfold interp_map.
       repeat rewrite interp_state_ret.
-      apply eqit_Ret. constructor; auto.
+      apply eqit_Ret. constructor; auto; constructor; auto.
     + setoid_rewrite interp_asm_GetReg.
       rewrite H1.
       unfold value in *.
@@ -360,7 +368,7 @@ Proof.
       repeat rewrite interp_asm_ret.
       apply eqit_Ret. constructor; auto.
       repeat rewrite interp_asm_ret.
-      apply eqit_Ret. constructor; auto.
+      apply eqit_Ret. constructor; auto. 
     + unfold interp_asm, interp_map.
       unfold id_, Id_Handler, Handler.id_.
       unfold exit.
@@ -401,7 +409,7 @@ Proof.
        unfold ret, Monad_itree.
        repeat rewrite interp_ret.
        repeat rewrite interp_state_ret.
-       apply eqit_Ret. constructor; auto.
+       apply eqit_Ret. constructor; auto. 
     -  intros. inversion H0.
        subst. cbn.
        unfold CategorySub.from_bif, FromBifunctor_ktree_fin.
@@ -448,13 +456,16 @@ Proof.
     unfold CategorySub.from_bif, FromBifunctor_ktree_fin.
     destruct split_fin_sum.
     all: rewrite !bind_ret_l, interp_ret, !interp_state_ret.
-    all: apply eqit_Ret; auto.
+    all: apply eqit_Ret; auto; constructor; auto.
+    all : constructor; auto.
   }
 
   rewrite interp_ret, !interp_state_ret, !bind_ret_l.
   rewrite !interp_state_ret, !bind_ret_l; cbn.
   apply eqit_Ret.
-  destruct split_fin_sum; auto.
+  destruct split_fin_sum; auto; constructor; auto.
+  all : econstructor; auto.
+  all : constructor; auto.
 Qed.
 
 
@@ -523,7 +534,9 @@ Proof.
       rewrite bind_ret_l, tau_eutt.
       rewrite interp_state_ret, bind_ret_l, interp_ret. cbn.
       rewrite tau_eutt, 2 interp_state_ret.
-      apply eqit_Ret. auto using EQ_registers_add.
+      apply eqit_Ret.
+      constructor; auto; constructor; auto.
+      auto using EQ_registers_add.
     * apply Nat.eqb_neq in n.
       rewrite n.
       apply interp_asm_ret_tt; auto.

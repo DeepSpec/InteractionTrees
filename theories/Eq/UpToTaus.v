@@ -732,3 +732,109 @@ Global Instance eutt_cong_eutt' {E R1 R2 RR} :
 Proof.
   apply eutt_cong_eutt.
 Qed.
+
+(* Specialization of [eutt_clo_bind] to the recurrent case where [UU := eq]
+   in order to avoid having to provide the relation manually everytime *)
+Lemma eutt_eq_bind : forall E R1 R2 RR U (t: itree E U) (k1: U -> itree E R1) (k2: U -> itree E R2),
+    (forall u, eutt RR (k1 u) (k2 u)) -> eutt RR (ITree.bind t k1) (ITree.bind t k2).
+Proof.
+  intros.
+  apply eutt_clo_bind with (UU := Logic.eq); [reflexivity |].
+  intros ? ? ->; apply H.
+Qed.
+
+(* Exposing a version specialized to [eutt] so that users don't have to know about [eqit] *)
+Lemma eutt_Ret :
+  forall E (R1 R2 : Type) (RR : R1 -> R2 -> Prop) r1 r2, RR r1 r2 <-> eutt (E := E) RR (Ret r1) (Ret r2).
+Proof.
+  intros; apply eqit_Ret.
+Qed.
+
+(* [eutt] can be thought as the elementary block of a relational program logic.
+   The following few lemmas give elementary logical rules to compose proofs.
+ *)
+Lemma eutt_conj {E} {R S} {RS RS'} :
+  forall (t : itree E R) (s : itree E S),
+    eutt RS  t s ->
+    eutt RS' t s ->
+    eutt (RS /2\ RS') t s. 
+Proof.
+  repeat red.
+  einit.
+  ecofix CIH; intros * EQ EQ'.
+  rewrite itree_eta, (itree_eta s).
+  punfold EQ; punfold EQ'; red in EQ; red in EQ'.
+  genobs t ot; genobs s os.
+  hinduction EQ before CIH0; subst; intros; pclearbot; simpl.
+
+  - estep; split; auto.
+    inv EQ'; auto.
+  - estep; ebase; right; eapply CIH; eauto.
+    rewrite <- tau_eutt.
+    rewrite <- (tau_eutt m2); auto.
+  - estep; ebase; intros ?; right; eapply CIH0; eauto.
+    eapply eqit_Vis; eauto.
+  - eapply fold_eqitF in EQ'; eauto.
+    assert (t ≈ Tau t1) by (rewrite itree_eta, <- Heqot; reflexivity).
+    rewrite H in EQ'.
+    apply eqit_inv_tauL in EQ'.
+    subst; specialize (IHEQ _ _ eq_refl eq_refl).
+    punfold EQ'; red in EQ'.
+    specialize (IHEQ EQ').
+    rewrite eqit_tauL; [|reflexivity].
+    rewrite (itree_eta t1).
+    eapply IHEQ. 
+  - subst; cbn.
+    rewrite tau_euttge.
+    rewrite (itree_eta t2); eapply IHEQ; eauto.
+    eapply fold_eqitF in EQ'; eauto.
+    assert (s ≈ Tau t2).
+    rewrite (itree_eta s), <- Heqos; reflexivity.
+    rewrite tau_eutt in H.
+    assert (eutt RS' t t2).
+    rewrite <- H; auto.
+    punfold H0.
+Qed.
+
+Lemma eutt_disj_l {E} {R S} {RS RS'} :
+  forall (t : itree E R) (s : itree E S),
+    eutt RS t s ->
+    eutt (RS \2/ RS') t s. 
+Proof.
+  intros.
+  eapply eqit_mon with (RR := RS); eauto.
+Qed.
+
+Lemma eutt_disj_r {E} {R S} {RS RS'} :
+  forall (t : itree E R) (s : itree E S),
+    eutt RS' t s ->
+    eutt (RS \2/ RS') t s. 
+Proof.
+  intros.
+  eapply eqit_mon with (RR := RS'); eauto.
+Qed.
+
+Lemma eutt_equiv {E} {R S} {RS RS'} :
+  forall (t : itree E R) (s : itree E S),
+    (HeterogeneousRelations.eq_rel RS RS') ->
+    eutt RS t s <-> eutt RS' t s. 
+Proof.
+  intros * EQ; split; intros EUTT; eapply eqit_mon; try apply EUTT; eauto.
+  all:apply EQ.
+Qed.
+
+(* Rewriting equivalent simulation relations under [eq_itree] and [eutt] *)
+Global Instance eq_itree_Proper_R {E : Type -> Type} {R1 R2:Type}
+  : Proper ((@HeterogeneousRelations.eq_rel R1 R2) ==> Logic.eq ==> Logic.eq ==> iff) (@eq_itree E R1 R2).
+Proof.
+  repeat intro; subst.
+  unfold eq_itree; rewrite H; reflexivity.
+Qed.
+
+Global Instance eutt_Proper_R {E : Type -> Type} {R1 R2:Type}
+  : Proper  ((@HeterogeneousRelations.eq_rel R1 R2) ==> eq ==> eq ==> iff) (@eutt E R1 R2).
+Proof.
+  repeat intro; subst.
+  unfold eutt; rewrite H; reflexivity.
+Qed.
+
