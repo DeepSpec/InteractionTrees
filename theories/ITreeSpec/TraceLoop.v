@@ -202,9 +202,30 @@ Inductive satisfiesF {E R} (F : itree_spec E R -> itrace E R -> Prop) :
       satisfiesF F (VisF Spec_empty kphi) (observe tr)
   | satisfies_forall A kphi tr :
       (forall a : A, F (kphi a) tr) -> satisfiesF F (VisF Spec_forall kphi) (observe tr)
-  | satisfies_exists A (a : A) kphi tr :
-      F (kphi a) tr -> satisfiesF  F (VisF Spec_exists kphi) (observe tr)
+  | satisfies_exists A kphi tr :
+      (exists a : A, F (kphi a) tr) -> satisfiesF  F (VisF Spec_exists kphi) (observe tr)
 .
+
+Hint Constructors satisfiesF.
+Definition satisfies_ {E R} (F : itree_spec E R -> itrace E R -> Prop) (phi : itree_spec E R) (tr : itrace E R) := 
+  satisfiesF F (observe phi) (observe tr).
+Hint Unfold satisfies_.
+
+Lemma monot_satisfies {E R} : monotone2 (@satisfies_ E R).
+Proof.
+  red. intros. red. red in IN. induction IN; eauto.
+  destruct H as [a Ha]. eauto.
+Qed.
+Hint Resolve monot_satisfies : paco.
+
+Definition satisfies {E R} (phi : itree_spec E R) (tr : itrace E R): Prop :=
+  paco2 satisfies_ bot2 phi tr.
+Print Grammar constr.
+Notation "tr ⊧ phi" := (satisfies phi tr ) (at level 5).
+
+
+Definition refines {E R} (phi psi : itree_spec E R) : Prop :=
+  forall tr, tr ⊧ phi -> tr ⊧ psi.
 
 Definition and_spec {E R} (phi psi : itree_spec E R) :=
   Vis Spec_forall (fun b : bool => if b then phi else psi).
@@ -223,23 +244,9 @@ Definition bot E R : itree_spec E R :=
 
 
 
+
 Definition forall_non_empty {E A R} (kphi : A -> itree_spec E R) : itree_spec E R :=
   and_spec (Vis Spec_forall kphi) (Vis Spec_exists (fun _ : A => top) ).
-
-CoFixpoint obs_ {E R} (ot : itree' E R) : itree_spec E R :=
-  match ot with 
-  | RetF r => Ret r
-  | TauF t => Tau ( obs_ (observe t) )
-  | VisF e k => 
-    or_spec
-      (Vis Spec_forall (fun a => Vis (Spec_Vis (evans _ e a)) (fun _ => (obs_ (observe (k a))  ) ) ) )
-      (Vis Spec_empty (fun H => Vis (Spec_Vis (evempty _ H e) ) empty_cont) )
-
-
-  end.
-
-Definition obs {E R} (t : itree E R) :=
-  obs_ (observe t).
 
 
 CoFixpoint obs_trace_ {E R} (otr : itrace' E R) : itree_spec E R :=
@@ -254,5 +261,53 @@ CoFixpoint obs_trace_ {E R} (otr : itrace' E R) : itree_spec E R :=
 
 Definition obs_trace {E R} (tr : itrace E R) :=
   obs_trace_ (observe tr).
+
+
+CoFixpoint obs_ {E R} (ot : itree' E R) : itree_spec E R :=
+  match ot with 
+  | RetF r => Ret r
+  | TauF t => Tau ( obs_ (observe t) )
+  | VisF e k => 
+    (* Note that which branch you will need to take is not computable
+       but the information is contained *)
+    or_spec
+      (Vis Spec_exists (fun a => Vis (Spec_Vis (evans _ e a)) (fun _ => (obs_ (observe (k a))  ) ) ) )
+      (Vis Spec_empty (fun H => Vis (Spec_Vis (evempty _ H e) ) empty_cont) )
+
+
+  end.
+
+Definition obs {E R} (t : itree E R) :=
+  obs_ (observe t).
+
+Ltac prove_arg H :=
+  let H' := fresh H in
+  match type of H with ?P -> _ => assert (H' : P); try (specialize (H H'); clear H') end.
+
+
+
+Lemma traces_refines_obs : forall E R (t : itree E R), forall tr, tr ⊑ t -> tr ⊧ (obs t).
+Proof.
+  intros E R. pcofix CIH. intros. pfold. red. punfold H0.
+  red in H0. unfold observe at 1. cbn. dependent induction H0; subst.
+  - rewrite <- x. cbn. rewrite <- x0. auto.
+  - rewrite <- x. rewrite <- x0. cbn. constructor. pclearbot. right. eapply CIH; eauto.
+  - rewrite <- x. constructor. eapply IHeuttEvF; auto.
+  - rewrite <- x. cbn.  constructor. unfold observe at 1. cbn. eapply IHeuttEvF; eauto.
+  - rewrite <- x. rewrite <- x0. cbn. clear x x0. inversion H; inj_existT; subst; inj_existT; subst.
+    + rewrite itree_eta'. constructor. exists true. left. pfold. red. cbn.
+      rewrite itree_eta'. constructor. exists a. left. pfold. red. cbn.
+      constructor. intros [] . right.
+      specialize (H0 tt a). prove_arg H0; auto. pclearbot.
+      apply CIH; auto.
+    + clear H0. rewrite itree_eta'. constructor. exists false.
+      left. pfold. red. cbn. rewrite itree_eta'. constructor; auto.
+Qed.
+
+Lemma obs_least_spec : forall E R (t : itree E R) (phi : itree_spec E R),
+    (forall tr, tr ⊑ t -> tr ⊧ phi) -> refines (obs t) phi.
+Proof.
+  intros E R. pcofix CIH. intros t phi Hmodels tr Href.
+  Admitted.
 
 End TraceBareBones.
