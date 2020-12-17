@@ -72,7 +72,7 @@ destruct (classicT (A = B) ).
 - apply ITree.spin.
 Defined.
 
-
+(*Actually I may be able to remove this ugly bs. I think I really only use peel*)
 CoFixpoint peel_cont_ {E R S} (ob : itrace' E R) (ot : itree' E S) : itrace E R :=
   match ot with
   | RetF _ => go ob

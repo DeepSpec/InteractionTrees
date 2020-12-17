@@ -80,3 +80,10 @@ theories/Dijkstra/ITraceBindTrigger.v
 theories/Dijkstra/TracesIT.v
 theories/Dijkstra/ITreeDijkstra.v
 theories/Dijkstra/StateIOTrace.v
+
+
+theories/ITreeSpec/ITreeSpecDefinition.v
+theories/ITreeSpec/SatisfiesFacts.v
+theories/ITreeSpec/ITreeSpecObservation.v
+theories/ITreeSpec/ITreeSpecObservationFacts.v
+theories/ITreeSpec/SatisfiesBind.v
