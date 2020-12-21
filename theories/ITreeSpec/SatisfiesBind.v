@@ -142,9 +142,10 @@ Qed.
 
 Infix "<=" := refines (at level 70).
 
-Lemma bind_monot_ret_ret_aux :  
-  forall E R U (kpsi : R -> itree_spec E U ) r u (psi : itree_spec E R), 
-    (Ret r <= psi) -> (Ret u <= kpsi r) -> Ret u <= (psi >>= kpsi).
+
+Lemma bind_monot_ret_aux :  
+  forall E R U (kpsi : R -> itree_spec E U ) r phi (psi : itree_spec E R), 
+    (Ret r <= psi) -> (phi <= kpsi r) -> phi <= (psi >>= kpsi).
 Proof. 
   intros E R U kpsi. pcofix CIH. intros r0 u psi Hpsi Hkpsi tr Hmodels.
   unfold refines in Hpsi, Hkpsi. cbn in *. 
@@ -176,6 +177,12 @@ Proof.
     rewrite H0. rewrite <- x. auto.
 Qed.
 
+(* forall left case?*)
+
+(* exists left case?*)
+
+(* spec_vis left case?*)
+
 Lemma bind_monot : forall E R U (phi psi : itree_spec E R) (kphi kpsi : R -> itree_spec E U),
     phi <= psi -> (forall r,  (kphi r) <= (kpsi r) ) -> (phi >>= kphi) <= (psi >>= kpsi).
 Proof.
@@ -186,8 +193,11 @@ Proof.
   generalize dependent tr.
   pcofix CIH. intros tr psi phi Href Hmodels. pfold. red. unfold observe at 1. cbn.
   punfold Hmodels. red in Hmodels. unfold observe at 1 in Hmodels. cbn in Hmodels.
+  (* maybe if I come up with a better reasoning principle these proofs become easier?*)
+  (* think carefully about how to structure proof *)
   dependent induction Hmodels; pclearbot.
-  - destruct (observe phi) eqn : Hphi; try discriminate.
+
+  - (* destruct (observe phi) eqn : Hphi; try discriminate.
     apply simpobs in x0. apply simpobs in x. 
     symmetry in Hphi. apply simpobs in Hphi.
     setoid_rewrite Hphi in Href.
@@ -199,16 +209,30 @@ Proof.
     assert (ot = observe (ITree.bind psi kpsi) ) end; auto.
     rewrite H; clear H. pstep_reverse. auto.
     apply paco2_mon with (r := bot2); intros; try contradiction.
-    apply Hbind. rewrite x. apply satisfies_Ret.
-  - (* 
+    apply Hbind. rewrite x. apply satisfies_Ret. *) admit.
+  - 
     destruct (observe phi) eqn : Hphi; try discriminate.
-    + *) admit.
-  - admit.
+    + (* might be able to apply that ret lemma I made *) admit.
+    + (* tau tau cases a weird because it is not the right tau tau*)
+      (* there is some example code which somehow restricts where taus appear *)
+      cbn in *. admit.
+ (* - destruct (observe phi) eqn : Hphi; destruct (observe psi) eqn : Hpsi; try discriminate.
+    + pstep_reverse. eapply paco2_mon with (r := bot2); intros; try contradiction.
+      apply H0. apply simpobs in x. (* show r1 = r0 using Href*) admit.
+    + cbn. constructor. unfold observe at 1. cbn.
+      (* phi0 ~= bind phi kphi*)
+      eapply IHHmodels with (phi := kphi r0 ) ; eauto. admit. cbn.
+    specialize (IHHmodels) with (phi := phi). (* apply with tau phi *) eapply IHHmodels; auto. eauto.
+    + intros. eapply CIH.  apply H1. auto.
+    + setoid_rewrite <- tau_eutt in Href at 1. apply Href; auto.
+    + (* went wrong way? *) cbn.
+    (* can I use Tau phi0 in place of phi0? *)
+    admit.
   - rewrite <- x. constructor. eapply IHHmodels; eauto. 
   - admit.
   - admit.
   - admit.
-
+*)
   Admitted.
 
 
