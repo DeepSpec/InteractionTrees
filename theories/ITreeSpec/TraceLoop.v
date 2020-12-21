@@ -45,7 +45,7 @@ Local Open Scope monad_scope.
 Ltac prove_arg H :=
   let H' := fresh H in
   match type of H with ?P -> _ => assert (H' : P); try (specialize (H H'); clear H') end.
-
+(* begin delete *)
 Module TraceWithPredAndEv.
 
 Variant SpecEv (E : Type -> Type) : Type -> Type :=
@@ -172,9 +172,9 @@ Section LoopInvar.
 End LoopInvar.
 
 End TraceWithPredAndEv.
-
+(* end delete *)
 Module TraceBareBones.
-
+(* begin itree_spec_definition *)
 Variant SpecEv (E : Type -> Type) : Type -> Type :=
   | Spec_Vis {A : Type} (e : EvAns E A) : SpecEv E A
   | Spec_forall { A : Type} : SpecEv E A
@@ -188,6 +188,7 @@ Arguments Spec_Vis {E} {A}.
 Definition itree_spec E R := itree (SpecEv E) R.
 Definition itree_spec' E R := itree' (SpecEv E ) R.
 
+Instance itree_spec_monad {E} : Monad (itree_spec E) := Monad_itree.
 
 Inductive satisfiesF {E R} (F : itree_spec E R -> itrace E R -> Prop) : 
   itree_spec' E R -> itrace' E R -> Prop :=
@@ -226,8 +227,9 @@ Notation "tr ⊧ phi" := (satisfies phi tr ) (at level 5).
 
 Definition refines {E R} (phi psi : itree_spec E R) : Prop :=
   forall tr, tr ⊧ phi -> tr ⊧ psi.
+(* end itree_spec_definition *)
 
-
+(* begin satisfaction_facts *)
 Lemma satisfiesF_TauL:
   forall (E : Type -> Type) (A : Type) (t1 : itree (SpecEv E) A) (tr : itrace E A),
     satisfiesF (upaco2 satisfies_ bot2) (TauF t1) (observe tr) ->
@@ -394,8 +396,10 @@ Proof.
     eapply satisfies_eutt_spec_l; eauto.
     eapply satisfies_eutt_spec_r; eauto.
 Qed.
-  
+(* end satisfaction_facts *)
 
+
+(* put in definitions file *)
 Definition and_spec {E R} (phi psi : itree_spec E R) :=
   Vis Spec_forall (fun b : bool => if b then phi else psi).
 
@@ -411,15 +415,16 @@ Definition top {E R} : itree_spec E R :=
 Definition bot E R : itree_spec E R :=
   Vis Spec_exists empty_cont.
 
-
-
-
 Definition forall_non_empty A {E R} (kphi : A -> itree_spec E R) : itree_spec E R :=
   and_spec (Vis Spec_forall kphi) (Vis Spec_exists (fun _ : A => top) ).
 
 Definition show_empty {E} (A : Type) : itree_spec E (A -> void) :=
   Vis Spec_exists (fun H => Ret H).
 
+(* end *)
+
+
+(* begin itree_spec_observation *)
 CoFixpoint obs_trace_ {E R} (otr : itrace' E R) : itree_spec E R :=
   match otr with
   | RetF r => Ret r
@@ -433,7 +438,7 @@ CoFixpoint obs_trace_ {E R} (otr : itrace' E R) : itree_spec E R :=
 Definition obs_trace {E R} (tr : itrace E R) :=
   obs_trace_ (observe tr).
 
-Instance itree_spec_monad {E} : Monad (itree_spec E) := Monad_itree.
+
 
 CoFixpoint obs_ {E R} (ot : itree' E R) : itree_spec E R :=
   match ot with 
