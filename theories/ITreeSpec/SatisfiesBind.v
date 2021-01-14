@@ -177,16 +177,260 @@ Proof.
     rewrite H0. rewrite <- x. auto.
 Qed.
 
-(* forall left case?*)
+(* forall left case? might be way less general than *)
 
 (* exists left case?*)
 
 (* spec_vis left case?*)
 
+Ltac simpobs H := apply simpobs in H.
+
+Definition sat_equiv {E R} (phi psi : itree_spec E R) := forall tr, tr ⊧ phi <-> tr ⊧ psi.
+
+Global Instance equiv_sat_equiv {E R} : Equivalence (@sat_equiv E R).
+Proof.
+  constructor; constructor; unfold sat_equiv in *; auto; try apply H.
+  - rewrite H. apply H0.
+  - rewrite H. apply H0.
+Qed.
+
+(* proving this equivalence is respected by bind is what I am trying to prove *)
+(* is it possible this bind_true_true doesn't hold*)
+(* like suppose psi branches into infinitely many paths,m1 for each*)
+(* let E := Void, R :*)
+Section bind_true_true_counter.
+
+  Variant Void : Type -> Type := .
+
+  Definition btt_counter_psi : itree_spec Void bool := or_spec (ITree.spin) (Vis (Spec_exists) (fun b: bool => Ret b)).
+
+  Lemma btt_counter_psi_is_true : forall tr, tr ⊧ btt_counter_psi.
+  Proof.
+    intros.
+    destruct (classic_converge _ _ tr).
+    - destruct H as [b Hb]. unfold btt_counter_psi. induction Hb.
+      + rewrite H. pfold. red. econstructor. exists false.
+        left. pfold. constructor. exists b. left. pfold. constructor.
+      + destruct e; destruct ev.
+    - unfold btt_counter_psi. pfold. constructor. exists true. left. generalize dependent tr.
+      pcofix CIH. intros. pfold. red. punfold H0. red in H0. inversion H0; subst.
+      + cbn. constructor. pclearbot. right.  eauto.
+      + destruct e; destruct ev.
+  Qed.
+
+  Definition btt_counter_kpsi : bool -> itree_spec Void bool := fun _ => ITree.spin.
+
+  Lemma btt_counter_is_counter : ~ (Ret true) ⊧ (btt_counter_psi >>= btt_counter_kpsi).
+  Proof.
+    intro Hcontra. cbn in *. unfold btt_counter_psi, btt_counter_kpsi in Hcontra.
+    unfold or_spec in *. setoid_rewrite bind_vis in Hcontra.
+    pinversion Hcontra; subst; inj_existT; subst. destruct H0 as [b Hb]. pclearbot.
+    clear Hcontra. destruct b.
+    - punfold Hb. red in Hb. rewrite H3 in Hb. dependent induction Hb; eauto.
+    - punfold Hb. red in Hb. rewrite H3 in Hb. unfold observe in Hb. cbn in *. inversion Hb; subst; inj_existT; subst. 
+      destruct H0 as [ [] Hspin ]; pclearbot.
+      + punfold Hspin. red in Hspin. cbn in *. rewrite H5 in Hspin. dependent induction Hspin; eauto.
+      + punfold Hspin. red in Hspin. cbn in *. rewrite H5 in Hspin. dependent induction Hspin; eauto.
+  Qed.
+
+  Lemma not_bind_true_true: ~ (forall (E : Type -> Type) (U R : Type) (kpsi : R -> itree_spec E U) 
+                        (tr : itrace E U) (psi : itree_spec E R),
+    (forall tr : itrace E R, tr ⊧ psi) -> tr ⊧ (ITree.bind psi kpsi)).
+  Proof.
+    intros Hcontra. specialize (btt_counter_psi_is_true) as Hbtt. 
+    eapply btt_counter_is_counter. cbn. eapply Hcontra; eauto.
+  Qed.
+  Arguments bot {E} {R}.
+  Arguments top {E} {R}.
+
+  Lemma top_leq_btt_counter : top <= btt_counter_psi.
+  Proof.
+    red. intros. apply btt_counter_psi_is_true.
+  Qed.
+
+  Definition bind_monot_counter_kphi (b : bool) : itree_spec Void bool := bot. 
+
+  Lemma counter_psi_leq_self : forall b, bind_monot_counter_kphi b <= bind_monot_counter_kphi b.
+  Proof. red. auto. Qed.
+
+  Lemma bind_btt_counter_bind_monot_counter : ~ (Ret true) ⊧ (btt_counter_psi >>= bind_monot_counter_kphi).
+  Proof.
+    cbn. unfold btt_counter_psi, bind_monot_counter_kphi, or_spec. setoid_rewrite bind_vis.
+    intro Hcontra. pinversion Hcontra; subst; inj_existT; subst. destruct H0 as [ [ | ] Hb ]; pclearbot.
+    - punfold Hb. red in Hb. cbn in *. rewrite H3 in Hb. clear H3 H1 Hcontra.
+      dependent induction Hb; eauto.
+    - punfold Hb. red in Hb. cbn in *. rewrite H3 in Hb. inversion Hb; subst; inj_existT; subst.
+      clear Hb Hcontra. destruct H0 as [ [ | ] Hb].
+      + pclearbot. punfold Hb. red in Hb. cbn in *. rewrite H5 in Hb. inversion Hb; subst; inj_existT; subst.
+        destruct H0 as [ [] _ ].
+      + pclearbot. punfold Hb. red in Hb. cbn in *. rewrite H5 in Hb. inversion Hb; subst; inj_existT; subst.
+        destruct H0 as [ [] _ ].
+  Qed.
+
+  Lemma n_bind_monot : ~ (forall E R U (phi psi : itree_spec E R) (kphi kpsi : R -> itree_spec E U),
+    phi <= psi -> (forall r,  (kphi r) <= (kpsi r) ) -> (phi >>= kphi) <= (psi >>= kpsi)).
+  Proof.
+    intro Hcontra. eapply bind_btt_counter_bind_monot_counter. cbn in *. unfold refines in *.
+    eapply Hcontra with (phi := top) (kphi := bind_monot_counter_kphi); eauto.
+    - apply top_leq_btt_counter.
+    - unfold top. rewrite bind_vis. pfold. constructor. intros [].
+  Qed.
+  
+
+End bind_true_true_counter.
+
+ Lemma bind_monot_ret_bind_aux:
+forall (E : Type -> Type) (U R : Type) (kpsi : R -> itree_spec E U)
+    (r : itree_spec E U -> itrace E U -> Prop) (r0 : R) (psi : itree_spec E R),
+  (Ret r0) ⊧ psi ->
+  forall tr : itrace E U,
+  tr ⊧ (kpsi r0) ->
+  gpaco2 satisfies_ (EuttEv.eqitC_euttEv eq true true) bot2 r (ITree.bind psi kpsi) tr.
+Proof.
+  intros E U R kpsi r.
+  gcofix CIH. intros a psi Hpsi tr Htr.
+  punfold Hpsi. red in Hpsi. cbn in *.
+  match type of Hpsi with satisfiesF _ _ ?t => remember t as ora end.
+  genobs psi opsi. hinduction Hpsi before r; intros; subst; try inv Heqora.
+  - simpobs Heqopsi. rewrite Heqopsi. rewrite bind_ret_l.
+    gfinal. right. eapply paco2_mon; try apply Htr; intros; contradiction.
+  - simpobs Heqopsi. rewrite Heqopsi. rewrite bind_tau. rewrite tau_euttge.
+    eapply IHHpsi; eauto.
+  - pclearbot. simpobs Heqopsi. rewrite Heqopsi. rewrite bind_vis.
+    gstep. red. constructor. intros a'.
+    symmetry in H1. simpobs H1. setoid_rewrite H1 in H.
+    gfinal. left. eapply CIH; eauto. apply H.
+  - destruct H as [a' Ha' ]. pclearbot. symmetry in H1. simpobs H1.
+    setoid_rewrite H1 in Ha'. simpobs Heqopsi. rewrite Heqopsi.
+    rewrite bind_vis. gstep. constructor. exists a'.
+    gfinal. left. eapply CIH; eauto.
+Qed.
+(*
+(* turns out this is false, see n_bind_monot *)
 Lemma bind_monot : forall E R U (phi psi : itree_spec E R) (kphi kpsi : R -> itree_spec E U),
     phi <= psi -> (forall r,  (kphi r) <= (kpsi r) ) -> (phi >>= kphi) <= (psi >>= kpsi).
 Proof.
-  unfold refines. intros. cbn in *.
+  intros E R U phi psi kphi kpsi Hrefphi Hrefkphi.
+  unfold refines in *. intros tr Htr. cbn in *.
+  ginit. generalize dependent tr. generalize dependent psi.
+  generalize dependent phi. gcofix CIH0. intros. 
+  remember (ITree.bind phi kphi) as phi'. punfold Htr. red in Htr.
+  genobs tr otr. genobs phi' ohpi'. hinduction Htr before r; intros; subst;
+  try inv Heqphi'; try inv Heqotr; try inv Heqohpi'.
+  - simpobs H0. simpobs H1. rewrite H0.
+    (* phi is Ret a where kphi a = Ret r0, can find or write a lemma proving this*)
+    admit.
+  - pclearbot. (*unclear how to make progress in this case, but there are 
+                 some tricks I can look intro *) admit.
+  - (* H0 tells us phi0 starts with a Tau or it is a Ret a where kphi a starts with a Tau *)
+    assert (forall A (e : SpecEv E A) k, VisF e k <> (observe phi0) ).
+    { intros. intro Hcontra. unfold observe in H0. cbn in *. 
+      destruct (observe phi0); try inv H0; try inv Hcontra. }
+    destruct (observe phi0) eqn : Hphi0; try contradiction.
+    + unfold observe in H0. cbn in H0. rewrite Hphi0 in H0.
+      simpobs H0. symmetry in Hphi0. simpobs Hphi0.
+      setoid_rewrite Hphi0 in Hrefphi.
+      assert ((Ret r0) ⊧ psi).
+      { apply Hrefphi. pfold. constructor. }
+      (* Ret r0 ⊧ psi is the key evidence, maybe I should drop IHHtr, coinduct again
+         based on that restriction
+         the reason I want to coinduct is because I define forall and exists
+         coinductively (which may have been a mistake :( , perhaps at some point I 
+         should float a refact that makes them inductive )
+       *)
+      (*should be true tr ≈ Ret r0 >>= fun _ => tr *)
+      clear H Hphi0 phi0.
+      assert ( tr ⊧ (kphi r0) ).
+      { rewrite H0. rewrite tau_eutt. pfold. auto. }
+      clear H0 Htr IHHtr phi.
+      apply Hrefkphi in H as Htr. clear H Hrefphi Hrefkphi.
+      generalize dependent tr. generalize dependent psi. revert r0.
+      clear CIH0. eapply bind_monot_ret_bind_aux; eauto.
+    + eapply IHHtr with (phi0 := t); eauto.
+      * intros. symmetry in Hphi0. simpobs Hphi0.
+        setoid_rewrite Hphi0 in Hrefphi. setoid_rewrite tau_eutt in Hrefphi.
+        eauto.
+      * unfold observe in H0. cbn in H0.
+        rewrite Hphi0 in H0. cbn in *. injection H0; intros; subst. auto.
+   + specialize (H X e k). contradiction.
+  - simpobs H0. rewrite H0. rewrite tau_euttge.
+    eapply IHHtr; eauto.
+ 
+  - simpobs H1. rewrite H1. pclearbot.
+    assert (forall t, observe phi <> TauF t ).
+    { unfold observe in H2. cbn in H2. 
+      destruct (observe phi); try inv H2; repeat intro; discriminate. }
+    destruct  (observe phi) eqn : Hphi; try contradiction.
+    + symmetry in Hphi. simpobs Hphi. setoid_rewrite Hphi in Hrefphi.
+      assert ((Ret r0) ⊧ psi).
+      { apply Hrefphi; eauto. pfold. constructor. }
+      simpobs H2. rewrite Hphi in H2. rewrite bind_ret_l in H2.
+      eapply bind_monot_ret_bind_aux; eauto. 
+      apply Hrefkphi. rewrite H2. pfold. constructor. left. apply H.
+    + specialize (H0 t); contradiction.
+    + symmetry in Hphi. simpobs Hphi.
+      simpobs H2. rewrite Hphi in H2. rewrite bind_vis in H2.
+      pinversion H2; inj_existT; subst; inj_existT; subst.
+      setoid_rewrite Hphi in Hrefphi. clear H2 (* possibly a mistake*).
+      (* this is maybe like the ret case in a sense, likely I will need to coinduct again*)
+      (* like by Hrefphi I know that psi either gets to Vis (Spec_Vis e) eventually
+         or it has an inf forall, exist stream *)
+      clear Hphi phi H1 tr H0.
+      assert (forall a, (ITree.bind (k a) kphi  ≅ (kphi0 a) ) ); auto.
+      assert (forall a, (ktr a) ⊧ (kphi0 a)  ); auto.
+      setoid_rewrite <- H0 in H1. clear H H0 REL. 
+      generalize dependent psi. generalize dependent kpsi.
+      gcofix CIH1. intros kpsi Hrefkpsi CIH psi Hrefpsi.
+      (* psi ≈ Ret a \/ psi ≈ Vis e k*)
+      (* not sure exactly how to prove, also likely requires a little non classical logic *)
+      admit.
+
+  - pclearbot.
+    unfold observe in H2. cbn in H2. destruct (observe phi) eqn : Hphi.
+    + simpobs H2. symmetry in Hphi. simpobs Hphi. setoid_rewrite Hphi in Hrefphi.
+      assert ((Ret r0) ⊧ psi).
+      { apply Hrefphi; pfold; constructor. }
+      eapply bind_monot_ret_bind_aux; eauto. simpobs H1. setoid_rewrite H1.
+      rewrite <- itree_eta. apply Hrefkphi. rewrite H2.
+      pfold. red. constructor. left. auto.
+    + inv H2.
+    + cbn in H2. inv H2; inj_existT; subst; inj_existT.
+      simpobs H1. rewrite <- itree_eta in H1. symmetry in Hphi. simpobs Hphi.
+      setoid_rewrite Hphi in Hrefphi. rewrite H1. clear H1 tr0.
+      (* find a way to induct on H *)
+      destruct (classic (exists a : X, True) ) as [ [a _ ] | HX].
+      * admit.
+      * assert (forall a : X, False). 
+        { intros. apply HX. eauto. }
+        assert (forall tr, tr ⊧ psi).
+        { intros. apply Hrefphi. pfold. constructor. intros; contradiction. }
+        (* in this branch we find that psi is equivalent to true under the 
+           satisfies relation
+           
+         *)
+        enough (tr ⊧ (ITree.bind psi kpsi )).
+        { gfinal. right. eapply paco2_mon; try apply H2. intros; contradiction. }
+        (* turns out the bind_bind_true lemma is false, need to re-eval, may be what I am trying to prove 
+           in this branch is false *)
+        
+         
+                            
+
+
+    assert (exists k X, VisF (@Spec_forall E X) k = observe phi ).
+    { unfold observe in H2. cbn in H2. 
+      destruct (observe phi); try inv H2; repeat intro; discriminate. }
+    destruct  (observe phi) eqn : Hphi; try contradiction.
+
+(* Spec_forall case*) admit.
+  - (* Spec_exists case*) admit.
+                                                              
+    { unfold observe in H0. cbn in H0. destruct (observe phi0).
+
+    eapply IHHtr; auto.
+  
+  punfold Htr. red in Htr. unfold observe at 1 in Htr. cbn in Htr.
+  
 
 
   unfold refines. intros. cbn in *. generalize dependent phi. generalize dependent psi. 
@@ -234,34 +478,7 @@ Proof.
   - admit.
 *)
   Admitted.
-
-
-(* find a better place for this proof *)
-Lemma trace_iter_refine : forall E A B 
-(trbody : A -> itree (EvAns E) (A + B)) (body : A -> itree E (A + B) ),
-    (forall a, trbody a ⊑ body a) -> forall a, iter trbody a ⊑ iter body a.
-Proof. 
-  intros E A B. ginit.
-  { intros. apply cpn2_wcompat. auto with paco. }
-  gcofix CIH. intros ? ? Href a.
-  specialize (Href a) as Hrefa. 
-  unfold iter, Iter_Kleisli, Basics.iter, MonadIter_itree.
-  gstep. red. unfold observe. cbn.
- (*
-  (* look into gpaco properness stuff *)
-  setoid_rewrite unfold_iter.
-
-  admit. gcofix CIH. intros ? ? Href a. specialize (Href a) as Hrefa.
-  pfold. red. punfold Hrefa. red in Hrefa. unfold observe.
-  cbn. dependent induction Hrefa; try rewrite <- x; try rewrite <- x0;
-  pclearbot.
-  - destruct r2 as [a' | b].
-    + cbn. constructor. right. eapply CIH. auto.
-    + cbn. constructor. auto.
-  - cbn. 
-    constructor. left. pfold. red. admit.
-  - Locate eq_itree_iter'. eapply IHHrefa.
-*) Admitted.   
+*)
 
  (* can you rewrite obs with iter instead of a cofixpoint*)
  (* is it worth it*)

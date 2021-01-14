@@ -688,33 +688,6 @@ Proof.
   Admitted.
 
 
-(* find a better place for this proof *)
-Lemma trace_iter_refine : forall E A B 
-(trbody : A -> itree (EvAns E) (A + B)) (body : A -> itree E (A + B) ),
-    (forall a, trbody a ⊑ body a) -> forall a, iter trbody a ⊑ iter body a.
-Proof. 
-  intros E A B. ginit.
-  { intros. apply cpn2_wcompat. auto with paco. }
-  gcofix CIH. intros ? ? Href a.
-  specialize (Href a) as Hrefa. 
-  unfold iter, Iter_Kleisli, Basics.iter, MonadIter_itree.
-  gstep. red. unfold observe. cbn.
- (*
-  (* look into gpaco properness stuff *)
-  setoid_rewrite unfold_iter.
-
-  admit. gcofix CIH. intros ? ? Href a. specialize (Href a) as Hrefa.
-  pfold. red. punfold Hrefa. red in Hrefa. unfold observe.
-  cbn. dependent induction Hrefa; try rewrite <- x; try rewrite <- x0;
-  pclearbot.
-  - destruct r2 as [a' | b].
-    + cbn. constructor. right. eapply CIH. auto.
-    + cbn. constructor. auto.
-  - cbn. 
-    constructor. left. pfold. red. admit.
-  - Locate eq_itree_iter'. eapply IHHrefa.
-*) Admitted.   
-
  (* can you rewrite obs with iter instead of a cofixpoint*)
  (* is it worth it*)
  (* do we have mon*)

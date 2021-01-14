@@ -26,6 +26,7 @@ From ITree Require Import
      Dijkstra.DijkstraMonad
      Dijkstra.ITrace
      Dijkstra.ITraceBind
+     Dijkstra.EuttEv
      Dijkstra.EuttDiv
      Dijkstra.ITracePreds
      Dijkstra.ITraceBindTrigger
@@ -92,8 +93,71 @@ Hint Resolve monot_satisfies : paco.
 Definition satisfies {E R} (phi : itree_spec E R) (tr : itrace E R): Prop :=
   paco2 satisfies_ bot2 phi tr.
 
-Notation "tr ⊧ phi" := (satisfies phi tr ) (at level 5).
+Lemma eqitC_euttEv_wcompat_satisfies {E R} (b1 b2 : bool) :
+  wcompatible2 (@satisfies_ E R) (eqitC_euttEv eq b1 b2).
+Proof.
+  constructor.
+  { red. intros. eapply eqitC_euttEv_mon; eauto. }
+  intros.
+  dependent destruction PR. punfold EQVl. punfold EQVr. unfold_eqit.
+  hinduction REL before r; intros; clear t1' t2'.
+  - remember (RetF r0) as x. red.
+    hinduction EQVl before r; intros; subst; try inv Heqx; eauto; (try constructor; eauto).
+    remember (RetF r0) as x. hinduction EQVr before r; intros; subst; try inv Heqx; eauto.
+    eapply LERR1 in REL0; eauto. eapply LERR2 in REL; eauto. subst. constructor.
+  - red. remember (TauF phi) as x.
+    hinduction EQVl before r; intros; subst; try inv Heqx; try inv CHECK; ( try (constructor; eauto; fail )).
+    remember (TauF tr) as y.
+    hinduction EQVr before r; intros; subst; try inv Heqy; try inv CHECK; (try (constructor; eauto; fail)).
+    pclearbot. constructor. gclo. econstructor; eauto with paco.
+  - remember (TauF phi) as x. red.
+    hinduction EQVl before r; intros; subst; try inv Heqx; try inv CHECK; (try (constructor; eauto; fail)).
+    pclearbot. punfold REL. constructor. eapply IHREL; eauto.
+  - remember (TauF tr) as y. red.
+    hinduction EQVr before r; intros; subst; try inv Heqy; try inv CHECK; (try (constructor; eauto; fail)).
+    pclearbot. punfold REL. constructor. eapply IHREL; eauto.
+  - remember (VisF (Spec_Vis e) kphi ) as x. red.
+    hinduction EQVl before r; intros; subst; try dependent destruction Heqx; try inv CHECK; try (constructor; eauto; fail).
+    remember (VisF e0 ktr) as y. 
 
+    hinduction EQVr before r; intros; subst; try dependent destruction Heqy; try inv CHECK; eauto.
+    constructor. intros. pclearbot. gclo. econstructor; eauto.
+    gfinal. eauto.
+  - remember (VisF Spec_forall kphi) as x. red.
+    hinduction EQVl before r; intros; subst; try dependent destruction Heqx; eauto.
+    constructor. intros. pclearbot. specialize (REL a). gclo.
+    econstructor; eauto. gfinal. eauto.
+  - remember (VisF Spec_exists kphi) as x. red. destruct H as [a CIH].
+    hinduction EQVl before r; intros; subst; try dependent destruction Heqx; eauto.
+    constructor. exists a. gclo. specialize (REL a). pclearbot. econstructor; eauto.
+    gfinal. eauto.
+Qed.
+
+Hint Resolve (eqitC_euttEv_wcompat_satisfies true true) : paco.
+
+Global Instance gsatisfies_cong_eqit {E R r rg} :
+  Proper (@eq_itree (SpecEv E) R R eq ==> eq_itree eq ==> flip impl)
+         (gpaco2 satisfies_ (eqitC_euttEv eq true true) r rg  ).
+Proof.
+  repeat intro. gclo. econstructor; eauto. 
+  - eapply eqit_mon; try eapply H; eauto.
+  - eapply eqit_mon; try eapply H0; eauto.
+  - intros; subst; auto.
+  - intros; subst; auto.
+Qed.
+
+Global Instance gsatisfies_cong_euttge {E R r rg} :
+  Proper (@euttge (SpecEv E) R R eq ==> euttge eq ==> flip impl)
+         (gpaco2 satisfies_ (eqitC_euttEv eq true true) r rg  ).
+Proof.
+  repeat intro. gclo. econstructor; eauto; intros; subst; auto.
+Qed.
+
+(* Print wcompatible2 *)
+(* May have something to do with that closure thing *)
+(* It is in the itrees library, *)
+
+Notation "tr ⊧ phi" := (satisfies phi tr ) (at level 5).
 
 Definition refines {E R} (phi psi : itree_spec E R) : Prop :=
   forall tr, tr ⊧ phi -> tr ⊧ psi.
