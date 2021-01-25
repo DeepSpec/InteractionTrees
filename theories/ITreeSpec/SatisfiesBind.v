@@ -217,6 +217,11 @@ Section bind_true_true_counter.
       + cbn. constructor. pclearbot. right.  eauto.
       + destruct e; destruct ev.
   Qed.
+ 
+(* Universe inconsistency problem
+  Definition of_pred {E R} (P : itree E R -> Prop ) : itree_spec E R := 
+    Vis (@Spec_exists E (itree E R) ) (fun (t : itree E R) => Vis (@Spec_exists E (P t)) (fun _ : P t => obs t) ).
+*)
 
   Definition btt_counter_kpsi : bool -> itree_spec Void bool := fun _ => ITree.spin.
 
