@@ -87,3 +87,5 @@ theories/ITreeSpec/SatisfiesFacts.v
 theories/ITreeSpec/ITreeSpecObservation.v
 theories/ITreeSpec/ITreeSpecObservationFacts.v
 theories/ITreeSpec/SatisfiesBind.v
+
+theories/Secure/SecureEq.v
