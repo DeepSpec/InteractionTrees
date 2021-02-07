@@ -45,37 +45,6 @@ Import ITreeNotations.
 Local Open Scope itree.
 (* end hide *)
 
-
-(**** START: taken from Paco-4.0.1 ****)
-
-Lemma gpaco2_gen_guard {T0 T1} gf clo r rg:
-  @gpaco2 T0 T1 gf clo r (rg \2/ r) <2= gpaco2 gf clo r rg.
-Proof.
-  intros. destruct PR. econstructor.
-  eapply rclo2_mon. apply IN. intros.
-  destruct PR; [|right; apply H].
-  left. eapply paco2_mon_gen; intros. apply H. apply PR.
-  destruct PR. apply H0. right. apply H0.
-Qed.
-
-Lemma gpaco2_gpaco {T0 T1} gf (gf_mon: @monotone2 T0 T1 gf) clo r rg:
-  gpaco2 gf clo (gpaco2 gf clo r rg) (gupaco2 gf clo (rg \2/ r)) <2= gpaco2 gf clo r rg.
-Proof.
-  intros. apply gpaco2_unfold in PR; eauto.
-  econstructor. apply rclo2_rclo. eapply rclo2_mon. apply PR. clear x0 x1 PR. intros.
-  destruct PR; [|destruct H; apply IN].
-  apply rclo2_base. left. pstep.
-  eapply gf_mon. apply H. clear x0 x1 H. intros.
-  cut (@gupaco2 T0 T1 gf clo (rg \2/ r) x0 x1).
-  { intros. destruct H. eapply rclo2_mon. apply IN. intros.
-    destruct PR0; [|right; apply H].
-    left. eapply paco2_mon. apply H. intros. destruct PR0; apply H0.
-  }
-  apply gpaco2_gupaco; eauto. eapply gupaco2_mon. apply PR. intros.
-  destruct PR0; [apply H|].
-  eapply gpaco2_mon; [apply H|right|left]; intros; apply PR0.
-Qed.
-
 (** ** gpaco
 *)
 

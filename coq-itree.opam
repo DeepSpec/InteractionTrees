@@ -17,7 +17,7 @@ depends: [
   "ocaml"
   "coq" {>= "8.8"}
   "coq-ext-lib" {>= "0.11.1"}
-  "coq-paco" {>= "4.0.0"}
+  "coq-paco" {>= "4.0.1"}
   "ocamlbuild" {with-test}
 ]
 authors: [
