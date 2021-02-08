@@ -15,5 +15,5 @@ extraction: coq
 	sh extraction-test.sh
 
 clean: clean-coq
-	$(RM) -rf _build/
+	$(RM) -rf output
 	$(RM) extraction/*.ml{i,}
