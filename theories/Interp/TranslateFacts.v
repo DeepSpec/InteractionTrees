@@ -1,6 +1,14 @@
 (** * Theorems about [Interp.translate] *)
 
 (* begin hide *)
+From Coq Require Import
+     Program
+     Setoid
+     Morphisms
+     RelationClasses.
+
+From Paco Require Import paco.
+
 From ExtLib Require
      Structures.Monoid.
 
@@ -11,20 +19,13 @@ From ITree Require Import
      Core.Subevent
      Eq.Eq
      Eq.UpToTaus
+     Eq.Paco2
      Indexed.Sum
      Indexed.Function
      Indexed.Relation
      Interp.Interp.
 
 Import ITreeNotations.
-
-From Paco Require Import paco.
-
-From Coq Require Import
-     Program
-     Setoid
-     Morphisms
-     RelationClasses.
 (* end hide *)
 
 Section TranslateFacts.
@@ -70,7 +71,7 @@ Qed.
 Global Instance eq_itree_translate' :
   Proper (eq_itree eq ==> eq_itree eq) (@translate _ _ h R).
 Proof.
-  ginit. gcofix CIH.
+  ginit. pcofix CIH.
   intros x y H.
   rewrite itree_eta, (itree_eta (translate h y)), !unfold_translate, <-!itree_eta.
   punfold H. gstep. red in H |- *.
@@ -94,7 +95,7 @@ Lemma translate_bind : forall {E F R S} (h : E ~> F) (t : itree E S) (k : S -> i
 Proof.
   intros E F R S h t k.
   revert S t k.
-  ginit. gcofix CIH.
+  ginit. pcofix CIH.
   intros s t k.
   rewrite !unfold_translate, !unfold_bind.
   genobs_clear t ot. destruct ot; cbn.
@@ -107,7 +108,7 @@ Lemma translate_id : forall E R (t : itree E R), translate (id_ _) t ≅ t.
 Proof.
   intros E R t.
   revert t.
-  ginit. gcofix CIH.
+  ginit. pcofix CIH.
   intros t.
   rewrite itree_eta.
   rewrite (itree_eta t).
@@ -126,7 +127,7 @@ Lemma translate_cmpE : forall E F G R (g : F ~> G) (f : E ~> F) (t : itree E R),
 Proof.
   intros E F G R g f t.
   revert t.
-  ginit. gcofix CIH.
+  ginit. pcofix CIH.
   intros t.
   rewrite !unfold_translate.
   genobs_clear t ot. destruct ot; cbn.
@@ -167,7 +168,7 @@ Instance eq_itree_translate {E F}
             translate.
 Proof.
   intros f g Hfg T.
-  ginit. gcofix CIH; rename r into rr; intros l r Hlr.
+  ginit. pcofix CIH; rename r into rr; intros l r Hlr.
   rewrite 2 unfold_translate.
   punfold Hlr; red in Hlr.
   destruct Hlr; cbn; try discriminate; pclearbot.
@@ -183,7 +184,7 @@ Instance eutt_translate {E F}
 Proof.
   repeat red.
   intros until T.
-  ginit. gcofix CIH. intros.
+  ginit. pcofix CIH. intros.
   rewrite !unfold_translate. punfold H1. red in H1.
   induction H1; intros; subst; simpl.
   - gstep. econstructor. eauto.

@@ -25,6 +25,7 @@ From ITree Require Import
      Core.KTreeFacts
      Eq.Eq
      Eq.UpToTaus
+     Eq.Paco2
      Indexed.Sum
      Indexed.Function
      Indexed.Relation
@@ -113,8 +114,8 @@ Instance eq_itree_interp {E F}
             interp.
 Proof.
   intros f g Hfg T.
-  ginit. gcofix CIH with rr.
-  intros l r Hlr.
+  ginit. pcofix CIH.
+  intros l r0 Hlr.
   rewrite 2 unfold_interp.
   punfold Hlr; red in Hlr.
   destruct Hlr; cbn; subst; try discriminate; pclearbot; try (gstep; constructor; eauto with paco; fail).
@@ -138,7 +139,7 @@ Instance eutt_interp (E F : Type -> Type)
 Proof.
   repeat red.
   intros until T.
-  ginit. gcofix CIH. intros.
+  ginit. pcofix CIH. intros.
 
   rewrite !unfold_interp. punfold H1. red in H1.
   induction H1; intros; subst; pclearbot; simpl.
@@ -159,7 +160,7 @@ Instance euttge_interp (E F : Type -> Type)
 Proof.
   repeat red.
   intros until T.
-  ginit. gcofix CIH. intros.
+  ginit. pcofix CIH. intros.
 
   rewrite !unfold_interp. punfold H1. red in H1.
   induction H1; intros; subst; pclearbot; simpl.
@@ -227,7 +228,7 @@ Lemma interp_bind {E F R S}
     interp f (ITree.bind t k)
   ≅ ITree.bind (interp f t) (fun r => interp f (k r)).
 Proof.
-  revert R t k. ginit. gcofix CIH; intros.
+  revert R t k. ginit. pcofix CIH; intros.
   rewrite unfold_bind, (unfold_interp t).
   destruct (observe t); cbn.
   - rewrite bind_ret_l. apply reflexivity.
@@ -246,7 +247,7 @@ Hint Rewrite @interp_bind : itree.
 Lemma interp_id_h {A R} (t : itree A R)
   : interp (id_ A) t ≳ t.
 Proof.
-  revert t. ginit. gcofix CIH. intros.
+  revert t. ginit. pcofix CIH. intros.
   rewrite (itree_eta t), unfold_interp.
   destruct (observe t); try (gstep; constructor; auto with paco).
   cbn. gstep. red; cbn. constructor; red; intros.
@@ -271,7 +272,7 @@ Theorem interp_interp {E F G R} (f : E ~> itree F) (g : F ~> itree G) :
       interp g (interp f t)
     ≅ interp (fun _ e => interp g (f _ e)) t.
 Proof.
-  ginit. gcofix CIH. intros.
+  ginit. pcofix CIH. intros.
   rewrite 2 (unfold_interp t).
   destruct (observe t); cbn.
   - rewrite interp_ret. gstep. constructor. reflexivity.
@@ -290,7 +291,7 @@ Lemma interp_translate {E F G} (f : E ~> F) (g : F ~> itree G) {R} (t : itree E 
   interp g (translate f t) ≅ interp (fun _ e => g _ (f _ e)) t.
 Proof.
   revert t.  
-  ginit. gcofix CIH.
+  ginit. pcofix CIH.
   intros t.
   rewrite !unfold_interp. unfold _interp.
   rewrite unfold_translate_. unfold translateF.
@@ -318,7 +319,7 @@ Lemma interp_forever {E F} (f : E ~> itree F) {R S}
   : interp f (ITree.forever t)
   ≅ @ITree.forever F R S (interp f t).
 Proof.
-  ginit. gcofix CIH.
+  ginit. pcofix CIH.
   rewrite (unfold_forever t).
   rewrite (unfold_forever (interp _ _)).
   rewrite interp_bind.
@@ -335,7 +336,7 @@ Lemma interp_iter' {E F} (f : E ~> itree F) {I A}
     interp f (ITree.iter t i)
   ≅ ITree.iter t' i.
 Proof.
-  ginit. gcofix CIH; intros i.
+  ginit. pcofix CIH; intros i.
   rewrite 2 unfold_iter.
   rewrite interp_bind.
   guclo eqit_clo_bind; econstructor; eauto.

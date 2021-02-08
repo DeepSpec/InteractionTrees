@@ -20,6 +20,7 @@ From ITree Require Import
      Core.KTreeFacts
      Eq.Eq
      Eq.UpToTaus
+     Eq.Paco2
      Indexed.Sum
      Interp.Interp
      Interp.InterpFacts
@@ -64,7 +65,7 @@ Instance eq_itree_interp_state {E F S R} (h : E ~> Monads.stateT S (itree F)) :
          (@interp_state _ _ _ _ _ _ h R).
 Proof.
   revert_until R.
-  ginit. gcofix CIH. intros h x y H0 x2 _ [].
+  ginit. pcofix CIH. intros h x y H0 x2 _ [].
   rewrite !unfold_interp_state.
   punfold H0; repeat red in H0.
   destruct H0; subst; pclearbot; try discriminate; cbn.
@@ -129,7 +130,7 @@ Lemma interp_state_bind {E F : Type -> Type} {A B S : Type}
   (interp_state f t s >>= fun st => interp_state f (k (snd st)) (fst st)).
 Proof.
   revert A t k s.
-  ginit. gcofix CIH.
+  ginit. pcofix CIH.
   intros A t k s.
   rewrite unfold_bind. (* TODO: slow *)
   rewrite (unfold_interp_state f t).
@@ -151,7 +152,7 @@ Instance eutt_interp_state {E F: Type -> Type} {S : Type}
          (h : E ~> Monads.stateT S (itree F)) R RR :
   Proper (eutt RR ==> eq ==> eutt (prod_rel eq RR)) (@interp_state E (itree F) S _ _ _ h R).
 Proof.
-  repeat intro. subst. revert_until R.
+  repeat intro. subst. revert_until RR.
   einit. ecofix CIH. intros.
 
   rewrite !unfold_interp_state. punfold H0. red in H0.
@@ -272,7 +273,7 @@ Lemma interp_state_iter {E F } S (f : E ~> stateT S (itree F)) {I A}
                   (Basics.iter t' i).
 Proof.
   unfold Basics.iter, MonadIter_stateT0, Basics.iter, MonadIter_itree in *; cbn.
-  ginit. gcofix CIH; intros i s.
+  ginit. pcofix CIH; intros i s.
   rewrite 2 unfold_iter; cbn.
   rewrite !bind_bind.
   setoid_rewrite bind_ret_l.
