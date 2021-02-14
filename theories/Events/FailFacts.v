@@ -20,6 +20,7 @@ From ITree Require Import
      Core.KTreeFacts
      Eq.Eq
      Eq.UpToTaus
+     Eq.Paco2
      Indexed.Sum
      Interp.Interp
      Interp.InterpFacts
@@ -270,7 +271,7 @@ Lemma interp_fail_bind : forall {X Y E F} (t : itree _ X) (k : X -> itree _ Y) (
                 ITree.bind (interp_fail h t)
                 (fun mx => match mx with | None => ret None | Some x => interp_fail h (k x) end).
 Proof.
-  intros X Y; ginit; pcofix CIH; intros.
+  intros X Y E F; ginit; pcofix CIH; intros.
   rewrite unfold_bind.
   rewrite (unfold_interp_fail h t).
   destruct (observe t) eqn:EQ; cbn.

@@ -62,3 +62,4 @@ theories/Events/MapDefault.v
 theories/Events/MapDefaultFacts.v
 theories/Events/Concurrency.v
 theories/Events/Dependent.v
+theories/Events/FailFacts.v
