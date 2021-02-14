@@ -32,15 +32,11 @@ See also [the tutorial](./tutorial/README.md).
 
 ## Dependencies
 
-- [coq](https://coq.inria.fr/) (8.8, 8.9, or 8.10)
+- [coq](https://coq.inria.fr/) (8.9-8.13)
 - [coq-paco](https://github.com/snu-sf/paco)
-- [coq-ext-lib](https://github.com/coq-ext-lib/coq-ext-lib)
+- [coq-ext-lib](https://github.com/coq-community/coq-ext-lib)
 
 See [`coq-itree.opam`](./coq-itree.opam) for version details.
-
-## Contributions welcome
-
-Feel free to open an issue or a pull request!
 
 ## Axioms
 
@@ -65,6 +61,10 @@ you'll need it, and the rest of the library does not depend on it:
 ```coq
 Axiom bisimulation_is_eq : t1 ≅ t2 -> t1 = t2.
 ```
+
+## Contributions welcome
+
+Feel free to open an issue or a pull request!
 
 ---
 
@@ -98,10 +98,10 @@ Then visit `html/toc.html` in your web browser.
 #### 2. Prettier Documentation
 
 For a (much) nicer presentation of the documentation, you can use
-[coqdocjs](https://github.com/tebbi/coqdocjs).
+[coqdocjs](https://github.com/coq-community/coqdocjs).
 
 1. Download
-  [coqdocjs-master.zip](https://github.com/tebbi/coqdocjs/archive/master.zip)
+  [coqdocjs-master.zip](https://github.com/coq-community/coqdocjs/archive/master.zip)
   into the Interaction Trees root directory and unzip it.  (It should create the
   `coqdocjs-master` folder.)
 
