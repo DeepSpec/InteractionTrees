@@ -42,6 +42,30 @@ See [`coq-itree.opam`](./coq-itree.opam) for version details.
 
 Feel free to open an issue or a pull request!
 
+## Axioms
+
+This library depends on UIP for the inversion lemma:
+
+```coq
+Lemma eqit_inv_Vis
+  : eutt eq (Vis e k1) (Vis e k2) ->
+    forall x, eutt eq (k1 x) (k2 x).
+```
+
+There are a few more lemmas that depend on it, but you might not actually need
+it. For example, the compiler proof in `tutorial` doesn't need it and is
+axiom-free.
+
+That lemma also has a weaker, but axiom-free version using heterogeneous
+equality: `eqit_inv_Vis_weak`.
+
+The library exports the following axiom for convenience, though it's unlikely
+you'll need it, and the rest of the library does not depend on it:
+
+```coq
+Axiom bisimulation_is_eq : t1 ≅ t2 -> t1 = t2.
+```
+
 ---
 
 ## For developers
