@@ -1,0 +1,85 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<link href="coqdoc.css" rel="stylesheet" type="text/css" />
+<link href="coqdocjs.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="config.js"></script>
+<script type="text/javascript" src="coqdocjs.js"></script>
+</head>
+
+<body onload="document.getElementById('content').focus()">
+  <div id="header">
+    <span class="left">
+      <span class="modulename"> <script> document.write(document.title) </script> </span>
+    </span>
+
+    <span class="button" id="toggle-proofs"></span>
+
+    <span class="right">
+      <a href="https://github.com/DeepSpec/InteractionTrees">Project Page</a>
+      <a href="./indexpage.html"> Index </a>
+      <a href="./toc.html"> Table of Contents </a>
+    </span>
+</div>
+    <div id="content" tabindex="-1" onblur="document.getElementById('content').focus()">
+    <div id="main">
+<h1 class="libtitle">ITree.Events.Dependent</h1>
+
+<div class="code">
+</div>
+
+<div class="doc">
+<a id="lab150"></a><h1 class="section">Dependently-typed events</h1>
+
+<div class="paragraph"> </div>
+
+ A <i>type family</i> is given by a parameter type <span class="inlinecode"><a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianConstruct.I"><span class="id" title="variable">I</span></a></span> <span class="inlinecode">:</span> <span class="inlinecode"><span class="id" title="keyword">Type</span></span> and a type function
+    <span class="inlinecode"><span class="id" title="var">F</span></span> <span class="inlinecode">:</span> <span class="inlinecode"><a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianConstruct.I"><span class="id" title="variable">I</span></a></span> <span class="inlinecode">→</span> <span class="inlinecode"><span class="id" title="keyword">Type</span></span>.
+
+<div class="paragraph"> </div>
+
+    A type family <span class="inlinecode">(<a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianConstruct.I"><span class="id" title="variable">I</span></a>,</span> <span class="inlinecode"><span class="id" title="var">F</span></span> <span class="inlinecode">:</span> <span class="inlinecode"><a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianConstruct.I"><span class="id" title="variable">I</span></a></span> <span class="inlinecode">→</span> <span class="inlinecode"><span class="id" title="keyword">Type</span>)</span> can be encoded as an indexed type
+    <span class="inlinecode"><span class="id" title="var">E</span></span> <span class="inlinecode">:</span> <span class="inlinecode"><span class="id" title="keyword">Type</span></span> <span class="inlinecode">→</span> <span class="inlinecode"><span class="id" title="keyword">Type</span></span>.
+    A value <span class="inlinecode"><span class="id" title="var">i</span></span> <span class="inlinecode">:</span> <span class="inlinecode"><a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianConstruct.I"><span class="id" title="variable">I</span></a></span> can be seen as a "flat representation" of a value <span class="inlinecode"><span class="id" title="var">e</span></span> <span class="inlinecode">:</span> <span class="inlinecode"><span class="id" title="var">E</span></span> <span class="inlinecode"><span class="id" title="var">X</span></span>
+    (for arbitrary <span class="inlinecode"><span class="id" title="var">X</span></span>), while <span class="inlinecode"><span class="id" title="var">F</span></span> <span class="inlinecode"><span class="id" title="var">i</span></span> <span class="inlinecode">:</span> <span class="inlinecode"><span class="id" title="keyword">Type</span></span> gives the type index <span class="inlinecode"><span class="id" title="var">X</span></span> of this <span class="inlinecode"><span class="id" title="var">e</span></span>.
+
+<div class="paragraph"> </div>
+
+    This encoding can be seen as a kind of "dependently-typed event",
+    although the general use indexed types for event types already provides an
+    equally expressive form of dependency.
+ 
+</div>
+<div class="code">
+
+<br/>
+
+<br/>
+<span class="id" title="keyword">Variant</span> <a id="depE" class="idref" href="#depE"><span class="id" title="inductive">depE</span></a> {<a id="I:1" class="idref" href="#I:1"><span class="id" title="binder">I</span></a> : <span class="id" title="keyword">Type</span>} (<a id="F:2" class="idref" href="#F:2"><span class="id" title="binder">F</span></a> : <a class="idref" href="ITree.Events.Dependent.html#I:1"><span class="id" title="variable">I</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <span class="id" title="keyword">Type</span>) : <span class="id" title="keyword">Type</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <span class="id" title="keyword">Type</span> :=<br/>
+| <a id="Dep" class="idref" href="#Dep"><span class="id" title="constructor">Dep</span></a> (<a id="i:5" class="idref" href="#i:5"><span class="id" title="binder">i</span></a> : <a class="idref" href="ITree.Events.Dependent.html#I:1"><span class="id" title="variable">I</span></a>) : <a class="idref" href="ITree.Events.Dependent.html#depE:3"><span class="id" title="inductive">depE</span></a> <a class="idref" href="ITree.Events.Dependent.html#F:2"><span class="id" title="variable">F</span></a> (<a class="idref" href="ITree.Events.Dependent.html#F:2"><span class="id" title="variable">F</span></a> <a class="idref" href="ITree.Events.Dependent.html#i:5"><span class="id" title="variable">i</span></a>).<br/>
+
+<br/>
+<span class="id" title="var">Arguments</span> <a class="idref" href="ITree.Events.Dependent.html#Dep"><span class="id" title="constructor">Dep</span></a> {<span class="id" title="var">I</span> <span class="id" title="var">F</span>}.<br/>
+
+<br/>
+<span class="id" title="keyword">Definition</span> <a id="dep" class="idref" href="#dep"><span class="id" title="definition">dep</span></a> {<a id="I:6" class="idref" href="#I:6"><span class="id" title="binder">I</span></a> <a id="F:7" class="idref" href="#F:7"><span class="id" title="binder">F</span></a> <a id="E:8" class="idref" href="#E:8"><span class="id" title="binder">E</span></a>} `{<a id="H:9" class="idref" href="#H:9"><span class="id" title="binder">depE</span></a> <a id="H:9" class="idref" href="#H:9"><span class="id" title="binder">F</span></a> <a id="H:9" class="idref" href="#H:9"><span class="id" title="binder">-&lt;</span></a> <a id="H:9" class="idref" href="#H:9"><span class="id" title="binder">E</span></a>} (<a id="i:10" class="idref" href="#i:10"><span class="id" title="binder">i</span></a> : <a class="idref" href="ITree.Events.Dependent.html#I:6"><span class="id" title="variable">I</span></a>) : <a class="idref" href="ITree.Core.ITreeDefinition.html#itree"><span class="id" title="record">itree</span></a> <a class="idref" href="ITree.Events.Dependent.html#E:8"><span class="id" title="variable">E</span></a> (<a class="idref" href="ITree.Events.Dependent.html#F:7"><span class="id" title="variable">F</span></a> <a class="idref" href="ITree.Events.Dependent.html#i:10"><span class="id" title="variable">i</span></a>) :=<br/>
+&nbsp;&nbsp;<a class="idref" href="ITree.Core.Subevent.html#trigger"><span class="id" title="abbreviation">trigger</span></a> (<a class="idref" href="ITree.Events.Dependent.html#Dep"><span class="id" title="constructor">Dep</span></a> <a class="idref" href="ITree.Events.Dependent.html#i:10"><span class="id" title="variable">i</span></a>).<br/>
+
+<br/>
+<span class="id" title="keyword">Definition</span> <a id="undep" class="idref" href="#undep"><span class="id" title="definition">undep</span></a> {<a id="I:11" class="idref" href="#I:11"><span class="id" title="binder">I</span></a> <a id="F:12" class="idref" href="#F:12"><span class="id" title="binder">F</span></a>} (<a id="f:14" class="idref" href="#f:14"><span class="id" title="binder">f</span></a> : <span class="id" title="keyword">∀</span> <a id="i:13" class="idref" href="#i:13"><span class="id" title="binder">i</span></a> : <a class="idref" href="ITree.Events.Dependent.html#I:11"><span class="id" title="variable">I</span></a>, <a class="idref" href="ITree.Events.Dependent.html#F:12"><span class="id" title="variable">F</span></a> <a class="idref" href="ITree.Events.Dependent.html#i:13"><span class="id" title="variable">i</span></a>) :<br/>
+&nbsp;&nbsp;<a class="idref" href="ITree.Events.Dependent.html#depE"><span class="id" title="inductive">depE</span></a> <a class="idref" href="ITree.Events.Dependent.html#F:12"><span class="id" title="variable">F</span></a> <a class="idref" href="ITree.Basics.Basics.html#f7397da22bdab7f77b06c5d98764e7b9"><span class="id" title="notation">~&gt;</span></a> <a class="idref" href="ITree.Basics.Basics.html#Monads.identity"><span class="id" title="definition">identity</span></a> :=<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">fun</span> <span class="id" title="var">_</span> <a id="d:15" class="idref" href="#d:15"><span class="id" title="binder">d</span></a> ⇒<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <a class="idref" href="ITree.Events.Dependent.html#d:15"><span class="id" title="variable">d</span></a> <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <a class="idref" href="ITree.Events.Dependent.html#Dep"><span class="id" title="constructor">Dep</span></a> <span class="id" title="var">i</span> ⇒ <a class="idref" href="ITree.Events.Dependent.html#f:14"><span class="id" title="variable">f</span></a> <span class="id" title="var">i</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br/>
+</div>
+</div>
+<div id="footer">
+  Generated by <a href="http://coq.inria.fr/">coqdoc</a> and improved with <a href="https://github.com/tebbi/coqdocjs">CoqdocJS</a>
+</div>
+</div>
+</body>
+
+</html>

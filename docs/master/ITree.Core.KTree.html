@@ -1,0 +1,130 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<link href="coqdoc.css" rel="stylesheet" type="text/css" />
+<link href="coqdocjs.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="config.js"></script>
+<script type="text/javascript" src="coqdocjs.js"></script>
+</head>
+
+<body onload="document.getElementById('content').focus()">
+  <div id="header">
+    <span class="left">
+      <span class="modulename"> <script> document.write(document.title) </script> </span>
+    </span>
+
+    <span class="button" id="toggle-proofs"></span>
+
+    <span class="right">
+      <a href="https://github.com/DeepSpec/InteractionTrees">Project Page</a>
+      <a href="./indexpage.html"> Index </a>
+      <a href="./toc.html"> Table of Contents </a>
+    </span>
+</div>
+    <div id="content" tabindex="-1" onblur="document.getElementById('content').focus()">
+    <div id="main">
+<h1 class="libtitle">ITree.Core.KTree</h1>
+
+<div class="code">
+</div>
+
+<div class="doc">
+<a id="lab77"></a><h1 class="section">The category of continuation trees (KTrees)</h1>
+
+<div class="paragraph"> </div>
+
+ The Kleisli category of ITrees. 
+</div>
+<div class="code">
+
+<br/>
+
+<br/>
+<span class="id" title="keyword">Implicit</span> <span class="id" title="keyword">Types</span> <span class="id" title="var">E</span> : <span class="id" title="keyword">Type</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <span class="id" title="keyword">Type</span>.<br/>
+<span class="id" title="keyword">Implicit</span> <span class="id" title="keyword">Types</span> <span class="id" title="var">a</span> <span class="id" title="var">b</span> : <span class="id" title="keyword">Type</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Notation</span> <a id="ktree" class="idref" href="#ktree"><span class="id" title="abbreviation">ktree</span></a> <span class="id" title="var">E</span> := (<a class="idref" href="ITree.Basics.CategoryKleisli.html#Kleisli"><span class="id" title="definition">Kleisli</span></a> (<a class="idref" href="ITree.Core.ITreeDefinition.html#itree"><span class="id" title="record">itree</span></a> <span class="id" title="var">E</span>)).<br/>
+
+<br/>
+<span class="comment">(*<br/>
+&nbsp;&nbsp;The&nbsp;following&nbsp;line&nbsp;removes&nbsp;the&nbsp;warning&nbsp;on&nbsp;&gt;=8.10,&nbsp;but&nbsp;is&nbsp;incompatible&nbsp;for&nbsp;&lt;8.10<br/>
+&nbsp;*)</span><br/>
+<span class="comment">(*&nbsp;Declare&nbsp;Scope&nbsp;ktree_scope.&nbsp;*)</span><br/>
+<span class="id" title="keyword">Bind</span> <span class="id" title="keyword">Scope</span> <span class="id" title="var">ktree_scope</span> <span class="id" title="keyword">with</span> <span class="id" title="var">ktree</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Notation</span> <a id="ktree_apply" class="idref" href="#ktree_apply"><span class="id" title="abbreviation">ktree_apply</span></a> := (@<a class="idref" href="ITree.Basics.CategoryKleisli.html#Kleisli_apply"><span class="id" title="definition">Kleisli_apply</span></a> (<a class="idref" href="ITree.Core.ITreeDefinition.html#itree"><span class="id" title="record">itree</span></a> <span class="id" title="var">_</span>)).<br/>
+<span class="id" title="keyword">Notation</span> <a id="lift_ktree" class="idref" href="#lift_ktree"><span class="id" title="abbreviation">lift_ktree</span></a> := (@<a class="idref" href="ITree.Basics.CategoryKleisli.html#pure"><span class="id" title="definition">pure</span></a> (<a class="idref" href="ITree.Core.ITreeDefinition.html#itree"><span class="id" title="record">itree</span></a> <span class="id" title="var">_</span>) <span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span>).<br/>
+<span class="id" title="keyword">Notation</span> <a id="lift_ktree_" class="idref" href="#lift_ktree_"><span class="id" title="abbreviation">lift_ktree_</span></a> <span class="id" title="var">E</span> <span class="id" title="var">a</span> <span class="id" title="var">b</span> := (@<a class="idref" href="ITree.Basics.CategoryKleisli.html#pure"><span class="id" title="definition">pure</span></a> (<a class="idref" href="ITree.Core.ITreeDefinition.html#itree"><span class="id" title="record">itree</span></a> <span class="id" title="var">E</span>) <span class="id" title="var">_</span> <span class="id" title="var">a</span> <span class="id" title="var">b</span>).<br/>
+
+<br/>
+<span class="comment">(*&nbsp;<span class="inlinecode"><span class="id" title="var">ktree</span></span> <span class="inlinecode"><span class="id" title="var">E</span></span>&nbsp;forms&nbsp;an&nbsp;iterative&nbsp;category,&nbsp;i.e.&nbsp;a&nbsp;cocartesian&nbsp;category&nbsp;with&nbsp;a<br/>
+&nbsp;&nbsp;&nbsp;loop&nbsp;operator&nbsp;*)</span><br/>
+<span class="comment">(*&nbsp;Obj&nbsp;≅&nbsp;Type&nbsp;*)</span><br/>
+<span class="comment">(*&nbsp;Arrow:&nbsp;A&nbsp;-&gt;&nbsp;B&nbsp;≅&nbsp;terms&nbsp;of&nbsp;type&nbsp;(ktree&nbsp;A&nbsp;B)&nbsp;*)</span><br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab78"></a><h2 class="section">Categorical operations</h2>
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Section</span> <a id="Operations" class="idref" href="#Operations"><span class="id" title="section">Operations</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Context</span> {<a id="E:1" class="idref" href="#E:1"><span class="id" title="binder">E</span></a> : <span class="id" title="keyword">Type</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <span class="id" title="keyword">Type</span>}.<br/>
+
+<br/>
+<span class="id" title="keyword">Local</span> <span class="id" title="keyword">Notation</span> <a id="ktree" class="idref" href="#ktree"><span class="id" title="abbreviation">ktree</span></a> := (<a class="idref" href="ITree.Core.KTree.html#ktree"><span class="id" title="abbreviation">ktree</span></a> <a class="idref" href="ITree.Core.KTree.html#Operations.E"><span class="id" title="variable">E</span></a>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab79"></a><h3 class="section">Traced monoidal category</h3>
+
+<div class="paragraph"> </div>
+
+ The trace operator here is <span class="inlinecode"><a class="idref" href="ITree.Basics.CategoryOps.html#loop"><span class="id" title="definition">loop</span></a></span>.
+
+<div class="paragraph"> </div>
+
+   We can view a <span class="inlinecode"><a class="idref" href="ITree.Core.KTree.html#ktree"><span class="id" title="abbreviation">ktree</span></a></span> <span class="inlinecode">(<a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianConstruct.I"><span class="id" title="variable">I</span></a></span> <span class="inlinecode">+</span> <span class="inlinecode"><span class="id" title="var">A</span>)</span> <span class="inlinecode">(<a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianConstruct.I"><span class="id" title="variable">I</span></a></span> <span class="inlinecode">+</span> <span class="inlinecode"><span class="id" title="var">B</span>)</span> as a circuit, drawn below as <span class="inlinecode">###</span>,
+   with two input wires labeled by <span class="inlinecode"><a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianConstruct.I"><span class="id" title="variable">I</span></a></span> and <span class="inlinecode"><span class="id" title="var">A</span></span>, and two output wires
+   labeled by <span class="inlinecode"><a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianConstruct.I"><span class="id" title="variable">I</span></a></span> and <span class="inlinecode"><span class="id" title="var">B</span></span>.
+
+<div class="paragraph"> </div>
+
+   The <span class="inlinecode"><a class="idref" href="ITree.Basics.CategoryOps.html#loop"><span class="id" title="definition">loop</span></a></span> <span class="inlinecode">:</span> <span class="inlinecode"><a class="idref" href="ITree.Core.KTree.html#ktree"><span class="id" title="abbreviation">ktree</span></a></span> <span class="inlinecode">(<a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianConstruct.I"><span class="id" title="variable">I</span></a></span> <span class="inlinecode">+</span> <span class="inlinecode"><span class="id" title="var">A</span>)</span> <span class="inlinecode">(<a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianConstruct.I"><span class="id" title="variable">I</span></a></span> <span class="inlinecode">+</span> <span class="inlinecode"><span class="id" title="var">B</span>)</span> <span class="inlinecode">→</span> <span class="inlinecode"><a class="idref" href="ITree.Core.KTree.html#ktree"><span class="id" title="abbreviation">ktree</span></a></span> <span class="inlinecode"><span class="id" title="var">A</span></span> <span class="inlinecode"><span class="id" title="var">B</span></span> combinator closes
+   the circuit, linking the box with itself by plugging the <span class="inlinecode"><a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianConstruct.I"><span class="id" title="variable">I</span></a></span> output
+   back into the input.
+<br/>
+<span class="inlinecode">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+-----+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| ### |<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+-###-+<a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianConstruct.I"><span class="id" title="variable">I</span></a><br/>
+&nbsp;&nbsp;<span class="id" title="var">A</span>----###----<span class="id" title="var">B</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;###
+<div class="paragraph"> </div>
+
+</span> 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">End</span> <a class="idref" href="ITree.Core.KTree.html#Operations"><span class="id" title="section">Operations</span></a>.<br/>
+</div>
+</div>
+<div id="footer">
+  Generated by <a href="http://coq.inria.fr/">coqdoc</a> and improved with <a href="https://github.com/tebbi/coqdocjs">CoqdocJS</a>
+</div>
+</div>
+</body>
+
+</html>

@@ -1,0 +1,140 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<link href="coqdoc.css" rel="stylesheet" type="text/css" />
+<link href="coqdocjs.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="config.js"></script>
+<script type="text/javascript" src="coqdocjs.js"></script>
+</head>
+
+<body onload="document.getElementById('content').focus()">
+  <div id="header">
+    <span class="left">
+      <span class="modulename"> <script> document.write(document.title) </script> </span>
+    </span>
+
+    <span class="button" id="toggle-proofs"></span>
+
+    <span class="right">
+      <a href="https://github.com/DeepSpec/InteractionTrees">Project Page</a>
+      <a href="./indexpage.html"> Index </a>
+      <a href="./toc.html"> Table of Contents </a>
+    </span>
+</div>
+    <div id="content" tabindex="-1" onblur="document.getElementById('content').focus()">
+    <div id="main">
+<h1 class="libtitle">ITree.Events.Nondeterminism</h1>
+
+<div class="code">
+</div>
+
+<div class="doc">
+<a id="lab144"></a><h1 class="section">Nondeterminism</h1>
+
+<div class="paragraph"> </div>
+
+ Actually, bounded nondeterminism. 
+</div>
+<div class="code">
+
+<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Make nondeterministic choices. 
+</div>
+<div class="code">
+<span class="id" title="keyword">Variant</span> <a id="nondetE" class="idref" href="#nondetE"><span class="id" title="inductive">nondetE</span></a> : <span class="id" title="keyword">Type</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <span class="id" title="keyword">Type</span> :=<br/>
+| <a id="Or" class="idref" href="#Or"><span class="id" title="constructor">Or</span></a> : <a class="idref" href="ITree.Events.Nondeterminism.html#nondetE:1"><span class="id" title="inductive">nondetE</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Datatypes.html#bool"><span class="id" title="inductive">bool</span></a>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Choose one of two computations. 
+</div>
+<div class="code">
+<span class="id" title="keyword">Definition</span> <a id="or" class="idref" href="#or"><span class="id" title="definition">or</span></a> {<a id="E:3" class="idref" href="#E:3"><span class="id" title="binder">E</span></a>} `{<a id="H:4" class="idref" href="#H:4"><span class="id" title="binder">nondetE</span></a> <a id="H:4" class="idref" href="#H:4"><span class="id" title="binder">-&lt;</span></a> <a id="H:4" class="idref" href="#H:4"><span class="id" title="binder">E</span></a>} {<a id="R:5" class="idref" href="#R:5"><span class="id" title="binder">R</span></a>} (<a id="t1:6" class="idref" href="#t1:6"><span class="id" title="binder">t1</span></a> <a id="t2:7" class="idref" href="#t2:7"><span class="id" title="binder">t2</span></a> : <a class="idref" href="ITree.Core.ITreeDefinition.html#itree"><span class="id" title="record">itree</span></a> <a class="idref" href="ITree.Events.Nondeterminism.html#E:3"><span class="id" title="variable">E</span></a> <a class="idref" href="ITree.Events.Nondeterminism.html#R:5"><span class="id" title="variable">R</span></a>)<br/>
+&nbsp;&nbsp;: <a class="idref" href="ITree.Core.ITreeDefinition.html#itree"><span class="id" title="record">itree</span></a> <a class="idref" href="ITree.Events.Nondeterminism.html#E:3"><span class="id" title="variable">E</span></a> <a class="idref" href="ITree.Events.Nondeterminism.html#R:5"><span class="id" title="variable">R</span></a> :=<br/>
+&nbsp;&nbsp;<a class="idref" href="ITree.Core.Subevent.html#vis"><span class="id" title="abbreviation">vis</span></a> <a class="idref" href="ITree.Events.Nondeterminism.html#Or"><span class="id" title="constructor">Or</span></a> (<span class="id" title="keyword">fun</span> <a id="b:8" class="idref" href="#b:8"><span class="id" title="binder">b</span></a> : <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Datatypes.html#bool"><span class="id" title="inductive">bool</span></a> ⇒ <span class="id" title="keyword">if</span> <a class="idref" href="ITree.Events.Nondeterminism.html#b:8"><span class="id" title="variable">b</span></a> <span class="id" title="keyword">then</span> <a class="idref" href="ITree.Events.Nondeterminism.html#t1:6"><span class="id" title="variable">t1</span></a> <span class="id" title="keyword">else</span> <a class="idref" href="ITree.Events.Nondeterminism.html#t2:7"><span class="id" title="variable">t2</span></a>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Choose an element from a nonempty list (with the head and tail
+    as separate arguments), so it cannot fail. 
+</div>
+<div class="code">
+<span class="id" title="keyword">Definition</span> <a id="choose1" class="idref" href="#choose1"><span class="id" title="definition">choose1</span></a> {<a id="E:9" class="idref" href="#E:9"><span class="id" title="binder">E</span></a>} `{<a id="H:10" class="idref" href="#H:10"><span class="id" title="binder">nondetE</span></a> <a id="H:10" class="idref" href="#H:10"><span class="id" title="binder">-&lt;</span></a> <a id="H:10" class="idref" href="#H:10"><span class="id" title="binder">E</span></a>} {<a id="X:11" class="idref" href="#X:11"><span class="id" title="binder">X</span></a>}<br/>
+&nbsp;&nbsp;: <a class="idref" href="ITree.Events.Nondeterminism.html#X:11"><span class="id" title="variable">X</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Datatypes.html#list"><span class="id" title="inductive">list</span></a> <a class="idref" href="ITree.Events.Nondeterminism.html#X:11"><span class="id" title="variable">X</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <a class="idref" href="ITree.Core.ITreeDefinition.html#itree"><span class="id" title="record">itree</span></a> <a class="idref" href="ITree.Events.Nondeterminism.html#E:9"><span class="id" title="variable">E</span></a> <a class="idref" href="ITree.Events.Nondeterminism.html#X:11"><span class="id" title="variable">X</span></a><br/>
+&nbsp;&nbsp;:= <span class="id" title="keyword">fix</span> <span class="id" title="var">choose1'</span> <a id="x:12" class="idref" href="#x:12"><span class="id" title="binder">x</span></a> <a id="xs:13" class="idref" href="#xs:13"><span class="id" title="binder">xs</span></a> : <a class="idref" href="ITree.Core.ITreeDefinition.html#itree"><span class="id" title="record">itree</span></a> <a class="idref" href="ITree.Events.Nondeterminism.html#E:9"><span class="id" title="variable">E</span></a> <a class="idref" href="ITree.Events.Nondeterminism.html#X:11"><span class="id" title="variable">X</span></a> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <a class="idref" href="ITree.Events.Nondeterminism.html#xs:13"><span class="id" title="variable">xs</span></a> <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Lists.List.html#ae9a5e1034e143b218b09d8e454472bd"><span class="id" title="notation">[]</span></a> ⇒ <a class="idref" href="ITree.Core.ITreeDefinition.html#Ret"><span class="id" title="abbreviation">Ret</span></a> <a class="idref" href="ITree.Events.Nondeterminism.html#x:12"><span class="id" title="variable">x</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">x'</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Datatypes.html#::list_scope:x_'::'_x"><span class="id" title="notation">::</span></a> <span class="id" title="var">xs</span> ⇒ <a class="idref" href="ITree.Events.Nondeterminism.html#or"><span class="id" title="definition">or</span></a> (<a class="idref" href="ITree.Core.ITreeDefinition.html#Ret"><span class="id" title="abbreviation">Ret</span></a> <a class="idref" href="ITree.Events.Nondeterminism.html#x:12"><span class="id" title="variable">x</span></a>) (<a class="idref" href="ITree.Events.Nondeterminism.html#choose1':14"><span class="id" title="variable">choose1'</span></a> <span class="id" title="var">x'</span> <a class="idref" href="ITree.Events.Nondeterminism.html#xs:13"><span class="id" title="variable">xs</span></a>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Pick any element in a list apart from the others. 
+</div>
+<div class="code">
+<span class="id" title="keyword">Definition</span> <a id="remove_from" class="idref" href="#remove_from"><span class="id" title="definition">remove_from</span></a> {<a id="X:16" class="idref" href="#X:16"><span class="id" title="binder">X</span></a>} : <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Datatypes.html#list"><span class="id" title="inductive">list</span></a> <a class="idref" href="ITree.Events.Nondeterminism.html#X:16"><span class="id" title="variable">X</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Datatypes.html#list"><span class="id" title="inductive">list</span></a> (<a class="idref" href="ITree.Events.Nondeterminism.html#X:16"><span class="id" title="variable">X</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Datatypes.html#11c698c8685bb8ab1cf725545c085ac4"><span class="id" title="notation">×</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Datatypes.html#list"><span class="id" title="inductive">list</span></a> <a class="idref" href="ITree.Events.Nondeterminism.html#X:16"><span class="id" title="variable">X</span></a>) :=<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="keyword">fix</span> <a id="remove_from_:21" class="idref" href="#remove_from_:21"><span class="id" title="binder">remove_from_</span></a> <a id="pre:17" class="idref" href="#pre:17"><span class="id" title="binder">pre</span></a> <a id="xs:18" class="idref" href="#xs:18"><span class="id" title="binder">xs</span></a> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <a class="idref" href="ITree.Events.Nondeterminism.html#xs:18"><span class="id" title="variable">xs</span></a> <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Lists.List.html#ae9a5e1034e143b218b09d8e454472bd"><span class="id" title="notation">[]</span></a> ⇒ <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Lists.List.html#ae9a5e1034e143b218b09d8e454472bd"><span class="id" title="notation">[]</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">x</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Datatypes.html#::list_scope:x_'::'_x"><span class="id" title="notation">::</span></a> <span class="id" title="var">xs'</span> ⇒ <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">(</span></a><span class="id" title="var">x</span><a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">,</span></a> <a class="idref" href="ITree.Events.Nondeterminism.html#pre:17"><span class="id" title="variable">pre</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Datatypes.html#bc347c51eaf667706ae54503b26d52c6"><span class="id" title="notation">++</span></a> <span class="id" title="var">xs'</span><a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">)</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Datatypes.html#::list_scope:x_'::'_x"><span class="id" title="notation">::</span></a> <a class="idref" href="ITree.Events.Nondeterminism.html#remove_from_:19"><span class="id" title="variable">remove_from_</span></a> (<a class="idref" href="ITree.Events.Nondeterminism.html#pre:17"><span class="id" title="variable">pre</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Datatypes.html#bc347c51eaf667706ae54503b26d52c6"><span class="id" title="notation">++</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Lists.List.html#ddd65c2f7ee73ecec433744948d846bb"><span class="id" title="notation">[</span></a><span class="id" title="var">x</span><a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Lists.List.html#ddd65c2f7ee73ecec433744948d846bb"><span class="id" title="notation">]</span></a>) <span class="id" title="var">xs'</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span> <span class="id" title="tactic">in</span><br/>
+&nbsp;&nbsp;<a class="idref" href="ITree.Events.Nondeterminism.html#remove_from_:21"><span class="id" title="variable">remove_from_</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Lists.List.html#ae9a5e1034e143b218b09d8e454472bd"><span class="id" title="notation">[]</span></a>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab145"></a><h2 class="section">Empty nondeterminism</h2>
+
+<div class="paragraph"> </div>
+
+ We can use <span class="inlinecode"><a class="idref" href="ITree.Events.Exception.html#exceptE"><span class="id" title="inductive">exceptE</span></a></span> events to model nullary branching. 
+<div class="paragraph"> </div>
+
+ Exception thrown by <span class="inlinecode"><a class="idref" href="ITree.Events.Nondeterminism.html#choose"><span class="id" title="definition">choose</span></a></span>. 
+</div>
+<div class="code">
+<span class="id" title="keyword">Variant</span> <a id="no_choice" class="idref" href="#no_choice"><span class="id" title="inductive">no_choice</span></a> : <span class="id" title="keyword">Set</span> := <a id="NoChoice" class="idref" href="#NoChoice"><span class="id" title="constructor">NoChoice</span></a>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Choose an element from a list.
+
+<div class="paragraph"> </div>
+
+    This can fail if the list is empty, using the <span class="inlinecode"><a class="idref" href="ITree.Events.Exception.html#exceptE"><span class="id" title="inductive">exceptE</span></a></span> <span class="inlinecode"><a class="idref" href="ITree.Events.Nondeterminism.html#no_choice"><span class="id" title="inductive">no_choice</span></a></span> event.
+ 
+</div>
+<div class="code">
+<span class="id" title="keyword">Definition</span> <a id="choose" class="idref" href="#choose"><span class="id" title="definition">choose</span></a> {<a id="E:24" class="idref" href="#E:24"><span class="id" title="binder">E</span></a>} `{<a id="H:25" class="idref" href="#H:25"><span class="id" title="binder">nondetE</span></a> <a id="H:25" class="idref" href="#H:25"><span class="id" title="binder">-&lt;</span></a> <a id="H:25" class="idref" href="#H:25"><span class="id" title="binder">E</span></a>} `{<a id="H0:26" class="idref" href="#H0:26"><span class="id" title="binder">exceptE</span></a> <a id="H0:26" class="idref" href="#H0:26"><span class="id" title="binder">no_choice</span></a> <a id="H0:26" class="idref" href="#H0:26"><span class="id" title="binder">-&lt;</span></a> <a id="H0:26" class="idref" href="#H0:26"><span class="id" title="binder">E</span></a>} {<a id="X:27" class="idref" href="#X:27"><span class="id" title="binder">X</span></a>}<br/>
+&nbsp;&nbsp;: <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Datatypes.html#list"><span class="id" title="inductive">list</span></a> <a class="idref" href="ITree.Events.Nondeterminism.html#X:27"><span class="id" title="variable">X</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <a class="idref" href="ITree.Core.ITreeDefinition.html#itree"><span class="id" title="record">itree</span></a> <a class="idref" href="ITree.Events.Nondeterminism.html#E:24"><span class="id" title="variable">E</span></a> <a class="idref" href="ITree.Events.Nondeterminism.html#X:27"><span class="id" title="variable">X</span></a><br/>
+&nbsp;&nbsp;:= <span class="id" title="keyword">fix</span> <span class="id" title="var">choose'</span> <a id="xs:28" class="idref" href="#xs:28"><span class="id" title="binder">xs</span></a> : <a class="idref" href="ITree.Core.ITreeDefinition.html#itree"><span class="id" title="record">itree</span></a> <a class="idref" href="ITree.Events.Nondeterminism.html#E:24"><span class="id" title="variable">E</span></a> <a class="idref" href="ITree.Events.Nondeterminism.html#X:27"><span class="id" title="variable">X</span></a> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <a class="idref" href="ITree.Events.Nondeterminism.html#xs:28"><span class="id" title="variable">xs</span></a> <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Lists.List.html#ae9a5e1034e143b218b09d8e454472bd"><span class="id" title="notation">[]</span></a> ⇒ <a class="idref" href="ITree.Events.Exception.html#throw"><span class="id" title="definition">throw</span></a> <a class="idref" href="ITree.Events.Nondeterminism.html#NoChoice"><span class="id" title="constructor">NoChoice</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">x</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Datatypes.html#::list_scope:x_'::'_x"><span class="id" title="notation">::</span></a> <span class="id" title="var">xs</span> ⇒<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="ITree.Events.Nondeterminism.html#or"><span class="id" title="definition">or</span></a> (<a class="idref" href="ITree.Core.ITreeDefinition.html#Ret"><span class="id" title="abbreviation">Ret</span></a> <span class="id" title="var">x</span>) (<a class="idref" href="ITree.Events.Nondeterminism.html#choose':29"><span class="id" title="variable">choose'</span></a> <a class="idref" href="ITree.Events.Nondeterminism.html#xs:28"><span class="id" title="variable">xs</span></a>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br/>
+</div>
+</div>
+<div id="footer">
+  Generated by <a href="http://coq.inria.fr/">coqdoc</a> and improved with <a href="https://github.com/tebbi/coqdocjs">CoqdocJS</a>
+</div>
+</div>
+</body>
+
+</html>

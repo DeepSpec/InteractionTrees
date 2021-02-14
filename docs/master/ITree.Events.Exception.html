@@ -1,0 +1,71 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<link href="coqdoc.css" rel="stylesheet" type="text/css" />
+<link href="coqdocjs.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="config.js"></script>
+<script type="text/javascript" src="coqdocjs.js"></script>
+</head>
+
+<body onload="document.getElementById('content').focus()">
+  <div id="header">
+    <span class="left">
+      <span class="modulename"> <script> document.write(document.title) </script> </span>
+    </span>
+
+    <span class="button" id="toggle-proofs"></span>
+
+    <span class="right">
+      <a href="https://github.com/DeepSpec/InteractionTrees">Project Page</a>
+      <a href="./indexpage.html"> Index </a>
+      <a href="./toc.html"> Table of Contents </a>
+    </span>
+</div>
+    <div id="content" tabindex="-1" onblur="document.getElementById('content').focus()">
+    <div id="main">
+<h1 class="libtitle">ITree.Events.Exception</h1>
+
+<div class="code">
+</div>
+
+<div class="doc">
+<a id="lab143"></a><h1 class="section">Exception event</h1>
+
+</div>
+<div class="code">
+
+<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Throw exceptions of type <span class="inlinecode"><span class="id" title="var">Err</span></span>. 
+</div>
+<div class="code">
+<span class="id" title="keyword">Variant</span> <a id="exceptE" class="idref" href="#exceptE"><span class="id" title="inductive">exceptE</span></a> (<a id="Err:1" class="idref" href="#Err:1"><span class="id" title="binder">Err</span></a> : <span class="id" title="keyword">Type</span>) : <span class="id" title="keyword">Type</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <span class="id" title="keyword">Type</span> :=<br/>
+| <a id="Throw" class="idref" href="#Throw"><span class="id" title="constructor">Throw</span></a> : <a class="idref" href="ITree.Events.Exception.html#Err:1"><span class="id" title="variable">Err</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <a class="idref" href="ITree.Events.Exception.html#exceptE:2"><span class="id" title="inductive">exceptE</span></a> <a class="idref" href="ITree.Events.Exception.html#Err:1"><span class="id" title="variable">Err</span></a> <a class="idref" href="ITree.Basics.Basics.html#void"><span class="id" title="abbreviation">void</span></a>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Since the output type of <span class="inlinecode"><a class="idref" href="ITree.Events.Exception.html#Throw"><span class="id" title="constructor">Throw</span></a></span> is <span class="inlinecode"><a class="idref" href="ITree.Basics.Basics.html#void"><span class="id" title="abbreviation">void</span></a></span>, we can make it an action
+    with any return type. 
+</div>
+<div class="code">
+<span class="id" title="keyword">Definition</span> <a id="throw" class="idref" href="#throw"><span class="id" title="definition">throw</span></a> {<a id="Err:4" class="idref" href="#Err:4"><span class="id" title="binder">Err</span></a> : <span class="id" title="keyword">Type</span>} {<a id="E:5" class="idref" href="#E:5"><span class="id" title="binder">E</span></a> : <span class="id" title="keyword">Type</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <span class="id" title="keyword">Type</span>} `{<a id="H:6" class="idref" href="#H:6"><span class="id" title="binder">exceptE</span></a> <a id="H:6" class="idref" href="#H:6"><span class="id" title="binder">Err</span></a> <a id="H:6" class="idref" href="#H:6"><span class="id" title="binder">-&lt;</span></a> <a id="H:6" class="idref" href="#H:6"><span class="id" title="binder">E</span></a>} {<a id="X:7" class="idref" href="#X:7"><span class="id" title="binder">X</span></a>}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<a id="e:8" class="idref" href="#e:8"><span class="id" title="binder">e</span></a> : <a class="idref" href="ITree.Events.Exception.html#Err:4"><span class="id" title="variable">Err</span></a>)<br/>
+&nbsp;&nbsp;: <a class="idref" href="ITree.Core.ITreeDefinition.html#itree"><span class="id" title="record">itree</span></a> <a class="idref" href="ITree.Events.Exception.html#E:5"><span class="id" title="variable">E</span></a> <a class="idref" href="ITree.Events.Exception.html#X:7"><span class="id" title="variable">X</span></a><br/>
+&nbsp;&nbsp;:= <a class="idref" href="ITree.Core.Subevent.html#vis"><span class="id" title="abbreviation">vis</span></a> (<a class="idref" href="ITree.Events.Exception.html#Throw"><span class="id" title="constructor">Throw</span></a> <a class="idref" href="ITree.Events.Exception.html#e:8"><span class="id" title="variable">e</span></a>) (<span class="id" title="keyword">fun</span> <a id="v:9" class="idref" href="#v:9"><span class="id" title="binder">v</span></a> : <a class="idref" href="ITree.Basics.Basics.html#void"><span class="id" title="abbreviation">void</span></a> ⇒ <span class="id" title="keyword">match</span> <a class="idref" href="ITree.Events.Exception.html#v:9"><span class="id" title="variable">v</span></a> <span class="id" title="keyword">with</span> <span class="id" title="keyword">end</span>).<br/>
+</div>
+</div>
+<div id="footer">
+  Generated by <a href="http://coq.inria.fr/">coqdoc</a> and improved with <a href="https://github.com/tebbi/coqdocjs">CoqdocJS</a>
+</div>
+</div>
+</body>
+
+</html>

@@ -1,0 +1,930 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<link href="coqdoc.css" rel="stylesheet" type="text/css" />
+<link href="coqdocjs.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="config.js"></script>
+<script type="text/javascript" src="coqdocjs.js"></script>
+</head>
+
+<body onload="document.getElementById('content').focus()">
+  <div id="header">
+    <span class="left">
+      <span class="modulename"> <script> document.write(document.title) </script> </span>
+    </span>
+
+    <span class="button" id="toggle-proofs"></span>
+
+    <span class="right">
+      <a href="https://github.com/DeepSpec/InteractionTrees">Project Page</a>
+      <a href="./indexpage.html"> Index </a>
+      <a href="./toc.html"> Table of Contents </a>
+    </span>
+</div>
+    <div id="content" tabindex="-1" onblur="document.getElementById('content').focus()">
+    <div id="main">
+<h1 class="libtitle">ITree.Basics.CategoryOps</h1>
+
+<div class="code">
+</div>
+
+<div class="doc">
+<a id="lab21"></a><h1 class="section">Category operations</h1>
+
+<div class="paragraph"> </div>
+
+ Interfaces for programming with categories. 
+<div class="paragraph"> </div>
+
+ A category is represented by a type of objects <span class="inlinecode"><span class="id" title="var">obj</span></span>, and a type
+    of morphisms <span class="inlinecode"><span class="id" title="var">C</span></span> <span class="inlinecode">:</span> <span class="inlinecode"><span class="id" title="var">obj</span></span> <span class="inlinecode">→</span> <span class="inlinecode"><span class="id" title="var">obj</span></span> <span class="inlinecode">→</span> <span class="inlinecode"><span class="id" title="keyword">Type</span></span>.
+
+<div class="paragraph"> </div>
+
+    The interface gives the signatures for the following operations
+    (which may be defined independently).
+    For any <span class="inlinecode"><span class="id" title="var">a</span></span>, <span class="inlinecode"><span class="id" title="var">b</span></span>, <span class="inlinecode"><span class="id" title="var">c</span></span>):
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> <span class="inlinecode"><a class="idref" href="ITree.Basics.CategoryOps.html#eq2"><span class="id" title="projection">eq2</span></a></span> <span class="inlinecode">:</span> <span class="inlinecode"><span class="id" title="var">C</span></span> <span class="inlinecode"><span class="id" title="var">a</span></span> <span class="inlinecode"><span class="id" title="var">b</span></span> <span class="inlinecode">→</span> <span class="inlinecode"><span class="id" title="var">C</span></span> <span class="inlinecode"><span class="id" title="var">a</span></span> <span class="inlinecode"><span class="id" title="var">b</span></span> <span class="inlinecode">→</span> <span class="inlinecode"><span class="id" title="keyword">Prop</span></span>, equivalence of morphisms;
+
+<div class="paragraph"> </div>
+
+
+</li>
+<li> <span class="inlinecode"><a class="idref" href="ITree.Interp.Handler.html#Handler.id_"><span class="id" title="definition">id_</span></a></span> <span class="inlinecode"><span class="id" title="var">a</span></span> <span class="inlinecode">:</span> <span class="inlinecode"><span class="id" title="var">C</span></span> <span class="inlinecode"><span class="id" title="var">a</span></span> <span class="inlinecode"><span class="id" title="var">a</span></span>, the identity morphism;
+
+</li>
+<li> <span class="inlinecode"><a class="idref" href="ITree.Interp.Handler.html#Handler.cat"><span class="id" title="definition">cat</span></a></span> <span class="inlinecode">:</span> <span class="inlinecode"><span class="id" title="var">C</span></span> <span class="inlinecode"><span class="id" title="var">a</span></span> <span class="inlinecode"><span class="id" title="var">b</span></span> <span class="inlinecode">→</span> <span class="inlinecode"><span class="id" title="var">C</span></span> <span class="inlinecode"><span class="id" title="var">b</span></span> <span class="inlinecode"><span class="id" title="var">c</span></span> <span class="inlinecode">→</span> <span class="inlinecode"><span class="id" title="var">C</span></span> <span class="inlinecode"><span class="id" title="var">a</span></span> <span class="inlinecode"><span class="id" title="var">c</span></span>, composition of morphisms;
+
+<div class="paragraph"> </div>
+
+
+</li>
+<li> <span class="inlinecode"><a class="idref" href="ITree.Interp.Handler.html#Handler.empty"><span class="id" title="definition">empty</span></a></span> <span class="inlinecode">:</span> <span class="inlinecode"><span class="id" title="var">C</span></span> <span class="inlinecode"><span class="id" title="var">i</span></span> <span class="inlinecode"><span class="id" title="var">a</span></span>, the initial morphism (where <span class="inlinecode"><span class="id" title="var">i</span></span> is the initial
+      object);
+
+<div class="paragraph"> </div>
+
+
+</li>
+<li> <span class="inlinecode"><a class="idref" href="ITree.Interp.Handler.html#Handler.bimap"><span class="id" title="definition">bimap</span></a></span> <span class="inlinecode">:</span> <span class="inlinecode"><span class="id" title="var">C</span></span> <span class="inlinecode"><span class="id" title="var">a</span></span> <span class="inlinecode"><span class="id" title="var">b</span></span> <span class="inlinecode">→</span> <span class="inlinecode"><span class="id" title="var">C</span></span> <span class="inlinecode"><span class="id" title="var">c</span></span> <span class="inlinecode"><span class="id" title="var">d</span></span> <span class="inlinecode">→</span> <span class="inlinecode"><span class="id" title="var">C</span></span> <span class="inlinecode">(<a class="idref" href="ITree.Basics.CategoryOps.html#Iteration.bif"><span class="id" title="variable">bif</span></a></span> <span class="inlinecode"><span class="id" title="var">a</span></span> <span class="inlinecode"><span class="id" title="var">b</span>)</span> <span class="inlinecode">(<a class="idref" href="ITree.Basics.CategoryOps.html#Iteration.bif"><span class="id" title="variable">bif</span></a></span> <span class="inlinecode"><span class="id" title="var">c</span></span> <span class="inlinecode"><span class="id" title="var">d</span>)</span>, "vertical
+      composition" of morphisms, where <span class="inlinecode"><a class="idref" href="ITree.Basics.CategoryOps.html#Iteration.bif"><span class="id" title="variable">bif</span></a></span> is a bifunctor
+      (in our case it is the coproduct bifunctor);
+
+</li>
+<li> <span class="inlinecode"><a class="idref" href="ITree.Basics.CategoryOps.html#assoc_l"><span class="id" title="projection">assoc_l</span></a></span>, <span class="inlinecode"><a class="idref" href="ITree.Basics.CategoryOps.html#assoc_r"><span class="id" title="projection">assoc_r</span></a></span>, <span class="inlinecode"><a class="idref" href="ITree.Basics.CategoryOps.html#unit_l"><span class="id" title="projection">unit_l</span></a></span>, <span class="inlinecode"><a class="idref" href="ITree.Basics.CategoryOps.html#unit_l'"><span class="id" title="projection">unit_l'</span></a></span>, <span class="inlinecode"><a class="idref" href="ITree.Basics.CategoryOps.html#unit_r"><span class="id" title="projection">unit_r</span></a></span>, <span class="inlinecode"><a class="idref" href="ITree.Basics.CategoryOps.html#unit_r'"><span class="id" title="projection">unit_r'</span></a></span>:
+      natural isomorphisms of a tensor product <span class="inlinecode"><a class="idref" href="ITree.Basics.CategoryOps.html#Iteration.bif"><span class="id" title="variable">bif</span></a></span>, making <span class="inlinecode"><span class="id" title="var">C</span></span> a
+      monoidal category;
+
+<div class="paragraph"> </div>
+
+
+</li>
+<li> <span class="inlinecode"><a class="idref" href="ITree.Interp.Handler.html#Handler.case_"><span class="id" title="definition">case_</span></a></span> <span class="inlinecode">:</span> <span class="inlinecode"><span class="id" title="var">C</span></span> <span class="inlinecode"><span class="id" title="var">a</span></span> <span class="inlinecode"><span class="id" title="var">c</span></span> <span class="inlinecode">→</span> <span class="inlinecode"><span class="id" title="var">C</span></span> <span class="inlinecode"><span class="id" title="var">b</span></span> <span class="inlinecode"><span class="id" title="var">c</span></span> <span class="inlinecode">→</span> <span class="inlinecode"><span class="id" title="var">C</span></span> <span class="inlinecode">(<a class="idref" href="ITree.Basics.CategoryOps.html#Iteration.bif"><span class="id" title="variable">bif</span></a></span> <span class="inlinecode"><span class="id" title="var">a</span></span> <span class="inlinecode"><span class="id" title="var">b</span>)</span> <span class="inlinecode"><span class="id" title="var">c</span></span>, "case analysis"
+      of a coproduct <span class="inlinecode"><a class="idref" href="ITree.Basics.CategoryOps.html#Iteration.bif"><span class="id" title="variable">bif</span></a></span>;
+
+</li>
+<li> <span class="inlinecode"><a class="idref" href="ITree.Interp.Handler.html#Handler.inl_"><span class="id" title="definition">inl_</span></a></span> <span class="inlinecode">:</span> <span class="inlinecode"><span class="id" title="var">C</span></span> <span class="inlinecode"><span class="id" title="var">a</span></span> <span class="inlinecode">(<a class="idref" href="ITree.Basics.CategoryOps.html#Iteration.bif"><span class="id" title="variable">bif</span></a></span> <span class="inlinecode"><span class="id" title="var">a</span></span> <span class="inlinecode"><span class="id" title="var">b</span>)</span>, left injection in a coproduct <span class="inlinecode"><a class="idref" href="ITree.Basics.CategoryOps.html#Iteration.bif"><span class="id" title="variable">bif</span></a></span>;
+
+</li>
+<li> <span class="inlinecode"><a class="idref" href="ITree.Interp.Handler.html#Handler.inr_"><span class="id" title="definition">inr_</span></a></span> <span class="inlinecode">:</span> <span class="inlinecode"><span class="id" title="var">C</span></span> <span class="inlinecode"><span class="id" title="var">b</span></span> <span class="inlinecode">(<a class="idref" href="ITree.Basics.CategoryOps.html#Iteration.bif"><span class="id" title="variable">bif</span></a></span> <span class="inlinecode"><span class="id" title="var">a</span></span> <span class="inlinecode"><span class="id" title="var">b</span>)</span>, right injection;
+
+<div class="paragraph"> </div>
+
+
+</li>
+<li> <span class="inlinecode"><a class="idref" href="ITree.Core.ITreeDefinition.html#ITree.iter"><span class="id" title="definition">iter</span></a></span> <span class="inlinecode">:</span> <span class="inlinecode"><span class="id" title="var">C</span></span> <span class="inlinecode"><span class="id" title="var">a</span></span> <span class="inlinecode">(<a class="idref" href="ITree.Basics.CategoryOps.html#Iteration.bif"><span class="id" title="variable">bif</span></a></span> <span class="inlinecode"><span class="id" title="var">a</span></span> <span class="inlinecode"><span class="id" title="var">b</span>)</span> <span class="inlinecode">→</span> <span class="inlinecode"><span class="id" title="var">C</span></span> <span class="inlinecode"><span class="id" title="var">a</span></span> <span class="inlinecode"><span class="id" title="var">b</span></span>, loop operator.
+
+</li>
+</ul>
+ 
+<div class="paragraph"> </div>
+
+ We use typeclasses to give such "canonical names" to these
+    operations, allowing us to define common notations and equations
+    once and for all. This is the approach described in
+    "Type Classes for Mathematics in Type Theory",
+    by Bas Spitters and Eelis van der Weegen
+    (https://arxiv.org/abs/1102.1323).
+
+<div class="paragraph"> </div>
+
+    The properties of these operations are given in
+    <span class="inlinecode"><span class="id" title="library">Basics.CategoryTheory</span></span>.
+ 
+<div class="paragraph"> </div>
+
+ Notations <span class="inlinecode">&gt;&gt;&gt;</span> and <span class="inlinecode">⩯</span> are in the module <span class="inlinecode"><a class="idref" href="ITree.Basics.CategoryOps.html#CatNotations"><span class="id" title="module">CatNotations</span></a></span>, under the scope
+    <span class="inlinecode"><a class="idref" href="ITree.Interp.Handler.html#Handler.cat"><span class="id" title="definition">cat</span></a></span>. The common way to use them is:
+<br/>
+<span class="inlinecode">&nbsp;&nbsp;<span class="id" title="keyword">Import</span> <a class="idref" href="ITree.Basics.CategoryOps.html#CatNotations"><span class="id" title="module">CatNotations</span></a>.<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Local</span> <span class="id" title="keyword">Open</span> <span class="id" title="keyword">Scope</span> <a class="idref" href="ITree.Interp.Handler.html#Handler.cat"><span class="id" title="definition">cat</span></a>.
+<div class="paragraph"> </div>
+
+</span> 
+<div class="paragraph"> </div>
+
+<a id="lab22"></a><h2 class="section">Low-level infrastructure</h2>
+
+<div class="paragraph"> </div>
+
+ Categories are parameterized by a type of objects <span class="inlinecode"><span class="id" title="var">obj</span></span>. 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Module</span> <span class="id" title="keyword">Import</span> <a id="Carrier" class="idref" href="#Carrier"><span class="id" title="module">Carrier</span></a>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+A category will be designated by the type of its morphisms (Hom-sets),
+    which is indexed by two objects. 
+</div>
+<div class="code">
+<span class="id" title="keyword">Notation</span> <a id="Carrier.Hom" class="idref" href="#Carrier.Hom"><span class="id" title="abbreviation">Hom</span></a> <span class="id" title="var">obj</span> := (<span class="id" title="var">obj</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <span class="id" title="var">obj</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <span class="id" title="keyword">Type</span>) (<span class="id" title="var">only</span> <span class="id" title="var">parsing</span>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Examples found in this library:
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> The category of functions: <span class="inlinecode"><span class="id" title="var">obj</span></span> <span class="inlinecode">:=</span> <span class="inlinecode"><span class="id" title="keyword">Type</span></span>, <span class="inlinecode"><a class="idref" href="ITree.Basics.Function.html#Fun"><span class="id" title="definition">Fun</span></a></span> <span class="inlinecode"><span class="id" title="var">a</span></span> <span class="inlinecode"><span class="id" title="var">b</span></span> <span class="inlinecode">:=</span> <span class="inlinecode"><span class="id" title="var">a</span></span> <span class="inlinecode">→</span> <span class="inlinecode"><span class="id" title="var">b</span></span>.
+
+</li>
+<li> The category of indexed functions: <span class="inlinecode"><span class="id" title="var">obj</span></span> <span class="inlinecode">:=</span> <span class="inlinecode"><span class="id" title="keyword">Type</span></span> <span class="inlinecode">→</span> <span class="inlinecode"><span class="id" title="keyword">Type</span></span>, <span class="inlinecode"><a class="idref" href="ITree.Indexed.Function.html#IFun"><span class="id" title="definition">IFun</span></a></span> <span class="inlinecode"><span class="id" title="var">E</span></span> <span class="inlinecode"><span class="id" title="var">F</span></span> <span class="inlinecode">:=</span> <span class="inlinecode"><span class="id" title="var">E</span></span> <span class="inlinecode">~&gt;</span> <span class="inlinecode"><span class="id" title="var">F</span></span>
+      (where <span class="inlinecode">~&gt;</span> is defined in <span class="inlinecode"><span class="id" title="library">Basics.Basics</span></span>).
+
+</li>
+<li> The category of <span class="inlinecode"><a class="idref" href="ITree.Core.ITreeDefinition.html#itree"><span class="id" title="record">itree</span></a></span> continuations (one category for every <span class="inlinecode"><span class="id" title="var">E</span></span> <span class="inlinecode">:</span> <span class="inlinecode"><span class="id" title="keyword">Type</span></span> <span class="inlinecode">→</span> <span class="inlinecode"><span class="id" title="keyword">Type</span></span>):
+      <span class="inlinecode"><span class="id" title="var">obj</span></span> <span class="inlinecode">:=</span> <span class="inlinecode"><span class="id" title="keyword">Type</span></span>, <span class="inlinecode"><a class="idref" href="ITree.Core.KTree.html#ktree"><span class="id" title="abbreviation">ktree</span></a></span> <span class="inlinecode"><span class="id" title="var">E</span></span> <span class="inlinecode"><span class="id" title="var">a</span></span> <span class="inlinecode"><span class="id" title="var">b</span></span> <span class="inlinecode">:=</span> <span class="inlinecode"><span class="id" title="var">a</span></span> <span class="inlinecode">→</span> <span class="inlinecode"><a class="idref" href="ITree.Core.ITreeDefinition.html#itree"><span class="id" title="record">itree</span></a></span> <span class="inlinecode"><span class="id" title="var">E</span></span> <span class="inlinecode"><span class="id" title="var">a</span></span> <span class="inlinecode"><span class="id" title="var">b</span></span>.
+
+</li>
+<li> The category of <span class="inlinecode"><a class="idref" href="ITree.Core.ITreeDefinition.html#itree"><span class="id" title="record">itree</span></a></span> handlers: <span class="inlinecode"><span class="id" title="var">obj</span></span> <span class="inlinecode">:=</span> <span class="inlinecode"><span class="id" title="keyword">Type</span></span> <span class="inlinecode">→</span> <span class="inlinecode"><span class="id" title="keyword">Type</span></span>,
+      <span class="inlinecode"><a class="idref" href="ITree.Interp.Handler.html#Handler"><span class="id" title="definition">Handler</span></a></span> <span class="inlinecode"><span class="id" title="var">E</span></span> <span class="inlinecode"><span class="id" title="var">F</span></span> <span class="inlinecode">:=</span> <span class="inlinecode"><span class="id" title="var">E</span></span> <span class="inlinecode">~&gt;</span> <span class="inlinecode"><a class="idref" href="ITree.Core.ITreeDefinition.html#itree"><span class="id" title="record">itree</span></a></span> <span class="inlinecode"><span class="id" title="var">F</span></span>.
+
+</li>
+</ul>
+
+<div class="paragraph"> </div>
+
+    The latter two are Kleisli categories of the former two respectively.
+
+<div class="paragraph"> </div>
+
+ Bifunctors from a category to itself are designated by their object maps.
+    They are associated to morphism maps via the <span class="inlinecode"><a class="idref" href="ITree.Basics.CategorySub.html#Subcategory.Bimap"><span class="id" title="section">Bimap</span></a></span> class. 
+</div>
+<div class="code">
+<span class="id" title="keyword">Notation</span> <a id="Carrier.binop" class="idref" href="#Carrier.binop"><span class="id" title="abbreviation">binop</span></a> <span class="id" title="var">obj</span> := (<span class="id" title="var">obj</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <span class="id" title="var">obj</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <span class="id" title="var">obj</span>) (<span class="id" title="var">only</span> <span class="id" title="var">parsing</span>).<br/>
+
+<br/>
+<span class="id" title="keyword">End</span> <a class="idref" href="ITree.Basics.CategoryOps.html#Carrier"><span class="id" title="module">Carrier</span></a>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Scope for category notations. 
+</div>
+<div class="code">
+<span class="comment">(*<br/>
+&nbsp;&nbsp;The&nbsp;following&nbsp;line&nbsp;removes&nbsp;the&nbsp;warning&nbsp;on&nbsp;&gt;=8.10,&nbsp;but&nbsp;is&nbsp;incompatible&nbsp;for&nbsp;&lt;8.10<br/>
+*)</span><br/>
+<span class="comment">(*&nbsp;Declare&nbsp;Scope&nbsp;cat_scope.&nbsp;*)</span><br/>
+<span class="id" title="keyword">Delimit</span> <span class="id" title="keyword">Scope</span> <span class="id" title="var">cat_scope</span> <span class="id" title="keyword">with</span> <span class="id" title="var">cat</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab23"></a><h2 class="section">Categories</h2>
+
+</div>
+<div class="code">
+
+<br/>
+<span class="comment">(*&nbsp;<span class="inlinecode">/ᐠ｡‸｡ᐟ\</span>&nbsp;*)</span><br/>
+<span class="id" title="keyword">Section</span> <a id="CatOps" class="idref" href="#CatOps"><span class="id" title="section">CatOps</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Context</span> {<a id="obj:1" class="idref" href="#obj:1"><span class="id" title="binder">obj</span></a> : <span class="id" title="keyword">Type</span>} (<a id="C:2" class="idref" href="#C:2"><span class="id" title="binder">C</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#Hom"><span class="id" title="abbreviation">Hom</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#obj:1"><span class="id" title="variable">obj</span></a>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+The equivalence between two morphisms <span class="inlinecode"><span class="id" title="var">f</span></span> and <span class="inlinecode"><span class="id" title="var">g</span></span> is written
+    <span class="inlinecode"><a class="idref" href="ITree.Basics.CategoryOps.html#eq2"><span class="id" title="projection">eq2</span></a></span> <span class="inlinecode"><span class="id" title="var">f</span></span> <span class="inlinecode"><span class="id" title="var">g</span></span> or <span class="inlinecode"><span class="id" title="var">f</span></span> <span class="inlinecode">⩯</span> <span class="inlinecode"><span class="id" title="var">g</span></span> (<span class="inlinecode">\<span class="id" title="var">hatapprox</span></span> in LaTeX). 
+</div>
+<div class="code">
+<span class="id" title="keyword">Class</span> <a id="Eq2" class="idref" href="#Eq2"><span class="id" title="record">Eq2</span></a> : <span class="id" title="keyword">Type</span> :=<br/>
+&nbsp;&nbsp;<a id="eq2" class="idref" href="#eq2"><span class="id" title="projection">eq2</span></a> : <span class="id" title="keyword">∀</span> <a id="a:4" class="idref" href="#a:4"><span class="id" title="binder">a</span></a> <a id="b:5" class="idref" href="#b:5"><span class="id" title="binder">b</span></a> (<a id="f:6" class="idref" href="#f:6"><span class="id" title="binder">f</span></a> <a id="g:7" class="idref" href="#g:7"><span class="id" title="binder">g</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#CatOps.C"><span class="id" title="variable">C</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#a:4"><span class="id" title="variable">a</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#b:5"><span class="id" title="variable">b</span></a>), <span class="id" title="keyword">Prop</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+The identity morphism for the object <span class="inlinecode"><span class="id" title="var">a</span></span> <span class="inlinecode">:</span> <span class="inlinecode"><span class="id" title="var">obj</span></span> is written <span class="inlinecode"><a class="idref" href="ITree.Interp.Handler.html#Handler.id_"><span class="id" title="definition">id_</span></a></span> <span class="inlinecode"><span class="id" title="var">a</span></span>. 
+</div>
+<div class="code">
+<span class="id" title="keyword">Class</span> <a id="Id_" class="idref" href="#Id_"><span class="id" title="record">Id_</span></a> : <span class="id" title="keyword">Type</span> :=<br/>
+&nbsp;&nbsp;<a id="id_" class="idref" href="#id_"><span class="id" title="projection">id_</span></a> : <span class="id" title="keyword">∀</span> <a id="a:10" class="idref" href="#a:10"><span class="id" title="binder">a</span></a>, <a class="idref" href="ITree.Basics.CategoryOps.html#CatOps.C"><span class="id" title="variable">C</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#a:10"><span class="id" title="variable">a</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#a:10"><span class="id" title="variable">a</span></a>.<br/>
+<span class="comment">(*&nbsp;We&nbsp;add&nbsp;an&nbsp;underscore&nbsp;<span class="inlinecode"><span class="id" title="var">id_</span></span>&nbsp;to&nbsp;avoid&nbsp;clashing&nbsp;with&nbsp;the&nbsp;standard<br/>
+&nbsp;&nbsp;&nbsp;library&nbsp;<span class="inlinecode"><span class="id" title="var">id</span></span>.&nbsp;*)</span><br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Given two morphisms <span class="inlinecode"><span class="id" title="var">f</span></span> and <span class="inlinecode"><span class="id" title="var">g</span></span> with a common endpoint, their
+    composition (or con(cat)enation) is written <span class="inlinecode"><a class="idref" href="ITree.Interp.Handler.html#Handler.cat"><span class="id" title="definition">cat</span></a></span> <span class="inlinecode"><span class="id" title="var">f</span></span> <span class="inlinecode"><span class="id" title="var">g</span></span> or <span class="inlinecode"><span class="id" title="var">f</span></span> <span class="inlinecode">&gt;&gt;&gt;</span> <span class="inlinecode"><span class="id" title="var">g</span></span>. 
+</div>
+<div class="code">
+<span class="id" title="keyword">Class</span> <a id="Cat" class="idref" href="#Cat"><span class="id" title="record">Cat</span></a> : <span class="id" title="keyword">Type</span> :=<br/>
+&nbsp;&nbsp;<a id="cat" class="idref" href="#cat"><span class="id" title="projection">cat</span></a> : <span class="id" title="keyword">∀</span> <a id="a:13" class="idref" href="#a:13"><span class="id" title="binder">a</span></a> <a id="b:14" class="idref" href="#b:14"><span class="id" title="binder">b</span></a> <a id="c:15" class="idref" href="#c:15"><span class="id" title="binder">c</span></a>, <a class="idref" href="ITree.Basics.CategoryOps.html#CatOps.C"><span class="id" title="variable">C</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#a:13"><span class="id" title="variable">a</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#b:14"><span class="id" title="variable">b</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#CatOps.C"><span class="id" title="variable">C</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#b:14"><span class="id" title="variable">b</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#c:15"><span class="id" title="variable">c</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#CatOps.C"><span class="id" title="variable">C</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#a:13"><span class="id" title="variable">a</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#c:15"><span class="id" title="variable">c</span></a>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+If there is an initial object <span class="inlinecode"><span class="id" title="var">i</span></span>, its initial morphisms are written
+    <span class="inlinecode"><a class="idref" href="ITree.Interp.Handler.html#Handler.empty"><span class="id" title="definition">empty</span></a></span> <span class="inlinecode">:</span> <span class="inlinecode"><span class="id" title="var">C</span></span> <span class="inlinecode"><span class="id" title="var">i</span></span> <span class="inlinecode"><span class="id" title="var">a</span></span>. 
+</div>
+<div class="code">
+<span class="id" title="keyword">Class</span> <a id="Initial" class="idref" href="#Initial"><span class="id" title="record">Initial</span></a> (<a id="i:17" class="idref" href="#i:17"><span class="id" title="binder">i</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#CatOps.obj"><span class="id" title="variable">obj</span></a>) :=<br/>
+&nbsp;&nbsp;<a id="empty" class="idref" href="#empty"><span class="id" title="projection">empty</span></a> : <span class="id" title="keyword">∀</span> <a id="a:19" class="idref" href="#a:19"><span class="id" title="binder">a</span></a>, <a class="idref" href="ITree.Basics.CategoryOps.html#CatOps.C"><span class="id" title="variable">C</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#i:17"><span class="id" title="variable">i</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#a:19"><span class="id" title="variable">a</span></a>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+If there is a terminal object <span class="inlinecode"><span class="id" title="var">t</span></span>, its terminal morphisms are written
+    <span class="inlinecode"><a class="idref" href="ITree.Basics.CategoryOps.html#one"><span class="id" title="projection">one</span></a></span> <span class="inlinecode">:</span> <span class="inlinecode"><span class="id" title="var">C</span></span> <span class="inlinecode"><span class="id" title="var">a</span></span> <span class="inlinecode"><span class="id" title="var">i</span></span>. 
+</div>
+<div class="code">
+<span class="id" title="keyword">Class</span> <a id="Terminal" class="idref" href="#Terminal"><span class="id" title="record">Terminal</span></a> (<a id="t:21" class="idref" href="#t:21"><span class="id" title="binder">t</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#CatOps.obj"><span class="id" title="variable">obj</span></a>) :=<br/>
+&nbsp;&nbsp;<a id="one" class="idref" href="#one"><span class="id" title="projection">one</span></a> : <span class="id" title="keyword">∀</span> <a id="a:23" class="idref" href="#a:23"><span class="id" title="binder">a</span></a>, <a class="idref" href="ITree.Basics.CategoryOps.html#CatOps.C"><span class="id" title="variable">C</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#a:23"><span class="id" title="variable">a</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#t:21"><span class="id" title="variable">t</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Definition</span> <a id="op" class="idref" href="#op"><span class="id" title="definition">op</span></a>: <a class="idref" href="ITree.Basics.CategoryOps.html#Hom"><span class="id" title="abbreviation">Hom</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#CatOps.obj"><span class="id" title="variable">obj</span></a> := <span class="id" title="keyword">fun</span> (<a id="A:25" class="idref" href="#A:25"><span class="id" title="binder">A</span></a> <a id="B:26" class="idref" href="#B:26"><span class="id" title="binder">B</span></a>: <a class="idref" href="ITree.Basics.CategoryOps.html#CatOps.obj"><span class="id" title="variable">obj</span></a>) ⇒ <a class="idref" href="ITree.Basics.CategoryOps.html#CatOps.C"><span class="id" title="variable">C</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#B:26"><span class="id" title="variable">B</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#A:25"><span class="id" title="variable">A</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">End</span> <a class="idref" href="ITree.Basics.CategoryOps.html#CatOps"><span class="id" title="section">CatOps</span></a>.<br/>
+
+<br/>
+<span class="id" title="var">Arguments</span> <a class="idref" href="ITree.Basics.CategoryOps.html#eq2"><span class="id" title="definition">eq2</span></a> {<span class="id" title="var">obj</span> <span class="id" title="var">C</span> <span class="id" title="var">Eq2</span> <span class="id" title="var">a</span> <span class="id" title="var">b</span>}.<br/>
+<span class="id" title="var">Arguments</span> <a class="idref" href="ITree.Basics.CategoryOps.html#id_"><span class="id" title="definition">id_</span></a> {<span class="id" title="var">obj</span> <span class="id" title="var">C</span> <span class="id" title="var">Id_</span>}.<br/>
+<span class="id" title="var">Arguments</span> <a class="idref" href="ITree.Basics.CategoryOps.html#cat"><span class="id" title="definition">cat</span></a> {<span class="id" title="var">obj</span> <span class="id" title="var">C</span> <span class="id" title="var">Cat</span> <span class="id" title="var">a</span> <span class="id" title="var">b</span> <span class="id" title="var">c</span>}.<br/>
+<span class="id" title="var">Arguments</span> <a class="idref" href="ITree.Basics.CategoryOps.html#empty"><span class="id" title="definition">empty</span></a> {<span class="id" title="var">obj</span> <span class="id" title="var">C</span> <span class="id" title="var">i</span> <span class="id" title="var">Initial</span> <span class="id" title="var">a</span>}.<br/>
+<span class="id" title="var">Arguments</span> <a class="idref" href="ITree.Basics.CategoryOps.html#one"><span class="id" title="definition">one</span></a> {<span class="id" title="var">obj</span> <span class="id" title="var">C</span> <span class="id" title="var">t</span> <span class="id" title="var">Terminal</span> <span class="id" title="var">a</span>}.<br/>
+<span class="id" title="var">Arguments</span> <a class="idref" href="ITree.Basics.CategoryOps.html#op"><span class="id" title="definition">op</span></a> {<span class="id" title="var">obj</span>} <span class="id" title="var">C</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab24"></a><h2 class="section">Bifunctors</h2>
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Section</span> <a id="CocartesianOps" class="idref" href="#CocartesianOps"><span class="id" title="section">CocartesianOps</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Context</span> {<a id="obj:27" class="idref" href="#obj:27"><span class="id" title="binder">obj</span></a> : <span class="id" title="keyword">Type</span>} (<a id="C:28" class="idref" href="#C:28"><span class="id" title="binder">C</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#Hom"><span class="id" title="abbreviation">Hom</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#obj:27"><span class="id" title="variable">obj</span></a>) (<a id="bif:29" class="idref" href="#bif:29"><span class="id" title="binder">bif</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#binop"><span class="id" title="abbreviation">binop</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#obj:27"><span class="id" title="variable">obj</span></a>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Bifunctors map pairs of objects to objects (<span class="inlinecode"><a class="idref" href="ITree.Basics.CategoryOps.html#Iteration.bif"><span class="id" title="variable">bif</span></a></span>)
+    and pairs of morphisms to morphisms (<span class="inlinecode"><a class="idref" href="ITree.Interp.Handler.html#Handler.bimap"><span class="id" title="definition">bimap</span></a></span>).
+
+<div class="paragraph"> </div>
+
+    The composition <span class="inlinecode"><a class="idref" href="ITree.Interp.Handler.html#Handler.bimap"><span class="id" title="definition">bimap</span></a></span> <span class="inlinecode"><span class="id" title="var">f</span></span> <span class="inlinecode"><span class="id" title="var">g</span></span> is also called <i>tensor product</i> of <span class="inlinecode"><span class="id" title="var">f</span></span> and <span class="inlinecode"><span class="id" title="var">g</span></span>.
+
+<div class="paragraph"> </div>
+
+    Many of the following typeclases are <i>derived</i> from just three basic
+    Coproduct constructions:
+<ul class="doclist">
+<li> <span class="inlinecode"><a class="idref" href="ITree.Basics.CategoryOps.html#Case"><span class="id" title="record">Case</span></a></span>  (case analysis)
+
+</li>
+<li> <span class="inlinecode"><a class="idref" href="ITree.Basics.CategoryOps.html#Inl"><span class="id" title="record">Inl</span></a></span>   (left injection)
+
+</li>
+<li> <span class="inlinecode"><a class="idref" href="ITree.Basics.CategoryOps.html#Inr"><span class="id" title="record">Inr</span></a></span>   (right injection)
+
+</li>
+</ul>
+
+<div class="paragraph"> </div>
+
+ 
+</div>
+<div class="code">
+<span class="id" title="keyword">Class</span> <a id="Bimap" class="idref" href="#Bimap"><span class="id" title="record">Bimap</span></a> :=<br/>
+&nbsp;&nbsp;<a id="bimap" class="idref" href="#bimap"><span class="id" title="projection">bimap</span></a> : <span class="id" title="keyword">∀</span> <a id="a:31" class="idref" href="#a:31"><span class="id" title="binder">a</span></a> <a id="b:32" class="idref" href="#b:32"><span class="id" title="binder">b</span></a> <a id="c:33" class="idref" href="#c:33"><span class="id" title="binder">c</span></a> <a id="d:34" class="idref" href="#d:34"><span class="id" title="binder">d</span></a>, <a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianOps.C"><span class="id" title="variable">C</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#a:31"><span class="id" title="variable">a</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#c:33"><span class="id" title="variable">c</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianOps.C"><span class="id" title="variable">C</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#b:32"><span class="id" title="variable">b</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#d:34"><span class="id" title="variable">d</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianOps.C"><span class="id" title="variable">C</span></a> (<a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianOps.bif"><span class="id" title="variable">bif</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#a:31"><span class="id" title="variable">a</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#b:32"><span class="id" title="variable">b</span></a>) (<a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianOps.bif"><span class="id" title="variable">bif</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#c:33"><span class="id" title="variable">c</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#d:34"><span class="id" title="variable">d</span></a>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab25"></a><h3 class="section">Coproducts</h3>
+
+<div class="paragraph"> </div>
+
+ Coproducts are a generalization of sum types and case analysis. 
+<div class="paragraph"> </div>
+
+ Case analysis on a sum. 
+</div>
+<div class="code">
+<span class="id" title="keyword">Class</span> <a id="Case" class="idref" href="#Case"><span class="id" title="record">Case</span></a> :=<br/>
+&nbsp;&nbsp;<a id="case_" class="idref" href="#case_"><span class="id" title="projection">case_</span></a> : <span class="id" title="keyword">∀</span> <a id="a:37" class="idref" href="#a:37"><span class="id" title="binder">a</span></a> <a id="b:38" class="idref" href="#b:38"><span class="id" title="binder">b</span></a> <a id="c:39" class="idref" href="#c:39"><span class="id" title="binder">c</span></a>, <a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianOps.C"><span class="id" title="variable">C</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#a:37"><span class="id" title="variable">a</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#c:39"><span class="id" title="variable">c</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianOps.C"><span class="id" title="variable">C</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#b:38"><span class="id" title="variable">b</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#c:39"><span class="id" title="variable">c</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianOps.C"><span class="id" title="variable">C</span></a> (<a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianOps.bif"><span class="id" title="variable">bif</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#a:37"><span class="id" title="variable">a</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#b:38"><span class="id" title="variable">b</span></a>) <a class="idref" href="ITree.Basics.CategoryOps.html#c:39"><span class="id" title="variable">c</span></a>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Injection into the left component. 
+</div>
+<div class="code">
+<span class="id" title="keyword">Class</span> <a id="Inl" class="idref" href="#Inl"><span class="id" title="record">Inl</span></a> :=<br/>
+&nbsp;&nbsp;<a id="inl_" class="idref" href="#inl_"><span class="id" title="projection">inl_</span></a> : <span class="id" title="keyword">∀</span> <a id="a:42" class="idref" href="#a:42"><span class="id" title="binder">a</span></a> <a id="b:43" class="idref" href="#b:43"><span class="id" title="binder">b</span></a>, <a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianOps.C"><span class="id" title="variable">C</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#a:42"><span class="id" title="variable">a</span></a> (<a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianOps.bif"><span class="id" title="variable">bif</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#a:42"><span class="id" title="variable">a</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#b:43"><span class="id" title="variable">b</span></a>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Injection into the right component. 
+</div>
+<div class="code">
+<span class="id" title="keyword">Class</span> <a id="Inr" class="idref" href="#Inr"><span class="id" title="record">Inr</span></a> :=<br/>
+&nbsp;&nbsp;<a id="inr_" class="idref" href="#inr_"><span class="id" title="projection">inr_</span></a> : <span class="id" title="keyword">∀</span> <a id="a:46" class="idref" href="#a:46"><span class="id" title="binder">a</span></a> <a id="b:47" class="idref" href="#b:47"><span class="id" title="binder">b</span></a>, <a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianOps.C"><span class="id" title="variable">C</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#b:47"><span class="id" title="variable">b</span></a> (<a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianOps.bif"><span class="id" title="variable">bif</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#a:46"><span class="id" title="variable">a</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#b:47"><span class="id" title="variable">b</span></a>).<br/>
+
+<br/>
+<span class="comment">(*&nbsp;Like&nbsp;<span class="inlinecode"><span class="id" title="var">id_</span></span>,&nbsp;the&nbsp;underscores&nbsp;avoid&nbsp;confusion&nbsp;with&nbsp;the&nbsp;names<br/>
+&nbsp;&nbsp;&nbsp;from&nbsp;the&nbsp;stdlib&nbsp;(<span class="inlinecode"><span class="id" title="var">inl</span></span>&nbsp;and&nbsp;<span class="inlinecode"><span class="id" title="var">inr</span></span>&nbsp;are&nbsp;constructors&nbsp;of&nbsp;<span class="inlinecode"><span class="id" title="var">sum</span></span>,<br/>
+&nbsp;&nbsp;&nbsp;and&nbsp;<span class="inlinecode"><span class="id" title="tactic">case</span></span>&nbsp;is&nbsp;a&nbsp;tactic.)&nbsp;*)</span><br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab26"></a><h3 class="section">Tensor products (monoidal categories)</h3>
+
+<div class="paragraph"> </div>
+
+ <span class="inlinecode"><a class="idref" href="ITree.Interp.Handler.html#Handler.cat"><span class="id" title="definition">cat</span></a></span> can be seen as "horizontal composition", while
+    <span class="inlinecode"><a class="idref" href="ITree.Interp.Handler.html#Handler.bimap"><span class="id" title="definition">bimap</span></a></span> as "vertical composition".
+    When this vertical composition is associative and has units
+    (similarly to <span class="inlinecode"><a class="idref" href="ITree.Interp.Handler.html#Handler.cat"><span class="id" title="definition">cat</span></a></span>), we have a monoidal category. To be
+    more precise, this associativity and unity of vertical
+    composition is generally allowed to be witnessed up to some
+    isomorphisms, called associators and unitors.
+    These properties are defined formally in <span class="inlinecode"><span class="id" title="library">Basics.CategoryTheory</span></span>.
+ 
+<div class="paragraph"> </div>
+
+<a id="lab27"></a><h4 class="section">Associators</h4>
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Class</span> <a id="AssocR" class="idref" href="#AssocR"><span class="id" title="record">AssocR</span></a> :=<br/>
+&nbsp;&nbsp;<a id="assoc_r" class="idref" href="#assoc_r"><span class="id" title="projection">assoc_r</span></a> : <span class="id" title="keyword">∀</span> <a id="a:50" class="idref" href="#a:50"><span class="id" title="binder">a</span></a> <a id="b:51" class="idref" href="#b:51"><span class="id" title="binder">b</span></a> <a id="c:52" class="idref" href="#c:52"><span class="id" title="binder">c</span></a>, <a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianOps.C"><span class="id" title="variable">C</span></a> (<a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianOps.bif"><span class="id" title="variable">bif</span></a> (<a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianOps.bif"><span class="id" title="variable">bif</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#a:50"><span class="id" title="variable">a</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#b:51"><span class="id" title="variable">b</span></a>) <a class="idref" href="ITree.Basics.CategoryOps.html#c:52"><span class="id" title="variable">c</span></a>) (<a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianOps.bif"><span class="id" title="variable">bif</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#a:50"><span class="id" title="variable">a</span></a> (<a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianOps.bif"><span class="id" title="variable">bif</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#b:51"><span class="id" title="variable">b</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#c:52"><span class="id" title="variable">c</span></a>)).<br/>
+
+<br/>
+<span class="id" title="keyword">Class</span> <a id="AssocL" class="idref" href="#AssocL"><span class="id" title="record">AssocL</span></a> :=<br/>
+&nbsp;&nbsp;<a id="assoc_l" class="idref" href="#assoc_l"><span class="id" title="projection">assoc_l</span></a> : <span class="id" title="keyword">∀</span> <a id="a:55" class="idref" href="#a:55"><span class="id" title="binder">a</span></a> <a id="b:56" class="idref" href="#b:56"><span class="id" title="binder">b</span></a> <a id="c:57" class="idref" href="#c:57"><span class="id" title="binder">c</span></a>, <a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianOps.C"><span class="id" title="variable">C</span></a> (<a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianOps.bif"><span class="id" title="variable">bif</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#a:55"><span class="id" title="variable">a</span></a> (<a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianOps.bif"><span class="id" title="variable">bif</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#b:56"><span class="id" title="variable">b</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#c:57"><span class="id" title="variable">c</span></a>)) (<a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianOps.bif"><span class="id" title="variable">bif</span></a> (<a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianOps.bif"><span class="id" title="variable">bif</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#a:55"><span class="id" title="variable">a</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#b:56"><span class="id" title="variable">b</span></a>) <a class="idref" href="ITree.Basics.CategoryOps.html#c:57"><span class="id" title="variable">c</span></a>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab28"></a><h4 class="section">Unitors</h4>
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Class</span> <a id="UnitL" class="idref" href="#UnitL"><span class="id" title="record">UnitL</span></a> (<a id="i:59" class="idref" href="#i:59"><span class="id" title="binder">i</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianOps.obj"><span class="id" title="variable">obj</span></a>) :=<br/>
+&nbsp;&nbsp;<a id="unit_l" class="idref" href="#unit_l"><span class="id" title="projection">unit_l</span></a> : <span class="id" title="keyword">∀</span> <a id="a:61" class="idref" href="#a:61"><span class="id" title="binder">a</span></a>, <a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianOps.C"><span class="id" title="variable">C</span></a> (<a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianOps.bif"><span class="id" title="variable">bif</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#i:59"><span class="id" title="variable">i</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#a:61"><span class="id" title="variable">a</span></a>) <a class="idref" href="ITree.Basics.CategoryOps.html#a:61"><span class="id" title="variable">a</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Class</span> <a id="UnitL'" class="idref" href="#UnitL'"><span class="id" title="record">UnitL'</span></a> (<a id="i:63" class="idref" href="#i:63"><span class="id" title="binder">i</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianOps.obj"><span class="id" title="variable">obj</span></a>) :=<br/>
+&nbsp;&nbsp;<a id="unit_l'" class="idref" href="#unit_l'"><span class="id" title="projection">unit_l'</span></a> : <span class="id" title="keyword">∀</span> <a id="a:65" class="idref" href="#a:65"><span class="id" title="binder">a</span></a>, <a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianOps.C"><span class="id" title="variable">C</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#a:65"><span class="id" title="variable">a</span></a> (<a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianOps.bif"><span class="id" title="variable">bif</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#i:63"><span class="id" title="variable">i</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#a:65"><span class="id" title="variable">a</span></a>).<br/>
+
+<br/>
+<span class="id" title="keyword">Class</span> <a id="UnitR" class="idref" href="#UnitR"><span class="id" title="record">UnitR</span></a> (<a id="i:67" class="idref" href="#i:67"><span class="id" title="binder">i</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianOps.obj"><span class="id" title="variable">obj</span></a>) :=<br/>
+&nbsp;&nbsp;<a id="unit_r" class="idref" href="#unit_r"><span class="id" title="projection">unit_r</span></a> : <span class="id" title="keyword">∀</span> <a id="a:69" class="idref" href="#a:69"><span class="id" title="binder">a</span></a>, <a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianOps.C"><span class="id" title="variable">C</span></a> (<a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianOps.bif"><span class="id" title="variable">bif</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#a:69"><span class="id" title="variable">a</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#i:67"><span class="id" title="variable">i</span></a>) <a class="idref" href="ITree.Basics.CategoryOps.html#a:69"><span class="id" title="variable">a</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Class</span> <a id="UnitR'" class="idref" href="#UnitR'"><span class="id" title="record">UnitR'</span></a> (<a id="i:71" class="idref" href="#i:71"><span class="id" title="binder">i</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianOps.obj"><span class="id" title="variable">obj</span></a>) :=<br/>
+&nbsp;&nbsp;<a id="unit_r'" class="idref" href="#unit_r'"><span class="id" title="projection">unit_r'</span></a> : <span class="id" title="keyword">∀</span> <a id="a:73" class="idref" href="#a:73"><span class="id" title="binder">a</span></a>, <a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianOps.C"><span class="id" title="variable">C</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#a:73"><span class="id" title="variable">a</span></a> (<a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianOps.bif"><span class="id" title="variable">bif</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#a:73"><span class="id" title="variable">a</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#i:71"><span class="id" title="variable">i</span></a>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab29"></a><h3 class="section">Products</h3>
+
+<div class="paragraph"> </div>
+
+ Products are a generalization of product types 
+<div class="paragraph"> </div>
+
+ Pairing. 
+</div>
+<div class="code">
+<span class="id" title="keyword">Class</span> <a id="Pair" class="idref" href="#Pair"><span class="id" title="record">Pair</span></a> :=<br/>
+&nbsp;&nbsp;<a id="pair_" class="idref" href="#pair_"><span class="id" title="projection">pair_</span></a> : <span class="id" title="keyword">∀</span> <a id="a:76" class="idref" href="#a:76"><span class="id" title="binder">a</span></a> <a id="b:77" class="idref" href="#b:77"><span class="id" title="binder">b</span></a> <a id="c:78" class="idref" href="#c:78"><span class="id" title="binder">c</span></a>, <a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianOps.C"><span class="id" title="variable">C</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#c:78"><span class="id" title="variable">c</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#a:76"><span class="id" title="variable">a</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianOps.C"><span class="id" title="variable">C</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#c:78"><span class="id" title="variable">c</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#b:77"><span class="id" title="variable">b</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianOps.C"><span class="id" title="variable">C</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#c:78"><span class="id" title="variable">c</span></a> (<a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianOps.bif"><span class="id" title="variable">bif</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#a:76"><span class="id" title="variable">a</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#b:77"><span class="id" title="variable">b</span></a>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Projection onto the left component. 
+</div>
+<div class="code">
+<span class="id" title="keyword">Class</span> <a id="Fst" class="idref" href="#Fst"><span class="id" title="record">Fst</span></a> :=<br/>
+&nbsp;&nbsp;<a id="fst_" class="idref" href="#fst_"><span class="id" title="projection">fst_</span></a> : <span class="id" title="keyword">∀</span> <a id="a:81" class="idref" href="#a:81"><span class="id" title="binder">a</span></a> <a id="b:82" class="idref" href="#b:82"><span class="id" title="binder">b</span></a>, <a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianOps.C"><span class="id" title="variable">C</span></a> (<a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianOps.bif"><span class="id" title="variable">bif</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#a:81"><span class="id" title="variable">a</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#b:82"><span class="id" title="variable">b</span></a>) <a class="idref" href="ITree.Basics.CategoryOps.html#a:81"><span class="id" title="variable">a</span></a>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Projection onto the right component. 
+</div>
+<div class="code">
+<span class="id" title="keyword">Class</span> <a id="Snd" class="idref" href="#Snd"><span class="id" title="record">Snd</span></a> :=<br/>
+&nbsp;&nbsp;<a id="snd_" class="idref" href="#snd_"><span class="id" title="projection">snd_</span></a> : <span class="id" title="keyword">∀</span> <a id="a:85" class="idref" href="#a:85"><span class="id" title="binder">a</span></a> <a id="b:86" class="idref" href="#b:86"><span class="id" title="binder">b</span></a>, <a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianOps.C"><span class="id" title="variable">C</span></a> (<a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianOps.bif"><span class="id" title="variable">bif</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#a:85"><span class="id" title="variable">a</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#b:86"><span class="id" title="variable">b</span></a>) <a class="idref" href="ITree.Basics.CategoryOps.html#b:86"><span class="id" title="variable">b</span></a>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab30"></a><h4 class="section">Symmetry</h4>
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Class</span> <a id="Swap" class="idref" href="#Swap"><span class="id" title="record">Swap</span></a> :=<br/>
+&nbsp;&nbsp;<a id="swap" class="idref" href="#swap"><span class="id" title="projection">swap</span></a> : <span class="id" title="keyword">∀</span> <a id="a:89" class="idref" href="#a:89"><span class="id" title="binder">a</span></a> <a id="b:90" class="idref" href="#b:90"><span class="id" title="binder">b</span></a>, <a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianOps.C"><span class="id" title="variable">C</span></a> (<a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianOps.bif"><span class="id" title="variable">bif</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#a:89"><span class="id" title="variable">a</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#b:90"><span class="id" title="variable">b</span></a>) (<a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianOps.bif"><span class="id" title="variable">bif</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#b:90"><span class="id" title="variable">b</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#a:89"><span class="id" title="variable">a</span></a>).<br/>
+
+<br/>
+<span class="id" title="keyword">End</span> <a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianOps"><span class="id" title="section">CocartesianOps</span></a>.<br/>
+
+<br/>
+<span class="id" title="var">Arguments</span> <a class="idref" href="ITree.Basics.CategoryOps.html#bimap"><span class="id" title="definition">bimap</span></a> {<span class="id" title="var">obj</span> <span class="id" title="var">C</span> <span class="id" title="var">bif</span> <span class="id" title="var">Bimap</span> <span class="id" title="var">a</span> <span class="id" title="var">b</span> <span class="id" title="var">c</span> <span class="id" title="var">d</span>}.<br/>
+<span class="id" title="var">Arguments</span> <a class="idref" href="ITree.Basics.CategoryOps.html#case_"><span class="id" title="definition">case_</span></a> {<span class="id" title="var">obj</span> <span class="id" title="var">C</span> <span class="id" title="var">bif</span> <span class="id" title="var">Case</span> <span class="id" title="var">a</span> <span class="id" title="var">b</span> <span class="id" title="var">c</span>}.<br/>
+<span class="id" title="var">Arguments</span> <a class="idref" href="ITree.Basics.CategoryOps.html#inl_"><span class="id" title="definition">inl_</span></a> {<span class="id" title="var">obj</span> <span class="id" title="var">C</span> <span class="id" title="var">bif</span> <span class="id" title="var">Inl</span> <span class="id" title="var">a</span> <span class="id" title="var">b</span>}.<br/>
+<span class="id" title="var">Arguments</span> <a class="idref" href="ITree.Basics.CategoryOps.html#inr_"><span class="id" title="definition">inr_</span></a> {<span class="id" title="var">obj</span> <span class="id" title="var">C</span> <span class="id" title="var">bif</span> <span class="id" title="var">Inr</span> <span class="id" title="var">a</span> <span class="id" title="var">b</span>}.<br/>
+<span class="id" title="var">Arguments</span> <a class="idref" href="ITree.Basics.CategoryOps.html#pair_"><span class="id" title="definition">pair_</span></a> {<span class="id" title="var">obj</span> <span class="id" title="var">C</span> <span class="id" title="var">bif</span> <span class="id" title="var">Pair</span> <span class="id" title="var">a</span> <span class="id" title="var">b</span> <span class="id" title="var">c</span>}.<br/>
+<span class="id" title="var">Arguments</span> <a class="idref" href="ITree.Basics.CategoryOps.html#fst_"><span class="id" title="definition">fst_</span></a> {<span class="id" title="var">obj</span> <span class="id" title="var">C</span> <span class="id" title="var">bif</span> <span class="id" title="var">Fst</span> <span class="id" title="var">a</span> <span class="id" title="var">b</span>}.<br/>
+<span class="id" title="var">Arguments</span> <a class="idref" href="ITree.Basics.CategoryOps.html#snd_"><span class="id" title="definition">snd_</span></a> {<span class="id" title="var">obj</span> <span class="id" title="var">C</span> <span class="id" title="var">bif</span> <span class="id" title="var">Snd</span> <span class="id" title="var">a</span> <span class="id" title="var">b</span>}.<br/>
+<span class="id" title="var">Arguments</span> <a class="idref" href="ITree.Basics.CategoryOps.html#assoc_r"><span class="id" title="definition">assoc_r</span></a> {<span class="id" title="var">obj</span> <span class="id" title="var">C</span> <span class="id" title="var">bif</span> <span class="id" title="var">AssocR</span> <span class="id" title="var">a</span> <span class="id" title="var">b</span> <span class="id" title="var">c</span>}.<br/>
+<span class="id" title="var">Arguments</span> <a class="idref" href="ITree.Basics.CategoryOps.html#assoc_l"><span class="id" title="definition">assoc_l</span></a> {<span class="id" title="var">obj</span> <span class="id" title="var">C</span> <span class="id" title="var">bif</span> <span class="id" title="var">AssocL</span> <span class="id" title="var">a</span> <span class="id" title="var">b</span> <span class="id" title="var">c</span>}.<br/>
+<span class="id" title="var">Arguments</span> <a class="idref" href="ITree.Basics.CategoryOps.html#unit_l"><span class="id" title="definition">unit_l</span></a>  {<span class="id" title="var">obj</span> <span class="id" title="var">C</span> <span class="id" title="var">bif</span> <span class="id" title="var">i</span> <span class="id" title="var">UnitL</span> <span class="id" title="var">a</span>}.<br/>
+<span class="id" title="var">Arguments</span> <a class="idref" href="ITree.Basics.CategoryOps.html#unit_l'"><span class="id" title="definition">unit_l'</span></a> {<span class="id" title="var">obj</span> <span class="id" title="var">C</span> <span class="id" title="var">bif</span> <span class="id" title="var">i</span> <span class="id" title="var">UnitL'</span> <span class="id" title="var">a</span>}.<br/>
+<span class="id" title="var">Arguments</span> <a class="idref" href="ITree.Basics.CategoryOps.html#unit_r"><span class="id" title="definition">unit_r</span></a>  {<span class="id" title="var">obj</span> <span class="id" title="var">C</span> <span class="id" title="var">bif</span> <span class="id" title="var">i</span> <span class="id" title="var">UnitR</span> <span class="id" title="var">a</span>}.<br/>
+<span class="id" title="var">Arguments</span> <a class="idref" href="ITree.Basics.CategoryOps.html#unit_r'"><span class="id" title="definition">unit_r'</span></a> {<span class="id" title="var">obj</span> <span class="id" title="var">C</span> <span class="id" title="var">bif</span> <span class="id" title="var">i</span> <span class="id" title="var">UnitR'</span> <span class="id" title="var">a</span>}.<br/>
+<span class="id" title="var">Arguments</span> <a class="idref" href="ITree.Basics.CategoryOps.html#swap"><span class="id" title="definition">swap</span></a> {<span class="id" title="var">obj</span> <span class="id" title="var">C</span> <span class="id" title="var">bif</span> <span class="id" title="var">Swap</span> <span class="id" title="var">a</span> <span class="id" title="var">b</span>}.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab31"></a><h2 class="section">Notations with explicit objects</h2>
+
+<div class="paragraph"> </div>
+
+ Useful to annotate the above isomorphisms in cases where their
+    types would be ambiguous. 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Notation</span> <a id="assoc_r_" class="idref" href="#assoc_r_"><span class="id" title="abbreviation">assoc_r_</span></a> <span class="id" title="var">a</span> <span class="id" title="var">b</span> <span class="id" title="var">c</span> := (@<a class="idref" href="ITree.Basics.CategoryOps.html#assoc_r"><span class="id" title="definition">assoc_r</span></a> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">a</span> <span class="id" title="var">b</span> <span class="id" title="var">c</span>) (<span class="id" title="var">only</span> <span class="id" title="var">parsing</span>).<br/>
+<span class="id" title="keyword">Notation</span> <a id="assoc_l_" class="idref" href="#assoc_l_"><span class="id" title="abbreviation">assoc_l_</span></a> <span class="id" title="var">a</span> <span class="id" title="var">b</span> <span class="id" title="var">c</span> := (@<a class="idref" href="ITree.Basics.CategoryOps.html#assoc_l"><span class="id" title="definition">assoc_l</span></a> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">a</span> <span class="id" title="var">b</span> <span class="id" title="var">c</span>) (<span class="id" title="var">only</span> <span class="id" title="var">parsing</span>).<br/>
+<span class="id" title="keyword">Notation</span> <a id="unit_l_" class="idref" href="#unit_l_"><span class="id" title="abbreviation">unit_l_</span></a>  <span class="id" title="var">i</span> <span class="id" title="var">a</span> := (@<a class="idref" href="ITree.Basics.CategoryOps.html#unit_l"><span class="id" title="definition">unit_l</span></a>  <span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">i</span> <span class="id" title="var">_</span> <span class="id" title="var">a</span>) (<span class="id" title="var">only</span> <span class="id" title="var">parsing</span>).<br/>
+<span class="id" title="keyword">Notation</span> <a id="unit_l'_" class="idref" href="#unit_l'_"><span class="id" title="abbreviation">unit_l'_</span></a> <span class="id" title="var">i</span> <span class="id" title="var">a</span> := (@<a class="idref" href="ITree.Basics.CategoryOps.html#unit_l'"><span class="id" title="definition">unit_l'</span></a> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">i</span> <span class="id" title="var">_</span> <span class="id" title="var">a</span>) (<span class="id" title="var">only</span> <span class="id" title="var">parsing</span>).<br/>
+<span class="id" title="keyword">Notation</span> <a id="unit_r_" class="idref" href="#unit_r_"><span class="id" title="abbreviation">unit_r_</span></a>  <span class="id" title="var">i</span> <span class="id" title="var">a</span> := (@<a class="idref" href="ITree.Basics.CategoryOps.html#unit_r"><span class="id" title="definition">unit_r</span></a>  <span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">i</span> <span class="id" title="var">_</span> <span class="id" title="var">a</span>) (<span class="id" title="var">only</span> <span class="id" title="var">parsing</span>).<br/>
+<span class="id" title="keyword">Notation</span> <a id="unit_r'_" class="idref" href="#unit_r'_"><span class="id" title="abbreviation">unit_r'_</span></a> <span class="id" title="var">i</span> <span class="id" title="var">a</span> := (@<a class="idref" href="ITree.Basics.CategoryOps.html#unit_r'"><span class="id" title="definition">unit_r'</span></a> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">i</span> <span class="id" title="var">_</span> <span class="id" title="var">a</span>) (<span class="id" title="var">only</span> <span class="id" title="var">parsing</span>).<br/>
+<span class="id" title="keyword">Notation</span> <a id="swap_" class="idref" href="#swap_"><span class="id" title="abbreviation">swap_</span></a> <span class="id" title="var">a</span> <span class="id" title="var">b</span> := (@<a class="idref" href="ITree.Basics.CategoryOps.html#swap"><span class="id" title="definition">swap</span></a> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">a</span> <span class="id" title="var">b</span>) (<span class="id" title="var">only</span> <span class="id" title="var">parsing</span>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+With explicit category. 
+</div>
+<div class="code">
+<span class="id" title="keyword">Notation</span> <a id="case__" class="idref" href="#case__"><span class="id" title="abbreviation">case__</span></a> <span class="id" title="var">C</span> := (@<a class="idref" href="ITree.Basics.CategoryOps.html#case_"><span class="id" title="definition">case_</span></a> <span class="id" title="var">_</span> <span class="id" title="var">C</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span>)<br/>
+&nbsp;&nbsp;(<span class="id" title="var">only</span> <span class="id" title="var">parsing</span>).<br/>
+<span class="id" title="keyword">Notation</span> <a id="pair__" class="idref" href="#pair__"><span class="id" title="abbreviation">pair__</span></a> <span class="id" title="var">C</span> := (@<a class="idref" href="ITree.Basics.CategoryOps.html#pair_"><span class="id" title="definition">pair_</span></a> <span class="id" title="var">_</span> <span class="id" title="var">C</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span>)<br/>
+&nbsp;&nbsp;(<span class="id" title="var">only</span> <span class="id" title="var">parsing</span>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab32"></a><h2 class="section">Core notations</h2>
+
+</div>
+<div class="code">
+<span class="id" title="keyword">Module</span> <span class="id" title="keyword">Import</span> <a id="CatNotations" class="idref" href="#CatNotations"><span class="id" title="module">CatNotations</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Infix</span> <a id="7616709a5b950d9495abeafce4aed57e" class="idref" href="#7616709a5b950d9495abeafce4aed57e"><span class="id" title="notation">&quot;</span></a>⩯" := <a class="idref" href="ITree.Basics.CategoryOps.html#eq2"><span class="id" title="definition">eq2</span></a> (<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 70) : <span class="id" title="var">cat_scope</span>.<br/>
+<span class="id" title="keyword">Infix</span> <a id="CatNotations.::cat_scope:x_'&gt;&gt;&gt;'_x" class="idref" href="#CatNotations.::cat_scope:x_'&gt;&gt;&gt;'_x"><span class="id" title="notation">&quot;</span></a>&gt;&gt;&gt;" := <a class="idref" href="ITree.Basics.CategoryOps.html#cat"><span class="id" title="definition">cat</span></a> (<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 50, <span class="id" title="tactic">left</span> <span class="id" title="keyword">associativity</span>) : <span class="id" title="var">cat_scope</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">End</span> <a class="idref" href="ITree.Basics.CategoryOps.html#CatNotations"><span class="id" title="module">CatNotations</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Local Open</span> <span class="id" title="keyword">Scope</span> <span class="id" title="var">cat</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab33"></a><h2 class="section">Derived constructions</h2>
+
+<div class="paragraph"> </div>
+
+<a id="lab34"></a><h3 class="section">Coproduct operations</h3>
+
+<div class="paragraph"> </div>
+
+ Generalization of <span class="inlinecode"><span class="id" title="var">a</span></span> <span class="inlinecode">+</span> <span class="inlinecode"><span class="id" title="var">a</span></span> <span class="inlinecode">→</span> <span class="inlinecode"><span class="id" title="var">a</span></span>. 
+</div>
+<div class="code">
+<span class="id" title="keyword">Definition</span> <a id="merge" class="idref" href="#merge"><span class="id" title="definition">merge</span></a> {<a id="obj:92" class="idref" href="#obj:92"><span class="id" title="binder">obj</span></a> : <span class="id" title="keyword">Type</span>} {<a id="C:93" class="idref" href="#C:93"><span class="id" title="binder">C</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#Hom"><span class="id" title="abbreviation">Hom</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#obj:92"><span class="id" title="variable">obj</span></a>} {<a id="bif:94" class="idref" href="#bif:94"><span class="id" title="binder">bif</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#binop"><span class="id" title="abbreviation">binop</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#obj:92"><span class="id" title="variable">obj</span></a>}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<a id="Id_C:95" class="idref" href="#Id_C:95"><span class="id" title="binder">Id_C</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#Id_"><span class="id" title="class">Id_</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#C:93"><span class="id" title="variable">C</span></a>} {<a id="Coproduct_C:96" class="idref" href="#Coproduct_C:96"><span class="id" title="binder">Coproduct_C</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#Case"><span class="id" title="class">Case</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#C:93"><span class="id" title="variable">C</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#bif:94"><span class="id" title="variable">bif</span></a>}<br/>
+&nbsp;&nbsp;: <span class="id" title="keyword">∀</span> {<a id="a:97" class="idref" href="#a:97"><span class="id" title="binder">a</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#obj:92"><span class="id" title="variable">obj</span></a>}, <a class="idref" href="ITree.Basics.CategoryOps.html#C:93"><span class="id" title="variable">C</span></a> (<a class="idref" href="ITree.Basics.CategoryOps.html#bif:94"><span class="id" title="variable">bif</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#a:97"><span class="id" title="variable">a</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#a:97"><span class="id" title="variable">a</span></a>) <a class="idref" href="ITree.Basics.CategoryOps.html#a:97"><span class="id" title="variable">a</span></a> :=<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">fun</span> <a id="a:98" class="idref" href="#a:98"><span class="id" title="binder">a</span></a> ⇒ <a class="idref" href="ITree.Basics.CategoryOps.html#case_"><span class="id" title="definition">case_</span></a> (<a class="idref" href="ITree.Basics.CategoryOps.html#id_"><span class="id" title="definition">id_</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#a:98"><span class="id" title="variable">a</span></a>) (<a class="idref" href="ITree.Basics.CategoryOps.html#id_"><span class="id" title="definition">id_</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#a:98"><span class="id" title="variable">a</span></a>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab35"></a><h4 class="section">Cocartesian category</h4>
+
+<div class="paragraph"> </div>
+
+ The coproduct defines a symmetric monoidal category,
+    called a <i>cocartesian category</i>. 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Section</span> <a id="CocartesianConstruct" class="idref" href="#CocartesianConstruct"><span class="id" title="section">CocartesianConstruct</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Context</span> {<a id="obj:99" class="idref" href="#obj:99"><span class="id" title="binder">obj</span></a> : <span class="id" title="keyword">Type</span>} (<a id="C:100" class="idref" href="#C:100"><span class="id" title="binder">C</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#Hom"><span class="id" title="abbreviation">Hom</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#obj:99"><span class="id" title="variable">obj</span></a>) (<a id="Cat_C:101" class="idref" href="#Cat_C:101"><span class="id" title="binder">Cat_C</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#Cat"><span class="id" title="class">Cat</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#C:100"><span class="id" title="variable">C</span></a>).<br/>
+<span class="id" title="keyword">Variables</span> (<a id="CocartesianConstruct.SUM" class="idref" href="#CocartesianConstruct.SUM"><span class="id" title="variable">SUM</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#binop"><span class="id" title="abbreviation">binop</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianConstruct.obj"><span class="id" title="variable">obj</span></a>) (<a id="CocartesianConstruct.Coprod_SUM" class="idref" href="#CocartesianConstruct.Coprod_SUM"><span class="id" title="variable">Coprod_SUM</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#Case"><span class="id" title="class">Case</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianConstruct.C"><span class="id" title="variable">C</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#SUM:102"><span class="id" title="variable">SUM</span></a>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<a id="CocartesianConstruct.Inl_SUM" class="idref" href="#CocartesianConstruct.Inl_SUM"><span class="id" title="variable">Inl_SUM</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#Inl"><span class="id" title="class">Inl</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianConstruct.C"><span class="id" title="variable">C</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#SUM:102"><span class="id" title="variable">SUM</span></a>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<a id="CocartesianConstruct.Inr_SUM" class="idref" href="#CocartesianConstruct.Inr_SUM"><span class="id" title="variable">Inr_SUM</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#Inr"><span class="id" title="class">Inr</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianConstruct.C"><span class="id" title="variable">C</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#SUM:102"><span class="id" title="variable">SUM</span></a>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Coproducts are bifunctors. 
+</div>
+<div class="code">
+<span class="id" title="keyword">Global Instance</span> <a id="Bimap_Coproduct" class="idref" href="#Bimap_Coproduct"><span class="id" title="instance">Bimap_Coproduct</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#Bimap"><span class="id" title="class">Bimap</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianConstruct.C"><span class="id" title="variable">C</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianConstruct.SUM"><span class="id" title="variable">SUM</span></a> :=<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">fun</span> <a id="a:106" class="idref" href="#a:106"><span class="id" title="binder">a</span></a> <a id="b:107" class="idref" href="#b:107"><span class="id" title="binder">b</span></a> <a id="c:108" class="idref" href="#c:108"><span class="id" title="binder">c</span></a> <a id="d:109" class="idref" href="#d:109"><span class="id" title="binder">d</span></a> (<a id="f:110" class="idref" href="#f:110"><span class="id" title="binder">f</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianConstruct.C"><span class="id" title="variable">C</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#a:106"><span class="id" title="variable">a</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#c:108"><span class="id" title="variable">c</span></a>) (<a id="g:111" class="idref" href="#g:111"><span class="id" title="binder">g</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianConstruct.C"><span class="id" title="variable">C</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#b:107"><span class="id" title="variable">b</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#d:109"><span class="id" title="variable">d</span></a>) ⇒<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="ITree.Basics.CategoryOps.html#case_"><span class="id" title="definition">case_</span></a> (<a class="idref" href="ITree.Basics.CategoryOps.html#f:110"><span class="id" title="variable">f</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#CatNotations.::cat_scope:x_'&gt;&gt;&gt;'_x"><span class="id" title="notation">&gt;&gt;&gt;</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#inl_"><span class="id" title="definition">inl_</span></a>) (<a class="idref" href="ITree.Basics.CategoryOps.html#g:111"><span class="id" title="variable">g</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#CatNotations.::cat_scope:x_'&gt;&gt;&gt;'_x"><span class="id" title="notation">&gt;&gt;&gt;</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#inr_"><span class="id" title="definition">inr_</span></a>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Coproducts are symmetric. 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Global Instance</span> <a id="Swap_Coproduct" class="idref" href="#Swap_Coproduct"><span class="id" title="instance">Swap_Coproduct</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#Swap"><span class="id" title="class">Swap</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianConstruct.C"><span class="id" title="variable">C</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianConstruct.SUM"><span class="id" title="variable">SUM</span></a> :=<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">fun</span> <a id="a:112" class="idref" href="#a:112"><span class="id" title="binder">a</span></a> <a id="b:113" class="idref" href="#b:113"><span class="id" title="binder">b</span></a> ⇒ <a class="idref" href="ITree.Basics.CategoryOps.html#case_"><span class="id" title="definition">case_</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#inr_"><span class="id" title="definition">inr_</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#inl_"><span class="id" title="definition">inl_</span></a>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Coproducts are associative. 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Global Instance</span> <a id="AssocR_Coproduct" class="idref" href="#AssocR_Coproduct"><span class="id" title="instance">AssocR_Coproduct</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#AssocR"><span class="id" title="class">AssocR</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianConstruct.C"><span class="id" title="variable">C</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianConstruct.SUM"><span class="id" title="variable">SUM</span></a> :=<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">fun</span> <a id="a:114" class="idref" href="#a:114"><span class="id" title="binder">a</span></a> <a id="b:115" class="idref" href="#b:115"><span class="id" title="binder">b</span></a> <a id="c:116" class="idref" href="#c:116"><span class="id" title="binder">c</span></a> ⇒ <a class="idref" href="ITree.Basics.CategoryOps.html#case_"><span class="id" title="definition">case_</span></a> (<a class="idref" href="ITree.Basics.CategoryOps.html#case_"><span class="id" title="definition">case_</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#inl_"><span class="id" title="definition">inl_</span></a> (<a class="idref" href="ITree.Basics.CategoryOps.html#inl_"><span class="id" title="definition">inl_</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#CatNotations.::cat_scope:x_'&gt;&gt;&gt;'_x"><span class="id" title="notation">&gt;&gt;&gt;</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#inr_"><span class="id" title="definition">inr_</span></a>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<a class="idref" href="ITree.Basics.CategoryOps.html#inr_"><span class="id" title="definition">inr_</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#CatNotations.::cat_scope:x_'&gt;&gt;&gt;'_x"><span class="id" title="notation">&gt;&gt;&gt;</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#inr_"><span class="id" title="definition">inr_</span></a>).<br/>
+
+<br/>
+<span class="id" title="keyword">Global Instance</span> <a id="AssocL_Coproduct" class="idref" href="#AssocL_Coproduct"><span class="id" title="instance">AssocL_Coproduct</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#AssocL"><span class="id" title="class">AssocL</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianConstruct.C"><span class="id" title="variable">C</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianConstruct.SUM"><span class="id" title="variable">SUM</span></a> :=<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">fun</span> <a id="a:117" class="idref" href="#a:117"><span class="id" title="binder">a</span></a> <a id="b:118" class="idref" href="#b:118"><span class="id" title="binder">b</span></a> <a id="c:119" class="idref" href="#c:119"><span class="id" title="binder">c</span></a> ⇒ <a class="idref" href="ITree.Basics.CategoryOps.html#case_"><span class="id" title="definition">case_</span></a> (<a class="idref" href="ITree.Basics.CategoryOps.html#inl_"><span class="id" title="definition">inl_</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#CatNotations.::cat_scope:x_'&gt;&gt;&gt;'_x"><span class="id" title="notation">&gt;&gt;&gt;</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#inl_"><span class="id" title="definition">inl_</span></a>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<a class="idref" href="ITree.Basics.CategoryOps.html#case_"><span class="id" title="definition">case_</span></a> (<a class="idref" href="ITree.Basics.CategoryOps.html#inr_"><span class="id" title="definition">inr_</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#CatNotations.::cat_scope:x_'&gt;&gt;&gt;'_x"><span class="id" title="notation">&gt;&gt;&gt;</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#inl_"><span class="id" title="definition">inl_</span></a>) <a class="idref" href="ITree.Basics.CategoryOps.html#inr_"><span class="id" title="definition">inr_</span></a>).<br/>
+
+<br/>
+<span class="id" title="keyword">Variables</span> (<a id="CocartesianConstruct.Id_C" class="idref" href="#CocartesianConstruct.Id_C"><span class="id" title="variable">Id_C</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#Id_"><span class="id" title="class">Id_</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianConstruct.C"><span class="id" title="variable">C</span></a>) (<a id="CocartesianConstruct.I" class="idref" href="#CocartesianConstruct.I"><span class="id" title="variable">I</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianConstruct.obj"><span class="id" title="variable">obj</span></a>) (<a id="CocartesianConstruct.Initial_I" class="idref" href="#CocartesianConstruct.Initial_I"><span class="id" title="variable">Initial_I</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#Initial"><span class="id" title="class">Initial</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianConstruct.C"><span class="id" title="variable">C</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#I:121"><span class="id" title="variable">I</span></a>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+The initial object is a unit for the coproduct. 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Global Instance</span> <a id="UnitL_Coproduct" class="idref" href="#UnitL_Coproduct"><span class="id" title="instance">UnitL_Coproduct</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#UnitL"><span class="id" title="class">UnitL</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianConstruct.C"><span class="id" title="variable">C</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianConstruct.SUM"><span class="id" title="variable">SUM</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianConstruct.I"><span class="id" title="variable">I</span></a> :=<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">fun</span> <a id="a:123" class="idref" href="#a:123"><span class="id" title="binder">a</span></a> ⇒ <a class="idref" href="ITree.Basics.CategoryOps.html#case_"><span class="id" title="definition">case_</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#empty"><span class="id" title="definition">empty</span></a> (<a class="idref" href="ITree.Basics.CategoryOps.html#id_"><span class="id" title="definition">id_</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#a:123"><span class="id" title="variable">a</span></a>).<br/>
+
+<br/>
+<span class="id" title="keyword">Global Instance</span> <a id="UnitL'_Coproduct" class="idref" href="#UnitL'_Coproduct"><span class="id" title="instance">UnitL'_Coproduct</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#UnitL'"><span class="id" title="class">UnitL'</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianConstruct.C"><span class="id" title="variable">C</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianConstruct.SUM"><span class="id" title="variable">SUM</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianConstruct.I"><span class="id" title="variable">I</span></a> :=<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">fun</span> <a id="a:124" class="idref" href="#a:124"><span class="id" title="binder">a</span></a> ⇒ <a class="idref" href="ITree.Basics.CategoryOps.html#inr_"><span class="id" title="definition">inr_</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Global Instance</span> <a id="UnitR_Coproduct" class="idref" href="#UnitR_Coproduct"><span class="id" title="instance">UnitR_Coproduct</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#UnitR"><span class="id" title="class">UnitR</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianConstruct.C"><span class="id" title="variable">C</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianConstruct.SUM"><span class="id" title="variable">SUM</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianConstruct.I"><span class="id" title="variable">I</span></a> :=<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">fun</span> <a id="a:125" class="idref" href="#a:125"><span class="id" title="binder">a</span></a> ⇒ <a class="idref" href="ITree.Basics.CategoryOps.html#case_"><span class="id" title="definition">case_</span></a> (<a class="idref" href="ITree.Basics.CategoryOps.html#id_"><span class="id" title="definition">id_</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#a:125"><span class="id" title="variable">a</span></a>) <a class="idref" href="ITree.Basics.CategoryOps.html#empty"><span class="id" title="definition">empty</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Global Instance</span> <a id="UnitR'_Coproduct" class="idref" href="#UnitR'_Coproduct"><span class="id" title="instance">UnitR'_Coproduct</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#UnitR'"><span class="id" title="class">UnitR'</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianConstruct.C"><span class="id" title="variable">C</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianConstruct.SUM"><span class="id" title="variable">SUM</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianConstruct.I"><span class="id" title="variable">I</span></a> :=<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">fun</span> <a id="a:126" class="idref" href="#a:126"><span class="id" title="binder">a</span></a> ⇒ <a class="idref" href="ITree.Basics.CategoryOps.html#inl_"><span class="id" title="definition">inl_</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">End</span> <a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianConstruct"><span class="id" title="section">CocartesianConstruct</span></a>.<br/>
+</div>
+
+<div class="doc">
+<a id="lab36"></a><h4 class="section">Cartesian category</h4>
+
+<div class="paragraph"> </div>
+
+ The product defines a symmetric monoidal category,
+    called a <i>cartesian category</i>. 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Section</span> <a id="CartesianConstruct" class="idref" href="#CartesianConstruct"><span class="id" title="section">CartesianConstruct</span></a>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="comment">(*&nbsp;These&nbsp;Instances&nbsp;are&nbsp;kept&nbsp;local&nbsp;and&nbsp;should&nbsp;be&nbsp;made&nbsp;explicit&nbsp;locally&nbsp;using<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="inlinecode"><span class="id" title="var">Existing</span></span> <span class="inlinecode"><span class="id" title="keyword">Instance</span></span>&nbsp;to&nbsp;avoid&nbsp;clashes&nbsp;with&nbsp;the&nbsp;cocartesian&nbsp;instances<br/>
+&nbsp;&nbsp;&nbsp;*)</span><br/>
+
+<br/>
+<span class="id" title="keyword">Context</span> {<a id="obj:127" class="idref" href="#obj:127"><span class="id" title="binder">obj</span></a> : <span class="id" title="keyword">Type</span>} (<a id="C:128" class="idref" href="#C:128"><span class="id" title="binder">C</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#Hom"><span class="id" title="abbreviation">Hom</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#obj:127"><span class="id" title="variable">obj</span></a>) (<a id="Cat_C:129" class="idref" href="#Cat_C:129"><span class="id" title="binder">Cat_C</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#Cat"><span class="id" title="class">Cat</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#C:128"><span class="id" title="variable">C</span></a>).<br/>
+<span class="id" title="keyword">Variables</span> (<a id="CartesianConstruct.PROD" class="idref" href="#CartesianConstruct.PROD"><span class="id" title="variable">PROD</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#binop"><span class="id" title="abbreviation">binop</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#CartesianConstruct.obj"><span class="id" title="variable">obj</span></a>) (<a id="CartesianConstruct.Prod_PROD" class="idref" href="#CartesianConstruct.Prod_PROD"><span class="id" title="variable">Prod_PROD</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#Pair"><span class="id" title="class">Pair</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#CartesianConstruct.C"><span class="id" title="variable">C</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#PROD:130"><span class="id" title="variable">PROD</span></a>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<a id="CartesianConstruct.Fst_PROD" class="idref" href="#CartesianConstruct.Fst_PROD"><span class="id" title="variable">Fst_PROD</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#Fst"><span class="id" title="class">Fst</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#CartesianConstruct.C"><span class="id" title="variable">C</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#PROD:130"><span class="id" title="variable">PROD</span></a>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<a id="CartesianConstruct.Snd_PROD" class="idref" href="#CartesianConstruct.Snd_PROD"><span class="id" title="variable">Snd_PROD</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#Snd"><span class="id" title="class">Snd</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#CartesianConstruct.C"><span class="id" title="variable">C</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#PROD:130"><span class="id" title="variable">PROD</span></a>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Products are bifunctors. 
+</div>
+<div class="code">
+<span class="id" title="keyword">Instance</span> <a id="Bimap_Product" class="idref" href="#Bimap_Product"><span class="id" title="instance">Bimap_Product</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#Bimap"><span class="id" title="class">Bimap</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#CartesianConstruct.C"><span class="id" title="variable">C</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#CartesianConstruct.PROD"><span class="id" title="variable">PROD</span></a> :=<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">fun</span> <a id="a:134" class="idref" href="#a:134"><span class="id" title="binder">a</span></a> <a id="b:135" class="idref" href="#b:135"><span class="id" title="binder">b</span></a> <a id="c:136" class="idref" href="#c:136"><span class="id" title="binder">c</span></a> <a id="d:137" class="idref" href="#d:137"><span class="id" title="binder">d</span></a> (<a id="f:138" class="idref" href="#f:138"><span class="id" title="binder">f</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#CartesianConstruct.C"><span class="id" title="variable">C</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#a:134"><span class="id" title="variable">a</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#c:136"><span class="id" title="variable">c</span></a>) (<a id="g:139" class="idref" href="#g:139"><span class="id" title="binder">g</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#CartesianConstruct.C"><span class="id" title="variable">C</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#b:135"><span class="id" title="variable">b</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#d:137"><span class="id" title="variable">d</span></a>) ⇒<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="ITree.Basics.CategoryOps.html#pair_"><span class="id" title="definition">pair_</span></a> (<a class="idref" href="ITree.Basics.CategoryOps.html#fst_"><span class="id" title="definition">fst_</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#CatNotations.::cat_scope:x_'&gt;&gt;&gt;'_x"><span class="id" title="notation">&gt;&gt;&gt;</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#f:138"><span class="id" title="variable">f</span></a>) (<a class="idref" href="ITree.Basics.CategoryOps.html#snd_"><span class="id" title="definition">snd_</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#CatNotations.::cat_scope:x_'&gt;&gt;&gt;'_x"><span class="id" title="notation">&gt;&gt;&gt;</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#g:139"><span class="id" title="variable">g</span></a>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Products are symmetric. 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Instance</span> <a id="Swap_Product" class="idref" href="#Swap_Product"><span class="id" title="instance">Swap_Product</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#Swap"><span class="id" title="class">Swap</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#CartesianConstruct.C"><span class="id" title="variable">C</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#CartesianConstruct.PROD"><span class="id" title="variable">PROD</span></a> :=<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">fun</span> <a id="a:140" class="idref" href="#a:140"><span class="id" title="binder">a</span></a> <a id="b:141" class="idref" href="#b:141"><span class="id" title="binder">b</span></a> ⇒ <a class="idref" href="ITree.Basics.CategoryOps.html#pair_"><span class="id" title="definition">pair_</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#snd_"><span class="id" title="definition">snd_</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#fst_"><span class="id" title="definition">fst_</span></a>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Products are associative. 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Instance</span> <a id="AssocR_Product" class="idref" href="#AssocR_Product"><span class="id" title="instance">AssocR_Product</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#AssocR"><span class="id" title="class">AssocR</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#CartesianConstruct.C"><span class="id" title="variable">C</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#CartesianConstruct.PROD"><span class="id" title="variable">PROD</span></a> :=<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">fun</span> <a id="a:142" class="idref" href="#a:142"><span class="id" title="binder">a</span></a> <a id="b:143" class="idref" href="#b:143"><span class="id" title="binder">b</span></a> <a id="c:144" class="idref" href="#c:144"><span class="id" title="binder">c</span></a> ⇒ <a class="idref" href="ITree.Basics.CategoryOps.html#pair_"><span class="id" title="definition">pair_</span></a> (<a class="idref" href="ITree.Basics.CategoryOps.html#fst_"><span class="id" title="definition">fst_</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#CatNotations.::cat_scope:x_'&gt;&gt;&gt;'_x"><span class="id" title="notation">&gt;&gt;&gt;</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#fst_"><span class="id" title="definition">fst_</span></a>) (<a class="idref" href="ITree.Basics.CategoryOps.html#pair_"><span class="id" title="definition">pair_</span></a> (<a class="idref" href="ITree.Basics.CategoryOps.html#fst_"><span class="id" title="definition">fst_</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#CatNotations.::cat_scope:x_'&gt;&gt;&gt;'_x"><span class="id" title="notation">&gt;&gt;&gt;</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#snd_"><span class="id" title="definition">snd_</span></a>) <a class="idref" href="ITree.Basics.CategoryOps.html#snd_"><span class="id" title="definition">snd_</span></a>).<br/>
+
+<br/>
+<span class="id" title="keyword">Instance</span> <a id="AssocL_Product" class="idref" href="#AssocL_Product"><span class="id" title="instance">AssocL_Product</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#AssocL"><span class="id" title="class">AssocL</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#CartesianConstruct.C"><span class="id" title="variable">C</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#CartesianConstruct.PROD"><span class="id" title="variable">PROD</span></a> :=<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">fun</span> <a id="a:145" class="idref" href="#a:145"><span class="id" title="binder">a</span></a> <a id="b:146" class="idref" href="#b:146"><span class="id" title="binder">b</span></a> <a id="c:147" class="idref" href="#c:147"><span class="id" title="binder">c</span></a> ⇒ <a class="idref" href="ITree.Basics.CategoryOps.html#pair_"><span class="id" title="definition">pair_</span></a> (<a class="idref" href="ITree.Basics.CategoryOps.html#pair_"><span class="id" title="definition">pair_</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#fst_"><span class="id" title="definition">fst_</span></a> (<a class="idref" href="ITree.Basics.CategoryOps.html#snd_"><span class="id" title="definition">snd_</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#CatNotations.::cat_scope:x_'&gt;&gt;&gt;'_x"><span class="id" title="notation">&gt;&gt;&gt;</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#fst_"><span class="id" title="definition">fst_</span></a>)) (<a class="idref" href="ITree.Basics.CategoryOps.html#snd_"><span class="id" title="definition">snd_</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#CatNotations.::cat_scope:x_'&gt;&gt;&gt;'_x"><span class="id" title="notation">&gt;&gt;&gt;</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#snd_"><span class="id" title="definition">snd_</span></a>).<br/>
+
+<br/>
+<span class="id" title="keyword">Variables</span> (<a id="CartesianConstruct.Id_C" class="idref" href="#CartesianConstruct.Id_C"><span class="id" title="variable">Id_C</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#Id_"><span class="id" title="class">Id_</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#CartesianConstruct.C"><span class="id" title="variable">C</span></a>) (<a id="CartesianConstruct.T" class="idref" href="#CartesianConstruct.T"><span class="id" title="variable">T</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#CartesianConstruct.obj"><span class="id" title="variable">obj</span></a>) (<a id="CartesianConstruct.Terminal_T" class="idref" href="#CartesianConstruct.Terminal_T"><span class="id" title="variable">Terminal_T</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#Terminal"><span class="id" title="class">Terminal</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#CartesianConstruct.C"><span class="id" title="variable">C</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#T:149"><span class="id" title="variable">T</span></a>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+The initial object is a unit for the product. 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Instance</span> <a id="UnitL_Product" class="idref" href="#UnitL_Product"><span class="id" title="instance">UnitL_Product</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#UnitL"><span class="id" title="class">UnitL</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#CartesianConstruct.C"><span class="id" title="variable">C</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#CartesianConstruct.PROD"><span class="id" title="variable">PROD</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#CartesianConstruct.T"><span class="id" title="variable">T</span></a> :=<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">fun</span> <a id="a:151" class="idref" href="#a:151"><span class="id" title="binder">a</span></a> ⇒ <a class="idref" href="ITree.Basics.CategoryOps.html#snd_"><span class="id" title="definition">snd_</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Instance</span> <a id="UnitL'_Product" class="idref" href="#UnitL'_Product"><span class="id" title="instance">UnitL'_Product</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#UnitL'"><span class="id" title="class">UnitL'</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#CartesianConstruct.C"><span class="id" title="variable">C</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#CartesianConstruct.PROD"><span class="id" title="variable">PROD</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#CartesianConstruct.T"><span class="id" title="variable">T</span></a> :=<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">fun</span> <a id="a:152" class="idref" href="#a:152"><span class="id" title="binder">a</span></a> ⇒ <a class="idref" href="ITree.Basics.CategoryOps.html#pair_"><span class="id" title="definition">pair_</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#one"><span class="id" title="definition">one</span></a> (<a class="idref" href="ITree.Basics.CategoryOps.html#id_"><span class="id" title="definition">id_</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#a:152"><span class="id" title="variable">a</span></a>).<br/>
+
+<br/>
+<span class="id" title="keyword">Instance</span> <a id="UnitR_Product" class="idref" href="#UnitR_Product"><span class="id" title="instance">UnitR_Product</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#UnitR"><span class="id" title="class">UnitR</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#CartesianConstruct.C"><span class="id" title="variable">C</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#CartesianConstruct.PROD"><span class="id" title="variable">PROD</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#CartesianConstruct.T"><span class="id" title="variable">T</span></a> :=<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">fun</span> <a id="a:153" class="idref" href="#a:153"><span class="id" title="binder">a</span></a> ⇒ <a class="idref" href="ITree.Basics.CategoryOps.html#fst_"><span class="id" title="definition">fst_</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Instance</span> <a id="UnitR'_Product" class="idref" href="#UnitR'_Product"><span class="id" title="instance">UnitR'_Product</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#UnitR'"><span class="id" title="class">UnitR'</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#CartesianConstruct.C"><span class="id" title="variable">C</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#CartesianConstruct.PROD"><span class="id" title="variable">PROD</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#CartesianConstruct.T"><span class="id" title="variable">T</span></a> :=<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">fun</span> <a id="a:154" class="idref" href="#a:154"><span class="id" title="binder">a</span></a> ⇒ <a class="idref" href="ITree.Basics.CategoryOps.html#pair_"><span class="id" title="definition">pair_</span></a> (<a class="idref" href="ITree.Basics.CategoryOps.html#id_"><span class="id" title="definition">id_</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#a:154"><span class="id" title="variable">a</span></a>) <a class="idref" href="ITree.Basics.CategoryOps.html#one"><span class="id" title="definition">one</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">End</span> <a class="idref" href="ITree.Basics.CategoryOps.html#CartesianConstruct"><span class="id" title="section">CartesianConstruct</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Section</span> <a id="Dagger" class="idref" href="#Dagger"><span class="id" title="section">Dagger</span></a>.<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Context</span> {<a id="obj:155" class="idref" href="#obj:155"><span class="id" title="binder">obj</span></a> : <span class="id" title="keyword">Type</span>} (<a id="C:156" class="idref" href="#C:156"><span class="id" title="binder">C</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#Hom"><span class="id" title="abbreviation">Hom</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#obj:155"><span class="id" title="variable">obj</span></a>) (<a id="Cat_C:157" class="idref" href="#Cat_C:157"><span class="id" title="binder">Cat_C</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#Cat"><span class="id" title="class">Cat</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#C:156"><span class="id" title="variable">C</span></a>).<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Class</span> <a id="Dagger" class="idref" href="#Dagger"><span class="id" title="record">Dagger</span></a> : <span class="id" title="keyword">Type</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a id="dagger" class="idref" href="#dagger"><span class="id" title="projection">dagger</span></a> : <span class="id" title="keyword">∀</span> <a id="a:159" class="idref" href="#a:159"><span class="id" title="binder">a</span></a> <a id="b:160" class="idref" href="#b:160"><span class="id" title="binder">b</span></a>, <a class="idref" href="ITree.Basics.CategoryOps.html#op"><span class="id" title="definition">op</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#Dagger.C"><span class="id" title="variable">C</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#a:159"><span class="id" title="variable">a</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#b:160"><span class="id" title="variable">b</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#Dagger.C"><span class="id" title="variable">C</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#a:159"><span class="id" title="variable">a</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#b:160"><span class="id" title="variable">b</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">End</span> <a class="idref" href="ITree.Basics.CategoryOps.html#Dagger"><span class="id" title="section">Dagger</span></a>.<br/>
+
+<br/>
+<span class="id" title="var">Arguments</span> <a class="idref" href="ITree.Basics.CategoryOps.html#dagger"><span class="id" title="definition">dagger</span></a> {<span class="id" title="var">obj</span> <span class="id" title="var">C</span> <span class="id" title="var">_</span> <span class="id" title="var">a</span> <span class="id" title="var">b</span>}.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab37"></a><h2 class="section">Iteration, fixed points</h2>
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Section</span> <a id="Iteration" class="idref" href="#Iteration"><span class="id" title="section">Iteration</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Context</span> {<a id="obj:162" class="idref" href="#obj:162"><span class="id" title="binder">obj</span></a> : <span class="id" title="keyword">Type</span>} (<a id="C:163" class="idref" href="#C:163"><span class="id" title="binder">C</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#Hom"><span class="id" title="abbreviation">Hom</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#obj:162"><span class="id" title="variable">obj</span></a>).<br/>
+<span class="id" title="keyword">Variables</span> (<a id="Iteration.bif" class="idref" href="#Iteration.bif"><span class="id" title="variable">bif</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#binop"><span class="id" title="abbreviation">binop</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#Iteration.obj"><span class="id" title="variable">obj</span></a>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Categories with a loop operator (<i>pre-iterative categories</i>).
+  Abstract generalization of <span class="inlinecode"><span class="id" title="var">ITree.Basics.Basics.ALoop</span></span> and
+  <span class="inlinecode"><span class="id" title="var">ITree.Core.KTree.loop</span></span>. <span class="inlinecode"><a class="idref" href="ITree.Core.ITreeDefinition.html#ITree.iter"><span class="id" title="definition">iter</span></a></span> is often denoted as a dagger in the
+  relevant literature. 
+</div>
+<div class="code">
+<span class="id" title="keyword">Class</span> <a id="Iter" class="idref" href="#Iter"><span class="id" title="record">Iter</span></a> : <span class="id" title="keyword">Type</span> :=<br/>
+&nbsp;&nbsp;<a id="iter" class="idref" href="#iter"><span class="id" title="projection">iter</span></a> : <span class="id" title="keyword">∀</span> <a id="a:166" class="idref" href="#a:166"><span class="id" title="binder">a</span></a> <a id="b:167" class="idref" href="#b:167"><span class="id" title="binder">b</span></a>, <a class="idref" href="ITree.Basics.CategoryOps.html#Iteration.C"><span class="id" title="variable">C</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#a:166"><span class="id" title="variable">a</span></a> (<a class="idref" href="ITree.Basics.CategoryOps.html#Iteration.bif"><span class="id" title="variable">bif</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#a:166"><span class="id" title="variable">a</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#b:167"><span class="id" title="variable">b</span></a>) <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#Iteration.C"><span class="id" title="variable">C</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#a:166"><span class="id" title="variable">a</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#b:167"><span class="id" title="variable">b</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Context</span><br/>
+&nbsp;&nbsp;{<a id="Id_C:169" class="idref" href="#Id_C:169"><span class="id" title="binder">Id_C</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#Id_"><span class="id" title="class">Id_</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#Iteration.C"><span class="id" title="variable">C</span></a>}<br/>
+&nbsp;&nbsp;{<a id="Cat_C:170" class="idref" href="#Cat_C:170"><span class="id" title="binder">Cat_C</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#Cat"><span class="id" title="class">Cat</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#Iteration.C"><span class="id" title="variable">C</span></a>}<br/>
+&nbsp;&nbsp;{<a id="Case_bif:171" class="idref" href="#Case_bif:171"><span class="id" title="binder">Case_bif</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#Case"><span class="id" title="class">Case</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#Iteration.C"><span class="id" title="variable">C</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#Iteration.bif"><span class="id" title="variable">bif</span></a>}<br/>
+&nbsp;&nbsp;{<a id="Inl_bif:172" class="idref" href="#Inl_bif:172"><span class="id" title="binder">Inl_bif</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#Inl"><span class="id" title="class">Inl</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#Iteration.C"><span class="id" title="variable">C</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#Iteration.bif"><span class="id" title="variable">bif</span></a>}<br/>
+&nbsp;&nbsp;{<a id="Inr_bif:173" class="idref" href="#Inr_bif:173"><span class="id" title="binder">Inr_bif</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#Inr"><span class="id" title="class">Inr</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#Iteration.C"><span class="id" title="variable">C</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#Iteration.bif"><span class="id" title="variable">bif</span></a>}<br/>
+&nbsp;&nbsp;{<a id="Iter_bif:174" class="idref" href="#Iter_bif:174"><span class="id" title="binder">Iter_bif</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#Iter"><span class="id" title="class">Iter</span></a>}.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Trace operator (generalization of <span class="inlinecode"><span class="id" title="var">KTree.loop</span></span>). 
+</div>
+<div class="code">
+<span class="id" title="keyword">Definition</span> <a id="loop" class="idref" href="#loop"><span class="id" title="definition">loop</span></a> (<a id="a:175" class="idref" href="#a:175"><span class="id" title="binder">a</span></a> <a id="b:176" class="idref" href="#b:176"><span class="id" title="binder">b</span></a> <a id="c:177" class="idref" href="#c:177"><span class="id" title="binder">c</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#Iteration.obj"><span class="id" title="variable">obj</span></a>)<br/>
+&nbsp;&nbsp;: <a class="idref" href="ITree.Basics.CategoryOps.html#Iteration.C"><span class="id" title="variable">C</span></a> (<a class="idref" href="ITree.Basics.CategoryOps.html#Iteration.bif"><span class="id" title="variable">bif</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#c:177"><span class="id" title="variable">c</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#a:175"><span class="id" title="variable">a</span></a>) (<a class="idref" href="ITree.Basics.CategoryOps.html#Iteration.bif"><span class="id" title="variable">bif</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#c:177"><span class="id" title="variable">c</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#b:176"><span class="id" title="variable">b</span></a>) <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#Iteration.C"><span class="id" title="variable">C</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#a:175"><span class="id" title="variable">a</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#b:176"><span class="id" title="variable">b</span></a> :=<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">fun</span> <a id="f:178" class="idref" href="#f:178"><span class="id" title="binder">f</span></a> ⇒ <a class="idref" href="ITree.Basics.CategoryOps.html#inr_"><span class="id" title="definition">inr_</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#CatNotations.::cat_scope:x_'&gt;&gt;&gt;'_x"><span class="id" title="notation">&gt;&gt;&gt;</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#iter"><span class="id" title="definition">iter</span></a> <span class="id" title="var">_</span> <span class="id" title="var">_</span> (<a class="idref" href="ITree.Basics.CategoryOps.html#f:178"><span class="id" title="variable">f</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#CatNotations.::cat_scope:x_'&gt;&gt;&gt;'_x"><span class="id" title="notation">&gt;&gt;&gt;</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#bimap"><span class="id" title="definition">bimap</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#inl_"><span class="id" title="definition">inl_</span></a> (<a class="idref" href="ITree.Basics.CategoryOps.html#id_"><span class="id" title="definition">id_</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#b:176"><span class="id" title="variable">b</span></a>)).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+ For our purposes, <span class="inlinecode"><a class="idref" href="ITree.Basics.CategoryOps.html#loop"><span class="id" title="definition">loop</span></a></span> and <span class="inlinecode"><a class="idref" href="ITree.Core.ITreeDefinition.html#ITree.iter"><span class="id" title="definition">iter</span></a></span> are mutually derivable.
+  <span class="inlinecode"><a class="idref" href="ITree.Basics.CategoryOps.html#loop"><span class="id" title="definition">loop</span></a></span> is a definition instead of another class to prevent the interface
+  from growing too much. We originally started with traced categories but
+  iterative categories seem to provide more of the theory we need. 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">End</span> <a class="idref" href="ITree.Basics.CategoryOps.html#Iteration"><span class="id" title="section">Iteration</span></a>.<br/>
+
+<br/>
+<span class="id" title="var">Arguments</span> <a class="idref" href="ITree.Basics.CategoryOps.html#iter"><span class="id" title="definition">iter</span></a> {<span class="id" title="var">obj</span> <span class="id" title="var">C</span> <span class="id" title="var">bif</span> <span class="id" title="var">_</span> <span class="id" title="var">a</span> <span class="id" title="var">b</span>}.<br/>
+<span class="id" title="var">Arguments</span> <a class="idref" href="ITree.Basics.CategoryOps.html#loop"><span class="id" title="definition">loop</span></a> {<span class="id" title="var">obj</span> <span class="id" title="var">C</span> <span class="id" title="var">bif</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">a</span> <span class="id" title="var">b</span> <span class="id" title="var">c</span>}.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab38"></a><h2 class="section">Automatic solver of reassociating sums</h2>
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Section</span> <a id="RESUM" class="idref" href="#RESUM"><span class="id" title="section">RESUM</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Context</span> {<a id="obj:179" class="idref" href="#obj:179"><span class="id" title="binder">obj</span></a> : <span class="id" title="keyword">Type</span>} (<a id="C:180" class="idref" href="#C:180"><span class="id" title="binder">C</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#Hom"><span class="id" title="abbreviation">Hom</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#obj:179"><span class="id" title="variable">obj</span></a>) (<a id="bif:181" class="idref" href="#bif:181"><span class="id" title="binder">bif</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#binop"><span class="id" title="abbreviation">binop</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#obj:179"><span class="id" title="variable">obj</span></a>).<br/>
+<span class="id" title="keyword">Context</span> `{<a id="H:182" class="idref" href="#H:182"><span class="id" title="binder">Id_</span></a> <a id="H:182" class="idref" href="#H:182"><span class="id" title="binder">_</span></a> <a id="H:182" class="idref" href="#H:182"><span class="id" title="binder">C</span></a>} `{<a id="H0:183" class="idref" href="#H0:183"><span class="id" title="binder">Cat</span></a> <a id="H0:183" class="idref" href="#H0:183"><span class="id" title="binder">_</span></a> <a id="H0:183" class="idref" href="#H0:183"><span class="id" title="binder">C</span></a>}.<br/>
+<span class="id" title="keyword">Context</span> `{<a id="H1:184" class="idref" href="#H1:184"><span class="id" title="binder">Case</span></a> <a id="H1:184" class="idref" href="#H1:184"><span class="id" title="binder">_</span></a> <a id="H1:184" class="idref" href="#H1:184"><span class="id" title="binder">C</span></a> <a id="H1:184" class="idref" href="#H1:184"><span class="id" title="binder">bif</span></a>} `{<a id="H2:185" class="idref" href="#H2:185"><span class="id" title="binder">Inl</span></a> <a id="H2:185" class="idref" href="#H2:185"><span class="id" title="binder">_</span></a> <a id="H2:185" class="idref" href="#H2:185"><span class="id" title="binder">C</span></a> <a id="H2:185" class="idref" href="#H2:185"><span class="id" title="binder">bif</span></a>} `{<a id="H3:186" class="idref" href="#H3:186"><span class="id" title="binder">Inr</span></a> <a id="H3:186" class="idref" href="#H3:186"><span class="id" title="binder">_</span></a> <a id="H3:186" class="idref" href="#H3:186"><span class="id" title="binder">C</span></a> <a id="H3:186" class="idref" href="#H3:186"><span class="id" title="binder">bif</span></a>}.<br/>
+
+<br/>
+<span class="id" title="keyword">Class</span> <a id="ReSum" class="idref" href="#ReSum"><span class="id" title="record">ReSum</span></a> (<a id="a:187" class="idref" href="#a:187"><span class="id" title="binder">a</span></a> <a id="b:188" class="idref" href="#b:188"><span class="id" title="binder">b</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#RESUM.obj"><span class="id" title="variable">obj</span></a>) :=<br/>
+&nbsp;&nbsp;<a id="resum" class="idref" href="#resum"><span class="id" title="projection">resum</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#RESUM.C"><span class="id" title="variable">C</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#a:187"><span class="id" title="variable">a</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#b:188"><span class="id" title="variable">b</span></a>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+The instance weights on <span class="inlinecode"><a class="idref" href="ITree.Basics.CategoryOps.html#ReSum_inl"><span class="id" title="instance">ReSum_inl</span></a></span> (8) and <span class="inlinecode"><a class="idref" href="ITree.Basics.CategoryOps.html#ReSum_inr"><span class="id" title="instance">ReSum_inr</span></a></span> (9) are so that,
+    if you have a list <span class="inlinecode"><span class="id" title="var">E</span></span> <span class="inlinecode">+'</span> <span class="inlinecode"><span class="id" title="var">E</span></span> <span class="inlinecode">+'</span> <span class="inlinecode"><span class="id" title="var">F</span></span> (associated to the right:
+    <span class="inlinecode"><span class="id" title="var">E</span></span> <span class="inlinecode">+'</span> <span class="inlinecode">(<span class="id" title="var">E</span></span> <span class="inlinecode">+'</span> <span class="inlinecode"><span class="id" title="var">F</span>)</span>), then the first one will be picked for the inclusion
+    <span class="inlinecode"><span class="id" title="var">E</span></span> <span class="inlinecode">-&lt;</span> <span class="inlinecode"><span class="id" title="var">E</span></span> <span class="inlinecode">+'</span> <span class="inlinecode"><span class="id" title="var">E</span></span> <span class="inlinecode">+'</span> <span class="inlinecode"><span class="id" title="var">F</span></span>. 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Global Instance</span> <a id="ReSum_id" class="idref" href="#ReSum_id"><span class="id" title="instance">ReSum_id</span></a> `{<a id="H4:191" class="idref" href="#H4:191"><span class="id" title="binder">Id_</span></a> <a id="H4:191" class="idref" href="#H4:191"><span class="id" title="binder">_</span></a> <a id="H4:191" class="idref" href="#H4:191"><span class="id" title="binder">C</span></a>} <a id="a:192" class="idref" href="#a:192"><span class="id" title="binder">a</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#ReSum"><span class="id" title="class">ReSum</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#a:192"><span class="id" title="variable">a</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#a:192"><span class="id" title="variable">a</span></a> := { <a class="idref" href="ITree.Basics.CategoryOps.html#resum"><span class="id" title="definition">resum</span></a> := <a class="idref" href="ITree.Basics.CategoryOps.html#id_"><span class="id" title="definition">id_</span></a> <span class="id" title="var">a</span> }.<br/>
+<span class="id" title="keyword">Global Instance</span> <a id="ReSum_sum" class="idref" href="#ReSum_sum"><span class="id" title="instance">ReSum_sum</span></a> <a id="a:193" class="idref" href="#a:193"><span class="id" title="binder">a</span></a> <a id="b:194" class="idref" href="#b:194"><span class="id" title="binder">b</span></a> <a id="c:195" class="idref" href="#c:195"><span class="id" title="binder">c</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`{<a id="H4:196" class="idref" href="#H4:196"><span class="id" title="binder">ReSum</span></a> <a id="H4:196" class="idref" href="#H4:196"><span class="id" title="binder">a</span></a> <a id="H4:196" class="idref" href="#H4:196"><span class="id" title="binder">c</span></a>} `{<a id="H5:197" class="idref" href="#H5:197"><span class="id" title="binder">ReSum</span></a> <a id="H5:197" class="idref" href="#H5:197"><span class="id" title="binder">b</span></a> <a id="H5:197" class="idref" href="#H5:197"><span class="id" title="binder">c</span></a>} : <a class="idref" href="ITree.Basics.CategoryOps.html#ReSum"><span class="id" title="class">ReSum</span></a> (<a class="idref" href="ITree.Basics.CategoryOps.html#RESUM.bif"><span class="id" title="variable">bif</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#a:193"><span class="id" title="variable">a</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#b:194"><span class="id" title="variable">b</span></a>) <a class="idref" href="ITree.Basics.CategoryOps.html#c:195"><span class="id" title="variable">c</span></a> :=<br/>
+&nbsp;&nbsp;{ <a class="idref" href="ITree.Basics.CategoryOps.html#resum"><span class="id" title="definition">resum</span></a> := <a class="idref" href="ITree.Basics.CategoryOps.html#case_"><span class="id" title="definition">case_</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#resum"><span class="id" title="definition">resum</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#resum"><span class="id" title="definition">resum</span></a> }.<br/>
+<span class="id" title="keyword">Global Instance</span> <a id="ReSum_inl" class="idref" href="#ReSum_inl"><span class="id" title="instance">ReSum_inl</span></a> <a id="a:198" class="idref" href="#a:198"><span class="id" title="binder">a</span></a> <a id="b:199" class="idref" href="#b:199"><span class="id" title="binder">b</span></a> <a id="c:200" class="idref" href="#c:200"><span class="id" title="binder">c</span></a> `{<a id="H4:201" class="idref" href="#H4:201"><span class="id" title="binder">ReSum</span></a> <a id="H4:201" class="idref" href="#H4:201"><span class="id" title="binder">a</span></a> <a id="H4:201" class="idref" href="#H4:201"><span class="id" title="binder">b</span></a>} : <a class="idref" href="ITree.Basics.CategoryOps.html#ReSum"><span class="id" title="class">ReSum</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#a:198"><span class="id" title="variable">a</span></a> (<a class="idref" href="ITree.Basics.CategoryOps.html#RESUM.bif"><span class="id" title="variable">bif</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#b:199"><span class="id" title="variable">b</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#c:200"><span class="id" title="variable">c</span></a>) | 8 :=<br/>
+&nbsp;&nbsp;{ <a class="idref" href="ITree.Basics.CategoryOps.html#resum"><span class="id" title="definition">resum</span></a> := <a class="idref" href="ITree.Basics.CategoryOps.html#resum"><span class="id" title="definition">resum</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#CatNotations.::cat_scope:x_'&gt;&gt;&gt;'_x"><span class="id" title="notation">&gt;&gt;&gt;</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#inl_"><span class="id" title="definition">inl_</span></a> }.<br/>
+<span class="id" title="keyword">Global Instance</span> <a id="ReSum_inr" class="idref" href="#ReSum_inr"><span class="id" title="instance">ReSum_inr</span></a> <a id="a:202" class="idref" href="#a:202"><span class="id" title="binder">a</span></a> <a id="b:203" class="idref" href="#b:203"><span class="id" title="binder">b</span></a> <a id="c:204" class="idref" href="#c:204"><span class="id" title="binder">c</span></a> `{<a id="H4:205" class="idref" href="#H4:205"><span class="id" title="binder">ReSum</span></a> <a id="H4:205" class="idref" href="#H4:205"><span class="id" title="binder">a</span></a> <a id="H4:205" class="idref" href="#H4:205"><span class="id" title="binder">b</span></a>} : <a class="idref" href="ITree.Basics.CategoryOps.html#ReSum"><span class="id" title="class">ReSum</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#a:202"><span class="id" title="variable">a</span></a> (<a class="idref" href="ITree.Basics.CategoryOps.html#RESUM.bif"><span class="id" title="variable">bif</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#c:204"><span class="id" title="variable">c</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#b:203"><span class="id" title="variable">b</span></a>) | 9 :=<br/>
+&nbsp;&nbsp;{ <a class="idref" href="ITree.Basics.CategoryOps.html#resum"><span class="id" title="definition">resum</span></a> := <a class="idref" href="ITree.Basics.CategoryOps.html#resum"><span class="id" title="definition">resum</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#CatNotations.::cat_scope:x_'&gt;&gt;&gt;'_x"><span class="id" title="notation">&gt;&gt;&gt;</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#inr_"><span class="id" title="definition">inr_</span></a> }.<br/>
+<span class="id" title="keyword">Global Instance</span> <a id="ReSum_empty" class="idref" href="#ReSum_empty"><span class="id" title="instance">ReSum_empty</span></a> {<a id="i:206" class="idref" href="#i:206"><span class="id" title="binder">i</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#RESUM.obj"><span class="id" title="variable">obj</span></a>} `{<a id="H4:207" class="idref" href="#H4:207"><span class="id" title="binder">Initial</span></a> <a id="H4:207" class="idref" href="#H4:207"><span class="id" title="binder">_</span></a> <a id="H4:207" class="idref" href="#H4:207"><span class="id" title="binder">_</span></a> <a id="H4:207" class="idref" href="#H4:207"><span class="id" title="binder">i</span></a>} <a id="a:208" class="idref" href="#a:208"><span class="id" title="binder">a</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#ReSum"><span class="id" title="class">ReSum</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#i:206"><span class="id" title="variable">i</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#a:208"><span class="id" title="variable">a</span></a> :=<br/>
+&nbsp;&nbsp;{ <a class="idref" href="ITree.Basics.CategoryOps.html#resum"><span class="id" title="definition">resum</span></a> := <a class="idref" href="ITree.Basics.CategoryOps.html#empty"><span class="id" title="definition">empty</span></a> }.<br/>
+
+<br/>
+<span class="comment">(*&nbsp;Usage&nbsp;template:<br/>
+<br/>
+<br/>
+<span class="inlinecode"><span class="id" title="keyword">Opaque</span> <span class="id" title="var">cat</span>.<br/>
+<span class="id" title="keyword">Opaque</span> <span class="id" title="var">id</span>.<br/>
+<span class="id" title="keyword">Opaque</span> <span class="id" title="var">case_</span>.<br/>
+<span class="id" title="keyword">Opaque</span> <span class="id" title="var">inl_</span>.<br/>
+<span class="id" title="keyword">Opaque</span> <span class="id" title="var">inr_</span>.<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;where&nbsp;the&nbsp;category&nbsp;is&nbsp;(-&gt;)&nbsp;&nbsp;vv&nbsp;*)</span><br/>
+<span class="id" title="keyword">Definition</span> <span class="id" title="var">f</span> {<span class="id" title="var">X</span> <span class="id" title="var">Y</span> <span class="id" title="var">Z</span>} : <span class="id" title="var">complex_sum</span> → <span class="id" title="var">another_complex_sum</span> :=<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Eval</span> <span class="id" title="tactic">compute</span> <span class="id" title="tactic">in</span> <span class="id" title="var">resum</span>.<br/>
+<br/>
+<span class="id" title="keyword">Transparent</span> <span class="id" title="var">cat</span>.<br/>
+<span class="id" title="keyword">Transparent</span> <span class="id" title="var">id</span>.<br/>
+<span class="id" title="keyword">Transparent</span> <span class="id" title="var">case_</span>.<br/>
+<span class="id" title="keyword">Transparent</span> <span class="id" title="var">inl_</span>.<br/>
+<span class="id" title="keyword">Transparent</span> <span class="id" title="var">inr_</span>.
+<div class="paragraph"> </div>
+
+</span>*)</span><br/>
+
+<br/>
+<span class="id" title="keyword">End</span> <a class="idref" href="ITree.Basics.CategoryOps.html#RESUM"><span class="id" title="section">RESUM</span></a>.<br/>
+</div>
+</div>
+<div id="footer">
+  Generated by <a href="http://coq.inria.fr/">coqdoc</a> and improved with <a href="https://github.com/tebbi/coqdocjs">CoqdocJS</a>
+</div>
+</div>
+</body>
+
+</html>

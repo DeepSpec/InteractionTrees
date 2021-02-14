@@ -1,0 +1,102 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<link href="coqdoc.css" rel="stylesheet" type="text/css" />
+<link href="coqdocjs.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="config.js"></script>
+<script type="text/javascript" src="coqdocjs.js"></script>
+</head>
+
+<body onload="document.getElementById('content').focus()">
+  <div id="header">
+    <span class="left">
+      <span class="modulename"> <script> document.write(document.title) </script> </span>
+    </span>
+
+    <span class="button" id="toggle-proofs"></span>
+
+    <span class="right">
+      <a href="https://github.com/DeepSpec/InteractionTrees">Project Page</a>
+      <a href="./indexpage.html"> Index </a>
+      <a href="./toc.html"> Table of Contents </a>
+    </span>
+</div>
+    <div id="content" tabindex="-1" onblur="document.getElementById('content').focus()">
+    <div id="main">
+<h1 class="libtitle">ITree.Basics.FunctionFacts</h1>
+
+<div class="code">
+</div>
+
+<div class="doc">
+<a id="lab67"></a><h1 class="section">Theorems for <span class="inlinecode"><a class="idref" href="ITree.Basics.Function.html#"><span class="id" title="library">ITree.Basics.Function</span></a></span></h1>
+
+</div>
+<div class="code">
+
+<br/>
+
+<br/>
+<span class="id" title="keyword">Instance</span> <a id="subrelation_eeq_eqeq" class="idref" href="#subrelation_eeq_eqeq"><span class="id" title="instance">subrelation_eeq_eqeq</span></a> {<a id="A:1" class="idref" href="#A:1"><span class="id" title="binder">A</span></a> <a id="B:2" class="idref" href="#B:2"><span class="id" title="binder">B</span></a>} :<br/>
+&nbsp;&nbsp;@<a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Classes.RelationClasses.html#subrelation"><span class="id" title="class">subrelation</span></a> (<a class="idref" href="ITree.Basics.FunctionFacts.html#A:1"><span class="id" title="variable">A</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <a class="idref" href="ITree.Basics.FunctionFacts.html#B:2"><span class="id" title="variable">B</span></a>) <a class="idref" href="ITree.Basics.CategoryOps.html#eq2"><span class="id" title="definition">eq2</span></a> (@<a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#eq"><span class="id" title="inductive">eq</span></a> <a class="idref" href="ITree.Basics.FunctionFacts.html#A:1"><span class="id" title="variable">A</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Classes.Morphisms.html#8dc5652698a6e16f72dd37bd17d3b973"><span class="id" title="notation">==&gt;</span></a> @<a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#eq"><span class="id" title="inductive">eq</span></a> <a class="idref" href="ITree.Basics.FunctionFacts.html#B:2"><span class="id" title="variable">B</span></a>)%<span class="id" title="var">signature</span>.<br/>
+<span class="id" title="keyword">Proof</span>. <span class="id" title="tactic">congruence</span>. <span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Instance</span> <a id="Equivalence_eeq" class="idref" href="#Equivalence_eeq"><span class="id" title="instance">Equivalence_eeq</span></a> {<a id="A:3" class="idref" href="#A:3"><span class="id" title="binder">A</span></a> <a id="B:4" class="idref" href="#B:4"><span class="id" title="binder">B</span></a>} : @<a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Classes.RelationClasses.html#Equivalence"><span class="id" title="class">Equivalence</span></a> (<a class="idref" href="ITree.Basics.Function.html#Fun"><span class="id" title="definition">Fun</span></a> <a class="idref" href="ITree.Basics.FunctionFacts.html#A:3"><span class="id" title="variable">A</span></a> <a class="idref" href="ITree.Basics.FunctionFacts.html#B:4"><span class="id" title="variable">B</span></a>) <a class="idref" href="ITree.Basics.CategoryOps.html#eq2"><span class="id" title="definition">eq2</span></a>.<br/>
+<span class="id" title="keyword">Proof</span>. <span class="id" title="tactic">constructor</span>; <span class="id" title="tactic">congruence</span>. <span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Instance</span> <a id="Proper_cat" class="idref" href="#Proper_cat"><span class="id" title="instance">Proper_cat</span></a> {<a id="A:5" class="idref" href="#A:5"><span class="id" title="binder">A</span></a> <a id="B:6" class="idref" href="#B:6"><span class="id" title="binder">B</span></a> <a id="C:7" class="idref" href="#C:7"><span class="id" title="binder">C</span></a> : <span class="id" title="keyword">Type</span>} :<br/>
+&nbsp;&nbsp;@<a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Classes.Morphisms.html#Proper"><span class="id" title="class">Proper</span></a> (<a class="idref" href="ITree.Basics.Function.html#Fun"><span class="id" title="definition">Fun</span></a> <a class="idref" href="ITree.Basics.FunctionFacts.html#A:5"><span class="id" title="variable">A</span></a> <a class="idref" href="ITree.Basics.FunctionFacts.html#B:6"><span class="id" title="variable">B</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <a class="idref" href="ITree.Basics.Function.html#Fun"><span class="id" title="definition">Fun</span></a> <a class="idref" href="ITree.Basics.FunctionFacts.html#B:6"><span class="id" title="variable">B</span></a> <a class="idref" href="ITree.Basics.FunctionFacts.html#C:7"><span class="id" title="variable">C</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <a class="idref" href="ITree.Basics.Function.html#Fun"><span class="id" title="definition">Fun</span></a> <a class="idref" href="ITree.Basics.FunctionFacts.html#A:5"><span class="id" title="variable">A</span></a> <a class="idref" href="ITree.Basics.FunctionFacts.html#C:7"><span class="id" title="variable">C</span></a>) (<a class="idref" href="ITree.Basics.CategoryOps.html#eq2"><span class="id" title="definition">eq2</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Classes.Morphisms.html#8dc5652698a6e16f72dd37bd17d3b973"><span class="id" title="notation">==&gt;</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#eq2"><span class="id" title="definition">eq2</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Classes.Morphisms.html#8dc5652698a6e16f72dd37bd17d3b973"><span class="id" title="notation">==&gt;</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#eq2"><span class="id" title="definition">eq2</span></a>) <a class="idref" href="ITree.Basics.CategoryOps.html#cat"><span class="id" title="definition">cat</span></a>.<br/>
+<span class="id" title="keyword">Proof</span>. <span class="id" title="tactic">cbv</span>; <span class="id" title="tactic">congruence</span>. <span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Instance</span> <a id="cat_Fun_CatIdL" class="idref" href="#cat_Fun_CatIdL"><span class="id" title="instance">cat_Fun_CatIdL</span></a> : <a class="idref" href="ITree.Basics.CategoryTheory.html#CatIdL"><span class="id" title="class">CatIdL</span></a> <a class="idref" href="ITree.Basics.Function.html#Fun"><span class="id" title="definition">Fun</span></a>.<br/>
+<span class="id" title="keyword">Proof</span>. <span class="id" title="tactic">red</span>; <span class="id" title="tactic">reflexivity</span>. <span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Instance</span> <a id="cat_Fun_CatIdR" class="idref" href="#cat_Fun_CatIdR"><span class="id" title="instance">cat_Fun_CatIdR</span></a> : <a class="idref" href="ITree.Basics.CategoryTheory.html#CatIdR"><span class="id" title="class">CatIdR</span></a> <a class="idref" href="ITree.Basics.Function.html#Fun"><span class="id" title="definition">Fun</span></a>.<br/>
+<span class="id" title="keyword">Proof</span>. <span class="id" title="tactic">red</span>; <span class="id" title="tactic">reflexivity</span>. <span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Instance</span> <a id="cat_Fun_assoc" class="idref" href="#cat_Fun_assoc"><span class="id" title="instance">cat_Fun_assoc</span></a> : <a class="idref" href="ITree.Basics.CategoryTheory.html#CatAssoc"><span class="id" title="class">CatAssoc</span></a> <a class="idref" href="ITree.Basics.Function.html#Fun"><span class="id" title="definition">Fun</span></a>.<br/>
+<span class="id" title="keyword">Proof</span>. <span class="id" title="tactic">red</span>; <span class="id" title="tactic">reflexivity</span>. <span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Instance</span> <a id="InitialObject_void" class="idref" href="#InitialObject_void"><span class="id" title="instance">InitialObject_void</span></a> : <a class="idref" href="ITree.Basics.CategoryTheory.html#InitialObject"><span class="id" title="class">InitialObject</span></a> <a class="idref" href="ITree.Basics.Function.html#Fun"><span class="id" title="definition">Fun</span></a> <a class="idref" href="ITree.Basics.Basics.html#void"><span class="id" title="abbreviation">void</span></a> :=<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">fun</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <a id="v:8" class="idref" href="#v:8"><span class="id" title="binder">v</span></a> ⇒ <span class="id" title="keyword">match</span> <a class="idref" href="ITree.Basics.FunctionFacts.html#v:8"><span class="id" title="variable">v</span></a> : <a class="idref" href="ITree.Basics.Basics.html#void"><span class="id" title="abbreviation">void</span></a> <span class="id" title="keyword">with</span> <span class="id" title="keyword">end</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Instance</span> <a id="eeq_case_sum" class="idref" href="#eeq_case_sum"><span class="id" title="instance">eeq_case_sum</span></a> {<a id="A:9" class="idref" href="#A:9"><span class="id" title="binder">A</span></a> <a id="B:10" class="idref" href="#B:10"><span class="id" title="binder">B</span></a> <a id="C:11" class="idref" href="#C:11"><span class="id" title="binder">C</span></a>} :<br/>
+&nbsp;&nbsp;@<a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Classes.Morphisms.html#Proper"><span class="id" title="class">Proper</span></a> (<a class="idref" href="ITree.Basics.Function.html#Fun"><span class="id" title="definition">Fun</span></a> <a class="idref" href="ITree.Basics.FunctionFacts.html#A:9"><span class="id" title="variable">A</span></a> <a class="idref" href="ITree.Basics.FunctionFacts.html#C:11"><span class="id" title="variable">C</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <a class="idref" href="ITree.Basics.Function.html#Fun"><span class="id" title="definition">Fun</span></a> <a class="idref" href="ITree.Basics.FunctionFacts.html#B:10"><span class="id" title="variable">B</span></a> <a class="idref" href="ITree.Basics.FunctionFacts.html#C:11"><span class="id" title="variable">C</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <a class="idref" href="ITree.Basics.Function.html#Fun"><span class="id" title="definition">Fun</span></a> (<a class="idref" href="ITree.Basics.FunctionFacts.html#A:9"><span class="id" title="variable">A</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Datatypes.html#e03f39daf98516fa530d3f6f5a1b4d92"><span class="id" title="notation">+</span></a> <a class="idref" href="ITree.Basics.FunctionFacts.html#B:10"><span class="id" title="variable">B</span></a>) <a class="idref" href="ITree.Basics.FunctionFacts.html#C:11"><span class="id" title="variable">C</span></a>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<a class="idref" href="ITree.Basics.CategoryOps.html#eq2"><span class="id" title="definition">eq2</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Classes.Morphisms.html#8dc5652698a6e16f72dd37bd17d3b973"><span class="id" title="notation">==&gt;</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#eq2"><span class="id" title="definition">eq2</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Classes.Morphisms.html#8dc5652698a6e16f72dd37bd17d3b973"><span class="id" title="notation">==&gt;</span></a> <a class="idref" href="ITree.Basics.CategoryOps.html#eq2"><span class="id" title="definition">eq2</span></a>) <a class="idref" href="ITree.Basics.CategoryOps.html#case_"><span class="id" title="definition">case_</span></a>.<br/>
+<span class="id" title="keyword">Proof</span>. <span class="id" title="tactic">cbv</span>; <span class="id" title="tactic">intros</span>; <span class="id" title="tactic">subst</span>; <span class="id" title="tactic">destruct</span> <span class="id" title="var">_</span>; <span class="id" title="tactic">auto</span>. <span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Instance</span> <a id="Category_Fun" class="idref" href="#Category_Fun"><span class="id" title="instance">Category_Fun</span></a> : <a class="idref" href="ITree.Basics.CategoryTheory.html#Category"><span class="id" title="class">Category</span></a> <a class="idref" href="ITree.Basics.Function.html#Fun"><span class="id" title="definition">Fun</span></a>.<br/>
+<span class="id" title="keyword">Proof</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">constructor</span>; <span class="id" title="var">typeclasses</span> <span class="id" title="tactic">eauto</span>.<br/>
+<span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Instance</span> <a id="Coproduct_Fun" class="idref" href="#Coproduct_Fun"><span class="id" title="instance">Coproduct_Fun</span></a> : <a class="idref" href="ITree.Basics.CategoryTheory.html#Coproduct"><span class="id" title="class">Coproduct</span></a> <a class="idref" href="ITree.Basics.Function.html#Fun"><span class="id" title="definition">Fun</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Datatypes.html#sum"><span class="id" title="inductive">sum</span></a>.<br/>
+<span class="id" title="keyword">Proof</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">constructor</span>.<br/>
+&nbsp;&nbsp;- <span class="id" title="tactic">intros</span> <span class="id" title="var">a</span> <span class="id" title="var">b</span> <span class="id" title="var">c</span> <span class="id" title="var">f</span> <span class="id" title="var">g</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">cbv</span>; <span class="id" title="tactic">reflexivity</span>.<br/>
+&nbsp;&nbsp;- <span class="id" title="tactic">intros</span> <span class="id" title="var">a</span> <span class="id" title="var">b</span> <span class="id" title="var">c</span> <span class="id" title="var">f</span> <span class="id" title="var">g</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">cbv</span>; <span class="id" title="tactic">reflexivity</span>.<br/>
+&nbsp;&nbsp;- <span class="id" title="tactic">intros</span> <span class="id" title="var">a</span> <span class="id" title="var">b</span> <span class="id" title="var">c</span> <span class="id" title="var">f</span> <span class="id" title="var">g</span> <span class="id" title="var">fg</span> <span class="id" title="var">Hf</span> <span class="id" title="var">Hg</span> [<span class="id" title="var">x</span> | <span class="id" title="var">y</span>]; <span class="id" title="tactic">cbv</span> <span class="id" title="tactic">in</span> *; <span class="id" title="tactic">auto</span>.<br/>
+&nbsp;&nbsp;- <span class="id" title="var">typeclasses</span> <span class="id" title="tactic">eauto</span>.<br/>
+<span class="id" title="keyword">Qed</span>.<br/>
+</div>
+</div>
+<div id="footer">
+  Generated by <a href="http://coq.inria.fr/">coqdoc</a> and improved with <a href="https://github.com/tebbi/coqdocjs">CoqdocJS</a>
+</div>
+</div>
+</body>
+
+</html>

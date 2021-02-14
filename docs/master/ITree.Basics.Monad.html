@@ -1,0 +1,100 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<link href="coqdoc.css" rel="stylesheet" type="text/css" />
+<link href="coqdocjs.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="config.js"></script>
+<script type="text/javascript" src="coqdocjs.js"></script>
+</head>
+
+<body onload="document.getElementById('content').focus()">
+  <div id="header">
+    <span class="left">
+      <span class="modulename"> <script> document.write(document.title) </script> </span>
+    </span>
+
+    <span class="button" id="toggle-proofs"></span>
+
+    <span class="right">
+      <a href="https://github.com/DeepSpec/InteractionTrees">Project Page</a>
+      <a href="./indexpage.html"> Index </a>
+      <a href="./toc.html"> Table of Contents </a>
+    </span>
+</div>
+    <div id="content" tabindex="-1" onblur="document.getElementById('content').focus()">
+    <div id="main">
+<h1 class="libtitle">ITree.Basics.Monad</h1>
+
+<div class="code">
+</div>
+
+<div class="doc">
+<a id="lab60"></a><h1 class="section">Monad laws and associated typeclasses</h1>
+
+</div>
+<div class="code">
+
+<br/>
+
+<br/>
+<span class="id" title="keyword">Set</span> <span class="id" title="var">Primitive</span> <span class="id" title="var">Projections</span>.<br/>
+
+<br/>
+<span class="comment">(*&nbsp;Canonical&nbsp;equivalence&nbsp;relation&nbsp;for&nbsp;a&nbsp;unary&nbsp;type&nbsp;family.&nbsp;*)</span><br/>
+<span class="id" title="keyword">Class</span> <a id="Eq1" class="idref" href="#Eq1"><span class="id" title="record">Eq1</span></a> (<a id="M:1" class="idref" href="#M:1"><span class="id" title="binder">M</span></a> : <span class="id" title="keyword">Type</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <span class="id" title="keyword">Type</span>) : <span class="id" title="keyword">Type</span> :=<br/>
+&nbsp;&nbsp;<a id="eq1" class="idref" href="#eq1"><span class="id" title="projection">eq1</span></a> : <span class="id" title="keyword">∀</span> <a id="A:3" class="idref" href="#A:3"><span class="id" title="binder">A</span></a>, <a class="idref" href="ITree.Basics.Monad.html#M:1"><span class="id" title="variable">M</span></a> <a class="idref" href="ITree.Basics.Monad.html#A:3"><span class="id" title="variable">A</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <a class="idref" href="ITree.Basics.Monad.html#M:1"><span class="id" title="variable">M</span></a> <a class="idref" href="ITree.Basics.Monad.html#A:3"><span class="id" title="variable">A</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <span class="id" title="keyword">Prop</span>.<br/>
+
+<br/>
+<span class="comment">(*&nbsp;Proof&nbsp;that&nbsp;<span class="inlinecode"><span class="id" title="var">eq1</span></span>&nbsp;is&nbsp;an&nbsp;equivalence&nbsp;relation.&nbsp;*)</span><br/>
+<span class="id" title="keyword">Class</span> <a id="Eq1Equivalence" class="idref" href="#Eq1Equivalence"><span class="id" title="record">Eq1Equivalence</span></a> (<a id="M:5" class="idref" href="#M:5"><span class="id" title="binder">M</span></a> : <span class="id" title="keyword">Type</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <span class="id" title="keyword">Type</span>) `{<a id="H:6" class="idref" href="#H:6"><span class="id" title="binder">Monad</span></a> <a id="H:6" class="idref" href="#H:6"><span class="id" title="binder">M</span></a>} `{<a id="H0:7" class="idref" href="#H0:7"><span class="id" title="binder">Eq1</span></a> <a id="H0:7" class="idref" href="#H0:7"><span class="id" title="binder">M</span></a>} :=<br/>
+&nbsp;&nbsp;<a id="eq1_equiv" class="idref" href="#eq1_equiv"><span class="id" title="projection">eq1_equiv</span></a> :&gt; <span class="id" title="keyword">∀</span> <a id="A:9" class="idref" href="#A:9"><span class="id" title="binder">A</span></a>, <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Classes.RelationClasses.html#Equivalence"><span class="id" title="class">Equivalence</span></a> (<a class="idref" href="ITree.Basics.Monad.html#eq1"><span class="id" title="definition">eq1</span></a> <a class="idref" href="ITree.Basics.Monad.html#A:9"><span class="id" title="variable">A</span></a>).<br/>
+
+<br/>
+<span class="id" title="var">Arguments</span> <a class="idref" href="ITree.Basics.Monad.html#eq1"><span class="id" title="definition">eq1</span></a> {<span class="id" title="var">M</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span>}.<br/>
+<span class="id" title="keyword">Infix</span> <a id="20d7a3de27e35f38017a31a5b4c235e8" class="idref" href="#20d7a3de27e35f38017a31a5b4c235e8"><span class="id" title="notation">&quot;</span></a>≈" := <a class="idref" href="ITree.Basics.Monad.html#eq1"><span class="id" title="definition">eq1</span></a> (<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 70) : <span class="id" title="var">monad_scope</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Section</span> <a id="Laws" class="idref" href="#Laws"><span class="id" title="section">Laws</span></a>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Context</span> (<a id="M:11" class="idref" href="#M:11"><span class="id" title="binder">M</span></a> : <span class="id" title="keyword">Type</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <span class="id" title="keyword">Type</span>).<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Context</span> {<a id="Eq1:12" class="idref" href="#Eq1:12"><span class="id" title="binder">Eq1</span></a> : @<a class="idref" href="ITree.Basics.Monad.html#Eq1"><span class="id" title="class">Eq1</span></a> <a class="idref" href="ITree.Basics.Monad.html#Laws.M"><span class="id" title="variable">M</span></a>}.<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Context</span> {<a id="Monad:13" class="idref" href="#Monad:13"><span class="id" title="binder">Monad</span></a> : <span class="id" title="class">Monad</span> <a class="idref" href="ITree.Basics.Monad.html#Laws.M"><span class="id" title="variable">M</span></a>}.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Local Open</span> <span class="id" title="keyword">Scope</span> <span class="id" title="var">monad_scope</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="comment">(*&nbsp;Monad&nbsp;laws&nbsp;up&nbsp;to&nbsp;<span class="inlinecode"><span class="id" title="var">M</span></span>'s&nbsp;canonical&nbsp;equivalence&nbsp;relation.&nbsp;*)</span><br/>
+&nbsp;&nbsp;<span class="comment">(*&nbsp;This&nbsp;differs&nbsp;coq-ext-lib's&nbsp;<span class="inlinecode"><span class="id" title="var">MonadLaws</span></span>&nbsp;in&nbsp;that&nbsp;the&nbsp;equiv.&nbsp;relation&nbsp;may&nbsp;be<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;distinct&nbsp;from&nbsp;<span class="inlinecode"><span class="id" title="var">eq</span></span>.&nbsp;*)</span><br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Class</span> <a id="MonadLawsE" class="idref" href="#MonadLawsE"><span class="id" title="record">MonadLawsE</span></a> : <span class="id" title="keyword">Prop</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;{ <a id="bind_ret_l" class="idref" href="#bind_ret_l"><span class="id" title="projection">bind_ret_l</span></a> : <span class="id" title="keyword">∀</span> <a id="A:15" class="idref" href="#A:15"><span class="id" title="binder">A</span></a> <a id="B:16" class="idref" href="#B:16"><span class="id" title="binder">B</span></a> (<a id="f:17" class="idref" href="#f:17"><span class="id" title="binder">f</span></a> : <a class="idref" href="ITree.Basics.Monad.html#A:15"><span class="id" title="variable">A</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <a class="idref" href="ITree.Basics.Monad.html#Laws.M"><span class="id" title="variable">M</span></a> <a class="idref" href="ITree.Basics.Monad.html#B:16"><span class="id" title="variable">B</span></a>) (<a id="x:18" class="idref" href="#x:18"><span class="id" title="binder">x</span></a> : <a class="idref" href="ITree.Basics.Monad.html#A:15"><span class="id" title="variable">A</span></a>), <span class="id" title="method">bind</span> (<span class="id" title="method">ret</span> <a class="idref" href="ITree.Basics.Monad.html#x:18"><span class="id" title="variable">x</span></a>) <a class="idref" href="ITree.Basics.Monad.html#f:17"><span class="id" title="variable">f</span></a> <a class="idref" href="ITree.Basics.Monad.html#20d7a3de27e35f38017a31a5b4c235e8"><span class="id" title="notation">≈</span></a> <a class="idref" href="ITree.Basics.Monad.html#f:17"><span class="id" title="variable">f</span></a> <a class="idref" href="ITree.Basics.Monad.html#x:18"><span class="id" title="variable">x</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;; <a id="bind_ret_r" class="idref" href="#bind_ret_r"><span class="id" title="projection">bind_ret_r</span></a> : <span class="id" title="keyword">∀</span> <a id="A:20" class="idref" href="#A:20"><span class="id" title="binder">A</span></a> (<a id="x:21" class="idref" href="#x:21"><span class="id" title="binder">x</span></a> : <a class="idref" href="ITree.Basics.Monad.html#Laws.M"><span class="id" title="variable">M</span></a> <a class="idref" href="ITree.Basics.Monad.html#A:20"><span class="id" title="variable">A</span></a>), <span class="id" title="method">bind</span> <a class="idref" href="ITree.Basics.Monad.html#x:21"><span class="id" title="variable">x</span></a> (<span class="id" title="keyword">fun</span> <a id="y:22" class="idref" href="#y:22"><span class="id" title="binder">y</span></a> ⇒ <span class="id" title="method">ret</span> <a class="idref" href="ITree.Basics.Monad.html#y:22"><span class="id" title="variable">y</span></a>) <a class="idref" href="ITree.Basics.Monad.html#20d7a3de27e35f38017a31a5b4c235e8"><span class="id" title="notation">≈</span></a> <a class="idref" href="ITree.Basics.Monad.html#x:21"><span class="id" title="variable">x</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;; <a id="bind_bind" class="idref" href="#bind_bind"><span class="id" title="projection">bind_bind</span></a> : <span class="id" title="keyword">∀</span> <a id="A:24" class="idref" href="#A:24"><span class="id" title="binder">A</span></a> <a id="B:25" class="idref" href="#B:25"><span class="id" title="binder">B</span></a> <a id="C:26" class="idref" href="#C:26"><span class="id" title="binder">C</span></a> (<a id="x:27" class="idref" href="#x:27"><span class="id" title="binder">x</span></a> : <a class="idref" href="ITree.Basics.Monad.html#Laws.M"><span class="id" title="variable">M</span></a> <a class="idref" href="ITree.Basics.Monad.html#A:24"><span class="id" title="variable">A</span></a>) (<a id="f:28" class="idref" href="#f:28"><span class="id" title="binder">f</span></a> : <a class="idref" href="ITree.Basics.Monad.html#A:24"><span class="id" title="variable">A</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <a class="idref" href="ITree.Basics.Monad.html#Laws.M"><span class="id" title="variable">M</span></a> <a class="idref" href="ITree.Basics.Monad.html#B:25"><span class="id" title="variable">B</span></a>) (<a id="g:29" class="idref" href="#g:29"><span class="id" title="binder">g</span></a> : <a class="idref" href="ITree.Basics.Monad.html#B:25"><span class="id" title="variable">B</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <a class="idref" href="ITree.Basics.Monad.html#Laws.M"><span class="id" title="variable">M</span></a> <a class="idref" href="ITree.Basics.Monad.html#C:26"><span class="id" title="variable">C</span></a>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="method">bind</span> (<span class="id" title="method">bind</span> <a class="idref" href="ITree.Basics.Monad.html#x:27"><span class="id" title="variable">x</span></a> <a class="idref" href="ITree.Basics.Monad.html#f:28"><span class="id" title="variable">f</span></a>) <a class="idref" href="ITree.Basics.Monad.html#g:29"><span class="id" title="variable">g</span></a> <a class="idref" href="ITree.Basics.Monad.html#20d7a3de27e35f38017a31a5b4c235e8"><span class="id" title="notation">≈</span></a> <span class="id" title="method">bind</span> <a class="idref" href="ITree.Basics.Monad.html#x:27"><span class="id" title="variable">x</span></a> (<span class="id" title="keyword">fun</span> <a id="y:30" class="idref" href="#y:30"><span class="id" title="binder">y</span></a> ⇒ <span class="id" title="method">bind</span> (<a class="idref" href="ITree.Basics.Monad.html#f:28"><span class="id" title="variable">f</span></a> <a class="idref" href="ITree.Basics.Monad.html#y:30"><span class="id" title="variable">y</span></a>) <a class="idref" href="ITree.Basics.Monad.html#g:29"><span class="id" title="variable">g</span></a>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;; <a id="Proper_bind" class="idref" href="#Proper_bind"><span class="id" title="projection">Proper_bind</span></a> :&gt; <span class="id" title="keyword">∀</span> {<a id="A:32" class="idref" href="#A:32"><span class="id" title="binder">A</span></a> <a id="B:33" class="idref" href="#B:33"><span class="id" title="binder">B</span></a>},<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(@<a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Classes.Morphisms.html#Proper"><span class="id" title="class">Proper</span></a> (<a class="idref" href="ITree.Basics.Monad.html#Laws.M"><span class="id" title="variable">M</span></a> <a class="idref" href="ITree.Basics.Monad.html#A:32"><span class="id" title="variable">A</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">(</span></a><a class="idref" href="ITree.Basics.Monad.html#A:32"><span class="id" title="variable">A</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <a class="idref" href="ITree.Basics.Monad.html#Laws.M"><span class="id" title="variable">M</span></a> <a class="idref" href="ITree.Basics.Monad.html#B:33"><span class="id" title="variable">B</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">)</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <a class="idref" href="ITree.Basics.Monad.html#Laws.M"><span class="id" title="variable">M</span></a> <a class="idref" href="ITree.Basics.Monad.html#B:33"><span class="id" title="variable">B</span></a>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<a class="idref" href="ITree.Basics.Monad.html#eq1"><span class="id" title="definition">eq1</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Classes.Morphisms.html#8dc5652698a6e16f72dd37bd17d3b973"><span class="id" title="notation">==&gt;</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Classes.Morphisms.html#pointwise_relation"><span class="id" title="definition">pointwise_relation</span></a> <span class="id" title="var">_</span> <a class="idref" href="ITree.Basics.Monad.html#eq1"><span class="id" title="definition">eq1</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Classes.Morphisms.html#8dc5652698a6e16f72dd37bd17d3b973"><span class="id" title="notation">==&gt;</span></a> <a class="idref" href="ITree.Basics.Monad.html#eq1"><span class="id" title="definition">eq1</span></a>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="method">bind</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}.<br/>
+
+<br/>
+<span class="id" title="keyword">End</span> <a class="idref" href="ITree.Basics.Monad.html#Laws"><span class="id" title="section">Laws</span></a>.<br/>
+
+<br/>
+<span class="id" title="var">Arguments</span> <a class="idref" href="ITree.Basics.Monad.html#bind_ret_l"><span class="id" title="method">bind_ret_l</span></a> {<span class="id" title="var">M</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span>}.<br/>
+<span class="id" title="var">Arguments</span> <a class="idref" href="ITree.Basics.Monad.html#bind_ret_r"><span class="id" title="method">bind_ret_r</span></a> {<span class="id" title="var">M</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span>}.<br/>
+<span class="id" title="var">Arguments</span> <a class="idref" href="ITree.Basics.Monad.html#bind_bind"><span class="id" title="method">bind_bind</span></a> {<span class="id" title="var">M</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span>}.<br/>
+<span class="id" title="var">Arguments</span> <a class="idref" href="ITree.Basics.Monad.html#Proper_bind"><span class="id" title="method">Proper_bind</span></a> {<span class="id" title="var">M</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span>}.<br/>
+</div>
+</div>
+<div id="footer">
+  Generated by <a href="http://coq.inria.fr/">coqdoc</a> and improved with <a href="https://github.com/tebbi/coqdocjs">CoqdocJS</a>
+</div>
+</div>
+</body>
+
+</html>

@@ -1,0 +1,148 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<link href="coqdoc.css" rel="stylesheet" type="text/css" />
+<link href="coqdocjs.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="config.js"></script>
+<script type="text/javascript" src="coqdocjs.js"></script>
+</head>
+
+<body onload="document.getElementById('content').focus()">
+  <div id="header">
+    <span class="left">
+      <span class="modulename"> <script> document.write(document.title) </script> </span>
+    </span>
+
+    <span class="button" id="toggle-proofs"></span>
+
+    <span class="right">
+      <a href="https://github.com/DeepSpec/InteractionTrees">Project Page</a>
+      <a href="./indexpage.html"> Index </a>
+      <a href="./toc.html"> Table of Contents </a>
+    </span>
+</div>
+    <div id="content" tabindex="-1" onblur="document.getElementById('content').focus()">
+    <div id="main">
+<h1 class="libtitle">ITree.Indexed.Function</h1>
+
+<div class="code">
+</div>
+
+<div class="doc">
+<a id="lab110"></a><h1 class="section">The Category of Indexed Functions</h1>
+
+<div class="paragraph"> </div>
+
+ Indexed functions have type <span class="inlinecode"><span class="id" title="var">E</span></span> <span class="inlinecode">~&gt;</span> <span class="inlinecode"><span class="id" title="var">F</span></span>, i.e., <span class="inlinecode"><span class="id" title="keyword">∀</span></span> <span class="inlinecode"><a class="idref" href="ITree.Basics.CategoryOps.html#CartesianConstruct.T"><span class="id" title="variable">T</span></a>,</span> <span class="inlinecode"><span class="id" title="var">E</span></span> <span class="inlinecode"><a class="idref" href="ITree.Basics.CategoryOps.html#CartesianConstruct.T"><span class="id" title="variable">T</span></a></span> <span class="inlinecode">→</span> <span class="inlinecode"><span class="id" title="var">F</span></span> <span class="inlinecode"><a class="idref" href="ITree.Basics.CategoryOps.html#CartesianConstruct.T"><span class="id" title="variable">T</span></a></span>,
+    for some <span class="inlinecode"><span class="id" title="var">E</span></span> and <span class="inlinecode"><span class="id" title="var">F</span></span>. Like regular functions (<span class="inlinecode"><span class="id" title="library">Basics.Function</span></span>),
+    they form a cocartesian category. 
+</div>
+<div class="code">
+
+<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+The name of the category. 
+</div>
+<div class="code">
+<span class="id" title="keyword">Definition</span> <a id="IFun" class="idref" href="#IFun"><span class="id" title="definition">IFun</span></a> (<a id="E:1" class="idref" href="#E:1"><span class="id" title="binder">E</span></a> <a id="F:2" class="idref" href="#F:2"><span class="id" title="binder">F</span></a> : <span class="id" title="keyword">Type</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <span class="id" title="keyword">Type</span>) : <span class="id" title="keyword">Type</span> := <a class="idref" href="ITree.Indexed.Function.html#E:1"><span class="id" title="variable">E</span></a> <a class="idref" href="ITree.Basics.Basics.html#f7397da22bdab7f77b06c5d98764e7b9"><span class="id" title="notation">~&gt;</span></a> <a class="idref" href="ITree.Indexed.Function.html#F:2"><span class="id" title="variable">F</span></a>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Unwrap <span class="inlinecode"><a class="idref" href="ITree.Indexed.Function.html#IFun"><span class="id" title="definition">IFun</span></a></span>, potentially useful for type inference. 
+</div>
+<div class="code">
+<span class="id" title="keyword">Definition</span> <a id="apply_IFun" class="idref" href="#apply_IFun"><span class="id" title="definition">apply_IFun</span></a> {<a id="E:3" class="idref" href="#E:3"><span class="id" title="binder">E</span></a> <a id="F:4" class="idref" href="#F:4"><span class="id" title="binder">F</span></a> <a id="T:5" class="idref" href="#T:5"><span class="id" title="binder">T</span></a>} (<a id="f:6" class="idref" href="#f:6"><span class="id" title="binder">f</span></a> : <a class="idref" href="ITree.Indexed.Function.html#IFun"><span class="id" title="definition">IFun</span></a> <a class="idref" href="ITree.Indexed.Function.html#E:3"><span class="id" title="variable">E</span></a> <a class="idref" href="ITree.Indexed.Function.html#F:4"><span class="id" title="variable">F</span></a>) : <a class="idref" href="ITree.Indexed.Function.html#E:3"><span class="id" title="variable">E</span></a> <a class="idref" href="ITree.Indexed.Function.html#T:5"><span class="id" title="variable">T</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <a class="idref" href="ITree.Indexed.Function.html#F:4"><span class="id" title="variable">F</span></a> <a class="idref" href="ITree.Indexed.Function.html#T:5"><span class="id" title="variable">T</span></a> := <a class="idref" href="ITree.Indexed.Function.html#f:6"><span class="id" title="variable">f</span></a> <a class="idref" href="ITree.Indexed.Function.html#T:5"><span class="id" title="variable">T</span></a>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Unwrap <span class="inlinecode"><a class="idref" href="ITree.Indexed.Function.html#IFun"><span class="id" title="definition">IFun</span></a></span> as <span class="inlinecode">~&gt;</span>. 
+</div>
+<div class="code">
+<span class="id" title="keyword">Definition</span> <a id="apply_IFun'" class="idref" href="#apply_IFun'"><span class="id" title="definition">apply_IFun'</span></a> {<a id="E:7" class="idref" href="#E:7"><span class="id" title="binder">E</span></a> <a id="F:8" class="idref" href="#F:8"><span class="id" title="binder">F</span></a>} (<a id="f:9" class="idref" href="#f:9"><span class="id" title="binder">f</span></a> : <a class="idref" href="ITree.Indexed.Function.html#IFun"><span class="id" title="definition">IFun</span></a> <a class="idref" href="ITree.Indexed.Function.html#E:7"><span class="id" title="variable">E</span></a> <a class="idref" href="ITree.Indexed.Function.html#F:8"><span class="id" title="variable">F</span></a>) : <a class="idref" href="ITree.Indexed.Function.html#E:7"><span class="id" title="variable">E</span></a> <a class="idref" href="ITree.Basics.Basics.html#f7397da22bdab7f77b06c5d98764e7b9"><span class="id" title="notation">~&gt;</span></a> <a class="idref" href="ITree.Indexed.Function.html#F:8"><span class="id" title="variable">F</span></a> := <a class="idref" href="ITree.Indexed.Function.html#f:9"><span class="id" title="variable">f</span></a>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Wrap <span class="inlinecode">~&gt;</span> as <span class="inlinecode"><a class="idref" href="ITree.Indexed.Function.html#IFun"><span class="id" title="definition">IFun</span></a></span>. 
+</div>
+<div class="code">
+<span class="id" title="keyword">Definition</span> <a id="as_IFun" class="idref" href="#as_IFun"><span class="id" title="definition">as_IFun</span></a> {<a id="E:10" class="idref" href="#E:10"><span class="id" title="binder">E</span></a> <a id="F:11" class="idref" href="#F:11"><span class="id" title="binder">F</span></a>} (<a id="f:12" class="idref" href="#f:12"><span class="id" title="binder">f</span></a> : <a class="idref" href="ITree.Indexed.Function.html#E:10"><span class="id" title="variable">E</span></a> <a class="idref" href="ITree.Basics.Basics.html#f7397da22bdab7f77b06c5d98764e7b9"><span class="id" title="notation">~&gt;</span></a> <a class="idref" href="ITree.Indexed.Function.html#F:11"><span class="id" title="variable">F</span></a>) : <a class="idref" href="ITree.Indexed.Function.html#IFun"><span class="id" title="definition">IFun</span></a> <a class="idref" href="ITree.Indexed.Function.html#E:10"><span class="id" title="variable">E</span></a> <a class="idref" href="ITree.Indexed.Function.html#F:11"><span class="id" title="variable">F</span></a> := <a class="idref" href="ITree.Indexed.Function.html#f:12"><span class="id" title="variable">f</span></a>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Equivalence of indexed functions is extensional equality. 
+</div>
+<div class="code">
+<span class="id" title="keyword">Instance</span> <a id="Eq2_IFun" class="idref" href="#Eq2_IFun"><span class="id" title="instance">Eq2_IFun</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#Eq2"><span class="id" title="class">Eq2</span></a> <a class="idref" href="ITree.Indexed.Function.html#IFun"><span class="id" title="definition">IFun</span></a> :=<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">fun</span> <a id="E:13" class="idref" href="#E:13"><span class="id" title="binder">E</span></a> <a id="F:14" class="idref" href="#F:14"><span class="id" title="binder">F</span></a> ⇒ <a class="idref" href="ITree.Indexed.Relation.html#i_pointwise"><span class="id" title="definition">i_pointwise</span></a> (<span class="id" title="keyword">fun</span> <a id="T:15" class="idref" href="#T:15"><span class="id" title="binder">T</span></a> ⇒ @<a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#eq"><span class="id" title="inductive">eq</span></a> (<a class="idref" href="ITree.Indexed.Function.html#F:14"><span class="id" title="variable">F</span></a> <a class="idref" href="ITree.Indexed.Function.html#T:15"><span class="id" title="variable">T</span></a>)).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+The identity function. 
+</div>
+<div class="code">
+<span class="id" title="keyword">Instance</span> <a id="Id_IFun" class="idref" href="#Id_IFun"><span class="id" title="instance">Id_IFun</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#Id_"><span class="id" title="class">Id_</span></a> <a class="idref" href="ITree.Indexed.Function.html#IFun"><span class="id" title="definition">IFun</span></a> :=<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">fun</span> <a id="E:16" class="idref" href="#E:16"><span class="id" title="binder">E</span></a> <span class="id" title="var">_</span> <a id="e:17" class="idref" href="#e:17"><span class="id" title="binder">e</span></a> ⇒ <a class="idref" href="ITree.Indexed.Function.html#e:17"><span class="id" title="variable">e</span></a>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Function composition. 
+</div>
+<div class="code">
+<span class="id" title="keyword">Instance</span> <a id="Cat_IFun" class="idref" href="#Cat_IFun"><span class="id" title="instance">Cat_IFun</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#Cat"><span class="id" title="class">Cat</span></a> <a class="idref" href="ITree.Indexed.Function.html#IFun"><span class="id" title="definition">IFun</span></a> :=<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">fun</span> <a id="E:18" class="idref" href="#E:18"><span class="id" title="binder">E</span></a> <a id="F:19" class="idref" href="#F:19"><span class="id" title="binder">F</span></a> <a id="G:20" class="idref" href="#G:20"><span class="id" title="binder">G</span></a> <a id="f1:21" class="idref" href="#f1:21"><span class="id" title="binder">f1</span></a> <a id="f2:22" class="idref" href="#f2:22"><span class="id" title="binder">f2</span></a> <a id="R:23" class="idref" href="#R:23"><span class="id" title="binder">R</span></a> <a id="e:24" class="idref" href="#e:24"><span class="id" title="binder">e</span></a> ⇒ <a class="idref" href="ITree.Indexed.Function.html#f2:22"><span class="id" title="variable">f2</span></a> <span class="id" title="var">_</span> (<a class="idref" href="ITree.Indexed.Function.html#f1:21"><span class="id" title="variable">f1</span></a> <span class="id" title="var">_</span> <a class="idref" href="ITree.Indexed.Function.html#e:24"><span class="id" title="variable">e</span></a>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<span class="inlinecode"><a class="idref" href="ITree.Indexed.Sum.html#void1"><span class="id" title="inductive">void1</span></a></span> is the initial object. 
+</div>
+<div class="code">
+<span class="id" title="keyword">Instance</span> <a id="Initial_void1" class="idref" href="#Initial_void1"><span class="id" title="instance">Initial_void1</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#Initial"><span class="id" title="class">Initial</span></a> <a class="idref" href="ITree.Indexed.Function.html#IFun"><span class="id" title="definition">IFun</span></a> <a class="idref" href="ITree.Indexed.Sum.html#void1"><span class="id" title="inductive">void1</span></a> := @<a class="idref" href="ITree.Indexed.Sum.html#elim_void1"><span class="id" title="definition">elim_void1</span></a>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+The coproduct is case analysis on sums. 
+</div>
+<div class="code">
+<span class="id" title="keyword">Definition</span> <a id="case_sum1" class="idref" href="#case_sum1"><span class="id" title="definition">case_sum1</span></a> {<a id="A:25" class="idref" href="#A:25"><span class="id" title="binder">A</span></a> <a id="B:26" class="idref" href="#B:26"><span class="id" title="binder">B</span></a> <a id="C:27" class="idref" href="#C:27"><span class="id" title="binder">C</span></a> : <span class="id" title="keyword">Type</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <span class="id" title="keyword">Type</span>} (<a id="f:28" class="idref" href="#f:28"><span class="id" title="binder">f</span></a> : <a class="idref" href="ITree.Indexed.Function.html#A:25"><span class="id" title="variable">A</span></a> <a class="idref" href="ITree.Basics.Basics.html#f7397da22bdab7f77b06c5d98764e7b9"><span class="id" title="notation">~&gt;</span></a> <a class="idref" href="ITree.Indexed.Function.html#C:27"><span class="id" title="variable">C</span></a>) (<a id="g:29" class="idref" href="#g:29"><span class="id" title="binder">g</span></a> : <a class="idref" href="ITree.Indexed.Function.html#B:26"><span class="id" title="variable">B</span></a> <a class="idref" href="ITree.Basics.Basics.html#f7397da22bdab7f77b06c5d98764e7b9"><span class="id" title="notation">~&gt;</span></a> <a class="idref" href="ITree.Indexed.Function.html#C:27"><span class="id" title="variable">C</span></a>)<br/>
+&nbsp;&nbsp;: <a class="idref" href="ITree.Indexed.Function.html#A:25"><span class="id" title="variable">A</span></a> <a class="idref" href="ITree.Indexed.Sum.html#025d6c7e3112e73e8cdbce045a3e6f38"><span class="id" title="notation">+'</span></a> <a class="idref" href="ITree.Indexed.Function.html#B:26"><span class="id" title="variable">B</span></a> <a class="idref" href="ITree.Basics.Basics.html#f7397da22bdab7f77b06c5d98764e7b9"><span class="id" title="notation">~&gt;</span></a> <a class="idref" href="ITree.Indexed.Function.html#C:27"><span class="id" title="variable">C</span></a><br/>
+&nbsp;&nbsp;:= <span class="id" title="keyword">fun</span> <span class="id" title="var">_</span> <a id="ab:30" class="idref" href="#ab:30"><span class="id" title="binder">ab</span></a> ⇒<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <a class="idref" href="ITree.Indexed.Function.html#ab:30"><span class="id" title="variable">ab</span></a> <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <a class="idref" href="ITree.Indexed.Sum.html#inl1"><span class="id" title="constructor">inl1</span></a> <span class="id" title="var">a</span> ⇒ <a class="idref" href="ITree.Indexed.Function.html#f:28"><span class="id" title="variable">f</span></a> <span class="id" title="var">_</span> <span class="id" title="var">a</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <a class="idref" href="ITree.Indexed.Sum.html#inr1"><span class="id" title="constructor">inr1</span></a> <span class="id" title="var">b</span> ⇒ <a class="idref" href="ITree.Indexed.Function.html#g:29"><span class="id" title="variable">g</span></a> <span class="id" title="var">_</span> <span class="id" title="var">b</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Instance</span> <a id="Case_sum1" class="idref" href="#Case_sum1"><span class="id" title="instance">Case_sum1</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#Case"><span class="id" title="class">Case</span></a> <a class="idref" href="ITree.Indexed.Function.html#IFun"><span class="id" title="definition">IFun</span></a> <a class="idref" href="ITree.Indexed.Sum.html#sum1"><span class="id" title="inductive">sum1</span></a> := @<a class="idref" href="ITree.Indexed.Function.html#case_sum1"><span class="id" title="definition">case_sum1</span></a>.<br/>
+<span class="id" title="keyword">Instance</span> <a id="Inl_sum1" class="idref" href="#Inl_sum1"><span class="id" title="instance">Inl_sum1</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#Inl"><span class="id" title="class">Inl</span></a> <a class="idref" href="ITree.Indexed.Function.html#IFun"><span class="id" title="definition">IFun</span></a> <a class="idref" href="ITree.Indexed.Sum.html#sum1"><span class="id" title="inductive">sum1</span></a> := @<a class="idref" href="ITree.Indexed.Sum.html#inl1"><span class="id" title="constructor">inl1</span></a>.<br/>
+<span class="id" title="keyword">Instance</span> <a id="Inr_sum1" class="idref" href="#Inr_sum1"><span class="id" title="instance">Inr_sum1</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#Inr"><span class="id" title="class">Inr</span></a> <a class="idref" href="ITree.Indexed.Function.html#IFun"><span class="id" title="definition">IFun</span></a> <a class="idref" href="ITree.Indexed.Sum.html#sum1"><span class="id" title="inductive">sum1</span></a> := @<a class="idref" href="ITree.Indexed.Sum.html#inr1"><span class="id" title="constructor">inr1</span></a>.<br/>
+</div>
+</div>
+<div id="footer">
+  Generated by <a href="http://coq.inria.fr/">coqdoc</a> and improved with <a href="https://github.com/tebbi/coqdocjs">CoqdocJS</a>
+</div>
+</div>
+</body>
+
+</html>
