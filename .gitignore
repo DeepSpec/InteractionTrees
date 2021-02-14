@@ -34,6 +34,7 @@ _CoqProject
 _CoqPath
 lib/
 html/
+doc
 coqdocjs*
 
 tests/extraction/*.ml
