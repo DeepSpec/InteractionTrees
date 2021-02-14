@@ -5,7 +5,6 @@ DOCDIR=docs/master
 rm -rf $DOCDIR
 mv ../html $DOCDIR
 sh ./cleanup.sh
-git add $DOCDIR
 set +x
 echo "OK!"
-echo "Now do this > git commit -m \"Update\""
+echo "Now do this > git add -u ; git commit -m \"Update\""
