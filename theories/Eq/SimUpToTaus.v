@@ -81,7 +81,7 @@ Hint Resolve monotone_suttF : paco.
 
 End SUTT_facts.
 
-Hint Resolve @monotone_suttF : paco.
+Hint Resolve monotone_suttF : paco.
 
 Lemma suttF_inv_vis {E R1 R2} (RR : R1 -> R2 -> Prop) sutt :
   forall X e (k1 : X -> itree E R1) (k2 : X -> itree E R2),

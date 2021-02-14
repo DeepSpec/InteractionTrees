@@ -121,7 +121,7 @@ Qed.
 
 End CategoryFacts.
 
-Hint Resolve @initial_unique : cat.
+Hint Resolve initial_unique : cat.
 
 (** ** Bifunctors *)
 

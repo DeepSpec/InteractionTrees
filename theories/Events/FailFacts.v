@@ -162,7 +162,7 @@ Proof.
   cbn; repeat (rewrite ?Eq.bind_bind, ?Eq.bind_ret_l, ?bind_map; try reflexivity).
   cbn; repeat (rewrite ?Eq.bind_bind, ?Eq.bind_ret_l, ?bind_map; try reflexivity).
   apply eq_itree_clo_bind with (UU := Logic.eq); [reflexivity | intros x ? <-]. 
-  destruct x as [| x].
+  destruct x as [x|].
   - rewrite Eq.bind_ret_l; reflexivity.
   - rewrite Eq.bind_ret_l; reflexivity.
 Qed.
