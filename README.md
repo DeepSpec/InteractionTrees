@@ -6,19 +6,11 @@ A Library for Representing Recursive and Impure Programs in Coq
 
 ### Via opam
 
-Recommended for regular users.
-
 ```
 opam install coq-itree
 ```
 
-## Top-level modules
-
-- `ITree.ITree`: Definitions to program with interaction trees.
-- `ITree.ITreeFacts`: Theorems to reason about interaction trees.
-- `ITree.Events`: Some standard event types.
-
-### Introduction
+## Introduction
 
 For a quick overview of the core features of the library, see
 [`examples/ReadmeExample.v`](./examples/ReadmeExample.v).
@@ -26,6 +18,12 @@ For a quick overview of the core features of the library, see
 See also [the tutorial](./tutorial/README.md).
 
 [The coqdoc documentation for this library is available here.](https://deepspec.github.io/InteractionTrees/master/toc.html)
+
+### Top-level modules
+
+- `ITree.ITree`: Definitions to program with interaction trees.
+- `ITree.ITreeFacts`: Theorems to reason about interaction trees.
+- `ITree.Events`: Some standard event types.
 
 ## Dependencies
 
