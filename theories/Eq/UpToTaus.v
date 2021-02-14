@@ -321,7 +321,7 @@ Proof.
     + gclo. econstructor; auto_ctrans_eq.
       * rewrite (simpobs Heqot1). reflexivity.
       * rewrite (simpobs Heqot2), tau_euttge. reflexivity.
-  - pclearbot. apply eqit_tauR in REL. rewrite Heqot' in REL, REL0. clear m2 Heqot'.
+  - pclearbot. apply eqit_Tau_r in REL. rewrite Heqot' in REL, REL0. clear m2 Heqot'.
     genobs t' ot'. genobs t2 ot2.
     hinduction REL0 before CIH; intros; subst.
     + apply eqit_ret_gen in REL0.
@@ -589,7 +589,7 @@ Lemma euttG_vis_gen rH rL gL gH u1 (e1: E u1) u2 (e2 : E u2) k1 k2 (p : u1 = u2)
   : eqeq E p e1 e2 -> pweqeq (euttG gH gH gH gH) p k1 k2 ->
     euttG rH rL gL gH (Vis e1 k1) (Vis e2 k2).
 Proof.
-  econstructor. gstep. apply (eqitF_VisF p); auto. destruct p; cbn in *; intros.
+  econstructor. gstep. apply (eqitF_VisF_gen p); auto. destruct p; cbn in *; intros.
   specialize (H0 x). destruct H0.
   apply euttVC_gen. econstructor; auto_ctrans_eq; try reflexivity.
   eapply gpaco2_mon_gen; eauto; intros; repeat destruct PR as [PR|PR];
@@ -765,16 +765,16 @@ Proof.
   - estep; ebase; right; eapply CIHL; eauto.
     rewrite <- tau_eutt.
     rewrite <- (tau_eutt m2); auto.
-  - assert (EE := eqitF_VisF_inv_strong _ _ _ _ _ EQ'); pclearbot.
+  - assert (EE := eqitF_inv_VisF _ _ _ _ _ EQ'); pclearbot.
     eapply euttG_vis; ebase; left; apply CIHH; auto.
   - eapply fold_eqitF in EQ'; eauto.
     assert (t ≈ Tau t1) by (rewrite itree_eta, <- Heqot; reflexivity).
     rewrite H in EQ'.
-    apply eqit_inv_tauL in EQ'.
+    apply eqit_inv_Tau_l in EQ'.
     subst; specialize (IHEQ _ _ eq_refl eq_refl).
     punfold EQ'; red in EQ'.
     specialize (IHEQ EQ').
-    rewrite eqit_tauL; [|reflexivity].
+    rewrite eqit_Tau_l; [|reflexivity].
     rewrite (itree_eta t1).
     eapply IHEQ. 
   - subst; cbn.

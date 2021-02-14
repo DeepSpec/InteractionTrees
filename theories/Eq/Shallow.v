@@ -32,7 +32,13 @@ Definition pweqeq {R1 R2} (RR : R1 -> R2 -> Prop) {X1 X2 : Type} (p : X1 = X2)
   | eq_refl => fun k1 k2 => forall x, RR (k1 x) (k2 x)
   end.
 
-Lemma eq_VisF_inv {E R X1 X2} (e1 : E X1) (e2 : E X2) (k1 : X1 -> itree E R) (k2 : X2 -> itree E R)
+Lemma pweqeq_mon {R1 R2} (RR1 RR2 : R1 -> R2 -> Prop) X1 X2 (p : X1 = X2) k1 k2
+  : (forall r1 r2, RR1 r1 r2 -> RR2 r1 r2) -> pweqeq RR1 p k1 k2 -> pweqeq RR2 p k1 k2.
+Proof.
+  destruct p; cbn; auto.
+Qed.
+
+Lemma eq_inv_VisF_weak {E R X1 X2} (e1 : E X1) (e2 : E X2) (k1 : X1 -> itree E R) (k2 : X2 -> itree E R)
   : VisF (R := R) e1 k1 = VisF (R := R) e2 k2 ->
     exists p : X1 = X2, eqeq E p e1 e2 /\ eqeq (fun X => X -> itree E R) p k1 k2.
 Proof.
@@ -52,7 +58,7 @@ Ltac inv_Vis :=
   discriminate +
   match goal with
   | [ E : VisF _ _ = VisF _ _ |- _ ] =>
-     apply eq_VisF_inv in E; destruct E as [ <- [<- <-]]
+     apply eq_inv_VisF_weak in E; destruct E as [ <- [<- <-]]
   end.
 
 (** ** [observing]: Lift relations through [observe]. *)
