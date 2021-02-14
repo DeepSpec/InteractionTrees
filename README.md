@@ -2,14 +2,6 @@
 
 A Library for Representing Recursive and Impure Programs in Coq
 
-## Installation
-
-### Via opam
-
-```
-opam install coq-itree
-```
-
 ## Introduction
 
 For a quick overview of the core features of the library, see
@@ -25,7 +17,15 @@ See also [the tutorial](./tutorial/README.md).
 - `ITree.ITreeFacts`: Theorems to reason about interaction trees.
 - `ITree.Events`: Some standard event types.
 
-## Dependencies
+## Installation
+
+### Via opam
+
+```
+opam install coq-itree
+```
+
+### Dependencies
 
 - [coq](https://coq.inria.fr/) (8.9 - 8.13)
 - [coq-paco](https://github.com/snu-sf/paco)
