@@ -33,22 +33,45 @@ Then visit `html/toc.html` in your web browser.
 
 #### 2. Prettier Documentation
 
-For a much nicer presentation of the documentation, use
-[coqdocjs](https://github.com/coq-community/coqdocjs).
+[coqdocjs](https://github.com/coq-community/coqdocjs) adds some modern-looking
+CSS and JS to coqdoc's output.
 
-1. Download
-  [coqdocjs-master.zip](https://github.com/coq-community/coqdocjs/archive/master.zip)
-  into the Interaction Trees root directory and unzip it.  (It should create the
-  `coqdocjs-master` folder.)
+1. Download and unzip
+  [coqdocjs-master.zip](https://github.com/coq-community/coqdocjs/archive/master.zip).
+
+2. Create a link to the unzipped directory (or move the directory into this repo):
+
+    ```
+    ln -s path/to/coqdocjs-master coqdocjs
+    ```
 
 2. Run
+
+    ```
+    make html
+    ```
+
+#### 3. Updating Github pages
+
+The documentation is stored in the `gh-pages` branch.
+The recommended setup is to create a fresh clone in the `doc` directory.
+
 ```
-make COQDOCJS_DIR=coqdocjs-master html
+git clone -b gh-pages git@github.com:DeepSpec/InteractionTrees doc
 ```
 
-Note: You can also opt to clone the coqdocjs git project rather than
-download the zip file, and set the `COQDOCJS_DIR` appropriately.  (It will
-probably just be `coqdocjs` not `coqdocjs-master`.)
+There is a script in that branch to update the documentation.
+
+```
+cd doc
+sh ./update.sh
+git add -u
+git commit -m "Update"
+```
+
+It will run "make html" in the parent directory and move the output where it
+should go, in `doc/docs/master`.
+Past releases are maintained in `doc/docs/$VERSION`.
 
 ## Library internal organization
 

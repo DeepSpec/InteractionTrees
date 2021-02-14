@@ -25,6 +25,8 @@ For a quick overview of the core features of the library, see
 
 See also [the tutorial](./tutorial/README.md).
 
+[The coqdoc documentation for this library is available here.](https://deepspec.github.io/InteractionTrees/master/toc.html)
+
 ## Dependencies
 
 - [coq](https://coq.inria.fr/) (8.9 - 8.13)
