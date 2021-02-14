@@ -171,7 +171,7 @@ Global Instance interp_fail_eq_itree {X E F} {R : X -> X -> Prop} (h : E ~> fail
 Proof.
   repeat red. 
   ginit.
-  gcofix CIH.
+  pcofix CIH.
   intros s t EQ.
   rewrite 2 unfold_interp_fail.
   punfold EQ; red in EQ.
@@ -270,7 +270,7 @@ Lemma interp_fail_bind : forall {X Y E F} (t : itree _ X) (k : X -> itree _ Y) (
                 ITree.bind (interp_fail h t)
                 (fun mx => match mx with | None => ret None | Some x => interp_fail h (k x) end).
 Proof.
-  intros X Y; ginit; gcofix CIH; intros.
+  intros X Y; ginit; pcofix CIH; intros.
   rewrite unfold_bind.
   rewrite (unfold_interp_fail h t).
   destruct (observe t) eqn:EQ; cbn.
@@ -294,7 +294,7 @@ Lemma interp_failure_bind' : forall {X Y E F} (t : itree _ X) (k : X -> itree _ 
                 bind (interp_fail h t)
                 (fun x => interp_fail h (k x)).
 Proof.
-  intros X Y E F; ginit; gcofix CIH; intros.
+  intros X Y E F; ginit; pcofix CIH; intros.
   cbn in *.
   rewrite unfold_bind, (unfold_interp_fail _ t).
   destruct (observe t) eqn:EQ; cbn.

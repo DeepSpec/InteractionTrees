@@ -312,12 +312,12 @@ Qed.
 Lemma eutt_inv_ret (r1 r2 : R)
   : Ret r1 ≈ Ret r2 ->
     r1 = r2.
-Proof. apply ITree.Eq.Eq.eqit_inv_ret. Qed.
+Proof. apply ITree.Eq.Eq.eqit_inv_Ret. Qed.
 
 Lemma eutt_inv_vis {U : Type} (e : E U) (k1 k2 : U -> itree E R)
   : Vis e k1 ≈ Vis e k2 ->
     (forall u, k1 u ≈ k2 u).
-Proof. apply ITree.Eq.Eq.eqit_inv_vis; auto. Qed.
+Proof. apply ITree.Eq.Eq.eqit_inv_Vis; auto. Qed.
 
 End EquivalenceUpToTaus.
 

@@ -2,7 +2,6 @@
 
 (* begin hide *)
 From Coq Require Import
-     Program
      Classes.Morphisms
      Setoids.Setoid
      Relations.Relations.
@@ -21,7 +20,8 @@ From ITree Require Import
      Core.ITreeMonad
      Core.KTree
      Eq.Eq
-     Eq.UpToTaus.
+     Eq.UpToTaus
+     Eq.Paco2.
 
 Import ITreeNotations.
 Import CatNotations.
@@ -65,7 +65,7 @@ Lemma eq_itree_iter' {E I1 I2 R1 R2}
   : forall (i1 : I1) (i2 : I2) (RI_i : RI i1 i2),
     @eq_itree E _ _ RR (ITree.iter body1 i1) (ITree.iter body2 i2).
 Proof.
-  ginit. gcofix CIH. intros.
+  ginit. pcofix CIH. intros.
   specialize (eutt_body i1 i2 RI_i).
   do 2 rewrite unfold_iter.
   guclo eqit_clo_bind; econstructor; eauto.
@@ -202,8 +202,8 @@ Lemma iter_dinatural_ktree {E A B C}
      | inr b => Ret b
      end.
 Proof.
-  revert A B C f g a0.
-  ginit. gcofix CIH. intros.
+  revert f g a0.
+  ginit. pcofix CIH. intros.
   rewrite unfold_iter_ktree.
   rewrite bind_bind.
   guclo eqit_clo_bind. econstructor. try reflexivity.
@@ -265,7 +265,7 @@ Lemma iter_codiagonal_ktree {E A B} (f : ktree E A (A + (A + B))) (a0 : A)
        end) a0.
 Proof.
   revert a0.
-  ginit. gcofix CIH. intros.
+  ginit. pcofix CIH. intros.
   rewrite unfold_iter_ktree.
   rewrite (unfold_iter_ktree (fun _ => _ _ _)).
   rewrite unfold_iter_ktree, !bind_bind.
@@ -274,7 +274,7 @@ Proof.
   - rewrite bind_ret_l, bind_tau.
     gstep. constructor.
     revert a.
-    gcofix CIH'. intros.
+    pcofix CIH'. intros.
     rewrite unfold_iter_ktree.
     rewrite (unfold_iter_ktree (fun _ => _ _ _)).
     rewrite !bind_bind.
@@ -334,8 +334,7 @@ Proof.
     rewrite ! bind_ret_l.
     rewrite bind_tau.
     etau.
-    specialize (CIH xa).
-    cbn in CIH.
+    specialize (CIHL xa). cbn in CIHL.
     match goal with
       |- euttG _ _ _ _ _ ?t _ => remember t
     end.

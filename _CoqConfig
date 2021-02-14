@@ -29,6 +29,7 @@ theories/Core/Subevent.v
 theories/Core/ITreeMonad.v
 
 theories/Eq.v
+theories/Eq/Paco2.v
 theories/Eq/Shallow.v
 theories/Eq/Eq.v
 theories/Eq/UpToTaus.v

@@ -25,12 +25,11 @@ From Coq Require Import
      Relations.Relations.
 
 From ITree Require Import
-     Core.ITreeDefinition.
-
-From ITree Require Import
+     Core.ITreeDefinition
      Eq.Eq
      Eq.UpToTaus
-     Eq.Shallow.
+     Eq.Shallow
+     Eq.Paco2.
 
 Section SUTT.
 
@@ -89,7 +88,7 @@ Lemma suttF_inv_vis {E R1 R2} (RR : R1 -> R2 -> Prop) sutt :
     suttF RR sutt (VisF e k1) (VisF e k2) ->
     forall x, sutt (observe (k1 x)) (observe (k2 x)).
 Proof.
-  intros. inv H. auto_inj_pair2. subst. auto.
+  intros. inv H. apply inj_pair2 in H3; apply inj_pair2 in H5. subst. auto.
 Qed.
 
 Lemma sutt_inv_vis {E R1 R2} (RR : R1 -> R2 -> Prop) :
@@ -98,7 +97,7 @@ Lemma sutt_inv_vis {E R1 R2} (RR : R1 -> R2 -> Prop) :
   forall x, sutt RR (k1 x) (k2 x).
 Proof.
   intros. pstep. punfold H. simpl in *.
-  inv H. auto_inj_pair2. subst. specialize (SUTTK x). pclearbot. punfold SUTTK.
+  eapply suttF_inv_vis in H; pclearbot; punfold H.
 Qed.
 
 Lemma sutt_tau_right {E R1 R2} (RR : R1 -> R2 -> Prop) :
@@ -159,12 +158,12 @@ Theorem sutt_eutt {E R1 R2} (RR : R1 -> R2 -> Prop) :
     sutt RR t1 t2 -> sutt (flip RR) t2 t1 -> eutt RR t1 t2.
 Proof.
   pcofix CIH. intros.
-  punfold H0. punfold H1. pstep. red.
+  punfold H0. punfold H. pstep. red.
   induction H0; intros; subst; auto.
-  - constructor. intro. right. eapply suttF_inv_vis in H1. pclearbot. eauto with paco.
+  - constructor. intro. right. eapply suttF_inv_vis in H. pclearbot. eauto with paco.
   - constructor; eauto. eapply IHsuttF; auto. eapply suttF_inv_tau_left; auto.
   - (* doing induction when one of the trees is a tau doesn't work well *)
-    inv H1; pclearbot.
+    inv H; pclearbot.
     + clear t1 t2. genobs t0 ot0.
       hinduction EQTAUS0 before CIH; intros; subst; pclearbot.
       * constructor; eauto. simpobs. constructor. eauto.

@@ -21,25 +21,45 @@ From Coq Require Import
      JMeq.
 (* end hide *)
 
-(* This exists in the stdlib as [ProofIrrelevance.inj_pair2], but we reprove
-   it to not depend on proof irrelevance (we use axiom [JMeq.JMeq_eq] instead) *)
-Lemma inj_pair2 :
-  forall (U : Type) (P : U -> Type) (p : U) (x y : P p),
-    existT P p x = existT P p y -> x = y.
+Definition eqeq {A : Type} (P : A -> Type) {a1 a2 : A} (p : a1 = a2) : P a1 -> P a2 -> Prop :=
+  match p with
+  | eq_refl => eq
+  end.
+
+Definition pweqeq {R1 R2} (RR : R1 -> R2 -> Prop) {X1 X2 : Type} (p : X1 = X2)
+  : (X1 -> R1) -> (X2 -> R2) -> Prop :=
+  match p with
+  | eq_refl => fun k1 k2 => forall x, RR (k1 x) (k2 x)
+  end.
+
+Lemma pweqeq_mon {R1 R2} (RR1 RR2 : R1 -> R2 -> Prop) X1 X2 (p : X1 = X2) k1 k2
+  : (forall r1 r2, RR1 r1 r2 -> RR2 r1 r2) -> pweqeq RR1 p k1 k2 -> pweqeq RR2 p k1 k2.
 Proof.
-  intros. apply JMeq_eq.
-  refine (
-      match H in _ = w return JMeq x (projT2 w) with
-      | eq_refl => JMeq_refl
-      end).
+  destruct p; cbn; auto.
 Qed.
 
-(** Rewrite all heterogeneous equalities with the axiom
-    [inj_pair2 : existT _ T a = existT _ T b -> a = b]. *)
-Ltac auto_inj_pair2 :=
-  repeat (match goal with
-          | [ H : _ |- _ ] => apply inj_pair2 in H
-          end).
+Lemma eq_inv_VisF_weak {E R X1 X2} (e1 : E X1) (e2 : E X2) (k1 : X1 -> itree E R) (k2 : X2 -> itree E R)
+  : VisF (R := R) e1 k1 = VisF (R := R) e2 k2 ->
+    exists p : X1 = X2, eqeq E p e1 e2 /\ eqeq (fun X => X -> itree E R) p k1 k2.
+Proof.
+  refine (fun H =>
+    match H in _ = t return
+      match t with
+      | VisF e2 k2 => _
+      | _ => True
+      end
+    with
+    | eq_refl => _
+    end); cbn.
+  exists eq_refl; cbn; auto.
+Qed.
+
+Ltac inv_Vis :=
+  discriminate +
+  match goal with
+  | [ E : VisF _ _ = VisF _ _ |- _ ] =>
+     apply eq_inv_VisF_weak in E; destruct E as [ <- [<- <-]]
+  end.
 
 (** ** [observing]: Lift relations through [observe]. *)
 Inductive observing {E R1 R2}

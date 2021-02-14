@@ -12,14 +12,15 @@ From Coq Require Import
      Classes.Morphisms
      ProofIrrelevance.
 
+From Paco Require Import paco.
+
 From ExtLib Require Import
      Monads.
 
 From ITree Require Import
      ITree
-     ITreeFacts.
-
-From Paco Require Import paco.
+     ITreeFacts
+     Eq.Paco2.
 
 Import ITreeNotations.
 
@@ -96,7 +97,7 @@ Section Proper.
    *)
   Instance proper_interpret_state {S R} : Proper ((@eq_itree (stateE S) R _ eq) ==> (@eq S) ==> (@eq_itree void1 (S * R) _ eq)) interpret_state.
   Proof.
-    ginit. gcofix CIH.
+    ginit. pcofix CIH.
     intros x y H0 x2 y0 H1. 
     rewrite (itree_eta (interpret_state x x2)).
     rewrite (itree_eta (interpret_state y y0)).
@@ -230,7 +231,7 @@ Lemma state_independent : forall {S R} (t:itree (stateE S) R)
     forall s s', ('(s,x) <- interpret_state t s ;; ret x) ≅ ('(s,x) <- interpret_state t s' ;; ret x).
 Proof.
   intros S R.
-  ginit. gcofix CIH.
+  ginit. pcofix CIH.
   intros t H0 s s'. 
   rewrite (itree_eta (interpret_state t s)).
   rewrite (itree_eta (interpret_state t s')).
@@ -262,7 +263,7 @@ Lemma state_independent_k : forall {S R U} (t:itree (stateE S) R)
     forall s s', (sx <- interpret_state t s ;; (k sx)) ≅ (sx <- interpret_state t s' ;; (k sx)).
 Proof.
   intros S R U.
-  ginit. gcofix CIH.
+  ginit. pcofix CIH.
   intros t H0 k INV s s'. 
   rewrite (itree_eta (interpret_state t s)).
   rewrite (itree_eta (interpret_state t s')).
