@@ -17,7 +17,9 @@ From ExtLib Require Import
      Data.Monads.OptionMonad
      Data.Monads.EitherMonad.
 
-Import MonadNotation.
+Import
+  FunctorNotation
+  MonadNotation.
 Local Open Scope monad.
 (* end hide *)
 
@@ -52,6 +54,9 @@ Definition identity (a : Type) : Type := a.
 Definition stateT (s : Type) (m : Type -> Type) (a : Type) : Type :=
   s -> m (prod s a).
 Definition state (s a : Type) := s -> prod s a.
+
+Definition liftState {s a f} `{Functor f} (fa : f a) : Monads.stateT s f a :=
+  fun s => pair s <$> fa.
 
 Definition readerT (r : Type) (m : Type -> Type) (a : Type) : Type :=
   r -> m a.
