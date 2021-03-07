@@ -12,6 +12,7 @@ license: "MIT"
 build: [
   ["dune" "subst"] {pinned}
   ["dune" "build" "-p" name "-j" jobs]
+  ["dune" "build" "-j" jobs] {with-test}
   ["dune" "runtest" "-j" jobs] {with-test}
 ]
 
