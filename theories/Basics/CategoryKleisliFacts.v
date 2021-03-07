@@ -18,8 +18,8 @@ From ITree Require Import
      Basics.Function.
 
 Import CatNotations.
-Open Scope cat_scope.
-Open Scope monad_scope.
+Local Open Scope cat_scope.
+Local Open Scope monad_scope.
 
 
 Section BasicFacts.

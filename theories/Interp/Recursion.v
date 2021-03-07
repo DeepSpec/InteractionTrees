@@ -5,10 +5,8 @@ From ITree Require Import
      Core.ITreeDefinition
      Indexed.Sum.
 
-Import ITree.Basics.Basics.Monads.
 Import ITreeNotations.
-
-Open Scope itree_scope.
+Local Open Scope itree_scope.
 
 (* end hide *)
 (** * General recursion *)

@@ -10,8 +10,7 @@ From ExtLib Require Import
 
 From ITree Require Import
      ITree
-     Eq
-     Eq.Eq
+     ITreeFacts
      Basics.Basics
      Basics.Category
      Basics.CategoryKleisli

@@ -3,6 +3,9 @@
 (** The Kleisli category of ITrees. *)
 
 (* begin hide *)
+From Coq Require Import
+     Morphisms.
+
 From ITree Require Import
      Basics.Basics
      Basics.CategoryOps
@@ -13,12 +16,6 @@ From ITree Require Import
      Core.ITreeDefinition
      Eq.Eq
      Eq.UpToTaus.
-
-Import ITreeNotations.
-Local Open Scope itree_scope.
-
-From Coq Require Import
-     Morphisms.
 (* end hide *)
 
 Implicit Types E : Type -> Type.

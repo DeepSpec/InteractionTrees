@@ -27,9 +27,9 @@ From ITree Require Import
      Interp.RecursionFacts
      Events.State.
 
-Import ITree.Basics.Basics.Monads.
 Import ITreeNotations.
-Open Scope itree_scope.
+Import ITree.Basics.Basics.Monads.
+Local Open Scope itree_scope.
 
 Import Monads.
 
@@ -156,7 +156,8 @@ Lemma unfold_interp_fail {E F R} (f : E ~> failT (itree F)) (t : itree E R) :
   interp_fail f t ≅
          (_interp_fail f (observe t)).
 Proof.
-  unfold interp_fail,interp. unfold Basics.iter, failT_iter, Basics.iter, MonadIter_itree. rewrite unfold_iter.
+  unfold interp_fail,interp. unfold Basics.iter, failT_iter, Basics.iter, MonadIter_itree.
+  rewrite unfold_iter. cbn.
   destruct (observe t).
   cbn; repeat (rewrite ?Eq.bind_bind, ?Eq.bind_ret_l, ?bind_map; try reflexivity).
   cbn; repeat (rewrite ?Eq.bind_bind, ?Eq.bind_ret_l, ?bind_map; try reflexivity).
@@ -274,8 +275,9 @@ Proof.
   intros X Y E F; ginit; pcofix CIH; intros.
   rewrite unfold_bind.
   rewrite (unfold_interp_fail h t).
+  unfold observe at 1; cbn.
   destruct (observe t) eqn:EQ; cbn.
-  - rewrite Eq.bind_ret_l. apply reflexivity.
+  - rewrite Eq.bind_ret_l, <- itree_eta_. apply reflexivity.
   - cbn. rewrite bind_tau, !interp_fail_tau.
     gstep. econstructor; eauto with paco.
   - rewrite bind_bind, interp_fail_vis.
@@ -284,6 +286,7 @@ Proof.
     intros [] ? <-; cbn.
     + rewrite bind_tau.
       gstep; constructor.
+      ITree.fold_subst.
       auto with paco.
     + rewrite bind_ret_l.
       apply reflexivity.
@@ -295,11 +298,14 @@ Lemma interp_failure_bind' : forall {X Y E F} (t : itree _ X) (k : X -> itree _ 
                 bind (interp_fail h t)
                 (fun x => interp_fail h (k x)).
 Proof.
-  intros X Y E F; ginit; pcofix CIH; intros.
+  intros X Y E F.
+  cbn.
+  ginit; pcofix CIH; intros.
   cbn in *.
   rewrite unfold_bind, (unfold_interp_fail _ t).
+  unfold observe at 1; cbn.
   destruct (observe t) eqn:EQ; cbn.
-  - rewrite bind_ret_l. apply reflexivity.
+  - rewrite bind_ret_l, <- itree_eta_. apply reflexivity.
   - rewrite bind_tau, !interp_fail_tau.
     gstep. econstructor; eauto with paco.
   - rewrite bind_bind, interp_fail_vis.
@@ -308,6 +314,7 @@ Proof.
     intros [] ? <-; cbn.
     + rewrite bind_tau.
       gstep; constructor.
+      ITree.fold_subst.
       auto with paco.
     + rewrite bind_ret_l.
       apply reflexivity.
