@@ -9,14 +9,12 @@ From Coq Require Import
 
 From Paco Require Import paco.
 
-From ExtLib Require
-     Structures.Monoid.
-
 From ITree Require Import
      Basics.Basics
      Basics.Category
      Core.ITreeDefinition
      Core.Subevent
+     Eq.Shallow
      Eq.Eq
      Eq.UpToTaus
      Eq.Paco2
@@ -97,9 +95,12 @@ Proof.
   revert S t k.
   ginit. pcofix CIH.
   intros s t k.
-  rewrite !unfold_translate, !unfold_bind.
-  genobs_clear t ot. destruct ot; cbn.
-  - rewrite unfold_translate. apply reflexivity.
+  match goal with
+  | [ |- _ ?t1 ?t2 ] => rewrite (itree_eta_ t1), (itree_eta_ t2)
+  end; cbn.
+  unfold observe; cbn.
+  destruct (observe t); cbn.
+  - apply reflexivity.
   - gstep. constructor. eauto with paco.
   - gstep. constructor. eauto with paco.
 Qed.

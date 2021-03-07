@@ -192,14 +192,14 @@ Section Correctness.
     - (* If it contains an instruction (inductive case). *)
       cbn.
       rewrite map_bind.
-      eapply eqit_bind; [| reflexivity].
+      eapply eqit_bind; [reflexivity|].
       intros []; apply IHb.
     - (* If it's a jump, we consider the three cases. *)
       simpl.
       destruct br; simpl.
       + rewrite map_ret; reflexivity.
       + rewrite map_bind.
-        eapply eqit_bind; [| reflexivity].
+        eapply eqit_bind; [reflexivity |].
         intros ?.
         flatten_goal; rewrite map_ret; reflexivity.
       + rewrite (itree_eta (ITree.map _ _)).

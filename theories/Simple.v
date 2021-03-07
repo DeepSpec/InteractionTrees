@@ -14,7 +14,7 @@ From ITree Require Import
 (** Reexported from the library. *)
 
 Require Export ITree.Core.ITreeDefinition.
-Import ITreeNotations.
+Export ITreeNotations.
 Open Scope itree_scope.
 (**
    - [itree : (Type -> Type) -> Type -> Type] type
@@ -115,12 +115,6 @@ Infix "≈" := eutt (at level 70).
 
 (** *** Rewriting lemmas *)
 
-Parameter unfold_bind
-  : forall {E R S} (t : itree E R) (k : R -> itree E S),
-    ITree.bind t k
-  ≈ ITree._bind k (fun t => ITree.bind t k) (observe t).
-
-(** The next two are immediate corollaries of [unfold_bind]. *)
 Parameter bind_ret : forall {E R S} (r : R) (k : R -> itree E S),
     ITree.bind (Ret r) k ≈ k r.
 
@@ -234,8 +228,8 @@ Declare Instance eutt_VisF {E R X} (e: E X) :
   Proper (pointwise_relation _ (@eutt E R) ==> going eutt) (VisF e).
 
 Declare Instance eutt_bind {E R S} :
-  Proper (pointwise_relation _ eutt ==> eutt ==> eutt)
-         (@ITree.bind' E R S).
+  Proper (eutt ==> pointwise_relation _ eutt ==> eutt)
+         (@ITree.bind E R S).
 
 Declare Instance eutt_map {E R S} :
   Proper (pointwise_relation _ eq ==> eutt ==> eutt)
@@ -325,13 +319,6 @@ Infix "≈" := eutt (at level 70).
 
 (** *** Rewriting lemmas *)
 
-Lemma unfold_bind
-  : forall {E R S} (t : itree E R) (k : R -> itree E S),
-    ITree.bind t k
-  ≈ ITree._bind k (fun t => ITree.bind t k) (observe t).
-Proof. intros; rewrite <- ITree.Eq.Shallow.unfold_bind_; reflexivity. Qed.
-
-(** The next two are immediate corollaries of [unfold_bind]. *)
 Lemma bind_ret : forall {E R S} (r : R) (k : R -> itree E S),
     ITree.bind (Ret r) k ≈ k r.
 Proof. intros; rewrite ITree.Eq.Shallow.bind_ret_; reflexivity. Qed.
@@ -490,8 +477,8 @@ Instance eutt_VisF {E R X} (e: E X) :
 Proof. repeat red; intros. rewrite H. apply reflexivity. Qed.
 
 Instance eutt_bind {E R S} :
-  Proper (pointwise_relation _ eutt ==> eutt ==> eutt)
-         (@ITree.bind' E R S).
+  Proper (eutt ==> pointwise_relation _ eutt ==> eutt)
+         (@ITree.bind E R S).
 Proof. repeat red; intros. rewrite H, H0. apply reflexivity. Qed.
 
 Instance eutt_map {E R S} :

@@ -69,9 +69,9 @@ Definition _interp {E F R} (f : E ~> itree F) (ot : itreeF E R _)
 Lemma unfold_interp {E F R} {f : E ~> itree F} (t : itree E R) :
   interp f t ≅ (_interp f (observe t)).
 Proof.
-  unfold interp. unfold Basics.iter, MonadIter_itree. rewrite unfold_iter.
+  unfold interp, Basics.iter, MonadIter_itree. rewrite unfold_iter.
   destruct (observe t); cbn;
-    rewrite ?bind_ret_l, ?bind_map; reflexivity.
+    rewrite ?bind_ret_l, ?bind_map. all: try reflexivity.
 Qed.
 
 (** ** [interp] and constructors *)
@@ -230,14 +230,15 @@ Lemma interp_bind {E F R S}
 Proof.
   revert R t k. ginit. pcofix CIH; intros.
   rewrite unfold_bind, (unfold_interp t).
+  unfold observe at 1; cbn.
   destruct (observe t); cbn.
-  - rewrite bind_ret_l. apply reflexivity.
+  - rewrite bind_ret_l, <- itree_eta_. apply reflexivity.
   - rewrite bind_tau, !interp_tau.
     gstep. econstructor. eauto with paco.
   - rewrite interp_vis, bind_bind.
     guclo eqit_clo_bind; econstructor; try reflexivity.
     intros; subst.
-    rewrite bind_tau. gstep; constructor; auto with paco.
+    rewrite bind_tau. gstep; constructor; eauto with paco.
 Qed.
 
 Hint Rewrite @interp_bind : itree.
@@ -251,6 +252,7 @@ Proof.
   rewrite (itree_eta t), unfold_interp.
   destruct (observe t); try (gstep; constructor; auto with paco).
   cbn. gstep. red; cbn. constructor; red; intros.
+  ITree.fold_subst.
   rewrite bind_ret_l, tau_euttge. eauto with paco.
 Qed.
 
@@ -362,6 +364,10 @@ Proof.
   unfold loop. unfold cat, Cat_Kleisli, ITree.cat; cbn.
   rewrite interp_bind.
   apply eqit_bind.
+  { unfold inr_, Inr_Kleisli, lift_ktree, pure; cbn.
+    rewrite interp_ret.
+    reflexivity.
+  }
   repeat intro.
   rewrite interp_iter.
   apply eq_itree_iter.
@@ -374,8 +380,5 @@ Proof.
     reflexivity.
   - unfold cat, id_, Id_Kleisli, inr_, Inr_Kleisli, lift_ktree, pure; cbn.
     rewrite interp_bind, interp_ret, !bind_ret_l, interp_ret.
-    reflexivity.
-  - unfold inr_, Inr_Kleisli, lift_ktree, pure; cbn.
-    rewrite interp_ret.
     reflexivity.
 Qed.

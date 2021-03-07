@@ -27,10 +27,9 @@ From ITree Require Import
      Interp.RecursionFacts
      Events.State.
 
-Import ITree.Basics.Basics.Monads.
 Import ITreeNotations.
 
-Open Scope itree_scope.
+Local Open Scope itree_scope.
 
 Import Monads.
 (* end hide *)
@@ -129,13 +128,14 @@ Lemma interp_state_bind {E F : Type -> Type} {A B S : Type}
     ≅
   (interp_state f t s >>= fun st => interp_state f (k (snd st)) (fst st)).
 Proof.
-  revert A t k s.
+  revert t k s.
   ginit. pcofix CIH.
-  intros A t k s.
-  rewrite unfold_bind. (* TODO: slow *)
+  intros t k s.
+  rewrite unfold_bind.
   rewrite (unfold_interp_state f t).
+  unfold observe at 1; cbn.
   destruct (observe t).
-  - cbn. rewrite !bind_ret_l. simpl.
+  - cbn. rewrite !bind_ret_l, <- itree_eta_. cbn.
     apply reflexivity.
   - cbn. rewrite !bind_tau, interp_state_tau.
     gstep. econstructor. gbase. apply CIH.
@@ -145,6 +145,7 @@ Proof.
     + intros u2 ? [].
       rewrite bind_tau.
       gstep; constructor.
+      ITree.fold_subst.
       auto with paco.
 Qed.
 
@@ -243,7 +244,7 @@ Lemma eutt_interp_state_loop {E F S A B C} (RS : S -> S -> Prop)
           (interp_state h (loop t2 a) s2)).
 Proof.
   intros.
-  unfold loop, bimap, Bimap_Coproduct, case_, Case_Kleisli, Function.case_sum, id_, Id_Kleisli, cat, Cat_Kleisli; cbn.
+  unfold loop, bimap, Bimap_Coproduct, case_, Case_Kleisli, Function.case_sum, id_, Id_Kleisli, cat, Cat_Kleisli, inr_, Inr_Kleisli, inl_, Inl_Kleisli, lift_ktree_; cbn.
   rewrite 2 bind_ret_l.
   eapply (eutt_interp_state_iter eq eq); auto; intros.
   rewrite 2 interp_state_bind.

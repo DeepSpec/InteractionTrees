@@ -9,6 +9,7 @@ From ITree Require Import
      Events.Concurrency.
 
 Import ITreeNotations.
+Local Open Scope itree_scope.
 
 (* An OCaml-interpreted event that just prints the given string. *)
 Variant printE : Type -> Type :=

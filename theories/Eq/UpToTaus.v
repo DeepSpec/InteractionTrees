@@ -41,10 +41,10 @@ From Paco Require Import paco.
 From ITree Require Import
      Core.ITreeDefinition
      Eq.Eq
-     Eq.Paco2.
+     Eq.Paco2
+     Eq.Shallow.
 
-Import ITreeNotations.
-Local Open Scope itree.
+Local Open Scope itree_scope.
 (* end hide *)
 
 (** ** gpaco
