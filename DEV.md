@@ -52,7 +52,7 @@ This uses the same dependencies, minus `dune`.
 opam install coq-paco coq-ext-lib
 ```
 
-Build everything with `make all'
+Build everything with `make all`.
 
 ```
 make all -j  # Build the library, tutorial (example compiler), and tests.
