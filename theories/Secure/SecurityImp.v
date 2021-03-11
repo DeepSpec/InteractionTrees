@@ -49,11 +49,36 @@ Inductive stmt : Type :=
 
 Variant sensitivity : Set := Public | Private.
 
-Definition privacy : Set := string -> sensitivity.
+Definition privacy_map : Set := var -> sensitivity.
 
 
 Variant SecurityImpState : Type -> Type :=
   | GetPrivVar (x : var) : SecurityImpState value
   | SetPrivVar (x : var) (v : value) : SecurityImpState unit
   | GetPubVar (x : var) : SecurityImpState value
-  | SetPubVar (x : var) (v : value) : SecurityImpState unit.
+  | SetPubVar (x : var) (v : value) : SecurityImpState unit
+  | PubPrint  (v : value) : SecurityImpState unit 
+  | PrivPrint (v : value) : SecurityImpState unit.
+
+
+
+(* 
+denote : stmt -> privacy_map -> itree Securityimpstate unit
+
+interp ( ... ) :itree Securityimpstate unit ->
+                S -> S -> itree (SecureIO) (S * S * unit)
+
+
+
+itrees   ≈ eutt (eq up to tau)
+
+monad  (StateT (itree E) ) equiv (m1 m2 : StateT (itree E) R)  forall s1 s2, state_equiv s1 s2 -> m1 s1 ≈ m2 s2
+
+
+
+
+itrees   eqit_secure (with RR respecting privacy)
+
+
+monad (...)    forall s1 s2, low_equiv s1 s2 -> eqit_secure ... low_equiv (m1 s1) (m2 s2)
+*)

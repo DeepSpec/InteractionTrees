@@ -89,3 +89,6 @@ theories/ITreeSpec/ITreeSpecObservationFacts.v
 theories/ITreeSpec/SatisfiesBind.v
 
 theories/Secure/SecureEq.v
+theories/Secure/SecureEqHalt.v
+theories/Secure/SecureEqEuttHalt.v
+theories/Secure/SecureEqWcompat.v
