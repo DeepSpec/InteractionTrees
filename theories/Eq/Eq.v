@@ -324,13 +324,13 @@ Hint Unfold flip: core.
 (** A notation of [eq_itree eq]. You can write [≅] using [[\cong]] in
     tex-mode *)
 
-Open Scope itree.
+Infix "≅" := (eq_itree eq) (at level 70) : type_scope.
 
-Infix "≅" := (eq_itree eq) (at level 70) : itree_scope.
+Infix "≈" := (eutt eq) (at level 70) : type_scope.
 
-Infix "≈" := (eutt eq) (at level 70) : itree_scope.
+Infix "≳" := (euttge eq) (at level 70) : type_scope.
 
-Infix "≳" := (euttge eq) (at level 70) : itree_scope.
+(* TODO: Find a way to not clobber the global [type_scope]? *)
 
 Section eqit_closure.
 

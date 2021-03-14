@@ -19,10 +19,7 @@ From ITree Require Import
 Import Basics.Basics.Monads.
 Import ListNotations.
 Import ITreeNotations.
-
-Require Import List.
-Import ListNotations.
-
+Local Open Scope itree_scope.
 
 Section SYNTAX.
 

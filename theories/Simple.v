@@ -16,6 +16,9 @@ From ITree Require Import
 Require Export ITree.Core.ITreeDefinition.
 Export ITreeNotations.
 Open Scope itree_scope.
+(* This scope is open by default to make this "tutorial module" as
+   straightforward as possible. *)
+
 (**
    - [itree : (Type -> Type) -> Type -> Type] type
    - [Ret], [Tau], [Vis] notations
