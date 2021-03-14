@@ -230,9 +230,8 @@ Lemma interp_bind {E F R S}
 Proof.
   revert R t k. ginit. pcofix CIH; intros.
   rewrite unfold_bind, (unfold_interp t).
-  unfold observe at 1; cbn.
   destruct (observe t); cbn.
-  - rewrite bind_ret_l, <- itree_eta_. apply reflexivity.
+  - rewrite bind_ret_l. apply reflexivity.
   - rewrite bind_tau, !interp_tau.
     gstep. econstructor. eauto with paco.
   - rewrite interp_vis, bind_bind.

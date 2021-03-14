@@ -597,13 +597,13 @@ End eqit_eq.
 
 (** *** One-sided inversion *)
 
-Lemma eq_itree_inv_Ret_r {E R} (t : itree E R) r :
+Lemma eqitree_inv_Ret_r {E R} (t : itree E R) r :
   t ≅ (Ret r) -> observe t = RetF r.
 Proof.
   intros; punfold H; inv H; try inv CHECK; eauto.
 Qed.
 
-Lemma eq_itree_inv_Vis_r {E R U} (t : itree E R) (e : E U) (k : U -> _) :
+Lemma eqitree_inv_Vis_r {E R U} (t : itree E R) (e : E U) (k : U -> _) :
   t ≅ Vis e k -> exists k', observe t = VisF e k' /\ forall u, k' u ≅ k u.
 Proof.
   intros; punfold H; apply eqitF_inv_VisF_r in H.
@@ -611,7 +611,7 @@ Proof.
   pclearbot. eexists; split; eauto.
 Qed.
 
-Lemma eq_itree_inv_Tau_r {E R} (t t' : itree E R) :
+Lemma eqitree_inv_Tau_r {E R} (t t' : itree E R) :
   t ≅ Tau t' -> exists t0, observe t = TauF t0 /\ t0 ≅ t'.
 Proof.
   intros; punfold H; inv H; try inv CHECK; pclearbot; eauto.
@@ -723,7 +723,7 @@ Proof.
   intros; eapply eqit_inv_Ret; eauto.
 Qed.
 
-Lemma eq_itree_inv_Ret {E R} r1 r2 :
+Lemma eqitree_inv_Ret {E R} r1 r2 :
   (Ret r1: itree E R) ≅ (Ret r2) -> r1 = r2.
 Proof.
   intros; eapply eqit_inv_Ret; eauto.
@@ -926,13 +926,18 @@ Qed.
 
 (** ** Equations for core combinators *)
 
-(* TODO (LATER): I keep these [...bind_] lemmas around temporarily
-   in case I run some issues with slow typeclass resolution. *)
+Notation bind_ t k :=
+  match observe t with
+  | RetF r => k%function r
+  | VisF e ke => Vis e (fun x => ITree.bind (ke x) k)
+  | TauF t => Tau (ITree.bind t k)
+  end.
 
-Lemma unfold_bind {E R S}
-           (t : itree E R) (k : R -> itree E S) :
-  ITree.bind t k ≅ go (observe (ITree.bind t k)).
-Proof. apply itree_eta. Qed.
+Lemma unfold_bind {E R S} (t : itree E R) (k : R -> itree E S)
+  : ITree.bind t k ≅ bind_ t k.
+Proof.
+  apply observing_sub_eqit; constructor; reflexivity.
+Qed.
 
 Lemma bind_ret_l {E R S} (r : R) (k : R -> itree E S) :
   ITree.bind (Ret r) k ≅ (k r).
@@ -1035,12 +1040,11 @@ Proof.
   intros rr. pcofix CIH. intros. destruct PR.
   guclo eqit_clo_trans. econstructor; auto_ctrans_eq.
   1,2: rewrite unfold_bind; reflexivity.
-  unfold observe, _observe. cbn.
   punfold EQV. unfold_eqit.
   hinduction EQV before CIH; intros; pclearbot; cbn;
     repeat (change (ITree.subst ?k ?m) with (ITree.bind m k)).
   - guclo eqit_clo_trans. econstructor; auto_ctrans_eq.
-    1,2: rewrite <- itree_eta_; reflexivity.
+    1,2: reflexivity.
     eauto with paco.
   - gstep. econstructor. eauto 7 with paco.
   - gstep. econstructor. eauto 7 with paco.
