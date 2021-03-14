@@ -84,10 +84,8 @@ Import ListNotations.
 Open Scope string_scope.
 
 Import CatNotations.
-Local Open Scope cat.
-
-Import Monads.
-Open Scope monad_scope.
+Local Open Scope cat_scope.
+Local Open Scope itree_scope.
 
 (* end hide *)
 

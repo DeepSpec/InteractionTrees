@@ -34,7 +34,8 @@ Import ListNotations.
 Open Scope string_scope.
 
 Import CatNotations.
-Open Scope cat_scope.
+Local Open Scope cat_scope.
+Local Open Scope itree_scope.
 
 From ITreeTutorial Require Import Fin Asm AsmCombinators Utils_tutorial.
 
