@@ -1,5 +1,71 @@
-3.2.0
-=====
+4.0.0 - March 2021
+==================
+
+- Change `ITree.bind` from a notation to a function. This may break some proofs.
+
+    + After simplifications, if there is `ITree.subst` in the goal, use the tactic
+      `ITree.fold_subst` to change it back to `ITree.bind`
+    + After applying `eqit_bind`, the goals are reversed.
+
+- Reduce dependency on axioms. Basically, we require UIP for one inversion
+  lemma `ITree.Eq.Eq.eqit_inv_Vis` (and one notable corollary of it is
+  `ITree.Eq.UpToTaus.eutt_conj`).
+
+- Fixed: scopes are not opened globally anymore; add `Local Open Scope itree_scope`
+  (also `cat_scope`, `monad_scope` (from ext-lib)) to use those scopes.
+
+- Drop support for Coq 8.8 and 8.9.
+  (This version technically still builds with Coq 8.9 using `make`, or Dune 2.8.4)
+
+- Change the build system from `make` to `dune`.
+
+- Deploy [coqdoc documentation on Github Pages](https://DeepSpec.github.io/InteractionTrees/).
+
+- Add modules:
+    + `ITree.Basics.HeterogeneousRelations`
+    + `ITree.Basics.CategoryRelations` (the category of relations between types)
+    + `ITree.Events.FailFacts`
+
+- Add constructs for cartesian categories (i.e., categories with products) in
+  `ITree.Basics.CategoryTheory`.
+
+Miscellaneous changes
+---------------------
+
+- Change `eqit_Vis` from `<->` to `->`; the converse is `eqit_inv_Vis`.
+
+- Rename theorems in `ITree.Eq.Eq` (trying to make them more consistent;
+  mostly, uppercase initial of constructors, and lowercase `l`/`r`):
+    + `eqitree_inv_Ret`
+    + `eqitree_inv_Ret_r`
+    + `eqitree_inv_Vis_r`
+    + `eqitree_inv_Tau_r`
+    + `eqit_inv_Ret`
+    + `eqit_inv_Vis`
+    + `eqit_inv_Tau`
+    + `eqit_inv_Tau_l`
+    + `eqit_inv_Tau_r`
+    + `eqit_Tau_l`
+    + `eqit_Tau_r`
+    + `eutt_inv_Ret`
+    + Contradiction lemmas (where the two sides in an `eqit` equation don't
+      match) are refactored into `eqit_inv`.
+
+- Add functions and theorems:
+    + `ITree.Basics.liftState`
+    + `ITree.Core.KTreeFacts.cat_iter`
+    + `ITree.Eq.UpToTaus.eutt_conj`, `eutt_disj_l`, `eutt_disj_r`, `eutt_equiv`, `eutt_Proper_R`
+
+- Add theorems in `ITree.Eq.Eq`:
+    + `eqit_inv_Vis_weak` and `eqit_Vis_gen`,
+      generalizing `eqit_inv_Vis` and `eqit_Vis`.
+    + `eq_itree_inv_bind_Vis`
+    + `eqit_inv_bind_Tau`
+    + `eutt_inv_bind_Tau`
+    + `eqitree_inv_bind_Tau`
+
+3.2.0 - September 2020
+======================
 
 - Add module `ITree.Basics.MonadProp`: the nondeterminism monad (`_ -> Prop`)
 
