@@ -9,3 +9,4 @@ _CoqProject: _CoqProject.make
 include ../common.mk
 
 clean: clean-coq
+	rm -f _CoqProject
