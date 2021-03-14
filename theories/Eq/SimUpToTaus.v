@@ -56,8 +56,8 @@ Hint Unfold sutt: core.
 
 End SUTT.
 
-Hint Constructors suttF: core.
-Hint Unfold sutt: core.
+Global Hint Constructors suttF: core.
+Global Hint Unfold sutt: core.
 
 Section SUTT_rel.
 
@@ -81,7 +81,7 @@ Hint Resolve monotone_suttF : paco.
 
 End SUTT_facts.
 
-Hint Resolve monotone_suttF : paco.
+Global Hint Resolve monotone_suttF : paco.
 
 Lemma suttF_inv_vis {E R1 R2} (RR : R1 -> R2 -> Prop) sutt :
   forall X e (k1 : X -> itree E R1) (k2 : X -> itree E R2),

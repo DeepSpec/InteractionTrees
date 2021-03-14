@@ -151,15 +151,15 @@ Section eqit.
 End eqit.
 
 (* begin hide *)
-Hint Constructors eqitF: core.
-Hint Unfold eqit_: core.
-Hint Resolve eqit__mono : paco.
-Hint Resolve eqit_idclo_mono : paco.
-Hint Unfold eqit: core.
-Hint Unfold eq_itree: core.
-Hint Unfold eutt: core.
-Hint Unfold euttge: core.
-Hint Unfold id: core.
+Global Hint Constructors eqitF: core.
+Global Hint Unfold eqit_: core.
+Global Hint Resolve eqit__mono : paco.
+Global Hint Resolve eqit_idclo_mono : paco.
+Global Hint Unfold eqit: core.
+Global Hint Unfold eq_itree: core.
+Global Hint Unfold eutt: core.
+Global Hint Unfold euttge: core.
+Global Hint Unfold id: core.
 
 Lemma eqitF_inv_VisF_r {E R1 R2} (RR : R1 -> R2 -> Prop) {b1 b2 vclo sim}
     t1 X2 (e2 : E X2) (k2 : X2 -> _)
@@ -317,7 +317,7 @@ Proof.
   red in euv |- *. induction euv; pclearbot; eauto 7 with paco.
 Qed.
 
-Hint Unfold flip: core.
+Global Hint Unfold flip: core.
 
 (* end hide *)
 
@@ -424,13 +424,13 @@ Qed.
 
 End eqit_closure.
 
-Hint Unfold eqitC: core.
-Hint Resolve eqitC_mon : paco.
-Hint Resolve eqitC_wcompat : paco.
-Hint Resolve eqit_idclo_compat : paco.
-Hint Resolve eqitC_dist : paco.
+Global Hint Unfold eqitC: core.
+Global Hint Resolve eqitC_mon : paco.
+Global Hint Resolve eqitC_wcompat : paco.
+Global Hint Resolve eqit_idclo_compat : paco.
+Global Hint Resolve eqitC_dist : paco.
 Arguments eqit_clo_trans : clear implicits.
-Hint Constructors eqit_trans_clo: core.
+Global Hint Constructors eqit_trans_clo: core.
 
 (** ** Properties of relations *)
 
@@ -507,7 +507,7 @@ Qed.
 
 End eqit_gen.
 
-Hint Resolve Reflexive_eqit Reflexive_eqit_gen : reflexivity.
+Global Hint Resolve Reflexive_eqit Reflexive_eqit_gen : reflexivity.
 
 Section eqit_eq.
 
@@ -763,7 +763,7 @@ Qed.
 Inductive rcompose {R1 R2 R3} (RR1: R1->R2->Prop) (RR2: R2->R3->Prop) (r1: R1) (r3: R3) : Prop :=
 | rcompose_intro r2 (REL1: RR1 r1 r2) (REL2: RR2 r2 r3)
 .
-Hint Constructors rcompose: core.
+Global Hint Constructors rcompose: core.
 
 Lemma trans_rcompose {R} RR (TRANS: Transitive RR):
   forall x y : R, rcompose RR RR x y -> RR x y.
@@ -1081,7 +1081,7 @@ Proof.
 Qed.
 
 Arguments eqit_clo_bind : clear implicits.
-Hint Constructors eqit_bind_clo: core.
+Global Hint Constructors eqit_bind_clo: core.
 
 Lemma eqit_bind' {E R1 R2 S1 S2} (RR : R1 -> R2 -> Prop) b1 b2
       (RS : S1 -> S2 -> Prop)

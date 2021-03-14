@@ -53,8 +53,8 @@ Section RelationH_Operations.
 
 End RelationH_Operations.
 
-Hint Constructors prod_rel: core.
-Hint Constructors sum_rel: core.
+Global Hint Constructors prod_rel: core.
+Global Hint Constructors sum_rel: core.
 
 Arguments inl_morphism {A1 A2 B1 B2 RA RB}.
 Arguments inr_morphism {A1 A2 B1 B2 RA RB}.

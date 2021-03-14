@@ -130,7 +130,7 @@ Section FailTLaws.
   
 End FailTLaws.
 
-Hint Unfold option_rel : core.
+Global Hint Unfold option_rel : core.
 
 (* Failure handlers [E ~> stateT S (itree F)] and morphisms
    [E ~> state S] define stateful itree morphisms

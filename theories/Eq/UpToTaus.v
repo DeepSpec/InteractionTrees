@@ -148,12 +148,12 @@ Hint Resolve euttVC_id : paco.
 
 End EUTTG.
 
-Hint Unfold transU transD bindC euttVC: core.
-Hint Constructors euttG: core.
-Hint Resolve transD_mon transU_mon : paco.
-Hint Resolve euttVC_mon : paco.
-Hint Resolve euttVC_compat : paco.
-Hint Resolve transD_id transU_id euttVC_id : paco.
+Global Hint Unfold transU transD bindC euttVC: core.
+Global Hint Constructors euttG: core.
+Global Hint Resolve transD_mon transU_mon : paco.
+Global Hint Resolve euttVC_mon : paco.
+Global Hint Resolve euttVC_compat : paco.
+Global Hint Resolve transD_id transU_id euttVC_id : paco.
 
 Instance geuttG_cong_euttge {E R1 R2 RR} gH r g:
   Proper (euttge eq ==> euttge eq ==> flip impl)
@@ -667,11 +667,11 @@ Ltac estep := first [eret|etau|evis].
 Ltac ebind := repeat red; under_forall ltac:(eapply euttG_bind; eauto with paco).
 Ltac edrop := repeat red; under_forall ltac:(eapply euttG_drop; eauto with paco).
 
-Hint Resolve euttG_ret : paco.
-Hint Resolve euttG_tau : paco.
-Hint Resolve euttG_vis : paco.
-Hint Resolve euttG_base : paco.
-Hint Resolve euttG_le_eutt: paco.
+Global Hint Resolve euttG_ret : paco.
+Global Hint Resolve euttG_tau : paco.
+Global Hint Resolve euttG_vis : paco.
+Global Hint Resolve euttG_base : paco.
+Global Hint Resolve euttG_le_eutt: paco.
 
 Global Instance euttG_reflexive {E R} rH rL gL gH:
   Reflexive (@euttG E R R eq rH rL gL gH).
