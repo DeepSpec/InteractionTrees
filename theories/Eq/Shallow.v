@@ -69,7 +69,7 @@ Record observing {E R1 R2}
            (t1 : itree E R1) (t2 : itree E R2) : Prop :=
   observing_intros
   { observing_observe : eq_ (observe t1) (observe t2) }.
-Hint Constructors observing: core.
+Global Hint Constructors observing: core.
 
 Section observing_relations.
 

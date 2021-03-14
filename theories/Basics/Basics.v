@@ -172,7 +172,7 @@ Definition prod_pred {A B : Type} (PA : A -> Prop) (PB : B -> Prop) : A * B -> P
   fun '(a,b) => PA a /\ PB b.
 
 Definition TT {A : Type} : A -> Prop := fun _ => True.
-Hint Unfold TT sum_pred prod_pred: core.
+Global Hint Unfold TT sum_pred prod_pred: core.
 
 Global Instance equiv_pred_refl  {A} : Reflexive (@equiv_pred A).
 Proof.

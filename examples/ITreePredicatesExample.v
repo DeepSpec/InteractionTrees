@@ -148,7 +148,7 @@ Variant NoGetsF {S R} (rec : itree (stateE S) R -> Prop) : itreeF (stateE S) R (
 | isRet : forall (r:R), NoGetsF rec (RetF r)
 | isTau : forall t, rec t -> NoGetsF rec (TauF t)
 | isPut : forall (k : unit -> itree (stateE S) R), forall (s:S), rec (k tt) -> NoGetsF rec (VisF (Put s) k).
-Hint Constructors NoGetsF.
+Global Hint Constructors NoGetsF : core.
 
 
 (* Next, we lift the [NoGetsF] predicate through the [itree] [go] constructor
@@ -199,7 +199,7 @@ Lemma monotone_NoGets_ : forall {S R}, monotone1 (@NoGets_ S R).
 Proof.
   do 2 red. pmonauto.
 Qed.
-Hint Resolve monotone_NoGets_ : paco.
+Global Hint Resolve monotone_NoGets_ : paco.
 
 (* Finally, we can define the [NoGets] predicate by simply applying paco1
    starting from bot1 (the least prediate).  We would use paco2 and bot2 for a
