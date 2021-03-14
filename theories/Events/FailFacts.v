@@ -275,9 +275,8 @@ Proof.
   intros X Y E F; ginit; pcofix CIH; intros.
   rewrite unfold_bind.
   rewrite (unfold_interp_fail h t).
-  unfold observe at 1; cbn.
   destruct (observe t) eqn:EQ; cbn.
-  - rewrite Eq.bind_ret_l, <- itree_eta_. apply reflexivity.
+  - rewrite Eq.bind_ret_l. apply reflexivity.
   - cbn. rewrite bind_tau, !interp_fail_tau.
     gstep. econstructor; eauto with paco.
   - rewrite bind_bind, interp_fail_vis.
@@ -303,9 +302,8 @@ Proof.
   ginit; pcofix CIH; intros.
   cbn in *.
   rewrite unfold_bind, (unfold_interp_fail _ t).
-  unfold observe at 1; cbn.
   destruct (observe t) eqn:EQ; cbn.
-  - rewrite bind_ret_l, <- itree_eta_. apply reflexivity.
+  - rewrite bind_ret_l. apply reflexivity.
   - rewrite bind_tau, !interp_fail_tau.
     gstep. econstructor; eauto with paco.
   - rewrite bind_bind, interp_fail_vis.
@@ -319,4 +317,3 @@ Proof.
     + rewrite bind_ret_l.
       apply reflexivity.
 Qed.
-

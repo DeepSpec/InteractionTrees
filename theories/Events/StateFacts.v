@@ -133,9 +133,8 @@ Proof.
   intros t k s.
   rewrite unfold_bind.
   rewrite (unfold_interp_state f t).
-  unfold observe at 1; cbn.
   destruct (observe t).
-  - cbn. rewrite !bind_ret_l, <- itree_eta_. cbn.
+  - cbn. rewrite !bind_ret_l. cbn.
     apply reflexivity.
   - cbn. rewrite !bind_tau, interp_state_tau.
     gstep. econstructor. gbase. apply CIH.

@@ -94,11 +94,10 @@ Proof.
   revert t k; ginit. pcofix CIH; intros.
   rewrite (unfold_interp_mrec _ t).
   rewrite (unfold_bind t).
-  unfold observe at 1. cbn.
   destruct (observe t); cbn;
     [| |destruct e];
     autorewrite with itree.
-  1: rewrite <- itree_eta_; apply reflexivity.
+  1: apply reflexivity.
   all: rewrite unfold_interp_mrec; ITree.fold_subst.
   all: try (gstep; econstructor; eauto with paco).
   - rewrite <- bind_bind; eauto with paco.
