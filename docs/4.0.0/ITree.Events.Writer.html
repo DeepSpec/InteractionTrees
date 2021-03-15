@@ -1,0 +1,139 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<link href="coqdoc.css" rel="stylesheet" type="text/css" />
+<link href="coqdocjs.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="config.js"></script>
+<script type="text/javascript" src="coqdocjs.js"></script>
+</head>
+
+<body onload="document.getElementById('content').focus()">
+  <div id="header">
+    <span class="left">
+      <span class="modulename"> <script> document.write(document.title) </script> </span>
+    </span>
+
+    <span class="button" id="toggle-proofs"></span>
+
+    <span class="right">
+      <a href="https://github.com/DeepSpec/InteractionTrees">Project Page</a>
+      <a href="./indexpage.html"> Index </a>
+      <a href="./toc.html"> Table of Contents </a>
+    </span>
+</div>
+    <div id="content" tabindex="-1" onblur="document.getElementById('content').focus()">
+    <div id="main">
+<h1 class="libtitle">ITree.Events.Writer</h1>
+
+<div class="code">
+</div>
+
+<div class="doc">
+<a id="lab142"></a><h1 class="section">Writer</h1>
+
+<div class="paragraph"> </div>
+
+ Output events. 
+</div>
+<div class="code">
+
+<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Event to output values of type <span class="inlinecode"><span class="id" title="var">W</span></span>. 
+</div>
+<div class="code">
+<span class="id" title="keyword">Variant</span> <a id="writerE" class="idref" href="#writerE"><span class="id" title="inductive">writerE</span></a> (<a id="W:1" class="idref" href="#W:1"><span class="id" title="binder">W</span></a> : <span class="id" title="keyword">Type</span>) : <span class="id" title="keyword">Type</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <span class="id" title="keyword">Type</span> :=<br/>
+| <a id="Tell" class="idref" href="#Tell"><span class="id" title="constructor">Tell</span></a> : <a class="idref" href="ITree.Events.Writer.html#W:1"><span class="id" title="variable">W</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <a class="idref" href="ITree.Events.Writer.html#writerE:2"><span class="id" title="inductive">writerE</span></a> <a class="idref" href="ITree.Events.Writer.html#W:1"><span class="id" title="variable">W</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Datatypes.html#unit"><span class="id" title="inductive">unit</span></a>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Output action. 
+</div>
+<div class="code">
+<span class="id" title="keyword">Definition</span> <a id="tell" class="idref" href="#tell"><span class="id" title="definition">tell</span></a> {<a id="W:4" class="idref" href="#W:4"><span class="id" title="binder">W</span></a> <a id="E:5" class="idref" href="#E:5"><span class="id" title="binder">E</span></a>} `{<a id="H:6" class="idref" href="#H:6"><span class="id" title="binder">writerE</span></a> <a id="H:6" class="idref" href="#H:6"><span class="id" title="binder">W</span></a> <a id="H:6" class="idref" href="#H:6"><span class="id" title="binder">-&lt;</span></a> <a id="H:6" class="idref" href="#H:6"><span class="id" title="binder">E</span></a>} : <a class="idref" href="ITree.Events.Writer.html#W:4"><span class="id" title="variable">W</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <a class="idref" href="ITree.Core.ITreeDefinition.html#itree"><span class="id" title="record">itree</span></a> <a class="idref" href="ITree.Events.Writer.html#E:5"><span class="id" title="variable">E</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Datatypes.html#unit"><span class="id" title="inductive">unit</span></a> :=<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">fun</span> <a id="w:7" class="idref" href="#w:7"><span class="id" title="binder">w</span></a> ⇒ <a class="idref" href="ITree.Core.Subevent.html#trigger"><span class="id" title="abbreviation">trigger</span></a> (<a class="idref" href="ITree.Events.Writer.html#Tell"><span class="id" title="constructor">Tell</span></a> <a class="idref" href="ITree.Events.Writer.html#w:7"><span class="id" title="variable">w</span></a>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+One interpretation is to accumulate outputs in a list. 
+<div class="paragraph"> </div>
+
+ Note that this handler appends new outputs to the front of the list. 
+</div>
+<div class="code">
+<span class="id" title="keyword">Definition</span> <a id="handle_writer_list" class="idref" href="#handle_writer_list"><span class="id" title="definition">handle_writer_list</span></a> {<a id="W:8" class="idref" href="#W:8"><span class="id" title="binder">W</span></a> <a id="E:9" class="idref" href="#E:9"><span class="id" title="binder">E</span></a>}<br/>
+&nbsp;&nbsp;: <a class="idref" href="ITree.Events.Writer.html#writerE"><span class="id" title="inductive">writerE</span></a> <a class="idref" href="ITree.Events.Writer.html#W:8"><span class="id" title="variable">W</span></a> <a class="idref" href="ITree.Basics.Basics.html#f7397da22bdab7f77b06c5d98764e7b9"><span class="id" title="notation">~&gt;</span></a> <a class="idref" href="ITree.Basics.Basics.html#Monads.stateT"><span class="id" title="definition">stateT</span></a> (<a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Datatypes.html#list"><span class="id" title="inductive">list</span></a> <a class="idref" href="ITree.Events.Writer.html#W:8"><span class="id" title="variable">W</span></a>) (<a class="idref" href="ITree.Core.ITreeDefinition.html#itree"><span class="id" title="record">itree</span></a> <a class="idref" href="ITree.Events.Writer.html#E:9"><span class="id" title="variable">E</span></a>)<br/>
+&nbsp;&nbsp;:= <span class="id" title="keyword">fun</span> <span class="id" title="var">_</span> <a id="e:10" class="idref" href="#e:10"><span class="id" title="binder">e</span></a> <a id="s:11" class="idref" href="#s:11"><span class="id" title="binder">s</span></a> ⇒<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <a class="idref" href="ITree.Events.Writer.html#e:10"><span class="id" title="variable">e</span></a> <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <a class="idref" href="ITree.Events.Writer.html#Tell"><span class="id" title="constructor">Tell</span></a> <span class="id" title="var">w</span> ⇒ <a class="idref" href="ITree.Core.ITreeDefinition.html#Ret"><span class="id" title="abbreviation">Ret</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">(</span></a><span class="id" title="var">w</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Datatypes.html#::list_scope:x_'::'_x"><span class="id" title="notation">::</span></a> <a class="idref" href="ITree.Events.Writer.html#s:11"><span class="id" title="variable">s</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">,</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Datatypes.html#tt"><span class="id" title="constructor">tt</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">)</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Definition</span> <a id="run_writer_list_state" class="idref" href="#run_writer_list_state"><span class="id" title="definition">run_writer_list_state</span></a> {<a id="W:13" class="idref" href="#W:13"><span class="id" title="binder">W</span></a> <a id="E:14" class="idref" href="#E:14"><span class="id" title="binder">E</span></a>}<br/>
+&nbsp;&nbsp;: <a class="idref" href="ITree.Core.ITreeDefinition.html#itree"><span class="id" title="record">itree</span></a> (<a class="idref" href="ITree.Events.Writer.html#writerE"><span class="id" title="inductive">writerE</span></a> <a class="idref" href="ITree.Events.Writer.html#W:13"><span class="id" title="variable">W</span></a> <a class="idref" href="ITree.Indexed.Sum.html#025d6c7e3112e73e8cdbce045a3e6f38"><span class="id" title="notation">+'</span></a> <a class="idref" href="ITree.Events.Writer.html#E:14"><span class="id" title="variable">E</span></a>) <a class="idref" href="ITree.Basics.Basics.html#f7397da22bdab7f77b06c5d98764e7b9"><span class="id" title="notation">~&gt;</span></a> <a class="idref" href="ITree.Basics.Basics.html#Monads.stateT"><span class="id" title="definition">stateT</span></a> (<a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Datatypes.html#list"><span class="id" title="inductive">list</span></a> <a class="idref" href="ITree.Events.Writer.html#W:13"><span class="id" title="variable">W</span></a>) (<a class="idref" href="ITree.Core.ITreeDefinition.html#itree"><span class="id" title="record">itree</span></a> <a class="idref" href="ITree.Events.Writer.html#E:14"><span class="id" title="variable">E</span></a>)<br/>
+&nbsp;&nbsp;:= <a class="idref" href="ITree.Events.State.html#interp_state"><span class="id" title="definition">interp_state</span></a> (<a class="idref" href="ITree.Basics.CategoryOps.html#case_"><span class="id" title="definition">case_</span></a> <a class="idref" href="ITree.Events.Writer.html#handle_writer_list"><span class="id" title="definition">handle_writer_list</span></a> <a class="idref" href="ITree.Events.State.html#pure_state"><span class="id" title="definition">pure_state</span></a>).<br/>
+
+<br/>
+<span class="id" title="var">Arguments</span> <a class="idref" href="ITree.Events.Writer.html#run_writer_list_state"><span class="id" title="definition">run_writer_list_state</span></a> {<span class="id" title="var">W</span> <span class="id" title="var">E</span>} [<span class="id" title="var">T</span>].<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Returns the outputs in order: the first output at the head, the last
+    output and the end of the list. 
+</div>
+<div class="code">
+<span class="id" title="keyword">Definition</span> <a id="run_writer_list" class="idref" href="#run_writer_list"><span class="id" title="definition">run_writer_list</span></a> {<a id="W:15" class="idref" href="#W:15"><span class="id" title="binder">W</span></a> <a id="E:16" class="idref" href="#E:16"><span class="id" title="binder">E</span></a>}<br/>
+&nbsp;&nbsp;: <a class="idref" href="ITree.Core.ITreeDefinition.html#itree"><span class="id" title="record">itree</span></a> (<a class="idref" href="ITree.Events.Writer.html#writerE"><span class="id" title="inductive">writerE</span></a> <a class="idref" href="ITree.Events.Writer.html#W:15"><span class="id" title="variable">W</span></a> <a class="idref" href="ITree.Indexed.Sum.html#025d6c7e3112e73e8cdbce045a3e6f38"><span class="id" title="notation">+'</span></a> <a class="idref" href="ITree.Events.Writer.html#E:16"><span class="id" title="variable">E</span></a>) <a class="idref" href="ITree.Basics.Basics.html#f7397da22bdab7f77b06c5d98764e7b9"><span class="id" title="notation">~&gt;</span></a> <a class="idref" href="ITree.Basics.Basics.html#Monads.writerT"><span class="id" title="definition">writerT</span></a> (<a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Datatypes.html#list"><span class="id" title="inductive">list</span></a> <a class="idref" href="ITree.Events.Writer.html#W:15"><span class="id" title="variable">W</span></a>) (<a class="idref" href="ITree.Core.ITreeDefinition.html#itree"><span class="id" title="record">itree</span></a> <a class="idref" href="ITree.Events.Writer.html#E:16"><span class="id" title="variable">E</span></a>)<br/>
+&nbsp;&nbsp;:= <span class="id" title="keyword">fun</span> <span class="id" title="var">_</span> <a id="t:17" class="idref" href="#t:17"><span class="id" title="binder">t</span></a> ⇒<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="ITree.Core.ITreeDefinition.html#ITree.map"><span class="id" title="definition">ITree.map</span></a> (<span class="id" title="keyword">fun</span> <a id="wsx:18" class="idref" href="#wsx:18"><span class="id" title="binder">wsx</span></a> ⇒ <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">(</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Lists.List.html#rev'"><span class="id" title="definition">rev'</span></a> (<a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Datatypes.html#fst"><span class="id" title="definition">fst</span></a> <a class="idref" href="ITree.Events.Writer.html#wsx:18"><span class="id" title="variable">wsx</span></a>)<a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">,</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Datatypes.html#snd"><span class="id" title="definition">snd</span></a> <a class="idref" href="ITree.Events.Writer.html#wsx:18"><span class="id" title="variable">wsx</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">)</span></a>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<a class="idref" href="ITree.Events.Writer.html#run_writer_list_state"><span class="id" title="definition">run_writer_list_state</span></a> <a class="idref" href="ITree.Events.Writer.html#t:17"><span class="id" title="variable">t</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Lists.List.html#ae9a5e1034e143b218b09d8e454472bd"><span class="id" title="notation">[]</span></a>).<br/>
+
+<br/>
+<span class="id" title="var">Arguments</span> <a class="idref" href="ITree.Events.Writer.html#run_writer_list"><span class="id" title="definition">run_writer_list</span></a> {<span class="id" title="var">W</span> <span class="id" title="var">E</span>} [<span class="id" title="var">T</span>].<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+When <span class="inlinecode"><span class="id" title="var">W</span></span> is a monoid, we can also use that to append the outputs together. 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Definition</span> <a id="handle_writer" class="idref" href="#handle_writer"><span class="id" title="definition">handle_writer</span></a> {<a id="W:19" class="idref" href="#W:19"><span class="id" title="binder">W</span></a> <a id="E:20" class="idref" href="#E:20"><span class="id" title="binder">E</span></a>} (<a id="Monoid_W:21" class="idref" href="#Monoid_W:21"><span class="id" title="binder">Monoid_W</span></a> : <span class="id" title="record">Monoid</span> <a class="idref" href="ITree.Events.Writer.html#W:19"><span class="id" title="variable">W</span></a>)<br/>
+&nbsp;&nbsp;: <a class="idref" href="ITree.Events.Writer.html#writerE"><span class="id" title="inductive">writerE</span></a> <a class="idref" href="ITree.Events.Writer.html#W:19"><span class="id" title="variable">W</span></a> <a class="idref" href="ITree.Basics.Basics.html#f7397da22bdab7f77b06c5d98764e7b9"><span class="id" title="notation">~&gt;</span></a> <a class="idref" href="ITree.Basics.Basics.html#Monads.stateT"><span class="id" title="definition">stateT</span></a> <a class="idref" href="ITree.Events.Writer.html#W:19"><span class="id" title="variable">W</span></a> (<a class="idref" href="ITree.Core.ITreeDefinition.html#itree"><span class="id" title="record">itree</span></a> <a class="idref" href="ITree.Events.Writer.html#E:20"><span class="id" title="variable">E</span></a>)<br/>
+&nbsp;&nbsp;:= <span class="id" title="keyword">fun</span> <span class="id" title="var">_</span> <a id="e:22" class="idref" href="#e:22"><span class="id" title="binder">e</span></a> <a id="s:23" class="idref" href="#s:23"><span class="id" title="binder">s</span></a> ⇒<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <a class="idref" href="ITree.Events.Writer.html#e:22"><span class="id" title="variable">e</span></a> <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <a class="idref" href="ITree.Events.Writer.html#Tell"><span class="id" title="constructor">Tell</span></a> <span class="id" title="var">w</span> ⇒ <a class="idref" href="ITree.Core.ITreeDefinition.html#Ret"><span class="id" title="abbreviation">Ret</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">(</span></a><span class="id" title="projection">monoid_plus</span> <a class="idref" href="ITree.Events.Writer.html#Monoid_W:21"><span class="id" title="variable">Monoid_W</span></a> <a class="idref" href="ITree.Events.Writer.html#s:23"><span class="id" title="variable">s</span></a> <span class="id" title="var">w</span><a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">,</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Datatypes.html#tt"><span class="id" title="constructor">tt</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Datatypes.html#e6756e10c36f149b18b4a8741ed83079"><span class="id" title="notation">)</span></a> <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Definition</span> <a id="run_writer" class="idref" href="#run_writer"><span class="id" title="definition">run_writer</span></a> {<a id="W:25" class="idref" href="#W:25"><span class="id" title="binder">W</span></a> <a id="E:26" class="idref" href="#E:26"><span class="id" title="binder">E</span></a>} (<a id="Monoid_W:27" class="idref" href="#Monoid_W:27"><span class="id" title="binder">Monoid_W</span></a> : <span class="id" title="record">Monoid</span> <a class="idref" href="ITree.Events.Writer.html#W:25"><span class="id" title="variable">W</span></a>)<br/>
+&nbsp;&nbsp;: <a class="idref" href="ITree.Core.ITreeDefinition.html#itree"><span class="id" title="record">itree</span></a> (<a class="idref" href="ITree.Events.Writer.html#writerE"><span class="id" title="inductive">writerE</span></a> <a class="idref" href="ITree.Events.Writer.html#W:25"><span class="id" title="variable">W</span></a> <a class="idref" href="ITree.Indexed.Sum.html#025d6c7e3112e73e8cdbce045a3e6f38"><span class="id" title="notation">+'</span></a> <a class="idref" href="ITree.Events.Writer.html#E:26"><span class="id" title="variable">E</span></a>) <a class="idref" href="ITree.Basics.Basics.html#f7397da22bdab7f77b06c5d98764e7b9"><span class="id" title="notation">~&gt;</span></a> <a class="idref" href="ITree.Basics.Basics.html#Monads.writerT"><span class="id" title="definition">writerT</span></a> <a class="idref" href="ITree.Events.Writer.html#W:25"><span class="id" title="variable">W</span></a> (<a class="idref" href="ITree.Core.ITreeDefinition.html#itree"><span class="id" title="record">itree</span></a> <a class="idref" href="ITree.Events.Writer.html#E:26"><span class="id" title="variable">E</span></a>)<br/>
+&nbsp;&nbsp;:= <span class="id" title="keyword">fun</span> <span class="id" title="var">_</span> <a id="t:28" class="idref" href="#t:28"><span class="id" title="binder">t</span></a> ⇒<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="ITree.Events.State.html#interp_state"><span class="id" title="definition">interp_state</span></a> (<a class="idref" href="ITree.Basics.CategoryOps.html#case_"><span class="id" title="definition">case_</span></a> (<a class="idref" href="ITree.Events.Writer.html#handle_writer"><span class="id" title="definition">handle_writer</span></a> <a class="idref" href="ITree.Events.Writer.html#Monoid_W:27"><span class="id" title="variable">Monoid_W</span></a>) <a class="idref" href="ITree.Events.State.html#pure_state"><span class="id" title="definition">pure_state</span></a>) <a class="idref" href="ITree.Events.Writer.html#t:28"><span class="id" title="variable">t</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="projection">monoid_unit</span> <a class="idref" href="ITree.Events.Writer.html#Monoid_W:27"><span class="id" title="variable">Monoid_W</span></a>).<br/>
+
+<br/>
+<span class="id" title="var">Arguments</span> <a class="idref" href="ITree.Events.Writer.html#run_writer"><span class="id" title="definition">run_writer</span></a> {<span class="id" title="var">W</span> <span class="id" title="var">E</span>} <span class="id" title="var">Monoid_W</span> [<span class="id" title="var">T</span>].<br/>
+</div>
+</div>
+<div id="footer">
+  Generated by <a href="http://coq.inria.fr/">coqdoc</a> and improved with <a href="https://github.com/tebbi/coqdocjs">CoqdocJS</a>
+</div>
+</div>
+</body>
+
+</html>

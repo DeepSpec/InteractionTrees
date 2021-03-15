@@ -1,0 +1,241 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<link href="coqdoc.css" rel="stylesheet" type="text/css" />
+<link href="coqdocjs.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="config.js"></script>
+<script type="text/javascript" src="coqdocjs.js"></script>
+</head>
+
+<body onload="document.getElementById('content').focus()">
+  <div id="header">
+    <span class="left">
+      <span class="modulename"> <script> document.write(document.title) </script> </span>
+    </span>
+
+    <span class="button" id="toggle-proofs"></span>
+
+    <span class="right">
+      <a href="https://github.com/DeepSpec/InteractionTrees">Project Page</a>
+      <a href="./indexpage.html"> Index </a>
+      <a href="./toc.html"> Table of Contents </a>
+    </span>
+</div>
+    <div id="content" tabindex="-1" onblur="document.getElementById('content').focus()">
+    <div id="main">
+<h1 class="libtitle">ITree.Interp.Handler</h1>
+
+<div class="code">
+</div>
+
+<div class="doc">
+<a id="lab121"></a><h1 class="section">Event handlers</h1>
+
+<div class="paragraph"> </div>
+
+ Events types <span class="inlinecode"><span class="id" title="var">E</span>,</span> <span class="inlinecode"><span class="id" title="var">F</span></span> <span class="inlinecode">:</span> <span class="inlinecode"><span class="id" title="keyword">Type</span></span> <span class="inlinecode">→</span> <span class="inlinecode"><span class="id" title="keyword">Type</span></span> and itree <span class="inlinecode"><span class="id" title="var">E</span></span> <span class="inlinecode">~&gt;</span> <span class="inlinecode"><a class="idref" href="ITree.Core.ITreeDefinition.html#itree"><span class="id" title="record">itree</span></a></span> <span class="inlinecode"><span class="id" title="var">F</span></span>
+    form a category. 
+</div>
+<div class="code">
+
+<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab122"></a><h2 class="section">Handler combinators</h2>
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Module</span> <a id="Handler" class="idref" href="#Handler"><span class="id" title="module">Handler</span></a>.<br/>
+</div>
+
+<div class="doc">
+These are defined primarily for documentation. Except for <span class="inlinecode"><a class="idref" href="ITree.Interp.Handler.html#Handler.htrigger"><span class="id" title="definition">htrigger</span></a></span>,
+    it is recommended to use the <span class="inlinecode"><span class="id" title="library">CategoryOps</span></span> classes instead
+    (with the same function names). 
+<div class="paragraph"> </div>
+
+ Lift an <i>event morphism</i> into an <i>event handler</i>. 
+</div>
+<div class="code">
+<span class="id" title="keyword">Definition</span> <a id="Handler.htrigger" class="idref" href="#Handler.htrigger"><span class="id" title="definition">htrigger</span></a> {<a id="A:1" class="idref" href="#A:1"><span class="id" title="binder">A</span></a> <a id="B:2" class="idref" href="#B:2"><span class="id" title="binder">B</span></a>} (<a id="m:3" class="idref" href="#m:3"><span class="id" title="binder">m</span></a> : <a class="idref" href="ITree.Interp.Handler.html#A:1"><span class="id" title="variable">A</span></a> <a class="idref" href="ITree.Basics.Basics.html#f7397da22bdab7f77b06c5d98764e7b9"><span class="id" title="notation">~&gt;</span></a> <a class="idref" href="ITree.Interp.Handler.html#B:2"><span class="id" title="variable">B</span></a>) : <a class="idref" href="ITree.Interp.Handler.html#A:1"><span class="id" title="variable">A</span></a> <a class="idref" href="ITree.Basics.Basics.html#f7397da22bdab7f77b06c5d98764e7b9"><span class="id" title="notation">~&gt;</span></a> <a class="idref" href="ITree.Core.ITreeDefinition.html#itree"><span class="id" title="record">itree</span></a> <a class="idref" href="ITree.Interp.Handler.html#B:2"><span class="id" title="variable">B</span></a> :=<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">fun</span> <span class="id" title="var">_</span> <a id="e:4" class="idref" href="#e:4"><span class="id" title="binder">e</span></a> ⇒ <a class="idref" href="ITree.Core.ITreeDefinition.html#ITree.trigger"><span class="id" title="definition">ITree.trigger</span></a> (<a class="idref" href="ITree.Interp.Handler.html#m:3"><span class="id" title="variable">m</span></a> <span class="id" title="var">_</span> <a class="idref" href="ITree.Interp.Handler.html#e:4"><span class="id" title="variable">e</span></a>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Trivial handler, triggering any event it's given, so
+    the resulting interpretation is the identity function:
+    <span class="inlinecode"><a class="idref" href="ITree.Interp.Interp.html#interp"><span class="id" title="definition">interp</span></a></span> <span class="inlinecode">(<a class="idref" href="ITree.Interp.Handler.html#Handler.id_"><span class="id" title="definition">id_</span></a></span> <span class="inlinecode"><span class="id" title="var">E</span>)</span> <span class="inlinecode"><span class="id" title="var">_</span></span> <span class="inlinecode"><span class="id" title="var">t</span></span> <span class="inlinecode">≈</span> <span class="inlinecode"><span class="id" title="var">t</span></span>. 
+</div>
+<div class="code">
+<span class="id" title="keyword">Definition</span> <a id="Handler.id_" class="idref" href="#Handler.id_"><span class="id" title="definition">id_</span></a> (<a id="E:5" class="idref" href="#E:5"><span class="id" title="binder">E</span></a> : <span class="id" title="keyword">Type</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <span class="id" title="keyword">Type</span>) : <a class="idref" href="ITree.Interp.Handler.html#E:5"><span class="id" title="variable">E</span></a> <a class="idref" href="ITree.Basics.Basics.html#f7397da22bdab7f77b06c5d98764e7b9"><span class="id" title="notation">~&gt;</span></a> <a class="idref" href="ITree.Core.ITreeDefinition.html#itree"><span class="id" title="record">itree</span></a> <a class="idref" href="ITree.Interp.Handler.html#E:5"><span class="id" title="variable">E</span></a> := <a class="idref" href="ITree.Core.ITreeDefinition.html#ITree.trigger"><span class="id" title="definition">ITree.trigger</span></a>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Chain handlers: <span class="inlinecode"><span class="id" title="var">g</span></span> handles the events produced by <span class="inlinecode"><span class="id" title="var">f</span></span>. 
+</div>
+<div class="code">
+<span class="id" title="keyword">Definition</span> <a id="Handler.cat" class="idref" href="#Handler.cat"><span class="id" title="definition">cat</span></a> {<a id="E:6" class="idref" href="#E:6"><span class="id" title="binder">E</span></a> <a id="F:7" class="idref" href="#F:7"><span class="id" title="binder">F</span></a> <a id="G:8" class="idref" href="#G:8"><span class="id" title="binder">G</span></a> : <span class="id" title="keyword">Type</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <span class="id" title="keyword">Type</span>}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<a id="f:9" class="idref" href="#f:9"><span class="id" title="binder">f</span></a> : <a class="idref" href="ITree.Interp.Handler.html#E:6"><span class="id" title="variable">E</span></a> <a class="idref" href="ITree.Basics.Basics.html#f7397da22bdab7f77b06c5d98764e7b9"><span class="id" title="notation">~&gt;</span></a> <a class="idref" href="ITree.Core.ITreeDefinition.html#itree"><span class="id" title="record">itree</span></a> <a class="idref" href="ITree.Interp.Handler.html#F:7"><span class="id" title="variable">F</span></a>) (<a id="g:10" class="idref" href="#g:10"><span class="id" title="binder">g</span></a> : <a class="idref" href="ITree.Interp.Handler.html#F:7"><span class="id" title="variable">F</span></a> <a class="idref" href="ITree.Basics.Basics.html#f7397da22bdab7f77b06c5d98764e7b9"><span class="id" title="notation">~&gt;</span></a> <a class="idref" href="ITree.Core.ITreeDefinition.html#itree"><span class="id" title="record">itree</span></a> <a class="idref" href="ITree.Interp.Handler.html#G:8"><span class="id" title="variable">G</span></a>)<br/>
+&nbsp;&nbsp;: <a class="idref" href="ITree.Interp.Handler.html#E:6"><span class="id" title="variable">E</span></a> <a class="idref" href="ITree.Basics.Basics.html#f7397da22bdab7f77b06c5d98764e7b9"><span class="id" title="notation">~&gt;</span></a> <a class="idref" href="ITree.Core.ITreeDefinition.html#itree"><span class="id" title="record">itree</span></a> <a class="idref" href="ITree.Interp.Handler.html#G:8"><span class="id" title="variable">G</span></a><br/>
+&nbsp;&nbsp;:= <span class="id" title="keyword">fun</span> <a id="R:11" class="idref" href="#R:11"><span class="id" title="binder">R</span></a> <a id="e:12" class="idref" href="#e:12"><span class="id" title="binder">e</span></a> ⇒ <a class="idref" href="ITree.Interp.Interp.html#interp"><span class="id" title="definition">interp</span></a> <a class="idref" href="ITree.Interp.Handler.html#g:10"><span class="id" title="variable">g</span></a> (<a class="idref" href="ITree.Interp.Handler.html#f:9"><span class="id" title="variable">f</span></a> <a class="idref" href="ITree.Interp.Handler.html#R:11"><span class="id" title="variable">R</span></a> <a class="idref" href="ITree.Interp.Handler.html#e:12"><span class="id" title="variable">e</span></a>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Wrap events to the left of a sum. 
+</div>
+<div class="code">
+<span class="id" title="keyword">Definition</span> <a id="Handler.inl_" class="idref" href="#Handler.inl_"><span class="id" title="definition">inl_</span></a> {<a id="E:13" class="idref" href="#E:13"><span class="id" title="binder">E</span></a> <a id="F:14" class="idref" href="#F:14"><span class="id" title="binder">F</span></a> : <span class="id" title="keyword">Type</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <span class="id" title="keyword">Type</span>} : <a class="idref" href="ITree.Interp.Handler.html#E:13"><span class="id" title="variable">E</span></a> <a class="idref" href="ITree.Basics.Basics.html#f7397da22bdab7f77b06c5d98764e7b9"><span class="id" title="notation">~&gt;</span></a> <a class="idref" href="ITree.Core.ITreeDefinition.html#itree"><span class="id" title="record">itree</span></a> (<a class="idref" href="ITree.Interp.Handler.html#E:13"><span class="id" title="variable">E</span></a> <a class="idref" href="ITree.Indexed.Sum.html#025d6c7e3112e73e8cdbce045a3e6f38"><span class="id" title="notation">+'</span></a> <a class="idref" href="ITree.Interp.Handler.html#F:14"><span class="id" title="variable">F</span></a>)<br/>
+&nbsp;&nbsp;:= <a class="idref" href="ITree.Interp.Handler.html#Handler.htrigger"><span class="id" title="definition">htrigger</span></a> <a class="idref" href="ITree.Indexed.Sum.html#inl1"><span class="id" title="constructor">inl1</span></a>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Wrap events to the right of a sum. 
+</div>
+<div class="code">
+<span class="id" title="keyword">Definition</span> <a id="Handler.inr_" class="idref" href="#Handler.inr_"><span class="id" title="definition">inr_</span></a> {<a id="E:15" class="idref" href="#E:15"><span class="id" title="binder">E</span></a> <a id="F:16" class="idref" href="#F:16"><span class="id" title="binder">F</span></a> : <span class="id" title="keyword">Type</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <span class="id" title="keyword">Type</span>} : <a class="idref" href="ITree.Interp.Handler.html#F:16"><span class="id" title="variable">F</span></a> <a class="idref" href="ITree.Basics.Basics.html#f7397da22bdab7f77b06c5d98764e7b9"><span class="id" title="notation">~&gt;</span></a> <a class="idref" href="ITree.Core.ITreeDefinition.html#itree"><span class="id" title="record">itree</span></a> (<a class="idref" href="ITree.Interp.Handler.html#E:15"><span class="id" title="variable">E</span></a> <a class="idref" href="ITree.Indexed.Sum.html#025d6c7e3112e73e8cdbce045a3e6f38"><span class="id" title="notation">+'</span></a> <a class="idref" href="ITree.Interp.Handler.html#F:16"><span class="id" title="variable">F</span></a>)<br/>
+&nbsp;&nbsp;:= <a class="idref" href="ITree.Interp.Handler.html#Handler.htrigger"><span class="id" title="definition">htrigger</span></a> <a class="idref" href="ITree.Indexed.Sum.html#inr1"><span class="id" title="constructor">inr1</span></a>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Case analysis on sums of events. 
+</div>
+<div class="code">
+<span class="id" title="keyword">Definition</span> <a id="Handler.case_" class="idref" href="#Handler.case_"><span class="id" title="definition">case_</span></a> {<a id="E:17" class="idref" href="#E:17"><span class="id" title="binder">E</span></a> <a id="F:18" class="idref" href="#F:18"><span class="id" title="binder">F</span></a> <a id="G:19" class="idref" href="#G:19"><span class="id" title="binder">G</span></a> : <span class="id" title="keyword">Type</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <span class="id" title="keyword">Type</span>}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<a id="f:20" class="idref" href="#f:20"><span class="id" title="binder">f</span></a> : <a class="idref" href="ITree.Interp.Handler.html#E:17"><span class="id" title="variable">E</span></a> <a class="idref" href="ITree.Basics.Basics.html#f7397da22bdab7f77b06c5d98764e7b9"><span class="id" title="notation">~&gt;</span></a> <a class="idref" href="ITree.Core.ITreeDefinition.html#itree"><span class="id" title="record">itree</span></a> <a class="idref" href="ITree.Interp.Handler.html#G:19"><span class="id" title="variable">G</span></a>) (<a id="g:21" class="idref" href="#g:21"><span class="id" title="binder">g</span></a> : <a class="idref" href="ITree.Interp.Handler.html#F:18"><span class="id" title="variable">F</span></a> <a class="idref" href="ITree.Basics.Basics.html#f7397da22bdab7f77b06c5d98764e7b9"><span class="id" title="notation">~&gt;</span></a> <a class="idref" href="ITree.Core.ITreeDefinition.html#itree"><span class="id" title="record">itree</span></a> <a class="idref" href="ITree.Interp.Handler.html#G:19"><span class="id" title="variable">G</span></a>)<br/>
+&nbsp;&nbsp;: <a class="idref" href="ITree.Interp.Handler.html#E:17"><span class="id" title="variable">E</span></a> <a class="idref" href="ITree.Indexed.Sum.html#025d6c7e3112e73e8cdbce045a3e6f38"><span class="id" title="notation">+'</span></a> <a class="idref" href="ITree.Interp.Handler.html#F:18"><span class="id" title="variable">F</span></a> <a class="idref" href="ITree.Basics.Basics.html#f7397da22bdab7f77b06c5d98764e7b9"><span class="id" title="notation">~&gt;</span></a> <a class="idref" href="ITree.Core.ITreeDefinition.html#itree"><span class="id" title="record">itree</span></a> <a class="idref" href="ITree.Interp.Handler.html#G:19"><span class="id" title="variable">G</span></a><br/>
+&nbsp;&nbsp;:= <span class="id" title="keyword">fun</span> <span class="id" title="var">_</span> <a id="ab:22" class="idref" href="#ab:22"><span class="id" title="binder">ab</span></a> ⇒ <span class="id" title="keyword">match</span> <a class="idref" href="ITree.Interp.Handler.html#ab:22"><span class="id" title="variable">ab</span></a> <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <a class="idref" href="ITree.Indexed.Sum.html#inl1"><span class="id" title="constructor">inl1</span></a> <span class="id" title="var">a</span> ⇒ <a class="idref" href="ITree.Interp.Handler.html#f:20"><span class="id" title="variable">f</span></a> <span class="id" title="var">_</span> <span class="id" title="var">a</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <a class="idref" href="ITree.Indexed.Sum.html#inr1"><span class="id" title="constructor">inr1</span></a> <span class="id" title="var">b</span> ⇒ <a class="idref" href="ITree.Interp.Handler.html#g:21"><span class="id" title="variable">g</span></a> <span class="id" title="var">_</span> <span class="id" title="var">b</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br/>
+
+<br/>
+<span class="comment">(*&nbsp;Definition&nbsp;case_'&nbsp;{E&nbsp;F&nbsp;G&nbsp;:&nbsp;Type&nbsp;-&gt;&nbsp;Type}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(f&nbsp;:&nbsp;E&nbsp;~&gt;&nbsp;itree&nbsp;G)&nbsp;(g&nbsp;:&nbsp;F&nbsp;~&gt;&nbsp;itree&nbsp;G)<br/>
+&nbsp;&nbsp;:&nbsp;E&nbsp;+'&nbsp;F&nbsp;~&gt;&nbsp;itree&nbsp;G<br/>
+&nbsp;&nbsp;:=&nbsp;@case_sum1&nbsp;E&nbsp;F&nbsp;(itree&nbsp;G)&nbsp;f&nbsp;g.<br/>
+<span class="comment">(*&nbsp;TODO:&nbsp;why&nbsp;is&nbsp;there&nbsp;a&nbsp;universe&nbsp;inconsistency&nbsp;if&nbsp;this&nbsp;is&nbsp;before&nbsp;<span class="inlinecode"><span class="id" title="var">inl_</span></span>&nbsp;and&nbsp;<span class="inlinecode"><span class="id" title="var">inr_</span></span>?&nbsp;*)</span><br/>
+&nbsp;*)</span><br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Handle events independently, with disjoint sets of output events. 
+</div>
+<div class="code">
+<span class="id" title="keyword">Definition</span> <a id="Handler.bimap" class="idref" href="#Handler.bimap"><span class="id" title="definition">bimap</span></a> {<a id="E:24" class="idref" href="#E:24"><span class="id" title="binder">E</span></a> <a id="F:25" class="idref" href="#F:25"><span class="id" title="binder">F</span></a> <a id="G:26" class="idref" href="#G:26"><span class="id" title="binder">G</span></a> <a id="H:27" class="idref" href="#H:27"><span class="id" title="binder">H</span></a> : <span class="id" title="keyword">Type</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <span class="id" title="keyword">Type</span>}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<a id="f:28" class="idref" href="#f:28"><span class="id" title="binder">f</span></a> : <a class="idref" href="ITree.Interp.Handler.html#E:24"><span class="id" title="variable">E</span></a> <a class="idref" href="ITree.Basics.Basics.html#f7397da22bdab7f77b06c5d98764e7b9"><span class="id" title="notation">~&gt;</span></a> <a class="idref" href="ITree.Core.ITreeDefinition.html#itree"><span class="id" title="record">itree</span></a> <a class="idref" href="ITree.Interp.Handler.html#G:26"><span class="id" title="variable">G</span></a>) (<a id="g:29" class="idref" href="#g:29"><span class="id" title="binder">g</span></a> : <a class="idref" href="ITree.Interp.Handler.html#F:25"><span class="id" title="variable">F</span></a> <a class="idref" href="ITree.Basics.Basics.html#f7397da22bdab7f77b06c5d98764e7b9"><span class="id" title="notation">~&gt;</span></a> <a class="idref" href="ITree.Core.ITreeDefinition.html#itree"><span class="id" title="record">itree</span></a> <a class="idref" href="ITree.Interp.Handler.html#H:27"><span class="id" title="variable">H</span></a>)<br/>
+&nbsp;&nbsp;: <a class="idref" href="ITree.Interp.Handler.html#E:24"><span class="id" title="variable">E</span></a> <a class="idref" href="ITree.Indexed.Sum.html#025d6c7e3112e73e8cdbce045a3e6f38"><span class="id" title="notation">+'</span></a> <a class="idref" href="ITree.Interp.Handler.html#F:25"><span class="id" title="variable">F</span></a> <a class="idref" href="ITree.Basics.Basics.html#f7397da22bdab7f77b06c5d98764e7b9"><span class="id" title="notation">~&gt;</span></a> <a class="idref" href="ITree.Core.ITreeDefinition.html#itree"><span class="id" title="record">itree</span></a> (<a class="idref" href="ITree.Interp.Handler.html#G:26"><span class="id" title="variable">G</span></a> <a class="idref" href="ITree.Indexed.Sum.html#025d6c7e3112e73e8cdbce045a3e6f38"><span class="id" title="notation">+'</span></a> <a class="idref" href="ITree.Interp.Handler.html#H:27"><span class="id" title="variable">H</span></a>)<br/>
+&nbsp;&nbsp;:= <a class="idref" href="ITree.Interp.Handler.html#Handler.case_"><span class="id" title="definition">case_</span></a> (<a class="idref" href="ITree.Interp.Handler.html#Handler.cat"><span class="id" title="definition">Handler.cat</span></a> <a class="idref" href="ITree.Interp.Handler.html#f:28"><span class="id" title="variable">f</span></a> <a class="idref" href="ITree.Interp.Handler.html#Handler.inl_"><span class="id" title="definition">inl_</span></a>) (<a class="idref" href="ITree.Interp.Handler.html#Handler.cat"><span class="id" title="definition">Handler.cat</span></a> <a class="idref" href="ITree.Interp.Handler.html#g:29"><span class="id" title="variable">g</span></a> <a class="idref" href="ITree.Interp.Handler.html#Handler.inr_"><span class="id" title="definition">inr_</span></a>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Handle <span class="inlinecode"><a class="idref" href="ITree.Indexed.Sum.html#void1"><span class="id" title="inductive">void1</span></a></span> events (of which there are none). 
+</div>
+<div class="code">
+<span class="id" title="keyword">Definition</span> <a id="Handler.empty" class="idref" href="#Handler.empty"><span class="id" title="definition">empty</span></a> {<a id="E:30" class="idref" href="#E:30"><span class="id" title="binder">E</span></a> : <span class="id" title="keyword">Type</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <span class="id" title="keyword">Type</span>}<br/>
+&nbsp;&nbsp;: <a class="idref" href="ITree.Indexed.Sum.html#void1"><span class="id" title="inductive">void1</span></a> <a class="idref" href="ITree.Basics.Basics.html#f7397da22bdab7f77b06c5d98764e7b9"><span class="id" title="notation">~&gt;</span></a> <a class="idref" href="ITree.Core.ITreeDefinition.html#itree"><span class="id" title="record">itree</span></a> <a class="idref" href="ITree.Interp.Handler.html#E:30"><span class="id" title="variable">E</span></a><br/>
+&nbsp;&nbsp;:= <span class="id" title="keyword">fun</span> <span class="id" title="var">_</span> <a id="e:31" class="idref" href="#e:31"><span class="id" title="binder">e</span></a> ⇒ <span class="id" title="keyword">match</span> <a class="idref" href="ITree.Interp.Handler.html#e:31"><span class="id" title="variable">e</span></a> : <a class="idref" href="ITree.Indexed.Sum.html#void1"><span class="id" title="inductive">void1</span></a> <span class="id" title="var">_</span> <span class="id" title="keyword">with</span> <span class="id" title="keyword">end</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">End</span> <a class="idref" href="ITree.Interp.Handler.html#Handler"><span class="id" title="module">Handler</span></a>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab123"></a><h2 class="section">Category instances</h2>
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Definition</span> <a id="Handler" class="idref" href="#Handler"><span class="id" title="definition">Handler</span></a> (<a id="E:32" class="idref" href="#E:32"><span class="id" title="binder">E</span></a> <a id="F:33" class="idref" href="#F:33"><span class="id" title="binder">F</span></a> : <span class="id" title="keyword">Type</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <span class="id" title="keyword">Type</span>) := <a class="idref" href="ITree.Interp.Handler.html#E:32"><span class="id" title="variable">E</span></a> <a class="idref" href="ITree.Basics.Basics.html#f7397da22bdab7f77b06c5d98764e7b9"><span class="id" title="notation">~&gt;</span></a> <a class="idref" href="ITree.Core.ITreeDefinition.html#itree"><span class="id" title="record">itree</span></a> <a class="idref" href="ITree.Interp.Handler.html#F:33"><span class="id" title="variable">F</span></a>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Conversion functions between <span class="inlinecode"><a class="idref" href="ITree.Interp.Handler.html#Handler"><span class="id" title="definition">Handler</span></a></span> and <span class="inlinecode"><span class="id" title="var">_</span></span> <span class="inlinecode">~&gt;</span> <span class="inlinecode"><a class="idref" href="ITree.Core.ITreeDefinition.html#itree"><span class="id" title="record">itree</span></a></span> <span class="inlinecode"><span class="id" title="var">_</span></span>.
+    Although they are the identity function, they guide type inference
+    and type class search. 
+</div>
+<div class="code">
+<span class="id" title="keyword">Definition</span> <a id="handle" class="idref" href="#handle"><span class="id" title="definition">handle</span></a> {<a id="E:34" class="idref" href="#E:34"><span class="id" title="binder">E</span></a> <a id="F:35" class="idref" href="#F:35"><span class="id" title="binder">F</span></a>} (<a id="f:36" class="idref" href="#f:36"><span class="id" title="binder">f</span></a> : <a class="idref" href="ITree.Interp.Handler.html#Handler"><span class="id" title="definition">Handler</span></a> <a class="idref" href="ITree.Interp.Handler.html#E:34"><span class="id" title="variable">E</span></a> <a class="idref" href="ITree.Interp.Handler.html#F:35"><span class="id" title="variable">F</span></a>) : <a class="idref" href="ITree.Interp.Handler.html#E:34"><span class="id" title="variable">E</span></a> <a class="idref" href="ITree.Basics.Basics.html#f7397da22bdab7f77b06c5d98764e7b9"><span class="id" title="notation">~&gt;</span></a> <a class="idref" href="ITree.Core.ITreeDefinition.html#itree"><span class="id" title="record">itree</span></a> <a class="idref" href="ITree.Interp.Handler.html#F:35"><span class="id" title="variable">F</span></a> := <a class="idref" href="ITree.Interp.Handler.html#f:36"><span class="id" title="variable">f</span></a>.<br/>
+<span class="id" title="keyword">Definition</span> <a id="handling" class="idref" href="#handling"><span class="id" title="definition">handling</span></a> {<a id="E:37" class="idref" href="#E:37"><span class="id" title="binder">E</span></a> <a id="F:38" class="idref" href="#F:38"><span class="id" title="binder">F</span></a>} (<a id="f:39" class="idref" href="#f:39"><span class="id" title="binder">f</span></a> : <a class="idref" href="ITree.Interp.Handler.html#E:37"><span class="id" title="variable">E</span></a> <a class="idref" href="ITree.Basics.Basics.html#f7397da22bdab7f77b06c5d98764e7b9"><span class="id" title="notation">~&gt;</span></a> <a class="idref" href="ITree.Core.ITreeDefinition.html#itree"><span class="id" title="record">itree</span></a> <a class="idref" href="ITree.Interp.Handler.html#F:38"><span class="id" title="variable">F</span></a>) : <a class="idref" href="ITree.Interp.Handler.html#Handler"><span class="id" title="definition">Handler</span></a> <a class="idref" href="ITree.Interp.Handler.html#E:37"><span class="id" title="variable">E</span></a> <a class="idref" href="ITree.Interp.Handler.html#F:38"><span class="id" title="variable">F</span></a> := <a class="idref" href="ITree.Interp.Handler.html#f:39"><span class="id" title="variable">f</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Definition</span> <a id="eq_Handler" class="idref" href="#eq_Handler"><span class="id" title="definition">eq_Handler</span></a> {<a id="E:40" class="idref" href="#E:40"><span class="id" title="binder">E</span></a> <a id="F:41" class="idref" href="#F:41"><span class="id" title="binder">F</span></a> : <span class="id" title="keyword">Type</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <span class="id" title="keyword">Type</span>}<br/>
+&nbsp;&nbsp;: <a class="idref" href="ITree.Interp.Handler.html#Handler"><span class="id" title="definition">Handler</span></a> <a class="idref" href="ITree.Interp.Handler.html#E:40"><span class="id" title="variable">E</span></a> <a class="idref" href="ITree.Interp.Handler.html#F:41"><span class="id" title="variable">F</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <a class="idref" href="ITree.Interp.Handler.html#Handler"><span class="id" title="definition">Handler</span></a> <a class="idref" href="ITree.Interp.Handler.html#E:40"><span class="id" title="variable">E</span></a> <a class="idref" href="ITree.Interp.Handler.html#F:41"><span class="id" title="variable">F</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <span class="id" title="keyword">Prop</span><br/>
+&nbsp;&nbsp;:= <a class="idref" href="ITree.Indexed.Relation.html#i_pointwise"><span class="id" title="definition">i_pointwise</span></a> (<span class="id" title="keyword">fun</span> <a id="R:42" class="idref" href="#R:42"><span class="id" title="binder">R</span></a> ⇒ <a class="idref" href="ITree.Eq.Eq.html#eq_itree"><span class="id" title="definition">eq_itree</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#eq"><span class="id" title="inductive">eq</span></a>).<br/>
+
+<br/>
+<span class="id" title="keyword">Definition</span> <a id="eutt_Handler" class="idref" href="#eutt_Handler"><span class="id" title="definition">eutt_Handler</span></a> {<a id="E:43" class="idref" href="#E:43"><span class="id" title="binder">E</span></a> <a id="F:44" class="idref" href="#F:44"><span class="id" title="binder">F</span></a> : <span class="id" title="keyword">Type</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <span class="id" title="keyword">Type</span>}<br/>
+&nbsp;&nbsp;: <a class="idref" href="ITree.Interp.Handler.html#Handler"><span class="id" title="definition">Handler</span></a> <a class="idref" href="ITree.Interp.Handler.html#E:43"><span class="id" title="variable">E</span></a> <a class="idref" href="ITree.Interp.Handler.html#F:44"><span class="id" title="variable">F</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <a class="idref" href="ITree.Interp.Handler.html#Handler"><span class="id" title="definition">Handler</span></a> <a class="idref" href="ITree.Interp.Handler.html#E:43"><span class="id" title="variable">E</span></a> <a class="idref" href="ITree.Interp.Handler.html#F:44"><span class="id" title="variable">F</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <span class="id" title="keyword">Prop</span><br/>
+&nbsp;&nbsp;:= <a class="idref" href="ITree.Indexed.Relation.html#i_pointwise"><span class="id" title="definition">i_pointwise</span></a> (<span class="id" title="keyword">fun</span> <a id="R:45" class="idref" href="#R:45"><span class="id" title="binder">R</span></a> ⇒ <a class="idref" href="ITree.Eq.Eq.html#eutt"><span class="id" title="definition">eutt</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#eq"><span class="id" title="inductive">eq</span></a>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+The default handler equivalence is <span class="inlinecode"><a class="idref" href="ITree.Eq.Eq.html#eutt"><span class="id" title="definition">eutt</span></a></span>. 
+</div>
+<div class="code">
+<span class="id" title="keyword">Instance</span> <a id="Eq2_Handler" class="idref" href="#Eq2_Handler"><span class="id" title="instance">Eq2_Handler</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#Eq2"><span class="id" title="class">Eq2</span></a> <a class="idref" href="ITree.Interp.Handler.html#Handler"><span class="id" title="definition">Handler</span></a><br/>
+&nbsp;&nbsp;:= @<a class="idref" href="ITree.Interp.Handler.html#eutt_Handler"><span class="id" title="definition">eutt_Handler</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Instance</span> <a id="Id_Handler" class="idref" href="#Id_Handler"><span class="id" title="instance">Id_Handler</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#Id_"><span class="id" title="class">Id_</span></a> <a class="idref" href="ITree.Interp.Handler.html#Handler"><span class="id" title="definition">Handler</span></a><br/>
+&nbsp;&nbsp;:= @<a class="idref" href="ITree.Interp.Handler.html#id_"><span class="id" title="definition">Handler.id_</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Instance</span> <a id="Cat_Handler" class="idref" href="#Cat_Handler"><span class="id" title="instance">Cat_Handler</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#Cat"><span class="id" title="class">Cat</span></a> <a class="idref" href="ITree.Interp.Handler.html#Handler"><span class="id" title="definition">Handler</span></a><br/>
+&nbsp;&nbsp;:= @<a class="idref" href="ITree.Interp.Handler.html#cat"><span class="id" title="definition">Handler.cat</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Instance</span> <a id="Case_sum1_Handler" class="idref" href="#Case_sum1_Handler"><span class="id" title="instance">Case_sum1_Handler</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#Case"><span class="id" title="class">Case</span></a> <a class="idref" href="ITree.Interp.Handler.html#Handler"><span class="id" title="definition">Handler</span></a> <a class="idref" href="ITree.Indexed.Sum.html#sum1"><span class="id" title="inductive">sum1</span></a><br/>
+&nbsp;&nbsp;:= @<a class="idref" href="ITree.Interp.Handler.html#case_"><span class="id" title="definition">Handler.case_</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Instance</span> <a id="Inl_sum1_Handler" class="idref" href="#Inl_sum1_Handler"><span class="id" title="instance">Inl_sum1_Handler</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#Inl"><span class="id" title="class">Inl</span></a> <a class="idref" href="ITree.Interp.Handler.html#Handler"><span class="id" title="definition">Handler</span></a> <a class="idref" href="ITree.Indexed.Sum.html#sum1"><span class="id" title="inductive">sum1</span></a><br/>
+&nbsp;&nbsp;:= @<a class="idref" href="ITree.Interp.Handler.html#inl_"><span class="id" title="definition">Handler.inl_</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Instance</span> <a id="Inr_sum1_Handler" class="idref" href="#Inr_sum1_Handler"><span class="id" title="instance">Inr_sum1_Handler</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#Inr"><span class="id" title="class">Inr</span></a> <a class="idref" href="ITree.Interp.Handler.html#Handler"><span class="id" title="definition">Handler</span></a> <a class="idref" href="ITree.Indexed.Sum.html#sum1"><span class="id" title="inductive">sum1</span></a><br/>
+&nbsp;&nbsp;:= @<a class="idref" href="ITree.Interp.Handler.html#inr_"><span class="id" title="definition">Handler.inr_</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Instance</span> <a id="Initial_void1_Handler" class="idref" href="#Initial_void1_Handler"><span class="id" title="instance">Initial_void1_Handler</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#Initial"><span class="id" title="class">Initial</span></a> <a class="idref" href="ITree.Interp.Handler.html#Handler"><span class="id" title="definition">Handler</span></a> <a class="idref" href="ITree.Indexed.Sum.html#void1"><span class="id" title="inductive">void1</span></a><br/>
+&nbsp;&nbsp;:= @<a class="idref" href="ITree.Interp.Handler.html#empty"><span class="id" title="definition">Handler.empty</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Instance</span> <a id="Iter_Handler" class="idref" href="#Iter_Handler"><span class="id" title="instance">Iter_Handler</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#Iter"><span class="id" title="class">Iter</span></a> <a class="idref" href="ITree.Interp.Handler.html#Handler"><span class="id" title="definition">Handler</span></a> <a class="idref" href="ITree.Indexed.Sum.html#sum1"><span class="id" title="inductive">sum1</span></a><br/>
+&nbsp;&nbsp;:= @<a class="idref" href="ITree.Interp.Recursion.html#mrec"><span class="id" title="definition">mrec</span></a>.<br/>
+</div>
+</div>
+<div id="footer">
+  Generated by <a href="http://coq.inria.fr/">coqdoc</a> and improved with <a href="https://github.com/tebbi/coqdocjs">CoqdocJS</a>
+</div>
+</div>
+</body>
+
+</html>

@@ -1,0 +1,132 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<link href="coqdoc.css" rel="stylesheet" type="text/css" />
+<link href="coqdocjs.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="config.js"></script>
+<script type="text/javascript" src="coqdocjs.js"></script>
+</head>
+
+<body onload="document.getElementById('content').focus()">
+  <div id="header">
+    <span class="left">
+      <span class="modulename"> <script> document.write(document.title) </script> </span>
+    </span>
+
+    <span class="button" id="toggle-proofs"></span>
+
+    <span class="right">
+      <a href="https://github.com/DeepSpec/InteractionTrees">Project Page</a>
+      <a href="./indexpage.html"> Index </a>
+      <a href="./toc.html"> Table of Contents </a>
+    </span>
+</div>
+    <div id="content" tabindex="-1" onblur="document.getElementById('content').focus()">
+    <div id="main">
+<h1 class="libtitle">ITree.Basics.CategoryKleisli</h1>
+
+<div class="code">
+</div>
+
+<div class="doc">
+<a id="lab61"></a><h1 class="section">Kleisli category</h1>
+
+<div class="paragraph"> </div>
+
+ The category of "effectful functions", of type <span class="inlinecode"><span class="id" title="var">a</span></span> <span class="inlinecode">→</span> <span class="inlinecode"><span class="id" title="var">m</span></span> <span class="inlinecode"><span class="id" title="var">b</span></span>,
+  for some monad <span class="inlinecode"><span class="id" title="var">m</span></span>. 
+<div class="paragraph"> </div>
+
+ Note that this is not quite a Kleisli category over the
+  category <span class="inlinecode"><a class="idref" href="ITree.Basics.Function.html#Fun"><span class="id" title="definition">Fun</span></a></span>, as the notion of morphism equivalence is
+  different. The category <span class="inlinecode"><a class="idref" href="ITree.Basics.Function.html#Fun"><span class="id" title="definition">Fun</span></a></span> uses pointwise equality,
+  <span class="inlinecode"><a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#eq"><span class="id" title="inductive">eq</span></a></span> <span class="inlinecode">==&gt;</span> <span class="inlinecode"><a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#eq"><span class="id" title="inductive">eq</span></a></span>, while <span class="inlinecode"><a class="idref" href="ITree.Basics.CategoryKleisli.html#Kleisli"><span class="id" title="definition">Kleisli</span></a></span> <span class="inlinecode"><span class="id" title="var">m</span></span> uses pointwise equivalence,
+  <span class="inlinecode"><a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#eq"><span class="id" title="inductive">eq</span></a></span> <span class="inlinecode">==&gt;</span> <span class="inlinecode"><a class="idref" href="ITree.Basics.Monad.html#eq1"><span class="id" title="projection">eq1</span></a></span>, for an equivalence relation <span class="inlinecode"><a class="idref" href="ITree.Basics.Monad.html#eq1"><span class="id" title="projection">eq1</span></a></span> associated
+  with the monad <span class="inlinecode"><span class="id" title="var">m</span></span>. The right underlying category for <span class="inlinecode"><a class="idref" href="ITree.Basics.CategoryKleisli.html#Kleisli"><span class="id" title="definition">Kleisli</span></a></span>
+  would be a category of setoids and respectful functions, but
+  this seems awkward to program with. Investigating this
+  question further is future work.
+ 
+</div>
+<div class="code">
+
+<br/>
+
+<br/>
+<span class="id" title="keyword">Implicit</span> <span class="id" title="keyword">Types</span> <span class="id" title="var">m</span> : <span class="id" title="keyword">Type</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <span class="id" title="keyword">Type</span>.<br/>
+<span class="id" title="keyword">Implicit</span> <span class="id" title="keyword">Types</span> <span class="id" title="var">a</span> <span class="id" title="var">b</span> <span class="id" title="var">c</span> : <span class="id" title="keyword">Type</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Definition</span> <a id="Kleisli" class="idref" href="#Kleisli"><span class="id" title="definition">Kleisli</span></a> <a id="m:1" class="idref" href="#m:1"><span class="id" title="binder">m</span></a> <a id="a:2" class="idref" href="#a:2"><span class="id" title="binder">a</span></a> <a id="b:3" class="idref" href="#b:3"><span class="id" title="binder">b</span></a> : <span class="id" title="keyword">Type</span> := <a class="idref" href="ITree.Basics.CategoryKleisli.html#a:2"><span class="id" title="variable">a</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <a class="idref" href="ITree.Basics.CategoryKleisli.html#m:1"><span class="id" title="variable">m</span></a> <a class="idref" href="ITree.Basics.CategoryKleisli.html#b:3"><span class="id" title="variable">b</span></a>.<br/>
+
+<br/>
+<span class="comment">(*&nbsp;SAZ:&nbsp;We&nbsp;need&nbsp;to&nbsp;show&nbsp;how&nbsp;these&nbsp;are&nbsp;intended&nbsp;to&nbsp;be&nbsp;used.&nbsp;*)</span><br/>
+</div>
+
+<div class="doc">
+A trick to allow rewriting in pointful contexts. 
+</div>
+<div class="code">
+<span class="id" title="keyword">Definition</span> <a id="Kleisli_arrow" class="idref" href="#Kleisli_arrow"><span class="id" title="definition">Kleisli_arrow</span></a> {<a id="m:4" class="idref" href="#m:4"><span class="id" title="binder">m</span></a> <a id="a:5" class="idref" href="#a:5"><span class="id" title="binder">a</span></a> <a id="b:6" class="idref" href="#b:6"><span class="id" title="binder">b</span></a>} : <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">(</span></a><a class="idref" href="ITree.Basics.CategoryKleisli.html#a:5"><span class="id" title="variable">a</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <a class="idref" href="ITree.Basics.CategoryKleisli.html#m:4"><span class="id" title="variable">m</span></a> <a class="idref" href="ITree.Basics.CategoryKleisli.html#b:6"><span class="id" title="variable">b</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">)</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <a class="idref" href="ITree.Basics.CategoryKleisli.html#Kleisli"><span class="id" title="definition">Kleisli</span></a> <a class="idref" href="ITree.Basics.CategoryKleisli.html#m:4"><span class="id" title="variable">m</span></a> <a class="idref" href="ITree.Basics.CategoryKleisli.html#a:5"><span class="id" title="variable">a</span></a> <a class="idref" href="ITree.Basics.CategoryKleisli.html#b:6"><span class="id" title="variable">b</span></a> := <span class="id" title="keyword">fun</span> <a id="f:7" class="idref" href="#f:7"><span class="id" title="binder">f</span></a> ⇒ <a class="idref" href="ITree.Basics.CategoryKleisli.html#f:7"><span class="id" title="variable">f</span></a>.<br/>
+<span class="id" title="keyword">Definition</span> <a id="Kleisli_apply" class="idref" href="#Kleisli_apply"><span class="id" title="definition">Kleisli_apply</span></a> {<a id="m:8" class="idref" href="#m:8"><span class="id" title="binder">m</span></a> <a id="a:9" class="idref" href="#a:9"><span class="id" title="binder">a</span></a> <a id="b:10" class="idref" href="#b:10"><span class="id" title="binder">b</span></a>} : <a class="idref" href="ITree.Basics.CategoryKleisli.html#Kleisli"><span class="id" title="definition">Kleisli</span></a> <a class="idref" href="ITree.Basics.CategoryKleisli.html#m:8"><span class="id" title="variable">m</span></a> <a class="idref" href="ITree.Basics.CategoryKleisli.html#a:9"><span class="id" title="variable">a</span></a> <a class="idref" href="ITree.Basics.CategoryKleisli.html#b:10"><span class="id" title="variable">b</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">(</span></a><a class="idref" href="ITree.Basics.CategoryKleisli.html#a:9"><span class="id" title="variable">a</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <a class="idref" href="ITree.Basics.CategoryKleisli.html#m:8"><span class="id" title="variable">m</span></a> <a class="idref" href="ITree.Basics.CategoryKleisli.html#b:10"><span class="id" title="variable">b</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">)</span></a> := <span class="id" title="keyword">fun</span> <a id="f:11" class="idref" href="#f:11"><span class="id" title="binder">f</span></a> ⇒ <a class="idref" href="ITree.Basics.CategoryKleisli.html#f:11"><span class="id" title="variable">f</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Definition</span> <a id="pure" class="idref" href="#pure"><span class="id" title="definition">pure</span></a> {<a id="m:12" class="idref" href="#m:12"><span class="id" title="binder">m</span></a>} `{<a id="H:13" class="idref" href="#H:13"><span class="id" title="binder">Monad</span></a> <a id="H:13" class="idref" href="#H:13"><span class="id" title="binder">m</span></a>} {<a id="a:14" class="idref" href="#a:14"><span class="id" title="binder">a</span></a> <a id="b:15" class="idref" href="#b:15"><span class="id" title="binder">b</span></a>} (<a id="f:16" class="idref" href="#f:16"><span class="id" title="binder">f</span></a> : <a class="idref" href="ITree.Basics.CategoryKleisli.html#a:14"><span class="id" title="variable">a</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <a class="idref" href="ITree.Basics.CategoryKleisli.html#b:15"><span class="id" title="variable">b</span></a>) : <a class="idref" href="ITree.Basics.CategoryKleisli.html#Kleisli"><span class="id" title="definition">Kleisli</span></a> <a class="idref" href="ITree.Basics.CategoryKleisli.html#m:12"><span class="id" title="variable">m</span></a> <a class="idref" href="ITree.Basics.CategoryKleisli.html#a:14"><span class="id" title="variable">a</span></a> <a class="idref" href="ITree.Basics.CategoryKleisli.html#b:15"><span class="id" title="variable">b</span></a> :=<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">fun</span> <a id="x:17" class="idref" href="#x:17"><span class="id" title="binder">x</span></a> ⇒ <span class="id" title="method">ret</span> (<a class="idref" href="ITree.Basics.CategoryKleisli.html#f:16"><span class="id" title="variable">f</span></a> <a class="idref" href="ITree.Basics.CategoryKleisli.html#x:17"><span class="id" title="variable">x</span></a>).<br/>
+
+<br/>
+<span class="id" title="keyword">Section</span> <a id="Instances" class="idref" href="#Instances"><span class="id" title="section">Instances</span></a>.<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Context</span> {<a id="m:18" class="idref" href="#m:18"><span class="id" title="binder">m</span></a> : <span class="id" title="keyword">Type</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <span class="id" title="keyword">Type</span>}.<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Context</span> `{<a id="H:19" class="idref" href="#H:19"><span class="id" title="binder">Monad</span></a> <a id="H:19" class="idref" href="#H:19"><span class="id" title="binder">m</span></a>}.<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Context</span> `{<a id="H0:20" class="idref" href="#H0:20"><span class="id" title="binder">Eq1</span></a> <a id="H0:20" class="idref" href="#H0:20"><span class="id" title="binder">m</span></a>}.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Global Instance</span> <a id="Eq2_Kleisli" class="idref" href="#Eq2_Kleisli"><span class="id" title="instance">Eq2_Kleisli</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#Eq2"><span class="id" title="class">Eq2</span></a> (<a class="idref" href="ITree.Basics.CategoryKleisli.html#Kleisli"><span class="id" title="definition">Kleisli</span></a> <a class="idref" href="ITree.Basics.CategoryKleisli.html#Instances.m"><span class="id" title="variable">m</span></a>) :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">fun</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span> ⇒ <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Classes.Morphisms.html#pointwise_relation"><span class="id" title="definition">pointwise_relation</span></a> <span class="id" title="var">_</span> <a class="idref" href="ITree.Basics.Monad.html#eq1"><span class="id" title="definition">eq1</span></a>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Global Instance</span> <a id="Cat_Kleisli" class="idref" href="#Cat_Kleisli"><span class="id" title="instance">Cat_Kleisli</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#Cat"><span class="id" title="class">Cat</span></a> (<a class="idref" href="ITree.Basics.CategoryKleisli.html#Kleisli"><span class="id" title="definition">Kleisli</span></a> <a class="idref" href="ITree.Basics.CategoryKleisli.html#Instances.m"><span class="id" title="variable">m</span></a>) :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">fun</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <a id="u:21" class="idref" href="#u:21"><span class="id" title="binder">u</span></a> <a id="v:22" class="idref" href="#v:22"><span class="id" title="binder">v</span></a> <a id="x:23" class="idref" href="#x:23"><span class="id" title="binder">x</span></a> ⇒<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="method">bind</span> (<a class="idref" href="ITree.Basics.CategoryKleisli.html#u:21"><span class="id" title="variable">u</span></a> <a class="idref" href="ITree.Basics.CategoryKleisli.html#x:23"><span class="id" title="variable">x</span></a>) (<span class="id" title="keyword">fun</span> <a id="y:24" class="idref" href="#y:24"><span class="id" title="binder">y</span></a> ⇒ <a class="idref" href="ITree.Basics.CategoryKleisli.html#v:22"><span class="id" title="variable">v</span></a> <a class="idref" href="ITree.Basics.CategoryKleisli.html#y:24"><span class="id" title="variable">y</span></a>).<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <a id="map" class="idref" href="#map"><span class="id" title="definition">map</span></a> {<a id="a:25" class="idref" href="#a:25"><span class="id" title="binder">a</span></a> <a id="b:26" class="idref" href="#b:26"><span class="id" title="binder">b</span></a> <a id="c:27" class="idref" href="#c:27"><span class="id" title="binder">c</span></a>} (<a id="g:28" class="idref" href="#g:28"><span class="id" title="binder">g</span></a>:<a class="idref" href="ITree.Basics.CategoryKleisli.html#b:26"><span class="id" title="variable">b</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <a class="idref" href="ITree.Basics.CategoryKleisli.html#c:27"><span class="id" title="variable">c</span></a>) (<a id="ab:29" class="idref" href="#ab:29"><span class="id" title="binder">ab</span></a> : <a class="idref" href="ITree.Basics.CategoryKleisli.html#Kleisli"><span class="id" title="definition">Kleisli</span></a> <a class="idref" href="ITree.Basics.CategoryKleisli.html#Instances.m"><span class="id" title="variable">m</span></a> <a class="idref" href="ITree.Basics.CategoryKleisli.html#a:25"><span class="id" title="variable">a</span></a> <a class="idref" href="ITree.Basics.CategoryKleisli.html#b:26"><span class="id" title="variable">b</span></a>) : <a class="idref" href="ITree.Basics.CategoryKleisli.html#Kleisli"><span class="id" title="definition">Kleisli</span></a> <a class="idref" href="ITree.Basics.CategoryKleisli.html#Instances.m"><span class="id" title="variable">m</span></a> <a class="idref" href="ITree.Basics.CategoryKleisli.html#a:25"><span class="id" title="variable">a</span></a> <a class="idref" href="ITree.Basics.CategoryKleisli.html#c:27"><span class="id" title="variable">c</span></a> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="ITree.Basics.CategoryOps.html#cat"><span class="id" title="definition">cat</span></a> <a class="idref" href="ITree.Basics.CategoryKleisli.html#ab:29"><span class="id" title="variable">ab</span></a> (<a class="idref" href="ITree.Basics.CategoryKleisli.html#pure"><span class="id" title="definition">pure</span></a> <a class="idref" href="ITree.Basics.CategoryKleisli.html#g:28"><span class="id" title="variable">g</span></a>).<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Global Instance</span> <a id="Initial_Kleisli" class="idref" href="#Initial_Kleisli"><span class="id" title="instance">Initial_Kleisli</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#Initial"><span class="id" title="class">Initial</span></a> (<a class="idref" href="ITree.Basics.CategoryKleisli.html#Kleisli"><span class="id" title="definition">Kleisli</span></a> <a class="idref" href="ITree.Basics.CategoryKleisli.html#Instances.m"><span class="id" title="variable">m</span></a>) <a class="idref" href="ITree.Basics.Basics.html#void"><span class="id" title="abbreviation">void</span></a> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">fun</span> <span class="id" title="var">_</span> <a id="v:30" class="idref" href="#v:30"><span class="id" title="binder">v</span></a> ⇒ <span class="id" title="keyword">match</span> <a class="idref" href="ITree.Basics.CategoryKleisli.html#v:30"><span class="id" title="variable">v</span></a> : <a class="idref" href="ITree.Basics.Basics.html#void"><span class="id" title="abbreviation">void</span></a> <span class="id" title="keyword">with</span> <span class="id" title="keyword">end</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Global Instance</span> <a id="Id_Kleisli" class="idref" href="#Id_Kleisli"><span class="id" title="instance">Id_Kleisli</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#Id_"><span class="id" title="class">Id_</span></a> (<a class="idref" href="ITree.Basics.CategoryKleisli.html#Kleisli"><span class="id" title="definition">Kleisli</span></a> <a class="idref" href="ITree.Basics.CategoryKleisli.html#Instances.m"><span class="id" title="variable">m</span></a>) :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">fun</span> <span class="id" title="var">_</span> ⇒ <a class="idref" href="ITree.Basics.CategoryKleisli.html#pure"><span class="id" title="definition">pure</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Datatypes.html#id"><span class="id" title="definition">id</span></a>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Global Instance</span> <a id="Case_Kleisli" class="idref" href="#Case_Kleisli"><span class="id" title="instance">Case_Kleisli</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#Case"><span class="id" title="class">Case</span></a> (<a class="idref" href="ITree.Basics.CategoryKleisli.html#Kleisli"><span class="id" title="definition">Kleisli</span></a> <a class="idref" href="ITree.Basics.CategoryKleisli.html#Instances.m"><span class="id" title="variable">m</span></a>) <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Datatypes.html#sum"><span class="id" title="inductive">sum</span></a> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">fun</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <a id="l:31" class="idref" href="#l:31"><span class="id" title="binder">l</span></a> <a id="r:32" class="idref" href="#r:32"><span class="id" title="binder">r</span></a> ⇒ <a class="idref" href="ITree.Basics.Function.html#case_sum"><span class="id" title="instance">case_sum</span></a> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <a class="idref" href="ITree.Basics.CategoryKleisli.html#l:31"><span class="id" title="variable">l</span></a> <a class="idref" href="ITree.Basics.CategoryKleisli.html#r:32"><span class="id" title="variable">r</span></a>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Global Instance</span> <a id="Inl_Kleisli" class="idref" href="#Inl_Kleisli"><span class="id" title="instance">Inl_Kleisli</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#Inl"><span class="id" title="class">Inl</span></a> (<a class="idref" href="ITree.Basics.CategoryKleisli.html#Kleisli"><span class="id" title="definition">Kleisli</span></a> <a class="idref" href="ITree.Basics.CategoryKleisli.html#Instances.m"><span class="id" title="variable">m</span></a>) <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Datatypes.html#sum"><span class="id" title="inductive">sum</span></a> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">fun</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span> ⇒ <a class="idref" href="ITree.Basics.CategoryKleisli.html#pure"><span class="id" title="definition">pure</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Datatypes.html#inl"><span class="id" title="constructor">inl</span></a>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Global Instance</span> <a id="Inr_Kleisli" class="idref" href="#Inr_Kleisli"><span class="id" title="instance">Inr_Kleisli</span></a> : <a class="idref" href="ITree.Basics.CategoryOps.html#Inr"><span class="id" title="class">Inr</span></a> (<a class="idref" href="ITree.Basics.CategoryKleisli.html#Kleisli"><span class="id" title="definition">Kleisli</span></a> <a class="idref" href="ITree.Basics.CategoryKleisli.html#Instances.m"><span class="id" title="variable">m</span></a>) <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Datatypes.html#sum"><span class="id" title="inductive">sum</span></a> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">fun</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span> ⇒ <a class="idref" href="ITree.Basics.CategoryKleisli.html#pure"><span class="id" title="definition">pure</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Datatypes.html#inr"><span class="id" title="constructor">inr</span></a>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Global Instance</span> <a id="Iter_Kleisli" class="idref" href="#Iter_Kleisli"><span class="id" title="instance">Iter_Kleisli</span></a> `{<a id="H1:33" class="idref" href="#H1:33"><span class="id" title="binder">MonadIter</span></a> <a id="H1:33" class="idref" href="#H1:33"><span class="id" title="binder">m</span></a>} : <a class="idref" href="ITree.Basics.CategoryOps.html#Iter"><span class="id" title="class">Iter</span></a> (<a class="idref" href="ITree.Basics.CategoryKleisli.html#Kleisli"><span class="id" title="definition">Kleisli</span></a> <a class="idref" href="ITree.Basics.CategoryKleisli.html#Instances.m"><span class="id" title="variable">m</span></a>) <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Datatypes.html#sum"><span class="id" title="inductive">sum</span></a> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">fun</span> <a id="a:34" class="idref" href="#a:34"><span class="id" title="binder">a</span></a> <a id="b:35" class="idref" href="#b:35"><span class="id" title="binder">b</span></a> ⇒ <a class="idref" href="ITree.Basics.Basics.html#iter"><span class="id" title="definition">Basics.iter</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">End</span> <a class="idref" href="ITree.Basics.CategoryKleisli.html#Instances"><span class="id" title="section">Instances</span></a>.<br/>
+</div>
+</div>
+<div id="footer">
+  Generated by <a href="http://coq.inria.fr/">coqdoc</a> and improved with <a href="https://github.com/tebbi/coqdocjs">CoqdocJS</a>
+</div>
+</div>
+</body>
+
+</html>

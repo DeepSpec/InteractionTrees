@@ -1,0 +1,76 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<link href="coqdoc.css" rel="stylesheet" type="text/css" />
+<link href="coqdocjs.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="config.js"></script>
+<script type="text/javascript" src="coqdocjs.js"></script>
+</head>
+
+<body onload="document.getElementById('content').focus()">
+  <div id="header">
+    <span class="left">
+      <span class="modulename"> <script> document.write(document.title) </script> </span>
+    </span>
+
+    <span class="button" id="toggle-proofs"></span>
+
+    <span class="right">
+      <a href="https://github.com/DeepSpec/InteractionTrees">Project Page</a>
+      <a href="./indexpage.html"> Index </a>
+      <a href="./toc.html"> Table of Contents </a>
+    </span>
+</div>
+    <div id="content" tabindex="-1" onblur="document.getElementById('content').focus()">
+    <div id="main">
+<h1 class="libtitle">ITree.Eq.EqAxiom</h1>
+
+<div class="code">
+</div>
+
+<div class="doc">
+<a id="lab107"></a><h1 class="section">Strong bisimulation is propositional equality</h1>
+
+<div class="paragraph"> </div>
+
+ This is not provable but admissible as an axiom.
+
+<div class="paragraph"> </div>
+
+    This axiom is not used by this library, but only exported for
+    convenience, as it can certainly simplify some developments.
+ 
+</div>
+<div class="code">
+
+<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Strong bisimulation is propositional equality.
+    The converse is reflexivity of strong bisimulation
+    (and is provable without axioms). 
+</div>
+<div class="code">
+<span class="id" title="keyword">Axiom</span> <a id="bisimulation_is_eq" class="idref" href="#bisimulation_is_eq"><span class="id" title="axiom">bisimulation_is_eq</span></a> :<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">∀</span> {<a id="E:1" class="idref" href="#E:1"><span class="id" title="binder">E</span></a> : <span class="id" title="keyword">Type</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <span class="id" title="keyword">Type</span>} {<a id="R:2" class="idref" href="#R:2"><span class="id" title="binder">R</span></a> : <span class="id" title="keyword">Type</span>} (<a id="t1:3" class="idref" href="#t1:3"><span class="id" title="binder">t1</span></a> <a id="t2:4" class="idref" href="#t2:4"><span class="id" title="binder">t2</span></a> : <a class="idref" href="ITree.Core.ITreeDefinition.html#itree"><span class="id" title="record">itree</span></a> <a class="idref" href="ITree.Eq.EqAxiom.html#E:1"><span class="id" title="variable">E</span></a> <a class="idref" href="ITree.Eq.EqAxiom.html#R:2"><span class="id" title="variable">R</span></a>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="ITree.Eq.EqAxiom.html#t1:3"><span class="id" title="variable">t1</span></a> <a class="idref" href="ITree.Eq.Eq.html#7123c605943b5e01235e17fe532efcae"><span class="id" title="notation">≅</span></a> <a class="idref" href="ITree.Eq.EqAxiom.html#t2:4"><span class="id" title="variable">t2</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <a class="idref" href="ITree.Eq.EqAxiom.html#t1:3"><span class="id" title="variable">t1</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">=</span></a> <a class="idref" href="ITree.Eq.EqAxiom.html#t2:4"><span class="id" title="variable">t2</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Lemma</span> <a id="itree_eta_" class="idref" href="#itree_eta_"><span class="id" title="lemma">itree_eta_</span></a> {<a id="E:6" class="idref" href="#E:6"><span class="id" title="binder">E</span></a> <a id="R:7" class="idref" href="#R:7"><span class="id" title="binder">R</span></a>} (<a id="t:8" class="idref" href="#t:8"><span class="id" title="binder">t</span></a> : <a class="idref" href="ITree.Core.ITreeDefinition.html#itree"><span class="id" title="record">itree</span></a> <a class="idref" href="ITree.Eq.EqAxiom.html#E:6"><span class="id" title="variable">E</span></a> <a class="idref" href="ITree.Eq.EqAxiom.html#R:7"><span class="id" title="variable">R</span></a>) : <a class="idref" href="ITree.Eq.EqAxiom.html#t:8"><span class="id" title="variable">t</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">=</span></a> <a class="idref" href="ITree.Core.ITreeDefinition.html#go"><span class="id" title="constructor">go</span></a> (<a class="idref" href="ITree.Core.ITreeDefinition.html#observe"><span class="id" title="definition">observe</span></a> <a class="idref" href="ITree.Eq.EqAxiom.html#t:8"><span class="id" title="variable">t</span></a>).<br/>
+<span class="id" title="keyword">Proof</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">apply</span> <a class="idref" href="ITree.Eq.EqAxiom.html#bisimulation_is_eq"><span class="id" title="axiom">bisimulation_is_eq</span></a>. <span class="id" title="tactic">apply</span> <a class="idref" href="ITree.Eq.Eq.html#itree_eta"><span class="id" title="lemma">itree_eta</span></a>.<br/>
+<span class="id" title="keyword">Qed</span>.<br/>
+</div>
+</div>
+<div id="footer">
+  Generated by <a href="http://coq.inria.fr/">coqdoc</a> and improved with <a href="https://github.com/tebbi/coqdocjs">CoqdocJS</a>
+</div>
+</div>
+</body>
+
+</html>

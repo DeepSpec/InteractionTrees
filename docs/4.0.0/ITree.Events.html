@@ -1,0 +1,177 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<link href="coqdoc.css" rel="stylesheet" type="text/css" />
+<link href="coqdocjs.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="config.js"></script>
+<script type="text/javascript" src="coqdocjs.js"></script>
+</head>
+
+<body onload="document.getElementById('content').focus()">
+  <div id="header">
+    <span class="left">
+      <span class="modulename"> <script> document.write(document.title) </script> </span>
+    </span>
+
+    <span class="button" id="toggle-proofs"></span>
+
+    <span class="right">
+      <a href="https://github.com/DeepSpec/InteractionTrees">Project Page</a>
+      <a href="./indexpage.html"> Index </a>
+      <a href="./toc.html"> Table of Contents </a>
+    </span>
+</div>
+    <div id="content" tabindex="-1" onblur="document.getElementById('content').focus()">
+    <div id="main">
+<h1 class="libtitle">ITree.Events</h1>
+
+<div class="code">
+</div>
+
+<div class="doc">
+<a id="lab130"></a><h1 class="section">Standard event types</h1>
+
+</div>
+<div class="code">
+
+<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab131"></a><h2 class="section">State</h2>
+
+<div class="paragraph"> </div>
+
+
+<div class="paragraph"> </div>
+
+<br/>
+<span class="inlinecode"><span class="id" title="keyword">Variant</span> <a class="idref" href="ITree.Events.State.html#stateE"><span class="id" title="inductive">stateE</span></a> (<a class="idref" href="ITree.Events.State.html#State.S"><span class="id" title="variable">S</span></a> : <span class="id" title="keyword">Type</span>) : <span class="id" title="keyword">Type</span> → <span class="id" title="keyword">Type</span> :=<br/>
+| <a class="idref" href="ITree.Events.State.html#Get"><span class="id" title="constructor">Get</span></a> : <a class="idref" href="ITree.Events.State.html#stateE"><span class="id" title="inductive">stateE</span></a> <a class="idref" href="ITree.Events.State.html#State.S"><span class="id" title="variable">S</span></a> <a class="idref" href="ITree.Events.State.html#State.S"><span class="id" title="variable">S</span></a><br/>
+| <a class="idref" href="ITree.Events.State.html#Put"><span class="id" title="constructor">Put</span></a> : <a class="idref" href="ITree.Events.State.html#State.S"><span class="id" title="variable">S</span></a> → <a class="idref" href="ITree.Events.State.html#stateE"><span class="id" title="inductive">stateE</span></a> <a class="idref" href="ITree.Events.State.html#State.S"><span class="id" title="variable">S</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Datatypes.html#unit"><span class="id" title="inductive">unit</span></a>.
+<div class="paragraph"> </div>
+
+</span> 
+<div class="paragraph"> </div>
+
+<a id="lab132"></a><h2 class="section">Reader</h2>
+
+<div class="paragraph"> </div>
+
+
+<div class="paragraph"> </div>
+
+<br/>
+<span class="inlinecode"><span class="id" title="keyword">Variant</span> <a class="idref" href="ITree.Events.Reader.html#readerE"><span class="id" title="inductive">readerE</span></a> (<span class="id" title="var">R</span> : <span class="id" title="keyword">Type</span>) : <span class="id" title="keyword">Type</span> → <span class="id" title="keyword">Type</span> :=<br/>
+| <a class="idref" href="ITree.Events.Reader.html#Ask"><span class="id" title="constructor">Ask</span></a> : <a class="idref" href="ITree.Events.Reader.html#readerE"><span class="id" title="inductive">readerE</span></a> <span class="id" title="var">R</span> <span class="id" title="var">R</span>.
+<div class="paragraph"> </div>
+
+</span> 
+<div class="paragraph"> </div>
+
+<a id="lab133"></a><h2 class="section">Writer</h2>
+
+<div class="paragraph"> </div>
+
+
+<div class="paragraph"> </div>
+
+<br/>
+<span class="inlinecode"><span class="id" title="keyword">Variant</span> <a class="idref" href="ITree.Events.Writer.html#writerE"><span class="id" title="inductive">writerE</span></a> (<span class="id" title="var">W</span> : <span class="id" title="keyword">Type</span>) : <span class="id" title="keyword">Type</span> → <span class="id" title="keyword">Type</span> :=<br/>
+| <a class="idref" href="ITree.Events.Writer.html#Tell"><span class="id" title="constructor">Tell</span></a> : <span class="id" title="var">W</span> → <a class="idref" href="ITree.Events.Writer.html#writerE"><span class="id" title="inductive">writerE</span></a> <span class="id" title="var">W</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Datatypes.html#unit"><span class="id" title="inductive">unit</span></a>.
+<div class="paragraph"> </div>
+
+</span> 
+<div class="paragraph"> </div>
+
+<a id="lab134"></a><h2 class="section">Exception</h2>
+
+<div class="paragraph"> </div>
+
+
+<div class="paragraph"> </div>
+
+<br/>
+<span class="inlinecode"><span class="id" title="keyword">Variant</span> <a class="idref" href="ITree.Events.Exception.html#exceptE"><span class="id" title="inductive">exceptE</span></a> (<span class="id" title="var">Err</span> : <span class="id" title="keyword">Type</span>) : <span class="id" title="keyword">Type</span> → <span class="id" title="keyword">Type</span> :=<br/>
+| <a class="idref" href="ITree.Events.Exception.html#Throw"><span class="id" title="constructor">Throw</span></a> : <span class="id" title="var">Err</span> → <a class="idref" href="ITree.Events.Exception.html#exceptE"><span class="id" title="inductive">exceptE</span></a> <span class="id" title="var">Err</span> <a class="idref" href="ITree.Basics.Basics.html#void"><span class="id" title="abbreviation">void</span></a>.
+<div class="paragraph"> </div>
+
+</span> 
+<div class="paragraph"> </div>
+
+<a id="lab135"></a><h2 class="section">Nondeterminism</h2>
+
+<div class="paragraph"> </div>
+
+
+<div class="paragraph"> </div>
+
+<br/>
+<span class="inlinecode"><span class="id" title="keyword">Variant</span> <a class="idref" href="ITree.Events.Nondeterminism.html#nondetE"><span class="id" title="inductive">nondetE</span></a> : <span class="id" title="keyword">Type</span> → <span class="id" title="keyword">Type</span> :=<br/>
+| <a class="idref" href="ITree.Events.Nondeterminism.html#Or"><span class="id" title="constructor">Or</span></a> : <a class="idref" href="ITree.Events.Nondeterminism.html#nondetE"><span class="id" title="inductive">nondetE</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Datatypes.html#bool"><span class="id" title="inductive">bool</span></a>.
+<div class="paragraph"> </div>
+
+</span> 
+<div class="paragraph"> </div>
+
+<a id="lab136"></a><h2 class="section">Map</h2>
+
+<div class="paragraph"> </div>
+
+
+<div class="paragraph"> </div>
+
+<br/>
+<span class="inlinecode"><span class="id" title="keyword">Variant</span> <a class="idref" href="ITree.Events.MapDefault.html#mapE"><span class="id" title="inductive">mapE</span></a> (<a class="idref" href="ITree.Events.MapDefaultFacts.html#MapFacts.K"><span class="id" title="variable">K</span></a> <a class="idref" href="ITree.Events.MapDefaultFacts.html#MapFacts.V"><span class="id" title="variable">V</span></a> : <span class="id" title="keyword">Type</span>) : <span class="id" title="keyword">Type</span> → <span class="id" title="keyword">Type</span> :=<br/>
+| <a class="idref" href="ITree.Events.MapDefault.html#Insert"><span class="id" title="constructor">Insert</span></a> : <a class="idref" href="ITree.Events.MapDefaultFacts.html#MapFacts.K"><span class="id" title="variable">K</span></a> → <a class="idref" href="ITree.Events.MapDefaultFacts.html#MapFacts.V"><span class="id" title="variable">V</span></a> → <a class="idref" href="ITree.Events.MapDefault.html#mapE"><span class="id" title="inductive">mapE</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Datatypes.html#unit"><span class="id" title="inductive">unit</span></a><br/>
+| <a class="idref" href="ITree.Events.Map.html#Lookup"><span class="id" title="constructor">Lookup</span></a> : <a class="idref" href="ITree.Events.MapDefaultFacts.html#MapFacts.K"><span class="id" title="variable">K</span></a> → <a class="idref" href="ITree.Events.MapDefault.html#mapE"><span class="id" title="inductive">mapE</span></a> (<a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Datatypes.html#option"><span class="id" title="inductive">option</span></a> <a class="idref" href="ITree.Events.MapDefaultFacts.html#MapFacts.V"><span class="id" title="variable">V</span></a>)<br/>
+| <a class="idref" href="ITree.Events.MapDefault.html#Remove"><span class="id" title="constructor">Remove</span></a> : <a class="idref" href="ITree.Events.MapDefaultFacts.html#MapFacts.K"><span class="id" title="variable">K</span></a> → <a class="idref" href="ITree.Events.MapDefault.html#mapE"><span class="id" title="inductive">mapE</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Datatypes.html#unit"><span class="id" title="inductive">unit</span></a><br/>
+.
+<div class="paragraph"> </div>
+
+</span> 
+<div class="paragraph"> </div>
+
+<a id="lab137"></a><h2 class="section">Concurrency</h2>
+
+<div class="paragraph"> </div>
+
+
+<div class="paragraph"> </div>
+
+<br/>
+<span class="inlinecode"><span class="id" title="keyword">Inductive</span> <a class="idref" href="ITree.Events.Concurrency.html#spawnE"><span class="id" title="inductive">spawnE</span></a> (<span class="id" title="var">E</span> : <span class="id" title="keyword">Type</span> → <span class="id" title="keyword">Type</span>) : <span class="id" title="keyword">Type</span> → <span class="id" title="keyword">Type</span> :=<br/>
+| <a class="idref" href="ITree.Events.Concurrency.html#Spawn"><span class="id" title="constructor">Spawn</span></a> : <a class="idref" href="ITree.Core.ITreeDefinition.html#itree"><span class="id" title="record">itree</span></a> (<a class="idref" href="ITree.Events.Concurrency.html#spawnE"><span class="id" title="inductive">spawnE</span></a> <span class="id" title="var">E</span> +' <span class="id" title="var">E</span>) <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Datatypes.html#unit"><span class="id" title="inductive">unit</span></a> → <a class="idref" href="ITree.Events.Concurrency.html#spawnE"><span class="id" title="inductive">spawnE</span></a> <span class="id" title="var">E</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.13.0/stdlib//Coq.Init.Datatypes.html#unit"><span class="id" title="inductive">unit</span></a>.
+<div class="paragraph"> </div>
+
+</span> 
+<div class="paragraph"> </div>
+
+<a id="lab138"></a><h2 class="section">Dependent</h2>
+
+<div class="paragraph"> </div>
+
+
+<div class="paragraph"> </div>
+
+<br/>
+<span class="inlinecode">&nbsp;<span class="id" title="keyword">Variant</span> <a class="idref" href="ITree.Events.Dependent.html#depE"><span class="id" title="inductive">depE</span></a> {<a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianConstruct.I"><span class="id" title="variable">I</span></a> : <span class="id" title="keyword">Type</span>} (<span class="id" title="var">F</span> : <a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianConstruct.I"><span class="id" title="variable">I</span></a> → <span class="id" title="keyword">Type</span>) : <span class="id" title="keyword">Type</span> → <span class="id" title="keyword">Type</span> :=<br/>
+| <a class="idref" href="ITree.Events.Dependent.html#Dep"><span class="id" title="constructor">Dep</span></a> (<span class="id" title="var">i</span> : <a class="idref" href="ITree.Basics.CategoryOps.html#CocartesianConstruct.I"><span class="id" title="variable">I</span></a>) : <a class="idref" href="ITree.Events.Dependent.html#depE"><span class="id" title="inductive">depE</span></a> <span class="id" title="var">F</span> (<span class="id" title="var">F</span> <span class="id" title="var">i</span>).
+<div class="paragraph"> </div>
+
+</span> 
+</div>
+<div class="code">
+</div>
+</div>
+<div id="footer">
+  Generated by <a href="http://coq.inria.fr/">coqdoc</a> and improved with <a href="https://github.com/tebbi/coqdocjs">CoqdocJS</a>
+</div>
+</div>
+</body>
+
+</html>
