@@ -88,7 +88,21 @@ theories/ITreeSpec/ITreeSpecObservation.v
 theories/ITreeSpec/ITreeSpecObservationFacts.v
 theories/ITreeSpec/SatisfiesBind.v
 
-theories/Secure/SecureEq.v
+
+theories/Secure/StrongBisimProper.v
 theories/Secure/SecureEqHalt.v
 theories/Secure/SecureEqEuttHalt.v
+theories/Secure/SecureEqEuttTrans.v
 theories/Secure/SecureEqWcompat.v
+theories/Secure/SecureEqBind.v
+theories/Secure/SecurityImp.v
+theories/Secure/Fin.v
+theories/Secure/KTreeFin.v
+theories/Secure/Utils_tutorial.v
+theories/Secure/SecurityAsm.v
+theories/Secure/CatTheory.v
+theories/Secure/SecurityAsmCombinators.v
+theories/Secure/SecurityImp2Asm.v
+theories/Secure/SecurityImpHandler.v
+theories/Secure/SecurityAsmHandler.v
+theories/Secure/SecurityImp2AsmCorrectness.v

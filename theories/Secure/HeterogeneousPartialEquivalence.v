@@ -25,13 +25,14 @@ Section HPE.
   Context (M : Type -> Type).
   Context (P : forall (R S: Type), (R -> S -> Prop) -> M R -> M S -> Prop ).
   Arguments P {R S}.
-   
+  
   Variant hpe_lift {R S : Type} (RR : R -> S -> Prop) (x : M R) (y : M S) : Prop :=
   | hpe_well_behaved : P RR x y -> hpe_lift RR x y
-  | hpe_ill_behaved : 
+  | hpe_ill_behaved : (* should actually be an or!!! *)
       (* think carefully about these conditions, maybe they are not the ones I really want *)
-      (forall RR1 : R -> R -> Prop, (forall x x' y, RR1 x x' -> RR x y -> RR x' y) -> ~ P RR1 x x ) ->
-      (forall RR2 : S -> S -> Prop, (forall x y y', RR2 y y' -> RR x y -> RR x y') -> ~ P RR2 y y ) ->
+      (* maybe I want RR1 and RR2 to be equivalence relations *)
+      (forall (RR1 : R -> R -> Prop), (forall x x' y, RR1 x x' -> RR x y -> RR x' y) -> ~ P RR1 x x ) ->
+      (forall (RR2 : S -> S -> Prop), (forall x y y', RR2 y y' -> RR x y -> RR x y') -> ~ P RR2 y y ) ->
       hpe_lift RR x y
   .
 
@@ -53,14 +54,25 @@ Section HPE.
     intros HRR1 HRR2 Hprop. intros x x0 Hx y y0 Hy HRR.
     cbv in Hprop. destruct Hx as [Hx | Hx Hx0 ]; destruct Hy as [Hy | Hy Hy0 ].
     - eapply Hprop; eauto.
-    - (* my intuition is that Hy and Hy0 contradict with HRR, y and y0 are both "bad" wrt their relations,
+    - (* My intuition is that Hy and Hy0 contradict with HRR, y and y0 are both "bad" wrt their relations,
          which should mean that they are "bad" wrt P RR but HRR says that PRR relations y0 to something
+         there is some issue where I don't know if y0's badness is in relation to the nonreflexivity
+         is there a choice of RR3 : S -> S -> Prop  that gives us this?
        *)
-      exfalso. apply P_sym in HRR as HRR'.
+      exfalso. pose  (fun (s1 s2 : S) => exists x, RR x s1).
+      eapply Hy0 with (RR3 := P0).
+
+      apply P_sym in HRR as HRR'.
       assert (P (rcompose (flip RR) RR) y0 y0 ).
       { apply P_trans with (s := x0); auto. }
       eapply Hy0; eauto.
-      intros. destruct H0. red in REL1.
+      intros. 
+      (* end up wanting that rcompose (flip RR) RR respects RR2
+         not convinced that this is true...
+         we know that RR2 is proper wrt RR
+
+       *)
+      destruct H0. red in REL1.
       (* what if we assume RR1 and RR2 are PERs *)
       (* I think in order to usefully reason about hetero PERs we need some more assumptions  *)
 

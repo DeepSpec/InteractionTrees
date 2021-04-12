@@ -42,7 +42,7 @@ Lemma gpaco2_step_reverse T0 T1 gf clo r rg
       (WCMP: wcompatible2 gf clo):
   @gpaco2 T0 T1 gf clo r rg <2= gf (gpaco2 gf clo rg rg).
 Proof.
-  intros.
+  intros. 
   inv WCMP. gunfold PR.
   induction PR.
   - destruct IN.
@@ -224,8 +224,139 @@ Proof.
     unpriv_halt.
 Qed.
 
+Lemma iter_bind_shalt_aux1:
+  forall (E : Type -> Type) (B2 B1 A1 A2 : Type) (RA : A1 -> A2 -> Prop)
+    (RB : B1 -> B2 -> Prop) (b1 b2 : bool) (Label : Preorder)
+    (priv : forall A : Type, E A -> L) (l : L) (body1 : A1 -> itree E (A1 + B1))
+    (body2 : A2 -> itree E (A2 + B2)) (r : itree E B1 -> itree E B2 -> Prop) 
+    (A : Type) (e : E A) (k1 : A -> itree E (A1 + B1)) (t0 : itree E (A2 + B2)),
+    ~ leq (priv A e) l ->
+    empty A ->
+    paco2 (secure_eqit_ Label priv (HeterogeneousRelations.sum_rel RA RB) b1 b2 l id) bot2
+          (Vis e k1) t0 ->
+    paco2 (secure_eqit_ Label priv RB b1 b2 l id) r
+          (Vis e
+               (fun x : A =>
+                  ITree.bind (k1 x)
+                             (fun lr : A1 + B1 =>
+                                match lr with
+                                | inl l0 => Tau (ITree.iter body1 l0)
+                                | inr r0 => Ret r0
+                                end)))
+          (ITree.bind t0
+                      (fun lr : A2 + B2 =>
+                         match lr with
+                         | inl l0 => Tau (ITree.iter body2 l0)
+                         | inr r0 => Ret r0
+                         end)).
+Proof.
+  intros E B2 B1 A1 A2 RA RB b1 b2 Label priv l body1 body2 r A e k1 t0 SECCHECK SIZECHECK H.
+  generalize dependent t0. pcofix CIH. intros t0 Ht0.
+  pstep. red. cbn. unfold observe. cbn. punfold Ht0.
+  red in Ht0. cbn in *. inv Ht0; inv_vis_secure; cbn; pclearbot; unpriv_halt; try contra_size.
+  right. eapply CIH; eauto.
+  rewrite H in H1. pfold. red. auto.
+Qed.
+
+Lemma iter_bind_shalt_aux2:
+  forall (E : Type -> Type) (B2 B1 A1 A2 : Type) (RA : A1 -> A2 -> Prop)
+    (RB : B1 -> B2 -> Prop) (b1 b2 : bool) (Label : Preorder)
+    (priv : forall A : Type, E A -> L) (l : L) (body1 : A1 -> itree E (A1 + B1))
+    (body2 : A2 -> itree E (A2 + B2)) (r : itree E B1 -> itree E B2 -> Prop) 
+    (A : Type) (e : E A) (t0 : itree E (A1 + B1)) (k2 : A -> itree E (A2 + B2)),
+    ~ leq (priv A e) l ->
+    empty A ->
+    paco2 (secure_eqit_ Label priv (HeterogeneousRelations.sum_rel RA RB) b1 b2 l id) bot2 t0
+          (Vis e k2) ->
+    paco2 (secure_eqit_ Label priv RB b1 b2 l id) r
+          (ITree.bind t0
+                      (fun lr : A1 + B1 =>
+                         match lr with
+                         | inl l0 => Tau (ITree.iter body1 l0)
+                         | inr r0 => Ret r0
+                         end))
+          (Vis e
+               (fun x : A =>
+                  ITree.bind (k2 x)
+                             (fun lr : A2 + B2 =>
+                                match lr with
+                                | inl l0 => Tau (ITree.iter body2 l0)
+                                | inr r0 => Ret r0
+                                end))).
+Proof.
+  intros E B2 B1 A1 A2 RA RB b1 b2 Label priv l body1 body2 r A e t0 k2 SECCHECK SIZECHECK H.
+  generalize dependent t0. pcofix CIH. intros t0 Ht0.
+  pstep. red. cbn. unfold observe. cbn. punfold Ht0.
+  red in Ht0. cbn in *. inv Ht0; inv_vis_secure; cbn; pclearbot; unpriv_halt; try contra_size.
+  right. eapply CIH; eauto.
+  rewrite H0 in H1. pfold. red. auto.
+Qed.
+
+Lemma iter_bind_aux:
+  forall (E : Type -> Type) (B2 B1 A1 A2 : Type) (RA : A1 -> A2 -> Prop)
+    (RB : B1 -> B2 -> Prop) (b1 b2 : bool) (Label : Preorder)
+    (priv : forall A : Type, E A -> L) (l : L) (body1 : A1 -> itree E (A1 + B1))
+    (body2 : A2 -> itree E (A2 + B2)) (r : itree E B1 -> itree E B2 -> Prop)
+    (t1 : itree E (A1 + B1)) (t2 : itree E (A2 + B2)),
+    paco2 (secure_eqit_ Label priv (HeterogeneousRelations.sum_rel RA RB) b1 b2 l id) bot2 t1 t2 ->
+    (forall (a1 : A1) (a2 : A2), RA a1 a2 -> r (ITree.iter body1 a1) (ITree.iter body2 a2)) ->
+    paco2 (secure_eqit_ Label priv RB b1 b2 l id) r
+          (ITree.bind t1
+                      (fun lr : A1 + B1 =>
+                         match lr with
+                         | inl l0 => Tau (ITree.iter body1 l0)
+                         | inr r0 => Ret r0
+                         end))
+          (ITree.bind t2
+                      (fun lr : A2 + B2 =>
+                         match lr with
+                         | inl l0 => Tau (ITree.iter body2 l0)
+                         | inr r0 => Ret r0
+                         end)).
+Proof.
+  intros E B2 B1 A1 A2 RA RB b1 b2 Label priv l body1 body2 r t1 t2 H CIH0.
+  generalize dependent t2. revert t1. pcofix CIH1.
+  intros t1 t2 Ht12. punfold Ht12. pstep. red.
+  unfold observe. cbn.
+  hinduction Ht12 before r; intros; cbn; eauto; pclearbot;
+  try (unpriv_co; fail);
+  try (constructor; auto; pclearbot; right; eapply CIH1; eauto; fail).
+  - inv H; cbn; eauto.
+  - unpriv_ind. unfold observe at 1. cbn. eapply H0; eauto.
+  - unpriv_ind. unfold observe at 3. cbn. eapply H0; eauto.
+  - unpriv_halt. left. eapply iter_bind_shalt_aux1; eauto.
+  - unpriv_halt. left. eapply iter_bind_shalt_aux2; eauto.
+  - unpriv_halt. specialize (H b). left. eapply iter_bind_shalt_aux1; eauto.
+  - unpriv_halt. specialize (H a). left. eapply iter_bind_shalt_aux2; eauto.
+Qed.
+
+
+(*  
+
+    t1 ≈ t2 -> interp h t1 ≈ interp h t2
+
+    t ≈ t -> interp h t ≈ interp h t
+
+interp h := iter (interp_step h)
+   A := itree E R
+   B := R
+
+  RA := eqit_secure RR
+  RB := RR
+  body := interp_step 
+
+
+  way to assign relations to individual events that 
+
+  RX x1 x2 -> eqit_secure l RR (k x1) (k x2)
+
+  RX e1 e2 := if l <= priv e then ⊥ else 
+
+*)
+
+
 Lemma secure_eqit_iter : forall E A1 A2 B1 B2 (RA : A1 -> A2 -> Prop) (RB : B1 -> B2 -> Prop)
-                           b1 b2 Label priv l 
+                           b1 b2 Label priv l
                            (body1 : A1 -> itree E (A1 + B1) ) (body2 : A2 -> itree E (A2 + B2) )
                            (a1 : A1) (a2 : A2),
     RA a1 a2 -> 
@@ -244,203 +375,21 @@ Proof.
   hinduction Hbodya before r; intros; cbn; auto.
   - inv H; cbn; eauto.
   - cbn. pclearbot. constructor. 
-    left. generalize dependent t2. revert t1. pcofix CIH. intros. 
-    
+    left. eapply iter_bind_aux; eauto.
+  - constructor; auto. pclearbot. left. eapply iter_bind_aux; eauto.
+  - unpriv_co. pclearbot. left. eapply iter_bind_aux; eauto.
+  -  unpriv_co. pclearbot. left. eapply iter_bind_aux; eauto.
+  - unpriv_co. pclearbot. left. eapply iter_bind_aux; eauto.
+  - unpriv_ind. (* here is  where it gets bad, I am pretty sure H0 does match up but could
+                  take very particular *) unfold observe at 1. cbn.
+    eauto.
+  - unpriv_ind. unfold observe at 3. cbn. eauto.
+  - pclearbot. unpriv_halt.
+    left. eapply iter_bind_shalt_aux1; eauto.
+  - unpriv_halt. pclearbot. left. eapply iter_bind_shalt_aux2; eauto.
+  - unpriv_halt. pclearbot. specialize (H b). left.
+    eapply iter_bind_shalt_aux1; eauto.
+  - unpriv_halt. pclearbot. specialize (H a). left. eapply iter_bind_shalt_aux2; eauto.
+Qed.
 
-Locate eutt_iter'.
-    (* my choices seem to be nested induction/coinduction or figure out eqit_bind_clo thing *)
-    admit. (* confusing case but probably will come up a lot *)
-  - constructor; auto. right. pclearbot.
-  - cbn. auto. constructor; auto.
-  - cbn. constructor; auto.
-
-    
-    
-    
-
-(*
-(*  eqit_bind' *)
-Lemma secure_eqit_bind : forall E R1 R2 S1 S2 (RR : R1 -> R2 -> Prop) (RS : S1 -> S2 -> Prop) 
-                           b1 b2 Label priv l 
-    (t1 : itree E R1) (t2 : itree E R2) (k1 : R1 -> itree E S1) (k2 : R2 -> itree E S2),
-    (forall r1 r2, RR r1 r2 -> eqit_secure Label priv RS b1 b2 l (k1 r1) (k2 r2) ) ->
-    eqit_secure Label priv RR b1 b2 l t1 t2 ->
-    eqit_secure Label priv RS b1 b2 l (ITree.bind t1 k1) (ITree.bind t2 k2).
-Proof.
-  intros. revert H0. revert t1 t2. ginit.
-  gcofix CIH. intros t1 t2 Ht12. punfold Ht12. red in Ht12.
-  genobs t1 ot1. genobs t2 ot2.
-  hinduction Ht12 before r; intros; eauto.
-  - apply simpobs in Heqot1. setoid_rewrite Heqot1. apply simpobs in Heqot2.
-    setoid_rewrite Heqot2. repeat rewrite bind_ret_l.
-    gfinal. right. eapply paco2_mon with (r := bot2); intros; try contradiction.
-    apply H. auto.
-  - apply simpobs in Heqot1. setoid_rewrite Heqot1. apply simpobs in Heqot2.
-    setoid_rewrite Heqot2. pclearbot. repeat rewrite bind_tau.
-    gstep. constructor. gfinal. left. eapply CIH; eauto.
-  - apply simpobs in Heqot1. rewrite Heqot1. rewrite bind_tau. admit.
-(* gpaco2_intro and gpaco2_dist *) (*
-    apply gpaco2_intro. constructor. left. pfold.
-    constructor; auto. 
-    assert (gpaco2 (secure_eqit_ Label priv RS b1 b2 l id) (eqitC RS b1 b2) bot2 r 
-                   (ITree.bind t1 k1) (ITree.bind t2 k2) ).
-    { eapply IHHt12; eauto. }
-    eapply gpaco2_dist in H0; auto with paco.
-    destruct H0.
-    + punfold H0. red in H0. unfold compose. eapply H0.
-
-pstep_reverse.
-    assert ()
-
-    (* would be nice to have the geutt rewrite rules here *)
-    admit. *)
-  - apply simpobs in Heqot2. rewrite Heqot2. rewrite bind_tau.
-    admit.
-  - apply simpobs in Heqot1. apply simpobs in Heqot2. 
-    rewrite Heqot1. rewrite Heqot2. repeat rewrite bind_vis.
-    gstep. pclearbot. constructor; auto. intros.
-    gfinal. left. eapply CIH; eauto. apply H0.
-  - apply simpobs in Heqot1. apply simpobs in Heqot2. 
-    rewrite Heqot1. rewrite Heqot2. rewrite bind_vis. rewrite bind_tau.
-    pclearbot.
-    gstep. unpriv_co. gfinal. left. eapply CIH; eauto. apply H0.
-  - apply simpobs in Heqot1. apply simpobs in Heqot2. 
-    rewrite Heqot1. rewrite Heqot2. rewrite bind_vis. rewrite bind_tau.
-    pclearbot.
-    gstep. unpriv_co. gfinal. left. eapply CIH; eauto. apply H0.
-  - pclearbot. apply simpobs in Heqot1. apply simpobs in Heqot2. 
-    rewrite Heqot1. rewrite Heqot2. repeat rewrite bind_vis.
-    gstep. unpriv_co. gfinal. left. eapply CIH; eauto. apply H0.
-  - apply simpobs in Heqot1. rewrite Heqot1. rewrite bind_vis.
-
-    gstep. red. cbn. unpriv_ind. 
-        assert (gpaco2 (secure_eqit_ Label priv RS b1 b2 l id) (eqitC RS b1 b2) bot2 r (ITree.bind (k0 a) k1) (ITree.bind t0 k2) ).
-    { eapply H1; eauto. }
-    gunfold H2. 
-    (* getting euttge style rewrites here won't help, because we can only remove
-       private events from well behaved trees, not arbitrary ones,
-       that makes it a weaker reasoning principle than Tau t >= t*)
-    apply gpaco2_intro. constructor. left.
-    pfold. red. red. cbn. unpriv_ind.
-    unfold compose.
-
-    apply gpaco2_dist in H2; auto with paco.
-    destruct H2.
-    + punfold H2. red in H2. eapply secure_eqit_mono; eauto.
-      intros. pclearbot. destruct PR.
-      * constructor. left. (* equivalent to H3 by eta expansion ?*) admit.
-      * induction H3.
-        -- constructor. right. auto.
-        -- eapply rclo2_clo'; eauto.
-    + remember (ITree.bind (k0 a) k1 ) as x.
-      remember (ITree.bind t0 k2) as y.
-      clear Heqx Heqy.
-      induction H2; try contradiction. admit.
-    (* gfinal. right. pfold. red. cbn. unpriv_ind.
-    pstep_reverse. specialize (H1 a CIH (k0 a) t0). *)
-    (*
-    (* gpaco2_step*)
-    gstep. unpriv_ind. 
-
-        assert (gpaco2 (secure_eqit_ Label priv RS b1 b2 l id) (eqitC RS b1 b2) bot2 r (ITree.bind (k0 a) k1) (ITree.bind t0 k2) ).
-    { eapply H1; eauto. }
-    (* write a fold secure_eqit_ ltac *)
-    match goal with 
-      | |- (secure_eqitF ?L ?p ?RR ?b1 ?b2 ?l id) (gpaco2 ?gf' ?clo ?rg ?rg ) (observe ?t1) (observe ?t2) => 
-        enough (secure_eqit_ L p RR b1 b2 l id (gpaco2 gf' clo rg rg) t1 t2  ); eauto end. 
-    (* how does this relate to weak compatibility? *)
-
-    (* shows the structure that I want *)
-      (*  match goal with 
-      | H : gpaco2 ?gf' ?clo ?r ?rg ?t1 ?t2 |- ?gf (gpaco2 ?gf' ?clo ?rg ?rg ) (observe ?t1) (observe ?t2) => idtac gf' end. *)
-    (* gpaco2_unfold is probably where to start *)
-    (* wtf is rclo2 
-       r \2/ (forall r')
-       
-
-     *)
-
-    (* gpaco2 gf clo r rg <2= gf  *)
-    remember (ITree.bind (k0 a) k1 ) as x.
-    remember (ITree.bind t0 k2) as y.
-    clear Heqx Heqy.
-    apply gpaco2_unfold in H2; auto with paco.
-    specialize (eqit_secureC_wcompat_id b1 b2 E S1 S2 RS Label priv l) as Hwcompat.
-    inv Hwcompat. 
-    induction H2; eauto.
-    + destruct IN; try contradiction. 
-      eapply secure_eqit_mono; eauto; intros; eauto with paco.
-      red in PR. eapply gpaco2_mon; eauto. intros. inv PR0; auto; try contradiction.
-      intros. inv PR0; auto. contradiction.
-    + apply wcompat2_wcompat. eapply eqitC_mon; eauto. 
-      intros. apply H2 in PR as H3.
-
-(* *) *)
-    econstructor; try reflexivity.
-    all : intros; try subst; auto.
-    (* go rid of  *)
-    pstep_reverse.
-    induction H2.
-    + destruct IN; try contradiction. 
-      admit.
-    +  inv IN. inv CHECK.
-       specialize (H2 _ _ REL).
-       (* swap in t1' for x0 and x1 for t2'
-          then apply H2 and 
-          this should hold but uggh
-*)
-      (* gpaco2 should be monotonic *)
-      (* gupaco2 should be monotonic *) admit.
-    + inv IN. apply LE in REL.
- inv H2. 
-    destruct IN; try contradiction.
-    + red in H2. admit.
-    + admit.
-    fold (@secure_eqit_ E R1 R2).
-    eapply gpaco2_clo in H2; eauto.
-    eapply gpaco2_dist in H2; eauto with paco.
-    destruct H2.
-    + punfold H2. admit.
-    + induction H2; try contradiction. 
-
-    Locate gpaco2_unfold_bot.
-    eapply gpaco2_unfold_bot with (clo  := eqitC RS b1 b2) (x0 := ITree.bind (k0 a) k1 ) 
-    (x1 := ITree.bind t0 k2) ; eauto with paco.
-    admit.
-    { constructor; auto with paco.
-      
-
-    { eapply eqit_secureC_wcompat_id.
-
-(* either want something like gstep_reverse or the 
-                          equivalent of geutt rewriting for this functor
-*)
-     enough (gpaco2 (secure_eqit_ Label priv RS b1 b2 l id) (eqitC RS b1 b2) bot2 r
-         (ITree.bind (k0 a) k1) (ITree.bind t0 k2) ).
-    { gunfold H2. Locate Ltac pfold_reverse.  inv H2. destruct IN; try contradiction.
-      - eapply secure_eqit_mono; eauto. intros. eapply gpaco2_gupaco; eauto.
-      -
-      red in H2.
-      eapply secure_eqit_mono; eauto. *)
-(*
-   admit.
-  - apply simpobs in Heqot2. rewrite Heqot2. rewrite bind_vis.
-    gstep. unpriv_ind. admit.
-  - pclearbot. apply simpobs in Heqot1. apply simpobs in Heqot2.
-    rewrite Heqot1. rewrite Heqot2. rewrite bind_vis. rewrite bind_tau.
-    gstep. red. cbn. unpriv_halt. rewrite <- bind_vis. gfinal. left.
-    eapply CIH; eauto.
-  - pclearbot. apply simpobs in Heqot1. apply simpobs in Heqot2.
-    rewrite Heqot1. rewrite Heqot2. rewrite bind_vis. rewrite bind_tau.
-    gstep. red. cbn. unpriv_halt. rewrite <- bind_vis. gfinal. left.
-    eapply CIH; eauto.
-  - pclearbot.  apply simpobs in Heqot1. apply simpobs in Heqot2.
-    rewrite Heqot1. rewrite Heqot2. repeat rewrite bind_vis.
-    gstep. red. cbn. unpriv_halt. red. rewrite <- bind_vis. gfinal. left.
-    eapply CIH; eauto. apply H0.
-  - pclearbot.  apply simpobs in Heqot1. apply simpobs in Heqot2.
-    rewrite Heqot1. rewrite Heqot2. repeat rewrite bind_vis.
-    gstep. red. cbn. unpriv_halt. red. rewrite <- bind_vis. gfinal. left.
-    eapply CIH; eauto. apply H0.Admitted.
-*)
     

@@ -34,7 +34,10 @@ Import Monads.
 Import MonadNotation.
 Local Open Scope monad_scope.
 
-Locate eutt_iter'.
+(* can we write a closure that lets you take an inductive step and then throws back
+   
+
+*)
 
 
 Lemma eqit_secureC_wcompat_id :  forall b1 b2 E R1 R2 (RR : R1 -> R2 -> Prop )

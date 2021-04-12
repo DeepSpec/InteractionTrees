@@ -50,43 +50,14 @@ Definition throw {Err : Type} {E : Type -> Type} `{exceptE Err -< E} {X}
   : itree E X
   := vis (Throw _ e) (fun v : void => match v with end).
 
-Section Exception.
-  
-  Context (E : Type).
-  
-  Section ExcT.
-    
-    Context (M : Type -> Type).
-    Context {EqMM : Eq1 M}.
-    Context {MonadM : Monad M}.
-    Context {MonadLawsM : MonadLawsE M}.
-    Context {EquivRel : forall A, Equivalence (EqMM A) }.
-    Context {MonadIterM : MonadIter M}.
+(* translate *)
 
-
-    Definition Exc (A : Type) := M (E + A).
-
-    Definition ret_exc (A : Type) (a : A) : Exc A := ret (inr a).
-
-    Definition bind_exc (A B : Type) (m : M (E + A) ) (f : A -> Exc B) :=
-      bind m (fun x  => match x with | inl e => ret (inl e) | inr a => f a end).
-
-    Global Instance MonadExc : Monad Exc :=
-      {
-        ret := ret_exc ;
-        bind := bind_exc;
-      }.
-
-    Global Instance EqExc : Eq1 Exc := fun _ m1 m2 =>
-           EqMM _ m1 m2.
-
-    Global Instance MonadLawsExc : MonadLawsE Exc.
-    Proof.
-      destruct MonadLawsM.
-      constructor.
-      - intros A B f a. cbn. apply bind_ret_l.
-      - intros A m. cbn. specialize (bind_ret_r (E +A)%type m).
-        unfold bind_exc, ret_exc. 
-    Admitted.
-   End ExcT.
-End Exception.
+(*
+Program Definition try_catch {Err R : Type } {E : Type -> Type} 
+           
+           (ttry : itree (exceptE Err +' E) R) (kcatch : Err -> itree (exceptE Err +' E) R) : itree (exceptE Err +' E) R :=
+  let ttry' : itree (exceptE Err +' (exceptE Err +' E)) R := 
+              translate (fun _ e => match e with |  inl1 e' => inl1 e' | inr1 e' => (inr1 (inr1 e') ) end ) ttry in
+  mrec (fun _ e => 
+          match e with Throw _ err => translate (fun _ e => inr1 e) (kcatch err) end) ttry'.
+*)
