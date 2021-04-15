@@ -3,6 +3,9 @@
 (** The Kleisli category of ITrees. *)
 
 (* begin hide *)
+From Coq Require Import
+     Morphisms.
+
 From ITree Require Import
      Basics.Basics
      Basics.CategoryOps
@@ -13,12 +16,6 @@ From ITree Require Import
      Core.ITreeDefinition
      Eq.Eq
      Eq.UpToTaus.
-
-Import ITreeNotations.
-Local Open Scope itree_scope.
-
-From Coq Require Import
-     Morphisms.
 (* end hide *)
 
 Implicit Types E : Type -> Type.
@@ -26,6 +23,10 @@ Implicit Types a b : Type.
 
 Notation ktree E := (Kleisli (itree E)).
 
+(*
+  The following line removes the warning on >=8.10, but is incompatible for <8.10
+ *)
+(* Declare Scope ktree_scope. *)
 Bind Scope ktree_scope with ktree.
 
 Notation ktree_apply := (@Kleisli_apply (itree _)).

@@ -14,8 +14,11 @@ From ITree Require Import
 (** Reexported from the library. *)
 
 Require Export ITree.Core.ITreeDefinition.
-Import ITreeNotations.
+Export ITreeNotations.
 Open Scope itree_scope.
+(* This scope is open by default to make this "tutorial module" as
+   straightforward as possible. *)
+
 (**
    - [itree : (Type -> Type) -> Type -> Type] type
    - [Ret], [Tau], [Vis] notations
@@ -84,7 +87,7 @@ Context {E : Type -> Type} {R : Type}.
     ([eutt] for short), or _weak bisimulation_. *)
 Parameter eutt : itree E R -> itree E R -> Prop.
 
-Infix "≈" := eutt (at level 40).
+Infix "≈" := eutt (at level 70).
 
 (** [eutt] is an equivalence relation. *)
 Global Declare Instance Equivalence_eutt :
@@ -111,16 +114,10 @@ Parameter eutt_inv_vis : forall {U : Type} (e : E U) (k1 k2 : U -> itree E R),
 
 End EquivalenceUpToTaus.
 
-Infix "≈" := eutt (at level 40).
+Infix "≈" := eutt (at level 70).
 
 (** *** Rewriting lemmas *)
 
-Parameter unfold_bind
-  : forall {E R S} (t : itree E R) (k : R -> itree E S),
-    ITree.bind t k
-  ≈ ITree._bind k (fun t => ITree.bind t k) (observe t).
-
-(** The next two are immediate corollaries of [unfold_bind]. *)
 Parameter bind_ret : forall {E R S} (r : R) (k : R -> itree E S),
     ITree.bind (Ret r) k ≈ k r.
 
@@ -234,8 +231,8 @@ Declare Instance eutt_VisF {E R X} (e: E X) :
   Proper (pointwise_relation _ (@eutt E R) ==> going eutt) (VisF e).
 
 Declare Instance eutt_bind {E R S} :
-  Proper (pointwise_relation _ eutt ==> eutt ==> eutt)
-         (@ITree.bind' E R S).
+  Proper (eutt ==> pointwise_relation _ eutt ==> eutt)
+         (@ITree.bind E R S).
 
 Declare Instance eutt_map {E R S} :
   Proper (pointwise_relation _ eq ==> eutt ==> eutt)
@@ -280,7 +277,7 @@ Context {E : Type -> Type} {R : Type}.
 Definition eutt : itree E R -> itree E R -> Prop :=
   ITree.Eq.Eq.eutt eq.
 
-Infix "≈" := eutt (at level 40).
+Infix "≈" := eutt (at level 70).
 
 (** [eutt] is an equivalence relation. *)
 Global Instance Equivalence_eutt : Equivalence eutt.
@@ -312,26 +309,19 @@ Qed.
 Lemma eutt_inv_ret (r1 r2 : R)
   : Ret r1 ≈ Ret r2 ->
     r1 = r2.
-Proof. apply ITree.Eq.Eq.eqit_inv_ret. Qed.
+Proof. apply ITree.Eq.Eq.eqit_inv_Ret. Qed.
 
 Lemma eutt_inv_vis {U : Type} (e : E U) (k1 k2 : U -> itree E R)
   : Vis e k1 ≈ Vis e k2 ->
     (forall u, k1 u ≈ k2 u).
-Proof. apply ITree.Eq.Eq.eqit_inv_vis; auto. Qed.
+Proof. apply ITree.Eq.Eq.eqit_inv_Vis; auto. Qed.
 
 End EquivalenceUpToTaus.
 
-Infix "≈" := eutt (at level 40).
+Infix "≈" := eutt (at level 70).
 
 (** *** Rewriting lemmas *)
 
-Lemma unfold_bind
-  : forall {E R S} (t : itree E R) (k : R -> itree E S),
-    ITree.bind t k
-  ≈ ITree._bind k (fun t => ITree.bind t k) (observe t).
-Proof. intros; rewrite <- ITree.Eq.Shallow.unfold_bind_; reflexivity. Qed.
-
-(** The next two are immediate corollaries of [unfold_bind]. *)
 Lemma bind_ret : forall {E R S} (r : R) (k : R -> itree E S),
     ITree.bind (Ret r) k ≈ k r.
 Proof. intros; rewrite ITree.Eq.Shallow.bind_ret_; reflexivity. Qed.
@@ -490,8 +480,8 @@ Instance eutt_VisF {E R X} (e: E X) :
 Proof. repeat red; intros. rewrite H. apply reflexivity. Qed.
 
 Instance eutt_bind {E R S} :
-  Proper (pointwise_relation _ eutt ==> eutt ==> eutt)
-         (@ITree.bind' E R S).
+  Proper (eutt ==> pointwise_relation _ eutt ==> eutt)
+         (@ITree.bind E R S).
 Proof. repeat red; intros. rewrite H, H0. apply reflexivity. Qed.
 
 Instance eutt_map {E R S} :

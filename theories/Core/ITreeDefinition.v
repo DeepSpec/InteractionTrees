@@ -59,6 +59,10 @@ Section itree.
 End itree.
 
 (* begin hide *)
+(*
+  The following line removes the warning on >=8.10, but is incompatible for <8.10
+ *)
+(* Declare Scope itree_scope. *)
 Bind Scope itree_scope with itree.
 Delimit Scope itree_scope with itree.
 Local Open Scope itree_scope.
@@ -146,56 +150,49 @@ Module ITree.
     computations. [bind t k] is also denoted by [t >>= k] and using
     "do-notation" [x <- t ;; k x]. *)
 
-Section bind.
-  Context {E : Type -> Type} {T U : Type}.
-  (* We can keep the continuation outside the cofixpoint.
-     In particular, this allows us to nest [bind] in other cofixpoints,
-     as long as the recursive occurences are in the continuation
-     (i.e., this makes it easy to define tail-recursive functions).
-   *)
-  Variable k : T -> itree E U.
-
-  Definition _bind
-             (bind : itree E T -> itree E U)
-             (oc : itreeF E T (itree E T)) : itree E U :=
-    match oc with
+(* [subst]: [bind] with its arguments flipped.
+   We keep the continuation [k] outside the cofixpoint.
+   In particular, this allows us to nest [bind] in other cofixpoints,
+   as long as the recursive occurences are in the continuation
+   (i.e., this makes it easy to define tail-recursive functions). *)
+Definition subst {E : Type -> Type} {T U : Type} (k : T -> itree E U)
+  : itree E T -> itree E U :=
+  cofix _subst (u : itree E T) : itree E U :=
+    match observe u with
     | RetF r => k r
-    | TauF t => Tau (bind t)
-    | VisF e h => Vis e (fun x => bind (h x))
+    | TauF t => Tau (_subst t)
+    | VisF e h => Vis e (fun x => _subst (h x))
     end.
 
-  CoFixpoint bind' (t : itree E T) : itree E U :=
-    _bind bind' (observe t).
-
-End bind.
-
-Arguments _bind _ _ /.
-
-
-Notation bind c k := (bind' k c).
-
+Definition bind {E : Type -> Type} {T U : Type} (u : itree E T) (k : T -> itree E U)
+  : itree E U :=
+  subst k u.
 
 (** Monadic composition of continuations (i.e., Kleisli composition).
  *)
 Definition cat {E T U V}
            (k : T -> itree E U) (h : U -> itree E V) :
   T -> itree E V :=
-  fun t => bind' h (k t).
+  fun t => bind (k t) h.
 
 (** [iter]: See [Basics.Basics.MonadIter]. *)
 
-Definition _iter {E : Type -> Type} {R I : Type}
-           (tau : _)
-           (iter_ : I -> itree E R)
-           (step_i : I + R) : itree E R :=
-  match step_i with
-  | inl i => tau (iter_ i)
+(* [on_left lr l t]: run a computation [t] if the first argument is an [inl l].
+   [l] must be a variable (used as a pattern), free in the expression [t]:
+   - [on_left (inl x) l t = t{l := x}]
+   - [on_left (inr y) l t = Ret y]
+ *)
+Notation on_left lr l t :=
+  (match lr with
+  | inl l => t
   | inr r => Ret r
-  end.
+  end) (only parsing).
 
+(* Note: here we must be careful to call [iter_ l] under [Tau] to avoid an eager
+   infinite loop if [step i] is always of the form [Ret (inl _)] (cf. issue #182). *)
 Definition iter {E : Type -> Type} {R I: Type}
            (step : I -> itree E (I + R)) : I -> itree E R :=
-  cofix iter_ i := bind (step i) (_iter (fun t => Tau t) iter_).
+  cofix iter_ i := bind (step i) (fun lr => on_left lr l (Tau (iter_ l))).
 
 (* note(gmm): There needs to be generic automation for monads to simplify
  * using the monad laws up to a setoid.
@@ -224,6 +221,14 @@ CoFixpoint spin {E R} : itree E R := Tau spin.
 Definition forever {E R S} (t : itree E R) : itree E S :=
   cofix forever_t := bind t (fun _ => Tau (forever_t)).
 
+Ltac fold_subst :=
+  repeat (change (ITree.subst ?k ?t) with (ITree.bind t k)).
+
+Ltac fold_monad :=
+  repeat (change (@ITree.bind ?E) with (@Monad.bind (itree E) _));
+  repeat (change (go (@RetF ?E _ _ _ ?r)) with (@Monad.ret (itree E) _ _ r));
+  repeat (change (@ITree.map ?E) with (@Functor.fmap (itree E) _)).
+
 End ITree.
 
 (** ** Notations *)
@@ -239,7 +244,7 @@ End ITree.
 
 Module ITreeNotations.
 Notation "t1 >>= k2" := (ITree.bind t1 k2)
-  (at level 50, left associativity) : itree_scope.
+  (at level 58, left associativity) : itree_scope.
 Notation "x <- t1 ;; t2" := (ITree.bind t1 (fun x => t2))
   (at level 61, t1 at next level, right associativity) : itree_scope.
 Notation "t1 ;; t2" := (ITree.bind t1 (fun _ => t2))
@@ -266,7 +271,7 @@ Instance Applicative_itree {E} : Applicative (itree E) :=
 
 Instance Monad_itree {E} : Monad (itree E) :=
 {| ret := fun _ x => Ret x
-;  bind := fun T U t k => @ITree.bind' E T U k t
+;  bind := @ITree.bind E
 |}.
 
 Instance MonadIter_itree {E} : MonadIter (itree E) :=

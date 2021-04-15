@@ -1,0 +1,86 @@
+version: 2.1
+
+commands:
+  setup:
+    steps:
+    - checkout
+    - run:
+        name: Configure environment
+        command: echo . ~/.profile >> $BASH_ENV
+    - run:
+        name: Install dependencies
+        command: |
+            opam repo -a add coq-extra-dev https://coq.inria.fr/opam/extra-dev
+            opam update
+            opam pin remove dune -n
+            opam install --deps-only .
+    - run:
+        name: List installed packages
+        command: opam list
+
+defaults: &defaults
+  environment:
+    OPAMBESTEFFORT: true
+    OPAMJOBS: 2
+    OPAMVERBOSE: 1
+    OPAMWITHTEST: true
+    OPAMYES: true
+    TERM: xterm
+  resource_class: medium
+  steps:
+  - setup
+  - run:
+      name: Build, test, and install package
+      command: opam install .
+  - run:
+      name: Uninstall package
+      command: opam remove .
+
+jobs:
+  test:
+    parameters:
+      coq:
+        type: string
+    docker:
+    - image: coqorg/coq:<<parameters.coq>>
+    <<: *defaults
+
+  test-with-make:
+    environment:
+      OPAMYES: true
+    parameters:
+      coq:
+        type: string
+    docker:
+    - image: coqorg/coq:<<parameters.coq>>
+    steps:
+    - setup
+    - run:
+        name: Build, test
+        command: make -j all
+    - run:
+        name: Clean
+        command: make clean
+
+workflows:
+  version: 2
+  build:
+    jobs:
+    - test:
+        name: "Coq 8.10"
+        coq: "8.10"
+    - test:
+        name: "Coq 8.11"
+        coq: "8.11"
+    - test:
+        name: "Coq 8.12"
+        coq: "8.12"
+    - test:
+        name: "Coq 8.13"
+        coq: "8.13"
+    - test:
+        name: "Coq dev"
+        coq: "dev"
+    - test-with-make:
+        name: "Coq 8.13 + make"
+        coq: "8.13"

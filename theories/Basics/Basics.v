@@ -3,7 +3,7 @@
 (** Not specific to itrees. *)
 
 (* begin hide *)
-From Coq Require 
+From Coq Require
      Ensembles.
 
 From Coq Require Import
@@ -17,7 +17,9 @@ From ExtLib Require Import
      Data.Monads.OptionMonad
      Data.Monads.EitherMonad.
 
-Import MonadNotation.
+Import
+  FunctorNotation
+  MonadNotation.
 Local Open Scope monad.
 (* end hide *)
 
@@ -43,67 +45,6 @@ Definition idM {E : Type -> Type} : E ~> E := fun _ e => e.
 (** [void] is a shorthand for [Empty_set]. *)
 Notation void := Empty_set.
 
-(** ** Relations for morphisms/parametricity *)
-
-(** Logical relation for the [sum] type. *)
-Variant sum_rel {A1 A2 B1 B2 : Type}
-        (RA : A1 -> A2 -> Prop) (RB : B1 -> B2 -> Prop)
-  : A1 + B1 -> A2 + B2 -> Prop :=
-| inl_morphism a1 a2 : RA a1 a2 -> sum_rel RA RB (inl a1) (inl a2)
-| inr_morphism b1 b2 : RB b1 b2 -> sum_rel RA RB (inr b1) (inr b2)
-.
-Arguments inl_morphism {A1 A2 B1 B2 RA RB}.
-Arguments inr_morphism {A1 A2 B1 B2 RA RB}.
-Hint Constructors sum_rel.
-
-(** Logical relation for the [prod] type. *)
-Variant prod_rel {A1 A2 B1 B2 : Type}
-        (RA : A1 -> A2 -> Prop) (RB : B1 -> B2 -> Prop)
-  : (A1 * B1) -> (A2 * B2) -> Prop :=
-| prod_morphism a1 a2 b1 b2 : RA a1 a2 -> RB b1 b2 -> prod_rel RA RB (a1, b1) (a2, b2)
-.
-
-Arguments prod_morphism {A1 A2 B1 B2 RA RB}.
-Hint Constructors prod_rel.
-
-
-(* SAZ: TODO: Move this elsewhere, it belong with the Basics *)
-Section ProdRelInstances.
-  Context {R S : Type}.
-  Context (RR : R -> R -> Prop).
-  Context (SS : S -> S -> Prop).
-
-  Global Instance prod_rel_refl `{Reflexive _ RR} `{Reflexive _ SS} : Reflexive (prod_rel RR SS).
-  Proof.
-    red. destruct x. constructor; auto.
-  Qed.
-  
-  Global Instance prod_rel_sym `{Symmetric _ RR} `{Symmetric _ SS}  : Symmetric (prod_rel RR SS).
-  Proof.
-    red. intros. 
-    inversion H1. subst.
-    constructor; symmetry; auto.
-  Qed.
-
-  Global Instance prod_rel_trans `{Transitive _ RR} `{Transitive _ SS}  : Transitive (prod_rel RR SS).
-  Proof.
-    red.
-    intros.
-    inversion H1.
-    inversion H2.
-    subst.
-    inversion H9; subst.
-    constructor; etransitivity; eauto.
-  Qed.
-
-  Global Instance prod_rel_eqv `{Equivalence _ RR} `{Equivalence _ SS} : Equivalence (prod_rel RR SS).
-  Proof.
-    constructor; typeclasses eauto.
-  Qed.
-
-End ProdRelInstances.
-
-
 (** ** Common monads and transformers. *)
 
 Module Monads.
@@ -113,6 +54,9 @@ Definition identity (a : Type) : Type := a.
 Definition stateT (s : Type) (m : Type -> Type) (a : Type) : Type :=
   s -> m (prod s a).
 Definition state (s a : Type) := s -> prod s a.
+
+Definition liftState {s a f} `{Functor f} (fa : f a) : Monads.stateT s f a :=
+  fun s => pair s <$> fa.
 
 Definition readerT (r : Type) (m : Type -> Type) (a : Type) : Type :=
   r -> m a.
@@ -216,3 +160,35 @@ Inductive iter_Prop {R I : Type} (step : I -> I + R -> Prop) (i : I) (r : R)
 .
 
 Polymorphic Instance MonadIter_Prop : MonadIter Ensembles.Ensemble := @iter_Prop.
+
+(* Elementary constructs for predicates. To be moved in their own file eventually *)
+Definition equiv_pred {A : Type} (R S: A -> Prop): Prop :=
+  forall a, R a <-> S a.
+
+Definition sum_pred {A B : Type} (PA : A -> Prop) (PB : B -> Prop) : A + B -> Prop :=
+  fun x => match x with | inl a => PA a | inr b => PB b end.
+
+Definition prod_pred {A B : Type} (PA : A -> Prop) (PB : B -> Prop) : A * B -> Prop :=
+  fun '(a,b) => PA a /\ PB b.
+
+Definition TT {A : Type} : A -> Prop := fun _ => True.
+Global Hint Unfold TT sum_pred prod_pred: core.
+
+Global Instance equiv_pred_refl  {A} : Reflexive (@equiv_pred A).
+Proof.
+  split; auto.
+Qed.
+Global Instance equiv_pred_symm  {A} : Symmetric (@equiv_pred A).
+
+Proof.
+  red; intros * EQ; split; intros; eapply EQ; auto.
+Qed.
+Global Instance equiv_pred_trans {A} : Transitive (@equiv_pred A).
+Proof.
+  red; intros * EQ1 EQ2; split; intros; (apply EQ1,EQ2 || apply EQ2,EQ1); auto.
+Qed.
+Global Instance equiv_pred_equiv {A} : Equivalence (@equiv_pred A).
+Proof.
+  split; typeclasses eauto.
+Qed.
+

@@ -1,0 +1,9 @@
+(coq.extraction
+  (prelude ExtractThreadsExample)
+  (extracted_modules MultiThreadedPrinting)
+  (theories ITree ITreeExamples)
+)
+
+(tests
+  (flags -w -20-33-3)
+  (names runthread))

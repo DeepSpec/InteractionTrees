@@ -21,6 +21,7 @@ From ITree Require Import
      Core.KTree
      Eq.Eq
      Eq.UpToTaus
+     Eq.Paco2
      Indexed.Sum
      Indexed.Function
      Interp.Interp
@@ -45,6 +46,12 @@ Definition _interp_mrec {R : Type} (ot : itreeF (D +' E) R _) : itree E R :=
     | inr1 e => Vis e (fun x => Tau (interp_mrec ctx (k x)))
     end
   end.
+
+(* Implementation note: in [_interp_mrec], the [Tau] in the [inr1] branch
+   might look superfluous. It gets inserted by [iter] (which behaves uniformly
+   in both the [inl1] and [inr1] branches). This [Tau] could be avoided, but
+   it makes the implementation and proofs more complicated for too little gain.
+*)
 
 Lemma unfold_interp_mrec R (t : itree (D +' E) R) :
   interp_mrec ctx t ≅ _interp_mrec (observe t).
@@ -71,7 +78,7 @@ Definition mrecursive (f : D ~> itree (D +' E))
 Global Instance eq_itree_mrec {R} :
   Proper (eq_itree eq ==> eq_itree eq) (@interp_mrec _ _ ctx R).
 Proof.
-  ginit. gcofix CIH. intros.
+  ginit. pcofix CIH. intros.
   rewrite !unfold_interp_mrec.
   punfold H0. inv H0; try discriminate; pclearbot; simpobs; [| |destruct e]; gstep.
   - apply reflexivity.
@@ -84,14 +91,14 @@ Theorem interp_mrec_bind {U T} (t : itree _ U) (k : U -> itree _ T) :
   interp_mrec ctx (ITree.bind t k) ≅
   ITree.bind (interp_mrec ctx t) (fun x => interp_mrec ctx (k x)).
 Proof.
-  revert t k; ginit. gcofix CIH; intros.
+  revert t k; ginit. pcofix CIH; intros.
   rewrite (unfold_interp_mrec _ t).
-  rewrite (unfold_bind t). (* TODO: should be [unfold_bind] but it is much slower *)
+  rewrite (unfold_bind t).
   destruct (observe t); cbn;
     [| |destruct e];
     autorewrite with itree.
   1: apply reflexivity.
-  all: rewrite unfold_interp_mrec.
+  all: rewrite unfold_interp_mrec; ITree.fold_subst.
   all: try (gstep; econstructor; eauto with paco).
   - rewrite <- bind_bind; eauto with paco.
   - intros. red. rewrite bind_tau. gstep; constructor; auto with paco.
@@ -103,9 +110,9 @@ Theorem interp_mrec_trigger {U} (a : (D +' E) U) :
 Proof.
   rewrite unfold_interp_mrec; unfold mrecursive.
   destruct a; cbn.
-  rewrite tau_eutt, bind_ret_r.
+  rewrite tau_euttge, bind_ret_r.
   reflexivity.
-  pstep; constructor. intros; left. rewrite tau_eutt, unfold_interp_mrec; cbn.
+  pstep; constructor. intros; left. rewrite tau_euttge, unfold_interp_mrec; cbn.
   apply reflexivity.
 Qed.
 
@@ -113,7 +120,7 @@ Theorem interp_mrec_as_interp {T} (c : itree _ T) :
   interp_mrec ctx c ≈ interp (mrecursive ctx) c.
 Proof.
   rewrite <- (tau_eutt (interp _ _)).
-  revert_until T. ginit. gcofix CIH. intros.
+  revert_until T. ginit. pcofix CIH. intros.
   rewrite unfold_interp_mrec, unfold_interp.
   destruct (observe c); [| |destruct e]; simpl; eauto with paco.
   - gstep; repeat econstructor; eauto.
@@ -122,10 +129,10 @@ Proof.
     gstep; constructor.
     guclo eqit_clo_bind; econstructor; [reflexivity|].
     intros ? _ []; eauto with paco.
-  - rewrite tau_eutt. unfold ITree.trigger, case_; simpl. rewrite bind_vis.
+  - rewrite tau_euttge. unfold ITree.trigger, case_; simpl. rewrite bind_vis.
     gstep. constructor.
     intros; red.
-    rewrite bind_ret_l. rewrite tau_eutt. auto with paco.
+    rewrite bind_ret_l. rewrite tau_euttge. auto with paco.
 Qed.
 
 Theorem mrec_as_interp {T} (d : D T) :
@@ -146,23 +153,25 @@ Theorem unfold_interp_mrec_h {T} (t : itree _ T)
   ≈ interp_mrec ctx t.
 Proof.
   rewrite <- tau_eutt.
-  revert t. ginit; gcofix CIH. intros.
-  rewrite (itree_eta t); destruct (observe t);
-    try (rewrite 2 unfold_interp_mrec; cbn; gstep; repeat constructor; auto with paco; fail).
-  rewrite interp_vis.
-  rewrite (unfold_interp_mrec _ (Vis _ _)).
-  destruct e; cbn.
-  - rewrite 2 interp_mrec_bind.
-    gstep; constructor.
-    guclo eqit_clo_bind; econstructor; [reflexivity|].
-    intros ? _ []; rewrite unfold_interp_mrec; cbn; auto with paco.
-  - unfold inr_, Handler.Inr_sum1_Handler, Handler.Handler.inr_, Handler.Handler.htrigger.
-    rewrite bind_trigger, unfold_interp_mrec; cbn.
-    rewrite tau_eutt.
-    gstep; constructor.
-    intros; red. gstep; constructor.
-    rewrite unfold_interp_mrec; cbn.
-    auto with paco.
+  revert t. ginit; pcofix CIH. intros.
+  rewrite (itree_eta t); destruct (observe t).
+  - rewrite 2 unfold_interp_mrec; cbn; gstep; repeat constructor; auto with paco.
+  - rewrite unfold_interp, 2 unfold_interp_mrec; cbn. gstep.
+    constructor; auto with paco.
+  - rewrite interp_vis.
+    rewrite (unfold_interp_mrec _ (Vis _ _)).
+    destruct e; cbn.
+    + rewrite 2 interp_mrec_bind.
+      gstep; constructor.
+      guclo eqit_clo_bind; econstructor; [reflexivity|].
+      intros ? _ []; rewrite unfold_interp_mrec; cbn; auto with paco.
+    + unfold inr_, Handler.Inr_sum1_Handler, Handler.Handler.inr_, Handler.Handler.htrigger.
+      rewrite bind_trigger, unfold_interp_mrec; cbn.
+      rewrite tau_euttge.
+      gstep; constructor.
+      intros; red. gstep; constructor.
+      rewrite unfold_interp_mrec; cbn.
+      auto with paco.
 Qed.
 
 End Facts.
@@ -176,7 +185,7 @@ Global Instance Proper_interp_mrec {D E} :
           interp_mrec.
 Proof.
   intros f g Hfg R.
-  ginit; gcofix CIH; intros t1 t2 Ht.
+  ginit; pcofix CIH; intros t1 t2 Ht.
   rewrite 2 unfold_interp_mrec.
   punfold Ht; induction Ht; cbn; pclearbot.
   3: { destruct e; gstep; constructor.
@@ -186,7 +195,7 @@ Proof.
     + gstep; constructor. auto with paco.
   }
   1,2: gstep; constructor; auto with paco.
-  1,2: rewrite unfold_interp_mrec, tau_eutt; auto.
+  1,2: rewrite unfold_interp_mrec, tau_euttge; auto.
 Qed.
 
 (** [rec body] is equivalent to [interp (recursive body)],
@@ -221,7 +230,7 @@ Global Instance euttge_interp_mrec {D E} :
           interp_mrec.
 Proof.
   intros f g Hfg R.
-  ginit; gcofix CIH; intros t1 t2 Ht.
+  ginit; pcofix CIH; intros t1 t2 Ht.
   rewrite 2 unfold_interp_mrec.
   punfold Ht; induction Ht; cbn; pclearbot.
   3: { destruct e; gstep; constructor.
@@ -230,7 +239,7 @@ Proof.
     + gstep; constructor. auto with paco.
   }
   1,2: gstep; constructor; auto with paco.
-  1: rewrite unfold_interp_mrec, tau_eutt; auto.
+  1: rewrite unfold_interp_mrec, tau_euttge; auto.
   discriminate.
 Qed.
 

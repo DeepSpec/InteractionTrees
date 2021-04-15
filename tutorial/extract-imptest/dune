@@ -1,0 +1,9 @@
+(coq.extraction
+  (prelude ImpTest)
+  (extracted_modules imp_test)
+  (theories ITree ITreeTutorial)
+)
+
+(tests
+  (flags -w -20-33-3)
+  (names imp_test))

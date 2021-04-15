@@ -1,10 +1,7 @@
 (** * ITrees as sets of traces *)
 
 (* begin hide *)
-From Coq Require Import
-     List.
-
-Import ListNotations.
+From Coq Require Import ProofIrrelevance.
 
 From Paco Require Import
      paco.
@@ -14,7 +11,8 @@ From ITree Require Import
      Eq.Eq
      Eq.UpToTaus
      Eq.SimUpToTaus
-     Eq.Shallow.
+     Eq.Shallow
+     Eq.Paco2.
 
 Local Open Scope itree.
 (* end hide *)
@@ -97,14 +95,14 @@ Proof.
   - punfold H. rewrite <- Heqi in H.
     remember (VisF _ _). remember (observe t2).
     generalize dependent t2.
-    induction H; intros; try inv Heqi0.
-    + auto_inj_pair2. subst. red. rewrite <- Heqi1. constructor.
+    induction H; intros; try discriminate.
+    + inv_Vis. subst. red. rewrite <- Heqi1. constructor.
     + red. rewrite <- Heqi1. constructor. eapply IHsuttF; eauto.
   - punfold H. rewrite <- Heqi in H.
     remember (VisF _ _). remember (observe t2).
     generalize dependent t2.
-    induction H; intros; try inv Heqi0.
-    + pclearbot. auto_inj_pair2. subst. red. rewrite <- Heqi1. constructor.
+    induction H; intros; try discriminate.
+    + inv_Vis. pclearbot. subst. red. rewrite <- Heqi1. constructor.
       eapply IHis_traceF; auto.
     + red. rewrite <- Heqi1. constructor. apply IHsuttF; auto.
 Qed.
@@ -115,6 +113,21 @@ Proof.
   split.
   - apply sutt_trace_incl; apply eutt_sutt; auto.
   - symmetry in H. apply sutt_trace_incl; apply eutt_sutt; auto.
+Qed.
+
+Lemma eq_trace_inv {E R} (t1 t2 : @trace E R) (H : t1 = t2)
+  : match t1, t2 with
+    | TEnd, TEnd => True
+    | TRet r1, TRet r2 => r1 = r2
+    | TEventEnd e1, TEventEnd e2 => exists p, eqeq E p e1 e2
+    | TEventResponse e1 x1 t1, TEventResponse e2 x2 t2 =>
+      exists p, eqeq E p e1 e2 /\ eqeq (fun X => X) p x1 x2 /\ t1 = t2
+    | _, _ => False
+    end.
+Proof.
+  destruct H, t1; auto.
+  - exists eq_refl; cbn; auto.
+  - exists eq_refl; cbn; auto.
 Qed.
 
 Lemma trace_incl_sutt : forall {E R} (t1 t2 : itree E R),
@@ -142,15 +155,17 @@ Proof.
       clear Hincl. rename H into Hincl.
       remember (observe t). remember (TEventEnd _).
       generalize dependent t.
-      induction H1; intros; try inv Heqt0; auto.
+      induction H1; intros; try discriminate.
       * constructor. eapply IHis_traceF; eauto.
         intros. rewrite is_traceF_tau. apply Hincl; auto.
-      * auto_inj_pair2. subst. constructor. intro. right. apply CIH. intros.
+      * apply eq_trace_inv in Heqt0; destruct Heqt0 as [<- <-].
+        subst. constructor. intro. right. apply CIH. intros.
         assert (is_traceF (VisF e k) (TEventResponse e x tr)) by (constructor; auto).
-        apply Hincl in H0. inv H0. auto_inj_pair2. subst. auto.
-    + auto_inj_pair2. subst. constructor. intro. right. apply CIH. intros.
+        apply Hincl in H1. inv H1.
+        apply inj_pair2 in H5; apply inj_pair2 in H7; subst; auto.
+    + apply inj_pair2 in H2; apply inj_pair2 in H5. subst. constructor. intro. right. apply CIH. intros.
       assert (is_traceF (VisF e k) (TEventResponse e x tr)) by (constructor; auto).
-      apply Hincl in H0. inv H0. auto_inj_pair2. subst. auto.
+      apply Hincl in H0. inv H0. apply inj_pair2 in H5; apply inj_pair2 in H7. subst. auto.
 Qed.
 
 Theorem trace_incl_iff_sutt : forall {E R} (t1 t2 : itree E R),

@@ -20,6 +20,12 @@ Definition IFun (E F : Type -> Type) : Type := E ~> F.
 (** Unwrap [IFun], potentially useful for type inference. *)
 Definition apply_IFun {E F T} (f : IFun E F) : E T -> F T := f T.
 
+(** Unwrap [IFun] as [~>]. *)
+Definition apply_IFun' {E F} (f : IFun E F) : E ~> F := f.
+
+(** Wrap [~>] as [IFun]. *)
+Definition as_IFun {E F} (f : E ~> F) : IFun E F := f.
+
 (** Equivalence of indexed functions is extensional equality. *)
 Instance Eq2_IFun : Eq2 IFun :=
   fun E F => i_pointwise (fun T => @eq (F T)).
@@ -33,8 +39,7 @@ Instance Cat_IFun : Cat IFun :=
   fun E F G f1 f2 R e => f2 _ (f1 _ e).
 
 (** [void1] is the initial object. *)
-Instance Initial_void1 : Initial IFun void1 :=
-  fun _ _ v => match v : void1 _ with end.
+Instance Initial_void1 : Initial IFun void1 := @elim_void1.
 
 (** The coproduct is case analysis on sums. *)
 Definition case_sum1 {A B C : Type -> Type} (f : A ~> C) (g : B ~> C)

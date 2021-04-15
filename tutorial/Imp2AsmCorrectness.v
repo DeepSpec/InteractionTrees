@@ -52,12 +52,12 @@ SAZ: This needs to be updated.
  *)
 
 (* begin hide *)
-Require Import Imp Asm Utils_tutorial AsmCombinators Imp2Asm Fin KTreeFin.
-
-Require Import Psatz.
+From ITreeTutorial Require Import Imp Asm Utils_tutorial AsmCombinators Imp2Asm Fin KTreeFin.
 
 From Coq Require Import
+     Psatz
      Strings.String
+     List
      Program.Basics
      Morphisms
      ZArith
@@ -68,6 +68,7 @@ From ITree Require Import
      ITree
      ITreeFacts
      Basics.CategorySub
+     Basics.HeterogeneousRelations
      Events.StateFacts
      Events.MapDefault.
 
@@ -83,10 +84,9 @@ Import ListNotations.
 Open Scope string_scope.
 
 Import CatNotations.
-Local Open Scope cat.
+Local Open Scope cat_scope.
+Local Open Scope itree_scope.
 
-Import Monads.
-Open Scope monad_scope.
 (* end hide *)
 
 
@@ -421,8 +421,10 @@ Section Bisimulation.
     unfold trigger, Trigger_ITree.
     rewrite interp_trigger.
     cbn.
+
     rewrite over_inj1. cbn.
     unfold lookup_def, trigger, Trigger_ITree, interp_map.
+
     cbn.
     rewrite interp_state_trigger; cbn.
     rewrite bind_ret_l, tau_eutt.
@@ -675,8 +677,13 @@ Section Correctness.
     induction e; simpl; intros.
     - (* Var case *)
       (* We first compute and eliminate taus on both sides. *)
+
       Set Printing Implicit.
       match goal with |- eutt ?R _ ?t' => set (RR := R); set (t := t') end.
+
+      force_left.
+      rewrite tau_eutt.
+
 
       force_left.
 
@@ -874,7 +881,7 @@ Lemma foo: interp (over h) (trigger' _ e)
      relation.
    *)
   Definition TT {A B}: A -> B -> Prop  := fun _ _ => True.
-  Hint Unfold TT.
+  Hint Unfold TT: core.
 
   Definition equivalent (s:stmt) (t:asm 1 1) : Prop :=
    bisimilar TT (denote_imp s) (denote_asm t f0).
@@ -908,7 +915,7 @@ Lemma foo: interp (over h) (trigger' _ e)
     - intros _ _ [].
       rewrite <- bind_ret_r at 1.
       eapply eutt_clo_bind; try reflexivity.
-      intros [|[]] _ []; apply eqit_Ret; auto.
+      intros [|[]] _ []; apply eqit_Ret; auto; constructor; auto.
     - constructor.
   Qed.
 
@@ -1062,7 +1069,7 @@ Lemma foo: interp (over h) (trigger' _ e)
         red.
         rewrite <- eqit_Ret.
         unfold state_invariant. simpl.
-        split; auto.
+        split; auto; constructor; auto.
 
       + (* In the true case, we line up the body of the loop to use the induction hypothesis *)
         rewrite !interp_asm_bind.

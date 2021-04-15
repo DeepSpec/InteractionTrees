@@ -117,7 +117,7 @@ Definition or {R : Type} (t1 t2 : itree nd R) : itree nd R :=
 (* Flip a coin *)
 Definition choice {E} `{nd -< E} : itree E bool := trigger Or.
 
-Definition eval_def := (fun (c : com) =>
+Definition eval_def : com -> itree (callE _ _ +' nd) unit := (fun (c : com) =>
     match c with
     | loop c =>
       (b <- choice;;

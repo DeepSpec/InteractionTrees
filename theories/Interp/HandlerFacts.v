@@ -21,16 +21,16 @@ From ITree Require Import
      Interp.InterpFacts
      Interp.RecursionFacts.
 
-Import ITree.Basics.Basics.Monads.
 Import ITreeNotations.
+Import ITree.Basics.Basics.Monads.
 
-Open Scope itree_scope.
+Local Open Scope itree_scope.
 
 (* end hide *)
 
 Section HandlerCategory.
 
-Local Opaque eutt ITree.bind' interp ITree.trigger.
+Local Opaque eutt ITree.bind interp ITree.trigger.
 
 Instance Proper_Cat_Handler {A B C}
   : @Proper (Handler A B -> Handler B C -> Handler A C)
@@ -136,12 +136,12 @@ Proof.
   { etransitivity; [etransitivity; [|eapply HHH] |]; clear.
     - symmetry. apply euttge_sub_eutt, euttge_interp.
       + reflexivity.
-      + apply euttge_interp_mrec; repeat intro; apply tau_eutt.
+      + apply euttge_interp_mrec; repeat intro; apply tau_euttge.
     - apply euttge_sub_eutt, euttge_interp_mrec.
       + intros ? ?. apply euttge_interp.
         * reflexivity.
-        * apply tau_eutt.
-      + rewrite tau_eutt. reflexivity.
+        * apply tau_euttge.
+      + rewrite tau_euttge. reflexivity.
   }
   match goal with
   | [ |- _ _ (_ _ _ (_ ?h0 _ _)) ] =>
@@ -174,8 +174,8 @@ Proof.
       rewrite !interp_tau.
       rewrite (unfold_interp_mrec _ _ (Tau _)); cbn.
       rewrite !bind_tau.
-      etau. rewrite tau_eutt, <- interp_bind, <- 2 interp_mrec_bind.
-      setoid_rewrite (tau_eutt (interp _ _)).
+      etau. rewrite tau_euttge, <- interp_bind, <- 2 interp_mrec_bind.
+      setoid_rewrite (tau_euttge (interp _ _)).
       rewrite <- interp_bind.
       auto with paco.
     + rewrite interp_vis.
@@ -192,7 +192,7 @@ Proof.
       intros ? _ [].
       rewrite (unfold_interp_mrec _ _ (Tau _)); cbn.
       etau.
-      rewrite tau_eutt.
+      rewrite tau_euttge.
       auto with paco.
 Qed.
 
@@ -209,13 +209,12 @@ Inductive interleaved
 | interleaved_Ret r : interleaved (Ret r) (Ret r)
 | interleaved_Left {U} (t : itree _ U) k1 k2 :
     (forall (x : U), interleaved (k1 x) (k2 x)) ->
-    interleaved (interp (case_ g inr_) t >>= k1) (t >>= k2)
+    interleaved (interp (handle (case_ g inr_)) t >>= k1) (t >>= k2)
 | interleaved_Right {U} (t : itree _ U) k1 k2 :
     (forall (x : U), interleaved (k1 x) (k2 x)) ->
-    interleaved (t >>= k1) (interp (case_ f inr_) t >>= k2)
+    interleaved (t >>= k1) (interp (handle (case_ f inr_)) t >>= k2)
 .
-
-Hint Constructors interleaved.
+Hint Constructors interleaved: core.
 
 Let hg := @case_ _ Handler _ _ _ _ _ g inr_.
 Let hf := @case_ _ Handler _ _ _ _ _ f inr_.
@@ -235,15 +234,15 @@ Proof.
     + rewrite interp_vis, bind_vis.
       rewrite bind_bind.
       rewrite (unfold_interp_mrec _ _ (Vis _ _)); cbn.
-      destruct e; cbn. setoid_rewrite (tau_eutt (interp _ _)).
+      destruct e; cbn. setoid_rewrite (tau_euttge (interp _ _)).
       * unfold cat at 3, Cat_Handler at 3, Handler.cat.
         change (g X b) with (Tau (g0 X b)).
         rewrite bind_tau, unfold_interp_mrec; cbn.
-        etau. rewrite tau_eutt. ebase.
-      * unfold inr_ at 3, Inr_sum1_Handler at 3, Handler.inr_, Handler.htrigger.
+        etau. rewrite tau_euttge. ebase.
+      * unfold inr_, Inr_sum1_Handler, Handler.inr_, Handler.htrigger.
         rewrite bind_trigger.
         rewrite unfold_interp_mrec; cbn.
-        evis; intros; etau. rewrite tau_eutt. ebase.
+        evis; intros; etau. rewrite tau_euttge. ebase.
   - rewrite (itree_eta t); destruct (observe t).
     + rewrite interp_ret, 2 bind_ret_l. auto.
     + rewrite interp_tau, 2 bind_tau, 2 unfold_interp_mrec; cbn.
@@ -251,15 +250,15 @@ Proof.
     + rewrite interp_vis, bind_vis.
       rewrite bind_bind.
       rewrite (unfold_interp_mrec _ _ (Vis _ _)); cbn.
-      destruct e; cbn. setoid_rewrite (tau_eutt (interp _ _)).
+      destruct e; cbn. setoid_rewrite (tau_euttge (interp _ _)).
       * unfold cat at 2, Cat_Handler at 2, Handler.cat.
         change (f X a) with (Tau (f0 X a)).
         rewrite !bind_tau, (unfold_interp_mrec _ _ (Tau _)); cbn.
-        etau. rewrite tau_eutt. ebase.
-      * unfold inr_ at 4, Inr_sum1_Handler at 4, Handler.inr_, Handler.htrigger.
+        etau. rewrite tau_euttge. ebase.
+      * unfold inr_, Inr_sum1_Handler, Handler.inr_, Handler.htrigger.
         rewrite bind_trigger.
         rewrite unfold_interp_mrec; cbn.
-        evis; intros; etau. rewrite tau_eutt. ebase.
+        evis; intros; etau. rewrite tau_euttge. ebase.
 Qed.
 
 End DinatSimulation.
@@ -278,15 +277,15 @@ Proof.
   { cbv in H. etransitivity; [etransitivity; [|apply H]|]; clear H.
     - symmetry. apply euttge_sub_eutt, euttge_interp_mrec.
       1: intros ? ?.
-      1,2: rewrite tau_eutt; apply euttge_interp; try reflexivity.
-      1,2: intros ? []; [apply tau_eutt| reflexivity].
-    - apply euttge_sub_eutt, euttge_interp; [ | apply tau_eutt].
+      1,2: rewrite tau_euttge; apply euttge_interp; try reflexivity.
+      1,2: intros ? []; [apply tau_euttge| reflexivity].
+    - apply euttge_sub_eutt, euttge_interp; [ | apply tau_euttge].
       intros ? []; try reflexivity.
-      rewrite tau_eutt. apply euttge_interp_mrec.
+      rewrite tau_euttge. apply euttge_interp_mrec.
       intros ? ?.
-      rewrite tau_eutt.
+      rewrite tau_euttge.
       all: apply euttge_interp; try reflexivity.
-      all: intros ? []; [apply tau_eutt | reflexivity].
+      all: intros ? []; [apply tau_euttge | reflexivity].
   }
   rewrite <- interp_mrec_as_interp.
 
@@ -320,13 +319,13 @@ Proof.
                                    end) t)).
   { subst f. etransitivity; [etransitivity; [| apply H] |]; clear H.
     - symmetry. apply euttge_sub_eutt, euttge_interp_mrec.
-      + intros ? ?. apply euttge_interp_mrec; try apply tau_eutt.
-        intros ? ?. apply tau_eutt.
-      + apply euttge_interp_mrec; repeat intro; reflexivity + rewrite tau_eutt.
+      + intros ? ?. apply euttge_interp_mrec; try apply tau_euttge.
+        intros ? ?. apply tau_euttge.
+      + apply euttge_interp_mrec; repeat intro; reflexivity + rewrite tau_euttge.
         reflexivity.
     - apply euttge_sub_eutt, euttge_interp_mrec; repeat intro;
         apply euttge_interp; try reflexivity.
-      apply tau_eutt.
+      apply tau_euttge.
   }
   revert t. einit; ecofix CIH. intros.
   rewrite (itree_eta t); destruct (observe t); cbn.
@@ -342,11 +341,11 @@ Proof.
     rewrite (unfold_interp_mrec _ _ (Tau _)); cbn.
     rewrite !bind_tau.
     etau.
-    rewrite tau_eutt. setoid_rewrite tau_eutt.
+    rewrite tau_euttge. setoid_rewrite tau_euttge.
     rewrite <- interp_mrec_bind, <- interp_bind.
     auto with paco.
   - rewrite bind_trigger.
-    setoid_rewrite tau_eutt.
+    setoid_rewrite tau_euttge.
     rewrite 2 unfold_interp_mrec; cbn.
     destruct s; estep.
     rewrite <- interp_mrec_bind, <- interp_bind.

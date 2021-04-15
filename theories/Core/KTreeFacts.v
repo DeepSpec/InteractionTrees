@@ -2,7 +2,6 @@
 
 (* begin hide *)
 From Coq Require Import
-     Program
      Classes.Morphisms
      Setoids.Setoid
      Relations.Relations.
@@ -16,22 +15,33 @@ From ITree Require Import
      Basics.CategoryKleisli
      Basics.CategoryKleisliFacts
      Basics.Function
+     Basics.HeterogeneousRelations
      Core.ITreeDefinition
      Core.ITreeMonad
      Core.KTree
      Eq.Eq
-     Eq.UpToTaus.
+     Eq.UpToTaus
+     Eq.Paco2.
 
-Import ITreeNotations.
 Import CatNotations.
-Local Open Scope itree.
+Local Open Scope itree_scope.
+Local Open Scope cat_scope.
 (* end hide *)
+
+Ltac unfold_ktree :=
+  unfold
+    Monad.eq1, Eq1_ITree,
+    Basics.iter, MonadIter_itree,
+    assoc_l, AssocL_Coproduct,
+    bimap, Bimap_Coproduct,
+    cat, Cat_Kleisli, inl_, Inl_Kleisli, inr_, Inr_Kleisli, case_, Case_Kleisli, case_sum,
+    lift_ktree_; cbn.
 
 (** ** [ITree.aloop] *)
 
 Lemma bind_iter {E A B C} (f : A -> itree E (A + B)) (g : B -> itree E (B + C))
   : forall x,
-    (ITree.iter f x >>= ITree.iter g)
+    (ITree.bind (ITree.iter f x) (ITree.iter g))
   ≈ ITree.iter (fun ab =>
        match ab with
        | inl a => ITree.map inl (f a)
@@ -39,14 +49,14 @@ Lemma bind_iter {E A B C} (f : A -> itree E (A + B)) (g : B -> itree E (B + C))
        end) (inl x).
 Proof.
   einit. ecofix CIH. intros.
-  rewrite !unfold_iter. unfold ITree._iter.
+  rewrite !unfold_iter.
   rewrite bind_map, bind_bind.
   ebind; econstructor; try reflexivity.
   intros [a | b] _ [].
   - rewrite bind_tau. etau.
-  - rewrite bind_ret_l, tau_eutt.
+  - rewrite bind_ret_l, tau_euttge.
     revert b. ecofix CIH'. intros.
-    rewrite !unfold_iter. unfold ITree._iter.
+    rewrite !unfold_iter.
     rewrite bind_map.
     ebind; econstructor; try reflexivity.
     intros [b' | c] _ []; cbn.
@@ -64,7 +74,7 @@ Lemma eq_itree_iter' {E I1 I2 R1 R2}
   : forall (i1 : I1) (i2 : I2) (RI_i : RI i1 i2),
     @eq_itree E _ _ RR (ITree.iter body1 i1) (ITree.iter body2 i2).
 Proof.
-  ginit. gcofix CIH. intros.
+  ginit. pcofix CIH. intros.
   specialize (eutt_body i1 i2 RI_i).
   do 2 rewrite unfold_iter.
   guclo eqit_clo_bind; econstructor; eauto.
@@ -108,10 +118,10 @@ Instance eq_itree_iter {E A B} :
           iter.
 Proof.
   intros body1 body2 EQ_BODY a. repeat red in EQ_BODY.
-  unfold iter, Iter_Kleisli.
+  unfold_ktree.
   eapply (eq_itree_iter' eq); auto.
   intros; eapply eqit_mon, EQ_BODY; auto.
-  intros [] _ []; auto.
+  intros [] _ []; auto; econstructor; subst; auto.
 Qed.
 
 Instance eutt_iter {E A B} :
@@ -120,10 +130,10 @@ Instance eutt_iter {E A B} :
           iter.
 Proof.
   intros body1 body2 EQ_BODY a. repeat red in EQ_BODY.
-  unfold iter, Iter_Kleisli.
+  unfold_ktree.
   eapply (eutt_iter' eq); auto.
   intros ? _ []; eapply eqit_mon, EQ_BODY; auto.
-  intros [] _ []; auto.
+  intros [] _ []; auto; econstructor; auto.
 Qed.
 
 Definition eutt_iter_gen {F A B R S} :
@@ -146,31 +156,25 @@ Section KTreeIterative.
 
 Lemma unfold_iter_ktree {E A B} (f : ktree E A (A + B)) (a0 : A) :
   iter f a0 ≅
-    ab <- f a0 ;;
+    ITree.bind (f a0) (fun ab =>
     match ab with
     | inl a => Tau (iter f a)
     | inr b => Ret b
-    end.
+    end).
 Proof.
-  unfold iter, Iter_Kleisli, Basics.iter, MonadIter_itree, cat.
-  rewrite unfold_iter; cbn.
-  eapply eqit_bind; try reflexivity.
+  apply unfold_iter.
 Qed.
 
 Instance IterUnfold_ktree {E} : IterUnfold (ktree E) sum.
 Proof.
-  repeat intro.
-  rewrite unfold_iter_ktree.
-  do 2 red. unfold cat, Cat_Kleisli; cbn.
+  repeat intro. unfold_ktree. rewrite unfold_iter_ktree.
   eapply eutt_clo_bind; try reflexivity.
   intros [] ? []; try rewrite tau_eutt; reflexivity.
 Qed.
 
 Instance IterNatural_ktree {E} : IterNatural (ktree E) sum.
 Proof.
-  repeat intro.
-  unfold bimap, Bimap_Coproduct, case_, Case_Kleisli, case_sum, cat, Cat_Kleisli.
-  cbn.
+  repeat intro. unfold_ktree.
   revert a0.
   einit. ecofix CIH. intros.
   rewrite 2 unfold_iter_ktree.
@@ -185,24 +189,24 @@ Qed.
 Lemma iter_dinatural_ktree {E A B C}
       (f : ktree E A (C + B)) (g : ktree E C (A + B)) (a0 : A)
   : iter (C := ktree E) (fun a =>
-      cb <- f a ;;
+      ITree.bind (f a) (fun cb =>
       match cb with
       | inl c => Tau (g c)
       | inr b => Ret (inr b)
-      end) a0
-  ≅ cb <- f a0 ;;
+      end)) a0
+  ≅ ITree.bind (f a0) (fun cb =>
      match cb with
      | inl c0 => Tau (iter (C := ktree E) (fun c =>
-         ab <- g c ;;
+         ITree.bind (g c) (fun ab =>
          match ab with
          | inl a => Tau (f a)
          | inr b => Ret (inr b)
-         end) c0)
+         end)) c0)
      | inr b => Ret b
-     end.
+     end).
 Proof.
-  revert A B C f g a0.
-  ginit. gcofix CIH. intros.
+  revert f g a0.
+  ginit. pcofix CIH. intros.
   rewrite unfold_iter_ktree.
   rewrite bind_bind.
   guclo eqit_clo_bind. econstructor. try reflexivity.
@@ -224,15 +228,13 @@ Qed.
 
 Instance IterDinatural_ktree {E} : IterDinatural (ktree E) sum.
 Proof.
-  repeat intro.
-  unfold bimap, Bimap_Coproduct, case_, Case_Kleisli, case_sum, cat, Cat_Kleisli.
-  cbn.
+  repeat intro. unfold_ktree.
   transitivity (iter (C := ktree E) (fun t =>
-                        x <- f t;;
+                        ITree.bind (f t) (fun x =>
                         match x with
                         | inl a1 => Tau (g a1)
                         | inr b0 => Ret (inr b0)
-                        end) a0).
+                        end)) a0).
   - apply eutt_iter; intros x.
     eapply eutt_clo_bind.
     reflexivity.
@@ -256,15 +258,15 @@ Qed.
 Lemma iter_codiagonal_ktree {E A B} (f : ktree E A (A + (A + B))) (a0 : A)
   : iter (iter f) a0
   ≅ iter (C := ktree _) (fun a =>
-       r <- f a ;;
+       ITree.bind (f a) (fun r =>
        match r with
        | inl a' => Ret (inl a')
        | inr (inl a') => Ret (inl a')
        | inr (inr b) => Ret (inr b)
-       end) a0.
+       end)) a0.
 Proof.
   revert a0.
-  ginit. gcofix CIH. intros.
+  ginit. pcofix CIH. intros.
   rewrite unfold_iter_ktree.
   rewrite (unfold_iter_ktree (fun _ => _ _ _)).
   rewrite unfold_iter_ktree, !bind_bind.
@@ -273,7 +275,7 @@ Proof.
   - rewrite bind_ret_l, bind_tau.
     gstep. constructor.
     revert a.
-    gcofix CIH'. intros.
+    pcofix CIH'. intros.
     rewrite unfold_iter_ktree.
     rewrite (unfold_iter_ktree (fun _ => _ _ _)).
     rewrite !bind_bind.
@@ -290,9 +292,7 @@ Qed.
 
 Instance IterCodiagonal_ktree {E} : IterCodiagonal (ktree E) sum.
 Proof.
-  repeat intro.
-  unfold bimap, Bimap_Coproduct, case_, Case_Kleisli, case_sum, cat, Cat_Kleisli.
-  cbn.
+  repeat intro. unfold_ktree.
   rewrite iter_codiagonal_ktree.
   apply eutt_iter.
   intros a1.
@@ -304,6 +304,69 @@ Qed.
 Global Instance Iterative_ktree {E} : Iterative (ktree E) sum.
 Proof.
   split; typeclasses eauto.
+Qed.
+
+(* Equation merging the sequence of two [iter] into one *)
+Lemma cat_iter: 
+  forall {E: Type -> Type} {a b c} (f: ktree E a (a + b)) (g: ktree E b (b + c)), 
+    ITree.iter f >>> ITree.iter g ⩯ inl_ >>> ITree.iter (case_ (f >>> inl_) (g >>> inr_ >>> assoc_l)).
+Proof.
+  intros *.
+  unfold_ktree.
+  (* We move to the eworld *)
+  einit.
+  intros.
+  revert a0.
+  (* First coinductive point in the simulation: at the entry point of the iteration over f *)
+  ecofix CIH.
+  intros.
+  cbn.
+  rewrite bind_ret_l.
+  (* We unfold one step on both sides *)
+  match goal with
+  |- euttG _ _ _ _ _ ?t _ => remember t; rewrite unfold_iter; subst
+  end.
+  rewrite unfold_iter; cbn.
+  rewrite !bind_bind.
+  ebind.
+  (* We run f a first time on both side *)
+  econstructor; [reflexivity | intros [xa | xb] ? <-].
+  - (* If we loop back to f, we can conclude by coinduction *)
+    rewrite ! bind_ret_l.
+    rewrite bind_tau.
+    etau.
+    specialize (CIHL xa). cbn in CIHL.
+    match goal with
+      |- euttG _ _ _ _ _ ?t _ => remember t
+    end.
+    rewrite <- bind_ret_l.
+    ebase.
+  - (* If we exit the first loop *)
+    rewrite ! bind_ret_l.
+    (* We setup a second coinductive point in the simulation.
+       We just make sure to first get rid of the additional tau guard
+       that we have encountered in the right of the equation to keep the second part clean. 
+     *)
+    rewrite tau_euttge.
+    generalize xb.
+    ecofix CIH'.
+    
+    intros ?.
+    (* We unfold a new step of computation *)
+    rewrite unfold_iter; cbn.
+    match goal with
+      |- euttG _ _ _ _ _ ?t _ => remember t; rewrite unfold_iter; subst
+    end.
+    cbn.
+    rewrite !bind_bind.
+    (* We run g a first time on both sides *)
+    ebind.
+    econstructor; [reflexivity | intros [xb' | xc] ? <-].
+    + (* We loop back in the second loop *)
+      rewrite !bind_ret_l.
+      etau.
+    + rewrite !bind_ret_l.
+      eret.
 Qed.
 
 End KTreeIterative.

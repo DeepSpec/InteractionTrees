@@ -19,6 +19,9 @@
 *.ml~
 examples.mli
 *.gz
+**.coq.d
+*.vok
+*.vos
 .lia.cache
 output
 deps.jpg
@@ -31,6 +34,7 @@ _CoqProject
 _CoqPath
 lib/
 html/
+doc
 coqdocjs*
 
 tests/extraction/*.ml
@@ -38,5 +42,9 @@ tests/extraction/*.mli
 examples/io.ml
 examples/io.mli
 examples/extracted/
+tutorial/imp_test.ml
+tutorial/imp_test.mli
 
 *.native
+
+coq-itree.install

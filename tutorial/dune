@@ -1,0 +1,4 @@
+(coq.theory
+ (name ITreeTutorial)
+ (package coq-itree-tutorial)
+ (theories ITree))

@@ -1,12 +1,8 @@
-.PHONY: all build extraction clean
+.PHONY: extraction clean
 
-all: coq extraction
+extraction:
+	sh extraction-test.sh
 
-include ../common.mk
-
-extraction: coq
-	ocamlbuild extraction/MetaModule.native -no-links
-
-clean: clean-coq
-	$(RM) -rf _build/
-	$(RM) extraction/*.ml{i,}
+clean:
+	rm -rf output
+	rm -f **/.*.aux **/*.{vo,vos,vok,glob}

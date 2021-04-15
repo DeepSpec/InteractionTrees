@@ -10,8 +10,7 @@ From ExtLib Require Import
 
 From ITree Require Import
      ITree
-     Eq
-     Eq.Eq
+     ITreeFacts
      Basics.Basics
      Basics.Category
      Basics.CategoryKleisli
@@ -20,10 +19,7 @@ From ITree Require Import
 Import Basics.Basics.Monads.
 Import ListNotations.
 Import ITreeNotations.
-
-Require Import List.
-Import ListNotations.
-
+Local Open Scope itree_scope.
 
 Section SYNTAX.
 
@@ -32,8 +28,6 @@ Section SYNTAX.
   | Arr (s:typ) (t:typ).
 
   Variable V : typ -> Type.  (* PHOAS variables *)
-
-  
   Inductive tm : typ -> Type :=
   | Lit (n:nat) : tm Base
   | Var : forall (t:typ), V t -> tm t
@@ -47,7 +41,7 @@ Section SYNTAX.
     | [] => tm u
     | t::ts =>  V t -> (open_tm ts u)
     end.
-  
+
 End SYNTAX.
 
 Definition Term (G : list typ) (u:typ) := forall (V : typ -> Type), open_tm V G u.
@@ -58,9 +52,7 @@ Arguments App {V t1 t2}.
 Arguments Lam {V t1 t2}.
 Arguments Opr {V}.
 
-
 Section DENOTATION.
-  
   Fixpoint denote_typ E (t:typ) : Type :=
     match t with
     | Base => nat
@@ -84,9 +76,9 @@ Section DENOTATION.
     | Lam body => ret (fun x => denote_closed_term (body x))
     | Opr m1 m2 => x <- (denote_closed_term m1) ;;
                   y <- (denote_closed_term m2) ;;
-                  Ret (x + y)  
+                  Ret (x + y)
     end.
-  
+
   Program Fixpoint denote_rec
           (V:typ -> Type) E
           (base : forall u (m : tm V u), itree E (V u))
@@ -104,8 +96,8 @@ Section DENOTATION.
     simpl in m.
     apply m in x.
     exact x.
-  Defined.  
-  
+  Defined.
+
   Program Definition denote E (G : list typ) (u:typ) (m : Term G u)
     : denotation_tm_typ E (denote_typ E) G u :=
     denote_rec (denote_typ E) E (@denote_closed_term E) G u _.
@@ -115,9 +107,9 @@ Section DENOTATION.
     exact m.
   Defined.
 
-End DENOTATION.    
+End DENOTATION.
 
-  
+
 Definition id_tm : Term [] (Arr Base Base) :=
   fun V => Lam (fun x => Var x).
 
@@ -142,7 +134,7 @@ Proof.
   cbn.
   repeat rewrite bind_ret_l.
   reflexivity.
-Qed.  
+Qed.
 
 Definition add_2_tm : Term [] (Arr Base Base) :=
   fun V => Lam (fun x => (Opr (Var x) (Lit 2))).

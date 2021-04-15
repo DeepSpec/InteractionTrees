@@ -20,8 +20,10 @@ From Paco Require Import paco.
 From ITree Require Import
      Basics.Basics
      Basics.CategoryOps
+     Basics.HeterogeneousRelations
      ITree
      ITreeFacts
+     Eq.Paco2
      Indexed.Sum
      Interp.Interp
      Events.State
@@ -219,7 +221,7 @@ Section MapFacts.
     punfold H0. red in H0.
     revert s1 s2 H1.
     induction H0; intros; subst; simpl; pclearbot.
-    - eret.
+    - eret. 
     - etau.
     - ebind.
       apply pbc_intro_h with (RU := prod_rel (@eq_map _ _ _ _ d) eq).
@@ -236,9 +238,9 @@ Section MapFacts.
       intros.
       inversion H. subst.
       estep; constructor. ebase.
-    - rewrite tau_eutt, unfold_interp_state.
+    - rewrite tau_euttge, unfold_interp_state.
       eauto.
-    - rewrite tau_eutt, unfold_interp_state.
+    - rewrite tau_euttge, unfold_interp_state.
       eauto.
   Qed.
 

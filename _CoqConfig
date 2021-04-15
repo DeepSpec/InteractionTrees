@@ -4,14 +4,18 @@ theories/Simple.v
 theories/ITree.v
 theories/ITreeFacts.v
 
+theories/Basics/Tacs.v
 theories/Basics/Basics.v
+theories/Basics/HeterogeneousRelations.v
 theories/Basics/Category.v
 theories/Basics/CategoryOps.v
 theories/Basics/CategoryTheory.v
 theories/Basics/CategoryFacts.v
 theories/Basics/CategorySub.v
 theories/Basics/CategoryFunctor.v
+theories/Basics/CategoryRelations.v
 theories/Basics/Monad.v
+theories/Basics/MonadProp.v
 theories/Basics/MonadState.v
 theories/Basics/CategoryKleisli.v
 theories/Basics/CategoryKleisliFacts.v
@@ -25,6 +29,7 @@ theories/Core/Subevent.v
 theories/Core/ITreeMonad.v
 
 theories/Eq.v
+theories/Eq/Paco2.v
 theories/Eq/Shallow.v
 theories/Eq/Eq.v
 theories/Eq/UpToTaus.v
@@ -57,3 +62,4 @@ theories/Events/MapDefault.v
 theories/Events/MapDefaultFacts.v
 theories/Events/Concurrency.v
 theories/Events/Dependent.v
+theories/Events/FailFacts.v
