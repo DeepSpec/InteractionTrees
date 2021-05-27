@@ -2,7 +2,8 @@
 
 (* begin hide *)
 From Coq Require Import
-     Morphisms.
+     Morphisms
+     FunctionalExtensionality.
 
 From ITree Require Import
      Basics.Basics
@@ -35,6 +36,9 @@ Proof. red; reflexivity. Qed.
 
 Instance InitialObject_void : InitialObject Fun void :=
   fun _ _ v => match v : void with end.
+
+Instance TerminalObject_unit : TerminalObject Fun unit.
+Proof. red. intros. intro. destruct (f a0). reflexivity. Qed.
 
 Instance eeq_case_sum {A B C} :
   @Proper (Fun A C -> Fun B C -> Fun (A + B) C)
@@ -113,5 +117,25 @@ Section Products.
     - exact BimapProper_Fun_prod.
   Qed.
 
+  Global Instance Product_Fun : Product Fun prod.
+  Proof.
+    constructor; typeclasses eauto.
+  Qed.  
+  
 End Products.
 
+Section CartesianClosure.
+
+  Global Instance CurryApply_Fun : CurryApply Fun prod Fun Apply_Fun Curry_Fun.
+  Proof.
+    red. repeat intro. destruct a0. unfold curry_, Curry_Fun, cat, Cat_Fun. reflexivity.
+  Qed.
+
+  (* Properness of currying requires(?) functional extensionality *)
+  Global Instance CartesianClosed_Fun : CartesianClosed Fun unit prod Fun Apply_Fun Curry_Fun.
+  Proof.
+    constructor; try typeclasses eauto.
+    repeat intro. unfold curry_, Curry_Fun. apply functional_extensionality.
+    intros. apply H.
+  Qed.
+End CartesianClosure.

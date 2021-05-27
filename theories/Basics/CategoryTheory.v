@@ -306,7 +306,7 @@ Class CartesianClosed : Prop := {
   cartesian_product :> Product _ PROD;
   cartesian_curry_apply :> CurryApply;
   cartesian_proper_curry_ :> forall a b c,
-    @Proper (C (PROD c a) b -> C c (EXP b a)) (eq2 ==> eq2) curry_                          
+    @Proper (C (PROD c a) b -> C c (EXP a b)) (eq2 ==> eq2) curry_                          
 }.
   
 End CartesianClosureLaws.
