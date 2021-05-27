@@ -47,3 +47,12 @@ Instance case_sum : Case Fun sum :=
 (** Injections *)
 Instance sum_inl : Inl Fun sum := @inl.
 Instance sum_inr : Inr Fun sum := @inr.
+
+(** ** The [pair] product. *)
+Instance Pair_Fun : Pair Fun prod :=
+  fun {A B C} l r c => (l c, r c).
+
+Instance Fst_Fun : Fst Fun prod := @fst.
+Instance Snd_Fun : Snd Fun prod := @snd.
+
+

@@ -384,8 +384,25 @@ Instance UnitR'_Product : UnitR' C PROD T :=
 
 End CartesianConstruct.
 
+Section CartesianClosed.
+  Context {obj : Type}
+          (C : Hom obj)
+          (PROD : binop obj)
+          (EXP : binop obj).
+
+  Class Apply : Type :=
+    apply_ : forall a b, C (PROD (EXP b a) a) b.
+
+  Class Curry : Type :=
+    curry_ : forall a b c, C (PROD c a) b -> C c (EXP b a).
+
+End CartesianClosed.
+
+Arguments apply_ {obj C PROD EXP _ a b}.
+Arguments curry_ {obj C PROD EXP _ a b c}.  
+
 Section Dagger.
-  Context {obj : Type} (C : Hom obj) (Cat_C : Cat C).
+  Context {obj : Type} (C : Hom obj).
 
   Class Dagger : Type :=
     dagger : forall a b, op C a b -> C a b.
