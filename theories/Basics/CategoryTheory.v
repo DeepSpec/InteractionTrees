@@ -291,8 +291,8 @@ Context {Pair_C : Pair C PROD}
         {Fst_C : Fst C PROD}
         {Snd_C : Snd C PROD}.
 Context (EXP : binop obj).
-Context (Apply_C : Apply C PROD EXP)
-        (Curry_C : Curry C PROD EXP).
+Context {Apply_C : Apply C PROD EXP}
+        {Curry_C : Curry C PROD EXP}.
 
 Existing Instance Bimap_Product.
 

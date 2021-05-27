@@ -126,13 +126,13 @@ End Products.
 
 Section CartesianClosure.
 
-  Global Instance CurryApply_Fun : CurryApply Fun prod Fun Apply_Fun Curry_Fun.
+  Global Instance CurryApply_Fun : CurryApply Fun prod Fun.
   Proof.
     red. repeat intro. destruct a0. unfold curry_, Curry_Fun, cat, Cat_Fun. reflexivity.
   Qed.
 
   (* Properness of currying requires(?) functional extensionality *)
-  Global Instance CartesianClosed_Fun : CartesianClosed Fun unit prod Fun Apply_Fun Curry_Fun.
+  Global Instance CartesianClosed_Fun : CartesianClosed Fun unit prod Fun.
   Proof.
     constructor; try typeclasses eauto.
     repeat intro. unfold curry_, Curry_Fun. apply functional_extensionality.
