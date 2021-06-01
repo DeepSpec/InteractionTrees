@@ -25,9 +25,7 @@ From Coq Require Import
      Strings.String
      Program.Basics
      ZArith
-     Morphisms
-     Lia
-.
+     Morphisms.
 Import ListNotations.
 
 From ExtLib Require Import
@@ -39,12 +37,12 @@ From ITree Require Import
      ITreeMonad
      Basics.Category
      Basics.CategorySub
-     Secure.SecurityAsm
-     Secure.Fin
-     Secure.KTreeFin
-     Secure.Utils_tutorial
-     Secure.CatTheory
-     Secure.SecurityImp
+     Secure.SecurityImp.SecurityAsm
+     Secure.SecurityImp.Fin
+     Secure.SecurityImp.KTreeFin
+     Secure.SecurityImp.Utils_tutorial
+     Secure.SecurityImp.CatTheory
+     Secure.SecurityImp.SecurityImp
 .
 
 Import CatNotations.
@@ -125,10 +123,6 @@ Definition pure_asm {A B: nat} (f : sub Fun fin A B) : asm A B :=
 
 Definition id_asm {A} : asm A A := pure_asm id.
 
-
-
- (* below internal acts as before*)
-
 (** The [app_asm] combinator joins two [asm] programs,
     preserving their internal links.
     Since the three ambient domains of labels are extended,
@@ -164,6 +158,18 @@ Definition loop_asm {I A B} (ab : asm (I + A) (I + B)) : asm A B :=
   {| internal := ab.(internal) + I;
      code := relabel_bks assoc_r assoc_l ab.(code);
   |}.
+
+(**
+   *)
+Program Definition forward_bks_low {A B : nat} (p : bks A B) : bks B B :=
+  fun (n : fin B) => 
+    let m := proj1_sig n in
+    match lt_dec m A with
+    | left Hm => p m
+    | right _ => bbb (Bjmp n) end.    
+
+Program Definition forward_asm_low {A B : nat} (p : asm A B) : asm B B :=
+  Build_asm B B (internal p) (forward_bks_low (code p)).
 
 (* ================================================================= *)
 (** ** Correctness *)

@@ -151,7 +151,7 @@ Definition NatPreorder : Preorder :=
   |}.
 
 Section SecureUntimedUnReflexive.
-  
+(*  
   Variant NonDet : Type -> Type :=
     | SecureFlip : NonDet bool
     | PublicOut : NonDet unit
@@ -245,7 +245,7 @@ Definition halt : itree E R := Vis HaltE (fun _ => Tau Tau ...)
           inv H3; ITrace.inj_existT; subst. apply SECCHECK1; constructor.
       Qed.
           
-
+*)
 Section eqit_secureC.
   (* might not be the order I eventually want but whatever*)
   Context {E: Type -> Type} {R1 R2 : Type} (RR : R1 -> R2 -> Prop).
@@ -357,29 +357,5 @@ Proof.
   constructor; auto. right.  eauto. apply CIH; apply H2.
 Qed.
 
-Section Transitivity.
-
-
-  Context (E : Type -> Type) (R : Type) (Label : Preorder) (priv : forall A, E A -> L).
-  Context (l : L).
-  Context (Hhalt_vis : forall A (e : E A), nonempty A -> leq (priv A e) l).
-
-End Transitivity.
 
 End SecureUntimedUnReflexive.
-
-Section SecureTimed.
-
-  Variant TimedEv (E : Type -> Type) : Type -> Type :=
-    | TE {A : Type} (e : E A) (n : nat) : TimedEv E A.
-
-  Fixpoint handle_timed_aux {E A} (e : E A) (n : nat) : itree E A :=
-    match n with
-    | 0 => Vis e (fun a => Ret a)
-    | S m => Tau (handle_timed_aux e m) end.
-
-  Definition handle_timed {E A} (e : TimedEv E A) : itree E A :=
-    match e with TE _ e' a => handle_timed_aux e' a end.
-
-
-End SecureTimed.

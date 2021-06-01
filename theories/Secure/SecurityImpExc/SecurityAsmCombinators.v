@@ -25,9 +25,7 @@ From Coq Require Import
      Strings.String
      Program.Basics
      ZArith
-     Morphisms
-     Lia
-.
+     Morphisms.
 Import ListNotations.
 
 From ExtLib Require Import
@@ -39,12 +37,12 @@ From ITree Require Import
      ITreeMonad
      Basics.Category
      Basics.CategorySub
-     Secure.SecurityAsm
-     Secure.Fin
-     Secure.KTreeFin
-     Secure.Utils_tutorial
-     Secure.CatTheory
-     Secure.SecurityImp
+     Secure.SecurityImpExc.SecurityAsm
+     Secure.SecurityImp.Fin
+     Secure.SecurityImp.KTreeFin
+     Secure.SecurityImp.Utils_tutorial
+     Secure.SecurityImp.CatTheory
+     Secure.SecurityImpExc.SecurityImp
 .
 
 Import CatNotations.
@@ -60,6 +58,7 @@ Definition fmap_branch {A B : Type} (f: A -> B): branch A -> branch B :=
     match b with
     | Bjmp a => Bjmp (f a)
     | Bbrz c a a' => Bbrz c (f a) (f a')
+    | BRaise s => BRaise s
     end.
 
 (** A utility function to apply a renaming function [f] to the exit label of a [block]. *)
@@ -126,9 +125,6 @@ Definition pure_asm {A B: nat} (f : sub Fun fin A B) : asm A B :=
 Definition id_asm {A} : asm A A := pure_asm id.
 
 
-
- (* below internal acts as before*)
-
 (** The [app_asm] combinator joins two [asm] programs,
     preserving their internal links.
     Since the three ambient domains of labels are extended,
@@ -187,10 +183,10 @@ Local Open Scope cat.
 Section Correctness.
 
   Context {E : Type -> Type}.
+  Context {HasExc : impExcE -< E}. 
   Context {HasRegs : Reg -< E}.
   Context {HasMemory : Memory -< E}.
   Context {HasIO : IOE -< E}.
-  (* Context {HasExit : Exit -< E}. *)
 
   (** *** Internal structures *)
 
@@ -213,6 +209,7 @@ Section Correctness.
         eapply eqit_bind; [| reflexivity].
         intros ?.
         flatten_goal; rewrite map_ret; reflexivity.
+      + rewrite map_bind. eapply eqit_bind;  [intros [] | reflexivity].
   Qed.
 
   (** Denotes a list of instruction by binding the resulting trees. *)
@@ -442,6 +439,7 @@ Section Correctness.
     rewrite fmap_assoc_l, fmap_assoc_r.
     reflexivity.
   Qed.
+
 
 End Correctness.
 

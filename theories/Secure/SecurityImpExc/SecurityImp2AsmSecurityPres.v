@@ -15,16 +15,15 @@ From ITree Require Import
      Events.StateFacts
      Events.MapDefault
      Secure.SecureEqHalt
-     Secure.SecurityImp.SecurityImp
-     Secure.SecurityImp.SecurityImpHandler
-     Secure.SecurityImp.SecurityAsm
+     Secure.SecurityImpExc.SecurityImp
+     Secure.SecurityImpExc.SecurityImpHandler
+     Secure.SecurityImpExc.SecurityAsm
      Secure.SecurityImp.Utils_tutorial
-     Secure.SecurityImp.SecurityAsmCombinatorsIm
-     Secure.SecurityImp.SecurityImp2Asm
+     Secure.SecurityImpExc.SecurityAsmCombinators
+     Secure.SecurityImpExc.SecurityImp2Asm
      Secure.SecurityImp.Fin
      Secure.SecurityImp.KTreeFin
-     Secure.SecurityImp.SecurityAsmHandler
-     Secure.SecurityImp.SecurityImp2AsmCorrectness
+     Secure.SecurityImpExc.SecurityImp2AsmCorrectness
      Secure.SecureEqEuttTrans
 .
 
@@ -42,10 +41,11 @@ Definition low_state_equiv : map -> (registers * memory) -> Prop :=
   fun s '(r, m) => low_map_equiv priv s m.
 
 Definition low_bisimilar {A B : Type} (RAB : A -> B -> Prop) 
-           (t1 : itree (stateE +' IOE) A ) (t2 : itree (Reg +' Memory +' IOE) B) :=
+           (t1 : itree (impExcE +' stateE +' IOE) A ) (t2 : itree (impExcE +'
+ Reg +' Memory +' IOE) B) :=
   forall (g_imp : map) (g_asm : memory) (l : registers),
     low_map_equiv priv g_imp g_asm ->
-    eqit_secure sense_preorder priv_io (product_rel low_state_equiv RAB) true true Public (interp_imp t1 g_imp ) (interp_asm t2 (l, g_asm)).
+    eqit_secure sense_preorder priv_exc_io (product_rel low_state_equiv RAB) true true Public (interp_imp t1 g_imp ) (interp_asm t2 (l, g_asm)).
 
 Lemma compile_preserves_security : forall (p : stmt),
     low_eqit_secure_impstate true true priv eq (interp_imp (denote_stmt p)) (interp_imp (denote_stmt p)) ->
