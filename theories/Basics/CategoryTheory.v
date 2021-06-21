@@ -49,6 +49,12 @@ Class Category : Prop := {
 Class InitialObject (i : obj) {Initial_i : Initial C i} : Prop :=
   initial_object : forall a (f : C i a), f ⩯ empty.
 
+(** *** Terminal object *)
+
+(** There is a unique morphism from any other object and the terminal object. *)
+Class TerminalObject (t : obj) {Terminal_t : Terminal C t} : Prop :=
+  terminal_object : forall a (f : C a t), f ⩯ one.
+
 End CatLaws.
 
 Arguments cat_id_l {obj C Eq2C IdC CatC CatIdL} [a b] f.
@@ -56,9 +62,13 @@ Arguments cat_id_r {obj C Eq2C IdC CatC CatIdR} [a b] f.
 Arguments cat_assoc {obj C Eq2C CatC CatAssoc} [a b c d] f g.
 Arguments category_proper_cat {obj C Eq2C IdC CatC Category} [a b c].
 Arguments initial_object {obj C Eq2C i Initial_i InitialObject} [a] f.
+Arguments terminal_object {obj C Eq2C t Terminal_t TerminalObject} [a] f.
 
 (** Synonym of [initial_object]. *)
 Notation unique_initial := initial_object.
+
+(** Synonym of [terminal_object]. *)
+Notation unique_terminal := terminal_object.
 
 (** ** Mono-, Epi-, Iso- morphisms *)
 
@@ -268,6 +278,40 @@ End ProductLaws.
 Arguments pair_fst {obj C Eq2_C Cat_C bif Pair_C Fst_C PairFst} [a b c] f g.
 Arguments pair_snd {obj C Eq2_C Cat_C bif Pair_C Snd_C PairSnd} [a b c] f g.
 Arguments pair_universal {obj C _ _ bif _ _ _ _} [a b c] f g fg.
+
+(** Cartesian Closure *)
+Section CartesianClosureLaws.
+
+Context {obj : Type} (C : Hom obj).
+Context {Eq2_C : Eq2 C} {Id_C : Id_ C} {Cat_C : Cat C}.
+Context (ONE : obj)
+        {Term_C : Terminal C ONE}.
+Context (PROD : binop obj).
+Context {Pair_C : Pair C PROD}
+        {Fst_C : Fst C PROD}
+        {Snd_C : Snd C PROD}.
+Context (EXP : binop obj).
+Context {Apply_C : Apply C PROD EXP}
+        {Curry_C : Curry C PROD EXP}.
+
+Existing Instance Bimap_Product.
+
+Class CurryApply : Prop :=
+  curry_apply :
+    forall a b c (f : C (PROD c a) b),
+      f ⩯ ((@bimap obj C PROD _ _ _ _ _ (curry_ f) (id_ a)) >>> apply_).
+
+Class CartesianClosed : Prop := {
+  cartesian_terminal :> TerminalObject _ ONE;
+  cartesian_product :> Product _ PROD;
+  cartesian_curry_apply :> CurryApply;
+  cartesian_proper_curry_ :> forall a b c,
+    @Proper (C (PROD c a) b -> C c (EXP a b)) (eq2 ==> eq2) curry_                          
+}.
+  
+End CartesianClosureLaws.
+
+Arguments curry_apply {obj C Eq2_C Id_C Cat_C PROD Pair_C Fst_C Snd_C EXP Apply_C Curry_C} _ [a b c] f.
 
 (** ** Monoidal categories *)
 

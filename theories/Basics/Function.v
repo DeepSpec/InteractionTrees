@@ -34,6 +34,10 @@ Instance Cat_Fun : Cat Fun :=
 Instance Initial_void : Initial Fun void :=
   fun _ v => match v : void with end.
 
+(** [unit] as a final object. *)
+Instance Terminal_unit : Terminal Fun unit :=
+  fun _ x => tt.
+
 (** ** The [sum] coproduct. *)
 
 (** Coproduct elimination *)
@@ -47,3 +51,19 @@ Instance case_sum : Case Fun sum :=
 (** Injections *)
 Instance sum_inl : Inl Fun sum := @inl.
 Instance sum_inr : Inr Fun sum := @inr.
+
+(** ** The [pair] product. *)
+Instance Pair_Fun : Pair Fun prod :=
+  fun {A B C} l r c => (l c, r c).
+
+Instance Fst_Fun : Fst Fun prod := @fst.
+Instance Snd_Fun : Snd Fun prod := @snd.
+
+
+(** ** Cartesian closure. *)
+(** The [exponential] is just [_ -> _], which is a just another name for [Fun] *)
+Instance Apply_Fun : Apply Fun prod Fun :=
+    fun {A B} '(f, b) => f b.
+  
+Instance Curry_Fun : Curry Fun prod Fun :=
+  fun {A B C} f => fun c a => f (c, a).
