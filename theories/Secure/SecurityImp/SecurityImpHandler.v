@@ -47,10 +47,10 @@ Definition priv_io (A : Type) (e : IOE A) :=
   match e with
   | LabelledPrint s _ => s end.
 
-Definition product_rel {R1 R2 S1 S2} (RR1: R1 -> S1 -> Prop) (RR2 : R2 -> S2 -> Prop) 
+Definition product_rel {R1 R2 S1 S2} (RR1: R1 -> S1 -> Prop) (RR2 : R2 -> S2 -> Prop)
            (p1 : R1 * R2) (p2 : S1 * S2) : Prop :=
-  RR1 (fst p1) (fst p2) /\ RR2 (snd p1) (snd p2). 
-  
+  RR1 (fst p1) (fst p2) /\ RR2 (snd p1) (snd p2).
+
 Definition low_map_equiv (priv : privacy_map ) (s1 s2 : map) : Prop :=
   forall x, priv x = Public -> s1 x = s2 x.
 
@@ -93,24 +93,24 @@ Definition handle_case {E1 E2 : Type -> Type} {M : Type -> Type} (hl : E1 ~> M) 
 Definition handle_state_io : forall A, (stateE +' IOE) A -> stateT map (itree IOE) A :=
   fun _ e => match e with
           | inl1 el => handleState _ el
-          | inr1 er => fun s => r <- ITree.trigger er;; Ret (s, r) end. 
+          | inr1 er => fun s => r <- ITree.trigger er;; Ret (s, r) end.
 
 Definition interp_imp {R} (t : itree (stateE +' IOE) R ) : stateT map (itree IOE) R :=
-  interp_state handle_state_io t. 
+  interp_state handle_state_io t.
 
 Hint Unfold interp_imp.
 Hint Unfold handle_state_io.
 Hint Unfold product_rel.
 
 Ltac use_simpobs :=
-  repeat match goal with 
-         | H : TauF _ = observe ?t |- _ => apply simpobs in H 
+  repeat match goal with
+         | H : TauF _ = observe ?t |- _ => apply simpobs in H
          | H : RetF _ = observe ?t |- _ => apply simpobs in H
          | H : VisF _ _ = observe ?t |- _ => apply simpobs in H
   end.
 
-Lemma interp_eqit_secure_imp : forall (R1 R2 : Type) (RR : R1 -> R2 -> Prop) (priv_map : privacy_map) 
-                                 (t1 : itree (stateE +' IOE) R1 ) 
+Lemma interp_eqit_secure_imp : forall (R1 R2 : Type) (RR : R1 -> R2 -> Prop) (priv_map : privacy_map)
+                                 (t1 : itree (stateE +' IOE) R1 )
                                  (t2 : itree (stateE +' IOE) R2),
     eqit_secure sense_preorder (priv_imp priv_map) RR true true Public t1 t2 ->
     low_eqit_secure_impstate true true priv_map RR (interp_imp t1 )  (interp_imp t2).
@@ -119,7 +119,7 @@ Proof.
   punfold Ht. red in Ht. remember (observe t1) as ot1. remember (observe t2) as ot2.
   unfold interp_imp.
   hinduction Ht before r; intros.
-  - use_simpobs.  
+  - use_simpobs.
     rewrite Heqot1. rewrite Heqot2. repeat rewrite interp_state_ret.
     pfold. constructor. auto.
   - use_simpobs.
@@ -128,96 +128,96 @@ Proof.
   - use_simpobs. rewrite Heqot1. rewrite interp_state_tau.
     pfold. constructor; auto. pstep_reverse.
   - use_simpobs. rewrite Heqot2. rewrite interp_state_tau.
-    pfold. constructor; auto.  pstep_reverse.
+    pfold. constructor; auto. pstep_reverse.
   - pclearbot. use_simpobs.
     rewrite Heqot1. rewrite Heqot2. repeat rewrite interp_state_vis.
     destruct e; cbn.
     + destruct s; cbn.
-      * repeat rewrite bind_ret_l. pfold. constructor. right. cbn. eapply CIH; auto. 
+      * repeat rewrite bind_ret_l. pfold. constructor. right. cbn. eapply CIH; auto.
         cbv in SECCHECK. unfold get. red in Hs. destruct (priv_map x) eqn : Hx; try contradiction.
         apply Hs in Hx. rewrite Hx. apply H.
       * repeat rewrite bind_ret_l. pfold. constructor. right. cbv in SECCHECK. cbn.
         destruct (priv_map x) eqn : Hx; try contradiction.
         eapply CIH; auto. apply H. apply low_equiv_update_public; auto.
-   + rewrite bind_bind. rewrite bind_bind.  repeat rewrite bind_trigger. destruct i.
-     cbv in SECCHECK. destruct s; try contradiction. pfold. constructor; auto.
-     left. repeat rewrite bind_ret_l. cbn. pfold. constructor. right. apply CIH; auto. apply H.
- - pclearbot. use_simpobs. rewrite Heqot1. rewrite Heqot2.
-   rewrite interp_state_tau. rewrite interp_state_vis. destruct e; try destruct s.
-   + cbn. rewrite bind_ret_l. pfold. cbn. constructor. right. apply CIH; auto. apply H.
-   + cbn. rewrite bind_ret_l. cbn. pfold. constructor. right. apply CIH; auto. apply H.
-     apply low_equiv_update_private_l; auto. cbv in SECCHECK. 
-     destruct (priv_map x); auto; contradiction.
-   + cbn. cbv in SECCHECK. destruct i. destruct s; try contradiction. rewrite bind_bind.
-     rewrite bind_trigger. setoid_rewrite bind_ret_l. pfold. red. cbn. 
-     rewrite itree_eta'. unpriv_ind. cbn. constructor. right. apply CIH; auto.
-     apply H.
- - pclearbot. use_simpobs. rewrite Heqot1. rewrite Heqot2.
-   rewrite interp_state_tau. rewrite interp_state_vis. destruct e; try destruct s.
-   + cbn. rewrite bind_ret_l. pfold. cbn. constructor. right. apply CIH; auto. apply H.
-   + cbn. rewrite bind_ret_l. cbn. pfold. constructor. right. apply CIH; auto. apply H.
-     apply low_equiv_update_private_r; auto. cbv in SECCHECK. 
-     destruct (priv_map x); auto; contradiction.
-   + cbn. cbv in SECCHECK. destruct i. destruct s; try contradiction. rewrite bind_bind.
-     rewrite bind_trigger. setoid_rewrite bind_ret_l. pfold. red. cbn. 
-     rewrite itree_eta' at 1. unpriv_ind. cbn. constructor. right. apply CIH; auto.
-     apply H.
- - use_simpobs. rewrite Heqot1. rewrite Heqot2. pclearbot.
-   rewrite interp_state_vis. destruct e1; try destruct s; destruct e2; try destruct s; try destruct i; cbn;
-   try (repeat rewrite interp_state_vis; cbn; repeat rewrite bind_ret_l; cbn).
-   + pfold. constructor. right. apply CIH; auto. apply H.
-   + pfold. constructor. right. apply CIH; auto. apply H.
-     apply low_equiv_update_private_r; auto. cbv in SECCHECK2. 
-     destruct (priv_map x0); auto; contradiction.
-   + rewrite bind_bind. rewrite bind_trigger.  cbv in SECCHECK2. destruct s; try contradiction.
-     cbn. setoid_rewrite bind_ret_l. pfold. red. cbn. rewrite itree_eta' at 1.
-     unpriv_ind. cbn. constructor. right. apply CIH; auto. apply H.
-   + pfold. constructor. right. apply CIH. apply H.
-     apply low_equiv_update_private_l; auto. cbv in SECCHECK1. 
-     destruct (priv_map x); auto; contradiction.
-   + pfold. constructor. right. apply CIH. apply H.
-     apply low_equiv_update_private_l; auto. cbv in SECCHECK1. 
-     destruct (priv_map x); auto; contradiction.
-     apply low_equiv_update_private_r; auto. cbv in SECCHECK2. 
-     destruct (priv_map x0); auto; contradiction.
-   + rewrite bind_bind. rewrite bind_trigger. cbv in SECCHECK2. destruct s; try contradiction.
-     setoid_rewrite bind_ret_l.
+    + rewrite bind_bind. rewrite bind_bind.  repeat rewrite bind_trigger. destruct i.
+      cbv in SECCHECK. destruct s; try contradiction. pfold. constructor; auto.
+      left. repeat rewrite bind_ret_l. cbn. pfold. constructor. right. apply CIH; auto. apply H.
+  - pclearbot. use_simpobs. rewrite Heqot1. rewrite Heqot2.
+    rewrite interp_state_tau. rewrite interp_state_vis. destruct e; try destruct s.
+    + cbn. rewrite bind_ret_l. pfold. cbn. constructor. right. apply CIH; auto. apply H.
+    + cbn. rewrite bind_ret_l. cbn. pfold. constructor. right. apply CIH; auto. apply H.
+      apply low_equiv_update_private_l; auto. cbv in SECCHECK.
+      destruct (priv_map x); auto; contradiction.
+    + cbn. cbv in SECCHECK. destruct i. destruct s; try contradiction. rewrite bind_bind.
+      rewrite bind_trigger. setoid_rewrite bind_ret_l. pfold. red. cbn.
+      rewrite itree_eta'. unpriv_ind. cbn. constructor. right. apply CIH; auto.
+      apply H.
+  - pclearbot. use_simpobs. rewrite Heqot1. rewrite Heqot2.
+    rewrite interp_state_tau. rewrite interp_state_vis. destruct e; try destruct s.
+    + cbn. rewrite bind_ret_l. pfold. cbn. constructor. right. apply CIH; auto. apply H.
+    + cbn. rewrite bind_ret_l. cbn. pfold. constructor. right. apply CIH; auto. apply H.
+      apply low_equiv_update_private_r; auto. cbv in SECCHECK.
+      destruct (priv_map x); auto; contradiction.
+    + cbn. cbv in SECCHECK. destruct i. destruct s; try contradiction. rewrite bind_bind.
+      rewrite bind_trigger. setoid_rewrite bind_ret_l. pfold. red. cbn.
+      rewrite itree_eta' at 1. unpriv_ind. cbn. constructor. right. apply CIH; auto.
+      apply H.
+  - use_simpobs. rewrite Heqot1. rewrite Heqot2. pclearbot.
+    rewrite interp_state_vis. destruct e1; try destruct s; destruct e2; try destruct s; try destruct i; cbn;
+                                try (repeat rewrite interp_state_vis; cbn; repeat rewrite bind_ret_l; cbn).
+    + pfold. constructor. right. apply CIH; auto. apply H.
+    + pfold. constructor. right. apply CIH; auto. apply H.
+      apply low_equiv_update_private_r; auto. cbv in SECCHECK2.
+      destruct (priv_map x0); auto; contradiction.
+    + rewrite bind_bind. rewrite bind_trigger.  cbv in SECCHECK2. destruct s; try contradiction.
+      cbn. setoid_rewrite bind_ret_l. pfold. red. cbn. rewrite itree_eta' at 1.
+      unpriv_ind. cbn. constructor. right. apply CIH; auto. apply H.
+    + pfold. constructor. right. apply CIH. apply H.
+      apply low_equiv_update_private_l; auto. cbv in SECCHECK1.
+      destruct (priv_map x); auto; contradiction.
+    + pfold. constructor. right. apply CIH. apply H.
+      apply low_equiv_update_private_l; auto. cbv in SECCHECK1.
+      destruct (priv_map x); auto; contradiction.
+      apply low_equiv_update_private_r; auto. cbv in SECCHECK2.
+      destruct (priv_map x0); auto; contradiction.
+    + rewrite bind_bind. rewrite bind_trigger. cbv in SECCHECK2. destruct s; try contradiction.
+      setoid_rewrite bind_ret_l.
       pfold. red. cbn. rewrite itree_eta' at 1. unpriv_ind. cbn. constructor.
       right. apply CIH; try apply H.
-      apply low_equiv_update_private_l; auto. cbv in SECCHECK1. 
+      apply low_equiv_update_private_l; auto. cbv in SECCHECK1.
       destruct (priv_map x); auto; contradiction.
-   + rewrite bind_bind. rewrite bind_trigger. cbv in SECCHECK1. destruct s; try contradiction.
-     setoid_rewrite bind_ret_l. pfold. red. cbn. rewrite itree_eta'. unpriv_ind.
-     cbn. constructor. right. apply CIH; auto. apply H.
-   + rewrite bind_bind. rewrite bind_trigger. setoid_rewrite bind_ret_l. pfold. red. cbn.
-     rewrite itree_eta'. unpriv_ind. cbn. constructor. right. apply CIH. apply H.
-     apply low_equiv_update_private_r; auto. cbv in SECCHECK2. 
-     destruct (priv_map x); auto; contradiction.
-   + repeat rewrite bind_bind. repeat rewrite bind_trigger. repeat setoid_rewrite bind_ret_l. 
-     cbn. pfold. red. cbn. destruct i0. unpriv_co.
-     left. pfold. constructor. right. apply CIH; auto. apply H.
- - use_simpobs. rewrite Heqot1. rewrite interp_state_vis.
-   destruct e; try destruct s; cbn.
-   + rewrite bind_ret_l. cbn. pfold. constructor; auto. pstep_reverse.
-   + rewrite bind_ret_l. cbn. pfold. constructor; auto. pstep_reverse. eapply H0; eauto.
-     apply low_equiv_update_private_l; auto. cbv in SECCHECK. 
-     destruct (priv_map x); auto; contradiction.
-   + rewrite bind_bind. rewrite bind_trigger. destruct i. destruct s.
-     cbv in SECCHECK; try contradiction. setoid_rewrite bind_ret_l.
-     cbn. pfold. red. cbn. unpriv_ind. constructor; auto. pstep_reverse.
- - use_simpobs. rewrite Heqot2. rewrite interp_state_vis.
-   destruct e; try destruct s; cbn.
-   + rewrite bind_ret_l. cbn. pfold. constructor; auto. pstep_reverse.
-   + rewrite bind_ret_l. cbn. pfold. constructor; auto. pstep_reverse. eapply H0; eauto.
-     apply low_equiv_update_private_r; auto. cbv in SECCHECK. 
-     destruct (priv_map x); auto; contradiction.
-   + rewrite bind_bind. rewrite bind_trigger. destruct i. destruct s.
-     cbv in SECCHECK; try contradiction. setoid_rewrite bind_ret_l.
-     cbn. pfold. red. cbn. unpriv_ind. constructor; auto. pstep_reverse.
- - destruct e; try destruct s; try destruct i; exfalso; inv SIZECHECK;  apply H0; auto; apply tt.
- -  destruct e; try destruct s; try destruct i; exfalso; inv SIZECHECK;  apply H0; auto; apply tt.
- -  destruct e1; try destruct s; try destruct i; exfalso; inv SIZECHECK;  apply H0; auto; apply tt.
- -  destruct e2; try destruct s; try destruct i; exfalso; inv SIZECHECK;  apply H0; auto; apply tt.
+    + rewrite bind_bind. rewrite bind_trigger. cbv in SECCHECK1. destruct s; try contradiction.
+      setoid_rewrite bind_ret_l. pfold. red. cbn. rewrite itree_eta'. unpriv_ind.
+      cbn. constructor. right. apply CIH; auto. apply H.
+    + rewrite bind_bind. rewrite bind_trigger. setoid_rewrite bind_ret_l. pfold. red. cbn.
+      rewrite itree_eta'. unpriv_ind. cbn. constructor. right. apply CIH. apply H.
+      apply low_equiv_update_private_r; auto. cbv in SECCHECK2.
+      destruct (priv_map x); auto; contradiction.
+    + repeat rewrite bind_bind. repeat rewrite bind_trigger. repeat setoid_rewrite bind_ret_l.
+      cbn. pfold. red. cbn. destruct i0. unpriv_co.
+      left. pfold. constructor. right. apply CIH; auto. apply H.
+  - use_simpobs. rewrite Heqot1. rewrite interp_state_vis.
+    destruct e; try destruct s; cbn.
+    + rewrite bind_ret_l. cbn. pfold. constructor; auto. pstep_reverse.
+    + rewrite bind_ret_l. cbn. pfold. constructor; auto. pstep_reverse. eapply H0; eauto.
+      apply low_equiv_update_private_l; auto. cbv in SECCHECK.
+      destruct (priv_map x); auto; contradiction.
+    + rewrite bind_bind. rewrite bind_trigger. destruct i. destruct s.
+      cbv in SECCHECK; try contradiction. setoid_rewrite bind_ret_l.
+      cbn. pfold. red. cbn. unpriv_ind. constructor; auto. pstep_reverse.
+  - use_simpobs. rewrite Heqot2. rewrite interp_state_vis.
+    destruct e; try destruct s; cbn.
+    + rewrite bind_ret_l. cbn. pfold. constructor; auto. pstep_reverse.
+    + rewrite bind_ret_l. cbn. pfold. constructor; auto. pstep_reverse. eapply H0; eauto.
+      apply low_equiv_update_private_r; auto. cbv in SECCHECK.
+      destruct (priv_map x); auto; contradiction.
+    + rewrite bind_bind. rewrite bind_trigger. destruct i. destruct s.
+      cbv in SECCHECK; try contradiction. setoid_rewrite bind_ret_l.
+      cbn. pfold. red. cbn. unpriv_ind. constructor; auto. pstep_reverse.
+  - destruct e; try destruct s; try destruct i; exfalso; inv SIZECHECK;  apply H0; auto; apply tt.
+  -  destruct e; try destruct s; try destruct i; exfalso; inv SIZECHECK;  apply H0; auto; apply tt.
+  -  destruct e1; try destruct s; try destruct i; exfalso; inv SIZECHECK;  apply H0; auto; apply tt.
+  -  destruct e2; try destruct s; try destruct i; exfalso; inv SIZECHECK;  apply H0; auto; apply tt.
 Qed.
 
 Section GeneralStateHandler.
@@ -234,17 +234,15 @@ Context (priv1 : forall A, E1 A -> L).
 Context (priv2 : forall A, E2 A -> L).
 Context (l : L).
 
-
-
-Definition state_eqit_secure {R1 R2 : Type} (b1 b2 : bool) (RR : R1 -> R2 -> Prop) 
-           (m1 : stateT S (itree E2) R1) (m2 : stateT S (itree E2) R2) := 
+Definition state_eqit_secure {R1 R2 : Type} (b1 b2 : bool) (RR : R1 -> R2 -> Prop)
+           (m1 : stateT S (itree E2) R1) (m2 : stateT S (itree E2) R2) :=
   forall s1 s2, RS s1 s2 -> eqit_secure Label priv2 (product_rel RS RR) b1 b2 l (m1 s1) (m2 s2).
-  
-Definition top2 {R1 R2} (r1 : R1) (r2 : R2) : Prop := True. 
+
+Definition top2 {R1 R2} (r1 : R1) (r2 : R2) : Prop := True.
 
 Variant handler_respects_priv (A : Type) (e : E1 A) : Prop :=
-  | respect_private (SECCHECK : ~ leq (priv1 A e) l ) (RESCHECK : state_eqit_secure true true top2 (handler A e) (handler A e) )
-  | respect_public (SECCHECK : leq (priv1 A e) l ) (RESCHECK : state_eqit_secure true true eq (handler A e) (handler A e)).
+| respect_private (SECCHECK : ~ leq (priv1 A e) l ) (RESCHECK : state_eqit_secure true true top2 (handler A e) (handler A e) )
+| respect_public (SECCHECK : leq (priv1 A e) l ) (RESCHECK : state_eqit_secure true true eq (handler A e) (handler A e)).
 
 Context (Hhandler : forall A (e : E1 A), handler_respects_priv A e).
 
@@ -261,7 +259,7 @@ Proof.
   red in Ht. remember (observe t1) as ot1. remember (observe t2) as ot2.
   hinduction Ht before r; intros; use_simpobs.
   - rewrite Heqot1. rewrite Heqot2. repeat rewrite interp_state_ret. pfold. constructor. auto.
-  - rewrite Heqot1. rewrite Heqot2. repeat rewrite interp_state_tau. pfold. constructor. 
+  - rewrite Heqot1. rewrite Heqot2. repeat rewrite interp_state_tau. pfold. constructor.
     pclearbot. right. apply CIH; auto.
   - rewrite Heqot1. rewrite interp_state_tau. pfold. constructor; auto. pstep_reverse.
   - rewrite Heqot2. rewrite interp_state_tau. pfold. constructor; auto. pstep_reverse.
@@ -270,13 +268,16 @@ Proof.
     (* could use the bind closure here, but maybe we can do manually for now*)
     repeat setoid_rewrite <- interp_state_tau. inv Hhandler; try contradiction.
     specialize (RESCHECK s1 s2 Hs).
-    (* should hold but will take weird lemma, essentially an application of the bind closure
-       frustratingly this proof could end up being as complicated as the eqit_secure_bind proof *)
-    admit.
-  - pclearbot. rewrite Heqot1. rewrite Heqot2. rewrite interp_state_vis.
+    eapply secure_eqit_bind'; eauto. intros [] [] []. simpl in *. subst.
+    repeat rewrite interp_state_tau.
+    pfold. constructor. right. eapply CIH; eauto. apply H.
+  - pclearbot. rewrite Heqot1. rewrite Heqot2.
+    rewrite interp_state_tau. rewrite interp_state_vis.
     specialize (Hhandler A e). inv Hhandler; try contradiction.
+    pstep. constructor; auto. pstep_reverse.
     admit.
-  - pclearbot. rewrite Heqot1. rewrite Heqot2. rewrite interp_state_vis.
+  - pclearbot. rewrite Heqot1. rewrite Heqot2.
+    rewrite interp_state_tau. rewrite interp_state_vis.
     specialize (Hhandler A e). inv Hhandler; try contradiction.
     admit.
   - pclearbot. rewrite Heqot1. rewrite Heqot2. repeat rewrite interp_state_vis.
@@ -302,7 +303,7 @@ Abort.
 End GeneralStateHandler.
 
 
-(* 
+(*
 1. Write the paper
 2. Security preserving compiler correctness Imp with IO
    a. Semantics for Imp +
@@ -314,7 +315,7 @@ End GeneralStateHandler.
 3. General relation of state interpreters and security
 4. Security preserving compiler correctness Imp with IO and private exceptions
 5. Write a type system for Imp and prove soundness
-   a. "Manual" inference rule 
+   a. "Manual" inference rule
               |- c1   |= c2
               -------------- Manual_R
                 |- c1; c2
