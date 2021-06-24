@@ -51,7 +51,7 @@ Definition product_rel {R1 R2 S1 S2} (RR1: R1 -> S1 -> Prop) (RR2 : R2 -> S2 -> 
            (p1 : R1 * R2) (p2 : S1 * S2) : Prop :=
   RR1 (fst p1) (fst p2) /\ RR2 (snd p1) (snd p2).
 
-Definition low_map_equiv (priv : privacy_map ) (s1 s2 : map) : Prop :=
+Definition low_map_equiv (priv : privacy_map) (s1 s2 : map) : Prop :=
   forall x, priv x = Public -> s1 x = s2 x.
 
 Lemma low_equiv_update_public : forall (x : var) (v : value) (priv_map : privacy_map) (s1 s2 : map),
@@ -214,7 +214,7 @@ Proof.
     + rewrite bind_bind. rewrite bind_trigger. destruct i. destruct s.
       cbv in SECCHECK; try contradiction. setoid_rewrite bind_ret_l.
       cbn. pfold. red. cbn. unpriv_ind. constructor; auto. pstep_reverse.
-  - destruct e; try destruct s; try destruct i; exfalso; inv SIZECHECK;  apply H0; auto; apply tt.
+  -  destruct e; try destruct s; try destruct i; exfalso; inv SIZECHECK;  apply H0; auto; apply tt.
   -  destruct e; try destruct s; try destruct i; exfalso; inv SIZECHECK;  apply H0; auto; apply tt.
   -  destruct e1; try destruct s; try destruct i; exfalso; inv SIZECHECK;  apply H0; auto; apply tt.
   -  destruct e2; try destruct s; try destruct i; exfalso; inv SIZECHECK;  apply H0; auto; apply tt.
@@ -224,6 +224,7 @@ Section GeneralStateHandler.
 
 Context (S : Type).
 Context (RS : S -> S -> Prop).
+Context (RS_PER: PER RS).
 
 Context (E1 E2 : Type -> Type).
 
@@ -240,9 +241,20 @@ Definition state_eqit_secure {R1 R2 : Type} (b1 b2 : bool) (RR : R1 -> R2 -> Pro
 
 Definition top2 {R1 R2} (r1 : R1) (r2 : R2) : Prop := True.
 
+Inductive terminates {A} (s1 : S) (P : E2 A -> Prop) : itree E2 (S * A) -> Prop :=
+| terminates_ret : forall r (s2 : S), RS s1 s2 -> terminates s1 P (Ret (s2, r))
+| terminates_tau : forall t, terminates s1 P t -> terminates s1 P (Tau t)
+| terminates_vis : forall (e : E2 A) k, (forall v, terminates s1 P (k v)) -> P e -> terminates s1 P (Vis e k)
+.
+
 Variant handler_respects_priv (A : Type) (e : E1 A) : Prop :=
-| respect_private (SECCHECK : ~ leq (priv1 A e) l ) (RESCHECK : state_eqit_secure true true top2 (handler A e) (handler A e) )
-| respect_public (SECCHECK : leq (priv1 A e) l ) (RESCHECK : state_eqit_secure true true eq (handler A e) (handler A e)).
+| respect_private (SECCHECK : ~ leq (priv1 _ e) l)
+                  (RESCHECK : state_eqit_secure true true top2 (handler A e) (handler A e))
+                  (FINCHECK : forall s, terminates s (fun e => ~ leq (priv2 _ e) l) (handler A e s))
+| respect_public (SECCHECK : leq (priv1 _ e) l)
+                 (RESCHECK : state_eqit_secure true true eq (handler A e) (handler A e))
+                 (* we end up not needing the additional requirements here *)
+.
 
 Context (Hhandler : forall A (e : E1 A), handler_respects_priv A e).
 
@@ -274,22 +286,58 @@ Proof.
   - pclearbot. rewrite Heqot1. rewrite Heqot2.
     rewrite interp_state_tau. rewrite interp_state_vis.
     specialize (Hhandler A e). inv Hhandler; try contradiction.
-    pstep. constructor; auto. pstep_reverse.
-    admit.
+    specialize (FINCHECK s1). induction FINCHECK.
+    + rewrite bind_ret_l. pstep. constructor. right.
+      apply CIH. apply H. etransitivity; [symmetry |]; eauto.
+    + rewrite bind_tau. pstep. constructor 3; auto. pstep_reverse.
+    + rewrite bind_vis. pstep. constructor 9; auto. intros. pstep_reverse.
   - pclearbot. rewrite Heqot1. rewrite Heqot2.
     rewrite interp_state_tau. rewrite interp_state_vis.
     specialize (Hhandler A e). inv Hhandler; try contradiction.
-    admit.
+    specialize (FINCHECK s2). induction FINCHECK.
+    + rewrite bind_ret_l. pstep. constructor. right.
+      apply CIH. apply H. etransitivity; eauto.
+    + rewrite bind_tau. pstep. constructor 4; auto. pstep_reverse.
+    + rewrite bind_vis. pstep. constructor 10; auto. intros. pstep_reverse.
   - pclearbot. rewrite Heqot1. rewrite Heqot2. repeat rewrite interp_state_vis.
     specialize (Hhandler _ e1) as He1. specialize (Hhandler _ e2) as He2.
-    inv He1; inv He2; try contradiction. admit.
+    inv He1; inv He2; try contradiction.
+    eapply secure_eqit_bind' with (RR := product_rel RS (fun _ _ => True)).
+    + intros [] [] ?. pstep. constructor. right.
+      apply CIH. apply H. simpl. apply H0.
+    + specialize (FINCHECK s1). specialize (FINCHECK0 s2).
+      induction FINCHECK.
+      * induction FINCHECK0.
+        -- simpl. pstep. constructor. split; auto. simpl.
+           transitivity s2; eauto. etransitivity; [symmetry |]; eauto.
+        -- pstep. constructor; auto. pstep_reverse.
+        -- pstep. constructor; auto. intros. pstep_reverse. apply H2.
+      * pstep. constructor; auto. pstep_reverse.
+      * pstep. constructor; auto. intros. pstep_reverse. apply H1.
   - rewrite Heqot1. rewrite interp_state_vis. specialize (Hhandler _ e).
-    inv Hhandler; try contradiction. (* seems to be a place I need that RS is a PER, can add that assumption *)
-    admit.
+    inv Hhandler; try contradiction.
+    specialize (FINCHECK s1). induction FINCHECK.
+    + rewrite bind_ret_l. pstep. constructor; auto. pstep_reverse.
+      eapply H0; eauto. simpl. etransitivity; [symmetry |]; eauto.
+    + rewrite bind_tau. pstep. constructor 3; auto. pstep_reverse.
+    + rewrite bind_vis. pstep. constructor 9; auto. intros. pstep_reverse.
   - rewrite Heqot2. rewrite interp_state_vis. specialize (Hhandler _ e).
-    inv Hhandler; try contradiction. admit.
+    inv Hhandler; try contradiction.
+    specialize (FINCHECK s2). induction FINCHECK.
+    + rewrite bind_ret_l. pstep. constructor 4; auto. pstep_reverse.
+      eapply H0; eauto. simpl. etransitivity; eauto.
+    + rewrite bind_tau. pstep. constructor 4; auto. pstep_reverse.
+    + rewrite bind_vis. pstep. constructor 10; auto. intros. pstep_reverse.
   - pclearbot. rewrite Heqot1. rewrite interp_state_vis. rewrite Heqot2.
-    specialize (Hhandler _ e). inv Hhandler; try contradiction. red in RESCHECK.
+    specialize (Hhandler _ e). inv Hhandler; try contradiction.
+    (* rewrite interp_state_tau. pstep. constructor; auto. *)
+    specialize (FINCHECK s1). induction FINCHECK.
+    + destruct r0. inversion SIZECHECK. contradiction.
+    + rewrite bind_tau. pstep. constructor 3; auto. pstep_reverse.
+    + rewrite bind_vis. (* rewrite interp_state_tau. *)
+      clear SECCHECK0 H0 H1 CIH. generalize dependent t2. pcofix CIH. intros.
+      rewrite <- bind_vis. rewrite <- interp_state_vis.
+      pstep. constructor 11; auto. admit. left.
     admit.
   - pclearbot. rewrite Heqot1. rewrite Heqot2. rewrite interp_state_vis.
     specialize (Hhandler _ e). inv Hhandler; try contradiction. red in RESCHECK.
