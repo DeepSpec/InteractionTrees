@@ -256,47 +256,7 @@ Variant handler_respects_priv (A : Type) (e : E1 A) : Prop :=
 
 Context (Hhandler : forall A (e : E1 A), handler_respects_priv A e).
 
-Lemma test_r {R1 R2} (RR : R1 -> R2 -> Prop) A (e : E1 A) (e' : E2 A) t (k : A -> itree E1 R2) k' r :
-  ~ leq (priv1 A e) l ->
-  ~ leq (priv2 A e') l ->
-  empty A ->
-  paco2 (secure_eqit_ Label priv1 RR true true l id) bot2 t (Vis e k) ->
-  forall s, paco2 (secure_eqit_ Label priv2 (product_rel RS RR) true true l id) r
-             (interp_state handler t s)
-             (Vis e' k').
-Proof.
-  revert t. pcofix CIH. intros t Hsec1 Hsec2 Hempty Heq s.
-  pinversion Heq; subst; auto_inj_pair2; subst;
-    try solve contra_size; try contradiction.
-  - (* inductive tau *) use_simpobs. rewrite H. rewrite interp_state_tau.
-    pfold. constructor 12; auto.
-  - (* inductive private vis *)
-    use_simpobs. rewrite H. rewrite interp_state_vis.
-    specialize (Hhandler _ e0). inversion Hhandler; try contradiction.
-    specialize (FINCHECK s). induction FINCHECK.
-    + rewrite bind_ret_l. pstep. constructor 12; auto. right. apply CIH; auto.
-      simpl. rewrite H0 in H1. pstep. apply H1.
-    + rewrite bind_tau. pstep. constructor 12; auto.
-    + rewrite bind_vis. pstep. constructor 14; auto.
-  - (* coinductive halting tau *) use_simpobs. rewrite H. rewrite interp_state_tau.
-    pclearbot. pfold. constructor 12; auto.
-  - (* coinductive halting vis *)
-    use_simpobs. rewrite H. rewrite interp_state_vis.
-    specialize (Hhandler _ e1). inversion Hhandler; try contradiction.
-    specialize (FINCHECK s). induction FINCHECK.
-    + inversion SIZECHECK. contradiction.
-    + rewrite bind_tau. pstep. constructor 12; auto.
-    + rewrite bind_vis. pstep. constructor 14; auto.
-  - (* coinductive halting vis *)
-    use_simpobs. rewrite H. rewrite interp_state_vis.
-    specialize (Hhandler _ e1). inversion Hhandler; try contradiction.
-    specialize (FINCHECK s). induction FINCHECK.
-    + rewrite bind_ret_l. pstep. constructor 12; auto.
-    + rewrite bind_tau. pstep. constructor 12; auto.
-    + rewrite bind_vis. pstep. constructor 14; auto.
-Qed.
-
-Lemma test_l {R1 R2} (RR : R1 -> R2 -> Prop) A (e : E1 A) (e' : E2 A) t (k : A -> itree E1 R1) k' r :
+Lemma secure_eqit_interp_aux_l {R1 R2} (RR : R1 -> R2 -> Prop) A (e : E1 A) (e' : E2 A) t (k : A -> itree E1 R1) k' r :
   ~ leq (priv1 A e) l ->
   ~ leq (priv2 A e') l ->
   empty A ->
@@ -334,6 +294,46 @@ Proof.
     + inversion SIZECHECK. contradiction.
     + rewrite bind_tau. pstep. constructor 11; auto.
     + rewrite bind_vis. pstep. constructor 13; auto.
+Qed.
+
+Lemma secure_eqit_interp_aux_r {R1 R2} (RR : R1 -> R2 -> Prop) A (e : E1 A) (e' : E2 A) t (k : A -> itree E1 R2) k' r :
+  ~ leq (priv1 A e) l ->
+  ~ leq (priv2 A e') l ->
+  empty A ->
+  paco2 (secure_eqit_ Label priv1 RR true true l id) bot2 t (Vis e k) ->
+  forall s, paco2 (secure_eqit_ Label priv2 (product_rel RS RR) true true l id) r
+             (interp_state handler t s)
+             (Vis e' k').
+Proof.
+  revert t. pcofix CIH. intros t Hsec1 Hsec2 Hempty Heq s.
+  pinversion Heq; subst; auto_inj_pair2; subst;
+    try solve contra_size; try contradiction.
+  - (* inductive tau *) use_simpobs. rewrite H. rewrite interp_state_tau.
+    pfold. constructor 12; auto.
+  - (* inductive private vis *)
+    use_simpobs. rewrite H. rewrite interp_state_vis.
+    specialize (Hhandler _ e0). inversion Hhandler; try contradiction.
+    specialize (FINCHECK s). induction FINCHECK.
+    + rewrite bind_ret_l. pstep. constructor 12; auto. right. apply CIH; auto.
+      simpl. rewrite H0 in H1. pstep. apply H1.
+    + rewrite bind_tau. pstep. constructor 12; auto.
+    + rewrite bind_vis. pstep. constructor 14; auto.
+  - (* coinductive halting tau *) use_simpobs. rewrite H. rewrite interp_state_tau.
+    pclearbot. pfold. constructor 12; auto.
+  - (* coinductive halting vis *)
+    use_simpobs. rewrite H. rewrite interp_state_vis.
+    specialize (Hhandler _ e1). inversion Hhandler; try contradiction.
+    specialize (FINCHECK s). induction FINCHECK.
+    + inversion SIZECHECK. contradiction.
+    + rewrite bind_tau. pstep. constructor 12; auto.
+    + rewrite bind_vis. pstep. constructor 14; auto.
+  - (* coinductive halting vis *)
+    use_simpobs. rewrite H. rewrite interp_state_vis.
+    specialize (Hhandler _ e1). inversion Hhandler; try contradiction.
+    specialize (FINCHECK s). induction FINCHECK.
+    + rewrite bind_ret_l. pstep. constructor 12; auto.
+    + rewrite bind_tau. pstep. constructor 12; auto.
+    + rewrite bind_vis. pstep. constructor 14; auto.
 Qed.
 
 (* I believe that this is a sound reasoning principle,
@@ -413,7 +413,7 @@ Proof.
     specialize (FINCHECK s1). induction FINCHECK.
     + inversion SIZECHECK. contradiction.
     + rewrite bind_tau. pstep. constructor 3; auto. pstep_reverse.
-    + eapply test_l in H; eauto.
+    + eapply secure_eqit_interp_aux_l in H; eauto.
       rewrite bind_vis. pstep. constructor 11; auto. left. apply H.
   - pclearbot.
     rewrite Heqot1. rewrite interp_state_tau.
@@ -423,7 +423,7 @@ Proof.
     specialize (FINCHECK s2). induction FINCHECK.
     + inversion SIZECHECK. contradiction.
     + rewrite bind_tau. pstep. constructor 4; auto. pstep_reverse.
-    + eapply test_r in H; eauto.
+    + eapply secure_eqit_interp_aux_r in H; eauto.
       rewrite bind_vis. pstep. constructor 12; auto. left. apply H.
   - pclearbot. rewrite Heqot1. rewrite Heqot2. repeat rewrite interp_state_vis.
     pose proof Hhandler as Hhandler'.
@@ -437,7 +437,7 @@ Proof.
       specialize (Hhandler' _ e2). inv Hhandler'; try contradiction.
       specialize (FINCHECK s2). induction FINCHECK.
       * rewrite bind_ret_l. simpl. pstep. constructor 4; auto. pstep_reverse.
-        eapply test_l in H; eauto.
+        eapply secure_eqit_interp_aux_l in H; eauto.
       * rewrite bind_tau. pstep. constructor 11; auto.
       * rewrite bind_vis. pstep. constructor 13; auto.
   - pclearbot. rewrite Heqot1. rewrite Heqot2. repeat rewrite interp_state_vis.
@@ -452,12 +452,24 @@ Proof.
       specialize (Hhandler' _ e1). inv Hhandler'; try contradiction.
       specialize (FINCHECK s1). induction FINCHECK.
       * rewrite bind_ret_l. simpl. pstep. constructor 3; auto. pstep_reverse.
-        eapply test_r in H; eauto.
+        eapply secure_eqit_interp_aux_r in H; eauto.
       * rewrite bind_tau. pstep. constructor 12; auto.
       * rewrite bind_vis. pstep. constructor 14; auto.
 Qed.
 
 End GeneralStateHandler.
+
+Lemma interp_eqit_secure_imp' : forall (R1 R2 : Type) (RR : R1 -> R2 -> Prop) (priv_map : privacy_map)
+                                 (t1 : itree (stateE +' IOE) R1 )
+                                 (t2 : itree (stateE +' IOE) R2),
+    eqit_secure sense_preorder (priv_imp priv_map) RR true true Public t1 t2 ->
+    low_eqit_secure_impstate true true priv_map RR (interp_imp t1 )  (interp_imp t2).
+Proof.
+  unfold low_eqit_secure_impstate. unfold interp_imp. intros.
+  eapply interp_eqit_secure_state; eauto.
+  - admit.
+  - admit.
+Abort.
 
 
 (*
