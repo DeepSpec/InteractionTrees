@@ -224,7 +224,7 @@ Section GeneralStateHandler.
 
 Context (S : Type).
 Context (RS : S -> S -> Prop).
-Context (RS_PER: PER RS).
+Context (RS_Eq: Equivalence RS).
 
 Context (E1 E2 : Type -> Type).
 
@@ -254,12 +254,185 @@ Inductive terminates (s1 : S) (P : forall A, E2 A -> Prop) : forall {A : Type}, 
 | terminates_vis {A R : Type} : forall (e : E2 A) (k : A -> itree E2 (S * R)) , (forall v, terminates s1 P (k v)) -> P A e -> terminates s1 P (Vis e k)
 .
 
+Variant diverges_with' {E : Type -> Type} (P : forall A, E A -> Prop) (A : Type) (F : itree E A -> Prop) : itree' E A -> Prop :=
+  | diverges_tau (t : itree E A): F t -> diverges_with' P A F (TauF t) 
+  | diverges_vis {B : Type} (e : E B) (k : B -> itree E A) : (forall a, F (k a)) -> P _ e -> diverges_with' P A F (VisF e k).
+
+Definition diverges_with_  {E} (P : forall A, E A -> Prop) {A : Type} (F : itree E A -> Prop) :  itree E A -> Prop :=
+  fun t => diverges_with' P A F (observe t).
+
+Definition diverges_with {E} (P : forall A, E A -> Prop) {A : Type} : itree E A -> Prop := paco1 (@diverges_with_ E P A) bot1.
+
+Hint Constructors diverges_with'.
+Hint Unfold diverges_with_.
+
+Lemma mono_diverges_with (E : Type -> Type) P A : monotone1 (@diverges_with_ E P A).
+Proof.
+  red. intros. red. inversion IN; auto.
+Qed.
+
+Hint Resolve mono_diverges_with : paco.
+
+Instance proper_diverges_with {E A} {P : forall A, E A -> Prop} : Proper (eq_itree eq ==> iff ) (@diverges_with E P A).
+Proof.
+  do 2 red. intros t1 t2 Heq. apply Eq.EqAxiom.bisimulation_is_eq in Heq. subst; tauto.
+Qed.
+
+Instance proper_diverges_with_r  {E A r} {P : forall A, E A -> Prop} : Proper (eq_itree eq ==> iff ) (paco1 (@diverges_with_ E P A) r ).
+  do 2 red. intros t1 t2 Heq. apply Eq.EqAxiom.bisimulation_is_eq in Heq. subst; tauto.
+Qed.
+
 Instance proper_terminate {R s} {P : forall A, E2 A -> Prop} : Proper (eq_itree (@eq (S *R )) ==> iff) (terminates s P).
 Proof.
   red. intros t1 t2 Heq. apply Eq.EqAxiom.bisimulation_is_eq in Heq. subst; tauto.
 Qed.
   
 
+Lemma diverges_with_bind : forall E (P : forall A, E A -> Prop) (A B : Type) (k : A -> itree E B) (t : itree E A) ,
+    diverges_with P t -> diverges_with P (ITree.bind t k).
+Proof.
+  intros P A B k. pcofix CIH. intros.
+  pfold. red. unfold observe. cbn.
+  pinversion H0; cbn.
+  - constructor; eauto.
+  - constructor; intros; eauto. right. eapply CIH; eauto. apply H1.
+Qed.
+
+Lemma diverges_with_halt : forall E (A B : Type) (e : E A) (k : A -> itree E B) (P : forall A, E A -> Prop),
+    P A e -> empty A -> diverges_with P (Vis e k).
+Proof.
+  intros. pfold. constructor; auto. intros; contra_size.
+Qed.
+
+Lemma diverges_secure_equiv_halt_r : forall A R1 R2 RR (e : E1 A) (k : A -> itree E1 R1) (t : itree E1 R2),
+    empty A ->
+    ~ leq (priv1 _ e) l ->
+    eqit_secure Label priv1 RR true true l (Vis e k) t ->
+    diverges_with (fun _ e => ~ leq (priv1 _ e) l) t.
+Proof.
+  intros A R1 R2 RR e k t Hemp Hsec. revert t. pcofix CIH.
+  intros. punfold H0. red in H0.
+  cbn in *. remember (VisF e k) as ov. remember (observe t) as ot.
+  hinduction H0 before r; intros; inv Heqov; subst; ITrace.inj_existT; subst; try discriminate;  try contradiction; 
+    try contra_size; use_simpobs.
+  - rewrite Heqot. pfold. constructor. left. eapply IHsecure_eqitF; eauto.
+  - pclearbot. rewrite Heqot. pfold. constructor; eauto.
+  - rewrite Heqot. pfold. constructor. right. pclearbot. eapply CIH; eauto.
+  - pclearbot. rewrite Heqot. pfold. constructor; auto. right. eapply CIH; eauto. apply H.
+  - rewrite Heqot. pfold. constructor; auto. right. eapply CIH; eauto. contra_size.
+Qed.
+
+Lemma diverges_secure_equiv_halt_l : forall A R1 R2 RR (e : E1 A) (k : A -> itree E1 R1) (t : itree E1 R2),
+    empty A ->
+    ~ leq (priv1 _ e) l ->
+    eqit_secure Label priv1 RR true true l t (Vis e k) ->
+    diverges_with (fun _ e => ~ leq (priv1 _ e) l) t.
+Proof.
+  intros A R1 R2 RR e k t Hemp Hsec. revert t. pcofix CIH.
+  intros. punfold H0. red in H0.
+  cbn in *. remember (VisF e k) as ov. remember (observe t) as ot.
+  hinduction H0 before r; intros; inv Heqov; subst; ITrace.inj_existT; subst; try discriminate;  try contradiction; 
+    try contra_size; use_simpobs.
+  - rewrite Heqot. pfold. constructor. left. eapply IHsecure_eqitF; eauto.
+  - pclearbot. rewrite Heqot. pfold. constructor; eauto.
+  - rewrite Heqot. pfold. constructor. right. pclearbot. eapply CIH; eauto.
+  - pclearbot. rewrite Heqot. pfold. constructor; auto. right. eapply CIH; eauto. contra_size.
+  - pclearbot. rewrite Heqot. pfold. constructor; auto. right. eapply CIH; eauto. apply H.
+Qed.
+
+Lemma diverges_with_spin : forall E A P,
+    diverges_with P (@ITree.spin E A).
+Proof.
+  intros. pcofix CIH. pfold. red. cbn. constructor.
+  right; auto.
+Qed.
+
+Lemma eqit_secure_silent_diverge : forall A B RR (t1 : itree E2 A) (t2 : itree E2 B),
+    diverges_with (fun _ e => ~ leq (priv2 _ e) l) t1 ->
+    diverges_with (fun _ e => ~ leq (priv2 _ e) l) t2 -> 
+    eqit_secure Label priv2 RR true true l t1 t2.
+Proof.
+  intros A B RR. pcofix CIH. intros.
+  punfold H0. red in H0. punfold H1. red in H1. 
+  inversion H0; inversion H1; use_simpobs; try rewrite H; try rewrite H3.
+  - pfold. constructor. right. pclearbot. eapply CIH; eauto.
+  - destruct (classic_empty B0).
+    + pclearbot. pfold. constructor; auto. pstep_reverse. clear H. clear CIH.
+      generalize dependent t. pcofix CIH. intros.
+      pinversion H2; use_simpobs.
+      * rewrite H. pfold. red. cbn. unpriv_halt.
+      * rewrite H. pfold. red. cbn. unpriv_halt.
+    + pfold. red. cbn. unpriv_co. right. pclearbot. eapply CIH; eauto. apply H4.
+  - pclearbot. destruct (classic_empty B0).
+    + pclearbot. clear H4. clear CIH.
+      generalize dependent t2. pcofix CIH. intros.
+      inversion H4; use_simpobs.
+      * rewrite H1. pfold. red. cbn. pclearbot. unpriv_halt. right. eapply CIH; eauto. punfold H7.
+      * rewrite H1. pfold. red. cbn. unpriv_halt. right. pclearbot. eapply CIH; eauto. pstep_reverse.
+    + rewrite H4. pfold. red. cbn. unpriv_co. right. pclearbot. eapply CIH; eauto. apply H2.
+  - pclearbot. rewrite H4.
+    destruct (classic_empty B0); destruct (classic_empty B1).
+    + pfold. red. cbn. unpriv_halt. contra_size.
+    + assert (diverges_with (fun _ e => ~ leq (priv2 _ e) l) (Vis e0 k0)).
+      { pfold. constructor; auto. }
+      rewrite <- H4. rewrite <- H4 in H9. clear H4. clear H1 CIH. generalize dependent t2.
+      pcofix CIH. intros. pinversion H9; use_simpobs.
+      * rewrite H1. pfold. red. cbn. unpriv_halt.
+      * rewrite H1. pfold. red. cbn. unpriv_halt. right. eapply CIH; eauto. apply H4.
+    + assert (diverges_with (fun _ e => ~ leq (priv2 _ e) l) (Vis e k)).
+      { pfold. constructor; auto. }
+      rewrite <- H. rewrite <- H in H9. clear H. clear H0 CIH. generalize dependent t1.
+      pcofix CIH. intros. pinversion H9; use_simpobs.
+      * rewrite H. pfold. red. cbn. unpriv_halt.
+      * rewrite H. pfold. red. cbn. unpriv_halt. right. eapply CIH; eauto. apply H0.
+    + pfold. red. cbn. unpriv_co. right. eapply CIH; eauto. apply H2. apply H5.
+Qed.
+
+Lemma silent_diverges_eqit_secure_spin : forall A B (RR : A -> B -> Prop) (t : itree E2 A),
+    diverges_with (fun _ e => ~ leq (priv2 _ e) l) t <-> eqit_secure Label priv2 RR true true l t (ITree.spin).
+Proof.
+  intros. split.
+  { intros. eapply eqit_secure_silent_diverge; eauto. apply diverges_with_spin. }
+  revert t. pcofix CIH.
+  intros t Ht. punfold Ht. red in Ht. remember (observe t) as ot.
+  remember (observe ITree.spin) as otspin.
+  hinduction Ht before r; intros; subst; try discriminate; use_simpobs.
+  - pclearbot. rewrite Heqot. pfold. constructor. right. eapply CIH; eauto. rewrite Heqotspin.
+    pfold; constructor; auto. pstep_reverse.
+  - rewrite Heqot. pfold; constructor. left. eapply IHHt; eauto.
+  - eapply IHHt; eauto. assert (ITree.spin ≅ t2).
+    { clear IHHt Ht. generalize dependent t2. pcofix CIH'.
+      intros. punfold Heqotspin. red in Heqotspin.  cbn in *. inversion Heqotspin; try inv CHECK0.
+      subst. pclearbot. eapply paco2_mon; eauto; intros; try contradiction. }
+    apply Eq.EqAxiom.bisimulation_is_eq in H. subst; auto.
+  - rewrite Heqot. pfold. constructor; auto. right. eapply CIH; eauto. pclearbot. rewrite Heqotspin.
+    pfold; constructor; auto. pstep_reverse.
+  - rewrite Heqot. pfold. constructor; auto. left. eapply H0; eauto.
+  - rewrite Heqot. pclearbot. pfold; constructor; auto. right. eapply CIH; eauto.
+    rewrite Heqotspin. pfold; constructor; auto. pstep_reverse.  eapply unpriv_e_eqit_secure; eauto.
+Qed.
+
+
+Lemma silent_terminates_eqit_secure_ret : forall R (m : stateT S (itree E2) R), nonempty R ->
+      (forall s, terminates s (fun B e => ~ leq (priv2 _ e) l /\ nonempty B) (m s) ) <-> forall r' : R, state_eqit_secure true true top2 m (ret r').
+Proof.
+  split; intros.
+  - red. intros. specialize (H0 s1).
+    cbn. induction H0.
+    + pfold; constructor. split; try constructor. cbn. etransitivity; eauto. symmetry. auto.
+    + pfold; constructor; auto. pstep_reverse. eapply IHterminates; eauto.
+    + destruct H3. pfold. red. cbn. timeout 10 setoid_rewrite itree_eta' at 2.  unpriv_ind.
+      pstep_reverse. eapply H2; eauto.
+  - cbn in *. red in H0. assert (RS s s). reflexivity.
+    inv H.
+    specialize (H0 a s s H1). remember (m s) as t. clear Heqt.
+    punfold H0. red in H0. cbn in H0. remember (RetF (s,a) ) as oret. remember (observe t) as ot.
+    hinduction H0 before E1; intros; try discriminate; use_simpobs.
+    + rewrite Heqot. injection Heqoret; intros; subst. destruct H. destruct r1. cbn in *.
+      constructor. symmetry. auto.
+    + rewrite Heqot. constructor. eapply IHsecure_eqitF; eauto.
+    + rewrite Heqot. constructor; eauto.
+Qed.
 
 Variant handler_respects_priv (A : Type) (e : E1 A) : Prop :=
 | respect_private (SECCHECK : ~ leq (priv1 _ e) l)
@@ -270,311 +443,35 @@ Variant handler_respects_priv (A : Type) (e : E1 A) : Prop :=
 
 Variant handler_respects_priv' (A : Type) (e : E1 A) : Prop :=
 | respect_private_ne (SECCHECK : ~ leq (priv1 _ e) l) (SIZECHECK : nonempty A)
-                  (FINCHECK : secure_in_nonempty_context (handler A e) )
+                  (FINCHECK :  forall s, terminates s (fun B e => ~ leq (priv2 _ e) l /\ nonempty B ) (handler A e s) )
 | respect_private_e (SECCHECK : ~ leq (priv1 _ e) l) (SIZECHECK : empty A)
-                  (FINCHECK : secure_in_empty_context (handler A e) )
+                  (DIVCHECK : forall s, diverges_with (fun _ e => ~ leq (priv2 _ e) l ) (handler A e s) )
 | respect_public' (SECCHECK : leq (priv1 _ e) l)
                  (RESCHECK : state_eqit_secure true true eq (handler A e) (handler A e))
 .
-(*
-Lemma handler_respects_priv_equiv : forall A (e : E1 A) ,
-    nonempty A -> ~ leq (priv1 _ e) l -> (forall s, terminates s (fun _ e => ~ leq (priv2 _ e) l) (handler A e s) ) -> secure_in_nonempty_context (handler A e) .
-Proof.
-  intros A e Hne HCHECK Hsec. destruct RS_PER.
-  do 2 red. intros r s1 s2 Hs. specialize (Hsec s1).
-  induction Hsec.
-  - pfold. constructor. split; try constructor. cbn. eapply PER_Transitive; eauto.
-  - pfold. constructor; auto. pstep_reverse. eapply IHHsec; eauto.
-  - (*no this does not hold*)
-
-
-  intros A e. destruct RS_PER. intros Hsec; destruct Hsec.
- (* - destruct (classic_empty A).
-    + apply respect_private_e; auto.
-      do 2 red. intros. specialize (FINCHECK s1).
-      remember (handler A e s1) as hes. clear Heqhes.
-      hinduction FINCHECK before RS; intros; subst.
-      * contra_size.
-      * pfold; constructor; auto. pstep_reverse.
-        eapply IHFINCHECK; eauto.
-      * destruct (classic_empty A).
-        -- pcofix CIH. pfold. red. cbn. unpriv_halt.
-        -- pfold. red. cbn. unpriv_co. left. eapply H0; eauto.
-    + apply respect_private_ne; auto. do 2 red. intros.
-      specialize (FINCHECK s1). admit.
-      (* remember (handler A e s1) as hes. 
-      hinduction FINCHECK before RS; intros; subst.
-      * pfold. constructor. split; try constructor. cbn.
-        eapply PER_Transitive; eauto.
-      * pfold. constructor; auto. pstep_reverse. eapply IHFINCHECK; eauto.
-      * pfold. red. cbn. setoid_rewrite itree_eta' at 2. unpriv_ind. *) *)
-   - red in FINCHECK. inv SIZECHECK. specialize (FINCHECK a).
-     apply respect_private; auto. intros. 
-    specialize (FINCHECK s s). 
-    assert (RS s s). admit. (* maybe need that RS is an equiv for this*)
-    specialize (FINCHECK H). cbn in FINCHECK.
-    punfold FINCHECK. red in FINCHECK. cbn in FINCHECK. remember (RetF (s,a) ) as or.
-    remember (handler A e) as m. clear Heqm.
-    remember (observe (m s)) as oms.
-    hinduction FINCHECK before l; intros; try discriminate.
-    + destruct H. destruct r1. destruct r2. cbn in *. use_simpobs.
-      injection Heqor; intros; subst. rewrite Heqoms. constructor.
-      apply PER_Symmetric. auto.
-    + use_simpobs. rewrite Heqoms. constructor.
-      remember (fun s : S => t1) as m'.
-      assert (m' s = t1). subst; auto. rewrite <- H0.
-      eapply IHFINCHECK; eauto. subst; auto.
-    + use_simpobs. rewrite Heqoms. constructor.
-      intros. remember (fun s : S => k1 v) as m'.
-      assert (m' s = k1 v). subst; auto. rewrite <- H2.
-      eapply H0; eauto. subst. auto. auto.
-   - apply respect_private; auto. intros. red in FINCHECK.
-     red in FINCHECK.
-
-
-     red in FINCHECK. apply respect_private; auto. inv SIZECHECK.
-     specialize (FINCHECK a). red in FINCHECK. intros.
-     specialize (FINCHECK s s).
-     assert (RS s s). admit.
-     specialize (FINCHECK H). cbn in FINCHECK. punfold FINCHECK. red in FINCHECK. 
-     cbn in FINCHECK. remember (RetF (s,a)) as or.
-     induction FINCHECK; try discriminate.
-     remember (handler A e s) as hes.
-     induction FINCHECK; try discriminate.
-     + subst.
-      hinduction FINCHECK before E1; intros; subst; try discriminate.
-     +
-
-     admit.
-   - admit.
-   - apply respect_public; auto.
-    
-*)
-(*
-Lemma secure_in_context_terminates_init : forall R (m : stateT S (itree E2 ) R ),
-  (forall s, terminates s (fun _ e => ~ leq (priv2 _ e) l) (m s) ) <-> (secure_in_nonempty_context m \/ secure_in_empty_context m).
-Proof.
-  intros R m. destruct RS_PER. split; intros Hsec.
-  - unfold secure_in_empty_context, secure_in_nonempty_context, state_eqit_secure.
-    enough (forall (s1 s2 : S), RS s1 s2 -> (forall r' : R ,eqit_secure Label priv2 (product_rel RS top2)
-     true true l (m s1) (Ret(s2, r') )) \/ (eqit_secure Label priv2 (product_rel RS (@top2 R R)) true true l (m s1) ITree.spin)).
-    { 
-
-    intros. specialize (Hsec s1).
-    induction Hsec.
-    + cbn. pfold. constructor. split; cbn; auto.
-      * eapply PER_Transitive; eauto.
-      * constructor.
-    + cbn. pfold. constructor; auto. pstep_reverse.
-      apply IHHsec; auto.
-    + pfold. red. cbn.
-      destruct (classic_empty A).
-      * admit. (* need an extra case *)
-      * setoid_rewrite itree_eta' at 2. unpriv_ind. pstep_reverse. eapply H1; eauto.
-      Print Ltac unpriv_ind.
-  - red in Hsec. destruct Hsec as [r' Hsec]. red in Hsec. intros s.
-    specialize (Hsec s s). 
-    assert (RS s s). admit. (* maybe need that RS is an equiv for this*)
-    specialize (Hsec H). cbn in Hsec.
-    punfold Hsec. red in Hsec. cbn in Hsec. remember (RetF (s,r') ) as or.
-    remember (observe (m s)) as oms.
-    hinduction Hsec before l; intros; try discriminate.
-    + destruct H. destruct r1. destruct r2. cbn in *. use_simpobs.
-      injection Heqor; intros; subst. rewrite Heqoms. constructor.
-      apply PER_Symmetric. auto.
-    + use_simpobs. rewrite Heqoms. constructor.
-      remember (fun s : S => t1) as m'.
-      assert (m' s = t1). subst; auto. rewrite <- H0.
-      eapply IHHsec; eauto. subst; auto.
-    + use_simpobs. rewrite Heqoms. constructor.
-      intros. remember (fun s : S => k1 v) as m'.
-      assert (m' s = k1 v). subst; auto. rewrite <- H2.
-      eapply H0; eauto. subst. auto. auto.
-*)
-
 
 Context (Hhandler : forall A (e : E1 A), handler_respects_priv' A e).
 
-Lemma secure_eqit_interp_aux_l {R1 R2} (RR : R1 -> R2 -> Prop) A (e : E1 A) (e' : E2 A) t (k : A -> itree E1 R1) k' r :
-  ~ leq (priv1 A e) l ->
-  ~ leq (priv2 A e') l ->
-  empty A ->
-  paco2 (secure_eqit_ Label priv1 RR true true l id) bot2 (Vis e k) t ->
-  forall s, paco2 (secure_eqit_ Label priv2 (product_rel RS RR) true true l id) r
-             (Vis e' k')
-             (interp_state handler t s).
+Lemma diverge_with_respectful_handler : forall (R : Type) (t : itree E1 R),
+    diverges_with (fun _ e => ~ leq (priv1 _ e) l ) t ->
+    forall s, diverges_with (fun _ e => ~ leq (priv2 _ e) l) (interp_state handler t s).
 Proof.
-  revert t. pcofix CIH. intros t Hsec1 Hsec2 Hempty Heq s.
-  pinversion Heq; subst; auto_inj_pair2; subst;
-    try solve contra_size; try contradiction.
-  - (* inductive tau *) use_simpobs. rewrite H. rewrite interp_state_tau.
-    pfold. constructor 11; auto.
-  - (* inductive private vis *)
-    use_simpobs. rewrite H0. rewrite interp_state_vis.
-    specialize (Hhandler _ e0). inversion Hhandler; try contradiction; try contra_size.
-    red in FINCHECK. inv SIZECHECK0.
-    specialize (FINCHECK a s s). 
-    assert (RS s s) as Hrefl. admit.
-    specialize (FINCHECK Hrefl). punfold FINCHECK.
-    remember (handler A0 e0) as m. clear Heqm. red in FINCHECK.
-    remember (observe (m s) ) as oms. cbn in FINCHECK. remember (RetF (s,a)) as oRet.
-    hinduction FINCHECK before r; intros; subst; try contradiction; try discriminate.
-    + use_simpobs. rewrite Heqoms. rewrite bind_ret_l. pstep. red. cbn. unpriv_halt.
-      right. eapply CIH; eauto. rewrite H0 in H1. pstep. apply H1.
-    + use_simpobs. rewrite Heqoms.
-      rewrite bind_tau. pstep.  red. cbn. unpriv_halt.
-      pclearbot.
-      left. remember (fun s : S => t1) as m'. assert (t1 = m' s). subst; auto.  rewrite H2. eapply IHFINCHECK; eauto. subst; auto.
-    + use_simpobs. rewrite Heqoms. rewrite bind_vis. pstep. constructor 13; auto.
-      left. remember (fun s : S => k1 b) as m'. assert (k1 b = m' s). subst; auto. rewrite H4. eapply H0; eauto.
-      subst; auto.
-  - (* coinductive halting tau *) use_simpobs. rewrite H3. rewrite interp_state_tau.
-    pclearbot. pfold. constructor 11; auto.
-  - (* coinductive halting vis *)
-    use_simpobs. rewrite H3. rewrite interp_state_vis.
-    specialize (Hhandler _ e2). inversion Hhandler; try contradiction; try contra_size.
-    + red in FINCHECK. inv SIZECHECK0. assert (RS s s). admit.  specialize (FINCHECK a s s H).
-      remember (handler B e2) as m. clear Heqm. punfold FINCHECK.
-      red in FINCHECK. cbn in *. remember (observe (m s)) as oms. remember (RetF (s,a)) as oRet.
-      hinduction FINCHECK before r; intros; subst; try contradiction; try discriminate.
-      * use_simpobs. rewrite Heqoms. rewrite bind_ret_l. pstep. constructor 11; auto.
-      * use_simpobs. rewrite Heqoms. rewrite bind_tau. pstep; constructor; auto.
-        pstep_reverse. remember (fun s : S => t1) as m'.  assert (t1 = m' s). subst; auto.
-        rewrite H1. eapply IHFINCHECK; eauto. subst; auto.
-      * use_simpobs. rewrite Heqoms. rewrite bind_vis. pstep. constructor 13; auto.
-        left. remember (fun s : S => k1 b) as m'. assert (k1 b = m' s). subst; auto. rewrite H4. eapply H0; eauto.
-        subst; auto.
-    + red in FINCHECK. inv SIZECHECK0. assert (RS s s). admit.  specialize (FINCHECK s s H1).
-      cbn in *. remember (handler B e2 s) as tspin. clear Heqtspin. clear CIH Heq.
-      generalize dependent tspin. pcofix CIH. intros. punfold FINCHECK.
-      red in FINCHECK. cbn in *. remember (TauF ITree.spin) as ot. remember (observe tspin) as ots.
-      hinduction FINCHECK before r; intros; subst; try discriminate.
-      * use_simpobs. rewrite Heqots. rewrite bind_tau. pfold. constructor 11; auto.
-        right. eapply CIH; eauto. pclearbot. injection Heqot; intros; subst. auto.
-      * use_simpobs. rewrite Heqots. rewrite bind_tau. pstep; constructor; auto.
-        pstep_reverse.
-      * injection Heqot; intros; subst. eapply IHFINCHECK; eauto.
-      * use_simpobs. rewrite Heqots. rewrite bind_vis. pfold. constructor 13; auto.
-        right. pclearbot. eapply CIH; eauto. injection Heqot; intros; subst. apply H2.
-      * use_simpobs. rewrite Heqots. rewrite bind_vis. pfold. red. cbn. rewrite itree_eta' at 1. unpriv_ind. 
-        pstep_reverse.
-      * use_simpobs. rewrite Heqots. rewrite bind_vis. pfold. pclearbot. red. cbn. unpriv_halt. contra_size.
-  
-  - (* coinductive halting vis *)
-    use_simpobs. rewrite H3. rewrite interp_state_vis.
-    specialize (Hhandler _ e2). inversion Hhandler; try contradiction; try contra_size.
-    + red in FINCHECK. inv SIZECHECK0. assert (RS s s). admit.  specialize (FINCHECK s s H1).
-      cbn in *. remember (handler B e2 s) as tspin. clear Heqtspin. clear CIH Heq.
-      generalize dependent tspin. pcofix CIH. intros. punfold FINCHECK.
-      red in FINCHECK. cbn in *. remember (TauF ITree.spin) as ot. remember (observe tspin) as ots.
-      hinduction FINCHECK before r; intros; subst; try discriminate.
-      * use_simpobs. rewrite Heqots. rewrite bind_tau. pfold. constructor 11; auto.
-        right. eapply CIH; eauto. pclearbot. injection Heqot; intros; subst. auto.
-      * use_simpobs. rewrite Heqots. rewrite bind_tau. pstep; constructor; auto.
-        pstep_reverse.
-      * injection Heqot; intros; subst. eapply IHFINCHECK; eauto.
-      * use_simpobs. rewrite Heqots. rewrite bind_vis. pfold. constructor 13; auto.
-        right. pclearbot. eapply CIH; eauto. injection Heqot; intros; subst. apply H2.
-      * use_simpobs. rewrite Heqots. rewrite bind_vis. pfold. red. cbn. rewrite itree_eta' at 1. unpriv_ind. 
-        pstep_reverse.
-      * use_simpobs. rewrite Heqots. rewrite bind_vis. pfold. pclearbot. red. cbn. unpriv_halt. contra_size.
-    
-Admitted.
-
-Lemma secure_eqit_interp_aux_r {R1 R2} (RR : R1 -> R2 -> Prop) A (e : E1 A) (e' : E2 A) t (k : A -> itree E1 R2) k' r :
-  ~ leq (priv1 A e) l ->
-  ~ leq (priv2 A e') l ->
-  empty A ->
-  paco2 (secure_eqit_ Label priv1 RR true true l id) bot2 t (Vis e k) ->
-  forall s, paco2 (secure_eqit_ Label priv2 (product_rel RS RR) true true l id) r
-             (interp_state handler t s)
-             (Vis e' k').
-Proof.
-  revert t. pcofix CIH. intros t Hsec1 Hsec2 Hempty Heq s.
-  pinversion Heq; subst; auto_inj_pair2; subst;
-    try solve contra_size; try contradiction.
-  - (* inductive tau *) use_simpobs. rewrite H. rewrite interp_state_tau.
-    pfold. constructor 12; auto.
-  - (* inductive private vis *)
-    use_simpobs. rewrite H. rewrite interp_state_vis.
-    specialize (Hhandler _ e0). inversion Hhandler; try contradiction; try contra_size.
-    red in FINCHECK. inv SIZECHECK0.
-    specialize (FINCHECK a s s). 
-    assert (RS s s) as Hrefl. admit.
-    specialize (FINCHECK Hrefl). punfold FINCHECK.
-    remember (handler A0 e0) as m. clear Heqm. red in FINCHECK.
-    remember (observe (m s) ) as oms. cbn in FINCHECK. remember (RetF (s,a)) as oRet.
-    hinduction FINCHECK before r; intros; subst; try contradiction; try discriminate.
-    + use_simpobs. rewrite Heqoms. rewrite bind_ret_l. pstep. red. cbn. unpriv_halt.
-      right. eapply CIH; eauto. rewrite H2 in H1. pstep. apply H1.
-    + use_simpobs. rewrite Heqoms.
-      rewrite bind_tau. pstep.  red. cbn. unpriv_halt.
-      pclearbot.
-      left. remember (fun s : S => t1) as m'. assert (t1 = m' s). subst; auto.  rewrite H2. eapply IHFINCHECK; eauto. subst; auto.
-    + use_simpobs. rewrite Heqoms. rewrite bind_vis. pstep. constructor 14; auto.
-      left. remember (fun s : S => k1 a0) as m'. assert (k1 a0 = m' s). subst; auto. rewrite H4. eapply H0; eauto.
-      subst; auto.
-  - (* coinductive halting tau *) use_simpobs. rewrite H. rewrite interp_state_tau.
-    pclearbot. pfold. constructor 12; auto.
-  - (* coinductive halting vis *)
-    use_simpobs. rewrite H. rewrite interp_state_vis.
-    specialize (Hhandler _ e1). inversion Hhandler; try contradiction; try contra_size.
-    + red in FINCHECK. inv SIZECHECK0. assert (RS s s). admit.  specialize (FINCHECK s s H2).
-      cbn in *. remember (handler _ e1 s) as tspin. clear Heqtspin. clear CIH Heq.
-      generalize dependent tspin. pcofix CIH. intros. punfold FINCHECK.
-      red in FINCHECK. cbn in *. remember (TauF ITree.spin) as ot. remember (observe tspin) as ots.
-      hinduction FINCHECK before r; intros; subst; try discriminate.
-      * use_simpobs. rewrite Heqots. rewrite bind_tau. pfold. constructor 12; auto.
-        right. eapply CIH; eauto. pclearbot. injection Heqot; intros; subst. auto.
-      * use_simpobs. rewrite Heqots. rewrite bind_tau. pstep; constructor; auto.
-        pstep_reverse.
-      * injection Heqot; intros; subst. eapply IHFINCHECK; eauto.
-      * use_simpobs. rewrite Heqots. rewrite bind_vis. pfold. constructor 14; auto.
-        right. pclearbot. eapply CIH; eauto. injection Heqot; intros; subst. apply H3.
-      * use_simpobs. rewrite Heqots. rewrite bind_vis. pfold. red. cbn.
-        assert (VisF e' k' = observe (Vis e' k')). auto. rewrite H5.
-        unpriv_ind. pstep_reverse.
-      * use_simpobs. rewrite Heqots. rewrite bind_vis. pclearbot. pfold. red. cbn. unpriv_halt.
-        contra_size.
-  - (* coinductive halting vis *)
-    use_simpobs. rewrite H. rewrite interp_state_vis.
-    specialize (Hhandler _ e1). inversion Hhandler; try contradiction; try contra_size.
-    + red in FINCHECK. inv SIZECHECK0. assert (RS s s). admit.  specialize (FINCHECK a s s H0).
-      remember (handler _ e1) as m. clear Heqm. punfold FINCHECK.
-      red in FINCHECK. cbn in *. remember (observe (m s)) as oms. remember (RetF (s,a)) as oRet.
-      hinduction FINCHECK before r; intros; subst; try contradiction; try discriminate.
-      * use_simpobs. rewrite Heqoms. rewrite bind_ret_l. pstep. constructor 12; auto.
-      * use_simpobs. rewrite Heqoms. rewrite bind_tau. pstep; constructor; auto.
-        pstep_reverse. remember (fun s : S => t1) as m'.  assert (t1 = m' s). subst; auto.
-        rewrite H2. eapply IHFINCHECK; eauto. subst; auto.
-      * use_simpobs. rewrite Heqoms. rewrite bind_vis. pstep. constructor 14; auto.
-        left. remember (fun s : S => k1 a0) as m'. assert (k1 a0 = m' s). subst; auto. rewrite H4. eapply H0; eauto.
-        subst; auto.
-    + red in FINCHECK. inv SIZECHECK0. assert (RS s s). admit.  specialize (FINCHECK s s H2).
-      cbn in *. remember (handler _ e1 s) as tspin. clear Heqtspin. clear CIH Heq.
-      generalize dependent tspin. pcofix CIH. intros. punfold FINCHECK.
-      red in FINCHECK. cbn in *. remember (TauF ITree.spin) as ot. remember (observe tspin) as ots.
-      hinduction FINCHECK before r; intros; subst; try discriminate.
-      * use_simpobs. rewrite Heqots. rewrite bind_tau. pfold. constructor 12; auto.
-        right. eapply CIH; eauto. pclearbot. injection Heqot; intros; subst. auto.
-      * use_simpobs. rewrite Heqots. rewrite bind_tau. pstep; constructor; auto.
-        pstep_reverse.
-      * injection Heqot; intros; subst. eapply IHFINCHECK; eauto.
-      * use_simpobs. rewrite Heqots. rewrite bind_vis. pfold. constructor 14; auto.
-        right. pclearbot. eapply CIH; eauto. injection Heqot; intros; subst. 
-        apply H3.
-      * use_simpobs. rewrite Heqots. rewrite bind_vis. pfold. red. cbn.
-        assert (VisF e' k' = observe (Vis e' k')). auto. rewrite H5. unpriv_ind.
-        pstep_reverse.
-      * use_simpobs. rewrite Heqots. rewrite bind_vis. pfold. pclearbot. red. cbn. unpriv_halt. contra_size.
-Admitted.
-  
+  intro R. pcofix CIH. intros t Hdiv s. pinversion Hdiv; use_simpobs.
+  - rewrite H. rewrite interp_state_tau. pfold. constructor. right. eapply CIH; eauto.
+  - rewrite H. rewrite interp_state_vis.
+    destruct (classic_empty B).
+    + specialize (Hhandler _ e). destruct Hhandler; try contradiction; try contra_size.
+      specialize (DIVCHECK s). eapply paco1_mon with (r:= bot1). eapply diverges_with_bind; eauto.
+      intros; contradiction.
+    + specialize (Hhandler _ e). destruct Hhandler; try contradiction; try contra_size.
+      specialize (FINCHECK s). induction FINCHECK.
+      * rewrite bind_ret_l. cbn. pfold. constructor. right. eapply CIH; eauto. apply H0.
+      * rewrite bind_tau. pfold. constructor. left. eapply IHFINCHECK; eauto.
+      * destruct H5. rewrite bind_vis. pfold. constructor; auto. left. eapply H4; eauto.
+Qed.
 
 
-(* I believe that this is a sound reasoning principle,
-   however it looks like the proof could get a little hairy,
-   if I could use gpaco and use the bind and transitivity closures, many of these cases become easy
-   however, this pushes us up against *)
+
 Lemma interp_eqit_secure_state : forall (R1 R2 : Type) (RR : R1 -> R2 -> Prop) (t1 : itree E1 R1) (t2 : itree E1 R2),
     eqit_secure Label priv1 RR true true l t1 t2 ->
     state_eqit_secure true true RR (interp_state handler t1) (interp_state handler t2).
@@ -598,214 +495,95 @@ Proof.
   - pclearbot. rewrite Heqot1. rewrite Heqot2.
     rewrite interp_state_tau. rewrite interp_state_vis.
     specialize (Hhandler A e). inv Hhandler; try contradiction; try contra_size.
-    red in FINCHECK. inv SIZECHECK0. specialize (FINCHECK a s1 s2 Hs).
-    cbn in FINCHECK. remember (handler A e) as m. clear Heqm.
-    punfold FINCHECK. red in FINCHECK. remember (observe (m s1)) as oms1.
-    remember (observe (Ret (s2, a)) ) as oret.
-    hinduction FINCHECK before r; intros; subst; try discriminate.
-    * injection Heqoret; intros; subst. use_simpobs. rewrite Heqoms1. rewrite bind_ret_l.
-      pfold. constructor. right. destruct H. cbn in *. eapply CIH; eauto.
-      apply H0.
-    * use_simpobs. rewrite Heqoms1. rewrite bind_tau. pstep. constructor 3; auto.
-      pstep_reverse. remember (fun s : S => t1) as m'. assert (t1 = m' s1). subst; auto.
-      rewrite H0. eapply IHFINCHECK; eauto. subst; auto.
-    * use_simpobs. rewrite Heqoms1. rewrite bind_vis.
-      pfold. red. cbn. setoid_rewrite itree_eta' at 3. unpriv_ind.
-      pstep_reverse. remember (fun s : S => k1 a0) as m'. assert (k1 a0 = m' s1). subst; auto.
-      rewrite H2. eapply H0; eauto. subst; auto.
+    specialize (FINCHECK s1). induction FINCHECK.
+    + rewrite bind_ret_l. pstep. constructor. right.
+      apply CIH. apply H. etransitivity; [symmetry |]; eauto.
+    + rewrite bind_tau. pstep. constructor 3; auto. pstep_reverse.
+    + rewrite bind_vis. pstep. destruct H2. constructor 9; auto. intros. pstep_reverse.
   - pclearbot. rewrite Heqot1. rewrite Heqot2.
     rewrite interp_state_tau. rewrite interp_state_vis.
     specialize (Hhandler A e). inv Hhandler; try contradiction; try contra_size.
-    red in FINCHECK. inv SIZECHECK0. assert (RS s2 s1). symmetry. auto. 
-    specialize (FINCHECK a s2 s1 H0).
-    cbn in FINCHECK. remember (handler A e) as m. clear Heqm.
-    punfold FINCHECK. red in FINCHECK. remember (observe (m s2)) as oms2.
-    remember (observe (Ret (s1, a)) ) as oret.
-    hinduction FINCHECK before r; intros; subst; try discriminate.
-    * injection Heqoret; intros; subst. use_simpobs. rewrite Heqoms2. rewrite bind_ret_l.
-      pfold. constructor. right. destruct H. cbn in *. eapply CIH; eauto.
-      apply H0. symmetry. auto.
-    * use_simpobs. rewrite Heqoms2. rewrite bind_tau. pstep. constructor 4; auto.
-      pstep_reverse. remember (fun s : S => t1) as m'. assert (t1 = m' s2). subst; auto.
-      rewrite H1. eapply IHFINCHECK; eauto. subst; auto.
-    * use_simpobs. rewrite Heqoms2. rewrite bind_vis.
-      pfold. red. cbn. setoid_rewrite itree_eta' at 1. unpriv_ind.
-      pstep_reverse. remember (fun s : S => k1 a0) as m'. assert (k1 a0 = m' s1). subst; auto.
-      rewrite H3. eapply H0; eauto. subst; auto. etransitivity; eauto. subst; auto.
-      etransitivity; eauto.
-  - pclearbot. rewrite Heqot1. rewrite Heqot2.
-    do 2  rewrite interp_state_vis.
+    specialize (FINCHECK s2). induction FINCHECK.
+    + rewrite bind_ret_l. pstep. constructor. right.
+      apply CIH. apply H. etransitivity; eauto.
+    + rewrite bind_tau. pstep. constructor 4; auto. pstep_reverse.
+    + rewrite bind_vis. pstep. destruct H2. constructor 10; auto. intros. pstep_reverse.
+  - pclearbot. rewrite Heqot1. rewrite Heqot2. repeat rewrite interp_state_vis.
     specialize (Hhandler _ e1) as He1. specialize (Hhandler _ e2) as He2.
     inv He1; inv He2; try contradiction; try contra_size.
-    eapply secure_eqit_bind' with (RR := product_rel RS (fun _ _ => True)); try contra_size.
+    eapply secure_eqit_bind' with (RR := product_rel RS (fun _ _ => True)).
     + intros [] [] ?. pstep. constructor. right.
       apply CIH. apply H. simpl. apply H0.
-    + inv SIZECHECK. inv SIZECHECK0. do 2 red in FINCHECK. do 2 red in FINCHECK0.
-      specialize (FINCHECK a s1 s2 Hs). assert (Hs' : RS s2 s1).
-      symmetry; auto.
-      specialize (FINCHECK0 a0 s2 s1 Hs').
-      apply eqit_secure_sym in FINCHECK0.
-      eapply eqit_secure_RR_imp with (RR1 := rcompose (product_rel RS top2) 
-                                                      (flip (product_rel RS top2)) ).
-      {
-        intros [?s ?a] [?s ?b] Hcom. inv Hcom.
-        destruct REL1. destruct REL2. cbn in *. destruct r2. cbn in *.
-        split; try constructor. cbn. etransitivity; eauto. symmetry. auto.
-      }
-      eapply eqit_secure_trans; try apply FINCHECK0. eauto.
-      assert (eqit_secure Label priv2 (product_rel RS top2) true true l 
-                (Ret(s2, a)) (Ret(s1,a0))).
-      { pfold. constructor. constructor. auto. constructor. }
-      eapply eqit_secure_RR_imp; try eapply eqit_secure_trans; eauto.
-      intros. inv PR. 
-      destruct x0; destruct x1; destruct r2. split; try constructor.
-      cbn in *. destruct REL1. destruct REL2. cbn in *. etransitivity; eauto.
+    + specialize (FINCHECK s1). specialize (FINCHECK0 s2).
+      induction FINCHECK.
+      * induction FINCHECK0.
+        -- simpl. pstep. constructor. split; auto. simpl.
+           transitivity s2; eauto. etransitivity; [symmetry |]; eauto.
+        -- pstep. constructor; auto. pstep_reverse. eapply IHFINCHECK0; eauto.
+        -- pstep. destruct H3. constructor; auto. intros. pstep_reverse. eapply H2; eauto.
+      * pstep. constructor; auto. pstep_reverse. eapply IHFINCHECK; eauto.
+      * pstep. destruct H2. constructor; auto. intros. pstep_reverse. eapply H1; eauto.
   - rewrite Heqot1. rewrite interp_state_vis. specialize (Hhandler _ e).
-    inv Hhandler; try contradiction; try contra_size. inv SIZECHECK0.
-    specialize (FINCHECK a s1 s2 Hs). 
-    cbn in FINCHECK. remember (handler A e) as m. clear Heqm.
-    punfold FINCHECK. red in FINCHECK. remember (observe (m s1)) as oms1.
-    remember (observe (Ret (s2, a)) ) as oret.
-    hinduction FINCHECK before r; intros; subst; try discriminate.
-    * injection Heqoret; intros; subst. use_simpobs. rewrite Heqoms1. rewrite bind_ret_l.
-      pfold. constructor; auto. pstep_reverse. eapply H1; eauto.
-      destruct H. auto.
-    * use_simpobs. rewrite Heqoms1. rewrite bind_tau. pstep. constructor 3; auto.
-      pstep_reverse. remember (fun s : S => t1) as m'. assert (t1 = m' s1). subst; auto.
-      rewrite H1. eapply IHFINCHECK; eauto. subst; auto.
-    * use_simpobs. rewrite Heqoms1. rewrite bind_vis.
-      pfold. red. cbn. setoid_rewrite itree_eta' at 1. unpriv_ind.
-      pstep_reverse. remember (fun s : S => k1 a0) as m'. assert (k1 a0 = m' s1). subst; auto.
-      rewrite H3. cbn. eapply H0; eauto. subst; auto.
+    inv Hhandler; try contradiction; try contra_size.
+    specialize (FINCHECK s1). induction FINCHECK.
+    + rewrite bind_ret_l. pstep. constructor; auto. pstep_reverse.
+      eapply H0; eauto. simpl. etransitivity; [symmetry |]; eauto.
+    + rewrite bind_tau. pstep. constructor 3; auto. pstep_reverse.
+    + rewrite bind_vis. pstep. destruct H3. constructor 9; auto. intros. pstep_reverse.
   - rewrite Heqot2. rewrite interp_state_vis. specialize (Hhandler _ e).
-    inv Hhandler; try contradiction; try contra_size. inv SIZECHECK0.
-    symmetry in Hs.
-    specialize (FINCHECK a s2 s1 Hs). 
-    cbn in FINCHECK. remember (handler A e) as m. clear Heqm.
-    punfold FINCHECK. red in FINCHECK. remember (observe (m s2)) as oms2.
-    remember (observe (Ret (s1, a)) ) as oret.
-    hinduction FINCHECK before r; intros; subst; try discriminate.
-    * injection Heqoret; intros; subst. use_simpobs. rewrite Heqoms2. rewrite bind_ret_l.
-      pfold. constructor; auto. pstep_reverse. eapply H1; eauto.
-      destruct H. auto. symmetry. auto.
-    * use_simpobs. rewrite Heqoms2. rewrite bind_tau. pstep. constructor 4; auto.
-      pstep_reverse. remember (fun s : S => t1) as m'. assert (t1 = m' s1). subst; auto.
-      rewrite H1. eapply IHFINCHECK; eauto. subst; auto. etransitivity; eauto.
-      symmetry. auto. subst; auto.
-    * use_simpobs. rewrite Heqoms2. rewrite bind_vis.
-      pfold. red. cbn. timeout 10 setoid_rewrite itree_eta' at 2. unpriv_ind.
-      pstep_reverse. remember (fun s : S => k1 a0) as m'. assert (k1 a0 = m' s1). subst; auto.
-      rewrite H3. cbn. eapply H0; eauto. subst; auto.
-      etransitivity; eauto. symmetry; auto. subst; auto.
+    inv Hhandler; try contradiction; try contra_size.
+    specialize (FINCHECK s2). induction FINCHECK.
+    + rewrite bind_ret_l. pstep. constructor 4; auto. pstep_reverse.
+      eapply H0; eauto. simpl. etransitivity; eauto.
+    + rewrite bind_tau. pstep. constructor 4; auto. pstep_reverse.
+    + rewrite bind_vis. pstep. destruct H3. constructor 10; auto. intros. pstep_reverse.
   - pclearbot.
     rewrite Heqot1. rewrite interp_state_vis.
     rewrite Heqot2. rewrite interp_state_tau.
     pose proof Hhandler as Hhandler'.
     specialize (Hhandler' _ e). inv Hhandler'; try contradiction; try contra_size.
-    specialize (FINCHECK s1 s2 Hs).
-    
-    admit.
-  - rewrite Heqot2. rewrite Heqot1. pclearbot.
-    rewrite interp_state_vis. rewrite interp_state_tau. admit.
-  - pclearbot. admit.
-  -
-    remember (handler A e s1) as tspin. clear Heqtspin. pfold. constructor; auto.
-    pstep_reverse.
-    generalize dependent tspin. clear Heqot2. generalize dependent t2. clear CIH. pcofix CIH. intros. punfold FINCHECK.
-    red in FINCHECK. cbn in *. remember (TauF ITree.spin) as ot. remember (observe tspin) as ots.
-    hinduction FINCHECK before r; intros; subst; try discriminate.
-    * use_simpobs. rewrite Heqots. rewrite bind_tau.
-      pinversion H0; try inv Heqot; ITrace.inj_existT; subst; try contra_size.
-      ++ use_simpobs. rewrite H1. rewrite interp_state_tau.
-         pfold. constructor; eauto.
-      ++ use_simpobs. rewrite H5. rewrite interp_state_vis.
-      constructor. auto.
-      pclearbot. eapply CIH; eauto.
-      right. eapply CIH; eauto. pclearbot. injection Heqot; intros; subst. auto.
-    * use_simpobs. rewrite Heqots. rewrite bind_tau. pstep; constructor; auto.
-      pstep_reverse.
-    * injection Heqot; intros; subst. eapply IHFINCHECK; eauto.
-    * use_simpobs. rewrite Heqots. rewrite bind_vis. pfold. constructor 13; auto.
-      right. pclearbot. eapply CIH; eauto. injection Heqot; intros; subst. apply H2.
-    * use_simpobs. rewrite Heqots. rewrite bind_vis. pfold. red. cbn. rewrite itree_eta' at 1. unpriv_ind. 
-        pstep_reverse.
-      * use_simpobs. rewrite Heqots. rewrite bind_vis. pfold. pclearbot. red. cbn. unpriv_halt. contra_size.
-    specialize (FINCHECK s1). induction FINCHECK.
-    + inversion SIZECHECK. contradiction.
-    + rewrite bind_tau. pstep. constructor 3; auto. pstep_reverse.
-    + eapply secure_eqit_interp_aux_l in H; eauto.
-      rewrite bind_vis. pstep. constructor 11; auto. left. apply H.
+    eapply paco2_mon with (r:= bot2); intros; try contradiction. eapply eqit_secure_silent_diverge.
+    + eapply diverges_with_bind; eauto.
+    + pfold. constructor. left. eapply diverge_with_respectful_handler; eauto.
+      eapply diverges_secure_equiv_halt_r; eauto.
   - pclearbot.
     rewrite Heqot1. rewrite interp_state_tau.
     rewrite Heqot2. rewrite interp_state_vis.
     pose proof Hhandler as Hhandler'.
-    specialize (Hhandler' _ e). inv Hhandler'; try contradiction.
-    specialize (FINCHECK s2). induction FINCHECK.
-    + inversion SIZECHECK. contradiction.
-    + rewrite bind_tau. pstep. constructor 4; auto. pstep_reverse.
-    + eapply secure_eqit_interp_aux_r in H; eauto.
-      rewrite bind_vis. pstep. constructor 12; auto. left. apply H.
+    specialize (Hhandler' _ e). inv Hhandler'; try contradiction; try contra_size.
+    eapply paco2_mon with (r:= bot2); intros; try contradiction. eapply eqit_secure_silent_diverge.
+    + pfold. constructor. left. eapply diverge_with_respectful_handler; eauto.
+      eapply diverges_secure_equiv_halt_l; eauto.
+    + eapply diverges_with_bind; eauto.
   - pclearbot. rewrite Heqot1. rewrite Heqot2. repeat rewrite interp_state_vis.
     pose proof Hhandler as Hhandler'.
-    specialize (Hhandler' _ e1). inv Hhandler'; try contradiction.
-    specialize (FINCHECK s1). induction FINCHECK.
-    + inversion SIZECHECK. contradiction.
-    + rewrite bind_tau. pstep. constructor 3; auto. pstep_reverse.
-    + clear H0 H1.
-      rewrite bind_vis.
-      pose proof Hhandler as Hhandler'.
-      specialize (Hhandler' _ e2). inv Hhandler'; try contradiction.
-      specialize (FINCHECK s2). induction FINCHECK.
-      * rewrite bind_ret_l. simpl. pstep. constructor 4; auto. pstep_reverse.
-        eapply secure_eqit_interp_aux_l in H; eauto.
-      * rewrite bind_tau. pstep. constructor 11; auto.
-      * rewrite bind_vis. pstep. constructor 13; auto.
+    pose proof Hhandler as Hhandler''.
+    specialize (Hhandler'' _ e2). inv Hhandler''; try contradiction; try contra_size.
+    specialize (Hhandler' _ e1). inv Hhandler'; try contradiction; try contra_size.
+    eapply paco2_mon with (r:= bot2); intros; try contradiction. eapply eqit_secure_silent_diverge.
+    + eapply diverges_with_bind; eauto.
+    + specialize (FINCHECK s2). induction FINCHECK.
+      * rewrite bind_ret_l. pfold; constructor. left. cbn.
+        eapply diverge_with_respectful_handler; eauto. eapply diverges_secure_equiv_halt_r; eauto.
+        apply H.
+      * rewrite bind_tau. pfold; constructor. left. eapply IHFINCHECK; eauto.
+      * rewrite bind_vis. pfold. constructor. left. eapply H1; eauto. destruct H2; auto.
+    + eapply paco2_mon with (r:= bot2); intros; try contradiction. eapply eqit_secure_silent_diverge.
+      * apply diverges_with_bind. specialize (Hhandler _ e1). inv Hhandler; try contradiction; try contra_size; auto.
+      * apply diverges_with_bind; auto.
   - pclearbot. rewrite Heqot1. rewrite Heqot2. repeat rewrite interp_state_vis.
     pose proof Hhandler as Hhandler'.
-    specialize (Hhandler' _ e2). inv Hhandler'; try contradiction.
-    specialize (FINCHECK s2). induction FINCHECK.
-    + inversion SIZECHECK. contradiction.
-    + rewrite bind_tau. pstep. constructor 4; auto. pstep_reverse.
-    + clear H0 H1.
-      rewrite bind_vis.
-      pose proof Hhandler as Hhandler'.
-      specialize (Hhandler' _ e1). inv Hhandler'; try contradiction.
-      specialize (FINCHECK s1). induction FINCHECK.
-      * rewrite bind_ret_l. simpl. pstep. constructor 3; auto. pstep_reverse.
-        eapply secure_eqit_interp_aux_r in H; eauto.
-      * rewrite bind_tau. pstep. constructor 12; auto.
-      * rewrite bind_vis. pstep. constructor 14; auto.
+    pose proof Hhandler as Hhandler''.
+    eapply paco2_mon with (r:= bot2); intros; try contradiction. eapply eqit_secure_silent_diverge.
+    + specialize (Hhandler'' _ e1). inv Hhandler''; try contradiction; try contra_size.
+      * specialize (FINCHECK s1). induction FINCHECK.
+        ++ rewrite bind_ret_l. pfold; constructor. cbn. left.
+           eapply diverge_with_respectful_handler. eapply diverges_secure_equiv_halt_l; eauto. apply H.
+        ++ rewrite bind_tau. pfold. constructor. left. eapply IHFINCHECK; eauto.
+        ++ destruct H2. rewrite bind_vis. pfold. constructor; auto. left. eapply H1; eauto.
+      * apply diverges_with_bind; auto.
+    + specialize (Hhandler'' _ e2). inv Hhandler''; try contradiction; try contra_size.
+      apply diverges_with_bind; auto.
 Qed.
 
 End GeneralStateHandler.
-
-Lemma interp_eqit_secure_imp' : forall (R1 R2 : Type) (RR : R1 -> R2 -> Prop) (priv_map : privacy_map)
-                                 (t1 : itree (stateE +' IOE) R1 )
-                                 (t2 : itree (stateE +' IOE) R2),
-    eqit_secure sense_preorder (priv_imp priv_map) RR true true Public t1 t2 ->
-    low_eqit_secure_impstate true true priv_map RR (interp_imp t1 )  (interp_imp t2).
-Proof.
-  unfold low_eqit_secure_impstate. unfold interp_imp. intros.
-  eapply interp_eqit_secure_state; eauto.
-  - admit.
-  - admit.
-Abort.
-
-
-(*
-1. Write the paper
-2. Security preserving compiler correctness Imp with IO
-   a. Semantics for Imp +
-   b. Handler security preservation +
-   c. Semantics for Asm +
-   d. Handler security preservation for Asm
-   e. Imp2Asm compiler +'
-   f. Imp2Asm correctness (should not involve coinduction)
-3. General relation of state interpreters and security
-4. Security preserving compiler correctness Imp with IO and private exceptions
-5. Write a type system for Imp and prove soundness
-   a. "Manual" inference rule
-              |- c1   |= c2
-              -------------- Manual_R
-                |- c1; c2
-*)
