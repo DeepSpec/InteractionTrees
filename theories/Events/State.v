@@ -61,6 +61,10 @@ Section State.
     : itree (stateE +' E) ~> stateT S (itree E)
     := interp_state (case_ h_state pure_state).
 
+  Definition partial_run_state {E F} (h : E +' F ~> stateT S (itree F))
+    : itree (stateE +' E +' F) ~> stateT S (itree F)
+    := interp_state (case_ h_state h).
+
 End State.
 
 Arguments get {S E _}.

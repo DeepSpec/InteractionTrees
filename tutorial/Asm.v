@@ -15,7 +15,6 @@ From Coq Require Import
 
 Require Import ExtLib.Structures.Monad.
 
-  (* SAZ: Should we add ITreeMonad to ITree? *)
 From ITree Require Import
      ITree
      ITreeFacts
@@ -23,10 +22,12 @@ From ITree Require Import
      Basics.Monad
      Basics.CategorySub
      Events.State
-     Events.StateFacts.
+     Events.StateFacts
+     Eq.Eq.
 
 From ITreeTutorial Require Import Fin Utils_tutorial.
 
+Require Import Imp.
 Import Monads.
 (* end hide *)
 
@@ -39,13 +40,16 @@ Definition addr : Set := string.
 with [nat]). *)
 Definition reg : Set := nat.
 
-(** For simplicity, _Asm_ manipulates [nat]s as values too. *)
+(** For simplicity, _Asm_ manipulates [nat]s as values and function id's too. *)
 Definition value : Set := nat.
+Definition func : Set := nat.
 
 (** We consider constants and variables as operands. *)
+(* The operands also include [Ocall], which denote external calls. *)
 Variant operand : Set :=
 | Oimm (_ : value)
-| Oreg (_ : reg).
+| Oreg (_ : reg)
+| Ocall (f: func).
 
 (** The instruction set covers moves and arithmetic operations, as well as load
     and stores to the heap.  *)
@@ -55,7 +59,8 @@ Variant instr : Set :=
 | Isub   (dest : reg) (src : reg) (o : operand)
 | Imul   (dest : reg) (src : reg) (o : operand)
 | Iload  (dest : reg) (addr : addr)
-| Istore (addr : addr) (val : operand).
+| Istore (addr : addr) (val : operand)
+.
 
 (** We consider both direct and conditional jumps *)
 Variant branch {label : Type} : Type :=
@@ -74,14 +79,12 @@ Inductive block {label : Type} : Type :=
 Global Arguments block _ : clear implicits.
 
 
-
 (** A piece of code should expose the set of labels allowing to enter into it,
     as well as the set of outer labels it might jump to.  To this end, [bks]
     represents a collection of blocks labeled by [F A], with branches in [F B].
 *)
 
 Definition bks A B := fin A -> block (fin B).
-
 
 (** An [asm] program represents the control flow of the computation.  It is a
     collection of labelled [blocks] such that its labels are classified into
@@ -123,8 +126,10 @@ Inductive Memory : Type -> Type :=
 | Load  (a : addr) : Memory value
 | Store (a : addr) (val : value) : Memory unit.
 
+(* The events for external calls. *)
+Inductive FnCall : Type -> Type :=
+| Call (f : func) : FnCall value.
 
-(* SAZ: Move Exit to the itrees library? *)
 (** We also introduce a special event to model termination of the computation.
     Note that it expects _actively_ no answer from the environment: [Done] is
     of type [Exit void].  We can therefore use it to "close" an [itree E A] no
@@ -147,7 +152,6 @@ Section Denote.
   Local Open Scope monad_scope.
   (* end hide *)
 
-
   Section with_event.
 
     (** As with _Imp_, we parameterize our semantics by a universe of events
@@ -156,12 +160,14 @@ Section Denote.
     Context {HasReg : Reg -< E}.
     Context {HasMemory : Memory -< E}.
     Context {HasExit : Exit -< E}.
+    Context {HasCall : FnCall -< E}.
 
     (** Operands are trivially denoted as [itree]s returning values *)
     Definition denote_operand (o : operand) : itree E value :=
       match o with
       | Oimm v => Ret v
       | Oreg v => trigger (GetReg v)
+      | Ocall f => trigger (Call f)
       end.
 
     (** Instructions offer no suprises either. *)
@@ -193,7 +199,7 @@ Section Denote.
     (** A [branch] returns the computed label whose set of possible values [B]
         is carried by the type of the branch.  If the computation halts
         instead of branching, we return the [exit] tree.  *)
-    Definition denote_br {B} (b : branch B) : itree E B :=
+    Definition denote_branch {B} (b : branch B) : itree E B :=
       match b with
       | Bjmp l => ret l
       | Bbrz v y n =>
@@ -201,7 +207,6 @@ Section Denote.
         if val:nat then ret y else ret n
       | Bhalt => exit
       end.
-
 
     (** The denotation of a basic [block] shares the same type, returning the
         [label] of the next [block] it shall jump to.  It recursively denote
@@ -211,7 +216,7 @@ Section Denote.
       | bbi i b =>
         denote_instr i ;; denote_bk b
       | bbb b =>
-        denote_br b
+        denote_branch b
       end.
 
     (** A labelled collection of blocks, [bks], is simply the pointwise
@@ -272,8 +277,6 @@ Proof.
   - intros EQ; apply string_dec_sound in EQ; unfold rel_dec; simpl; rewrite EQ; reflexivity.
 Qed.
 
-(* SAZ: Annoyingly, typeclass resolution picks the wrong map instance for nats by default, so
-   we create an instance for [reg] that hides the wrong instance with the right one. *)
 Instance RelDec_reg : RelDec (@eq reg) := RelDec_from_dec eq Nat.eq_dec.
 (* end hide *)
 
@@ -296,10 +299,12 @@ Definition h_memory {E : Type -> Type} `{mapE addr 0 -< E} :
     | Store x v => insert x v
     end.
 
+Definition h_E {E F} `{mapE addr 0 -< F} `{E -< F} : E ~> itree F :=
+  fun R e => trigger e.
+
 (** Once again, we implement our Maps with a simple association list *)
 Definition registers := alist reg value.
 Definition memory    := alist addr value.
-
 
 (** The _asm_ interpreter takes as inputs a starting heap [mem] and register
     state [reg] and interprets an itree in two nested instances of the [map]
@@ -307,37 +312,36 @@ Definition memory    := alist addr value.
     do a bit of post-processing to swap the order of the "state components"
     introduced by the interpretation.
 *)
-Definition interp_asm {E A} (t : itree (Reg +' Memory +' E) A) :
-  memory -> registers -> itree E (memory * (registers * A)) :=
-  let h := bimap h_reg (bimap h_memory (id_ _)) in
-  let t' := interp h t in
-  fun  mem regs => interp_map (interp_map t' regs) mem.
 
+(* The interpretation is "partial", as it expects a handler input [h] which is
+  corresponds to the implementation of the external call. *)
+Definition interp_asm {E : Type -> Type} {A : Type} h (t : itree (Reg +' Memory +' FnCall +' E) A):
+    memory -> registers -> itree (FnCall +' E) (memory * (registers * A)) :=
+  let t' := interp (bimap h_reg (case_ h_memory (case_ h_E h_E))) t in
+  fun  mem regs => partial_interp_map h (interp_map t' regs) mem.
 
 (** We can then define an evaluator for closed assembly programs by interpreting
     both store and heap events into two instances of [mapE], and running them
     both in the empty initial environments.  *)
-Definition run_asm (p: asm 1 0) := interp_asm (denote_asm p Fin.f0) empty empty.
+Definition run_asm (p: asm 1 0) ext_handler := interp_asm ext_handler (denote_asm p Fin.f0) empty empty.
 
-(* SAZ: Should some of thes notions of equivalence be put into the library?
-   SAZ: Should this be stated in terms of ktree ?
- *)
 (** The definition [interp_asm] also induces a notion of equivalence (open)
     _asm_ programs, which is just the equivalence of the ktree category *)
-Definition eq_asm_denotations {E A B} (t1 t2 : Kleisli (itree (Reg +' Memory +' E)) A B) : Prop :=
-  forall a mem regs, interp_asm (t1 a) mem regs ≈ interp_asm (t2 a) mem regs.
+Definition eq_asm_denotations {E A B} (t1 t2 : Kleisli (itree (Reg +' Memory +' FnCall +' E)) A B) : Prop :=
+  forall a mem regs ext, interp_asm ext (t1 a) mem regs ≈ interp_asm ext (t2 a) mem regs.
 
 Definition eq_asm {A B} (p1 p2 : asm A B) : Prop :=
   eq_asm_denotations (denote_asm p1) (denote_asm p2).
 
 Section InterpAsmProperties.
 
-  Context {E': Type -> Type}.
-  Notation E := (Reg +' Memory +' E').
+  Context {F: Type -> Type}.
+  Notation E := (Reg +' Memory +' FnCall +' F).
+  Notation E' := (FnCall +' F).
 
   (** This interpreter is compatible with the equivalence-up-to-tau. *)
-  Global Instance eutt_interp_asm {R}:
-    Proper (@eutt E R R eq ==> eq ==> eq ==> @eutt E' (prod memory (prod registers R)) (prod _ (prod _ R)) eq) interp_asm.
+  Global Instance eutt_interp_asm {R} h:
+    Proper (@eutt E R R eq ==> eq ==> eq ==> @eutt E' (prod memory (prod registers R)) (prod _ (prod _ R)) eq) (interp_asm h).
   Proof.
     repeat intro.
     unfold interp_asm.
@@ -349,11 +353,11 @@ Section InterpAsmProperties.
   Qed.
 
   (** [interp_asm] commutes with [Ret]. *)
-  Lemma interp_asm_ret: forall {R} (r: R) (regs : registers) (mem: memory),
-      @eutt E' _ _ eq (interp_asm (ret r) mem regs)
+  Lemma interp_asm_ret: forall {R} (r: R) (regs : registers) (mem: memory) ext,
+      @eutt E' _ _ eq (interp_asm ext (ret r) mem regs)
             (ret (mem, (regs, r))).
   Proof.
-    unfold interp_asm, interp_map.
+    unfold interp_asm, partial_interp_map, interp_map.
     intros.
     unfold ret at 1, Monad_itree.
     rewrite interp_ret, 2 interp_state_ret.
@@ -361,14 +365,13 @@ Section InterpAsmProperties.
   Qed.
 
   (** [interp_asm] commutes with [bind]. *)
-  Lemma interp_asm_bind: forall {R S} (t: itree E R) (k: R -> itree _ S) (regs : registers) (mem: memory),
-      @eutt E' _ _ eq (interp_asm (ITree.bind t k) mem regs)
-            (ITree.bind (interp_asm t mem regs) (fun '(mem', (regs', x)) => interp_asm (k x) mem' regs')).
-
+  Lemma interp_asm_bind: forall {R S} (t: itree E R) (k: R -> itree _ S) (regs : registers) (mem: memory) ext,
+      @eutt E' _ _ eq (interp_asm ext (ITree.bind t k) mem regs)
+            (ITree.bind (interp_asm ext t mem regs) (fun '(mem', (regs', x)) => interp_asm ext (k x) mem' regs')).
   Proof.
     intros.
     unfold interp_asm.
-    unfold interp_map. cbn.
+    unfold partial_interp_map, interp_map. cbn.
     repeat rewrite interp_bind.
     repeat rewrite interp_state_bind.
     repeat rewrite Eq.bind_bind.
@@ -378,6 +381,65 @@ Section InterpAsmProperties.
     rewrite H.
     destruct u2 as [g' [l' x]].
     reflexivity.
+  Qed.
+
+  (* Given a trigger of an external call, now we can state that an arbitrary
+    implementation of an external function does may change the memory. *)
+  Definition ext_call f : itree E value := (trigger (Call f)).
+
+  (* As a simple example, this external call handler is going to modify the
+     memory by adding a "foo" address *)
+  Definition h_call {E : Type -> Type} `{mapE addr 0 -< E} :
+    FnCall ~> itree E :=
+    fun _ e =>
+      match e with
+      | Call x => (ITree.bind (insert "foo"%string 3) (fun _ => Ret 3))
+      end.
+
+  (* This is the corresponding [handler] that is the external call implementation. *)
+  Definition call_modifies_mem : (FnCall +' E') ~> stateT memory (itree E').
+    intros.
+    eapply interp_map.
+    pose (case_ h_call (h_E (E := E'))). eapply h. eapply X.
+  Defined.
+
+  (* Now, we can show that we can indeed give an instance of a handler for an
+    external function such that the resulting memory is not equivalent to the initial
+    memory. *)
+  Lemma external_call_can_affect_memory:
+    forall regs f,
+    exists ext mem,
+      (eutt (fun '(mem', _) _ => mem <> mem')
+          (interp_asm ext (ext_call f) mem regs) (interp_asm ext (ext_call f) mem regs)).
+  Proof.
+    intros. exists call_modifies_mem, nil.
+    subst.
+    unfold interp_asm, partial_interp_map, interp_map.
+    unfold ext_call.
+    setoid_rewrite interp_trigger. cbn.
+    unfold cat, Cat_Handler, Handler.cat.
+    cbn. unfold resum, ReSum_id, id_, Id_IFun.
+    unfold h_E.
+    setoid_rewrite interp_trigger.
+    unfold inr_, Inr_sum1_Handler, Handler.inr_, Handler.htrigger.
+    unfold ITree.trigger.
+    rewrite interp_state_vis. rewrite interp_state_bind. cbn.
+    unfold pure_state. rewrite interp_state_vis. cbn.
+    setoid_rewrite tau_eutt. do 2 setoid_rewrite interp_state_ret.
+    replace (fun st : memory * (registers * value) => Ret (fst st, (fst (snd st), snd (snd st)))) with
+        (fun st => {| _observe := RetF (E := E') (R := memory * (registers * value)) st |}).
+    2 : {
+      eapply FunctionalExtensionality.functional_extensionality.
+      intros. destruct x, p. cbn; auto.
+    }
+    rewrite bind_ret_r. unfold call_modifies_mem. cbn.
+    unfold interp_map. rewrite interp_state_bind. rewrite bind_bind.
+    unfold insert. unfold embed, Embeddable_forall, embed, Embeddable_itree.
+    rewrite interp_state_trigger. cbn. rewrite bind_ret_l.
+    rewrite interp_state_ret. rewrite bind_ret_l.
+    cbn.
+    apply eqit_Ret.
+    intro. unfold alist_add in H;cbn in H. inv H.
   Qed.
 
 End InterpAsmProperties.
