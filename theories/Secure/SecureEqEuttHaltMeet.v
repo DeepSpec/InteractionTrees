@@ -57,6 +57,34 @@ Ltac contra_size :=
   end
 .
 
+Class LowerSemiLattice (P : Preorder) :=
+  {
+  top : L;
+  bot : L;
+  top_is_top : forall l, leq l top;
+  bot_is_bot : forall l, ~ leq l bot;
+  meet : L -> L -> L;
+  meet_correct : forall l1 l2 l3, leq l3 (meet l1 l2) <-> (leq l3 l1 /\ leq l3 l2) 
+  }.
+
+Lemma not_in_meet_l P (Lat : LowerSemiLattice P)  (l1 l2 l3 : L) : 
+  ~ leq l3 l1 -> ~ leq l3 (meet l1 l2).
+Proof.
+  intros Hl1 Hcon. apply meet_correct in Hcon. tauto.
+Qed.
+
+Lemma not_in_meet_r P (Lat : LowerSemiLattice P)  (l1 l2 l3 : L) : 
+  ~ leq l3 l2 -> ~ leq l3 (meet l1 l2).
+Proof.
+  intros Hl1 Hcon. apply meet_correct in Hcon. tauto.
+Qed.
+
+Lemma not_in_meet_or P (Lat : LowerSemiLattice P)  (l1 l2 l3 : L) : 
+  ~ leq l3 (meet l1 l2) -> (~ leq l3 l1) \/ (~ leq l3 l2).
+Proof.
+  intros. rewrite meet_correct in H.
+  destruct (classic (leq l3 l1) ); tauto.
+Qed.
 
 Lemma tau_eqit_secure : forall E R1 R2 Label priv l RR (t1 : itree E R1) (t2 : itree E R2),
     eqit_secure Label priv RR true true l (Tau t1) t2 -> eqit_secure Label priv RR true true l t1 t2.
@@ -369,116 +397,164 @@ Proof.
   - inv Heqx; inv Heqy; ITrace.inj_existT; subst. contra_size.
 Qed.
 
-Lemma eqit_secure_private_VisLR:
-  forall (E : Type -> Type) (R3 : Type) (Label : Preorder) (priv : forall x : Type, E x -> L)
-    (l : L) (b1 b2 : bool) (R2 : Type) (RR2 : R2 -> R3 -> Prop) (A : Type) 
-    (e : E A) (k2 : A -> itree E R2),
-    nonempty A ->
-    ~ leq (priv A e) l ->
-    forall (X : Type) (e0 : E X) (k : X -> itree E R3),
-      ~ leq (priv X e0) l ->
-      nonempty X ->
-      (forall a a0,
-        eqit_secure Label priv RR2 b1 b2 l (k2 a) (k a0)) ->
-        eqit_secure Label priv RR2 b1 b2 l (Vis e k2) (Vis e0 k) .
-Proof.
-  intros. pfold. red. cbn. unpriv_co. left. apply H3.
-Qed.
-
-Lemma eqit_secure_private_VisL:
-  forall (E : Type -> Type) (R3 : Type) (Label : Preorder) (priv : forall x : Type, E x -> L)
-    (l : L) (b2 : bool) (R2 : Type) (RR2 : R2 -> R3 -> Prop) (A : Type) 
-    (e : E A) (k2 : A -> itree E R2) (t : itree E R3),
-    nonempty A ->
-    ~ leq (priv A e) l ->
-    (forall a,
-        eqit_secure Label priv RR2 true b2 l (k2 a) t) ->
-        eqit_secure Label priv RR2 true b2 l (Vis e k2) t .
-Proof.
-  intros. pfold. red. cbn. unpriv_ind. pstep_reverse. apply H1.
-Qed.
-
-Lemma eqit_secure_private_VisR:
-  forall (E : Type -> Type) (R3 : Type) (Label : Preorder) (priv : forall x : Type, E x -> L)
-    (l : L) (b1 : bool) (R2 : Type) (RR2 : R2 -> R3 -> Prop) (A : Type) 
-    (e : E A) (k2 : A -> itree E R3) (t : itree E R2),
-    nonempty A ->
-    ~ leq (priv A e) l ->
-    (forall a,
-        eqit_secure Label priv RR2 b1 true l t (k2 a)) ->
-        eqit_secure Label priv RR2 b1 true l t (Vis e k2).
-Proof.
-  intros. pfold. red. cbn. unpriv_ind. pstep_reverse. apply H1.
-Qed.
-
-Lemma eqit_secure_public_Vis :  forall (E : Type -> Type) (R1 R2 : Type) (Label : Preorder) (priv : forall x : Type, E x -> L)
-    (l : L) (b1 b2 : bool) (RR : R1 -> R2 -> Prop) (A : Type) 
-    (e : E A) (k1: A -> itree E R1) (k2 : A -> itree E R2),
-    leq (priv A e) l ->
-    (eqit_secure Label priv RR b1 b2 l (Vis e k1) (Vis e k2) <->
-    forall a, eqit_secure Label priv RR b1 b2 l (k1 a) (k2 a)).
-Proof.
-  split; intros. 
-  - pinversion H0; ITrace.inj_existT; subst; try contradiction; apply H2.
-  - pfold. constructor; auto. left. apply H0.
-Qed.
 
 Lemma eqit_secure_trans_aux1:
-  forall (E : Type -> Type) (R3 R1 : Type) (Label : Preorder)
-    (priv : forall x : Type, E x -> L) (l : L) (b2 : bool) (R2 : Type) 
+  forall (E : Type -> Type) (R3 R1 : Type) (Label : Preorder) (Lat : LowerSemiLattice Label)
+    (priv : forall x : Type, E x -> L) (l1 l2 : L) (b2 : bool) (R2 : Type) 
     (RR1 : R1 -> R2 -> Prop) (RR2 : R2 -> R3 -> Prop) (r : itree E R1 -> itree E R3 -> Prop)
     (r0 : R3) (t4 : itree E R2),
-    secure_eqitF Label priv RR2 true b2 l id
-                 (upaco2 (secure_eqit_ Label priv RR2 true b2 l id) bot2) (observe t4) 
+    secure_eqitF Label priv RR2 true b2 l2 id
+                 (upaco2 (secure_eqit_ Label priv RR2 true b2 l2 id) bot2) (observe t4) 
                  (RetF r0) ->
     forall t : itree E R1,
-      paco2 (secure_eqit_ Label priv RR1 true b2 l id) bot2 t t4 ->
-      secure_eqitF Label priv (rcompose RR1 RR2) true b2 l id
-                   (upaco2 (secure_eqit_ Label priv (rcompose RR1 RR2) true b2 l id) r) 
+      paco2 (secure_eqit_ Label priv RR1 true b2 l1 id) bot2 t t4 ->
+      secure_eqitF Label priv (rcompose RR1 RR2) true b2 (meet l1 l2) id
+                   (upaco2 (secure_eqit_ Label priv (rcompose RR1 RR2) true b2 (meet l1 l2) id) r) 
                    (observe t) (RetF r0).
 Proof.
-  intros E R3 R1 Label priv l b2 R2 RR1 RR2 r r0 t4 Ht23 t H.
+  intros E R3 R1 Label Lat priv l1 l2 b2 R2 RR1 RR2 r r0 t4 Ht23 t H.
   punfold H. red in H. 
-  remember (RetF r0) as x.
+  remember (RetF r0) as x. 
   hinduction Ht23 before r; intros; inv Heqx; try inv CHECK; auto.
   - remember (RetF r1) as y.
     hinduction H0 before r; intros; inv Heqy; eauto.
-    rewrite itree_eta'. unpriv_ind. cbn. eapply H0; eauto.
+    rewrite itree_eta'. unpriv_ind. 2:  eapply H0; eauto. eapply not_in_meet_l; eauto.
   - eapply IHHt23; eauto.
     remember (TauF t1) as y.
     hinduction H before r; intros; inv Heqy; try inv CHECK; eauto.
     + pclearbot. constructor; auto. pstep_reverse.
     + pclearbot. unpriv_ind. pstep_reverse.
     + pclearbot. punfold H.
-  - assert (Hne : nonempty A). { eauto. } (* add the condition that lets us assume this*) 
-    inv Hne. eapply H0; eauto. Unshelve. all : auto.
-    remember (VisF e k1) as y.
-    hinduction H1 before r; intros; inv Heqy; try inv CHECK; ITrace.inj_existT; subst; 
-    try contradiction; try contra_size; eauto.
-    + pclearbot. constructor; auto. pstep_reverse.
-    + pclearbot. unpriv_ind. pstep_reverse.
-    + pclearbot. rewrite itree_eta' at 1. pstep_reverse.
+  - assert (Hne : nonempty A). { eauto. }
+    inv Hne.
+    assert (Hmeet : ~ leq (priv _ e) (meet l1 l2)  ).
+    { eapply not_in_meet_r; eauto. }
+    destruct (classic (leq (priv _ e) l1 ) ).
+    + remember (VisF e k1) as y.
+      hinduction H1 before r; intros; inv Heqy; try inv CHECK; ITrace.inj_existT; subst; try contradiction; try contra_size; eauto.
+      * unpriv_ind. eapply H1; eauto. pclearbot. pstep_reverse.
+      * unpriv_ind. eapply not_in_meet_l; eauto. eapply H0; eauto.
+    + eapply H0; eauto.  Unshelve. all : auto.
+      remember (VisF e k1) as y.
+      hinduction H1 before r; intros; inv Heqy; try inv CHECK; ITrace.inj_existT; subst; 
+        try contradiction; try contra_size; eauto.
+      * pclearbot. constructor; auto. pstep_reverse.
+      * pclearbot. unpriv_ind. pstep_reverse.
+      * pclearbot. rewrite itree_eta' at 1. pstep_reverse.
 Qed.
 
+Lemma eqit_secure_trans_ret_aux:
+  forall (E : Type -> Type) (R3 R1 : Type) (Label : Preorder) (LLat : LowerSemiLattice Label)
+    (priv : forall A : Type, E A -> L) (l1 l2 : L) (b1 : bool) (R2 : Type)
+    (RR1 : R1 -> R2 -> Prop) (RR2 : R2 -> R3 -> Prop) (r : itree E R1 -> itree E R3 -> Prop)
+    (r1 : R1) (t1 : itree E R2),
+    secure_eqitF Label priv RR1 b1 true l1 id
+                 (upaco2 (secure_eqit_ Label priv RR1 b1 true l1 id) bot2) (RetF r1) 
+                 (observe t1) ->
+    forall t2 : itree E R3,
+      paco2 (secure_eqit_ Label priv RR2 b1 true l2 id) bot2 t1 t2 ->
+      secure_eqitF Label priv (rcompose RR1 RR2) b1 true (meet l1 l2) id
+                   (upaco2 (secure_eqit_ Label priv (rcompose RR1 RR2) b1 true (meet l1 l2) id) r)
+                   (observe (Ret r1)) (observe t2).
+Proof.
+  intros E R3 R1 Label LLat priv l1 l2 b1 R2 RR1 RR2 r r1 t1 H1 t2 H2.
+  punfold H2. red in H2. remember (RetF r1) as x. cbn.
+  hinduction H1 before r; intros; inv Heqx;
+  try inv CHECK; auto.
+  - remember (RetF r2) as y.
+    hinduction H2 before r; intros; inv Heqy; eauto.
+    rewrite itree_eta' at 1. unpriv_ind. apply not_in_meet_r; auto.
+    eapply H0; eauto.
+  - eapply IHsecure_eqitF; eauto.
+    remember (TauF t2) as y.
+    hinduction H2 before r; intros; inv Heqy; try inv CHECK;
+    ITrace.inj_existT; subst; try contradiction; try contra_size; eauto.
+    + pclearbot. constructor; auto. pstep_reverse.
+    + pclearbot. unpriv_ind. pstep_reverse.
+    + pclearbot. rewrite itree_eta'. pstep_reverse.
+  - assert (Hne : nonempty A). { eauto. }
+    inv Hne.
+    assert (Hmeet : ~ leq (priv _ e) (meet l1 l2)  ).
+    { eapply not_in_meet_l; eauto. }
+    destruct (classic (leq (priv _ e) l2 ) ).
+    + remember (VisF e k2) as y.
+      hinduction H2 before r; intros; inv Heqy; ITrace.inj_existT; try inv CHECK;
+      subst; try contradiction; try contra_size; eauto.
+      * pclearbot. unpriv_ind. eapply H1; eauto. pstep_reverse.
+      * pclearbot. unpriv_ind. apply not_in_meet_r; auto.
+        eapply H0; eauto.
+    + eapply H0; eauto. Unshelve. all : auto.
+      remember (VisF e k2) as y.
+      hinduction H2 before r; intros; try inv Heqy; ITrace.inj_existT; subst; try inv CHECK;
+      try contradiction; try contra_size; eauto.
+      * pclearbot. constructor; auto. pstep_reverse.
+      * pclearbot. unpriv_ind. pstep_reverse.
+      * pclearbot. rewrite itree_eta'. pstep_reverse.
+Qed.
+
+           (* 
+
+ E : Type -> Type
+  R3 : Type
+  R1 : Type
+  Label : Preorder
+  LLat : LowerSemiLattice Label
+  priv : forall A : Type, E A -> L
+  l1, l2 : L
+  b2 : bool
+  R2 : Type
+  RR1 : R1 -> R2 -> Prop
+  RR2 : R2 -> R3 -> Prop
+  r : itree E R1 -> itree E R3 -> Prop
+  t1 : itree E R1
+  t2 : itree E R2
+  t0 : itree E R1
+  t3 : itree E R2
+  CIH0 : forall (t1 : itree E R1) (t2 : itree E R2) (t3 : itree E R3),
+         eqit_secure Label priv RR1 true b2 l1 t1 t2 ->
+         eqit_secure Label priv RR2 true b2 l2 t2 t3 -> r t1 t3
+  H : paco2 (secure_eqit_ Label priv RR1 true b2 l1 id) bot2 t0 t3
+  t4 : itree E R3
+  X : Type
+  e : E X
+  k : X -> itree E R3
+  Heqot4 : VisF e k = observe t4
+  Ht4 : forall t5 : itree E R3, VisF e k <> TauF t5
+  H0 : leq (priv X e) (meet l1 l2)
+  Hl1 : leq (priv X e) l1
+  Hl2 : leq (priv X e) l2
+  H2 : secure_eqitF Label priv RR2 true b2 l2 id
+         (upaco2 (secure_eqit_ Label priv RR2 true b2 l2 id) bot2) 
+         (observe t3) (VisF e k)
+  ============================
+  secure_eqitF Label priv (rcompose RR1 RR2) true b2 (meet l1 l2) id
+    (upaco2 (secure_eqit_ Label priv (rcompose RR1 RR2) true b2 (meet l1 l2) id) r) 
+    (TauF t0) (VisF e k)
+
+            *)
+
+
 Lemma eqit_secure_trans_aux2:
-  forall (E : Type -> Type) (R3 R1 : Type) (Label : Preorder)
-    (priv : forall x : Type, E x -> L) (l : L) (b2 : bool) (R2 : Type) 
+  forall (E : Type -> Type) (R3 R1 : Type) (Label : Preorder) (LLat : LowerSemiLattice Label)
+    (priv : forall x : Type, E x -> L) (l1 l2 : L) (b2 : bool) (R2 : Type) 
     (RR1 : R1 -> R2 -> Prop) (RR2 : R2 -> R3 -> Prop) (r : itree E R1 -> itree E R3 -> Prop)
     (X : Type) (e0 : E X) (k : X -> itree E R3) (t4 : itree E R2),
-    leq (priv X e0) l ->
-    secure_eqitF Label priv RR2 true b2 l id
-                 (upaco2 (secure_eqit_ Label priv RR2 true b2 l id) bot2) (observe t4) 
+    leq (priv X e0) (meet l1 l2) ->
+    leq (priv X e0) l1 ->
+    leq (priv X e0) l2 ->
+    secure_eqitF Label priv RR2 true b2 l2 id
+                 (upaco2 (secure_eqit_ Label priv RR2 true b2 l2 id) bot2) (observe t4) 
                  (VisF e0 k) ->
     (forall (t1 : itree E R1) (t2 : itree E R2) (t3 : itree E R3),
-        eqit_secure Label priv RR1 true b2 l t1 t2 ->
-        eqit_secure Label priv RR2 true b2 l t2 t3 -> r t1 t3) ->
+        eqit_secure Label priv RR1 true b2 l1 t1 t2 ->
+        eqit_secure Label priv RR2 true b2 l2 t2 t3 -> r t1 t3) ->
     forall t : itree E R1,
-      paco2 (secure_eqit_ Label priv RR1 true b2 l id) bot2 t t4 ->
-      secure_eqitF Label priv (rcompose RR1 RR2) true b2 l id
-                   (upaco2 (secure_eqit_ Label priv (rcompose RR1 RR2) true b2 l id) r) 
+      paco2 (secure_eqit_ Label priv RR1 true b2 l1 id) bot2 t t4 ->
+      secure_eqitF Label priv (rcompose RR1 RR2) true b2 (meet l1 l2) id
+                   (upaco2 (secure_eqit_ Label priv (rcompose RR1 RR2) true b2 (meet l1 l2) id) r) 
                    (observe t) (VisF e0 k).
 Proof.
-  intros E R3 R1 Label priv l b2 R2 RR1 RR2 r X e0 k t4 He0 Ht23 CIH0 t Ht.
+  intros E R3 R1 Label Lat priv l1 l2 b2 R2 RR1 RR2 r X e0 k t4 Hl12 Hl1 Hl2 Ht23 CIH0 t Ht.
   punfold Ht. red in Ht. remember (VisF e0 k) as x.
   hinduction Ht23 before r; intros; inv Heqx; try inv CHECK;
   ITrace.inj_existT; subst; try contradiction; eauto.
@@ -492,17 +568,28 @@ Proof.
     ITrace.inj_existT; subst; try contradiction; eauto.
     + pclearbot. constructor; auto. right. eapply CIH0. apply H.
       apply H0.
-    + rewrite itree_eta'. unpriv_ind. eapply H0; eauto.
-  - assert (nonempty A); eauto. inv H1. eapply H0; eauto.
-    Unshelve. all : auto. clear H0. rewrite H2 in H.
-    remember (VisF e k1) as y.
-    hinduction Ht before r; intros; inv Heqy; try inv CHECK; ITrace.inj_existT; subst;
-    try contradiction; try contra_size; eauto.
-    + pclearbot. constructor; auto. pstep_reverse.
-    + pclearbot. unpriv_ind. pstep_reverse.
-    + pclearbot. rewrite itree_eta' at 1. pstep_reverse.
-    
-Qed.
+    + rewrite itree_eta'. unpriv_ind. 
+      eapply not_in_meet_l; eauto.
+      eapply H0; eauto.
+  - assert (nonempty A); eauto. inv H1. 
+    assert (Hmeet : ~ leq (priv _ e) (meet l1 l2) ).
+    eapply not_in_meet_r; eauto.
+    destruct (classic (leq (priv _ e) l1 ) ).
+    + remember (VisF e k1) as y.
+      hinduction Ht before r; intros; inv Heqy; try inv CHECK; ITrace.inj_existT; subst;
+        try contradiction; try contra_size; eauto.
+      * unpriv_ind. pclearbot. eapply H1; eauto. pstep_reverse.
+      * unpriv_ind. eapply not_in_meet_l; eauto. eapply H0; eauto.
+    + eapply H0; eauto. Unshelve. all : auto.
+      specialize (H a).
+      remember (VisF e k1) as y.
+      hinduction Ht before r; intros; inv Heqy; try inv CHECK; ITrace.inj_existT; subst;
+        try contradiction; try contra_size; eauto.
+      * pclearbot. constructor; auto. pstep_reverse.
+      * pclearbot. unpriv_ind. pstep_reverse.
+      * pclearbot. rewrite itree_eta' at 1. pstep_reverse.
+Qed.   
+
 
 
 Lemma secret_halt_trans_1 : forall E Label priv l b1 b2 (R1 R2 R3 A : Type) (RR1 : R1 -> R2 -> Prop)
@@ -650,19 +737,227 @@ Proof.
   intros. inv PR. econstructor; eauto.
 Qed.
 
-Lemma eqit_secure_trans : forall E Label priv l b1 b2 (R1 R2 R3 : Type) (RR1 : R1 -> R2 -> Prop)
-            (RR2 : R2 -> R3 -> Prop) (t1 : itree E R1) (t2 : itree E R2) (t3 : itree E R3),
-    eqit_secure Label priv RR1 b1 b2 l t1 t2 ->
-    eqit_secure Label priv RR2 b1 b2 l t2 t3 ->
-    eqit_secure Label priv (rcompose RR1 RR2) b1 b2 l t1 t3.
+Lemma secret_halt_trans_3': forall (E : Type -> Type) (Label : Preorder) (Lat : LowerSemiLattice Label) (priv : forall x : Type, E x -> L) 
+         (l1 l2 : L) (b1 b2 : bool) (R1 R2 R3 A : Type) (RR1 : R1 -> R2 -> Prop)
+         (RR2 : R2 -> R3 -> Prop) (t1 : itree E R1) (t2 : itree E R2) 
+         (e : E A) (k : A -> itree E R3),
+       ~ leq (priv A e) (meet l1 l2) ->
+       empty A ->
+       eqit_secure Label priv RR1 b1 b2 l1 t1 t2 ->
+       eqit_secure Label priv RR2 b1 b2 l2 t2 (Vis e k) ->
+       eqit_secure Label priv (rcompose RR1 RR2) b1 b2 (meet l1 l2) t1 (Vis e k).
+Proof.
+  intros. generalize dependent t1. generalize dependent t2.
+  apply not_in_meet_or in H. destruct H.
+  - pcofix CIH. intros t2 Ht2 t1 Ht12. pfold. red. cbn.
+    punfold Ht12. red in Ht12. punfold Ht2. red in Ht2. cbn in *.
+    hinduction Ht12 before r; intros; eauto.
+    + inv Ht2; ITrace.inj_existT; contra_size.
+    + pclearbot. unpriv_halt. eapply not_in_meet_l; eauto. right.
+      eapply CIH; eauto. 
+      inv Ht2; ITrace.inj_existT; subst; try contra_size; try contradiction; pclearbot;  eauto. 
+      pfold. auto.
+    + eapply IHHt12; eauto.
+      inv Ht2; ITrace.inj_existT; subst; try contra_size; try contradiction; pclearbot;  eauto. 
+      punfold H3.
+    + pclearbot. destruct (classic (leq (priv _ e0) l2)  ).
+      * inv Ht2; ITrace.inj_existT; subst; try contradiction; try contra_size.
+      * assert (Hmeet1 : ~ leq (priv _ e0) (meet l1 l2) ).
+        eapply not_in_meet_r; eauto.
+        assert (Hmeet2 : ~ leq (priv _ e) (meet l1 l2) ). eapply not_in_meet_l; eauto.
+        destruct (classic_empty A0).
+        -- unpriv_halt. contra_size.
+        -- unpriv_halt. right. eapply CIH with (t2 := k2 a); eauto. 2 : apply H1. 
+           inv Ht2; ITrace.inj_existT; subst; try contra_size; try contradiction; try contra_size; pclearbot;  eauto.
+           ++ rewrite H8. rewrite H8 in H5. pfold. apply H5.
+           ++ apply H5.
+    + unpriv_halt. eapply not_in_meet_l; eauto. eapply not_in_meet_l; eauto.
+      right. eapply CIH with (t2 := t0 ); eauto. pfold. auto.
+      inv Ht2; ITrace.inj_existT; subst; try contradiction; try contra_size; auto.
+      * pclearbot. punfold H4.
+      * pclearbot. apply H1.
+    + pclearbot. unpriv_halt. eapply not_in_meet_l; eauto. right.
+      inv SIZECHECK.
+      eapply CIH with (t2 := k2 a); eauto. 2 : apply H1.
+      inv Ht2; ITrace.inj_existT; subst; try contradiction; try contra_size; auto.
+      pfold. apply H3. pclearbot. apply H3.
+    + pclearbot. unpriv_halt. eapply not_in_meet_l; eauto. eapply not_in_meet_l; eauto.
+      right. inv SIZECHECK2. eapply CIH with (t2 := k2 a0); eauto. 2: apply H1.
+      inv Ht2; ITrace.inj_existT; subst; try contradiction; try contra_size; auto.
+      pfold. apply H3. pclearbot. apply H3.
+    + inv CHECK. unpriv_halt. eapply not_in_meet_l; eauto. eapply not_in_meet_l; eauto.
+      right. eapply CIH; eauto. pfold. apply Ht2. pfold. apply H1.
+    +  inv SIZECHECK. eapply H2; eauto. Unshelve. all: auto.
+       inv Ht2; ITrace.inj_existT; subst; try contradiction; try contra_size; auto.
+       pclearbot. rewrite itree_eta'. pstep_reverse.
+    + unpriv_halt; try contra_size. eapply not_in_meet_l; eauto.
+      eapply not_in_meet_l; eauto.
+    + unpriv_halt. eapply not_in_meet_l; eauto. pclearbot. right.
+      eapply CIH; eauto. pfold. apply Ht2.
+    + pclearbot. unpriv_halt; try contra_size.
+      eapply not_in_meet_l; eauto. eapply not_in_meet_l; eauto.
+    + pclearbot. unpriv_halt. eapply not_in_meet_l; eauto.
+      eapply not_in_meet_l; eauto. right. eapply CIH; eauto.
+      2 : apply H1. pfold. apply Ht2.
+ -  pcofix CIH. intros t2 Ht2 t1 Ht12. pfold. red. cbn.
+    punfold Ht12. red in Ht12. punfold Ht2. red in Ht2. cbn in *.
+    hinduction Ht12 before r; intros; eauto.
+    + inv Ht2; ITrace.inj_existT; contra_size.
+    + pclearbot. unpriv_halt. eapply not_in_meet_r; eauto. right.
+      eapply CIH; eauto. 
+      inv Ht2; ITrace.inj_existT; subst; try contra_size; try contradiction; pclearbot;  eauto. 
+      pfold. auto.
+    + eapply IHHt12; eauto.
+      inv Ht2; ITrace.inj_existT; subst; try contra_size; try contradiction; pclearbot;  eauto. 
+      punfold H3.
+    + pclearbot. destruct (classic (leq (priv _ e0) l2)  ).
+      * inv Ht2; ITrace.inj_existT; subst; try contradiction; try contra_size.
+      * assert (Hmeet1 : ~ leq (priv _ e0) (meet l1 l2) ).
+        eapply not_in_meet_r; eauto.
+        assert (Hmeet2 : ~ leq (priv _ e) (meet l1 l2) ). eapply not_in_meet_r; eauto.
+        destruct (classic_empty A0).
+        -- unpriv_halt. contra_size.
+        -- unpriv_halt. right. eapply CIH with (t2 := k2 a); eauto. 2 : apply H1. 
+           inv Ht2; ITrace.inj_existT; subst; try contra_size; try contradiction; try contra_size; pclearbot;  eauto.
+           ++ rewrite H8. rewrite H8 in H5. pfold. apply H5.
+           ++ apply H5.
+    + unpriv_halt. eapply not_in_meet_l; eauto. eapply not_in_meet_r; eauto.
+      right. eapply CIH with (t2 := t0 ); eauto. pfold. auto.
+      inv Ht2; ITrace.inj_existT; subst; try contradiction; try contra_size; auto.
+      * pclearbot. punfold H4.
+      * pclearbot. apply H1.
+    + pclearbot. unpriv_halt. eapply not_in_meet_r; eauto. right.
+      inv SIZECHECK.
+      eapply CIH with (t2 := k2 a); eauto. 2 : apply H1.
+      inv Ht2; ITrace.inj_existT; subst; try contradiction; try contra_size; auto.
+      pfold. apply H3. pclearbot. apply H3.
+    + pclearbot. unpriv_halt. eapply not_in_meet_l; eauto. eapply not_in_meet_r; eauto.
+      right. inv SIZECHECK2. eapply CIH with (t2 := k2 a0); eauto. 2: apply H1.
+      inv Ht2; ITrace.inj_existT; subst; try contradiction; try contra_size; auto.
+      pfold. apply H3. pclearbot. apply H3.
+    + inv CHECK. unpriv_halt. eapply not_in_meet_l; eauto. eapply not_in_meet_r; eauto.
+      right. eapply CIH; eauto. pfold. apply Ht2. pfold. apply H1.
+    +  inv SIZECHECK. eapply H2; eauto. Unshelve. all: auto.
+       inv Ht2; ITrace.inj_existT; subst; try contradiction; try contra_size; auto.
+       pclearbot. rewrite itree_eta'. pstep_reverse.
+    + unpriv_halt; try contra_size. eapply not_in_meet_l; eauto.
+      eapply not_in_meet_r; eauto.
+    + unpriv_halt. eapply not_in_meet_r; eauto. pclearbot. right.
+      eapply CIH; eauto. pfold. apply Ht2.
+    + pclearbot. unpriv_halt; try contra_size.
+      eapply not_in_meet_l; eauto. eapply not_in_meet_r; eauto.
+    + pclearbot. unpriv_halt. eapply not_in_meet_l; eauto.
+      eapply not_in_meet_r; eauto. right. eapply CIH; eauto.
+      2 : apply H1. pfold. apply Ht2.  
+Qed.
+
+Lemma not_tau_eqit_secure_r:
+  exists (E : Type -> Type) (R3 R1 : Type) (Label : Preorder)
+    (priv : forall A : Type, E A -> L) (b2 : bool) (r : itree E R1 -> itree E R3 -> Prop)
+    (t2 : itree E R3) (R : R1 -> R3 -> Prop) (l : L) (t1 : itree E R1),
+    paco2 (secure_eqit_ Label priv R true b2 l id) r (Tau t1) t2 /\
+    ~ paco2 (secure_eqit_ Label priv R true b2 l id) r t1 t2.
 Proof. 
-  intros E Label priv l b1 b2 R1 R2 R3 RR1 RR2.
+  exists (fun _ => void). exists unit. exists unit.
+  exists NatPreorder. eexists. Unshelve.
+  2 : { intros. destruct H. }
+  exists false. exists (fun _ _ => True). exists (Tau (Ret tt)). exists (fun _ _ => True). exists 0. exists ( (Ret tt) ).
+  split.
+  - pfold. constructor. right. auto.
+  - intro. punfold H. red in H. cbn in *. inv H. inv CHECK.
+Qed.
+(* This shows that the lemma I was trying to prove does not hold *)
+
+ 
+(* maybe I should generalize this lemma to replace Tau t3 and Tau t0 to just t3 t0
+   also there are some tricks I don't fully understand but I've seen that may help
+
+*)
+Lemma eqit_secure_trans_meet_aux1:
+  forall (E : Type -> Type) (R3 R1 : Type) (Label : Preorder) (LLat : LowerSemiLattice Label)
+    (priv : forall A : Type, E A -> L) (l1 l2 : L) (b : bool) (R2 : Type)
+    (RR1 : R1 -> R2 -> Prop) (RR2 : R2 -> R3 -> Prop) (r : itree E R1 -> itree E R3 -> Prop)
+    (t0 : itree E R1) (t3 : itree E R2),
+    paco2 (secure_eqit_ Label priv RR1 b b l1 id) bot2 t0 t3 ->
+    (forall (t1 : itree E R1) (t2 : itree E R2) (t3 : itree E R3),
+        eqit_secure Label priv RR1 b b l1 t1 t2 ->
+        eqit_secure Label priv RR2 b b l2 t2 t3 -> r t1 t3) ->
+    forall (X : Type) (e : E X) (k : X -> itree E R3),
+      nonempty X -> 
+      ~ leq (priv X e) l1 ->
+      leq (priv X e) l2 ->
+      ~ leq (priv X e) (meet l1 l2) -> 
+      secure_eqitF Label priv RR2 b b l2 id
+                   (upaco2 (secure_eqit_ Label priv RR2 b b l2 id) bot2) (observe t3)
+                   (VisF e k) ->
+      secure_eqitF Label priv (rcompose RR1 RR2) b b (meet l1 l2) id
+                   (upaco2 (secure_eqit_ Label priv (rcompose RR1 RR2) b b (meet l1 l2) id) r) 
+                   (observe t0) (VisF e k).
+Proof. (* Is this the right coinductive hyp? *)
+  intros E R3 R1 Label LLat priv l1 l2 b R2 RR1 RR2 r t0 t3. intros.
+  rename H0 into CIH. punfold H. red in H.
+  remember (VisF e k) as y.
+  (* keep an eye on this Heqot3, maybe it turns into something problematic *)
+  hinduction H5 before r; intros; inv Heqy; ITrace.inj_existT; subst; try contradiction; try discriminate.
+  - eapply IHsecure_eqitF; eauto. inv CHECK.
+    pstep_reverse. apply  eqit_secure_sym. apply tau_eqit_secure.
+    apply eqit_secure_sym. pfold. apply H.
+  -  pclearbot.
+     destruct (observe t0).
+     + (* should work out fine, may already have a lemma for this*) admit.
+     + unpriv_co. right. eapply CIH; eauto. 2 : apply H.
+       eapply eqit_secure_TauLVisR; eauto. pfold. red. cbn. apply H0.
+     + destruct (classic (leq (priv _ e) (meet l1 l2) )).
+       * (* this case should be fine I think *) admit.
+       * apply not_in_meet_or in H5. destruct H5. admit. admit.
+  - inv SIZECHECK. inv CHECK. destruct (classic (leq (priv _ e) l1) ).
+    + (* either induct on H1 or H, not sure which 
+         I think H0 does not apply in this case
+       *) 
+      rewrite H7.
+      rewrite H7 in H.
+      (* what I want to do here is use H1 to learn about the structure of t0 
+         this is going to be taus and private viss on top of Vis e k'
+         where forall a, k' a indistinguishable from k1 a
+         because e is visible to l1
+         at this base case, I can apply H0
+
+         the question is if the induction goes through well, we'll see 
+         remember only t0 should be varying through these cases
+         
+         this should only end up having 3 cases that can't be discharged through
+         some kind of contradiction
+       *)
+      remember (VisF e k1) as y.
+      hinduction H1 before r; intros; try inv Heqy; ITrace.inj_existT;
+      subst; try discriminate; try contradiction; try contra_size.
+      * constructor; auto. eapply IHsecure_eqitF; eauto.
+      * pclearbot. rewrite itree_eta'. unpriv_ind.
+        apply not_in_meet_r; auto. constructor; auto. 
+        rewrite <- H7.
+        eapply H0; eauto. pstep_reverse.
+      * rewrite itree_eta'. unpriv_ind. apply not_in_meet_l; auto.
+        eapply H0; eauto.
+    + eapply H0; eauto. Unshelve. all : auto.
+      (* should get everything that I need from H1 (at least if I weaken the lemma to b1 = b2) *)
+      admit.
+Admitted.   
+
+
+Lemma eqit_secure_trans : forall E Label (LLat : LowerSemiLattice Label) priv l1 l2 b1 b2 (R1 R2 R3 : Type) (RR1 : R1 -> R2 -> Prop)
+            (RR2 : R2 -> R3 -> Prop) (t1 : itree E R1) (t2 : itree E R2) (t3 : itree E R3),
+    eqit_secure Label priv RR1 b1 b2 l1 t1 t2 ->
+    eqit_secure Label priv RR2 b1 b2 l2 t2 t3 ->
+    eqit_secure Label priv (rcompose RR1 RR2) b1 b2 (meet l1 l2) t1 t3.
+Proof. 
+  intros E Label LLat priv l1 l2 b1 b2 R1 R2 R3 RR1 RR2.
   pcofix CIH0. intros t1 t2 t3 Ht12 Ht23.
   punfold Ht12. red in Ht12. punfold Ht23. red in Ht23. pfold. red.
   hinduction Ht12 before r; intros; try inv CHECK; auto.
   - remember (RetF r2) as x.
     hinduction Ht23 before r; intros; inv Heqx; try inv CHECK; eauto.
-    rewrite itree_eta' at 1. unpriv_ind. eapply H0; eauto.
+    rewrite itree_eta' at 1. unpriv_ind; try (eapply H0; eauto).
+    eapply not_in_meet_r; eauto. (* lattice theory *)
   - pclearbot. genobs t4 ot4.
     assert ( (exists t5, ot4 = TauF t5) \/ (forall t5, ot4 <> TauF t5) ).
     { destruct ot4; eauto; right; intros; discriminate. }
@@ -672,24 +967,32 @@ Proof.
       auto.
     + destruct ot4; try (exfalso; eapply Ht4;  eauto; fail  ).
       * inv Ht23. inv CHECK. rewrite itree_eta' at 1.
-        assert (eqit_secure Label priv (rcompose RR1 RR2) true b2 l (Tau t0) (Ret r0)  ).
+        assert (eqit_secure Label priv (rcompose RR1 RR2) true b2 (meet l1 l2) (Tau t0) (Ret r0)  ).
         { pfold. red. cbn. rewrite itree_eta' at 1. eapply eqit_secure_trans_aux1; eauto.
+          
           pfold. red. constructor; auto. pstep_reverse. }
         rewrite itree_eta'. pstep_reverse. eapply paco2_mon; eauto.
         intros; contradiction.
-      * destruct (classic (leq (priv _ e) l ) ).
-        -- inv Ht23; ITrace.inj_existT; subst; try contradiction; try inv CHECK.
+        (* got this far with the update, *)
+      * destruct (classic (leq (priv _ e) (meet l1 l2) ) ).
+        -- assert (leq (priv _ e) l1 /\ leq (priv _ e) l2 ).
+           { apply meet_correct; auto. }
+           destruct H1 as [Hl1 Hl2].
+           inv Ht23; ITrace.inj_existT; subst; try contradiction; try inv CHECK.
            constructor; auto. eapply eqit_secure_trans_aux2; eauto.
         -- destruct (classic_empty X).
            ++ rewrite itree_eta'. rewrite itree_eta' at 1.
               pstep_reverse.
               eapply paco2_mon with (r := bot2); intros; try contradiction.
-              eapply secret_halt_trans_3 with (t2 := Tau t3); eauto.
+              (* need to update the secret halt trans lemmas *)
+              eapply secret_halt_trans_3' with (t2 := Tau t3); eauto.
               ** pfold. constructor. left. auto.
               ** pfold. auto.
-           ++ unpriv_co. right. eapply CIH0; eauto.
-              assert (eqit_secure Label priv RR2 b1 b2 l (Tau t3) (Vis e k)).
-              pfold. auto. eapply eqit_secure_TauLVisR; eauto.
+           ++ destruct (classic (leq (priv _ e) l2 ) ) .
+              ** eapply eqit_secure_trans_meet_aux1; eauto.
+              ** unpriv_co. right. eapply CIH0; eauto.
+                 assert (eqit_secure Label priv RR2 b1 b2 l2 (Tau t3) (Vis e k)).
+                 pfold. auto. eapply eqit_secure_TauLVisR; eauto.
   - apply IHHt12; auto.
     remember (TauF t0) as y. 
     hinduction Ht23 before r; intros; inv Heqy; try inv CHECK; eauto.
@@ -699,9 +1002,17 @@ Proof.
   - pclearbot. remember (VisF e k2) as x.
     hinduction Ht23 before r; intros; inv Heqx; try inv CHECK; ITrace.inj_existT; subst; 
     try contradiction; eauto.
-    + pclearbot. constructor; auto. intros. right. eapply CIH0; eauto; try apply H0.
+    + pclearbot. constructor; auto.  apply meet_correct. tauto. intros. right. eapply CIH0; eauto; try apply H0.
       apply H.
-    + rewrite itree_eta' at 1. unpriv_ind. eapply H0; eauto.
+    + pclearbot. unpriv_co. apply not_in_meet_r; auto.
+      right. eapply CIH0; eauto. apply H0. apply H.
+    + pclearbot. unpriv_co. apply not_in_meet_r; auto. apply not_in_meet_r; auto.
+      right. eapply CIH0; eauto. apply H0. apply H.
+    + admit.
+    + admit.
+    + admit.
+
+      rewrite itree_eta' at 1. unpriv_ind. eapply H0; eauto.
   - pclearbot. remember (TauF t0) as x.
     hinduction Ht23 before r; intros; inv Heqx; try inv CHECK; auto.
     + pclearbot. unpriv_co. right. eapply CIH0; try apply H0.

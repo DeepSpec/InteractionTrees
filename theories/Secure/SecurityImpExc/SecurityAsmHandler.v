@@ -93,7 +93,7 @@ Proof.
   { intro. subst. rewrite Hx in H. discriminate. }
   apply eqb_neq in H0. rewrite H0. auto.
 Qed.
-
+(*
 Ltac destruct_asm := repeat match goal with
                     | e : (Reg +' Memory +' IOE) ?A |- _ => destruct e
                     | e : (Memory +' IOE) ?A |- _ => destruct e
@@ -229,3 +229,4 @@ Proof.
   - destruct_asm; inv SIZECHECK; exfalso; apply H0; try apply tt; apply 0.
   - destruct_asm; inv SIZECHECK; exfalso; apply H0; try apply tt; apply 0.
 Qed.
+*)

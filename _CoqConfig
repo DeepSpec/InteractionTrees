@@ -114,3 +114,5 @@ theories/Secure/SecurityImpExc/SecurityAsm.v
 theories/Secure/SecurityImpExc/SecurityAsmCombinators.v
 theories/Secure/SecurityImpExc/SecurityImp2Asm.v
 theories/Secure/SecurityImpExc/SecurityImp2AsmCorrectness.v
+theories/Secure/SecurityImpExc/ITreeForall.v
+theories/Secure/SecurityImpExc/RaiseException.v

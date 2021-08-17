@@ -35,89 +35,6 @@ Import Monads.
 Import MonadNotation.
 Local Open Scope monad_scope.
 
-Section gstep_reverse.
-
-Lemma gpaco2_step_reverse T0 T1 gf clo r rg
-      (MON: monotone2 gf)
-      (WCMP: wcompatible2 gf clo):
-  @gpaco2 T0 T1 gf clo r rg <2= gf (gpaco2 gf clo rg rg).
-Proof.
-  intros.
-  inv WCMP. gunfold PR.
-  induction PR.
-  - destruct IN.
-    + (* need to add constraints that should hold *) admit.
-    + apply wcompat2_wcompat. (* does not seem to hold *) admit.
-  - apply H. (* also don't see why this should hold *) admit.
-  (* gpaco2_intro and gpaco2_dist *)
-(* apply wcompat2_wcompat.
-
-  apply wcompat2_wcompat.
-
-
-
-eapply MON with (r := gupaco2 gf clo r); auto.
-  apply wcompat2_wcompat.
-  induction PR.
-  - destruct IN.
-    + admit.
-    + eapply MON with (r := gupaco2 gf clo r).
-      *  apply wcompat2_wcompat. admit.
-         (* what if the clo is strictly increasing *)
-         (* what if the gf is strictly increasing *)
-      * intros. red in PR. auto.
-  - apply wcompat2_wcompat. eapply wcompat2_mon; eauto.
-    intros. apply H in PR. eapply MON; eauto. intros. inv PR0.
-
-
-      unfold monotone2 in *. admit.
-  -
-
-
-apply gpaco2_init in PR; [|apply WCMP].
-  _punfold PR; [..|apply gf_mon].
-  eapply gf_mon. apply PR.
-  intros. destruct PR0; [|contradiction]. apply gpaco2_final. apply gf_mon. right. apply H.
-Qed.
- *) Abort.
-End gstep_reverse.
-
-
-(*
-
-Inductive
-rclo2 (T0 : Type) (T1 : T0 -> Type) (clo : rel2 T0 T1 -> rel2 T0 T1)
-(r : rel2 T0 T1) : rel2 T0 T1 :=
-    rclo2_base : forall (x0 : T0) (x1 : T1 x0), r x0 x1 -> rclo2 clo r x0 x1
-  | rclo2_clo' : forall (r' : forall x : T0, T1 x -> Prop) (x0 : T0) (x1 : T1 x0),
-                 (forall (x2 : T0) (x3 : T1 x2), (r' x2 x3 : Prop) -> rclo2 clo r x2 x3 : Prop) ->
-                 clo r' x0 x1 -> rclo2 clo r x0 x1
-
-
-Lemma gpaco2_unfold_bot' gf clo
-      (WCMP: wcompatible2 gf clo):
-  gpaco2 gf clo bot2 bot2 <2= gf (gpaco2 gf clo bot2 bot2).
-Proof.
-  intros. apply gpaco2_init in PR; [|apply WCMP].
-  _punfold PR; [..|apply gf_mon].
-  eapply gf_mon. apply PR.
-  intros. destruct PR0; [|contradiction]. apply gpaco2_final. apply gf_mon. right. apply H.
-Qed.
-*)
-(* try to write a proof that mirrors the gstepreverse thing you want
-   see if, where, something goes wrong come to yannick with that,
-   possibly he or gil or paul would understand
-   do this next week
-*)
-
-(*
-   Possible ways forward
-   1. try to prove secure_eqit_bind "dumbly" just paco no gpaco
-   2. prove weak compatibility for secure_eqitC
-      2 a. define a secure_bindC closure and prove the relavant relation to secure_eqitC
-   3. find a way to work with gpaco inductive steps
-
-*)
 
 Lemma eqit_bind_shalt_aux1:
   forall (E : Type -> Type) (S2 S1 R1 R2 : Type) (RR : R1 -> R2 -> Prop)
@@ -401,4 +318,10 @@ Proof.
   - unpriv_halt. pclearbot. specialize (H b). left.
     eapply iter_bind_shalt_aux1; eauto.
   - unpriv_halt. pclearbot. specialize (H a). left. eapply iter_bind_shalt_aux2; eauto.
+Qed.
+
+Lemma secure_eqit_ret : forall (E : Type -> Type) Label priv l b1 b2 (R1 R2 : Type) (RR : R1 -> R2 -> Prop) (r1 : R1) (r2 : R2),
+    RR r1 r2 -> @eqit_secure E R1 R2 Label priv RR b1 b2 l (Ret r1) (Ret r2).
+Proof.
+  intros. pfold. constructor. auto.
 Qed.
