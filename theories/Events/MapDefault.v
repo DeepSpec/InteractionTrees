@@ -67,8 +67,12 @@ Section Map.
   Definition interp_map {E d} : itree (mapE d +' E) ~> stateT map (itree E) :=
     interp_state (case_ handle_map pure_state).
 
-  Definition partial_interp_map {E F d} (h : E +' F ~> stateT map (itree F))
+  Definition later_interp_map {E F d} (h : E +' F ~> stateT map (itree F))
     : itree (mapE d +' E +' F) ~> stateT map (itree F)
+    := interp_state (case_ handle_map h).
+
+  Definition partial_interp_map {E d} (h : E ~> stateT map (itree E))
+    : itree (mapE d +' E) ~> stateT map (itree E)
     := interp_state (case_ handle_map h).
 
   (* The appropriate notation of the equivalence on the state associated with
