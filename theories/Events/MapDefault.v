@@ -7,8 +7,8 @@ Set Contextual Implicit.
 From ExtLib Require Import
      Core.RelDec.
 
-From ExtLib.Structures Require
-     Functor Monoid Maps.
+From ExtLib.Structures Require Import
+     Functor Monoid Maps Monad.
 
 From ITree Require Import
      Basics.Basics
@@ -20,6 +20,10 @@ From ITree Require Import
      Events.State.
 
 Import ITree.Basics.Basics.Monads.
+
+Import ITreeNotations.
+Import MonadNotation.
+Open Scope monad_scope.
 (* end hide *)
 
 Section Map.
@@ -35,7 +39,7 @@ Section Map.
   Arguments Insert {d}.
   Arguments LookupDef {d}.
   Arguments Remove {d}.
-  
+
   Definition insert {E d} `{(mapE d) -< E} : K -> V -> itree E unit := embed Insert.
   Definition lookup_def {E d} `{(mapE d) -< E} : K -> itree E V := embed LookupDef.
   Definition remove {E d} `{(mapE d) -< E} : K -> itree E unit := embed Remove.
@@ -50,7 +54,7 @@ Section Map.
     | Some v' => v'
     | None => d
     end.
-  
+
   Definition handle_map {E d} : mapE d ~> stateT map (itree E) :=
     fun _ e env =>
       match e with
@@ -75,12 +79,24 @@ Section Map.
     : itree (mapE d +' E) ~> stateT map (itree E)
     := interp_state (case_ handle_map h).
 
+  Variant mem_callE {E : Type -> Type} : Type -> Type :=
+    | MemCall {X} : map * E X -> mem_callE (map * X).
+
+  Definition handle_call {E F} `{@mem_callE E -< F}: E ~> stateT map (itree F) :=
+    fun _ e env => trigger (MemCall (env, e)).
+
+  Definition pure_state {S E F} `{E -< F} : E ~> stateT S (itree F)
+    := fun _ e s => x <- trigger e ;; Ret (s, x).
+
+  Definition interp_call_map {E F d} : itree (mapE d +' E +' F) ~> stateT map (itree (@mem_callE E +' F)) :=
+    interp_state (case_ handle_map (case_ handle_call pure_state)).
+
   (* The appropriate notation of the equivalence on the state associated with
      the MapDefault effects.  Two maps are equivalent if they yield the same
      answers under [lookup_default] *)
   Definition eq_map (d:V) (m1 m2 : map) : Prop :=
     forall k, lookup_default k d m1 = lookup_default k d m2.
-  
+
 End Map.
 
 Arguments insert {K V E d _}.
