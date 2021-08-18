@@ -198,7 +198,8 @@ Section MapFacts.
       destruct e.
       + cbn. eapply eqit_mon. 4 : { apply handle_map_eq. assumption. }
         auto. auto. intros.  apply PR.
-      + cbn. apply eqit_Vis. intros.  apply eqit_Ret. constructor; auto.
+      + cbn. unfold State.pure_state. rewrite! bind_trigger.
+        apply eqit_Vis. intros.  apply eqit_Ret. constructor; auto.
       + intros. destruct u1. destruct u2. cbn.
         inversion H. subst.
         gstep; constructor.
@@ -225,7 +226,7 @@ Section MapFacts.
       { (* SAZ: I must be missing some lemma that should solve this case *)
         unfold case_. unfold Case_sum1, case_sum1.
         destruct e. apply handle_map_eq. assumption.
-        unfold pure_state.
+        unfold pure_state. unfold State.pure_state. rewrite !bind_trigger.
         pstep. econstructor. intros. constructor. pfold. econstructor. constructor; auto.
       } 
       intros.

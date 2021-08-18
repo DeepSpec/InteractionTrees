@@ -19,6 +19,9 @@ From ITree Require Import
 
 Import ITree.Basics.Basics.Monads.
 
+Import ITreeNotations.
+Import MonadNotation.
+Open Scope monad_scope.
 Local Open Scope itree_scope.
 (* end hide *)
 
@@ -54,8 +57,8 @@ Section State.
   (* SAZ: this is the instance for the hypothetical "Trigger E M" typeclass.
     Class Trigger E M := trigger : E ~> M 
   *)
-  Definition pure_state {S E} : E ~> stateT S (itree E)
-    := fun _ e s => Vis e (fun x => Ret (s, x)).
+  Definition pure_state {S E F} `{E -< F} : E ~> stateT S (itree F)
+    := fun _ e s => x <- trigger e ;; Ret (s, x).
 
   Definition run_state {E}
     : itree (stateE +' E) ~> stateT S (itree E)

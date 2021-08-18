@@ -20,7 +20,7 @@ From ITree Require Import
      Events.State.
 
 Import ITree.Basics.Basics.Monads.
-
+ 
 Import ITreeNotations.
 Import MonadNotation.
 Open Scope monad_scope.
@@ -64,7 +64,7 @@ Section Map.
       end.
 
   (* SAZ: I think that all of these [run_foo] functions should be renamed
-     [interp_foo].  That would be more consistent with the idea that 
+     [interp_foo].  That would be more consistent with the idea that
      we define semantics by nested interpretation.  Also, it seems a bit
      strange to define [interp_map] in terms of [interp_state].
   *)
@@ -84,9 +84,6 @@ Section Map.
 
   Definition handle_call {E F} `{@mem_callE E -< F}: E ~> stateT map (itree F) :=
     fun _ e env => trigger (MemCall (env, e)).
-
-  Definition pure_state {S E F} `{E -< F} : E ~> stateT S (itree F)
-    := fun _ e s => x <- trigger e ;; Ret (s, x).
 
   Definition interp_call_map {E F d} : itree (mapE d +' E +' F) ~> stateT map (itree (@mem_callE E +' F)) :=
     interp_state (case_ handle_map (case_ handle_call pure_state)).

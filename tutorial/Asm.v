@@ -321,28 +321,15 @@ Definition later_interp_asm {E : Type -> Type} {A : Type} ext_handler
   let t' := interp (bimap h_reg (case_ h_memory (case_ h_E h_E))) t in
   fun  mem regs => later_interp_map ext_handler (interp_map t' regs) mem.
 
-(* The interpretation is "partial", as it expects a handler input [h] which is
-  corresponds to the implementation of the external call. The [FnCall] affects
-  [memory], but may also have another effect that we can interpret. *)
-Definition partial_interp_asm {E : Type -> Type} {A : Type} ext_handler
-           (t : itree (Reg +' Memory +' FnCall +' E) A):
-    memory -> registers -> itree (FnCall +' E) (memory * (registers * A)) :=
-  let t' := interp (bimap h_reg (case_ h_memory (case_ h_E h_E))) t in
-  fun  mem regs => partial_interp_map ext_handler (interp_map t' regs) mem.
-
 (** We can then define an evaluator for closed assembly programs by interpreting
     both store and heap events into two instances of [mapE], and running them
     both in the empty initial environments.  *)
 Definition later_run_asm (p: asm 1 0) ext_handler := later_interp_asm ext_handler (denote_asm p Fin.f0) empty empty.
 
-(* Notice that the return type of [partial_run_asm] still has an [FnCall] event left,
-   thus corresponding to a partial interpretation of the program. *)
-Definition partial_run_asm (p: asm 1 0) ext_handler := partial_interp_asm ext_handler (denote_asm p Fin.f0) empty empty.
-
 (** The definition [interp_asm] also induces a notion of equivalence (open)
     _asm_ programs, which is just the equivalence of the ktree category *)
 Definition eq_asm_denotations {E A B} (t1 t2 : Kleisli (itree (Reg +' Memory +' FnCall +' E)) A B) : Prop :=
-  forall a mem regs ext, partial_interp_asm ext (t1 a) mem regs ≈ partial_interp_asm ext (t2 a) mem regs.
+  forall a mem regs ext, later_interp_asm ext (t1 a) mem regs ≈ later_interp_asm ext (t2 a) mem regs.
 
 Definition eq_asm {A B} (p1 p2 : asm A B) : Prop :=
   eq_asm_denotations (denote_asm p1) (denote_asm p2).
@@ -402,8 +389,9 @@ Section LaterInterpAsmProperties.
     implementation of an external function does may change the memory. *)
   Definition ext_call f : itree E value := (trigger (Call f)).
 
-  (* As a simple example, this external call handler is going to modify the
-     memory by adding a "foo" address *)
+  (* As a degenerate example, let's say that we have knowledge about the external
+    calls, specifically that any external call will modify the memory by adding
+    a "foo" address *)
   Definition handle_call {E : Type -> Type} `{mapE addr 0 -< E} :
     FnCall ~> itree E :=
     fun _ e =>
@@ -425,7 +413,8 @@ Section LaterInterpAsmProperties.
     forall regs f,
     exists ext mem,
       (eutt (fun '(mem', _) _ => mem <> mem')
-          (later_interp_asm ext (ext_call f) mem regs) (later_interp_asm ext (ext_call f) mem regs)).
+            (later_interp_asm ext (ext_call f) mem regs)
+            (later_interp_asm ext (ext_call f) mem regs)).
   Proof.
     intros. exists call_modifies_mem, nil.
     subst.
@@ -439,7 +428,7 @@ Section LaterInterpAsmProperties.
     unfold inr_, Inr_sum1_Handler, Handler.inr_, Handler.htrigger.
     unfold ITree.trigger.
     rewrite interp_state_vis. rewrite interp_state_bind. cbn.
-    unfold pure_state. rewrite interp_state_vis. cbn.
+    unfold pure_state. rewrite interp_state_bind. rewrite bind_bind.
     setoid_rewrite tau_eutt. do 2 setoid_rewrite interp_state_ret.
     replace
       (fun st : memory * (registers * value) => Ret (fst st, (fst (snd st), snd (snd st)))) with
@@ -448,7 +437,8 @@ Section LaterInterpAsmProperties.
       eapply FunctionalExtensionality.functional_extensionality.
       intros. destruct x, p. cbn; auto.
     }
-    rewrite bind_ret_r. unfold call_modifies_mem. cbn.
+    rewrite interp_state_trigger. setoid_rewrite bind_ret_l.
+    unfold call_modifies_mem. cbn.
     unfold interp_map. rewrite interp_state_bind. rewrite bind_bind.
     unfold insert. unfold embed, Embeddable_forall, embed, Embeddable_itree.
     rewrite interp_state_trigger. cbn. rewrite bind_ret_l.
@@ -460,11 +450,39 @@ Section LaterInterpAsmProperties.
 
 End LaterInterpAsmProperties.
 
+(* NEXT: There still remains the question of how to specify the behavior of
+  arbitrary external calls, given this formulation.
+
+  One strategy could be interpreting into some kind of
+      stateT (Predicate about state) (itree E) R
+  where we can now state predicates about states using Iris.
+
+  The above type would unfold to ...
+      (S -> iProp) -> itree E ((S -> iProp) * R)
+ *)
+
+(* What if we want to introduce another kind of effect as part of the
+  interpretation for [FnCall]?
+
+  "Partial interpretation" of events (kind of a weird idea.. )
+ *)
 Section PartialInterpAsmProperties.
 
-  Context {F: Type -> Type}.
-  Notation E := (Reg +' Memory +' FnCall +' F).
-  Notation E' := (FnCall +' F).
+  (* The interpretation is "partial", as it expects a handler input [h] which is
+    corresponds to the implementation of the external call. The [FnCall] affects
+    [memory], but may also have another effect that we can interpret. *)
+  Definition partial_interp_asm {E : Type -> Type} {A : Type} ext_handler
+            (t : itree (Reg +' Memory +' FnCall +' E) A):
+      memory -> registers -> itree (FnCall +' E) (memory * (registers * A)) :=
+    let t' := interp (bimap h_reg (case_ h_memory (case_ h_E h_E))) t in
+    fun  mem regs => partial_interp_map ext_handler (interp_map t' regs) mem.
+
+  (* Notice that the return type of [partial_run_asm] still has an [FnCall] event left,
+    thus corresponding to a partial interpretation of the program. *)
+  Definition partial_run_asm (p: asm 1 0) ext_handler := partial_interp_asm ext_handler (denote_asm p Fin.f0) empty empty.
+    Context {F: Type -> Type}.
+    Notation E := (Reg +' Memory +' FnCall +' F).
+    Notation E' := (FnCall +' F).
 
   (** This interpreter is compatible with the equivalence-up-to-tau. *)
   Global Instance eutt_partial_interp_asm {R} h:
@@ -495,7 +513,8 @@ Section PartialInterpAsmProperties.
   (** [interp_asm] commutes with [bind]. *)
   Lemma interp_asm_bind: forall {R S} (t: itree E R) (k: R -> itree _ S) (regs : registers) (mem: memory) ext,
       @eutt E' _ _ eq (partial_interp_asm ext (ITree.bind t k) mem regs)
-            (ITree.bind (partial_interp_asm ext t mem regs) (fun '(mem', (regs', x)) => partial_interp_asm ext (k x) mem' regs')).
+            (ITree.bind (partial_interp_asm ext t mem regs)
+                        (fun '(mem', (regs', x)) => partial_interp_asm ext (k x) mem' regs')).
   Proof.
     intros.
     unfold partial_interp_asm.
@@ -516,7 +535,7 @@ Section PartialInterpAsmProperties.
   Open Scope monad_scope.
 
   (* As a simple example, this external call handler is going to modify the
-     memory by adding a "foo" address *)
+     memory by adding a "foo" address, while still keeping the [Call] trigger. *)
   Definition partial_handle_call : FnCall ~> itree (mapE addr 0 +' FnCall +' F) :=
     fun _ e =>
       match e with
@@ -532,12 +551,17 @@ Section PartialInterpAsmProperties.
 
   (* Now, we can show that we can indeed give an instance of a handler for an
     external function such that the resulting memory is not equivalent to the initial
-    memory. *)
+    memory.
+
+    Notice that the uninterpreted [Call] trigger is guaranteed to not affect the memory,
+    which is why we can prove this lemma.
+   *)
   Lemma external_call_can_affect_memory':
     forall regs f,
     exists ext mem,
       (eutt (fun '(mem', _) _ => mem <> mem')
-          (partial_interp_asm ext (ext_call f) mem regs) (partial_interp_asm (E := F) ext (ext_call f) mem regs)).
+            (partial_interp_asm ext (ext_call f) mem regs)
+            (partial_interp_asm (E := F) ext (ext_call f) mem regs)).
   Proof.
     intros. exists call_modifies_mem', nil.
     subst.
@@ -551,7 +575,7 @@ Section PartialInterpAsmProperties.
     unfold inr_, Inr_sum1_Handler, Handler.inr_, Handler.htrigger.
     unfold ITree.trigger.
     rewrite interp_state_vis. rewrite interp_state_bind. cbn.
-    unfold pure_state. rewrite interp_state_vis. cbn.
+    unfold pure_state. rewrite interp_state_bind. rewrite bind_bind.
     setoid_rewrite tau_eutt. do 2 setoid_rewrite interp_state_ret.
     replace
       (fun st : memory * (registers * value) => Ret (fst st, (fst (snd st), snd (snd st)))) with
@@ -560,22 +584,150 @@ Section PartialInterpAsmProperties.
       eapply FunctionalExtensionality.functional_extensionality.
       intros. destruct x, p. cbn; auto.
     }
-    rewrite bind_ret_r. unfold call_modifies_mem'. cbn.
+    rewrite interp_state_trigger. setoid_rewrite bind_ret_l.
+    unfold call_modifies_mem'. cbn.
     unfold interp_map. rewrite interp_state_bind. rewrite bind_bind.
     unfold insert. unfold embed, Embeddable_forall, embed, Embeddable_itree.
     rewrite interp_state_trigger. cbn.
-    unfold pure_state. rewrite bind_vis. eapply eqit_Vis. intros.
-    rewrite bind_ret_l. cbn. rewrite interp_state_bind.
-    rewrite bind_bind. rewrite interp_state_trigger.
+
+    unfold pure_state. rewrite bind_bind.
+    unfold trigger.
+    rewrite bind_vis. eapply eqit_Vis. intros.
+    rewrite bind_ret_l. cbn. rewrite bind_ret_l. rewrite interp_state_bind.
+    rewrite bind_bind. rewrite interp_state_vis.
     cbn. rewrite bind_ret_l.
     cbn.
-    rewrite interp_state_ret. rewrite bind_ret_l.
-    cbn.
+    rewrite interp_state_ret. rewrite tau_eutt. rewrite bind_ret_l.
+    cbn. rewrite interp_state_ret. rewrite bind_ret_l.
     apply eqit_Ret.
     intro. unfold alist_add in H;cbn in H. inv H.
   Qed.
 
 End PartialInterpAsmProperties.
+
+From Paco Require Import paco.
+Require Import EuttEv.
+
+Section MemCallAsmProperties.
+
+  Definition interp_call_asm {E : Type -> Type} {A : Type}
+            (t : itree (Reg +' Memory +' FnCall +' E) A):
+      memory -> registers -> itree (mem_callE +' E) (memory * (registers * A)) :=
+    let t' := interp (bimap h_reg (case_ h_memory (case_ h_E h_E))) t in
+    fun  mem regs => interp_call_map (interp_map t' regs) mem.
+
+  Definition run_call_asm (p: asm 1 0) :=
+    interp_call_asm (denote_asm p Fin.f0) empty empty.
+
+  Context {F: Type -> Type}.
+  Notation E := (Reg +' Memory +' FnCall +' F).
+  Notation E' := (mem_callE +' F).
+
+  (** This interpreter is compatible with the equivalence-up-to-tau. *)
+  Global Instance eutt_interp_call_asm {R}:
+    Proper (@eutt E R R eq ==> eq ==> eq ==> @eutt E' (prod memory (prod registers R)) (prod _ (prod _ R)) eq)
+           (interp_call_asm).
+  Proof.
+    repeat intro.
+    unfold interp_call_asm.
+    unfold interp_map. subst.
+    rewrite H.
+    reflexivity.
+  Qed.
+
+  (** [interp_asm] commutes with [Ret]. *)
+  Lemma interp_call_asm_ret: forall {R} (r: R) (regs : registers) (mem: memory),
+      @eutt E' _ _ eq (interp_call_asm (ret r) mem regs)
+            (ret (mem, (regs, r))).
+  Proof.
+    unfold interp_call_asm, interp_call_map, interp_map.
+    intros.
+    unfold ret at 1, Monad_itree.
+    rewrite interp_ret, 2 interp_state_ret.
+    reflexivity.
+  Qed.
+
+  (** [interp_asm] commutes with [bind]. *)
+  Lemma interp_call_asm_bind: forall {R S} (t: itree E R) (k: R -> itree _ S) (regs : registers) (mem: memory),
+      @eutt E' _ _ eq (interp_call_asm (ITree.bind t k) mem regs)
+            (ITree.bind (interp_call_asm t mem regs)
+                        (fun '(mem', (regs', x)) => interp_call_asm (k x) mem' regs')).
+  Proof.
+    intros.
+    unfold interp_call_asm.
+    unfold interp_call_map, interp_map. cbn.
+    repeat rewrite interp_bind.
+    repeat rewrite interp_state_bind.
+    repeat rewrite Eq.bind_bind.
+    eapply eutt_clo_bind.
+    { reflexivity. }
+    intros.
+    rewrite H.
+    destruct u2 as [g' [l' x]].
+    reflexivity.
+  Qed.
+
+  Import ITreeNotations.
+  Import MonadNotation.
+  Open Scope monad_scope.
+
+
+  Lemma interp_call_asm_ext_call_eq :
+    forall E regs f mem,
+      (interp_call_asm (E := E) (ext_call f) mem regs) ≈
+      (vis (MemCall (mem, resum IFun value (Call f))) (fun x : memory * value => Ret (fst x, (regs, snd x)))).
+  Proof.
+    intros. subst.
+    unfold interp_call_asm, interp_call_map, interp_map.
+    unfold ext_call.
+    setoid_rewrite interp_trigger. cbn.
+    unfold cat, Cat_Handler, Handler.cat.
+    cbn. unfold resum, ReSum_id, id_, Id_IFun.
+    unfold h_E.
+    setoid_rewrite interp_trigger.
+    unfold inr_, Inr_sum1_Handler, Handler.inr_, Handler.htrigger.
+    unfold ITree.trigger.
+    rewrite interp_state_vis. rewrite interp_state_bind. cbn.
+    unfold pure_state. rewrite interp_state_bind. rewrite bind_bind.
+    setoid_rewrite tau_eutt.
+    rewrite interp_state_trigger. cbn.
+    setoid_rewrite interp_state_ret. setoid_rewrite bind_ret_l. cbn.
+    setoid_rewrite interp_state_ret. unfold MapDefault.handle_call.
+    rewrite bind_trigger. cbn. reflexivity.
+  Qed.
+
+  (* Let's write a (way too) simple specification that states that any external
+      call is going to modify an empty memory to a non-empty one.
+   *)
+  Definition mem_call_spec A B : @mem_callE memory FnCall A -> A -> @mem_callE memory FnCall B -> B -> Prop.
+    intros memE_A a memE_B b.
+    destruct memE_A eqn : HA; rename X into A.
+    destruct p as (initial_memory_A & call_event_A).
+    destruct a as (final_memory_A & returned_value_A).
+
+    destruct memE_B eqn : HB; rename X into B.
+    destruct p as (initial_memory_B & call_event_B).
+    destruct b as (final_memory_B & returned_value_B).
+
+    exact (initial_memory_A = nil ->
+           final_memory_A <> nil).
+  Defined.
+
+  (* We can use this specification for the [euttEv] relation, which incorporates
+     specifications about events. *)
+  Lemma ext_call_ev :
+    forall A f regs,
+    euttEv (R1 := (memory * (A * value))) (fun _ _ _ _ => True) mem_call_spec (fun '(m_final, _) _ => m_final <> nil)
+      (vis (MemCall (nil, resum IFun value (Call f))) (fun x : memory * value => Ret (fst x, (regs, snd x))))
+      (vis (MemCall (nil, resum IFun value (Call f))) (fun x : memory * value => Ret (fst x, (regs, snd x)))).
+  Proof.
+    intros. pstep. econstructor. auto. intros. red. left.
+    pstep. econstructor.
+    repeat red in H. cbn in H. destruct a, b.
+    specialize (H eq_refl). auto.
+  Qed.
+
+End MemCallAsmProperties.
 
 (** Now that we have both our language, we could jump directly into implementing
 our compiler.  However, if we look slightly ahead of us, we can observe that: -
