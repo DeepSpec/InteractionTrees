@@ -275,3 +275,113 @@ Proof.
         apply Ht'.
 Qed.
 
+Lemma max_exception_mon R lexn1 lexn2 (t : itree _ R) :
+  leq lexn1 lexn2 -> max_exception_label_coind lexn1 t -> max_exception_label_coind lexn2 t.
+Proof.
+  intros. eapply itree_forall_mon; try apply H0; auto.
+  intros. inv H1.
+  - constructor; auto.
+  - constructor; auto. eapply leq_sense_trans; eauto.
+Qed.
+
+Lemma try_catch_public_exc R RR (t1 t2 catch1 catch2 : itree (impExcE +' IOE) R ) observer :
+  max_exception_label_coind Public t1 -> max_exception_label_coind Public t2 -> 
+  eqit_secure sense_preorder priv_exc_io RR true true observer t1 t2 -> 
+  eqit_secure sense_preorder priv_exc_io RR true true observer catch1 catch2 ->
+  eqit_secure sense_preorder priv_exc_io RR true true observer 
+              (try_catch t1 (fun _ => catch1)) (try_catch t2 (fun _ => catch2)).
+Proof.
+  revert t1 t2. pcofix CIH. intros t1 t2 Ht1 Ht2 Hsect Hseccatch.
+  punfold Hsect. red in Hsect.
+  remember (observe t1) as ot1. remember (observe t2) as ot2.
+  hinduction Hsect before r; intros; use_simpobs.
+  - rewrite Heqot1. rewrite Heqot2. repeat rewrite Exception.try_catch_ret.
+    pfold. constructor; auto.
+  - pclearbot. rewrite Heqot1. rewrite Heqot2. repeat rewrite try_catch_tau.
+    rewrite Heqot1 in Ht1. rewrite Heqot2 in Ht2. pinversion Ht1; subst.
+    pinversion Ht2; subst.
+    pfold. constructor. right. eapply CIH; eauto.
+  - rewrite Heqot1. rewrite try_catch_tau. pfold. constructor; auto.
+    pstep_reverse. eapply IHHsect; eauto.
+    rewrite Heqot1 in Ht1. pinversion  Ht1; subst; auto.
+  - rewrite Heqot2. rewrite try_catch_tau. pfold. constructor; auto.
+    pstep_reverse. eapply IHHsect; eauto.
+    rewrite Heqot2 in Ht2. pinversion Ht2; subst; auto.
+  - pclearbot. rewrite Heqot1 in Ht1. rewrite Heqot2 in Ht2.
+    rewrite Heqot1. rewrite Heqot2.
+    pinversion Ht1; ITrace.inj_existT; subst.
+    pinversion Ht2; ITrace.inj_existT; subst.
+    inv H3; ITrace.inj_existT; subst.
+    + repeat rewrite try_catch_ev. pfold.
+      constructor; auto. left. pfold. constructor. right. eapply CIH; eauto.
+      apply H4. apply H6. apply H.
+    + repeat rewrite try_catch_exc. eapply paco2_mon; eauto. intros; contradiction.
+  - rewrite Heqot1, Heqot2. rewrite try_catch_tau. pclearbot.
+    rewrite Heqot1 in Ht1. rewrite Heqot2 in Ht2.
+    pinversion Ht1; ITrace.inj_existT; subst.
+    pinversion Ht2; ITrace.inj_existT; subst.
+    inv H2; ITrace.inj_existT; subst.
+    + rewrite try_catch_ev. setoid_rewrite <- try_catch_tau at 1. pfold. red.  cbn. unpriv_co.
+      right. eapply CIH; eauto.
+      pfold. constructor. left. auto. pfold. constructor; auto. pstep_reverse.
+    + inv SIZECHECK. contradiction.
+ - rewrite Heqot1, Heqot2. rewrite try_catch_tau. pclearbot.
+    rewrite Heqot1 in Ht1. rewrite Heqot2 in Ht2.
+    pinversion Ht1; ITrace.inj_existT; subst.
+    pinversion Ht2; ITrace.inj_existT; subst.
+    inv H3; ITrace.inj_existT; subst.
+    + rewrite try_catch_ev. setoid_rewrite <- try_catch_tau at 2. pfold.
+      red. cbn. unpriv_co. right. eapply CIH; eauto. pfold. constructor.
+      left. auto. pfold. constructor; auto. pstep_reverse.
+    + inv SIZECHECK. contradiction.
+ - pclearbot. rewrite Heqot1, Heqot2. rewrite Heqot1 in Ht1. rewrite Heqot2 in Ht2.
+   pinversion Ht1; ITrace.inj_existT; subst.
+   pinversion Ht2; ITrace.inj_existT; subst.
+   inv H2; ITrace.inj_existT; subst; inv SIZECHECK1; try contradiction.
+   inv H3; ITrace.inj_existT; subst; inv SIZECHECK2; try contradiction.
+   repeat rewrite try_catch_ev. pfold. red. cbn. unpriv_co.
+   constructor; auto. constructor; auto. left.
+   pfold. constructor. right. eapply CIH; eauto.
+   apply H4. apply H6. apply H.
+ - rewrite Heqot1. rewrite Heqot1 in Ht1. pinversion Ht1; ITrace.inj_existT; subst.
+   inv H3; ITrace.inj_existT; subst; inv SIZECHECK; try contradiction.
+   rewrite try_catch_ev. pfold. red. cbn. unpriv_ind. constructor; apply tt.
+   constructor; auto. pstep_reverse. eapply H0; eauto. apply H5.
+ - rewrite Heqot2. rewrite Heqot2 in Ht2. pinversion Ht2; ITrace.inj_existT; subst.
+   inv H3; ITrace.inj_existT; subst; inv SIZECHECK; try contradiction.
+   rewrite try_catch_ev. pfold. red. cbn. unpriv_ind. constructor; apply tt.
+   constructor; auto. pstep_reverse. eapply H0; eauto. apply H5.
+ - exfalso. rewrite Heqot1 in Ht1. pinversion Ht1; ITrace.inj_existT; subst.
+   inv H2; ITrace.inj_existT; subst.
+   + inv SIZECHECK. apply H0; apply tt.
+   + cbn in SECCHECK. destruct l'; contradiction.
+ - exfalso. rewrite Heqot2 in Ht2. pinversion Ht2; ITrace.inj_existT; subst.
+   inv H2; ITrace.inj_existT; subst.
+   + inv SIZECHECK. apply H0; apply tt.
+   + cbn in SECCHECK. destruct l'; contradiction.
+ - exfalso. rewrite Heqot1 in Ht1. pinversion Ht1; ITrace.inj_existT; subst.
+   inv H2; ITrace.inj_existT; subst.
+   + inv SIZECHECK. apply H0; apply tt.
+   + cbn in SECCHECK1. destruct l'; contradiction.
+ - exfalso. rewrite Heqot2 in Ht2. pinversion Ht2; ITrace.inj_existT; subst.
+   inv H2; ITrace.inj_existT; subst.
+   + inv SIZECHECK. apply H0; apply tt.
+   + cbn in SECCHECK2. destruct l'; contradiction.
+Qed.
+(*throw_prefix would make the final state before throwing an exception explicit,
+  and allows try_catch to be expressed as a bind this is probably the best way to hand this
+  try_catch_to_throw_prefix is the main lemma, but maybe need a version that 
+  deals with strong bisim and has some extra taus somewhere
+
+*)
+
+(*there is some kind of type mismatch
+Lemma interp_state_throw_prefix R handler (σ : map) 
+      (t : itree (impExcE +' stateE +' IOE ) R) :
+  interp_state handle_imp (throw_prefix t) σ ≅ 
+               throw_prefix (interp_state handle_imp t σ) .
+
+Definition state_try_catch {E Err S R} (m : stateT S (itree (excE Err +' E) ) R) 
+           (catch : Err -> stateT S (itree (excE Err +' E) ) R )  := 
+                                   fun σ => try_catch (m σ) .
+*)

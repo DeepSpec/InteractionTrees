@@ -29,9 +29,9 @@ Local Open Scope string_scope.
 
 
 Variant itree_forallF (E : Type -> Type) (R : Type) (F : itree E R -> Prop) (PE : forall A : Type, E A -> Prop) (PR : R -> Prop ) : itree' E R -> Prop :=
-  | itree_forall_ret r : PR r -> itree_forallF E R F PE PR (RetF r)
-  | itree_forall_tau t : F t ->  itree_forallF E R F PE PR (TauF t)
-  | itree_forall_vis A (e : E A) k : PE A e -> (forall a : A, F (k a)) -> itree_forallF E R F PE PR (VisF e k)
+  | itree_forall_retF r : PR r -> itree_forallF E R F PE PR (RetF r)
+  | itree_forall_tauF t : F t ->  itree_forallF E R F PE PR (TauF t)
+  | itree_forall_visF A (e : E A) k : PE A e -> (forall a : A, F (k a)) -> itree_forallF E R F PE PR (VisF e k)
 .
 
 Hint Constructors itree_forallF.
@@ -151,3 +151,23 @@ Proof.
   - gstep. constructor; auto.
 Qed.
 
+Lemma itree_forall_ret E R (PE : forall A, E A -> Prop) (PR : R -> Prop) (r : R) :
+  PR r -> itree_forall PE PR (Ret r).
+Proof.
+  intros. pfold. constructor; auto.
+Qed.
+
+Lemma itree_forall_vis E R (PE : forall A, E A -> Prop) PR A (e : E A) (k : A -> itree E R) :
+  PE A e -> (forall a, itree_forall PE PR (k a) ) -> itree_forall PE PR (Vis e k).
+Proof.
+  intros. pfold. constructor; auto. left. apply H0.
+Qed.
+
+Lemma itree_forall_mon E R (PE1 PE2 : forall A, E A -> Prop) (PR1 PR2 : R -> Prop) t :
+   (forall A (e : E A), PE1 A e -> PE2 A e) -> (forall r, PR1 r -> PR2 r) ->
+   itree_forall PE1 PR1 t -> itree_forall PE2 PR2 t.
+Proof.
+  intros HPE HPR. revert t. pcofix CIH. intros t Ht. punfold Ht. red in Ht.
+  pfold. red. inv Ht; pclearbot; eauto.
+  constructor; eauto. right. eapply CIH; auto; apply H1.
+Qed.
