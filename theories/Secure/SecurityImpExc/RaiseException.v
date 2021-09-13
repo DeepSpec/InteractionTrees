@@ -68,6 +68,7 @@ Proof.
   destruct l1; destruct l2; cbn; auto.
 Qed.
 
+
 Definition raises_exception {R : Type} (e : impExcE void ) (t : itree (impExcE +' IOE) R) : Prop :=
   exists (t' : itree (impExcE +' IOE) unit) , can_converge tt t' /\ t ≈ (u <- t';; v <- trigger e;; match v : void with end).
 
