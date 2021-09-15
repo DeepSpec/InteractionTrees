@@ -104,3 +104,39 @@ Proof.
   - symmetry in H2. use_simpobs. rewrite H. gstep. constructor; auto.
     intros. gfinal. left. apply CIH; auto. rewrite <- H2. apply H3.
 Qed.
+
+Lemma pi_eqit_secure_pub_vis E R1 R2 RR Label priv l b1 b2 A (e : E A)
+      (k1 : A -> itree E R1) (k2 : A -> itree E R2) :
+  leq (priv _ e) l ->
+  (forall a, pi_eqit_secure Label priv RR b1 b2 l (k1 a) (k2 a) ) ->
+  pi_eqit_secure Label priv RR b1 b2 l (Vis e k1) (Vis e k2).
+Proof.
+  intros. pfold. constructor; auto. left. apply H0.
+Qed.
+
+Lemma pi_eqit_secure_priv_vislr E R1 R2 RR Label priv l b1 b2 A B (e1 : E A) (e2 : E B)
+      (k1 : A -> itree E R1) (k2 : B -> itree E R2) :
+  ~ leq (priv _ e1) l -> ~ leq (priv _ e2) l ->
+  (forall a b, pi_eqit_secure Label priv RR b1 b2 l (k1 a) (k2 b) ) ->
+  pi_eqit_secure Label priv RR b1 b2 l (Vis e1 k1) (Vis e2 k2).
+Proof.
+  intros. pfold. constructor; auto. left. apply H1.
+Qed.
+
+Lemma pi_eqit_secure_priv_visl E R1 R2 RR Label priv l b2 A (e1 : E A) 
+      (k1 : A -> itree E R1) (t2 : itree E R2) :
+  ~ leq (priv _ e1) l ->
+  (forall a, pi_eqit_secure Label priv RR true b2 l (k1 a) t2 ) ->
+  pi_eqit_secure Label priv RR true b2 l (Vis e1 k1) t2.
+Proof.
+  intros. pfold. constructor; auto. left. apply H0.
+Qed.
+
+Lemma pi_eqit_secure_priv_visr E R1 R2 RR Label priv l b1 A (e1 : E A) 
+      (t1 : itree E R1) (k2 : A -> itree E R2) :
+  ~ leq (priv _ e1) l ->
+  (forall a, pi_eqit_secure Label priv RR b1 true l t1 (k2 a) ) ->
+  pi_eqit_secure Label priv RR b1 true l t1 (Vis e1 k2).
+Proof.
+  intros. pfold. constructor; auto. left. apply H0.
+Qed.

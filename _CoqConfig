@@ -119,4 +119,6 @@ theories/Secure/SecurityImpExc/RaiseException.v
 theories/Secure/SecurityImpExc/SecurityImpTypes.v
 
 theories/Secure/SecureEqProgInsens.v
+theories/Secure/SecureEqProgInsensEv.v
 theories/Secure/SecureEqProgInsensFacts.v
+theories/Secure/SecurityImpExc/SecurityImpHandlerExcState.v

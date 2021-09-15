@@ -95,6 +95,8 @@ Proof.
     specialize (H σ1).  eapply proper_eutt_secure_eutt; eauto.
 Qed.
 
+Section SecurityImpTypes.
+
 Context (Γ : privacy_map).
 
 Variant secure_stmt_at_label (observer pc : label) (s : stmt) : Prop :=
@@ -274,24 +276,24 @@ Proof.
 Qed.
 
 Lemma update_labelled_equiv_invisible:
-  forall (x : var) (observer : sensitivity),
+  forall (x : var) (observer : sensitivity) Γ,
     ~ leq (Γ x) observer ->
     forall (σ1 : map) (v : value) (σ2 : map),
       labelled_equiv Γ observer σ1 σ2 -> labelled_equiv Γ observer (update x v σ1) (σ2).
 Proof.
-  intros x observer H σ1 v σ2 H2.
+  intros x observer Γ' H σ1 v σ2 H2.
   red. red in H2. intros.
   unfold update. destruct (x =? x0) eqn : Heq; auto.
   exfalso. apply H. apply eqb_eq in Heq. subst; auto.
 Qed.
 
 Lemma update_labelled_equiv_visible:
-  forall (x : var) (observer : sensitivity),
+  forall (x : var) (observer : sensitivity) Γ,
     leq (Γ x) observer ->
     forall (σ1 : map) (v : value) (σ2 : map),
       labelled_equiv Γ observer σ1 σ2 -> labelled_equiv Γ observer (update x v σ1) (update x v σ2).
 Proof.
-  intros x observer H σ1 v σ2 H2.
+  intros x observer Γ' H σ1 v σ2 H2.
   red. red in H2. intros. unfold update. 
   destruct (x =? x0) eqn : Heq; auto.
 Qed.
@@ -1103,6 +1105,9 @@ Proof.
     destruct IHHtype1. destruct IHHtype2. 
     split; try eapply try_catch_throw_secure_stmt; try eapply try_catch_throw_secure_stmt'; eauto.
 Qed.
+
+End SecurityImpTypes.
+
 
 Require Import Coq.Logic.FunctionalExtensionality.
 Require Import Coq.micromega.Lia.
