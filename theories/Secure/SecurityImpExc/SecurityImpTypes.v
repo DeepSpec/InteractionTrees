@@ -1106,6 +1106,55 @@ Proof.
     split; try eapply try_catch_throw_secure_stmt; try eapply try_catch_throw_secure_stmt'; eauto.
 Qed.
 
+Lemma secure_stmt_lower_pc:
+  forall (pc2 : label) (s : stmt),
+    secure_stmt pc2 s -> forall pc1 : L, leq pc1 pc2 -> secure_stmt pc1 s.
+Proof.
+  intros pc2 s H pc1 Hpc observer.
+  specialize (H observer). inv H.
+  - left. eapply leq_sense_trans; eauto. auto.
+  - case_leq pc1 observer.
+    + left; auto. cbn in H1. intros σ1 σ2 Hσ.
+      eapply eqit_secure_RR_imp with (RR1 := product_rel (labelled_equiv Γ observer) top2 ).
+        { intros [? [] ] [? [] ] [? ?]. split; auto. } 
+      eapply state_secure_eutt_equiv_ret_aux; eauto. 
+      constructor. all : try cbv; tauto.
+    + right; auto.
+Qed.
+
+Lemma secure_throw_stmt_lower_pc:
+  forall (pc : label) (s : stmt),
+    secure_throw_stmt pc s -> forall pc1 : L, leq pc1 pc -> secure_throw_stmt pc1 s.
+Proof.
+  intros pc s H pc1 Hpc observer.
+  specialize (H observer). inv H.
+  - left. eapply leq_sense_trans; eauto. auto.
+  - case_leq pc1 observer.
+    + left; auto. cbn in H1. intros σ1 σ2 Hσ.
+      eapply state_secure_eutt_throw_ret_aux; eauto.
+    + right; auto.
+Qed.
+
+Lemma lower_pc_sound s pc1 pc2 : 
+  leq pc1 pc2 -> well_typed_stmt pc2 s -> well_typed_stmt pc1 s.
+Proof.
+  intros Hpc Hs. generalize dependent pc1. induction Hs; intros.
+  - constructor. destruct H. split. eapply secure_stmt_lower_pc; eauto.
+    eapply secure_throw_stmt_lower_pc; eauto.
+  - apply wts_skip.
+  - apply wts_seq; eauto.
+  - eapply wts_assign; eauto. eapply leq_sense_trans; eauto.
+    destruct l; destruct pc; destruct pc1; cbv; auto; contradiction.
+  - eapply wts_print; eauto. eapply leq_sense_trans; eauto.
+    destruct le; destruct pc; destruct pc1; cbv; auto; contradiction.
+  - eapply wts_if; eauto. eapply IHHs1. 2: eapply IHHs2.
+    all :  destruct le; destruct pc; destruct pc1; cbv; auto; contradiction.
+  - destruct pc1; try contradiction. eapply wts_while; eauto.
+  - apply wts_raise. eapply leq_sense_trans; eauto.
+  - apply wts_try; eauto.
+Qed.
+
+
 End SecurityImpTypes.
 
 

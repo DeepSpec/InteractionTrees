@@ -140,3 +140,45 @@ Lemma pi_eqit_secure_priv_visr E R1 R2 RR Label priv l b1 A (e1 : E A)
 Proof.
   intros. pfold. constructor; auto. left. apply H0.
 Qed.
+
+Lemma pi_secure_eqit_bind'
+     : forall (E : Type -> Type) (R1 R2 S1 S2 : Type) (RR : R1 -> R2 -> Prop)
+         (RS : S1 -> S2 -> Prop) (b1 b2 : bool) (Label : Preorder)
+         (priv : forall A : Type, E A -> L) (l : L)
+         r
+         (t1 : itree E R1) (t2 : itree E R2) (k1 : R1 -> itree E S1) 
+         (k2 : R2 -> itree E S2),
+       (forall (r1 : R1) (r2 : R2),
+        RR r1 r2 -> paco2 (pi_secure_eqit_ Label priv RS b1 b2 l id) r (k1 r1) (k2 r2)) ->
+       pi_eqit_secure Label priv RR b1 b2 l t1 t2 ->
+       gpaco2 (pi_secure_eqit_ Label priv RS b1 b2 l id) (eqitC RS b1 b2) bot2 r
+              (ITree.bind t1 k1) (ITree.bind t2 k2).
+Proof.  
+  intros. revert H0. generalize dependent t2. generalize dependent t1.
+  gcofix CIH. intros t1 t2 Ht12.
+  pinversion Ht12; use_simpobs.
+  - rewrite H0, H1. repeat rewrite bind_ret_l. gfinal. right. eapply paco2_mon; try apply CIH0.
+    auto.
+  - rewrite H0, H1. repeat rewrite bind_tau. gstep. constructor. gfinal. left. eapply CIH.
+    auto.
+  - rewrite H0. rewrite bind_tau. gstep. constructor; auto.
+    gfinal. left. eapply CIH. apply simpobs in H1. rewrite <- itree_eta in H1.
+    rewrite H1. auto.
+  - rewrite H1. rewrite bind_tau. gstep. constructor; auto.
+    gfinal. left. eapply CIH. apply simpobs in H0. rewrite <- itree_eta in H0.
+    rewrite H0. auto.
+  - rewrite H0, H1. repeat rewrite bind_vis. gstep. constructor; auto.
+    intros. gfinal. left. eapply CIH; eauto. apply H2.
+  - rewrite H0, H1. rewrite bind_vis, bind_tau. gstep. red. cbn. unpriv_pi.
+    gfinal. left. eapply CIH; eauto. apply H2.
+  - rewrite H0, H1. rewrite bind_vis, bind_tau. gstep. red. cbn. unpriv_pi.
+    gfinal. left. eapply CIH; eauto. apply H2.
+  - rewrite H0, H1. repeat rewrite bind_vis. gstep. red. cbn. unpriv_pi.
+    gfinal. left. eapply CIH. apply H2.
+  - rewrite H0. rewrite bind_vis. gstep. constructor; auto. gfinal.
+    left. eapply CIH. apply simpobs in H1. rewrite <- itree_eta in H1. rewrite H1.
+    apply H2.
+  - rewrite H1. rewrite bind_vis. gstep. constructor; auto. gfinal.
+    left. eapply CIH. apply simpobs in H0. rewrite <- itree_eta in H0. rewrite H0.
+    apply H2.
+Qed.

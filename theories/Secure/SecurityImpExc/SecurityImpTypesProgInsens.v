@@ -70,12 +70,11 @@ Definition sem_expr (e : expr) := SecurityImpTypes.sem_expr e.
 
 Definition state_equiv {E R} (m1 m2 : stateT map (itree E) R) := forall (σ : map), m1 σ ≈ m2 σ.
 
-Locate pi_eqit_secure.
-
 Global Instance proper_eutt_pi_secure_eutt  {E R1 R2 RR Label priv l} : Proper (@eutt E R1 R1 eq ==> @eutt E R2 R2 eq ==> Basics.flip Basics.impl)
                                                                (pi_eqit_secure Label priv RR true true l).
 Proof.
-Admitted.
+  eapply pi_eqit_secure_eq_itree_proper. all : apply true.
+Qed. 
 
 Global Instance proper_eq_itree_secure_eutt  {E R1 R2 RR Label priv l} : Proper (@eq_itree E R1 R1 eq ==> @eq_itree E R2 R2 eq ==> Basics.flip Basics.impl)
                                                                (pi_eqit_secure Label priv RR true true l).
@@ -130,11 +129,6 @@ Proof.
   red. intros. inv H; constructor; auto.
 Qed.
 
-(* You messed up the second case here 
-   it should be something like it either is left or 
-   it is above lexn 
- *)
-
 Variant Rsense_unpriv (observer lexn : label) : unit + label -> Prop :=
   | rup_inl : Rsense_unpriv observer lexn (inl tt)
   | rup_priv_exc lpriv : ~ leq lpriv observer -> leq lpriv lexn -> Rsense_unpriv observer lexn (inr lpriv).
@@ -142,16 +136,10 @@ Variant Rsense_unpriv (observer lexn : label) : unit + label -> Prop :=
 Variant secure_throw_stmt_at_label (observer pc lexn : label) (s : stmt) : Prop :=
   | stsal_leq : leq pc observer -> label_state_pi_sec_eutt Γ observer (Rsense observer lexn )
                                                        (sem_throw_stmt s) (sem_throw_stmt s) -> secure_throw_stmt_at_label observer pc lexn s
-  | stsal_nleq : (~ leq pc observer) -> label_state_pi_sec_eutt Γ observer (fun sum _ => Rsense_unpriv observer lexn sum ) 
+  | stsal_nleq : (~ leq pc observer) -> label_state_pi_sec_eutt Γ observer (fun sum _ => Rsense_unpriv observer lexn sum )
                                                             (sem_throw_stmt s) (ret tt ) ->  secure_throw_stmt_at_label observer pc lexn s
   .
-(*maybe I can simplify the first return relation, I think some of those conditions are implied by a reasonable secure_stmt def 
-  really what throw_stmt is needed for is the observation of the final state before an exception
-  maybe experiment with the try catch and seq cases, see what is really neededs
-  Intuitively if the exception is visible the labels must be the same (that is certainly true but may be stronger than needed)
-  maybe can get away with just each label is less than lexn1
-  
-*)
+
 Definition secure_throw_stmt pc lexn s := forall observer, secure_throw_stmt_at_label observer pc lexn s.
 
 Lemma pi_sem_stmt_ret_aux:
@@ -1033,4 +1021,52 @@ Proof.
   - (* TryCatch *)
     destruct IHHtype1. destruct IHHtype2. 
     split; try eapply try_catch_well_typed_correct; try eapply try_catch_well_typed_correct'; eauto.
+Qed.
+
+Lemma secure_stmt_lower_pc:
+  forall (pc2 : label) lexn (s : stmt),
+    secure_stmt pc2 lexn s -> forall pc1 : L, leq pc1 pc2 -> secure_stmt pc1 lexn s.
+Proof.
+  intros pc2 lexn s H pc1 Hpc observer.
+  specialize (H observer). inv H.
+  - left. eapply leq_sense_trans; eauto. auto.
+  - case_leq pc1 observer.
+    + left; auto. cbn in H1. intros σ1 σ2 Hσ.
+      eapply pi_sem_stmt_ret_aux; eauto.
+    + right; auto.
+Qed.
+
+Lemma secure_throw_stmt_lower_pc:
+  forall (pc lexn : label) (s : stmt),
+    secure_throw_stmt pc lexn s -> forall pc1 : L, leq pc1 pc -> secure_throw_stmt pc1 lexn s.
+Proof.
+  intros pc lexn s H pc1 Hpc observer.
+  specialize (H observer). inv H.
+  - left. eapply leq_sense_trans; eauto. auto.
+  - case_leq pc1 observer.
+    + left; auto. cbn in H1. intros σ1 σ2 Hσ.
+      eapply pi_sem_throw_stmt_ret_aux; eauto.
+    + right; auto.
+Qed.
+
+Lemma lower_pc_sound s lexn pc1 pc2 : 
+  leq pc1 pc2 -> well_typed_stmt pc2 lexn s -> well_typed_stmt pc1 lexn s.
+Proof.
+  intros Hpc Hs. generalize dependent pc1. induction Hs; intros.
+  - constructor. destruct H. split. eapply secure_stmt_lower_pc; eauto.
+    eapply secure_throw_stmt_lower_pc; eauto.
+  - apply wts_skip.
+  - apply wts_seq; eauto. eapply IHHs2.
+    destruct pc1; destruct pc; destruct lexn1; cbv; auto; try contradiction.
+  - eapply wts_assign; eauto. eapply leq_sense_trans; eauto.
+    destruct l; destruct pc; destruct pc1; cbv; auto; contradiction.
+  - eapply wts_print; eauto. eapply leq_sense_trans; eauto.
+    destruct le; destruct pc; destruct pc1; cbv; auto; contradiction.
+  - eapply wts_if; eauto. eapply IHHs1. 2: eapply IHHs2.
+    all :  destruct le; destruct pc; destruct pc1; cbv; auto; contradiction.
+  - eapply wts_while; eauto. eapply IHHs.
+    destruct le; destruct pc; destruct pc1; destruct lexn; cbv; auto; contradiction.
+  - apply wts_raise. eapply leq_sense_trans; eauto.
+  - eapply wts_try; eauto. eapply IHHs2.
+    destruct pc; destruct pc1; destruct lexn1; cbv; auto; contradiction.
 Qed.
