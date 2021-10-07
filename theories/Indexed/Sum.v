@@ -32,6 +32,6 @@ Variant void1 : Type -> Type := .
  *)
 
 (* Eliminate [void1]. *)
-Polymorphic Definition elim_void1@{u v} {E : Type@{u} -> Type@{v}}
+Definition elim_void1@{u v} {E : Type@{u} -> Type@{v}}
   : forall T : Type@{u}, void1 T -> E T :=
   fun T (v : void1 T) => match v with end.
