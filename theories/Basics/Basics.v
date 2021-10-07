@@ -12,6 +12,7 @@ From Coq Require Import
 From ExtLib Require Import
      Structures.Functor
      Structures.Monad
+     Structures.MonadTrans
      Data.Monads.StateMonad
      Data.Monads.ReaderMonad
      Data.Monads.OptionMonad
@@ -78,6 +79,9 @@ Instance Monad_stateT {m s} {Fm : Monad m} : Monad (stateT s m)
       sa <- t s ;;
       k (snd sa) (fst sa)
     |}.
+
+Instance MonadT_stateT S (m : Type -> Type) `{Monad m}: @MonadT (stateT S m) m :=
+  {| lift := fun _ c => (fun s => bind (m := m) c (fun t => ret (m := m) (s, t))) |}.
 
 End Monads.
 

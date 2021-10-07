@@ -199,7 +199,7 @@ Section MapFacts.
       + unfold over. destruct (case e).
         * apply handle_map_eq; assumption.
         (* YZ: Hence in this case we relate two trees defined as triggers *)
-        * unfold trigger, Trigger_State, trigger, Trigger_ITree, ITree.trigger.
+        * unfold trigger, Trigger_MonadT, trigger, Trigger_ITree, ITree.trigger.
           cbn. rewrite 2 bind_vis. apply eqit_Vis.
           intros. rewrite 2 bind_ret_l.  apply eqit_Ret. constructor; auto.
       (* We get away with it by unfolding the instances though *)
@@ -229,7 +229,7 @@ Section MapFacts.
         unfold over.
         destruct (case e).
         - apply handle_map_eq. assumption.
-        - unfold trigger, Trigger_State, trigger, Trigger_ITree, ITree.trigger.
+        - unfold trigger, Trigger_MonadT, trigger, Trigger_ITree, ITree.trigger.
           pstep. cbn. red. cbn. (* YZ: this is ugly... A better way? *)
           econstructor. intros. constructor. pfold.
           red; cbn.

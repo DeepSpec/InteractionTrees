@@ -21,12 +21,12 @@ From ITree Require Import
 
 (* Want to import Indexed.FunctionFacts *)
 From ExtLib Require Import
-     Monad.
+     Monad MonadTrans.
 
 Import MonadNotation.
 Import CatNotations.
 Open Scope cat_scope.
-
+Import ITree.Basics.Basics.Monads.
 (* end hide *)
 
 Set Implicit Arguments.
@@ -152,10 +152,9 @@ Section Instances.
     (* We allow to look for the inclusion by commuting the two arguments.
        By doing it only at this level it's a cheap way to explore both options while avoiding looping resolutions
      *)
-
-    (* The [stateT] transformer relies on the trigger instance of its monad and simply pass away the state untouched *)
-    Instance Trigger_State {S} {E} {M} `{Monad M} `{Trigger E M}: Trigger E (Monads.stateT S M) :=
-      (fun T e s => t <- trigger e ;; ret (s,t))%monad.
+    Instance Trigger_MonadT {E} `{Trigger E (itree E)}
+             {T : (Type -> Type) -> Type -> Type} `{@MonadT (T (itree E)) (itree E)} : Trigger E (T (itree E)) :=
+      (fun X e => lift (trigger e)).
 
     (* The [PropT] transformer returns the propositional singleton of the underlying trigger.
        However, we might want this singleton to be up to some equivalence *)
@@ -476,9 +475,10 @@ Existing Instance Subevent_Sum_Out       | 3.
    See: https://coq.discourse.group/t/instance-resolution-restricting-the-introduction-of-evars/457/3
  *)
 Existing Instance Trigger_ITree          | 1.
-Existing Instance Trigger_State          | 1.
+Existing Instance Trigger_MonadT         | 1.
 Existing Instance Trigger_Prop           | 1.
 (* Existing Instance Trigger_ITree_comm.    | 2. *)
+
 
 (* This one allows to apply Subevent_forget_order when ready to conclude, in order to avoid loops.
    It's not pretty, and only works when two effects are nested. Should be improved.
