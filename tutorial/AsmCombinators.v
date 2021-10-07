@@ -172,6 +172,7 @@ Definition loop_asm {I A B} (ab : asm (I + A) (I + B)) : asm A B :=
 Import MonadNotation.
 Import CatNotations.
 Local Open Scope cat.
+Local Open Scope monad.
 (* end hide *)
 Section Correctness.
 

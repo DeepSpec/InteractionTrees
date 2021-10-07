@@ -427,7 +427,6 @@ Section Bisimulation.
 
     cbn.
     rewrite interp_state_trigger; cbn.
-    rewrite bind_ret_l, tau_eutt.
     rewrite interp_ret, interp_state_ret.
     unfold lookup_default, lookup, Map_alist.
     erewrite sim_rel_find.
@@ -525,6 +524,8 @@ Section Linking.
       of the loop, and the body in which we have the same structure as for the conditional *)
   Notation label_case := (split_fin_sum _ _).
 
+  (* Uh-oh. *)
+  Typeclasses eauto := 5.
   Lemma while_asm_correct (e : list instr) (p : asm 1 1) :
       denote_asm (while_asm e p)
     ⩯ (loop (C := sub (ktree _) fin) (fun l : fin (1 + 1) =>
@@ -607,42 +608,42 @@ Instance Subevent_forget_order
               end
   |}.
 
-Instance Subevent_forget_order'
-         {E C1 C2 A B}
-         {Sub1: A +? C1 -< E}
-         {Sub2: B +? C2 -< C1}:
-  Subevent B E (A +' C2).
-split.
+(* Instance Subevent_forget_order' *)
+(*          {E C1 C2 A B} *)
+(*          {Sub1: A +? C1 -< E} *)
+(*          {Sub2: B +? C2 -< C1}: *)
+(*   Subevent B E (A +' C2). *)
+(* split. *)
 
-refine (split_E >>> _). case_ _ _). (inr_ >>> inl_) _).
+(* refine (split_E >>> _). case_ _ _). (inr_ >>> inl_) _). *)
 
-              | inr1 c1 =>
-                match split_E _ c1 with
-                | inl1 b => inl1 b
-                | inr1 c2 => inr1 (inr1 c2)
-                end
-              end;
-    merge_E :=
-      fun _ e => match e with
-              | inl1 b => merge_E (inr1 (merge_E (inl1 b)))
-              | inr1 (inl1 a) => merge_E (inl1 a)
-              | inr1 (inr1 c2) => merge_E (inr1 (merge_E (inr1 c2)))
-              end
-  |}.
+(*               | inr1 c1 => *)
+(*                 match split_E _ c1 with *)
+(*                 | inl1 b => inl1 b *)
+(*                 | inr1 c2 => inr1 (inr1 c2) *)
+(*                 end *)
+(*               end; *)
+(*     merge_E := *)
+(*       fun _ e => match e with *)
+(*               | inl1 b => merge_E (inr1 (merge_E (inl1 b))) *)
+(*               | inr1 (inl1 a) => merge_E (inl1 a) *)
+(*               | inr1 (inr1 c2) => merge_E (inr1 (merge_E (inr1 c2))) *)
+(*               end *)
+(*   |}. *)
 
 
-Instance Subevent_forget_order_wf
-         {E C1 C2 A B}
-         {Sub1: A +? C1 -< E}
-         {Sub2: B +? C2 -< C1}
-         {Sub1WF: Subevent_wf Sub1}
-         {Sub2WF: Subevent_wf Sub2}
-  : Subevent_wf (@Subevent_forget_order _ _ _ _ _ Sub1 Sub2).
-Proof.
-  do 2 split.
-  - cbn.
-    intros ? e.
-    unfold cat, Cat_IFun.
+(* Instance Subevent_forget_order_wf *)
+(*          {E C1 C2 A B} *)
+(*          {Sub1: A +? C1 -< E} *)
+(*          {Sub2: B +? C2 -< C1} *)
+(*          {Sub1WF: Subevent_wf Sub1} *)
+(*          {Sub2WF: Subevent_wf Sub2} *)
+(*   : Subevent_wf (@Subevent_forget_order _ _ _ _ _ Sub1 Sub2). *)
+(* Proof. *)
+(*   do 2 split. *)
+(*   - cbn. *)
+(*     intros ? e. *)
+(*     unfold cat, Cat_IFun. *)
 
 
 
@@ -653,8 +654,6 @@ Section Correctness.
   Context {HasState : ImpState +? C2 -< F}.
   (* Context {HasExit : Exit +? C3 -< E}. *)
 
-
-
   (** Correctness of expressions.
       We strengthen [bisimilar]: initial environments are still related by [Renv],
       but intermediate ones must now satisfy [sim_rel].
@@ -663,74 +662,24 @@ Section Correctness.
       [alist var value * value] for _Imp_). The difference is nonetheless mostly
       transparent for the user, except for the use of the more general lemma [eqit_bind'].
    *)
-  Lemma compile_expr_correct : forall e g_imp g_asm l n (foo: itree E unit),
+  Lemma compile_expr_correct : forall e g_imp g_asm l n,
       Renv g_imp g_asm ->
       @eutt C2 _ _ (sim_rel l n)
             (interp_imp (denote_expr e) g_imp)
-            (@interp_asm E _ C2 C1 HasMemory HasReg foo g_asm l).
+            (interp_asm (denote_list (compile_expr n e)) g_asm l).
   Proof.
     intros e ? ? l n.
-    set (H := (@denote_list E (compile_expr n e))).
-                         (denote_list (compile_expr n e)) g_asm l).
-  Proof.
-      Set Printing Implicit.
+    set (H := (@denote_list E _ _ _ _ (compile_expr n e))).
+
     induction e; simpl; intros.
     - (* Var case *)
       (* We first compute and eliminate taus on both sides. *)
-
-      Set Printing Implicit.
-      match goal with |- eutt ?R _ ?t' => set (RR := R); set (t := t') end.
-
-      force_left.
-      rewrite tau_eutt.
-
-
       force_left.
 
-      unfold interp_imp.
-      Set Printing Implicit.
-      unfold trigger', Trigger_ITree.
-      unfold inj1, merge_E, cat, Cat_IFun.
-      destruct HasState.
-      cbn.
-      unfold ITree.trigger.
-      unfold interp_imp.
-
-      Set Printing Implicit.
-Lemma foo: interp (over h) (trigger' _ e)
-
-      cbn.
-      unfold inj1.
-      unfold merge_E.
-
-
-  match goal with | [ |- _ ?x _ ] => rewrite (itree_eta x) end.
-  unfold interp_imp.
-  unfold interp, Basics.iter, MonadIter_itree, ITree.iter.
-  cbn.
-      cbn.
-      unfold trigger', Trigger_ITree.
-      cbn.
-      unfold interp_imp.
-
-
-      force_left; rewrite tau_eutt.
-      force_left; rewrite tau_eutt.
-      force_left.
-      force_right. cbn. rewrite tau_eutt.
-      force_left; rewrite tau_eutt.
-      tau_steps_left; rewrite tau_eutt.
-      unfold trigger', Trigger_ITree.
-      cbn.
-      rewrite itree_eta. cbn.
-      rewrite tau_eutt.
-      rewrite itree_eta. cbn.
-
-      at 2.
       tau_steps.
-      rewrite itree_eta at 2.
+
       (* We are left with [Ret] constructs on both sides, that remains to be related *)
-      red; rewrite <- eqit_Ret.
+      red; rewrite <-eqit_Ret.
       unfold lookup_default, lookup, Map_alist.
 
       (* On the _Asm_ side, we bind to [gen_tmp n] a lookup to [varOf v] *)
