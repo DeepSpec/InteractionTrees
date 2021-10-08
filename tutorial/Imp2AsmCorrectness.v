@@ -769,12 +769,12 @@ Section Correctness.
     (* The three binary operator cases are identical *)
     - (* Plus case *)
       (* We push [interp_locals] into the denotations *)
-      (* TODO : Repair *)
-      setoid_rewrite denote_list.
+      unfold H; cbn. rewrite denote_list_app.
 
-      rewrite interp_asm_bind.
       rewrite interp_imp_bind.
-      rewrite (@denote_list_app _ _ _  HasReg _ (compile_expr n e1) (compile_expr (S n) e2 ++ [Iadd n n (Oreg (S n))])).
+      setoid_rewrite interp_asm_bind.
+
+      setoid_rewrite (@denote_list_app _ _ _  HasReg _ (compile_expr n e1) (compile_expr (S n) e2 ++ [Iadd n n (Oreg (S n))])).
 
       (* The Induction hypothesis on [e1] relates the first itrees *)
       eapply eutt_clo_bind.
