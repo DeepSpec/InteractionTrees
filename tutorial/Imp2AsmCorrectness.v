@@ -637,8 +637,10 @@ Module SubeventRewr.
 
   Ltac simpl_sub := repeat
     match goal with
-      | |- context[merge_E _ (split_E _ _)] => rewrite merge_split
-      | |- context[split_E _ (merge_E _ _)] => rewrite split_merge
+      | |- context[merge_E _ (split_E _ _)] => setoid_rewrite merge_split
+      | |- context[split_E _ (merge_E _ _)] => setoid_rewrite split_merge
+      | |- context[case (inj1 _)] => rewrite case_inj1
+      | |- context[case (inj2 _)] => rewrite case_inj2
     end.
 
 End SubeventRewr.
@@ -695,6 +697,19 @@ Section Correctness.
     | [ |- eutt _ ?L _ ] => remember L as lhs
     end.
 
+  Ltac hide_r :=
+    let rhs := fresh "rhs" in
+    match goal with
+    | [ |- eutt _ _ ?R ] => remember R as rhs
+    end.
+
+  Hint Rewrite @over_trigger : itree.
+  Hint Rewrite @interp_bind : itree.
+  Hint Rewrite @interp_state_bind : itree.
+
+  Ltac unfold_interp :=
+    repeat unfold interp_imp, interp_map, interp_asm, interp_asm_mem, interp_asm_regs.
+
   (** Correctness of expressions.
       We strengthen [bisimilar]: initial environments are still related by [Renv],
       but intermediate ones must now satisfy [sim_rel].
@@ -708,7 +723,7 @@ Section Correctness.
       @eutt C2 _ _ (sim_rel l n)
             (interp_imp (denote_expr e) g_imp)
             (interp_asm (denote_list (compile_expr n e)) g_asm l).
-  Proof.
+  Proof with (cbn; autorewrite with itree).
     intros e ? ? l n.
     set (H := (@denote_list E _ _ _ _ (compile_expr n e))).
 
@@ -716,48 +731,18 @@ Section Correctness.
     - (* Var case *)
       (* We first compute and eliminate taus on both sides. *)
 
-      (* TODO: repackage cruft *)
+      unfold_interp.
+      auto...
+      (* LHS *)
+      setoid_rewrite over_trigger. simpl_sub; cbn. tau_steps_left.
 
-      (* BEGIN CRUFT -- LHS cleanup *)
-      unfold interp_imp. setoid_rewrite over_trigger. rewrite case_inj1; cbn.
-      (* END CRUFT *)
+      (* RHS *)
+      simpl_sub...
+      time setoid_rewrite interp_state_trigger...
+      setoid_rewrite over_trigger...
+      simpl_sub.
 
-      tau_steps_left.
-      hide_l. (* Hide LHS for now. *)
-
-      (* RHS : asm TC resolution *)
-
-      (* TC business *)
-      destruct HasReg_wf. destruct sub_iso.
-      repeat red in iso_mono, iso_epi.
-      cbn in *.
-
-      destruct HasMemory_wf. destruct sub_iso.
-      repeat red in iso_mono0, iso_epi0. cbn in *.
-
-      (* "interp normal form"*)
-
-      unfold interp_asm, over, interp_asm_mem, interp_asm_regs.
-      tau_steps_right. unfold interp_map.
-      do 2 setoid_rewrite interp_bind. setoid_rewrite over_trigger. cbn.
-
-      rewrite iso_epi.
-
-      rewrite ! interp_state_bind.
-
-      setoid_rewrite iso_epi.
-      tau_steps.
-
-      (* General rewriting *)
-      (* Tactic call ran for 6.547 secs (6.511u,0.02s) (success) *)
-      time setoid_rewrite interp_state_trigger.
-      cbn. rewrite interp_bind. rewrite bind_bind.
-      rewrite interp_bind. setoid_rewrite over_trigger. cbn.
-
-      setoid_rewrite iso_epi0.
-      (* END CRUFT *)
-
-      subst.
+      (* Reduce all *)
       tau_steps.
 
       (* We are left with [Ret] constructs on both sides, that remains to be related *)
@@ -769,24 +754,27 @@ Section Correctness.
       erewrite Renv_find; [| eassumption].
       apply sim_rel_add; assumption.
 
-      (* TODO: repair *)
     - (* Literal case *)
       (* We reduce both sides to Ret constructs *)
+      unfold_interp; auto...
+
+      tau_steps.
+      setoid_rewrite over_trigger... setoid_rewrite split_merge.
       tau_steps.
 
       red; rewrite <-eqit_Ret.
-      (* _Asm_ bind the litteral to [gen_tmp n] while _Imp_ returns it *)
+      (* _Asm_ bind the literal to [gen_tmp n] while _Imp_ returns it *)
       apply sim_rel_add; assumption.
 
     (* The three binary operator cases are identical *)
     - (* Plus case *)
       (* We push [interp_locals] into the denotations *)
+      (* TODO : Repair *)
+      setoid_rewrite denote_list.
 
-      rewrite 2 denote_list.
-
-      rewrite (@denote_list_app E C1 C2 HasReg HasMemory (compile_expr n e1) (compile_expr (S n) e2 ++ [Iadd n n (Oreg (S n))])).
       rewrite interp_asm_bind.
       rewrite interp_imp_bind.
+      rewrite (@denote_list_app _ _ _  HasReg _ (compile_expr n e1) (compile_expr (S n) e2 ++ [Iadd n n (Oreg (S n))])).
 
       (* The Induction hypothesis on [e1] relates the first itrees *)
       eapply eutt_clo_bind.
