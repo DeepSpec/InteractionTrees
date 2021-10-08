@@ -608,51 +608,72 @@ Instance Subevent_forget_order
               end
   |}.
 
-(* Instance Subevent_forget_order' *)
-(*          {E C1 C2 A B} *)
-(*          {Sub1: A +? C1 -< E} *)
-(*          {Sub2: B +? C2 -< C1}: *)
-(*   Subevent B E (A +' C2). *)
-(* split. *)
+Instance Subevent_forget_order_wf
+         {E C1 C2 A B}
+         {Sub1: A +? C1 -< E}
+         {Sub1_wf : Subevent_wf Sub1}
+         {Sub2: B +? C2 -< C1}
+         {Sub2_wf : Subevent_wf Sub2}
+  : Subevent_wf (@Subevent_forget_order E C1 C2 A B _ _).
+Proof.
+  repeat constructor; repeat intro.
+  cbn.
+  - destruct Sub1_wf, Sub2_wf.
+    destruct sub_iso. red in iso_mono, iso_epi.
+    destruct sub_iso0. red in iso_mono0, iso_epi0.
+    repeat red in iso_mono. unfold cat, Cat_IFun in iso_mono.
+    destruct (split_E T a) eqn: Hsplit.
+    { rewrite <- Hsplit; auto. }
+    { destruct (split_E T c) eqn: Hsplit_c.
+      - rewrite <- Hsplit_c.
+        repeat red in iso_mono0. unfold cat, Cat_IFun in iso_mono0.
+        rewrite iso_mono0. unfold id_, Id_IFun.
+        rewrite <- Hsplit; eauto.
+      - rewrite <- Hsplit_c.
+        repeat red in iso_mono0. unfold cat, Cat_IFun in iso_mono0.
+        rewrite iso_mono0. unfold id_, Id_IFun.
+        rewrite <- Hsplit; eauto. }
+  - destruct Sub1_wf, Sub2_wf.
+    destruct sub_iso. red in iso_mono, iso_epi.
+    destruct sub_iso0. red in iso_mono0, iso_epi0.
+    repeat red in iso_epi. unfold cat, Cat_IFun in *; cbn.
+    destruct a eqn: Ha.
+    { setoid_rewrite <- Ha.
+      rewrite iso_epi. cbn. rewrite iso_epi0. cbn. eauto. }
+    { destruct s eqn: Hs.
+      - rewrite iso_epi. cbn. rewrite <- Ha.
+        setoid_rewrite <- Ha. unfold id_, Id_IFun; reflexivity.
+      - rewrite iso_epi. cbn. rewrite iso_epi0. cbn.
+        unfold id_, Id_IFun. reflexivity. }
+Qed.
 
-(* refine (split_E >>> _). case_ _ _). (inr_ >>> inl_) _). *)
+Lemma over_trigger {E F : Type -> Type} {R : Type} (f : forall T : Type, E T -> itree F T) (e : E R):
+  interp (over f) (ITree.trigger e) ≳ f R e.
+Proof.
+  unfold over. cbn. rewrite interp_trigger. reflexivity.
+Qed.
 
-(*               | inr1 c1 => *)
-(*                 match split_E _ c1 with *)
-(*                 | inl1 b => inl1 b *)
-(*                 | inr1 c2 => inr1 (inr1 c2) *)
-(*                 end *)
-(*               end; *)
-(*     merge_E := *)
-(*       fun _ e => match e with *)
-(*               | inl1 b => merge_E (inr1 (merge_E (inl1 b))) *)
-(*               | inr1 (inl1 a) => merge_E (inl1 a) *)
-(*               | inr1 (inr1 c2) => merge_E (inr1 (merge_E (inr1 c2))) *)
-(*               end *)
-(*   |}. *)
-
-
-(* Instance Subevent_forget_order_wf *)
-(*          {E C1 C2 A B} *)
-(*          {Sub1: A +? C1 -< E} *)
-(*          {Sub2: B +? C2 -< C1} *)
-(*          {Sub1WF: Subevent_wf Sub1} *)
-(*          {Sub2WF: Subevent_wf Sub2} *)
-(*   : Subevent_wf (@Subevent_forget_order _ _ _ _ _ Sub1 Sub2). *)
-(* Proof. *)
-(*   do 2 split. *)
-(*   - cbn. *)
-(*     intros ? e. *)
-(*     unfold cat, Cat_IFun. *)
-
-
+Lemma over_ret {E F : Type -> Type} {R : Type} (f : forall T : Type, E T -> itree F T) (x : R):
+  interp (over f) (Ret x) ≅ Ret x.
+Proof.
+  unfold over. cbn. rewrite interp_ret. reflexivity.
+Qed.
 
 Section Correctness.
   Context {E F C1 C2 : Type -> Type}.
-  Context {HasReg : Reg +? C1 -< E}.
-  Context {HasMemory : Memory +? C2 -< C1}.
-  Context {HasState : ImpState +? C2 -< F}.
+  Context {HasReg : Reg +? C1 -< E}
+          {HasReg_wf : Subevent_wf HasReg}.
+  Context {HasMemory : Memory +? C2 -< C1}
+          {HasMemory_wf : Subevent_wf HasMemory}.
+  Context {HasState : ImpState +? C2 -< F}
+          {HasState_wf : Subevent_wf HasState}.
   (* Context {HasExit : Exit +? C3 -< E}. *)
+
+  Ltac hide_l :=
+    let lhs := fresh "lhs" in
+    match goal with
+    | [ |- eutt _ ?L _ ] => remember L as lhs
+    end.
 
   (** Correctness of expressions.
       We strengthen [bisimilar]: initial environments are still related by [Renv],
@@ -674,8 +695,45 @@ Section Correctness.
     induction e; simpl; intros.
     - (* Var case *)
       (* We first compute and eliminate taus on both sides. *)
-      force_left.
 
+      (* TODO: repackage cruft *)
+
+      (* BEGIN CRUFT -- LHS cleanup *)
+      unfold interp_imp. setoid_rewrite over_trigger. rewrite case_inj1; cbn.
+      (* END CRUFT *)
+
+      tau_steps_left.
+      hide_l. (* Hide LHS for now. *)
+
+      (* RHS : asm TC resolution *)
+      unfold interp_asm, over, interp_asm_mem, interp_asm_regs.
+      do 2 setoid_rewrite interp_bind. setoid_rewrite over_trigger.
+      unfold case; cbn; unfold case.
+      unfold interp_map. rewrite ! interp_state_bind. rewrite !interp_bind.
+      rewrite !interp_state_bind. rewrite bind_bind.
+
+      Arguments split_E {_ _ _} _ {_}. cbn.
+      Arguments merge_E {_ _ _} _ {_}. cbn.
+      (* TC business *)
+      destruct HasReg_wf. destruct sub_iso.
+      repeat red in iso_mono, iso_epi.
+      unfold cat, Cat_IFun in iso_epi.
+      setoid_rewrite iso_epi. cbn.
+
+      (* General rewriting *)
+      unfold trigger, Trigger_ITree.
+      (* Tactic call ran for 6.547 secs (6.511u,0.02s) (success) *)
+      time setoid_rewrite interp_state_trigger.
+      cbn. rewrite interp_bind. setoid_rewrite over_trigger.
+      unfold case, id_, Id_IFun.
+
+      destruct HasMemory_wf. destruct sub_iso.
+      repeat red in iso_mono0, iso_epi0.
+      unfold cat, Cat_IFun in iso_epi0.
+      setoid_rewrite iso_epi0. cbn.
+      (* END CRUFT *)
+
+      subst.
       tau_steps.
 
       (* We are left with [Ret] constructs on both sides, that remains to be related *)
@@ -687,6 +745,7 @@ Section Correctness.
       erewrite Renv_find; [| eassumption].
       apply sim_rel_add; assumption.
 
+      (* TODO: repair *)
     - (* Literal case *)
       (* We reduce both sides to Ret constructs *)
       tau_steps.
