@@ -27,6 +27,9 @@ From ITree Require Import
      Interp.RecursionFacts
      Events.State.
 
+From ExtLib Require Import
+     Structures.MonadTrans.
+
 Import ITreeNotations.
 Import ITree.Basics.Basics.Monads.
 Local Open Scope itree_scope.
@@ -50,6 +53,9 @@ Section FailT.
                  bind (m := m) c 
                       (fun x => match x with | None => ret (None) | Some x => k x end)
     |}.
+
+  Global Instance failT_monadT : MonadT (failT m) m :=
+  {| lift := fun _ c => bind (m := m) c (fun t => ret (m := m) (Some t)) |}.
 
   Global Instance failT_iter  : MonadIter (failT m) :=
     fun A I body i => Basics.iter (M := m) (I := I) (R := option A) 

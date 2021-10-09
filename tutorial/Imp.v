@@ -57,8 +57,8 @@ From ITree Require Import
      ITree
      ITreeFacts
      Events.MapDefault
-     Events.StateFacts.
-
+     Events.StateFacts
+     Events.FailFacts.
 Import Monads.
 Import MonadNotation.
 Local Open Scope monad_scope.
@@ -91,6 +91,7 @@ Inductive stmt : Type :=
 | If     (i : expr) (t e : stmt) (* if (i) then { t } else { e } *)
 | While  (t : expr) (b : stmt)   (* while (t) { b } *)
 | Skip                           (* ; *)
+| Abort
 .
 
 (* ========================================================================== *)
@@ -158,6 +159,9 @@ Variant ImpState : Type -> Type :=
 | GetVar (x : var) : ImpState value
 | SetVar (x : var) (v : value) : ImpState unit.
 
+Variant ImpFail : Type -> Type :=
+| Fail : ImpFail void.
+
 Section Denote.
 
   (** We now proceed to denote _Imp_ expressions and statements.
@@ -168,8 +172,9 @@ Section Denote.
       parameterize the denotation of _Imp_ by a larger universe of events [eff],
       of which [ImpState] is assumed to be a subevent. *)
 
-  Context {E F : Type -> Type}.
-  Context {HasImpState : ImpState +? E -< F}.
+  Context {E1 E2 F : Type -> Type}.
+  Context {HasImpState : ImpState +? E1 -< F}.
+  Context {HasFail : ImpFail +? E2 -< F}.
 
   (** _Imp_ expressions are denoted as [itree eff value], where the returned
       value in the tree is the value computed by the expression.
@@ -244,6 +249,7 @@ Section Denote.
              else ret (inr tt))
 
     | Skip => ret tt
+    | Abort => x <- trigger Fail;; match x:void with end
     end.
 
 End Denote.
@@ -318,6 +324,12 @@ Definition handle_ImpState
     | SetVar x v => insert x v
     end.
 
+Definition handle_ImpFail
+           {E: Type -> Type}: ImpFail ~> failT (itree E) :=
+  fun _ e =>
+    match e with
+    | Fail => ret None
+    end.
 (** We now concretely implement this environment using ExtLib's finite maps. *)
 Definition env := alist var value.
 
@@ -336,19 +348,34 @@ forall eff, {pf:E -< eff == F[E]} (t : itree eff A)
         interp pf h h' t : M A
 *)
 
-Definition interp_imp {E F A}
+Definition interp_imp_state {E F A}
            `{ImpState +? E -< F}
            (t : itree F A) : stateT env (itree E) A :=
   interp_map (interp (over handle_ImpState) t).
 
-Definition eval_imp {E F} `{ImpState +? E -< F} (s: stmt) : itree E (env * unit) :=
-  interp_imp (denote_imp s) empty.
+Definition interp_imp_fail {E F A}
+           `{ImpFail +? E -< F} (t : itree F A) : failT (itree E) A:=
+  (interp (over handle_ImpFail) t).
+
+Definition interp_imp {C D E A}
+           `{ImpState +? C -< D} `{ImpFail +? D -< E}
+           (s:itree E A) : stateT env (failT (itree C)) _:=
+  let t' := interp_imp_state s in
+  (fun e:env => interp_imp_fail (t' e)).
+
+Arguments interp_imp_state /.
+Arguments interp_imp_fail /.
+Arguments interp_imp /.
+
+Definition eval_imp {E} (s: stmt) : stateT env (failT (itree E)) _:=
+  let t' := interp_imp_state (denote_imp s) in
+  (fun e:env => interp_imp_fail (E := E) (t' e)).
 
 (** Equipped with this evaluator, we can now compute.
     Naturally since Coq is total, we cannot do it directly inside of it.
     We can either rely on extraction, or use some fuel.
  *)
-Compute (burn 200 (eval_imp (fact "input" "output" 6))).
+Compute (burn 200 (eval_imp (fact "input" "output" 6) empty)).
 
 (* ========================================================================== *)
 Section InterpImpProperties.
@@ -365,36 +392,37 @@ Section InterpImpProperties.
       at the _Asm_ level (see AsmOptimizations.v).
    *)
 
-  Context {E C: Type -> Type}.
-  Context {HasState: ImpState +? C -< E}.
+  Context {E C1 C2: Type -> Type}.
+  Context {HasState: ImpState +? C1 -< E}.
+  Context {HasFail: ImpFail +? C2 -< C1}.
 
   (** This interpreter is compatible with the equivalence-up-to-tau. *)
-  Global Instance eutt_interp_imp {R}:
-    Proper (@eutt E R R eq ==> eq ==> @eutt C (prod (env) R) (prod _ R) eq)
-           interp_imp.
+  Global Instance eutt_interp_imp {A}:
+    Proper (eutt eq ==> (@eq env) ==> eutt eq)
+           (interp_imp (A := A)).
   Proof.
     repeat intro.
     unfold interp_imp.
     unfold interp_map.
-    rewrite H0. eapply eutt_interp_state_eq; auto.
+    rewrite H0. unfold interp_imp_fail, interp_imp_state.
+    eapply interp_fail_eutt_eq; auto.
+    eapply eutt_interp_state_eq; auto.
     rewrite H. reflexivity.
   Qed.
 
   (** [interp_imp] commutes with [bind]. *)
   Lemma interp_imp_bind: forall {R S} (t: itree E R) (k: R -> itree E S) (g : env),
       (interp_imp (ITree.bind t k) g)
-    ≅ (ITree.bind (interp_imp t g) (fun '(g',  x) => interp_imp (k x) g')).
+        ≅ ('(g', x) <- interp_imp t g ;; interp_imp (k x) g').
   Proof.
-    intros.
-    unfold interp_imp.
+    intros. cbn. unfold interp_imp.
     unfold interp_map.
     repeat rewrite interp_bind.
     repeat rewrite interp_state_bind.
+    setoid_rewrite interp_fail_bind.
     apply eqit_bind; [ reflexivity | ].
     red. intros.
-    destruct a as [g'  x].
-    simpl.
-    reflexivity.
+    destruct a as [[g'  x] |]; reflexivity.
   Qed.
 
 End InterpImpProperties.

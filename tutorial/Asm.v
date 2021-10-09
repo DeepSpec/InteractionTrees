@@ -23,7 +23,8 @@ From ITree Require Import
      Basics.Monad
      Basics.CategorySub
      Events.State
-     Events.StateFacts.
+     Events.StateFacts
+     Events.FailFacts.
 
 From ITreeTutorial Require Import Fin Utils_tutorial.
 
@@ -62,6 +63,7 @@ Variant branch {label : Type} : Type :=
 | Bjmp (_ : label)                (* jump to label *)
 | Bbrz (_ : reg) (yes no : label) (* conditional jump *)
 | Bhalt
+| Babort
 .
 Global Arguments branch _ : clear implicits.
 
@@ -132,28 +134,30 @@ Inductive Memory : Type -> Type :=
 Inductive Exit : Type -> Type :=
 | Done : Exit void.
 
+Variant Abort : Type -> Type :=
+| CAbort : Abort void.
+
 Definition exit {E F A} `{Exit +? F -< E} : itree E A :=
   vis Done (fun v => match v : void with end).
+
+(* begin hide *)
+Import ExtLib.Structures.Monad.
+Import MonadNotation.
+Local Open Scope monad_scope.
+(* end hide *)
 
 Section Denote.
 
   (** Once again, [asm] programs shall be denoted as [itree]s. *)
-
-  (* begin hide *)
-  Import ExtLib.Structures.Monad.
-  Import MonadNotation.
-  Local Open Scope monad_scope.
-  (* end hide *)
-
-
   Section with_event.
 
     (** As with _Imp_, we parameterize our semantics by a universe of events
         that shall encompass all the required ones. *)
-    Context {E C1 C2 C3 : Type -> Type}.
+    Context {E C1 C2 C3 C4 : Type -> Type}.
     Context {HasReg : Reg +? C1 -< E}.
     Context {HasMemory : Memory +? C2 -< E}.
     Context {HasExit : Exit +? C3 -< E}.
+    Context {HasAbort : Abort +? C4 -< E}.
 
     (** Operands are trivially denoted as [itree]s returning values *)
     Definition denote_operand (o : operand) : itree E value :=
@@ -198,8 +202,8 @@ Section Denote.
         val <- trigger (GetReg v) ;;
         if val:nat then ret y else ret n
       | Bhalt => exit
+      | BAbort => x <- trigger CAbort;; match x:void with end
       end.
-
 
     (** The denotation of a basic [block] shares the same type, returning the
         [label] of the next [block] it shall jump to.  It recursively denote
@@ -294,6 +298,13 @@ Definition map_memory {E G : Type -> Type} `{mapE addr 0 +? G -< E} :
     | Store x v => insert x v
     end.
 
+Definition handle_abort
+           {E: Type -> Type}: Abort ~> failT (itree E) :=
+  fun _ e =>
+    match e with
+    | CAbort => ret None
+    end.
+
 (** Once again, we implement our Maps with a simple association list *)
 Definition registers := alist reg value.
 Definition memory    := alist addr value.
@@ -304,11 +315,6 @@ Definition memory    := alist addr value.
     do a bit of post-processing to swap the order of the "state components"
     introduced by the interpretation.
  *)
-(* Definition interp_asm {E A} (t : itree (Reg +' Memory +' E) A) : *)
-(*   memory -> registers -> itree E (memory * (registers * A)) := *)
-(*   let h := bimap h_reg (bimap h_memory (id_ _)) in *)
-(*   let t' := interp h t in *)
-(*   fun  mem regs => interp_map (interp_map t' regs) mem. *)
 
 Definition interp_asm_regs {E A C} `{Reg +? C -< E}
            (t: itree E A) : registers -> itree C (registers * A) :=
@@ -317,6 +323,10 @@ Definition interp_asm_regs {E A C} `{Reg +? C -< E}
 Definition interp_asm_mem {E A C} `{Memory +? C -< E}
            (t: itree E A) : memory -> itree C (memory * A) :=
   interp_map (interp (over map_memory) t).
+
+Definition interp_asm_fail {E F A}
+           `{Abort +? E -< F} (t : itree F A) : failT (itree E) A:=
+  (interp (over handle_abort) t).
 
 (* YZ: NOTE: Notice the mention of the successive contexts.
    A formulation of the form `Reg +' Memory +? C -< E` would both
@@ -328,49 +338,41 @@ Definition interp_asm_mem {E A C} `{Memory +? C -< E}
    In contrast, the previous definition interpreted once the bimap of
    two handlers.
  *)
-Definition interp_asm {E A C D} `{Memory +? C -< D} `{Reg +? D -< E}
-           (t : itree E A) : memory -> registers -> itree C (memory * (registers * A)) :=
+Definition interp_asm {C D E F A} `{Memory +? C -< D} `{Reg +? D -< E} `{Abort +? E -< F}
+           (t : itree F A) : memory -> registers -> failT (itree C) (memory * (registers * A)) :=
   fun mem regs => let t' := interp_asm_regs t regs in
-               interp_asm_mem t' mem.
+                  let t'' := interp_asm_mem t' mem in
+                  interp_asm_fail t''.
+
+Arguments interp_asm_mem /.
+Arguments interp_asm_fail /.
+Arguments interp_asm /.
 
 (** We can then define an evaluator for closed assembly programs by interpreting
     both store and heap events into two instances of [mapE], and running them
     both in the empty initial environments.  *)
-(* YZ: NOTE: do we want such a general type? *)
-(* YZ: NOTE: the increased generality of the type forces us to be general here as well,
-             or to specify the return type as [itree Exit _]?
-             Indeed, there's no way for Coq to pick both [C] and [D] by itself.
- *)
-Definition run_asm {E C} `{Exit +? C -< E} (p: asm 1 0): itree E (memory * (registers * _))
-    := interp_asm (denote_asm p Fin.f0) empty empty.
-
-(* SAZ: Should some of thes notions of equivalence be put into the library?
-   SAZ: Should this be stated in terms of ktree ?
- *)
 (** The definition [interp_asm] also induces a notion of equivalence (open)
     _asm_ programs, which is just the equivalence of the ktree category *)
-
-Definition eq_asm_denotations {E A B C D} `{Memory +? C -< D} `{Reg +? D -< E}
-           (t1 t2 : Kleisli (itree E) A B) : Prop
+Definition eq_asm_denotations {A B C D E F}
+           `{Memory +? C -< D} `{Reg +? D -< E} `{Abort +? E -< F}
+           (t1 t2 : Kleisli (itree F) A B) : Prop
     :=
   forall a mem regs, interp_asm (t1 a) mem regs ≈ interp_asm (t2 a) mem regs.
 
-(* SAZ: Note - we turned off associativity of the Subevent typeclasses because
-they were causing an infinite loop here ... *)
-Definition eq_asm {E A B C D F} `{Exit +? F -< C} `{Memory +? C -< D} `{Reg +? D -< E}
-           (p1 p2 : asm A B) : Prop
-    :=
+Definition eq_asm {A B C D E F G} `{Memory +? C -< D} `{Reg +? D -< E} `{Abort +? E -< F} `{Exit +? F -< G} 
+           (p1 p2 : asm A B) : Prop :=
       eq_asm_denotations (denote_asm p1) (denote_asm p2).
 
 Section InterpAsmProperties.
 
-  Context {E C1 C2 : Type -> Type}.
-  Context {HasReg : Reg +? C1 -< E}.
-  Context {HasMemory : Memory +? C2 -< C1}.
+  Context {E C1 C2 C3 : Type -> Type}.
+  Context {HasMemory : Memory +? C1 -< C2}.
+  Context {HasReg : Reg +? C2 -< C3}.
+  Context {HasAbort : Abort +? C3 -< E}.
 
   (** This interpreter is compatible with the equivalence-up-to-tau. *)
   Global Instance eutt_interp_asm {R}:
-    Proper (@eutt E R R eq ==> eq ==> eq ==> @eutt C2 (prod memory (prod registers R)) (prod _ (prod _ R)) eq) interp_asm.
+    Proper (eutt eq ==> eq ==> eq ==> eutt eq) (interp_asm (A := R)).
   Proof.
     repeat intro.
     unfold interp_asm.
@@ -385,7 +387,7 @@ Section InterpAsmProperties.
   (** [interp_asm] commutes with [Ret]. *)
   Lemma interp_asm_ret: forall {R} (r: R) (regs : registers) (mem: memory),
       @eutt C2 _ _ eq (interp_asm (ret r) mem regs)
-            (ret (mem, (regs, r))).
+            (ret (Some (mem, (regs, r)))).
   Proof.
     unfold interp_asm, interp_asm_mem, interp_asm_regs, interp_map.
     intros.
@@ -393,14 +395,15 @@ Section InterpAsmProperties.
     rewrite interp_ret.
     rewrite interp_state_ret.
     rewrite interp_ret.
-    rewrite interp_state_ret.
+    rewrite interp_state_ret. cbn.
+    setoid_rewrite interp_fail_ret.
     reflexivity.
   Qed.
 
   (** [interp_asm] commutes with [bind]. *)
-  Lemma interp_asm_bind: forall {R S} (t: itree E R) (k: R -> itree _ S) (regs : registers) (mem: memory),
-      @eutt C2 _ _ eq (interp_asm (ITree.bind t k) mem regs)
-            (ITree.bind (interp_asm t mem regs) (fun '(mem', (regs', x)) => interp_asm (k x) mem' regs')).
+  Lemma interp_asm_bind: forall {R S} (t: itree E R) (k: R -> itree E S) (regs : registers) (mem: memory),
+      interp_asm (ITree.bind t k) mem regs ≈
+          ('(mem', (regs', x)) <- interp_asm t mem regs ;; interp_asm (k x) mem' regs').
 
   Proof.
     intros.
@@ -409,12 +412,13 @@ Section InterpAsmProperties.
     repeat rewrite interp_bind.
     repeat rewrite interp_state_bind.
     repeat rewrite interp_bind.
-    repeat rewrite interp_state_bind.
+    repeat rewrite interp_state_bind. cbn.
+    setoid_rewrite interp_fail_bind.
     eapply eutt_clo_bind.
     { reflexivity. }
     intros.
-    rewrite H.
-    destruct u2 as [g' [l' x]].
+    destruct u1 as [(? & ?)|], u2 as [(? & ?)|]; inv H;  [ | reflexivity].
+    destruct p0.
     reflexivity.
   Qed.
 

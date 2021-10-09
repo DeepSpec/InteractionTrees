@@ -80,8 +80,14 @@ Instance Monad_stateT {m s} {Fm : Monad m} : Monad (stateT s m)
       k (snd sa) (fst sa)
     |}.
 
+Definition optionT (m : Type -> Type) (a : Type) : Type :=
+  m (option a).
+
 Instance MonadT_stateT S (m : Type -> Type) `{Monad m}: @MonadT (stateT S m) m :=
   {| lift := fun _ c => (fun s => bind (m := m) c (fun t => ret (m := m) (s, t))) |}.
+
+Instance MonadT_optionT (m : Type -> Type) `{Monad m}: @MonadT (optionT m) m :=
+  {| lift := fun _ c => bind (m := m) c (fun t => ret (m := m) (Some t)) |}.
 
 End Monads.
 

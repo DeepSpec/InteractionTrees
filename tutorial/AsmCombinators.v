@@ -54,6 +54,7 @@ Definition fmap_branch {A B : Type} (f: A -> B): branch A -> branch B :=
     | Bjmp a => Bjmp (f a)
     | Bbrz c a a' => Bbrz c (f a) (f a')
     | Bhalt => Bhalt
+    | Babort => Babort
     end.
 
 (** A utility function to apply a renaming function [f] to the exit label of a [block]. *)
@@ -119,6 +120,9 @@ Definition pure_asm {A B: nat} (f : sub Fun fin A B) : asm A B :=
 
 Definition id_asm {A} : asm A A := pure_asm id.
 
+Definition abort_asm {A B: nat} : asm A B :=
+  raw_asm (fun a => bbb (Babort)).
+
 (** The [app_asm] combinator joins two [asm] programs,
     preserving their internal links.
     Since the three ambient domains of labels are extended,
@@ -176,10 +180,11 @@ Local Open Scope monad.
 (* end hide *)
 Section Correctness.
 
-  Context {E C1 C2 C3 : Type -> Type}.
+  Context {E C1 C2 C3 C4: Type -> Type}.
   Context {HasRegs : Reg +? C1 -< E}.
   Context {HasMemory : Memory +? C2 -< E}.
   Context {HasExit : Exit +? C3 -< E}.
+  Context {HasAbort : Abort +? C4 -< E}.
 
   (** *** Internal structures *)
 
@@ -204,6 +209,8 @@ Section Correctness.
         flatten_goal; rewrite map_ret; reflexivity.
       + rewrite (itree_eta (ITree.map _ _)).
         cbn. apply eqit_Vis. intros [].
+      + rewrite (itree_eta (ITree.map _ _)).
+        cbn. setoid_rewrite bind_trigger. apply eqit_Vis. intros [].
   Qed.
 
   (** Denotes a list of instruction by binding the resulting trees. *)

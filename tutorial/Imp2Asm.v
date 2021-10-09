@@ -182,6 +182,7 @@ Fixpoint compile (s : stmt) {struct s} : asm 1 1 :=
   | Seq l r    => seq_asm (compile l) (compile r)
   | If e l r   => if_asm (compile_expr 0 e) (compile l) (compile r)
   | While e b  => while_asm (compile_expr 0 e) (compile b)
+  | Abort => abort_asm
   end.
 
 (** We now consider its proof of correctness in [Imp2AsmCorrectness.v]. *)
