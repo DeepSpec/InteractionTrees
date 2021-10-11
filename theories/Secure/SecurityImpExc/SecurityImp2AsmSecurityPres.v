@@ -45,6 +45,9 @@ Context (l : label).
 Definition labelled_sim : map -> (registers * memory) -> Prop :=
   fun g_imp g_asm => labelled_equiv Γ l g_imp (snd g_asm).
 
+Definition asm_eq : registers * memory -> registers * memory -> Prop :=
+  fun '(regs1, mem1) '(regs2, mem2) => labelled_equiv Γ l mem1 mem2.
+
 Lemma state_rel_aux:
   forall (p1 : map * unit) (p2 : registers * memory * fin 1),
     rcompose (product_rel (labelled_equiv Γ l) eq) (state_invariant TT) p1 p2 ->
@@ -56,6 +59,23 @@ Proof.
   assert (labelled_equiv Γ l σ' mem).
   { red in Hst. do 2 red. intros. auto. }
   etransitivity; eauto.
+Qed.
+
+Lemma state_rel_aux':
+  forall x0 x1 : registers * memory * fin 1,
+    flip
+      (rcompose
+         (flip
+            (rcompose (product_rel (SecurityImpTypes.labelled_equiv Γ l) (@eq unit) )
+                      (state_invariant TT))) (state_invariant TT)) x0 x1 ->
+    product_rel asm_eq eq x0 x1.
+Proof.
+  intros [ [regs1  mem1] ? ] [ [reg2 mem2] ? ].
+  intros H. inv H. inv REL1. split; cbn.
+  2 :  setoid_rewrite unique_f0; auto.
+   inv REL0. inv REL3. inv REL2. destruct r0. destruct r2. cbn in *.
+   subst. transitivity m0.
+   cbv; intros; auto. transitivity m; auto. cbv; intros; auto.
 Qed.
 
 Section ProgressSensitive.
@@ -82,6 +102,37 @@ Proof.
   eapply SecureEqEuttHalt.eqit_secure_RR_imp; try apply Heutt.
   apply state_rel_aux; auto.
 Qed.
+
+Lemma compile_preserves_ps_ni : forall (c : stmt),
+    label_state_sec_eutt Γ l eq  (interp_imp (denote_stmt c)) (interp_imp (denote_stmt c)) ->
+    forall σ1 σ2, asm_eq σ1 σ2 -> 
+             eqit_secure sense_preorder priv_exc_io (product_rel asm_eq eq) true true l
+             (interp_asm (denote_asm (compile c) f0) σ1) ((interp_asm (denote_asm (compile c) f0)) σ2).
+Proof.
+  intros c Hsecc [regs1 mem1] [regs2 mem2]. intros Hasmeq.
+  assert (labelled_equiv Γ l mem1 mem1). reflexivity.
+  assert (labelled_equiv Γ l mem2 mem2). reflexivity.
+  specialize (compile_correct c) as Heutt. do 2 red in Heutt.
+  assert (Renv mem1 mem1). reflexivity.
+  assert (Renv mem2 mem2). reflexivity.
+  do 2 red in Hsecc.
+  assert (Hmem12 : labelled_equiv Γ l mem1 mem2). auto.
+  specialize (Hsecc mem1 mem2 Hmem12) as Hsecc'.
+  specialize (Heutt mem1 mem1 regs1 H1) as Heutt1.
+  specialize (Heutt mem2 mem2 regs2 H2) as Heutt2.
+  specialize (eutt_secure_eqit_secure) as Htrans.
+  eapply Htrans in Heutt1 as Heutt1'; eauto.
+  eapply Htrans in Heutt2 as Heutt2'; eauto. 
+  eapply Htrans in Hsecc'; eauto.
+  apply eqit_secure_sym in Hsecc'.
+  eapply Htrans in Hsecc'; eauto.
+  apply eqit_secure_sym in Hsecc'.
+  eapply SecureEqEuttHalt.eqit_secure_RR_imp; try apply Hsecc'; eauto.
+  intros.
+  apply state_rel_aux'; auto.
+Qed.
+
+  
 End ProgressSensitive.
 
 Section ProgressInsensitive.
@@ -103,11 +154,39 @@ Proof.
   assert (Renv g_asm g_asm). reflexivity.
   specialize (Hsecs g_imp g_asm Hs).
   specialize (Heutt g_asm g_asm regs H0) .
-  Locate proper_eutt_pi_secure_eutt.
   specialize (pi_eqit_secure_mixed_trans) as Htrans.
   eapply Htrans in Heutt; eauto.
   eapply pi_eqit_secure_RR_imp; try apply Heutt.
   apply state_rel_aux; auto.
+Qed.
+
+Lemma compile_preserves_pi_ni : forall (c : stmt),
+    label_state_pi_sec_eutt Γ l eq  (interp_imp (denote_stmt c)) (interp_imp (denote_stmt c)) ->
+    forall σ1 σ2, asm_eq σ1 σ2 -> 
+             pi_eqit_secure sense_preorder priv_exc_io (product_rel asm_eq eq) true true l
+             (interp_asm (denote_asm (compile c) f0) σ1) ((interp_asm (denote_asm (compile c) f0)) σ2).
+Proof.
+  intros c Hsecc [regs1 mem1] [regs2 mem2]. intros Hasmeq.
+  assert (labelled_equiv Γ l mem1 mem1). reflexivity.
+  assert (labelled_equiv Γ l mem2 mem2). reflexivity.
+  specialize (compile_correct c) as Heutt. do 2 red in Heutt.
+  assert (Renv mem1 mem1). reflexivity.
+  assert (Renv mem2 mem2). reflexivity.
+  do 2 red in Hsecc.
+  assert (Hmem12 : labelled_equiv Γ l mem1 mem2). auto.
+  specialize (Hsecc mem1 mem2 Hmem12) as Hsecc'.
+  specialize (Heutt mem1 mem1 regs1 H1) as Heutt1.
+  specialize (Heutt mem2 mem2 regs2 H2) as Heutt2.
+  specialize (pi_eqit_secure_mixed_trans) as Htrans.
+  eapply Htrans in Heutt1 as Heutt1'; eauto.
+  eapply Htrans in Heutt2 as Heutt2'; eauto. 
+  eapply Htrans in Hsecc'; eauto.
+  apply pi_eqit_secure_sym in Hsecc'.
+  eapply Htrans in Hsecc'; eauto.
+  apply pi_eqit_secure_sym in Hsecc'.
+  eapply pi_eqit_secure_RR_imp; try apply Hsecc'; eauto.
+  intros.
+  apply state_rel_aux'; auto.
 Qed.
 
 
@@ -115,7 +194,7 @@ End ProgressInsensitive.
 
   
 End SecurityPreservation.
-(*
+(* 
 stmt :=
      | throw
      | try c1 catch c2
