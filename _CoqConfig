@@ -117,6 +117,8 @@ theories/Secure/SecurityImpExc/SecurityImp2AsmCorrectness.v
 theories/Secure/SecurityImpExc/ITreeForall.v
 theories/Secure/SecurityImpExc/RaiseException.v
 theories/Secure/SecurityImpExc/SecurityImpTypes.v
+theories/Secure/SecurityImpExc/SecurityImp2AsmSecurityPres.v
+
 
 theories/Secure/SecureEqProgInsens.v
 theories/Secure/SecureEqProgInsensEv.v

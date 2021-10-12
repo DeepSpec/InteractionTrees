@@ -273,16 +273,16 @@ Qed.
 
 Hint Resolve mono_diverges_with : paco.
 
-Instance proper_diverges_with {E A} {P : forall A, E A -> Prop} : Proper (eq_itree eq ==> iff ) (@diverges_with E P A).
+Global Instance proper_diverges_with {E A} {P : forall A, E A -> Prop} : Proper (eq_itree eq ==> iff ) (@diverges_with E P A).
 Proof.
   do 2 red. intros t1 t2 Heq. apply Eq.EqAxiom.bisimulation_is_eq in Heq. subst; tauto.
 Qed.
 
-Instance proper_diverges_with_r  {E A r} {P : forall A, E A -> Prop} : Proper (eq_itree eq ==> iff ) (paco1 (@diverges_with_ E P A) r ).
+Global Instance proper_diverges_with_r  {E A r} {P : forall A, E A -> Prop} : Proper (eq_itree eq ==> iff ) (paco1 (@diverges_with_ E P A) r ).
   do 2 red. intros t1 t2 Heq. apply Eq.EqAxiom.bisimulation_is_eq in Heq. subst; tauto.
 Qed.
 
-Instance proper_terminate {R s} {P : forall A, E2 A -> Prop} : Proper (eq_itree (@eq (S *R )) ==> iff) (terminates s P).
+Global Instance proper_terminate {R s} {P : forall A, E2 A -> Prop} : Proper (eq_itree (@eq (S *R )) ==> iff) (terminates s P).
 Proof.
   red. intros t1 t2 Heq. apply Eq.EqAxiom.bisimulation_is_eq in Heq. subst; tauto.
 Qed.

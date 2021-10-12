@@ -158,11 +158,6 @@ Definition handleState {E} (A : Type) (e : stateE A) : stateT map (itree E ) A :
   | Get x => fun s => Ret (s, get x s)
   | Put x v => fun s => Ret (update x v s, tt) end.
 
-(*
-Definition is_get x e : Prop. Admitted.
-Definition is_put x e : Prop. Admitted.s
-Locate "+'".
-*)
 Definition priv_imp (p : privacy_map) (A : Type) (e : (stateE +' IOE) A ) : sensitivity :=
   match e with
   | inl1 (Get x) => p x

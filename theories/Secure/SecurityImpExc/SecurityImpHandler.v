@@ -447,57 +447,6 @@ Variant handler_respects_priv (A : Type) (e : E1 A) : Prop :=
 
 Context (Hhandler : forall A (e : E1 A), handler_respects_priv A e).
 
-
-(* I believe that this is a sound reasoning principle,
-   however it looks like the proof could get a little hairy,
-   if I could use gpaco and use the bind and transitivity closures, many of these cases become easy
-   however, this pushes us up against *)
-Lemma interp_eqit_secure_state : forall (R1 R2 : Type) (RR : R1 -> R2 -> Prop) (t1 : itree E1 R1) (t2 : itree E1 R2),
-    eqit_secure Label priv1 RR true true l t1 t2 ->
-    state_eqit_secure true true RR (interp_state handler t1) (interp_state handler t2).
-Proof.
-  intros R1 R2 RR. pcofix CIH. intros t1 t2 Ht s1 s2 Hs. punfold Ht.
-  red in Ht. remember (observe t1) as ot1. remember (observe t2) as ot2.
-  hinduction Ht before r; intros; use_simpobs.
-  - rewrite Heqot1. rewrite Heqot2. repeat rewrite interp_state_ret. pfold. constructor. auto.
-  - rewrite Heqot1. rewrite Heqot2. repeat rewrite interp_state_tau. pfold. constructor. 
-    pclearbot. right. apply CIH; auto.
-  - rewrite Heqot1. rewrite interp_state_tau. pfold. constructor; auto. pstep_reverse.
-  - rewrite Heqot2. rewrite interp_state_tau. pfold. constructor; auto. pstep_reverse.
-  - rewrite Heqot1. rewrite Heqot2. repeat rewrite interp_state_vis.
-    specialize (Hhandler A e). pclearbot. repeat rewrite bind_tau.
-    (* could use the bind closure here, but maybe we can do manually for now*)
-    repeat setoid_rewrite <- interp_state_tau. inv Hhandler; try contradiction.
-    specialize (RESCHECK s1 s2 Hs).
-    (* should hold but will take weird lemma, essentially an application of the bind closure
-       frustratingly this proof could end up being as complicated as the eqit_secure_bind proof *)
-    admit.
-  - pclearbot. rewrite Heqot1. rewrite Heqot2. rewrite interp_state_vis.
-    specialize (Hhandler A e). inv Hhandler; try contradiction.
-    admit.
-  - pclearbot. rewrite Heqot1. rewrite Heqot2. rewrite interp_state_vis.
-    specialize (Hhandler A e). inv Hhandler; try contradiction.
-    admit.
-  - pclearbot. rewrite Heqot1. rewrite Heqot2. repeat rewrite interp_state_vis.
-    specialize (Hhandler _ e1) as He1. specialize (Hhandler _ e2) as He2.
-    inv He1; inv He2; try contradiction. admit.
-  - rewrite Heqot1. rewrite interp_state_vis. specialize (Hhandler _ e).
-    inv Hhandler; try contradiction. (* seems to be a place I need that RS is a PER, can add that assumption *)
-    admit.
-  - rewrite Heqot2. rewrite interp_state_vis. specialize (Hhandler _ e).
-    inv Hhandler; try contradiction. admit.
-  - pclearbot. rewrite Heqot1. rewrite interp_state_vis. rewrite Heqot2.
-    specialize (Hhandler _ e). inv Hhandler; try contradiction. red in RESCHECK.
-    admit.
-  - pclearbot. rewrite Heqot1. rewrite Heqot2. rewrite interp_state_vis.
-    specialize (Hhandler _ e). inv Hhandler; try contradiction. red in RESCHECK.
-    (* this is the different private halt stuff *) admit.
-  - pclearbot. rewrite Heqot1. rewrite Heqot2. repeat rewrite interp_state_vis.
-    (* might basically degenrate to cases from teh bind proof, same with the other empties *)
-    admit.
-  - pclearbot. rewrite Heqot1. rewrite Heqot2. repeat rewrite interp_state_vis.
-Abort.
-
 End GeneralStateHandler.
 
 
