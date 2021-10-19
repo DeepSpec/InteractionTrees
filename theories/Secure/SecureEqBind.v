@@ -120,9 +120,9 @@ Proof.
     rewrite <- Heqot1. rewrite <- Heqot2. cbn. unpriv_co.
     right. pclearbot. eapply CIH; apply H.
   - pstep. red. unfold ITree.bind at 1, observe at 1. cbn.
-    rewrite <- Heqot1. cbn. unpriv_ind. pstep_reverse. eapply H0; eauto.
+    rewrite <- Heqot1. cbn. unpriv_ind. pstep_reverse; try eapply H0; eauto.
   - pstep. red. unfold ITree.bind at 2, observe at 2. cbn.
-    rewrite <- Heqot2. cbn. unpriv_ind. pstep_reverse. eapply H0; eauto.
+    rewrite <- Heqot2. cbn. unpriv_ind. pstep_reverse; try eapply H0; eauto.
   - pclearbot.
     eapply paco2_mon with (r := bot2); intros; try contradiction.
     eapply eqit_bind_shalt_aux1; eauto. pfold. red. rewrite <- Heqot2.

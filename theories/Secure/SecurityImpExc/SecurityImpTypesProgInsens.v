@@ -24,8 +24,8 @@ From ITree Require Import
      Events.Exception
      Events.ExceptionFacts
      Core.Divergence
-     Dijkstra.TracesIT
-     Dijkstra.ITrace
+     ITrace.ITraceDefinition
+     ITrace.ITraceFacts
      Secure.SecureEqHalt
      Secure.SecurityImpExc.SecurityImp
      Secure.SecurityImpExc.SecurityImpHandler

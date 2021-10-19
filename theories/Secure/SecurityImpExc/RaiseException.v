@@ -23,8 +23,8 @@ From ITree Require Import
      Events.Exception
      Events.ExceptionFacts
      Core.Divergence
-     Dijkstra.TracesIT
-     Dijkstra.ITrace
+     ITrace.ITraceDefinition
+     ITrace.ITraceFacts
      Secure.SecureEqHalt
      Secure.SecureEqEuttHalt
      Secure.SecureEqWcompat
@@ -235,10 +235,10 @@ Proof.
   generalize dependent t. induction Hconv; intros.
   - rewrite H in Ht'. setoid_rewrite bind_ret_l in Ht'. setoid_rewrite bind_trigger in Ht'.
     rewrite Ht' in Hcoind.  punfold Hcoind. clear Ht' H. red in Hcoind. inv Hcoind.
-    ITrace.inj_existT; subst. pclearbot. inv H1; auto.
+    ITraceFacts.inj_existT; subst. pclearbot. inv H1; auto.
   - rewrite H in Ht'. setoid_rewrite bind_vis in Ht'. 
     rewrite Ht' in Hcoind.
-    pinversion Hcoind; ITrace.inj_existT; subst.
+    pinversion Hcoind; ITraceFacts.inj_existT; subst.
     eapply IHHconv; try apply H4. Unshelve. all: auto. reflexivity.
 Qed.
 
@@ -310,62 +310,62 @@ Proof.
     rewrite Heqot2 in Ht2. pinversion Ht2; subst; auto.
   - pclearbot. rewrite Heqot1 in Ht1. rewrite Heqot2 in Ht2.
     rewrite Heqot1. rewrite Heqot2.
-    pinversion Ht1; ITrace.inj_existT; subst.
-    pinversion Ht2; ITrace.inj_existT; subst.
-    inv H3; ITrace.inj_existT; subst.
+    pinversion Ht1; ITraceFacts.inj_existT; subst.
+    pinversion Ht2; ITraceFacts.inj_existT; subst.
+    inv H3; ITraceFacts.inj_existT; subst.
     + repeat rewrite try_catch_ev. pfold.
       constructor; auto. left. pfold. constructor. right. eapply CIH; eauto.
       apply H4. apply H6. apply H.
     + repeat rewrite try_catch_exc. eapply paco2_mon; eauto. intros; contradiction.
   - rewrite Heqot1, Heqot2. rewrite try_catch_tau. pclearbot.
     rewrite Heqot1 in Ht1. rewrite Heqot2 in Ht2.
-    pinversion Ht1; ITrace.inj_existT; subst.
-    pinversion Ht2; ITrace.inj_existT; subst.
-    inv H2; ITrace.inj_existT; subst.
+    pinversion Ht1; ITraceFacts.inj_existT; subst.
+    pinversion Ht2; ITraceFacts.inj_existT; subst.
+    inv H2; ITraceFacts.inj_existT; subst.
     + rewrite try_catch_ev. setoid_rewrite <- try_catch_tau at 1. pfold. red.  cbn. unpriv_co.
       right. eapply CIH; eauto.
       pfold. constructor. left. auto. pfold. constructor; auto. pstep_reverse.
     + inv SIZECHECK. contradiction.
  - rewrite Heqot1, Heqot2. rewrite try_catch_tau. pclearbot.
     rewrite Heqot1 in Ht1. rewrite Heqot2 in Ht2.
-    pinversion Ht1; ITrace.inj_existT; subst.
-    pinversion Ht2; ITrace.inj_existT; subst.
-    inv H3; ITrace.inj_existT; subst.
+    pinversion Ht1; ITraceFacts.inj_existT; subst.
+    pinversion Ht2; ITraceFacts.inj_existT; subst.
+    inv H3; ITraceFacts.inj_existT; subst.
     + rewrite try_catch_ev. setoid_rewrite <- try_catch_tau at 2. pfold.
       red. cbn. unpriv_co. right. eapply CIH; eauto. pfold. constructor.
       left. auto. pfold. constructor; auto. pstep_reverse.
     + inv SIZECHECK. contradiction.
  - pclearbot. rewrite Heqot1, Heqot2. rewrite Heqot1 in Ht1. rewrite Heqot2 in Ht2.
-   pinversion Ht1; ITrace.inj_existT; subst.
-   pinversion Ht2; ITrace.inj_existT; subst.
-   inv H2; ITrace.inj_existT; subst; inv SIZECHECK1; try contradiction.
-   inv H3; ITrace.inj_existT; subst; inv SIZECHECK2; try contradiction.
+   pinversion Ht1; ITraceFacts.inj_existT; subst.
+   pinversion Ht2; ITraceFacts.inj_existT; subst.
+   inv H2; ITraceFacts.inj_existT; subst; inv SIZECHECK1; try contradiction.
+   inv H3; ITraceFacts.inj_existT; subst; inv SIZECHECK2; try contradiction.
    repeat rewrite try_catch_ev. pfold. red. cbn. unpriv_co.
    constructor; auto. constructor; auto. left.
    pfold. constructor. right. eapply CIH; eauto.
    apply H4. apply H6. apply H.
- - rewrite Heqot1. rewrite Heqot1 in Ht1. pinversion Ht1; ITrace.inj_existT; subst.
-   inv H3; ITrace.inj_existT; subst; inv SIZECHECK; try contradiction.
+ - rewrite Heqot1. rewrite Heqot1 in Ht1. pinversion Ht1; ITraceFacts.inj_existT; subst.
+   inv H3; ITraceFacts.inj_existT; subst; inv SIZECHECK; try contradiction.
    rewrite try_catch_ev. pfold. red. cbn. unpriv_ind. constructor; apply tt.
    constructor; auto. pstep_reverse. eapply H0; eauto. apply H5.
- - rewrite Heqot2. rewrite Heqot2 in Ht2. pinversion Ht2; ITrace.inj_existT; subst.
-   inv H3; ITrace.inj_existT; subst; inv SIZECHECK; try contradiction.
+ - rewrite Heqot2. rewrite Heqot2 in Ht2. pinversion Ht2; ITraceFacts.inj_existT; subst.
+   inv H3; ITraceFacts.inj_existT; subst; inv SIZECHECK; try contradiction.
    rewrite try_catch_ev. pfold. red. cbn. unpriv_ind. constructor; apply tt.
    constructor; auto. pstep_reverse. eapply H0; eauto. apply H5.
- - exfalso. rewrite Heqot1 in Ht1. pinversion Ht1; ITrace.inj_existT; subst.
-   inv H2; ITrace.inj_existT; subst.
+ - exfalso. rewrite Heqot1 in Ht1. pinversion Ht1; ITraceFacts.inj_existT; subst.
+   inv H2; ITraceFacts.inj_existT; subst.
    + inv SIZECHECK. apply H0; apply tt.
    + cbn in SECCHECK. destruct l'; contradiction.
- - exfalso. rewrite Heqot2 in Ht2. pinversion Ht2; ITrace.inj_existT; subst.
-   inv H2; ITrace.inj_existT; subst.
+ - exfalso. rewrite Heqot2 in Ht2. pinversion Ht2; ITraceFacts.inj_existT; subst.
+   inv H2; ITraceFacts.inj_existT; subst.
    + inv SIZECHECK. apply H0; apply tt.
    + cbn in SECCHECK. destruct l'; contradiction.
- - exfalso. rewrite Heqot1 in Ht1. pinversion Ht1; ITrace.inj_existT; subst.
-   inv H2; ITrace.inj_existT; subst.
+ - exfalso. rewrite Heqot1 in Ht1. pinversion Ht1; ITraceFacts.inj_existT; subst.
+   inv H2; ITraceFacts.inj_existT; subst.
    + inv SIZECHECK. apply H0; apply tt.
    + cbn in SECCHECK1. destruct l'; contradiction.
- - exfalso. rewrite Heqot2 in Ht2. pinversion Ht2; ITrace.inj_existT; subst.
-   inv H2; ITrace.inj_existT; subst.
+ - exfalso. rewrite Heqot2 in Ht2. pinversion Ht2; ITraceFacts.inj_existT; subst.
+   inv H2; ITraceFacts.inj_existT; subst.
    + inv SIZECHECK. apply H0; apply tt.
    + cbn in SECCHECK2. destruct l'; contradiction.
 Qed.

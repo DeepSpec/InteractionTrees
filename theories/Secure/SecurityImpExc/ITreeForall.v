@@ -17,7 +17,7 @@ From ExtLib Require Import
 From ITree Require Import
      ITree
      ITreeFacts
-     Dijkstra.ITrace (* where ITrace.inj_existT is*)
+     ITrace.ITraceFacts
 .
 
 From Paco Require Import paco.
@@ -108,7 +108,7 @@ Proof.
     + rewrite <- H in Ht2. inv Ht2. constructor; auto.
     + constructor. pclearbot. rewrite <- H in Ht2. inv Ht2. gclo.
       econstructor; eauto. gfinal. eauto.
-    + pclearbot. rewrite <- H in Ht2. inv Ht2. ITrace.inj_existT; subst.
+    + pclearbot. rewrite <- H in Ht2. inv Ht2. ITraceFacts.inj_existT; subst.
       constructor; auto. intros. gclo. econstructor; eauto. gfinal. eauto.
 Qed.
 
