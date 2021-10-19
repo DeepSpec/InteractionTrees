@@ -79,7 +79,7 @@ Proof.
   intros. punfold H0. red in H0. cbn in *. pfold. red.
   remember (VisF e k) as x. genobs_clear t ot.
   hinduction H0 before l; intros; try inv Heqx; 
-  ITrace.inj_existT; subst; try contradiction; try contra_size; auto.
+  ITraceFacts.inj_existT; subst; try contradiction; try contra_size; auto.
   - constructor; auto. eapply IHsecure_eqitF; eauto.
   - pclearbot. constructor; auto. pstep_reverse.
   - unpriv_ind. pstep_reverse. pclearbot. apply H.
@@ -106,16 +106,16 @@ Lemma eses_aux1: forall (E : Type -> Type) (R2 R1 : Type) (Label : Preorder)
 Proof.
   intros E R2 R1 Label priv l RR r m1 m2 REL CIH X e k Hsec SECCHECK.
   remember (VisF e k) as x. punfold REL. red in REL. rewrite Heqx.
-  hinduction Hsec before r; intros; try inv Heqx; ITrace.inj_existT; subst; try contradiction; auto. 
+  hinduction Hsec before r; intros; try inv Heqx; ITraceFacts.inj_existT; subst; try contradiction; auto. 
   - eapply IHHsec; eauto.
     pstep_reverse. setoid_rewrite <- tau_eutt at 1. pfold. auto.
   - pclearbot. remember (VisF e0 k1) as y.
-    hinduction REL before r; intros; try inv Heqy; ITrace.inj_existT; subst; auto.
+    hinduction REL before r; intros; try inv Heqy; ITraceFacts.inj_existT; subst; auto.
     + constructor; auto. right. eapply CIH; eauto; try apply H.
       pclearbot. apply REL.
     + constructor; eauto.
   - rewrite H2. remember (VisF e k1) as y.
-    hinduction REL before r; intros; try inv Heqy; ITrace.inj_existT; subst; auto.
+    hinduction REL before r; intros; try inv Heqy; ITraceFacts.inj_existT; subst; auto.
     + pclearbot. rewrite <- H2. unpriv_ind. rewrite H2. eapply H0; eauto.
       Unshelve. all: auto. pstep_reverse.
     + constructor; auto. eapply IHREL; eauto.
@@ -141,7 +141,7 @@ Proof.
     constructor; auto. eapply IHHeutt; eauto.
   - eapply IHHsec; eauto. pstep_reverse. rewrite <- tau_eutt at 1. pfold. auto.
   - remember (VisF e k1) as y. 
-    hinduction Heutt before r; intros; inv Heqy; ITrace.inj_existT; subst; auto.
+    hinduction Heutt before r; intros; inv Heqy; ITraceFacts.inj_existT; subst; auto.
     +  unpriv_ind. rewrite H2. eapply H0; eauto. 
        pclearbot. pstep_reverse.
     + constructor; auto. eapply IHHeutt; eauto.
@@ -193,7 +193,7 @@ Proof.
     destruct (classic (leq (priv _ e) l ) ).
     + pstep. red. punfold Hsec. red in Hsec.
       cbn in *. remember (VisF e k1) as x. 
-      hinduction Hsec before r; intros; inv Heqx; ITrace.inj_existT; subst; try contradiction; auto.
+      hinduction Hsec before r; intros; inv Heqx; ITraceFacts.inj_existT; subst; try contradiction; auto.
       * constructor; auto. eapply IHHsec; eauto.
       * constructor; auto; intros. right. eapply CIH; try apply REL. pclearbot. apply H.
       * rewrite itree_eta' at 1. unpriv_ind. eapply H0; eauto.
@@ -203,9 +203,9 @@ Proof.
         -- inv Hsec; contra_size.
         -- unpriv_halt. right. apply CIH with (t1 := Vis e k1).
            ++ pfold. constructor. left. auto.
-           ++ inv Hsec; ITrace.inj_existT; subst; try contradiction;  try contra_size. pfold. auto.
+           ++ inv Hsec; ITraceFacts.inj_existT; subst; try contradiction;  try contra_size. pfold. auto.
               pclearbot. auto.
-        -- inv Hsec; ITrace.inj_existT; subst; try contradiction; try contra_size.
+        -- inv Hsec; ITraceFacts.inj_existT; subst; try contradiction; try contra_size.
            ++ unpriv_halt. right. apply CIH with (t1 := Vis e k1).
               pfold. constructor. auto. rewrite H1 in H3.
               pfold. apply H3.
@@ -284,20 +284,20 @@ Proof.
   hinduction Hsec before b2; intros; try discriminate.
   - inv Heqx. inv CHECK.
     remember (VisF e k) as y. pfold. red. clear IHHsec.
-    hinduction Hsec before b2; intros; inv Heqy; ITrace.inj_existT;  subst; 
+    hinduction Hsec before b2; intros; inv Heqy; ITraceFacts.inj_existT;  subst; 
     try contradiction; try contra_size; eauto.
     + constructor; auto. pclearbot. pstep_reverse.
     + unpriv_ind. pclearbot. pstep_reverse.
     + pclearbot. specialize (H a). punfold H.
-  - inv Heqx. inv Heqy. ITrace.inj_existT; subst. pclearbot. apply H.
-  - inv Heqx. inv Heqy. ITrace.inj_existT; subst. rewrite H2 in H.
+  - inv Heqx. inv Heqy. ITraceFacts.inj_existT; subst. pclearbot. apply H.
+  - inv Heqx. inv Heqy. ITraceFacts.inj_existT; subst. rewrite H2 in H.
     clear H0. clear H2 t1. remember (TauF t3) as x.
     pfold. red. specialize (H a).
     hinduction H before b2; intros; inv Heqx; try contra_size; eauto.
     + pclearbot. constructor; auto. pstep_reverse.
     + pclearbot. unpriv_ind. pstep_reverse.
     + pclearbot. punfold H.
-  -  pclearbot. inv Heqx. inv Heqy. ITrace.inj_existT; subst. contra_size.
+  -  pclearbot. inv Heqx. inv Heqy. ITraceFacts.inj_existT; subst. contra_size.
 Qed.
 
 Lemma eqit_secure_TauRVisL:
@@ -313,21 +313,21 @@ Proof.
   remember (TauF t3) as x. remember (VisF e k) as y.
   hinduction Hsec before b2; intros; try discriminate.
   - inv Heqx. inv CHECK. remember (VisF e k) as y. pfold. red. clear IHHsec.
-    hinduction Hsec before b1; intros; inv Heqy; ITrace.inj_existT; subst;
+    hinduction Hsec before b1; intros; inv Heqy; ITraceFacts.inj_existT; subst;
     try contradiction; eauto.
     + constructor; auto. pclearbot. pstep_reverse.
     + unpriv_ind. pclearbot. pstep_reverse.
     + contra_size.
     + contra_size.
     + pclearbot. specialize (H a). punfold H.
-  - inv Heqx. inv Heqy. ITrace.inj_existT; subst. pclearbot. apply H.
-  - inv Heqx. inv Heqy. ITrace.inj_existT; subst. pclearbot. rewrite H2 in H. inv CHECK.
+  - inv Heqx. inv Heqy. ITraceFacts.inj_existT; subst. pclearbot. apply H.
+  - inv Heqx. inv Heqy. ITraceFacts.inj_existT; subst. pclearbot. rewrite H2 in H. inv CHECK.
     specialize (H a). pfold. red. remember (TauF t3) as y.
     hinduction H before b2; intros; inv Heqy; try contra_size; eauto.
     + pclearbot. constructor; auto. pstep_reverse.
     + pclearbot. unpriv_ind. pstep_reverse.
     + pclearbot. punfold H.
-  - inv Heqx. inv Heqy. ITrace.inj_existT; subst. contra_size.
+  - inv Heqx. inv Heqy. ITraceFacts.inj_existT; subst. contra_size.
 Qed.
     
 Lemma eqit_secure_VisLR:
@@ -346,27 +346,27 @@ Proof.
   punfold H1. red in H1. cbn in *. remember (VisF e k2) as x.
   remember (VisF e0 k) as y.
   hinduction H1 before l; intros; try discriminate.
-  - inv Heqx. inv Heqy. ITrace.inj_existT; subst. contradiction.
-  - pclearbot. inv Heqx. inv Heqy. ITrace.inj_existT; subst. pstep_reverse.
-  - inv Heqx. ITrace.inj_existT; subst. inv CHECK. clear H0.
+  - inv Heqx. inv Heqy. ITraceFacts.inj_existT; subst. contradiction.
+  - pclearbot. inv Heqx. inv Heqy. ITraceFacts.inj_existT; subst. pstep_reverse.
+  - inv Heqx. ITraceFacts.inj_existT; subst. inv CHECK. clear H0.
     specialize (H a).
     rewrite Heqy in H. clear Heqy. remember (VisF e1 k) as y. 
-    hinduction H before l; intros; inv Heqy; ITrace.inj_existT; subst; try contradiction;
+    hinduction H before l; intros; inv Heqy; ITraceFacts.inj_existT; subst; try contradiction;
     try contra_size; eauto.
     + pclearbot. constructor; auto. pstep_reverse.
     + unpriv_ind. pclearbot. pstep_reverse.
     + pclearbot. specialize (H a0). punfold H.
 
-  - inv Heqy.  ITrace.inj_existT; subst. inv CHECK. clear H0.
+  - inv Heqy.  ITraceFacts.inj_existT; subst. inv CHECK. clear H0.
     rewrite Heqx in H. specialize (H a0).
     remember (VisF e0 k0) as y.
-    hinduction H before b1; intros; inv Heqy; ITrace.inj_existT; subst; try contradiction;
+    hinduction H before b1; intros; inv Heqy; ITraceFacts.inj_existT; subst; try contradiction;
     try contra_size; eauto.
     + pclearbot. constructor; auto. pstep_reverse.
     + pclearbot. unpriv_ind. pstep_reverse.
     + pclearbot. specialize (H a). punfold H.
-  - inv Heqx; inv Heqy; ITrace.inj_existT; subst. contra_size.
-  - inv Heqx; inv Heqy; ITrace.inj_existT; subst. contra_size.
+  - inv Heqx; inv Heqy; ITraceFacts.inj_existT; subst. contra_size.
+  - inv Heqx; inv Heqy; ITraceFacts.inj_existT; subst. contra_size.
 Qed.
 
 Lemma eqit_secure_private_VisLR:
@@ -419,7 +419,7 @@ Lemma eqit_secure_public_Vis :  forall (E : Type -> Type) (R1 R2 : Type) (Label 
     forall a, eqit_secure Label priv RR b1 b2 l (k1 a) (k2 a)).
 Proof.
   split; intros. 
-  - pinversion H0; ITrace.inj_existT; subst; try contradiction; apply H2.
+  - pinversion H0; ITraceFacts.inj_existT; subst; try contradiction; apply H2.
   - pfold. constructor; auto. left. apply H0.
 Qed.
 
@@ -453,7 +453,7 @@ Proof.
   - assert (Hne : nonempty A). { eauto. } (* add the condition that lets us assume this*) 
     inv Hne. eapply H0; eauto. Unshelve. all : auto.
     remember (VisF e k1) as y.
-    hinduction H1 before r; intros; inv Heqy; try inv CHECK; ITrace.inj_existT; subst; 
+    hinduction H1 before r; intros; inv Heqy; try inv CHECK; ITraceFacts.inj_existT; subst; 
     try contradiction; try contra_size; eauto.
     + pclearbot. constructor; auto. pstep_reverse.
     + pclearbot. unpriv_ind. pstep_reverse.
@@ -481,7 +481,7 @@ Proof.
   intros E R3 R1 Label priv l b2 R2 RR1 RR2 r X e0 k t4 He0 Ht23 CIH0 t Ht.
   punfold Ht. red in Ht. remember (VisF e0 k) as x.
   hinduction Ht23 before r; intros; inv Heqx; try inv CHECK;
-  ITrace.inj_existT; subst; try contradiction; eauto.
+  ITraceFacts.inj_existT; subst; try contradiction; eauto.
   - eapply IHHt23; eauto. clear IHHt23. remember (TauF t1) as y.
     hinduction Ht before r; intros; inv Heqy; try inv CHECK; eauto.
     + pclearbot. constructor; auto. pstep_reverse.
@@ -489,14 +489,14 @@ Proof.
     + pclearbot. punfold H.
   - pclearbot. remember (VisF e0 k1) as y.
     hinduction Ht before r; intros; inv Heqy; try inv CHECK;
-    ITrace.inj_existT; subst; try contradiction; eauto.
+    ITraceFacts.inj_existT; subst; try contradiction; eauto.
     + pclearbot. constructor; auto. right. eapply CIH0. apply H.
       apply H0.
     + rewrite itree_eta'. unpriv_ind. eapply H0; eauto.
   - assert (nonempty A); eauto. inv H1. eapply H0; eauto.
     Unshelve. all : auto. clear H0. rewrite H2 in H.
     remember (VisF e k1) as y.
-    hinduction Ht before r; intros; inv Heqy; try inv CHECK; ITrace.inj_existT; subst;
+    hinduction Ht before r; intros; inv Heqy; try inv CHECK; ITraceFacts.inj_existT; subst;
     try contradiction; try contra_size; eauto.
     + pclearbot. constructor; auto. pstep_reverse.
     + pclearbot. unpriv_ind. pstep_reverse.
@@ -519,9 +519,9 @@ Proof.
   pfold. red. punfold Ht1. red in Ht1. punfold Ht3. red in Ht3.
   cbn in *. 
   remember (VisF e k) as x.
-  hinduction Ht1 before r; intros; inv Heqx; ITrace.inj_existT; subst;
+  hinduction Ht1 before r; intros; inv Heqx; ITraceFacts.inj_existT; subst;
   try contradiction; try contra_size; eauto.
-  - pclearbot. inv Ht3; ITrace.inj_existT; subst; try contradiction; try contra_size.
+  - pclearbot. inv Ht3; ITraceFacts.inj_existT; subst; try contradiction; try contra_size.
     + constructor. right. apply CIH; auto. pfold. auto.
     + unpriv_co; auto. right. apply CIH; auto. pfold. rewrite H0 in H2. apply H2.
     + pclearbot. constructor. right. apply CIH; auto.
@@ -531,7 +531,7 @@ Proof.
       * unpriv_co. right. apply CIH; auto. apply H1.
     + pclearbot. unpriv_halt. right. apply CIH; auto. pfold.
       red. cbn. unpriv_halt. contra_size.
-  - pclearbot.  inv Ht3; ITrace.inj_existT; subst; try contradiction; try contra_size.
+  - pclearbot.  inv Ht3; ITraceFacts.inj_existT; subst; try contradiction; try contra_size.
     + unpriv_halt. right. apply CIH; auto.
       * pfold. red. cbn. unpriv_halt.
       * pfold. auto.
@@ -544,7 +544,7 @@ Proof.
       * pfold. red. cbn. unpriv_halt.
       * apply H1.
     + unpriv_halt. contra_size.
-  - pclearbot. inv Ht3; ITrace.inj_existT; subst; try contradiction; try contra_size;
+  - pclearbot. inv Ht3; ITraceFacts.inj_existT; subst; try contradiction; try contra_size;
     destruct (classic_empty A0).
     + unpriv_halt. right. apply CIH; auto.
       * pfold. red. cbn. unpriv_halt. contra_size.
@@ -584,30 +584,30 @@ Proof.
   red. cbn. punfold Ht2. punfold Ht23. red in Ht2. red in Ht23.
   cbn in *. 
   hinduction Ht23 before r; intros; eauto.
-  - inv Ht2. ITrace.inj_existT; subst. contra_size.
+  - inv Ht2. ITraceFacts.inj_existT; subst. contra_size.
   - unpriv_halt. right. pclearbot. eapply CIH; eauto.
-    inv Ht2; ITrace.inj_existT; subst; try contra_size; try contradiction; pclearbot;  eauto.
+    inv Ht2; ITraceFacts.inj_existT; subst; try contra_size; try contradiction; pclearbot;  eauto.
     pfold. auto.
   - eapply IHHt23; eauto.
-    inv Ht2; ITrace.inj_existT; subst; try contra_size; try contradiction; pclearbot; eauto.
+    inv Ht2; ITraceFacts.inj_existT; subst; try contra_size; try contradiction; pclearbot; eauto.
     punfold H0.
   - pclearbot.
-    inv Ht2; ITrace.inj_existT; subst; try contra_size; try contradiction; pclearbot; eauto.
+    inv Ht2; ITraceFacts.inj_existT; subst; try contra_size; try contradiction; pclearbot; eauto.
   - unpriv_halt. pclearbot.  inv SIZECHECK. right. eapply CIH; try apply H. 
     Unshelve. all : auto.
-    inv Ht2; ITrace.inj_existT; subst; try contra_size; try contradiction; pclearbot; eauto.
+    inv Ht2; ITraceFacts.inj_existT; subst; try contra_size; try contradiction; pclearbot; eauto.
     + pfold. apply H2.
     + apply H1.
   - pclearbot. unpriv_halt. right. eapply CIH; try apply H.
-    inv Ht2; ITrace.inj_existT; subst; try contra_size; try contradiction; pclearbot; eauto.
+    inv Ht2; ITraceFacts.inj_existT; subst; try contra_size; try contradiction; pclearbot; eauto.
     pfold. auto.
   - pclearbot. unpriv_halt. inv SIZECHECK1. inv SIZECHECK2. right. eapply CIH; try apply H.
     Unshelve. all : auto.
-    inv Ht2; ITrace.inj_existT; subst; try contra_size; try contradiction; pclearbot; eauto.
+    inv Ht2; ITraceFacts.inj_existT; subst; try contra_size; try contradiction; pclearbot; eauto.
     + pfold. apply H2.
     + apply H1.
   - inv SIZECHECK.  eapply H0; eauto. Unshelve. all : auto.
-    inv Ht2; ITrace.inj_existT; subst; try contra_size; try contradiction; pclearbot; eauto.
+    inv Ht2; ITraceFacts.inj_existT; subst; try contra_size; try contradiction; pclearbot; eauto.
     rewrite itree_eta' at 1. pstep_reverse.
   - unpriv_halt. right. eapply CIH; eauto. pfold. apply Ht2.
     pfold. apply H.
@@ -678,7 +678,7 @@ Proof.
         rewrite itree_eta'. pstep_reverse. eapply paco2_mon; eauto.
         intros; contradiction.
       * destruct (classic (leq (priv _ e) l ) ).
-        -- inv Ht23; ITrace.inj_existT; subst; try contradiction; try inv CHECK.
+        -- inv Ht23; ITraceFacts.inj_existT; subst; try contradiction; try inv CHECK.
            constructor; auto. eapply eqit_secure_trans_aux2; eauto.
         -- destruct (classic_empty X).
            ++ rewrite itree_eta'. rewrite itree_eta' at 1.
@@ -697,7 +697,7 @@ Proof.
     + pclearbot. unpriv_ind. pstep_reverse.
     + pclearbot. punfold H.
   - pclearbot. remember (VisF e k2) as x.
-    hinduction Ht23 before r; intros; inv Heqx; try inv CHECK; ITrace.inj_existT; subst; 
+    hinduction Ht23 before r; intros; inv Heqx; try inv CHECK; ITraceFacts.inj_existT; subst; 
     try contradiction; eauto.
     + pclearbot. constructor; auto. intros. right. eapply CIH0; eauto; try apply H0.
       apply H.
@@ -729,7 +729,7 @@ Proof.
            ++ unpriv_co. right. eapply CIH0. apply H.
               clear IHHt23. pstep. red. remember (VisF e0 k) as y.
               hinduction Ht23 before r; intros; inv Heqy; try inv CHECK; 
-                ITrace.inj_existT; subst; try contradiction; try contra_size;  eauto.
+                ITraceFacts.inj_existT; subst; try contradiction; try contra_size;  eauto.
               ** pclearbot. constructor; auto. pstep_reverse.
               ** unpriv_ind. pclearbot. pstep_reverse.
               ** pclearbot. rewrite itree_eta' at 1. pstep_reverse.
@@ -749,14 +749,14 @@ Proof.
        (* should be fine but new lemma, also shelved goal *)
     + 
       destruct ot3; try (exfalso; eapply Ht4;  eauto; fail  ).
-      * inv Ht23; inv CHECK. ITrace.inj_existT. subst. clear CIH0.
+      * inv Ht23; inv CHECK. ITraceFacts.inj_existT. subst. clear CIH0.
         constructor; auto. rewrite H4. eapply eqit_secure_trans_aux1; eauto.
         rewrite <- H4. apply H1. Unshelve. auto. (* shelved goal*)
       * constructor. right. eapply CIH0; try apply H.
         eapply eqit_secure_TauRVisL; eauto. pfold. auto.
         (* same goal as last admit *)
       * destruct (classic (leq (priv _ e0) l ) ).
-        -- inv Ht23; try inv CHECK; ITrace.inj_existT; subst; try contradiction.
+        -- inv Ht23; try inv CHECK; ITraceFacts.inj_existT; subst; try contradiction.
            constructor; auto. rewrite H5. eapply eqit_secure_trans_aux2; eauto.
            rewrite <- H5. apply H2. Unshelve. all : auto.
         -- destruct (classic_empty X).
@@ -773,7 +773,7 @@ Proof.
     (* maybe need to separate the inductive and coinductive progress cases? *)
     hinduction Ht23 before r; intros; inv Heqx; try inv CHECK; try contradiction; 
     try contra_size;
-    ITrace.inj_existT; subst; auto.
+    ITraceFacts.inj_existT; subst; auto.
     + constructor; auto. eapply IHHt23; eauto.
     + pclearbot. unpriv_co. right. eapply CIH0; try apply H0. apply H.
     + pclearbot. assert (Hne : nonempty B); eauto. inv Hne.
@@ -810,7 +810,7 @@ Proof.
               specialize (H a). clear Heqot2. genobs (k2 a) ok2.
               clear Heqok2.
               hinduction H before r; intros; inv Heqy; try inv CHECK;
-                ITrace.inj_existT; subst; try contradiction; try contra_size;  eauto.
+                ITraceFacts.inj_existT; subst; try contradiction; try contra_size;  eauto.
               ** pclearbot. constructor; auto. pstep_reverse.
               ** unpriv_ind. pclearbot. pstep_reverse.
               ** pclearbot. rewrite itree_eta' at 1. pstep_reverse.
@@ -818,7 +818,7 @@ Proof.
     + pclearbot. inv SIZECHECK2. unpriv_halt. right. eapply CIH0; eauto. apply H0.
       apply H. Unshelve. auto.
   - remember (VisF e k2) as x. hinduction Ht23 before r; intros; inv Heqx; try inv CHECK; 
-    ITrace.inj_existT; subst; try contradiction; try contra_size;  auto.
+    ITraceFacts.inj_existT; subst; try contradiction; try contra_size;  auto.
     + constructor; auto. eapply IHHt23; eauto.
     + constructor; auto. pclearbot. assert (Hne : nonempty A0); eauto. inv Hne. eapply H0; eauto.
       pstep_reverse. Unshelve. auto.
@@ -843,7 +843,7 @@ Proof.
     + rewrite itree_eta' at 1. unpriv_ind. eapply H0; eauto.
     + unpriv_halt. contra_size.
   - pclearbot. 
-    inv Ht23; ITrace.inj_existT; subst; try contra_size; try contradiction;
+    inv Ht23; ITraceFacts.inj_existT; subst; try contra_size; try contradiction;
     try inv CHECK.
     + constructor. right. eapply CIH0; eauto. pfold. auto.
     + unpriv_co. right. eapply CIH0; eauto. rewrite H0 in H2.
@@ -860,7 +860,7 @@ Proof.
    + pfold. red. cbn. unpriv_halt.
    + pfold. auto.
  - pclearbot. destruct (classic_empty A).
-   + inv Ht23; ITrace.inj_existT; subst; try contradiction; try contra_size; try inv CHECK.
+   + inv Ht23; ITraceFacts.inj_existT; subst; try contradiction; try contra_size; try inv CHECK.
      * unpriv_halt. right. eapply CIH0 with (t2 := Vis e2 k2); eauto.
        -- pfold. red. cbn. unpriv_halt. contra_size.
        -- pfold. auto.
@@ -874,16 +874,16 @@ Proof.
        -- apply H2.
      * unpriv_halt. contra_size.
    + destruct (observe t3).
-     * inv Ht23; ITrace.inj_existT; subst; try contra_size; try contradiction.
+     * inv Ht23; ITraceFacts.inj_existT; subst; try contra_size; try contradiction.
      * unpriv_co. right. eapply CIH0; eauto. apply H.
-       inv Ht23; ITrace.inj_existT; subst; try contra_size; try contradiction.
+       inv Ht23; ITraceFacts.inj_existT; subst; try contra_size; try contradiction.
        pfold. auto. pclearbot. auto.
      * destruct (classic (leq (priv _ e) l ) ).
-       { inv Ht23; ITrace.inj_existT; subst; try contra_size; try contradiction. }
+       { inv Ht23; ITraceFacts.inj_existT; subst; try contra_size; try contradiction. }
        destruct (classic_empty X).
        -- unpriv_halt. right. eapply CIH0; eauto. apply H. pfold. auto.
        -- unpriv_co. right. eapply CIH0; eauto. apply H.
-          inv Ht23; ITrace.inj_existT; subst; try contra_size; try contradiction.
+          inv Ht23; ITraceFacts.inj_existT; subst; try contra_size; try contradiction.
           ++ pfold. apply H5.
           ++ pclearbot. apply H4.
 Qed.
@@ -909,10 +909,10 @@ Proof.
       right. eapply CIH; eauto. rewrite <- H0 in Hsec. inv Hsec; try inv CHECK. pclearbot. auto.
     + destruct ot2; try (exfalso; eapply Ht2;  eauto; fail  ).
       * rewrite <- H0 in Hsec. inv Hsec; try inv CHECK. 
-      * rewrite <- H0 in Hsec. inv Hsec; ITrace.inj_existT; subst; try inv CHECK.
+      * rewrite <- H0 in Hsec. inv Hsec; ITraceFacts.inj_existT; subst; try inv CHECK.
         -- pclearbot. unpriv_co. right. eapply CIH; eauto. apply H3.
         -- pclearbot. unpriv_halt. right. eapply CIH; eauto.
-  - rewrite <- H0 in Hsec. inv Hsec; ITrace.inj_existT; subst; try inv CHECK; try contradiction; try contra_size.
+  - rewrite <- H0 in Hsec. inv Hsec; ITraceFacts.inj_existT; subst; try inv CHECK; try contradiction; try contra_size.
     + pclearbot. constructor; auto. right. eapply CIH; eauto. apply H2.
     + pclearbot. unpriv_co. right. eapply CIH; eauto. apply H2.
     + pclearbot. unpriv_co. right. eapply CIH; eauto. apply H2.
@@ -990,47 +990,3 @@ Proof.
     { intros. inv PR. auto. }
     eapply eqit_secure_trans; eauto.
 Qed.
-
-   (*
-Metatheory goals
-
-
-1: eqit_secure lifts PERs to PERs
-
-2: interaction with bind
-   eqit_secure RR m1 m2 -> (forall a b, RR a b -> eqit_secure RR' (k1 a) (k2 b)) -> eqit_secure RR' (m1 >>= k1) (m2 >>= k2)
-
-
-3: interaction with iter : (A -> itree E (A + B)) -> A -> itree E B
-   iter body init ≅ Tau (body init >>= (case (iter body) id))
-
-
-  RR'' (inl a) (inl b) ->
-  (forall a b, RR a b -> eqit_secure RR'' (body1 a) (body2 b)) -> forall a b, RR a b -> eqit_secure RR' (iter body1 a) (iter body2 b) 
-
-  Prove a itree secure without direct coinduction by mutating it (with valid security preserving rewrites) to a tree with no private events
-
-4: interaction with interp {M : MonadIter} (handler : forall A, E A -> M A) (t : itree E A) : M A
-
-   handler takes secure programs to secure programs -> interp handler takes secure programs to secure programs
-
-   Can we find out the smallest relation that a handler preserves securely automatically
-
-   I have a handwritten relation that I want to be my secure computation comparison, how does it relate to the automatically generated because
-
-   wp post m := fun s => post (m s)
-
-
-5: define ASM with secrecy
-
-6: secure compilation from Imp with secrecy to ASM with secrecy
-
-Definition if_comp : bexp -> com -> asm
-
-while
-  
-
-
-Definition out_RR {E E' R1 R2} Label priv RR l (handler : forall A, E A -> StateT S (itree E') A) : R1 -> R2 -> Prop := 
-
-*)

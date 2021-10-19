@@ -27,12 +27,11 @@ From ITree Require Import
      Dijkstra.PureITreeBasics
      Dijkstra.IterRel
      Dijkstra.DelaySpecMonad
-     Dijkstra.ITrace
-     Dijkstra.ITraceBind
-     Dijkstra.EuttDiv
-     Dijkstra.ITracePreds
-     Dijkstra.ITraceBindTrigger
-   (*  Simple *)
+     ITrace.ITraceDefinition
+     ITrace.ITraceFacts
+     ITrace.ITraceBind
+     ITrace.EuttDiv
+     ITrace.ITracePreds
 .
 
 

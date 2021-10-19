@@ -224,16 +224,16 @@ Proof.
   - inv Hsec.
     + pclearbot. rewrite itree_eta'. constructor; auto. right. eapply CIH; eauto.
       pfold. red. rewrite H0. constructor. left. auto.
-    + ITrace.inj_existT. subst. constructor; auto. right. 
+    + ITraceFacts.inj_existT. subst. constructor; auto. right. 
       pclearbot. eapply CIH; eauto. apply H1.
-    + ITrace.inj_existT. subst. unpriv_pi. right. pclearbot.
+    + ITraceFacts.inj_existT. subst. unpriv_pi. right. pclearbot.
       eapply CIH; eauto. apply H1.
-    + ITrace.inj_existT. subst. unpriv_pi. right. pclearbot.
+    + ITraceFacts.inj_existT. subst. unpriv_pi. right. pclearbot.
       eapply CIH; eauto. apply H1.
     + pclearbot. remember (VisF e k2) as ovis. rewrite itree_eta'.
       unpriv_pi. rewrite Heqovis. right. eapply CIH; eauto. apply H1.
       pfold. red. rewrite H0. constructor. left. auto.
-    + ITrace.inj_existT. subst. unpriv_pi. right. eapply CIH; eauto. pclearbot. apply H1.
+    + ITraceFacts.inj_existT. subst. unpriv_pi. right. eapply CIH; eauto. pclearbot. apply H1.
   - eapply IHHeq; eauto. clear IHHeq. inv Hsec; pclearbot.
     + constructor; auto.
     + constructor; auto. left. apply pi_eqit_secure_mixed_trans_aux1. pfold. red.
@@ -296,16 +296,16 @@ Proof.
       apply eqit_inv_tauR. pfold. auto.
   - remember (VisF e k1) as x.
     hinduction EQVl before r; intros; inv Heqx; try inv CHECK; eauto.
-    + ITrace.inj_existT. subst. remember (VisF e0 k3) as y.
+    + ITraceFacts.inj_existT. subst. remember (VisF e0 k3) as y.
       hinduction EQVr before r; intros; inv Heqy; try inv CHECK; eauto.
-      * ITrace.inj_existT. subst. constructor; auto.
+      * ITraceFacts.inj_existT. subst. constructor; auto.
         intros. apply gpaco2_clo. pclearbot. econstructor; eauto. apply H.
       * pclearbot. remember (VisF e0 k1) as ovis. rewrite itree_eta' at 1.
         constructor; auto. rewrite Heqovis. gstep. red. eapply IHEQVr; eauto.
     + constructor; auto. gstep. red. eapply IHEQVl; eauto.
   - remember (VisF e k1) as x.
     hinduction EQVl before r; intros; inv Heqx; try inv CHECK; subst; eauto.
-    + ITrace.inj_existT. subst. pclearbot. remember (TauF t2) as y.
+    + ITraceFacts.inj_existT. subst. pclearbot. remember (TauF t2) as y.
       hinduction EQVr before r; intros; inv Heqy; try inv CHECK; subst; pclearbot; eauto.
       * unpriv_pi. gclo. econstructor; cycle -1; eauto with paco. gfinal. left. apply H.
       * remember (VisF e0 k1) as ovis. rewrite itree_eta' at 1. constructor; auto.
@@ -315,7 +315,7 @@ Proof.
     hinduction EQVl before r; intros; inv Heqx; try inv CHECK; subst; eauto.
     + remember (VisF e k2) as y.
       hinduction EQVr before r; intros; inv Heqy; try inv CHECK; subst; eauto.
-      * ITrace.inj_existT. subst.
+      * ITraceFacts.inj_existT. subst.
         pclearbot. unpriv_pi. gclo. econstructor; cycle -1; eauto with paco.
         gfinal. left. apply H.
       * remember (TauF m1) as otm1. rewrite itree_eta' at 1. constructor; auto.
@@ -323,15 +323,15 @@ Proof.
    + constructor; auto. gstep. red. eapply IHEQVl; eauto.
   - remember (VisF e1 k1) as x.
     hinduction EQVl before r; intros; inv Heqx; try inv CHECK; subst; eauto.
-    + ITrace.inj_existT. subst. remember (VisF e2 k3) as y.
+    + ITraceFacts.inj_existT. subst. remember (VisF e2 k3) as y.
       hinduction EQVr before r; intros; inv Heqy; try inv CHECK; subst; eauto.
-      * ITrace.inj_existT. subst. unpriv_pi. gclo. pclearbot.
+      * ITraceFacts.inj_existT. subst. unpriv_pi. gclo. pclearbot.
         econstructor; cycle -1; eauto with paco. gfinal. left. apply H.
       * remember (VisF e1 k1) as ovis. rewrite itree_eta' at 1.
         constructor; auto. rewrite Heqovis. gstep. eapply IHEQVr; eauto.
     + remember (VisF e2 k2) as x.
       hinduction EQVr before r; intros; inv Heqx; try inv CHECK; subst; eauto.
-      * ITrace.inj_existT. subst. pclearbot. unpriv_pi.
+      * ITraceFacts.inj_existT. subst. pclearbot. unpriv_pi.
          gclo. econstructor; cycle -1; eauto with paco.
          Unshelve. 3 : apply (Vis e1 k0). pfold. apply EQVl.
          gstep. red. cbn. unpriv_pi. gfinal. left. apply H.
@@ -339,12 +339,12 @@ Proof.
          rewrite Heqott3. gstep. red. eapply IHEQVr; eauto.
   - remember (VisF e k1) as x.
     hinduction EQVl before r; intros; inv Heqx; try inv CHECK; eauto.
-    + ITrace.inj_existT. subst. pclearbot. unpriv_pi.
+    + ITraceFacts.inj_existT. subst. pclearbot. unpriv_pi.
       gclo. econstructor; cycle -1; eauto with paco. gfinal. left. apply H.
     + constructor; auto. gstep. eapply IHEQVl; eauto.
   - remember (VisF e k2) as x.
     hinduction EQVr before r; intros; inv Heqx; try inv CHECK; eauto.
-    + ITrace.inj_existT. subst. pclearbot. unpriv_pi.
+    + ITraceFacts.inj_existT. subst. pclearbot. unpriv_pi.
       gclo. econstructor; cycle -1; eauto with paco. gfinal. left. apply H.
     + constructor; auto. gstep. eapply IHEQVr; eauto.
 Qed.

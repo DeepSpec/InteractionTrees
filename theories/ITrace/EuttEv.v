@@ -53,8 +53,14 @@ Inductive euttEvF
   | EqVis : forall (A B : Type) (e1 : E1 A) (e2 : E2 B ) (k1 : A -> itree E1 R1) (k2 : B -> itree E2 R2),
       REv e1 e2 -> 
       (forall (a : A) (b : B), RAns e1 a e2 b -> vclo sim (k1 a) (k2 b) : Prop) -> euttEvF vclo sim (VisF e1 k1) (VisF e2 k2).
-
+(*what if RE is empty? this definition seems to have serious problems*) 
 Hint Constructors euttEvF.
+(*
+Rev := fun _ _ => True
+Rans := fun _ _ _ _ => True
+RR := eq
+EqVis (Vis e1 Ret 0) (Vis e2 Ret 1)
+*)
 
 Definition euttEv_ (vclo : (itree E1 R1 -> itree E2 R2 -> Prop) -> itree E1 R1 -> itree E2 R2 -> Prop )
            (sim : itree E1 R1 -> itree E2 R2 -> Prop) (t1 : itree E1 R1) (t2 : itree E2 R2) :=

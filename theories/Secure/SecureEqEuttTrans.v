@@ -55,7 +55,7 @@ Proof.
   - remember (RetF r2) as y. hinduction REL before r; intros; inv Heqy; eauto.
   - eapply IHHsec; eauto. pstep_reverse. setoid_rewrite <- tau_eutt at 1. pfold. auto.
   - remember (VisF e k2) as y.
-    hinduction REL before r; intros; inv Heqy; ITrace.inj_existT; subst; eauto.
+    hinduction REL before r; intros; inv Heqy; ITraceFacts.inj_existT; subst; eauto.
     pclearbot. unpriv_ind. eapply H0; eauto. pstep_reverse.
 Qed.
 
@@ -79,17 +79,17 @@ Lemma eses_aux4:
 Proof.
   intros E R3 R1 Label priv l R2 RR1 RR2 r m1 m2 CIH REL X e k Hsec SECCHECK.
   punfold REL. red in REL. remember (VisF e k) as y.
-  hinduction Hsec before r; intros; inv Heqy; ITrace.inj_existT; subst; try contradiction.
+  hinduction Hsec before r; intros; inv Heqy; ITraceFacts.inj_existT; subst; try contradiction.
   - eapply IHHsec; eauto. pstep_reverse. rewrite <- tau_eutt at 1. pfold. auto.
-  - pclearbot. inv REL; ITrace.inj_existT; subst.
+  - pclearbot. inv REL; ITraceFacts.inj_existT; subst.
     + constructor; auto. right. pclearbot. eapply CIH; eauto.
       apply H.
     + constructor; auto. remember (VisF e0 k2) as y.
-      hinduction REL0 before r; intros; inv Heqy; ITrace.inj_existT; subst; try contradiction.
+      hinduction REL0 before r; intros; inv Heqy; ITraceFacts.inj_existT; subst; try contradiction.
       * constructor; auto. right. pclearbot. eapply CIH; eauto. apply H.
       * constructor; auto. eapply IHREL0; eauto.
   - rewrite H2. remember (VisF e k2) as y.
-    hinduction REL before r; intros; inv Heqy; ITrace.inj_existT; subst; try contradiction.
+    hinduction REL before r; intros; inv Heqy; ITraceFacts.inj_existT; subst; try contradiction.
     + rewrite itree_eta' at 1. unpriv_ind. rewrite <- H2. eapply H0; eauto.
       pclearbot.
       pstep_reverse. 
@@ -141,12 +141,12 @@ Proof.
   - pclearbot. destruct (classic (leq (priv _ e) l ) ).
     + genobs_clear t1 ot1. 
       remember (VisF e k1) as y. 
-      hinduction Hsec before r; intros; try inv Heqy; ITrace.inj_existT; subst; try contradiction;
+      hinduction Hsec before r; intros; try inv Heqy; ITraceFacts.inj_existT; subst; try contradiction;
       eauto.
       * constructor; auto. right. pclearbot. eapply CIH; eauto. apply H.
       * rewrite itree_eta'. unpriv_ind. eapply H0; eauto.
     + remember (VisF e k1) as y. 
-      hinduction Hsec before r; intros; inv Heqy; ITrace.inj_existT; subst; try contradiction;
+      hinduction Hsec before r; intros; inv Heqy; ITraceFacts.inj_existT; subst; try contradiction;
       eauto.
       * pclearbot. unpriv_co. right. eapply CIH; eauto. apply H.
       * pclearbot. unpriv_co. right. eapply CIH; eauto. apply H.

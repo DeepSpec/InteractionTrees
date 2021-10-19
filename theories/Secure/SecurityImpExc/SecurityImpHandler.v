@@ -157,7 +157,7 @@ Proof.
   assert (Hemp : empty void); try (constructor ; intros []; fail).
   generalize dependent t1. generalize dependent s1. pcofix CIH. intros.
   punfold H0. red in H0. cbn in *.
-  inversion H0; ITrace.inj_existT; subst; destruct_imp_ev; try contra_size;
+  inversion H0; ITraceFacts.inj_existT; subst; destruct_imp_ev; try contra_size;
     try contradiction.
   - use_simpobs. rewrite H. rewrite interp_state_tau. pfold. red. cbn.
     unpriv_halt.
@@ -209,7 +209,7 @@ Proof.
   intros R2 R1 RR priv_map r k1 k1' t2 H s1 s2 Hs. assert (Hemp : empty void). 
   { constructor. intros []. }
   generalize dependent t2. generalize dependent s2.
-  pcofix CIH. intros. punfold H0. red in H0. cbn in *. inversion H0; ITrace.inj_existT; subst; destruct_imp_ev; try contra_size;
+  pcofix CIH. intros. punfold H0. red in H0. cbn in *. inversion H0; ITraceFacts.inj_existT; subst; destruct_imp_ev; try contra_size;
    try contradiction.
   - use_simpobs. rewrite H. rewrite interp_state_tau. pfold. red. cbn.
     unpriv_halt.

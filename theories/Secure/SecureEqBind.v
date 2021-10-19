@@ -56,7 +56,7 @@ Proof.
   pstep. red.
   punfold Ht2. red in Ht2.
   unfold ITree.bind at 1, observe at 3. cbn in *.
-  inv Ht2; ITrace.inj_existT; subst; try contra_size; try contradiction; try rewrite <- H; cbn;
+  inv Ht2; ITraceFacts.inj_existT; subst; try contra_size; try contradiction; try rewrite <- H; cbn;
   try unpriv_halt; right; eapply CIH;  pclearbot; eauto;
   try (pfold; rewrite H in H1; apply H1).
   contra_size.
@@ -81,7 +81,7 @@ Proof.
   pstep. red.
   punfold Ht1. red in Ht1.
   unfold ITree.bind at 1, observe at 1. cbn in *.
-  inv Ht1; ITrace.inj_existT; subst; try contra_size; try contradiction; cbn;
+  inv Ht1; ITraceFacts.inj_existT; subst; try contra_size; try contradiction; cbn;
   try unpriv_halt; try contra_size; try (right; eapply CIH; pclearbot; eauto).
   pfold. rewrite H0 in H1. auto. apply H1.
 Qed.

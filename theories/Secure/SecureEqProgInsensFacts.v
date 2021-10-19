@@ -67,11 +67,11 @@ Proof.
     + exfalso. apply HRinv in Hr0.
       assert (pi_eqit_secure Label priv (case_rel Rinv RS) true b2 l (Vis e k) (Ret s) ).
       { rewrite <- Heq. auto. }
-      pinversion H0; subst. ITrace.inj_existT. subst. contradiction.
+      pinversion H0; subst. ITraceFacts.inj_existT. subst. contradiction.
     + rewrite Heq. rewrite bind_vis.
       gstep. constructor; auto. intros x. gfinal. left. eapply CIH'.
       assert ( pi_eqit_secure Label priv (case_rel Rinv RS) true b2 l (Vis e k) (Ret s)) .
-      rewrite <- Heq. auto. pinversion H0; subst; ITrace.inj_existT; subst.
+      rewrite <- Heq. auto. pinversion H0; subst; ITraceFacts.inj_existT; subst.
       rewrite <- itree_eta. apply H2.
 Qed.
 

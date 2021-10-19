@@ -34,11 +34,6 @@ Import Monads.
 Import MonadNotation.
 Local Open Scope monad_scope.
 
-(* can we write a closure that lets you take an inductive step and then throws back
-   
-
-*)
-
 
 Lemma eqit_secureC_wcompat_id :  forall b1 b2 E R1 R2 (RR : R1 -> R2 -> Prop )
       Label priv l
@@ -69,13 +64,13 @@ Proof.
     constructor; auto. pclearbot. pstep_reverse.
   - remember (VisF e k1) as x.
     hinduction EQVl before r; intros; inv Heqx; try inv CHECK; eauto.
-    ITrace.inj_existT. subst. remember (VisF e0 k3) as y.
+    ITraceFacts.inj_existT. subst. remember (VisF e0 k3) as y.
     hinduction EQVr before r; intros; inv Heqy; try inv CHECK; eauto.
-    ITrace.inj_existT. subst. constructor; auto.
+    ITraceFacts.inj_existT. subst. constructor; auto.
     intros. apply gpaco2_clo. pclearbot. econstructor; eauto. apply H.
   - remember (VisF e k1) as x.
     hinduction EQVl before r; intros; inv Heqx; try inv CHECK; subst; eauto.
-    ITrace.inj_existT. subst. pclearbot. remember (TauF t2) as y.
+    ITraceFacts.inj_existT. subst. pclearbot. remember (TauF t2) as y.
     hinduction EQVr before r; intros; inv Heqy; try inv CHECK; subst; eauto.
     pclearbot.
     unpriv_co. gclo. econstructor; cycle -1; eauto with paco. gfinal.
@@ -84,49 +79,49 @@ Proof.
     hinduction EQVl before r; intros; inv Heqx; try inv CHECK; subst; eauto.
     remember (VisF e k2) as y.
     hinduction EQVr before r; intros; inv Heqy; try inv CHECK; subst; eauto.
-    ITrace.inj_existT. subst.
+    ITraceFacts.inj_existT. subst.
     pclearbot. unpriv_co. gclo. econstructor; cycle -1; eauto with paco.
     gfinal. left. apply H.
   - remember (VisF e1 k1) as x.
     hinduction EQVl before r; intros; inv Heqx; try inv CHECK; subst; eauto.
-    ITrace.inj_existT. subst. remember (VisF e2 k3) as y.
+    ITraceFacts.inj_existT. subst. remember (VisF e2 k3) as y.
     hinduction EQVr before r; intros; inv Heqy; try inv CHECK; subst; eauto.
-    ITrace.inj_existT. subst. unpriv_co. gclo. pclearbot.
+    ITraceFacts.inj_existT. subst. unpriv_co. gclo. pclearbot.
     econstructor; cycle -1; eauto with paco. gfinal. left. apply H.
   - remember (VisF e k1) as x.
     hinduction EQVl before r; intros; inv Heqx; try inv CHECK; eauto.
-    ITrace.inj_existT. subst. pclearbot. unpriv_ind.
+    ITraceFacts.inj_existT. subst. pclearbot. unpriv_ind.
     eapply H0; eauto. pstep_reverse.
   - remember (VisF e k2) as x.
     hinduction EQVr before r; intros; inv Heqx; try inv CHECK; eauto.
-    ITrace.inj_existT. subst. pclearbot. unpriv_ind.
+    ITraceFacts.inj_existT. subst. pclearbot. unpriv_ind.
     eapply H0; eauto. pstep_reverse.
   - remember (VisF e k1) as x.
     hinduction EQVl before r; intros; inv Heqx; try inv CHECK; eauto.
-    ITrace.inj_existT. subst. remember (TauF t2) as y.
+    ITraceFacts.inj_existT. subst. remember (TauF t2) as y.
     hinduction EQVr before r; intros; inv Heqy; try inv CHECK; eauto.
     pclearbot. unpriv_halt. gclo. econstructor; cycle -1; eauto with paco.
     pfold. constructor. left. auto.
   - remember (VisF e k2) as x.
     hinduction EQVr before r; intros; inv Heqx; try inv CHECK; eauto.
-    ITrace.inj_existT. subst. remember (TauF t1) as y.
+    ITraceFacts.inj_existT. subst. remember (TauF t1) as y.
     hinduction EQVl before r; intros; inv Heqy; try inv CHECK; eauto.
     pclearbot. unpriv_halt. gclo. econstructor; cycle -1; eauto with paco.
     pfold. constructor. left. auto.
   - remember (VisF e1 k1) as x.
     hinduction EQVl before r; intros; inv Heqx; try inv CHECK; try contra_size; eauto.
-    ITrace.inj_existT. subst. remember (VisF e2 k3) as y.
+    ITraceFacts.inj_existT. subst. remember (VisF e2 k3) as y.
     hinduction EQVr before r; intros; inv Heqy; try inv CHECK; eauto.
-    ITrace.inj_existT. subst. unpriv_halt. pclearbot.
+    ITraceFacts.inj_existT. subst. unpriv_halt. pclearbot.
     gclo. econstructor; cycle -1; eauto with paco.
     Unshelve. all : try apply (Vis e1 k3).
     + pfold. constructor. left. auto.
     + gfinal. left. apply H.
   - remember (VisF e1 k1) as x.
     hinduction EQVl before r; intros; inv Heqx; try inv CHECK; try contra_size; eauto.
-    ITrace.inj_existT. subst. remember (VisF e2 k3) as y.
+    ITraceFacts.inj_existT. subst. remember (VisF e2 k3) as y.
     hinduction EQVr before r; intros; inv Heqy; try inv CHECK; eauto.
-    ITrace.inj_existT. subst. unpriv_halt. pclearbot.
+    ITraceFacts.inj_existT. subst. unpriv_halt. pclearbot.
     gclo. econstructor; cycle -1; eauto with paco.
     Unshelve. all : try apply (Vis e2 k4).
     + pfold. constructor. left. auto.
@@ -142,7 +137,7 @@ Proof.
   intros. pfold. red. cbn. unpriv_halt. contra_size.
 Qed.
 
-Ltac inv_vis_secure := ITrace.inj_existT; subst;
+Ltac inv_vis_secure := ITraceFacts.inj_existT; subst;
    try contradiction; try contra_size. 
 Ltac clear_trivial :=
   repeat match goal with 

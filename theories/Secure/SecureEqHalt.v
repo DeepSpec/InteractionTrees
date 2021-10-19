@@ -151,101 +151,7 @@ Definition NatPreorder : Preorder :=
   |}.
 
 Section SecureUntimedUnReflexive.
-(*
-  Variant NonDet : Type -> Type :=
-    | SecureFlip : NonDet bool
-    | PublicOut : NonDet unit
-    | Halt : NonDet void
 
-.
-
-(*
-CoInductive itree E R :=
-...
-| Vis {A : Type} (e : E A) (k : A -> itree E R)
-
-suppose A := void
-
-k ≅ empty_cont
-
-bind (Vis Halt k1) k2 ≅ Vis Halt k1
-
-E := HaltE unit
-
-Definition halt : itree E R := Vis HaltE (fun _ => Tau Tau ...)
-
-*)
-
-  Definition priv_counter : forall A, NonDet A -> nat :=
-    fun _ e =>
-      match e with
-      | SecureFlip => 1
-      | PublicOut => 0
-      | Halt => 10
-      end.
-
-
-  Variant Exc : Type -> Type :=
-    Throw : Exc void.
-
-  Definition refl_counter : itree NonDet bool := trigger SecureFlip. (* b := Flip; return b *)
-
-  Lemma refl_counter_counter : ~ eqit_secure NatPreorder priv_counter eq true true 0 refl_counter refl_counter.
-    Proof.
-      intro Hcontra. punfold Hcontra; try eapply secure_eqit_mono; eauto.
-      red in Hcontra. cbn in *. inv Hcontra; ITrace.inj_existT; subst.
-      - cbv in SECCHECK. inv SECCHECK.
-      - specialize (H0 true false). pclearbot. pinversion H0; try eapply secure_eqit_mono; eauto.
-        discriminate.
-      - rewrite H3 in H0. clear H3. specialize (H0 true). cbn in *.
-        inv H0; ITrace.inj_existT; subst. specialize (H2 false). rewrite H in H2.
-        inv H2. discriminate.
-      -  rewrite H in H0. injection H0; intros; ITrace.inj_existT; subst; ITrace.inj_existT; subst.
-         specialize (H1 true). cbn in *. inv H1; ITrace.inj_existT; subst; ITrace.inj_existT; subst.
-         rewrite H6 in H3. specialize (H3 false). cbn in *. inv H3; discriminate.
-      - inv SIZECHECK. apply H; apply true.
-      - inv SIZECHECK. apply H; apply true.
-    Qed.
-
-
-    Lemma halt_not_ret : forall A (a : A) k, ~ eqit_secure NatPreorder priv_counter eq true true 0 (Vis Halt k) (Ret a).
-    Proof.
-      intros. intro Hcontra. pinversion Hcontra. ITrace.inj_existT; subst.
-      inv SIZECHECK. contradiction.
-    Qed.
-
-    Lemma halt_spin : eqit_secure NatPreorder priv_counter eq true true 0 (trigger Halt) (ITree.spin).
-    Proof.
-      pcofix CIH. pfold. red. cbn. eapply EqVisUnprivHaltLTauR.
-      - intro. inv H.
-      - constructor. intros; contradiction.
-      - right. apply CIH.
-    Qed.
-
-
-
-    (*transitivity problems in presence of E void *)
-    Definition refl_counter2 : itree NonDet unit := ITree.bind refl_counter (fun b : bool => if b then Ret tt else trigger PublicOut).
-    (* b := SecretFlip; if b then return tt else PublicOut; return tt*)
-    Lemma refl_counter2_counter : ~ eqit_secure NatPreorder priv_counter eq true true 0 refl_counter2 refl_counter2.
-      Proof.
-        unfold refl_counter2. intro Hcontra. punfold Hcontra; try eapply secure_eqit_mono; eauto.
-        red in Hcontra. cbn in Hcontra. inv Hcontra; ITrace.inj_existT; subst; try (inv SIZECHECK; apply H; constructor; fail).
-        - inv SECCHECK.
-        - specialize (H0 true false). pclearbot. punfold H0; try eapply secure_eqit_mono; eauto.
-          red in H0. cbn in *. inv H0; ITrace.inj_existT; subst.
-          cbn in *. apply SECCHECK; auto.
-        - rewrite H3 in H0; clear H3. specialize (H0 true). cbn in *.
-          inv H0; ITrace.inj_existT; subst; ITrace.inj_existT.
-          specialize (H2 false). rewrite H in H2. cbn in *. inv H2;
-          ITrace.inj_existT; subst; apply SECCHECK1; constructor.
-        - rewrite <- H0 in H. injection H; intros; ITrace.inj_existT; subst; ITrace.inj_existT; subst.
-          specialize (H1 true). inv H1; ITrace.inj_existT; subst.
-          rewrite H6 in H3. specialize (H3 false). cbn in *.
-          inv H3; ITrace.inj_existT; subst. apply SECCHECK1; constructor.
-      Qed.
-
-*)
 Section eqit_secureC.
   (* might not be the order I eventually want but whatever*)
   Context {E: Type -> Type} {R1 R2 : Type} (RR : R1 -> R2 -> Prop).
@@ -274,9 +180,6 @@ Section eqit_secureC.
   Proof.
     destruct IN; eauto.
   Qed.
-
-
-
 
 End eqit_secureC.
 
@@ -312,6 +215,8 @@ Ltac gfinal_with H := gfinal; left; apply H.
 
 Ltac ne A := let Hne := fresh "H" in assert (Hne : nonempty A); eauto; inv Hne.
 
+Ltac inj_existT := ITraceFacts.inj_existT.
+
 Lemma eqit_secure_sym : forall b1 b2 E R1 R2 RR Label priv l (t1 : itree E R1) (t2 : itree E R2),
     eqit_secure Label priv RR b1 b2 l t1 t2 -> eqit_secure Label priv (flip RR) b2 b1 l t2 t1.
 Proof.
@@ -324,7 +229,7 @@ Proof.
   - specialize (H a). remember (k2 a) as t. clear Heqt k2.
      left.
      intros. pfold. red. cbn. punfold H. red in H. cbn in H.
-     inv H; ITrace.inj_existT; subst; try contra_size; try contradiction; pclearbot; eauto;
+     inv H; inj_existT; subst; try contra_size; try contradiction; pclearbot; eauto;
      try (unpriv_halt; fail).
      +  unpriv_halt. right. apply CIH. pfold. auto.
      + rewrite H0. rewrite H0 in H2. unpriv_halt.
@@ -334,7 +239,7 @@ Proof.
   - specialize (H b). remember (k1 b) as t. clear Heqt k1.
      left.
      intros. pfold. red. cbn. punfold H. red in H. cbn in H.
-     inv H; ITrace.inj_existT; subst; try contra_size; try contradiction; pclearbot; eauto;
+     inv H; inj_existT; subst; try contra_size; try contradiction; pclearbot; eauto;
      try (unpriv_halt; fail).
      +  unpriv_halt. right. apply CIH. pfold. auto.
      + rewrite H1. rewrite H1 in H2. unpriv_halt.

@@ -209,23 +209,6 @@ Proof.
     +  apply IHHt. inversion Hdiv. subst. pclearbot. punfold H0.
 Qed.
 
-(*weird subtlety for if there is a something like an exit event*)
-
-
-Lemma not_converge_to_divergence : forall (E : Type -> Type) (A : Type) (t : itree E A), 
-    (forall a, ~ can_converge a t) -> divergence t.
-Proof.
-  intros E A. pcofix CIH. intros.
-  pfold. red. destruct (observe t) eqn : Heq.
-  - exfalso. apply (H0 r0). specialize (itree_eta t) as Ht.
-    rewrite Heq in Ht. rewrite Ht. constructor. reflexivity.
-  - constructor. right. apply CIH.
-    specialize (itree_eta t) as Ht. rewrite Heq in Ht.
-    assert (t ≈ t0). { rewrite Ht. rewrite tau_eutt. reflexivity. }
-    setoid_rewrite <- H. auto.
-  - (*this case fails if X is an empty type*) 
-Abort.
-
 
 Lemma not_converge_to_must_diverge : forall (E : Type -> Type) (A : Type) (t : itree E A), 
     (forall a, ~ can_converge a t) -> must_diverge t.

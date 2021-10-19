@@ -313,7 +313,7 @@ Proof.
   intros A R1 R2 RR e k t Hemp Hsec. revert t. pcofix CIH.
   intros. punfold H0. red in H0.
   cbn in *. remember (VisF e k) as ov. remember (observe t) as ot.
-  hinduction H0 before r; intros; inv Heqov; subst; ITrace.inj_existT; subst; try discriminate;  try contradiction; 
+  hinduction H0 before r; intros; inv Heqov; subst; ITraceFacts.inj_existT; subst; try discriminate;  try contradiction; 
     try contra_size; use_simpobs.
   - rewrite Heqot. pfold. constructor. left. eapply IHsecure_eqitF; eauto.
   - pclearbot. rewrite Heqot. pfold. constructor; eauto.
@@ -331,7 +331,7 @@ Proof.
   intros A R1 R2 RR e k t Hemp Hsec. revert t. pcofix CIH.
   intros. punfold H0. red in H0.
   cbn in *. remember (VisF e k) as ov. remember (observe t) as ot.
-  hinduction H0 before r; intros; inv Heqov; subst; ITrace.inj_existT; subst; try discriminate;  try contradiction; 
+  hinduction H0 before r; intros; inv Heqov; subst; ITraceFacts.inj_existT; subst; try discriminate;  try contradiction; 
     try contra_size; use_simpobs.
   - rewrite Heqot. pfold. constructor. left. eapply IHsecure_eqitF; eauto.
   - pclearbot. rewrite Heqot. pfold. constructor; eauto.

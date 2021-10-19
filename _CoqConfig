@@ -71,24 +71,17 @@ theories/Dijkstra/PureITreeDijkstra.v
 theories/Dijkstra/DelaySpecMonad.v
 theories/Dijkstra/StateSpecT.v
 theories/Dijkstra/StateDelaySpec.v
-theories/Dijkstra/EuttEv.v
-theories/Dijkstra/ITrace.v
-theories/Dijkstra/TracePrefix.v
-theories/Dijkstra/ITraceBind.v
-theories/Dijkstra/EuttDiv.v
-theories/Dijkstra/ITracePreds.v
-theories/Dijkstra/ITraceBindTrigger.v
 theories/Dijkstra/TracesIT.v
 theories/Dijkstra/ITreeDijkstra.v
 theories/Dijkstra/StateIOTrace.v
 
-
-theories/ITreeSpec/ITreeSpecDefinition.v
-theories/ITreeSpec/SatisfiesFacts.v
-theories/ITreeSpec/ITreeSpecObservation.v
-theories/ITreeSpec/ITreeSpecObservationFacts.v
-theories/ITreeSpec/SatisfiesBind.v
-
+theories/ITrace/EuttEv.v
+theories/ITrace/ITraceDefinition.v
+theories/ITrace/ITraceFacts.v
+theories/ITrace/EuttDiv.v
+theories/ITrace/TracePrefix.v
+theories/ITrace/ITraceBind.v
+theories/ITrace/ITracePreds.v
 
 theories/Secure/StrongBisimProper.v
 theories/Secure/SecureEqHalt.v
@@ -121,6 +114,5 @@ theories/Secure/SecurityImpExc/SecurityImp2AsmSecurityPres.v
 
 
 theories/Secure/SecureEqProgInsens.v
-theories/Secure/SecureEqProgInsensEv.v
 theories/Secure/SecureEqProgInsensFacts.v
 theories/Secure/SecurityImpExc/SecurityImpTypesProgInsens.v
