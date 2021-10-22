@@ -97,7 +97,7 @@ Section StateSpecT.
   Qed.
   
   Global Instance StateSpecTEq : Eq1 StateSpecT :=
-    fun _ w1 w2 => forall s, w1 s ≈ w2 s.
+    fun _ w1 w2 => forall s, (w1 s ≈ w2 s)%monad.
 
   Global Instance StateSpecTMonadLaws : MonadLawsE StateSpecT.
   Proof.

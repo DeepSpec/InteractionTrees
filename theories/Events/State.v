@@ -18,9 +18,8 @@ From ITree Require Import
      Interp.Interp.
 
 Import ITree.Basics.Basics.Monads.
-Import ITreeNotations.
 
-Open Scope itree_scope.
+Local Open Scope itree_scope.
 (* end hide *)
 
 (* Stateful handlers [E ~> stateT S (itree F)] and morphisms
@@ -130,5 +129,3 @@ Section eff_hom_e.
       end) (h, t).
 
 End eff_hom_e.
-
-

@@ -20,15 +20,16 @@ From ITree Require Import
      Core.KTreeFacts
      Eq.Eq
      Eq.UpToTaus
+     Eq.Paco2
      Indexed.Sum
      Interp.Interp
      Interp.InterpFacts
      Interp.RecursionFacts
      Events.State.
 
-Import ITree.Basics.Basics.Monads.
 Import ITreeNotations.
-Open Scope itree_scope.
+Import ITree.Basics.Basics.Monads.
+Local Open Scope itree_scope.
 
 Import Monads.
 
@@ -129,7 +130,7 @@ Section FailTLaws.
   
 End FailTLaws.
 
-Hint Unfold option_rel : core.
+Global Hint Unfold option_rel : core.
 
 (* Failure handlers [E ~> stateT S (itree F)] and morphisms
    [E ~> state S] define stateful itree morphisms
@@ -155,13 +156,14 @@ Lemma unfold_interp_fail {E F R} (f : E ~> failT (itree F)) (t : itree E R) :
   interp_fail f t ≅
          (_interp_fail f (observe t)).
 Proof.
-  unfold interp_fail,interp. unfold Basics.iter, failT_iter, Basics.iter, MonadIter_itree. rewrite unfold_iter.
+  unfold interp_fail,interp. unfold Basics.iter, failT_iter, Basics.iter, MonadIter_itree.
+  rewrite unfold_iter. cbn.
   destruct (observe t).
   cbn; repeat (rewrite ?Eq.bind_bind, ?Eq.bind_ret_l, ?bind_map; try reflexivity).
   cbn; repeat (rewrite ?Eq.bind_bind, ?Eq.bind_ret_l, ?bind_map; try reflexivity).
   cbn; repeat (rewrite ?Eq.bind_bind, ?Eq.bind_ret_l, ?bind_map; try reflexivity).
   apply eq_itree_clo_bind with (UU := Logic.eq); [reflexivity | intros x ? <-]. 
-  destruct x as [| x].
+  destruct x as [x|].
   - rewrite Eq.bind_ret_l; reflexivity.
   - rewrite Eq.bind_ret_l; reflexivity.
 Qed.
@@ -171,7 +173,7 @@ Global Instance interp_fail_eq_itree {X E F} {R : X -> X -> Prop} (h : E ~> fail
 Proof.
   repeat red. 
   ginit.
-  gcofix CIH.
+  pcofix CIH.
   intros s t EQ.
   rewrite 2 unfold_interp_fail.
   punfold EQ; red in EQ.
@@ -270,7 +272,7 @@ Lemma interp_fail_bind : forall {X Y E F} (t : itree _ X) (k : X -> itree _ Y) (
                 ITree.bind (interp_fail h t)
                 (fun mx => match mx with | None => ret None | Some x => interp_fail h (k x) end).
 Proof.
-  intros X Y; ginit; gcofix CIH; intros.
+  intros X Y E F; ginit; pcofix CIH; intros.
   rewrite unfold_bind.
   rewrite (unfold_interp_fail h t).
   destruct (observe t) eqn:EQ; cbn.
@@ -283,6 +285,7 @@ Proof.
     intros [] ? <-; cbn.
     + rewrite bind_tau.
       gstep; constructor.
+      ITree.fold_subst.
       auto with paco.
     + rewrite bind_ret_l.
       apply reflexivity.
@@ -294,7 +297,9 @@ Lemma interp_failure_bind' : forall {X Y E F} (t : itree _ X) (k : X -> itree _ 
                 bind (interp_fail h t)
                 (fun x => interp_fail h (k x)).
 Proof.
-  intros X Y E F; ginit; gcofix CIH; intros.
+  intros X Y E F.
+  cbn.
+  ginit; pcofix CIH; intros.
   cbn in *.
   rewrite unfold_bind, (unfold_interp_fail _ t).
   destruct (observe t) eqn:EQ; cbn.
@@ -307,8 +312,8 @@ Proof.
     intros [] ? <-; cbn.
     + rewrite bind_tau.
       gstep; constructor.
+      ITree.fold_subst.
       auto with paco.
     + rewrite bind_ret_l.
       apply reflexivity.
 Qed.
-

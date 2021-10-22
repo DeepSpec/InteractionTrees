@@ -112,6 +112,6 @@ Lemma try_catch_ev : forall E A Err R (ev: E A) k (kcatch : Err -> itree (except
 Proof.
   intros. unfold try_catch. unfold iter, Iter_Kleisli, Basics.iter, MonadIter_itree.
   rewrite unfold_iter. cbn. unfold ITree.map at 3.
-  rewrite bind_bind. rewrite bind_trigger. cbn.
+  setoid_rewrite bind_bind. rewrite bind_trigger. cbn.
   setoid_rewrite bind_ret_l. reflexivity.
 Qed.

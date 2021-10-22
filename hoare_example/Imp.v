@@ -466,10 +466,9 @@ Section InterpImpProperties.
     unfold interp_map.
     repeat rewrite interp_bind.
     repeat rewrite interp_state_bind.
-    apply eqit_bind. red. intros.
+    apply eqit_bind. reflexivity. red. intros.
     destruct a as [g'  x].
     simpl.
-    reflexivity.
     reflexivity.
   Qed.
 

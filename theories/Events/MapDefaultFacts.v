@@ -23,6 +23,7 @@ From ITree Require Import
      Basics.HeterogeneousRelations
      ITree
      ITreeFacts
+     Eq.Paco2
      Indexed.Sum
      Interp.Interp
      Events.State
@@ -186,7 +187,7 @@ Section MapFacts.
     unfold map_default_eq, interp_map; intros.
     revert t s1 s2 H.
     ginit.
-    gcofix CH.
+    pcofix CH.
     intros.
     repeat rewrite unfold_interp_state. unfold _interp_state.
     destruct (observe t).
@@ -235,5 +236,5 @@ Section MapFacts.
     - rewrite tau_euttge, unfold_interp_state.
       eauto.
   Qed.
-    
+
 End MapFacts.

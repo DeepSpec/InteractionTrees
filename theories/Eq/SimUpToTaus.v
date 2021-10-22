@@ -25,12 +25,11 @@ From Coq Require Import
      Relations.Relations.
 
 From ITree Require Import
-     Core.ITreeDefinition.
-
-From ITree Require Import
+     Core.ITreeDefinition
      Eq.Eq
      Eq.UpToTaus
-     Eq.Shallow.
+     Eq.Shallow
+     Eq.Paco2.
 
 Section SUTT.
 
@@ -57,8 +56,8 @@ Hint Unfold sutt: core.
 
 End SUTT.
 
-Hint Constructors suttF: core.
-Hint Unfold sutt: core.
+Global Hint Constructors suttF: core.
+Global Hint Unfold sutt: core.
 
 Section SUTT_rel.
 
@@ -82,14 +81,14 @@ Hint Resolve monotone_suttF : paco.
 
 End SUTT_facts.
 
-Hint Resolve @monotone_suttF : paco.
+Global Hint Resolve monotone_suttF : paco.
 
 Lemma suttF_inv_vis {E R1 R2} (RR : R1 -> R2 -> Prop) sutt :
   forall X e (k1 : X -> itree E R1) (k2 : X -> itree E R2),
     suttF RR sutt (VisF e k1) (VisF e k2) ->
     forall x, sutt (observe (k1 x)) (observe (k2 x)).
 Proof.
-  intros. inv H. auto_inj_pair2. subst. auto.
+  intros. inv H. apply inj_pair2 in H3; apply inj_pair2 in H5. subst. auto.
 Qed.
 
 Lemma sutt_inv_vis {E R1 R2} (RR : R1 -> R2 -> Prop) :
@@ -98,7 +97,7 @@ Lemma sutt_inv_vis {E R1 R2} (RR : R1 -> R2 -> Prop) :
   forall x, sutt RR (k1 x) (k2 x).
 Proof.
   intros. pstep. punfold H. simpl in *.
-  inv H. auto_inj_pair2. subst. specialize (SUTTK x). pclearbot. punfold SUTTK.
+  eapply suttF_inv_vis in H; pclearbot; punfold H.
 Qed.
 
 Lemma sutt_tau_right {E R1 R2} (RR : R1 -> R2 -> Prop) :
@@ -159,12 +158,12 @@ Theorem sutt_eutt {E R1 R2} (RR : R1 -> R2 -> Prop) :
     sutt RR t1 t2 -> sutt (flip RR) t2 t1 -> eutt RR t1 t2.
 Proof.
   pcofix CIH. intros.
-  punfold H0. punfold H1. pstep. red.
+  punfold H0. punfold H. pstep. red.
   induction H0; intros; subst; auto.
-  - constructor. intro. right. eapply suttF_inv_vis in H1. pclearbot. eauto with paco.
+  - constructor. intro. right. eapply suttF_inv_vis in H. pclearbot. eauto with paco.
   - constructor; eauto. eapply IHsuttF; auto. eapply suttF_inv_tau_left; auto.
   - (* doing induction when one of the trees is a tau doesn't work well *)
-    inv H1; pclearbot.
+    inv H; pclearbot.
     + clear t1 t2. genobs t0 ot0.
       hinduction EQTAUS0 before CIH; intros; subst; pclearbot.
       * constructor; eauto. simpobs. constructor. eauto.
@@ -193,13 +192,14 @@ Lemma sutt_bind' {E R1 R2 S1 S2} {RR: R1 -> R2 -> Prop} {SS: S1 -> S2 -> Prop}:
                   @sutt E _ _ SS (ITree.bind t1 s1) (ITree.bind t2 s2).
 Proof.
   pcofix self. pstep. intros.
-  punfold H0.
-  rewrite 2 unfold_bind_.
+  punfold H0. unfold observe; cbn.
   induction H0; intros.
   - simpl. apply H1 in H. punfold H. eapply monotone_suttF; eauto using upaco2_mon_bot.
   - simpl. pclearbot. econstructor. eauto.
   - constructor. eauto with paco.
-  - constructor. pclearbot. rewrite (itree_eta' ot2), <- unfold_bind_. eauto.
+  - constructor. pclearbot.
+    right. specialize (self t0 (go ot2) EQTAUS _ _ H1).
+    apply self.
 Qed.
 
 Require Import Coq.Relations.Relations.

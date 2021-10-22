@@ -37,6 +37,7 @@ Require Import Imp.
 Import Monads.
 Import MonadNotation.
 Local Open Scope monad_scope.
+Local Open Scope itree_scope.
 Import ImpNotations.
 Local Open Scope imp_scope.
 From Paco Require Import paco.
@@ -260,15 +261,15 @@ Qed.
 
 (*can actually make this nicer*)
 Lemma compile_while : forall (b : bexp) (c : com), 
-                             (denote_imp ( WHILE b DO c END )) ≈ MonadIter_stateT0 unit unit 
+                             ((denote_imp ( WHILE b DO c END )) ≈ MonadIter_stateT0 unit unit 
                                          (fun _ : unit => bind (interp_imp (denote_bexp b)) 
                                                                (fun b : bool => if b 
                                                                          then bind (denote_imp c) (fun _ : unit => interp_imp (Ret (inl tt)) )  
-                                                                         else interp_imp (Ret (inr tt))) ) tt.
+                                                                         else interp_imp (Ret (inr tt))) ) tt)%monad.
 Proof.
   intros. simpl. unfold denote_imp. simpl. unfold while. unfold interp_imp at 1, interp_map at 1.
   cbn. red. red. intros. symmetry.
-  rewrite interp_iter. 
+  rewrite interp_iter. do 3 red.
   match goal with | |- _ ≈ ?m _ => set m as while_denote; fold while_denote end.
   assert (Hwhile_rewrite : state_eq while_denote while_denote); try reflexivity.
   unfold while_denote in Hwhile_rewrite at 2.
@@ -302,8 +303,18 @@ Proof.
   rewrite Hbc in H1. clear Hbc.
   specialize (loop_invar_state env unit unit) as Hloop. unfold State in Hloop.
   rename H1 into Heutt. rename H0 into Hs.
-  match type of Heutt with MonadIter_stateT0 unit unit ?g tt _ ≈ _ => set g as body end.
-
+  set ((fun _ : unit =>
+             b <-
+             interp_imp
+               (denote_bexp b);;
+             (if b
+              then
+               _ <- denote_imp c;;
+               interp_imp
+                 (Ret (inl tt))
+              else
+               interp_imp
+                 (Ret (inr tt))))) as body.
   split.
   - set (fun (t : Delay (env * unit) ) => 
            (exists s, t ≈ ret (s,tt) /\ is_false b s) \/ divergence t
@@ -521,8 +532,9 @@ Proof.
         -- destruct a as [s3 [] ]. unfold q in Ht. basic_solve.
            ++ rewrite  H3 in H0. basic_solve.
               unfold q. left. exists s3. split; try (left; reflexivity). symmetry in H2.
+              cbn in H0. pinversion H0. subst. injection REL; intros; subst.
               eapply H; eauto.
-           ++ rewrite H3 in H0. basic_solve.
+           ++ rewrite H3 in H0. cbn in *; basic_solve; pinversion H0; try discriminate; basic_solve. 
            ++ rewrite <- H0 in H3. pinversion H3.
         -- rewrite <- H0. setoid_rewrite bind_ret_l. setoid_rewrite bind_bind.
            do 4 red in H1. unfold interp_imp, interp_map in H1. rewrite H1.
@@ -536,8 +548,8 @@ Proof.
            tau_steps. reflexivity.
         -- unfold q. left. exists s''. split; try (right; reflexivity). unfold q in Ht.
            basic_solve.
-           ++ rewrite H3 in H0. basic_solve. auto.
-           ++ rewrite H3 in H0. basic_solve.
+           ++ rewrite H3 in H0. basic_solve. auto. pinversion H0. injection REL; intros; subst; auto.
+           ++ rewrite H3 in H0. basic_solve. pinversion H0. discriminate.
            ++ rewrite <- H0 in H3. pinversion H3.
         -- rewrite <- H0. setoid_rewrite bind_ret_l. 
            setoid_rewrite bind_bind.
@@ -547,16 +559,16 @@ Proof.
         -- unfold q. left. exists s''.
            split; try (right; reflexivity). unfold q in Ht.
            basic_solve.
-           ++ rewrite H3 in H0. basic_solve. auto.
-           ++ rewrite H3 in H0. basic_solve.
+           ++ rewrite H3 in H0. basic_solve. pinversion H0; injection REL; intros; subst; auto.
+           ++ rewrite H3 in H0. basic_solve. pinversion H0; discriminate.
            ++ rewrite <- H0 in H3. pinversion H3.
      * destruct b0 as [s'' [] ]. eapply Hq.
        -- rewrite <- H0. setoid_rewrite bind_ret_l.
           reflexivity.
        -- unfold q. left. exists s''. split; try (right; reflexivity).
           unfold q in Ht. basic_solve.
-          ++ rewrite H1 in H0. basic_solve.
-          ++ rewrite H1 in H0. basic_solve. auto.
+          ++ rewrite H1 in H0. basic_solve. pinversion H0. discriminate.
+          ++ rewrite H1 in H0. basic_solve. pinversion H0; injection REL; intros; subst; auto.
           ++ rewrite <- H0 in H1. pinversion H1.
      * clear Ht. unfold q. right. apply div_spin_eutt in H0.
        rewrite H0. rewrite <- spin_bind. apply spin_div.
@@ -890,8 +902,8 @@ Section SQRTEx.
     eapply intro_not_wf with (P := fun s => lookup_default n 0 s = n0) (f := fun s => inc_var i s); auto.
     - intros s0 s1 Hinv Heval. unfold body_arrow in Heval. simpl in Heval.
       rewrite Hinv in Heval. eqbdestruct (lookup_default i 0 s0 * lookup_default i 0 s0) n0.
-      + simpl in *. basic_solve.
-      + simpl in Heval. basic_solve. unfold inc_var. rewrite lookup_neq; auto.
+      + simpl in *. basic_solve. pinversion Heval; discriminate.
+      + simpl in Heval. basic_solve. pinversion Heval. injection REL; intros; subst. unfold inc_var. rewrite lookup_neq; auto.
     - intros s' Hinv. unfold body_arrow. simpl. rewrite Hinv.
       eqbdestruct (lookup_default i 0 s' * lookup_default i 0 s') n0; simpl.
       + exfalso. eapply H; apply Heq.
@@ -912,15 +924,14 @@ Section SQRTEx.
       unfold body_arrow in Heutt. simpl in Heutt.
       destruct Hs1 as [Hsqrt1 Hconst].
       eqbdestruct (lookup_default i 0 s1 * lookup_default i 0 s1) (lookup_default n 0 s1);
-        simpl in *; basic_solve. 
+        simpl in *; basic_solve; pinversion Heutt; try discriminate; injection REL; intros; subst.
       split.
       + unfold inc_var. rewrite lookup_eq.
         nia.
       + unfold inc_var. rewrite lookup_neq; auto.
     - intros s1 s2 Hs1 Heutt. unfold body_arrow in Heutt. simpl in *.
-      eqbdestruct (lookup_default i 0 s1 * lookup_default i 0 s1) (lookup_default n 0 s1).
-      + simpl in *. basic_solve.
-      + simpl in *. basic_solve.
+      eqbdestruct (lookup_default i 0 s1 * lookup_default i 0 s1) (lookup_default n 0 s1); simpl in *;
+        pinversion Heutt; try discriminate; injection REL; intros; subst.
         unfold inc_var. rewrite lookup_eq. nia.
     - split; nia.
  Qed.
@@ -962,7 +973,7 @@ Section SQRTEx.
     eenough (exists s', _ ≈ Ret (s',tt) ).
     {
       destruct H as [s' H] . exists s'.
-      match goal with |- ?m s ≈ _ => fold (run_state_itree s m) end.
+      match goal with |- (?m s ≈ _)%monad => fold (run_state_itree s m) end.
       rewrite compile_nat_sqrt_body. unfold run_state_itree. apply H.
     }
     specialize (iter_wf_converge_state unit unit env (fun _ : unit => body_arrow) ) as Hconv.
@@ -1052,10 +1063,12 @@ Section SQRTEx.
           -- rewrite H. simpl. rewrite bind_ret_l. unfold DelaySpecMonad.iter_lift, iso_destatify_arrow, reassoc.
              simpl. reflexivity. 
           -- eqbdestruct (lookup_default i 0 s0 * lookup_default i 0 s0) (lookup_default n 0 s0).
-             ++ simpl. red. exists s0. rewrite bind_ret_l. split; auto. right. unfold get, n0. 
+             ++ simpl. red. exists s0. setoid_rewrite Heq.
+                rewrite Nat.eqb_refl.
+                cbn. rewrite bind_ret_l. split; auto. right. unfold get, n0. 
                 split; try reflexivity.
-                unfold env in Heq. rewrite Heq. auto.
-             ++ simpl. red. exists (inc_var i s0). rewrite bind_ret_l. split; auto.
+                unfold env in Heq.  rewrite Heq. auto.
+             ++ simpl. red. exists (inc_var i s0).  apply Nat.eqb_neq in Heq as Heq'. setoid_rewrite Heq'. simpl. rewrite bind_ret_l. split; auto.
                 ** left. split; try reflexivity. unfold get, inc_var. rewrite lookup_eq.
                    unfold get in H1. red in Hpre. basic_solve. unfold get in H0. unfold n0 in *.
                    rewrite <- Hpre. rewrite <- H0 in H1. rewrite <- Hpre in H0. unfold env in *.  rewrite H0 in Heq.

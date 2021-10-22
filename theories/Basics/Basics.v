@@ -17,7 +17,9 @@ From ExtLib Require Import
      Data.Monads.OptionMonad
      Data.Monads.EitherMonad.
 
-Import MonadNotation.
+Import
+  FunctorNotation
+  MonadNotation.
 Local Open Scope monad.
 (* end hide *)
 
@@ -52,6 +54,9 @@ Definition identity (a : Type) : Type := a.
 Definition stateT (s : Type) (m : Type -> Type) (a : Type) : Type :=
   s -> m (prod s a).
 Definition state (s a : Type) := s -> prod s a.
+
+Definition liftState {s a f} `{Functor f} (fa : f a) : Monads.stateT s f a :=
+  fun s => pair s <$> fa.
 
 Definition readerT (r : Type) (m : Type -> Type) (a : Type) : Type :=
   r -> m a.
@@ -168,7 +173,7 @@ Definition prod_pred {A B : Type} (PA : A -> Prop) (PB : B -> Prop) : A * B -> P
   fun '(a,b) => PA a /\ PB b.
 
 Definition TT {A : Type} : A -> Prop := fun _ => True.
-Hint Unfold TT sum_pred prod_pred: core.
+Global Hint Unfold TT sum_pred prod_pred: core.
 
 Global Instance equiv_pred_refl  {A} : Reflexive (@equiv_pred A).
 Proof.

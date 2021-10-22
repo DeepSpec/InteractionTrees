@@ -55,7 +55,7 @@ Proof.
   generalize dependent t2. pcofix CIH. intros t2 Ht2.
   pstep. red.
   punfold Ht2. red in Ht2.
-  unfold ITree.bind at 1, observe at 3. cbn in *.
+  unfold ITree.bind at 1. unfold observe at 2. cbn in *.
   inv Ht2; ITraceFacts.inj_existT; subst; try contra_size; try contradiction; try rewrite <- H; cbn;
   try unpriv_halt; right; eapply CIH;  pclearbot; eauto;
   try (pfold; rewrite H in H1; apply H1).
@@ -97,26 +97,26 @@ Proof.
   punfold Ht12. red in Ht12.
   genobs t1 ot1. genobs t2 ot2.
   hinduction Ht12 before r; intros; eauto.
-  - pstep. red. unfold ITree.bind, observe. unfold observe in *. cbn.
+  - pstep. red. unfold ITree.bind, observe. unfold observe. cbn.
     rewrite <- Heqot1. rewrite <- Heqot2. pstep_reverse.
     eapply paco2_mon; eauto.
-  - pstep. red. unfold ITree.bind, observe. unfold observe in *. cbn.
+  - pstep. red. unfold ITree.bind, observe. unfold observe. cbn.
     rewrite <- Heqot1. rewrite <- Heqot2. cbn. constructor. right. eapply CIH. pclearbot.
     auto.
   - pstep. red. unfold ITree.bind at 1, observe at 1. cbn.
     rewrite <- Heqot1. cbn. constructor; auto. pstep_reverse.
   - pstep. red. unfold ITree.bind at 2, observe at 2. cbn.
     rewrite <- Heqot2. cbn. constructor; auto. pstep_reverse.
-  - pstep. red. unfold ITree.bind, observe. unfold observe in *. cbn.
+  - pstep. red. unfold ITree.bind, observe. unfold observe. cbn.
     rewrite <- Heqot1. rewrite <- Heqot2. cbn. pclearbot.
     constructor; auto. right. eapply CIH; eauto. apply H.
-  - pstep. red. unfold ITree.bind, observe. unfold observe in *. cbn.
+  - pstep. red. unfold ITree.bind, observe. unfold observe. cbn.
     rewrite <- Heqot1. rewrite <- Heqot2. cbn. unpriv_co.
     right. pclearbot. eapply CIH; apply H.
-  - pstep. red. unfold ITree.bind, observe. unfold observe in *. cbn.
+  - pstep. red. unfold ITree.bind, observe. unfold observe. cbn.
     rewrite <- Heqot1. rewrite <- Heqot2. cbn. unpriv_co.
     right. pclearbot. eapply CIH; apply H.
-  - pstep. red. unfold ITree.bind, observe. unfold observe in *. cbn.
+  - pstep. red. unfold ITree.bind, observe. unfold observe. cbn.
     rewrite <- Heqot1. rewrite <- Heqot2. cbn. unpriv_co.
     right. pclearbot. eapply CIH; apply H.
   - pstep. red. unfold ITree.bind at 1, observe at 1. cbn.
@@ -181,8 +181,9 @@ Proof.
   intros E B2 B1 A1 A2 RA RB b1 b2 Label priv l body1 body2 r A e k1 t0 SECCHECK SIZECHECK H.
   generalize dependent t0. pcofix CIH. intros t0 Ht0.
   pstep. red. cbn. unfold observe. cbn. punfold Ht0.
-  red in Ht0. cbn in *. inv Ht0; inv_vis_secure; cbn; pclearbot; unpriv_halt; try contra_size.
-  right. eapply CIH; eauto.
+  red in Ht0. cbn in *. inv Ht0; inv_vis_secure; cbn; pclearbot; unpriv_halt; try contra_size;
+    right; eauto.
+  eapply CIH; eauto. 
   rewrite H in H1. pfold. red. auto.
 Qed.
 
@@ -215,8 +216,9 @@ Proof.
   intros E B2 B1 A1 A2 RA RB b1 b2 Label priv l body1 body2 r A e t0 k2 SECCHECK SIZECHECK H.
   generalize dependent t0. pcofix CIH. intros t0 Ht0.
   pstep. red. cbn. unfold observe. cbn. punfold Ht0.
-  red in Ht0. cbn in *. inv Ht0; inv_vis_secure; cbn; pclearbot; unpriv_halt; try contra_size.
-  right. eapply CIH; eauto.
+  red in Ht0. cbn in *. inv Ht0; inv_vis_secure; cbn; pclearbot; unpriv_halt; try contra_size;
+  try (right; eauto).
+  eapply CIH; eauto.
   rewrite H0 in H1. pfold. red. auto.
 Qed.
 
@@ -257,30 +259,6 @@ Proof.
   - unpriv_halt. specialize (H b). left. eapply iter_bind_shalt_aux1; eauto.
   - unpriv_halt. specialize (H a). left. eapply iter_bind_shalt_aux2; eauto.
 Qed.
-
-
-(*
-
-    t1 ≈ t2 -> interp h t1 ≈ interp h t2
-
-    t ≈ t -> interp h t ≈ interp h t
-
-interp h := iter (interp_step h)
-   A := itree E R
-   B := R
-
-  RA := eqit_secure RR
-  RB := RR
-  body := interp_step
-
-
-  way to assign relations to individual events that
-
-  RX x1 x2 -> eqit_secure l RR (k x1) (k x2)
-
-  RX e1 e2 := if l <= priv e then ⊥ else
-
-*)
 
 
 Lemma secure_eqit_iter : forall E A1 A2 B1 B2 (RA : A1 -> A2 -> Prop) (RB : B1 -> B2 -> Prop)

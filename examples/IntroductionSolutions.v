@@ -1,16 +1,16 @@
 (** * Introduction to interaction trees *)
 
+(* HIDE *)
+(* THIS IS ACTUALLY THE SOLUTIONS FILE. TO DO THE EXERCISES, SEE
+   [tutorial/Introduction.v]. *)
+(* /HIDE *)
+
 (** This file contains exercises to get familiar with the
     Interaction Trees library, via the simplified
     interface of [theories/ITree/Simple.v].
 
-    The solutions can be found in [examples/Introduction.v].
+    The solutions can be found in [examples/IntroductionSolutions.v].
  *)
-
-(* HIDE *)
-(* This is actually the solutions file. To do the exercises, see
-   [tutorial/Introduction.v]. *)
-(* /HIDE *)
 
 (* begin hide *)
 From Coq Require Import
@@ -311,7 +311,7 @@ Fixpoint fib_spec (n : nat) : nat :=
   end.
 
 Definition fib_body : nat -> itree (callE nat nat +' E) nat
-  (* ADMITDEF *)  
+  (* ADMITDEF *)
   := fun n =>
     match n with
     | 0 => Ret 0

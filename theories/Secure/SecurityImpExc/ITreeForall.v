@@ -49,7 +49,7 @@ Definition itree_forall {E R} PE PR t := paco1 (itree_forall_ E R PE PR) bot1 t.
 
 Lemma itree_forall_proper_aux: forall (E : Type -> Type) (R : Type) (PE : forall A : Type, E A -> Prop)
                                   (PR : R -> Prop) (t1 t2 : itree E R),
-    (t1 ≈ t2)%itree -> itree_forall PE PR t1 -> itree_forall PE PR t2.
+    (t1 ≈ t2) -> itree_forall PE PR t1 -> itree_forall PE PR t2.
 Proof.
   intros E R PE PR. pcofix CIH. intros t1 t2 Heutt Hforall.
   pfold. red. punfold Hforall. red in Hforall.

@@ -20,16 +20,16 @@ From ITree Require Import
      Core.KTreeFacts
      Eq.Eq
      Eq.UpToTaus
+     Eq.Paco2
      Indexed.Sum
      Interp.Interp
      Interp.InterpFacts
      Interp.RecursionFacts
      Events.State.
 
-Import ITree.Basics.Basics.Monads.
 Import ITreeNotations.
 
-Open Scope itree_scope.
+Local Open Scope itree_scope.
 
 Import Monads.
 (* end hide *)
@@ -64,7 +64,7 @@ Instance eq_itree_interp_state {E F S R} (h : E ~> Monads.stateT S (itree F)) :
          (@interp_state _ _ _ _ _ _ h R).
 Proof.
   revert_until R.
-  ginit. gcofix CIH. intros h x y H0 x2 _ [].
+  ginit. pcofix CIH. intros h x y H0 x2 _ [].
   rewrite !unfold_interp_state.
   punfold H0; repeat red in H0.
   destruct H0; subst; pclearbot; try discriminate; cbn.
@@ -128,13 +128,13 @@ Lemma interp_state_bind {E F : Type -> Type} {A B S : Type}
     ≅
   (interp_state f t s >>= fun st => interp_state f (k (snd st)) (fst st)).
 Proof.
-  revert A t k s.
-  ginit. gcofix CIH.
-  intros A t k s.
-  rewrite unfold_bind. (* TODO: slow *)
+  revert t k s.
+  ginit. pcofix CIH.
+  intros t k s.
+  rewrite unfold_bind.
   rewrite (unfold_interp_state f t).
   destruct (observe t).
-  - cbn. rewrite !bind_ret_l. simpl.
+  - cbn. rewrite !bind_ret_l. cbn.
     apply reflexivity.
   - cbn. rewrite !bind_tau, interp_state_tau.
     gstep. econstructor. gbase. apply CIH.
@@ -144,6 +144,7 @@ Proof.
     + intros u2 ? [].
       rewrite bind_tau.
       gstep; constructor.
+      ITree.fold_subst.
       auto with paco.
 Qed.
 
@@ -151,7 +152,7 @@ Instance eutt_interp_state {E F: Type -> Type} {S : Type}
          (h : E ~> Monads.stateT S (itree F)) R RR :
   Proper (eutt RR ==> eq ==> eutt (prod_rel eq RR)) (@interp_state E (itree F) S _ _ _ h R).
 Proof.
-  repeat intro. subst. revert_until R.
+  repeat intro. subst. revert_until RR.
   einit. ecofix CIH. intros.
 
   rewrite !unfold_interp_state. punfold H0. red in H0.
@@ -242,7 +243,7 @@ Lemma eutt_interp_state_loop {E F S A B C} (RS : S -> S -> Prop)
           (interp_state h (loop t2 a) s2)).
 Proof.
   intros.
-  unfold loop, bimap, Bimap_Coproduct, case_, Case_Kleisli, Function.case_sum, id_, Id_Kleisli, cat, Cat_Kleisli; cbn.
+  unfold loop, bimap, Bimap_Coproduct, case_, Case_Kleisli, Function.case_sum, id_, Id_Kleisli, cat, Cat_Kleisli, inr_, Inr_Kleisli, inl_, Inl_Kleisli, lift_ktree_; cbn.
   rewrite 2 bind_ret_l.
   eapply (eutt_interp_state_iter eq eq); auto; intros.
   rewrite 2 interp_state_bind.
@@ -272,7 +273,7 @@ Lemma interp_state_iter {E F } S (f : E ~> stateT S (itree F)) {I A}
                   (Basics.iter t' i).
 Proof.
   unfold Basics.iter, MonadIter_stateT0, Basics.iter, MonadIter_itree in *; cbn.
-  ginit. gcofix CIH; intros i s.
+  ginit. pcofix CIH; intros i s.
   rewrite 2 unfold_iter; cbn.
   rewrite !bind_bind.
   setoid_rewrite bind_ret_l.

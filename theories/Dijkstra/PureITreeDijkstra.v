@@ -305,7 +305,7 @@ Lemma iterF_monotone {A B} (body:  (A -> PureITreeSpec (A + B)))
 
   (*Monad law proofs*)
   Lemma retpi_bindpi : forall A B (f : A -> PureITreeSpec B) (a : A), 
-      bind (ret a) f ≈ f a.
+      (bind (ret a) f ≈ f a)%monad.
   Proof.
     intros. split.
     - cbn. unfold _bindpi. unfold _retpi. intros. 
@@ -319,7 +319,7 @@ Lemma iterF_monotone {A B} (body:  (A -> PureITreeSpec (A + B)))
       + rewrite Heq.  auto.
   Qed.
 
-  Lemma bindpi_retpi : forall A (w : PureITreeSpec A), bind w (fun x => ret x) ≈ w.
+  Lemma bindpi_retpi : forall A (w : PureITreeSpec A), (bind w (fun x => ret x) ≈ w)%monad.
   Proof.
     intros. destruct w as [ w Hw]. split.
     - intros. simpl in *. unfold _bindpi in H.
@@ -339,7 +339,7 @@ Lemma iterF_monotone {A B} (body:  (A -> PureITreeSpec (A + B)))
 
   Lemma bindpi_bindpi : forall (A B C : Type) (w : PureITreeSpec A) 
                                (f : A -> PureITreeSpec B) (g : B -> PureITreeSpec C),
-      bind (bind w f) g ≈ bind w (fun a => bind (f a) g).
+      (bind (bind w f) g ≈ bind w (fun a => bind (f a) g))%monad.
     Proof.
       intros. destruct w as [w Hw]. simpl. split; intros.
       - simpl in *. eapply Hw; try apply H. intros t0. intros. destruct H0.
@@ -364,7 +364,15 @@ Lemma iterF_monotone {A B} (body:  (A -> PureITreeSpec (A + B)))
     - apply retpi_bindpi.
     - apply bindpi_retpi.
     - apply bindpi_bindpi.
-  Admitted. 
+    - intros. red. red. intros mx my Hxy. red. red. red. intros f g Hfg.
+      intros. red in Hfg. destruct mx as [ mx Hmx]. destruct my as [my Hmy].
+      cbn. unfold _bindpi. do 2 red in Hxy. cbn in Hxy.
+      rewrite Hxy. red in Hmy. split; intros; try eapply Hmy; eauto.
+      + intros. cbn in H0. destruct H0; eauto. left.
+        decompose record H0. exists x. split; auto. apply Hfg. auto.
+      + intros. cbn in H0. destruct H0; eauto. left.
+        decompose record H0. exists x. split; auto. apply Hfg. auto.
+  Qed.
 
   
   Instance PureITreeOrderM : OrderM PureITreeSpec :=
@@ -649,13 +657,13 @@ Lemma iterF_monotone {A B} (body:  (A -> PureITreeSpec (A + B)))
     exist _ (_obsip A t) (obsip_monot A t).
 
   (*Proof that this effect observation is a valid monad morphism*)
-  Lemma obsip_pres_ret : forall A (a : A), obsip A (ret a) ≈ ret a.
+  Lemma obsip_pres_ret : forall A (a : A), (obsip A (ret a) ≈ ret a)%monad.
   Proof.
     intros. intros p Hp. cbn. unfold _retpi, _obsip. tauto.
   Qed.
 
   Lemma obsip_pres_bind : forall A B (t : itree Void A) (f : A -> itree Void B),
-        obsip B (bind t f) ≈ bind (obsip A t) (fun a => obsip B (f a)).
+        (obsip B (bind t f) ≈ bind (obsip A t) (fun a => obsip B (f a)))%monad.
     Proof.
       intros. intros p Hp. cbn. unfold _obsip, _bindpi. split; intros.
       - specialize (eutt_reta_or_div A t) as Hor. destruct Hor.
@@ -672,7 +680,7 @@ Lemma iterF_monotone {A B} (body:  (A -> PureITreeSpec (A + B)))
     Qed.
 
     
-  Lemma obsip_eutt : forall A (t1 t2 : itree Void A), t1 ≈ t2 <-> obsip A t1 ≈ obsip A t2.
+  Lemma obsip_eutt : forall A (t1 t2 : itree Void A), t1 ≈ t2 <-> (obsip A t1 ≈ obsip A t2)%monad.
   Proof.
     split; intros; unfold obsip, _obsip in *; simpl in *.
     - intros p Hp. simpl. split; intros; eapply Hp; eauto.

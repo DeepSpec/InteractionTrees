@@ -268,7 +268,7 @@ Proof.
 Qed.
 
 Lemma trace_refine_proper_left' : forall (E : Type -> Type) (R : Type) (b1 b2 : itrace E R)
-                (t : itree E R), (b1 ≈ b2)%itree -> euttEv (REvRef E) (RAnsRef E) eq b1 t -> 
+                (t : itree E R), (b1 ≈ b2) -> euttEv (REvRef E) (RAnsRef E) eq b1 t -> 
                                  euttEv (REvRef E) (RAnsRef E) eq b2 t.
 Proof. 
   intros E R. pcofix CIH. intros. pfold. red.
@@ -306,7 +306,7 @@ Proof.
     + constructor. eapply IHeuttEvF; eauto.
     + pclearbot. constructor; auto. intros. apply H0 in H1. 
       pclearbot. right.
-      eapply CIH; eauto.
+      eapply CIH; eauto. 
   - eapply IHeqitF. remember (TauF t1) as otf1. 
     hinduction H1 before CIH; intros;  dependent destruction Heqotf1; eauto.
     + constructor. pclearbot. pstep_reverse.
@@ -344,7 +344,7 @@ Proof.
         clear IHeuttEvF. hinduction H1 before CIH; intros; dependent destruction x0.
         ++ constructor. eapply IHeuttEvF; eauto.
         ++ constructor; auto. intros. apply H0 in H1.
-           pclearbot. right. eapply CIH; eauto. apply REL.
+           pclearbot. right. eapply CIH; eauto.
       * eapply IHeuttEvF; eauto.
       * constructor. rewrite <- x. eapply IHREL; eauto.
   - remember (VisF e k1) as ot1. hinduction H1 before CIH; intros; inv Heqot1.

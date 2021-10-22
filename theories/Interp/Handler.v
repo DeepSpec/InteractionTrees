@@ -19,9 +19,8 @@ From ITree Require Import
      Interp.Recursion.
 
 Import ITree.Basics.Basics.Monads.
-Import ITreeNotations.
 
-Open Scope itree_scope.
+Local Open Scope itree_scope.
 
 (* end hide *)
 

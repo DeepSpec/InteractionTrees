@@ -34,8 +34,6 @@ From ITree Require Import
      Secure.SecurityImpExc.SecurityImp
      Secure.SecurityImpExc.SecurityImpHandler
      Secure.StrongBisimProper
-     Secure.SecurityImpExc.RaiseException
-     Secure.SecurityImpExc.ITreeForall
 .
 
 Import Monads.
@@ -44,6 +42,29 @@ Local Open Scope monad_scope.
 Local Open Scope string_scope.
 
 Instance sense_preorder_in : Preorder := sense_preorder.
+
+Definition join (s1 s2 : sensitivity) :=
+  match s1 with
+  | Public => s2
+  | Private => Private end.
+
+Ltac case_leq l1 l2 := destruct (classic (@leq sense_preorder l1 l2) ).
+
+Lemma leq_sense_trans (l1 l2 l3 : sensitivity) : leq l1 l2 -> leq l2 l3 -> leq l1 l3.
+Proof.
+  intros. destruct l1; auto.
+  destruct l2; destruct l3; auto.
+Qed.
+
+Lemma leq_sense_join_l (l1 l2 : sensitivity) : leq l1 (join l1 l2).
+Proof.
+  destruct l1; destruct l2; cbn; auto.
+Qed.
+
+Lemma leq_sense_join_r (l1 l2 : sensitivity) : leq l2 (join l1 l2).
+Proof.
+  destruct l1; destruct l2; cbn; auto.
+Qed.
 
 Notation label := sensitivity.
 
@@ -458,24 +479,6 @@ Proof.
   setoid_rewrite interp_state_trigger. cbn. eexists; reflexivity.
 Qed.
 
-
-
-Lemma assign_max_exception_label x e σ : max_exception_label_coind Public (sem_stmt (Assign x e) σ ).
-Proof.
-  specialize (assign_only_ret e x σ) as Haor. destruct Haor as [σ' Haor].
-  setoid_rewrite Haor. apply itree_forall_ret. auto.
-Qed.
-
-Lemma output_max_exception_label e l σ: max_exception_label_coind Public (sem_stmt (Output l e ) σ ).
-Proof.
-  unfold sem_stmt, interp_imp. cbn. setoid_rewrite interp_state_bind.
-  apply itree_forall_bind with (PS := fun _ => True).
-  - specialize (expr_only_ret' e σ) as [n Hn]. rewrite Hn. apply itree_forall_ret. auto.
-  - intros [σ' v] _. setoid_rewrite interp_state_trigger. cbn.
-    setoid_rewrite bind_trigger. apply itree_forall_vis; intros; try apply itree_forall_ret; auto.
-    constructor.
-Qed.
-
 Lemma output_well_typed_correct l1 le pc e : 
   secure_expr le e -> leq (join le pc) l1 ->
   secure_stmt pc (Output l1 e).
@@ -740,37 +743,6 @@ Proof.
        eapply secure_eqit_bind; try eapply expr_only_ret_aux1; eauto.
        setoid_rewrite interp_state_ret. setoid_rewrite bind_ret_l. cbn.
        intros [σ3 v1] [σ4 v2] [Hσ _ ]. destruct v1; cbn in *; eauto.
-Qed.
-
-Lemma if_max_label e s1 s2 lexn1 lexn2: (forall σ, max_exception_label_coind lexn1 (sem_stmt s1 σ)) -> (forall σ, max_exception_label_coind lexn2 (sem_stmt s2 σ)) ->
-                                        forall σ, max_exception_label_coind (join lexn1 lexn2) (sem_stmt (If e s1 s2) σ).
-Proof.
-  intros Hc1 Hc2. unfold sem_stmt, interp_imp. cbn. intros.
-  setoid_rewrite interp_state_bind. specialize (expr_only_ret' e σ) as [n Hn].
-  rewrite Hn. rewrite bind_ret_l. destruct n; simpl; auto.
-  eapply max_exception_mon; eauto. apply leq_sense_join_r.
-  eapply max_exception_mon; eauto. apply leq_sense_join_l.
-Qed.
-
-(* maybe it would be easier to solve this problem in a more abstract way with monads rather than stmts*)
-Lemma while_max_label lexn e s :(forall σ, max_exception_label_coind lexn (sem_stmt s σ)) ->
-                                 forall σ, max_exception_label_coind lexn (sem_stmt (While e s) σ).
-Proof.
-  intros Hc. 
-  unfold sem_stmt, interp_imp. cbn. unfold while.
-  specialize @interp_state_iter' as Hisi. red in Hisi. 
-  setoid_rewrite Hisi.
-  unfold Basics.iter, MonadIter_stateT0, Basics.iter, MonadIter_itree.
-  cbn. intros. eapply itree_forall_iter_ev. intros [s' [] ].
-  setoid_rewrite interp_state_bind. cbn. specialize (expr_only_ret' e s') as [n Hn].
-  rewrite Hn. rewrite bind_ret_l. cbn. destruct n.
-  - rewrite interp_state_ret. rewrite bind_ret_l. cbn. apply itree_forall_ret. auto.
-  - apply itree_forall_bind with (PS := fun _ => True).
-    + setoid_rewrite interp_state_bind. 
-      apply itree_forall_bind with (PS := fun _ => True); try apply H.
-      intros. apply Hc. intros [σ' [] ] _. setoid_rewrite interp_state_ret. 
-      apply itree_forall_ret; auto.
-    + intros. apply itree_forall_ret. auto.
 Qed.
 
 Lemma while_well_typed_correct e s :

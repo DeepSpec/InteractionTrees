@@ -30,6 +30,7 @@ theories/Core/ITreeMonad.v
 theories/Core/Divergence.v
 
 theories/Eq.v
+theories/Eq/Paco2.v
 theories/Eq/Shallow.v
 theories/Eq/Eq.v
 theories/Eq/UpToTaus.v
@@ -63,6 +64,7 @@ theories/Events/MapDefault.v
 theories/Events/MapDefaultFacts.v
 theories/Events/Concurrency.v
 theories/Events/Dependent.v
+theories/Events/FailFacts.v
 
 theories/Dijkstra/DijkstraMonad.v
 theories/Dijkstra/IterRel.v
@@ -108,7 +110,6 @@ theories/Secure/SecurityImpExc/SecurityAsmCombinators.v
 theories/Secure/SecurityImpExc/SecurityImp2Asm.v
 theories/Secure/SecurityImpExc/SecurityImp2AsmCorrectness.v
 theories/Secure/SecurityImpExc/ITreeForall.v
-theories/Secure/SecurityImpExc/RaiseException.v
 theories/Secure/SecurityImpExc/SecurityImpTypes.v
 theories/Secure/SecurityImpExc/SecurityImp2AsmSecurityPres.v
 

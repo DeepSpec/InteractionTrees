@@ -289,11 +289,11 @@ Proof.
   - inv EQVl; pclearbot; try inv CHECK.
     + constructor; auto. gclo. econstructor; cycle -1; eauto with paco.
     + constructor; auto. gclo. econstructor; cycle -1; eauto with paco.
-      apply eqit_inv_tauR. pfold. auto.
+      apply eqit_inv_Tau_r. pfold. auto.
   - inv EQVr; pclearbot; try inv CHECK.
     + constructor; auto. gclo. econstructor; cycle -1; eauto with paco.
     + constructor; auto. gclo. econstructor; cycle -1; eauto with paco.
-      apply eqit_inv_tauR. pfold. auto.
+      apply eqit_inv_Tau_r. pfold. auto.
   - remember (VisF e k1) as x.
     hinduction EQVl before r; intros; inv Heqx; try inv CHECK; eauto.
     + ITraceFacts.inj_existT. subst. remember (VisF e0 k3) as y.

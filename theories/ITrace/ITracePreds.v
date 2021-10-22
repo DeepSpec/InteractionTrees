@@ -63,7 +63,7 @@ Definition trace_forall {E R} PE PR := paco1 (@trace_forall_ E R PE PR) bot1.
 
 Lemma trace_forall_proper_aux: forall (E : Type -> Type) (R : Type) (PE : forall A : Type, EvAns E A -> Prop)
                                   (PR : R -> Prop) (b1 b2 : itree (EvAns E) R),
-    (b1 ≈ b2)%itree -> trace_forall PE PR b1 -> trace_forall PE PR b2.
+    (b1 ≈ b2) -> trace_forall PE PR b1 -> trace_forall PE PR b2.
 Proof.
   intros E R PE PR. pcofix CIH. intros b1 b2 Heutt Hforall.
   pfold. red. punfold Hforall. red in Hforall.
@@ -126,7 +126,7 @@ Inductive front_and_last {E : Type -> Type} {R : Type} (PEF : forall A, EvAns E 
 
 Lemma fal_proper_aux: forall (E : Type -> Type) (R : Type) (PEF PEL : forall A : Type, EvAns E A -> Prop)
                         (PR : R -> Prop) (b1 b2 : itree (EvAns E) R),
-    (b1 ≈ b2)%itree -> front_and_last PEF PEL PR b1 -> front_and_last PEF PEL PR b2.
+    (b1 ≈ b2) -> front_and_last PEF PEL PR b1 -> front_and_last PEF PEL PR b2.
 Proof.
   intros E R PEF PEL PR b1 b2 Heutt Hfal.
   generalize dependent b2. induction Hfal; intros.
@@ -172,7 +172,7 @@ Hint Resolve trace_inf_often_monot : paco.
 Definition state_machine PEv PRet (tr : itrace E R) :  Prop := paco3 (state_machine_) bot3 PEv PRet tr.
 
 Lemma state_machine_proper_aux : forall PEv PRet (t1 t2 : itrace E R), 
-    (t1 ≈ t2)%itree -> state_machine PEv PRet t1 -> state_machine PEv PRet t2.
+    (t1 ≈ t2) -> state_machine PEv PRet t1 -> state_machine PEv PRet t2.
 Proof.
   pcofix CIH. intros PEV PREt t1 t2 Heutt Hsm. pfold. red.
   punfold Hsm; try apply monotone_state_machine.
@@ -180,7 +180,7 @@ Proof.
   induction Hsm.
   - remember (RetF r0) as ot1. induction Heutt; subst; auto; try discriminate.
     injection Heqot1; intros; subst; auto.
-  - apply IHHsm. pstep_reverse. assert (Tau t ≈ t2)%itree; auto.
+  - apply IHHsm. pstep_reverse. assert (Tau t ≈ t2); auto.
     rewrite tau_eutt in H. auto.
   - remember (VisF (evans A e a) k ) as ot1. induction Heutt; subst; auto; try discriminate.
     injection Heqot1; intros; subst. apply inj_pair2 in H2. apply inj_pair2 in H1.

@@ -119,9 +119,22 @@ Proof.
   reflexivity.
 Qed.
 
+Context {t : obj}.
+Context {Terminal_t : Terminal C t}.
+Context {TerminalObject_t : TerminalObject C t}.
+
+(** The terminal morphism is unique. *)
+Lemma terminal_unique :
+  forall a (f g : C a t), f ⩯ g.
+Proof.
+  intros.
+  rewrite (terminal_object f), (terminal_object g).
+  reflexivity.
+Qed.
+
 End CategoryFacts.
 
-Hint Resolve @initial_unique : cat.
+Global Hint Resolve initial_unique : cat.
 
 (** ** Bifunctors *)
 
@@ -399,6 +412,287 @@ Lemma swap_bimap' {a b c d} (ab : C a b) (cd : C c d) :
 Proof. cat_auto'. Qed.
 
 End CoproductFacts.
+
+
+(** ** Products *)
+
+Section ProductFacts.
+
+Context {obj : Type} {C : Hom obj}.
+
+Context {Eq2_C : Eq2 C}.
+Context {E_Eq2_C : forall a b, @Equivalence (C a b) eq2}.
+
+Context {Id_C : Id_ C} {Cat_C : Cat C}.
+
+Context {Category_C : Category C}.
+
+Context {bif : binop obj}.
+Context {Prod_C : Pair C bif}
+        {Fst_C : Fst C bif}
+        {Snd_C : Snd C bif}.
+Context {Product_C : Product C bif}.
+
+Lemma pair_fst' {a b c d} (ca : C c a) (cb : C c b) (dc : C d c)
+  : dc >>> pair_ ca cb >>> fst_ ⩯ dc >>> ca.
+Proof.
+  rewrite cat_assoc, pair_fst. reflexivity.
+Qed.
+
+Lemma pair_snd' {a b c d} (ca : C c a) (cb : C c b) (dc : C d c)
+  : dc >>> pair_ ca cb >>> snd_ ⩯ dc >>> cb.
+Proof.
+  rewrite cat_assoc, pair_snd. reflexivity.
+Qed.
+
+(** Commute [cat] and [pair_]. *)
+Lemma pair_cat {a b c d} (ab : C a b) (bc : C b c) (bd : C b d) 
+  : (ab >>> pair_ bc bd ⩯ pair_ (ab >>> bc) (ab >>> bd)).
+Proof.
+  apply pair_universal.
+  - rewrite pair_fst'; reflexivity.
+  - rewrite pair_snd'; reflexivity.
+Qed.
+
+(** Pair of projections is the identity. *)
+Corollary pair_eta {a b} : id_ (bif a b) ⩯ pair_ fst_ snd_.
+Proof.
+  apply pair_universal; rewrite cat_id_l; reflexivity.
+Qed.
+
+Lemma pair_eta' {a b c} (f : C a (bif b c)) :
+  f ⩯ pair_ (f >>> fst_) (f >>> snd_).
+Proof.
+  eapply pair_universal; reflexivity.
+Qed.
+
+(** We can prove the equivalence of morphisms on coproducts
+    by case analysis. *)
+Lemma pair_split {a b c} (f g : C a (bif b c)) :
+  (f >>> fst_ ⩯ g >>> fst_) ->
+  (f >>> snd_ ⩯ g >>> snd_) ->
+  f ⩯ g.
+Proof.
+  intros. rewrite (pair_eta' g).
+  apply pair_universal; assumption.
+Qed.
+
+Existing Instance Bimap_Product.
+Existing Instance Swap_Product.
+Existing Instance AssocR_Product.
+Existing Instance AssocL_Product.
+Existing Instance UnitL_Product.
+Existing Instance UnitL'_Product.
+Existing Instance UnitR_Product.
+Existing Instance UnitR'_Product.
+
+Ltac unfold_product :=
+  unfold
+    bimap, Bimap_Product,
+    assoc_r, AssocR_Product,
+    assoc_l, AssocL_Product,
+    unit_l, UnitL_Product,
+    unit_l', UnitL'_Product,
+    unit_r, UnitR_Product,
+    unit_r', UnitR'_Product,
+    swap, Swap_Product.
+
+(* Simplify expressions involving products. *)
+Ltac cat_auto_simpl_prod :=
+  match goal with
+  | [ |- eq2 ?lhs ?rhs ] =>
+    repeat (rewrite cat_id_l || rewrite cat_id_r
+     || rewrite pair_fst || rewrite <- (cat_assoc (pair_ _ _) fst_), pair_fst 
+     || rewrite pair_snd || rewrite <- (cat_assoc (pair_ _ _) snd_), pair_snd
+     || rewrite !cat_assoc);
+    reflexivity || eauto with cat
+  end.
+
+Ltac cat_auto_prod :=
+  unfold_product;
+  repeat progress (reflexivity || (try cat_auto_simpl_prod); try apply pair_split).
+
+Ltac cat_auto_prod' :=
+  repeat intro;
+  repeat match goal with
+         | [ |- eq2 _ _ ] => fail 1
+         | _ => red
+         end;
+  cat_auto_prod.
+
+
+Lemma swap_pair (a b c: obj) (f: C a b) (g: C a c)
+  : pair_ f g >>> swap ⩯ pair_ g f.
+Proof.
+  intros; unfold swap, Swap_Product.
+  rewrite pair_cat, pair_fst, pair_snd.  
+  reflexivity.
+Qed.
+
+Lemma swap_snd {a b} : swap_ a b >>> snd_ ⩯ fst_.
+Proof. apply pair_snd. Qed.
+
+Lemma swap_fst {a b} : swap_ a b >>> fst_ ⩯ snd_.
+Proof. apply pair_fst. Qed.
+
+Lemma bimap_pair_unfold {a b c d} (f : C a b) (g : C c d)
+  : bimap f g ⩯ pair_ (fst_ >>> f) (snd_ >>> g).
+Proof. reflexivity. Qed.
+
+Lemma bimap_fst {a b c d} (f : C a b) (g : C c d)
+  : bimap f g >>> fst_ ⩯ fst_ >>> f.
+Proof. apply pair_fst. Qed.
+
+Lemma bimap_snd {a b c d} (f : C a b) (g : C c d)
+  : bimap f g >>> snd_ ⩯ snd_ >>> g.
+Proof. apply pair_snd. Qed.
+
+Lemma pair_bimap {a b b' c c'}
+      (fb : C a b) (fc : C a c) (gb : C b b') (gc : C c c')
+  : pair_ fb fc >>> bimap gb gc ⩯ pair_ (fb >>> gb) (fc >>> gc).
+Proof. cat_auto_prod'. Qed.
+
+Lemma assoc_r_fst {a b c}
+  : assoc_r_ a b c >>> fst_ ⩯ fst_ >>> fst_.
+Proof. cat_auto_prod'. Qed.
+
+Lemma assoc_l_snd {a b c}
+  : assoc_l_ a b c >>> snd_ ⩯ snd_ >>> snd_.
+Proof. cat_auto_prod'. Qed.
+
+Lemma assoc_l_fst {a b c}
+  : assoc_l_ a b c >>> fst_ ⩯ bimap (id_ a) fst_.
+Proof. cat_auto_prod'. Qed.
+
+
+Lemma assoc_r_snd {a b c}
+  : assoc_r_ a b c >>> snd_ ⩯ bimap snd_ (id_ c).
+Proof. cat_auto_prod'. Qed.
+
+(** The product is a bifunctor. *)
+
+(* These Instances are kept local and should be made explicit locally using
+     [Existing Instance] to avoid clashes with the cocartesian instances
+ *)
+Instance Proper_Bimap_Product {a b c d}:
+  @Proper (C a b -> C c d -> _)
+          (eq2 ==> eq2 ==> eq2) bimap.
+Proof.
+  intros ac ac' eqac bd bd' eqbd.
+  unfold bimap, Bimap_Product.
+  rewrite eqac, eqbd; reflexivity.
+Qed.
+
+Instance BimapId_Product : BimapId C bif.
+Proof.
+  intros A B.
+  symmetry. unfold bimap, Bimap_Product.
+  rewrite 2 cat_id_r.
+  apply pair_eta.
+Qed.
+
+Instance BimapCat_Product : BimapCat C bif.
+Proof. cat_auto_prod'. Qed.
+
+Instance Bifunctor_Product : Bifunctor C bif.
+Proof.
+  constructor; typeclasses eauto.
+Qed.
+
+(** The coproduct is commutative *)
+
+Instance SwapInvolutive_Product {a b : obj}
+  : SemiIso C (swap_ a b) swap.
+Proof. cat_auto_prod'. Qed.
+
+(** The coproduct is associative *)
+
+Instance AssocRMono_Product {a b c : obj}
+  : SemiIso C (assoc_r_ a b c) assoc_l.
+Proof. cat_auto_prod'. Qed.
+
+Instance AssocLMono_Product {a b c : obj}
+  : SemiIso C (assoc_l_ a b c) assoc_r.
+Proof. cat_auto_prod'. Qed.
+
+Context (t : obj).
+Context {Terminal_t : Terminal C t}.
+Context {TerminalObject_t : TerminalObject C t}.
+
+(** The product has units. *)
+
+Instance UnitLMono_Product {a : obj}
+  : SemiIso C (unit_l_ t a) unit_l'.
+Proof. cat_auto_prod'. rewrite terminal_unique. reflexivity. Qed.
+
+(* TODO: derive this by symmetry *)
+Global Instance UnitRMono_Product {a : obj}
+  : SemiIso C (unit_r_ t a) unit_r'.
+Proof. cat_auto_prod'. rewrite terminal_unique. reflexivity. Qed.
+
+Global Instance UnitLEpi_Product {a : obj}
+  : SemiIso C (unit_l'_ t a) unit_l.
+Proof. cat_auto_prod'. Qed.
+
+Global Instance UnitREpi_Product {a : obj}
+  : SemiIso C (unit_r'_ t a) unit_r.
+Proof. cat_auto_prod'. Qed.
+
+Lemma unit_l'_snd {a} : unit_l' >>> snd_ ⩯ id_ a.
+Proof. apply (semi_iso _ _). Qed.
+
+Lemma unit_r'_fst {a} : unit_r' >>> fst_ ⩯ id_ a.
+Proof. apply (semi_iso _ _). Qed.
+
+Instance UnitLNatural_Product : UnitLNatural C bif t.
+Proof. cat_auto_prod'. Qed.
+
+Instance UnitL'Natural_Product : UnitL'Natural C bif t.
+Proof. cat_auto_prod'. rewrite terminal_unique. reflexivity. Qed.
+
+(** The product satisfies the monoidal coherence laws. *)
+
+Instance AssocRUnit_Product : AssocRUnit C bif t.
+Proof. cat_auto_prod'. Qed.
+
+Instance AssocRAssocR_Product : AssocRAssocR C bif.
+Proof. cat_auto_prod'. Qed.
+
+Instance Monoidal_Product : Monoidal C bif t.
+Proof.
+  constructor; idtac + constructor; typeclasses eauto.
+Qed.
+
+Instance AssocLAssocL_Product : AssocLAssocL C bif.
+Proof. cat_auto_prod'. Qed.
+
+(** The coproduct satisfies the symmetric monoidal laws. *)
+
+Instance SwapUnitL_Product : SwapUnitL C bif t.
+Proof. cat_auto_prod'. Qed.
+
+Instance SwapAssocR_Product : SwapAssocR C bif.
+Proof. cat_auto_prod'. Qed.
+
+Instance SwapAssocL_Product : SwapAssocL C bif.
+Proof. cat_auto_prod'. Qed.
+
+Instance SymMonoidal_Product : SymMonoidal C bif t.
+Proof.
+  constructor; typeclasses eauto.
+Qed.
+
+Lemma swap_bimap_prod {a b c d} (ab : C a b) (cd : C c d) :
+  bimap ab cd ⩯ (swap >>> bimap cd ab >>> swap).
+Proof. cat_auto_prod'. Qed.
+
+(* Naturality of swap *)
+Lemma swap_bimap_prod' {a b c d} (ab : C a b) (cd : C c d) :
+  swap >>> bimap ab cd ⩯ bimap cd ab >>> swap.
+Proof. cat_auto_prod'. Qed.
+
+End ProductFacts.
+
 
 Ltac cat_auto_step :=
   repeat (apply category_proper_cat; [ reflexivity | ]);

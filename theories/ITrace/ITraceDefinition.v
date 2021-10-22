@@ -109,3 +109,5 @@ Inductive can_converge {E : Type -> Type} {A : Type} (a : A) : itree E A -> Prop
 Hint Constructors can_converge.
 
 Definition finite {E : Type -> Type} (s : ev_stream E) : Prop := can_converge tt s.
+
+Global Instance itrace_eq {E} : Eq1 (itrace E) := ITreeMonad.Eq1_ITree.

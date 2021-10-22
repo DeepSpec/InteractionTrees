@@ -191,10 +191,9 @@ Section ITreeDijkstra.
       cbn. rewrite Ht.
       assert (ITree.bind (Tau t0) f ≅ Tau (ITree.bind t0 f)); try apply bind_tau.
       setoid_rewrite H1. etau.
-      apply euttG_base. right. apply CIH. auto.
     - specialize (itree_eta t) as Ht. rewrite <- H in Ht.
-      cbn. rewrite Ht. rewrite bind_vis. evis. cbn in CIH0. intros.
-      apply euttG_base. left. apply CIH0. apply H0.
+      cbn. rewrite Ht. rewrite bind_vis. evis. intros.
+      apply euttG_base. left. apply CIHH. apply H0.
   Qed. 
 
   Lemma eutt_subrel : forall (A B : Type) (R1 R2 : A -> B -> Prop)

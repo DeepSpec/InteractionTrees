@@ -97,6 +97,7 @@ Local Open Scope cat.
 
 Import Monads.
 Open Scope monad_scope.
+Open Scope itree_scope.
 
 (* end hide *)
 
@@ -406,9 +407,9 @@ End Bisimulation.
     equations commuting the denotation with the combinator.  *)
 
 Section Linking.
-
+  
   Import KTreeFin.
-
+  Open Scope monad_scope.
   (** [seq_asm] is denoted as the (horizontal) composition of denotations. *)
   Lemma seq_asm_correct {A B C} (ab : asm A B) (bc : asm B C) :
       denote_asm (seq_asm ab bc)
@@ -419,7 +420,6 @@ Section Linking.
     rewrite fmap_id0, cat_id_r, fmap_swap.
     apply cat_from_loop.
   Qed.
-
   (** [if_asm] is denoted as the ktree first denoting the branching condition,
       then looking-up the appropriate variable and following with either denotation. *)
   Lemma if_asm_correct {A} (e : list instr) (tp fp : asm 1 A) :
@@ -725,7 +725,7 @@ Section Correctness.
     do 2 setoid_rewrite interp_state_bind. setoid_rewrite bind_bind. repeat setoid_rewrite interp_state_trigger.
     setoid_rewrite interp_state_ret. cbn. tau_steps.
     unfold get_reg. destruct HSIM as [? [? ?] ]. rewrite H1.
-    apply eqit_Vis. intros []. repeat rewrite bind_ret_l.
+    apply eqit_Vis. intros []. repeat setoid_rewrite bind_ret_l.
     apply eqit_Ret. cbn. split; auto.
   Qed.
 

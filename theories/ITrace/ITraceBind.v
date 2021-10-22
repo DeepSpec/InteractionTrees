@@ -108,7 +108,7 @@ Qed.
 
  *)
 
-Lemma peel_t_ret : forall E R S (b : itrace E S) (t : itree E R) r, t ≅ Ret r -> (peel b t ≅ Ret r)%itree.
+Lemma peel_t_ret : forall E R S (b : itrace E S) (t : itree E R) r, t ≅ Ret r -> (peel b t ≅ Ret r).
 Proof.
   intros.  unfold peel.
   pinversion H; subst; try inv CHECK.
@@ -227,7 +227,7 @@ Qed.
 
 Lemma proper_peel_eutt_l : forall (E : Type -> Type) (R S : Type) 
                              (b b': itrace E R) (t : itree E S),
-    (b ≈ b')%itree -> (peel b t ≈ peel b' t)%itree.
+    (b ≈ b') -> (peel b t ≈ peel b' t).
 Proof.
   intros E R S. pcofix CIH. intros. unfold peel.
   destruct (observe t).
@@ -336,7 +336,7 @@ Qed.
 
 Lemma proper_peel_eutt_r : forall (E : Type -> Type) (R S : Type) 
                              (b: itrace E R) (t t': itree E S),
-    (t ≈ t')%itree -> (peel b t ≈ peel b t')%itree.
+    (t ≈ t') -> (peel b t ≈ peel b t').
 Proof.
   intros E R S. pcofix CIH. intros.
   pfold. red. unfold peel. destruct (observe b) eqn : Heqb.
@@ -455,7 +455,7 @@ Qed.
 
 Lemma not_peel_vis_ret: forall (R : Type) (E : Type -> Type) (S X : Type) (e : E X) (k : X -> itree E R) 
                           (r : R) (t1 : itree (EvAns E) S),
-    ~ (peel t1 (Vis e k) ≈ Ret r)%itree.
+    ~ (peel t1 (Vis e k) ≈ Ret r).
 Proof.
   intros R E S X e k r t1 Heutt.
   punfold Heutt. unfold peel in *. red in Heutt. cbn in *.
@@ -482,7 +482,7 @@ Qed.
 
 Lemma peel_ret_inv:
         forall (R : Type) (r : R) (E : Type -> Type) (S : Type) (b : itrace E S) (t : itree E R),
-          (peel b t ≈ Ret r)%itree -> (t ≈ Ret r)%itree.
+          (peel b t ≈ Ret r) -> (t ≈ Ret r).
 Proof.
   intros R r E S b t H. unfold peel in H.
   punfold H. red in H. cbn in H. pfold. red. cbn.
@@ -558,7 +558,7 @@ Lemma eqitF_observe_peel_cont_vis:
     (forall v : unit, id (upaco2 (eqit_ eq true true id) bot2) (k1 v) (k2 v)) ->
     forall r : itree (EvAns E) R -> itree (EvAns E) R -> Prop,
       (forall (b b' : itrace E R) (t : itree E S),
-          (b ≈ b')%itree ->
+          (b ≈ b') ->
           r (peel_cont_ (observe b) (observe t)) (peel_cont_ (observe b') (observe t))) ->
       forall (X : Type) (e : E X) (k : X -> itree E S),
         eqitF eq true true id (upaco2 (eqit_ eq true true id) r)
@@ -577,7 +577,7 @@ Qed.
 
 Lemma proper_peel_cont_eutt_l : forall (E : Type -> Type) (R S : Type) 
                              (b b': itrace E R) (t : itree E S) (s : S),
-    (b ≈ b')%itree -> (peel_cont b t s ≈ peel_cont b' t s)%itree.
+    (b ≈ b') -> (peel_cont b t s ≈ peel_cont b' t s).
 Proof.
   intros E R S. unfold peel_cont. intros b b' t _.
   revert b b' t. pcofix CIH. intros. pfold. punfold H0. red in H0.
@@ -628,7 +628,7 @@ Proof.
 Qed.
 
 Lemma peel_cont_ret_inv : forall E R S (b : itrace E R) (t : itree E S) (s : S),
-    t ≈ Ret s -> (peel_cont_ (observe b) (observe t) ≈ b)%itree.
+    t ≈ Ret s -> (peel_cont_ (observe b) (observe t) ≈ b).
 Proof.
   intros E R S. pcofix CIH. intros. punfold H0. red in H0. cbn in H0. dependent induction H0; subst.
   - rewrite <- x. cbn. pfold. red. cbn. apply eqitF_r_refl.
@@ -647,7 +647,7 @@ Qed.
 
 Lemma proper_peel_cont_eutt_r : forall (E : Type -> Type) (R S : Type) 
                              (b: itrace E R) (t t': itree E S) (s : S),
-    (t ≈ t')%itree -> (peel_cont b t s ≈ peel_cont b t' s)%itree.
+    (t ≈ t') -> (peel_cont b t s ≈ peel_cont b t' s).
 Proof. 
   intros E R S. unfold peel_cont. intros b t t' _.
   revert b t t'. pcofix CIH. intros. pfold. punfold H0. red in H0. dependent induction H0.
@@ -682,7 +682,7 @@ Proof.
    + constructor; auto. rewrite <- Heqb. eapply IHeqitF; eauto.
    + destruct (observe t) eqn : Heqt; cbn.
      * constructor. left. eapply paco2_mon with (r := bot2); intuition. 
-       enough (t0 ≈ peel_cont_ (observe t0) (observe t2) )%itree. auto.
+       enough (t0 ≈ peel_cont_ (observe t0) (observe t2) ). auto.
        symmetry.
        eapply peel_cont_ret_inv with (s := r0). symmetry. pfold. auto.
      * constructor. right. eapply CIH. rewrite <- tau_eutt at 1. pfold. auto.
@@ -698,7 +698,7 @@ Proof.
 Qed.
 (*
 Lemma peel_cont_bind : forall (E : Type -> Type) (R S : Type) (b : itrace E S) (t : itree E R) (f : R -> itree E S),
-    b ⊑ ITree.bind t f -> (ITree.bind (peel b t) (peel_cont b t) ≈ b)%itree.
+    b ⊑ ITree.bind t f -> (ITree.bind (peel b t) (peel_cont b t) ≈ b).
 Proof.
   intros E R S. pcofix CIH. intros. punfold H0. pfold. red. red in H0. cbn in *.
   unfold ITree.bind in H0. unfold ITree.bind. cbn in *.
@@ -707,8 +707,8 @@ Proof.
 (*may need an analgous lemma for *)
 Lemma vis_refine_peel : forall (E : Type -> Type) (R S A : Type) (e : E A) (a : A)
                    (k1: unit -> itrace E S) (k2 : A -> itree E R) (k3 : unit -> itrace E R),
-        (peel (Vis (evans _ e a) k1) (Vis e k2) ≈ Vis (evans _ e a) k3)%itree -> 
-        (k3 tt ≈ peel (k1 tt) (k2 a))%itree.
+        (peel (Vis (evans _ e a) k1) (Vis e k2) ≈ Vis (evans _ e a) k3) -> 
+        (k3 tt ≈ peel (k1 tt) (k2 a)).
 Proof.
   intros E R S A. (* pcofix CIH. *) intros e a k1 k2 k3 Hpeel.
   unfold peel in *. cbn in *. punfold Hpeel.
@@ -720,21 +720,21 @@ Proof.
   remember (eq_sym e0) as He. dependent destruction He. cbn in *.
   clear HeqHe e0 H. pfold. red. cbn. inv Hpeel. inj_existT. subst.
   clear H. pclearbot. specialize (REL tt).
-  assert (peel_ (observe (k1 tt)) (observe (k2 a)) ≈ k3 tt )%itree. auto.
+  assert (peel_ (observe (k1 tt)) (observe (k2 a)) ≈ k3 tt ). auto.
   symmetry in H. punfold H.
 Qed.
 
 Lemma vis_refine_peel_cont :  forall (E : Type -> Type) (R S A : Type) (e : E A) (a : A)
                    (k1: unit -> itrace E S) (k2 : A -> itree E R) (t : itrace E S),
-        (peel_cont_ (VisF (evans _ e a) k1) (VisF e k2) ≈ t)%itree -> 
-        (t ≈ peel_cont_ (observe (k1 tt)) (observe (k2 a)))%itree.
+        (peel_cont_ (VisF (evans _ e a) k1) (VisF e k2) ≈ t) -> 
+        (t ≈ peel_cont_ (observe (k1 tt)) (observe (k2 a))).
 Proof.
   intros E R S A e a k1 k2 t Hpeelcont. punfold Hpeelcont. red in Hpeelcont.
   unfold observe in Hpeelcont at 1. cbn in *. unfold peel_cont_vis in *.
   assert (A = A); auto. destruct (classicT (A = A) ); try contradiction.
   unfold eq_rect_r, eq_rect in *. remember (eq_sym e0) as He.
   dependent destruction He. cbn in *. symmetry.
-  assert (Tau (peel_cont_ (observe (k1 tt)) (observe (k2 a) ) )  ≈ t )%itree.
+  assert (Tau (peel_cont_ (observe (k1 tt)) (observe (k2 a) ) )  ≈ t ).
   { pfold. auto. }
   rewrite tau_eutt in H0. auto.
 Qed.
@@ -766,7 +766,7 @@ Qed.
 Lemma vis_peel_l : forall (E : Type -> Type) (R S A : Type) (e : E A) (a : A)
   (b : itrace E S) (t : itree E R) (f : R -> itree E S) (k : unit -> itrace E R),
   b ⊑ ITree.bind t f ->
-  (peel b t ≈ Vis (evans _ e a) k)%itree -> exists k', (b ≈ Vis (evans _ e a) k')%itree.
+  (peel b t ≈ Vis (evans _ e a) k) -> exists k', (b ≈ Vis (evans _ e a) k').
 Proof.
   intros E R S A e a b t f k Href Hpeel. 
   punfold Hpeel. red in Hpeel. cbn in Hpeel. dependent induction Hpeel.
@@ -820,7 +820,7 @@ Qed.
 Lemma vis_peel_r : forall (E : Type -> Type) (R S A : Type) (e : E A) (a : A)
   (b : itrace E S) (t : itree E R) (f : R -> itree E S) (k : unit -> itrace E R),
   b ⊑ ITree.bind t f ->
-  (peel b t ≈ Vis (evans _ e a) k)%itree -> exists k', (t ≈ Vis e k')%itree.
+  (peel b t ≈ Vis (evans _ e a) k) -> exists k', (t ≈ Vis e k').
 Proof.
   intros E R S A e a b t f k Href Hpeel.
   eapply vis_peel_l in Hpeel as Hpeell; eauto. destruct Hpeell as [k' Hb].
@@ -847,7 +847,7 @@ Qed.
 
 Lemma peel_cont_vis_eutt: forall (R : Type) (r : R) (E : Type -> Type) (S A : Type) (ev : E A) 
                             (ans : A) (kb : unit -> itree (EvAns E) S) (kt : A -> itree E R),
-    (peel_cont (Vis (evans A ev ans) kb) (Vis ev kt) r ≈ peel_cont (kb tt) (kt ans) r)%itree.
+    (peel_cont (Vis (evans A ev ans) kb) (Vis ev kt) r ≈ peel_cont (kb tt) (kt ans) r).
 Proof.
   intros R r E S A ev ans kb kt.
   pfold. cbn. red. unfold observe at 1. cbn in *. unfold peel_cont_vis.
@@ -862,7 +862,7 @@ Lemma peel_cont_refine_t : forall (E : Type -> Type) (R S : Type)
      (HeuttEv : b ⊑ ITree.bind t f),
     can_converge r (peel b t) -> peel_cont b t r ⊑ f r.
 Proof.
-  intros. remember (peel b t) as t'. assert (peel b t ≈ t')%itree.
+  intros. remember (peel b t) as t'. assert (peel b t ≈ t').
   { subst. reflexivity. }
   clear Heqt'. generalize dependent b. generalize dependent t.
   induction H; intros.
@@ -888,7 +888,7 @@ Proof.
 Qed.
 
 Ltac fold_eutt := match goal with |- paco2 _ _ ?t1 ?t2 => 
-                                  eapply paco2_mon with (r := bot2); intuition; enough (t1 ≈ t2)%itree; auto end.
+                                  eapply paco2_mon with (r := bot2); intuition; enough (t1 ≈ t2); auto end.
 
 Ltac fold_peel_cont r := match goal with |- context [peel_cont_ (observe ?b) (observe ?t) ] => 
             assert (Hfpc : forall r, peel_cont_ (observe b) (observe t) = peel_cont b t r ); auto; rewrite (Hfpc r); 
@@ -918,7 +918,7 @@ Proof.
       + injection x as Ht1. symmetry in Ht0. apply simpobs in Ht0.
         apply eq_sub_eutt in Ht0 as Ht0'. setoid_rewrite Ht0'.
         setoid_rewrite tau_eutt. eapply IHHeuttEv; eauto.
-        rewrite Ht1. eauto.
+        rewrite Ht1. eauto. subst. cbn. unfold ITree.bind. reflexivity.
   }
   destruct H as [s Ht0]. punfold Ht0. red in Ht0. cbn in Ht0.
   clear Heqt HeuttEv.
@@ -1065,7 +1065,7 @@ Proof.
       punfold Ht0. red in Ht0. cbn in *.
       destruct e.
       * inv H1. inj_existT; subst. cbn. constructor.
-        eapply trace_prefix_vis_evans; eauto. pfold. auto.
+        eapply trace_prefix_vis_evans; eauto. 
       * eapply trace_prefix_vis_evempty; eauto.
     + rewrite Heqt in Href. rewrite Ht0 in Href.
       rewrite tau_eutt in Href. rewrite bind_ret_l in Href. clear Hvis.
@@ -1089,7 +1089,7 @@ Qed.
 
 Lemma peel_bind : forall (E : Type -> Type) (S R : Type) (b : itrace E R) (t : itree E S)
   (f : S -> itree E R),
-    b ⊑ ITree.bind t f -> exists g, (ITree.bind (peel b t) g ≈ b)%itree.
+    b ⊑ ITree.bind t f -> exists g, (ITree.bind (peel b t) g ≈ b).
 Proof.
   intros. apply trace_prefix_bind. eapply trace_prefix_peel; eauto.
 Qed.
@@ -1120,7 +1120,7 @@ Qed.
 (* maybe this should be the axiom *)
 Lemma decompose_trace_refine_bind : forall (E : Type -> Type) (R S : Type)
                                        (b : itrace E S) (t : itree E R) (f : R -> itree E S),
-    b ⊑ t >>= f -> exists b', exists g', (ITree.bind b' g' ≈ b)%itree /\ b' ⊑ t.
+    b ⊑ t >>= f -> exists b', exists g', (ITree.bind b' g' ≈ b) /\ b' ⊑ t.
 Proof.
   intros. exists (peel b t).
   apply peel_bind in H as Heutt. destruct Heutt as [g Heutt].

@@ -29,7 +29,6 @@ From ITree Require Import
      Secure.SecureEqHalt
      Secure.SecurityImpExc.SecurityImp
      Secure.SecurityImpExc.SecurityImpHandler
-     Secure.SecurityImpExc.RaiseException
      Secure.SecureEqProgInsens
      Secure.SecureEqProgInsensFacts
 .

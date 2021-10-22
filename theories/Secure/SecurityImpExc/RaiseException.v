@@ -210,7 +210,8 @@ Proof.
            exists (Vis (inr1 (LabelledPrint s0 v)) (fun _ => t'') ). split.
            { eapply conv_vis. reflexivity. eauto. Unshelve. apply tt. }
            setoid_rewrite bind_vis. apply eqit_Vis. intros []. auto.
-        -- cbn. cbn in Ht'. rewrite Hkxa in Ht'. rewrite bind_vis in Ht'.  apply eqit_inv_vis in Ht'.
+        -- cbn. cbn in Ht'. rewrite Hkxa in Ht'. rewrite bind_vis in Ht'. 
+           eapply eqit_inv_Vis in Ht'; eauto.
            destruct Ht'. destruct b. apply H1.
       * destruct Ht'' as [ [s1 r1] [Hm1s1 Hm2s2] ]. cbn in Hm2s2.
        enough (leq lmax lexn2). eapply leq_sense_trans; eauto. apply leq_sense_join_r.

@@ -92,7 +92,7 @@ Lemma trace_prefix_proper_aux_vis: forall (E : Type -> Type) (S R : Type)
                      (observe t1) (VisF e k) ->
       (forall (b1 b2 : itrace E R)
          (b : itrace E S),
-          (b1 ≈ b2)%itree ->
+          (b1 ≈ b2) ->
           trace_prefix b1 b -> r b2 b) ->
         trace_prefixF (upaco2 trace_prefix_ r)
         (observe b2) (VisF e k).
@@ -103,7 +103,7 @@ Proof.
     + rewrite <- x. apply trace_prefix_ret.
     + rewrite <- x. constructor. eapply IHHeutt; eauto.
   - eapply IHtrace_prefixF; auto.
-    apply simpobs in x. assert (t1 ≈ b2)%itree; auto.
+    apply simpobs in x. assert (t1 ≈ b2); auto.
     rewrite x in H. rewrite tau_eutt in H. punfold H.
   - rewrite <- x in Heutt. dependent induction Heutt.
     + rewrite <- x. constructor.
@@ -134,7 +134,7 @@ Proof.
 Qed.
 
 Lemma trace_prefix_proper_l : forall E R S (b1 b2 : itrace E R) (b : itrace E S),
-    (b1 ≈ b2)%itree -> trace_prefix b1 b -> trace_prefix b2 b.
+    (b1 ≈ b2) -> trace_prefix b1 b -> trace_prefix b2 b.
 Proof.
   intros E R S. pcofix CIH. intros b1 b2 b Heutt Hbp.
   pfold. red. punfold Heutt. red in Heutt. punfold Hbp. red in Hbp.
@@ -192,7 +192,7 @@ Proof.
         ++ rewrite <- x. apply trace_prefix_ret.
         ++ rewrite <- x. constructor. eapply IHHeutt; eauto.
        * eapply IHtrace_prefixF; auto.
-         assert (t1 ≈ b2)%itree; auto.
+         assert (t1 ≈ b2); auto.
          apply simpobs in x. rewrite x in H. rewrite tau_eutt in H. punfold H.
     + constructor. eapply IHHeutt; eauto. pstep_reverse. eapply trace_prefix_tau_inv; eauto.
     + clear IHHeutt. inv Hbp. eapply trace_prefix_proper_aux_vis; eauto.
@@ -226,7 +226,7 @@ Lemma trace_prefixF_vis_l:
                      (VisF e k) (observe m1) ->
       (forall (b : itrace E R)
          (b1 b2 : itrace E S),
-          (b1 ≈ b2)%itree ->
+          (b1 ≈ b2) ->
           trace_prefix b b1 -> r b b2 ) ->
       trace_prefixF (upaco2 trace_prefix_ r) 
                      (VisF e k) (observe m2).
@@ -247,7 +247,7 @@ Proof.
 Qed.
 
 Lemma trace_prefix_proper_r : forall E R S (b : itrace E R) (b1 b2 : itrace E S),
-    (b1 ≈ b2)%itree -> trace_prefix b b1 -> trace_prefix b b2.
+    (b1 ≈ b2) -> trace_prefix b b1 -> trace_prefix b b2.
 Proof.
   intros E R S. pcofix CIH. intros b b1 b2 Heutt Hbp.
   punfold Heutt. red in Heutt. punfold Hbp. red in Hbp.
@@ -282,7 +282,7 @@ Qed.
 Inductive ind_comb {E R S} : itrace E R -> itrace E S -> itrace E S -> Prop :=
   | left_ret_comb (r : R) b1 b2 b : (b1 ≈ Ret r)%itree -> (b2 ≈ b)%itree -> ind_comb b1 b2 b
   | left_vis_comb {A : Type} (e : E A) (ans : A) (k1 : unit -> itrace E R) (k2 : unit -> itrace E S) b1 b2 b 
-    : (b1 ≈ Vis (evans _ e ans) k1)%itree -> (b ≈ (Vis (evans _ e ans) k2 ))%itree -> ind_comb (k1 tt) b2 (k2 tt) -> 
+    : (b1 ≈ Vis (evans _ e ans) k1) -> (b ≈ (Vis (evans _ e ans) k2 ))%itree -> ind_comb (k1 tt) b2 (k2 tt) -> 
     ind_comb b1 b2 b.
 
 
@@ -346,7 +346,7 @@ Proof.
 Qed.
 
 Lemma trace_prefix_bind : forall E R S (b1 : itrace E R) (b2 : itrace E S),
-    trace_prefix b1 b2 -> exists g, (ITree.bind b1 g ≈ b2)%itree.
+    trace_prefix b1 b2 -> exists g, (ITree.bind b1 g ≈ b2).
 Proof.
   intros. destruct (classic_converge _ _ b1).
   - destruct H0 as [r Hconv]. eapply converge_trace_prefix in Hconv; eauto.

@@ -22,5 +22,5 @@ Definition iter_spin : itree void1 void :=
 
 Require Extraction.
 
-(* This should NOT loop forever. *)
-Extraction "output/test.ml" iter_spin.
+(* This program should NOT loop forever. *)
+Extraction "test.ml" iter_spin.

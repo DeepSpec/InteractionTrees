@@ -52,11 +52,10 @@ SAZ: This needs to be updated.
  *)
 
 (* begin hide *)
-Require Import Imp Asm Utils_tutorial AsmCombinators Imp2Asm Fin KTreeFin.
-
-Require Import Psatz.
+From ITreeTutorial Require Import Imp Asm Utils_tutorial AsmCombinators Imp2Asm Fin KTreeFin.
 
 From Coq Require Import
+     Psatz
      Strings.String
      List
      Program.Basics
@@ -85,10 +84,8 @@ Import ListNotations.
 Open Scope string_scope.
 
 Import CatNotations.
-Local Open Scope cat.
-
-Import Monads.
-Open Scope monad_scope.
+Local Open Scope cat_scope.
+Local Open Scope itree_scope.
 
 (* end hide *)
 

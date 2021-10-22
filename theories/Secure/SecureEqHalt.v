@@ -58,7 +58,7 @@ Section SecureUntimed.
   Context (priv : forall A, E A -> L).
   Context (RR : R1 -> R2 -> Prop).
 
-
+  Coercion is_true : bool >-> Sortclass.
   Inductive secure_eqitF (b1 b2 : bool) (l : L) vclo (sim : itree E R1 -> itree E R2 -> Prop) : itree' E R1 -> itree' E R2 -> Prop :=
 
     (* eqitF constructors *)

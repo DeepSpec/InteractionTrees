@@ -12,13 +12,17 @@ From Coq Require Import
      Classes.Morphisms
      ProofIrrelevance.
 
+From Paco Require Import paco.
+
 From ExtLib Require Import
      Monads.
 
 From ITree Require Import
      ITree
      ITreeFacts
-     DijkstraMonad.
+     DijkstraMonad
+     Eq.Paco2.
+.
 
 From Paco Require Import paco.
 
@@ -70,9 +74,9 @@ Qed.
 (* Rewriting ---------------------------------------------------------------- *)
 
 (* To enable rewriting under the [interpret_state] function, we need to show
-   that it respects ≅.  In practice, this means instantiating the typeclass 
+   that it respects ≅.  In practice, this means instantiating the typeclass
    [Proper] so that the setoid rewrite tactics recognize that interpret_state
-   is such a morphism.  
+   is such a morphism.
 
    These proofs are pretty straightforward, but there are a few gotchas:
 
@@ -83,7 +87,7 @@ Qed.
      because the extra "observes" get in the way of later using the CIH after
      we've made some progress in the proof.
 
-   - We need to use [inj_pair2] to get equality of the projected components 
+   - We need to use [inj_pair2] to get equality of the projected components
      of the VisF constructor, which means that we rely on ProofIrrelevance.
 *)
 
@@ -97,8 +101,8 @@ Section Proper.
    *)
   Instance proper_interpret_state {S R} : Proper ((@eq_itree (stateE S) R _ eq) ==> (@eq S) ==> (@eq_itree void1 (S * R) _ eq)) interpret_state.
   Proof.
-    ginit. gcofix CIH.
-    intros x y H0 x2 y0 H1. 
+    ginit. pcofix CIH.
+    intros x y H0 x2 y0 H1.
     rewrite (itree_eta (interpret_state x x2)).
     rewrite (itree_eta (interpret_state y y0)).
     rewrite !unfold_interpret_state. subst.
@@ -141,14 +145,14 @@ Section Proper.
 (* Due to the separation of the [itree] definition into [itreeF] and [itree] proper,
    it is convenient to split up the [NoGets] predicate in an analogous way. *)
 
-(* First, we define [NoGetsF]. It takes as input [rec], which will be instantiated to 
+(* First, we define [NoGetsF]. It takes as input [rec], which will be instantiated to
    the [NoGets] predicate for subtrees.  It yields a predicate on [itreeF] nodes. *)
 
 Variant NoGetsF {S R} (rec : itree (stateE S) R -> Prop) : itreeF (stateE S) R (itree (stateE S) R) -> Prop :=
 | isRet : forall (r:R), NoGetsF rec (RetF r)
 | isTau : forall t, rec t -> NoGetsF rec (TauF t)
 | isPut : forall (k : unit -> itree (stateE S) R), forall (s:S), rec (k tt) -> NoGetsF rec (VisF (Put s) k).
-Hint Constructors NoGetsF.
+Global Hint Constructors NoGetsF : core.
 
 
 (* Next, we lift the [NoGetsF] predicate through the [itree] [go] constructor
@@ -159,7 +163,7 @@ Hint Constructors NoGetsF.
 (* SAZ: n.b. for some reason, we have adopted the [Foo_] notational convention
    for the predicate transformer whose greatest fixpoint is [Foo].  Is this good?
 
-   SAZ: Actually, I see that we're inconsistent between [eq_itree] and [eutt] 
+   SAZ: Actually, I see that we're inconsistent between [eq_itree] and [eutt]
    with these naming conventions.
  *)
 
@@ -168,17 +172,17 @@ Definition NoGets_ {S R} (rec : itree (stateE S) R -> Prop) (t : itree (stateE S
 
 
 (* Next, we need to prove that [NoGets_] is a monotone function on relations,
-   which means that paco can take its greatest fixpoint.  Monotonicity of 
+   which means that paco can take its greatest fixpoint.  Monotonicity of
    [NoGets_] depends on monotonicity of [NoGetsF].
 
    Fortunately, paco provides the tactic [pmonauto] which almost always discharges
-   these proofs.  It also provides the definitions monotone1, monotone2, etc. 
+   these proofs.  It also provides the definitions monotone1, monotone2, etc.
    for monotonicity at different arities of relations.
 *)
 
-(* SAZ: Arguably, the LE fact should be defined via some named property.  In 
+(* SAZ: Arguably, the LE fact should be defined via some named property.  In
    the Coq Relationclasses library, there is a definition of subrelation, which
-   is the binary version of this.  It might be more uniform to have 
+   is the binary version of this.  It might be more uniform to have
    subrelation1, subrelation2, subrelation3, etc. for different arities.
 
    SAZ: It's a bit of a wart that, due to NoGetsF transforming predicates on
@@ -190,16 +194,16 @@ Lemma monotone_NoGetsF : forall {S R} t (r r' : itree (stateE S) R -> Prop)
   (IN: NoGetsF r t) (LE: forall y, r y -> r' y), NoGetsF r' t.
 Proof.
   pmonauto.
-Qed.  
+Qed.
 
-(* SAZ: we need to do a couple of reductions to expose the structure of 
+(* SAZ: we need to do a couple of reductions to expose the structure of
    the lemma so that pmonauto can work.  Note that [cbn] and [simple]
    don't work here because they don't unfold the definitions.  *)
 Lemma monotone_NoGets_ : forall {S R}, monotone1 (@NoGets_ S R).
 Proof.
   do 2 red. pmonauto.
 Qed.
-Hint Resolve monotone_NoGets_ : paco.
+Global Hint Resolve monotone_NoGets_ : paco.
 
 (* Finally, we can define the [NoGets] predicate by simply applying paco1
    starting from bot1 (the least prediate).  We would use paco2 and bot2 for a
@@ -211,28 +215,28 @@ Definition NoGets {S R} : itree (stateE S) R -> Prop := paco1 NoGets_ bot1.
 (* Using a coinductive predicate -------------------------------------------- *)
 
 (* Now that we have defined [NoGets], we can use that predicate to do a
-   coinductive proof.  Intuitively, if we interpret an itree of type 
+   coinductive proof.  Intuitively, if we interpret an itree of type
    [itree (stateE S) R] that satisfies the [NoGets] predicate, it does
    not matter what initial state it runs in.
 
    To state this correctly, we have to "project away" the final state component
-   that is produced by the monad, since the two final states might 
+   that is produced by the monad, since the two final states might
    differ.
 
    Some notes about this proof:
 
    - In general, rewriting up to ≅ or ≈ can take place only under the
      "up to" paco context.  This means that to do the [rewrite (itree_eta ...)]
-     steps, we have to have done [pupto2_init] first.  
+     steps, we have to have done [pupto2_init] first.
  *)
 
-Lemma state_independent : forall {S R} (t:itree (stateE S) R) 
+Lemma state_independent : forall {S R} (t:itree (stateE S) R)
                             (H: NoGets t),
     forall s s', ('(s,x) <- interpret_state t s ;; ret x) ≅ ('(s,x) <- interpret_state t s' ;; ret x).
 Proof.
   intros S R.
-  ginit. gcofix CIH.
-  intros t H0 s s'. 
+  ginit. pcofix CIH.
+  intros t H0 s s'.
   rewrite (itree_eta (interpret_state t s)).
   rewrite (itree_eta (interpret_state t s')).
   rewrite !unfold_interpret_state.
@@ -255,16 +259,16 @@ Qed.
    This proof illustrates the use of paco2_mon -- monotonicity means that if we assume
    that [k (s, x) ≅ k (s', x))] then [k (s, x)] is related to [k (s', x)] at any "later"
    step of the cofixpoint.  e.g. in the proof below we need them related at [r].
-*) 
-Lemma state_independent_k : forall {S R U} (t:itree (stateE S) R) 
+*)
+Lemma state_independent_k : forall {S R U} (t:itree (stateE S) R)
                             (H: NoGets t)
                             (k: (S * R) -> itree void1 U)
     (INV: forall s s' x, k (s, x) ≅ k (s', x)),
     forall s s', (sx <- interpret_state t s ;; (k sx)) ≅ (sx <- interpret_state t s' ;; (k sx)).
 Proof.
   intros S R U.
-  ginit. gcofix CIH.
-  intros t H0 k INV s s'. 
+  ginit. pcofix CIH.
+  intros t H0 k INV s s'.
   rewrite (itree_eta (interpret_state t s)).
   rewrite (itree_eta (interpret_state t s')).
   rewrite !unfold_interpret_state.
@@ -285,7 +289,7 @@ Qed.
 
 
 
-Theorem state_independent': forall {S R} (t:itree (stateE S) R) 
+Theorem state_independent': forall {S R} (t:itree (stateE S) R)
                             (H: NoGets t),
                              forall s s', ('(s,x) <- interpret_state t s ;; ret x) ≅ ('(s,x) <- interpret_state t s' ;; ret x).
 Proof.
@@ -293,6 +297,4 @@ Proof.
   eapply state_independent_k; eauto.
   intros.
   reflexivity.
-Qed.  
-
-
+Qed.

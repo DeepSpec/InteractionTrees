@@ -99,6 +99,7 @@ Local Open Scope cat.
 
 Import Monads.
 Open Scope monad_scope.
+Open Scope itree_scope.
 
 (* end hide *)
 
@@ -998,7 +999,7 @@ Section Correctness.
     do 2 setoid_rewrite interp_state_bind. setoid_rewrite bind_bind. repeat setoid_rewrite interp_state_trigger.
     setoid_rewrite interp_state_ret. cbn. tau_steps.
     unfold get_reg. destruct HSIM as [? [? ?] ]. rewrite H1.
-    apply eqit_Vis. intros []. repeat rewrite bind_ret_l.
+    apply eqit_Vis. intros []. repeat setoid_rewrite bind_ret_l.
     apply eqit_Ret. cbn. split; auto.
   Qed.
 
