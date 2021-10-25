@@ -304,7 +304,7 @@ Ltac simpobs := repeat match goal with [H: _ = observe _ |- _] =>
                     rewrite_everywhere_except (@eq_sym _ _ _ H) H
                 end.
 Ltac desobs t H := destruct (observe t) eqn:H.
-Definition foo := 0.
+
 (** ** Compute with fuel *)
 
 (** Remove [Tau]s from the front of an [itree]. *)
