@@ -27,6 +27,7 @@ theories/Core/KTree.v
 theories/Core/KTreeFacts.v
 theories/Core/Subevent.v
 theories/Core/ITreeMonad.v
+theories/Core/Image.v
 
 theories/Eq.v
 theories/Eq/Paco2.v
