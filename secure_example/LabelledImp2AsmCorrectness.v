@@ -73,14 +73,17 @@ From ITree Require Import
      Events.MapDefault
      Events.Exception
      Events.ExceptionFacts
-     Secure.SecurityImpExc.SecurityImp
-     Secure.SecurityImpExc.SecurityImpHandler
-     Secure.SecurityImpExc.SecurityAsm
-     Secure.SecurityImp.Utils_tutorial
-     Secure.SecurityImpExc.SecurityAsmCombinators
-     Secure.SecurityImpExc.SecurityImp2Asm
-     Secure.SecurityImp.Fin
-     Secure.SecurityImp.KTreeFin
+.
+
+From SecureExample Require Import
+     LabelledImp
+     LabelledAsm
+     LabelledAsmCombinators
+     Utils_tutorial
+     LabelledImp2Asm
+     Fin
+     KTreeFin
+     LabelledImpHandler
 .
 
 Import ITreeNotations.
@@ -102,7 +105,6 @@ Open Scope monad_scope.
 Open Scope itree_scope.
 
 (* end hide *)
-
 
 (* ================================================================= *)
 (** ** Simulation relations and invariants *)
@@ -318,11 +320,11 @@ Section Bisimulation.
     Definition state_invariant (a : map * A) (b : registers * memory * B)  :=
       Renv (fst a) (snd (fst b)) /\ (RAB (snd a) (snd  b)).
 
-    Definition bisimilar  (t1 : itree (impExcE +' stateE +' IOE) A) (t2 : itree (impExcE +' Reg +' Memory +' IOE) B)  :=
+    Definition bisimilar  (t1 : itree ((impExcE sensitivity_lat) +' stateE +' (IOE sensitivity_lat)) A) (t2 : itree ((impExcE sensitivity_lat) +' Reg +' Memory +' (IOE sensitivity_lat)) B)  :=
     forall g_asm g_imp l,
       Renv g_imp g_asm ->
       eutt state_invariant
-           (interp_imp t1 g_imp)
+           (interp_imp _ t1 g_imp)
            (interp_asm t2 (l, g_asm) ).
   End RAB.
 
@@ -341,9 +343,9 @@ Section Bisimulation.
   Qed.
 
   Lemma bisimilar_bind' {A A' B C} (RAA' : A -> A' -> Prop) (RBC: B -> C -> Prop):
-    forall (t1 : itree (impExcE +' stateE +' IOE) A) (t2 : itree (impExcE +' Reg +' Memory +' IOE) A') ,
+    forall (t1 : itree _ A) (t2 : itree _ A') ,
       bisimilar RAA' t1 t2 ->
-      forall (k1 : A -> itree (impExcE +' stateE +' IOE) B) (k2 : A' -> itree (impExcE +' Reg +' Memory +' IOE) C)
+      forall (k1 : A -> itree _ B) (k2 : A' -> itree _ C)
         (H: forall (a:A) (a':A'), RAA' a a' -> bisimilar RBC (k1 a) (k2 a')),
         bisimilar RBC (t1 >>= k1) (t2 >>= k2).
   Proof.
@@ -386,7 +388,7 @@ Section Bisimulation.
   Lemma sim_rel_get_tmp0:
     forall n l l' g_asm g_imp v,
       sim_rel l' n (g_imp,v) (l, g_asm,tt) ->
-      (interp_asm ((trigger (GetReg n)) : itree (impExcE +' Reg +' Memory +' IOE) value)
+      (interp_asm ((trigger (GetReg n)) : itree ((impExcE sensitivity_lat) +' Reg +' Memory +' (IOE sensitivity_lat)) value)
                                        (l, g_asm))
       ≈     (Ret (l, g_asm, v)).
   Proof.
@@ -769,13 +771,13 @@ Proof.
 Qed.
 
 
-  Definition link_with_exc : ktree_fin (impExcE +' Reg +' Memory +' IOE) (1 + 2) 1  :=
+  Definition link_with_exc : ktree_fin ((impExcE sensitivity_lat) +' Reg +' Memory +' (IOE sensitivity_lat)) (1 + 2) 1  :=
     case_ (id_ _) 
     (case_ (C := ktree_fin _ ) 
             (fun _ : fin 1 => v <- trigger (Throw _ Public);; match v : void with end ) 
             (fun _ : fin 1 => v <- trigger (Throw _ Private);; match v : void with end )).
 
-  Lemma compile_compile_stmt_correct (s : stmt) :
+  Lemma compile_compile_stmt_correct (s : stmt sensitivity_lat) :
     denote_asm (compile s) 
   ⩯ denote_asm (compile_stmt s) >>> link_with_exc .
   Proof.
@@ -797,7 +799,7 @@ Qed.
       Opaque denote_asm.
   Qed.
 
-  Lemma early_link_with_exc (p1 p2: ktree_fin (impExcE +' Reg +' Memory +' IOE) 1 (1 + 2) ) :
+  Lemma early_link_with_exc (p1 p2: ktree_fin ((impExcE sensitivity_lat) +' Reg +' Memory +' (IOE sensitivity_lat)) 1 (1 + 2) ) :
     p1 >>> case_ p2 inr_ >>> link_with_exc ⩯ p1 >>> link_with_exc >>> p2 >>> link_with_exc.
   Proof.
     unfold cat, Cat_sub, cat, Cat_Kleisli. cbn. repeat setoid_rewrite bind_bind.
@@ -819,6 +821,9 @@ End Linking.
 
 Section Correctness.
 
+  Arguments interp_imp {Labels} {R}.
+  Arguments denote_expr {Labels}.
+  Arguments denote_stmt {Labels}.
 
   (** Correctness of expressions.
       We strengthen [bisimilar]: initial environments are still related by [Renv],
@@ -955,8 +960,8 @@ Section Correctness.
    *)
   Lemma compile_assign_correct : forall e x,
       bisimilar eq
-        ((v <- denote_expr e ;; trigger (Put x v)) : itree (impExcE +' stateE +' IOE) unit)
-        ((denote_list (compile_assign x e)) : itree (impExcE +' Reg +' Memory +' IOE) unit).
+        ((v <- denote_expr e ;; trigger (Put x v)) : itree ((impExcE sensitivity_lat) +' stateE +' (IOE sensitivity_lat)) unit)
+        ((denote_list (compile_assign x e)) : itree ((impExcE sensitivity_lat) +' Reg +' Memory +' (IOE sensitivity_lat)) unit).
   Proof.
     red; intros.
     unfold compile_assign.
@@ -986,8 +991,8 @@ Section Correctness.
 
   Lemma compile_output_correct : forall s e,
       bisimilar eq
-        ((v <- denote_expr e ;; trigger (LabelledPrint s v)) : itree (impExcE +' stateE +' IOE) unit)
-        ((denote_list (compile_output s e)) : itree (impExcE +' Reg +' Memory +' IOE) unit).
+        ((v <- denote_expr e ;; trigger (LabelledPrint _ s v)) : itree ((impExcE sensitivity_lat) +' stateE +' (IOE sensitivity_lat)) unit)
+        ((@denote_list  ((impExcE sensitivity_lat) +' Reg +' Memory +' (IOE sensitivity_lat)) _ _ _ (compile_output s e))).
   Proof.
     red. intros. unfold compile_output. unfold interp_imp, interp_asm.
     rewrite denote_list_app.
@@ -1011,7 +1016,7 @@ Section Correctness.
   Definition TT {A B}: A -> B -> Prop  := fun _ _ => True.
   Hint Unfold TT: core.
 
-  Definition equivalent (s:stmt) (t:asm 1 1) : Prop :=
+  Definition equivalent (s:stmt sensitivity_lat ) (t:asm 1 1) : Prop :=
     bisimilar TT (denote_stmt s) (denote_asm t f0).
 
   Inductive RI : (unit + unit) -> (unit + unit + unit) -> Prop :=
@@ -1098,7 +1103,7 @@ Section Correctness.
   Qed.
 
 
-  Lemma compile_stmt_correct (s : stmt) :
+  Lemma compile_stmt_correct (s : stmt sensitivity_lat) :
         bisimilar label_rel (throw_prefix (denote_stmt s)) (denote_asm (compile_stmt s) f0).
   Proof.
     induction s.
@@ -1106,7 +1111,7 @@ Section Correctness.
      simpl. rewrite raw_asm_block_correct. rewrite denote_after. 
      rewrite throw_prefix_bind. rewrite throw_prefix_denote_expr.
      rewrite bind_bind. setoid_rewrite bind_ret_l.
-     assert (forall r, throw_prefix (Err := sensitivity) (E := (stateE +' IOE)) (trigger (Put x r) ) ≈ trigger (Put x r);; Ret (inl tt)  ).
+     assert (forall r, throw_prefix (Err := sensitivity) (E := (stateE +' (IOE _))) (trigger (Put x r) ) ≈ trigger (Put x r);; Ret (inl tt)  ).
      { 
        intros. rewrite bind_trigger. setoid_rewrite throw_prefix_ev. 
        apply eqit_Vis. setoid_rewrite tau_eutt. intros []. rewrite throw_prefix_ret. reflexivity.
@@ -1222,8 +1227,8 @@ Section Correctness.
       simpl. rewrite raw_asm_block_correct. rewrite denote_after. 
       rewrite throw_prefix_bind. rewrite throw_prefix_denote_expr.
       rewrite bind_bind. setoid_rewrite bind_ret_l.
-      assert (forall r, throw_prefix (Err := sensitivity) (E := (stateE +' IOE)) (trigger (LabelledPrint s r) ) ≈ 
-                                trigger (LabelledPrint s r);; Ret (inl tt)  ).
+      assert (forall r, throw_prefix (Err := sensitivity) (E := (stateE +' (IOE _))) (trigger (LabelledPrint _ s r) ) ≈ 
+                                trigger (LabelledPrint _ s r);; Ret (inl tt)  ).
      { 
        intros. rewrite bind_trigger. setoid_rewrite throw_prefix_ev. 
        apply eqit_Vis. setoid_rewrite tau_eutt. intros []. rewrite throw_prefix_ret. reflexivity.
@@ -1292,7 +1297,7 @@ Qed.
       the compiler, all control-flow related reasoning having been handled
       in isolation.
    *)
-  Theorem compile_correct (s : stmt) :
+  Theorem compile_correct (s : stmt sensitivity_lat) :
     equivalent s (compile s).
   Proof.
     unfold equivalent.  unfold compile. rewrite throw_prefix_bind_decomp.

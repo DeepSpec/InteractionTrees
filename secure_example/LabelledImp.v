@@ -16,13 +16,20 @@ From ITree Require Import
      ITree
      ITreeFacts
      Events.MapDefault
-     Events.StateFacts.
+     Events.StateFacts
+     Events.Exception
+.
+
+
+From SecureExample Require Import 
+     Lattice.
 
 Import Monads.
 Import MonadNotation.
 Local Open Scope monad_scope.
 Local Open Scope string_scope.
 
+Section LabelledImp.
 
 Definition var : Set := string.
 
@@ -39,7 +46,9 @@ Inductive expr : Type :=
 (** The statements are straightforward. The [While] statement is the only
  potentially diverging one. *)
 
-Variant sensitivity : Set := Public | Private.
+Context (Labels : Lattice).
+
+Notation label := (@T Labels).
 
 Inductive stmt : Type :=
 | Assign (x : var) (e : expr)    (* x = e *)
@@ -47,68 +56,26 @@ Inductive stmt : Type :=
 | If     (i : expr) (t e : stmt) (* if (i) then { t } else { e } *)
 | While  (t : expr) (b : stmt)   (* while (t) { b } *)
 | Skip                           (* ; *)
-| Output (s : sensitivity) (e : expr)
+| Output (s : label) (e : expr)
+(* exceptions *)
+| Raise (s : label)
+| TryCatch (t c : stmt)
 .
 
 
-Module ImpNotations.
 
-  (** A few notations for convenience.  *)
-  Definition Var_coerce: string -> expr := Var.
-  Definition Lit_coerce: nat -> expr := Lit.
-  Coercion Var_coerce: string >-> expr.
-  Coercion Lit_coerce: nat >-> expr.
-
-  Bind Scope expr_scope with expr.
-
-  Infix "+" := Plus : expr_scope.
-  Infix "-" := Minus : expr_scope.
-  Infix "*" := Mult : expr_scope.
-
-  Bind Scope stmt_scope with stmt.
-
-  Notation "x '←' e" :=
-    (Assign x e) (at level 60, e at level 50): stmt_scope.
-
-  Notation "a ';;;' b" :=
-    (Seq a b)
-      (at level 100, right associativity,
-       format
-         "'[v' a  ';;;' '/' '[' b ']' ']'"
-      ): stmt_scope.
-
-  Notation "'IF' i 'THEN' t 'ELSE' e 'FI'" :=
-    (If i t e)
-      (at level 100,
-       right associativity,
-       format
-         "'[v ' 'IF'  i '/' '[' 'THEN'  t  ']' '/' '[' 'ELSE'  e ']' 'FI' ']'").
-
-  Notation "'WHILE' t 'DO' b" :=
-    (While t b)
-      (at level 100,
-       right associativity,
-       format
-         "'[v  ' 'WHILE'  t  'DO' '/' '[v' b  ']' ']'").
-(*
-  Notation "'PRINT' e 'AT' s" := 
-    (Write s e)
-      (at level)
-            *)
-
-End ImpNotations.
-
-
-Definition privacy_map : Set := var -> sensitivity.
+Definition privacy_map : Type := var -> label.
 
 Variant stateE : Type -> Type :=
   | Get (x : var) : stateE value
   | Put (x : var) (v : value) : stateE unit.
 
 Variant IOE : Type -> Type :=
-  | LabelledPrint : sensitivity -> value -> IOE unit.
+  | LabelledPrint : label -> value -> IOE unit.
 
-Fixpoint denote_expr (e : expr) : itree (stateE +' IOE) value := 
+Definition impExcE : Type -> Type := exceptE label.
+
+Fixpoint denote_expr (e : expr) : itree (impExcE +' stateE +' IOE) value := 
   match e with
   | Var x => trigger (Get x)
   | Lit v => Ret v
@@ -129,7 +96,7 @@ Definition is_true (v : value) : bool :=
 Definition while {E} (t : itree E (unit + unit) ) : itree E unit :=
   ITree.iter (fun _ => t) tt.
 
-Fixpoint denote_stmt (s : stmt) : itree (stateE +' IOE) unit :=
+Fixpoint denote_stmt (s : stmt) : itree (impExcE +' stateE +' IOE) unit :=
   match s with
   | Assign x e => y <- denote_expr e;; trigger (Put x y)
   | Seq s1 s2 => denote_stmt s1 ;; denote_stmt s2
@@ -144,6 +111,8 @@ Fixpoint denote_stmt (s : stmt) : itree (stateE +' IOE) unit :=
                     if (is_true b)
                     then denote_stmt c;; Ret (inl tt)
                     else Ret (inr tt) )
+  | Raise s => trigger (Throw _ s);; Ret tt
+  | TryCatch t c => try_catch (denote_stmt t) (fun _ => denote_stmt c)
    end.
 
 (* very inefficient, but not sure I really care about extraction so whatever *)
@@ -158,44 +127,22 @@ Definition handleState {E} (A : Type) (e : stateE A) : stateT map (itree E ) A :
   | Get x => fun s => Ret (s, get x s)
   | Put x v => fun s => Ret (update x v s, tt) end.
 
-Definition priv_imp (p : privacy_map) (A : Type) (e : (stateE +' IOE) A ) : sensitivity :=
+
+Definition priv_imp (p : privacy_map) (A : Type) (e : (impExcE +' stateE +' IOE) A ) : label :=
   match e with
-  | inl1 (Get x) => p x
-  | inl1 (Put x _) => p x
-  | inr1 (LabelledPrint s _ ) => s 
+  | inl1 (Throw _ s) => s
+  | inr1 (inl1 (Get x)) => p x
+  | inr1 (inl1 (Put x _)) => p x
+  | inr1 (inr1 (LabelledPrint s _ )) => s 
   end.
 
+End LabelledImp.
 
-
-
-(*
-Variant SecurityImpState : Type -> Type :=
-  | GetPrivVar (x : var) : SecurityImpState value
-  | SetPrivVar (x : var) (v : value) : SecurityImpState unit
-  | GetPubVar (x : var) : SecurityImpState value
-  | SetPubVar (x : var) (v : value) : SecurityImpState unit
-  | PubPrint  (v : value) : SecurityImpState unit 
-  | PrivPrint (v : value) : SecurityImpState unit.
-*)
-
-
-(* 
-denote : stmt -> privacy_map -> itree Securityimpstate unit
-
-interp ( ... ) :itree Securityimpstate unit ->
-                S -> S -> itree (SecureIO) (S * S * unit)
-
-
-
-itrees   ≈ eutt (eq up to tau)
-
-monad  (StateT (itree E) ) equiv (m1 m2 : StateT (itree E) R)  forall s1 s2, state_equiv s1 s2 -> m1 s1 ≈ m2 s2
-
-
-
-
-itrees   eqit_secure (with RR respecting privacy)
-
-
-monad (...)    forall s1 s2, low_equiv s1 s2 -> eqit_secure ... low_equiv (m1 s1) (m2 s2)
-*)
+Arguments Skip {Labels}.
+Arguments Output {Labels}.
+Arguments While {Labels}.
+Arguments Raise {Labels}.
+Arguments TryCatch {Labels}.
+Arguments Assign {Labels}.
+Arguments Seq {Labels}.
+Arguments If {Labels}.

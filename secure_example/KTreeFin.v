@@ -14,8 +14,9 @@ From ITree Require Import
      ITree
      ITreeFacts
      Basics.CategorySub
-     Secure.Fin
 .
+
+Require Import Fin.
 
 Import CatNotations.
 Local Open Scope cat_scope.

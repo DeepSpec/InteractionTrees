@@ -15,4 +15,3 @@ Imp2AsmCorrectness.v
 AsmOptimization.v
 PrintAssumptions.v
 extract-imptest/ImpTest.v
-tutorial/_CoqProject.make

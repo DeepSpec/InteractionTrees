@@ -37,12 +37,15 @@ From ITree Require Import
      ITreeMonad
      Basics.Category
      Basics.CategorySub
-     Secure.SecurityImpExc.SecurityAsm
-     Secure.SecurityImp.Fin
-     Secure.SecurityImp.KTreeFin
-     Secure.SecurityImp.Utils_tutorial
-     Secure.SecurityImp.CatTheory
-     Secure.SecurityImpExc.SecurityImp
+.
+
+From SecureExample Require Import
+     LabelledAsm
+     LabelledImp
+     CatTheory
+     Fin
+     KTreeFin
+     Utils_tutorial
 .
 
 Import CatNotations.
@@ -180,13 +183,14 @@ Import ITreeNotations.
 Import CatNotations.
 Local Open Scope cat.
 (* end hide *)
+
 Section Correctness.
 
   Context {E : Type -> Type}.
-  Context {HasExc : impExcE -< E}. 
+  Context {HasExc : impExcE sensitivity_lat -< E}. 
   Context {HasRegs : Reg -< E}.
   Context {HasMemory : Memory -< E}.
-  Context {HasIO : IOE -< E}.
+  Context {HasIO : IOE sensitivity_lat -< E}.
 
   (** *** Internal structures *)
 
@@ -207,8 +211,7 @@ Section Correctness.
       + rewrite map_ret; reflexivity.
       + rewrite map_bind.
         eapply eqit_bind; try reflexivity.
-        intros ?.
-        flatten_goal; rewrite map_ret; reflexivity.
+        intros ?. destruct a; setoid_rewrite map_ret; reflexivity.
       + rewrite map_bind. eapply eqit_bind; try reflexivity.
         intros [].
   Qed.

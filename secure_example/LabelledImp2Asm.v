@@ -32,15 +32,19 @@ From Coq Require Import
 
 From ITree Require Import
      ITree
-     Secure.SecurityImp.SecurityImp
-     Secure.SecurityImp.SecurityAsm
-     Secure.SecurityImp.SecurityAsmCombinators
-     Secure.SecurityImp.Fin
-     Secure.SecurityImp.Utils_tutorial
 .
+
+From SecureExample Require Import 
+     LabelledImp
+     LabelledAsm
+     LabelledAsmCombinators
+     Fin
+     Utils_tutorial.
 
 Import ListNotations.
 Open Scope string_scope.
+Import CatNotations.
+Local Open Scope cat_scope.
 (* end hide *)
 
 (* ================================================================= *)
@@ -122,6 +126,24 @@ Definition seq_asm {A B C} (ab : asm A B) (bc : asm B C)
   : asm A C :=
   loop_asm (relabel_asm swap (id_ _) (app_asm ab bc)).
 
+Section seq_asm_exc.
+Context {A B C D : nat}.
+Context (ab : asm A (B + C)).
+Context (bd : asm B (D + C)).
+(* so what I need to do is get this to the form some swapping should get this the rest of the 
+   way to the other *)
+Definition comb : asm (A + B) ((B + C) + (D + C)) := app_asm ab bd.
+
+
+
+Definition swap_and_merge : CategorySub.sub Fun fin (C + (D + C) ) (D + C) := 
+  cat (cat ( cat (bimap (id_ _) (swap) ) assoc_l) (bimap merge (id_ _) )) swap.
+
+Definition expose_linking_labels : asm (B + A) (B + (D + C) )  := relabel_asm swap (cat (cat assoc_r (id_ _)) (bimap (id_ _ ) swap_and_merge) ) comb.
+
+Definition seq_asm_exc : asm A (D + C) := loop_asm expose_linking_labels.
+
+End seq_asm_exc.
 
 (** Location of temporary for [if]. *)
 Definition tmp_if := 0.
@@ -157,6 +179,8 @@ Definition if_asm {A}
   seq_asm (cond_asm e)
           (relabel_asm (id_ _) merge (app_asm tp fp)).
 
+  
+
 (* Conditional looping of blocks.
    The program [while_asm e p] composes vertically two programs:
    an [if_asm] construct with [p] followed by a jump on the true branch,
@@ -183,17 +207,61 @@ Definition while_asm (e : list instr) (p : asm 1 1) :
             (pure_asm inl_))).
 
 
+
+
+Definition pure_ret_asm : asm 1 3 :=
+  pure_asm (fun _ => f0).
+
+Definition pure_exc_asm (s : sensitivity) : asm 1 3 :=
+  pure_asm (fun _ => match s with Public => fS (f0) | Private => (fS (fS f0)) end).
+
+
+Section while_asm_exc.
+  Context (e : list instr).
+  Context (p : asm 1 (1 + 2) ).
+  (* part of the problem is I am thinking about it wrong, because only a success signal in the body loop  gets fed back into the loop, either *)
+  (*Definition direct_output_while_exc : asm (1 + 2) (1 + (1 + 2) ) := app_asm (pure_asm (id_ _)) (pure_asm inr_). *)
+  Definition direct_output_while_exc : asm 1 (1 + (1 + 2)) :=
+    relabel_asm (id_ _) (bimap inl_ inr_) p.
+ 
+  Definition while_asm_exc : asm 1 3 :=
+    loop_asm (relabel_asm (id_ _) merge (app_asm 
+                                           (if_asm e direct_output_while_exc (pure_asm (fun _ => fS (f0)) )) 
+                                           (pure_asm inl_))).
+
+(*
+  I should refactor these to just use local let definitions
+*)
+
+End while_asm_exc.
+(* probably can refact seq_asm_exc to be simpler *)
+
+
+Definition trycatch_asm (p : asm 1 (1 + (1 + 1) ) ) (c : asm 1 3) : asm 1 3 :=
+  seq_asm (relabel_asm (id_ _) (bimap (id_ _) merge ) p)
+   (relabel_asm (id_ _ ) merge (app_asm pure_ret_asm c)).
+
+
+Definition raise_asm (s : sensitivity) : asm 1 1:=
+  {| internal := 0; code := fun _ => bbb (BRaise s) |}.
+
 (** Equipped with our combinators, the compiler writes itself
     by induction on the structure of the statement.
 *)
-Fixpoint compile (s : stmt) {struct s} : asm 1 1 :=
+Fixpoint compile_stmt (s : stmt sensitivity_lat) {struct s} : asm 1 (1 + 2) :=
   match s with
-  | Skip       => id_asm
+  | Skip       => pure_ret_asm
   | Assign x e => raw_asm_block (after (compile_assign x e) (Bjmp f0))
   | Output s e => raw_asm_block (after (compile_output s e) (Bjmp f0) )
-  | Seq l r    => seq_asm (compile l) (compile r)
-  | If e l r   => if_asm (compile_expr 0 e) (compile l) (compile r)
-  | While e b  => while_asm (compile_expr 0 e) (compile b)
+  | Seq l r    => seq_asm_exc (compile_stmt l) (compile_stmt r)
+  | If e l r   => if_asm (compile_expr 0 e) (compile_stmt l) (compile_stmt r)
+  | Raise s => pure_exc_asm s
+  | While e s => while_asm_exc (compile_expr 0 e) (compile_stmt s)
+  | TryCatch t c => trycatch_asm (compile_stmt t) (compile_stmt c)
   end.
+
+Definition compile (s : stmt sensitivity_lat) : asm 1 1 :=
+  seq_asm (compile_stmt s ) 
+          (relabel_asm (id_ _) (fun _ => f0) (app_asm id_asm (app_asm (raise_asm Public) (raise_asm Private) ) )).
 
 (** We now consider its proof of correctness in [Imp2AsmCorrectness.v]. *)

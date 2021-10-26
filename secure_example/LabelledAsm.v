@@ -24,15 +24,59 @@ From ITree Require Import
      Basics.CategorySub
      Events.State
      Events.StateFacts
-     Secure.SecurityImp.Fin
-     Secure.SecurityImp.SecurityImp
+     Events.Exception
 .
+
+Require Import Lattice LabelledImp.
+Require Import Fin. 
+
 
 Import Monads.
 Import MonadNotation.
 Local Open Scope monad_scope.
 (* end hide *)
 
+Variant sensitivity : Type := 
+  | Public
+  | Private.
+
+Definition meet_sense l1 l2 :=
+  match l1 with
+  | Public => Public
+  | Private => l2 end.
+
+Definition join_sense l1 l2 :=
+  match l1 with
+  | Public => l2
+  | Private => Private end.
+
+Instance sensitivity_lat : Lattice := 
+  {|
+  T := sensitivity;
+  eqlat := eq;
+  join := join_sense;
+  meet := meet_sense;
+  top := Private;
+  bot := Public
+
+  |}.
+
+Instance sensitivity_latlaws : LatticeLaws sensitivity_lat.
+Proof.
+  constructor.
+  - apply eq_equivalence.
+  - unfold eqlat. cbn. repeat intro. subst. auto.
+  - unfold eqlat. cbn. repeat intro. subst. auto.
+  - intros l1 l2. cbn. destruct l1; destruct l2; eauto; right; intro; discriminate.
+  - cbn. intros [ | ] [ | ]; auto.
+  - cbn. intros [ | ] [ | ] [| ]; auto.
+  - cbn. intros [ | ] [ | ]; auto.
+  - cbn. intros [ | ] [ | ] [| ]; auto.
+  - cbn. intros [ | ]; auto.
+  - cbn. intros [ | ]; auto.
+  - cbn. intros [ | ] [ | ]; auto.
+  - cbn. intros [ | ] [ | ]; auto.
+Qed.
 (** ** Syntax *)
 
 (** We define a countable set of memory addresses, represented as [string]s: *)
@@ -70,6 +114,7 @@ Variant instr : Set :=
 Variant branch {label : Type} : Type :=
 | Bjmp (_ : label)                (* jump to label *)
 | Bbrz (_ : reg) (yes no : label) (* conditional jump *)
+| BRaise (s : sensitivity)
 .
 Global Arguments branch _ : clear implicits.
 
@@ -148,10 +193,12 @@ Section Denote.
     (** As with _Imp_, we parameterize our semantics by a universe of events
         that shall encompass all the required ones. *)
     Context {E : Type -> Type}.
+    Context {HasExc : impExcE sensitivity_lat -< E}.
     Context {HasReg : Reg -< E}.
     Context {HasMemory : Memory -< E}.
-    Context {HasIOE : IOE -< E}.
-
+    Context {HasIOE : IOE sensitivity_lat -< E}.
+    
+    Arguments LabelledPrint {Labels}.
     (** Operands are trivially denoted as [itree]s returning values *)
     Definition denote_operand (o : operand) : itree E value :=
       match o with
@@ -212,6 +259,7 @@ Section Denote.
       | Bbrz v y n =>
         val <- trigger (GetReg v) ;;
         if val:nat then ret y else ret n
+      | BRaise s => v <- trigger (Throw _ s);; match v : void with end
       end.
 
 
@@ -326,103 +374,15 @@ Definition h_mem {E : Type -> Type} : Memory ~> stateT (registers * memory) (itr
           | Load x => fun '(regs,mem) => Ret (regs, mem, get x mem)
           | Store x v => fun '(regs, mem) => Ret (regs, update x v mem, tt) end.
 
-Definition asm_handler {E} : (Reg +' Memory +' E) ~> stateT (registers * memory) (itree E) :=
+Definition asm_handler {E1 E2} : (E1 +' Reg +' Memory +' E2) ~> stateT (registers * memory) (itree (E1 +' E2)) :=
   fun _ e => match e with 
-          | inl1 reg_e => h_reg _ reg_e
-          | inr1 e' => match e' with 
-                      | inl1 mem_e => h_mem _ mem_e
-                      | inr1 e'' => (fun s => v <- ITree.trigger e'' ;; Ret (s, v)) end end.
+          | inr1 (inl1 reg_e) => h_reg _ reg_e
+          | inr1 (inr1 (inl1 mem_e)) =>  h_mem _ mem_e 
+          | inl1 e' =>  (fun s => v <- ITree.trigger (inl1 e') ;; Ret (s, v))
+          | inr1 (inr1 (inr1 e')) =>  (fun s => v <- ITree.trigger (inr1 e') ;; Ret (s, v))
 
-Definition interp_asm {E A} (t : itree (Reg +' Memory +' E) A ) : 
-  stateT (registers * memory) (itree E) A :=
+end.
+
+Definition interp_asm {E1 E2 A} (t : itree (E1 +' Reg +' Memory +' E2) A ) : 
+  stateT (registers * memory) (itree (E1 +' E2)) A :=
   fun '(mem, regs) => interp_state asm_handler t (mem, regs).
-(*
-
-(** The _asm_ interpreter takes as inputs a starting heap [mem] and register
-    state [reg] and interprets an itree in two nested instances of the [map]
-    variant of the state monad. To get this type to work out, we have to
-    do a bit of post-processing to swap the order of the "state components"
-    introduced by the interpretation.
-*)
-Definition interp_asm {E A} (t : itree (Reg +' Memory +' E) A) :
-  memory -> registers -> itree E (memory * (registers * A)) :=
-  let h := bimap h_reg (bimap h_memory (id_ _)) in
-  let t' := interp h t in
-  fun  mem regs => interp_map (interp_map t' regs) mem.
-
-
-(** We can then define an evaluator for closed assembly programs by interpreting
-    both store and heap events into two instances of [mapE], and running them
-    both in the empty initial environments.  *)
-Definition run_asm (p: asm 1 0) := interp_asm (denote_asm p Fin.f0) empty empty.
-
-(* SAZ: Should some of thes notions of equivalence be put into the library?
-   SAZ: Should this be stated in terms of ktree ?
- *)
-(** The definition [interp_asm] also induces a notion of equivalence (open)
-    _asm_ programs, which is just the equivalence of the ktree category *)
-Definition eq_asm_denotations {E A B} (t1 t2 : Kleisli (itree (Reg +' Memory +' E)) A B) : Prop :=
-  forall a mem regs, interp_asm (t1 a) mem regs ≈ interp_asm (t2 a) mem regs.
-
-Definition eq_asm {A B} (p1 p2 : asm A B) : Prop :=
-  eq_asm_denotations (denote_asm p1) (denote_asm p2).
-
-Section InterpAsmProperties.
-
-  Context {E': Type -> Type}.
-  Notation E := (Reg +' Memory +' E').
-
-  (** This interpreter is compatible with the equivalence-up-to-tau. *)
-  Global Instance eutt_interp_asm {R}:
-    Proper (@eutt E R R eq ==> eq ==> eq ==> @eutt E' (prod memory (prod registers R)) (prod _ (prod _ R)) eq) interp_asm.
-  Proof.
-    repeat intro.
-    unfold interp_asm.
-    unfold interp_map.
-    rewrite H0.
-    rewrite H.
-    rewrite H1.
-    reflexivity.
-  Qed.
-
-  (** [interp_asm] commutes with [Ret]. *)
-  Lemma interp_asm_ret: forall {R} (r: R) (regs : registers) (mem: memory),
-      @eutt E' _ _ eq (interp_asm (ret r) mem regs)
-            (ret (mem, (regs, r))).
-  Proof.
-    unfold interp_asm, interp_map.
-    intros.
-    unfold ret at 1, Monad_itree.
-    rewrite interp_ret, 2 interp_state_ret.
-    reflexivity.
-  Qed.
-
-  (** [interp_asm] commutes with [bind]. *)
-  Lemma interp_asm_bind: forall {R S} (t: itree E R) (k: R -> itree _ S) (regs : registers) (mem: memory),
-      @eutt E' _ _ eq (interp_asm (ITree.bind t k) mem regs)
-            (ITree.bind (interp_asm t mem regs) (fun '(mem', (regs', x)) => interp_asm (k x) mem' regs')).
-
-  Proof.
-    intros.
-    unfold interp_asm.
-    unfold interp_map. cbn.
-    repeat rewrite interp_bind.
-    repeat rewrite interp_state_bind.
-    repeat rewrite Eq.bind_bind.
-    eapply eutt_clo_bind.
-    { reflexivity. }
-    intros.
-    rewrite H.
-    destruct u2 as [g' [l' x]].
-    reflexivity.
-  Qed.
-
-End InterpAsmProperties.
-*)
-(** Now that we have both our language, we could jump directly into implementing
-our compiler.  However, if we look slightly ahead of us, we can observe that: -
-compiling expressions and basic statements will be mostly straightforward; - but
-linking the resulting elementary (open) [asm] programs together is not as
-trivial. In particular, reasoning inductively on this linking is more
-challenging.  We therefore take a detour: we first reason in isolation about
-linking, and to this end we jump to [AsmCombinators.v].  *)

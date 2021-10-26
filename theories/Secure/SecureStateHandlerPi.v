@@ -27,7 +27,7 @@ From ITree Require Import
      Secure.SecureEqProgInsens
      Secure.SecureEqProgInsensFacts
      Secure.StrongBisimProper
-     Secure.SecurityImp.SecurityImpHandler
+     Secure.SecureStateHandler
 .
 
 
@@ -37,13 +37,6 @@ Local Open Scope monad_scope.
 Local Open Scope string_scope.
 
 From Paco Require Import paco.
-
-Ltac use_simpobs :=
-  repeat match goal with
-         | H : TauF _ = observe ?t |- _ => apply simpobs in H
-         | H : RetF _ = observe ?t |- _ => apply simpobs in H
-         | H : VisF _ _ = observe ?t |- _ => apply simpobs in H
-  end.
 
 Section GeneralStateHandler.
 

@@ -15,20 +15,24 @@ From ITree Require Import
      Events.StateFacts
      Events.MapDefault
      Secure.SecureEqHalt
-     Secure.SecurityImpExc.SecurityImp
-     Secure.SecurityImpExc.SecurityImpHandler
-     Secure.SecurityImpExc.SecurityAsm
-     Secure.SecurityImp.Utils_tutorial
-     Secure.SecurityImpExc.SecurityAsmCombinators
-     Secure.SecurityImpExc.SecurityImp2Asm
-     Secure.SecurityImp.Fin
-     Secure.SecurityImp.KTreeFin
-     Secure.SecurityImpExc.SecurityImp2AsmCorrectness
      Secure.SecureEqEuttTrans
-     Secure.SecurityImpExc.SecurityImpTypes
      Secure.SecureEqProgInsens
      Secure.SecureEqProgInsensFacts
-     Secure.SecurityImpExc.SecurityImpTypesProgInsens
+.
+
+From SecureExample Require Import 
+     Utils_tutorial
+     Fin
+     KTreeFin
+     LabelledImp
+     LabelledAsm
+     LabelledAsmCombinators
+     LabelledImp2Asm
+     LabelledImp2AsmCorrectness
+     LabelledImpHandler
+     LabelledImpTypes
+     LabelledImpTypesProgInsens
+     Lattice
 .
 
 Import ITreeNotations.
@@ -40,23 +44,30 @@ Open Scope monad_scope.
 Section SecurityPreservation.
 
 Context (Γ : var -> sensitivity).
-Context (l : label).
+Context (l : sensitivity).
+
+Instance labell_equiv_equiv {Γ' l'} : Equivalence (labelled_equiv sensitivity_lat Γ' l').
+Proof.
+  constructor; red; intros; red; red; intros; auto.
+  - rewrite H; auto.
+  - rewrite H; auto.
+Qed.
 
 Definition labelled_sim : map -> (registers * memory) -> Prop :=
-  fun g_imp g_asm => labelled_equiv Γ l g_imp (snd g_asm).
+  fun g_imp g_asm => labelled_equiv sensitivity_lat Γ l g_imp (snd g_asm).
 
 Definition asm_eq : registers * memory -> registers * memory -> Prop :=
-  fun '(regs1, mem1) '(regs2, mem2) => labelled_equiv Γ l mem1 mem2.
+  fun '(regs1, mem1) '(regs2, mem2) => labelled_equiv sensitivity_lat Γ l mem1 mem2.
 
 Lemma state_rel_aux:
   forall (p1 : map * unit) (p2 : registers * memory * fin 1),
-    rcompose (product_rel (labelled_equiv Γ l) eq) (state_invariant TT) p1 p2 ->
+    rcompose (product_rel (labelled_equiv sensitivity_lat Γ l) eq) (state_invariant TT) p1 p2 ->
     product_rel labelled_sim TT p1 p2.
 Proof.
   intros [σ [] ] [ [regs mem] ?] Hcomp. inv Hcomp.
   destruct r2 as [σ' [] ]. destruct REL1. split; red; auto.
   cbn. red in REL2. destruct REL2 as [Hst _ ]. cbn in *.
-  assert (labelled_equiv Γ l σ' mem).
+  assert (labelled_equiv _ Γ l σ' mem).
   { red in Hst. do 2 red. intros. auto. }
   etransitivity; eauto.
 Qed.
@@ -66,7 +77,7 @@ Lemma state_rel_aux':
     flip
       (rcompose
          (flip
-            (rcompose (product_rel (SecurityImpTypes.labelled_equiv Γ l) (@eq unit) )
+            (rcompose (product_rel (LabelledImpTypes.labelled_equiv sensitivity_lat Γ l) (@eq unit) )
                       (state_invariant TT))) (state_invariant TT)) x0 x1 ->
     product_rel asm_eq eq x0 x1.
 Proof.
@@ -81,18 +92,18 @@ Qed.
 Section ProgressSensitive.
 
 Definition labelled_bisimilar {A B : Type} (RAB : A -> B -> Prop) 
-           (t1 : itree (impExcE +' stateE +' IOE) A ) (t2 : itree (impExcE +'
- Reg +' Memory +' IOE) B) :=
+           (t1 : itree ((impExcE _) +' stateE +' (IOE _)) A ) (t2 : itree ((impExcE _) +'
+ Reg +' Memory +' (IOE _)) B) :=
   forall (g_imp : map) (g_asm : memory) (regs : registers),
-    labelled_equiv Γ l g_imp g_asm ->
-    eqit_secure sense_preorder priv_exc_io (product_rel labelled_sim RAB) true true l (interp_imp t1 g_imp ) (interp_asm t2 (regs, g_asm)).
+    labelled_equiv _ Γ l g_imp g_asm ->
+    eqit_secure _ (priv_exc_io sensitivity_lat) (product_rel labelled_sim RAB) true true l (interp_imp _ t1 g_imp ) (interp_asm t2 (regs, g_asm)).
 
-Lemma compile_preserves_ps_security : forall (c : stmt),
-    label_state_sec_eutt Γ l eq  (interp_imp (denote_stmt c)) (interp_imp (denote_stmt c)) ->
-    labelled_bisimilar TT (denote_stmt c) (denote_asm (compile c) f0 ) .
+Lemma compile_preserves_ps_security : forall (c : stmt _),
+    label_state_sec_eutt _ Γ l eq  (interp_imp _ (denote_stmt _ c)) (interp_imp _ (denote_stmt _ c)) ->
+    labelled_bisimilar TT (denote_stmt _ c) (denote_asm (compile c) f0 ) .
 Proof.
   intros s Hsecs. red in Hsecs. red. intros g_imp g_asm regs Hs.
-  assert (labelled_equiv Γ l g_imp g_imp). reflexivity.
+  assert (labelled_equiv _ Γ l g_imp g_imp). reflexivity.
   specialize (compile_correct s) as Heutt. do 2 red in Heutt.
   assert (Renv g_asm g_asm). reflexivity.
   specialize (Hsecs g_imp g_asm Hs).
@@ -103,20 +114,20 @@ Proof.
   apply state_rel_aux; auto.
 Qed.
 
-Lemma compile_preserves_ps_ni : forall (c : stmt),
-    label_state_sec_eutt Γ l eq  (interp_imp (denote_stmt c)) (interp_imp (denote_stmt c)) ->
+Lemma compile_preserves_ps_ni : forall (c : stmt _),
+    label_state_sec_eutt _ Γ l eq  (interp_imp _ (denote_stmt _ c)) (interp_imp _ (denote_stmt _ c)) ->
     forall σ1 σ2, asm_eq σ1 σ2 -> 
-             eqit_secure sense_preorder priv_exc_io (product_rel asm_eq eq) true true l
+             eqit_secure _ (priv_exc_io _) (product_rel asm_eq eq) true true l
              (interp_asm (denote_asm (compile c) f0) σ1) ((interp_asm (denote_asm (compile c) f0)) σ2).
 Proof.
   intros c Hsecc [regs1 mem1] [regs2 mem2]. intros Hasmeq.
-  assert (labelled_equiv Γ l mem1 mem1). reflexivity.
-  assert (labelled_equiv Γ l mem2 mem2). reflexivity.
+  assert (labelled_equiv _ Γ l mem1 mem1). reflexivity.
+  assert (labelled_equiv _ Γ l mem2 mem2). reflexivity.
   specialize (compile_correct c) as Heutt. do 2 red in Heutt.
   assert (Renv mem1 mem1). reflexivity.
   assert (Renv mem2 mem2). reflexivity.
   do 2 red in Hsecc.
-  assert (Hmem12 : labelled_equiv Γ l mem1 mem2). auto.
+  assert (Hmem12 : labelled_equiv _ Γ l mem1 mem2). auto.
   specialize (Hsecc mem1 mem2 Hmem12) as Hsecc'.
   specialize (Heutt mem1 mem1 regs1 H1) as Heutt1.
   specialize (Heutt mem2 mem2 regs2 H2) as Heutt2.
@@ -138,18 +149,18 @@ End ProgressSensitive.
 Section ProgressInsensitive.
 
 Definition labelled_pi_bisimilar {A B : Type} (RAB : A -> B -> Prop) 
-           (t1 : itree (impExcE +' stateE +' IOE) A ) (t2 : itree (impExcE +'
- Reg +' Memory +' IOE) B) :=
+           (t1 : itree ((impExcE _) +' stateE +' (IOE _)) A ) (t2 : itree ((impExcE _) +'
+ Reg +' Memory +' (IOE _)) B) :=
   forall (g_imp : map) (g_asm : memory) (regs : registers),
-    labelled_equiv Γ l g_imp g_asm ->
-    pi_eqit_secure sense_preorder priv_exc_io (product_rel labelled_sim RAB) true true l (interp_imp t1 g_imp ) (interp_asm t2 (regs, g_asm)).
+    labelled_equiv _ Γ l g_imp g_asm ->
+    pi_eqit_secure _ (priv_exc_io _) (product_rel labelled_sim RAB) true true l (interp_imp _ t1 g_imp ) (interp_asm t2 (regs, g_asm)).
 
-Lemma compile_preserves_pi_security : forall (c : stmt),
-    label_state_pi_sec_eutt Γ l eq  (interp_imp (denote_stmt c)) (interp_imp (denote_stmt c)) ->
-    labelled_pi_bisimilar TT (denote_stmt c) (denote_asm (compile c) f0 ) .
+Lemma compile_preserves_pi_security : forall (c : stmt _),
+    label_state_pi_sec_eutt _ Γ l eq  (interp_imp _ (denote_stmt _ c)) (interp_imp _ (denote_stmt _ c)) ->
+    labelled_pi_bisimilar TT (denote_stmt _ c) (denote_asm (compile c) f0 ) .
 Proof.
   intros s Hsecs. red in Hsecs. red. intros g_imp g_asm regs Hs.
-  assert (labelled_equiv Γ l g_imp g_imp). reflexivity.
+  assert (labelled_equiv _ Γ l g_imp g_imp). reflexivity.
   specialize (compile_correct s) as Heutt. do 2 red in Heutt.
   assert (Renv g_asm g_asm). reflexivity.
   specialize (Hsecs g_imp g_asm Hs).
@@ -160,20 +171,20 @@ Proof.
   apply state_rel_aux; auto.
 Qed.
 
-Lemma compile_preserves_pi_ni : forall (c : stmt),
-    label_state_pi_sec_eutt Γ l eq  (interp_imp (denote_stmt c)) (interp_imp (denote_stmt c)) ->
+Lemma compile_preserves_pi_ni : forall (c : stmt _),
+    label_state_pi_sec_eutt _ Γ l eq  (interp_imp _ (denote_stmt _ c)) (interp_imp _ (denote_stmt _ c)) ->
     forall σ1 σ2, asm_eq σ1 σ2 -> 
-             pi_eqit_secure sense_preorder priv_exc_io (product_rel asm_eq eq) true true l
+             pi_eqit_secure _ (priv_exc_io _) (product_rel asm_eq eq) true true l
              (interp_asm (denote_asm (compile c) f0) σ1) ((interp_asm (denote_asm (compile c) f0)) σ2).
 Proof.
   intros c Hsecc [regs1 mem1] [regs2 mem2]. intros Hasmeq.
-  assert (labelled_equiv Γ l mem1 mem1). reflexivity.
-  assert (labelled_equiv Γ l mem2 mem2). reflexivity.
+  assert (labelled_equiv _ Γ l mem1 mem1). reflexivity.
+  assert (labelled_equiv _ Γ l mem2 mem2). reflexivity.
   specialize (compile_correct c) as Heutt. do 2 red in Heutt.
   assert (Renv mem1 mem1). reflexivity.
   assert (Renv mem2 mem2). reflexivity.
   do 2 red in Hsecc.
-  assert (Hmem12 : labelled_equiv Γ l mem1 mem2). auto.
+  assert (Hmem12 : labelled_equiv _ Γ l mem1 mem2). auto.
   specialize (Hsecc mem1 mem2 Hmem12) as Hsecc'.
   specialize (Heutt mem1 mem1 regs1 H1) as Heutt1.
   specialize (Heutt mem2 mem2 regs2 H2) as Heutt2.

@@ -5,9 +5,11 @@ From Coq Require Import
 From ITree Require Import
      Basics.Category
      Basics.CategorySub
-     Secure.SecurityImp.KTreeFin
+     
 
 .
+
+Require Import SecureExample.KTreeFin.
 
 Import CatNotations.
 Local Open Scope cat.
