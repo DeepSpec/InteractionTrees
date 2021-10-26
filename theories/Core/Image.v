@@ -25,7 +25,7 @@ Import ITreeNotations.
 
 Inductive Image {E} {A: Type} (a: A) : itree E A -> Prop :=
  | ImageRet: forall t,
-    observe t = RetF a ->
+   observe t = RetF a ->
    Image a t
  | ImageTau: forall t u,
    observe t = TauF u ->
@@ -66,8 +66,7 @@ Proof.
   intros * IN; econstructor 3; [reflexivity | eauto].
 Qed.
 
-(** Inversion lemmas
-    Note: [Image_Vis_inv] relies on [JMEq] *)
+(** Inversion lemmas *)
 Lemma Image_Ret_inv : forall E R a b,
   b ∈ (Ret a : itree E R) ->
   b = a.
@@ -87,7 +86,9 @@ Lemma Image_Vis_inv : forall E X Y (e : E X) (k : _ -> itree E Y) b,
   exists x, b ∈ k x.
 Proof.
   intros * IN *; inv IN; cbn in *; try congruence.
-  dependent induction H; eauto.
+  revert x H0.
+  refine (match H in _ = u return match u with VisF e0 k0 => _ | RetF _ | TauF _ => False end with eq_refl => _ end).
+  eauto.
 Qed.
 
 (** Closure under [eutt]
@@ -119,9 +120,10 @@ Proof.
   -  punfold EQ; red in EQ; rewrite H in EQ; clear H t.
     remember (VisF e k); genobs u2 ou2.
     hinduction EQ before R; intros; try discriminate; pclearbot.
-    dependent induction Heqi; eauto.
-    edestruct IHFIN as (? & ? & ?); eauto.
-    edestruct IHEQ as (? & ? & ?); eauto.
+    + revert x FIN IHFIN.
+      refine (match Heqi in _ = u return match u with VisF e0 k0 => _ | RetF _ | TauF _ => False end with eq_refl => _ end).
+      intros. edestruct IHFIN as (? & ? & ?); eauto.
+    + edestruct IHEQ as (? & ? & ?); eauto.
 Qed.
 
 Lemma Image_eutt_genrl {E A B R}:
@@ -130,34 +132,18 @@ Lemma Image_eutt_genrl {E A B R}:
   b ∈ u ->
   exists a, a ∈ t /\ R a b.
 Proof.
-  intros * EQ FIN;
-  revert t EQ.
-  induction FIN; intros u2 EQ.
-  - punfold EQ.
-    red in EQ; rewrite H in EQ; clear H t.
-    remember (RetF b); genobs u2 ou.
-    hinduction EQ before R; intros; try now discriminate.
-    inv Heqi; eauto.
-    edestruct IHEQ as (a & IN & HR); eauto.
-  -  punfold EQ; red in EQ; rewrite H in EQ; clear H t.
-    remember (TauF u); genobs u2 ou2.
-    hinduction EQ before R; intros; try discriminate; pclearbot; inv Heqi; eauto.
-    edestruct IHFIN as (? & ? & ?); eauto.
-    edestruct IHEQ as (? & ? & ?); eauto.
-  -  punfold EQ; red in EQ; rewrite H in EQ; clear H t.
-    remember (VisF e k); genobs u2 ou2.
-    hinduction EQ before R; intros; try discriminate; pclearbot.
-    dependent induction Heqi; eauto.
-    edestruct IHFIN as (? & ? & ?); eauto.
-    edestruct IHEQ as (? & ? & ?); eauto.
+  intros * EQ FIN.
+  apply eqit_flip in EQ.
+  revert EQ FIN.
+  apply @Image_eutt_genlr.
 Qed.
 
 #[global] Instance Image_eutt {E A}:
   Proper (eq ==> eutt eq ==> iff) (@Image E A).
 Proof.
-  split; intros.
-  edestruct @Image_eutt_genlr; eauto; intuition; subst; auto.
-  edestruct @Image_eutt_genrl; eauto; intuition; subst; auto.
+  apply proper_sym_impl_iff_2; [ exact _ .. | ].
+  unfold Proper, respectful, impl. intros; subst.
+  edestruct @Image_eutt_genlr as [? []]; try eassumption; subst; assumption.
 Qed.
 
 (** Compatibility with [bind], forward and backward *)
@@ -178,7 +164,7 @@ Qed.
 Lemma Image_bind_inv : forall {E R S}
   (t : itree E R) (k : R -> itree E S) a,
   a ∈ t >>= k ->
-  exists b, b ∈ t /\  a ∈ k b.
+  exists b, b ∈ t /\ a ∈ k b.
 Proof.
   intros * FIN;
   remember (ITree.bind t k) as u.
@@ -195,7 +181,9 @@ Proof.
     eauto.
   - unfold observe in H; cbn in H.
     desobs t EQ; cbn in *; try congruence; eauto.
-    dependent induction H.
+    revert x FIN IHFIN.
+    refine (match H in _ = u return match u with VisF e0 k0 => _ | RetF _ | TauF _ => False end with eq_refl => _ end).
+    intros.
     edestruct IHFIN as (? & ? & ?).
     reflexivity.
     eauto.
