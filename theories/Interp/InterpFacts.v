@@ -349,7 +349,7 @@ Qed.
 
 Lemma interp_iter {E F} (f : E ~> itree F) {A B}
       (t : A -> itree E (A + B)) a0
-  : interp f (iter t a0) ≅ iter (C := ktree _) (fun a => interp f (t a)) a0.
+  : interp f (iter (C := ktree E) t a0) ≅ iter (C := ktree F) (fun a => interp f (t a)) a0.
 Proof.
   unfold iter, Iter_Kleisli, Basics.iter, MonadIter_itree.
   apply interp_iter'.
@@ -358,7 +358,7 @@ Qed.
 
 Lemma interp_loop {E F} (f : E ~> itree F) {A B C}
       (t : C + A -> itree E (C + B)) a :
-  interp f (loop t a) ≅ loop (C := ktree _) (fun ca => interp f (t ca)) a.
+  interp f (loop (C := ktree E) t a) ≅ loop (C := ktree F) (fun ca => interp f (t ca)) a.
 Proof.
   unfold loop. unfold cat, Cat_Kleisli, ITree.cat; cbn.
   rewrite interp_bind.
