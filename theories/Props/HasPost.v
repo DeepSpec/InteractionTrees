@@ -53,10 +53,10 @@ Proof.
     intros * H; apply H.
 Qed.
 
-Module UnaryNotations.
+Module HasPostNotations.
 	Notation "t ⤳ Q" := (has_post t Q) (at level 50).
-End UnaryNotations.
-Import UnaryNotations.
+End HasPostNotations.
+Import HasPostNotations.
 
 (** Proper instances *)
 #[global] Instance has_post_eq_itree {E X} : 
@@ -227,53 +227,35 @@ Qed.
 (* A little oddity that can be useful when building bisimulations manually:
    an [eutt] hypothesis between a tree and itself can be refined into an
 	 [eq_itree] one.
+
+   This assumes UIP.
  *)
-Lemma has_post_has_eq_itree_aux : forall {E X} (t : itree E X) (Q : X -> Prop),
-    has_post_strong t Q ->
-    eq_itree (fun 'x y => x = y /\ Q x) t t.
+Lemma eutt_eq_itree {E X} (R : X -> X -> Prop) : forall (t : itree E X),
+  eutt R t t -> eq_itree R t t.
 Proof.
-  intros.
-  unfold has_post_strong in *.
-  rewrite itree_eta in *.
-  genobs t ot.
-  revert t ot H Heqot.
-  ginit.
-  gcofix CIH.
-  intros.
-  pose proof H0 as EQ.
-  punfold H0.
-  red in H0. cbn in H0.
-  subst ot.
-  induction H0.
-  - gstep; constructor; intuition; subst; auto.
-  - gstep; constructor.
-    rewrite itree_eta.
-    gbase.
-    eapply CIH; eauto.
-    rewrite <- tau_eutt at 1 2.
-    rewrite (itree_eta m2) in EQ.
-    apply EQ.
-  - gstep. constructor.
-    intros; red.
-    rewrite (itree_eta (k2 v)).
-    gbase.
-    eapply CIH; eauto.
-    pose proof eqit_inv_Vis _ _ _ _ _ _ _ EQ v.
-    rewrite (itree_eta (k2 v)) in H.
-    apply H.
-  - apply IHeqitF; auto.
-  - gstep; constructor.
-    rewrite itree_eta.
-    gbase.
-    eapply CIH; eauto.
-    rewrite <- tau_eutt at 1 2.
-    rewrite (itree_eta t2) in EQ.
-    apply EQ.
+  enough (forall (t u : itree E X), eutt R t u -> eq_itree eq t u -> eq_itree R t u).
+  { intros; apply H; [ auto | apply Reflexive_eqit_eq ]. }
+  pcofix CIH.
+  intros t u H EQ. pfold. red.
+  rewrite (itree_eta t), (itree_eta u) in H.
+  punfold EQ. destruct EQ; try discriminate; constructor.
+  - rewrite <- eutt_Ret in H. auto.
+  - pclearbot. right; apply CIH; [ | apply REL ].
+    revert H; apply eqit_Tau.
+  - pclearbot. right; apply CIH; [ | apply REL ].
+    eapply eqit_inv_Vis with (1 := H).
 Qed.
 
-Lemma has_post_has_eq_itree : forall {E X} (t : itree E X) (Q : X -> Prop),
-    has_post t Q ->
-    eq_itree (fun 'x y => x = y /\ Q x) t t.
+Lemma has_post_strong_to_eq_itree : forall {E X} (t : itree E X) (Q : X -> Prop),
+    has_post_strong t Q ->
+    eq_itree (fun x y => x = y /\ Q x) t t.
 Proof.
-  intros; apply has_post_post_strong in H; apply has_post_has_eq_itree_aux; auto.
+  intros *; apply eutt_eq_itree.
+Qed.
+
+Lemma has_post_to_eq_itree : forall {E X} (t : itree E X) (Q : X -> Prop),
+    has_post t Q ->
+    eq_itree (fun x y => x = y /\ Q x) t t.
+Proof.
+  intros * H; apply has_post_strong_to_eq_itree, has_post_post_strong, H.
 Qed.

@@ -35,10 +35,10 @@ theories/Eq/Eq.v
 theories/Eq/UpToTaus.v
 theories/Eq/SimUpToTaus.v
 theories/Eq/EqAxiom.v
-theories/Eq/Unary.v
 
 theories/Props/Leaf.v
 theories/Props/Finite.v
+theories/Props/HasPost.v
 
 theories/Indexed/Sum.v
 theories/Indexed/Relation.v
