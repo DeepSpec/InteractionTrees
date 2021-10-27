@@ -1,4 +1,4 @@
-(** * The image of an Interaction Tree *)
+(** * Leaves of an Interaction Tree *)
 
 (* begin hide *)
 From ITree Require Import
@@ -11,55 +11,55 @@ Import ITree.
 Import ITreeNotations.
 (* end hide *)
 
-(** ** Image of itrees *)
+(** ** Leaves of itrees *)
 
-(** The [Image a t] predicate expresses that [t] admits a finite
-    branch whose leaf carries value [a].
+(** The [Leaf a t] predicate expresses that [t] has a [Ret] leaf with
+    value [a].
 
     We provide the elementary structural lemmas to work with this
-    predicate, and one main useful result relying on [Image]: the
+    predicate, and one main useful result relying on [Leaf]: the
     up-to bind closure [eqit_bind_clo] can be refined such that
-    continuations need only be related over the image of the
-    computation.
+    continuations need only be related over the leaves of the
+    first operand of [bind].
     *)
 
-Inductive Image {E} {A: Type} (a: A) : itree E A -> Prop :=
- | ImageRet: forall t,
+Inductive Leaf {E} {A: Type} (a: A) : itree E A -> Prop :=
+ | LeafRet: forall t,
    observe t = RetF a ->
-   Image a t
- | ImageTau: forall t u,
+   Leaf a t
+ | LeafTau: forall t u,
    observe t = TauF u ->
-   Image a u ->
-   Image a t
- | ImageVis: forall {X} (e: E X) t k x,
+   Leaf a u ->
+   Leaf a t
+ | LeafVis: forall {X} (e: E X) t k x,
    observe t = VisF e k ->
-   Image a (k x) ->
-   Image a t
+   Leaf a (k x) ->
+   Leaf a t
 .
-#[global] Hint Constructors Image: core.
+#[global] Hint Constructors Leaf: core.
 
-Module ImageNotations.
-  Notation "a ∈ t" := (Image a t) (at level 70).
-End ImageNotations.
+Module LeafNotations.
+  Notation "a ∈ t" := (Leaf a t) (at level 70).
+End LeafNotations.
 
-Import ImageNotations.
+Import LeafNotations.
 
 (** Smart constructors *)
 
-Lemma Image_Ret : forall E R a,
+Lemma Leaf_Ret : forall E R a,
   a ∈ (Ret a : itree E R).
 Proof.
   intros; econstructor; reflexivity.
 Qed.
 
-Lemma Image_Tau : forall E R a t,
+Lemma Leaf_Tau : forall E R a t,
   a ∈ (t : itree E R) ->
   a ∈ Tau t.
 Proof.
   intros; econstructor; [reflexivity | eauto].
 Qed.
 
-Lemma Image_Vis : forall E X Y (e : E X) (k : _ -> itree E Y) b x,
+Lemma Leaf_Vis : forall E X Y (e : E X) (k : _ -> itree E Y) b x,
   b ∈ (k x) ->
   b ∈ (Vis e k).
 Proof.
@@ -67,21 +67,21 @@ Proof.
 Qed.
 
 (** Inversion lemmas *)
-Lemma Image_Ret_inv : forall E R a b,
-  b ∈ (Ret a : itree E R) ->
+Lemma Leaf_Ret_inv : forall E R (a b : R),
+  Leaf (E := E) b (Ret a) ->
   b = a.
 Proof.
   intros * IN; inv IN; cbn in *; try congruence.
 Qed.
 
-Lemma Image_Tau_inv : forall E R u b,
-  b ∈ (Tau u : itree E R) ->
+Lemma Leaf_Tau_inv : forall E R (u : itree E R) b,
+  b ∈ Tau u ->
   b ∈ u.
 Proof.
   intros * IN; inv IN; cbn in *; try congruence.
 Qed.
 
-Lemma Image_Vis_inv : forall E X Y (e : E X) (k : _ -> itree E Y) b,
+Lemma Leaf_Vis_inv : forall E X Y (e : E X) (k : _ -> itree E Y) b,
   b ∈ Vis e k ->
   exists x, b ∈ k x.
 Proof.
@@ -93,11 +93,11 @@ Qed.
 
 (** Closure under [eutt]
 
-  General asymetric lemmas for [eutt R], where we naturally get
+  General asymmetric lemmas for [eutt R], where we naturally get
   a different point related by [R], and [Proper] instances for
   [eutt eq]. *)
 
-Lemma Image_eutt_genlr {E A B R}:
+Lemma Leaf_eutt_l {E A B R}:
   forall (t : itree E A) (u : itree E B) (a : A),
   eutt R t u ->
   a ∈ t ->
@@ -126,7 +126,7 @@ Proof.
     + edestruct IHEQ as (? & ? & ?); eauto.
 Qed.
 
-Lemma Image_eutt_genrl {E A B R}:
+Lemma Leaf_eutt_r {E A B R}:
   forall (t : itree E A) (u : itree E B) (b : B),
   eutt R t u ->
   b ∈ u ->
@@ -135,20 +135,20 @@ Proof.
   intros * EQ FIN.
   apply eqit_flip in EQ.
   revert EQ FIN.
-  apply @Image_eutt_genlr.
+  apply @Leaf_eutt_l.
 Qed.
 
-#[global] Instance Image_eutt {E A}:
-  Proper (eq ==> eutt eq ==> iff) (@Image E A).
+#[global] Instance Leaf_eutt {E A}:
+  Proper (eq ==> eutt eq ==> iff) (@Leaf E A).
 Proof.
   apply proper_sym_impl_iff_2; [ exact _ .. | ].
   unfold Proper, respectful, impl. intros; subst.
-  edestruct @Image_eutt_genlr as [? []]; try eassumption; subst; assumption.
+  edestruct @Leaf_eutt_l as [? []]; try eassumption; subst; assumption.
 Qed.
 
 (** Compatibility with [bind], forward and backward *)
 
-Lemma Image_bind : forall {E R S}
+Lemma Leaf_bind : forall {E R S}
   (t : itree E R) (k : R -> itree E S) a b,
   b ∈ t ->
   a ∈ k b ->
@@ -158,10 +158,10 @@ Proof.
   - rewrite (itree_eta t), H, bind_ret_l; auto.
   - rewrite (itree_eta t), H, tau_eutt; auto.
   - rewrite (itree_eta t), H, bind_vis.
-    apply Image_Vis with x; auto.
+    apply Leaf_Vis with x; auto.
 Qed.
 
-Lemma Image_bind_inv : forall {E R S}
+Lemma Leaf_bind_inv : forall {E R S}
   (t : itree E R) (k : R -> itree E S) a,
   a ∈ t >>= k ->
   exists b, b ∈ t /\ a ∈ k b.
@@ -189,20 +189,20 @@ Proof.
     eauto.
 Qed.
 
-(** Image-aware up-to bind closure
+(** Leaf-aware up-to bind closure
     This construction generalizes [eqit_bind_clo]: one can
     indeed provide an arbitrary cut at the relational
-    predicate [RU] of one's choice, but the continuations
+    redicate [RU] of one's choice, but the continuations
     are only required to be related pointwise at the intersection
-    of [RU] with the respective images of the prefixes.
+    of [RU] with the respective leaves of the prefixes.
   *)
-Section ImageBind.
+Section LeafBind.
 
   Context {E : Type -> Type} {R S : Type}.
 
   Local Open Scope itree.
 
-  Inductive eqit_Image_bind_clo b1 b2 (r : itree E R -> itree E S -> Prop) :
+  Inductive eqit_Leaf_bind_clo b1 b2 (r : itree E R -> itree E S -> Prop) :
     itree E R -> itree E S -> Prop :=
   | pbc_intro_h U1 U2 (RU : U1 -> U2 -> Prop)
                 (t1 : itree E U1) (t2 : itree E U2)
@@ -211,16 +211,16 @@ Section ImageBind.
                 (REL: forall u1 u2,
                       u1 ∈ t1 -> u2 ∈ t2 -> RU u1 u2 ->
                       r (k1 u1) (k2 u2))
-      : eqit_Image_bind_clo b1 b2 r
+      : eqit_Leaf_bind_clo b1 b2 r
             (ITree.bind t1 k1) (ITree.bind t2 k2)
     .
-  Hint Constructors eqit_Image_bind_clo: core.
+  Hint Constructors eqit_Leaf_bind_clo: core.
 
-  Lemma eqit_Image_clo_bind  (RS : R -> S -> Prop) b1 b2 vclo
+  Lemma eqit_Leaf_clo_bind  (RS : R -> S -> Prop) b1 b2 vclo
         (MON: monotone2 vclo)
         (CMP: compose (eqitC RS b1 b2) vclo <3= compose vclo (eqitC RS b1 b2))
         (ID: id <3= vclo):
-    eqit_Image_bind_clo b1 b2 <3= gupaco2 (eqit_ RS b1 b2 vclo) (eqitC RS b1 b2).
+    eqit_Leaf_bind_clo b1 b2 <3= gupaco2 (eqit_ RS b1 b2 vclo) (eqitC RS b1 b2).
   Proof.
     gcofix CIH. intros. destruct PR.
     guclo eqit_clo_trans.
@@ -255,7 +255,7 @@ Section ImageBind.
       eapply eqit_Tau_l. rewrite unfold_bind, <-itree_eta. reflexivity.
   Qed.
 
-End ImageBind.
+End LeafBind.
 
 (** General cut rule for [eqit]
     This result generalizes [eqit_clo_bind].  *)
@@ -271,7 +271,7 @@ Lemma eqit_clo_bind_gen :
     eqit RR b1 b2 (x <- t1;; k1 x) (x <- t2;; k2 x).
 Proof.
     intros.
-    ginit. guclo (@eqit_Image_clo_bind E R1 R2).
+    ginit. guclo (@eqit_Leaf_clo_bind E R1 R2).
     econstructor; eauto.
     intros * IN1 IN2 HR.
     gfinal; right.

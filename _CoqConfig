@@ -27,7 +27,6 @@ theories/Core/KTree.v
 theories/Core/KTreeFacts.v
 theories/Core/Subevent.v
 theories/Core/ITreeMonad.v
-theories/Core/Image.v
 
 theories/Eq.v
 theories/Eq/Paco2.v
@@ -36,6 +35,8 @@ theories/Eq/Eq.v
 theories/Eq/UpToTaus.v
 theories/Eq/SimUpToTaus.v
 theories/Eq/EqAxiom.v
+
+theories/Props/Leaf.v
 
 theories/Indexed/Sum.v
 theories/Indexed/Relation.v
