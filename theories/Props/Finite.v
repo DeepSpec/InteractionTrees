@@ -26,7 +26,7 @@ Import LeafNotations.
   - Forward and backward proof rules for [bind]s
   We additionally provide:
   - Particular cases of non-interactive computations and [spin]
-  - Counter examples to properties that could be expected at first glance
+  - Counterexamples to properties that could be expected at first glance
 *)
 
 (** Definitions *)
@@ -130,7 +130,9 @@ Lemma BoxFinite_Vis_inv : forall E X R (e : E X) k,
   forall x, BoxFinite (k x).
 Proof.
   intros * FIN x; inv FIN; cbn in *; try congruence.
-  dependent induction H; auto.
+  revert H0.
+  refine (match H in _ = u return match u with VisF e0 k0 => _ | _ => False end with eq_refl => _ end).
+  auto.
 Qed.
 
 (* DiamondFinite *)
@@ -146,7 +148,9 @@ Lemma DiamondFinite_Vis_inv : forall E X R (e : E X) k,
   exists x, DiamondFinite (k x).
 Proof.
   intros * FIN; inv FIN; cbn in *; try congruence.
-  dependent induction H; eauto.
+  revert x H0.
+  refine (match H in _ = u return match u with VisF e0 k0 => _ | _ => False end with eq_refl => _ end).
+  eauto.
 Qed.
 
 (** Closure under [eutt]
@@ -155,7 +159,7 @@ Qed.
   instances for [eutt eq]. *)
 
 (* BoxFinite *)
-Lemma BoxFinite_eutt_genlr {E A B R}:
+Lemma BoxFinite_eutt_l {E A B R}:
   forall (t : itree E A) (u : itree E B),
   eutt R t u ->
   BoxFinite t ->
@@ -168,49 +172,37 @@ Proof.
     red in EQ; rewrite H in EQ; clear H.
     remember (RetF a); genobs u2 ou.
     hinduction EQ before R; intros; try discriminate; eauto.
-  -  punfold EQ; red in EQ; rewrite H in EQ; clear H.
+  - punfold EQ; red in EQ; rewrite H in EQ; clear H.
     remember (TauF u); genobs u2 ou2.
     hinduction EQ before R; intros; try discriminate; pclearbot; inv Heqi; eauto.
-  -  punfold EQ; red in EQ; rewrite H in EQ; clear H.
+  - punfold EQ; red in EQ; rewrite H in EQ; clear H.
     remember (VisF e k); genobs u2 ou2.
     hinduction EQ before R; intros; try discriminate; pclearbot.
-    dependent induction Heqi; eauto.
-    inv Heqi; eauto.
+    + revert H0 H1.
+      refine (match Heqi in _ = u return match u with VisF e0 k0 => _ | _ => False end with eq_refl => _ end).
+      eauto.
+    + inv Heqi; eauto.
 Qed.
 
-Lemma BoxFinite_eutt_genrl {E A B R}:
+Lemma BoxFinite_eutt_r {E A B R}:
   forall (t : itree E A) (u : itree E B),
   eutt R t u ->
   BoxFinite u ->
   BoxFinite t.
 Proof.
-  intros * EQ FIN;
-  revert t EQ.
-  induction FIN; intros u2 EQ.
-  - punfold EQ.
-    red in EQ; rewrite H in EQ; clear H.
-    remember (RetF a); genobs u2 ou.
-    hinduction EQ before R; intros; try discriminate; eauto.
-  -  punfold EQ; red in EQ; rewrite H in EQ; clear H.
-    remember (TauF u); genobs u2 ou2.
-    hinduction EQ before R; intros; try discriminate; pclearbot; inv Heqi; eauto.
-  -  punfold EQ; red in EQ; rewrite H in EQ; clear H.
-    remember (VisF e k); genobs u2 ou2.
-    hinduction EQ before R; intros; try discriminate; pclearbot.
-    dependent induction Heqi; eauto.
-    inv Heqi; eauto.
+  intros * EQ. apply eqit_flip in EQ. revert EQ. apply BoxFinite_eutt_l.
 Qed.
 
 #[global] Instance BoxFinite_eutt {E A R}:
   Proper (eutt R ==> iff) (@BoxFinite E A).
 Proof.
   repeat intro; split.
-  eapply BoxFinite_eutt_genlr; eauto.
-  eapply BoxFinite_eutt_genrl; eauto.
+  - eapply BoxFinite_eutt_l; eauto.
+  - eapply BoxFinite_eutt_r; eauto.
 Qed.
 
 (* DiamondFinite *)
-Lemma DiamondFinite_eutt_genlr {E A B R}:
+Lemma DiamondFinite_eutt_l {E A B R}:
   forall (t : itree E A) (u : itree E B),
   eutt R t u ->
   DiamondFinite t ->
@@ -223,45 +215,33 @@ Proof.
     red in EQ; rewrite H in EQ; clear H.
     remember (RetF a); genobs u2 ou.
     hinduction EQ before R; intros; try discriminate; eauto.
-  -  punfold EQ; red in EQ; rewrite H in EQ; clear H.
+  - punfold EQ; red in EQ; rewrite H in EQ; clear H.
     remember (TauF u); genobs u2 ou2.
     hinduction EQ before R; intros; try discriminate; pclearbot; inv Heqi; eauto.
-  -  punfold EQ; red in EQ; rewrite H in EQ; clear H.
+  - punfold EQ; red in EQ; rewrite H in EQ; clear H.
     remember (VisF e k); genobs u2 ou2.
     hinduction EQ before R; intros; try discriminate; pclearbot.
-    dependent induction Heqi; eauto.
-    inv Heqi; eauto.
+    + revert x FIN IHFIN.
+      refine (match Heqi in _ = u return match u with VisF e0 k0 => _ | _ => False end with eq_refl => _ end).
+      eauto.
+    + inv Heqi; eauto.
 Qed.
 
-Lemma DiamondFinite_eutt_genrl {E A B R}:
+Lemma DiamondFinite_eutt_r {E A B R}:
   forall (t : itree E A) (u : itree E B),
   eutt R t u ->
   DiamondFinite u ->
   DiamondFinite t.
 Proof.
-  intros * EQ FIN;
-  revert t EQ.
-  induction FIN; intros u2 EQ.
-  - punfold EQ.
-    red in EQ; rewrite H in EQ; clear H.
-    remember (RetF a); genobs u2 ou.
-    hinduction EQ before R; intros; try discriminate; eauto.
-  -  punfold EQ; red in EQ; rewrite H in EQ; clear H.
-    remember (TauF u); genobs u2 ou2.
-    hinduction EQ before R; intros; try discriminate; pclearbot; inv Heqi; eauto.
-  -  punfold EQ; red in EQ; rewrite H in EQ; clear H.
-    remember (VisF e k); genobs u2 ou2.
-    hinduction EQ before R; intros; try discriminate; pclearbot.
-    dependent induction Heqi; eauto.
-    inv Heqi; eauto.
+  intros * EQ. apply eqit_flip in EQ. revert EQ. apply DiamondFinite_eutt_l.
 Qed.
 
 #[global] Instance DiamondFinite_eutt {E A R}:
   Proper (eutt R ==> iff) (@DiamondFinite E A).
 Proof.
   split.
-  eapply DiamondFinite_eutt_genlr; eauto.
-  eapply DiamondFinite_eutt_genrl; eauto.
+  eapply DiamondFinite_eutt_l; eauto.
+  eapply DiamondFinite_eutt_r; eauto.
 Qed.
 
 (** Compatibility with [bind], forward and backward *)
@@ -386,9 +366,10 @@ Proof.
   - unfold observe in H; cbn in H.
     desobs t EQ; cbn in *; try congruence.
     split; eauto.
-    dependent induction H.
-    edestruct IHFIN as (? & ? & ? & ?).
-    reflexivity.
+    revert x FIN IHFIN.
+    refine (match H in _ = u return match u with VisF e0 k0 => _ | _ => False end with eq_refl => _ end).
+    intros.
+    edestruct IHFIN as (? & ? & ? & ?); [ reflexivity | ].
     split; eauto.
 Qed.
 
@@ -398,8 +379,8 @@ Lemma DiamondFinite_bind_inv_weak : forall {E R S}
   (DiamondFinite t /\
    exists x, DiamondFinite (k x)).
 Proof.
-  intros * FIN; apply DiamondFinite_bind_inv in FIN as (?&?&?).
-  intuition eauto.
+  intros * FIN; apply DiamondFinite_bind_inv in FIN as (?&?&?&?).
+  split; eauto.
 Qed.
 
 Lemma DiamondFinite_bind_inv_left : forall {E R S}
@@ -432,7 +413,7 @@ Proof.
 Qed.
 
 (** Degenerate case of non-interactive computations
-  In the absence of interaction, all three notions collapse:
+  In the absence of interaction ([E = void1]), [BoxFinite] and [DiamondFinite] collapse:
   we indeed both know that the computation is deterministic,
   and that it cannot fail, excluding hence any subtletly.
   The image is either empty, or a singleton.
@@ -447,15 +428,13 @@ Qed.
 Lemma Box_Leaf_non_interactive : forall X (t: itree void1 X),
   BoxFinite t <-> (exists x, x ∈ t).
 Proof.
-  split; induction 1; cbn in *; first [now destruct e | eauto].
-  destruct IHBoxFinite; eauto.
-  eapply Box_Diamond_non_interactive, Leaf_Diamond; eauto.
+  intros *.
+  rewrite Box_Diamond_non_interactive.
+  split; [ eauto using Diamond_Leaf | intros []; eauto using Leaf_Diamond ].
 Qed.
 
 Lemma Leaf_non_interactive_singleton : forall X (t: itree void1 X) a b,
-  a ∈ t ->
-  b ∈ t ->
-  a = b.
+  a ∈ t -> b ∈ t -> a = b.
 Proof.
   intros * IN; revert b; induction IN; intros * IN'.
   - rewrite itree_eta, H in IN'; apply Leaf_Ret_inv in IN'; auto.
@@ -484,13 +463,13 @@ Proof.
   intros * IN; apply Leaf_Diamond, spin_not_DiamondFinite in IN; auto.
 Qed.
 
-Module CounterExamples.
+Module Counterexamples.
 
-(** * Counter examples
-  Counter examples to statements that could be expected
-  to be true at firt glance *)
+(** * Counterexamples *)
 
-(** BoxFinite does _not_ entail DiamondFinite
+(** Counterexamples to statements that could be expected to be true at firt glance. *)
+
+(** [BoxFinite] does _not_ entail [DiamondFinite].
 
   Indeed, Diamond guarantees that a finite branch exists,
   where Box enforces that no infinite branch exists.
@@ -547,6 +526,7 @@ Module CounterExamples.
   Qed.
 
   Fact NotDFtk: ~ DiamondFinite (t >>= k).
+  Proof.
   intros abs.
   apply DiamondFinite_bind_inv in abs as (FINt & b & IN & FINk).
   destruct b; cbn in *.
@@ -561,4 +541,4 @@ Module CounterExamples.
     eapply spin_not_DiamondFinite; eauto.
   Qed.
 
-End CounterExamples.
+End Counterexamples.
