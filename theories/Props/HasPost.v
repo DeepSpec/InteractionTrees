@@ -11,8 +11,8 @@ Set Strict Implicit.
 (* end hide *)
 
 (** * Unary interpretation for [eutt]: a traditional program logic
- 
-  The weak bisimulation supported by [itree]s and the notions of 
+
+  The weak bisimulation supported by [itree]s and the notions of
   refinements we build upon it in the various monads we interpret into
   give us reasoning principles to establish the equivalence or refinement
   of computations.
@@ -20,21 +20,21 @@ Set Strict Implicit.
 
   We develop here some elementary theory for a unary program logic
   over itree-based computations.
-  It is defined in terms of [eutt], simply taking its diagonal. 
-  We prove that it respects the expected elemntary proof rules 
-	w.r.t. to logical connectors.
+  It is defined in terms of [eutt], simply taking its diagonal.
+  We prove that it respects the expected elemntary proof rules
+  w.r.t. to logical connectors.
 
-	Most importantly, we derive a proof rule to leverage such unary 
-	facts during a relational refinement proof: see [eutt_post_bind] 
-	and [eutt_post_bind_gen].
-	One can this way leverage functional properties of computations 
-	during relational proofs without re-inlining the proof of 
-	functional correctness everytime.
+  Most importantly, we derive a proof rule to leverage such unary
+  facts during a relational refinement proof: see [eutt_post_bind]
+  and [eutt_post_bind_gen].
+  One can this way leverage functional properties of computations
+  during relational proofs without re-inlining the proof of
+  functional correctness everytime.
 
 *)
 
 (** The main predicate: an itree-computation [t] admits [Q] for
-	  a postcondition.
+    a postcondition.
     Defined as the diagonal of [eutt].
 *)
 Definition has_post {E X} (t : itree E X) (Q : X -> Prop) : Prop :=
@@ -54,13 +54,13 @@ Proof.
 Qed.
 
 Module HasPostNotations.
-	Notation "t ⤳ Q" := (has_post t Q) (at level 50).
+  Notation "t ⤳ Q" := (has_post t Q) (at level 50).
 End HasPostNotations.
 Import HasPostNotations.
 
 (** Proper instances *)
-#[global] Instance has_post_eq_itree {E X} : 
-	Proper (eq_itree eq ==> equiv_pred ==> iff) (@has_post E X).
+#[global] Instance has_post_eq_itree {E X} :
+  Proper (eq_itree eq ==> equiv_pred ==> iff) (@has_post E X).
 Proof.
   repeat red; unfold has_post; intros * EUTT * EQ *; split; intros HP.
   - rewrite <- EUTT; eapply eutt_equiv; eauto.
@@ -69,8 +69,8 @@ Proof.
     split; red; intros; apply EQ; auto.
 Qed.
 
-#[global] Instance has_post_eutt {E X} : 
-	Proper (eutt eq ==> equiv_pred ==> iff) (@has_post E X).
+#[global] Instance has_post_eutt {E X} :
+  Proper (eutt eq ==> equiv_pred ==> iff) (@has_post E X).
 Proof.
   repeat red; unfold has_post; intros * EUTT * EQ *; split; intros HP.
   - rewrite <- EUTT; eapply eutt_equiv; eauto.
@@ -80,8 +80,8 @@ Proof.
 Qed.
 
 (** [has_post] logical primitives.
-    Post-conditions can be established by means of usual proof 
-		rules for elementary logical connectives
+    Post-conditions can be established by means of usual proof
+    rules for elementary logical connectives
  *)
 
 (* Conjunction introduction *)
@@ -93,7 +93,7 @@ Proof.
   intros * HP HQ.
   pose proof eutt_conj _ _ HP HQ.
   auto.
-Qed.     
+Qed.
 
 (* Left disjunction introduction *)
 Lemma has_post_disj_l : forall {E X} (t : itree E X) P Q,
@@ -103,7 +103,7 @@ Proof.
   intros * HP.
   epose proof eutt_disj_l _ _ HP as H.
   apply H.
-Qed.     
+Qed.
 
 (* Right disjunction introduction *)
 Lemma has_post_disj_r : forall {E X} (t : itree E X) P Q,
@@ -113,7 +113,7 @@ Proof.
   intros * HQ.
   epose proof eutt_disj_r _ _ HQ as H.
   apply H.
-Qed.     
+Qed.
 
 (* Weakening *)
 Lemma has_post_weaken : forall {E X} (t : itree E X) P Q,
@@ -124,7 +124,7 @@ Proof.
   intros * HP INCL.
   eapply eqit_mon; eauto.
   intros; apply INCL; auto.
-Qed.     
+Qed.
 
 (* Trivial postcondition *)
 Lemma has_post_True : forall {E X} (t : itree E X),
@@ -133,12 +133,12 @@ Proof.
   intros *.
   eapply eqit_mon; eauto.
   reflexivity.
-Qed.     
+Qed.
 
 (** Structural proof rules *)
 
 (* The prefix can be ignored if the continuation universally satisfy the
- 	 postcondition *)
+    postcondition *)
 Lemma has_post_bind_weak : forall {E X Y} (t : itree E X) (k : X -> itree E Y) Q,
     (forall x, k x ⤳ Q) ->
     ITree.bind t k ⤳ Q.
@@ -171,7 +171,7 @@ Proof.
   specialize (IND i); apply has_post_post_strong in IND; auto.
   unfold has_post_strong in IND.
   eapply eqit_mon; try apply IND; auto.
-  intros [] ? [<- ?]; eauto. 
+  intros [] ? [<- ?]; eauto.
 Qed.
 
 (* [translate] preserves postconditions *)
@@ -184,9 +184,9 @@ Proof.
 Qed.
 
 (** Enriched relational cut rule
-    The main benefit of the approach: post-conditions can be leveraged 
-		when performing a cut during relational proofs.
-		This lemma generalizes [eutt_clo_bind]
+    The main benefit of the approach: post-conditions can be leveraged
+    when performing a cut during relational proofs.
+    This lemma generalizes [eutt_clo_bind]
  *)
 Lemma eutt_post_bind :
   forall E R1 R2 RR S1 S2 SS Q1 Q2
@@ -208,7 +208,7 @@ Proof.
   clear -EQ2.
   eapply eutt_equiv; eauto.
   split.
-  - intros ? ? (? & ? & ?); do 2 econstructor; eauto. 
+  - intros ? ? (? & ? & ?); do 2 econstructor; eauto.
   - intros ? ? ?. inv H. inv REL1.
     destruct REL2 as [-> ?], REL0 as [<- ?]; eauto.
 Qed.
@@ -216,7 +216,7 @@ Qed.
 (* Often useful particular case of identical prefixes *)
 Lemma eutt_post_bind_eq : forall E R1 R2 RR U Q (t: itree E U) (k1: U -> itree E R1) (k2: U -> itree E R2),
     t ⤳ Q ->
-    (forall u, Q u -> eutt RR (k1 u) (k2 u)) -> 
+    (forall u, Q u -> eutt RR (k1 u) (k2 u)) ->
     eutt RR (ITree.bind t k1) (ITree.bind t k2).
 Proof.
   intros * POST ?.
@@ -226,7 +226,7 @@ Qed.
 
 (* A little oddity that can be useful when building bisimulations manually:
    an [eutt] hypothesis between a tree and itself can be refined into an
-	 [eq_itree] one.
+   [eq_itree] one.
 
    This assumes UIP.
  *)
