@@ -257,24 +257,24 @@ End ITreeNotations.
 
 (** ** Instances *)
 
-Instance Functor_itree {E} : Functor (itree E) :=
+#[global] Instance Functor_itree {E} : Functor (itree E) :=
 { fmap := @ITree.map E }.
 
 (* Instead of [pure := @Ret E], [ret := @Ret E], we eta-expand
    [pure] and [ret] to make the extracted code respect OCaml's
    value restriction. *)
-Instance Applicative_itree {E} : Applicative (itree E) :=
+#[global] Instance Applicative_itree {E} : Applicative (itree E) :=
 { pure := fun _ x => Ret x
 ; ap := fun _ _ f x =>
           ITree.bind f (fun f => ITree.bind x (fun x => Ret (f x)))
 }.
 
-Instance Monad_itree {E} : Monad (itree E) :=
+#[global] Instance Monad_itree {E} : Monad (itree E) :=
 {| ret := fun _ x => Ret x
 ;  bind := @ITree.bind E
 |}.
 
-Instance MonadIter_itree {E} : MonadIter (itree E) :=
+#[global] Instance MonadIter_itree {E} : MonadIter (itree E) :=
   fun _ _ => ITree.iter.
 
 (** ** Tactics *)

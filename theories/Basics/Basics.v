@@ -66,12 +66,12 @@ Definition writerT (w : Type) (m : Type -> Type) (a : Type) : Type :=
   m (prod w a).
 Definition writer := prod.
 
-Instance Functor_stateT {m s} {Fm : Functor m} : Functor (stateT s m)
+#[global] Instance Functor_stateT {m s} {Fm : Functor m} : Functor (stateT s m)
   := {|
     fmap _ _ f := fun run s => fmap (fun sa => (fst sa, f (snd sa))) (run s)
     |}.
 
-Instance Monad_stateT {m s} {Fm : Monad m} : Monad (stateT s m)
+#[global] Instance Monad_stateT {m s} {Fm : Monad m} : Monad (stateT s m)
   := {|
     ret _ a := fun s => ret (s, a)
   ; bind _ _ t k := fun s =>
@@ -97,7 +97,7 @@ Polymorphic Class MonadIter (M : Type -> Type) : Type :=
     Quite easily in fact, no [Monad] assumption needed.
  *)
 
-Instance MonadIter_stateT {M S} {MM : Monad M} {AM : MonadIter M}
+#[global] Instance MonadIter_stateT {M S} {MM : Monad M} {AM : MonadIter M}
   : MonadIter (stateT S M) :=
   fun _ _ step i => mkStateT (fun s =>
     iter (fun is =>
@@ -109,7 +109,7 @@ Instance MonadIter_stateT {M S} {MM : Monad M} {AM : MonadIter M}
           | inr r => inr (r, snd is')
           end) (i, s)).
 
-Polymorphic Instance MonadIter_stateT0 {M S} {MM : Monad M} {AM : MonadIter M}
+#[global] Polymorphic Instance MonadIter_stateT0 {M S} {MM : Monad M} {AM : MonadIter M}
   : MonadIter (Monads.stateT S M) :=
   fun _ _ step i s =>
     iter (fun si =>
@@ -121,11 +121,11 @@ Polymorphic Instance MonadIter_stateT0 {M S} {MM : Monad M} {AM : MonadIter M}
           | inr r => inr (fst si', r)
           end) (s, i).
 
-Instance MonadIter_readerT {M S} {AM : MonadIter M} : MonadIter (readerT S M) :=
+#[global] Instance MonadIter_readerT {M S} {AM : MonadIter M} : MonadIter (readerT S M) :=
   fun _ _ step i => mkReaderT (fun s =>
     iter (fun i => runReaderT (step i) s) i).
 
-Instance MonadIter_optionT {M} {MM : Monad M} {AM : MonadIter M}
+#[global] Instance MonadIter_optionT {M} {MM : Monad M} {AM : MonadIter M}
   : MonadIter (optionT M) :=
   fun _ _ step i => mkOptionT (
     iter (fun i =>
@@ -136,7 +136,7 @@ Instance MonadIter_optionT {M} {MM : Monad M} {AM : MonadIter M}
           | Some (inr r) => inr (Some r)
           end) i).
 
-Instance MonadIter_eitherT {M E} {MM : Monad M} {AM : MonadIter M}
+#[global] Instance MonadIter_eitherT {M E} {MM : Monad M} {AM : MonadIter M}
   : MonadIter (eitherT E M) :=
   fun _ _ step i => mkEitherT (
     iter (fun i =>
@@ -159,7 +159,7 @@ Inductive iter_Prop {R I : Type} (step : I -> I + R -> Prop) (i : I) (r : R)
     iter_Prop step i r
 .
 
-Polymorphic Instance MonadIter_Prop : MonadIter Ensembles.Ensemble := @iter_Prop.
+#[global] Polymorphic Instance MonadIter_Prop : MonadIter Ensembles.Ensemble := @iter_Prop.
 
 (* Elementary constructs for predicates. To be moved in their own file eventually *)
 Definition equiv_pred {A : Type} (R S: A -> Prop): Prop :=
@@ -174,20 +174,19 @@ Definition prod_pred {A B : Type} (PA : A -> Prop) (PB : B -> Prop) : A * B -> P
 Definition TT {A : Type} : A -> Prop := fun _ => True.
 Global Hint Unfold TT sum_pred prod_pred: core.
 
-Global Instance equiv_pred_refl  {A} : Reflexive (@equiv_pred A).
+#[global] Instance equiv_pred_refl  {A} : Reflexive (@equiv_pred A).
 Proof.
   split; auto.
 Qed.
-Global Instance equiv_pred_symm  {A} : Symmetric (@equiv_pred A).
-
+#[global] Instance equiv_pred_symm  {A} : Symmetric (@equiv_pred A).
 Proof.
   red; intros * EQ; split; intros; eapply EQ; auto.
 Qed.
-Global Instance equiv_pred_trans {A} : Transitive (@equiv_pred A).
+#[global] Instance equiv_pred_trans {A} : Transitive (@equiv_pred A).
 Proof.
   red; intros * EQ1 EQ2; split; intros; (apply EQ1,EQ2 || apply EQ2,EQ1); auto.
 Qed.
-Global Instance equiv_pred_equiv {A} : Equivalence (@equiv_pred A).
+#[global] Instance equiv_pred_equiv {A} : Equivalence (@equiv_pred A).
 Proof.
   split; typeclasses eauto.
 Qed.

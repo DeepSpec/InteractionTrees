@@ -112,7 +112,7 @@ Proof.
   induction 1; auto.
 Qed.
 
-Instance eq_itree_iter {E A B} :
+#[global] Instance eq_itree_iter {E A B} :
   @Proper ((A -> itree E (A + B)) -> A -> itree E B)
           ((eq ==> eq_itree eq) ==> pointwise_relation _ (eq_itree eq))
           iter.
@@ -124,7 +124,7 @@ Proof.
   intros [] _ []; auto; econstructor; subst; auto.
 Qed.
 
-Instance eutt_iter {E A B} :
+#[global] Instance eutt_iter {E A B} :
   @Proper ((A -> itree E (A + B)) -> A -> itree E B)
           (pointwise_relation _ (eutt eq) ==> pointwise_relation _ (eutt eq))
           iter.
@@ -146,7 +146,7 @@ Proof.
   eapply eutt_iter'; eauto.
 Qed.
 
-Instance eq2_ktree_iter {E A B} :
+#[global] Instance eq2_ktree_iter {E A B} :
   @Proper (ktree E A (A + B) -> ktree E A B)
           (eq2 ==> eq2)
           iter.
@@ -165,14 +165,14 @@ Proof.
   apply unfold_iter.
 Qed.
 
-Instance IterUnfold_ktree {E} : IterUnfold (ktree E) sum.
+#[global] Instance IterUnfold_ktree {E} : IterUnfold (ktree E) sum.
 Proof.
   repeat intro. unfold_ktree. rewrite unfold_iter_ktree.
   eapply eutt_clo_bind; try reflexivity.
   intros [] ? []; try rewrite tau_eutt; reflexivity.
 Qed.
 
-Instance IterNatural_ktree {E} : IterNatural (ktree E) sum.
+#[global] Instance IterNatural_ktree {E} : IterNatural (ktree E) sum.
 Proof.
   repeat intro. unfold_ktree.
   revert a0.
@@ -226,7 +226,7 @@ Proof.
   { rewrite bind_ret_l. gstep; constructor; auto. }
 Qed.
 
-Instance IterDinatural_ktree {E} : IterDinatural (ktree E) sum.
+#[global] Instance IterDinatural_ktree {E} : IterDinatural (ktree E) sum.
 Proof.
   repeat intro. unfold_ktree.
   transitivity (iter (C := ktree E) (fun t =>
@@ -290,7 +290,7 @@ Proof.
     gstep; reflexivity.
 Qed.
 
-Instance IterCodiagonal_ktree {E} : IterCodiagonal (ktree E) sum.
+#[global] Instance IterCodiagonal_ktree {E} : IterCodiagonal (ktree E) sum.
 Proof.
   repeat intro. unfold_ktree.
   rewrite iter_codiagonal_ktree.
@@ -301,7 +301,7 @@ Proof.
   intros [| []] ? []; rewrite ?tau_eutt; reflexivity.
 Qed.
 
-Global Instance Iterative_ktree {E} : Iterative (ktree E) sum.
+#[global] Instance Iterative_ktree {E} : Iterative (ktree E) sum.
 Proof.
   split; typeclasses eauto.
 Qed.

@@ -47,32 +47,32 @@ Section Instances.
   Context `{Monad m}.
   Context `{Eq1 m}.
 
-  Global Instance Eq2_Kleisli : Eq2 (Kleisli m) :=
+  #[global] Instance Eq2_Kleisli : Eq2 (Kleisli m) :=
     fun _ _ => pointwise_relation _ eq1.
 
-  Global Instance Cat_Kleisli : Cat (Kleisli m) :=
+  #[global] Instance Cat_Kleisli : Cat (Kleisli m) :=
     fun _ _ _ u v x =>
       bind (u x) (fun y => v y).
 
   Definition map {a b c} (g:b -> c) (ab : Kleisli m a b) : Kleisli m a c :=
      cat ab (pure g).
   
-  Global Instance Initial_Kleisli : Initial (Kleisli m) void :=
+  #[global] Instance Initial_Kleisli : Initial (Kleisli m) void :=
     fun _ v => match v : void with end.
 
-  Global Instance Id_Kleisli : Id_ (Kleisli m) :=
+  #[global] Instance Id_Kleisli : Id_ (Kleisli m) :=
     fun _ => pure id.
 
-  Global Instance Case_Kleisli : Case (Kleisli m) sum :=
+  #[global] Instance Case_Kleisli : Case (Kleisli m) sum :=
     fun _ _ _ l r => case_sum _ _ _ l r.
 
-  Global Instance Inl_Kleisli : Inl (Kleisli m) sum :=
+  #[global] Instance Inl_Kleisli : Inl (Kleisli m) sum :=
     fun _ _ => pure inl.
 
-  Global Instance Inr_Kleisli : Inr (Kleisli m) sum :=
+  #[global] Instance Inr_Kleisli : Inr (Kleisli m) sum :=
     fun _ _ => pure inr.
 
-  Global Instance Iter_Kleisli `{MonadIter m} : Iter (Kleisli m) sum :=
+  #[global] Instance Iter_Kleisli `{MonadIter m} : Iter (Kleisli m) sum :=
     fun a b => Basics.iter.
 
 End Instances.
