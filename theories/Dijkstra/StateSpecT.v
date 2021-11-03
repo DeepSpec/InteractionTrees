@@ -182,10 +182,10 @@ Section LoopInvarSpecific.
   (*should be able to use original*)
   Lemma loop_invar_state: forall (A B : Type) (g : A -> State (A + B)) (a : A) (s : S)
                (p : Delay ( S * B) -> Prop) (q : Delay ((S * A) + (S * B))  -> Prop  ) 
-               (Hp : resp_eutt _ _ p) (Hq : resp_eutt _ _ q) ,
+               (Hp : resp_eutt Void (S * B) p) (Hq : resp_eutt Void ((S * A) + (S * B)) q) ,
         (q (reassoc (g a s) )) -> 
         (q -+> p) -> (forall t, q t -> q (t >>= (iter_lift ( iso_destatify_arrow g)  ))) -> 
-         (p \1/ divergence) (iter g a s) .
+         (p \1/ divergence) (MonadIter_stateT0 _ _ g a s) .
   Proof.
     intros.
     set (iso_destatify_arrow g) as g'.

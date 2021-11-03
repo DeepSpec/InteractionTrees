@@ -45,12 +45,12 @@ Proof.
   intros t1 t2 Ht. split; intros.
   - induction H.
     + apply conv_ret; auto. rewrite <- Ht. auto. 
-    + eapply conv_vis with (e0 := e); eauto. rewrite <- H.
+    + eapply conv_vis; eauto. rewrite <- H.
       symmetry. auto.
   - induction H.
     + apply conv_ret; auto. rewrite Ht. auto.
-    + eapply conv_vis with (e0 := e); eauto. rewrite Ht.
-      auto.
+    + eapply conv_vis; eauto. rewrite Ht.
+      eauto.
 Qed.
 
 Ltac contra_void := try match goal with | a : void |- _ => contradiction end. 
@@ -91,7 +91,8 @@ Lemma can_converge_list_to_stream : forall (E : Type -> Type) (l : ev_list E),
 Proof.
   red. intros. induction l.
   - cbn. constructor. reflexivity.
-  - cbn. eapply conv_vis with (e := a) (b := tt); try reflexivity. simpl. auto.
+  - cbn. eapply conv_vis; try reflexivity. simpl. eauto.
+    Unshelve. exact tt.
 Qed.
 
 Lemma finite_stream_list : forall (E : Type -> Type) (s : ev_stream E),
@@ -183,7 +184,7 @@ Proof.
   - unfold append. rewrite H. rewrite bind_ret_l.
     constructor. reflexivity.
   - rewrite H. inversion e. subst. rewrite append_vis.
-    eapply conv_vis with (e0 := e) (k0 := fun a => k a ++ Ret r); eauto; try reflexivity.
+    eapply conv_vis; eauto; try reflexivity. simpl. eauto.
     subst. contradiction.
 Qed.
 
@@ -337,7 +338,7 @@ Proof.
         hinduction H1 before CIH; intros; dependent destruction x0.
         ++ rewrite <- x. constructor. auto.
         ++ constructor. auto.
-      * eapply IHeuttEvF with (m2 := m0); auto.
+      * pclearbot. eapply IHeuttEvF; auto. 2 : symmetry; eauto.
         pclearbot. pfold. red. rewrite <- x. constructor; auto.
         punfold REL.
       * constructor. rewrite <- x.
@@ -562,7 +563,7 @@ Proof.
     + apply trace_refine_ret.
   - destruct IHcan_converge as [br [Hrbr Hrefbr] ].
     exists  (Vis (evans B e b) (fun _ => br) ). split.
-    + eapply conv_vis with (b0 := tt); try reflexivity. auto.
+    + eapply conv_vis; try reflexivity. eauto. Unshelve. exact tt.
     + rewrite H. apply trace_refine_vis_add. auto.
 Qed.
 
@@ -578,7 +579,7 @@ Proof.
     rewrite Ht0 in H1. pinversion H1. subst.
     inj_existT. subst. rewrite Ht0. 
     inversion H4; subst; inj_existT; subst; try contradiction.
-    eapply conv_vis with (b0 := a); try reflexivity.
+    eapply conv_vis; try reflexivity. Unshelve. 2 : exact a.
     apply IHcan_converge. pclearbot.
     specialize (H9 tt a). assert (RAnsRef E unit X (evans X e0 a) tt e0 a).
     constructor. apply H9 in H2. pclearbot. destruct b. auto.

@@ -107,12 +107,12 @@ Section ITreeDijkstra.
     intros t1 t2 Ht. split; intros.
     - induction H.
       + apply conv_ret; auto. rewrite <- Ht. auto. 
-      + eapply conv_vis with (e0 := e); eauto. rewrite <- H.
+      + eapply conv_vis; eauto. rewrite <- H.
         symmetry. auto.
     - induction H.
       + apply conv_ret; auto. rewrite Ht. auto.
-      + eapply conv_vis with (e0 := e); eauto. rewrite Ht.
-        auto.
+      + eapply conv_vis; eauto. rewrite Ht.
+        eauto.
   Qed.
 
   Lemma not_converge_to_must_diverge : forall (A : Type) (t : itree E A), 

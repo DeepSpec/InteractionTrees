@@ -40,7 +40,7 @@ From Paco Require Import paco.
 Global Instance proper_eqitree_try_catch {E Err R} : Proper (eq_itree eq ==> pointwise_relation Err (eq_itree eq) ==> eq_itree eq) (@try_catch Err R E).
 Proof.
   intros t1 t2 Ht k1 k2 Hk. red in Hk. generalize dependent t2. revert t1.
-  ginit. gcofix CIH. intros. unfold try_catch. do 2 rewrite unfold_iter_ktree.
+  ginit. gcofix CIH. intros. unfold try_catch.  setoid_rewrite unfold_iter_ktree.
   pinversion Ht; try inv CHECK.
   - repeat rewrite bind_ret_l. gfinal; right. pfold; constructor; auto.
   - repeat rewrite bind_ret_l. gstep; constructor. gfinal. left. eauto.
@@ -54,7 +54,7 @@ Qed.
 Global Instance proper_eutt_try_catch {E Err R} : Proper (eutt eq ==> pointwise_relation Err (eutt eq) ==> eutt eq) (@try_catch Err R E).
 Proof.
   intros t1 t2 Ht k1 k2 Hk. red in Hk. generalize dependent t2. revert t1.
-  ginit. gcofix CIH. intros. unfold try_catch. do 2 rewrite unfold_iter_ktree.
+  ginit. gcofix CIH. intros. unfold try_catch. setoid_rewrite unfold_iter_ktree.
   punfold Ht. red in Ht.
   hinduction Ht before r; intros; subst; eauto; try inv CHECK; pclearbot.
   - repeat rewrite bind_ret_l. gfinal; right. pfold; constructor; auto.
@@ -72,7 +72,7 @@ Qed.
 Global Instance proper_eqitree_throw_prefix {E Err R b} : Proper (eqit eq b b ==> eqit eq b b) (@throw_prefix Err R E).
 Proof.
   intros t1 t2 Ht. generalize dependent t2. revert t1.
-  ginit. gcofix CIH. intros. unfold throw_prefix. do 2 rewrite unfold_iter_ktree.
+  ginit. gcofix CIH. intros. unfold throw_prefix. setoid_rewrite unfold_iter_ktree.
   punfold Ht. red in Ht. hinduction Ht before r; intros; subst; eauto; try inv CHECK.
   - repeat rewrite bind_ret_l. gfinal; right. subst. pfold; constructor; auto.
   - repeat rewrite bind_ret_l. gstep; constructor. gfinal. left. pclearbot.

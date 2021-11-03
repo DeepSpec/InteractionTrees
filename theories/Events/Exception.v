@@ -65,7 +65,7 @@ Definition try_catch {Err R : Type } {E : Type -> Type}
          | inr1 e' =>  Functor.fmap (fun x => inl (k x) ) (trigger e) end end
 
   in 
-  iter catch_body ttry.
+  ITree.iter catch_body ttry.
 
 
 Definition throw_prefix {Err R : Type} {E : Type -> Type}
@@ -80,7 +80,7 @@ Definition throw_prefix {Err R : Type} {E : Type -> Type}
         | inr1 e' =>  Functor.fmap (fun x => inl (k x) ) (trigger e)
         end
       end in
-  iter prefix_body t.
+  ITree.iter prefix_body t.
 
 
 Lemma try_catch_ret : forall E Err R r (kcatch : Err -> itree (exceptE Err +' E) R),

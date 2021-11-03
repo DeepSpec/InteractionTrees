@@ -173,12 +173,12 @@ Section PrintMults.
   Proof.
     intros. red in s. red in s. generalize dependent x. induction s; intros; auto.
     - cbn. destruct a as [y v]. destruct (Strings.String.string_dec x y).
-      + subst. exfalso. apply H with (v0 := v). red. cbn. red. cbn.
+      + subst. exfalso. eapply H. red. cbn. red. cbn.
         rewrite RelDec.rel_dec_eq_true; auto. apply RelDec_string_Correct.
       + rewrite RelDec.rel_dec_neq_false; auto; try apply RelDec_string_Correct.
         unfold Maps.lookup in IHs. cbn in *. apply IHs; auto. intros.
-        intro Hcontra. apply H with (v0 := v0). red. cbn.
-        rewrite RelDec.rel_dec_neq_false; auto; try apply RelDec_string_Correct.
+        intro Hcontra. eapply H. red. cbn.
+        rewrite RelDec.rel_dec_neq_false; eauto; try apply RelDec_string_Correct.
   Qed.
   
   Lemma lookup_neq : forall (s : env) (x y: string) (v d: nat), x <> y -> 
