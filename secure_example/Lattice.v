@@ -95,7 +95,7 @@ Qed.
 Lemma leq_dec (Lat : Lattice) {HLat : LatticeLaws Lat} (l1 l2 : L) :
   {leq l1 l2} + {~ leq l1 l2}.
 Proof.
-  cbn. destruct HLat. eauto.
+  cbn. destruct HLat. auto.
 Qed.
 
 Lemma leq_bot (Lat : Lattice) {HLat : LatticeLaws Lat} l :

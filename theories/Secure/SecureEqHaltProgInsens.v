@@ -22,8 +22,7 @@ From ITree Require Import
      Events.MapDefault
      Events.State
      Events.StateFacts
-     Core.Divergence
-     Dijkstra.TracesIT
+     ITrace.ITraceFacts
 .
 
 From Paco Require Import paco.
@@ -31,8 +30,6 @@ From Paco Require Import paco.
 Import Monads.
 Import MonadNotation.
 Local Open Scope monad_scope.
-
-
 
 Variant nonempty (A : Type) : Prop := ne (a : A).
 
@@ -58,6 +55,7 @@ Section SecureUntimed.
   Context (priv : forall A, E A -> L).
   Context (RR : R1 -> R2 -> Prop).
 
+  Coercion is_true : bool >-> Sortclass.
 
   Variant secure_eqitF (b1 b2 : bool) (l : L) vclo (sim : itree E R1 -> itree E R2 -> Prop) : itree' E R1 -> itree' E R2 -> Prop :=
 
@@ -193,15 +191,15 @@ Definition halt : itree E R := Vis HaltE (fun _ => Tau Tau ...)
   Lemma refl_counter_counter : ~ eqit_secure NatPreorder priv_counter eq true true 0 refl_counter refl_counter.
     Proof.
       intro Hcontra. punfold Hcontra; try eapply secure_eqit_mono; eauto.
-      red in Hcontra. cbn in *. inv Hcontra; ITrace.inj_existT; subst.
+      red in Hcontra. cbn in *. inv Hcontra; ITraceFacts.inj_existT; subst.
       - cbv in SECCHECK. inv SECCHECK.
       - specialize (H0 true false). pclearbot. pinversion H0; try eapply secure_eqit_mono; eauto.
         discriminate.
       - rewrite H3 in H0. clear H3. specialize (H0 true). cbn in *.
-        inv H0; ITrace.inj_existT; subst. specialize (H2 false). rewrite H in H2.
+        inv H0; ITraceFacts.inj_existT; subst. specialize (H2 false). rewrite H in H2.
         inv H2. discriminate.
-      -  rewrite H in H0. injection H0; intros; ITrace.inj_existT; subst; ITrace.inj_existT; subst.
-         specialize (H1 true). cbn in *. inv H1; ITrace.inj_existT; subst; ITrace.inj_existT; subst.
+      -  rewrite H in H0. injection H0; intros; ITraceFacts.inj_existT; subst; ITraceFacts.inj_existT; subst.
+         specialize (H1 true). cbn in *. inv H1; ITraceFacts.inj_existT; subst; ITraceFacts.inj_existT; subst.
          rewrite H6 in H3. specialize (H3 false). cbn in *. inv H3; discriminate.
       - inv SIZECHECK. apply H; apply true.
       - inv SIZECHECK. apply H; apply true.
@@ -210,7 +208,7 @@ Definition halt : itree E R := Vis HaltE (fun _ => Tau Tau ...)
 
     Lemma halt_not_ret : forall A (a : A) k, ~ eqit_secure NatPreorder priv_counter eq true true 0 (Vis Halt k) (Ret a).
     Proof.
-      intros. intro Hcontra. pinversion Hcontra. ITrace.inj_existT; subst.
+      intros. intro Hcontra. pinversion Hcontra. ITraceFacts.inj_existT; subst.
       inv SIZECHECK. contradiction.
     Qed.
 
@@ -230,19 +228,19 @@ Definition halt : itree E R := Vis HaltE (fun _ => Tau Tau ...)
     Lemma refl_counter2_counter : ~ eqit_secure NatPreorder priv_counter eq true true 0 refl_counter2 refl_counter2.
       Proof.
         unfold refl_counter2. intro Hcontra. punfold Hcontra; try eapply secure_eqit_mono; eauto.
-        red in Hcontra. cbn in Hcontra. inv Hcontra; ITrace.inj_existT; subst; try (inv SIZECHECK; apply H; constructor; fail).
+        red in Hcontra. cbn in Hcontra. inv Hcontra; ITraceFacts.inj_existT; subst; try (inv SIZECHECK; apply H; constructor; fail).
         - inv SECCHECK.
         - specialize (H0 true false). pclearbot. punfold H0; try eapply secure_eqit_mono; eauto.
-          red in H0. cbn in *. inv H0; ITrace.inj_existT; subst.
+          red in H0. cbn in *. inv H0; ITraceFacts.inj_existT; subst.
           cbn in *. apply SECCHECK; auto.
         - rewrite H3 in H0; clear H3. specialize (H0 true). cbn in *.
-          inv H0; ITrace.inj_existT; subst; ITrace.inj_existT.
+          inv H0; ITraceFacts.inj_existT; subst; ITraceFacts.inj_existT.
           specialize (H2 false). rewrite H in H2. cbn in *. inv H2;
-          ITrace.inj_existT; subst; apply SECCHECK1; constructor.
-        - rewrite <- H0 in H. injection H; intros; ITrace.inj_existT; subst; ITrace.inj_existT; subst.
-          specialize (H1 true). inv H1; ITrace.inj_existT; subst.
+          ITraceFacts.inj_existT; subst; apply SECCHECK1; constructor.
+        - rewrite <- H0 in H. injection H; intros; ITraceFacts.inj_existT; subst; ITraceFacts.inj_existT; subst.
+          specialize (H1 true). inv H1; ITraceFacts.inj_existT; subst.
           rewrite H6 in H3. specialize (H3 false). cbn in *.
-          inv H3; ITrace.inj_existT; subst. apply SECCHECK1; constructor.
+          inv H3; ITraceFacts.inj_existT; subst. apply SECCHECK1; constructor.
       Qed.
 
 *)
@@ -321,26 +319,24 @@ Proof.
   try (unpriv_co; right; apply CIH; apply H);
   try unpriv_halt.
   - constructor; auto. intros. right. apply CIH; apply H.
+  - constructor; auto. right. eapply CIH. apply H.
+  - constructor; auto. right. eapply CIH. apply H.
   - specialize (H a). remember (k2 a) as t. clear Heqt k2.
      left.
      intros. pfold. red. cbn. punfold H. red in H. cbn in H.
-     inv H; ITrace.inj_existT; subst; try contra_size; try contradiction; pclearbot; eauto;
+     inv H; ITraceFacts.inj_existT; subst; try contra_size; try contradiction; pclearbot; eauto;
      try (unpriv_halt; fail).
-     +  unpriv_halt. right. apply CIH. pfold. auto.
-     + rewrite H0. rewrite H0 in H2. unpriv_halt.
-       right. apply CIH. pfold. apply H2.
-     + unpriv_halt. right. apply CIH. apply H1.
-     + unpriv_halt. right. apply CIH. apply H1.
+     + constructor; auto. right. eapply CIH; eauto. apply H2.
+     + unpriv_halt. right. eapply CIH. apply H1.
+     + unpriv_halt. right. eapply CIH. apply H1.
   - specialize (H b). remember (k1 b) as t. clear Heqt k1.
      left.
      intros. pfold. red. cbn. punfold H. red in H. cbn in H.
-     inv H; ITrace.inj_existT; subst; try contra_size; try contradiction; pclearbot; eauto;
+     inv H; ITraceFacts.inj_existT; subst; try contra_size; try contradiction; pclearbot; eauto;
      try (unpriv_halt; fail).
-     +  unpriv_halt. right. apply CIH. pfold. auto.
-     + rewrite H1. rewrite H1 in H2. unpriv_halt.
-       right. apply CIH. pfold. apply H2.
-     + unpriv_halt. inv SIZECHECK0. contradiction.
-     + unpriv_halt. right. apply CIH. apply H2.
+     + constructor; auto. right. eapply CIH; eauto. apply H2.
+     + unpriv_halt. right. inv SIZECHECK0. contradiction.
+     + unpriv_halt. right. eapply CIH. apply H2.
 Qed.
 
 Lemma secure_eqit_mon : forall E (b1 b2 b3 b4 : bool) R1 R2 RR1 RR2 Label priv l
@@ -354,7 +350,7 @@ Proof.
   hinduction Ht12 before r; intros; eauto; pclearbot;
   try (unpriv_co; right; apply CIH; try red; eauto; fail);
   try (unpriv_halt; try contra_size; right; apply CIH; try red; eauto; fail).
-  constructor; auto. right.  eauto. apply CIH; apply H2.
+  all : (constructor; auto; right;  eauto; apply CIH; apply H2).
 Qed.
 
 
