@@ -33,10 +33,10 @@ From ITree Require Import
 Local Open Scope itree_scope.
 
 (* TODO: Send to paco *)
-Global Instance Symmetric_bot2 (A : Type) : @Symmetric A bot2.
+#[global] Instance Symmetric_bot2 (A : Type) : @Symmetric A bot2.
 Proof. auto. Qed.
 
-Global Instance Transitive_bot2 (A : Type) : @Transitive A bot2.
+#[global] Instance Transitive_bot2 (A : Type) : @Transitive A bot2.
 Proof. auto. Qed.
 (* end hide *)
 
@@ -151,15 +151,15 @@ Section eqit.
 End eqit.
 
 (* begin hide *)
-Global Hint Constructors eqitF: core.
-Global Hint Unfold eqit_: core.
-Global Hint Resolve eqit__mono : paco.
-Global Hint Resolve eqit_idclo_mono : paco.
-Global Hint Unfold eqit: core.
-Global Hint Unfold eq_itree: core.
-Global Hint Unfold eutt: core.
-Global Hint Unfold euttge: core.
-Global Hint Unfold id: core.
+#[global] Hint Constructors eqitF: core.
+#[global] Hint Unfold eqit_: core.
+#[global] Hint Resolve eqit__mono : paco.
+#[global] Hint Resolve eqit_idclo_mono : paco.
+#[global] Hint Unfold eqit: core.
+#[global] Hint Unfold eq_itree: core.
+#[global] Hint Unfold eutt: core.
+#[global] Hint Unfold euttge: core.
+#[global] Hint Unfold id: core.
 
 Lemma eqitF_inv_VisF_r {E R1 R2} (RR : R1 -> R2 -> Prop) {b1 b2 vclo sim}
     t1 X2 (e2 : E X2) (k2 : X2 -> _)
@@ -229,7 +229,7 @@ Proof.
   intros * eq -> ->; pfold; auto.
 Qed.
 
-Instance eqitF_Proper_R {E : Type -> Type} {R1 R2:Type} :
+#[global] Instance eqitF_Proper_R {E : Type -> Type} {R1 R2:Type} :
   Proper ((@eq_rel R1 R2) ==> eq ==> eq ==> (eq_rel ==> eq_rel) ==> eq_rel ==> eq_rel)
     (@eqitF E R1 R2).
 Proof.
@@ -245,7 +245,7 @@ Proof.
     econstructor. intros. specialize (REL v). specialize (H2 x3 y3). apply H2 in H3. apply H3. assumption.
 Qed.
 
-Instance eqitF_Proper_R2 {E : Type -> Type} {R1 R2:Type} :
+#[global] Instance eqitF_Proper_R2 {E : Type -> Type} {R1 R2:Type} :
   Proper ((@eq_rel R1 R2) ==> eq ==> eq ==> eq ==> eq ==> eq ==> eq ==> iff)
          (@eqitF E R1 R2).
 Proof.
@@ -257,7 +257,7 @@ Proof.
     econstructor. apply H. assumption.
 Qed.
 
-Instance eqit_Proper_R {E : Type -> Type} {R1 R2:Type}
+#[global] Instance eqit_Proper_R {E : Type -> Type} {R1 R2:Type}
   : Proper ( (@eq_rel R1 R2) ==> eq ==> eq ==> eq ==> eq ==> iff) (@eqit E R1 R2).
 Proof.
   repeat red.
@@ -281,7 +281,7 @@ Proof.
        red in REL. pclearbot. pinversion REL.
 Qed.
 
-Instance eutt_Proper_R {E : Type -> Type} {R1 R2:Type}
+#[global] Instance eutt_Proper_R {E : Type -> Type} {R1 R2:Type}
   : Proper ( (@eq_rel R1 R2) ==> eq ==> eq ==> iff) (@eutt E R1 R2).
 Proof.
   unfold eutt. repeat red.
@@ -317,7 +317,7 @@ Proof.
   red in euv |- *. induction euv; pclearbot; eauto 7 with paco.
 Qed.
 
-Global Hint Unfold flip: core.
+#[global] Hint Unfold flip: core.
 
 (* end hide *)
 
@@ -425,13 +425,13 @@ Qed.
 
 End eqit_closure.
 
-Global Hint Unfold eqitC: core.
-Global Hint Resolve eqitC_mon : paco.
-Global Hint Resolve eqitC_wcompat : paco.
-Global Hint Resolve eqit_idclo_compat : paco.
-Global Hint Resolve eqitC_dist : paco.
+#[global] Hint Unfold eqitC: core.
+#[global] Hint Resolve eqitC_mon : paco.
+#[global] Hint Resolve eqitC_wcompat : paco.
+#[global] Hint Resolve eqit_idclo_compat : paco.
+#[global] Hint Resolve eqitC_dist : paco.
 Arguments eqit_clo_trans : clear implicits.
-Global Hint Constructors eqit_trans_clo: core.
+#[global] Hint Constructors eqit_trans_clo: core.
 
 (** ** Properties of relations *)
 
@@ -443,48 +443,48 @@ Section eqit_gen.
 
 Context {E : Type -> Type} {R: Type} (RR : R -> R -> Prop).
 
-Global Instance Reflexive_eqitF b1 b2 (sim : itree E R -> itree E R -> Prop)
+#[global] Instance Reflexive_eqitF b1 b2 (sim : itree E R -> itree E R -> Prop)
 : Reflexive RR -> Reflexive sim -> Reflexive (eqitF RR b1 b2 id sim).
 Proof.
   red. destruct x; constructor; eauto.
 Qed.
 
-Global Instance Symmetric_eqitF b (sim : itree E R -> itree E R -> Prop)
+#[global] Instance Symmetric_eqitF b (sim : itree E R -> itree E R -> Prop)
 : Symmetric RR -> Symmetric sim -> Symmetric (eqitF RR b b id sim).
 Proof.
   red. induction 3; constructor; subst; eauto.
   intros. apply H0. apply (REL v).
 Qed.
 
-Global Instance Reflexive_eqit_ b1 b2 (sim : itree E R -> itree E R -> Prop)
+#[global] Instance Reflexive_eqit_ b1 b2 (sim : itree E R -> itree E R -> Prop)
 : Reflexive RR -> Reflexive sim -> Reflexive (eqit_ RR b1 b2 id sim).
 Proof. repeat red. intros. reflexivity. Qed.
 
-Global Instance Symmetric_eqit_ b (sim : itree E R -> itree E R -> Prop)
+#[global] Instance Symmetric_eqit_ b (sim : itree E R -> itree E R -> Prop)
 : Symmetric RR -> Symmetric sim -> Symmetric (eqit_ RR b b id sim).
 Proof. repeat red; symmetry; auto. Qed.
 
 (** *** [eqit] is an equivalence relation *)
 
-Global Instance Reflexive_eqit_gen b1 b2 (r rg: itree E R -> itree E R -> Prop) :
+#[global] Instance Reflexive_eqit_gen b1 b2 (r rg: itree E R -> itree E R -> Prop) :
   Reflexive RR -> Reflexive (gpaco2 (eqit_ RR b1 b2 id) (eqitC RR b1 b2) r rg).
 Proof.
   pcofix CIH. gstep; intros.
   repeat red. destruct (observe x); eauto with paco.
 Qed.
 
-Global Instance Reflexive_eqit b1 b2 : Reflexive RR -> Reflexive (@eqit E _ _ RR b1 b2).
+#[global] Instance Reflexive_eqit b1 b2 : Reflexive RR -> Reflexive (@eqit E _ _ RR b1 b2).
 Proof.
   red; intros. ginit. apply Reflexive_eqit_gen; eauto.
 Qed.
 
-Global Instance Symmetric_eqit b : Symmetric RR -> Symmetric (@eqit E _ _ RR b b).
+#[global] Instance Symmetric_eqit b : Symmetric RR -> Symmetric (@eqit E _ _ RR b b).
 Proof.
   red; intros. apply eqit_flip.
   eapply eqit_mon, H0; eauto.
 Qed.
 
-Global Instance eq_sub_euttge:
+#[global] Instance eq_sub_euttge:
   subrelation (@eq_itree E _ _ RR) (euttge RR).
 Proof.
   ginit. pcofix CIH. intros.
@@ -492,7 +492,7 @@ Proof.
   hinduction H0 before CIH; subst; econstructor; try inv CHECK; pclearbot; eauto 7 with paco.
 Qed.
 
-Global Instance euttge_sub_eutt:
+#[global] Instance euttge_sub_eutt:
   subrelation (@euttge E _ _ RR) (eutt RR).
 Proof.
   ginit. pcofix CIH. intros.
@@ -500,7 +500,7 @@ Proof.
   hinduction H0 before CIH; subst; econstructor; pclearbot; eauto 7 with paco.
 Qed.
 
-Global Instance eq_sub_eutt:
+#[global] Instance eq_sub_eutt:
   subrelation (@eq_itree E _ _ RR) (eutt RR).
 Proof.
   red; intros. eapply euttge_sub_eutt. eapply eq_sub_euttge. apply H.
@@ -508,7 +508,7 @@ Qed.
 
 End eqit_gen.
 
-Global Hint Resolve Reflexive_eqit Reflexive_eqit_gen : reflexivity.
+#[global] Hint Resolve Reflexive_eqit Reflexive_eqit_gen : reflexivity.
 
 Section eqit_eq.
 
@@ -518,65 +518,65 @@ Context {E : Type -> Type} {R : Type}.
 
 Local Notation eqit := (@eqit E R R eq).
 
-Global Instance Reflexive_eqitF_eq b1 b2 (sim : itree E R -> itree E R -> Prop)
+#[global] Instance Reflexive_eqitF_eq b1 b2 (sim : itree E R -> itree E R -> Prop)
 : Reflexive sim -> Reflexive (eqitF eq b1 b2 id sim).
 Proof.
   apply Reflexive_eqitF; eauto.
 Qed.
 
-Global Instance Symmetric_eqitF_eq b (sim : itree E R -> itree E R -> Prop)
+#[global] Instance Symmetric_eqitF_eq b (sim : itree E R -> itree E R -> Prop)
 : Symmetric sim -> Symmetric (eqitF eq b b id sim).
 Proof.
   apply Symmetric_eqitF; eauto.
 Qed.
 
-Global Instance Reflexive_eqit__eq b1 b2 (sim : itree E R -> itree E R -> Prop)
+#[global] Instance Reflexive_eqit__eq b1 b2 (sim : itree E R -> itree E R -> Prop)
 : Reflexive sim -> Reflexive (eqit_ eq b1 b2 id sim).
 Proof. apply Reflexive_eqit_; eauto. Qed.
 
-Global Instance Symmetric_eqit__eq b (sim : itree E R -> itree E R -> Prop)
+#[global] Instance Symmetric_eqit__eq b (sim : itree E R -> itree E R -> Prop)
 : Symmetric sim -> Symmetric (eqit_ eq b b id sim).
 Proof. apply Symmetric_eqit_; eauto. Qed.
 
 (** *** [eqit] is an equivalence relation *)
 
-Global Instance Reflexive_eqit_gen_eq b1 b2 (r rg: itree E R -> itree E R -> Prop) :
+#[global] Instance Reflexive_eqit_gen_eq b1 b2 (r rg: itree E R -> itree E R -> Prop) :
   Reflexive (gpaco2 (eqit_ eq b1 b2 id) (eqitC eq b1 b2) r rg).
 Proof.
   apply Reflexive_eqit_gen; eauto.
 Qed.
 
-Global Instance Reflexive_eqit_eq b1 b2 : Reflexive (eqit b1 b2).
+#[global] Instance Reflexive_eqit_eq b1 b2 : Reflexive (eqit b1 b2).
 Proof.
   apply Reflexive_eqit; eauto.
 Qed.
 
-Global Instance Symmetric_eqit_eq b : Symmetric (eqit b b).
+#[global] Instance Symmetric_eqit_eq b : Symmetric (eqit b b).
 Proof.
   apply Symmetric_eqit; eauto.
 Qed.
 
 (** *** Congruence properties *)
 
-Global Instance eqit_observe b1 b2:
+#[global] Instance eqit_observe b1 b2:
   Proper (eqit b1 b2 ==> going (eqit b1 b2)) (@observe E R).
 Proof.
   constructor; punfold H.
 Qed.
 
-Global Instance eqit_tauF b1 b2:
+#[global] Instance eqit_tauF b1 b2:
   Proper (eqit b1 b2 ==> going (eqit b1 b2)) (@TauF E R _).
 Proof.
   constructor; pstep. econstructor. eauto.
 Qed.
 
-Global Instance eqit_VisF b1 b2 {u} (e: E u) :
+#[global] Instance eqit_VisF b1 b2 {u} (e: E u) :
   Proper (pointwise_relation _ (eqit b1 b2) ==> going (eqit b1 b2)) (VisF e).
 Proof.
   constructor; red in H. unfold eqit in *. pstep; econstructor; eauto.
 Qed.
 
-Global Instance observing_sub_eqit l r :
+#[global] Instance observing_sub_eqit l r :
   subrelation (observing eq) (eqit l r).
 Proof.
   repeat red; intros.
@@ -764,7 +764,7 @@ Qed.
 Inductive rcompose {R1 R2 R3} (RR1: R1->R2->Prop) (RR2: R2->R3->Prop) (r1: R1) (r3: R3) : Prop :=
 | rcompose_intro r2 (REL1: RR1 r1 r2) (REL2: RR2 r2 r3)
 .
-Global Hint Constructors rcompose: core.
+#[global] Hint Constructors rcompose: core.
 
 Lemma trans_rcompose {R} RR (TRANS: Transitive RR):
   forall x y : R, rcompose RR RR x y -> RR x y.
@@ -810,41 +810,41 @@ Proof.
     eapply IHINL; eauto. pclearbot. punfold REL.
 Qed.
 
-Global Instance Transitive_eqit {E : Type -> Type} {R: Type} (RR : R -> R -> Prop) (b1 b2: bool):
+#[global] Instance Transitive_eqit {E : Type -> Type} {R: Type} (RR : R -> R -> Prop) (b1 b2: bool):
   Transitive RR -> Transitive (@eqit E _ _ RR b1 b2).
 Proof.
   red; intros. eapply eqit_mon, eqit_trans; eauto using (trans_rcompose RR).
 Qed.
 
-Global Instance Transitive_eqit_eq {E : Type -> Type} {R: Type} (b1 b2: bool):
+#[global] Instance Transitive_eqit_eq {E : Type -> Type} {R: Type} (b1 b2: bool):
   Transitive (@eqit E R R eq b1 b2).
 Proof.
   apply Transitive_eqit. repeat intro; subst; eauto.
 Qed.
 
-Global Instance Equivalence_eqit {E : Type -> Type} {R: Type} (RR : R -> R -> Prop) (b: bool):
+#[global] Instance Equivalence_eqit {E : Type -> Type} {R: Type} (RR : R -> R -> Prop) (b: bool):
   Equivalence RR -> Equivalence (@eqit E R R RR b b).
 Proof.
   constructor; try typeclasses eauto.
 Qed.
 
-Global Instance Equivalence_eqit_eq {E : Type -> Type} {R: Type} (b: bool):
+#[global] Instance Equivalence_eqit_eq {E : Type -> Type} {R: Type} (b: bool):
   Equivalence (@eqit E R R eq false false).
 Proof.
   constructor; try typeclasses eauto.
 Qed.
 
-Global Instance Transitive_eutt {E R RR} : Transitive RR -> Transitive (@eutt E R R RR).
+#[global] Instance Transitive_eutt {E R RR} : Transitive RR -> Transitive (@eutt E R R RR).
 Proof.
   red; intros. eapply eqit_mon, eqit_trans; eauto using (trans_rcompose RR).
 Qed.
 
-Global Instance Equivalence_eutt {E R RR} : Equivalence RR -> Equivalence (@eutt E R R RR).
+#[global] Instance Equivalence_eutt {E R RR} : Equivalence RR -> Equivalence (@eutt E R R RR).
 Proof.
   constructor; try typeclasses eauto.
 Qed.
 
-Global Instance geuttgen_cong_eqit {E R1 R2 RR1 RR2 RS} b1 b2 r rg
+#[global] Instance geuttgen_cong_eqit {E R1 R2 RR1 RR2 RS} b1 b2 r rg
        (LERR1: forall x x' y, (RR1 x x': Prop) -> (RS x' y: Prop) -> RS x y)
        (LERR2: forall x y y', (RR2 y y': Prop) -> RS x y' -> RS x y):
   Proper (eq_itree RR1 ==> eq_itree RR2 ==> flip impl)
@@ -855,14 +855,14 @@ Proof.
   - eapply eqit_mon, H0; eauto; discriminate.
 Qed.
 
-Global Instance geuttgen_cong_eqit_eq {E R1 R2 RS} b1 b2 r rg:
+#[global] Instance geuttgen_cong_eqit_eq {E R1 R2 RS} b1 b2 r rg:
   Proper (eq_itree eq ==> eq_itree eq ==> flip impl)
          (gpaco2 (@eqit_ E R1 R2 RS b1 b2 id) (eqitC RS b1 b2) r rg).
 Proof.
   eapply geuttgen_cong_eqit; intros; subst; eauto.
 Qed.
 
-Global Instance geuttge_cong_euttge {E R1 R2 RR1 RR2 RS} r rg
+#[global] Instance geuttge_cong_euttge {E R1 R2 RR1 RR2 RS} r rg
        (LERR1: forall x x' y, (RR1 x x': Prop) -> (RS x' y: Prop) -> RS x y)
        (LERR2: forall x y y', (RR2 y y': Prop) -> RS x y' -> RS x y):
   Proper (euttge RR1 ==> eq_itree RR2 ==> flip impl)
@@ -871,14 +871,14 @@ Proof.
   repeat intro. guclo eqit_clo_trans.
 Qed.
 
-Global Instance geuttge_cong_euttge_eq {E R1 R2 RS} r rg:
+#[global] Instance geuttge_cong_euttge_eq {E R1 R2 RS} r rg:
   Proper (euttge eq ==> eq_itree eq ==> flip impl)
          (gpaco2 (@eqit_ E R1 R2 RS true false id) (eqitC RS true false) r rg).
 Proof.
   eapply geuttge_cong_euttge; intros; subst; eauto.
 Qed.
 
-Global Instance geutt_cong_euttge {E R1 R2 RR1 RR2 RS} r rg
+#[global] Instance geutt_cong_euttge {E R1 R2 RR1 RR2 RS} r rg
        (LERR1: forall x x' y, (RR1 x x': Prop) -> (RS x' y: Prop) -> RS x y)
        (LERR2: forall x y y', (RR2 y y': Prop) -> RS x y' -> RS x y):
   Proper (euttge RR1 ==> euttge RR2 ==> flip impl)
@@ -887,14 +887,14 @@ Proof.
   repeat intro. guclo eqit_clo_trans.
 Qed.
 
-Global Instance geutt_cong_euttge_eq {E R1 R2 RS} r rg:
+#[global] Instance geutt_cong_euttge_eq {E R1 R2 RS} r rg:
   Proper (euttge eq ==> euttge eq ==> flip impl)
          (gpaco2 (@eqit_ E R1 R2 RS true true id) (eqitC RS true true) r rg).
 Proof.
   eapply geutt_cong_euttge; intros; subst; eauto.
 Qed.
 
-Global Instance eqitgen_cong_eqit {E R1 R2 RR1 RR2 RS} b1 b2
+#[global] Instance eqitgen_cong_eqit {E R1 R2 RR1 RR2 RS} b1 b2
        (LERR1: forall x x' y, (RR1 x x': Prop) -> (RS x' y: Prop) -> RS x y)
        (LERR2: forall x y y', (RR2 y y': Prop) -> RS x y' -> RS x y):
   Proper (eq_itree RR1 ==> eq_itree RR2 ==> flip impl)
@@ -903,14 +903,14 @@ Proof.
   ginit. intros. eapply geuttgen_cong_eqit; eauto. gfinal. eauto.
 Qed.
 
-Global Instance eqitgen_cong_eqit_eq {E R1 R2 RS} b1 b2:
+#[global] Instance eqitgen_cong_eqit_eq {E R1 R2 RS} b1 b2:
   Proper (eq_itree eq ==> eq_itree eq ==> flip impl)
          (@eqit E R1 R2 RS b1 b2).
 Proof.
   ginit. intros. rewrite H1, H0. gfinal. eauto.
 Qed.
 
-Global Instance euttge_cong_euttge {E R RS}
+#[global] Instance euttge_cong_euttge {E R RS}
        (TRANS: Transitive RS):
   Proper (euttge RS ==> flip (euttge RS) ==> flip impl)
          (@eqit E R R RS true false).
@@ -918,7 +918,7 @@ Proof.
   repeat intro. do 2 (eapply eqit_mon, eqit_trans; eauto using (trans_rcompose RS)).
 Qed.
 
-Global Instance euttge_cong_euttge_eq {E R}:
+#[global] Instance euttge_cong_euttge_eq {E R}:
   Proper (euttge eq ==> flip (euttge eq) ==> flip impl)
          (@eqit E R R eq true false).
 Proof.
@@ -1082,7 +1082,7 @@ Proof.
 Qed.
 
 Arguments eqit_clo_bind : clear implicits.
-Global Hint Constructors eqit_bind_clo: core.
+#[global] Hint Constructors eqit_bind_clo: core.
 
 Lemma eqit_bind' {E R1 R2 S1 S2} (RR : R1 -> R2 -> Prop) b1 b2
       (RS : S1 -> S2 -> Prop)
@@ -1103,7 +1103,7 @@ Proof.
   eapply eqit_bind'; eauto.
 Qed.
 
-Global Instance eqit_subst {E R S} b1 b2 :
+#[global] Instance eqit_subst {E R S} b1 b2 :
   Proper (pointwise_relation _ (eqit eq b1 b2) ==> eqit eq b1 b2 ==>
           eqit eq b1 b2) (@ITree.subst E R S).
 Proof.
@@ -1111,7 +1111,7 @@ Proof.
   intros; subst; auto.
 Qed.
 
-Global Instance eqit_bind {E R S} b1 b2 :
+#[global] Instance eqit_bind {E R S} b1 b2 :
   Proper (eqit eq b1 b2 ==> pointwise_relation _ (eqit eq b1 b2) ==>
           eqit eq b1 b2) (@ITree.bind E R S).
 Proof.
@@ -1131,7 +1131,7 @@ Proof.
   intros; pstep; constructor; auto.
 Qed.
 
-Global Instance eqit_eq_map {E R S} b1 b2 :
+#[global] Instance eqit_eq_map {E R S} b1 b2 :
   Proper (pointwise_relation _ eq ==>
           eqit eq b1 b2 ==>
           eqit eq b1 b2) (@ITree.map E R S).

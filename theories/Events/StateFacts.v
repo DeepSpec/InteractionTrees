@@ -239,8 +239,8 @@ Lemma eutt_interp_state_loop {E F S A B C} (RS : S -> S -> Prop)
           (interp_state h (t2 ca) s2)) ->
   (forall a s1 s2, RS s1 s2 ->
      eutt (fun a b => RS (fst a) (fst b) /\ snd a = snd b)
-          (interp_state h (loop t1 a) s1)
-          (interp_state h (loop t2 a) s2)).
+          (interp_state h (loop (C := ktree E) t1 a) s1)
+          (interp_state h (loop (C := ktree E) t2 a) s2)).
 Proof.
   intros.
   unfold loop, bimap, Bimap_Coproduct, case_, Case_Kleisli, Function.case_sum, id_, Id_Kleisli, cat, Cat_Kleisli, inr_, Inr_Kleisli, inl_, Inl_Kleisli, lift_ktree_; cbn.
