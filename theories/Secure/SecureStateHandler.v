@@ -264,16 +264,16 @@ Qed.
 
 Variant handler_respects_priv (A : Type) (e : E1 A) : Prop :=
 | respect_private (SECCHECK : ~ leq (priv1 _ e) l)
-                  (FINCHECK : forall s, terminates s (fun _ e => ~ leq (priv2 _ e) l) (handler A e s))
+                  (FINCHECK : forall s, terminates s (fun _ e' => ~ leq (priv2 _ e') l) (handler A e s))
 | respect_public (SECCHECK : leq (priv1 _ e) l)
                  (RESCHECK : state_eqit_secure true true eq (handler A e) (handler A e))
 .
 
 Variant handler_respects_priv' (A : Type) (e : E1 A) : Prop :=
 | respect_private_ne (SECCHECK : ~ leq (priv1 _ e) l) (SIZECHECK : nonempty A)
-                  (FINCHECK :  forall s, terminates s (fun B e => ~ leq (priv2 _ e) l /\ nonempty B ) (handler A e s) )
+                  (FINCHECK :  forall s, terminates s (fun B e' => ~ leq (priv2 _ e') l /\ nonempty B ) (handler A e s) )
 | respect_private_e (SECCHECK : ~ leq (priv1 _ e) l) (SIZECHECK : empty A)
-                  (DIVCHECK : forall s, diverges_with (fun _ e => ~ leq (priv2 _ e) l ) (handler A e s) )
+                  (DIVCHECK : forall s, diverges_with (fun _ e' => ~ leq (priv2 _ e') l ) (handler A e s) )
 | respect_public' (SECCHECK : leq (priv1 _ e) l)
                  (RESCHECK : state_eqit_secure true true eq (handler A e) (handler A e))
 .
