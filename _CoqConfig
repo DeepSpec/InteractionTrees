@@ -3,6 +3,7 @@
 theories/Simple.v
 theories/ITree.v
 theories/ITreeFacts.v
+theories/Axioms.v
 
 theories/Basics/Tacs.v
 theories/Basics/Basics.v
@@ -35,10 +36,14 @@ theories/Eq/Eq.v
 theories/Eq/UpToTaus.v
 theories/Eq/SimUpToTaus.v
 theories/Eq/EqAxiom.v
+theories/Eq/EuttExtras.v
+theories/Eq/Rutt.v
 
 theories/Props/Leaf.v
 theories/Props/Finite.v
 theories/Props/HasPost.v
+theories/Props/Divergence.v
+theories/Props/EuttDiv.v
 
 theories/Indexed/Sum.v
 theories/Indexed/Relation.v
@@ -60,6 +65,7 @@ theories/Events/StateFacts.v
 theories/Events/Reader.v
 theories/Events/Writer.v
 theories/Events/Exception.v
+theories/Events/ExceptionFacts.v
 theories/Events/Nondeterminism.v
 theories/Events/Map.v
 theories/Events/MapDefault.v
@@ -67,3 +73,9 @@ theories/Events/MapDefaultFacts.v
 theories/Events/Concurrency.v
 theories/Events/Dependent.v
 theories/Events/FailFacts.v
+
+theories/ITrace/ITraceDefinition.v
+theories/ITrace/ITraceFacts.v
+theories/ITrace/ITracePrefix.v
+theories/ITrace/ITraceBind.v
+theories/ITrace/ITracePreds.v
