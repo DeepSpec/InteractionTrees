@@ -1,4 +1,4 @@
-.PHONY: clean all coq test tests examples tutorial install uninstall depgraph for-dune
+.PHONY: clean all coq test tests examples tutorial hoare_example install uninstall depgraph for-dune
 
 COQPATHFILE=$(wildcard _CoqPath)
 
@@ -9,8 +9,8 @@ include common.mk
 all:
 	# Build the library before tests
 	$(MAKE) coq
-	$(MAKE) tutorial
 	$(MAKE) test
+	$(MAKE) tutorial
 
 install: Makefile.coq coq
 	$(MAKE) -f $< $@

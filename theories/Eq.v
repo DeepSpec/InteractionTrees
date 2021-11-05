@@ -1,7 +1,8 @@
 (** * Equivalences for interaction trees *)
 
-From ITree Require Export
-     Eq.Shallow
-     Eq.Eq
-     Eq.UpToTaus
-     Eq.SimUpToTaus.
+From ITree.Eq Require Export
+  Shallow
+  Eq
+  UpToTaus
+  SimUpToTaus
+  EuttExtras.

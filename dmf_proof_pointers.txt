@@ -1,0 +1,31 @@
+Format 
+paper_name -> repo_name :: file_name
+
+itree -> itree :: Core/ITreeDefinition.v
+itrace -> itrace :: Dijkstra/ITrace.v
+bind -> bind :: Core/ITreeDefinition.v
+iter_itree -> iter :: Core/ITreeDefinition.v
+euttEv -> euttEv ::  Dijkstra/EuttEv.v
+eutt -> eutt :: Eq/Eq.v
+
+div_cast_eutt -> div_cast_nop :: Dijkstra/EuttDiv.v
+div_or_ret_a -> eutt_reta_or_div :: Dijkstra/PureITreeBasics.v
+loop_invar_sound -> loop_invar ::  Dijkstra/DelaySpecMonad.v
+classic_wf -> classic_wf ::  Dijkstra/IterRel.v
+loop_invar_state -> loop_invar_state ::  Dijkstra/StateSpecT.v
+intro_not_wf -> intro_not_wf ::  Dijkstra/IterRel.v
+wf_intro_gt -> intro_wf ::  Dijkstra/IterRel.v
+nat_sqrt_spec -> both_hold_nat_sqrt :: tutorial/ImpHoare.v
+bind_ret_counter -> bind_ret_failure ::  Dijkstra/ITreeDijkstra.v
+trace_set_complete -> trace_set_complete ::  Dijkstra/ITrace.v
+converge_bind_refine -> trace_refine_converge_bind ::  Dijkstra/ITrace.v
+diverge_bind_refine -> trace_refine_diverge_bind ::  Dijkstra/ITrace.v
+bind_refine_inv -> decompose_trace_refine_bind ::  Dijkstra/ITraceBind.v
+trace_prefix_bind -> trace_prefix_bind ::  Dijkstra/ITracePrefix.v
+peel_lemma -> peel_lemma ::  Dijkstra/ITraceBind.v
+monad_morph_unfold,
+monad_morph_forward_conv,
+monad_morph_forward_div,
+monad_morph_backwards_conv,
+monad_morph_backwards_div -> TraceSpecMorph ::  Dijkstra/TracesIT.v (the lemmas stated here are all unfolded subcases of this proof)
+queryUnitFalse_spec -> decide_ex_satisfies_spec ::  Dijkstra/TracesIT.v

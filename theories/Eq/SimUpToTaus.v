@@ -88,7 +88,7 @@ Lemma suttF_inv_vis {E R1 R2} (RR : R1 -> R2 -> Prop) sutt :
     suttF RR sutt (VisF e k1) (VisF e k2) ->
     forall x, sutt (observe (k1 x)) (observe (k2 x)).
 Proof.
-  intros. inv H. apply inj_pair2 in H3; apply inj_pair2 in H5. subst. auto.
+  intros. inv H. dependent destruction H3. dependent destruction H5. subst. auto.
 Qed.
 
 Lemma sutt_inv_vis {E R1 R2} (RR : R1 -> R2 -> Prop) :
