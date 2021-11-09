@@ -25,20 +25,14 @@ Local Open Scope monad_scope.
    to decompose a trace of bind t f into a head that refines t and a tail
    that refines f *)
 
-Lemma classicT : forall (P : Prop), {P} + {~ P}.
-Proof.
-  intros P.
-  assert (H : exists b : bool, if b then P else ~ P).
-  { destruct (classic P); [exists true | exists false]; assumption. }
-  apply constructive_indefinite_description in H.
-  destruct H as [[] ?]; [ left | right ]; assumption.
-Qed.
+Section Peel.
+Context (classicT : forall (P : Type), P + (P -> False)).
 
 Definition peel_vis {E R S A B} (e0 : E A) (a : A) (k0 : unit -> itrace E R)
            (e1 : E B) (k1 : B -> itree E S)
            (peel : itrace' E R -> itree' E S -> itrace E S) : itrace E S.
 Proof.
-  destruct (classicT (A = B) ).
+  destruct (classicT (A = B)).
   - subst. apply (Vis (evans _ e0 a) (fun _ => peel (observe (k0 tt)) (observe (k1 a) ) ) ).
   - apply ITree.spin.
 Defined.
@@ -90,7 +84,6 @@ CoFixpoint peel_cont_ {E R S} (ob : itrace' E R) (ot : itree' E S) : itrace E R 
 Definition peel_cont {E R S} (b : itrace E R) (t : itree E S) : S -> itrace E R :=
   fun s => peel_cont_ (observe b) (observe t).
 
-
 Lemma refine_ret_vis_contra : forall (E: Type -> Type) (R A: Type)
                                 (r : R) (e : E A) (k : A -> itree E R),
     ~ (Ret r ⊑ Vis e k).
@@ -114,7 +107,6 @@ Proof.
     + cbn. constructor. auto.
     + cbn. constructor. auto.
 Qed.
-
 
 (*doing these proofs, may require some techniques you don't really know*)
 
@@ -1091,6 +1083,8 @@ Proof.
   intros. split; try eapply peel_refine_t; eauto; eapply trace_prefix_peel; eauto.
 Qed.
 
+End Peel.
+
 Lemma bind_peel_ret_tau_aux:
   forall (E : Type -> Type) (S R : Type) (f : R -> itree E S)
     (r0 : S) (t0 : itree E R),
@@ -1108,14 +1102,14 @@ Proof.
       subst. reflexivity.
 Qed.
 
-(* maybe this should be the axiom *)
 Lemma decompose_trace_refine_bind : forall (E : Type -> Type) (R S : Type)
                                       (b : itrace E S) (t : itree E R) (f : R -> itree E S),
     b ⊑ t >>= f -> exists b', exists g', (ITree.bind b' g' ≈ b) /\ b' ⊑ t.
 Proof.
-  intros. exists (peel b t).
-  apply peel_bind in H as Heutt. destruct Heutt as [g Heutt].
-  exists g. split; auto; eapply peel_refine_t; apply H.
+  destruct classicT_inhabited as [classicT].
+  intros. exists (peel classicT b t).
+  apply (peel_bind classicT) in H as Heutt. destruct Heutt as [g Heutt].
+  exists g. split; auto; eapply (peel_refine_t classicT); apply H.
 Qed.
 
 Lemma bind_trigger_refine : forall (E : Type -> Type) (A R : Type) (b : itree (EvAns E) R)

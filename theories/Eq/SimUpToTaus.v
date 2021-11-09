@@ -15,16 +15,13 @@
   [eutt_sutt] and [sutt_eutt].
  *)
 
-Require Import Paco.paco.
+From Paco Require Import paco.
 
 From Coq Require Import
-     Classes.RelationClasses
-     Classes.Morphisms
-     Setoids.Setoid
-     Program
-     Relations.Relations.
+     Morphisms.
 
 From ITree Require Import
+     Axioms
      Core.ITreeDefinition
      Eq.Eq
      Eq.UpToTaus
@@ -88,7 +85,7 @@ Lemma suttF_inv_vis {E R1 R2} (RR : R1 -> R2 -> Prop) sutt :
     suttF RR sutt (VisF e k1) (VisF e k2) ->
     forall x, sutt (observe (k1 x)) (observe (k2 x)).
 Proof.
-  intros. inv H. dependent destruction H3. dependent destruction H5. subst. auto.
+  intros. inv H. ddestruction; auto.
 Qed.
 
 Lemma sutt_inv_vis {E R1 R2} (RR : R1 -> R2 -> Prop) :
@@ -201,8 +198,6 @@ Proof.
     right. specialize (self t0 (go ot2) EQTAUS _ _ H1).
     apply self.
 Qed.
-
-Require Import Coq.Relations.Relations.
 
 (* todo: this could be made stronger with eutt rather than eq_itree
  *)

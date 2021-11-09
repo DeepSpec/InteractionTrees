@@ -13,12 +13,13 @@ From ITree Require Import
      ITrace.ITraceFacts
 .
 
-
 From Paco Require Import paco.
 
 Import Monads.
 Import MonadNotation.
-Local Open Scope monad_scope.
+#[local] Open Scope monad_scope.
+
+Set Implicit Arguments.
 
 (* Defines and explores a notion of traces being prefixes of other traces *)
 
@@ -336,7 +337,7 @@ Qed.
 Lemma trace_prefix_bind : forall E R S (b1 : itrace E R) (b2 : itrace E S),
     trace_prefix b1 b2 -> exists g, (ITree.bind b1 g ≈ b2).
 Proof.
-  intros. destruct (classic_converge _ _ b1).
+  intros. destruct (classic_converge b1).
   - destruct H0 as [r Hconv]. eapply converge_trace_prefix in Hconv; eauto.
     apply trace_prefix_ind_bind. auto.
   - eapply trace_prefix_div in H0 as Heuttdiv; eauto.

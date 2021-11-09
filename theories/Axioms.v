@@ -5,8 +5,9 @@
 
 From Coq Require Import
   Logic.Classical_Prop
-  Logic.IndefiniteDescription
+  Logic.ClassicalChoice
   Logic.EqdepFacts
+  Logic.FunctionalExtensionality
 .
 
 (* Must be imported to use [ddestruction] *)
@@ -27,14 +28,19 @@ Definition eq_rect_eq := Eqdep.Eq_rect_eq.eq_rect_eq.
 
 Definition classic := Classical_Prop.classic.
 
-Definition constructive_indefinite_description :=
-  IndefiniteDescription.constructive_indefinite_description.
+Definition choice := ClassicalChoice.choice.
 
-Lemma classicT : forall (P : Prop), {P} + {~ P}.
+Definition functional_extensionality := @FunctionalExtensionality.functional_extensionality.
+
+Inductive mwitness : Type :=
+| Witness (P : Type) (_ : P)
+| NoWitness.
+
+Lemma classicT_inhabited : inhabited (forall (P : Type), P + (P -> False)).
 Proof.
-  intros P.
-  assert (H : exists b : bool, if b then P else ~ P).
-  { destruct (classic P); [exists true | exists false]; assumption. }
-  apply constructive_indefinite_description in H.
-  destruct H as [[] ?]; [ left | right ]; assumption.
+  destruct (choice (fun (P : Type) (b : mwitness) =>
+    match b with @Witness Q _ => P = Q | NoWitness => P -> False end)) as [f H].
+  { intros P; destruct (classic (inhabited P)) as [[x] | ];
+      [exists (Witness x) | exists NoWitness]; auto. }
+  constructor. intros P; specialize (H P); destruct (f P); [subst | ]; auto.
 Qed.

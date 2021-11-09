@@ -1,12 +1,11 @@
 (** * ITrees as sets of traces *)
 
 (* begin hide *)
-From Coq Require Import ProofIrrelevance.
-
 From Paco Require Import
      paco.
 
 From ITree Require Import
+     Axioms
      Core.ITreeDefinition
      Eq.Eq
      Eq.UpToTaus
@@ -161,11 +160,10 @@ Proof.
       * apply eq_trace_inv in Heqt0; destruct Heqt0 as [<- <-].
         subst. constructor. intro. right. apply CIH. intros.
         assert (is_traceF (VisF e k) (TEventResponse e x tr)) by (constructor; auto).
-        apply Hincl in H1. inv H1.
-        apply inj_pair2 in H5; apply inj_pair2 in H7; subst; auto.
-    + apply inj_pair2 in H2; apply inj_pair2 in H5. subst. constructor. intro. right. apply CIH. intros.
-      assert (is_traceF (VisF e k) (TEventResponse e x tr)) by (constructor; auto).
-      apply Hincl in H0. inv H0. apply inj_pair2 in H5; apply inj_pair2 in H7. subst. auto.
+        apply Hincl in H1. inv H1. ddestruction. auto.
+    + ddestruction. constructor. intro. right. apply CIH. intros.
+      assert (is_traceF (VisF e0 k) (TEventResponse e0 x tr)) by (constructor; auto).
+      apply Hincl in H0. inv H0. ddestruction; auto.
 Qed.
 
 Theorem trace_incl_iff_sutt : forall {E R} (t1 t2 : itree E R),
