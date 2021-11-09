@@ -9,8 +9,7 @@ Set Implicit Arguments.
 Set Contextual Implicit.
 
 From Coq Require Import
-     Classes.Morphisms
-     ProofIrrelevance.
+     Morphisms.
 
 From Paco Require Import paco.
 
@@ -18,10 +17,10 @@ From ExtLib Require Import
      Monads.
 
 From ITree Require Import
+     Axioms
      ITree
      ITreeFacts
      Eq.Paco2.
-
 
 From Paco Require Import paco.
 
@@ -86,8 +85,9 @@ Qed.
      because the extra "observes" get in the way of later using the CIH after
      we've made some progress in the proof.
 
-   - We need to use [inj_pair2] to get equality of the projected components
-     of the VisF constructor, which means that we rely on ProofIrrelevance.
+   - We need to use UIP (via the [ITree.Axioms.ddestruction] tactic, which itself
+     uses the stdlib's [dependent destruction]) to get equality of the projected
+     components of the VisF constructor.
 *)
 
 Section Proper.
@@ -108,7 +108,7 @@ Section Proper.
     punfold H0. repeat red in H0. unfold interpret_stateF.
     destruct (observe x); inv H0; try discriminate; pclearbot; simpl;
       try (gstep; constructor; eauto with paco; fail).
-    apply inj_pair2 in H2. apply inj_pair2 in H3. subst.
+    ddestruction.
     destruct e; gstep; econstructor; eauto with paco.
   Qed.
 
@@ -250,7 +250,7 @@ Proof.
     + (* e is Get, which is ruled out by the NoGets predicate *) inversion H0.
     + rewrite !bind_tau.
       gstep. econstructor. gbase. eapply CIH.
-      inversion H0. apply inj_pair2 in H2. subst. pclearbot. assumption.
+      inversion H0. ddestruction. pclearbot. assumption.
 Qed.
 
 
@@ -283,10 +283,8 @@ Proof.
     + (* e is Get, which is ruled out by the NoGets predicate *) inversion H0.
     + rewrite !bind_tau.
       gstep. econstructor. gbase. eapply CIH; auto.
-      inversion H0. apply inj_pair2 in H2. subst. pclearbot. assumption.
+      inversion H0. ddestruction. pclearbot. assumption.
 Qed.
-
-
 
 Theorem state_independent': forall {S R} (t:itree (stateE S) R)
                             (H: NoGets t),

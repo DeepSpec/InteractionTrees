@@ -79,3 +79,14 @@ theories/ITrace/ITraceFacts.v
 theories/ITrace/ITracePrefix.v
 theories/ITrace/ITraceBind.v
 theories/ITrace/ITracePreds.v
+
+theories/Dijkstra/DijkstraMonad.v
+theories/Dijkstra/IterRel.v
+theories/Dijkstra/PureITreeBasics.v
+theories/Dijkstra/PureITreeDijkstra.v
+theories/Dijkstra/DelaySpecMonad.v
+theories/Dijkstra/StateSpecT.v
+theories/Dijkstra/StateDelaySpec.v
+theories/Dijkstra/TracesIT.v
+theories/Dijkstra/ITreeDijkstra.v
+theories/Dijkstra/StateIOTrace.v

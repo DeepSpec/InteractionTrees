@@ -11,6 +11,7 @@ From ITree Require Import
      ITrace.ITraceDefinition
 .
 
+Set Implicit Arguments.
 
 From Paco Require Import paco.
 
@@ -24,6 +25,20 @@ Proof.
   - destruct H; eauto.
   - assert (f : A -> void); eauto. intros.
     exfalso. apply H; eauto.
+Qed.
+
+Lemma REvRef_inv {E A} (e e' : E A) (a : A)
+  : REvRef E unit A (evans A e a) e' -> e = e'.
+Proof.
+  intros x. inversion x. ddestruction. reflexivity.
+Qed.
+
+Lemma rer_inv {E A} ea e
+  : REvRef E unit A ea e -> exists a, ea = evans A e a.
+Proof.
+  intros x. inversion x.
+  - ddestruction. eexists; reflexivity.
+  - enough (unit -> void) by contradiction. destruct H. auto.
 Qed.
 
 Lemma may_converge_trace : forall (E : Type -> Type) (R : Type)
@@ -122,7 +137,7 @@ Lemma classic_converge_itrace : forall (E : Type -> Type) (R : Type) (b : itrace
     (exists r, exists log, ( (ev_list_to_stream log) ++ Ret r ≈ b)%itree ) \/ must_diverge b.
 Proof.
   intros.
-  destruct (classic_converge _ _ b ); auto. destruct H as [r Hr]. left.
+  destruct (classic_converge b); auto. destruct H as [r Hr]. left.
   exists r. apply converge_itrace_ev_list. auto.
 Qed.
 
@@ -329,36 +344,39 @@ Qed.
 
 (* Here are where some of the sketchy uses of axioms are *)
 
+Section Determinize.
+
+Context (classicT : forall (P : Type), P + (P -> False)).
+
 CoFixpoint determinize_ (E : Type -> Type) (R : Type) (ot : itree' E R) : itrace E R.
 Proof.
   destruct ot.
   - apply (Ret r).
   - apply (Tau (determinize_ E R (observe t) ) ).
-  - specialize (classic_empty X) as H.
-    apply constructive_indefinite_description in H. destruct H as [ [x | f] _].
-    + apply (Vis (evans X e x) (fun _ =>  (determinize_ E R (observe (k x)) ) )) .
-    + apply (Vis (evempty X f e) (fun v : void => match v return itrace E R with end)  ).
+  - destruct (classicT X) as [ | f].
+    + apply (Vis (evans X e x) (fun _ =>  (determinize_ E R (observe (k x)) ) )).
+    + apply (Vis (evempty X (fun x => match f x with end) e) (fun v : void => match v return itrace E R with end) ).
 Defined.
 
-Definition determinize {E R} t := determinize_ E R (observe t).
+Definition determinize {E R} (t : itree E R) : itrace E R := determinize_ (observe t).
+
+End Determinize.
 
 (* may be a better idea to make this an axiom *)
 Lemma itree_refine_nonempty : forall (E : Type -> Type) (R : Type) (t : itree E R),
   exists b : itrace E R, b ⊑ t.
 Proof.
-  intros. exists (determinize t). generalize dependent t.
+  intros. destruct classicT_inhabited as [classicT].
+  exists (determinize classicT t). generalize dependent t.
   pcofix CIH. intros. pfold. red. unfold determinize. destruct (observe t).
   - cbn. constructor. auto.
   - cbn. constructor. right. apply CIH.
-  - unfold observe. cbn. cbn. destruct (constructive_indefinite_description (fun _ : X + (X -> void) => True)
-                                                                            (classic_empty X)).
-    destruct x as [x | f]; cbn.
+  - unfold observe. cbn. destruct (classicT _).
     + constructor; eauto. intros. right.
       inversion H. ddestruction.
       subst. apply CIH.
     + constructor; auto. intros. contradiction.
 Qed.
-
 
 Lemma refine_set_eq_to_eutt_vis_aux : forall (E : Type -> Type) (R : Type) (r : itree E R -> itree E R -> Prop)
                                              (CIH : forall t1 t2 : itree E R, (forall b : itrace E R, b ⊑ t1 <-> b ⊑ t2) -> r t1 t2)
@@ -595,7 +613,7 @@ Proof.
   (*Tau Vis*)
   - specialize (itree_eta t1) as Ht1. rewrite <- Heqot1 in Ht1.
     specialize (itree_eta t2) as Ht2. rewrite <- Heqot2 in Ht2.
-    specialize (itree_refine_nonempty _ _ (t1) ) as [b Hbt1].
+    specialize (itree_refine_nonempty t1) as [b Hbt1].
     apply H0 in Hbt1 as Hbt2. rewrite Ht1 in Hbt1.
     rewrite tau_eutt in Hbt1.
     rewrite Ht2 in Hbt2.
@@ -628,7 +646,7 @@ Proof.
   (*Vis Tau*)
   - specialize (itree_eta t1) as Ht1. rewrite <- Heqot1 in Ht1.
     specialize (itree_eta t2) as Ht2. rewrite <- Heqot2 in Ht2.
-    specialize (itree_refine_nonempty _ _ (t2) ) as [b Hbt2].
+    specialize (itree_refine_nonempty t2) as [b Hbt2].
     apply H0 in Hbt2 as Hbt1. rewrite Ht1 in Hbt1.
     rewrite Ht2 in Hbt2.
     rewrite tau_eutt in Hbt2.

@@ -215,4 +215,3 @@ Global Instance grutt_cong_euttge {R1 R2 : Type} {E1 E2 : Type -> Type} {REv : f
 Proof.
   repeat intro. gclo. econstructor; eauto.
 Qed.
- 

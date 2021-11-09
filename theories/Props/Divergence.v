@@ -16,18 +16,20 @@ From ITree Require Import
 (* end hide *)
 
 Import ITreeNotations.
-Local Open Scope itree.
+#[local] Open Scope itree.
+
+Set Implicit Arguments.
 
 (** ** Divergence * *)
 
 Inductive may_divergeF {E X} (P : itree E X -> Prop) : itree' E X -> Prop :=
   | DivTau : forall (t : itree E X), P t -> may_divergeF P (TauF t)
   | DivVis : forall {A} (k : A -> itree E X) (e: E A), (forall (a : A), P (k a)) -> may_divergeF P (VisF e k).
-Hint Constructors may_divergeF.
+#[global] Hint Constructors may_divergeF : core.
 
 Definition may_diverge_ {E X} sim :=
   fun t1 => @may_divergeF E X sim (observe t1).
-Hint Unfold may_diverge_.
+#[global] Hint Unfold may_diverge_ : core.
 
 Lemma may_divergeF_mono {E X} sim sim' x0
       (IN: may_divergeF sim x0)
@@ -42,11 +44,12 @@ Lemma may_divergeF__mono {E X} :
 Proof.
   do 2 red. intros. eapply may_divergeF_mono; eauto.
 Qed. 
-Hint Resolve may_divergeF__mono : paco.
+#[global] Hint Resolve may_divergeF__mono : paco.
 
 Definition may_diverge {E A} : itree E A -> Prop :=
   paco1 (@may_diverge_ E A) bot1.
 
+#[global]
 Instance may_diverge_proper_eutt {E X R} : Proper (eutt R ==> iff) (@may_diverge E X).
 Proof.
   repeat intro. split.
@@ -88,7 +91,7 @@ Variant must_divergeF {E : Type -> Type} {A : Type} (F : itree E A -> Prop) : it
   | MDivTau (t : itree E A) : F t -> must_divergeF F (TauF t)
   | MDivVis (B : Type) (k : B -> itree E A) (e : E B) :
       (forall b, F (k b)) -> must_divergeF F (VisF e k).
-Hint Constructors must_divergeF.
+#[global] Hint Constructors must_divergeF : core.
 
 Definition must_diverge_ {E A} (sim : itree E A -> Prop) t := must_divergeF sim (observe t).
 
@@ -104,7 +107,7 @@ Proof.
   unfold must_diverge_.
   red. intros. eapply must_divergeF_mono; eauto.
 Qed.
-Hint Resolve must_divergeF_mono' : paco.
+#[global] Hint Resolve must_divergeF_mono' : paco.
 
 Definition must_diverge {E A} := paco1 (@must_diverge_ E A) bot1.
 
@@ -112,9 +115,10 @@ Inductive may_converge {E : Type -> Type} {A : Type} (a : A) : itree E A -> Prop
 | conv_ret (t : itree E A) : t ≈ Ret a -> may_converge a t
 | conv_vis (t : itree E A ) {B : Type} (e : E B) (k : B -> itree E A) (b : B) :
     t ≈ Vis e k -> may_converge a (k b) -> may_converge a t.
-Hint Constructors may_converge.
+#[global] Hint Constructors may_converge : core.
 
-Global Instance eutt_proper_con_converge {A E} {a : A} : Proper (eutt eq ==> iff) (@may_converge E _ a).
+#[global]
+Instance eutt_proper_con_converge {A E} {a : A} : Proper (eutt eq ==> iff) (@may_converge E _ a).
 Proof.
   intros t1 t2 Ht. split; intros.
   - induction H.
@@ -129,7 +133,8 @@ Qed.
 
 Ltac contra_void := try match goal with | a : void |- _ => contradiction end.
 
-Global Instance eutt_proper_must_diverge {E A R} : Proper (eutt R ==> iff) (@must_diverge E A).
+#[global]
+Instance eutt_proper_must_diverge {E A R} : Proper (eutt R ==> iff) (@must_diverge E A).
 Proof.
   intros t1 t2 Ht. split.
   - revert t1 t2 Ht. pcofix CIH. intros t1 t2 Ht Hdiv.
@@ -189,4 +194,21 @@ Proof.
   - apply IHHc. rewrite H in Hd. pinversion Hd.
     ddestruction. subst.
     apply H1.
+Qed.
+
+Lemma may_converge_Ret_inv E (A : Type) (a a' : A) : may_converge (E := E) a (Ret a') -> a = a'.
+Proof.
+  intros. inversion H.
+  - apply eutt_inv_Ret in H0. auto.
+  - apply eqit_inv in H0; cbn in H0; contradiction.
+Qed.
+
+(*Derives contradiction from evidence that a return tree is divergent*)
+Ltac inv_div_ret := match goal with [ H : may_divergeF _ (RetF _) |- _  ] => inversion H end.
+
+(*Divergent trees never return a value*)
+Lemma div_ret_eutt (E : Type -> Type) (A : Type) (t: itree E A) (a : A)
+  : may_diverge t -> t ≈ Ret a -> False.
+Proof.
+  intros H HContra. rewrite HContra in H. pinversion H.
 Qed.
