@@ -46,6 +46,8 @@ End test.
 Section ITreeApproxSup.
   Context {E : Type -> Type} {R : Type}.
 
+
+  (* rethink this one *)
   Context (test_and_apply : forall {A B C : Type} (e1 : E A) (a : A) (e2 : E B) (k : B -> C) (default : C) , C).
 
   Context (test_and_apply_correct_eq : forall A C (e : E A) (a : A) (k : A -> C) (default : C), test_and_apply A A C e a e k default = k a  ).
@@ -57,7 +59,7 @@ Section ITreeApproxSup.
               ~ JMeq e1 e2 ->
               test_and_apply A B C e1 a e2 k default = default).
 
-  Context (E_injective : forall (A B : Type), E A = E B -> A = B).
+  Context (E_injective : forall (A B : Type), E A -> E B -> E A = E B -> A = B).
 
   Arguments test_and_apply {A B C}.
 
@@ -114,7 +116,7 @@ Section ITreeApproxSup.
     - repeat rewrite Heq. rewrite peel_tau_elem_vis. gstep. constructor.
       intros. gfinal. left. auto.
   Qed.
- 
+
   CoFixpoint peel_vis_elem' {A : Type} (e : E A) (a : A) (ot : itree' E R) : itree E R :=
     match ot with
     | RetF r => Ret r
@@ -131,7 +133,6 @@ Section ITreeApproxSup.
     - pstep. red. cbn. constructor; auto.
     - pstep. red. cbn. constructor.  eauto.
     - pstep. red. cbn. unfold observe. cbn. 
-
       assert (A = u \/ ~ A = u). apply classic.
       assert (JMeq e e0 \/ ~ JMeq e e0). apply classic.
       destruct H1.
@@ -142,7 +143,7 @@ Section ITreeApproxSup.
           eapply paco2_mon with (r := bot2); intros; try contradiction.
           enough (@ITree.spin E R ≅ ITree.spin). punfold H2. reflexivity.
       + inv H2.
-        * inv H3. apply E_injective in H4. contradiction. 
+        * inv H3. apply E_injective in H4. contradiction. rewrite H5. auto. auto.
         * repeat rewrite test_and_apply_correct_neq; auto. pstep_reverse.
           eapply paco2_mon with (r := bot2); intros; try contradiction.
           enough (@ITree.spin E R ≅ ITree.spin). punfold H2. reflexivity.
@@ -180,7 +181,7 @@ Section ITreeApproxSup.
   Proof.
     intros. unfold peel_vis_elem. cbn. pfold. red. cbn. unfold observe at 1. cbn.
     destruct (classic (JMeq ea eb)).
-    - inv H0. apply E_injective in H2. apply H in H2. contradiction.
+    - inv H0. apply E_injective in H2; auto. apply H in H2. contradiction.
     - rewrite test_and_apply_correct_neq; auto. cbn. constructor.
       left. enough (@ITree.spin E R ≅ ITree.spin). auto. reflexivity.
   Qed.
@@ -232,7 +233,8 @@ Section ITreeApproxSup.
     generalize dependent tn. generalize dependent tm. pcofix CIH. intros.
     punfold Hnm. red in Hnm. inv Hnm; pclearbot; eauto.
     - pfold. red. unfold observe. cbn. rewrite <- H1. rewrite <- H2. constructor. auto.
-    - pfold. red. unfold observe. cbn. rewrite <- H1. rewrite <- H2. constructor. right. eapply CIH; eauto.
+    - pfold. red. unfold observe. cbn. rewrite <- H1. rewrite <- H2. 
+      constructor. right. eapply CIH; eauto.
     - eapply paco2_mon with (r := bot2); intros; try contradiction.
       pfold. red. unfold observe. cbn. rewrite <- H1. rewrite <- H2.
       punfold H3.
@@ -274,8 +276,8 @@ Section ITreeApproxSup.
         * enough (paco2 (strong_itree_approx_ RR id) r (ITree.spin) (ITree.spin) ). punfold H4.
           eapply paco2_mon with (r := bot2); intros; try contradiction. 
           apply strong_itree_approx_spin_bottom.
-        * intro. inv H4. apply E_injective in H6. contradiction.
-        * intro. inv H4. apply E_injective in H6. contradiction.
+        * intro. inv H4. apply E_injective in H6; auto.
+        * intro. inv H4. apply E_injective in H6; auto.
     - constructor. right. apply CIH; auto.
     - match goal with |- strong_itree_approxF RR (upaco2 (strong_itree_approx_ RR id) r) id (_observe ?t1) (_observe ?t2) =>
                       remember t1 as tspin; remember t2 as tr end.
@@ -468,8 +470,6 @@ Section ITreeApproxSup.
         left. eapply CIH. 
         apply advance_preserves_monotone_approx; apply peel_tau_preserves_monotone_approx; auto.
       + rewrite Ht1 in H0. rewrite Ht1 in H2. pinversion H2. inj_existT. subst.
-        (* is there some way to take this tau and cancel out the peel_tau? *)
-        (* if there was *)
         use_simpobs. rewrite tau_euttge. rewrite H7 in H1.
         rewrite sup_head_vis.
         2 : { unfold peel_tau. rewrite H0. rewrite peel_tau_elem_tau. reflexivity. }
@@ -522,7 +522,6 @@ Section ITreeApproxSup.
       auto.
       assert (eutt RR (itree_approx_sup (peel_tau (advance seq))) (itree_approx_sup (advance seq))).
       apply sup_peel_tau_eutt; auto. apply advance_preserves_monotone_approx. auto.
-      (* am I crazy or should this be enough? *)
   Abort.
 
   Lemma sup_advance_eutt  : forall RR (HEq : Equivalence RR) (seq : sequence (itree E R) ),
@@ -577,8 +576,9 @@ Section ITreeApproxSup.
     rewrite test_and_apply_correct_eq. specialize (H0 a). punfold H0.
   Qed.
 
-  Lemma sup_is_upper_bound_0 : forall RR (HEq : Equivalence RR) (seq : sequence (itree E R) ) t, monotone_approx RR seq -> 
-                                       (forall n, strong_itree_approx RR t (seq n)) ->  weak_itree_approx RR t (itree_approx_sup seq).
+  Lemma sup_is_upper_bound_0 : forall RR (HEq : Equivalence RR) (seq : sequence (itree E R) ) t, 
+      monotone_approx RR seq -> (forall n, strong_itree_approx RR t (seq n)) ->
+      weak_itree_approx RR t (itree_approx_sup seq).
   Proof.
     intros RR HEq. ginit. gcofix CIH. intros seq t Hmon Ht.
     specialize (Ht 0) as H0. pinversion H0; pclearbot; use_simpobs.
@@ -592,7 +592,8 @@ Section ITreeApproxSup.
       intros. apply peel_tau_strong_itree_approx. clear n. intros. unfold advance. 
       rewrite <- H. auto.
     - rewrite H. rewrite H3. gstep. constructor. gfinal. right.
-      eapply paco2_mon with (r := bot2); intros; try contradiction. apply weak_itree_approx_spin_bottom.
+      eapply paco2_mon with (r := bot2); intros; try contradiction.
+      apply weak_itree_approx_spin_bottom.
   Qed.
 
   Lemma sup_is_upper_bound : forall RR (HEq : Equivalence RR) n (seq : sequence (itree E R) ), 
@@ -647,5 +648,38 @@ Section ITreeApproxSup.
       apply Htub.
   Qed.
 
+  Lemma sup_ret_n : forall  RR (HEq : Equivalence RR) 
+          (seq : sequence (itree E R) ) n r,
+      monotone_approx RR seq ->
+      seq n ≈ Ret r -> eutt RR (itree_approx_sup seq) (Ret r).
+  Proof.
+    intros. enough (weak_itree_approx RR (itree_approx_sup seq) (Ret r) ). (* should have a lemma for this *) admit.
+    apply sup_is_below_all_upper_bounds; auto. intros.
+    rename n0 into m.
+    destruct (PeanoNat.Nat.le_ge_cases n m).
+    - apply H in H1. remember (seq m) as tm. remember (seq n) as tn. 
+      clear Heqtm Heqtn. punfold H0. red in H0.
+      cbn in *. remember (RetF r) as x.
+      remember (observe tn ) as y.
+      hinduction H0 before r; intros; inv Heqx; use_simpobs.
+      + rewrite Heqy in H1. pinversion H1. use_simpobs. rewrite H2. pstep. constructor.
+        symmetry. auto.
+      + rewrite Heqy in H1. pinversion H1; subst; use_simpobs.
+        * rewrite H3. pstep. constructor. left. eapply IHeqitF; eauto.
+        * eapply IHeqitF; eauto. rewrite H5. apply strong_itree_approx_spin_bottom.
+    - apply H in H1. remember (seq m) as tm. remember (seq n) as tn. 
+      clear Heqtm Heqtn. punfold H0. red in H0. cbn in *.
+      remember (RetF r) as x. remember (observe tn) as y.
+      hinduction H0 before r; intros; inv Heqx; inv Heqy; subst; use_simpobs; eauto.
+      + rewrite H2 in H1. pinversion H1; subst; use_simpobs.
+        * rewrite H0. pstep. constructor. auto.
+        * rewrite H0. rewrite H5. rewrite <- spin_cong_tau_spin.
+          apply weak_itree_approx_spin_bottom.
+      + rewrite H3 in H1. pinversion H1; subst; use_simpobs.
+        * rewrite H2. pstep. constructor. left. eapply IHeqitF; eauto.
+        * rewrite H2. rewrite H6. rewrite <- spin_cong_tau_spin.
+          apply weak_itree_approx_spin_bottom.
+  Admitted. (* maybe could clean up this proof with some more meta theory *)
 
 End ITreeApproxSup.
+

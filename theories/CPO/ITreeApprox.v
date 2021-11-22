@@ -373,6 +373,25 @@ Proof.
       * exfalso. eapply H; eauto.
 Qed.
 
+Lemma weak_itree_approx_mon : forall E R1 R2 (RR1 RR2 : R1 -> R2 -> Prop) (t1 : itree E R1) t2,
+    (forall x y, RR1 x y -> RR2 x y) ->
+    weak_itree_approx RR1 t1 t2 -> weak_itree_approx RR2 t1 t2.
+Proof.
+  intros E R1 R2 RR1 RR2. ginit. gcofix CIH.
+  intros. punfold H1. red in H1. 
+  remember (observe t1) as ot1. remember (observe t2) as ot2.
+  hinduction H1 before r; intros; use_simpobs.
+  - rewrite Heqot1, Heqot2. gstep. constructor. eauto.
+  - rewrite Heqot1, Heqot2. gstep. constructor. pclearbot.
+    gfinal. left. eauto.
+  - rewrite Heqot1, Heqot2. gstep. constructor. pclearbot.
+    gfinal. left. eauto.
+  - pclearbot. rewrite Heqot1. gstep. constructor.
+    gfinal. left. eapply CIH; eauto. apply simpobs in Heqot2. rewrite <- itree_eta in Heqot2. 
+    rewrite Heqot2. auto.
+  - rewrite Heqot2. rewrite tau_euttge. eauto.
+Qed.
+
 Lemma weak_itree_approx_bind : forall E R S1 S2 (RS : S1 -> S2 -> Prop) (k : R -> itree E S2) (t : itree E R),
     weak_itree_approx RS (ITree.bind t (fun _ => ITree.spin)) (ITree.bind t k).
 Proof.
@@ -543,3 +562,28 @@ Proof.
     + rewrite itree_eta'. constructor. repeat intro. discriminate. auto.
 Qed.
 
+Lemma strong_itree_approx_mon : forall E R1 R2 (RR1 RR2 : R1 -> R2 -> Prop) (t1 : itree E R1) t2,
+    (forall x y, RR1 x y -> RR2 x y) ->
+    strong_itree_approx RR1 t1 t2 -> strong_itree_approx RR2 t1 t2.
+Proof.
+  intros E R1 R2 RR1 RR2. pcofix CIH. intros t1 t2 HRR Happ.
+  pfold. red. punfold Happ. red in Happ. inv Happ.
+  - constructor. eauto.
+  - pclearbot. constructor. right. eauto.
+  - pclearbot. constructor. right. eauto.
+  - constructor; auto.
+Qed.
+
+Lemma strong_to_weak_itree_approx : forall E R1 R2 (RR : R1 -> R2 -> Prop) (t1 : itree E R1) t2,
+    strong_itree_approx RR t1 t2 -> weak_itree_approx RR t1 t2.
+Proof.
+  intros E R1 R2 RR. ginit. gcofix CIH. intros.
+  pinversion H0; use_simpobs.
+  - rewrite H, H1. gstep. constructor; auto.
+  - rewrite H1, H. gstep. constructor; auto. gfinal.
+    left. eapply CIH; eauto.
+  - rewrite H, H1. gstep. constructor; auto. gfinal.
+    left. eauto.
+  - rewrite H. gstep. constructor. gfinal. left. eapply CIH; eauto.
+    rewrite H3. apply strong_itree_approx_spin_bottom.
+Qed.
