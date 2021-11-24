@@ -76,7 +76,7 @@ Section ITreeApproxSup.
   Definition peel_tau (seq : sequence (itree E R) ) : sequence (itree E R) :=
     fun n => peel_tau_elem (seq n).
 
-  Instance peel_tau_elem_proper : Proper (@eq_itree E R R eq ==> eq_itree eq) (peel_tau_elem).
+  Global Instance peel_tau_elem_proper : Proper (@eq_itree E R R eq ==> eq_itree eq) (peel_tau_elem).
   Proof.
     intros t1 t2 Ht12. generalize dependent t2. revert t1. ginit. gcofix CIH.
     intros. pinversion Ht12; try inv CHECK; subst.
@@ -126,7 +126,7 @@ Section ITreeApproxSup.
   Definition peel_vis_elem {A : Type} (e : E A) (a : A) (t : itree E R) : itree E R :=
     peel_vis_elem' e a (observe t).
 
-  Instance peel_vis_elem_proper {A} {e : E A} {a : A} : Proper (@eq_itree E R R eq ==> eq_itree eq) (peel_vis_elem e a).
+  Global Instance peel_vis_elem_proper {A} {e : E A} {a : A} : Proper (@eq_itree E R R eq ==> eq_itree eq) (peel_vis_elem e a).
   Proof.
     intros t1 t2 Ht12. generalize dependent t2. revert t1. pcofix CIH.
     intros.  unfold peel_vis_elem. pinversion Ht12; try inv CHECK; subst.
@@ -337,7 +337,7 @@ Section ITreeApproxSup.
 
   Definition fun_eq {A B} (f g : A -> (itree E B)) := respectful eq (eq_itree eq) f g.
 
-  Instance proper_fun_seq : Proper (fun_eq ==> eq_itree eq) itree_approx_sup.
+  Global Instance proper_fun_seq : Proper (fun_eq ==> eq_itree eq) itree_approx_sup.
   Proof.
     ginit. gcofix CIH. intros seq1 seq2 Hseq.  repeat red in Hseq.
     destruct (observe (seq1 0)) eqn : Heq; symmetry in Heq; use_simpobs.
@@ -350,19 +350,19 @@ Section ITreeApproxSup.
       unfold peel_vis. rewrite Hseq; auto. reflexivity.
   Qed.
 
-  Instance proper_fun_seq_advance : Proper (@fun_eq nat R ==> fun_eq) (@advance (itree E R)).
+  Global Instance proper_fun_seq_advance : Proper (@fun_eq nat R ==> fun_eq) (@advance (itree E R)).
   Proof.
     intros seq1 seq2 H. intros n m Hnm; subst. unfold advance. red in H. red in H. rewrite H. 
     reflexivity. auto.
   Qed.
 
-  Instance proper_fun_seq_peel_tau : Proper (@fun_eq nat R ==> fun_eq) (peel_tau).
+  Global Instance proper_fun_seq_peel_tau : Proper (@fun_eq nat R ==> fun_eq) (peel_tau).
   Proof.
     intros seq1 seq2 H. intros n m Hnm; subst. unfold peel_tau. 
     do 2 red in H. rewrite H. reflexivity. auto.
   Qed.
 
-  Instance proper_fun_seq_peel_vis {A} {e : E A} {a} : Proper (@fun_eq nat R ==> fun_eq) (peel_vis e a).
+  Global Instance proper_fun_seq_peel_vis {A} {e : E A} {a} : Proper (@fun_eq nat R ==> fun_eq) (peel_vis e a).
   Proof.
     intros seq1 seq2 H. intros n m Hnm; subst. unfold peel_vis. 
     do 2 red in H. rewrite H. reflexivity. auto.

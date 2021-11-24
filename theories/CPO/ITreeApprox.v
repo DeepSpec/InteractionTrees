@@ -392,19 +392,33 @@ Proof.
   - rewrite Heqot2. rewrite tau_euttge. eauto.
 Qed.
 
-Lemma weak_itree_approx_bind : forall E R S1 S2 (RS : S1 -> S2 -> Prop) (k : R -> itree E S2) (t : itree E R),
-    weak_itree_approx RS (ITree.bind t (fun _ => ITree.spin)) (ITree.bind t k).
+Lemma weak_itree_approx_trans_eq : forall E R (t1 t2 t3 : itree E R),
+    weak_itree_approx eq t1 t2 -> weak_itree_approx eq t2 t3 ->
+    weak_itree_approx eq t1 t3.
 Proof.
-  intros E R S1 S2 k. pcofix CIH.
-  intros.
-  destruct (observe t) eqn :  Heqt.
-  - pfold. red. unfold observe at 1. unfold observe at 1. cbn. rewrite Heqt.
-    cbn. constructor. left. eapply paco2_mon; try apply weak_itree_approx_spin_bottom.
-    intros; contradiction.
-  - pfold. red. unfold observe at 1. unfold observe at 1. cbn. rewrite Heqt.
-    constructor. right. eapply CIH.
-  - pfold. red. unfold observe at 1. unfold observe at 1. cbn. rewrite Heqt.
-    constructor. right. eapply CIH.
+  intros. apply weak_itree_approx_mon with (RR1 := rcompose eq eq).
+  intros. inv H1; subst. auto. eapply weak_itree_approx_trans; eauto.
+Qed.
+
+Lemma weak_itree_approx_bind : forall E R1 R2 S1 S2 (RS : S1 -> S2 -> Prop) (RR : R1 -> R2 -> Prop)
+                                 (k1 : R1 -> itree E S1) (t1 : itree E R1)
+                                 (k2 : R2 -> itree E S2) (t2 : itree E R2),
+    (weak_itree_approx RR t1 t2) -> (forall r1 r2, RR r1 r2 -> weak_itree_approx RS (k1 r1) (k2 r2)) ->
+    weak_itree_approx RS (ITree.bind t1 k1) (ITree.bind t2 k2).
+Proof.
+  intros E R1 R2 S1 S2 RS RR. ginit. gcofix CIH. intros.
+  punfold H0. red in H0. remember (observe t1) as ot1. remember (observe t2) as ot2.
+  hinduction H0 before r; intros; use_simpobs.
+  - rewrite Heqot1, Heqot2. setoid_rewrite bind_ret_l. gfinal.
+    right. eapply paco2_mon; try eapply H1; eauto. intros; contradiction.
+  - rewrite Heqot1, Heqot2. setoid_rewrite bind_vis. gstep. constructor.
+    intros. gfinal. left. pclearbot. eauto.
+  - rewrite Heqot1, Heqot2. setoid_rewrite bind_tau. gstep. constructor.
+    intros. gfinal. left. pclearbot. eauto.
+  - rewrite Heqot1. rewrite bind_tau. gstep. constructor. gfinal.
+    left. pclearbot. eapply CIH; eauto. apply simpobs in Heqot2.
+    rewrite <- itree_eta in Heqot2. rewrite Heqot2. auto.
+  - rewrite Heqot2. rewrite bind_tau. rewrite tau_euttge. eauto.
 Qed.
 
 (*This may become the main definition of approximating ITrees*)
@@ -586,4 +600,41 @@ Proof.
     left. eauto.
   - rewrite H. gstep. constructor. gfinal. left. eapply CIH; eauto.
     rewrite H3. apply strong_itree_approx_spin_bottom.
+Qed.
+
+Lemma bind_spin : forall E R S (k : R -> itree E S),
+    ITree.bind ITree.spin k ≅ ITree.spin.
+Proof.
+  intros E R S k. pcofix CIH.
+  pstep. red. cbn. constructor.
+  right. eauto.
+Qed.
+
+Lemma spin_cong_tau_spin E R : @ITree.spin E R ≅ Tau ITree.spin.
+Proof.
+  pfold. red. cbn. constructor. left.
+  enough (@ITree.spin E R ≅ ITree.spin). auto. reflexivity.
+Qed.
+
+Lemma strong_itree_approx_bind : forall E R1 R2 S1 S2 (RS : S1 -> S2 -> Prop) (RR : R1 -> R2 -> Prop)
+                                 (k1 : R1 -> itree E S1) (t1 : itree E R1)
+                                 (k2 : R2 -> itree E S2) (t2 : itree E R2),
+    (strong_itree_approx RR t1 t2) -> (forall r1 r2, RR r1 r2 -> strong_itree_approx RS (k1 r1) (k2 r2)) ->
+    strong_itree_approx RS (ITree.bind t1 k1) (ITree.bind t2 k2).
+Proof.
+  intros E R1 R2 S1 S2 RS RR.
+  pcofix CIH. intros k1 t1 k2 t2 Ht Hk.
+  punfold Ht. red in Ht. pstep. red.
+  unfold observe. cbn. inv Ht.
+  - apply Hk in H1. enough (paco2 (strong_itree_approx_ RS id) r  (k1 r1) (k2 r2)).
+    punfold H2. eapply paco2_mon; eauto. intros; contradiction.
+  - constructor. right. pclearbot. eapply CIH; eauto. 
+  - pclearbot. constructor. right. eapply CIH; eauto.
+  - match goal with |- strong_itree_approxF RS (upaco2 (strong_itree_approx_ RS id) r) id 
+                                           (_observe ?t1) (_observe ?t2) =>
+                    remember t2 as t4 end.
+    enough (paco2 (strong_itree_approx_ RS id) r (Tau (ITree.subst k1 t0)) t4 ).
+    punfold H3. eapply paco2_mon with (r := bot2); intros; try contradiction.
+    rewrite H2. setoid_rewrite bind_spin. setoid_rewrite <- spin_cong_tau_spin.
+    apply strong_itree_approx_spin_bottom.
 Qed.

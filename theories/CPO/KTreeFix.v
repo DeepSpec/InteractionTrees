@@ -18,6 +18,7 @@ From ITree Require Import
      CPO.CPO
      CPO.ITreeApprox
      CPO.ITreeApproxSup
+     CPO.ITreeCPO
 .
 
 From ExtLib Require Import
@@ -55,14 +56,56 @@ Global Instance ktree_cpo {R S E} test_and_apply : weak_cpo (R -> itree E S) :=
     bot := fun _ => ITree.spin;
   |}.
 
+Global Instance ktree_cpo_laws {R S E} test_and_apply :
+  test_and_apply_correct E test_and_apply ->
+  weak_cpo_laws (@ktree_cpo R S E test_and_apply).
+Proof.
+  intros Htaa.
+  econstructor; cbn.
+  - split; intros. unfold weak_ktree_approx. setoid_rewrite H.
+    split; intros; apply weak_itree_approx_refl. unfold weak_ktree_approx in H.
+    destruct H. apply weak_itree_approx_antisym; auto.
+  - split; intros; unfold strong_ktree_approx. setoid_rewrite H.
+    split; intros; apply strong_itree_approx_refl. destruct H.
+    apply strong_itree_approx_antisym; auto.
+  - intros. rewrite H. reflexivity.
+  - intros. red. intros. apply strong_to_weak_itree_approx; auto.
+  - intros. red. intros. apply strong_itree_approx_spin_bottom.
+  - intros. red in H. cbn in H. constructor; eauto.
+    + cbn. unfold weak_ktree_approx, ktree_approx_sup. intros.
+      unfold apply_seq. cbn. unfold map.
+      set (fun n => seq n x) as seq'. assert (seq n x = seq' n). auto. rewrite H0.
+      eapply sup_is_upper_bound; destruct Htaa; eauto.
+      constructor; cbv; intros; subst; auto. red. intros. apply H. auto.
+    + cbn. unfold weak_ktree_approx, ktree_approx_sup, apply_seq, map.
+      intros. set (fun n => seq n x) as seq'.
+      eapply sup_is_below_all_upper_bounds; eauto; destruct Htaa; eauto.
+      constructor; cbv; intros; subst; auto. red. intros. apply H. auto. 
+  - repeat intro. cbn in *. red in H. cbn in H.
+    unfold ktree_approx_sup, apply_seq, map. 
+    eapply proper_fun_seq'; auto. repeat red. intros; subst. apply H.
+  - intros. unfold ktree_approx_sup, apply_seq, map.
+    set (fun n => seq n r) as seq'. 
+    rewrite sup_advance_eutt; destruct Htaa; auto.
+    2 : constructor; cbv; intros; subst; auto.
+    2 : { unfold seq';  red in H. red. intros. eapply H. auto. }
+    unfold advance, seq'. reflexivity.
+Unshelve.
+ constructor; red; cbn; intros. reflexivity.
+ rewrite H. reflexivity.
+ rewrite <- H0. auto.
+ constructor. red. cbn. intros. red. intros. apply weak_itree_approx_refl.
+ red. cbn. unfold weak_ktree_approx. intros. eapply weak_itree_approx_trans_eq; eauto.
+ constructor; red; cbn; intros. reflexivity. rewrite H. reflexivity.
+ rewrite H. auto.
+ constructor; red; cbn; unfold strong_ktree_approx. intros. apply strong_itree_approx_refl.
+ intros. cbn in *. 
+ eapply strong_itree_approx_mon with (RR1 := rcompose eq eq). intros. inv H1. auto.
+ eapply strong_itree_approx_trans; eauto.
+Qed.
 
-Definition ktree_bot {R S E} := fun (x : R) => @ITree.spin E S.
-
-Definition ktree_fix_seq {R S E} (f : (R -> itree E S) -> (R -> itree E S) ) : sequence (R -> itree E S) :=
-  fun n => frepeat f n ktree_bot.
-
-Definition ktree_fix {R S E} test_and_apply (f : (R -> itree E S) -> (R -> itree E S) ) (x : R) : itree E S :=
-  itree_approx_sup test_and_apply (apply_seq (ktree_fix_seq f) x ).
+Definition ktree_fix {R S E} test_and_apply (f : (R -> itree E S) -> (R -> itree E S) ) : R -> itree E S :=
+  @weak_cpo_fix _ f (ktree_cpo test_and_apply).
 (* got confused here 
 Definition scott_cont {R S E} test_and_apply (f : (R -> itree E S) -> (R -> itree E S) ) : Prop :=
   forall (seq : sequence (R -> itree E S) ), ktree_monotone_approx eq seq ->
@@ -173,6 +216,11 @@ Qed.
 
 (* could also write a relational collatz def, and prove it coincides with the fixpoint of collatzf*)
 
+Lemma test_void_correct : test_and_apply_correct void1 test_void.
+Proof.
+  constructor; intros; try destruct e; try destruct e1. destruct H.
+Qed.
+
 Lemma scott_cont_factf : @scott_continuous _ (ktree_cpo test_void) factf.
 Proof.
   red. cbn.
@@ -180,15 +228,19 @@ Proof.
   induction n.
   - cbn. rewrite sup_head_ret; cbn; try reflexivity.
   - cbn. assert (n - 0 = n). lia. rewrite H. clear H. 
-    remember (fun n0 : nat => seq n0 n ) as seq'.
-    remember (fun m => Ret (m + n * m) ) as k.
-    assert (itree_approx_sup test_void (fun n0 : nat => ITree.bind (seq n0 n) k) ≅
-                            itree_approx_sup test_void (map (ITree.subst k) seq'  ) ).
-    { eapply proper_fun_seq; intros; try destruct e; try destruct e1.
-      admit. (* might be a weakness in the current set up, should be avoidable*)
-      intros n1 n2 Hn; subst. reflexivity. }
-    rewrite H.
-    Abort.
+    specialize (subst_scott_cont void1 test_void test_void_correct) as Hscott.
+    red in Hscott. cbn in Hscott. setoid_rewrite Hscott; try reflexivity.
+    red. cbn. intros. apply Hmon. auto.
+Qed.
+
+Lemma monotone_factf : @monotone_fun _ (ktree_cpo test_void) factf.
+Proof.
+  red. cbn. red. intros.
+  unfold factf. destruct (Nat.eqb x 0).
+  apply strong_itree_approx_refl. cbn.
+  eapply strong_itree_approx_bind; eauto. intros; subst.
+  apply strong_itree_approx_refl.
+Qed.
 
 Definition ktree_collatz := ktree_fix test_void collatzf.
 
@@ -225,23 +277,34 @@ Goal burn 50 (ktree_fact 7) ≈ Ret (fact 7).
   reflexivity.
 Qed.
 
-
+(*
 Goal burn 50 (ktree_fact 10) ≈ Ret (fact 10).
   reflexivity.
 Qed.
-
+*)
 Lemma fix_factf_correct : forall n, ktree_fact n ≈ (Ret (fact n) ).
 Proof.
   intros. induction n.
   - unfold ktree_fact. unfold ktree_fix. cbn.
-    rewrite sup_head_tau.
-    2 : { cbn. unfold ktree_bot. rewrite spin_cong_tau_spin. reflexivity. }
+    unfold ktree_approx_sup. rewrite sup_head_tau.
+    2 : { cbn.  rewrite spin_cong_tau_spin. reflexivity. }
     rewrite tau_eutt. rewrite sup_head_ret. reflexivity.
     unfold advance, peel_tau. cbn. rewrite peel_tau_elem_ret. reflexivity.
-  - cbn.  unfold ktree_fact. (* here the only reasonable way is scott continuity *)
-(* started to get slow but still worked 
-Goal burn 50 (ktree_fact 7) ≈ Ret (fact 7).
-  cbn. reflexivity.
+  - unfold ktree_fact, ktree_fix. 
+    specialize (scott_continuous_fix) as Hscf.
+    specialize Hscf with (T := nat -> itree void1 nat) (C := (ktree_cpo test_void)).
+    assert (weak_cpo_laws (@ktree_cpo nat nat void1 test_void)).
+    apply  ktree_cpo_laws. apply test_void_correct.
+    eapply Hscf in H. 2 : apply scott_cont_factf.
+    2 : apply monotone_factf.
+    cbn in H. setoid_rewrite H. unfold factf at 1. simpl. 
+    assert ((n - 0) = n). lia. rewrite H0. rewrite IHn.
+    rewrite bind_ret_l. reflexivity.
 Qed.
-*)
+(* Ideally I would write some ltac wizardry named unfold_fix or something
+   which would search a hint library to be able to do this with less annoyance
+   if only I was an ltac wizard :(
+ *)
+
+
 End FactExample.

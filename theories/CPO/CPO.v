@@ -62,7 +62,7 @@ Class weak_cpo_laws {T} (C : weak_cpo T) := {
   weaken_leq : forall t1 t2, strong_leq t1 t2 -> weak_leq t1 t2;
   bot_correct : forall t, strong_leq bot t;
   sup_correct : forall (seq : sequence T), monotone_seq seq -> supremum seq (sup seq);
-  fun_eq_proper_sup : Proper (strong_seq_eq ==> strong_eq) sup; 
+  fun_eq_proper_sup : Proper (strong_seq_eq ==> strong_eq) sup;
   advance_weak_eq : forall seq, monotone_seq seq -> weak_eq (sup seq) (sup (advance seq) )
   }.
 
@@ -145,4 +145,10 @@ Proof.
   { red. intros. red in H0. destruct H. do 2 rewrite <- H0. reflexivity. } 
   apply supremum_const_seq in H0; auto. assert (weak_cpo_laws C); auto. destruct H. apply sup_correct0 in H1.
   eapply supremum_unique; eauto.
+Qed.
+
+Global Instance proper_supremum {T} {C : weak_cpo T} `{@weak_cpo_laws T C} {seq} : Proper (weak_eq ==> flip impl) (supremum seq).
+Proof.
+  repeat intro. destruct H1. destruct H. constructor; auto. 
+  setoid_rewrite H0. auto. setoid_rewrite H0. auto.
 Qed.
