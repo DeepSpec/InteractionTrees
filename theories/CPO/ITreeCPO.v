@@ -30,8 +30,11 @@ Global Instance itree_weak_cpo {R E} test_and_apply : weak_cpo (itree E R) :=
     sup := itree_approx_sup test_and_apply;
     weak_eq := eutt eq;
     strong_eq := eq_itree eq;
-    bot := ITree.spin;
+    
   |}.
+
+Global Instance itree_pointed_weak_cpo {R E} test_and_apply : pointed_weak_cpo (@itree_weak_cpo R E test_and_apply) :=
+  {| bot := ITree.spin |}.
 
 Class test_and_apply_correct (E : Type -> Type) (taa :  forall {A B C : Type} (e1 : E A) (a : A) (e2 : E B) (k : B -> C) (default : C) , C) := 
   {
@@ -52,7 +55,6 @@ intros. econstructor. Unshelve.
   + destruct H0. apply strong_itree_approx_antisym; auto.
 - cbn. intros.  rewrite H0. reflexivity.
 - cbn. intros. apply strong_to_weak_itree_approx; auto.
-- cbn. apply strong_itree_approx_spin_bottom.
 - cbn. intros. red in H0. cbn in H0. constructor; auto.
   + cbn. intros. eapply sup_is_upper_bound; destruct H; eauto.
     constructor; red; intros; subst; auto.
@@ -71,8 +73,13 @@ intros. econstructor. Unshelve.
   intros. inv H2. auto. eapply strong_itree_approx_trans; eauto.
 Qed.
 
+Global Instance itree_pointed_weak_cpo_laws {E : Type -> Type} {R} taa : test_and_apply_correct E taa -> pointed_weak_cpo_laws (@itree_weak_cpo R E taa) (@itree_pointed_weak_cpo R E taa).
+Proof.
+  intros. constructor. cbn. intros. eapply strong_itree_approx_spin_bottom.
+Qed.
+
 (*TODO move this to EuttDiv or something *)
-Lemma bind_spin : forall E R (k : R -> itree E R), @ITree.spin E R ≅ ITree.bind ITree.spin k.
+Lemma bind_spin : forall E R S (k : R -> itree E S), @ITree.spin E S ≅ ITree.bind ITree.spin k.
 Proof.
   ginit. gcofix CIH. intros. setoid_rewrite spin_cong_tau_spin.
   rewrite bind_tau. gstep. constructor. gfinal. left. auto.
@@ -84,10 +91,13 @@ Context (taa : forall {A B C : Type} (e1 : E A) (a : A) (e2 : E B) (k : B -> C) 
 Context (Htaa : test_and_apply_correct E taa).
 
 Instance E_itree_cpo {R} : weak_cpo (itree E R) := itree_weak_cpo taa.
+Instance E_itree_pointed_cpo {R} : pointed_weak_cpo (@E_itree_cpo R) := itree_pointed_weak_cpo taa.
 Instance E_itree_cpo_laws {R} : weak_cpo_laws (@E_itree_cpo R) := itree_weak_cpo_laws taa Htaa.
+Instance E_itree_pointed_cpo_laws {R} : pointed_weak_cpo_laws (@E_itree_cpo R) E_itree_pointed_cpo :=
+  itree_pointed_weak_cpo_laws taa Htaa.
 
 (*only talks about monotyped bind, thats a little weird *)
-Lemma subst_mon R (k : R -> itree E R) : monotone_fun (ITree.subst k).
+Lemma subst_mon R S (k : R -> itree E S) : monotone_fun (ITree.subst k).
 Proof.
   red. cbn. pcofix CIH. intros t1 t2 Ht. punfold Ht. red in Ht.
   pfold. red. unfold observe. cbn. inv Ht; eauto.
@@ -292,30 +302,15 @@ Proof.
   apply peel_vis_preserves_monotone_approx; destruct Htaa; auto. destruct H; auto.
 Qed.
 
-Lemma supremum_to_bind_lub:
-  forall (R : Type) (k : R -> itree E R) (t : itree E R) (seq : sequence (itree E R)),
-    monotone_seq seq ->
-    (forall n : nat, weak_leq (seq n) t) ->
-    (forall upper_bound : itree E R,
-        (forall n : nat, weak_leq (seq n) upper_bound) -> weak_leq t upper_bound) ->
-    forall upper_bound : itree E R,
-      (forall n : nat, weak_itree_approx eq (map (ITree.subst k) seq n) upper_bound) ->
-      weak_itree_approx eq (ITree.subst k t) upper_bound.
-Proof.
-  intros R k t seq Hmon Hub Hlub. generalize dependent t.
-  generalize dependent seq. ginit. gcofix CIH.
-  intros seq Hmon t Hub Hlub upper_bound Hupper.
-  cbn in *. Abort.
-
 Lemma peel_vis_upper_bound_aux:
-  forall (R : Type) (k : R -> itree E R) (X : Type) (k2 : X -> itree E R)
+  forall (R S : Type) (k : R -> itree E S) (X : Type) (k2 : X -> itree E S)
     (seq : sequence (itree E R)) (e0 : E X) (k0 : X -> itree E R),
     (forall n : nat, weak_itree_approx eq (seq n) (Vis e0 k0)) ->
     forall (a : X) (n : nat),
       weak_itree_approx eq (map (ITree.subst k) seq n) (Vis e0 k2) ->
       weak_itree_approx eq (map (ITree.subst k) (peel_vis taa e0 a seq) n) (k2 a).
 Proof.
-  intros R k X k2. unfold peel_vis. unfold map. intros.
+  intros R S k X k2. unfold peel_vis. unfold map. intros.
   specialize (H n) as Hn. remember (seq n) as t. clear Heqt n.
   generalize dependent t. ginit. gcofix CIH. intros t Hek2 Ht.
   punfold Ht. red in Ht. remember (observe t) as ot. cbn in Ht.
@@ -363,7 +358,7 @@ Proof.
   hinduction H0 before R; intros; inv Heqx; inv Heqy; inj_existT; subst; eauto.
 Qed.
 
-Lemma subst_scott_cont_aux : forall (R : Type) (k : R -> itree E R) (t : itree E R) 
+Lemma subst_scott_cont_aux : forall (R S : Type) (k : R -> itree E S) (t : itree E R) 
                                (seq : sequence (itree E R)),
     supremum seq t -> supremum (map (ITree.subst k) seq ) (ITree.subst k t).
 Proof.
@@ -411,7 +406,8 @@ Proof.
         -- setoid_rewrite Heqoub in H0. rename H0 into Hseq.
            intros n. 
            specialize (Hseq n) as Hseqn. 
-           setoid_rewrite Ht in Hub. eapply peel_vis_upper_bound_aux; eauto.
+           setoid_rewrite Ht in Hub. 
+           eapply peel_vis_upper_bound_aux; eauto.
         -- intros. 
            assert (supremum seq (Vis e0 k0)).
            setoid_rewrite Ht in Hub. setoid_rewrite Ht in Hlub. constructor; auto.
@@ -427,7 +423,7 @@ Proof.
         setoid_rewrite Heqoub in H0. setoid_rewrite tau_eutt in H0. auto.
 Qed.
 
-Lemma subst_scott_cont R (k : R -> itree E R) : scott_continuous (ITree.subst k).
+Lemma subst_scott_cont R S (k : R -> itree E S) : scott_continuous (ITree.subst k).
 Proof.
   red. intros seq Hmon. eapply CPO.sup_correct in Hmon as Hsup.
   eapply subst_scott_cont_aux in Hsup. Unshelve. all : auto.
@@ -435,5 +431,16 @@ Proof.
   apply CPO.sup_correct. red. cbn. intros.
   cbn. unfold map. eapply subst_mon. auto.
 Qed.
+
+Lemma subst_seq_unfold R S (k : R -> itree E S) (seq : sequence (itree E R) ) : 
+  monotone_seq seq ->
+  sup (map (ITree.subst k) seq ) ≈ ITree.subst k (sup seq).
+Proof.
+  intros H. specialize (subst_scott_cont R S k) as Hscott.
+  red in Hscott. cbn in *. setoid_rewrite Hscott; auto. reflexivity.
+Qed.
+
+(*Lemma subst_scott_cont_gen R S U (k : R -> itree E S -> itree E U) *)
+
 
 End Fixable.
