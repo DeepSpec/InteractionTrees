@@ -42,18 +42,18 @@ Definition append {E R} (s : itrace E unit) (b : itrace E R) :=
 
 Notation "s ++ b" := (append s b).
 
-Variant REvRef (E : Type -> Type) : forall (A B : Type), EvAns E A -> E B -> Prop := 
+Variant REvRef (E : Type -> Type) : forall (A B : Type), EvAns E A -> E B -> Prop :=
   | rer {A : Type} (e : E A) (a : A) : REvRef E unit A (evans A e a) e
   | ree {A : Type} (e : E A) (Hempty : A -> void) : REvRef E void A (evempty A Hempty e) e
 .
-Hint Constructors REvRef.
+#[global] Hint Constructors REvRef : core.
 
 (*shouldn't need an empty case*)
 Variant RAnsRef (E : Type -> Type) : forall (A B : Type), EvAns E A -> A -> E B -> B -> Prop :=
   | rar {A : Type} (e : E A) (a : A) : RAnsRef E unit A (evans A e a) tt e a.
-Hint Constructors RAnsRef.
+#[global] Hint Constructors RAnsRef : core.
 
-Definition trace_refine {E R}  (t : itree E R) (b : itrace E R)  := 
+Definition trace_refine {E R}  (t : itree E R) (b : itrace E R)  :=
    rutt (REvRef E) (RAnsRef E) eq b t.
 
 
@@ -61,4 +61,4 @@ Notation "b ⊑ t" := (trace_refine t b) (at level 70).
 
 Definition finite {E : Type -> Type} (s : ev_stream E) : Prop := may_converge tt s.
 
-Global Instance itrace_eq {E} : Eq1 (itrace E) := ITreeMonad.Eq1_ITree.
+#[global] Instance itrace_eq {E} : Eq1 (itrace E) := ITreeMonad.Eq1_ITree.
