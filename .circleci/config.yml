@@ -67,20 +67,17 @@ workflows:
   build:
     jobs:
     - test:
-        name: "Coq 8.10"
-        coq: "8.10"
-    - test:
-        name: "Coq 8.11"
-        coq: "8.11"
-    - test:
         name: "Coq 8.12"
         coq: "8.12"
     - test:
         name: "Coq 8.13"
         coq: "8.13"
     - test:
+        name: "Coq 8.14"
+        coq: "8.14"
+    - test:
         name: "Coq dev"
         coq: "dev"
     - test-with-make:
-        name: "Coq 8.13 + make"
-        coq: "8.13"
+        name: "Coq 8.14 + make"
+        coq: "8.14"
