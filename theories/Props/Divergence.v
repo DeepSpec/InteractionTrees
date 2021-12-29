@@ -11,7 +11,7 @@ From ITree Require Import
      Axioms
      Basics
      Core.ITreeDefinition
-     Eq.Eq
+     Eq.Eqit
      Eq.Shallow.
 (* end hide *)
 

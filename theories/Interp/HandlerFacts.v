@@ -12,7 +12,7 @@ From ITree Require Import
      Basics.Basics
      Basics.Category
      Core.ITreeDefinition
-     Eq.Eq
+     Eq.Eqit
      Eq.UpToTaus
      Indexed.Sum
      Interp.Interp

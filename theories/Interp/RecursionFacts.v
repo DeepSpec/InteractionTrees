@@ -19,7 +19,7 @@ From ITree Require Import
      Basics.Function
      Core.ITreeDefinition
      Core.KTree
-     Eq.Eq
+     Eq.Eqit
      Eq.UpToTaus
      Eq.Paco2
      Indexed.Sum

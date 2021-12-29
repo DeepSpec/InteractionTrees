@@ -390,7 +390,7 @@ Section InterpAsmProperties.
     unfold interp_map. cbn.
     repeat rewrite interp_bind.
     repeat rewrite interp_state_bind.
-    repeat rewrite Eq.bind_bind.
+    repeat rewrite bind_bind.
     eapply eutt_clo_bind.
     { reflexivity. }
     intros.

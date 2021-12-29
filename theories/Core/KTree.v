@@ -14,7 +14,7 @@ From ITree Require Import
      Basics.CategoryKleisli
      Basics.Function
      Core.ITreeDefinition
-     Eq.Eq
+     Eq.Eqit
      Eq.UpToTaus.
 (* end hide *)
 

@@ -4,14 +4,11 @@
 
 (* TODO: Figure out some way to organize Eq/UpToTaus.v and Eq/Eq.v *)
 
-From Coq Require Import
-  Basics
-  RelationClasses.
-
 From Paco Require Import paco.
 
 From ITree Require Import
-  Core.ITreeDefinition Eq.Eq.
+  Core.ITreeDefinition
+  Eq.Eqit.
 
 Lemma paco2_eqit_refl : forall E R r (t : itree E R), paco2 (eqit_ eq true true id) r t t.
 Proof.

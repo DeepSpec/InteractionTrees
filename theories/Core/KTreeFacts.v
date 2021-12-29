@@ -20,7 +20,7 @@ From ITree Require Import
      Core.ITreeMonad
      Core.KTree
      Eq.Shallow
-     Eq.Eq
+     Eq.Eqit
      Eq.UpToTaus
      Eq.Paco2.
 

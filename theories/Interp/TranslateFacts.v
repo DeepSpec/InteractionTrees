@@ -15,7 +15,7 @@ From ITree Require Import
      Core.ITreeDefinition
      Core.Subevent
      Eq.Shallow
-     Eq.Eq
+     Eq.Eqit
      Eq.UpToTaus
      Eq.Paco2
      Indexed.Sum

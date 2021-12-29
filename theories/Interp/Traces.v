@@ -7,7 +7,7 @@ From Paco Require Import
 From ITree Require Import
      Axioms
      Core.ITreeDefinition
-     Eq.Eq
+     Eq.Eqit
      Eq.UpToTaus
      Eq.SimUpToTaus
      Eq.Shallow

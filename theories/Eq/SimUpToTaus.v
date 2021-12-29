@@ -23,7 +23,7 @@ From Coq Require Import
 From ITree Require Import
      Axioms
      Core.ITreeDefinition
-     Eq.Eq
+     Eq.Eqit
      Eq.UpToTaus
      Eq.Shallow
      Eq.Paco2.

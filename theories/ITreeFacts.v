@@ -20,4 +20,4 @@ From ITree Require Export
 
 Require Export ITree.Eq.
 (* Coq sometimes thinks [From ITree Require Export Eq.] means
-   [Require Export ITree.Eq.Eq.] *)
+   [Require Export ITree.Eq.Eqit.] *)
