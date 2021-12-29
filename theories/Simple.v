@@ -268,7 +268,7 @@ End SimpleTheory.
 (** * Implementation *)
 
 From ITree Require Import
-     Eq.Eq
+     Eq.Eqit
      Eq.UpToTaus
      Interp.InterpFacts
      Interp.RecursionFacts.
@@ -284,24 +284,24 @@ Context {E : Type -> Type} {R : Type}.
 (** The standard [itree] equivalence: "Equivalence Up To Taus",
     or _weak bisimulation_. *)
 Definition eutt : itree E R -> itree E R -> Prop :=
-  ITree.Eq.Eq.eutt eq.
+  ITree.Eq.Eqit.eutt eq.
 
 Notation "x ≈ y" := (eutt x y) (at level 70) : type_scope.
 
 (** [eutt] is an equivalence relation. *)
 Global Instance Equivalence_eutt : Equivalence eutt.
 Proof.
-  apply ITree.Eq.Eq.Equivalence_eutt. econstructor; eauto using trans_eq. 
+  apply ITree.Eq.Eqit.Equivalence_eutt. econstructor; eauto using trans_eq. 
 Qed.
 
 (** We can erase taus unter [eutt]. *)
 Lemma tau_eutt : forall (t : itree E R),
     Tau t ≈ t.
-Proof. intros. rewrite ITree.Eq.Eq.tau_eutt. reflexivity. Qed.
+Proof. intros. rewrite ITree.Eq.Eqit.tau_eutt. reflexivity. Qed.
 
 Lemma itree_eta : forall (t : itree E R),
     t ≈ go (observe t).
-Proof. intros. rewrite <- ITree.Eq.Eq.itree_eta. reflexivity. Qed.
+Proof. intros. rewrite <- ITree.Eq.Eqit.itree_eta. reflexivity. Qed.
 
 Lemma eutt_ret (r1 r2 : R)
   : r1 = r2 -> Ret r1 ≈ Ret r2.
@@ -317,12 +317,12 @@ Qed.
 Lemma eutt_inv_ret (r1 r2 : R)
   : Ret r1 ≈ Ret r2 ->
     r1 = r2.
-Proof. apply ITree.Eq.Eq.eqit_inv_Ret. Qed.
+Proof. apply ITree.Eq.Eqit.eqit_inv_Ret. Qed.
 
 Lemma eutt_inv_vis {U : Type} (e : E U) (k1 k2 : U -> itree E R)
   : Vis e k1 ≈ Vis e k2 ->
     (forall u, k1 u ≈ k2 u).
-Proof. apply ITree.Eq.Eq.eqit_inv_Vis; auto. Qed.
+Proof. apply ITree.Eq.Eqit.eqit_inv_Vis; auto. Qed.
 
 End EquivalenceUpToTaus.
 
@@ -346,14 +346,14 @@ Proof. intros; rewrite ITree.Eq.Shallow.bind_vis_; reflexivity. Qed.
 
 Lemma bind_ret_r : forall {E R} (s : itree E R),
     ITree.bind s (fun x => Ret x) ≈ s.
-Proof. intros; rewrite ITree.Eq.Eq.bind_ret_r; reflexivity. Qed.
+Proof. intros; rewrite ITree.Eq.Eqit.bind_ret_r; reflexivity. Qed.
 
 Lemma bind_bind
   : forall {E R S T}
            (s : itree E R) (k : R -> itree E S) (h : S -> itree E T),
     ITree.bind (ITree.bind s k) h
   ≈ ITree.bind s (fun r => ITree.bind (k r) h).
-Proof. intros; rewrite ITree.Eq.Eq.bind_bind; reflexivity. Qed.
+Proof. intros; rewrite ITree.Eq.Eqit.bind_bind; reflexivity. Qed.
 
 Hint Rewrite @tau_eutt : itree.
 Hint Rewrite @bind_ret : itree.

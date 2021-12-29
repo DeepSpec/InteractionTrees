@@ -21,7 +21,7 @@ From Coq Require Import
      Program
      Setoid
      Morphisms
-     RelationClasses.
+     Relations.
 
 From Paco Require Import paco.
 

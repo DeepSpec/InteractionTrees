@@ -3,7 +3,7 @@
 (* begin hide *)
 From ITree Require Import
      ITree
-     Eq.Eq
+     Eq.Eqit
      Leaf.
 From ITree Require Import Nondeterminism Exception. (* For counterexamples *)
 

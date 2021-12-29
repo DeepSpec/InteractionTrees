@@ -4,7 +4,7 @@
 From ITree Require Import
      ITree
      Eq.Shallow
-     Eq.Eq.
+     Eq.Eqit.
 
 From Paco Require Import paco.
 From Coq Require Import Morphisms Basics Program.Equality.

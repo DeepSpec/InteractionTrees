@@ -2,7 +2,7 @@
 
 From ITree.Eq Require Export
   Shallow
-  Eq
+  Eqit
   UpToTaus
   SimUpToTaus
   EuttExtras.

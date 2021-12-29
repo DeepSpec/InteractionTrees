@@ -3,9 +3,8 @@
 (* begin hide *)
 From Coq Require Import
      Program
-     Setoid
      Morphisms
-     RelationClasses.
+     Relations.
 
 From Paco Require Import paco.
 
@@ -18,7 +17,7 @@ From ITree Require Import
      Core.ITreeDefinition
      Core.KTree
      Core.KTreeFacts
-     Eq.Eq
+     Eq.Eqit
      Eq.UpToTaus
      Eq.Paco2
      Indexed.Sum
@@ -113,14 +112,14 @@ Section FailTLaws.
   Global Instance MonadLaws_failE {E} : MonadLawsE (failT (itree E)).
   Proof.
     split; cbn.
-    - cbn; intros; rewrite Eq.bind_ret_l; reflexivity.
+    - cbn; intros; rewrite bind_ret_l; reflexivity.
     - cbn; intros.
-      rewrite <- (Eq.bind_ret_r x) at 2.
+      rewrite <- (bind_ret_r x) at 2.
       eapply eutt_eq_bind; intros []; reflexivity.
-    - intros; cbn; rewrite Eq.bind_bind.
+    - intros; cbn; rewrite bind_bind.
       eapply eutt_eq_bind; intros []. 
       + eapply eutt_eq_bind; intros []; reflexivity. 
-      + rewrite Eq.bind_ret_l; reflexivity.
+      + rewrite bind_ret_l; reflexivity.
     - repeat intro; cbn.
       eapply eutt_clo_bind; eauto.
       intros [] [] REL; cbn in *; subst; try intuition discriminate.
@@ -159,13 +158,13 @@ Proof.
   unfold interp_fail,interp. unfold Basics.iter, failT_iter, Basics.iter, MonadIter_itree.
   rewrite unfold_iter. cbn.
   destruct (observe t).
-  cbn; repeat (rewrite ?Eq.bind_bind, ?Eq.bind_ret_l, ?bind_map; try reflexivity).
-  cbn; repeat (rewrite ?Eq.bind_bind, ?Eq.bind_ret_l, ?bind_map; try reflexivity).
-  cbn; repeat (rewrite ?Eq.bind_bind, ?Eq.bind_ret_l, ?bind_map; try reflexivity).
+  cbn; repeat (rewrite ?bind_bind, ?bind_ret_l, ?bind_map; try reflexivity).
+  cbn; repeat (rewrite ?bind_bind, ?bind_ret_l, ?bind_map; try reflexivity).
+  cbn; repeat (rewrite ?bind_bind, ?bind_ret_l, ?bind_map; try reflexivity).
   apply eq_itree_clo_bind with (UU := Logic.eq); [reflexivity | intros x ? <-]. 
   destruct x as [x|].
-  - rewrite Eq.bind_ret_l; reflexivity.
-  - rewrite Eq.bind_ret_l; reflexivity.
+  - rewrite bind_ret_l; reflexivity.
+  - rewrite bind_ret_l; reflexivity.
 Qed.
 
 Global Instance interp_fail_eq_itree {X E F} {R : X -> X -> Prop} (h : E ~> failT (itree F)) :
@@ -276,7 +275,7 @@ Proof.
   rewrite unfold_bind.
   rewrite (unfold_interp_fail h t).
   destruct (observe t) eqn:EQ; cbn.
-  - rewrite Eq.bind_ret_l. apply reflexivity.
+  - rewrite bind_ret_l. apply reflexivity.
   - cbn. rewrite bind_tau, !interp_fail_tau.
     gstep. econstructor; eauto with paco.
   - rewrite bind_bind, interp_fail_vis.

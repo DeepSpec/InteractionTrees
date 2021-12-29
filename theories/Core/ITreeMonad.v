@@ -7,7 +7,7 @@ From ITree Require Import
      Basics.Basics
      Basics.Monad
      Core.ITreeDefinition
-     Eq.Eq
+     Eq.Eqit
      Eq.UpToTaus.
 
 #[global]

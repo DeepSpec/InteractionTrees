@@ -9,7 +9,7 @@
 (* begin hide *)
 From ITree Require Import
      Core.ITreeDefinition
-     Eq.Eq.
+     Eq.Eqit.
 (* end hide *)
 
 (** Strong bisimulation is propositional equality.

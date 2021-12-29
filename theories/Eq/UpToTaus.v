@@ -22,7 +22,7 @@
     Theorems about [eutt] are split in two more modules:
 
     - [ITree.Eq.UpToTausCore] proves that [eutt] is reflexive, symmetric,
-      and that [ITree.Eq.Eq.eq_itree] is a subrelation of [eutt].
+      and that [ITree.Eq.Eqit.eq_itree] is a subrelation of [eutt].
       Equations for [ITree.Core.ITreeDefinition] combinators which only rely on
       those properties can also be found here.
 
@@ -40,7 +40,7 @@ From Paco Require Import paco.
 
 From ITree Require Import
      Core.ITreeDefinition
-     Eq.Eq
+     Eq.Eqit
      Eq.Paco2
      Eq.Shallow.
 

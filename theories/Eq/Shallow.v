@@ -11,14 +11,9 @@
  *)
 
 (* begin hide *)
-From ITree Require Import Core.ITreeDefinition.
+From Coq Require Import Morphisms.
 
-From Coq Require Import
-     Classes.RelationClasses
-     Classes.Morphisms
-     Setoids.Setoid
-     Relations.Relations
-     JMeq.
+From ITree Require Import Core.ITreeDefinition.
 
 Set Implicit Arguments.
 (* end hide *)

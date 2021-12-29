@@ -18,7 +18,7 @@ From ITree Require Import
      Core.ITreeDefinition
      Core.KTree
      Core.KTreeFacts
-     Eq.Eq
+     Eq.Eqit
      Eq.UpToTaus
      Eq.Paco2
      Indexed.Sum

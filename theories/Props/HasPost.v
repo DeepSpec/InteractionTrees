@@ -3,7 +3,7 @@ From Paco Require Import paco.
 From Coq Require Import Morphisms.
 From ITree Require Import
      ITree
-     Eq.Eq
+     Eq.Eqit
      Basics.HeterogeneousRelations
      Interp.TranslateFacts.
 Set Implicit Arguments.
