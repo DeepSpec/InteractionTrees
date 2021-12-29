@@ -9,6 +9,7 @@ From ITree Require Export
      Basics.CategoryKleisliFacts
      Basics.FunctionFacts
      Core.ITreeDefinition
+     Core.ITreeMonad
      Core.KTreeFacts
      Indexed.FunctionFacts
      Interp.TranslateFacts

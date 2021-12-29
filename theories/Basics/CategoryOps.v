@@ -81,10 +81,7 @@ Notation binop obj := (obj -> obj -> obj) (only parsing).
 End Carrier.
 
 (** Scope for category notations. *)
-(*
-  The following line removes the warning on >=8.10, but is incompatible for <8.10
-*)
-(* Declare Scope cat_scope. *)
+Declare Scope cat_scope.
 Delimit Scope cat_scope with cat.
 
 (** ** Categories *)
@@ -296,22 +293,26 @@ Variables (SUM : binop obj) (Coprod_SUM : Case C SUM)
           (Inr_SUM : Inr C SUM).
 
 (** Coproducts are bifunctors. *)
-Global Instance Bimap_Coproduct : Bimap C SUM :=
+#[global]
+Instance Bimap_Coproduct : Bimap C SUM :=
   fun a b c d (f : C a c) (g : C b d) =>
     case_ (f >>> inl_) (g >>> inr_).
 
 (** Coproducts are symmetric. *)
 
-Global Instance Swap_Coproduct : Swap C SUM :=
+#[global]
+Instance Swap_Coproduct : Swap C SUM :=
   fun a b => case_ inr_ inl_.
 
 (** Coproducts are associative. *)
 
-Global Instance AssocR_Coproduct : AssocR C SUM :=
+#[global]
+Instance AssocR_Coproduct : AssocR C SUM :=
   fun a b c => case_ (case_ inl_ (inl_ >>> inr_))
                     (inr_ >>> inr_).
 
-Global Instance AssocL_Coproduct : AssocL C SUM :=
+#[global]
+Instance AssocL_Coproduct : AssocL C SUM :=
   fun a b c => case_ (inl_ >>> inl_)
                     (case_ (inr_ >>> inl_) inr_).
 
@@ -319,16 +320,20 @@ Variables (Id_C : Id_ C) (I : obj) (Initial_I : Initial C I).
 
 (** The initial object is a unit for the coproduct. *)
 
-Global Instance UnitL_Coproduct : UnitL C SUM I :=
+#[global]
+Instance UnitL_Coproduct : UnitL C SUM I :=
   fun a => case_ empty (id_ a).
 
-Global Instance UnitL'_Coproduct : UnitL' C SUM I :=
+#[global]
+Instance UnitL'_Coproduct : UnitL' C SUM I :=
   fun a => inr_.
 
-Global Instance UnitR_Coproduct : UnitR C SUM I :=
+#[global]
+Instance UnitR_Coproduct : UnitR C SUM I :=
   fun a => case_ (id_ a) empty.
 
-Global Instance UnitR'_Coproduct : UnitR' C SUM I :=
+#[global]
+Instance UnitR'_Coproduct : UnitR' C SUM I :=
   fun a => inl_.
 
 End CocartesianConstruct.
@@ -349,20 +354,24 @@ Variables (PROD : binop obj) (Prod_PROD : Pair C PROD)
           (Snd_PROD : Snd C PROD).
 
 (** Products are bifunctors. *)
+#[local]
 Instance Bimap_Product : Bimap C PROD :=
   fun a b c d (f : C a c) (g : C b d) =>
     pair_ (fst_ >>> f) (snd_ >>> g).
 
 (** Products are symmetric. *)
 
+#[local]
 Instance Swap_Product : Swap C PROD :=
   fun a b => pair_ snd_ fst_.
 
 (** Products are associative. *)
 
+#[local]
 Instance AssocR_Product : AssocR C PROD :=
   fun a b c => pair_ (fst_ >>> fst_) (pair_ (fst_ >>> snd_) snd_).
 
+#[local]
 Instance AssocL_Product : AssocL C PROD :=
   fun a b c => pair_ (pair_ fst_ (snd_ >>> fst_)) (snd_ >>> snd_).
 
@@ -370,15 +379,19 @@ Variables (Id_C : Id_ C) (T : obj) (Terminal_T : Terminal C T).
 
 (** The initial object is a unit for the product. *)
 
+#[local]
 Instance UnitL_Product : UnitL C PROD T :=
   fun a => snd_.
 
+#[local]
 Instance UnitL'_Product : UnitL' C PROD T :=
   fun a => pair_ one (id_ a).
 
+#[local]
 Instance UnitR_Product : UnitR C PROD T :=
   fun a => fst_.
 
+#[local]
 Instance UnitR'_Product : UnitR' C PROD T :=
   fun a => pair_ (id_ a) one.
 
@@ -469,15 +482,20 @@ Class ReSum (a b : obj) :=
     [E +' (E +' F)]), then the first one will be picked for the inclusion
     [E -< E +' E +' F]. *)
 
-Global Instance ReSum_id `{Id_ _ C} a : ReSum a a := { resum := id_ a }.
-Global Instance ReSum_sum a b c
+#[global]
+Instance ReSum_id `{Id_ _ C} a : ReSum a a := { resum := id_ a }.
+#[global]
+Instance ReSum_sum a b c
          `{ReSum a c} `{ReSum b c} : ReSum (bif a b) c :=
   { resum := case_ resum resum }.
-Global Instance ReSum_inl a b c `{ReSum a b} : ReSum a (bif b c) | 8 :=
+#[global]
+Instance ReSum_inl a b c `{ReSum a b} : ReSum a (bif b c) | 8 :=
   { resum := resum >>> inl_ }.
-Global Instance ReSum_inr a b c `{ReSum a b} : ReSum a (bif c b) | 9 :=
+#[global]
+Instance ReSum_inr a b c `{ReSum a b} : ReSum a (bif c b) | 9 :=
   { resum := resum >>> inr_ }.
-Global Instance ReSum_empty {i : obj} `{Initial _ _ i} a : ReSum i a :=
+#[global]
+Instance ReSum_empty {i : obj} `{Initial _ _ i} a : ReSum i a :=
   { resum := empty }.
 
 (* Usage template:

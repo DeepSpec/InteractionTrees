@@ -24,6 +24,8 @@ From ITree Require Import
      Eq.Paco2
      Indexed.Sum
      Indexed.Function
+     Indexed.Relation
+     Interp.Handler
      Interp.Interp
      Interp.InterpFacts
      Interp.Recursion.
@@ -72,8 +74,11 @@ Qed.
 (** [mrec ctx] is equivalent to [interp (mrecursive ctx)],
     where [mrecursive] is defined as follows. *)
 Definition mrecursive (f : D ~> itree (D +' E))
-  : (D +' E) ~> itree E :=
-  case_ (mrec f) ITree.trigger.
+  : (D +' E) ~> itree E := fun _ m =>
+  match m with
+  | inl1 m => mrec f m
+  | inr1 m => ITree.trigger m
+  end.
 
 Global Instance eq_itree_mrec {R} :
   Proper (eq_itree eq ==> eq_itree eq) (@interp_mrec _ _ ctx R).
@@ -149,7 +154,7 @@ Proof.
 Qed.
 
 Theorem unfold_interp_mrec_h {T} (t : itree _ T)
-  : interp_mrec ctx (interp (case_ ctx inr_) t)
+  : interp_mrec ctx (interp (case_ (C := Handler) ctx inr_) t)
   ≈ interp_mrec ctx t.
 Proof.
   rewrite <- tau_eutt.
@@ -222,8 +227,8 @@ Proof.
   reflexivity.
 Qed.
 
-
-Global Instance euttge_interp_mrec {D E} :
+#[global]
+Instance euttge_interp_mrec {D E} :
   @Proper ((D ~> itree (D +' E)) -> (itree (D +' E) ~> itree E))
           (Relation.i_pointwise (fun _ => euttge eq) ==>
            Relation.i_respectful (fun _ => euttge eq) (fun _ => euttge eq))
@@ -243,7 +248,8 @@ Proof.
   discriminate.
 Qed.
 
-Global Instance euttge_interp_mrec' {E D R} (ctx : D ~> itree (D +' E)) :
+#[global]
+Instance euttge_interp_mrec' {E D R} (ctx : D ~> itree (D +' E)) :
   Proper (euttge eq ==> euttge eq) (@interp_mrec _ _ ctx R).
 Proof.
   do 4 red. eapply euttge_interp_mrec. reflexivity.

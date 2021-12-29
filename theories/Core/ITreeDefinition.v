@@ -59,10 +59,7 @@ Section itree.
 End itree.
 
 (* begin hide *)
-(*
-  The following line removes the warning on >=8.10, but is incompatible for <8.10
- *)
-(* Declare Scope itree_scope. *)
+Declare Scope itree_scope.
 Bind Scope itree_scope with itree.
 Delimit Scope itree_scope with itree.
 Local Open Scope itree_scope.

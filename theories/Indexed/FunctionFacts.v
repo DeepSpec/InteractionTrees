@@ -13,6 +13,7 @@ From ITree Require Import
 Set Universe Polymorphism.
 (* end hide *)
 
+#[global]
 Instance Proper_apply_IFun {E F : Type -> Type} {T : Type}
          (RE : forall T, E T -> E T -> Prop)
          (RF : forall T, F T -> F T -> Prop)

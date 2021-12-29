@@ -10,8 +10,10 @@ From ITree Require Import
      Eq.Eq
      Eq.UpToTaus.
 
+#[global]
 Instance Eq1_ITree {E} : Eq1 (itree E) := fun a => eutt eq.
 
+#[global]
 Instance Eq1Equivalence_ITree {E} : Eq1Equivalence (itree E).
 Proof.
   repeat red.
@@ -19,6 +21,7 @@ Proof.
   typeclasses eauto.
 Qed.
 
+#[global]
 Instance MonadLawsE_ITree {E} : MonadLawsE (itree E).
 Proof.
   constructor.

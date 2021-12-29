@@ -35,7 +35,7 @@
  *)
 
 (* begin hide *)
-From Coq Require Import Setoid Morphisms RelationClasses.
+From Coq Require Import Setoid Morphisms Relations.
 From Paco Require Import paco.
 
 From ITree Require Import
@@ -44,7 +44,7 @@ From ITree Require Import
      Eq.Paco2
      Eq.Shallow.
 
-Local Open Scope itree_scope.
+#[local] Open Scope itree_scope.
 (* end hide *)
 
 (** ** gpaco
@@ -148,13 +148,14 @@ Hint Resolve euttVC_id : paco.
 
 End EUTTG.
 
-Global Hint Unfold transU transD bindC euttVC: core.
-Global Hint Constructors euttG: core.
-Global Hint Resolve transD_mon transU_mon : paco.
-Global Hint Resolve euttVC_mon : paco.
-Global Hint Resolve euttVC_compat : paco.
-Global Hint Resolve transD_id transU_id euttVC_id : paco.
+#[global] Hint Unfold transU transD bindC euttVC: core.
+#[global] Hint Constructors euttG: core.
+#[global] Hint Resolve transD_mon transU_mon : paco.
+#[global] Hint Resolve euttVC_mon : paco.
+#[global] Hint Resolve euttVC_compat : paco.
+#[global] Hint Resolve transD_id transU_id euttVC_id : paco.
 
+#[global]
 Instance geuttG_cong_euttge {E R1 R2 RR} gH r g:
   Proper (euttge eq ==> euttge eq ==> flip impl)
          (gpaco2 (@eqit_ E R1 R2 RR true true (euttVC RR gH)) (transD RR) r g).
@@ -162,6 +163,7 @@ Proof.
   repeat intro. guclo eqit_clo_trans. econstructor; eauto; auto_ctrans.
 Qed.
 
+#[global]
 Instance geuttG_cong_eq {E R1 R2 RR} gH r g:
   Proper (eq_itree eq ==> eq_itree eq ==> flip impl)
          (gpaco2 (@eqit_ E R1 R2 RR true true (euttVC RR gH)) (transD RR) r g).
@@ -673,55 +675,63 @@ Global Hint Resolve euttG_vis : paco.
 Global Hint Resolve euttG_base : paco.
 Global Hint Resolve euttG_le_eutt: paco.
 
-Global Instance euttG_reflexive {E R} rH rL gL gH:
+#[global]
+Instance euttG_reflexive {E R} rH rL gL gH:
   Reflexive (@euttG E R R eq rH rL gL gH).
 Proof.
   red; intros. efinal. reflexivity.
 Qed.
 
-Global Instance euttG_cong_eutt {E R1 R2 RR} rH gH:
+#[global]
+Instance euttG_cong_eutt {E R1 R2 RR} rH gH:
   Proper (eutt eq ==> eutt eq ==> flip impl)
          (@euttG E R1 R2 RR rH rH rH gH).
 Proof.
   repeat intro. eapply euttG_transU. econstructor; auto_ctrans_eq; eauto.
 Qed.
 
-Global Instance euttG_cong_euttge {E R1 R2 RR} rH rL gL gH:
+#[global]
+Instance euttG_cong_euttge {E R1 R2 RR} rH rL gL gH:
   Proper (euttge eq ==> euttge eq ==> flip impl)
          (@euttG E R1 R2 RR rH rL gL gH).
 Proof.
   repeat intro. eapply euttG_transD. econstructor; auto_ctrans_eq; eauto.
 Qed.
 
-Global Instance euttG_cong_eq {E R1 R2 RR} rH rL gL gH:
+#[global]
+Instance euttG_cong_eq {E R1 R2 RR} rH rL gL gH:
   Proper (eq_itree eq ==> eq_itree eq ==> flip impl)
          (@euttG E R1 R2 RR rH rL gL gH).
 Proof.
   repeat intro. eapply euttG_cong_euttge; eauto; apply eq_sub_euttge; eauto.
 Qed.
 
-Global Instance eutt_cong_eutt {E R1 R2 RR}:
+#[global]
+Instance eutt_cong_eutt {E R1 R2 RR}:
   Proper (eutt eq ==> eutt eq ==> flip impl)
          (@eqit E R1 R2 RR true true).
 Proof.
   einit. intros. rewrite H0, H1. efinal.
 Qed.
 
-Global Instance eutt_cong_euttge {E R1 R2 RR}:
+#[global]
+Instance eutt_cong_euttge {E R1 R2 RR}:
   Proper (euttge eq ==> euttge eq ==> flip impl)
          (@eqit E R1 R2 RR true true).
 Proof.
   einit. intros. rewrite H0, H1. efinal.
 Qed.
 
-Global Instance eutt_cong_eq {E R1 R2 RR}:
+#[global]
+Instance eutt_cong_eq {E R1 R2 RR}:
   Proper (eq_itree eq ==> eq_itree eq ==> flip impl)
          (@eqit E R1 R2 RR true true).
 Proof.
   einit. intros. rewrite H0, H1. efinal.
 Qed.
 
-Global Instance eutt_cong_eutt' {E R1 R2 RR} :
+#[global]
+Instance eutt_cong_eutt' {E R1 R2 RR} :
   Proper (eutt eq ==> eutt eq ==> flip impl) (@eutt E R1 R2 RR).
 Proof.
   apply eutt_cong_eutt.
@@ -817,14 +827,16 @@ Proof.
 Qed.
 
 (* Rewriting equivalent simulation relations under [eq_itree] and [eutt] *)
-Global Instance eq_itree_Proper_R {E : Type -> Type} {R1 R2:Type}
+#[global]
+Instance eq_itree_Proper_R {E : Type -> Type} {R1 R2:Type}
   : Proper ((@HeterogeneousRelations.eq_rel R1 R2) ==> Logic.eq ==> Logic.eq ==> iff) (@eq_itree E R1 R2).
 Proof.
   repeat intro; subst.
   unfold eq_itree; rewrite H; reflexivity.
 Qed.
 
-Global Instance eutt_Proper_R {E : Type -> Type} {R1 R2:Type}
+#[global]
+Instance eutt_Proper_R {E : Type -> Type} {R1 R2:Type}
   : Proper  ((@HeterogeneousRelations.eq_rel R1 R2) ==> eq ==> eq ==> iff) (@eutt E R1 R2).
 Proof.
   repeat intro; subst.

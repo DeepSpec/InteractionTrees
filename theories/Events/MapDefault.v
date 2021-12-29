@@ -13,10 +13,14 @@ From ExtLib.Structures Require
 From ITree Require Import
      Basics.Basics
      Basics.CategoryOps
-     Core.ITreeDefinition
+     Basics.CategoryKleisli
+     Basics.Monad
+     Indexed.Function
      Indexed.Sum
+     Core.ITreeDefinition
      Core.Subevent
      Interp.Interp
+     Interp.Handler
      Events.State.
 
 Import ITree.Basics.Basics.Monads.
@@ -65,7 +69,7 @@ Section Map.
      strange to define [interp_map] in terms of [interp_state].
   *)
   Definition interp_map {E d} : itree (mapE d +' E) ~> stateT map (itree E) :=
-    interp_state (case_ handle_map pure_state).
+    interp_state (case_ (C := IFun) handle_map pure_state).
 
 
   (* The appropriate notation of the equivalence on the state associated with

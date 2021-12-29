@@ -10,7 +10,7 @@ From ITree Require Import Tacs.
    https://coq.inria.fr/stdlib/Coq.Relations.Relation_Definitions.html. *)
 (* A categorical account of this file is given in [CategoryRelation.v] *)
 
-Global Tactic Notation "intros !" := repeat intro.
+#[global] Tactic Notation "intros !" := repeat intro.
 
 Definition relationH (A B : Type) := A -> B -> Prop.
 
@@ -53,8 +53,8 @@ Section RelationH_Operations.
 
 End RelationH_Operations.
 
-Global Hint Constructors prod_rel: core.
-Global Hint Constructors sum_rel: core.
+#[global] Hint Constructors prod_rel: core.
+#[global] Hint Constructors sum_rel: core.
 
 Arguments inl_morphism {A1 A2 B1 B2 RA RB}.
 Arguments inr_morphism {A1 A2 B1 B2 RA RB}.
@@ -66,7 +66,7 @@ Arguments transpose [A B] R.
 Arguments sum_rel [A1 A2 B1 B2] RA RB.
 Arguments prod_rel [A1 A2 B1 B2] RA RB.
 
-(* Declare Scope relationH_scope. *)
+Declare Scope relationH_scope.
 Delimit Scope relationH_scope with relationH.
 
 Module RelNotations.
@@ -84,11 +84,12 @@ Module RelNotations.
 End RelNotations.
 
 Import RelNotations.
-Local Open Scope relationH_scope.
+#[local] Open Scope relationH_scope.
 
 Definition relationH_of_Type (A : Type) : relationH A A :=
   fun x y => x = y.
 
+#[global]
 Instance Proper_relation {A: Type} (R : relationH A A) :
   Proper (@eq A ==> @eq A ==> iff) R.
 Proof.
@@ -130,33 +131,40 @@ Class EquivalenceH {A : Type} (R : relationH A A) : Type :=
     equiv_trans :> TransitiveH R
   }.
 
-
-Global Instance relationH_reflexive : forall (A:Type), ReflexiveH (@eq A).
+#[global]
+Instance relationH_reflexive : forall (A:Type), ReflexiveH (@eq A).
 Proof.
   repeat intro.
   reflexivity.
 Defined.
 
-Global Instance relationH_symmetric : forall (A:Type), SymmetricH (@eq A).
+#[global]
+Instance relationH_symmetric : forall (A:Type), SymmetricH (@eq A).
 Proof.
   repeat intro. cbn; auto.
 Defined.
 
-Global Instance relationH_transitive : forall (A:Type), TransitiveH (@eq A).
+#[global]
+Instance relationH_transitive : forall (A:Type), TransitiveH (@eq A).
 Proof.
   repeat intro. cbn in *. etransitivity.
   apply H. apply H0.
 Defined.
 
-Global Instance relationH_PER {A : Type} : PER (@eq A).
+#[global]
+Instance relationH_PER {A : Type} : PER (@eq A).
+Proof.
   constructor; typeclasses eauto.
 Defined.
 
-Global Instance relationH_Preorder {A : Type} : Preorder (@eq A).
+#[global]
+Instance relationH_Preorder {A : Type} : Preorder (@eq A).
+Proof.
   constructor; typeclasses eauto.
 Defined.
 
-Global Instance relationH_Equiv {A : Type} : EquivalenceH (@eq A).
+#[global]
+Instance relationH_Equiv {A : Type} : EquivalenceH (@eq A).
   constructor; typeclasses eauto.
 Defined.
 
@@ -223,29 +231,34 @@ End SubRelationH.
 Section RelationEqRel.
 
   (* [eq_rel] is an equivalence relation *)
-  Global Instance eq_rel_Reflexive {A B} : Reflexive (@eq_rel A B).
+  #[global]
+  Instance eq_rel_Reflexive {A B} : Reflexive (@eq_rel A B).
   Proof.
     red. unfold eq_rel, subrelationH. tauto.
   Qed.
 
-  Global Instance eq_rel_Symmetric {A B} : Symmetric (@eq_rel A B).
+  #[global]
+  Instance eq_rel_Symmetric {A B} : Symmetric (@eq_rel A B).
   Proof.
     red. unfold eq_rel, subrelationH. tauto.
   Qed.
 
-  Global Instance eq_rel_Transitive {A B} : Transitive (@eq_rel A B).
+  #[global]
+  Instance eq_rel_Transitive {A B} : Transitive (@eq_rel A B).
   Proof.
     red. unfold eq_rel, subrelationH. intros.
     destruct H, H0. split; eauto.
   Qed.
 
-  Global Instance eq_rel_Equiv {A B} : Equivalence (@eq_rel A B).
+  #[global]
+  Instance eq_rel_Equiv {A B} : Equivalence (@eq_rel A B).
   Proof.
     split; typeclasses eauto.
   Qed.
 
   (* YZ: I believe that this instance is redundant with the [Transitive] instance, as illustrated by its proof *)
-  Global Instance eq_rel_Proper {A B} : Proper (eq_rel ==> eq_rel ==> iff) (@eq_rel A B).
+  #[global]
+  Instance eq_rel_Proper {A B} : Proper (eq_rel ==> eq_rel ==> iff) (@eq_rel A B).
   Proof.
     intros ? ? EQ1 ? ? EQ2.
     rewrite EQ1,EQ2; reflexivity.
@@ -296,7 +309,8 @@ Section RelationCompose.
   Qed.
 
 
-  Global Instance Proper_compose: forall A B C,
+  #[global]
+  Instance Proper_compose: forall A B C,
       Proper
         (* (relationH B C -> relationH A B -> relationH A C) *)
         (eq_rel ==> eq_rel ==> eq_rel) (@rel_compose A B C).
@@ -370,7 +384,8 @@ Section TransposeFacts.
     - destruct H as (b & HR & HS). exists b. tauto.
   Qed.
 
-  Global Instance Proper_transpose {A B : Type}
+  #[global]
+  Instance Proper_transpose {A B : Type}
     : Proper (eq_rel ==> eq_rel) (@transpose A B).
   Proof.
     intros ? ? EQ; split; unfold transpose; intros!; apply EQ; auto.
@@ -399,7 +414,8 @@ Section TransposeFacts.
       unfold subrelationH, transpose in *. eauto.
   Qed.
 
-  Global Instance transpose_Proper :forall A B, Proper (@eq_rel A B ==> eq_rel) (@transpose A B).
+  #[global]
+  Instance transpose_Proper :forall A B, Proper (@eq_rel A B ==> eq_rel) (@transpose A B).
   Proof.
     intros A B R1 R2 (Hab & Hba).
     split.
@@ -436,13 +452,15 @@ Section ProdRelFacts.
     Context (RR : relationH R R).
     Context (SS : relationH S S).
 
-    Global Instance prod_rel_refl `{Reflexive _ RR} `{Reflexive _ SS} : Reflexive (RR ⊗ SS).
+    #[global]
+    Instance prod_rel_refl `{Reflexive _ RR} `{Reflexive _ SS} : Reflexive (RR ⊗ SS).
     Proof.
       intros []. apply ReflexiveH_Reflexive in H. apply ReflexiveH_Reflexive in H0.
       cbn. split. apply H. apply H0.
     Qed.
 
-    Global Instance prod_rel_sym `{Symmetric _ RR} `{Symmetric _ SS}  : Symmetric (RR ⊗ SS).
+    #[global]
+    Instance prod_rel_sym `{Symmetric _ RR} `{Symmetric _ SS}  : Symmetric (RR ⊗ SS).
     Proof.
       intros ? ? ?. apply SymmetricH_Symmetric in H. apply SymmetricH_Symmetric in H0.
       destruct x; destruct y; cbn in *. destruct H1. split.
@@ -450,7 +468,8 @@ Section ProdRelFacts.
       - unfold SymmetricH in H0. apply H0. auto.
     Qed.
 
-    Global Instance prod_rel_trans `{Transitive _ RR} `{Transitive _ SS}  : Transitive (RR ⊗ SS).
+    #[global]
+    Instance prod_rel_trans `{Transitive _ RR} `{Transitive _ SS}  : Transitive (RR ⊗ SS).
     Proof.
       intros!.
       apply TransitiveH_Transitive in H. apply TransitiveH_Transitive in H0.
@@ -460,12 +479,14 @@ Section ProdRelFacts.
       eapply H0; eauto.
     Qed.
 
-    Global Instance prod_rel_eqv `{Equivalence _ RR} `{Equivalence _ SS} : Equivalence (RR ⊗ SS).
+    #[global]
+    Instance prod_rel_eqv `{Equivalence _ RR} `{Equivalence _ SS} : Equivalence (RR ⊗ SS).
     Proof.
       constructor; typeclasses eauto.
     Qed.
 
-    Global Instance prod_rel_PER `{PER _ RR} `{PER _ SS} : @PER _ (RR ⊗ SS).
+    #[global]
+    Instance prod_rel_PER `{PER _ RR} `{PER _ SS} : @PER _ (RR ⊗ SS).
     Proof.
       constructor. destruct H, H0.
       eapply SymmetricH_Symmetric.
@@ -548,7 +569,8 @@ Section ProdRelFacts.
       esplit. split; eauto.
   Qed.
 
-  Global Instance Proper_prod_rel {A B C D}: Proper (eq_rel ==> eq_rel ==> eq_rel) (@prod_rel A B C D).
+  #[global]
+  Instance Proper_prod_rel {A B C D}: Proper (eq_rel ==> eq_rel ==> eq_rel) (@prod_rel A B C D).
   Proof.
     intros!. split; intros!; destruct x1, y1; cbn in *; destruct H1; split;
     try apply H; try apply H0; eauto.
@@ -579,7 +601,8 @@ Section SumRelFacts.
     Context (R : relationH A A).
     Context (S : relationH B B).
 
-    Global Instance sum_rel_refl {RR: Reflexive R} {SR: Reflexive S} : Reflexive (R ⊕ S).
+    #[global]
+    Instance sum_rel_refl {RR: Reflexive R} {SR: Reflexive S} : Reflexive (R ⊕ S).
     Proof.
       intros []. apply ReflexiveH_Reflexive in RR.
       apply ReflexiveH_Reflexive in SR.
@@ -588,7 +611,8 @@ Section SumRelFacts.
       constructor. apply SR.
     Qed.
 
-    Global Instance sum_rel_sym {RS: Symmetric R} {SS: Symmetric S} : Symmetric (R ⊕ S).
+    #[global]
+    Instance sum_rel_sym {RS: Symmetric R} {SS: Symmetric S} : Symmetric (R ⊕ S).
     Proof.
       intros ? ? ?. apply SymmetricH_Symmetric in RS.
       apply SymmetricH_Symmetric in SS.
@@ -599,7 +623,8 @@ Section SumRelFacts.
       - constructor. inversion H. subst. apply SS. auto.
     Qed.
 
-    Global Instance sum_rel_trans {RT: Transitive R} {ST: Transitive S}  : Transitive (R ⊕ S).
+    #[global]
+    Instance sum_rel_trans {RT: Transitive R} {ST: Transitive S}  : Transitive (R ⊕ S).
     Proof.
       intros!.
       apply TransitiveH_Transitive in RT. apply TransitiveH_Transitive in ST.
@@ -609,7 +634,8 @@ Section SumRelFacts.
       constructor. eauto. constructor. eauto.
     Qed.
 
-    Global Instance sum_rel_eqv {RE: Equivalence R} {SE: Equivalence S} : Equivalence (R ⊕ S).
+    #[global]
+    Instance sum_rel_eqv {RE: Equivalence R} {SE: Equivalence S} : Equivalence (R ⊕ S).
     Proof.
       constructor; typeclasses eauto.
     Qed.
@@ -650,7 +676,8 @@ Section SumRelFacts.
       econstructor; eexists; eauto.
   Qed.
 
-  Global Instance Proper_sum_rel {A B C D}: Proper (eq_rel ==> eq_rel ==> eq_rel) (@sum_rel A B C D).
+  #[global]
+  Instance Proper_sum_rel {A B C D}: Proper (eq_rel ==> eq_rel ==> eq_rel) (@sum_rel A B C D).
   Proof.
     intros!.
     split; intros!; destruct x1, y1; cbn in *; try inversion H1;

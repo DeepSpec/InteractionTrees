@@ -6,9 +6,9 @@ From ITree Require Import
      Indexed.Sum.
 
 Import ITreeNotations.
-Local Open Scope itree_scope.
-
+#[local] Open Scope itree_scope.
 (* end hide *)
+
 (** * General recursion *)
 
 (** *** Mutual recursion *)

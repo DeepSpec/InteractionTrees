@@ -66,7 +66,8 @@ Proof.
   rewrite itree_eta, unfold_translate. cbn. reflexivity.
 Qed.
 
-Global Instance eq_itree_translate' :
+#[global]
+Instance eq_itree_translate' :
   Proper (eq_itree eq ==> eq_itree eq) (@translate _ _ h R).
 Proof.
   ginit. pcofix CIH.
@@ -77,7 +78,8 @@ Proof.
     pclearbot; simpobs; simpl; eauto 7 with paco.
 Qed.
 
-Global Instance eq_itree_translateF :
+#[global]
+Instance eq_itree_translateF :
   Proper (going (eq_itree eq) ==> eq_itree eq)
          (translateF h (@translate _ _ h R)).
 Proof.
@@ -149,6 +151,7 @@ Definition respectful_eutt {E F : Type -> Type}
 
 Require ITree.Core.KTreeFacts. (* TODO: only needed to avoid a universe inconsistency right around here (errors if you try to move this to the end of the file, or just under the next instance)... *)
 
+#[global]
 Instance eq_itree_apply_IFun {E F : Type -> Type} {T : Type}
   : Proper (respectful_eq_itree ==> eq_itree eq ==> eq_itree eq)
            (@apply_IFun (itree E) (itree F) T).
@@ -156,6 +159,7 @@ Proof.
   repeat red. intros. repeat red in H. eauto.
 Qed.
 
+#[global]
 Instance eutt_apply_IFun {E F : Type -> Type} {T : Type}
   : Proper (respectful_eutt ==> eutt eq ==> eutt eq)
            (@apply_IFun (itree E) (itree F) T).
@@ -163,6 +167,7 @@ Proof.
   repeat red. intros. repeat red in H. eauto.
 Qed.
 
+#[global]
 Instance eq_itree_translate {E F}
   : @Proper (IFun E F -> (itree E ~> itree F))
             (eq2 ==> respectful_eq_itree)
@@ -178,6 +183,7 @@ Proof.
   - rewrite Hfg. gstep. constructor; red; auto with paco.
 Qed.
 
+#[global]
 Instance eutt_translate {E F}
   : @Proper (IFun E F -> (itree E ~> itree F))
             (eq2 ==> respectful_eutt)
@@ -195,6 +201,7 @@ Proof.
   - rewrite tau_euttge, unfold_translate. eauto.
 Qed.
 
+#[global]
 Instance eutt_translate' {E F : Type -> Type} {R : Type} (f : E ~> F) :
   Proper (eutt eq ==> eutt eq)
          (@translate E F f R).
