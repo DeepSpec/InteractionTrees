@@ -26,6 +26,7 @@ Definition i_pointwise {A B : Type -> Type}
   : Prop
   := forall T (a : A T), (RB T) (f1 T a) (f2 T a).
 
+#[global]
 Instance Reflexive_i_pointwise {A B : Type -> Type}
          (RB : forall T, B T -> B T -> Prop)
          {Reflexive_R : forall T, Reflexive (RB T)}
@@ -34,6 +35,7 @@ Proof.
   repeat red; intros; red in Reflexive_R; eauto.
 Qed.
 
+#[global]
 Instance Symmetric_i_pointwise {A B : Type -> Type}
          (RB : forall T, B T -> B T -> Prop)
          {Symmetric_R : forall T, Symmetric (RB T)}
@@ -42,6 +44,7 @@ Proof.
   repeat red; intros; red in Symmetric_R; eauto.
 Qed.
 
+#[global]
 Instance Transitive_i_pointwise {A B : Type -> Type}
          (RB : forall T, B T -> B T -> Prop)
          {Transitive_R : forall T, Transitive (RB T)}
@@ -50,6 +53,7 @@ Proof.
   repeat red; intros; red in Transitive_R; eauto.
 Qed.
 
+#[global]
 Instance Equivalence_i_pointwise {A B : Type -> Type}
          (RB : forall T, B T -> B T -> Prop)
          {Equivalence_R : forall T, Equivalence (RB T)}
@@ -58,6 +62,7 @@ Proof.
   split; try typeclasses eauto.
 Qed.
 
+#[global]
 Instance subrelation_i_pointwise_i_respectful {A B : Type -> Type}
            (RB : forall T, B T -> B T -> Prop)
   : subrelation (i_pointwise RB) (i_respectful (fun T => @eq (A T)) RB).

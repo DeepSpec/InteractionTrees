@@ -1,6 +1,8 @@
 (** * Simplified interface *)
 
 (* begin hide *)
+Set Warnings "-notation-overridden,-deprecated-hint-rewrite-without-locality".
+
 From Coq Require Import
      Setoid
      Morphisms.
@@ -15,7 +17,7 @@ From ITree Require Import
 
 Require Export ITree.Core.ITreeDefinition.
 Export ITreeNotations.
-Open Scope itree_scope.
+#[global] Open Scope itree_scope.
 (* This scope is open by default to make this "tutorial module" as
    straightforward as possible. *)
 
@@ -87,10 +89,10 @@ Context {E : Type -> Type} {R : Type}.
     ([eutt] for short), or _weak bisimulation_. *)
 Parameter eutt : itree E R -> itree E R -> Prop.
 
-Infix "≈" := eutt (at level 70).
+Infix "≈" := eutt (at level 70) : type_scope.
 
 (** [eutt] is an equivalence relation. *)
-Global Declare Instance Equivalence_eutt :
+#[global] Declare Instance Equivalence_eutt :
     Equivalence eutt.
 
 (** We can erase taus unter [eutt]. *)
@@ -218,26 +220,33 @@ Hint Rewrite @interp_mrecursive : itree.
 
 (** *** [Proper] lemmas *)
 
+#[global]
 Declare Instance eutt_go {E R} :
   Proper (going eutt ==> eutt) (@go E R).
 
+#[global]
 Declare Instance eutt_observe {E R} :
   Proper (eutt ==> going eutt) (@observe E R).
 
+#[global]
 Declare Instance eutt_TauF {E R} :
   Proper (eutt ==> going eutt) (@TauF E R _).
 
+#[global]
 Declare Instance eutt_VisF {E R X} (e: E X) :
   Proper (pointwise_relation _ (@eutt E R) ==> going eutt) (VisF e).
 
+#[global]
 Declare Instance eutt_bind {E R S} :
   Proper (eutt ==> pointwise_relation _ eutt ==> eutt)
          (@ITree.bind E R S).
 
+#[global]
 Declare Instance eutt_map {E R S} :
   Proper (pointwise_relation _ eq ==> eutt ==> eutt)
          (@ITree.map E R S).
 
+#[global]
 Declare Instance eutt_interp (E F : Type -> Type) f (R : Type) :
   Proper (eutt ==> eutt) (@interp E (itree F) _ _ _ f R).
 
@@ -258,7 +267,7 @@ End SimpleTheory.
 (* begin hide *)
 (** * Implementation *)
 
-From ITree Require
+From ITree Require Import
      Eq.Eq
      Eq.UpToTaus
      Interp.InterpFacts
@@ -277,7 +286,7 @@ Context {E : Type -> Type} {R : Type}.
 Definition eutt : itree E R -> itree E R -> Prop :=
   ITree.Eq.Eq.eutt eq.
 
-Infix "≈" := eutt (at level 70).
+Notation "x ≈ y" := (eutt x y) (at level 70) : type_scope.
 
 (** [eutt] is an equivalence relation. *)
 Global Instance Equivalence_eutt : Equivalence eutt.
@@ -295,8 +304,7 @@ Lemma itree_eta : forall (t : itree E R),
 Proof. intros. rewrite <- ITree.Eq.Eq.itree_eta. reflexivity. Qed.
 
 Lemma eutt_ret (r1 r2 : R)
-  : r1 = r2 ->
-    Ret r1 ≈ Ret r2.
+  : r1 = r2 -> Ret r1 ≈ Ret r2.
 Proof. intros. subst. reflexivity. Qed.
 
 Lemma eutt_vis {U : Type} (e : E U) (k1 k2 : U -> itree E R)
@@ -463,33 +471,33 @@ Hint Rewrite @interp_mrecursive : itree.
 
 (** *** [Proper] lemmas *)
 
-Instance eutt_go {E R} :
+#[global] Instance eutt_go {E R} :
   Proper (going eutt ==> eutt) (@go E R).
 Proof. repeat red; intros. rewrite H. apply reflexivity. Qed.
 
-Instance eutt_observe {E R} :
+#[global] Instance eutt_observe {E R} :
   Proper (eutt ==> going eutt) (@observe E R).
 Proof. repeat red; intros. rewrite H. apply reflexivity. Qed.
 
-Instance eutt_TauF {E R} :
+#[global] Instance eutt_TauF {E R} :
   Proper (eutt ==> going eutt) (@TauF E R _).
 Proof. repeat red; intros. rewrite H. apply reflexivity. Qed.
 
-Instance eutt_VisF {E R X} (e: E X) :
+#[global] Instance eutt_VisF {E R X} (e: E X) :
   Proper (pointwise_relation _ (@eutt E R) ==> going eutt) (VisF e).
 Proof. repeat red; intros. rewrite H. apply reflexivity. Qed.
 
-Instance eutt_bind {E R S} :
+#[global] Instance eutt_bind {E R S} :
   Proper (eutt ==> pointwise_relation _ eutt ==> eutt)
          (@ITree.bind E R S).
 Proof. repeat red; intros. rewrite H, H0. apply reflexivity. Qed.
 
-Instance eutt_map {E R S} :
+#[global] Instance eutt_map {E R S} :
   Proper (pointwise_relation _ eq ==> eutt ==> eutt)
          (@ITree.map E R S).
 Proof. repeat red; intros. rewrite H, H0. apply reflexivity. Qed.
 
-Instance eutt_interp (E F : Type -> Type) f (R : Type) :
+#[global] Instance eutt_interp (E F : Type -> Type) f (R : Type) :
   Proper (eutt ==> eutt) (@interp E (itree F) _ _ _ f R).
 Proof. repeat red; intros. rewrite H. apply reflexivity. Qed.
 

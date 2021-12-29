@@ -17,8 +17,10 @@ From ExtLib.Structures Require
 From ITree Require Import
      Basics.Basics
      Basics.CategoryOps
-     Core.ITreeDefinition
+     Basics.MonadState
+     Indexed.Function
      Indexed.Sum
+     Core.ITreeDefinition
      Core.Subevent
      Interp.Interp
      Events.State.

@@ -77,7 +77,7 @@ Section RuttF.
 
 End RuttF.
 
-#[export] Hint Resolve rutt_monot : paco.
+#[global] Hint Resolve rutt_monot : paco.
 
 Lemma rutt_inv_tauL {E1 E2 R1 R2 REv RAns RR} t1 t2 :
   @rutt E1 E2 R1 R2 REv RAns RR (Tau t1) t2 -> rutt REv RAns RR t1 t2.
@@ -190,7 +190,7 @@ Proof.
     pclearbot. punfold REL. constructor. eapply IHREL; eauto.
 Qed.
 
-#[export] Hint Resolve euttge_trans_clo_wcompat : paco.
+#[global] Hint Resolve euttge_trans_clo_wcompat : paco.
 
 (* The validity of the up-to [euttge] entails we can rewrite under [euttge]
    and hence also [eq_itree] during coinductive proofs of [rutt]

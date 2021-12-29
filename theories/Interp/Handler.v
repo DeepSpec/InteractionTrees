@@ -102,26 +102,34 @@ Definition eutt_Handler {E F : Type -> Type}
   := i_pointwise (fun R => eutt eq).
 
 (** The default handler equivalence is [eutt]. *)
+#[global]
 Instance Eq2_Handler : Eq2 Handler
   := @eutt_Handler.
 
+#[global]
 Instance Id_Handler : Id_ Handler
   := @Handler.id_.
 
+#[global]
 Instance Cat_Handler : Cat Handler
   := @Handler.cat.
 
+#[global]
 Instance Case_sum1_Handler : Case Handler sum1
   := @Handler.case_.
 
+#[global]
 Instance Inl_sum1_Handler : Inl Handler sum1
   := @Handler.inl_.
 
+#[global]
 Instance Inr_sum1_Handler : Inr Handler sum1
   := @Handler.inr_.
 
+#[global]
 Instance Initial_void1_Handler : Initial Handler void1
   := @Handler.empty.
 
+#[global]
 Instance Iter_Handler : Iter Handler sum1
   := @mrec.

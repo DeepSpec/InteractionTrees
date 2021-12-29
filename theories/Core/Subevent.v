@@ -36,10 +36,7 @@ Definition subevent {E F : Type -> Type} `{E -< F} : E ~> F := resum _.
 (** Notations to construct and pattern-match on nested sums. *)
 Module Import SumNotations.
 
-(*
-  The following line removes the warning on >=8.10, but is incompatible for <8.10
- *)
-(* Declare Scope sum_scope. *)
+Declare Scope sum_scope.
 Delimit Scope sum_scope with sum.
 Bind Scope sum_scope with sum1.
 
@@ -86,11 +83,13 @@ Notation trigger e := (ITree.trigger (subevent _ e)).
 Class Embeddable U V :=
   embed : U -> V.
 
+#[global]
 Instance Embeddable_forall {A : Type} {U : A -> Type} {V : A -> Type}
          `(forall a, Embeddable (U a) (V a)) :
   Embeddable (forall a, U a) (forall a, V a) :=
   fun u a => embed (u a).
 
+#[global]
 Instance Embeddable_itree {E F : Type -> Type} {R : Type}
          `(E -< F) :
   Embeddable (E R) (itree F R) :=

@@ -3,6 +3,7 @@
 (* begin hide *)
 From ITree Require Import
      ITree
+     Eq.Shallow
      Eq.Eq.
 
 From Paco Require Import paco.

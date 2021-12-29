@@ -15,6 +15,8 @@
  *)
 
 (* begin hide *)
+Set Warnings "-deprecated-hint-rewrite-without-locality".
+
 From Coq Require Import
      Program
      Setoid
@@ -330,7 +332,7 @@ Infix "≈" := (eutt eq) (at level 70) : type_scope.
 
 Infix "≳" := (euttge eq) (at level 70) : type_scope.
 
-(* TODO: Find a way to not clobber the global [type_scope]? *)
+(* TODO: Find a way to not clobber the export [type_scope]? *)
 
 Section eqit_closure.
 
@@ -360,7 +362,6 @@ Lemma eqitC_mon b1 b2 r1 r2 t1 t2
 Proof.
   destruct IN. econstructor; eauto.
 Qed.
-
 
 Hint Resolve eqitC_mon : paco.
 

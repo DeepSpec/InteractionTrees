@@ -201,7 +201,7 @@ Qed.
 
 (* todo: this could be made stronger with eutt rather than eq_itree
  *)
-Instance Proper_sutt {E : Type -> Type} {R1 R2 : Type} r
+#[global] Instance Proper_sutt {E : Type -> Type} {R1 R2 : Type} r
 : Proper (eq_itree eq ==> eq_itree eq ==> flip impl)
        (@sutt E R1 R2 r).
 Proof.
