@@ -77,7 +77,7 @@ Definition interp_mrec {D E : Type -> Type}
       | VisF (inr1 e) k => Vis e (fun x => Ret (inl (k x)))
       end).
 
-Arguments interp_mrec {D E} ctx [T].
+Arguments interp_mrec {D E} & ctx [T].
 
 (** Unfold a mutually recursive definition into separate trees,
     resolving the mutual references. *)
@@ -85,7 +85,7 @@ Definition mrec {D E : Type -> Type}
            (ctx : D ~> itree (D +' E)) : D ~> itree E :=
   fun R d => interp_mrec ctx (ctx _ d).
 
-Arguments mrec {D E} ctx [T].
+Arguments mrec {D E} & ctx [T].
 
 (** Make a recursive call in the handler argument of [mrec]. *)
 Definition trigger_inl1 {D E : Type -> Type} : D ~> itree (D +' E)
@@ -102,6 +102,8 @@ Definition mrec_fix {D E : Type -> Type}
            (ctx : endo (D ~> itree (D +' E)))
   : D ~> itree E
   := mrec (ctx trigger_inl1).
+
+Arguments mrec_fix {D E} &.
 
 Notation "'mrec-fix' f d := g" :=
 	(let D := _ in
@@ -146,6 +148,8 @@ Definition rec {E : Type -> Type} {A B : Type}
   A -> itree E B :=
   fun a => mrec (calling' body) (Call a).
 
+Arguments rec {E A B} &.
+
 (** An easy way to construct an event suitable for use with [rec].
     [call] is an event representing the recursive call.  Since in general, the
     function might have other events of type [E], the resulting itree has
@@ -159,6 +163,8 @@ Definition rec_fix {E : Type -> Type} {A B : Type}
            (body : endo (A -> itree (callE A B +' E) B))
   : A -> itree E B
   := rec (body call).
+
+Arguments rec_fix {E A B} &.
 
 Notation "'rec-fix' f a := g" := (rec_fix (fun f a => g))
   (at level 200, f ident, a pattern).
