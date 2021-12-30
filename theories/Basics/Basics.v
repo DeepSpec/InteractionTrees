@@ -55,6 +55,8 @@ Definition stateT (s : Type) (m : Type -> Type) (a : Type) : Type :=
   s -> m (prod s a).
 Definition state (s a : Type) := s -> prod s a.
 
+Definition run_stateT {s m a} (x : stateT s m a) : s -> m (s * a)%type := x.
+
 Definition liftState {s a f} `{Functor f} (fa : f a) : Monads.stateT s f a :=
   fun s => pair s <$> fa.
 

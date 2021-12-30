@@ -90,7 +90,7 @@ Definition handle_io
     [forall R, itree ioE R -> M R]. *)
 Definition interp_io
   : forall R, itree ioE R -> itree void1 (list nat * R)
-  := fun R t => interp handle_io t [].
+  := fun R t => Monads.run_stateT (interp handle_io t) [].
 
 (** We can now interpret [write_one]. *)
 Definition interpreted_write_one : itree void1 (list nat * unit)
