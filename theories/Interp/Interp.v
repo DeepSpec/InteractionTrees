@@ -68,7 +68,7 @@ Definition translate {E F} (h : E ~> F)
   : itree E ~> itree F
   := fun R => cofix translate_ t := translateF h translate_ (observe t).
 
-Arguments translate {E F} h [T].
+Arguments translate {E F} & h [T].
 
 (** ** Interpret *)
 
@@ -89,4 +89,4 @@ Definition interp {E M : Type -> Type}
    by giving aloop a continuation to compose its bind with.
    (coyoneda...) *)
 
-Arguments interp {E M FM MM IM} h [T].
+Arguments interp {E M FM MM IM} & h [T].
