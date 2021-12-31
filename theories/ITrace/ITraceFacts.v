@@ -206,7 +206,7 @@ Proof.
      destruct DEC as [EQ | EQ].
      + destruct EQ as [m3 ?]; subst. pclearbot.
        constructor. right. eapply CIH; eauto.
-       apply rutt_inv_tauLR. pfold. auto.
+       apply rutt_inv_Tau. pfold. auto.
      + inv H1; try (exfalso; eapply EQ; eauto; fail).
        pclearbot. constructor.
        punfold REL. red in REL.
@@ -251,7 +251,7 @@ Proof.
     hinduction H1 before CIH; intros; subst; try (inv Heqotm1).
     + constructor. pclearbot. right. eapply CIH; eauto.
     + constructor. right. eapply CIH; eauto.
-      apply rutt_inv_tauR. pfold. auto.
+      apply rutt_inv_Tau_r. pfold. auto.
     + punfold REL. red in REL.
       dependent induction REL; subst.
       * constructor. clear IHruttF.
