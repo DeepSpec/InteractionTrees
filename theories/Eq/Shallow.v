@@ -99,6 +99,15 @@ End observing_relations.
 
 (** ** Unfolding lemmas for [bind] *)
 
+Lemma observe_bind {E : Type -> Type} {R S : Type} (t : itree E R) (k : R -> itree E S)
+  : observe (ITree.bind t k)
+  = observe (match observe t with
+    | RetF r => k r
+    | TauF t0 => Tau (ITree.bind t0 k)
+    | @VisF _ _ _ X e ke => Vis e (fun x : X => ITree.bind (ke x) k)
+    end).
+Proof. reflexivity. Qed.
+
 #[global]
 Instance observing_bind {E R S} :
   Proper (observing eq ==> eq ==> observing eq) (@ITree.bind E R S).
