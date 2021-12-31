@@ -33,7 +33,7 @@ Qed.
 
 Lemma try_catch_exc : forall E Err R exc (k :void -> itree (exceptE Err +' E) R)
                                (kcatch : Err -> itree (exceptE Err +' E) R),
-    try_catch (Vis (inl1 (Throw _ exc)) k ) kcatch ≅ kcatch exc.
+    try_catch (Vis (inl1 (Throw exc)) k ) kcatch ≅ kcatch exc.
 Proof.
    intros. unfold try_catch. unfold iter, Iter_Kleisli, Basics.iter, MonadIter_itree.
    rewrite unfold_iter. cbn. unfold ITree.map.
@@ -113,7 +113,7 @@ Proof.
 Qed.
 
 Definition throw_prefix_exc : forall E Err R k (e : Err), 
-    @throw_prefix Err R E (Vis (inl1 (Throw _ e) ) k) ≅ Ret (inr e).
+    @throw_prefix Err R E (Vis (inl1 (Throw e) ) k) ≅ Ret (inr e).
 Proof.
   intros. setoid_rewrite unfold_iter_ktree. cbn. rewrite bind_ret_l. reflexivity.
 Qed.
@@ -145,7 +145,7 @@ Qed.
 Lemma throw_prefix_bind_decomp : forall E Err R (t : itree (exceptE Err +' E) R ),
     t ≈ ITree.bind (throw_prefix t) (fun r => 
                                     match r with 
-                                    | inr e => v <- trigger (inl1 (Throw _ e));; match v : void with end
+                                    | inr e => v <- trigger (inl1 (Throw e));; match v : void with end
                                     | inl a => Ret a
                                     end).
 Proof.
