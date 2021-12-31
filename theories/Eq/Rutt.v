@@ -61,16 +61,16 @@ Section RuttF.
   | EqTauR : forall (ot1 : itree' E1 R1) (t2 : itree E2 R2),
       ruttF sim ot1 (observe t2) ->
       ruttF sim ot1 (TauF t2).
-  Hint Constructors ruttF : core.
+  Hint Constructors ruttF : itree.
 
   Definition rutt_ (sim : itree E1 R1 -> itree E2 R2 -> Prop)
              (t1 : itree E1 R1) (t2 : itree E2 R2) :=
     ruttF sim (observe t1) (observe t2).
-  Hint Unfold rutt_ : core.
+  Hint Unfold rutt_ : itree.
 
   Lemma rutt_monot : monotone2 rutt_.
   Proof.
-    red. intros. red; induction IN; eauto.
+    red. intros. red; induction IN; eauto with itree.
   Qed.
 
   Definition rutt : itree E1 R1 -> itree E2 R2 -> Prop := paco2 rutt_ bot2.
@@ -140,7 +140,7 @@ Section euttge_trans_clo.
                          (LERR1: forall x x' y, RR1 x x' -> RR x' y -> RR x y)
                          (LERR2: forall x y y', RR2 y y' -> RR x y' -> RR x y) :
       euttge_trans_clo r t1 t2.
-  Hint Constructors euttge_trans_clo : core.
+  Hint Constructors euttge_trans_clo : itree.
 
   Lemma euttge_trans_clo_mon r1 r2 t1 t2
         (IN : euttge_trans_clo r1 t1 t2)
@@ -181,7 +181,7 @@ Proof.
     dependent destruction Heqy.
     constructor; auto. intros. apply H0 in H1. pclearbot.
     apply gpaco2_clo.
-    econstructor; eauto.
+    econstructor; eauto with itree.
   - remember (TauF t1) as x. red.
     hinduction EQVl before r; intros; subst; try inv Heqx; try inv CHECK; (try (constructor; eauto; fail)).
     pclearbot. punfold REL. constructor. eapply IHREL; eauto.

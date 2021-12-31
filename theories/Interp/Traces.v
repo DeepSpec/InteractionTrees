@@ -102,7 +102,7 @@ Proof.
     generalize dependent t2.
     induction H; intros; try discriminate.
     + inv_Vis. pclearbot. subst. red. rewrite <- Heqi1. constructor.
-      eapply IHis_traceF; auto.
+      eapply IHis_traceF; auto with itree.
     + red. rewrite <- Heqi1. constructor. apply IHsuttF; auto.
 Qed.
 
@@ -141,7 +141,7 @@ Proof.
     + constructor.
       remember (observe t). remember (TRet _).
       generalize dependent t.
-      induction H1; intros; try inv Heqt0; auto.
+      induction H1; intros; try inv Heqt0; auto with itree.
       constructor. eapply IHis_traceF; eauto.
   - constructor. right. apply CIH. intros. apply Hincl. constructor. auto.
   - assert (H: is_traceF (VisF e k) (TEventEnd e)) by constructor.
@@ -181,8 +181,8 @@ Proof.
   - apply trace_incl_sutt; auto.
   - apply trace_incl_sutt in H0. clear H.
     generalize dependent t1. generalize dependent t2. pcofix CIH; pstep; intros.
-    punfold H0. induction H0; constructor; try red; pclearbot; eauto with paco.
-    right. rewrite itree_eta'. eauto with paco.
+    punfold H0. induction H0; constructor; try red; pclearbot; eauto with paco itree.
+    right. rewrite itree_eta'. eauto with paco itree.
 Qed.
 
 Theorem trace_eq_iff_eutt : forall {E R} (t1 t2 : itree E R),

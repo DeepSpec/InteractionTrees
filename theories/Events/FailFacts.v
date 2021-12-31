@@ -65,24 +65,6 @@ End FailT.
 
 Section FailTLaws.
 
-  (* With the current state of the monad theory, we cannot prove the laws generically.
-     We specialize things to [failT (itree E)] until we generalize [Eq1] to be parameterized
-     by the underlying relation on returned values.
-   *)
-  Definition option_rel {X : Type} (R : relation X) : relation (option X) :=
-    fun mx my => match mx,my with
-              | Some x, Some y => R x y
-              | None, None => True
-              | _, _ => False
-              end.
-  Hint Unfold option_rel : core.
-
-  Lemma option_rel_eq : forall {A : Type},
-      eq_rel (@eq (option A)) (option_rel eq).
-  Proof.
-    intros ?; split; intros [] [] EQ; subst; try inv EQ; cbn; auto.
-  Qed.
-
   Global Instance failT_Eq1 {E} : Eq1 (failT (itree E)) :=
     fun _ => eutt (option_rel eq).
 
@@ -128,8 +110,6 @@ Section FailTLaws.
   Qed.
   
 End FailTLaws.
-
-Global Hint Unfold option_rel : core.
 
 (* Failure handlers [E ~> stateT S (itree F)] and morphisms
    [E ~> state S] define stateful itree morphisms
@@ -178,7 +158,7 @@ Proof.
   punfold EQ; red in EQ.
   destruct EQ; cbn; subst; try discriminate; pclearbot; try (gstep; constructor; eauto with paco; fail).
   guclo eqit_clo_bind; econstructor; [reflexivity | intros x ? <-].
-  destruct x as [x|]; gstep; econstructor; eauto with paco.
+  destruct x as [x|]; gstep; econstructor; eauto with paco itree.
 Qed.
 
 (* Convenient special case: [option_rel eq eq] is equivalent to [eq], so we can avoid bothering *)

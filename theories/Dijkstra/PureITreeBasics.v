@@ -92,7 +92,7 @@ Lemma eutt_ret_euttge : forall (E : Type -> Type) (A : Type) (a : A) (t : itree 
       t ≈ Ret a -> t ≳ Ret a.
 Proof.
   intros. generalize dependent t. pcofix CIH. intros. pfold. red. pinversion H0; subst; auto.
-  - cbn. auto.
+  - cbn. auto with itree.
   - cbn. apply EqTauL; auto.
     genobs t1 ot1. genobs (go (@RetF E A _ a)) ot2.  clear H1.
     generalize dependent t1. generalize dependent t.
@@ -104,7 +104,7 @@ Qed.
 Lemma unfold_spin : forall (E : Type -> Type) (A : Type), (@spin E A) ≅ Tau spin.
 Proof.
   intros.  pcofix CIH. cbn. pfold. red. cbn. apply EqTau. cbn.
-  left. pcofix CIH'. pfold. red. cbn. auto.
+  left. pcofix CIH'. pfold. red. cbn. auto with itree.
 Qed.
 
 Lemma burn_eutt_r : forall (A : Type) (t t' : itree void1 A) (n : nat), t≈ t' -> burn n t ≈ t'.

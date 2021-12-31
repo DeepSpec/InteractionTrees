@@ -61,7 +61,7 @@ Proof.
     + destruct e. cbn. repeat rewrite bind_map. repeat rewrite bind_ret_r.  gfinal.
       right. eapply paco2_mon; try apply Hk. intros; contradiction.
     + cbn. repeat rewrite bind_map. repeat rewrite bind_trigger. gstep. constructor. intros.
-      gstep. constructor. gfinal. left. eauto.
+      gstep. constructor. gfinal. left. eauto with itree.
 Qed.
 
 Global Instance proper_eutt_try_catch {E Err R} : Proper (eutt eq ==> pointwise_relation Err (eutt eq) ==> eutt eq) (@try_catch Err R E).
@@ -76,7 +76,7 @@ Proof.
     + destruct e. cbn. repeat rewrite bind_map. repeat rewrite bind_ret_r.  gfinal.
       right. eapply paco2_mon; try apply Hk. intros; contradiction.
     + cbn. repeat rewrite bind_map. repeat rewrite bind_trigger. gstep. constructor. intros.
-      gstep. constructor. gfinal. left. eauto.
+      gstep. constructor. gfinal. left. eauto with itree.
   - rewrite bind_ret_l. rewrite tau_euttge. rewrite unfold_iter_ktree. eapply IHHt; eauto.
   - rewrite bind_ret_l. rewrite tau_euttge. rewrite unfold_iter_ktree. eapply IHHt; eauto.
 Qed.
@@ -94,7 +94,7 @@ Proof.
     + destruct e. cbn. repeat rewrite bind_map. repeat rewrite bind_ret_r. repeat rewrite bind_ret_l.  gfinal.
       right. pfold; constructor; auto.
     + cbn. repeat rewrite bind_map. repeat rewrite bind_trigger. gstep. constructor. intros.
-      gstep. constructor. gfinal. left. pclearbot. eapply CIH; eauto.
+      gstep. constructor. gfinal. left. pclearbot. eapply CIH; eauto with itree.
   - rewrite bind_ret_l. rewrite tau_euttge. rewrite unfold_iter_ktree. eapply IHHt; eauto.
   - rewrite bind_ret_l. rewrite tau_euttge. rewrite unfold_iter_ktree. eapply IHHt; eauto.
 Qed.

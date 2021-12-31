@@ -73,7 +73,7 @@ Proof.
   - gstep; constructor; auto with paco.
   - guclo eqit_clo_bind. econstructor.
     + reflexivity.
-    + intros [] _ []. gstep; constructor; auto with paco.
+    + intros [] _ []. gstep; constructor; auto with paco itree.
 Qed.
 
 Lemma interp_state_ret {E F : Type -> Type} {R S : Type}

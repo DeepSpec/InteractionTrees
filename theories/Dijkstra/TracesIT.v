@@ -315,7 +315,7 @@ Variant is_bool (b : bool) : forall A, EvAns NonDet A -> Prop :=
   | is_bool_matches : is_bool b unit (evans bool Decide b)
 .
 
-Hint Constructors is_bool : core.
+Hint Constructors is_bool : itree.
 
 Definition fal_decide_ex : itrace NonDet unit -> Prop :=
   front_and_last (is_bool true) (is_bool false) (fun _ => True).
@@ -340,7 +340,7 @@ Proof.
       enough (paco1 (trace_forall_ (is_bool true) (fun _ => True) ) r b).
       { punfold H1. }
       dependent induction H.
-      *  pfold. red. rewrite <- x. constructor; auto. intros.
+      *  pfold. red. rewrite <- x. constructor; auto with itree. intros.
         destruct a. right. pclearbot. eapply CIH.
         ++ assert (k1 tt ≈ k' tt)%itree; try apply REL.
            rewrite H. auto.
@@ -371,7 +371,8 @@ Proof.
         basic_solve.
         pinversion H0. ddestruction.
         rewrite bind_ret_l in H2. cbn in H2.
-        apply trace_refine_ret_inv_l in H2. eapply front_and_last_base with (r := tt); eauto.
+        apply trace_refine_ret_inv_l in H2.
+        eapply front_and_last_base with (r := tt); eauto with itree.
         pfold. red. cbn. constructor. intros. left.
         rewrite <- H2. destruct v. auto.
   Qed.

@@ -179,7 +179,7 @@ Section PureITree.
      split; intros; auto.
    Qed.
 
-Hint Constructors iterF_body : core.
+Hint Constructors iterF_body : itree.
 
   Lemma iterF_body'_resp_eutt : forall (A B : Type)
             (p : itree void1 B -> Prop) (Hp : resp_eutt p) (F : A -> Prop),
@@ -223,7 +223,7 @@ Hint Constructors iterF_body : core.
                                              \/ (exists a', t ≈ (ret (inl a')) /\
                                          iter_ind body p Hp a') ) .
 *)
-Hint Constructors iterF : core.
+Hint Constructors iterF : itree.
 Lemma iterF_monotone {A B} (body:  (A -> PureITreeSpec (A + B)))
       (sim sim' : A -> Prop) (a : A)
       (p : itree void1 B -> Prop) (Hp : resp_eutt p)
@@ -232,12 +232,12 @@ Lemma iterF_monotone {A B} (body:  (A -> PureITreeSpec (A + B)))
   Proof.
     induction IN; constructor; auto.
     destruct (body a) as [fa Hfa] eqn : Heq. simpl in *.
-    refine (Hfa _ _ _ _ _ H). intros. inversion H0; eauto.
+    refine (Hfa _ _ _ _ _ H). intros. inversion H0; eauto with itree.
   Qed.
 
   Definition iter_ {A B} sim (body : A -> PureITreeSpec (A + B)) a p Hp : Prop :=
     iterF body a p Hp sim.
-  Hint Unfold iter_ : core.
+  Hint Unfold iter_ : itree.
 
   Lemma iterF_monotone' {A B} body p Hp : monotone1 (fun sim a => @iter_ A B sim body a p Hp).
   Proof.
@@ -259,8 +259,8 @@ Lemma iterF_monotone {A B} (body:  (A -> PureITreeSpec (A + B)))
       pcofix CIH. pfold. intros. punfold H1.
       red. red in H1. inversion H1; simpl in *.
       constructor. destruct (f a) as [fa Hfa] eqn : Heq. simpl in *.
-      refine (Hfa _ _ _ _ _ H0). intros t. intros. inversion H2; subst; eauto.
-      pclearbot. eapply cont_a; eauto.
+      refine (Hfa _ _ _ _ _ H0). intros t. intros. inversion H2; subst; eauto with itree.
+      pclearbot. eapply cont_a; eauto with itree.
     Qed.
 
   Definition iterp {A B} (body : A -> PureITreeSpec (A + B) ) (init : A) : PureITreeSpec B :=
