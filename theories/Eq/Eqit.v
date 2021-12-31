@@ -15,8 +15,6 @@
  *)
 
 (* begin hide *)
-Set Warnings "-deprecated-hint-rewrite-without-locality".
-
 From Coq Require Import
      Program
      Setoid
@@ -1212,14 +1210,14 @@ Proof.
   rewrite bind_tau; reflexivity.
 Qed.
 
-Hint Rewrite @bind_ret_l : itree.
-Hint Rewrite @bind_ret_r : itree.
-Hint Rewrite @bind_tau : itree.
-Hint Rewrite @bind_vis : itree.
-Hint Rewrite @bind_map : itree.
-Hint Rewrite @map_ret : itree.
-Hint Rewrite @map_tau : itree.
-Hint Rewrite @bind_bind : itree.
+#[global] Hint Rewrite @bind_ret_l : itree.
+#[global] Hint Rewrite @bind_ret_r : itree.
+#[global] Hint Rewrite @bind_tau : itree.
+#[global] Hint Rewrite @bind_vis : itree.
+#[global] Hint Rewrite @bind_map : itree.
+#[global] Hint Rewrite @map_ret : itree.
+#[global] Hint Rewrite @map_tau : itree.
+#[global] Hint Rewrite @bind_bind : itree.
 
 (** ** Tactics *)
 
