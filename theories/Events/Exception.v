@@ -2,6 +2,8 @@
 
 (* begin hide *)
 From ITree Require Import ITree.
+
+Set Implicit Arguments.
 (* end hide *)
 
 (** Throw exceptions of type [Err]. *)
@@ -13,7 +15,7 @@ Variant exceptE (Err : Type) : Type -> Type :=
 Definition throw {Err : Type} {E : Type -> Type} `{exceptE Err -< E} {X}
            (e : Err)
   : itree E X
-  := vis (Throw _ e) (fun v : void => match v with end).
+  := vis (Throw e) (fun v : void => match v with end).
 
 Definition try_catch {Err R : Type } {E : Type -> Type} 
             (ttry : itree (exceptE Err +' E) R) (kcatch : Err -> itree (exceptE Err +' E) R) : itree (exceptE Err +' E) R :=
@@ -24,7 +26,7 @@ Definition try_catch {Err R : Type } {E : Type -> Type}
        | TauF t' => Ret (inl t')
        | VisF e k =>
          match e with
-         | inl1 (Throw _ exc) => Functor.fmap inr (kcatch exc)
+         | inl1 (Throw exc) => Functor.fmap inr (kcatch exc)
          | inr1 e' =>  Functor.fmap (fun x => inl (k x) ) (trigger e) end end
 
   in 
@@ -38,7 +40,7 @@ Definition throw_prefix {Err R : Type} {E : Type -> Type}
       | TauF t' => Ret (inl t')
       | VisF e k =>
         match e with
-        | inl1 (Throw _ exc) => Ret (inr (inr exc) )
+        | inl1 (Throw exc) => Ret (inr (inr exc) )
         | inr1 e' =>  Functor.fmap (fun x => inl (k x) ) (trigger e)
         end
       end in
