@@ -65,8 +65,8 @@ in [`Basics.FunctionFacts.CartesianClosed_Fun`](./theories/Basics/FunctionFacts.
 
 ### Excluded middle and choice
 
-The theory of traces (`theories/ITrace/`)---which Dijkstra monads for ITree
-depend on (`theories/Dijkstra`)---assumes excluded middle, to decide whether an
+The theory of traces (`theories/ITrace/`)—which Dijkstra monads for ITree
+depend on (`theories/Dijkstra`)—assumes excluded middle, to decide whether an
 itree diverges, and a type-theoretic axiom of choice, which provides a strong
 excluded middle in propositional contexts:
 
