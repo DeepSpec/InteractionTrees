@@ -19,10 +19,14 @@ From Coq Require Import
      Morphisms
 .
 
+From ExtLib Require Import
+     Structures.Monad.
+
 From ITree Require Import
      Axioms
      ITree
-     ITreeFacts
+     Eq
+     Basics
 .
 
 From Paco Require Import paco.
@@ -79,7 +83,7 @@ End RuttF.
 
 #[global] Hint Resolve rutt_monot : paco.
 
-Lemma rutt_inv_tauL {E1 E2 R1 R2 REv RAns RR} t1 t2 :
+Lemma rutt_inv_Tau_l {E1 E2 R1 R2 REv RAns RR} t1 t2 :
   @rutt E1 E2 R1 R2 REv RAns RR (Tau t1) t2 -> rutt REv RAns RR t1 t2.
 Proof.
   intros. punfold H. red in H. simpl in *.
@@ -90,13 +94,13 @@ Proof.
   - red in IHruttF. pstep. red; simpobs. econstructor; eauto. pstep_reverse.
 Qed.
 
-Lemma rutt_add_tauL {E1 E2 R1 R2 REv RAns RR} t1 t2 :
+Lemma rutt_add_Tau_l {E1 E2 R1 R2 REv RAns RR} t1 t2 :
   @rutt E1 E2 R1 R2 REv RAns RR t1 t2 -> rutt REv RAns RR (Tau t1) t2.
 Proof.
   intros. pfold. red. cbn. constructor. pstep_reverse.
 Qed.
 
-Lemma rutt_inv_tauR {E1 E2 R1 R2 REv RAns RR} t1 t2 :
+Lemma rutt_inv_Tau_r {E1 E2 R1 R2 REv RAns RR} t1 t2 :
   @rutt E1 E2 R1 R2 REv RAns RR t1 (Tau t2) -> rutt REv RAns RR t1 t2.
 Proof.
   intros. punfold H. red in H. simpl in *.
@@ -106,16 +110,16 @@ Proof.
   - constructor. eapply IHruttF; eauto.
 Qed.
 
-Lemma rutt_add_tauR {E1 E2 R1 R2 REv RAns RR} t1 t2 :
+Lemma rutt_add_Tau_r {E1 E2 R1 R2 REv RAns RR} t1 t2 :
   @rutt E1 E2 R1 R2 REv RAns RR t1 t2 -> rutt REv RAns RR t1 (Tau t2).
 Proof.
   intros. pfold. red. cbn. constructor. pstep_reverse.
 Qed.
 
-Lemma rutt_inv_tauLR  {E1 E2 R1 R2 REv RAns RR} t1 t2 :
+Lemma rutt_inv_Tau {E1 E2 R1 R2 REv RAns RR} t1 t2 :
   @rutt E1 E2 R1 R2 REv RAns RR (Tau t1) (Tau t2) -> rutt REv RAns RR t1 t2.
 Proof.
-  intros; apply rutt_inv_tauR, rutt_inv_tauL; assumption.
+  intros; apply rutt_inv_Tau_r, rutt_inv_Tau_l; assumption.
 Qed.
 
 Section euttge_trans_clo.

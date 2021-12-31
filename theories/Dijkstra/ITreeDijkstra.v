@@ -553,7 +553,7 @@ Section ITreeDijkstra.
   Qed.
 
   (* TODO need to get this done at some point*)
-  Lemma eqitE_inv_tauLR : forall (E1 E2 : Type -> Type) (R1 R2 : Type) (RR : R1 -> R2 -> Prop)
+  Lemma eqitE_inv_Tau : forall (E1 E2 : Type -> Type) (R1 R2 : Type) (RR : R1 -> R2 -> Prop)
             (t1 : itree E1 R1) (t2 : itree E2 R2),
             eqitE RR (Tau t1) (Tau t2) -> eqitE RR t1 t2.
   Proof.
