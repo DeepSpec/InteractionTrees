@@ -216,7 +216,7 @@ Proof.
          ++ constructor. eapply IHREL; eauto.
        * dependent induction REL; rewrite <- x.
          ++ constructor; auto. intros. apply H0 in H1. right.
-            pclearbot. eapply CIH; eauto.
+            pclearbot. eapply CIH; eauto with itree.
          ++ constructor. eapply IHREL; eauto.
        * eapply IHruttF; eauto. clear IHruttF.
          dependent induction REL; try (exfalso; eapply EQ; eauto; fail).
@@ -227,7 +227,7 @@ Proof.
     hinduction H1 before CIH; intros; dependent destruction Heqot1.
     + pclearbot. constructor; auto. intros. apply H0 in H1.
       pclearbot. right.
-      eapply CIH; eauto.
+      eapply CIH; eauto with itree.
     + constructor. eapply IHruttF; eauto.
   - eapply IHeqitF. remember (TauF t1) as otf1.
     hinduction H1 before CIH; intros;  dependent destruction Heqotf1; eauto.
@@ -264,7 +264,7 @@ Proof.
       * constructor. rewrite <- x.
         clear IHruttF. hinduction H1 before CIH; intros; dependent destruction x0.
         ++ constructor; auto. intros. apply H0 in H1.
-           pclearbot. right. eapply CIH; eauto.
+           pclearbot. right. eapply CIH; eauto with itree.
         ++ constructor. eapply IHruttF; eauto.
       * eapply IHruttF; eauto.
       * constructor. rewrite <- x. eapply IHREL; eauto.
@@ -320,7 +320,7 @@ Proof.
   intros E R A e a. intros.
   red in H. red. punfold H. red in H. inversion H. ddestruction.
   subst.
-  assert (RAnsRef E unit A (evans A e a) tt e a); eauto.
+  assert (RAnsRef E unit A (evans A e a) tt e a); eauto with itree.
   apply H7 in H0. pclearbot. auto.
 Qed.
 
@@ -328,7 +328,7 @@ Lemma trace_refine_vis_add : forall (E : Type -> Type) (R A: Type) (e : E A) (a 
                                (b :itrace E R) (k : A -> itree E R),
     b ⊑ k a -> Vis (evans A e a) (fun _ => b) ⊑ Vis e k.
 Proof.
-  intros. pfold. red. cbn. constructor; eauto.
+  intros. pfold. red. cbn. constructor; eauto with itree.
   intros. left. inversion H0. ddestruction.
   subst. auto.
 Qed.
@@ -338,8 +338,8 @@ Lemma event_ans_constr : forall (E : Type -> Type) (R : Type) (e : E R),
 Proof.
   intros.
   destruct (classic_empty R) as  [ [a | Hempty]  _ ] .
-  - exists unit. exists (evans R e a). eauto.
-  - exists void. exists (evempty R Hempty e). eauto.
+  - exists unit. exists (evans R e a). eauto with itree.
+  - exists void. exists (evempty R Hempty e). eauto with itree.
 Qed.
 
 (* Here are where some of the sketchy uses of axioms are *)
@@ -372,10 +372,10 @@ Proof.
   - cbn. constructor. auto.
   - cbn. constructor. right. apply CIH.
   - unfold observe. cbn. destruct (classicT _).
-    + constructor; eauto. intros. right.
+    + constructor; eauto with itree. intros. right.
       inversion H. ddestruction.
       subst. apply CIH.
-    + constructor; auto. intros. contradiction.
+    + constructor; auto with itree. intros. contradiction.
 Qed.
 
 Lemma refine_set_eq_to_eutt_vis_aux : forall (E : Type -> Type) (R : Type) (r : itree E R -> itree E R -> Prop)
@@ -601,7 +601,7 @@ Proof.
     clear Heqot1 Heqot2 Ht1 Ht2 H H0. red in H1. cbn in *.
     constructor; auto. inv H1. dependent induction H2; intros; subst.
     + rewrite <- x. constructor; auto.
-    + rewrite <- x. auto.
+    + rewrite <- x. auto with itree.
   (*Tau Tau*)
   - constructor. right. eapply CIH.
     intros.

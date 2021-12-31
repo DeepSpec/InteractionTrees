@@ -27,14 +27,14 @@ Variant trace_forallF {E : Type -> Type} {R : Type} (F : itrace E R -> Prop)
     PE A e -> (forall (a :A), F (k a) ) -> trace_forallF F PE PR (VisF e k)
 .
 
-#[global] Hint Constructors trace_forallF : core.
+#[global] Hint Constructors trace_forallF : itree.
 
 Definition trace_forall_ {E R} PE PR F (b : itrace E R) :=
   trace_forallF F PE PR (observe b).
 
 Lemma trace_forall_monot {E R} PE PR : monotone1 (@trace_forall_ E R PE PR).
 Proof.
-  repeat intro. red in IN. red. induction IN; auto.
+  repeat intro. red in IN. red. induction IN; auto with itree.
 Qed.
 
 #[global] Hint Resolve trace_forall_monot : paco.
@@ -48,10 +48,10 @@ Proof.
   intros E R PE PR. pcofix CIH. intros b1 b2 Heutt Hforall.
   pfold. red. punfold Hforall. red in Hforall.
   punfold Heutt. red in Heutt. induction Heutt; subst; auto.
-  - inv Hforall. auto.
+  - inv Hforall. auto with itree.
   - inv Hforall. pclearbot. constructor. right. eapply CIH; eauto.
   - inv Hforall. ddestruction. subst. pclearbot.
-    constructor; auto. intros. right. eapply CIH; eauto. apply H3.
+    constructor; auto. intros. right. eapply CIH; eauto with itree. apply H3.
   - apply IHHeutt. inv Hforall. pclearbot. punfold H0.
   - constructor. left. pfold. red. apply IHHeutt. auto.
 Qed.
@@ -79,14 +79,14 @@ Inductive trace_inf_oftenF {E : Type -> Type} {R : Type} (PE : forall A, EvAns E
   F (k tt) -> PE unit e -> trace_inf_oftenF PE F (VisF e k)
 .
 
-#[global] Hint Constructors trace_inf_oftenF : core.
+#[global] Hint Constructors trace_inf_oftenF : itree.
 
 Definition trace_inf_often_ {E R} PE F (b : itrace E R) :=
   trace_inf_oftenF PE F (observe b).
 
 Lemma trace_inf_often_monot {E R} PE : monotone1 (@trace_inf_often_ E R PE).
 Proof.
-  repeat intro. red in IN. red. induction IN; auto.
+  repeat intro. red in IN. red. induction IN; auto with itree.
 Qed.
 
 #[global] Hint Resolve trace_inf_often_monot : paco.
@@ -138,14 +138,14 @@ Section StateMachine.
     PEv A e a -> F (EvTrans A e a) (RetTrans A e a) (k tt) -> state_machineF PEv PRet F (VisF (evans A e a) k)
   .
 
-  Hint Constructors state_machineF : core.
+  Hint Constructors state_machineF : itree.
 
   Definition state_machine_ F PEv PRet (tr : itrace E R) :=
     state_machineF PEv PRet F (observe tr).
 
   Lemma monotone_state_machine : monotone3 state_machine_.
   Proof.
-    red. intros. red. red in IN. induction IN; auto.
+    red. intros. red. red in IN. induction IN; auto with itree.
   Qed.
   Hint Resolve trace_inf_often_monot : paco.
   Definition state_machine PEv PRet (tr : itrace E R) :  Prop := paco3 (state_machine_) bot3 PEv PRet tr.
@@ -157,13 +157,13 @@ Section StateMachine.
     punfold Hsm; try apply monotone_state_machine.
     punfold Heutt. red in Heutt. red in Hsm.
     induction Hsm.
-    - remember (RetF r0) as ot1. induction Heutt; subst; auto; try discriminate.
-      injection Heqot1; intros; subst; auto.
-    - apply IHHsm. pstep_reverse. assert (Tau t ≈ t2); auto.
+    - remember (RetF r0) as ot1. induction Heutt; subst; auto with itree; try discriminate.
+      injection Heqot1; intros; subst; auto with itree.
+    - apply IHHsm. pstep_reverse. assert (Tau t ≈ t2); auto with itree.
       rewrite tau_eutt in H. auto.
-    - remember (VisF (evans A e a) k ) as ot1. induction Heutt; subst; auto; try discriminate.
+    - remember (VisF (evans A e a) k ) as ot1. induction Heutt; subst; auto with itree; try discriminate.
       injection Heqot1; intros; subst. dependent destruction H1.
-      subst. constructor; auto. right. pclearbot. eapply CIH; eauto.
+      subst. constructor; auto. right. pclearbot. eapply CIH; eauto with itree.
       destruct H0; tauto.
   Qed.
 

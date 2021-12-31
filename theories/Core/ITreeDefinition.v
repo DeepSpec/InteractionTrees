@@ -66,6 +66,8 @@ Local Open Scope itree_scope.
 
 Arguments itree _ _ : clear implicits.
 Arguments itreeF _ _ : clear implicits.
+
+Create HintDb itree.
 (* end hide *)
 
 (** An [itree'] is a "forced" [itree]. It is the type of inputs

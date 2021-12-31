@@ -186,7 +186,7 @@ Section ITreeDijkstra.
   Variant is_infF {A : Type}  (F : stream A -> Prop) : stream' A -> Prop :=
     is_inf_cons (h : A) (t : stream A) : F t -> is_infF F (ConsF h t).
 
-  Hint Constructors is_infF : core.
+  Hint Constructors is_infF : itree.
 
   Definition is_inf_ {A : Type} (F : stream A -> Prop) : stream A -> Prop :=
     fun s => is_infF F (observe_stream s).
@@ -195,7 +195,7 @@ Section ITreeDijkstra.
 
   Lemma is_inf_monot {A} : monotone1 (@is_inf_ A).
   Proof.
-    red. intros. red in IN. red. induction IN; auto.
+    red. intros. red in IN. red. induction IN; auto with itree.
   Qed.
 
   Hint Resolve is_inf_monot : paco.
@@ -214,7 +214,7 @@ Section ITreeDijkstra.
     | bisimNil : bisimF F NilF NilF
     | bisimConsF (h : A) (s1 s2 : stream A) : F s1 s2 -> bisimF F (ConsF h s1) (ConsF h s2).
 
-  Hint Constructors bisimF : core.
+  Hint Constructors bisimF : itree.
 
   Definition bisim_ {A : Type} (F : stream A -> stream A -> Prop) : stream A -> stream A -> Prop :=
     fun s1 s2 => bisimF F (observe_stream s1) (observe_stream s2).
@@ -223,7 +223,7 @@ Section ITreeDijkstra.
 
   Lemma bisim_monot {A} : monotone2 (@bisim_ A).
   Proof.
-    red. intros. red in IN. red. induction IN; auto.
+    red. intros. red in IN. red. induction IN; auto with itree.
   Qed.
 
   Hint Resolve bisim_monot : paco.
@@ -231,12 +231,12 @@ Section ITreeDijkstra.
   Instance bisim_equiv {A} : Equivalence (@bisim A).
   Proof.
     constructor; red.
-    - pcofix CIH. intros. pfold. red. destruct (observe_stream x); auto.
+    - pcofix CIH. intros. pfold. red. destruct (observe_stream x); auto with itree.
     - pcofix CIH. intros.
       pfold. red.
-      pinversion H0; subst; auto.
+      pinversion H0; subst; auto with itree.
     - pcofix CIH. intros. pfold. red.
-      pinversion H0; pinversion H1; auto.
+      pinversion H0; pinversion H1; auto with itree.
       + rewrite <- H in H3. discriminate.
       + rewrite <- H2 in H5. discriminate.
       + rewrite <- H2 in H4. injection H4; intros; subst.
@@ -247,7 +247,7 @@ Section ITreeDijkstra.
   Proof.
     repeat red. pcofix CIH.  intros s1 s2 H12 s3 s4 H34.
     pfold. red. unfold app. pinversion H12.
-    - simpl. destruct s3. destruct s4. pinversion H34; simpl in *; subst; auto.
+    - simpl. destruct s3. destruct s4. pinversion H34; simpl in *; subst; auto with itree.
       constructor. left. eapply paco2_mon; eauto. intuition.
     - cbn. constructor. right. apply CIH; auto.
   Qed.
@@ -279,14 +279,14 @@ Section ITreeDijkstra.
     | forall_nil : forall_streamF P F NilF
     | forall_cons (h : A) (t : stream A) : P h -> F t -> forall_streamF P F (ConsF h t).
 
-  Hint Constructors forall_streamF : core.
+  Hint Constructors forall_streamF : itree.
 
   Definition forall_stream_ {A : Type} (P : A -> Prop) (F : stream A -> Prop) : stream A -> Prop :=
     fun s => forall_streamF P F (observe_stream s).
 
   Lemma forall_stream_monot (A : Type) (P : A -> Prop) : monotone1 (forall_stream_ P).
   Proof.
-    red. intros. red. red in IN. destruct IN; auto.
+    red. intros. red. red in IN. destruct IN; auto with itree.
   Qed.
 
   Hint Resolve forall_stream_monot : paco.
@@ -298,14 +298,14 @@ Section ITreeDijkstra.
     | cons_found (h : A) (t : stream A) : P h -> F t -> inf_manyF P F (ConsF h t)
   .
 
-  Hint Constructors inf_manyF : core.
+  Hint Constructors inf_manyF : itree.
 
   Definition inf_many_ {A : Type} (P : A -> Prop) (F : stream A -> Prop) : stream A -> Prop :=
     fun s => inf_manyF P F (observe_stream s).
 
   Lemma inf_many_monot (A : Type) (P : A -> Prop) : monotone1 (inf_many_ P).
   Proof.
-    red. intros. red in IN. red. induction IN; auto.
+    red. intros. red in IN. red. induction IN; auto with itree.
   Qed.
 
   Hint Resolve inf_many_monot : paco.
@@ -317,8 +317,8 @@ Section ITreeDijkstra.
   Proof.
     intros A P. pcofix CIH. intros s Him.
     punfold Him. red in Him. pfold. red.
-    induction Him; auto. pclearbot.
-    auto.
+    induction Him; auto with itree. pclearbot.
+    auto with itree.
   Qed.
 
   Lemma inf_and_forall : forall (A : Type) (P : A -> Prop) (s : stream A),
@@ -352,7 +352,7 @@ Section ITreeDijkstra.
         eqitEF RR sim ot1 (observe t2) ->
         eqitEF RR sim ot1 (TauF t2).
 
-  Hint Constructors eqitEF : core.
+  Hint Constructors eqitEF : itree.
 
   Definition eqitE_ (E1 E2 : Type -> Type) (R1 R2 : Type) (RR : R1 -> R2 -> Prop)
              (sim : itree E1 R1 -> itree E2 R2 -> Prop)
@@ -364,7 +364,7 @@ Section ITreeDijkstra.
   Lemma eqitE_monot {E1 E2 R1 R2 RR} : monotone2  (@eqitE_ E1 E2 R1 R2 RR).
   Proof.
     repeat red. intros. rename x0 into t1. rename x1 into t2.
-    induction IN; eauto.
+    induction IN; eauto with itree.
   Qed.
 
   Hint Resolve eqitE_monot : paco.
@@ -375,19 +375,19 @@ Section ITreeDijkstra.
     | eventlessRet (r : R) : eventlessF F (RetF r)
     | eventlessTau (t : itree E R) : F t -> eventlessF F (TauF t).
 
-  Hint Constructors eventlessF : core.
+  Hint Constructors eventlessF : itree.
 
   Definition eventless_ {E : Type -> Type} {R : Type} (F : itree E R -> Prop)
     : itree E R -> Prop := fun t => eventlessF F (observe t).
 
-  Hint Unfold eventless_ : core.
+  Hint Unfold eventless_ : itree.
 
   Definition eventless {E : Type -> Type} {R : Type} : itree E R -> Prop :=
     paco1 (eventless_) bot1.
 
   Lemma eventless_monot {E1 R} : monotone1 (@eventless_ E1 R).
   Proof.
-    red. intros. red in IN. red. inversion IN; auto.
+    red. intros. red in IN. red. inversion IN; auto with itree.
   Qed.
 
   Hint Resolve eventless_monot : paco.
@@ -398,8 +398,8 @@ Section ITreeDijkstra.
     intros t1 t2 Heutt Hev.
     pfold. punfold Heutt.  red.
     unfold_eqit. assert (Hev' : eventless t1); auto. punfold Hev.
-    dependent induction Heutt; subst; auto.
-    - rewrite <- x. auto.
+    dependent induction Heutt; subst; auto with itree.
+    - rewrite <- x. auto with itree.
     - rewrite <- x. constructor. right. eapply CIH; eauto.
       specialize (itree_eta t1) as Ht1. rewrite <- x0 in Ht1.
       rewrite Ht1. rewrite tau_eutt. pclearbot. auto.
@@ -409,7 +409,7 @@ Section ITreeDijkstra.
     - red in Hev. rewrite <- x in Hev. inversion Hev; subst.
       pclearbot. eapply IHHeutt; try apply H0; eauto. red.
       punfold H0.
-    - rewrite <- x. constructor. right. eapply CIH; eauto.
+    - rewrite <- x. constructor. right. eapply CIH; eauto with itree.
   Qed.
 
   Instance proper_eventless {E1 R} : Proper (eutt eq ==> iff) (@eventless E1 R).
@@ -475,9 +475,8 @@ Section ITreeDijkstra.
   Proof.
     intros E1 R1 R2 RR. pcofix CIH.
     intros t1 t2 Heq. pfold. punfold Heq.
-    red. red in Heq. induction Heq; auto.
-    pclearbot. constructor. right. apply CIH.
-    auto.
+    red. red in Heq. induction Heq; auto with itree.
+    pclearbot. constructor. right. apply CIH. auto.
   Qed.
 
   Lemma eqitE_imp_eventlessl : forall (E1 E2 : Type -> Type) (R1 R2 : Type)
@@ -487,7 +486,7 @@ Section ITreeDijkstra.
   Proof.
     intros E1 E2 R1 R2 RR. pcofix CIH.
     intros. punfold H0. red in H0.
-    pfold. red. induction H0; eauto.
+    pfold. red. induction H0; eauto with itree.
     pclearbot.
     constructor. right. eapply CIH; eauto.
   Qed.
@@ -499,7 +498,7 @@ Section ITreeDijkstra.
   Proof.
     intros E1 E2 R1 R2 RR. pcofix CIH.
     intros. punfold H0. red in H0.
-    pfold. red. induction H0; eauto.
+    pfold. red. induction H0; eauto with itree.
     pclearbot.
     constructor. right. eapply CIH; eauto.
   Qed.
@@ -527,7 +526,7 @@ Section ITreeDijkstra.
   Proof.
     intros E1 E2 A. pcofix CIH. intros.
     pfold. red. pinversion H0.
-    - cbn. unfold remove_events. rewrite <- H1. cbn. auto.
+    - cbn. unfold remove_events. rewrite <- H1. cbn. auto with itree.
     - unfold remove_events. rewrite <- H. cbn. constructor. right. apply CIH.
       auto.
   Qed.
@@ -549,7 +548,7 @@ Section ITreeDijkstra.
       eventless d.
   Proof.
     intros A. pcofix CIH. intros.
-    pfold. red. destruct (observe d); auto.
+    pfold. red. destruct (observe d); auto with itree.
     destruct e.
   Qed.
 
@@ -633,10 +632,9 @@ Section ITreeDijkstra.
   Proof.
     intros E1 E2 E3 E4 R1 R2 RR. pcofix CIH. intros.
     punfold H0. red in H0. pfold. red. unfold remove_events.
-    induction H0; cbn; auto.
+    induction H0; cbn; auto with itree.
     pclearbot. constructor. right. apply CIH; auto.
   Qed.
-
 
   Lemma eqitE_trans : forall (E1 E2 E3 : Type -> Type) (R : Type)
                              (t1 : itree E1 R) (t2 : itree E2 R) (t3 : itree E3 R),
@@ -667,7 +665,7 @@ Section ITreeDijkstra.
   Proof.
     intros E1 E2 R. pcofix CIH. intros.
     punfold H0. red in H0. pfold. red.
-    induction H0; eauto.
+    induction H0; eauto with itree.
     pclearbot. constructor. right. apply CIH; auto.
   Qed.
 

@@ -216,7 +216,7 @@ Section PrintMults.
     assert (k0 tt ⊑ kp n).
     { clear Heqkp. pinversion Href. ddestruction; subst.
       unfold resum, ReSum_id, id_, Id_IFun in *. inversion H1. ddestruction; subst.
-      assert (RAnsRef IO unit nat (evans nat Read n) tt Read n); auto.
+      assert (RAnsRef IO unit nat (evans nat Read n) tt Read n); auto with itree.
       apply H6 in H. pclearbot. auto.
     }
     clear Href ev. subst. rewrite bind_ret_l in H. simpl in *. rewrite interp_state_bind in H.
@@ -271,7 +271,7 @@ Section PrintMults.
     inversion H; ddestruction; subst; ddestruction; try contradiction.
     subst. specialize (H0 tt tt).
     destruct a.
-    prove_arg H0; auto. pclearbot.
+    prove_arg H0; auto with itree. pclearbot.
     match type of H0 with
       paco2 _ bot2 ?tr ?t => assert (Hk1 : tr ⊑ t); auto end.
     rewrite <- x. constructor; auto.

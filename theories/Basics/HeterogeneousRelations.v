@@ -750,3 +750,22 @@ Proof.
   cbn in *. unfold diagonal_prop in *; tauto.
 Qed.
 
+(* With the current state of the monad theory, we cannot prove the laws generically.
+   We specialize things to [failT (itree E)] until we generalize [Eq1] to be parameterized
+   by the underlying relation on returned values.
+ *)
+Definition option_rel {X : Type} (R : relation X) : relation (option X) :=
+  fun mx my => match mx,my with
+            | Some x, Some y => R x y
+            | None, None => True
+            | _, _ => False
+            end.
+Hint Unfold option_rel : core.
+
+Lemma option_rel_eq : forall {A : Type},
+    eq_rel (@eq (option A)) (option_rel eq).
+Proof.
+  intros ?; split; intros [] [] EQ; subst; try inv EQ; cbn; auto.
+Qed.
+
+#[global] Hint Unfold option_rel : core.

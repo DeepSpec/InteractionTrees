@@ -214,7 +214,7 @@ Inductive interleaved
     (forall (x : U), interleaved (k1 x) (k2 x)) ->
     interleaved (t >>= k1) (interp (handle (case_ f inr_)) t >>= k2)
 .
-Hint Constructors interleaved: core.
+#[local] Hint Constructors interleaved : itree.
 
 Let hg := @case_ _ Handler _ _ _ _ _ g inr_.
 Let hf := @case_ _ Handler _ _ _ _ _ f inr_.
@@ -264,7 +264,6 @@ Qed.
 End DinatSimulation.
 
 Local Opaque eutt.
-Local Transparent ITree.trigger.
 
 Instance IterDinatural_Handler : IterDinatural Handler sum1.
 Proof.
@@ -295,8 +294,6 @@ Proof.
   apply interleaved_mrec.
   do 2 constructor.
 Qed.
-
-Local Opaque ITree.trigger.
 
 Import Recursion.
 

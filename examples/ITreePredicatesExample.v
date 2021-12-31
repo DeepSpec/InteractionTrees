@@ -109,7 +109,7 @@ Section Proper.
     destruct (observe x); inv H0; try discriminate; pclearbot; simpl;
       try (gstep; constructor; eauto with paco; fail).
     ddestruction.
-    destruct e; gstep; econstructor; eauto with paco.
+    destruct e; gstep; econstructor; eauto with paco itree.
   Qed.
 
   End Proper.

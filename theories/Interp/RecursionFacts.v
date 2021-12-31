@@ -89,7 +89,7 @@ Proof.
   - apply reflexivity.
   - econstructor. eauto with paco.
   - econstructor. gbase. eapply CIH. apply eqit_bind; auto; reflexivity.
-  - econstructor. gstep; constructor. auto with paco.
+  - econstructor. gstep; constructor. auto with paco itree.
 Qed.
 
 Theorem interp_mrec_bind {U T} (t : itree _ U) (k : U -> itree _ T) :
@@ -196,10 +196,10 @@ Proof.
   3: { destruct e; gstep; constructor.
     + gfinal; left. apply CIH.
       eapply eutt_clo_bind; eauto.
-      intros ? _ []. auto.
-    + gstep; constructor. auto with paco.
+      intros ? _ []. auto with itree.
+    + gstep; constructor. auto with paco itree.
   }
-  1,2: gstep; constructor; auto with paco.
+  1,2: gstep; constructor; auto with paco itree.
   1,2: rewrite unfold_interp_mrec, tau_euttge; auto.
 Qed.
 
@@ -241,7 +241,7 @@ Proof.
   3: { destruct e; gstep; constructor.
     + gfinal; left. apply CIH.
       eapply eqit_bind; auto. apply Hfg.
-    + gstep; constructor. auto with paco.
+    + gstep; constructor. auto with paco itree.
   }
   1,2: gstep; constructor; auto with paco.
   1: rewrite unfold_interp_mrec, tau_euttge; auto.

@@ -127,7 +127,7 @@ Proof.
   destruct Hlr; cbn; subst; try discriminate; pclearbot; try (gstep; constructor; eauto with paco; fail).
   guclo eqit_clo_bind. econstructor; [eapply Hfg|].
   intros ? _ [].
-  gstep; econstructor; eauto with paco.
+  gstep; econstructor; eauto with paco itree.
 Qed.
 
 #[global]
@@ -155,7 +155,7 @@ Proof.
   - gstep. constructor. eauto with paco.
   - guclo eqit_clo_bind; econstructor; [apply H|].
     intros; subst.
-    gstep; constructor; eauto with paco.
+    gstep; constructor; eauto with paco itree.
   - rewrite tau_euttge, unfold_interp. auto.
   - rewrite tau_euttge, unfold_interp. auto.
 Qed.
@@ -177,11 +177,10 @@ Proof.
   - gstep. constructor. eauto with paco.
   - guclo eqit_clo_bind; econstructor; [apply H|].
     intros; subst.
-    gstep; constructor; eauto with paco.
+    gstep; constructor; eauto with paco itree.
   - rewrite tau_euttge, unfold_interp. auto.
   - discriminate.
 Qed.
-
 
 #[global]
 Instance eutt_interp' {E F : Type -> Type} {R : Type} (RR: R -> R -> Prop) (f : E ~> itree F) :
@@ -198,13 +197,9 @@ Proof.
   - estep.
   - ebind; econstructor.
     + reflexivity.
-    + intros; subst.
-      estep.
-      ebase.
-  - rewrite tau_euttge, unfold_interp.
-    eauto.
-  - rewrite tau_euttge, unfold_interp.
-    eauto.
+    + intros; subst. estep. ebase.
+  - rewrite tau_euttge, unfold_interp. eauto.
+  - rewrite tau_euttge, unfold_interp. eauto.
 Qed.
 
 #[global]

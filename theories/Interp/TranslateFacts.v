@@ -75,7 +75,7 @@ Proof.
   rewrite itree_eta, (itree_eta (translate h y)), !unfold_translate, <-!itree_eta.
   punfold H. gstep. red in H |- *.
   destruct (observe x); dependent destruction H; try discriminate;
-    pclearbot; simpobs; simpl; eauto 7 with paco.
+    pclearbot; simpobs; simpl; eauto 7 with paco itree.
 Qed.
 
 #[global]
@@ -104,7 +104,7 @@ Proof.
   destruct (observe t); cbn.
   - apply reflexivity.
   - gstep. constructor. eauto with paco.
-  - gstep. constructor. eauto with paco.
+  - gstep. constructor. eauto with paco itree.
 Qed.
 
 Lemma translate_id : forall E R (t : itree E R), translate (id_ _) t ≅ t.
@@ -180,7 +180,7 @@ Proof.
   destruct Hlr; cbn; try discriminate; pclearbot.
   - gstep. constructor; auto.
   - gstep. constructor; auto with paco.
-  - rewrite Hfg. gstep. constructor; red; auto with paco.
+  - rewrite Hfg. gstep. constructor; red; auto with paco itree.
 Qed.
 
 #[global]
@@ -196,7 +196,7 @@ Proof.
   induction H1; intros; subst; simpl.
   - gstep. econstructor. eauto.
   - gstep. econstructor. pclearbot. eauto with paco.
-  - gstep. rewrite H. econstructor. pclearbot. red. eauto 7 with paco.
+  - gstep. rewrite H. econstructor. pclearbot. red. eauto 7 with paco itree.
   - rewrite tau_euttge, unfold_translate. eauto.
   - rewrite tau_euttge, unfold_translate. eauto.
 Qed.
@@ -226,8 +226,8 @@ Proof.
   - estep.
   - estep. 
   - estep; intros ?; ebase.
-  - rewrite tau_euttge, unfold_translate. eauto.
-  - rewrite tau_euttge, unfold_translate. eauto.
+  - rewrite tau_euttge, unfold_translate. eauto with itree.
+  - rewrite tau_euttge, unfold_translate. eauto with itree.
 Qed. 
 
 Lemma translate_trigger {E F G} `{E -< F} :

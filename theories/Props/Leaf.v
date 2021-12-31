@@ -37,7 +37,7 @@ Inductive Leaf {E} {A: Type} (a: A) : itree E A -> Prop :=
    Leaf a (k x) ->
    Leaf a t
 .
-#[global] Hint Constructors Leaf: core.
+#[global] Hint Constructors Leaf : itree.
 
 Module LeafNotations.
   Notation "a ∈ t" := (Leaf a t) (at level 70).
@@ -111,20 +111,21 @@ Proof.
     red in EQ; rewrite H in EQ; clear H t.
     remember (RetF a); genobs u2 ou.
     hinduction EQ before R; intros; try now discriminate.
-    inv Heqi; eauto.
-    edestruct IHEQ as (b & IN & HR); eauto.
-  -  punfold EQ; red in EQ; rewrite H in EQ; clear H t.
+    + inv Heqi; eauto with itree.
+    + edestruct IHEQ as (b & IN & HR); eauto with itree.
+  - punfold EQ; red in EQ; rewrite H in EQ; clear H t.
     remember (TauF u); genobs u2 ou2.
-    hinduction EQ before R; intros; try discriminate; pclearbot; inv Heqi; eauto.
-    edestruct IHFIN as (? & ? & ?); eauto.
-    edestruct IHEQ as (? & ? & ?); eauto.
-  -  punfold EQ; red in EQ; rewrite H in EQ; clear H t.
+    hinduction EQ before R; intros; try discriminate; pclearbot; inv Heqi.
+    + edestruct IHFIN as (? & ? & ?); [ .. | eexists ]; eauto with itree.
+    + eauto with itree.
+    + edestruct IHEQ as (? & ? & ?); [ .. | eexists ]; eauto with itree.
+  - punfold EQ; red in EQ; rewrite H in EQ; clear H t.
     remember (VisF e k); genobs u2 ou2.
     hinduction EQ before R; intros; try discriminate; pclearbot.
     + revert x FIN IHFIN.
       refine (match Heqi in _ = u return match u with VisF e0 k0 => _ | RetF _ | TauF _ => False end with eq_refl => _ end).
-      intros. edestruct IHFIN as (? & ? & ?); eauto.
-    + edestruct IHEQ as (? & ? & ?); eauto.
+      intros. edestruct IHFIN as (? & ? & ?); [ | eexists ]; eauto with itree.
+    + edestruct IHEQ as (? & ? & ?); [.. | exists x0 ]; eauto with itree.
 Qed.
 
 Lemma Leaf_eutt_r {E A B R}:
@@ -173,21 +174,17 @@ Proof.
   induction FIN; intros t' k' ->; rename t' into t.
   - unfold observe in H; cbn in H.
     desobs t EQ; cbn in *; try congruence.
-    eauto.
+    exists r; auto with itree.
   - unfold observe in H; cbn in H.
-    desobs t EQ; cbn in *; try congruence; eauto.
+    desobs t EQ; cbn in *; try congruence; [ eexists; eauto with itree | ].
     inversion H; clear H; symmetry in H1.
-    edestruct IHFIN as (? & ? & ?).
-    apply H1.
-    eauto.
+    edestruct IHFIN as (? & ? & ?); [ eauto | eexists; eauto with itree ].
   - unfold observe in H; cbn in H.
-    desobs t EQ; cbn in *; try congruence; eauto.
+    desobs t EQ; cbn in *; try congruence; [ eexists; eauto with itree | ].
     revert x FIN IHFIN.
     refine (match H in _ = u return match u with VisF e0 k0 => _ | RetF _ | TauF _ => False end with eq_refl => _ end).
     intros.
-    edestruct IHFIN as (? & ? & ?).
-    reflexivity.
-    eauto.
+    edestruct IHFIN as (? & ? & ?); [ reflexivity | eexists; eauto with itree ].
 Qed.
 
 (** Leaf-aware up-to bind closure
@@ -215,7 +212,7 @@ Section LeafBind.
       : eqit_Leaf_bind_clo b1 b2 r
             (ITree.bind t1 k1) (ITree.bind t2 k2)
     .
-  Hint Constructors eqit_Leaf_bind_clo: core.
+  Hint Constructors eqit_Leaf_bind_clo : itree.
 
   Lemma eqit_Leaf_clo_bind  (RS : R -> S -> Prop) b1 b2 vclo
         (MON: monotone2 vclo)
@@ -233,26 +230,26 @@ Section LeafBind.
     - guclo eqit_clo_trans.
       econstructor; auto_ctrans_eq; try (rewrite <- !itree_eta; reflexivity).
       gbase; cbn.
-      apply REL0; auto.
+      apply REL0; auto with itree.
     - gstep. econstructor.
       gbase.
       apply CIH.
-      econstructor; eauto.
+      econstructor; eauto with itree.
     - gstep. econstructor.
       intros; apply ID; unfold id.
       gbase.
       apply CIH.
-      econstructor; eauto.
+      econstructor; eauto with itree.
     - destruct b1; try discriminate.
       guclo eqit_clo_trans.
       econstructor.
-      3:{ eapply IHEQV; eauto. }
+      3:{ eapply IHEQV; eauto with itree. }
       3,4:auto_ctrans_eq.
       2: reflexivity.
       eapply eqit_Tau_l. rewrite unfold_bind, <-itree_eta. reflexivity.
     - destruct b2; try discriminate.
       guclo eqit_clo_trans.
-      econstructor; auto_ctrans_eq; cycle -1; eauto; try reflexivity.
+      econstructor; auto_ctrans_eq; eauto with itree; try reflexivity.
       eapply eqit_Tau_l. rewrite unfold_bind, <-itree_eta. reflexivity.
   Qed.
 

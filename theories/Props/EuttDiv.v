@@ -40,8 +40,7 @@ Proof.
     assert (ITree.bind (Tau t0) f ≅ Tau (ITree.bind t0 f)); try apply bind_tau.
     setoid_rewrite H1. etau.
   - specialize (itree_eta t) as Ht. rewrite <- H in Ht.
-    cbn. rewrite Ht. rewrite bind_vis. evis. intros.
-    apply euttG_base. left. apply CIHH. apply H0.
+    cbn. rewrite Ht. rewrite bind_vis. evis.
 Qed.   
 
 Lemma eutt_div_subrel : forall (E : Type -> Type) (A B : Type) (R : A -> B -> Prop) 
@@ -71,7 +70,7 @@ Proof.
     apply CIH; auto.
     rewrite H. auto.
   - rewrite <- x0. rewrite <- x. constructor.
-    intros. right. apply CIH; auto.
+    intros. right. apply CIH; auto with itree.
     specialize (itree_eta ta) as Hta. rewrite <- x0 in Hta.
     rewrite Hta in Hdiv. pinversion Hdiv.
     dependent destruction H2. apply H0.

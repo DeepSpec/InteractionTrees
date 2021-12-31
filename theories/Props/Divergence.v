@@ -25,18 +25,18 @@ Set Implicit Arguments.
 Inductive may_divergeF {E X} (P : itree E X -> Prop) : itree' E X -> Prop :=
   | DivTau : forall (t : itree E X), P t -> may_divergeF P (TauF t)
   | DivVis : forall {A} (k : A -> itree E X) (e: E A), (forall (a : A), P (k a)) -> may_divergeF P (VisF e k).
-#[global] Hint Constructors may_divergeF : core.
+#[global] Hint Constructors may_divergeF : itree.
 
 Definition may_diverge_ {E X} sim :=
   fun t1 => @may_divergeF E X sim (observe t1).
-#[global] Hint Unfold may_diverge_ : core.
+#[global] Hint Unfold may_diverge_ : itree.
 
 Lemma may_divergeF_mono {E X} sim sim' x0
       (IN: may_divergeF sim x0)
       (LE: sim <1= sim'):
   @may_divergeF E X sim' x0.
 Proof.
-  intros. induction IN; eauto.
+  intros. induction IN; eauto with itree.
 Qed. 
 
 Lemma may_divergeF__mono {E X} :
@@ -91,7 +91,7 @@ Variant must_divergeF {E : Type -> Type} {A : Type} (F : itree E A -> Prop) : it
   | MDivTau (t : itree E A) : F t -> must_divergeF F (TauF t)
   | MDivVis (B : Type) (k : B -> itree E A) (e : E B) :
       (forall b, F (k b)) -> must_divergeF F (VisF e k).
-#[global] Hint Constructors must_divergeF : core.
+#[global] Hint Constructors must_divergeF : itree.
 
 Definition must_diverge_ {E A} (sim : itree E A -> Prop) t := must_divergeF sim (observe t).
 
@@ -99,7 +99,7 @@ Lemma must_divergeF_mono {E A} (sim sim' : itree E A -> Prop) t
       (IN : must_divergeF sim t)
       (LE : sim <1= sim') : must_divergeF sim' t.
 Proof.
-  induction IN; eauto.
+  induction IN; eauto with itree.
 Qed.
 
 Lemma must_divergeF_mono' {E A} : monotone1 (@must_diverge_ E A).
@@ -111,11 +111,13 @@ Qed.
 
 Definition must_diverge {E A} := paco1 (@must_diverge_ E A) bot1.
 
+#[global] Hint Unfold must_diverge : itree.
+
 Inductive may_converge {E : Type -> Type} {A : Type} (a : A) : itree E A -> Prop :=
 | conv_ret (t : itree E A) : t ≈ Ret a -> may_converge a t
 | conv_vis (t : itree E A ) {B : Type} (e : E B) (k : B -> itree E A) (b : B) :
     t ≈ Vis e k -> may_converge a (k b) -> may_converge a t.
-#[global] Hint Constructors may_converge : core.
+#[global] Hint Constructors may_converge : itree.
 
 #[global]
 Instance eutt_proper_con_converge {A E} {a : A} : Proper (eutt eq ==> iff) (@may_converge E _ a).
@@ -146,7 +148,7 @@ Proof.
       eapply CIH; eauto.
     + constructor. inversion Hdiv. subst. ddestruction.
       subst. intros. right. inversion Hdiv. ddestruction.
-      subst. pclearbot. eapply CIH; eauto. apply H1.
+      subst. pclearbot. eapply CIH; auto with itree.
     + apply IHHt. inversion Hdiv. subst. pclearbot. punfold H0.
     + constructor. left. pfold. apply IHHt. auto.
   - revert t1 t2 Ht. pcofix CIH. intros t1 t2 Ht Hdiv.
@@ -154,11 +156,10 @@ Proof.
     induction Ht.
     + inversion Hdiv.
     + constructor. inversion Hdiv. subst. right.
-      pclearbot.
-      eapply CIH; eauto.
+      pclearbot; eauto.
     + constructor. inversion Hdiv. subst. ddestruction.
       subst. intros. right. inversion Hdiv. subst. ddestruction.
-      subst. pclearbot. eapply CIH; eauto. apply H1.
+      subst. pclearbot. eapply CIH; auto with itree.
     +  constructor. left. pfold. apply IHHt. auto.
     +  apply IHHt. inversion Hdiv. subst. pclearbot. punfold H0.
 Qed.

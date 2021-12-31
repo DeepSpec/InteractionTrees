@@ -45,16 +45,16 @@ Inductive suttF (sutt: itree' E R1 -> itree' E R2 -> Prop) :
       (EQTAUS: sutt (observe t1) ot2):
     suttF sutt (TauF t1) ot2
 .
-Hint Constructors suttF: core.
+Hint Constructors suttF : itree.
 
 Definition sutt (t1 : itree E R1) (t2 : itree E R2) :=
   paco2 suttF bot2 (observe t1) (observe t2).
-Hint Unfold sutt: core.
+Hint Unfold sutt : itree.
 
 End SUTT.
 
-Global Hint Constructors suttF: core.
-Global Hint Unfold sutt: core.
+Global Hint Constructors suttF : itree.
+Global Hint Unfold sutt : itree.
 
 Section SUTT_rel.
 
@@ -63,7 +63,7 @@ Context {E : Type -> Type} {R : Type} (RR : R -> R -> Prop).
 Lemma reflexive_suttF `{Reflexive _ RR} sutt (r1:Reflexive sutt) : Reflexive (@suttF E _ _ RR sutt).
 Proof.
   unfold Reflexive. intros x.
-  destruct x; eauto.
+  destruct x; eauto with itree.
 Qed.
 
 End SUTT_rel.
@@ -73,7 +73,7 @@ Section SUTT_facts.
 Context {E : Type -> Type} {R1 R2 : Type} (RR : R1 -> R2 -> Prop).
 
 Lemma monotone_suttF : monotone2 (@suttF E _ _ RR).
-Proof. repeat red; intros. induction IN; eauto. Qed.
+Proof. repeat red; intros. induction IN; eauto with itree. Qed.
 Hint Resolve monotone_suttF : paco.
 
 End SUTT_facts.
@@ -136,7 +136,7 @@ Lemma suttF_inv_tau_left {E R1 R2} (RR : R1 -> R2 -> Prop) :
 Proof.
   intros.
   remember (TauF t1) as ott1.
-  induction H; intros; subst; try dependent destruction Heqott1; eauto.
+  induction H; intros; subst; try dependent destruction Heqott1; eauto with itree.
   pclearbot. punfold EQTAUS. 
 Qed.
 
@@ -156,8 +156,8 @@ Theorem sutt_eutt {E R1 R2} (RR : R1 -> R2 -> Prop) :
 Proof.
   pcofix CIH. intros.
   punfold H0. punfold H. pstep. red.
-  induction H0; intros; subst; auto.
-  - constructor. intro. right. eapply suttF_inv_vis in H. pclearbot. eauto with paco.
+  induction H0; intros; subst; auto with itree.
+  - constructor. intro. right. eapply suttF_inv_vis in H. pclearbot. eauto with paco itree.
   - constructor; eauto. eapply IHsuttF; auto. eapply suttF_inv_tau_left; auto.
   - (* doing induction when one of the trees is a tau doesn't work well *)
     inv H; pclearbot.
@@ -165,7 +165,7 @@ Proof.
       hinduction EQTAUS0 before CIH; intros; subst; pclearbot.
       * constructor; eauto. simpobs. constructor. eauto.
       * constructor; eauto. simpobs. constructor. intros.
-        right. apply CIH; auto. eapply sutt_inv_vis in EQTAUS; eauto.
+        right. apply CIH; auto with itree. eapply sutt_inv_vis in EQTAUS; eauto with itree.
       * constructor; eauto. simpobs. eapply IHEQTAUS0; eauto.
         rewrite (itree_eta' ot1). apply sutt_inv_tau_left; auto.
       * constructor. right. apply CIH; auto. apply sutt_elim_tau_right; auto.
@@ -178,7 +178,7 @@ Theorem eutt_sutt {E R1 R2} (RR : R1 -> R2 -> Prop) :
 Proof.
   pcofix CIH. pstep. intros.
   punfold H0. red in H0.
-  induction H0; constructor; pclearbot; eauto 7 with paco.
+  induction H0; constructor; pclearbot; eauto 7 with paco itree.
 Qed.
 
 (** Generalized heterogeneous version of [eutt_bind] *)
@@ -192,7 +192,7 @@ Proof.
   punfold H0. unfold observe; cbn.
   induction H0; intros.
   - simpl. apply H1 in H. punfold H. eapply monotone_suttF; eauto using upaco2_mon_bot.
-  - simpl. pclearbot. econstructor. eauto.
+  - simpl. pclearbot. econstructor. eauto with itree.
   - constructor. eauto with paco.
   - constructor. pclearbot.
     right. specialize (self t0 (go ot2) EQTAUS _ _ H1).
@@ -213,10 +213,10 @@ Proof.
   - dependent destruction H0; try discriminate.
     dependent destruction H1; try discriminate.
     simpobs. pclearbot.
-    constructor. intros. right. eauto 7 with paco.
+    constructor. intros. right. eauto 7 with paco itree.
   - dependent destruction H1; try discriminate.
-    simpobs. pclearbot. punfold REL.
+    simpobs. pclearbot. punfold REL. auto with itree.
   - dependent destruction H0; try discriminate.
     simpobs. pclearbot. constructor.
-    right. rewrite (itree_eta' ot2) in *. eauto.
+    right. rewrite (itree_eta' ot2) in *. eauto with itree.
 Qed.

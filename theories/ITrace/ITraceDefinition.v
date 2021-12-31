@@ -46,12 +46,12 @@ Variant REvRef (E : Type -> Type) : forall (A B : Type), EvAns E A -> E B -> Pro
   | rer {A : Type} (e : E A) (a : A) : REvRef E unit A (evans A e a) e
   | ree {A : Type} (e : E A) (Hempty : A -> void) : REvRef E void A (evempty A Hempty e) e
 .
-#[global] Hint Constructors REvRef : core.
+#[global] Hint Constructors REvRef : itree.
 
 (*shouldn't need an empty case*)
 Variant RAnsRef (E : Type -> Type) : forall (A B : Type), EvAns E A -> A -> E B -> B -> Prop :=
   | rar {A : Type} (e : E A) (a : A) : RAnsRef E unit A (evans A e a) tt e a.
-#[global] Hint Constructors RAnsRef : core.
+#[global] Hint Constructors RAnsRef : itree.
 
 Definition trace_refine {E R}  (t : itree E R) (b : itrace E R)  :=
    rutt (REvRef E) (RAnsRef E) eq b t.
