@@ -18,7 +18,7 @@ build: [
 
 depends: [
   "ocaml"
-  "coq" {>= "8.10"}
+  "coq" {>= "8.12"}
   "coq-ext-lib" {>= "0.11.1"}
   "coq-paco" {>= "4.0.1"}
   "dune" {>= "2.6"}
