@@ -487,19 +487,17 @@ Section ProdRelFacts.
     #[global]
     Instance prod_rel_PER `{PER _ RR} `{PER _ SS} : @PER _ (RR ⊗ SS).
     Proof.
-      constructor. destruct H, H0.
-      eapply SymmetricH_Symmetric.
-      Typeclasses eauto := 5.
-      eapply prod_rel_sym.
-      eapply TransitiveH_Transitive.
-      eapply prod_rel_trans.
-      Unshelve.
-      eapply SymmetricH_Symmetric; eauto.
-      eapply SymmetricH_Symmetric; eauto.
-      destruct H, H0.
-      eapply TransitiveH_Transitive; eauto.
-      destruct H, H0.
-      eapply TransitiveH_Transitive; eauto.
+      constructor.
+      - destruct H, H0.
+        eapply SymmetricH_Symmetric.
+        eapply @prod_rel_sym; [ eapply SymmetricH_Symmetric; eauto .. | ].
+        eapply SymmetricH_Symmetric; eauto.
+      - eapply TransitiveH_Transitive.
+        eapply @prod_rel_trans.
+        + destruct H, H0.
+          eapply TransitiveH_Transitive; eauto.
+        + destruct H, H0.
+          eapply TransitiveH_Transitive; eauto.
     Qed.
 
   End Equivalence.
