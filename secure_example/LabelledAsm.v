@@ -189,6 +189,8 @@ Section Denote.
 
 
   Section with_event.
+    (* Context (Labels : Lattice). *)
+    (* could use a slight generalization sensitivity_lat to Lattice *)
 
     (** As with _Imp_, we parameterize our semantics by a universe of events
         that shall encompass all the required ones. *)

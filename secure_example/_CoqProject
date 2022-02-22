@@ -17,3 +17,10 @@ LabelledImp2AsmCorrectness.v
 LabelledImpTypes.v
 LabelledImpTypesProgInsens.v
 LabelledImp2AsmNoninterferencePres.v
+
+LabelledImpInline.v
+LabelledImpInline2Asm.v
+LabelledImpInline2AsmCorrectness.v
+LabelledImpInline2AsmNoninterferencePres.v
+LabelledImpInlineTypes.v
+LabelledImpInlineTypesProgInsens.v
