@@ -76,6 +76,9 @@ workflows:
         name: "Coq 8.14"
         coq: "8.14"
     - test:
+        name: "Coq 8.15"
+        coq: "8.15"
+    - test:
         name: "Coq dev"
         coq: "dev"
     - test-with-make:
