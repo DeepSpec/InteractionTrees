@@ -108,7 +108,7 @@ Arguments mrec_fix {D E} &.
 Notation "'mrec-fix' f d := g" :=
 	(let D := _ in
 	 mrec_fix (D := D) (fun (f : forall T, D T -> _) T (d : D T) => g))
-  (at level 200, f ident, d pattern).
+  (at level 200, f name, d pattern).
 (* No idea what a good level would be. *)
 
 (** *** Simple recursion *)
@@ -167,5 +167,5 @@ Definition rec_fix {E : Type -> Type} {A B : Type}
 Arguments rec_fix {E A B} &.
 
 Notation "'rec-fix' f a := g" := (rec_fix (fun f a => g))
-  (at level 200, f ident, a pattern).
+  (at level 200, f name, a pattern).
 (* No idea what a good level would be. *)
