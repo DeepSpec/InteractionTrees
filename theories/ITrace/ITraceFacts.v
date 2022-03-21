@@ -7,7 +7,6 @@ From ITree Require Import
      ITreeFacts
      Eq.Rutt
      Props.Divergence
-     Props.EuttDiv
      ITrace.ITraceDefinition
 .
 

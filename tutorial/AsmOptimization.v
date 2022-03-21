@@ -143,13 +143,13 @@ Proof.
     reflexivity.
   }
   intros.
-  inversion H; subst.
-  inversion H3; subst.
+  destruct H as [J1 [J2 J3]]; subst.
   unfold interp_asm.
   unfold interp_map.
+  destruct u2 as [? [? []]].
   rewrite interp_ret.
   do 2 rewrite interp_state_ret.
-  apply eqit_Ret. destruct b3. auto.
+  apply eqit_Ret. auto.
 Qed.
 
 Lemma interp_asm_ret {E A} (x:A) mem reg :
@@ -333,7 +333,8 @@ Section Correctness.
     eapply eutt_clo_bind.
     apply H2; auto.
     intros.
-    inversion H0; subst. inversion H3; subst.
+    destruct H0 as [J1 [J2 J3]].
+    destruct u1 as [? [? []]], u2 as [? [? []]]. cbn in *.
     apply HP; auto.
   Qed.
 
@@ -411,41 +412,40 @@ Proof.
        repeat rewrite interp_ret.
        repeat rewrite interp_state_ret.
        apply eqit_Ret. constructor; auto. 
-    -  intros. inversion H0.
+    -  intros. destruct H0 as [J1 [J2 J3]].
        subst. cbn.
        unfold CategorySub.from_bif, FromBifunctor_ktree_fin.
        repeat rewrite interp_ret.
        repeat rewrite interp_state_ret.
        apply eqit_Ret.
-       inversion H4; subst.
-       constructor; auto. }
+       constructor; cbn; auto. constructor; cbn; auto.
+       rewrite J3. reflexivity. }
 
   intros.
-  inversion H0; subst.
+  destruct H0 as [J1 [J2 J3]]; subst.
   simpl in *.
   unfold denote_bks.
   unfold iter, CategorySub.Iter_sub.
   repeat rewrite interp_iter.
   unfold iter, Iter_Kleisli.
   cbn.
-  pose proof @interp_state_iter'.
-  red in H5.
+  assert (JJ := @interp_state_iter').
+  red in JJ.
   unfold Basics.iter, MonadIter_stateT0, Basics.iter, MonadIter_itree in *.
   cbn in *.
-  repeat rewrite H5.
+  repeat rewrite JJ.
 
-  eapply eutt_iter' with (RI := rel_asm); cbn.
-  2: destruct H4; auto.
-  intros j1 j2 [ ? ? ? ? ? [? ? ? ? ? []]]; cbn.
+  eapply eutt_iter' with (RI := rel_asm); cbn; auto.
+  intros j1 j2 [K1 [K2 ->]]; cbn.
   rewrite !interp_bind, !interp_state_bind, !bind_bind. (* Slow! *)
 
   apply (@eutt_clo_bind _ _ _ _ _ _ rel_asm);
-    [|intros ? ? [? ? ? ? ? [? ? ? ? ? []]]]; cbn.
+    [|intros ? ? [? [? ->]]]; cbn.
   { eapply @peephole_block_correct; eauto. }
 
   unfold CategorySub.to_bif, ToBifunctor_ktree_fin.
   apply (@eutt_clo_bind _ _ _ _ _ _ rel_asm);
-    [|intros ? ? [? ? ? ? ? [? ? ? ? ? []]]]; cbn.
+    [|intros ? ? [? [? ->]]]; cbn.
   {
     rewrite bind_ret_l.
     unfold case_, Case_sum1, Case_Kleisli, case_sum.
@@ -537,7 +537,7 @@ Proof.
       rewrite tau_eutt, 2 interp_state_ret.
       apply eqit_Ret.
       constructor; auto; constructor; auto.
-      auto using EQ_registers_add.
+      cbn; auto using EQ_registers_add.
     * apply Nat.eqb_neq in n.
       rewrite n.
       apply interp_asm_ret_tt; auto.

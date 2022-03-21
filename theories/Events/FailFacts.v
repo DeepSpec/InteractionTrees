@@ -2,13 +2,12 @@
 
 (* begin hide *)
 From Coq Require Import
-     Program
-     Morphisms
-     Relations.
+     Morphisms.
 
 From Paco Require Import paco.
 
 From ITree Require Import
+     Basics.Tacs
      Basics.Basics
      Basics.Category
      Basics.CategoryKleisli
@@ -23,8 +22,7 @@ From ITree Require Import
      Indexed.Sum
      Interp.Interp
      Interp.InterpFacts
-     Interp.RecursionFacts
-     Events.State.
+     Interp.RecursionFacts.
 
 Import ITreeNotations.
 Import ITree.Basics.Basics.Monads.

@@ -338,27 +338,28 @@ Proof.
     + unfold reassoc. unfold body.
       destruct (eutt_reta_or_div (interp_imp (denote_com c) s ) );
       destruct (classic_bool b s); basic_solve.
-      *  do 4 red in H1. unfold interp_imp, interp_map in H1.
-         destruct a as [s'' [] ].
-         eapply Hq.
-         -- cbn. setoid_rewrite bind_bind. rewrite H1.
-            setoid_rewrite bind_ret_l. simpl.
-            setoid_rewrite bind_bind. rewrite <- H0.
-            tau_steps. reflexivity.
-         -- unfold q. left. exists s''. left. reflexivity.
-      * do 4 red in H1. unfold interp_imp, interp_map in H1.
+      * do 2 red in H1. unfold interp_imp, interp_map in H1.
+        destruct a as [s'' [] ].
+        eapply Hq.
+        -- cbn. setoid_rewrite bind_bind.
+           rewrite H1.
+           setoid_rewrite bind_ret_l. simpl.
+           setoid_rewrite bind_bind. rewrite <- H0.
+           tau_steps. reflexivity.
+        -- unfold q. left. exists s''. left. reflexivity.
+      * do 2 red in H1. unfold interp_imp, interp_map in H1.
         destruct a as [s'' [] ].
         eapply Hq.
         -- cbn. rewrite H1. setoid_rewrite bind_bind. setoid_rewrite bind_ret_l.
            simpl. tau_steps. reflexivity.
         -- unfold q. left. exists s. right. split; auto. reflexivity.
-      * do 4 red in H1. unfold interp_imp, interp_map in H1.
+      * do 2 red in H1. unfold interp_imp, interp_map in H1.
         eapply Hq.
         -- cbn. rewrite H1. setoid_rewrite bind_bind. setoid_rewrite bind_ret_l.
            simpl. apply div_spin_eutt in H0. rewrite H0. setoid_rewrite bind_bind.
            rewrite <- spin_bind. reflexivity.
         -- red. right. apply spin_diverge.
-      * do 4 red in H1. unfold interp_imp, interp_map in H1.
+      * do 2 red in H1. unfold interp_imp, interp_map in H1.
         eapply Hq.
         -- cbn. rewrite H1. setoid_rewrite bind_bind. setoid_rewrite bind_ret_l.
            simpl. apply div_spin_eutt in H0.
@@ -382,30 +383,30 @@ Proof.
       try (destruct (eutt_reta_or_div (interp_imp (denote_com c) s0 ) )); basic_solve.
     * eapply Hq.
       -- cbn. rewrite H0. setoid_rewrite bind_ret_l.
-         setoid_rewrite bind_bind. do 4 red in H1. unfold interp_imp, interp_map in H1.
+         setoid_rewrite bind_bind. do 2 red in H1. unfold interp_imp, interp_map in H1.
          rewrite H1. setoid_rewrite bind_ret_l. simpl.
          destruct a as [s1 [] ]. rewrite <- H2. setoid_rewrite bind_bind.
          setoid_rewrite bind_ret_l. simpl. tau_steps. reflexivity.
       -- red. left. destruct a as [s'' [] ]. exists s''. left. reflexivity.
     * eapply Hq.
       -- cbn. rewrite H0. setoid_rewrite bind_ret_l. setoid_rewrite bind_bind.
-         do 4 red in H1. unfold interp_imp, interp_map in H1. rewrite H1.
+         do 2 red in H1. unfold interp_imp, interp_map in H1. rewrite H1.
          setoid_rewrite bind_ret_l. simpl. apply div_spin_eutt in H2. rewrite H2.
          setoid_rewrite bind_bind. rewrite <- spin_bind. reflexivity.
       -- right. apply spin_diverge.
     * destruct a as [s'' [] ]. eapply Hq.
       -- cbn.  rewrite H0. setoid_rewrite bind_ret_l.
-         do 4 red in H1. unfold interp_imp, interp_map in H1. rewrite H1.
+         do 2 red in H1. unfold interp_imp, interp_map in H1. rewrite H1.
          setoid_rewrite bind_bind. setoid_rewrite bind_ret_l. simpl. tau_steps. reflexivity.
       -- left. exists s0. right. split; auto. reflexivity.
     * eapply Hq.
       -- cbn.  rewrite H0. setoid_rewrite bind_ret_l.
-         do 4 red in H1. unfold interp_imp, interp_map in H1. rewrite H1.
+         do 2 red in H1. unfold interp_imp, interp_map in H1. rewrite H1.
          setoid_rewrite bind_bind. setoid_rewrite bind_ret_l. simpl. tau_steps. reflexivity.
       -- left. exists s0. right. split; auto. reflexivity.
-    * do 4 red in H1. do 4 red in H2. rewrite H1 in H2.
+    * do 2 red in H1. do 2 red in H2. rewrite H1 in H2.
       apply eutt_inv_Ret in H2. injection H2. discriminate.
-    * do 4 red in H1. do 4 red in H2. rewrite H1 in H2.
+    * do 2 red in H1. do 2 red in H2. rewrite H1 in H2.
       apply eutt_inv_Ret in H2. injection H2. discriminate.
     * eapply Hq.
       -- cbn.  rewrite H0. setoid_rewrite bind_ret_l.  reflexivity.
@@ -503,7 +504,7 @@ Proof.
           destruct (eutt_reta_or_div (interp_imp (denote_com c) s'' )); basic_solve;
         eapply Hq.
         -- rewrite <- H0. setoid_rewrite bind_ret_l.
-           setoid_rewrite bind_bind. do 4 red in H1.
+           setoid_rewrite bind_bind. do 2 red in H1.
            unfold interp_imp, interp_map in H1. rewrite H1. setoid_rewrite bind_ret_l.
            simpl. setoid_rewrite bind_bind.
            rewrite <- H2. setoid_rewrite bind_ret_l. destruct a as [s3 [] ].
@@ -516,7 +517,7 @@ Proof.
            ++ rewrite H3 in H0. cbn in *; basic_solve; pinversion H0; try discriminate; basic_solve.
            ++ rewrite <- H0 in H3. pinversion H3.
         -- rewrite <- H0. setoid_rewrite bind_ret_l. setoid_rewrite bind_bind.
-           do 4 red in H1. unfold interp_imp, interp_map in H1. rewrite H1.
+           do 2 red in H1. unfold interp_imp, interp_map in H1. rewrite H1.
            setoid_rewrite bind_ret_l. simpl. apply div_spin_eutt in H2.
            setoid_rewrite bind_bind. rewrite H2.
            rewrite <- spin_bind. reflexivity.
@@ -532,7 +533,7 @@ Proof.
            ++ rewrite <- H0 in H3. pinversion H3.
         -- rewrite <- H0. setoid_rewrite bind_ret_l.
            setoid_rewrite bind_bind.
-           do 4 red in H1. unfold interp_imp, interp_map in H1.
+           do 2 red in H1. unfold interp_imp, interp_map in H1.
            rewrite H1. setoid_rewrite bind_ret_l. simpl. tau_steps.
            reflexivity.
         -- unfold q. left. exists s''.
@@ -851,7 +852,7 @@ Section SQRTEx.
     destruct (lookup_default i 0 s * lookup_default i 0 s =? lookup_default n 0 s); simpl.
     - tau_steps. reflexivity.
     - unfold denote_imp. rewrite compute_assign_sc_tree. rewrite bind_ret_l.
-      cbn. tau_steps. rewrite plus_comm. reflexivity.
+      cbn. tau_steps. rewrite Nat.add_comm. reflexivity.
   Qed.
 
   Let body_arrow (s : env) : Delay (env * (unit + unit) ) :=

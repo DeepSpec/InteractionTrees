@@ -29,7 +29,7 @@ Section StateSpecT.
   Context {OrderW : OrderM W}.
   Context {OrderedMonadW : OrderedMonad W}.
   Context {EqW : Eq1 W}.
-  Context {EquivRel : forall A, Equivalence (EqW A) }.
+  Context {EquivRel : forall A, Equivalence (eq1 (A := A)) }.
   Context {MonadLawsW : MonadLawsE W}.
 
   Definition StateSpecT (A : Type) := stateT S W A.
@@ -60,10 +60,9 @@ Section StateSpecT.
       cbn.
       rewrite bind_ret_l. simpl. reflexivity.
     - intros A w. intro. cbn.
-      assert (HH : forall A B (x : A * B), (fst x, snd x) = x).
-      { intros ? ? []; reflexivity. }
-      setoid_rewrite HH.
-      rewrite bind_ret_r. reflexivity.
+      etransitivity; [ | apply bind_ret_r ].
+      eapply Proper_bind; [ reflexivity | ].
+      intros []; reflexivity.
     - intros A B C w f g. intro. cbn. rewrite bind_bind. reflexivity.
     - intros A B w1 w2 Hw k1 k2 Hk.
       cbn. do 2 red. intros. do 2 red in Hw. rewrite Hw. do 3 red in Hk.

@@ -4,28 +4,21 @@
 Set Implicit Arguments.
 Set Contextual Implicit.
 
-From Coq Require Import
-     Morphisms
-     Setoid
-     RelationClasses.
+From Coq Require Import Morphisms.
 
 From ExtLib Require Import
      Core.RelDec.
 
 From ExtLib.Structures Require
-     Functor Monoid Maps.
+     Maps.
 
 From Paco Require Import paco.
 
 From ITree Require Import
-     Basics.Basics
-     Basics.CategoryOps
      Basics.HeterogeneousRelations
      ITree
      ITreeFacts
      Eq.Paco2
-     Indexed.Sum
-     Interp.Interp
      Events.State
      Events.StateFacts
      Events.MapDefault.
@@ -163,7 +156,7 @@ Section MapFacts.
       eutt (prod_rel (@eq_map _ _ _ _ d) eq) (handle_map m s1) ((handle_map m s2) : itree E (map * X)).
   Proof.
     intros.
-    destruct m; cbn; red; apply eqit_Ret; constructor; auto.
+    destruct m; cbn; red; apply eqit_Ret; constructor; cbn; auto.
     - apply eq_map_add. assumption.
     - apply eq_map_remove. assumption.
   Qed.
@@ -196,11 +189,11 @@ Section MapFacts.
     - guclo eqit_clo_bind. econstructor.
       unfold pure_state.
       destruct e.
-      + cbn. eapply eqit_mon; [ | apply handle_map_eq; assumption ].
+      + cbn. eapply eqit_mon; [ exact (fun x => x) .. | | apply handle_map_eq; assumption ].
         auto. auto. intros.  apply PR.
       + cbn. apply eqit_Vis. intros.  apply eqit_Ret. constructor; auto.
       + intros. destruct u1. destruct u2. cbn.
-        inversion H. subst.
+        destruct H as [H1 H2]; cbn in H1, H2; subst.
         gstep; constructor.
         gbase. apply CH. assumption.
   Qed.
@@ -228,8 +221,7 @@ Section MapFacts.
         unfold pure_state.
         pstep. econstructor. intros. constructor. pfold. econstructor. constructor; auto.
       } 
-      intros.
-      inversion H. subst.
+      intros. destruct H as [HH1 ->].
       estep; constructor. ebase.
     - rewrite tau_euttge, unfold_interp_state.
       eauto.

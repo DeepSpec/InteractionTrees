@@ -5,6 +5,7 @@ From Paco Require Import
      paco.
 
 From ITree Require Import
+     Basics.Tacs
      Axioms
      Core.ITreeDefinition
      Eq.Eqit

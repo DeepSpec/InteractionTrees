@@ -45,11 +45,11 @@ Section RelationH_Operations.
   | inr_morphism b1 b2 : RB b1 b2 -> sum_rel RA RB (inr b1) (inr b2).
 
   (** Logical relation for the [prod] type. *)
-  Variant prod_rel {A1 A2 B1 B2 : Type}
+  Record prod_rel {A1 A2 B1 B2 : Type}
       (RA : relationH A1 A2) (RB : relationH B1 B2)
-    : relationH (A1 * B1) (A2 * B2) :=
-  | prod_morphism a1 a2 b1 b2 : RA a1 a2 -> RB b1 b2 -> prod_rel RA RB (a1, b1) (a2, b2)
-  .
+      (p1 : A1 * B1) (p2 : A2 * B2) : Prop := prod_morphism
+  { fst_rel : RA (fst p1) (fst p2)
+  ; snd_rel : RB (snd p1) (snd p2) }.
 
 End RelationH_Operations.
 
@@ -58,7 +58,8 @@ End RelationH_Operations.
 
 Arguments inl_morphism {A1 A2 B1 B2 RA RB}.
 Arguments inr_morphism {A1 A2 B1 B2 RA RB}.
-Arguments prod_morphism {A1 A2 B1 B2 RA RB}.
+Arguments fst_rel {A1 A2 B1 B2 RA RB}.
+Arguments snd_rel {A1 A2 B1 B2 RA RB}.
 
 Arguments rel_compose [A B C] S R.
 Arguments subrelationH [A B] R S.
@@ -475,8 +476,6 @@ Section ProdRelFacts.
       apply TransitiveH_Transitive in H. apply TransitiveH_Transitive in H0.
       unfold TransitiveH in *.
       inversion H1; inversion H2; subst; eauto; inversion H9; subst.
-      split. inversion H9.  eapply H;  eauto.
-      eapply H0; eauto.
     Qed.
 
     #[global]
@@ -525,7 +524,7 @@ Section ProdRelFacts.
   Proof.
     intros.
     unfold eq_rel; split; unfold subrelationH; intros.
-    - destruct x, y. repeat red in H. destruct H. cbn.  subst; reflexivity.
+    - destruct x, y. repeat red in H. destruct H. cbn in *; subst; reflexivity.
     - destruct x; destruct y. cbn in H. repeat red. inversion H. split; reflexivity.
   Qed.
 
@@ -553,20 +552,15 @@ Section ProdRelFacts.
     : (S ∘ R) ⊗ (U ∘ T) ≡ (S ⊗ U) ∘ (R ⊗ T).
   Proof.
     split; intros!.
-    - destruct x, y. repeat red. repeat red in H. destruct H.
-      unfold fst, snd. cbn in H, H0.
-      edestruct H as (b & HR & HS).
-      edestruct H0 as (e & HT & HU).
+    - destruct x, y. repeat red. repeat red in H. destruct H as [H1 H2].
+      unfold fst, snd. cbn in H1, H2.
+      edestruct H1 as (b & HR & HS).
+      edestruct H2 as (e & HT & HU).
       exists (b, e). split; cbn; split; eauto.
-    - destruct x, y. repeat red. repeat red in H. destruct H.
-      unfold fst, snd in H. destruct H.
-      cbn.
-      split. exists (fst x). split.
-      destruct x. cbn. cbn in H. inversion H ; inversion H0; subst. tauto.
-      inversion H; inversion H0; inversion H8; subst. inversion H8. subst.
-      cbn; auto.
-      inversion H; inversion H0. subst. inversion H8. subst.
-      esplit. split; eauto.
+    - destruct x, y. repeat red. repeat red in H. destruct H as [x [H1 H2]].
+      split.
+      + exists (fst x). cbn; split; [apply H1|apply H2].
+      + exists (snd x). cbn; split; [apply H1|apply H2].
   Qed.
 
   #[global]
@@ -760,7 +754,7 @@ Definition option_rel {X : Type} (R : relation X) : relation (option X) :=
             | None, None => True
             | _, _ => False
             end.
-Hint Unfold option_rel : core.
+#[export] Hint Unfold option_rel : core.
 
 Lemma option_rel_eq : forall {A : Type},
     eq_rel (@eq (option A)) (option_rel eq).
@@ -768,4 +762,4 @@ Proof.
   intros ?; split; intros [] [] EQ; subst; try inv EQ; cbn; auto.
 Qed.
 
-#[global] Hint Unfold option_rel : core.
+#[export] Hint Unfold option_rel : core.

@@ -2,6 +2,7 @@
 
 (* begin hide *)
 From ITree Require Import
+     Basics.Tacs
      ITree
      Eq.Shallow
      Eq.Eqit.

@@ -287,8 +287,6 @@ Ltac hexploit x := eapply hexploit_mp; [eapply x|].
 Tactic Notation "hinduction" hyp(IND) "before" hyp(H)
   := move IND before H; revert_until IND; induction IND.
 
-Ltac inv H := inversion H; clear H; subst.
-
 Ltac rewrite_everywhere lem :=
   progress ((repeat match goal with [H: _ |- _] => rewrite lem in H end); repeat rewrite lem).
 

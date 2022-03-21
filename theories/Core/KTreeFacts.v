@@ -103,16 +103,6 @@ Qed.
 
 (** ** [iter] *)
 
-Lemma eqit_mon {E R1 R2} (RR RR' : R1 -> R2 -> Prop) b1 b2 :
-  (RR <2= RR') ->
-  (eqit RR b1 b2 <2= @eqit E _ _ RR' b1 b2).
-Proof.
-  intros.
-  eapply paco2_mon_bot; eauto.
-  intros ? ? ?. red.
-  induction 1; auto with itree.
-Qed.
-
 #[global] Instance eq_itree_iter {E A B} :
   @Proper ((A -> itree E (A + B)) -> A -> itree E B)
           ((eq ==> eq_itree eq) ==> pointwise_relation _ (eq_itree eq))
