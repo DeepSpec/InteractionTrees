@@ -4,21 +4,15 @@
 Set Implicit Arguments.
 Set Contextual Implicit.
 
-From Coq Require Import
-     String List.
+From Coq Require Import List.
 Import ListNotations.
 
-From ExtLib Require Import
-     Core.RelDec.
-
-From ExtLib.Structures Require
-     Functor Monoid Maps.
+From ExtLib.Structures Require Maps.
 
 From ITree Require Import
      Basics.Basics
      Basics.CategoryOps
      Basics.MonadState
-     Indexed.Function
      Indexed.Sum
      Core.ITreeDefinition
      Core.Subevent

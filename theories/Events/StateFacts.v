@@ -1,11 +1,7 @@
 (** * Theorems about State effects *)
 
 (* begin hide *)
-From Coq Require Import
-     Program
-     Setoid
-     Morphisms
-     RelationClasses.
+From Coq Require Import Program.Tactics Morphisms.
 
 From Paco Require Import paco.
 
@@ -209,7 +205,7 @@ Proof.
   rewrite 2 interp_state_bind.
   ebind; econstructor.
   - eapply Ht; auto.
-  - intros [s1' i1'] [s2' i2'] [? ? ? ? ? []]; cbn.
+  - intros [s1' i1'] [s2' i2'] [? []]; cbn.
     + rewrite 2 interp_state_tau. auto with paco.
     + rewrite 2 interp_state_ret. auto with paco.
 Qed.
@@ -257,10 +253,9 @@ Proof.
   - rewrite bind_ret_l, 2 interp_state_ret.
     pstep.
     constructor.
-    cbn.
-    split; auto using (proj1 H2).
-  - rewrite bind_ret_l, 2 interp_state_ret. pstep. constructor. cbn.
-    split; auto using (proj1 H2).
+    split; cbn; auto using (proj1 H2).
+  - rewrite bind_ret_l, 2 interp_state_ret. pstep. constructor.
+    split; cbn; auto using (proj1 H2).
 Qed.
 
 (* SAZ: These are probably too specialized. *)

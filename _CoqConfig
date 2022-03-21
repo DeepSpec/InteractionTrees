@@ -90,3 +90,17 @@ theories/Dijkstra/StateDelaySpec.v
 theories/Dijkstra/TracesIT.v
 theories/Dijkstra/ITreeDijkstra.v
 theories/Dijkstra/StateIOTrace.v
+
+theories/Secure/Labels.v
+theories/Secure/StrongBisimProper.v
+theories/Secure/SecureEqHalt.v
+theories/Secure/SecureEqHaltProgInsens.v
+theories/Secure/SecureEqEuttHalt.v
+theories/Secure/SecureEqEuttTrans.v
+theories/Secure/SecureEqWcompat.v
+theories/Secure/SecureEqBind.v
+
+theories/Secure/SecureEqProgInsens.v
+theories/Secure/SecureEqProgInsensFacts.v
+theories/Secure/SecureStateHandler.v
+theories/Secure/SecureStateHandlerPi.v

@@ -4,8 +4,7 @@
 Set Implicit Arguments.
 Set Contextual Implicit.
 
-From Coq Require Import
-     String List.
+From Coq Require Import List.
 Import ListNotations.
 
 From ITree Require Import

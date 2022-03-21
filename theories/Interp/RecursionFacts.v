@@ -10,10 +10,10 @@ Require Import Paco.paco.
 From Coq Require Import
      Program.Tactics
      Setoid
-     Morphisms
-     RelationClasses.
+     Morphisms.
 
 From ITree Require Import
+     Basics.Tacs
      Basics.Category
      Basics.Basics
      Basics.Function

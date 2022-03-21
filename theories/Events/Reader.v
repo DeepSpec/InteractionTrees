@@ -6,8 +6,7 @@
 Set Implicit Arguments.
 Set Contextual Implicit.
 
-From Coq Require Import
-     String List.
+From Coq Require Import List.
 Import ListNotations.
 
 From ITree Require Import
@@ -16,7 +15,6 @@ From ITree Require Import
      Core.ITreeDefinition
      Indexed.Sum
      Core.Subevent
-     Events.Exception
      Interp.Interp
      Interp.Handler.
 (* end hide *)

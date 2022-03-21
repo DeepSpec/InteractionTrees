@@ -3,9 +3,10 @@
 (* begin hide *)
 From ITree Require Import
      ITree
+     Basics.Tacs
      Eq.Eqit
      Leaf.
-From ITree Require Import Nondeterminism Exception. (* For counterexamples *)
+From ITree.Events Require Import Nondeterminism Exception. (* For counterexamples *)
 
 From Paco Require Import paco.
 From Coq Require Import Morphisms Basics Program.Equality.

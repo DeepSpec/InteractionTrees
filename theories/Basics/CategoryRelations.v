@@ -328,11 +328,11 @@ Section Facts.
     Global Instance BimapId_prod_rel : BimapId relationH prod.
     Proof.
       split.
-      cbv; intros ? ? ?; subst; auto.
-      destruct x, y.
-      cbv; intros. inversion H; subst; auto.
-      red. intros. destruct x, y. inversion H. subst. repeat red.
-      repeat red in H. intuition. 
+      - cbv; intros ? ? ?; subst; auto.
+        destruct x, y.
+        cbv; intros. destruct H; cbn in *; subst; auto.
+      - red. intros. destruct x, y. inversion H. subst. repeat red.
+        repeat red in H. intuition. 
     Qed.
 
     Global Instance BimapCat_prod_rel : BimapCat relationH prod.
@@ -340,9 +340,8 @@ Section Facts.
       split.
       - cbv; intros [] [] ([] & H1 & H2).
         inv H1; inv H2; eauto 6.
-      - cbv; intros [] [] H; inv H.
-        destruct H3 as (? & ? & ?), H5 as (? & ? & ?).
-        eauto.
+      - cbv; intros [] [] H. destruct H as [(? & ? & ?) (? & ? & ?)].
+        cbn in *; eexists (_, _); eauto.
     Qed.
 
     Global Instance Bifunctor_prod_rel : Bifunctor relationH prod.
@@ -383,14 +382,14 @@ Section Facts.
       split;
         cbv; intros; repeat (subst || destructn ex || destructn prod || invn @eq || destructn unit || destructn and
                              || invn prod_rel).
-      eexists; intuition subst; eauto.
-      eexists; intuition subst; eauto.
+      - eexists; intuition subst; eauto.
+      - eexists (_, _); constructor; [ constructor; cbn; eauto | auto ].
     Qed.
 
     Global Instance UnitL'Natural_prod_rel : UnitL'Natural relationH prod unit.
     Proof.
       split;
-        cbv; intros; repeat (subst || destructn ex || destructn prod || invn @eq || destructn unit || destructn and
+        cbv; intros; repeat (subst || destructn ex || destructn prod || destructn unit || destructn and
                              || invn prod_rel).
       eexists; intuition subst; eauto.
       exists (tt,x); intuition subst; auto.
@@ -398,21 +397,30 @@ Section Facts.
 
     Global Instance AssocRUnit_prod_rel : AssocRUnit relationH prod unit.
     Proof.
-      split;
-        cbv; intros; repeat (subst || destructn ex || destructn prod || invn @eq || destructn unit || destructn and
-                             || invn prod_rel);
-      econstructor; eauto. split. Unshelve. 3 : { exact ((a0, (tt, b0))). }
-      cbn. intuition. econstructor; reflexivity.
+      split; cbv; intros [[? ?] ?] [].
+      - intros [[? []] [? []]]. intuition. cbn in *; subst. constructor; cbn; auto.
+      - intros []; eexists (_, (u, _)). intuition.
     Qed.
+
+Ltac decomp :=
+  repeat lazymatch goal with
+  | [ H : exists _, _ |- _ ] => destruct H
+  | [ H : _ /\ _ |- _ ] => destruct H
+  | [ H : _ * _ |- _ ] => destruct H
+  | [ H : prod_rel _ _ _ _ |- _ ] =>
+      let H1 := fresh H in let H2 := fresh H in
+      destruct H as [H1 H2]; cbn in H1, H2
+  | [ H : ?x = _ |- _ ] => subst x
+  | [ |- forall _, _ ] => intros
+  | [ |- prod_rel _ _ _ _ ] => constructor; cbn
+  | [ |- _ /\ _ ] => constructor
+  end.
 
     Global Instance AssocRAssocR_prod_rel : AssocRAssocR relationH prod.
     Proof.
-      split;
-        cbv; intros; repeat (subst || destructn ex || destructn prod || invn @eq || destructn unit || destructn and
-                             || invn prod_rel).
-      exists (a1,b1,(c1,d1)); intuition; auto.
-      exists (a1,(b1,c1,d1)); intuition; auto.
-      exists (a1,(b1,c1),d1); intuition; auto.
+      split; cbv; decomp.
+      - eexists (_, _, (_, _)). firstorder congruence.
+      - eexists (_, (_, _, _)); firstorder. eexists (_, (_, _), _). firstorder (cbn; congruence).
     Qed.
 
     Global Instance Monoidal_prod_rel : Monoidal relationH prod unit.
@@ -519,10 +527,10 @@ Section Facts.
           repeat (invn False || subst || destructn ex || destructn and || invn sum_rel
                   || destructn sum || invn @eq || destructn unit).
       - exists (inl (inl a2)); intuition; auto.
-      - exists (inl (inr b0)); intuition; auto.
-      - exists (inr (inl c0)); intuition; auto.
-      - exists (inr (inr d0)); intuition; auto.
-      - exists (inl a1); intuition; auto.
+      - eexists (inl (inr _)); intuition; auto.
+      - eexists (inr (inl _)); intuition; auto.
+      - eexists (inr (inr _)); intuition; auto.
+      - eexists (inl _); intuition; auto.
         exists (inl (inl a1)); intuition; auto.
       - exists (inr (inl (inl b1))); intuition; econstructor; auto.
         split. econstructor. Unshelve. 3 : exact ((inr (inl b1))). intuition; auto.

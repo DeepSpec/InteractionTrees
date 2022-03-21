@@ -1,5 +1,5 @@
 
-Ltac inv H := inversion H; try subst; clear H.
+Ltac inv H := inversion H; clear H; subst.
 
 Global Tactic Notation "intros !" := repeat intro.
 

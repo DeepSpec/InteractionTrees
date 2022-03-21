@@ -1,4 +1,4 @@
-.PHONY: clean all coq test tests examples tutorial hoare_example install uninstall depgraph for-dune
+.PHONY: clean all coq test tests examples tutorial hoare_example secure_example install uninstall depgraph for-dune
 
 COQPATHFILE=$(wildcard _CoqPath)
 
@@ -11,6 +11,7 @@ all:
 	$(MAKE) coq
 	$(MAKE) test
 	$(MAKE) hoare_example
+	$(MAKE) secure_example
 
 install: Makefile.coq coq
 	$(MAKE) -f $< $@
@@ -33,6 +34,8 @@ tutorial:
 hoare_example:
 	$(MAKE) -C hoare_example
 
+secure_example:
+	$(MAKE) -C secure_example
 
 clean: clean-coq
 	$(RM) _CoqProject
@@ -40,6 +43,7 @@ clean: clean-coq
 	$(MAKE) -C examples clean
 	$(MAKE) -C tutorial clean
 	$(MAKE) -C hoare_example clean
+	$(MAKE) -C secure_example clean
 
 _CoqProject: $(COQPATHFILE) _CoqConfig Makefile
 	@ echo "# Generating _CoqProject"
