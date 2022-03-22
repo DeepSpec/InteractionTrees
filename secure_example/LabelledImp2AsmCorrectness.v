@@ -290,8 +290,9 @@ End Simulation_Relation.
     corresponds to the [asm] memory, but to be able to  establish this
     correspondence, we also need to interpret the [asm] register effects.  *)
 
-Section Bisimulation.
+Notation E0 := ((impExcE sensitivity_lat) +' stateE +' (IOE sensitivity_lat)).
 
+Section Bisimulation.
 
   (** Definition of our bisimulation relation.
 
@@ -408,9 +409,11 @@ Section Linking.
 
   Import KTreeFin.
 
+  Context {E} `{Reg -< E, Memory -< E, IOE sensitivity_lat -< E, impExcE sensitivity_lat -< E}.
+
   (** [seq_asm] is denoted as the (horizontal) composition of denotations. *)
   Lemma seq_asm_correct {A B C} (ab : asm A B) (bc : asm B C) :
-      denote_asm (seq_asm ab bc)
+      denote_asm (E := E) (seq_asm ab bc)
     ⩯ denote_asm ab >>> denote_asm bc.
   Proof.
     unfold seq_asm.
@@ -430,23 +433,23 @@ Section Linking.
   Lemma reassoc_seq_asm_exc_B (B C D : nat) (b : fin B) (bc : fin (B + C) ) :
      split_fin_sum B C  bc = inl b -> reassoc_seq_asm_exc (L (D + C) bc) = L (D + C) b.
   Proof.
-    intros. unfold reassoc_seq_asm_exc. cbn.
+    intros HI. unfold reassoc_seq_asm_exc. cbn.
     unfold cat, Cat_sub, cat, Cat_Fun.
     unfold assoc_r, AssocR_Coproduct, case_, Case_sub, case_, Case_Kleisli, case_sum.
     cbn. unfold to_bif, ToBifunctor_Fun_fin. unfold swap, Swap_Coproduct, case_.
-    unfold bimap, Bimap_Coproduct, case_, cat. cbn. rewrite split_fin_sum_L. rewrite H.
+    unfold bimap, Bimap_Coproduct, case_, cat. cbn. rewrite split_fin_sum_L. rewrite HI.
     repeat rewrite split_fin_sum_L. auto.
   Qed.
 
   Lemma reassoc_seq_asm_exc_C_ab (B C D : nat ) (c : fin C) (bc : fin (B + C) ) :
     split_fin_sum B C bc = inr c -> @reassoc_seq_asm_exc B C D (L _ bc ) = R _ (R _ c).
   Proof.
-    intros. unfold reassoc_seq_asm_exc. cbn.
+    intros HI. unfold reassoc_seq_asm_exc. cbn.
     unfold cat, Cat_sub, cat, Cat_Fun.
     unfold assoc_r, AssocR_Coproduct, case_, Case_sub, case_, Case_Kleisli, case_sum.
     cbn. unfold to_bif, ToBifunctor_Fun_fin. unfold swap, Swap_Coproduct, case_.
     unfold bimap, Bimap_Coproduct, case_, cat. cbn.
-    repeat rewrite split_fin_sum_L. repeat rewrite split_fin_sum_R. rewrite H. cbn.
+    repeat rewrite split_fin_sum_L. repeat rewrite split_fin_sum_R. rewrite HI. cbn.
     repeat rewrite split_fin_sum_L. repeat rewrite split_fin_sum_R. cbn.
     repeat rewrite split_fin_sum_L. repeat rewrite split_fin_sum_R. cbn.
     unfold assoc_l, AssocL_Coproduct. cbn. unfold case_.
@@ -459,13 +462,13 @@ Section Linking.
   Lemma reassoc_seq_asm_exc_D (B C D : nat ) (d : fin D) (dc : fin (D + C) ) :
     split_fin_sum D C dc = inl d -> @reassoc_seq_asm_exc B C D (R _ dc ) = R _ (L _ d).
   Proof.
-    intros. unfold reassoc_seq_asm_exc. cbn.
+    intros HI. unfold reassoc_seq_asm_exc. cbn.
     unfold cat, Cat_sub, cat, Cat_Fun.
     unfold assoc_r, AssocR_Coproduct, case_, Case_sub, case_, Case_Kleisli, case_sum.
     cbn. unfold to_bif, ToBifunctor_Fun_fin. unfold swap, Swap_Coproduct, case_.
     unfold bimap, Bimap_Coproduct, case_, cat. cbn.
     repeat rewrite split_fin_sum_L. repeat rewrite split_fin_sum_R. cbn.
-    repeat rewrite split_fin_sum_L. repeat rewrite split_fin_sum_R. cbn. rewrite H.
+    repeat rewrite split_fin_sum_L. repeat rewrite split_fin_sum_R. cbn. rewrite HI.
     unfold assoc_l, AssocL_Coproduct. cbn. unfold case_. cbn.
     repeat rewrite split_fin_sum_L. repeat rewrite split_fin_sum_R. cbn. auto.
   Qed.
@@ -473,12 +476,12 @@ Section Linking.
   Lemma reassoc_seq_asm_exc_C_bd (B C D : nat ) (c : fin C) (dc : fin (D + C) ) :
     split_fin_sum D C dc = inr c -> @reassoc_seq_asm_exc B C D (R _ dc ) = R _ (R _ c).
   Proof.
-    intros. unfold reassoc_seq_asm_exc. cbn.
+    intros HI. unfold reassoc_seq_asm_exc. cbn.
     unfold cat, Cat_sub, cat, Cat_Fun.
     unfold assoc_r, AssocR_Coproduct, case_, Case_sub, case_, Case_Kleisli, case_sum.
     cbn. unfold to_bif, ToBifunctor_Fun_fin. unfold swap, Swap_Coproduct, case_.
     unfold bimap, Bimap_Coproduct, case_, cat. cbn.
-    repeat rewrite split_fin_sum_L. repeat rewrite split_fin_sum_R. cbn. rewrite H.
+    repeat rewrite split_fin_sum_L. repeat rewrite split_fin_sum_R. cbn. rewrite HI.
     repeat rewrite split_fin_sum_L. repeat rewrite split_fin_sum_R. cbn.
     unfold assoc_l, AssocL_Coproduct. cbn. unfold case_. cbn.
     repeat rewrite split_fin_sum_L. repeat rewrite split_fin_sum_R.
@@ -487,14 +490,14 @@ Section Linking.
   Qed.
 
   Lemma seq_asm_exc_correct {A B C D} (ab : asm A (B + C)) (bd : asm B (D + C)) :
-     denote_asm (seq_asm_exc ab bd)
+     denote_asm (E := E) (seq_asm_exc ab bd)
    ⩯ denote_asm ab  >>> case_ (denote_asm bd) inr_.
   Proof.
     unfold seq_asm_exc, expose_linking_labels, swap_and_merge, comb.
     rewrite loop_asm_correct, relabel_asm_correct, app_asm_correct. rewrite cat_id_r.
     repeat rewrite fmap_swap.
     match goal with |- loop ?b ⩯ _ =>  set b as body end.
-    assert (forall a : fin A, body (merge_fin_sum _ _ (inr a)) ≈
+    assert (HH : forall a : fin A, body (merge_fin_sum _ _ (inr a)) ≈
                               r <- denote_asm ab a;;
                          Ret
                            (reassoc_seq_asm_exc (L _ r) )).
@@ -509,7 +512,7 @@ Section Linking.
       unfold from_bif, FromBifunctor_ktree_fin. setoid_rewrite bind_ret_l.
       cbn. unfold unsubm. subst. unfold reassoc_seq_asm_exc. reflexivity.
     } (* this unfolding basically shows that you only need to unfold the top level loop twice*)
-    assert (forall b : fin B, body (merge_fin_sum _ _ (inl b) ) ≈
+    assert (HI : forall b : fin B, body (merge_fin_sum _ _ (inl b) ) ≈
                               r <- denote_asm bd b;;
                          Ret (reassoc_seq_asm_exc (R _ r) )).
     {
@@ -519,16 +522,16 @@ Section Linking.
       unfold from_bif, FromBifunctor_ktree_fin. setoid_rewrite bind_ret_l.
       cbn. unfold unsubm. unfold reassoc_seq_asm_exc. reflexivity.
     }
-    assert (body ⩯ case_
+    assert (HJ : body ⩯ case_
                  (denote_asm bd >>> (fun r => Ret (reassoc_seq_asm_exc (R _ r) ) ))
                  (denote_asm ab >>> (fun r => Ret (reassoc_seq_asm_exc (L _ r)) ))).
     { do 5 red. unfold case_, Case_sub. unfold to_bif, ToBifunctor_ktree_fin.
       cbn.
       intros. destruct (split_fin_sum B A a) eqn : Heq.
-      - rewrite bind_ret_l. cbn. rewrite <- H0. rewrite <- Heq. rewrite merge_split. reflexivity.
-      - rewrite bind_ret_l. cbn. rewrite <- H. rewrite <- Heq. rewrite merge_split. reflexivity.
+      - rewrite bind_ret_l. cbn. rewrite <- HI. rewrite <- Heq. rewrite merge_split. reflexivity.
+      - rewrite bind_ret_l. cbn. rewrite <- HH. rewrite <- Heq. rewrite merge_split. reflexivity.
     }
-    rewrite H1.
+    rewrite HJ.
     do 5 red. intros. Local Opaque denote_asm. unfold loop. cbn.
     rewrite bind_bind. rewrite bind_ret_l. unfold from_bif, FromBifunctor_ktree_fin.
     rewrite bind_ret_l. cbn.
@@ -543,7 +546,7 @@ Section Linking.
       repeat setoid_rewrite bind_ret_l. cbn. rewrite split_fin_sum_L. cbn.
       rewrite bind_bind. setoid_rewrite bind_ret_l. cbn.
       match goal with |- eqit eq true true (ITree.bind _ ?k ) _ => remember k as k_id  end.
-      assert (forall r, k_id r ≈ Ret r ).
+      assert (HK : forall r, k_id r ≈ Ret r ).
       {
         subst. intros. destruct (split_fin_sum _ _ r) as [d | c] eqn : Heqr .
         - erewrite  reassoc_seq_asm_exc_D; eauto. rewrite split_fin_sum_R. cbn.
@@ -563,7 +566,7 @@ Section Linking.
       }
       setoid_rewrite <- bind_ret_r at 3.
       eapply eqit_bind'; try reflexivity. clear Heqk_id. intros; subst.
-      rewrite H2. reflexivity.
+      rewrite HK. reflexivity.
     - erewrite reassoc_seq_asm_exc_C_ab; eauto. rewrite split_fin_sum_R.
       cbn. repeat setoid_rewrite bind_ret_l. rewrite split_merge.
       cbn. unfold from_bif, FromBifunctor_ktree_fin. cbn. reflexivity.
@@ -574,7 +577,7 @@ Section Linking.
   (** [if_asm] is denoted as the ktree first denoting the branching condition,
       then looking-up the appropriate variable and following with either denotation. *)
   Lemma if_asm_correct {A} (e : list instr) (tp fp : asm 1 A) :
-      denote_asm (if_asm e tp fp)
+      denote_asm (E := E) (if_asm e tp fp)
     ⩯ ((fun _ =>
          denote_list e ;;
          v <- trigger (GetReg tmp_if) ;;
@@ -634,7 +637,7 @@ Section Linking.
   Notation label_case := (split_fin_sum _ _).
 
   Lemma while_asm_correct (e : list instr) (p : asm 1 1) :
-      denote_asm (while_asm e p)
+      denote_asm (E := E) (while_asm e p)
     ⩯ (loop (C := sub (ktree _) fin) (fun l : fin (1 + 1) =>
          match label_case l with
          | inl _ =>
@@ -689,11 +692,11 @@ Section Linking.
       apply unique_fin; reflexivity.
 Qed.
 
-Definition relabel_output  : fin (1 + 2) -> fin (1 + (1 + 2)) :=
+Definition relabel_output : fin (1 + 2) -> fin (1 + (1 + 2)) :=
   bimap (id_ _) inr_.
 
 Lemma while_asm_exc_correct (e : list instr) (p : asm 1 (1 + 2 )) :
-   denote_asm (while_asm_exc e p)
+   denote_asm (E := E) (while_asm_exc e p)
  ⩯ (loop (C := sub (ktree _) fin) (fun l : fin (1 + 1) =>
          match label_case l with
          | inl _ =>
@@ -737,7 +740,7 @@ Proof.
 Qed.
 
 Lemma trycatch_asm_correct (p : asm 1 (1 + (1 + 1) )) (c : asm 1 3) :
-  denote_asm (trycatch_asm p c)
+  denote_asm (E := E) (trycatch_asm p c)
 ⩯ denote_asm p >>> case_ inl_ (merge >>> denote_asm c ).
 Proof.
  unfold trycatch_asm. rewrite seq_asm_correct. repeat rewrite relabel_asm_correct.
@@ -752,34 +755,35 @@ Proof.
  - repeat setoid_rewrite bind_ret_l. cbn. unfold id.
    unfold merge, case_, Case_sub, case_, Case_Kleisli, case_sum, to_bif, ToBifunctor_Fun_fin.
    cbn. setoid_rewrite <- bind_ret_r at 4. eapply eqit_bind' with (RR := eq).
-   + match goal with |- eqit eq true true (denote_asm c ?f1) (denote_asm c (?f2) ) => assert (f1 = f2) end.
+   + match goal with |- eqit eq true true (denote_asm c ?f1) (denote_asm c (?f2) ) => assert (HH : f1 = f2) end.
    { apply unique_fin. auto. }
-   timeout 5 rewrite H. reflexivity.
+   rewrite HH. reflexivity.
    + intros; subst. destruct r2. cbn. apply eqit_Ret. apply unique_fin. cbn. lia.
  - repeat setoid_rewrite bind_ret_l. cbn. setoid_rewrite <- bind_ret_r at 4.
    eapply eqit_bind' with (RR := eq).
-   + match goal with |- eqit eq true true (denote_asm c ?f1) (denote_asm c (?f2) ) => assert (f1 = f2) end.
+   + match goal with |- eqit eq true true (denote_asm c ?f1) (denote_asm c (?f2) ) => assert (HH : f1 = f2) end.
      { apply unique_fin. auto. }
-     rewrite H. reflexivity.
+     rewrite HH. reflexivity.
    + intros; subst. apply eqit_Ret. apply unique_fin. destruct r2. cbn. lia.
 Qed.
 
+  Definition Throw' : Lattice.T -> impExcE sensitivity_lat void := fun e => Throw e.
 
-  Definition link_with_exc : ktree_fin ((impExcE sensitivity_lat) +' Reg +' Memory +' (IOE sensitivity_lat)) (1 + 2) 1  :=
+  Definition link_with_exc : ktree_fin E (1 + 2) 1 :=
     case_ (id_ _)
     (case_ (C := ktree_fin _ )
-            (fun _ : fin 1 => v <- trigger (Throw Public);; match v : void with end )
-            (fun _ : fin 1 => v <- trigger (Throw Private);; match v : void with end )).
+            (fun _ : fin 1 => v <- trigger (Throw' Public);; match v : void with end )
+            (fun _ : fin 1 => v <- trigger (Throw' Private);; match v : void with end )).
 
   Lemma compile_compile_stmt_correct (s : stmt sensitivity_lat) :
     denote_asm (compile s)
-  ⩯ denote_asm (compile_stmt s) >>> link_with_exc .
+  ⩯ denote_asm (compile_stmt s) >>> link_with_exc.
   Proof.
     unfold compile, link_with_exc.
     cbn in *. rewrite seq_asm_correct. rewrite relabel_asm_correct. remember (app_asm (raise_asm Public) (raise_asm Private) ) as app.
-    assert (denote_asm (app_asm (@id_asm 1) app) ⩯ bimap (denote_asm id_asm) (denote_asm app) ).
+    assert (HH : denote_asm (app_asm (@id_asm 1) app) ⩯ bimap (denote_asm id_asm) (denote_asm (E := E) app)).
     { rewrite app_asm_correct. reflexivity. }
-    rewrite H. unfold id_asm. rewrite pure_asm_correct. rewrite Heqapp.
+    rewrite HH. unfold id_asm. rewrite pure_asm_correct. rewrite Heqapp.
     rewrite app_asm_correct.
     do 5 red. intros. Opaque denote_asm. cbn. eapply eqit_bind'; try reflexivity. intros; subst.
     repeat setoid_rewrite bind_bind. repeat setoid_rewrite bind_ret_l. cbn.
@@ -793,7 +797,7 @@ Qed.
       Opaque denote_asm.
   Qed.
 
-  Lemma early_link_with_exc (p1 p2: ktree_fin ((impExcE sensitivity_lat) +' Reg +' Memory +' (IOE sensitivity_lat)) 1 (1 + 2) ) :
+  Lemma early_link_with_exc (p1 p2: ktree_fin E 1 (1 + 2)) :
     p1 >>> case_ p2 inr_ >>> link_with_exc ⩯ p1 >>> link_with_exc >>> p2 >>> link_with_exc.
   Proof.
     unfold cat, Cat_sub, cat, Cat_Kleisli. cbn. repeat setoid_rewrite bind_bind.
@@ -1096,6 +1100,7 @@ Section Correctness.
       reflexivity.
   Qed.
 
+  Notation E1 := (impExcE sensitivity_lat +' Reg +' Memory +' IOE sensitivity_lat).
 
   Lemma compile_stmt_correct (s : stmt sensitivity_lat) :
         bisimilar label_rel (throw_prefix (denote_stmt s)) (denote_asm (compile_stmt s) f0).
@@ -1121,28 +1126,29 @@ Section Correctness.
      apply eqit_Ret; split; cbn; auto.
     - (* Seq *)
       simpl. Opaque denote_asm. cbn.
-      assert (denote_asm (seq_asm_exc (compile_stmt s1) (compile_stmt s2)) f0 ≈
+      assert (HH : denote_asm (E := E1) (seq_asm_exc (compile_stmt s1) (compile_stmt s2)) f0 ≈
               (denote_asm (compile_stmt s1) >>> case_ (denote_asm (compile_stmt s2)) inr_) f0).
       { specialize (@seq_asm_exc_correct) as Hsaec.
       do 5 red in Hsaec. rewrite Hsaec.  reflexivity. }
-      rewrite H. rewrite throw_prefix_bind.
+      rewrite HH. rewrite throw_prefix_bind.
       cbn. eapply bisimilar_bind'; eauto.
-      intros. destruct a; cbn in H0; try destruct s.
-      + destruct u. assert (a' = f0). { apply unique_fin; auto. }
-        subst. setoid_rewrite bind_ret_l. cbn. setoid_rewrite unique_f0.
-        auto.
-      + assert (a' = fS f0). { apply unique_fin; auto. }
-        subst. setoid_rewrite bind_ret_l. cbn. rewrite bind_ret_l.
-        unfold from_bif, FromBifunctor_ktree_fin . cbn.
-        red. intros. unfold interp_imp, interp_asm.
-        repeat rewrite interp_state_ret. apply eqit_Ret.
-        split; auto.
-      + assert (a' = fS (fS f0)). { apply unique_fin; auto. }
-        subst. setoid_rewrite bind_ret_l. cbn. rewrite bind_ret_l.
-        unfold from_bif, FromBifunctor_ktree_fin . cbn.
-        red. intros. unfold interp_imp, interp_asm.
-        repeat rewrite interp_state_ret. apply eqit_Ret.
-        split; auto.
+      intros [[] |?] ? HI ? ? ? ?; cbn in HI.
+      + assert (a' = f0). { apply unique_fin; auto. }
+        subst. cbn. setoid_rewrite bind_ret_l. cbn. setoid_rewrite unique_f0.
+        eauto.
+      + destruct s.
+        * assert (a' = fS f0). { apply unique_fin; auto. }
+          subst. cbn. setoid_rewrite bind_ret_l. cbn. rewrite bind_ret_l.
+          unfold from_bif, FromBifunctor_ktree_fin . cbn.
+          red. intros. unfold interp_imp, interp_asm.
+          repeat rewrite interp_state_ret. apply eqit_Ret.
+          split; auto.
+        * assert (a' = fS (fS f0)). { apply unique_fin; auto. }
+          subst. cbn. setoid_rewrite bind_ret_l. cbn. rewrite bind_ret_l.
+          unfold from_bif, FromBifunctor_ktree_fin . cbn.
+          red. intros. unfold interp_imp, interp_asm.
+          repeat rewrite interp_state_ret. apply eqit_Ret.
+          split; auto.
     - (* If *)
       simpl.  rewrite fold_to_itree'. rewrite if_asm_correct.
       cbn. rewrite throw_prefix_bind. rewrite <- fold_to_itree'.

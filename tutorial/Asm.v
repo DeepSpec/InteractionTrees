@@ -332,11 +332,11 @@ Definition interp_asm {E A} (t : itree (Reg +' Memory +' E) A) :
   let t' := interp h t in
   fun  mem regs => interp_map (interp_map t' regs) mem.
 
-
 (** We can then define an evaluator for closed assembly programs by interpreting
     both store and heap events into two instances of [mapE], and running them
     both in the empty initial environments.  *)
-Definition run_asm (p: asm 1 0) := interp_asm (denote_asm p Fin.f0) empty empty.
+Definition run_asm (p : asm 1 0) : itree Exit (memory * (registers * fin 0)) :=
+  interp_asm (denote_asm p Fin.f0) empty empty.
 
 (* SAZ: Should some of thes notions of equivalence be put into the library?
    SAZ: Should this be stated in terms of ktree ?
@@ -347,7 +347,7 @@ Definition eq_asm_denotations {E A B} (t1 t2 : Kleisli (itree (Reg +' Memory +' 
   forall a mem regs, interp_asm (t1 a) mem regs ≈ interp_asm (t2 a) mem regs.
 
 Definition eq_asm {A B} (p1 p2 : asm A B) : Prop :=
-  eq_asm_denotations (denote_asm p1) (denote_asm p2).
+  eq_asm_denotations (E := Exit) (denote_asm p1) (denote_asm p2).
 
 Section InterpAsmProperties.
 

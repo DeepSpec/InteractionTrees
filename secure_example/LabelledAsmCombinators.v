@@ -191,6 +191,10 @@ Section Correctness.
   Context {HasMemory : Memory -< E}.
   Context {HasIO : IOE sensitivity_lat -< E}.
 
+  Notation denote_bk := (denote_bk (E := E)).
+  Notation denote_bks := (denote_bks (E := E)).
+  Notation denote_asm := (denote_asm (E := E)).
+
   (** *** Internal structures *)
 
   Lemma fmap_block_map:
