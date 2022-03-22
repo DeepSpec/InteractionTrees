@@ -26,10 +26,10 @@ Import Basics.Basics.Monads.
 Variant depE {I : Type} (F : I -> Type) : Type -> Type :=
 | Dep (i : I) : depE F (F i).
 
-Arguments Dep {I F}.
+Arguments Dep {I F} &.
 
 Definition dep {I F E} `{depE F -< E} (i : I) : itree E (F i) :=
-  trigger (Dep i).
+  trigger (Dep (F := F) i).
 
 Definition undep {I F} (f : forall i : I, F i) :
   depE F ~> identity :=

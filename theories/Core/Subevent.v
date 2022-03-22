@@ -31,7 +31,7 @@ Notation Subevent E F := (@ReSum (Type -> Type) IFun E F)
 Notation "E -< F" := (Subevent E F)
   (at level 92, left associativity) : type_scope.
 
-Definition subevent {E F : Type -> Type} `{E -< F} : E ~> F := resum _.
+Definition subevent {E F : Type -> Type} `{E -< F} : E ~> F := resum IFun.
 
 (** Notations to construct and pattern-match on nested sums. *)
 Module Import SumNotations.

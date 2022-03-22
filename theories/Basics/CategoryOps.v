@@ -520,3 +520,5 @@ Transparent inr_.
 *)
 
 End RESUM.
+
+#[global] Hint Mode ReSum ! ! ! ! : typeclass_instances.

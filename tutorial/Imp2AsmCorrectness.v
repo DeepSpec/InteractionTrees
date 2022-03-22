@@ -445,6 +445,10 @@ Section Linking.
 
   Import KTreeFin.
 
+  Context {E} `{Reg -< E, Memory -< E, Exit -< E}.
+
+  Notation denote_asm := (Asm.denote_asm (E := E)).
+
   (** [seq_asm] is denoted as the (horizontal) composition of denotations. *)
   Lemma seq_asm_correct {A B C} (ab : asm A B) (bc : asm B C) :
       denote_asm (seq_asm ab bc)
@@ -472,7 +476,7 @@ Section Linking.
     rewrite relabel_asm_correct.
 
     intros ?.
-    Local Opaque denote_asm.
+    Local Opaque Asm.denote_asm.
 
     unfold CategoryOps.cat, Cat_sub, CategoryOps.cat, Cat_Kleisli; simpl.
     rewrite denote_after.
@@ -755,8 +759,8 @@ Section Correctness.
   Definition TT {A B}: A -> B -> Prop  := fun _ _ => True.
   Hint Unfold TT: core.
 
-  Definition equivalent (s:stmt) (t:asm 1 1) : Prop :=
-    bisimilar TT (denote_imp s) (denote_asm t f0).
+  Definition equivalent {E} `{Exit -< E} (s:stmt) (t:asm 1 1) : Prop :=
+    bisimilar TT (E := E) (denote_imp s) (denote_asm t f0).
 
   Inductive RI : (unit + unit) -> (unit + unit + unit) -> Prop :=
   | RI_inl : RI (inl tt) (inl (inl tt))
@@ -814,8 +818,8 @@ Section Correctness.
       the compiler, all control-flow related reasoning having been handled
       in isolation.
    *)
-  Theorem compile_correct (s : stmt) :
-    equivalent s (compile s).
+  Theorem compile_correct {E} {HasExit : Exit -< E} (s : stmt) :
+    equivalent (E := E) s (compile s).
   Proof.
     unfold equivalent.
     induction s.

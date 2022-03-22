@@ -44,22 +44,21 @@ Proof.
   - do 2 red. intros. rewrite H; auto.
 Qed.
 Notation privacy_map := LabelledImp.privacy_map.
-Notation impExcE := LabelledImp.impExcE.
-Notation IOE := LabelledImp.IOE.
+Notation impExcE := (LabelledImp.impExcE sensitivity_lat).
+Notation IOE := (LabelledImp.IOE sensitivity_lat).
 Definition label_pi_eqit_secure_impstate  (b1 b2 : bool) (Γ : privacy_map sensitivity_lat) (l : label) {R1 R2 : Type} (RR : R1 -> R2 -> Prop )
-           (m1 : stateT (registers * map) (itree ((impExcE sensitivity_lat) +' (IOE sensitivity_lat))) R1)
-           (m2 : stateT (registers * map ) (itree ((impExcE sensitivity_lat) +' (IOE sensitivity_lat))) R2) : Prop :=
+           (m1 : stateT (registers * map) (itree (impExcE +' IOE)) R1)
+           (m2 : stateT (registers * map ) (itree (impExcE +' IOE)) R2) : Prop :=
   forall σ1 σ2 regs1 regs2, labelled_equiv Γ l σ1 σ2 -> pi_eqit_secure _ (priv_exc_io sensitivity_lat) (product_rel (product_rel top2 (labelled_equiv Γ l)) RR) b1 b2 l (m1 (regs1,σ1)) (m2 (regs2, σ2)).
 
 Definition label_state_pi_sec_eutt {R1 R2} priv l (RR : R1 -> R2 -> Prop) m1 m2 :=
   label_pi_eqit_secure_impstate true true  priv l RR m1 m2.
 
+Notation interp_imp_inline := (interp_imp_inline (E1 := impExcE) (E2 := IOE)).
+
 Definition sem_stmt (s : stmt) := interp_imp_inline (denote_stmt s).
-
 Definition sem_throw_stmt (s : stmt) := interp_imp_inline (throw_prefix (denote_stmt s) ).
-
 Definition sem_expr (e : expr) := LabelledImpInlineTypes.sem_expr e.
-
 Definition state_equiv {E R} (m1 m2 : stateT map (itree E) R) := forall (σ : map), m1 σ ≈ m2 σ.
 
 Global Instance proper_eutt_pi_secure_eutt  {E R1 R2 RR Label priv l} : Proper (@eutt E R1 R1 eq ==> @eutt E R2 R2 eq ==> Basics.flip Basics.impl)

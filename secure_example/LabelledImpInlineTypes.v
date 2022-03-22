@@ -52,19 +52,22 @@ Qed.
 
 Notation impExcE := LabelledImp.impExcE.
 Notation IOE := LabelledImp.IOE.
+Notation E0 := (impExcE sensitivity_lat +' IOE sensitivity_lat).
 Definition label_eqit_secure_impstate  (b1 b2 : bool) (Γ : privacy_map sensitivity_lat) (l : sensitivity) {R1 R2 : Type} (RR : R1 -> R2 -> Prop )
-           (m1 : stateT (registers * map) (itree ((impExcE sensitivity_lat) +' (IOE sensitivity_lat))) R1)
-           (m2 : stateT (registers * map ) (itree ((impExcE sensitivity_lat) +' (IOE sensitivity_lat))) R2) : Prop :=
+           (m1 : stateT (registers * map) (itree E0) R1)
+           (m2 : stateT (registers * map ) (itree E0) R2) : Prop :=
   forall σ1 σ2 regs1 regs2, labelled_equiv Γ l σ1 σ2 -> eqit_secure _ (priv_exc_io sensitivity_lat) (product_rel (product_rel top2 (labelled_equiv Γ l)) RR) b1 b2 l (m1 (regs1,σ1)) (m2 (regs2, σ2)).
 
 Definition label_state_sec_eutt {R1 R2} priv l (RR : R1 -> R2 -> Prop) m1 m2 :=
   label_eqit_secure_impstate true true  priv l RR m1 m2.
 
+#[local] Notation interp_imp_inline := (interp_imp_inline (E1 := impExcE sensitivity_lat) (E2 := IOE sensitivity_lat)).
+
 Definition sem_stmt (s : stmt) := interp_imp_inline (denote_stmt s).
 
 Definition sem_throw_stmt (s : stmt) := interp_imp_inline (throw_prefix (denote_stmt s) ).
 
-Definition sem_expr (e : expr) := @interp_imp_inline (impExcE sensitivity_lat) (IOE sensitivity_lat) value (denote_expr e).
+Definition sem_expr (e : expr) := interp_imp_inline (denote_expr e).
 
 Definition state_equiv {E R} (m1 m2 : stateT map (itree E) R) := forall (σ : map), m1 σ ≈ m2 σ.
 
@@ -525,7 +528,9 @@ Proof.
       intros []. apply secure_eqit_ret; auto. repeat (split; auto).
 Qed.
 
-Lemma throw_prefix_output l1 e :  throw_prefix (denote_stmt (Output l1 e) ) ≈
+Notation E1 := (Reg +' Memory +' IOE sensitivity_lat).
+
+Lemma throw_prefix_output l1 e : throw_prefix (E := E1) (denote_stmt (Output l1 e) ) ≈
         v <- denote_expr e;; trigger (LabelledImp.LabelledPrint sensitivity_lat l1 v);; Ret (inl tt).
 Proof.
   cbn. rewrite throw_prefix_bind. rewrite throw_prefix_denote_expr. rewrite bind_bind.

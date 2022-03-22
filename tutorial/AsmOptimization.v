@@ -114,12 +114,12 @@ Definition eq_asm_denotations_EQ {E A B} (t1 t2 : Kleisli (itree (Reg +' Memory 
       (interp_asm (t1 a) mem1 regs1)
       (interp_asm (t2 a) mem2 regs2).
 
-Definition eq_asm_EQ {A B} (p1 p2 : asm A B) : Prop :=
-  eq_asm_denotations_EQ (denote_asm p1) (denote_asm p2).
+Definition eq_asm_EQ {E} `{Exit -< E} {A B} (p1 p2 : asm A B) : Prop :=
+  eq_asm_denotations_EQ (E := E) (denote_asm p1) (denote_asm p2).
 
-Definition optimization_correct A B (opt:optimization) :=
+Definition optimization_correct {E} `{Exit -< E} A B (opt:optimization) : Prop :=
   forall (p : asm A B),
-    eq_asm_EQ p (opt p).
+    eq_asm_EQ (E := E) p (opt p).
 
 Definition EQ_asm {E A} (f g : memory -> registers -> itree E (memory * (registers * A))) : Prop :=
   forall mem1 mem2 regs1 regs2,
@@ -129,7 +129,7 @@ Definition EQ_asm {E A} (f g : memory -> registers -> itree E (memory * (registe
 
 Infix "≡" := EQ_asm (at level 70).
 
-Lemma interp_asm_ret_tt : forall (t : itree (Reg +' Memory +' Exit) unit),
+Lemma interp_asm_ret_tt {E} : forall (t : itree (Reg +' Memory +' E) unit),
     (interp_asm t) ≡ (interp_asm (t ;; Ret tt)).
 Proof.
   intros t mem1 mem2 regs1 regs2 H1 H2.
@@ -310,14 +310,15 @@ Section Correctness.
 
   (** A peephole optimizer is correct if it replaces an instruction with
     a semantically equivalent sequence of instructions. *)
-  Definition ph_correct (ph : peephole_optimization) :=
-  forall (i:instr),
-    @eq_asm_denotations_EQ Exit unit _ (fun _ => denote_instr i) (fun _ => denote_list (ph i)).
+Definition ph_correct (ph : peephole_optimization) :=
+  forall {E} (i:instr),
+    @eq_asm_denotations_EQ E unit _ (fun _ => denote_instr i) (fun _ => denote_list (ph i)).
 
-  Lemma ph_blk_append_correct : forall (ph : peephole_optimization) (H : ph_correct ph)
+Lemma ph_blk_append_correct {E} {HasExit : Exit -< E} :
+  forall (ph : peephole_optimization) (H : ph_correct ph)
     lbl1 lbl2 b1 b2 i,
-    (@eq_asm_denotations_EQ Exit (fin lbl1) (fin lbl2) (fun _ => denote_bk b1) (fun _ => denote_bk b2)) ->
-    (@eq_asm_denotations_EQ Exit (fin lbl1) (fin lbl2)
+    (@eq_asm_denotations_EQ E (fin lbl1) (fin lbl2) (fun _ => denote_bk b1) (fun _ => denote_bk b2)) ->
+    (@eq_asm_denotations_EQ E (fin lbl1) (fin lbl2)
                          (fun _ => denote_instr i ;; denote_bk b1)
                          (fun _ => denote_bk (blk_append (ph i) b2))).
   Proof.
@@ -328,7 +329,7 @@ Section Correctness.
     unfold ph_correct in H.
     unfold eq_asm_denotations_EQ in H.
     specialize H with (i:=i).
-    pose proof (H tt) as H2.
+    pose proof (H E tt) as H2.
     do 2 rewrite interp_asm_bind.
     eapply eutt_clo_bind.
     apply H2; auto.
@@ -339,12 +340,12 @@ Section Correctness.
   Qed.
 
 
-Lemma peephole_block_correct :
+Lemma peephole_block_correct {E} {HasExit : Exit -< E} :
   forall (ph : peephole_optimization)
     (H : ph_correct ph)
     (lbl1 lbl2 : nat)
     (b : block (fin lbl2)),
-    @eq_asm_denotations_EQ Exit (fin lbl1) (fin lbl2)
+    @eq_asm_denotations_EQ E (fin lbl1) (fin lbl2)
                         (fun _ => denote_bk b)
                         (fun _ => denote_bk (peephole_optimize_block ph b)).
 Proof.
@@ -393,8 +394,9 @@ Proof.
 Qed.
 
 
-Lemma peephole_optimization_correct : forall A B (ph : peephole_optimization) (H : ph_correct ph),
-    optimization_correct A B (peephole_optimize_asm ph).
+Lemma peephole_optimization_correct {E} {HasExit : Exit -< E}
+  : forall A B (ph : peephole_optimization) (H : ph_correct ph),
+      optimization_correct (E := E) A B (peephole_optimize_asm ph).
 Proof.
   intros A B ph H.
   unfold optimization_correct.
@@ -441,7 +443,7 @@ Proof.
 
   apply (@eutt_clo_bind _ _ _ _ _ _ rel_asm);
     [|intros ? ? [? [? ->]]]; cbn.
-  { eapply @peephole_block_correct; eauto. }
+  { refine (peephole_block_correct _ _ _ _ _ _ _ _ _ _ _ _); eauto. }
 
   unfold CategorySub.to_bif, ToBifunctor_ktree_fin.
   apply (@eutt_clo_bind _ _ _ _ _ _ rel_asm);
@@ -503,7 +505,7 @@ Qed.
 Lemma simple_correct : ph_correct simple.
 Proof.
   unfold ph_correct.
-  intros i.
+  intros E i.
   unfold eq_asm_denotations_EQ.
   intros.
   destruct i; simpl; try apply interp_asm_ret_tt; auto; try reflexivity.

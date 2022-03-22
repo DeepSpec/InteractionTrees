@@ -181,6 +181,10 @@ Section Correctness.
   Context {HasMemory : Memory -< E}.
   Context {HasExit : Exit -< E}.
 
+  Notation denote_bk := (denote_bk (E := E)).
+  Notation denote_bks := (denote_bks (E := E)).
+  Notation denote_asm := (denote_asm (E := E)).
+
   (** *** Internal structures *)
 
   Lemma fmap_block_map:
@@ -290,7 +294,7 @@ Section Correctness.
   Qed.
 
   Lemma raw_asm_block_correct {A} (b : block (fin A)) :
-    (denote_asm (raw_asm_block b) f0) ≈ (denote_bk b).
+    denote_asm (raw_asm_block b) f0 ≈ denote_bk b.
   Proof.
     apply raw_asm_block_correct_lifted.
   Qed.
@@ -310,9 +314,7 @@ Section Correctness.
   Qed.
 
   (** The identity gets denoted as the identity. *)
-  Theorem id_asm_correct {A} :
-    denote_asm (pure_asm id)
-               ⩯ id_ A.
+  Theorem id_asm_correct {A} : denote_asm (pure_asm id) ⩯ id_ A.
   Proof.
     rewrite pure_asm_correct; reflexivity.
   Defined.
