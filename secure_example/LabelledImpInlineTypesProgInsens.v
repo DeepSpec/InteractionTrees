@@ -55,6 +55,7 @@ Definition labelled_equiv  :=
   LabelledImpTypes.labelled_equiv sensitivity_lat.
 
 
+
 Ltac case_leq l1 l2 := destruct (leq_dec sensitivity_lat l1 l2) as [?Hleq | ?Hnleq].
 
 Instance labelled_equit_equiv {Γ l} : Equivalence (labelled_equiv Γ l).
