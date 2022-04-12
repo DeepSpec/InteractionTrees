@@ -77,6 +77,13 @@ Proof.
   - cbn. intros [ | ] [ | ]; auto.
   - cbn. intros [ | ] [ | ]; auto.
 Qed.
+
+Section LabelledAsm.
+
+Context (Labels : Lattice).
+
+Notation label := (@T Labels).
+
 (** ** Syntax *)
 
 (** We define a countable set of memory addresses, represented as [string]s: *)
@@ -96,7 +103,7 @@ Variant operand : Set :=
 
 (** The instruction set covers moves and arithmetic operations, as well as load
     and stores to the heap.  *)
-Variant instr : Set :=
+Variant instr : Type :=
 | Imov   (dest : reg) (src : operand)
 | Iadd   (dest : reg) (src : reg) (o : operand)
 | Isub   (dest : reg) (src : reg) (o : operand)
@@ -107,23 +114,23 @@ Variant instr : Set :=
 | INot   (dest : reg) (o : operand)
 | Iload  (dest : reg) (addr : addr)
 | Istore (addr : addr) (val : operand)
-| IOutput (s : sensitivity) (src : reg)
+| IOutput (s : label) (src : reg)
 .
 
 (** We consider both direct and conditional jumps *)
-Variant branch {label : Type} : Type :=
-| Bjmp (_ : label)                (* jump to label *)
-| Bbrz (_ : reg) (yes no : label) (* conditional jump *)
-| BRaise (s : sensitivity)
+Variant branch {addr : Type} : Type :=
+| Bjmp (_ : addr)                (* jump to label *)
+| Bbrz (_ : reg) (yes no : addr) (* conditional jump *)
+| BRaise (s : label)
 .
 Global Arguments branch _ : clear implicits.
 
 (** A basic [block] is a sequence of straightline instructions followed by a
     branch that either halts the execution, or transfers control to another
     [block]. *)
-Inductive block {label : Type} : Type :=
+Inductive block {addr : Type} : Type :=
 | bbi (_ : instr) (_ : block)
-| bbb (_ : branch label).
+| bbb (_ : branch addr).
 Global Arguments block _ : clear implicits.
 
 
@@ -195,10 +202,10 @@ Section Denote.
     (** As with _Imp_, we parameterize our semantics by a universe of events
         that shall encompass all the required ones. *)
     Context {E : Type -> Type}.
-    Context {HasExc : impExcE sensitivity_lat -< E}.
+    Context {HasExc : impExcE Labels -< E}.
     Context {HasReg : Reg -< E}.
     Context {HasMemory : Memory -< E}.
-    Context {HasIOE : IOE sensitivity_lat -< E}.
+    Context {HasIOE : IOE Labels -< E}.
     
     Arguments LabelledPrint {Labels}.
     (** Operands are trivially denoted as [itree]s returning values *)
@@ -388,3 +395,5 @@ end.
 Definition interp_asm {E1 E2 A} (t : itree (E1 +' Reg +' Memory +' E2) A ) : 
   stateT (registers * memory) (itree (E1 +' E2)) A :=
   fun '(mem, regs) => interp_state asm_handler t (mem, regs).
+
+End LabelledAsm.

@@ -85,6 +85,7 @@ From SecureExample Require Import
      Fin
      KTreeFin
      LabelledImpHandler
+     Lattice
 .
 
 Import ITreeNotations.
@@ -428,9 +429,9 @@ Section Linking.
   Import KTreeFin.
 
   (** [seq_asm] is denoted as the (horizontal) composition of denotations. *)
-  Lemma seq_asm_correct {A B C} (ab : asm A B) (bc : asm B C) :
-      denote_asm (seq_asm ab bc)
-    ⩯ denote_asm ab >>> denote_asm bc.
+  Lemma seq_asm_correct {A B C} (ab : asm _ A B) (bc : asm _ B C) :
+      denote_asm _ (seq_asm ab bc)
+    ⩯ denote_asm _ ab >>> denote_asm _ bc.
   Proof.
     unfold seq_asm.
     rewrite loop_asm_correct, relabel_asm_correct, app_asm_correct.
@@ -505,16 +506,16 @@ Section Linking.
     unfold merge. unfold case_. rewrite split_fin_sum_R. auto.
   Qed.
 
-  Lemma seq_asm_exc_correct {A B C D} (ab : asm A (B + C)) (bd : asm B (D + C)) :
-     denote_asm (seq_asm_exc ab bd) 
-   ⩯ denote_asm ab  >>> case_ (denote_asm bd) inr_.
+  Lemma seq_asm_exc_correct {A B C D} (ab : asm _ A (B + C)) (bd : asm _ B (D + C)) :
+     denote_asm _ (seq_asm_exc ab bd) 
+   ⩯ denote_asm _ ab  >>> case_ (denote_asm _ bd) inr_.
   Proof.
     unfold seq_asm_exc, expose_linking_labels, swap_and_merge, comb.
     rewrite loop_asm_correct, relabel_asm_correct, app_asm_correct. rewrite cat_id_r.
     repeat rewrite fmap_swap.
     match goal with |- loop ?b ⩯ _ =>  set b as body end.
     assert (forall a : fin A, body (merge_fin_sum _ _ (inr a)) ≈ 
-                              r <- denote_asm ab a;;
+                              r <- denote_asm _ ab a;;
                          Ret
                            (reassoc_seq_asm_exc (L _ r) )).
 
@@ -529,7 +530,7 @@ Section Linking.
       cbn. unfold unsubm. subst. unfold reassoc_seq_asm_exc. reflexivity.
     } (* this unfolding basically shows that you only need to unfold the top level loop twice*)
     assert (forall b : fin B, body (merge_fin_sum _ _ (inl b) ) ≈ 
-                              r <- denote_asm bd b;;
+                              r <- denote_asm _ bd b;;
                          Ret (reassoc_seq_asm_exc (R _ r) )).
     {
       intros. unfold body. cbn. repeat setoid_rewrite bind_ret_l.
@@ -539,8 +540,8 @@ Section Linking.
       cbn. unfold unsubm. unfold reassoc_seq_asm_exc. reflexivity.
     }
     assert (body ⩯ case_ 
-                 (denote_asm bd >>> (fun r => Ret (reassoc_seq_asm_exc (R _ r) ) ))
-                 (denote_asm ab >>> (fun r => Ret (reassoc_seq_asm_exc (L _ r)) ))).
+                 (denote_asm _ bd >>> (fun r => Ret (reassoc_seq_asm_exc (R _ r) ) ))
+                 (denote_asm _ ab >>> (fun r => Ret (reassoc_seq_asm_exc (L _ r)) ))).
     { do 5 red. unfold case_, Case_sub. unfold to_bif, ToBifunctor_ktree_fin.
       cbn.
       intros. destruct (split_fin_sum B A a) eqn : Heq.
@@ -592,12 +593,12 @@ Section Linking.
 
   (** [if_asm] is denoted as the ktree first denoting the branching condition,
       then looking-up the appropriate variable and following with either denotation. *)
-  Lemma if_asm_correct {A} (e : list instr) (tp fp : asm 1 A) :
-      denote_asm (if_asm e tp fp)
+  Lemma if_asm_correct {A} (e : list (instr _)) (tp fp : asm _ 1 A) :
+      denote_asm _ (if_asm e tp fp)
     ⩯ ((fun _ =>
          denote_list e ;;
          v <- trigger (GetReg tmp_if) ;;
-         if v : value then denote_asm fp f0 else denote_asm tp f0)).
+         if v : value then denote_asm _ fp f0 else denote_asm _ tp f0)).
   Proof.
     unfold if_asm.
     rewrite seq_asm_correct.
@@ -652,14 +653,14 @@ Section Linking.
       of the loop, and the body in which we have the same structure as for the conditional *)
   Notation label_case := (split_fin_sum _ _).
 
-  Lemma while_asm_correct (e : list instr) (p : asm 1 1) :
-      denote_asm (while_asm e p)
+  Lemma while_asm_correct (e : list (instr _)) (p : asm _ 1 1) :
+      denote_asm _ (while_asm e p)
     ⩯ (loop (C := sub (ktree _) fin) (fun l : fin (1 + 1) =>
          match label_case l with
          | inl _ =>
            denote_list e ;;
            v <- trigger (GetReg tmp_if) ;;
-           if (v:value) then Ret (fS f0) else (denote_asm p f0;; Ret f0)
+           if (v:value) then Ret (fS f0) else (denote_asm _ p f0;; Ret f0)
          | inr _ => Ret f0
          end)).
   Proof.
@@ -711,8 +712,8 @@ Qed.
 Definition relabel_output  : fin (1 + 2) -> fin (1 + (1 + 2)) :=
   bimap (id_ _) inr_.
 
-Lemma while_asm_exc_correct (e : list instr) (p : asm 1 (1 + 2 )) : 
-   denote_asm (while_asm_exc e p)
+Lemma while_asm_exc_correct (e : list (instr _)) (p : asm _ 1 (1 + 2 )) : 
+   denote_asm _ (while_asm_exc e p)
  ⩯ (loop (C := sub (ktree _) fin) (fun l : fin (1 + 1) =>
          match label_case l with
          | inl _ =>
@@ -720,7 +721,7 @@ Lemma while_asm_exc_correct (e : list instr) (p : asm 1 (1 + 2 )) :
            v <- trigger (GetReg tmp_if) ;;
            if (v:value) 
            then Ret (fS f0) 
-           else (l' <- denote_asm p f0;; Ret (relabel_output l')  )
+           else (l' <- denote_asm _ p f0;; Ret (relabel_output l')  )
          | inr _ => Ret (f0)
          end)) .
 Proof.
@@ -755,9 +756,9 @@ Proof.
     auto.
 Qed.
 
-Lemma trycatch_asm_correct (p : asm 1 (1 + (1 + 1) )) (c : asm 1 3) :
-  denote_asm (trycatch_asm p c) 
-⩯ denote_asm p >>> case_ inl_ (merge >>> denote_asm c ).
+Lemma trycatch_asm_correct (p : asm _ 1 (1 + (1 + 1) )) (c : asm _ 1 3) :
+  denote_asm _ (trycatch_asm p c) 
+⩯ denote_asm _ p >>> case_ inl_ (merge >>> denote_asm _ c ).
 Proof.
  unfold trycatch_asm. rewrite seq_asm_correct. repeat rewrite relabel_asm_correct.
  rewrite app_asm_correct.  do 5 red. intros. cbn.
@@ -771,13 +772,13 @@ Proof.
  - repeat setoid_rewrite bind_ret_l. cbn. unfold id.
    unfold merge, case_, Case_sub, case_, Case_Kleisli, case_sum, to_bif, ToBifunctor_Fun_fin.
    cbn. setoid_rewrite <- bind_ret_r at 4. eapply eqit_bind' with (RR := eq).
-   + match goal with |- eqit eq true true (denote_asm c ?f1) (denote_asm c (?f2) ) => assert (f1 = f2) end.
+   + match goal with |- eqit eq true true (denote_asm _ c ?f1) (denote_asm _ c (?f2) ) => assert (f1 = f2) end.
    { apply unique_fin. auto. }
    timeout 5 rewrite H. reflexivity.
    + intros; subst. destruct r2. cbn. apply eqit_Ret. apply unique_fin. cbn. lia.
  - repeat setoid_rewrite bind_ret_l. cbn. setoid_rewrite <- bind_ret_r at 4.
    eapply eqit_bind' with (RR := eq).
-   + match goal with |- eqit eq true true (denote_asm c ?f1) (denote_asm c (?f2) ) => assert (f1 = f2) end.
+   + match goal with |- eqit eq true true (denote_asm _ c ?f1) (denote_asm _ c (?f2) ) => assert (f1 = f2) end.
      { apply unique_fin. auto. }
      rewrite H. reflexivity.
    + intros; subst. apply eqit_Ret. apply unique_fin. destruct r2. cbn. lia.
@@ -790,13 +791,13 @@ Qed.
             (fun _ : fin 1 => v <- trigger (Throw _ Public);; match v : void with end ) 
             (fun _ : fin 1 => v <- trigger (Throw _ Private);; match v : void with end )).
 
-  Lemma compile_compile_stmt_correct (s : stmt) :
-    denote_asm (compile s) 
-  ⩯ denote_asm (compile_stmt s) >>> link_with_exc .
+  Lemma compile_compile_stmt_correct (s : stmt _) :
+    denote_asm _ (compile s) 
+  ⩯ denote_asm _ (compile_stmt s) >>> link_with_exc .
   Proof.
     unfold compile, link_with_exc.
     cbn in *. rewrite seq_asm_correct. rewrite relabel_asm_correct. remember (app_asm (raise_asm Public) (raise_asm Private) ) as app.
-    assert (denote_asm (app_asm (@id_asm 1) app) ⩯ bimap (denote_asm id_asm) (denote_asm app) ).
+    assert (denote_asm _ (app_asm (@id_asm 1) app) ⩯ bimap (denote_asm _ id_asm) (denote_asm _ app) ).
     { rewrite app_asm_correct. reflexivity. }
     rewrite H. unfold id_asm. rewrite pure_asm_correct. rewrite Heqapp.
     rewrite app_asm_correct.
@@ -892,27 +893,27 @@ Section Correctness.
 
 
   (*maybe should be strengthened to requiring too state equivalent memories *)
-  Definition valid_asm {T} m : Prop := forall (l1 l2 : registers) (g_asm1 g_asm2 : memory),
+  Definition valid_asm {T : Type} `{Label : Lattice} m  : Prop := forall (l1 l2 : registers) (g_asm1 g_asm2 : memory),
     Renv g_asm1 g_asm2 ->
-    @eutt ((impExcE sensitivity_lat) +' (IOE sensitivity_lat)) _ _ (state_invariant (@eq T )) 
+    @eutt ((impExcE Label) +' (IOE Label)) _ _ (state_invariant (@eq T )) 
           (m (l1, g_asm1)) (m (l2, g_asm2)).
 
-  Inductive valid_stmt : stmt -> Prop :=
-    | validSkip : valid_stmt Skip
-    | validAssign x e : valid_stmt (Assign x e)
-    | validOuptut l e : valid_stmt (Output l e)
-    | validRaise l : valid_stmt (Raise l)
-    | validSeq c1 c2 : valid_stmt c1 -> valid_stmt c2 -> valid_stmt (Seq c1 c2)
-    | validIf b c1 c2 : valid_stmt c1 -> valid_stmt c2 -> valid_stmt (If b c1 c2)
-    | validWhile b c : valid_stmt c -> valid_stmt (While b c)
-    | validTryCatch c1 c2 : valid_stmt c1 -> valid_stmt c2 -> valid_stmt (TryCatch c1 c2)
-    | validAsmInline (a : asm 1 1) : valid_asm (interp_asm (throw_prefix (denote_asm a f0)))  -> valid_stmt (AsmInline a)
+  Inductive valid_stmt {Label : Lattice} : stmt Label -> Prop :=
+    | validSkip : valid_stmt (Skip _)
+    | validAssign x e : valid_stmt (Assign _ x e)
+    | validOuptut l e : valid_stmt (Output _ l e)
+    | validRaise l : valid_stmt (Raise _ l)
+    | validSeq c1 c2 : valid_stmt c1 -> valid_stmt c2 -> valid_stmt (Seq _ c1 c2)
+    | validIf b c1 c2 : valid_stmt c1 -> valid_stmt c2 -> valid_stmt (If _ b c1 c2)
+    | validWhile b c : valid_stmt c -> valid_stmt (While _ b c)
+    | validTryCatch c1 c2 : valid_stmt c1 -> valid_stmt c2 -> valid_stmt (TryCatch _ c1 c2)
+    | validAsmInline (a : asm _ 1 1) : @valid_asm _ Label (interp_asm (throw_prefix (denote_asm _ a f0)))  -> valid_stmt (AsmInline _ a)
   .
 
   Lemma compile_expr_correct : forall e g_imp g_asm l1 l2 n,
       Renv g_imp g_asm ->
       eutt (sim_rel l2 n)
-            (interp_imp_inline (denote_expr e) (l1,g_imp))
+            (interp_imp_inline (denote_expr _ e) (l1,g_imp))
             (interp_asm (denote_list (compile_expr n e)) (l2, g_asm) ).
   Proof.
     induction e; simpl; intros.
@@ -1036,7 +1037,7 @@ Section Correctness.
    *)
   Lemma compile_assign_correct : forall e x,
       bisimilar eq
-        ((v <- denote_expr e ;; trigger (Store x v)) : itree ((impExcE sensitivity_lat) +' Reg +' Memory +' (IOE sensitivity_lat)) unit)
+        ((v <- denote_expr _ e ;; trigger (Store x v)) : itree ((impExcE sensitivity_lat) +' Reg +' Memory +' (IOE sensitivity_lat)) unit)
         ((denote_list (compile_assign x e)) : itree ((impExcE sensitivity_lat) +' Reg +' Memory +' (IOE sensitivity_lat)) unit).
   Proof.
     red; intros.
@@ -1067,7 +1068,7 @@ Section Correctness.
 
   Lemma compile_output_correct : forall s e,
       bisimilar eq
-        ((v <- denote_expr e ;; trigger (LabelledImp.LabelledPrint _ s v)) : itree ((impExcE sensitivity_lat) +' Reg +' Memory +' (IOE sensitivity_lat)) unit)
+        ((v <- denote_expr _ e ;; trigger (LabelledImp.LabelledPrint _ s v)) : itree ((impExcE sensitivity_lat) +' Reg +' Memory +' (IOE sensitivity_lat)) unit)
         ((@denote_list  ((impExcE sensitivity_lat) +' Reg +' Memory +' (IOE sensitivity_lat)) _ _ _ (compile_output s e))).
   Proof.
     red. intros. unfold compile_output. unfold interp_imp_inline, interp_asm.
@@ -1092,8 +1093,8 @@ Section Correctness.
   Definition TT {A B}: A -> B -> Prop  := fun _ _ => True.
   Hint Unfold TT: core.
 
-  Definition equivalent (s:stmt ) (t:asm 1 1) : Prop :=
-    bisimilar TT (denote_stmt s) (denote_asm t f0).
+  Definition equivalent (s:stmt _ ) (t:asm _ 1 1) : Prop :=
+    bisimilar TT (denote_stmt _ s) (denote_asm _ t f0).
 
   Inductive RI : (unit + unit) -> (unit + unit + unit) -> Prop :=
   | RI_inl : RI (inl tt) (inl (inl tt))
@@ -1149,8 +1150,8 @@ Section Correctness.
              | inr Public => proj1_sig l = 1
              | inr Private => proj1_sig l = 2 end.
 
-  Lemma throw_prefix_denote_expr (e : expr) : 
-     @throw_prefix sensitivity value (Reg +' Memory +' IOE sensitivity_lat) (denote_expr e) ≈ r <- denote_expr e;; Ret (inl r).
+  Lemma throw_prefix_denote_expr {Labels : Lattice} (e : expr) : 
+     @throw_prefix _ value (Reg +' Memory +' IOE Labels) (denote_expr Labels e) ≈ r <- denote_expr Labels e;; Ret (inl r).
   Proof.
     induction e.
     - cbn. setoid_rewrite throw_prefix_ev. rewrite bind_trigger.
@@ -1211,9 +1212,9 @@ Section Correctness.
       end.
 
   Lemma exception_to_sum_correct_instr_aux:
-    forall i : instr,
+    forall i : instr sensitivity_lat,
       eqit (fun (x : unit + sensitivity) (_ : unit) => x = inl tt) true true
-           (throw_prefix (denote_instr i)) (denote_instr i).
+           (throw_prefix (denote_instr _ i)) (denote_instr _ i).
   Proof.
     intros i. destruct i; cbn; repeat setoid_rewrite throw_prefix_bind; 
       repeat rewrite bind_bind; try destruct src; cbn; repeat adv; auto.
@@ -1221,8 +1222,8 @@ Section Correctness.
 
 
 
-  Lemma exception_to_sum_correct (p : asm 1 1) : eutt label_rel (throw_prefix (denote_asm p f0)) 
-                                                      (denote_asm (exception_to_sum p) f0).
+  Lemma exception_to_sum_correct (p : asm _ 1 1) : eutt label_rel (throw_prefix (denote_asm _ p f0)) 
+                                                      (denote_asm _ (exception_to_sum p) f0).
   Proof.
     unfold denote_asm. cbn. repeat setoid_rewrite bind_ret_l.  cbn.
     setoid_rewrite throw_prefix_iter. cbn. eapply eutt_iter' with (RI := eq); auto.
@@ -1288,25 +1289,25 @@ Section Correctness.
   Qed.
 
 
-  Lemma exception_to_sum_correct_eutt_eq (p : asm 1 1) : eutt eq (throw_prefix (denote_asm p f0)) 
-                                                      ((denote_asm (exception_to_sum p) f0) >>= (fun x : fin 3 => Ret (fin3tosum x) )).
+  Lemma exception_to_sum_correct_eutt_eq (p : asm _ 1 1) : eutt eq (throw_prefix (denote_asm _ p f0)) 
+                                                      ((denote_asm _ (exception_to_sum p) f0) >>= (fun x : fin 3 => Ret (fin3tosum x) )).
   Proof.
     apply eutt_label_rel_to_eutt. apply exception_to_sum_correct.
   Qed.
 
-  Lemma exception_to_sum_correct_eutt_eq' (p : asm 1 1) : eutt eq (denote_asm (exception_to_sum p) f0) 
-                                                               (throw_prefix (denote_asm p f0) >>= fun x => Ret (sumtofin3 x)).
+  Lemma exception_to_sum_correct_eutt_eq' (p : asm _ 1 1) : eutt eq (denote_asm _ (exception_to_sum p) f0) 
+                                                               (throw_prefix (denote_asm _ p f0) >>= fun x => Ret (sumtofin3 x)).
   Proof.
     apply eutt_label_rel_to_eutt'. apply exception_to_sum_correct.
   Qed.
 
-  Lemma compile_stmt_correct (s : stmt) : valid_stmt s ->
-        bisimilar label_rel (throw_prefix (denote_stmt s)) (denote_asm (compile_stmt s) f0).
+  Lemma compile_stmt_correct (s : stmt _) : valid_stmt s ->
+        bisimilar label_rel (throw_prefix (denote_stmt _ s)) (denote_asm _ (compile_stmt s) f0).
   Proof.
     induction s; intros Hs.
     - (* Assign *)
      simpl. rewrite raw_asm_block_correct. rewrite denote_after. 
-     rewrite throw_prefix_bind. rewrite throw_prefix_denote_expr. 
+     rewrite throw_prefix_bind. rewrite (@throw_prefix_denote_expr sensitivity_lat). 
      rewrite bind_bind. setoid_rewrite bind_ret_l.
      assert (forall r, throw_prefix (Err := sensitivity) (E := (Reg +' Memory +' (IOE _))) (trigger (Store x r) ) ≈ trigger (Store x r);; Ret (inl tt)  ).
      { 
@@ -1325,8 +1326,8 @@ Section Correctness.
     - (* Seq *)
       inversion Hs. subst.
       simpl. Opaque denote_asm. cbn. 
-      assert (denote_asm (seq_asm_exc (compile_stmt s1) (compile_stmt s2)) f0 ≈ 
-              (denote_asm (compile_stmt s1) >>> case_ (denote_asm (compile_stmt s2)) inr_) f0).
+      assert (denote_asm _ (seq_asm_exc (compile_stmt s1) (compile_stmt s2)) f0 ≈ 
+              (denote_asm _ (compile_stmt s1) >>> case_ (denote_asm _ (compile_stmt s2)) inr_) f0).
       { specialize (@seq_asm_exc_correct) as Hsaec.
       do 5 red in Hsaec. rewrite Hsaec.  reflexivity. }
       rewrite H. rewrite throw_prefix_bind.
@@ -1351,7 +1352,7 @@ Section Correctness.
       inversion Hs. subst.
       simpl.  rewrite fold_to_itree'. rewrite if_asm_correct.
       cbn. rewrite throw_prefix_bind. rewrite <- fold_to_itree'.
-      rewrite throw_prefix_denote_expr. rewrite bind_bind. setoid_rewrite bind_ret_l.
+      rewrite (@throw_prefix_denote_expr sensitivity_lat). rewrite bind_bind. setoid_rewrite bind_ret_l.
       red. intros. unfold interp_imp_inline, interp_asm. do 2 rewrite interp_state_bind.
       eapply eutt_clo_bind.
       { eapply compile_expr_correct; eauto. }
@@ -1378,7 +1379,7 @@ Section Correctness.
       intros [ | ] l Hl. 
       + cbn. assert (l = f0). { apply unique_fin; auto. } rewrite H. cbn.
         setoid_rewrite bind_bind.
-        setoid_rewrite throw_prefix_bind. rewrite throw_prefix_denote_expr.
+        setoid_rewrite throw_prefix_bind. rewrite (@throw_prefix_denote_expr sensitivity_lat).
         repeat rewrite bind_bind. setoid_rewrite bind_bind. setoid_rewrite bind_ret_l.
         red. intros. 
         unfold interp_imp_inline, interp_asm.
@@ -1426,7 +1427,7 @@ Section Correctness.
       split; cbn; auto.
     - (* Output *) 
       simpl. rewrite raw_asm_block_correct. rewrite denote_after. 
-      rewrite throw_prefix_bind. rewrite throw_prefix_denote_expr.
+      rewrite throw_prefix_bind. rewrite (@throw_prefix_denote_expr sensitivity_lat).
       rewrite bind_bind. setoid_rewrite bind_ret_l. cbn.
       setoid_rewrite throw_prefix_ev. setoid_rewrite tau_eutt. setoid_rewrite throw_prefix_ret.
       setoid_rewrite <- bind_trigger.
@@ -1504,7 +1505,7 @@ Section Correctness.
       the compiler, all control-flow related reasoning having been handled
       in isolation.
    *)
-  Theorem compile_correct (s : stmt) : valid_stmt s ->
+  Theorem compile_correct (s : stmt _ ) : valid_stmt s ->
     equivalent s (compile s).
   Proof.
     unfold equivalent. intro Hs.  unfold compile. rewrite throw_prefix_bind_decomp.

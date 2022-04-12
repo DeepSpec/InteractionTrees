@@ -40,35 +40,35 @@ Section compile_assign.
       the expression, and is used for the name of the next one.
       The result of the computation [compile_expr l e] always ends up stored in [l].
    *)
-  Fixpoint compile_expr (l:reg) (e: expr): list instr :=
+  Fixpoint compile_expr (l:reg) (e: expr): list (instr sensitivity_lat) :=
     match e with
-    | Var x => [Iload l x]
-    | Lit n => [Imov l (Oimm n)]
+    | Var x => [Iload _ l x]
+    | Lit n => [Imov _ l (Oimm n)]
     | Plus e1 e2 =>
       let instrs1 := compile_expr l e1 in
       let instrs2 := compile_expr (1 + l) e2 in
-      instrs1 ++ instrs2 ++ [Iadd l l (Oreg (1 + l))]
+      instrs1 ++ instrs2 ++ [Iadd _ l l (Oreg (1 + l))]
     | Minus e1 e2 =>
       let instrs1 := compile_expr l e1 in
       let instrs2 := compile_expr (1 + l) e2 in
-      instrs1 ++ instrs2 ++ [Isub l l (Oreg (1 + l))]
+      instrs1 ++ instrs2 ++ [Isub _ l l (Oreg (1 + l))]
     | Mult e1 e2 =>
       let instrs1 := compile_expr l e1 in
       let instrs2 := compile_expr (1 + l) e2 in
-      instrs1 ++ instrs2 ++ [Imul l l (Oreg (1 + l))]
+      instrs1 ++ instrs2 ++ [Imul _ l l (Oreg (1 + l))]
       end.
 
   (** Compiles the expression and then moves the result (in register [0]) to address
       [x].  Note: here we assume a one-to-one mapping of _Imp_ global variable names
       and _Asm_ addresses.
   *)
-  Definition compile_assign (x: var) (e: expr): list instr :=
+  Definition compile_assign (x: var) (e: expr): list (instr sensitivity_lat) :=
     let instrs := compile_expr 0 e in
-    instrs ++ [Istore x (Oreg 0)].
+    instrs ++ [Istore _ x (Oreg 0)].
 
-  Definition compile_output (s : sensitivity) (e : expr) : list instr :=
+  Definition compile_output (s : sensitivity) (e : expr) : list (instr sensitivity_lat) :=
     let instrs := compile_expr 0 e in 
-    instrs ++  [IOutput s 0].
+    instrs ++  [IOutput _ s 0].
 
 End compile_assign.
 
@@ -105,26 +105,26 @@ We obtain the following diagram:
 
 Which translates to:
  *)
-Definition seq_asm {A B C} (ab : asm A B) (bc : asm B C)
-  : asm A C :=
+Definition seq_asm {A B C} (ab : asm _ A B) (bc : asm _ B C)
+  : asm _ A C :=
   loop_asm (relabel_asm swap (id_ _) (app_asm ab bc)).
 
 Section seq_asm_exc.
 Context {A B C D : nat}.
-Context (ab : asm A (B + C)).
-Context (bd : asm B (D + C)).
+Context (ab : asm _ A (B + C)).
+Context (bd : asm _ B (D + C)).
 (* so what I need to do is get this to the form some swapping should get this the rest of the 
    way to the other *)
-Definition comb : asm (A + B) ((B + C) + (D + C)) := app_asm ab bd.
+Definition comb : asm _ (A + B) ((B + C) + (D + C)) := app_asm ab bd.
 
 
 
 Definition swap_and_merge : CategorySub.sub Fun fin (C + (D + C) ) (D + C) := 
   cat (cat ( cat (bimap (id_ _) (swap) ) assoc_l) (bimap merge (id_ _) )) swap.
 
-Definition expose_linking_labels : asm (B + A) (B + (D + C) )  := relabel_asm swap (cat (cat assoc_r (id_ _)) (bimap (id_ _ ) swap_and_merge) ) comb.
+Definition expose_linking_labels : asm _ (B + A) (B + (D + C) )  := relabel_asm swap (cat (cat assoc_r (id_ _)) (bimap (id_ _ ) swap_and_merge) ) comb.
 
-Definition seq_asm_exc : asm A (D + C) := loop_asm expose_linking_labels.
+Definition seq_asm_exc : asm _ A (D + C) := loop_asm expose_linking_labels.
 
 End seq_asm_exc.
 
@@ -134,8 +134,8 @@ Definition tmp_if := 0.
 (** Turns the list of instructions resulting from the conditional
     expression of a _if_ to a block with two exit points.
  *)
-Definition cond_asm (e : list instr) : asm 1 2 :=
-  raw_asm_block (after e (Bbrz tmp_if (fS f0) f0)).
+Definition cond_asm (e : list (instr _)) : asm _ 1 2 :=
+  raw_asm_block (after e (Bbrz _ tmp_if (fS f0) f0)).
 
 
 (** Conditional branch of blocks.
@@ -157,8 +157,8 @@ Definition cond_asm (e : list instr) : asm 1 2 :=
 ]]
  *)
 Definition if_asm {A}
-           (e : list instr) (tp : asm 1 A) (fp : asm 1 A) :
-  asm 1 A :=
+           (e : list (instr _)) (tp : asm _ 1 A) (fp : asm _ 1 A) :
+  asm _ 1 A :=
   seq_asm (cond_asm e)
           (relabel_asm (id_ _) merge (app_asm tp fp)).
 
@@ -181,8 +181,8 @@ Definition if_asm {A}
            false
 ]]
 *)
-Definition while_asm (e : list instr) (p : asm 1 1) :
-  asm 1 1 :=
+Definition while_asm (e : list (instr _)) (p : asm _ 1 1) :
+  asm _ 1 1 :=
   loop_asm (relabel_asm (id_ _) merge
     (app_asm (if_asm e
                 (relabel_asm (id_ _) inl_ p)
@@ -192,22 +192,22 @@ Definition while_asm (e : list instr) (p : asm 1 1) :
 
 
 
-Definition pure_ret_asm : asm 1 3 :=
+Definition pure_ret_asm : asm _ 1 3 :=
   pure_asm (fun _ => f0).
 
-Definition pure_exc_asm (s : sensitivity) : asm 1 3 :=
+Definition pure_exc_asm (s : sensitivity) : asm _ 1 3 :=
   pure_asm (fun _ => match s with Public => fS (f0) | Private => (fS (fS f0)) end).
 
 
 Section while_asm_exc.
-  Context (e : list instr).
-  Context (p : asm 1 (1 + 2) ).
+  Context (e : list (instr _)).
+  Context (p : asm _ 1 (1 + 2) ).
   (* part of the problem is I am thinking about it wrong, because only a success signal in the body loop  gets fed back into the loop, either *)
   (*Definition direct_output_while_exc : asm (1 + 2) (1 + (1 + 2) ) := app_asm (pure_asm (id_ _)) (pure_asm inr_). *)
-  Definition direct_output_while_exc : asm 1 (1 + (1 + 2)) :=
+  Definition direct_output_while_exc : asm _ 1 (1 + (1 + 2)) :=
     relabel_asm (id_ _) (bimap inl_ inr_) p.
  
-  Definition while_asm_exc : asm 1 3 :=
+  Definition while_asm_exc : asm _ 1 3 :=
     loop_asm (relabel_asm (id_ _) merge (app_asm 
                                            (if_asm e direct_output_while_exc (pure_asm (fun _ => fS (f0)) )) 
                                            (pure_asm inl_))).
@@ -220,13 +220,13 @@ End while_asm_exc.
 (* probably can refact seq_asm_exc to be simpler *)
 
 
-Definition trycatch_asm (p : asm 1 (1 + (1 + 1) ) ) (c : asm 1 3) : asm 1 3 :=
+Definition trycatch_asm (p : asm _ 1 (1 + (1 + 1) ) ) (c : asm _ 1 3) : asm _ 1 3 :=
   seq_asm (relabel_asm (id_ _) (bimap (id_ _) merge ) p)
    (relabel_asm (id_ _ ) merge (app_asm pure_ret_asm c)).
 
 
-Definition raise_asm (s : sensitivity) : asm 1 1:=
-  {| internal := 0; code := fun _ => bbb (BRaise s) |}.
+Definition raise_asm (s : sensitivity) : asm _ 1 1:=
+  {| internal := 0; code := fun _ => bbb _ (BRaise _ s) |}.
 
 (** Equipped with our combinators, the compiler writes itself
     by induction on the structure of the statement.
@@ -253,50 +253,50 @@ Proof.
 Qed.
 
 
-Definition exception_to_sum_branch {B C : nat} (br : branch (fin (C + B) )) : branch (fin (C + (B + 2))) :=
+Definition exception_to_sum_branch {B C : nat} (br : branch _ (fin (C + B) )) : branch _ (fin (C + (B + 2))) :=
   match br with
-  | Bjmp l => Bjmp (exception_to_sum_branch_reassoc l)
-  | Bbrz r l1 l2 => 
-     Bbrz r (exception_to_sum_branch_reassoc l1) (exception_to_sum_branch_reassoc l2) 
-  | BRaise s => match s with
-               | Public => Bjmp (R C (R B f0))
-               | Private => Bjmp (R C (R B (fS f0) )) 
+  | Bjmp _ l => Bjmp _ (exception_to_sum_branch_reassoc l)
+  | Bbrz _ r l1 l2 => 
+     Bbrz _ r (exception_to_sum_branch_reassoc l1) (exception_to_sum_branch_reassoc l2) 
+  | BRaise _ s => match s with
+               | Public => Bjmp _ (R C (R B f0))
+               | Private => Bjmp _ (R C (R B (fS f0) )) 
                end
   end.
 
-Fixpoint exception_to_sum_block {B C : nat} (bl : block (fin (C + B))) : block (fin (C + (B + 2)) ) :=
+Fixpoint exception_to_sum_block {B C : nat} (bl : block _ (fin (C + B))) : block _ (fin (C + (B + 2)) ) :=
   match bl with
-  | bbi instr bl' => bbi instr (exception_to_sum_block bl')
-  | bbb br => bbb (exception_to_sum_branch br) 
+  | bbi _ instr bl' => bbi _ instr (exception_to_sum_block bl')
+  | bbb _ br => bbb _ (exception_to_sum_branch br) 
   end.
 
-Definition exception_to_sum_bks {A B C: nat} : bks (C + A) (C + B) -> bks (C + A) (C + (B + 2)) :=
+Definition exception_to_sum_bks {A B C: nat} : bks _ (C + A) (C + B) -> bks _ (C + A) (C + (B + 2)) :=
   fun f a => exception_to_sum_block (f a).
 
 (* small associativity problem, should be fixable
    going to see if I can rewrite previous parts to avoid equality proofs
 
 *)
-Definition exception_to_sum {A B : nat} (p : asm A B) : asm A (B + 2) :=
+Definition exception_to_sum {A B : nat} (p : asm _ A B) : asm _ A (B + 2) :=
   {|
-    internal := internal p;
-    code := exception_to_sum_bks (code p)
+    internal := internal _ _ _ p;
+    code := exception_to_sum_bks (code _ _ _ p)
   |}.
 
 
-Fixpoint compile_stmt (s : stmt) {struct s} : asm 1 (1 + 2) :=
+Fixpoint compile_stmt (s : stmt _) {struct s} : asm _ 1 (1 + 2) :=
   match s with
-  | Skip       => pure_ret_asm
-  | Assign x e => raw_asm_block (after (compile_assign x e) (Bjmp f0))
-  | Output s e => raw_asm_block (after (compile_output s e) (Bjmp f0) )
-  | Seq l r    => seq_asm_exc (compile_stmt l) (compile_stmt r)
-  | If e l r   => if_asm (compile_expr 0 e) (compile_stmt l) (compile_stmt r)
-  | Raise s => pure_exc_asm s
-  | While e s => while_asm_exc (compile_expr 0 e) (compile_stmt s)
-  | TryCatch t c => trycatch_asm (compile_stmt t) (compile_stmt c)
-  | AsmInline p => exception_to_sum p
+  | Skip _      => pure_ret_asm
+  | Assign _ x e => raw_asm_block (after (compile_assign x e) (Bjmp _ f0))
+  | Output _ s e => raw_asm_block (after (compile_output s e) (Bjmp _ f0) )
+  | Seq _ l r    => seq_asm_exc (compile_stmt l) (compile_stmt r)
+  | If _ e l r   => if_asm (compile_expr 0 e) (compile_stmt l) (compile_stmt r)
+  | Raise _ s => pure_exc_asm s
+  | While _ e s => while_asm_exc (compile_expr 0 e) (compile_stmt s)
+  | TryCatch _ t c => trycatch_asm (compile_stmt t) (compile_stmt c)
+  | AsmInline _ p => exception_to_sum p
   end.
 
-Definition compile (s : stmt) : asm 1 1 :=
+Definition compile (s : stmt _ ) : asm _ 1 1 :=
   seq_asm (compile_stmt s ) 
           (relabel_asm (id_ _) (fun _ => f0) (app_asm id_asm (app_asm (raise_asm Public) (raise_asm Private) ) )).

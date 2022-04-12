@@ -69,10 +69,10 @@ Definition labelled_bisimilar {A B : Type} (RAB : A -> B -> Prop)
     eqit_secure _ (priv_exc_io sensitivity_lat) (product_rel (product_rel top2 Renv) RAB) true true l 
                 (interp_asm t1 (regs1, g_imp )) (interp_asm t2 (regs2, g_asm)).
 
-Lemma compile_preserves_ps_security : forall (c : stmt),
+Lemma compile_preserves_ps_security : forall (c : stmt _),
     valid_stmt c ->
-    labelled_bisimilar TT (denote_stmt c) (denote_stmt c) ->
-    labelled_bisimilar TT (denote_stmt c) (denote_asm (compile c) f0 ) .
+    labelled_bisimilar TT (denote_stmt _ c) (denote_stmt _ c) ->
+    labelled_bisimilar TT (denote_stmt _ c) (denote_asm _ (compile c) f0 ) .
 Proof.
   intros s Hs Hsecs. red in Hsecs. red. intros g_imp g_asm regs1 regs2 Hs'.
   assert (labelled_equiv _ Γ l g_imp g_imp). reflexivity.
@@ -88,10 +88,10 @@ Proof.
   destruct H1. cbn in *. etransitivity; eauto.
 Qed.
 
-Lemma compile_preserves_ps_ni : forall (c : stmt),
+Lemma compile_preserves_ps_ni : forall (c : stmt _),
     valid_stmt c ->
-    labelled_bisimilar TT (denote_stmt c) (denote_stmt c) ->
-    labelled_bisimilar TT (denote_asm (compile c) f0) (denote_asm (compile c) f0 ) .
+    labelled_bisimilar TT (denote_stmt _ c) (denote_stmt _ c) ->
+    labelled_bisimilar TT (denote_asm _ (compile c) f0) (denote_asm _ (compile c) f0 ) .
 Proof.
   intros s Hs Hsecs. red. intros g_imp g_asm regs1 regs2 Hs'.
   specialize (compile_correct s Hs) as Heutt. do 2 red in Heutt.
@@ -103,8 +103,8 @@ Proof.
   specialize (SecureEqEuttHalt.eqit_secure_trans) as Htrans.
   assert (Hsec'' : eqit_secure (PreOrderOfLattice sensitivity_lat) (priv_exc_io sensitivity_lat)
              (product_rel (product_rel top2 Renv) TT) true true l
-             (interp_asm (denote_stmt s) (regs1, g_imp))
-             (interp_asm (denote_asm (compile s) f0 ) (regs2, g_asm) )
+             (interp_asm (denote_stmt _ s) (regs1, g_imp))
+             (interp_asm (denote_asm _ (compile s) f0 ) (regs2, g_asm) )
          ).
   {
     eapply SecureEqEuttHalt.eqit_secure_RR_imp with (RR1 := rcompose _ _ ).
@@ -137,10 +137,10 @@ Definition labelled_pi_bisimilar {A B : Type} (RAB : A -> B -> Prop)
     pi_eqit_secure _ (priv_exc_io sensitivity_lat) (product_rel (product_rel top2 Renv) RAB) true true l 
                 (interp_asm t1 (regs1, g_imp )) (interp_asm t2 (regs2, g_asm)).
 
-Lemma compile_preserves_pi_security : forall (c : stmt),
+Lemma compile_preserves_pi_security : forall (c : stmt _),
     valid_stmt c ->
-    labelled_pi_bisimilar TT (denote_stmt c) (denote_stmt c) ->
-    labelled_pi_bisimilar TT (denote_stmt c) (denote_asm (compile c) f0 ) .
+    labelled_pi_bisimilar TT (denote_stmt _ c) (denote_stmt _ c) ->
+    labelled_pi_bisimilar TT (denote_stmt _ c) (denote_asm _ (compile c) f0 ) .
 Proof.
   intros s Hs Hsecs. red in Hsecs. red. intros g_imp g_asm regs1 regs2 Hs'.
   assert (labelled_equiv _ Γ l g_imp g_imp). reflexivity.
@@ -156,10 +156,10 @@ Proof.
 Qed.
 
 
-Lemma compile_preserves_pi_ni : forall (c : stmt),
+Lemma compile_preserves_pi_ni : forall (c : stmt _ ),
     valid_stmt c ->
-    labelled_pi_bisimilar TT (denote_stmt c) (denote_stmt c) ->
-    labelled_pi_bisimilar TT (denote_asm (compile c) f0) (denote_asm (compile c) f0 ) .
+    labelled_pi_bisimilar TT (denote_stmt _ c) (denote_stmt _ c) ->
+    labelled_pi_bisimilar TT (denote_asm _ (compile c) f0) (denote_asm _ (compile c) f0 ) .
 Proof.
   intros c Hc Hsecc. red. intros g_imp g_asm regs1 regs2. intros Hasmeq.
   assert (labelled_equiv _ Γ l g_imp g_imp). reflexivity.

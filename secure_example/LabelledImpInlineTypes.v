@@ -51,11 +51,15 @@ Local Open Scope string_scope.
 
 Section LabelledImpTypes.
 
-Ltac case_leq l1 l2 := destruct (leq_dec sensitivity_lat l1 l2) as [Hleq | Hnleq].
+Context (Labels : Lattice).
+Context (HLabels : LatticeLaws Labels).
+Notation label := (@T Labels).
+
+Ltac case_leq l1 l2 := destruct (leq_dec Labels l1 l2) as [Hleq | Hnleq].
 
 Notation privacy_map := LabelledImp.privacy_map.
 
-Definition labelled_equiv (Γ : privacy_map sensitivity_lat) (l : sensitivity) (σ1 σ2 : map)  : Prop :=
+Definition labelled_equiv (Γ : privacy_map Labels) (l : label) (σ1 σ2 : map)  : Prop :=
   forall x, leq (Γ x) l -> σ1 x = σ2 x.
 
 Definition top2 {A B} : A -> B -> Prop := fun _ _ => True.
@@ -70,19 +74,19 @@ Qed.
 
 Notation impExcE := LabelledImp.impExcE.
 Notation IOE := LabelledImp.IOE.
-Definition label_eqit_secure_impstate  (b1 b2 : bool) (Γ : privacy_map sensitivity_lat) (l : sensitivity) {R1 R2 : Type} (RR : R1 -> R2 -> Prop )
-           (m1 : stateT (registers * map) (itree ((impExcE sensitivity_lat) +' (IOE sensitivity_lat))) R1) 
-           (m2 : stateT (registers * map ) (itree ((impExcE sensitivity_lat) +' (IOE sensitivity_lat))) R2) : Prop :=
-  forall σ1 σ2 regs1 regs2, labelled_equiv Γ l σ1 σ2 -> eqit_secure _ (priv_exc_io sensitivity_lat) (product_rel (product_rel top2 (labelled_equiv Γ l)) RR) b1 b2 l (m1 (regs1,σ1)) (m2 (regs2, σ2)).
+Definition label_eqit_secure_impstate  (b1 b2 : bool) (Γ : privacy_map _ ) (l : label) {R1 R2 : Type} (RR : R1 -> R2 -> Prop )
+           (m1 : stateT (registers * map) (itree ((impExcE _) +' (IOE _))) R1) 
+           (m2 : stateT (registers * map ) (itree ((impExcE _) +' (IOE _))) R2) : Prop :=
+  forall σ1 σ2 regs1 regs2, labelled_equiv Γ l σ1 σ2 -> eqit_secure _ (priv_exc_io _) (product_rel (product_rel top2 (labelled_equiv Γ l)) RR) b1 b2 l (m1 (regs1,σ1)) (m2 (regs2, σ2)).
 
 Definition label_state_sec_eutt {R1 R2} priv l (RR : R1 -> R2 -> Prop) m1 m2 :=
   label_eqit_secure_impstate true true  priv l RR m1 m2.
 
-Definition sem_stmt (s : stmt) := interp_imp_inline (denote_stmt s).
+Definition sem_stmt (s : stmt _) := interp_imp_inline (denote_stmt  _ s).
 
-Definition sem_throw_stmt (s : stmt) := interp_imp_inline (throw_prefix (denote_stmt s) ).
+Definition sem_throw_stmt (s : stmt _ ) := interp_imp_inline (throw_prefix (denote_stmt _ s) ).
 
-Definition sem_expr (e : expr) := @interp_imp_inline (impExcE sensitivity_lat) (IOE sensitivity_lat) value (denote_expr e).
+Definition sem_expr (e : expr) := @interp_imp_inline (impExcE Labels) (IOE Labels) value (denote_expr _ e).
 
 Definition state_equiv {E R} (m1 m2 : stateT map (itree E) R) := forall (σ : map), m1 σ ≈ m2 σ.
 
@@ -110,14 +114,14 @@ Proof.
     specialize (H σ1).  eapply proper_eutt_secure_eutt; eauto.
 Qed.
 *)
-Context (Γ : privacy_map sensitivity_lat).
+Context (Γ : privacy_map Labels).
 
-Variant secure_stmt_at_label (observer pc : sensitivity) (s : stmt) : Prop :=
+Variant secure_stmt_at_label (observer pc : label) (s : stmt _) : Prop :=
   | ssal_leq : (leq pc observer) -> label_state_sec_eutt Γ observer eq (sem_stmt s) (sem_stmt s) -> secure_stmt_at_label observer pc s
   | ssal_nleq : (~ leq pc observer) -> label_state_sec_eutt Γ observer top2 (sem_stmt s) (ret tt) -> secure_stmt_at_label observer pc s.
 
 
-Variant secure_expr_at_label (observer protection: sensitivity ) (e : expr) : Prop :=
+Variant secure_expr_at_label (observer protection: label ) (e : expr) : Prop :=
   | seal_leq : (leq protection observer) -> label_state_sec_eutt Γ observer eq (sem_expr e) (sem_expr e) -> 
                secure_expr_at_label observer protection e
   | seal_nleq : (~leq protection observer) -> (exists n:value, label_state_sec_eutt Γ observer top2 (sem_expr e) (ret n)) ->
@@ -131,7 +135,7 @@ Definition secure_stmt pc s := forall observer, secure_stmt_at_label observer pc
 Variant is_inl {A B : Type} : A + B -> Prop :=
   | is_inl_ev (a : A) : is_inl (inl a).
 
-Variant secure_throw_stmt_at_label (observer pc : sensitivity) (s : stmt) : Prop :=
+Variant secure_throw_stmt_at_label (observer pc : label) (s : stmt _ ) : Prop :=
   | stsal_leq : leq pc observer -> label_state_sec_eutt Γ observer (sum_rel eq (fun l1 l2 => eqlat l1 bot /\ eqlat l2 bot) )
                                                        (sem_throw_stmt s) (sem_throw_stmt s) -> secure_throw_stmt_at_label observer pc s
   | stsal_nleq : (~ leq pc observer) -> label_state_sec_eutt Γ observer (fun sum _ => is_inl sum ) 
@@ -195,20 +199,20 @@ Proof.
 Qed.
 
 Lemma state_secure_eutt_equiv_ret_aux:
-  forall R RR t1 t2 (observer : sensitivity) (r1 r2 : R),
+  forall R RR t1 t2 observer (r1 r2 : R),
     Equivalence RR ->
     RR r1 r2 ->
     (forall (σ1 σ2 : map) (regs1 regs2 : registers),
         labelled_equiv Γ observer σ1 σ2 ->
-        eqit_secure _ (priv_exc_io sensitivity_lat) (product_rel (product_rel top2 (labelled_equiv Γ observer)) RR) true
+        eqit_secure _ (priv_exc_io _) (product_rel (product_rel top2 (labelled_equiv Γ observer)) RR) true
                     true observer (interp_imp_inline t1 (regs1,σ1)) (Ret(regs2, σ2,r1))) ->
     (forall (σ1 σ2 : map) (regs1 regs2 : registers),
         labelled_equiv Γ observer σ1 σ2 ->
-        eqit_secure _ (priv_exc_io sensitivity_lat) (product_rel (product_rel top2 (labelled_equiv Γ observer)) RR) true
+        eqit_secure _ (priv_exc_io _) (product_rel (product_rel top2 (labelled_equiv Γ observer)) RR) true
                     true observer (interp_imp_inline t2 (regs1,σ1)) (Ret(regs2, σ2,r2))) ->
     forall (σ1 σ2 : map) (regs1 regs2 : registers),
       labelled_equiv Γ observer σ1 σ2 ->
-      eqit_secure _ (priv_exc_io sensitivity_lat) (product_rel (product_rel top2 (labelled_equiv Γ observer)) RR) true
+      eqit_secure _ (priv_exc_io _) (product_rel (product_rel top2 (labelled_equiv Γ observer)) RR) true
                   true observer (interp_imp_inline t1 (regs1, σ1))
                   (interp_imp_inline t2 (regs2, σ2)).
 Proof.
@@ -241,21 +245,21 @@ Proof.
 Qed.
 
 Lemma state_secure_eutt_throw_ret_aux:
-  forall t1 t2  (observer : sensitivity),
+  forall t1 t2  observer,
     label_state_sec_eutt Γ observer
-                         (fun (sum : unit + sensitivity) (_ : unit) =>
+                         (fun (sum : unit + _) (_ : unit) =>
                             is_inl sum) (interp_imp_inline (throw_prefix t1))
                          (ret tt) ->
     label_state_sec_eutt Γ observer
-                         (fun (sum : unit + sensitivity) (_ : unit) =>
+                         (fun (sum : unit + _) (_ : unit) =>
                             is_inl sum) (interp_imp_inline (throw_prefix t2)) 
                          (ret tt) ->
     forall (σ3 σ4 : map) (regs1 regs2 : registers),
       labelled_equiv Γ observer σ3 σ4 ->
-      eqit_secure _ (priv_exc_io sensitivity_lat)
+      eqit_secure _ (priv_exc_io _)
                   (product_rel (product_rel top2 (labelled_equiv Γ observer))
                                (sum_rel eq
-                                        (fun l1 l2 : sensitivity =>
+                                        (fun l1 l2 =>
                                            eqlat l1 bot /\ eqlat l2 bot))) true
                   true observer
                   (interp_imp_inline
@@ -266,9 +270,9 @@ Proof.
   intros t1 t2 observer Ht1 Ht2 σ3 σ4 regs1 regs2 Hσ.
   do 2 red in Ht1, Ht2. cbn in *. set (product_rel
              (@product_rel registers _ registers _ top2 (labelled_equiv Γ observer))
-             (fun (sum : unit + sensitivity)
+             (fun (sum : unit + label)
                 (_ : unit) => is_inl sum)) as Rst.
-  set (product_rel (@product_rel registers _ registers _ top2 (labelled_equiv Γ observer)) (fun (sum1 sum2 : unit + sensitivity) => is_inl sum1 /\ is_inl sum2)  ) as Rst'.
+  set (product_rel (@product_rel registers _ registers _ top2 (labelled_equiv Γ observer)) (fun (sum1 sum2 : unit + label) => is_inl sum1 /\ is_inl sum2)  ) as Rst'.
   eapply eqit_secure_RR_imp with (RR1 := Rst').
   { unfold Rst'. 
     intros [ [? ?] [ [] | ?] ] [ [? ?] [ [] | ?] ] [ [? ?] [? ?] ]; cbn in *; inv H1; inv H2.
@@ -289,18 +293,18 @@ Qed.
 
 
 Lemma state_secure_eutt_ret_aux:
-  forall R t1 t2 (observer : sensitivity) (r1 r2 : R),
+  forall R t1 t2 observer (r1 r2 : R),
     (forall (σ1 σ2 : map) (regs1 regs2 : registers),
         labelled_equiv Γ observer σ1 σ2 ->
-        eqit_secure _ (priv_exc_io sensitivity_lat) (product_rel (product_rel top2 (labelled_equiv Γ observer)) (@top2 R R)) true
+        eqit_secure _ (priv_exc_io _) (product_rel (product_rel top2 (labelled_equiv Γ observer)) (@top2 R R)) true
                     true observer (interp_imp_inline t1 (regs1, σ1)) (Ret(regs2, σ2,r1))) ->
     (forall (σ1 σ2 : map) (regs1 regs2 : registers),
         labelled_equiv Γ observer σ1 σ2 ->
-        eqit_secure _ (priv_exc_io sensitivity_lat) (product_rel (product_rel top2 (labelled_equiv Γ observer)) (@top2 R R)) true
+        eqit_secure _ (priv_exc_io _) (product_rel (product_rel top2 (labelled_equiv Γ observer)) (@top2 R R)) true
                     true observer (interp_imp_inline t2 (regs1, σ1)) (Ret(regs2, σ2,r2))) ->
     (forall (σ1 σ2 : map) (regs1 regs2 : registers),
       labelled_equiv Γ observer σ1 σ2 ->
-      eqit_secure _ (priv_exc_io sensitivity_lat) (product_rel (product_rel top2 (labelled_equiv Γ observer)) top2) true
+      eqit_secure _ (priv_exc_io _) (product_rel (product_rel top2 (labelled_equiv Γ observer)) top2) true
                   true observer (interp_imp_inline t1 (regs1, σ1))
                   (interp_imp_inline t2 (regs2, σ2))).
 Proof.
@@ -309,7 +313,7 @@ Proof.
 Qed.
 Notation update := LabelledImp.update.
 Lemma update_labelled_equiv_invisible:
-  forall (x : var) (observer : sensitivity) Γ,
+  forall (x : var) observer Γ,
     ~ leq (Γ x) observer ->
     forall (σ1 : map) (v : value) (σ2 : map),
       labelled_equiv Γ observer σ1 σ2 -> labelled_equiv Γ observer (update x v σ1) (σ2).
@@ -321,7 +325,7 @@ Proof.
 Qed.
 
 Lemma update_labelled_equiv_visible:
-  forall (x : var) (observer : sensitivity) Γ,
+  forall (x : var) observer Γ,
     leq (Γ x) observer ->
     forall (σ1 : map) (v : value) (σ2 : map),
       labelled_equiv Γ observer σ1 σ2 -> labelled_equiv Γ observer (update x v σ1) (update x v σ2).
@@ -331,7 +335,7 @@ Proof.
   destruct (x =? x0) eqn : Heq; auto.
 Qed.
 
-Lemma assign_well_typed_correct x e pc l : secure_expr l e -> leq (join l pc) (Γ x) -> secure_stmt pc (Assign x e).
+Lemma assign_well_typed_correct x e pc l : secure_expr l e -> leq (join l pc) (Γ x) -> secure_stmt pc (Assign _ x e).
 Proof.
   intros Hle Hx. 
   assert (Hpc : leq pc (Γ x) ).
@@ -378,7 +382,7 @@ Proof.
       cbn. split; auto. apply update_labelled_equiv_invisible; auto.
 Qed.
 
-Lemma throw_prefix_denote_expr e : @throw_prefix sensitivity value (Reg +' Memory +' IOE sensitivity_lat) (denote_expr e) ≈ (ITree.bind (denote_expr e) (fun v => Ret (inl v))).
+Lemma throw_prefix_denote_expr e : @throw_prefix _ value (Reg +' Memory +' IOE _) (denote_expr _ e) ≈ (ITree.bind (denote_expr _ e) (fun v => Ret (inl v))).
 Proof.
   induction e; cbn.
   - setoid_rewrite bind_trigger. setoid_rewrite throw_prefix_ev.
@@ -423,7 +427,7 @@ Proof.
     eexists; reflexivity.
 Qed.
 
-Lemma assign_well_typed_correct' x e pc l : secure_expr l e -> leq (join l pc) (Γ x) -> secure_throw_stmt pc (Assign x e).
+Lemma assign_well_typed_correct' x e pc l : secure_expr l e -> leq (join l pc) (Γ x) -> secure_throw_stmt pc (Assign _ x e).
 Proof.
   intros Hle Hx. 
   assert (Hpc : leq pc (Γ x) ).
@@ -485,7 +489,7 @@ Qed.
 
 
 
-Lemma assign_only_ret e x σ regs : exists σ', sem_stmt (Assign x e) (regs, σ) ≈ Ret (regs, σ', tt).
+Lemma assign_only_ret e x σ regs : exists σ', sem_stmt (Assign _ x e) (regs, σ) ≈ Ret (regs, σ', tt).
 Proof.
   unfold sem_stmt, interp_imp_inline, interp_asm. cbn.
   setoid_rewrite interp_state_bind. specialize (expr_only_ret' e (regs, σ) ) as He.
@@ -495,7 +499,7 @@ Qed.
 
 Lemma output_well_typed_correct l1 le pc e : 
   secure_expr le e -> leq (join le pc) l1 ->
-  secure_stmt pc (Output l1 e).
+  secure_stmt pc (Output _ l1 e).
 Proof.
   intros He0 Hle1.
   assert (Hle : leq le l1).
@@ -543,8 +547,8 @@ Proof.
       intros []. apply secure_eqit_ret; auto. repeat (split; auto).
 Qed.
 
-Lemma throw_prefix_output l1 e :  throw_prefix (denote_stmt (Output l1 e) ) ≈
-        v <- denote_expr e;; trigger (LabelledImp.LabelledPrint sensitivity_lat l1 v);; Ret (inl tt). 
+Lemma throw_prefix_output l1 e :  throw_prefix (denote_stmt _ (Output _ l1 e) ) ≈
+        v <- denote_expr _ e;; trigger (LabelledImp.LabelledPrint _ l1 v);; Ret (inl tt). 
 Proof.
   cbn. rewrite throw_prefix_bind. rewrite throw_prefix_denote_expr. rewrite bind_bind.
   eapply eqit_bind'; try reflexivity. intros; subst. rewrite bind_ret_l. setoid_rewrite throw_prefix_ev.
@@ -553,7 +557,7 @@ Qed.
 
 Lemma output_well_typed_correct' l1 le pc e : 
   secure_expr le e -> leq (join le pc) l1 ->
-  secure_throw_stmt pc (Output l1 e).
+  secure_throw_stmt pc (Output _ l1 e).
 Proof.
   intros He0 Hle1.
   assert (Hle : leq le l1).
@@ -610,7 +614,7 @@ Qed.
 
 Lemma seq_well_typed_correct pc s1 s2 : 
   secure_stmt pc s1 -> secure_stmt pc s2 ->
-  secure_stmt pc (Seq s1 s2).
+  secure_stmt pc (Seq _ s1 s2).
 Proof.
   intros Hc1 Hc2. red. intros.
   specialize (Hc1 observer) as Hc1obs. specialize (Hc2 observer) as Hc2obs.
@@ -639,7 +643,7 @@ Qed.
 
 Lemma seq_well_typed_correct' pc s1 s2 : 
   secure_throw_stmt pc s1 -> secure_throw_stmt pc s2 ->
-  secure_throw_stmt pc (Seq s1 s2).
+  secure_throw_stmt pc (Seq _ s1 s2).
 Proof.
   intros Hc1 Hc2. red. intros.
   specialize (Hc1 observer) as Hc1obs. specialize (Hc2 observer) as Hc2obs.
@@ -665,7 +669,7 @@ Qed.
 
 Lemma if_well_typed_correct pc le e s1 s2 :
   secure_expr le e -> secure_stmt (join pc le) s1 -> secure_stmt (join pc le) s2 ->
-  secure_stmt pc (If e s1 s2).
+  secure_stmt pc (If _ e s1 s2).
 Proof.
   intros He Hc1 Hc2. red. intros.
   specialize (Hc1 observer) as Hc1obs. specialize (Hc2 observer) as Hc2obs.
@@ -708,7 +712,7 @@ Qed.
 
 Lemma if_well_typed_correct' pc le e s1 s2 :
   secure_expr le e -> secure_throw_stmt (join pc le) s1 -> secure_throw_stmt (join pc le) s2 ->
-  secure_throw_stmt pc (If e s1 s2).
+  secure_throw_stmt pc (If _ e s1 s2).
 Proof.
   intros He Hc1 Hc2. red. intros.
   specialize (Hc1 observer) as Hc1obs. specialize (Hc2 observer) as Hc2obs.
@@ -765,20 +769,23 @@ Qed.
 
 Lemma while_well_typed_correct e s :
   secure_expr bot e -> secure_stmt bot s ->
-  secure_stmt bot (While e s).
+  secure_stmt bot (While _ e s).
 Proof.
   intros He Hc. red. intros.
   assert (leq bot observer); cbn; auto.
+  { destruct HLabels. rewrite join_comm. rewrite <- join_unit. reflexivity. }
   specialize (He observer).
-  specialize (Hc observer).
+  specialize (Hc observer). 
   inv He; inv Hc; try contradiction.
+  
   left; auto. unfold sem_stmt, interp_imp. cbn. unfold while.
   specialize @interp_state_iter' as Hisi. red in Hisi. do 2 red. intros.
   setoid_rewrite Hisi. eapply secure_eqit_iter with (RA := product_rel (product_rel top2 (labelled_equiv Γ observer)) eq).
   { repeat (split; auto). }
   intros [ [? ?] [] ] [ [ ? ?] [] ] [ [ _ ?] ?]. cbn.
-  setoid_rewrite interp_state_bind. setoid_rewrite bind_bind.
-  eapply secure_eqit_bind; try apply H1; auto.
+  setoid_rewrite interp_state_bind. setoid_rewrite bind_bind. cbn in *.
+  eapply secure_eqit_bind;
+  try eapply H1; auto.
   intros [ [ ? ?] ?] [ [? ?] ?] [ [_ ?] ?]. cbn. cbn in H7, H8; subst. destruct v0.
   - setoid_rewrite interp_state_ret. setoid_rewrite bind_ret_l. cbn.
     apply secure_eqit_ret. constructor. repeat (split; auto).
@@ -791,10 +798,11 @@ Qed.
 
 Lemma while_well_typed_correct' e s :
   secure_expr bot e -> secure_throw_stmt bot s ->
-  secure_throw_stmt bot (While e s).
+  secure_throw_stmt bot (While _ e s).
 Proof.
   intros He Hc. red. intros.
   assert (leq bot observer); cbn; auto.
+  { destruct HLabels. rewrite join_comm. rewrite <- join_unit. reflexivity. }
   specialize (He observer).
   specialize (Hc observer).
   inv He; inv Hc; try contradiction.
@@ -830,27 +838,29 @@ Proof.
       repeat (split; auto). constructor. auto.
 Qed.
 
-Lemma well_typed_raise : secure_stmt bot (Raise bot).
+Lemma well_typed_raise : secure_stmt bot (Raise _ bot).
 Proof.
   red. intros. left. cbn. auto.
+  { destruct HLabels. rewrite join_comm, <- join_unit. reflexivity. }
   red. red. intros. unfold sem_stmt, interp_imp_inline, interp_asm.
   cbn. setoid_rewrite interp_state_bind. eapply secure_eqit_bind with (RR := eq).
   intros [ _ [] ].
   eapply proper_eutt_secure_eutt; try apply interp_state_trigger; try reflexivity.
   cbn. setoid_rewrite bind_trigger. apply eqit_secure_public_Vis.
-  cbn. auto. intros [].
+  cbn. 2 :  intros [].
+  destruct HLabels. rewrite join_comm, <- join_unit. reflexivity.
 Qed.
 
-Lemma well_typed_raise' : secure_throw_stmt bot (Raise bot).
+Lemma well_typed_raise' : secure_throw_stmt bot (Raise _ bot).
 Proof.
   red. intros. left. apply leq_bot; auto.
   red. red. intros. unfold sem_throw_stmt, interp_imp_inline, interp_asm. cbn.
   setoid_rewrite throw_prefix_bind. setoid_rewrite interp_state_bind.
-  eapply secure_eqit_bind with (RR :=  (product_rel (product_rel top2 (labelled_equiv Γ observer)) (fun r1 r2 : void + sensitivity => r1 = inr (@bot sensitivity_lat) /\ r2 = inr  (@bot sensitivity_lat))) ).
+  eapply secure_eqit_bind with (RR :=  (product_rel (product_rel top2 (labelled_equiv Γ observer)) (fun r1 r2 : void + _ => r1 = inr (@bot Labels) /\ r2 = inr  (@bot Labels))) ).
   - intros [ [ ? σ3] [ [] | l1 ] ] [ [ ? σ4] [ [] | l2 ] ] Heq; subst. cbn. destruct Heq. cbn in *. subst.
     destruct H1. injection H1; injection H2; intros; subst.
     setoid_rewrite interp_state_ret. apply secure_eqit_ret.
-    split; auto. constructor. split; auto.
+    split; auto. constructor. split; destruct HLabels; reflexivity.
   - setoid_rewrite throw_prefix_exc. setoid_rewrite interp_state_ret. apply secure_eqit_ret.
     repeat (split; auto).
 Qed.
@@ -878,7 +888,7 @@ Qed.
 
 Lemma try_catch_throw_secure_stmt pc s catch :
   secure_stmt pc s -> secure_throw_stmt pc s -> secure_stmt pc catch ->
-  secure_stmt pc (TryCatch s catch).
+  secure_stmt pc (TryCatch _ s catch).
 Proof.
   intros Hs Hthrows Hcatch. intros observer.
   specialize (Hs observer). specialize (Hthrows observer). specialize (Hcatch observer).
@@ -897,7 +907,7 @@ Qed.
 
 Lemma try_catch_throw_secure_stmt' pc s catch :
   secure_stmt pc s -> secure_throw_stmt pc s -> secure_throw_stmt pc catch ->
-  secure_throw_stmt pc (TryCatch s catch).
+  secure_throw_stmt pc (TryCatch _ s catch).
 Proof. 
   intros Hs1 Hs2 Hcatch observer.
   specialize (Hs1 observer). specialize (Hs2 observer). specialize (Hcatch observer).
@@ -934,7 +944,7 @@ Proof.
      apply secure_eqit_ret. repeat (split; auto).
 Qed.
 
-Lemma well_typed_skip pc : secure_stmt pc Skip.
+Lemma well_typed_skip pc : secure_stmt pc (Skip _).
 Proof.
   intro observer. case_leq pc observer.
   - left; auto. unfold sem_stmt, interp_imp_inline, interp_asm. do 2 red. intros.
@@ -945,7 +955,7 @@ Proof.
     repeat (split; auto).
 Qed.
 
-Lemma well_typed_skip' pc : secure_throw_stmt pc Skip.
+Lemma well_typed_skip' pc : secure_throw_stmt pc (Skip _).
 Proof.
   intro observer. case_leq pc observer.
   - left; auto. unfold sem_throw_stmt, interp_imp_inline, interp_asm. do 2 red. intros.
@@ -958,7 +968,7 @@ Proof.
     repeat (split; auto).
 Qed.
 
-Inductive well_typed_expr : sensitivity -> expr -> Prop :=
+Inductive well_typed_expr : label -> expr -> Prop :=
   | wte_lit l n : well_typed_expr l (Lit n)
   | wte_var x l : leq (Γ x) l -> well_typed_expr l (Var x)
   | wte_plus l1 l2 l3 e1 e2 : well_typed_expr l1 e1 -> well_typed_expr l2 e2 ->
@@ -973,22 +983,23 @@ Inductive well_typed_expr : sensitivity -> expr -> Prop :=
 .
 
 (* rework this definition to have only public exceptions*)
-Inductive well_typed_stmt : sensitivity -> stmt -> Prop :=
+
+Inductive well_typed_stmt : label -> stmt _ -> Prop :=
   | wts_manual pc s : secure_stmt pc s /\ secure_throw_stmt pc s /\ valid_stmt s -> well_typed_stmt pc s
-  | wts_skip pc : well_typed_stmt pc Skip
+  | wts_skip pc : well_typed_stmt pc (Skip _)
   | wts_seq pc s1 s2 : well_typed_stmt pc s1 -> well_typed_stmt pc s2 ->
-                                   well_typed_stmt pc  (Seq s1 s2)
+                                   well_typed_stmt pc  (Seq _ s1 s2)
   | wts_assign pc l x e : well_typed_expr l e -> leq (join l pc) (Γ x) ->
-                          well_typed_stmt pc (Assign x e)
+                          well_typed_stmt pc (Assign _ x e)
   | wts_print pc le lp e : well_typed_expr le e -> leq (join le pc) lp ->
-                           well_typed_stmt pc (Output lp e)
+                           well_typed_stmt pc (Output _ lp e)
   | wts_if pc le e s1 s2 : well_typed_expr le e -> well_typed_stmt (join pc le) s1 -> well_typed_stmt (join pc le) s2 ->
-                                       well_typed_stmt pc (If e s1 s2)
+                                       well_typed_stmt pc (If _ e s1 s2)
   | wts_while e s : well_typed_expr bot e -> well_typed_stmt bot s ->
-                         well_typed_stmt bot (While e s)
-  | wts_raise : well_typed_stmt bot (Raise bot)
+                         well_typed_stmt bot (While _ e s)
+  | wts_raise : well_typed_stmt bot (Raise _ bot)
   | wts_try pc s1 s2 : well_typed_stmt pc s1 -> well_typed_stmt pc s2 ->
-                                   well_typed_stmt pc (TryCatch s1 s2)
+                                   well_typed_stmt pc (TryCatch _ s1 s2)
 .
 
 Instance proper_eqlat_expr : Proper (eqlat ==> eq ==> Basics.flip Basics.impl) well_typed_expr.
@@ -996,12 +1007,12 @@ Proof.
   intros l1 l2 Hl e1 e2 He. subst. intro Htype.
   generalize dependent l1. induction Htype.
   - intros. constructor.
-  - intros. constructor. destruct sensitivity_latlaws. rewrite Hl. auto.
-  - intros. destruct sensitivity_latlaws. rewrite <- H in Hl.
+  - intros. constructor. destruct HLabels. rewrite Hl. auto.
+  - intros. destruct HLabels. rewrite <- H in Hl.
     econstructor; eauto. rewrite Hl. reflexivity.
-  - intros. destruct sensitivity_latlaws.
+  - intros. destruct HLabels.
     econstructor; eauto. rewrite Hl. auto.
-  - intros. destruct sensitivity_latlaws. rewrite <- H in Hl.
+  - intros. destruct HLabels. rewrite <- H in Hl.
     econstructor; eauto. rewrite Hl. reflexivity.
 Qed.
 
@@ -1010,12 +1021,12 @@ Proof.
   intros l1 l2 Hl e1 e2 He. subst. intro Htype.
   generalize dependent l2. induction Htype.
   - intros. constructor.
-  - intros. constructor. destruct sensitivity_latlaws. rewrite <- Hl. auto.
-  - intros. destruct sensitivity_latlaws. rewrite Hl in H.
+  - intros. constructor. destruct HLabels. rewrite <- Hl. auto.
+  - intros. destruct HLabels. rewrite Hl in H.
     econstructor; eauto.
-  - intros. destruct sensitivity_latlaws. rewrite Hl in H.
+  - intros. destruct HLabels. rewrite Hl in H.
     econstructor; eauto.
-  - intros. destruct sensitivity_latlaws. rewrite Hl in H.
+  - intros. destruct HLabels. rewrite Hl in H.
     econstructor; eauto.
 Qed.
 
@@ -1025,26 +1036,26 @@ Proof.
   induction e; intros; try inv H0.
   - constructor. eapply leq_trans_lat; eauto.
   - constructor.
-  - cbn in H. setoid_rewrite <- H. destruct sensitivity_latlaws.
+  - cbn in H. setoid_rewrite <- H. destruct HLabels.
     econstructor; try reflexivity; eauto. eapply IHe1; eauto.
-    apply leq_trans_lat with (l2 := join_sense l0 l3); auto.
-    apply leq_join_l; auto. rewrite H6. cbn in *. destruct l1; auto.
+    apply leq_trans_lat with (l2 := join l0 l3); auto.
+    apply leq_join_l; auto. rewrite H6. cbn in *. apply join_idempot. econstructor; eauto.
     eapply IHe2; eauto.
-    apply leq_trans_lat with (l2 := join_sense l0 l3); auto.
+    apply leq_trans_lat with (l2 := join l0 l3); auto.
     apply leq_join_r; auto. rewrite H6. auto.
-  - cbn in H. setoid_rewrite <- H. destruct sensitivity_latlaws.
+  - cbn in H. setoid_rewrite <- H. destruct HLabels.
     econstructor; try reflexivity; eauto. eapply IHe1; eauto.
-    apply leq_trans_lat with (l2 := join_sense l0 l3); auto.
-    apply leq_join_l; auto. rewrite H6. cbn. destruct l1; auto.
+    apply leq_trans_lat with (l2 := join l0 l3); auto.
+    apply leq_join_l; auto. rewrite H6. cbn. apply join_idempot. econstructor; eauto. 
     eapply IHe2; eauto.
-    apply leq_trans_lat with (l2 := join_sense l0 l3); auto.
+    apply leq_trans_lat with (l2 := join l0 l3); auto.
     apply leq_join_r; auto. rewrite H6. auto.
-  - cbn in H. setoid_rewrite <- H. destruct sensitivity_latlaws.
+  - cbn in H. setoid_rewrite <- H. destruct HLabels.
     econstructor; try reflexivity; eauto. eapply IHe1; eauto.
-    apply leq_trans_lat with (l2 := join_sense l0 l3); auto.
-    apply leq_join_l; auto. rewrite H6. cbn. destruct l1; auto.
+    apply leq_trans_lat with (l2 := join l0 l3); auto.
+    apply leq_join_l; auto. rewrite H6. cbn. apply join_idempot. econstructor; eauto.
     eapply IHe2; eauto.
-    apply leq_trans_lat with (l2 := join_sense l0 l3); auto.
+    apply leq_trans_lat with (l2 := join l0 l3); auto.
     apply leq_join_r; auto. rewrite H6. auto.
 Qed.
 
@@ -1066,11 +1077,11 @@ Proof.
       intros. setoid_rewrite interp_state_ret. apply secure_eqit_ret. repeat (split; auto).
   - inv Htype.
     assert (well_typed_expr l e1 ). eapply well_typed_expr_upward_close; eauto.
-    eapply leq_trans_lat with (l2 := join_sense l1 l2); auto. apply leq_join_l; auto.
-    cbn. destruct sensitivity_latlaws. rewrite H4. destruct l; auto. 
+    eapply leq_trans_lat with (l2 := join l1 l2); auto. apply leq_join_l; auto.
+    cbn. destruct HLabels. rewrite H4. apply join_idempot. constructor; auto.
     assert (well_typed_expr l e2 ). eapply well_typed_expr_upward_close; eauto. 
-    apply leq_trans_lat with (l2 := join_sense l1 l2); auto. apply leq_join_r; auto.
-    cbn. destruct sensitivity_latlaws. rewrite H4. destruct l; auto.
+    apply leq_trans_lat with (l2 := join l1 l2); auto. apply leq_join_r; auto.
+    cbn. destruct HLabels. rewrite H4. apply join_idempot. constructor; auto.
     apply IHe1 with (observer := observer) in H.
     apply IHe2 with (observer := observer) in H0. inv H; inv H0; try contradiction.
     + left; auto.
@@ -1084,11 +1095,11 @@ Proof.
     + right; auto. apply expr_only_ret.
   - inv Htype.
     assert (well_typed_expr l e1 ). eapply well_typed_expr_upward_close; eauto.
-    eapply leq_trans_lat with (l2 := join_sense l1 l2); auto. apply leq_join_l; auto.
-    cbn. destruct sensitivity_latlaws. rewrite H4. destruct l; auto. 
+    eapply leq_trans_lat with (l2 := join l1 l2); auto. apply leq_join_l; auto.
+    cbn. destruct HLabels. rewrite H4. apply join_idempot. constructor; auto.
     assert (well_typed_expr l e2 ). eapply well_typed_expr_upward_close; eauto. 
-    apply leq_trans_lat with (l2 := join_sense l1 l2); auto. apply leq_join_r; auto.
-    cbn. destruct sensitivity_latlaws. rewrite H4. destruct l; auto.
+    apply leq_trans_lat with (l2 := join l1 l2); auto. apply leq_join_r; auto.
+    cbn. destruct HLabels. rewrite H4. apply join_idempot. constructor; auto.
     apply IHe1 with (observer := observer) in H.
     apply IHe2 with (observer := observer) in H0. inv H; inv H0; try contradiction.
     + left; auto.
@@ -1102,11 +1113,11 @@ Proof.
     + right; auto. apply expr_only_ret.
   - inv Htype.
     assert (well_typed_expr l e1 ). eapply well_typed_expr_upward_close; eauto.
-    eapply leq_trans_lat with (l2 := join_sense l1 l2); auto. apply leq_join_l; auto.
-    cbn. destruct sensitivity_latlaws. rewrite H4. destruct l; auto. 
+    eapply leq_trans_lat with (l2 := join l1 l2); auto. apply leq_join_l; auto.
+    cbn. destruct HLabels. rewrite H4. apply join_idempot. constructor; auto. 
     assert (well_typed_expr l e2 ). eapply well_typed_expr_upward_close; eauto. 
-    apply leq_trans_lat with (l2 := join_sense l1 l2); auto. apply leq_join_r; auto.
-    cbn. destruct sensitivity_latlaws. rewrite H4. destruct l; auto.
+    apply leq_trans_lat with (l2 := join l1 l2); auto. apply leq_join_r; auto.
+    cbn. destruct HLabels. rewrite H4. apply join_idempot. constructor; auto.
     apply IHe1 with (observer := observer) in H.
     apply IHe2 with (observer := observer) in H0. inv H; inv H0; try contradiction.
     + left; auto.
@@ -1152,7 +1163,7 @@ Proof.
 Qed.
 
 Lemma secure_stmt_lower_pc:
-  forall (pc2 : sensitivity) (s : stmt),
+  forall (pc2 : label) (s : stmt _ ),
     secure_stmt pc2 s -> forall pc1 : L, leq pc1 pc2 -> secure_stmt pc1 s.
 Proof.
   intros pc2 s H pc1 Hpc observer.
@@ -1168,7 +1179,7 @@ Proof.
 Qed.
 
 Lemma secure_throw_stmt_lower_pc:
-  forall (pc : sensitivity) (s : stmt),
+  forall (pc : label) (s : stmt _),
     secure_throw_stmt pc s -> forall pc1 : L, leq pc1 pc -> secure_throw_stmt pc1 s.
 Proof.
   intros pc s H pc1 Hpc observer.

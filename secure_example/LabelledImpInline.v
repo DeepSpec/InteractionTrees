@@ -33,6 +33,10 @@ Local Open Scope string_scope.
 
 Section LabelledImp.
 
+Context (Labels : Lattice).
+
+Notation label := (@T Labels).
+
 Definition var : Set := string.
 
 Definition value : Type := nat.
@@ -54,12 +58,12 @@ Inductive stmt : Type :=
 | If     (i : expr) (t e : stmt) (* if (i) then { t } else { e } *)
 | While  (t : expr) (b : stmt)   (* while (t) { b } *)
 | Skip                           (* ; *)
-| Output (s : sensitivity) (e : expr)
+| Output (s : label) (e : expr)
 (* exceptions *)
-| Raise (s : sensitivity)
+| Raise (s : label)
 | TryCatch (t c : stmt)
 (* Inline *)
-| AsmInline (p : asm 1 1)
+| AsmInline (p : asm Labels 1 1)
 .
 
 Variant ClearRegs : Type -> Type :=
@@ -71,9 +75,9 @@ Section LabelledImpInlineSemantics.
   (* thought I might need this, but without it things get simpler *)
   (* Context {HasClearRegs : ClearRegs -< E}. *)
   Context {HasMemory : Memory -< E}.
-  Context {HasIOE : LabelledImp.IOE sensitivity_lat -< E}.
+  Context {HasIOE : LabelledImp.IOE Labels -< E}.
 
-  Notation impExcE := (LabelledImp.impExcE sensitivity_lat ).
+  Notation impExcE := (LabelledImp.impExcE Labels ).
 
   Notation privacy_map := LabelledImp.privacy_map.
 
@@ -101,9 +105,9 @@ Section LabelledImpInlineSemantics.
   Definition while {E} (t : itree E (unit + unit) ) : itree E unit :=
     ITree.iter (fun _ => t) tt.
 
-  (* so I need to make sure *)
-  Program Definition denote_asm_inline {A B} (p : asm A B) : Fin.fin A -> itree (impExcE +' E) (Fin.fin B) :=
-    @denote_asm (impExcE +' E) _ _ _ _ A B p.
+  
+  Definition denote_asm_inline {A B} (p : asm _ A B) : Fin.fin A -> itree (impExcE +' E) (Fin.fin B) :=
+    @denote_asm _ (impExcE +' E) _ _ _ _ A B p.
 
   Fixpoint denote_stmt (s : stmt) : itree (impExcE +' E) unit :=
     match s with
@@ -114,7 +118,7 @@ Section LabelledImpInlineSemantics.
                    then denote_stmt c1
                    else denote_stmt c2
     | Skip => Ret tt
-    | Output s e => v <- denote_expr e;; trigger (inr1 (HasIOE _ (LabelledImp.LabelledPrint sensitivity_lat s v)) )
+    | Output s e => v <- denote_expr e;; trigger (inr1 (HasIOE _ (LabelledImp.LabelledPrint _ s v)) )
     | While b c => while (
                       b <- denote_expr b;;
                       if (is_true b)

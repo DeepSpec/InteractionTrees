@@ -56,30 +56,30 @@ Local Open Scope cat_scope.
 (** ** Internal structures *)
 
 (** A utility function to apply a renaming function [f] to the exit label of a [branch]. *)
-Definition fmap_branch {A B : Type} (f: A -> B): branch A -> branch B :=
+Definition fmap_branch {A B : Type} (f: A -> B): branch sensitivity_lat A -> branch sensitivity_lat B :=
   fun b =>
     match b with
-    | Bjmp a => Bjmp (f a)
-    | Bbrz c a a' => Bbrz c (f a) (f a')
-    | BRaise s => BRaise s
+    | Bjmp _ a => Bjmp _ (f a)
+    | Bbrz _ c a a' => Bbrz _ c (f a) (f a')
+    | BRaise _ s => BRaise _ s
     end.
 
 (** A utility function to apply a renaming function [f] to the exit label of a [block]. *)
-Definition fmap_block {A B: Type} (f: A -> B): block A -> block B :=
+Definition fmap_block {A B: Type} (f: A -> B): block  sensitivity_lat A -> block  sensitivity_lat B :=
   fix fmap b :=
     match b with
-    | bbb a => bbb (fmap_branch f a)
-    | bbi i b => bbi i (fmap b)
+    | bbb _ a => bbb _ (fmap_branch f a)
+    | bbi _ i b => bbi _ i (fmap b)
     end.
 
 (** A utility function to apply renaming functions [f] and [g] respectively to
     the entry and exit labels of a [bks]. *)
 Definition relabel_bks {A B C D : nat} (f : sub Fun fin A B) (g : sub Fun fin C D)
-           (b : bks B C) : bks A D :=
+           (b : bks  sensitivity_lat B C) : bks sensitivity_lat A D :=
   fun a => fmap_block g (b (f a)).
 
-Definition app_bks {A B C D : nat} (ab : bks A B) (cd : bks C D)
-  : bks (A + C) (B + D) :=
+Definition app_bks {A B C D : nat} (ab : bks  sensitivity_lat A B) (cd : bks  sensitivity_lat C D)
+  : bks  sensitivity_lat (A + C) (B + D) :=
   fun ac =>
     match split_fin_sum _ _ ac with
     | inl a => fmap_block (L _) (ab a)
@@ -87,19 +87,19 @@ Definition app_bks {A B C D : nat} (ab : bks A B) (cd : bks C D)
     end.
 
 (** Simple combinator to build a [block] from its instructions and branch operation. *)
-Fixpoint after {A: Type} (is : list instr) (bch : branch A) : block A :=
+Fixpoint after {A: Type} (is : list (instr  sensitivity_lat)) (bch : branch  sensitivity_lat A) : block  sensitivity_lat A :=
   match is with
-  | nil => bbb bch
-  | i :: is => bbi i (after is bch)
+  | nil => bbb _ bch
+  | i :: is => bbi _ i (after is bch)
   end.
 
 (* SAZ: rationalize the names of the combinators? *)
 (** Another combinator that appends a list of instructions to the beginning of a
     block *)
-Fixpoint blk_append {lbl} (l:list instr) (b:block lbl) : block lbl :=
+Fixpoint blk_append {lbl} (l:list (instr  sensitivity_lat)) (b:block  sensitivity_lat lbl) : block  sensitivity_lat lbl :=
   match l with
   | [] => b
-  | i :: l' => bbi i (blk_append l' b)
+  | i :: l' => bbi _ i (blk_append l' b)
   end.
 
 
@@ -107,13 +107,13 @@ Fixpoint blk_append {lbl} (l:list instr) (b:block lbl) : block lbl :=
 (** ** Low-level interface with [asm] *)
 
 (** Any collection of blocks forms an [asm] program with no hidden blocks. *)
-Definition raw_asm {A B} (b : bks A B) : asm A B :=
+Definition raw_asm {A B} (b : bks  sensitivity_lat A B) : asm  sensitivity_lat A B :=
   {| internal := 0;
      code := fun l => b l
   |}.
 
 (** And so does a single [block] in particular. *)
-Definition raw_asm_block {A: nat} (b : block (fin A)) : asm 1 A :=
+Definition raw_asm_block {A: nat} (b : block  sensitivity_lat (fin A)) : asm  sensitivity_lat 1 A :=
   raw_asm (fun _ => b).
 
 (** ** [asm] combinators *)
@@ -122,10 +122,10 @@ Definition raw_asm_block {A: nat} (b : block (fin A)) : asm 1 A :=
 
 (** An [asm] program made only of external jumps.
     This is useful to connect programs with [app_asm]. *)
-Definition pure_asm {A B: nat} (f : sub Fun fin A B) : asm A B :=
-  raw_asm (fun a => bbb (Bjmp (f a))).
+Definition pure_asm {A B: nat} (f : sub Fun fin A B) : asm  sensitivity_lat A B :=
+  raw_asm (fun a => bbb _ (Bjmp _ (f a))).
 
-Definition id_asm {A} : asm A A := pure_asm id.
+Definition id_asm {A} : asm  sensitivity_lat A A := pure_asm id.
 
 
 (** The [app_asm] combinator joins two [asm] programs,
@@ -140,10 +140,10 @@ Definition id_asm {A} : asm A A := pure_asm id.
 (* We build a function from F X into block (F Y), we hence cannot use case_ whether over iFun or sktree.
    Can we do better?
  *)
-Definition app_asm {A B C D} (ab : asm A B) (cd : asm C D) :
-  asm (A + C) (B + D) :=
-  {| internal := ab.(internal) + cd.(internal);
-     code := relabel_bks swap4 swap4 (app_bks ab.(code) cd.(code))
+Definition app_asm {A B C D} (ab : asm  sensitivity_lat A B) (cd : asm  sensitivity_lat C D) :
+  asm sensitivity_lat (A + C) (B + D) :=
+  {| internal := (internal _ _ _ ab) + internal _ _ _ cd;
+     code := relabel_bks swap4 swap4 (app_bks (code _ _ _ ab) (code _ _ _ cd))
   |}.
 
 (** Rename visible program labels.
@@ -153,15 +153,15 @@ Definition app_asm {A B C D} (ab : asm A B) (cd : asm C D) :
     The following generic combinator allow any relabelling.
  *)
 Definition relabel_asm {A B C D} (f : sub Fun fin A B) (g : sub Fun fin C D)
-           (bc : asm B C) : asm A D :=
-  {| code := relabel_bks (bimap id f) (bimap id g)  bc.(code); |}.
+           (bc : asm  sensitivity_lat B C) : asm  sensitivity_lat A D :=
+  {| code := relabel_bks (bimap id f) (bimap id g) (code _ _ _  bc) ; |}.
 
 (** Labels that are exposed both as entry and exit points can be internalized.
     This operation can be seen as linking two programs internal to [ab] together.
  *)
-Definition loop_asm {I A B} (ab : asm (I + A) (I + B)) : asm A B :=
-  {| internal := ab.(internal) + I;
-     code := relabel_bks assoc_r assoc_l ab.(code);
+Definition loop_asm {I A B} (ab : asm  sensitivity_lat (I + A) (I + B)) : asm  sensitivity_lat A B :=
+  {| internal := (internal _ _ _ ab) + I;
+     code := relabel_bks assoc_r assoc_l (code _ _ _ ab);
   |}.
 
 (* ================================================================= *)
@@ -196,7 +196,7 @@ Section Correctness.
 
   Lemma fmap_block_map:
     forall  {L L'} b (f: fin L -> fin L'),
-      denote_bk (fmap_block f b) ≅ ITree.map f (denote_bk b).
+      denote_bk _ (fmap_block f b) ≅ ITree.map f (denote_bk _ b).
   Proof.
     (* Induction over the structure of the [block b] *)
     induction b as [i b | br]; intros f.
@@ -217,16 +217,16 @@ Section Correctness.
   Qed.
 
   (** Denotes a list of instruction by binding the resulting trees. *)
-  Definition denote_list: list instr -> itree E unit :=
-    traverse_ denote_instr.
+  Definition denote_list: list (instr sensitivity_lat) -> itree E unit :=
+    traverse_ (denote_instr  sensitivity_lat).
 
   (** Correctness of the [after] operator.
       Its denotation binds the denotation of the instructions
       with the one of the branch.
    *)
   Lemma denote_after :
-    forall {label} instrs (b: branch (fin label)),
-      denote_bk (after instrs b) ≅ (denote_list instrs ;; denote_br b).
+    forall {label} instrs (b: branch _ (fin label)),
+      denote_bk _ (after instrs b) ≅ (denote_list instrs ;; denote_br _ b).
   Proof.
     induction instrs as [| i instrs IH]; intros b.
     - simpl; rewrite bind_ret_l; reflexivity.
@@ -235,8 +235,8 @@ Section Correctness.
       intros []; apply IH.
   Qed.
 
-  Lemma denote_blk_append : forall lbl (l:list instr) (b:block (fin lbl)),
-      denote_bk (blk_append l b) ≈ (x <- denote_list l ;; denote_bk b).
+  Lemma denote_blk_append : forall lbl (l:list (instr _)) (b:block _ (fin lbl)),
+      denote_bk _ (blk_append l b) ≈ (x <- denote_list l ;; denote_bk _ b).
   Proof.
     intros lbl.
     induction l; intros b; simpl.
@@ -271,8 +271,8 @@ Section Correctness.
     reflexivity.
   Qed.
 
-  Lemma raw_asm_correct {A B} (b : bks A B) :
-    denote_asm (raw_asm b) ⩯ (fun a => denote_bk (b a)).
+  Lemma raw_asm_correct {A B} (b : bks _ A B) :
+    denote_asm _ (raw_asm b) ⩯ (fun a => denote_bk _ (b a)).
   Proof.
     unfold denote_asm; cbn.
     rewrite loop_vanishing_1.
@@ -290,17 +290,17 @@ Section Correctness.
       Note that the ⩯ notation in the scope of [ktree] desugars to [eutt_ktree],
       i.e. pointwise [eutt eq].
    *)
-  Lemma raw_asm_block_correct_lifted {A} (b : block (fin A)) :
-    denote_asm (raw_asm_block b) ⩯
-               ((fun _  => denote_bk b) : sub (ktree _) fin _ _).
+  Lemma raw_asm_block_correct_lifted {A} (b : block _ (fin A)) :
+    denote_asm _ (raw_asm_block b) ⩯
+               ((fun _  => denote_bk _ b) : sub (ktree _) fin _ _).
   Proof.
     unfold raw_asm_block.
     rewrite raw_asm_correct.
     reflexivity.
   Qed.
 
-  Lemma raw_asm_block_correct {A} (b : block (fin A)) :
-    (denote_asm (raw_asm_block b) f0) ≈ (denote_bk b).
+  Lemma raw_asm_block_correct {A} (b : block _ (fin A)) :
+    (denote_asm _ (raw_asm_block b) f0) ≈ (denote_bk _ b).
   Proof.
     apply raw_asm_block_correct_lifted.
   Qed.
@@ -312,7 +312,7 @@ Section Correctness.
       into a [ktree].
    *)
   Theorem pure_asm_correct {A B} (f : sub Fun fin A B) :
-    denote_asm (pure_asm f) ⩯ subpure f.
+    denote_asm _ (pure_asm f) ⩯ subpure f.
   Proof.
     unfold pure_asm.
     rewrite raw_asm_correct.
@@ -321,7 +321,7 @@ Section Correctness.
 
   (** The identity gets denoted as the identity. *)
   Theorem id_asm_correct {A} :
-    denote_asm (pure_asm id)
+    denote_asm _ (pure_asm id)
                ⩯ id_ A.
   Proof.
     rewrite pure_asm_correct; reflexivity.
@@ -333,8 +333,8 @@ Section Correctness.
       lifted as [ktree]s.
    *)
   Lemma relabel_bks_correct: forall {A B C D: nat} (f: sub Fun fin A B) (g: sub Fun fin C D) k,
-      denote_bks (relabel_bks f g k)
-    ⩯ subpure f >>> denote_bks k >>> subpure g.
+      denote_bks _ (relabel_bks f g k)
+    ⩯ subpure f >>> denote_bks _ k >>> subpure g.
   Proof.
     intros. intros a.
     unfold relabel_bks, denote_bks.
@@ -345,8 +345,8 @@ Section Correctness.
     reflexivity.
   Qed.
 
-  Lemma app_bks_correct: forall {A B C D: nat} (ab: bks A B) (cd: bks C D),
-    denote_bks (app_bks ab cd) ⩯ bimap (denote_bks ab) (denote_bks cd).
+  Lemma app_bks_correct: forall {A B C D: nat} (ab: bks _ A B) (cd: bks _ C D),
+    denote_bks _ (app_bks ab cd) ⩯ bimap (denote_bks _ ab) (denote_bks _ cd).
   Proof.
     intros. rewrite bimap_case_unfold.
     intros ?.
@@ -370,9 +370,9 @@ Section Correctness.
       The resulting [asm] gets denoted to the bimap of its subcomponent.
       The proof is a bit more complicated. It makes a lot more sense if drawn.
    *)
-  Theorem app_asm_correct {A B C D} (ab : asm A B) (cd : asm C D) :
-    denote_asm (app_asm ab cd)
-               ⩯ bimap (denote_asm ab) (denote_asm cd).
+  Theorem app_asm_correct {A B C D} (ab : asm _ A B) (cd : asm _ C D) :
+    denote_asm _ ( app_asm ab cd)
+               ⩯ bimap (denote_asm _ ab) (denote_asm _ cd).
   Proof with try typeclasses eauto.
     unfold denote_asm.
     (*
@@ -408,17 +408,17 @@ Section Correctness.
     repeat rewrite <- (cat_assoc _ _ (bimap (denote_bks _) (denote_bks _) >>> _)).
     cbn. rewrite relabel_bks_correct, app_bks_correct.
     rewrite cat_assoc.
-
-    rewrite <- aux_app_asm_correct1, <- aux_app_asm_correct2.
-
-    rewrite 2 subpure_swap4; reflexivity.
+    rewrite 2 subpure_swap4.
+    rewrite aux_app_asm_correct1.
+    rewrite <- aux_app_asm_correct2.
+    repeat rewrite cat_assoc. reflexivity.
   Qed.
 
   Theorem relabel_asm_correct {A B C D}
           (f : sub Fun fin A B) (g : sub Fun fin C D)
-          (bc : asm B C)
-    : denote_asm (relabel_asm f g bc)
-    ⩯ subpure f >>> denote_asm bc >>> subpure g.
+          (bc : asm _ B C)
+    : denote_asm _ (relabel_asm f g bc)
+    ⩯ subpure f >>> denote_asm _ bc >>> subpure g.
   Proof.
     unfold denote_asm.
     simpl.
@@ -432,8 +432,8 @@ Section Correctness.
   (** Correctness of the [loop_asm] combinator.
       Linking is exactly looping, it hides internal labels/wires.
    *)
-  Theorem loop_asm_correct {I A B} (ab : asm (I + A) (I + B)) :
-    denote_asm (loop_asm ab) ⩯ loop (denote_asm ab).
+  Theorem loop_asm_correct {I A B} (ab : asm _ (I + A) (I + B)) :
+    denote_asm _ (loop_asm ab) ⩯ loop (denote_asm _ ab).
   Proof.
     unfold denote_asm.
     rewrite loop_vanishing_2.
