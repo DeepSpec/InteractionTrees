@@ -758,6 +758,7 @@ Proof.
   apply euttge_sub_eutt, tau_euttge.
 Qed.
 
+
 Lemma simpobs {E R} {ot} {t: itree E R} (EQ: ot = observe t): t ≅ go ot.
 Proof.
   pstep. repeat red. simpobs. simpl. subst. pstep_reverse. apply Reflexive_eqit; eauto.
@@ -929,6 +930,36 @@ Qed.
          (@eqit E R R eq true false).
 Proof.
   eapply euttge_cong_euttge; eauto using eq_trans.
+Qed.
+
+
+(* Auxiliary results on [itree]s. *)
+
+Lemma tau_eutt_RR_l : forall E R (RR : relation R) (HRR: Reflexive RR) (HRT: Transitive RR) (t s : itree E R),
+    eutt RR (Tau t) s <-> eutt RR t s.
+Proof.
+  intros.
+  split; intros H.
+  - eapply transitivity. 2 : { apply H. }
+    red. apply eqit_Tau_r. reflexivity.
+  - red. red. pstep. econstructor. auto. punfold H.
+Qed.
+
+Lemma tau_eqit_RR_l : forall E R (RR : relation R) (HRR: Reflexive RR) (HRT: Transitive RR) (t s : itree E R),
+    eqit RR true false t s -> eqit RR true false (Tau t) s.
+Proof.
+  intros.
+  red. pstep. econstructor. auto. punfold H.
+Qed.
+
+Lemma tau_eutt_RR_r : forall E R (RR : relation R) (HRR: Reflexive RR) (HRT: Transitive RR) (t s : itree E R),
+    eutt RR t (Tau s) <-> eutt RR t s.
+Proof.
+  intros.
+  split; intros H.
+  - eapply transitivity. apply H.
+    red. apply eqit_Tau_l. reflexivity.
+  - red. red. pstep. econstructor. auto. punfold H.
 Qed.
 
 (** ** Equations for core combinators *)
