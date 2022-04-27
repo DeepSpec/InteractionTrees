@@ -21,7 +21,7 @@ commands:
 defaults: &defaults
   environment:
     OPAMBESTEFFORT: true
-    OPAMJOBS: 2
+    OPAMJOBS: 4
     OPAMVERBOSE: 1
     OPAMWITHTEST: true
     OPAMYES: true
