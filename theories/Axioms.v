@@ -32,6 +32,14 @@ Definition choice := ClassicalChoice.choice.
 
 Definition functional_extensionality := @FunctionalExtensionality.functional_extensionality.
 
+(* From Coq.Logic.ChoiceFacts *)
+Definition GuardedFunctionalChoice_on {A B} :=
+  forall P : A -> Prop, forall R : A -> B -> Prop,
+    inhabited B ->
+    (forall x : A, P x -> exists y : B, R x y) ->
+    (exists f : A->B, forall x, P x -> R x (f x)).
+Axiom guarded_choice : forall {A B}, @GuardedFunctionalChoice_on A B.
+
 Inductive mwitness : Type :=
 | Witness (P : Type) (_ : P)
 | NoWitness.

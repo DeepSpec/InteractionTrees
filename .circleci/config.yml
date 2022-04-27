@@ -21,7 +21,7 @@ commands:
 defaults: &defaults
   environment:
     OPAMBESTEFFORT: true
-    OPAMJOBS: 2
+    OPAMJOBS: 4
     OPAMVERBOSE: 1
     OPAMWITHTEST: true
     OPAMYES: true
@@ -46,13 +46,12 @@ jobs:
     <<: *defaults
 
   test-with-make:
-    environment:
-      OPAMYES: true
     parameters:
       coq:
         type: string
     docker:
     - image: coqorg/coq:<<parameters.coq>>
+    <<: *defaults
     steps:
     - setup
     - run:

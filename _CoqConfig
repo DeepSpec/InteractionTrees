@@ -74,6 +74,8 @@ theories/Events/Concurrency.v
 theories/Events/Dependent.v
 theories/Events/FailFacts.v
 
+theories/Extra/IForest.v
+
 theories/ITrace/ITraceDefinition.v
 theories/ITrace/ITraceFacts.v
 theories/ITrace/ITracePrefix.v

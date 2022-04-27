@@ -101,6 +101,36 @@ Proof.
   - eauto with paco.
 Qed.
 
+Lemma eutt_iter'' {E I1 I2 R1 R2}
+      (RI1 RI2 : I1 -> I2 -> Prop)
+      (HSUB: RI2 <2= RI1)
+      (RR : R1 -> R2 -> Prop)
+      (body1 : I1 -> itree E (I1 + R1))
+      (body2 : I2 -> itree E (I2 + R2))
+      (eutt_body
+      : forall j1 j2, RI1 j1 j2 -> eutt (sum_rel RI2 RR) (body1 j1) (body2 j2))
+  : forall (i1 : I1) (i2 : I2) (RI_i : RI1 i1 i2),
+    @eutt E _ _ RR (ITree.iter body1 i1) (ITree.iter body2 i2).
+Proof.
+  einit. ecofix CIH. intros.
+  specialize (eutt_body i1 i2 RI_i).
+  do 2 rewrite unfold_iter.
+  ebind; econstructor; eauto with paco.
+  intros ? ? [].
+  - etau.
+  - eauto with paco.
+Qed.
+
+Definition eutt_iter_gen' {F A B R1 R2 S} (HS : R2 <2= R1) :
+  @Proper ((A -> itree F (A + B)) -> A -> itree F B)
+          ((R1 ==> eutt (sum_rel R2 S)) ==> R1 ==> (eutt S))
+          (iter (C := ktree F)).
+Proof.
+  do 3 red;
+  intros body1 body2 EQ_BODY x y Hxy. red in EQ_BODY.
+  eapply eutt_iter''; eauto.
+Qed.
+
 (** ** [iter] *)
 
 #[global] Instance eq_itree_iter {E A B} :
