@@ -1,3 +1,16 @@
+(** * [IForest]: Sets of itrees *)
+
+(** A monad-like structure.
+
+[[
+  iforest E X := (itree E X -> Prop)
+]]
+
+   Its [bind] is not associative. It only satisfies an "associativity to the right"
+   inequality ([bind_bind_iforest]).
+
+   TODO: There may be a better definition of [bind]. *)
+
 (* begin hide *)
 From ITree Require Import
      Axioms
@@ -22,17 +35,15 @@ Local Open Scope monad_scope.
 Local Open Scope cat_scope.
 (* end hide *)
 
-(* We define in this file [iforest], a model for a set of monadic computations.
-  This domain is almost a monad, it lacks the associativity to the left
-  of its [bind] construct. *)
-
-(* The [iforest] "monad", used to represent a set of computations.
-  We currently specialize it to [itree E X -> Prop] instead of defining a
-  proper monad transformer due to complexities in the theory. *)
+(** The [iforest] "monad", consisting of sets of [itree]. *)
 
 Definition iforest (E: Type -> Type) (X: Type): Type :=
   itree E X -> Prop.
 
+(** TODO: There may be a generalization to a kind of monad transformer
+    [PropT M X := M X -> Prop]. *)
+
+(** [iforest] are expected to be compatible with the [eutt] relation in the following sense: *)
 Definition eutt_closed {E X} (P: itree E X -> Prop): Prop :=
   Proper (eutt eq ==> iff) P.
 
@@ -50,29 +61,33 @@ Inductive Returns {E} {A: Type} (a: A) : itree E A -> Prop :=
 | ReturnsTau: forall t u, t ≈ Tau u -> Returns a u -> Returns a t
 | ReturnsVis: forall {X} (e: E X) (x: X) t k, t ≈ Vis e k -> Returns a (k x) -> Returns a t
 .
-Hint Constructors Returns: core.
+#[global] Hint Constructors Returns: itree.
 
-Definition subtree {E} {A B} (ta : itree E A) (tb : itree E B) := exists (k : A -> itree E B), tb ≈ bind ta k.
+Definition subtree {E} {A B} (ta : itree E A) (tb : itree E B) :=
+  exists (k : A -> itree E B), tb ≈ bind ta k.
 
 (* Definition 5.1 *)
-Definition bind_iforest {E} :=
+Definition bind_iforest {E}
+  : forall A B, iforest E A -> (A -> iforest E B) -> iforest E B :=
   fun A B (specA : iforest E A) (K: A -> iforest E B) (tb: itree E B) =>
     exists (ta: itree E A) (k: A -> itree E B),
       specA ta /\
       tb ≈ bind ta k /\
       (forall a, Returns a ta -> K a (k a)).
 
-Definition bind_iforest_stronger {E} :=
+Definition bind_iforest_stronger {E}
+  : forall A B, iforest E A -> (A -> iforest E B) -> iforest E B :=
   fun A B (PA: iforest E A) (K: A -> iforest E B) (tb: itree E B) =>
     exists (ta: itree E A) (k: A -> itree E B),
       PA ta /\
       tb ≈ bind ta k /\
       (forall a, Returns a ta -> K a (k a)).
 
-(** Alternate, logically equivalent version of bind.
-  It should not matter which one we use. Since bind_iforest has fewer cases, we should
+(** Alternate, logically equivalent version of [bind_iforest].
+  It should not matter which one we use. Since [bind_iforest] has fewer cases, we should
   stick to it.*)
-Definition bind_iforest' {E} :=
+Definition bind_iforest' {E}
+  : forall A B, iforest E A -> (A -> iforest E B) -> iforest E B :=
   fun A B (PA: iforest E A) (K: A -> iforest E B) (tb: itree E B) =>
     exists (ta: itree E A),  PA ta /\
                         ((exists (k: A -> itree E B),
@@ -109,7 +124,7 @@ Qed.
   |}.
 
 (* Definition 5.3: Handler Correctness *)
-Definition handler_correct {E F} (h_spec: E ~> iforest F) (h: E ~> itree F) :=
+Definition handler_correct {E F} (h_spec: E ~> iforest F) (h: E ~> itree F) : Prop :=
   (forall T e, h_spec T e (h T e)).
 
 Inductive interp_iforestF {E F} (h_spec : forall T, E T -> itree F T -> Prop)
@@ -129,27 +144,27 @@ Inductive interp_iforestF {E F} (h_spec : forall T, E T -> itree F T -> Prop)
                        (HK : forall (a : A), Returns a ta ->  sim (k1 a) (k2 a)),
     interp_iforestF h_spec RR sim (VisF e k1) t2.
 
-Hint Constructors interp_iforestF : core.
+#[global] Hint Constructors interp_iforestF : itree.
 
 Lemma interp_iforestF_mono E F h_spec R RR  (t0 : itree' E R) (t1 : itree F R) sim sim'
       (IN : interp_iforestF h_spec RR sim t0 t1)
       (LE : sim <2= sim') :
   (interp_iforestF h_spec RR sim' t0 t1).
 Proof.
-  induction IN; eauto.
+  induction IN; eauto with itree.
 Qed.
 
-Hint Resolve interp_iforestF_mono : paco.
+#[global] Hint Resolve interp_iforestF_mono : paco.
 
 Definition interp_iforest_ E F h_spec R RR sim (t0 : itree E R) (t1 : itree F R) :=
   interp_iforestF h_spec RR sim (observe t0) t1.
-Hint Unfold interp_iforest_ : core.
+#[global] Hint Unfold interp_iforest_ : itree.
 
 Lemma interp_iforest__mono E F h_spec R RR : monotone2 (interp_iforest_ E F h_spec R RR).
 Proof.
   do 2 red. intros. eapply interp_iforestF_mono; eauto.
 Qed.
-Hint Resolve interp_iforest__mono : paco.
+#[global] Hint Resolve interp_iforest__mono : paco.
 
 (* Definition 5.2 *)
 Definition interp_iforest {E F} (h_spec : E ~> iforest F) :
@@ -362,7 +377,7 @@ Qed.
 
 (* Lemma 5.5 - note that the paper presents this lemma after unfolding the definition of Proper.
  *)
-Instance interp_iforest_Proper_eq :
+#[global] Instance interp_iforest_Proper_eq :
   forall R (RR : relation R) (HR: Reflexive RR) (HT : Transitive RR) E F (h_spec : E ~> iforest F),
     Proper (@eutt _ _ _ RR ==> eq ==> flip Basics.impl) (@interp_iforest E _ h_spec R RR).
 Proof.
@@ -685,7 +700,7 @@ Section ReturnsBind.
                 (REL: forall u, Returns u t1 -> r (k1 u) (k2 u))
     : eqit_Returns_bind_clo b1 b2 r (ITree.bind t1 k1) (ITree.bind t2 k2)
   .
-  Hint Constructors eqit_Returns_bind_clo: core.
+  Hint Constructors eqit_Returns_bind_clo: itree.
 
   Lemma eqit_Returns_clo_bind  (RS : R -> S -> Prop) b1 b2 vclo
         (MON: monotone2 vclo)
@@ -744,8 +759,8 @@ Lemma eqit_Returns_bind' {E} {R} {T} b1 b2
     (forall r, Returns r t1 -> eqit eq b1 b2 (k1 r) (k2 r)) ->
   @eqit E _ _ eq b1 b2 (ITree.bind t1 k1) (ITree.bind t2 k2).
 Proof.
-intros. ginit. guclo (@eqit_Returns_clo_bind E R R eq). unfold eqit in *.
-econstructor; eauto with paco.
+  intros. ginit. guclo (@eqit_Returns_clo_bind E R R eq). unfold eqit in *.
+  econstructor; eauto with paco.
 Qed.
 
 Lemma eqit_Returns_bind'' {E} {R S} {T} (RS : R -> S -> Prop) b1 b2
@@ -754,8 +769,8 @@ Lemma eqit_Returns_bind'' {E} {R S} {T} (RS : R -> S -> Prop) b1 b2
     (forall r, Returns r t1 -> eqit RS b1 b2 (k1 r) (k2 r)) ->
   @eqit E _ _ RS b1 b2 (ITree.bind t1 k1) (ITree.bind t2 k2).
 Proof.
-intros. ginit. guclo (@eqit_Returns_clo_bind E R S RS). unfold eqit in *.
-econstructor; eauto with paco.
+  intros. ginit. guclo (@eqit_Returns_clo_bind E R S RS). unfold eqit in *.
+  econstructor; eauto with paco.
 Qed.
 
 Lemma eutt_ret_vis_abs: forall {X Y E} (x: X) (e: E Y) k, Ret x ≈ Vis e k -> False.
@@ -1065,35 +1080,35 @@ Proof.
   - assumption.
 Qed.
 
- #[global] Instance bind_iforest_Proper {E} {A B} :
-   Proper (eq1 ==> (eq ==> eq1) ==> eutt eq ==> iff) (@bind_iforest E A B).
- Proof.
-   repeat red; intros PA1 PA2 EQP K1 K2 EQK t1 t2 EQt; split; intros H.
-   - destruct H as (ta & k & HA & eq & HK).
-     red.
-     exists ta, k. split.
-     + destruct EQP. apply (H ta ta). reflexivity. assumption.
-     + split. rewrite <- EQt. assumption. intros.
-       repeat red in EQK.  specialize (EQK a a eq_refl). destruct EQK.
-       rewrite <- H0. apply HK. assumption. reflexivity.
-  -  destruct H as (ta & k & HA & eq & HK).
-     red.
-     exists ta, k. split.
-     + destruct EQP. apply (H ta ta). reflexivity. assumption.
-     + split. rewrite EQt. assumption. intros.
-       repeat red in EQK.  specialize (EQK a a eq_refl). destruct EQK.
-       rewrite H0. apply HK. assumption. reflexivity.
- Qed.
+#[global] Instance bind_iforest_Proper {E} {A B} :
+  Proper (eq1 ==> (eq ==> eq1) ==> eutt eq ==> iff) (@bind_iforest E A B).
+Proof.
+  repeat red; intros PA1 PA2 EQP K1 K2 EQK t1 t2 EQt; split; intros H.
+  - destruct H as (ta & k & HA & eq & HK).
+    red.
+    exists ta, k. split.
+    + destruct EQP. apply (H ta ta). reflexivity. assumption.
+    + split. rewrite <- EQt. assumption. intros.
+      repeat red in EQK.  specialize (EQK a a eq_refl). destruct EQK.
+      rewrite <- H0. apply HK. assumption. reflexivity.
+ -  destruct H as (ta & k & HA & eq & HK).
+    red.
+    exists ta, k. split.
+    + destruct EQP. apply (H ta ta). reflexivity. assumption.
+    + split. rewrite EQt. assumption. intros.
+      repeat red in EQK.  specialize (EQK a a eq_refl). destruct EQK.
+      rewrite H0. apply HK. assumption. reflexivity.
+Qed.
 
- #[global] Instance bind_Propt_Proper2 {E} {A B} (PA : iforest E A) (K : A -> iforest E B) :
-   Proper (eutt eq ==> flip impl) (bind PA K).
- Proof.
-   repeat red.
-   intros.
-   repeat red in H0.
-   destruct H0 as (ta & k & HA & eq & HK).
-   exists ta, k. split; auto. split. rewrite H; auto. assumption.
- Qed.
+#[global] Instance bind_Propt_Proper2 {E} {A B} (PA : iforest E A) (K : A -> iforest E B) :
+  Proper (eutt eq ==> flip impl) (bind PA K).
+Proof.
+  repeat red.
+  intros.
+  repeat red in H0.
+  destruct H0 as (ta & k & HA & eq & HK).
+  exists ta, k. split; auto. split. rewrite H; auto. assumption.
+Qed.
 
 Definition agrees_itree {E} {A} (ta1 : itree E A) (ta2 : itree E (A -> Prop)) :=
   eutt (fun a p => p a) ta1 ta2.
@@ -1105,10 +1120,9 @@ Definition bind_stronger {E} :=
                              (agrees_itree (fmap k ta) (fmap K ta)
                              /\ tb ≈ bind ta k)).
 
-Lemma agree_itree_Returns : forall E A B (ta : itree E A) (K : A -> iforest E B) (k : A -> itree E B),
-    (forall a, Returns a ta -> K a (k a)) <-> (agrees_itree (fmap k ta) (fmap K ta)).
+Lemma agree_itree_Returns E A B (ta : itree E A) (K : A -> iforest E B) (k : A -> itree E B)
+  : (forall a, Returns a ta -> K a (k a)) <-> (agrees_itree (fmap k ta) (fmap K ta)).
 Proof.
-  intros.
   split; intros.
   - cbn. red.
     unfold ITree.map.
@@ -1273,7 +1287,7 @@ Proof.
   - assumption.
 Qed.
 
-Instance EQ_REL_Proper {E A} : Proper (eutt eq ==> eq ==> eq ==> iff) (@EQ_REL E A).
+#[global] Instance EQ_REL_Proper {E A} : Proper (eutt eq ==> eq ==> eq ==> iff) (@EQ_REL E A).
 Proof.
   repeat red.
   intros. subst.
@@ -1288,7 +1302,7 @@ Qed.
 Definition eq_relation {A} (R S : A -> A -> Prop) :=
   R <2= S /\ S <2= R.
 
-Instance eutt_EQ_REL_Proper {E} {A} :
+#[global] Instance eutt_EQ_REL_Proper {E} {A} :
   Proper (eq_relation ==> eutt eq ==> @eutt E A A eq ==> iff) (eutt).
 Proof.
   repeat red.
