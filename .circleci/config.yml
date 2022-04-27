@@ -46,13 +46,12 @@ jobs:
     <<: *defaults
 
   test-with-make:
-    environment:
-      OPAMYES: true
     parameters:
       coq:
         type: string
     docker:
     - image: coqorg/coq:<<parameters.coq>>
+    <<: *defaults
     steps:
     - setup
     - run:
