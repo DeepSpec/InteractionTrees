@@ -17,7 +17,6 @@ theories/Basics/CategoryFunctor.v
 theories/Basics/CategoryRelations.v
 theories/Basics/Monad.v
 theories/Basics/MonadProp.v
-theories/Basics/MonadPropT.v
 theories/Basics/MonadState.v
 theories/Basics/CategoryKleisli.v
 theories/Basics/CategoryKleisliFacts.v
@@ -74,6 +73,8 @@ theories/Events/MapDefaultFacts.v
 theories/Events/Concurrency.v
 theories/Events/Dependent.v
 theories/Events/FailFacts.v
+
+theories/Extra/IForest.v
 
 theories/ITrace/ITraceDefinition.v
 theories/ITrace/ITraceFacts.v
