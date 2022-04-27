@@ -1175,8 +1175,8 @@ Section MonadLaws.
           specialize (REL x).
           red in REL.
           pclearbot.
-          apply eqit_bind_Returns_inv  with (r0:=r) in REL; auto.
-          apply eqit_Ret in REL.
+          assert (REL2 := eqit_bind_Returns_inv _ _ _ _ REL _ H2).
+          apply eqit_Ret in REL2.
           assumption.
   Qed.
 
