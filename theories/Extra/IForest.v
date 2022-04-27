@@ -3,34 +3,18 @@ From ITree Require Import
      Axioms
      ITree
      ITreeFacts
-     Basics.HeterogeneousRelations
-     InterpFacts
-     KTreeFacts
-     Core.ITreeMonad
-     CategoryKleisli
-     CategoryKleisliFacts
-     Eq.Eqit.
+     Basics.HeterogeneousRelations.
+
+From Paco Require Import paco.
 
 From ExtLib Require Import
      Structures.Functor.
 
 From Coq Require Import
-     RelationClasses
-     Strings.String
-     Logic
-     Morphisms
      Relations
-     List
-     Program.Tactics.
+     Morphisms.
 
-From ITree Require Import
-     Basics.Monad.
-
-Require Import Paco.paco.
-
-Import ListNotations.
 Import ITree.Basics.Basics.Monads.
-
 
 Import MonadNotation.
 Import CatNotations.
@@ -836,7 +820,7 @@ Proof.
       rewrite HRA. constructor 1. reflexivity.
       specialize (IHHR _ (ret x) k).
       assert (k x ≈ bind (ret x) k).
-      { rewrite bind_ret_l. reflexivity. }
+      { rewrite Monad.bind_ret_l. reflexivity. }
       apply IHHR  in H. rewrite KA.
       destruct H as (x' & _ & HX).
       econstructor 3. reflexivity.  apply HX.
@@ -974,7 +958,7 @@ Proof.
     assert (iter k1 ⩯ iter k2). {
       eapply iterative_proper_iter.
       subst. do 3 red. intros.
-      destruct a0; rewrite bind_ret_l; cbn.
+      destruct a0; rewrite Monad.bind_ret_l; cbn.
       reflexivity.
     }
     do 3 red in H.
@@ -982,7 +966,7 @@ Proof.
   }
   rewrite <- H. subst. clear H. rewrite H0.
   unfold f, g.
-  unfold cat, Cat_Kleisli. rewrite bind_ret_l.
+  unfold cat, Cat_Kleisli. rewrite Monad.bind_ret_l.
   cbn.
   match goal with
   | |- iter ?body1 _ ≈ iter ?body2 _ => remember body1 as i1; remember body2 as i2
@@ -1244,7 +1228,7 @@ Proof.
       eapply H; [symmetry; eauto | clear eq t'].
       eapply H; [eauto | clear EQ t].
       eapply H; eauto.
-      rewrite <- (bind_ret_r _ ta) at 2.
+      rewrite <- (Monad.bind_ret_r _ ta) at 2.
       apply eqit_Returns_bind'; [reflexivity |].
         intros.
         rewrite (HRET r); auto.
