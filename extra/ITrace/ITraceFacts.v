@@ -6,7 +6,9 @@ From ITree Require Import
      ITree
      ITreeFacts
      Eq.Rutt
-     Props.Divergence
+     Props.Divergence.
+
+From ITree.Extra Require Import
      ITrace.ITraceDefinition
 .
 

@@ -17,7 +17,9 @@ From ITree Require Import
      Eq.Rutt
      Events.MapDefault
      Events.State
-     Events.StateFacts
+     Events.StateFacts.
+
+From ITree.Extra Require Import
      ITrace.ITraceDefinition
      ITrace.ITraceFacts
      ITrace.ITracePreds

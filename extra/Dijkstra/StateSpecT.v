@@ -9,7 +9,9 @@ From Paco Require Import paco.
 From ITree Require Import
      ITree
      ITreeFacts
-     Props.Divergence
+     Props.Divergence.
+
+From ITree.Extra Require Import
      Dijkstra.DijkstraMonad
      Dijkstra.PureITreeBasics
      Dijkstra.IterRel

@@ -11,7 +11,9 @@ From ITree Require Import
      ITree
      ITreeFacts
      Props.Divergence
-     Props.EuttDiv
+     Props.EuttDiv.
+
+From ITree.Extra Require Import
      Dijkstra.DijkstraMonad
      Dijkstra.PureITreeBasics
      Dijkstra.DelaySpecMonad.

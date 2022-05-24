@@ -1,7 +1,9 @@
 From ITree Require Import
      Axioms
      ITree
-     ITreeFacts
+     ITreeFacts.
+
+From ITree.Extra Require Import
      Secure.SecureEqHalt
      Secure.SecureEqEuttHalt
 .

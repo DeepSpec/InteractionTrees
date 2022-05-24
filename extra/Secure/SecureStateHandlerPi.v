@@ -5,7 +5,9 @@ From ITree Require Import
      ITreeFacts
      Basics.HeterogeneousRelations
      Events.State
-     Events.StateFacts
+     Events.StateFacts.
+
+From ITree.Extra Require Import
      Secure.SecureEqHalt
      Secure.SecureEqEuttHalt
      Secure.SecureEqWcompat

@@ -12,6 +12,16 @@
 )
 
 (package
+  (name coq-itree-extra)
+  (synopsis "Extensions to coq-itree")
+  (depends
+    coq
+    coq-ext-lib
+    coq-paco
+    coq-itree)
+)
+
+(package
   (name coq-itree-tutorial)
   (synopsis "Example toy compiler verified using the itree library")
 )

@@ -7,7 +7,9 @@ From ITree Require Import
      Indexed.Sum
      ITree
      ITreeFacts
-     Props.Divergence
+     Props.Divergence.
+
+From ITree.Extra Require Import
      Dijkstra.DijkstraMonad
      Dijkstra.PureITreeBasics.
 
