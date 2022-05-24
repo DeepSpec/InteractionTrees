@@ -423,7 +423,7 @@ Proof.
   intros.
   apply Nat.leb_gt.
   apply Nat.lt_1_mul_pos; auto.
-  apply neq_0_lt. intro.
+  apply Nat.neq_0_lt_0. intro.
   apply (Nat.pow_nonzero b y); lia.
 Qed.
 
