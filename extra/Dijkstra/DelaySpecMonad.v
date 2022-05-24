@@ -7,7 +7,9 @@ From ExtLib Require Import
 From ITree Require Import
      ITree
      ITreeFacts
-     Props.Divergence
+     Props.Divergence.
+
+From ITree.Extra Require Import
      Dijkstra.DijkstraMonad
      Dijkstra.PureITreeBasics
      Dijkstra.IterRel.

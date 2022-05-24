@@ -9,7 +9,9 @@ From ITree Require Import
      ITreeFacts
      Events.MapDefault
      Events.State
-     Events.StateFacts
+     Events.StateFacts.
+
+From ITree.Extra Require Import
      Dijkstra.DijkstraMonad
      Dijkstra.PureITreeBasics
      Dijkstra.DelaySpecMonad

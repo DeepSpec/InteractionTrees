@@ -8,7 +8,9 @@ From ITree Require Import
      ITreeFacts
      Eq.Rutt
      Props.Divergence
-     Props.EuttDiv
+     Props.EuttDiv.
+
+From ITree.Extra Require Import
      ITrace.ITraceDefinition
      ITrace.ITraceFacts
      ITrace.ITracePrefix

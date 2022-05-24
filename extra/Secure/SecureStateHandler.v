@@ -7,7 +7,9 @@ From ITree Require Import
      ITreeFacts
      EqAxiom
      Events.State
-     Events.StateFacts
+     Events.StateFacts.
+
+From ITree.Extra Require Import
      Secure.SecureEqHalt
      Secure.SecureEqBind
      Secure.SecureEqEuttHalt

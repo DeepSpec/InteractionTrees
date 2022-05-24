@@ -5,7 +5,9 @@ From Coq Require Import
 From ITree Require Import
      Axioms
      ITree
-     ITreeFacts
+     ITreeFacts.
+
+From ITree.Extra Require Import
      ITrace.ITraceDefinition
      ITrace.ITraceFacts
      ITrace.ITraceBind
