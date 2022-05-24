@@ -76,7 +76,7 @@ workflows:
         coq: "8.15"
     - test:
         name: "Coq dev"
-        coq: "dev"
+        coq: "dev-ocaml-4.13-flambda"
     - test-with-make:
         name: "Coq 8.14 + make"
         coq: "8.14"
