@@ -6,6 +6,8 @@ From Coq Require Import
 
 From ITree Require Import Tacs.
 
+Set Warnings "-future-coercion-class-field".
+
 (* Heterogeneous relation definition, modified from
    https://coq.inria.fr/stdlib/Coq.Relations.Relation_Definitions.html. *)
 (* A categorical account of this file is given in [CategoryRelation.v] *)
@@ -105,13 +107,13 @@ Qed.
 (* Properties of Heterogeneous Relations ************************************ *)
 
 Class ReflexiveH {A: Type} (R : relationH A A) : Prop :=
-  reflexive : forall (a:A), R  a a.
+  reflexive : forall (a:A), R a a.
 
 Class SymmetricH {A: Type} (R : relationH A A) : Prop :=
   symmetric : forall x y, R x y -> R y x.
 
 Class TransitiveH {A: Type} (R : relationH A A) : Prop :=
-  transitive : forall x y z, R  x y -> R  y z -> R x z.
+  transitive : forall x y z, R x y -> R y z -> R x z.
 
 Class PER {A : Type} (R : relationH A A) : Type :=
   {
@@ -166,6 +168,7 @@ Defined.
 
 #[global]
 Instance relationH_Equiv {A : Type} : EquivalenceH (@eq A).
+Proof.
   constructor; typeclasses eauto.
 Defined.
 

@@ -13,6 +13,8 @@ From ITree.Basics Require Import
 Import Carrier.
 Import CatNotations.
 Local Open Scope cat.
+
+Set Warnings "-future-coercion-class-field".
 (* end hide *)
 
 (** ** Categories *)
@@ -98,12 +100,14 @@ Class SemiIso {a b : obj} (f : C a b) (f' : C b a) : Prop :=
 
 (** The class of isomorphisms *)
 Class Iso {a b : obj} (f : C a b) (f' : C b a) : Prop := {
-  iso_mono :> SemiIso f f';
-  iso_epi :> SemiIso f' f;
+  iso_mono : SemiIso f f';
+  iso_epi : SemiIso f' f;
 }.
 
 End SemiIso.
 
+#[global] Existing Instance iso_mono.
+#[global] Existing Instance iso_epi.
 Arguments semi_iso {obj C Eq2C IdC CatC a b} f f' {SemiIso}.
 
 (** ** Opposite *)

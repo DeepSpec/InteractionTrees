@@ -18,12 +18,14 @@ Set Primitive Projections.
 Class Eq1 (M : Type -> Type) : Type :=
   eq1 : forall A, M A -> M A -> Prop.
 
-(* Proof that [eq1] is an equivalence relation. *)
-Class Eq1Equivalence (M : Type -> Type) `{Monad M} `{Eq1 M} :=
-  eq1_equiv :> forall A, Equivalence (eq1 A).
-
 Arguments eq1 {M _ _}.
 Infix "≈" := eq1 (at level 70) : monad_scope.
+
+(* Proof that [eq1] is an equivalence relation. *)
+Class Eq1Equivalence (M : Type -> Type) `{Monad M} `{Eq1 M} :=
+  eq1_equiv : forall A, Equivalence (eq1 (A := A)).
+
+#[global] Existing Instance eq1_equiv.
 
 Section Laws.
 
@@ -41,13 +43,15 @@ Section Laws.
     ; bind_ret_r : forall A (x : M A), bind x (fun y => ret y) ≈ x
     ; bind_bind : forall A B C (x : M A) (f : A -> M B) (g : B -> M C),
         bind (bind x f) g ≈ bind x (fun y => bind (f y) g)
-    ; Proper_bind :> forall {A B},
+    ; Proper_bind : forall {A B},
         (@Proper (M A -> (A -> M B) -> M B)
          (eq1 ==> pointwise_relation _ eq1 ==> eq1)
          bind)
     }.
 
 End Laws.
+
+#[global] Existing Instance Proper_bind.
 
 Arguments bind_ret_l {M _ _ _}.
 Arguments bind_ret_r {M _ _ _}.
