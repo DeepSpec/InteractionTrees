@@ -3,4 +3,5 @@
 (coq.theory
  (name ITree.Extra)
  (package coq-itree-extra)
- (theories ITree))
+ (theories ITree)
+)

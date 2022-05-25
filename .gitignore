@@ -49,4 +49,4 @@ tutorial/imp_test.mli
 
 *.native
 
-coq-itree.install
+*.install

@@ -2,7 +2,9 @@ From Coq Require Import Program.Basics Morphisms.
 
 From ITree Require Import
      ITree
-     ITreeFacts
+     ITreeFacts.
+
+From ITree.Extra Require Import
      Secure.SecureEqHalt
      Secure.SecureEqEuttTrans
      Secure.SecureEqProgInsens

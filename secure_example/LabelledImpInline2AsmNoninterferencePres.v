@@ -6,7 +6,9 @@ From ITree Require Import
      Basics.CategorySub
      Basics.HeterogeneousRelations
      Events.StateFacts
-     Events.MapDefault
+     Events.MapDefault.
+
+From ITree.Extra Require Import
      Secure.SecureEqHalt
      Secure.SecureEqEuttTrans
      Secure.SecureEqProgInsens

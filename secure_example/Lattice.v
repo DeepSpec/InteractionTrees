@@ -1,6 +1,6 @@
 From Coq Require Import Morphisms.
 
-From ITree Require Import Secure.SecureEqHalt.
+From ITree.Extra Require Import Secure.Labels.
 
 Class Lattice := {
   T : Type;
