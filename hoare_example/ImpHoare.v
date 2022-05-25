@@ -10,7 +10,9 @@ From ITree Require Import
      Events.MapDefault
      Events.State
      Events.StateFacts
-     Props.Divergence
+     Props.Divergence.
+
+From ITree.Extra Require Import
      Dijkstra.DijkstraMonad
      Dijkstra.PureITreeBasics
      Dijkstra.IterRel

@@ -4,7 +4,9 @@ From Coq Require Import
 
 From ITree Require Import
      ITree
-     ITreeFacts
+     ITreeFacts.
+
+From ITree.Extra Require Import
      Secure.SecureEqHalt
 .
 

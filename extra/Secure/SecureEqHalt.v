@@ -5,7 +5,7 @@ From ITree Require Import
      ITreeFacts
 .
 
-From ITree Require Export Secure.Labels.
+From ITree.Extra Require Export Secure.Labels.
 
 From Paco Require Import paco.
 

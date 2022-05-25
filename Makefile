@@ -45,7 +45,7 @@ clean: clean-coq
 	$(MAKE) -C hoare_example clean
 	$(MAKE) -C secure_example clean
 
-_CoqProject: $(COQPATHFILE) _CoqConfig Makefile
+_CoqProject: $(COQPATHFILE) _CoqProject.itree _CoqProject.extra Makefile
 	@ echo "# Generating _CoqProject"
 	@ rm -f _CoqProject
 	@ echo "# THIS IS AN AUTOMATICALLY GENERATED FILE" >> _CoqProject
@@ -57,7 +57,7 @@ ifneq ("$(COQPATHFILE)","")
 	@ echo >> _CoqProject
 endif
 	@ echo "# including: _CoqConfig"
-	@ cat _CoqConfig >> _CoqProject
+	@ cat _CoqProject.itree _CoqProject.extra >> _CoqProject
 
 COQDEP=coqdep
 DEPS_DOT=deps.dot

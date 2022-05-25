@@ -8,7 +8,9 @@ From ITree Require Import
      Events.State
      Events.StateFacts
      Events.Exception
-     Events.ExceptionFacts
+     Events.ExceptionFacts.
+
+From ITree.Extra Require Import
      Secure.SecureEqHalt
      Secure.SecureEqEuttHalt
      Secure.SecureEqWcompat

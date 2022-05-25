@@ -1,10 +1,4 @@
-From Coq Require Import
-     Arith.PeanoNat
-     Lists.List
-     Strings.String
-     Morphisms
-     Setoid
-     RelationClasses.
+From Coq Require Import String.
 
 Inductive aexp :=
   | AId : string -> aexp
