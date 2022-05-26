@@ -5,7 +5,6 @@
 
 (* begin hide *)
 From Coq Require Import
-     Program
      Setoid
      Morphisms
      RelationClasses.
