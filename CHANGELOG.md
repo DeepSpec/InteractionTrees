@@ -1,3 +1,30 @@
+5.0.0 - May 2022
+================
+
+- Create `coq-itree-extra`. Under the namespace `ITree.Extra`:
+    + `ITrace`: ITrees as sets of traces
+    + `Dijkstra`: Dijkstra monads forever (POPL 2021)
+    + `Secure`: Indistinguishability relation on ITrees
+    + `IForest`: The "sets of itrees" monad
+
+- Add `Hint Mode` on `ReSum`, preventing some infinite loops in instance resolution.
+
+- Add `rutt`, a generalization of `eutt` relating trees with different event types,
+  `rutt RE RA RS : itree E R -> itree F S -> Prop`.
+
+- Add `Props.Divergence` and `Props.Finite`, with predicates (`may_diverge`,
+  `must_diverge`, `BoxFinite`, `DiamondFinite`) about infinite and finite itrees.
+
+- Add `Props.HasPost`, a predicate transformer semantics for itree.
+
+- Add `Props.Leaf`, a membership relation on trees; `Leaf` can be seen as a dual to `has_post`.
+
+- Add classes for cartesian closed categories in `Basics.CategoryTheory`.
+
+- Add `Axioms`, collecting all axioms used by this library and associated tactics.
+
+- Add `Events.ExceptionFacts`.
+
 4.0.0 - March 2021
 ==================
 
