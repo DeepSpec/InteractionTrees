@@ -43,6 +43,7 @@ theories/Props/Leaf.v
 theories/Props/Finite.v
 theories/Props/HasPost.v
 theories/Props/Infinite.v
+theories/Props/Cofinite.v
 theories/Props/EuttNoRet.v
 
 theories/Indexed/Sum.v
