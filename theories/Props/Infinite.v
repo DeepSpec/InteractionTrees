@@ -1,3 +1,8 @@
+(** * Infiniteness of ITrees *)
+
+(** - [all_infinite]: all branches of an ITree are infinite.
+    - [any_infinite]: there exists an infinite branch. *)
+
 (* begin hide *)
 From Coq Require Import
      Program
@@ -20,37 +25,37 @@ Import ITreeNotations.
 
 Set Implicit Arguments.
 
-(** ** Divergence * *)
+(** ** Infinite * *)
 
-Inductive may_divergeF {E X} (P : itree E X -> Prop) : itree' E X -> Prop :=
-  | DivTau : forall (t : itree E X), P t -> may_divergeF P (TauF t)
-  | DivVis : forall {A} (k : A -> itree E X) (e: E A) (a : A), P (k a) -> may_divergeF P (VisF e k).
-#[global] Hint Constructors may_divergeF : itree.
+Inductive any_infiniteF {E X} (P : itree E X -> Prop) : itree' E X -> Prop :=
+  | DivTau : forall (t : itree E X), P t -> any_infiniteF P (TauF t)
+  | DivVis : forall {A} (k : A -> itree E X) (e: E A) (a : A), P (k a) -> any_infiniteF P (VisF e k).
+#[global] Hint Constructors any_infiniteF : itree.
 
-Definition may_diverge_ {E X} sim :=
-  fun t1 => @may_divergeF E X sim (observe t1).
-#[global] Hint Unfold may_diverge_ : itree.
+Definition any_infinite_ {E X} sim :=
+  fun t1 => @any_infiniteF E X sim (observe t1).
+#[global] Hint Unfold any_infinite_ : itree.
 
-Lemma may_divergeF_mono {E X} sim sim' x0
-      (IN: may_divergeF sim x0)
+Lemma any_infiniteF_mono {E X} sim sim' x0
+      (IN: any_infiniteF sim x0)
       (LE: sim <1= sim'):
-  @may_divergeF E X sim' x0.
+  @any_infiniteF E X sim' x0.
 Proof.
   intros. induction IN; eauto with itree.
 Qed. 
 
-Lemma may_divergeF__mono {E X} :
-  monotone1 (@may_diverge_ E X).
+Lemma any_infiniteF__mono {E X} :
+  monotone1 (@any_infinite_ E X).
 Proof.
-  do 2 red. intros. eapply may_divergeF_mono; eauto.
+  do 2 red. intros. eapply any_infiniteF_mono; eauto.
 Qed. 
-#[global] Hint Resolve may_divergeF__mono : paco.
+#[global] Hint Resolve any_infiniteF__mono : paco.
 
-Definition may_diverge {E A} : itree E A -> Prop :=
-  paco1 (@may_diverge_ E A) bot1.
+Definition any_infinite {E A} : itree E A -> Prop :=
+  paco1 (@any_infinite_ E A) bot1.
 
 #[global]
-Instance may_diverge_proper_eutt {E X R} : Proper (eutt R ==> iff) (@may_diverge E X).
+Instance any_infinite_proper_eutt {E X R} : Proper (eutt R ==> iff) (@any_infinite E X).
 Proof.
   repeat intro. split.
   - revert x y H. pcofix CH. intros.
@@ -81,37 +86,37 @@ Proof.
       pclearbot. punfold H2.
 Qed.
 
-Theorem spin_diverge {E A} : @may_diverge E A ITree.spin.
+Theorem spin_infinite {E A} : @any_infinite E A ITree.spin.
 Proof.
-  unfold may_diverge, ITree.spin.
+  unfold any_infinite, ITree.spin.
   pcofix H. pfold. constructor. right. apply H.
 Qed. 
 
-Variant must_divergeF {E : Type -> Type} {A : Type} (F : itree E A -> Prop) : itree' E A -> Prop :=
-  | MDivTau (t : itree E A) : F t -> must_divergeF F (TauF t)
+Variant all_infiniteF {E : Type -> Type} {A : Type} (F : itree E A -> Prop) : itree' E A -> Prop :=
+  | MDivTau (t : itree E A) : F t -> all_infiniteF F (TauF t)
   | MDivVis (B : Type) (k : B -> itree E A) (e : E B) :
-      (forall b, F (k b)) -> must_divergeF F (VisF e k).
-#[global] Hint Constructors must_divergeF : itree.
+      (forall b, F (k b)) -> all_infiniteF F (VisF e k).
+#[global] Hint Constructors all_infiniteF : itree.
 
-Definition must_diverge_ {E A} (sim : itree E A -> Prop) t := must_divergeF sim (observe t).
+Definition all_infinite_ {E A} (sim : itree E A -> Prop) t := all_infiniteF sim (observe t).
 
-Lemma must_divergeF_mono {E A} (sim sim' : itree E A -> Prop) t
-      (IN : must_divergeF sim t)
-      (LE : sim <1= sim') : must_divergeF sim' t.
+Lemma all_infiniteF_mono {E A} (sim sim' : itree E A -> Prop) t
+      (IN : all_infiniteF sim t)
+      (LE : sim <1= sim') : all_infiniteF sim' t.
 Proof.
   induction IN; eauto with itree.
 Qed.
 
-Lemma must_divergeF_mono' {E A} : monotone1 (@must_diverge_ E A).
+Lemma all_infiniteF_mono' {E A} : monotone1 (@all_infinite_ E A).
 Proof.
-  unfold must_diverge_.
-  red. intros. eapply must_divergeF_mono; eauto.
+  unfold all_infinite_.
+  red. intros. eapply all_infiniteF_mono; eauto.
 Qed.
-#[global] Hint Resolve must_divergeF_mono' : paco.
+#[global] Hint Resolve all_infiniteF_mono' : paco.
 
-Definition must_diverge {E A} := paco1 (@must_diverge_ E A) bot1.
+Definition all_infinite {E A} := paco1 (@all_infinite_ E A) bot1.
 
-#[global] Hint Unfold must_diverge : itree.
+#[global] Hint Unfold all_infinite : itree.
 
 Inductive may_converge {E : Type -> Type} {A : Type} (a : A) : itree E A -> Prop :=
 | conv_ret (t : itree E A) : t ≈ Ret a -> may_converge a t
@@ -136,7 +141,7 @@ Qed.
 Ltac contra_void := try match goal with | a : void |- _ => contradiction end.
 
 #[global]
-Instance eutt_proper_must_diverge {E A R} : Proper (eutt R ==> iff) (@must_diverge E A).
+Instance eutt_proper_all_infinite {E A R} : Proper (eutt R ==> iff) (@all_infinite E A).
 Proof.
   intros t1 t2 Ht. split.
   - revert t1 t2 Ht. pcofix CIH. intros t1 t2 Ht Hdiv.
@@ -164,8 +169,8 @@ Proof.
     +  apply IHHt. inversion Hdiv. subst. pclearbot. punfold H0.
 Qed.
 
-Lemma not_converge_to_must_diverge : forall (E : Type -> Type) (A : Type) (t : itree E A),
-    (forall a, ~ may_converge a t) -> must_diverge t.
+Lemma not_converge_to_all_infinite : forall (E : Type -> Type) (A : Type) (t : itree E A),
+    (forall a, ~ may_converge a t) -> all_infinite t.
 Proof.
   intros E A. pcofix CIH. intros t Hcon. pfold.
   red. destruct (observe t) eqn : Heq;
@@ -180,15 +185,15 @@ Proof.
 Qed.
 
 Lemma classic_converge : forall (E : Type -> Type) (A : Type) (t : itree E A),
-    (exists a, may_converge a t) \/ must_diverge t.
+    (exists a, may_converge a t) \/ all_infinite t.
 Proof.
   intros. destruct (classic (exists a, may_converge a t) ); auto.
-  right. apply not_converge_to_must_diverge. intros a Hcontra.
+  right. apply not_converge_to_all_infinite. intros a Hcontra.
   apply H. exists a. auto.
 Qed.
 
-Lemma must_diverge_not_converge : forall (E : Type -> Type) (R : Type) (t : itree E R) (r : R),
-    may_converge r t -> ~ must_diverge t.
+Lemma all_infinite_not_converge : forall (E : Type -> Type) (R : Type) (t : itree E R) (r : R),
+    may_converge r t -> ~ all_infinite t.
 Proof.
   intros E R t r Hc Hd. induction Hc.
   - rewrite H in Hd. pinversion Hd.
@@ -204,12 +209,12 @@ Proof.
   - apply eqit_inv in H0; cbn in H0; contradiction.
 Qed.
 
-(*Derives contradiction from evidence that a return tree is divergent*)
-Ltac inv_div_ret := match goal with [ H : may_divergeF _ (RetF _) |- _  ] => inversion H end.
+(* Derives contradiction from evidence that a return tree is infinite *)
+Ltac inv_infinite_ret := match goal with [ H : any_infiniteF _ (RetF _) |- _  ] => inversion H end.
 
-(*Divergent trees never return a value*)
-Lemma div_ret_eutt (E : Type -> Type) (A : Type) (t: itree E A) (a : A)
-  : may_diverge t -> t ≈ Ret a -> False.
+(* Infinite trees never return a value*)
+Lemma no_infinite_ret (E : Type -> Type) (A : Type) (t: itree E A) (a : A)
+  : any_infinite t -> t ≈ Ret a -> False.
 Proof.
   intros H HContra. rewrite HContra in H. pinversion H.
 Qed.

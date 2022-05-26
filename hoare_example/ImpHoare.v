@@ -10,7 +10,7 @@ From ITree Require Import
      Events.MapDefault
      Events.State
      Events.StateFacts
-     Props.Divergence.
+     Props.Infinite.
 
 From ITree.Extra Require Import
      Dijkstra.DijkstraMonad
@@ -297,10 +297,10 @@ Proof.
                  (Ret (inr tt))))) as body.
   split.
   - set (fun (t : Delay (env * unit) ) =>
-           (exists s, t ≈ ret (s,tt) /\ is_false b s) \/ may_diverge t
+           (exists s, t ≈ ret (s,tt) /\ is_false b s) \/ any_infinite t
         ) as p.
     set (fun (t : Delay (env * unit + env * unit)) =>
-           (exists s, (t ≈ ret (inl (s,tt)) ) \/ ((t ≈ ret (inr (s,tt)) /\ is_false b s)) )  \/ may_diverge t
+           (exists s, (t ≈ ret (inl (s,tt)) ) \/ ((t ≈ ret (inr (s,tt)) /\ is_false b s)) )  \/ any_infinite t
         ) as q.
     assert (resp_eutt p) as Hp.
     {
@@ -331,7 +331,7 @@ Proof.
       eapply Hp; try apply H0. unfold CategoryOps.iter, Iter_Kleisli, Basics.iter.
       unfold body. symmetry. auto.
     }
-    enough ((p \1/ may_diverge) (CategoryOps.iter body tt s) ).
+    enough ((p \1/ any_infinite) (CategoryOps.iter body tt s) ).
     {
       destruct H0; auto. unfold p. auto.
     }
@@ -360,7 +360,7 @@ Proof.
         -- cbn. rewrite H1. setoid_rewrite bind_bind. setoid_rewrite bind_ret_l.
            simpl. apply div_spin_eutt in H0. rewrite H0. setoid_rewrite bind_bind.
            rewrite <- spin_bind. reflexivity.
-        -- red. right. apply spin_diverge.
+        -- red. right. apply spin_infinite.
       * do 2 red in H1. unfold interp_imp, interp_map in H1.
         eapply Hq.
         -- cbn. rewrite H1. setoid_rewrite bind_bind. setoid_rewrite bind_ret_l.
@@ -395,7 +395,7 @@ Proof.
          do 2 red in H1. unfold interp_imp, interp_map in H1. rewrite H1.
          setoid_rewrite bind_ret_l. simpl. apply div_spin_eutt in H2. rewrite H2.
          setoid_rewrite bind_bind. rewrite <- spin_bind. reflexivity.
-      -- right. apply spin_diverge.
+      -- right. apply spin_infinite.
     * destruct a as [s'' [] ]. eapply Hq.
       -- cbn.  rewrite H0. setoid_rewrite bind_ret_l.
          do 2 red in H1. unfold interp_imp, interp_map in H1. rewrite H1.
@@ -417,12 +417,12 @@ Proof.
       -- cbn.  rewrite H0. setoid_rewrite bind_ret_l.  reflexivity.
       -- left. exists s0. right. split; auto. reflexivity.
     * right. cbn. apply div_spin_eutt in H0. rewrite H0. rewrite <- spin_bind.
-      apply spin_diverge.
+      apply spin_infinite.
    - set (fun (t : Delay (env * unit)) =>
-           (exists s, t ≈ ret (s,tt) /\ P s ) \/ may_diverge t
+           (exists s, t ≈ ret (s,tt) /\ P s ) \/ any_infinite t
         ) as p.
     set (fun (t : Delay (env * unit + env * unit)) =>
-           (exists s, (t ≈ ret (inl (s,tt) ) \/ t ≈ ret (inr (s,tt) ) ) /\ P s )\/ may_diverge t )  as q.
+           (exists s, (t ≈ ret (inl (s,tt) ) \/ t ≈ ret (inr (s,tt) ) ) /\ P s )\/ any_infinite t )  as q.
     assert (resp_eutt p) as Hp.
     {
       unfold p. intros t1 t2 He. split; intros; basic_solve.
@@ -447,7 +447,7 @@ Proof.
       {
         unfold p in H0. basic_solve; auto. pinversion H0.
       }
-      enough ((p \1/ may_diverge) (CategoryOps.iter body tt s ) ).
+      enough ((p \1/ any_infinite) (CategoryOps.iter body tt s ) ).
       {
         destruct H0.
         - eapply Hp; try apply H0. rewrite <- Heutt. reflexivity.
@@ -474,7 +474,7 @@ Proof.
              unfold interp_imp, interp_map in H0. rewrite H0.
              setoid_rewrite bind_ret_l. simpl. rewrite H2.
              setoid_rewrite bind_bind. rewrite <- spin_bind.
-             right. apply spin_diverge.
+             right. apply spin_infinite.
         * unfold is_false, is_bool, interp_imp, interp_map in H0. cbn.
           eapply Hq.
           -- setoid_rewrite bind_bind. rewrite H0. setoid_rewrite bind_ret_l.
@@ -523,7 +523,7 @@ Proof.
            setoid_rewrite bind_ret_l. simpl. apply div_spin_eutt in H2.
            setoid_rewrite bind_bind. rewrite H2.
            rewrite <- spin_bind. reflexivity.
-        -- unfold q. right. apply spin_diverge.
+        -- unfold q. right. apply spin_infinite.
         -- rewrite <- H0. setoid_rewrite bind_ret_l.
            unfold is_false, is_bool in H1. unfold interp_imp, interp_map in H1.
            rewrite H1. setoid_rewrite bind_bind. setoid_rewrite bind_ret_l. simpl.
@@ -553,7 +553,7 @@ Proof.
           ++ rewrite H1 in H0. basic_solve. pinversion H0; injection REL; intros; subst; auto.
           ++ rewrite <- H0 in H1. pinversion H1.
      * clear Ht. unfold q. right. apply div_spin_eutt in H0.
-       rewrite H0. rewrite <- spin_bind. apply spin_diverge.
+       rewrite H0. rewrite <- spin_bind. apply spin_infinite.
 
 Qed.
 
@@ -823,7 +823,7 @@ Section SQRTEx.
   Definition post1 (s0 : env) (t : Delay (env * unit) ) : Prop :=
     exists s, t ≈ ret (s,tt) /\ (lookup_default i 0 s * lookup_default i 0 s) = lookup_default n 0 s0.
 
-  Definition post2 : env -> Delay (env * unit) -> Prop := fun _ t => may_diverge t.
+  Definition post2 : env -> Delay (env * unit) -> Prop := fun _ t => any_infinite t.
 
   Lemma burn_tree : forall (E : Type -> Type) (R : Type) (n : nat) (t : itree E R),
       t ≈ burn n t.
@@ -922,12 +922,12 @@ Section SQRTEx.
 
   Lemma diverge_if_not_square_nat_sqrt : forall (s : env),
       ~ is_square (lookup_default n 0 s) ->
-      may_diverge ( (denote_imp (WHILE (~ i * i  = n) DO i ::= i + 1 END)%imp) s).
+      any_infinite ( (denote_imp (WHILE (~ i * i  = n) DO i ::= i + 1 END)%imp) s).
     Proof.
       intros.
       enough (denote_imp (WHILE ~ i * i = n DO i ::= i + 1 END)%imp s ≈ ITree.spin).
       {
-         rewrite H0. apply spin_diverge.
+         rewrite H0. apply spin_infinite.
       }
       match goal with |- ?m s ≈ ITree.spin => fold (run_state_itree s m) end.
       rewrite compile_nat_sqrt_body. unfold run_state_itree.
@@ -1004,7 +1004,7 @@ Section SQRTEx.
         * exists s0. split; auto. left. rewrite H. auto.
         * exists s0. split; auto. right. rewrite H. auto.
     }
-    match goal with |- p ?t => enough ((p \1/ may_diverge) t)  end.
+    match goal with |- p ?t => enough ((p \1/ any_infinite) t)  end.
     - destruct H; auto. exfalso.
       specialize (converge_if_square_nat_sqrt s Hi0 Hpre) as Hconv.
       basic_solve.

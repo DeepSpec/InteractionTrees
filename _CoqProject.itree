@@ -42,8 +42,8 @@ theories/Eq/Rutt.v
 theories/Props/Leaf.v
 theories/Props/Finite.v
 theories/Props/HasPost.v
-theories/Props/Divergence.v
-theories/Props/EuttDiv.v
+theories/Props/Infinite.v
+theories/Props/EuttNoRet.v
 
 theories/Indexed/Sum.v
 theories/Indexed/Relation.v

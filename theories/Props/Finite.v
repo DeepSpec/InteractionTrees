@@ -18,8 +18,8 @@ Import LeafNotations.
 (** ** Finite computations as Interaction Trees
 
   We provide two predicates capturing finiteness of an [itree]:
-  - [BoxFinite t]     expresses that [t] is finite along all branches
-  - [DiamondFinite t] expresses that [t] admits a finite branch
+  - [all_finite t] expresses that [t] is finite along all branches
+  - [any_finite t] expresses that [t] admits a finite branch
 
   In each case, we prove:
   - Smart constructors and inversion lemmas
@@ -32,103 +32,103 @@ Import LeafNotations.
 
 (** Definitions *)
 
-(** BoxFinite t
+(** all_finite t
   The tree admits exclusively finite branches *)
-Inductive BoxFinite {E} {A: Type} : itree E A -> Prop :=
- | BoxFiniteRet: forall a t,
+Inductive all_finite {E} {A: Type} : itree E A -> Prop :=
+ | all_finiteRet: forall a t,
     observe t = RetF a ->
-   BoxFinite t
- | BoxFiniteTau: forall t u,
+   all_finite t
+ | all_finiteTau: forall t u,
    observe t = TauF u ->
-   BoxFinite u ->
-   BoxFinite t
- | BoxFiniteVis: forall {X} (e: E X) t k,
+   all_finite u ->
+   all_finite t
+ | all_finiteVis: forall {X} (e: E X) t k,
    observe t = VisF e k ->
-   (forall x, BoxFinite (k x)) ->
-   BoxFinite t
+   (forall x, all_finite (k x)) ->
+   all_finite t
 .
-#[global] Hint Constructors BoxFinite : itree.
+#[global] Hint Constructors all_finite : itree.
 
-(** DiamondFinite t
+(** any_finite t
   The tree admits at least one finite branch *)
-Inductive DiamondFinite {E} {A: Type} : itree E A -> Prop :=
- | DiamondFiniteRet: forall a t,
+Inductive any_finite {E} {A: Type} : itree E A -> Prop :=
+ | any_finiteRet: forall a t,
     observe t = RetF a ->
-   DiamondFinite t
- | DiamondFiniteTau: forall t u,
+   any_finite t
+ | any_finiteTau: forall t u,
    observe t = TauF u ->
-   DiamondFinite u ->
-   DiamondFinite t
- | DiamondFiniteVis: forall {X} (e: E X) t k x,
+   any_finite u ->
+   any_finite t
+ | any_finiteVis: forall {X} (e: E X) t k x,
    observe t = VisF e k ->
-   DiamondFinite (k x) ->
-   DiamondFinite t
+   any_finite (k x) ->
+   any_finite t
 .
-#[global] Hint Constructors DiamondFinite : itree.
+#[global] Hint Constructors any_finite : itree.
 
 (** Smart constructors *)
 
-(* BoxFinite *)
-Lemma BoxFinite_Ret : forall E R a,
-  @BoxFinite E R (Ret a).
+(* all_finite *)
+Lemma all_finite_Ret : forall E R a,
+  @all_finite E R (Ret a).
 Proof.
   intros; econstructor 1; reflexivity.
 Qed.
-#[global] Hint Resolve BoxFinite_Ret : itree.
+#[global] Hint Resolve all_finite_Ret : itree.
 
-Lemma BoxFinite_Tau : forall E R t,
-  BoxFinite t ->
-  @BoxFinite E R (Tau t).
+Lemma all_finite_Tau : forall E R t,
+  all_finite t ->
+  @all_finite E R (Tau t).
 Proof.
   intros; econstructor 2; [reflexivity | eauto].
 Qed.
-#[global] Hint Resolve BoxFinite_Tau : itree.
+#[global] Hint Resolve all_finite_Tau : itree.
 
-Lemma BoxFinite_Vis : forall E X R (e : E X) k,
-  (forall x, BoxFinite (k x)) ->
-  @BoxFinite E R (Vis e k).
+Lemma all_finite_Vis : forall E X R (e : E X) k,
+  (forall x, all_finite (k x)) ->
+  @all_finite E R (Vis e k).
 Proof.
   intros; econstructor 3; [reflexivity | eauto].
 Qed.
-#[global] Hint Resolve BoxFinite_Vis : itree.
+#[global] Hint Resolve all_finite_Vis : itree.
 
-(* DiamondFinite *)
-Lemma DiamondFinite_Ret : forall E R a,
-  @DiamondFinite E R (Ret a).
+(* any_finite *)
+Lemma any_finite_Ret : forall E R a,
+  @any_finite E R (Ret a).
 Proof.
   intros; econstructor 1; reflexivity.
 Qed.
-#[global] Hint Resolve DiamondFinite_Ret : itree.
+#[global] Hint Resolve any_finite_Ret : itree.
 
-Lemma DiamondFinite_Tau : forall E R t,
-  DiamondFinite t ->
-  @DiamondFinite E R (Tau t).
+Lemma any_finite_Tau : forall E R t,
+  any_finite t ->
+  @any_finite E R (Tau t).
 Proof.
   intros; econstructor 2; [reflexivity | eauto].
 Qed.
-#[global] Hint Resolve DiamondFinite_Tau : itree.
+#[global] Hint Resolve any_finite_Tau : itree.
 
-Lemma DiamondFinite_Vis : forall E X R (e : E X) k x,
-  DiamondFinite (k x) ->
-  @DiamondFinite E R (Vis e k).
+Lemma any_finite_Vis : forall E X R (e : E X) k x,
+  any_finite (k x) ->
+  @any_finite E R (Vis e k).
 Proof.
   intros; econstructor 3; [reflexivity | eauto].
 Qed.
-#[global] Hint Resolve DiamondFinite_Vis : itree.
+#[global] Hint Resolve any_finite_Vis : itree.
 
 (** Inversion lemmas *)
 
-(* BoxFinite *)
-Lemma BoxFinite_Tau_inv : forall E R t,
-  @BoxFinite E R (Tau t) ->
-  BoxFinite t.
+(* all_finite *)
+Lemma all_finite_Tau_inv : forall E R t,
+  @all_finite E R (Tau t) ->
+  all_finite t.
 Proof.
   intros * FIN; inv FIN; cbn in *; congruence.
 Qed.
 
-Lemma BoxFinite_Vis_inv : forall E X R (e : E X) k,
-  @BoxFinite E R (Vis e k) ->
-  forall x, BoxFinite (k x).
+Lemma all_finite_Vis_inv : forall E X R (e : E X) k,
+  @all_finite E R (Vis e k) ->
+  forall x, all_finite (k x).
 Proof.
   intros * FIN x; inv FIN; cbn in *; try congruence.
   revert H0.
@@ -136,17 +136,17 @@ Proof.
   auto.
 Qed.
 
-(* DiamondFinite *)
-Lemma DiamondFinite_Tau_inv : forall E R t,
-  @DiamondFinite E R (Tau t) ->
-  DiamondFinite t.
+(* any_finite *)
+Lemma any_finite_Tau_inv : forall E R t,
+  @any_finite E R (Tau t) ->
+  any_finite t.
 Proof.
   intros * FIN; inv FIN; cbn in *; congruence.
 Qed.
 
-Lemma DiamondFinite_Vis_inv : forall E X R (e : E X) k,
-  @DiamondFinite E R (Vis e k) ->
-  exists x, DiamondFinite (k x).
+Lemma any_finite_Vis_inv : forall E X R (e : E X) k,
+  @any_finite E R (Vis e k) ->
+  exists x, any_finite (k x).
 Proof.
   intros * FIN; inv FIN; cbn in *; try congruence.
   revert x H0.
@@ -159,12 +159,12 @@ Qed.
   General asymetric lemmas for [eutt R], and [Proper]
   instances for [eutt eq]. *)
 
-(* BoxFinite *)
-Lemma BoxFinite_eutt_l {E A B R}:
+(* all_finite *)
+Lemma all_finite_eutt_l {E A B R}:
   forall (t : itree E A) (u : itree E B),
   eutt R t u ->
-  BoxFinite t ->
-  BoxFinite u.
+  all_finite t ->
+  all_finite u.
 Proof.
   intros * EQ FIN;
   revert u EQ.
@@ -185,29 +185,29 @@ Proof.
     + inv Heqi; eauto with itree.
 Qed.
 
-Lemma BoxFinite_eutt_r {E A B R}:
+Lemma all_finite_eutt_r {E A B R}:
   forall (t : itree E A) (u : itree E B),
   eutt R t u ->
-  BoxFinite u ->
-  BoxFinite t.
+  all_finite u ->
+  all_finite t.
 Proof.
-  intros * EQ. apply eqit_flip in EQ. revert EQ. apply BoxFinite_eutt_l.
+  intros * EQ. apply eqit_flip in EQ. revert EQ. apply all_finite_eutt_l.
 Qed.
 
-#[global] Instance BoxFinite_eutt {E A R}:
-  Proper (eutt R ==> iff) (@BoxFinite E A).
+#[global] Instance all_finite_eutt {E A R}:
+  Proper (eutt R ==> iff) (@all_finite E A).
 Proof.
   repeat intro; split.
-  - eapply BoxFinite_eutt_l; eauto.
-  - eapply BoxFinite_eutt_r; eauto.
+  - eapply all_finite_eutt_l; eauto.
+  - eapply all_finite_eutt_r; eauto.
 Qed.
 
-(* DiamondFinite *)
-Lemma DiamondFinite_eutt_l {E A B R}:
+(* any_finite *)
+Lemma any_finite_eutt_l {E A B R}:
   forall (t : itree E A) (u : itree E B),
   eutt R t u ->
-  DiamondFinite t ->
-  DiamondFinite u.
+  any_finite t ->
+  any_finite u.
 Proof.
   intros * EQ FIN;
   revert u EQ.
@@ -228,59 +228,59 @@ Proof.
     + inv Heqi; eauto with itree.
 Qed.
 
-Lemma DiamondFinite_eutt_r {E A B R}:
+Lemma any_finite_eutt_r {E A B R}:
   forall (t : itree E A) (u : itree E B),
   eutt R t u ->
-  DiamondFinite u ->
-  DiamondFinite t.
+  any_finite u ->
+  any_finite t.
 Proof.
-  intros * EQ. apply eqit_flip in EQ. revert EQ. apply DiamondFinite_eutt_l.
+  intros * EQ. apply eqit_flip in EQ. revert EQ. apply any_finite_eutt_l.
 Qed.
 
-#[global] Instance DiamondFinite_eutt {E A R}:
-  Proper (eutt R ==> iff) (@DiamondFinite E A).
+#[global] Instance any_finite_eutt {E A R}:
+  Proper (eutt R ==> iff) (@any_finite E A).
 Proof.
   split.
-  eapply DiamondFinite_eutt_l; eauto.
-  eapply DiamondFinite_eutt_r; eauto.
+  eapply any_finite_eutt_l; eauto.
+  eapply any_finite_eutt_r; eauto.
 Qed.
 
 (** Compatibility with [bind], forward and backward *)
 
-(* BoxFinite *)
+(* all_finite *)
 
 (* Only the reachable branches, as captured by the
     leaves in the image of the prefix, need to be
    finite in the continuation *)
-Lemma BoxFinite_bind : forall {E R S}
+Lemma all_finite_bind : forall {E R S}
   (t : itree E R) (k : R -> itree E S),
-  BoxFinite t ->
-  (forall x, x ∈ t -> BoxFinite (k x)) ->
-  BoxFinite (t >>= k).
+  all_finite t ->
+  (forall x, x ∈ t -> all_finite (k x)) ->
+  all_finite (t >>= k).
 Proof.
   intros * FIN; induction FIN; intros FINs;
     rewrite unfold_bind, H; eauto with itree.
 Qed.
 
-Lemma BoxFinite_bind_weak : forall {E R S}
+Lemma all_finite_bind_weak : forall {E R S}
   (t : itree E R) (k : R -> itree E S),
-  BoxFinite t ->
-  (forall x, BoxFinite (k x)) ->
-  BoxFinite (t >>= k).
+  all_finite t ->
+  (forall x, all_finite (k x)) ->
+  all_finite (t >>= k).
 Proof.
-  intros; apply BoxFinite_bind; auto.
+  intros; apply all_finite_bind; auto.
 Qed.
 
 (* We only get finiteness of the reachable branches *)
-Lemma BoxFinite_bind_inv : forall {E R S}
+Lemma all_finite_bind_inv : forall {E R S}
   (t : itree E R) (k : R -> itree E S),
-  BoxFinite (t >>= k) ->
-  (BoxFinite t /\ forall x, x ∈ t -> BoxFinite (k x)).
+  all_finite (t >>= k) ->
+  (all_finite t /\ forall x, x ∈ t -> all_finite (k x)).
 Proof.
   intros E R S.
-  cut (forall (u : itree E S), BoxFinite u ->
+  cut (forall (u : itree E S), all_finite u ->
        forall (t : itree E R) k, u ≈ t >>= k ->
-        (BoxFinite t /\ forall x, x ∈ t -> BoxFinite (k x))).
+        (all_finite t /\ forall x, x ∈ t -> all_finite (k x))).
   intros LEM * FIN; eapply LEM; eauto; reflexivity.
   induction 1; intros * EQ.
   - rewrite (itree_eta t), H in EQ; clear H t.
@@ -297,7 +297,7 @@ Proof.
     destruct EQ as [(kca & EQ & EQk) | (?a & EQ & EQk)].
     + rewrite EQ.
       split.
-      apply BoxFinite_Vis.
+      apply all_finite_Vis.
       intros ?; eapply H1; symmetry; eauto.
       intros x IN.
       rewrite EQ in IN.
@@ -311,42 +311,42 @@ Proof.
       rewrite EQk. eauto with itree.
 Qed.
 
-Lemma BoxFinite_bind_inv_left : forall {E R S}
+Lemma all_finite_bind_inv_left : forall {E R S}
   (t : itree E R) (k : R -> itree E S),
-  BoxFinite (t >>= k) ->
-  BoxFinite t.
+  all_finite (t >>= k) ->
+  all_finite t.
 Proof.
-  intros; eapply BoxFinite_bind_inv; eauto.
+  intros; eapply all_finite_bind_inv; eauto.
 Qed.
 
-(* DiamondFinite *)
+(* any_finite *)
 
 (* For a [bind] to have a finite branch, we need to
    exhibit a finite branch in [t] that _continues_
    into a finite branch in [k]. We capture this
    continuity using [Leaf].
 *)
-Lemma DiamondFinite_bind : forall {E R S}
+Lemma any_finite_bind : forall {E R S}
   (t : itree E R) (k : R -> itree E S) x,
   x ∈ t ->
-  DiamondFinite (k x) ->
-  DiamondFinite (t >>= k).
+  any_finite (k x) ->
+  any_finite (t >>= k).
 Proof.
   intros * IN FIN; induction IN.
   - rewrite (itree_eta t), H, bind_ret_l; auto.
   - rewrite unfold_bind, H, tau_eutt; eauto.
   - rewrite unfold_bind, H.
-    eapply DiamondFinite_Vis; eauto.
+    eapply any_finite_Vis; eauto.
 Qed.
 
 (* We get the additional guarantee that the
    finite branch in the continuation comes
    from a point in the image of the prefix.  *)
-Lemma DiamondFinite_bind_inv : forall {E R S}
+Lemma any_finite_bind_inv : forall {E R S}
   (t : itree E R) (k : R -> itree E S),
-  DiamondFinite (t >>= k) ->
-  (DiamondFinite t /\
-   exists x, x ∈ t /\ DiamondFinite (k x)).
+  any_finite (t >>= k) ->
+  (any_finite t /\
+   exists x, x ∈ t /\ any_finite (k x)).
 Proof.
   intros * FIN;
   remember (ITree.bind t k) as u.
@@ -372,34 +372,34 @@ Proof.
     split; eauto with itree.
 Qed.
 
-Lemma DiamondFinite_bind_inv_weak : forall {E R S}
+Lemma any_finite_bind_inv_weak : forall {E R S}
   (t : itree E R) (k : R -> itree E S),
-  DiamondFinite (t >>= k) ->
-  (DiamondFinite t /\
-   exists x, DiamondFinite (k x)).
+  any_finite (t >>= k) ->
+  (any_finite t /\
+   exists x, any_finite (k x)).
 Proof.
-  intros * FIN; apply DiamondFinite_bind_inv in FIN as (?&?&?&?).
+  intros * FIN; apply any_finite_bind_inv in FIN as (?&?&?&?).
   split; eauto.
 Qed.
 
-Lemma DiamondFinite_bind_inv_left : forall {E R S}
+Lemma any_finite_bind_inv_left : forall {E R S}
   (t : itree E R) (k : R -> itree E S),
-  DiamondFinite (t >>= k) ->
-  DiamondFinite t.
+  any_finite (t >>= k) ->
+  any_finite t.
 Proof.
-  intros; eapply DiamondFinite_bind_inv; eauto.
+  intros; eapply any_finite_bind_inv; eauto.
 Qed.
 
-(** * [DiamondFinite] is non-empty [Leaf] *)
-Lemma Leaf_Diamond : forall E R (t : itree E R) x,
+(** * [any_finite] is non-empty [Leaf] *)
+Lemma Leaf_finite : forall E R (t : itree E R) x,
   x ∈ t ->
-  DiamondFinite t.
+  any_finite t.
 Proof.
   intros * FIN; induction FIN; rewrite itree_eta, H; eauto with itree.
 Qed.
 
-Lemma Diamond_Leaf : forall E R (t : itree E R),
-  DiamondFinite t ->
+Lemma finite_Leaf : forall E R (t : itree E R),
+  any_finite t ->
   exists x, x ∈ t.
 Proof.
   intros * FIN; induction FIN.
@@ -408,24 +408,24 @@ Proof.
 Qed.
 
 (** Degenerate case of non-interactive computations
-  In the absence of interaction ([E = void1]), [BoxFinite] and [DiamondFinite] collapse:
+  In the absence of interaction ([E = void1]), [all_finite] and [any_finite] collapse:
   we indeed both know that the computation is deterministic,
   and that it cannot fail, excluding hence any subtletly.
   The image is either empty, or a singleton.
 *)
 
-Lemma Box_Diamond_non_interactive : forall X (t: itree void1 X),
-  BoxFinite t <-> DiamondFinite t.
+Lemma finite_non_interactive : forall X (t: itree void1 X),
+  all_finite t <-> any_finite t.
 Proof.
   split; induction 1; cbn in *; first [now destruct e | eauto with itree].
 Qed.
 
-Lemma Box_Leaf_non_interactive : forall X (t: itree void1 X),
-  BoxFinite t <-> (exists x, x ∈ t).
+Lemma finite_leaf_non_interactive : forall X (t: itree void1 X),
+  all_finite t <-> (exists x, x ∈ t).
 Proof.
   intros *.
-  rewrite Box_Diamond_non_interactive.
-  split; [ eauto using Diamond_Leaf | intros []; eauto using Leaf_Diamond ].
+  rewrite finite_non_interactive.
+  split; [ eauto using finite_Leaf | intros []; eauto using Leaf_finite ].
 Qed.
 
 Lemma Leaf_non_interactive_singleton : forall X (t: itree void1 X) a b,
@@ -438,15 +438,15 @@ Proof.
 Qed.
 
 (** [spin] is not finite, in any sense of the term *)
-Lemma spin_not_BoxFinite: forall E X,
-  ~ BoxFinite (@spin E X).
+Lemma spin_not_all_finite: forall E X,
+  ~ all_finite (@spin E X).
 Proof.
   intros * FIN; remember spin as t; revert Heqt; induction FIN; intros ->;
   unfold observe in H; cbn in H; inv H; auto.
 Qed.
 
-Lemma spin_not_DiamondFinite: forall E X,
-  ~ DiamondFinite (@spin E X).
+Lemma spin_not_any_finite: forall E X,
+  ~ any_finite (@spin E X).
 Proof.
   intros * FIN; remember spin as t; revert Heqt; induction FIN; intros ->;
   unfold observe in H; cbn in H; inv H; auto.
@@ -455,7 +455,7 @@ Qed.
 Lemma spin_empty_Leaf: forall E X x,
   ~ x ∈ (@spin E X).
 Proof.
-  intros * IN; apply Leaf_Diamond, spin_not_DiamondFinite in IN; auto.
+  intros * IN; apply Leaf_finite, spin_not_any_finite in IN; auto.
 Qed.
 
 Module Counterexamples.
@@ -464,36 +464,36 @@ Module Counterexamples.
 
 (** Counterexamples to statements that could be expected to be true at firt glance. *)
 
-(** [BoxFinite] does _not_ entail [DiamondFinite].
+(** [all_finite] does _not_ entail [any_finite].
 
-  Indeed, Diamond guarantees that a finite branch exists,
-  where Box enforces that no infinite branch exists.
-  If the computation has no branch, Box can be satisfied
-  while Diamond is not.
+  Indeed, [any_finite] guarantees that a finite branch exists,
+  where [all_finite] enforces that no infinite branch exists.
+  If the computation has no branch, [all_finite] can be satisfied
+  while [any_finite] is not.
   The [fail] computation is the simplest counterexample *)
 
   Notation fail := (@throw unit (exceptE _) _ unit tt).
 
-  Fact fail_BoxFinite: BoxFinite fail.
+  Fact fail_all_finite: all_finite fail.
   Proof.
     unfold fail.
-    apply BoxFinite_Vis; intros [].
+    apply all_finite_Vis; intros [].
   Qed.
 
-  Fact fail_not_DiamondFinite: ~ DiamondFinite fail.
+  Fact fail_not_any_finite: ~ any_finite fail.
   Proof.
     unfold fail; intros FIN.
-    apply DiamondFinite_Vis_inv in FIN as ([] & ? & ?).
+    apply any_finite_Vis_inv in FIN as ([] & ? & ?).
   Qed.
 
-(** The [bind] proof rule for [DiamondFinite] _must_ quantify
+(** The [bind] proof rule for [any_finite] _must_ quantify
     on the [Leaf]
     It could be tempting to hope for a simpler lemma than
-    [DiamondFinite], simply ensure diamond on the prefix and
+    [any_finite], simply ensure diamond on the prefix and
     at a point in the continuation:
-    DiamondFinite t ->
-    DiamondFinite (k x) ->
-    DiamondFinite (t >>= k)
+    any_finite t ->
+    any_finite (k x) ->
+    any_finite (t >>= k)
     It is however primordial to ensure that the finite path exhibited by k
     is reachable for t, as illustrated in the following *)
 
@@ -503,37 +503,37 @@ Module Counterexamples.
   Definition k : bool -> itree nondetE unit :=
     fun b => if b then spin else Ret tt.
 
-  Lemma spin_not_DiamondFinite: forall E X,
-    ~ DiamondFinite (@spin E X).
+  Lemma spin_not_any_finite: forall E X,
+    ~ any_finite (@spin E X).
   Proof.
     intros * FIN; remember spin as t; revert Heqt; induction FIN; intros ->;
     unfold observe in H; cbn in H; inv H; auto.
   Qed.
 
-  Fact DFt : DiamondFinite t.
+  Fact DFt : any_finite t.
   Proof.
-    apply DiamondFinite_Vis with true; auto with itree.
+    apply any_finite_Vis with true; auto with itree.
   Qed.
 
-  Fact DFk : DiamondFinite (k false).
+  Fact DFk : any_finite (k false).
   Proof.
     cbn; auto with itree.
   Qed.
 
-  Fact NotDFtk: ~ DiamondFinite (t >>= k).
+  Fact NotDFtk: ~ any_finite (t >>= k).
   Proof.
   intros abs.
-  apply DiamondFinite_bind_inv in abs as (FINt & b & IN & FINk).
+  apply any_finite_bind_inv in abs as (FINt & b & IN & FINk).
   destruct b; cbn in *.
-  - eapply spin_not_DiamondFinite; eauto.
+  - eapply spin_not_any_finite; eauto.
   - unfold t in IN.
     clear FINk FINt.
     inv IN; cbn in *; try congruence.
     dependent induction H.
     destruct x; cbn in *.
     apply Leaf_Ret_inv in H0; congruence.
-    apply Leaf_Diamond in H0.
-    eapply spin_not_DiamondFinite; eauto.
+    apply Leaf_finite in H0.
+    eapply spin_not_any_finite; eauto.
   Qed.
 
 End Counterexamples.

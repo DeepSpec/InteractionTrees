@@ -9,7 +9,7 @@ From Paco Require Import paco.
 From ITree Require Import
      ITree
      ITreeFacts
-     Props.Divergence.
+     Props.Infinite.
 
 From ITree.Extra Require Import
      Dijkstra.DijkstraMonad
@@ -137,11 +137,11 @@ Section LoopInvarSpecific.
                (Hp : resp_eutt p) (Hq : resp_eutt q) ,
         (q (reassoc (g a s) )) ->
         (q -+> p) -> (forall t, q t -> q (t >>= (iter_lift ( iso_destatify_arrow g)  ))) ->
-         (p \1/ may_diverge) (MonadIter_stateT0 _ _ g a s) .
+         (p \1/ any_infinite) (MonadIter_stateT0 _ _ g a s) .
   Proof.
     intros.
     set (iso_destatify_arrow g) as g'.
-    enough ((p \1/ may_diverge) (ITree.iter g' (s,a) )).
+    enough ((p \1/ any_infinite) (ITree.iter g' (s,a) )).
     - assert (ITree.iter g' (s,a) ≈ iter g a s).
       + unfold g', iso_destatify_arrow.
         unfold iter, Iter_Kleisli, Basics.iter, MonadIterDelay, StateIter,
@@ -150,7 +150,7 @@ Section LoopInvarSpecific.
         destruct a0 as [a' s']. simpl.
         eapply eutt_clo_bind; try reflexivity. intros.
         subst. destruct u2. simpl. destruct s1; reflexivity.
-      + assert (Hpdiv : resp_eutt (p \1/ may_diverge)).
+      + assert (Hpdiv : resp_eutt (p \1/ any_infinite)).
         { intros t1 t2 Heutt. split; intros; basic_solve.
           - left. eapply Hp; eauto. symmetry. auto.
           - right. rewrite <- Heutt. auto.

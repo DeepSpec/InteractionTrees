@@ -7,8 +7,8 @@ From ITree Require Import
      ITree
      ITreeFacts
      Eq.Rutt
-     Props.Divergence
-     Props.EuttDiv.
+     Props.Infinite
+     Props.EuttNoRet.
 
 From ITree.Extra Require Import
      ITrace.ITraceDefinition
@@ -322,7 +322,7 @@ Proof.
 Qed.
 
 Lemma trace_prefix_div : forall E R S (b1 : itrace E R) (b2 : itrace E S),
-    must_diverge b1 -> trace_prefix b1 b2 -> eutt_div b1 b2.
+    all_infinite b1 -> trace_prefix b1 b2 -> euttNoRet b1 b2.
 Proof.
   intros E R S. pcofix CIH. intros b1 b2 Hdiv Hbf. pfold. red.
   punfold Hbf. red in Hbf. punfold Hdiv. red in Hdiv. induction Hbf.
@@ -342,7 +342,7 @@ Proof.
   - destruct H0 as [r Hconv]. eapply converge_trace_prefix in Hconv; eauto.
     apply trace_prefix_ind_bind. auto.
   - eapply trace_prefix_div in H0 as Heuttdiv; eauto.
-    exists (fun _ => ITree.spin). apply eutt_div_subrel. apply eutt_div_sym.
-    eapply div_bind_nop with (f := (fun _ => ITree.spin) ) in H0 as H1.
-    eapply eutt_div_trans; try apply H1. apply eutt_div_sym. auto.
+    exists (fun _ => ITree.spin). apply euttNoRet_subrel. apply euttNoRet_sym.
+    eapply noret_bind_nop with (f := (fun _ => ITree.spin) ) in H0 as H1.
+    eapply euttNoRet_trans; try apply H1. apply euttNoRet_sym. auto.
 Qed.

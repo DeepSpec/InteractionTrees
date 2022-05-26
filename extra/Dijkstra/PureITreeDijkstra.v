@@ -7,7 +7,7 @@ From ITree Require Import
      Indexed.Sum
      ITree
      ITreeFacts
-     Props.Divergence.
+     Props.Infinite.
 
 From ITree.Extra Require Import
      Dijkstra.DijkstraMonad
@@ -81,7 +81,7 @@ Section PureITree.
   Lemma bind_pred_resp_eutt : forall A B (f : A -> _PureITreeSpec B)
                                      (p : itree void1 B -> Prop) (Hp : resp_eutt p),
       resp_eutt (fun (t : itree void1 A) => (exists a, ret a ≈ t /\ f a p Hp) \/
-                                            (may_diverge t /\ p ITree.spin)).
+                                            (any_infinite t /\ p ITree.spin)).
   Proof.
     intros. intros t1 t2 Heutt. setoid_rewrite Heutt. reflexivity.
   Qed.
@@ -92,7 +92,7 @@ Section PureITree.
   Definition _bindpi A B (w : _PureITreeSpec A) (f : A -> _PureITreeSpec B) : _PureITreeSpec B :=
     fun (p : itree void1 B -> Prop) (Hp : resp_eutt p) =>
       w (fun (t : itree void1 A) => (exists a, ret a ≈ t /\ f a p Hp) \/
-                                    (may_diverge t /\ p ITree.spin ))
+                                    (any_infinite t /\ p ITree.spin ))
         (bind_pred_resp_eutt A B f p Hp).
 
   Lemma bindpi_monot : forall A B (w : _PureITreeSpec A) (f : A -> _PureITreeSpec B),
@@ -100,7 +100,7 @@ Section PureITree.
   Proof.
     unfold monotonici. intros. unfold _bindpi in *.
     set (fun (t : itree void1 A) p0 Hp0 =>
-      (exists a, ret a ≈ t /\ f a p0 Hp0) \/ (may_diverge t /\ p ITree.spin))  as fp.
+      (exists a, ret a ≈ t /\ f a p0 Hp0) \/ (any_infinite t /\ p ITree.spin))  as fp.
     enough (forall t, fp t p Hp -> fp t p' Hp').
     - eapply H with (p := fun t => fp t p Hp).
       + intros.  apply H3 in H4.
@@ -126,7 +126,7 @@ Section PureITree.
     exist _ (_bindpi A B w' f') (bindpi_monot A B w' f' Hw' Hf').
 
   Lemma inf_tree_pred_resp_eutt : forall A B (p : itree void1 B -> Prop),
-      resp_eutt (fun (t : itree void1 (A+B)) => may_diverge t /\ p ITree.spin).
+      resp_eutt (fun (t : itree void1 (A+B)) => any_infinite t /\ p ITree.spin).
   Proof.
     intros. intros t1 t2 Heutt. rewrite Heutt. reflexivity.
   Qed.
@@ -162,14 +162,14 @@ Section PureITree.
 
   Definition iterF_body' {A B : Type}
             (p : itree void1 B -> Prop) (Hp : resp_eutt p) (F : A -> Prop) :=
-    fun (t : itree void1 (A + B) ) =>( may_diverge t /\ p ITree.spin) \/
+    fun (t : itree void1 (A + B) ) =>( any_infinite t /\ p ITree.spin) \/
                                     (exists b, ret (inr b) ≈ t /\ p (ret b)  ) \/
                                     (exists a', ret (inl a') ≈ t /\ F a').
 
   Variant iterF_body {A B : Type}
             (p : itree void1 B -> Prop) (Hp : resp_eutt p) (F : A -> Prop)
             (t : itree void1 (A + B)) : Prop :=
-    | inf_tau (Ht: may_diverge t) (Hspin : p ITree.spin)
+    | inf_tau (Ht: any_infinite t) (Hspin : p ITree.spin)
     | term_b (b : B) (Hretb : ret (inr b) ≈ t ) (Hb : p (ret b))
     | cont_a (a' : A) (Hreta : ret (inl a') ≈ t) (Hcorec : F a')
 .
@@ -220,7 +220,7 @@ Hint Constructors iterF_body : itree.
 
   Inductive iter_ind {A B : Type} (body : A -> _PureITreeSpec (A + B) ) (p : itree void1 B -> Prop)
             (Hp : resp_eutt _ _ p) : A -> Prop :=
-    | Hiter (a : A) : body a (fun t : itree void1 (A + B) => (may_diverge t /\ p spin)
+    | Hiter (a : A) : body a (fun t : itree void1 (A + B) => (any_infinite t /\ p spin)
                                                    \/ (exists b, t ≈ (ret (inr b) /\ p (ret b) ))
                                              \/ (exists a', t ≈ (ret (inl a')) /\
                                          iter_ind body p Hp a') ) .
@@ -324,14 +324,14 @@ Lemma iterF_monotone {A B} (body:  (A -> PureITreeSpec (A + B)))
         refine (Hwfa _ _ _ _ _ Hfa). intros t1. intros. destruct H0; auto.
       + destruct H0. destruct H1.
         * destruct H1 as [b [Hretb Hgb ]  ]. exfalso. specialize (@ret_not_div B void1 b) as Hndiv.
-          rewrite Hretb in Hndiv. apply Hndiv. apply spin_diverge.
+          rewrite Hretb in Hndiv. apply Hndiv. apply spin_infinite.
         *  right. destruct H1. auto.
     - simpl in *. refine (Hw _ _ _ _ _ H). intros t0. intros. destruct H0.
       +  destruct H0 as [a [Hreta Hfa] ]. left. exists a. split; auto.
          destruct (f a) as [wfa Hwfa]. simpl in *.
          refine (Hwfa _ _ _ _ _ Hfa). intros t1. intros.
          destruct H0; auto.
-      + destruct H0. right. split; auto. right. split; auto. apply spin_diverge.
+      + destruct H0. right. split; auto. right. split; auto. apply spin_infinite.
   Qed.
 
   Instance PureItreeSpecLaws : MonadLawsE PureITreeSpec.

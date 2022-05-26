@@ -10,7 +10,7 @@ From ITree Require Import
      Axioms
      ITree
      ITreeFacts
-     Props.Divergence.
+     Props.Infinite.
 
 Import Monads.
 Import MonadNotation.
@@ -47,7 +47,7 @@ Lemma tau_invar_resp_eutt1: forall (E : Type -> Type) (A : Type) (P : itree E A 
   Qed.
 
 (*spin is the only divergent itree with the void1 event type,*)
-Lemma div_spin_eutt : forall (A : Type) (t : itree void1 A), may_diverge t -> t ≈ spin.
+Lemma div_spin_eutt : forall (A : Type) (t : itree void1 A), any_infinite t -> t ≈ spin.
 Proof.
   intros A. pcofix CIH. intros. pfold. red. cbn.
   destruct (observe t) eqn : Heqt.
@@ -59,9 +59,9 @@ Proof.
   - destruct e.
 Qed.
 
-Lemma eutt_reta_or_div_aux : forall A (t : itree void1 A), ~(exists a, ret a ≈ t) -> may_diverge t.
+Lemma eutt_reta_or_div_aux : forall A (t : itree void1 A), ~(exists a, ret a ≈ t) -> any_infinite t.
 Proof.
-  intro A. pcofix CIH. pfold. unfold may_diverge_. intros. destruct (observe t) eqn : Heqt.
+  intro A. pcofix CIH. pfold. unfold any_infinite_. intros. destruct (observe t) eqn : Heqt.
   - exfalso. specialize (itree_eta t) as H. rewrite Heqt in H. apply H0.
     exists r0. rewrite H. reflexivity.
   - constructor. right. eapply CIH; eauto. intro. apply H0.
@@ -71,21 +71,21 @@ Proof.
 Qed.
 
   (*All itrees with void1 event type either just return a value a, or they diverge (requires the law of the excluded middle to prove) *)
-Lemma eutt_reta_or_div : forall A (t : itree void1 A), (exists a, ret a ≈ t) \/ (may_diverge t).
+Lemma eutt_reta_or_div : forall A (t : itree void1 A), (exists a, ret a ≈ t) \/ (any_infinite t).
 Proof.
   intros A t.  specialize (classic (exists a, ret a ≈ t) ) as Hlem. destruct Hlem; auto.
   right. apply eutt_reta_or_div_aux. auto.
 Qed.
 
-Lemma ret_not_div : forall (A : Type) (E : Type -> Type) (a : A), ~ (@may_diverge E A (ret a)).
+Lemma ret_not_div : forall (A : Type) (E : Type -> Type) (a : A), ~ (@any_infinite E A (ret a)).
 Proof.
   intros. intro Hcontra. pinversion Hcontra.
 Qed.
 
 Lemma not_ret_eutt_spin : forall A E (a : A), ~ (Ret a ≈ @spin E A).
 Proof.
-  intros. intro Hcontra. symmetry in Hcontra. revert Hcontra; apply div_ret_eutt.
-  apply spin_diverge.
+  intros. intro Hcontra. symmetry in Hcontra. revert Hcontra; apply no_infinite_ret.
+  apply spin_infinite.
 Qed.
 
 Lemma eutt_ret_euttge : forall (E : Type -> Type) (A : Type) (a : A) (t : itree E A),

@@ -7,7 +7,7 @@ From ExtLib Require Import
 From ITree Require Import
      ITree
      ITreeFacts
-     Props.Divergence.
+     Props.Infinite.
 
 From ITree.Extra Require Import
      Dijkstra.DijkstraMonad
@@ -29,7 +29,7 @@ Ltac clear_ret_eutt_spin :=
   match goal with | H : ret ?a ≈ ITree.spin  |- _ => simpl in H; exfalso; eapply not_ret_eutt_spin; eauto
              | H : Ret ?a ≈ ITree.spin  |- _ => exfalso; eapply not_ret_eutt_spin; eauto
              | H : ITree.spin ≈ ret ?a  |- _ => exfalso; symmetry in H; eapply not_ret_eutt_spin; eauto
-             | H : may_diverge (ret _ ) |- _ => pinversion H
+             | H : any_infinite (ret _ ) |- _ => pinversion H
   end.
 
 Ltac invert_evidence :=
@@ -76,7 +76,7 @@ Definition DelaySpec (A : Type) : Type :=
 
 #[program] Definition _bind_del (A B : Type) (w : DelaySpec A) (f : A -> DelaySpec B)
   : DelaySpecInput B -> Prop :=
-  fun p => w ∋ (fun t => (exists a, Ret a ≈ t /\ p ∈ f a) \/ (may_diverge t /\ p ITree.spin)).
+  fun p => w ∋ (fun t => (exists a, Ret a ≈ t /\ p ∈ f a) \/ (any_infinite t /\ p ITree.spin)).
 Next Obligation.
   intros t1 t2 Heutt. split; intros; basic_solve.
   - left. exists a. split; auto. rewrite H. auto.
@@ -140,7 +140,7 @@ Next Obligation.
   - red. red in H. destruct w as [w Hw]. simpl in *. destruct p as [p Hp]. simpl in *.
     eapply Hw; try apply H. simpl in *. intros. basic_solve.
     + left. exists a. auto.
-    + right. split; auto. right. split; try auto using spin_diverge.
+    + right. split; auto. right. split; try auto using spin_infinite.
 Qed.
 Next Obligation.
   intros w1 w2 Hw k1 k2 Hk. unfold pointwise_relation in Hk.
@@ -247,7 +247,7 @@ Lemma loop_invar : forall (A B : Type) (g : A -> Delay (A + B) ) (a : A)
                           (q : Delay (A + B) -> Prop) (Hq : resp_eutt q),
     (q -+> p) -> (q (g a)) ->
     (forall t, q t -> q (bind t (iter_lift g))) ->
-    (p \1/ may_diverge) (ITree.iter g a).
+    (p \1/ any_infinite) (ITree.iter g a).
 Proof.
   intros. unfold loop_invar_imp in *.
   set (iter_arrow_rel g) as rg.
@@ -276,5 +276,5 @@ Proof.
         eapply Hq; try apply H0. rewrite H4.
         setoid_rewrite unfold_iter. rewrite H4. repeat setoid_rewrite <- spin_bind.
         reflexivity.
-  - apply iter_inl_spin in H2. right. rewrite H2. apply spin_diverge.
+  - apply iter_inl_spin in H2. right. rewrite H2. apply spin_infinite.
 Qed.
