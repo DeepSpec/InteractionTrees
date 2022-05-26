@@ -10,8 +10,8 @@ From ITree Require Import
      Axioms
      ITree
      ITreeFacts
-     Props.Divergence
-     Props.EuttDiv.
+     Props.Infinite
+     Props.EuttNoRet.
 
 From ITree.Extra Require Import
      Dijkstra.DijkstraMonad
@@ -43,25 +43,25 @@ Section ITreeDijkstra.
 
   Program Definition bind_ex (A B: Type) (w: ITreeSpec A) (g : A -> ITreeSpec B) : ITreeSpec B :=
     fun p  =>
-      w (fun t => (exists a, may_converge a t /\ g a p) \/ (must_diverge t /\  p (div_cast t)) ).
+      w (fun t => (exists a, may_converge a t /\ g a p) \/ (all_infinite t /\  p (noret_cast t)) ).
   Next Obligation.
   Proof.
     repeat red. split; intros; basic_solve.
     - left. exists a. rewrite H in H0. auto.
     - right. rewrite <- H at 1. split; auto.
       destruct p as [p Hp]; simpl in *.
-      specialize (eutt_imp_div H0 H).
+      specialize (all_infinite_euttNoRet H0 H).
       intros.
-      specialize (div_cast_nop H0) as Ht1.
-      rewrite H in H0. specialize (div_cast_nop H0) as Ht2.
+      specialize (noret_cast_nop H0) as Ht1.
+      rewrite H in H0. specialize (noret_cast_nop H0) as Ht2.
       eapply Hp; eauto.
       symmetry in H.
-      eapply div_cast_cast; eauto.
+      eapply noret_cast_cast; eauto.
     - left. exists a. split; auto. rewrite H. auto.
     - right. rewrite H at 1. split; auto.
       destruct p as [p Hp]; simpl in *.
       eapply Hp; eauto.
-      eapply div_cast_cast; eauto.
+      eapply noret_cast_cast; eauto.
       rewrite H. auto.
   Qed.
   Next Obligation.
@@ -126,7 +126,7 @@ Section ITreeDijkstra.
         inversion H0; subst.
         * rewrite H2. auto.
         * rewrite H2. admit.
-      + apply div_cast_nop in H0.
+      + apply noret_cast_nop in H0.
         rewrite H0. auto.
     - destruct x as [w Hw]. simpl in *. eapply Hw; try apply H.
       intros. simpl. destruct (classic_converge _ t).
@@ -134,7 +134,7 @@ Section ITreeDijkstra.
         (*basically same problem as before, this time we know p t, but
           that might be reliant on some visible event behavior*)
         admit.
-      + right. split; auto. apply div_cast_nop in H1.
+      + right. split; auto. apply noret_cast_nop in H1.
         rewrite <- H1. auto.
   Admitted.
   Next Obligation.
@@ -143,27 +143,27 @@ Section ITreeDijkstra.
     - eapply Hw; try apply H. simpl in *. intros. basic_solve.
       + left. exists a0. auto.
       + exfalso. clear H H2 Hw w.
-        eapply must_diverge_imp_not_conv; try apply H1.
-        eapply eutt_div_imp_div. apply eutt_div_sym.
-        apply div_bind_nop. auto.
+        eapply all_infinite_imp_not_conv; try apply H1.
+        eapply euttNoRet_all_infinite. apply euttNoRet_sym.
+        apply noret_bind_nop. auto.
       + right. split; auto.
         destruct p as [p Hp]. simpl in *. clear H.
         eapply Hp; try apply H2.
-        apply eutt_div_subrel.
+        apply euttNoRet_subrel.
         rewrite bind_bind.
-        apply eutt_div_trans with (t2 := t).
-        * apply eutt_div_sym. apply div_bind_nop. auto.
-        * apply div_bind_nop. auto.
+        apply euttNoRet_trans with (t2 := t).
+        * apply euttNoRet_sym. apply noret_bind_nop. auto.
+        * apply noret_bind_nop. auto.
     - eapply Hw; try apply H. simpl in *. intros. basic_solve.
       + left. exists a0. auto.
       + right. split; auto. right. split.
-        * apply eutt_div_imp_div with (t2 := t); auto.
-          apply eutt_div_sym. apply div_bind_nop. auto.
+        * apply euttNoRet_all_infinite with (t2 := t); auto.
+          apply euttNoRet_sym. apply noret_bind_nop. auto.
         * destruct p as [p Hp]. simpl in *. clear H.
           eapply Hp; try apply H1. rewrite bind_bind.
-          apply eutt_div_subrel.
-          apply eutt_div_trans with (t2 := t); try apply div_bind_nop; auto.
-          apply eutt_div_sym. apply div_bind_nop. auto.
+          apply euttNoRet_subrel.
+          apply euttNoRet_trans with (t2 := t); try apply noret_bind_nop; auto.
+          apply euttNoRet_sym. apply noret_bind_nop. auto.
   Qed.
   *)
 
@@ -448,7 +448,7 @@ Section ITreeDijkstra.
   Qed.
 
   Lemma eventless_div : forall (R : Type) (t : itree E R),
-      eventless t -> must_diverge t -> t ≈ ITree.spin.
+      eventless t -> all_infinite t -> t ≈ ITree.spin.
   Proof.
     intros R. pcofix CIH. intros.
     pinversion H0.
@@ -727,7 +727,7 @@ Section RetBindCounter.
 
   (* Program Definition bind_ex (A B: Type) (w: ITreeSpec A) (g : A -> ITreeSpec B) : ITreeSpec B :=
     fun p  =>
-      w (fun t => (exists a, may_converge a t /\ g a p) \/ (must_diverge t /\  p (div_cast t)) ).
+      w (fun t => (exists a, may_converge a t /\ g a p) \/ (all_infinite t /\  p (noret_cast t)) ).
 *)
 
   (* ret_bind : forall (a : Type) (x : DelaySpec a), bind x (fun y : a => ret y) ≈ x*)
@@ -768,8 +768,8 @@ Section RetBindCounter.
     }
     apply Hcontra in H. clear Hcontra. basic_solve.
     - unfold p in H0. cbn in H0. pinversion H0.
-    - clear H0. pinversion H; try apply must_divergeF_mono'. ddestruction.
-      specialize (H1 tt). punfold H1; try apply must_divergeF_mono'.
+    - clear H0. pinversion H; try apply all_infiniteF_mono'. ddestruction.
+      specialize (H1 tt). punfold H1; try apply all_infiniteF_mono'.
       inv H1.
   Qed.
 

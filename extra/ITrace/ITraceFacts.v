@@ -6,7 +6,7 @@ From ITree Require Import
      ITree
      ITreeFacts
      Eq.Rutt
-     Props.Divergence.
+     Props.Infinite.
 
 From ITree.Extra Require Import
      ITrace.ITraceDefinition
@@ -135,7 +135,7 @@ Proof.
 Qed.
 
 Lemma classic_converge_itrace : forall (E : Type -> Type) (R : Type) (b : itrace E R),
-    (exists r, exists log, ( (ev_list_to_stream log) ++ Ret r ≈ b)%itree ) \/ must_diverge b.
+    (exists r, exists log, ( (ev_list_to_stream log) ++ Ret r ≈ b)%itree ) \/ all_infinite b.
 Proof.
   intros.
   destruct (classic_converge b); auto. destruct H as [r Hr]. left.
@@ -163,7 +163,7 @@ Qed.
 
 Lemma append_div : forall (E : Type -> Type) (R : Type) (b : itrace E R)
                      (log : ev_list E),
-    must_diverge b -> must_diverge ((ev_list_to_stream log) ++ b).
+    all_infinite b -> all_infinite ((ev_list_to_stream log) ++ b).
 Proof.
   intros. induction log.
   - cbn. unfold append. rewrite bind_ret_l. auto.
@@ -494,9 +494,9 @@ Proof.
     constructor. apply H9 in H2. pclearbot. destruct b. auto.
 Qed.
 
-Lemma trace_refine_must_diverge : forall (E : Type -> Type) (R : Type)
+Lemma trace_refine_all_infinite : forall (E : Type -> Type) (R : Type)
                                     (t : itree E R) (b : itrace E R),
-    must_diverge t -> b ⊑ t -> must_diverge b.
+    all_infinite t -> b ⊑ t -> all_infinite b.
 Proof.
   intros E R. pcofix CIH. intros. punfold H0. red in H0.
   punfold H1. red in H1. pfold. red. dependent induction H1.
@@ -536,7 +536,7 @@ Qed.
 
 Lemma trace_refine_diverge_bind : forall (E : Type -> Type) (R S : Type)
                                          (b : itrace E R) (t : itree E R) (f : R -> itrace E S) (g : R -> itree E S),
-    must_diverge b -> b ⊑ t -> ITree.bind b f ⊑ ITree.bind t g.
+    all_infinite b -> b ⊑ t -> ITree.bind b f ⊑ ITree.bind t g.
 Proof.
   intros E R S b t f g. generalize dependent b. generalize dependent t.
   pcofix CIH. intros.
@@ -730,9 +730,9 @@ Proof.
       eapply IHlog; eauto.
 Qed.
 
-Lemma must_diverge_bind_append: forall (E : Type -> Type) (A : Type)
+Lemma all_infinite_bind_append: forall (E : Type -> Type) (A : Type)
                                   (log : ev_list E) (b' : itree (EvAns E) A),
-    must_diverge (ev_list_to_stream log ++ b') -> must_diverge b'.
+    all_infinite (ev_list_to_stream log ++ b') -> all_infinite b'.
 Proof.
   intros E A log b' Hdiv. induction log.
   - cbn in Hdiv. setoid_rewrite bind_ret_l in Hdiv. auto.

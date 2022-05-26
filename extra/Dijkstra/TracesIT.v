@@ -10,8 +10,8 @@ From ITree Require Import
      Axioms
      ITree
      ITreeFacts
-     Props.Divergence
-     Props.EuttDiv.
+     Props.Infinite
+     Props.EuttNoRet.
 
 From ITree.Extra Require Import
      Dijkstra.DijkstraMonad
@@ -68,7 +68,7 @@ Section TraceSpec.
 *)
 
   Program Definition bind_ts1_all {A B : Type} (w : TraceSpec A) (g : A -> TraceSpec B) :=
-    fun log p => w log (fun b : itree (EvAns E) A  => (forall a log', b ≈ (↑log' ++ Ret a) -> g a log' p ) /\ (must_diverge b -> p (div_cast b) )  ).
+    fun log p => w log (fun b : itree (EvAns E) A  => (forall a log', b ≈ (↑log' ++ Ret a) -> g a log' p ) /\ (all_infinite b -> p (noret_cast b) )  ).
   Next Obligation.
     intros b1 b2 Heutt. split; intros; split; basic_solve.
     - apply H. rewrite Heutt. auto.
@@ -79,7 +79,7 @@ Section TraceSpec.
 
   Program Definition bind_ts1 {A B : Type} (w : TraceSpec A) (g : A -> TraceSpec B) : TraceSpec B :=
     fun log p => w log (fun b : itree (EvAns E) A => (exists a, exists log', b ≈ (↑log' ++ Ret a)  /\ g a log' p) \/
-                                 (must_diverge b /\ p (div_cast b )) ).
+                                 (all_infinite b /\ p (noret_cast b )) ).
   Next Obligation.
     intros b1 b2 Heutt. split; intros; basic_solve.
     - left. exists a. exists log'.
@@ -123,7 +123,7 @@ Section TraceSpec.
     - apply inv_append_eutt in H. destruct H. subst. auto.
     - exfalso. assert (may_converge a (↑ log ++ Ret a) ).
       { apply may_converge_append. apply finite_list_to_stream. }
-      eapply must_diverge_not_converge; eauto.
+      eapply all_infinite_not_converge; eauto.
     - left. exists a. exists log. split; auto. reflexivity.
   Qed.
   Next Obligation.
@@ -131,14 +131,14 @@ Section TraceSpec.
     - eapply apply_monot; try apply H. clear H.
       simpl. intros. basic_solve.
       + rewrite H. auto.
-      + apply div_cast_nop in H.
+      + apply noret_cast_nop in H.
         rewrite H. auto.
     - eapply apply_monot; try apply H. clear H.
       intros. simpl. destruct (classic_converge_itrace b).
       + basic_solve. left. exists r. exists log0. split.
         * symmetry. auto.
         * rewrite H0. auto.
-      + right. split; auto. rewrite div_cast_nop in H; auto.
+      + right. split; auto. rewrite noret_cast_nop in H; auto.
   Qed.
   Next Obligation.
     rename x into w.
@@ -149,23 +149,23 @@ Section TraceSpec.
       + exfalso.
         assert (may_converge a (↑log' ++ Ret a) ).
         { apply may_converge_append. apply finite_list_to_stream. }
-        assert (must_diverge (@div_cast (EvAns E) A A b) ).
-        { apply must_diverge_bind. auto. }
-        rewrite <- H0 in H2. unfold div_cast in H3. cbn in H3.
-        eapply must_diverge_not_converge with (r := a) ; eauto.
-        apply must_diverge_bind. auto.
+        assert (all_infinite (@noret_cast (EvAns E) A A b) ).
+        { apply all_infinite_bind. auto. }
+        rewrite <- H0 in H2. unfold noret_cast in H3. cbn in H3.
+        eapply all_infinite_not_converge with (r := a) ; eauto.
+        apply all_infinite_bind. auto.
       + right. split; auto.
         destruct p as [p Hp]. simpl in *. eapply Hp; try apply H1.
         eapply eutt_clo_bind with (UU := fun a b => False); intuition.
-        apply div_bind_nop. auto.
+        apply noret_bind_nop. auto.
     - eapply apply_monot; try apply H. clear H. simpl. intros.
       basic_solve.
       + left. exists a. exists log'. auto.
       + right. split; auto. right. split.
-        * apply must_diverge_bind. auto.
+        * apply all_infinite_bind. auto.
         * destruct p as [p Hp]. simpl in *. eapply Hp; try apply H0.
           eapply eutt_clo_bind with (UU := fun a b => False); intuition.
-          apply eutt_div_sym. apply div_bind_nop. auto.
+          apply euttNoRet_sym. apply noret_bind_nop. auto.
    Qed.
   Next Obligation.
     intros w1 w2 Hw k1 k2 Hk. do 2 red in Hw. do 3 red in Hk.
@@ -188,7 +188,7 @@ Section TraceSpec.
     forall (A B : Type) (log : ev_list E) (p : TraceSpecInput B) (b : itrace E B)
       (b' : itree (EvAns E) A) (g' : A -> itree (EvAns E) B),
       (ITree.bind b' g' ≈ b)%itree ->
-      must_diverge (↑ log ++ b') ->
+      all_infinite (↑ log ++ b') ->
       p ∋ ITree.bind (↑ log ++ b') (fun _ : A => ITree.spin) -> p ∋ ↑ log ++ b.
   Proof.
     intros A B log p b b' g' Hsplit Hdiv Hp.
@@ -197,9 +197,9 @@ Section TraceSpec.
     { rewrite H. auto. }
     unfold append. rewrite bind_bind.
     eapply eutt_clo_bind with (RR := eq) (UU := eq); try reflexivity.
-    intros. apply eutt_div_subrel. eapply eutt_div_trans with (t2 := b').
-    + apply eutt_div_sym. apply div_bind_nop. eapply must_diverge_bind_append; eauto.
-    + apply div_bind_nop. eapply must_diverge_bind_append; eauto.
+    intros. apply euttNoRet_subrel. eapply euttNoRet_trans with (t2 := b').
+    + apply euttNoRet_sym. apply noret_bind_nop. eapply all_infinite_bind_append; eauto.
+    + apply noret_bind_nop. eapply all_infinite_bind_append; eauto.
   Qed.
 
   #[global] Instance TraceSpecMorph : MonadMorphism (itree E) TraceSpec TraceSpecObs.
@@ -264,7 +264,7 @@ Section TraceSpec.
        * eapply bind_split_diverge; eauto.
        * assert (may_converge a b').
          { eapply may_converge_two_list; eauto. }
-         exfalso. eapply must_diverge_not_converge; eauto.
+         exfalso. eapply all_infinite_not_converge; eauto.
        * eapply bind_split_diverge; eauto.
   Qed.
 
@@ -323,7 +323,7 @@ Definition fal_decide_ex : itrace NonDet unit -> Prop :=
   front_and_last (is_bool true) (is_bool false) (fun _ => True).
 
 Definition decide_ex_post : itrace NonDet unit -> Prop :=
-  fun b => (must_diverge b -> trace_forall (is_bool true) (fun _ => True) b) /\
+  fun b => (all_infinite b -> trace_forall (is_bool true) (fun _ => True) b) /\
         (may_converge tt b -> fal_decide_ex b).
 
 Lemma decide_ex_satisfies_spec : verify_cond NonDet (encode NonDet decide_ex_post decide_ex_pre ) decide_ex.

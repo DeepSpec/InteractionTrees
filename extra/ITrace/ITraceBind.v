@@ -7,8 +7,8 @@ From ITree Require Import
      ITree
      ITreeFacts
      Eq.Rutt
-     Props.Divergence
-     Props.EuttDiv.
+     Props.Infinite
+     Props.EuttNoRet.
 
 From ITree.Extra Require Import
      ITrace.ITraceDefinition
@@ -207,7 +207,7 @@ Qed.
 
 Lemma not_spin_eutt_ret : forall E R (r : R), ~ (@ITree.spin E R ≈ Ret r).
 Proof.
-  intros. intros Hcontra. specialize (@spin_diverge E R) as Hdiv.
+  intros. intros Hcontra. specialize (@spin_infinite E R) as Hdiv.
   rewrite Hcontra in Hdiv. pinversion Hdiv.
 Qed.
 
