@@ -24,7 +24,7 @@ Set Implicit Arguments.
 
 Inductive may_divergeF {E X} (P : itree E X -> Prop) : itree' E X -> Prop :=
   | DivTau : forall (t : itree E X), P t -> may_divergeF P (TauF t)
-  | DivVis : forall {A} (k : A -> itree E X) (e: E A), (forall (a : A), P (k a)) -> may_divergeF P (VisF e k).
+  | DivVis : forall {A} (k : A -> itree E X) (e: E A) (a : A), P (k a) -> may_divergeF P (VisF e k).
 #[global] Hint Constructors may_divergeF : itree.
 
 Definition may_diverge_ {E X} sim :=
