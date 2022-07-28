@@ -1,0 +1,104 @@
+{%- for y in [
+  { year: 2019
+  , pubs: [
+      { title: "From C to Interaction Trees: Specifying, Verifying, and Testing a Networked Server"
+      , authors: "Nicolas Koh, Yao Li, Yishuai Li, Li-yao Xia, Lennart Beringer, Wolf Honoré, William Mansky, Benjamin C. Pierce, Steve Zdancewic"
+      , conf: "CPP 2019"
+      , url: "https://dl.acm.org/doi/10.1145/3293880.3294106"
+      }
+    ]
+  },
+  { year: 2020
+  , pubs: [
+      { title: "Interaction Trees: Representing Recursive and Impure Programs in Coq"
+      , authors: "Li-yao Xia, Yannick Zakowski, Paul He, Chung-Kil Hur, Gregory Malecha, Benjamin C. Pierce, Steve Zdancewic"
+      , conf: "POPL 2020"
+      , url: "https://dl.acm.org/doi/10.1145/3371119"
+      },
+      { title: "An Equational Theory for Weak Bisimulation via Generalized Parameterized Coinduction"
+      , authors: "Yannick Zakowski, Paul He, Chung-Kil Hur, Steve Zdancewic"
+      , conf: "CPP 2020"
+      , url: "https://dl.acm.org/doi/abs/10.1145/3372885.3373813"
+      },
+      { title: "Connecting Higher-Order Separation Logic to a First-Order Outside World"
+      , authors: "William Mansky, Wolf Honoré, Andrew W. Appel"
+      , conf: "ESOP 2020"
+      , url: "https://link.springer.com/chapter/10.1007/978-3-030-44914-8_16"
+      }
+    ]
+  },
+  { year: 2021
+  , pubs: [
+      { title: "Dijkstra Monads Forever: Termination-Sensitive Specifications for Interaction Trees"
+      , authors: "Lucas Silver, Steve Zdancewic"
+      , conf: "POPL 2021"
+      , url: "https://dl.acm.org/doi/10.1145/3434307"
+      },
+      { title: "Model-based Testing of Networked Applications"
+      , authors: "Yishuai Li, Benjamin C. Pierce, Steve Zdancewic"
+      , conf: "ISSTA 2021"
+      , url: "https://dl.acm.org/doi/abs/10.1145/3460319.3464798"
+      },
+      { title: "Verifying an HTTP Key-Value Server with Interaction Trees and VST"
+      , authors: "Hengchu Zhang, Wolf Honoré, Nicolas Koh, Yao Li, Yishuai Li, Li-Yao Xia, Lennart Beringer, William Mansky, Benjamin C. Pierce, Steve Zdancewic"
+      , conf: "ITP 2021"
+      , url: "https://drops.dagstuhl.de/opus/volltexte/2021/13927/"
+      },
+      { title: "A Type System for Extracting Functional Specifications from Memory-Safe Imperative Programs"
+      , authors: "Paul He, Eddy Westbrook, Brent Carmer, Chris Phifer, Valentin Robert, Karl Smeltzer, Andrei Ştefănescu, Aaron Tomb, Adam Wick, Matthew Yacavone, Steve Zdancewic"
+      , conf: "OOPSLA 2021"
+      , url: "https://dl.acm.org/doi/10.1145/3485512"
+      },
+      { title: "Modular, Compositional, and Executable Formal Semantics for LLVM IR"
+      , authors: "Yannick Zakowski, Calvin Beck, Irene Yoon, Ilia Zaichuk, Vadim Zaliva, Steve Zdancewic"
+      , conf: "ICFP 2021"
+      , url: "https://dl.acm.org/doi/10.1145/3473572"
+      },
+      { title: "Formally Verified Simulations of State-Rich Processes using Interaction Trees in Isabelle/HOL"
+      , authors: "Simon Foster, Chung-Kil Hur, Jim Woodlock"
+      , conf: "CONCUR 2021"
+      , url: "https://drops.dagstuhl.de/opus/volltexte/2021/14397/"
+      }
+    ]
+  },
+  { year: 2022
+  , pubs: [
+      { title: "C4: Verified Transactional Objects"
+      , authors: "Mohsen Lesani, Li-yao Xia, Anders Kaseorg, Christian J. Bell, Adam Chlipala, Benjamin C. Pierce, Steve Zdancewic"
+      , conf: "OOPSLA 2022"
+      , url: "https://dl.acm.org/doi/10.1145/3527324"
+      },
+      { title: "Program Adverbs and Tlön Embeddings"
+      , authors: "Yao Li, Stephanie Weirich"
+      , conf: "ICFP 2022"
+      , url: "https://arxiv.org/abs/2207.05227"
+      },
+      { title: "Formal Reasoning About Layered Monadic Interpreters"
+      , authors: "Irene Yoon, Yannick Zakowski, Steve Zdancewic"
+      , conf: "ICFP 2022"
+      , url: "https://www.cis.upenn.edu/~euisuny/paper/fralmi.pdf"
+      },
+      { title: "Formally Verified Animation for RoboChart using Interaction Trees"
+      , authors: "Kangfeng Ye, Simon Foster, Jim Woodcock"
+      , conf: "ICFEM 2022"
+      , url: "https://eprints.whiterose.ac.uk/188566/"
+      },
+      { title: "Conditional Contextual Refinement"
+      , authors: "Youngju Song, Minki Cho, Dongjae Lee, Chung-Kil Hur"
+      , conf: "Draft"
+      , url: "https://arxiv.org/abs/2203.07431"
+      },
+      { title: "Choice Trees: Representing Nondeterministic, Recursive, and Impure Programs in Coq"
+      , authors: "Nicolas Chappe, Paul He, Ludovic Henrio, Yannick Zakowski, Steve Zdancewic"
+      , conf: "Draft"
+      , url: "https://perso.ens-lyon.fr/yannick.zakowski/papers/ctrees_draft_non_anon.pdf"
+      }
+    ]
+  }
+] -%}
+## {{ y.year }}
+
+{% for pub in y.pubs -%}
+{{ pub.title }}
+{% endfor %}
+{% endfor %}
