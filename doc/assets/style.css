@@ -1,0 +1,25 @@
+.github::after {
+  display: inline-flex;
+  content: '';
+  vertical-align: middle;
+  margin-left: 0.5em;
+  background-image: url('github.svg');
+  background-size: 1.3em 1.3em;
+  height: 1.3em;
+  width: 1.3em;
+}
+
+.pub-authors {
+  color: gray;
+}
+
+.pub-paper::after {
+  content: '🖹';
+  vertical-align: middle;
+  margin-left: 0.3em;
+  font-size: 1.2em;
+}
+
+.level-2 {
+  margin-left: 2em;
+}

@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Interaction Trees</title>
+  <meta name="description" content="Homepage of the Interaction Trees project">
+  <!-- TODO: OpenGraph -->
+  <!-- TODO: favicon -->
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<h1 id="interaction-trees">Interaction Trees</h1>
+<h2 id="source-code">Library</h2>
+<div class="level-2">
+<h3>
+<a class="github" href="https://github.com/DeepSpec/InteractionTrees">Source Code</a>
+</h3>
+<h3>Documentation</h3>
+<ul class="doclist">
+  <li><a href="./master/toc.html">Development version (master branch)</a></li>
+  <li><a href="./4.0.0/toc.html">Version 4.0.0</a></li>
+</ul>
+</div>
+<h2 id="the-interaction-trees-academic-universe">The Interaction Trees Academic Universe</h2>
+<div class="level-2">
+<p>List of publications about or closely related to Interaction Trees.</p>
+{%- include "pubs.jingoo" -%}
+{% for y in contents -%}
+<h3>{{ y.year }}</h3>
+<ul>
+{% for pub in y.pubs -%}
+<li>
+  <div class="pub-title">{{ pub.title }}</div>
+  <div class="pub-authors">by {{ pub.authors }} </div>
+  <div class="pub-conf">{{ pub.conf }}. <a href="{{ pub.url }}">Paper<span class="pub-paper"></span></a></div>
+</li>
+{% endfor %}
+</ul>
+{% endfor %}
+</div>
+</body>
+</html>

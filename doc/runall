@@ -1,1 +1,1 @@
-jingoo -i pubs.jingoo -o index.html
+jingoo -i index.html.jingoo -o index.html

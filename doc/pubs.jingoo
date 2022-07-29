@@ -1,4 +1,4 @@
-{%- for y in [
+{%- set contents = [
   { year: 2019
   , pubs: [
       { title: "From C to Interaction Trees: Specifying, Verifying, and Testing a Networked Server"
@@ -40,7 +40,7 @@
       , url: "https://dl.acm.org/doi/abs/10.1145/3460319.3464798"
       },
       { title: "Verifying an HTTP Key-Value Server with Interaction Trees and VST"
-      , authors: "Hengchu Zhang, Wolf Honoré, Nicolas Koh, Yao Li, Yishuai Li, Li-Yao Xia, Lennart Beringer, William Mansky, Benjamin C. Pierce, Steve Zdancewic"
+      , authors: "Hengchu Zhang, Wolf Honoré, Nicolas Koh, Yao Li, Yishuai Li, Li-yao Xia, Lennart Beringer, William Mansky, Benjamin C. Pierce, Steve Zdancewic"
       , conf: "ITP 2021"
       , url: "https://drops.dagstuhl.de/opus/volltexte/2021/13927/"
       },
@@ -96,9 +96,3 @@
     ]
   }
 ] -%}
-## {{ y.year }}
-
-{% for pub in y.pubs -%}
-{{ pub.title }}
-{% endfor %}
-{% endfor %}
