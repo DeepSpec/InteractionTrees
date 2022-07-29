@@ -9,8 +9,9 @@
   width: 1.3em;
 }
 
-.pub-authors {
-  color: gray;
+.pub-title > a {
+  text-decoration: none;
+  font-weight: bold;
 }
 
 .pub-paper::after {
@@ -22,4 +23,8 @@
 
 .level-2 {
   margin-left: 2em;
+}
+
+li {
+  margin-bottom: 0.7em;
 }
