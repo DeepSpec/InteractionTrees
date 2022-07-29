@@ -5,6 +5,7 @@
       , authors: "Nicolas Koh, Yao Li, Yishuai Li, Li-yao Xia, Lennart Beringer, Wolf Honoré, William Mansky, Benjamin C. Pierce, Steve Zdancewic"
       , conf: "CPP 2019"
       , url: "https://dl.acm.org/doi/10.1145/3293880.3294106"
+      , tags: ["coq", "vst", "testing", "plclub"]
       }
     ]
   },
@@ -14,16 +15,19 @@
       , authors: "Li-yao Xia, Yannick Zakowski, Paul He, Chung-Kil Hur, Gregory Malecha, Benjamin C. Pierce, Steve Zdancewic"
       , conf: "POPL 2020"
       , url: "https://dl.acm.org/doi/10.1145/3371119"
+      , tags: ["coq", "monads", "coinduction", "plclub"]
       },
       { title: "An Equational Theory for Weak Bisimulation via Generalized Parameterized Coinduction"
       , authors: "Yannick Zakowski, Paul He, Chung-Kil Hur, Steve Zdancewic"
       , conf: "CPP 2020"
       , url: "https://dl.acm.org/doi/abs/10.1145/3372885.3373813"
+      , tags: ["coq", "coinduction", "plclub"]
       },
       { title: "Connecting Higher-Order Separation Logic to a First-Order Outside World"
       , authors: "William Mansky, Wolf Honoré, Andrew W. Appel"
       , conf: "ESOP 2020"
       , url: "https://link.springer.com/chapter/10.1007/978-3-030-44914-8_16"
+      , tags: ["coq", "vst"]
       }
     ]
   },
@@ -33,31 +37,37 @@
       , authors: "Lucas Silver, Steve Zdancewic"
       , conf: "POPL 2021"
       , url: "https://dl.acm.org/doi/10.1145/3434307"
+      , tags: ["coq", "monads", "coinduction", "plclub"]
       },
       { title: "Model-based Testing of Networked Applications"
       , authors: "Yishuai Li, Benjamin C. Pierce, Steve Zdancewic"
       , conf: "ISSTA 2021"
       , url: "https://dl.acm.org/doi/abs/10.1145/3460319.3464798"
+      , tags: ["coq", "testing", "plclub"]
       },
       { title: "Verifying an HTTP Key-Value Server with Interaction Trees and VST"
       , authors: "Hengchu Zhang, Wolf Honoré, Nicolas Koh, Yao Li, Yishuai Li, Li-yao Xia, Lennart Beringer, William Mansky, Benjamin C. Pierce, Steve Zdancewic"
       , conf: "ITP 2021"
       , url: "https://drops.dagstuhl.de/opus/volltexte/2021/13927/"
+      , tags: ["coq", "vst", "testing", "plclub"]
       },
       { title: "A Type System for Extracting Functional Specifications from Memory-Safe Imperative Programs"
       , authors: "Paul He, Eddy Westbrook, Brent Carmer, Chris Phifer, Valentin Robert, Karl Smeltzer, Andrei Ştefănescu, Aaron Tomb, Adam Wick, Matthew Yacavone, Steve Zdancewic"
       , conf: "OOPSLA 2021"
       , url: "https://dl.acm.org/doi/10.1145/3485512"
+      , tags: ["coq", "plclub"]
       },
       { title: "Modular, Compositional, and Executable Formal Semantics for LLVM IR"
       , authors: "Yannick Zakowski, Calvin Beck, Irene Yoon, Ilia Zaichuk, Vadim Zaliva, Steve Zdancewic"
       , conf: "ICFP 2021"
       , url: "https://dl.acm.org/doi/10.1145/3473572"
+      , tags: ["coq", "monads", "plclub"]
       },
       { title: "Formally Verified Simulations of State-Rich Processes using Interaction Trees in Isabelle/HOL"
       , authors: "Simon Foster, Chung-Kil Hur, Jim Woodlock"
       , conf: "CONCUR 2021"
       , url: "https://drops.dagstuhl.de/opus/volltexte/2021/14397/"
+      , tags: ["isabelle", "concurrency"]
       }
     ]
   },
@@ -67,31 +77,37 @@
       , authors: "Mohsen Lesani, Li-yao Xia, Anders Kaseorg, Christian J. Bell, Adam Chlipala, Benjamin C. Pierce, Steve Zdancewic"
       , conf: "OOPSLA 2022"
       , url: "https://dl.acm.org/doi/10.1145/3527324"
+      , tags: ["coq", "concurrency", "plclub"]
       },
       { title: "Program Adverbs and Tlön Embeddings"
       , authors: "Yao Li, Stephanie Weirich"
       , conf: "ICFP 2022"
       , url: "https://arxiv.org/abs/2207.05227"
+      , tags: ["coq", "plclub"]
       },
       { title: "Formal Reasoning About Layered Monadic Interpreters"
       , authors: "Irene Yoon, Yannick Zakowski, Steve Zdancewic"
       , conf: "ICFP 2022"
       , url: "https://www.cis.upenn.edu/~euisuny/paper/fralmi.pdf"
+      , tags: ["coq", "monads", "plclub"]
       },
       { title: "Formally Verified Animation for RoboChart using Interaction Trees"
       , authors: "Kangfeng Ye, Simon Foster, Jim Woodcock"
       , conf: "ICFEM 2022"
       , url: "https://eprints.whiterose.ac.uk/188566/"
+      , tags: ["isabelle", "concurrency"]
       },
       { title: "Conditional Contextual Refinement"
       , authors: "Youngju Song, Minki Cho, Dongjae Lee, Chung-Kil Hur"
       , conf: "Draft"
       , url: "https://arxiv.org/abs/2203.07431"
+      , tags: ["coq", "concurrency"]
       },
       { title: "Choice Trees: Representing Nondeterministic, Recursive, and Impure Programs in Coq"
       , authors: "Nicolas Chappe, Paul He, Ludovic Henrio, Yannick Zakowski, Steve Zdancewic"
       , conf: "Draft"
       , url: "https://perso.ens-lyon.fr/yannick.zakowski/papers/ctrees_draft_non_anon.pdf"
+      , tags: ["coq", "concurrency", "plclub"]
       }
     ]
   }
