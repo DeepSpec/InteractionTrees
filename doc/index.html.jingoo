@@ -31,9 +31,9 @@
 <ul>
 {% for pub in y.pubs -%}
 <li>
-  <div class="pub-title">{{ pub.title }}</div>
-  <div class="pub-authors">by {{ pub.authors }} </div>
-  <div class="pub-conf">{{ pub.conf }}. <a href="{{ pub.url }}">Paper<span class="pub-paper"></span></a></div>
+  <div class="pub-title"><a href="{{ pub.url }}">{{ pub.title }}</a></div>
+  <div class="pub-authors">by {{ pub.authors }}</div>
+  <div class="pub-conf">{{ pub.conf }}</div>
 </li>
 {% endfor %}
 </ul>
