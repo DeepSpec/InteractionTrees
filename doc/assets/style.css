@@ -1,3 +1,7 @@
+h1, h2 {
+  text-align: center;
+}
+
 .github::after {
   display: inline-flex;
   content: '';
@@ -15,10 +19,8 @@
 }
 
 .pub-paper::after {
-  content: '🖹';
   vertical-align: middle;
   margin-left: 0.3em;
-  font-size: 1.2em;
 }
 
 .level-2 {
@@ -27,4 +29,9 @@
 
 li {
   margin-bottom: 0.7em;
+}
+
+.item-paper::marker {
+  content: '🖹  ';
+  font-size: 1.2em;
 }

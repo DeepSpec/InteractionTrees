@@ -19,8 +19,10 @@
 <h3>Documentation</h3>
 <ul class="doclist">
   <li><a href="./master/toc.html">Development version (master branch)</a></li>
-  <li><a href="./4.0.0/toc.html">Version 4.0.0</a></li>
+  <li><a href="./5.0.0/toc.html">Version 5.0.0</a></li>
 </ul>
+<!-- TODO: Features -->
+<!-- TODO: Connected projects (coq-itree-io, coq-ffi) -->
 </div>
 <h2 id="the-interaction-trees-academic-universe">The Interaction Trees Academic Universe</h2>
 <div class="level-2">
@@ -30,7 +32,7 @@
 <h3>{{ y.year }}</h3>
 <ul>
 {% for pub in y.pubs -%}
-<li>
+<li class="item-paper">
   <div class="pub-title"><a href="{{ pub.url }}">{{ pub.title }}</a></div>
   <div class="pub-authors">by {{ pub.authors }}</div>
   <div class="pub-conf">{{ pub.conf }}</div>
