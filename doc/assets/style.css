@@ -23,8 +23,8 @@ h1, h2 {
   margin-left: 0.3em;
 }
 
-.level-2 {
-  margin-left: 2em;
+@media only screen and (min-width: 768px) {
+  .level-2 { margin-left: 2em; }
 }
 
 li {
@@ -72,6 +72,7 @@ input + label {
 .pill.tag-plclub { color: dodgerblue; }
 
 .pub-conf + .pill { margin-left: 0.5em; }
+.pub-conf ~ .pill { margin-top: 0.2em; }
 
 input:checked + .pill.tag-coq, input#tag-coq:checked ~ ul .pill.tag-coq { background-color: red; border-color: red; color: white; }
 input:checked + .pill.tag-isabelle, input#tag-isabelle:checked ~ ul .pill.tag-isabelle { background-color: peru; border-color: peru; color: white; }
