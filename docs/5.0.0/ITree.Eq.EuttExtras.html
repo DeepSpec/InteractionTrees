@@ -1,0 +1,85 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<link href="coqdoc.css" rel="stylesheet" type="text/css" />
+<link href="coqdocjs.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="config.js"></script>
+<script type="text/javascript" src="coqdocjs.js"></script>
+</head>
+
+<body onload="document.getElementById('content').focus()">
+  <div id="header">
+    <span class="left">
+      <span class="modulename"> <script> document.write(document.title) </script> </span>
+    </span>
+
+    <span class="button" id="toggle-proofs"></span>
+
+    <span class="right">
+      <a href="https://github.com/DeepSpec/InteractionTrees">Project Page</a>
+      <a href="./indexpage.html"> Index </a>
+      <a href="./toc.html"> Table of Contents </a>
+    </span>
+</div>
+    <div id="content" tabindex="-1" onblur="document.getElementById('content').focus()">
+    <div id="main">
+<h1 class="libtitle">ITree.Eq.EuttExtras</h1>
+
+<div class="code">
+</div>
+
+<div class="doc">
+<a id="lab113"></a><h1 class="section">More facts about eutt</h1>
+
+<div class="paragraph"> </div>
+
+ ... that have been added recently and I don't know where to put. 
+</div>
+<div class="code">
+
+<br/>
+<span class="comment">(*&nbsp;TODO:&nbsp;Figure&nbsp;out&nbsp;some&nbsp;way&nbsp;to&nbsp;organize&nbsp;Eq/UpToTaus.v&nbsp;and&nbsp;Eq/Eq.v&nbsp;*)</span><br/>
+
+<br/>
+<span class="id" title="keyword">From</span> <span class="id" title="var">Paco</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="library">paco</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">From</span> <span class="id" title="var">ITree</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span><br/>
+&nbsp;&nbsp;<a class="idref" href="ITree.Core.ITreeDefinition.html#"><span class="id" title="library">Core.ITreeDefinition</span></a><br/>
+&nbsp;&nbsp;<a class="idref" href="ITree.Eq.Eqit.html#"><span class="id" title="library">Eq.Eqit</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Lemma</span> <a id="paco2_eqit_refl" class="idref" href="#paco2_eqit_refl"><span class="id" title="lemma">paco2_eqit_refl</span></a> : <span class="id" title="keyword">∀</span> <a id="E:1" class="idref" href="#E:1"><span class="id" title="binder">E</span></a> <a id="R:2" class="idref" href="#R:2"><span class="id" title="binder">R</span></a> <a id="r:3" class="idref" href="#r:3"><span class="id" title="binder">r</span></a> (<a id="t:4" class="idref" href="#t:4"><span class="id" title="binder">t</span></a> : <a class="idref" href="ITree.Core.ITreeDefinition.html#itree"><span class="id" title="record">itree</span></a> <a class="idref" href="ITree.Eq.EuttExtras.html#E:1"><span class="id" title="variable">E</span></a> <a class="idref" href="ITree.Eq.EuttExtras.html#R:2"><span class="id" title="variable">R</span></a>), <span class="id" title="definition">paco2</span> (<a class="idref" href="ITree.Eq.Eqit.html#eqit_"><span class="id" title="definition">eqit_</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.15.1/stdlib//Coq.Init.Logic.html#eq"><span class="id" title="inductive">eq</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.15.1/stdlib//Coq.Init.Datatypes.html#true"><span class="id" title="constructor">true</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.15.1/stdlib//Coq.Init.Datatypes.html#true"><span class="id" title="constructor">true</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.15.1/stdlib//Coq.Init.Datatypes.html#id"><span class="id" title="definition">id</span></a>) <a class="idref" href="ITree.Eq.EuttExtras.html#r:3"><span class="id" title="variable">r</span></a> <a class="idref" href="ITree.Eq.EuttExtras.html#t:4"><span class="id" title="variable">t</span></a> <a class="idref" href="ITree.Eq.EuttExtras.html#t:4"><span class="id" title="variable">t</span></a>.<br/>
+<span class="id" title="keyword">Proof</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">intros</span>. <span class="id" title="tactic">eapply</span> <span class="id" title="lemma">paco2_mon</span> <span class="id" title="keyword">with</span> (<span class="id" title="var">r</span> := <span class="id" title="definition">bot2</span>); <span class="id" title="tactic">intuition</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="var">enough</span> (<span class="id" title="var">t</span> <a class="idref" href="ITree.Eq.Eqit.html#f51f52fd3bd17df0d58f37498312e9a2"><span class="id" title="notation">≈</span></a> <span class="id" title="var">t</span>); <span class="id" title="tactic">auto</span>. <span class="id" title="tactic">reflexivity</span>.<br/>
+<span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Lemma</span> <a id="eutt_subrel" class="idref" href="#eutt_subrel"><span class="id" title="lemma">eutt_subrel</span></a> : <span class="id" title="keyword">∀</span> (<a id="E:5" class="idref" href="#E:5"><span class="id" title="binder">E</span></a> : <span class="id" title="keyword">Type</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.15.1/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <span class="id" title="keyword">Type</span>) (<a id="A:6" class="idref" href="#A:6"><span class="id" title="binder">A</span></a> <a id="B:7" class="idref" href="#B:7"><span class="id" title="binder">B</span></a> : <span class="id" title="keyword">Type</span>) (<a id="R1:8" class="idref" href="#R1:8"><span class="id" title="binder">R1</span></a> <a id="R2:9" class="idref" href="#R2:9"><span class="id" title="binder">R2</span></a> : <a class="idref" href="ITree.Eq.EuttExtras.html#A:6"><span class="id" title="variable">A</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.15.1/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <a class="idref" href="ITree.Eq.EuttExtras.html#B:7"><span class="id" title="variable">B</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.15.1/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <span class="id" title="keyword">Prop</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<a id="ta:10" class="idref" href="#ta:10"><span class="id" title="binder">ta</span></a> : <a class="idref" href="ITree.Core.ITreeDefinition.html#itree"><span class="id" title="record">itree</span></a> <a class="idref" href="ITree.Eq.EuttExtras.html#E:5"><span class="id" title="variable">E</span></a> <a class="idref" href="ITree.Eq.EuttExtras.html#A:6"><span class="id" title="variable">A</span></a>) (<a id="tb:11" class="idref" href="#tb:11"><span class="id" title="binder">tb</span></a> : <a class="idref" href="ITree.Core.ITreeDefinition.html#itree"><span class="id" title="record">itree</span></a> <a class="idref" href="ITree.Eq.EuttExtras.html#E:5"><span class="id" title="variable">E</span></a> <a class="idref" href="ITree.Eq.EuttExtras.html#B:7"><span class="id" title="variable">B</span></a>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="http://coq.inria.fr/distrib/V8.15.1/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">(</span></a><span class="id" title="keyword">∀</span> <a id="a:12" class="idref" href="#a:12"><span class="id" title="binder">a</span></a> <a id="b:13" class="idref" href="#b:13"><span class="id" title="binder">b</span></a>, <a class="idref" href="ITree.Eq.EuttExtras.html#R1:8"><span class="id" title="variable">R1</span></a> <a class="idref" href="ITree.Eq.EuttExtras.html#a:12"><span class="id" title="variable">a</span></a> <a class="idref" href="ITree.Eq.EuttExtras.html#b:13"><span class="id" title="variable">b</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.15.1/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <a class="idref" href="ITree.Eq.EuttExtras.html#R2:9"><span class="id" title="variable">R2</span></a> <a class="idref" href="ITree.Eq.EuttExtras.html#a:12"><span class="id" title="variable">a</span></a> <a class="idref" href="ITree.Eq.EuttExtras.html#b:13"><span class="id" title="variable">b</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.15.1/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">)</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.15.1/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <a class="idref" href="ITree.Eq.Eqit.html#eutt"><span class="id" title="definition">eutt</span></a> <a class="idref" href="ITree.Eq.EuttExtras.html#R1:8"><span class="id" title="variable">R1</span></a> <a class="idref" href="ITree.Eq.EuttExtras.html#ta:10"><span class="id" title="variable">ta</span></a> <a class="idref" href="ITree.Eq.EuttExtras.html#tb:11"><span class="id" title="variable">tb</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.15.1/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <a class="idref" href="ITree.Eq.Eqit.html#eutt"><span class="id" title="definition">eutt</span></a> <a class="idref" href="ITree.Eq.EuttExtras.html#R2:9"><span class="id" title="variable">R2</span></a> <a class="idref" href="ITree.Eq.EuttExtras.html#ta:10"><span class="id" title="variable">ta</span></a> <a class="idref" href="ITree.Eq.EuttExtras.html#tb:11"><span class="id" title="variable">tb</span></a>.<br/>
+<span class="id" title="keyword">Proof</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">intros</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">eapply</span> <a class="idref" href="ITree.Eq.Eqit.html#eqit_mon"><span class="id" title="lemma">eqit_mon</span></a>; <span class="id" title="tactic">eauto</span>.<br/>
+<span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Lemma</span> <a id="eutt_flip" class="idref" href="#eutt_flip"><span class="id" title="lemma">eutt_flip</span></a> : <span class="id" title="keyword">∀</span> (<a id="E:14" class="idref" href="#E:14"><span class="id" title="binder">E</span></a> : <span class="id" title="keyword">Type</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.15.1/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <span class="id" title="keyword">Type</span>) (<a id="A:15" class="idref" href="#A:15"><span class="id" title="binder">A</span></a> <a id="B:16" class="idref" href="#B:16"><span class="id" title="binder">B</span></a> : <span class="id" title="keyword">Type</span>) (<a id="R:17" class="idref" href="#R:17"><span class="id" title="binder">R</span></a> : <a class="idref" href="ITree.Eq.EuttExtras.html#A:15"><span class="id" title="variable">A</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.15.1/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <a class="idref" href="ITree.Eq.EuttExtras.html#B:16"><span class="id" title="variable">B</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.15.1/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <span class="id" title="keyword">Prop</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<a id="ta:18" class="idref" href="#ta:18"><span class="id" title="binder">ta</span></a> : <a class="idref" href="ITree.Core.ITreeDefinition.html#itree"><span class="id" title="record">itree</span></a> <a class="idref" href="ITree.Eq.EuttExtras.html#E:14"><span class="id" title="variable">E</span></a> <a class="idref" href="ITree.Eq.EuttExtras.html#A:15"><span class="id" title="variable">A</span></a>) (<a id="tb:19" class="idref" href="#tb:19"><span class="id" title="binder">tb</span></a> : <a class="idref" href="ITree.Core.ITreeDefinition.html#itree"><span class="id" title="record">itree</span></a> <a class="idref" href="ITree.Eq.EuttExtras.html#E:14"><span class="id" title="variable">E</span></a> <a class="idref" href="ITree.Eq.EuttExtras.html#B:16"><span class="id" title="variable">B</span></a>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="ITree.Eq.Eqit.html#eutt"><span class="id" title="definition">eutt</span></a> <a class="idref" href="ITree.Eq.EuttExtras.html#R:17"><span class="id" title="variable">R</span></a> <a class="idref" href="ITree.Eq.EuttExtras.html#ta:18"><span class="id" title="variable">ta</span></a> <a class="idref" href="ITree.Eq.EuttExtras.html#tb:19"><span class="id" title="variable">tb</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.15.1/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <a class="idref" href="ITree.Eq.Eqit.html#eutt"><span class="id" title="definition">eutt</span></a> (<a class="idref" href="http://coq.inria.fr/distrib/V8.15.1/stdlib//Coq.Program.Basics.html#flip"><span class="id" title="definition">flip</span></a> <a class="idref" href="ITree.Eq.EuttExtras.html#R:17"><span class="id" title="variable">R</span></a>) <a class="idref" href="ITree.Eq.EuttExtras.html#tb:19"><span class="id" title="variable">tb</span></a> <a class="idref" href="ITree.Eq.EuttExtras.html#ta:18"><span class="id" title="variable">ta</span></a>.<br/>
+<span class="id" title="keyword">Proof</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">intros</span>. <span class="id" title="tactic">apply</span> <a class="idref" href="ITree.Eq.Eqit.html#eqit_flip"><span class="id" title="lemma">eqit_flip</span></a>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">eapply</span> <a class="idref" href="ITree.Eq.EuttExtras.html#eutt_subrel"><span class="id" title="lemma">eutt_subrel</span></a> <span class="id" title="keyword">with</span> (<span class="id" title="var">R1</span> := <span class="id" title="var">R</span>); <span class="id" title="tactic">eauto</span>.<br/>
+<span class="id" title="keyword">Qed</span>.<br/>
+</div>
+</div>
+<div id="footer">
+  Generated by <a href="http://coq.inria.fr/">coqdoc</a> and improved with <a href="https://github.com/tebbi/coqdocjs">CoqdocJS</a>
+</div>
+</div>
+</body>
+
+</html>

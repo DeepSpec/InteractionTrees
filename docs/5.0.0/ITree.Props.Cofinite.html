@@ -1,0 +1,75 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<link href="coqdoc.css" rel="stylesheet" type="text/css" />
+<link href="coqdocjs.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="config.js"></script>
+<script type="text/javascript" src="coqdocjs.js"></script>
+</head>
+
+<body onload="document.getElementById('content').focus()">
+  <div id="header">
+    <span class="left">
+      <span class="modulename"> <script> document.write(document.title) </script> </span>
+    </span>
+
+    <span class="button" id="toggle-proofs"></span>
+
+    <span class="right">
+      <a href="https://github.com/DeepSpec/InteractionTrees">Project Page</a>
+      <a href="./indexpage.html"> Index </a>
+      <a href="./toc.html"> Table of Contents </a>
+    </span>
+</div>
+    <div id="content" tabindex="-1" onblur="document.getElementById('content').focus()">
+    <div id="main">
+<h1 class="libtitle">ITree.Props.Cofinite</h1>
+
+<div class="code">
+</div>
+
+<div class="doc">
+<a id="lab124"></a><h1 class="section">Relations between infiniteness and finiteness</h1>
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">From</span> <span class="id" title="var">ITree</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span><br/>
+&nbsp;&nbsp;<a class="idref" href="ITree.Axioms.html#"><span class="id" title="library">Axioms</span></a><br/>
+&nbsp;&nbsp;<a class="idref" href="ITree.ITree.html#"><span class="id" title="library">ITree</span></a><br/>
+&nbsp;&nbsp;<a class="idref" href="ITree.Props.Finite.html#"><span class="id" title="library">Props.Finite</span></a><br/>
+&nbsp;&nbsp;<a class="idref" href="ITree.Props.Infinite.html#"><span class="id" title="library">Props.Infinite</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">From</span> <span class="id" title="var">Paco</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="library">paco</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Theorem</span> <a id="not_all_infinite_any_finite" class="idref" href="#not_all_infinite_any_finite"><span class="id" title="lemma">not_all_infinite_any_finite</span></a> {<a id="E:1" class="idref" href="#E:1"><span class="id" title="binder">E</span></a> <a id="A:2" class="idref" href="#A:2"><span class="id" title="binder">A</span></a>} (<a id="t:3" class="idref" href="#t:3"><span class="id" title="binder">t</span></a> : <a class="idref" href="ITree.Core.ITreeDefinition.html#itree"><span class="id" title="record">itree</span></a> <a class="idref" href="ITree.Props.Cofinite.html#E:1"><span class="id" title="variable">E</span></a> <a class="idref" href="ITree.Props.Cofinite.html#A:2"><span class="id" title="variable">A</span></a>)<br/>
+&nbsp;&nbsp;: <a class="idref" href="ITree.Props.Infinite.html#all_infinite"><span class="id" title="definition">all_infinite</span></a> <a class="idref" href="ITree.Props.Cofinite.html#t:3"><span class="id" title="variable">t</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.15.1/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <a class="idref" href="ITree.Props.Finite.html#any_finite"><span class="id" title="inductive">any_finite</span></a> <a class="idref" href="ITree.Props.Cofinite.html#t:3"><span class="id" title="variable">t</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.15.1/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.15.1/stdlib//Coq.Init.Logic.html#False"><span class="id" title="inductive">False</span></a>.<br/>
+<span class="id" title="keyword">Proof</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">intros</span> <span class="id" title="var">H1</span> <span class="id" title="var">H2</span>. <span class="id" title="tactic">induction</span> <span class="id" title="var">H2</span>; <span class="id" title="var">punfold</span> <span class="id" title="var">H1</span>; <span class="id" title="tactic">inversion</span> <span class="id" title="var">H1</span>; <span class="id" title="tactic">try</span> <span class="id" title="tactic">congruence</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="var">all</span>: <span class="id" title="var">pclearbot</span>; <span class="id" title="tactic">rewrite</span> <span class="id" title="var">H</span> <span class="id" title="tactic">in</span> <span class="id" title="var">H0</span>; <span class="id" title="tactic">inversion</span> <span class="id" title="var">H0</span>; <span class="id" title="tactic">subst</span>; <span class="id" title="tactic">auto</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="var">ddestruction</span>. <span class="id" title="tactic">exact</span> (<span class="id" title="var">IHany_finite</span> (<span class="id" title="var">H3</span> <span class="id" title="var">_</span>)).<br/>
+<span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Theorem</span> <a id="not_any_infinite_all_finite" class="idref" href="#not_any_infinite_all_finite"><span class="id" title="lemma">not_any_infinite_all_finite</span></a> {<a id="E:4" class="idref" href="#E:4"><span class="id" title="binder">E</span></a> <a id="A:5" class="idref" href="#A:5"><span class="id" title="binder">A</span></a>} (<a id="t:6" class="idref" href="#t:6"><span class="id" title="binder">t</span></a> : <a class="idref" href="ITree.Core.ITreeDefinition.html#itree"><span class="id" title="record">itree</span></a> <a class="idref" href="ITree.Props.Cofinite.html#E:4"><span class="id" title="variable">E</span></a> <a class="idref" href="ITree.Props.Cofinite.html#A:5"><span class="id" title="variable">A</span></a>)<br/>
+&nbsp;&nbsp;: <a class="idref" href="ITree.Props.Infinite.html#any_infinite"><span class="id" title="definition">any_infinite</span></a> <a class="idref" href="ITree.Props.Cofinite.html#t:6"><span class="id" title="variable">t</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.15.1/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <a class="idref" href="ITree.Props.Finite.html#all_finite"><span class="id" title="inductive">all_finite</span></a> <a class="idref" href="ITree.Props.Cofinite.html#t:6"><span class="id" title="variable">t</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.15.1/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.15.1/stdlib//Coq.Init.Logic.html#False"><span class="id" title="inductive">False</span></a>.<br/>
+<span class="id" title="keyword">Proof</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">intros</span> <span class="id" title="var">H1</span> <span class="id" title="var">H2</span>; <span class="id" title="tactic">induction</span> <span class="id" title="var">H2</span>; <span class="id" title="var">punfold</span> <span class="id" title="var">H1</span>; <span class="id" title="tactic">inversion</span> <span class="id" title="var">H1</span>; <span class="id" title="tactic">try</span> <span class="id" title="tactic">congruence</span>.<br/>
+&nbsp;&nbsp;- <span class="id" title="var">pclearbot</span>. <span class="id" title="tactic">rewrite</span> <span class="id" title="var">H</span> <span class="id" title="tactic">in</span> <span class="id" title="var">H0</span>; <span class="id" title="tactic">inversion</span> <span class="id" title="var">H0</span>; <span class="id" title="tactic">subst</span>; <span class="id" title="tactic">auto</span>.<br/>
+&nbsp;&nbsp;- <span class="id" title="var">pclearbot</span>. <span class="id" title="tactic">rewrite</span> <span class="id" title="var">H</span> <span class="id" title="tactic">in</span> <span class="id" title="var">H3</span>. <span class="id" title="tactic">inversion</span> <span class="id" title="var">H3</span>; <span class="id" title="tactic">subst</span>; <span class="id" title="var">ddestruction</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">exact</span> (<span class="id" title="var">H2</span> <span class="id" title="var">_</span> <span class="id" title="var">H4</span>).<br/>
+<span class="id" title="keyword">Qed</span>.<br/>
+</div>
+</div>
+<div id="footer">
+  Generated by <a href="http://coq.inria.fr/">coqdoc</a> and improved with <a href="https://github.com/tebbi/coqdocjs">CoqdocJS</a>
+</div>
+</div>
+</body>
+
+</html>

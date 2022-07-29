@@ -1,0 +1,111 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<link href="coqdoc.css" rel="stylesheet" type="text/css" />
+<link href="coqdocjs.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="config.js"></script>
+<script type="text/javascript" src="coqdocjs.js"></script>
+</head>
+
+<body onload="document.getElementById('content').focus()">
+  <div id="header">
+    <span class="left">
+      <span class="modulename"> <script> document.write(document.title) </script> </span>
+    </span>
+
+    <span class="button" id="toggle-proofs"></span>
+
+    <span class="right">
+      <a href="https://github.com/DeepSpec/InteractionTrees">Project Page</a>
+      <a href="./indexpage.html"> Index </a>
+      <a href="./toc.html"> Table of Contents </a>
+    </span>
+</div>
+    <div id="content" tabindex="-1" onblur="document.getElementById('content').focus()">
+    <div id="main">
+<h1 class="libtitle">ITree.Axioms</h1>
+
+<div class="code">
+</div>
+
+<div class="doc">
+<a id="lab12"></a><h1 class="section">Axioms used in the ITree library.</h1>
+
+<div class="paragraph"> </div>
+
+ Other ITree modules should import this to avoid accidentally using more
+   axioms elsewhere. 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">From</span> <span class="id" title="var">Coq</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span><br/>
+&nbsp;&nbsp;<a class="idref" href="http://coq.inria.fr/distrib/V8.15.1/stdlib//Coq.Logic.Classical_Prop.html#"><span class="id" title="library">Logic.Classical_Prop</span></a><br/>
+&nbsp;&nbsp;<a class="idref" href="http://coq.inria.fr/distrib/V8.15.1/stdlib//Coq.Logic.ClassicalChoice.html#"><span class="id" title="library">Logic.ClassicalChoice</span></a><br/>
+&nbsp;&nbsp;<a class="idref" href="http://coq.inria.fr/distrib/V8.15.1/stdlib//Coq.Logic.EqdepFacts.html#"><span class="id" title="library">Logic.EqdepFacts</span></a><br/>
+&nbsp;&nbsp;<a class="idref" href="http://coq.inria.fr/distrib/V8.15.1/stdlib//Coq.Logic.FunctionalExtensionality.html#"><span class="id" title="library">Logic.FunctionalExtensionality</span></a><br/>
+.<br/>
+
+<br/>
+<span class="comment">(*&nbsp;Must&nbsp;be&nbsp;imported&nbsp;to&nbsp;use&nbsp;<span class="inlinecode"><span class="id" title="var">ddestruction</span></span>&nbsp;*)</span><br/>
+<span class="id" title="keyword">From</span> <span class="id" title="var">Coq</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Export</span><br/>
+&nbsp;&nbsp;<a class="idref" href="http://coq.inria.fr/distrib/V8.15.1/stdlib//Coq.Program.Equality.html#"><span class="id" title="library">Program.Equality</span></a><br/>
+.<br/>
+
+<br/>
+<span class="id" title="keyword">Set Implicit Arguments</span>.<br/>
+
+<br/>
+<span class="comment">(*&nbsp;The&nbsp;following&nbsp;tactics&nbsp;may&nbsp;be&nbsp;used:<br/>
+&nbsp;&nbsp;&nbsp;-&nbsp;<span class="inlinecode"><span class="id" title="tactic">dependent</span></span> <span class="inlinecode"><span class="id" title="tactic">destruction</span></span><br/>
+&nbsp;&nbsp;&nbsp;-&nbsp;<span class="inlinecode"><span class="id" title="tactic">dependent</span></span> <span class="inlinecode"><span class="id" title="tactic">induction</span></span>&nbsp;*)</span><br/>
+<span class="id" title="keyword">Ltac</span> <span class="id" title="var">ddestruction</span> :=<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">repeat</span> <span class="id" title="keyword">lazymatch</span> <span class="id" title="keyword">goal</span> <span class="id" title="keyword">with</span> | <span class="id" title="var">H</span> : <a class="idref" href="http://coq.inria.fr/distrib/V8.15.1/stdlib//Coq.Init.Specif.html#existT"><span class="id" title="constructor">existT</span></a> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <a class="idref" href="http://coq.inria.fr/distrib/V8.15.1/stdlib//Coq.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">=</span></a> <span class="id" title="var">_</span> |- <span class="id" title="var">_</span> ⇒ <span class="id" title="tactic">dependent</span> <span class="id" title="tactic">destruction</span> <span class="id" title="var">H</span> <span class="id" title="keyword">end</span>.<br/>
+
+<br/>
+<span class="comment">(*&nbsp;Consequence&nbsp;of&nbsp;UIP;&nbsp;used&nbsp;by&nbsp;tactic&nbsp;<span class="inlinecode"><span class="id" title="tactic">dependent</span></span> <span class="inlinecode"><span class="id" title="var">destrcution</span></span>&nbsp;*)</span><br/>
+<span class="id" title="keyword">Definition</span> <a id="eq_rect_eq" class="idref" href="#eq_rect_eq"><span class="id" title="definition">eq_rect_eq</span></a> := <a class="idref" href="http://coq.inria.fr/distrib/V8.15.1/stdlib//Coq.Logic.Eqdep.html#Eq_rect_eq.eq_rect_eq"><span class="id" title="axiom">Eqdep.Eq_rect_eq.eq_rect_eq</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Definition</span> <a id="classic" class="idref" href="#classic"><span class="id" title="definition">classic</span></a> := <a class="idref" href="http://coq.inria.fr/distrib/V8.15.1/stdlib//Coq.Logic.Classical_Prop.html#classic"><span class="id" title="axiom">Classical_Prop.classic</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Definition</span> <a id="choice" class="idref" href="#choice"><span class="id" title="definition">choice</span></a> := <a class="idref" href="http://coq.inria.fr/distrib/V8.15.1/stdlib//Coq.Logic.ClassicalChoice.html#choice"><span class="id" title="lemma">ClassicalChoice.choice</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Definition</span> <a id="functional_extensionality" class="idref" href="#functional_extensionality"><span class="id" title="definition">functional_extensionality</span></a> := @<a class="idref" href="http://coq.inria.fr/distrib/V8.15.1/stdlib//Coq.Logic.FunctionalExtensionality.html#functional_extensionality"><span class="id" title="lemma">FunctionalExtensionality.functional_extensionality</span></a>.<br/>
+
+<br/>
+<span class="comment">(*&nbsp;From&nbsp;Coq.Logic.ChoiceFacts&nbsp;*)</span><br/>
+<span class="id" title="keyword">Definition</span> <a id="GuardedFunctionalChoice_on" class="idref" href="#GuardedFunctionalChoice_on"><span class="id" title="definition">GuardedFunctionalChoice_on</span></a> {<a id="A:1" class="idref" href="#A:1"><span class="id" title="binder">A</span></a> <a id="B:2" class="idref" href="#B:2"><span class="id" title="binder">B</span></a>} :=<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">∀</span> <a id="P:3" class="idref" href="#P:3"><span class="id" title="binder">P</span></a> : <a class="idref" href="ITree.Axioms.html#A:1"><span class="id" title="variable">A</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.15.1/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <span class="id" title="keyword">Prop</span>, <span class="id" title="keyword">∀</span> <a id="R:4" class="idref" href="#R:4"><span class="id" title="binder">R</span></a> : <a class="idref" href="ITree.Axioms.html#A:1"><span class="id" title="variable">A</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.15.1/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <a class="idref" href="ITree.Axioms.html#B:2"><span class="id" title="variable">B</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.15.1/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <span class="id" title="keyword">Prop</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="http://coq.inria.fr/distrib/V8.15.1/stdlib//Coq.Init.Logic.html#inhabited"><span class="id" title="inductive">inhabited</span></a> <a class="idref" href="ITree.Axioms.html#B:2"><span class="id" title="variable">B</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.15.1/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="http://coq.inria.fr/distrib/V8.15.1/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">(</span></a><span class="id" title="keyword">∀</span> <a id="x:5" class="idref" href="#x:5"><span class="id" title="binder">x</span></a> : <a class="idref" href="ITree.Axioms.html#A:1"><span class="id" title="variable">A</span></a>, <a class="idref" href="ITree.Axioms.html#P:3"><span class="id" title="variable">P</span></a> <a class="idref" href="ITree.Axioms.html#x:5"><span class="id" title="variable">x</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.15.1/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.15.1/stdlib//Coq.Init.Logic.html#a883bdd010993579f99d60b3775bcf54"><span class="id" title="notation">∃</span></a> <a id="y:6" class="idref" href="#y:6"><span class="id" title="binder">y</span></a> : <a class="idref" href="ITree.Axioms.html#B:2"><span class="id" title="variable">B</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.15.1/stdlib//Coq.Init.Logic.html#a883bdd010993579f99d60b3775bcf54"><span class="id" title="notation">,</span></a> <a class="idref" href="ITree.Axioms.html#R:4"><span class="id" title="variable">R</span></a> <a class="idref" href="ITree.Axioms.html#x:5"><span class="id" title="variable">x</span></a> <a class="idref" href="ITree.Axioms.html#y:6"><span class="id" title="variable">y</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.15.1/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">)</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.15.1/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="http://coq.inria.fr/distrib/V8.15.1/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">(</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.15.1/stdlib//Coq.Init.Logic.html#a883bdd010993579f99d60b3775bcf54"><span class="id" title="notation">∃</span></a> <a id="f:7" class="idref" href="#f:7"><span class="id" title="binder">f</span></a> : <a class="idref" href="ITree.Axioms.html#A:1"><span class="id" title="variable">A</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.15.1/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a><a class="idref" href="ITree.Axioms.html#B:2"><span class="id" title="variable">B</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.15.1/stdlib//Coq.Init.Logic.html#a883bdd010993579f99d60b3775bcf54"><span class="id" title="notation">,</span></a> <span class="id" title="keyword">∀</span> <a id="x:8" class="idref" href="#x:8"><span class="id" title="binder">x</span></a>, <a class="idref" href="ITree.Axioms.html#P:3"><span class="id" title="variable">P</span></a> <a class="idref" href="ITree.Axioms.html#x:8"><span class="id" title="variable">x</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.15.1/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <a class="idref" href="ITree.Axioms.html#R:4"><span class="id" title="variable">R</span></a> <a class="idref" href="ITree.Axioms.html#x:8"><span class="id" title="variable">x</span></a> (<a class="idref" href="ITree.Axioms.html#f:7"><span class="id" title="variable">f</span></a> <a class="idref" href="ITree.Axioms.html#x:8"><span class="id" title="variable">x</span></a>)<a class="idref" href="http://coq.inria.fr/distrib/V8.15.1/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">)</span></a>.<br/>
+<span class="id" title="keyword">Axiom</span> <a id="guarded_choice" class="idref" href="#guarded_choice"><span class="id" title="axiom">guarded_choice</span></a> : <span class="id" title="keyword">∀</span> {<a id="A:9" class="idref" href="#A:9"><span class="id" title="binder">A</span></a> <a id="B:10" class="idref" href="#B:10"><span class="id" title="binder">B</span></a>}, @<a class="idref" href="ITree.Axioms.html#GuardedFunctionalChoice_on"><span class="id" title="definition">GuardedFunctionalChoice_on</span></a> <a class="idref" href="ITree.Axioms.html#A:9"><span class="id" title="variable">A</span></a> <a class="idref" href="ITree.Axioms.html#B:10"><span class="id" title="variable">B</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Inductive</span> <a id="mwitness" class="idref" href="#mwitness"><span class="id" title="inductive">mwitness</span></a> : <span class="id" title="keyword">Type</span> :=<br/>
+| <a id="Witness" class="idref" href="#Witness"><span class="id" title="constructor">Witness</span></a> (<a id="P:14" class="idref" href="#P:14"><span class="id" title="binder">P</span></a> : <span class="id" title="keyword">Type</span>) (<span class="id" title="var">_</span> : <a class="idref" href="ITree.Axioms.html#P:14"><span class="id" title="variable">P</span></a>)<br/>
+| <a id="NoWitness" class="idref" href="#NoWitness"><span class="id" title="constructor">NoWitness</span></a>.<br/>
+
+<br/>
+<span class="id" title="keyword">Lemma</span> <a id="classicT_inhabited" class="idref" href="#classicT_inhabited"><span class="id" title="lemma">classicT_inhabited</span></a> : <a class="idref" href="http://coq.inria.fr/distrib/V8.15.1/stdlib//Coq.Init.Logic.html#inhabited"><span class="id" title="inductive">inhabited</span></a> (<span class="id" title="keyword">∀</span> (<a id="P:15" class="idref" href="#P:15"><span class="id" title="binder">P</span></a> : <span class="id" title="keyword">Type</span>), <a class="idref" href="ITree.Axioms.html#P:15"><span class="id" title="variable">P</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.15.1/stdlib//Coq.Init.Datatypes.html#e03f39daf98516fa530d3f6f5a1b4d92"><span class="id" title="notation">+</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.15.1/stdlib//Coq.Init.Datatypes.html#e03f39daf98516fa530d3f6f5a1b4d92"><span class="id" title="notation">(</span></a><a class="idref" href="ITree.Axioms.html#P:15"><span class="id" title="variable">P</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.15.1/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.15.1/stdlib//Coq.Init.Logic.html#False"><span class="id" title="inductive">False</span></a><a class="idref" href="http://coq.inria.fr/distrib/V8.15.1/stdlib//Coq.Init.Datatypes.html#e03f39daf98516fa530d3f6f5a1b4d92"><span class="id" title="notation">)</span></a>).<br/>
+<span class="id" title="keyword">Proof</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">destruct</span> (<a class="idref" href="ITree.Axioms.html#choice"><span class="id" title="definition">choice</span></a> (<span class="id" title="keyword">fun</span> (<a id="P:19" class="idref" href="#P:19"><span class="id" title="binder">P</span></a> : <span class="id" title="keyword">Type</span>) (<a id="b:20" class="idref" href="#b:20"><span class="id" title="binder">b</span></a> : <a class="idref" href="ITree.Axioms.html#mwitness"><span class="id" title="inductive">mwitness</span></a>) ⇒<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <a class="idref" href="ITree.Axioms.html#b:17"><span class="id" title="variable">b</span></a> <span class="id" title="keyword">with</span> @<a class="idref" href="ITree.Axioms.html#Witness"><span class="id" title="constructor">Witness</span></a> <span class="id" title="var">Q</span> <span class="id" title="var">_</span> ⇒ <a class="idref" href="ITree.Axioms.html#P:16"><span class="id" title="variable">P</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.15.1/stdlib//Coq.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a"><span class="id" title="notation">=</span></a> <span class="id" title="var">Q</span> | <a class="idref" href="ITree.Axioms.html#NoWitness"><span class="id" title="constructor">NoWitness</span></a> ⇒ <a class="idref" href="ITree.Axioms.html#P:16"><span class="id" title="variable">P</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.15.1/stdlib//Coq.Init.Logic.html#::type_scope:x_'-&gt;'_x"><span class="id" title="notation">→</span></a> <a class="idref" href="http://coq.inria.fr/distrib/V8.15.1/stdlib//Coq.Init.Logic.html#False"><span class="id" title="inductive">False</span></a> <span class="id" title="keyword">end</span>)) <span class="id" title="keyword">as</span> [<span class="id" title="var">f</span> <span class="id" title="var">H</span>].<br/>
+&nbsp;&nbsp;{ <span class="id" title="tactic">intros</span> <span class="id" title="var">P</span>; <span class="id" title="tactic">destruct</span> (<a class="idref" href="ITree.Axioms.html#classic"><span class="id" title="definition">classic</span></a> (<a class="idref" href="http://coq.inria.fr/distrib/V8.15.1/stdlib//Coq.Init.Logic.html#inhabited"><span class="id" title="inductive">inhabited</span></a> <span class="id" title="var">P</span>)) <span class="id" title="keyword">as</span> [[<span class="id" title="var">x</span>] | ];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[<span class="id" title="tactic">∃</span> (<a class="idref" href="ITree.Axioms.html#Witness"><span class="id" title="constructor">Witness</span></a> <span class="id" title="var">x</span>) | <span class="id" title="tactic">∃</span> <a class="idref" href="ITree.Axioms.html#NoWitness"><span class="id" title="constructor">NoWitness</span></a>]; <span class="id" title="tactic">auto</span>. }<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">constructor</span>. <span class="id" title="tactic">intros</span> <span class="id" title="var">P</span>; <span class="id" title="tactic">specialize</span> (<span class="id" title="var">H</span> <span class="id" title="var">P</span>); <span class="id" title="tactic">destruct</span> (<span class="id" title="var">f</span> <span class="id" title="var">P</span>); [<span class="id" title="tactic">subst</span> | ]; <span class="id" title="tactic">auto</span>.<br/>
+<span class="id" title="keyword">Qed</span>.<br/>
+</div>
+</div>
+<div id="footer">
+  Generated by <a href="http://coq.inria.fr/">coqdoc</a> and improved with <a href="https://github.com/tebbi/coqdocjs">CoqdocJS</a>
+</div>
+</div>
+</body>
+
+</html>
