@@ -289,9 +289,11 @@ From ExtLib Require Import
      Data.Map.FMapAList.
 
 (** These enable typeclass instances for Maps keyed by strings and values *)
+#[global]
 Instance RelDec_string : RelDec (@eq string) :=
   { rel_dec := fun s1 s2 => if string_dec s1 s2 then true else false}.
 
+#[global]
 Instance RelDec_string_Correct: RelDec_Correct RelDec_string.
 Proof.
   constructor; intros x y.
