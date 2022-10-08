@@ -301,3 +301,17 @@ Proof.
   reflexivity.
   intros * IN _ <-; eauto.
 Qed.
+
+Lemma eqit_bind_Leaf_inv {E} {R S T} (RS : R -> S -> Prop)
+      (t : itree E T)  (k1: T -> itree E R) (k2 : T -> itree E S) :
+  (eutt RS  (ITree.bind t k1) (ITree.bind t k2)) ->
+  (forall r, Leaf r t -> eutt RS (k1 r) (k2 r)).
+Proof.
+  intros EQIT r HRET.
+  revert k1 k2 EQIT.
+  induction HRET; intros;
+    rewrite 2 unfold_bind, H in EQIT.
+  - assumption.
+  - rewrite 2 tau_eutt in EQIT. auto.
+  - apply IHHRET. eapply eqit_inv_Vis in EQIT; eauto.
+Qed.

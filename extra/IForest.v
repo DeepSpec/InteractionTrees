@@ -16,6 +16,7 @@ From ITree Require Import
      Axioms
      ITree
      ITreeFacts
+     Props.Leaf
      Basics.HeterogeneousRelations.
 
 From Paco Require Import paco.
@@ -44,8 +45,7 @@ Definition iforest (E: Type -> Type) (X: Type): Type :=
     [PropT M X := M X -> Prop]. *)
 
 (** [iforest] are expected to be compatible with the [eutt] relation in the following sense: *)
-Definition eutt_closed {E X} (P: itree E X -> Prop): Prop :=
-  Proper (eutt eq ==> iff) P.
+Notation eutt_closed := (Proper (eutt eq ==> iff)) (only parsing).
 
 #[global] Polymorphic Instance Eq1_iforest {E} : Eq1 (iforest E) :=
   fun a PA PA' =>
@@ -56,14 +56,7 @@ Definition eutt_closed {E X} (P: itree E X -> Prop): Prop :=
   : Functor (iforest E) :=
   {| fmap := fun A B f PA b => exists (a: itree E A), PA a /\ b = fmap f a |}.
 
-Inductive Returns {E} {A: Type} (a: A) : itree E A -> Prop :=
-| ReturnsRet: forall t, t ≈ Ret a -> Returns a t
-| ReturnsTau: forall t u, t ≈ Tau u -> Returns a u -> Returns a t
-| ReturnsVis: forall {X} (e: E X) (x: X) t k, t ≈ Vis e k -> Returns a (k x) -> Returns a t
-.
-#[global] Hint Constructors Returns: itree.
-
-Definition subtree {E} {A B} (ta : itree E A) (tb : itree E B) :=
+Definition subtree {E} {A B} (ta : itree E A) (tb : itree E B) : Prop :=
   exists (k : A -> itree E B), tb ≈ bind ta k.
 
 (* Definition 5.1 *)
@@ -73,7 +66,7 @@ Definition bind_iforest {E}
     exists (ta: itree E A) (k: A -> itree E B),
       specA ta /\
       tb ≈ bind ta k /\
-      (forall a, Returns a ta -> K a (k a)).
+      (forall a, Leaf a ta -> K a (k a)).
 
 Definition bind_iforest_stronger {E}
   : forall A B, iforest E A -> (A -> iforest E B) -> iforest E B :=
@@ -81,7 +74,7 @@ Definition bind_iforest_stronger {E}
     exists (ta: itree E A) (k: A -> itree E B),
       PA ta /\
       tb ≈ bind ta k /\
-      (forall a, Returns a ta -> K a (k a)).
+      (forall a, Leaf a ta -> K a (k a)).
 
 (** Alternate, logically equivalent version of [bind_iforest].
   It should not matter which one we use. Since [bind_iforest] has fewer cases, we should
@@ -91,7 +84,7 @@ Definition bind_iforest' {E}
   fun A B (PA: iforest E A) (K: A -> iforest E B) (tb: itree E B) =>
     exists (ta: itree E A),  PA ta /\
                         ((exists (k: A -> itree E B),
-                             (forall a, Returns a ta -> K a (k a))
+                             (forall a, Leaf a ta -> K a (k a))
                              /\ tb ≈ bind ta k)
                          \/ (forall k, (forall a, K a (k a)) /\ tb ≈ bind ta k)).
 
@@ -141,7 +134,7 @@ Inductive interp_iforestF {E F} (h_spec : forall T, E T -> itree F T -> Prop)
                        (t2 : itree F R)
                        (ta :itree F A)  (k2 : A -> itree F R) (HTA: h_spec A e ta)
                        (eq2 : t2 ≈ (bind ta k2))
-                       (HK : forall (a : A), Returns a ta ->  sim (k1 a) (k2 a)),
+                       (HK : forall (a : A), Leaf a ta ->  sim (k1 a) (k2 a)),
     interp_iforestF h_spec RR sim (VisF e k1) t2.
 
 #[global] Hint Constructors interp_iforestF : itree.
@@ -156,7 +149,7 @@ Qed.
 
 #[global] Hint Resolve interp_iforestF_mono : paco.
 
-Definition interp_iforest_ E F h_spec R RR sim (t0 : itree E R) (t1 : itree F R) :=
+Definition interp_iforest_ E F h_spec R RR sim (t0 : itree E R) (t1 : itree F R) : Prop :=
   interp_iforestF h_spec RR sim (observe t0) t1.
 #[global] Hint Unfold interp_iforest_ : itree.
 
@@ -424,29 +417,14 @@ Proof.
     pinversion HS.
 Qed.
 
-#[global] Instance Returns_eutt {E A} a: Proper (eutt eq ==> iff) (@Returns E A a).
-Proof.
-  repeat intro; split; intros HRet.
-  - revert y H. induction HRet; intros.
-    constructor; rewrite <- H, H0; reflexivity.
-    apply IHHRet, eqit_inv_Tau_l; auto.
-    rewrite <- H0. rewrite H. reflexivity.
-    econstructor 3; [rewrite <- H0, H; reflexivity | apply IHHRet; reflexivity].
-  - revert x H; induction HRet; intros ? EQ.
-    constructor; rewrite EQ; eauto.
-    apply IHHRet, eqit_inv_Tau_r; auto.
-    rewrite EQ. rewrite <- H. reflexivity.
-    econstructor 3; [rewrite EQ, H; reflexivity | apply IHHRet; reflexivity].
-Qed.
-
-Lemma Returns_Vis_sub :  forall {E} {R} X (e : E X) (k : X -> itree E R) u x, Returns u (k x) -> Returns u (Vis e k).
+Lemma Leaf_Vis_sub :  forall {E} {R} X (e : E X) (k : X -> itree E R) u x, Leaf u (k x) -> Leaf u (Vis e k).
 Proof.
   intros.
-  eapply ReturnsVis. reflexivity. apply H.
+  eapply LeafVis. reflexivity. apply H.
 Qed.
 
-Lemma eutt_Returns_ : forall {E} {R} (RR : R -> Prop) (ta : itree E R)
-   (IN: forall (a : R), Returns a ta -> RR a), eutt (fun u1 u2 => u1 = u2 /\ RR u1) ta ta.
+Lemma eutt_Leaf_ : forall {E} {R} (RR : R -> Prop) (ta : itree E R)
+   (IN: forall (a : R), Leaf a ta -> RR a), eutt (fun u1 u2 => u1 = u2 /\ RR u1) ta ta.
 Proof.
   intros E R.
   ginit.
@@ -460,13 +438,13 @@ Proof.
   - econstructor.  split; auto. apply IN. econstructor. reflexivity.
   - econstructor. gfinal. left. apply CIH. intros. eapply IN. rewrite tau_eutt. assumption.
   - econstructor. intros. red.
-    gfinal. left. apply CIH. intros. eapply IN. eapply Returns_Vis_sub. apply H.
+    gfinal. left. apply CIH. intros. eapply IN. eapply Leaf_Vis_sub. apply H.
 Qed.
 
-Lemma eutt_Returns : forall E R (ta : itree E R), eutt (fun u1 u2 => u1 = u2 /\ Returns u1 ta) ta ta.
+Lemma eutt_Leaf : forall E R (ta : itree E R), eutt (fun u1 u2 => u1 = u2 /\ Leaf u1 ta) ta ta.
 Proof.
   intros.
-  apply eutt_Returns_. auto.
+  apply eutt_Leaf_. auto.
 Qed.
 
 (* Figure 7: interp Trigger law *)
@@ -488,8 +466,8 @@ Proof.
       rewrite eq2 in H.
       assert (x <- ta ;; k2 x ≈ ta).
       { rewrite <- (Eqit.bind_ret_r ta).
-        apply eutt_clo_bind with (UU := fun u1 u2 => u1 = u2 /\ Returns u1 ta).
-        rewrite Eqit.bind_ret_r. apply eutt_Returns.
+        apply eutt_clo_bind with (UU := fun u1 u2 => u1 = u2 /\ Leaf u1 ta).
+        rewrite Eqit.bind_ret_r. apply eutt_Leaf.
         intros. destruct H1. subst. specialize (HK u2 H2). pclearbot. pinversion HK. subst. assumption.
       }
       rewrite H1 in H.
@@ -500,10 +478,10 @@ Proof.
       * apply H0.
       * unfold bind, Monad_itree. rewrite Eqit.bind_ret_r. assumption.
       * intros a. left. pstep. red. econstructor. reflexivity.  reflexivity.
-  - do 4 red. intros; split; intros.
+  - hnf. intros; split; intros.
     rewrite <- H. assumption.
     rewrite H. assumption.
-  - do 4 red.
+  - hnf.
     intros; split; intros.
     specialize (HP R e e eq_refl). destruct HP as (P & _ & _).
     rewrite P; eauto. symmetry. assumption.
@@ -546,8 +524,8 @@ Proof.
     + rewrite H.
       pinversion H0. subst.
       apply HS.
-  - red. typeclasses eauto.
-  - red. typeclasses eauto.
+  - typeclasses eauto.
+  - typeclasses eauto.
 Qed.
 
 Lemma interp_iforest_ret_inv :
@@ -595,22 +573,6 @@ Proof.
   apply HS.
 Qed.
 
-Lemma Returns_ret_inv_ : forall {E} A (a b : A) (t : itree E A), t ≈ (Ret b) -> Returns a t -> a = b.
-Proof.
-  intros E A a b t eq H.
-  revert b eq.
-  induction H; intros; subst.
-  - rewrite H in eq. apply Eqit.eqit_Ret in eq. auto.
-  - eapply IHReturns. rewrite tau_eutt in H. rewrite <- H. assumption.
-  - rewrite H in eq. symmetry in eq. apply eqit_inv in eq; inv eq.
-Qed.
-
-Lemma Returns_ret_inv :  forall {E} A (a b : A), Returns a ((ret b) : itree E A) -> a = b.
-Proof.
-  intros.
-  eapply Returns_ret_inv_. reflexivity. cbn in H. apply H.
-Qed.
-
 Lemma case_iforest_handler_correct:
   forall {E1 E2 F}
     (h1_spec: E1 ~> iforest F)
@@ -627,11 +589,10 @@ Proof.
   destruct e. apply C1. apply C2.
 Qed.
 
-Definition iforest_compose :=
-  fun {F G : Type -> Type } {T : Type} (TT : relation T)
-    (g_spec : F ~> iforest G) (PF: iforest F T) (g:itree G T) =>
+Definition iforest_compose {F G : Type -> Type} {T : Type} (TT : relation T)
+    (g_spec : F ~> iforest G) (PF: iforest F T) : iforest G T :=
+  fun (g:itree G T) =>
     exists f : itree F T, PF f /\ (interp_iforest g_spec) T TT f g.
-
 
 Definition handler_correct_iforest
            {E F G}
@@ -657,56 +618,27 @@ Definition iter_cont {I E R} (step' : I -> itree E (I + R)) :
               ITree.bind (step' i) (@iter_cont I E R step') ≈ r /\
               (forall j, step j (step' j))).
 
-Lemma eqit_bind_Returns_inv {E} {R S T} (RS : R -> S -> Prop)
-      (t : itree E T)  (k1: T -> itree E R) (k2 : T -> itree E S) :
-  (eutt RS  (ITree.bind t k1) (ITree.bind t k2)) ->
-  (forall r, Returns r t -> eutt RS (k1 r) (k2 r)).
-Proof.
-  intros EQIT r HRET.
-  revert R S RS k1 k2 EQIT.
-  induction HRET; intros.
-  - rewrite H in EQIT.
-    do 2 rewrite Eqit.bind_ret_l in EQIT.
-    assumption.
-  - rewrite tau_eutt in H. rewrite H in EQIT.
-    eapply IHHRET; eauto.
-  - rewrite H in EQIT.
-    do 2 rewrite Eqit.bind_vis in EQIT.
-    repeat red in EQIT. punfold EQIT.
-    inversion EQIT.
-    apply inj_pair2 in H2.
-    apply inj_pair2 in H3.
-    apply inj_pair2 in H4.
-    apply inj_pair2 in H5.
-    subst.
-    eapply IHHRET.
-    specialize (REL x).
-    red in REL.
-    pclearbot.
-    apply REL.
-Qed.
-
-Section ReturnsBind.
+Section LeafBind.
 
   Context {E : Type -> Type} {R S : Type}.
 
   Import ITreeNotations.
   Local Open Scope itree.
 
-  Inductive eqit_Returns_bind_clo b1 b2 (r : itree E R -> itree E S -> Prop) :
+  Inductive eqit_Leaf_bind_clo b1 b2 (r : itree E R -> itree E S -> Prop) :
     itree E R -> itree E S -> Prop :=
   | pbc_intro_h U (t1 t2: itree E U) (k1 : U -> itree E R) (k2 : U -> itree E S)
                 (EQV: eqit eq b1 b2 t1 t2)
-                (REL: forall u, Returns u t1 -> r (k1 u) (k2 u))
-    : eqit_Returns_bind_clo b1 b2 r (ITree.bind t1 k1) (ITree.bind t2 k2)
+                (REL: forall u, Leaf u t1 -> r (k1 u) (k2 u))
+    : eqit_Leaf_bind_clo b1 b2 r (ITree.bind t1 k1) (ITree.bind t2 k2)
   .
-  Hint Constructors eqit_Returns_bind_clo: itree.
+  Hint Constructors eqit_Leaf_bind_clo: itree.
 
-  Lemma eqit_Returns_clo_bind  (RS : R -> S -> Prop) b1 b2 vclo
+  Lemma eqit_Leaf_clo_bind  (RS : R -> S -> Prop) b1 b2 vclo
         (MON: monotone2 vclo)
         (CMP: compose (eqitC RS b1 b2) vclo <3= compose vclo (eqitC RS b1 b2))
         (ID: id <3= vclo):
-    eqit_Returns_bind_clo b1 b2 <3= gupaco2 (eqit_ RS b1 b2 vclo) (eqitC RS b1 b2).
+    eqit_Leaf_bind_clo b1 b2 <3= gupaco2 (eqit_ RS b1 b2 vclo) (eqitC RS b1 b2).
   Proof.
     gcofix CIH. intros. destruct PR.
     guclo eqit_clo_trans.
@@ -751,25 +683,25 @@ Section ReturnsBind.
       eapply eqit_Tau_l. rewrite unfold_bind, <-itree_eta. reflexivity.
   Qed.
 
-End ReturnsBind.
+End LeafBind.
 
-Lemma eqit_Returns_bind' {E} {R} {T} b1 b2
+Lemma eqit_Leaf_bind' {E} {R} {T} b1 b2
     (t1 t2: itree E T) (k1 k2: T -> itree E R) :
     eqit eq b1 b2 t1 t2 ->
-    (forall r, Returns r t1 -> eqit eq b1 b2 (k1 r) (k2 r)) ->
+    (forall r, Leaf r t1 -> eqit eq b1 b2 (k1 r) (k2 r)) ->
   @eqit E _ _ eq b1 b2 (ITree.bind t1 k1) (ITree.bind t2 k2).
 Proof.
-  intros. ginit. guclo (@eqit_Returns_clo_bind E R R eq). unfold eqit in *.
+  intros. ginit. guclo (@eqit_Leaf_clo_bind E R R eq). unfold eqit in *.
   econstructor; eauto with paco.
 Qed.
 
-Lemma eqit_Returns_bind'' {E} {R S} {T} (RS : R -> S -> Prop) b1 b2
+Lemma eqit_Leaf_bind'' {E} {R S} {T} (RS : R -> S -> Prop) b1 b2
     (t1 t2: itree E T) (k1: T -> itree E R) (k2 : T -> itree E S) :
     eqit eq b1 b2 t1 t2 ->
-    (forall r, Returns r t1 -> eqit RS b1 b2 (k1 r) (k2 r)) ->
+    (forall r, Leaf r t1 -> eqit RS b1 b2 (k1 r) (k2 r)) ->
   @eqit E _ _ RS b1 b2 (ITree.bind t1 k1) (ITree.bind t2 k2).
 Proof.
-  intros. ginit. guclo (@eqit_Returns_clo_bind E R S RS). unfold eqit in *.
+  intros. ginit. guclo (@eqit_Leaf_clo_bind E R S RS). unfold eqit in *.
   econstructor; eauto with paco.
 Qed.
 
@@ -778,137 +710,6 @@ Proof.
   intros.
   punfold H; inv H.
 Qed.
-
-Lemma Returns_Ret_ : forall E A (a x : A) (t:itree E A), t ≈ Ret x -> Returns a t -> x = a.
-Proof.
-  intros E A a x t eq H.
-  induction H.
-  - rewrite eq in H. eapply eqit_inv in H. apply H.
-   - rewrite tau_eutt in H. rewrite <- H in IHReturns. apply IHReturns. assumption.
-  - rewrite eq in H. apply eqit_inv in H. contradiction.
-Qed.
-
-Lemma Returns_Ret :  forall E A (a x : A), Returns a ((Ret x) : itree E A) -> x = a.
-Proof.
-  intros.  eapply Returns_Ret_. 2: eassumption. reflexivity.
-Qed.
-
-Lemma Returns_bind : forall E A B a b (ma : itree E A) (k : A -> itree E B)
-  (HM: Returns a ma)
-  (HK: Returns b (k a)),
-    Returns b (bind ma k).
-Proof.
-  intros.
-  revert B b k HK.
-  induction HM; intros.
-  - rewrite H. cbn. rewrite Eqit.bind_ret_l. assumption.
-  - rewrite H. cbn. rewrite Eqit.bind_tau. rewrite tau_eutt. apply IHHM. assumption.
-  - rewrite H. cbn. rewrite Eqit.bind_vis. econstructor 3. reflexivity. apply IHHM. assumption.
-Qed.
-
-Lemma Returns_bind_inversion_ : forall {E A B} (u : itree E B) (t : itree E A) (k : A -> itree E B) b,
-    Returns b u ->
-    u ≈ (bind t k) ->
-    exists a, Returns a t /\ Returns b (k a).
-Proof.
-  intros E A B u t k b HR eq.
-  revert A t k eq.
-  induction HR; intros.
-  - rewrite eq in H.
-    apply eutt_inv_bind_ret in H.
-    destruct H as (a & HEQ & HK).
-    exists a. split. rewrite HEQ. constructor. reflexivity. rewrite HK. constructor. reflexivity.
-  - rewrite tau_eutt in H.
-    eapply IHHR. rewrite <- H. assumption.
-  - rewrite eq in H; clear eq.
-    apply eutt_inv_bind_vis in H.
-    destruct H as [(kx & HV & eq2) | (a & HRA & KA)].
-    + setoid_rewrite HV.
-      specialize (eq2 x).
-      setoid_rewrite <- eq2 in IHHR.
-      specialize (IHHR _ (kx x) k0).
-      assert (ITree.bind (kx x) k0 ≈ bind (kx x) k0) by reflexivity.
-      apply IHHR in H.
-      destruct H as (a & HRet & HK).
-      exists a. split.  econstructor 3. reflexivity. apply HRet. assumption.
-    + exists a. split.
-      rewrite HRA. constructor 1. reflexivity.
-      specialize (IHHR _ (ret x) k).
-      assert (k x ≈ bind (ret x) k).
-      { rewrite Monad.bind_ret_l. reflexivity. }
-      apply IHHR  in H. rewrite KA.
-      destruct H as (x' & _ & HX).
-      econstructor 3. reflexivity.  apply HX.
-Qed.
-
-Lemma Returns_bind_inversion : forall {E A B} (t : itree E A) (k : A -> itree E B) b,
-    Returns b (bind t k) ->
-    exists a, Returns a t /\ Returns b (k a).
-Proof.
-  intros.
-  eapply Returns_bind_inversion_. apply H. reflexivity.
-Qed.
-
-Lemma Returns_vis_inversion_ : forall {E A B} (u : itree E B) (e : E A) (k : A -> itree E B) b,
-    Returns b u ->
-    u ≈ (Vis e k) ->
-    exists a, Returns b (k a).
-Proof.
-  intros E A B u e k b HR eq.
-  revert A e k eq.
-  induction HR; intros.
-  - rewrite H in eq.
-    apply eqit_inv in eq. inversion eq.
-  - rewrite tau_eutt in H.
-    eapply IHHR. rewrite <- H. apply eq.
-  - rewrite eq in H; clear eq.
-    punfold H.
-    repeat red in H.
-    simpl in H.
-    inversion H. subst.
-    apply inj_pair2 in H2.
-    apply inj_pair2 in H3.
-    apply inj_pair2 in H6.
-    apply inj_pair2 in H5.
-    subst.
-    assert (Vis e k0 ≈ Vis e k).
-    red. red. pfold. red. apply H.
-    pose proof eqit_inv_Vis eq true true _ _ _ _ H0 as HX.
-    exists x. specialize (HX x).
-    rewrite HX. assumption.
-Qed.
-
-Lemma Returns_vis_inversion : forall {E A B} (e : E A) (k : A -> itree E B) b,
-    Returns b (Vis e k) ->
-    exists a, Returns b (k a).
-Proof.
-  intros.
-  eapply Returns_vis_inversion_. apply H. reflexivity.
-Qed.
-
-Definition divergent {E A} (ta : itree E A) := (forall k , ta ≈ bind ta k).
-
-Lemma Returns_divergent {E A}:
-  (forall (ta : itree E A), not (exists a, Returns a ta) -> divergent ta).
-Proof.
-  intros. red. intros. red in H.
-  unfold bind, Monad_itree.
-  generalize dependent ta. pcofix CIH. cbn. pstep. unfold eqit_.
-  intros. remember (observe ta). destruct i.
-  - destruct H0. assert (ta ≈ Ret r0). rewrite Heqi.
-    rewrite <- itree_eta. reflexivity. exists r0. constructor. auto.
-  - intros. unfold observe. cbn. rewrite <- Heqi. cbn.
-    constructor. right. apply CIH. intros. destruct H. destruct H0.
-    assert (ta ≈ Tau t). rewrite Heqi. rewrite <- itree_eta; reflexivity.
-    eapply ReturnsTau in H; eauto.
-  - unfold observe. cbn. rewrite <- Heqi. cbn. constructor. intros.
-    unfold id. right. apply CIH. intros. destruct H. destruct H0.
-    assert (ta ≈ Vis e k0). rewrite Heqi. rewrite <- itree_eta; reflexivity.
-    eapply ReturnsVis in H; eauto.
-Qed.
-
-Definition divergent_cont {E A B} (ta : itree E A) :=
-  (forall (k1 : A -> itree E B) (k2 : A -> itree E B) , bind ta k1 ≈ bind ta k2).
 
 Ltac simpl_iter :=
     unfold iter, Iter_Kleisli, Basics.iter, MonadIter_itree.
@@ -1034,49 +835,22 @@ Proof.
       destruct eqtt' as (ta & k & EQ1 & EQ2 & KA).
     + unfold bind, Monad_itree in EQ2. rewrite EQ1, Eqit.bind_ret_l, eq in EQ2.
       eapply H; [apply EQ2 | apply KA].
-      constructor 1; eauto.
+      rewrite EQ1. constructor; eauto.
    * cbn.
      exists (Ret x), (fun _ => t); split; [reflexivity|]; split.
       + unfold bind, Monad_itree. rewrite Eqit.bind_ret_l; reflexivity.
-      + intros.
-        apply Returns_Ret in H0. subst. red in H. rewrite eq.
-        assumption.
-
+      + intros. apply Leaf_Ret_inv in H0; subst. revert eqtt'; apply H. auto.
   - intros t t' EQ; cbn; split; intros HX.
     * destruct HX as (ta & k & EQ1 & EQ2 & KA).
       exists (Ret x), (fun _ => t); split; [reflexivity |]; split.
-      --  unfold bind, Monad_itree. rewrite Eqit.bind_ret_l. symmetry. assumption.
-      --
-        intros ? RET; inv RET.
-        2: { rewrite tau_eutt in H0. rewrite <- H0 in H1. apply Returns_Ret in H1. subst.
-             red in H. rewrite EQ2. rewrite EQ1.
-             unfold bind, Monad_itree.
-             rewrite Eqit.bind_ret_l. apply KA. rewrite EQ1. constructor. reflexivity. }
-        2: exfalso; eapply eutt_ret_vis_abs; eauto.
-        apply eqit_inv_Ret in H0; subst.
-        eapply H. rewrite EQ1 in EQ2.
-        unfold bind, Monad_itree in EQ2.
-           rewrite Eqit.bind_ret_l in EQ2. apply EQ2.
-           apply KA; rewrite EQ1; constructor; reflexivity.
-
+      -- unfold bind, Monad_itree. rewrite Eqit.bind_ret_l. symmetry. assumption.
+      -- intros ? RET. apply Leaf_Ret_inv in RET; subst. rewrite EQ2, EQ1.
+         cbn. rewrite bind_ret_l. apply KA. rewrite EQ1. constructor; auto.
     * destruct HX as (ta & k & EQ1 & EQ2 & KA).
       exists (Ret x), (fun _ => t); split; [reflexivity |]; split.
-      --  unfold bind, Monad_itree. rewrite Eqit.bind_ret_l. reflexivity.
-      --
-        intros ? RET; inv RET.
-        2: { rewrite tau_eutt in H0. rewrite <- H0 in H1. apply Returns_Ret in H1. subst.
-             red in H. rewrite EQ. rewrite EQ2. rewrite EQ1.
-             unfold bind, Monad_itree.
-             rewrite Eqit.bind_ret_l. apply KA; rewrite EQ1; constructor 1; reflexivity.
-        }
-        2: exfalso; eapply eutt_ret_vis_abs; eauto.
-
-        apply eqit_inv_Ret in H0; subst.
-        red in H.
-        rewrite EQ, EQ2, EQ1.
-        unfold bind, Monad_itree.
-        rewrite Eqit.bind_ret_l.
-        apply KA; rewrite EQ1; constructor; reflexivity.
+      -- unfold bind, Monad_itree. rewrite Eqit.bind_ret_l. reflexivity.
+      -- intros ? RET. apply Leaf_Ret_inv in RET; subst. rewrite EQ, EQ2, EQ1.
+         cbn. rewrite bind_ret_l. apply KA. rewrite EQ1. constructor; auto.
   - assumption.
 Qed.
 
@@ -1110,123 +884,56 @@ Proof.
   exists ta, k. split; auto. split. rewrite H; auto. assumption.
 Qed.
 
-Definition agrees_itree {E} {A} (ta1 : itree E A) (ta2 : itree E (A -> Prop)) :=
-  eutt (fun a p => p a) ta1 ta2.
+#[local]
+Notation agrees_itree := (eutt (fun a p => p a)) (only parsing).
 
-Definition bind_stronger {E} :=
-  fun A B (PA: iforest E A) (K: A -> iforest E B) (tb: itree E B) =>
-    exists (ta: itree E A),  PA ta /\
-                        (exists (k: A -> itree E B),
-                             (agrees_itree (fmap k ta) (fmap K ta)
-                             /\ tb ≈ bind ta k)).
+Definition bind_stronger {E A B}
+  (PA: iforest E A) (K: A -> iforest E B) : iforest E B :=
+  fun (tb: itree E B) =>
+    exists (ta: itree E A), PA ta /\
+    exists (k: A -> itree E B), (agrees_itree (fmap k ta) (fmap K ta) /\ tb ≈ bind ta k).
 
-Lemma agree_itree_Returns E A B (ta : itree E A) (K : A -> iforest E B) (k : A -> itree E B)
-  : (forall a, Returns a ta -> K a (k a)) <-> (agrees_itree (fmap k ta) (fmap K ta)).
+Lemma agree_itree_Leaf E A B (ta : itree E A) (K : A -> iforest E B) (k : A -> itree E B)
+  : (forall a, Leaf a ta -> K a (k a)) <-> (agrees_itree (fmap k ta) (fmap K ta)).
 Proof.
   split; intros.
   - cbn. red.
     unfold ITree.map.
-    eapply eqit_Returns_bind''.
+    eapply eqit_Leaf_bind''.
     + reflexivity.
     + intros. apply eqit_Ret. apply H. assumption.
-  - revert B K k H.
-    induction H0.
-    + intros. cbn in H0. unfold agrees_itree in H0.
-      unfold ITree.map in H0.
-      rewrite H in H0.
-      do 2 rewrite Eqit.bind_ret_l in H0.
-      apply Eqit.eqit_Ret in H0. assumption.
-    + intros.
-      rewrite tau_eutt in H.
-      unfold agrees_itree in H1.
-      setoid_rewrite H in H1.
-      eapply IHReturns. unfold agrees_itree.
-      apply H1.
-    + intros.
-      apply IHReturns; clear IHReturns.
-      unfold agrees_itree in *.
-      setoid_rewrite H in H1.
-      cbn in *. unfold ITree.map in *.
-      repeat red in H1.
-      punfold H1.
-      inversion H1. cbn in *.
-      subst.
-      apply inj_pair2 in H4.
-      apply inj_pair2 in H5.
-      apply inj_pair2 in H6.
-      apply inj_pair2 in H7.
-      subst.
-
-
-      apply eqit_Returns_bind''.
-      * reflexivity.
-      * intros. subst.
-        apply Eqit.eqit_Ret.
-        specialize (REL x).
-        red in REL.
-        pclearbot.
-        assert (REL2 := eqit_bind_Returns_inv _ _ _ _ REL _ H2).
-        apply eqit_Ret in REL2.
-        assumption.
+  - revert H.
+    induction H0; cbn; unfold ITree.map; rewrite 2 unfold_bind, H.
+    + intros H'; apply eqit_inv_Ret in H'. auto.
+    + rewrite 2 tau_eutt; apply IHLeaf.
+    + intros H'; eapply eqit_inv_Vis in H'. eauto.
 Qed.
 
 Lemma distinguish_bind {E} {A B}
       (a : A)
       (ma : itree E A)
       (k1 k2 : A -> itree E B)
-      (HRET : Returns a ma)
+      (HRET : Leaf a ma)
       (NEQ: ~((k1 a) ≈ (k2 a))) :
   not ((ITree.bind ma k1) ≈ (ITree.bind ma k2)).
 Proof.
-  intro HI.
-  apply NEQ. clear NEQ.
-  revert k1 k2 HI.
-  induction HRET; intros.
-  - rewrite H in HI. cbn in HI. rewrite Eqit.bind_ret_l in HI. rewrite Eqit.bind_ret_l in HI.
-    assumption.
-  - apply IHHRET. unfold bind, Monad_itree in HI.
-    rewrite H in HI.
-    do 2 rewrite Eqit.bind_tau in HI.
-    do 2 rewrite tau_eutt in HI. apply HI.
-  - apply IHHRET. rewrite H in HI.
-    do 2 rewrite bind_vis in HI.
-    pose proof eqit_inv_Vis _ _ _ _ _ _ _ HI as HI'.
-    apply HI'.
+  intros HI; eapply eqit_bind_Leaf_inv in HI; eauto.
 Qed.
 
-Lemma not_Returns {E} {A B} : inhabited B ->
-  forall (ta: itree E A), (exists tb, forall (k : A -> itree E B), tb ≈ bind ta k) -> forall (a:A), ~ Returns a ta.
+Lemma not_Leaf {E} {A B} : inhabited B ->
+  forall (ta: itree E A), (exists tb, forall (k : A -> itree E B), tb ≈ bind ta k) -> forall (a:A), ~ Leaf a ta.
 Proof.
-  intros IB ta HX a HRet; inversion IB; clear IB.
-  revert HX.
-  induction HRet; intros (tb & HK).
-  - setoid_rewrite H in HK.
-    unfold bind, Monad_itree in HK.
-    setoid_rewrite Eqit.bind_ret_l in HK.
-    pose (HK (fun _ => ret X)) as t2. cbn in t2.
-    pose (HK (fun _ => ITree.spin)) as t3. cbn in t3.
-    assert (Ret X ≈ (ITree.spin : itree E B)).
-    rewrite <- t2. rewrite <- t3. reflexivity. apply eutt_Ret_spin_abs in H0.
-    auto.
-  - apply IHHRet.
-    exists tb. intros.
-    specialize (HK k).
-    rewrite HK. unfold bind, Monad_itree.
-    rewrite H.
-    rewrite bind_tau. apply tau_eutt.
-  - setoid_rewrite H in HK; clear H t.
-    pose (HK (fun _ => ret X)) as t2. cbn in t2.
-    pose (HK (fun _ => ITree.spin)) as t3. cbn in t3.
-    assert (ITree.bind (Vis e k) (fun _ : A => Ret X) ≈ ITree.bind (Vis e k) (fun _ : A => ITree.spin)).
-    rewrite <- t2. rewrite <- t3.
-    reflexivity.
-    rewrite bind_vis in H. rewrite bind_vis in H.
-    pose proof eqit_inv_Vis _ _ _ _ _ _ _ H as H'.
-    specialize (H' x).
-    revert H'.
-    change (~((ITree.bind (k x) ( fun _ : A => Ret X)) ≈ ITree.bind (k x) (fun _ : A => ITree.spin))).
-    eapply distinguish_bind. apply HRet.
-    intro H'. apply eutt_Ret_spin_abs in H'. auto.
+  intros [b] ta [tb HK] a HRet. revert tb HK; induction HRet; intros tb HK.
+  - setoid_rewrite unfold_bind in HK. setoid_rewrite H in HK.
+    generalize (HK (fun _ => ITree.spin)). rewrite (HK (fun _ => ret b)).
+    apply eutt_Ret_spin_abs.
+  - eapply (IHHRet tb). intros k; specialize (HK k).
+    cbn in HK. rewrite unfold_bind, H in HK. rewrite tau_eutt in HK. auto.
+  - setoid_rewrite unfold_bind in HK. setoid_rewrite H in HK; clear H t.
+    assert (t2 := HK (fun _ => ITree.spin)).
+    apply (IHHRet (ITree.bind (k x) (fun _ => ITree.spin))).
+    intros k'; rewrite (HK k') in t2.
+    eapply eqit_inv_Vis in t2; symmetry; eauto.
 Qed.
 
 (* Figure 7: bind_ret - second monad law for iforest *)
@@ -1243,7 +950,7 @@ Proof.
       eapply H; [eauto | clear EQ t].
       eapply H; eauto.
       rewrite <- (Monad.bind_ret_r _ ta) at 2.
-      apply eqit_Returns_bind'; [reflexivity |].
+      apply eqit_Leaf_bind'; [reflexivity |].
         intros.
         rewrite (HRET r); auto.
         reflexivity.
@@ -1267,7 +974,7 @@ Proof.
 Qed.
 
 Definition EQ_REL {E A} (ta : itree E A) : A -> A -> Prop :=
-  fun a b => a = b /\ Returns a ta.
+  fun a b => a = b /\ Leaf a ta.
 
 Lemma Symmteric_EQ_REL {E A} (ta : itree E A) : Symmetric (EQ_REL ta).
 Proof.
@@ -1347,7 +1054,7 @@ Proof.
 Qed.
 
 Definition RET_EQ {E} {A} (ta : itree E A) : A -> A -> Prop :=
-  fun x y => Returns x ta /\ Returns y ta.
+  fun x y => Leaf x ta /\ Leaf y ta.
 
 (* Figure 7: 3rd monad law, one direction bind associativity *)
 Lemma bind_bind_iforest
@@ -1374,7 +1081,7 @@ Proof.
         exists (kab a), kbc.
         split; [auto|];split.
         -- reflexivity.
-        -- intros b HRET. apply HRkbc. rewrite EQb. eapply Returns_bind; eauto.
+        -- intros b HRET. apply HRkbc. rewrite EQb. eapply Leaf_bind; eauto.
 Qed.
 
 Module BIND_BIND_COUNTEREXAMPLE.
@@ -1438,18 +1145,18 @@ Module BIND_BIND_COUNTEREXAMPLE.
     unfold t in HEQ.
     unfold bind, Monad_itree in HEQ.
     rewrite Eqit.bind_bind in HEQ.
-    assert (forall r, Returns r (ITree.trigger Pick) -> eutt eq ((fun b : bool =>
+    assert (forall r, Leaf r (ITree.trigger Pick) -> eutt eq ((fun b : bool =>
            if b
            then ITree.bind (trigger Pick) (fun x : bool => if x then ret true else ITree.spin)
            else ITree.bind (trigger Pick) (fun x : bool => if x then ret false else ITree.spin)) r) ((fun r : bool => ITree.bind (kb r) k) r)).
-    apply eqit_bind_Returns_inv. apply HEQ.
-    assert (Returns true (ITree.trigger Pick)).
+    apply eqit_bind_Leaf_inv. apply HEQ.
+    assert (Leaf true (ITree.trigger Pick)).
     { unfold trigger. econstructor 3. reflexivity. constructor 1. reflexivity. }
-    assert (Returns false (ITree.trigger Pick)).
+    assert (Leaf false (ITree.trigger Pick)).
     { unfold trigger. econstructor 3. reflexivity. constructor 1. reflexivity. }
-    assert (Returns true (ITree.trigger Pick)).
+    assert (Leaf true (ITree.trigger Pick)).
     { unfold trigger. econstructor 3. reflexivity. constructor 1. reflexivity. }
-    assert (Returns false (ITree.trigger Pick)).
+    assert (Leaf false (ITree.trigger Pick)).
     { unfold trigger. econstructor 3. reflexivity. constructor 1. reflexivity. }
     apply H in H0.
     apply H in H1.
@@ -1459,7 +1166,7 @@ Module BIND_BIND_COUNTEREXAMPLE.
     rewrite H2 in H0.
     rewrite H3 in H1.
     rewrite <- H0 in H1.
-    apply eqit_bind_Returns_inv with (r := true) in H1 .
+    apply eqit_bind_Leaf_inv with (r := true) in H1 .
     apply eqit_inv_Ret in H1. inversion H1.
     { unfold trigger. econstructor 3. reflexivity. constructor 1. reflexivity. }
 Qed.
