@@ -60,6 +60,7 @@ Proof.
   contradiction.
 Qed.
 
+#[global]
 Instance FinInitial {E} : Initial (sub (ktree E) fin) 0 := fun _ => fin_0.
 
 Lemma split_fin_helper:
@@ -187,12 +188,15 @@ Proof.
     try contradiction + exfalso; lia.
 Qed.
 
+#[global]
 Instance ToBifunctor_ktree_fin {E} : ToBifunctor (ktree E) fin sum Nat.add :=
   fun n m y => Ret (split_fin_sum n m y).
 
+#[global]
 Instance FromBifunctor_ktree_fin {E} : FromBifunctor (ktree E) fin sum Nat.add :=
   fun n m y => Ret (merge_fin_sum n m y).
 
+#[global]
 Instance IsoBif_ktree_fin {E}
   : forall a b, Iso (ktree E) (a := fin (Nat.add a b)) to_bif from_bif.
 Proof.
@@ -204,12 +208,15 @@ Proof.
     apply eqit_Ret, split_merge.
 Qed.
 
+#[global]
 Instance ToBifunctor_Fun_fin : ToBifunctor Fun fin sum Nat.add :=
   fun n m y => split_fin_sum n m y.
 
+#[global]
 Instance FromBifunctor_Fun_fin : FromBifunctor Fun fin sum Nat.add :=
   fun n m y => merge_fin_sum n m y.
 
+#[global]
 Instance IsoBif_Fun_fin
   : forall a b, Iso Fun (a := fin (Nat.add a b)) to_bif from_bif.
 Proof.
@@ -218,6 +225,7 @@ Proof.
   - apply split_merge.
 Qed.
 
+#[global]
 Instance InitialObject_ktree_fin {E} : InitialObject (sub (ktree E) fin) 0.
 Proof.
   intros n f x; apply fin_0; auto.
