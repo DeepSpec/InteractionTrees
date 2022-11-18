@@ -79,13 +79,114 @@ Section RuttF.
   Qed.
 
   Definition rutt : itree E1 R1 -> itree E2 R2 -> Prop := paco2 rutt_ bot2.
+  Hint Unfold rutt : itree.
 
+  Lemma ruttF_inv_VisF_r {sim} t1 U2 (e2: E2 U2) (k2: U2 -> _):
+    ruttF sim t1 (VisF e2 k2) ->
+    (exists U1 (e1: E1 U1) k1, t1 = VisF e1 k1 /\
+      forall v1 v2, RAns e1 v1 e2 v2 -> sim (k1 v1) (k2 v2))
+    \/
+    (exists t1', t1 = TauF t1' /\
+      ruttF sim (observe t1') (VisF e2 k2)).
+  Proof.
+    refine (fun H =>
+      match H in ruttF _ _ t2 return
+        match t2 return Prop with
+        | VisF e2 k2 => _
+        | _ => True
+        end
+      with
+      | EqVis _ _ _ _ _ _ _ _ _ => _
+      | _ => _
+      end); try exact I.
+    - left; eauto.
+    - destruct i0; eauto.
+  Qed.
+
+  Lemma ruttF_inv_VisF {sim}
+      U1 U2 (e1 : E1 U1) (e2 : E2 U2) (k1 : U1 -> _) (k2 : U2 -> _)
+    : ruttF sim (VisF e1 k1) (VisF e2 k2) ->
+      forall v1 v2, RAns e1 v1 e2 v2 -> sim (k1 v1) (k2 v2).
+  Proof.
+    intros H. dependent destruction H. assumption.
+  Qed.
+
+
+  Ltac unfold_rutt :=
+    (try match goal with [|- rutt_ _ _ _ _ _ _ _ ] => red end);
+    (repeat match goal with [H: rutt_ _ _ _ _ _ _ _ |- _ ] => red in H end).
+
+  Lemma fold_ruttF:
+    forall (t1: itree E1 R1) (t2: itree E2 R2) ot1 ot2,
+    ruttF (upaco2 rutt_ bot2) ot1 ot2 ->
+    ot1 = observe t1 ->
+    ot2 = observe t2 ->
+    rutt t1 t2.
+  Proof.
+    intros * eq -> ->; pfold; auto.
+  Qed.
 End RuttF.
+
+Tactic Notation "fold_ruttF" hyp(H) :=
+  try punfold H;
+  try red in H;
+  match type of H with
+  | ruttF ?_REV ?_RANS ?_RR (upaco2 (rutt_ ?_REV ?_RANS ?_RR) bot2) ?_OT1 ?_OT2 =>
+      match _OT1 with
+      | observe _ => idtac
+      | ?_OT1 => rewrite (itree_eta' _OT1) in H
+      end;
+      match _OT2 with
+      | observe _ => idtac
+      | ?_OT2 => rewrite (itree_eta' _OT2) in H
+      end;
+      eapply fold_ruttF in H; [| eauto | eauto]
+  end.
 
 #[global] Hint Resolve rutt_monot : paco.
 
-Lemma rutt_inv_Tau_l {E1 E2 R1 R2 REv RAns RR} t1 t2 :
-  @rutt E1 E2 R1 R2 REv RAns RR (Tau t1) t2 -> rutt REv RAns RR t1 t2.
+Section ConstructionInversion.
+Variables (E1 E2: Type -> Type).
+Variables (R1 R2: Type).
+Variable (REv: forall T1 T2, E1 T1 -> E2 T2 -> Prop).
+Variable (RAns: forall T1 T2, E1 T1 -> T1 -> E2 T2 -> T2 -> Prop).
+Variable (RR: R1 -> R2 -> Prop).
+
+Lemma rutt_Ret r1 r2:
+  RR r1 r2 ->
+  @rutt E1 E2 R1 R2 REv RAns RR (Ret r1: itree E1 R1) (Ret r2: itree E2 R2).
+Proof. intros. pstep; constructor; auto. Qed.
+
+Lemma rutt_inv_Ret r1 r2:
+  rutt REv RAns RR (Ret r1) (Ret r2) -> RR r1 r2.
+Proof.
+  intros. punfold H. inv H. eauto.
+Qed.
+
+Lemma rutt_inv_Ret_l r1 t2:
+  rutt REv RAns RR (Ret r1) t2 -> exists r2, t2 ≳ Ret r2 /\ RR r1 r2.
+Proof.
+  intros Hrutt; punfold Hrutt; red in Hrutt; cbn in Hrutt.
+  setoid_rewrite (itree_eta t2). remember (RetF r1) as ot1; revert Heqot1.
+  induction Hrutt; intros; try discriminate.
+  - inversion Heqot1; subst. exists r2. split; [reflexivity|auto].
+  - destruct (IHHrutt Heqot1) as [r2 [H1 H2]]. exists r2; split; auto.
+    rewrite <- itree_eta in H1. now rewrite tau_euttge.
+Qed.
+
+Lemma rutt_inv_Ret_r t1 r2:
+  rutt REv RAns RR t1 (Ret r2) -> exists r1, t1 ≳ Ret r1 /\ RR r1 r2.
+Proof.
+  intros Hrutt; punfold Hrutt; red in Hrutt; cbn in Hrutt.
+  setoid_rewrite (itree_eta t1). remember (RetF r2) as ot2; revert Heqot2.
+  induction Hrutt; intros; try discriminate.
+  - inversion Heqot2; subst. exists r1. split; [reflexivity|auto].
+  - destruct (IHHrutt Heqot2) as [r1 [H1 H2]]. exists r1; split; auto.
+    rewrite <- itree_eta in H1. now rewrite tau_euttge.
+Qed.
+
+Lemma rutt_inv_Tau_l t1 t2 :
+  rutt REv RAns RR (Tau t1) t2 -> rutt REv RAns RR t1 t2.
 Proof.
   intros. punfold H. red in H. simpl in *.
   remember (TauF t1) as tt1. genobs t2 ot2.
@@ -95,14 +196,14 @@ Proof.
   - red in IHruttF. pstep. red; simpobs. econstructor; eauto. pstep_reverse.
 Qed.
 
-Lemma rutt_add_Tau_l {E1 E2 R1 R2 REv RAns RR} t1 t2 :
-  @rutt E1 E2 R1 R2 REv RAns RR t1 t2 -> rutt REv RAns RR (Tau t1) t2.
+Lemma rutt_add_Tau_l t1 t2 :
+  rutt REv RAns RR t1 t2 -> rutt REv RAns RR (Tau t1) t2.
 Proof.
   intros. pfold. red. cbn. constructor. pstep_reverse.
 Qed.
 
-Lemma rutt_inv_Tau_r {E1 E2 R1 R2 REv RAns RR} t1 t2 :
-  @rutt E1 E2 R1 R2 REv RAns RR t1 (Tau t2) -> rutt REv RAns RR t1 t2.
+Lemma rutt_inv_Tau_r t1 t2 :
+  rutt REv RAns RR t1 (Tau t2) -> rutt REv RAns RR t1 t2.
 Proof.
   intros. punfold H. red in H. simpl in *.
   pstep. red. remember (TauF t2) as tt2 eqn:Ett2 in H.
@@ -111,17 +212,76 @@ Proof.
   - constructor. eapply IHruttF; eauto.
 Qed.
 
-Lemma rutt_add_Tau_r {E1 E2 R1 R2 REv RAns RR} t1 t2 :
-  @rutt E1 E2 R1 R2 REv RAns RR t1 t2 -> rutt REv RAns RR t1 (Tau t2).
+Lemma rutt_add_Tau_r t1 t2 :
+  rutt REv RAns RR t1 t2 -> rutt REv RAns RR t1 (Tau t2).
 Proof.
   intros. pfold. red. cbn. constructor. pstep_reverse.
 Qed.
 
-Lemma rutt_inv_Tau {E1 E2 R1 R2 REv RAns RR} t1 t2 :
-  @rutt E1 E2 R1 R2 REv RAns RR (Tau t1) (Tau t2) -> rutt REv RAns RR t1 t2.
+Lemma rutt_inv_Tau t1 t2 :
+  rutt REv RAns RR (Tau t1) (Tau t2) -> rutt REv RAns RR t1 t2.
 Proof.
   intros; apply rutt_inv_Tau_r, rutt_inv_Tau_l; assumption.
 Qed.
+
+Lemma rutt_Vis {T1 T2} (e1: E1 T1) (e2: E2 T2)
+    (k1: T1 -> itree E1 R1) (k2: T2 -> itree E2 R2):
+  REv _ _ e1 e2 ->
+  (forall t1 t2, RAns _ _ e1 t1 e2 t2 -> rutt REv RAns RR (k1 t1) (k2 t2)) ->
+  rutt REv RAns RR (Vis e1 k1) (Vis e2 k2).
+Proof.
+  intros He Hk. pstep; constructor; auto.
+  intros; left. apply Hk; auto.
+Qed.
+
+Lemma rutt_inv_Vis_l {U1} (e1: E1 U1) k1 t2:
+  rutt REv RAns RR (Vis e1 k1) t2 ->
+  exists U2 (e2: E2 U2) k2,
+    t2 ≈ Vis e2 k2 /\
+    REv _ _ e1 e2 /\
+    (forall v1 v2, RAns _ _ e1 v1 e2 v2 -> rutt REv RAns RR (k1 v1) (k2 v2)).
+Proof.
+  intros Hrutt; punfold Hrutt; red in Hrutt; cbn in Hrutt.
+  setoid_rewrite (itree_eta t2). remember (VisF e1 k1) as ot1; revert Heqot1.
+  induction Hrutt; intros; try discriminate; subst.
+  - inversion Heqot1; subst A. inversion_sigma; rewrite <- eq_rect_eq in *;
+    subst; rename B into U2.
+    exists U2, e2, k2; split. reflexivity. split; auto.
+    intros v1 v2 HAns. specialize (H0 v1 v2 HAns). red in H0. now pclearbot.
+  - destruct (IHHrutt eq_refl) as (U2 & e2 & k2 & Ht0 & HAns).
+    rewrite <- itree_eta in Ht0.
+    exists U2, e2, k2; split; auto. now rewrite tau_eutt.
+Qed.
+
+Lemma rutt_inv_Vis_r {U2} t1 (e2: E2 U2) k2:
+  rutt REv RAns RR t1 (Vis e2 k2) ->
+  exists U1 (e1: E1 U1) k1,
+    t1 ≈ Vis e1 k1 /\
+    REv U1 U2 e1 e2 /\
+    (forall v1 v2, RAns _ _ e1 v1 e2 v2 -> rutt REv RAns RR (k1 v1) (k2 v2)).
+Proof.
+  intros Hrutt; punfold Hrutt; red in Hrutt; cbn in Hrutt.
+  setoid_rewrite (itree_eta t1). remember (VisF e2 k2) as ot2; revert Heqot2.
+  induction Hrutt; intros; try discriminate; subst.
+  - inversion Heqot2; subst B. inversion_sigma; rewrite <- eq_rect_eq in *;
+    subst; rename A into U1.
+    exists U1, e1, k1; split. reflexivity. split; auto.
+    intros v1 v2 HAns. specialize (H0 v1 v2 HAns). red in H0. now pclearbot.
+  - destruct (IHHrutt eq_refl) as (U1 & e1 & k1 & Ht0 & HAns).
+    rewrite <- itree_eta in Ht0.
+    exists U1, e1, k1; split; auto. now rewrite tau_eutt.
+Qed.
+
+Lemma rutt_inv_Vis U1 U2 (e1: E1 U1) (e2: E2 U2)
+    (k1: U1 -> itree E1 R1) (k2: U2 -> itree E2 R2):
+  rutt REv RAns RR (Vis e1 k1) (Vis e2 k2) ->
+  forall u1 u2, RAns U1 U2 e1 u1 e2 u2 -> rutt REv RAns RR (k1 u1) (k2 u2).
+Proof.
+  intros H u1 u2 Hans. punfold H.
+  apply ruttF_inv_VisF with (v1 := u1) (v2 := u2) in H. pclearbot; auto.
+  assumption.
+Qed.
+End ConstructionInversion.
 
 Section euttge_trans_clo.
 
@@ -219,4 +379,22 @@ Global Instance grutt_cong_euttge {R1 R2 : Type} {E1 E2 : Type -> Type} {REv : f
          (gpaco2 (rutt_ REv RAns RS) (euttge_trans_clo RS) r rg).
 Proof.
   repeat intro. gclo. econstructor; eauto.
+Qed.
+
+(* Provide these explicitly since typeclasses eauto cannot infer them *)
+
+#[global] Instance grutt_cong_eqit_eq {R1 R2 : Type} {E1 E2 : Type -> Type} {REv : forall A B, E1 A -> E2 B -> Prop}
+      {RAns : forall A B, E1 A -> A -> E2 B -> B -> Prop} {RS : R1 -> R2 -> Prop} r rg:
+    Proper (eq_itree eq ==> eq_itree eq ==> flip impl)
+         (gpaco2 (rutt_ REv RAns RS) (euttge_trans_clo RS) r rg).
+Proof.
+  apply grutt_cong_eqit; now intros * ->.
+Qed.
+
+#[global] Instance grutt_cong_euttge_eq {R1 R2 : Type} {E1 E2 : Type -> Type} {REv : forall A B, E1 A -> E2 B -> Prop}
+      {RAns : forall A B, E1 A -> A -> E2 B -> B -> Prop} {RS : R1 -> R2 -> Prop} r rg:
+    Proper (euttge eq ==> euttge eq ==> flip impl)
+         (gpaco2 (rutt_ REv RAns RS) (euttge_trans_clo RS) r rg).
+Proof.
+  apply grutt_cong_euttge; now intros * ->.
 Qed.
