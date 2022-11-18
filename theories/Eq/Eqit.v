@@ -232,6 +232,23 @@ Proof.
   intros * eq -> ->; pfold; auto.
 Qed.
 
+(* Tactic to fold eqitF automatically by expanding observe if needed *)
+Tactic Notation "fold_eqitF" hyp(H) :=
+  try punfold H;
+  try red in H;
+  match type of H with
+  | eqitF ?_RR ?_B1 ?_B2 id (upaco2 (eqit_ ?_RR ?_B1 ?_B2 id) bot2) ?_OT1 ?_OT2 =>
+      match _OT1 with
+      | observe _ => idtac
+      | ?_OT1 => change _OT1 with (observe (go _OT1)) in H
+      end;
+      match _OT2 with
+      | observe _ => idtac
+      | ?_OT2 => change _OT2 with (observe (go _OT2)) in H
+      end;
+      eapply fold_eqitF in H; [| eauto | eauto]
+  end.
+
 #[global] Instance eqitF_Proper_R {E : Type -> Type} {R1 R2:Type} :
   Proper ((@eq_rel R1 R2) ==> eq ==> eq ==> (eq_rel ==> eq_rel) ==> eq_rel ==> eq_rel)
     (@eqitF E R1 R2).
@@ -960,6 +977,26 @@ Proof.
   - eapply transitivity. apply H.
     red. apply eqit_Tau_l. reflexivity.
   - red. red. pstep. econstructor. auto. punfold H.
+Qed.
+
+Lemma eutt_inv_Ret_l {E R} (r1: R) (t2: itree E R):
+  (Ret r1) ≈ t2 -> t2 ≳ (Ret r1).
+Proof.
+  intros Heutt. punfold Heutt; red in Heutt; cbn in Heutt.
+  rewrite itree_eta. remember (RetF r1) as ot1.
+  induction Heutt; intros; try discriminate.
+  - inv Heqot1. reflexivity.
+  - inv Heqot1. rewrite tau_euttge. rewrite itree_eta. now apply IHHeutt.
+Qed.
+
+Lemma eutt_inv_Ret_r {E R} (t1: itree E R) (r2: R):
+  t1 ≈ (Ret r2) -> t1 ≳ (Ret r2).
+Proof.
+  intros Heutt. punfold Heutt; red in Heutt; cbn in Heutt.
+  rewrite itree_eta. remember (RetF r2) as ot2.
+  induction Heutt; intros; try discriminate.
+  - inv Heqot2. reflexivity.
+  - inv Heqot2. rewrite tau_euttge. rewrite itree_eta. now apply IHHeutt.
 Qed.
 
 (** ** Equations for core combinators *)
