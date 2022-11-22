@@ -332,7 +332,9 @@ Section RuttMrec.
   Context (D1 D2 E1 E2 : Type -> Type) (bodies1 : D1 ~> itree (D1 +' E1)) (bodies2 : D2 ~> itree (D2 +' E2)).
   Context (RPre : prerel E1 E2) (RPreInv : prerel D1 D2) (RPost : postrel E1 E2) (RPostInv : postrel D1 D2).
 
-  Context (Hbodies : forall A B (d1 : D1 A) (d2 : D2 B), rutt (sum_prerel RPreInv RPre) (sum_postrel RPostInv RPost)
+  Context (Hbodies : forall A B (d1 : D1 A) (d2 : D2 B), 
+              RPreInv A B d1 d2 -> 
+              rutt (sum_prerel RPreInv RPre) (sum_postrel RPostInv RPost)
             (fun (a : A) (b : B) => RPostInv A B d1 a d2 b) (bodies1 A d1) (bodies2 B d2) ).
 
 
