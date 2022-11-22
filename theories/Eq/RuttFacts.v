@@ -326,3 +326,53 @@ Proof.
   eapply gpaco2_uclo; [|eapply rutt_clo_bind|]; eauto with paco.
   econstructor; eauto. intros; subst. gfinal. right. apply H0. eauto.
 Qed.
+
+
+Section RuttMrec.
+  Context (D1 D2 E1 E2 : Type -> Type) (bodies1 : D1 ~> itree (D1 +' E1)) (bodies2 : D2 ~> itree (D2 +' E2)).
+  Context (RPre : prerel E1 E2) (RPreInv : prerel D1 D2) (RPost : postrel E1 E2) (RPostInv : postrel D1 D2).
+
+  Context (Hbodies : forall A B (d1 : D1 A) (d2 : D2 B), rutt (sum_prerel RPreInv RPre) (sum_postrel RPostInv RPost)
+            (fun (a : A) (b : B) => RPostInv A B d1 a d2 b) (bodies1 A d1) (bodies2 B d2) ).
+
+
+  Lemma interp_mrec_rutt (R1 R2 : Type) (RR : R1 -> R2 -> Prop) : forall  (t1 : itree (D1 +' E1) R1) (t2 : itree (D2 +' E2) R2),
+      rutt (sum_prerel RPreInv RPre) (sum_postrel RPostInv RPost) RR t1 t2 ->
+      rutt RPre RPost RR (interp_mrec bodies1 t1) (interp_mrec bodies2 t2).
+  Proof.
+    ginit. gcofix CIH.
+    intros t1 t2 Ht12. punfold Ht12. red in Ht12.
+    remember (observe t1) as ot1. remember (observe t2) as ot2.
+    hinduction Ht12 before r; intros.
+    - apply simpobs in Heqot1, Heqot2. rewrite Heqot1, Heqot2.
+      gstep. red. cbn. constructor. auto.
+    - apply simpobs in Heqot1, Heqot2. rewrite Heqot1, Heqot2.
+      repeat rewrite unfold_interp_mrec. cbn. gstep. constructor.
+      pclearbot. gfinal. eauto.
+    - apply simpobs in Heqot1, Heqot2. rewrite Heqot1, Heqot2.
+      repeat rewrite unfold_interp_mrec. cbn.
+      inv H.
+      + apply inj_pair2 in H1, H4. subst. gstep. constructor.
+        gfinal. left. eapply CIH.
+        eapply rutt_bind; eauto.
+        intros. cbn in H. clear - H H0. specialize (H0 r1 r2 (sum_postrel_inl _ _ _ _ _ _ _ _ H)).
+        pclearbot. auto.
+      + apply inj_pair2 in H1, H4. subst. gstep. constructor.
+        auto. intros. repeat rewrite tau_euttge. gfinal. left. eapply CIH.
+        clear - H0 H. specialize (H0 a b (sum_postrel_inr _ _ _ _ _ _ _ _ H)).
+        pclearbot. auto.
+    - apply simpobs in Heqot1. rewrite Heqot1. rewrite unfold_interp_mrec at 1. cbn.
+      rewrite tau_euttge. auto.
+    - apply simpobs in Heqot2. rewrite Heqot2. setoid_rewrite unfold_interp_mrec at 2.
+      cbn. rewrite tau_euttge. auto.
+  Qed.
+
+  Lemma mrec_rutt (A B : Type) (d1 : D1 A) (d2 : D2 B) : 
+    RPreInv A B d1 d2 ->
+    rutt RPre RPost (fun (a : A) (b : B) => RPostInv A B d1 a d2 b) 
+         (mrec bodies1 d1) (mrec bodies2 d2).
+  Proof.
+    intros. apply interp_mrec_rutt. auto.
+  Qed.
+
+End RuttMrec.
