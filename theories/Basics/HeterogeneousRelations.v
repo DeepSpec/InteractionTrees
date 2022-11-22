@@ -2,9 +2,10 @@ From Coq Require Import
      Morphisms
      Setoid
      Relation_Definitions
-     RelationClasses.
+     RelationClasses
+.
 
-From ITree Require Import Tacs.
+From ITree Require Import Tacs Indexed.Sum.
 
 Set Warnings "-future-coercion-class-field".
 
@@ -764,3 +765,18 @@ Proof.
 Qed.
 
 #[export] Hint Unfold option_rel : core.
+
+Notation prerel E D := (forall (A B : Type), E A -> D B -> Prop ).
+Notation postrel E D := (forall (A B : Type), E A -> A -> D B -> B -> Prop).
+
+Variant sum_prerel {E1 E2 D1 D2 : Type -> Type} (PR1 : prerel E1 D1 ) (PR2 : prerel E2 D2) 
+  : prerel (E1 +' E2) (D1 +' D2) := 
+  | sum_prerel_inl (A B : Type) e1 d1 : PR1 A B e1 d1 -> sum_prerel PR1 PR2 A B (inl1 e1) (inl1 d1)
+  | sum_prerel_inr (A B : Type) e2 d2 : PR2 A B e2 d2 -> sum_prerel PR1 PR2 A B (inr1 e2) (inr1 d2)
+.
+
+Variant sum_postrel  {E1 E2 D1 D2 : Type -> Type} (PR1 : postrel E1 D1 ) (PR2 : postrel E2 D2) 
+  : postrel (E1 +' E2) (D1 +' D2) :=
+  | sum_postrel_inl A B e1 d1 a b : PR1 A B e1 a d1 b -> sum_postrel PR1 PR2 A B (inl1 e1) a (inl1 d1) b
+  | sum_postrel_inr A B e2 d2 a b : PR2 A B e2 a d2 b -> sum_postrel PR1 PR2 A B (inr1 e2) a (inr1 d2) b
+.
