@@ -362,6 +362,21 @@ Proof.
   reflexivity.
 Qed.
 
+Lemma interp_iter'_eutt {E F} (f: E ~> itree F) {I A}
+    (t : I -> itree E (I + A))
+    (t': I -> itree F (I + A))
+    (Heq: forall i, interp f (t i) ≈ t' i):
+  forall i, interp f (ITree.iter t i) ≈ ITree.iter t' i.
+Proof.
+  ginit. gcofix CIH; intros i.
+  rewrite 2 unfold_iter.
+  rewrite interp_bind.
+  guclo eqit_clo_bind; econstructor; eauto. apply Heq.
+  intros [] _ []; cbn.
+  - rewrite interp_tau; gstep; constructor; auto with paco.
+  - rewrite interp_ret. gstep; constructor; auto.
+Qed.
+
 Lemma interp_loop {E F} (f : E ~> itree F) {A B C}
       (t : C + A -> itree E (C + B)) a :
   interp f (loop (C := ktree E) t a) ≅ loop (C := ktree F) (fun ca => interp f (t ca)) a.
@@ -386,4 +401,12 @@ Proof.
   - unfold cat, id_, Id_Kleisli, inr_, Inr_Kleisli, lift_ktree, pure; cbn.
     rewrite interp_bind, interp_ret, !bind_ret_l, interp_ret.
     reflexivity.
+Qed.
+
+Lemma translate_iter {E F I R} (b: I -> itree E (I + R)) (h: E ~> F) i:
+  translate h (ITree.iter b i) ≈ ITree.iter (fun x => translate h (b x)) i.
+Proof.
+  rewrite translate_to_interp.
+  rewrite interp_iter'_eutt. reflexivity. clear i.
+  intros i. cbn. rewrite translate_to_interp. reflexivity.
 Qed.

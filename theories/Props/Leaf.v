@@ -3,9 +3,14 @@
 (* begin hide *)
 From ITree Require Import
      Basics.Tacs
+     Basics.HeterogeneousRelations
      ITree
      Eq.Shallow
-     Eq.Eqit.
+     Eq.Eqit
+     Interp.InterpFacts
+     Events.State
+     Events.StateFacts
+     Props.HasPost.
 
 From Paco Require Import paco.
 From Coq Require Import Morphisms Basics Program.Equality.
@@ -314,4 +319,182 @@ Proof.
   - assumption.
   - rewrite 2 tau_eutt in EQIT. auto.
   - apply IHHRET. eapply eqit_inv_Vis in EQIT; eauto.
+Qed.
+
+(** Correspondence with has_post *)
+
+Lemma has_post_Leaf {E R} (t: itree E R) Q r:
+  has_post t Q -> r ∈ t -> Q r.
+Proof.
+  intros Hcond Himage.
+  rewrite has_post_post_strong in Hcond.
+  destruct (Leaf_eutt_l t t r Hcond Himage).
+  intuition; now subst.
+Qed.
+
+Lemma has_post_Leaf_equiv {E R} (t: itree E R) Q:
+  has_post t Q <-> (forall r, r ∈ t -> Q r).
+Proof.
+  intuition. eapply has_post_Leaf; eauto.
+  revert t H. pcofix CIH; intros t Hpost. pstep; red.
+  setoid_rewrite (itree_eta t) in Hpost.
+  desobs t Ht; clear t Ht.
+  - constructor. apply Hpost, Leaf_Ret.
+  - constructor. right; apply CIH. intros. apply Hpost, Leaf_Tau, H.
+  - constructor. intros. right. apply CIH. intros. eapply Hpost, Leaf_Vis, H.
+Qed.
+
+(** Leaf-based inversion principles for iter *)
+
+(* Inverts [r ∈ ITree.iter body entry] into any post-condition on r which is
+   satisfied by terminating iterations of the body. *)
+Lemma Leaf_iter_inv {E R I}:
+  forall (body: I -> itree E (I + R)) (entry: I) (Inv: I -> Prop) (Q: R -> Prop),
+  (forall i r, Inv i -> r ∈ body i -> sum_pred Inv Q r) ->
+  Inv entry ->
+  forall r, r ∈ (ITree.iter body entry) -> Q r.
+Proof.
+  intros * Hinv Hentry.
+  rewrite <- has_post_Leaf_equiv.
+  eapply has_post_iter_strong; eauto.
+  setoid_rewrite has_post_Leaf_equiv. eauto.
+Qed.
+
+Lemma Leaf_interp_iter_inv {E F R I} (h: E ~> itree F):
+  forall (body: I -> itree E (I + R)) (entry: I) (Inv: I -> Prop) (Q: R -> Prop),
+  (forall i r, Inv i -> r ∈ interp h (body i) -> sum_pred Inv Q r) ->
+  Inv entry ->
+  forall r, r ∈ interp h (ITree.iter body entry) -> Q r.
+Proof.
+  intros * Hbody Hentry r Hr.
+  apply (Leaf_iter_inv (fun i => interp h (body i)) entry Inv); auto.
+  rewrite (interp_iter'  _ _ (fun i => interp h (body i))) in Hr.
+  apply Hr. reflexivity.
+Qed.
+
+(* Inverts [sr' ∈ interp_state h (ITree.iter body i)] into a post-condition on
+   both retun value and state, like Leaf_iter_inv. *)
+Lemma Leaf_interp_state_iter_inv {E F S R I}:
+  forall (h: E ~> Monads.stateT S (itree F)) (body: I -> itree E (I + R))
+         (RS: S -> Prop) (RI: I -> Prop) (RR: R -> Prop) (s: S) (i: I),
+  (forall s i, RS s -> RI i -> (forall sx', sx' ∈ interp_state h (body i) s ->
+                    prod_pred RS (sum_pred RI RR) sx')) ->
+  RS s -> RI i ->
+  forall sr', sr' ∈ interp_state h (ITree.iter body i) s -> prod_pred RS RR sr'.
+Proof.
+  setoid_rewrite <- has_post_Leaf_equiv.
+  setoid_rewrite has_post_post_strong.
+  intros * Hinv Hentrys Hentryi.
+  set (eRI := fun (i1 i2: I) => i1 = i2 /\ RI i1).
+  set (eRR := fun (r1 r2: R) => r1 = r2 /\ RR r1).
+  set (eRS := fun (s1 s2: S) => s1 = s2 /\ RS s1).
+
+  set (R1 := (fun x y : S * R => x = y /\ prod_pred RS RR x)).
+  set (R2 := (fun a b : S * R => eRS (fst a) (fst b) /\ eRR (snd a) (snd b))).
+  assert (HR1R2: eq_rel R1 R2) by (compute; intuition; subst; now try destruct y).
+  unfold has_post_strong; fold R1; rewrite (eutt_equiv _ _ HR1R2).
+
+  unshelve eapply (eutt_interp_state_iter eRI eRR eRS h body body _ i i s s _ _);
+  [| subst eRS; intuition | subst eRI; intuition].
+  intros i1 ? s1 ? [<- Hs1] [<- Hi1].
+
+  set (R3 := (fun x y : S * (I + R) => x = y /\ prod_pred RS (sum_pred RI RR) x)).
+  set (R4 := (prod_rel eRS (sum_rel eRI eRR))).
+  assert (HR3R4: eq_rel R3 R4).
+  { split; intros [? [|]] [? [|]]; compute.
+    1-4: intros [[]]; dintuition; cbn; intuition.
+    all: intros [[[=->] ?] HZ]; inversion HZ; intuition now subst. }
+
+  rewrite <- (eutt_equiv _ _ HR3R4).
+  now apply Hinv.
+Qed.
+
+(** Inversion of Leaf through interp.
+    Since interp does not change leaves, we have [x ∈ interp h t -> x ∈ t].
+    However this is not easy to see from the Leaf predicate; we must use t. *)
+
+Module Subtree.
+
+Inductive subtree {E R}: itree E R -> itree E R -> Prop :=
+  | SubtreeRefl u t:
+      u ≅ t -> subtree u t
+  | SubtreeTau u t:
+      subtree (Tau u) t -> subtree u t
+  | SubtreeVis {T} u (e: E T) k x t:
+      u ≅ k x -> subtree (Vis e k) t -> subtree u t.
+
+#[global] Instance subtree_cong_eqitree {E R}:
+  Proper (eq_itree eq ==> eq_itree eq ==> flip impl) (@subtree E R).
+Proof.
+  intros t t' Ht u u' Hu Hsub.
+  revert t Ht u Hu; induction Hsub; intros.
+  - apply SubtreeRefl. now rewrite Ht, Hu.
+  - apply SubtreeTau, IHHsub; auto. apply eqit_Tau, Ht.
+  - eapply SubtreeVis. now rewrite Ht, H. apply IHHsub; auto. reflexivity.
+Qed.
+
+Lemma subtree_image {E R} (t u: itree E R) x:
+  subtree u t -> x ∈ u -> x ∈ t.
+Proof.
+  intros * Hsub. induction Hsub; intros.
+  - intros. rewrite <- H; auto.
+  - apply IHHsub, Leaf_Tau, H.
+  - eapply IHHsub, Leaf_Vis. rewrite H in H0; eauto.
+Qed.
+
+Lemma Leaf_interp_subtree_inv {E F R} (h: E ~> itree F) (t u: itree E R):
+  subtree u t -> has_post (interp h u) (fun x : R => x ∈ t).
+Proof.
+  revert t u. ginit. gcofix CIH; intros * Hsub.
+  rewrite (itree_eta u) in Hsub.
+  rewrite ! unfold_interp.
+  desobs u Hu; clear u Hu; cbn.
+  - gstep; red. constructor. eapply subtree_image; eauto. apply Leaf_Ret.
+  - gstep; red. constructor. gfinal; left. apply CIH. apply SubtreeTau, Hsub.
+  - guclo eqit_clo_bind; econstructor. reflexivity. intros u _ <-.
+    gstep; red. constructor. gfinal; left. apply CIH. eapply SubtreeVis, Hsub.
+    reflexivity.
+Qed.
+
+Lemma Leaf_interp_state_subtree_inv {E F S R} (h: E ~> Monads.stateT S (itree F))
+  (t u: itree E R) (s: S):
+  subtree u t -> has_post (interp_state h u s) (fun x => snd x ∈ t).
+Proof.
+  revert t u s. ginit. gcofix CIH; intros * Hsub.
+  rewrite (itree_eta u) in Hsub.
+  rewrite ! unfold_interp_state.
+  desobs u Hu; clear u Hu; cbn.
+  - gstep; red. constructor. eapply subtree_image; eauto. apply Leaf_Ret.
+  - gstep; red. constructor. gfinal; left. apply CIH. apply SubtreeTau, Hsub.
+  - guclo eqit_clo_bind; econstructor. reflexivity. intros [u1 u2] _ <-; cbn.
+    gstep; red. constructor. gfinal; left. apply CIH. eapply SubtreeVis, Hsub.
+    reflexivity.
+Qed.
+
+End Subtree.
+Import Subtree.
+
+Lemma Leaf_interp_inv {E F R} (h: E ~> itree F) (t: itree E R) x:
+  x ∈ interp h t -> x ∈ t.
+Proof.
+  intros Hleaf. apply (has_post_Leaf (interp h t) (fun x => x ∈ t)); auto.
+  apply Leaf_interp_subtree_inv. apply SubtreeRefl; reflexivity.
+Qed.
+
+Lemma Leaf_interp_state_inv {E F S R} (h: E ~> Monads.stateT S (itree F))
+  (t: itree E R) s x:
+  x ∈ interp_state h t s -> snd x ∈ t.
+Proof.
+  intros Hleaf.
+  apply (has_post_Leaf (interp_state h t s) (fun x => snd x ∈ t)); auto.
+  apply Leaf_interp_state_subtree_inv. apply SubtreeRefl; reflexivity.
+Qed.
+
+(** Inversion through translate. *)
+
+Lemma Leaf_translate_inv {E F R} `{Inj: E -< F}: forall (t: itree E R) v,
+  v ∈ translate (@subevent E F _) t -> v ∈ t.
+Proof.
+  intros. rewrite translate_to_interp in H.
+  eapply Leaf_interp_inv; eauto.
 Qed.

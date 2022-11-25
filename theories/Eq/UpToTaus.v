@@ -749,6 +749,15 @@ Proof.
   intros ? ? ->; apply H.
 Qed.
 
+(* Further specialization for [RR := eq] *)
+Lemma eutt_eq_bind' {E U R} (t1 t2: itree E U) (k1 k2: U -> itree E R):
+  t1 ≈ t2 ->
+  (forall u, (k1 u) ≈ (k2 u)) ->
+  (ITree.bind t1 k1) ≈ (ITree.bind t2 k2).
+Proof.
+  intros -> Hk. now apply eutt_eq_bind.
+Qed.
+
 (* Exposing a version specialized to [eutt] so that users don't have to know about [eqit] *)
 Lemma eutt_Ret :
   forall E (R1 R2 : Type) (RR : R1 -> R2 -> Prop) r1 r2, RR r1 r2 <-> eutt (E := E) RR (Ret r1) (Ret r2).
@@ -843,4 +852,29 @@ Instance eutt_Proper_R {E : Type -> Type} {R1 R2:Type}
 Proof.
   repeat intro; subst.
   unfold eutt; rewrite H; reflexivity.
+Qed.
+
+(* Stronger subrelation result which applies for [eutt RR t t]. This is
+   relevant for post-conditions *)
+Lemma eutt_sub_self {E R} (R1 R2: R -> R -> Prop) (t: itree E R):
+  (forall r, R1 r r -> R2 r r) ->
+  eutt R1 t t ->
+  eutt R2 t t.
+Proof.
+  intros Hrel; revert t. ginit. gcofix CIH; intros t Heutt.
+  punfold Heutt; red in Heutt.
+  remember t as t' in Heutt at 2. assert (Ht': t' ≈ t) by now subst. clear Heqt'.
+  rewrite (itree_eta t). rewrite (itree_eta t), (itree_eta t') in Ht'.
+  revert Ht'. induction Heutt; clear t; intros Heq.
+  - apply eutt_inv_Ret in Heq; subst.
+    gstep; constructor; auto.
+  - apply eqit_inv_Tau in Heq.
+    gstep; constructor. gfinal; left. eapply CIH.
+    rewrite <- Heq at 2. now pclearbot.
+  - gstep; constructor. intros v. eapply eqit_inv_Vis in Heq.
+    gfinal; left. apply CIH. specialize (REL v).
+    rewrite <- Heq at 2. now pclearbot.
+  - rewrite tau_euttge, (itree_eta t1). apply IHHeutt.
+    rewrite tau_euttge in Heq. rewrite <- itree_eta; auto.
+  - apply IHHeutt. rewrite tau_euttge in Heq. rewrite <- itree_eta; auto.
 Qed.

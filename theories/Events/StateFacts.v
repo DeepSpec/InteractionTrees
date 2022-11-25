@@ -229,6 +229,25 @@ Proof.
   apply eutt_interp_state_aloop.
 Qed.
 
+Lemma eutt_eq_interp_state_iter {E F S} (f: E ~> stateT S (itree F)) {I A}
+    (t : I -> itree E (I + A)):
+  forall i s, interp_state f (ITree.iter t i) s ≈
+    Basics.iter (fun i => interp_state f (t i)) i s.
+Proof.
+  unfold Basics.iter, MonadIter_stateT0, Basics.iter, MonadIter_itree in *; cbn.
+  ginit. gcofix CIH; intros i s.
+  rewrite 2 unfold_iter; cbn.
+  rewrite !bind_bind.
+  setoid_rewrite bind_ret_l.
+  rewrite interp_state_bind.
+  guclo eqit_clo_bind; econstructor; eauto. reflexivity.
+  intros [s' []] _ []; cbn.
+  - rewrite interp_state_tau.
+    gstep; constructor.
+    auto with paco.
+  - rewrite interp_state_ret; apply reflexivity.
+Qed.
+
 Lemma eutt_interp_state_loop {E F S A B C} (RS : S -> S -> Prop)
       (h : E ~> Monads.stateT S (itree F))
       (t1 t2 : C + A -> itree E (C + B)) :
@@ -293,4 +312,25 @@ Proof.
   eapply interp_state_iter.
   intros i.
   red. reflexivity.
+Qed.
+
+Lemma interp_state_iter'_eutt {E F S} (f: E ~> stateT S (itree F)) {I A}
+    (t : I -> itree E (I + A))
+    (t': I -> stateT S (itree F) (I + A))
+    (Heq: forall i s, interp_state f (t i) s ≈ (t' i) s):
+  forall i s, interp_state f (ITree.iter t i) s ≈ Basics.iter t' i s.
+Proof.
+  unfold Basics.iter, MonadIter_stateT0, Basics.iter, MonadIter_itree in *; cbn.
+  ginit. gcofix CIH; intros i s.
+  rewrite 2 unfold_iter; cbn.
+  rewrite !bind_bind.
+  setoid_rewrite bind_ret_l.
+  rewrite interp_state_bind.
+  guclo eqit_clo_bind; econstructor; eauto.
+  - apply Heq.
+  - intros [s' []] _ []; cbn.
+    + rewrite interp_state_tau.
+      gstep; constructor.
+      auto with paco.
+    + rewrite interp_state_ret; apply reflexivity.
 Qed.
