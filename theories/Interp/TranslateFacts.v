@@ -237,3 +237,18 @@ Proof.
   intros; unfold trigger; rewrite translate_vis; setoid_rewrite translate_ret; reflexivity.
 Qed.
 
+(** Inversion principles *)
+
+Lemma translate_Vis_inv {E F} {R T} (h: E ~> F) (t: itree E R) (e': F T) k':
+  translate h t ≅ Vis e' k' ->
+  exists (e: E T) k, t ≅ Vis e k /\ e' = h _ e /\ (forall x, k' x ≅ translate h (k x)).
+Proof.
+  intros. rewrite (itree_eta t) in H. setoid_rewrite (itree_eta t).
+  desobs t Ht; clear t Ht; rewrite unfold_translate in H; cbn in H.
+  - punfold H; red in H; inversion H.
+  - punfold H; red in H; inversion H; inversion CHECK.
+  - apply eqitree_inv_Vis_r in H. destruct H as [k'' [H1 H2]].
+    cbn in H1. dependent destruction H1.
+    exists e, k. split. reflexivity. split. reflexivity.
+    intro x. symmetry. eauto.
+Qed.

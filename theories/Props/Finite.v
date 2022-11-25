@@ -5,6 +5,7 @@ From ITree Require Import
      ITree
      Basics.Tacs
      Eq.Eqit
+     Interp.TranslateFacts
      Leaf.
 From ITree.Events Require Import Nondeterminism Exception. (* For counterexamples *)
 
@@ -92,6 +93,13 @@ Proof.
 Qed.
 #[global] Hint Resolve all_finite_Vis : itree.
 
+Lemma all_finite_trigger : forall E R (e: E R),
+  all_finite (ITree.trigger e).
+Proof.
+  intros. apply all_finite_Vis. auto with itree.
+Qed.
+#[global] Hint Extern 1 (all_finite (trigger _)) => apply all_finite_trigger : itree.
+
 (* any_finite *)
 Lemma any_finite_Ret : forall E R a,
   @any_finite E R (Ret a).
@@ -115,6 +123,13 @@ Proof.
   intros; econstructor 3; [reflexivity | eauto].
 Qed.
 #[global] Hint Resolve any_finite_Vis : itree.
+
+Lemma any_finite_trigger : forall E R (e: E R) (r: R),
+  any_finite (ITree.trigger e).
+Proof.
+  intros. apply any_finite_Vis with (x := r). auto with itree.
+Qed.
+#[global] Hint Extern 1 (any_finite (trigger _)) => apply any_finite_trigger : itree.
 
 (** Inversion lemmas *)
 
@@ -435,6 +450,28 @@ Proof.
   - rewrite itree_eta, H in IN'; apply Leaf_Ret_inv in IN'; auto.
   - rewrite itree_eta, H, tau_eutt in IN'; eauto.
   - inv e.
+Qed.
+
+(** [translate] does not affect termination *)
+
+Lemma all_finite_translate {E F R}: forall (f: E ~> F) (t: itree E R),
+  all_finite t ->
+  all_finite (translate f t).
+Proof.
+  intros *; induction 1; rewrite unfold_translate, H; cbn.
+  - apply all_finite_Ret.
+  - apply all_finite_Tau. auto.
+  - apply all_finite_Vis. auto.
+Qed.
+
+Lemma any_finite_translate {E F R}: forall (f: E ~> F) (t: itree E R),
+  any_finite t ->
+  any_finite (translate f t).
+Proof.
+  intros *. induction 1; rewrite unfold_translate, H; cbn.
+  - apply any_finite_Ret.
+  - apply any_finite_Tau. auto.
+  - eapply any_finite_Vis. eauto.
 Qed.
 
 (** [spin] is not finite, in any sense of the term *)

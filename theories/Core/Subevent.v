@@ -114,3 +114,17 @@ Lemma subevent_subevent : forall {E F G :Type -> Type} (SEF: E -< F) (SFG: F -< 
 Proof.
   reflexivity.
 Qed.
+
+#[global] Instance subevent_void1 {E}: void1 -< E := fun T e => match e with end.
+
+Lemma subevent_left {E F R} (e: E R):
+  @subevent E (E +' F) (ReSum_inl _ _ _ _ _) R e = inl1 e.
+Proof.
+  reflexivity.
+Qed.
+
+Lemma subevent_right {E F R} (e: F R):
+  @subevent F (E +' F) (ReSum_inr _ _ _ _ _) R e = inr1 e.
+Proof.
+  reflexivity.
+Qed.
