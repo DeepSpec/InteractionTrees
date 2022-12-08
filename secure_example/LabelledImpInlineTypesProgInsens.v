@@ -486,7 +486,7 @@ Proof.
   + cbn. rewrite interp_state_ret, bind_ret_l. cbn. apply pi_eqit_secure_ret.
     constructor. repeat (split; auto).
   + cbn. rewrite interp_state_bind. rewrite bind_bind.
-    rewrite <- bind_ret_r with (s0 := Ret (regs2, σ2, tt) ). 
+    rewrite <- bind_ret_r with (s := Ret (regs2, σ2, tt) ). 
     cbn in H0.
     eapply pi_eqit_secure_bind; eauto.
     intros [ [ ? σ4] [] ] [ [ ? σ5] [] ] [ [ _ Hσ'] _ ]. rewrite interp_state_ret, bind_ret_l. cbn.
@@ -522,7 +522,7 @@ Proof.
     apply pi_eqit_secure_ret. constructor. repeat (split; auto).
     constructor.
   + rewrite throw_prefix_bind. rewrite interp_state_bind. rewrite bind_bind.
-    rewrite <- bind_ret_r with (s0 := Ret (regs2, σ2, tt) ).
+    rewrite <- bind_ret_r with (s := Ret (regs2, σ2, tt) ).
     cbn in H0.
     eapply pi_eqit_secure_bind; eauto.
     intros [ [ ? σ4] r1] [ [ ? σ5] r2'] [ [ _ Hσ'] Hr]; inv Hr.

@@ -1232,7 +1232,7 @@ Section Correctness.
     induction (code j2).
     - cbn. rewrite throw_prefix_bind. repeat rewrite bind_bind.
       set (fun (x : unit + sensitivity) (_ : unit) => x = inl tt) as RR.
-      eapply eqit_bind' with (RR0 := RR); try apply exception_to_sum_correct_instr_aux. unfold RR.
+      eapply eqit_bind' with (RR := RR); try apply exception_to_sum_correct_instr_aux. unfold RR.
       intros; subst. auto.
     - destruct b; cbn; repeat adv.
       + unfold exception_to_sum_branch_reassoc. 
