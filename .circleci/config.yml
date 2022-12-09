@@ -56,7 +56,7 @@ jobs:
     - setup
     - run:
         name: Build, test
-        command: make -j all
+        command: make all
     - run:
         name: Clean
         command: make clean
