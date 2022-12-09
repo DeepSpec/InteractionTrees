@@ -32,6 +32,12 @@ tutorial:
 hoare_example:
 	$(MAKE) -C hoare_example
 
+secure_example:
+	$(MAKE) -C secure_example
+
+secure_artifact:
+	$(MAKE) coq
+	$(MAKE) -C secure_example
 
 clean: clean-coq
 	$(RM) _CoqProject
@@ -39,6 +45,7 @@ clean: clean-coq
 	$(MAKE) -C examples clean
 	$(MAKE) -C tutorial clean
 	$(MAKE) -C hoare_example clean
+	$(MAKE) -C secure_example clean
 
 _CoqProject: $(COQPATHFILE) _CoqConfig Makefile
 	@ echo "# Generating _CoqProject"
