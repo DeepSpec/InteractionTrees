@@ -1035,7 +1035,7 @@ Proof.
 Qed.
 
 
-Lemma well_typed_stmt_sound pc s lexn : well_typed_stmt pc lexn s -> secure_stmt pc lexn s.
+Lemma well_typed_stmt_sound pc s lexn : well_typed_stmt pc lexn s -> secure_stmt pc lexn s /\ secure_throw_stmt pc lexn s.
 Proof.
   intros Htype. enough (secure_stmt pc lexn  s/\ secure_throw_stmt pc lexn s); try tauto.
   induction Htype; eauto; try tauto.

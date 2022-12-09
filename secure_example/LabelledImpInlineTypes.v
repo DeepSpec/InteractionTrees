@@ -1131,7 +1131,7 @@ Proof.
     + right; auto. apply expr_only_ret.
 Qed. 
 
-Lemma well_typed_stmt_sound s pc : well_typed_stmt pc s -> secure_stmt pc s.
+Lemma well_typed_stmt_sound s pc : well_typed_stmt pc s -> secure_stmt pc s /\ secure_throw_stmt pc s.
 Proof.
   intros Htype. enough (secure_stmt pc s /\ secure_throw_stmt pc s); try tauto.
   induction Htype; eauto; try tauto.
