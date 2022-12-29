@@ -1,3 +1,13 @@
+5.1.0 - December 2022
+=====================
+
+- In `ITree.Extra`:
+    + Refactor `IForest` to reuse `ITree.Props.Leaf`.
+
+- Add `Eq.RuttFacts`: properties of `rutt`.
+
+- Add more lemmas about `eutt` and `Leaf`.
+
 5.0.0 - May 2022
 ================
 
