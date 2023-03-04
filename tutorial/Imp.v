@@ -104,12 +104,14 @@ Module ImpNotations.
   Coercion Var_coerce: string >-> expr.
   Coercion Lit_coerce: nat >-> expr.
 
+  Declare Scope expr_scope.
   Bind Scope expr_scope with expr.
 
   Infix "+" := Plus : expr_scope.
   Infix "-" := Minus : expr_scope.
   Infix "*" := Mult : expr_scope.
 
+  Declare Scope stmt_scope.
   Bind Scope stmt_scope with stmt.
 
   Notation "x '←' e" :=
