@@ -16,6 +16,7 @@ Inductive com : Type :=
 | seq : com -> com -> com
 .
 
+Declare Scope com_scope.
 Infix ";;" := seq (at level 61, right associativity) : com_scope.
 Delimit Scope com_scope with com.
 Open Scope com_scope.

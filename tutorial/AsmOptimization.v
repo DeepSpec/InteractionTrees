@@ -311,7 +311,7 @@ Section Correctness.
   (** A peephole optimizer is correct if it replaces an instruction with
     a semantically equivalent sequence of instructions. *)
 Definition ph_correct (ph : peephole_optimization) :=
-  forall {E} (i:instr),
+  forall E (i:instr),
     @eq_asm_denotations_EQ E unit _ (fun _ => denote_instr i) (fun _ => denote_list (ph i)).
 
 Lemma ph_blk_append_correct {E} {HasExit : Exit -< E} :
