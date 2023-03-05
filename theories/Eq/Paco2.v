@@ -24,7 +24,7 @@ Proof.
   intros.
   apply paco2_acc with
     (l := fun a0 (a1 : T1 a0) => exists x, existT _ (f0 x) (f1 x) = existT _ a0 a1); [ | eauto ].
-  intros. change (paco2 gf rr (projT1 (existT _ _ x1)) (projT2 (existT _ _ x1))).
+  intros rr INC CIH x0 x1 PR. change (paco2 gf rr (projT1 (existT _ _ x1)) (projT2 (existT _ _ x1))).
   destruct PR as [? <-].
   eauto.
 Qed.
