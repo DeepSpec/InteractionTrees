@@ -18,6 +18,7 @@
 Set Warnings "-deprecated-hint-rewrite-without-locality".
 
 From Coq Require Import
+     Structures.Orders (* Hint Unfold is_true *)
      Program
      Setoid
      Morphisms
