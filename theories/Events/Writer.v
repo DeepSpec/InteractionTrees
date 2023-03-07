@@ -10,11 +10,6 @@ From Coq Require Import
      List.
 Import ListNotations.
 
-From ExtLib Require Import
-     Structures.Functor
-     Structures.Monad
-     Structures.Monoid.
-
 From ITree Require Import
      Basics.Basics
      Basics.CategoryOps
@@ -29,6 +24,60 @@ From ITree Require Import
 
 Import Basics.Basics.Monads.
 (* end hide *)
+
+(* begin extlib inline *)
+Section unit_op.
+  Context {T : Type}.
+  Variable op : T -> T -> T.
+  Variable u : T.
+  Variable equ : T -> T -> Prop.
+
+  Class LeftUnit : Type :=
+    lunit : forall a, equ (op u a) a.
+
+  Class RightUnit : Type :=
+    runit : forall a, equ (op a u) a.
+
+End unit_op.
+
+Section comm_op.
+  Context {T U : Type}.
+  Variable op : T -> T -> U.
+  Variable equ : U -> U -> Prop.
+
+  Class Commutative : Type :=
+    commut : forall a b, equ (op a b) (op b a).
+
+End comm_op.
+
+Section assoc_op.
+  Context {T : Type}.
+  Variable op : T -> T -> T.
+  Variable equ : T -> T -> Prop.
+
+  Class Associative : Type :=
+    assoc : forall a b c, equ (op (op a b) c) (op a (op b c)).
+
+End assoc_op.
+
+Section Monoid.
+  Universe u.
+  Variable S : Type@{u}.
+
+  Record Monoid@{} : Type :=
+  { monoid_plus : S -> S -> S
+  ; monoid_unit : S
+  }.
+
+  Class MonoidLaws@{} (M : Monoid) : Type :=
+  { monoid_assoc :> Associative M.(monoid_plus) eq
+  ; monoid_lunit :> LeftUnit M.(monoid_plus) M.(monoid_unit) eq
+  ; monoid_runit :> RightUnit M.(monoid_plus) M.(monoid_unit) eq
+  }.
+
+End Monoid.
+
+(* end extlib inline *)
 
 (** Event to output values of type [W]. *)
 Variant writerE (W : Type) : Type -> Type :=
@@ -70,7 +119,7 @@ Definition handle_writer {W E} (Monoid_W : Monoid W)
   : writerE W ~> stateT W (itree E)
   := fun _ e s =>
        match e with
-       | Tell w => Ret (monoid_plus Monoid_W s w, tt) 
+       | Tell w => Ret (monoid_plus Monoid_W s w, tt)
        end.
 
 Definition run_writer {W E} (Monoid_W : Monoid W)

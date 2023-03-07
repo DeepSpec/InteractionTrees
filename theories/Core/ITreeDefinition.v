@@ -1,9 +1,6 @@
 (** * Interaction trees: core definitions *)
 
 (* begin hide *)
-Require Import ExtLib.Structures.Functor.
-Require Import ExtLib.Structures.Applicative.
-Require Import ExtLib.Structures.Monad.
 Require Import Program.Tactics.
 
 From ITree Require Import Basics.
@@ -224,9 +221,9 @@ Ltac fold_subst :=
   repeat (change (ITree.subst ?k ?t) with (ITree.bind t k)).
 
 Ltac fold_monad :=
-  repeat (change (@ITree.bind ?E) with (@Monad.bind (itree E) _));
-  repeat (change (go (@RetF ?E _ _ _ ?r)) with (@Monad.ret (itree E) _ _ r));
-  repeat (change (@ITree.map ?E) with (@Functor.fmap (itree E) _)).
+  repeat (change (@ITree.bind ?E) with (@bind (itree E) _));
+  repeat (change (go (@RetF ?E _ _ _ ?r)) with (@ret (itree E) _ _ r));
+  repeat (change (@ITree.map ?E) with (@fmap (itree E) _)).
 
 End ITree.
 
@@ -237,7 +234,7 @@ End ITree.
     they simplify easily, so lemmas without classes are easier
     to apply than lemmas with.
 
-    We can also make ExtLib's [bind] opaque, in which case it still
+    We can also make [bind] opaque, in which case it still
     doesn't hurt to have these notations around.
  *)
 

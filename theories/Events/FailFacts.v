@@ -32,24 +32,24 @@ Import Monads.
 
 Section FailT.
 
-  Context {m : Type -> Type} {Fm: Functor.Functor m} {Mm : Monad m} {MIm : MonadIter m}.
+  Context {m : Type -> Type} {Fm: Basics.Functor m} {Mm : Monad m} {MIm : MonadIter m}.
 
   Definition failT (m : Type -> Type) (a : Type) : Type :=
     m (option a)%type.
 
-  Global Instance failT_fun : Functor.Functor (failT m) :=
-    {| Functor.fmap := fun x y f => 
-                         Functor.fmap (fun x => match x with | None => None | Some x => Some (f x) end) |}.
+  Global Instance failT_fun : Basics.Functor (failT m) :=
+    {| fmap := fun x y f =>
+                         fmap (fun x => match x with | None => None | Some x => Some (f x) end) |}.
 
   Global Instance failT_monad : Monad (failT m) :=
     {| ret := fun _ x => ret (Some x);
        bind := fun _ _ c k =>
-                 bind (m := m) c 
+                 bind (m := m) c
                       (fun x => match x with | None => ret (None) | Some x => k x end)
     |}.
 
   Global Instance failT_iter  : MonadIter (failT m) :=
-    fun A I body i => Basics.iter (M := m) (I := I) (R := option A) 
+    fun A I body i => Basics.iter (M := m) (I := I) (R := option A)
                                (fun i => bind (m := m)
                                            (body i)
                                            (fun x => match x with
@@ -97,8 +97,8 @@ Section FailTLaws.
       rewrite <- (bind_ret_r x) at 2.
       eapply eutt_eq_bind; intros []; reflexivity.
     - intros; cbn; rewrite bind_bind.
-      eapply eutt_eq_bind; intros []. 
-      + eapply eutt_eq_bind; intros []; reflexivity. 
+      eapply eutt_eq_bind; intros [].
+      + eapply eutt_eq_bind; intros []; reflexivity.
       + rewrite bind_ret_l; reflexivity.
     - repeat intro; cbn.
       eapply eutt_clo_bind; eauto.
@@ -106,7 +106,7 @@ Section FailTLaws.
       rewrite H0; reflexivity.
       reflexivity.
   Qed.
-  
+
 End FailTLaws.
 
 (* Failure handlers [E ~> stateT S (itree F)] and morphisms
@@ -114,7 +114,7 @@ End FailTLaws.
    [itree E ~> stateT S (itree F)]. *)
 
 Definition interp_fail {E M}
-           {FM : Functor.Functor M} {MM : Monad M}
+           {FM : Basics.Functor M} {MM : Monad M}
            {IM : MonadIter M} (h : E ~> failT M) :
   itree E ~> failT M := interp h.
 Arguments interp_fail {_ _ _ _ _} h [T].
@@ -139,7 +139,7 @@ Proof.
   cbn; repeat (rewrite ?bind_bind, ?bind_ret_l, ?bind_map; try reflexivity).
   cbn; repeat (rewrite ?bind_bind, ?bind_ret_l, ?bind_map; try reflexivity).
   cbn; repeat (rewrite ?bind_bind, ?bind_ret_l, ?bind_map; try reflexivity).
-  apply eq_itree_clo_bind with (UU := Logic.eq); [reflexivity | intros x ? <-]. 
+  apply eq_itree_clo_bind with (UU := Logic.eq); [reflexivity | intros x ? <-].
   destruct x as [x|].
   - rewrite bind_ret_l; reflexivity.
   - rewrite bind_ret_l; reflexivity.
@@ -148,7 +148,7 @@ Qed.
 Global Instance interp_fail_eq_itree {X E F} {R : X -> X -> Prop} (h : E ~> failT (itree F)) :
   Proper (eq_itree R ==> eq_itree (option_rel R)) (@interp_fail _ _ _ _ _ h X).
 Proof.
-  repeat red. 
+  repeat red.
   ginit.
   pcofix CIH.
   intros s t EQ.
@@ -171,7 +171,7 @@ Qed.
 Global Instance interp_fail_eutt {X E F R} (h : E ~> failT (itree F)) :
   Proper (eutt R ==> eutt (option_rel R)) (@interp_fail _ _ _ _ _ h X).
 Proof.
-  repeat red. 
+  repeat red.
   einit.
   ecofix CIH.
   intros s t EQ.
@@ -181,7 +181,7 @@ Proof.
   - ebind; econstructor; [reflexivity |].
     intros [] [] EQ; inv EQ.
     + estep; ebase.
-    + eret. 
+    + eret.
   - rewrite tau_euttge, unfold_interp_fail; eauto.
   - rewrite tau_euttge, unfold_interp_fail; eauto.
 Qed.
@@ -200,8 +200,8 @@ Lemma interp_fail_tau {E F R} {f : E ~> failT (itree F)} (t: itree E R):
 Proof. rewrite unfold_interp_fail. reflexivity. Qed.
 
 Lemma interp_fail_vis {E F : Type -> Type} {T U : Type}
-      (e : E T) (k : T -> itree E U) (h : E ~> failT (itree F)) 
-  : interp_fail h (Vis e k) 
+      (e : E T) (k : T -> itree E U) (h : E ~> failT (itree F))
+  : interp_fail h (Vis e k)
                 ≅ h T e >>= fun mx =>
                               match mx with
                               | None => Ret None
@@ -231,7 +231,7 @@ Proof.
 Qed.
 
 Lemma interp_fail_trigger {E F : Type -> Type} {R : Type}
-      (e : E R) (f : E ~> failT (itree F)) 
+      (e : E R) (f : E ~> failT (itree F))
   : interp_fail f (ITree.trigger e) ≈ f _ e.
 Proof.
   unfold ITree.trigger. rewrite interp_fail_vis.

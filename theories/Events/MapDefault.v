@@ -5,10 +5,7 @@ Set Implicit Arguments.
 Set Contextual Implicit.
 
 From ExtLib Require Import
-     Core.RelDec.
-
-From ExtLib.Structures Require
-     Functor Monoid Maps.
+  Maps Core.RelDec.
 
 From ITree Require Import
      Basics.Basics
@@ -39,7 +36,7 @@ Section Map.
   Arguments Insert {d}.
   Arguments LookupDef {d}.
   Arguments Remove {d}.
-  
+
   Definition insert {E d} `{(mapE d) -< E} : K -> V -> itree E unit := embed Insert.
   Definition lookup_def {E d} `{(mapE d) -< E} : K -> itree E V := embed LookupDef.
   Definition remove {E d} `{(mapE d) -< E} : K -> itree E unit := embed Remove.
@@ -54,7 +51,7 @@ Section Map.
     | Some v' => v'
     | None => d
     end.
-  
+
   Definition handle_map {E d} : mapE d ~> stateT map (itree E) :=
     fun _ e env =>
       match e with
@@ -64,7 +61,7 @@ Section Map.
       end.
 
   (* SAZ: I think that all of these [run_foo] functions should be renamed
-     [interp_foo].  That would be more consistent with the idea that 
+     [interp_foo].  That would be more consistent with the idea that
      we define semantics by nested interpretation.  Also, it seems a bit
      strange to define [interp_map] in terms of [interp_state].
   *)
@@ -77,7 +74,7 @@ Section Map.
      answers under [lookup_default] *)
   Definition eq_map (d:V) (m1 m2 : map) : Prop :=
     forall k, lookup_default k d m1 = lookup_default k d m2.
-  
+
 End Map.
 
 Arguments insert {K V E d _}.

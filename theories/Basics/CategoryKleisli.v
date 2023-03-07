@@ -18,9 +18,6 @@
 From Coq Require Import
      Morphisms.
 
-From ExtLib Require Import
-     Structures.Monad.
-
 From ITree Require Import
      Basics.Basics
      Basics.CategoryOps
@@ -28,10 +25,11 @@ From ITree Require Import
      Basics.Monad.
 (* end hide *)
 
+Set Universe Polymorphism.
 Implicit Types m : Type -> Type.
 Implicit Types a b c : Type.
 
-Definition Kleisli m a b : Type := a -> m b.
+Definition Kleisli@{c d} (m : Type@{c} -> Type@{d}) (a : Type@{d}) (b : Type@{c}) : Type@{max(d+1,c)} := a -> m b.
 
 (* SAZ: We need to show how these are intended to be used. *)
 (** A trick to allow rewriting in pointful contexts. *)
@@ -56,7 +54,7 @@ Section Instances.
 
   Definition map {a b c} (g:b -> c) (ab : Kleisli m a b) : Kleisli m a c :=
      cat ab (pure g).
-  
+
   #[global] Instance Initial_Kleisli : Initial (Kleisli m) void :=
     fun _ v => match v : void with end.
 

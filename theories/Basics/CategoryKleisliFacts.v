@@ -6,9 +6,6 @@ From Coq Require Import
      Morphisms
      RelationClasses.
 
-From ExtLib Require Import
-     Structures.Monad.
-
 From ITree Require Import
      Basics.Basics
      Basics.Category

@@ -6,9 +6,7 @@ Set Contextual Implicit.
 
 From Coq Require Import List.
 Import ListNotations.
-
-From ExtLib.Structures Require Maps.
-
+From ExtLib Require Import Structures.Maps.
 From ITree Require Import
      Basics.Basics
      Basics.CategoryOps

@@ -149,8 +149,6 @@ Definition respectful_eutt {E F : Type -> Type}
   : (itree E ~> itree F) -> (itree E ~> itree F) -> Prop
   := i_respectful (fun _ => eutt eq) (fun _ => eutt eq).
 
-Require ITree.Core.KTreeFacts. (* TODO: only needed to avoid a universe inconsistency right around here (errors if you try to move this to the end of the file, or just under the next instance)... *)
-
 #[global]
 Instance eq_itree_apply_IFun {E F : Type -> Type} {T : Type}
   : Proper (respectful_eq_itree ==> eq_itree eq ==> eq_itree eq)

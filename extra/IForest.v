@@ -21,9 +21,6 @@ From ITree Require Import
 
 From Paco Require Import paco.
 
-From ExtLib Require Import
-     Structures.Functor.
-
 From Coq Require Import
      Relations
      Morphisms.
@@ -53,7 +50,7 @@ Notation eutt_closed := (Proper (eutt eq ==> iff)) (only parsing).
     eutt_closed PA /\ eutt_closed PA'.
 
 #[global] Instance Functor_iforest {E}
-  : Functor (iforest E) :=
+  : Basics.Functor (iforest E) :=
   {| fmap := fun A B f PA b => exists (a: itree E A), PA a /\ b = fmap f a |}.
 
 Definition subtree {E} {A B} (ta : itree E A) (tb : itree E B) : Prop :=

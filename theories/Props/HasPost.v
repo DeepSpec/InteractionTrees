@@ -6,6 +6,7 @@ From ITree Require Import
      ITree
      Eq.Eqit
      Basics.HeterogeneousRelations
+     Interp.InterpFacts
      Interp.TranslateFacts.
 Set Implicit Arguments.
 Set Strict Implicit.

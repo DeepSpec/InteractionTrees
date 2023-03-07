@@ -6,13 +6,10 @@ Set Contextual Implicit.
 
 From Coq Require Import Morphisms.
 
-From ExtLib Require Import
-     Core.RelDec.
-
-From ExtLib.Structures Require
-     Maps.
-
 From Paco Require Import paco.
+
+From ExtLib Require Import
+  Maps Core.RelDec.
 
 From ITree Require Import
      Basics.HeterogeneousRelations

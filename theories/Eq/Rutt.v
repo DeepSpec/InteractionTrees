@@ -19,9 +19,6 @@ From Coq Require Import
      Morphisms
 .
 
-From ExtLib Require Import
-     Structures.Monad.
-
 From ITree Require Import
      Basics.Tacs
      Axioms

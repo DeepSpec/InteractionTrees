@@ -4,19 +4,17 @@
 From Coq Require Import
      Morphisms.
 
-From ExtLib Require Export
-     Structures.Monad.
-
 From ITree Require Import
      Basics.Basics
      Basics.CategoryOps.
 (* end hide *)
 
 Set Primitive Projections.
+Set Universe Polymorphism.
 
 (* Canonical equivalence relation for a unary type family. *)
-Class Eq1 (M : Type -> Type) : Type :=
-  eq1 : forall A, M A -> M A -> Prop.
+Class Eq1@{d c} (M : Type@{d} -> Type@{c}) : Type :=
+  eq1 : forall (A : Type@{d}), M A -> M A -> Prop.
 
 Arguments eq1 {M _ _}.
 Infix "≈" := eq1 (at level 70) : monad_scope.

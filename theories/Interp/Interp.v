@@ -30,10 +30,6 @@
  *)
 
 (* begin hide *)
-From ExtLib Require Import
-     Structures.Functor
-     Structures.Monad.
-
 From ITree Require Import
      Basics.Basics
      Core.ITreeDefinition

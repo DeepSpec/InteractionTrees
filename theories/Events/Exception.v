@@ -26,8 +26,8 @@ Definition try_catch {Err R : Type } {E : Type -> Type}
        | TauF t' => Ret (inl t')
        | VisF e k =>
          match e with
-         | inl1 (Throw exc) => Functor.fmap inr (kcatch exc)
-         | inr1 e' =>  Functor.fmap (fun x => inl (k x) ) (trigger e) end end
+         | inl1 (Throw exc) => fmap inr (kcatch exc)
+         | inr1 e' =>  fmap (fun x => inl (k x) ) (trigger e) end end
 
   in 
   ITree.iter catch_body ttry.
@@ -41,7 +41,7 @@ Definition throw_prefix {Err R : Type} {E : Type -> Type}
       | VisF e k =>
         match e with
         | inl1 (Throw exc) => Ret (inr (inr exc) )
-        | inr1 e' =>  Functor.fmap (fun x => inl (k x) ) (trigger e)
+        | inr1 e' =>  fmap (fun x => inl (k x) ) (trigger e)
         end
       end in
   ITree.iter prefix_body t.

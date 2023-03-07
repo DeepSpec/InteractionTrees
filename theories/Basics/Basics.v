@@ -9,17 +9,64 @@ From Coq Require
 From Coq Require Import
      RelationClasses.
 
-From ExtLib Require Import
-     Structures.Functor
-     Structures.Monad
-     Data.Monads.StateMonad
-     Data.Monads.ReaderMonad
-     Data.Monads.OptionMonad
-     Data.Monads.EitherMonad.
+(* begin extlib inline *)
+
+Class Applicative@{d c} (T : Type@{d} -> Type@{c}) :=
+{ pure : forall {A : Type@{d}}, A -> T A
+; ap : forall {A B : Type@{d}}, T (A -> B) -> T A -> T B
+}.
+
+Polymorphic Class Functor@{d c} (F : Type@{d} -> Type@{c}) : Type :=
+{ fmap : forall {A B : Type@{d}}, (A -> B) -> F A -> F B }.
+
+Polymorphic Class Monad@{d c} (m : Type@{d} -> Type@{c}) : Type :=
+{ ret : forall {t : Type@{d}}, t -> m t
+; bind : forall {t u : Type@{d}}, m t -> (t -> m u) -> m u
+}.
+
+Definition mcompose@{c d}
+  {m:Type@{d}->Type@{c}}
+  {M: Monad m}
+  {T U V:Type@{d}}
+  (f: T -> m U) (g: U -> m V): (T -> m V) :=
+  fun x => bind (f x) g.
+
+Module MonadBaseNotation.
+
+  Delimit Scope monad_scope with monad.
+
+  Notation "c >>= f" := (@bind _ _ _ _ c f) (at level 58, left associativity) : monad_scope.
+  Notation "f =<< c" := (@bind _ _ _ _ c f) (at level 61, right associativity) : monad_scope.
+  Notation "f >=> g" := (@mcompose _ _ _ _ _ f g) (at level 61, right associativity) : monad_scope.
+
+  Notation "e1 ;; e2" := (@bind _ _ _ _ e1%monad (fun _ => e2%monad))%monad
+    (at level 61, right associativity) : monad_scope.
+
+End MonadBaseNotation.
+
+Module MonadNotation.
+
+  Export MonadBaseNotation.
+
+  Notation "x <- c1 ;; c2" := (@bind _ _ _ _ c1 (fun x => c2))
+    (at level 61, c1 at next level, right associativity) : monad_scope.
+
+  Notation "' pat <- c1 ;; c2" :=
+    (@bind _ _ _ _ c1 (fun x => match x with pat => c2 end))
+    (at level 61, pat pattern, c1 at next level, right associativity) : monad_scope.
+
+End MonadNotation.
+
+Module FunctorNotation.
+  Notation "f <$> x" := (@fmap _ _ _ _ f x) (at level 52, left associativity).
+End FunctorNotation.
+
+(* end extlib inline *)
 
 Import
   FunctorNotation
   MonadNotation.
+
 Local Open Scope monad.
 (* end hide *)
 
@@ -83,6 +130,8 @@ Definition writer := prod.
 
 End Monads.
 
+(* Import Monads. *)
+
 (** ** Loop operator *)
 
 (** [iter]: A primitive for general recursion.
@@ -99,17 +148,17 @@ Polymorphic Class MonadIter (M : Type -> Type) : Type :=
     Quite easily in fact, no [Monad] assumption needed.
  *)
 
-#[global] Instance MonadIter_stateT {M S} {MM : Monad M} {AM : MonadIter M}
-  : MonadIter (stateT S M) :=
-  fun _ _ step i => mkStateT (fun s =>
-    iter (fun is =>
-      let i := fst is in
-      let s := snd is in
-      is' <- runStateT (step i) s ;;
-      ret match fst is' with
-          | inl i' => inl (i', snd is')
-          | inr r => inr (r, snd is')
-          end) (i, s)).
+(* #[global] Instance MonadIter_stateT {M S} {MM : Monad M} {AM : MonadIter M} *)
+(*   : MonadIter (stateT S M) := *)
+(*   fun _ _ step i => mkStateT (fun s => *)
+(*     iter (fun is => *)
+(*       let i := fst is in *)
+(*       let s := snd is in *)
+(*       is' <- runStateT (step i) s ;; *)
+(*       ret match fst is' with *)
+(*           | inl i' => inl (i', snd is') *)
+(*           | inr r => inr (r, snd is') *)
+(*           end) (i, s)). *)
 
 #[global] Polymorphic Instance MonadIter_stateT0 {M S} {MM : Monad M} {AM : MonadIter M}
   : MonadIter (Monads.stateT S M) :=
@@ -123,31 +172,31 @@ Polymorphic Class MonadIter (M : Type -> Type) : Type :=
           | inr r => inr (fst si', r)
           end) (s, i).
 
-#[global] Instance MonadIter_readerT {M S} {AM : MonadIter M} : MonadIter (readerT S M) :=
-  fun _ _ step i => mkReaderT (fun s =>
-    iter (fun i => runReaderT (step i) s) i).
+(* #[global] Instance MonadIter_readerT {M S} {AM : MonadIter M} : MonadIter (readerT S M) := *)
+(*   fun _ _ step i => mkReaderT (fun s => *)
+(*     iter (fun i => runReaderT (step i) s) i). *)
 
-#[global] Instance MonadIter_optionT {M} {MM : Monad M} {AM : MonadIter M}
-  : MonadIter (optionT M) :=
-  fun _ _ step i => mkOptionT (
-    iter (fun i =>
-      oi <- unOptionT (step i) ;;
-      ret match oi with
-          | None => inr None
-          | Some (inl i) => inl i
-          | Some (inr r) => inr (Some r)
-          end) i).
+(* #[global] Instance MonadIter_optionT {M} {MM : Monad M} {AM : MonadIter M} *)
+(*   : MonadIter (optionT M) := *)
+(*   fun _ _ step i => mkOptionT ( *)
+(*     iter (fun i => *)
+(*       oi <- unOptionT (step i) ;; *)
+(*       ret match oi with *)
+(*           | None => inr None *)
+(*           | Some (inl i) => inl i *)
+(*           | Some (inr r) => inr (Some r) *)
+(*           end) i). *)
 
-#[global] Instance MonadIter_eitherT {M E} {MM : Monad M} {AM : MonadIter M}
-  : MonadIter (eitherT E M) :=
-  fun _ _ step i => mkEitherT (
-    iter (fun i =>
-      ei <- unEitherT (step i) ;;
-      ret match ei with
-          | inl e => inr (inl e)
-          | inr (inl i) => inl i
-          | inr (inr r) => inr (inr r)
-          end) i).
+(* #[global] Instance MonadIter_eitherT {M E} {MM : Monad M} {AM : MonadIter M} *)
+(*   : MonadIter (eitherT E M) := *)
+(*   fun _ _ step i => mkEitherT ( *)
+(*     iter (fun i => *)
+(*       ei <- unEitherT (step i) ;; *)
+(*       ret match ei with *)
+(*           | inl e => inr (inl e) *)
+(*           | inr (inl i) => inl i *)
+(*           | inr (inr r) => inr (inr r) *)
+(*           end) i). *)
 
 (** And the nondeterminism monad [_ -> Prop] also has one. *)
 

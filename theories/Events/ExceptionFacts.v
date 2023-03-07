@@ -2,9 +2,6 @@
 From Coq Require Import
      Morphisms.
 
-From ExtLib Require Import
-     Structures.Monad.
-
 From Paco Require Import paco.
 
 From ITree Require Import
