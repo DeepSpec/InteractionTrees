@@ -286,25 +286,10 @@ From ITree Require Import
      Events.MapDefault.
 
 From ExtLib Require Import
+     Data.String
      Core.RelDec
      Structures.Maps
      Data.Map.FMapAList.
-
-(** These enable typeclass instances for Maps keyed by strings and values *)
-#[global]
-Instance RelDec_string : RelDec (@eq string) :=
-  { rel_dec := fun s1 s2 => if string_dec s1 s2 then true else false}.
-
-#[global]
-Instance RelDec_string_Correct: RelDec_Correct RelDec_string.
-Proof.
-  constructor; intros x y.
-  split.
-  - unfold rel_dec; simpl.
-    destruct (string_dec x y) eqn:EQ; [intros _; apply string_dec_sound; assumption | intros abs; inversion abs].
-  - intros EQ; apply string_dec_sound in EQ; unfold rel_dec; simpl; rewrite EQ; reflexivity.
-Qed.
-(* end hide *)
 
 (** We provide an _ITree event handler_ to interpret away [ImpState] events.  We
     use an _environment event_ to do so, modeling the environment as a

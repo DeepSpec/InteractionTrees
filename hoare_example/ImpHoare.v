@@ -3,6 +3,10 @@ From Coq Require Import
      Morphisms
 .
 
+From ExtLib Require Import
+     Data.String
+.
+
 From ITree Require Import
      Axioms
      ITree
@@ -740,11 +744,11 @@ Proof.
   intros. red in s. red in s. generalize dependent x. induction s; intros; auto.
   - cbn. destruct a as [y v]. destruct (Strings.String.string_dec x y).
     + subst. exfalso. apply (H v). red. cbn. red. cbn.
-      rewrite RelDec.rel_dec_eq_true; auto. apply RelDec_string_Correct.
-    + rewrite RelDec.rel_dec_neq_false; auto; try apply RelDec_string_Correct.
+      rewrite RelDec.rel_dec_eq_true; auto. apply RelDec_Correct_string.
+    + rewrite RelDec.rel_dec_neq_false; auto; try apply RelDec_Correct_string.
       unfold Maps.lookup in IHs. cbn in *. apply IHs; auto. intros.
       intro Hcontra. apply (H v0). red. cbn.
-      rewrite RelDec.rel_dec_neq_false; auto; try apply RelDec_string_Correct.
+      rewrite RelDec.rel_dec_neq_false; auto; try apply RelDec_Correct_string.
 Qed.
 
 

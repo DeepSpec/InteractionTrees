@@ -75,6 +75,7 @@ From ITree Require Import
 Import ITreeNotations.
 
 From ExtLib Require Import
+     Data.String
      Core.RelDec
      Structures.Monad
      Structures.Maps
@@ -263,7 +264,7 @@ Section Simulation_Relation.
              | h: _ = false |- _ => rewrite <- neg_rel_dec_correct in h
              end; try subst.
     - tauto.
-    - setoid_rewrite In_remove_In_ineq_iff; eauto using RelDec_string_Correct.
+    - setoid_rewrite In_remove_In_ineq_iff; eauto using RelDec_Correct_string.
   Qed.
 
   (** [sim_rel] can be composed when proving binary arithmetic operators. *)
