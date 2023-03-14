@@ -22,6 +22,8 @@ examples.mli
 **.coq.d
 *.vok
 *.vos
+*.o
+.nia.cache
 .lia.cache
 output
 deps.jpg
