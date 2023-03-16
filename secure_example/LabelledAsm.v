@@ -311,21 +311,6 @@ From ExtLib Require Import
      Data.Map.FMapAList.
 
 (* begin hide *)
-(** These enable typeclass instances for Maps keyed by strings and registers *)
-#[global]
-Instance RelDec_string : RelDec (@eq string) :=
-  { rel_dec := fun s1 s2 => if string_dec s1 s2 then true else false}.
-
-#[global]
-Instance RelDec_string_Correct: RelDec_Correct RelDec_string.
-Proof.
-  constructor; intros x y.
-  split.
-  - unfold rel_dec; simpl.
-    destruct (string_dec x y) eqn:EQ; [intros _; apply string_dec_sound; assumption | intros abs; inversion abs].
-  - intros EQ; apply string_dec_sound in EQ; unfold rel_dec; simpl; rewrite EQ; reflexivity.
-Qed.
-
 (* SAZ: Annoyingly, typeclass resolution picks the wrong map instance for nats by default, so
    we create an instance for [reg] that hides the wrong instance with the right one. *)
 #[global]
