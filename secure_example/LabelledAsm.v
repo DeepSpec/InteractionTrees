@@ -38,6 +38,7 @@ Definition join_sense l1 l2 :=
   | Public => l2
   | Private => Private end.
 
+#[global]
 Instance sensitivity_lat : Lattice :=
   {|
   T := sensitivity;
@@ -49,6 +50,7 @@ Instance sensitivity_lat : Lattice :=
 
   |}.
 
+#[global]
 Instance sensitivity_latlaws : LatticeLaws sensitivity_lat.
 Proof.
   constructor.
@@ -310,9 +312,11 @@ From ExtLib Require Import
 
 (* begin hide *)
 (** These enable typeclass instances for Maps keyed by strings and registers *)
+#[global]
 Instance RelDec_string : RelDec (@eq string) :=
   { rel_dec := fun s1 s2 => if string_dec s1 s2 then true else false}.
 
+#[global]
 Instance RelDec_string_Correct: RelDec_Correct RelDec_string.
 Proof.
   constructor; intros x y.
@@ -324,6 +328,7 @@ Qed.
 
 (* SAZ: Annoyingly, typeclass resolution picks the wrong map instance for nats by default, so
    we create an instance for [reg] that hides the wrong instance with the right one. *)
+#[global]
 Instance RelDec_reg : RelDec (@eq reg) := RelDec_from_dec eq Nat.eq_dec.
 (* end hide *)
 
