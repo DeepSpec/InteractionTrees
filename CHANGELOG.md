@@ -1,3 +1,9 @@
+5.1.1 - Mars 2023
+=================
+
+- Compatibility with Coq 8.16, 8.17, and paco 4.2.0
+- Remove redundant `RelDec_string` instances
+
 5.1.0 - December 2022
 =====================
 
