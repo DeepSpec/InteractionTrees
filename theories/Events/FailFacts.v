@@ -102,9 +102,9 @@ Section FailTLaws.
       + rewrite bind_ret_l; reflexivity.
     - repeat intro; cbn.
       eapply eutt_clo_bind; eauto.
-      intros [] [] REL; cbn in *; subst; try intuition discriminate.
-      rewrite H0; reflexivity.
-      reflexivity.
+      intros [] [] REL; cbn in *; subst; try contradiction.
+      + apply H0.
+      + reflexivity.
   Qed.
   
 End FailTLaws.
