@@ -278,8 +278,8 @@ Section nat_Show.
       a = b.
   Proof.
     intros.
-    rewrite (NPeano.Nat.div_mod a q); auto.
-    rewrite (NPeano.Nat.div_mod b q); auto.
+    rewrite (Nat.div_mod a q); auto.
+    rewrite (Nat.div_mod b q); auto.
   Qed.
 
   Lemma get_last_digit_inj: forall n m,
@@ -296,9 +296,9 @@ Section nat_Show.
     subst.
     exfalso.
     destruct n8.
-    2: generalize (NPeano.Nat.mod_upper_bound n 10 (ltac:(auto))); intros EQ; rewrite Heq in EQ; lia. 
+    2: generalize (Nat.mod_upper_bound n 10 (ltac:(auto))); intros EQ; rewrite Heq in EQ; lia. 
     destruct n9.
-    2: generalize (NPeano.Nat.mod_upper_bound m 10 (ltac:(auto))); intros EQ; rewrite Heq0 in EQ; lia. 
+    2: generalize (Nat.mod_upper_bound m 10 (ltac:(auto))); intros EQ; rewrite Heq0 in EQ; lia. 
     exfalso; apply ineq,(mod_div_eq n m 10); lia.
   Qed.
 
