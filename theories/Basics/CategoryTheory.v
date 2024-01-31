@@ -37,12 +37,16 @@ Class CatAssoc : Prop :=
       (f >>> g) >>> h ⩯ f >>> (g >>> h).
 
 Class Category : Prop := {
-  category_cat_id_l :> CatIdL;
-  category_cat_id_r :> CatIdR;
-  category_cat_assoc :> CatAssoc;
-  category_proper_cat :> forall a b c,
+  category_cat_id_l : CatIdL;
+  category_cat_id_r : CatIdR;
+  category_cat_assoc : CatAssoc;
+  category_proper_cat : forall a b c,
       @Proper (C a b -> C b c -> C a c) (eq2 ==> eq2 ==> eq2) cat;
 }.
+#[global] Existing Instance category_cat_id_l.
+#[global] Existing Instance category_cat_id_r.
+#[global] Existing Instance category_cat_assoc.
+#[global] Existing Instance category_proper_cat.
 
 (** *** Initial object *)
 
@@ -154,9 +158,11 @@ Section DaggerLaws.
   Local Existing Instance Id_Op.
   Local Existing Instance Cat_Op.
   Class DaggerLaws : Prop := {
-    dagger_involution :> DaggerInvolution ;
-    dagger_functor :> Functor (op C) C id (@dagger obj C _)
+    dagger_involution : DaggerInvolution ;
+    dagger_functor : Functor (op C) C id (@dagger obj C _)
    }.
+  #[global] Existing Instance dagger_involution.
+  #[global] Existing Instance dagger_functor.
 
 End DaggerLaws.
 
@@ -183,11 +189,14 @@ Class BimapCat : Prop :=
     bimap f1 f2 >>> bimap g1 g2 ⩯ bimap (f1 >>> g1) (f2 >>> g2).
 
 Class Bifunctor : Prop := {
-  bifunctor_bimap_id :> BimapId;
-  bifunctor_bimap_cat :> BimapCat;
-  bifunctor_proper_bimap :> forall a b c d,
+  bifunctor_bimap_id : BimapId;
+  bifunctor_bimap_cat : BimapCat;
+  bifunctor_proper_bimap : forall a b c d,
       @Proper (C a c -> C b d -> C _ _) (eq2 ==> eq2 ==> eq2) bimap;
 }.
+#[global] Existing Instance bifunctor_bimap_id.
+#[global] Existing Instance bifunctor_bimap_cat.
+#[global] Existing Instance bifunctor_proper_bimap.
 
 End BifunctorLaws.
 
@@ -224,12 +233,16 @@ Class CaseUniversal : Prop :=
       fg ⩯ case_ f g.
 
 Class Coproduct : Prop := {
-  coproduct_case_inl :> CaseInl;
-  coproduct_case_inr :> CaseInr;
-  coproduct_case_universal :> CaseUniversal;
-  coproduct_proper_case :> forall a b c,
+  coproduct_case_inl : CaseInl;
+  coproduct_case_inr : CaseInr;
+  coproduct_case_universal : CaseUniversal;
+  coproduct_proper_case : forall a b c,
       @Proper (C a c -> C b c -> C _ c) (eq2 ==> eq2 ==> eq2) case_
 }.
+#[global] Existing Instance coproduct_case_inl.
+#[global] Existing Instance coproduct_case_inr.
+#[global] Existing Instance coproduct_case_universal.
+#[global] Existing Instance coproduct_proper_case.
 
 End CoproductLaws.
 
@@ -270,12 +283,16 @@ Class PairUniversal : Prop :=
       fg ⩯ pair_ f g.
 
 Class Product : Prop := {
-  product_pair_fst :> PairFst;
-  product_pair_snd :> PairSnd;
-  product_pair_universal :> PairUniversal;
-  product_proper_pair :> forall a b c,
+  product_pair_fst : PairFst;
+  product_pair_snd : PairSnd;
+  product_pair_universal : PairUniversal;
+  product_proper_pair : forall a b c,
       @Proper (C c a -> C c b -> C c _) (eq2 ==> eq2 ==> eq2) pair_
 }.
+#[global] Existing Instance product_pair_fst.
+#[global] Existing Instance product_pair_snd.
+#[global] Existing Instance product_pair_universal.
+#[global] Existing Instance product_proper_pair.
 
 End ProductLaws.
 
@@ -306,13 +323,17 @@ Class CurryApply : Prop :=
       f ⩯ ((@bimap obj C PROD _ _ _ _ _ (curry_ f) (id_ a)) >>> apply_).
 
 Class CartesianClosed : Prop := {
-  cartesian_terminal :> TerminalObject _ ONE;
-  cartesian_product :> Product _ PROD;
-  cartesian_curry_apply :> CurryApply;
-  cartesian_proper_curry_ :> forall a b c,
-    @Proper (C (PROD c a) b -> C c (EXP a b)) (eq2 ==> eq2) curry_                          
+  cartesian_terminal : TerminalObject _ ONE;
+  cartesian_product : Product _ PROD;
+  cartesian_curry_apply : CurryApply;
+  cartesian_proper_curry_ : forall a b c,
+    @Proper (C (PROD c a) b -> C c (EXP a b)) (eq2 ==> eq2) curry_
 }.
-  
+#[global] Existing Instance cartesian_terminal.
+#[global] Existing Instance cartesian_product.
+#[global] Existing Instance cartesian_curry_apply.
+#[global] Existing Instance cartesian_proper_curry_.
+
 End CartesianClosureLaws.
 
 Arguments curry_apply {obj C Eq2_C Id_C Cat_C PROD Pair_C Fst_C Snd_C EXP Apply_C Curry_C} _ [a b c] f.
@@ -420,15 +441,23 @@ Class AssocRAssocR : Prop :=
     ⩯ assoc_r >>> assoc_r.
 
 Class Monoidal : Prop := {
-  monoidal_bifunctor :> Bifunctor C bif;
-  monoidal_assoc_iso :> AssocIso;
-  monoidal_unit_l_iso :> UnitLIso;
-  monoidal_unit_r_iso :> UnitRIso;
-  monoidal_unit_l_natural :> UnitLNatural;
-  monoidal_unit_l'_natural :> UnitL'Natural;
-  monoidal_assoc_r_unit :> AssocRUnit;
-  monoidal_assoc_r_assoc_r :> AssocRAssocR;
+  monoidal_bifunctor : Bifunctor C bif;
+  monoidal_assoc_iso : AssocIso;
+  monoidal_unit_l_iso : UnitLIso;
+  monoidal_unit_r_iso : UnitRIso;
+  monoidal_unit_l_natural : UnitLNatural;
+  monoidal_unit_l'_natural : UnitL'Natural;
+  monoidal_assoc_r_unit : AssocRUnit;
+  monoidal_assoc_r_assoc_r : AssocRAssocR;
 }.
+#[global] Existing Instance monoidal_bifunctor.
+#[global] Existing Instance monoidal_assoc_iso.
+#[global] Existing Instance monoidal_unit_l_iso.
+#[global] Existing Instance monoidal_unit_r_iso.
+#[global] Existing Instance monoidal_unit_l_natural.
+#[global] Existing Instance monoidal_unit_l'_natural.
+#[global] Existing Instance monoidal_assoc_r_unit.
+#[global] Existing Instance monoidal_assoc_r_assoc_r.
 
 (** The [assoc_l] variants can be derived by symmetry,
     because [assoc_l] is the inverse of [assoc_r]. *)
@@ -556,13 +585,18 @@ Class IterCodiagonal : Prop :=
 (* TODO: also define uniformity, requires a "purity" assumption. *)
 
 Class Iterative : Prop :=
-  { iterative_unfold :> IterUnfold
-  ; iterative_natural :> IterNatural
-  ; iterative_dinatural :> IterDinatural
-  ; iterative_codiagonal :> IterCodiagonal
+  { iterative_unfold : IterUnfold
+  ; iterative_natural : IterNatural
+  ; iterative_dinatural : IterDinatural
+  ; iterative_codiagonal : IterCodiagonal
   ; iterative_proper_iter
-      :> forall a b, @Proper (C a (bif a b) -> C a b) (eq2 ==> eq2) iter
+      : forall a b, @Proper (C a (bif a b) -> C a b) (eq2 ==> eq2) iter
   }.
+#[global] Existing Instance iterative_unfold.
+#[global] Existing Instance iterative_natural.
+#[global] Existing Instance iterative_dinatural.
+#[global] Existing Instance iterative_codiagonal.
+#[global] Existing Instance iterative_proper_iter.
 
 (** Also called Bekic identity *)
 Definition IterPairing : Prop :=
