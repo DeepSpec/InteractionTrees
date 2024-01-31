@@ -118,22 +118,29 @@ Class TransitiveH {A: Type} (R : relationH A A) : Prop :=
 
 Class PER {A : Type} (R : relationH A A) : Type :=
   {
-    per_symm :> SymmetricH R;
-    per_trans :> TransitiveH R
+    per_symm : SymmetricH R;
+    per_trans : TransitiveH R
   }.
+#[global] Existing Instance per_symm.
+#[global] Existing Instance per_trans.
 
 Class Preorder {A : Type} (R : relationH A A) : Type :=
   {
-    pre_refl :> ReflexiveH R;
-    pre_trans :> TransitiveH R
+    pre_refl : ReflexiveH R;
+    pre_trans : TransitiveH R
   }.
+#[global] Existing Instance pre_refl.
+#[global] Existing Instance pre_trans.
 
 Class EquivalenceH {A : Type} (R : relationH A A) : Type :=
   {
-    equiv_refl :> ReflexiveH R;
-    equiv_symm :> SymmetricH R;
-    equiv_trans :> TransitiveH R
+    equiv_refl : ReflexiveH R;
+    equiv_symm : SymmetricH R;
+    equiv_trans : TransitiveH R
   }.
+#[global] Existing Instance equiv_refl.
+#[global] Existing Instance equiv_symm.
+#[global] Existing Instance equiv_trans.
 
 #[global]
 Instance relationH_reflexive : forall (A:Type), ReflexiveH (@eq A).
