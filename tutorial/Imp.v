@@ -221,7 +221,7 @@ Section Denote.
       while the [inl tt] says to continue. *)
 
   Definition while (step : itree eff (unit + unit)) : itree eff unit :=
-    iter (C := Kleisli _) (fun _ => step) tt.
+    iter (C := Kleisli (itree eff)) (fun _ => step) tt.
 
   (** Casting values into [bool]:  [0] corresponds to [false] and any nonzero
       value corresponds to [true].  *)
