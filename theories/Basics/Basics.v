@@ -92,6 +92,8 @@ End Monads.
 Polymorphic Class MonadIter (M : Type -> Type) : Type :=
   iter : forall {R I: Type}, (I -> M (I + R)%type) -> I -> M R.
 
+#[global] Hint Mode MonadIter ! : typeclass_instances.
+
 (** *** Transformer instances *)
 
 (** And the standard transformers can lift [iter].

@@ -136,7 +136,7 @@ Qed.
 #[global] Instance eq_itree_iter {E A B} :
   @Proper ((A -> itree E (A + B)) -> A -> itree E B)
           ((eq ==> eq_itree eq) ==> pointwise_relation _ (eq_itree eq))
-          iter.
+          (iter (C := ktree E)).
 Proof.
   intros body1 body2 EQ_BODY a. repeat red in EQ_BODY.
   unfold_ktree.
@@ -148,7 +148,7 @@ Qed.
 #[global] Instance eutt_iter {E A B} :
   @Proper ((A -> itree E (A + B)) -> A -> itree E B)
           (pointwise_relation _ (eutt eq) ==> pointwise_relation _ (eutt eq))
-          iter.
+          (iter (C := ktree E)).
 Proof.
   intros body1 body2 EQ_BODY a. repeat red in EQ_BODY.
   unfold_ktree.

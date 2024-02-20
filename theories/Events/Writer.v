@@ -76,7 +76,8 @@ Definition handle_writer {W E} (Monoid_W : Monoid W)
 Definition run_writer {W E} (Monoid_W : Monoid W)
   : itree (writerE W +' E) ~> writerT W (itree E)
   := fun _ t =>
-       interp_state (case_ (handle_writer Monoid_W) pure_state) t
-                    (monoid_unit Monoid_W).
+       interp_state (M := itree E)
+         (case_ (handle_writer Monoid_W) pure_state) t
+         (monoid_unit Monoid_W).
 
 Arguments run_writer {W E} Monoid_W [T].
