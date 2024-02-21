@@ -3,6 +3,7 @@ From Coq Require Import
 .
 
 From ITree Require Import
+     Basics.Utils
      Axioms
      ITree
      ITreeFacts
@@ -243,7 +244,7 @@ Proof.
   pfold. red. dependent induction Heutt.
   - rewrite <- x. rewrite <- x0 in Hbp. clear x0 x. induction Hbp; auto with itree.
     + pclearbot. constructor. right. eapply CIH; eauto. reflexivity.
-    + constructor. pclearbot. left. eapply paco2_mon; eauto. intuition.
+    + constructor. pclearbot. left. apply pacobot2; eauto.
   - pclearbot. rewrite <- x0 in Hbp. rewrite <- x. clear x0 x.
     destruct (observe b).
     + apply trace_prefix_ret.
@@ -330,7 +331,7 @@ Proof.
   - constructor. inv Hdiv. pclearbot. right. apply CIH; auto.
   - constructor; auto. apply IHHbf. pstep_reverse. inv Hdiv. pclearbot. auto.
   - constructor; auto.
-  - constructor. intuition.
+  - constructor. intros [].
   - pclearbot. constructor. intros. right. pclearbot. inv Hdiv. ddestruction; subst.
     pclearbot. destruct v. apply CIH; auto. apply H1.
 Qed.

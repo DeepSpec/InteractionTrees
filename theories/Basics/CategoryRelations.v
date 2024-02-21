@@ -8,7 +8,7 @@ From ITree Require Import
      Basics.CategoryFunctor
      Basics.HeterogeneousRelations
      Basics.Function
-     Basics.Tacs.
+     Basics.Utils.
 
 (* Structure of the [Rel] category. Mainly for fun and to understand its
    structure for now, we are not using it at the moment. *)
@@ -331,8 +331,7 @@ Section Facts.
       - cbv; intros ? ? ?; subst; auto.
         destruct x, y.
         cbv; intros. destruct H; cbn in *; subst; auto.
-      - red. intros. destruct x, y. inversion H. subst. repeat red.
-        repeat red in H. intuition. 
+      - red. intros. destruct x, y. inversion H. subst. repeat constructor.
     Qed.
 
     Global Instance BimapCat_prod_rel : BimapCat relationH prod.

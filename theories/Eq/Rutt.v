@@ -23,7 +23,7 @@ From ExtLib Require Import
      Structures.Monad.
 
 From ITree Require Import
-     Basics.Tacs
+     Basics.Utils
      Axioms
      ITree
      Eq

@@ -7,7 +7,7 @@ From Coq Require Import
 From Paco Require Import paco.
 
 From ITree Require Import
-     Basics.Tacs
+     Basics.Utils
      Basics.Basics
      Basics.Category
      Basics.CategoryKleisli

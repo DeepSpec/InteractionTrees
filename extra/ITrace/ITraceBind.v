@@ -3,6 +3,7 @@ From Coq Require Import
 .
 
 From ITree Require Import
+     Basics.Utils
      Axioms
      ITree
      ITreeFacts
@@ -275,7 +276,7 @@ Proof.
            rewrite H. eapply CIH. subst. pfold. auto.
   - pfold. punfold H0. red in H0. dependent induction H0.
     + rewrite <- x0. rewrite <- x. red. cbn. constructor.
-      left. eapply paco2_mon with (r := bot2); intuition.
+      left. apply pacobot2.
       enough (@ITree.spin (EvAns E) S  ≈ ITree.spin); auto.
       reflexivity.
     + rewrite <- x. rewrite <- x0. red. cbn. constructor. right.
@@ -289,7 +290,7 @@ Proof.
         ++ unfold eq_rect_r, eq_rect. remember (eq_sym e) as He.
            dependent destruction He. cbn. constructor. intros.
            right. eapply CIH. pclearbot. auto with itree.
-        ++ cbn. constructor. left. eapply paco2_mon with (r := bot2); intuition.
+        ++ cbn. constructor. left. apply pacobot2.
            enough (@ITree.spin (EvAns E) S ≈ ITree.spin ); auto.
            reflexivity.
       * constructor. left. contradiction.
@@ -384,7 +385,7 @@ Proof.
            dependent destruction He. cbn. constructor. intros.
            right. eapply CIH. pclearbot. auto with itree.
         ++ cbn. constructor. left. apply paco2_eqit_refl.
-      * constructor. intuition.
+      * constructor. contradiction.
     + rewrite <- x. destruct (observe t'); destruct e; cbn.
       * constructor; auto. clear IHeqitF. dependent induction H0.
         ++ rewrite <- x. cbn. constructor; auto.
@@ -407,7 +408,7 @@ Proof.
         ++ rewrite <- x. cbn. constructor; auto; eapply IHeqitF; eauto.
       * constructor; auto. clear IHeqitF.
         dependent induction H0.
-        ++ rewrite <- x. cbn. constructor. intuition.
+        ++ rewrite <- x. cbn. constructor. contradiction.
         ++ rewrite <- x. cbn. constructor; auto; eapply IHeqitF; eauto.
     + rewrite <- x. cbn. destruct (observe t) eqn : Heqt; destruct e; cbn.
       * constructor; auto. clear IHeqitF. dependent induction H0.
@@ -430,7 +431,7 @@ Proof.
            ** cbn. constructor. left. apply paco2_eqit_refl.
         ++ rewrite <- x. cbn. constructor; eauto.
       * constructor; auto. clear IHeqitF. dependent induction H0.
-        ++ rewrite <- x. cbn. constructor. intuition.
+        ++ rewrite <- x. cbn. constructor. contradiction.
         ++ rewrite <- x. cbn. constructor; eauto.
 Qed.
 
@@ -520,10 +521,8 @@ Lemma eqitF_r_refl: forall (E : Type -> Type) (R: Type) r
 Proof.
   intros E R r ot.
   destruct ot; constructor; auto.
-  - left. eapply paco2_mon with (r := bot2); intuition.
-    apply Equivalence_eutt. apply eq_equivalence.
-  - left. eapply paco2_mon with (r := bot2); intuition.
-    apply Equivalence_eutt. apply eq_equivalence.
+  - left. apply pacobot2, reflexivity.
+  - left. apply pacobot2, reflexivity.
 Qed.
 
 Lemma eqitF_mon:
@@ -534,8 +533,8 @@ Lemma eqitF_mon:
 Proof.
   intros E R r t1 t0' REL.
   induction REL; constructor; eauto.
-  - pclearbot. left. eapply paco2_mon; eauto; intuition.
-  - pclearbot. intros. left. eapply paco2_mon; eauto; intuition.
+  - pclearbot. left. apply pacobot2; auto.
+  - pclearbot. intros. left. apply pacobot2; auto.
 Qed.
 
 Lemma eqitF_observe_peel_cont_vis:
@@ -573,10 +572,10 @@ Proof.
       try (constructor; auto; eapply eqitF_mon; eauto; fail);
       try (destruct e; cbn);
       try (constructor; auto; eapply eqitF_mon; eauto; fail).
-    + constructor. pclearbot. left. eapply paco2_mon; eauto; intuition.
+    + constructor. pclearbot. left. apply pacobot2; auto.
     + subst. ddestruction. subst. cbn. constructor. intros. left. inv H0.
-      ddestruction. subst. pclearbot. eapply paco2_mon; eauto; intuition.
-    + ddestruction. subst. ddestruction. subst. cbn. constructor; auto. intuition.
+      ddestruction. subst. pclearbot. apply pacobot2; auto.
+    + ddestruction. subst. ddestruction. subst. cbn. constructor; auto. intros [].
   (*looks like I didn't actually need to induct here ... *)
   - dependent induction H0; try clear IHeqitF.
     + rewrite <- x0. rewrite <- x. red. cbn. constructor. right.
@@ -657,7 +656,7 @@ Proof.
   - rewrite <- x. destruct (observe b) eqn : Heqb; red; cbn.
     + constructor; eauto. rewrite <- Heqb. eapply IHeqitF; eauto.
     + cbn. destruct (observe t') eqn : Heqt'; cbn.
-      * constructor. left. eapply paco2_mon with (r := bot2); intuition.
+      * constructor. left. apply pacobot2.
         eapply peel_cont_ret_inv with (s := r0). pfold. auto.
       * constructor. right. eapply CIH; eauto. setoid_rewrite <- tau_eutt at 2.
         pfold. auto.
@@ -667,7 +666,7 @@ Proof.
   - rewrite <- x. destruct (observe b) eqn : Heqb; red; cbn.
     + constructor; auto. rewrite <- Heqb. eapply IHeqitF; eauto.
     + destruct (observe t) eqn : Heqt; cbn.
-      * constructor. left. eapply paco2_mon with (r := bot2); intuition.
+      * constructor. left. apply pacobot2.
         enough (t0 ≈ peel_cont_ (observe t0) (observe t2) ). auto.
         symmetry.
         eapply peel_cont_ret_inv with (s := r0). symmetry. pfold. auto.
@@ -874,7 +873,7 @@ Proof.
 Qed.
 
 Ltac fold_eutt := match goal with |- paco2 _ _ ?t1 ?t2 =>
-                                    eapply paco2_mon with (r := bot2); intuition; enough (t1 ≈ t2); auto end.
+                                    apply pacobot2; change (t1 ≈ t2); auto end.
 
 Ltac fold_peel_cont r := match goal with |- context [peel_cont_ (observe ?b) (observe ?t) ] =>
                                            assert (Hfpc : forall r, peel_cont_ (observe b) (observe t) = peel_cont b t r ); auto; rewrite (Hfpc r);

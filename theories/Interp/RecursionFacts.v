@@ -13,7 +13,7 @@ From Coq Require Import
      Morphisms.
 
 From ITree Require Import
-     Basics.Tacs
+     Basics.Utils
      Basics.Category
      Basics.Basics
      Basics.Function

@@ -1,7 +1,7 @@
 (* Shared definitions for the Secure component. *)
 
 From ITree Require Import
-  Basics.Tacs
+  Basics.Utils
   Axioms.
 
 Variant nonempty (A : Type) : Prop := ne (a : A).
