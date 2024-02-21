@@ -28,7 +28,7 @@ From Paco Require Import paco.
 
 From ITree Require Import
      Basics.Basics
-     Basics.Tacs
+     Basics.Utils
      Basics.HeterogeneousRelations
      Core.ITreeDefinition
      Eq.Paco2

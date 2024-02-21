@@ -2,7 +2,7 @@
 From Paco Require Import paco.
 From Coq Require Import Morphisms.
 From ITree Require Import
-     Basics.Tacs
+     Basics.Utils
      ITree
      Eq.Eqit
      Basics.HeterogeneousRelations

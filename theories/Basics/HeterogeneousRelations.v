@@ -5,7 +5,7 @@ From Coq Require Import
      RelationClasses
 .
 
-From ITree Require Import Tacs Indexed.Sum.
+From ITree Require Import Basics.Utils Indexed.Sum.
 
 Set Warnings "-future-coercion-class-field".
 

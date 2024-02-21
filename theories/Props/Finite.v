@@ -3,7 +3,7 @@
 (* begin hide *)
 From ITree Require Import
      ITree
-     Basics.Tacs
+     Basics.Utils
      Eq.Eqit
      Interp.TranslateFacts
      Leaf.

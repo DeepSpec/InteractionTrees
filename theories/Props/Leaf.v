@@ -2,7 +2,7 @@
 
 (* begin hide *)
 From ITree Require Import
-     Basics.Tacs
+     Basics.Utils
      Basics.HeterogeneousRelations
      ITree
      Eq.Shallow

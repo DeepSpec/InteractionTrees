@@ -250,7 +250,7 @@ Section ITreeDijkstra.
     repeat red. pcofix CIH.  intros s1 s2 H12 s3 s4 H34.
     pfold. red. unfold app. pinversion H12.
     - simpl. destruct s3. destruct s4. pinversion H34; simpl in *; subst; auto with itree.
-      constructor. left. eapply paco2_mon; eauto. intuition.
+      constructor. left. apply pacobot2. auto.
     - cbn. constructor. right. apply CIH; auto.
   Qed.
 
@@ -260,7 +260,8 @@ Section ITreeDijkstra.
     intros s1 s2 H12 H. pfold. red. punfold H. red in H.
     punfold H12. red in H12. inversion H12; subst; auto.
     - rewrite <- H1 in H. inversion H.
-    - inversion H. subst. pclearbot. destruct H2; intuition. constructor. right. eapply CIH; eauto.
+    - inversion H. subst. pclearbot. destruct H2; [ | contradiction ].
+      constructor. right. eapply CIH; eauto.
       rewrite <- H3 in H0. injection H0 as H0 . subst. auto.
   Qed.
 
@@ -541,9 +542,7 @@ Section ITreeDijkstra.
     pfold. red. unfold remove_events. destruct (observe t) eqn : Heq.
     - cbn. constructor.
     - cbn. constructor. right. apply CIH.
-    - cbn. constructor. left.
-      eapply paco1_mon with (r := bot1); intuition.
-      apply eventless_spin.
+    - cbn. constructor. left. apply pacobot1, eventless_spin.
   Qed.
 
   Lemma delay_eventless : forall (A : Type) (d : Delay A),

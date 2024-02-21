@@ -2,6 +2,7 @@ From Coq Require Import
      Morphisms.
 
 From ITree Require Import
+     Utils
      Axioms
      ITree
      ITreeFacts
@@ -414,7 +415,7 @@ Proof.
     assert (b ⊑ t1).
     {
       unfold b. rewrite Ht1. pfold. red. cbn.
-      constructor; intuition.
+      constructor. { apply ree. } { intros []. }
     }
     apply H0 in H as H1. unfold b in *. clear b.
     rewrite Ht1 in H. rewrite Ht2 in H1.
@@ -692,7 +693,7 @@ Proof.
   dependent induction  Hconv; intros m Hrefb Hrefbind.
   - rewrite H in Hrefbind. rewrite bind_ret_l in Hrefbind. rewrite H in Hrefb.
     apply trace_refine_ret_inv_r in Hrefb. rewrite Hrefb in Hrefbind.
-    rewrite bind_ret_l in Hrefbind. eapply paco2_mon; eauto. intuition.
+    rewrite bind_ret_l in Hrefbind. apply pacobot2; eauto.
   - (*m must be a vis, the continuations must refine then continuation in the m I use in the
       inductive hypothesis *)
     destruct e; try contradiction. rewrite H in Hrefb.

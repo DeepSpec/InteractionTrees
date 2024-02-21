@@ -39,7 +39,7 @@ From Coq Require Import Setoid Morphisms Relations.
 From Paco Require Import paco.
 
 From ITree Require Import
-     Basics.Tacs
+     Basics.Utils
      Core.ITreeDefinition
      Eq.Eqit
      Eq.Paco2

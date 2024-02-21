@@ -1,7 +1,7 @@
 (** * Main module with theorems *)
 
 From ITree Require Export
-     Basics.Tacs
+     Basics.Utils
      Basics.Basics
      Basics.Category
      Basics.Monad
