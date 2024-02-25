@@ -1,0 +1,106 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans&family=Noto+Serif&display=swap');
+
+html {
+  font-family: 'Noto Sans', sans-serif;
+}
+
+h1, h2 {
+  font-family: 'Noto Serif', serif;
+  text-align: center;
+}
+
+.github::after {
+  display: inline-flex;
+  content: '';
+  vertical-align: middle;
+  margin-left: 0.5em;
+  background-image: url('github.svg');
+  background-size: 1.3em 1.3em;
+  height: 1.3em;
+  width: 1.3em;
+}
+
+.pub-title > a {
+  text-decoration: none;
+  font-weight: bold;
+}
+
+.pub-paper::after {
+  vertical-align: middle;
+  margin-left: 0.3em;
+}
+
+@media only screen and (min-width: 768px) {
+  .level-2 { margin-left: 2em; }
+}
+
+li {
+  margin-bottom: 1em;
+}
+
+.item-paper::marker {
+  content: '🖹  ';
+  font-size: 1.2em;
+}
+
+input[name="tag-select"] {
+  display: none;
+}
+
+input + label {
+  cursor: pointer;
+}
+
+@keyframes targetted {
+  from { background-color: gold; }
+}
+
+.pill:target {
+  animation-name: targetted !important;
+  animation-duration: 2s;
+}
+
+.pill {
+  display: inline-block;
+  border: 1px solid ;
+  border-radius: 0.8em;
+  padding: 0.1em 0.5em;
+  text-decoration: none;
+}
+
+.pill.notag { border: dotted; color: gray; }
+.pill.tag-coq { color: red; }
+.pill.tag-isabelle { color: peru; }
+.pill.tag-vst { color: green; }
+.pill.tag-monads { color: blueviolet; }
+.pill.tag-coinduction { color: teal; }
+.pill.tag-testing { color: slateblue; }
+.pill.tag-concurrency { color: deeppink; }
+.pill.tag-plclub { color: dodgerblue; }
+
+.pub-conf + .pill { margin-left: 0.5em; }
+.pub-conf ~ .pill { margin-top: 0.2em; }
+
+input:checked + .pill.tag-coq, input#tag-coq:checked ~ ul .pill.tag-coq { background-color: red; border-color: red; color: white; }
+input:checked + .pill.tag-isabelle, input#tag-isabelle:checked ~ ul .pill.tag-isabelle { background-color: peru; border-color: peru; color: white; }
+input:checked + .pill.tag-vst, input#tag-vst:checked ~ ul .pill.tag-vst { background-color: green; border-color: green; color: white; }
+input:checked + .pill.tag-monads, input#tag-monads:checked ~ ul .pill.tag-monads { background-color: blueviolet; border-color: blueviolet; color: white; }
+input:checked + .pill.tag-coinduction, input#tag-coinduction:checked ~ ul .pill.tag-coinduction { background-color: teal; border-color: teal; color: white; }
+input:checked + .pill.tag-testing, input#tag-testing:checked ~ ul .pill.tag-testing { background-color: slateblue; border-color: slateblue; color: white; }
+input:checked + .pill.tag-concurrency, input#tag-concurrency:checked ~ ul .pill.tag-concurrency { background-color: deeppink; border-color: deeppink; color: white; }
+input:checked + .pill.tag-plclub, input#tag-plclub:checked ~ ul .pill.tag-plclub { background-color: dodgerblue; border-color: dodgerblue; color: white; }
+
+input.tag-select:checked ~ ul > li {
+  display: none;
+}
+
+input#tag-coq:checked ~ ul > li.tag-coq,
+input#tag-isabelle:checked ~ ul > li.tag-isabelle,
+input#tag-vst:checked ~ ul > li.tag-vst,
+input#tag-monads:checked ~ ul > li.tag-monads,
+input#tag-coinduction:checked ~ ul > li.tag-coinduction,
+input#tag-testing:checked ~ ul > li.tag-testing,
+input#tag-concurrency:checked ~ ul > li.tag-concurrency,
+input#tag-plclub:checked ~ ul > li.tag-plclub {
+  display: revert;
+}
