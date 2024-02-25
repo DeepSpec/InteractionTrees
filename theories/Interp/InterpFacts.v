@@ -7,8 +7,6 @@
  *)
 
 (* begin hide *)
-Set Warnings "-deprecated-hint-rewrite-without-locality".
-
 From Coq Require Import
      Program
      Setoid
@@ -108,9 +106,9 @@ Proof.
   reflexivity.
 Qed.
 
-Hint Rewrite @interp_ret : itree.
-Hint Rewrite @interp_vis : itree.
-Hint Rewrite @interp_trigger : itree.
+#[global] Hint Rewrite @interp_ret : itree.
+#[global] Hint Rewrite @interp_vis : itree.
+#[global] Hint Rewrite @interp_trigger : itree.
 
 (** ** [interp] properness *)
 #[global]
@@ -246,7 +244,7 @@ Proof.
     rewrite bind_tau. gstep; constructor; eauto with paco.
 Qed.
 
-Hint Rewrite @interp_bind : itree.
+#[global] Hint Rewrite @interp_bind : itree.
 
 (** *** Identities for [interp] *)
 
