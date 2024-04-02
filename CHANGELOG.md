@@ -1,3 +1,10 @@
+5.2.0 - April 2024
+==================
+
+- Compatibility with Coq 8.19
+- Add `Hint Mode` on `MonadIter`, avoiding some infinite instance resolution loops
+- Rename `ITree.Basics.Tacs` to `ITree.Basics.Utils`
+
 5.1.2 - October 2023
 ====================
 
