@@ -4,9 +4,6 @@ From Coq Require Import
      Setoid
      Morphisms.
 
-From ExtLib Require Import
-     Structures.Monad.
-
 From ITree Require Import
      Basics.Basics
      Basics.Category

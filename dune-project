@@ -11,7 +11,7 @@
   (synopsis "Library for representing recursive and impure programs with equational reasoning")
   (depends
     (coq (>= 8.14))
-    (coq-ext-lib (>= 0.11.1))
+    (coq-stdpp (>= 1.12.0))
     (coq-paco (>= 4.2.1)))
   (tags ("org:deepspec"))
   (authors
@@ -29,7 +29,6 @@
   (synopsis "Extensions to coq-itree")
   (depends
     coq
-    coq-ext-lib
     coq-paco
     coq-itree)
   (tags ("org:deepspec"))
