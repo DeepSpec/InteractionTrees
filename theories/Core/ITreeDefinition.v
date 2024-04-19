@@ -160,9 +160,10 @@ Definition subst {E : Type -> Type} {T U : Type} (k : T -> itree E U)
     | VisF e h => Vis e (fun x => _subst (h x))
     end.
 
-Definition bind {E : Type -> Type} {T U : Type} (u : itree E T) (k : T -> itree E U)
-  : itree E U :=
-  subst k u.
+Notation bind u k := (subst k u).
+(* Definition bind {E : Type -> Type} {T U : Type} (u : itree E T) (k : T -> itree E U) *)
+(*   : itree E U := *)
+(*   subst k u. *)
 
 (** Monadic composition of continuations (i.e., Kleisli composition).
  *)
@@ -221,7 +222,7 @@ Ltac fold_subst :=
   repeat (change (ITree.subst ?k ?t) with (ITree.bind t k)).
 
 Ltac fold_monad :=
-  repeat (change (@ITree.bind ?E) with (@mbind (itree E) _));
+  repeat (change (@ITree.subst ?E) with (@mbind (itree E) _));
   repeat (change (go (@RetF ?E _ _ _ ?r)) with (@mret (itree E) _ _ r));
   repeat (change (@ITree.map ?E) with (@fmap (itree E) _)).
 
@@ -239,11 +240,11 @@ End ITree.
  *)
 
 Module ITreeNotations.
-Notation "t1 ≫= k2" := (ITree.bind t1 k2) : itree_scope.
-Notation "x ← t1 ; t2" := (ITree.bind t1 (fun x => t2)) : itree_scope.
-Notation "t1 ;; t2" := (ITree.bind t1 (fun _ => t2)) : itree_scope.
+Notation "t1 ≫= k2" := (ITree.subst k2 t1) : itree_scope.
+Notation "x ← t1 ; t2" := (ITree.subst (fun x => t2) t1) : itree_scope.
+Notation "t1 ;; t2" := (ITree.subst (fun _ => t2) t1) : itree_scope.
 Notation "' p ← t1 ; t2" :=
-  (ITree.bind t1 (fun x_ => match x_ with p => t2 end))
+  (ITree.subst (fun x_ => match x_ with p => t2 end) t1)
   (at level 20, p pattern, t1 at level 100, t2 at level 200, only parsing) : itree_scope.
 Infix ">=>" := ITree.cat (at level 60, right associativity) : itree_scope.
 End ITreeNotations.

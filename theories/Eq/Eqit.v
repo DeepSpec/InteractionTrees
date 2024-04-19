@@ -1187,8 +1187,8 @@ Proof.
 Qed.
 
 #[global] Instance eqit_bind {E R S} b1 b2 :
-  Proper (eqit eq b1 b2 ==> pointwise_relation _ (eqit eq b1 b2) ==>
-          eqit eq b1 b2) (@ITree.bind E R S).
+  Proper (pointwise_relation _ (eqit eq b1 b2) ==> eqit eq b1 b2 ==>
+          eqit eq b1 b2) (@ITree.subst E R S).
 Proof.
   repeat intro; eapply eqit_bind'; eauto.
   intros; subst; auto.
@@ -1229,8 +1229,8 @@ Lemma bind_ret_r' {E R} (u : itree E R) (f : R -> R) :
   ITree.bind u (fun r => Ret (f r)) ≅ u.
 Proof.
   intro H. rewrite <- (bind_ret_r u) at 2. apply eqit_bind.
-  - reflexivity.
   - hnf. intros. apply eqit_Ret. auto.
+  - reflexivity.
 Qed.
 
 Lemma bind_bind {E R S T} :
