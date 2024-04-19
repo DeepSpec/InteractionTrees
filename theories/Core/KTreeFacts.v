@@ -325,6 +325,13 @@ Proof.
   split; typeclasses eauto.
 Qed.
 
+CoInductive stream := | cons : nat -> stream -> stream.
+
+(* CoFixpoint zeros := cons 0 zeros. *)
+
+(* Goal zeros = zeros. *)
+(* cbn. *)
+Import ITreeNotations.
 (* Equation merging the sequence of two [iter] into one *)
 Lemma cat_iter:
   forall {E: Type -> Type} {a b c} (f: ktree E a (a + b)) (g: ktree E b (b + c)),
@@ -336,22 +343,12 @@ Proof.
     assoc_l, AssocL_Coproduct,
     bimap, Bimap_Coproduct,
     cat, Cat_Kleisli, inl_, Inl_Kleisli, inr_, Inr_Kleisli, case_, Case_Kleisli, case_sum,
-    lift_ktree_.
-  cbn.
-  Unset Printing Notations.
-  simpl.
-  cbn.
-
-
-  unfold_ktree.
+    lift_ktree_, mbind, MBind_itree.
   (* We move to the eworld *)
   einit.
-  intros.
-  revert a0.
   (* First coinductive point in the simulation: at the entry point of the iteration over f *)
   ecofix CIH.
   intros.
-  cbn.
   setoid_rewrite bind_ret_l.
   (* We unfold one step on both sides *)
   match goal with
@@ -371,7 +368,7 @@ Proof.
       |- euttG _ _ _ _ _ ?t _ => remember t
     end.
     clear CIHH.
-    rewrite <- bind_ret_l.
+    (* rewrite <- bind_ret_l. *)
     ebase.
     right. apply CIHL.
   - (* If we exit the first loop *)
