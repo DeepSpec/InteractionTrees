@@ -210,14 +210,14 @@ Proof.
   punfold H0; punfold H1; punfold H2. red in H0, H1.
   (* rename H1 into H2, Hxy into H1.  *)
   hinduction H2 before CIH; subst; intros.
-  - inv H0; try discriminate. inv H1; try discriminate. econstructor. eauto.
-  - dependent destruction H0; try discriminate.
-    dependent destruction H1; try discriminate.
+  - inv H0; try easy. inv H1; try easy. econstructor. eauto.
+  - dependent destruction H0; try easy.
+    dependent destruction H1; try easy.
     simpobs. pclearbot.
     constructor. intros. right. eauto 7 with paco itree.
-  - dependent destruction H1; try discriminate.
+  - dependent destruction H1; try easy.
     simpobs. pclearbot. punfold REL. auto with itree.
-  - dependent destruction H0; try discriminate.
+  - dependent destruction H0; try easy.
     simpobs. pclearbot. constructor.
     right. rewrite (itree_eta' ot2) in *. eauto with itree.
 Qed.

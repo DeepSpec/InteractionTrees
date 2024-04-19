@@ -34,6 +34,7 @@ From ITree Require Import
      Eq.Paco2
      Eq.Shallow.
 
+
 Local Open Scope itree_scope.
 
 (* TODO: Send to paco *)
@@ -63,8 +64,6 @@ Proof. auto. Qed.
     Paco spares us from thinking about guardedness of proof terms,
     instead encoding a form of productivity visibly in types.
  *)
-
-Local Coercion is_true : bool >-> Sortclass.
 
 Section eqit.
 
@@ -628,7 +627,7 @@ Lemma eqitree_inv_Vis_r {E R U} (t : itree E R) (e : E U) (k : U -> _) :
   t ≅ Vis e k -> exists k', observe t = VisF e k' /\ forall u, k' u ≅ k u.
 Proof.
   intros; punfold H; apply eqitF_inv_VisF_r in H.
-  destruct H as [ [? [-> ?]] | [] ]; [ | discriminate ].
+  destruct H as [ [? [-> ?]] | [] ]; [ | easy ].
   pclearbot. eexists; split; eauto.
 Qed.
 
@@ -692,7 +691,7 @@ Proof with eauto with itree.
   intros. punfold H. red in H. simpl in *.
   remember (TauF t1) as tt1. remember (TauF t2) as tt2.
   hinduction H before b2; intros; try discriminate.
-  - inv Heqtt1. inv Heqtt2. pclearbot. eauto.
+  - inv Heqtt1. pclearbot. eauto.
   - inv Heqtt1. inv H.
     + pclearbot. punfold REL. pstep. red. simpobs...
     + pstep. red. simpobs. econstructor; eauto. pstep_reverse. apply IHeqitF; eauto.
@@ -730,10 +729,11 @@ Proof.
   genobs t1 ot1; genobs t2 ot2; revert t1 t2 Heqot1 Heqot2; unfold observe, _observe.
   destruct H; pclearbot; intros * E1 E2; rewrite <- E1, <- E2; cbn; auto.
   - exists eq_refl; cbn; eauto.
-  - rewrite CHECK in *. destruct ot2.
+  - destruct b1; try done.
+    case_match.
     1,3: pfold; red; unfold observe, _observe; rewrite <- E2; assumption.
     1: apply eqit_inv_Tau_r; pfold; red; unfold observe, _observe; assumption.
-  - rewrite CHECK in *. destruct ot1.
+  - destruct b2; try done; case_match.
     1,3: pfold; red; unfold observe, _observe; rewrite <- E1; assumption.
     1: apply eqit_inv_Tau_l; pfold; red; unfold observe, _observe; assumption.
 Qed.
@@ -876,8 +876,8 @@ Qed.
          (gpaco2 (@eqit_ E R1 R2 RS b1 b2 id) (eqitC RS b1 b2) r rg).
 Proof.
   repeat intro. guclo eqit_clo_trans. econstructor; cycle -3; eauto.
-  - eapply eqit_mon, H; eauto; discriminate.
-  - eapply eqit_mon, H0; eauto; discriminate.
+  - by eapply eqit_mon, H.
+  - by eapply eqit_mon, H0.
 Qed.
 
 #[global] Instance geuttgen_cong_eqit_eq {E R1 R2 RS} b1 b2 r rg:
@@ -1124,11 +1124,11 @@ Proof.
     eauto with paco.
   - gstep. econstructor. eauto 7 with paco itree.
   - gstep. econstructor. intros. red in CMP. unfold id in ID. apply ID. eauto 7 with paco itree.
-  - destruct b1; try discriminate.
+  - destruct b1; try done.
     guclo eqit_clo_trans.
     econstructor; auto_ctrans_eq; eauto; try reflexivity.
     eapply eqit_Tau_l. rewrite unfold_bind. reflexivity.
-  - destruct b2; try discriminate.
+  - destruct b2; try done.
     guclo eqit_clo_trans. econstructor; auto_ctrans_eq; eauto; try reflexivity.
     eapply eqit_Tau_l. rewrite unfold_bind. reflexivity.
 Qed.

@@ -1,9 +1,6 @@
 (** * Interaction trees: core definitions *)
 
 (* begin hide *)
-Require Import ExtLib.Structures.Functor.
-Require Import ExtLib.Structures.Applicative.
-Require Import ExtLib.Structures.Monad.
 Require Import Program.Tactics.
 
 From ITree Require Import Basics.
@@ -224,9 +221,9 @@ Ltac fold_subst :=
   repeat (change (ITree.subst ?k ?t) with (ITree.bind t k)).
 
 Ltac fold_monad :=
-  repeat (change (@ITree.bind ?E) with (@Monad.bind (itree E) _));
-  repeat (change (go (@RetF ?E _ _ _ ?r)) with (@Monad.ret (itree E) _ _ r));
-  repeat (change (@ITree.map ?E) with (@Functor.fmap (itree E) _)).
+  repeat (change (@ITree.bind ?E) with (@mbind (itree E) _));
+  repeat (change (go (@RetF ?E _ _ _ ?r)) with (@mret (itree E) _ _ r));
+  repeat (change (@ITree.map ?E) with (@fmap (itree E) _)).
 
 End ITree.
 
@@ -242,36 +239,28 @@ End ITree.
  *)
 
 Module ITreeNotations.
-Notation "t1 >>= k2" := (ITree.bind t1 k2)
-  (at level 58, left associativity) : itree_scope.
-Notation "x <- t1 ;; t2" := (ITree.bind t1 (fun x => t2))
-  (at level 61, t1 at next level, right associativity) : itree_scope.
-Notation "t1 ;; t2" := (ITree.bind t1 (fun _ => t2))
-  (at level 61, right associativity) : itree_scope.
-Notation "' p <- t1 ;; t2" :=
+Notation "t1 ≫= k2" := (ITree.bind t1 k2) : itree_scope.
+Notation "x ← t1 ; t2" := (ITree.bind t1 (fun x => t2)) : itree_scope.
+Notation "t1 ;; t2" := (ITree.bind t1 (fun _ => t2)) : itree_scope.
+Notation "' p ← t1 ; t2" :=
   (ITree.bind t1 (fun x_ => match x_ with p => t2 end))
-  (at level 61, t1 at next level, p pattern, right associativity) : itree_scope.
-Infix ">=>" := ITree.cat (at level 61, right associativity) : itree_scope.
+  (at level 20, p pattern, t1 at level 100, t2 at level 200, only parsing) : itree_scope.
+Infix ">=>" := ITree.cat (at level 60, right associativity) : itree_scope.
 End ITreeNotations.
 
 (** ** Instances *)
 
-#[global] Instance Functor_itree {E} : Functor (itree E) :=
-{ fmap := @ITree.map E }.
+#[global] Instance FMap_itree {E} : FMap (itree E) := @ITree.map E.
 
 (* Instead of [pure := @Ret E], [ret := @Ret E], we eta-expand
    [pure] and [ret] to make the extracted code respect OCaml's
    value restriction. *)
-#[global] Instance Applicative_itree {E} : Applicative (itree E) :=
-{ pure := fun _ x => Ret x
-; ap := fun _ _ f x =>
-          ITree.bind f (fun f => ITree.bind x (fun x => Ret (f x)))
-}.
+#[global] Instance Applicative_itree {E} : App (itree E) :=
+  fun _ _ f x => ITree.bind f (fun f => ITree.bind x (fun x => Ret (f x))).
 
-#[global] Instance Monad_itree {E} : Monad (itree E) :=
-{| ret := fun _ x => Ret x
-;  bind := @ITree.bind E
-|}.
+#[global] Instance MRet_itree {E} : MRet (itree E) := fun _ x => Ret x.
+
+#[global] Instance MBind_itree {E} : MBind (itree E) := @ITree.subst E.
 
 #[global] Instance MonadIter_itree {E} : MonadIter (itree E) :=
   fun _ _ => ITree.iter.
