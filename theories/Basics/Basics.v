@@ -44,6 +44,8 @@ Declare Scope monad_scope.
 Open Scope monad_scope.
 Infix "≈" := eq1 (at level 70) : monad_scope.
 
+Class App (T : Type → Type) := ap : ∀ {A B}, T (A → B) → T A → T B.
+
 (* Proof that [eq1] is an equivalence relation. *)
 Class Eq1Equivalence (M : Type -> Type) `{Eq1 M} :=
   eq1_equiv : forall A, Equivalence (eq1 (A := A)).
