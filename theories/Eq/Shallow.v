@@ -110,10 +110,10 @@ Proof. reflexivity. Qed.
 
 #[global]
 Instance observing_bind {E R S} :
-  Proper (observing eq ==> eq ==> observing eq) (@ITree.bind E R S).
+  Proper (eq ==> observing eq ==> observing eq) (@ITree.subst E R S).
 Proof.
   repeat intro; subst. constructor. unfold observe. cbn.
-  rewrite (observing_observe H). reflexivity.
+  rewrite (observing_observe H0). reflexivity.
 Qed.
 
 Lemma bind_ret_ {E R S} (r : R) (k : R -> itree E S) :

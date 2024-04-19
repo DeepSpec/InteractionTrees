@@ -64,6 +64,6 @@ Definition apply_Fun {A B : Type} (f : Fun A B) : A -> B := f.
 (** The [exponential] is just [_ -> _], which is a just another name for [Fun] *)
 #[global] Instance Apply_Fun : Apply Fun prod Fun :=
     fun {A B} '(f, b) => f b.
-  
+
 #[global] Instance Curry_Fun : Curry Fun prod Fun :=
   fun {A B C} f => fun c a => f (c, a).

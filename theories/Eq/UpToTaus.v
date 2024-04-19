@@ -48,6 +48,9 @@ From ITree Require Import
 #[local] Open Scope itree_scope.
 (* end hide *)
 
+(* The standard library has specialized instances of `Equivalence eq` at specific types, which leads to abuse instantiations of evars. We make sure to find [eq_equivalence] first *)
+Existing Instance eq_equivalence.
+
 (** ** gpaco
 *)
 
@@ -330,7 +333,9 @@ Proof.
     hinduction REL0 before CIH; intros; subst.
     + apply eqit_ret_gen in REL0.
       gclo. econstructor.
-      * eapply eqit_trans; [rewrite (simpobs Heqot1); reflexivity|].
+      * eapply eqit_trans.
+        (* This is bugged, instantiate abusively an evar *)
+        rewrite (simpobs Heqot1). reflexivity.
         eapply eqit_trans; [rewrite tau_euttge; reflexivity|].
         eauto.
       * rewrite (simpobs Heqot2). reflexivity.

@@ -13,7 +13,6 @@ bug-reports: "https://github.com/DeepSpec/InteractionTrees/issues"
 depends: [
   "dune" {>= "3.14"}
   "coq"
-  "coq-ext-lib"
   "coq-paco"
   "coq-itree"
   "odoc" {with-doc}
