@@ -3,16 +3,16 @@
 (** Other ITree modules should import this to avoid accidentally using more
    axioms elsewhere. *)
 
-From Coq Require Import
-  Logic.Classical_Prop
-  Logic.ClassicalChoice
-  Logic.EqdepFacts
-  Logic.FunctionalExtensionality
+From Coq.Logic Require Import
+  Classical_Prop
+  ClassicalChoice
+  EqdepFacts
+  FunctionalExtensionality
 .
 
 (* Must be imported to use [ddestruction] *)
-From Coq Require Export
-  Program.Equality
+From Coq.Program Require Export
+  Equality
 .
 
 Set Implicit Arguments.

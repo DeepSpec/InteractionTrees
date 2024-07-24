@@ -2,9 +2,9 @@
 
 (* begin hide *)
 From Coq Require Import
-     Classes.Morphisms
-     Setoids.Setoid
-     Relations.Relations.
+     Morphisms
+     Setoid
+     Relations.
 
 From Paco Require Import paco.
 
