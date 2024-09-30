@@ -11,6 +11,9 @@ From Coq Require Import
 Import ListNotations.
 
 From ExtLib Require Import
+     Data.List
+     Data.Monads.StateMonad
+     Data.Monads.WriterMonad
      Structures.Functor
      Structures.Monad
      Structures.Monoid.
@@ -27,7 +30,6 @@ From ITree Require Import
      Interp.Handler
      Events.State.
 
-Import Basics.Basics.Monads.
 (* end hide *)
 
 (** Event to output values of type [W]. *)
@@ -43,41 +45,49 @@ Definition tell {W E} `{writerE W -< E} : W -> itree E unit :=
 (** Note that this handler appends new outputs to the front of the list. *)
 Definition handle_writer_list {W E}
   : writerE W ~> stateT (list W) (itree E)
-  := fun _ e s =>
+  := fun _ e =>
        match e with
-       | Tell w => Ret (w :: s, tt)
+       | Tell w => mkStateT (fun s => Ret (tt, w :: s))
        end.
 
+(* not sure why case_ requires the manual parameters *)
 Definition run_writer_list_state {W E}
   : itree (writerE W +' E) ~> stateT (list W) (itree E)
-  := interp_state (case_ handle_writer_list pure_state).
+  := interp_state (case_ (bif := sum1) (c := stateT (list W) (itree E))
+                         handle_writer_list pure_state).
 
 Arguments run_writer_list_state {W E} [T].
 
 (** Returns the outputs in order: the first output at the head, the last
     output and the end of the list. *)
 Definition run_writer_list {W E}
-  : itree (writerE W +' E) ~> writerT (list W) (itree E)
+  : itree (writerE W +' E) ~> stateT (list W) (itree E)
   := fun _ t =>
-       ITree.map (fun wsx => (rev' (fst wsx), snd wsx))
-                 (run_writer_list_state t []).
+       mkStateT (fun _ => ITree.map (fun wsx => (fst wsx, rev' (snd wsx)))
+                                    (runStateT (run_writer_list_state t) [])).
 
 Arguments run_writer_list {W E} [T].
 
 (** When [W] is a monoid, we can also use that to append the outputs together. *)
 
-Definition handle_writer {W E} (Monoid_W : Monoid W)
-  : writerE W ~> stateT W (itree E)
-  := fun _ e s =>
+Definition handle_writer {W E} `{Monoid_W : Monoid W}
+  : writerE W ~> writerT Monoid_W (itree E)
+  := fun _ e =>
        match e with
-       | Tell w => Ret (monoid_plus Monoid_W s w, tt) 
+       | Tell w => MonadWriter.tell w
        end.
 
+Definition pure_writer {W E} `{Monoid_W : Monoid W}
+  : E ~> writerT Monoid_W (itree E)
+  := fun _ e =>
+      mkWriterT Monoid_W
+        (Vis e (fun x => Ret (PPair.ppair x (monoid_unit Monoid_W)))).
+
+(* not sure why case_ requires the manual parameters *)
 Definition run_writer {W E} (Monoid_W : Monoid W)
-  : itree (writerE W +' E) ~> writerT W (itree E)
-  := fun _ t =>
-       interp_state (M := itree E)
-         (case_ (handle_writer Monoid_W) pure_state) t
-         (monoid_unit Monoid_W).
+  : itree (writerE W +' E) ~> writerT Monoid_W (itree E)
+  := interp (M := writerT Monoid_W (itree E))
+            (case_ (bif := sum1) (c := writerT Monoid_W (itree E))
+                   handle_writer pure_writer).
 
 Arguments run_writer {W E} Monoid_W [T].

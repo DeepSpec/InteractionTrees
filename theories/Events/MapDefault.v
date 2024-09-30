@@ -5,7 +5,8 @@ Set Implicit Arguments.
 Set Contextual Implicit.
 
 From ExtLib Require Import
-     Core.RelDec.
+     Core.RelDec
+     Data.Monads.StateMonad.
 
 From ExtLib.Structures Require
      Functor Monoid Maps.
@@ -23,7 +24,6 @@ From ITree Require Import
      Interp.Handler
      Events.State.
 
-Import ITree.Basics.Basics.Monads.
 (* end hide *)
 
 Section Map.
@@ -56,11 +56,11 @@ Section Map.
     end.
   
   Definition handle_map {E d} : mapE d ~> stateT map (itree E) :=
-    fun _ e env =>
+    fun _ e =>
       match e with
-      | Insert k v => Ret (Maps.add k v env, tt)
-      | LookupDef k => Ret (env, lookup_default k d env)
-      | Remove k => Ret (Maps.remove k env, tt)
+      | Insert k v => mkStateT (fun env => Ret (tt, Maps.add k v env))
+      | LookupDef k => mkStateT (fun env => Ret (lookup_default k d env, env))
+      | Remove k => mkStateT (fun env => Ret (tt, Maps.remove k env))
       end.
 
   (* SAZ: I think that all of these [run_foo] functions should be renamed
@@ -69,7 +69,8 @@ Section Map.
      strange to define [interp_map] in terms of [interp_state].
   *)
   Definition interp_map {E d} : itree (mapE d +' E) ~> stateT map (itree E) :=
-    interp_state (case_ (C := IFun) handle_map pure_state).
+    interp_state (case_ (bif := sum1) (C := IFun) (c := stateT map (itree E))
+                        handle_map pure_state).
 
 
   (* The appropriate notation of the equivalence on the state associated with
