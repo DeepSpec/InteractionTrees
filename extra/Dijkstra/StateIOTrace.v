@@ -258,7 +258,9 @@ Section PrintMults.
     setoid_rewrite bind_ret_l in H.
     unf_res.
     punfold H. red in H. cbn in *.
-    dependent induction H.
+    remember (interp_state handleIOStateE) as h eqn:Eh.
+    revert Eh.
+    dependent induction H; intros Eh.
     2:{ rewrite <- x. constructor; auto. eapply IHruttF; eauto; reflexivity. }
     inversion H; ddestruction; subst; ddestruction; try contradiction.
     subst. specialize (H0 tt tt).
@@ -274,8 +276,6 @@ Section PrintMults.
     eapply CIH with (Maps.add Y (n + m) si); try apply lookup_eq.
     2: { rewrite lookup_neq; subst; auto. }
     rewrite tau_eutt in Hk1.
-    (* TODO: not sure why this is failing *)
-    (*
     setoid_rewrite bind_trigger in Hk1.
     setoid_rewrite interp_state_vis in Hk1. cbn in *.
     rewrite bind_ret_l in Hk1. rewrite tau_eutt in Hk1.
@@ -286,13 +286,11 @@ Section PrintMults.
     rewrite interp_state_ret in Hk1. rewrite bind_ret_l in Hk1.
     cbn in *.
     rewrite tau_eutt in Hk1.
-    unfold Basics.iter, MonadIter_stateT0, Basics.iter, MonadIter_itree.
+    unfold Basics.iter, MonadIter_itree.
     match goal with
       H : _ ⊑ ITree.iter _ (?s1, _) |- _ ⊑ ITree.iter _ (?s2, _) =>
       enough (Hseq : s2 = s1) end; try rewrite Hseq; auto.
     subst. rewrite Nat.add_comm. auto.
-    *)
-    admit.
-  Admitted.
+Qed.
 
 End PrintMults.
