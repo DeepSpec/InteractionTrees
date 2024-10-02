@@ -1,5 +1,7 @@
 From Coq Require Import Morphisms.
 
+From ExtLib Require Import Data.Monads.StateMonad.
+
 From ITree Require Import
      Basics.HeterogeneousRelations
      Axioms
@@ -46,7 +48,7 @@ Context (l : L).
 
 Definition state_eqit_secure {R1 R2 : Type} (b1 b2 : bool) (RR : R1 -> R2 -> Prop)
            (m1 : stateT S (itree E2) R1) (m2 : stateT S (itree E2) R2) :=
-  forall s1 s2, RS s1 s2 -> eqit_secure Label priv2 (prod_rel RS RR) b1 b2 l (m1 s1) (m2 s2).
+  forall s1 s2, RS s1 s2 -> eqit_secure Label priv2 (prod_rel RR RS) b1 b2 l (runStateT m1 s1) (runStateT m2 s2).
 
 Definition top2 {R1 R2} (r1 : R1) (r2 : R2) : Prop := True.
 
@@ -55,12 +57,12 @@ Definition secure_in_nonempty_context {R} (m : stateT S (itree E2) R) :=
    forall r' : R, state_eqit_secure true true top2 m (ret r').
 
 Definition secure_in_empty_context  {R} (m : stateT S (itree E2) R) :=
-   state_eqit_secure true true (@top2 R R) m (fun s => ITree.spin).
+   state_eqit_secure true true (@top2 R R) m (mkStateT (fun s => ITree.spin)).
 
-Inductive terminates (s1 : S) (P : forall A, E2 A -> Prop) : forall {A : Type}, itree E2 (S * A) -> Prop :=
-| terminates_ret {R : Type} : forall (r : R) (s2 : S), RS s1 s2 -> terminates s1 P (Ret (s2, r))
-| terminates_tau : forall A (t : itree E2 (S * A)) , terminates s1 P t -> terminates s1 P (Tau t)
-| terminates_vis {A R : Type} : forall (e : E2 A) (k : A -> itree E2 (S * R)) , (forall v, terminates s1 P (k v)) -> P A e -> terminates s1 P (Vis e k)
+Inductive terminates (s1 : S) (P : forall A, E2 A -> Prop) : forall {A : Type}, itree E2 (A * S) -> Prop :=
+| terminates_ret {R : Type} : forall (r : R) (s2 : S), RS s1 s2 -> terminates s1 P (Ret (r, s2))
+| terminates_tau : forall A (t : itree E2 (A * S)) , terminates s1 P t -> terminates s1 P (Tau t)
+| terminates_vis {A R : Type} : forall (e : E2 A) (k : A -> itree E2 (R * S)) , (forall v, terminates s1 P (k v)) -> P A e -> terminates s1 P (Vis e k)
 .
 
 Variant diverges_with' {E : Type -> Type} (P : forall A, E A -> Prop) (A : Type) (F : itree E A -> Prop) : itree' E A -> Prop :=
@@ -92,7 +94,7 @@ Proof.
   do 2 red. intros t1 t2 Heq. apply EqAxiom.bisimulation_is_eq in Heq. subst; tauto.
 Qed.
 
-#[global] Instance proper_terminate {R s} {P : forall A, E2 A -> Prop} : Proper (eq_itree (@eq (S *R )) ==> iff) (terminates s P).
+#[global] Instance proper_terminate {R s} {P : forall A, E2 A -> Prop} : Proper (eq_itree (@eq (R * S)) ==> iff) (terminates s P).
 Proof.
   red. intros t1 t2 Heq. apply EqAxiom.bisimulation_is_eq in Heq. subst; tauto.
 Qed.
@@ -224,7 +226,7 @@ Qed.
 
 
 Lemma silent_terminates_eqit_secure_ret : forall R (m : stateT S (itree E2) R), nonempty R ->
-      (forall s, terminates s (fun B e => ~ leq (priv2 _ e) l /\ nonempty B) (m s) ) <-> forall r' : R, state_eqit_secure true true top2 m (ret r').
+      (forall s, terminates s (fun B e => ~ leq (priv2 _ e) l /\ nonempty B) (runStateT m s) ) <-> forall r' : R, state_eqit_secure true true top2 m (ret r').
 Proof.
   split; intros.
   - red. intros. specialize (H0 s1).
@@ -235,8 +237,8 @@ Proof.
       pstep_reverse. eapply H2; eauto.
   - cbn in *. red in H0. assert (RS s s). reflexivity.
     inv H.
-    specialize (H0 a s s H1). remember (m s) as t. clear Heqt.
-    punfold H0. red in H0. cbn in H0. remember (RetF (s,a) ) as oret. remember (observe t) as ot.
+    specialize (H0 a s s H1). remember (runStateT m s) as t. clear Heqt.
+    punfold H0. red in H0. cbn in H0. remember (RetF (a,s) ) as oret. remember (observe t) as ot.
     hinduction H0 before E1; intros; try discriminate; use_simpobs.
     + rewrite Heqot. injection Heqoret; intros; subst. destruct r1, H. cbn in *.
       constructor. symmetry. auto.
@@ -246,16 +248,16 @@ Qed.
 
 Variant handler_respects_priv (A : Type) (e : E1 A) : Prop :=
 | respect_private (SECCHECK : ~ leq (priv1 _ e) l)
-                  (FINCHECK : forall s, terminates s (fun _ e' => ~ leq (priv2 _ e') l) (handler A e s))
+                  (FINCHECK : forall s, terminates s (fun _ e' => ~ leq (priv2 _ e') l) (runStateT (handler A e) s))
 | respect_public (SECCHECK : leq (priv1 _ e) l)
                  (RESCHECK : state_eqit_secure true true eq (handler A e) (handler A e))
 .
 
 Variant handler_respects_priv' (A : Type) (e : E1 A) : Prop :=
 | respect_private_ne (SECCHECK : ~ leq (priv1 _ e) l) (SIZECHECK : nonempty A)
-                  (FINCHECK :  forall s, terminates s (fun B e' => ~ leq (priv2 _ e') l /\ nonempty B ) (handler A e s) )
+                  (FINCHECK :  forall s, terminates s (fun B e' => ~ leq (priv2 _ e') l /\ nonempty B ) (runStateT (handler A e) s) )
 | respect_private_e (SECCHECK : ~ leq (priv1 _ e) l) (SIZECHECK : empty A)
-                  (DIVCHECK : forall s, diverges_with (fun _ e' => ~ leq (priv2 _ e') l ) (handler A e s) )
+                  (DIVCHECK : forall s, diverges_with (fun _ e' => ~ leq (priv2 _ e') l ) (runStateT (handler A e) s) )
 | respect_public' (SECCHECK : leq (priv1 _ e) l)
                  (RESCHECK : state_eqit_secure true true eq (handler A e) (handler A e))
 .
@@ -264,7 +266,7 @@ Context (Hhandler : forall A (e : E1 A), handler_respects_priv' A e).
 
 Lemma diverge_with_respectful_handler : forall (R : Type) (t : itree E1 R),
     diverges_with (fun _ e => ~ leq (priv1 _ e) l ) t ->
-    forall s, diverges_with (fun _ e => ~ leq (priv2 _ e) l) (interp_state handler t s).
+    forall s, diverges_with (fun _ e => ~ leq (priv2 _ e) l) (runStateT (interp_state handler t) s).
 Proof.
   intro R. pcofix CIH. intros t Hdiv s. pinversion Hdiv; use_simpobs.
   - rewrite H. rewrite interp_state_tau. pfold. constructor. right. eapply CIH; eauto.
@@ -299,7 +301,7 @@ Proof.
     (* could use the bind closure here, but maybe we can do manually for now*)
     repeat setoid_rewrite <- interp_state_tau. inv Hhandler; try contradiction.
     specialize (RESCHECK s1 s2 Hs).
-    eapply secure_eqit_bind'; eauto. intros [] [] []. simpl in *. subst.
+    eapply secure_eqit_bind'; eauto. intros [] [] []. cbn in *. subst.
     repeat rewrite interp_state_tau.
     pfold. constructor. right. eapply CIH; eauto. apply H.
   - pclearbot. rewrite Heqot1. rewrite Heqot2.
@@ -321,7 +323,7 @@ Proof.
   - pclearbot. rewrite Heqot1. rewrite Heqot2. repeat rewrite interp_state_vis.
     specialize (Hhandler _ e1) as He1. specialize (Hhandler _ e2) as He2.
     inv He1; inv He2; try contradiction; try contra_size.
-    eapply secure_eqit_bind' with (RR := prod_rel RS (fun _ _ => True)).
+    eapply secure_eqit_bind' with (RR := prod_rel (fun _ _ => True) RS).
     + intros [] [] ?. pstep. constructor. right.
       apply CIH. apply H. simpl. apply H0.
     + specialize (FINCHECK s1). specialize (FINCHECK0 s2).
