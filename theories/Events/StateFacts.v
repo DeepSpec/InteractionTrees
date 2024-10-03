@@ -59,31 +59,30 @@ Proof.
     reflexivity.
 Qed.
 
-Definition eq_stateT {S M X Y}
-    (RM : forall R1 R2, (R1 -> R2 -> Prop) -> M R1 -> M R2 -> Prop)
-    (RXY : X * S -> Y * S -> Prop)
-  : (stateT S M X) -> (stateT S M Y) -> Prop :=
-  fun t1 t2 => forall s, RM _ _ RXY (runStateT t1 s) (runStateT t2 s).
+Definition stateT_rel {S1 S2 M X Y}
+    (RM : (X * S1 -> Y * S2 -> Prop) -> M (X * S1)%type -> M (Y * S2)%type -> Prop)
+    (RS : S1 -> S2 -> Prop)
+    (RXY : X * S1 -> Y * S2 -> Prop)
+  : (stateT S1 M X) -> (stateT S2 M Y) -> Prop :=
+  fun t1 t2 => subrelationH RS (fun s1 s2 => RM RXY (runStateT t1 s1) (runStateT t2 s2)).
 
 #[global]
 Instance eq_stateT_runStateT {S M R} 
-    (RM : forall R1 R2, (R1 -> R2 -> Prop) -> M R1 -> M R2 -> Prop) :
-  Proper (eq_stateT RM eq ==> eq ==> (RM _ _ eq)) (@runStateT S _ R).
+    (RM : (R * S -> R * S -> Prop) -> M (R * S)%type -> M (R * S)%type -> Prop) :
+  Proper (stateT_rel RM eq eq ==> eq ==> (RM eq)) (@runStateT S _ R).
 Proof.
   unfold Proper, respectful.
   intros x y Heq_stateT sx sy Heq.
-  specialize (Heq_stateT sy).
-  rewrite Heq.
-  apply Heq_stateT.
+  apply Heq_stateT, Heq.
 Qed.
 
 #[global]
 Instance eq_itree_interp_state {E F S R} (h : E ~> stateT S (itree F)) :
-  Proper (eq_itree eq ==> (eq_stateT (@eq_itree _) eq))
+  Proper (eq_itree eq ==> (stateT_rel eq_itree eq eq))
          (@interp_state _ _ _ _ _ _ h R).
 Proof.
   revert_until R.
-  ginit. pcofix CIH. intros h x y H0 s.
+  ginit. pcofix CIH. intros h x y H0 s1 s2 Heq.
   rewrite !unfold_interp_state.
   punfold H0; repeat red in H0.
   destruct H0; subst; pclearbot; try discriminate; cbn.
@@ -170,7 +169,7 @@ Qed.
 #[global]
 Instance eutt_interp_state {E F: Type -> Type} {S : Type}
          (h : E ~> stateT S (itree F)) R RR :
-  Proper (eutt RR ==> eq_stateT (@eutt _) (prod_rel RR eq)) (@interp_state E (itree F) S _ _ _ h R).
+  Proper (eutt RR ==> stateT_rel eutt eq (prod_rel RR eq)) (@interp_state E (itree F) S _ _ _ h R).
 Proof.
   repeat intro. subst. revert_until RR.
   einit. ecofix CIH. intros.
@@ -189,7 +188,7 @@ Qed.
 #[global]
 Instance eutt_interp_state_eq {E F: Type -> Type} {S : Type}
          (h : E ~> stateT S (itree F)) R :
-  Proper (eutt eq ==> eq_stateT (@eutt _) eq) (@interp_state E (itree F) S _ _ _ h R).
+  Proper (eutt eq ==> stateT_rel eutt eq eq) (@interp_state E (itree F) S _ _ _ h R).
 Proof.
   repeat intro. subst. revert_until R.
   einit. ecofix CIH. intros.
@@ -302,18 +301,18 @@ Qed.
 Lemma interp_state_iter {E F } S (f : E ~> stateT S (itree F)) {I A}
       (t  : I -> itree E (I + A))
       (t' : I -> stateT S (itree F) (I + A))
-      (EQ_t : forall i, eq_stateT (@eq_itree _) eq (State.interp_state f (t i)) (t' i))
-  : forall i, eq_stateT (@eq_itree _) eq (State.interp_state f (ITree.iter t i))
+      (EQ_t : forall i, stateT_rel eq_itree eq eq (State.interp_state f (t i)) (t' i))
+  : forall i, stateT_rel eq_itree eq eq (State.interp_state f (ITree.iter t i))
                   (Basics.iter t' i).
 Proof.
   unfold Basics.iter, MonadIter_stateT, Basics.iter, MonadIter_itree in *.
-  ginit. pcofix CIH; intros i s. cbn.
+  ginit. pcofix CIH; intros i s1 s2. cbn.
   rewrite 2 unfold_iter; cbn.
   rewrite !bind_bind.
   setoid_rewrite bind_ret_l.
   rewrite interp_state_bind.
   guclo eqit_clo_bind; econstructor; eauto.
-  - apply EQ_t.
+  - apply EQ_t. auto.
   - intros [[] s'] _ []; cbn.
     + rewrite interp_state_tau.
       gstep; constructor.
@@ -323,12 +322,13 @@ Qed.
 
 Lemma interp_state_iter' {E F } S (f : E ~> stateT S (itree F)) {I A}
       (t  : I -> itree E (I + A))
-  : forall i, eq_stateT (@eq_itree _) eq (State.interp_state f (ITree.iter t i))
+  : forall i, stateT_rel eq_itree eq eq (State.interp_state f (ITree.iter t i))
                        (Basics.iter (fun i => State.interp_state f (t i)) i).
 Proof.
   eapply interp_state_iter.
-  intros i.
-  red. reflexivity.
+  intros i s1 s2 Heq.
+  rewrite Heq.
+  reflexivity.
 Qed.
 
 Lemma interp_state_iter'_eutt {E F S} (f: E ~> stateT S (itree F)) {I A}
