@@ -56,12 +56,12 @@ Section Map.
     end.
   
   Definition handle_map {E d} : mapE d ~> stateT map (itree E) :=
-    fun _ e =>
-      match e with
-      | Insert k v => mkStateT (fun env => Ret (tt, Maps.add k v env))
-      | LookupDef k => mkStateT (fun env => Ret (lookup_default k d env, env))
-      | Remove k => mkStateT (fun env => Ret (tt, Maps.remove k env))
-      end.
+    fun _ e => mkStateT (fun env =>
+      match e in mapE _ R return itree E (R * _) with
+      | Insert k v => Ret (tt, Maps.add k v env)
+      | LookupDef k => Ret (lookup_default k d env, env)
+      | Remove k => Ret (tt, Maps.remove k env)
+      end).
 
   (* SAZ: I think that all of these [run_foo] functions should be renamed
      [interp_foo].  That would be more consistent with the idea that 

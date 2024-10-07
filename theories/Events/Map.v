@@ -52,12 +52,12 @@ Section Map.
   Context {M : Map K V map}.
 
   Definition handle_map {E} : mapE ~> stateT map (itree E) :=
-    fun _ e =>
-      match e with
-      | Insert k v => mkStateT (fun env => Ret (tt, Maps.add k v env))
-      | Lookup k => mkStateT (fun env => Ret (Maps.lookup k env, env))
-      | Remove k => mkStateT (fun env => Ret (tt, Maps.remove k env))
-      end.
+    fun _ e => mkStateT (fun env =>
+      match e in mapE R return itree E (R * _) with
+      | Insert k v => Ret (tt, Maps.add k v env)
+      | Lookup k => Ret (Maps.lookup k env, env)
+      | Remove k => Ret (tt, Maps.remove k env)
+      end).
 
   (* not sure why case_ requires manual parameters *)
   Definition run_map {E} : itree (mapE +' E) ~> stateT map (itree E) :=

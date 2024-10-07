@@ -214,7 +214,6 @@ Section PrintMults.
     rewrite interp_state_trigger in H. cbn in *. rewrite bind_ret_l in H.
     cbn in *.
     specialize (@interp_state_iter' (StateE +' IO) ) as Hiter.
-    unfold stateT_rel, HeterogeneousRelations.subrelationH in Hiter.
     rewrite Hiter in H; eauto. clear Hiter.
 
     remember (Maps.add X n s) as si.
