@@ -79,7 +79,8 @@ From ExtLib Require Import
      Core.RelDec
      Structures.Monad
      Structures.Maps
-     Data.Map.FMapAList.
+     Data.Map.FMapAList
+     Data.Monads.StateMonad.
 
 Import ListNotations.
 Open Scope string_scope.
@@ -156,15 +157,15 @@ Section Simulation_Relation.
      - The "stack" of temporaries used to compute intermediate results is left
        untouched.
   *)
-  Definition sim_rel l_asm n: (env * value) -> (memory * (registers * unit)) -> Prop :=
-    fun '(g_imp', v) '(g_asm', (l_asm', _))  =>
+  Definition sim_rel l_asm n: (value * env) -> (unit * registers * memory) -> Prop :=
+    fun '(v, g_imp') '(_, l_asm', g_asm')  =>
       Renv g_imp' g_asm' /\            (* we don't corrupt any of the imp variables *)
       alist_In n l_asm' v /\           (* we get the right value *)
       (forall m, m < n -> forall v,              (* we don't mess with anything on the "stack" *)
             alist_In m l_asm v <-> alist_In m l_asm' v).
 
   Lemma sim_rel_find : forall g_asm g_imp l_asm l_asm' n  v,
-    sim_rel l_asm n (g_imp, v) (g_asm, (l_asm', tt)) ->
+    sim_rel l_asm n (v, g_imp) (tt, l_asm', g_asm) ->
     alist_find n l_asm' = Some v.
   Proof.
     intros.
@@ -193,7 +194,7 @@ Section Simulation_Relation.
   (** [sim_rel] can be initialized from [Renv]. *)
   Lemma sim_rel_add: forall g_asm l_asm g_imp n v,
       Renv g_imp g_asm ->
-      sim_rel l_asm n  (g_imp, v) (g_asm, (alist_add n v l_asm, tt)).
+      sim_rel l_asm n  (v, g_imp) (tt, alist_add n v l_asm, g_asm).
   Proof.
     intros.
     split; [| split].
@@ -205,14 +206,14 @@ Section Simulation_Relation.
 
   (** [Renv] can be recovered from [sim_rel]. *)
   Lemma sim_rel_Renv: forall l_asm n s1 l v1 s2 v2,
-      sim_rel l_asm n (s2,v2) (s1,(l,v1)) -> Renv s2 s1 .
+      sim_rel l_asm n (v2,s2) (v1,l,s1) -> Renv s2 s1 .
   Proof.
     intros ? ? ? ? ? ? ? H; apply H.
   Qed.
 
   Lemma sim_rel_find_tmp_n:
     forall l_asm g_asm' n l_asm' g_imp' v,
-      sim_rel l_asm n  (g_imp',v) (g_asm', (l_asm', tt)) ->
+      sim_rel l_asm n  (v,g_imp') (tt, l_asm', g_asm') ->
       alist_In n l_asm' v.
   Proof.
     intros ? ? ? ? ? ? [_ [H _]]; exact H.
@@ -223,7 +224,7 @@ Section Simulation_Relation.
   Lemma sim_rel_find_tmp_lt_n:
     forall l_asm g_asm' n m l_asm' g_imp' v,
       m < n ->
-      sim_rel l_asm n (g_imp',v) (g_asm', (l_asm', tt)) ->
+      sim_rel l_asm n (v, g_imp') (tt, l_asm', g_asm') ->
       alist_find m l_asm = alist_find m l_asm'.
   Proof.
     intros ? ? ? ? ? ? ? ineq [_ [_ H]].
@@ -240,8 +241,8 @@ Section Simulation_Relation.
 
   Lemma sim_rel_find_tmp_n_trans:
     forall l_asm n l_asm' l_asm'' g_asm' g_asm'' g_imp' g_imp'' v v',
-      sim_rel l_asm n (g_imp',v) (g_asm', (l_asm', tt))  ->
-      sim_rel l_asm' (S n) (g_imp'',v') (g_asm'', (l_asm'', tt))  ->
+      sim_rel l_asm n (v,g_imp') (tt, l_asm', g_asm')  ->
+      sim_rel l_asm' (S n) (v',g_imp'') (tt, l_asm'', g_asm'')  ->
       alist_In n l_asm'' v.
   Proof.
     intros.
@@ -271,10 +272,10 @@ Section Simulation_Relation.
   Lemma sim_rel_binary_op:
     forall (l_asm l_asm' l_asm'' : registers) (g_asm' g_asm'' : memory) (g_imp' g_imp'' : env)
       (n v v' : nat)
-      (Hsim : sim_rel l_asm n (g_imp', v) (g_asm', (l_asm', tt)))
-      (Hsim': sim_rel l_asm' (S n) (g_imp'', v') (g_asm'', (l_asm'', tt)))
+      (Hsim : sim_rel l_asm n (v, g_imp') (tt, l_asm', g_asm'))
+      (Hsim': sim_rel l_asm' (S n) (v', g_imp'') (tt, l_asm'', g_asm''))
       (op: nat -> nat -> nat),
-      sim_rel l_asm n (g_imp'', op v v') (g_asm'', (alist_add n (op v v') l_asm'', tt)).
+      sim_rel l_asm n (op v v', g_imp'') (tt, alist_add n (op v v') l_asm'', g_asm'').
   Proof.
     intros.
     split; [| split].
@@ -325,8 +326,8 @@ Section Bisimulation.
     Context {A B : Type}.
     Context (RAB : A -> B -> Prop).  (* relation on Imp / Asm values *)
 
-    Definition state_invariant (a : Imp.env * A) (b : Asm.memory * (Asm.registers * B))  :=
-      Renv (fst a) (fst b) /\ (RAB (snd a) (snd (snd b))).
+    Definition state_invariant (a : A * Imp.env) (b : B * Asm.registers * Asm.memory)  :=
+      Renv (snd a) (snd b) /\ (RAB (fst a) (fst (fst b))).
 
     Definition bisimilar {E} (t1 : itree (ImpState +' E) A) (t2 : itree (Reg +' Memory +' E) B)  :=
     forall g_asm g_imp l,
@@ -364,7 +365,7 @@ Section Bisimulation.
     { eapply H; auto. }
     intros.
     destruct u1 as [? ?].
-    destruct u2 as [? [? ?]].
+    destruct u2 as [[? ?] ?].
     unfold state_invariant in H2.
     simpl in H2. destruct H2. subst.
     eapply H0; eauto.
@@ -380,14 +381,14 @@ Section Bisimulation.
     bisimilar S (iter (C := ktree _) t1 x) (iter (C := ktree _) t2 x').
   Proof.
 
-    unfold bisimilar, interp_asm, interp_imp, interp_map.
+    unfold bisimilar, interp_asm, interp_imp, interp_map. cbn.
     intros. rewrite 2 interp_iter.
     unfold iter, Iter_Kleisli.
     pose proof @interp_state_iter'.
     red in H2. unfold Basics.iter, MonadIter_itree.
 
     rewrite 2 H2.
-    unfold Basics.iter, MonadIter_stateT0, Basics.iter, MonadIter_itree; cbn.
+    unfold Basics.iter, MonadIter_stateT, Basics.iter, MonadIter_itree; cbn.
     rewrite H2.
     apply (eutt_iter' (state_invariant R)).
     intros.
@@ -406,13 +407,13 @@ Section Bisimulation.
    *)
   Lemma sim_rel_get_tmp0:
     forall {E} n l l' g_asm g_imp v,
-      sim_rel l' n (g_imp,v) (g_asm, (l,tt)) ->
+      sim_rel l' n (v,g_imp) (tt,l,g_asm) ->
       (interp_asm ((trigger (GetReg n)) : itree (Reg +' Memory +' E) value)
-                                       g_asm l)
-      ≈     (Ret (g_asm, (l, v))).
+                  g_asm l)
+      ≈     (Ret (v, l, g_asm)).
   Proof.
     intros.
-    unfold interp_asm.
+    unfold interp_asm. cbn.
     rewrite interp_trigger.
     cbn.
     unfold interp_map.
@@ -585,6 +586,9 @@ End Linking.
 
 Section Correctness.
 
+  Arguments interp_imp : simpl never.
+  Arguments interp_asm : simpl never.
+
 
   (** Correctness of expressions.
       We strengthen [bisimilar]: initial environments are still related by [Renv],
@@ -600,11 +604,10 @@ Section Correctness.
             (interp_imp (denote_expr e) g_imp)
             (interp_asm (denote_list (compile_expr n e)) g_asm l).
   Proof.
-    induction e; simpl; intros.
+    induction e; cbn; intros.
     - (* Var case *)
       (* We first compute and eliminate taus on both sides. *)
-      force_left.
-      rewrite tau_eutt.
+      unfold interp_imp, interp_asm, interp_map, State.interp_state.
 
       tau_steps.
 
@@ -619,6 +622,7 @@ Section Correctness.
 
     - (* Literal case *)
       (* We reduce both sides to Ret constructs *)
+      unfold interp_imp, interp_asm, interp_map, State.interp_state.
       tau_steps.
 
       red; rewrite <-eqit_Ret.
@@ -637,7 +641,7 @@ Section Correctness.
       eapply eutt_clo_bind.
       { eapply IHe1; assumption. }
       (* We obtain new related environments *)
-      intros [g_imp' v] [g_asm' [l' []]] HSIM.
+      intros [g_imp' v] [[[] l'] g_asm'] HSIM.
       (* The Induction hypothesis on [e2] relates the second itrees *)
       rewrite interp_asm_bind.
       rewrite interp_imp_bind.
@@ -645,8 +649,9 @@ Section Correctness.
       { eapply IHe2.
         eapply sim_rel_Renv; eassumption. }
       (* And we once again get new related environments *)
-      intros [g_imp'' v'] [g_asm'' [l'' []]] HSIM'.
+      intros [g_imp'' v'] [[[] l''] g_asm''] HSIM'.
       (* We can now reduce down to Ret constructs that remains to be related *)
+      unfold interp_imp, interp_asm, interp_map, State.interp_state.
       tau_steps.
       red. rewrite <- eqit_Ret.
 
@@ -665,7 +670,7 @@ Section Correctness.
       eapply eutt_clo_bind.
       { eapply IHe1; assumption. }
       (* We obtain new related environments *)
-      intros [g_imp' v] [g_asm' [l' []]] HSIM.
+      intros [v g_imp'] [[[] l'] g_asm'] HSIM.
       (* The Induction hypothesis on [e2] relates the second itrees *)
       rewrite interp_asm_bind.
       rewrite interp_imp_bind.
@@ -673,8 +678,9 @@ Section Correctness.
       { eapply IHe2.
         eapply sim_rel_Renv; eassumption. }
       (* And we once again get new related environments *)
-      intros [g_imp'' v'] [g_asm'' [l'' []]]  HSIM'.
+      intros [g_imp'' v'] [[[] l''] g_asm'']  HSIM'.
       (* We can now reduce down to Ret constructs that remains to be related *)
+      unfold interp_imp, interp_asm, interp_map, State.interp_state.
       tau_steps.
       red. rewrite <- eqit_Ret.
 
@@ -693,7 +699,7 @@ Section Correctness.
       eapply eutt_clo_bind.
       { eapply IHe1; assumption. }
       (* We obtain new related environments *)
-      intros [g_imp' v] [g_asm' [l' []]] HSIM.
+      intros [v g_imp'] [[[] l'] g_asm'] HSIM.
       (* The Induction hypothesis on [e2] relates the second itrees *)
       rewrite interp_asm_bind.
       rewrite interp_imp_bind.
@@ -701,8 +707,9 @@ Section Correctness.
       { eapply IHe2.
         eapply sim_rel_Renv; eassumption. }
       (* And we once again get new related environments *)
-      intros [g_imp'' v'] [g_asm'' [l'' []]] HSIM'.
+      intros [g_imp'' v'] [[[] l''] g_asm''] HSIM'.
       (* We can now reduce down to Ret constructs that remain to be related *)
+      unfold interp_imp, interp_asm, interp_map, State.interp_state.
       tau_steps.
       red. rewrite <- eqit_Ret.
 
@@ -735,10 +742,11 @@ Section Correctness.
     { eapply compile_expr_correct; eauto. }
 
     (* Once again, we get related environments *)
-    intros [g_imp' v]  [g_asm' [l' y]] HSIM.
+    intros [g_imp' v]  [[y l'] g_asm'] HSIM.
     simpl in HSIM.
 
     (* We can now reduce to Ret constructs *)
+      unfold interp_imp, interp_asm, interp_map, State.interp_state.
     tau_steps.
     red. rewrite <- eqit_Ret.
 
@@ -809,6 +817,8 @@ Section Correctness.
 
   Notation Inr_Kleisli := Inr_Kleisli.
 
+  Arguments State.interp_state : simpl nomatch.
+
   (** Correctness of the compiler.
       After interpretation of the [Locals], the source _Imp_ statement
       denoted as an [itree] and the compiled _Asm_ program denoted
@@ -840,6 +850,7 @@ Section Correctness.
 
       intros []; simpl.
       repeat intro.
+      unfold interp_imp, interp_asm, interp_map, State.interp_state.
       force_left; force_right.
       Transparent eutt. red.
       rewrite <- eqit_Ret; auto.
@@ -871,19 +882,19 @@ Section Correctness.
       { apply compile_expr_correct; auto. }
 
       (* We get in return [sim_rel] related environments *)
-      intros [g_imp' v] [g_asm' [l' x]] HSIM.
+      intros [v g_imp'] [[x l'] g_asm'] HSIM.
 
       (* We know that interpreting [GetVar tmp_if] is eutt to [Ret (g_asm,v)] *)
       generalize HSIM; intros EQ.  eapply sim_rel_get_tmp0 in EQ.
       unfold tmp_if.
       rewrite interp_asm_bind.
       rewrite EQ; clear EQ.
-      rewrite bind_ret_; simpl.
+      rewrite bind_ret_; cbn.
 
       (* We can weaken [sim_rel] down to [Renv] *)
       apply sim_rel_Renv in HSIM.
       (* And finally conclude in both cases *)
-      destruct v; simpl; auto.
+      destruct v; cbn; auto.
 
     - (* While *)
       (* We commute [denote_asm] with [while_asm], and restructure the
@@ -909,6 +920,7 @@ Section Correctness.
       2:{ repeat intro.
           unfold to_bif, ToBifunctor_ktree_fin. rewrite !bind_ret_l. cbn.
           force_left. force_right.
+          unfold interp_imp, interp_asm. cbn.
           red; rewrite <- eqit_Ret; auto.
           unfold state_invariant. simpl.
           split; auto.
@@ -926,7 +938,7 @@ Section Correctness.
       eapply eutt_clo_bind.
       { apply compile_expr_correct; auto. }
 
-      intros [g_imp' v] [g_asm' [l' x]] HSIM.
+      intros [v g_imp'] [[x l'] g_asm'] HSIM.
       rewrite !interp_asm_bind.
       rewrite !bind_bind.
 
@@ -940,8 +952,9 @@ Section Correctness.
       (* We can weaken [sim_rel] down to [Renv] *)
       apply sim_rel_Renv in HSIM.
       (* And now consider both cases *)
-      destruct v; simpl; auto.
+      destruct v; cbn; auto.
       + (* The false case is trivial *)
+        unfold interp_imp, interp_asm.
         force_left; force_right.
         red.
         rewrite <- eqit_Ret.
@@ -954,7 +967,8 @@ Section Correctness.
         rewrite !bind_bind.
         eapply eutt_clo_bind.
         { eapply IHs; auto. }
-        intros [g_imp'' v''] [g_asm'' [l'' x']] [HSIM' ?].
+        intros [v'' g_imp''] [[x' l''] g_asm''] [HSIM' ?].
+        unfold interp_imp, interp_asm.
         force_right; force_left.
         apply eqit_Ret.
         setoid_rewrite split_fin_sum_L_L_f1.

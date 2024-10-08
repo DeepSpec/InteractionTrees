@@ -28,7 +28,8 @@ From ExtLib Require Import
      Structures.Monad
      Structures.Maps
      Programming.Show
-     Data.Map.FMapAList.
+     Data.Map.FMapAList
+     Data.Monads.StateMonad.
 
 Import ListNotations.
 Open Scope string_scope.
@@ -99,8 +100,8 @@ Global Instance EQ_memory_eqv : Equivalence (EQ_memory).
 constructor; typeclasses eauto.
 Qed.
 
-Definition rel_asm {B} : memory * (registers * B) -> memory * (registers * B) -> Prop :=
-  prod_rel EQ_memory (prod_rel (EQ_registers 0) eq).
+Definition rel_asm {B} : (B * registers * memory) -> (B * registers * memory) -> Prop :=
+  prod_rel (prod_rel eq (EQ_registers 0)) EQ_memory.
 
 Global Hint Unfold rel_asm: core.
 
@@ -121,7 +122,7 @@ Definition optimization_correct {E} `{Exit -< E} A B (opt:optimization) : Prop :
   forall (p : asm A B),
     eq_asm_EQ (E := E) p (opt p).
 
-Definition EQ_asm {E A} (f g : memory -> registers -> itree E (memory * (registers * A))) : Prop :=
+Definition EQ_asm {E A} (f g : memory -> registers -> itree E (A * registers * memory)) : Prop :=
   forall mem1 mem2 regs1 regs2,
     EQ_memory mem1 mem2 ->
     EQ_registers 0 regs1 regs2 ->
@@ -143,17 +144,17 @@ Proof.
     reflexivity.
   }
   intros.
-  destruct H as [J1 [J2 J3]]; subst.
+  destruct H as [[J1 J2] J3]; subst.
   unfold interp_asm.
   unfold interp_map.
-  destruct u2 as [? [? []]].
+  destruct u2 as [[[] ?] ?].
   rewrite interp_ret.
   do 2 rewrite interp_state_ret.
   apply eqit_Ret. auto.
 Qed.
 
 Lemma interp_asm_ret {E A} (x:A) mem reg :
-  interp_asm (Ret x) mem reg ≈ (Ret (mem, (reg, x)) : itree E _).
+  interp_asm (Ret x) mem reg ≈ (Ret (x, reg, mem) : itree E _).
 Proof.
   unfold interp_asm, interp_map.
   rewrite interp_ret.
@@ -274,14 +275,15 @@ Proof.
   reflexivity.
 Qed.
 
-Lemma interp_state_iter' {E F } S (f : E ~> Monads.stateT S (itree F)) {I A}
+Lemma interp_state_iter' {E F } S (f : E ~> stateT S (itree F)) {I A}
       (t  : I -> itree E (I + A))
-  : forall i, state_eq (State.interp_state f (ITree.iter t i))
-                       (Basics.iter (fun i => State.interp_state f (t i)) i).
+  : forall i, eq_stateT (eq_itree eq)
+                        (State.interp_state f (ITree.iter t i))
+                        (Basics.iter (fun i => State.interp_state f (t i)) i).
 Proof.
   eapply interp_state_iter.
-  intros i.
-  red. reflexivity.
+  intros i s.
+  reflexivity.
 Qed.
 
 (* peephole optimizations --------------------------------------------------- *)
@@ -334,8 +336,8 @@ Lemma ph_blk_append_correct {E} {HasExit : Exit -< E} :
     eapply eutt_clo_bind.
     apply H2; auto.
     intros.
-    destruct H0 as [J1 [J2 J3]].
-    destruct u1 as [? [? []]], u2 as [? [? []]]. cbn in *.
+    destruct H0 as [[J1 J2] J3].
+    destruct u1 as [[[] ?] ?], u2 as [[[] ?] ?]. cbn in *.
     apply HP; auto.
   Qed.
 
@@ -414,18 +416,18 @@ Proof.
        repeat rewrite interp_ret.
        repeat rewrite interp_state_ret.
        apply eqit_Ret. constructor; auto. 
-    -  intros. destruct H0 as [J1 [J2 J3]].
+    -  intros. destruct H0 as [[J1 J2] J3].
        subst. cbn.
        unfold CategorySub.from_bif, FromBifunctor_ktree_fin.
        repeat rewrite interp_ret.
        repeat rewrite interp_state_ret.
        apply eqit_Ret.
        constructor; cbn; auto. constructor; cbn; auto.
-       rewrite J3. reflexivity. }
+       rewrite J1. reflexivity. }
 
   intros.
-  destruct H0 as [J1 [J2 J3]]; subst.
-  simpl in *.
+  destruct H0 as [[J1 J2] J3]; subst.
+  cbn in *.
   unfold denote_bks.
   unfold iter, CategorySub.Iter_sub.
   repeat rewrite interp_iter.
@@ -433,21 +435,21 @@ Proof.
   cbn.
   assert (JJ := @interp_state_iter').
   red in JJ.
-  unfold Basics.iter, MonadIter_stateT0, Basics.iter, MonadIter_itree in *.
+  unfold Basics.iter, MonadIter_stateT, Basics.iter, MonadIter_itree in *.
   cbn in *.
   repeat rewrite JJ.
 
   eapply eutt_iter' with (RI := rel_asm); cbn; auto.
-  intros j1 j2 [K1 [K2 ->]]; cbn.
+  intros j1 j2 [[-> K1] K2]; cbn.
   rewrite !interp_bind, !interp_state_bind, !bind_bind. (* Slow! *)
 
   apply (@eutt_clo_bind _ _ _ _ _ _ rel_asm);
-    [|intros ? ? [? [? ->]]]; cbn.
+    [|intros ? ? [[-> ?] ?]]; cbn.
   { refine (peephole_block_correct _ _ _ _ _ _ _ _ _ _ _ _); eauto. }
 
   unfold CategorySub.to_bif, ToBifunctor_ktree_fin.
   apply (@eutt_clo_bind _ _ _ _ _ _ rel_asm);
-    [|intros ? ? [? [? ->]]]; cbn.
+    [|intros ? ? [[-> ?] ?]]; cbn.
   {
     rewrite bind_ret_l.
     unfold case_, Case_sum1, Case_Kleisli, case_sum.
@@ -508,17 +510,17 @@ Proof.
   intros E i.
   unfold eq_asm_denotations_EQ.
   intros.
-  destruct i; simpl; try apply interp_asm_ret_tt; auto; try reflexivity.
+  destruct i; cbn; try apply interp_asm_ret_tt; auto; try reflexivity.
 
   destruct src.
-  + simpl. rewrite !bind_ret_l.
+  + cbn. rewrite !bind_ret_l.
     apply interp_asm_ret_tt; auto; try reflexivity.
 
-  + simpl.
+  + cbn.
     destruct (Nat.eq_dec dest r).
     * subst.
       rewrite Nat.eqb_refl.
-      simpl.
+      cbn.
       rewrite interp_asm_ret.
       rewrite interp_asm_GetReg.
 
@@ -527,7 +529,7 @@ Proof.
       rewrite interp_vis.
       cbn.
       repeat rewrite interp_state_bind.
-      unfold CategoryOps.cat, Cat_Handler, Handler.cat. simpl.
+      unfold CategoryOps.cat, Cat_Handler, Handler.cat. cbn.
       unfold inl_, Inl_sum1_Handler, Handler.inl_, Handler.htrigger.
       unfold insert.
       unfold embed, Embeddable_itree, Embeddable_forall, inl_, embed.
