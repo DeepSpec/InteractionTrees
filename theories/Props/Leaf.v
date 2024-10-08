@@ -1,6 +1,8 @@
 (** * Leaves of an Interaction Tree *)
 
 (* begin hide *)
+From ExtLib Require Import Data.Monads.StateMonad.
+
 From ITree Require Import
      Basics.Utils
      Basics.HeterogeneousRelations
@@ -375,12 +377,12 @@ Qed.
 (* Inverts [sr' ∈ interp_state h (ITree.iter body i)] into a post-condition on
    both retun value and state, like Leaf_iter_inv. *)
 Lemma Leaf_interp_state_iter_inv {E F S R I}:
-  forall (h: E ~> Monads.stateT S (itree F)) (body: I -> itree E (I + R))
+  forall (h: E ~> stateT S (itree F)) (body: I -> itree E (I + R))
          (RS: S -> Prop) (RI: I -> Prop) (RR: R -> Prop) (s: S) (i: I),
-  (forall s i, RS s -> RI i -> (forall sx', sx' ∈ interp_state h (body i) s ->
-                    prod_pred RS (sum_pred RI RR) sx')) ->
+  (forall s i, RS s -> RI i -> (forall sx', sx' ∈ runStateT (interp_state h (body i)) s ->
+                    prod_pred (sum_pred RI RR) RS sx')) ->
   RS s -> RI i ->
-  forall sr', sr' ∈ interp_state h (ITree.iter body i) s -> prod_pred RS RR sr'.
+  forall sr', sr' ∈ runStateT (interp_state h (ITree.iter body i)) s -> prod_pred RR RS sr'.
 Proof.
   setoid_rewrite <- has_post_Leaf_equiv.
   setoid_rewrite has_post_post_strong.
@@ -389,8 +391,8 @@ Proof.
   set (eRR := fun (r1 r2: R) => r1 = r2 /\ RR r1).
   set (eRS := fun (s1 s2: S) => s1 = s2 /\ RS s1).
 
-  set (R1 := (fun x y : S * R => x = y /\ prod_pred RS RR x)).
-  set (R2 := (fun a b : S * R => eRS (fst a) (fst b) /\ eRR (snd a) (snd b))).
+  set (R1 := (fun x y : R * S => x = y /\ prod_pred RR RS x)).
+  set (R2 := (fun a b : R * S => eRR (fst a) (fst b) /\ eRS (snd a) (snd b))).
   assert (HR1R2: eq_rel R1 R2) by (compute; intuition; subst; now try destruct y).
   unfold has_post_strong; fold R1; rewrite (eutt_equiv _ _ HR1R2).
 
@@ -398,12 +400,12 @@ Proof.
   [| subst eRS; intuition | subst eRI; intuition].
   intros i1 ? s1 ? [<- Hs1] [<- Hi1].
 
-  set (R3 := (fun x y : S * (I + R) => x = y /\ prod_pred RS (sum_pred RI RR) x)).
-  set (R4 := (prod_rel eRS (sum_rel eRI eRR))).
+  set (R3 := (fun x y : (I + R) * S => x = y /\ prod_pred (sum_pred RI RR) RS x)).
+  set (R4 := (prod_rel (sum_rel eRI eRR) eRS)).
   assert (HR3R4: eq_rel R3 R4).
-  { split; intros [? [|]] [? [|]]; compute.
+  { split; intros [[|] ?] [[|] ?]; compute.
     1-4: intros [[]]; dintuition; cbn; intuition.
-    all: intros [[[=->] ?] HZ]; inversion HZ; intuition now subst. }
+    all: intros [HZ [[=->] ?]]; inversion HZ; intuition now subst. }
 
   rewrite <- (eutt_equiv _ _ HR3R4).
   now apply Hinv.
@@ -456,9 +458,9 @@ Proof.
     reflexivity.
 Qed.
 
-Lemma Leaf_interp_state_subtree_inv {E F S R} (h: E ~> Monads.stateT S (itree F))
+Lemma Leaf_interp_state_subtree_inv {E F S R} (h: E ~> stateT S (itree F))
   (t u: itree E R) (s: S):
-  subtree u t -> has_post (interp_state h u s) (fun x => snd x ∈ t).
+  subtree u t -> has_post (runStateT (interp_state h u) s) (fun x => fst x ∈ t).
 Proof.
   revert t u s. ginit. gcofix CIH; intros * Hsub.
   rewrite (itree_eta u) in Hsub.
@@ -481,12 +483,12 @@ Proof.
   apply Leaf_interp_subtree_inv. apply SubtreeRefl; reflexivity.
 Qed.
 
-Lemma Leaf_interp_state_inv {E F S R} (h: E ~> Monads.stateT S (itree F))
+Lemma Leaf_interp_state_inv {E F S R} (h: E ~> stateT S (itree F))
   (t: itree E R) s x:
-  x ∈ interp_state h t s -> snd x ∈ t.
+  x ∈ runStateT (interp_state h t) s -> fst x ∈ t.
 Proof.
   intros Hleaf.
-  apply (has_post_Leaf (interp_state h t s) (fun x => snd x ∈ t)); auto.
+  apply (has_post_Leaf (runStateT (interp_state h t) s) (fun x => fst x ∈ t)); auto.
   apply Leaf_interp_state_subtree_inv. apply SubtreeRefl; reflexivity.
 Qed.
 

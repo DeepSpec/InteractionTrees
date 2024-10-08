@@ -12,7 +12,7 @@
   (depends
     (coq (>= 8.13))
     (coq-ext-lib (>= 0.11.1))
-    (coq-paco (>= 4.0.1)))
+    (coq-paco (and (>= 4.0.1) (< 4.3))))
   (tags ("org:deepspec"))
   (authors
     "Li-yao Xia"

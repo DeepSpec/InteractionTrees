@@ -13,7 +13,6 @@ From ITree Require Import
      Basics.CategoryKleisli
      Basics.Monad.
 
-Import ITree.Basics.Basics.Monads.
 Import CatNotations.
 Local Open Scope cat_scope.
 Local Open Scope cat.

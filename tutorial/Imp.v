@@ -51,7 +51,8 @@ From ExtLib Require Import
      Data.String
      Structures.Monad
      Structures.Traversable
-     Data.List.
+     Data.List
+     Data.Monads.StateMonad.
 
 From ITree Require Import
      ITree
@@ -324,12 +325,12 @@ forall eff, {pf:E -< eff == F[E]} (t : itree eff A)
         interp pf h h' t : M A
 *)
 
-Definition interp_imp  {E A} (t : itree (ImpState +' E) A) : stateT env (itree E) A :=
+Definition interp_imp  {E A} (t : itree (ImpState +' E) A) : env -> (itree E) (A * env) :=
   let t' := interp (bimap handle_ImpState (id_ E)) t in
-  interp_map t'.
+  runStateT (interp_map t').
 
 
-Definition eval_imp (s: stmt) : itree void1 (env * unit) :=
+Definition eval_imp (s: stmt) : itree void1 (unit * env) :=
   interp_imp (denote_imp s) empty.
 
 (** Equipped with this evaluator, we can now compute.
@@ -358,20 +359,21 @@ Section InterpImpProperties.
 
   (** This interpreter is compatible with the equivalence-up-to-tau. *)
   Global Instance eutt_interp_imp {R}:
-    Proper (@eutt E R R eq ==> eq ==> @eutt E' (prod (env) R) (prod _ R) eq)
+    Proper (@eutt E R R eq ==> eq ==> (eutt eq))
            interp_imp.
   Proof.
     repeat intro.
     unfold interp_imp.
     unfold interp_map.
-    rewrite H0. eapply eutt_interp_state_eq; auto.
+    rewrite H0.
+    eapply eutt_interp_state_eq; auto.
     rewrite H. reflexivity.
   Qed.
 
   (** [interp_imp] commutes with [bind]. *)
   Lemma interp_imp_bind: forall {R S} (t: itree E R) (k: R -> itree E S) (g : env),
       (interp_imp (ITree.bind t k) g)
-    ≅ (ITree.bind (interp_imp t g) (fun '(g',  x) => interp_imp (k x) g')).
+    ≅ (ITree.bind (interp_imp t g) (fun '(x,  g') => interp_imp (k x) g')).
   Proof.
     intros.
     unfold interp_imp.

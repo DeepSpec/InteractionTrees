@@ -4,7 +4,8 @@ From Coq Require Import
      Morphisms.
 
 From ExtLib Require Import
-     Structures.Monad.
+     Structures.Monad
+     Data.Monads.StateMonad.
 
 From ITree Require Import
      Basics.Basics
@@ -13,7 +14,8 @@ From ITree Require Import
      Basics.CategoryKleisliFacts
      Basics.Monad.
 
-Import ITree.Basics.Basics.Monads.
+Existing Instance Monad_stateT.
+
 Import CatNotations.
 Local Open Scope cat_scope.
 Local Open Scope cat.
@@ -28,7 +30,7 @@ Section State.
 
   Global Instance Eq1_stateTM : Eq1 (stateT S M).
   Proof.
-    exact (fun a => pointwise_relation _ eq1).
+    exact (fun a s1 s2 => pointwise_relation _ eq1 (runStateT s1) (runStateT s2)).
   Defined.
 
   Global Instance Eq1Equivalence_stateTM : @Eq1Equivalence (stateT S M) _ Eq1_stateTM.
@@ -44,20 +46,21 @@ Section State.
   Proof.
   constructor.
   - cbn. intros a b f x.
-    repeat red.  intros s.
+    repeat red.  intros s. cbn.
     rewrite bind_ret_l. reflexivity.
   - cbn. intros a x.
-    repeat red. intros s.
-    assert (EQM _ (bind (x s) (fun sa : S * a => ret (fst sa, snd sa))) (bind (x s) (fun sa => ret sa))).
+    repeat red. intros s. cbn.
+    assert (EQM _ (bind (runStateT x s) (fun '(a, s1) => ret (a, s1)))
+                  (bind (runStateT x s) (fun axs => ret axs))).
     { apply Proper_bind. reflexivity. intros.  repeat red. destruct a0; reflexivity. }
     rewrite H.
     rewrite bind_ret_r. reflexivity.
   - cbn. intros a b c x f g.
-    repeat red. intros s.
+    repeat red. intros s. cbn.
     rewrite bind_bind.
     apply Proper_bind.
     + reflexivity.
-    + reflexivity.
+    + intros []. reflexivity.
   - repeat red. intros a b x y H x0 y0 H0 s.
     apply Proper_bind.
     + apply H.
@@ -69,20 +72,20 @@ Section State.
   Context {IM: Iter (Kleisli M) sum}.
   Context {CM: Iterative (Kleisli M) sum}.
 
-  Definition iso {a b:Type} (sab : S * (a + b)) : (S * a) + (S * b) :=
-    match sab with
-    | (s, inl x) => inl (s, x)
-    | (s, inr y) => inr (s, y)
+  Definition iso {a b:Type} (abs : (a + b) * S) : (a * S) + (b * S) :=
+    match abs with
+    | (inl x, s) => inl (x, s)
+    | (inr y, s) => inr (y, s)
     end.
 
-  Definition iso_inv {a b:Type} (sab : (S * a) + (S * b)) : S * (a + b) :=
-    match sab with
-    | inl (s, a) => (s, inl a)
-    | inr (s, b) => (s, inr b)
+  Definition iso_inv {a b:Type} (abs : (a * S) + (b * S)) : (a + b) * S :=
+    match abs with
+    | inl (a, s) => (inl a, s)
+    | inr (b, s) => (inr b, s)
     end.
 
-  Definition internalize {a b:Type} (f : Kleisli (stateT S M) a b) : Kleisli M (S * a) (S * b) :=
-    fun (sa : S * a) => f (snd sa) (fst sa).
+  Definition internalize {a b:Type} (f : Kleisli (stateT S M) a b) : Kleisli M (a * S) (b * S) :=
+    fun '(a, s) => runStateT (f a) s.
 
   Lemma internalize_eq {a b:Type} (f g : Kleisli (stateT S M) a b) :
     eq2 f g <-> eq2 (internalize f) (internalize g).
@@ -94,7 +97,7 @@ Section State.
     - intros.
       repeat red. intros.
       unfold internalize in H.
-      specialize (H (a1, a0)).
+      specialize (H (a0, a1)).
       apply H.
   Qed.
 
@@ -112,8 +115,8 @@ Section State.
   Qed.
 
 
-  Lemma internalize_pure {a b c} (f : Kleisli (stateT S M) a b) (g : S * b -> S * c) :
-    internalize f >>> pure g   ⩯   (internalize (f >>> (fun b s => ret (g (s,b))))).
+  Lemma internalize_pure {a b c} (f : Kleisli (stateT S M) a b) (g : b * S -> c * S) :
+    internalize f >>> pure g   ⩯   (internalize (f >>> (fun b => mkStateT (fun s => ret (g (b,s)))))).
   Proof.
     repeat red.
     destruct a0.
@@ -129,8 +132,8 @@ Section State.
   Global Instance Iter_stateTM : Iter (Kleisli (stateT S M)) sum.
   Proof.
     exact
-      (fun (a b : Type) (f : a -> S -> M (S * (a + b))) (x:a) (s:S) =>
-        iter ((internalize f) >>> (pure iso)) (s, x)).
+      (fun (a b : Type) (f : a -> stateT S M (a + b)) (x:a) =>
+        mkStateT (fun (s:S) => iter ((internalize f) >>> (pure iso)) (x, s))).
   Defined.
 
   Global Instance Proper_Iter_stateTM : forall a b, @Proper (Kleisli (stateT S M) a (a + b) -> (Kleisli (stateT S M) a b)) (eq2 ==> eq2) iter.
@@ -144,7 +147,7 @@ Section State.
     cbn.
     apply Proper_bind.
     - apply H.
-    - repeat red. destruct a2 as [s' [x1|y1]]; reflexivity.
+    - repeat red. destruct a2 as [[x1|y1] s']; reflexivity.
  Qed.
 
   Global Instance IterUnfold_stateTM : IterUnfold (Kleisli (stateT S M)) sum.
@@ -156,13 +159,14 @@ Section State.
   intros a0 s.
   unfold cat, Cat_Kleisli.
   unfold iter, Iter_stateTM.
+  cbn.
   rewrite iterative_unfold.  (* SAZ: why isn't iter_unfold exposed here? *)
   unfold cat, Cat_Kleisli.
   simpl.
   rewrite bind_bind.
   apply Proper_bind.
   + reflexivity.
-  + repeat red. destruct a1 as [s' [x | y]]; simpl.
+  + repeat red. destruct a1 as [[x | y] s']; simpl.
     * unfold pure. rewrite bind_ret_l.
       reflexivity.
     * unfold pure. rewrite bind_ret_l.
@@ -185,7 +189,7 @@ Section State.
     rewrite! bind_bind.
     apply Proper_bind.
     - reflexivity.
-    - repeat red. destruct a2 as [s' [x | y]]; simpl.
+    - repeat red. destruct a2 as [[x | y] s']; simpl.
       + unfold pure. rewrite bind_ret_l.
         cbn. unfold cat, Cat_Kleisli. cbn.
         rewrite bind_bind.
@@ -204,7 +208,7 @@ Section State.
   Qed.
 
   Lemma internalize_pure_iso {a b c} (f : Kleisli (stateT S M) a (b + c)) :
-    ((internalize f) >>> pure iso) ⩯ (fun sa => (bind (f (snd sa) (fst sa))) (fun sbc => ret (iso sbc))).
+    ((internalize f) >>> pure iso) ⩯ (fun axs => (bind (let '(a, s) := axs in runStateT (f a) s)) (fun bcs => ret (iso bcs))).
   Proof.
     reflexivity.
   Qed.
@@ -212,7 +216,7 @@ Section State.
 
   Lemma eq2_to_eq1 : forall a b (f g : Kleisli (stateT S M) a b) (x:a) (s:S),
       eq2 f g ->
-      eq1 (f x s) (g x s).
+      eq1 (runStateT (f x) s) (runStateT (g x) s).
   Proof.
     intros a b f g x s H.
     apply H.
@@ -233,7 +237,7 @@ Section State.
     apply Proper_bind.
     - reflexivity.
     - repeat red.
-      destruct a1 as [s' [x | y]].
+      destruct a1 as [[x | y] s'].
       + unfold pure.
         rewrite bind_ret_l.
         unfold case_, Case_Kleisli, Function.case_sum.
@@ -263,7 +267,7 @@ Section State.
     apply Proper_bind.
     - reflexivity.
     - repeat red.
-      destruct a2 as [s [x | y]].
+      destruct a2 as [[x | y] s].
       + unfold pure.
         rewrite bind_ret_l.
         cbn.
@@ -274,7 +278,7 @@ Section State.
         apply Proper_bind.
         * reflexivity.
         * repeat red.
-          destruct a2 as [s' [x' | y]].
+          destruct a2 as [[x' | y] s'].
           ** cbn.  rewrite bind_ret_l. unfold case_, Case_Kleisli, Function.case_sum.
              reflexivity.
           ** cbn.  rewrite bind_ret_l. unfold case_, Case_Kleisli, Function.case_sum.
@@ -298,7 +302,7 @@ Section State.
     eapply iterative_proper_iter.
     eapply Proper_cat_Kleisli.
 
-    assert (internalize (fun (x:a) (s:S) => iter (internalize f >>> pure iso) (s, x))
+    assert (internalize (fun (x:a) => mkStateT (fun (s:S) => iter (internalize f >>> pure iso) (x, s)))
                        ⩯
                        iter (internalize f >>> pure iso)).
     { repeat red.
@@ -325,7 +329,7 @@ Section State.
    apply Proper_bind.
     - reflexivity.
     - repeat red.
-      destruct a3 as [s' [x | [y | z]]].
+      destruct a3 as [[x | [y | z]] s'].
       + rewrite bind_ret_l.
         cbn. unfold id_, Id_Kleisli, pure.
         rewrite bind_ret_l.

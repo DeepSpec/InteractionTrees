@@ -18,7 +18,7 @@ Fixpoint run {A} (n : nat) (t : itree void1 A) : option A :=
   end.
 
 Definition run_ (n : N) (s : stmt) : option env :=
-  option_map fst (run (N.to_nat n) (eval_imp s)).
+  option_map snd (run (N.to_nat n) (eval_imp s)).
 
 Require Extraction.
 Require ExtrOcamlBasic.

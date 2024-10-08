@@ -7,7 +7,8 @@ Set Contextual Implicit.
 From Coq Require Import Morphisms.
 
 From ExtLib Require Import
-     Core.RelDec.
+     Core.RelDec
+     Data.Monads.StateMonad.
 
 From ExtLib.Structures Require
      Maps.
@@ -23,7 +24,6 @@ From ITree Require Import
      Events.StateFacts
      Events.MapDefault.
 
-Import ITree.Basics.Basics.Monads.
 Import Structures.Maps.
 (* end hide *)
 
@@ -120,7 +120,7 @@ Section MapFacts.
 
   Definition map_default_eq d {E} 
     : (stateT map (itree E) R1) -> (stateT map (itree E) R2) -> Prop :=
-    fun t1 t2 => forall s1 s2, (@eq_map _ _ _ _ d) s1 s2 -> eutt (prod_rel (@eq_map _ _ _ _ d) RR) (t1 s1) (t2 s2).
+    fun t1 t2 => forall s1 s2, (@eq_map _ _ _ _ d) s1 s2 -> eutt (prod_rel RR (@eq_map _ _ _ _ d)) (runStateT t1 s1) (runStateT t2 s2).
 
   End Relations.
 
@@ -153,7 +153,7 @@ Section MapFacts.
   Lemma handle_map_eq : 
     forall d E X (s1 s2 : map) (m : mapE K d X),
       (@eq_map _ _ _ _ d) s1 s2 ->
-      eutt (prod_rel (@eq_map _ _ _ _ d) eq) (handle_map m s1) ((handle_map m s2) : itree E (map * X)).
+      eutt (prod_rel eq (@eq_map _ _ _ _ d)) (runStateT (handle_map m) s1) ((runStateT (handle_map m) s2) : itree E (X * map)).
   Proof.
     intros.
     destruct m; cbn; red; apply eqit_Ret; constructor; cbn; auto.
@@ -210,22 +210,24 @@ Section MapFacts.
     rewrite! unfold_interp_state. 
     punfold H0. red in H0.
     revert s1 s2 H1.
-    induction H0; intros; subst; simpl; pclearbot.
-    - eret. 
+    induction H0; intros; subst; cbn; pclearbot.
+    - eret.
     - etau.
     - ebind.
-      apply pbc_intro_h with (RU := prod_rel (@eq_map _ _ _ _ d) eq).
+      apply pbc_intro_h with (RU := prod_rel eq (@eq_map _ _ _ _ d)).
       { (* SAZ: I must be missing some lemma that should solve this case *)
         unfold case_. unfold Case_sum1, case_sum1.
         destruct e. apply handle_map_eq. assumption.
         unfold pure_state.
         pstep. econstructor. intros. constructor. pfold. econstructor. constructor; auto.
-      } 
-      intros. destruct H as [HH1 ->].
+      }
+      intros. destruct H as [-> HH1].
       estep; constructor. ebase.
     - rewrite tau_euttge, unfold_interp_state.
+      apply IHeqitF.
       eauto.
     - rewrite tau_euttge, unfold_interp_state.
+      apply IHeqitF.
       eauto.
   Qed.
 

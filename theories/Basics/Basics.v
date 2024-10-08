@@ -12,8 +12,10 @@ From Coq Require Import
 From ExtLib Require Import
      Structures.Functor
      Structures.Monad
+     Structures.Monoid
      Data.Monads.StateMonad
      Data.Monads.ReaderMonad
+     Data.Monads.WriterMonad
      Data.Monads.OptionMonad
      Data.Monads.EitherMonad.
 
@@ -45,44 +47,6 @@ Definition idM {E : Type -> Type} : E ~> E := fun _ e => e.
 (** [void] is a shorthand for [Empty_set]. *)
 Notation void := Empty_set.
 
-(** ** Common monads and transformers. *)
-
-Module Monads.
-
-Definition identity (a : Type) : Type := a.
-
-Definition stateT (s : Type) (m : Type -> Type) (a : Type) : Type :=
-  s -> m (prod s a).
-Definition state (s a : Type) := s -> prod s a.
-
-Definition run_stateT {s m a} (x : stateT s m a) : s -> m (s * a)%type := x.
-
-Definition liftState {s a f} `{Functor f} (fa : f a) : Monads.stateT s f a :=
-  fun s => pair s <$> fa.
-
-Definition readerT (r : Type) (m : Type -> Type) (a : Type) : Type :=
-  r -> m a.
-Definition reader (r a : Type) := r -> a.
-
-Definition writerT (w : Type) (m : Type -> Type) (a : Type) : Type :=
-  m (prod w a).
-Definition writer := prod.
-
-#[global] Instance Functor_stateT {m s} {Fm : Functor m} : Functor (stateT s m)
-  := {|
-    fmap _ _ f := fun run s => fmap (fun sa => (fst sa, f (snd sa))) (run s)
-    |}.
-
-#[global] Instance Monad_stateT {m s} {Fm : Monad m} : Monad (stateT s m)
-  := {|
-    ret _ a := fun s => ret (s, a)
-  ; bind _ _ t k := fun s =>
-      sa <- t s ;;
-      k (snd sa) (fst sa)
-    |}.
-
-End Monads.
-
 (** ** Loop operator *)
 
 (** [iter]: A primitive for general recursion.
@@ -113,21 +77,19 @@ Polymorphic Class MonadIter (M : Type -> Type) : Type :=
           | inr r => inr (r, snd is')
           end) (i, s)).
 
-#[global] Polymorphic Instance MonadIter_stateT0 {M S} {MM : Monad M} {AM : MonadIter M}
-  : MonadIter (Monads.stateT S M) :=
-  fun _ _ step i s =>
-    iter (fun si =>
-      let s := fst si in
-      let i := snd si in
-      si' <- step i s;;
-      ret match snd si' with
-          | inl i' => inl (fst si', i')
-          | inr r => inr (fst si', r)
-          end) (s, i).
-
 #[global] Instance MonadIter_readerT {M S} {AM : MonadIter M} : MonadIter (readerT S M) :=
   fun _ _ step i => mkReaderT (fun s =>
     iter (fun i => runReaderT (step i) s) i).
+
+#[global] Instance MonadIter_writerT {M W} {MM : Monad M} {AM : MonadIter M} (Monoid_W : Monoid W)
+  : MonadIter (writerT Monoid_W M) :=
+  fun _ _ step i => mkWriterT _ (
+    iter (fun iw =>
+      iw' <- runWriterT (step (PPair.pfst iw)) ;;
+      ret match PPair.pfst iw' with
+          | inl i' => inl (PPair.ppair i' (monoid_plus Monoid_W (PPair.psnd iw) (PPair.psnd iw')))
+          | inr r => inr (PPair.ppair r (monoid_plus Monoid_W (PPair.psnd iw) (PPair.psnd iw')))
+          end) (PPair.ppair i (monoid_unit Monoid_W))).
 
 #[global] Instance MonadIter_optionT {M} {MM : Monad M} {AM : MonadIter M}
   : MonadIter (optionT M) :=

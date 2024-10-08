@@ -14,13 +14,16 @@
  *)
 
 (* begin hide *)
+
+From ExtLib Require Import
+     Data.Monads.IdentityMonad.
+
 From ITree Require Import
      Basics.Basics
      Core.ITreeDefinition
      Indexed.Sum
      Core.Subevent.
 
-Import Basics.Basics.Monads.
 (* end hide *)
 
 Variant depE {I : Type} (F : I -> Type) : Type -> Type :=
@@ -32,8 +35,8 @@ Definition dep {I F E} `{depE F -< E} (i : I) : itree E (F i) :=
   trigger (Dep (F := F) i).
 
 Definition undep {I F} (f : forall i : I, F i) :
-  depE F ~> identity :=
+  depE F ~> ident :=
   fun _ d =>
     match d with
-    | Dep i => f i
+    | Dep i => mkIdent (f i)
     end.

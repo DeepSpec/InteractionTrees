@@ -13,7 +13,9 @@ From Coq Require Import
      Setoid
      RelationClasses.
 
-Require Import ExtLib.Structures.Monad.
+From ExtLib Require Import
+     Structures.Monad
+     Data.Monads.StateMonad.
 
   (* SAZ: Should we add ITreeMonad to ITree? *)
 From ITree Require Import
@@ -287,16 +289,16 @@ Instance RelDec_reg : RelDec (@eq reg) := RelDec_from_dec eq Nat.eq_dec.
 (** Both environments and memory events can be interpreted as "map" events,
     exactly as we did for _Imp_. *)
 
-Definition h_reg {E: Type -> Type} `{mapE reg 0 -< E}
-  : Reg ~> itree E :=
+Definition h_reg
+  : Reg ~> itree (mapE reg 0) :=
   fun _ e =>
     match e with
     | GetReg x => lookup_def x
     | SetReg x v => insert x v
     end.
 
-Definition h_memory {E : Type -> Type} `{mapE addr 0 -< E} :
-  Memory ~> itree E :=
+Definition h_memory :
+  Memory ~> itree (mapE addr 0) :=
   fun _ e =>
     match e with
     | Load x => lookup_def x
@@ -314,16 +316,17 @@ Definition memory    := alist addr value.
     do a bit of post-processing to swap the order of the "state components"
     introduced by the interpretation.
 *)
+Check interp_map.
 Definition interp_asm {E A} (t : itree (Reg +' Memory +' E) A) :
-  memory -> registers -> itree E (memory * (registers * A)) :=
-  let h := bimap h_reg (bimap h_memory (id_ _)) in
+  memory -> registers -> itree E (A * registers * memory) :=
+  let h := bimap h_reg (bimap h_memory (id_ E)) in
   let t' := interp h t in
-  fun  mem regs => interp_map (interp_map t' regs) mem.
+  fun mem regs => runStateT (interp_map (runStateT (interp_map t') regs)) mem.
 
 (** We can then define an evaluator for closed assembly programs by interpreting
     both store and heap events into two instances of [mapE], and running them
     both in the empty initial environments.  *)
-Definition run_asm (p : asm 1 0) : itree Exit (memory * (registers * fin 0)) :=
+Definition run_asm (p : asm 1 0) : itree Exit (fin 0 * registers * memory) :=
   interp_asm (denote_asm p Fin.f0) empty empty.
 
 (* SAZ: Should some of thes notions of equivalence be put into the library?
@@ -345,25 +348,25 @@ Section InterpAsmProperties.
   (** This interpreter is compatible with the equivalence-up-to-tau. *)
   #[global]
   Instance eutt_interp_asm {R}:
-    Proper (@eutt E R R eq ==> eq ==> eq ==> @eutt E' (prod memory (prod registers R)) (prod _ (prod _ R)) eq) interp_asm.
+    Proper (@eutt E R R eq ==> eq ==> eq ==> eutt eq) interp_asm.
   Proof.
     repeat intro.
     unfold interp_asm.
-    unfold interp_map.
-    rewrite H0.
+    cbn.
+    subst.
     rewrite H.
-    rewrite H1.
     reflexivity.
   Qed.
 
   (** [interp_asm] commutes with [Ret]. *)
   Lemma interp_asm_ret: forall {R} (r: R) (regs : registers) (mem: memory),
       @eutt E' _ _ eq (interp_asm (ret r) mem regs)
-            (ret (mem, (regs, r))).
+            (ret (r, regs, mem)).
   Proof.
     unfold interp_asm, interp_map.
     intros.
     unfold ret at 1, Monad_itree.
+    cbn.
     rewrite interp_ret, 2 interp_state_ret.
     reflexivity.
   Qed.
@@ -371,7 +374,8 @@ Section InterpAsmProperties.
   (** [interp_asm] commutes with [bind]. *)
   Lemma interp_asm_bind: forall {R S} (t: itree E R) (k: R -> itree _ S) (regs : registers) (mem: memory),
       @eutt E' _ _ eq (interp_asm (ITree.bind t k) mem regs)
-            (ITree.bind (interp_asm t mem regs) (fun '(mem', (regs', x)) => interp_asm (k x) mem' regs')).
+            (ITree.bind (interp_asm t mem regs)
+                        (fun '(x, regs', mem') => interp_asm (k x) mem' regs')).
 
   Proof.
     intros.
@@ -384,7 +388,7 @@ Section InterpAsmProperties.
     { reflexivity. }
     intros.
     rewrite H.
-    destruct u2 as [g' [l' x]].
+    destruct u2 as [[x l'] g'].
     reflexivity.
   Qed.
 

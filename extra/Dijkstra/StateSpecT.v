@@ -2,6 +2,7 @@ From Coq Require Import
      Morphisms.
 
 From ExtLib Require Import
+     Data.Monads.StateMonad
      Structures.Monad.
 
 From Paco Require Import paco.
@@ -9,6 +10,7 @@ From Paco Require Import paco.
 From ITree Require Import
      ITree
      ITreeFacts
+     Basics.MonadState
      Props.Infinite.
 
 From ITree.Extra Require Import
@@ -36,8 +38,10 @@ Section StateSpecT.
 
   Definition StateSpecT (A : Type) := stateT S W A.
 
+  #[global] Instance Monad_StateSpecT : Monad StateSpecT := Monad_stateT S MonadW.
+
   #[global] Instance StateSpecTOrder : OrderM StateSpecT :=
-    fun A (w1 w2 : stateT S W A) => forall (s : S), w1 s <≈ w2 s.
+    fun A (w1 w2 : stateT S W A) => forall (s : S), runStateT w1 s <≈ runStateT w2 s.
 
   #[global] Instance StateSpecTOrderedLaws : OrderedMonad StateSpecT.
   Proof.
@@ -51,25 +55,10 @@ Section StateSpecT.
       repeat red in Hlf. apply Hlf.
   Qed.
 
-  #[global] Instance StateSpecTEq : Eq1 StateSpecT :=
-    fun _ w1 w2 => forall s, (w1 s ≈ w2 s)%monad.
+  #[global] Instance StateSpecTEq : Eq1 StateSpecT := Eq1_stateTM W S.
 
-  #[global] Instance StateSpecTMonadLaws : MonadLawsE StateSpecT.
-  Proof.
-    destruct MonadLawsW.
-    constructor.
-    - intros A B f a. intro. repeat red.
-      cbn.
-      rewrite bind_ret_l. simpl. reflexivity.
-    - intros A w. intro. cbn.
-      etransitivity; [ | apply bind_ret_r ].
-      eapply Proper_bind; [ reflexivity | ].
-      intros []; reflexivity.
-    - intros A B C w f g. intro. cbn. rewrite bind_bind. reflexivity.
-    - intros A B w1 w2 Hw k1 k2 Hk.
-      cbn. do 2 red. intros. do 2 red in Hw. rewrite Hw. do 3 red in Hk.
-      setoid_rewrite Hk. reflexivity.
-  Qed.
+  #[global] Instance StateSpecTMonadLaws : @MonadLawsE StateSpecT (Eq1_stateTM W S) _ :=
+    @MonadLawsE_stateTM W S _ _ EquivRel MonadLawsW.
 
   Section Observation.
     Context (M : Type -> Type).
@@ -77,17 +66,20 @@ Section StateSpecT.
     Context {EffectObsMW : EffectObs M W}.
     Context {MonadMorphismMW : MonadMorphism M W EffectObsMW}.
 
-    #[global] Instance EffectObsStateT : EffectObs (stateT S M) (stateT S W) := fun _ m s => obs _ (m s).
+    #[global] Instance EffectObsStateT : EffectObs (stateT S M) (stateT S W) :=
+      fun T (m : stateT S M T) => mkStateT (fun s => obs _ (runStateT m s)).
 
-    #[global] Instance MonadMorphimStateT : MonadMorphism (stateT S M) (stateT S W) EffectObsStateT.
+    #[global] Instance MonadMorphismStateT : MonadMorphism (stateT S M) (stateT S W) EffectObsStateT.
     Proof.
       destruct MonadMorphismMW.
       constructor.
-      - intros. repeat red. intros. specialize (ret_pres (S * A)%type (s,a) ).
+      - intros. repeat red. intros. specialize (ret_pres (A * S)%type (a,a0)).
         cbn. rewrite <- ret_pres. reflexivity.
-      - intros. repeat red. intros. cbn. specialize (bind_pres (S * A)%type (S * B)%type ).
-        unfold obs, EffectObsStateT.
-        rewrite bind_pres. reflexivity.
+      - intros. repeat red. intros. cbn. specialize (bind_pres (A * S)%type (B * S)%type).
+        rewrite bind_pres.
+        apply Proper_bind.
+        + reflexivity.
+        + intros []. reflexivity.
     Qed.
 
   End Observation.
@@ -111,45 +103,45 @@ Section LoopInvarSpecific.
 
   Definition State (A : Type) := stateT S Delay A.
 
-  Instance StateIter : MonadIter State := MonadIter_stateT0.
+  Instance StateIter : MonadIter State := MonadIter_stateT.
 
-  Definition reassoc {A B : Type} (t : Delay (S * (A + B) ) ) : Delay ((S * A) + (S * B)  ) :=
-    t >>= (fun '(s,ab) =>
+  Definition reassoc {A B : Type} (t : Delay ((A + B) * S)) : Delay ((A * S) + (B * S)) :=
+    t >>= (fun '(ab,s) =>
              match ab with
-             | inl a => ret (inl (s , a))
-             | inr b => ret (inr (s , b))
+             | inl a => ret (inl (a,s))
+             | inr b => ret (inr (b,s))
              end
 ).
 
-  Definition iso_arrow {A B : Type} (f : A -> State B) (g : (S * A) -> Delay (S * B) ) :=
-    forall (a : A) (s : S), f a s ≈ g (s,a).
+  Definition iso_arrow {A B : Type} (f : A -> State B) (g : (A * S) -> Delay (B * S)) :=
+    forall (a : A) (s : S), runStateT (f a) s ≈ g (a,s).
 
   Definition decurry_flip {A B C : Type} (f : A -> B -> C) : B * A -> C :=
     fun '(b,a) => f a b.
 
   (*this is just decurry*)
-  Definition iso_destatify_arrow {A B : Type} (f : A -> State (A + B) ) : (S * A) -> Delay ((S * A) + (S * B)) :=
-    fun '(s,a) => reassoc (f a s).
+  Definition iso_destatify_arrow {A B : Type} (f : A -> State (A + B) ) : (A * S) -> Delay ((A * S) + (B * S)) :=
+    fun '(a,s) => reassoc (runStateT (f a) s).
 
   (*should be able to use original*)
   Lemma loop_invar_state: forall (A B : Type) (g : A -> State (A + B)) (a : A) (s : S)
-               (p : Delay ( S * B) -> Prop) (q : Delay ((S * A) + (S * B))  -> Prop  )
+               (p : Delay (B * S) -> Prop) (q : Delay ((A * S) + (B * S))  -> Prop  )
                (Hp : resp_eutt p) (Hq : resp_eutt q) ,
-        (q (reassoc (g a s) )) ->
+        (q (reassoc (runStateT (g a) s) )) ->
         (q -+> p) -> (forall t, q t -> q (t >>= (iter_lift ( iso_destatify_arrow g)  ))) ->
-         (p \1/ any_infinite) (MonadIter_stateT0 _ _ g a s) .
+         (p \1/ any_infinite) (runStateT (MonadIter_stateT _ _ g a) s) .
   Proof.
     intros.
     set (iso_destatify_arrow g) as g'.
-    enough ((p \1/ any_infinite) (ITree.iter g' (s,a) )).
-    - assert (ITree.iter g' (s,a) ≈ iter g a s).
+    enough ((p \1/ any_infinite) (ITree.iter g' (a,s) )).
+    - assert (ITree.iter g' (a,s) ≈ runStateT (iter g a) s).
       + unfold g', iso_destatify_arrow.
         unfold iter, Iter_Kleisli, Basics.iter, MonadIterDelay, StateIter,
-        MonadIter_stateT0, reassoc. unfold Basics.iter.
+        MonadIter_stateT, reassoc. unfold Basics.iter.
         unfold MonadIterDelay. eapply eutt_iter. intro.
         destruct a0 as [a' s']. simpl.
         eapply eutt_clo_bind; try reflexivity. intros.
-        subst. destruct u2. simpl. destruct s1; reflexivity.
+        subst. destruct u2. simpl. destruct s0; reflexivity.
       + assert (Hpdiv : resp_eutt (p \1/ any_infinite)).
         { intros t1 t2 Heutt. split; intros; basic_solve.
           - left. eapply Hp; eauto. symmetry. auto.
@@ -161,13 +153,15 @@ Section LoopInvarSpecific.
      - eapply loop_invar; eauto.
   Qed.
 
-  Definition state_iter_arrow_rel {A B S : Type} (g : A -> stateT S Delay (A + B) ) '(s0,a0) '(s1,a1) :=
-    g a0 s0 ≈ Ret (s1, inl a1).
+  Definition state_iter_arrow_rel {A B S : Type} (g : A -> stateT S Delay (A + B) ) '(a0,s0) '(a1,s1) :=
+    runStateT (g a0) s0 ≈ Ret (inl a1, s1).
+
+  Locate not_wf.
 
   Lemma iter_inl_spin_state : forall (A B S : Type) (g : A -> stateT S Delay (A + B) ) (a : A) (s : S),
-      not_wf_from (state_iter_arrow_rel g ) (s,a) -> MonadIter_stateT0 _ _  g a s ≈ ITree.spin.
+      not_wf_from (state_iter_arrow_rel g ) (a,s) -> runStateT (MonadIter_stateT _ _  g a) s ≈ ITree.spin.
   Proof.
-    intros. unfold MonadIter_stateT0.
+    intros. unfold MonadIter_stateT.
     apply iter_inl_spin. (*seems to require some coinduciton*)
     generalize dependent a. generalize dependent s.
     pcofix CIH. intros. pinversion H0; try apply not_wf_F_mono'. pfold.
@@ -178,27 +172,27 @@ Section LoopInvarSpecific.
   Qed.
 
   Lemma iter_wf_converge_state : forall (A B S : Type)  (g : A -> stateT S Delay (A + B) ) (a : A) (s : S),
-      (forall a s, exists ab, g a s ≈ Ret ab) ->
-      wf_from (state_iter_arrow_rel g) (s,a) ->
-      exists (p : S * B), MonadIter_stateT0 _ _ g a s ≈ Ret p.
+      (forall a s, exists ab, runStateT (g a) s ≈ Ret ab) ->
+      wf_from (state_iter_arrow_rel g) (a,s) ->
+      exists (p : B * S), runStateT (MonadIter_stateT _ _ g a) s ≈ Ret p.
   Proof.
-    intros. unfold MonadIter_stateT0, Basics.iter, MonadIterDelay.
+    intros. unfold MonadIter_stateT, Basics.iter, MonadIterDelay.
     apply iter_wf_converge.
     - eapply wf_from_sub_rel; try apply H0.
       repeat intro. unfold iter_arrow_rel in *. unfold state_iter_arrow_rel.
       clear H0 a s.
-      destruct x as [s a]. simpl in *. destruct y as [s' a'].
-      destruct (eutt_reta_or_div (g a s)); basic_solve.
+      destruct x as [a s]. simpl in *. destruct y as [a' s'].
+      destruct (eutt_reta_or_div (runStateT (g a) s)); basic_solve.
       + rewrite <- H0. rewrite <- H0 in H1. simpl in H1. rewrite bind_ret_l in H1.
-        simpl in *. destruct a0. simpl in *. destruct s1; basic_solve.
+        simpl in *. destruct a0. simpl in *. destruct s0; basic_solve.
         reflexivity.
       + apply div_spin_eutt in H0. rewrite H0 in H1. rewrite <- spin_bind in H1.
         symmetry in H1. exfalso. eapply not_ret_eutt_spin; eauto.
-   - clear H0 a s. intros [s a]. specialize (H a s). basic_solve.
-     destruct ab as [s' [a' | b] ].
-     + exists (inl (s',a') ). simpl. rewrite H. rewrite bind_ret_l. simpl.
+   - clear H0 a s. intros [a s]. specialize (H a s). basic_solve.
+     destruct ab as [[a' | b] s'].
+     + exists (inl (a',s')). simpl. rewrite H. rewrite bind_ret_l. simpl.
        reflexivity.
-     + exists (inr (s',b)). simpl. rewrite H. rewrite bind_ret_l. simpl.
+     + exists (inr (b,s')). simpl. rewrite H. rewrite bind_ret_l. simpl.
        reflexivity.
   Qed.
 

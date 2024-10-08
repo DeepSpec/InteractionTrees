@@ -28,8 +28,6 @@ From Coq Require Import
      Relations
      Morphisms.
 
-Import ITree.Basics.Basics.Monads.
-
 Import MonadNotation.
 Import CatNotations.
 Local Open Scope monad_scope.
