@@ -166,7 +166,6 @@ Section StateMachine.
     - remember (VisF (evans A e a) k ) as ot1. induction Heutt; subst; auto with itree; try discriminate.
       injection Heqot1; intros; subst. dependent destruction H1.
       subst. constructor; auto. right. pclearbot. eapply CIH; eauto with itree.
-      destruct H0; tauto.
   Qed.
 
   #[global] Instance state_machine_proper_eutt {PEv PRet} : Proper (eutt eq ==> iff) (@state_machine PEv PRet).
