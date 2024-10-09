@@ -260,7 +260,7 @@ Section ITreeDijkstra.
     intros s1 s2 H12 H. pfold. red. punfold H. red in H.
     punfold H12. red in H12. inversion H12; subst; auto.
     - rewrite <- H1 in H. inversion H.
-    - inversion H. subst. pclearbot. destruct H2; [ | contradiction ].
+    - inversion H. subst. pclearbot.
       constructor. right. eapply CIH; eauto.
       rewrite <- H3 in H0. injection H0 as H0 . subst. auto.
   Qed.
