@@ -40,9 +40,9 @@
 
 (* begin hide *)
 From Coq Require Import
-     Arith.PeanoNat
-     Lists.List
-     Strings.String
+     PeanoNat
+     List
+     String
      Morphisms
      Setoid
      RelationClasses.

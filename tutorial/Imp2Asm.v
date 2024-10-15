@@ -26,7 +26,7 @@ From Coq Require Import
      Morphisms
      Setoid
      Decimal
-     Numbers.DecimalString
+     DecimalString
      ZArith
      RelationClasses.
 

@@ -6,9 +6,11 @@
 
 (* begin hide *)
 From Coq Require Import
-     Strings.String
-     Program.Basics
-     ZArith.ZArith
+     String.
+From Coq.Program Require Import
+     Basics.
+From Coq Require Import
+     ZArith
      Morphisms
      Setoid
      RelationClasses.
