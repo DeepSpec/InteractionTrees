@@ -1,10 +1,12 @@
 From Coq Require Import
      Arith Lia (* nia *)
      Morphisms
+     Classes.RelationClasses
 .
 
 From ExtLib Require Import
      Data.String
+     Data.Monads.StateMonad
 .
 
 From ITree Require Import
@@ -40,15 +42,15 @@ Definition denote_imp (c : com) : stateT env Delay unit :=
   interp_imp (denote_com c).
 
 Definition hoare_triple (P Q : env -> Prop) (c : com) : Prop :=
-  forall (s s' :env), P s -> (denote_imp c s ≈ ret (s',tt)) -> Q s'.
+  forall (s s' :env), P s -> (runStateT (denote_imp c) s ≈ runStateT (ret tt) s') -> Q s'.
 
-Definition lift_imp_post (P : env -> Prop) : Delay (env * unit) -> Prop :=
-  fun (t : Delay (env * unit) ) => (exists (s : env), ret (s, tt) ≈ t /\ P s).
+Definition lift_imp_post (P : env -> Prop) : Delay (unit * env) -> Prop :=
+  fun (t : Delay (unit * env) ) => (exists (s : env), ret (tt,s) ≈ t /\ P s).
 
 Notation "{{ P }} c {{ Q }}" := (hoare_triple P Q c) (at level 70).
 
 Definition is_bool (E : Type -> Type) (bc : bool) (be : bexp) (s : env) : Prop :=
-   @interp_imp E bool (denote_bexp be) s ≈ ret (s, bc).
+   runStateT (@interp_imp E bool (denote_bexp be)) s ≈ ret (bc, s).
 
 Definition is_true (b : bexp) (s : env) : Prop :=
   is_bool void1 true b s.
@@ -61,12 +63,13 @@ Ltac unf_intep := unfold interp_imp, interp_map, interp_state, interp, Basics.it
 *)
 
 Lemma aexp_term : forall (E : Type -> Type) (ae : aexp) (s : env),
-    exists (n : nat), @interp_imp void1 _ (denote_aexp ae) s ≈ Ret (s,n).
+    exists (n : nat), runStateT (@interp_imp void1 _ (denote_aexp ae)) s ≈ Ret (n,s).
 Proof.
   intros. induction ae.
   - exists n. cbn. tau_steps. reflexivity.
     (*getvar case, extract to a lemma*)
-  - cbn. exists (lookup_default x 0 s).
+  - unfold interp_imp, interp_map, interp_state.
+    cbn. exists (lookup_default x 0 s).
     tau_steps. reflexivity.
   - basic_solve. exists (n0 + n)%nat.
     cbn. setoid_rewrite interp_imp_bind. rewrite IHae1.
@@ -83,7 +86,7 @@ Proof.
 Qed.
 
 Lemma bools_term : forall (be : bexp) (s : env),
-    exists (bc : bool), @interp_imp void1 _ (denote_bexp be) s ≈ Ret (s,bc).
+    exists (bc : bool), runStateT (@interp_imp void1 _ (denote_bexp be)) s ≈ Ret (bc,s).
 Proof.
   intros. induction be.
   - exists true. cbn. unfold interp_imp, interp_map, interp_state. repeat rewrite interp_ret.
@@ -120,11 +123,12 @@ Lemma hoare_seq : forall (c1 c2 : com) (P Q R : env -> Prop), {{P}} c1 {{Q}} -> 
                                                                {{P}} c1 ;;; c2 {{R}}.
 Proof.
   unfold hoare_triple. intros c1 c2 P Q R Hc1 Hc2 s s' Hs Hs'.
-  unfold denote_imp in Hs'. cbn in Hs'. rewrite interp_imp_bind in Hs'.
+  unfold denote_imp in Hs'. cbn in Hs'. unfold Delay in Hs'. rewrite interp_imp_bind in Hs'.
   fold (denote_imp c1) in Hs'. fold (denote_imp c2) in Hs'.
-  destruct (eutt_reta_or_div (denote_imp c1 s) ); basic_solve.
-  - destruct a as [s'' [] ]. rewrite <- H in Hs'. setoid_rewrite bind_ret_l in Hs'. symmetry in H.
+  destruct (eutt_reta_or_div (runStateT (denote_imp c1) s) ); basic_solve.
+  - destruct a as [[] s'']. rewrite <- H in Hs'. setoid_rewrite bind_ret_l in Hs'. symmetry in H.
     eapply Hc2; eauto.
+    eapply Hc1; eauto.
   - apply div_spin_eutt in H. rewrite H in Hs'. rewrite <- spin_bind in Hs'.
     symmetry in Hs'. exfalso. eapply not_ret_eutt_spin. eauto.
 Qed.
@@ -137,27 +141,28 @@ Proof.
   unfold hoare_triple. intros c1 c2 b P Q Hc1 Hc2 s s' Hs.
   unfold denote_imp. cbn.
   destruct (classic_bool b s).
-  - unfold is_true, is_bool in H. rewrite interp_imp_bind.
+  - unfold is_true, is_bool in H. unfold Delay. rewrite interp_imp_bind.
     rewrite H. setoid_rewrite bind_ret_l. apply Hc1. auto.
-  - unfold is_false, is_bool in H. rewrite interp_imp_bind.
+  - unfold is_false, is_bool in H. unfold Delay. rewrite interp_imp_bind.
     rewrite H. setoid_rewrite bind_ret_l. apply Hc2. auto.
 Qed.
 
 Definition app {A B : Type} (f : A -> B) (a : A) := f a.
 
-Definition run_state_itree {A S : Type} {E : Type -> Type} (s : S) (m : stateT S (itree E) A )  : itree E (S * A) :=
-  m s.
+Definition run_state_itree {A S : Type} {E : Type -> Type} (s : S) (m : stateT S (itree E) A )  : itree E (A * S) :=
+  runStateT m s.
 
-Global Instance EqStateEq {S R: Type} {E : Type -> Type} : Equivalence (@state_eq E R S).
+Global Instance EqStateEq {S R: Type} {E : Type -> Type} : Equivalence (@eq_stateT S (itree E) R (eq_itree eq)).
 Proof.
   constructor; repeat intro.
   - reflexivity.
-  -  unfold state_eq in H. symmetry. auto.
-  - unfold state_eq in *. rewrite H. auto.
+  - unfold eq_stateT in H. symmetry. auto.
+  - unfold eq_stateT in *. rewrite H. auto.
 Qed.
 
+(*
 Global Instance run_state_proper_eq_itree {E : Type -> Type} {S R : Type} {s : S} :
-  Proper (@state_eq E S R ==> eq_itree eq) (@run_state_itree R S E s).
+  Proper (@eq_stateT S (itree E) R (eq_itree eq)) (@run_state_itree R S E s).
 Proof.
   repeat intro. unfold run_state_itree. unfold state_eq in H. rewrite H. reflexivity.
 Qed.
@@ -174,7 +179,7 @@ Global Instance eutt_proper_under_interp_state
 Proof.
   repeat intro. unfold interp_state. rewrite H. reflexivity.
 Qed.
-
+*)
 (*
 Check (case_ (handle_map (V := value) pure_state ) ).
 
@@ -191,8 +196,8 @@ Section interp_state_eq_iter.
   Context (a : A).
 
 
-  Lemma interp_state_eq_iter : state_eq (interp_state f (ITree.iter g a) )
-                              (MonadIter_stateT0 _ _ (fun a0 => interp_state f (g a0)) a).
+  Lemma interp_state_eq_iter : eq_stateT (eq_itree eq) (interp_state f (ITree.iter g a))
+                                         (MonadIter_stateT _ _ (fun a0 => interp_state f (g a0)) a).
   Proof.
     unfold ITree.iter, Iter_Kleisli, Basics.iter, MonadIter_itree.
     eapply interp_state_iter; reflexivity.
@@ -202,54 +207,49 @@ End interp_state_eq_iter.
 Set Default Timeout 15.
 
 Global Instance proper_state_eq_iter {S: Type} :
-  Proper (@state_eq void1 S (unit + unit) ==> @state_eq void1 S (unit) ) (fun body => @MonadIter_stateT0 Delay S _ _ unit unit (fun _ : unit => body) tt ).
+  Proper (@eq_stateT S (itree void1) (unit + unit) (eq_itree eq) ==> @eq_stateT S (itree void1) unit (eq_itree eq))
+         (fun body => @MonadIter_stateT Delay S _ _ unit unit (fun _ : unit => body) tt ).
 Proof.
   repeat intro.
-  unfold MonadIter_stateT0, Basics.iter, MonadIterDelay. eapply eq_itree_iter.
-  repeat intro. subst. destruct y0 as [s' [] ].
+  unfold MonadIter_stateT, Basics.iter, MonadIterDelay. eapply eq_itree_iter.
+  repeat intro. subst. destruct y0 as [[] s'].
   simpl. specialize (H s'). rewrite H. reflexivity.
 Qed.
 
 Lemma interp_state_bind_state : forall (E F : Type -> Type) (A B S : Type)
-                   (h : forall T : Type, E T -> S -> itree F (S * T) ) (t : itree E A)
+                   (h : forall T : Type, E T -> stateT S (itree F) T) (t : itree E A)
                    (k : A -> itree E B),
-    state_eq (interp_state h (ITree.bind t k))
-             (bind (interp_state h t) (fun a => interp_state h (k a) ) ).
+    eq_stateT (eq_itree eq)
+              (interp_state h (ITree.bind t k))
+              (bind (interp_state h t) (fun a => interp_state h (k a))).
 
 Proof.
-  unfold state_eq. intros. eapply interp_state_bind.
+  Locate interp_state_bind'.
+  unfold eq_stateT. intros. eapply interp_state_bind'.
 Qed.
 
 Definition state_eq2 {E : Type -> Type} {A B S : Type} (k1 k2 : A -> stateT S (itree E) B ) : Prop :=
-  forall a, state_eq (k1 a)  (k2 a).
-
-Lemma eq_itree_clo_bind {E : Type -> Type} {R1 R2 : Type} :
-  forall (RR : R1 -> R2 -> Prop) (U1 U2 : Type) (UU : U1 -> U2 -> Prop)
-         (t1 : itree E U1) (t2 : itree E U2)
-         (k1 : U1 -> itree E R1) (k2 : U2 -> itree E R2),
-    eq_itree UU t1 t2 ->
-    (forall (u1 : U1) (u2 : U2), UU u1 u2 -> eq_itree RR (k1 u1) (k2 u2)  ) ->
-    eq_itree RR (ITree.bind t1 k1) (ITree.bind t2 k2).
-Proof.
-  intros. unfold eq_itree in *. eapply eqit_bind'; eauto.
-Qed.
-
+  forall a, eq_stateT (eq_itree eq) (k1 a) (k2 a).
 
 Global Instance bind_state_eq2 {E : Type -> Type} {A B S : Type} {m : stateT S (itree E) A} :
-  Proper (@state_eq2 E A B S ==> @state_eq E S B) (bind m).
+  Proper (@state_eq2 E A B S ==> @eq_stateT S (itree E) B (eq_itree eq)) (bind m).
 Proof.
-  repeat intro. unfold state_eq2, state_eq in H. cbn.
+  repeat intro. unfold state_eq2, eq_stateT in H. cbn.
   eapply eq_itree_clo_bind; try reflexivity. intros. subst.
   destruct u2 as [s' a]. simpl. rewrite H. reflexivity.
 Qed.
 
 (*can actually make this nicer*)
-Lemma compile_while : forall (b : bexp) (c : com),
-                             ((denote_imp ( WHILE b DO c END )) ≈ MonadIter_stateT0 unit unit
-                                         (fun _ : unit => bind (interp_imp (denote_bexp b))
-                                                               (fun b : bool => if b
-                                                                         then bind (denote_imp c) (fun _ : unit => interp_imp (Ret (inl tt)) )
-                                                                         else interp_imp (Ret (inr tt))) ) tt)%monad.
+Lemma compile_while :
+  forall (b : bexp) (c : com),
+    (denote_imp ( WHILE b DO c END ) ≈
+    MonadIter_stateT unit unit
+      (fun _ : unit =>
+        bind (interp_imp (denote_bexp b))
+             (fun b : bool =>
+                if b
+                then denote_imp c ;; interp_imp (Ret (inl tt))
+                else interp_imp (Ret (inr tt)))) tt)%monad.
 Proof.
   intros. simpl. unfold denote_imp. simpl. unfold while. unfold interp_imp at 1, interp_map at 1.
   cbn. red. red. intros. symmetry.

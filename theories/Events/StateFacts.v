@@ -172,6 +172,23 @@ Proof.
       auto with paco.
 Qed.
 
+Lemma interp_state_bind' {E F : Type -> Type} {A B S : Type}
+      (f : forall T, E T -> stateT S (itree F) T)
+      (t : itree E A) (k : A -> itree E B)
+      (s : S) :
+  (runStateT (interp_state f (t >>= k)) s)
+    ≅
+  (runStateT (interp_state f t) s >>= fun '(t, s) => runStateT (interp_state f (k t)) s).
+Proof.
+  rewrite interp_state_bind.
+  apply eq_itree_clo_bind with (UU := eq).
+  - reflexivity.
+  - intros.
+    subst.
+    destruct u2.
+    reflexivity.
+Qed.
+
 #[global]
 Instance eutt_interp_state {E F: Type -> Type} {S : Type}
          (h : E ~> stateT S (itree F)) R RR :
