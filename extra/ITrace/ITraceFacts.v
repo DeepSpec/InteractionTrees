@@ -509,8 +509,7 @@ Proof.
     inversion H; subst; ddestruction; try contradiction. destruct b0.
     eapply CIH; try apply H3.
     specialize (H1 tt a). assert (RAnsRef _ _ _ (evans B e2 a) tt e2 a ).
-    constructor. apply H1 in H0. unfold id in H0.
-    destruct H0; try contradiction. eauto.
+    constructor. apply H1 in H0. eauto.
   - rewrite <- x. constructor. left.  pfold. eapply IHruttF; eauto.
   - eapply IHruttF; auto. rewrite <- x in H0. inv H0.
     pclearbot. punfold H2.
@@ -552,7 +551,6 @@ Proof.
     intros.
     rewrite <- x0 in H0. inv H0. ddestruction. subst. pclearbot.
     apply H1 in H2. right. eapply CIH; eauto; try apply H4.
-    unfold id in H2. pclearbot. auto.
   - unfold observe at 1. cbn. rewrite <- x. cbn. constructor.
     eapply IHruttF; eauto. rewrite <- x in H0. inv H0. pclearbot. pstep_reverse.
   - unfold observe at 2. cbn. rewrite <- x. cbn. constructor.
