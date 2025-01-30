@@ -195,7 +195,7 @@ Proof.
         intros. inversion H1. ddestruction.
         apply H0 in H1. pclearbot. unfold id. right. eapply CIH.
         red in x1. cbn in x1. inversion x1. ddestruction.
-        red in H0. specialize (H0 tt a (rar _ _ _)).
+        specialize (H0 tt a (rar _ _ _)).
         specialize (REL0 a). pclearbot.
         change (paco2 ?x ?y ?t ?u) with (eq_itree eq t u) in REL0.
         rewrite REL0. apply H0.
