@@ -21,7 +21,8 @@ From Coq Require Import
 From ExtLib Require Import
      Monad
      Traversable
-     Data.List.
+     Data.List
+     Data.Monads.StateMonad.
 
 From ITree Require Import
      Simple.
@@ -30,6 +31,8 @@ Import ListNotations.
 Import ITreeNotations.
 Import MonadNotation.
 Open Scope monad_scope.
+
+Existing Instance Monad_stateT.
 (* end hide *)
 
 (** * Events *)
@@ -75,25 +78,25 @@ Definition write_one : itree ioE unit :=
     - [void1] is the empty event (so the resulting ITree can trigger
       no event). *)
 
-Compute Monads.stateT (list nat) (itree void1) unit.
+Compute stateT (list nat) (itree void1) unit.
 Print void1.
 
 Definition handle_io
-  : forall R, ioE R -> Monads.stateT (list nat) (itree void1) R
-  := fun R e log =>
-       match e with
-       | Input => ret (log, [0])
-       | Output o => ret (log ++ o, tt)
-       end.
+  : forall R, ioE R -> stateT (list nat) (itree void1) R
+  := fun R e => mkStateT (fun log =>
+       match e in ioE R return itree void1 (R * list nat) with
+       | Input => ret ([0], log)
+       | Output o => ret (tt, log ++ o)
+       end).
 
 (** [interp] lifts any handler into an _interpreter_, of type
     [forall R, itree ioE R -> M R]. *)
 Definition interp_io
-  : forall R, itree ioE R -> itree void1 (list nat * R)
-  := fun R t => Monads.run_stateT (interp handle_io t) [].
+  : forall R, itree ioE R -> itree void1 (R * list nat)
+  := fun R t => runStateT (interp handle_io t) [].
 
 (** We can now interpret [write_one]. *)
-Definition interpreted_write_one : itree void1 (list nat * unit)
+Definition interpreted_write_one : itree void1 (unit * list nat)
   := interp_io _ write_one.
 
 (** Intuitively, [interp_io] replaces every [ITree.trigger] in the

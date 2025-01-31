@@ -107,6 +107,7 @@ Module ImpNotations.
     if b then BTrue else BFalse.
   Coercion bool_to_bexp : bool >-> bexp.
 
+  Declare Scope imp_scope.
   Bind Scope imp_scope with aexp.
   Bind Scope imp_scope with bexp.
   Delimit Scope imp_scope with imp.
@@ -361,7 +362,8 @@ From ITree Require Import
 From ExtLib Require Import
      Core.RelDec
      Structures.Maps
-     Data.Map.FMapAList.
+     Data.Map.FMapAList
+     Data.Monads.StateMonad.
 (* end hide *)
 
 (** We provide an _ITree event handler_ to interpret away [ImpState] events.  We
@@ -402,8 +404,8 @@ Definition interp_imp  {E A} (t : itree (ImpState +' E) A) : stateT env (itree E
   interp_map t'.
 
 
-Definition eval_imp (s: com) : itree void1 (env * unit) :=
-  interp_imp (denote_com s) empty.
+Definition eval_imp (s: com) : itree void1 (unit * env) :=
+  runStateT (interp_imp (denote_com s)) empty.
 
 (** Equipped with this evaluator, we can now compute.
     Naturally since Coq is total, we cannot do it directly inside of it.
@@ -433,20 +435,19 @@ Section InterpImpProperties.
 
   (** This interpreter is compatible with the equivalence-up-to-tau. *)
   Global Instance eutt_interp_imp {R}:
-    Proper (@eutt E R R eq ==> eq ==> @eutt E' (prod (env) R) (prod _ R) eq)
+    Proper (@eutt E R R eq ==> eq_stateT (@eutt E' (prod R (env)) (prod R _) eq))
            interp_imp.
   Proof.
     repeat intro.
     unfold interp_imp.
-    unfold interp_map.
-    rewrite H0. eapply eutt_interp_state_eq; auto.
-    rewrite H. reflexivity.
+    rewrite H.
+    reflexivity.
   Qed.
 
   (** [interp_imp] commutes with [bind]. *)
   Lemma interp_imp_bind: forall {R S} (t: itree E R) (k: R -> itree E S) (g : env),
-      (interp_imp (ITree.bind t k) g)
-    ≅ (ITree.bind (interp_imp t g) (fun '(g',  x) => interp_imp (k x) g')).
+      runStateT (interp_imp (ITree.bind t k)) g
+    ≅ ITree.bind (runStateT (interp_imp t) g) (fun '(x, g') => runStateT (interp_imp (k x)) g').
   Proof.
     intros.
     unfold interp_imp.

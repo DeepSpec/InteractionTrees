@@ -25,7 +25,6 @@ From ITree Require Import
      Interp.RecursionFacts.
 
 Import ITreeNotations.
-Import ITree.Basics.Basics.Monads.
 Local Open Scope itree_scope.
 
 Import Monads.

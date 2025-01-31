@@ -1,4 +1,7 @@
 From Coq Require Import Morphisms.
+
+From ExtLib Require Import Data.Monads.StateMonad.
+
 From ITree Require Import
      Axioms
      ITree
@@ -41,7 +44,7 @@ Context (l : L).
 
 Definition state_pi_eqit_secure {R1 R2 : Type} (b1 b2 : bool) (RR : R1 -> R2 -> Prop)
            (m1 : stateT S (itree E2) R1) (m2 : stateT S (itree E2) R2) :=
-  forall s1 s2, RS s1 s2 -> pi_eqit_secure Label priv2 (prod_rel RS RR) b1 b2 l (m1 s1) (m2 s2).
+  forall s1 s2, RS s1 s2 -> pi_eqit_secure Label priv2 (prod_rel RR RS) b1 b2 l (runStateT m1 s1) (runStateT m2 s2).
 
 Definition top2 {R1 R2} (r1 : R1) (r2 : R2) : Prop := True.
 
@@ -49,7 +52,7 @@ Definition secure_in_nonempty_context {R} (m : stateT S (itree E2) R) :=
    forall r' : R, state_pi_eqit_secure true true top2 m (ret r').
 
 Definition secure_in_empty_context  {R} (m : stateT S (itree E2) R) :=
-   state_pi_eqit_secure true true (@top2 R R) m (fun s => ITree.spin).
+   state_pi_eqit_secure true true (@top2 R R) m (mkStateT (fun s => ITree.spin)).
 
 Lemma diverges_with_spin : forall E A P,
     diverges_with P (@ITree.spin E A).
@@ -83,7 +86,7 @@ Qed.
 
 
 Lemma silent_terminates_eqit_secure_ret : forall R (m : stateT S (itree E2) R), nonempty R ->
-      (forall s, terminates S RS E2 s (fun B e => ~ leq (priv2 _ e) l /\ nonempty B) (m s) ) -> forall r' : R, state_pi_eqit_secure true true top2 m (ret r').
+      (forall s, terminates S RS E2 s (fun B e => ~ leq (priv2 _ e) l /\ nonempty B) (runStateT m s) ) -> forall r' : R, state_pi_eqit_secure true true top2 m (ret r').
 Proof.
   red. intros. specialize (H0 s1).
   cbn. induction H0.
@@ -160,7 +163,7 @@ Proof.
     gstep. constructor; auto. rewrite interp_state_vis.
     specialize (Hhandler A e). inv Hhandler; try contradiction.
     red in RESCHECK. apply RESCHECK in Hs as He.
-    remember (handler A e s1) as t3. clear Heqt3.
+    remember (runStateT (handler A e) s1) as t3. clear Heqt3.
     cbn in He. generalize dependent t3. gcofix CIH'.
     intros t3 Ht3. pinversion Ht3; use_simpobs; subst.
     + destruct H4. cbn in *. destruct r1. cbn in *.
@@ -176,7 +179,7 @@ Proof.
     gstep. constructor; auto. rewrite interp_state_vis.
     specialize (Hhandler A e). inv Hhandler; try contradiction.
     red in RESCHECK. symmetry in Hs. apply RESCHECK in Hs as He.
-    remember (handler A e s2) as t3. clear Heqt3.
+    remember (runStateT (handler A e) s2) as t3. clear Heqt3.
     cbn in He. generalize dependent t3. gcofix CIH'.
     intros t3 Ht3. pinversion Ht3; use_simpobs; subst.
     + destruct H4. cbn in *. destruct r1. cbn in *.
@@ -192,23 +195,23 @@ Proof.
  - pclearbot. rewrite H, H0. repeat rewrite interp_state_vis.
    specialize (Hhandler A e1) as He1. specialize (Hhandler B e2) as He2.
    inv He1; inv He2; try contradiction.
-   eapply pi_secure_eqit_bind' with (RR := prod_rel RS top2); eauto.
+   eapply pi_secure_eqit_bind' with (RR := prod_rel top2 RS); eauto.
    + intros [? ?] [? ?] [? ?]. cbn in *. pstep. constructor.
      right. eapply CIH; eauto. apply H1.
    + cbn in *. apply pi_eqit_secure_RR_imp with
-                   (RR1 := rcompose (prod_rel RS (@top2 A unit)) (prod_rel RS top2) ).
+                   (RR1 := rcompose (prod_rel (@top2 A unit) RS) (prod_rel top2 RS) ).
      { intros. inv H2. destruct REL1. destruct REL2. split; auto.
        etransitivity; eauto. }
      eapply pi_eqit_secure_trans_ret; eauto.
      apply pi_eqit_secure_sym. apply pi_eqit_secure_RR_imp with
-                                   (RR1 := prod_rel RS top2).
+                                   (RR1 := prod_rel top2 RS).
      { intros. inv H2. split; auto. symmetry. auto.  }
      eapply RESCHECK0. reflexivity.
  - apply simpobs in H0. rewrite <- itree_eta in H0. rewrite H0.
    rewrite H. rewrite interp_state_vis.
    specialize (Hhandler A e). inv Hhandler; try contradiction.
    red in RESCHECK. apply RESCHECK in Hs as He.
-    remember (handler A e s1) as t3. clear Heqt3.
+    remember (runStateT (handler A e) s1) as t3. clear Heqt3.
     cbn in He. generalize dependent t3. gcofix CIH'.
     intros t3 Ht3. pinversion Ht3; use_simpobs; subst.
     + destruct H4. cbn in *. destruct r1. cbn in *.
@@ -224,7 +227,7 @@ Proof.
    pclearbot. rewrite H0. rewrite interp_state_vis.
    specialize (Hhandler A e). inv Hhandler; try contradiction.
     red in RESCHECK. symmetry in Hs. apply RESCHECK in Hs as He.
-    remember (handler A e s2) as t3. clear Heqt3.
+    remember (runStateT (handler A e) s2) as t3. clear Heqt3.
     cbn in He. generalize dependent t3. gcofix CIH'.
     intros t3 Ht3. pinversion Ht3; use_simpobs; subst.
     + destruct H4. cbn in *. destruct r1. cbn in *.

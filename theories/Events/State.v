@@ -5,7 +5,8 @@
 (* begin hide *)
 From ExtLib Require Import
      Structures.Functor
-     Structures.Monad.
+     Structures.Monad
+     Data.Monads.StateMonad.
 
 From ITree Require Import
      Basics.Basics
@@ -17,7 +18,7 @@ From ITree Require Import
      Core.Subevent
      Interp.Interp.
 
-Import ITree.Basics.Basics.Monads.
+Existing Instance Monad_stateT.
 
 Local Open Scope itree_scope.
 (* end hide *)
@@ -32,6 +33,7 @@ Definition interp_state {E M S}
   itree E ~> stateT S M := interp h.
 
 Arguments interp_state {E M S FM MM IM} h [T].
+Arguments interp_state : simpl never.
 
 Section State.
 
@@ -45,27 +47,30 @@ Section State.
   Definition put {E} `{stateE -< E} : S -> itree E unit := embed Put.
 
   Definition h_state {E} : stateE ~> stateT S (itree E) :=
-    fun _ e s =>
-      match e with
-      | Get => Ret (s, s)
-      | Put s' => Ret (s', tt)
-      end.
+    fun _ e =>
+      mkStateT (fun s =>
+        match e with
+        | Get => Ret (s, s)
+        | Put s' => Ret (tt, s')
+        end).
 
   (* SAZ: this is the instance for the hypothetical "Trigger E M" typeclass.
     Class Trigger E M := trigger : E ~> M 
   *)
   Definition pure_state {S E} : E ~> stateT S (itree E)
-    := fun _ e s => Vis e (fun x => Ret (s, x)).
+    := fun _ e => mkStateT (fun s => Vis e (fun x => Ret (x, s))).
 
+  (* not sure why case_ requires the manual parameters *)
   Definition run_state {E}
     : itree (stateE +' E) ~> stateT S (itree E)
-    := interp_state (case_ h_state pure_state).
+    := interp_state (case_ (bif := sum1) (c := stateT S (itree E))
+                           h_state pure_state).
 
 End State.
 
 Arguments get {S E _}.
 Arguments put {S E _}.
-Arguments run_state {S E} [_] _ _.
+Arguments run_state {S E} [_] _.
 
 
 (** An extensional stateful handler *)

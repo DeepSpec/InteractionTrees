@@ -58,7 +58,7 @@ Delimit Scope delayspec_scope with delayspec.
 Notation "a ∈ b" := (proj1_sig (A := _ -> Prop) b a) (at level 70) : delayspec_scope.
 Notation "a ∋ b" := (proj1_sig (A := _ -> Prop) a b) (at level 70, only parsing) : delayspec_scope.
 
-Definition Delay (A : Type) := itree void1 A.
+Definition Delay := itree void1.
 
 #[global] Instance EqMDelay : Eq1 Delay := @ITreeMonad.Eq1_ITree void1.
 #[global] Instance MonadDelay : Monad Delay := @Monad_itree void1.
