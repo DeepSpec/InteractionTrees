@@ -1,3 +1,8 @@
+5.2.1 - February 2025
+=====================
+
+- Compatibility with Coq 8.20 and Paco 4.2.1-4.2.3
+
 5.2.0 - April 2024
 ==================
 
