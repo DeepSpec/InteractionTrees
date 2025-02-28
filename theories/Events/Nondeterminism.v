@@ -18,7 +18,7 @@ From ITree Require Import
 (* end hide *)
 
 (** Make nondeterministic choices. *)
-Variant nondetE : Type -> Type :=
+Variant nondetE : Type -> Prop :=
 | Or : nondetE bool.
 
 (** Choose one of two computations. *)

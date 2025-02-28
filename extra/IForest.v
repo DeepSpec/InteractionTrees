@@ -1086,7 +1086,7 @@ Qed.
 
 Module BIND_BIND_COUNTEREXAMPLE.
 
-  Inductive ND : Type -> Type :=
+  Inductive ND : Type -> Prop :=
   | Pick : ND bool.
 
   Definition PA : iforest ND bool := fun (ta : itree ND bool) => ta ≈ trigger Pick.

@@ -109,7 +109,7 @@ From Paco Require Import paco.
 
 Module Tree.
 
-Variant nd : Type -> Type :=
+Variant nd : Type -> Prop :=
 | Or : nd bool.
 
 Definition or {R : Type} (t1 t2 : itree nd R) : itree nd R :=

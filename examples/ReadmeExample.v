@@ -6,7 +6,7 @@ From ITree Require Import
 Import ITreeNotations.
 
 (* Custom effects *)
-Variant inputE : Type -> Type :=
+Variant inputE : Type -> Prop :=
 | Input : inputE nat.
 
 (* Effectful programs *)

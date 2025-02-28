@@ -305,7 +305,7 @@ Arguments TraceSpecMorph {E}.
 
 Section NonDetExample.
 
-Variant NonDet : Type -> Type :=
+Variant NonDet : Type -> Prop :=
   Decide : NonDet bool.
 
 Definition decide_ex : itree NonDet unit :=

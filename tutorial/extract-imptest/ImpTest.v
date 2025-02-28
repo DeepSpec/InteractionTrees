@@ -73,4 +73,5 @@ Definition test : nit :=
         (run' 1000 (fact "X" "Y" 10)%string)
   ).
 
+Set Warnings "-extraction-default-directory".
 Extraction "imp_test.ml" test.

@@ -116,7 +116,7 @@ Class SymmetricH {A: Type} (R : relationH A A) : Prop :=
 Class TransitiveH {A: Type} (R : relationH A A) : Prop :=
   transitive : forall x y z, R x y -> R y z -> R x z.
 
-Class PER {A : Type} (R : relationH A A) : Type :=
+Class PER {A : Type} (R : relationH A A) : Prop :=
   {
     per_symm : SymmetricH R;
     per_trans : TransitiveH R
@@ -124,7 +124,7 @@ Class PER {A : Type} (R : relationH A A) : Type :=
 #[global] Existing Instance per_symm.
 #[global] Existing Instance per_trans.
 
-Class Preorder {A : Type} (R : relationH A A) : Type :=
+Class Preorder {A : Type} (R : relationH A A) : Prop :=
   {
     pre_refl : ReflexiveH R;
     pre_trans : TransitiveH R
@@ -132,7 +132,7 @@ Class Preorder {A : Type} (R : relationH A A) : Type :=
 #[global] Existing Instance pre_refl.
 #[global] Existing Instance pre_trans.
 
-Class EquivalenceH {A : Type} (R : relationH A A) : Type :=
+Class EquivalenceH {A : Type} (R : relationH A A) : Prop :=
   {
     equiv_refl : ReflexiveH R;
     equiv_symm : SymmetricH R;

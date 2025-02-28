@@ -46,4 +46,5 @@ Definition test_io :=
   else
     exit_failure.
 
+Set Warnings "-extraction-default-directory".
 Extraction "io.ml" test_io.

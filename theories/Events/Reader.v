@@ -23,7 +23,7 @@ Section Reader.
 
 Variable (Env : Type).
 
-Variant readerE : Type -> Type :=
+Variant readerE : Type -> Prop :=
 | Ask : readerE Env.
 
 Definition ask {E} `{readerE -< E} : itree E Env :=
