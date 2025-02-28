@@ -268,13 +268,14 @@ Proof.
   subst.
   eapply eutt_clo_bind; eauto.
   intros.
-  cbn in H2; destruct (snd u1); rewrite <- (proj2 H2).
+  cbn in H2; destruct H2 as [H21 H22].
+  destruct (snd u1); rewrite <- H22.
   - rewrite bind_ret_l, 2 interp_state_ret.
     pstep.
     constructor.
-    split; cbn; auto using (proj1 H2).
+    split; cbn; auto using H21.
   - rewrite bind_ret_l, 2 interp_state_ret. pstep. constructor.
-    split; cbn; auto using (proj1 H2).
+    split; cbn; auto using H21.
 Qed.
 
 (* SAZ: These are probably too specialized. *)
