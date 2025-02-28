@@ -1,7 +1,7 @@
 (** * Simplified interface *)
 
 (* begin hide *)
-Set Warnings "-notation-overridden,-deprecated-hint-rewrite-without-locality".
+Set Warnings "-notation-overridden".
 
 From Coq Require Import
      Setoid
@@ -137,11 +137,11 @@ Parameter bind_bind
     ITree.bind (ITree.bind s k) h
   ≈ ITree.bind s (fun r => ITree.bind (k r) h).
 
-Hint Rewrite @tau_eutt : itree.
-Hint Rewrite @bind_ret : itree.
-Hint Rewrite @bind_vis : itree.
-Hint Rewrite @bind_ret_r : itree.
-Hint Rewrite @bind_bind : itree.
+#[global] Hint Rewrite @tau_eutt : itree.
+#[global] Hint Rewrite @bind_ret : itree.
+#[global] Hint Rewrite @bind_vis : itree.
+#[global] Hint Rewrite @bind_ret_r : itree.
+#[global] Hint Rewrite @bind_bind : itree.
 
 (** *** Monadic interpretation: [interp] *)
 
@@ -176,10 +176,10 @@ Parameter interp_bind : forall {E F R S}
     interp f (ITree.bind t k)
   ≈ ITree.bind (interp f t) (fun r => interp f (k r)).
 
-Hint Rewrite @interp_ret : itree.
-Hint Rewrite @interp_vis : itree.
-Hint Rewrite @interp_trigger : itree.
-Hint Rewrite @interp_bind : itree.
+#[global] Hint Rewrite @interp_ret : itree.
+#[global] Hint Rewrite @interp_vis : itree.
+#[global] Hint Rewrite @interp_trigger : itree.
+#[global] Hint Rewrite @interp_bind : itree.
 
 (** *** Simple recursion: [rec] *)
 
@@ -215,8 +215,8 @@ Parameter interp_mrecursive
     interp (mrecursive ctx) (trigger_inl1 d)
   ≈ mrec ctx d.
 
-Hint Rewrite @interp_recursive_call : itree.
-Hint Rewrite @interp_mrecursive : itree.
+#[global] Hint Rewrite @interp_recursive_call : itree.
+#[global] Hint Rewrite @interp_mrecursive : itree.
 
 (** *** [Proper] lemmas *)
 
@@ -355,12 +355,12 @@ Lemma bind_bind
   ≈ ITree.bind s (fun r => ITree.bind (k r) h).
 Proof. intros; rewrite ITree.Eq.Eqit.bind_bind; reflexivity. Qed.
 
-Hint Rewrite @tau_eutt : itree.
-Hint Rewrite @bind_ret : itree.
-Hint Rewrite @bind_tau : itree.
-Hint Rewrite @bind_vis : itree.
-Hint Rewrite @bind_ret_r : itree.
-Hint Rewrite @bind_bind : itree.
+#[global] Hint Rewrite @tau_eutt : itree.
+#[global] Hint Rewrite @bind_ret : itree.
+#[global] Hint Rewrite @bind_tau : itree.
+#[global] Hint Rewrite @bind_vis : itree.
+#[global] Hint Rewrite @bind_ret_r : itree.
+#[global] Hint Rewrite @bind_bind : itree.
 
 (** **** Monadic interpretation: [interp] *)
 
@@ -413,10 +413,10 @@ Proof.
   reflexivity.
 Qed.
 
-Hint Rewrite @interp_ret : itree.
-Hint Rewrite @interp_vis : itree.
-Hint Rewrite @interp_trigger : itree.
-Hint Rewrite @interp_bind : itree.
+#[global] Hint Rewrite @interp_ret : itree.
+#[global] Hint Rewrite @interp_vis : itree.
+#[global] Hint Rewrite @interp_trigger : itree.
+#[global] Hint Rewrite @interp_bind : itree.
 
 (** **** Simple recursion: [rec] *)
 
@@ -466,8 +466,8 @@ Proof.
   reflexivity.
 Qed.
 
-Hint Rewrite @interp_recursive_call : itree.
-Hint Rewrite @interp_mrecursive : itree.
+#[global] Hint Rewrite @interp_recursive_call : itree.
+#[global] Hint Rewrite @interp_mrecursive : itree.
 
 (** *** [Proper] lemmas *)
 
