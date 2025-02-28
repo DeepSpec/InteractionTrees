@@ -66,9 +66,6 @@ workflows:
   build:
     jobs:
     - test:
-        name: "Coq 8.13"
-        coq: "coqorg/coq:8.13"
-    - test:
         name: "Coq 8.14"
         coq: "coqorg/coq:8.14"
     - test:
