@@ -1,4 +1,7 @@
-# Interaction Trees [![Build Status](https://travis-ci.com/DeepSpec/InteractionTrees.svg?branch=master)](https://travis-ci.com/DeepSpec/InteractionTrees)
+# Interaction Trees
+
+[![project chat](https://img.shields.io/badge/zulip-join_chat-brightgreen.svg)](https://coq.zulipchat.com/#narrow/stream/394939-Interaction-Trees)
+[![BUILD](https://circleci.com/gh/DeepSpec/InteractionTrees.svg?style=shield)](https://circleci/gh/DeepSpec/InteractionTrees)
 
 A Library for Representing Recursive and Impure Programs in Coq
 
@@ -10,6 +13,10 @@ For a quick overview of the core features of the library, see
 See also [the tutorial](./tutorial/README.md).
 
 [The coqdoc documentation for this library is available here.](https://deepspec.github.io/InteractionTrees/)
+
+Join the Interaction Trees channel on
+[Rocq's Zulip server](https://coq.zulipchat.com/#narrow/channel/394939-Interaction-Trees)
+if you have any questions.
 
 ### Top-level modules
 
