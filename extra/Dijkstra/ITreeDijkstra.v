@@ -719,7 +719,7 @@ End ITreeDijkstra.
 
 Section RetBindCounter.
 
-  Variant Sound : Type -> Type :=
+  Variant Sound : Type -> Prop :=
     Ring : Sound unit.
 
   (* Program Definition ret_itree (A : Type) (a : A) : ITreeSpec A := fun p => p (Ret a). *)

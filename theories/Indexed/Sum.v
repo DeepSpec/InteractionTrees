@@ -25,7 +25,7 @@ Notation "E1 +' E2" := (sum1 E1 E2)
   (at level 59, right associativity) : type_scope.
 
 (** The empty indexed type. *)
-Variant void1 : Type -> Type := .
+Variant void1 : Type -> Prop := .
 
 (** This sum type equips the space of indexed functions [_ ~> _] with
     the structure of a cocartesian category, see [Indexed.Function].

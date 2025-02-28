@@ -134,7 +134,7 @@ Inductive Memory : Type -> Type :=
     of type [Exit void].  We can therefore use it to "close" an [itree E A] no
     matter what the expected return type [A] is, as witnessed by the [exit]
     computation.  *)
-Inductive Exit : Type -> Type :=
+Inductive Exit : Type -> Prop :=
 | Done : Exit void.
 
 Definition exit {E A} `{Exit -< E} : itree E A :=
