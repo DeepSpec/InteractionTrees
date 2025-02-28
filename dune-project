@@ -10,7 +10,7 @@
   (name coq-itree)
   (synopsis "Library for representing recursive and impure programs with equational reasoning")
   (depends
-    (coq (>= 8.13))
+    (coq (>= 8.14))
     (coq-ext-lib (>= 0.11.1))
     (coq-paco (>= 4.2.1)))
   (tags ("org:deepspec"))
