@@ -16,7 +16,7 @@
 
 (* begin hide *)
 From Coq Require Import
-     Structures.Orders (* Hint Unfold is_true *)
+     Orders (* Hint Unfold is_true *)
      Program
      Setoid
      Morphisms
