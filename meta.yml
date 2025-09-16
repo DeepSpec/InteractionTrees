@@ -1,0 +1,17 @@
+fullname: Interaction Trees
+shortname: itree
+organization: DeepSpec
+action: true
+ci_test_dependants: true
+dune: true
+tested_coq_opam_versions:
+- version: '8.14'
+- version: '8.15'
+- version: '8.16'
+- version: '8.17'
+- version: '8.18'
+- version: '8.19'
+- version: '8.20'
+tested_rocq_opam_versions:
+- version: '9.0'
+- version: 'dev'

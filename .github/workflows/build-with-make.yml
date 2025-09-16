@@ -1,0 +1,38 @@
+name: Build with Make
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - '**'
+
+jobs:
+  build-with-make:
+    # the OS must be GNU/Linux to be able to use the docker-coq-action
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        image:
+          - 'coqorg/coq:8.20'
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: coq-community/docker-coq-action@v1
+        with:
+          opam_file: 'coq-itree.opam'
+          custom_image: ${{ matrix.image }}
+          before_script: |
+            startGroup "Workaround permission issue"
+              sudo chown -R 1000:1000 .
+            endGroup
+          script: |
+            startGroup "Build"
+              make all
+              make install
+            endGroup
+          after_script: |
+            startGroup "Clean"
+              make clean
+            endGroup
