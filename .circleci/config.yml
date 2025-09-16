@@ -12,8 +12,7 @@ commands:
         command: |
             opam repo -a add coq-extra-dev https://coq.inria.fr/opam/extra-dev
             opam update
-            opam pin remove dune -n
-            opam install --deps-only .
+            opam install --deps-only . --skip-updates
     - run:
         name: List installed packages
         command: opam list

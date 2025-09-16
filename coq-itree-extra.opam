@@ -11,12 +11,11 @@ tags: ["org:deepspec"]
 homepage: "https://github.com/DeepSpec/InteractionTrees"
 bug-reports: "https://github.com/DeepSpec/InteractionTrees/issues"
 depends: [
-  "dune" {>= "3.14"}
+  "dune" {>= "2.6"}
   "coq"
   "coq-ext-lib"
   "coq-paco"
   "coq-itree"
-  "odoc" {with-doc}
 ]
 dev-repo: "git+https://github.com/DeepSpec/InteractionTrees.git"
 build: [
