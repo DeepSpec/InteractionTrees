@@ -16,11 +16,11 @@
 (* begin hide *)
 From Coq Require Import
      Ascii
-     Strings.String
+     String
      List
-     Arith.Arith
+     Arith
      ZArith
-     Nat 
+     Nat
      Psatz.
 
 From ExtLib Require Import
