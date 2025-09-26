@@ -254,3 +254,97 @@ Instance euttge_interp_mrec' {E D R} (ctx : D ~> itree (D +' E)) :
 Proof.
   do 4 red. eapply euttge_interp_mrec. reflexivity.
 Qed.
+
+Module Interp_mrec_loop2.
+
+Inductive invariant {D E} (ctx : D ~> itree (D +' E)) {R}
+  : itree (D +' E) R -> itree (D +' E) R -> Prop :=
+| Equal {t} : invariant ctx t t
+| Interp {A} {t : itree (D +' E) A} {k k' : A -> _} : (forall a, invariant ctx (k a) (k' a)) -> invariant ctx (t >>= k) (interp (Handler.case_ ctx Handler.inr_) t >>= k')
+| Bind {A} {t : itree (D +' E) A} {k k' : A -> _}
+  : (forall (a : A), invariant ctx (k a) (k' a)) ->
+    invariant ctx (t >>= k) (t >>= fun x => k' x)
+.
+Hint Constructors invariant : core.
+
+Inductive itree_case {E R} (t : itree E R) : Prop :=
+| CaseRet r : Ret r ≅ t -> itree_case t
+| CaseTau u : Tau u ≅ t -> itree_case t
+| CaseVis A (e : E A) k : Vis e k ≅ t -> itree_case t.
+
+Lemma case_itree {E R} (t : itree E R) : itree_case t.
+Proof.
+  destruct (observe t) eqn:Eq.
+  - econstructor 1. rewrite <- Eq, <- itree_eta; reflexivity.
+  - econstructor 2. rewrite <- Eq, <- itree_eta; reflexivity.
+  - econstructor 3. rewrite <- Eq, <- itree_eta; reflexivity.
+Qed.
+
+Lemma interp_mrec_loop2_ {D E} (ctx : D ~> itree (D +' E)) {R}
+  : forall {t : itree (D +' E) R} {u : itree (D +' E) R},
+    invariant ctx t u -> interp_mrec ctx t ≈ interp_mrec (Handler.cat ctx (Handler.case_ ctx Handler.inr_)) u.
+Proof with auto.
+  einit.
+  ecofix SELF. induction 1 as [t | A t k | A t k k'].
+  - destruct (case_itree t) as [ ? H | u H | A [d|e] k H ]; rewrite <- H; rewrite 2 unfold_interp_mrec; simpl.
+    + eret.
+    + etau.
+    + etau.
+    + evis.
+  - destruct (case_itree t) as [ ? W | u W | ? [d|e] h W ]; rewrite <- W.
+    + rewrite interp_ret. rewrite 2 bind_ret_l.
+      apply H0.
+    + rewrite interp_tau, 2 bind_tau, 2 unfold_interp_mrec. simpl.
+      etau.
+    + rewrite interp_vis. simpl. rewrite bind_bind.
+      rewrite unfold_interp_mrec; simpl.
+      destruct (case_itree (ctx _ d)) as [ ? H1 | ? H1 | ? [d'|e] ? H1 ]; rewrite <- H1.
+      * rewrite 2 bind_ret_l.
+        rewrite bind_tau.
+        rewrite unfold_interp_mrec with (t := Tau _); simpl.
+        etau.
+      * rewrite 2 bind_tau.
+        rewrite 2 unfold_interp_mrec; simpl.
+        rewrite tau_euttge.
+        setoid_rewrite tau_euttge at 3.
+        etau. ebase.
+      * rewrite 2 bind_vis, 2 unfold_interp_mrec. simpl.
+        rewrite tau_euttge.
+        unfold Handler.cat at 2.
+        setoid_rewrite tau_euttge at 3.
+        etau. ebase. right. apply SELFL. eauto.
+      * rewrite 2 bind_vis, 2 unfold_interp_mrec; simpl.
+        rewrite tau_euttge.
+        setoid_rewrite tau_euttge at 3.
+        evis. etau. ebase.
+    + rewrite interp_vis; simpl. unfold Handler.inr_ at 2, Handler.htrigger.
+      rewrite bind_trigger. rewrite 2 bind_vis.
+      rewrite 2 unfold_interp_mrec; simpl.
+      setoid_rewrite unfold_interp_mrec at 2; simpl.
+      setoid_rewrite tau_euttge at 3.
+      evis. etau.
+  - destruct (case_itree t) as [ ? W | ? W | ? [d|e] h W]; rewrite <- W.
+    + rewrite 2 bind_ret_l. apply H0.
+    + rewrite 2 bind_tau, 2 unfold_interp_mrec; simpl. etau.
+    + rewrite 2 bind_vis, 2 unfold_interp_mrec; simpl.
+      unfold Handler.cat at 2. etau. ebase.
+    + rewrite 2 bind_vis, 2 unfold_interp_mrec; simpl. evis. etau.
+Qed.
+
+End Interp_mrec_loop2.
+
+Lemma interp_mrec_loop2 {D E} (ctx : D ~> itree (D +' E)) {R} {t : itree (D +' E) R}
+  : interp_mrec ctx t ≈ interp_mrec (Handler.cat ctx (Handler.case_ ctx inr_)) t.
+Proof.
+  apply Interp_mrec_loop2.interp_mrec_loop2_.
+  constructor.
+Qed.
+
+Theorem mrec_loop2 {D E} (ctx : D ~> itree (D +' E)) {R} {d : D R}
+  : mrec ctx d ≈ mrec (Handler.cat ctx (Handler.case_ ctx inr_)) d.
+Proof.
+  unfold mrec.
+  unfold Handler.cat at 2.
+  rewrite <- unfold_interp_mrec_h.
+  apply interp_mrec_loop2.
+Qed.
