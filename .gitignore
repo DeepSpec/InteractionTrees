@@ -38,7 +38,7 @@ tutorial/_CoqProject
 _CoqPath
 lib/
 html/
-doc
+gh-pages
 coqdocjs*
 
 tests/extraction/*.ml
@@ -52,3 +52,5 @@ tutorial/imp_test.mli
 *.native
 
 *.install
+
+doc/index.html

@@ -103,24 +103,24 @@ CSS and JS to coqdoc's output.
 #### 3. Updating Github pages
 
 The documentation is stored in the `gh-pages` branch.
-The recommended setup is to create a fresh clone in the `doc` directory.
+The recommended setup is to create a fresh clone in the `gh-pages` directory.
 
 ```
-git clone -b gh-pages git@github.com:DeepSpec/InteractionTrees doc
+git clone -b gh-pages git@github.com:DeepSpec/InteractionTrees gh-pages
 ```
 
 There is a script in that branch to update the documentation.
 
 ```
-cd doc
+cd gh-pages
 sh ./update.sh
 git add -u
 git commit -m "Update"
 ```
 
 It will run "make html" in the parent directory and move the output where it
-should go, in `doc/docs/master`.
-Past releases are maintained in `doc/docs/$VERSION`.
+should go, in `gh-pages/docs/master`.
+Past releases are maintained in `gh-pages/docs/$VERSION`.
 
 ## Library internal organization
 
