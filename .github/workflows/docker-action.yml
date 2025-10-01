@@ -36,7 +36,7 @@ jobs:
           after_script: |
             startGroup "Test dependants"
               PINS=$(opam list -s --pinned --columns=package | xargs | tr ' ' ,)
-              PACKAGES=`opam list -s --depends-on coq-itree --coinstallable-with $PINS`
+              PACKAGES="coq-ctree coq-itree-extra coq-itree-io "
               for PACKAGE in $PACKAGES
               do DEPS_FAILED=false
                  opam install -y --deps-only $PACKAGE || DEPS_FAILED=true
