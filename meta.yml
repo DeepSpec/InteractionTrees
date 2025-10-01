@@ -2,7 +2,7 @@ fullname: Interaction Trees
 shortname: itree
 organization: DeepSpec
 action: true
-ci_test_dependants: true
+ci_test_dependants: ['coq-ctree', 'coq-itree-extra', 'coq-itree-io']
 dune: true
 tested_coq_opam_versions:
 - version: '8.14'
