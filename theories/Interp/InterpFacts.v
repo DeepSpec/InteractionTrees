@@ -65,7 +65,7 @@ Definition _interp {E F R} (f : E ~> itree F) (ot : itreeF E R _)
   match ot with
   | RetF r => Ret r
   | TauF t => Tau (interp f t)
-  | VisF e k => f _ e >>= (fun x => Tau (interp f (k x)))
+  | VisF e k => f _ e ≫= (fun x => Tau (interp f (k x)))
   end.
 
 (** Unfold lemma. *)
@@ -74,7 +74,13 @@ Lemma unfold_interp {E F R} {f : E ~> itree F} (t : itree E R) :
 Proof.
   unfold interp, Basics.iter, MonadIter_itree. rewrite unfold_iter.
   destruct (observe t); cbn;
-    rewrite ?bind_ret_l, ?bind_map. all: try reflexivity.
+    rewrite ?bind_ret_l, ?bind_map.
+  all: change (mret ?x) with (Ret x :> itree F _).
+  all: rewrite ?bind_ret_l.
+  all: try reflexivity.
+  unfold fmap, FMap_itree.
+  rewrite bind_map.
+  reflexivity.
 Qed.
 
 (** ** [interp] and constructors *)
@@ -122,7 +128,7 @@ Proof.
   intros l r0 Hlr.
   rewrite 2 unfold_interp.
   punfold Hlr; red in Hlr.
-  destruct Hlr; cbn; subst; try discriminate; pclearbot; try (gstep; constructor; eauto with paco; fail).
+  destruct Hlr; cbn; subst; try contradiction; pclearbot; try (gstep; constructor; eauto with paco; fail).
   guclo eqit_clo_bind. econstructor; [eapply Hfg|].
   intros ? _ [].
   gstep; econstructor; eauto with paco itree.
@@ -130,7 +136,7 @@ Qed.
 
 #[global]
 Instance eq_itree_interp' {E F R f}
-  : Proper (eq_itree eq ==> eq_itree eq) (@interp E (itree F) _ _ _ f R).
+  : Proper (eq_itree eq ==> eq_itree eq) (@interp E (itree F) _ _ _ _ f R).
 Proof.
   repeat red.
   eapply eq_itree_interp.
@@ -177,13 +183,13 @@ Proof.
     intros; subst.
     gstep; constructor; eauto with paco itree.
   - rewrite tau_euttge, unfold_interp. auto.
-  - discriminate.
+  - contradiction.
 Qed.
 
 #[global]
 Instance eutt_interp' {E F : Type -> Type} {R : Type} (RR: R -> R -> Prop) (f : E ~> itree F) :
   Proper (eutt RR ==> eutt RR)
-         (@interp E (itree F) _ _ _ f R).
+         (@interp E (itree F) _ _ _ _ f R).
 Proof.
   repeat red.
   einit.
@@ -203,7 +209,7 @@ Qed.
 #[global]
 Instance euttge_interp' {E F : Type -> Type} {R : Type} (f : E ~> itree F) :
   Proper (euttge eq ==> euttge eq)
-         (@interp E (itree F) _ _ _ f R).
+         (@interp E (itree F) _ _ _ _ f R).
 Proof.
   repeat red. apply euttge_interp. reflexivity.
 Qed.
@@ -379,7 +385,7 @@ Lemma interp_loop {E F} (f : E ~> itree F) {A B C}
       (t : C + A -> itree E (C + B)) a :
   interp f (loop (C := ktree E) t a) ≅ loop (C := ktree F) (fun ca => interp f (t ca)) a.
 Proof.
-  unfold loop. unfold cat, Cat_Kleisli, ITree.cat; cbn.
+  unfold loop. unfold cat, Cat_Kleisli, ITree.cat.
   rewrite interp_bind.
   apply eqit_bind.
   { unfold inr_, Inr_Kleisli, lift_ktree, pure; cbn.
