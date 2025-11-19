@@ -270,9 +270,9 @@ From stdpp Require Import propset.
 Inductive iter_Prop {R I : Type} (step : I -> propset (I + R)) (i : I) (r : R)
   : Prop :=
 | iter_done
-  : propset_car (step i) (inr r) -> iter_Prop step i r
+  : inr r ∈ step i -> iter_Prop step i r
 | iter_step i'
-  : propset_car (step i) (inl i') ->
+  : inl i' ∈ step i ->
     iter_Prop step i' r ->
     iter_Prop step i r
 .

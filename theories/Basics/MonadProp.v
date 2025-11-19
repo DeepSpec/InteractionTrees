@@ -1,138 +1,239 @@
 (* begin hide *)
 From Coq Require Import
-     Ensembles
      Setoid
      Morphisms.
+
+From stdpp Require Import propset.
 
 From ITree Require Import
      Basics.Basics
      Basics.Category
-     Basics.CategoryKleisli
-     Basics.Monad.
+     Basics.CategoryKleisli.
 
-Import ITree.Basics.Basics.Monads.
 Import CatNotations.
 Local Open Scope cat_scope.
 Local Open Scope cat.
 
-Section prop.
-  Global Instance Monad_Prop : Monad Ensemble :=
-    {|
-    ret := fun _ x y => x = y;
-    bind := fun _ _ Pa K b => exists a, In _ Pa a /\ In _ (K a) b
-    |}.
+Definition subset {A} (P Q : propset A) : Prop :=
+  forall x, x ∈ P -> x ∈ Q.
 
-  Global Instance Eq1_Prop : Eq1 Ensemble := Same_set.
+#[global]
+Instance Eq1_Prop : Eq1 propset :=
+  fun _ P Q => subset P Q /\ subset Q P.
 
-  Global Instance Eq1Equivalence_Prop : Eq1Equivalence Ensemble.
-  Proof.
-    constructor.
-    - split; repeat intro; auto.
-    - repeat intro. destruct H. split; auto.
-    - repeat intro. destruct H, H0. split; repeat intro; auto.
-  Qed.
+#[global]
+Instance Eq1Equivalence_Prop : Eq1Equivalence propset.
+Proof.
+  constructor.
+  - split; repeat intro; auto.
+  - repeat intro. destruct H. split; auto.
+  - repeat intro. destruct H, H0. split; repeat intro; auto.
+Qed.
 
-  Instance MonadLawsE_Prop : MonadLawsE Ensemble.
-  Proof.
-    constructor.
-    - split; repeat intro; simpl in *.
-      + destruct H as (? & ? & ?). red in H. subst; auto.
-      + eexists; split; eauto. reflexivity.
-    - split. repeat intro; simpl in *.
-      + destruct H as (? & ? & ?). red in H0; subst; auto.
-      + red. repeat intro. eexists; split; eauto. reflexivity.
-    - intros; split; repeat intro; simpl in *;
-        [destruct H as (? & (? & ? & ?) & ?) | destruct H as (? & ? & (? & ? & ?))];
-        do 2 (eexists; split; eauto).
-    - repeat intro; auto. destruct H.
-      split; simpl; repeat red; intros;
-        destruct H2 as (? & ? & ?); eexists; split; eauto; apply H0; auto.
-  Qed.
+Section lemmas.
 
-  Global Instance Proper_Iter_stateTM : forall a b,
-      @Proper (Kleisli Ensemble a (a + b) -> (Kleisli Ensemble a b)) (eq2 ==> eq2) iter.
-  Proof.
-    repeat red; split; repeat intro;
-      (induction H0; [constructor 1 | econstructor 2; eauto]; apply H; auto).
- Qed.
+#[local]
+Transparent propset_bind.
 
-  Global Instance IterUnfold_Prop : IterUnfold (Kleisli Ensemble) sum.
-  Proof.
-    repeat red; split; repeat intro.
-    - repeat red in H |- *. destruct H.
-      + exists (inr x). split; repeat red; auto.
-      + eexists; split; eauto.
-    - repeat red in H |- *. decompose [ex and] H; clear H. destruct x0.
-      + econstructor 2; eauto.
-      + constructor 1. repeat red in H2. subst; auto.
-  Qed.
+Lemma unfold_elem_of_mbind {A B} (P : propset A) (Q : A -> propset B) (x : B)
+  : x ∈ P ≫= Q -> exists y, y ∈ P /\ x ∈ Q y.
+Proof.
+  intros H.
+  apply (proj1 (elem_of_PropSet _ _)) in H.
+  destruct H as [y []]; eauto.
+Qed.
 
-  Global Instance IterNatural_Prop : IterNatural (Kleisli Ensemble) sum.
-  Proof.
-    repeat red; split; repeat intro.
-    - repeat red in H |- *. decompose [ex and] H; clear H. induction H1.
-      + constructor 1. eexists; split; eauto. eexists; split; eauto. reflexivity.
-      + econstructor 2; repeat red; eauto.
-        eexists; split; eauto. eexists; split; reflexivity.
-    - repeat red in H |- *.
-      induction H; repeat red in H; decompose [ex and] H; clear H.
-      + destruct x; destruct H2 as (? & ? & H'); inversion H'; subst.
-        eexists; split; eauto. constructor 1. auto.
-      + destruct x; destruct H3 as (? & ? & H'); inversion H'; clear H'; subst.
-        decompose [ex and] IHiter_Prop; clear IHiter_Prop.
-        inversion H; clear H; subst.
-        eexists; split; eauto. econstructor 2; eauto.
-  Qed.
+Lemma fold_elem_of_mbind {A B} (P : propset A) (Q : A -> propset B) (x : B)
+  : (exists y, y ∈ P /\ x ∈ Q y) -> x ∈ P ≫= Q.
+Proof.
+  intros H.
+  apply (proj2 (elem_of_PropSet _ _)).
+  destruct H as [y []]; eauto.
+Qed.
 
-  Global Instance IterDinatural_Prop : IterDinatural (Kleisli Ensemble) sum.
-  Proof.
-    repeat red; split; repeat intro.
-    - induction H; destruct H as (? & ? & ?).
-      + destruct x; repeat red in H0.
-        * eexists; split; eauto. constructor; auto. eexists; split; eauto. reflexivity.
-        * inversion H0; subst. eexists; split; eauto. constructor; auto.
-      + destruct x; repeat red in H1; try inversion H1.
-        destruct IHiter_Prop as (? & ? & ?). destruct x; eexists; split; eauto.
-        * econstructor 2; eauto. eexists; split; eauto.
-        * repeat red in H3. subst. repeat red. constructor 1. eexists; split; eauto.
-    - destruct H as (? & ? & ?). destruct x0; repeat red in H0.
-      + generalize dependent a0. induction H0; intros; destruct H as (? & ? & ?).
-        * destruct x.
-          -- econstructor 2; eauto. eexists; split; eauto.
-             constructor 1. eexists; split; eauto. reflexivity.
-          -- inversion H1; clear H1; subst. constructor 1. eexists; split; eauto.
-        * destruct x; try inversion H2.
-          econstructor 2; eauto. 2: { apply IHiter_Prop. apply H2. }
-          eexists; split; eauto.
-      + subst. constructor 1. eexists; split; eauto. reflexivity.
-  Qed.
+End lemmas.
 
-  Global Instance IterCodiagonal_stateTM : IterCodiagonal (Kleisli Ensemble) sum.
-  Proof.
-    repeat red; split; repeat intro.
-    - induction H.
-      + remember (inr r). generalize dependent r. induction H; intros; subst.
-        * constructor 1. eexists; split; eauto; reflexivity.
-        * econstructor 2. 2: { apply IHiter_Prop; auto. }
-          eexists; split; eauto; reflexivity.
-      + remember (inl i'). generalize dependent i'. induction H; intros; subst.
-        * econstructor 2; eauto. eexists; split; eauto; reflexivity.
-        * econstructor 2. 2: { eapply IHiter_Prop; eauto. }
-          eexists; split; eauto; reflexivity.
-    - induction H.
-      + destruct H as (? & ? & ?). destruct x as [? | [? | ?]]; inversion H0; clear H0; subst.
-        constructor 1. constructor 1. auto.
-      + destruct H as (? & ? & ?).
-        destruct x as [? | [? | ?]]; inversion H1; clear H1; subst.
-        * destruct IHiter_Prop.
-          -- constructor 1. econstructor 2; eauto.
-          -- econstructor 2; eauto. econstructor 2; eauto.
-        * econstructor 2; eauto. constructor 1. apply H.
-  Qed.
+Ltac simp_propset :=
+  repeat lazymatch goal with
+  | [ H : _ ∈ mret ?x |- _ ] =>
+      apply (elem_of_PropSet (eq x)) in H;
+      tryif is_var x then subst x else idtac
+  | [ |- _ ∈ mret ?x ] =>
+      apply (proj2 (elem_of_PropSet (eq x) _))
+  | [ H : _ ∈ mbind _ _ |- _ ] =>
+      apply unfold_elem_of_mbind in H
+  | [ |- _ ∈ mbind _ _ ] => apply fold_elem_of_mbind
+  | [ H : _ ∈ PropSet _ |- _ ] => rewrite elem_of_PropSet in H
+  | [ |- _ ∈ PropSet _ ] => rewrite elem_of_PropSet
+  end.
 
-  Global Instance Iterative_Prop : Iterative (Kleisli Ensemble) sum.
-  Proof.
-    constructor; typeclasses eauto.
-  Qed.
+Instance MonadLawsE_Prop : MonadLawsE propset.
+Proof.
+  constructor.
+  - split; intros y HIn.
+    + destruct HIn as (? & Hf & Hx). simp_propset; auto.
+    + eexists; split; eauto; reflexivity.
+  - split. intros y HIn.
+    + destruct HIn as (? & Hx & Hy). simp_propset; auto.
+    + eexists; split; eauto; reflexivity.
+  - intros; split; intros c Hc; simp_propset.
+    + destruct Hc as [b [Hb ?]]; simp_propset.
+      destruct Hb as [a [Ha ?]].
+      exists a; split; [ auto | simp_propset; eauto ].
+    + destruct Hc as [a [? Hb]]; simp_propset.
+      destruct Hb as [b []].
+      exists b; split; [ simp_propset; eauto | auto ].
+  - intros A B f1 f2 EQf P1 P2 EQP. split;
+      intros x Hx; simp_propset;
+      destruct Hx as [y []]; exists y; split;
+        apply EQP + apply EQf; auto.
+Qed.
 
-End prop.
+#[global]
+Instance Proper_Iter_propset : forall a b,
+    @Proper (Kleisli propset a (a + b) -> (Kleisli propset a b)) (eq2 ==> eq2) iter.
+Proof.
+  intros A B P1 P2 EQP x.
+  unfold iter, Iter_Kleisli, Basics.iter, MonadIter_Prop.
+  split; intros y Hy;
+    apply elem_of_PropSet;
+    apply (proj1 (elem_of_PropSet _ _)) in Hy.
+  all: induction Hy; [constructor 1 | econstructor 2; eauto]; apply EQP; auto.
+Qed.
+
+#[global]
+Instance IterUnfold_Prop : IterUnfold (Kleisli propset) sum.
+Proof.
+  intros A B f x.
+  unfold iter, Iter_Kleisli, Basics.iter, MonadIter_Prop.
+  unfold cat, Cat_Kleisli, case_, Case_Kleisli, Function.case_sum.
+  unfold id_, Id_Kleisli, pure, id.
+  split; intros y Hy; simp_propset.
+  - destruct Hy as [ | b ? ? ].
+    + exists (inr y); split; auto. simp_propset; auto.
+    + exists (inl b); split; auto.
+  - destruct Hy as [[a | b] []].
+    + econstructor 2; eauto.
+    + simp_propset. constructor 1; auto.
+Qed.
+
+#[global]
+Instance IterNatural_Prop : IterNatural (Kleisli propset) sum.
+Proof.
+  intros A B C f g x.
+  unfold iter, Iter_Kleisli, Basics.iter, MonadIter_Prop.
+  unfold bimap, Bimap_Coproduct, case_, Case_Kleisli, Function.case_sum,
+    inl_, Inl_Kleisli, inr_, Inr_Kleisli, id_, Id_Kleisli, pure, id, cat, Cat_Kleisli.
+  split.
+  - intros y Hy; simp_propset.
+    destruct Hy as [b []]; simp_propset.
+    induction H as [ | a r a' ? ? IH].
+    + constructor 1.
+      simp_propset; exists (inr r); split; auto.
+      simp_propset; exists y; split; auto.
+      simp_propset; auto.
+    + econstructor 2; eauto.
+      simp_propset; exists (inl a'); split; auto.
+      simp_propset; exists a'; split; simp_propset; auto.
+  - intros y Hy; simp_propset.
+    induction Hy as [ | a0 r a' ? ? IH ].
+    + simp_propset; destruct H as [[a | b] [Hf H]]; simp_propset.
+      * destruct H as [a' []]; simp_propset; discriminate.
+      * destruct H as [a' [Hg H]]; simp_propset. injection H; clear H; intros <-.
+        exists b.
+        split; auto; simp_propset.
+        constructor 1; auto.
+    + destruct IH as [b []]; exists b; split; auto.
+      simp_propset.
+      destruct H as [[a | b'] [Hf H]]; simp_propset.
+      * destruct H as [a2 [Ha Ha']]; simp_propset.
+        injection Ha'; clear Ha'; intros <-.
+        econstructor 2; eauto.
+      * destruct H as [c [Hg Ha']]; simp_propset; discriminate.
+Qed.
+
+#[global]
+Instance IterDinatural_Prop : IterDinatural (Kleisli propset) sum.
+Proof.
+  intros A B C f g x.
+  unfold iter, Iter_Kleisli, Basics.iter, MonadIter_Prop.
+  unfold case_, Case_Kleisli, Function.case_sum, inr_, Inr_Kleisli, id_, Id_Kleisli, id, pure, cat, Cat_Kleisli.
+  split.
+  - intros y Hy; simp_propset.
+    induction Hy as [ a c H | a c' a' H1 H2 IH].
+    + simp_propset; destruct H as [[b | c'] [Ha Hbc]].
+      * exists (inl b); split; auto.
+        simp_propset; constructor 1.
+        simp_propset; exists (inr c); split; auto.
+        simp_propset; auto.
+      * exists (inr c'); split; auto.
+        simp_propset; injection Hbc; intros <-; auto.
+    + simp_propset; destruct H1 as [bc [Hf Hg]].
+      destruct IH as [bc' [Hf' Hg']].
+      exists bc; split; auto.
+      destruct bc.
+      * destruct bc'; simp_propset.
+        { econstructor 2; eauto.
+          simp_propset; exists (inl a'); split; eauto. }
+        { constructor 1.
+          simp_propset; exists (inl a'); split; eauto. }
+      * simp_propset; discriminate.
+  - intros y Hy; simp_propset.
+    destruct Hy as [[b | c] [Hf Hg]].
+    + simp_propset.
+      revert x Hf.
+      induction Hg as [ | a c a' H1 H2 IH ]; intros x Hf.
+      * simp_propset; destruct H as [[a | c] [H1 H2]].
+        { econstructor 2.
+          { simp_propset; exists (inl i); split; eauto. }
+          econstructor 1.
+          simp_propset; exists (inr r); split; eauto.
+          simp_propset; auto.
+        }
+        { econstructor 1.
+          simp_propset; exists (inl i); split; auto.
+          injection H2; intros <-; auto.
+        }
+      * simp_propset; destruct H1 as [[a1 | c1] [Hg Hf']].
+        { econstructor 2.
+          { simp_propset; exists (inl a); split; eauto. }
+          auto.
+        }
+        { simp_propset; discriminate. }
+    + simp_propset. constructor 1.
+      simp_propset; exists (inr y); split; auto.
+      simp_propset; auto.
+Qed.
+
+#[global]
+Instance IterCodiagonal_Prop : IterCodiagonal (Kleisli propset) sum.
+Proof.
+  intros A B f x.
+  unfold case_, Case_Kleisli, Function.case_sum, inl_, Inl_Kleisli, id_, Id_Kleisli, id, pure, cat, Cat_Kleisli.
+  unfold iter, Iter_Kleisli, Basics.iter, MonadIter_Prop.
+  split; intros y Hy; simp_propset.
+  - induction Hy.
+    + remember (inr r). generalize dependent r. simp_propset. induction H; intros; subst.
+      * constructor 1. eexists; split; eauto; reflexivity.
+      * econstructor 2. 2: { apply IHiter_Prop; auto. }
+        eexists; split; eauto; reflexivity.
+    + remember (inl i'). generalize dependent i'. induction H; intros; subst.
+      * econstructor 2; eauto. eexists; split; eauto; reflexivity.
+      * econstructor 2. 2: { eapply IHiter_Prop; eauto. }
+        eexists; split; eauto; reflexivity.
+  - induction Hy as [ | ? ? ? ? ? IH ].
+    + destruct H as (? & H & ?). destruct x as [? | [? | ?]]; simp_propset; inversion H; clear H; subst.
+      constructor 1. constructor 1. auto.
+    + destruct H as (? & H & ?).
+      destruct x as [? | [? | ?]]; inversion H; clear H; subst.
+      * destruct IH.
+        -- constructor 1. econstructor 2; eauto.
+        -- econstructor 2; eauto. econstructor 2; eauto.
+      * econstructor 2; eauto. constructor 1. auto.
+Qed.
+
+#[global]
+Instance Iterative_Prop : Iterative (Kleisli propset) sum.
+Proof.
+  constructor; typeclasses eauto.
+Qed.

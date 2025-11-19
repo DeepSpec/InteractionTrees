@@ -368,9 +368,8 @@ Proof.
       |- euttG _ _ _ _ _ ?t _ => remember t
     end.
     clear CIHH.
-    (* rewrite <- bind_ret_l. *)
+    rewrite <- bind_ret_l.
     ebase.
-    right. apply CIHL.
   - (* If we exit the first loop *)
     setoid_rewrite bind_ret_l.
     (* We setup a second coinductive point in the simulation.
@@ -393,9 +392,11 @@ Proof.
     ebind.
     econstructor; [reflexivity | intros [xb' | xc] ? <-].
     + (* We loop back in the second loop *)
+      change (mret (M := itree ?E) ?x) with (Ret x :> itree E _).
       rewrite !bind_ret_l.
       etau.
-    + rewrite !bind_ret_l.
+    + change (mret (M := itree ?E) ?x) with (Ret x :> itree E _).
+      rewrite !bind_ret_l.
       eret.
 Qed.
 

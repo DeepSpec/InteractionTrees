@@ -19,8 +19,6 @@ From ITree Require Import
      Core.ITreeDefinition
      Indexed.Sum
      Core.Subevent.
-
-Import Basics.Basics.Monads.
 (* end hide *)
 
 Variant depE {I : Type} (F : I -> Type) : Type -> Type :=
