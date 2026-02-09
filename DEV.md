@@ -163,7 +163,7 @@ for testing.
 - `Eq`: Equational theory of interaction trees.
 
     + `Shallow`: One-step unfolding of cofixpoints.
-    + `Eq`: Strong bisimulation.
+    + `Eqit`: Strong bisimulation.
     + `UpToTaus`: Weak bisimulation.
     + `SimUpToTaus`: Weak simulation.
     + `EqAxiom`: Axiom that strong bisimulation is propositional equality.
