@@ -239,11 +239,15 @@ Proof with auto with itree.
   repeat red.
   intros r1 r2. intros. subst.
   split.
-  - revert y2. unfold eqit at 2. coinduction R CIH. repeat intro.
+  - revert y1 y2. unfold eqit at 2. coinduction R CIH. repeat intro.
   (* why doesn't step work here? *)
   cbn.
   unfold eqit_.
-  induction R. 
+  red in H0. 
+  
+  (* specialize (CIH _ _ H0). *)
+  (* want to rewrite using eqitF_Proper *)
+  
 Admitted.
 (*
     step.
