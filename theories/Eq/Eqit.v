@@ -233,6 +233,52 @@ Proof.
     econstructor. apply H. assumption.
 Qed.
 
+#[global] Instance eqitF_Proper_observe_l {E : Type -> Type} {R1 R2:Type} :
+  Proper ((@eq_rel R1 R2) ==> eq ==> eq ==> eq ==> eq ==> eq ==> iff)
+          (fun RR b1 b2 sim t1 t2 => @eqitF E R1 R2 RR b1 b2 sim (observe t1) t2).
+Proof.
+  repeat red.
+  intros. subst. split; intros.
+  - induction H0; auto with itree.
+    econstructor. apply H. assumption.
+  - induction H0; auto with itree.
+    econstructor. apply H. assumption.
+Qed.
+
+Lemma eqitF_observe_l_sim
+{E : Type -> Type} {R: Type} (RR : R -> R -> Prop)
+  b1 b2
+  (sim : itree E R -> itree E R -> Prop)
+  t1 t2 z :
+  sim t1 t2 ->
+  eqitF RR b1 b2 sim (observe t1) z ->
+  eqitF RR b1 b2 sim (observe t2) z.
+Proof.
+  intros. 
+  remember (observe t2) as t2'.
+  dependent induction t2'.
+  
+
+
+#[global] Instance eqitF_Proper_observe_r {E : Type -> Type} {R1 R2:Type} :
+  Proper ((@eq_rel R1 R2) ==> eq ==> eq ==> eq ==> eq ==> eq ==> iff)
+          (fun RR b1 b2 sim t1 t2 => @eqitF E R1 R2 RR b1 b2 sim t1 (observe t2)).
+Proof.
+  repeat red.
+  intros. subst. split; intros.
+  - induction H0; auto with itree.
+    econstructor. apply H. assumption.
+  - induction H0; auto with itree.
+    econstructor. apply H. assumption.
+Qed.
+
+#[global] Instance eqitF_Proper_observe {E : Type -> Type} {R1 R2:Type} :
+  Proper ((@eq_rel R1 R2) ==> eq ==> eq ==> eq ==> eq ==> eq ==> iff)
+          (fun RR b1 b2 sim t1 t2 => @eqitF E R1 R2 RR b1 b2 sim (observe t1) (observe t2)).
+Proof.
+  repeat red; intros; subst; eapply eqitF_Proper_observe_r; eauto. 
+Qed.
+
 #[global] Instance eqit_Proper_R {E : Type -> Type} {R1 R2:Type}
   : Proper ( (@eq_rel R1 R2) ==> eq ==> eq ==> eq ==> eq ==> iff) (@eqit E R1 R2).
 Proof with auto with itree.
@@ -242,10 +288,19 @@ Proof with auto with itree.
   - revert y1 y2. unfold eqit at 2. coinduction R CIH. repeat intro.
   (* why doesn't step work here? *)
   cbn.
-  unfold eqit_.
+(* need to get rid of gfp in H0 so we can do induction on it *)
   red in H0. 
+  Search gfp. 
   
-  (* specialize (CIH _ _ H0). *)
+  (* assert  *)
+
+  (* one idea: derive elem from gfp *)
+  (* specialize (sub_gfp_Chain R) as sub.  *)
+  
+  unfold eqit_.
+  
+  specialize (CIH _ _ H0).
+  
   (* want to rewrite using eqitF_Proper *)
   
 Admitted.
@@ -445,19 +500,54 @@ Proof.
   red. induction 3; constructor; subst; eauto.
 Qed.
 
-(* #[global] Instance Transitive_eqitF b1 b2 (sim : itree E R -> itree E R -> Prop)
+Ltac taul := apply EqTauL; only 1: assumption. 
+Ltac taur := apply EqTauR; only 1: assumption. 
+
+(* Lemma rewrite_sim_under_observe b1 b2 (sim : itree E R -> itree E R -> Prop) z
+m1 m2 (REL : sim m1 m2) (H : eqitF RR b1 b2 sim (observe m2) z) : 
+eqitF RR b1 b2 sim (observe m1) z. 
+Proof. 
+  specialize (@eqitF_Proper_observe_l E).
+  repeat red; intros. 
+  repeat red in H0. 
+  edestruct H0; eauto. 
+  specialize (H1 H). *)
+
+
+
+#[global] Instance Transitive_eqitF b1 b2 (sim : itree E R -> itree E R -> Prop)
 : Transitive RR -> Transitive sim -> Transitive (eqitF RR b1 b2 sim).
 Proof.
   red. intros. revert H2. revert z. induction H1. 
-  - intros. inversion H2; subst. 
+  - intros. dependent induction H2; subst. 
     + econstructor. etransitivity; eauto. 
-    + eapply EqTauR. auto. 
-      destruct (observe t2). 
-      inversion REL0; subst; eauto.
-      econstructor.
-      etransitivity; eauto.   
-      eapply EqTauR; auto. 
-Qed. *)
+    + taur.
+      eapply IHeqitF; eauto. 
+  - intros. dependent induction H2. 
+    + econstructor. etransitivity; eauto. 
+    (* HERE *)
+    + taul.
+    Fail rewrite REL. 
+    (* need eqitF Proper of sim w observe *)
+    (* rewrite REL.  *) 
+    shelve. 
+    + taur. eapply IHeqitF; eauto. 
+  - intros. 
+    dependent induction H2. 
+    + econstructor.
+      etransitivity; eauto. 
+    + taur. 
+      eapply IHeqitF; eauto. 
+  - intros. taul. apply IHeqitF, H2.  
+  - intros. apply IHeqitF. 
+    dependent induction H2.
+    taur. 
+    (* need eqitF Proper of sim w observe *)
+    (* rewrite REL.  *)
+    shelve. 
+    + auto. 
+    + taur. eapply IHeqitF0; eauto. 
+Qed.
 
 #[global] Instance Reflexive_eqit_ b1 b2 (sim : itree E R -> itree E R -> Prop)
 : Reflexive RR -> Reflexive sim -> Reflexive (eqit_ RR b1 b2 sim).
@@ -502,6 +592,8 @@ Qed.
     intros. 
     apply Symmetric_eqit_; typeclasses eauto.
    - apply Transitive_chain.
+   (* you can use symmetry of the relation here if you do 
+   transitivity as a subproof. *)
     (* idea: put Trans eqitF proof here *)
     red; intros. 
     inversion H0; unfold eqit_; cbn; subst.  
