@@ -35,6 +35,8 @@ From Coinduction Require Import all.
 Local Open Scope itree_scope.
 (* end hide *)
 
+(* RTODO: REWRITE THIS WITH POUS COINDUCTION *)
+
 (** ** Coinductive reasoning with Paco *)
 
 (** Similarly to the way we deal with cofixpoints explained in
@@ -235,9 +237,13 @@ Qed.
   : Proper ( (@eq_rel R1 R2) ==> eq ==> eq ==> eq ==> eq ==> iff) (@eqit E R1 R2).
 Proof with auto with itree.
   repeat red.
-  intros. subst.
+  intros r1 r2. intros. subst.
   split.
-  - revert_until y1. unfold eqit at 2. coinduction R CIH. intros.
+  - revert y2. unfold eqit at 2. coinduction R CIH. repeat intro.
+  (* why doesn't step work here? *)
+  cbn.
+  unfold eqit_.
+  induction R. 
 Admitted.
 (*
     step.
@@ -435,6 +441,20 @@ Proof.
   red. induction 3; constructor; subst; eauto.
 Qed.
 
+(* #[global] Instance Transitive_eqitF b1 b2 (sim : itree E R -> itree E R -> Prop)
+: Transitive RR -> Transitive sim -> Transitive (eqitF RR b1 b2 sim).
+Proof.
+  red. intros. revert H2. revert z. induction H1. 
+  - intros. inversion H2; subst. 
+    + econstructor. etransitivity; eauto. 
+    + eapply EqTauR. auto. 
+      destruct (observe t2). 
+      inversion REL0; subst; eauto.
+      econstructor.
+      etransitivity; eauto.   
+      eapply EqTauR; auto. 
+Qed. *)
+
 #[global] Instance Reflexive_eqit_ b1 b2 (sim : itree E R -> itree E R -> Prop)
 : Reflexive RR -> Reflexive sim -> Reflexive (eqit_ RR b1 b2 sim).
 Proof. repeat red. intros. reflexivity. Qed.
@@ -442,6 +462,10 @@ Proof. repeat red. intros. reflexivity. Qed.
 #[global] Instance Symmetric_eqit_ b (sim : itree E R -> itree E R -> Prop)
 : Symmetric RR -> Symmetric sim -> Symmetric (eqit_ RR b b sim).
 Proof. repeat red; symmetry; auto. Qed.
+
+(* #[global] Instance Transitive_eqit_ b (sim : itree E R -> itree E R -> Prop)
+: Transitive RR -> Transitive sim -> Transitive (eqit_ RR b b sim).
+Proof. repeat red; etransitivity; auto. Qed. *)
 
 (** *** [eqit] is an equivalence relation *)
 
@@ -456,14 +480,56 @@ Qed.
 
 #[global] Instance Reflexive_eqit b1 b2 : Reflexive RR -> Reflexive (@eqit E _ _ RR b1 b2).
 Proof.
-  red; intros. unfold eqit. coinduction c CIH. step.
+  
+  red; intros. unfold eqit.
+  (* strengthen bisimulation: elem c x x holds for all x.  *)
+  revert x. coinduction c CIH. intro. step.
+  now repeat apply Reflexive_eqit_.
 Qed.
+
+
+ (** elements of the final chain are equivalence relations *)
+#[export] Instance Equivalence_t (b: bool) (HE: Equivalence RR) {c: Chain (@eqit_mon E _ _ RR b b)}: Equivalence (elem c).
+ Proof.
+   constructor; revert c.
+   - apply Reflexive_chain. intros c Hc x. step. 
+      repeat apply Reflexive_eqit_; auto.  
+   - apply Symmetric_chain.
+    intros. 
+    apply Symmetric_eqit_; typeclasses eauto.
+   - apply Transitive_chain.
+    (* idea: put Trans eqitF proof here *)
+    red; intros. 
+    inversion H0; unfold eqit_; cbn; subst.  
+
+ Qed.
 
 #[global] Instance Symmetric_eqit b : Symmetric RR -> Symmetric (@eqit E _ _ RR b b).
 Proof.
-  red; intros. apply eqit_flip.
-  eapply eqit_mon, H0; eauto.
+  intros.
+  (* Yannick: why unfold only at 2? gfp in assumption causes problems or? *)
+  unfold Symmetric. unfold eqit at 2.  
+  (* generally poor error message: wants a fix. *)
+  coinduction c CIH. 
+  assert (Symmetric (elem c)). 
+  { apply Symmetric_chain. red; intros.
+  now apply Symmetric_eqit_. 
+  }
+  
+
+  
+  intros.
+  apply Symmetric_eqit_; auto. 
+  rewrite H1. 
+  
+  symmetry. 
+  step. 
+  unfold eqit_. 
+    
+     
+  fold (@eqit_mon E).  
 Qed.
+
 
 #[global] Instance eq_sub_euttge:
   subrelation (@eq_itree E _ _ RR) (euttge RR).
@@ -505,10 +571,10 @@ Proof.
   apply Reflexive_eqitF; eauto.
 Qed.
 
-#[global] Instance Symmetric_eqitF_eq b (sim : itree E R -> itree E R -> Prop)
-: Symmetric sim -> Symmetric (eqitF eq b b id sim).
+#[global] Instance TransitiveitF_eq b (sim : itree E R -> itree E R -> Prop)
+: Transitiveymmetric sim -> Symmetric (eqitF eq b b id sim).
 Proof.
-  apply Symmetric_eqitF; eauto.
+  apply Transitive_eqitF; Transitiveauto.
 Qed.
 
 #[global] Instance Reflexive_eqit__eq b1 b2 (sim : itree E R -> itree E R -> Prop)
