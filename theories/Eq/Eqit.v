@@ -233,6 +233,21 @@ Proof.
     econstructor. apply H. assumption.
 Qed.
 
+(* #[global] Instance eqitF_Proper_observe_l {E : Type -> Type} {R:Type} 
+(sim : itree E R -> itree E R -> Prop)
+:
+  Proper (eq ==> eq ==> eq ==> sim ==> sim ==> iff)
+          (fun RR b1 b2 t1 t2 => @eqitF E R R RR b1 b2 sim (observe t1) (observe t2)).
+Proof.
+  repeat red.
+  intros. subst. split; intros.
+  - induction H; auto with itree.
+
+    econstructor. apply H. assumption.
+  - induction H0; auto with itree.
+    econstructor. apply H. assumption.
+Qed. *)
+
 #[global] Instance eqitF_Proper_observe_l {E : Type -> Type} {R1 R2:Type} :
   Proper ((@eq_rel R1 R2) ==> eq ==> eq ==> eq ==> eq ==> eq ==> iff)
           (fun RR b1 b2 sim t1 t2 => @eqitF E R1 R2 RR b1 b2 sim (observe t1) t2).
@@ -244,7 +259,7 @@ Proof.
   - induction H0; auto with itree.
     econstructor. apply H. assumption.
 Qed.
-
+(* 
 Lemma eqitF_observe_l_sim
 {E : Type -> Type} {R: Type} (RR : R -> R -> Prop)
   b1 b2
@@ -255,8 +270,9 @@ Lemma eqitF_observe_l_sim
   eqitF RR b1 b2 sim (observe t2) z.
 Proof.
   intros. 
-  remember (observe t2) as t2'.
-  dependent induction t2'.
+  (* remember (observe t2) as t2'. *)
+  dependent induction H0.  *)
+
   
 
 
@@ -518,16 +534,18 @@ Proof.
 #[global] Instance Transitive_eqitF b1 b2 (sim : itree E R -> itree E R -> Prop)
 : Transitive RR -> Transitive sim -> Transitive (eqitF RR b1 b2 sim).
 Proof.
-  red. intros. revert H2. revert z. induction H1. 
+  red. intros. revert H2. revert z. dependent induction H1. 
   - intros. dependent induction H2; subst. 
     + econstructor. etransitivity; eauto. 
     + taur.
       eapply IHeqitF; eauto. 
-  - intros. dependent induction H2. 
-    + econstructor. etransitivity; eauto. 
+  - intros. dependent induction H2; subst.
+    + econstructor; etransitivity; eauto. 
     (* HERE *)
-    + taul.
-    Fail rewrite REL. 
+    +  
+    (* IH doesn't work:  *)
+    (* eapply IHeqitF; eauto. taul. *)
+    taul. Fail rewrite REL. 
     (* need eqitF Proper of sim w observe *)
     (* rewrite REL.  *) 
     shelve. 
