@@ -530,24 +530,32 @@ Proof.
   specialize (H1 H). *)
 
 
+  (* 
+  eutt is NOT valid up to eutt 
+  *)
 
+  (* eutt is still transitive, but for different reasons *)
+  
+(* check out line 796 in orig file *)
 #[global] Instance Transitive_eqitF b1 b2 (sim : itree E R -> itree E R -> Prop)
 : Transitive RR -> Transitive sim -> Transitive (eqitF RR b1 b2 sim).
 Proof.
-  red. intros. revert H2. revert z. dependent induction H1. 
+  red. intros. revert H2. revert z. induction H1. 
   - intros. dependent induction H2; subst. 
     + econstructor. etransitivity; eauto. 
     + taur.
       eapply IHeqitF; eauto. 
-  - intros. dependent induction H2; subst.
+  - intros. 
+  intros. dependent induction H2. 
     + econstructor; etransitivity; eauto. 
     (* HERE *)
-    +  
+    (* idea: transitivity of sim *)
+    + dependent induction H2.  
     (* IH doesn't work:  *)
-    (* eapply IHeqitF; eauto. taul. *)
-    taul. Fail rewrite REL. 
+    eapply IHeqitF; eauto. 
+    taul. 
     (* need eqitF Proper of sim w observe *)
-    (* rewrite REL.  *) 
+    Fail rewrite REL.  
     shelve. 
     + taur. eapply IHeqitF; eauto. 
   - intros. 
@@ -565,7 +573,7 @@ Proof.
     shelve. 
     + auto. 
     + taur. eapply IHeqitF0; eauto. 
-Qed.
+Admitted. 
 
 #[global] Instance Reflexive_eqit_ b1 b2 (sim : itree E R -> itree E R -> Prop)
 : Reflexive RR -> Reflexive sim -> Reflexive (eqit_ RR b1 b2 sim).
@@ -599,7 +607,7 @@ Proof.
   now repeat apply Reflexive_eqit_.
 Qed.
 
-
+(* THIS IS FALSE FOR b:=true (aka eutt up to eutt) *)
  (** elements of the final chain are equivalence relations *)
 #[export] Instance Equivalence_t (b: bool) (HE: Equivalence RR) {c: Chain (@eqit_mon E _ _ RR b b)}: Equivalence (elem c).
  Proof.
