@@ -6,7 +6,7 @@ Require Import ExtLib.Structures.Applicative.
 Require Import ExtLib.Structures.Monad.
 
 From ITree Require Import Basics.
-From ITree Require Export Core.Utils. 
+From ITree Require Export Basics.Utils. 
 Set Implicit Arguments.
 Set Contextual Implicit.
 Set Primitive Projections.

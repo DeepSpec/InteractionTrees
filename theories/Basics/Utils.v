@@ -1,6 +1,15 @@
+#[global] Set Warnings "-intuition-auto-with-star".
+
+From Coinduction Require Import all.
+Require Import Program.Tactics.
+
 From Paco Require Import paco.
 
 Ltac inv H := inversion H; clear H; subst.
+
+Ltac copy h :=
+  let foo := fresh "cpy" in
+  assert (foo := h).
 
 Global Tactic Notation "intros !" := repeat intro.
 
@@ -94,6 +103,8 @@ Ltac saturate H :=
                                         clear H; crunch
           end.
 
+(* RTODO: Deprecate these *)
+
 Lemma pacobot1 (T0 : Type) (gf : rel1 T0 -> rel1 T0) (r : rel1 T0)
   : paco1 gf bot1 <1= paco1 gf r.
 Proof.
@@ -105,3 +116,32 @@ Lemma pacobot2 (T0 : Type) (T1 : T0 -> Type) (gf : rel2 T0 T1 -> rel2 T0 T1) (r 
 Proof.
   intros x0 x1 H. eapply (paco2_mon _ H); contradiction.
 Qed.
+
+(* [coinduction]-like tactics  *)
+
+(* A smarter version of this should be part of the [coinduction] library *)
+
+Ltac step_ :=
+  match goal with
+  | |- gfp ?b ?x ?y ?z => apply (proj1 (gfp_fp b x y z))
+  | |- elem ?R ?x ?y ?z => apply (b_chain R x y z)
+  | |- gfp ?b ?x ?y => apply (proj1 (gfp_fp b x y))
+  | |- elem ?R ?x ?y => apply (b_chain R x y)
+  | |- gfp ?b ?x => apply (proj1 (gfp_fp b x))
+  | |- elem ?R ?x => apply (b_chain R x)
+  end.
+
+Ltac step := first [step_ | red; step_].
+
+Ltac step_in H :=
+  match type of H with
+  | gfp ?b ?x ?y ?z => apply (gfp_fp b x y z) in H
+  | gfp ?b ?x ?y => apply (gfp_fp b x y) in H
+  | gfp ?b ?x => apply (gfp_fp b x) in H
+  | _ => red in H; step_in H
+  end.
+Tactic Notation "step" "in" ident(H) := step_in H.
+
+(* Oft-used induction tactic for general IHs. *)
+Tactic Notation "hinduction" hyp(IND) "before" hyp(H)
+  := move IND before H; revert_until IND; induction IND.
