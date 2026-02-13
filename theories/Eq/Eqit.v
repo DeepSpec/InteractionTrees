@@ -79,6 +79,11 @@ enhanced relational properties.
     instead encoding a form of productivity visibly in types.
  *)
 
+(* We coerce [b1] and [b2] in [eqitF] (below) from [bool] to [Prop]. This makes
+it slightly easier to write and automate mechanized proofs about [eqit]: we have
+hypotheses of simply [b1] rather than [b1 = true]. *)
+
+
 Local Coercion is_true : bool >-> Sortclass.
 
 Section eqit.
@@ -144,11 +149,6 @@ Section eqit.
 
   Definition eqit_mon b1 b2 : mon (itree E R1 -> itree E R2 -> Prop) :=
     {| body := eqit_ b1 b2 ; Hbody := eqitF_mono b1 b2 |}.
-
-Search gfp. 
-(* here, build a tactic for an analog to punfold *)
-
-
 
   Definition eqit b1 b2 : itree E R1 -> itree E R2 -> Prop :=
     gfp (eqit_mon b1 b2).
