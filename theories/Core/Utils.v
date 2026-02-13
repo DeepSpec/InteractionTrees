@@ -1,6 +1,8 @@
 #[global] Set Warnings "-intuition-auto-with-star".
 
 From Coinduction Require Import all.
+Require Import Program.Tactics.
+
 
 Ltac inverts h :=
   inversion h; subst; clear h.
@@ -49,3 +51,6 @@ Ltac step_in H :=
   end.
 Tactic Notation "step" "in" ident(H) := step_in H.
 
+
+Tactic Notation "hinduction" hyp(IND) "before" hyp(H)
+  := move IND before H; revert_until IND; induction IND.

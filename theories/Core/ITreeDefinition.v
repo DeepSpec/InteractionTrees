@@ -4,10 +4,9 @@
 Require Import ExtLib.Structures.Functor.
 Require Import ExtLib.Structures.Applicative.
 Require Import ExtLib.Structures.Monad.
-Require Import Program.Tactics.
 
 From ITree Require Import Basics.
-
+From ITree Require Export Core.Utils. 
 Set Implicit Arguments.
 Set Contextual Implicit.
 Set Primitive Projections.
@@ -283,9 +282,6 @@ End ITreeNotations.
 Lemma hexploit_mp: forall P Q: Type, P -> (P -> Q) -> Q.
 Proof. intuition. Defined.
 Ltac hexploit x := eapply hexploit_mp; [eapply x|].
-
-Tactic Notation "hinduction" hyp(IND) "before" hyp(H)
-  := move IND before H; revert_until IND; induction IND.
 
 Ltac rewrite_everywhere lem :=
   progress ((repeat match goal with [H: _ |- _] => rewrite lem in H end); repeat rewrite lem).
