@@ -37,6 +37,33 @@ Local Open Scope itree_scope.
 
 (* RTODO: REWRITE THIS WITH POUS COINDUCTION *)
 
+
+(* RTODO: remove these notes. they will be useful for now.
+
+
+
+------------------------------------------------------------
+
+
+The paco proofs, in large, rely on induction on eqitF in a hypothesis. they
+derive this eqitF from eqit in a hypothesis, as eqit is defined as paco2 (eqit_)
+(where eqit_ is defined by eqitF). using punfold, they transform 
+eqit into eqitF b1 b2 vclo (upaco2 ...). 
+
+In these same proofs using `coinduction`, we have an eqit in the hypothesis, 
+but now it is defined as the gfp of eqit_. Since `coinduction` subsumes 
+`paco`, we should be able to derive the same transformation as in `punfold`, 
+but we need to find out how. This likely involves building a tactic that 
+turns gfp b into b(gfp b). 
+
+Having found this (gfp_fp), we want to build a rich tactic library, a la Ctrees, 
+to work with step, step_in, and friends. This will allows us to do proofs 
+that look like paco but do not require wcompat and are ammenable to 
+enhanced relational properties.  
+
+*)
+Search gfp. 
+(* we want gfp_fp. *)
 (** ** Coinductive reasoning with Paco *)
 
 (** Similarly to the way we deal with cofixpoints explained in
@@ -123,9 +150,13 @@ Section eqit.
   Definition eqit_mon b1 b2 : mon (itree E R1 -> itree E R2 -> Prop) :=
     {| body := eqit_ b1 b2 ; Hbody := eqitF_mono b1 b2 |}.
 
+Search gfp. 
+(* here, build a tactic for an analog to punfold *)
+
+
+
   Definition eqit b1 b2 : itree E R1 -> itree E R2 -> Prop :=
     gfp (eqit_mon b1 b2).
-
   (** Strong bisimulation on itrees. If [eqit RR t1 t2],
       we say that [t1] and [t2] are (strongly) bisimilar. As hinted
       at above, bisimilarity can be intuitively thought of as
@@ -307,7 +338,9 @@ Proof with auto with itree.
 (* need to get rid of gfp in H0 so we can do induction on it *)
   red in H0. 
   Search gfp. 
-  
+  (* THE GOLD *)
+  apply (gfp_fp (eqit_mon r1 y y0) y1 y2) in H0. 
+  fail. 
   (* assert  *)
 
   (* one idea: derive elem from gfp *)
