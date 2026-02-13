@@ -328,11 +328,8 @@ Proof with auto with itree.
   intros. subst.
   split.
   - revert_until y1. unfold eqit at 2. coinduction R CIH. intros.  
-  cbn. 
-(* need to get rid of gfp in H0 so we can do induction on it *)
-  red in H0. 
-  step in H0. red.
-  hinduction H0 before CIH; intros... 
+  cbn; red. red in H0. step in H0. 
+  hinduction H0 before CIH... 
   econstructor. now apply H. 
   - revert_until y1. unfold eqit at -1. coinduction R CIH. intros.  
   cbn; red. step in H0. 
