@@ -325,47 +325,20 @@ Qed.
   : Proper ( (@eq_rel R1 R2) ==> eq ==> eq ==> eq ==> eq ==> iff) (@eqit E R1 R2).
 Proof with auto with itree.
   repeat red.
-  intros r1 r2. intros. subst.
+  intros. subst.
   split.
-  - revert y1 y2. unfold eqit at 2. coinduction R CIH. repeat intro.
-  (* why doesn't step work here? *)
-  cbn.
+  - revert_until y1. unfold eqit at 2. coinduction R CIH. intros.  
+  cbn. 
 (* need to get rid of gfp in H0 so we can do induction on it *)
   red in H0. 
-  Search gfp. 
-  (* THE GOLD *)
-  apply (gfp_fp (eqit_mon r1 y y0) y1 y2) in H0. 
-  fail. 
-  (* assert  *)
-
-  (* one idea: derive elem from gfp *)
-  (* specialize (sub_gfp_Chain R) as sub.  *)
-  
-  unfold eqit_.
-  
-  specialize (CIH _ _ H0).
-  
-  (* want to rewrite using eqitF_Proper *)
-  
-Admitted.
-(*
-    step.
-     pstep. punfold H0. red in H0. red.
-     hinduction H0 before CIH; intros...
-     + apply EqRet. apply H. assumption.
-     + apply EqTau. right. apply CIH. pclearbot. pinversion REL...
-     + apply EqVis. intros. red. right. apply CIH.
-       specialize (REL v).
-       red in REL. pclearbot. pinversion REL...
-  -  revert_until y1. pcofix CIH. intros.
-     pstep. punfold H0. red in H0. red.
-     hinduction H0 before CIH; intros...
-     + apply EqRet. apply H. assumption.
-     + apply EqTau. right. apply CIH. pclearbot. pinversion REL...
-     + apply EqVis. intros. red. right. apply CIH.
-       specialize (REL v).
-       red in REL. pclearbot. pinversion REL...
-Qed.
+  step in H0. red.
+  hinduction H0 before CIH; intros... 
+  econstructor. now apply H. 
+  - revert_until y1. unfold eqit at -1. coinduction R CIH. intros.  
+  cbn; red. step in H0. 
+  hinduction H0 before CIH... 
+  econstructor; now apply H. 
+Qed. 
 
 #[global] Instance eutt_Proper_R {E : Type -> Type} {R1 R2:Type}
   : Proper ( (@eq_rel R1 R2) ==> eq ==> eq ==> iff) (@eutt E R1 R2).
@@ -375,7 +348,7 @@ Proof.
   - rewrite <- H. assumption.
   - rewrite H. assumption.
 Qed.
-
+(*
 
 Definition flip_clo {A B C} clo r := @flip A B C (clo (@flip B A C r)).
 
