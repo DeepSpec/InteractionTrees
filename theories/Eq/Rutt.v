@@ -15,7 +15,7 @@
 
 (** [rutt] is used to define the [trace_refine] relation in [ITree.ITrace.ITraceDefinition]. *)
 
-From Coq Require Import
+From Stdlib Require Import
      Morphisms
 .
 

@@ -3,10 +3,10 @@
 (** Not specific to itrees. *)
 
 (* begin hide *)
-From Coq Require
+From Stdlib Require
      Ensembles.
 
-From Coq Require Import
+From Stdlib Require Import
      RelationClasses.
 
 From ExtLib Require Import

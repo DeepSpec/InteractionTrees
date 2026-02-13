@@ -1,7 +1,7 @@
 (** * Theorems about State effects *)
 
 (* begin hide *)
-From Coq Require Import Program.Tactics Morphisms.
+From Stdlib Require Import Program.Tactics Morphisms.
 
 From Paco Require Import paco.
 

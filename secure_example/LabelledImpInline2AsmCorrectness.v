@@ -53,7 +53,7 @@ SAZ: This needs to be updated.
 
 (* begin hide *)
 
-From Coq Require Import
+From Stdlib Require Import
      Arith
      String
      Morphisms

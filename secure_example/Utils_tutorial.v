@@ -14,7 +14,7 @@
 *)
 
 (* begin hide *)
-From Coq Require Import Lia Arith ZArith Ascii String List.
+From Stdlib Require Import Lia Arith ZArith Ascii String List.
 
 From ExtLib Require Import
      Structures.Monad

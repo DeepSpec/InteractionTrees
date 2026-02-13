@@ -1,6 +1,6 @@
 (* begin hide *)
 From Paco Require Import paco.
-From Coq Require Import Morphisms.
+From Stdlib Require Import Morphisms.
 From ITree Require Import
      Basics.Utils
      ITree

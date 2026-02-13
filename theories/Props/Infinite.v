@@ -4,7 +4,7 @@
     - [any_infinite]: there exists an infinite branch. *)
 
 (* begin hide *)
-From Coq Require Import
+From Stdlib Require Import
      Setoid
      Morphisms
      RelationClasses.

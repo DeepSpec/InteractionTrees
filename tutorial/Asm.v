@@ -5,7 +5,7 @@
     by jumps.  *)
 
 (* begin hide *)
-From Coq Require Import
+From Stdlib Require Import
      Strings.String
      Program.Basics
      ZArith.ZArith

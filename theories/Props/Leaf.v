@@ -13,7 +13,7 @@ From ITree Require Import
      Props.HasPost.
 
 From Paco Require Import paco.
-From Coq Require Import Morphisms Basics Program.Equality.
+From Stdlib Require Import Morphisms Basics Program.Equality.
 Import ITree.
 Import ITreeNotations.
 (* end hide *)

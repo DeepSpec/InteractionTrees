@@ -35,7 +35,7 @@
  *)
 
 (* begin hide *)
-From Coq Require Import Setoid Morphisms Relations.
+From Stdlib Require Import Setoid Morphisms Relations.
 From Paco Require Import paco.
 
 From ITree Require Import

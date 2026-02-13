@@ -1,7 +1,7 @@
 (** * Theorems about Failure effects *)
 
 (* begin hide *)
-From Coq Require Import
+From Stdlib Require Import
      Morphisms.
 
 From Paco Require Import paco.

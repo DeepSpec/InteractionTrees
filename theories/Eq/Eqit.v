@@ -15,7 +15,7 @@
  *)
 
 (* begin hide *)
-From Coq Require Import
+From Stdlib Require Import
      Structures.Orders (* Hint Unfold is_true *)
      Program
      Setoid

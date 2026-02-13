@@ -54,7 +54,7 @@ SAZ: This needs to be updated.
 (* begin hide *)
 From ITreeTutorial Require Import Imp Asm Utils_tutorial AsmCombinators Imp2Asm Fin KTreeFin.
 
-From Coq Require Import
+From Stdlib Require Import
      Psatz
      Strings.String
      List

@@ -4,7 +4,7 @@
     form a category. *)
 
 (* begin hide *)
-From Coq Require Import
+From Stdlib Require Import
      Morphisms.
 
 From ITree Require Import

@@ -1,4 +1,4 @@
-From Coq Require Import Program.Basics Morphisms.
+From Stdlib Require Import Program.Basics Morphisms.
 
 From ITree Require Import
      ITree

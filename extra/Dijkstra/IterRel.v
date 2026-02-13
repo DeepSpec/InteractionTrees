@@ -1,4 +1,4 @@
-From Coq Require Import Arith Lia.
+From Stdlib Require Import Arith Lia.
 From Paco Require Import paco.
 
 From ITree Require Import Axioms.

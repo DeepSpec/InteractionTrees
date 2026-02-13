@@ -7,7 +7,7 @@
 
 Require Import Paco.paco.
 
-From Coq Require Import
+From Stdlib Require Import
      Program.Tactics
      Setoid
      Morphisms.

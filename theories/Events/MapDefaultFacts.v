@@ -4,7 +4,7 @@
 Set Implicit Arguments.
 Set Contextual Implicit.
 
-From Coq Require Import Morphisms.
+From Stdlib Require Import Morphisms.
 
 From ExtLib Require Import
      Core.RelDec.

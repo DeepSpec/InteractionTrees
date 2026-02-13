@@ -8,7 +8,7 @@
 Set Implicit Arguments.
 Set Contextual Implicit.
 
-From Coq Require Import
+From Stdlib Require Import
      Morphisms.
 
 From Paco Require Import paco.

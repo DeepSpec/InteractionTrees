@@ -1,7 +1,7 @@
 (** * Facts about [aloop] and [loop] *)
 
 (* begin hide *)
-From Coq Require Import
+From Stdlib Require Import
      Classes.Morphisms
      Setoids.Setoid
      Relations.Relations.

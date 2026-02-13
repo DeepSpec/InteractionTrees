@@ -7,7 +7,7 @@
 (** The main additions in this file are compatibility with [eutt], morphisms
   wrt. [REv] and [RAns], and an up-to principle. *)
 
-From Coq Require Import
+From Stdlib Require Import
   Program
   Setoid
   Morphisms

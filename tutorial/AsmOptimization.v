@@ -1,7 +1,7 @@
 (* begin hide *)
 Require Import Psatz.
 
-From Coq Require Import
+From Stdlib Require Import
      Lists.List
      Strings.String
      Morphisms

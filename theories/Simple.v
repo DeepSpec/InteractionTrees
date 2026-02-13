@@ -3,7 +3,7 @@
 (* begin hide *)
 Set Warnings "-notation-overridden".
 
-From Coq Require Import
+From Stdlib Require Import
      Setoid
      Morphisms.
 

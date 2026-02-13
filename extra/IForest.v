@@ -24,7 +24,7 @@ From Paco Require Import paco.
 From ExtLib Require Import
      Structures.Functor.
 
-From Coq Require Import
+From Stdlib Require Import
      Relations
      Morphisms.
 
