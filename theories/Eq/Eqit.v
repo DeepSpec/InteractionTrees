@@ -519,15 +519,35 @@ Qed.
 Ltac taul := apply EqTauL; only 1: assumption. 
 Ltac taur := apply EqTauR; only 1: assumption. 
 
-(* Lemma rewrite_sim_under_observe b1 b2 (sim : itree E R -> itree E R -> Prop) z
-m1 m2 (REL : sim m1 m2) (H : eqitF RR b1 b2 sim (observe m2) z) : 
-eqitF RR b1 b2 sim (observe m1) z. 
-Proof. 
-  specialize (@eqitF_Proper_observe_l E).
-  repeat red; intros. 
-  repeat red in H0. 
-  edestruct H0; eauto. 
-  specialize (H1 H). *)
+(* weak: eqitF is transitive under strong bisimilarity assumptions *)
+#[global] Instance Transitive_eqitF_eqit (sim : itree E R -> itree E R -> Prop)
+: Transitive RR -> Transitive sim -> Transitive (eqitF RR false false sim).
+Proof.
+  red. intros. revert H2. revert z. induction H1. 
+  - intros. dependent induction H2; subst. 
+    + econstructor. etransitivity; eauto. 
+    + taur.
+      eapply IHeqitF; eauto. 
+  - intros. 
+    dependent induction H2; subst.  
+    + econstructor; etransitivity; eauto. 
+    (* impossible: eqitF RR false false sim (observe m2) z 
+       because one boolean must be true for this assumption to hold.
+    *)
+    + easy. 
+    + taur. eapply IHeqitF; eauto. 
+  - intros. 
+    dependent induction H2. 
+    + econstructor.
+      etransitivity; eauto. 
+    + taur. 
+      eapply IHeqitF; eauto. 
+  - intros. taul. apply IHeqitF, H2.  
+  - intros. apply IHeqitF.
+     (* see above note on why this is impossible *)
+    easy. 
+Qed. 
+
 
 
   (* 
@@ -537,66 +557,24 @@ Proof.
   (* eutt is still transitive, but for different reasons *)
   
 (* check out line 796 in orig file *)
-#[global] Instance Transitive_eqitF b1 b2 (sim : itree E R -> itree E R -> Prop)
-: Transitive RR -> Transitive sim -> Transitive (eqitF RR b1 b2 sim).
-Proof.
-  red. intros. revert H2. revert z. induction H1. 
-  - intros. dependent induction H2; subst. 
-    + econstructor. etransitivity; eauto. 
-    + taur.
-      eapply IHeqitF; eauto. 
-  - intros. 
-  intros. dependent induction H2. 
-    + econstructor; etransitivity; eauto. 
-    (* HERE *)
-    (* idea: transitivity of sim *)
-    + dependent induction H2.  
-    (* IH doesn't work:  *)
-    eapply IHeqitF; eauto. 
-    taul. 
-    (* need eqitF Proper of sim w observe *)
-    Fail rewrite REL.  
-    shelve. 
-    + taur. eapply IHeqitF; eauto. 
-  - intros. 
-    dependent induction H2. 
-    + econstructor.
-      etransitivity; eauto. 
-    + taur. 
-      eapply IHeqitF; eauto. 
-  - intros. taul. apply IHeqitF, H2.  
-  - intros. apply IHeqitF. 
-    dependent induction H2.
-    taur. 
-    (* need eqitF Proper of sim w observe *)
-    (* rewrite REL.  *)
-    shelve. 
-    + auto. 
-    + taur. eapply IHeqitF0; eauto. 
-Admitted. 
 
+(* strongest: holds for all instances of eqit *)
 #[global] Instance Reflexive_eqit_ b1 b2 (sim : itree E R -> itree E R -> Prop)
 : Reflexive RR -> Reflexive sim -> Reflexive (eqit_ RR b1 b2 sim).
 Proof. repeat red. intros. reflexivity. Qed.
 
+(* weak: holds only with eqit or eutt *)
 #[global] Instance Symmetric_eqit_ b (sim : itree E R -> itree E R -> Prop)
 : Symmetric RR -> Symmetric sim -> Symmetric (eqit_ RR b b sim).
 Proof. repeat red; symmetry; auto. Qed.
 
-(* #[global] Instance Transitive_eqit_ b (sim : itree E R -> itree E R -> Prop)
-: Transitive RR -> Transitive sim -> Transitive (eqit_ RR b b sim).
-Proof. repeat red; etransitivity; auto. Qed. *)
+(* weak: holds only for strong bisimilarity *)
+#[global] Instance Transitive_eqit_eqit (sim : itree E R -> itree E R -> Prop)
+: Transitive RR -> Transitive sim -> Transitive (eqit_ RR false false sim).
+Proof. repeat red; etransitivity; eauto. Qed.
 
 (** *** [eqit] is an equivalence relation *)
 
-(*
-#[global] Instance Reflexive_eqit_gen b1 b2 (r rg: itree E R -> itree E R -> Prop) :
-  Reflexive RR -> Reflexive (gpaco2 (eqit_ RR b1 b2 id) (eqitC RR b1 b2) r rg).
-Proof.
-  pcofix CIH. gstep; intros.
-  repeat red. destruct (observe x); eauto with paco itree.
-Qed.
-*)
 
 #[global] Instance Reflexive_eqit b1 b2 : Reflexive RR -> Reflexive (@eqit E _ _ RR b1 b2).
 Proof.
@@ -607,24 +585,17 @@ Proof.
   now repeat apply Reflexive_eqit_.
 Qed.
 
-(* THIS IS FALSE FOR b:=true (aka eutt up to eutt) *)
- (** elements of the final chain are equivalence relations *)
-#[export] Instance Equivalence_t (b: bool) (HE: Equivalence RR) {c: Chain (@eqit_mon E _ _ RR b b)}: Equivalence (elem c).
- Proof.
-   constructor; revert c.
-   - apply Reflexive_chain. intros c Hc x. step. 
-      repeat apply Reflexive_eqit_; auto.  
-   - apply Symmetric_chain.
-    intros. 
-    apply Symmetric_eqit_; typeclasses eauto.
-   - apply Transitive_chain.
-   (* you can use symmetry of the relation here if you do 
-   transitivity as a subproof. *)
-    (* idea: put Trans eqitF proof here *)
-    red; intros. 
-    inversion H0; unfold eqit_; cbn; subst.  
+(* need to prove eqit_ is stable under eqit *)
 
- Qed.
+(* #[global] Instance eqit__eqit_Proper : 
+Proper ()
+(fun RR sim x y => ) *)
+
+
+(* #[global] Instance eqit_proper_eqit b : Symmetric RR -> Symmetric (@eqit E _ _ RR b b). *)
+
+
+
 
 #[global] Instance Symmetric_eqit b : Symmetric RR -> Symmetric (@eqit E _ _ RR b b).
 Proof.
@@ -638,26 +609,19 @@ Proof.
   now apply Symmetric_eqit_. 
   }
   
-
-  
   intros.
-  apply Symmetric_eqit_; auto. 
-  rewrite H1. 
-  
-  symmetry. 
-  step. 
-  unfold eqit_. 
-    
-     
-  fold (@eqit_mon E).  
-Qed.
-
+  apply Symmetric_eqit_; auto.
+Admitted. 
 
 #[global] Instance eq_sub_euttge:
   subrelation (@eq_itree E _ _ RR) (euttge RR).
 Proof.
-  ginit. pcofix CIH. intros.
-  punfold H0. gstep. red in H0 |- *.
+  red. 
+  unfold euttge, eqit. 
+  coinduction c CIH. intros.  
+  red in H.
+  step. 
+  (* these proofs get to do hinduction. *)
   hinduction H0 before CIH; subst; econstructor; try inv CHECK; pclearbot; auto 7 with paco itree.
 Qed.
 
