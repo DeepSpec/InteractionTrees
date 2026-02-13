@@ -35,12 +35,7 @@ From Coinduction Require Import all.
 Local Open Scope itree_scope.
 (* end hide *)
 
-(* RTODO: REWRITE THIS WITH POUS COINDUCTION *)
-
-
 (* RTODO: remove these notes. they will be useful for now.
-
-
 
 ------------------------------------------------------------
 
@@ -62,9 +57,9 @@ that look like paco but do not require wcompat and are ammenable to
 enhanced relational properties.  
 
 *)
-Search gfp. 
-(* we want gfp_fp. *)
+
 (** ** Coinductive reasoning with Paco *)
+(* RTODO: REWRITE THIS WITH POUS COINDUCTION *)
 
 (** Similarly to the way we deal with cofixpoints explained in
     [Core.ITreeDefinition], coinductive properties are defined in two steps,
