@@ -377,8 +377,12 @@ Qed.
 *)
 (* end hide *)
 
-(** A notation of [eq_itree eq]. You can write [≅] using [[\cong]] in
-    tex-mode *)
+(** A notation of [eq_itree eq]. You can write 
+
+[≅] using [[\cong]]
+[≈] using [[\approx]]
+[≳] using [[\gtrsim]]
+in tex-mode *)
 
 Infix "≅" := (eq_itree eq) (at level 70) : type_scope.
 
