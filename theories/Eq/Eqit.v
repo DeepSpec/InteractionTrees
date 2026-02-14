@@ -345,8 +345,23 @@ Proof.
   - rewrite <- H. assumption.
   - rewrite H. assumption.
 Qed.
-(*
 
+(* proofs go this way. *)
+Lemma eqit_flip {E R1 R2} (RR : R1 -> R2 -> Prop) b1 b2:
+  forall (u : itree E R1) (v : itree E R2),
+    eqit (flip RR) b2 b1 v u -> eqit RR b1 b2 u v.
+Proof.
+  (* set up for coinduction. *)
+  unfold eqit at -1. 
+  (* do coinduction. *)
+  coinduction c CIH. intros u v euv. 
+  (* reduce the hypothesis and conclusion to the right form. *)
+  step in euv. cbn in *. red in euv |- *.
+  (* do induction and conclude trivially with constructors. *)
+  induction euv; eauto with itree.
+Qed.
+
+(*
 Definition flip_clo {A B C} clo r := @flip A B C (clo (@flip B A C r)).
 
 Lemma eqitF_flip {E R1 R2} (RR : R1 -> R2 -> Prop) b1 b2 vclo r:
@@ -355,26 +370,12 @@ Proof.
   intros. induction PR; eauto with itree.
 Qed.
 
-Lemma eqit_flip {E R1 R2} (RR : R1 -> R2 -> Prop) b1 b2:
-  forall (u : itree E R1) (v : itree E R2),
-    eqit (flip RR) b2 b1 v u -> eqit RR b1 b2 u v.
-Proof.
-  pcofix self; pstep. intros u v euv. punfold euv.
-  red in euv |- *. induction euv; pclearbot; eauto 7 with paco itree.
-Qed.
+*)
 
-Lemma eqit_mon {E R1 R2} RR RR' (b1 b2 b1' b2': bool)
-      (LEb1: b1 -> b1')
-      (LEb2: b2 -> b2')
-      (LERR: RR <2= RR'):
-  @eqit E R1 R2 RR b1 b2 <2= eqit RR' b1' b2'.
-Proof.
-  pcofix self. pstep. intros u v euv. punfold euv.
-  red in euv |- *. induction euv; pclearbot; eauto 7 with paco itree.
-Qed.
 
 #[global] Hint Unfold flip : itree.
-*)
+
+
 (* end hide *)
 
 (** A notation of [eq_itree eq]. You can write 
@@ -508,7 +509,10 @@ Proof.
   
   intros.
   apply Symmetric_eqit_; auto.
-Admitted. 
+  unfold eqit_. 
+  step in H1.
+  induction H1; eauto with itree.  
+Qed. 
 
 #[global] Instance eq_sub_euttge:
   subrelation (@eq_itree E _ _ RR) (euttge RR).
