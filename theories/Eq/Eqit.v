@@ -447,7 +447,7 @@ Proof.
 Qed. 
 
 
-
+(* RTODO: DOCUMENT *)
   (* 
   eutt is NOT valid up to eutt 
   *)
@@ -476,23 +476,11 @@ Proof. repeat red; etransitivity; eauto. Qed.
 
 #[global] Instance Reflexive_eqit b1 b2 : Reflexive RR -> Reflexive (@eqit E _ _ RR b1 b2).
 Proof.
-  
   red; intros. unfold eqit.
   (* strengthen bisimulation: elem c x x holds for all x.  *)
   revert x. coinduction c CIH. intro. step.
   now repeat apply Reflexive_eqit_.
 Qed.
-
-(* need to prove eqit_ is stable under eqit *)
-
-(* #[global] Instance eqit__eqit_Proper : 
-Proper ()
-(fun RR sim x y => ) *)
-
-
-(* #[global] Instance eqit_proper_eqit b : Symmetric RR -> Symmetric (@eqit E _ _ RR b b). *)
-
-
 
 
 #[global] Instance Symmetric_eqit b : Symmetric RR -> Symmetric (@eqit E _ _ RR b b).
