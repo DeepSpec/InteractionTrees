@@ -502,25 +502,68 @@ Proof.
   induction H1; eauto with itree.  
 Qed. 
 
+Ltac eqit_simpl := 
+repeat match goal with 
+| [|- eqit_ _ _ _ _ _ _] => unfold eqit_ at 1 
+| [h : eqit_ _ _ _ _ _ _ |- _] => unfold eqit_ at 1 in h 
+(* mon  *)
+| [|- eqit_mon _ _ _ _ _ _ ] => cbn; unfold eqit_ at 1
+| [h : eqit_mon _ _ _ _ _ _ |- _] => cbn in h; unfold eqit_ at 1 in h 
+end. 
+
+Ltac solve_eqitF := 
+match goal with 
+| [h1: _ = observe _ , h2: _ = observe _ |- _] => 
+(* reduce to 'observe' form by stripping constructors and unfolding *)
+try econstructor; eqit_simpl; 
+(* replace 'observe' with actual constructor values *)
+rewrite <- h1; rewrite <- h2; 
+(* finish off *)
+econstructor; eauto with itree 
+end. 
+
 #[global] Instance eq_sub_euttge:
   subrelation (@eq_itree E _ _ RR) (euttge RR).
 Proof.
   red. 
   unfold euttge, eqit. 
   coinduction c CIH. intros.  
-  red in H.
-  step. 
+  step in H. 
+  step; eqit_simpl. 
   (* these proofs get to do hinduction. *)
-  hinduction H0 before CIH; subst; econstructor; try inv CHECK; pclearbot; auto 7 with paco itree.
+  hinduction H before CIH; subst; eauto with itree. 
+  - step in REL.
+    cbn in REL. eqit_simpl. 
+    dependent induction REL; solve_eqitF.  
+  - econstructor. 
+    intro. specialize (REL v). step in REL. 
+    cbn in REL; eqit_simpl.
+    dependent induction REL; solve_eqitF.     
 Qed.
 
 #[global] Instance euttge_sub_eutt:
   subrelation (@euttge E _ _ RR) (eutt RR).
 Proof.
-  ginit. pcofix CIH. intros.
-  punfold H0. gstep. red in H0 |- *.
-  hinduction H0 before CIH; subst; econstructor; pclearbot; auto 7 with paco itree.
-Qed.
+  unfold subrelation, eutt, eqit.
+  coinduction c CIH. 
+  intros. step. 
+  unfold euttge, eqit in H; eqit_simpl; step in H. 
+  hinduction H before CIH; subst; eauto with itree.
+  - step in REL; cbn in REL; eqit_simpl. 
+    econstructor. 
+    dependent induction REL; try solve_eqitF.  
+      eqit_simpl. 
+      rewrite <- x. taul. 
+      apply IHREL; eauto.  
+  - econstructor. intros.  
+    specialize (REL v). step in REL. 
+    cbn in REL; eqit_simpl. 
+    (* key step: IH must work for ANY tree, not just a continuation-built one. *)
+    (* this is so we can strip a Tau off the left side and still use our IH. *)
+    remember (k1 v).
+    dependent induction REL; try solve_eqitF. 
+    + rewrite <- x. taul. eapply IHREL; eauto. 
+Qed. 
 
 #[global] Instance eq_sub_eutt:
   subrelation (@eq_itree E _ _ RR) (eutt RR).
