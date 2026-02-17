@@ -404,6 +404,20 @@ Proof.
   induction euv; eauto with itree.
 Qed.
 
+Lemma eqit_mono {E R1 R2} RR RR' (b1 b2 b1' b2': bool)
+      (LEb1: b1 -> b1')
+      (LEb2: b2 -> b2')
+      (LERR: RR <= RR'):
+  @eqit E R1 R2 RR b1 b2 <= eqit RR' b1' b2'.
+Proof.
+  unfold eqit at -1. repeat intro. 
+  revert a a0 H. 
+  coinduction c CIH; intros.  
+  punfold H. down. induction H; pclearbot; eauto with itree.
+  econstructor. now apply LERR.  
+Qed.
+
+
 (*
 Definition flip_clo {A B C} clo r := @flip A B C (clo (@flip B A C r)).
 
@@ -933,8 +947,8 @@ Qed.
   Transitive RR -> Transitive (@eqit E _ _ RR b1 b2).
 Proof.
   red; intros. assert (TRANS := trans_rcompose RR). 
-    
-  eapply eqit_mon. eqit_trans; eauto.
+  eapply eqit_mono, eqit_trans; eauto.
+  repeat intro. now apply TRANS.
 Qed.
 
 #[global] Instance Transitive_eqit_eq {E : Type -> Type} {R: Type} (b1 b2: bool):
@@ -957,7 +971,8 @@ Qed.
 
 #[global] Instance Transitive_eutt {E R RR} : Transitive RR -> Transitive (@eutt E R R RR).
 Proof.
-  red; intros. assert (TRANS := trans_rcompose RR). eapply eqit_mon, eqit_trans; eauto.
+  red; intros. assert (TRANS := trans_rcompose RR). eapply eqit_mono, eqit_trans; eauto.
+  repeat intro. now apply TRANS. 
 Qed.
 
 #[global] Instance Equivalence_eutt {E R RR} : Equivalence RR -> Equivalence (@eutt E R R RR).
@@ -972,8 +987,8 @@ Qed.
          (gpaco2 (@eqit_ E R1 R2 RS b1 b2 id) (eqitC RS b1 b2) r rg).
 Proof.
   repeat intro. guclo eqit_clo_trans. econstructor; cycle -3; eauto.
-  - eapply eqit_mon, H; eauto; discriminate.
-  - eapply eqit_mon, H0; eauto; discriminate.
+  - eapply eqit_mono, H; eauto; discriminate.
+  - eapply eqit_mono, H0; eauto; discriminate.
 Qed.
 
 #[global] Instance geuttgen_cong_eqit_eq {E R1 R2 RS} b1 b2 r rg:
@@ -1037,7 +1052,7 @@ Qed.
          (@eqit E R R RS true false).
 Proof.
   repeat intro. assert (HYP := trans_rcompose RS TRANS).
-  do 2 (eapply eqit_mon, eqit_trans; eauto).
+  do 2 (eapply eqit_mono, eqit_trans; eauto).
 Qed.
 
 #[global] Instance euttge_cong_euttge_eq {E R}:
