@@ -327,7 +327,8 @@ Proof with auto with itree.
   repeat red.
   intros. subst.
   split.
-  - revert_until y1. unfold eqit at 2. coinduction R CIH. intros.  
+  (* assert forall, pull out vars *)
+  - revert_until y1. unfold eqit at -1. coinduction R CIH. intros.  
   cbn; red. red in H0. step in H0. 
   hinduction H0 before CIH... 
   econstructor. now apply H. 
@@ -573,7 +574,7 @@ Qed.
 
 End eqit_gen.
 
-#[global] Hint Resolve Reflexive_eqit Reflexive_eqit_gen : reflexivity.
+#[global] Hint Resolve Reflexive_eqit : reflexivity.
 
 Section eqit_eq.
 
@@ -584,7 +585,7 @@ Context {E : Type -> Type} {R : Type}.
 Local Notation eqit := (@eqit E R R eq).
 
 #[global] Instance Reflexive_eqitF_eq b1 b2 (sim : itree E R -> itree E R -> Prop)
-: Reflexive sim -> Reflexive (eqitF eq b1 b2 id sim).
+: Reflexive sim -> Reflexive (eqitF eq b1 b2 sim).
 Proof.
   apply Reflexive_eqitF; eauto.
 Qed.
