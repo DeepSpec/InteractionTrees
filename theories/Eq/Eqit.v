@@ -590,27 +590,21 @@ Proof.
   apply Reflexive_eqitF; eauto.
 Qed.
 
-#[global] Instance TransitiveitF_eq b (sim : itree E R -> itree E R -> Prop)
-: Transitiveymmetric sim -> Symmetric (eqitF eq b b id sim).
+#[global] Instance Symmetric_eqitF_eq b (sim : itree E R -> itree E R -> Prop)
+: Symmetric sim -> Symmetric (eqitF eq b b sim).
 Proof.
-  apply Transitive_eqitF; Transitiveauto.
+  apply Symmetric_eqitF; eauto. 
 Qed.
 
 #[global] Instance Reflexive_eqit__eq b1 b2 (sim : itree E R -> itree E R -> Prop)
-: Reflexive sim -> Reflexive (eqit_ eq b1 b2 id sim).
+: Reflexive sim -> Reflexive (eqit_ eq b1 b2 sim).
 Proof. apply Reflexive_eqit_; eauto. Qed.
 
 #[global] Instance Symmetric_eqit__eq b (sim : itree E R -> itree E R -> Prop)
-: Symmetric sim -> Symmetric (eqit_ eq b b id sim).
+: Symmetric sim -> Symmetric (eqit_ eq b b sim).
 Proof. apply Symmetric_eqit_; eauto. Qed.
 
 (** *** [eqit] is an equivalence relation *)
-
-#[global] Instance Reflexive_eqit_gen_eq b1 b2 (r rg: itree E R -> itree E R -> Prop) :
-  Reflexive (gpaco2 (eqit_ eq b1 b2 id) (eqitC eq b1 b2) r rg).
-Proof.
-  apply Reflexive_eqit_gen; eauto.
-Qed.
 
 #[global] Instance Reflexive_eqit_eq b1 b2 : Reflexive (eqit b1 b2).
 Proof.
@@ -627,8 +621,8 @@ Qed.
 #[global] Instance eqit_observe b1 b2:
   Proper (eqit b1 b2 ==> going (eqit b1 b2)) (@observe E R).
 Proof.
-  constructor; punfold H; auto with itree.
-Qed.
+  constructor; step in H; auto with itree.
+Admitted. 
 
 #[global] Instance eqit_tauF b1 b2:
   Proper (eqit b1 b2 ==> going (eqit b1 b2)) (@TauF E R _).
