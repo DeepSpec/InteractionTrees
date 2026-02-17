@@ -123,15 +123,18 @@ Qed.
 
 Ltac step_ :=
   match goal with
-  | |- gfp ?b ?x ?y ?z => apply (proj1 (gfp_fp b x y z))
+  | |- gfp ?b ?x ?y ?z => apply ((gfp_fp b x y z))
   | |- elem ?R ?x ?y ?z => apply (b_chain R x y z)
-  | |- gfp ?b ?x ?y => apply (proj1 (gfp_fp b x y))
+  | |- gfp ?b ?x ?y => apply ((gfp_fp b x y))
   | |- elem ?R ?x ?y => apply (b_chain R x y)
-  | |- gfp ?b ?x => apply (proj1 (gfp_fp b x))
+  | |- gfp ?b ?x => apply ((gfp_fp b x))
   | |- elem ?R ?x => apply (b_chain R x)
   end.
 
-Ltac step := first [step_ | red; step_].
+Ltac step := first [step_ | red; step_ | Coinduction.tactics.step | 
+match goal with 
+| [|- gfp ?b _ _] => apply (gfp_fp b)
+end ].
 
 Ltac step_in H :=
   match type of H with
@@ -141,6 +144,21 @@ Ltac step_in H :=
   | _ => red in H; step_in H
   end.
 Tactic Notation "step" "in" ident(H) := step_in H.
+
+Ltac backstep := 
+  match goal with 
+| [|- _ _ _ _ (gfp ?b) _ _]=> 
+    apply (gfp_pfp b) 
+end. 
+
+Ltac backstep_in H := 
+  match type of H with 
+| _ _ _ _ (gfp ?b) _ _=> 
+    apply (gfp_fp b) in H 
+end. 
+
+Tactic Notation "backstep" "in" ident(H) := backstep_in H.
+
 
 (* Oft-used induction tactic for general IHs. *)
 Tactic Notation "hinduction" hyp(IND) "before" hyp(H)
