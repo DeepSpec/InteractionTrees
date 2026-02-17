@@ -186,11 +186,26 @@ Tactic Notation "coinduction"
     | unfold eqit; coinduction R H
     ].
 
+Ltac down_ H :=
+  repeat progress (
+    cbn [eqit_mon body] in H;
+    unfold eqit_ in H
+  ).
+
+Ltac down_goal :=
+  repeat progress (
+    cbn [eqit_mon body];
+    unfold eqit_
+  ).
+
 Ltac down :=
   repeat progress (
     cbn [eqit_mon body] in *;
     unfold eqit_ in *
   ).
+
+Tactic Notation "down" "in" hyp(H) := down_ H.
+Tactic Notation "down" "in" "goal" := down_goal.
 
 Ltac solve_eqitF := 
 match goal with 
@@ -738,13 +753,13 @@ Proof.
   intros H x; punfold H; apply eqitF_inv_VisF with (x := x) in H; pclearbot; auto.
 Qed.
 
-
+(* RTODO: SHOW *)
 (* This proof was quite simplified by tactics *)
 Lemma eqit_inv_Tau_l {E R1 R2 RR} b1 t1 t2 :
   @eqit E R1 R2 RR b1 true (Tau t1) t2 -> eqit RR b1 true t1 t2.
 Proof.
   intros.
-  step in H; cbn in H; unfold eqit_ in H.  
+  step in H. down. 
   dependent induction H. 
   - step in REL. step.
     down.
@@ -760,7 +775,7 @@ Lemma eqit_inv_Tau_r {E R1 R2 RR} b2 t1 t2 :
   @eqit E R1 R2 RR true b2 t1 (Tau t2) -> eqit RR true b2 t1 t2.
 Proof.
   intros.
-  step in H; cbn in H; unfold eqit_ in H.  
+  step in H. down. 
   dependent induction H. 
   - step.
     down.
