@@ -209,6 +209,7 @@ Ltac taur := apply EqTauR; only 1: auto.
 (* RTODO: paco transformers. *)
 
 Ltac pstep := step. 
+Ltac pstep_reverse := backstep. 
 Ltac pfold := step. 
 Ltac punfold H := step in H.
 Ltac paco2_fold := step.  
@@ -831,13 +832,13 @@ Qed.
 Lemma eqit_Tau_l {E R1 R2 RR} b2 (t1 : itree E R1) (t2 : itree E R2) :
   eqit RR true b2 t1 t2 -> eqit RR true b2 (Tau t1) t2.
 Proof.
-  intros. pstep. econstructor; eauto. punfold H.
+  intros. pstep. econstructor; eauto. punfold H. now down. 
 Qed.
 
 Lemma eqit_Tau_r {E R1 R2 RR} b1 (t1 : itree E R1) (t2 : itree E R2) :
   eqit RR b1 true t1 t2 -> eqit RR b1 true t1 (Tau t2).
 Proof.
-  intros. pstep. econstructor; eauto. punfold H.
+  intros. pstep. econstructor; eauto. punfold H. now down. 
 Qed.
 
 Lemma tau_euttge {E R} (t: itree E R) :
@@ -871,50 +872,69 @@ Proof.
   intros. destruct H; eauto.
 Qed.
 
+(* core proof: transitivity of eqit *)
 Lemma eqit_trans {E R1 R2 R3} (RR1: R1->R2->Prop) (RR2: R2->R3->Prop) b1 b2 t1 t2 t3
       (INL: eqit RR1 b1 b2 t1 t2)
       (INR: eqit RR2 b1 b2 t2 t3):
   @eqit E _ _ (rcompose RR1 RR2) b1 b2 t1 t3.
 Proof.
-  revert_until b2. pcofix CIH. intros.
-  pstep. punfold INL. punfold INR. red in INL, INR |- *. genobs_clear t3 ot3.
+  unfold eqit. revert_until b2. 
+  (* we'll need the coinductive reasoning later: elements of the chain 
+  are transitive w.r.t. eqit. *)
+  coinduction c CIH. intros. 
+  punfold INL. punfold INR. down. genobs t3 ot3.
+  (* we begin with induction on t1 ~ t2. 
+  in each case, we perform induction on t2 ~ t3.  *)
   hinduction INL before CIH; intros; subst; clear t1 t2.
+  (* Ret, straightforward *)
   - remember (RetF r2) as ot.
-    hinduction INR before CIH; intros; inv Heqot; eauto with paco itree.
-  - assert (DEC: (exists m3, ot3 = TauF m3) \/ (forall m3, ot3 <> TauF m3)).
+    hinduction INR before CIH; intros; inv Heqot; eauto with itree.
+  - genobs t3 ot3. 
+  (* need something more: t3 is either a τ node, or it isn't. *)
+    assert (DEC: (exists m3, ot3 = TauF m3) \/ (forall m3, ot3 <> TauF m3)).
     { destruct ot3; eauto; right; red; intros; inv H. }
     destruct DEC as [EQ | EQ].
-    + destruct EQ as [m3 ?]; subst.
-      econstructor. right. pclearbot. eapply CIH; eauto with paco.
-      eapply eqit_inv_Tau. eauto with itree.
+    (* τ - τ case: strip both. *)
+    + destruct EQ as [m3 ?]; subst; simpobs. 
+      econstructor.
+      eapply CIH; eauto.
+      apply eqit_inv_Tau.
+      now step.    
+    (* τ - ̸τ : we do further case analysis. *)
     + inv INR; try (exfalso; eapply EQ; eauto; fail).
-      econstructor; eauto.
-      pclearbot. punfold REL. red in REL.
+      taul. 
+      pclearbot. punfold REL. down. 
       hinduction REL0 before CIH; intros; try (exfalso; eapply EQ; eauto; fail).
       * remember (RetF r1) as ot.
         hinduction REL0 before CIH; intros; inv Heqot; eauto with paco itree.
       * remember (VisF e k1) as ot.
         hinduction REL0 before CIH; intros; try discriminate; [ inv_Vis | eauto with itree ].
-        econstructor. intros. right.
-        destruct (REL v), (REL0 v); try contradiction. eauto.
+        econstructor. intros.
+        apply (CIH _ _ _ (REL v) (REL0 v)). 
       * eapply IHREL0; eauto. pstep_reverse.
         destruct b1; inv CHECK0.
-        apply eqit_inv_Tau_r. eauto with itree.
+        apply eqit_inv_Tau_r. now step. 
   - remember (VisF e k2) as ot.
     hinduction INR before CIH; intros; try discriminate; [ inv_Vis | eauto with itree ].
     econstructor. intros.
-    destruct (REL v), (REL0 v); try contradiction; eauto with itree.
+    apply (CIH _ _ _ (REL0 v) (REL v)). 
   - eauto with itree.
   - remember (TauF t0) as ot.
+    genobs t3 ot3. 
     hinduction INR before CIH; intros; try inversion Heqot; subst.
-    2,3: eauto 3 with itree.
-    eapply IHINL. pclearbot. punfold REL. eauto with itree.
+    + eapply IHINL.
+      now instantiate (1:=(Tau m2)).
+      pclearbot. punfold REL. eauto with itree.
+    + now eapply IHINL.
+    + taur. eapply IHINR; eauto. 
 Qed.
 
 #[global] Instance Transitive_eqit {E : Type -> Type} {R: Type} (RR : R -> R -> Prop) (b1 b2: bool):
   Transitive RR -> Transitive (@eqit E _ _ RR b1 b2).
 Proof.
-  red; intros. assert (TRANS := trans_rcompose RR). eapply eqit_mon, eqit_trans; eauto.
+  red; intros. assert (TRANS := trans_rcompose RR). 
+    
+  eapply eqit_mon. eqit_trans; eauto.
 Qed.
 
 #[global] Instance Transitive_eqit_eq {E : Type -> Type} {R: Type} (b1 b2: bool):
