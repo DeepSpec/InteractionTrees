@@ -209,6 +209,7 @@ Ltac taur := apply EqTauR; only 1: auto.
 (* RTODO: paco transformers. *)
 
 Ltac pstep := step. 
+Ltac pfold := step. 
 Ltac punfold H := step in H.
 Ltac paco2_fold := step.  
 Ltac pclearbot := idtac. 
@@ -779,7 +780,7 @@ Qed.
 Section eqit_inv.
 
 Context {E : Type -> Type} {R1 R2} {RR : R1 -> R2 -> Prop} {b1 b2 : bool}.
-Context {vclo : (itree E R1 -> itree E R2 -> Prop) -> (itree E R1 -> itree E R2 -> Prop)}.
+(* Context {vclo : (itree E R1 -> itree E R2 -> Prop) -> (itree E R1 -> itree E R2 -> Prop)}. *)
 Context {sim : itree E R1 -> itree E R2 -> Prop}.
 
 Notation eqit__ t1_ t2_ :=
@@ -797,18 +798,20 @@ Notation eqit__ t1_ t2_ :=
     else False
   end.
 
+
 Lemma eqit_inv t1 t2 : eqit RR b1 b2 t1 t2 -> eqit__ t1 t2.
 Proof.
-  intros H; punfold H; red in H.
-  genobs t1 ot1; genobs t2 ot2; revert t1 t2 Heqot1 Heqot2; unfold observe, _observe.
-  destruct H; pclearbot; intros * E1 E2; rewrite <- E1, <- E2; cbn; auto.
+  intros H; punfold H; down. 
+  genobs t1 ot1; genobs t2 ot2. 
+  inv H; unfold observe in *; simpobs; auto. 
   - exists eq_refl; cbn; eauto.
-  - rewrite CHECK in *. destruct ot2.
-    1,3: pfold; red; unfold observe, _observe; rewrite <- E2; assumption.
-    1: apply eqit_inv_Tau_r; pfold; red; unfold observe, _observe; assumption.
-  - rewrite CHECK in *. destruct ot1.
-    1,3: pfold; red; unfold observe, _observe; rewrite <- E1; assumption.
-    1: apply eqit_inv_Tau_l; pfold; red; unfold observe, _observe; assumption.
+  - rewrite CHECK in *. 
+    flatten_goal.  
+    1,3: step; down; unfold observe; simpobs; assumption. 
+    1: apply eqit_inv_Tau_r; now step.
+  - rewrite CHECK in *. flatten_goal. 
+    1,3: step; down; unfold observe; simpobs; assumption. 
+    1: apply eqit_inv_Tau_l; now step.
 Qed.
 
 End eqit_inv.
