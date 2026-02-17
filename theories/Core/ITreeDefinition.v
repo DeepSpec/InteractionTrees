@@ -293,9 +293,18 @@ Ltac rewrite_everywhere_except lem X :=
 
 Ltac genobs x ox := remember (observe x) as ox.
 Ltac genobs_clear x ox := genobs x ox; match goal with [H: ox = observe x |- _] => clear H x end.
-Ltac simpobs := repeat match goal with [H: _ = observe _ |- _] =>
-                    rewrite_everywhere_except (@eq_sym _ _ _ H) H
-                end.
+Ltac simpobs :=
+  repeat match goal with
+  | H : _ = observe _ |- _ =>
+    rewrite <- H in *
+  | H : observe _ = _ |- _ =>
+    rewrite H in *
+  | H : _ = _observe _ |- _ =>
+        rewrite <- H in *
+  | H : _observe _ = _ |- _ =>
+    rewrite H in *
+  end.
+(* wishing for an or pattern... *)
 Ltac desobs t H := destruct (observe t) eqn:H.
 
 (** ** Compute with fuel *)
