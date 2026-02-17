@@ -518,9 +518,10 @@ Proof.
 Qed. 
 
 
-(* RTODO: DOCUMENT *)
+(* RTODO: ask yannick exactly what's going on, then document *)
   (* 
-  eutt is NOT valid up to eutt 
+  "eutt is NOT valid up to eutt" and this is supposedly equivalent to 
+  transitivity, but we did prove things are transitive... what's going on?
   *)
 
   (* eutt is still transitive, but for different reasons *)
@@ -934,6 +935,7 @@ Proof.
       taul. 
       pclearbot. punfold REL. down. 
       hinduction REL0 before CIH; intros; try (exfalso; eapply EQ; eauto; fail).
+    (* now we can handle each subcase with another layer of induction *)
       * remember (RetF r1) as ot.
         hinduction REL0 before CIH; intros; inv Heqot; eauto with paco itree.
       * remember (VisF e k1) as ot.
