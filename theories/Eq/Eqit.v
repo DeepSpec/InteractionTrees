@@ -433,16 +433,13 @@ Proof.
 Qed.
 
 
-(*
-Definition flip_clo {A B C} clo r := @flip A B C (clo (@flip B A C r)).
-
-Lemma eqitF_flip {E R1 R2} (RR : R1 -> R2 -> Prop) b1 b2 vclo r:
-  flip (eqitF (flip RR) b2 b1 (flip_clo vclo) (flip r)) <2= @eqitF E R1 R2 RR b1 b2 vclo r.
+Lemma eqitF_flip {E R1 R2} (RR : R1 -> R2 -> Prop) b1 b2 r:
+  flip (eqitF (flip RR) b2 b1 (flip r)) <= @eqitF E R1 R2 RR b1 b2 r.
 Proof.
-  intros. induction PR; eauto with itree.
+  repeat intro; induction H; eauto with itree.
 Qed.
 
-*)
+
 
 
 #[global] Hint Unfold flip : itree.
@@ -1049,17 +1046,17 @@ Qed.
 Proof.
   eapply geutt_cong_euttge; intros; subst; eauto.
 Qed. *)
-(* RTODO: Ask ^ about above. Then do the following: *)
+(* RTODO: Ask ^ about above: are they important, or just 
+  important for this one? *)
 
-(* RTODO: Ask about flip, as this is different *)
 #[global] Instance eqitgen_cong_eqit {E R1 R2 RR1 RR2 RS} b1 b2
        (LERR1: forall x x' y, (RR1 x x': Prop) -> (RS x' y: Prop) -> RS x y)
        (LERR2: forall x y y', (RR2 y y': Prop) -> RS x y' -> RS x y):
-       (* we inserted this flip! *)
+       (* we can insert this flip to make things work out: *)
   Proper (eq_itree RR1 ==> (eq_itree RR2) ==> flip impl)
          (@eqit E R1 R2 RS b1 b2).
 Proof.
-  repeat intro. unfold flip, eq_itree in *. 
+  repeat intro; unfold flip, eq_itree in *. 
 
   (* Given *)
   (* LERR1: ∀ x x' y. RR1 x x' -> RS x' y -> RS x y *)
@@ -1067,21 +1064,61 @@ Proof.
   (* Prove the diagram commutes *)
   
   (* 
-   y-(eqit RS b1 b2) → y0 
-   ↑                   ↑
-   ≅RR1               ≅RR2
-   |                   | 
-   x-(?eqit RS b1 b2)→ x0
+   y -(eqit RS b1 b2) → y0 
+   ↑                    ↑
+   ≅RR1                ≅RR2
+   |                    | 
+   x -(?eqit RS b1 b2)→ x0
   *)
 
-  (* 
-    by LERR1, Ret nodes of x and Ret nodes of y0 are related by RS. 
+  (* Problem: this diagram does not have a path from x to x0. *)
+  (* solution: flip ≅RR2, as both boolean flags are false to 
+    begin with this is a "symmetry" on trees only. *)
+
+(* 
+   y -(eqit RS b1 b2) → y0 
+   ↑                    |
+   ≅RR1                ≅(flip RR2)
+   |                    ↓ 
+   x -(?eqit RS b1 b2)→ x0
+
+(* This diagram has a clear path, and LERR1 and LERR2 get us 
+the correlaries we need to arrive there: namely: *)
+*)
+(*  by LERR1, Ret nodes of x and Ret nodes of y0 are related by RS. 
     by LERR2, Ret nodes of x0 and Ret nodes of y are related by RS. 
-    RR1 ∘ RS = RS 
-    RR2 ∘ RS = RS 
-    so RR1 and RR2 are involutions over RS 
+    RR1 ∘ RS <= RS 
+    (flip RR2) ∘ RS <= RS 
+    so RS is closed under left composition by RR1
+    and right composition by flip RR2.
   *)
-  (* idtac.
+  idtac. 
+  assert (rcompose RR1 RS <= RS) by (intros ? ? [? ?]; eauto). 
+  assert (rcompose RS (flip RR2) <= RS) by (intros ? ? [? ?]; eauto).
+  assert (eqit RR1 b1 b2 x y) by 
+  (eapply eqit_mono with (b1:=false) (b2:=false) (RR:=RR1); easy).  
+  assert (eqit RR2 b1 b2 x0 y0). 
+  (eapply eqit_mono with (b1:=false) (b2:=false) (RR:=RR2); try easy).  
+  apply eqit_flip in H0. 
+
+  specialize (eqit_trans _ _ _ _ _ _ _ H4 H1) as H6. 
+  (* first diagonal *)
+  assert (eqit RS b1 b2 x y0) as Hdiag1 by 
+  (eapply eqit_mono with (RR:=(rcompose RR1 RS)); eauto).
+  eapply eqit_mono with (RR:=(rcompose RS (flip RR2))); eauto. 
+  eapply eqit_trans; eauto. 
+  eapply eqit_mono with (b1:=false) (b2:=false) (RR:=(flip RR2)); easy. 
+Qed. 
+
+(* Graveyard *)
+
+  (* apply eqit_flip in H5 as Hflip. 
+  apply eqit_flip in Hdiag1 as HdiagR. 
+  
+  specialize (eqit_trans _ _ _ _ _ _ _ HdiagR) as Hfinal. 
+   
+
+
   replace RS with (rcompose RR1 RS).
   eapply eqit_trans. 
   eapply eqit_mono with (b1:=false) (b2:=false) (RR:=RR1); try easy; eauto.  
@@ -1092,7 +1129,7 @@ Proof.
   - 
   (* seems true, proving requires a different shape of goal *)
   apply functional_extensionality. intro. 
-  apply functional_extensionality. intro.  *)
+  apply functional_extensionality. intro. 
   
    
   (* Fail symmetry.  *)
@@ -1142,14 +1179,19 @@ Proof.
   2: now backstep.
    (* also induction's fault *)
   shelve.   
-Abort. 
+Abort.  *)
 
 #[global] Instance eqitgen_cong_eqit_eq {E R1 R2 RS} b1 b2:
   Proper (eq_itree eq ==> eq_itree eq ==> flip impl)
          (@eqit E R1 R2 RS b1 b2).
 Proof.
-Abort. 
-  (* ginit. intros. rewrite H1, H0. gfinal. eauto. *)
+  repeat intro.
+  (* Ask during meeting: why failing? *)
+  Fail rewrite H. 
+  Fail rewrite H0. 
+  eapply @eqitgen_cong_eqit with (RR1:=eq); intros; subst; eauto. 
+  now rewrite H2. 
+Qed.
 
 #[global] Instance euttge_cong_euttge {E R RS}
        (TRANS: Transitive RS):
@@ -1333,6 +1375,31 @@ Inductive eqit_bind_clo b1 b2 (r : itree E R1 -> itree E R2 -> Prop) :
 Hint Constructors eqit_bind_clo : itree.
 
 (* RTODO: talk about this one and closures in general. *)
+Lemma eqit_clo_bind b1 b2 : 
+  eqit_bind_clo b1 b2 <= eqit_mon RR b1 b2. 
+Proof.
+  repeat intro. down. Search gfp. 
+  intros rr. pcofix CIH. intros. destruct PR.
+  guclo eqit_clo_trans. econstructor; auto_ctrans_eq.
+  1,2: rewrite unfold_bind; reflexivity.
+  punfold EQV. unfold_eqit.
+  hinduction EQV before CIH; intros; pclearbot; cbn;
+    repeat (change (ITree.subst ?k ?m) with (ITree.bind m k)).
+  - guclo eqit_clo_trans. econstructor; auto_ctrans_eq.
+    1,2: reflexivity.
+    eauto with paco.
+  - gstep. econstructor. eauto 7 with paco itree.
+  - gstep. econstructor. intros. red in CMP. unfold id in ID. apply ID. eauto 7 with paco itree.
+  - destruct b1; try discriminate.
+    guclo eqit_clo_trans.
+    econstructor; auto_ctrans_eq; eauto; try reflexivity.
+    eapply eqit_Tau_l. rewrite unfold_bind. reflexivity.
+  - destruct b2; try discriminate.
+    guclo eqit_clo_trans. econstructor; auto_ctrans_eq; eauto; try reflexivity.
+    eapply eqit_Tau_l. rewrite unfold_bind. reflexivity.
+Qed.
+
+
 (* Lemma eqit_clo_bind b1 b2 vclo
       (MON: monotone2 vclo)
       (CMP: compose (eqitC RR b1 b2) vclo <3= compose vclo (eqitC RR b1 b2))
@@ -1380,12 +1447,12 @@ Proof.
   apply eqit_Tau.
 Qed.
 
-(* RTODO: PUT BACK *)
+(* RTODO: PUT BACK IF NEEDED *)
 (* Arguments eqit_clo_bind : clear implicits. *)
 #[global] Hint Constructors eqit_bind_clo : itree.
 
-Goal False. 
-fail. 
+(* Goal False. 
+fail.  *)
 
 Lemma eqit_bind' {E R1 R2 S1 S2} (RR : R1 -> R2 -> Prop) b1 b2
       (RS : S1 -> S2 -> Prop)
@@ -1394,7 +1461,9 @@ Lemma eqit_bind' {E R1 R2 S1 S2} (RR : R1 -> R2 -> Prop) b1 b2
   (forall r1 r2, RR r1 r2 -> eqit RS b1 b2 (k1 r1) (k2 r2)) ->
   @eqit E _ _ RS b1 b2 (ITree.bind t1 k1) (ITree.bind t2 k2).
 Proof.
-  intros. ginit. guclo eqit_clo_bind. unfold eqit in *.
+  intros.
+  
+  ginit. guclo eqit_clo_bind. unfold eqit in *.
   econstructor; eauto with paco.
 Qed.
 
