@@ -1289,12 +1289,6 @@ Abort.  *)
          (@eqit E R1 R2 RS b1 b2).
 Proof.
   repeat intro.
-  (* unfold eq_itree in H0. 
-  assert (forall x x' y, (@eq R1 x x': Prop) -> (RS x' y: Prop) -> RS x y) as LERR. 
-  intros. congruence.   *)
-  (* Ask during meeting: why failing? *)
-  Fail rewrite H0. 
-  Fail rewrite H. 
   eapply @eqitgen_cong_eqit with (RR1:=eq) (RR2:=eq); intros; subst; eauto. 
 Qed.
 
@@ -1724,9 +1718,16 @@ Lemma bind_ret_r {E R} :
   forall s : itree E R,
     ITree.bind s (fun x => Ret x) ≅ s.
 Proof.
-
+  (* idea: go from eqit_mon elem to gfp (eqit_mon elem) somehow *)
+  unfold eq_itree. 
+  coinduction c CIH. 
   intros. 
+  apply (gfp_bchain c).
+  rewrite (itree_eta_ (ITree.bind _ _)), (itree_eta s).
+  Search gfp. 
   
+  
+
   (* specialize (@itree_eta E) as eta.   *)
 
   (* specialize (itree_eta s) as eta. step in eta. 
@@ -1779,6 +1780,8 @@ Proof.
     cbv; apply CIH).
     cbn. (* does nothing *) 
     step. 
+    Set Printing All.
+    Fail unfold go.  
     Fail rewrite (itree_eta_ (ITree.bind _ _)), (itree_eta t).
     Fail rewrite CIH.
     
