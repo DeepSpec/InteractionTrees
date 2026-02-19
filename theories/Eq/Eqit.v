@@ -221,6 +221,7 @@ end.
 Ltac taul := apply EqTauL; only 1: auto. 
 Ltac taur := apply EqTauR; only 1: auto. 
 
+(* Tour 1: *)
 (* RTODO: rewrite with paco transformers. *)
 
 Ltac pstep := step. 
@@ -514,7 +515,7 @@ Proof.
     easy. 
 Qed. 
 
-
+(* Tour extra: *)
 (* RTODO: ask yannick exactly what's going on, then document *)
   (* 
   "eutt is NOT valid up to eutt" and this is supposedly equivalent to 
@@ -751,7 +752,7 @@ Proof.
   intros H x; punfold H; apply eqitF_inv_VisF with (x := x) in H; pclearbot; auto.
 Qed.
 
-(* RTODO: SHOW *)
+(* Tour 2: *)
 (* This proof was quite simplified by tactics *)
 Lemma eqit_inv_Tau_l {E R1 R2 RR} b1 t1 t2 :
   @eqit E R1 R2 RR b1 true (Tau t1) t2 -> eqit RR b1 true t1 t2.
@@ -1046,14 +1047,18 @@ Qed.
 Proof.
   eapply geutt_cong_euttge; intros; subst; eauto.
 Qed. *)
-(* RTODO: Ask ^ about above: are they important, or just 
-  important for this one? *)
+
+(* Tour extra 2: *)
+(* RTODO: Ask ^ about above this one: are they important, or just 
+  important for this one? If latter, they are not needed. *)
+
+
+(* Tour 3: Show this proof. (Q): *)
 
 #[global] Instance eqitgen_cong_eqit {E R1 R2 RR1 RR2 RS} b1 b2
        (LERR1: forall x x' y, (RR1 x x': Prop) -> (RS x' y: Prop) -> RS x y)
        (LERR2: forall x y y', (RR2 y y': Prop) -> RS x y' -> RS x y):
-       (* we can insert this flip to make things work out: *)
-  Proper (eq_itree RR1 ==> (eq_itree RR2) ==> flip impl)
+  Proper (eq_itree RR1 ==> eq_itree RR2 ==> flip impl)
          (@eqit E R1 R2 RS b1 b2).
 Proof.
   repeat intro; unfold flip, eq_itree in *. 
@@ -1072,7 +1077,7 @@ Proof.
   *)
 
   (* Problem: this diagram does not have a path from x to x0. *)
-  (* solution: flip ≅RR2, as both boolean flags are false to 
+  (* Solution: flip ≅RR2, as both boolean flags are false to 
     begin with this is a "symmetry" on trees only. *)
 
 (* 
@@ -1082,8 +1087,8 @@ Proof.
    |                    ↓ 
    x -(?eqit RS b1 b2)→ x0
 
-(* This diagram has a clear path, and LERR1 and LERR2 get us 
-the correlaries we need to arrive there: namely: *)
+(* This diagram has a clear path (lifting with eqit_mono), 
+  and LERR1 and LERR2 get us the correlaries we need to arrive there: namely: *)
 *)
 (*  by LERR1, Ret nodes of x and Ret nodes of y0 are related by RS. 
     by LERR2, Ret nodes of x0 and Ret nodes of y are related by RS. 
@@ -1092,23 +1097,43 @@ the correlaries we need to arrive there: namely: *)
     so RS is closed under left composition by RR1
     and right composition by flip RR2.
   *)
+  (* We use a mix of foreward and backward reasoning. *)
+  
   idtac. 
+  (* build arrows and strengthen *)
   assert (rcompose RR1 RS <= RS) by (intros ? ? [? ?]; eauto). 
   assert (rcompose RS (flip RR2) <= RS) by (intros ? ? [? ?]; eauto).
   assert (eqit RR1 b1 b2 x y) by 
-  (eapply eqit_mono with (b1:=false) (b2:=false) (RR:=RR1); easy).  
-  assert (eqit RR2 b1 b2 x0 y0). 
+  (eapply eqit_mono with (b1:=false) (b2:=false) (RR:=RR1); easy).
+  assert (eqit RR2 b1 b2 x0 y0) by 
   (eapply eqit_mono with (b1:=false) (b2:=false) (RR:=RR2); try easy).  
-  apply eqit_flip in H0. 
 
-  specialize (eqit_trans _ _ _ _ _ _ _ H4 H1) as H6. 
   (* first diagonal *)
-  assert (eqit RS b1 b2 x y0) as Hdiag1 by 
+  specialize (eqit_trans _ _ _ _ _ _ _ H4 H1) as Hdiag_weak. 
+  assert (eqit RS b1 b2 x y0) as Hdiag by 
   (eapply eqit_mono with (RR:=(rcompose RR1 RS)); eauto).
+  
+  (* reverse the final arrow *)
+  apply eqit_flip in H0.
+  
+  (* backward reasoning, straightforward *)
   eapply eqit_mono with (RR:=(rcompose RS (flip RR2))); eauto. 
   eapply eqit_trans; eauto. 
   eapply eqit_mono with (b1:=false) (b2:=false) (RR:=(flip RR2)); easy. 
 Qed. 
+
+(* 
+Short version of the proof using only backward reasoning: 
+  eapply eqit_mono with (b1:=b1) (b2:=b2) (RR:=(rcompose RS (flip RR2))); 
+  try intros ? ? [? ?]; eauto.
+  eapply eqit_trans; eauto.   
+  eapply eqit_mono with (RR:=rcompose RR1 RS); try intros ? ? [? ?]; eauto.
+  eapply eqit_trans; eauto. 
+  eapply eqit_mono with (b1:=false) (b2:=false) (RR:=RR1); easy. 
+  apply eqit_flip in H0. 
+  now eapply eqit_mono with (b1:=false) (b2:=false) (RR:=(flip RR2)). 
+  *)
+
 
 (* Graveyard *)
 
@@ -1374,11 +1399,26 @@ Inductive eqit_bind_clo b1 b2 (r : itree E R1 -> itree E R2 -> Prop) :
 .
 Hint Constructors eqit_bind_clo : itree.
 
-(* RTODO: talk about this one and closures in general. *)
+(* Ask about lattices: there's an implicit lattice of relations here, 
+but should we make it explicit? *)
+(* Definition paco_body {X} (f : mon X) r := (fun y => f (cup r y)).  *)
+
+(* monotonicity of paco_body, omitted *)
+
+(* Definition paco {X} (f : mon X) r := gfp paco_body. *)
+
+(* Q: best way we want to define this? *)
 Lemma eqit_clo_bind b1 b2 : 
   eqit_bind_clo b1 b2 <= eqit_mon RR b1 b2. 
 Proof.
-  repeat intro. down. Search gfp. 
+Admitted. 
+  (* repeat intro.
+  inv H. 
+  step in EQV.  
+  down. 
+  dependent induction EQV.
+  (* Q: Escaping setoid hell? *)
+  Fail rewrite unfold_bind. 
   intros rr. pcofix CIH. intros. destruct PR.
   guclo eqit_clo_trans. econstructor; auto_ctrans_eq.
   1,2: rewrite unfold_bind; reflexivity.
@@ -1397,7 +1437,7 @@ Proof.
   - destruct b2; try discriminate.
     guclo eqit_clo_trans. econstructor; auto_ctrans_eq; eauto; try reflexivity.
     eapply eqit_Tau_l. rewrite unfold_bind. reflexivity.
-Qed.
+Qed. *)
 
 
 (* Lemma eqit_clo_bind b1 b2 vclo
@@ -1447,8 +1487,7 @@ Proof.
   apply eqit_Tau.
 Qed.
 
-(* RTODO: PUT BACK IF NEEDED *)
-(* Arguments eqit_clo_bind : clear implicits. *)
+Arguments eqit_clo_bind : clear implicits.
 #[global] Hint Constructors eqit_bind_clo : itree.
 
 (* Goal False. 
@@ -1462,9 +1501,9 @@ Lemma eqit_bind' {E R1 R2 S1 S2} (RR : R1 -> R2 -> Prop) b1 b2
   @eqit E _ _ RS b1 b2 (ITree.bind t1 k1) (ITree.bind t2 k2).
 Proof.
   intros.
-  
-  ginit. guclo eqit_clo_bind. unfold eqit in *.
-  econstructor; eauto with paco.
+  step. 
+  eapply eqit_clo_bind.
+  econstructor; eauto. 
 Qed.
 
 Lemma eq_itree_clo_bind {E : Type -> Type} {R1 R2 : Type} (RR : R1 -> R2 -> Prop) {U1 U2 UU} t1 t2 k1 k2
@@ -1516,7 +1555,12 @@ Lemma bind_ret_r {E R} :
   forall s : itree E R,
     ITree.bind s (fun x => Ret x) ≅ s.
 Proof.
-  ginit. pcofix CIH. intros.
+  intros. 
+  unfold eq_itree. coinduction c CIH.   
+  down. destruct (observe s).
+   (* Key: want to 'step' here, meaning want bind to be defined 
+      with coinduction in a way that we can apply it. *)
+  (* Q: Why setoid hell? *)
   rewrite (itree_eta_ (ITree.bind _ _)), (itree_eta s). cbn.
   destruct (observe s); cbn; gstep; constructor; eauto with paco itree.
 Qed.
