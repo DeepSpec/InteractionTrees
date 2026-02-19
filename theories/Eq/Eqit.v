@@ -759,6 +759,7 @@ Lemma eqit_inv_Tau_l {E R1 R2 RR} b1 t1 t2 :
 Proof.
   intros.
   step in H. down. 
+  (* RTODO: report this bug (rm down) *)
   dependent induction H. 
   - step in REL. step.
     down.
@@ -1055,7 +1056,84 @@ Qed. *)
 
 (* Tour 3: Show this proof. (Q): *)
 
-#[global] Instance eqitgen_cong_eqit {E R1 R2 RR1 RR2 RS} b1 b2
+(* Noe's note: add morphism *)
+Add Parametric Morphism {E R1 R2 RR1 RR2 RS} b1 b2
+       (LERR1: forall x x' y, (RR1 x x': Prop) -> (RS x' y: Prop) -> RS x y)
+       (LERR2: forall x y y', (RR2 y y': Prop) -> RS x y' -> RS x y) : 
+         (@eqit E R1 R2 RS b1 b2) 
+         with signature (eq_itree RR1 ==> eq_itree RR2 ==> flip impl)
+         as eqitgen_cong_eqit. 
+Proof. 
+repeat intro; unfold flip, eq_itree in *. 
+
+  (* Given *)
+  (* LERR1: ∀ x x' y. RR1 x x' -> RS x' y -> RS x y *)
+  (* LERR2: ∀ x y y'. RR2 y y' -> RS x y' -> RS x y, *)
+  (* Prove the diagram commutes *)
+  
+  (* 
+   y -(eqit RS b1 b2) → y0 
+   ↑                    ↑
+   ≅RR1                ≅RR2
+   |                    | 
+   x -(?eqit RS b1 b2)→ x0
+  *)
+
+  (* Problem: this diagram does not have a path from x to x0. *)
+  (* Solution: flip ≅RR2, as both boolean flags are false to 
+    begin with this is a "symmetry" on trees only. *)
+
+(* 
+   y -(eqit RS b1 b2) → y0 
+   ↑                    |
+   ≅RR1                ≅(flip RR2)
+   |                    ↓ 
+   x -(?eqit RS b1 b2)→ x0
+
+(* This diagram has a clear path (lifting with eqit_mono), 
+  and LERR1 and LERR2 get us the correlaries we need to arrive there: namely: *)
+*)
+(*  by LERR1, Ret nodes of x and Ret nodes of y0 are related by RS. 
+    by LERR2, Ret nodes of x0 and Ret nodes of y are related by RS. 
+    RR1 ∘ RS <= RS 
+    (flip RR2) ∘ RS <= RS 
+    so RS is closed under left composition by RR1
+    and right composition by flip RR2.
+  *)
+  (* We use a mix of foreward and backward reasoning. *)
+  
+  idtac. 
+  (* build arrows and strengthen *)
+  assert (rcompose RR1 RS <= RS) by (intros ? ? [? ?]; eauto). 
+  assert (rcompose RS (flip RR2) <= RS) by (intros ? ? [? ?]; eauto).
+  assert (eqit RR1 b1 b2 x y) by 
+  (eapply eqit_mono with (b1:=false) (b2:=false) (RR:=RR1); easy).
+  assert (eqit RR2 b1 b2 x0 y0) by 
+  (eapply eqit_mono with (b1:=false) (b2:=false) (RR:=RR2); try easy).  
+
+  (* first diagonal *)
+  specialize (eqit_trans _ _ _ _ _ _ _ H4 H1) as Hdiag_weak. 
+  assert (eqit RS b1 b2 x y0) as Hdiag by 
+  (eapply eqit_mono with (RR:=(rcompose RR1 RS)); eauto).
+  
+  (* reverse the final arrow *)
+  apply eqit_flip in H0.
+  
+  (* backward reasoning, straightforward *)
+  eapply eqit_mono with (RR:=(rcompose RS (flip RR2))); eauto. 
+  eapply eqit_trans; eauto. 
+  eapply eqit_mono with (b1:=false) (b2:=false) (RR:=(flip RR2)); easy. 
+Qed. 
+
+(* #[global] Instance geuttgen_cong_eqit_eq {E R1 R2 RS} b1 b2 r rg:
+  Proper (eq_itree eq ==> eq_itree eq ==> flip impl)
+         (gpaco2 (@eqit_ E R1 R2 RS b1 b2 id) (eqitC RS b1 b2) r rg).
+Proof.
+  eapply geuttgen_cong_eqit; intros; subst; eauto.
+Qed. *)
+
+
+(* #[global] Instance eqitgen_cong_eqit {E R1 R2 RR1 RR2 RS} b1 b2
        (LERR1: forall x x' y, (RR1 x x': Prop) -> (RS x' y: Prop) -> RS x y)
        (LERR2: forall x y y', (RR2 y y': Prop) -> RS x y' -> RS x y):
   Proper (eq_itree RR1 ==> eq_itree RR2 ==> flip impl)
@@ -1120,7 +1198,7 @@ Proof.
   eapply eqit_mono with (RR:=(rcompose RS (flip RR2))); eauto. 
   eapply eqit_trans; eauto. 
   eapply eqit_mono with (b1:=false) (b2:=false) (RR:=(flip RR2)); easy. 
-Qed. 
+Qed.  *)
 
 (* 
 Short version of the proof using only backward reasoning: 
@@ -1211,11 +1289,27 @@ Abort.  *)
          (@eqit E R1 R2 RS b1 b2).
 Proof.
   repeat intro.
+  (* unfold eq_itree in H0. 
+  assert (forall x x' y, (@eq R1 x x': Prop) -> (RS x' y: Prop) -> RS x y) as LERR. 
+  intros. congruence.   *)
   (* Ask during meeting: why failing? *)
-  Fail rewrite H. 
   Fail rewrite H0. 
-  eapply @eqitgen_cong_eqit with (RR1:=eq); intros; subst; eauto. 
-  now rewrite H2. 
+  Fail rewrite H. 
+  eapply @eqitgen_cong_eqit with (RR1:=eq) (RR2:=eq); intros; subst; eauto. 
+Qed.
+
+#[global] Instance eqitgen_cong_eqit_eq' {E R1 R2 RS} b1 b2:
+  Proper (eq_itree eq ==> eq_itree eq ==> flip impl)
+         (@eqit E R1 R2 RS b1 b2).
+Proof.
+  repeat intro.
+  (* unfold eq_itree in H0. 
+  assert (forall x x' y, (@eq R1 x x': Prop) -> (RS x' y: Prop) -> RS x y) as LERR. 
+  intros. congruence.   *)
+  (* Ask during meeting: why failing? *)
+  rewrite H0. 
+  rewrite H. 
+  eapply @eqitgen_cong_eqit with (RR1:=eq) (RR2:=eq); intros; subst; eauto. 
 Qed.
 
 #[global] Instance euttge_cong_euttge {E R RS}
@@ -1490,8 +1584,6 @@ Qed.
 Arguments eqit_clo_bind : clear implicits.
 #[global] Hint Constructors eqit_bind_clo : itree.
 
-(* Goal False. 
-fail.  *)
 
 Lemma eqit_bind' {E R1 R2 S1 S2} (RR : R1 -> R2 -> Prop) b1 b2
       (RS : S1 -> S2 -> Prop)
@@ -1530,6 +1622,15 @@ Proof.
   intros; subst; auto.
 Qed.
 
+(* #[global] Instance eqit_bind {E R S} b1 b2 :
+  Proper (eqitF eq b1 b2 ==> pointwise_relation _ (eqitF eq b1 b2) ==>
+          eqitF eq b1 b2) (@ITree.bind E R S).
+Proof.
+  repeat intro; eapply eqit_bind'; eauto.
+  intros; subst; auto.
+Qed. *)
+
+
 Lemma eqit_map {E R1 R2 S1 S2} (RR : R1 -> R2 -> Prop) b1 b2
       (RS : S1 -> S2 -> Prop)
       f1 f2 t1 t2 :
@@ -1551,19 +1652,141 @@ Proof.
   intros; subst; auto.
 Qed.
 
+Add Parametric Morphism {E R1}:
+        (eqit_ eq false false (gfp (eqit_mon eq false false)))
+         with signature (@eq_itree E R1 _ eq ==> eq_itree eq ==> flip impl)
+         as eqitF_cong_eqit. 
+Proof. 
+  red; intros. 
+  backstep. rewrite H. rewrite H0. now step. 
+Qed. 
+
+
+(* We just need elem to respect eta *)
+(* Add Parametric Morphism {E R1} (c : Chain (eqit_mon eq false false)):
+        (elem c)
+         with signature (@eq_itree E R1 _ eq ==> eq_itree eq ==> flip impl)
+         as elem_cong_eqit.  *)
+(* Add Parametric Morphism {E R1} (c : Chain (eqit_mon eq false false)):
+        (eqit_ eq false false (elem c))
+         with signature (@eq_itree E R1 _ eq ==> eq_itree eq ==> flip impl)
+         as elem_cong_eqit. 
+Proof. 
+  red; intros. 
+  step in H. 
+  step in H0. 
+  down. 
+  dependent induction H1. 
+  - simpobs. inv H0; try easy. inv H; try easy. simpobs. 
+    now constructor.  
+  - simpobs. dependent induction H0; try easy. dependent induction H; try easy. simpobs. 
+    constructor. 
+    eapply (sub_gfp_Chain).
+    rewrite REL0. 
+    rewrite REL1.
+    eapply (leq_gfp (eqit_mon eq false false)).
+    instantiate (1:=(elem c)).
+    repeat intro. 
+    Search elem. 
+    Search gfp.  
+      
+  
+Qed.  *)
+
+(* Add Parametric Morphism {E R1} c :
+         (@elem _ _ (@eqit_mon E _ _ eq false false) c) 
+         with signature (eq_itree (@eq R1) ==> eq_itree eq ==> flip impl)
+         as elem_cong_eqit. 
+Proof. 
+  red; intros. 
+  eapply (gfp_chain c).
+  rewrite H.
+  rewrite H0.
+ 
+  step. 
+  step in H. step in H0. down. 
+  dependent induction H. 
+  - dependent induction H0. 
+    + simpobs. constructor.    *)
+      
+(* need a monotone function that lifts elements by Taus *)
+
+(* Lemma elem_tau_inv {E R1 R2 RS} b1 b2 c t1 t2 : 
+  @elem _ _ (@eqit_mon E R1 R2 RS b1 b2) c (Tau t1) (Tau t2) -> 
+  @elem _ _ (@eqit_mon E R1 R2 RS b1 b2) c t1 t2. 
+Proof. 
+  intro. 
+  Search elem. 
+  eapply (compat_chain c).  
+  instantiate (1:=(fun e t1 t2 => e (Tau t1) (Tau t2))). *)
+
 Lemma bind_ret_r {E R} :
   forall s : itree E R,
     ITree.bind s (fun x => Ret x) ≅ s.
 Proof.
+
   intros. 
-  unfold eq_itree. coinduction c CIH.   
-  down. destruct (observe s).
-   (* Key: want to 'step' here, meaning want bind to be defined 
-      with coinduction in a way that we can apply it. *)
-  (* Q: Why setoid hell? *)
-  rewrite (itree_eta_ (ITree.bind _ _)), (itree_eta s). cbn.
-  destruct (observe s); cbn; gstep; constructor; eauto with paco itree.
-Qed.
+  
+  (* specialize (@itree_eta E) as eta.   *)
+
+  (* specialize (itree_eta s) as eta. step in eta. 
+  specialize (itree_eta_ (ITree.bind s (fun x : R => Ret x))) as eta2. step in eta2. 
+  rewrite (itree_eta_ (ITree.bind _ _)), (itree_eta s).
+  cbn.
+  down. dependent induction eta. 
+  simpobs.
+  - eauto. 
+  - simpobs. step. constructor.
+    replace (ITree.subst (fun x : R => Ret x) m1)
+    with 
+    (ITree.bind m1 (fun x : R => Ret x)) by reflexivity. 
+  rewrite (itree_eta_ (ITree.bind _ _)), (itree_eta m1).
+
+  unfold observe in x0. 
+   
+  cbn. 
+  induction (observe s).
+  - eauto with itree. 
+  - cbn. step. constructor.  
+  revert s.  *)
+
+
+
+  (* problem: need to eta-expand under elem, which may not be possible.
+  or eta expand under b (elem), also not clear if possible. *)
+  intros. 
+  rewrite (itree_eta_ (ITree.bind _ _)), (itree_eta s).
+  revert s. 
+  unfold eq_itree. 
+  coinduction c CIH.
+  intros. cbn.   
+  
+  
+  
+  destruct (observe s). 
+  - eauto with itree. 
+  - constructor.
+    (* apply (gfp_chain c). *)
+    replace (ITree.subst (fun x : R => Ret x) t)
+    with 
+    (ITree.bind t (fun x : R => Ret x)) by reflexivity. 
+    Fail rewrite (itree_eta_ (ITree.bind _ _)), (itree_eta t).
+    
+    
+    (* we're right here, but eta-normal form blocks the way. *)
+    Fail rewrite CIH. 
+    Fail (cbv in CIH;
+    cbv; apply CIH).
+    cbn. (* does nothing *) 
+    step. 
+    Fail rewrite (itree_eta_ (ITree.bind _ _)), (itree_eta t).
+    Fail rewrite CIH.
+    
+   shelve. 
+  - constructor.
+    shelve.  
+  (* ditto here. *)
+Admitted. 
 
 Lemma bind_ret_r' {E R} (u : itree E R) (f : R -> R) :
   (forall x, f x = x) ->
@@ -1578,8 +1801,11 @@ Lemma bind_bind {E R S T} :
   forall (s : itree E R) (k : R -> itree E S) (h : S -> itree E T),
     ITree.bind (ITree.bind s k) h ≅ ITree.bind s (fun r => ITree.bind (k r) h).
 Proof.
-  ginit. pcofix CIH. intros.
-  lazymatch goal with
+  unfold eq_itree. coinduction c CIH. 
+  intros.
+(* same problem. *)
+Admitted. 
+  (* lazymatch goal with
   | [ |- _ (ITree.bind ?t1 _) ?t2 ] => rewrite (itree_eta_ t1), (itree_eta_ t2); cbn
   end.
   lazymatch goal with
@@ -1588,7 +1814,7 @@ Proof.
   destruct (observe s); cbn.
   1: apply reflexivity.
   all: gstep; constructor; eauto with paco itree.
-Qed.
+Qed. *)
 
 Lemma map_map {E R S T}: forall (f : R -> S) (g : S -> T) (t : itree E R),
     ITree.map g (ITree.map f t) ≅ ITree.map (fun x => g (f x)) t.
@@ -1683,31 +1909,31 @@ Lemma eqit_inv_bind_ret:
          @eqit E R1 R2 RR b1 b2 (kb a) (Ret b).
 Proof.
   intros.
-  punfold H.
-  unfold eqit_ in *.
-  cbn in *.
+  step in H. down. 
   remember (observe (ITree.bind ma kb)) as otl.
   remember (RetF b) as tr.
   revert ma kb Heqotl b Heqtr.
-  induction H; try discriminate.
-  - intros; subst.
-    inv Heqtr.
+  dependent induction H; try solve [intros; subst; discriminate].
+  - intros.
+    rewrite Heqtr. 
     unfold observe, _observe in Heqotl; cbn in Heqotl.
     destruct (observe ma) eqn:Ema; try discriminate.
     exists r. split.
     * rewrite itree_eta, Ema. reflexivity.
-    * rewrite itree_eta_. unfold _observe. rewrite <- Heqotl. pfold; constructor; auto.
+    * rewrite itree_eta_. unfold _observe. rewrite <- Heqotl.
+    rewrite Heqtr in x. inv x.
+    pfold; constructor; auto.
   - intros. subst.
     unfold observe, _observe in Heqotl; cbn in Heqotl.
     destruct (observe ma) eqn:Ema; try discriminate.
     + exists r. split.
       * rewrite itree_eta, Ema. reflexivity.
-      * pfold. red. unfold observe at 1; unfold _observe. rewrite <- Heqotl. constructor; auto.
-    + inv Heqotl. specialize (IHeqitF _ _ eq_refl _ eq_refl).
-      destruct IHeqitF as (a & ? & ?); exists a.
+      * pfold. down. unfold observe at 1; unfold _observe. rewrite <- Heqotl. constructor; auto.
+      + inv Heqotl. specialize (IHeqitF _ eq_refl eq_refl _ _ eq_refl _ eq_refl).
+      edestruct IHeqitF as (a & ? & ?); exists a.
       split; auto.
-      pfold; red; rewrite Ema. constructor; auto.
-      punfold H0.
+      pfold; down; rewrite Ema. constructor; auto.
+      now punfold H0.
 Qed.
 
 Lemma eutt_inv_bind_ret:
@@ -1748,36 +1974,38 @@ Lemma eqit_inv_bind_vis :
                               forall (x:X), eqit RR b1 b2 (ITree.bind (kxa x) kab) (kxc x)) \/
     (exists (a : A), eqit eq b1 b2 ma (Ret a) /\ eqit RR b1 b2 (kab a) (Vis e kxc)).
 Proof.
-  intros. punfold H. unfold eqit_ in H. cbn in *.
+  intros. punfold H. unfold eqit_ in H. down. 
   remember (observe (ITree.bind ma kab)) as tl.
   remember (VisF e kxc) as tr.
   revert ma kab Heqtl kxc Heqtr.
-  induction H; try discriminate.
+  dependent induction H; try solve [intros; subst; discriminate].
   - intros. unfold observe, _observe in Heqtl; cbn in Heqtl.
     destruct (observe ma) eqn:Ema; try discriminate.
     + right. exists r. split.
-      * pfold; red. rewrite Ema. constructor. auto.
-      * pfold; red. unfold observe at 1; unfold _observe. rewrite <- Heqtl.
-        constructor; auto.
+      * pfold; down. rewrite Ema. constructor. auto.
+      * pfold; down. unfold observe at 1; unfold _observe. rewrite <- Heqtl.
+        simpobs. constructor; auto.
     + left.
       symmetry in Heqtl.
-      revert k2 REL Heqtr. inv_eq_VisF Heqtl. intros.
-      inv_eq_VisF Heqtr.
+      revert x. revert k2 REL Heqtr. inv_eq_VisF Heqtl. intros.
+      rewrite Heqtr in x. 
+      cbn in x. 
+      inv_eq_VisF x.
       exists k. split.
-      * pfold; red. rewrite Ema. constructor. red. left. apply reflexivity.
+      * pfold; down. rewrite Ema. constructor. down. reflexivity.
       * pclearbot. auto.
   - intros. subst.
     unfold observe, _observe in Heqtl; cbn in Heqtl.
     destruct (observe ma) eqn: Ema; try discriminate.
     + right; exists r; split.
       * rewrite itree_eta, Ema; reflexivity.
-      * pfold. red. unfold observe at 1; unfold _observe; rewrite <- Heqtl. constructor; auto.
-    + inv Heqtl. specialize (IHeqitF _ _ eq_refl _ eq_refl).
+      * pfold. down. unfold observe at 1; unfold _observe; rewrite <- Heqtl. constructor; auto.
+    + inv Heqtl. specialize (IHeqitF _ _ eq_refl eq_refl _ _ eq_refl _ eq_refl).
       destruct IHeqitF as [(k0 & ? & ?) | (a & ? & ?)]; [left | right].
       * exists k0. split; auto.
-        pfold; red; rewrite Ema; constructor; punfold H0.
+        pfold; down; rewrite Ema; constructor; now punfold H0. 
       * exists a. split; auto.
-        pfold; red; rewrite Ema; constructor; punfold H0.
+        pfold; down; rewrite Ema; constructor; now punfold H0.
 Qed.
 
 Lemma eutt_inv_bind_vis:
@@ -1807,35 +2035,35 @@ Lemma eqit_inv_bind_tau:
     (exists (ma' : itree E A), eqit eq b1 b2 ma (Tau ma') /\ eqit RR b1 b2 (ITree.bind ma' kab) tc) \/
     (exists (a : A), eqit eq b1 b2 ma (Ret a) /\ eqit RR b1 b2 (kab a) (Tau tc)).
 Proof.
-  intros. punfold H. unfold eqit_ in H. cbn in H.
+  intros. punfold H. down. 
   remember (observe (ITree.bind ma kab)) as tl.
   remember (TauF tc) as tr.
   revert ma kab Heqtl Heqtr.
-  induction H; try discriminate; intros.
+  dependent induction H; intros; try solve [subst; discriminate].
   - inv Heqtr. unfold observe, _observe in Heqtl; cbn in Heqtl.
     destruct (observe ma) eqn:Ema; try discriminate.
     + right; exists r; split.
-      * pfold; red; rewrite Ema; constructor; auto.
-      * pfold; red; unfold observe at 1; unfold _observe; rewrite <- Heqtl. constructor; auto.
+      * pfold; down; rewrite Ema; constructor; auto.
+      * step; down; rewrite <- x; unfold observe, _observe; rewrite <- Heqtl; now constructor.
     + left; exists t; split.
-      * pfold; red; rewrite Ema; constructor; left; apply reflexivity.
-      * inv Heqtl. pclearbot. assumption.
+      * pfold; down; rewrite Ema; constructor; apply reflexivity.
+      * inv Heqtl. inv x. assumption.
   - subst.
     unfold observe, _observe in Heqtl; cbn in Heqtl.
     destruct (observe ma) eqn:Ema; try discriminate.
     + right; exists r; split.
-      * pfold; red; rewrite Ema; constructor; auto.
-      * pfold; red; unfold observe at 1; unfold _observe; rewrite <- Heqtl. constructor 4; auto.
-    + inv Heqtl. specialize (IHeqitF _ _ eq_refl eq_refl).
+      * pfold; down; rewrite Ema; constructor; auto.
+      * pfold; down; unfold observe at 1; unfold _observe; rewrite <- Heqtl. constructor 4; auto.
+    + inv Heqtl. specialize (IHeqitF _ eq_refl eq_refl _ _ eq_refl eq_refl).
       destruct IHeqitF as [(t0 & ? & ?) | (a & ? & ?)]; [left | right].
       * exists t0. split; auto.
-        pfold; red; rewrite Ema; constructor 4; punfold H0.
+        pfold; down; rewrite Ema; constructor 4; now punfold H0.
       * exists a. split; auto.
-        pfold; red; rewrite Ema; constructor; punfold H0.
+        pfold; down; rewrite Ema; constructor; now punfold H0.
   - inv Heqtr.
     left; exists ma; split.
-    + pfold; constructor; auto. apply Reflexive_eqitF_eq. intros ?; left; apply reflexivity.
-    + pfold; assumption.
+    + pfold; constructor; auto. 
+    + inv x; pfold; assumption.
 Qed.
 
 Lemma eutt_inv_bind_tau:
@@ -1861,7 +2089,7 @@ Lemma eutt_Ret_spin_abs: forall {E R1 R2} {RR: R1 -> R2 -> Prop} (v: R1),
 Proof.
   intros.
   punfold H.
-  unfold eqit_ in H.
+  down. 
   remember (observe (Ret v)) as x.
   remember (observe (ITree.spin)) as sp.
   revert Heqx Heqsp.
@@ -1876,7 +2104,7 @@ Lemma eutt_spin_Ret_abs: forall {E R1 R2} {RR: R1 -> R2 -> Prop} (v: R2),
 Proof.
   intros.
   punfold H.
-  unfold eqit_ in H.
+  down.
   remember (observe (Ret v)) as x.
   remember (observe (ITree.spin)) as sp.
   revert Heqx Heqsp.
@@ -1891,7 +2119,7 @@ Lemma eutt_Vis_spin_abs: forall {E R1 R2} {RR: R1 -> R2 -> Prop} {X} (e: E X) (k
 Proof.
   intros.
   punfold H.
-  unfold eqit_ in H.
+  down.
   remember (observe (Vis e k)) as x.
   remember (observe (ITree.spin)) as sp.
   revert Heqx Heqsp.
@@ -1906,7 +2134,7 @@ Lemma eutt_spin_Vis_abs: forall {E R1 R2} {RR: R1 -> R2 -> Prop} {X} (e: E X) (k
 Proof.
   intros.
   punfold H.
-  unfold eqit_ in H.
+  down.
   remember (observe (Vis e k)) as x.
   remember (observe (ITree.spin)) as sp.
   revert Heqx Heqsp.
