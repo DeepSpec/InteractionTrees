@@ -692,6 +692,27 @@ Proof.
   pstep. cbn. unfold eqit_. rewrite (observing_observe H). apply Reflexive_eqitF; eauto.
 Qed.
 
+#[global] Instance observing_sub_elem (c : Chain (eqit_mon eq false false)) (l r : itree E R) :
+  subrelation (@observing E R R eq) (elem c).
+Proof.
+  repeat intro.
+  inv H. step. down. rewrite observing_observe. 
+  apply (gfp_bchain c). reflexivity. 
+Qed.
+
+(* Add Parametric Morphism (c : Chain (eqit_mon eq false false)) : 
+  (@eqit_mon E R R eq false false (elem c))
+  with signature (@eq_itree E R R eq ==> eq_itree eq ==> flip impl)
+  as elem_eq_itree_proper. 
+Proof. 
+  red; intros.
+  step in H. step in H0.
+  down. genobs x otx. genobs x0 otx0.  
+  dependent induction H1.
+  - simpobs. inv H; inv H0; try easy. now constructor. 
+  - simpobs. inv H; inv H0; try easy. constructor. 
+    apply observing_sub_elem; eauto. Search elem.   *)
+
 (** ** Eta-expansion *)
 
 Lemma itree_eta_ (t : itree E R) : t ≅ go (_observe t).
@@ -1712,84 +1733,85 @@ Proof.
   intro. 
   Search elem. 
   eapply (compat_chain c).  
-  instantiate (1:=(fun e t1 t2 => e (Tau t1) (Tau t2))). *)
+  instantiate (1:=(fun t1 t2 => (Tau t1) (Tau t2))). *)
 
+(* Genuine try: prove eta expansion is compatible with b.  *)
+(* Add Parametric Morphism (c : Chain (eqit_mon eq false false)) : 
+  (@eqit_mon E R R eq false false (elem c))
+  with signature (@eq_itree E R R eq ==> eq_itree eq ==> flip impl)
+  as elem_eq_itree_proper. 
+Proof. 
+  red; intros.
+  step in H. step in H0.
+  down. genobs x otx. genobs x0 otx0.  
+  dependent induction H1.
+  - simpobs. inv H; inv H0; try easy. now constructor. 
+  - simpobs. inv H; inv H0; try easy. constructor. 
+    apply observing_sub_elem; eauto. Search elem.   *)
+
+(* Monotone eta expansion *)
+
+Program Definition eta_expand {E R} (s : itree E R -> itree E R -> Prop) (t1 t2 : itree E R) : Prop.
+Proof. 
+  apply s. 
+  exact {| _observe := observe t1 |}. 
+  exact {| _observe := observe t2 |}. 
+Defined. 
+
+
+#[global] Instance trans_elem_eq_itree_mon {E R} (c : Chain (@eqit_mon E R R eq false false)) : 
+  Transitive (elem c).
+Proof.
+  apply Transitive_chain.
+  intros R' HR'.
+  apply Transitive_eqit_eqit.
+  - congruence. 
+  - exact HR'.
+Qed.
+
+Add Parametric Morphism {E R} (c : Chain (@eqit_mon E R R eq false false)) :
+  (elem c)
+  with signature (observing eq ==> observing eq ==> flip impl)
+  as elem_observing_proper. 
+Proof. 
+  intros x y Hxy x' y' Hx'y' Helem.
+  symmetry in Hx'y'.  
+  eapply observing_sub_elem in Hxy; eauto.
+  eapply observing_sub_elem in Hx'y'; eauto.
+  do 2 (etransitivity; eauto).  
+Qed.   
+
+(* This lemma requires a bit of cleverness: 
+[elem c], where [c] is [Chain (eqit_mon eq false false)], 
+is respected by [observing eq]. Such respectfulness 
+in turn reqires transitivity of [elem c] and the fact that 
+[observing eq] is a subrelation of [elem c]. Lots of work, 
+but worth it! 
+*)
 Lemma bind_ret_r {E R} :
   forall s : itree E R,
     ITree.bind s (fun x => Ret x) ≅ s.
 Proof.
-  (* idea: go from eqit_mon elem to gfp (eqit_mon elem) somehow *)
-  unfold eq_itree. 
-  coinduction c CIH. 
-  intros. 
-  apply (gfp_bchain c).
+  unfold eq_itree. intros.
+   (* we need to eta-expland first, but we have to be able 
+   to reduce later. *)
   rewrite (itree_eta_ (ITree.bind _ _)), (itree_eta s).
-  Search gfp. 
-  
-  
-
-  (* specialize (@itree_eta E) as eta.   *)
-
-  (* specialize (itree_eta s) as eta. step in eta. 
-  specialize (itree_eta_ (ITree.bind s (fun x : R => Ret x))) as eta2. step in eta2. 
-  rewrite (itree_eta_ (ITree.bind _ _)), (itree_eta s).
-  cbn.
-  down. dependent induction eta. 
-  simpobs.
-  - eauto. 
-  - simpobs. step. constructor.
-    replace (ITree.subst (fun x : R => Ret x) m1)
-    with 
-    (ITree.bind m1 (fun x : R => Ret x)) by reflexivity. 
-  rewrite (itree_eta_ (ITree.bind _ _)), (itree_eta m1).
-
-  unfold observe in x0. 
-   
-  cbn. 
-  induction (observe s).
-  - eauto with itree. 
-  - cbn. step. constructor.  
-  revert s.  *)
-
-
-
-  (* problem: need to eta-expand under elem, which may not be possible.
-  or eta expand under b (elem), also not clear if possible. *)
-  intros. 
-  rewrite (itree_eta_ (ITree.bind _ _)), (itree_eta s).
+  (* need strong CIH *)
   revert s. 
-  unfold eq_itree. 
-  coinduction c CIH.
-  intros. cbn.   
-  
-  
-  
-  destruct (observe s). 
-  - eauto with itree. 
-  - constructor.
-    (* apply (gfp_chain c). *)
-    replace (ITree.subst (fun x : R => Ret x) t)
-    with 
-    (ITree.bind t (fun x : R => Ret x)) by reflexivity. 
-    Fail rewrite (itree_eta_ (ITree.bind _ _)), (itree_eta t).
-    
-    
-    (* we're right here, but eta-normal form blocks the way. *)
-    Fail rewrite CIH. 
-    Fail (cbv in CIH;
-    cbv; apply CIH).
-    cbn. (* does nothing *) 
-    step. 
-    Set Printing All.
-    Fail unfold go.  
-    Fail rewrite (itree_eta_ (ITree.bind _ _)), (itree_eta t).
-    Fail rewrite CIH.
-    
-   shelve. 
-  - constructor.
-    shelve.  
-  (* ditto here. *)
-Admitted. 
+  coinduction c CIH. 
+  intros.
+  (* with eta-reduction in place, we can reduce to base comparisons. *)
+  desobs s H; down; cbn; simpobs; constructor; intros.
+  (* Ret case is easy *)
+  reflexivity. 
+  (* the others are more tricky but mostly identical: *)
+  (* 1. we need only show the two sides are identical under observe. *)
+  all: eapply elem_observing_proper.
+  (* we know they are under the CIH... *)
+  all: try eapply CIH.
+  (* so the rest is just 'fancy reflexivity. *)
+  all: constructor; reflexivity. 
+Qed. 
 
 Lemma bind_ret_r' {E R} (u : itree E R) (f : R -> R) :
   (forall x, f x = x) ->
@@ -1804,8 +1826,16 @@ Lemma bind_bind {E R S T} :
   forall (s : itree E R) (k : R -> itree E S) (h : S -> itree E T),
     ITree.bind (ITree.bind s k) h ≅ ITree.bind s (fun r => ITree.bind (k r) h).
 Proof.
-  unfold eq_itree. coinduction c CIH. 
+  unfold eq_itree. intros. 
+  Search ITree.bind. 
+  rewrite (itree_eta_ (ITree.bind _ _)), 
+          (itree_eta (ITree.bind s (fun r : R => ITree.bind (k r) h))).
+  revert s. 
+  coinduction c CIH. 
   intros.
+  desobs s H; down; cbn; simpobs; intros.
+  
+
 (* same problem. *)
 Admitted. 
   (* lazymatch goal with
