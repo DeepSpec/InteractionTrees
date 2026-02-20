@@ -1517,16 +1517,17 @@ but should we make it explicit? *)
 (* Definition paco {X} (f : mon X) r := gfp paco_body. *)
 
 (* Q: best way we want to define this? *)
-Lemma eqit_clo_bind b1 b2 : 
-  eqit_bind_clo b1 b2 <= eqit_mon RR b1 b2. 
+Lemma eqit_clo_bind RS b1 b2 : 
+  eqit_bind_clo b1 b2 (gfp (eqit_mon RS b1 b2)) <= @eqit_mon RR b1 b2 (gfp (eqit_mon RS b1 b2)).
 Proof.
-Admitted. 
-  (* repeat intro.
+  repeat intro.
   inv H. 
   step in EQV.  
-  down. 
+  down in EQV. 
   dependent induction EQV.
-  (* Q: Escaping setoid hell? *)
+  apply REL0 in REL. step in REL. 
+  down. 
+  all: try rewrite 2observe_bind; simpobs. 
   Fail rewrite unfold_bind. 
   intros rr. pcofix CIH. intros. destruct PR.
   guclo eqit_clo_trans. econstructor; auto_ctrans_eq.
@@ -1546,7 +1547,7 @@ Admitted.
   - destruct b2; try discriminate.
     guclo eqit_clo_trans. econstructor; auto_ctrans_eq; eauto; try reflexivity.
     eapply eqit_Tau_l. rewrite unfold_bind. reflexivity.
-Qed. *)
+Qed.
 
 
 (* Lemma eqit_clo_bind b1 b2 vclo
@@ -1822,32 +1823,38 @@ Proof.
   - hnf. intros. apply eqit_Ret. auto.
 Qed.
 
+Ltac fold_subst := 
+  repeat match goal with 
+  |- context[ITree.subst ?k ?s] => 
+    replace (ITree.subst k s)
+    with (ITree.bind s k)
+    by reflexivity
+  end. 
+
 Lemma bind_bind {E R S T} :
   forall (s : itree E R) (k : R -> itree E S) (h : S -> itree E T),
     ITree.bind (ITree.bind s k) h ≅ ITree.bind s (fun r => ITree.bind (k r) h).
 Proof.
   unfold eq_itree. intros. 
-  Search ITree.bind. 
-  rewrite (itree_eta_ (ITree.bind _ _)), 
-          (itree_eta (ITree.bind s (fun r : R => ITree.bind (k r) h))).
-  revert s. 
-  coinduction c CIH. 
-  intros.
-  desobs s H; down; cbn; simpobs; intros.
-  
-
-(* same problem. *)
-Admitted. 
-  (* lazymatch goal with
+  lazymatch goal with
   | [ |- _ (ITree.bind ?t1 _) ?t2 ] => rewrite (itree_eta_ t1), (itree_eta_ t2); cbn
   end.
   lazymatch goal with
   | [ |- _ ?t0 _ ] => rewrite (itree_eta_ t0); cbn
   end.
-  destruct (observe s); cbn.
-  1: apply reflexivity.
-  all: gstep; constructor; eauto with paco itree.
-Qed. *)
+  revert s k h. 
+  coinduction c CIH.
+  intros.
+  desobs s H; down; cbn; simpobs. 
+  1: apply (gfp_bchain c). reflexivity. 
+  all: constructor; intros; eapply elem_observing_proper.
+  all: try eapply CIH.
+  all: constructor. 
+  all: fold_subst. 
+  all: repeat rewrite observe_bind.
+  all: reflexivity.
+Qed.
+
 
 Lemma map_map {E R S T}: forall (f : R -> S) (g : S -> T) (t : itree E R),
     ITree.map g (ITree.map f t) ≅ ITree.map (fun x => g (f x)) t.
