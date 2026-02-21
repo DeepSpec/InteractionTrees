@@ -697,7 +697,7 @@ Qed.
 Proof.
   repeat intro.
   inv H. step. down. rewrite observing_observe. 
-  apply (gfp_bchain c). reflexivity. 
+  backstep. reflexivity. 
 Qed.
 
 (* Add Parametric Morphism (c : Chain (eqit_mon eq false false)) : 
@@ -1507,8 +1507,15 @@ Inductive eqit_bind_clo b1 b2 (r : itree E R1 -> itree E R2 -> Prop) :
 .
 Hint Constructors eqit_bind_clo : itree.
 
-(* This should actually probably be an instance relation... *)
+(* This should actually probably be a respectful instance... *)
 
+
+(* sketch:
+eqit_bind_clo gfp -> eqit_mon gfp 
+== 
+eqit RU 
+
+*)
 
 (* Ask about lattices: there's an implicit lattice of relations here, 
 but should we make it explicit? *)
@@ -1525,6 +1532,7 @@ Proof.
   repeat intro.
   inv H. 
   backstep.
+  (* need strong CIH *)
   revert EQV. 
   revert t1 t2.  
   coinduction c CIH.  
@@ -1532,59 +1540,32 @@ Proof.
   step in EQV.  
   down in EQV. 
   dependent induction EQV.
-  apply REL in REL0 as Hgfpk. step in Hgfpk. 
   all: down. 
+  (* be careful not to rewrite all here; this will mess up taul and taur cases. *)
   1-3: rewrite 2observe_bind; simpobs.
   (* ret *)
-  apply (gfp_bchain c).
-  apply REL.  
-  assumption.
+  + backstep.
+    now apply REL.
   (* taus *)
-  constructor.
-  apply CIH. assumption. 
+  + constructor.
+    now apply CIH. 
   (* vis *)
-  constructor. 
-  intro. 
-  apply CIH. 
+  + constructor. 
+    intro. 
+    apply CIH. 
   apply REL0. 
   (* taul *)
-  Search ITree.bind. 
-  rewrite observe_bind. 
-  simpobs. 
-  taul. 
-  eapply IHEQV; eauto.  
-  setoid_rewrite observe_bind at 2. 
-  simpobs. 
-  taur. 
-  eapply IHEQV; eauto. 
+  + rewrite observe_bind. 
+    simpobs. 
+    taul. 
+    eapply IHEQV; eauto.  
+  (* taur *)
+  + setoid_rewrite observe_bind at 2. 
+    simpobs. 
+    taur. 
+    eapply IHEQV; eauto. 
 Qed. 
 
-
-(* Lemma eqit_clo_bind b1 b2 vclo
-      (MON: monotone2 vclo)
-      (CMP: compose (eqitC RR b1 b2) vclo <3= compose vclo (eqitC RR b1 b2))
-      (ID: id <3= vclo):
-  eqit_bind_clo b1 b2 <3= gupaco2 (eqit_ RR b1 b2 vclo) (eqitC RR b1 b2).
-Proof.
-  intros rr. pcofix CIH. intros. destruct PR.
-  guclo eqit_clo_trans. econstructor; auto_ctrans_eq.
-  1,2: rewrite unfold_bind; reflexivity.
-  punfold EQV. unfold_eqit.
-  hinduction EQV before CIH; intros; pclearbot; cbn;
-    repeat (change (ITree.subst ?k ?m) with (ITree.bind m k)).
-  - guclo eqit_clo_trans. econstructor; auto_ctrans_eq.
-    1,2: reflexivity.
-    eauto with paco.
-  - gstep. econstructor. eauto 7 with paco itree.
-  - gstep. econstructor. intros. red in CMP. unfold id in ID. apply ID. eauto 7 with paco itree.
-  - destruct b1; try discriminate.
-    guclo eqit_clo_trans.
-    econstructor; auto_ctrans_eq; eauto; try reflexivity.
-    eapply eqit_Tau_l. rewrite unfold_bind. reflexivity.
-  - destruct b2; try discriminate.
-    guclo eqit_clo_trans. econstructor; auto_ctrans_eq; eauto; try reflexivity.
-    eapply eqit_Tau_l. rewrite unfold_bind. reflexivity.
-Qed. *)
 
 Lemma eutt_clo_bind {U1 U2 UU} t1 t2 k1 k2
       (EQT: @eutt E U1 U2 UU t1 t2)
@@ -1856,7 +1837,7 @@ Proof.
   coinduction c CIH.
   intros.
   desobs s H; down; cbn; simpobs. 
-  1: apply (gfp_bchain c). reflexivity. 
+  1: backstep. reflexivity. 
   all: constructor; intros; eapply elem_observing_proper.
   all: try eapply CIH.
   all: constructor. 
