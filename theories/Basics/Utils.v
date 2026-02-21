@@ -7,6 +7,21 @@ From Paco Require Import paco.
 
 Ltac inv H := inversion H; clear H; subst.
 
+(* [inv], [rewrite_everywhere], [..._except] are general purpose *)
+
+Lemma hexploit_mp: forall P Q: Type, P -> (P -> Q) -> Q.
+Proof. intuition. Defined.
+Ltac hexploit x := eapply hexploit_mp; [eapply x|].
+
+Ltac rewrite_everywhere lem :=
+  progress ((repeat match goal with [H: _ |- _] => rewrite lem in H end); repeat rewrite lem).
+
+Ltac rewrite_everywhere_except lem X :=
+  progress ((repeat match goal with [H: _ |- _] =>
+                 match H with X => fail 1 | _ => rewrite lem in H end
+             end); repeat rewrite lem).
+
+
 Ltac copy h :=
   let foo := fresh "cpy" in
   assert (foo := h).
@@ -121,20 +136,25 @@ Qed.
 
 (* A smarter version of this should be part of the [coinduction] library *)
 
+
 Ltac step_ :=
-  match goal with
-  | |- gfp ?b ?x ?y ?z => apply ((gfp_fp b x y z))
-  | |- elem ?R ?x ?y ?z => apply (b_chain R x y z)
-  | |- gfp ?b ?x ?y => apply ((gfp_fp b x y))
-  | |- elem ?R ?x ?y => apply (b_chain R x y)
-  | |- gfp ?b ?x => apply ((gfp_fp b x))
-  | |- elem ?R ?x => apply (b_chain R x)
-  end.
+match goal with
+| |- gfp ?b ?x ?y ?z => apply ((gfp_fp b x y z))
+| |- elem ?R ?x ?y ?z => apply (b_chain R x y z)
+| |- gfp ?b ?x ?y => apply ((gfp_fp b x y))
+| |- elem ?R ?x ?y => apply (b_chain R x y)
+| |- gfp ?b ?x => apply ((gfp_fp b x))
+| |- elem ?R ?x => apply (b_chain R x)
+end.
 
 Ltac step := first [step_ | red; step_ | Coinduction.tactics.step | 
 match goal with 
 | [|- gfp ?b _ _] => apply (gfp_fp b)
 end ].
+
+(* Technically, stepping in hypotheses in the direction shown below
+should be backstepping, and vice versa.
+This is something that we should choose on in a meeting. *)
 
 Ltac step_in H :=
   match type of H with
@@ -149,17 +169,21 @@ Ltac backstep :=
   match goal with 
 | [|- _ _ _ _ (gfp ?b) _ _]=> 
     apply (gfp_pfp b) 
+| [|- _ _ _ _ (elem ?c) _ _ ]=>
+    apply (gfp_bchain c)
 end. 
 
 Ltac backstep_in H := 
   match type of H with 
 | _ _ _ _ (gfp ?b) _ _=> 
     apply (gfp_fp b) in H 
+| _ _ _ _ (elem ?c) _ _ =>
+    apply (gfp_bchain c) in H 
 end. 
 
 Tactic Notation "backstep" "in" ident(H) := backstep_in H.
 
-
 (* Oft-used induction tactic for general IHs. *)
 Tactic Notation "hinduction" hyp(IND) "before" hyp(H)
   := move IND before H; revert_until IND; induction IND.
+

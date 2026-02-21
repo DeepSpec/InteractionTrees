@@ -277,20 +277,6 @@ End ITreeNotations.
 
 (** ** Tactics *)
 
-(* [inv], [rewrite_everywhere], [..._except] are general purpose *)
-
-Lemma hexploit_mp: forall P Q: Type, P -> (P -> Q) -> Q.
-Proof. intuition. Defined.
-Ltac hexploit x := eapply hexploit_mp; [eapply x|].
-
-Ltac rewrite_everywhere lem :=
-  progress ((repeat match goal with [H: _ |- _] => rewrite lem in H end); repeat rewrite lem).
-
-Ltac rewrite_everywhere_except lem X :=
-  progress ((repeat match goal with [H: _ |- _] =>
-                 match H with X => fail 1 | _ => rewrite lem in H end
-             end); repeat rewrite lem).
-
 Ltac genobs x ox := remember (observe x) as ox.
 Ltac genobs_clear x ox := genobs x ox; match goal with [H: ox = observe x |- _] => clear H x end.
 Ltac simpobs :=
