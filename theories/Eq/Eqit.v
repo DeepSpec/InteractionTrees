@@ -831,7 +831,6 @@ Qed.
 Section eqit_inv.
 
 Context {E : Type -> Type} {R1 R2} {RR : R1 -> R2 -> Prop} {b1 b2 : bool}.
-(* Context {vclo : (itree E R1 -> itree E R2 -> Prop) -> (itree E R1 -> itree E R2 -> Prop)}. *)
 Context {sim : itree E R1 -> itree E R2 -> Prop}.
 
 Notation eqit__ t1_ t2_ :=
@@ -1508,6 +1507,9 @@ Inductive eqit_bind_clo b1 b2 (r : itree E R1 -> itree E R2 -> Prop) :
 .
 Hint Constructors eqit_bind_clo : itree.
 
+(* This should actually probably be an instance relation... *)
+
+
 (* Ask about lattices: there's an implicit lattice of relations here, 
 but should we make it explicit? *)
 (* Definition paco_body {X} (f : mon X) r := (fun y => f (cup r y)).  *)
@@ -1517,37 +1519,45 @@ but should we make it explicit? *)
 (* Definition paco {X} (f : mon X) r := gfp paco_body. *)
 
 (* Q: best way we want to define this? *)
-Lemma eqit_clo_bind RS b1 b2 : 
-  eqit_bind_clo b1 b2 (gfp (eqit_mon RS b1 b2)) <= @eqit_mon RR b1 b2 (gfp (eqit_mon RS b1 b2)).
+Lemma eqit_clo_bind {RS} b1 b2 : 
+  eqit_bind_clo b1 b2 (gfp (eqit_mon RS b1 b2)) <= @eqit_mon E  _ _ RS b1 b2 (gfp (eqit_mon RS b1 b2)).
 Proof.
   repeat intro.
   inv H. 
+  backstep.
+  revert EQV. 
+  revert t1 t2.  
+  coinduction c CIH.  
+  intros. 
   step in EQV.  
   down in EQV. 
   dependent induction EQV.
-  apply REL0 in REL. step in REL. 
-  down. 
-  all: try rewrite 2observe_bind; simpobs. 
-  Fail rewrite unfold_bind. 
-  intros rr. pcofix CIH. intros. destruct PR.
-  guclo eqit_clo_trans. econstructor; auto_ctrans_eq.
-  1,2: rewrite unfold_bind; reflexivity.
-  punfold EQV. unfold_eqit.
-  hinduction EQV before CIH; intros; pclearbot; cbn;
-    repeat (change (ITree.subst ?k ?m) with (ITree.bind m k)).
-  - guclo eqit_clo_trans. econstructor; auto_ctrans_eq.
-    1,2: reflexivity.
-    eauto with paco.
-  - gstep. econstructor. eauto 7 with paco itree.
-  - gstep. econstructor. intros. red in CMP. unfold id in ID. apply ID. eauto 7 with paco itree.
-  - destruct b1; try discriminate.
-    guclo eqit_clo_trans.
-    econstructor; auto_ctrans_eq; eauto; try reflexivity.
-    eapply eqit_Tau_l. rewrite unfold_bind. reflexivity.
-  - destruct b2; try discriminate.
-    guclo eqit_clo_trans. econstructor; auto_ctrans_eq; eauto; try reflexivity.
-    eapply eqit_Tau_l. rewrite unfold_bind. reflexivity.
-Qed.
+  apply REL in REL0 as Hgfpk. step in Hgfpk. 
+  all: down. 
+  1-3: rewrite 2observe_bind; simpobs.
+  (* ret *)
+  apply (gfp_bchain c).
+  apply REL.  
+  assumption.
+  (* taus *)
+  constructor.
+  apply CIH. assumption. 
+  (* vis *)
+  constructor. 
+  intro. 
+  apply CIH. 
+  apply REL0. 
+  (* taul *)
+  Search ITree.bind. 
+  rewrite observe_bind. 
+  simpobs. 
+  taul. 
+  eapply IHEQV; eauto.  
+  setoid_rewrite observe_bind at 2. 
+  simpobs. 
+  taur. 
+  eapply IHEQV; eauto. 
+Qed. 
 
 
 (* Lemma eqit_clo_bind b1 b2 vclo
@@ -1610,7 +1620,7 @@ Lemma eqit_bind' {E R1 R2 S1 S2} (RR : R1 -> R2 -> Prop) b1 b2
 Proof.
   intros.
   step. 
-  eapply eqit_clo_bind.
+  eapply eqit_clo_bind; eauto. 
   econstructor; eauto. 
 Qed.
 
