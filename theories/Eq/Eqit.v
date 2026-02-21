@@ -774,7 +774,7 @@ Proof.
 Qed.
 
 (* Tour 2: *)
-(* This proof was quite simplified by tactics *)
+(* This proof was quite simplified by coinduction and tactics *)
 Lemma eqit_inv_Tau_l {E R1 R2 RR} b1 t1 t2 :
   @eqit E R1 R2 RR b1 true (Tau t1) t2 -> eqit RR b1 true t1 t2.
 Proof.
