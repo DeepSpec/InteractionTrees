@@ -1073,10 +1073,8 @@ Qed. *)
 (* RTODO: Ask ^ about above this one: are they important, or just 
   important for this one? If latter, they are not needed. *)
 
-
 (* Tour 3: Show this proof. (Q): *)
 
-(* Noe's note: add morphism *)
 Add Parametric Morphism {E R1 R2 RR1 RR2 RS} b1 b2
        (LERR1: forall x x' y, (RR1 x x': Prop) -> (RS x' y: Prop) -> RS x y)
        (LERR2: forall x y y', (RR2 y y': Prop) -> RS x y' -> RS x y) : 
@@ -1145,81 +1143,6 @@ repeat intro; unfold flip, eq_itree in *.
   eapply eqit_mono with (b1:=false) (b2:=false) (RR:=(flip RR2)); easy. 
 Qed. 
 
-(* #[global] Instance geuttgen_cong_eqit_eq {E R1 R2 RS} b1 b2 r rg:
-  Proper (eq_itree eq ==> eq_itree eq ==> flip impl)
-         (gpaco2 (@eqit_ E R1 R2 RS b1 b2 id) (eqitC RS b1 b2) r rg).
-Proof.
-  eapply geuttgen_cong_eqit; intros; subst; eauto.
-Qed. *)
-
-
-(* #[global] Instance eqitgen_cong_eqit {E R1 R2 RR1 RR2 RS} b1 b2
-       (LERR1: forall x x' y, (RR1 x x': Prop) -> (RS x' y: Prop) -> RS x y)
-       (LERR2: forall x y y', (RR2 y y': Prop) -> RS x y' -> RS x y):
-  Proper (eq_itree RR1 ==> eq_itree RR2 ==> flip impl)
-         (@eqit E R1 R2 RS b1 b2).
-Proof.
-  repeat intro; unfold flip, eq_itree in *. 
-
-  (* Given *)
-  (* LERR1: ∀ x x' y. RR1 x x' -> RS x' y -> RS x y *)
-  (* LERR2: ∀ x y y'. RR2 y y' -> RS x y' -> RS x y, *)
-  (* Prove the diagram commutes *)
-  
-  (* 
-   y -(eqit RS b1 b2) → y0 
-   ↑                    ↑
-   ≅RR1                ≅RR2
-   |                    | 
-   x -(?eqit RS b1 b2)→ x0
-  *)
-
-  (* Problem: this diagram does not have a path from x to x0. *)
-  (* Solution: flip ≅RR2, as both boolean flags are false to 
-    begin with this is a "symmetry" on trees only. *)
-
-(* 
-   y -(eqit RS b1 b2) → y0 
-   ↑                    |
-   ≅RR1                ≅(flip RR2)
-   |                    ↓ 
-   x -(?eqit RS b1 b2)→ x0
-
-(* This diagram has a clear path (lifting with eqit_mono), 
-  and LERR1 and LERR2 get us the correlaries we need to arrive there: namely: *)
-*)
-(*  by LERR1, Ret nodes of x and Ret nodes of y0 are related by RS. 
-    by LERR2, Ret nodes of x0 and Ret nodes of y are related by RS. 
-    RR1 ∘ RS <= RS 
-    (flip RR2) ∘ RS <= RS 
-    so RS is closed under left composition by RR1
-    and right composition by flip RR2.
-  *)
-  (* We use a mix of foreward and backward reasoning. *)
-  
-  idtac. 
-  (* build arrows and strengthen *)
-  assert (rcompose RR1 RS <= RS) by (intros ? ? [? ?]; eauto). 
-  assert (rcompose RS (flip RR2) <= RS) by (intros ? ? [? ?]; eauto).
-  assert (eqit RR1 b1 b2 x y) by 
-  (eapply eqit_mono with (b1:=false) (b2:=false) (RR:=RR1); easy).
-  assert (eqit RR2 b1 b2 x0 y0) by 
-  (eapply eqit_mono with (b1:=false) (b2:=false) (RR:=RR2); try easy).  
-
-  (* first diagonal *)
-  specialize (eqit_trans _ _ _ _ _ _ _ H4 H1) as Hdiag_weak. 
-  assert (eqit RS b1 b2 x y0) as Hdiag by 
-  (eapply eqit_mono with (RR:=(rcompose RR1 RS)); eauto).
-  
-  (* reverse the final arrow *)
-  apply eqit_flip in H0.
-  
-  (* backward reasoning, straightforward *)
-  eapply eqit_mono with (RR:=(rcompose RS (flip RR2))); eauto. 
-  eapply eqit_trans; eauto. 
-  eapply eqit_mono with (b1:=false) (b2:=false) (RR:=(flip RR2)); easy. 
-Qed.  *)
-
 (* 
 Short version of the proof using only backward reasoning: 
   eapply eqit_mono with (b1:=b1) (b2:=b2) (RR:=(rcompose RS (flip RR2))); 
@@ -1231,6 +1154,14 @@ Short version of the proof using only backward reasoning:
   apply eqit_flip in H0. 
   now eapply eqit_mono with (b1:=false) (b2:=false) (RR:=(flip RR2)). 
   *)
+
+(* #[global] Instance geuttgen_cong_eqit_eq {E R1 R2 RS} b1 b2 r rg:
+  Proper (eq_itree eq ==> eq_itree eq ==> flip impl)
+         (gpaco2 (@eqit_ E R1 R2 RS b1 b2 id) (eqitC RS b1 b2) r rg).
+Proof.
+  eapply geuttgen_cong_eqit; intros; subst; eauto.
+Qed. *)
+
 
 
 (* Graveyard *)
@@ -1312,18 +1243,13 @@ Proof.
   eapply @eqitgen_cong_eqit with (RR1:=eq) (RR2:=eq); intros; subst; eauto. 
 Qed.
 
+(* sanity check: rewriting works. *)
 #[global] Instance eqitgen_cong_eqit_eq' {E R1 R2 RS} b1 b2:
   Proper (eq_itree eq ==> eq_itree eq ==> flip impl)
          (@eqit E R1 R2 RS b1 b2).
 Proof.
   repeat intro.
-  (* unfold eq_itree in H0. 
-  assert (forall x x' y, (@eq R1 x x': Prop) -> (RS x' y: Prop) -> RS x y) as LERR. 
-  intros. congruence.   *)
-  (* Ask during meeting: why failing? *)
-  rewrite H0. 
-  rewrite H. 
-  eapply @eqitgen_cong_eqit with (RR1:=eq) (RR2:=eq); intros; subst; eauto. 
+  now rewrite H0, H. 
 Qed.
 
 #[global] Instance euttge_cong_euttge {E R RS}
@@ -1507,25 +1433,21 @@ Inductive eqit_bind_clo b1 b2 (r : itree E R1 -> itree E R2 -> Prop) :
 .
 Hint Constructors eqit_bind_clo : itree.
 
-(* This should actually probably be a respectful instance... *)
+(* One could consider making this a respectful instance. *)
+(* This might be good when doing other proofs, as it shows up 
+often. *)
 
-
-(* sketch:
-eqit_bind_clo gfp -> eqit_mon gfp 
-== 
-eqit RU 
-
-*)
-
-(* Ask about lattices: there's an implicit lattice of relations here, 
+(* With lattices: there's an implicit lattice of relations here, 
 but should we make it explicit? *)
+
+(* For defining paco: *)
 (* Definition paco_body {X} (f : mon X) r := (fun y => f (cup r y)).  *)
 
 (* monotonicity of paco_body, omitted *)
 
 (* Definition paco {X} (f : mon X) r := gfp paco_body. *)
 
-(* Q: best way we want to define this? *)
+(* Q: best way we want to define this? Does this ever leave the file? *)
 Lemma eqit_clo_bind {RS} b1 b2 : 
   eqit_bind_clo b1 b2 (gfp (eqit_mon RS b1 b2)) <= @eqit_mon E  _ _ RS b1 b2 (gfp (eqit_mon RS b1 b2)).
 Proof.
@@ -1777,8 +1699,8 @@ Qed.
 [elem c], where [c] is [Chain (eqit_mon eq false false)], 
 is respected by [observing eq]. Such respectfulness 
 in turn reqires transitivity of [elem c] and the fact that 
-[observing eq] is a subrelation of [elem c]. Lots of work, 
-but worth it! 
+[observing eq] is a subrelation of [elem c]. 
+Some work in the reasoning, but with short proofs- and worth it! 
 *)
 Lemma bind_ret_r {E R} :
   forall s : itree E R,
@@ -1797,11 +1719,11 @@ Proof.
   (* Ret case is easy *)
   reflexivity. 
   (* the others are more tricky but mostly identical: *)
-  (* 1. we need only show the two sides are identical under observe. *)
+  (* 1. we need only show the two sides are related by elem under [observe]. *)
   all: eapply elem_observing_proper.
-  (* we know they are under the CIH... *)
+  (* 2. we know they are by the CIH... *)
   all: try eapply CIH.
-  (* so the rest is just 'fancy reflexivity. *)
+  (* 3. so the rest is just 'fancy reflexivity. *)
   all: constructor; reflexivity. 
 Qed. 
 
