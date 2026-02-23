@@ -484,11 +484,6 @@ Qed.
   *)
 
   (* eutt is still transitive, but for different reasons *)
-  
-(* strongest: holds for all instances of eqit *)
-#[global] Instance Reflexive_eqit_ b1 b2 (sim : itree E R -> itree E R -> Prop)
-: Reflexive RR -> Reflexive sim -> Reflexive (eqit_ RR b1 b2 sim).
-Proof. repeat red. intros. reflexivity. Qed.
 
 (* weak: holds only with eqit or eutt *)
 #[global] Instance Symmetric_eqit_ b (sim : itree E R -> itree E R -> Prop)
@@ -507,7 +502,7 @@ Proof.
   red; intros. 
   (* strengthen bisimulation: elem c x x holds for all x.  *)
   revert x. coinduction c CIH. intro. step.
-  now repeat apply Reflexive_eqit_.
+  down. repeat (apply Reflexive_eqitF; repeat intro; eauto). 
 Qed.
 
 
@@ -517,9 +512,9 @@ Proof.
   unfold Symmetric. 
   coinduction c CIH. 
   assert (Symmetric (elem c)). 
-  { apply Symmetric_chain. red; intros. now apply Symmetric_eqit_. }
-  intros.
-  apply Symmetric_eqit_; auto.
+  { apply Symmetric_chain. red; intros. now apply Symmetric_eqitF. }
+  intros. 
+  apply Symmetric_eqitF; auto.
   step in H1.
   down.  
   induction H1; eauto with itree.  
@@ -594,14 +589,6 @@ Qed.
 Proof.
   apply Symmetric_eqitF; eauto. 
 Qed.
-
-#[global] Instance Reflexive_eqit__eq b1 b2 (sim : itree E R -> itree E R -> Prop)
-: Reflexive sim -> Reflexive (eqit_ eq b1 b2 sim).
-Proof. apply Reflexive_eqit_; eauto. Qed.
-
-#[global] Instance Symmetric_eqit__eq b (sim : itree E R -> itree E R -> Prop)
-: Symmetric sim -> Symmetric (eqit_ eq b b sim).
-Proof. apply Symmetric_eqit_; eauto. Qed.
 
 (** *** [eqit] is an equivalence relation *)
 
