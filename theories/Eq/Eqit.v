@@ -439,7 +439,7 @@ Proof.
 Qed.
 
 (* weak: eqitF is transitive under strong bisimulation assumptions *)
-#[global] Instance Transitive_eqitF_eqit (sim : itree E R -> itree E R -> Prop)
+#[global] Instance Transitive_eqitF_ff (sim : itree E R -> itree E R -> Prop)
 : Transitive RR -> Transitive sim -> Transitive (eqitF RR false false sim).
 Proof.
   repeat red. intros. revert H2. revert z. 
@@ -447,6 +447,79 @@ Proof.
   dependent induction H2; try easy; 
   econstructor; etransitivity; eauto. 
 Qed. 
+
+(* weak: eqitF is transitive under euttge assumptions *)
+#[global] Instance Transitive_eqitF_tf (sim : itree E R -> itree E R -> Prop)
+: Transitive RR -> Transitive sim -> Transitive (eqitF RR true false sim).
+Proof.
+  repeat red. intros. revert H2. revert z. 
+  induction H1; try easy; intros.
+  (* Ret *)
+  - remember (RetF r2) eqn:eq. induction H2; inv eq; try easy.
+    econstructor; etransitivity; eauto.
+  (* taul *)
+  - 
+  
+  
+    (* remember (TauF m2).
+    hinduction H2 before Heqi; try solve [inv Heqi; try easy; try (econstructor; etransitivity; eauto)].
+
+      revert Heqi. 
+      revert REL. 
+      revert m1. 
+
+      induction H2; intros; try solve [inv Heqi; try easy; try (econstructor; etransitivity; eauto)]. *)
+
+  (* from other transitivity proof: *)
+    assert (DEC: (exists m3, z = TauF m3) \/ (forall m3, z <> TauF m3)).
+    { destruct z; eauto; right; red; intros; inv H1. }
+    destruct DEC as [EQ | EQ].
+    (* τ - τ case: strip both. *)
+    + destruct EQ as [m3 ?]; subst.
+      (* we have the same problem here. *)
+      remember (TauF m3).
+      induction H2; inv Heqi; try easy. 
+      econstructor; etransitivity; eauto.
+      (* we need to remember, or we get stuck here with a bogus m0 *)
+      fail. 
+      remember (TauF m2). 
+      induction H2; inv Heqi; try easy.  
+      econstructor; etransitivity; eauto.
+
+      apply eqit_inv_Tau.
+      now step.    
+    (* τ - ̸τ : we do further case analysis. *)
+    + inv INR; try (exfalso; eapply EQ; eauto; fail).
+      taul. 
+      step in REL. down. 
+      hinduction REL0 before CIH; intros; try (exfalso; eapply EQ; eauto; fail).
+      (* now we can handle each subcase with another layer of induction *)
+      * remember (RetF r1) as ot.
+        hinduction REL0 before CIH; intros; inv Heqot; eauto with itree.
+      * remember (VisF e k1) as ot.
+        hinduction REL0 before CIH; intros; try discriminate; [ inv_Vis | eauto with itree ].
+        econstructor. intros.
+        apply (CIH _ _ _ (REL v) (REL0 v)). 
+      * eapply IHREL0; eauto. backstep.
+        destruct b1; inv CHECK0.
+        apply eqit_inv_Tau_r. now step. 
+
+      assert (DEC: (exists m3, m2 = Tau m3) \/ (forall m3, m2 <> Tau m3)).
+Admitted. 
+    (* { destruct (m2); eauto; right; red; intros; inv H. }
+    destruct DEC as [EQ | EQ].
+  remember (observe (Tau m2)) eqn:eq.
+  remember (TauF m1). 
+  (* revert Heqi0. *)
+   (* revert i0. *)
+    (* revert eq.  *)
+  induction H2. inv eq; try easy.
+  inv eq; try easy.
+   econstructor; etransitivity; eauto.
+   inv eq; try easy.
+   rewrite Heqi0. injection eq as eq'. rewrite <- eq' in *.   
+
+Qed.  *)
 
 (* RTODO: REMOVE DEPENDENT INDUCTION *)
 
@@ -470,11 +543,43 @@ Proof. repeat red. intros. reflexivity. Qed.
 Proof. repeat red; symmetry; auto. Qed.
 
 (* weak: holds only for strong bisimilarity *)
-#[global] Instance Transitive_eqit_eqit (sim : itree E R -> itree E R -> Prop)
+#[global] Instance Transitive_eqit__ff (sim : itree E R -> itree E R -> Prop)
+: Transitive RR -> Transitive sim -> Transitive (eqit_ RR false false sim).
+Proof. repeat red; etransitivity; eauto. Qed.
+
+(* weak: holds only for strong bisimilarity *)
+#[global] Instance Transitive_eqit__tt (sim : itree E R -> itree E R -> Prop)
 : Transitive RR -> Transitive sim -> Transitive (eqit_ RR false false sim).
 Proof. repeat red; etransitivity; eauto. Qed.
 
 (** *** [eqit] is an equivalence relation *)
+
+(** elements of the final chain are equivalence relations *)
+#[export] Instance Reflexive_elem (b1 b2: bool) (HE : Reflexive RR) {c: Chain (@eqit_mon E R R RR b1 b2)}: Reflexive (elem c).
+ Proof.
+      apply Reflexive_chain. repeat intro. step. 
+      repeat apply Reflexive_eqit_; auto.  
+ Qed. 
+
+#[export] Instance Symmetric_elem_b (b: bool) (HE : Symmetric RR) {c: Chain (@eqit_mon E R R RR b b)}: Symmetric (elem c).
+ Proof.
+    apply Symmetric_chain; repeat intro; now eapply Symmetric_eqit_. 
+ Qed.  
+
+(* #[export] Instance Transitive_elem_ff (HE : Transitive RR) {c: Chain (@eqit_mon E R R RR false false)}: Transitive (elem c).
+ Proof.
+    apply Transitive_chain. repeat intro. down. 
+    eapply Transitive_eqit_eqit; eauto.
+Qed.   *)
+
+(* #[export] Instance Transitive_elem_tf (HE : Transitive RR) {c: Chain (@eqit_mon E R R RR true false)}: Transitive (elem c).
+ Proof.
+    apply Transitive_chain. repeat intro. down. 
+    eapply Transitive_eqit_eqit; eauto.
+Qed. *)
+
+
+
 
 (* 
 (* RTODO: *)
@@ -1361,7 +1466,7 @@ Qed.
 Proof.
   apply Transitive_chain.
   intros R' HR'.
-  apply Transitive_eqit_eqit.
+  apply Transitive_eqit__ff.
   - congruence. 
   - exact HR'.
 Qed.
