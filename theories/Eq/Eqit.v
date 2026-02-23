@@ -31,7 +31,6 @@ From ITree Require Import
      Basics.Utils
      Basics.HeterogeneousRelations
      Core.ITreeDefinition
-     (* Eq.Paco2 *)
      Eq.Shallow.
 
 
@@ -42,50 +41,39 @@ Local Open Scope itree_scope.
 
 ------------------------------------------------------------
 
-
-The paco proofs, in large, rely on induction on eqitF in a hypothesis. they
-derive this eqitF from eqit in a hypothesis, as eqit is defined as paco2 (eqit_)
-(where eqit_ is defined by eqitF). using punfold, they transform 
-eqit into eqitF b1 b2 vclo (upaco2 ...). 
-
-In these same proofs using `coinduction`, we have an eqit in the hypothesis, 
-but now it is defined as the gfp of eqit_. Since `coinduction` subsumes 
-`paco`, we should be able to derive the same transformation as in `punfold`, 
-but we need to find out how. This likely involves building a tactic that 
-turns gfp b into b(gfp b). 
-
-Having found this (gfp_fp), we want to build a rich tactic library, a la Ctrees, 
-to work with step, step_in, and friends. This will allows us to do proofs 
-that look like paco but do not require wcompat and are ammenable to 
-enhanced relational properties.  
-
 *)
 
-(** ** Coinductive reasoning with Paco *)
-(* RTODO: REWRITE THIS WITH POUS COINDUCTION *)
+(** ** Coinductive reasoning with Pous' Enhanced Coinduction library *)
 
 (** Similarly to the way we deal with cofixpoints explained in
-    [Core.ITreeDefinition], coinductive properties are defined in two steps,
-    as greatest fixed points of monotone relation transformers.
+      [Core.ITreeDefinition], coinductive properties are defined in two steps,
+      as greatest fixed points of monotone relations.
 
-    - a _relation transformer_, a.k.a. _generating function_,
-      is a function mapping relations to relations
-      [gf : (i -> i -> Prop) -> (i -> i -> Prop)];
     - _monotonicity_ is with respect to relations ordered by set inclusion
-      (a.k.a. implication, when viewed as predicates)
-      [(r1 <2= r2) -> (gf r1 <2= gf r2)];
-    - the Paco library provides a combinator [paco2] defining the greatest
-      fixed point [paco2 gf] when [gf] is indeed monotone.
+      (a.k.a. implication, when viewed as predicates) 
+      [(r1 <= r2) ≡ (r1 -> r2)];
+
+    - the [coinduction] library provides a combinator [gfp] defining the
+          greatest fixed point [gfp f] when [f] is indeed monotone.
+
+    The [coinduction] library provides us with elegant machinery for
+    defining a monotone function: we simply need to prove it respects 
+    the [leq] relation on the implicit underlying lattice, though we never
+    need to mention the actual lattice itself. 
 
     By thus avoiding [CoInductive] to define coinductive properties,
-    Paco spares us from thinking about guardedness of proof terms,
-    instead encoding a form of productivity visibly in types.
+    [coinduction] both spares us from thinking about guardedness of proof terms,
+    instead encoding a form of productivity visible in types, and also provides
+    us with a powerful set of tactics for reasoning about observable behaviors.
+
+    We have gone a step further to enrich this set of tactics with our own 
+    definitions specific to ITrees. These can be found in [Basics/Utils.v] 
+    and in this file in the [Tactics] section.
  *)
 
-(* We coerce [b1] and [b2] in [eqitF] (below) from [bool] to [Prop]. This makes
+(** We coerce [b1] and [b2] in [eqitF] (below) from [bool] to [Prop]. This makes
 it slightly easier to write and automate mechanized proofs about [eqit]: we have
 hypotheses of simply [b1] rather than [b1 = true]. *)
-
 
 Local Coercion is_true : bool >-> Sortclass.
 
@@ -150,6 +138,9 @@ Section eqit.
     - intros ?; apply Hsim; auto.
   Qed.
 
+  (** Rocq is smart enough to figure out that [eqitF_mono] proves [eqit_] is
+     monotone. *)
+
   Definition eqit_mon b1 b2 : mon (itree E R1 -> itree E R2 -> Prop) :=
     {| body := eqit_ b1 b2 ; Hbody := eqitF_mono b1 b2 |}.
 
@@ -168,16 +159,13 @@ Section eqit.
 
 End eqit.
 
-(* begin hide *)
-#[global] Hint Constructors eqitF : itree.
-#[global] Hint Unfold eqit_ : itree.
-#[global] Hint Unfold eqit : itree.
-#[global] Hint Unfold eq_itree : itree.
-#[global] Hint Unfold eutt : itree.
-#[global] Hint Unfold euttge : itree.
+(** Tactics *)
+(* RTODO: Ask if these should be coqdoc documented or hidden. *)
 
-#[global]
-Tactic Notation "coinduction"
+(* We first enhance the coinduction tactic to recognize goals that 
+   do not have a syntactic match with [gfp _] *)
+
+#[global] Tactic Notation "coinduction"
   simple_intropattern(R)
   simple_intropattern(H) :=
   first
@@ -186,11 +174,19 @@ Tactic Notation "coinduction"
     | unfold eqit; coinduction R H
     ].
 
+(* The [down] tactic: unfolding the ITree definition *)
+
+(* Since [itrees] are defined with nesting, un-nesting is often needed 
+  during a proof to get Rocq to recognize certain terms as valid under
+  certain tactics. Example: [dependent induction] does not work for 
+  [eqit_mon], but it does for [eqitF]. Unfolding down to [eqitF]
+  in both hypotheses and the goal is so common that the library uses
+  an internal tactic for doing so all at once. *)
+
 Ltac down_ H :=
-  repeat progress (
-    cbn [eqit_mon body] in H;
-    unfold eqit_ in H
-  ).
+  repeat progress (cbn [eqit_mon body] in H; unfold eqit_ in H).
+
+Tactic Notation "down" "in" hyp(H) := down_ H.
 
 Ltac down_goal :=
   repeat progress (
@@ -198,38 +194,58 @@ Ltac down_goal :=
     unfold eqit_
   ).
 
+Tactic Notation "down" "in" "goal" := down_goal.
+
+(* morally: down := 'down in *' *)
 Ltac down :=
   repeat progress (
     cbn [eqit_mon body] in *;
     unfold eqit_ in *
   ).
 
-Tactic Notation "down" "in" hyp(H) := down_ H.
-Tactic Notation "down" "in" "goal" := down_goal.
+
+(* [solve_eqitF] tries to solve a goal with a variant of [eqitF] by
+   simplifiying, rewriting, and trying to apply assumptions. *)
 
 Ltac solve_eqitF := 
 match goal with 
 | [h1: _ = observe _ , h2: _ = observe _ |- _] => 
 (* reduce to 'observe' form by stripping constructors and unfolding *)
-try econstructor; down; 
+down; try econstructor; 
 (* replace 'observe' with actual constructor values *)
 rewrite <- h1; rewrite <- h2; 
 (* finish off *)
 econstructor; eauto with itree 
 end. 
 
+(* [taul] and [taur] peel off a tau from either side when the CHECK flag for
+   that side is set. Their primary purpose is to make proofs more readable. *)
+
 Ltac taul := apply EqTauL; only 1: auto. 
 Ltac taur := apply EqTauR; only 1: auto. 
 
-(* Tour 1: *)
-(* RTODO: rewrite with paco transformers. *)
 
-Ltac pstep := step. 
-Ltac pstep_reverse := backstep. 
+(* RTODO: rewrite with paco transformers. *)
+Ltac step_reverse := backstep. 
 Ltac pfold := step. 
 Ltac punfold H := step in H.
 Ltac paco2_fold := step.  
 Ltac pclearbot := idtac. 
+
+Ltac unfold_eqit :=
+  (try match goal with [|- eqit_ _ _ _ _ _ _ ] => red end);
+  (repeat match goal with [H: eqit_ _ _ _ _ _ _ |- _ ] => red in H end).
+
+
+(* begin hide *)
+#[global] Hint Constructors eqitF : itree.
+#[global] Hint Unfold eqit_ : itree.
+#[global] Hint Unfold eqit : itree.
+#[global] Hint Unfold eq_itree : itree.
+#[global] Hint Unfold eutt : itree.
+#[global] Hint Unfold euttge : itree.
+
+
 
 Lemma eqitF_inv_VisF_r {E R1 R2} (RR : R1 -> R2 -> Prop) {b1 b2 sim}
     t1 X2 (e2 : E X2) (k2 : X2 -> _)
@@ -285,10 +301,6 @@ Proof.
   destruct p; intros <-; cbn; constructor; auto.
 Qed.
 
-Ltac unfold_eqit :=
-  (try match goal with [|- eqit_ _ _ _ _ _ _ ] => red end);
-  (repeat match goal with [H: eqit_ _ _ _ _ _ _ |- _ ] => red in H end).
-
 #[global] Instance eqitF_Proper_R {E : Type -> Type} {R1 R2:Type} :
   Proper ((@eq_rel R1 R2) ==> eq ==> eq ==> eq_rel ==> eq_rel)
     (@eqitF E R1 R2).
@@ -317,21 +329,6 @@ Proof.
     econstructor. apply H. assumption.
 Qed.
 
-(* #[global] Instance eqitF_Proper_observe_l {E : Type -> Type} {R:Type} 
-(sim : itree E R -> itree E R -> Prop)
-:
-  Proper (eq ==> eq ==> eq ==> sim ==> sim ==> iff)
-          (fun RR b1 b2 t1 t2 => @eqitF E R R RR b1 b2 sim (observe t1) (observe t2)).
-Proof.
-  repeat red.
-  intros. subst. split; intros.
-  - induction H; auto with itree.
-
-    econstructor. apply H. assumption.
-  - induction H0; auto with itree.
-    econstructor. apply H. assumption.
-Qed. *)
-
 #[global] Instance eqitF_Proper_observe_l {E : Type -> Type} {R1 R2:Type} :
   Proper ((@eq_rel R1 R2) ==> eq ==> eq ==> eq ==> eq ==> eq ==> iff)
           (fun RR b1 b2 sim t1 t2 => @eqitF E R1 R2 RR b1 b2 sim (observe t1) t2).
@@ -343,21 +340,6 @@ Proof.
   - induction H0; auto with itree.
     econstructor. apply H. assumption.
 Qed.
-(* 
-Lemma eqitF_observe_l_sim
-{E : Type -> Type} {R: Type} (RR : R -> R -> Prop)
-  b1 b2
-  (sim : itree E R -> itree E R -> Prop)
-  t1 t2 z :
-  sim t1 t2 ->
-  eqitF RR b1 b2 sim (observe t1) z ->
-  eqitF RR b1 b2 sim (observe t2) z.
-Proof.
-  intros. 
-  (* remember (observe t2) as t2'. *)
-  dependent induction H0.  *)
-
-  
 
 
 #[global] Instance eqitF_Proper_observe_r {E : Type -> Type} {R1 R2:Type} :
@@ -420,6 +402,8 @@ Proof.
   induction euv; eauto with itree.
 Qed.
 
+(** [eqit] itself is monotone.  *)
+
 Lemma eqit_mono {E R1 R2} RR RR' (b1 b2 b1' b2': bool)
       (LEb1: b1 -> b1')
       (LEb2: b2 -> b2')
@@ -439,9 +423,6 @@ Lemma eqitF_flip {E R1 R2} (RR : R1 -> R2 -> Prop) b1 b2 r:
 Proof.
   repeat intro; induction H; eauto with itree.
 Qed.
-
-
-
 
 #[global] Hint Unfold flip : itree.
 
@@ -484,8 +465,6 @@ Proof.
   red. induction 3; constructor; subst; eauto.
 Qed.
 
-
-
 (* weak: eqitF is transitive under strong bisimilarity assumptions *)
 #[global] Instance Transitive_eqitF_eqit (sim : itree E R -> itree E R -> Prop)
 : Transitive RR -> Transitive sim -> Transitive (eqitF RR false false sim).
@@ -524,8 +503,6 @@ Qed.
 
   (* eutt is still transitive, but for different reasons *)
   
-(* check out line 796 in orig file *)
-
 (* strongest: holds for all instances of eqit *)
 #[global] Instance Reflexive_eqit_ b1 b2 (sim : itree E R -> itree E R -> Prop)
 : Reflexive RR -> Reflexive sim -> Reflexive (eqit_ RR b1 b2 sim).
@@ -682,14 +659,14 @@ Qed.
 #[global] Instance eqit_VisF b1 b2 {u} (e: E u) :
   Proper (pointwise_relation _ (eqit b1 b2) ==> going (eqit b1 b2)) (VisF e).
 Proof.
-  constructor; red in H. unfold eqit in *. pstep; econstructor; auto with itree.
+  constructor; red in H. unfold eqit in *. step; econstructor; auto with itree.
 Qed.
 
 #[global] Instance observing_sub_eqit l r :
   subrelation (observing eq) (eqit l r).
 Proof.
   repeat red; intros.
-  pstep. cbn. unfold eqit_. rewrite (observing_observe H). apply Reflexive_eqitF; eauto.
+  step. cbn. unfold eqit_. rewrite (observing_observe H). apply Reflexive_eqitF; eauto.
 Qed.
 
 #[global] Instance observing_sub_elem (c : Chain (eqit_mon eq false false)) (l r : itree E R) :
@@ -881,13 +858,13 @@ Qed.
 Lemma eqit_Tau_l {E R1 R2 RR} b2 (t1 : itree E R1) (t2 : itree E R2) :
   eqit RR true b2 t1 t2 -> eqit RR true b2 (Tau t1) t2.
 Proof.
-  intros. pstep. econstructor; eauto. punfold H. now down. 
+  intros. step. econstructor; eauto. punfold H. now down. 
 Qed.
 
 Lemma eqit_Tau_r {E R1 R2 RR} b1 (t1 : itree E R1) (t2 : itree E R2) :
   eqit RR b1 true t1 t2 -> eqit RR b1 true t1 (Tau t2).
 Proof.
-  intros. pstep. econstructor; eauto. punfold H. now down. 
+  intros. step. econstructor; eauto. punfold H. now down. 
 Qed.
 
 Lemma tau_euttge {E R} (t: itree E R) :
@@ -905,7 +882,7 @@ Qed.
 
 Lemma simpobs {E R} {ot} {t: itree E R} (EQ: ot = observe t): t ≅ go ot.
 Proof.
-  pstep. repeat red. simpobs. simpl. subst. pstep_reverse. apply Reflexive_eqit; eauto.
+  step. repeat red. simpobs. simpl. subst. step_reverse. apply Reflexive_eqit; eauto.
 Qed.
 
 (** *** Transitivity properties *)
@@ -961,7 +938,7 @@ Proof.
         hinduction REL0 before CIH; intros; try discriminate; [ inv_Vis | eauto with itree ].
         econstructor. intros.
         apply (CIH _ _ _ (REL v) (REL0 v)). 
-      * eapply IHREL0; eauto. pstep_reverse.
+      * eapply IHREL0; eauto. step_reverse.
         destruct b1; inv CHECK0.
         apply eqit_inv_Tau_r. now step. 
   - remember (VisF e k2) as ot.
@@ -1016,64 +993,7 @@ Proof.
   constructor; try typeclasses eauto.
 Qed.
 
-(* #[global] Instance geuttgen_cong_eqit {E R1 R2 RR1 RR2 RS} b1 b2 
-       (LERR1: forall x x' y, (RR1 x x': Prop) -> (RS x' y: Prop) -> RS x y)
-       (LERR2: forall x y y', (RR2 y y': Prop) -> RS x y' -> RS x y):
-  Proper (eq_itree RR1 ==> eq_itree RR2 ==> flip impl)
-         (@eqit_ E R1 R2 RS b1 b2 (eqit RS b1 b2)).
-Proof.
-  repeat intro.
-  eapply eqit_trans. 
-  eapply eqit_mon. repeat intro.     
-  guclo eqit_clo_trans. econstructor; cycle -3; eauto.
-  - eapply eqit_mono, H; eauto; discriminate.
-  - eapply eqit_mono, H0; eauto; discriminate.
-Qed. *)
-
-(* #[global] Instance geuttgen_cong_eqit_eq {E R1 R2 RS} b1 b2 r rg:
-  Proper (eq_itree eq ==> eq_itree eq ==> flip impl)
-         (gpaco2 (@eqit_ E R1 R2 RS b1 b2 id) (eqitC RS b1 b2) r rg).
-Proof.
-  eapply geuttgen_cong_eqit; intros; subst; eauto.
-Qed.
-
-#[global] Instance geuttge_cong_euttge {E R1 R2 RR1 RR2 RS} r rg
-       (LERR1: forall x x' y, (RR1 x x': Prop) -> (RS x' y: Prop) -> RS x y)
-       (LERR2: forall x y y', (RR2 y y': Prop) -> RS x y' -> RS x y):
-  Proper (euttge RR1 ==> eq_itree RR2 ==> flip impl)
-         (gpaco2 (@eqit_ E R1 R2 RS true false id) (eqitC RS true false) r rg).
-Proof.
-  repeat intro. guclo eqit_clo_trans. eauto with itree.
-Qed.
-
-#[global] Instance geuttge_cong_euttge_eq {E R1 R2 RS} r rg:
-  Proper (euttge eq ==> eq_itree eq ==> flip impl)
-         (gpaco2 (@eqit_ E R1 R2 RS true false id) (eqitC RS true false) r rg).
-Proof.
-  eapply geuttge_cong_euttge; intros; subst; eauto.
-Qed.
-
-#[global] Instance geutt_cong_euttge {E R1 R2 RR1 RR2 RS} r rg
-       (LERR1: forall x x' y, (RR1 x x': Prop) -> (RS x' y: Prop) -> RS x y)
-       (LERR2: forall x y y', (RR2 y y': Prop) -> RS x y' -> RS x y):
-  Proper (euttge RR1 ==> euttge RR2 ==> flip impl)
-         (gpaco2 (@eqit_ E R1 R2 RS true true id) (eqitC RS true true) r rg).
-Proof.
-  repeat intro. guclo eqit_clo_trans. eauto with itree.
-Qed.
-
-#[global] Instance geutt_cong_euttge_eq {E R1 R2 RS} r rg:
-  Proper (euttge eq ==> euttge eq ==> flip impl)
-         (gpaco2 (@eqit_ E R1 R2 RS true true id) (eqitC RS true true) r rg).
-Proof.
-  eapply geutt_cong_euttge; intros; subst; eauto.
-Qed. *)
-
-(* Tour extra 2: *)
-(* RTODO: Ask ^ about above this one: are they important, or just 
-  important for this one? If latter, they are not needed. *)
-
-(* Tour 3: Show this proof. (Q): *)
+(* Tour 3: Show this proof. *)
 
 Add Parametric Morphism {E R1 R2 RR1 RR2 RS} b1 b2
        (LERR1: forall x x' y, (RR1 x x': Prop) -> (RS x' y: Prop) -> RS x y)
@@ -1143,97 +1063,6 @@ repeat intro; unfold flip, eq_itree in *.
   eapply eqit_mono with (b1:=false) (b2:=false) (RR:=(flip RR2)); easy. 
 Qed. 
 
-(* 
-Short version of the proof using only backward reasoning: 
-  eapply eqit_mono with (b1:=b1) (b2:=b2) (RR:=(rcompose RS (flip RR2))); 
-  try intros ? ? [? ?]; eauto.
-  eapply eqit_trans; eauto.   
-  eapply eqit_mono with (RR:=rcompose RR1 RS); try intros ? ? [? ?]; eauto.
-  eapply eqit_trans; eauto. 
-  eapply eqit_mono with (b1:=false) (b2:=false) (RR:=RR1); easy. 
-  apply eqit_flip in H0. 
-  now eapply eqit_mono with (b1:=false) (b2:=false) (RR:=(flip RR2)). 
-  *)
-
-(* #[global] Instance geuttgen_cong_eqit_eq {E R1 R2 RS} b1 b2 r rg:
-  Proper (eq_itree eq ==> eq_itree eq ==> flip impl)
-         (gpaco2 (@eqit_ E R1 R2 RS b1 b2 id) (eqitC RS b1 b2) r rg).
-Proof.
-  eapply geuttgen_cong_eqit; intros; subst; eauto.
-Qed. *)
-
-
-
-(* Graveyard *)
-
-  (* apply eqit_flip in H5 as Hflip. 
-  apply eqit_flip in Hdiag1 as HdiagR. 
-  
-  specialize (eqit_trans _ _ _ _ _ _ _ HdiagR) as Hfinal. 
-   
-
-
-  replace RS with (rcompose RR1 RS).
-  eapply eqit_trans. 
-  eapply eqit_mono with (b1:=false) (b2:=false) (RR:=RR1); try easy; eauto.  
-  replace RS with (rcompose RS RR2).
-  eapply eqit_trans. 
-  eauto.
-  eapply eqit_mono with (b1:=false) (b2:=false) (RR:=RR2); try easy; eauto.   
-  - 
-  (* seems true, proving requires a different shape of goal *)
-  apply functional_extensionality. intro. 
-  apply functional_extensionality. intro. 
-  
-   
-  (* Fail symmetry.  *)
-  (* without flip, *)
-  (* RR2 is not symmetric, so we fail here. *)
-(* Abort.  *)
-(* other attempt: with induction, gets deep and a bit nasty *) 
-  step in H. 
-  step in H0. 
-  step in H1.
-  (* step.  *)
-  coinduction c CIH. 
-  
-  down.
-  revert H0.
-  revert CIH.  
-  revert x0. revert H. revert x. 
-
-  (* the dependent induction is not quite right *)
-  dependent induction H1; intros. 
-  - simpobs. 
-  inv H; try easy. 
-  inv H0; try easy. 
-  constructor; eauto. 
-  - simpobs. 
-  dependent induction H; try easy. 
-  dependent induction H0; try easy. 
-  simpobs.
-  constructor.
-  Search elem.
-  (* this feels true *)
-  shelve. 
-  - simpobs. 
-    inv H; try easy. 
-    inv H0; try easy.
-    repeat lazymatch goal with | H : existT _ _ _ = _ |- _ => dependent destruction H end.
-    constructor.
-    intros v. 
-    apply (b_chain c), (gfp_bchain c).
-     (* diagram chase again, feels true but how to prove? *)
-    shelve. 
-  - eapply IHeqitF; eauto. 
-  shelve. 
-  (* poor induction's fault *)
-
-  - simpobs. inv H0; try easy. taur. eapply IHeqitF; eauto.
-  2: now backstep.
-   (* also induction's fault *)
-  shelve.   
-Abort.  *)
 
 #[global] Instance eqitgen_cong_eqit_eq {E R1 R2 RS} b1 b2:
   Proper (eq_itree eq ==> eq_itree eq ==> flip impl)
@@ -1279,14 +1108,14 @@ Proof.
   split; intros H.
   - eapply transitivity. 2 : { apply H. }
     red. apply eqit_Tau_r. reflexivity.
-  - red. red. pstep. econstructor. auto. now punfold H. 
+  - red. red. step. econstructor. auto. now punfold H. 
 Qed.
 
 Lemma tau_eqit_RR_l : forall E R (RR : relation R) (HRR: Reflexive RR) (HRT: Transitive RR) (t s : itree E R),
     eqit RR true false t s -> eqit RR true false (Tau t) s.
 Proof.
   intros.
-  red. pstep. econstructor. auto. now punfold H. 
+  red. step. econstructor. auto. now punfold H. 
 Qed.
 
 Lemma tau_eutt_RR_r : forall E R (RR : relation R) (HRR: Reflexive RR) (HRT: Transitive RR) (t s : itree E R),
@@ -1296,7 +1125,7 @@ Proof.
   split; intros H.
   - eapply transitivity. apply H.
     red. apply eqit_Tau_l. reflexivity.
-  - red. red. pstep. econstructor. auto. now punfold H.
+  - red. red. step. econstructor. auto. now punfold H.
 Qed.
 
 Lemma eutt_inv_Ret_l {E R} (r1: R) (t2: itree E R):
@@ -1350,7 +1179,7 @@ Lemma bind_trigger {E R} U (e : E U) (k : U -> itree E R)
   : ITree.bind (ITree.trigger e) k ≅ Vis e (fun x => k x).
 Proof.
   rewrite unfold_bind; cbn.
-  pstep.
+  step.
   constructor.
   intros. apply bind_ret_l.
 Qed.
@@ -1403,7 +1232,7 @@ Lemma eqit_Vis_gen b1 b2 {U1 U2} (p : U1 = U2) (e1 : E U1) (e2 : E U2)
   : eqeq E p e1 e2 -> pweqeq (eqit RR b1 b2) p k1 k2 ->
     eqit RR b1 b2 (Vis e1 k1) (Vis e2 k2).
 Proof.
-  destruct p; cbn. intros <- H. pstep. econstructor. apply H.
+  destruct p; cbn. intros <- H. step. econstructor. apply H.
 Qed.
 
 Lemma eqit_Vis b1 b2 {U} (e : E U)
@@ -1418,7 +1247,7 @@ Lemma eqit_Ret b1 b2 (r1 : R1) (r2 : R2) :
   RR r1 r2 <-> @eqit E _ _ RR b1 b2 (Ret r1) (Ret r2).
 Proof.
   split; intros H.
-  - pstep. constructor; auto.
+  - step. constructor; auto.
   - punfold H. inversion H; subst; auto.
 Qed.
 
@@ -1569,7 +1398,7 @@ Lemma eqit_map {E R1 R2 S1 S2} (RR : R1 -> R2 -> Prop) b1 b2
 Proof.
   unfold ITree.map; intros.
   eapply eqit_bind'; eauto.
-  intros; pstep; constructor; auto.
+  intros; step; constructor; auto.
 Qed.
 
 #[global] Instance eqit_eq_map {E R S} b1 b2 :
