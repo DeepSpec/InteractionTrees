@@ -235,15 +235,12 @@ Tactic Notation "stepdown" "in" hyp(H) := stepdown_in_ H.
    simplifiying, rewriting, and trying to apply assumptions. *)
 
 Ltac solve_eqitF := 
-match goal with 
-| [h1: _ = observe _ , h2: _ = observe _ |- _] => 
 (* reduce to 'observe' form by stripping constructors and unfolding *)
 down; try econstructor; 
 (* replace 'observe' with actual constructor values *)
-rewrite <- h1; rewrite <- h2; 
+simpobs; 
 (* finish off *)
-econstructor; eauto with itree 
-end. 
+try econstructor; intros; eauto with itree. 
 
 (* [taul] and [taur] peel off a tau from either side when the CHECK flag for
    that side is set. Their primary purpose is to make proofs more readable. *)
@@ -443,93 +440,23 @@ Qed.
 : Transitive RR -> Transitive sim -> Transitive (eqitF RR false false sim).
 Proof.
   repeat red. intros. revert H2. revert z. 
-  dependent induction H1; try easy; intros;
-  dependent induction H2; try easy; 
-  econstructor; etransitivity; eauto. 
-Qed. 
-
-(* weak: eqitF is transitive under euttge assumptions *)
-#[global] Instance Transitive_eqitF_tf (sim : itree E R -> itree E R -> Prop)
-: Transitive RR -> Transitive sim -> Transitive (eqitF RR true false sim).
-Proof.
-  repeat red. intros. revert H2. revert z. 
-  induction H1; try easy; intros.
-  (* Ret *)
-  - remember (RetF r2) eqn:eq. induction H2; inv eq; try easy.
-    econstructor; etransitivity; eauto.
-  (* taul *)
-  - 
-  
-  
-    (* remember (TauF m2).
-    hinduction H2 before Heqi; try solve [inv Heqi; try easy; try (econstructor; etransitivity; eauto)].
-
-      revert Heqi. 
-      revert REL. 
-      revert m1. 
-
-      induction H2; intros; try solve [inv Heqi; try easy; try (econstructor; etransitivity; eauto)]. *)
-
-  (* from other transitivity proof: *)
-    assert (DEC: (exists m3, z = TauF m3) \/ (forall m3, z <> TauF m3)).
-    { destruct z; eauto; right; red; intros; inv H1. }
-    destruct DEC as [EQ | EQ].
-    (* τ - τ case: strip both. *)
-    + destruct EQ as [m3 ?]; subst.
-      (* we have the same problem here. *)
-      remember (TauF m3).
-      induction H2; inv Heqi; try easy. 
-      econstructor; etransitivity; eauto.
-      (* we need to remember, or we get stuck here with a bogus m0 *)
-      fail. 
-      remember (TauF m2). 
-      induction H2; inv Heqi; try easy.  
-      econstructor; etransitivity; eauto.
-
-      apply eqit_inv_Tau.
-      now step.    
-    (* τ - ̸τ : we do further case analysis. *)
-    + inv INR; try (exfalso; eapply EQ; eauto; fail).
-      taul. 
-      step in REL. down. 
-      hinduction REL0 before CIH; intros; try (exfalso; eapply EQ; eauto; fail).
-      (* now we can handle each subcase with another layer of induction *)
-      * remember (RetF r1) as ot.
-        hinduction REL0 before CIH; intros; inv Heqot; eauto with itree.
-      * remember (VisF e k1) as ot.
-        hinduction REL0 before CIH; intros; try discriminate; [ inv_Vis | eauto with itree ].
-        econstructor. intros.
-        apply (CIH _ _ _ (REL v) (REL0 v)). 
-      * eapply IHREL0; eauto. backstep.
-        destruct b1; inv CHECK0.
-        apply eqit_inv_Tau_r. now step. 
-
-      assert (DEC: (exists m3, m2 = Tau m3) \/ (forall m3, m2 <> Tau m3)).
-Admitted. 
-    (* { destruct (m2); eauto; right; red; intros; inv H. }
-    destruct DEC as [EQ | EQ].
-  remember (observe (Tau m2)) eqn:eq.
-  remember (TauF m1). 
-  (* revert Heqi0. *)
-   (* revert i0. *)
-    (* revert eq.  *)
-  induction H2. inv eq; try easy.
-  inv eq; try easy.
-   econstructor; etransitivity; eauto.
-   inv eq; try easy.
-   rewrite Heqi0. injection eq as eq'. rewrite <- eq' in *.   
-
-Qed.  *)
-
-(* RTODO: REMOVE DEPENDENT INDUCTION *)
-
-(* Tour extra: *)
-(* RTODO: ask yannick exactly what's going on, then document *)
-  (* 
-  "eutt is NOT valid up to eutt" and this is supposedly equivalent to 
-  transitivity, but we did prove things are transitive... what's going on?
-  *)
-
+  induction H1; try easy; intros. 
+  - remember (RetF r2) eqn:eq. induction H2; inv eq; try easy; 
+    econstructor; etransitivity; eauto. 
+  - remember (TauF m2) eqn:eq. induction H2; inv eq; try easy; 
+    econstructor; etransitivity; eauto. 
+  - remember (VisF e k2) eqn:eq. induction H2; try solve [inv eq; try easy].
+    inv eq. 
+    (* eapply eqitF_VisF_gen. *)
+    unfold eqeq. 
+    (* eapply  *)
+    dependent destruction H4. 
+    dependent destruction H3. 
+    econstructor; etransitivity; eauto. 
+Qed.
+(* Yannick: Can this be done without dependent destruction? *)
+Print Assumptions Transitive_eqitF_ff. 
+ 
   (* eutt is still transitive, but for different reasons *)
   
 (* strongest: holds for all instances of eqit *)
@@ -566,28 +493,191 @@ Proof. repeat red; etransitivity; eauto. Qed.
     apply Symmetric_chain; repeat intro; now eapply Symmetric_eqit_. 
  Qed.  
 
-(* #[export] Instance Transitive_elem_ff (HE : Transitive RR) {c: Chain (@eqit_mon E R R RR false false)}: Transitive (elem c).
+#[export] Instance Transitive_elem_ff (HE : Transitive RR) {c: Chain (@eqit_mon E R R RR false false)}: Transitive (elem c).
  Proof.
     apply Transitive_chain. repeat intro. down. 
-    eapply Transitive_eqit_eqit; eauto.
-Qed.   *)
-
-(* #[export] Instance Transitive_elem_tf (HE : Transitive RR) {c: Chain (@eqit_mon E R R RR true false)}: Transitive (elem c).
- Proof.
-    apply Transitive_chain. repeat intro. down. 
-    eapply Transitive_eqit_eqit; eauto.
-Qed. *)
+    eapply Transitive_eqit__ff; eauto.
+Qed.  
 
 
+Lemma eqit_inv_Tau_var (m1 m2 : itree E R) sim z :
+  forall (om1 : itree' E R),
+    observe m1 = om1 ->
+    eqitF RR true false sim om1 z ->
+    @eqitF _ _ R RR true false sim (TauF m1) z.
+Proof.
+  intros om1 Heq H2.
+  (* Now om2 is a variable — we can use plain induction *)
+  induction H2; taul; simpobs; eauto with itree. 
+Qed. 
 
+(* weak: eqitF is transitive under euttge assumptions *)
+#[global] Instance Transitive_eqitF_tf (sim : itree E R -> itree E R -> Prop)
+: Transitive RR -> Transitive sim -> Transitive (eqitF RR true false sim).
+Proof.
+  repeat red. intros. revert H2. revert z. 
+  induction H1; try easy; intros.
+  (* Ret *)
+  - 
+  (* dependent induction H2.
+  econstructor; etransitivity; eauto.
+  taur. eapply IHeqitF; eauto.
+   *)
+  remember (RetF r2) eqn:eq. remember z eqn:eqz.
+  hinduction H2 before eqz; intros; inv eq; try easy. 
+  econstructor; etransitivity; eauto.
+  -
+   assert (DEC: (exists m3, z = TauF m3) \/ (forall m3, z <> TauF m3)).
+    { destruct z; eauto; right; red; intros; inv H1. }
+    destruct DEC as [EQ | EQ].
+    (* τ - τ case: strip both. *)
+    + destruct EQ as [m3 ?]; subst.
+Abort. 
+      (* we have the same problem here. *)
+      (* remember (TauF m2).
+      remember (TauF m3).
+      move H2 before REL.
+      revert_until H2.  
+      induction H2; intros; inv Heqi; try inv Heqi0; try easy. 
+      econstructor; etransitivity; eauto.
+      inv H2. 
+      (* we need to remember, or we get stuck here with a bogus m0 *)
+
+      apply eqit_inv_Tau.
+      now step.    
+    (* τ - ̸τ : we do further case analysis. *)
+    + inv INR; try (exfalso; eapply EQ; eauto; fail).
+      taul. 
+      step in REL. down. 
+      hinduction REL0 before CIH; intros; try (exfalso; eapply EQ; eauto; fail).
+      (* now we can handle each subcase with another layer of induction *)
+      * remember (RetF r1) as ot.
+        hinduction REL0 before CIH; intros; inv Heqot; eauto with itree.
+      * remember (VisF e k1) as ot.
+        hinduction REL0 before CIH; intros; try discriminate; [ inv_Vis | eauto with itree ].
+        econstructor. intros.
+        apply (CIH _ _ _ (REL v) (REL0 v)). 
+      * eapply IHREL0; eauto. backstep.
+        destruct b1; inv CHECK0.
+        apply eqit_inv_Tau_r. now step. 
+
+
+  dependent induction H2.
+  econstructor; etransitivity; eauto.
+
+  
+revert m1 REL.
+remember (TauF m2) as lhs eqn:eq.
+remember z as rhs eqn:eqz.
+
+move H2 before m2.
+revert_until H2.
+induction H2; intros; try solve [inv eq]; try easy.  
+inv eq; econstructor; etransitivity; eauto.
+
+
+  remember z. revert r1 r2 z REL eq Heqi0. 
+  induction H2; intros; inv eq; try easy.
+    econstructor; etransitivity; eauto.
+  (* taul *)
+   *)
+(*   
+    (* remember (TauF m2).
+    hinduction H2 before Heqi; try solve [inv Heqi; try easy; try (econstructor; etransitivity; eauto)].
+
+      revert Heqi. 
+      revert REL. 
+      revert m1. 
+
+      induction H2; intros; try solve [inv Heqi; try easy; try (econstructor; etransitivity; eauto)]. *)
+
+  (* from other transitivity proof: *)
+    assert (DEC: (exists m3, z = TauF m3) \/ (forall m3, z <> TauF m3)).
+    { destruct z; eauto; right; red; intros; inv H1. }
+    destruct DEC as [EQ | EQ].
+    (* τ - τ case: strip both. *)
+    + destruct EQ as [m3 ?]; subst.
+      (* we have the same problem here. *)
+      remember (TauF m3).
+      induction H2; inv Heqi; try easy. 
+      econstructor; etransitivity; eauto.
+      (* we need to remember, or we get stuck here with a bogus m0 *)
+      remember (TauF m2). 
+      induction H2; inv Heqi; try easy.  
+      econstructor; etransitivity; eauto.
+
+      apply eqit_inv_Tau.
+      now step.    
+    (* τ - ̸τ : we do further case analysis. *)
+    + inv INR; try (exfalso; eapply EQ; eauto; fail).
+      taul. 
+      step in REL. down. 
+      hinduction REL0 before CIH; intros; try (exfalso; eapply EQ; eauto; fail).
+      (* now we can handle each subcase with another layer of induction *)
+      * remember (RetF r1) as ot.
+        hinduction REL0 before CIH; intros; inv Heqot; eauto with itree.
+      * remember (VisF e k1) as ot.
+        hinduction REL0 before CIH; intros; try discriminate; [ inv_Vis | eauto with itree ].
+        econstructor. intros.
+        apply (CIH _ _ _ (REL v) (REL0 v)). 
+      * eapply IHREL0; eauto. backstep.
+        destruct b1; inv CHECK0.
+        apply eqit_inv_Tau_r. now step. 
+
+      assert (DEC: (exists m3, m2 = Tau m3) \/ (forall m3, m2 <> Tau m3)).
+ *)
+
+    (* { destruct (m2); eauto; right; red; intros; inv H. }
+    destruct DEC as [EQ | EQ].
+  remember (observe (Tau m2)) eqn:eq.
+  remember (TauF m1). 
+  (* revert Heqi0. *)
+   (* revert i0. *)
+    (* revert eq.  *)
+  induction H2. inv eq; try easy.
+  inv eq; try easy.
+   econstructor; etransitivity; eauto.
+   inv eq; try easy.
+   rewrite Heqi0. injection eq as eq'. rewrite <- eq' in *.   
+
+Qed.  *)
+
+(* RTODO: REMOVE DEPENDENT INDUCTION *)
+
+(* Tour extra: *)
+(* RTODO: ask yannick exactly what's going on, then document *)
+  (* 
+  "eutt is NOT valid up to eutt" and this is supposedly equivalent to 
+  transitivity, but we did prove things are transitive... what's going on?
+  *)
 
 (* 
 (* RTODO: *)
-To prove: elem refl, elem symmetric, 
-true false -> elem trans 
-false false -> elem trans 
-
+To prove: elem true false trans 
 *)
+#[export] Instance Transitive_elem_tf (HE : Transitive RR) {c: Chain (@eqit_mon E R R RR true false)}: Transitive (elem c).
+ Proof.
+    apply Transitive_chain. repeat intro. down.
+    genobs x otx. 
+    genobs y oty.
+    genobs z otz. 
+    hinduction H0 before y; intros; try easy. 
+    -  remember (RetF r2).
+    hinduction H1 before c; intros; try easy; inv Heqi.  
+    constructor; etransitivity; eauto. 
+    - remember (TauF m2).
+      hinduction H1 before c; intros; try easy; inv Heqi.  
+      constructor; etransitivity; eauto.
+      eapply IHeqitF; eauto. 
+      (* stuck *)
+      admit. 
+- remember (VisF e k2).
+      hinduction H1 before c; intros; try easy. inv_Vis. 
+      constructor; etransitivity; eauto.
+- taul. eapply IHeqitF; eauto.
+  (* stuck *)
+  admit. 
+ Admitted. 
 
 #[global] Instance Reflexive_eqit b1 b2 : Reflexive RR -> Reflexive (@eqit E _ _ RR b1 b2).
 Proof.
@@ -619,9 +709,12 @@ Proof.
   red. coinduction c CIH. intros.  
   step in H. stepdown. 
   hinduction H before CIH; subst; eauto with itree. 
-  - step in REL. down. dependent induction REL; solve_eqitF.  
+  - step in REL. down. genobs m1 otm1. genobs m2 otm2. 
+  induction REL; try easy; solve_eqitF.  
   - econstructor. intro. specialize (REL v). stepdown in REL. 
-    dependent induction REL; solve_eqitF.     
+    remember (observe (k1 v)). remember (observe (k2 v)).
+  induction REL; try easy; constructor; intros; eauto. 
+  apply CIH, REL. 
 Qed.
 
 #[global] Instance euttge_sub_eutt:
@@ -634,16 +727,13 @@ Proof.
   hinduction H before CIH; subst; eauto with itree.
   - stepdown in REL. 
     econstructor. 
-    dependent induction REL; try solve_eqitF.  
-      rewrite <- x. taul. 
-      apply IHREL; eauto.  
+    induction REL; intros; constructor; intros; try apply CIH, REL; eauto. 
   - econstructor. intros.  
     specialize (REL v). stepdown in REL. 
     (* key step: IH must work for ANY tree, not just a continuation-built one. *)
     (* this is so we can strip a Tau off the left side and still use our IH. *)
     remember (k1 v).
-    dependent induction REL; try solve_eqitF. 
-    rewrite <- x. taul. eapply IHREL; eauto. 
+    induction REL; try solve_eqitF.
 Qed. 
 
 #[global] Instance eq_sub_eutt:
@@ -797,26 +887,29 @@ Lemma eqit_inv_Tau_l {E R1 R2 RR} b1 t1 t2 :
   @eqit E R1 R2 RR b1 true (Tau t1) t2 -> eqit RR b1 true t1 t2.
 Proof.
   intros.
-  stepdown in H. 
+  stepdown in H.
+  stepdown.   
+  remember (observe (Tau t1)).
+  remember (observe t1).
   (* RTODO: report this bug (rm down) *)
-  dependent induction H. 
-  - step in REL. stepdown.  simpobs. taur. assumption. 
-  - now step. 
-  - stepdown.  simpobs. taur. backstep. now apply IHeqitF. 
+  induction H; inv Heqi.  
+  - stepdown in REL. now taur. 
+  - assumption. 
+  - taur. now apply IHeqitF. 
 Qed. 
 
 Lemma eqit_inv_Tau_r {E R1 R2 RR} b2 t1 t2 :
   @eqit E R1 R2 RR true b2 t1 (Tau t2) -> eqit RR true b2 t1 t2.
 Proof.
   intros.
-  stepdown in H. 
-  dependent induction H. 
-  - stepdown.  simpobs. taul. 
-    now backstep. 
-  - stepdown.  simpobs. taul. 
-    backstep. 
-    now apply IHeqitF.
-  - now step.  
+  stepdown in H.
+  stepdown. 
+  remember (observe (Tau t2)).
+  remember (observe t2).
+  induction H; inv Heqi. 
+  - taul. now backstep. 
+  - simpobs. taul. now apply IHeqitF.
+  - assumption. 
 Qed. 
 
 (* this proof is much shorter and nicer than before. *)
@@ -824,18 +917,21 @@ Lemma eqit_inv_Tau {E R1 R2 RR} b1 b2 t1 t2 :
   @eqit E R1 R2 RR b1 b2 (Tau t1) (Tau t2) -> eqit RR b1 b2 t1 t2.
 Proof with eauto with itree.
   intros.
-  step in H; down. 
-  dependent induction H. 
-  - stepdown. now step in REL.  
-  - inv H; step; down; simpobs. 
+  step in H; down.
+  genobs (Tau t1) ot1. 
+  genobs (Tau t2) ot2. 
+revert t1 t2 Heqot1 Heqot2.
+induction H; intros t1' t2' Heqot1 Heqot2; try easy; subst.
+- now inv Heqot1; inv Heqot2. 
+- inv H; inv Heqot1; step; down; simpobs. 
     + taul. now step in REL.  
-    + taul. backstep. now apply IHeqitF. 
+    + taul. backstep. now apply IHeqitF.  
     + assumption. 
-  - inv H; step; down; simpobs. 
+  - inv H; inv Heqot2; step; down; simpobs. 
     + taur. now step in REL. 
     + assumption. 
     + taur. backstep. now apply IHeqitF. 
-Qed.
+Qed. 
 
 Section eqit_inv.
 
@@ -1164,20 +1260,26 @@ Lemma eutt_inv_Ret_l {E R} (r1: R) (t2: itree E R):
   (Ret r1) ≈ t2 -> t2 ≳ (Ret r1).
 Proof.
   intros Heutt. step in Heutt. down. 
-  rewrite itree_eta. remember (RetF r1) as ot1.
-  dependent induction Heutt; intros; try discriminate.
-  - inv x. reflexivity.
-  - inv x. rewrite tau_euttge. rewrite itree_eta. now apply IHHeutt.
+  rewrite itree_eta. 
+  remember (observe (Ret r1)).
+  genobs t2 ot2.
+  remember {| _observe := ot2 |}.
+  hinduction Heutt before r1; intros; inv Heqi. 
+  - reflexivity.
+  - rewrite tau_euttge. rewrite itree_eta. now eapply IHHeutt.
 Qed.
 
+(* The trick with these observe induction proofs 
+  is often to go 'as high as possible...' *)
 Lemma eutt_inv_Ret_r {E R} (t1: itree E R) (r2: R):
   t1 ≈ (Ret r2) -> t1 ≳ (Ret r2).
 Proof.
   intros Heutt. step in Heutt. down. 
-  rewrite itree_eta. remember (RetF r2) as ot2.
-  dependent induction Heutt; intros; try discriminate.
-  - inv x. reflexivity.
-  - inv x. rewrite tau_euttge. rewrite itree_eta. now apply IHHeutt.
+  rewrite itree_eta. 
+  remember (observe (Ret r2)); genobs t1 ot1; remember {| _observe := ot1 |}.
+  hinduction Heutt before R; intros; inv Heqi. 
+  - reflexivity.
+  - rewrite tau_euttge. rewrite itree_eta. now eapply IHHeutt.
 Qed.
 
 (** ** Equations for core combinators *)
@@ -1244,8 +1346,12 @@ Lemma eqit_Tau b1 b2 (t1 : itree E R1) (t2 : itree E R2) :
 Proof.
   split; intros H.
   - step in H. stepdown.  
-    move H before RR. revert_until H. 
-    dependent induction H; intros.  
+    move H before RR. revert_until H.
+    remember (observe (Tau t1)). 
+    remember (observe (Tau t2)). 
+    genobs t1 ot1. 
+    genobs t2 ot2. 
+    hinduction H before RR; intros; inv Heqi; try inv Heqi0. 
     + now backstep. 
     + inv H. 
       * taul. eapply IHeqitF; eauto. 
@@ -1308,22 +1414,23 @@ Proof.
   (* need strong CIH *)
   revert EQV; revert t1 t2.  
   coinduction c CIH; intros. 
-  step in EQV. down in EQV. 
-  dependent induction EQV.
+  step in EQV. down in EQV.
+  genobs t1 ot1.  
+  genobs t2 ot2.  
+  hinduction EQV before RR; intros; try easy. 
   all: down. 
   (* be careful not to rewrite all here; this will mess up taul and taur cases. *)
   1-3: rewrite 2observe_bind; simpobs.
   (* ret *)
   + backstep. 
-    now apply REL.
+    now apply REL0.
   (* taus *)
   + constructor.
     now apply CIH. 
   (* vis *)
   + constructor. 
     intro. 
-    apply CIH. 
-  apply REL0. 
+    apply CIH. apply REL. 
   (* taul *)
   + rewrite observe_bind. 
     simpobs. 
@@ -1394,10 +1501,10 @@ Choose any postcondition SS. eutt over SS, pointwise_chain over SS.
 we want to pull this out. 
 
 (* 
-0. valid up to refl, symm, trans (with correct b1 b2) of elem c 
-1. remove dep. induction 
+[shelved]. trans true false elem c (depends on eqitF true false)
+[done]1. remove dep. induction 
 2. consider coinduction library fix- mwe at least 
-3. think about removing bind_clo and replacing with proper instance
+[with yannick] 3. think about removing bind_clo and replacing with proper instance
 3.a very strong bespoke proper instance- pull out R1 R2 RR etc. 
 
 *)
@@ -1649,31 +1756,31 @@ Lemma eqit_inv_bind_ret:
          @eqit E R1 R2 RR b1 b2 (kb a) (Ret b).
 Proof.
   intros.
-  stepdown in H. 
+  stepdown in H.
   remember (observe (ITree.bind ma kb)) as otl.
-  remember (RetF b) as tr.
-  revert ma kb Heqotl b Heqtr.
-  dependent induction H; try solve [intros; subst; discriminate].
-  - intros.
-    rewrite Heqtr. 
+  remember (Ret b) as retb. 
+  remember (observe retb) as tr.
+  revert ma kb Heqotl b retb Heqretb Heqtr.
+  hinduction H before RR; intros; subst; try discriminate.
+  - intros; subst.
     unfold observe, _observe in Heqotl; cbn in Heqotl.
     destruct (observe ma) eqn:Ema; try discriminate.
     exists r. split.
     * rewrite itree_eta, Ema. reflexivity.
-    * rewrite itree_eta_. unfold _observe. rewrite <- Heqotl.
-    rewrite Heqtr in x. inv x.
+    * rewrite itree_eta_. unfold _observe. rewrite <- Heqotl. inv Heqtr. 
     step; constructor; auto.
   - intros. subst.
     unfold observe, _observe in Heqotl; cbn in Heqotl.
     destruct (observe ma) eqn:Ema; try discriminate.
     + exists r. split.
       * rewrite itree_eta, Ema. reflexivity.
-      * stepdown.  unfold observe at 1; unfold _observe. rewrite <- Heqotl. taul; auto. 
-      + inv Heqotl. specialize (IHeqitF _ eq_refl eq_refl _ _ eq_refl _ eq_refl).
-      edestruct IHeqitF as (a & ? & ?); exists a.
-      split; auto.
+      * stepdown. unfold observe at 1; unfold _observe. rewrite <- Heqotl. constructor; auto.
+    + inv Heqotl. 
+      edestruct IHeqitF; eauto. exists x. 
+      destruct H0. 
+      split; eauto.
       stepdown; rewrite Ema. taul. 
-      now step in H0.
+      now backstep.
 Qed.
 
 Lemma eutt_inv_bind_ret:
@@ -1716,9 +1823,10 @@ Lemma eqit_inv_bind_vis :
 Proof.
   intros. stepdown in H. 
   remember (observe (ITree.bind ma kab)) as tl.
-  remember (VisF e kxc) as tr.
-  revert ma kab Heqtl kxc Heqtr.
-  dependent induction H; try solve [intros; subst; discriminate].
+  remember (Vis e kxc) as vis.
+  remember (observe vis) as tr. 
+  revert ma kab Heqtl kxc e vis Heqvis Heqtr.
+  induction H; try solve [intros; subst; discriminate].
   - intros. unfold observe, _observe in Heqtl; cbn in Heqtl.
     destruct (observe ma) eqn:Ema; try discriminate.
     + right. exists r. split.
@@ -1727,10 +1835,11 @@ Proof.
         simpobs. constructor; auto.
     + left.
       symmetry in Heqtl.
-      revert x. revert k2 REL Heqtr. inv_eq_VisF Heqtl. intros.
-      rewrite Heqtr in x. 
-      cbn in x. 
-      inv_eq_VisF x.
+
+      revert e0 Heqvis. revert k2 REL Heqtr. inv_eq_VisF Heqtl. intros.
+      inv Heqvis. 
+      cbn in Heqtr. 
+      inv_eq_VisF Heqtr.
       exists k. split.
       * step; down. rewrite Ema. constructor. down. reflexivity.
       * auto.
@@ -1740,7 +1849,7 @@ Proof.
     + right; exists r; split.
       * rewrite itree_eta, Ema; reflexivity.
       * stepdown.  unfold observe at 1; unfold _observe; rewrite <- Heqtl. constructor; auto.
-    + inv Heqtl. specialize (IHeqitF _ _ eq_refl eq_refl _ _ eq_refl _ eq_refl).
+    + inv Heqtl. specialize (IHeqitF _ _ eq_refl _ _ _ eq_refl eq_refl).
       destruct IHeqitF as [(k0 & ? & ?) | (a & ? & ?)]; [left | right].
       * exists k0. split; auto.
         step; down; rewrite Ema; constructor; now step in H0. 
@@ -1777,24 +1886,25 @@ Lemma eqit_inv_bind_tau:
 Proof.
   intros. stepdown in H. 
   remember (observe (ITree.bind ma kab)) as tl.
-  remember (TauF tc) as tr.
-  revert ma kab Heqtl Heqtr.
-  dependent induction H; intros; try solve [subst; discriminate].
+  remember (Tau tc) as tau.
+  remember (observe tau) as tr.
+  revert ma kab Heqtl tc tau Heqtau Heqtr.
+  induction H; intros; try solve [subst; discriminate].
   - inv Heqtr. unfold observe, _observe in Heqtl; cbn in Heqtl.
     destruct (observe ma) eqn:Ema; try discriminate.
     + right; exists r; split.
       * step; down; rewrite Ema; constructor; auto.
-      * step; down; rewrite <- x; unfold observe, _observe; rewrite <- Heqtl; now constructor.
+      * step; down; inv H0; unfold observe, _observe; rewrite <- Heqtl; now constructor.
     + left; exists t; split.
       * step; down; rewrite Ema; constructor; apply reflexivity.
-      * inv Heqtl. inv x. assumption.
+      * inv Heqtl. inv H0. assumption.
   - subst.
     unfold observe, _observe in Heqtl; cbn in Heqtl.
     destruct (observe ma) eqn:Ema; try discriminate.
     + right; exists r; split.
       * step; down; rewrite Ema; constructor; auto.
       * step; down; unfold observe at 1; unfold _observe; rewrite <- Heqtl. constructor 4; auto.
-    + inv Heqtl. specialize (IHeqitF _ eq_refl eq_refl _ _ eq_refl eq_refl).
+    + inv Heqtl. specialize (IHeqitF _ _ eq_refl _ _ eq_refl eq_refl).
       destruct IHeqitF as [(t0 & ? & ?) | (a & ? & ?)]; [left | right].
       * exists t0. split; auto.
         step; down; rewrite Ema; constructor 4; now step in H0.
@@ -1803,7 +1913,7 @@ Proof.
   - inv Heqtr.
     left; exists ma; split.
     + step; constructor; auto. 
-    + inv x; step; assumption.
+    + inv H1; step; assumption.
 Qed.
 
 Lemma eutt_inv_bind_tau:
