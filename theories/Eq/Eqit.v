@@ -31,7 +31,7 @@ From ITree Require Import
      Basics.Utils
      Basics.HeterogeneousRelations
      Core.ITreeDefinition
-     Eq.Paco2
+     (* Eq.Paco2 *)
      Eq.Shallow.
 
 
