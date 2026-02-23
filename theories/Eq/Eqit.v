@@ -448,6 +448,8 @@ Proof.
   econstructor; etransitivity; eauto. 
 Qed. 
 
+(* RTODO: REMOVE DEPENDENT INDUCTION *)
+
 (* Tour extra: *)
 (* RTODO: ask yannick exactly what's going on, then document *)
   (* 
@@ -473,6 +475,14 @@ Proof. repeat red; symmetry; auto. Qed.
 Proof. repeat red; etransitivity; eauto. Qed.
 
 (** *** [eqit] is an equivalence relation *)
+
+(* 
+(* RTODO: *)
+To prove: elem refl, elem symmetric, 
+true false -> elem trans 
+false false -> elem trans 
+
+*)
 
 #[global] Instance Reflexive_eqit b1 b2 : Reflexive RR -> Reflexive (@eqit E _ _ RR b1 b2).
 Proof.
@@ -1267,6 +1277,28 @@ Lemma eq_itree_clo_bind {E : Type -> Type} {R1 R2 : Type} (RR : R1 -> R2 -> Prop
 Proof.
   eapply eqit_bind'; eauto.
 Qed.
+
+(* RTODO: want
+
+Proper (eutt ==> pointwise_chain ==> chain) bind 
+
+want something finer-grained- eutt lifts a relation 
+
+Choose any postcondition SS. eutt over SS, pointwise_chain over SS. 
+
+we want to pull this out. 
+
+(* 
+0. valid up to refl, symm, trans (with correct b1 b2) of elem c 
+1. remove dep. induction 
+2. consider coinduction library fix- mwe at least 
+3. think about removing bind_clo and replacing with proper instance
+3.a very strong bespoke proper instance- pull out R1 R2 RR etc. 
+
+*)
+
+forall t u SS, (elem c SS t u ==> forall x y, SS x y -> elem c (k x) (g y) -> elem c (bind t k) bind u g)
+*)
 
 #[global] Instance eqit_subst {E R S} b1 b2 :
   Proper (pointwise_relation _ (eqit eq b1 b2) ==> eqit eq b1 b2 ==>
