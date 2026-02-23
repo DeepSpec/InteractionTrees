@@ -337,34 +337,6 @@ Proof.
        econstructor; now apply H.
 Qed.
 
-#[global] Instance eqitF_Proper_observe_l {E : Type -> Type} {R1 R2:Type} :
-  Proper ((@eq_rel R1 R2) ==> eq ==> eq ==> eq ==> eq ==> eq ==> iff)
-          (fun RR b1 b2 sim t1 t2 => @eqitF E R1 R2 RR b1 b2 sim (observe t1) t2).
-Proof.
-  repeat red.
-  intros. subst. split; intros. 
-  all: induction H0; auto with itree;
-       econstructor; now apply H.
-Qed.
-
-
-#[global] Instance eqitF_Proper_observe_r {E : Type -> Type} {R1 R2:Type} :
-  Proper ((@eq_rel R1 R2) ==> eq ==> eq ==> eq ==> eq ==> eq ==> iff)
-          (fun RR b1 b2 sim t1 t2 => @eqitF E R1 R2 RR b1 b2 sim t1 (observe t2)).
-Proof.
-  repeat red.
-  intros. subst. split; intros.
-  all: induction H0; auto with itree;
-       econstructor; now apply H.
-Qed.
-
-#[global] Instance eqitF_Proper_observe {E : Type -> Type} {R1 R2:Type} :
-  Proper ((@eq_rel R1 R2) ==> eq ==> eq ==> eq ==> eq ==> eq ==> iff)
-          (fun RR b1 b2 sim t1 t2 => @eqitF E R1 R2 RR b1 b2 sim (observe t1) (observe t2)).
-Proof.
-  repeat red; intros; subst; eapply eqitF_Proper_observe_r; eauto. 
-Qed.
-
 #[global] Instance eqit_Proper_R {E : Type -> Type} {R1 R2:Type}
   : Proper ( (@eq_rel R1 R2) ==> eq ==> eq ==> eq ==> eq ==> iff) (@eqit E R1 R2).
 Proof with auto with itree.
@@ -529,16 +501,11 @@ Qed.
 #[global] Instance eq_sub_euttge:
   subrelation (@eq_itree E _ _ RR) (euttge RR).
 Proof.
-  red. 
-  coinduction c CIH. intros.  
-  step in H. 
-  stepdown. 
-  (* these proofs get to do hinduction. *)
+  red. coinduction c CIH. intros.  
+  step in H. stepdown. 
   hinduction H before CIH; subst; eauto with itree. 
-  - step in REL. down. 
-    dependent induction REL; solve_eqitF.  
-  - econstructor. 
-    intro. specialize (REL v). step in REL. down.
+  - step in REL. down. dependent induction REL; solve_eqitF.  
+  - econstructor. intro. specialize (REL v). stepdown in REL. 
     dependent induction REL; solve_eqitF.     
 Qed.
 
@@ -550,14 +517,13 @@ Proof.
   intros. step. 
   unfold euttge, eqit in H; step in H; down. 
   hinduction H before CIH; subst; eauto with itree.
-  - step in REL; cbn in REL; down. 
+  - stepdown in REL. 
     econstructor. 
     dependent induction REL; try solve_eqitF.  
       rewrite <- x. taul. 
       apply IHREL; eauto.  
   - econstructor. intros.  
-    specialize (REL v). step in REL. 
-    down. 
+    specialize (REL v). stepdown in REL. 
     (* key step: IH must work for ANY tree, not just a continuation-built one. *)
     (* this is so we can strip a Tau off the left side and still use our IH. *)
     remember (k1 v).
@@ -649,19 +615,6 @@ Proof.
   inv H. stepdown.  rewrite observing_observe. 
   backstep. reflexivity. 
 Qed.
-
-(* Add Parametric Morphism (c : Chain (eqit_mon eq false false)) : 
-  (@eqit_mon E R R eq false false (elem c))
-  with signature (@eq_itree E R R eq ==> eq_itree eq ==> flip impl)
-  as elem_eq_itree_proper. 
-Proof. 
-  red; intros.
-  step in H. step in H0.
-  down. genobs x otx. genobs x0 otx0.  
-  dependent induction H1.
-  - simpobs. inv H; inv H0; try easy. now constructor. 
-  - simpobs. inv H; inv H0; try easy. constructor. 
-    apply observing_sub_elem; eauto. Search elem.   *)
 
 (** ** Eta-expansion *)
 
@@ -1176,7 +1129,6 @@ Lemma eqit_Tau b1 b2 (t1 : itree E R1) (t2 : itree E R2) :
 Proof.
   split; intros H.
   - step in H. stepdown.  
-    (* remember (TauF t1) as ot1. remember (TauF t2) as ot2. *)
     move H before RR. revert_until H. 
     dependent induction H; intros.  
     + now backstep. 
@@ -1273,9 +1225,10 @@ Lemma eutt_clo_bind {U1 U2 UU} t1 t2 k1 k2
       (EQT: @eutt E U1 U2 UU t1 t2)
       (EQK: forall u1 u2, UU u1 u2 -> eutt RR (k1 u1) (k2 u2)):
   eutt RR (ITree.bind t1 k1) (ITree.bind t2 k2).
-Proof.
-Abort. 
 
+  Proof.
+    unfold eutt. step. eapply eqit_clo_bind. econstructor; eauto.  
+Qed. 
 End eqit_h.
 
 Lemma eutt_Tau {E R} (t1 t2 : itree E R):
