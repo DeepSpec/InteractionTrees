@@ -171,7 +171,7 @@ Ltac backstep :=
     apply (gfp_pfp b) 
 | [|- _ _ _ _ (elem ?c) _ _ ]=>
     apply (gfp_bchain c)
-| [|- elem ?c _ _] => apply (gfp_chain c)
+| [|- elem ?c _ _] => apply (b_chain c)
 end. 
 
 Ltac backstep_in H := 
@@ -179,7 +179,7 @@ Ltac backstep_in H :=
 | _ _ _ _ (gfp ?b) _ _=> 
     apply (gfp_fp b) in H 
 | _ _ _ _ (elem ?c) _ _ =>
-    apply (gfp_bchain c) in H 
+    apply (b_chain c) in H 
 end. 
 
 Tactic Notation "backstep" "in" ident(H) := backstep_in H.

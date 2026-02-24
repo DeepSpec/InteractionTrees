@@ -2039,24 +2039,21 @@ Section eqit_elem.
 
 (* 
 important: proving rewriting of elem under euttge 
-forall (c : Chain (eqit_mon eq true true))
-Proper (euttge ==> euttge ==> [flip] impl) (elem c)
-need both - iff or 2 proofs? 
-if have: 
-(* subrelation (eq_itree euttge) *)
-
 --------
 goal: establish lemmas of toplevel relations that happen to be instantiations 
 of general properties of the corresponding chain. 
 
+1. 
 forall (c : Chain (eqit_mon (RR : R1 -> R2 -> Prop) true true )) 
 Proper (euttge (@eq R1) ==> euttge (@eq R2) ==> [flip] impl) (elem c)
 by subrelation : 
 Proper (eq_itree ==> eq_itree ==> [flip] impl) (elem c)
 
+DONE
 forall (c : Chain (eqit_mon RR false false)), Equivalence RR -> Equivalence c
 (this implies eq_itree is an equivalence relation)
 
+3. 
 we want euttge to be a preorder - is this true? 
 forall (c : Chain (eqit_mon RR true false)), Preorder RR -> Preorder c
 
@@ -2065,7 +2062,9 @@ can we generalize to be heterogeneous for an RR that relates R1, R2?
 next q: 
 weak bisim: 
 
+4. 
 forall (c : Chain (eqit_mon RR true true)), Refl RR -> Refl c 
+5. 
 forall (c : Chain (eqit_mon RR true true)), Sym RR -> Sym c 
 (* do not attempt: *)
 forall (c : Chain (eqit_mon RR true true)), Trans RR -> Trans c 
@@ -2086,7 +2085,7 @@ but this should be a particular case of a more gen lemma: under context reasonin
 (here bind is the context)
 
 back to bind: 
-
+6. 
 forall (c : Chain (eqit_mon SS b1 b2)) RR, 
 Proper (eutt RR ==> (fun k g => (forall x y, RR x y -> c (k x) (g y))) ==> c) 
 bind 
@@ -2110,7 +2109,9 @@ Context {E : Type -> Type} {R1 R2} {RR : R1 -> R2 -> Prop} {b1 b2 : bool}.
 
 Ltac euttsimpl := unfold eutt, euttge, eq_itree, eqit in *. 
 
-Goal forall (c : Chain (eqit_mon (RR : R1 -> R2 -> Prop) true false )), 
+(* we really need euttge trans *)
+
+(* Goal forall (c : Chain (eqit_mon (RR : R1 -> R2 -> Prop) true false )), 
 Proper (@euttge E _ _ (@eq R1) ==> @euttge E _ _ (@eq R2) ==> impl) (elem c). 
   repeat intro.
   apply (b_chain c). 
@@ -2129,6 +2130,23 @@ Proper (@euttge E _ _ (@eq R1) ==> @euttge E _ _ (@eq R2) ==> impl) (elem c).
     (* should be bogus because elem c (Ret r1) (Tau m2). 
     But can't invert this. 
     *)
-Search elem. 
+Search elem.  *)
+
+Lemma Equivalence_elem_ff R RS (c : Chain (@eqit_mon E R R RS false false)) :
+Equivalence RS -> Equivalence (elem c). 
+Proof.  
+  constructor; typeclasses eauto. 
+Qed.
+
+Goal forall R RS (c : Chain (@eqit_mon E R R RS true false)), PreOrder RS -> PreOrder (elem c). 
+Proof. 
+  repeat intro. 
+  constructor. 
+  typeclasses eauto. 
+  apply Transitive_chain. 
+  repeat intro.
+  assert (H1':=H1); backstep in H1'. 
+  assert (H2':=H2); backstep in H2'.
+Abort. 
 
 End eqit_elem. 
