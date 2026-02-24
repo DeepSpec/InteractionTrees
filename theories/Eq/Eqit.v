@@ -435,28 +435,38 @@ Proof.
   red. induction 3; constructor; subst; eauto.
 Qed.
 
+Lemma eqitF_inv_VisF_l {b1 b2 sim}
+    t2 X2 (e1 : E X2) (k1 : X2 -> _)
+  : eqitF RR b1 b2 sim (VisF e1 k1) t2 ->
+    (exists k2, t2 = VisF e1 k2 /\ forall v, sim (k1 v) (k2 v)) \/
+    (b2 /\ exists t2', t2 = TauF t2' /\ eqitF RR b1 b2 sim (VisF e1 k1)(observe t2')).
+Proof.
+  refine (fun H =>
+    match H in eqitF _ _ _ _ t1 _ return
+      match t1 return Prop with
+      | VisF e1 k1 => _
+      | _ => True
+      end
+    with
+    | EqVis _ _ _ _ _ _ _ _ => _
+    | _ => _
+    end); try exact I.
+  - left; eauto.
+  - destruct i; eauto.
+Qed.
+
+
+
 (* weak: eqitF is transitive under strong bisimulation assumptions *)
 #[global] Instance Transitive_eqitF_ff (sim : itree E R -> itree E R -> Prop)
 : Transitive RR -> Transitive sim -> Transitive (eqitF RR false false sim).
 Proof.
-  repeat red. intros. revert H2. revert z. 
-  induction H1; try easy; intros. 
-  - remember (RetF r2) eqn:eq. induction H2; inv eq; try easy; 
-    econstructor; etransitivity; eauto. 
-  - remember (TauF m2) eqn:eq. induction H2; inv eq; try easy; 
-    econstructor; etransitivity; eauto. 
-  - remember (VisF e k2) eqn:eq. induction H2; try solve [inv eq; try easy].
-    inv eq. 
-    (* eapply eqitF_VisF_gen. *)
-    unfold eqeq. 
-    (* eapply  *)
-    dependent destruction H4. 
-    dependent destruction H3. 
-    econstructor; etransitivity; eauto. 
-Qed.
-(* Yannick: Can this be done without dependent destruction? *)
-Print Assumptions Transitive_eqitF_ff. 
- 
+  intros ?? t u v EQ1 EQ2.
+  inv EQ1; try now (inv EQ2; try easy; eauto with itree).
+  apply eqitF_inv_VisF_l in EQ2 as [(? & -> & ?) | [abs _]]; [| easy].
+  constructor; eauto.
+Qed. 
+
   (* eutt is still transitive, but for different reasons *)
   
 (* strongest: holds for all instances of eqit *)
@@ -653,8 +663,14 @@ Qed.  *)
 
 (* 
 (* RTODO: *)
-To prove: elem true false trans 
 *)
+
+(* 
+u = τ.0
+v = τ.1
+w = 1
+*)
+
 #[export] Instance Transitive_elem_tf (HE : Transitive RR) {c: Chain (@eqit_mon E R R RR true false)}: Transitive (elem c).
  Proof.
     apply Transitive_chain. repeat intro. down.
@@ -662,7 +678,7 @@ To prove: elem true false trans
     genobs y oty.
     genobs z otz. 
     hinduction H0 before y; intros; try easy. 
-    -  remember (RetF r2).
+    - remember (RetF r2).
     hinduction H1 before c; intros; try easy; inv Heqi.  
     constructor; etransitivity; eauto. 
     - remember (TauF m2).
@@ -678,6 +694,30 @@ To prove: elem true false trans
   (* stuck *)
   admit. 
  Admitted. 
+ (* assert (DEC: (exists m3, ot3 = TauF m3) \/ (forall m3, ot3 <> TauF m3)).
+    { destruct ot3; eauto; right; red; intros; inv H. }
+    destruct DEC as [EQ | EQ].
+    (* τ - τ case: strip both. *)
+    + destruct EQ as [m3 ?]; subst; simpobs. 
+      econstructor.
+      eapply CIH; eauto.
+      apply eqit_inv_Tau.
+      now step.    
+    (* τ - ̸τ : we do further case analysis. *)
+    + inv INR; try (exfalso; eapply EQ; eauto; fail).
+      taul. 
+      step in REL. down. 
+      hinduction REL0 before CIH; intros; try (exfalso; eapply EQ; eauto; fail).
+      (* now we can handle each subcase with another layer of induction *)
+      * remember (RetF r1) as ot.
+        hinduction REL0 before CIH; intros; inv Heqot; eauto with itree.
+      * remember (VisF e k1) as ot.
+        hinduction REL0 before CIH; intros; try discriminate; [ inv_Vis | eauto with itree ].
+        econstructor. intros.
+        apply (CIH _ _ _ (REL v) (REL0 v)). 
+      * eapply IHREL0; eauto. backstep.
+        destruct b1; inv CHECK0.
+        apply eqit_inv_Tau_r. now step.   *)
 
 #[global] Instance Reflexive_eqit b1 b2 : Reflexive RR -> Reflexive (@eqit E _ _ RR b1 b2).
 Proof.
@@ -686,7 +726,6 @@ Proof.
   revert x. coinduction c CIH. intro. step.
   now repeat apply Reflexive_eqit_.
 Qed.
-
 
 #[global] Instance Symmetric_eqit b : Symmetric RR -> Symmetric (@eqit E _ _ RR b b).
 Proof.
@@ -702,6 +741,21 @@ Proof.
   induction H1; eauto with itree.  
 Qed. 
 
+(* 
+important: proving rewriting of elem under euttge 
+forall (c : Chain (eqit_mon true true))
+Proper (euttge ==> euttge ==> [flip] impl) (elem c)
+need both - iff or 2 proofs? 
+if have: 
+(* subrelation (eq_itree euttge) *)
+
+--------
+goal: establish lemmas of toplevel relations that happen to be instantiations 
+of general properties of the corresponding chain. 
+
+
+
+*)
 
 #[global] Instance eq_sub_euttge:
   subrelation (@eq_itree E _ _ RR) (euttge RR).
@@ -1501,7 +1555,7 @@ Choose any postcondition SS. eutt over SS, pointwise_chain over SS.
 we want to pull this out. 
 
 (* 
-[shelved]. trans true false elem c (depends on eqitF true false)
+[shelved]. trans true false elem c
 [done]1. remove dep. induction 
 2. consider coinduction library fix- mwe at least 
 [with yannick] 3. think about removing bind_clo and replacing with proper instance
