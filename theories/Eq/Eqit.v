@@ -693,7 +693,7 @@ w = 1
 - taul. eapply IHeqitF; eauto.
   (* stuck *)
   admit. 
- Admitted. 
+ Abort. 
  (* assert (DEC: (exists m3, ot3 = TauF m3) \/ (forall m3, ot3 <> TauF m3)).
     { destruct ot3; eauto; right; red; intros; inv H. }
     destruct DEC as [EQ | EQ].
@@ -741,21 +741,8 @@ Proof.
   induction H1; eauto with itree.  
 Qed. 
 
-(* 
-important: proving rewriting of elem under euttge 
-forall (c : Chain (eqit_mon true true))
-Proper (euttge ==> euttge ==> [flip] impl) (elem c)
-need both - iff or 2 proofs? 
-if have: 
-(* subrelation (eq_itree euttge) *)
-
---------
-goal: establish lemmas of toplevel relations that happen to be instantiations 
-of general properties of the corresponding chain. 
 
 
-
-*)
 
 #[global] Instance eq_sub_euttge:
   subrelation (@eq_itree E _ _ RR) (euttge RR).
@@ -799,6 +786,9 @@ Qed.
 End eqit_gen.
 
 #[global] Hint Resolve Reflexive_eqit : reflexivity.
+
+
+
 
 Section eqit_eq.
 
@@ -2043,3 +2033,102 @@ Proof.
     inv EQ2.
     reflexivity.
 Qed.
+Section eqit_elem. 
+(*** *** Properties of the chain. *)
+
+
+(* 
+important: proving rewriting of elem under euttge 
+forall (c : Chain (eqit_mon eq true true))
+Proper (euttge ==> euttge ==> [flip] impl) (elem c)
+need both - iff or 2 proofs? 
+if have: 
+(* subrelation (eq_itree euttge) *)
+
+--------
+goal: establish lemmas of toplevel relations that happen to be instantiations 
+of general properties of the corresponding chain. 
+
+forall (c : Chain (eqit_mon (RR : R1 -> R2 -> Prop) true true )) 
+Proper (euttge (@eq R1) ==> euttge (@eq R2) ==> [flip] impl) (elem c)
+by subrelation : 
+Proper (eq_itree ==> eq_itree ==> [flip] impl) (elem c)
+
+forall (c : Chain (eqit_mon RR false false)), Equivalence RR -> Equivalence c
+(this implies eq_itree is an equivalence relation)
+
+we want euttge to be a preorder - is this true? 
+forall (c : Chain (eqit_mon RR true false)), Preorder RR -> Preorder c
+
+can we generalize to be heterogeneous for an RR that relates R1, R2? 
+
+next q: 
+weak bisim: 
+
+forall (c : Chain (eqit_mon RR true true)), Refl RR -> Refl c 
+forall (c : Chain (eqit_mon RR true true)), Sym RR -> Sym c 
+(* do not attempt: *)
+forall (c : Chain (eqit_mon RR true true)), Trans RR -> Trans c 
+
+but at the gfp, it is true. 
+(* this is true: *)
+(* Equiv RR -> Equiv eutt RR *)
+
+next big piece is how it all interacts w bind. 
+
+we should be able to prove this: 
+
+forall X1 X2 Y1 Y2, 
+eutt (RR : X1 -> X2 -> Prop) u v -> (forall x1 x2, RR x1 x2 -> eutt SS (k x1) (g x2)
+-> eutt SS (bind u k) (bind v g)
+
+but this should be a particular case of a more gen lemma: under context reasoning
+(here bind is the context)
+
+back to bind: 
+
+forall (c : Chain (eqit_mon SS b1 b2)) RR, 
+Proper (eutt RR ==> (fun k g => (forall x y, RR x y -> c (k x) (g y))) ==> c) 
+bind 
+
+could be interesting: 
+chain_mono: 
+
+RR1 <= RR2, b1 <= b1', ... 
+(Chain eqit_mon RR b1 b2) <=
+(Chain eqit_mon RR' b1' b2') 
+)
+
+*)
+
+(* Conjecture chain_mono RR1 RR2 b1 b2 b1' b2' : 
+... 
+(Chain eqit_mon RR b1 b2) <=
+(Chain eqit_mon RR' b1' b2') .  *)
+
+Context {E : Type -> Type} {R1 R2} {RR : R1 -> R2 -> Prop} {b1 b2 : bool}.
+
+Ltac euttsimpl := unfold eutt, euttge, eq_itree, eqit in *. 
+
+Goal forall (c : Chain (eqit_mon (RR : R1 -> R2 -> Prop) true false )), 
+Proper (@euttge E _ _ (@eq R1) ==> @euttge E _ _ (@eq R2) ==> impl) (elem c). 
+  repeat intro.
+  apply (b_chain c). 
+  down. 
+  euttsimpl. stepdown in H; stepdown in H0. 
+  genobs x otx.  
+  genobs y oty.  
+  genobs x0 otx0.  
+  genobs y0 oty0.  
+  induction H; try easy; simpobs. 
+  - induction H0. 
+    constructor.
+    Fail congruence. 
+    shelve. 
+    assert (elem c (Ret r1) (Tau m1)) by admit. 
+    (* should be bogus because elem c (Ret r1) (Tau m2). 
+    But can't invert this. 
+    *)
+Search elem. 
+
+End eqit_elem. 

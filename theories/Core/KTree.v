@@ -15,7 +15,9 @@ From ITree Require Import
      Basics.Function
      Core.ITreeDefinition
      Eq.Eqit
-     Eq.UpToTaus.
+     (* Eq.UpToTaus *) (* see what breaks here, if anything *)
+     .
+
 (* end hide *)
 
 Implicit Types E : Type -> Type.

@@ -49,7 +49,9 @@ Lemma bind_iter {E A B C} (f : A -> itree E (A + B)) (g : B -> itree E (B + C))
        | inr b => ITree.map (bimap inr (id_ _)) (g b)
        end) (inl x).
 Proof.
+  (* this proof should follow from the facts about elem *)
   einit. ecofix CIH. intros.
+  (* these rewrites must go through *)
   rewrite !unfold_iter.
   rewrite bind_map, bind_bind.
   ebind; econstructor; try reflexivity.

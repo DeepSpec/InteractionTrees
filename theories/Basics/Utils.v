@@ -171,6 +171,7 @@ Ltac backstep :=
     apply (gfp_pfp b) 
 | [|- _ _ _ _ (elem ?c) _ _ ]=>
     apply (gfp_bchain c)
+| [|- elem ?c _ _] => apply (gfp_chain c)
 end. 
 
 Ltac backstep_in H := 
