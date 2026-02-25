@@ -1866,7 +1866,7 @@ goal: establish lemmas of toplevel relations that happen to be instantiations
 of general properties of the corresponding chain. 
 
 1. 
-forall (c : Chain (eqit_mon (RR : R1 -> R2 -> Prop) true true )) 
+forall (c : Chain (eqit_mon (RR : R1 -> R2 -> Prop) true false )) 
 Proper (euttge (@eq R1) ==> euttge (@eq R2) ==> [flip] impl) (elem c)
 by subrelation : 
 Proper (eq_itree ==> eq_itree ==> [flip] impl) (elem c)
@@ -1922,7 +1922,10 @@ RR1 <= RR2, b1 <= b1', ...
 
 *)
 
+
 (* Conjecture chain_mono RR1 RR2 b1 b2 b1' b2' : 
+(* we know from JOACHIM PARROW AND TJARK WEBER 2016 that the 
+companion is monotone.  *)
 ... 
 (Chain eqit_mon RR b1 b2) <=
 (Chain eqit_mon RR' b1' b2') .  *)
@@ -1970,7 +1973,7 @@ Proof.
   repeat intro.
   assert (H1':=H1); backstep in H1'. 
   assert (H2':=H2); backstep in H2'.
-  (* this is just transitivity of euttge. ugh. *)
+  (* this is just transitivity of (b RS true false (elem c)) again. ugh. *)
 Abort. 
 
 Lemma Reflexive_elem_eutt R RS (c : Chain (@eqit_mon E R R RS true true)) :
@@ -2025,7 +2028,7 @@ Qed.
 
 (* We can't state this nicely as a Proper relation, since proper instances
 need to have subcomponents that share types. eutt RX violates this, as 
-u and v are different. *)
+u and v are of different types. *)
 
 (* This being proven, proving things about elem c is actually quite weak: it is
 the 'most random' or 'least informative' relation in our story. Proving things
@@ -2036,7 +2039,10 @@ very little in our theory so far. *)
 
 #[export] Instance Transitive_elem_tf R RT (HE : Transitive RT) {c: Chain (@eqit_mon E R R RT true false)}: Transitive (elem c).
  Proof.
-    apply Transitive_chain. repeat intro. down.
+    apply Transitive_chain. repeat intro. 
+    (* assert (H0':=H0); backstep in H0'.
+    assert (H1':=H1); backstep in H1'.  *)
+    down.
     backstep.
     revert x y z H0 H1. 
   (* we'll need the coinductive reasoning later: elements of the chain 
@@ -2045,7 +2051,7 @@ very little in our theory so far. *)
   down. genobs z oz. 
   (* we begin with induction on t1 ~ t2. 
   in each case, we perform induction on t2 ~ t3.  *)
-  hinduction H0 before CIH; intros; subst; clear x y. 
+  hinduction H0 before CIH; intros; subst. 
   (* Ret, straightforward *)
   - remember (RetF r2) as ot.
     hinduction H1 before CIH; intros; inv Heqot; eauto with itree.
@@ -2057,14 +2063,13 @@ very little in our theory so far. *)
     + destruct EQ as [m3 ?]; subst; simpobs. 
     (* τ - τ case: strip both. *)
       econstructor.
-      eapply CIH; eauto.
+      eapply CIH; eauto. 
       (* we're stuck here: elem R0 m1 m2 tells us nothing. *)
       admit.
       (* we're stuck here too: b (elem) is too weak for our inversion lemma. *)
-      admit. 
+      admit.
     (* τ - ̸τ : we do further case analysis. *)
     + inv H1; try (exfalso; eapply EQ; eauto; fail).
-      taul. 
       hinduction REL0 before CIH; intros; try (exfalso; eapply EQ; eauto; fail).
       (* stuck here now.  *)
       admit. 
@@ -2081,5 +2086,70 @@ very little in our theory so far. *)
     genobs z ot3. 
     hinduction H1 before CIH; intros; try inversion Heqot; try easy; subst.
  Abort. 
+
+
+Lemma PreOrder_euttge R : PreOrder (@euttge E R R eq). 
+Proof. 
+  constructor; typeclasses eauto. 
+Qed.
+
+
+(* For Yannick: LOOK HERE *)
+#[global] Instance euttge_cong_euttge_chain
+     (c : Chain (eqit_mon (RR : R1 -> R2 -> Prop) true false )) : 
+Proper (euttge (@eq R1) ==> @euttge E _ _  (@eq R2) ==> flip impl) (elem c).
+Proof.
+  (* we would like to accumulate, unstep, and rewrite with monotonicity 
+  and transitivitiy as in euttge_cong_euttge *)
+
+  repeat intro. 
+  accumulate H2.
+  unfold euttge, eqit in H, H0. 
+  assert (H':=H); step in H'. 
+  assert (H0':=H0); step in H0'. 
+  down. 
+  genobs x ox. 
+  genobs y oy. 
+  revert_until H'. 
+  induction H'; intros; subst; simpobs.
+  - remember (RetF r2).
+    genobs x0 ox0.  
+    genobs y0 oy0.  
+    induction H0'; subst; simpobs. 
+    constructor. 
+    (* here we are stuck: we know nothing about RR. *)
+    shelve.  
+    (* we are also stuck here: we have a contradiction of sorts, 
+    but it is under elem: elem c (RetF r2) (TauF m1).
+    This might not even be a contradiction! 
+    *)
+Abort.
+
+(* This weaker version also fails in the same way: *)
+#[global] Instance euttge_cong_euttge_chain R RS 
+      (TRANS : Transitive RS) 
+     (c : Chain (eqit_mon RS true false )) : 
+Proper (euttge RS ==> @euttge E R R RS ==> flip impl) (elem c).
+Proof.
+  repeat intro. 
+  accumulate H2.
+  unfold euttge, eqit in H, H0.
+  copy H. step in H. 
+  copy H0. step in H0. 
+  down. 
+  genobs x ox. 
+  genobs y oy. 
+  revert_until H. 
+  induction H; intros; subst; simpobs.
+  - remember (RetF r2).
+    genobs x0 ox0.  
+    genobs y0 oy0.  
+    induction H0; subst; simpobs. 
+    constructor; etransitivity; eauto.
+    (* stuck here: we only know things about elem again *)
+    shelve. 
+    (* and same deeper problem with bogus cases: elem does not 
+    discriminate Ret to be related to Tau. *)
+Abort. 
 
 End eqit_elem. 
