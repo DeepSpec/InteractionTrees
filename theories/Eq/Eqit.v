@@ -520,204 +520,15 @@ Proof.
   (* Now om2 is a variable — we can use plain induction *)
   induction H2; taul; simpobs; eauto with itree. 
 Qed. 
-
-(* weak: eqitF is transitive under euttge assumptions *)
-#[global] Instance Transitive_eqitF_tf (sim : itree E R -> itree E R -> Prop)
-: Transitive RR -> Transitive sim -> Transitive (eqitF RR true false sim).
-Proof.
-  repeat red. intros. revert H2. revert z. 
-  induction H1; try easy; intros.
-  (* Ret *)
-  - 
-  (* dependent induction H2.
-  econstructor; etransitivity; eauto.
-  taur. eapply IHeqitF; eauto.
-   *)
-  remember (RetF r2) eqn:eq. remember z eqn:eqz.
-  hinduction H2 before eqz; intros; inv eq; try easy. 
-  econstructor; etransitivity; eauto.
-  -
-   assert (DEC: (exists m3, z = TauF m3) \/ (forall m3, z <> TauF m3)).
-    { destruct z; eauto; right; red; intros; inv H1. }
-    destruct DEC as [EQ | EQ].
-    (* τ - τ case: strip both. *)
-    + destruct EQ as [m3 ?]; subst.
-Abort. 
-      (* we have the same problem here. *)
-      (* remember (TauF m2).
-      remember (TauF m3).
-      move H2 before REL.
-      revert_until H2.  
-      induction H2; intros; inv Heqi; try inv Heqi0; try easy. 
-      econstructor; etransitivity; eauto.
-      inv H2. 
-      (* we need to remember, or we get stuck here with a bogus m0 *)
-
-      apply eqit_inv_Tau.
-      now step.    
-    (* τ - ̸τ : we do further case analysis. *)
-    + inv INR; try (exfalso; eapply EQ; eauto; fail).
-      taul. 
-      step in REL. down. 
-      hinduction REL0 before CIH; intros; try (exfalso; eapply EQ; eauto; fail).
-      (* now we can handle each subcase with another layer of induction *)
-      * remember (RetF r1) as ot.
-        hinduction REL0 before CIH; intros; inv Heqot; eauto with itree.
-      * remember (VisF e k1) as ot.
-        hinduction REL0 before CIH; intros; try discriminate; [ inv_Vis | eauto with itree ].
-        econstructor. intros.
-        apply (CIH _ _ _ (REL v) (REL0 v)). 
-      * eapply IHREL0; eauto. backstep.
-        destruct b1; inv CHECK0.
-        apply eqit_inv_Tau_r. now step. 
-
-
-  dependent induction H2.
-  econstructor; etransitivity; eauto.
-
-  
-revert m1 REL.
-remember (TauF m2) as lhs eqn:eq.
-remember z as rhs eqn:eqz.
-
-move H2 before m2.
-revert_until H2.
-induction H2; intros; try solve [inv eq]; try easy.  
-inv eq; econstructor; etransitivity; eauto.
-
-
-  remember z. revert r1 r2 z REL eq Heqi0. 
-  induction H2; intros; inv eq; try easy.
-    econstructor; etransitivity; eauto.
-  (* taul *)
-   *)
-(*   
-    (* remember (TauF m2).
-    hinduction H2 before Heqi; try solve [inv Heqi; try easy; try (econstructor; etransitivity; eauto)].
-
-      revert Heqi. 
-      revert REL. 
-      revert m1. 
-
-      induction H2; intros; try solve [inv Heqi; try easy; try (econstructor; etransitivity; eauto)]. *)
-
-  (* from other transitivity proof: *)
-    assert (DEC: (exists m3, z = TauF m3) \/ (forall m3, z <> TauF m3)).
-    { destruct z; eauto; right; red; intros; inv H1. }
-    destruct DEC as [EQ | EQ].
-    (* τ - τ case: strip both. *)
-    + destruct EQ as [m3 ?]; subst.
-      (* we have the same problem here. *)
-      remember (TauF m3).
-      induction H2; inv Heqi; try easy. 
-      econstructor; etransitivity; eauto.
-      (* we need to remember, or we get stuck here with a bogus m0 *)
-      remember (TauF m2). 
-      induction H2; inv Heqi; try easy.  
-      econstructor; etransitivity; eauto.
-
-      apply eqit_inv_Tau.
-      now step.    
-    (* τ - ̸τ : we do further case analysis. *)
-    + inv INR; try (exfalso; eapply EQ; eauto; fail).
-      taul. 
-      step in REL. down. 
-      hinduction REL0 before CIH; intros; try (exfalso; eapply EQ; eauto; fail).
-      (* now we can handle each subcase with another layer of induction *)
-      * remember (RetF r1) as ot.
-        hinduction REL0 before CIH; intros; inv Heqot; eauto with itree.
-      * remember (VisF e k1) as ot.
-        hinduction REL0 before CIH; intros; try discriminate; [ inv_Vis | eauto with itree ].
-        econstructor. intros.
-        apply (CIH _ _ _ (REL v) (REL0 v)). 
-      * eapply IHREL0; eauto. backstep.
-        destruct b1; inv CHECK0.
-        apply eqit_inv_Tau_r. now step. 
-
-      assert (DEC: (exists m3, m2 = Tau m3) \/ (forall m3, m2 <> Tau m3)).
- *)
-
-    (* { destruct (m2); eauto; right; red; intros; inv H. }
-    destruct DEC as [EQ | EQ].
-  remember (observe (Tau m2)) eqn:eq.
-  remember (TauF m1). 
-  (* revert Heqi0. *)
-   (* revert i0. *)
-    (* revert eq.  *)
-  induction H2. inv eq; try easy.
-  inv eq; try easy.
-   econstructor; etransitivity; eauto.
-   inv eq; try easy.
-   rewrite Heqi0. injection eq as eq'. rewrite <- eq' in *.   
-
-Qed.  *)
-
-(* RTODO: REMOVE DEPENDENT INDUCTION *)
-
 (* Tour extra: *)
+
 (* RTODO: ask yannick exactly what's going on, then document *)
   (* 
   "eutt is NOT valid up to eutt" and this is supposedly equivalent to 
   transitivity, but we did prove things are transitive... what's going on?
   *)
 
-(* 
-(* RTODO: *)
-*)
 
-(* 
-u = τ.0
-v = τ.1
-w = 1
-*)
-
-#[export] Instance Transitive_elem_tf (HE : Transitive RR) {c: Chain (@eqit_mon E R R RR true false)}: Transitive (elem c).
- Proof.
-    apply Transitive_chain. repeat intro. down.
-    genobs x otx. 
-    genobs y oty.
-    genobs z otz. 
-    hinduction H0 before y; intros; try easy. 
-    - remember (RetF r2).
-    hinduction H1 before c; intros; try easy; inv Heqi.  
-    constructor; etransitivity; eauto. 
-    - remember (TauF m2).
-      hinduction H1 before c; intros; try easy; inv Heqi.  
-      constructor; etransitivity; eauto.
-      eapply IHeqitF; eauto. 
-      (* stuck *)
-      admit. 
-- remember (VisF e k2).
-      hinduction H1 before c; intros; try easy. inv_Vis. 
-      constructor; etransitivity; eauto.
-- taul. eapply IHeqitF; eauto.
-  (* stuck *)
-  admit. 
- Abort. 
- (* assert (DEC: (exists m3, ot3 = TauF m3) \/ (forall m3, ot3 <> TauF m3)).
-    { destruct ot3; eauto; right; red; intros; inv H. }
-    destruct DEC as [EQ | EQ].
-    (* τ - τ case: strip both. *)
-    + destruct EQ as [m3 ?]; subst; simpobs. 
-      econstructor.
-      eapply CIH; eauto.
-      apply eqit_inv_Tau.
-      now step.    
-    (* τ - ̸τ : we do further case analysis. *)
-    + inv INR; try (exfalso; eapply EQ; eauto; fail).
-      taul. 
-      step in REL. down. 
-      hinduction REL0 before CIH; intros; try (exfalso; eapply EQ; eauto; fail).
-      (* now we can handle each subcase with another layer of induction *)
-      * remember (RetF r1) as ot.
-        hinduction REL0 before CIH; intros; inv Heqot; eauto with itree.
-      * remember (VisF e k1) as ot.
-        hinduction REL0 before CIH; intros; try discriminate; [ inv_Vis | eauto with itree ].
-        econstructor. intros.
-        apply (CIH _ _ _ (REL v) (REL0 v)). 
-      * eapply IHREL0; eauto. backstep.
-        destruct b1; inv CHECK0.
-        apply eqit_inv_Tau_r. now step.   *)
 
 #[global] Instance Reflexive_eqit b1 b2 : Reflexive RR -> Reflexive (@eqit E _ _ RR b1 b2).
 Proof.
@@ -857,11 +668,11 @@ Proof.
   stepdown. rewrite (observing_observe H). apply Reflexive_eqitF; eauto.
 Qed.
 
-#[global] Instance observing_sub_elem (c : Chain (eqit_mon eq false false)) (l r : itree E R) :
+#[global] Instance observing_sub_elem b1 b2 (c : Chain (eqit_mon eq b1 b2)) (l r : itree E R) :
   subrelation (@observing E R R eq) (elem c).
 Proof.
   repeat intro.
-  inv H. stepdown.  rewrite observing_observe. 
+  inv H. stepdown. rewrite observing_observe. 
   backstep. reflexivity. 
 Qed.
 
@@ -956,26 +767,37 @@ Proof.
   - assumption. 
 Qed. 
 
-(* this proof is much shorter and nicer than before. *)
+Lemma eqitF_inv_Tau {E R1 R2 RR} b1 b2 t1 t2 :
+  @eqitF E R1 R2 RR b1 b2 (gfp (eqit_mon RR b1 b2)) (TauF t1) (TauF t2) 
+  -> eqitF RR b1 b2 (gfp (eqit_mon RR b1 b2)) (observe t1) (observe t2).
+Proof with eauto with itree.
+  intros.
+  remember (TauF t1) as ot1. 
+  remember (TauF t2) as ot2. 
+revert t1 t2 Heqot1 Heqot2.
+induction H; intros t1' t2' Heqot1 Heqot2; try easy; subst.
+- inv Heqot1; inv Heqot2. now backstep.  
+- inv H; inv Heqot1; simpobs. 
+    + taul. now step in REL.  
+    + taul. now apply IHeqitF.  
+    + assumption. 
+  - inv H; inv Heqot2; simpobs. 
+    + taur. now step in REL. 
+    + assumption. 
+    + taur. now apply IHeqitF. 
+Qed. 
+
 Lemma eqit_inv_Tau {E R1 R2 RR} b1 b2 t1 t2 :
   @eqit E R1 R2 RR b1 b2 (Tau t1) (Tau t2) -> eqit RR b1 b2 t1 t2.
 Proof with eauto with itree.
   intros.
-  step in H; down.
-  genobs (Tau t1) ot1. 
-  genobs (Tau t2) ot2. 
-revert t1 t2 Heqot1 Heqot2.
-induction H; intros t1' t2' Heqot1 Heqot2; try easy; subst.
-- now inv Heqot1; inv Heqot2. 
-- inv H; inv Heqot1; step; down; simpobs. 
-    + taul. now step in REL.  
-    + taul. backstep. now apply IHeqitF.  
-    + assumption. 
-  - inv H; inv Heqot2; step; down; simpobs. 
-    + taur. now step in REL. 
-    + assumption. 
-    + taur. backstep. now apply IHeqitF. 
+  step in H; step; down.
+  now apply eqitF_inv_Tau. 
 Qed. 
+
+(* other properties *)
+
+
 
 Section eqit_inv.
 
@@ -2062,9 +1884,9 @@ can we generalize to be heterogeneous for an RR that relates R1, R2?
 next q: 
 weak bisim: 
 
-4. 
+4. DONE 
 forall (c : Chain (eqit_mon RR true true)), Refl RR -> Refl c 
-5. 
+5. DONE 
 forall (c : Chain (eqit_mon RR true true)), Sym RR -> Sym c 
 (* do not attempt: *)
 forall (c : Chain (eqit_mon RR true true)), Trans RR -> Trans c 
@@ -2085,7 +1907,7 @@ but this should be a particular case of a more gen lemma: under context reasonin
 (here bind is the context)
 
 back to bind: 
-6. 
+[DONE, SORT OF]6. 
 forall (c : Chain (eqit_mon SS b1 b2)) RR, 
 Proper (eutt RR ==> (fun k g => (forall x y, RR x y -> c (k x) (g y))) ==> c) 
 bind 
@@ -2138,7 +1960,8 @@ Proof.
   constructor; typeclasses eauto. 
 Qed.
 
-Goal forall R RS (c : Chain (@eqit_mon E R R RS true false)), PreOrder RS -> PreOrder (elem c). 
+Lemma Preorder_elem R RS (c : Chain (@eqit_mon E R R RS true false)) :
+    PreOrder RS -> PreOrder (elem c). 
 Proof. 
   repeat intro. 
   constructor. 
@@ -2147,6 +1970,116 @@ Proof.
   repeat intro.
   assert (H1':=H1); backstep in H1'. 
   assert (H2':=H2); backstep in H2'.
+  (* this is just transitivity of euttge. ugh. *)
 Abort. 
+
+Lemma Reflexive_elem_eutt R RS (c : Chain (@eqit_mon E R R RS true true)) :
+      Reflexive RS -> Reflexive (elem c). 
+Proof. typeclasses eauto. Qed.
+
+Lemma Symmetric_elem_eutt R RS (c : Chain (@eqit_mon E R R RS true true)) :
+      Symmetric RS -> Symmetric (elem c). 
+Proof. typeclasses eauto. Qed.
+
+(* modified: eqit_mon SS b1 b2 -> true true *)
+Lemma Proper_elem_bind X1 X2 Y1 Y2 RX SS u v k g 
+  (c : Chain (eqit_mon SS true true)) : 
+  eutt RX u v -> (forall x1 x2, RX x1 x2 -> elem c (k x1) (g x2)) -> 
+  elem c (@ITree.bind E X1 Y1 u k) (@ITree.bind E X2 Y2 v g).
+Proof. 
+  intros. do 2 backstep.
+  revert u v H.
+  coinduction c' CIH. intros. 
+  down. rewrite 2observe_bind.  
+  stepdown in H. induction H; simpobs.
+  (* this seems impossible. we only know (elem c (k x2) (g x2)),
+  from which nothing obvious can be derived. *)
+  - admit.
+   (* rest of proof goes through fine:  *)
+  - constructor. now apply CIH.
+  - constructor. intro. apply CIH. apply REL.
+   (* note: we cannot prove these cases for a generic b1 b2 in the chain *)
+  - taul. rewrite observe_bind. eapply IHeqitF; eauto. 
+  - taur. rewrite observe_bind. eapply IHeqitF; eauto. 
+Abort. 
+
+(* we can prove this other version, with the elem c under the forall 
+changed to an eutt: *)
+
+Lemma Proper_eutt_elem_bind X1 X2 Y1 Y2 RX SS u v k g 
+  (c : Chain (eqit_mon SS true true)) : 
+  eutt RX u v -> (forall x1 x2, RX x1 x2 -> eutt SS (k x1) (g x2)) -> 
+  elem c (@ITree.bind E X1 Y1 u k) (@ITree.bind E X2 Y2 v g).
+Proof. 
+  intros. do 2 backstep.    
+  revert u v H.
+  coinduction c' CIH. intros.  
+  down. rewrite 2observe_bind. 
+  stepdown in H. induction H; simpobs. 
+  - backstep. now apply H0.
+  - constructor. now apply CIH.  
+  - constructor. intros. apply CIH, REL. 
+  - taul. rewrite observe_bind. now apply IHeqitF.
+  - taur. rewrite observe_bind. now apply IHeqitF.
+Qed.
+
+(* We can't state this nicely as a Proper relation, since proper instances
+need to have subcomponents that share types. eutt RX violates this, as 
+u and v are different. *)
+
+(* This being proven, proving things about elem c is actually quite weak: it is
+the 'most random' or 'least informative' relation in our story. Proving things
+about the underlying functor or its gfp are both informative (and help prove
+things about elem). But which can be derived from elem c for a specific c is
+very little in our theory so far. *)
+
+
+#[export] Instance Transitive_elem_tf R RT (HE : Transitive RT) {c: Chain (@eqit_mon E R R RT true false)}: Transitive (elem c).
+ Proof.
+    apply Transitive_chain. repeat intro. down.
+    backstep.
+    revert x y z H0 H1. 
+  (* we'll need the coinductive reasoning later: elements of the chain 
+  are transitive w.r.t. eqit. *)
+  coinduction c' CIH. intros. 
+  down. genobs z oz. 
+  (* we begin with induction on t1 ~ t2. 
+  in each case, we perform induction on t2 ~ t3.  *)
+  hinduction H0 before CIH; intros; subst; clear x y. 
+  (* Ret, straightforward *)
+  - remember (RetF r2) as ot.
+    hinduction H1 before CIH; intros; inv Heqot; eauto with itree.
+  - genobs z oz. 
+  (* need something more: t3 is either a τ node, or it isn't. *)
+    assert (DEC: (exists m3, oz = TauF m3) \/ (forall m3, oz <> TauF m3)).
+    { destruct oz; eauto; right; red; intros; easy. }
+    destruct DEC as [EQ | EQ].
+    + destruct EQ as [m3 ?]; subst; simpobs. 
+    (* τ - τ case: strip both. *)
+      econstructor.
+      eapply CIH; eauto.
+      (* we're stuck here: elem R0 m1 m2 tells us nothing. *)
+      admit.
+      (* we're stuck here too: b (elem) is too weak for our inversion lemma. *)
+      admit. 
+    (* τ - ̸τ : we do further case analysis. *)
+    + inv H1; try (exfalso; eapply EQ; eauto; fail).
+      taul. 
+      hinduction REL0 before CIH; intros; try (exfalso; eapply EQ; eauto; fail).
+      (* stuck here now.  *)
+      admit. 
+      admit. 
+      admit. 
+  - remember (VisF e k2) as ot.
+    hinduction H1 before CIH; intros; try discriminate; [ inv_Vis ].
+    constructor. intro. 
+    eapply CIH. 
+    (* stuck. *)
+    admit. admit. 
+  - eauto with itree.
+  - remember (TauF t2) as ot.
+    genobs z ot3. 
+    hinduction H1 before CIH; intros; try inversion Heqot; try easy; subst.
+ Abort. 
 
 End eqit_elem. 
