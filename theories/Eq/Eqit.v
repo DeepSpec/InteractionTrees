@@ -2096,34 +2096,88 @@ Qed.
 
 (* For Yannick: LOOK HERE *)
 #[global] Instance euttge_cong_euttge_chain
-     (c : Chain (eqit_mon (RR : R1 -> R2 -> Prop) true false )) : 
-Proper (euttge (@eq R1) ==> @euttge E _ _  (@eq R2) ==> flip impl) (elem c).
+     (c : Chain (@eqit_mon E _ _ (RR : R1 -> R2 -> Prop) true true )) : 
+Proper (euttge (@eq R1) ==> euttge (@eq R2) ==> flip impl) (elem c).
 Proof.
   (* we would like to accumulate, unstep, and rewrite with monotonicity 
   and transitivitiy as in euttge_cong_euttge *)
 
-  repeat intro. 
-  accumulate H2.
-  unfold euttge, eqit in H, H0. 
-  assert (H':=H); step in H'. 
+(* 
+  x    ?elem c    x0 
+  |                
+  <=             <=
+  | 
+  y      elem c   y0
+
+
+*)
+(* let t be the companion of b *)
+  (* tower induction: 
+  inf_closed P ->
+  (forall x, P (t x) -> P (b (t x))) -> forall x,  P (t x).
+  *)
+  idtac.
+  unfold Proper, respectful, flip, impl. 
+  apply tower.
+  Search inf_closed. 
+  (* this needs to be a tactic. *)
+  do 2 (apply inf_closed_all; intro).  
+  apply inf_closed_impl. repeat intro; assumption. 
+  do 2 (apply inf_closed_all; intro).  
+  apply inf_closed_impl. repeat intro; assumption. 
+  apply inf_closed_impl. repeat intro. now apply H. 
+  repeat intro. now apply H. 
+(* this is the biggest proof of all time *)
+  intros. 
   assert (H0':=H0); step in H0'. 
+  assert (H1':=H1); step in H1'. 
   down. 
-  genobs x ox. 
-  genobs y oy. 
-  revert_until H'. 
-  induction H'; intros; subst; simpobs.
+  genobs x0 oa. 
+  genobs y oc. 
+  revert_until H0'. 
+  induction H0'; intros; subst; simpobs.
   - remember (RetF r2).
-    genobs x0 ox0.  
-    genobs y0 oy0.  
-    induction H0'; subst; simpobs. 
-    constructor. 
-    (* here we are stuck: we know nothing about RR. *)
-    shelve.  
-    (* we are also stuck here: we have a contradiction of sorts, 
-    but it is under elem: elem c (RetF r2) (TauF m1).
-    This might not even be a contradiction! 
-    *)
-Abort.
+    induction H1'; subst; simpobs; try easy; eauto with itree.
+    + stepdown in REL.  
+      inv H2. 
+      taur. 
+      remember (RetF r2).
+      genobs m2 om2. 
+      revert m1 REL. 
+      hinduction REL0 before i; intros; try easy; simpobs.
+    * remember (RetF r0).
+      induction REL0; inv Heqi0; subst; simpobs.  
+      -- now constructor. 
+      -- taur. eapply IHREL0; eauto. 
+    * remember (TauF t2). 
+    (* this should be a tactic *)
+    induction REL; inv Heqi0; try easy; simpobs.  
+      -- taur. eapply IHREL0; eauto. now backstep. 
+      -- taur. eapply IHREL; eauto. 
+  -
+  (* need destruction *)
+  
+    stepdown in REL.
+    remember (TauF m2).
+    genobs y0 oy0. 
+    revert x1 H1' H1.
+    move H2 before i.
+    revert_until H2.  
+    (* bad induction, need stronger *)
+    dependent induction H2; intros; subst; simpobs; try easy. 
+    + dependent induction H1'; subst; simpobs; try easy. 
+      * constructor. 
+        backstep in REL0. 
+        eapply H; eauto. 
+      * taur. eapply IHH1'; eauto. stepdown. simpobs. assumption. 
+    + shelve. 
+    + 
+  -  
+    
+
+
+
+
 
 (* This weaker version also fails in the same way: *)
 #[global] Instance euttge_cong_euttge_chain R RS 
