@@ -2093,40 +2093,56 @@ Proof.
   constructor; typeclasses eauto. 
 Qed.
 
+Notation chain_eq_itree E REL := (Chain (@eqit_mon E _ _ REL false false)).
+Notation chain_euttge   E REL := (Chain (@eqit_mon E _ _ REL true false)).
+Notation chain_eutt     E REL := (Chain (@eqit_mon E _ _ REL true true)).
+Ltac inf_closed_forall_auto := 
+repeat match goal with 
+
+| [|- inf_closed (fun _ => forall _, _)] => 
+  apply inf_closed_all; intro
+  end. 
+
+Ltac inf_closed_impl_auto := 
+repeat match goal with 
+| [|- inf_closed (fun _ => _ -> _)] => 
+  apply inf_closed_impl; repeat intro; 
+  match goal with [H : _ <= _ |- _] => apply H; auto end
+  end. 
+
+
+
+Ltac inf_closed_auto := 
+repeat match goal with 
+| [|- inf_closed _] => (inf_closed_forall_auto || inf_closed_impl_auto)
+end. 
+
+Ltac tower_induction := apply tower; [inf_closed_auto|].
+Tactic Notation "tower" "induction" := tower_induction. 
+
+
 
 (* For Yannick: LOOK HERE *)
 #[global] Instance euttge_cong_euttge_chain
-     (c : Chain (@eqit_mon E _ _ (RR : R1 -> R2 -> Prop) true true )) : 
-Proper (euttge (@eq R1) ==> euttge (@eq R2) ==> flip impl) (elem c).
+     (c : chain_eutt E RR) : 
+Proper (euttge eq  ==> euttge eq ==> flip impl) (elem c).
 Proof.
   (* we would like to accumulate, unstep, and rewrite with monotonicity 
   and transitivitiy as in euttge_cong_euttge *)
 
-(* 
-  x    ?elem c    x0 
-  |                
-  <=             <=
-  | 
-  y      elem c   y0
-
-
-*)
-(* let t be the companion of b *)
-  (* tower induction: 
-  inf_closed P ->
-  (forall x, P (t x) -> P (b (t x))) -> forall x,  P (t x).
-  *)
-  idtac.
   unfold Proper, respectful, flip, impl. 
-  apply tower.
-  Search inf_closed. 
-  (* this needs to be a tactic. *)
-  do 2 (apply inf_closed_all; intro).  
-  apply inf_closed_impl. repeat intro; assumption. 
-  do 2 (apply inf_closed_all; intro).  
-  apply inf_closed_impl. repeat intro; assumption. 
-  apply inf_closed_impl. repeat intro. now apply H. 
-  repeat intro. now apply H. 
+  tower induction.
+  
+  (* 
+  y  ← btt elem  → y0 
+  ↑                  ↑
+  btf gfp          btf gfp 
+  x0 ←  ?btt elem →  x1
+*)
+
+(* need trans btf eq gfp and btt eq elem *)
+  
+
 (* this is the biggest proof of all time *)
   intros. 
   assert (H0':=H0); step in H0'. 
@@ -2138,27 +2154,83 @@ Proof.
   induction H0'; intros; subst; simpobs.
   - remember (RetF r2).
     induction H1'; subst; simpobs; try easy; eauto with itree.
-    + stepdown in REL.  
-      inv H2. 
-      taur. 
-      remember (RetF r2).
-      genobs m2 om2. 
-      revert m1 REL. 
-      hinduction REL0 before i; intros; try easy; simpobs.
-    * remember (RetF r0).
+    stepdown in REL.  
+    inv H2. 
+    taur. 
+    remember (RetF r2).
+    genobs m2 om2. 
+    revert m1 REL.  
+    move REL0 before i. revert_until REL0.
+    hinduction REL0 before i; intros; try easy; simpobs.
+    + remember (RetF r0).
       induction REL0; inv Heqi0; subst; simpobs.  
-      -- now constructor. 
-      -- taur. eapply IHREL0; eauto. 
-    * remember (TauF t2). 
+      * now constructor. 
+      * taur. eapply IHREL0; eauto. 
+    + remember (TauF t2). 
     (* this should be a tactic *)
     induction REL; inv Heqi0; try easy; simpobs.  
-      -- taur. eapply IHREL0; eauto. now backstep. 
-      -- taur. eapply IHREL; eauto. 
-  -
-  (* need destruction *)
+      * taur. eapply IHREL0; eauto. now backstep. 
+      * taur. eapply IHREL; eauto. 
+  -  
+  (* this part sux *)
   
-    stepdown in REL.
-    remember (TauF m2).
+  (* need destruction *)
+  stepdown in REL.   
+  shelve. 
+
+  - 
+  remember (VisF e k2).
+  remember (VisF e k1).
+    induction H1'; subst; simpobs; try easy; eauto with itree.
+    stepdown in REL0.  
+    inv H2. 
+    taur. 
+    remember (VisF e k2).
+    remember (VisF e k1).
+    genobs m2 om2.
+    revert m1 REL0.  
+    move REL1 before i. revert_until REL1.
+    induction REL1; intros; try easy; simpobs.
+    + remember (VisF e0 k0).
+      induction REL1; try solve [inv Heqi1]; subst; simpobs.  
+      * do 2 inv_Vis. constructor. 
+      intro v. 
+      specialize (REL0 v). 
+      specialize (REL1 v). 
+      eapply H; eauto. 
+      * taur. eapply IHREL1; eauto. 
+    + remember (TauF t2). 
+    (* this should be a tactic *)
+    induction REL0; inv Heqi1; try easy; simpobs.  
+      * taur. eapply IHREL1; eauto. now backstep. 
+      * taur. eapply IHREL0; eauto.     
+Abort.       
+(* 
+  τ m2  ← btt elem  → y0 
+
+  m2                  ↑
+  ↑                 btf gfp 
+  |                   |
+  m1 btf gfp          
+
+  τ m1 ←  ?btt elem → x1
+*)
+
+(* 
+  m2  ← btt elem  → y0 
+  ↑                   ↑                                    |
+  btf gfp          btf gfp 
+  m1 ←  ?btt elem → x1
+*)
+
+  (* remember (TauF m2).
+
+
+
+    induction H1'; subst; simpobs; try easy; eauto with itree.
+    inv H2. 
+    taul. 
+  
     genobs y0 oy0. 
     revert x1 H1' H1.
     move H2 before i.
@@ -2172,7 +2244,7 @@ Proof.
       * taur. eapply IHH1'; eauto. stepdown. simpobs. assumption. 
     + shelve. 
     + 
-  -  
+  -   *)
     
 
 
