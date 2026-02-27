@@ -100,6 +100,13 @@ Ltac eappn f :=
     | [ id: f _ _ _ _ _ _ _ _ |- _ ] => eapply id
     end.
 
+Ltac break H :=
+  repeat match type of H with
+          | exists X, _  => destruct H
+          |  _ /\ _ => destruct H
+          |  _ \/ _ => destruct H
+          |  _ /\ _ => split
+          end.
 
 Ltac crunch :=
   repeat match goal with

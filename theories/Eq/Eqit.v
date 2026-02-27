@@ -2148,9 +2148,10 @@ Proof.
   assert (H0':=H0); step in H0'. 
   assert (H1':=H1); step in H1'. 
   down. 
-  genobs x0 oa. 
   genobs y oc. 
+  move H0' before oc. 
   revert_until H0'. 
+
   induction H0'; intros; subst; simpobs.
   - remember (RetF r2).
     induction H1'; subst; simpobs; try easy; eauto with itree.
@@ -2171,18 +2172,56 @@ Proof.
     induction REL; inv Heqi0; try easy; simpobs.  
       * taur. eapply IHREL0; eauto. now backstep. 
       * taur. eapply IHREL; eauto. 
-  -  
+  - 
   (* this part sux *)
   
   (* need destruction *)
   stepdown in REL.   
+
+genobs y0 oy0. 
+  (* need something more: t3 is either a τ node, or it isn't. *)
+    assert (DEC: (exists m3, oy0 = TauF m3) \/ (forall m3, oy0 <> TauF m3)).
+    { destruct oy0; eauto; right; red; intros; easy. }
+    destruct DEC as [EQ | EQ].
+    (* τ - τ case: strip both. *)
+    + destruct EQ as [m3 ?]; subst; simpobs.
+      inv H1'; try easy.  
+      * constructor.
+        backstep in REL. 
+        eapply H; eauto. 
+        backstep. down.
+        (* probably true but hard to prove *)
+        shelve. 
+      * 
+        (* same here *)
+        shelve. 
+    (* τ - ̸τ : we do further case analysis. *)
+    + inv H1'; try (exfalso; eapply EQ; eauto; fail).
+      taul. 
+      remember (TauF m2).
+      hinduction H2 before H; intros; try easy.
+      (* now we can handle each subcase with another layer of induction *)
+      * remember (RetF r2) as ot.
+        hinduction REL before H; intros; inv Heqi; eauto with itree.
+      * remember (VisF e k1) as ot.
+        hinduction REL0 before CIH; intros; try discriminate; [ inv_Vis | eauto with itree ].
+        econstructor. intros.
+        apply (CIH _ _ _ (REL v) (REL0 v)). 
+      * eapply IHREL0; eauto. backstep.
+        destruct b1; inv CHECK0.
+        apply eqit_inv_Tau_r. now step. 
+
+
+
+
+
   shelve. 
 
   - 
   remember (VisF e k2).
   remember (VisF e k1).
     induction H1'; subst; simpobs; try easy; eauto with itree.
-    stepdown in REL0.  
+    + stepdown in REL0.  
     inv H2. 
     taur. 
     remember (VisF e k2).
@@ -2191,19 +2230,29 @@ Proof.
     revert m1 REL0.  
     move REL1 before i. revert_until REL1.
     induction REL1; intros; try easy; simpobs.
-    + remember (VisF e0 k0).
-      induction REL1; try solve [inv Heqi1]; subst; simpobs.  
-      * do 2 inv_Vis. constructor. 
+    * remember (VisF e0 k0).
+      remember (VisF e0 k3).
+      induction REL1; try solve [inv Heqi2]; subst; simpobs.  
+      -- do 2 inv_Vis. constructor.  
       intro v. 
-      specialize (REL0 v). 
+      specialize (REL v). 
       specialize (REL1 v). 
       eapply H; eauto. 
-      * taur. eapply IHREL1; eauto. 
-    + remember (TauF t2). 
+      -- taur. eapply IHREL1; eauto. 
+    * remember (TauF t2). 
     (* this should be a tactic *)
     induction REL0; inv Heqi1; try easy; simpobs.  
-      * taur. eapply IHREL1; eauto. now backstep. 
-      * taur. eapply IHREL0; eauto.     
+      -- taur. eapply IHREL1; eauto. now backstep. 
+      -- taur. eapply IHREL0; eauto.
+    + apply eqitF_inv_VisF_weak in H2.
+      break H2; subst. 
+      eapply eqitF_VisF_gen; eauto. 
+      intro v. 
+      specialize (REL v). 
+      specialize (REL0 v). 
+      eapply H; eauto. 
+  - taul. eapply IHH0'; eauto. 
+  - easy. 
 Abort.       
 (* 
   τ m2  ← btt elem  → y0 
