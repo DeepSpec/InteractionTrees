@@ -2120,15 +2120,10 @@ end.
 Ltac tower_induction := apply tower; [inf_closed_auto|].
 Tactic Notation "tower" "induction" := tower_induction. 
 
-
-
-(* For Yannick: LOOK HERE *)
 #[global] Instance euttge_cong_euttge_chain
      (c : chain_eutt E RR) : 
 Proper (euttge eq  ==> euttge eq ==> flip impl) (elem c).
 Proof.
-  (* we would like to accumulate, unstep, and rewrite with monotonicity 
-  and transitivitiy as in euttge_cong_euttge *)
 
   unfold Proper, respectful, flip, impl. 
   tower induction.
@@ -2178,7 +2173,26 @@ Proof.
   (* need destruction *)
   stepdown in REL.   
 
-genobs y0 oy0. 
+  (* 
+  τ m2  ← btt elem  → y0 
+  m2                  ↑
+  ↑                   |
+btf gfp            btf gfp 
+  |                   |
+  m1 ← ?btt elem   →  x1
+*)
+
+(* by mono: *)
+
+  (* 
+  τ m2  ← btt elem  → τ m3 
+  ↑                   ↑
+btt gfp            btt gfp 
+  ↓                   ↓
+  τ m1 ← ?btt elem →  x1
+*)
+
+    genobs y0 oy0. 
   (* need something more: t3 is either a τ node, or it isn't. *)
     assert (DEC: (exists m3, oy0 = TauF m3) \/ (forall m3, oy0 <> TauF m3)).
     { destruct oy0; eauto; right; red; intros; easy. }
@@ -2188,38 +2202,43 @@ genobs y0 oy0.
       inv H1'; try easy.  
       * constructor.
         backstep in REL. 
-        eapply H; eauto. 
-        backstep. down.
+        eapply H; eauto.
+         (* really tricky: we want our 
+         inductive conclusions be b (elem) but
+         we want our goal to stay as elem *)
+        remember (TauF m2).
+        remember (TauF m3).
+        (* consider messing with elem before induction *)
+        hinduction H2 before H; intros; inv Heqi0; try inv Heqi; try easy. 
         (* probably true but hard to prove *)
-        shelve. 
-      * 
-        (* same here *)
-        shelve. 
+        -- shelve. 
+        -- shelve. 
+        (* same here, but probably looks similar to above *)
+      * shelve. 
     (* τ - ̸τ : we do further case analysis. *)
     + inv H1'; try (exfalso; eapply EQ; eauto; fail).
-      taul. 
+      * taul. 
       remember (TauF m2).
-      hinduction H2 before H; intros; try easy.
-      (* now we can handle each subcase with another layer of induction *)
-      * remember (RetF r2) as ot.
-        hinduction REL before H; intros; inv Heqi; eauto with itree.
-      * remember (VisF e k1) as ot.
-        hinduction REL0 before CIH; intros; try discriminate; [ inv_Vis | eauto with itree ].
-        econstructor. intros.
-        apply (CIH _ _ _ (REL v) (REL0 v)). 
-      * eapply IHREL0; eauto. backstep.
-        destruct b1; inv CHECK0.
-        apply eqit_inv_Tau_r. now step. 
-
-
-
-
-
-  shelve. 
-
-  - 
-  remember (VisF e k2).
-  remember (VisF e k1).
+      (* pattern: do something with H2, or with REL?
+        going to be same in RET and VIS; we will use congruence.
+      *)
+      shelve. 
+        (* hinduction REL before H; intros; inv Heqi; eauto with itree. *)
+      * taul. remember (TauF m2) as ot.
+      (* need strong general IH but not too strong *)
+        revert H2. intros H2. 
+        (* this is just a fancy inversion *)
+        inv H2; simpobs; try easy.
+        inv H5. 
+        (* again, we're here *)
+        shelve. 
+      * constructor. 
+      inv H2; try congruence.
+      backstep in REL0. backstep in REL. 
+      (* want H here, need to know more about m2 and y0 *)
+      eapply H; eauto. now backstep. 
+  - remember (VisF e k2).
+    remember (VisF e k1).
     induction H1'; subst; simpobs; try easy; eauto with itree.
     + stepdown in REL0.  
     inv H2. 
@@ -2254,51 +2273,6 @@ genobs y0 oy0.
   - taul. eapply IHH0'; eauto. 
   - easy. 
 Abort.       
-(* 
-  τ m2  ← btt elem  → y0 
-
-  m2                  ↑
-  ↑                 btf gfp 
-  |                   |
-  m1 btf gfp          
-
-  τ m1 ←  ?btt elem → x1
-*)
-
-(* 
-  m2  ← btt elem  → y0 
-  ↑                   ↑                                    |
-  btf gfp          btf gfp 
-  m1 ←  ?btt elem → x1
-*)
-
-  (* remember (TauF m2).
-
-
-
-    induction H1'; subst; simpobs; try easy; eauto with itree.
-    inv H2. 
-    taul. 
-  
-    genobs y0 oy0. 
-    revert x1 H1' H1.
-    move H2 before i.
-    revert_until H2.  
-    (* bad induction, need stronger *)
-    dependent induction H2; intros; subst; simpobs; try easy. 
-    + dependent induction H1'; subst; simpobs; try easy. 
-      * constructor. 
-        backstep in REL0. 
-        eapply H; eauto. 
-      * taur. eapply IHH1'; eauto. stepdown. simpobs. assumption. 
-    + shelve. 
-    + 
-  -   *)
-    
-
-
-
-
 
 (* This weaker version also fails in the same way: *)
 #[global] Instance euttge_cong_euttge_chain R RS 
