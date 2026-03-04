@@ -141,55 +141,34 @@ Qed.
 
 (* [coinduction]-like tactics  *)
 
-(* A smarter version of this should be part of the [coinduction] library *)
+(* Until https://github.com/damien-pous/coinduction/pull/22 gets merge *)
+Lemma pfp_gfp {X} {L : CompleteLattice X} (b : mon X): b (gfp b) <= (gfp b).
+Proof. apply b_chain. Qed.
 
-
-Ltac step_ :=
+Ltac step :=
 match goal with
-| |- gfp ?b ?x ?y ?z => apply ((gfp_fp b x y z))
-| |- elem ?R ?x ?y ?z => apply (b_chain R x y z)
-| |- gfp ?b ?x ?y => apply ((gfp_fp b x y))
-| |- elem ?R ?x ?y => apply (b_chain R x y)
-| |- gfp ?b ?x => apply ((gfp_fp b x))
-| |- elem ?R ?x => apply (b_chain R x)
+| |- context [gfp ?b] => apply (pfp_gfp b)
+| |- context [elem ?R] => apply (b_chain R)
 end.
 
-Ltac step := first [step_ | red; step_ | Coinduction.tactics.step | 
-match goal with 
-| [|- gfp ?b _ _] => apply (gfp_fp b)
-end ].
+Ltac step_in h :=
+match type of h with
+| context [gfp ?b] => apply (gfp_pfp b) in h
+end.
 
-(* Technically, stepping in hypotheses in the direction shown below
-should be backstepping, and vice versa.
-This is something that we should choose on in a meeting. *)
+Tactic Notation "step" "in" ident(h) := step_in h.
 
-Ltac step_in H :=
-  match type of H with
-  | gfp ?b ?x ?y ?z => apply (gfp_fp b x y z) in H
-  | gfp ?b ?x ?y => apply (gfp_fp b x y) in H
-  | gfp ?b ?x => apply (gfp_fp b x) in H
-  | _ => red in H; step_in H
-  end.
-Tactic Notation "step" "in" ident(H) := step_in H.
+Ltac unstep :=
+match goal with
+| |- context [gfp ?b] => apply (gfp_pfp b)
+end.
 
-Ltac backstep := 
-  match goal with 
-| [|- _ _ _ _ (gfp ?b) _ _]=> 
-    apply (gfp_pfp b) 
-| [|- _ _ _ _ (elem ?c) _ _ ]=>
-    apply (gfp_bchain c)
-| [|- elem ?c _ _] => apply (b_chain c)
-end. 
+Ltac unstep_in h :=
+match type of h with
+| context [gfp ?b] => apply (pfp_gfp b) in h
+end.
 
-Ltac backstep_in H := 
-  match type of H with 
-| _ _ _ _ (gfp ?b) _ _=> 
-    apply (gfp_fp b) in H 
-| _ _ _ _ (elem ?c) _ _ =>
-    apply (b_chain c) in H 
-end. 
-
-Tactic Notation "backstep" "in" ident(H) := backstep_in H.
+Tactic Notation "unstep" "in" ident(h) := unstep_in h.
 
 (* Oft-used induction tactic for general IHs. *)
 Tactic Notation "hinduction" hyp(IND) "before" hyp(H)
