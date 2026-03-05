@@ -165,6 +165,10 @@ Arguments eqit_ {E R1 R2} RR b1 b2 sim t1 t2/.
     [≈] using [[\approx]]
     [≳] using [[\gtrsim]]
 in tex-mode
+
+Ongoing hesitation: should the [icoinduction] tactic expose a [eqit_mon R b b']
+goal, or directly a [eqitF R b b'] one?
+Experimenting with the latter at the moment.
  *)
 
 Infix "≅⟨ R ⟩"   := (eq_itree R) (at level 70) : type_scope.
@@ -189,6 +193,8 @@ Infix "[≳]" := (@elem _ _ (eqit_mon eq true false) _) (at level 70) : type_sco
 #[global] Hint Unfold eq_itree : itree.
 #[global] Hint Unfold eutt : itree.
 #[global] Hint Unfold euttge : itree.
+(* Alternative notation to the ` with a \dot. Would be good to pick an ascii
+ one instead maybe? *)
 #[local] Notation "̇ R" := (elem R) (at level 2, R at level 1, format "̇ R").
 (* end hide *)
 
@@ -204,9 +210,9 @@ Infix "[≳]" := (@elem _ _ (eqit_mon eq true false) _) (at level 70) : type_sco
 #[local] Ltac iunfold_all :=
   unfold euttge, eq_itree, eutt, eqit in *.
 
- #[local] Ltac iunfold_in h :=
-   unfold euttge, eq_itree, eutt, eqit in h.
-   
+#[local] Ltac iunfold_in h :=
+  unfold euttge, eq_itree, eutt, eqit in h.
+
 #[local] Ltac iunfold :=
   unfold euttge, eq_itree, eutt, eqit.
 
@@ -216,6 +222,7 @@ Infix "[≳]" := (@elem _ _ (eqit_mon eq true false) _) (at level 70) : type_sco
 Tactic Notation "unstep" := iunfold; unstep.
 Tactic Notation "step"   := step; cbn.
 
+(* Trick for unfolding only the relevant instances *)
 #[local] Ltac iunfold_coind :=
     first
       [intros ?; iunfold_coind; revert_last |
@@ -488,20 +495,30 @@ Section eqit_gen.
 
   Context {E : Type -> Type} {R: Type} (RR : R -> R -> Prop).
 
+  (** *** Order properties of the respective chains *)
+
+  (** Universal properties of the chains of the respective relations:
+    - all three are reflexive
+    - the chains for [eq_itree] and [eutt] are symmetric
+    - the chain for [eq_itree] is additionnally transitive
+Properties of the chains specialize to the relations: the gfp is an element of the chain.
+   *)
+  
   #[global] Instance Reflexive_eqitF b1 b2 (sim : itree E R -> itree E R -> Prop)
     : Reflexive RR -> Reflexive sim -> Reflexive (eqitF RR b1 b2 sim).
   Proof.
     red. destruct x; constructor; eauto with itree.
   Qed.
 
+  (* We of course exclude the asymmetric case *)
   #[global] Instance Symmetric_eqitF b (sim : itree E R -> itree E R -> Prop)
     : Symmetric RR -> Symmetric sim -> Symmetric (eqitF RR b b sim).
   Proof.
     red. induction 3; constructor; subst; eauto.
   Qed.
 
-  (* weak: eqitF is transitive under strong bisimulation assumptions *)
-  #[global] Instance Transitive_eqitF_ff (sim : itree E R -> itree E R -> Prop)
+  (* Note the strong bisimulation assumption *)
+  #[global] Instance Transitive_eqitF (sim : itree E R -> itree E R -> Prop)
     : Transitive RR -> Transitive sim -> Transitive (eqitF RR false false sim).
   Proof.
     intros ?? t u v EQ1 EQ2.
@@ -510,31 +527,18 @@ Section eqit_gen.
     constructor; eauto.
   Qed. 
 
-  (* eutt is still transitive, but for different reasons *)
-  
-  (* strongest: holds for all instances of eqit *)
   #[global] Instance Reflexive_eqit_ b1 b2 (sim : itree E R -> itree E R -> Prop)
     : Reflexive RR -> Reflexive sim -> Reflexive (eqit_ RR b1 b2 sim).
   Proof. repeat red. intros. reflexivity. Qed.
 
-  (* weak: holds only with eqit or eutt *)
   #[global] Instance Symmetric_eqit_ b (sim : itree E R -> itree E R -> Prop)
     : Symmetric RR -> Symmetric sim -> Symmetric (eqit_ RR b b sim).
   Proof. repeat red; symmetry; auto. Qed.
 
-  (* weak: holds only for strong bisimilarity *)
   #[global] Instance Transitive_eqit_ (sim : itree E R -> itree E R -> Prop)
     : Transitive RR -> Transitive sim -> Transitive (eqit_ RR false false sim).
   Proof. repeat red; etransitivity; eauto. Qed.
 
-  (** *** [eqit] is an equivalence relation *)
-
-  (** Universal properties of the chains of the respective relations:
-    - all three are reflexive
-    - the chains for [eq_itree] and [eutt] are symmetric
-    - the chain for [eq_itree] is additionnally transitive
-Properties of the chains specialize to the relations: the gfp is an element of the chain.
-   *)
   #[global] Instance Reflexive_elem (b1 b2: bool) (HR : Reflexive RR)
     {c: Chain (@eqit_mon E R R RR b1 b2)}: Reflexive (elem c).
   Proof.
@@ -560,13 +564,7 @@ Properties of the chains specialize to the relations: the gfp is an element of t
   Proof.
     constructor; typeclasses eauto.
   Qed.  
-
-  (* Although trivial particular case, we define instances for the [gfp]s as they are definitions *)
-  #[global] Instance Equivalence_eq_itree (HT : Equivalence RR) : Equivalence (eq_itree (E := E) RR).
-  Proof.
-    now apply Equivalence_elem.
-  Qed.
-
+ 
 End eqit_gen.
 
 
@@ -874,7 +872,7 @@ Proof.
   intros. destruct H; eauto.
 Qed.
 
-(* core proof: transitivity of eqit *)
+(* Transitivity of eqit *)
 Lemma eqit_trans {E R1 R2 R3} (RR1: R1->R2->Prop) (RR2: R2->R3->Prop) b1 b2 t1 t2 t3
       (INL: eqit RR1 b1 b2 t1 t2)
       (INR: eqit RR2 b1 b2 t2 t3):
@@ -931,6 +929,9 @@ Proof.
     + taur. eapply IHINR; eauto. 
 Qed.
 
+(* We can now package the instances for the top level relations:
+   two equivalences and a preorder as expected.
+ *)
 #[global] Instance Transitive_eqit {E : Type -> Type} {R: Type} (RR : R -> R -> Prop) (b1 b2: bool):
   Transitive RR -> Transitive (@eqit E _ _ RR b1 b2).
 Proof.
@@ -968,6 +969,18 @@ Proof.
   constructor; try typeclasses eauto.
 Qed.
 
+#[global] Instance Transitive_euttge {E R RR} : Transitive RR -> Transitive (@euttge E R R RR).
+Proof.
+  red; intros. assert (TRANS := trans_rcompose RR). eapply eqit_mono, eqit_trans; eauto.
+  repeat intro. now apply TRANS. 
+Qed.
+
+#[global] Instance PreOrder_euttge {E R RR} : PreOrder RR -> PreOrder (@euttge E R R RR).
+Proof.
+  constructor; try typeclasses eauto.
+Qed.
+
+(* Ongoing sanity tests *)
 Module Tests.
   #[local] Parameter E : Type -> Type.
   #[local] Parameter R : Type.
