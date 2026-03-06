@@ -859,7 +859,7 @@ repeat intro.
 pose proof (euttge_eutt_elem RR (chain_b c)). 
 unfold Proper, respectful in H2. 
 Search Chain. 
-
+fail. 
 
 (* There's no reason to restrict to the monomorphic case except for
    [subrelation] only supporting monomorphic relations
@@ -888,7 +888,6 @@ Proof.
   intros ?? H; apply euttge_sub_eutt, eq_sub_euttge, H.
 Qed.
 
->>>>>>> c8415f5 (notes on next steps)
 (** *** Transitivity properties *)
 
 Inductive rcompose {R1 R2 R3} (RR1: R1->R2->Prop) (RR2: R2->R3->Prop) (r1: R1) (r3: R3) : Prop :=
@@ -1018,7 +1017,7 @@ Qed.
 (* There's no reason to restrict to the monomorphic case except for
    [subrelation] only supporting monomorphic relations
  *)
-#[global] Instance eq_sub_euttge {E R} (RR : R -> R -> Prop):
+(* #[global] Instance eq_sub_euttge {E R} (RR : R -> R -> Prop):
   subrelation (@eq_itree E _ _ RR) (euttge RR).
 Proof.
   red.
@@ -1040,7 +1039,7 @@ Qed.
   subrelation (@eq_itree E _ _ RR) (eutt RR).
 Proof.
   intros ?? H; apply euttge_sub_eutt, eq_sub_euttge, H.
-Qed.
+Qed. *)
 
 
 #[global] Instance Equivalence_eutt {E R RR} : Equivalence RR -> Equivalence (@eutt E R R RR).
