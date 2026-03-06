@@ -850,6 +850,45 @@ Proof with eauto with itree.
       unstep; eapply euttge_tau_inv; eauto.
 Qed. 
 
+
+#[global] Instance euttge_eutt_b {E R1 R2}
+  (RR : R1 -> R2 -> Prop) (c : euttC RR):
+  Proper (going (euttge (E := E) eq) ==> going (euttge eq) ==> flip impl)  (eqitF RR true true (elem c)). 
+Proof with eauto with itree.
+repeat intro. 
+pose proof (euttge_eutt_elem RR (chain_b c)). 
+unfold Proper, respectful in H2. 
+Search Chain. 
+
+
+(* There's no reason to restrict to the monomorphic case except for
+   [subrelation] only supporting monomorphic relations
+ *)
+#[global] Instance eq_sub_euttge {E R} (RR : R -> R -> Prop):
+  subrelation (@eq_itree E _ _ RR) (euttge RR).
+Proof.
+  red.
+  icoinduction c CIH. intros.
+  step in H.
+  hinduction H before x; subst; eauto with itree. 
+Qed.
+
+#[global] Instance euttge_sub_eutt {E R} (RR : R -> R -> Prop):
+  subrelation (@euttge E _ _ RR) (eutt RR).
+Proof.
+  red.
+  icoinduction c CIH. intros.
+  step in H.
+  hinduction H before x; subst; eauto with itree. 
+Qed.
+
+#[global] Instance eq_sub_eutt {E R} (RR : R -> R -> Prop):
+  subrelation (@eq_itree E _ _ RR) (eutt RR).
+Proof.
+  intros ?? H; apply euttge_sub_eutt, eq_sub_euttge, H.
+Qed.
+
+>>>>>>> c8415f5 (notes on next steps)
 (** *** Transitivity properties *)
 
 Inductive rcompose {R1 R2 R3} (RR1: R1->R2->Prop) (RR2: R2->R3->Prop) (r1: R1) (r3: R3) : Prop :=
@@ -1070,7 +1109,7 @@ Module Tests.
     symmetry in H.
     reflexivity.
   Qed.
-   
+   (* 2. next: this: euttge RR is proper wrt eq_itree - make sure this works *)
   Goal t ≅ u -> v ≅ u -> t ≳ v -> t ≳ v.
     intros EQ1 EQ2 H.
     (* rewrite EQ1. *)
@@ -1098,7 +1137,8 @@ Debug: 1.1-2.1-1.1-1.1: simple apply @Reflexive_eqit_eq on
   Goal u ≈ t -> t ≈ u.
     icoinduction r cih.
     intros.
-    
+    Unset Printing Notations. 
+    (* to consider b elem  *)
    (* WIP *) 
 
 
