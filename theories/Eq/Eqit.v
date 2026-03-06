@@ -760,6 +760,24 @@ Notation "⊙ x" := (observe x) (only printing, at level 10).
 (* FOR ROGER
    Note the use of the lemma [euttge_tau_inv] in particular.
  *)
+
+(* for meeting *)
+ (* learned a lot from this. 
+    1 interesting difference is your induction on eqit_mon ... ̇c,
+     rather than on {≳}.
+    another is the strong IH. 
+    a third is use of certain interesting automation, which I'd like to learn
+    finally, edestructing a lemma. seems quite cool. 
+    
+    we will talk next steps at our meeting: 
+    1. where to go in this file: notation, tactic naming, etc. 
+      imo we should name things exactly as they will be in your 
+      coinduction library PR, so that they are easy to fix.
+    2. onwards: we want this proof but with euttgeC, no? 
+       finally, will we use uptotaus, or just move on to the next
+       part in ktrees? 
+    3. finally, thanks! 
+     *)
 #[global] Instance euttge_eutt_elem {E R1 R2}
   (RR : R1 -> R2 -> Prop) (c : euttC RR):
   Proper (euttge (E := E) eq ==> euttge eq ==> flip impl)  ̇c. 
