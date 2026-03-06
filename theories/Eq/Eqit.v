@@ -832,33 +832,6 @@ Proof with eauto with itree.
       unstep; eapply euttge_tau_inv; eauto.
 Qed. 
 
-(* There's no reason to restrict to the monomorphic case except for
-   [subrelation] only supporting monomorphic relations
- *)
-#[global] Instance eq_sub_euttge {E R} (RR : R -> R -> Prop):
-  subrelation (@eq_itree E _ _ RR) (euttge RR).
-Proof.
-  red.
-  icoinduction c CIH. intros.
-  step in H.
-  hinduction H before x; subst; eauto with itree. 
-Qed.
-
-#[global] Instance euttge_sub_eutt {E R} (RR : R -> R -> Prop):
-  subrelation (@euttge E _ _ RR) (eutt RR).
-Proof.
-  red.
-  icoinduction c CIH. intros.
-  step in H.
-  hinduction H before x; subst; eauto with itree. 
-Qed.
-
-#[global] Instance eq_sub_eutt {E R} (RR : R -> R -> Prop):
-  subrelation (@eq_itree E _ _ RR) (eutt RR).
-Proof.
-  intros ?? H; apply euttge_sub_eutt, eq_sub_euttge, H.
-Qed.
-
 (** *** Transitivity properties *)
 
 Inductive rcompose {R1 R2 R3} (RR1: R1->R2->Prop) (RR2: R2->R3->Prop) (r1: R1) (r3: R3) : Prop :=
@@ -928,7 +901,7 @@ Proof.
     + now eapply IHINL.
     + taur. eapply IHINR; eauto. 
 Qed.
-
+Arguments eqit_trans {E R1 R2 R3} [RR1 RR2 b1 b2 t1 t2 t3].
 (* We can now package the instances for the top level relations:
    two equivalences and a preorder as expected.
  *)
@@ -964,6 +937,55 @@ Proof.
   repeat intro. now apply TRANS. 
 Qed.
 
+Lemma rcompose_eql {R1 R2} (RR : R1 -> R2 -> Prop) : eq_rel (rcompose eq RR) RR.
+Proof.
+  split; [intros ?? []; now subst | intros ???; now econstructor].
+Qed.
+Lemma rcompose_eqr {R1 R2} (RR : R1 -> R2 -> Prop) : eq_rel (rcompose RR eq) RR.
+Proof.
+  split; [intros ?? []; now subst | intros ???; econstructor; eauto].
+Qed.
+
+#[global] Instance eutt_cong_eutt_eq {E R1 R2 RS}:
+  Proper (eutt eq ==> eutt eq ==> flip impl)
+         (@eutt E R1 R2 RS).
+Proof.
+  intros t t' EQ1 u u' EQ2 EQUIV.
+  pose proof eqit_trans EQ1 EQUIV as EQUIV'.
+  rewrite rcompose_eql in EQUIV'.
+  symmetry in EQ2.
+  pose proof eqit_trans EQUIV' EQ2 as EQUIV''.
+  now rewrite rcompose_eqr in EQUIV''.
+Qed.
+
+(* There's no reason to restrict to the monomorphic case except for
+   [subrelation] only supporting monomorphic relations
+ *)
+#[global] Instance eq_sub_euttge {E R} (RR : R -> R -> Prop):
+  subrelation (@eq_itree E _ _ RR) (euttge RR).
+Proof.
+  red.
+  icoinduction c CIH. intros.
+  step in H.
+  hinduction H before x; subst; eauto with itree. 
+Qed.
+
+#[global] Instance euttge_sub_eutt {E R} (RR : R -> R -> Prop):
+  subrelation (@euttge E _ _ RR) (eutt RR).
+Proof.
+  red.
+  icoinduction c CIH. intros.
+  step in H.
+  hinduction H before x; subst; eauto with itree. 
+Qed.
+
+#[global] Instance eq_sub_eutt {E R} (RR : R -> R -> Prop):
+  subrelation (@eq_itree E _ _ RR) (eutt RR).
+Proof.
+  intros ?? H; apply euttge_sub_eutt, eq_sub_euttge, H.
+Qed.
+
+
 #[global] Instance Equivalence_eutt {E R RR} : Equivalence RR -> Equivalence (@eutt E R R RR).
 Proof.
   constructor; try typeclasses eauto.
@@ -983,9 +1005,22 @@ Qed.
 (* Ongoing sanity tests *)
 Module Tests.
   #[local] Parameter E : Type -> Type.
-  #[local] Parameter R : Type.
-  #[local] Parameter t u v w : itree E R.
-  #[local] Parameter (EQ : t ≅ u).
+  #[local] Parameter R1 R2 : Type.
+  #[local] Parameter RR : R1 -> R2 -> Prop.
+  #[local] Parameter t u : itree E R1.
+  #[local] Parameter v w : itree E R2.
+  #[local] Parameter (EQ1 : t ≅ u).
+  #[local] Parameter (EQUIV1 : t ≈ u).
+  #[local] Parameter (EQ2 : v ≅ w).
+  #[local] Parameter (EQUIV2 : v ≈ w).
+
+  Goal eutt RR u v.
+    rewrite EQUIV2.
+    rewrite EQ2.
+    Show Proof.
+    eapply eq_itree_eutt_elem
+    rewrite EQUIV2.
+@eutt_Proper_R
   #[local] Parameter (EQUIV : u ≈ v).
   #[local] Parameter (GT : v ≳ w).
 
@@ -1020,10 +1055,27 @@ Module Tests.
    
   Goal t ≅ u -> v ≅ u -> t ≳ v -> t ≳ v.
     intros EQ1 EQ2 H.
-    rewrite EQ1.
-    Fail rewrite EQ2. (* TO FIX: only going through subrelation is insuficient *)
+    (* rewrite EQ1. *)
+    Typeclasses eauto := debug.
+    rewrite EQ2. (* TO FIX: only going through subrelation is insuficient *)
   Admitted.
-  
+Debug: 1.1-1.1: simple apply @eqitgen_cong_eqit_eq on
+(Proper (?R ==> eq_itree eq ==> flip impl) (euttge eq)), 0 subgoal(s)
+Debug: 1.1-2 : (ProperProxy (eq_itree eq) t)
+Debug: 1.1-2: looking for (ProperProxy (eq_itree eq) t) without backtracking
+Debug:
+1.1-2.1: (*external*) (class_apply @eq_proper_proxy ||
+                         class_apply @reflexive_proper_proxy) on
+(ProperProxy (eq_itree eq) t), 1 subgoal(s)
+Debug: 1.1-2.1-1 : (ReflexiveProxy (eq_itree eq))
+Debug: 1.1-2.1-1: looking for (ReflexiveProxy (eq_itree eq)) without backtracking
+Debug: 1.1-2.1-1.1: (*external*) (reflexive_proxy_tac A R) on
+(ReflexiveProxy (eq_itree eq)), 1 subgoal(s)
+Debug: 1.1-2.1-1.1-1 : (Reflexive (eq_itree eq))
+Debug: 1.1-2.1-1.1-1: looking for (Reflexive (eq_itree eq)) without backtracking
+Debug: 1.1-2.1-1.1-1.1: simple apply @Reflexive_eqit_eq on
+(Reflexive (eq_itree eq)), 0 subgoal(s)
+ 
   (* Test [coinduction] tactic, notations  *)
   Goal u ≈ t -> t ≈ u.
     icoinduction r cih.
@@ -1433,40 +1485,6 @@ repeat intro; unfold flip, eq_itree in *.
   eapply eqit_mono with (b1:=false) (b2:=false) (RR:=(flip RR2)); easy. 
 Qed. 
 
-
-#[global] Instance eqitgen_cong_eqit_eq {E R1 R2 RS} b1 b2:
-  Proper (eq_itree eq ==> eq_itree eq ==> flip impl)
-         (@eqit E R1 R2 RS b1 b2).
-Proof.
-  repeat intro.
-  eapply @eqitgen_cong_eqit with (RR1:=eq) (RR2:=eq); intros; subst; eauto. 
-Qed.
-
-(* sanity check: rewriting works. *)
-#[global] Instance eqitgen_cong_eqit_eq' {E R1 R2 RS} b1 b2:
-  Proper (eq_itree eq ==> eq_itree eq ==> flip impl)
-         (@eqit E R1 R2 RS b1 b2).
-Proof.
-  repeat intro.
-  now rewrite H0, H. 
-Qed.
-
-#[global] Instance euttge_cong_euttge {E R RS}
-       (TRANS: Transitive RS):
-  Proper (euttge RS ==> flip (euttge RS) ==> flip impl)
-         (@eqit E R R RS true false).
-Proof.
-  repeat intro. assert (HYP := trans_rcompose RS TRANS).
-  (* needed a bit of repair *)
-  do 2 (eapply eqit_mono with (RR:=rcompose RS RS); repeat intro; eauto; eapply eqit_trans; eauto).
-Qed.
-
-#[global] Instance euttge_cong_euttge_eq {E R}:
-  Proper (euttge eq ==> flip (euttge eq) ==> flip impl)
-         (@eqit E R R eq true false).
-Proof.
-  eapply euttge_cong_euttge; eauto using eq_trans.
-Qed.
 
 
 (* Auxiliary results on [itree]s. *)
