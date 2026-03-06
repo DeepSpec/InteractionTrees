@@ -178,12 +178,23 @@ Infix "{≅}" := (eqitF eq false false (elem _)) (at level 70, only parsing) : t
 Notation eq_itreeF R := (eqitF R false false).
 Infix "[≅⟨ R ⟩]" := (@elem _ _ (eqit_mon R false false) _) (at level 70) : type_scope.
 Infix "[≅]" := (@elem _ _ (eqit_mon eq false false) _) (at level 70) : type_scope.
+
+Infix "≈⟨ R ⟩" := (eutt R) (at level 70) : type_scope.
 Infix "≈" := (eutt eq) (at level 70) : type_scope.
+Infix "{≈⟨ R ⟩}" := (eqitF R true true (elem _)) (at level 70) : type_scope.
 Infix "{≈}" := (eqitF eq true true (elem _)) (at level 70) : type_scope.
+Notation euttF R := (eqitF R true true).
+Infix "[≈⟨ R ⟩]" := (@elem _ _ (eqit_mon R true true) _) (at level 70) : type_scope.
 Infix "[≈]" := (@elem _ _ (eqit_mon eq true true) _) (at level 70) : type_scope.
+
+Infix "≳⟨ R ⟩" := (euttge R) (at level 70) : type_scope.
 Infix "≳"   := (euttge eq) (at level 70) : type_scope.
+Infix "{≳⟨ R ⟩}" := (eqitF R true false (elem _)) (at level 70) : type_scope.
 Infix "{≳}" := (eqitF eq true false _) (at level 70) : type_scope.
+Notation euttgeF R := (eqitF R true false).
+Infix "[≳⟨ R ⟩]" := (@elem _ _ (eqit_mon R true false) _) (at level 70) : type_scope.
 Infix "[≳]" := (@elem _ _ (eqit_mon eq true false) _) (at level 70) : type_scope.
+
 
 (* begin hide *)
 #[global] Hint Constructors eqitF : itree.
@@ -199,7 +210,6 @@ Infix "[≳]" := (@elem _ _ (eqit_mon eq true false) _) (at level 70) : type_sco
 (* end hide *)
 
 (** Tactics *)
-(* RTODO: Ask if these should be coqdoc documented or hidden. *)
 
 (* We first enhance the coinduction tactic to recognize goals that 
    do not have a syntactic match with [gfp _] *)
@@ -754,12 +764,7 @@ Proof.
     eapply IHEQ; eauto.
 Qed.
 
-Notation euttgeF R := (eqitF R true false).
 Notation "⊙ x" := (observe x) (only printing, at level 10).
-
-(* FOR ROGER
-   Note the use of the lemma [euttge_tau_inv] in particular.
- *)
 
 (* for meeting *)
  (* learned a lot from this. 
@@ -851,15 +856,15 @@ Proof with eauto with itree.
 Qed. 
 
 
-#[global] Instance euttge_eutt_b {E R1 R2}
+(* #[global] Instance euttge_eutt_b {E R1 R2}
   (RR : R1 -> R2 -> Prop) (c : euttC RR):
   Proper (going (euttge (E := E) eq) ==> going (euttge eq) ==> flip impl)  (eqitF RR true true (elem c)). 
 Proof with eauto with itree.
 repeat intro. 
 pose proof (euttge_eutt_elem RR (chain_b c)). 
 unfold Proper, respectful in H2. 
-Search Chain. 
-fail. 
+Search Chain.
+fail.  *)
 
 (* There's no reason to restrict to the monomorphic case except for
    [subrelation] only supporting monomorphic relations
@@ -1072,12 +1077,12 @@ Module Tests.
 
   Goal eutt RR u v.
     rewrite EQUIV2.
-    rewrite EQ2.
+    rewrite <- EQ2.
     Show Proof.
-    eapply eq_itree_eutt_elem
-    rewrite EQUIV2.
-@eutt_Proper_R
-  #[local] Parameter (EQUIV : u ≈ v).
+    eapply eq_itree_eutt_elem.
+    rewrite <- EQ1.
+Abort. 
+  Fail #[local] Parameter (EQUIV : u ≈ v).
   #[local] Parameter (GT : v ≳ w).
 
   (* TODO: have tests work with a relation on leaves.
@@ -1085,7 +1090,7 @@ Module Tests.
    *) 
 
   (* Test for rewrites in [eutt]: [eq_itree eq], [] *)
-  Goal t ≈ w -> t ≈ w.
+  Goal t ≈⟨R⟩ w -> t ≈ w.
     intros H.
     rewrite EQ.
     rewrite EQ in H.
