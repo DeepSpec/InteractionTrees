@@ -146,12 +146,21 @@ Lemma pfp_gfp {X} {L : CompleteLattice X} (b : mon X): b (gfp b) <= (gfp b).
 Proof. apply b_chain. Qed.
 
   (* in goal: elem -> b elem -> gfp b -> b gfp *)
-Ltac step :=
-match goal with
-| |- context [gfp ?b] => apply (pfp_gfp b)
-| |- context [elem ?R] => apply (b_chain R) || apply (gfp_bchain R)
-end
-.
+
+Ltac step_ :=
+  match goal with
+  | |- gfp ?b ?x ?y ?z => apply ((gfp_fp b x y z))
+  | |- elem ?R ?x ?y ?z => apply (b_chain R x y z)
+  | |- gfp ?b ?x ?y => apply ((gfp_fp b x y))
+  | |- elem ?R ?x ?y => apply (b_chain R x y)
+  | |- gfp ?b ?x => apply ((gfp_fp b x))
+  | |- elem ?R ?x => apply (b_chain R x)
+  end.
+
+Ltac step := match goal with
+    | |- context [gfp ?b] => apply (pfp_gfp b)
+    | |- context [elem ?R] => apply (b_chain R) || apply (gfp_bchain R)
+    end. 
 
 Ltac step_in h :=
 match type of h with
