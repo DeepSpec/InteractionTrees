@@ -544,13 +544,13 @@ Properties of the chains specialize to the relations: the gfp is an element of t
   Proof. repeat red; etransitivity; eauto. Qed.
 
   #[global] Instance Reflexive_elem (b1 b2: bool) (HR : Reflexive RR)
-    {c: Chain (@eqit_mon E R R RR b1 b2)}: Reflexive (elem c).
+    {c: Chain (@eqit_mon E R R RR b1 b2)}: Reflexive ̇c.
   Proof.
     now apply Reflexive_chain; repeat intro; apply Reflexive_eqit_.
   Qed. 
 
   #[global] Instance Symmetric_elem (b: bool) (HS : Symmetric RR)
-    {c: Chain (@eqit_mon E R R RR b b)}: Symmetric (elem c).
+    {c: Chain (@eqit_mon E R R RR b b)}: Symmetric ̇c.
   Proof.
     now apply Symmetric_chain; repeat intro; apply Symmetric_eqit_. 
   Qed.  
@@ -1161,7 +1161,7 @@ Abort.
     rewrite <- GT. 
     assumption. 
   Qed.
-  
+
    (* RTODO: These *)
   Goal t ≅ u -> t ≅ u.
     intros H.
@@ -1181,7 +1181,7 @@ Abort.
     rewrite EQ2 in EQ2'. 
     (* eapply (eqit_mono RR RR false false); eauto.  *)
     (* next todo: get this to work *)
-    rewrite EQ2'.  
+    (* rewrite EQ2'.   *)
      (* TO FIX: only going through subrelation is insuficient *)
   Admitted.
 (* Debug: 1.1-1.1: simple apply @eqitgen_cong_eqit_eq on
