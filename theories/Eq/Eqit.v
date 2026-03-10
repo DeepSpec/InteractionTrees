@@ -308,8 +308,8 @@ Ltac solve_eqitF :=
    [taus] is simply the [EqTau] constructor, and serves the same purpose. 
    *)
 
-Ltac taul := apply EqTauL; only 1: auto. 
-Ltac taur := apply EqTauR; only 1: auto. 
+Ltac taul := apply EqTauL; [auto|].
+Ltac taur := apply EqTauR; [auto|]. 
 Ltac taus := apply EqTau. 
 
 Lemma eqitF_inv_VisF_r {E R1 R2} (RR : R1 -> R2 -> Prop) {b1 b2 sim}
@@ -849,39 +849,27 @@ Qed.
 
 Lemma eq_subH_euttge {E R1 R2} (RR : R1 -> R2 -> Prop):
   subrelationH (@eq_itree E _ _ RR) (euttge RR).
-Proof.
-  now apply eqit_mono. 
-Qed.
+Proof. now apply eqit_mono. Qed.
 
 #[global] Instance eq_sub_euttge {E R} (RR : R -> R -> Prop):
   subrelation (@eq_itree E _ _ RR) (euttge RR).
-Proof.
-  now apply eqit_mono. 
-Qed.
+Proof. now apply eqit_mono. Qed.
 
 Lemma euttge_subH_eutt {E R1 R2} (RR : R1 -> R2 -> Prop):
   subrelationH (@euttge E _ _ RR) (eutt RR).
-Proof.
-  now eapply eqit_mono. 
-Qed.
+Proof. now eapply eqit_mono. Qed.
 
 #[global] Instance euttge_sub_eutt {E R} (RR : R -> R -> Prop):
   subrelation (@euttge E _ _ RR) (eutt RR).
-Proof.
-  now apply eqit_mono. 
-Qed.
+Proof. now apply eqit_mono. Qed.
 
 Lemma eq_subH_eutt {E R1 R2} (RR : R1 -> R2 -> Prop):
   subrelationH (@eq_itree E _ _ RR) (eutt RR).
-Proof.
-  now apply eqit_mono. 
-Qed.
+Proof. now apply eqit_mono. Qed.
 
 #[global] Instance eq_sub_eutt {E R} (RR : R -> R -> Prop):
   subrelation (@eq_itree E _ _ RR) (eutt RR).
-Proof.
-  now apply eqit_mono. 
-Qed.
+Proof. now apply eqit_mono. Qed.
 
 #[global] Instance eq_proper_euttC {E R1 R2}
   (RR : R1 -> R2 -> Prop) (c : euttC RR):
@@ -920,17 +908,19 @@ Proof with eauto with itree.
   icoinduction c cih; intros; 
   step in H0; step in H1; step in H; icbn in *.
   all:
-  hinduction H1 before RR; intros; 
-  [ inv H; inv H0; simpobs; try easy; eauto with itree | 
-  inv H; inv H0; simpobs; try easy; eauto with itree |  
+  hinduction H1 before RR; intros. 
+  1-2, 6-7: inv H; inv H0; simpobs; try easy; eauto with itree. 
+  1,4:
   genvis e k1 ok1; inv H; simpobs; try easy; 
   genvis e k2 ok2; inv H0; simpobs; try easy;
   do 2 inv_Vis; constructor; intros;
   specialize (REL1 v);
   specialize (REL0 v);
-  eapply cih; eauto | 
-  inv H; simpobs; try easy; taul; eapply IHeqitF; eauto; now step in REL |
-  inv H0; simpobs; try easy;taur; eapply IHeqitF; eauto; now step in REL ].
+  eapply cih; eauto. 
+  1,3: 
+  inv H; simpobs; try easy; taul; eapply IHeqitF; eauto; now step in REL.
+  1-2: 
+  inv H0; simpobs; try easy; taur; eapply IHeqitF; eauto; now step in REL.
 Qed.
 
 
@@ -1151,7 +1141,6 @@ Abort.
   (* TODO: have tests work with a relation on leaves.
      Currently fails, need better instance
    *) 
-
   (* Test for rewrites in [eutt]: [eq_itree eq], [] *)
   (* RTODO: These *)
   Goal t ≈⟨RR⟩ w -> t ≈⟨RR⟩ w.
@@ -1191,6 +1180,7 @@ Abort.
     apply eqit_flip in EQ2'.
     rewrite EQ2 in EQ2'. 
     (* eapply (eqit_mono RR RR false false); eauto.  *)
+    (* next todo: get this to work *)
     rewrite EQ2'.  
      (* TO FIX: only going through subrelation is insuficient *)
   Admitted.
