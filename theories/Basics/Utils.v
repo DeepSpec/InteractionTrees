@@ -159,7 +159,7 @@ Ltac step_ :=
 
 Ltac step := match goal with
     | |- context [gfp ?b] => apply (pfp_gfp b)
-    | |- context [elem ?R] => apply (b_chain R) || apply (gfp_bchain R)
+    | |- context [elem ?R] => first [apply (b_chain R) | apply (gfp_bchain R)]
     end. 
 
 Ltac step_in h :=

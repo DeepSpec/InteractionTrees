@@ -8,11 +8,11 @@ R1 -> R2 -> Prop
 - 
    (* 2. next: this: euttge RR is proper wrt eq_itree - make sure this works *)
 - rename and redo sections
-- chain_b proof
 - keep building tests until rewriting robustness is clear 
    - organize file 
 
 *)
+
 (** * Strong bisimulation *)
 
 (** Because [itree] is a coinductive type, the naive [eq] relation
@@ -50,12 +50,6 @@ From ITree Require Import
 
 Local Open Scope itree_scope.
 (* end hide *)
-
-(* RTODO: remove these notes. they will be useful for now.
-
-------------------------------------------------------------
-
-*)
 
 (** ** Coinductive reasoning with Pous' Enhanced Coinduction library *)
 
@@ -178,63 +172,61 @@ Arguments eqit_ {E R1 R2} RR b1 b2 sim t1 t2/.
     [≅] using [[\cong]]
     [≈] using [[\approx]]
     [≳] using [[\gtrsim]]
-in tex-mode
-
-Ongoing hesitation: should the [icoinduction] tactic expose a [eqit_mon R b b']
-goal, or directly a [eqitF R b b'] one?
-Experimenting with the latter at the moment.
- *)
-
-Infix "≅⟨ R ⟩"   := (eq_itree R) (at level 70) : type_scope.
-Infix "≅"   := (eq_itree eq) (at level 70) : type_scope.
-Infix "{≅⟨ R ⟩}" := (eqitF R false false (elem _)) (at level 70) : type_scope.
-Infix "{≅}" := (eqitF eq false false (elem _)) (at level 70, only parsing) : type_scope.
-Notation eq_itreeF R := (eqitF R false false).
-Infix "[≅⟨ R ⟩]" := (@elem _ _ (eqit_mon R false false) _) (at level 70) : type_scope.
-Infix "[≅]" := (@elem _ _ (eqit_mon eq false false) _) (at level 70) : type_scope.
-
-Infix "≈⟨ R ⟩" := (eutt R) (at level 70) : type_scope.
-Infix "≈" := (eutt eq) (at level 70) : type_scope.
-Infix "{≈⟨ R ⟩}" := (eqitF R true true (elem _)) (at level 70) : type_scope.
-Infix "{≈}" := (eqitF eq true true (elem _)) (at level 70) : type_scope.
-Notation euttF R := (eqitF R true true).
-Infix "[≈⟨ R ⟩]" := (@elem _ _ (eqit_mon R true true) _) (at level 70) : type_scope.
-Infix "[≈]" := (@elem _ _ (eqit_mon eq true true) _) (at level 70) : type_scope.
-
-Infix "≳⟨ R ⟩" := (euttge R) (at level 70) : type_scope.
-Infix "≳"   := (euttge eq) (at level 70) : type_scope.
-Infix "{≳⟨ R ⟩}" := (eqitF R true false (elem _)) (at level 70) : type_scope.
-Infix "{≳}" := (eqitF eq true false _) (at level 70) : type_scope.
-Notation euttgeF R := (eqitF R true false).
-Infix "[≳⟨ R ⟩]" := (@elem _ _ (eqit_mon R true false) _) (at level 70) : type_scope.
-Infix "[≳]" := (@elem _ _ (eqit_mon eq true false) _) (at level 70) : type_scope.
-
-(* chains *)
-Notation euttC RR := (Chain (eqit_mon RR true true)).
-Notation euttgeC RR := (Chain (eqit_mon RR true false)).
-Notation eq_itreeC RR := (Chain (eqit_mon RR false false)).
-
-
-(* begin hide *)
-#[global] Hint Constructors eqitF : itree.
-#[global] Hint Unfold eqit_ : itree.
-#[global] Hint Unfold eqit_mon : itree.
-#[global] Hint Unfold eqit : itree.
-#[global] Hint Unfold eq_itree : itree.
-#[global] Hint Unfold eutt : itree.
-#[global] Hint Unfold euttge : itree.
-(* Alternative notation to the ` with a \dot. Would be good to pick an ascii
- one instead maybe? *)
-#[local] Notation "̇ R" := (elem R) (at level 2, R at level 1, format "̇ R").
-(* end hide *)
-
+    in tex-mode
+    
+    *)
+    
+    Infix "≅⟨ R ⟩"   := (eq_itree R) (at level 70) : type_scope.
+    Infix "≅"   := (eq_itree eq) (at level 70) : type_scope.
+    Infix "{≅⟨ R ⟩}" := (eqitF R false false (elem _)) (at level 70) : type_scope.
+    Infix "{≅}" := (eqitF eq false false (elem _)) (at level 70, only parsing) : type_scope.
+    Notation eq_itreeF R := (eqitF R false false).
+    Infix "[≅⟨ R ⟩]" := (@elem _ _ (eqit_mon R false false) _) (at level 70) : type_scope.
+    Infix "[≅]" := (@elem _ _ (eqit_mon eq false false) _) (at level 70) : type_scope.
+    
+    Infix "≈⟨ R ⟩" := (eutt R) (at level 70) : type_scope.
+    Infix "≈" := (eutt eq) (at level 70) : type_scope.
+    Infix "{≈⟨ R ⟩}" := (eqitF R true true (elem _)) (at level 70) : type_scope.
+    Infix "{≈}" := (eqitF eq true true (elem _)) (at level 70) : type_scope.
+    Notation euttF R := (eqitF R true true).
+    Infix "[≈⟨ R ⟩]" := (@elem _ _ (eqit_mon R true true) _) (at level 70) : type_scope.
+    Infix "[≈]" := (@elem _ _ (eqit_mon eq true true) _) (at level 70) : type_scope.
+    
+    Infix "≳⟨ R ⟩" := (euttge R) (at level 70) : type_scope.
+    Infix "≳"   := (euttge eq) (at level 70) : type_scope.
+    Infix "{≳⟨ R ⟩}" := (eqitF R true false (elem _)) (at level 70) : type_scope.
+    Infix "{≳}" := (eqitF eq true false _) (at level 70) : type_scope.
+    Notation euttgeF R := (eqitF R true false).
+    Infix "[≳⟨ R ⟩]" := (@elem _ _ (eqit_mon R true false) _) (at level 70) : type_scope.
+    Infix "[≳]" := (@elem _ _ (eqit_mon eq true false) _) (at level 70) : type_scope.
+    
+    (* chains *)
+    Notation euttC RR := (Chain (eqit_mon RR true true)).
+    Notation euttgeC RR := (Chain (eqit_mon RR true false)).
+    Notation eq_itreeC RR := (Chain (eqit_mon RR false false)).
+    
+    
+    (* begin hide *)
+    #[global] Hint Constructors eqitF : itree.
+    #[global] Hint Unfold eqit_ : itree.
+    #[global] Hint Unfold eqit_mon : itree.
+    #[global] Hint Unfold eqit : itree.
+    #[global] Hint Unfold eq_itree : itree.
+    #[global] Hint Unfold eutt : itree.
+    #[global] Hint Unfold euttge : itree.
+    (* Alternative notation to the ` with a \dot. Would be good to pick an ascii
+    one instead maybe? *)
+    #[local] Notation "̇ R" := (elem R) (at level 2, R at level 1, format "̇ R").
+    (* end hide *)
+    
 (** Tactics *)
+
+(* Ongoing hesitation: should the [icoinduction] tactic expose a [eqit_mon R b b']
+goal, or directly a [eqitF R b b'] one?
+Experimenting with the latter at the moment. *)
 
 (* We first enhance the coinduction tactic to recognize goals that 
    do not have a syntactic match with [gfp _] *)
-
-(* #[local] Ltac iunfold_in h := *)
-(*    cbn [eqit_mon body] in h; unfold euttge, eq_itree, eutt, eqit in h. *)
 
 #[local] Ltac iunfold_all :=
   unfold euttge, eq_itree, eutt, eqit in *.
@@ -245,11 +237,6 @@ Notation eq_itreeC RR := (Chain (eqit_mon RR false false)).
 #[local] Ltac iunfold :=
   unfold euttge, eq_itree, eutt, eqit.
 
-(* #[local] Ltac iunfold := *)
-(*    cbn [eqit_mon body]; unfold euttge, eq_itree, eutt, eqit. *)
-
-Tactic Notation "unstep" := iunfold; unstep.
-Tactic Notation "step"   := step; cbn.
 
 (* Trick for unfolding only the relevant instances *)
 #[local] Ltac iunfold_coind :=
@@ -278,7 +265,8 @@ Ltac refold_in h :=
 Tactic Notation "refold" "in" ident(h) := refold_in h.
 Tactic Notation "iunfold" "in" ident(h) := iunfold_in h.
 Tactic Notation "iunfold" "in" "*" := iunfold_all.
-Tactic Notation "step" := iunfold; step; refold.
+Tactic Notation "step" := iunfold; step; cbn; try refold.
+Tactic Notation "unstep" := iunfold; unstep.
 Tactic Notation "step" "in" ident(h) :=
   iunfold in h;
   step in h;
@@ -463,7 +451,7 @@ Qed.
 
 
 (* Note and TODO: if we push [forall R1 R2 RR] below the [gfp],
-   this and monotony will hold on chains.
+   this and monotonicity will hold on chains.
    Meaning, assuming it can typecheck after the generalization,
    the following are conjectures:
    [forall (c : Chain (@eqit_mon E)),
@@ -471,8 +459,8 @@ Qed.
    Though this would require to push b1 and b2 below the gfp
    as well, which sounds highly silly.
    Alternatively, it would be restricted to b1 = b2.
-
  *)
+
 Lemma eqit_flip {E R1 R2} (RR : R1 -> R2 -> Prop) b1 b2:
   forall (u : itree E R1) (v : itree E R2),
     eqit (flip RR) b2 b1 v u -> eqit RR b1 b2 u v.
@@ -621,8 +609,6 @@ Section eqit_inv.
     step in H.
     step.   
     remember (observe (Tau t1)).
-    (* RTODO: report this bug (rm icbn) *)
-    (* RTODO: report this bug (rm icbn) *)
     induction H; inv Heqi.  
     - step in REL. now taur. 
     - assumption. 
@@ -636,8 +622,6 @@ Section eqit_inv.
     step in H.
     step.   
     remember (observe (Tau t2)).
-    (* RTODO: report this bug (rm icbn) *)
-    (* RTODO: report this bug (rm icbn) *)
     induction H; inv Heqi.  
     - step in REL. now taul. 
     - taul. now apply IHeqitF. 
@@ -698,63 +682,6 @@ Proof.
 Qed. 
 
 End eqit_inv.
-
-
-#[global] Instance eq_itree_eutt_elem {E R1 R2}
-  (RR : R1 -> R2 -> Prop) (c : euttC RR):
-  Proper (eq_itree (E := E) eq ==> eq_itree eq ==> iff)  ̇c. 
-Proof.
-  unfold Proper, respectful.
-  apply tower.
-  - red; cbn; intros ? LE x x' EQx y y' EQy.
-    split; intros H??; [symmetry in EQx,EQy |].
-    1,2: eapply LE; eauto.
-  - clear c; intros c IH x x' EQx y y' EQy; step in EQx; step in EQy.
-    icbn; split; intros EQ.
-    + genobs x ox; genobs y oy.
-      (* [hinduction] is not sufficient here, because [move] is unable to pass
-         through [ox] to reach [x] *)
-      revert x x' y y' Heqox Heqoy EQx EQy.
-      induction EQ; intros.
-      * inv EQx; inv EQy; try easy; eauto with itree.
-      * inv EQx; inv EQy; try easy.
-        constructor; eapply IH.
-        3:eauto.
-        all:symmetry; eauto.
-      * apply eqitF_inv_VisF_l in EQx as [(? & -> & EQk) | [abs _]]; [| easy].
-        apply eqitF_inv_VisF_l in EQy as [(? & -> & EQk') | [abs _]]; [| easy].
-        constructor; intros; eapply IH.
-        3:eauto.
-        symmetry; apply EQk.
-        symmetry; apply EQk'.
-      * inv EQx; try easy.
-        taul.
-        eapply IHEQ; eauto.
-        now unstep.
-      * inv EQy; try easy.
-        taur.
-        eapply IHEQ; eauto.
-        now unstep.
-     + genobs x' ox'; genobs y' oy'.
-      (* [hinduction] is not sufficient here, because [move] is unable to pass
-         through [ox] to reach [x] *)
-      revert x x' y y' Heqox' Heqoy' EQx EQy.
-      induction EQ; intros.
-      * inv EQx; inv EQy; try easy; eauto with itree.
-      * inv EQx; inv EQy; try easy.
-        now constructor; eapply IH; eauto.
-      * apply eqitF_inv_VisF_r in EQx as [(? & -> & EQk) | [abs _]]; [| easy].
-        apply eqitF_inv_VisF_r in EQy as [(? & -> & EQk') | [abs _]]; [| easy].
-        constructor; intros; eapply IH; eauto.
-      * inv EQx; try easy.
-        taul.
-        eapply IHEQ; eauto.
-        now unstep.
-      * inv EQy; try easy.
-        taur.
-        eapply IHEQ; eauto.
-        now unstep.
-Qed. 
 
 Ltac genret r or := remember (RetF r) as or.
 Ltac gentau t ot := remember (TauF t) as ot.
@@ -923,56 +850,51 @@ Qed.
 Lemma eq_subH_euttge {E R1 R2} (RR : R1 -> R2 -> Prop):
   subrelationH (@eq_itree E _ _ RR) (euttge RR).
 Proof.
-  red.
-  icoinduction c CIH. intros.
-  step in H.
-  hinduction H before x; subst; eauto with itree. 
+  now apply eqit_mono. 
 Qed.
 
 #[global] Instance eq_sub_euttge {E R} (RR : R -> R -> Prop):
   subrelation (@eq_itree E _ _ RR) (euttge RR).
 Proof.
-  exact (eq_subH_euttge RR).
+  now apply eqit_mono. 
 Qed.
 
 Lemma euttge_subH_eutt {E R1 R2} (RR : R1 -> R2 -> Prop):
   subrelationH (@euttge E _ _ RR) (eutt RR).
 Proof.
-  red.
-  icoinduction c CIH. intros.
-  step in H.
-  hinduction H before x; subst; eauto with itree. 
+  now eapply eqit_mono. 
 Qed.
-
 
 #[global] Instance euttge_sub_eutt {E R} (RR : R -> R -> Prop):
   subrelation (@euttge E _ _ RR) (eutt RR).
 Proof.
-  exact (euttge_subH_eutt RR).
+  now apply eqit_mono. 
 Qed.
 
 Lemma eq_subH_eutt {E R1 R2} (RR : R1 -> R2 -> Prop):
   subrelationH (@eq_itree E _ _ RR) (eutt RR).
 Proof.
-  intros ?? H; apply euttge_subH_eutt, eq_subH_euttge, H.
+  now apply eqit_mono. 
 Qed.
-
 
 #[global] Instance eq_sub_eutt {E R} (RR : R -> R -> Prop):
   subrelation (@eq_itree E _ _ RR) (eutt RR).
 Proof.
-  exact (eq_subH_eutt RR).
+  now apply eqit_mono. 
 Qed.
 
 #[global] Instance eq_proper_euttC {E R1 R2}
   (RR : R1 -> R2 -> Prop) (c : euttC RR):
-  Proper (eq_itree (E := E) eq ==> eq_itree eq ==> flip impl) ̇c. 
+  Proper (eq_itree (E := E) eq ==> eq_itree eq ==> iff) ̇c. 
 Proof. 
-  repeat intro. 
-  apply eq_sub_euttge with (RR := eq) in H.
-  apply eq_sub_euttge with (RR := eq) in H0.
-  eapply euttge_proper_euttC; eauto. 
+  split; intro. 
+  1: symmetry in H; symmetry in H0. 
+  all: 
+  apply eq_sub_euttge with (RR := eq) in H;
+  apply eq_sub_euttge with (RR := eq) in H0;
+  eapply euttge_proper_euttC; eauto.
 Qed. 
+
 
 #[global] Instance eq_proper_eq_itreeC {E R1 R2}
   (RR : R1 -> R2 -> Prop) (c : eq_itreeC RR):
@@ -1142,15 +1064,22 @@ Proof.
 Qed.
 
 #[global] Instance eutt_cong_eutt_eq {E R1 R2 RS}:
-  Proper (eutt eq ==> eutt eq ==> flip impl)
+  Proper (eutt eq ==> eutt eq ==> iff)
          (@eutt E R1 R2 RS).
 Proof.
-  intros t t' EQ1 u u' EQ2 EQUIV.
-  pose proof eqit_trans EQ1 EQUIV as EQUIV'.
-  rewrite rcompose_eql in EQUIV'.
-  symmetry in EQ2.
-  pose proof eqit_trans EQUIV' EQ2 as EQUIV''.
-  now rewrite rcompose_eqr in EQUIV''.
+  repeat red. 
+  intros t t' EQ1 u u' EQ2.
+  split; intros EQUIV. 
+  - symmetry in EQ1. 
+    pose proof eqit_trans EQ1 EQUIV as EQUIV'.
+    rewrite rcompose_eql in EQUIV'.
+    pose proof eqit_trans EQUIV' EQ2 as EQUIV''.
+    now rewrite rcompose_eqr in EQUIV''.
+  - pose proof eqit_trans EQ1 EQUIV as EQUIV'.
+    rewrite rcompose_eql in EQUIV'.
+    symmetry in EQ2.
+    pose proof eqit_trans EQUIV' EQ2 as EQUIV''.
+    now rewrite rcompose_eqr in EQUIV''.
 Qed.
 
 #[global] Instance Equivalence_eutt {E R RR} : Equivalence RR -> Equivalence (@eutt E R R RR).
@@ -1180,6 +1109,12 @@ Proof.
 Qed.
 
 
+(* RTODO next 3/9: *)
+(* eq_itree proper up to all chains *)
+
+
+
+
 (* Ongoing sanity tests *)
 Module Tests.
   #[local] Parameter E : Type -> Type.
@@ -1191,16 +1126,27 @@ Module Tests.
   #[local] Parameter (EQUIV1 : t ≈ u).
   #[local] Parameter (EQ2 : v ≅ w).
   #[local] Parameter (EQUIV2 : v ≈ w).
+  #[local] Parameter (GT : v ≳ w).
+  #[local] Parameter (GT2 : w ≳ v).
 
-  Goal eutt RR u v.
+Goal eutt RR u v.
     rewrite EQUIV2.
     rewrite <- EQ2.
-    Show Proof.
-    eapply eq_itree_eutt_elem.
+    eapply eq_proper_euttC.
     rewrite <- EQ1.
+    exact EQ1. 
+    rewrite EQ2, <- EQ2. 
+    exact EQ2.
+    step. 
+    unstep. 
+    refold.  
+    rewrite <- EQ1. 
+    rewrite <- GT. 
+    rewrite EQ1.
+    rewrite <- EQUIV1.  
 Abort. 
-  Fail #[local] Parameter (EQUIV : u ≈ v).
-  #[local] Parameter (GT : v ≳ w).
+
+  #[local] Parameter (EQUIV : u ≈⟨RR⟩ v).
 
   (* TODO: have tests work with a relation on leaves.
      Currently fails, need better instance
@@ -1208,36 +1154,45 @@ Abort.
 
   (* Test for rewrites in [eutt]: [eq_itree eq], [] *)
   (* RTODO: These *)
-  (* Goal t ≈⟨RR⟩ w -> t ≈⟨RR⟩ w.
+  Goal t ≈⟨RR⟩ w -> t ≈⟨RR⟩ w.
     intros H.
-    rewrite EQ.
-    rewrite EQ in H.
-    rewrite EQUIV.
-    rewrite EQUIV in H.
+    rewrite EQ1.
+    rewrite EQ1 in H.
+    rewrite <- EQUIV1.
+    (* ↕ these are eutt up to eutt *)
+    rewrite <- EQUIV1 in H.
+    rewrite <- EQUIV2 in H. 
+    rewrite GT2.
+    rewrite <- GT2 in H.
     rewrite GT.
-    rewrite GT in H.
-    rewrite <- GT.
     rewrite <- GT in H.
+    (* no way to use symmetry: RR cannot be symmetric *)
+    Fail symmetry.
+    Fail symmetry in H.
+    rewrite <- GT. 
+    assumption. 
+  Qed.
+  
+   (* RTODO: These *)
+  Goal t ≅ u -> t ≅ u.
+    intros H.
+    rewrite EQ1.
+    rewrite EQ1 in H.
     symmetry.
     symmetry in H.
     reflexivity.
   Qed.
-   *)
-   (* RTODO: These *)
-  (* Goal t ≅ u -> t ≅ u.
-    intros H.
-    rewrite EQ.
-    rewrite EQ in H.
-    symmetry.
-    symmetry in H.
-    reflexivity.
-  Qed. *)
-   (* 2. next: this: euttge RR is proper wrt eq_itree - make sure this works *)
+   (* 2. next: this: euttge RR is proper wrt eq_itree RR - make sure this works *)
   Goal t ≅ u -> v ≅⟨flip RR⟩ u -> t ≳⟨RR⟩ v -> t ≳⟨RR⟩ v.
-    intros EQ1 EQ2 H.
-    (* rewrite EQ1. *)
+    intros EQ1 EQ2' H.
+    rewrite EQ1.
     Typeclasses eauto := debug.
-    Fail rewrite EQ2. (* TO FIX: only going through subrelation is insuficient *)
+    rewrite EQ2.
+    apply eqit_flip in EQ2'.
+    rewrite EQ2 in EQ2'. 
+    (* eapply (eqit_mono RR RR false false); eauto.  *)
+    rewrite EQ2'.  
+     (* TO FIX: only going through subrelation is insuficient *)
   Admitted.
 (* Debug: 1.1-1.1: simple apply @eqitgen_cong_eqit_eq on
 (Proper (?R ==> eq_itree eq ==> flip impl) (euttge eq)), 0 subgoal(s)
@@ -1256,89 +1211,6 @@ Debug: 1.1-2.1-1.1-1: looking for (Reflexive (eq_itree eq)) without backtracking
 Debug: 1.1-2.1-1.1-1.1: simple apply @Reflexive_eqit_eq on
 (Reflexive (eq_itree eq)), 0 subgoal(s) *)
 
-(* #[global] Instance eutt_elem (c : euttC eq): 
-Proper (@eutt E R1 R1 eq ==> eutt eq ==> flip impl) ̇c.
-Proof with eauto with itree. 
-  unfold Proper, respectful, flip, impl.
-  apply tower.
-  - red; cbn; intros ? LE x x' EQx y y' EQy.
-    intros H??; eapply LE; eauto.
-  - clear c; intros c IH x x' EQx y y' EQy; step in EQx; step in EQy.
-    icbn; intros EQ.
-    genobs x' ox'; genobs y' oy'.
-    (* [hinduction] is not sufficient here, because [move] is unable to pass
-         through [ox] to reach [x] *)
-    revert x x' y y' Heqox' Heqoy' EQx EQy.
-    induction EQ; intros.
-    + clear x' y' Heqox' Heqoy'.
-      genobs x ox.
-      genret r1 or1.
-      revert x Heqox.
-      hinduction EQx before ox; try easy.
-      * intros; subst; inv Heqor1. clear x Heqox.
-        genobs y oy; genret r2 or2.
-        revert y Heqoy.
-        hinduction EQy before oy; try easy.
-        subst; intros [=<-] ??...
-        now intros; taur; eapply IHEQy.
-      * intros; subst; taul; eapply IHEQx...
-    + clear x' y' Heqox' Heqoy'.
-      genobs x ox.
-      gentau m1 om1.
-      gentau m2 om2.
-      revert x Heqox.
-      hinduction EQx before ox; try easy.
-      * intros [=<-] ? ????.
-        clear x Heqox.
-        genobs y oy.
-        revert y Heqoy.
-        hinduction EQy before oy; try easy.
-        intros. inv Heqom2...
-        intros.
-        taur.
-        now eapply IHEQy.
-        intros. inv Heqom2.  
-      * intros; subst; taul; eapply IHEQx...
-    + clear x' y' Heqox' Heqoy'.
-      genobs x ox.
-      genvis e k1 ot1.
-      revert x Heqox.
-      hinduction EQx before ox; try easy.
-      * intros.
-        apply eq_inv_VisF_weak in Heqot1 as (-> & ? & ?); cbn in *; subst.
-        clear x Heqox.
-        genobs y oy; genvis e k2 ot2.
-        revert y Heqoy.
-        hinduction EQy before oy; try easy.
-        intros; apply eq_inv_VisF_weak in Heqot2 as (-> & ? & ?); cbn in *; subst; eauto with itree.
-        intros.
-        taur.
-        now eapply IHEQy.
-      * intros; subst; taul; eapply IHEQx...
-    + edestruct euttge_tau_r_inv; [step; eauto |].
-      simpobs.
-      taul.
-      eapply IHEQ; eauto.
-      assert (euttge eq (Tau x0) (Tau t1)) by (now step).
-      unstep; eapply euttge_tau_inv; eauto.
-    + edestruct euttge_tau_r_inv; [step; eauto |].
-      simpobs.
-      taur.
-      eapply IHEQ; eauto.
-      assert (euttge eq (Tau x0) (Tau t2)) by (now step).
-      unstep; eapply euttge_tau_inv; eauto.  *)
-
-
-(* FOR YANNICK: is this one of the untrue ones? *)
-(* #[global] Instance eutt_proper_euttC_b (r : euttC eq): 
-  Proper (@eutt E R1 R1 eq ==> eutt eq ==> (flip impl)) (eqit_mon eq true true (elem r)).
-Proof.
-  repeat intro. icbn in *. step in H.
-  hinduction H1 before x; subst; intros.
-  - genret r2 or2. induction H; subst; try inv Heqor2; eauto with itree.  
-  - gentau m2 ot2. induction H; subst; try inv Heqot2; eauto with itree.  
-    taus. rewrite REL0.  *)
-
 (* RTODO next: this proof, which has a goal of eqitF, is not 
 rewritable with the eqit_mon proper instance. we want this to work--
 will it? need a few more proper instances... maybe wrt going, etc. *)
@@ -1348,11 +1220,10 @@ will it? need a few more proper instances... maybe wrt going, etc. *)
     coinduction r cih. 
     (* icoinduction r cih. *)
     intros.
-    fold (@eutt E R1 R1 eq) in H. 
-    Fail rewrite H. 
-    (* to consider b elem  *)
-   (* WIP *) 
-Abort. 
+    step. 
+    rewrite H. 
+    reflexivity. 
+Qed. 
 End Tests.
 
 #[global] Hint Resolve Reflexive_eqit : reflexivity.
@@ -1432,9 +1303,7 @@ Qed.
 Proof.
   repeat intro.
   inv H.
-  (* why? *)
-  Fail step. 
-  apply (b_chain c). icbn. 
+  step. 
   rewrite observing_observe. 
   step. reflexivity. 
 Qed.
