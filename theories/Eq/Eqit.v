@@ -881,7 +881,152 @@ Proof.
   apply eq_sub_euttge with (RR := eq) in H;
   apply eq_sub_euttge with (RR := eq) in H0;
   eapply euttge_proper_euttC; eauto.
-Qed. 
+Qed.
+
+#[global] Instance eq_proper_eqit {E R1 R2 b1 b2}
+  (RR : R1 -> R2 -> Prop):
+  Proper (eq_itree (E := E) eq ==> eq_itree eq ==> iff) (eqit RR b1 b2). 
+Proof with eauto with itree. 
+  split; intros; 
+  revert_until RR; 
+  icoinduction c cih; intros; 
+  step in H0; step in H1; step in H; icbn in *.
+  all:
+  hinduction H1 before RR; intros.
+   (* ret and taus cases *)
+  1-2, 6-7: inv H; inv H0; simpobs; try easy; eauto with itree. 
+  (* vis *)
+  1,4:
+  genvis e k1 ok1; inv H; simpobs; try easy; 
+  genvis e k2 ok2; inv H0; simpobs; try easy;
+  do 2 inv_Vis; constructor; intros;
+  specialize (REL1 v);
+  specialize (REL0 v);
+  eapply cih; eauto. 
+  (* inductive steps *)
+  1,3: 
+  inv H; simpobs; try easy; taul; eapply IHeqitF; eauto; now step in REL.
+  1-2: 
+  inv H0; simpobs; try easy; taur; eapply IHeqitF; eauto; now step in REL.
+Qed.
+
+(* [euttge_proper_euttgeC] with [euttge eq] on BOTH arguments is FALSE.
+   Counterexample: c = chain_gfp (eqit_mon eq true false) so ̇c = euttge eq.
+   Take x = x' = Ret tt, y = Tau (Ret tt), y' = Ret tt.
+   Then euttge eq (Ret tt) (Ret tt) ✓, euttge eq (Tau (Ret tt)) (Ret tt) ✓ (EqTauL),
+   and ̇c (Ret tt) (Ret tt) = euttge eq (Ret tt) (Ret tt) ✓,
+   but ̇c (Ret tt) (Tau (Ret tt)) = euttge eq (Ret tt) (Tau (Ret tt)) is FALSE
+   because b2=false means the right side cannot skip taus. *)
+Lemma not_euttge_proper_euttgeC :
+  ~ Proper (euttge (E := fun _ => Empty_set) (R1 := unit) (R2 := unit) eq ==>
+            euttge eq ==> flip impl)
+      ̇(chain_gfp (eqit_mon (R1 := unit) (R2 := unit) eq true false)).
+Proof.
+  unfold Proper, respectful, flip, impl.
+  intro H.
+  assert (Hfalse : euttge (E := fun _ => Empty_set) (R1 := unit) (R2 := unit) eq
+                    (Ret tt) (Tau (Ret tt))).
+  { eapply H with (x := Ret tt) (y := Ret tt).
+    - reflexivity.
+    - step. taul. reflexivity.
+    - reflexivity. }
+  step in Hfalse. inv Hfalse. easy. 
+Qed.
+
+(* (* [euttge_proper_euttgeC] with [euttge eq] on BOTH arguments is FALSE.
+   Counterexample: c = chain_gfp (eqit_mon eq true false) so ̇c = euttge eq.
+   Take x = x' = Ret tt, y = Tau (Ret tt), y' = Ret tt.
+   Then euttge eq (Ret tt) (Ret tt) ✓, euttge eq (Tau (Ret tt)) (Ret tt) ✓ (EqTauL),
+   and ̇c (Ret tt) (Ret tt) = euttge eq (Ret tt) (Ret tt) ✓,
+   but ̇c (Ret tt) (Tau (Ret tt)) = euttge eq (Ret tt) (Tau (Ret tt)) is FALSE
+   because b2=false means the right side cannot skip taus. *)
+Lemma euttge_proper_flip_euttgeC :
+  Proper (euttge (E := fun _ => Empty_set) (R1 := unit) (R2 := unit) eq ==>
+            flip (euttge eq) ==> flip impl)
+      ̇(chain_gfp (eqit_mon (R1 := unit) (R2 := unit) eq true false)).
+Proof.
+  unfold Proper, respectful, flip, impl.
+  tower induction. 
+  intros. 
+  
+Qed. *)
+
+(* The correct instance: first arg uses [euttge eq], second uses [eq_itree eq].
+   Since euttgeC has b2=false, the right argument cannot skip taus, so we need
+   strong bisimulation (eq_itree eq) there, not euttge eq. *)
+#[global] Instance euttge_eq_proper_euttgeC {E R1 R2}
+  (RR : R1 -> R2 -> Prop) (c : euttgeC RR):
+  Proper (euttge (E := E) eq ==> eq_itree eq ==> flip impl) ̇c.
+Proof with eauto with itree.
+  unfold Proper, respectful, flip, impl.
+  tower induction.
+  clear c; intros c IH x x' EQx y y' EQy; step in EQx; step in EQy.
+    icbn; intros EQ.
+    genobs x' ox'; genobs y' oy'.
+    revert x x' y y' Heqox' Heqoy' EQx EQy.
+    induction EQ; intros.
+    + clear x' y' Heqox' Heqoy'.
+      genobs x ox.
+      genret r1 or1.
+      revert x Heqox.
+      hinduction EQx before ox; try easy.
+      * intros; subst; inv Heqor1. clear x Heqox.
+        genobs y oy; genret r2 or2.
+        revert y Heqoy.
+        (* EQy is eq_itree eq (b1=b2=false): EqTauL/EqTauR cases dismissed by [try easy] *)
+        hinduction EQy before oy; try easy.
+        subst; intros [=<-] ??...
+      * intros; subst; taul; eapply IHEQx...
+    + clear x' y' Heqox' Heqoy'.
+      genobs x ox.
+      gentau m1 om1.
+      revert x Heqox.
+      hinduction EQx before ox; try easy.
+      * intros [=<-] ? ??.
+        clear x Heqox.
+        genobs y oy; gentau m2 om2.
+        revert y Heqoy.
+        hinduction EQy before oy; try easy.
+        intros [=<-] ??...
+      * intros; subst; taul; eapply IHEQx...
+    + clear x' y' Heqox' Heqoy'.
+      genobs x ox.
+      genvis e k1 ot1.
+      revert x Heqox.
+      hinduction EQx before ox; try easy.
+      * intros.
+        apply eq_inv_VisF_weak in Heqot1 as (-> & ? & ?); cbn in *; subst.
+        clear x Heqox.
+        genobs y oy; genvis e k2 ot2.
+        revert y Heqoy.
+        hinduction EQy before oy; try easy.
+        intros; apply eq_inv_VisF_weak in Heqot2 as (-> & ? & ?); cbn in *; subst; eauto with itree.
+      * intros; subst; taul; eapply IHEQx...
+    + edestruct euttge_tau_r_inv; [step; eauto |].
+      simpobs.
+      taul.
+      eapply IHEQ; eauto.
+      assert (euttge eq (Tau x0) (Tau t1)) by (now step).
+      unstep; eapply euttge_tau_inv; eauto.
+    + easy. 
+    (* no EqTauR block: euttgeC has b2=false *)
+Qed.
+
+#[global] Instance eq_proper_euttgeC {E R1 R2}
+  (RR : R1 -> R2 -> Prop) (c : euttgeC RR):
+  Proper (eq_itree (E := E) eq ==> eq_itree eq ==> iff) ̇c.
+Proof.
+  split; intro.
+  - (* forward: t1 ≅ t2, s1 ≅ s2, ̇c t1 s1 → ̇c t2 s2:
+       need t2 ≳ t1 (reverse) and s2 ≅ s1 (reverse) *)
+    symmetry in H; apply eq_sub_euttge with (RR := eq) in H.
+    symmetry in H0.
+    eapply euttge_eq_proper_euttgeC; eauto.
+  - (* backward: t1 ≅ t2, s1 ≅ s2, ̇c t2 s2 → ̇c t1 s1:
+       need t1 ≳ t2 and s1 ≅ s2 (direct) *)
+    apply eq_sub_euttge with (RR := eq) in H.
+    eapply euttge_eq_proper_euttgeC; eauto.
+Qed.
 
 
 #[global] Instance eq_proper_eq_itreeC {E R1 R2}
@@ -897,30 +1042,6 @@ Proof.
   try genvis e k2 ok2; inv H1; simpobs; try easy;
   try do 2 inv_Vis; constructor; intros; try eapply H; eauto; 
   now rewrite H0, H1. 
-Qed.
-
-#[global] Instance eq_proper_eqit {E R1 R2 b1 b2}
-  (RR : R1 -> R2 -> Prop):
-  Proper (eq_itree (E := E) eq ==> eq_itree eq ==> iff) (eqit RR b1 b2). 
-Proof with eauto with itree. 
-  split; intros; 
-  revert_until RR; 
-  icoinduction c cih; intros; 
-  step in H0; step in H1; step in H; icbn in *.
-  all:
-  hinduction H1 before RR; intros. 
-  1-2, 6-7: inv H; inv H0; simpobs; try easy; eauto with itree. 
-  1,4:
-  genvis e k1 ok1; inv H; simpobs; try easy; 
-  genvis e k2 ok2; inv H0; simpobs; try easy;
-  do 2 inv_Vis; constructor; intros;
-  specialize (REL1 v);
-  specialize (REL0 v);
-  eapply cih; eauto. 
-  1,3: 
-  inv H; simpobs; try easy; taul; eapply IHeqitF; eauto; now step in REL.
-  1-2: 
-  inv H0; simpobs; try easy; taur; eapply IHeqitF; eauto; now step in REL.
 Qed.
 
 
@@ -1097,11 +1218,6 @@ Proof.
   do 2 (etransitivity; symmetry; eauto).
   do 2 (etransitivity; eauto); now symmetry. 
 Qed.
-
-
-(* RTODO next 3/9: *)
-(* eq_itree proper up to all chains *)
-
 
 
 
