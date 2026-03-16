@@ -1353,7 +1353,6 @@ Goal eutt RR u v.
     exact EQ2.
     step. 
     unstep. 
-    refold.  
     rewrite <- EQ1. 
     rewrite <- GT. 
     rewrite EQ1.
@@ -1883,7 +1882,7 @@ Proof.
   unfold eqit. unstep.
   (* need strong CIH *)
   revert EQV; revert t1 t2.  
-  coinduction c CIH; intros. 
+  icoinduction c CIH; intros. 
   step in EQV.
   icbn.   
   genobs t1 ot1.  
