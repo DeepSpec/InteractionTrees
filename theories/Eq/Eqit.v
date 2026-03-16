@@ -168,35 +168,48 @@ End eqit.
 Arguments eqit_ {E R1 R2} RR b1 b2 sim t1 t2/.
 
 
-(** A notation of [eq_itree eq]. You can write
+(** Notation of [eqit] and [eqitF]. You can write
     [≅] using [[\cong]]
     [≈] using [[\approx]]
     [≳] using [[\gtrsim]]
-    in tex-mode
+    in tex-mode.
     
     *)
-    
+    (* eq_itree and relative functions *)
+    (* gfp *)
     Infix "≅⟨ R ⟩"   := (eq_itree R) (at level 70) : type_scope.
     Infix "≅"   := (eq_itree eq) (at level 70) : type_scope.
-    Infix "{≅⟨ R ⟩}" := (eqitF R false false (elem _)) (at level 70) : type_scope.
-    Infix "{≅}" := (eqitF eq false false (elem _)) (at level 70, only parsing) : type_scope.
-    Notation eq_itreeF R := (eqitF R false false).
+    (* b (gfp) *)
+    Infix "{≅⟨ R ⟩}" := (eqitF R false false (eq_itree _)) (at level 70) : type_scope.
+    Infix "{≅}" := (eqitF eq false false (eq_itree _)) (at level 70, only parsing) : type_scope.
+    (* b (elem) *)
+    Infix "{[≅⟨ R ⟩]}" := (eqitF R false false (elem _)) (at level 70) : type_scope.
+    Infix "{[≅]}" := (eqitF eq false false (elem _)) (at level 70, only parsing) : type_scope.
+    (* elem *)
     Infix "[≅⟨ R ⟩]" := (@elem _ _ (eqit_mon R false false) _) (at level 70) : type_scope.
     Infix "[≅]" := (@elem _ _ (eqit_mon eq false false) _) (at level 70) : type_scope.
     
     Infix "≈⟨ R ⟩" := (eutt R) (at level 70) : type_scope.
     Infix "≈" := (eutt eq) (at level 70) : type_scope.
-    Infix "{≈⟨ R ⟩}" := (eqitF R true true (elem _)) (at level 70) : type_scope.
-    Infix "{≈}" := (eqitF eq true true (elem _)) (at level 70) : type_scope.
-    Notation euttF R := (eqitF R true true).
+    (* b (gfp) *)
+    Infix "{≈⟨ R ⟩}" := (eqitF R true true (eutt _)) (at level 70) : type_scope.
+    Infix "{≈}" := (eqitF eq true true (eutt _)) (at level 70, only parsing) : type_scope.
+    (* b (elem) *)
+    Infix "{[≈⟨ R ⟩]}" := (eqitF R true true (elem _)) (at level 70) : type_scope.
+    Infix "{[≈]}" := (eqitF eq true true (elem _)) (at level 70, only parsing) : type_scope.
+    (* elem *)
     Infix "[≈⟨ R ⟩]" := (@elem _ _ (eqit_mon R true true) _) (at level 70) : type_scope.
     Infix "[≈]" := (@elem _ _ (eqit_mon eq true true) _) (at level 70) : type_scope.
-    
+
     Infix "≳⟨ R ⟩" := (euttge R) (at level 70) : type_scope.
     Infix "≳"   := (euttge eq) (at level 70) : type_scope.
-    Infix "{≳⟨ R ⟩}" := (eqitF R true false (elem _)) (at level 70) : type_scope.
-    Infix "{≳}" := (eqitF eq true false _) (at level 70) : type_scope.
-    Notation euttgeF R := (eqitF R true false).
+    (* b (gfp) *)
+    Infix "{≳⟨ R ⟩}" := (eqitF R true false (euttge _)) (at level 70) : type_scope.
+    Infix "{≳}" := (eqitF eq true false (euttge _)) (at level 70, only parsing) : type_scope.
+    (* b (elem) *)
+    Infix "{[≳⟨ R ⟩]}" := (eqitF R true false (elem _)) (at level 70) : type_scope.
+    Infix "{[≳]}" := (eqitF eq true false (elem _)) (at level 70, only parsing) : type_scope.
+    (* elem *)
     Infix "[≳⟨ R ⟩]" := (@elem _ _ (eqit_mon R true false) _) (at level 70) : type_scope.
     Infix "[≳]" := (@elem _ _ (eqit_mon eq true false) _) (at level 70) : type_scope.
     
@@ -205,7 +218,10 @@ Arguments eqit_ {E R1 R2} RR b1 b2 sim t1 t2/.
     Notation euttgeC RR := (Chain (eqit_mon RR true false)).
     Notation eq_itreeC RR := (Chain (eqit_mon RR false false)).
     
+    (* makes [observe] a bit nicer to look at *)
+    Notation "⊙ x" := (observe x) (only printing, at level 10).
     
+
     (* begin hide *)
     #[global] Hint Constructors eqitF : itree.
     #[global] Hint Unfold eqit_ : itree.
@@ -246,11 +262,14 @@ Experimenting with the latter at the moment. *)
   
 Ltac refold :=
   match goal with
-  |- context[gfp (@eqit_mon ?E ?R1 ?R2 ?RR ?b1 ?b2)] =>
+  | |- context[gfp (@eqit_mon ?E ?R1 ?R2 ?RR ?b1 ?b2)] =>
       fold (@eqit E R1 R2 RR b1 b2);
       fold (@eq_itree E _ _ RR);
       fold (@euttge E _ _ RR);
       fold (@eutt E _ _ RR)
+  | |- context[@eqitF ?E ?R1 ?R2 ?RR ?b1 ?b2 ?sim (observe ?t1) (observe ?t2)] => 
+        replace (eqitF eq true false sim (observe t1) (observe t2))
+        with (eqit_mon eq true false sim t1 t2) by reflexivity
   end.
 
 Ltac refold_in h :=
@@ -260,19 +279,22 @@ Ltac refold_in h :=
       fold (@eq_itree E _ _ RR) in h;
       fold (@euttge E _ _ RR) in h;
       fold (@eutt E _ _ RR) in h
+  | context[@eqitF ?E ?R1 ?R2 ?RR ?b1 ?b2 ?sim (observe ?t1) (observe ?t2)] => 
+        replace (eqitF eq true false sim (observe t1) (observe t2))
+        with (eqit_mon eq true false sim t1 t2) in h by reflexivity
   end.
 
 Tactic Notation "refold" "in" ident(h) := refold_in h.
 Tactic Notation "iunfold" "in" ident(h) := iunfold_in h.
 Tactic Notation "iunfold" "in" "*" := iunfold_all.
 Tactic Notation "step" := iunfold; step; cbn; try refold.
-Tactic Notation "unstep" := iunfold; unstep.
+Tactic Notation "unstep" := iunfold; unstep; try refold. 
 Tactic Notation "step" "in" ident(h) :=
   iunfold in h;
   step in h;
   cbn[eqit_mon body] in h;
   unfold eqit_ in h;
-  refold in h.
+  try refold in h.
 Tactic Notation "icoinduction" simple_intropattern(R) simple_intropattern(H) :=
   iunfold_coind; coinduction R H; cbn[eqit_mon body]; unfold eqit_.
 
@@ -311,6 +333,41 @@ Ltac solve_eqitF :=
 Ltac taul := apply EqTauL; [auto|].
 Ltac taur := apply EqTauR; [auto|]. 
 Ltac taus := apply EqTau. 
+
+
+Module step_notation_tests. 
+  #[local] Parameter E : Type -> Type.
+  #[local] Parameter R1 R2 : Type.
+  #[local] Parameter RR : R1 -> R2 -> Prop.
+  #[local] Parameter t u : itree E R1.
+  #[local] Parameter v w : itree E R2.
+  #[local] Parameter eqc : (Chain (@eqit_mon E R2 R2 eq false false)).
+  #[local] Parameter (EQ1 : t ≅ u).
+  #[local] Parameter (EQUIV1 : t ≈ u).
+  #[local] Parameter (EQ2 : v ≅ w).
+  #[local] Parameter (EQUIV2 : v ≈ w).
+  #[local] Parameter (GT : v ≳ w).
+  #[local] Parameter (GT2 : w ≳ v).
+
+  (* RTODO: step better error message *)
+Goal eutt RR u v.
+    (* already in the gfp <-> b gfp loop *)
+    step. unstep.
+    step.
+    Fail step. 
+    unstep. 
+    Fail unstep.  
+    assert (eqitF eq false false (elem eqc) (observe v) (observe w)).
+    step.
+    (* now in the loop *)
+    step. unstep. Fail unstep. step. Fail step. now (unstep; apply EQ2). 
+    assert ((elem eqc) v w).
+    step. step. 
+    (* now in the loop *)
+    step. unstep. Fail unstep. step. Fail step. now (unstep; apply EQ2). 
+Abort. 
+
+End step_notation_tests. 
 
 Lemma eqitF_inv_VisF_r {E R1 R2} (RR : R1 -> R2 -> Prop) {b1 b2 sim}
   t1 X2 (e2 : E X2) (k2 : X2 -> _) :
@@ -716,7 +773,6 @@ Proof.
     eapply IHEQ; eauto.
 Qed.
 
-Notation "⊙ x" := (observe x) (only printing, at level 10).
 
 Ltac inf_closed_forall_auto := 
 repeat match goal with 
@@ -918,38 +974,90 @@ Qed.
    but ̇c (Ret tt) (Tau (Ret tt)) = euttge eq (Ret tt) (Tau (Ret tt)) is FALSE
    because b2=false means the right side cannot skip taus. *)
 Lemma not_euttge_proper_euttgeC :
-  ~ Proper (euttge (E := fun _ => Empty_set) (R1 := unit) (R2 := unit) eq ==>
-            euttge eq ==> flip impl)
-      ̇(chain_gfp (eqit_mon (R1 := unit) (R2 := unit) eq true false)).
-Proof.
-  unfold Proper, respectful, flip, impl.
-  intro H.
-  assert (Hfalse : euttge (E := fun _ => Empty_set) (R1 := unit) (R2 := unit) eq
+~ (forall E R1 R2 (RR : R1 -> R2 -> Prop) (c : euttgeC RR),
+  Proper (euttge (E := E) eq ==> euttge eq ==> flip impl) (elem c)).
+  unfold Proper, respectful, flip, impl. 
+  intro. 
+assert (Hfalse : euttge (E := fun _ => Empty_set) (R1 := unit) (R2 := unit) eq
                     (Ret tt) (Tau (Ret tt))).
+  (* for yannick: why does this work? *)
   { eapply H with (x := Ret tt) (y := Ret tt).
     - reflexivity.
     - step. taul. reflexivity.
     - reflexivity. }
   step in Hfalse. inv Hfalse. easy. 
-Qed.
+Qed. 
 
-(* (* [euttge_proper_euttgeC] with [euttge eq] on BOTH arguments is FALSE.
-   Counterexample: c = chain_gfp (eqit_mon eq true false) so ̇c = euttge eq.
-   Take x = x' = Ret tt, y = Tau (Ret tt), y' = Ret tt.
-   Then euttge eq (Ret tt) (Ret tt) ✓, euttge eq (Tau (Ret tt)) (Ret tt) ✓ (EqTauL),
-   and ̇c (Ret tt) (Ret tt) = euttge eq (Ret tt) (Ret tt) ✓,
-   but ̇c (Ret tt) (Tau (Ret tt)) = euttge eq (Ret tt) (Tau (Ret tt)) is FALSE
-   because b2=false means the right side cannot skip taus. *)
-Lemma euttge_proper_flip_euttgeC :
-  Proper (euttge (E := fun _ => Empty_set) (R1 := unit) (R2 := unit) eq ==>
-            flip (euttge eq) ==> flip impl)
-      ̇(chain_gfp (eqit_mon (R1 := unit) (R2 := unit) eq true false)).
+
+Lemma not_euttge_proper_euttgeC' {E R1 R2} (RR : R1 -> R2 -> Prop) 
+(c : euttgeC RR)
+: ~ Proper (euttge (E := E) eq ==>
+            euttge eq ==> flip impl) ̇c.
 Proof.
   unfold Proper, respectful, flip, impl.
-  tower induction. 
-  intros. 
-  
-Qed. *)
+  revert E R1 R2 RR c. 
+Abort. 
+
+(* RTODO: working on this *)
+Lemma euttge_proper_flip_euttgeC {E R1 R2} 
+  (RR : R1 -> R2 -> Prop) (c : euttgeC RR) :
+  Proper (euttge (E := E) eq ==> flip (euttge eq) ==> flip impl) ̇c. 
+Proof with eauto with itree. 
+  unfold Proper, respectful, flip, impl.
+  tower induction.
+  clear c; intros c IH x x' EQx y y' EQy; step in EQx; step in EQy.
+    icbn; intros EQ.
+    genobs x' ox'; genobs y' oy'.
+    (* [hinduction] is not sufficient here, because [move] is unable to pass
+         through [ox] to reach [x] *)
+    revert x x' y y' Heqox' Heqoy' EQx EQy.
+    induction EQ; intros.
+    + clear x' y' Heqox' Heqoy'.
+      genobs x ox.
+      genret r1 or1.
+      revert x Heqox.
+      hinduction EQx before ox; try easy.
+      * intros; subst; inv Heqor1. clear x Heqox.
+        genobs y oy; genret r2 or2.
+        revert y Heqoy.
+        hinduction EQy before oy; try easy.
+        subst; intros [=<-] ??...
+      * intros; subst; taul; eapply IHEQx...
+    + clear x' y' Heqox' Heqoy'.
+      genobs x ox.
+      gentau m1 om1.
+      revert x Heqox.
+      hinduction EQx before ox; try easy.
+      * intros [=<-] ? ??.
+        clear x Heqox.
+        genobs y oy; gentau m2 om2.
+        revert y Heqoy.
+        hinduction EQy before om2; try easy.
+        intros [=<-] ??...
+        intros [=<-] ??.
+        taul. subst. step. 
+        (* unusable IHEQy: 
+        IHEQy : ⊙ t1 = TauF t1 -> forall y : itree E R, 
+                ot2 = ⊙ y -> TauF m0 {[≳⟨eq⟩]} ot2 *)
+        admit. 
+      * intros; subst; taul; eapply IHEQx...
+    + clear x' y' Heqox' Heqoy'.
+      genobs x ox.
+      genvis e k1 ot1.
+      revert x Heqox.
+      hinduction EQx before ox; try easy.
+      intros. inv_Vis. 
+      apply eqitF_inv_VisF_l in EQy. break EQy; try easy; break H. 
+      simpobs...
+      intros. taul. eapply IHEQx; eauto.  
+    + edestruct euttge_tau_r_inv; [step; eauto |].
+      simpobs.
+      taul.
+      eapply IHEQ; eauto.
+      assert (euttge eq (Tau x0) (Tau t1)) by (now step).
+      unstep; eapply euttge_tau_inv; eauto.
+    + easy. 
+Abort. 
 
 (* The correct instance: first arg uses [euttge eq], second uses [eq_itree eq].
    Since euttgeC has b2=false, the right argument cannot skip taus, so we need
