@@ -35,23 +35,34 @@
  *)
 
 (* begin hide *)
-From Stdlib Require Import Setoid Morphisms Relations.
-From Paco Require Import paco.
+From Stdlib Require Import
+     Structures.Orders (* Hint Unfold is_true *)
+     Program
+     Setoid
+     Morphisms
+     Relations.
 
+From Coinduction Require Import all.
+
+(* important: Basics.Utils must come after Coinduction, as it 
+re-implements several tactics. *)
 From ITree Require Import
+     Basics.Basics
      Basics.Utils
+     Basics.HeterogeneousRelations
      Core.ITreeDefinition
      Eq.Eqit
-     Eq.Paco2
      Eq.Shallow.
 
-#[local] Open Scope itree_scope.
+Import RelNotations. 
+
+Local Open Scope itree_scope.
 (* end hide *)
 
 (** ** gpaco
 *)
 
-Tactic Notation "gpaco_" :=
+(* Tactic Notation "gpaco_" :=
   match goal with
   | [|- context[gpaco2]] => eapply gpaco2_gpaco; [eauto with paco|]
   end.
@@ -706,14 +717,14 @@ Instance euttG_cong_eq {E R1 R2 RR} rH rL gL gH:
          (@euttG E R1 R2 RR rH rL gL gH).
 Proof.
   repeat intro. eapply euttG_cong_euttge; eauto; apply eq_sub_euttge; eauto.
-Qed.
+Qed. *)
 
 #[global]
 Instance eutt_cong_eutt {E R1 R2 RR}:
   Proper (eutt eq ==> eutt eq ==> flip impl)
          (@eqit E R1 R2 RR true true).
 Proof.
-  einit. intros. rewrite H0, H1. efinal.
+  intros!. now rewrite H, H0. 
 Qed.
 
 #[global]
@@ -721,7 +732,7 @@ Instance eutt_cong_euttge {E R1 R2 RR}:
   Proper (euttge eq ==> euttge eq ==> flip impl)
          (@eqit E R1 R2 RR true true).
 Proof.
-  einit. intros. rewrite H0, H1. efinal.
+  intros!. now rewrite H, H0.
 Qed.
 
 #[global]
@@ -729,7 +740,7 @@ Instance eutt_cong_eq {E R1 R2 RR}:
   Proper (eq_itree eq ==> eq_itree eq ==> flip impl)
          (@eqit E R1 R2 RR true true).
 Proof.
-  einit. intros. rewrite H0, H1. efinal.
+  intros!. now rewrite H, H0.
 Qed.
 
 #[global]
@@ -772,60 +783,40 @@ Lemma eutt_conj {E} {R S} {RS RS'} :
   forall (t : itree E R) (s : itree E S),
     eutt RS  t s ->
     eutt RS' t s ->
-    eutt (RS /2\ RS') t s. 
+    eutt (cup RS RS') t s. 
 Proof.
   repeat red.
-  einit. ecofix CIH. intros * EQ EQ'.
-  rewrite itree_eta, (itree_eta s).
-  punfold EQ; punfold EQ'; red in EQ; red in EQ'.
+  icoinduction c cih. intros * EQ EQ'.
+  step in EQ; step in EQ'. 
   genobs t ot; genobs s os.
-  hinduction EQ before CIHH; subst; intros; pclearbot; simpl.
-
-  - estep; split; auto.
-    inv EQ'; auto.
-  - estep; ebase; right; eapply CIHL; eauto.
-    rewrite <- tau_eutt.
-    rewrite <- (tau_eutt m2); auto with itree.
-  - assert (EE := eqitF_inv_VisF _ _ _ _ _ EQ'); pclearbot.
-    eapply euttG_vis; ebase; left; apply CIHH; auto with itree.
-  - eapply fold_eqitF in EQ'; eauto.
-    assert (t ≈ Tau t1) by (rewrite itree_eta, <- Heqot; reflexivity).
-    rewrite H in EQ'.
-    apply eqit_inv_Tau_l in EQ'.
-    subst; specialize (IHEQ _ _ eq_refl eq_refl).
-    punfold EQ'; red in EQ'.
-    specialize (IHEQ EQ').
-    rewrite eqit_Tau_l; [|reflexivity].
-    rewrite (itree_eta t1).
-    eapply IHEQ. 
-  - subst; cbn.
-    rewrite tau_euttge.
-    rewrite (itree_eta t2); eapply IHEQ; eauto.
-    eapply fold_eqitF in EQ'; eauto.
-    assert (s ≈ Tau t2).
-    rewrite (itree_eta s), <- Heqos; reflexivity.
-    rewrite tau_eutt in H.
-    assert (eutt RS' t t2).
-    rewrite <- H; auto.
-    punfold H0.
+  hinduction EQ before cih; subst; intros; simpl.
+  - now inv EQ'; constructor; constructor.
+  - taus. eapply cih; eauto. apply eqit_inv_Tau. now step.  
+  - constructor. intro v. eapply cih. 
+    auto. 
+    eapply eqitF_inv_VisF in EQ'. eauto.
+  - taul. eapply IHEQ; eauto. subst. unstep. eapply eqit_inv_Tau_l. 
+    now step.  
+  - taur. eapply IHEQ; eauto. subst. unstep. eapply eqit_inv_Tau_r. 
+    now step.  
 Qed.
 
 Lemma eutt_disj_l {E} {R S} {RS RS'} :
   forall (t : itree E R) (s : itree E S),
     eutt RS t s ->
-    eutt (RS \2/ RS') t s. 
+    eutt (cup RS RS') t s. 
 Proof.
   intros.
-  eapply eqit_mon with (RR := RS); eauto.
+  eapply (eqit_mono RS _); eauto.
 Qed.
 
 Lemma eutt_disj_r {E} {R S} {RS RS'} :
   forall (t : itree E R) (s : itree E S),
     eutt RS' t s ->
-    eutt (RS \2/ RS') t s. 
+    eutt (cup RS RS') t s. 
 Proof.
   intros.
-  eapply eqit_mon with (RR := RS'); eauto.
+  eapply (eqit_mono RS' _); eauto.
 Qed.
 
 Lemma eutt_equiv {E} {R S} {RS RS'} :
@@ -833,7 +824,7 @@ Lemma eutt_equiv {E} {R S} {RS RS'} :
     (HeterogeneousRelations.eq_rel RS RS') ->
     eutt RS t s <-> eutt RS' t s. 
 Proof.
-  intros * EQ; split; intros EUTT; eapply eqit_mon; try apply EUTT; eauto.
+  intros * EQ; split; intros EUTT; eapply eqit_mono; try apply EUTT; eauto.
   all:apply EQ.
 Qed.
 
@@ -861,20 +852,29 @@ Lemma eutt_sub_self {E R} (R1 R2: R -> R -> Prop) (t: itree E R):
   eutt R1 t t ->
   eutt R2 t t.
 Proof.
-  intros Hrel; revert t. ginit. gcofix CIH; intros t Heutt.
-  punfold Heutt; red in Heutt.
+  intros Hrel; revert t. icoinduction c cih; intros t Heutt.
+  step in Heutt. 
   remember t as t' in Heutt at 2. assert (Ht': t' ≈ t) by now subst. clear Heqt'.
-  rewrite (itree_eta t). rewrite (itree_eta t), (itree_eta t') in Ht'.
+  rewrite (itree_eta t), (itree_eta t') in Ht'.
   revert Ht'. induction Heutt; clear t; intros Heq.
   - apply eutt_inv_Ret in Heq; subst.
-    gstep; constructor; auto.
+    constructor; auto.
   - apply eqit_inv_Tau in Heq.
-    gstep; constructor. gfinal; left. eapply CIH.
-    rewrite <- Heq at 2. now pclearbot.
-  - gstep; constructor. intros v. eapply eqit_inv_Vis in Heq.
-    gfinal; left. apply CIH. specialize (REL v).
-    rewrite <- Heq at 2. now pclearbot.
-  - rewrite tau_euttge, (itree_eta t1). apply IHHeutt.
-    rewrite tau_euttge in Heq. rewrite <- itree_eta; auto.
-  - apply IHHeutt. rewrite tau_euttge in Heq. rewrite <- itree_eta; auto.
+    constructor. eapply cih. 
+    now rewrite <- Heq at 2.
+  - constructor. intros v. eapply eqit_inv_Vis in Heq.
+    eapply cih. now rewrite <- Heq at 2.
+  - taul. taur. apply IHHeutt. rewrite <- (itree_eta t1).   
+    now rewrite tau_euttge in Heq. 
+  - apply IHHeutt. rewrite <- (itree_eta).   
+    now rewrite tau_euttge in Heq. 
 Qed.
+
+(* wish list: 
+
+absolute #1: more smoothness with step and observe; it still doesn't quite work right 
+any form of eqitF, no matter how obscure, should work with step 
+*)
+
+(* itree eta up to anything = eq_itree Proper up to anything *)
+
