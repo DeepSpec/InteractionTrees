@@ -980,14 +980,14 @@ Lemma not_euttge_proper_euttgeC :
   intro. 
 assert (Hfalse : euttge (E := fun _ => Empty_set) (R1 := unit) (R2 := unit) eq
                     (Ret tt) (Tau (Ret tt))).
-  (* for yannick: why does this work? *)
   { eapply H with (x := Ret tt) (y := Ret tt).
+  (* ^ this works because the canonical chain structure uses chain_gfp
+     to coerce things into the right shape. *)
     - reflexivity.
     - step. taul. reflexivity.
     - reflexivity. }
   step in Hfalse. inv Hfalse. easy. 
 Qed. 
-
 
 Lemma not_euttge_proper_euttgeC' {E R1 R2} (RR : R1 -> R2 -> Prop) 
 (c : euttgeC RR)
@@ -1485,11 +1485,10 @@ Proof.
 Qed.
 
 (** *** Congruence properties *)
-Hint Extern 1 => step : itree. 
 #[global] Instance eqit_observe b1 b2:
   Proper (eqit b1 b2 ==> going (eqit b1 b2)) (@observe E R).
 Proof.
-  constructor; step in H; auto with itree.  
+  constructor; step in H; step; auto with itree.  
 Qed. 
 
 #[global] Instance eqit_tauF b1 b2:
@@ -2559,7 +2558,7 @@ Lemma Proper_elem_bind X1 X2 Y1 Y2 RX SS u v k g
   eqit RX b1 b2 u v -> (forall x1 x2, RX x1 x2 -> elem c (k x1) (g x2)) -> 
   elem c (@ITree.bind E X1 Y1 u k) (@ITree.bind E X2 Y2 v g).
 Proof.
-  revert u v.  
+  revert u v. 
   tower induction. intros. icbn.  
   rewrite 2observe_bind.  
   step in H0. induction H0; simpobs.
@@ -2573,6 +2572,7 @@ Proof.
   - taul. rewrite observe_bind. eapply IHeqitF; eauto. 
   - taur. rewrite observe_bind. eapply IHeqitF; eauto. 
 Qed. 
+
 
 (* We can't state this nicely as a Proper relation, since proper instances
 need to have subcomponents that share types. eutt RX violates this, as 
