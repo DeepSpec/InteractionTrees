@@ -1923,6 +1923,53 @@ Proof.
     eapply IHEQV; eauto. 
 Qed. 
 
+Inductive eqit_bind_clo2 b1 b2 (r : itree E R1 -> itree E R2 -> Prop) :
+  itree E R1 -> itree E R2 -> Prop :=
+| pbc_intro_h2 U1 U2 (RU : U1 -> U2 -> Prop) t1 t2 k1 k2
+      (c : Chain (eqit_mon RU b1 b2))
+
+      (EQV: eqit_mon RU b1 b2 (elem c) t1 t2)
+      (REL: forall u1 u2, RU u1 u2 -> r (k1 u1) (k2 u2))
+  : eqit_bind_clo2 b1 b2 r (ITree.bind t1 k1) (ITree.bind t2 k2)
+.
+Hint Constructors eqit_bind_clo2 : itree.
+
+Lemma eqit_clo_bind_chain {RS} b1 b2 (c : Chain (eqit_mon RS b1 b2) ) : 
+  eqit_bind_clo2 b1 b2 (eqit_mon RS b1 b2 (elem c)) <= @eqit_mon E  _ _ RS b1 b2 (elem c).  
+Proof.
+  repeat intro.
+  inv H.
+  unfold eqit. step. 
+  (* need strong CIH *)
+  revert EQV; revert t1 t2.  
+  icoinduction x CIH; intros. 
+  genobs t1 ot1.  
+  genobs t2 ot2.
+  hinduction EQV before RR; intros; try easy. 
+  (* be careful not to rewrite all here; this will mess up taul and taur cases. *)
+  1-3: rewrite 2observe_bind; simpobs.
+  (* ret *)
+  +  
+    apply REL0.
+  (* taus *)
+  + constructor.
+    apply CIH. 
+  (* vis *)
+  + constructor. 
+    intro. 
+    apply CIH. apply REL. 
+  (* taul *)
+  + rewrite observe_bind. 
+    simpobs. 
+    taul. 
+    eapply IHEQV; eauto.  
+  (* taur *)
+  + setoid_rewrite observe_bind at 2. 
+    simpobs. 
+    taur. 
+    eapply IHEQV; eauto. 
+Qed.
+
 
 Lemma eqit_clo_bind_chain {RS} b1 b2 (c : Chain (eqit_mon RS b1 b2) ) : 
   eqit_bind_clo b1 b2 (eqit RS b1 b2) <= @eqit_mon E  _ _ RS b1 b2 (elem c).  
@@ -1934,7 +1981,6 @@ Proof.
   revert EQV; revert t1 t2.  
   icoinduction x CIH; intros. 
   step in EQV.
-  icbn.   
   genobs t1 ot1.  
   genobs t2 ot2.
   hinduction EQV before RR; intros; try easy. 
@@ -1973,7 +2019,7 @@ Qed.
 Lemma eutt_clo_bind_chain {U1 U2 UU} t1 t2 k1 k2
       (c : euttC RR)
       (EQT: @eutt E U1 U2 UU t1 t2)
-      (EQK: forall u1 u2, UU u1 u2 -> eutt RR (k1 u1) (k2 u2)):
+      (EQK: forall u1 u2, UU u1 u2 -> eutt RR (elem c) (k1 u1) (k2 u2)):
   eqit_mon RR true true (elem c) (ITree.bind t1 k1) (ITree.bind t2 k2).
 Proof.
   eapply eqit_clo_bind_chain. econstructor; eauto.  

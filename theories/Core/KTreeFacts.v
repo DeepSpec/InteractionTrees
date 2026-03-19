@@ -57,9 +57,9 @@ Proof.
   (* need eq_itree proper up to everything *)
   intros. rewrite !unfold_iter.
   rewrite bind_map, bind_bind.
+  (* problem: this puts us at the gfp, so we lose the cih. *)
   eapply eutt_clo_bind_chain; eauto.  
-  intros; subst. 
-  destruct u2. 
+  intros [a | b] _ [].
   - rewrite bind_tau. step. taus. eapply cih.  
      
 
