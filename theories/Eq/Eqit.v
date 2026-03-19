@@ -1,16 +1,9 @@
 (* 
 RTODOS:
-- decide better notation for elem than \dot 
-- decide on names for relations: RR should not be the default name 
-for both the monomorphic relation R -> R -> Prop and the polymorphic one 
-R1 -> R2 -> Prop
-- for now, RR for R -> R and RR12 for the latter. 
-- 
-   (* 2. next: this: euttge RR is proper wrt eq_itree - make sure this works *)
 - rename and redo sections
 - keep building tests until rewriting robustness is clear 
    - organize file 
-
+   - remove add parametric morphism 
 *)
 
 (** * Strong bisimulation *)
@@ -998,7 +991,7 @@ Proof.
   revert E R1 R2 RR c. 
 Abort. 
 
-(* RTODO: working on this *)
+(* RTODO: see if this is true *)
 Lemma euttge_proper_flip_euttgeC {E R1 R2} 
   (RR : R1 -> R2 -> Prop) (c : euttgeC RR) :
   Proper (euttge (E := E) eq ==> flip (euttge eq) ==> flip impl) ̇c. 
@@ -1365,7 +1358,6 @@ Abort.
      Currently fails, need better instance
    *) 
   (* Test for rewrites in [eutt]: [eq_itree eq], [] *)
-  (* RTODO: These *)
   Goal t ≈⟨RR⟩ w -> t ≈⟨RR⟩ w.
     intros H.
     rewrite EQ1.
@@ -1385,6 +1377,21 @@ Abort.
     assumption. 
   Qed.
 
+  (* RTODO: next *)
+  Definition VE := fun _ : Type => Empty_set. 
+  #[local] Parameter (EQUIV_tt : eutt (E:= VE) eq (Ret tt) (Ret tt)).
+  Goal eutt (E:= VE) eq (Ret tt) (Ret tt). 
+    step. 
+    (* THIS SHOULD WORK *)
+    Fail unstep.  
+    Fail step. 
+    assert (eutt (E:= VE) eq (Ret tt) (Ret tt)). 
+    step.
+    (* we should be able to fold into observe form *)
+    Fail rewrite observing_observe.  
+    Fail refold. 
+    fail. 
+Abort. 
    (* RTODO: These *)
   Goal t ≅ u -> t ≅ u.
     intros H.
@@ -1398,7 +1405,6 @@ Abort.
   Goal t ≅ u -> v ≅⟨flip RR⟩ u -> t ≳⟨RR⟩ v -> t ≳⟨RR⟩ v.
     intros EQ1 EQ2' H.
     rewrite EQ1.
-    Typeclasses eauto := debug.
     rewrite EQ2.
     apply eqit_flip in EQ2'.
     rewrite EQ2 in EQ2'. 
@@ -1407,26 +1413,7 @@ Abort.
     (* rewrite EQ2'.   *)
      (* TO FIX: only going through subrelation is insuficient *)
   Admitted.
-(* Debug: 1.1-1.1: simple apply @eqitgen_cong_eqit_eq on
-(Proper (?R ==> eq_itree eq ==> flip impl) (euttge eq)), 0 subgoal(s)
-Debug: 1.1-2 : (ProperProxy (eq_itree eq) t)
-Debug: 1.1-2: looking for (ProperProxy (eq_itree eq) t) without backtracking
-Debug:
-1.1-2.1: (*external*) (class_apply @eq_proper_proxy ||
-                         class_apply @reflexive_proper_proxy) on
-(ProperProxy (eq_itree eq) t), 1 subgoal(s)
-Debug: 1.1-2.1-1 : (ReflexiveProxy (eq_itree eq))
-Debug: 1.1-2.1-1: looking for (ReflexiveProxy (eq_itree eq)) without backtracking
-Debug: 1.1-2.1-1.1: (*external*) (reflexive_proxy_tac A R) on
-(ReflexiveProxy (eq_itree eq)), 1 subgoal(s)
-Debug: 1.1-2.1-1.1-1 : (Reflexive (eq_itree eq))
-Debug: 1.1-2.1-1.1-1: looking for (Reflexive (eq_itree eq)) without backtracking
-Debug: 1.1-2.1-1.1-1.1: simple apply @Reflexive_eqit_eq on
-(Reflexive (eq_itree eq)), 0 subgoal(s) *)
 
-(* RTODO next: this proof, which has a goal of eqitF, is not 
-rewritable with the eqit_mon proper instance. we want this to work--
-will it? need a few more proper instances... maybe wrt going, etc. *)
   (* Test [coinduction] tactic, notations  *)
   Goal u ≈ t -> t ≈ u.
     unfold eutt, eqit at 2. 
