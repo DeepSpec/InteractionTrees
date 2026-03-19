@@ -6,8 +6,6 @@ From Stdlib Require Import
      Setoids.Setoid
      Relations.Relations.
 
-From Paco Require Import paco.
-
 From ITree Require Import
      Basics.Basics
      Basics.CategoryOps
@@ -21,8 +19,7 @@ From ITree Require Import
      Core.KTree
      Eq.Shallow
      Eq.Eqit
-     Eq.UpToTaus
-     Eq.Paco2.
+     Eq.UpToTaus.
 
 Import CatNotations.
 Local Open Scope itree_scope.
@@ -39,6 +36,7 @@ Ltac unfold_ktree :=
     lift_ktree_; cbn.
 
 (** ** [ITree.aloop] *)
+From Coinduction Require Import all. 
 
 Lemma bind_iter {E A B C} (f : A -> itree E (A + B)) (g : B -> itree E (B + C))
   : forall x,
@@ -50,10 +48,22 @@ Lemma bind_iter {E A B C} (f : A -> itree E (A + B)) (g : B -> itree E (B + C))
        end) (inl x).
 Proof.
   (* this proof should follow from the facts about elem *)
-  einit. ecofix CIH. intros.
+  icoinduction c cih. intros.
+  (* NOTE: You need coinduction imported for this to work. We should 
+  probably export it or at least whatever makes the coersion from 
+  mon to body work... *)
+  to_mon. 
   (* these rewrites must go through *)
-  rewrite !unfold_iter.
+  (* need eq_itree proper up to everything *)
+  intros. rewrite !unfold_iter.
   rewrite bind_map, bind_bind.
+  eapply eutt_clo_bind_chain; eauto.  
+  intros; subst. 
+  destruct u2. 
+  - rewrite bind_tau. step. taus. eapply cih.  
+     
+
+
   ebind; econstructor; try reflexivity.
   intros [a | b] _ [].
   - rewrite bind_tau. etau.

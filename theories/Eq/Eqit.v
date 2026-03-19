@@ -254,16 +254,14 @@ Experimenting with the latter at the moment. *)
        unfold euttge,eutt,eq_itree,eqit].
   
 Ltac refold :=
-  match goal with
+  repeat match goal with
   | |- context[gfp (@eqit_mon ?E ?R1 ?R2 ?RR ?b1 ?b2)] =>
       fold (@eqit E R1 R2 RR b1 b2);
       fold (@eq_itree E _ _ RR);
       fold (@euttge E _ _ RR);
       fold (@eutt E _ _ RR)
-  | |- context[@eqitF ?E ?R1 ?R2 ?RR ?b1 ?b2 ?sim (observe ?t1) (observe ?t2)] => 
-        replace (eqitF eq true false sim (observe t1) (observe t2))
-        with (eqit_mon eq true false sim t1 t2) by reflexivity
   end.
+
 
 Ltac refold_in h :=
   match type of h with
@@ -272,24 +270,45 @@ Ltac refold_in h :=
       fold (@eq_itree E _ _ RR) in h;
       fold (@euttge E _ _ RR) in h;
       fold (@eutt E _ _ RR) in h
-  | context[@eqitF ?E ?R1 ?R2 ?RR ?b1 ?b2 ?sim (observe ?t1) (observe ?t2)] => 
-        replace (eqitF eq true false sim (observe t1) (observe t2))
-        with (eqit_mon eq true false sim t1 t2) in h by reflexivity
   end.
 
+Ltac to_mon :=
+match goal with
+| |- context[@eqitF ?E ?R1 ?R2 ?RR ?b1 ?b2 ?sim (observe ?t1) (observe ?t2)] => 
+      replace (eqitF RR b1 b2 sim (observe t1) (observe t2))
+      with (eqit_mon RR b1 b2 sim t1 t2) by reflexivity
+| |- context[@eqitF ?E ?R1 ?R2 ?RR ?b1 ?b2 ?sim (?con1 ?a1) (?con2 ?a2)] => 
+      replace (eqitF RR b1 b2 sim (con1 a1) (con2 a2))
+      with (eqit_mon RR b1 b2 sim (go (con1 a1)) (go (con2 a2))) by reflexivity
+end.
+
+Ltac to_mon_in h :=
+match type of h with
+| context[@eqitF ?E ?R1 ?R2 ?RR ?b1 ?b2 ?sim (observe ?t1) (observe ?t2)] => 
+      replace (eqitF RR b1 b2 sim (observe t1) (observe t2))
+      with (eqit_mon RR b1 b2 sim t1 t2) in h by reflexivity
+| context[@eqitF ?E ?R1 ?R2 ?RR ?b1 ?b2 ?sim (?con1 ?a1) (?con2 ?a2)] => 
+      replace (eqitF RR b1 b2 sim (con1 a1) (con2 a2))
+      with (eqit_mon RR b1 b2 sim (go (con1 a1)) (go (con2 a2))) in h by reflexivity
+end.
+
 Tactic Notation "refold" "in" ident(h) := refold_in h.
+Tactic Notation "to_mon" "in" ident(h) := to_mon_in h.
 Tactic Notation "iunfold" "in" ident(h) := iunfold_in h.
 Tactic Notation "iunfold" "in" "*" := iunfold_all.
 Tactic Notation "step" := iunfold; step; cbn; try refold.
-Tactic Notation "unstep" := iunfold; unstep; try refold. 
+Tactic Notation "unstep" := iunfold; try to_mon; unstep; try refold. 
 Tactic Notation "step" "in" ident(h) :=
   iunfold in h;
   step in h;
   cbn[eqit_mon body] in h;
   unfold eqit_ in h;
-  try refold in h.
+  try refold_in h.
+Tactic Notation "unstep" "in" ident(h) := 
+iunfold_in h; try to_mon_in h; unstep_in h; try refold_in h. 
+
 Tactic Notation "icoinduction" simple_intropattern(R) simple_intropattern(H) :=
-  iunfold_coind; coinduction R H; cbn[eqit_mon body]; unfold eqit_.
+iunfold_coind; coinduction R H; cbn[eqit_mon body]; unfold eqit_.
 
 (* The [icbn] tactic: unfolding the ITree definition *)
 
@@ -1383,14 +1402,11 @@ Abort.
   Goal eutt (E:= VE) eq (Ret tt) (Ret tt). 
     step. 
     (* THIS SHOULD WORK *)
-    Fail unstep.  
-    Fail step. 
+    unstep. 
     assert (eutt (E:= VE) eq (Ret tt) (Ret tt)). 
     step.
     (* we should be able to fold into observe form *)
     Fail rewrite observing_observe.  
-    Fail refold. 
-    fail. 
 Abort. 
    (* RTODO: These *)
   Goal t ≅ u -> t ≅ u.
@@ -1854,13 +1870,22 @@ Inductive eqit_bind_clo b1 b2 (r : itree E R1 -> itree E R2 -> Prop) :
 .
 Hint Constructors eqit_bind_clo : itree.
 
+(* We need better info up to bind *)
+(* Inductive eqit_bind_clo b1 b2 (r : itree E R1 -> itree E R2 -> Prop) :
+  itree E R1 -> itree E R2 -> Prop :=
+| pbc_intro_h U1 U2 (RU : U1 -> U2 -> Prop) t1 t2 k1 k2
+      (EQV: eqit RU b1 b2 t1 t2)
+      (REL: forall u1 u2, RU u1 u2 -> r (k1 u1) (k2 u2))
+  : eqit_bind_clo b1 b2 r (ITree.bind t1 k1) (ITree.bind t2 k2)
+. *)
+
 (* One could consider making this a respectful instance. *)
 (* This might be good when doing other proofs, as it shows up 
 often. *)
 
 (* Q: best way we want to define this? Does this ever leave the file? *)
 Lemma eqit_clo_bind {RS} b1 b2 : 
-  eqit_bind_clo b1 b2 (gfp (eqit_mon RS b1 b2)) <= @eqit_mon E  _ _ RS b1 b2 (
+  eqit_bind_clo b1 b2 (eqit RS b1 b2) <= @eqit_mon E  _ _ RS b1 b2 (
   eqit RS b1 b2).  
 Proof.
   repeat intro.
@@ -1898,14 +1923,63 @@ Proof.
     eapply IHEQV; eauto. 
 Qed. 
 
+
+Lemma eqit_clo_bind_chain {RS} b1 b2 (c : Chain (eqit_mon RS b1 b2) ) : 
+  eqit_bind_clo b1 b2 (eqit RS b1 b2) <= @eqit_mon E  _ _ RS b1 b2 (elem c).  
+Proof.
+  repeat intro.
+  inv H.
+  unfold eqit. step. 
+  (* need strong CIH *)
+  revert EQV; revert t1 t2.  
+  icoinduction x CIH; intros. 
+  step in EQV.
+  icbn.   
+  genobs t1 ot1.  
+  genobs t2 ot2.
+  hinduction EQV before RR; intros; try easy. 
+  (* be careful not to rewrite all here; this will mess up taul and taur cases. *)
+  1-3: rewrite 2observe_bind; simpobs.
+  (* ret *)
+  + step. 
+    now apply REL0.
+  (* taus *)
+  + constructor.
+    now apply CIH. 
+  (* vis *)
+  + constructor. 
+    intro. 
+    apply CIH. apply REL. 
+  (* taul *)
+  + rewrite observe_bind. 
+    simpobs. 
+    taul. 
+    eapply IHEQV; eauto.  
+  (* taur *)
+  + setoid_rewrite observe_bind at 2. 
+    simpobs. 
+    taur. 
+    eapply IHEQV; eauto. 
+Qed.
+
 Lemma eutt_clo_bind {U1 U2 UU} t1 t2 k1 k2
       (EQT: @eutt E U1 U2 UU t1 t2)
       (EQK: forall u1 u2, UU u1 u2 -> eutt RR (k1 u1) (k2 u2)):
   eutt RR (ITree.bind t1 k1) (ITree.bind t2 k2).
-
-  Proof.
+Proof.
     unfold eutt. step. eapply eqit_clo_bind. econstructor; eauto.  
 Qed. 
+
+Lemma eutt_clo_bind_chain {U1 U2 UU} t1 t2 k1 k2
+      (c : euttC RR)
+      (EQT: @eutt E U1 U2 UU t1 t2)
+      (EQK: forall u1 u2, UU u1 u2 -> eutt RR (k1 u1) (k2 u2)):
+  eqit_mon RR true true (elem c) (ITree.bind t1 k1) (ITree.bind t2 k2).
+Proof.
+  eapply eqit_clo_bind_chain. econstructor; eauto.  
+Qed. 
+
+
 End eqit_h.
 
 Lemma eutt_Tau {E R} (t1 t2 : itree E R):
@@ -2566,3 +2640,50 @@ need to have subcomponents that share types. eutt RX violates this, as
 u and v are of different types. *)
 
 End eqit_elem. 
+
+(* From Stdlib Require Import
+     Classes.Morphisms
+     Setoids.Setoid
+     Relations.Relations.
+
+From ITree Require Import
+     Basics.CategoryOps
+     Basics.CategoryTheory
+     Basics.CategoryKleisli
+     Basics.CategoryKleisliFacts.
+     
+Require Import ITree.Basics.CategoryOps. 
+Import CatNotations.
+Local Open Scope itree_scope.
+Local Open Scope cat_scope.
+
+Lemma bind_iter {E A B C} (f : A -> itree E (A + B)) (g : B -> itree E (B + C))
+  : forall x,
+    (ITree.bind (ITree.iter f x) (ITree.iter g))
+  ≈ ITree.iter (fun ab =>
+       match ab with
+       | inl a => ITree.map inl (f a)
+       | inr b => ITree.map (bimap inr (id_ _)) (g b)
+       end) (inl x).
+Proof.
+  (* this proof should follow from the facts about elem *)
+  icoinduction c cih. intros.
+replace (
+  observe (ITree.bind (ITree.iter f x) (ITree.iter g))
+{[≈⟨eq⟩]} observe (ITree.iter
+(fun ab : A + B =>
+match ab with
+| inl a => ITree.map inl (f a)
+| inr b => ITree.map (bimap inr (id_ C)) (g b)
+end) (inl x))
+)
+with 
+(@eqit_mon E C C eq true true (tower.elem c) ((ITree.bind (ITree.iter f x) (ITree.iter g)))
+((ITree.iter
+(fun ab : A + B =>
+match ab with
+| inl a => ITree.map inl (f a)
+| inr b => ITree.map (bimap inr (id_ C)) (g b)
+end) (inl x)))
+).
+ *)
