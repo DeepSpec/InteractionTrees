@@ -722,15 +722,15 @@ Qed. *)
 #[global]
 Instance eutt_cong_eutt {E R1 R2 RR}:
   Proper (eutt eq ==> eutt eq ==> flip impl)
-         (@eqit E R1 R2 RR true true).
+         (@eqit E true true R1 R2 RR).
 Proof.
-  intros!. now rewrite H, H0. 
+  intros!. now rewrite H, H0.
 Qed.
 
 #[global]
 Instance eutt_cong_euttge {E R1 R2 RR}:
   Proper (euttge eq ==> euttge eq ==> flip impl)
-         (@eqit E R1 R2 RR true true).
+         (@eqit E true true R1 R2 RR).
 Proof.
   intros!. now rewrite H, H0.
 Qed.
@@ -738,7 +738,7 @@ Qed.
 #[global]
 Instance eutt_cong_eq {E R1 R2 RR}:
   Proper (eq_itree eq ==> eq_itree eq ==> flip impl)
-         (@eqit E R1 R2 RR true true).
+         (@eqit E true true R1 R2 RR).
 Proof.
   intros!. now rewrite H, H0.
 Qed.
@@ -792,9 +792,9 @@ Proof.
   hinduction EQ before cih; subst; intros; simpl.
   - now inv EQ'; constructor; constructor.
   - taus. eapply cih; eauto. apply eqit_inv_Tau. now step.  
-  - constructor. intro v. eapply cih. 
-    auto. 
-    eapply eqitF_inv_VisF in EQ'. eauto.
+  - constructor. intro v. specialize (REL v).
+    eapply cih; eauto. 
+    now eapply eqitF_inv_VisF in EQ'; eauto.
   - taul. eapply IHEQ; eauto. subst. unstep. eapply eqit_inv_Tau_l. 
     now step.  
   - taur. eapply IHEQ; eauto. subst. unstep. eapply eqit_inv_Tau_r. 
@@ -863,7 +863,7 @@ Proof.
     constructor. eapply cih. 
     now rewrite <- Heq at 2.
   - constructor. intros v. eapply eqit_inv_Vis in Heq.
-    eapply cih. now rewrite <- Heq at 2.
+    specialize (REL v). eapply cih. now rewrite <- Heq at 2.
   - taul. taur. apply IHHeutt. rewrite <- (itree_eta t1).   
     now rewrite tau_euttge in Heq. 
   - apply IHHeutt. rewrite <- (itree_eta).   

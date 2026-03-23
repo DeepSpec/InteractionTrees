@@ -46,7 +46,7 @@ Lemma bind_iter {E A B C} (f : A -> itree E (A + B)) (g : B -> itree E (B + C))
        | inl a => ITree.map inl (f a)
        | inr b => ITree.map (bimap inr (id_ _)) (g b)
        end) (inl x).
-Proof.
+Proof. 
   (* this proof should follow from the facts about elem *)
   icoinduction c cih. intros.
   (* Unset Printing Notations.  *)
@@ -58,11 +58,13 @@ Proof.
   (* need eq_itree proper up to everything *)
   rewrite !unfold_iter.
   rewrite bind_map, bind_bind.
+  Unset Printing Notations. 
   (* problem: this puts us at the gfp, so we lose the cih. *)
-  eapply eutt_clo_bind_chain. eauto.  
+  (* problem: this puts in chain_b automatically *)
+  eapply eqit_clo_bind_chain. 
+  eauto.  
   intros [a | b] _ [].
   - rewrite bind_tau. step. taus.
-  (* problem: stuck at the gfp *)
     Fail eapply cih. 
 Abort. 
 
