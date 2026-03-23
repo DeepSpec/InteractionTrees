@@ -49,22 +49,25 @@ Lemma bind_iter {E A B C} (f : A -> itree E (A + B)) (g : B -> itree E (B + C))
 Proof.
   (* this proof should follow from the facts about elem *)
   icoinduction c cih. intros.
+  (* Unset Printing Notations.  *)
   (* NOTE: You need coinduction imported for this to work. We should 
   probably export it or at least whatever makes the coersion from 
   mon to body work... *)
   to_mon. 
   (* these rewrites must go through *)
   (* need eq_itree proper up to everything *)
-  intros. rewrite !unfold_iter.
+  rewrite !unfold_iter.
   rewrite bind_map, bind_bind.
   (* problem: this puts us at the gfp, so we lose the cih. *)
-  eapply eutt_clo_bind_chain; eauto.  
+  eapply eutt_clo_bind_chain. eauto.  
   intros [a | b] _ [].
-  - rewrite bind_tau. step. taus. eapply cih.  
-     
+  - rewrite bind_tau. step. taus.
+  (* problem: stuck at the gfp *)
+    Fail eapply cih. 
+Abort. 
 
 
-  ebind; econstructor; try reflexivity.
+  (* ebind; econstructor; try reflexivity.
   intros [a | b] _ [].
   - rewrite bind_tau. etau.
   - rewrite bind_ret_l, tau_euttge.
@@ -75,7 +78,7 @@ Proof.
     intros [b' | c] _ []; cbn.
     + etau.
     + reflexivity.
-Qed.
+Qed. *)
 
 Lemma eq_itree_iter' {E I1 I2 R1 R2}
       (RI : I1 -> I2 -> Prop)

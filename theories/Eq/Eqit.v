@@ -999,16 +999,7 @@ assert (Hfalse : euttge (E := fun _ => Empty_set) (R1 := unit) (R2 := unit) eq
     - step. taul. reflexivity.
     - reflexivity. }
   step in Hfalse. inv Hfalse. easy. 
-Qed. 
-
-Lemma not_euttge_proper_euttgeC' {E R1 R2} (RR : R1 -> R2 -> Prop) 
-(c : euttgeC RR)
-: ~ Proper (euttge (E := E) eq ==>
-            euttge eq ==> flip impl) ̇c.
-Proof.
-  unfold Proper, respectful, flip, impl.
-  revert E R1 R2 RR c. 
-Abort. 
+Qed.  
 
 (* RTODO: see if this is true *)
 Lemma euttge_proper_flip_euttgeC {E R1 R2} 
@@ -1934,41 +1925,13 @@ Inductive eqit_bind_clo2 b1 b2 (r : itree E R1 -> itree E R2 -> Prop) :
 .
 Hint Constructors eqit_bind_clo2 : itree.
 
-Lemma eqit_clo_bind_chain {RS} b1 b2 (c : Chain (eqit_mon RS b1 b2) ) : 
-  eqit_bind_clo2 b1 b2 (eqit_mon RS b1 b2 (elem c)) <= @eqit_mon E  _ _ RS b1 b2 (elem c).  
-Proof.
-  repeat intro.
-  inv H.
-  unfold eqit. step. 
-  (* need strong CIH *)
-  revert EQV; revert t1 t2.  
-  icoinduction x CIH; intros. 
-  genobs t1 ot1.  
-  genobs t2 ot2.
-  hinduction EQV before RR; intros; try easy. 
-  (* be careful not to rewrite all here; this will mess up taul and taur cases. *)
-  1-3: rewrite 2observe_bind; simpobs.
-  (* ret *)
-  +  
-    apply REL0.
-  (* taus *)
-  + constructor.
-    apply CIH. 
-  (* vis *)
-  + constructor. 
-    intro. 
-    apply CIH. apply REL. 
-  (* taul *)
-  + rewrite observe_bind. 
-    simpobs. 
-    taul. 
-    eapply IHEQV; eauto.  
-  (* taur *)
-  + setoid_rewrite observe_bind at 2. 
-    simpobs. 
-    taur. 
-    eapply IHEQV; eauto. 
-Qed.
+(* need something STRONG about elem- kuser tower induction? *)
+
+(* if 2 trees related by elem, 
+
+and 2 continuations same, 
+
+then bind ok? *)
 
 
 Lemma eqit_clo_bind_chain {RS} b1 b2 (c : Chain (eqit_mon RS b1 b2) ) : 
@@ -2008,6 +1971,70 @@ Proof.
     eapply IHEQV; eauto. 
 Qed.
 
+(* FOR YANNICK:  *)
+
+(* We would like this below property to be true, but it may not be:
+the property as stated is not inf-closed, which means tower induction
+fails. we need some kind of coinductive reasoning for the taus cause, 
+but `coinduction` also fails to help us because it creates a new, 
+unrelated chain to the ones we want to reason about. *)
+
+Lemma eqit_clo_bind_chain_elem {U1 U2 RS} (RU : U1 -> U2 -> Prop)
+ b1 b2 (cRU : Chain (eqit_mon RU b1 b2))
+ (cRS : Chain (eqit_mon RS b1 b2))
+ (t1 : itree E U1) (t2 : itree E U2) 
+ (k1 : U1 -> itree E R1) (k2 : U2 -> itree E R2) : 
+elem cRU t1 t2 -> 
+(forall u1 u2, RU u1 u2 -> eqit_mon RS b1 b2 (elem cRS) (k1 u1) (k2 u2)) -> 
+elem cRS (ITree.bind t1 k1) (ITree.bind t2 k2). 
+Proof.
+  revert_until cRS.
+  apply tower. 
+  (* problem: this is not inf_closed, I think *)
+  repeat (apply inf_closed_all; intro).
+  
+  (* apply inf_closed_impl. 
+  { repeat intro; apply H; eauto. } *)
+
+  unfold inf_closed. 
+  repeat intro. 
+  eapply H; eauto.
+  (* maybe you can derive something clever from inf in H0, I don't know *)
+  shelve.  
+  (* stuck here *)
+  - intros. 
+  icbn in *. 
+  genobs t1 ot1.  
+  genobs t2 ot2.
+  step.  
+  hinduction H0 before RR; intros; try easy. 
+(* be careful not to rewrite all here; this will mess up taul and taur cases. *)
+  1-3: rewrite 2observe_bind; simpobs.
+  (* ret *)
+  + eapply H1; eauto. 
+  (* taus *)
+  + constructor.
+    eapply H; eauto.  
+  (* vis *)
+  + constructor. 
+    intro. 
+    apply H; eauto.
+  (* taul *)
+  + rewrite observe_bind. 
+    simpobs. 
+    taul. 
+    eapply IHeqitF; eauto.  
+  (* taur *)
+  + setoid_rewrite observe_bind at 2. 
+    simpobs. 
+    taur. 
+    eapply IHeqitF; eauto. 
+Abort. 
+
+
+
+
+
 Lemma eutt_clo_bind {U1 U2 UU} t1 t2 k1 k2
       (EQT: @eutt E U1 U2 UU t1 t2)
       (EQK: forall u1 u2, UU u1 u2 -> eutt RR (k1 u1) (k2 u2)):
@@ -2019,7 +2046,7 @@ Qed.
 Lemma eutt_clo_bind_chain {U1 U2 UU} t1 t2 k1 k2
       (c : euttC RR)
       (EQT: @eutt E U1 U2 UU t1 t2)
-      (EQK: forall u1 u2, UU u1 u2 -> eutt RR (elem c) (k1 u1) (k2 u2)):
+      (EQK: forall u1 u2, UU u1 u2 -> eutt RR (k1 u1) (k2 u2)):
   eqit_mon RR true true (elem c) (ITree.bind t1 k1) (ITree.bind t2 k2).
 Proof.
   eapply eqit_clo_bind_chain. econstructor; eauto.  
