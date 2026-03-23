@@ -1925,7 +1925,7 @@ Inductive eqit_bind_clo2 b1 b2 (r : itree E R1 -> itree E R2 -> Prop) :
 .
 Hint Constructors eqit_bind_clo2 : itree.
 
-(* need something STRONG about elem- kuser tower induction? *)
+(* need something STRONG about elem- tower induction? *)
 
 (* if 2 trees related by elem, 
 
@@ -1939,10 +1939,11 @@ Lemma eqit_clo_bind_chain {RS} b1 b2 (c : Chain (eqit_mon RS b1 b2) ) :
 Proof.
   repeat intro.
   inv H.
-  unfold eqit. step. 
+  step. 
+  clear c; 
   (* need strong CIH *)
-  revert EQV; revert t1 t2.  
-  icoinduction x CIH; intros. 
+  revert EQV; revert t1 t2; 
+  icoinduction c CIH; intros. 
   step in EQV.
   genobs t1 ot1.  
   genobs t2 ot2.
@@ -2029,11 +2030,7 @@ Proof.
     simpobs. 
     taur. 
     eapply IHeqitF; eauto. 
-Abort. 
-
-
-
-
+Abort.
 
 Lemma eutt_clo_bind {U1 U2 UU} t1 t2 k1 k2
       (EQT: @eutt E U1 U2 UU t1 t2)
@@ -2684,7 +2681,6 @@ Lemma Symmetric_elem_eutt R RS (c : Chain (@eqit_mon E R R RS true true)) :
       Symmetric RS -> Symmetric (elem c). 
 Proof. typeclasses eauto. Qed.
 
-(* FOR YANNICK: the elem proper proof *)
 (* modified: eutt RX u v -> eqit RX b1 b2 u v. otherwise you get stuck
 when you need to know something about b1/b2. *)
 Lemma Proper_elem_bind X1 X2 Y1 Y2 RX SS u v k g 
@@ -2714,49 +2710,3 @@ u and v are of different types. *)
 
 End eqit_elem. 
 
-(* From Stdlib Require Import
-     Classes.Morphisms
-     Setoids.Setoid
-     Relations.Relations.
-
-From ITree Require Import
-     Basics.CategoryOps
-     Basics.CategoryTheory
-     Basics.CategoryKleisli
-     Basics.CategoryKleisliFacts.
-     
-Require Import ITree.Basics.CategoryOps. 
-Import CatNotations.
-Local Open Scope itree_scope.
-Local Open Scope cat_scope.
-
-Lemma bind_iter {E A B C} (f : A -> itree E (A + B)) (g : B -> itree E (B + C))
-  : forall x,
-    (ITree.bind (ITree.iter f x) (ITree.iter g))
-  ≈ ITree.iter (fun ab =>
-       match ab with
-       | inl a => ITree.map inl (f a)
-       | inr b => ITree.map (bimap inr (id_ _)) (g b)
-       end) (inl x).
-Proof.
-  (* this proof should follow from the facts about elem *)
-  icoinduction c cih. intros.
-replace (
-  observe (ITree.bind (ITree.iter f x) (ITree.iter g))
-{[≈⟨eq⟩]} observe (ITree.iter
-(fun ab : A + B =>
-match ab with
-| inl a => ITree.map inl (f a)
-| inr b => ITree.map (bimap inr (id_ C)) (g b)
-end) (inl x))
-)
-with 
-(@eqit_mon E C C eq true true (tower.elem c) ((ITree.bind (ITree.iter f x) (ITree.iter g)))
-((ITree.iter
-(fun ab : A + B =>
-match ab with
-| inl a => ITree.map inl (f a)
-| inr b => ITree.map (bimap inr (id_ C)) (g b)
-end) (inl x)))
-).
- *)
