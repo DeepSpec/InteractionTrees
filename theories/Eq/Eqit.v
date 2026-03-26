@@ -584,7 +584,7 @@ Section eqit_gen.
   (** Universal properties of the chains of the respective relations:
     - all three are reflexive
     - the chains for [eq_itree] and [eutt] are symmetric
-    - the chain for [eq_itree] is additionnally transitive
+    - the chain for [eq_itree] is additionally transitive
 Properties of the chains specialize to the relations: the gfp is an element of the chain.
    *)
   
@@ -1440,7 +1440,8 @@ Abort.
     rewrite EQ2 in EQ2'. 
     (* eapply (eqit_mono RR RR false false); eauto.  *)
     (* next todo: get this to work *)
-    (* rewrite EQ2'.   *)
+    Fail rewrite EQ2'.  
+    Fail rewrite <- EQ2'.  
      (* TO FIX: only going through subrelation is insuficient *)
   Admitted.
 
