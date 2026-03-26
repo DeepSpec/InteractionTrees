@@ -324,7 +324,10 @@ Tactic Notation "unstep" "in" ident(h) :=
 iunfold_in h; try to_mon_in h; unstep_in h; try refold_in h. 
 
 Tactic Notation "icoinduction" simple_intropattern(R) simple_intropattern(H) :=
-iunfold_coind; coinduction R H; cbn[eqit_mon body]; unfold eqit_.
+iunfold_coind; coinduction R H; icbn.  
+
+Tactic Notation "bcoinduction" simple_intropattern(R) simple_intropattern(H) :=
+icoinduction R H; intros; to_mon. 
 
 (* The [icbn] tactic: unfolding the ITree definition *)
 
@@ -499,12 +502,10 @@ Proof with auto with itree.
   repeat red.
   repeat intro. subst. 
   split.
-  - revert_until H.
-    icoinduction R CIH.
-    intros.
+  - revert_until H. icoinduction R CIH. intros.
     step in H0.
     hinduction H0 before CIH...
-    +  econstructor. now apply H. 
+    econstructor; now apply H. 
   - revert_until H. icoinduction R CIH. intros.  
     step in H0.
     hinduction H0 before CIH... 
@@ -1447,9 +1448,7 @@ Abort.
 
   (* Test [coinduction] tactic, notations  *)
   Goal u ≈ t -> t ≈ u.
-    unfold eutt, eqit at 2. 
-    coinduction r cih. 
-    (* icoinduction r cih. *)
+    icoinduction r cih.
     intros.
     step. 
     rewrite H. 

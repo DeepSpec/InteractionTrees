@@ -7,7 +7,7 @@ From Stdlib Require Import
      Morphisms
      RelationClasses.
 
-From Paco Require Import paco.
+From Coinduction Require Import all. 
 
 From ITree Require Import
      Basics.Basics
@@ -17,7 +17,6 @@ From ITree Require Import
      Eq.Shallow
      Eq.Eqit
      Eq.UpToTaus
-     Eq.Paco2
      Indexed.Sum
      Indexed.Function
      Indexed.Relation
@@ -70,12 +69,11 @@ Qed.
 Instance eq_itree_translate' :
   Proper (eq_itree eq ==> eq_itree eq) (@translate _ _ h R).
 Proof.
-  ginit. pcofix CIH.
-  intros x y H.
+  intros!. revert x y H. icoinduction c cih. intros. 
+  to_mon. 
   rewrite itree_eta, (itree_eta (translate h y)), !unfold_translate, <-!itree_eta.
-  punfold H. gstep. red in H |- *.
-  destruct (observe x); dependent destruction H; try discriminate;
-    pclearbot; simpobs; simpl; eauto 7 with paco itree.
+  step in H.
+  induction H; simpobs; simpl; eauto with itree.  
 Qed.
 
 #[global]
@@ -95,32 +93,25 @@ Lemma translate_bind : forall {E F R S} (h : E ~> F) (t : itree E S) (k : S -> i
 Proof.
   intros E F R S h t k.
   revert S t k.
-  ginit. pcofix CIH.
-  intros s t k.
+  icoinduction c cih. 
+  intros s t k. to_mon. 
   match goal with
   | [ |- _ ?t1 ?t2 ] => rewrite (itree_eta_ t1), (itree_eta_ t2)
   end; cbn.
   unfold observe; cbn.
-  destruct (observe t); cbn.
-  - apply reflexivity.
-  - gstep. constructor. eauto with paco.
-  - gstep. constructor. eauto with paco itree.
+  destruct (observe t); cbn; eauto with itree. 
 Qed.
 
 Lemma translate_id : forall E R (t : itree E R), translate (id_ _) t ≅ t.
 Proof.
   intros E R t.
   revert t.
-  ginit. pcofix CIH.
-  intros t.
+  bcoinduction c cih. 
   rewrite itree_eta.
   rewrite (itree_eta t).
   rewrite unfold_translate.
   unfold translateF.
-  destruct (observe t); cbn.
-  - apply reflexivity.
-  - gstep. econstructor. gbase. apply CIH.
-  - gstep. econstructor. intros. gbase. apply CIH.
+  destruct (observe t); cbn; try constructor; eauto. 
 Qed.
 
 Import CatNotations.
@@ -130,13 +121,9 @@ Lemma translate_cmpE : forall E F G R (g : F ~> G) (f : E ~> F) (t : itree E R),
 Proof.
   intros E F G R g f t.
   revert t.
-  ginit. pcofix CIH.
-  intros t.
+  bcoinduction c cih. 
   rewrite !unfold_translate.
-  genobs_clear t ot. destruct ot; cbn.
-  - apply reflexivity.
-  - gstep. econstructor. gbase. apply CIH.
-  - gstep. econstructor. intros. gbase. apply CIH.
+  genobs_clear t ot. destruct ot; cbn; try constructor; eauto. 
 Qed.
 
 (**)
@@ -174,13 +161,10 @@ Instance eq_itree_translate {E F}
             translate.
 Proof.
   intros f g Hfg T.
-  ginit. pcofix CIH; rename r into rr; intros l r Hlr.
+  bcoinduction c cih. 
   rewrite 2 unfold_translate.
-  punfold Hlr; red in Hlr.
-  destruct Hlr; cbn; try discriminate; pclearbot.
-  - gstep. constructor; auto.
-  - gstep. constructor; auto with paco.
-  - rewrite Hfg. gstep. constructor; red; auto with paco itree.
+  step in H. 
+  destruct H; cbn; try easy; try rewrite Hfg; eauto with itree. 
 Qed.
 
 #[global]
@@ -191,14 +175,10 @@ Instance eutt_translate {E F}
 Proof.
   repeat red.
   intros until T.
-  ginit. pcofix CIH. intros.
-  rewrite !unfold_translate. punfold H1. red in H1.
-  induction H1; intros; subst; simpl.
-  - gstep. econstructor. eauto.
-  - gstep. econstructor. pclearbot. eauto with paco.
-  - gstep. rewrite H. econstructor. pclearbot. red. eauto 7 with paco itree.
-  - rewrite tau_euttge, unfold_translate. eauto.
-  - rewrite tau_euttge, unfold_translate. eauto.
+  bcoinduction c cih.
+  rewrite !unfold_translate. step in H0. 
+  induction H0; subst; simpl; eauto with itree. 
+  - rewrite H. econstructor. eauto with itree.
 Qed.
 
 #[global]
@@ -218,16 +198,9 @@ Lemma eutt_translate_gen :
 Proof.
   intros *.
   revert t s.
-  einit.
-  ecofix CIH.
-  intros * EUTT.
-  rewrite !unfold_translate. punfold EUTT. red in EUTT.
-  induction EUTT; intros; subst; simpl; pclearbot.
-  - estep.
-  - estep. 
-  - estep; intros ?; ebase.
-  - rewrite tau_euttge, unfold_translate. eauto with itree.
-  - rewrite tau_euttge, unfold_translate. eauto with itree.
+  bcoinduction c cih. 
+  rewrite !unfold_translate. step in H. 
+  induction H; intros; subst; simpl; eauto with itree. 
 Qed. 
 
 Lemma translate_trigger {E F G} `{E -< F} :
@@ -245,10 +218,9 @@ Lemma translate_Vis_inv {E F} {R T} (h: E ~> F) (t: itree E R) (e': F T) k':
 Proof.
   intros. rewrite (itree_eta t) in H. setoid_rewrite (itree_eta t).
   desobs t Ht; clear t Ht; rewrite unfold_translate in H; cbn in H.
-  - punfold H; red in H; inversion H.
-  - punfold H; red in H; inversion H; inversion CHECK.
-  - apply eqitree_inv_Vis_r in H. destruct H as [k'' [H1 H2]].
-    cbn in H1. dependent destruction H1.
-    exists e, k. split. reflexivity. split. reflexivity.
-    intro x. symmetry. eauto.
+  - step in H; easy. 
+  - step in H; inv H; easy.  
+  - apply eqitree_inv_Vis_r in H; break H. 
+    cbn in H. inv_Vis. 
+    exists e, k. repeat now split. 
 Qed.
