@@ -13,7 +13,7 @@ From Stdlib Require Import
      Morphisms
      RelationClasses.
 
-From Paco Require Import paco.
+From Coinduction Require Import all. 
 
 From ITree Require Import
      Basics.Basics
@@ -26,7 +26,6 @@ From ITree Require Import
      Eq.Shallow
      Eq.Eqit
      Eq.UpToTaus
-     Eq.Paco2
      Indexed.Sum
      Indexed.Function
      Indexed.Relation
@@ -118,13 +117,14 @@ Instance eq_itree_interp {E F}
             interp.
 Proof.
   intros f g Hfg T.
-  ginit. pcofix CIH.
-  intros l r0 Hlr.
+  bcoinduction c cih. intros. 
   rewrite 2 unfold_interp.
-  punfold Hlr; red in Hlr.
-  destruct Hlr; cbn; subst; try discriminate; pclearbot; try (gstep; constructor; eauto with paco; fail).
-  guclo eqit_clo_bind. econstructor; [eapply Hfg|].
-  intros ? _ [].
+  step in H. 
+
+  destruct H; cbn; subst; try easy; eauto with itree.
+  fail. 
+ 
+  step. 
   gstep; econstructor; eauto with paco itree.
 Qed.
 

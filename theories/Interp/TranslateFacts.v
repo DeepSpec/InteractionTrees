@@ -106,7 +106,7 @@ Lemma translate_id : forall E R (t : itree E R), translate (id_ _) t ≅ t.
 Proof.
   intros E R t.
   revert t.
-  bcoinduction c cih. 
+  bcoinduction c cih. intros. 
   rewrite itree_eta.
   rewrite (itree_eta t).
   rewrite unfold_translate.
@@ -121,7 +121,7 @@ Lemma translate_cmpE : forall E F G R (g : F ~> G) (f : E ~> F) (t : itree E R),
 Proof.
   intros E F G R g f t.
   revert t.
-  bcoinduction c cih. 
+  bcoinduction c cih. intros. 
   rewrite !unfold_translate.
   genobs_clear t ot. destruct ot; cbn; try constructor; eauto. 
 Qed.
@@ -161,7 +161,7 @@ Instance eq_itree_translate {E F}
             translate.
 Proof.
   intros f g Hfg T.
-  bcoinduction c cih. 
+  bcoinduction c cih. intros. 
   rewrite 2 unfold_translate.
   step in H. 
   destruct H; cbn; try easy; try rewrite Hfg; eauto with itree. 
@@ -175,7 +175,7 @@ Instance eutt_translate {E F}
 Proof.
   repeat red.
   intros until T.
-  bcoinduction c cih.
+  bcoinduction c cih. intros.
   rewrite !unfold_translate. step in H0. 
   induction H0; subst; simpl; eauto with itree. 
   - rewrite H. econstructor. eauto with itree.
@@ -198,7 +198,7 @@ Lemma eutt_translate_gen :
 Proof.
   intros *.
   revert t s.
-  bcoinduction c cih. 
+  bcoinduction c cih. intros. 
   rewrite !unfold_translate. step in H. 
   induction H; intros; subst; simpl; eauto with itree. 
 Qed. 

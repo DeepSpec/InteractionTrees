@@ -281,7 +281,7 @@ Ltac refold_in h :=
       try fold (@eutt E _ _) in h
   end.
 
-Ltac to_mon :=
+Ltac to_mon_core :=
 match goal with
 | |- context[@eqitF ?E ?R1 ?R2 ?RR ?b1 ?b2 (?f ?R1 ?R2 ?RR) (observe ?t1) (observe ?t2)] =>
       change (eqitF RR b1 b2 (f R1 R2 RR) (observe t1) (observe t2))
@@ -290,6 +290,23 @@ match goal with
       change (eqitF RR b1 b2 (f R1 R2 RR) (con1 a1) (con2 a2))
       with (eqit_mon b1 b2 f R1 R2 RR (go (con1 a1)) (go (con2 a2)))
 end.
+
+(* Ltac under_forall' tac := 
+let dummy := fresh "dummy" in   
+assert (dummy : True) by constructor; 
+          intros; 
+          tac; 
+          revert_until dummy; 
+          clear dummy. 
+Ltac to_mon := under_forall' to_mon_core.  *)
+
+Ltac to_mon := 
+let dummy := fresh "dummy" in   
+assert (dummy : True) by constructor; 
+          intros; 
+          to_mon_core; 
+          revert_until dummy; 
+          clear dummy. 
 
 Ltac to_mon_in h :=
 match type of h with
@@ -327,7 +344,7 @@ Tactic Notation "icoinduction" simple_intropattern(R) simple_intropattern(H) :=
 iunfold_coind; coinduction R H; icbn.  
 
 Tactic Notation "bcoinduction" simple_intropattern(R) simple_intropattern(H) :=
-icoinduction R H; intros; to_mon. 
+icoinduction R H; to_mon.
 
 (* The [icbn] tactic: unfolding the ITree definition *)
 
