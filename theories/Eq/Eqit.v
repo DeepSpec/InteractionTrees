@@ -291,14 +291,13 @@ match goal with
       with (eqit_mon b1 b2 f R1 R2 RR (go (con1 a1)) (go (con2 a2)))
 end.
 
-(* Ltac under_forall' tac := 
+Ltac under_forall' tac := 
 let dummy := fresh "dummy" in   
 assert (dummy : True) by constructor; 
           intros; 
           tac; 
           revert_until dummy; 
           clear dummy. 
-Ltac to_mon := under_forall' to_mon_core.  *)
 
 Ltac to_mon := 
 let dummy := fresh "dummy" in   
@@ -345,6 +344,11 @@ iunfold_coind; coinduction R H; icbn.
 
 Tactic Notation "bcoinduction" simple_intropattern(R) simple_intropattern(H) :=
 icoinduction R H; to_mon.
+
+Tactic Notation "bcoinduction" :=
+let c := fresh "c" in 
+let cih := fresh "cih" in 
+bcoinduction c cih. 
 
 (* The [icbn] tactic: unfolding the ITree definition *)
 
