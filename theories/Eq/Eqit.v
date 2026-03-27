@@ -574,6 +574,14 @@ Proof.
   (* do induction and conclude trivially with constructors. *)
   induction euv; eauto with itree.
 Qed.
+
+Lemma eutt_flip : forall (E : Type -> Type) (A B : Type) (R : A -> B -> Prop)
+                         (ta : itree E A) (tb : itree E B),
+    eutt R ta tb -> eutt (flip R) tb ta.
+Proof.
+  intros. now apply eqit_flip.  
+Qed.
+
 #[global] Hint Unfold flip : itree.
 
 (** [eqit] itself is monotone *)
@@ -2618,6 +2626,8 @@ u and v are of different types. *)
 
 End eqit_elem. 
 
+Section eutt_facts. 
+
 (** * Equivalence up to taus *)
 
 (** Abbreviated as [eutt]. *)
@@ -2786,7 +2796,7 @@ Lemma eutt_sub_self {E R} (R1 R2: R -> R -> Prop) (t: itree E R):
   eutt R2 t t.
 Proof.
   intros Hrel; revert t. icoinduction c cih; intros t Heutt.
-  step in Heutt. 
+  step in Heutt.
   remember t as t' in Heutt at 2. assert (Ht': t' ≈ t) by now subst. clear Heqt'.
   rewrite (itree_eta t), (itree_eta t') in Ht'.
   revert Ht'. induction Heutt; clear t; intros Heq.
@@ -2802,3 +2812,5 @@ Proof.
   - apply IHHeutt. rewrite <- (itree_eta).   
     now rewrite tau_euttge in Heq. 
 Qed.
+
+End eutt_facts. 

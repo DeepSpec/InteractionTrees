@@ -4,5 +4,4 @@ From ITree.Eq Require Export
   Shallow
   Eqit
   UpToTaus
-  SimUpToTaus
-  EuttExtras.
+  SimUpToTaus.
