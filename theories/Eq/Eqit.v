@@ -1944,23 +1944,7 @@ Proof.
     eapply IHeqitF; eauto. 
 Qed. 
 
-(* Q: best way we want to define this? Does this ever leave the file? *)
 
-(* need something STRONG about elem- tower induction? *)
-
-(* if 2 trees related by elem, 
-
-and 2 continuations same, 
-
-then bind ok? *)
-
-
-
-(* We would like this below property to be true, but it may not be:
-the property as stated is not inf-closed, which means tower induction
-fails. we need some kind of coinductive reasoning for the taus cause, 
-but `coinduction` also fails to help us because it creates a new, 
-unrelated chain to the ones we want to reason about. *)
 
 Lemma eutt_clo_bind {U1 U2 UU} t1 t2 k1 k2
       (EQT: @eutt E U1 U2 UU t1 t2)
@@ -1982,6 +1966,9 @@ Qed.
 
 
 End eqit_h.
+
+Ltac ebind := eapply eqit_clo_bind_chain; eauto with itree.  
+
 
 Lemma eutt_Tau {E R} (t1 t2 : itree E R):
   Tau t1 ≈ Tau t2 <-> t1 ≈ t2.
@@ -2631,3 +2618,187 @@ u and v are of different types. *)
 
 End eqit_elem. 
 
+(** * Equivalence up to taus *)
+
+(** Abbreviated as [eutt]. *)
+
+(** We consider [Tau] as an "internal step", that should not be
+   visible to the outside world, so adding or removing [Tau]
+   constructors from an itree should produce an equivalent itree.
+
+   We must be careful because there may be infinite sequences of
+   taus (i.e., [spin]). Here we shall only allow inserting finitely
+   many [Tau]s between any two visible steps ([Ret] or [Vis]), so that
+   [spin] is only related to itself. This ensures that equivalence
+   up to taus is transitive (and in fact an equivalence relation).
+ *)
+
+(** A rewrite hint database named [itree] is available via the tactic
+    [autorewrite with itree] as a custom simplifier of expressions using
+    mainly [Ret], [Tau], [Vis], [ITree.bind] and [ITree.Interp.Interp.interp].
+ *)
+
+(** This file contains only the definition of the [eutt] relation.
+    Theorems about [eutt] are split in two more modules:
+
+    - [ITree.Eq.UpToTausCore] proves that [eutt] is reflexive, symmetric,
+      and that [ITree.Eq.Eqit.eq_itree] is a subrelation of [eutt].
+      Equations for [ITree.Core.ITreeDefinition] combinators which only rely on
+      those properties can also be found here.
+
+    - [ITree.Eq.UpToTausEquivalence] proves that [eutt] is transitive,
+      and, more generally, contains theorems for up-to reasoning in
+      coinductive proofs.
+ *)
+
+
+#[global]
+Instance eutt_cong_eutt {E R1 R2 RR}:
+  Proper (eutt eq ==> eutt eq ==> flip impl)
+         (@eqit E true true R1 R2 RR).
+Proof.
+  intros!. now rewrite H, H0.
+Qed.
+
+#[global]
+Instance eutt_cong_euttge {E R1 R2 RR}:
+  Proper (euttge eq ==> euttge eq ==> flip impl)
+         (@eqit E true true R1 R2 RR).
+Proof.
+  intros!. now rewrite H, H0.
+Qed.
+
+#[global]
+Instance eutt_cong_eq {E R1 R2 RR}:
+  Proper (eq_itree eq ==> eq_itree eq ==> flip impl)
+         (@eqit E true true R1 R2 RR).
+Proof.
+  intros!. now rewrite H, H0.
+Qed.
+
+#[global]
+Instance eutt_cong_eutt' {E R1 R2 RR} :
+  Proper (eutt eq ==> eutt eq ==> flip impl) (@eutt E R1 R2 RR).
+Proof.
+  apply eutt_cong_eutt.
+Qed.
+
+(* Specialization of [eutt_clo_bind] to the recurrent case where [UU := eq]
+   in order to avoid having to provide the relation manually everytime *)
+Lemma eutt_eq_bind : forall E R1 R2 RR U (t: itree E U) (k1: U -> itree E R1) (k2: U -> itree E R2),
+    (forall u, eutt RR (k1 u) (k2 u)) -> eutt RR (ITree.bind t k1) (ITree.bind t k2).
+Proof.
+  intros.
+  apply eutt_clo_bind with (UU := Logic.eq); [reflexivity |].
+  intros ? ? ->; apply H.
+Qed.
+
+(* Further specialization for [RR := eq] *)
+Lemma eutt_eq_bind' {E U R} (t1 t2: itree E U) (k1 k2: U -> itree E R):
+  t1 ≈ t2 ->
+  (forall u, (k1 u) ≈ (k2 u)) ->
+  (ITree.bind t1 k1) ≈ (ITree.bind t2 k2).
+Proof.
+  intros -> Hk. now apply eutt_eq_bind.
+Qed.
+
+(* Exposing a version specialized to [eutt] so that users don't have to know about [eqit] *)
+Lemma eutt_Ret :
+  forall E (R1 R2 : Type) (RR : R1 -> R2 -> Prop) r1 r2, RR r1 r2 <-> eutt (E := E) RR (Ret r1) (Ret r2).
+Proof.
+  intros; apply eqit_Ret.
+Qed.
+
+(* [eutt] can be thought as the elementary block of a relational program logic.
+   The following few lemmas give elementary logical rules to compose proofs.
+ *)
+Lemma eutt_conj {E} {R S} {RS RS'} :
+  forall (t : itree E R) (s : itree E S),
+    eutt RS  t s ->
+    eutt RS' t s ->
+    eutt (cup RS RS') t s. 
+Proof.
+  repeat red.
+  icoinduction c cih. intros * EQ EQ'.
+  step in EQ; step in EQ'. 
+  genobs t ot; genobs s os.
+  hinduction EQ before cih; subst; intros; simpl.
+  - now inv EQ'; constructor; constructor.
+  - taus. eapply cih; eauto. apply eqit_inv_Tau. now step.  
+  - constructor. intro v. specialize (REL v).
+    eapply cih; eauto. 
+    now eapply eqitF_inv_VisF in EQ'; eauto.
+  - taul. eapply IHEQ; eauto. subst. unstep. eapply eqit_inv_Tau_l. 
+    now step.  
+  - taur. eapply IHEQ; eauto. subst. unstep. eapply eqit_inv_Tau_r. 
+    now step.  
+Qed.
+
+Lemma eutt_disj_l {E} {R S} {RS RS'} :
+  forall (t : itree E R) (s : itree E S),
+    eutt RS t s ->
+    eutt (cup RS RS') t s. 
+Proof.
+  intros.
+  eapply (eqit_mono RS _); eauto.
+Qed.
+
+Lemma eutt_disj_r {E} {R S} {RS RS'} :
+  forall (t : itree E R) (s : itree E S),
+    eutt RS' t s ->
+    eutt (cup RS RS') t s. 
+Proof.
+  intros.
+  eapply (eqit_mono RS' _); eauto.
+Qed.
+
+Lemma eutt_equiv {E} {R S} {RS RS'} :
+  forall (t : itree E R) (s : itree E S),
+    (HeterogeneousRelations.eq_rel RS RS') ->
+    eutt RS t s <-> eutt RS' t s. 
+Proof.
+  intros * EQ; split; intros EUTT; eapply eqit_mono; try apply EUTT; eauto.
+  all:apply EQ.
+Qed.
+
+(* Rewriting equivalent simulation relations under [eq_itree] and [eutt] *)
+#[global]
+Instance eq_itree_Proper_R_Het {E : Type -> Type} {R1 R2:Type}
+  : Proper ((@HeterogeneousRelations.eq_rel R1 R2) ==> Logic.eq ==> Logic.eq ==> iff) (@eq_itree E R1 R2).
+Proof.
+  repeat intro; subst.
+  unfold eq_itree; rewrite H; reflexivity.
+Qed.
+
+#[global]
+Instance eutt_Proper_R_Het {E : Type -> Type} {R1 R2:Type}
+  : Proper  ((@HeterogeneousRelations.eq_rel R1 R2) ==> eq ==> eq ==> iff) (@eutt E R1 R2).
+Proof.
+  repeat intro; subst.
+  unfold eutt; rewrite H; reflexivity.
+Qed.
+
+(* Stronger subrelation result which applies for [eutt RR t t]. This is
+   relevant for post-conditions *)
+Lemma eutt_sub_self {E R} (R1 R2: R -> R -> Prop) (t: itree E R):
+  (forall r, R1 r r -> R2 r r) ->
+  eutt R1 t t ->
+  eutt R2 t t.
+Proof.
+  intros Hrel; revert t. icoinduction c cih; intros t Heutt.
+  step in Heutt. 
+  remember t as t' in Heutt at 2. assert (Ht': t' ≈ t) by now subst. clear Heqt'.
+  rewrite (itree_eta t), (itree_eta t') in Ht'.
+  revert Ht'. induction Heutt; clear t; intros Heq.
+  - apply eutt_inv_Ret in Heq; subst.
+    constructor; auto.
+  - apply eqit_inv_Tau in Heq.
+    constructor. eapply cih. 
+    now rewrite <- Heq at 2.
+  - constructor. intros v. eapply eqit_inv_Vis in Heq.
+    specialize (REL v). eapply cih. now rewrite <- Heq at 2.
+  - taul. taur. apply IHHeutt. rewrite <- (itree_eta t1).   
+    now rewrite tau_euttge in Heq. 
+  - apply IHHeutt. rewrite <- (itree_eta).   
+    now rewrite tau_euttge in Heq. 
+Qed.

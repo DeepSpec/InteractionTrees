@@ -41,8 +41,6 @@ Ltac unfold_ktree :=
 From Coinduction Require Import all. 
 
 
-Ltac ebind := eapply eqit_clo_bind_chain; eauto with itree. 
-
 From Corelib Require Import Program.Tactics. 
 
 Ltac under_forall' tac := 
@@ -72,8 +70,6 @@ Proof.
   (* need eq_itree proper up to everything *)
   rewrite !unfold_iter.
   rewrite bind_map, bind_bind.
-  (* problem: this puts us at the gfp, so we lose the cih. *)
-  (* problem: this puts in chain_b automatically *)
   ebind. 
   intros [a | b] _ [].
   - rewrite bind_tau. taus.
