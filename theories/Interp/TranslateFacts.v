@@ -16,7 +16,6 @@ From ITree Require Import
      Core.Subevent
      Eq.Shallow
      Eq.Eqit
-     Eq.UpToTaus
      Indexed.Sum
      Indexed.Function
      Indexed.Relation

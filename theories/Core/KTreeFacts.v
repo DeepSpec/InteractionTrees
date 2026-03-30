@@ -20,8 +20,7 @@ From ITree Require Import
      Core.ITreeMonad
      Core.KTree
      Eq.Shallow
-     Eq.Eqit
-     Eq.UpToTaus.
+     Eq.Eqit.
 
 Import CatNotations.
 Local Open Scope itree_scope.

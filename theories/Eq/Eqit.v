@@ -2135,7 +2135,8 @@ Proof.
   (* 2. we know they are by the CIH... *)
   all: try eapply CIH.
   (* 3. so the rest is just 'fancy reflexivity. *)
-  all: constructor; reflexivity. 
+  all: constructor; ITree.fold_subst.
+  all: simpl; reflexivity. 
 Qed. 
 
 Lemma bind_ret_r' {E R} (u : itree E R) (f : R -> R) :

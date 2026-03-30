@@ -9,7 +9,6 @@ From ITree Require Import
      Axioms
      Core.ITreeDefinition
      Eq.Eqit
-     Eq.UpToTaus
      Eq.SimUpToTaus
      Eq.Shallow
      Eq.Paco2.

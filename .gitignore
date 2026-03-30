@@ -52,3 +52,4 @@ tutorial/imp_test.mli
 *.native
 
 *.install
+.mcp.json

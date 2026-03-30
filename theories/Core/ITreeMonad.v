@@ -7,9 +7,7 @@ From ITree Require Import
      Basics.Basics
      Basics.Monad
      Core.ITreeDefinition
-     Eq.Eqit
-     Eq.UpToTaus.
-
+     Eq.Eqit.
 #[global]
 Instance Eq1_ITree {E} : Eq1 (itree E) := fun a => eutt eq.
 

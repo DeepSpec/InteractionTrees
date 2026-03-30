@@ -271,7 +271,6 @@ End SimpleTheory.
 
 From ITree Require Import
      Eq.Eqit
-     Eq.UpToTaus
      Interp.InterpFacts
      Interp.RecursionFacts.
 

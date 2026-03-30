@@ -17,7 +17,6 @@ From ITree Require Import
      Core.KTree
      Core.KTreeFacts
      Eq.Eqit
-     Eq.UpToTaus
      Eq.Paco2
      Indexed.Sum
      Interp.Interp

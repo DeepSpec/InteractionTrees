@@ -25,7 +25,6 @@ From ITree Require Import
      Core.KTreeFacts
      Eq.Shallow
      Eq.Eqit
-     Eq.UpToTaus
      Indexed.Sum
      Indexed.Function
      Indexed.Relation
