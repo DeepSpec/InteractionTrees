@@ -29,7 +29,7 @@ From Stdlib Require Import
      Morphisms
      Relations.
 
-From Coinduction Require Import all.
+From Coinduction Require Export all.
 
 (* important: Basics.Utils must come after Coinduction, as it 
 re-implements several tactics. *)
@@ -349,6 +349,8 @@ Tactic Notation "bcoinduction" :=
 let c := fresh "c" in 
 let cih := fresh "cih" in 
 bcoinduction c cih. 
+
+Ltac bcbn := cbn; to_mon. 
 
 (* The [icbn] tactic: unfolding the ITree definition *)
 

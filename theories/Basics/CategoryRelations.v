@@ -539,7 +539,6 @@ Ltac decomp :=
         3 : refine ((inr (inr c0))). intuition; econstructor; auto.
         intuition.
       - exists (inr (inr d0)); intuition; econstructor; auto.
-        split. Unshelve. econstructor. reflexivity. cbn. auto.
      Qed.
 
     Global Instance Monoidal_sum_rel : Monoidal relationH sum void.
