@@ -3,7 +3,6 @@
 (* begin hide *)
 From Stdlib Require Import Program.Tactics Morphisms.
 
-From Paco Require Import paco.
 
 From ITree Require Import
      Basics.Basics
@@ -15,7 +14,6 @@ From ITree Require Import
      Core.KTree
      Core.KTreeFacts
      Eq.Eqit
-     Eq.Paco2
      Indexed.Sum
      Interp.Interp
      Interp.InterpFacts
@@ -60,15 +58,14 @@ Instance eq_itree_interp_state {E F S R} (h : E ~> Monads.stateT S (itree F)) :
          (@interp_state _ _ _ _ _ _ h R).
 Proof.
   revert_until R.
-  ginit. pcofix CIH. intros h x y H0 x2 _ [].
+  bcoinduction. intros h x y H0 x2 _ [].
   rewrite !unfold_interp_state.
-  punfold H0; repeat red in H0.
-  destruct H0; subst; pclearbot; try discriminate; cbn.
-  - gstep; constructor; auto.
-  - gstep; constructor; auto with paco.
-  - guclo eqit_clo_bind. econstructor.
-    + reflexivity.
-    + intros [] _ []. gstep; constructor; auto with paco itree.
+  step in H0. 
+  destruct H0; subst; try discriminate; cbn.
+  - reflexivity. 
+  - taus; now apply cih.  
+  - to_mon. ebind; intros; subst.  
+    + taus; auto with itree. 
 Qed.
 
 Lemma interp_state_ret {E F : Type -> Type} {R S : Type}
@@ -125,23 +122,18 @@ Lemma interp_state_bind {E F : Type -> Type} {A B S : Type}
   (interp_state f t s >>= fun st => interp_state f (k (snd st)) (fst st)).
 Proof.
   revert t k s.
-  ginit. pcofix CIH.
+  bcoinduction. 
   intros t k s.
   rewrite unfold_bind.
   rewrite (unfold_interp_state f t).
   destruct (observe t).
-  - cbn. rewrite !bind_ret_l. cbn.
+  - bcbn. rewrite !bind_ret_l. 
     apply reflexivity.
-  - cbn. rewrite !bind_tau, interp_state_tau.
-    gstep. econstructor. gbase. apply CIH.
-  - cbn. rewrite interp_state_vis, bind_bind.
-    guclo eqit_clo_bind. econstructor.
-    + reflexivity.
-    + intros u2 ? [].
+  - bcbn. taus. apply cih.
+  - bcbn. rewrite interp_state_vis, bind_bind.
+    ebind; intros; subst. 
       rewrite bind_tau.
-      gstep; constructor.
-      ITree.fold_subst.
-      auto with paco.
+      taus. now apply cih. 
 Qed.
 
 #[global]
@@ -150,15 +142,13 @@ Instance eutt_interp_state {E F: Type -> Type} {S : Type}
   Proper (eutt RR ==> eq ==> eutt (prod_rel eq RR)) (@interp_state E (itree F) S _ _ _ h R).
 Proof.
   repeat intro. subst. revert_until RR.
-  einit. ecofix CIH. intros.
+  bcoinduction. intros.
 
-  rewrite !unfold_interp_state. punfold H0. red in H0.
-  induction H0; intros; subst; simpl; pclearbot.
-  - eret.
-  - etau.
-  - ebind. econstructor; [reflexivity|].
-    intros; subst.
-    etau. ebase.
+  rewrite !unfold_interp_state. step in H. 
+  induction H; intros; subst; bcbn. 
+  - eret. 
+  - etau. 
+  - ebind; intros; subst. taus. apply cih. apply REL. 
   - rewrite tau_euttge, unfold_interp_state; eauto.
   - rewrite tau_euttge, unfold_interp_state; eauto.
 Qed.
@@ -169,15 +159,13 @@ Instance eutt_interp_state_eq {E F: Type -> Type} {S : Type}
   Proper (eutt eq ==> eq ==> eutt eq) (@interp_state E (itree F) S _ _ _ h R).
 Proof.
   repeat intro. subst. revert_until R.
-  einit. ecofix CIH. intros.
+  bcoinduction. intros. 
 
-  rewrite !unfold_interp_state. punfold H0. red in H0.
-  induction H0; intros; subst; simpl; pclearbot.
-  - eret.
-  - etau.
-  - ebind. econstructor; [reflexivity|].
-    intros; subst.
-    etau. ebase.
+  rewrite !unfold_interp_state. step in H. 
+  induction H; intros; subst; bcbn; eauto with itree. 
+  - eret. 
+  - ebind. intros; subst.
+    etau.
   - rewrite tau_euttge, unfold_interp_state; eauto.
   - rewrite tau_euttge, unfold_interp_state; eauto.
 Qed.
@@ -199,14 +187,14 @@ Lemma eutt_interp_state_aloop {E F S I I' A A'}
           (interp_state h (ITree.iter t2 i') s2)).
 Proof.
   intro Ht.
-  einit. ecofix CIH. intros.
+  bcoinduction. intros.
   rewrite 2 unfold_iter.
   rewrite 2 interp_state_bind.
-  ebind; econstructor.
-  - eapply Ht; auto.
-  - intros [s1' i1'] [s2' i2'] [? []]; cbn.
-    + rewrite 2 interp_state_tau. auto with paco.
-    + rewrite 2 interp_state_ret. auto with paco.
+  ebind; intros; subst. 
+  - do 2 step. eapply Ht; auto.
+  - inv H1. inv snd_rel.
+    + rewrite 2 interp_state_tau. etau. 
+    + rewrite 2 interp_state_ret. eret. 
 Qed.
 
 Lemma eutt_interp_state_iter {E F S A A' B B'}
@@ -234,17 +222,15 @@ Lemma eutt_eq_interp_state_iter {E F S} (f: E ~> stateT S (itree F)) {I A}
     Basics.iter (fun i => interp_state f (t i)) i s.
 Proof.
   unfold Basics.iter, MonadIter_stateT0, Basics.iter, MonadIter_itree in *; cbn.
-  ginit. gcofix CIH; intros i s.
-  rewrite 2 unfold_iter; cbn.
+  bcoinduction; intros i s.
+  rewrite 2 unfold_iter; bcbn.
   rewrite !bind_bind.
   setoid_rewrite bind_ret_l.
   rewrite interp_state_bind.
-  guclo eqit_clo_bind; econstructor; eauto. reflexivity.
-  intros [s' []] _ []; cbn.
-  - rewrite interp_state_tau.
-    gstep; constructor.
-    auto with paco.
-  - rewrite interp_state_ret; apply reflexivity.
+  ebind.
+  intros [s' []] _ []; bcbn.
+  - etau. 
+  - eret. 
 Qed.
 
 Lemma eutt_interp_state_loop {E F S A B C} (RS : S -> S -> Prop)
@@ -270,11 +256,9 @@ Proof.
   cbn in H2; destruct H2 as [H21 H22].
   destruct (snd u1); rewrite <- H22.
   - rewrite bind_ret_l, 2 interp_state_ret.
-    pstep.
-    constructor.
-    split; cbn; auto using H21.
-  - rewrite bind_ret_l, 2 interp_state_ret. pstep. constructor.
-    split; cbn; auto using H21.
+    step. 
+    eret. 
+  - rewrite bind_ret_l, 2 interp_state_ret. step. eret. 
 Qed.
 
 (* SAZ: These are probably too specialized. *)
@@ -290,18 +274,16 @@ Lemma interp_state_iter {E F } S (f : E ~> stateT S (itree F)) {I A}
                   (Basics.iter t' i).
 Proof.
   unfold Basics.iter, MonadIter_stateT0, Basics.iter, MonadIter_itree in *; cbn.
-  ginit. pcofix CIH; intros i s.
-  rewrite 2 unfold_iter; cbn.
+  bcoinduction; intros i s.
+  rewrite 2 unfold_iter; bcbn.
   rewrite !bind_bind.
   setoid_rewrite bind_ret_l.
   rewrite interp_state_bind.
-  guclo eqit_clo_bind; econstructor; eauto.
-  - apply EQ_t.
-  - intros [s' []] _ []; cbn.
-    + rewrite interp_state_tau.
-      gstep; constructor.
-      auto with paco.
-    + rewrite interp_state_ret; apply reflexivity.
+  ebind. 
+  - do 2 step. apply EQ_t.
+  - intros [s' []] _ []; bcbn.
+    + etau. 
+    + eret. 
 Qed.
 
 Lemma interp_state_iter' {E F } S (f : E ~> stateT S (itree F)) {I A}
@@ -321,16 +303,14 @@ Lemma interp_state_iter'_eutt {E F S} (f: E ~> stateT S (itree F)) {I A}
   forall i s, interp_state f (ITree.iter t i) s ≈ Basics.iter t' i s.
 Proof.
   unfold Basics.iter, MonadIter_stateT0, Basics.iter, MonadIter_itree in *; cbn.
-  ginit. gcofix CIH; intros i s.
-  rewrite 2 unfold_iter; cbn.
+  bcoinduction; intros i s.
+  rewrite 2 unfold_iter; bcbn.
   rewrite !bind_bind.
   setoid_rewrite bind_ret_l.
   rewrite interp_state_bind.
-  guclo eqit_clo_bind; econstructor; eauto.
-  - apply Heq.
-  - intros [s' []] _ []; cbn.
-    + rewrite interp_state_tau.
-      gstep; constructor.
-      auto with paco.
-    + rewrite interp_state_ret; apply reflexivity.
+  ebind. 
+  - do 2 step. apply Heq.
+  - intros [s' []] _ []; bcbn.
+    + etau. 
+    + eret. 
 Qed.
