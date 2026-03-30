@@ -34,7 +34,6 @@ theories/Eq.v
 theories/Eq/Paco2.v
 theories/Eq/Shallow.v
 theories/Eq/Eqit.v
-theories/Eq/UpToTaus.v
 theories/Eq/SimUpToTaus.v
 theories/Eq/EqAxiom.v
 theories/Eq/Rutt.v
