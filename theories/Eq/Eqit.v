@@ -1977,6 +1977,9 @@ Qed.
 
 End eqit_h.
 
+Ltac eret := constructor; eauto with itree. 
+Ltac etau := taus; eauto with itree.  
+Ltac evis := constructor; intros; eauto with itree. 
 Ltac ebind := eapply eqit_clo_bind_chain; eauto with itree.  
 
 
