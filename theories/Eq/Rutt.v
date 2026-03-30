@@ -141,11 +141,11 @@ Ltac runfold_coind :=
 Tactic Notation "rcoinduction" simple_intropattern(R) simple_intropattern(H) :=
   runfold_coind; coinduction R H; cbn [rutt_mon body rutt_].
 
-#[local] Ltac rcbn := cbn[rutt_mon body rutt_].
-#[local] Ltac rcbn_in H := cbn[rutt_mon body rutt_] in H.
+#[local] Ltac rcbn := cbn[rutt_mon body]; try unfold rutt_.
+#[local] Ltac rcbn_in H := cbn[rutt_mon body]; try unfold rutt_ in H.
 
 #[local] Tactic Notation "rcbn" "in" ident(h) := rcbn_in h. 
-#[local] Tactic Notation "rcbn" "in" "*" := cbn[rutt_mon body rutt] in *. 
+#[local] Tactic Notation "rcbn" "in" "*" := cbn[rutt_mon body]; try unfold rutt_ in *. 
 
 
 #[global] Hint Constructors ruttF : itree.
@@ -174,8 +174,8 @@ Qed.
 Lemma rutt_inv_Ret_l r1 t2:
   rutt REv RAns RR (Ret r1) t2 -> exists r2, t2 ≳ Ret r2 /\ RR r1 r2.
 Proof.
-  intros Hrutt. rstep in Hrutt. rcbn in Hrutt.
-  setoid_rewrite (itree_eta t2). remember (RetF r1) as ot1; revert Heqot1.  
+  intros Hrutt. rstep in Hrutt. rcbn in Hrutt. 
+  setoid_rewrite (itree_eta t2). remember (observe (Ret r1)) as ot1; revert Heqot1.  
   induction Hrutt; intros; try discriminate.
   - inversion Heqot1; subst. exists r2. split; [reflexivity|auto].
   - destruct (IHHrutt Heqot1) as [r2 [H1 H2]]. exists r2; split; auto.
@@ -185,8 +185,8 @@ Qed.
 Lemma rutt_inv_Ret_r t1 r2:
   rutt REv RAns RR t1 (Ret r2) -> exists r1, t1 ≳ Ret r1 /\ RR r1 r2.
 Proof.
-  intros Hrutt. rstep in Hrutt. cbn in Hrutt.
-  setoid_rewrite (itree_eta t1). remember (RetF r2) as ot2; revert Heqot2.
+  intros Hrutt. rstep in Hrutt. rcbn in Hrutt.
+  setoid_rewrite (itree_eta t1). remember (observe (Ret r2)) as ot2; revert Heqot2.
   induction Hrutt; intros; try discriminate.
   - inversion Heqot2; subst. exists r1. split; [reflexivity|auto].
   - destruct (IHHrutt Heqot2) as [r1 [H1 H2]]. exists r1; split; auto.
@@ -265,8 +265,8 @@ Lemma rutt_inv_Vis_l {U1} (e1: E1 U1) k1 t2:
     REv _ _ e1 e2 /\
     (forall v1 v2, RAns _ _ e1 v1 e2 v2 -> rutt REv RAns RR (k1 v1) (k2 v2)).
 Proof.
-  intros Hrutt. rstep in Hrutt. cbn in Hrutt.
-  setoid_rewrite (itree_eta t2). remember (VisF e1 k1) as ot1; revert Heqot1.
+  intros Hrutt. rstep in Hrutt. rcbn in Hrutt.
+  setoid_rewrite (itree_eta t2). remember (observe (Vis e1 k1)) as ot1; revert Heqot1.
   induction Hrutt; intros; try discriminate; subst.
   - inversion Heqot1; subst A. inversion_sigma; rewrite <- eq_rect_eq in *;
     subst; rename B into U2.
@@ -283,8 +283,8 @@ Lemma rutt_inv_Vis_r {U2} t1 (e2: E2 U2) k2:
     REv U1 U2 e1 e2 /\
     (forall v1 v2, RAns _ _ e1 v1 e2 v2 -> rutt REv RAns RR (k1 v1) (k2 v2)).
 Proof.
-  intros Hrutt. rstep in Hrutt. cbn in Hrutt.
-  setoid_rewrite (itree_eta t1). remember (VisF e2 k2) as ot2; revert Heqot2.
+  intros Hrutt. rstep in Hrutt. rcbn in Hrutt.
+  setoid_rewrite (itree_eta t1). remember (observe (Vis e2 k2)) as ot2; revert Heqot2.
   induction Hrutt; intros; try discriminate; subst.
   - inversion Heqot2; subst B. inversion_sigma; rewrite <- eq_rect_eq in *;
     subst; rename A into U1.
