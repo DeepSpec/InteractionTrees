@@ -2728,18 +2728,23 @@ Qed.
 (* [eutt] can be thought as the elementary block of a relational program logic.
    The following few lemmas give elementary logical rules to compose proofs.
  *)
+ (* for meeting: need a relation combinator that takes 
+ fun x y => P x y and 
+ fun x' y' => Q x y and makes 
+ fun x y => P x y /\ Q x y  
+ 
+ *)
 Lemma eutt_conj {E} {R S} {RS RS'} :
   forall (t : itree E R) (s : itree E S),
     eutt RS  t s ->
     eutt RS' t s ->
-    eutt (cup RS RS') t s. 
+    eutt (cap RS RS') t s. 
 Proof.
-  repeat red.
   icoinduction c cih. intros * EQ EQ'.
   step in EQ; step in EQ'. 
   genobs t ot; genobs s os.
   hinduction EQ before cih; subst; intros; simpl.
-  - now inv EQ'; constructor; constructor.
+  - inv EQ'. eret. now constructor. 
   - taus. eapply cih; eauto. apply eqit_inv_Tau. now step.  
   - constructor. intro v. specialize (REL v).
     eapply cih; eauto. 

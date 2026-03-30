@@ -1,5 +1,4 @@
 (* begin hide *)
-From Paco Require Import paco.
 From Stdlib Require Import Morphisms.
 From ITree Require Import
      Basics.Utils
@@ -48,8 +47,12 @@ Definition has_post_strong {E X} (t : itree E X) (Q : X -> Prop) : Prop :=
 Lemma has_post_post_strong : forall {E X} (t : itree E X) Q,
     has_post t Q <-> has_post_strong t Q.
 Proof.
-  intros; split; intros HP.
-  - apply eutt_conj; [reflexivity | auto].
+  intros; split; intros HP; red in HP; red.
+  assert (t ≈ t) by auto. 
+  - specialize (eutt_conj _ _ HP H) as Hconj. 
+    Search cap. apply cap_spec in Hconj. 
+    fail.  
+  - red.  eapply eutt_conj; [reflexivity | auto].
   - eapply eqit_mon; eauto.
     intros * H; apply H.
 Qed.
