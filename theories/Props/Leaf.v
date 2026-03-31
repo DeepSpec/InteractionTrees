@@ -112,20 +112,20 @@ Lemma Leaf_eutt_l {E A B R}:
 Proof.
   intros * EQ FIN;
   revert u EQ.
-  induction FIN; intros u2 EQ.
-  - punfold EQ.
-    red in EQ; rewrite H in EQ; clear H t.
+  induction FIN; intros u2 EQ. 
+  - step in EQ. 
+    rewrite H in EQ; clear H t.
     remember (RetF a); genobs u2 ou.
-    hinduction EQ before R; intros; try now discriminate.
+    hinduction EQ before R; intros; try easy.
     + inv Heqi; eauto with itree.
     + edestruct IHEQ as (b & IN & HR); eauto with itree.
-  - punfold EQ; red in EQ; rewrite H in EQ; clear H t.
+  - step in EQ; rewrite H in EQ; clear H t.
     remember (TauF u); genobs u2 ou2.
-    hinduction EQ before R; intros; try discriminate; pclearbot; inv Heqi.
+    hinduction EQ before R; intros; try easy; inv Heqi.
     + edestruct IHFIN as (? & ? & ?); [ .. | eexists ]; eauto with itree.
-    + eauto with itree.
+    + eapply IHFIN. now step. 
     + edestruct IHEQ as (? & ? & ?); [ .. | eexists ]; eauto with itree.
-  - punfold EQ; red in EQ; rewrite H in EQ; clear H t.
+  - step in EQ; rewrite H in EQ; clear H t.
     remember (VisF e k); genobs u2 ou2.
     hinduction EQ before R; intros; try discriminate; pclearbot.
     + revert x FIN IHFIN.
@@ -179,14 +179,14 @@ Proof.
   revert t k Hequ.
   induction FIN; intros t' k' ->; rename t' into t.
   - unfold observe in H; cbn in H.
-    desobs t EQ; cbn in *; try congruence.
+    desobs t EQ_; cbn in *; try congruence.
     exists r; auto with itree.
   - unfold observe in H; cbn in H.
-    desobs t EQ; cbn in *; try congruence; [ eexists; eauto with itree | ].
+    desobs t EQ_; cbn in *; try congruence; [ eexists; eauto with itree | ].
     inversion H; clear H; symmetry in H1.
     edestruct IHFIN as (? & ? & ?); [ eauto | eexists; eauto with itree ].
   - unfold observe in H; cbn in H.
-    desobs t EQ; cbn in *; try congruence; [ eexists; eauto with itree | ].
+    desobs t EQ_; cbn in *; try congruence; [ eexists; eauto with itree | ].
     revert x FIN IHFIN.
     refine (match H in _ = u return match u with VisF e0 k0 => _ | RetF _ | TauF _ => False end with eq_refl => _ end).
     intros.
@@ -211,7 +211,7 @@ Section LeafBind.
   | pbc_intro_h U1 U2 (RU : U1 -> U2 -> Prop)
                 (t1 : itree E U1) (t2 : itree E U2)
                  (k1 : U1 -> itree E R) (k2 : U2 -> itree E S)
-                (EQV: eqit RU b1 b2 t1 t2)
+                (EQV: eqit b1 b2 RU t1 t2)
                 (REL: forall u1 u2,
                       u1 ∈ t1 -> u2 ∈ t2 -> RU u1 u2 ->
                       r (k1 u1) (k2 u2))
@@ -220,7 +220,7 @@ Section LeafBind.
     .
   Hint Constructors eqit_Leaf_bind_clo : itree.
 
-  Lemma eqit_Leaf_clo_bind  (RS : R -> S -> Prop) b1 b2 vclo
+Lemma eqit_Leaf_clo_bind  (RS : R -> S -> Prop) b1 b2 vclo
         (MON: monotone2 vclo)
         (CMP: compose (eqitC RS b1 b2) vclo <3= compose vclo (eqitC RS b1 b2))
         (ID: id <3= vclo):
