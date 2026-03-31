@@ -8,6 +8,8 @@ From ITree Require Import
      Interp.TranslateFacts.
 Set Implicit Arguments.
 Set Strict Implicit.
+Import RelNotations.
+#[local] Open Scope relationH_scope.
 (* end hide *)
 
 (** * Unary interpretation for [eutt]: a traditional program logic
@@ -49,12 +51,9 @@ Lemma has_post_post_strong : forall {E X} (t : itree E X) Q,
 Proof.
   intros; split; intros HP; red in HP; red.
   assert (t ≈ t) by auto. 
-  - specialize (eutt_conj _ _ HP H) as Hconj. 
-    Search cap. apply cap_spec in Hconj. 
-    fail.  
-  - red.  eapply eutt_conj; [reflexivity | auto].
-  - eapply eqit_mon; eauto.
-    intros * H; apply H.
+  - eapply eutt_conj; [reflexivity | auto].
+  - eapply (eqit_mono (fun x y : X => x = y /\ Q x)); eauto.
+    now intros!. 
 Qed.
 
 Module HasPostNotations.
@@ -68,9 +67,9 @@ Import HasPostNotations.
 Proof.
   repeat red; unfold has_post; intros * EUTT * EQ *; split; intros HP.
   - rewrite <- EUTT; eapply eutt_equiv; eauto.
-    split; red; intros; apply EQ; auto.
+    split; intros ? ? H; apply EQ; auto.
   - rewrite EUTT; eapply eutt_equiv; eauto.
-    split; red; intros; apply EQ; auto.
+    split; intros ? ? H; apply EQ; auto.
 Qed.
 
 #[global] Instance has_post_eutt {E X} :
@@ -78,9 +77,9 @@ Qed.
 Proof.
   repeat red; unfold has_post; intros * EUTT * EQ *; split; intros HP.
   - rewrite <- EUTT; eapply eutt_equiv; eauto.
-    split; red; intros; apply EQ; auto.
+    split; intros ? ? H; apply EQ; auto.
   - rewrite EUTT; eapply eutt_equiv; eauto.
-    split; red; intros; apply EQ; auto.
+    split; intros ? ? H; apply EQ; auto.
 Qed.
 
 (** [has_post] logical primitives.
@@ -92,7 +91,7 @@ Qed.
 Lemma has_post_conj : forall {E X} (t : itree E X) P Q,
     t ⤳ P ->
     t ⤳ Q ->
-    t ⤳ (P /1\ Q).
+    t ⤳ (P ∩ Q).
 Proof.
   intros * HP HQ.
   pose proof eutt_conj _ _ HP HQ.
@@ -102,41 +101,40 @@ Qed.
 (* Left disjunction introduction *)
 Lemma has_post_disj_l : forall {E X} (t : itree E X) P Q,
     t ⤳ P ->
-    t ⤳ (P \1/ Q).
+    t ⤳ (P ∪ Q).
 Proof.
-  intros * HP.
-  epose proof eutt_disj_l _ _ HP as H.
-  apply H.
+  unfold has_post, disj_rel, Disj_unary; intros * HP.
+  eapply eqit_mono. 4: exact HP. 1,2: auto.
+  intros; left; auto.
 Qed.
 
 (* Right disjunction introduction *)
 Lemma has_post_disj_r : forall {E X} (t : itree E X) P Q,
     t ⤳ Q ->
-    t ⤳ (P \1/ Q).
+    t ⤳ (P ∪ Q).
 Proof.
-  intros * HQ.
-  epose proof eutt_disj_r _ _ HQ as H.
-  apply H.
+  unfold has_post, disj_rel, Disj_unary; intros * HQ.
+  eapply eqit_mono. 4: exact HQ. 1,2: auto.
+  intros; right; auto.
 Qed.
 
 (* Weakening *)
 Lemma has_post_weaken : forall {E X} (t : itree E X) P Q,
     t ⤳ P ->
-    P <1= Q ->
+    P ⊑ Q ->
     t ⤳ Q.
 Proof.
-  intros * HP INCL.
-  eapply eqit_mon; eauto.
-  intros; apply INCL; auto.
+  unfold has_post, subrelationH, SubRelH_unary; intros * HP INCL.
+  eapply eqit_mono. 4: exact HP. 1,2: auto.
+  cbn. intros ? ? H; apply INCL; exact H.
 Qed.
 
 (* Trivial postcondition *)
 Lemma has_post_True : forall {E X} (t : itree E X),
     t ⤳ fun _ => True.
 Proof.
-  intros *.
-  eapply eqit_mon; eauto.
-  reflexivity.
+  intros *. red.
+  eapply (eqit_mono eq _ true true); auto. 
 Qed.
 
 (** Structural proof rules *)
@@ -174,7 +172,7 @@ Proof.
   intros i ? [<- ?].
   specialize (IND i); apply has_post_post_strong in IND; auto.
   unfold has_post_strong in IND.
-  eapply eqit_mon; try apply IND; auto.
+  eapply eqit_mono; try apply IND; auto.
   intros [] ? [<- ?]; eauto.
 Qed.
 
@@ -207,8 +205,8 @@ Proof.
   clear KEQ.
   apply has_post_post_strong in POST1.
   apply has_post_post_strong in POST2.
-  pose proof eqit_trans _ _ _ _ _ _ _ POST1 EQ as EQ1.
-  pose proof eqit_trans _ _ _ _ _ _ _ EQ1 POST2 as EQ2.
+  pose proof eqit_trans POST1 EQ as EQ1.
+  pose proof eqit_trans EQ1 POST2 as EQ2.
   clear -EQ2.
   eapply eutt_equiv; eauto.
   split.
@@ -234,19 +232,20 @@ Qed.
 
    This assumes UIP.
  *)
+ (* tour: this proof *)
 Lemma eutt_eq_itree {E X} (R : X -> X -> Prop) : forall (t : itree E X),
   eutt R t t -> eq_itree R t t.
 Proof.
   enough (forall (t u : itree E X), eutt R t u -> eq_itree eq t u -> eq_itree R t u).
   { intros; apply H; [ auto | apply Reflexive_eqit_eq ]. }
-  pcofix CIH.
-  intros t u H EQ. pfold. red.
+  bcoinduction. 
+  intros t u H EQ. 
   rewrite (itree_eta t), (itree_eta u) in H.
-  punfold EQ. destruct EQ; try discriminate; constructor.
+  step in EQ. cbn. destruct EQ; try discriminate; constructor.
   - rewrite <- eutt_Ret in H. auto.
-  - pclearbot. right; apply CIH; [ | apply REL ].
+  - apply cih; [ | apply REL ].
     revert H; apply eqit_Tau.
-  - pclearbot. right; apply CIH; [ | apply REL ].
+  - intro. apply cih; [ | apply REL ].
     eapply eqit_inv_Vis with (1 := H).
 Qed.
 

@@ -503,10 +503,10 @@ Qed.
     (@eqitF E R1 R2).
 Proof.
   repeat red.
-  intros. subst. split; unfold subrelationH; intros. 
-  all: 
-  induction H0; auto with itree; econstructor; intros; 
-  try (now apply H); now apply H2. 
+  intros. subst. split; unfold subrelationH, SubRelH_binary; intros.
+  all:
+  induction H0; auto with itree; econstructor; intros;
+  try (now apply H); now apply H2.
 Qed.
 
 #[global] Instance eqitF_Proper_R2 {E : Type -> Type} {R1 R2:Type} :
@@ -2735,11 +2735,12 @@ Qed.
  fun x y => Q x y and makes 
  fun x y => P x y /\ Q x y 
  *)
+ Open Scope relationH_scope. 
 Lemma eutt_conj {E} {R S} {RS RS'} :
   forall (t : itree E R) (s : itree E S),
     eutt RS  t s ->
     eutt RS' t s ->
-    eutt (cap RS RS') t s. 
+    eutt (conj_rel RS RS') t s.
 Proof.
   icoinduction c cih. intros * EQ EQ'.
   step in EQ; step in EQ'. 

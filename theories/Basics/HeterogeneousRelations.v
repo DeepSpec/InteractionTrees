@@ -24,9 +24,13 @@ Section RelationH_Operations.
 
   (** ** Relations for morphisms/parametricity *)
 
-  (* Heterogeneous notion of [subrelation] *)
-  Definition subrelationH {A B} (R S : relationH A B) : Prop :=
-    forall (x : A) (y : B), R x y -> S x y.
+  Class SubRelH (T : Type) := subrelationH : T -> T -> Prop.
+
+  #[global] Instance SubRelH_binary (A B : Type) : SubRelH (A -> B -> Prop) :=
+    fun R S => forall (x : A) (y : B), R x y -> S x y.
+
+  #[global] Instance SubRelH_unary (A : Type) : SubRelH (A -> Prop) :=
+    fun P Q => forall x, P x -> Q x.
 
   Definition eq_rel {A B} (R S : relationH A B) :=
       subrelationH R S /\ subrelationH S R.
@@ -37,6 +41,22 @@ Section RelationH_Operations.
   (* The graph of a function forms a relation *)
   Definition fun_rel {A B: Type} (f: A -> B): relationH A B :=
     fun x y => y = f x.
+
+  Class Conj (T : Type) := conj_rel : T -> T -> T.
+
+  #[global] Instance Conj_binary (A B : Type) : Conj (A -> B -> Prop) :=
+    fun RR1 RR2 x y => RR1 x y /\ RR2 x y.
+
+  #[global] Instance Conj_unary (A : Type) : Conj (A -> Prop) :=
+    fun P1 P2 x => P1 x /\ P2 x.
+
+  Class Disj (T : Type) := disj_rel : T -> T -> T.
+
+  #[global] Instance Disj_binary (A B : Type) : Disj (A -> B -> Prop) :=
+    fun RR1 RR2 x y => RR1 x y \/ RR2 x y.
+
+  #[global] Instance Disj_unary (A : Type) : Disj (A -> Prop) :=
+    fun P1 P2 x => P1 x \/ P2 x.
 
   (** ** Relations for morphisms/parametricity *)
 
@@ -65,8 +85,10 @@ Arguments fst_rel {A1 A2 B1 B2 RA RB}.
 Arguments snd_rel {A1 A2 B1 B2 RA RB}.
 
 Arguments rel_compose [A B C] S R.
-Arguments subrelationH [A B] R S.
 Arguments transpose [A B] R.
+Arguments subrelationH {T _}.
+Arguments conj_rel {T _}.
+Arguments disj_rel {T _}.
 Arguments sum_rel [A1 A2 B1 B2] RA RB.
 Arguments prod_rel [A1 A2 B1 B2] RA RB.
 
@@ -79,6 +101,8 @@ Module RelNotations.
   Infix "∘" := rel_compose (at level 40, left associativity) : relationH_scope.
   Infix "⊕" := sum_rel (at level 39, left associativity) : relationH_scope.
   Infix "⊗" := prod_rel (at level 38, left associativity) : relationH_scope.
+  Infix "∩" := conj_rel (at level 50, no associativity) : relationH_scope.
+  Infix "∪" := disj_rel (at level 50, no associativity) : relationH_scope.
 
   Infix "⊑" := subrelationH (at level 70, no associativity) : relationH_scope.
   Notation "† R" := (transpose R) (at level 5, right associativity) : relationH_scope.
@@ -246,19 +270,19 @@ Section RelationEqRel.
   #[global]
   Instance eq_rel_Reflexive {A B} : Reflexive (@eq_rel A B).
   Proof.
-    red. unfold eq_rel, subrelationH. tauto.
+    red. unfold eq_rel, subrelationH, SubRelH_binary. tauto.
   Qed.
 
   #[global]
   Instance eq_rel_Symmetric {A B} : Symmetric (@eq_rel A B).
   Proof.
-    red. unfold eq_rel, subrelationH. tauto.
+    red. unfold eq_rel, subrelationH, SubRelH_binary. tauto.
   Qed.
 
   #[global]
   Instance eq_rel_Transitive {A B} : Transitive (@eq_rel A B).
   Proof.
-    red. unfold eq_rel, subrelationH. intros.
+    red. unfold eq_rel, subrelationH, SubRelH_binary. intros.
     destruct H, H0. split; eauto.
   Qed.
 
@@ -411,8 +435,8 @@ Section TransposeFacts.
   Proof.
     intros A B R.
     split.
-    - unfold subrelationH. unfold transpose. tauto.
-    - unfold subrelationH, transpose. tauto.
+    - unfold subrelationH, SubRelH_binary. unfold transpose. tauto.
+    - unfold subrelationH, SubRelH_binary, transpose. tauto.
   Qed.
 
   Lemma transpose_inclusion : forall {A B} (R1 : relationH A B) (R2 : relationH A B),
@@ -421,9 +445,9 @@ Section TransposeFacts.
     intros A B R1 R2.
     split.
     - intros HS.
-      unfold subrelationH, transpose in *. eauto.
+      unfold subrelationH, SubRelH_binary, transpose in *. eauto.
     - intros HS.
-      unfold subrelationH, transpose in *. eauto.
+      unfold subrelationH, SubRelH_binary, transpose in *. eauto.
   Qed.
 
   #[global]
@@ -532,7 +556,7 @@ Section ProdRelFacts.
   Lemma prod_rel_eq : forall (A B:Type),  (@eq A) ⊗ (@eq B) ≡ @eq (A * B).
   Proof.
     intros.
-    unfold eq_rel; split; unfold subrelationH; intros.
+    unfold eq_rel; split; unfold subrelationH, SubRelH_binary; intros.
     - destruct x, y. repeat red in H. destruct H. cbn in *; subst; reflexivity.
     - destruct x; destruct y. cbn in H. repeat red. inversion H. split; reflexivity.
   Qed.
