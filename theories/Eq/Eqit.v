@@ -1912,6 +1912,9 @@ Qed.
 (* This might be good when doing other proofs, as it shows up 
 often. *)
 
+
+(* RTODO: Rename these *)
+(* this one can be eqit_bind_chain *)
 Lemma eqit_clo_bind_chain
  b1 b2 (c : Chain (eqit_mon b1 b2)) {U1 U2}
  (t1 : itree E U1) (t2 : itree E U2) 
@@ -1953,7 +1956,6 @@ Proof.
     taur. 
     eapply IHeqitF; eauto. 
 Qed. 
-
 
 
 Lemma eutt_clo_bind {U1 U2 UU} t1 t2 k1 k2
@@ -2730,9 +2732,8 @@ Qed.
  *)
  (* for meeting: need a relation combinator that takes 
  fun x y => P x y and 
- fun x' y' => Q x y and makes 
- fun x y => P x y /\ Q x y  
- 
+ fun x y => Q x y and makes 
+ fun x y => P x y /\ Q x y 
  *)
 Lemma eutt_conj {E} {R S} {RS RS'} :
   forall (t : itree E R) (s : itree E S),
