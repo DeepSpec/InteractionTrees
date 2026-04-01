@@ -100,7 +100,7 @@ Section FailTLaws.
       + eapply eutt_eq_bind; intros []; reflexivity. 
       + rewrite bind_ret_l; reflexivity.
     - repeat intro; cbn.
-      eapply eutt_clo_bind; eauto.
+      eapply eutt_bind_eutt; eauto.
       intros [] [] REL; cbn in *; subst; try contradiction.
       + apply H0.
       + reflexivity.
@@ -138,7 +138,7 @@ Proof.
   cbn; repeat (rewrite ?bind_bind, ?bind_ret_l, ?bind_map; try reflexivity).
   cbn; repeat (rewrite ?bind_bind, ?bind_ret_l, ?bind_map; try reflexivity).
   cbn; repeat (rewrite ?bind_bind, ?bind_ret_l, ?bind_map; try reflexivity).
-  apply eq_itree_clo_bind with (UU := Logic.eq); [reflexivity | intros x ? <-]. 
+  apply eq_itree_bind with (UU := Logic.eq); [reflexivity | intros x ? <-]. 
   destruct x as [x|].
   - rewrite bind_ret_l; reflexivity.
   - rewrite bind_ret_l; reflexivity.

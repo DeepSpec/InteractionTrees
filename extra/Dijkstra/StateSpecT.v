@@ -148,7 +148,7 @@ Section LoopInvarSpecific.
         MonadIter_stateT0, reassoc. unfold Basics.iter.
         unfold MonadIterDelay. eapply eutt_iter. intro.
         destruct a0 as [a' s']. simpl.
-        eapply eutt_clo_bind; try reflexivity. intros.
+        eapply eutt_bind_eutt; try reflexivity. intros.
         subst. destruct u2. simpl. destruct s1; reflexivity.
       + assert (Hpdiv : resp_eutt (p \1/ any_infinite)).
         { intros t1 t2 Heutt. split; intros; basic_solve.

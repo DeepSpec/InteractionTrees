@@ -156,7 +156,7 @@ Lemma has_post_bind : forall {E X Y} (t : itree E X) (k : X -> itree E Y) S Q,
     ITree.bind t k ⤳ Q.
 Proof.
   intros * POST1 POST2.
-  apply eutt_clo_bind with (UU := fun x y => x = y /\ S x) ; [apply has_post_post_strong; exact POST1 |].
+  apply eutt_bind_eutt with (UU := fun x y => x = y /\ S x) ; [apply has_post_post_strong; exact POST1 |].
   intros ? ? [<- ?]; eapply POST2; eauto.
 Qed.
 
@@ -188,7 +188,7 @@ Qed.
 (** Enriched relational cut rule
     The main benefit of the approach: post-conditions can be leveraged
     when performing a cut during relational proofs.
-    This lemma generalizes [eutt_clo_bind]
+    This lemma generalizes [eutt_bind_eutt]
  *)
 Lemma eutt_post_bind :
   forall E R1 R2 RR S1 S2 SS Q1 Q2
@@ -200,7 +200,7 @@ Lemma eutt_post_bind :
     eutt RR (ITree.bind t1 k1) (ITree.bind t2 k2).
 Proof.
   intros * POST1 POST2 EQ KEQ.
-  apply eutt_clo_bind with (UU := fun x y => SS x y /\ Q1 x /\ Q2 y).
+  apply eutt_bind_eutt with (UU := fun x y => SS x y /\ Q1 x /\ Q2 y).
   2: intros ? ? (? & ? & ?); apply KEQ; auto.
   clear KEQ.
   apply has_post_post_strong in POST1.
@@ -222,7 +222,7 @@ Lemma eutt_post_bind_eq : forall E R1 R2 RR U Q (t: itree E U) (k1: U -> itree E
     eutt RR (ITree.bind t k1) (ITree.bind t k2).
 Proof.
   intros * POST ?.
-  apply eutt_clo_bind with (UU := fun x y => x = y /\ Q x); [apply has_post_post_strong; exact POST |].
+  apply eutt_bind_eutt with (UU := fun x y => x = y /\ Q x); [apply has_post_post_strong; exact POST |].
   intros ? ? [-> ?]; auto.
 Qed.
 

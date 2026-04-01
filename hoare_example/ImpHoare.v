@@ -223,7 +223,7 @@ Qed.
 Definition state_eq2 {E : Type -> Type} {A B S : Type} (k1 k2 : A -> stateT S (itree E) B ) : Prop :=
   forall a, state_eq (k1 a)  (k2 a).
 
-Lemma eq_itree_clo_bind {E : Type -> Type} {R1 R2 : Type} :
+Lemma eq_itree_bind {E : Type -> Type} {R1 R2 : Type} :
   forall (RR : R1 -> R2 -> Prop) (U1 U2 : Type) (UU : U1 -> U2 -> Prop)
          (t1 : itree E U1) (t2 : itree E U2)
          (k1 : U1 -> itree E R1) (k2 : U2 -> itree E R2),
@@ -239,7 +239,7 @@ Global Instance bind_state_eq2 {E : Type -> Type} {A B S : Type} {m : stateT S (
   Proper (@state_eq2 E A B S ==> @state_eq E S B) (bind m).
 Proof.
   repeat intro. unfold state_eq2, state_eq in H. cbn.
-  eapply eq_itree_clo_bind; try reflexivity. intros. subst.
+  eapply eq_itree_bind; try reflexivity. intros. subst.
   destruct u2 as [s' a]. simpl. rewrite H. reflexivity.
 Qed.
 
@@ -268,7 +268,7 @@ Proof.
     fold (run_state_itree s while_denote1). fold (run_state_itree s while_denote2).
     unfold while_denote1. unfold while_denote2. rewrite H. reflexivity.
  - rewrite interp_bind. rewrite interp_state_bind_state.
-   clear s. intro s. eapply eq_itree_clo_bind; try reflexivity.
+   clear s. intro s. eapply eq_itree_bind; try reflexivity.
    intros. subst. destruct u2 as [s' b0 ]. simpl. destruct b0.
    + rewrite interp_bind. rewrite interp_state_bind.
      unfold interp_imp, interp_map. reflexivity.
@@ -564,7 +564,7 @@ Qed.
 Lemma denote_imp_bind : forall (c1 c2 : com), state_eq (denote_imp (c1 ;;; c2)) (denote_imp c1 ;; denote_imp c2).
 Proof.
   intros. intro. cbn. unfold denote_imp. simpl. setoid_rewrite interp_imp_bind.
-  eapply eq_itree_clo_bind; try reflexivity. intros. subst. destruct u2. reflexivity.
+  eapply eq_itree_bind; try reflexivity. intros. subst. destruct u2. reflexivity.
 Qed.
 
 Definition state_eq_eutt {R S : Type} {E : Type -> Type} (m0 m1 : stateT S (itree E) R) :Prop :=
@@ -720,7 +720,7 @@ Global Instance state_eutt_bind_r {A B S : Type} {E : Type -> Type}
 Proof.
   repeat intro. rename x into k0. rename y into k1. rename H into Heutt.
   red. red. red in Heutt. red in Heutt. cbn.
-  eapply eutt_clo_bind; try reflexivity. intros. subst. destruct u2 as [s' a]. simpl.
+  eapply eutt_bind_eutt; try reflexivity. intros. subst. destruct u2 as [s' a]. simpl.
   rewrite Heutt. reflexivity.
 Qed.
 
@@ -729,7 +729,7 @@ Global Instance state_eutt_bind_l' {A B S : Type} {E : Type -> Type} :
 Proof.
   unfold Proper, respectful, pointwise_relation. intros m0 m1 Hmeutt k0 k1 Hkeutt.
   intro. cbn. red in Hmeutt. rewrite Hmeutt.
-  eapply eutt_clo_bind; try reflexivity. intros. subst. destruct u2 as [s' a].
+  eapply eutt_bind_eutt; try reflexivity. intros. subst. destruct u2 as [s' a].
   simpl. red in Hkeutt. rewrite Hkeutt. reflexivity.
 Qed.
 

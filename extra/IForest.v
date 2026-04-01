@@ -466,7 +466,7 @@ Proof.
       rewrite eq2 in H.
       assert (x <- ta ;; k2 x ≈ ta).
       { rewrite <- (Eqit.bind_ret_r ta).
-        apply eutt_clo_bind with (UU := fun u1 u2 => u1 = u2 /\ Leaf u1 ta).
+        apply eutt_bind_eutt with (UU := fun u1 u2 => u1 = u2 /\ Leaf u1 ta).
         rewrite Eqit.bind_ret_r. apply eutt_Leaf.
         intros. destruct H1. subst. specialize (HK u2 H2). pclearbot. pinversion HK. subst. assumption.
       }
@@ -792,7 +792,7 @@ Proof.
     subst.
     do 3 red. intros.
     destruct a0. rewrite Eqit.bind_bind.
-    eapply eutt_clo_bind. reflexivity.
+    eapply eutt_bind_eutt. reflexivity.
     intros. rewrite H. destruct u2;
     rewrite Eqit.bind_ret_l; cbn; reflexivity.
   }

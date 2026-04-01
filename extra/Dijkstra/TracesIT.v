@@ -156,7 +156,7 @@ Section TraceSpec.
         apply all_infinite_bind. auto.
       + right. split; auto.
         destruct p as [p Hp]. simpl in *. eapply Hp; try apply H1.
-        eapply eutt_clo_bind with (UU := fun a b => False); intuition.
+        eapply eutt_bind_eutt with (UU := fun a b => False); intuition.
         apply noret_bind_nop. auto.
     - eapply apply_monot; try apply H. clear H. simpl. intros.
       basic_solve.
@@ -164,7 +164,7 @@ Section TraceSpec.
       + right. split; auto. right. split.
         * apply all_infinite_bind. auto.
         * destruct p as [p Hp]. simpl in *. eapply Hp; try apply H0.
-          eapply eutt_clo_bind with (UU := fun a b => False); intuition.
+          eapply eutt_bind_eutt with (UU := fun a b => False); intuition.
           apply euttNoRet_sym. apply noret_bind_nop. auto.
    Qed.
   Next Obligation.
@@ -196,7 +196,7 @@ Section TraceSpec.
     enough (↑ log ++ ITree.bind b' g' ≈ ITree.bind (↑ log ++ b') (fun _ => ITree.spin)).
     { rewrite H. auto. }
     unfold append. rewrite bind_bind.
-    eapply eutt_clo_bind with (RR := eq) (UU := eq); try reflexivity.
+    eapply eutt_bind_eutt with (RR := eq) (UU := eq); try reflexivity.
     intros. apply euttNoRet_subrel. eapply euttNoRet_trans with (t2 := b').
     + apply euttNoRet_sym. apply noret_bind_nop. eapply all_infinite_bind_append; eauto.
     + apply noret_bind_nop. eapply all_infinite_bind_append; eauto.

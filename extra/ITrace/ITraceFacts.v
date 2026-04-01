@@ -107,7 +107,7 @@ Qed.
 Global Instance proper_append {E R} : Proper (@eutt (EvAns E) unit unit eq ==> @eutt (EvAns E) R R eq ==> eutt eq) (@append E R).
 Proof.
   intros log1 log2 Hlog b1 b2 Hb. unfold append. rewrite Hlog.
-  eapply eutt_clo_bind; eauto. reflexivity.
+  eapply eutt_bind_eutt; eauto. reflexivity.
 Qed.
 
 Lemma may_converge_append : forall (E : Type -> Type) (R : Type)

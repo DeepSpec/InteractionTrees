@@ -97,7 +97,7 @@ Proof.
   bcoinduction c cih. intros. 
   specialize (eutt_body i1 i2 RI_i).
   do 2 rewrite unfold_iter.
-  eapply eqit_clo_bind_chain. 
+  eapply eqit_bind_chain. 
   do 2 step. apply eutt_body. 
   intros ? ? []; econstructor; eauto. 
 Qed.
@@ -207,7 +207,7 @@ Qed.
 #[global] Instance IterUnfold_ktree {E} : IterUnfold (ktree E) sum.
 Proof.
   repeat intro. unfold_ktree. rewrite unfold_iter_ktree.
-  eapply eutt_clo_bind; try reflexivity.
+  eapply eutt_bind_eutt; try reflexivity.
   intros [] ? []; try rewrite tau_eutt; reflexivity.
 Qed.
 
@@ -267,18 +267,18 @@ Proof.
                         | inr b0 => Ret (inr b0)
                         end)) a0).
   - apply eutt_iter; intros x.
-    eapply eutt_clo_bind.
+    eapply eutt_bind_eutt.
     reflexivity.
     intros [] ? [].
     rewrite tau_eutt; reflexivity.
     reflexivity.
   - rewrite iter_dinatural_ktree.
-    eapply eutt_clo_bind.
+    eapply eutt_bind_eutt.
     reflexivity.
     intros [] ? [].
     + rewrite tau_eutt.
       apply eutt_iter; intros x.
-      eapply eutt_clo_bind.
+      eapply eutt_bind_eutt.
       reflexivity.
       intros [] ? [].
       rewrite tau_eutt; reflexivity.
@@ -328,7 +328,7 @@ Proof.
   rewrite iter_codiagonal_ktree.
   apply eutt_iter.
   intros a1.
-  eapply eutt_clo_bind.
+  eapply eutt_bind_eutt.
   reflexivity.
   intros [| []] ? []; rewrite ?tau_eutt; reflexivity.
 Qed.

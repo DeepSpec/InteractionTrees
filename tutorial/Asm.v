@@ -380,7 +380,7 @@ Section InterpAsmProperties.
     repeat rewrite interp_bind.
     repeat rewrite interp_state_bind.
     repeat rewrite bind_bind.
-    eapply eutt_clo_bind.
+    eapply eutt_bind_eutt.
     { reflexivity. }
     intros.
     rewrite H.

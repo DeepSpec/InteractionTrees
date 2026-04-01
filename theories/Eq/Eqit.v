@@ -92,7 +92,7 @@ Section eqit.
       The lattice on which the greatest fixed point is taken quantifies
       over types: [forall R1 R2, (R1 -> R2 -> Prop) -> itree E R1 -> itree E R2 -> Prop].
       This allows chains to work uniformly across all type instantiations,
-      which is essential for the bind closure principle.
+      which is essential for the up-to bind principle.
    *)
   Context {E : Type -> Type}.
 
@@ -1915,7 +1915,7 @@ often. *)
 
 (* RTODO: Rename these *)
 (* this one can be eqit_bind_chain *)
-Lemma eqit_clo_bind_chain
+Lemma eqit_bind_chain
  b1 b2 (c : Chain (eqit_mon b1 b2)) {U1 U2}
  (t1 : itree E U1) (t2 : itree E U2) 
  (k1 : U1 -> itree E R1) (k2 : U2 -> itree E R2) (UU : U1 -> U2 -> Prop) : 
@@ -1958,21 +1958,21 @@ Proof.
 Qed. 
 
 
-Lemma eutt_clo_bind {U1 U2 UU} t1 t2 k1 k2
+Lemma eutt_bind_eutt {U1 U2 UU} t1 t2 k1 k2
       (EQT: @eutt E U1 U2 UU t1 t2)
       (EQK: forall u1 u2, UU u1 u2 -> eutt RR (k1 u1) (k2 u2)):
   eutt RR (ITree.bind t1 k1) (ITree.bind t2 k2).
 Proof.
-    unfold eutt. eapply eqit_clo_bind_chain; eauto.  
+    unfold eutt. eapply eqit_bind_chain; eauto.  
 Qed. 
 
-Lemma eutt_clo_bind_chain {U1 U2 UU} t1 t2 k1 k2
+Lemma eutt_bind_b {U1 U2 UU} t1 t2 k1 k2
       (c : euttC)
       (EQT: @eutt E U1 U2 UU t1 t2)
       (EQK: forall u1 u2, UU u1 u2 -> eutt RR (k1 u1) (k2 u2)):
   eqit_mon true true (elem c) _ _ RR (ITree.bind t1 k1) (ITree.bind t2 k2).
 Proof.
-    eapply eqit_clo_bind_chain; intros. 
+    eapply eqit_bind_chain; intros. 
     all: now do 2 step; [apply EQT || apply EQK].
 Qed. 
 
@@ -1982,7 +1982,7 @@ End eqit_h.
 Ltac eret := constructor; eauto with itree. 
 Ltac etau := taus; eauto with itree.  
 Ltac evis := constructor; intros; eauto with itree. 
-Ltac ebind := eapply eqit_clo_bind_chain; eauto with itree.  
+Ltac ebind := eapply eqit_bind_chain; eauto with itree.  
 
 
 Lemma eutt_Tau {E R} (t1 t2 : itree E R):
@@ -2005,10 +2005,10 @@ Lemma eqit_bind' {E R1 R2 S1 S2} (RR : R1 -> R2 -> Prop) b1 b2
   @eqit E b1 b2 _ _ RS (ITree.bind t1 k1) (ITree.bind t2 k2).
 Proof.
   intros.
-  eapply eqit_clo_bind_chain; eauto. 
+  eapply eqit_bind_chain; eauto. 
 Qed.
 
-Lemma eq_itree_clo_bind {E : Type -> Type} {R1 R2 : Type} (RR : R1 -> R2 -> Prop) {U1 U2 UU} t1 t2 k1 k2
+Lemma eq_itree_bind {E : Type -> Type} {R1 R2 : Type} (RR : R1 -> R2 -> Prop) {U1 U2 UU} t1 t2 k1 k2
       (EQT: @eq_itree E U1 U2 UU t1 t2)
       (EQK: forall u1 u2, UU u1 u2 -> eq_itree RR (k1 u1) (k2 u2)):
   eq_itree RR (ITree.bind t1 k1) (ITree.bind t2 k2).
@@ -2701,13 +2701,13 @@ Proof.
   apply eutt_cong_eutt.
 Qed.
 
-(* Specialization of [eutt_clo_bind] to the recurrent case where [UU := eq]
+(* Specialization of [eutt_bind_eutt] to the recurrent case where [UU := eq]
    in order to avoid having to provide the relation manually everytime *)
 Lemma eutt_eq_bind : forall E R1 R2 RR U (t: itree E U) (k1: U -> itree E R1) (k2: U -> itree E R2),
     (forall u, eutt RR (k1 u) (k2 u)) -> eutt RR (ITree.bind t k1) (ITree.bind t k2).
 Proof.
   intros.
-  apply eutt_clo_bind with (UU := Logic.eq); [reflexivity |].
+  apply eutt_bind_eutt with (UU := Logic.eq); [reflexivity |].
   intros ? ? ->; apply H.
 Qed.
 

@@ -274,6 +274,7 @@ Lemma eqit_clo_bind_gen :
       eqit RR b1 b2 (k1 u1) (k2 u2)) ->
     eqit RR b1 b2 (x <- t1;; k1 x) (x <- t2;; k2 x).
 Proof.
+
     intros.
     ginit. guclo (@eqit_Leaf_clo_bind E R1 R2).
     econstructor; eauto.
@@ -283,7 +284,7 @@ Proof.
 Qed.
 
 (** Specialization of the cut rule to [eutt] *)
-Lemma eutt_clo_bind_gen :
+Lemma eutt_bind_eutt_gen :
   forall {E} {R1 R2} (RR : R1 -> R2 -> Prop) {U1 U2} {UU : U1 -> U2 -> Prop}
            (t1 : itree E U1) (t2 : itree E U2)
           (k1 : U1 -> itree E R1) (k2 : U2 -> itree E R2),
@@ -302,7 +303,7 @@ Lemma eutt_eq_bind_gen {E R S T} (RS : R -> S -> Prop)
     (forall u, u ∈ t -> eutt RS (k1 u) (k2 u)) ->
     eutt RS (t >>= k1) (t >>= k2).
 Proof.
-  intros; eapply eutt_clo_bind_gen.
+  intros; eapply eutt_bind_eutt_gen.
   reflexivity.
   intros * IN _ <-; eauto.
 Qed.

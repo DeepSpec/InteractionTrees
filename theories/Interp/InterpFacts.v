@@ -145,7 +145,7 @@ Proof.
   bcoinduction. intros.
   rewrite !unfold_interp. step in H0. 
   induction H0; intros; subst; cbn; eauto with itree; to_mon.   
-  eapply eqit_clo_bind_chain. 
+  eapply eqit_bind_chain. 
   - do 2 step. apply H. 
   - intros ??[=<-]. taus; eauto with itree. 
   - taul. to_mon. rewrite unfold_interp. apply IHeqitF. 
@@ -164,7 +164,7 @@ Proof.
   bcoinduction. intros.
   rewrite !unfold_interp. step in H0. 
   induction H0; intros; subst; cbn; try easy; eauto with itree; to_mon.
-  eapply eqit_clo_bind_chain. 
+  eapply eqit_bind_chain. 
   - do 2 step. apply H. 
   - intros ??[=<-]. taus; eauto with itree. 
   - taul. to_mon. rewrite unfold_interp. apply IHeqitF. 

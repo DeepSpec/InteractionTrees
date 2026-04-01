@@ -251,7 +251,7 @@ Proof.
   eapply (eutt_interp_state_iter eq eq); auto; intros.
   rewrite 2 interp_state_bind.
   subst.
-  eapply eutt_clo_bind; eauto.
+  eapply eutt_bind_eutt; eauto.
   intros.
   cbn in H2; destruct H2 as [H21 H22].
   destruct (snd u1); rewrite <- H22.
