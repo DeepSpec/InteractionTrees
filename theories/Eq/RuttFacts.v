@@ -134,6 +134,41 @@ Proof.
       intros. specialize (H0 a b H2). now apply CIH.
 Qed.
 
+#[global] Instance eq_proper_ruttC {E1 E2 R1 R2 REv RAns}
+  (RR : R1 -> R2 -> Prop) (c : Chain (@rutt_mon E1 E2 R1 R2 REv RAns)):
+  Proper (eq_itree eq ==> eq_itree eq ==> iff) (elem c RR).
+Proof.
+  split; revert_until c; tower induction;
+  intros x IH t1 t1' Ht1 t2 t2' Ht2;
+  step in Ht1; step in Ht2; rcbn; intros Hrutt;
+  genobs t1' ot1'; genobs t2' ot2';
+  move Hrutt before IH; revert_until Hrutt;
+  induction Hrutt; intros; subst.
+  1-3,6-8: inv Ht1; inv Ht2; simpobs; try easy; try now constructor.
+  + simpobs. constructor. eapply IH; eauto.
+  + simpobs.
+    dependent destruction H3; dependent destruction H4;
+    dependent destruction H6; dependent destruction H7.
+    constructor; auto. intros. eapply IH. apply REL. apply REL0. now apply H0.
+  + simpobs. constructor. eapply IH; eauto.
+  + simpobs.
+    dependent destruction H4; dependent destruction H5;
+    dependent destruction H7; dependent destruction H8.
+    constructor; auto. intros. eapply IH. apply REL. apply REL0. now apply H0.
+  + inv Ht1; try easy. constructor. eapply IHHrutt; eauto. now unstep.
+  + inv Ht2; try easy. constructor. eapply IHHrutt; eauto. now unstep.
+  + inv Ht1; try easy. constructor. eapply IHHrutt; eauto. now unstep.
+  + inv Ht2; try easy. constructor. eapply IHHrutt; eauto. now unstep.
+Qed.
+
+#[global] Instance eq_proper_rutt {E1 E2 R1 R2 REv RAns}
+  (RR : R1 -> R2 -> Prop):
+  Proper (eq_itree eq ==> eq_itree eq ==> iff) (@rutt E1 E2 R1 R2 REv RAns RR).
+Proof.
+  unfold rutt. intros t1 t1' Ht1 t2 t2' Ht2.
+  apply eq_proper_ruttC; auto.
+Qed.
+
 #[global] Instance rutt_Proper_R2 {E1 E2 R1 R2}:
   Proper (eq_REv         (* REv *)
       ==> eq_RAns        (* RAns *)
@@ -142,33 +177,66 @@ Qed.
       ==> eq_itree eq    (* t2 *)
       ==> iff) (@rutt E1 E2 R1 R2).
 Proof.
-  clear. intros REv1 REv2 HREv RAns1 RAns2 HRAns RR1 RR2 HRR t1 t1' Ht1 t2 t2' Ht2.
-  split; intros Hrutt.
-  - rewrite <- HREv, <- HRAns, <- HRR; clear HREv REv2 HRAns RAns2 HRR RR2.
-    revert_until RR1. rcoinduction c cih. intros. 
-    rstep in Hrutt; rstep in Ht1; rstep in Ht2. 
-    hinduction Hrutt before cih; try solve [inv Ht1; inv Ht2; easy]; intros.
-    + inv Ht1; inv Ht2; try easy. now constructor. 
-    + inv Ht1; inv Ht2; try easy. constructor. eapply cih; eauto.
-    + apply eqitF_inv_VisF_l in Ht1; 
-      apply eqitF_inv_VisF_l in Ht2. crunch; simpobs; try easy. 
-      constructor; eauto. intros. eapply cih. 
-      apply H4. apply H2. now apply H0. 
-    + inv Ht1; try easy. constructor. eapply IHHrutt; eauto. now unstep. 
-    + inv Ht2; try easy. constructor. eapply IHHrutt; eauto. now unstep. 
-  - rewrite HREv, HRAns, HRR; clear HREv REv1 HRAns RAns1 HRR RR1.
-      revert_until RR2. rcoinduction c cih. intros. 
-      rstep in Hrutt; rstep in Ht1; rstep in Ht2. 
-      hinduction Hrutt before cih; try solve [inv Ht1; inv Ht2; easy]; intros.
-    + inv Ht1; inv Ht2; try easy. now constructor. 
-    + inv Ht1; inv Ht2; try easy. constructor. eapply cih; eauto.
-    + apply eqitF_inv_VisF_r in Ht1; 
-      apply eqitF_inv_VisF_r in Ht2. crunch; simpobs; try easy. 
-      constructor; eauto. intros. eapply cih. 
-      apply H4. apply H2. now apply H0. 
-    + inv Ht1; try easy. constructor. eapply IHHrutt; eauto. now unstep. 
-    + inv Ht2; try easy. constructor. eapply IHHrutt; eauto. now unstep.
-Qed.  
+  intros REv1 REv2 HREv RAns1 RAns2 HRAns RR1 RR2 HRR t1 t1' Ht1 t2 t2' Ht2.
+  rewrite Ht1, Ht2. apply rutt_Proper_R; auto.
+Qed.
+
+#[global] Instance eutt_proper_ruttC {E1 E2 R1 R2 REv RAns}
+  (RR : R1 -> R2 -> Prop) (c : Chain (@rutt_mon E1 E2 R1 R2 REv RAns)):
+  Proper (eutt eq ==> eutt eq ==> flip impl) (elem c RR).
+Proof.
+  unfold Proper, respectful, flip, impl.
+  tower induction.
+  clear c; intros c IH x x' EQx y y' EQy; step in EQx; step in EQy.
+  rcbn; intros EQ.
+  genobs x' ox'; genobs y' oy'.
+  revert x x' y y' Heqox' Heqoy' EQx EQy.
+  induction EQ; intros.
+
+  (* EqRet *)
+  + clear x' y' Heqox' Heqoy'.
+    genobs x ox. genret r1 or1. revert x Heqox.
+    hinduction EQx before ox; try easy.
+    * intros; subst; inv Heqor1. clear x Heqox.
+      genobs y oy. genret r2 or2. revert y Heqoy.
+      hinduction EQy before oy; try easy.
+      -- subst; intros [=<-] ? ?. constructor. auto.
+      -- intros. apply EqTauR; auto. eapply IHEQy; eauto.
+    * intros; subst. apply EqTauL; auto. eapply IHEQx; eauto.
+
+  (* EqTau *)
+  + clear x' y' Heqox' Heqoy'.
+    genobs x ox. gentau m1 om1. revert x Heqox.
+    hinduction EQx before ox; try easy.
+    * intros [=<-] ? ? ?. clear x Heqox.
+      genobs y oy. gentau m2 om2. revert y Heqoy.
+      hinduction EQy before oy; try easy.
+      -- intros [=<-] ? ?. to_rmon_core. constructor. eapply IH; eauto.
+      -- intros. apply EqTauR; auto. eapply IHEQy; eauto.
+      -- intros [=<-] ? ?. 
+    * intros; subst. apply EqTauL; auto. eapply IHEQx; eauto.
+    * shelve. (* EQx TauR case for Tau *)
+
+  (* EqVis *)
+  + clear x' y' Heqox' Heqoy'.
+    genobs x ox. genvis e1 k1 ot1. revert x Heqox.
+    hinduction EQx before ox; try easy.
+    * intros. apply eq_inv_VisF_weak in Heqot1 as (-> & ? & ?); cbn in *; subst.
+      clear x Heqox.
+      genobs y oy. genvis e2 k2 ot2. revert y Heqoy.
+      hinduction EQy before oy; try easy.
+      -- intros. apply eq_inv_VisF_weak in Heqot2 as (-> & ? & ?); cbn in *; subst.
+         constructor; auto. intros. eapply IH. apply H1. apply H2. eauto.
+      -- intros. apply EqTauR; auto. eapply IHEQy; eauto.
+    * intros; subst. apply EqTauL; auto. eapply IHEQx; eauto.
+    * shelve. (* EQx TauR case for Vis *)
+
+  (* EqTauL *)
+  + shelve.
+
+  (* EqTauR *)
+  + shelve.
+Admitted.
 
 Lemma rutt_cong_eutt {E1 E2 R1 R2}:
   forall REv RAns RR (t1: itree E1 R1) t1' (t2: itree E2 R2),
@@ -184,9 +252,9 @@ Proof.
   rcoinduction c cih; intros t1 t1' Heutt t2 Hrutt.
   rstep in Hrutt. 
   rewrite (itree_eta t1) in Heutt.
-  rewrite (itree_eta t2).
+  to_rmon. rewrite (itree_eta t2).
 
-  move Hrutt before CIH; revert_until Hrutt.
+  move Hrutt before cih; revert_until Hrutt.
   induction Hrutt as [r1 r2|m1 m2| |m1 ot2|]; clear t1 t2; intros t1' Heutt.
 
   (* EqRet: t1 = Ret r1 ≈ t1'; we can rewrite away the Taus with the euttge

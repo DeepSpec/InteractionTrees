@@ -146,6 +146,36 @@ Ltac fold_rutt_in h :=
 Tactic Notation "runstep" := fold_rutt; unstep.
 Tactic Notation "runstep" "in" ident(h) := fold_rutt_in h; unstep in h.
 
+Ltac to_rmon_core :=
+match goal with
+| |- context[@ruttF ?E1 ?E2 ?R1 ?R2 ?REv ?RAns ?RR (?f ?RR) (observe ?t1) (observe ?t2)] =>
+      change (@ruttF E1 E2 R1 R2 REv RAns RR (f RR) (observe t1) (observe t2))
+      with (@rutt_mon E1 E2 R1 R2 REv RAns f RR t1 t2)
+| |- context[@ruttF ?E1 ?E2 ?R1 ?R2 ?REv ?RAns ?RR (?f ?RR) (?con1 ?a1) (?con2 ?a2)] =>
+      change (@ruttF E1 E2 R1 R2 REv RAns RR (f RR) (con1 a1) (con2 a2))
+      with (@rutt_mon E1 E2 R1 R2 REv RAns f RR (go (con1 a1)) (go (con2 a2)))
+end.
+
+Ltac to_rmon :=
+let dummy := fresh "dummy" in
+assert (dummy : True) by constructor;
+          intros;
+          to_rmon_core;
+          revert_until dummy;
+          clear dummy.
+
+Ltac to_rmon_in h :=
+match type of h with
+| context[@ruttF ?E1 ?E2 ?R1 ?R2 ?REv ?RAns ?RR (?f ?RR) (observe ?t1) (observe ?t2)] =>
+      change (@ruttF E1 E2 R1 R2 REv RAns RR (f RR) (observe t1) (observe t2))
+      with (@rutt_mon E1 E2 R1 R2 REv RAns f RR t1 t2) in h
+| context[@ruttF ?E1 ?E2 ?R1 ?R2 ?REv ?RAns ?RR (?f ?RR) (?con1 ?a1) (?con2 ?a2)] =>
+      change (@ruttF E1 E2 R1 R2 REv RAns RR (f RR) (con1 a1) (con2 a2))
+      with (@rutt_mon E1 E2 R1 R2 REv RAns f RR (go (con1 a1)) (go (con2 a2))) in h
+end.
+
+Tactic Notation "to_rmon" "in" ident(h) := to_rmon_in h.
+
 Local Ltac revert_one :=
   match goal with [ H : _ |- _ ] => revert H end.
 Ltac runfold_coind :=
