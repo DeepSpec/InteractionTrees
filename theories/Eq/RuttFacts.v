@@ -13,9 +13,6 @@ From Stdlib Require Import
   Morphisms
   RelationClasses.
 
-From Paco Require Import
-  paco.
-
 From ITree Require Import
   ITree
   ITreeFacts
@@ -98,16 +95,16 @@ Proof. reflexivity. Qed.
 Lemma rutt_flip {E1 E2 R1 R2 REv RAns RR} (t1: itree E1 R1) (t2: itree E2 R2):
   rutt REv RAns RR t1 t2 <-> rutt (flip_REv REv) (flip_RAns RAns) (flip RR) t2 t1.
 Proof.
-  split; revert t1 t2; pcofix CIH; intros t1 t2 Hrutt;
-  punfold Hrutt; red in Hrutt; pstep; red.
+  split; revert t1 t2; rcoinduction c CIH; intros t1 t2 Hrutt; 
+  rstep in Hrutt; red.
   - induction Hrutt; try now constructor.
-    * apply EqTau. right. apply CIH. now pclearbot.
-    * apply EqVis. auto. intros b a HAns. cbn in HAns. right.
-      specialize (H0 a b HAns). apply CIH. now pclearbot.
+    * apply EqTau. now apply CIH.
+    * apply EqVis. auto. intros b a HAns. cbn in HAns.
+      specialize (H0 a b HAns). now apply CIH.
   - induction Hrutt; try now constructor.
-    * apply EqTau. right. apply CIH. now pclearbot.
-    * apply EqVis. auto. intros b a HAns. cbn in HAns. right.
-      specialize (H0 a b HAns). apply CIH. now pclearbot.
+    * apply EqTau. now apply CIH.
+    * apply EqVis. auto. intros b a HAns. cbn in HAns.
+      specialize (H0 a b HAns). now apply CIH.
 Qed.
 
 (* Progressive [Proper] instances for [rutt] and congruence with eutt. *)
@@ -121,29 +118,20 @@ Qed.
       ==> iff) (@rutt E1 E2 R1 R2).
 Proof.
   intros REv1 REv2 HREv  RAns1 RAns2 HRAns RR1 RR2 HRR t1 _ <- t2 _ <-.
-  split; intros Hrutt.
-
-  - revert t1 t2 Hrutt; pcofix CIH; intros t1 t2 Hrutt.
-    pstep. punfold Hrutt. red in Hrutt; red.
+  split; intros Hrutt; 
+    revert t1 t2 Hrutt; rcoinduction c CIH; intros t1 t2 Hrutt; 
+    rstep in Hrutt; rcbn; 
     hinduction Hrutt before CIH; intros; eauto using EqTauL, EqTauR.
-    * apply EqRet. now apply HRR.
-    * apply EqTau. right. apply CIH. now pclearbot.
+    1,4: apply EqRet; now apply HRR. 
+    1,3: apply EqTau; now apply CIH.
     * apply EqVis. now apply HREv. intros.
       assert (H2: RAns1 A B e1 a e2 b).
       { erewrite <- eq_RAns_iff. apply H1. assumption. }
-      intros. specialize (H0 a b H2). red. right. apply CIH.
-      red in H0. now pclearbot.
-
-  - revert t1 t2 Hrutt; pcofix CIH; intros t1 t2 Hrutt.
-    pstep. punfold Hrutt. red in Hrutt; red.
-    hinduction Hrutt before CIH; intros; eauto using EqTauL, EqTauR.
-    * apply EqRet. now apply HRR.
-    * apply EqTau. right. apply CIH. now pclearbot.
+      intros. specialize (H0 a b H2). now apply CIH.
     * apply EqVis. now apply HREv. intros.
       assert (H2: RAns2 A B e1 a e2 b).
       { erewrite eq_RAns_iff. apply H1. assumption. }
-      intros. specialize (H0 a b H2). red. right. apply CIH.
-      red in H0. now pclearbot.
+      intros. specialize (H0 a b H2). now apply CIH.
 Qed.
 
 #[global] Instance rutt_Proper_R2 {E1 E2 R1 R2}:

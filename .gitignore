@@ -53,3 +53,4 @@ tutorial/imp_test.mli
 
 *.install
 .mcp.json
+rocq_mcp_cache_8675_.v

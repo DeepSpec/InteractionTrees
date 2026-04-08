@@ -113,11 +113,19 @@ End RuttF.
 
 (** ** Rutt-specific tactics *)
 
+Ltac rcbn := cbn[rutt_mon body]; try unfold rutt_.
+Ltac rcbn_in H := cbn[rutt_mon body] in H; try unfold rutt_ in H.
+
+Tactic Notation "rcbn" "in" ident(h) := rcbn_in h. 
+Tactic Notation "rcbn" "in" "*" := cbn[rutt_mon body] in *; try unfold rutt_ in *. 
+
 (** [rstep] unfolds [rutt] one step, exposing the [ruttF] functor. *)
 Tactic Notation "rstep" :=
-  unfold rutt; step; cbn [rutt_mon body rutt_].
+  unfold rutt; step; rcbn.
 Tactic Notation "rstep" "in" ident(h) :=
-  unfold rutt in h; step in h; cbn [rutt_mon body rutt_] in h.
+  unfold rutt in h;
+  step in h;
+  rcbn in h. 
 
 Ltac fold_rutt :=
   match goal with
@@ -141,11 +149,6 @@ Ltac runfold_coind :=
 Tactic Notation "rcoinduction" simple_intropattern(R) simple_intropattern(H) :=
   runfold_coind; coinduction R H; cbn [rutt_mon body rutt_].
 
-#[local] Ltac rcbn := cbn[rutt_mon body]; try unfold rutt_.
-#[local] Ltac rcbn_in H := cbn[rutt_mon body]; try unfold rutt_ in H.
-
-#[local] Tactic Notation "rcbn" "in" ident(h) := rcbn_in h. 
-#[local] Tactic Notation "rcbn" "in" "*" := cbn[rutt_mon body]; try unfold rutt_ in *. 
 
 
 #[global] Hint Constructors ruttF : itree.
