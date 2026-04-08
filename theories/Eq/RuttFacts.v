@@ -96,7 +96,7 @@ Lemma rutt_flip {E1 E2 R1 R2 REv RAns RR} (t1: itree E1 R1) (t2: itree E2 R2):
   rutt REv RAns RR t1 t2 <-> rutt (flip_REv REv) (flip_RAns RAns) (flip RR) t2 t1.
 Proof.
   split; revert t1 t2; rcoinduction c CIH; intros t1 t2 Hrutt; 
-  rstep in Hrutt; red.
+  rstep in Hrutt.
   - induction Hrutt; try now constructor.
     * apply EqTau. now apply CIH.
     * apply EqVis. auto. intros b a HAns. cbn in HAns.
@@ -144,21 +144,31 @@ Qed.
 Proof.
   clear. intros REv1 REv2 HREv RAns1 RAns2 HRAns RR1 RR2 HRR t1 t1' Ht1 t2 t2' Ht2.
   split; intros Hrutt.
-
   - rewrite <- HREv, <- HRAns, <- HRR; clear HREv REv2 HRAns RAns2 HRR RR2.
-    ginit. gclo. econstructor; eauto with paco.
-    * symmetry in Ht1. apply eq_sub_euttge in Ht1. apply Ht1.
-    * symmetry in Ht2. apply eq_sub_euttge in Ht2. apply Ht2.
-    * intros; now subst.
-    * intros; now subst.
-
+    revert_until RR1. rcoinduction c cih. intros. 
+    rstep in Hrutt; rstep in Ht1; rstep in Ht2. 
+    hinduction Hrutt before cih; try solve [inv Ht1; inv Ht2; easy]; intros.
+    + inv Ht1; inv Ht2; try easy. now constructor. 
+    + inv Ht1; inv Ht2; try easy. constructor. eapply cih; eauto.
+    + apply eqitF_inv_VisF_l in Ht1; 
+      apply eqitF_inv_VisF_l in Ht2. crunch; simpobs; try easy. 
+      constructor; eauto. intros. eapply cih. 
+      apply H4. apply H2. now apply H0. 
+    + inv Ht1; try easy. constructor. eapply IHHrutt; eauto. now unstep. 
+    + inv Ht2; try easy. constructor. eapply IHHrutt; eauto. now unstep. 
   - rewrite HREv, HRAns, HRR; clear HREv REv1 HRAns RAns1 HRR RR1.
-    ginit. gclo. econstructor; eauto with paco.
-    * apply eq_sub_euttge in Ht1. apply Ht1.
-    * apply eq_sub_euttge in Ht2. apply Ht2.
-    * intros; now subst.
-    * intros; now subst.
-Qed.
+      revert_until RR2. rcoinduction c cih. intros. 
+      rstep in Hrutt; rstep in Ht1; rstep in Ht2. 
+      hinduction Hrutt before cih; try solve [inv Ht1; inv Ht2; easy]; intros.
+    + inv Ht1; inv Ht2; try easy. now constructor. 
+    + inv Ht1; inv Ht2; try easy. constructor. eapply cih; eauto.
+    + apply eqitF_inv_VisF_r in Ht1; 
+      apply eqitF_inv_VisF_r in Ht2. crunch; simpobs; try easy. 
+      constructor; eauto. intros. eapply cih. 
+      apply H4. apply H2. now apply H0. 
+    + inv Ht1; try easy. constructor. eapply IHHrutt; eauto. now unstep. 
+    + inv Ht2; try easy. constructor. eapply IHHrutt; eauto. now unstep.
+Qed.  
 
 Lemma rutt_cong_eutt {E1 E2 R1 R2}:
   forall REv RAns RR (t1: itree E1 R1) t1' (t2: itree E2 R2),
@@ -171,8 +181,8 @@ Proof.
      between t1 and t1'. Finally, explore ruttF until landing on an rutt where
      the t1/t1' relation can be substituted by CIH, and conclude. *)
   intros * Hrutt Heutt; revert t1 t1' Heutt t2 Hrutt.
-  ginit; gcofix CIH; intros t1 t1' Heutt t2 Hrutt.
-  punfold Hrutt; red in Hrutt.
+  rcoinduction c cih; intros t1 t1' Heutt t2 Hrutt.
+  rstep in Hrutt. 
   rewrite (itree_eta t1) in Heutt.
   rewrite (itree_eta t2).
 

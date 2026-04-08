@@ -127,6 +127,12 @@ Tactic Notation "rstep" "in" ident(h) :=
   step in h;
   rcbn in h. 
 
+#[local] Ltac refold :=
+  repeat match goal with
+  | |- context[gfp (@rutt_mon ?E1 ?E2 ?R1 ?R2 ?RE ?RA)] =>
+      fold (@rutt E1 E2 R1 R2 RE RA)
+  end.
+
 Ltac fold_rutt :=
   match goal with
   | |- context[@ruttF ?E1 ?E2 ?R1 ?R2 ?REv ?RAns ?RR] =>
@@ -147,8 +153,7 @@ Ltac runfold_coind :=
     [intros ?; runfold_coind; revert_one |
      unfold rutt].
 Tactic Notation "rcoinduction" simple_intropattern(R) simple_intropattern(H) :=
-  runfold_coind; coinduction R H; cbn [rutt_mon body rutt_].
-
+  runfold_coind; coinduction R H; rcbn; refold. 
 
 
 #[global] Hint Constructors ruttF : itree.
