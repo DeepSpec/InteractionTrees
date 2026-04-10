@@ -283,12 +283,34 @@ Ltac refold_in h :=
 
 Ltac to_mon_core :=
 match goal with
-| |- context[@eqitF ?E ?R1 ?R2 ?RR ?b1 ?b2 (?f ?R1 ?R2 ?RR) (observe ?t1) (observe ?t2)] =>
-      change (eqitF RR b1 b2 (f R1 R2 RR) (observe t1) (observe t2))
+
+| |- context[@eqitF ?E ?R1 ?R2 ?RR ?b1 ?b2 (?f ?R1 ?R2 ?RR)
+                   (observe ?t1) (observe ?t2)] =>
+      change (eqitF RR b1 b2 (f R1 R2 RR)
+                    (observe t1) (observe t2))
       with (eqit_mon b1 b2 f R1 R2 RR t1 t2)
-| |- context[@eqitF ?E ?R1 ?R2 ?RR ?b1 ?b2 (?f ?R1 ?R2 ?RR) (?con1 ?a1) (?con2 ?a2)] =>
-      change (eqitF RR b1 b2 (f R1 R2 RR) (con1 a1) (con2 a2))
-      with (eqit_mon b1 b2 f R1 R2 RR (go (con1 a1)) (go (con2 a2)))
+
+| |- context[@eqitF ?E ?R1 ?R2 ?RR ?b1 ?b2 (?f ?R1 ?R2 ?RR)
+                   (?con1 ?a1) (?con2 ?a2)] =>
+      change (eqitF RR b1 b2 (f R1 R2 RR)
+                    (con1 a1) (con2 a2))
+      with (eqit_mon b1 b2 f R1 R2 RR
+                    (go (con1 a1)) (go (con2 a2)))
+
+| |- context[@eqitF ?E ?R1 ?R2 ?RR ?b1 ?b2 (?f ?R1 ?R2 ?RR)
+                   (?con ?a) (observe ?t2)] =>
+      change (eqitF RR b1 b2 (f R1 R2 RR)
+                    (con a) (observe t2))
+      with (eqit_mon b1 b2 f R1 R2 RR
+                    (go (con a)) t2)
+
+| |- context[@eqitF ?E ?R1 ?R2 ?RR ?b1 ?b2 (?f ?R1 ?R2 ?RR)
+                   (observe ?t1) (?con ?a)] =>
+      change (eqitF RR b1 b2 (f R1 R2 RR)
+                    (observe t1) (con a))
+      with (eqit_mon b1 b2 f R1 R2 RR
+                    t1 (go (con a)))
+
 end.
 
 Ltac under_forall' tac := 

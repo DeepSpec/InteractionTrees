@@ -181,9 +181,9 @@ Proof.
   rewrite Ht1, Ht2. apply rutt_Proper_R; auto.
 Qed.
 
-#[global] Instance eutt_proper_ruttC {E1 E2 R1 R2 REv RAns}
+#[global] Instance euttge_proper_ruttC {E1 E2 R1 R2 REv RAns}
   (RR : R1 -> R2 -> Prop) (c : Chain (@rutt_mon E1 E2 R1 R2 REv RAns)):
-  Proper (eutt eq ==> eutt eq ==> flip impl) (elem c RR).
+  Proper (euttge eq ==> euttge eq ==> flip impl) (elem c RR).
 Proof.
   unfold Proper, respectful, flip, impl.
   tower induction.
@@ -194,49 +194,64 @@ Proof.
   induction EQ; intros.
 
   (* EqRet *)
-  + clear x' y' Heqox' Heqoy'.
+  - clear x' y' Heqox' Heqoy'.
     genobs x ox. genret r1 or1. revert x Heqox.
     hinduction EQx before ox; try easy.
-    * intros; subst; inv Heqor1. clear x Heqox.
+    + intros; subst; inv Heqor1. clear x Heqox.
       genobs y oy. genret r2 or2. revert y Heqoy.
       hinduction EQy before oy; try easy.
-      -- subst; intros [=<-] ? ?. constructor. auto.
-      -- intros. apply EqTauR; auto. eapply IHEQy; eauto.
-    * intros; subst. apply EqTauL; auto. eapply IHEQx; eauto.
+      * subst; intros [=<-] ? ?. constructor. auto.
+      * intros. apply EqTauR; auto. eapply IHEQy; eauto.
+    + intros; subst. apply EqTauL; auto. eapply IHEQx; eauto.
 
   (* EqTau *)
-  + clear x' y' Heqox' Heqoy'.
+  - clear x' y' Heqox' Heqoy'.
     genobs x ox. gentau m1 om1. revert x Heqox.
     hinduction EQx before ox; try easy.
-    * intros [=<-] ? ? ?. clear x Heqox.
+    + intros [=<-] ? ?.
       genobs y oy. gentau m2 om2. revert y Heqoy.
       hinduction EQy before oy; try easy.
-      -- intros [=<-] ? ?. to_rmon_core. constructor. eapply IH; eauto.
-      -- intros. apply EqTauR; auto. eapply IHEQy; eauto.
-      -- intros [=<-] ? ?. 
-    * intros; subst. apply EqTauL; auto. eapply IHEQx; eauto.
-    * shelve. (* EQx TauR case for Tau *)
+      * intros [=<-] ? ?. to_rmon_core. intros ? ?. rcbn. constructor. eapply IH; eauto.
+      * intros. apply EqTauR; auto. eapply IHEQy; eauto.
+    + intros; subst. apply EqTauL; auto. eapply IHEQx; eauto.
 
   (* EqVis *)
-  + clear x' y' Heqox' Heqoy'.
+  - clear x' y' Heqox' Heqoy'.
     genobs x ox. genvis e1 k1 ot1. revert x Heqox.
     hinduction EQx before ox; try easy.
-    * intros. apply eq_inv_VisF_weak in Heqot1 as (-> & ? & ?); cbn in *; subst.
+    + intros. apply eq_inv_VisF_weak in Heqot1 as (-> & ? & ?); cbn in *; subst.
       clear x Heqox.
       genobs y oy. genvis e2 k2 ot2. revert y Heqoy.
       hinduction EQy before oy; try easy.
-      -- intros. apply eq_inv_VisF_weak in Heqot2 as (-> & ? & ?); cbn in *; subst.
-         constructor; auto. intros. eapply IH. apply H1. apply H2. eauto.
-      -- intros. apply EqTauR; auto. eapply IHEQy; eauto.
-    * intros; subst. apply EqTauL; auto. eapply IHEQx; eauto.
-    * shelve. (* EQx TauR case for Vis *)
+      * intros. apply eq_inv_VisF_weak in Heqot2 as (-> & ? & ?); cbn in *; subst.
+        constructor; auto. intros. eapply IH. apply (REL a). apply (REL0 b). apply H0; auto.
+      * intros. apply EqTauR; auto. eapply IHEQy; eauto.
+    + intros; subst. apply EqTauL; auto. eapply IHEQx; eauto.
 
   (* EqTauL *)
-  + shelve.
+  - edestruct euttge_tau_r_inv; [step; eauto |].
+    simpobs.
+    apply EqTauL; auto.
+    eapply IHEQ; eauto.
+    assert (euttge eq (Tau x0) (Tau t1)) by (now step).
+    unstep; eapply euttge_tau_inv; eauto.
 
   (* EqTauR *)
-  + shelve.
-Admitted.
+  - edestruct euttge_tau_r_inv; [step; eauto |].
+    simpobs.
+    apply EqTauR; auto.
+    eapply IHEQ; eauto.
+    assert (euttge eq (Tau x0) (Tau t2)) by (now step).
+    unstep; eapply euttge_tau_inv; eauto.
+Qed.
+
+#[global] Instance euttge_proper_rutt {E1 E2 R1 R2 REv RAns}
+  (RR : R1 -> R2 -> Prop):
+  Proper (euttge eq ==> euttge eq ==> flip impl) (@rutt E1 E2 R1 R2 REv RAns RR).
+Proof.
+  unfold rutt. intros t1 t1' Ht1 t2 t2' Ht2.
+  apply euttge_proper_ruttC; auto.
+Qed.
 
 Lemma rutt_cong_eutt {E1 E2 R1 R2}:
   forall REv RAns RR (t1: itree E1 R1) t1' (t2: itree E2 R2),
@@ -260,22 +275,25 @@ Proof.
   (* EqRet: t1 = Ret r1 ≈ t1'; we can rewrite away the Taus with the euttge
      closure and finish immediately with EqRet. *)
   * apply eutt_inv_Ret_l in Heutt. rewrite Heutt.
-    gfinal; right; pstep. now apply EqRet.
-
+    now constructor. 
   (* EqTau: The hardest case. When Heutt is EqTauL then we lack information to
      proceed, which requires that [desobs m1]. We then have to restart
      analyzing based on m1; the Ret case repeats EqRet above, while the Vis
      case repeats EqVis below. *)
-  * punfold Heutt; red in Heutt; cbn in Heutt.
-    rewrite itree_eta. pclearbot. fold_ruttF H.
-    remember (TauF m1) as ot1; revert m1 m2 H Heqot1.
-    induction Heutt as [|m1_bis m1'| |m1_bis ot1' _|t1_bis m1'];
+  * step in Heutt. 
+    rewrite itree_eta. step in H. rcbn in H.  
+    remember (observe (Tau m1)) as ot1; revert m1 m2 H Heqot1.
+    induction Heutt;
     intros * Hrutt Heqot1; clear t1'; try discriminate.
-    + inv Heqot1. pclearbot. gfinal; right; pstep; red.
-      apply EqTau. right. now apply (CIH m1).
-    + inv Heqot1. rewrite (itree_eta m1) in Hrutt.
+    + inv Heqot1. 
+      apply EqTau. unstep in Hrutt. eapply cih; eauto.  
+    + inv Heqot1. to_rmon in Hrutt. rewrite (itree_eta m1) in Hrutt.
       desobs m1 Hm1; clear m1 Hm1.
-      { fold_eqitF Heutt. apply eutt_inv_Ret_l in Heutt.
+      { 
+      change (eqitF eq true true (eqit true true eq) (RetF r) ot2)
+      with (eqit_mon true true (@eqit E1 true true) R1 R1 eq (Ret r) (go ot2)) in Heutt. 
+       (* TODO: NEED TO STEP IN HEUTT *)
+      apply eutt_inv_Ret_l in Heutt.
         rewrite Heutt, tau_euttge. gfinal; right. eapply paco2_mon_bot; eauto. }
       { apply rutt_inv_Tau_l in Hrutt. eapply IHHeutt; eauto. }
       { clear IHHeutt. remember (VisF e k) as m1; revert Heqm1.
