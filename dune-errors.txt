@@ -1,0 +1,146 @@
+Warning: Dune's Coq Build Language is deprecated, and will be removed in Dune
+3.24. Please upgrade to the new Rocq Build Language.
+Hint: To disable this warning, add the following to your dune-project file:
+(warnings (deprecated_coq_lang disabled))
+
+File "./examples/ITreePredicatesExample.v", line 103, characters 4-9:
+Error: No matching clauses for match.
+
+
+File "./examples/Nimp.v", line 32, characters 0-53:
+Error: Notation "_ --> _" is already defined at level 55 with arguments
+constr at next level, constr at level 55 while it is now required to be
+at level 80 with arguments constr at next level, constr at level 55.
+
+
+File "./extra/IForest.v", line 295, characters 4-14:
+Error:
+Could not find an instance for "pacotac_internal.paco_class
+                                  (gfp (eqit_mon false false) R R Logic.eq x
+                                     y)"
+in
+environment:
+R : Type
+F : Type -> Type
+E : Type -> Type
+h_spec : forall T : Type, E T -> iforest F T
+RR : relation R
+r : itree E R -> itree F R -> Prop
+CIH :
+  forall x y : itree E R,
+  x ≅ y -> forall y0 : itree F R, interp_iforest h_spec R RR x y0 -> r y y0
+x, y : itree E R
+eq : gfp (eqit_mon false false) R R Logic.eq x y
+t : itree F R
+H :
+  interp_iforestF h_spec RR (upaco2 (interp_iforest_ E F h_spec R RR) bot2)
+    (⊙ x) t
+_typ_ := ?_typ_ : Type
+_lem_ := ?_lem_ : _typ_
+_X_ : gfp (eqit_mon false false) R R Logic.eq x y
+
+
+
+File "./extra/Secure/SecureEqHalt.v", line 114, characters 0-86:
+Error:
+The following term contains unresolved implicit arguments:
+  {| L := nat; leq := fun n m : nat => n <= m |}
+More precisely: 
+- ?CompleteLattice: Cannot infer the implicit parameter CompleteLattice of
+  lattice.leq whose type is "CompleteLattice nat" (no type class instance
+  found) in environment:
+  n, m : nat
+
+
+File "./extra/Secure/SecureEqHaltProgInsens.v", line 106, characters 0-86:
+Error:
+The following term contains unresolved implicit arguments:
+  {| L := nat; leq := fun n m : nat => n <= m |}
+More precisely: 
+- ?CompleteLattice: Cannot infer the implicit parameter CompleteLattice of
+  lattice.leq whose type is "CompleteLattice nat" (no type class instance
+  found) in environment:
+  n, m : nat
+
+
+File "./theories/Events/ExceptionFacts.v", line 56, characters 2-7:
+Error: No matching clauses for match.
+
+
+File "./theories/Events/FailFacts.v", line 151, characters 2-7:
+Error: No matching clauses for match.
+
+
+File "./theories/Events/MapDefaultFacts.v", line 182, characters 4-9:
+Error: No matching clauses for match.
+
+
+File "./theories/Interp/Traces.v", line 87, characters 4-13:
+Error:
+Could not find an instance for "pacotac_internal.paco_class
+                                  (gfp (sutt_mon eq) (⊙ t1) (⊙ t2))"
+in
+environment:
+E : Type -> Type
+R : Type
+r : R
+t2, t1 : itree E R
+H : gfp (sutt_mon eq) (⊙ t1) (⊙ t2)
+Heqi : RetF r = ⊙ t1
+_typ_ := ?_typ_ : Type
+_lem_ := ?_lem_ : _typ_
+_X_ : gfp (sutt_mon eq) (⊙ t1) (⊙ t2)
+
+
+
+File "./theories/Props/Finite.v", line 187, characters 4-14:
+Error:
+Could not find an instance for "pacotac_internal.paco_class
+                                  (gfp (eqit_mon true true) A B R t u2)"
+in
+environment:
+E : Type -> Type
+A : Type
+B : Type
+R : A -> B -> Prop
+a : A
+t : itree E A
+H : ⊙ t = RetF a
+u2 : itree E B
+EQ : gfp (eqit_mon true true) A B R t u2
+_typ_ := ?_typ_ : Type
+_lem_ := ?_lem_ : _typ_
+_X_ : gfp (eqit_mon true true) A B R t u2
+
+
+
+File "./theories/Props/Infinite.v", line 61, characters 4-14:
+Error:
+Could not find an instance for "pacotac_internal.paco_class
+                                  (gfp (eqit_mon true true) X X R x y)"
+in
+environment:
+E : Type -> Type
+X : Type
+R : X -> X -> Prop
+r : itree E X -> Prop
+CH : forall x y : itree E X, x ≈⟨ R ⟩ y -> any_infinite x -> r y
+x, y : itree E X
+H0 : gfp (eqit_mon true true) X X R x y
+H1 : any_infinite x
+_typ_ := ?_typ_ : Type
+_lem_ := ?_lem_ : _typ_
+_X_ : gfp (eqit_mon true true) X X R x y
+
+
+
+File "./tutorial/AsmCombinators.v", line 120, characters 0-47:
+Error:
+The following term contains unresolved implicit arguments:
+  (fun A : nat => pure_asm id)
+More precisely: 
+- ?c: Cannot infer an internal placeholder of type 
+  "CompleteLattice (fin A)" (no type class instance found) in
+  environment:
+  A : nat
+
