@@ -144,8 +144,7 @@ Section eqit.
     - intros ?; apply Hsim; auto.
   Qed.
 
-  (** Rocq is smart enough to figure out that [eqitF_mono] proves [eqit_] is
-     monotone. *)
+  (* The monotone relation `b`. `eqit` is `gfp b`. *)
 
   Definition eqit_mon b1 b2 : mon (forall R1 R2, (R1 -> R2 -> Prop) -> itree E R1 -> itree E R2 -> Prop) :=
     {| body := eqit_ b1 b2 ; Hbody := eqitF_mono b1 b2 |}.
