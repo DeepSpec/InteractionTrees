@@ -84,7 +84,7 @@ Proof.
   repeat red. 
   bcoinduction. intros.
   rewrite !unfold_interp_mrec.
-  step in H. inv H; try easy; eauto with itree. 
+  step in H. inv H; eauto with itree. 
   - taus. now apply cih. 
   - cbn. destruct e.
     + taus. apply cih.

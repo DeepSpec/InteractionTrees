@@ -12,8 +12,6 @@ From ExtLib Require Import
 From ExtLib.Structures Require
      Maps.
 
-From Paco Require Import paco.
-
 From ITree Require Import
      Basics.HeterogeneousRelations
      ITree
@@ -179,23 +177,20 @@ Section MapFacts.
   Proof.
     unfold map_default_eq, interp_map; intros.
     revert t s1 s2 H.
-    ginit.
-    pcofix CH.
+    bcoinduction. 
     intros.
     repeat rewrite unfold_interp_state. unfold _interp_state.
     destruct (observe t).
-    - gstep. constructor. constructor; auto.
-    - gstep. constructor. gbase. apply CH. assumption.
-    - guclo eqit_clo_bind. econstructor.
+    - eret. 
+    - etau. 
+    - ebind. 
       unfold pure_state.
       destruct e.
-      + cbn. eapply eqit_mon; [ exact (fun x => x) .. | | apply handle_map_eq; assumption ].
-        auto. auto. intros.  apply PR.
-      + cbn. apply eqit_Vis. intros.  apply eqit_Ret. constructor; auto.
+      + cbn. step. now eapply handle_map_eq. 
+      + cbn. evis. step; eret. 
       + intros. destruct u1. destruct u2. cbn.
-        destruct H as [H1 H2]; cbn in H1, H2; subst.
-        gstep; constructor.
-        gbase. apply CH. assumption.
+        destruct H0 as [H1 H2]; cbn in H1, H2; subst.
+        etau. 
   Qed.
  
   Global Instance interp_map_proper {R E d} {RR : R -> R -> Prop} :
@@ -204,29 +199,25 @@ Section MapFacts.
     unfold map_default_eq, interp_map.
     repeat intro.
     revert x y H s1 s2 H0.
-    einit.
-    ecofix CH.
+    bcoinduction. 
     intros.
     rewrite! unfold_interp_state. 
-    punfold H0. red in H0.
-    revert s1 s2 H1.
-    induction H0; intros; subst; simpl; pclearbot.
+    step in H. 
+    revert s1 s2 H0.
+    induction H; intros; subst; bcbn. 
     - eret. 
     - etau.
     - ebind.
-      apply pbc_intro_h with (RU := prod_rel (@eq_map _ _ _ _ d) eq).
-      { (* SAZ: I must be missing some lemma that should solve this case *)
-        unfold case_. unfold Case_sum1, case_sum1.
-        destruct e. apply handle_map_eq. assumption.
-        unfold pure_state.
-        pstep. econstructor. intros. constructor. pfold. econstructor. constructor; auto.
-      } 
-      intros. destruct H as [HH1 ->].
-      estep; constructor. ebase.
+      + unfold case_. unfold Case_sum1, case_sum1.
+        do 2 step. destruct e.
+        * apply handle_map_eq. assumption.
+        * unfold pure_state. step. evis. step. eret. 
+      + intros. etau. 
+      inv H. rewrite snd_rel. eapply cih; eauto. apply REL.
     - rewrite tau_euttge, unfold_interp_state.
-      eauto.
+      now eapply IHeqitF. 
     - rewrite tau_euttge, unfold_interp_state.
-      eauto.
+      now eapply IHeqitF. 
   Qed.
 
 End MapFacts.

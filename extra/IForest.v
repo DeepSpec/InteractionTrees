@@ -19,8 +19,6 @@ From ITree Require Import
      Props.Leaf
      Basics.HeterogeneousRelations.
 
-From Paco Require Import paco.
-
 From ExtLib Require Import
      Structures.Functor.
 

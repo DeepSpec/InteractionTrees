@@ -5,7 +5,7 @@ Require Import Program.Tactics.
 
 From Paco Require Import paco.
 
-Ltac inv H := inversion H; clear H; subst.
+Ltac inv H := inversion H; clear H; subst; try easy.
 
 (* [inv], [rewrite_everywhere], [..._except] are general purpose *)
 

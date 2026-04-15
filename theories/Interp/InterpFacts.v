@@ -121,8 +121,11 @@ Proof.
   step in H. 
 
   destruct H; cbn; subst; try easy; eauto with itree.
-  to_mon. unfold eq_Handler, i_pointwise in Hfg. 
-  rewrite Hfg. ebind. intros ??[=<-]. taus; eauto with itree. 
+  unfold eq_Handler, i_pointwise in Hfg. 
+  rewrite Hfg. 
+  to_mon. 
+  (* RTODO: fix ebind so it works with eqitF *)
+  ebind. intros ??[=<-]. taus; eauto with itree. 
 Qed.
 
 #[global]

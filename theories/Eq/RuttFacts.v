@@ -144,7 +144,7 @@ Proof.
   genobs t1' ot1'; genobs t2' ot2';
   move Hrutt before IH; revert_until Hrutt;
   induction Hrutt; intros; subst.
-  1-3,6-8: inv Ht1; inv Ht2; simpobs; try easy; try now constructor.
+  1-3,6-8: inv Ht1; inv Ht2; simpobs; try now constructor.
   + simpobs. constructor. eapply IH; eauto.
   + simpobs.
     dependent destruction H3; dependent destruction H4;
@@ -155,10 +155,10 @@ Proof.
     dependent destruction H4; dependent destruction H5;
     dependent destruction H7; dependent destruction H8.
     constructor; auto. intros. eapply IH. apply REL. apply REL0. now apply H0.
-  + inv Ht1; try easy. constructor. eapply IHHrutt; eauto. now unstep.
-  + inv Ht2; try easy. constructor. eapply IHHrutt; eauto. now unstep.
-  + inv Ht1; try easy. constructor. eapply IHHrutt; eauto. now unstep.
-  + inv Ht2; try easy. constructor. eapply IHHrutt; eauto. now unstep.
+  + inv Ht1. constructor. eapply IHHrutt; eauto. now unstep.
+  + inv Ht2. constructor. eapply IHHrutt; eauto. now unstep.
+  + inv Ht1. constructor. eapply IHHrutt; eauto. now unstep.
+  + inv Ht2. constructor. eapply IHHrutt; eauto. now unstep.
 Qed.
 
 #[global] Instance eq_proper_rutt {E1 E2 R1 R2 REv RAns}
