@@ -244,7 +244,7 @@ Experimenting with the latter at the moment. *)
 
 (* We first enhance the coinduction tactic to recognize goals that 
    do not have a syntactic match with [gfp _] *)
-
+Locate revert_last. 
 #[local] Ltac iunfold_all :=
   unfold euttge, eq_itree, eutt, eqit in *.
 

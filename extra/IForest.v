@@ -12,6 +12,8 @@
    TODO: There may be a better definition of [bind]. *)
 
 (* begin hide *)
+From Coinduction Require Import all.
+
 From ITree Require Import
      Axioms
      ITree
@@ -24,6 +26,7 @@ From ExtLib Require Import
 
 From Stdlib Require Import
      Relations
+     Program
      Morphisms.
 
 Import ITree.Basics.Basics.Monads.
@@ -139,28 +142,188 @@ Inductive interp_iforestF {E F} (h_spec : forall T, E T -> itree F T -> Prop)
 
 Lemma interp_iforestF_mono E F h_spec R RR  (t0 : itree' E R) (t1 : itree F R) sim sim'
       (IN : interp_iforestF h_spec RR sim t0 t1)
-      (LE : sim <2= sim') :
+      (LE : forall x y, sim x y -> sim' x y) :
   (interp_iforestF h_spec RR sim' t0 t1).
 Proof.
   induction IN; eauto with itree.
 Qed.
 
-#[global] Hint Resolve interp_iforestF_mono : paco.
+Definition interp_iforest_ E F h_spec R RR sim :
+  itree E R -> itree F R -> Prop :=
+  fun t0 t1 => interp_iforestF h_spec RR sim (observe t0) t1.
 
-Definition interp_iforest_ E F h_spec R RR sim (t0 : itree E R) (t1 : itree F R) : Prop :=
-  interp_iforestF h_spec RR sim (observe t0) t1.
-#[global] Hint Unfold interp_iforest_ : itree.
+#[global] Hint Unfold interp_iforest_ : itree. 
 
-Lemma interp_iforest__mono E F h_spec R RR : monotone2 (interp_iforest_ E F h_spec R RR).
+Definition interp_iforest_mon (E F : Type -> Type) (h_spec : E ~> iforest F) 
+           R (RR : relation R) : mon (itree E R -> itree F R -> Prop).
 Proof.
-  do 2 red. intros. eapply interp_iforestF_mono; eauto.
-Qed.
-#[global] Hint Resolve interp_iforest__mono : paco.
+  refine {| body := interp_iforest_ E F h_spec R RR |}.
+  intros sim sim' LE t0 t1 H. unfold interp_iforest_ in *.
+  eapply interp_iforestF_mono; eauto.
+Defined.
 
 (* Definition 5.2 *)
 Definition interp_iforest {E F} (h_spec : E ~> iforest F) :
   forall R (RR: relation R), itree E R -> iforest F R :=
-    fun R (RR: relation R) =>  paco2 (interp_iforest_ E F h_spec R RR) bot2.
+    fun R (RR: relation R) => gfp (interp_iforest_mon E F h_spec R RR).
+
+
+#[local] Ltac iunfold_all :=
+  unfold euttge, eq_itree, eutt, eqit,
+         interp_iforest, interp_iforest_, interp_iforest_mon in *.
+
+#[local] Ltac iunfold_in h :=
+  unfold euttge, eq_itree, eutt, eqit,
+         interp_iforest, interp_iforest_, interp_iforest_mon in h.
+
+#[local] Ltac iunfold :=
+  unfold euttge, eq_itree, eutt, eqit,
+         interp_iforest, interp_iforest_, interp_iforest_mon.
+
+#[local] Ltac iunfold_coind :=
+  first
+    [ intros ?; iunfold_coind; revert_last
+    | unfold euttge, eutt, eq_itree, eqit,
+             interp_iforest, interp_iforest_, interp_iforest_mon
+    ].
+
+#[local] Ltac refold :=
+  repeat match goal with
+  | |- context[gfp (@eqit_mon ?E ?b1 ?b2)] =>
+      fold (@eqit E b1 b2);
+      try fold (@eq_itree E _ _);
+      try fold (@euttge E _ _);
+      try fold (@eutt E _ _)
+  | |- context[gfp (interp_iforest_mon ?E ?F ?h ?R ?RR)] =>
+      fold (@interp_iforest E F h R RR)
+  end.
+
+#[local] Ltac refold_in h :=
+  match type of h with
+  | context[gfp (@eqit_mon ?E ?b1 ?b2)] =>
+      fold (@eqit E b1 b2) in h;
+      try fold (@eq_itree E _ _) in h;
+      try fold (@euttge E _ _) in h;
+      try fold (@eutt E _ _) in h
+  | context[gfp (interp_iforest_mon ?E ?F ?h ?R ?RR)] =>
+      fold (@interp_iforest E F h R RR) in h
+  end.
+
+#[local] Ltac to_mon_core :=
+  match goal with
+  | |- context[
+        @interp_iforestF ?E ?F ?h_spec ?R ?RR ?sim
+          (observe ?t0) ?t1
+      ] =>
+      change (interp_iforestF h_spec RR sim (observe t0) t1)
+      with (interp_iforest_mon E F h_spec R RR sim t0 t1)
+
+  | |- context[
+        @interp_iforestF ?E ?F ?h_spec ?R ?RR ?sim
+          (?con1 ?a1) ?t1
+      ] =>
+      change (interp_iforestF h_spec RR sim (con1 a1) t1)
+      with (interp_iforest_mon E F h_spec R RR
+              sim (go (con1 a1)) t1)
+
+  | |- context[
+        @interp_iforestF ?E ?F ?h_spec ?R ?RR ?sim
+          (observe ?t0) (?con2 ?a2)
+      ] =>
+      change (interp_iforestF h_spec RR sim (observe t0) (con2 a2))
+      with (interp_iforest_mon E F h_spec R RR
+              sim t0 (go (con2 a2)))
+  end.
+
+#[local] Ltac to_mon :=
+  let dummy := fresh "dummy" in
+  assert (dummy : True) by constructor;
+  intros;
+  to_mon_core;
+  revert_until dummy;
+  clear dummy.
+
+#[local] Ltac to_mon_in h :=
+  match type of h with
+  | context[
+      @interp_iforestF ?E ?F ?h_spec ?R ?RR ?sim
+        (observe ?t0) ?t1
+    ] =>
+      change (interp_iforestF h_spec RR sim (observe t0) t1)
+      with (interp_iforest_mon E F h_spec R RR sim t0 t1) in h
+
+  | context[
+      @interp_iforestF ?E ?F ?h_spec ?R ?RR ?sim
+        (?con1 ?a1) ?t1
+    ] =>
+      change (interp_iforestF h_spec RR sim (con1 a1) t1)
+      with (interp_iforest_mon E F h_spec R RR
+              sim (go (con1 a1)) t1) in h
+  end.
+
+#[local] Ltac icbn :=
+  cbn[eqit_mon body eqit_ interp_iforest_].
+
+#[local] Ltac icbn_in H :=
+  cbn[eqit_mon body eqit_ interp_iforest_] in H.
+
+#[local] Tactic Notation "icbn" "in" ident(h) := icbn_in h.
+#[local] Tactic Notation "icbn" "in" "*" :=
+  cbn[eqit_mon body eqit_ interp_iforest_] in *.
+
+
+#[local] Tactic Notation "refold" "in" ident(h) := refold_in h.
+#[local] Tactic Notation "to_mon" "in" ident(h) := to_mon_in h.
+#[local] Tactic Notation "iunfold" "in" ident(h) := iunfold_in h.
+#[local] Tactic Notation "iunfold" "in" "*" := iunfold_all.
+
+
+#[local] Tactic Notation "step" :=
+  iunfold;
+  step;
+  cbn[eqit_mon body eqit_ interp_iforest_ ];
+  try refold.
+
+#[local] Tactic Notation "unstep" :=
+  iunfold;
+  try to_mon;
+  unstep;
+  try refold.
+
+
+#[local] Tactic Notation "step" "in" ident(h) :=
+  iunfold in h;
+  step in h;
+  cbn[eqit_ body interp_iforest_ body] in h;
+  try refold_in h.
+
+#[local] Tactic Notation "unstep" "in" ident(h) :=
+  iunfold_in h;
+  try to_mon_in h;
+  unstep_in h;
+  try refold_in h.
+
+#[local] Tactic Notation "icoinduction" simple_intropattern(R) simple_intropattern(H) :=
+  iunfold_coind;
+  coinduction R H;
+  cbn [body];
+  unfold interp_iforest_. 
+
+#[local] Tactic Notation "bcoinduction" simple_intropattern(R) simple_intropattern(H) :=
+  icoinduction R H;
+  to_mon.
+
+#[local] Tactic Notation "bcoinduction" :=
+  let c := fresh "c" in
+  let cih := fresh "cih" in
+  bcoinduction c cih.
+
+#[local] Ltac bcbn :=
+  cbn[eqit_mon body eqit_ interp_iforest_mon];
+  unfold interp_iforest_; 
+  to_mon.
+
+
 
 (* Figure 7: Interpreter law for Ret *)
 Lemma interp_iforest_ret :
@@ -172,21 +335,20 @@ Proof.
   repeat red.
   split; [| split].
   - intros. split; intros.
-    + unfold interp_iforest in H0.
-      pinversion H0. subst.
-      cbn. rewrite <- H. assumption.
-    + pstep. econstructor. reflexivity. rewrite H. cbn in H0. assumption.
+    + step in H0. inv H0.
+      cbn. now rewrite <- H.
+    + unfold interp_iforest. step. econstructor; eauto. now rewrite H.
   - do 3 red.
-    intros t1 t2 eq; split; intros H; pinversion H; subst.
-    + red. pstep. econstructor. reflexivity. rewrite <- eq. assumption.
-    + red. pstep. econstructor. reflexivity. rewrite eq. assumption.
- - do 3 red. intros. split; intros; cbn in *. rewrite <- H. assumption. rewrite H; assumption.
+    intros t1 t2 eq; split; intros H; step in H; inv H. 
+    + step. econstructor; eauto. now rewrite <- eq. 
+    + step. econstructor; eauto. now rewrite eq. 
+ - do 3 red. intros. split; intros; cbn in *. now rewrite <- H. now rewrite H. 
 Qed.
 
 #[global] Instance interp_iforestF_Proper
        {E F} (h_spec : E ~> iforest F) R RR (t : itree' E R)
        (sim : itree E R -> itree F R -> Prop)
-       (HS: forall t, Proper(eutt eq ==> flip impl) (sim t))
+       (HS: forall t, Proper (eutt eq ==> flip impl) (sim t))
   :
   Proper(eutt eq ==> iff) (interp_iforestF h_spec RR sim t).
 Proof.
@@ -194,42 +356,38 @@ Proof.
   intros.
   split; intros.
   - inversion H0; subst; econstructor; eauto.
-    + rewrite <- H. assumption.
-    + specialize (HS t1). rewrite <- H. assumption.
-    + rewrite <- H. assumption.
+    + now rewrite <- H.
+    + specialize (HS t1). now rewrite <- H.
+    + now rewrite <- H.
 
-  - inversion H0; subst; econstructor; eauto.
-    rewrite H. assumption. specialize (HS t1). rewrite H. assumption.
-    rewrite H. assumption.
+  - inversion H0; subst; econstructor; eauto. 
+    all: now rewrite H. 
 Qed.
 
 #[global] Instance interp_iforest_Proper
-       {E F} (h_spec : E ~> iforest F) R RR (t : itree E R) :
-  Proper(eq_itree Logic.eq ==> iff) (interp_iforest h_spec R RR t).
+       {E F} (h_spec : E ~> iforest F) R RR (t : itree E R) 
+       (c : Chain (interp_iforest_mon E F h_spec R RR))
+       :
+  Proper (eq_itree eq ==> iff) (elem c t).
 Proof.
-  do 2 red.
-  intros.
-  split.
-  - revert t x y H.
-    pcofix CIH.
-    intros t x y eq HI.
-    red in HI. punfold HI. red in HI.
-    pstep. red. genobs t ot.
-    inversion HI; subst; econstructor; eauto.
-    + rewrite <- eq. assumption.
-    + pclearbot. right. eapply CIH; eauto.
-    + rewrite <- eq. apply eq2.
-    + intros. specialize (HK a H0). pclearbot. right. eapply CIH. 2 : { apply HK. } reflexivity.
-  - revert t x y H.
-    pcofix CIH.
-    intros t x y eq HI.
-    red in HI. punfold HI. red in HI.
-    pstep. red. genobs t ot.
-    inversion HI; subst; econstructor; eauto.
-    + rewrite eq. assumption.
-    + pclearbot. right. eapply CIH; eauto.
-    + rewrite eq. apply eq2.
-    + intros. specialize (HK a H0). pclearbot. right. eapply CIH. 2 : { apply HK. } reflexivity.
+  do 2 red. revert t. 
+  tower induction. 
+  { split. all: repeat intro; apply H; auto. }
+    split.
+  - intros HI.
+    repeat red; repeat red in HI.  
+    inv HI.  
+    + rewrite H0 in eq2. 
+      eapply Interp_iforest_Ret; eauto. 
+    + econstructor. symmetry in H0. eapply H; eauto.  
+    + econstructor; eauto. now rewrite <- H0. 
+  - intros HI.
+    repeat red; repeat red in HI.  
+    inv HI.  
+    + rewrite <- H0 in eq2. 
+      eapply Interp_iforest_Ret; eauto. 
+    + econstructor. eapply H; eauto.  
+    + econstructor; eauto. now rewrite H0. 
 Qed.
 
 #[global] Instance interp_iforest_Proper2
