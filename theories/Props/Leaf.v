@@ -21,7 +21,7 @@ Import ITreeNotations.
 
 (** The [Leaf a t] predicate expresses that [t] has a [Ret] leaf with
     value [a].
-
+  (* TODO REWRITE THIS WITH NEW THEORY *)
     We provide the elementary structural lemmas to work with this
     predicate, and one main useful result relying on [Leaf]: the
     up-to bind closure [eqit_bind_clo] can be refined such that

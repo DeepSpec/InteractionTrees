@@ -640,83 +640,83 @@ Section eqit_gen.
 Properties of the chains specialize to the relations: the gfp is an element of the chain.
    *)
   
-  #[global] Instance Reflexive_eqitF b1 b2 (sim : itree E R -> itree E R -> Prop)
+#[global] Instance Reflexive_eqitF b1 b2 (sim : itree E R -> itree E R -> Prop)
     : Reflexive RR -> Reflexive sim -> Reflexive (eqitF RR b1 b2 sim).
-  Proof.
+Proof.
     red. destruct x; constructor; eauto with itree.
-  Qed.
+Qed.
 
   (* We of course exclude the asymmetric case *)
-  #[global] Instance Symmetric_eqitF b (sim : itree E R -> itree E R -> Prop)
+#[global] Instance Symmetric_eqitF b (sim : itree E R -> itree E R -> Prop)
     : Symmetric RR -> Symmetric sim -> Symmetric (eqitF RR b b sim).
-  Proof.
+Proof.
     red. induction 3; constructor; subst; eauto.
-  Qed.
+Qed.
 
   (* Note the strong bisimulation assumption *)
-  #[global] Instance Transitive_eqitF (sim : itree E R -> itree E R -> Prop)
+#[global] Instance Transitive_eqitF (sim : itree E R -> itree E R -> Prop)
     : Transitive RR -> Transitive sim -> Transitive (eqitF RR false false sim).
-  Proof.
+Proof.
     intros ?? t u v EQ1 EQ2.
     inv EQ1; try now (inv EQ2; eauto with itree).
     apply eqitF_inv_VisF_l in EQ2 as [(? & -> & ?) | [abs _]]; [| easy].
     constructor; eauto.
-  Qed. 
+Qed. 
 
-  #[global] Instance Reflexive_eqit_ b1 b2
+#[global] Instance Reflexive_eqit_ b1 b2
     (sim : forall R1 R2, (R1 -> R2 -> Prop) -> itree E R1 -> itree E R2 -> Prop)
     : Reflexive RR -> Reflexive (sim R R RR) -> Reflexive (eqit_ b1 b2 sim R R RR).
-  Proof. repeat red. intros. reflexivity. Qed.
+Proof. repeat red. intros. reflexivity. Qed.
 
-  #[global] Instance Symmetric_eqit_ b
+#[global] Instance Symmetric_eqit_ b
     (sim : forall R1 R2, (R1 -> R2 -> Prop) -> itree E R1 -> itree E R2 -> Prop)
     : Symmetric RR -> Symmetric (sim R R RR) -> Symmetric (eqit_ b b sim R R RR).
-  Proof. repeat red; symmetry; auto. Qed.
+Proof. repeat red; symmetry; auto. Qed.
 
-  #[global] Instance Transitive_eqit_
-    (sim : forall R1 R2, (R1 -> R2 -> Prop) -> itree E R1 -> itree E R2 -> Prop)
-    : Transitive RR -> Transitive (sim R R RR) -> Transitive (eqit_ false false sim R R RR).
-  Proof. repeat red; etransitivity; eauto. Qed.
+#[global] Instance Transitive_eqit_
+  (sim : forall R1 R2, (R1 -> R2 -> Prop) -> itree E R1 -> itree E R2 -> Prop)
+  : Transitive RR -> Transitive (sim R R RR) -> Transitive (eqit_ false false sim R R RR).
+Proof. repeat red; etransitivity; eauto. Qed.
 
-  (* Prove Reflexive/Symmetric for eqit first (by coinduction),
-     then derive for elem via gfp_chain. *)
+(* Prove Reflexive/Symmetric for eqit first (by coinduction),
+    then derive for elem via gfp_chain. *)
 
-  #[global] Instance Reflexive_eqit b1 b2 : Reflexive RR -> Reflexive (@eqit E b1 b2 _ _ RR).
-  Proof.
-    red; intros.
-    revert x. icoinduction c CIH. intro. 
-    now repeat apply Reflexive_eqit_.
-  Qed.
+#[global] Instance Reflexive_eqit b1 b2 : Reflexive RR -> Reflexive (@eqit E b1 b2 _ _ RR).
+Proof.
+  red; intros.
+  revert x. icoinduction c CIH. intro. 
+  now repeat apply Reflexive_eqit_.
+Qed.
 
-  #[global] Instance Symmetric_eqit b : Symmetric RR -> Symmetric (@eqit E b b _ _ RR).
-  Proof.
-    intros Hsym x y Hxy.
-    apply eqit_flip.
-    eapply eqit_mono; [auto | auto | | exact Hxy]; auto. 
-  Qed.
+#[global] Instance Symmetric_eqit b : Symmetric RR -> Symmetric (@eqit E b b _ _ RR).
+Proof.
+  intros Hsym x y Hxy.
+  apply eqit_flip.
+  eapply eqit_mono; [auto | auto | | exact Hxy]; auto. 
+Qed.
 
-  #[global] Instance Reflexive_elem (b1 b2: bool) (HR : Reflexive RR)
-    {c: Chain (@eqit_mon E b1 b2)}: Reflexive (elem c R R RR).
-  Proof.
-    red; intro x.
-    apply (gfp_chain c).
-    reflexivity.
-  Qed.
+#[global] Instance Reflexive_elem (b1 b2: bool) (HR : Reflexive RR)
+  {c: Chain (@eqit_mon E b1 b2)}: Reflexive (elem c R R RR).
+Proof.
+  red; intro x.
+  apply (gfp_chain c).
+  reflexivity.
+Qed.
 
-  Lemma inf_closed_Symmetric_at :
-    inf_closed (X := forall R1 R2, (R1 -> R2 -> Prop) -> itree E R1 -> itree E R2 -> Prop)
-      (fun x => Symmetric (x R R RR)).
-  Proof.
-    intros T HT x y Hxy.
-    intros z Hz. apply HT; auto.
-  Qed.
+Lemma inf_closed_Symmetric_at :
+  inf_closed (X := forall R1 R2, (R1 -> R2 -> Prop) -> itree E R1 -> itree E R2 -> Prop)
+    (fun x => Symmetric (x R R RR)).
+Proof.
+  intros T HT x y Hxy.
+  intros z Hz. apply HT; auto.
+Qed.
 
-  #[global] Instance Symmetric_elem (b: bool) (HS : Symmetric RR)
-    {c: Chain (@eqit_mon E b b)}: Symmetric (elem c R R RR).
-  Proof.
-    revert c. apply (tower inf_closed_Symmetric_at).
-    intros c Hsym. apply Symmetric_eqit_; auto.
-  Qed.
+#[global] Instance Symmetric_elem (b: bool) (HS : Symmetric RR)
+  {c: Chain (@eqit_mon E b b)}: Symmetric (elem c R R RR).
+Proof.
+  revert c. apply (tower inf_closed_Symmetric_at).
+  intros c Hsym. apply Symmetric_eqit_; auto.
+Qed.
 
 End eqit_gen.
 

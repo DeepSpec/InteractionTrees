@@ -170,21 +170,21 @@ Definition interp_iforest {E F} (h_spec : E ~> iforest F) :
 
 #[local] Ltac iunfold_all :=
   unfold euttge, eq_itree, eutt, eqit,
-         interp_iforest, interp_iforest_, interp_iforest_mon in *.
+         interp_iforest in *.
 
 #[local] Ltac iunfold_in h :=
   unfold euttge, eq_itree, eutt, eqit,
-         interp_iforest, interp_iforest_, interp_iforest_mon in h.
+         interp_iforest in h.
 
 #[local] Ltac iunfold :=
   unfold euttge, eq_itree, eutt, eqit,
-         interp_iforest, interp_iforest_, interp_iforest_mon.
+         interp_iforest.
 
 #[local] Ltac iunfold_coind :=
   first
     [ intros ?; iunfold_coind; revert_last
     | unfold euttge, eutt, eq_itree, eqit,
-             interp_iforest, interp_iforest_, interp_iforest_mon
+             interp_iforest
     ].
 
 #[local] Ltac refold :=
@@ -211,6 +211,12 @@ Definition interp_iforest {E F} (h_spec : E ~> iforest F) :
 
 #[local] Ltac to_mon_core :=
   match goal with
+  | |- context[
+        @interp_iforest_ ?E ?F ?h_spec ?R ?RR ?sim ?t0 ?t1
+      ] =>
+      change (interp_iforest_ E F h_spec R RR sim t0 t1)
+      with (interp_iforest_mon E F h_spec R RR sim t0 t1)
+
   | |- context[
         @interp_iforestF ?E ?F ?h_spec ?R ?RR ?sim
           (observe ?t0) ?t1
@@ -262,15 +268,17 @@ Definition interp_iforest {E F} (h_spec : E ~> iforest F) :
   end.
 
 #[local] Ltac icbn :=
-  cbn[eqit_mon body eqit_ interp_iforest_].
+  cbn[eqit_mon body eqit_ interp_iforest_mon interp_iforest_];
+  try unfold interp_iforest_. 
 
 #[local] Ltac icbn_in H :=
-  cbn[eqit_mon body eqit_ interp_iforest_] in H.
+  cbn[eqit_mon body eqit_ interp_iforest_mon interp_iforest_] in H;
+  try unfold interp_iforest_ in H.
 
 #[local] Tactic Notation "icbn" "in" ident(h) := icbn_in h.
 #[local] Tactic Notation "icbn" "in" "*" :=
-  cbn[eqit_mon body eqit_ interp_iforest_] in *.
-
+  cbn[eqit_mon body eqit_ interp_iforest_mon interp_iforest_] in *;
+  try unfold interp_iforest_ in *. 
 
 #[local] Tactic Notation "refold" "in" ident(h) := refold_in h.
 #[local] Tactic Notation "to_mon" "in" ident(h) := to_mon_in h.
@@ -279,35 +287,19 @@ Definition interp_iforest {E F} (h_spec : E ~> iforest F) :
 
 
 #[local] Tactic Notation "step" :=
-  iunfold;
-  step;
-  cbn[eqit_mon body eqit_ interp_iforest_ ];
-  try refold.
+  iunfold; step; icbn; try refold.
 
 #[local] Tactic Notation "unstep" :=
-  iunfold;
-  try to_mon;
-  unstep;
-  try refold.
-
+  iunfold; try to_mon; unstep; try refold.
 
 #[local] Tactic Notation "step" "in" ident(h) :=
-  iunfold in h;
-  step in h;
-  cbn[eqit_ body interp_iforest_ body] in h;
-  try refold_in h.
+  iunfold in h; step in h; icbn in h; try refold_in h.
 
 #[local] Tactic Notation "unstep" "in" ident(h) :=
-  iunfold_in h;
-  try to_mon_in h;
-  unstep_in h;
-  try refold_in h.
+  iunfold_in h; try to_mon_in h; unstep_in h; try refold_in h.
 
 #[local] Tactic Notation "icoinduction" simple_intropattern(R) simple_intropattern(H) :=
-  iunfold_coind;
-  coinduction R H;
-  cbn [body];
-  unfold interp_iforest_. 
+  iunfold_coind; coinduction R H; icbn.
 
 #[local] Tactic Notation "bcoinduction" simple_intropattern(R) simple_intropattern(H) :=
   icoinduction R H;
@@ -319,8 +311,8 @@ Definition interp_iforest {E F} (h_spec : E ~> iforest F) :
   bcoinduction c cih.
 
 #[local] Ltac bcbn :=
-  cbn[eqit_mon body eqit_ interp_iforest_mon];
-  unfold interp_iforest_; 
+  cbn[eqit_mon body eqit_ interp_iforest_mon interp_iforest_];
+  cbn; 
   to_mon.
 
 
@@ -338,11 +330,11 @@ Proof.
     + step in H0. inv H0.
       cbn. now rewrite <- H.
     + unfold interp_iforest. step. econstructor; eauto. now rewrite H.
-  - do 3 red.
+  - repeat red.
     intros t1 t2 eq; split; intros H; step in H; inv H. 
     + step. econstructor; eauto. now rewrite <- eq. 
     + step. econstructor; eauto. now rewrite eq. 
- - do 3 red. intros. split; intros; cbn in *. now rewrite <- H. now rewrite H. 
+ - repeat red. intros. split; intros; cbn in *. now rewrite <- H. now rewrite H. 
 Qed.
 
 #[global] Instance interp_iforestF_Proper
@@ -352,7 +344,7 @@ Qed.
   :
   Proper(eutt eq ==> iff) (interp_iforestF h_spec RR sim t).
 Proof.
-  do 2 red.
+  repeat red.
   intros.
   split; intros.
   - inversion H0; subst; econstructor; eauto.
@@ -370,7 +362,7 @@ Qed.
        :
   Proper (eq_itree eq ==> iff) (elem c t).
 Proof.
-  do 2 red. revert t. 
+  repeat red. revert t. 
   tower induction. 
   { split. all: repeat intro; apply H; auto. }
     split.
@@ -391,32 +383,29 @@ Proof.
 Qed.
 
 #[global] Instance interp_iforest_Proper2
-       {E F} (h_spec : E ~> iforest F) R RR (t : itree E R) :
-  Proper(eutt Logic.eq ==> iff) (interp_iforest h_spec R RR t).
+              {E F} (h_spec : E ~> iforest F) R RR (t : itree E R) 
+       (c : Chain (interp_iforest_mon E F h_spec R RR))
+       :
+  Proper (eutt eq ==> iff) (elem c t).
 Proof.
-  do 2 red.
-  intros.
-  split.
-  - revert t x y H.
-    pcofix CIH.
-    intros t x y eq HI.
-    red in HI. punfold HI. red in HI.
-    pstep. red. genobs t ot.
-    inversion HI; subst; econstructor; eauto.
-    + rewrite <- eq. assumption.
-    + pclearbot. right. eapply CIH; eauto.
-    + rewrite <- eq. apply eq2.
-    + intros. specialize (HK a H0). pclearbot. right. eapply CIH. 2 : { apply HK. } reflexivity.
-  - revert t x y H.
-    pcofix CIH.
-    intros t x y eq HI.
-    red in HI. punfold HI. red in HI.
-    pstep. red. genobs t ot.
-    inversion HI; subst; econstructor; eauto.
-    + rewrite eq. assumption.
-    + pclearbot. right. eapply CIH; eauto.
-    + rewrite eq. apply eq2.
-    + intros. specialize (HK a H0). pclearbot. right. eapply CIH. 2 : { apply HK. } reflexivity.
+  repeat red. revert t. 
+  tower induction. 
+  { split. all: repeat intro; apply H; auto. }
+    split.
+  - intros HI.
+    repeat red; repeat red in HI.  
+    inv HI.  
+    + rewrite H0 in eq2. 
+      eapply Interp_iforest_Ret; eauto. 
+    + econstructor. symmetry in H0. eapply H; eauto.  
+    + econstructor; eauto. now rewrite <- H0. 
+  - intros HI. 
+    repeat red; repeat red in HI.  
+    inv HI.  
+    + rewrite <- H0 in eq2. 
+      eapply Interp_iforest_Ret; eauto. 
+    + econstructor. eapply H; eauto.  
+    + econstructor; eauto. now rewrite H0. 
 Qed.
 
 (* This exists in the stdlib as [ProofIrrelevance.inj_pair2], but we reprove
@@ -436,59 +425,34 @@ Proof.
 Qed.
 
 #[global] Instance interp_iforest_Proper3
-       {E F} (h_spec : E ~> iforest F) R RR :
-  Proper(eq_itree eq ==> eq  ==> iff) (interp_iforest h_spec R RR).
+       {E F} (h_spec : E ~> iforest F) R RR 
+       (c : Chain (interp_iforest_mon E F h_spec R RR))
+       :
+  Proper (eq_itree eq ==> eq ==> iff) (elem c).
 Proof.
-  do 4 red.
-  intros; split.
-  - subst.
-    revert x y H y0.
-    pcofix CIH.
-    intros x y eq t H.
-    pstep; red.
-    punfold H. red in H.
-
-    punfold eq. red in eq.
-    genobs x obsx.
-    genobs y obsy.
-    revert x y Heqobsx Heqobsy t H.
-
-    induction eq; intros x y Heqobsx Heqobsy t H; inversion H; subst; pclearbot.
-    + econstructor; eauto.
-    + econstructor. right. eapply CIH. apply REL. apply HS.
-    + apply inj_pair2 in H2.
-      apply inj_pair2 in H3. subst.
-      econstructor; eauto. intros X HX. specialize (REL X). specialize (HK X HX). pclearbot.
-      right. eapply CIH; eauto.
-    + eapply IHeq.  reflexivity. reflexivity.
-      punfold HS.
-    + econstructor. left. pstep. eapply IHeq. reflexivity. reflexivity. assumption.
-    + econstructor. left.  pstep. eapply IHeq. reflexivity. reflexivity. assumption.
-    + econstructor. left.  pstep. eapply IHeq. reflexivity. reflexivity. assumption.
-
- - subst.
-    revert x y H y0.
-    pcofix CIH.
-    intros x y eq t H.
-    pstep; red.
-    punfold H. red in H.
-
-    punfold eq. red in eq.
-    genobs x obsx.
-    genobs y obsy.
-    revert x y Heqobsx Heqobsy t H.
-
-    induction eq; intros x y Heqobsx Heqobsy t H; inversion H; subst; pclearbot.
-    + econstructor; eauto.
-    + econstructor. right. eapply CIH. apply REL. apply HS.
-    + apply inj_pair2 in H2.
-      apply inj_pair2 in H3. subst.
-      econstructor; eauto. intros X HX. specialize (REL X). specialize (HK X HX). pclearbot.
-      right. eapply CIH; eauto.
-    + econstructor. left. pstep. eapply IHeq. reflexivity. reflexivity. assumption.
-    + econstructor. left. pstep. eapply IHeq. reflexivity. reflexivity. assumption.
-    + econstructor. left. pstep. eapply IHeq. reflexivity. reflexivity. assumption.
-    + eapply IHeq. reflexivity. reflexivity.   punfold HS.
+  repeat red. tower induction. 
+  { split. all: repeat intro; apply H; auto. }
+    split.
+  - intros HI.
+    repeat red; repeat red in HI. 
+    step in H0.   
+    inv HI; simpobs.
+    + inv H0. eapply Interp_iforest_Ret; eauto. 
+    + inv H0. econstructor. symmetry in REL. eapply H; eauto. 
+    + eapply eqitF_inv_VisF_l in H0. crunch; try easy. 
+      simpobs. econstructor; eauto. intros. 
+      symmetry in H1. eapply H. 
+      apply H1. all: eauto.
+  - intros HI.
+    repeat red; repeat red in HI.
+    step in H0.   
+    inv HI; simpobs.   
+    + inv H0. eapply Interp_iforest_Ret; eauto. 
+    + inv H0. econstructor. eapply H; eauto. 
+    + eapply eqitF_inv_VisF_r in H0. crunch; try easy. 
+      simpobs. econstructor; eauto. intros. 
+      eapply H.  
+      apply H1. all: eauto.
 Qed.
 
 (* Lemma 5.4: interp_iforest_correct - note that the paper presents a slightly simpler formulation where t = t' *)
@@ -499,30 +463,22 @@ Lemma interp_iforest_correct_exec:
 Proof.
   intros.
   revert t t' H1.
-  pcofix CIH.
+  bcoinduction.
   intros t t' eq.
-  pstep.
-  red.
   unfold interp, Basics.iter, MonadIter_itree.
   rewrite (itree_eta t) in eq.
-  destruct (observe t).
-  - econstructor. reflexivity. rewrite <- eq. rewrite unfold_iter. cbn.
-    rewrite Eqit.bind_ret_l. cbn.  reflexivity.
-  - econstructor. right.
-    eapply CIH. rewrite tau_eutt in eq. rewrite eq. reflexivity.
-  - econstructor.
-    2 : { rewrite <- eq. rewrite unfold_iter. cbn.
-          unfold ITree.map. rewrite Eqit.bind_bind.
-          setoid_rewrite Eqit.bind_ret_l at 1. cbn. setoid_rewrite tau_eutt.
-          reflexivity. }
-    apply H.
-    intros a. cbn.
-    right.
-    unfold interp, Basics.iter, MonadIter_itree in CIH. unfold fmap, Functor_itree, ITree.map in CIH.
-    specialize (CIH (k a) (k a)).
-    apply CIH.
-    reflexivity.
-Qed.
+  destruct (observe t) eqn:oeqt. 
+  - rewrite <- eq. rewrite unfold_iter. bcbn. 
+    rewrite Eqit.bind_ret_l. repeat red. simpobs. now econstructor. 
+  - rewrite <- eq. rewrite unfold_iter. bcbn. rewrite Eqit.bind_ret_l.
+    rewrite tau_eutt. 
+    repeat red. simpobs. econstructor. now apply cih.  
+  - rewrite <- eq. rewrite unfold_iter. bcbn.
+    rewrite bind_map. repeat red; simpobs. econstructor.
+    + apply H. 
+    + ebind. intros; subst. rewrite tau_eutt. reflexivity. 
+    + intros. rewrite tau_eutt. now apply cih. 
+Qed. 
 
 (* Lemma 5.5 - note that the paper presents this lemma after unfolding the definition of Proper.
  *)
@@ -531,46 +487,36 @@ Qed.
     Proper (@eutt _ _ _ RR ==> eq ==> flip Basics.impl) (@interp_iforest E _ h_spec R RR).
 Proof.
   intros.
-
-  do 5 red.
+  repeat red.
   intros t1 t2 eqt s' s eqs HI.
   subst.
-
   revert t1 t2 eqt s HI.
-
-  pcofix CIH.
-
+  icoinduction c cih. 
   intros.
+  step in HI.
 
-  pstep. red.
-  punfold HI. red in HI.
-
-  punfold eqt. red in eqt.
+  step in eqt. 
   genobs t1 obst1.
   genobs t2 obst2.
   revert t1 t2 Heqobst1 Heqobst2 s HI.
-
   induction eqt; intros.
-  - inversion HI; subst.
-    econstructor. etransitivity; eauto. assumption.
-  - inversion HI; subst.
-    econstructor. pclearbot. right.  eapply CIH; eauto.
-  - inversion HI.
-    subst.
+  - inv HI. econstructor. etransitivity; eauto. eauto.  
+  - inv HI. 
+    econstructor. eapply cih; eauto.
+  - inv HI. 
     apply inj_pair2 in H1.
     apply inj_pair2 in H2.
     subst.
     econstructor.
     apply HTA.
     apply eq2.
-    intros a Ha. specialize (REL a). specialize (HK a Ha). red in REL. pclearbot.
-    right. eapply CIH. apply REL. apply HK.
-  - econstructor.
-    left. pstep. red. eapply IHeqt. reflexivity. eassumption. assumption.
-  - inversion HI; subst.
-    pclearbot.
+    intros a Ha. specialize (REL a). specialize (HK a Ha). red in REL. 
+    eapply cih. apply REL. apply HK.
+  - econstructor. step. 
+    eapply IHeqt. reflexivity. eassumption. assumption.
+  - inv HI. 
     eapply IHeqt. reflexivity. reflexivity.
-    pinversion HS.
+    now unstep. 
 Qed.
 
 Lemma Leaf_Vis_sub :  forall {E} {R} X (e : E X) (k : X -> itree E R) u x, Leaf u (k x) -> Leaf u (Vis e k).
@@ -583,18 +529,13 @@ Lemma eutt_Leaf_ : forall {E} {R} (RR : R -> Prop) (ta : itree E R)
    (IN: forall (a : R), Leaf a ta -> RR a), eutt (fun u1 u2 => u1 = u2 /\ RR u1) ta ta.
 Proof.
   intros E R.
-  ginit.
-  gcofix CIH; intros.
-
+  icoinduction c cih. intros. 
   setoid_rewrite (itree_eta ta) in IN.
-
-  gstep. red.
-
   destruct (observe ta).
-  - econstructor.  split; auto. apply IN. econstructor. reflexivity.
-  - econstructor. gfinal. left. apply CIH. intros. eapply IN. rewrite tau_eutt. assumption.
-  - econstructor. intros. red.
-    gfinal. left. apply CIH. intros. eapply IN. eapply Leaf_Vis_sub. apply H.
+  - econstructor.  split; auto. apply IN. now econstructor.
+  - econstructor. apply cih. intros. eapply IN. now rewrite tau_eutt.
+  - econstructor. intros. 
+    apply cih. intros. eapply IN. eapply Leaf_Vis_sub. apply H.
 Qed.
 
 Lemma eutt_Leaf : forall E R (ta : itree E R), eutt (fun u1 u2 => u1 = u2 /\ Leaf u1 ta) ta ta.
@@ -614,8 +555,8 @@ Proof.
   red.
   split; [| split].
   - intros; split; intros.
-    + unfold trigger in H0. red in H0.
-      pinversion H0; subst.
+    + unfold trigger in H0. step in H0. 
+      inv H0. 
       apply inj_pair2 in H3. apply inj_pair2 in H4.
       subst.
       unfold subevent, resum, ReSum_id, Id_IFun, id_ in HTA.
@@ -624,16 +565,16 @@ Proof.
       { rewrite <- (Eqit.bind_ret_r ta).
         apply eutt_bind_eutt with (UU := fun u1 u2 => u1 = u2 /\ Leaf u1 ta).
         rewrite Eqit.bind_ret_r. apply eutt_Leaf.
-        intros. destruct H1. subst. specialize (HK u2 H2). pclearbot. pinversion HK. subst. assumption.
+        intros. destruct H0. subst. specialize (HK u2 H1). step in HK. inv HK.
       }
-      rewrite H1 in H.
-      specialize (HP R e e eq_refl).  unfold Eq1_iforest in HP. destruct HP as (P & _ & _).
+      rewrite H0 in H.
+      specialize (HP R e e eq_refl). unfold Eq1_iforest in HP. destruct HP as (P & _ & _).
       rewrite P. apply HTA. symmetry. assumption.
     + unfold trigger, subevent, resum, ReSum_id, Id_IFun, id_.
-      red. pstep. eapply Interp_iforest_Vis with (k2 := (fun x : R => Ret x)).
+      step. eapply Interp_iforest_Vis with (k2 := (fun x : R => Ret x)).
       * apply H0.
       * unfold bind, Monad_itree. rewrite Eqit.bind_ret_r. assumption.
-      * intros a. left. pstep. red. econstructor. reflexivity.  reflexivity.
+      * intros. step. econstructor; eauto.
   - hnf. intros; split; intros.
     rewrite <- H. assumption.
     rewrite H. assumption.
@@ -662,8 +603,7 @@ Lemma interp_iforest_spin_accepts_anything :
     interp_iforest h_spec R RR ITree.spin t.
 Proof.
   intros.
-  pcofix CIH.
-  pstep. red. cbn. econstructor. right. apply CIH.
+  icoinduction c cih. cbn. econstructor. apply cih. 
 Qed.
 
 (* Figure 7: Structural law for tau *)
@@ -676,10 +616,9 @@ Proof.
   split; [| split].
   - intros; split; intros.
     + rewrite <- H.
-      pstep. red. econstructor. left. apply H0.
+      step. now econstructor. 
     + rewrite H.
-      pinversion H0. subst.
-      apply HS.
+      step in H0. inv H0.
   - typeclasses eauto.
   - typeclasses eauto.
 Qed.
@@ -692,8 +631,7 @@ Lemma interp_iforest_ret_inv :
      exists  r2, RR r1 r2 /\ t ≈ ret r2.
 Proof.
   intros.
-  punfold H.
-  red in H. inversion H; subst.
+  step in H. inv H. 
   exists r2; eauto.
 Qed.
 
@@ -707,8 +645,7 @@ Lemma interp_iforest_vis_inv :
       h_spec S e ms /\ t ≈ (bind ms ks).
 Proof.
   intros.
-  punfold H.
-  red in H. inversion H; subst.
+  step in H; inv H. 
   apply inj_pair2 in H2.
   apply inj_pair2 in H3.
   subst.
@@ -723,10 +660,7 @@ Lemma interp_iforest_tau_inv :
     interp_iforest h_spec R RR s t.
 Proof.
   intros.
-  punfold H.
-  red in H. inversion H; subst.
-  pclearbot.
-  apply HS.
+  step in H; inv H. 
 Qed.
 
 Lemma case_iforest_handler_correct:
@@ -774,99 +708,32 @@ Definition iter_cont {I E R} (step' : I -> itree E (I + R)) :
               ITree.bind (step' i) (@iter_cont I E R step') ≈ r /\
               (forall j, step j (step' j))).
 
-Section LeafBind.
-
-  Context {E : Type -> Type} {R S : Type}.
-
-  Import ITreeNotations.
-  Local Open Scope itree.
-
-  Inductive eqit_Leaf_bind_clo b1 b2 (r : itree E R -> itree E S -> Prop) :
-    itree E R -> itree E S -> Prop :=
-  | pbc_intro_h U (t1 t2: itree E U) (k1 : U -> itree E R) (k2 : U -> itree E S)
-                (EQV: eqit eq b1 b2 t1 t2)
-                (REL: forall u, Leaf u t1 -> r (k1 u) (k2 u))
-    : eqit_Leaf_bind_clo b1 b2 r (ITree.bind t1 k1) (ITree.bind t2 k2)
-  .
-  Hint Constructors eqit_Leaf_bind_clo: itree.
-
-  Lemma eqit_Leaf_clo_bind  (RS : R -> S -> Prop) b1 b2 vclo
-        (MON: monotone2 vclo)
-        (CMP: compose (eqitC RS b1 b2) vclo <3= compose vclo (eqitC RS b1 b2))
-        (ID: id <3= vclo):
-    eqit_Leaf_bind_clo b1 b2 <3= gupaco2 (eqit_ RS b1 b2 vclo) (eqitC RS b1 b2).
-  Proof.
-    gcofix CIH. intros. destruct PR.
-    guclo eqit_clo_trans.
-    econstructor; auto_ctrans_eq; try (rewrite (itree_eta (x <- _;; _ x)), unfold_bind; reflexivity).
-    punfold EQV. unfold_eqit.
-    genobs t1 ot1.
-    genobs t2 ot2.
-    hinduction EQV before CIH; intros; pclearbot.
-    - guclo eqit_clo_trans.
-      econstructor; auto_ctrans_eq; try (rewrite <- !itree_eta; reflexivity).
-      gbase; cbn.
-      apply REL0.
-      rewrite itree_eta, <- Heqot1; constructor; reflexivity.
-    - gstep. econstructor.
-      gbase.
-      apply CIH.
-      constructor; auto.
-      intros u HR.
-      apply REL0.
-      rewrite itree_eta,  <- Heqot1.  econstructor 2. reflexivity. assumption.
-    - gstep. econstructor.
-      intros; apply ID; unfold id.
-      gbase.
-      apply CIH.
-      constructor; auto. eapply REL.
-      intros ? HR; apply REL0.
-      rewrite itree_eta, <- Heqot1.
-      econstructor 3; eauto; reflexivity.
-    - destruct b1; try discriminate.
-      guclo eqit_clo_trans.
-      econstructor.
-      3:{ eapply IHEQV; eauto.
-          intros ? HR; apply REL.
-          rewrite itree_eta, <- Heqot1; econstructor 2. reflexivity. eauto.
-      }
-      3,4:auto_ctrans_eq.
-      2: reflexivity.
-      eapply eqit_Tau_l. rewrite unfold_bind, <-itree_eta. reflexivity.
-    - destruct b2; try discriminate.
-      guclo eqit_clo_trans.
-      econstructor; auto_ctrans_eq; cycle -1; eauto; try reflexivity.
-      eapply eqit_Tau_l. rewrite unfold_bind, <-itree_eta. reflexivity.
-  Qed.
-
-End LeafBind.
-
 Lemma eqit_Leaf_bind' {E} {R} {T} b1 b2
     (t1 t2: itree E T) (k1 k2: T -> itree E R) :
-    eqit eq b1 b2 t1 t2 ->
-    (forall r, Leaf r t1 -> eqit eq b1 b2 (k1 r) (k2 r)) ->
-  @eqit E _ _ eq b1 b2 (ITree.bind t1 k1) (ITree.bind t2 k2).
+    eqit b1 b2 eq t1 t2 ->
+    (forall r, Leaf r t1 -> eqit b1 b2 eq (k1 r) (k2 r)) ->
+  eqit b1 b2 eq (ITree.bind t1 k1) (ITree.bind t2 k2).
 Proof.
-  intros. ginit. guclo (@eqit_Leaf_clo_bind E R R eq). unfold eqit in *.
-  econstructor; eauto with paco.
+  intros. eapply eqit_clo_bind_gen; eauto. intros; subst. 
+  eapply H0. eauto. 
 Qed.
 
 Lemma eqit_Leaf_bind'' {E} {R S} {T} (RS : R -> S -> Prop) b1 b2
     (t1 t2: itree E T) (k1: T -> itree E R) (k2 : T -> itree E S) :
-    eqit eq b1 b2 t1 t2 ->
-    (forall r, Leaf r t1 -> eqit RS b1 b2 (k1 r) (k2 r)) ->
-  @eqit E _ _ RS b1 b2 (ITree.bind t1 k1) (ITree.bind t2 k2).
+    eqit b1 b2 eq t1 t2 ->
+    (forall r, Leaf r t1 -> eqit b1 b2 RS (k1 r) (k2 r)) ->
+  eqit b1 b2 RS (ITree.bind t1 k1) (ITree.bind t2 k2).
 Proof.
-  intros. ginit. guclo (@eqit_Leaf_clo_bind E R S RS). unfold eqit in *.
-  econstructor; eauto with paco.
+  intros. eapply eqit_clo_bind_gen; eauto. intros; subst. 
+  eapply H0. eauto. 
 Qed.
 
 Lemma eutt_ret_vis_abs: forall {X Y E} (x: X) (e: E Y) k, Ret x ≈ Vis e k -> False.
 Proof.
   intros.
-  punfold H; inv H.
+  now step in H; inv H. 
 Qed.
-
+(*  *)
 Ltac simpl_iter :=
     unfold iter, Iter_Kleisli, Basics.iter, MonadIter_itree.
 
