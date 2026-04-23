@@ -218,7 +218,7 @@ Proof.
   intros. rewrite (itree_eta t) in H. setoid_rewrite (itree_eta t).
   desobs t Ht; clear t Ht; rewrite unfold_translate in H; cbn in H.
   - step in H; easy. 
-  - step in H; inv H; easy.  
+  - sinv H; easy.  
   - apply eqitree_inv_Vis_r in H; break H. 
     cbn in H. inv_Vis. 
     exists e, k. repeat now split. 

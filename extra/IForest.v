@@ -168,24 +168,11 @@ Definition interp_iforest {E F} (h_spec : E ~> iforest F) :
     fun R (RR: relation R) => gfp (interp_iforest_mon E F h_spec R RR).
 
 
-#[local] Ltac iunfold_all :=
-  unfold euttge, eq_itree, eutt, eqit,
-         interp_iforest in *.
+#[local] Ltac iunfold     := unfold euttge, eq_itree, eutt, eqit, interp_iforest.
+#[local] Ltac iunfold_in h := unfold euttge, eq_itree, eutt, eqit, interp_iforest in h.
+#[local] Ltac iunfold_all := unfold euttge, eq_itree, eutt, eqit, interp_iforest in *.
 
-#[local] Ltac iunfold_in h :=
-  unfold euttge, eq_itree, eutt, eqit,
-         interp_iforest in h.
-
-#[local] Ltac iunfold :=
-  unfold euttge, eq_itree, eutt, eqit,
-         interp_iforest.
-
-#[local] Ltac iunfold_coind :=
-  first
-    [ intros ?; iunfold_coind; revert_last
-    | unfold euttge, eutt, eq_itree, eqit,
-             interp_iforest
-    ].
+#[local] Ltac iunfold_coind := unfold_coind_with iunfold.
 
 #[local] Ltac refold :=
   repeat match goal with
@@ -314,6 +301,9 @@ Definition interp_iforest {E F} (h_spec : E ~> iforest F) :
   cbn[eqit_mon body eqit_ interp_iforest_mon interp_iforest_];
   cbn; 
   to_mon.
+  
+(* step -> inversion; common pattern for eutt Hyps *)
+Ltac sinv H := step in H; inv H. 
 
 
 
@@ -331,7 +321,7 @@ Proof.
       cbn. now rewrite <- H.
     + unfold interp_iforest. step. econstructor; eauto. now rewrite H.
   - repeat red.
-    intros t1 t2 eq; split; intros H; step in H; inv H. 
+    intros t1 t2 eq; split; intros H; sinv H. 
     + step. econstructor; eauto. now rewrite <- eq. 
     + step. econstructor; eauto. now rewrite eq. 
  - repeat red. intros. split; intros; cbn in *. now rewrite <- H. now rewrite H. 
@@ -645,7 +635,7 @@ Lemma interp_iforest_vis_inv :
       h_spec S e ms /\ t ≈ (bind ms ks).
 Proof.
   intros.
-  step in H; inv H. 
+  sinv H. 
   apply inj_pair2 in H2.
   apply inj_pair2 in H3.
   subst.
@@ -660,7 +650,7 @@ Lemma interp_iforest_tau_inv :
     interp_iforest h_spec R RR s t.
 Proof.
   intros.
-  step in H; inv H. 
+  sinv H. 
 Qed.
 
 Lemma case_iforest_handler_correct:
@@ -731,7 +721,7 @@ Qed.
 Lemma eutt_ret_vis_abs: forall {X Y E} (x: X) (e: E Y) k, Ret x ≈ Vis e k -> False.
 Proof.
   intros.
-  now step in H; inv H. 
+  now sinv H. 
 Qed.
 (*  *)
 Ltac simpl_iter :=

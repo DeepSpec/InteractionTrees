@@ -1,5 +1,6 @@
 From Stdlib Require Import
      Morphisms.
+     
 
 From ITree Require Import
      Utils
@@ -7,6 +8,7 @@ From ITree Require Import
      ITree
      ITreeFacts
      Eq.Rutt
+     Eq.RuttFacts
      Props.Infinite.
 
 From ITree.Extra Require Import
@@ -15,11 +17,14 @@ From ITree.Extra Require Import
 
 Set Implicit Arguments.
 
-From Paco Require Import paco.
 
 Import Monads.
 Import MonadNotation.
 Local Open Scope monad_scope.
+
+Tactic Notation "step" := repeat red; step. 
+Tactic Notation "step" "in" ident(h) := repeat red in h; step in h. 
+Tactic Notation "sinv" ident(h) := step in h; inv h. 
 
 Lemma classic_empty : forall (A : Type), ( exists e : A + (A -> void), True ).
 Proof.
@@ -47,24 +52,19 @@ Lemma may_converge_trace : forall (E : Type -> Type) (R : Type)
                              (b : itrace E R) (r1 r2 : R),
     may_converge r1 b -> may_converge r2 b -> r1 = r2.
 Proof.
-  intros. induction H; inversion H0; subst.
-  - rewrite H in H1. pinversion H1. subst. auto.
-  - rewrite H in H1. pinversion H1.
-  - destruct e. destruct b. apply IHmay_converge. rewrite H in H0. inversion H0; subst;
-      contra_void.
-    + pinversion H3.
-    + destruct e; [ | contradiction ]. destruct b.
-      pinversion H3. ddestruction.
-      enough (k tt ≈ k0 tt); try apply REL.
-      rewrite H5. auto.
-    + contradiction.
-  - destruct e. destruct e0. destruct b. destruct b0.
+  intros. induction H; inv H0. 
+  - rewrite H in H1. sinv H1.
+  - rewrite H in H1. sinv H1.
+  - destruct e. destruct b. apply IHmay_converge.
+    + rewrite H in H2. sinv H2. 
+    + contra_void. 
+  - destruct e; try contra_void. 
+    destruct e0; try contra_void.
+    destruct b. destruct b0.
     apply IHmay_converge. rewrite H in H2.
-    pinversion H2. ddestruction.
+    sinv H2. ddestruction.
     subst. enough (k tt ≈ k0 tt); try apply REL.
-    rewrite H4. auto; contra_void.
-    + destruct b0.
-    + destruct b.
+    rewrite H0. auto.
 Qed.
 
 Lemma finite_nil {E : Type -> Type} : finite (@Nil E).
@@ -89,8 +89,9 @@ Proof.
   - destruct IHmay_converge as [l Hl]. unfold ev_list in l.
     inversion e. subst.
     exists (cons e l). simpl. rewrite H.
-    destruct b. pfold. red. cbn. constructor.
-    intros. destruct v. left. auto.
+    destruct b. 
+    apply eqit_Vis. 
+    intros. now destruct u.
     subst. contradiction.
 Qed.
 
@@ -99,15 +100,13 @@ Lemma append_vis : forall (E : Type -> Type) (R : Type)
     Vis e k ++ b ≈ Vis e (fun a => k a ++ b).
 Proof.
   intros E R. unfold append. intros.
-  pfold. red. cbn. constructor. intros. left.
-  enough ( (ITree.bind (k v) (fun _ : unit => b) ≈  (ITree.bind (k v) (fun _ : unit => b) ) ) ); auto.
-  reflexivity.
+  step. cbn. evis. 
 Qed.
 
 Global Instance proper_append {E R} : Proper (@eutt (EvAns E) unit unit eq ==> @eutt (EvAns E) R R eq ==> eutt eq) (@append E R).
 Proof.
   intros log1 log2 Hlog b1 b2 Hb. unfold append. rewrite Hlog.
-  eapply eutt_bind_eutt; eauto. reflexivity.
+  eapply eutt_bind_eutt; eauto.
 Qed.
 
 Lemma may_converge_append : forall (E : Type -> Type) (R : Type)
@@ -128,11 +127,11 @@ Lemma converge_itrace_ev_list : forall (E : Type -> Type) (R : Type)
 Proof.
   intros. induction H.
   - exists nil. cbn. rewrite H.
-    pfold. red. cbn. constructor. auto.
+    step. cbn. eret.  
   - destruct IHmay_converge as [log Hlog]. inversion e. subst.
     exists (cons e log). cbn. rewrite append_vis. rewrite H.
-    pfold. red. cbn. constructor. cbn. intros. destruct v.
-    left. destruct b. apply Hlog. subst. contradiction.
+    step. constructor. intros. destruct v.  
+    destruct b. apply Hlog. subst. contradiction.
 Qed.
 
 Lemma classic_converge_itrace : forall (E : Type -> Type) (R : Type) (b : itrace E R),
@@ -169,7 +168,7 @@ Proof.
   intros. induction log.
   - cbn. unfold append. rewrite bind_ret_l. auto.
   - cbn. unfold append.
-    pfold. red. cbn. constructor. intros. left. auto.
+    step. repeat red. cbn. constructor. intro. auto. 
 Qed.
 
 Lemma inv_append_eutt : forall (E : Type -> Type) (R : Type) (r1 r2 : R)
@@ -179,15 +178,13 @@ Lemma inv_append_eutt : forall (E : Type -> Type) (R : Type) (r1 r2 : R)
 Proof.
   intros. generalize dependent log2. induction log1; intros.
   - destruct log2.
-    + split; auto. cbn in H. pinversion H. cbn. unfold append in *.
-      cbn in *. subst. auto.
-    + pinversion H.
+    + split; auto. cbn in H. sinv H. 
+    + sinv H.
   - destruct log2.
-    + pinversion H.
-    + cbn in H. unfold append in H. pinversion H. cbn in *. ddestruction.
-      subst.
+    + sinv H.
+    + cbn in H. unfold append in H. sinv H. cbn in *. ddestruction.
       enough (log1 = log2 /\ r1 = r2).
-      { destruct H0. subst. auto. }
+      { destruct H. subst. auto. }
       apply IHlog1. apply REL. apply tt.
 Qed.
 
@@ -195,111 +192,110 @@ Lemma trace_refine_proper_left' : forall (E : Type -> Type) (R : Type) (b1 b2 : 
                                     (t : itree E R), (b1 ≈ b2) -> rutt (REvRef E) (RAnsRef E) eq b1 t ->
                                                      rutt (REvRef E) (RAnsRef E) eq b2 t.
 Proof.
-  intros E R. pcofix CIH. intros. pfold. red.
-  punfold H1. red in H1.  punfold H0. red in H0.
-  genobs_clear t ot3.
-  hinduction H0 before CIH; intros; clear b1 b2; eauto.
-  - remember (RetF r1) as ot1. hinduction H1 before CIH; intros; inv Heqot1; eauto with paco.
+  intros E R. rcoinduction c cih. intros. 
+  step in H0. repeat red in H0. step in H.
+  genobs t ot3. clear Heqot3. 
+  hinduction H before cih; intros; subst; eauto.
+  - remember (RetF r2) as ot1. hinduction H0 before cih; intros; inv Heqot1; eauto with paco.
     + constructor. auto.
     + constructor. eapply IHruttF; eauto.
   (* Tau Tau case causes the most problems, seems *)
   -  assert (DEC: (exists m3, ot3 = TauF m3) \/ (forall m3, ot3 <> TauF m3)).
      { destruct ot3; eauto; right; red; intros; inv H. }
      destruct DEC as [EQ | EQ].
-     + destruct EQ as [m3 ?]; subst. pclearbot.
-       constructor. right. eapply CIH; eauto.
-       apply rutt_inv_Tau. pfold. auto.
-     + inv H1; try (exfalso; eapply EQ; eauto; fail).
-       pclearbot. constructor.
-       punfold REL. red in REL.
-       hinduction H0 before CIH; intros; subst; try (exfalso; eapply EQ; eauto; fail).
+     + destruct EQ as [m3 ?]; subst.
+       constructor. eapply cih; eauto.
+       apply rutt_inv_Tau. now step. 
+     + inv H0; try (exfalso; eapply EQ; eauto; fail).
+       constructor.
+       step in REL. 
+       hinduction H1 before cih; intros; subst; try (exfalso; eapply EQ; eauto; fail).
        * dependent induction REL; rewrite <- x.
          ++ constructor. auto.
          ++ constructor. eapply IHREL; eauto.
        * dependent induction REL; rewrite <- x.
-         ++ constructor; auto. intros. apply H0 in H1. right.
-            pclearbot. eapply CIH; eauto with itree.
+         ++ constructor; auto. intros. apply H0 in H1. 
+            eapply cih. apply REL. assumption. 
          ++ constructor. eapply IHREL; eauto.
        * eapply IHruttF; eauto. clear IHruttF.
          dependent induction REL; try (exfalso; eapply EQ; eauto; fail).
-         ++ pclearbot. rewrite <- x. constructor; auto. pstep_reverse.
+         ++ rewrite <- x. constructor; auto. now unstep. 
          ++ auto.
          ++ rewrite <- x. constructor; auto. eapply IHREL; eauto.
   - remember (VisF e k1) as ot1.
-    hinduction H1 before CIH; intros; dependent destruction Heqot1.
-    + pclearbot. constructor; auto. intros. apply H0 in H1.
-      pclearbot. right.
-      eapply CIH; eauto with itree.
+    hinduction H0 before cih; intros; dependent destruction Heqot1.
+    + constructor; auto. intros. apply H0 in H1.
+      eapply cih. apply REL. assumption. 
     + constructor. eapply IHruttF; eauto.
-  - eapply IHeqitF. remember (TauF t1) as otf1.
-    hinduction H1 before CIH; intros;  dependent destruction Heqotf1; eauto.
-    + constructor. pclearbot. pstep_reverse.
+  - eapply IHeqitF; eauto. remember (TauF t1) as otf1.
+    hinduction H0 before cih; intros; dependent destruction Heqotf1; eauto.
+    + constructor. now unstep. 
     + constructor. eapply IHruttF; eauto.
-  - constructor. eapply IHeqitF. eauto.
+  - constructor. eapply IHeqitF; eauto.
 Qed.
 
 Lemma trace_refine_proper_right' : forall (E : Type -> Type) (R : Type) (b : itrace E R)
                                      (t1 t2 : itree E R), t1 ≈ t2 -> rutt (REvRef E) (RAnsRef E) eq b t1 ->
                                                           rutt (REvRef E) (RAnsRef E) eq b t2.
 Proof.
-  intros E R. pcofix CIH. intros. punfold H1. red in H1.
-  punfold H0. red in H0. pfold. red.
+  intros E R. rcoinduction c CIH. intros. step in H. 
+  step in H0. repeat red in H0. 
   genobs_clear t2 ot2.
-  hinduction H0 before CIH; intros; clear t1; subst; eauto.
-  - remember (RetF r2) as ot1. hinduction H1 before CIH; intros; inv Heqot1; eauto with paco.
+  hinduction H before CIH; intros; clear t1; subst; eauto.
+  - remember (RetF r2) as ot1. hinduction H0 before CIH; intros; inv Heqot1; eauto with paco.
     + constructor; auto.
     + constructor. eauto.
-  - pclearbot. remember (TauF m1) as otm1.
-    hinduction H1 before CIH; intros; subst; try (inv Heqotm1).
-    + constructor. pclearbot. right. eapply CIH; eauto.
-    + constructor. right. eapply CIH; eauto.
-      apply rutt_inv_Tau_r. pfold. auto.
-    + punfold REL. red in REL.
+  - remember (TauF m1) as otm1.
+    hinduction H0 before CIH; intros; subst; try (inv Heqotm1).
+    + constructor. eapply CIH; eauto.
+    + constructor. eapply CIH; eauto.
+      apply rutt_inv_Tau_r. now step. 
+    + step in REL. 
       dependent induction REL; subst.
       * constructor. clear IHruttF.
-        hinduction H1 before CIH; intros; dependent destruction x0.
+        hinduction H0 before CIH; intros; dependent destruction x0.
         ++ rewrite <- x. constructor. auto.
         ++ constructor. auto.
-      * pclearbot. eapply IHruttF; auto. 2 : symmetry; eauto.
-        pclearbot. pfold. red. rewrite <- x. constructor; auto.
-        punfold REL.
+      * eapply IHruttF. 2 : symmetry; eauto.
+        step. rewrite <- x. constructor; auto.
+        now step in REL. 
       * constructor. rewrite <- x.
-        clear IHruttF. hinduction H1 before CIH; intros; dependent destruction x0.
+        clear IHruttF. hinduction H0 before CIH; intros; dependent destruction x0.
         ++ constructor; auto. intros. apply H0 in H1.
-           pclearbot. right. eapply CIH; eauto with itree.
+          eapply CIH. apply REL. assumption. 
         ++ constructor. eapply IHruttF; eauto.
-      * eapply IHruttF; eauto.
+      * unstep in REL. eapply IHruttF; eauto.
       * constructor. rewrite <- x. eapply IHREL; eauto.
-  - remember (VisF e k1) as ot1. hinduction H1 before CIH; intros; inv Heqot1.
+  - remember (VisF e k1) as ot1. hinduction H0 before CIH; intros; inv Heqot1.
     + ddestruction. constructor; auto. intros. apply H0 in H1.
-      right. pclearbot. eapply CIH; eauto; apply REL.
+      eapply CIH. apply REL. assumption. 
     + constructor. eauto.
   - eapply IHeqitF; eauto. remember (TauF t0) as otf0.
-    hinduction H1 before CIH; intros; dependent destruction Heqotf0; eauto.
-    + constructor. pclearbot. pstep_reverse.
+    hinduction H0 before CIH; intros; dependent destruction Heqotf0; eauto.
+    + constructor. now unstep. 
     + constructor. eapply IHruttF; eauto.
-  - constructor. eapply IHeqitF. eauto.
+  - constructor. eapply IHeqitF; eauto.
 Qed.
 
 #[global] Instance trace_refine_proper {E R} : Proper (@eutt E R R eq ==> eutt eq ==> iff) trace_refine.
 Proof.
   intros b1 b2 Heuttb t1 t2 Heuttt.
   split; intros;
-    try (eapply trace_refine_proper_right'; [eauto | eapply trace_refine_proper_left'; eauto]);
-    auto; symmetry; auto.
+    try (eapply trace_refine_proper_right'; [eauto | eapply trace_refine_proper_left'; eauto]).
+    now rewrite Heuttb, Heuttt.
 Qed.
 
 Lemma trace_refine_ret : forall (E : Type -> Type) (R : Type) (r : R),
     @trace_refine E R (Ret r) (Ret r).
 Proof.
-  intros. pfold. constructor. auto.
+  intros. step. constructor. auto.
 Qed.
 
 Lemma trace_refine_ret_inv_r : forall (E : Type -> Type) (R : Type) (r : R)
                                  (t : itree E R),
     Ret r ⊑ t -> t ≈ Ret r.
 Proof.
-  intros. pfold. red. punfold H. red in H. cbn in *.
+  intros. step. step in H. repeat red in H. 
   dependent induction H; subst.
   - rewrite <- x. constructor. auto.
   - rewrite <- x. constructor; auto.
@@ -309,7 +305,7 @@ Lemma trace_refine_ret_inv_l : forall (E : Type -> Type) (R : Type) (r : R)
                                  (b : itrace E R),
     b ⊑ Ret r -> (b ≈ Ret r)%itree.
 Proof.
-  intros. pfold. red. punfold H. red in H. cbn in *.
+  intros. step. step in H. repeat red in H.
   dependent induction H; subst.
   - rewrite <- x. constructor. auto.
   - rewrite <- x. constructor; auto.
@@ -320,18 +316,17 @@ Lemma trace_refine_vis_inv : forall (E : Type -> Type) (R A: Type) (e : E A) (a 
     trace_refine (Vis e k) (Vis (evans A e a) (fun _ => b))  -> trace_refine (k a) b .
 Proof.
   intros E R A e a. intros.
-  red in H. red. punfold H. red in H. inversion H. ddestruction.
+  red in H. red. step in H. repeat red in H. inv H. ddestruction.
   subst.
   assert (RAnsRef E unit A (evans A e a) tt e a); eauto with itree.
-  apply H7 in H0. pclearbot. auto.
 Qed.
 
 Lemma trace_refine_vis_add : forall (E : Type -> Type) (R A: Type) (e : E A) (a : A)
                                (b :itrace E R) (k : A -> itree E R),
     b ⊑ k a -> Vis (evans A e a) (fun _ => b) ⊑ Vis e k.
 Proof.
-  intros. pfold. red. cbn. constructor; eauto with itree.
-  intros. left. inversion H0. ddestruction.
+  intros. step. constructor; eauto with itree.
+  intros. inv H0. ddestruction.
   subst. auto.
 Qed.
 
@@ -350,19 +345,31 @@ Section Determinize.
 
 Context (classicT : forall (P : Type), P + (P -> False)).
 
-CoFixpoint determinize_ (E : Type -> Type) (R : Type) (ot : itree' E R) : itrace E R.
+Program Definition determinizeF {E : Type -> Type} {R : Type} (sim : itree' E R -> itrace E R) (ot : itree' E R)
+: itrace E R.
 Proof.
   destruct ot.
   - apply (Ret r).
-  - apply (Tau (determinize_ E R (observe t) ) ).
+  - apply (Tau (sim (observe t) ) ).
   - destruct (classicT X) as [ | f].
-    + apply (Vis (evans X e x) (fun _ =>  (determinize_ E R (observe (k x)) ) )).
+    + apply (Vis (evans X e x) (fun _ =>  (sim (observe (k x)) ) )).
     + apply (Vis (evempty X (fun x => match f x with end) e) (fun v : void => match v return itrace E R with end) ).
 Defined.
+
+Definition determinize_ {E R} sim := fun t => @determinizeF E R sim (observe t). 
+
+Lemma determinize_mono E R : Proper (leq ==> leq) (@determinize_ E R). 
+
+Program Definition determinize_mon : 
+mon ()
 
 Definition determinize {E R} (t : itree E R) : itrace E R := determinize_ (observe t).
 
 End Determinize.
+
+(* INTERESTING: paco can do pcofix with a cofixpoint, 
+but coinduction can't. 
+*)
 
 (* may be a better idea to make this an axiom *)
 Lemma itree_refine_nonempty : forall (E : Type -> Type) (R : Type) (t : itree E R),

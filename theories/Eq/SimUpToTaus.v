@@ -68,10 +68,11 @@ Global Hint Unfold sutt : itree.
 
 (** Sutt-specific tactics, analogous to the eqit-specific tactics in [Eq.Eqit]. *)
 
-Tactic Notation "sstep" :=
-  unfold sutt; step; cbn [sutt_mon body].
-Tactic Notation "sstep" "in" ident(h) :=
-  unfold sutt in h; step in h; cbn [sutt_mon body] in h.
+#[local] Ltac sunfold    := unfold sutt.
+#[local] Ltac sunfold_in h := unfold sutt in h.
+
+#[local] Ltac scbn    := cbn [sutt_mon body].
+#[local] Ltac scbn_in h := cbn [sutt_mon body] in h.
 
 Ltac fold_sutt :=
   match goal with
@@ -83,18 +84,17 @@ Ltac fold_sutt_in h :=
   | context[@suttF ?E ?R1 ?R2 ?RR] =>
       change (@suttF E R1 R2 RR) with (body (@sutt_mon E R1 R2 RR)) in h
   end.
+
+Tactic Notation "sstep" := sunfold; step; scbn.
+Tactic Notation "sstep" "in" ident(h) := sunfold_in h; step in h; scbn_in h.
+
 Tactic Notation "sunstep" := fold_sutt; unstep.
 Tactic Notation "sunstep" "in" ident(h) := fold_sutt_in h; unstep in h.
 
 (* [scoinduction] unfolds [sutt] in the conclusion only, then applies coinduction. *)
-Local Ltac revert_one :=
-  match goal with [ H : _ |- _ ] => revert H end.
-Ltac sunfold_coind :=
-  first
-    [intros ?; sunfold_coind; revert_one |
-     unfold sutt].
+#[local] Ltac sunfold_coind := unfold_coind_with sunfold.
 Tactic Notation "scoinduction" simple_intropattern(R) simple_intropattern(H) :=
-  sunfold_coind; coinduction R H; cbn [sutt_mon body].
+  sunfold_coind; coinduction R H; scbn.
 
 Section SUTT_rel.
 

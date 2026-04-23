@@ -54,7 +54,7 @@ Global Instance proper_eqitree_try_catch {E Err R} : Proper (eq_itree eq ==> poi
 Proof.
   intros t1 t2 Ht k1 k2 Hk. red in Hk. generalize dependent t2. revert t1.
   bcoinduction. intros. unfold try_catch.  setoid_rewrite unfold_iter_ktree.
-  step in Ht; inv Ht. 
+  sinv Ht. 
   - repeat rewrite bind_ret_l. eret. 
   - repeat rewrite bind_ret_l. etau.  
   - destruct e.

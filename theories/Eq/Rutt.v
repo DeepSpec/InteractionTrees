@@ -113,19 +113,18 @@ End RuttF.
 
 (** ** Rutt-specific tactics *)
 
+#[local] Ltac runfold    := unfold rutt.
+#[local] Ltac runfold_in h := unfold rutt in h.
+
 Ltac rcbn := cbn[rutt_mon body]; try unfold rutt_.
 Ltac rcbn_in H := cbn[rutt_mon body] in H; try unfold rutt_ in H.
 
-Tactic Notation "rcbn" "in" ident(h) := rcbn_in h. 
-Tactic Notation "rcbn" "in" "*" := cbn[rutt_mon body] in *; try unfold rutt_ in *. 
+Tactic Notation "rcbn" "in" ident(h) := rcbn_in h.
+Tactic Notation "rcbn" "in" "*" := cbn[rutt_mon body] in *; try unfold rutt_ in *.
 
 (** [rstep] unfolds [rutt] one step, exposing the [ruttF] functor. *)
-Tactic Notation "rstep" :=
-  unfold rutt; step; rcbn.
-Tactic Notation "rstep" "in" ident(h) :=
-  unfold rutt in h;
-  step in h;
-  rcbn in h. 
+Tactic Notation "rstep" := runfold; step; rcbn.
+Tactic Notation "rstep" "in" ident(h) := runfold_in h; step in h; rcbn in h.
 
 #[local] Ltac refold :=
   repeat match goal with
@@ -176,14 +175,9 @@ end.
 
 Tactic Notation "to_rmon" "in" ident(h) := to_rmon_in h.
 
-Local Ltac revert_one :=
-  match goal with [ H : _ |- _ ] => revert H end.
-Ltac runfold_coind :=
-  first
-    [intros ?; runfold_coind; revert_one |
-     unfold rutt].
+#[local] Ltac runfold_coind := unfold_coind_with runfold.
 Tactic Notation "rcoinduction" simple_intropattern(R) simple_intropattern(H) :=
-  runfold_coind; coinduction R H; rcbn; refold. 
+  runfold_coind; coinduction R H; rcbn; refold.
 
 
 #[global] Hint Constructors ruttF : itree.

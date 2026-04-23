@@ -238,28 +238,65 @@ Arguments eqit_mon {E} b1 b2.
     
 (** Tactics *)
 
-(* Ongoing hesitation: should the [icoinduction] tactic expose a [eqit_mon R b b']
-goal, or directly a [eqitF R b b'] one?
-Experimenting with the latter at the moment. *)
+(** The generic [coinduction] scaffolding lives in [Basics.Utils]:
+    [under_forall'], [revert_one], [unfold_coind_with], [step_with],
+    [unstep_with], [coinduction_with]. Here we (1) provide the
+    ITree-specific [to_mon_4cases_with] macro that all [eqit]-family
+    relations (and friends like [sutt], [rutt], [interp_iforest])
+    instantiate, and (2) define four hooks for the [eqit] family
+    itself ([iunfold] / [icbn] / [refold] / [to_mon_core]), then
+    plumb them into the generics. *)
 
-(* We first enhance the coinduction tactic to recognize goals that 
-   do not have a syntactic match with [gfp _] *)
-#[local] Ltac iunfold_all :=
-  unfold euttge, eq_itree, eutt, eqit in *.
+(** Generic [to_mon] body for ITree relations whose monotone wrapper
+    equates [F_prefix t1 t2] with [mon_prefix t1 t2] (where
+    [F_prefix] / [mon_prefix] are the heads with everything except
+    the two trees already applied). Four shape cases cover how the
+    trees can appear in the goal: both [observe]s, both
+    constructor-applied (so we wrap with [go]), or one of each. *)
 
-#[local] Ltac iunfold_in h :=
-  unfold euttge, eq_itree, eutt, eqit in h.
+Tactic Notation "to_mon_4cases_with"
+    uconstr(F_prefix) uconstr(mon_prefix) :=
+  match goal with
+  | |- context[F_prefix (observe ?t1) (observe ?t2)] =>
+      change (F_prefix (observe t1) (observe t2))
+        with (mon_prefix t1 t2)
+  | |- context[F_prefix (?c1 ?a1) (?c2 ?a2)] =>
+      change (F_prefix (c1 a1) (c2 a2))
+        with (mon_prefix (go (c1 a1)) (go (c2 a2)))
+  | |- context[F_prefix (?c ?a) (observe ?t2)] =>
+      change (F_prefix (c a) (observe t2))
+        with (mon_prefix (go (c a)) t2)
+  | |- context[F_prefix (observe ?t1) (?c ?a)] =>
+      change (F_prefix (observe t1) (c a))
+        with (mon_prefix t1 (go (c a)))
+  end.
 
-#[local] Ltac iunfold :=
-  unfold euttge, eq_itree, eutt, eqit.
+Tactic Notation "to_mon_4cases_in_with" ident(h)
+    uconstr(F_prefix) uconstr(mon_prefix) :=
+  match type of h with
+  | context[F_prefix (observe ?t1) (observe ?t2)] =>
+      change (F_prefix (observe t1) (observe t2))
+        with (mon_prefix t1 t2) in h
+  | context[F_prefix (?c1 ?a1) (?c2 ?a2)] =>
+      change (F_prefix (c1 a1) (c2 a2))
+        with (mon_prefix (go (c1 a1)) (go (c2 a2))) in h
+  | context[F_prefix (?c ?a) (observe ?t2)] =>
+      change (F_prefix (c a) (observe t2))
+        with (mon_prefix (go (c a)) t2) in h
+  | context[F_prefix (observe ?t1) (?c ?a)] =>
+      change (F_prefix (observe t1) (c a))
+        with (mon_prefix t1 (go (c a))) in h
+  end.
 
+(** --- Per-relation hooks for the [eqit] family. --- *)
 
-(* Trick for unfolding only the relevant instances *)
-#[local] Ltac iunfold_coind :=
-    first
-      [intros ?; iunfold_coind; revert_last |
-       unfold euttge,eutt,eq_itree,eqit].
-  
+#[local] Ltac iunfold     := unfold euttge, eq_itree, eutt, eqit.
+#[local] Ltac iunfold_in h := unfold euttge, eq_itree, eutt, eqit in h.
+#[local] Ltac iunfold_all := unfold euttge, eq_itree, eutt, eqit in *.
+
+#[local] Ltac icbn := cbn [eqit_mon body eqit_].
+#[local] Ltac icbn_in h := cbn [eqit_mon body eqit_] in h.
+
 Ltac refold :=
   repeat match goal with
   | |- context[gfp (@eqit_mon ?E ?b1 ?b2)] =>
@@ -268,7 +305,6 @@ Ltac refold :=
       try fold (@euttge E _ _);
       try fold (@eutt E _ _)
   end.
-
 
 Ltac refold_in h :=
   match type of h with
@@ -287,21 +323,18 @@ match goal with
       change (eqitF RR b1 b2 (f R1 R2 RR)
                     (observe t1) (observe t2))
       with (eqit_mon b1 b2 f R1 R2 RR t1 t2)
-
 | |- context[@eqitF ?E ?R1 ?R2 ?RR ?b1 ?b2 (?f ?R1 ?R2 ?RR)
                    (?con1 ?a1) (?con2 ?a2)] =>
       change (eqitF RR b1 b2 (f R1 R2 RR)
                     (con1 a1) (con2 a2))
       with (eqit_mon b1 b2 f R1 R2 RR
                     (go (con1 a1)) (go (con2 a2)))
-
 | |- context[@eqitF ?E ?R1 ?R2 ?RR ?b1 ?b2 (?f ?R1 ?R2 ?RR)
                    (?con ?a) (observe ?t2)] =>
       change (eqitF RR b1 b2 (f R1 R2 RR)
                     (con a) (observe t2))
       with (eqit_mon b1 b2 f R1 R2 RR
                     (go (con a)) t2)
-
 | |- context[@eqitF ?E ?R1 ?R2 ?RR ?b1 ?b2 (?f ?R1 ?R2 ?RR)
                    (observe ?t1) (?con ?a)] =>
       change (eqitF RR b1 b2 (f R1 R2 RR)
@@ -310,14 +343,6 @@ match goal with
                     t1 (go (con a)))
 
 end.
-
-Ltac under_forall' tac := 
-let dummy := fresh "dummy" in   
-assert (dummy : True) by constructor; 
-          intros; 
-          tac; 
-          revert_until dummy; 
-          clear dummy. 
 
 Ltac to_mon := 
 let dummy := fresh "dummy" in   
@@ -328,59 +353,53 @@ assert (dummy : True) by constructor;
           clear dummy. 
 
 Ltac to_mon_in h :=
-match type of h with
-| context[@eqitF ?E ?R1 ?R2 ?RR ?b1 ?b2 (?f ?R1 ?R2 ?RR) (observe ?t1) (observe ?t2)] =>
+  match type of h with
+  | context[@eqitF ?E ?R1 ?R2 ?RR ?b1 ?b2 (?f ?R1 ?R2 ?RR) (observe ?t1) (observe ?t2)] =>
       change (eqitF RR b1 b2 (f R1 R2 RR) (observe t1) (observe t2))
-      with (eqit_mon b1 b2 f R1 R2 RR t1 t2) in h
-| context[@eqitF ?E ?R1 ?R2 ?RR ?b1 ?b2 (?f ?R1 ?R2 ?RR) (?con1 ?a1) (?con2 ?a2)] =>
-      change (eqitF RR b1 b2 (f R1 R2 RR) (con1 a1) (con2 a2))
-      with (eqit_mon b1 b2 f R1 R2 RR (go (con1 a1)) (go (con2 a2))) in h
-end.
+        with (eqit_mon b1 b2 f R1 R2 RR t1 t2) in h
+  | context[@eqitF ?E ?R1 ?R2 ?RR ?b1 ?b2 (?f ?R1 ?R2 ?RR) (?c1 ?a1) (?c2 ?a2)] =>
+      change (eqitF RR b1 b2 (f R1 R2 RR) (c1 a1) (c2 a2))
+        with (eqit_mon b1 b2 f R1 R2 RR (go (c1 a1)) (go (c2 a2))) in h
+  end.
 
-#[local] Ltac icbn := cbn[eqit_mon body eqit_].
-#[local] Ltac icbn_in H := cbn[eqit_mon body eqit_] in H.
+(** --- Orchestration via the [Utils.v] generics. --- *)
 
-#[local] Tactic Notation "icbn" "in" ident(h) := icbn_in h. 
-#[local] Tactic Notation "icbn" "in" "*" := cbn[eqit_mon body eqit_] in *. 
-
+#[local] Tactic Notation "icbn" "in" ident(h) := icbn_in h.
+#[local] Tactic Notation "icbn" "in" "*" := cbn [eqit_mon body eqit_] in *.
 
 Tactic Notation "refold" "in" ident(h) := refold_in h.
 Tactic Notation "to_mon" "in" ident(h) := to_mon_in h.
 Tactic Notation "iunfold" "in" ident(h) := iunfold_in h.
 Tactic Notation "iunfold" "in" "*" := iunfold_all.
+
 Tactic Notation "step" := iunfold; step; icbn; try refold.
-Tactic Notation "unstep" := iunfold; try to_mon; unstep; try refold. 
 Tactic Notation "step" "in" ident(h) :=
-  iunfold in h;
-  step in h;
-  cbn[eqit_mon body] in h;
-  unfold eqit_ in h;
-  try refold_in h.
-Tactic Notation "unstep" "in" ident(h) := 
-iunfold_in h; try to_mon_in h; unstep_in h; try refold_in h. 
+  iunfold in h; step in h; icbn in h; try refold_in h.
 
-Tactic Notation "icoinduction" simple_intropattern(R) simple_intropattern(H) :=
-iunfold_coind; coinduction R H; icbn.  
+Tactic Notation "unstep" := iunfold; try to_mon; unstep; try refold.
+Tactic Notation "unstep" "in" ident(h) :=
+  iunfold_in h; try to_mon_in h; unstep_in h; try refold_in h.
 
-Tactic Notation "bcoinduction" simple_intropattern(R) simple_intropattern(H) :=
-icoinduction R H; to_mon.
+Ltac iunfold_coind :=
+  first [ intros ?; iunfold_coind; revert_last | iunfold ].
+
+Tactic Notation "icoinduction"
+    simple_intropattern(R) simple_intropattern(H) :=
+  iunfold_coind; coinduction R H; icbn.
+
+Tactic Notation "bcoinduction"
+    simple_intropattern(R) simple_intropattern(H) :=
+  icoinduction R H; to_mon.
 
 Tactic Notation "bcoinduction" :=
-let c := fresh "c" in 
-let cih := fresh "cih" in 
-bcoinduction c cih. 
+  let c := fresh "c" in let cih := fresh "cih" in bcoinduction c cih.
 
-Ltac bcbn := cbn; to_mon. 
+Ltac bcbn := cbn; to_mon.
 
-(* The [icbn] tactic: unfolding the ITree definition *)
+(* step -> inversion; common pattern for eutt Hyps *)
+Ltac sinv H := step in H; inv H.
 
-(* Since [itrees] are defined with nesting, un-nesting is often needed 
-  during a proof to get Rocq to recognize certain terms as valid under
-  certain tactics. Example: [dependent induction] does not work for 
-  [eqit_mon], but it does for [eqitF]. Unfolding icbn to [eqitF]
-  [eqit_mon], but it does for [eqitF]. Unfolding icbn to [eqitF]
-  in both hypotheses and the goal is so common that the library uses
-  an internal tactic for doing so all at once. *)
+
 
 
 (* [solve_eqitF] tries to solve a goal with a variant of [eqitF] by
@@ -1604,7 +1623,7 @@ End eqit_eq.
 Lemma eqitree_inv_Ret_r {E R} (t : itree E R) r :
   t ≅ (Ret r) -> observe t = RetF r.
 Proof.
-  intros; step in H; inv H; try inv CHECK; eauto.
+  intros; sinv H.
 Qed.
 
 Lemma eqitree_inv_Vis_r {E R U} (t : itree E R) (e : E U) (k : U -> _) :
@@ -1618,7 +1637,7 @@ Qed.
 Lemma eqitree_inv_Tau_r {E R} (t t' : itree E R) :
   t ≅ Tau t' -> exists t0, observe t = TauF t0 /\ t0 ≅ t'.
 Proof.
-  intros; step in H; inv H; try inv CHECK; eauto.
+  intros; sinv H; try inv CHECK; eauto.
 Qed.
 
 Lemma eqit_inv_Ret {E R1 R2 RR} b1 b2 r1 r2 :
