@@ -1,8 +1,6 @@
 From ExtLib Require Import
      Structures.Monad.
 
-From Paco Require Import paco.
-
 From ITree Require Import
      Indexed.Sum
      ITree
@@ -153,8 +151,8 @@ Section PureITree.
   Proof.
     intros. intros t1 t2 Ht. split; intros.
     - destruct  H1.
-      + left. eapply H; eauto. symmetry. auto.
-      + right. eapply H0; eauto. symmetry. auto.
+      + left. eapply H; eauto. now rewrite <- Ht. 
+      + right. eapply H0; eauto. now rewrite <- Ht. 
     - destruct H1.
       + left. eapply H; eauto.
       + right. eapply H0; eauto.
@@ -226,31 +224,29 @@ Hint Constructors iterF_body : itree.
                                          iter_ind body p Hp a') ) .
 *)
 Hint Constructors iterF : itree.
-Lemma iterF_monotone {A B} (body:  (A -> PureITreeSpec (A + B)))
-      (sim sim' : A -> Prop) (a : A)
-      (p : itree void1 B -> Prop) (Hp : resp_eutt p)
-      (IN : iterF body a p Hp sim) (LE : sim <1= sim'):
-  iterF body a p Hp sim'.
-  Proof.
-    induction IN; constructor; auto.
-    destruct (body a) as [fa Hfa] eqn : Heq. simpl in *.
-    refine (Hfa _ _ _ _ _ H). intros. inversion H0; eauto with itree.
-  Qed.
 
   Definition iter_ {A B} sim (body : A -> PureITreeSpec (A + B)) a p Hp : Prop :=
     iterF body a p Hp sim.
   Hint Unfold iter_ : itree.
 
-  Lemma iterF_monotone' {A B} body p Hp : monotone1 (fun sim a => @iter_ A B sim body a p Hp).
+  Lemma iter_mono {A B} body p Hp :
+  Proper (leq ==> leq)
+  (fun sim a => @iter_ A B sim body a p Hp).
   Proof.
-    do 2 red. intros. eapply iterF_monotone; eauto.
-  Qed.
+    repeat red. intros. 
+    induction H0; constructor; auto.
+    destruct (body a) as [fa Hfa] eqn : Heq. simpl in *.
+    refine (Hfa _ _ _ _ _ H0). intros. inversion H1; eauto with itree.
+    eapply cont_a; eauto. now apply H. 
+Qed.
 
-  Hint Resolve iterF_monotone' : paco.
+Lemma do_iter_mon_next : False. 
+fail "next todo: iter_mon". 
+Abort. 
 
   Definition _iter {A B} :=
     fun (f : A -> PureITreeSpec (A + B) ) (a : A) (p : itree void1 B -> Prop) (Hp : resp_eutt p) =>
-      paco1 (fun (F : A -> Prop) a => @iter_ A B F f a p Hp ) bot1 a.
+      gfp (fun (F : A -> Prop) a => @iter_ A B F f a p Hp ) a.
 
 
 
