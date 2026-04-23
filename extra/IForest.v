@@ -971,12 +971,11 @@ Proof.
       destruct eqtt' as (ta & k & HPA & EQ & HRET).
       eapply H; [symmetry; eauto | clear eq t'].
       eapply H; [eauto | clear EQ t].
-      eapply H; eauto.
+      eapply H. 2: eauto.
       rewrite <- (Monad.bind_ret_r _ ta) at 2.
       apply eqit_Leaf_bind'; [reflexivity |].
         intros.
         rewrite (HRET r); auto.
-        reflexivity.
 
     * cbn.
       exists t', (fun x => Ret x); split; [auto|]; split.
@@ -1029,51 +1028,43 @@ Proof.
     intros. rewrite H. assumption.
 Qed.
 
-Definition eq_relation {A} (R S : A -> A -> Prop) :=
-  R <2= S /\ S <2= R.
-
 #[global] Instance eutt_EQ_REL_Proper {E} {A} :
-  Proper (eq_relation ==> eutt eq ==> @eutt E A A eq ==> iff) (eutt).
+  Proper (eq_rel ==> @eutt E A A eq ==> @eutt E A A eq ==> iff) (eutt).
 Proof.
   repeat red.
   intros; split; intros.
   -  rewrite <- H0. rewrite <- H1.
      clear H0 H1.
      destruct H.
-     eapply eqit_mon; eauto.
+     eapply eqit_mono; eauto.
   - rewrite H0, H1.
     destruct H.
-    eapply eqit_mon; eauto.
+    eapply eqit_mono; eauto.
 Qed.
 
 Lemma eutt_EQ_REL_Reflexive_ {E} {A} (ta : itree E A) :
-  forall R, (EQ_REL ta) <2= R ->
+  forall R, (EQ_REL ta) <= R ->
   eutt R ta ta.
 Proof.
   revert ta.
-  ginit. gcofix CIH. intros ta HEQ.
-  gstep. red.
-  genobs ta obs.
-  destruct obs.
-  - econstructor. apply HEQ. red. split; auto. rewrite itree_eta. rewrite <- Heqobs. constructor 1. reflexivity.
-  - econstructor. gbase. apply CIH.
-    setoid_rewrite itree_eta in HEQ.
-    destruct (observe ta); inversion Heqobs. subst.
-    assert (Tau t0 ≈ t0) by apply tau_eutt.
-    setoid_rewrite H in HEQ.
-    auto.
-  - econstructor.  intros. red. gbase. apply CIH.
-    intros. apply HEQ.
-    rewrite itree_eta. rewrite <- Heqobs.
-    red in PR. destruct PR.
-    red. split; auto.
-    econstructor 3. reflexivity. apply H0.
+  icoinduction c cih. intros ta R HEQ.
+  desobs ta hta. 
+  - econstructor. apply HEQ. red. split; auto. 
+    rewrite itree_eta. rewrite hta. now constructor. 
+  - econstructor. apply cih. intros!. apply HEQ. 
+    red. destruct H. split; auto. 
+    econstructor 2; eauto. 
+  - econstructor; intros. apply cih. 
+    intros!. apply HEQ.
+    rewrite itree_eta, hta.
+    destruct H.
+    split; auto.
+    econstructor 3; eauto. 
 Qed.
 
 Lemma eutt_EQ_REL_Reflexive {E} {A} (ta : itree E A) : eutt (EQ_REL ta) ta ta.
 Proof.
-  apply eutt_EQ_REL_Reflexive_.
-  auto.
+  now apply eutt_EQ_REL_Reflexive_. 
 Qed.
 
 Definition RET_EQ {E} {A} (ta : itree E A) : A -> A -> Prop :=
