@@ -14,8 +14,6 @@ From ITree.Extra Require Import
      Dijkstra.PureITreeBasics
      Dijkstra.IterRel.
 
-From Paco Require Import paco.
-
 Import Monads.
 Import MonadNotation.
 
@@ -29,7 +27,7 @@ Ltac clear_ret_eutt_spin :=
   match goal with | H : ret ?a ≈ ITree.spin  |- _ => simpl in H; exfalso; eapply not_ret_eutt_spin; eauto
              | H : Ret ?a ≈ ITree.spin  |- _ => exfalso; eapply not_ret_eutt_spin; eauto
              | H : ITree.spin ≈ ret ?a  |- _ => exfalso; symmetry in H; eapply not_ret_eutt_spin; eauto
-             | H : any_infinite (ret _ ) |- _ => pinversion H
+             | H : any_infinite (ret _ ) |- _ => step in H; inv H
   end.
 
 Ltac invert_evidence :=
@@ -38,7 +36,6 @@ Ltac invert_evidence :=
                  | H : _ \/ _ |- _ => destruct H
                  | H : exists a : ?A, _ |- _ => destruct H as [?a ?H]
                  | x : ?A + ?B |- _ => destruct x as [?a | ?b]
-                 | H : upaco1 _ _ _ |- _ => pclearbot
                  end.
 
 Ltac invert_ret := simpl in *; match goal with | H : Ret ?a ≈ Ret ?b |- _ =>
@@ -114,7 +111,7 @@ Qed.
 Instance DelaySpecMonadLaws : MonadLawsE DelaySpec.
 Next Obligation.
   repeat red. cbn. split; intros; basic_solve; auto.
-  - pinversion H.
+  - repeat red in H; step in H; inv H. 
   - left. exists x. split; auto; reflexivity.
 Qed.
 Next Obligation.
@@ -122,7 +119,7 @@ Next Obligation.
   repeat red. cbn. split; intros.
   - red in H. simpl in H. destruct w as [w Hw]. simpl in *. eapply Hw; try apply H.
     intros. simpl in *. destruct p as [p Hp]. simpl in *. basic_solve.
-    + eapply Hp; eauto. symmetry. auto.
+    + eapply Hp; eauto. now rewrite <- H0. 
     + apply div_spin_eutt in H0. eapply Hp; eauto.
   - red. destruct w as [w Hw]. simpl in *. eapply Hw; try apply H. intros.
     destruct p as [p Hp]. simpl in *.
@@ -206,7 +203,7 @@ Notation "x =[ g ]=> y" := (iter_arrow_rel g x y) (at level 70) : delayspec_scop
 Lemma iter_inl_spin : forall (A B : Type) (g : A -> Delay (A + B) ) (a : A),
     not_wf_from (iter_arrow_rel g) a -> ITree.iter g a ≈ ITree.spin.
 Proof.
-  intros A B g. einit. ecofix CIH. intros. pinversion H0; try apply not_wf_F_mono'.
+  intros A B g. icoinduction c CIH. intros. pinversion H0; try apply not_wf_F_mono'.
   setoid_rewrite unfold_iter_ktree. unfold iter_arrow_rel in Hrel. apply eutt_ret_euttge in Hrel.
   rewrite Hrel. rewrite bind_ret_l. rewrite unfold_spin. etau.
 Qed.
