@@ -54,11 +54,11 @@ Definition not_wf_F_mon :=
 
   Lemma neg_wf_from_not_wf_from_r : forall (a : A),
       not_wf_from a -> ~ (wf_from a).
-  Proof.
-    intros. intro Hcontra. punfold H.  inversion H. pclearbot. clear H. generalize dependent a'.
+      Proof.
+      intros. intro Hcontra. repeat red in H. step in H. inversion H. clear H. generalize dependent a'.
     induction Hcontra; intros.
     - apply H in Hrel. auto.
-    - punfold Hcorec. inversion Hcorec. pclearbot. specialize (H0 a' Hrel a'0 Hrel0).
+    - step in Hcorec. inversion Hcorec. specialize (H0 a' Hrel a'0 Hrel0).
       auto.
   Qed.
 
@@ -78,10 +78,12 @@ Definition not_wf_F_mon :=
     P a -> (forall a1 a2, P a1 -> r a1 a2 -> P a2 ) -> (forall a, P a -> r a (f a)) ->
     not_wf_from a.
   Proof.
-    intros. generalize dependent a. pcofix CIH. intros. pfold.
+    intros. generalize dependent a. unfold not_wf_from.
+    coinduction c cih. 
+    intros. 
     apply not_wf with (a' := f a).
     - auto using H1.
-    - right. apply CIH. eapply H0; eauto.
+    - apply cih. eapply H0; eauto.
   Qed.
 
   Lemma intro_wf : forall (P : A-> Prop) (m : A -> nat) (a : A),
@@ -121,10 +123,10 @@ Qed.
 Lemma wf_from_gt : forall (n : nat), wf_from (fun n0 n1 => n0 > n1) n.
 Proof.
   intros.
-  enough (forall n', n' <= n -> wf_from (fun n0 n1 => n0 > n1) n' ); auto.
+  enough (forall n', le n' n -> wf_from (fun n0 n1 => n0 > n1) n' ); auto.
   induction n; intros.
   - assert (n' = 0); try lia. subst. apply base. intros. lia.
-  - apply step. intros n'' Hn''. assert (n'' <= n); try lia. auto.
+  - apply step. intros n'' Hn''. assert (le n'' n); try lia. auto.
 Qed.
 (*induct on f a*)
 Lemma no_inf_dec_seq_aux : forall  (r : nat -> nat -> Prop) (n: nat),
@@ -145,7 +147,7 @@ Proof.
   intros A r f inv a Hinv Hgt Ha.
   remember (f a) as n0.
   generalize dependent a.
-  enough (forall a, f a <= n0 -> inv a -> wf_from r a).
+  enough (forall a, le (f a) n0 -> inv a -> wf_from r a).
   {
     intros. apply H. lia. auto.
   }
