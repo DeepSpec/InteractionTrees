@@ -7,6 +7,7 @@ From ExtLib Require Import
 From ITree Require Import
      ITree
      ITreeFacts
+     HeterogeneousRelations
      Props.Infinite.
 
 From ITree.Extra Require Import
@@ -203,7 +204,7 @@ Notation "x =[ g ]=> y" := (iter_arrow_rel g x y) (at level 70) : delayspec_scop
 Lemma iter_inl_spin : forall (A B : Type) (g : A -> Delay (A + B) ) (a : A),
     not_wf_from (iter_arrow_rel g) a -> ITree.iter g a ≈ ITree.spin.
 Proof.
-  intros A B g. icoinduction c CIH. intros. pinversion H0; try apply not_wf_F_mono'.
+  intros A B g. bcoinduction. intros. red in H; sinv H; try apply not_wf_F_mono'.
   setoid_rewrite unfold_iter_ktree. unfold iter_arrow_rel in Hrel. apply eutt_ret_euttge in Hrel.
   rewrite Hrel. rewrite bind_ret_l. rewrite unfold_spin. etau.
 Qed.
@@ -244,7 +245,7 @@ Lemma loop_invar : forall (A B : Type) (g : A -> Delay (A + B) ) (a : A)
                           (q : Delay (A + B) -> Prop) (Hq : resp_eutt q),
     (q -+> p) -> (q (g a)) ->
     (forall t, q t -> q (bind t (iter_lift g))) ->
-    (p \1/ any_infinite) (ITree.iter g a).
+    (Disj_unary _ p any_infinite) (ITree.iter g a).
 Proof.
   intros. unfold loop_invar_imp in *.
   set (iter_arrow_rel g) as rg.
