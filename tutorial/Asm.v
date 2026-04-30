@@ -349,7 +349,6 @@ Section InterpAsmProperties.
   Proof.
     repeat intro.
     unfold interp_asm.
-    unfold interp_map.
     rewrite H0.
     rewrite H.
     rewrite H1.
@@ -376,7 +375,7 @@ Section InterpAsmProperties.
   Proof.
     intros.
     unfold interp_asm.
-    unfold interp_map. cbn.
+    unfold interp_map. 
     repeat rewrite interp_bind.
     repeat rewrite interp_state_bind.
     repeat rewrite bind_bind.
