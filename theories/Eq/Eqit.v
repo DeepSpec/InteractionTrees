@@ -237,24 +237,41 @@ Arguments eqit_mon {E} b1 b2.
     
 (** Tactics *)
 (* RTODO Clean this up massively *)
-(** The generic [coinduction] scaffolding lives in [Basics.Utils]:
-    [under_forall'], [revert_one], [unfold_coind_with], [step_with],
-    [unstep_with], [coinduction_with]. Here we (1) provide the
-    ITree-specific [to_mon_4cases_with] macro that all [eqit]-family
-    relations (and friends like [sutt], [rutt], [interp_iforest])
-    instantiate, and (2) define four hooks for the [eqit] family
-    itself ([iunfold] / [icbn] / [refold] / [to_mon_core]), then
-    plumb them into the generics. *)
-
-(** Generic [to_mon] body for ITree relations whose monotone wrapper
-    equates [F_prefix t1 t2] with [mon_prefix t1 t2] (where
-    [F_prefix] / [mon_prefix] are the heads with everything except
-    the two trees already applied). Four shape cases cover how the
-    trees can appear in the goal: both [observe]s, both
-    constructor-applied (so we wrap with [go]), or one of each. *)
-
 
 (** --- Per-relation hooks for the [eqit] family. --- *)
+
+
+(* Here we go: 
+stepping means 
+
+b gfp -> gfp 
+
+gfp to b gfp in goal 
+b gfp to gfp in ctx 
+
+elem to b elem to (gfp to b gfp) in goal 
+
+b elem to elem in ctx 
+
+unstepping is redundant as the (gfp == b gfp) loop 
+is closed 
+
+for b gfp -> gfp, we should be fine at F 
+for gfp -> b gfp we are fine at F 
+
+for b elem to elem in ctx, we need better tactic support
+for b elem to gfp b in goal, we might be fine 
+for F elem vs b elem - test 
+for elem upwards, we are fine 
+
+we need a tactic for stepping to F, and we need 
+one for stepping to b 
+
+why do we need forced itrees (itree') in eqitF?
+
+because we can destruct itree'.
+
+*)
 
 #[local] Ltac iunfold     := unfold euttge, eq_itree, eutt, eqit.
 #[local] Ltac iunfold_in h := unfold euttge, eq_itree, eutt, eqit in h.
@@ -417,6 +434,7 @@ Goal eutt RR u v.
     step. step. 
     (* now in the loop *)
     step. unstep. Fail unstep. step. Fail step. now (unstep; apply EQ2). 
+    to_mon in H.   
 Abort. 
 
 End step_notation_tests. 
@@ -2765,3 +2783,5 @@ Qed.
 Proof. 
   intros!; now eapply observing_eq_chain.
 Qed. 
+
+(* RTODO: Strengthen rewrites *)
