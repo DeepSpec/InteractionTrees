@@ -1,9 +1,8 @@
 (* 
 RTODOS:
 - rename and redo sections
-- keep building tests until rewriting robustness is clear 
-   - organize file 
-   - remove add parametric morphism 
+- organize file 
+- remove add parametric morphism 
 *)
 
 (** * Strong bisimulation *)
@@ -233,11 +232,11 @@ Arguments eqit_mon {E} b1 b2.
     #[global] Hint Unfold euttge : itree.
     (* Alternative notation to the ` with a \dot. Would be good to pick an ascii
     one instead maybe? *)
-    #[local] Notation "̇ R" := (elem R) (at level 2, R at level 1, format "̇ R").
+    (* #[local] Notation "̇ R" := (elem R) (at level 2, R at level 1, format "̇ R"). *)
     (* end hide *)
     
 (** Tactics *)
-
+(* RTODO Clean this up massively *)
 (** The generic [coinduction] scaffolding lives in [Basics.Utils]:
     [under_forall'], [revert_one], [unfold_coind_with], [step_with],
     [unstep_with], [coinduction_with]. Here we (1) provide the
@@ -254,39 +253,6 @@ Arguments eqit_mon {E} b1 b2.
     trees can appear in the goal: both [observe]s, both
     constructor-applied (so we wrap with [go]), or one of each. *)
 
-Tactic Notation "to_mon_4cases_with"
-    uconstr(F_prefix) uconstr(mon_prefix) :=
-  match goal with
-  | |- context[F_prefix (observe ?t1) (observe ?t2)] =>
-      change (F_prefix (observe t1) (observe t2))
-        with (mon_prefix t1 t2)
-  | |- context[F_prefix (?c1 ?a1) (?c2 ?a2)] =>
-      change (F_prefix (c1 a1) (c2 a2))
-        with (mon_prefix (go (c1 a1)) (go (c2 a2)))
-  | |- context[F_prefix (?c ?a) (observe ?t2)] =>
-      change (F_prefix (c a) (observe t2))
-        with (mon_prefix (go (c a)) t2)
-  | |- context[F_prefix (observe ?t1) (?c ?a)] =>
-      change (F_prefix (observe t1) (c a))
-        with (mon_prefix t1 (go (c a)))
-  end.
-
-Tactic Notation "to_mon_4cases_in_with" ident(h)
-    uconstr(F_prefix) uconstr(mon_prefix) :=
-  match type of h with
-  | context[F_prefix (observe ?t1) (observe ?t2)] =>
-      change (F_prefix (observe t1) (observe t2))
-        with (mon_prefix t1 t2) in h
-  | context[F_prefix (?c1 ?a1) (?c2 ?a2)] =>
-      change (F_prefix (c1 a1) (c2 a2))
-        with (mon_prefix (go (c1 a1)) (go (c2 a2))) in h
-  | context[F_prefix (?c ?a) (observe ?t2)] =>
-      change (F_prefix (c a) (observe t2))
-        with (mon_prefix (go (c a)) t2) in h
-  | context[F_prefix (observe ?t1) (?c ?a)] =>
-      change (F_prefix (observe t1) (c a))
-        with (mon_prefix t1 (go (c a))) in h
-  end.
 
 (** --- Per-relation hooks for the [eqit] family. --- *)
 
@@ -317,7 +283,6 @@ Ltac refold_in h :=
 
 Ltac to_mon_core :=
 match goal with
-
 | |- context[@eqitF ?E ?R1 ?R2 ?RR ?b1 ?b2 (?f ?R1 ?R2 ?RR)
                    (observe ?t1) (observe ?t2)] =>
       change (eqitF RR b1 b2 (f R1 R2 RR)
@@ -341,7 +306,6 @@ match goal with
                     (observe t1) (con a))
       with (eqit_mon b1 b2 f R1 R2 RR
                     t1 (go (con a)))
-
 end.
 
 Ltac to_mon := 
@@ -534,7 +498,7 @@ Qed.
 Lemma eqitF_flip {E R1 R2} (RR : R1 -> R2 -> Prop) b1 b2 r:
   flip (eqitF (flip RR) b2 b1 (flip r)) <= @eqitF E R1 R2 RR b1 b2 r.
 Proof.
-  repeat intro; induction H; eauto with itree.
+  intros!; induction H; eauto with itree.
 Qed.
 
 #[global] Instance eqitF_Proper_R {E : Type -> Type} {R1 R2:Type} :
@@ -562,7 +526,7 @@ Qed.
   : Proper ((@eq_rel R1 R2) ==> eq ==> eq ==> iff) (@eqit E b1 b2 R1 R2).
 Proof with auto with itree.
   repeat red.
-  repeat intro. subst. 
+  intros!. subst. 
   split.
   - revert_until H. icoinduction R CIH. intros.
     step in H0.
@@ -577,19 +541,19 @@ Qed.
 #[global] Instance eq_itree_Proper_R {E : Type -> Type} {R1 R2:Type}
   : Proper ( (@eq_rel R1 R2) ==> eq ==> eq ==> iff) (@eq_itree E R1 R2).
 Proof.
-  now repeat intro; apply eqit_Proper_R.
+  now intros!; apply eqit_Proper_R.
 Qed.
 
 #[global] Instance euttge_Proper_R {E : Type -> Type} {R1 R2:Type}
   : Proper ( (@eq_rel R1 R2) ==> eq ==> eq ==> iff) (@euttge E R1 R2).
 Proof.
-  now repeat intro; apply eqit_Proper_R.
+  now intros!; apply eqit_Proper_R.
 Qed.
 
 #[global] Instance eutt_Proper_R {E : Type -> Type} {R1 R2:Type}
   : Proper ( (@eq_rel R1 R2) ==> eq ==> eq ==> iff) (@eutt E R1 R2).
 Proof.
-  now repeat intro; apply eqit_Proper_R.
+  now intros!; apply eqit_Proper_R.
 Qed.
 
 
@@ -633,7 +597,7 @@ Lemma eqit_mono {E R1 R2} RR RR' (b1 b2 b1' b2': bool)
       (LERR: RR <= RR'):
   @eqit E b1 b2 R1 R2 RR <= eqit b1' b2' RR'.
 Proof.
-  repeat intro. 
+  intros!. 
   revert a a0 H. 
   icoinduction c CIH; intros.  
   step in H. induction H; eauto with itree.
@@ -881,7 +845,7 @@ repeat match goal with
 Ltac inf_closed_impl_auto := 
 repeat match goal with 
 | [|- inf_closed (fun _ => _ -> _)] => 
-  apply inf_closed_impl; repeat intro; 
+  apply inf_closed_impl; intros!; 
   match goal with [H : _ <= _ |- _] => apply H; auto end
   end. 
 
@@ -1322,13 +1286,13 @@ Arguments eqit_trans {E R1 R2 R3} [RR1 RR2 b1 b2 t1 t2 t3].
 Proof.
   red; intros. assert (TRANS := trans_rcompose RR). 
   eapply eqit_mono, eqit_trans; eauto.
-  repeat intro. now apply TRANS.
+  intros!. now apply TRANS.
 Qed.
 
 #[global] Instance Transitive_eqit_eq {E : Type -> Type} {R: Type} (b1 b2: bool):
   Transitive (@eqit E b1 b2 R R eq).
 Proof.
-  apply Transitive_eqit. repeat intro; subst; eauto.
+  apply Transitive_eqit. intros!; subst; eauto.
 Qed.
 
 #[global] Instance Equivalence_eqit {E : Type -> Type} {R: Type} (RR : R -> R -> Prop) (b: bool):
@@ -1346,7 +1310,7 @@ Qed.
 #[global] Instance Transitive_eutt {E R RR} : Transitive RR -> Transitive (@eutt E R R RR).
 Proof.
   red; intros. assert (TRANS := trans_rcompose RR). eapply eqit_mono, eqit_trans; eauto.
-  repeat intro. now apply TRANS. 
+  intros!. now apply TRANS. 
 Qed.
 
 
@@ -1402,7 +1366,7 @@ Qed.
 #[global] Instance Transitive_euttge {E R RR} : Transitive RR -> Transitive (@euttge E R R RR).
 Proof.
   red; intros. assert (TRANS := trans_rcompose RR). eapply eqit_mono, eqit_trans; eauto.
-  repeat intro. now apply TRANS. 
+  intros!. now apply TRANS. 
 Qed.
 
 #[global] Instance PreOrder_euttge {E R RR} : PreOrder RR -> PreOrder (@euttge E R R RR).
@@ -1415,7 +1379,7 @@ Qed.
   Proper (eq_itree (E := E) eq ==> (eq_itree (R2 := R2) eq) ==> iff) (eq_itree eq). 
 Proof. 
   split; 
-  repeat intro.
+  intros!.
   do 2 (etransitivity; symmetry; eauto).
   do 2 (etransitivity; eauto); now symmetry. 
 Qed.
@@ -1598,7 +1562,7 @@ Qed.
 #[global] Instance observing_sub_elem b1 b2 (c : Chain (eqit_mon b1 b2)) (l r : itree E R) :
   subrelation (@observing E R R eq) (elem c R R eq).
 Proof.
-  repeat intro.
+  intros!.
   inv H.
   step.
   rewrite observing_observe.
@@ -1710,14 +1674,13 @@ Qed.
 
 (** *** Transitivity properties *)
 
-Add Parametric Morphism {E R1 R2 RR1 RR2 RS} b1 b2
+#[global] Instance eqitgen_cong_eqit {E R1 R2 RR1 RR2 RS} b1 b2
        (LERR1: forall x x' y, (RR1 x x': Prop) -> (RS x' y: Prop) -> RS x y)
        (LERR2: forall x y y', (RR2 y y': Prop) -> RS x y' -> RS x y) : 
-         (@eqit E b1 b2 R1 R2 RS)
-         with signature (eq_itree RR1 ==> eq_itree RR2 ==> flip impl)
-         as eqitgen_cong_eqit. 
+       Proper (eq_itree RR1 ==> eq_itree RR2 ==> flip impl) 
+              (@eqit E b1 b2 R1 R2 RS). 
 Proof. 
-repeat intro; unfold flip, eq_itree in *. 
+intros!; unfold flip, eq_itree in *. 
 
   (* Given *)
   (* LERR1: ∀ x x' y. RR1 x x' -> RS x' y -> RS x y *)
@@ -2070,7 +2033,7 @@ forall t u SS, (elem c SS t u ==> forall x y, SS x y -> elem c (k x) (g y) -> el
   Proper (pointwise_relation _ (eqit b1 b2 eq) ==> eqit b1 b2 eq ==>
           eqit b1 b2 eq) (@ITree.subst E R S).
 Proof.
-  repeat intro; eapply eqit_bind'; eauto.
+  intros!; eapply eqit_bind'; eauto.
   intros; subst; auto.
 Qed.
 
@@ -2078,18 +2041,9 @@ Qed.
   Proper (eqit b1 b2 eq ==> pointwise_relation _ (eqit b1 b2 eq) ==>
           eqit b1 b2 eq) (@ITree.bind E R S).
 Proof.
-  repeat intro; eapply eqit_bind'; eauto.
+  intros!; eapply eqit_bind'; eauto.
   intros; subst; auto.
 Qed.
-
-(* #[global] Instance eqit_bind {E R S} b1 b2 :
-  Proper (eqitF eq b1 b2 ==> pointwise_relation _ (eqitF eq b1 b2) ==>
-          eqitF eq b1 b2) (@ITree.bind E R S).
-Proof.
-  repeat intro; eapply eqit_bind'; eauto.
-  intros; subst; auto.
-Qed. *)
-
 
 Lemma eqit_map {E R1 R2 S1 S2} (RR : R1 -> R2 -> Prop) b1 b2
       (RS : S1 -> S2 -> Prop)
@@ -2108,16 +2062,15 @@ Qed.
           eqit b1 b2 eq ==>
           eqit b1 b2 eq) (@ITree.map E R S).
 Proof.
-  repeat intro; eapply eqit_map; eauto.
+  intros!; eapply eqit_map; eauto.
   intros; subst; auto.
 Qed.
 
-Add Parametric Morphism {E R1}:
-        (eqit_ false false (gfp (eqit_mon false false)) _ _ eq)
-         with signature (@eq_itree E R1 _ eq ==> eq_itree eq ==> flip impl)
-         as eqitF_cong_eqit. 
+#[global] Instance eqitF_cong_eqit {E R1} : 
+        Proper (@eq_itree E R1 _ eq ==> eq_itree eq ==> flip impl) 
+                (eqit_ false false (gfp (eqit_mon false false)) _ _ eq). 
 Proof. 
-  red; intros. 
+  intros!. 
   unstep. rewrite H. rewrite H0. now step. 
 Qed. 
 
@@ -2128,10 +2081,14 @@ Proof.
   apply Transitive_elem. typeclasses eauto. 
 Qed.
 
-Add Parametric Morphism {E R} (c : Chain (@eqit_mon E false false)) :
-  (elem c R R eq)
-  with signature (observing eq ==> observing eq ==> flip impl)
-  as elem_observing_proper. 
+(* This lemma requires a bit of cleverness: [elem c], where [c] is [Chain
+(eqit_mon eq false false)], is respected by [observing eq]. Such respectfulness
+in turn reqires transitivity of [elem c] and the fact that [observing eq] is a
+subrelation of [elem c]. Some work in the reasoning, but with short proofs- and
+worth it! 
+*)
+#[global] Instance elem_observing_proper {E R} (c : Chain (@eqit_mon E false false)) :
+  Proper (observing eq ==> observing eq ==> flip impl) (elem c R R eq). 
 Proof. 
   intros x y Hxy x' y' Hx'y' Helem.
   symmetry in Hx'y'.  
@@ -2140,12 +2097,6 @@ Proof.
   do 2 (etransitivity; eauto).  
 Qed.   
 
-(* This lemma requires a bit of cleverness: [elem c], where [c] is [Chain
-(eqit_mon eq false false)], is respected by [observing eq]. Such respectfulness
-in turn reqires transitivity of [elem c] and the fact that [observing eq] is a
-subrelation of [elem c]. Some work in the reasoning, but with short proofs- and
-worth it! 
-*)
 Lemma bind_ret_r {E R} :
   forall s : itree E R,
     ITree.bind s (fun x => Ret x) ≅ s.
@@ -2559,55 +2510,26 @@ forall (c : Chain (eqit_mon RR false false)), Equivalence RR -> Equivalence c
 we want euttge to be a preorder - is this true? 
 forall (c : Chain (eqit_mon RR true false)), Preorder RR -> Preorder c
 
-can we generalize to be heterogeneous for an RR that relates R1, R2? 
-
-next q: 
-weak bisim: 
-
-4. DONE 
-forall (c : Chain (eqit_mon RR true true)), Refl RR -> Refl c 
-5. DONE 
-forall (c : Chain (eqit_mon RR true true)), Sym RR -> Sym c 
-(* do not attempt: *)
-forall (c : Chain (eqit_mon RR true true)), Trans RR -> Trans c 
-
-but at the gfp, it is true. 
-(* this is true: *)
-(* Equiv RR -> Equiv eutt RR *)
-
-next big piece is how it all interacts w bind. 
-
-we should be able to prove this: 
-
-forall X1 X2 Y1 Y2, 
-eutt (RR : X1 -> X2 -> Prop) u v -> (forall x1 x2, RR x1 x2 -> eutt SS (k x1) (g x2)
--> eutt SS (bind u k) (bind v g)
-
-but this should be a particular case of a more gen lemma: under context reasoning
-(here bind is the context)
-
-back to bind: 
-[DONE, SORT OF]6. 
-forall (c : Chain (eqit_mon SS b1 b2)) RR, 
-Proper (eutt RR ==> (fun k g => (forall x y, RR x y -> c (k x) (g y))) ==> c) 
-bind 
-
-could be interesting: 
-chain_mono: 
-
-RR1 <= RR2, b1 <= b1', ... 
-(Chain eqit_mon RR b1 b2) <=
-(Chain eqit_mon RR' b1' b2') 
-)
-
 *)
 
+(* Rtodo: figure out if this is reasonable *)
 (* Conjecture chain_mono RR1 RR2 b1 b2 b1' b2' : 
 (* we know from JOACHIM PARROW AND TJARK WEBER 2016 that the 
 companion is monotone.  *)
 ... 
-(Chain eqit_mon RR b1 b2) <=
-(Chain eqit_mon RR' b1' b2') .  *)
+*)
+(* Lemma chain_mono {E R1 R2} (RR1 : R1 -> R2 -> Prop) RR2 b1 b2 b1' b2' 
+(c : Chain (@eqit_mon E b1 b2))
+(c' : Chain (@eqit_mon E b1' b2')) : 
+RR1 <= RR2 -> 
+(b1 -> b1') -> 
+(b2 -> b2') -> 
+(elem c R1 R2 RR1) <= (elem c' _ _ RR2).
+Proof. 
+  tower induction.  
+  Search elem. 
+  { intros!. repeat red in H0. eapply H; eauto. apply H1. apply H0. apply H1. }
+  intros!. icbn in *. induction H3.  *)
 
 Context {E : Type -> Type} {R1 R2} {RR : R1 -> R2 -> Prop} {b1 b2 : bool}.
 
@@ -2629,26 +2551,13 @@ Lemma Symmetric_elem_eutt R RS (c : Chain (@eqit_mon E true true)) :
       Symmetric RS -> Symmetric (elem c R R RS).
 Proof. typeclasses eauto. Qed.
 
-(* modified: eutt RX u v -> eqit RX b1 b2 u v. otherwise you get stuck
-when you need to know something about b1/b2. *)
+(* A very important lemma *)
 Lemma Proper_elem_bind X1 X2 Y1 Y2 RX SS u v k g 
   (c : Chain (eqit_mon b1 b2)) : 
   eqit b1 b2 RX u v -> (forall x1 x2, RX x1 x2 -> elem c _ _ SS (k x1) (g x2)) -> 
   elem c _ _ SS (@ITree.bind E X1 Y1 u k) (@ITree.bind E X2 Y2 v g).
 Proof.
-  revert u v. 
-  tower induction. intros. icbn.  
-  rewrite 2observe_bind.  
-  step in H0. induction H0; simpobs.
-  - now apply H1. 
-  - constructor. eapply H; eauto. intros.
-   (* `step` tactic fails here as there are 2 chains *)
-    now apply (b_chain x), H1. 
-  - constructor. intro. eapply H; eauto. intros.
-    now apply (b_chain x), H1. 
-   (* note: we cannot prove these cases for a generic b1 b2 in the chain *)
-  - taul. rewrite observe_bind. eapply IHeqitF; eauto. 
-  - taur. rewrite observe_bind. eapply IHeqitF; eauto. 
+  intros. eapply eqit_bind_chain; eauto. now do 2 step. 
 Qed. 
 
 
@@ -2695,9 +2604,8 @@ Section eutt_facts.
 
 
 #[global]
-Instance eutt_cong_eutt {E R1 R2 RR}:
-  Proper (eutt eq ==> eutt eq ==> flip impl)
-         (@eqit E true true R1 R2 RR).
+Instance eutt_cong_eutt {E R1 R2 RR} :
+  Proper (eutt eq ==> eutt eq ==> flip impl) (@eutt E R1 R2 RR).
 Proof.
   intros!. now rewrite H, H0.
 Qed.
@@ -2718,12 +2626,6 @@ Proof.
   intros!. now rewrite H, H0.
 Qed.
 
-#[global]
-Instance eutt_cong_eutt' {E R1 R2 RR} :
-  Proper (eutt eq ==> eutt eq ==> flip impl) (@eutt E R1 R2 RR).
-Proof.
-  apply eutt_cong_eutt.
-Qed.
 
 (* Specialization of [eutt_bind_eutt] to the recurrent case where [UU := eq]
    in order to avoid having to provide the relation manually everytime *)
@@ -2753,11 +2655,6 @@ Qed.
 
 (* [eutt] can be thought as the elementary block of a relational program logic.
    The following few lemmas give elementary logical rules to compose proofs.
- *)
- (* for meeting: need a relation combinator that takes 
- fun x y => P x y and 
- fun x y => Q x y and makes 
- fun x y => P x y /\ Q x y 
  *)
  Open Scope relationH_scope. 
 Lemma eutt_conj {E} {R S} {RS RS'} :
@@ -2805,7 +2702,7 @@ Lemma eutt_equiv {E} {R S} {RS RS'} :
     eutt RS t s <-> eutt RS' t s. 
 Proof.
   intros * EQ; split; intros EUTT; eapply eqit_mono; try apply EUTT; eauto.
-  all:apply EQ.
+  all: apply EQ.
 Qed.
 
 (* Rewriting equivalent simulation relations under [eq_itree] and [eutt] *)
@@ -2813,7 +2710,7 @@ Qed.
 Instance eq_itree_Proper_R_Het {E : Type -> Type} {R1 R2:Type}
   : Proper ((@HeterogeneousRelations.eq_rel R1 R2) ==> Logic.eq ==> Logic.eq ==> iff) (@eq_itree E R1 R2).
 Proof.
-  repeat intro; subst.
+  intros!; subst.
   unfold eq_itree; rewrite H; reflexivity.
 Qed.
 
@@ -2821,7 +2718,7 @@ Qed.
 Instance eutt_Proper_R_Het {E : Type -> Type} {R1 R2:Type}
   : Proper  ((@HeterogeneousRelations.eq_rel R1 R2) ==> eq ==> eq ==> iff) (@eutt E R1 R2).
 Proof.
-  repeat intro; subst.
+  intros!; subst.
   unfold eutt; rewrite H; reflexivity.
 Qed.
 
@@ -2854,19 +2751,17 @@ End eutt_facts.
 
 (* RTODO: move these somewhere reasonable *)
 
-#[global]
-Instance observing_eq_chain E R b1 b2 
+#[global] Instance observing_eq_chain E R b1 b2 
   (c : Chain (eqit_mon b1 b2)) : 
   Proper ((@eq_itree E R R eq) ==> @eqitF E R R eq b1 b2 (elem c _ _ eq)) (observe). 
 Proof. 
-  repeat intro. 
+  intros!. 
   step. rewrite H. reflexivity. 
 Qed.  
   
 
-#[global]
-Instance observing_eq_eqitF E R b1 b2 : 
+#[global] Instance observing_eq_eqitF E R b1 b2 : 
   Proper ((@eq_itree E R R eq) ==> @eqitF E R R eq b1 b2 (eqit b1 b2 eq)) (observe). 
 Proof. 
-  repeat intro; now eapply observing_eq_chain.
+  intros!; now eapply observing_eq_chain.
 Qed. 

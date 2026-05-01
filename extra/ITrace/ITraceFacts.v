@@ -345,31 +345,19 @@ Section Determinize.
 
 Context (classicT : forall (P : Type), P + (P -> False)).
 
-Program Definition determinizeF {E : Type -> Type} {R : Type} (sim : itree' E R -> itrace E R) (ot : itree' E R)
-: itrace E R.
+CoFixpoint determinize_ (E : Type -> Type) (R : Type) (ot : itree' E R) : itrace E R.
 Proof.
   destruct ot.
   - apply (Ret r).
-  - apply (Tau (sim (observe t) ) ).
+  - apply (Tau (determinize_ E R (observe t) ) ).
   - destruct (classicT X) as [ | f].
-    + apply (Vis (evans X e x) (fun _ =>  (sim (observe (k x)) ) )).
+    + apply (Vis (evans X e x) (fun _ =>  (determinize_ E R (observe (k x)) ) )).
     + apply (Vis (evempty X (fun x => match f x with end) e) (fun v : void => match v return itrace E R with end) ).
 Defined.
-
-Definition determinize_ {E R} sim := fun t => @determinizeF E R sim (observe t). 
-
-Lemma determinize_mono E R : Proper (leq ==> leq) (@determinize_ E R). 
-
-Program Definition determinize_mon : 
-mon ()
 
 Definition determinize {E R} (t : itree E R) : itrace E R := determinize_ (observe t).
 
 End Determinize.
-
-(* INTERESTING: paco can do pcofix with a cofixpoint, 
-but coinduction can't. 
-*)
 
 (* may be a better idea to make this an axiom *)
 Lemma itree_refine_nonempty : forall (E : Type -> Type) (R : Type) (t : itree E R),
@@ -377,13 +365,14 @@ Lemma itree_refine_nonempty : forall (E : Type -> Type) (R : Type) (t : itree E 
 Proof.
   intros. destruct classicT_inhabited as [classicT].
   exists (determinize classicT t). generalize dependent t.
-  pcofix CIH. intros. pfold. red. unfold determinize. destruct (observe t).
-  - cbn. constructor. auto.
-  - cbn. constructor. right. apply CIH.
+  red. rcoinduction c cih. 
+  intros. unfold determinize. desobs t Hot.
+  - cbn. eret.
+  - cbn. constructor. apply cih. 
   - unfold observe. cbn. destruct (classicT _).
-    + constructor; eauto with itree. intros. right.
+    + constructor; eauto with itree. intros.
       inversion H. ddestruction.
-      subst. apply CIH.
+      subst. apply cih.
     + constructor; auto with itree. intros. contradiction.
 Qed.
 
@@ -394,7 +383,7 @@ Lemma refine_set_eq_to_eutt_vis_aux : forall (E : Type -> Type) (R : Type) (r : 
                                              (A B : Type) (e : E A) (e0 : E B)
                                              (k : A -> itree E R) (k0 : B -> itree E R)
                                              (Ht1 : t1 ≅ Vis e k) (Ht2 : t2 ≅ Vis e0 k0 ),
-    eqitF eq true true id (upaco2 (eqit_ eq true true id) r) (VisF e k) (VisF e0 k0).
+    eqitF eq true true r (VisF e k) (VisF e0 k0).
 Proof.
   intros.
   destruct (classic_empty A) as [ [a | Ha] _ ].
@@ -405,12 +394,12 @@ Proof.
     rewrite <- Ht1 in Hbk.
     apply H0 in Hbk as Hbk0.
     rewrite Ht1 in Hbk. rewrite Ht2 in Hbk0.
-    pinversion Hbk.
-    pinversion Hbk0. ddestruction.
+    sinv Hbk.
+    sinv Hbk0. ddestruction.
     subst.
-    inversion H10. ddestruction.
+    inversion H8. ddestruction.
     subst. constructor.
-    intros. right. eapply CIH; eauto.
+    intros. eapply CIH; eauto.
     intros. setoid_rewrite Ht1 in H0. setoid_rewrite Ht2 in H0.
     split; intros.
     + apply trace_refine_vis_add with (e := e) in H. apply H0 in H.
@@ -421,15 +410,15 @@ Proof.
     set (Vis (evempty A Ha e) ke) as b.
     assert (b ⊑ t1).
     {
-      unfold b. rewrite Ht1. pfold. red. cbn.
+      unfold b. rewrite Ht1. step. red. cbn.
       constructor. { apply ree. } { intros []. }
     }
     apply H0 in H as H1. unfold b in *. clear b.
     rewrite Ht1 in H. rewrite Ht2 in H1.
-    pinversion H. pinversion H1. ddestruction.
-    subst. inversion H12. ddestruction.
+    sinv H. sinv H1. ddestruction.
+    subst. inversion H6. ddestruction.
     constructor.
-    intros. right. eapply CIH.
+    intros. eapply CIH.
     intros. setoid_rewrite Ht1 in H0. setoid_rewrite Ht2 in H0.
     split; intros; contradiction.
 Qed.
@@ -438,7 +427,7 @@ Lemma trace_refine_vis : forall (E : Type -> Type) (R A : Type) (b : itrace E R)
                            (e : E A) (k : A -> itree E R),
     b ⊑ Vis e k -> exists X, exists e0 : EvAns E X, exists k0, (b ≈ Vis e0 k0)%itree.
 Proof.
-  intros. punfold H. red in H. cbn in H.
+  intros. step in H. repeat red in H. 
   dependent induction H.
   - exists A0. exists e1. exists k1.
     specialize (itree_eta b) as Hb. rewrite <- x in Hb.
@@ -458,7 +447,7 @@ Lemma trace_refine_vis_l : forall (E : Type -> Type) (R A: Type) (t : itree E R)
                                   (e : EvAns E A) (k : A -> itrace E R),
     Vis e k ⊑ t -> exists X, exists e0 : E X, exists k0 : X -> itree E R, t ≈ Vis e0 k0.
 Proof.
-  intros. punfold H. red in H. cbn in *.
+  intros. step in H. repeat red in H. 
   dependent induction H.
   - exists B. exists e2.  exists k2. specialize (itree_eta t) as Ht.
     rewrite <- x in Ht. rewrite Ht. reflexivity.
@@ -493,33 +482,35 @@ Proof.
     rewrite H0. constructor. reflexivity.
   - rewrite H in H1. apply trace_refine_vis_l in H1 as Ht0.
     destruct Ht0 as [X [e0 [k0 Ht0] ] ].
-    rewrite Ht0 in H1. pinversion H1. subst.
+    rewrite Ht0 in H1. sinv H1. subst.
     ddestruction. subst. rewrite Ht0.
     inversion H4; subst; ddestruction; subst; try contradiction.
     eapply conv_vis; try reflexivity. Unshelve. 2 : exact a.
-    apply IHmay_converge. pclearbot.
+    apply IHmay_converge. 
     specialize (H9 tt a). assert (RAnsRef E unit X (evans X e0 a) tt e0 a).
-    constructor. apply H9 in H2. pclearbot. destruct b. auto.
+    constructor. apply H9 in H1. destruct b. auto.
 Qed.
 
 Lemma trace_refine_all_infinite : forall (E : Type -> Type) (R : Type)
                                     (t : itree E R) (b : itrace E R),
     all_infinite t -> b ⊑ t -> all_infinite b.
 Proof.
-  intros E R. pcofix CIH. intros. punfold H0. red in H0.
-  punfold H1. red in H1. pfold. red. dependent induction H1.
-  - rewrite <- x in H0. inversion H0.
-  - rewrite <- x0. constructor. right. pclearbot. eapply CIH; eauto.
-    rewrite <- x in H0. inv H0. pclearbot. auto.
-  - rewrite <- x0. rewrite <- x in H0. constructor. inv H0.
-    ddestruction. subst. intros. right. pclearbot.
-    inversion H; subst; ddestruction; try contradiction. destruct b0.
-    eapply CIH; try apply H3.
-    specialize (H1 tt a). assert (RAnsRef _ _ _ (evans B e2 a) tt e2 a ).
-    constructor. apply H1 in H0. pclearbot. eauto.
-  - rewrite <- x. constructor. left.  pfold. eapply IHruttF; eauto.
-  - eapply IHruttF; auto. rewrite <- x in H0. inv H0.
-    pclearbot. punfold H2.
+  intros E R. unfold all_infinite at -1. 
+  coinduction c cih. 
+  intros. step in H. step in H0. repeat red in H, H0; repeat red.   
+  dependent induction H0.
+  - rewrite <- x in H. inv H. 
+  - rewrite <- x0. constructor. eapply cih; eauto.
+    rewrite <- x in H. inv H.
+  - rewrite <- x0. rewrite <- x in H. constructor. inv H.
+    ddestruction. subst. intros. 
+    inv H1; subst; ddestruction; try contradiction. destruct b0.
+    eapply cih; try apply H3.
+    specialize (H0 tt a). assert (RAnsRef _ _ _ (evans B e2 a) tt e2 a ).
+    constructor. apply H0 in H. eauto.
+  - rewrite <- x. constructor. apply (b_chain c). eapply IHruttF; eauto.
+  - eapply IHruttF; auto. rewrite <- x in H. inv H.
+    now step in H2. 
 Qed.
 
 Lemma trace_refine_converge_bind : forall (E : Type -> Type) (R S : Type)
@@ -532,12 +523,12 @@ Proof.
   - specialize (IHmay_converge H1).
     rewrite H in H2. apply trace_refine_vis_l in H2 as Ht.
     destruct Ht as [X [e0 [k0 Ht] ] ].
-    rewrite Ht in H2. punfold H2. red in H2. cbn in H2. inversion H2; subst.
-    ddestruction. subst. pclearbot.
-    inversion H5; ddestruction; subst; try contradiction.
-    ddestruction. subst. rewrite H. rewrite Ht.
-    pfold. red. cbn. constructor; auto.
-    intros. apply H10 in H3. pclearbot. left.
+    rewrite Ht in H2. step in H2. repeat red in H2. inv H2. 
+    ddestruction. subst.
+    inversion H5; subst; ddestruction; try easy. 
+    rewrite H. rewrite Ht.
+    step. repeat red. cbn. constructor; auto.
+    intros. apply H10 in H2.
     destruct a0. destruct b. apply IHmay_converge. auto.
 Qed.
 
@@ -546,20 +537,20 @@ Lemma trace_refine_diverge_bind : forall (E : Type -> Type) (R S : Type)
     all_infinite b -> b ⊑ t -> ITree.bind b f ⊑ ITree.bind t g.
 Proof.
   intros E R S b t f g. generalize dependent b. generalize dependent t.
-  pcofix CIH. intros.
-  punfold H0. red in H0.
-  punfold H1. red in H1. pfold. red. cbn.
-  dependent induction H1.
-  - rewrite <- x0 in H0. inv H0.
+  red. rcoinduction c cih. intros.
+  step in H0. 
+  step in H. repeat red in H0, H. 
+  dependent induction H0.
+  - rewrite <- x0 in H. inv H.
   - unfold observe. cbn. rewrite <- x0. rewrite <- x.
-    cbn. constructor. right. pclearbot. apply CIH; auto.
-    rewrite <- x0 in H0. inv H0. pclearbot. auto.
+    cbn. constructor. apply cih; auto.
+    rewrite <- x0 in H. inv H. 
   - unfold observe. cbn. rewrite <- x0. rewrite <- x. cbn. constructor; auto.
     intros.
-    rewrite <- x0 in H0. inv H0. ddestruction. subst. pclearbot.
-    apply H1 in H2. right. pclearbot. eapply CIH; eauto. apply H4.
+    rewrite <- x0 in H. inv H. ddestruction. subst. 
+    apply H0 in H2. eapply cih; eauto. apply H4.
   - unfold observe at 1. cbn. rewrite <- x. cbn. constructor.
-    eapply IHruttF; eauto. rewrite <- x in H0. inv H0. pclearbot. pstep_reverse.
+    eapply IHruttF; eauto. rewrite <- x in H. inv H. now unstep.
   - unfold observe at 2. cbn. rewrite <- x. cbn. constructor.
     eapply IHruttF; eauto.
 Qed.
@@ -567,61 +558,50 @@ Qed.
 Lemma refine_set_eq_to_eutt : forall (E : Type -> Type) (R : Type) (t1 t2 : itree E R),
     (forall b, b ⊑ t1 <-> b ⊑ t2) -> t1 ≈ t2.
 Proof.
-  intros E R. pcofix CIH. intros.
-  pfold. red.
+  intros E R. icoinduction c CIH. intros.
   remember (observe t1) as ot1. remember (observe t2) as ot2.
   destruct (ot1); destruct (ot2).
+  all: specialize (itree_eta t1) as Ht1; rewrite <- Heqot1 in Ht1;
+    specialize (itree_eta t2) as Ht2; rewrite <- Heqot2 in Ht2.
   (*Ret Ret*)
-  - specialize (H0 (Ret r0) ) as Hr0.
-    specialize (itree_eta t1) as Ht1. rewrite <- Heqot1 in Ht1.
-    specialize (itree_eta t2) as Ht2. rewrite <- Heqot2 in Ht2.
-    rewrite Ht1 in Hr0. rewrite Ht2 in Hr0.
-    assert (Ret r0 ⊑ t2).
-    { rewrite Ht2. apply Hr0. pfold. constructor. auto. }
-    rewrite Ht2 in H. pinversion H. subst. constructor. auto.
-  (*Ret Tau *)
-  - specialize (itree_eta t1) as Ht1. rewrite <- Heqot1 in Ht1.
-    specialize (itree_eta t2) as Ht2. rewrite <- Heqot2 in Ht2.
-    setoid_rewrite Ht2 in H0.
-    specialize (H0 (Ret r0) ).
-    rewrite tau_eutt in H0. constructor; auto.
+  - specialize (H (Ret r0)) as Hr0.
+    rewrite Ht1 in Hr0. rewrite Ht2 in Hr0. 
     assert (Ret r0 ⊑ t1).
-    { rewrite Ht1. pfold. constructor. auto. }
-    apply H0 in H. punfold H. red in H. cbn in H.
-    clear H0 Ht1 Ht2 Heqot1 Heqot2. dependent induction H.
-    + rewrite <- x. constructor; auto.
-    + rewrite <- x. constructor; auto.
+    { rewrite Ht1. apply Hr0. step. eret. }
+    rewrite Ht1 in H0. sinv H0. 
+  (*Ret Tau *)
+  - setoid_rewrite Ht2 in H.
+    specialize (H (Ret r) ).
+    rewrite tau_eutt in H. taur. 
+    assert (Ret r ⊑ t1).
+    { rewrite Ht1. step. eret. }
+    apply H in H0. step in H0. repeat red in H0; cbn in H0.
+    clear H Ht1 Ht2 Heqot1 Heqot2. dependent induction H0.
+    + rewrite <- x. eret. 
+    + rewrite <- x. taur; auto.   
   (*Ret Vis*)
   - exfalso.
-    specialize (itree_eta t1) as Ht1. rewrite <- Heqot1 in Ht1.
-    specialize (itree_eta t2) as Ht2. rewrite <- Heqot2 in Ht2.
-    assert (Ret r0 ⊑ t1).
-    { rewrite Ht1. pfold. constructor. auto. }
-    apply H0 in H. rewrite Ht2 in H. pinversion H.
+    assert (Ret r ⊑ t1).
+    { rewrite Ht1. step. eret. }
+    apply H in H0. rewrite Ht2 in H0. sinv H0. 
   (*Tau Ret*)
-  - specialize (itree_eta t1) as Ht1. rewrite <- Heqot1 in Ht1.
-    specialize (itree_eta t2) as Ht2. rewrite <- Heqot2 in Ht2.
-    setoid_rewrite Ht1 in H0. setoid_rewrite Ht2 in H0.
-    assert (Ret r0 ⊑ t2).
-    { rewrite Ht2. pfold. constructor. auto. }
-    rewrite Ht2 in H. apply H0 in H as H1. punfold H1.
-    clear Heqot1 Heqot2 Ht1 Ht2 H H0. red in H1. cbn in *.
-    constructor; auto. inv H1. dependent induction H2; intros; subst.
-    + rewrite <- x. constructor; auto.
-    + rewrite <- x. auto with itree.
+  - setoid_rewrite Ht1 in H. setoid_rewrite Ht2 in H.
+    assert (Ret r ⊑ t2).
+    { rewrite Ht2. step. eret. }
+    rewrite Ht2 in H0. apply H in H0 as H1. step in H1. 
+    clear Heqot1 Heqot2 Ht1 Ht2 H H0. repeat red in H1. cbn in *.
+    taul. inv H1. dependent induction H2; intros; subst.
+    + rewrite <- x. eret. 
+    + rewrite <- x. taul; auto. 
   (*Tau Tau*)
-  - constructor. right. eapply CIH.
+  - constructor. eapply CIH. 
     intros.
-    specialize (itree_eta t1) as Ht1. rewrite <- Heqot1 in Ht1.
-    specialize (itree_eta t2) as Ht2. rewrite <- Heqot2 in Ht2.
     assert (t1 ≈ t). { rewrite Ht1. rewrite tau_eutt. reflexivity. }
     assert (t2 ≈ t0). { rewrite Ht2. rewrite tau_eutt. reflexivity. }
-    rewrite <- H. rewrite <- H1. auto.
+    now rewrite <- H0, <- H1. 
   (*Tau Vis*)
-  - specialize (itree_eta t1) as Ht1. rewrite <- Heqot1 in Ht1.
-    specialize (itree_eta t2) as Ht2. rewrite <- Heqot2 in Ht2.
-    specialize (itree_refine_nonempty t1) as [b Hbt1].
-    apply H0 in Hbt1 as Hbt2. rewrite Ht1 in Hbt1.
+  - specialize (itree_refine_nonempty t1) as [b Hbt1].
+    apply H in Hbt1 as Hbt2. rewrite Ht1 in Hbt1.
     rewrite tau_eutt in Hbt1.
     rewrite Ht2 in Hbt2.
     apply trace_refine_vis in Hbt2 as Hb.
@@ -629,9 +609,9 @@ Proof.
     rewrite Hb in Hbt2.
     rewrite Hb in Hbt1. clear Hb b.
     constructor; auto.
-    setoid_rewrite Ht1 in H0. setoid_rewrite tau_eutt in H0.
+    setoid_rewrite Ht1 in H. setoid_rewrite tau_eutt in H.
     clear Heqot1 Heqot2. clear Ht1 t1.
-    punfold Hbt1. red in Hbt1. cbn in *.
+    step in Hbt1. repeat red in Hbt1. cbn in *.
     dependent induction Hbt1.
     + rewrite <- x.
       specialize (itree_eta t) as Ht. rewrite <- x in Ht.
@@ -642,19 +622,15 @@ Proof.
         specialize (itree_eta t) as Ht. rewrite <- x in Ht. rewrite Ht.
         rewrite tau_eutt. reflexivity.
       }
-      setoid_rewrite H. auto.
+      setoid_rewrite H0. auto.
   (*Vis Ret*)
   - exfalso.
-    specialize (itree_eta t1) as Ht1. rewrite <- Heqot1 in Ht1.
-    specialize (itree_eta t2) as Ht2. rewrite <- Heqot2 in Ht2.
-    assert (Ret r0 ⊑ t2).
-    { rewrite Ht2. pfold. constructor. auto. }
-    apply H0 in H. rewrite Ht1 in H. pinversion H.
+    assert (Ret r ⊑ t2).
+    { rewrite Ht2. step. eret. }
+    apply H in H0. rewrite Ht1 in H0. sinv H0.
   (*Vis Tau*)
-  - specialize (itree_eta t1) as Ht1. rewrite <- Heqot1 in Ht1.
-    specialize (itree_eta t2) as Ht2. rewrite <- Heqot2 in Ht2.
-    specialize (itree_refine_nonempty t2) as [b Hbt2].
-    apply H0 in Hbt2 as Hbt1. rewrite Ht1 in Hbt1.
+  - specialize (itree_refine_nonempty t2) as [b Hbt2].
+    apply H in Hbt2 as Hbt1. rewrite Ht1 in Hbt1.
     rewrite Ht2 in Hbt2.
     rewrite tau_eutt in Hbt2.
     apply trace_refine_vis in Hbt1 as Hb.
@@ -662,9 +638,9 @@ Proof.
     rewrite Hb in Hbt2.
     rewrite Hb in Hbt1. clear Hb b.
     constructor; auto.
-    setoid_rewrite Ht2 in H0. setoid_rewrite tau_eutt in H0.
+    setoid_rewrite Ht2 in H. setoid_rewrite tau_eutt in H.
     clear Heqot1 Heqot2. clear Ht2 t2.
-    punfold Hbt2. red in Hbt2. cbn in *.
+    step in Hbt2. repeat red in Hbt2. cbn in *.
     dependent induction Hbt2.
     + rewrite <- x.
       specialize (itree_eta t) as Ht. rewrite <- x in Ht.
@@ -675,11 +651,9 @@ Proof.
         specialize (itree_eta t) as Ht. rewrite <- x in Ht. rewrite Ht.
         rewrite tau_eutt. reflexivity.
       }
-      setoid_rewrite H. auto.
+      setoid_rewrite H0. auto.
   (*Vis Vis*)
-  - specialize (itree_eta t1) as Ht1. rewrite <- Heqot1 in Ht1.
-    specialize (itree_eta t2) as Ht2. rewrite <- Heqot2 in Ht2.
-    eapply refine_set_eq_to_eutt_vis_aux; eauto.
+    - eapply refine_set_eq_to_eutt_vis_aux; eauto.
 Qed.
 
 Lemma trace_set_complete : forall E R (t1 t2 : itree E R), (forall b, b ⊑ t1 <-> b ⊑ t2) <-> t1 ≈ t2.
@@ -693,26 +667,26 @@ Lemma trace_refine_bind_cont_inv : forall (E : Type -> Type) (R S : Type)
                                           (f : R -> itree E S) (r : R),
     may_converge r b -> b ⊑ m -> ITree.bind b g ⊑ ITree.bind m f -> g r ⊑ f r.
 Proof.
-  intros E R S. pcofix CIH. intros b m g f a Hconv Hrefb Hrefbind.
+  intros E R S. red. rcoinduction c CIH. intros b m g f a Hconv Hrefb Hrefbind.
   generalize  dependent m.
   dependent induction  Hconv; intros m Hrefb Hrefbind.
   - rewrite H in Hrefbind. rewrite bind_ret_l in Hrefbind. rewrite H in Hrefb.
     apply trace_refine_ret_inv_r in Hrefb. rewrite Hrefb in Hrefbind.
-    rewrite bind_ret_l in Hrefbind. apply pacobot2; eauto.
+    rewrite bind_ret_l in Hrefbind. now step. 
   - (*m must be a vis, the continuations must refine then continuation in the m I use in the
       inductive hypothesis *)
     destruct e; try contradiction. rewrite H in Hrefb.
     rewrite H in Hrefbind. rewrite bind_vis in Hrefbind.
     apply trace_refine_vis_l in Hrefb as Hvis. destruct Hvis as [X [e' [k' Hvis ] ] ].
     rewrite Hvis in Hrefbind. rewrite bind_vis in Hrefbind.
-    punfold Hrefbind. red in Hrefbind. cbn in Hrefbind. inv Hrefbind.
+    step in Hrefbind. repeat red in Hrefbind; cbn in Hrefbind. inv Hrefbind.
     ddestruction. inv H2. ddestruction; subst.
-    rewrite Hvis in Hrefb. punfold Hrefb. red in Hrefb. cbn in Hrefb. inv Hrefb.
+    rewrite Hvis in Hrefb. step in Hrefb. repeat red in Hrefb; cbn in Hrefb. inv Hrefb.
     ddestruction.
     assert (RAnsRef E unit A (evans _ e' ans) tt e' ans ); try (constructor; auto; fail).
     specialize (IHHconv (k' ans) ). apply IHHconv.
-    + apply H8 in H0. pclearbot. destruct b. auto.
-    + apply H7 in H0. pclearbot. destruct b. auto.
+    + apply H8 in H0. destruct b. auto.
+    + apply H7 in H0. destruct b. auto.
 Qed.
 
 Lemma may_converge_two_list:
@@ -728,8 +702,8 @@ Proof.
     { cbn. reflexivity. }
     rewrite H0 in H.
     destruct log' as [ | h t ].
-    + setoid_rewrite bind_ret_l in H. simpl in H. pinversion H.
-    + simpl in H. unfold append in H. repeat rewrite bind_vis in H. pinversion H.
+    + setoid_rewrite bind_ret_l in H. simpl in H. sinv H. 
+    + simpl in H. unfold append in H. repeat rewrite bind_vis in H. sinv H.
       ddestruction; subst.
       assert (ev_list_to_stream log ++ b ≈ ev_list_to_stream t ++ Ret a).
       { apply REL. apply tt. }
@@ -743,6 +717,6 @@ Proof.
   intros E A log b' Hdiv. induction log.
   - cbn in Hdiv. setoid_rewrite bind_ret_l in Hdiv. auto.
   - apply IHlog. simpl in Hdiv. unfold append in Hdiv.
-    rewrite bind_vis in Hdiv. pinversion Hdiv. ddestruction. subst. apply H0.
+    rewrite bind_vis in Hdiv. sinv Hdiv. ddestruction. subst. apply H0.
     apply tt.
 Qed.
