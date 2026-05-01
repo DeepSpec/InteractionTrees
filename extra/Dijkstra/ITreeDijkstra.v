@@ -4,8 +4,6 @@ From Stdlib Require Import
 From ExtLib Require Import
      Structures.Monad.
 
-From Paco Require Import paco.
-
 From ITree Require Import
      Axioms
      ITree
@@ -38,7 +36,7 @@ Section ITreeDijkstra.
   Instance proper_itree_spec {R} {p : ITDInput R}: Proper (eutt eq ==> iff) (proj1_sig p).
   Proof.
     intros ? ? ?. destruct p as [p Hp]. simpl. split; intros; eapply Hp; eauto.
-    symmetry. auto.
+    now rewrite <- H.
   Qed.
 
   Program Definition bind_ex (A B: Type) (w: ITreeSpec A) (g : A -> ITreeSpec B) : ITreeSpec B :=
@@ -54,15 +52,18 @@ Section ITreeDijkstra.
       intros.
       specialize (noret_cast_nop H0) as Ht1.
       rewrite H in H0. specialize (noret_cast_nop H0) as Ht2.
-      eapply Hp; eauto.
-      symmetry in H.
-      eapply noret_cast_cast; eauto.
+      eapply Hp. 
+      clear Ht2. 
+      symmetry in H. 
+      eapply noret_cast_cast. all: eauto.
     - left. exists a. split; auto. rewrite H. auto.
     - right. rewrite H at 1. split; auto.
       destruct p as [p Hp]; simpl in *.
-      eapply Hp; eauto.
+      eapply Hp. 
+      symmetry in H. 
+      symmetry. 
       eapply noret_cast_cast; eauto.
-      rewrite H. auto.
+      auto. 
   Qed.
   Next Obligation.
   Proof.
@@ -193,15 +194,17 @@ Section ITreeDijkstra.
   Definition is_inf_ {A : Type} (F : stream A -> Prop) : stream A -> Prop :=
     fun s => is_infF F (observe_stream s).
 
-  Definition is_inf {A : Type} := paco1 (@is_inf_ A) bot1.
+  Lemma is_inf_mono {A} : Proper (leq ==> leq) (@is_inf_ A). 
+  Proof. 
+    intros!. 
+    inv H0. red. rewrite <- H1. econstructor.
+    now apply H.  
+  Qed. 
 
-  Lemma is_inf_monot {A} : monotone1 (@is_inf_ A).
-  Proof.
-    red. intros. red in IN. red. induction IN; auto with itree.
-  Qed.
+  Definition is_inf_mon A : mon (stream A -> Prop) := 
+  {| body := @is_inf_ A; Hbody := is_inf_mono |}. 
 
-  Hint Resolve is_inf_monot : paco.
-
+  Definition is_inf {A : Type} := gfp (@is_inf_mon A).
 
   CoFixpoint app' {A : Type} (osl: stream' A) (sr : stream A) : stream A :=
     match osl with
@@ -221,34 +224,37 @@ Section ITreeDijkstra.
   Definition bisim_ {A : Type} (F : stream A -> stream A -> Prop) : stream A -> stream A -> Prop :=
     fun s1 s2 => bisimF F (observe_stream s1) (observe_stream s2).
 
-  Definition bisim {A : Type} := paco2 (@bisim_ A) bot2.
+  Lemma bisim_mono {A} : Proper (leq ==> leq) (@bisim_ A). 
+  Proof. 
+    intros!. red. inv H0. 
+    - constructor. 
+    - constructor. now apply H. 
+  Qed. 
+  
+  Definition bisim_mon {A} : mon (stream A -> stream A -> Prop) := 
+  {| body := @bisim_ A ; Hbody := bisim_mono |}. 
 
-  Lemma bisim_monot {A} : monotone2 (@bisim_ A).
-  Proof.
-    red. intros. red in IN. red. induction IN; auto with itree.
-  Qed.
-
-  Hint Resolve bisim_monot : paco.
+  Definition bisim {A : Type} := gfp (@bisim_mon A).
 
   Instance bisim_equiv {A} : Equivalence (@bisim A).
   Proof.
     constructor; red.
-    - pcofix CIH. intros. pfold. red. destruct (observe_stream x); auto with itree.
-    - pcofix CIH. intros.
-      pfold. red.
-      pinversion H0; subst; auto with itree.
-    - pcofix CIH. intros. pfold. red.
-      pinversion H0; pinversion H1; auto with itree.
+    - unfold bisim. coinduction c cih. intros. cbn; red. destruct (observe_stream x); auto with itree.
+    - unfold bisim at -1. coinduction c cih. intros.
+      cbn; red.
+      red in H; sinv H; auto with itree.
+    - unfold bisim at 3. coinduction c cih. intros. cbn; red.
+      red in H; sinv H; red in H0; sinv H0; auto with itree.
       + rewrite <- H in H3. discriminate.
-      + rewrite <- H2 in H5. discriminate.
-      + rewrite <- H2 in H4. injection H4; intros; subst.
-        constructor. right. eauto.
+      + rewrite <- H2 in H4. discriminate.
+      + rewrite <- H2 in H. injection H; intros; subst.
+        constructor. eauto.
    Qed.
 
   Instance proper_bisim_app {A} : Proper (@bisim A ==> bisim ==> bisim) app.
   Proof.
-    repeat red. pcofix CIH.  intros s1 s2 H12 s3 s4 H34.
-    pfold. red. unfold app. pinversion H12.
+    repeat red. coinduction c cih. intros s1 s2 H12 s3 s4 H34.
+     cbn; red. unfold app. pinversion H12.
     - simpl. destruct s3. destruct s4. pinversion H34; simpl in *; subst; auto with itree.
       constructor. left. apply pacobot2. auto.
     - cbn. constructor. right. apply CIH; auto.

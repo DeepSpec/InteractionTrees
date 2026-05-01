@@ -397,7 +397,7 @@ Tactic Notation "bcoinduction" :=
 Ltac bcbn := cbn; to_mon.
 
 (* step -> inversion; common pattern for eutt Hyps *)
-Ltac sinv H := step in H; inv H.
+Ltac sinv H := repeat red in H; step in H; inv H.
 
 
 
