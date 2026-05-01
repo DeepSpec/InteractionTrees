@@ -1,0 +1,111 @@
+# THIS IS AN AUTOMATICALLY GENERATED FILE
+# PLEASE EDIT _CoqConfig INSTEAD
+
+-Q theories ITree
+
+theories/Simple.v
+theories/ITree.v
+theories/ITreeFacts.v
+theories/Axioms.v
+
+theories/Basics/Utils.v
+theories/Basics/Basics.v
+theories/Basics/HeterogeneousRelations.v
+theories/Basics/Category.v
+theories/Basics/CategoryOps.v
+theories/Basics/CategoryTheory.v
+theories/Basics/CategoryFacts.v
+theories/Basics/CategorySub.v
+theories/Basics/CategoryFunctor.v
+theories/Basics/CategoryRelations.v
+theories/Basics/Monad.v
+theories/Basics/MonadProp.v
+theories/Basics/MonadState.v
+theories/Basics/CategoryKleisli.v
+theories/Basics/CategoryKleisliFacts.v
+theories/Basics/Function.v
+theories/Basics/FunctionFacts.v
+
+theories/Core/ITreeDefinition.v
+theories/Core/KTree.v
+theories/Core/KTreeFacts.v
+theories/Core/Subevent.v
+theories/Core/ITreeMonad.v
+
+theories/Eq.v
+theories/Eq/Paco2.v
+theories/Eq/Shallow.v
+theories/Eq/Eqit.v
+theories/Eq/SimUpToTaus.v
+theories/Eq/EqAxiom.v
+theories/Eq/Rutt.v
+theories/Eq/RuttFacts.v
+
+theories/Props/Leaf.v
+theories/Props/Finite.v
+theories/Props/HasPost.v
+theories/Props/Infinite.v
+theories/Props/Cofinite.v
+theories/Props/EuttNoRet.v
+
+theories/Indexed/Sum.v
+theories/Indexed/Relation.v
+theories/Indexed/Function.v
+theories/Indexed/FunctionFacts.v
+
+theories/Interp/Interp.v
+theories/Interp/TranslateFacts.v
+theories/Interp/InterpFacts.v
+theories/Interp/Handler.v
+theories/Interp/HandlerFacts.v
+theories/Interp/Recursion.v
+theories/Interp/RecursionFacts.v
+theories/Interp/Traces.v
+
+theories/Events.v
+theories/Events/State.v
+theories/Events/StateFacts.v
+theories/Events/Reader.v
+theories/Events/Writer.v
+theories/Events/Exception.v
+theories/Events/ExceptionFacts.v
+theories/Events/Nondeterminism.v
+theories/Events/Map.v
+theories/Events/MapDefault.v
+theories/Events/MapDefaultFacts.v
+theories/Events/Concurrency.v
+theories/Events/Dependent.v
+theories/Events/FailFacts.v
+-Q extra ITree.Extra
+
+extra/IForest.v
+
+extra/ITrace/ITraceDefinition.v
+extra/ITrace/ITraceFacts.v
+# extra/ITrace/ITracePrefix.v
+# extra/ITrace/ITraceBind.v
+# extra/ITrace/ITracePreds.v
+
+extra/Dijkstra/DijkstraMonad.v
+extra/Dijkstra/IterRel.v
+extra/Dijkstra/PureITreeBasics.v
+# extra/Dijkstra/PureITreeDijkstra.v
+extra/Dijkstra/DelaySpecMonad.v
+extra/Dijkstra/StateSpecT.v
+extra/Dijkstra/StateDelaySpec.v
+# extra/Dijkstra/TracesIT.v
+extra/Dijkstra/ITreeDijkstra.v
+# extra/Dijkstra/StateIOTrace.v
+
+# extra/Secure/Labels.v
+# extra/Secure/StrongBisimProper.v
+# extra/Secure/SecureEqHalt.v
+# extra/Secure/SecureEqHaltProgInsens.v
+# extra/Secure/SecureEqEuttHalt.v
+# extra/Secure/SecureEqEuttTrans.v
+# extra/Secure/SecureEqWcompat.v
+# extra/Secure/SecureEqBind.v
+# extra/Secure/SecureEqProgInsens.v
+# extra/Secure/SecureEqProgInsensFacts.v
+# extra/Secure/SecureStateHandler.v
+# extra/Secure/SecureStateHandlerPi.v

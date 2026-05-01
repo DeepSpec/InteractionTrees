@@ -32,7 +32,7 @@ deps.dot
 .coqdeps.d
 Makefile.coq
 Makefile.coq.conf
-/_CoqProject
+# /_CoqProject
 examples/_CoqProject
 tutorial/_CoqProject
 _CoqPath
