@@ -171,12 +171,12 @@ Section LoopInvarSpecific.
     apply iter_inl_spin. (*seems to require some coinduciton*)
     generalize dependent a. generalize dependent s.
     (* RTODO improve with tactics *)
-    unfold not_wf_from at -1. coinduction c cih.  
+    unfold not_wf_from at -1. coinduction c CIH.  
     intros. red in H; sinv H; try apply not_wf_F_mono'. 
     apply not_wf with (a' := a'); eauto.
     - red in Hrel. destruct a' as [s' a']. simpl. red. simpl. rewrite Hrel.
       rewrite bind_ret_l. simpl. reflexivity.
-    - destruct a'. eapply cih; eauto.
+    - destruct a'. eapply CIH; eauto.
   Qed.
 
   Lemma iter_wf_converge_state : forall (A B S : Type)  (g : A -> stateT S Delay (A + B) ) (a : A) (s : S),

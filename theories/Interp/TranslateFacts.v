@@ -68,7 +68,7 @@ Qed.
 Instance eq_itree_translate' :
   Proper (eq_itree eq ==> eq_itree eq) (@translate _ _ h R).
 Proof.
-  intros!. revert x y H. icoinduction c cih. intros. 
+  intros!. revert x y H. icoinduction c CIH. intros. 
   to_mon. 
   rewrite itree_eta, (itree_eta (translate h y)), !unfold_translate, <-!itree_eta.
   step in H.
@@ -92,7 +92,7 @@ Lemma translate_bind : forall {E F R S} (h : E ~> F) (t : itree E S) (k : S -> i
 Proof.
   intros E F R S h t k.
   revert S t k.
-  icoinduction c cih. 
+  icoinduction c CIH. 
   intros s t k. to_mon. 
   match goal with
   | [ |- _ ?t1 ?t2 ] => rewrite (itree_eta_ t1), (itree_eta_ t2)
@@ -105,7 +105,7 @@ Lemma translate_id : forall E R (t : itree E R), translate (id_ _) t ≅ t.
 Proof.
   intros E R t.
   revert t.
-  bcoinduction c cih. intros. 
+  bcoinduction c CIH. intros. 
   rewrite itree_eta.
   rewrite (itree_eta t).
   rewrite unfold_translate.
@@ -120,7 +120,7 @@ Lemma translate_cmpE : forall E F G R (g : F ~> G) (f : E ~> F) (t : itree E R),
 Proof.
   intros E F G R g f t.
   revert t.
-  bcoinduction c cih. intros. 
+  bcoinduction c CIH. intros. 
   rewrite !unfold_translate.
   genobs_clear t ot. destruct ot; cbn; try constructor; eauto. 
 Qed.
@@ -160,7 +160,7 @@ Instance eq_itree_translate {E F}
             translate.
 Proof.
   intros f g Hfg T.
-  bcoinduction c cih. intros. 
+  bcoinduction c CIH. intros. 
   rewrite 2 unfold_translate.
   step in H. 
   destruct H; cbn; try easy; try rewrite Hfg; eauto with itree. 
@@ -174,7 +174,7 @@ Instance eutt_translate {E F}
 Proof.
   repeat red.
   intros until T.
-  bcoinduction c cih. intros.
+  bcoinduction c CIH. intros.
   rewrite !unfold_translate. step in H0. 
   induction H0; subst; simpl; eauto with itree. 
   - rewrite H. econstructor. eauto with itree.
@@ -197,7 +197,7 @@ Lemma eutt_translate_gen :
 Proof.
   intros *.
   revert t s.
-  bcoinduction c cih. intros. 
+  bcoinduction c CIH. intros. 
   rewrite !unfold_translate. step in H. 
   induction H; intros; subst; simpl; eauto with itree. 
 Qed. 

@@ -247,7 +247,7 @@ Proof.
   rewrite (unfold_interp_fail h t).
   destruct (observe t) eqn:EQ; bcbn.
   - rewrite bind_ret_l. reflexivity. 
-  - taus. apply cih. 
+  - taus. apply CIH. 
   - rewrite bind_bind, interp_fail_vis.
     ebind; intros; subst.  
     destruct u2. 
@@ -269,7 +269,7 @@ Proof.
   rewrite unfold_bind, (unfold_interp_fail _ t).
   destruct (observe t) eqn:EQ; bcbn.
   - rewrite bind_ret_l. reflexivity. 
-  - etau. apply cih. 
+  - etau. apply CIH. 
   - rewrite bind_bind, interp_fail_vis.
     ebind; intros; subst. 
     destruct u2. 

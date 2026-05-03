@@ -54,7 +54,7 @@ Proof.
   intros A. bcoinduction. intros. cbn.
   destruct (observe t) eqn : Heqt.
   - specialize (itree_eta t) as Heta. rewrite Heqt in Heta. rewrite Heta in H. sinv H. 
-  - constructor. apply cih. specialize (itree_eta t) as Heta. rewrite Heqt in Heta.
+  - constructor. apply CIH. specialize (itree_eta t) as Heta. rewrite Heqt in Heta.
     assert (t ≈ Tau t0).
     + rewrite Heta. reflexivity.
     + rewrite <- tau_eutt. rewrite <- H0. auto.
@@ -64,11 +64,11 @@ Qed.
 Lemma eutt_reta_or_div_aux : forall A (t : itree void1 A), ~(exists a, ret a ≈ t) -> any_infinite t.
 Proof.
   intro A. unfold any_infinite, any_infinite_. 
-  coinduction c cih. 
+  coinduction c CIH. 
   intros. destruct (observe t) eqn : Heqt.
   - exfalso. specialize (itree_eta t) as Heta. rewrite Heqt in Heta. apply H.
     exists r. rewrite Heta. reflexivity.
-  - repeat red; simpobs; constructor. eapply cih; eauto. intro. apply H.
+  - repeat red; simpobs; constructor. eapply CIH; eauto. intro. apply H.
     destruct H0 as [a Ha]. exists a. specialize (itree_eta t) as Ht. rewrite Heqt in Ht.
     rewrite Ht. rewrite tau_eutt. auto.
   - destruct e.
@@ -95,7 +95,7 @@ Qed.
 Lemma eutt_ret_euttge : forall (E : Type -> Type) (A : Type) (a : A) (t : itree E A),
       t ≈ Ret a -> t ≳ Ret a.
 Proof.
-  intros. generalize dependent t. icoinduction c cih. intros. sinv H. 
+  intros. generalize dependent t. icoinduction c CIH. intros. sinv H. 
   - taul. 
   (* Unset Printing Notations.  *)
     remember (observe (Ret a)).

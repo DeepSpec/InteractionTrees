@@ -79,11 +79,11 @@ Definition not_wf_F_mon :=
     not_wf_from a.
   Proof.
     intros. generalize dependent a. unfold not_wf_from.
-    coinduction c cih. 
+    coinduction c CIH. 
     intros. 
     apply not_wf with (a' := f a).
     - auto using H1.
-    - apply cih. eapply H0; eauto.
+    - apply CIH. eapply H0; eauto.
   Qed.
 
   Lemma intro_wf : forall (P : A-> Prop) (m : A -> nat) (a : A),

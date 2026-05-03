@@ -116,7 +116,7 @@ Instance eq_itree_interp {E F}
             interp.
 Proof.
   intros f g Hfg T.
-  bcoinduction c cih. intros. 
+  bcoinduction c CIH. intros. 
   rewrite 2 unfold_interp.
   step in H. 
 
@@ -224,10 +224,10 @@ Proof.
   rewrite unfold_bind, (unfold_interp t).
   destruct (observe t); cbn; to_mon. 
   - rewrite bind_ret_l. apply reflexivity.
-  - taus. fold_subst. apply cih. 
+  - taus. fold_subst. apply CIH. 
   - rewrite interp_vis, bind_bind. ebind. 
     intros; subst.
-    rewrite bind_tau. taus. apply cih. 
+    rewrite bind_tau. taus. apply CIH. 
 Qed.
 
 #[global] Hint Rewrite @interp_bind : itree.
@@ -241,9 +241,9 @@ Proof.
   rewrite (itree_eta t), unfold_interp.
   destruct (observe t); cbn.  
   - reflexivity. 
-  - taus. apply cih. 
+  - taus. apply CIH. 
   - constructor. intro. fold_subst.
-  rewrite bind_ret_, tau_euttge. apply cih. 
+  rewrite bind_ret_, tau_euttge. apply CIH. 
 Qed.
 
 Lemma interp_trigger_h {E R} (t : itree E R) :
@@ -254,7 +254,7 @@ Proof.
   destruct (observe t); cbn; eauto with itree. 
   constructor; intro. fold_subst. 
   rewrite bind_ret_l, tau_euttge.
-  apply cih. 
+  apply CIH. 
 Qed.
 
 (** ** Composition of [interp] *)
@@ -268,7 +268,7 @@ Proof.
   rewrite 2 (unfold_interp t).
   destruct (observe t); cbn; eauto with itree. 
   to_mon. rewrite interp_bind. ebind. intros; subst.  
-  rewrite interp_tau. taus. apply cih.   
+  rewrite interp_tau. taus. apply CIH.   
 Qed.
 
 Lemma interp_translate {E F G} (f : E ~> F) (g : F ~> itree G) {R} (t : itree E R) :
@@ -281,8 +281,8 @@ Proof.
   rewrite unfold_translate_. unfold translateF.
   destruct (observe t); cbn.
   - apply reflexivity. (* SAZ: typeclass resolution failure? *)
-  - taus. apply cih. 
-  - to_mon. ebind. intros; subst. taus. apply cih.  
+  - taus. apply CIH. 
+  - to_mon. ebind. intros; subst. taus. apply CIH.  
 Qed.
 
 Lemma translate_to_interp {E F R} (f : E ~> F) (t : itree E R) :
@@ -293,7 +293,7 @@ Proof.
   rewrite unfold_interp.
   destruct (observe t); cbn; eauto with itree. 
   constructor. intro. fold_subst. 
-  rewrite bind_ret_l, tau_euttge. apply cih. 
+  rewrite bind_ret_l, tau_euttge. apply CIH. 
 Qed.
 
 Lemma interp_forever {E F} (f : E ~> itree F) {R S}
@@ -307,7 +307,7 @@ Proof.
   rewrite interp_bind.
   ebind. intros; subst.
   rewrite interp_tau.
-  taus. apply cih. 
+  taus. apply CIH. 
 Qed.
 
 Lemma interp_iter' {E F} (f : E ~> itree F) {I A}
@@ -324,7 +324,7 @@ Proof.
   ebind. 
   { do 2 step. apply EQ_t. }
   intros [] _ []; cbn; to_mon. 
-  - taus. apply cih. 
+  - taus. apply CIH. 
   - reflexivity. 
 Qed.
 
@@ -349,7 +349,7 @@ Proof.
   ebind. 
   do 2 step. apply Heq.
   intros [] _ []; cbn.
-  - taus. apply cih. 
+  - taus. apply CIH. 
   - reflexivity. 
 Qed.
 

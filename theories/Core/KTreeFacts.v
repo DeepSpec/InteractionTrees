@@ -61,7 +61,7 @@ Lemma bind_iter {E A B C} (f : A -> itree E (A + B)) (g : B -> itree E (B + C))
        end) (inl x).
 Proof. 
   (* this proof should follow from the facts about elem *)
-  bcoinduction c cih. intros.
+  bcoinduction c CIH. intros.
   intros. 
 
   (* Unset Printing Notations.  *)
@@ -72,10 +72,10 @@ Proof.
   ebind. 
   intros [a | b] _ [].
   - rewrite bind_tau. taus.
-    eapply cih. 
+    eapply CIH. 
   - rewrite bind_ret_l, tau_euttge.
   (* question: why doesn't accumulate acc work? *)
-    do 2 step. revert b. bcoinduction c' cih'. intros. 
+    do 2 step. revert b. bcoinduction c' CIH'. intros. 
     rewrite !unfold_iter.
     rewrite bind_map.
     ebind. 
@@ -94,7 +94,7 @@ Lemma eq_itree_iter' {E I1 I2 R1 R2}
   : forall (i1 : I1) (i2 : I2) (RI_i : RI i1 i2),
     @eq_itree E _ _ RR (ITree.iter body1 i1) (ITree.iter body2 i2).
 Proof.
-  bcoinduction c cih. intros. 
+  bcoinduction c CIH. intros. 
   specialize (eutt_body i1 i2 RI_i).
   do 2 rewrite unfold_iter.
   eapply eqit_bind_chain. 
@@ -112,7 +112,7 @@ Lemma eutt_iter' {E I1 I2 R1 R2}
   : forall (i1 : I1) (i2 : I2) (RI_i : RI i1 i2),
     @eutt E _ _ RR (ITree.iter body1 i1) (ITree.iter body2 i2).
 Proof.
-  bcoinduction c cih. intros. 
+  bcoinduction c CIH. intros. 
   specialize (eutt_body i1 i2 RI_i).
   do 2 rewrite unfold_iter.
   ebind.
@@ -131,12 +131,12 @@ Lemma eutt_iter'' {E I1 I2 R1 R2}
   : forall (i1 : I1) (i2 : I2) (RI_i : RI1 i1 i2),
     @eutt E _ _ RR (ITree.iter body1 i1) (ITree.iter body2 i2).
 Proof.
-  bcoinduction c cih. intros. 
+  bcoinduction c CIH. intros. 
   specialize (eutt_body i1 i2 RI_i).
   do 2 rewrite unfold_iter.
   ebind. 
   do 2 step; eauto. 
-  intros ? ? []; econstructor; eauto. now apply cih, HSUB.
+  intros ? ? []; econstructor; eauto. now apply CIH, HSUB.
 Qed.
 
 Definition eutt_iter_gen' {F A B R1 R2 S} (HS : R2 <= R1) :
@@ -245,7 +245,7 @@ Lemma iter_dinatural_ktree {E A B C}
      end).
 Proof.
   revert A B C f g a0. 
-  bcoinduction c cih. intros. 
+  bcoinduction c CIH. intros. 
   rewrite unfold_iter_ktree.
   rewrite bind_bind.
   ebind. 
@@ -253,7 +253,7 @@ Proof.
   (* Tour: show this *)
   (* old TODO: here we should be able to apply symmetry and be done. *)
   (* Win! *)
-  - rewrite bind_tau. taus. symmetry. eapply cih. 
+  - rewrite bind_tau. taus. symmetry. eapply CIH. 
   - rewrite bind_ret_l. reflexivity. 
 Qed.
 
@@ -297,7 +297,7 @@ Lemma iter_codiagonal_ktree {E A B} (f : ktree E A (A + (A + B))) (a0 : A)
        end)) a0.
 Proof.
   revert a0.
-  bcoinduction c cih. intros. 
+  bcoinduction c CIH. intros. 
   rewrite unfold_iter_ktree.
   rewrite (unfold_iter_ktree (fun _ => _ _ _)).
   rewrite unfold_iter_ktree, !bind_bind.
@@ -375,7 +375,7 @@ Proof.
     rewrite tau_euttge.
     do 2 step. 
     generalize xb.
-    bcoinduction c'' cih'. intros. 
+    bcoinduction c'' CIH'. intros. 
     (* We unfold a new step of computation *)
     rewrite 2 unfold_iter. 
     rewrite !bind_bind.
@@ -385,7 +385,7 @@ Proof.
     + (* We loop back in the second loop *)
       rewrite !bind_ret_l.
       taus.
-      apply cih'.  
+      apply CIH'.  
     + rewrite !bind_ret_l.
       reflexivity. 
 Qed.

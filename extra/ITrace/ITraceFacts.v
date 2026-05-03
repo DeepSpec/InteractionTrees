@@ -192,11 +192,11 @@ Lemma trace_refine_proper_left' : forall (E : Type -> Type) (R : Type) (b1 b2 : 
                                     (t : itree E R), (b1 ≈ b2) -> rutt (REvRef E) (RAnsRef E) eq b1 t ->
                                                      rutt (REvRef E) (RAnsRef E) eq b2 t.
 Proof.
-  intros E R. rcoinduction c cih. intros. 
+  intros E R. rcoinduction c CIH. intros. 
   step in H0. repeat red in H0. step in H.
   genobs t ot3. clear Heqot3. 
-  hinduction H before cih; intros; subst; eauto.
-  - remember (RetF r2) as ot1. hinduction H0 before cih; intros; inv Heqot1; eauto with paco.
+  hinduction H before CIH; intros; subst; eauto.
+  - remember (RetF r2) as ot1. hinduction H0 before CIH; intros; inv Heqot1; eauto with paco.
     + constructor. auto.
     + constructor. eapply IHruttF; eauto.
   (* Tau Tau case causes the most problems, seems *)
@@ -204,18 +204,18 @@ Proof.
      { destruct ot3; eauto; right; red; intros; inv H. }
      destruct DEC as [EQ | EQ].
      + destruct EQ as [m3 ?]; subst.
-       constructor. eapply cih; eauto.
+       constructor. eapply CIH; eauto.
        apply rutt_inv_Tau. now step. 
      + inv H0; try (exfalso; eapply EQ; eauto; fail).
        constructor.
        step in REL. 
-       hinduction H1 before cih; intros; subst; try (exfalso; eapply EQ; eauto; fail).
+       hinduction H1 before CIH; intros; subst; try (exfalso; eapply EQ; eauto; fail).
        * dependent induction REL; rewrite <- x.
          ++ constructor. auto.
          ++ constructor. eapply IHREL; eauto.
        * dependent induction REL; rewrite <- x.
          ++ constructor; auto. intros. apply H0 in H1. 
-            eapply cih. apply REL. assumption. 
+            eapply CIH. apply REL. assumption. 
          ++ constructor. eapply IHREL; eauto.
        * eapply IHruttF; eauto. clear IHruttF.
          dependent induction REL; try (exfalso; eapply EQ; eauto; fail).
@@ -223,12 +223,12 @@ Proof.
          ++ auto.
          ++ rewrite <- x. constructor; auto. eapply IHREL; eauto.
   - remember (VisF e k1) as ot1.
-    hinduction H0 before cih; intros; dependent destruction Heqot1.
+    hinduction H0 before CIH; intros; dependent destruction Heqot1.
     + constructor; auto. intros. apply H0 in H1.
-      eapply cih. apply REL. assumption. 
+      eapply CIH. apply REL. assumption. 
     + constructor. eapply IHruttF; eauto.
   - eapply IHeqitF; eauto. remember (TauF t1) as otf1.
-    hinduction H0 before cih; intros; dependent destruction Heqotf1; eauto.
+    hinduction H0 before CIH; intros; dependent destruction Heqotf1; eauto.
     + constructor. now unstep. 
     + constructor. eapply IHruttF; eauto.
   - constructor. eapply IHeqitF; eauto.
@@ -365,14 +365,14 @@ Lemma itree_refine_nonempty : forall (E : Type -> Type) (R : Type) (t : itree E 
 Proof.
   intros. destruct classicT_inhabited as [classicT].
   exists (determinize classicT t). generalize dependent t.
-  red. rcoinduction c cih. 
+  red. rcoinduction c CIH. 
   intros. unfold determinize. desobs t Hot.
   - cbn. eret.
-  - cbn. constructor. apply cih. 
+  - cbn. constructor. apply CIH. 
   - unfold observe. cbn. destruct (classicT _).
     + constructor; eauto with itree. intros.
       inversion H. ddestruction.
-      subst. apply cih.
+      subst. apply CIH.
     + constructor; auto with itree. intros. contradiction.
 Qed.
 
@@ -496,16 +496,16 @@ Lemma trace_refine_all_infinite : forall (E : Type -> Type) (R : Type)
     all_infinite t -> b ⊑ t -> all_infinite b.
 Proof.
   intros E R. unfold all_infinite at -1. 
-  coinduction c cih. 
+  coinduction c CIH. 
   intros. step in H. step in H0. repeat red in H, H0; repeat red.   
   dependent induction H0.
   - rewrite <- x in H. inv H. 
-  - rewrite <- x0. constructor. eapply cih; eauto.
+  - rewrite <- x0. constructor. eapply CIH; eauto.
     rewrite <- x in H. inv H.
   - rewrite <- x0. rewrite <- x in H. constructor. inv H.
     ddestruction. subst. intros. 
     inv H1; subst; ddestruction; try contradiction. destruct b0.
-    eapply cih; try apply H3.
+    eapply CIH; try apply H3.
     specialize (H0 tt a). assert (RAnsRef _ _ _ (evans B e2 a) tt e2 a ).
     constructor. apply H0 in H. eauto.
   - rewrite <- x. constructor. apply (b_chain c). eapply IHruttF; eauto.
@@ -537,18 +537,18 @@ Lemma trace_refine_diverge_bind : forall (E : Type -> Type) (R S : Type)
     all_infinite b -> b ⊑ t -> ITree.bind b f ⊑ ITree.bind t g.
 Proof.
   intros E R S b t f g. generalize dependent b. generalize dependent t.
-  red. rcoinduction c cih. intros.
+  red. rcoinduction c CIH. intros.
   step in H0. 
   step in H. repeat red in H0, H. 
   dependent induction H0.
   - rewrite <- x0 in H. inv H.
   - unfold observe. cbn. rewrite <- x0. rewrite <- x.
-    cbn. constructor. apply cih; auto.
+    cbn. constructor. apply CIH; auto.
     rewrite <- x0 in H. inv H. 
   - unfold observe. cbn. rewrite <- x0. rewrite <- x. cbn. constructor; auto.
     intros.
     rewrite <- x0 in H. inv H. ddestruction. subst. 
-    apply H0 in H2. eapply cih; eauto. apply H4.
+    apply H0 in H2. eapply CIH; eauto. apply H4.
   - unfold observe at 1. cbn. rewrite <- x. cbn. constructor.
     eapply IHruttF; eauto. rewrite <- x in H. inv H. now unstep.
   - unfold observe at 2. cbn. rewrite <- x. cbn. constructor.

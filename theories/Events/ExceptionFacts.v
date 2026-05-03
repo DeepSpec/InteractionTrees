@@ -150,7 +150,7 @@ Proof.
   - destruct e.
    + destruct e. rewrite Heq. rewrite throw_prefix_exc. rewrite try_catch_ret. reflexivity.
    + rewrite Heq. rewrite throw_prefix_ev. rewrite try_catch_ev. evis.
-     rewrite try_catch_tau. repeat rewrite tau_euttge. apply cih.
+     rewrite try_catch_tau. repeat rewrite tau_euttge. apply CIH.
 Qed.
 
 Lemma throw_prefix_bind_decomp : forall E Err R (t : itree (exceptE Err +' E) R ),
@@ -168,7 +168,7 @@ Proof.
     + rewrite Heq. destruct e. rewrite throw_prefix_exc. rewrite bind_ret_l. bcbn. evis. 
       easy. 
     + rewrite Heq. rewrite throw_prefix_ev. rewrite bind_vis. evis. 
-      intros. rewrite tau_euttge. apply cih. 
+      intros. rewrite tau_euttge. apply CIH. 
 Qed.
 
 Lemma try_catch_to_throw_prefix : forall E Err R (ttry : itree (exceptE Err +' E) R  ) (kcatch : Err -> itree (exceptE Err +' E) R),
@@ -225,7 +225,7 @@ Proof.
     + destruct e. rewrite Heq. rewrite throw_prefix_exc. rewrite bind_vis. rewrite throw_prefix_exc.
       rewrite bind_ret_l. eret. 
     + rewrite Heq. rewrite throw_prefix_ev. repeat rewrite bind_vis. rewrite throw_prefix_ev.
-      evis. rewrite bind_tau. step. taus. apply cih.  
+      evis. rewrite bind_tau. step. taus. apply CIH.  
 Qed.
 
 Lemma throw_prefix_iter : forall E Err A B (body : A -> itree (exceptE Err +' E) (A + B)  ) (init : A),

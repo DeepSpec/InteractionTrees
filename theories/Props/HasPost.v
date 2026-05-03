@@ -243,9 +243,9 @@ Proof.
   rewrite (itree_eta t), (itree_eta u) in H.
   step in EQ. cbn. destruct EQ; try discriminate; constructor.
   - rewrite <- eutt_Ret in H. auto.
-  - apply cih; [ | apply REL ].
+  - apply CIH; [ | apply REL ].
     revert H; apply eqit_Tau.
-  - intro. apply cih; [ | apply REL ].
+  - intro. apply CIH; [ | apply REL ].
     eapply eqit_inv_Vis with (1 := H).
 Qed.
 

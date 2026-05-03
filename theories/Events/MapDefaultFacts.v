@@ -213,7 +213,7 @@ Section MapFacts.
         * apply handle_map_eq. assumption.
         * unfold pure_state. step. evis. step. eret. 
       + intros. etau. 
-      inv H. rewrite snd_rel. eapply cih; eauto. apply REL.
+      inv H. rewrite snd_rel. eapply CIH; eauto. apply REL.
     - rewrite tau_euttge, unfold_interp_state.
       now eapply IHeqitF. 
     - rewrite tau_euttge, unfold_interp_state.

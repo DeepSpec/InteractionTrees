@@ -373,7 +373,7 @@ Tactic Notation "bcoinduction"
   icoinduction R H; to_mon.
 
 Tactic Notation "bcoinduction" :=
-  let c := fresh "c" in let cih := fresh "cih" in bcoinduction c cih.
+  let c := fresh "c" in let CIH := fresh "CIH" in bcoinduction c CIH.
 
 Ltac bcbn := cbn; to_mon.
 
@@ -1024,7 +1024,7 @@ Qed.
 Proof with eauto with itree. 
   split; intros; 
   revert_until RR; 
-  icoinduction c cih; intros; 
+  icoinduction c CIH; intros; 
   step in H0; step in H1; step in H; icbn in *.
   all:
   hinduction H1 before RR; intros.
@@ -1037,7 +1037,7 @@ Proof with eauto with itree.
   do 2 inv_Vis; constructor; intros;
   specialize (REL1 v);
   specialize (REL0 v);
-  eapply cih; eauto. 
+  eapply CIH; eauto. 
   (* inductive steps *)
   1,3: 
   inv H; simpobs; taul; eapply IHeqitF; eauto; now step in REL.
@@ -1496,7 +1496,7 @@ Abort.
 
   (* Test [coinduction] tactic, notations  *)
   Goal u ≈ t -> t ≈ u.
-    icoinduction r cih.
+    icoinduction r CIH.
     intros.
     step. 
     rewrite H. 
@@ -2681,14 +2681,14 @@ Lemma eutt_conj {E} {R S} {RS RS'} :
     eutt RS' t s ->
     eutt (conj_rel RS RS') t s.
 Proof.
-  icoinduction c cih. intros * EQ EQ'.
+  icoinduction c CIH. intros * EQ EQ'.
   step in EQ; step in EQ'. 
   genobs t ot; genobs s os.
-  hinduction EQ before cih; subst; intros; simpl.
+  hinduction EQ before CIH; subst; intros; simpl.
   - inv EQ'. eret. now constructor. 
-  - taus. eapply cih; eauto. apply eqit_inv_Tau. now step.  
+  - taus. eapply CIH; eauto. apply eqit_inv_Tau. now step.  
   - constructor. intro v. specialize (REL v).
-    eapply cih; eauto. 
+    eapply CIH; eauto. 
     now eapply eqitF_inv_VisF in EQ'; eauto.
   - taul. eapply IHEQ; eauto. subst. unstep. eapply eqit_inv_Tau_l. 
     now step.  
@@ -2747,7 +2747,7 @@ Lemma eutt_sub_self {E R} (R1 R2: R -> R -> Prop) (t: itree E R):
   eutt R1 t t ->
   eutt R2 t t.
 Proof.
-  intros Hrel; revert t. icoinduction c cih; intros t Heutt.
+  intros Hrel; revert t. icoinduction c CIH; intros t Heutt.
   step in Heutt.
   remember t as t' in Heutt at 2. assert (Ht': t' ≈ t) by now subst. clear Heqt'.
   rewrite (itree_eta t), (itree_eta t') in Ht'.
@@ -2755,10 +2755,10 @@ Proof.
   - apply eutt_inv_Ret in Heq; subst.
     constructor; auto.
   - apply eqit_inv_Tau in Heq.
-    constructor. eapply cih. 
+    constructor. eapply CIH. 
     now rewrite <- Heq at 2.
   - constructor. intros v. eapply eqit_inv_Vis in Heq.
-    specialize (REL v). eapply cih. now rewrite <- Heq at 2.
+    specialize (REL v). eapply CIH. now rewrite <- Heq at 2.
   - taul. taur. apply IHHeutt. rewrite <- (itree_eta t1).   
     now rewrite tau_euttge in Heq. 
   - apply IHHeutt. rewrite <- (itree_eta).   

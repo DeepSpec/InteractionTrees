@@ -260,12 +260,12 @@ Lemma rutt_cong_eutt {E1 E2 R1 R2}:
   rutt REv RAns RR t1' t2.
 Proof.
   intros * Hrutt Heutt; revert t1 t1' Heutt t2 Hrutt.
-  rcoinduction c cih; intros t1 t1' Heutt t2 Hrutt.
+  rcoinduction c CIH; intros t1 t1' Heutt t2 Hrutt.
   rstep in Hrutt.
   rewrite (itree_eta t1') in *.
   remember (observe t1) as ot1 eqn:Hot1.
   remember (observe t2) as ot2 eqn:Hot2.
-  move Hrutt before cih; revert_until Hrutt.
+  move Hrutt before CIH; revert_until Hrutt.
   induction Hrutt as [r1 r2|m1 m2| |m1 ot2'|]; intros tt1 tt1' Heutt' tt2 Hot1' Hot2'.
   - (* EqRet *)
     step in Heutt'. cbn in Heutt'.
@@ -284,7 +284,7 @@ Proof.
     induction Heutt' as [r1 r2 _|m1' m1''|U' e1 k1 k1' _|t1' ot1' _ IHHeutt'|t1'' m1''];
       intros m1 m2 H HoTauL; try discriminate.
     + (* EqTau of Heutt' *)
-      inv HoTauL. apply EqTau. apply cih with m1.
+      inv HoTauL. apply EqTau. apply CIH with m1.
       * apply REL.
       * unfold rutt. step. exact H.
     + (* EqTauL of Heutt': need to case on the head of m1 *)
@@ -316,13 +316,13 @@ Proof.
            induction H; try discriminate.
            *** dependent destruction HoVisL2.
                apply EqVis; auto. intros a b HAns.
-               apply cih with (k0 a).
+               apply CIH with (k0 a).
                **** apply REL.
                **** apply H0; auto.
            *** apply EqTauR. apply IHruttF; auto.
         ** apply EqTauL. apply IHIHHeutt'; auto.
     + (* EqTauR of Heutt' *)
-      apply EqTau. apply cih with m1.
+      apply EqTau. apply CIH with m1.
       * rewrite <- tau_eutt with (t:=m1). step. subst t1''. exact Heutt'.
       * unfold rutt. step. exact H.
   - (* EqVis *)
@@ -332,7 +332,7 @@ Proof.
     induction Heutt'; try discriminate; intros.
     + dependent destruction HoVisL.
       apply EqVis; auto. intros a b HAns.
-      apply cih with (k1 a).
+      apply CIH with (k1 a).
       * apply REL.
       * apply H0; auto.
     + apply EqTauL. apply IHHeutt'; auto.
@@ -383,21 +383,21 @@ Lemma rutt_bind {E1 E2 R1 R2 T1 T2}
       rutt REv RAns RT (k1 r1) (k2 r2)) ->
     rutt REv RAns RT (ITree.bind t1 k1) (ITree.bind t2 k2).
 Proof.
-  revert t1 t2. rcoinduction c cih. intros t1 t2 Hrutt EQK.
+  revert t1 t2. rcoinduction c CIH. intros t1 t2 Hrutt EQK.
   rstep in Hrutt.
   genobs t1 ot1. genobs t2 ot2.
-  hinduction Hrutt before cih; intros.
+  hinduction Hrutt before CIH; intros.
   - (* Ret *)
     rewrite !observe_bind; simpobs.
     specialize (EQK _ _ H).
      rstep in EQK. now do 2 rstep.
   - (* Tau *)
     rewrite !observe_bind; simpobs.
-    apply EqTau. apply cih; auto.
+    apply EqTau. apply CIH; auto.
   - (* Vis *)
     rewrite !observe_bind; simpobs.
     apply EqVis; auto. intros a b HAns.
-    apply cih; auto. now apply H0. 
+    apply CIH; auto. now apply H0. 
   - (* TauL *)
     rewrite observe_bind; simpobs.
     apply EqTauL. apply IHHrutt; auto.
@@ -420,23 +420,23 @@ Section RuttMrec.
       rutt (sum_prerel RPreInv RPre) (sum_postrel RPostInv RPost) RR t1 t2 ->
       rutt RPre RPost RR (interp_mrec bodies1 t1) (interp_mrec bodies2 t2).
   Proof.
-    rcoinduction c cih. 
+    rcoinduction c CIH. 
     intros t1 t2 Ht12. rstep in Ht12. 
     remember (observe t1) as ot1. remember (observe t2) as ot2.
     hinduction Ht12 before R1; intros; to_rmon. 
     - apply simpobs in Heqot1, Heqot2. rewrite Heqot1, Heqot2.
       repeat rewrite unfold_interp_mrec. cbn. now constructor.  
     - apply simpobs in Heqot1, Heqot2. rewrite Heqot1, Heqot2.
-      repeat rewrite unfold_interp_mrec. cbn. constructor; now apply cih. 
+      repeat rewrite unfold_interp_mrec. cbn. constructor; now apply CIH. 
     - apply simpobs in Heqot1, Heqot2. rewrite Heqot1, Heqot2.
       repeat rewrite unfold_interp_mrec. cbn.
       inv H.
       + apply inj_pair2 in H1, H4. subst. constructor.
-        eapply cih.  
+        eapply CIH.  
         eapply rutt_bind; eauto.
         intros. cbn in H. clear - H H0. apply H0. now constructor.
       + apply inj_pair2 in H1, H4. subst. constructor.
-        auto. intros. repeat rewrite tau_euttge. eapply cih. 
+        auto. intros. repeat rewrite tau_euttge. eapply CIH. 
         clear - H0 H. apply H0. now constructor. 
     - apply simpobs in Heqot1. rewrite Heqot1. rewrite unfold_interp_mrec at 1. 
       cbn. constructor. now apply IHHt12. 

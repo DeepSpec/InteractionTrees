@@ -28,24 +28,24 @@ Definition euttNoRet {E} {A B : Type} (ta : itree E A) (tb : itree E B) :=
 
 Lemma euttNoRet_spin : forall (E : Type -> Type) (A B : Type), @euttNoRet E A B ITree.spin ITree.spin.
 Proof.
-  intros. unfold euttNoRet. icoinduction c cih. cbn. constructor. exact cih.
+  intros. unfold euttNoRet. icoinduction c CIH. cbn. constructor. exact CIH.
 Qed.
 
 Lemma noret_bind_nop : forall (E : Type -> Type) (A B : Type) (t : itree E A) (f : A -> itree E B),
     all_infinite t -> euttNoRet t (t >>= f).
 Proof.
-  intros E A B. unfold euttNoRet. icoinduction c cih. intros t f Hdiv.
+  intros E A B. unfold euttNoRet. icoinduction c CIH. intros t f Hdiv.
   apply (gfp_fp all_infinite_mon) in Hdiv.
   cbn[all_infinite_mon body] in Hdiv. unfold all_infinite_ in Hdiv.
   inversion Hdiv; subst.
   - unfold bind, Monad_itree.
     rewrite observe_bind. rewrite <- H. cbn. apply EqTau.
     change (ITree.subst f t0) with (ITree.bind t0 f).
-    apply cih. auto.
+    apply CIH. auto.
   - unfold bind, Monad_itree.
     rewrite observe_bind. rewrite <- H. cbn. apply EqVis.
     intros v. change (ITree.subst f (k v)) with (ITree.bind (k v) f).
-    apply cih. apply H0.
+    apply CIH. apply H0.
 Qed.   
 
 Lemma euttNoRet_subrel : forall (E : Type -> Type) (A B : Type) (R : A -> B -> Prop) 
@@ -61,17 +61,17 @@ Lemma all_infinite_euttNoRet : forall (E : Type -> Type) (A B : Type) (R : A -> 
                             (ta : itree E A) (tb : itree E B),
     all_infinite ta -> eutt R ta tb -> euttNoRet ta tb.
 Proof.
-  intros E A B R. unfold euttNoRet. icoinduction c cih. intros ta tb Hdiv Heutt.
+  intros E A B R. unfold euttNoRet. icoinduction c CIH. intros ta tb Hdiv Heutt.
   step in Heutt. cbn[eqit_mon body] in Heutt. unfold eqit_ in Heutt.
   cbn[eqit_mon body]. unfold eqit_.
   apply (gfp_fp all_infinite_mon) in Hdiv.
   cbn[all_infinite_mon body] in Hdiv. unfold all_infinite_ in Hdiv.
   dependent induction Heutt.
   - exfalso. rewrite <- x0 in Hdiv. inversion Hdiv.
-  - rewrite <- x0. rewrite <- x. apply EqTau. apply cih.
+  - rewrite <- x0. rewrite <- x. apply EqTau. apply CIH.
     + rewrite <- x0 in Hdiv. inversion Hdiv; subst. auto.
     + auto.
-  - rewrite <- x0. rewrite <- x. apply EqVis. intros v. apply cih.
+  - rewrite <- x0. rewrite <- x. apply EqVis. intros v. apply CIH.
     + rewrite <- x0 in Hdiv. inversion Hdiv; subst. ddestruction. apply H0.
     + apply REL.
   - rewrite <- x. apply EqTauL; auto. apply IHHeutt; auto.
@@ -84,14 +84,14 @@ Qed.
 Lemma euttNoRet_all_infinite : forall (E : Type -> Type) (A B : Type) (t1 : itree E A) (t2 : itree E B),
     euttNoRet t1 t2 -> all_infinite t1.
 Proof.
-  intros E A B. unfold all_infinite. coinduction c cih. intros t1 t2 H.
+  intros E A B. unfold all_infinite. coinduction c CIH. intros t1 t2 H.
   cbn[all_infinite_mon body]. unfold all_infinite_.
   unfold euttNoRet in H. step in H. cbn[eqit_mon body] in H. unfold eqit_ in H.
   dependent induction H; try contradiction.
-  - rewrite <- x0. constructor. apply cih with (t2 := m2). unfold euttNoRet. auto.
-  - rewrite <- x0. constructor. intros v. apply cih with (t2 := k2 v).
+  - rewrite <- x0. constructor. apply CIH with (t2 := m2). unfold euttNoRet. auto.
+  - rewrite <- x0. constructor. intros v. apply CIH with (t2 := k2 v).
     unfold euttNoRet. apply REL.
-  - rewrite <- x. constructor. apply cih with (t2 := t2). unfold euttNoRet.
+  - rewrite <- x. constructor. apply CIH with (t2 := t2). unfold euttNoRet.
     step. cbn[eqit_mon body]. unfold eqit_. auto.
   - eapply IHeqitF; eauto.
 Qed.
@@ -100,11 +100,11 @@ Qed.
 Lemma euttNoRet_sym : forall (E : Type -> Type) (A B : Type) (t1 : itree E A) (t2 : itree E B),
     euttNoRet t1 t2 -> euttNoRet t2 t1.
 Proof.
-  intros E A B. unfold euttNoRet. icoinduction c cih. intros t1 t2 H.
+  intros E A B. unfold euttNoRet. icoinduction c CIH. intros t1 t2 H.
   unfold euttNoRet in H. step in H. cbn[eqit_mon body] in H. unfold eqit_ in H.
   dependent induction H; try contradiction.
-  - rewrite <- x0. rewrite <- x. apply EqTau. apply cih. auto.
-  - rewrite <- x0. rewrite <- x. apply EqVis. intros v. apply cih. apply REL.
+  - rewrite <- x0. rewrite <- x. apply EqTau. apply CIH. auto.
+  - rewrite <- x0. rewrite <- x. apply EqVis. intros v. apply CIH. apply REL.
   - rewrite <- x. apply EqTauR; auto.
   - rewrite <- x. apply EqTauL; auto.
 Qed.

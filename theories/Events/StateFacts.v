@@ -63,7 +63,7 @@ Proof.
   step in H0. 
   destruct H0; subst; try discriminate; cbn.
   - reflexivity. 
-  - taus; now apply cih.  
+  - taus; now apply CIH.  
   - to_mon. ebind; intros; subst.  
     + taus; auto with itree. 
 Qed.
@@ -129,11 +129,11 @@ Proof.
   destruct (observe t).
   - bcbn. rewrite !bind_ret_l. 
     apply reflexivity.
-  - bcbn. taus. apply cih.
+  - bcbn. taus. apply CIH.
   - bcbn. rewrite interp_state_vis, bind_bind.
     ebind; intros; subst. 
       rewrite bind_tau.
-      taus. now apply cih. 
+      taus. now apply CIH. 
 Qed.
 
 #[global]
@@ -148,7 +148,7 @@ Proof.
   induction H; intros; subst; bcbn. 
   - eret. 
   - etau. 
-  - ebind; intros; subst. taus. apply cih. apply REL. 
+  - ebind; intros; subst. taus. apply CIH. apply REL. 
   - rewrite tau_euttge, unfold_interp_state; eauto.
   - rewrite tau_euttge, unfold_interp_state; eauto.
 Qed.

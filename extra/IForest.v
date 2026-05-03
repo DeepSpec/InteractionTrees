@@ -294,8 +294,8 @@ Definition interp_iforest {E F} (h_spec : E ~> iforest F) :
 
 #[local] Tactic Notation "bcoinduction" :=
   let c := fresh "c" in
-  let cih := fresh "cih" in
-  bcoinduction c cih.
+  let CIH := fresh "CIH" in
+  bcoinduction c CIH.
 
 #[local] Ltac bcbn :=
   cbn[eqit_mon body eqit_ interp_iforest_mon interp_iforest_];
@@ -462,12 +462,12 @@ Proof.
     rewrite Eqit.bind_ret_l. repeat red. simpobs. now econstructor. 
   - rewrite <- eq. rewrite unfold_iter. bcbn. rewrite Eqit.bind_ret_l.
     rewrite tau_eutt. 
-    repeat red. simpobs. econstructor. now apply cih.  
+    repeat red. simpobs. econstructor. now apply CIH.  
   - rewrite <- eq. rewrite unfold_iter. bcbn.
     rewrite bind_map. repeat red; simpobs. econstructor.
     + apply H. 
     + ebind. intros; subst. rewrite tau_eutt. reflexivity. 
-    + intros. rewrite tau_eutt. now apply cih. 
+    + intros. rewrite tau_eutt. now apply CIH. 
 Qed. 
 
 (* Lemma 5.5 - note that the paper presents this lemma after unfolding the definition of Proper.
@@ -481,7 +481,7 @@ Proof.
   intros t1 t2 eqt s' s eqs HI.
   subst.
   revert t1 t2 eqt s HI.
-  icoinduction c cih. 
+  icoinduction c CIH. 
   intros.
   step in HI.
 
@@ -492,7 +492,7 @@ Proof.
   induction eqt; intros.
   - inv HI. econstructor. etransitivity; eauto. eauto.  
   - inv HI. 
-    econstructor. eapply cih; eauto.
+    econstructor. eapply CIH; eauto.
   - inv HI. 
     apply inj_pair2 in H1.
     apply inj_pair2 in H2.
@@ -501,7 +501,7 @@ Proof.
     apply HTA.
     apply eq2.
     intros a Ha. specialize (REL a). specialize (HK a Ha). red in REL. 
-    eapply cih. apply REL. apply HK.
+    eapply CIH. apply REL. apply HK.
   - econstructor. step. 
     eapply IHeqt. reflexivity. eassumption. assumption.
   - inv HI. 
@@ -519,13 +519,13 @@ Lemma eutt_Leaf_ : forall {E} {R} (RR : R -> Prop) (ta : itree E R)
    (IN: forall (a : R), Leaf a ta -> RR a), eutt (fun u1 u2 => u1 = u2 /\ RR u1) ta ta.
 Proof.
   intros E R.
-  icoinduction c cih. intros. 
+  icoinduction c CIH. intros. 
   setoid_rewrite (itree_eta ta) in IN.
   destruct (observe ta).
   - econstructor.  split; auto. apply IN. now econstructor.
-  - econstructor. apply cih. intros. eapply IN. now rewrite tau_eutt.
+  - econstructor. apply CIH. intros. eapply IN. now rewrite tau_eutt.
   - econstructor. intros. 
-    apply cih. intros. eapply IN. eapply Leaf_Vis_sub. apply H.
+    apply CIH. intros. eapply IN. eapply Leaf_Vis_sub. apply H.
 Qed.
 
 Lemma eutt_Leaf : forall E R (ta : itree E R), eutt (fun u1 u2 => u1 = u2 /\ Leaf u1 ta) ta ta.
@@ -593,7 +593,7 @@ Lemma interp_iforest_spin_accepts_anything :
     interp_iforest h_spec R RR ITree.spin t.
 Proof.
   intros.
-  icoinduction c cih. cbn. econstructor. apply cih. 
+  icoinduction c CIH. cbn. econstructor. apply CIH. 
 Qed.
 
 (* Figure 7: Structural law for tau *)
@@ -1037,14 +1037,14 @@ Lemma eutt_EQ_REL_Reflexive_ {E} {A} (ta : itree E A) :
   eutt R ta ta.
 Proof.
   revert ta.
-  icoinduction c cih. intros ta R HEQ.
+  icoinduction c CIH. intros ta R HEQ.
   desobs ta hta. 
   - econstructor. apply HEQ. red. split; auto. 
     rewrite itree_eta. rewrite hta. now constructor. 
-  - econstructor. apply cih. intros!. apply HEQ. 
+  - econstructor. apply CIH. intros!. apply HEQ. 
     red. destruct H. split; auto. 
     econstructor 2; eauto. 
-  - econstructor; intros. apply cih. 
+  - econstructor; intros. apply CIH. 
     intros!. apply HEQ.
     rewrite itree_eta, hta.
     destruct H.

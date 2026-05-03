@@ -192,7 +192,7 @@ Proof.
       rewrite (unfold_interp_mrec _ _ (Tau _)); bcbn.
       taus. 
       rewrite tau_euttge.
-      apply cih. 
+      apply CIH. 
 Qed.
 
 Section DinatSimulation.
@@ -330,7 +330,7 @@ Proof.
   all: rewrite (unfold_interp_mrec _ _ (go _)), unfold_interp; bcbn.
   1,2: rewrite unfold_interp_mrec; bcbn.
   1,2: rewrite (unfold_interp_mrec _ _ (go _)); eauto with itree.
-  taus. apply cih. 
+  taus. apply CIH. 
   destruct e.
   - rewrite (interp_mrec_bind _ (ITree.trigger _)).
     rewrite interp_mrec_trigger; bcbn.
@@ -348,7 +348,7 @@ Proof.
     rewrite 2 unfold_interp_mrec; bcbn.
     destruct s. taus. 
     rewrite <- interp_mrec_bind, <- interp_bind.
-    apply cih. 
+    apply CIH. 
     constructor; intros. now step; taus.  
 Qed.
 
