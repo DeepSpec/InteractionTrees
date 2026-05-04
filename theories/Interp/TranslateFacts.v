@@ -48,20 +48,20 @@ Qed.
 Lemma translate_ret : forall (r:R), translate h (Ret r) ≅ Ret r.
 Proof.
   intros r.
-  rewrite itree_eta, unfold_translate. cbn. reflexivity.
+  rewrite unfold_translate. cbn. reflexivity.
 Qed.
 
 Lemma translate_tau : forall (t : itree E R), translate h (Tau t) ≅ Tau (translate h t).
 Proof.
   intros t.
-  rewrite itree_eta, unfold_translate. cbn. reflexivity.
+  rewrite unfold_translate. cbn. reflexivity.
 Qed.
 
 Lemma translate_vis : forall X (e:E X) (k : X -> itree E R),
     translate h (Vis e k) ≅ Vis (h _ e) (fun x => translate h (k x)).
 Proof.
   intros X e k.
-  rewrite itree_eta, unfold_translate. cbn. reflexivity.
+  rewrite unfold_translate. cbn. reflexivity.
 Qed.
 
 #[global]
@@ -70,7 +70,7 @@ Instance eq_itree_translate' :
 Proof.
   intros!. revert x y H. icoinduction c CIH. intros. 
   to_mon. 
-  rewrite itree_eta, (itree_eta (translate h y)), !unfold_translate, <-!itree_eta.
+  rewrite !unfold_translate.
   step in H.
   induction H; simpobs; simpl; eauto with itree.  
 Qed.
@@ -106,11 +106,13 @@ Proof.
   intros E R t.
   revert t.
   coinduction c CIH. intros. 
-  rewrite itree_eta.
+  (* TOUR: order: need `rewrite itree_eta.` last, or we 
+  will be doing rewrites under {| _observe := observe _ |}, which is very slow. *)
   rewrite (itree_eta t).
   rewrite unfold_translate.
   unfold translateF.
-  destruct (observe t); cbn; try constructor; eauto. 
+  rewrite itree_eta.
+  destruct (observe t); cbn; try constructor; eauto.  
 Qed.
 
 Import CatNotations.
@@ -124,8 +126,6 @@ Proof.
   rewrite !unfold_translate.
   genobs_clear t ot. destruct ot; cbn; try constructor; eauto. 
 Qed.
-
-(**)
 
 Definition respectful_eq_itree {E F : Type -> Type}
   : (itree E ~> itree F) -> (itree E ~> itree F) -> Prop

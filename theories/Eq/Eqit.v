@@ -349,6 +349,7 @@ Tactic Notation "to_mon" "in" ident(h) := to_mon_in h.
 Tactic Notation "iunfold" "in" ident(h) := iunfold_in h.
 Tactic Notation "iunfold" "in" "*" := iunfold_all.
 
+(* RTODO possible fix here: with body vs elem *)
 Tactic Notation "step" := 
 (match goal with 
 | |- context[elem _] => idtac 
@@ -387,7 +388,7 @@ Tactic Notation "icoinduction"
     coinduction R H; icbn.
 
 
-Ltac bcbn := cbn; to_mon.
+
 
 (* step -> inversion; common pattern for eutt Hyps *)
 Ltac sinv H := repeat red in H; step in H; inv H.
@@ -2768,5 +2769,10 @@ Qed.
 Proof. 
   intros!; now eapply observing_eq_chain.
 Qed. 
+
+Ltac bcbn := cbn; to_mon; 
+repeat match goal with 
+| |- context [{| _observe := observe ?t |}] => rewrite <- (itree_eta t)
+end.  
 
 (* RTODO: Strengthen rewrites *)

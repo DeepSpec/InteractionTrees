@@ -167,18 +167,20 @@ Proof.
     + rewrite interp_tau.
       rewrite 2 interp_mrec_bind, interp_bind.
       subst h. 
-      bcbn.    
+      bcbn.
       rewrite interp_trigger.
       rewrite unfold_interp_mrec.  bcbn. 
       rewrite interp_mrec_trigger. bcbn. 
       unfold Recursion.mrec.
+      (* TOUR: Note that if you eta-expand the second tree (as before), 
+      the next 3 tactics take 8 seconds each. *)
       rewrite !interp_tau.
       rewrite (unfold_interp_mrec _ _ (Tau _)); bcbn.
       rewrite !bind_tau.
       taus. rewrite tau_euttge, <- interp_bind, <- 2 interp_mrec_bind.
       setoid_rewrite (tau_euttge (interp _ _)).
       rewrite <- interp_bind.
-      auto with paco.
+      auto.
     + rewrite interp_vis.
       rewrite interp_mrec_bind.
       subst h; bcbn.
