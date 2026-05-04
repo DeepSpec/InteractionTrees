@@ -95,8 +95,8 @@ Proof. reflexivity. Qed.
 Lemma rutt_flip {E1 E2 R1 R2 REv RAns RR} (t1: itree E1 R1) (t2: itree E2 R2):
   rutt REv RAns RR t1 t2 <-> rutt (flip_REv REv) (flip_RAns RAns) (flip RR) t2 t1.
 Proof.
-  split; revert t1 t2; rcoinduction c CIH; intros t1 t2 Hrutt; 
-  rstep in Hrutt.
+  split; revert t1 t2; coinduction c CIH; icbn; intros t1 t2 Hrutt; 
+  step in Hrutt.
   - induction Hrutt; try now constructor.
     * apply EqTau. now apply CIH.
     * apply EqVis. auto. intros b a HAns. cbn in HAns.
@@ -119,8 +119,8 @@ Qed.
 Proof.
   intros REv1 REv2 HREv  RAns1 RAns2 HRAns RR1 RR2 HRR t1 _ <- t2 _ <-.
   split; intros Hrutt; 
-    revert t1 t2 Hrutt; rcoinduction c CIH; intros t1 t2 Hrutt; 
-    rstep in Hrutt; rcbn; 
+    revert t1 t2 Hrutt; coinduction c CIH; intros t1 t2 Hrutt; 
+    step in Hrutt; rcbn; 
     hinduction Hrutt before CIH; intros; eauto using EqTauL, EqTauR.
     1,4: apply EqRet; now apply HRR. 
     1,3: apply EqTau; now apply CIH.
@@ -260,8 +260,8 @@ Lemma rutt_cong_eutt {E1 E2 R1 R2}:
   rutt REv RAns RR t1' t2.
 Proof.
   intros * Hrutt Heutt; revert t1 t1' Heutt t2 Hrutt.
-  rcoinduction c CIH; intros t1 t1' Heutt t2 Hrutt.
-  rstep in Hrutt.
+  coinduction c CIH; icbn; intros t1 t1' Heutt t2 Hrutt.
+  step in Hrutt.
   rewrite (itree_eta t1') in *.
   remember (observe t1) as ot1 eqn:Hot1.
   remember (observe t2) as ot2 eqn:Hot2.
@@ -383,14 +383,14 @@ Lemma rutt_bind {E1 E2 R1 R2 T1 T2}
       rutt REv RAns RT (k1 r1) (k2 r2)) ->
     rutt REv RAns RT (ITree.bind t1 k1) (ITree.bind t2 k2).
 Proof.
-  revert t1 t2. rcoinduction c CIH. intros t1 t2 Hrutt EQK.
-  rstep in Hrutt.
+  revert t1 t2. coinduction c CIH. icbn. intros t1 t2 Hrutt EQK.
+  step in Hrutt.
   genobs t1 ot1. genobs t2 ot2.
   hinduction Hrutt before CIH; intros.
   - (* Ret *)
     rewrite !observe_bind; simpobs.
     specialize (EQK _ _ H).
-     rstep in EQK. now do 2 rstep.
+     step in EQK. now do 2 step.
   - (* Tau *)
     rewrite !observe_bind; simpobs.
     apply EqTau. apply CIH; auto.
@@ -420,8 +420,8 @@ Section RuttMrec.
       rutt (sum_prerel RPreInv RPre) (sum_postrel RPostInv RPost) RR t1 t2 ->
       rutt RPre RPost RR (interp_mrec bodies1 t1) (interp_mrec bodies2 t2).
   Proof.
-    rcoinduction c CIH. 
-    intros t1 t2 Ht12. rstep in Ht12. 
+    coinduction c CIH. icbn. 
+    intros t1 t2 Ht12. step in Ht12. 
     remember (observe t1) as ot1. remember (observe t2) as ot2.
     hinduction Ht12 before R1; intros; to_rmon. 
     - apply simpobs in Heqot1, Heqot2. rewrite Heqot1, Heqot2.

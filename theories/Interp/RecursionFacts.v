@@ -82,7 +82,7 @@ Global Instance eq_itree_mrec {R} :
   Proper (eq_itree eq ==> eq_itree eq) (@interp_mrec _ _ ctx R).
 Proof.
   repeat red. 
-  bcoinduction. intros.
+  coinduction. intros.
   rewrite !unfold_interp_mrec.
   step in H. inv H; eauto with itree. 
   - taus. now apply CIH. 
@@ -98,7 +98,7 @@ Theorem interp_mrec_bind {U T} (t : itree _ U) (k : U -> itree _ T) :
   interp_mrec ctx (ITree.bind t k) ≅
   ITree.bind (interp_mrec ctx t) (fun x => interp_mrec ctx (k x)).
 Proof.
-  revert t k; bcoinduction; intros.
+  revert t k; coinduction; intros.
   rewrite (unfold_interp_mrec _ t).
   rewrite (unfold_bind t).
   destruct (observe t); cbn;
@@ -129,7 +129,7 @@ Theorem interp_mrec_as_interp {T} (c : itree _ T) :
   interp_mrec ctx c ≈ interp (mrecursive ctx) c.
 Proof.
   rewrite <- (tau_eutt (interp _ _)).
-  revert_until T. bcoinduction. intros.
+  revert_until T. coinduction. intros.
   rewrite unfold_interp_mrec, unfold_interp.
   destruct (observe c0); [| |destruct e]; simpl; eauto with paco.
   - now taur. 
@@ -160,7 +160,7 @@ Theorem unfold_interp_mrec_h {T} (t : itree _ T)
   ≈ interp_mrec ctx t.
 Proof.
   rewrite <- tau_eutt.
-  revert t. bcoinduction. intros.
+  revert t. coinduction. intros.
   rewrite (itree_eta t); destruct (observe t).
   - rewrite 2 unfold_interp_mrec; now taul. 
   - rewrite unfold_interp, 2 unfold_interp_mrec. 
@@ -192,7 +192,7 @@ Global Instance Proper_interp_mrec {D E} :
           interp_mrec.
 Proof.
   intros f g Hfg R.
-  bcoinduction; intros t1 t2 Ht.
+  coinduction; intros t1 t2 Ht.
   rewrite 2 unfold_interp_mrec.
   step in Ht; induction Ht; cbn. 
   3: { destruct e; constructor. 
@@ -236,7 +236,7 @@ Instance euttge_interp_mrec {D E} :
           interp_mrec.
 Proof.
   intros f g Hfg R.
-  bcoinduction; intros t1 t2 Ht.
+  coinduction; intros t1 t2 Ht.
   rewrite 2 unfold_interp_mrec.
   step in Ht; induction Ht; try easy; cbn. 
   3: { destruct e; constructor. 

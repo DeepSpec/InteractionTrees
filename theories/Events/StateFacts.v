@@ -58,7 +58,7 @@ Instance eq_itree_interp_state {E F S R} (h : E ~> Monads.stateT S (itree F)) :
          (@interp_state _ _ _ _ _ _ h R).
 Proof.
   revert_until R.
-  bcoinduction. intros h x y H0 x2 _ [].
+  coinduction. intros h x y H0 x2 _ [].
   rewrite !unfold_interp_state.
   step in H0. 
   destruct H0; subst; try discriminate; cbn.
@@ -122,7 +122,7 @@ Lemma interp_state_bind {E F : Type -> Type} {A B S : Type}
   (interp_state f t s >>= fun st => interp_state f (k (snd st)) (fst st)).
 Proof.
   revert t k s.
-  bcoinduction. 
+  coinduction. 
   intros t k s.
   rewrite unfold_bind.
   rewrite (unfold_interp_state f t).
@@ -142,7 +142,7 @@ Instance eutt_interp_state {E F: Type -> Type} {S : Type}
   Proper (eutt RR ==> eq ==> eutt (prod_rel eq RR)) (@interp_state E (itree F) S _ _ _ h R).
 Proof.
   repeat intro. subst. revert_until RR.
-  bcoinduction. intros.
+  coinduction. intros.
 
   rewrite !unfold_interp_state. step in H. 
   induction H; intros; subst; bcbn. 
@@ -159,7 +159,7 @@ Instance eutt_interp_state_eq {E F: Type -> Type} {S : Type}
   Proper (eutt eq ==> eq ==> eutt eq) (@interp_state E (itree F) S _ _ _ h R).
 Proof.
   repeat intro. subst. revert_until R.
-  bcoinduction. intros. 
+  coinduction. intros. 
 
   rewrite !unfold_interp_state. step in H. 
   induction H; intros; subst; bcbn; eauto with itree. 
@@ -187,7 +187,7 @@ Lemma eutt_interp_state_aloop {E F S I I' A A'}
           (interp_state h (ITree.iter t2 i') s2)).
 Proof.
   intro Ht.
-  bcoinduction. intros.
+  coinduction. intros.
   rewrite 2 unfold_iter.
   rewrite 2 interp_state_bind.
   ebind; intros; subst. 
@@ -222,7 +222,7 @@ Lemma eutt_eq_interp_state_iter {E F S} (f: E ~> stateT S (itree F)) {I A}
     Basics.iter (fun i => interp_state f (t i)) i s.
 Proof.
   unfold Basics.iter, MonadIter_stateT0, Basics.iter, MonadIter_itree in *; cbn.
-  bcoinduction; intros i s.
+  coinduction; intros i s.
   rewrite 2 unfold_iter; bcbn.
   rewrite !bind_bind.
   setoid_rewrite bind_ret_l.
@@ -274,7 +274,7 @@ Lemma interp_state_iter {E F } S (f : E ~> stateT S (itree F)) {I A}
                   (Basics.iter t' i).
 Proof.
   unfold Basics.iter, MonadIter_stateT0, Basics.iter, MonadIter_itree in *; cbn.
-  bcoinduction; intros i s.
+  coinduction; intros i s.
   rewrite 2 unfold_iter; bcbn.
   rewrite !bind_bind.
   setoid_rewrite bind_ret_l.
@@ -303,7 +303,7 @@ Lemma interp_state_iter'_eutt {E F S} (f: E ~> stateT S (itree F)) {I A}
   forall i s, interp_state f (ITree.iter t i) s ≈ Basics.iter t' i s.
 Proof.
   unfold Basics.iter, MonadIter_stateT0, Basics.iter, MonadIter_itree in *; cbn.
-  bcoinduction; intros i s.
+  coinduction; intros i s.
   rewrite 2 unfold_iter; bcbn.
   rewrite !bind_bind.
   setoid_rewrite bind_ret_l.

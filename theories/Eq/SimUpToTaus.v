@@ -68,7 +68,9 @@ Global Hint Unfold sutt : itree.
 
 (** Sutt-specific tactics, analogous to the eqit-specific tactics in [Eq.Eqit]. *)
 
-#[local] Ltac sunfold    := unfold sutt.
+(* RTODO remove *)
+
+(* #[local] Ltac sunfold    := unfold sutt.
 #[local] Ltac sunfold_in h := unfold sutt in h.
 
 #[local] Ltac scbn    := cbn [sutt_mon body].
@@ -83,18 +85,15 @@ Ltac fold_sutt_in h :=
   match type of h with
   | context[@suttF ?E ?R1 ?R2 ?RR] =>
       change (@suttF E R1 R2 RR) with (body (@sutt_mon E R1 R2 RR)) in h
-  end.
+  end. *)
 
-Tactic Notation "sstep" := sunfold; step; scbn.
-Tactic Notation "sstep" "in" ident(h) := sunfold_in h; step in h; scbn_in h.
+(* Tactic Notation "step" := sunfold; step; scbn.
+Tactic Notation "step" "in" ident(h) := sunfold_in h; step in h; scbn_in h.
 
 Tactic Notation "sunstep" := fold_sutt; unstep.
-Tactic Notation "sunstep" "in" ident(h) := fold_sutt_in h; unstep in h.
+Tactic Notation "sunstep" "in" ident(h) := fold_sutt_in h; unstep in h. *)
 
-(* [scoinduction] unfolds [sutt] in the conclusion only, then applies coinduction. *)
-#[local] Ltac sunfold_coind := unfold_coind_with sunfold.
-Tactic Notation "scoinduction" simple_intropattern(R) simple_intropattern(H) :=
-  sunfold_coind; coinduction R H; scbn.
+(* [coinduction] unfolds [sutt] in the conclusion only, then applies coinduction. *)
 
 Section SUTT_rel.
 
@@ -127,7 +126,7 @@ Lemma sutt_inv_vis {E R1 R2} (RR : R1 -> R2 -> Prop) :
   sutt RR (Vis e k1) (Vis e k2) ->
   forall x, sutt RR (k1 x) (k2 x).
 Proof.
-  intros. sstep in H. simpl in H.
+  intros. step in H. simpl in H.
   now apply (suttF_inv_vis _ _ _ _ _ _ H).
 Qed.
 
@@ -136,7 +135,7 @@ Lemma sutt_tau_right {E R1 R2} (RR : R1 -> R2 -> Prop) :
     sutt RR t1 t2 ->
     sutt RR t1 (Tau t2).
 Proof.
-  intros. sstep. sstep in H.
+  intros. step. step in H.
   constructor. auto.
 Qed.
 
@@ -145,7 +144,7 @@ Lemma sutt_tau_left {E R1 R2} (RR : R1 -> R2 -> Prop) :
     sutt RR t1 t2 ->
     sutt RR (Tau t1) t2.
 Proof.
-  intros. sstep.
+  intros. step.
   constructor. exact H.
 Qed.
 
@@ -154,7 +153,7 @@ Lemma sutt_elim_tau_right {E R1 R2} (RR : R1 -> R2 -> Prop) :
     sutt RR t1 (Tau t2) ->
     sutt RR t1 t2.
 Proof.
-  unfold sutt at -1. icoinduction c CIH. intros t1 t2 H. sstep in H.
+  unfold sutt at -1. icoinduction c CIH. intros t1 t2 H. step in H.
   inv H.
   - eapply suttF_mono; [|exact EQTAUS].
     intros ?? ?. now apply (gfp_chain c).
@@ -169,7 +168,7 @@ Proof.
   intros.
   remember (TauF t1) as ott1.
   induction H; intros; subst; try dependent destruction Heqott1; eauto with itree.
-  sstep in EQTAUS. exact EQTAUS.
+  step in EQTAUS. exact EQTAUS.
 Qed.
 
 Lemma sutt_inv_tau_left {E R1 R2} (RR : R1 -> R2 -> Prop) :
@@ -177,7 +176,7 @@ Lemma sutt_inv_tau_left {E R1 R2} (RR : R1 -> R2 -> Prop) :
     sutt RR (Tau t1) t2 ->
     sutt RR t1 t2.
 Proof.
-  intros. sstep in H. sstep.
+  intros. step in H. step.
   apply suttF_inv_tau_left; auto.
 Qed.
 
@@ -186,7 +185,7 @@ Theorem sutt_eutt {E R1 R2} (RR : R1 -> R2 -> Prop) :
     sutt RR t1 t2 -> sutt (flip RR) t2 t1 -> eutt RR t1 t2.
 Proof.
   icoinduction c CIH. intros t1 t2 H1 H2.
-  sstep in H1. sstep in H2.
+  step in H1. step in H2.
   induction H1; intros; subst; auto with itree.
   - (* suttF_vis *)
     constructor. intro x. apply CIH.
@@ -213,7 +212,7 @@ Theorem eutt_sutt {E R1 R2} (RR : R1 -> R2 -> Prop) :
   forall (t1 : itree E R1) (t2 : itree E R2),
     eutt RR t1 t2 -> sutt RR t1 t2.
 Proof.
-  scoinduction c CIH. intros t1 t2 H.
+  coinduction c CIH. intros t1 t2 H.
   step in H.
   induction H.
   - constructor; auto.
@@ -230,10 +229,10 @@ Lemma sutt_bind' {E R1 R2 S1 S2} {RR: R1 -> R2 -> Prop} {SS: S1 -> S2 -> Prop}:
     forall s1 s2, (forall r1 r2, RR r1 r2 -> sutt SS (s1 r1) (s2 r2)) ->
                   @sutt E _ _ SS (ITree.bind t1 s1) (ITree.bind t2 s2).
 Proof.
-  scoinduction c CIH. intros t1 t2 H s1 s2 Hs.
-  sstep in H. unfold observe; cbn.
+  coinduction c CIH. intros t1 t2 H s1 s2 Hs.
+  step in H. unfold observe; cbn.
   induction H; intros.
-  - simpl. apply Hs in H. sstep in H.
+  - simpl. apply Hs in H. step in H.
     eapply suttF_mono; [|exact H].
     intros ?? ?. now apply (gfp_chain c).
   - simpl. econstructor. intros. apply CIH; eauto with itree.
@@ -249,8 +248,8 @@ Qed.
 : Proper (eq_itree eq ==> eq_itree eq ==> flip impl)
        (@sutt E R1 R2 r).
 Proof.
-  repeat red. scoinduction c CIH. intros x y H x0 y0 H0 H1.
-  step in H. step in H0. sstep in H1.
+  repeat red. coinduction c CIH. intros x y H x0 y0 H0 H1.
+  step in H. step in H0. step in H1.
   revert x H x0 H0.
   induction H1; intros.
   - inv H1; try discriminate. inv H0; try discriminate. econstructor. eauto.

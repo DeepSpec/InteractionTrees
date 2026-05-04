@@ -192,11 +192,11 @@ Lemma trace_refine_proper_left' : forall (E : Type -> Type) (R : Type) (b1 b2 : 
                                     (t : itree E R), (b1 ≈ b2) -> rutt (REvRef E) (RAnsRef E) eq b1 t ->
                                                      rutt (REvRef E) (RAnsRef E) eq b2 t.
 Proof.
-  intros E R. rcoinduction c CIH. intros. 
+  intros E R. icoinduction c CIH. intros. 
   step in H0. repeat red in H0. step in H.
   genobs t ot3. clear Heqot3. 
   hinduction H before CIH; intros; subst; eauto.
-  - remember (RetF r2) as ot1. hinduction H0 before CIH; intros; inv Heqot1; eauto with paco.
+  - remember (RetF r2) as ot1. hinduction H0 before CIH; intros; inv Heqot1; eauto.  
     + constructor. auto.
     + constructor. eapply IHruttF; eauto.
   (* Tau Tau case causes the most problems, seems *)
@@ -238,7 +238,7 @@ Lemma trace_refine_proper_right' : forall (E : Type -> Type) (R : Type) (b : itr
                                      (t1 t2 : itree E R), t1 ≈ t2 -> rutt (REvRef E) (RAnsRef E) eq b t1 ->
                                                           rutt (REvRef E) (RAnsRef E) eq b t2.
 Proof.
-  intros E R. rcoinduction c CIH. intros. step in H. 
+  intros E R. icoinduction c CIH. intros. step in H. 
   step in H0. repeat red in H0. 
   genobs_clear t2 ot2.
   hinduction H before CIH; intros; clear t1; subst; eauto.
@@ -365,7 +365,7 @@ Lemma itree_refine_nonempty : forall (E : Type -> Type) (R : Type) (t : itree E 
 Proof.
   intros. destruct classicT_inhabited as [classicT].
   exists (determinize classicT t). generalize dependent t.
-  red. rcoinduction c CIH. 
+  icoinduction c CIH. 
   intros. unfold determinize. desobs t Hot.
   - cbn. eret.
   - cbn. constructor. apply CIH. 
@@ -410,7 +410,7 @@ Proof.
     set (Vis (evempty A Ha e) ke) as b.
     assert (b ⊑ t1).
     {
-      unfold b. rewrite Ht1. step. red. cbn.
+      unfold b. rewrite Ht1. step. cbn.
       constructor. { apply ree. } { intros []. }
     }
     apply H0 in H as H1. unfold b in *. clear b.
@@ -537,7 +537,7 @@ Lemma trace_refine_diverge_bind : forall (E : Type -> Type) (R S : Type)
     all_infinite b -> b ⊑ t -> ITree.bind b f ⊑ ITree.bind t g.
 Proof.
   intros E R S b t f g. generalize dependent b. generalize dependent t.
-  red. rcoinduction c CIH. intros.
+  red. icoinduction c CIH. intros.
   step in H0. 
   step in H. repeat red in H0, H. 
   dependent induction H0.
@@ -667,7 +667,7 @@ Lemma trace_refine_bind_cont_inv : forall (E : Type -> Type) (R S : Type)
                                           (f : R -> itree E S) (r : R),
     may_converge r b -> b ⊑ m -> ITree.bind b g ⊑ ITree.bind m f -> g r ⊑ f r.
 Proof.
-  intros E R S. red. rcoinduction c CIH. intros b m g f a Hconv Hrefb Hrefbind.
+  intros E R S. red. coinduction c CIH. intros b m g f a Hconv Hrefb Hrefbind.
   generalize  dependent m.
   dependent induction  Hconv; intros m Hrefb Hrefbind.
   - rewrite H in Hrefbind. rewrite bind_ret_l in Hrefbind. rewrite H in Hrefb.

@@ -238,7 +238,7 @@ Lemma eutt_eq_itree {E X} (R : X -> X -> Prop) : forall (t : itree E X),
 Proof.
   enough (forall (t u : itree E X), eutt R t u -> eq_itree eq t u -> eq_itree R t u).
   { intros; apply H; [ auto | apply Reflexive_eqit_eq ]. }
-  bcoinduction. 
+  coinduction. 
   intros t u H EQ. 
   rewrite (itree_eta t), (itree_eta u) in H.
   step in EQ. cbn. destruct EQ; try discriminate; constructor.

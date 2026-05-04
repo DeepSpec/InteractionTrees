@@ -230,10 +230,6 @@ Arguments eqit_mon {E} b1 b2.
     #[global] Hint Unfold eq_itree : itree.
     #[global] Hint Unfold eutt : itree.
     #[global] Hint Unfold euttge : itree.
-    (* Alternative notation to the ` with a \dot. Would be good to pick an ascii
-    one instead maybe? *)
-    (* #[local] Notation "̇ R" := (elem R) (at level 2, R at level 1, format "̇ R"). *)
-    (* end hide *)
     
 (** Tactics *)
 (* RTODO Clean this up massively *)
@@ -273,12 +269,12 @@ because we can destruct itree'.
 
 *)
 
-#[local] Ltac iunfold     := unfold euttge, eq_itree, eutt, eqit.
+#[local] Ltac iunfold      := unfold euttge, eq_itree, eutt, eqit.
 #[local] Ltac iunfold_in h := unfold euttge, eq_itree, eutt, eqit in h.
-#[local] Ltac iunfold_all := unfold euttge, eq_itree, eutt, eqit in *.
+#[local] Ltac iunfold_all  := unfold euttge, eq_itree, eutt, eqit in *.
 
-#[local] Ltac icbn := cbn [eqit_mon body eqit_].
-#[local] Ltac icbn_in h := cbn [eqit_mon body eqit_] in h.
+Ltac icbn := repeat red. 
+Ltac icbn_in h := cbn [eqit_mon body eqit_] in h.
 
 Ltac refold :=
   repeat match goal with
@@ -353,9 +349,23 @@ Tactic Notation "to_mon" "in" ident(h) := to_mon_in h.
 Tactic Notation "iunfold" "in" ident(h) := iunfold_in h.
 Tactic Notation "iunfold" "in" "*" := iunfold_all.
 
-Tactic Notation "step" := iunfold; step; icbn; try refold.
+Tactic Notation "step" := 
+(match goal with 
+| |- context[elem _] => idtac 
+| |- _ => 
+repeat red end)
+; ITree.Basics.Utils.step; icbn; try refold.
+
+
+(* Tactic Notation "step" "in" ident(h) :=
+iunfold in h; step in h; icbn in h; try refold_in h. *)
+
 Tactic Notation "step" "in" ident(h) :=
-  iunfold in h; step in h; icbn in h; try refold_in h.
+  repeat red in h; step in h;
+  match type of h with
+  | context [@body _] => repeat red in h
+  | _ => idtac
+  end; try refold in h. 
 
 Tactic Notation "unstep" := iunfold; try to_mon; unstep; try refold.
 Tactic Notation "unstep" "in" ident(h) :=
@@ -364,16 +374,18 @@ Tactic Notation "unstep" "in" ident(h) :=
 Ltac iunfold_coind :=
   first [ intros ?; iunfold_coind; revert_last | iunfold ].
 
+Tactic Notation "coinduction"
+  simple_intropattern(c) simple_intropattern(CIH) :=
+  repeat red; coinduction c CIH.
+
+Tactic Notation "coinduction" :=
+  let c := fresh "c" in let CIH := fresh "CIH" in coinduction c CIH.
+
+
 Tactic Notation "icoinduction"
     simple_intropattern(R) simple_intropattern(H) :=
-  iunfold_coind; coinduction R H; icbn.
+    coinduction R H; icbn.
 
-Tactic Notation "bcoinduction"
-    simple_intropattern(R) simple_intropattern(H) :=
-  icoinduction R H; to_mon.
-
-Tactic Notation "bcoinduction" :=
-  let c := fresh "c" in let CIH := fresh "CIH" in bcoinduction c CIH.
 
 Ltac bcbn := cbn; to_mon.
 
@@ -523,8 +535,7 @@ Qed.
   Proper ((@eq_rel R1 R2) ==> eq ==> eq ==> eq_rel ==> eq_rel)
     (@eqitF E R1 R2).
 Proof.
-  repeat red.
-  intros. subst. split; unfold subrelationH, SubRelH_binary; intros.
+  intros!. subst. split; unfold subrelationH, SubRelH_binary; intros.
   all:
   induction H0; auto with itree; econstructor; intros;
   try (now apply H); now apply H2.
@@ -534,8 +545,7 @@ Qed.
   Proper ((@eq_rel R1 R2) ==> eq ==> eq ==> eq ==> eq ==> eq ==> iff)
          (@eqitF E R1 R2).
 Proof.
-  repeat red.
-  intros. subst. split; intros.
+  intros!. subst. split; intros.
   all: induction H0; auto with itree;
        econstructor; now apply H.
 Qed.
@@ -543,7 +553,6 @@ Qed.
 #[global] Instance eqit_Proper_R {E : Type -> Type} {R1 R2:Type} b1 b2
   : Proper ((@eq_rel R1 R2) ==> eq ==> eq ==> iff) (@eqit E b1 b2 R1 R2).
 Proof with auto with itree.
-  repeat red.
   intros!. subst. 
   split.
   - revert_until H. icoinduction R CIH. intros.
@@ -664,21 +673,6 @@ Proof.
     constructor; eauto.
 Qed. 
 
-#[global] Instance Reflexive_eqit_ b1 b2
-    (sim : forall R1 R2, (R1 -> R2 -> Prop) -> itree E R1 -> itree E R2 -> Prop)
-    : Reflexive RR -> Reflexive (sim R R RR) -> Reflexive (eqit_ b1 b2 sim R R RR).
-Proof. repeat red. intros. reflexivity. Qed.
-
-#[global] Instance Symmetric_eqit_ b
-    (sim : forall R1 R2, (R1 -> R2 -> Prop) -> itree E R1 -> itree E R2 -> Prop)
-    : Symmetric RR -> Symmetric (sim R R RR) -> Symmetric (eqit_ b b sim R R RR).
-Proof. repeat red; symmetry; auto. Qed.
-
-#[global] Instance Transitive_eqit_
-  (sim : forall R1 R2, (R1 -> R2 -> Prop) -> itree E R1 -> itree E R2 -> Prop)
-  : Transitive RR -> Transitive (sim R R RR) -> Transitive (eqit_ false false sim R R RR).
-Proof. repeat red; etransitivity; eauto. Qed.
-
 (* Prove Reflexive/Symmetric for eqit first (by coinduction),
     then derive for elem via gfp_chain. *)
 
@@ -686,7 +680,7 @@ Proof. repeat red; etransitivity; eauto. Qed.
 Proof.
   red; intros.
   revert x. icoinduction c CIH. intro. 
-  now repeat apply Reflexive_eqit_.
+  now repeat apply Reflexive_eqitF.
 Qed.
 
 #[global] Instance Symmetric_eqit b : Symmetric RR -> Symmetric (@eqit E b b _ _ RR).
@@ -716,7 +710,7 @@ Qed.
   {c: Chain (@eqit_mon E b b)}: Symmetric (elem c R R RR).
 Proof.
   revert c. apply (tower inf_closed_Symmetric_at).
-  intros c Hsym. apply Symmetric_eqit_; auto.
+  intros c Hsym. intros!. apply Symmetric_eqitF; auto.
 Qed.
 
 End eqit_gen.
@@ -901,7 +895,7 @@ Proof with eauto with itree.
   unfold Proper, respectful, flip, impl.
   tower induction.
   clear c; intros c IH x x' EQx y y' EQy; step in EQx; step in EQy.
-    icbn; intros EQ.
+    intros EQ. icbn in *. 
     genobs x' ox'; genobs y' oy'.
     (* [hinduction] is not sufficient here, because [move] is unable to pass
          through [ox] to reach [x] *)
@@ -1076,7 +1070,7 @@ Proof with eauto with itree.
   unfold Proper, respectful, flip, impl.
   tower induction.
   clear c; intros c IH x x' EQx y y' EQy; step in EQx; step in EQy.
-    icbn; intros EQ.
+    intros EQ. icbn in *. 
     genobs x' ox'; genobs y' oy'.
     (* [hinduction] is not sufficient here, because [move] is unable to pass
          through [ox] to reach [x] *)
@@ -1139,7 +1133,7 @@ Proof with eauto with itree.
   unfold Proper, respectful, flip, impl.
   tower induction.
   clear c; intros c IH x x' EQx y y' EQy; step in EQx; step in EQy.
-    icbn; intros EQ.
+    intros EQ. icbn in *. 
     genobs x' ox'; genobs y' oy'.
     revert x x' y y' Heqox' Heqoy' EQx EQy.
     induction EQ; intros.
@@ -1339,7 +1333,7 @@ Proof.
     (fun x => Transitive (x R R RR))).
   { intros T HTr x y z Hxy Hyz i Hi. apply (HTr _ Hi) with y; [exact (Hxy i Hi) | exact (Hyz i Hi)]. }
   revert c. apply (tower Hinf). intros c Htrans.
-  apply Transitive_eqit_; auto.
+  intros!. icbn in *. eapply Transitive_eqitF; eauto.
 Qed.
 
 #[global] Instance Equivalence_elem {E R RR} (HT : Equivalence RR)
@@ -1529,15 +1523,6 @@ Proof.
   apply Symmetric_eqitF; eauto. 
 Qed.
 
-#[global] Instance Reflexive_eqit__eq b1 b2
-  (sim : forall R1 R2, (R1 -> R2 -> Prop) -> itree E R1 -> itree E R2 -> Prop)
-: Reflexive (sim R R eq) -> Reflexive (eqit_ b1 b2 sim R R eq).
-Proof. apply Reflexive_eqit_; eauto. Qed.
-
-#[global] Instance Symmetric_eqit__eq b
-  (sim : forall R1 R2, (R1 -> R2 -> Prop) -> itree E R1 -> itree E R2 -> Prop)
-: Symmetric (sim R R eq) -> Symmetric (eqit_ b b sim R R eq).
-Proof. apply Symmetric_eqit_; eauto. Qed.
 
 (** *** [eqit] is an equivalence relation *)
 
@@ -1769,15 +1754,15 @@ Proof.
   intros.
   split; intros H.
   - eapply transitivity. 2 : { apply H. }
-    red. apply eqit_Tau_r. reflexivity.
-  - red. red. step. econstructor. auto. now step in H. 
+    apply eqit_Tau_r. reflexivity.
+  - step. econstructor. auto. now step in H. 
 Qed.
 
 Lemma tau_eqit_RR_l : forall E R (RR : relation R) (HRR: Reflexive RR) (HRT: Transitive RR) (t s : itree E R),
     eqit true false RR t s -> eqit true false RR (Tau t) s.
 Proof.
   intros.
-  red. step. econstructor. auto. now step in H. 
+  step. econstructor. auto. now step in H. 
 Qed.
 
 Lemma tau_eutt_RR_r : forall E R (RR : relation R) (HRR: Reflexive RR) (HRT: Transitive RR) (t s : itree E R),
@@ -1786,8 +1771,8 @@ Proof.
   intros.
   split; intros H.
   - eapply transitivity. apply H.
-    red. apply eqit_Tau_l. reflexivity.
-  - red. red. step. econstructor. auto. now step in H.
+    apply eqit_Tau_l. reflexivity.
+  - step. econstructor. auto. now step in H.
 Qed.
 
 Lemma eutt_inv_Ret_l {E R} (r1: R) (t2: itree E R):

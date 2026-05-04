@@ -2,8 +2,9 @@ From Stdlib Require Import
      Morphisms
 .
 
+From Coinduction Require Import all. 
+
 From ITree Require Import
-     Basics.Utils
      Axioms
      ITree
      ITreeFacts
@@ -15,8 +16,6 @@ From ITree.Extra Require Import
      ITrace.ITraceDefinition
      ITrace.ITraceFacts
 .
-
-From Paco Require Import paco.
 
 Import Monads.
 Import MonadNotation.
@@ -43,19 +42,20 @@ Definition trace_prefix_ {E R S} F (br : itrace E R) (bs : itrace E S) := trace_
 
 #[global] Hint Unfold trace_prefix_ : itree.
 
-Lemma trace_prefix_monot {E R S} : monotone2 (@trace_prefix_ E R S).
+Lemma trace_prefix_mono {E R S} : Proper (leq ==> leq) (@trace_prefix_ E R S).
 Proof.
-  repeat intro. red. red in IN. induction IN; eauto with itree.
+  repeat intro. red. red in H0. induction H0; eauto with itree; 
+  constructor; now apply H. 
 Qed.
 
-#[global] Hint Resolve trace_prefix_monot : paco.
+Definition trace_prefix_mon {E R S} := Build_mon (@trace_prefix_mono E R S).
 
-Definition trace_prefix {E R S} : itrace E R -> itrace E S -> Prop := paco2 trace_prefix_ bot2.
+Definition trace_prefix {E R S} : itrace E R -> itrace E S -> Prop := gfp (@trace_prefix_mon E R S).
 
 Lemma prefix_vis : forall E R S A (e : E A) (ans : A) (k : unit -> itrace E R) (t : itrace E S),
     trace_prefix (Vis (evans _ e ans) k ) t -> exists k', (t ≈ Vis (evans _ e ans) k' )%itree.
 Proof.
-  intros E R S A e ans k t Hbp. punfold Hbp. red in Hbp. cbn in *.
+  intros E R S A e ans k t Hbp. step in Hbp. cbn in *.
   dependent induction Hbp.
   - apply simpobs in x. enough (exists k', bs ≈ (Vis (evans A e ans) k' ))%itree.
     + destruct H as [k' Hk']. exists k'. rewrite x. rewrite tau_eutt. auto.
@@ -72,19 +72,19 @@ Qed.
 
 Lemma trace_prefix_proper_aux_vis: forall (E : Type -> Type) (S R : Type)
                                      (t1 : itree (EvAns E) R) (b2 : itrace E R),
-    eqitF eq true true id
-          (upaco2 (eqit_ eq true true id) bot2)
+    eqitF eq true true
+          (eutt eq)
           (observe t1) (observe b2) ->
     forall (r : itrace E R -> itrace E S -> Prop)
       (X : Type) (e : EvAns E X)
       (k : X -> itree (EvAns E) S),
-      trace_prefixF (upaco2 trace_prefix_ bot2)
+      trace_prefixF (gfp trace_prefix_mon)
                     (observe t1) (VisF e k) ->
       (forall (b1 b2 : itrace E R)
          (b : itrace E S),
           (b1 ≈ b2) ->
           trace_prefix b1 b -> r b2 b) ->
-      trace_prefixF (upaco2 trace_prefix_ r)
+      trace_prefixF r
                     (observe b2) (VisF e k).
 Proof.
   intros E S R t1 b2 Heutt r X e k H0 CIH.
@@ -92,33 +92,33 @@ Proof.
   - rewrite <- x0 in Heutt. dependent induction Heutt.
     + rewrite <- x. apply trace_prefix_ret.
     + rewrite <- x. constructor. eapply IHHeutt; eauto.
-  - eapply IHtrace_prefixF; auto.
-    apply simpobs in x. assert (t1 ≈ b2); auto with itree.
-    rewrite x in H. rewrite tau_eutt in H. punfold H.
+  - eapply IHtrace_prefixF. 3: reflexivity. all: eauto. 
+    apply simpobs in x. assert (t1 ≈ b2) by now step.
+    rewrite x in H. rewrite tau_eutt in H. now step in H.
   - rewrite <- x in Heutt. dependent induction Heutt.
     + rewrite <- x. constructor.
     + rewrite <- x. constructor. eapply IHHeutt; eauto.
-  - pclearbot. rewrite <- x in Heutt. dependent induction Heutt.
-    + rewrite <- x. constructor. right. pclearbot. eapply CIH; eauto with itree.
+  - rewrite <- x in Heutt. dependent induction Heutt.
+    + rewrite <- x. constructor. eapply CIH; eauto with itree.
     + rewrite <- x. constructor. eapply IHHeutt; eauto.
 Qed.
 
 Lemma trace_prefix_tau_inv:
   forall (E : Type -> Type) (S R : Type)
     (m1 : itree (EvAns E) R) (t : itree (EvAns E) S),
-    trace_prefixF (upaco2 trace_prefix_ bot2)
+    trace_prefixF (trace_prefix)
                   (TauF m1) (TauF t) -> trace_prefix m1 t.
 Proof.
   intros E S R m1 t Hbp.
-  dependent induction  Hbp.
-  - pclearbot. auto.
-  - pfold. red. clear IHHbp. dependent induction Hbp.
+  dependent induction Hbp.
+  - auto.
+  - step. clear IHHbp. dependent induction Hbp.
     + rewrite <- x0. auto with itree.
-    + rewrite <- x. constructor. pclearbot. punfold H.
+    + rewrite <- x. constructor. now step in H.
     + rewrite <- x. constructor. eapply IHHbp; eauto.
     + auto.
-  - pfold. red. clear IHHbp. dependent induction Hbp.
-    + rewrite <- x. constructor. pclearbot. punfold H.
+  - step. clear IHHbp. dependent induction Hbp.
+    + rewrite <- x. constructor. now step in H.
     + auto.
     + rewrite <- x. constructor. eapply IHHbp; eauto.
 Qed.
@@ -126,53 +126,55 @@ Qed.
 Lemma trace_prefix_proper_l : forall E R S (b1 b2 : itrace E R) (b : itrace E S),
     (b1 ≈ b2) -> trace_prefix b1 b -> trace_prefix b2 b.
 Proof.
-  intros E R S. pcofix CIH. intros b1 b2 b Heutt Hbp.
-  pfold. red. punfold Heutt. red in Heutt. punfold Hbp. red in Hbp.
+  intros E R S. icoinduction c CIH. intros b1 b2 b Heutt Hbp.
+  step in Heutt. step in Hbp.
   dependent induction Heutt.
   - rewrite <- x. constructor.
-  - rewrite <- x. rewrite <- x0 in Hbp. clear x0 x. pclearbot.
+  - rewrite <- x. rewrite <- x0 in Hbp. clear x0 x.
     destruct (observe b) eqn : Heqb.
     + inv Hbp. constructor. dependent induction  H0.
       * apply simpobs in x0. assert (m1 ≈ m2); auto.
         rewrite x0 in H. clear x x0 Heqb CIH REL.
-        punfold H. red in H. cbn in *. dependent induction H.
+        step in H. cbn in *. dependent induction H.
         ++ rewrite <- x. apply trace_prefix_ret.
         ++ rewrite <- x. constructor. eapply IHeqitF; eauto.
-      * eapply IHtrace_prefixF; auto.
+      * eapply IHtrace_prefixF. 5: reflexivity. all: auto.
         apply simpobs in x. assert (m1 ≈ m2); auto.
         rewrite x in H. rewrite tau_eutt in H. auto.
-    + constructor. right. eapply CIH; eauto. eapply trace_prefix_tau_inv; eauto.
+    + constructor. eapply CIH; eauto. eapply trace_prefix_tau_inv; eauto.
     + constructor. clear Heqb. inv Hbp. dependent induction H0.
       * apply simpobs in x0. assert (m1 ≈ m2); auto.
-        rewrite x0 in H. punfold H. red in H. cbn in *.
+        rewrite x0 in H. step in H. cbn in *.
         dependent induction H.
         ++ rewrite <- x. apply trace_prefix_ret.
-        ++ rewrite <- x. constructor. eapply IHeqitF; eauto.
+        ++ rewrite <- x. constructor. eapply IHeqitF; try apply x0; eauto. 
            assert (m1 ≈ m2); auto.
-           apply simpobs in x. rewrite x in H0. rewrite tau_eutt in H0. auto.
-      * eapply IHtrace_prefixF; auto.
+           sinv x0. apply simpobs in x, H2. 
+            rewrite x, H2, tau_eutt in H0.
+            now rewrite <- H0, H2. 
+      * eapply IHtrace_prefixF. 4: reflexivity. all: auto.
         assert (m1 ≈ m2); auto. apply simpobs in x.
         rewrite x in H. rewrite tau_eutt in H. auto.
       * assert (m1 ≈ m2); auto. apply simpobs in x.
         rewrite x in H0.
-        punfold H0. red in H0. cbn in *.
+        step in H0. cbn in *.
         dependent induction H0.
         ++ rewrite <- x. constructor.
-        ++ rewrite <- x. constructor. eapply IHeqitF; eauto.
+        ++ rewrite <- x. constructor. eapply IHeqitF; try apply x0; eauto.
            assert (m1 ≈ m2); auto.
            apply simpobs in x. rewrite x in H1. rewrite tau_eutt in H1. auto.
-      * pclearbot. apply simpobs in x. assert (m1 ≈ m2); auto.
-        rewrite x in H0. punfold H0. red in H0. cbn in *.
+      *  apply simpobs in x. assert (m1 ≈ m2); auto.
+        rewrite x in H0. step in H0. cbn in *.
         dependent induction H0.
-        ++ rewrite <- x. constructor. right. pclearbot. eapply CIH; eauto with itree.
-        ++ rewrite <- x. constructor. eapply IHeqitF; eauto.
+        ++ rewrite <- x. constructor. eapply CIH; try apply REL0; eauto. 
+        ++ rewrite <- x. constructor. eapply IHeqitF; try apply x0; eauto.
            assert (m1 ≈ m2); auto.
            apply simpobs in x. rewrite x in H1. rewrite tau_eutt in H1. auto.
-  - rewrite <- x. rewrite <- x0 in Hbp. clear x x0. pclearbot.
+  - rewrite <- x. rewrite <- x0 in Hbp. clear x x0. 
     dependent induction Hbp.
     + rewrite <- x. constructor. eapply IHHbp; eauto.
     + rewrite <- x. constructor.
-    + rewrite <- x. pclearbot. constructor. right. eapply CIH; eauto with itree.
+    + rewrite <- x.  constructor. eapply CIH; try apply REL; eauto with itree.
   - rewrite <- x in Hbp.
     destruct (observe b) eqn : Heqb.
     + clear IHHeutt. inv Hbp. clear Heqb x.
@@ -181,10 +183,10 @@ Proof.
         dependent induction  Heutt.
         ++ rewrite <- x. apply trace_prefix_ret.
         ++ rewrite <- x. constructor. eapply IHHeutt; eauto.
-      * eapply IHtrace_prefixF; auto.
-        assert (t1 ≈ b2); auto with itree.
-        apply simpobs in x. rewrite x in H. rewrite tau_eutt in H. punfold H.
-    + constructor. eapply IHHeutt; eauto. pstep_reverse. eapply trace_prefix_tau_inv; eauto.
+      * eapply IHtrace_prefixF. 4: reflexivity. all: auto.
+        assert (t1 ≈ b2) by now step. 
+        apply simpobs in x. rewrite x in H. rewrite tau_eutt in H. now step in H.
+    + constructor. eapply IHHeutt; eauto. unstep. eapply trace_prefix_tau_inv; eauto.
     + clear IHHeutt. inv Hbp. eapply trace_prefix_proper_aux_vis; eauto.
   - rewrite <- x. constructor. eapply IHHeutt; eauto.
 Qed.
@@ -192,15 +194,15 @@ Qed.
 Lemma trace_prefixF_tau_inv_r:
   forall (E : Type -> Type) (S R : Type)
          (t1 : itree (EvAns E) S) (b : itrace E R),
-    trace_prefixF (upaco2 trace_prefix_ bot2)
+    trace_prefixF (trace_prefix)
                   (observe b) (TauF t1) ->
-    trace_prefixF (upaco2 trace_prefix_ bot2)
+    trace_prefixF (trace_prefix)
                   (observe b) (observe t1).
 Proof.
   intros E S R t1 b Hbp.
   dependent induction  Hbp.
   - rewrite <- x0. apply trace_prefix_ret.
-  - pclearbot. rewrite <- x. constructor. punfold H.
+  -  rewrite <- x. constructor. now step in H.
   - rewrite <- x. constructor. eapply IHHbp; eauto.
   - auto.
 Qed.
@@ -208,53 +210,53 @@ Qed.
 Lemma trace_prefixF_vis_l:
   forall (E : Type -> Type) (S R : Type)
          (m1 m2 : itree (EvAns E) S),
-    paco2 (eqit_ eq true true id) bot2 m1 m2 ->
+    eutt eq m1 m2 ->
     forall (r : itrace E R -> itrace E S -> Prop)
            (X : Type) (e : EvAns E X)
            (k : X -> itree (EvAns E) R),
-      trace_prefixF (upaco2 trace_prefix_ bot2)
+      trace_prefixF (trace_prefix)
                     (VisF e k) (observe m1) ->
       (forall (b : itrace E R)
               (b1 b2 : itrace E S),
           (b1 ≈ b2) ->
           trace_prefix b b1 -> r b b2 ) ->
-      trace_prefixF (upaco2 trace_prefix_ r)
+      trace_prefixF r
                     (VisF e k) (observe m2).
 Proof.
   intros E S R m1 m2 REL r X e k H1 CIH.
-  punfold REL. red in REL.
+  step in REL.
   dependent induction H1.
-  - eapply IHtrace_prefixF; auto. rewrite <- x in REL.
-    assert (Tau bs ≈ m2).
-    { pfold. auto. }
-    rewrite tau_eutt in H. punfold H.
+  - eapply IHtrace_prefixF. 4: reflexivity. all: auto.
+    rewrite <- x in REL.
+    assert (Tau bs ≈ m2) by now step. 
+    rewrite tau_eutt in H. now step in H.
   - rewrite <- x in REL. dependent induction REL.
     + rewrite <- x. constructor.
     + rewrite <- x. constructor. eapply IHREL; eauto.
-  - pclearbot. rewrite <- x in REL. dependent induction REL.
-    + rewrite <- x. constructor. right. pclearbot. eapply CIH; eauto with itree.
+  -  rewrite <- x in REL. dependent induction REL.
+    + rewrite <- x. constructor. eapply CIH; try apply REL; eauto with itree.
     + rewrite <- x. constructor. eapply IHREL; eauto.
 Qed.
 
 Lemma trace_prefix_proper_r : forall E R S (b : itrace E R) (b1 b2 : itrace E S),
     (b1 ≈ b2) -> trace_prefix b b1 -> trace_prefix b b2.
 Proof.
-  intros E R S. pcofix CIH. intros b b1 b2 Heutt Hbp.
-  punfold Heutt. red in Heutt. punfold Hbp. red in Hbp.
-  pfold. red. dependent induction Heutt.
+  intros E R S. icoinduction c CIH. intros b b1 b2 Heutt Hbp.
+  step in Heutt. step in Hbp. 
+  dependent induction Heutt.
   - rewrite <- x. rewrite <- x0 in Hbp. clear x0 x. induction Hbp; auto with itree.
-    + pclearbot. constructor. right. eapply CIH; eauto. reflexivity.
-    + constructor. pclearbot. left. apply pacobot2; eauto.
-  - pclearbot. rewrite <- x0 in Hbp. rewrite <- x. clear x0 x.
+    +  constructor. eapply CIH; eauto.
+    + constructor. now do 2 ITree.Basics.Utils.step. 
+  -  rewrite <- x0 in Hbp. rewrite <- x. clear x0 x.
     destruct (observe b).
     + apply trace_prefix_ret.
-    + constructor. right. pclearbot. eapply CIH; eauto. apply trace_prefix_tau_inv. auto.
+    + constructor. eapply CIH; eauto. apply trace_prefix_tau_inv. auto.
     + inv Hbp. constructor. eapply trace_prefixF_vis_l; eauto.
-  - rewrite <- x. rewrite <- x0 in Hbp. pclearbot. clear x x0. dependent induction Hbp.
+  - rewrite <- x. rewrite <- x0 in Hbp.  clear x x0. dependent induction Hbp.
     + rewrite <- x0. apply trace_prefix_ret.
     + rewrite <- x. constructor. eapply IHHbp; eauto.
     + rewrite <- x. constructor.
-    + rewrite <- x. constructor. right. pclearbot. eapply CIH; eauto with itree.
+    + rewrite <- x. constructor. eapply CIH; try apply REL; eauto with itree.
   - eapply IHHeutt; auto. rewrite <- x in Hbp. eapply trace_prefixF_tau_inv_r; eauto.
   - rewrite <- x. constructor. eapply IHHeutt; eauto.
 Qed.
@@ -280,8 +282,8 @@ Lemma ind_comb_bind : forall E R S (b1 : itrace E R) (b2 : itrace E S) (b : itra
 Proof.
   intros E R S b1 b2 b Hind. induction Hind.
   - rewrite H. rewrite bind_ret_l. auto.
-  - rewrite H. rewrite H0. rewrite bind_vis. pfold. red. constructor. intros.
-    left. destruct v. apply IHHind.
+  - rewrite H. rewrite H0. rewrite bind_vis. step. constructor. intros.
+    destruct v. apply IHHind.
 Qed.
 
 Inductive trace_prefix_ind {E R S} : itrace E R -> itrace E S -> Prop :=
@@ -296,7 +298,7 @@ Lemma trace_prefix_ind_comb : forall E R S (b1 : itrace E R) (b2 : itrace E S),
     exists b3, ind_comb b1 b3 b2.
 Proof.
   intros E R S b1 b2 Hpre. induction Hpre.
-  - exists b2. econstructor; eauto. reflexivity.
+  - exists b2. econstructor; eauto.
   - destruct IHHpre as [b3 Hb3].
     exists b3. eapply left_vis_comb; eauto.
 Qed.
@@ -318,22 +320,22 @@ Proof.
     apply prefix_vis in Hbp as Hb2.
     destruct Hb2 as [k' Hk']. rewrite Hk' in Hbp.
     eapply left_vis_bp; eauto. destruct b. apply IHHconv.
-    punfold Hbp. red in Hbp. cbn in *. inversion Hbp. subst; ddestruction; subst.
-    pclearbot. auto.
+    step in Hbp. cbn in *. inversion Hbp. subst; ddestruction; subst.
+     auto.
 Qed.
 
-Lemma trace_prefix_div : forall E R S (b1 : itrace E R) (b2 : itrace E S),
+Lemma trace_prefix_div E R S (b1 : itrace E R) (b2 : itrace E S) :
     all_infinite b1 -> trace_prefix b1 b2 -> euttNoRet b1 b2.
 Proof.
-  intros E R S. pcofix CIH. intros b1 b2 Hdiv Hbf. pfold. red.
-  punfold Hbf. red in Hbf. punfold Hdiv. red in Hdiv. induction Hbf.
+  revert b1 b2. icoinduction c CIH. intros b1 b2 Hdiv Hbf.
+  step in Hbf. step in Hdiv. induction Hbf.
   - inv Hdiv.
-  - constructor. inv Hdiv. pclearbot. right. apply CIH; auto.
-  - constructor; auto. apply IHHbf. pstep_reverse. inv Hdiv. pclearbot. auto.
+  - constructor. inv Hdiv. apply CIH; auto.
+  - constructor; auto. apply IHHbf. unstep. inv Hdiv. 
   - constructor; auto.
   - constructor. intros [].
-  - pclearbot. constructor. intros. right. pclearbot. inv Hdiv. ddestruction; subst.
-    pclearbot. destruct v. apply CIH; auto. apply H1.
+  -  constructor. intros. inv Hdiv. ddestruction; subst.
+     destruct v. apply CIH; auto. apply H1.
 Qed.
 
 Lemma trace_prefix_bind : forall E R S (b1 : itrace E R) (b2 : itrace E S),
@@ -342,7 +344,10 @@ Proof.
   intros. destruct (classic_converge b1).
   - destruct H0 as [r Hconv]. eapply converge_trace_prefix in Hconv; eauto.
     apply trace_prefix_ind_bind. auto.
-  - eapply trace_prefix_div in H0 as Heuttdiv; eauto.
+  - (* question why does *)
+    (* eapply trace_prefix_div in H0.  *)
+    (* do that ?*)
+    specialize (@trace_prefix_div E R S b1 b2 H0 H) as Heuttnoret. 
     exists (fun _ => ITree.spin). apply euttNoRet_subrel. apply euttNoRet_sym.
     eapply noret_bind_nop with (f := (fun _ => ITree.spin) ) in H0 as H1.
     eapply euttNoRet_trans; try apply H1. apply euttNoRet_sym. auto.

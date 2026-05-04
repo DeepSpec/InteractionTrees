@@ -106,18 +106,18 @@ Ltac contra_size :=
 Lemma eqit_secure_imp_pi_eqit_scure b1 b2 E R1 R2 RR Label priv l : forall (t1 : itree E R1) (t2 : itree E R2),
     eqit_secure Label priv RR b1 b2 l t1 t2 -> pi_eqit_secure Label priv RR b1 b2 l t1 t2.
 Proof.
-  pcofix CIH. intros t1 t2 Hps. pfold. red. punfold Hps. red in Hps.
+  coinduction c CIH. intros t1 t2 Hps. step. step in Hps. red in Hps.
   hinduction Hps before r; intros.
   - constructor; auto with itree.
-  - constructor. right. pclearbot. eauto with itree.
-  - rewrite itree_eta'. constructor; auto with itree. right. eapply CIH. pfold. apply Hps.
-  - rewrite itree_eta' at 1. constructor; auto with itree. right. eapply CIH. pfold. apply Hps.
-  - pclearbot. constructor; auto with itree. right. eapply CIH; eauto with itree. apply H.
-  - pclearbot. unpriv_pi. right. eapply CIH; apply H.
-  - pclearbot. unpriv_pi. right. eapply CIH; apply H.
-  - pclearbot. unpriv_pi. right. eapply CIH; apply H.
-  - pclearbot. unpriv_pi. right. eapply CIH. pfold. apply H.
-  - pclearbot. unpriv_pi. right. eapply CIH. pfold. apply H.
+  - constructor. right.  eauto with itree.
+  - rewrite itree_eta'. constructor; auto with itree. eapply CIH.  step. apply Hps.
+  - rewrite itree_eta' at 1. constructor; auto with itree. eapply CIH.  step. apply Hps.
+  -  constructor; auto with itree. right. eapply CIH; eauto with itree. apply H.
+  -  unpriv_pi. right. eapply CIH; apply H.
+  -  unpriv_pi. right. eapply CIH; apply H.
+  -  unpriv_pi. right. eapply CIH; apply H.
+  -  unpriv_pi. eapply CIH.  step. apply H.
+  -  unpriv_pi. eapply CIH.  step. apply H.
   - unpriv_pi. inv SIZECHECK. contradiction.
   - unpriv_pi. inv SIZECHECK. contradiction.
   - unpriv_pi. inv SIZECHECK. contradiction.
@@ -128,8 +128,8 @@ Qed.
 Lemma pi_eqit_secure_sym b1 b2 E R1 R2 RR Label priv l : forall (t1 : itree E R1) (t2 : itree E R2),
     pi_eqit_secure Label priv RR b1 b2 l t1 t2 -> pi_eqit_secure Label priv (flip RR) b2 b1 l t2 t1.
 Proof.
-  pcofix CIH. intros t1 t2 Hsec.
-  punfold Hsec. pfold. red in Hsec. red. inversion Hsec; pclearbot; eauto;
+  coinduction c CIH. intros t1 t2 Hsec.
+  step in Hsec. step. red in Hsec. red. inversion Hsec;  eauto;
   try (unpriv_pi; right; eapply CIH; apply H1; fail).
   constructor; auto. right. eapply CIH; apply H1.
 Qed.
@@ -140,10 +140,10 @@ Lemma pi_secure_eqit_mon : forall E (b1 b2 b3 b4 : bool) R1 R2 RR1 RR2 Label pri
     (b1 -> b3) -> (b2 -> b4) -> (RR1 <2= RR2) ->
     pi_eqit_secure Label priv RR1 b1 b2 l t1 t2 -> pi_eqit_secure Label priv RR2 b3 b4 l t1 t2.
 Proof.
-  intros. generalize dependent t2. revert t1. pcofix CIH.
+  intros. generalize dependent t2. revert t1. coinduction c CIH.
   intros t1 t2 Ht12. pstep. red.
-  punfold Ht12. red in Ht12.
-  hinduction Ht12 before r; intros; eauto; pclearbot;
+  step in Ht12. red in Ht12.
+  hinduction Ht12 before r; intros; eauto; 
   try (unpriv_pi; right; apply CIH; try red; eauto; fail);
   constructor; auto. right.  eauto. apply CIH; apply H2.
 Qed.
@@ -152,14 +152,14 @@ Qed.
 Lemma pi_eqit_secure_spin b E R1 R2 (RR : R1 -> R2 -> Prop) Label priv l : forall (t1 : itree E R1),
     pi_eqit_secure Label priv RR b true l t1 (ITree.spin).
 Proof.
-  pcofix CIH. intros. pfold. red. cbn. constructor; auto.
+  coinduction c CIH. intros. step. cbn. constructor; auto.
 Qed.
 
 Lemma pi_eqit_secure_private_halt b E R1 R2 (RR : R1 -> R2 -> Prop) Label priv l A (e : E A) k:
   empty A -> ~ leq (priv A e) l -> forall (t1 : itree E R1),
     pi_eqit_secure Label priv RR b true l t1 (Vis e k).
 Proof.
-  intros HA t1. pfold. red. cbn. intros. unpriv_pi. inv HA; contradiction.
+  intros HA t1. step. cbn. intros. unpriv_pi. inv HA; contradiction.
 Qed.
 
 Lemma pi_eqit_secure_mixed_trans_aux1:
@@ -168,15 +168,15 @@ Lemma pi_eqit_secure_mixed_trans_aux1:
     paco2 (pi_secure_eqit_ Label priv RR1 true b2 l id) bot2 t1 (Tau t2)  ->
     pi_eqit_secure Label priv RR1 true b2 l t1 t2.
 Proof.
-  intros E R1 b2 R2 RR1 Label priv l. pcofix CIH.
-  intros t1 t2 Htau. punfold Htau. red in Htau.
-  pfold. red. cbn in *. inv Htau; pclearbot; eauto.
+  intros E R1 b2 R2 RR1 Label priv l. coinduction c CIH.
+  intros t1 t2 Htau. step in Htau. red in Htau.
+  step. cbn in *. inv Htau;  eauto.
   - constructor; auto. left. eapply paco2_mon; eauto. intros; contradiction.
-  - constructor; auto. right. eapply CIH; eauto. pfold. red. rewrite <- H0.
+  - constructor; auto. right. eapply CIH; eauto. step. rewrite <- H0.
     cbn. pstep_reverse.
   - pstep_reverse. eapply paco2_mon; eauto. intros; contradiction.
   - unpriv_pi. left.  eapply paco2_mon; eauto. intros; contradiction.
-  - unpriv_pi. right. eapply CIH. pfold. red. rewrite <- H0.
+  - unpriv_pi. eapply CIH.  step. rewrite <- H0.
     cbn. pstep_reverse.
 Qed.
 
@@ -185,43 +185,43 @@ Lemma pi_eqit_secure_mixed_trans b1 b2 E R1 R2 R3 (RR1 : R1 -> R2 -> Prop) (RR2 
     pi_eqit_secure Label priv RR1 b1 b2 l t1 t2 -> eqit RR2 b1 b2 t2 t3 ->
     pi_eqit_secure Label priv (rcompose RR1 RR2) b1 b2 l t1 t3.
 Proof.
-  pcofix CIH. intros t1 t2 t3 Hsec Heq. punfold Heq.
-  red in Heq. punfold Hsec. red in Hsec. pfold. red.
-  hinduction Heq before r; intros; try inv CHECK; pclearbot.
-  - inv Hsec; eauto with itree; unpriv_pi; pclearbot.
+  coinduction c CIH. intros t1 t2 t3 Hsec Heq. step in Heq.
+  red in Heq. step in Hsec. red in Hsec. step. red.
+  hinduction Heq before r; intros; try inv CHECK; 
+  - inv Hsec; eauto with itree; unpriv_pi; 
     + rewrite itree_eta'. constructor; auto with itree. right. eapply CIH; eauto.
-      pfold. red. rewrite H0. constructor. auto.
+      step. rewrite H0. constructor. auto.
     + rewrite itree_eta'. unpriv_pi. right. eapply CIH; eauto.
-      apply H1. pfold. red. rewrite H0. constructor; auto.
-  - inv Hsec; pclearbot; eauto with itree.
+      apply H1. step. rewrite H0. constructor; auto.
+  - inv Hsec;  eauto with itree.
     + constructor. right. eapply CIH; eauto with itree.
-      pfold. red. rewrite H0. constructor; auto. pstep_reverse.
+      step. rewrite H0. constructor; auto. pstep_reverse.
     + unpriv_pi. right. eapply CIH; eauto. apply H1.
     + rewrite itree_eta'. unpriv_pi. right. eapply CIH; eauto.
       inv CHECK. apply pi_eqit_secure_mixed_trans_aux1.
-      pfold. red. rewrite <- H0. cbn. pstep_reverse.
+      step. rewrite <- H0. cbn. pstep_reverse.
   - inv Hsec.
-    + pclearbot. rewrite itree_eta'. constructor; auto. right. eapply CIH; eauto.
-      pfold. red. rewrite H0. constructor. left. auto.
+    +  rewrite itree_eta'. constructor; auto. right. eapply CIH; eauto.
+      step. rewrite H0. constructor. left. auto.
     + ddestruction. subst. constructor; auto with itree. right.
-      pclearbot. eapply CIH; eauto with itree. apply H1.
-    + ddestruction. subst. unpriv_pi. right. pclearbot.
+       eapply CIH; eauto with itree. apply H1.
+    + ddestruction. subst. unpriv_pi. right. 
       eapply CIH; eauto with itree. apply H1.
-    + ddestruction. subst. unpriv_pi. right. pclearbot.
+    + ddestruction. subst. unpriv_pi. right. 
       eapply CIH; eauto with itree. apply H1.
-    + pclearbot. remember (VisF e k2) as ovis. rewrite itree_eta'.
+    +  remember (VisF e k2) as ovis. rewrite itree_eta'.
       unpriv_pi. rewrite Heqovis. right. eapply CIH; eauto with itree. apply H1.
-      pfold. red. rewrite H0. constructor. left. auto.
-    + ddestruction. subst. unpriv_pi. right. eapply CIH; eauto with itree. pclearbot. apply H1.
-  - eapply IHHeq; eauto. clear IHHeq. inv Hsec; pclearbot.
+      step. rewrite H0. constructor. left. auto.
+    + ddestruction. subst. unpriv_pi. right. eapply CIH; eauto with itree.  apply H1.
+  - eapply IHHeq; eauto. clear IHHeq. inv Hsec; 
     + constructor; auto.
-    + constructor; auto. left. apply pi_eqit_secure_mixed_trans_aux1. pfold. red.
+    + constructor; auto. left. apply pi_eqit_secure_mixed_trans_aux1. step. red.
       rewrite <- H0. cbn. pstep_reverse.
     + pstep_reverse.
     + unpriv_pi.
-    + unpriv_pi. left. apply pi_eqit_secure_mixed_trans_aux1. pfold. red.
+    + unpriv_pi. left. apply pi_eqit_secure_mixed_trans_aux1. step. red.
       rewrite <- H0. cbn. pstep_reverse.
-  - constructor; auto. left. pfold. eapply IHHeq; eauto.
+  - constructor; auto. left. step. eapply IHHeq; eauto.
 Qed.
 
 Lemma pi_eqit_secure_RR_imp b1 b2 E R1 R2 (RR1 : R1 -> R2 -> Prop ) (RR2 : R1 -> R2 -> Prop)
@@ -230,11 +230,11 @@ Lemma pi_eqit_secure_RR_imp b1 b2 E R1 R2 (RR1 : R1 -> R2 -> Prop ) (RR2 : R1 ->
       pi_eqit_secure Label priv RR1 b1 b2 l t1 t2 ->
       pi_eqit_secure Label priv RR2 b1 b2 l t1 t2.
 Proof.
-  intro Himp. pcofix CIH.
-  intros. pfold. red. punfold H0. red in H0.
+  intro Himp. coinduction c CIH.
+  intros. step. step in H0. red in H0.
   inv H0; eauto;
-  try (constructor; auto; pclearbot; eauto; fail);
-  try (pclearbot; constructor; auto; right; eapply CIH; eauto; try apply H2; fail).
+  try (constructor; auto;  eauto; fail);
+  try ( constructor; auto; right; eapply CIH; eauto; try apply H2; fail).
 Qed.
 
 Lemma pi_eqit_secureC_wcompat_id :  forall b1 b2 E R1 R2 (RR : R1 -> R2 -> Prop )
@@ -244,7 +244,7 @@ Lemma pi_eqit_secureC_wcompat_id :  forall b1 b2 E R1 R2 (RR : R1 -> R2 -> Prop 
 Proof.
   econstructor. pmonauto_itree.
   intros. destruct PR.
-  punfold EQVl. punfold EQVr. unfold_eqit. red in REL. red.
+  step in EQVl. step in EQVr. unfold_eqit. red in REL. red.
   hinduction REL before r; intros; clear t1' t2'; try inv CHECK.
   - genobs_clear t1 ot1. genobs_clear t2 ot2.
     remember (RetF r1) as x.
@@ -253,75 +253,75 @@ Proof.
       hinduction EQVr before r; intros; inv Heqy; eauto with itree.
       rewrite itree_eta' at 1. constructor; eauto with itree. gstep. red.
       eapply IHEQVr; eauto.
-    + rewrite itree_eta'. constructor; auto. cbn. gstep. red. cbn.
+    + rewrite itree_eta'. constructor; auto. cbn. gstep. cbn.
       eauto.
   - remember (TauF t1) as y.
     hinduction EQVl before r; intros; inv Heqy; try inv CHECK; subst; eauto.
     + remember (TauF t2) as x.
       hinduction EQVr before r; intros; inv Heqx; try inv CHECK; subst; eauto.
-      pclearbot. constructor. gclo. econstructor; eauto with paco.
-      pclearbot.
+       constructor. gclo. econstructor; eauto with paco.
+      
       remember (TauF m1) as ot1. rewrite itree_eta' at 1.
-      constructor; auto. rewrite Heqot1. gstep. red. cbn. eauto.
-    + constructor; auto. gstep. red. eapply IHEQVl; eauto.
-  - inv EQVl; pclearbot; try inv CHECK.
+      constructor; auto. rewrite Heqot1. gstep. cbn. eauto.
+    + constructor; auto. gstep. eapply IHEQVl; eauto.
+  - inv EQVl;  try inv CHECK.
     + constructor; auto. gclo. econstructor; eauto with paco itree.
     + constructor; auto. gclo. econstructor; eauto with paco itree.
-      apply eqit_inv_Tau_r. pfold. auto.
-  - inv EQVr; pclearbot; try inv CHECK.
+      apply eqit_inv_Tau_r. step. auto.
+  - inv EQVr;  try inv CHECK.
     + constructor; auto. gclo. econstructor; eauto with paco itree.
     + constructor; auto. gclo. econstructor; eauto with paco itree.
-      apply eqit_inv_Tau_r. pfold. auto.
+      apply eqit_inv_Tau_r. step. auto.
   - remember (VisF e k1) as x.
     hinduction EQVl before r; intros; inv Heqx; try inv CHECK; eauto.
     + ddestruction. subst. remember (VisF e0 k3) as y.
       hinduction EQVr before r; intros; inv Heqy; try inv CHECK; eauto.
       * ddestruction. subst. constructor; auto.
-        intros. apply gpaco2_clo. pclearbot. econstructor; eauto with itree. apply H.
-      * pclearbot. remember (VisF e0 k1) as ovis. rewrite itree_eta' at 1.
-        constructor; auto. rewrite Heqovis. gstep. red. eapply IHEQVr; eauto with itree.
-    + constructor; auto. gstep. red. eapply IHEQVl; eauto.
+        intros. apply gpaco2_clo.  econstructor; eauto with itree. apply H.
+      *  remember (VisF e0 k1) as ovis. rewrite itree_eta' at 1.
+        constructor; auto. rewrite Heqovis. gstep. eapply IHEQVr; eauto with itree.
+    + constructor; auto. gstep. eapply IHEQVl; eauto.
   - remember (VisF e k1) as x.
     hinduction EQVl before r; intros; inv Heqx; try inv CHECK; subst; eauto.
-    + ddestruction. subst. pclearbot. remember (TauF t2) as y.
-      hinduction EQVr before r; intros; inv Heqy; try inv CHECK; subst; pclearbot; eauto.
+    + ddestruction. subst.  remember (TauF t2) as y.
+      hinduction EQVr before r; intros; inv Heqy; try inv CHECK; subst;  eauto.
       * unpriv_pi. gclo. econstructor; cycle -1; eauto with paco itree. gfinal. left. apply H.
       * remember (VisF e0 k1) as ovis. rewrite itree_eta' at 1. constructor; auto.
-        rewrite Heqovis. gstep. red. eapply IHEQVr; eauto.
-    + constructor; auto. gstep. red. eapply IHEQVl; eauto.
+        rewrite Heqovis. gstep. eapply IHEQVr; eauto.
+    + constructor; auto. gstep. eapply IHEQVl; eauto.
   - remember (TauF t1) as x.
     hinduction EQVl before r; intros; inv Heqx; try inv CHECK; subst; eauto.
     + remember (VisF e k2) as y.
       hinduction EQVr before r; intros; inv Heqy; try inv CHECK; subst; eauto.
       * ddestruction. subst.
-        pclearbot. unpriv_pi. gclo. econstructor; cycle -1; eauto with paco itree.
+         unpriv_pi. gclo. econstructor; cycle -1; eauto with paco itree.
         gfinal. left. apply H.
       * remember (TauF m1) as otm1. rewrite itree_eta' at 1. constructor; auto.
         gstep. rewrite Heqotm1. red. eapply IHEQVr; eauto.
-   + constructor; auto. gstep. red. eapply IHEQVl; eauto.
+   + constructor; auto. gstep. eapply IHEQVl; eauto.
   - remember (VisF e1 k1) as x.
     hinduction EQVl before r; intros; inv Heqx; try inv CHECK; subst; eauto.
     + ddestruction. subst. remember (VisF e2 k3) as y.
       hinduction EQVr before r; intros; inv Heqy; try inv CHECK; subst; eauto.
-      * ddestruction. subst. unpriv_pi. gclo. pclearbot.
+      * ddestruction. subst. unpriv_pi. gclo. 
         econstructor; eauto with paco itree. gfinal. left. apply H.
       * remember (VisF e1 k1) as ovis. rewrite itree_eta' at 1.
         constructor; auto. rewrite Heqovis. gstep. eapply IHEQVr; eauto.
     + remember (VisF e2 k2) as x.
       hinduction EQVr before r; intros; inv Heqx; try inv CHECK; subst; eauto.
-      * ddestruction. subst. pclearbot. unpriv_pi.
+      * ddestruction. subst.  unpriv_pi.
          gclo. eapply eqit_trans_clo_intro with (t1' := Vis e1 k0); eauto with paco itree.
-         gstep. red. cbn. unpriv_pi. gfinal. left. apply H.
+         gstep. cbn. unpriv_pi. gfinal. left. apply H.
        * remember (TauF t3) as ott3. rewrite itree_eta' at 1. constructor; auto.
-         rewrite Heqott3. gstep. red. eapply IHEQVr; eauto.
+         rewrite Heqott3. gstep. eapply IHEQVr; eauto.
   - remember (VisF e k1) as x.
     hinduction EQVl before r; intros; inv Heqx; try inv CHECK; eauto.
-    + ddestruction. subst. pclearbot. unpriv_pi.
+    + ddestruction. subst.  unpriv_pi.
       gclo. econstructor; eauto with paco itree. gfinal. left. apply H.
     + constructor; auto. gstep. eapply IHEQVl; eauto.
   - remember (VisF e k2) as x.
     hinduction EQVr before r; intros; inv Heqx; try inv CHECK; eauto.
-    + ddestruction. subst. pclearbot. unpriv_pi.
+    + ddestruction. subst.  unpriv_pi.
       gclo. econstructor; eauto with paco itree. gfinal. left. apply H.
     + constructor; auto. gstep. eapply IHEQVr; eauto.
 Qed.
@@ -372,7 +372,7 @@ Qed.
 Lemma pi_eqit_secure_ret E Label priv l b1 b2 R1 R2 (RR : R1 -> R2 -> Prop) r1 r2 :
   RR r1 r2 -> @pi_eqit_secure E R1 R2 Label priv RR b1 b2 l (Ret r1) (Ret r2).
 Proof.
-  intros; pfold; constructor; auto.
+  intros; step; constructor; auto.
 Qed.
 
 Lemma pi_eqit_secure_bind E Label priv l b1 b2 R1 R2 S1 S2 (RR : R1 -> R2 -> Prop) (RS : S1 -> S2 -> Prop) k1 k2 :
@@ -381,7 +381,7 @@ Lemma pi_eqit_secure_bind E Label priv l b1 b2 R1 R2 S1 S2 (RR : R1 -> R2 -> Pro
     pi_eqit_secure Label priv RR b1 b2 l t1 t2 ->
     pi_eqit_secure Label priv RS b1 b2 l (ITree.bind t1 k1) (ITree.bind t2 k2).
 Proof.
-  ginit. gcofix CIH. intros. pinversion H1.
+  ginit. gcofix CIH. intros. sinv H1.
   - apply simpobs in H. apply simpobs in H2. rewrite H. rewrite H2.
     repeat rewrite bind_ret_l. gfinal. right. eapply paco2_mon; try apply H0; auto.
     intros; contradiction.
@@ -389,28 +389,28 @@ Proof.
     repeat rewrite bind_tau. gstep. constructor. gfinal. left. eapply CIH; eauto.
   - apply simpobs in H. apply simpobs in H2.  rewrite H2. rewrite H. rewrite bind_tau.
     gstep. constructor; auto. gfinal. left. eapply CIH; eauto.
-    pfold. red. cbn. pstep_reverse.
+    step. cbn. pstep_reverse.
   - apply simpobs in H. apply simpobs in H2.  rewrite H2. rewrite H. rewrite bind_tau.
     gstep. constructor; auto. gfinal. left. eapply CIH; eauto.
-    pfold. red. cbn. pstep_reverse.
+    step. cbn. pstep_reverse.
   - apply simpobs in H. apply simpobs in H2. rewrite H. rewrite H2.
     repeat rewrite bind_vis. gstep. constructor; auto.
     gfinal. left. eapply CIH; eauto. apply H3.
   - apply simpobs in H. apply simpobs in H2. rewrite H. rewrite H2.
-    rewrite bind_vis. rewrite bind_tau. gstep. red. cbn. unpriv_pi.
+    rewrite bind_vis. rewrite bind_tau. gstep. cbn. unpriv_pi.
     gfinal. left. eapply CIH; eauto. apply H3.
   - apply simpobs in H. apply simpobs in H2. rewrite H. rewrite H2.
-    rewrite bind_vis. rewrite bind_tau. gstep. red. cbn. unpriv_pi.
+    rewrite bind_vis. rewrite bind_tau. gstep. cbn. unpriv_pi.
     gfinal. left. eapply CIH; eauto. apply H3.
   - apply simpobs in H. apply simpobs in H2. rewrite H. rewrite H2.
-    repeat rewrite bind_vis. gstep. red. cbn. unpriv_pi.
+    repeat rewrite bind_vis. gstep. cbn. unpriv_pi.
     gfinal. left. eapply CIH; eauto. apply H3.
   - apply simpobs in H. apply simpobs in H2. rewrite H. rewrite H2.
-    rewrite bind_vis. gstep. red. unpriv_pi.
-    gfinal. left. eapply CIH; eauto. pfold. red. cbn. pstep_reverse.
+    rewrite bind_vis. gstep. unpriv_pi.
+    gfinal. left. eapply CIH; eauto. step. cbn. pstep_reverse.
   - apply simpobs in H. apply simpobs in H2. rewrite H. rewrite H2.
-    rewrite bind_vis. gstep. red. unpriv_pi.
-    gfinal. left. eapply CIH; eauto. pfold. red. cbn. pstep_reverse.
+    rewrite bind_vis. gstep. unpriv_pi.
+    gfinal. left. eapply CIH; eauto. step. cbn. pstep_reverse.
 Qed.
 
 Lemma pi_eqit_secure_iter_bind_aux:
@@ -438,7 +438,7 @@ Lemma pi_eqit_secure_iter_bind_aux:
 Proof.
   intros E B2 B1 A1 A2 RA RB b1 b2 Label priv l body1 body2 r CIH t1 t2 H2.
   generalize dependent t2. revert t1. gcofix CIH'. intros t1 t2 Ht12.
-  pinversion Ht12; apply simpobs in H; apply simpobs in H0.
+  sinv Ht12; apply simpobs in H; apply simpobs in H0.
   - rewrite H, H0. repeat rewrite bind_ret_l. inv H1.
     + gstep. constructor. gfinal. left. apply CIH'0. eapply CIH; eauto.
     + gstep. constructor; auto.
@@ -472,7 +472,7 @@ Lemma secure_eqit_iter E A1 A2 B1 B2 (RA : A1 -> A2 -> Prop) (RB : B1 -> B2 -> P
     pi_eqit_secure Label priv RB b1 b2 l (ITree.iter body1 a1) (ITree.iter body2 a2).
 Proof.
   intro Hbody. ginit. gcofix CIH. intros. rewrite unfold_iter. rewrite unfold_iter.
-  apply Hbody in H0. pinversion H0; apply simpobs in H; apply simpobs in H1.
+  apply Hbody in H0. sinv H0; apply simpobs in H; apply simpobs in H1.
   - rewrite H. rewrite H1. repeat rewrite bind_ret_l. inv H2.
     + gstep. constructor. gfinal. left. eapply CIH; eauto.
     + gstep. constructor; auto.

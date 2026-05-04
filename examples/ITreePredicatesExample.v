@@ -105,8 +105,8 @@ Section Proper.
     rewrite (itree_eta (interpret_state x x2)).
     rewrite (itree_eta (interpret_state y y0)).
     rewrite !unfold_interpret_state. subst.
-    punfold H0. repeat red in H0. unfold interpret_stateF.
-    destruct (observe x); inv H0; try discriminate; pclearbot; simpl;
+    step in H0. repeat red in H0. unfold interpret_stateF.
+    destruct (observe x); inv H0; try discriminate;  simpl;
       try (gstep; constructor; eauto with paco; fail).
     ddestruction.
     destruct e; gstep; econstructor; eauto with paco itree.
@@ -240,17 +240,17 @@ Proof.
   rewrite (itree_eta (interpret_state t s')).
   rewrite !unfold_interpret_state.
   unfold interpret_stateF.
-  punfold H0. repeat red in H0.
+  step in H0. repeat red in H0.
   destruct (observe t); cbn.
   - rewrite !bind_ret_l. gstep. econstructor. eauto.
   - rewrite !bind_tau. gstep. econstructor.
     gbase. eapply CIH.
-    inversion H0. subst. pclearbot. assumption.
+    inversion H0. subst.  assumption.
   - destruct e; cbn.
     + (* e is Get, which is ruled out by the NoGets predicate *) inversion H0.
     + rewrite !bind_tau.
       gstep. econstructor. gbase. eapply CIH.
-      inversion H0. ddestruction. pclearbot. assumption.
+      inversion H0. ddestruction.  assumption.
 Qed.
 
 
@@ -272,18 +272,18 @@ Proof.
   rewrite (itree_eta (interpret_state t s')).
   rewrite !unfold_interpret_state.
   unfold interpret_stateF.
-  punfold H0. repeat red in H0.
+  step in H0. repeat red in H0.
   destruct (observe t); cbn.
   - rewrite !bind_ret_l. gfinal. right.
     eapply paco2_mon_bot; eauto with paco. apply INV.
   - rewrite !bind_tau. gstep. econstructor.
     gbase. eapply CIH; auto.
-    inversion H0. subst. pclearbot. assumption.
+    inversion H0. subst.  assumption.
   - destruct e; cbn.
     + (* e is Get, which is ruled out by the NoGets predicate *) inversion H0.
     + rewrite !bind_tau.
       gstep. econstructor. gbase. eapply CIH; auto.
-      inversion H0. ddestruction. pclearbot. assumption.
+      inversion H0. ddestruction.  assumption.
 Qed.
 
 Theorem state_independent': forall {S R} (t:itree (stateE S) R)

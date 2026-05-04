@@ -28,7 +28,7 @@ Set Implicit Arguments.
 (*this implies that if a spec w accepts spin, then bind w f should too?   *)
 Lemma spin_bind : forall (E : Type -> Type) (A B : Type) (f : A -> itree E B), spin ≈ ITree.bind spin f.
 Proof.
-  intros. bcoinduction. simpl.
+  intros. coinduction. simpl.
   now constructor.
 Qed.
 
@@ -51,7 +51,7 @@ Lemma tau_invar_resp_eutt1: forall (E : Type -> Type) (A : Type) (P : itree E A 
 (*spin is the only divergent itree with the void1 event type,*)
 Lemma div_spin_eutt : forall (A : Type) (t : itree void1 A), any_infinite t -> t ≈ spin.
 Proof.
-  intros A. bcoinduction. intros. cbn.
+  intros A. coinduction. intros. cbn.
   destruct (observe t) eqn : Heqt.
   - specialize (itree_eta t) as Heta. rewrite Heqt in Heta. rewrite Heta in H. sinv H. 
   - constructor. apply CIH. specialize (itree_eta t) as Heta. rewrite Heqt in Heta.

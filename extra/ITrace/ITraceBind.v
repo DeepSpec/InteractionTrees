@@ -17,9 +17,6 @@ From ITree.Extra Require Import
      ITrace.ITracePrefix
 .
 
-
-From Paco Require Import paco.
-
 Import Monads.
 Import MonadNotation.
 Local Open Scope monad_scope.
@@ -91,7 +88,7 @@ Lemma refine_ret_vis_contra : forall (E: Type -> Type) (R A: Type)
                                 (r : R) (e : E A) (k : A -> itree E R),
     ~ (Ret r ⊑ Vis e k).
 Proof.
-  intros. intro Hcontra. pinversion Hcontra.
+  intros. intro Hcontra. sinv Hcontra.
 Qed.
 
 (* maybe a better way of doing it is to use strong LEM to see if X = A in the vis case
@@ -102,11 +99,11 @@ Qed.
 Lemma peel_t_ret : forall E R S (b : itrace E S) (t : itree E R) r, t ≅ Ret r -> (peel b t ≅ Ret r).
 Proof.
   intros.  unfold peel.
-  pinversion H; subst; try inv CHECK.
+  sinv H; subst; try inv CHECK.
   destruct (observe b); cbn; auto.
-  - pfold. red. cbn. constructor. auto.
-  - pfold. red. cbn. constructor; auto.
-  - pfold. red. cbn. simpl. destruct e.
+  - step. cbn. constructor. auto.
+  - step. cbn. constructor; auto.
+  - step. cbn. simpl. destruct e.
     + cbn. constructor. auto.
     + cbn. constructor. auto.
 Qed.
@@ -119,40 +116,38 @@ Lemma peel_refine_t : forall (E : Type -> Type) (R S : Type)
     peel b t ⊑ t.
 Proof.
   intros E R S b t f. generalize dependent b. generalize dependent t.
-  pcofix CIH. intros.
-  punfold Hrutt. red in Hrutt. cbn in Hrutt. pfold. red.
+  icoinduction c CIH. intros.
+  step in Hrutt. cbn in Hrutt. 
   unfold peel.
   destruct (observe t) eqn : Heq.
   - destruct (observe b); cbn; try (constructor; auto).
     destruct e; cbn; constructor; auto.
   - dependent induction Hrutt.
     + exfalso. symmetry in Heq. apply simpobs in Heq. apply simpobs in x.
-      rewrite Heq in x. rewrite bind_tau in x. pinversion x.
-      inv CHECK.
-    + rewrite <- x0. cbn. constructor. right. eapply CIH.
-      pclearbot. symmetry in Heq. apply simpobs in x0.
+      rewrite Heq in x. rewrite bind_tau in x. sinv x.
+    + rewrite <- x0. cbn. constructor. eapply CIH.
+       symmetry in Heq. apply simpobs in x0.
       apply simpobs in x. apply simpobs in Heq.
       apply eq_sub_eutt in x0. apply eq_sub_eutt in Heq.
       rewrite tau_eutt in Heq. rewrite tau_eutt in x0.
       rewrite <- Heq. rewrite x. rewrite tau_eutt. auto.
     + exfalso. symmetry in Heq. apply simpobs in Heq.
       apply simpobs in x.
-      rewrite Heq in x. rewrite bind_tau in x. pinversion x.
-      inv CHECK.
-    + rewrite <- x. cbn. constructor. right. eapply CIH.
+      rewrite Heq in x. rewrite bind_tau in x. sinv x.
+    + rewrite <- x. cbn. constructor. eapply CIH.
       clear IHHrutt. symmetry in Heq. apply simpobs in Heq.
       apply eq_sub_eutt in Heq. rewrite tau_eutt in Heq.
-      rewrite <- Heq. pfold. auto.
+      rewrite <- Heq. step. auto.
     + cbn. destruct (observe b) eqn : Heq'.
-      * cbn. rewrite <- Heq'. constructor. right. eapply CIH.
+      * cbn. rewrite <- Heq'. constructor. eapply CIH.
         symmetry in Heq'.
         apply simpobs in Heq'. rewrite Heq'.
         symmetry in Heq. apply simpobs in Heq.
         apply eq_sub_eutt in Heq. rewrite tau_eutt in Heq.
         rewrite <- Heq. apply simpobs in x. rewrite x.
-        rewrite tau_eutt. pfold. auto.
+        rewrite tau_eutt. step. auto.
       * cbn. clear IHHrutt.
-        constructor. right. eapply CIH.
+        constructor. eapply CIH. 
         symmetry in Heq. apply simpobs in Heq.
         apply eq_sub_eutt in Heq. rewrite tau_eutt in Heq.
         rewrite <- Heq.
@@ -160,32 +155,32 @@ Proof.
         rewrite tau_eutt in x. rewrite x.
         enough (Tau t1 ⊑ t2).
         { rewrite tau_eutt in H. auto. }
-        pfold. auto.
+        step. auto.
       * destruct e; cbn.
-        ++ constructor. right. rewrite <- Heq'. clear IHHrutt.
+        ++ constructor. rewrite <- Heq'. clear IHHrutt.
            eapply CIH. symmetry in Heq.
            apply simpobs in Heq. apply eq_sub_eutt in Heq.
            rewrite tau_eutt in Heq. apply simpobs in x.
            apply eq_sub_eutt in x. rewrite tau_eutt in x.
-           rewrite <- Heq. rewrite x. pfold. red.
+           rewrite <- Heq. rewrite x. step. 
            rewrite Heq'. auto.
-        ++ constructor. right. rewrite <- Heq'. clear IHHrutt.
+        ++ constructor. rewrite <- Heq'. clear IHHrutt.
            eapply CIH. symmetry in Heq.
            apply simpobs in Heq. apply eq_sub_eutt in Heq.
            rewrite tau_eutt in Heq. apply simpobs in x.
            apply eq_sub_eutt in x. rewrite tau_eutt in x.
-           rewrite <- Heq. rewrite x. pfold. red.
+           rewrite <- Heq. rewrite x. step. 
            rewrite Heq'. auto.
   - dependent induction Hrutt.
     + exfalso. symmetry in Heq. apply simpobs in Heq. apply simpobs in x.
       rewrite Heq in x. rewrite bind_vis in x.
-      pinversion x.
+      sinv x.
     + exfalso. symmetry in Heq. apply simpobs in Heq. apply simpobs in x.
       rewrite Heq in x. rewrite bind_vis in x.
-      pinversion x; inv CHECK.
+      sinv x; inv CHECK.
     + rewrite <- x0.
       symmetry in Heq. apply simpobs in Heq. apply simpobs in x.
-      rewrite Heq in x. rewrite bind_vis in x. pinversion x.
+      rewrite Heq in x. rewrite bind_vis in x. sinv x.
       ddestruction. inversion H; ddestruction.
       * unfold observe. cbn. unfold peel_vis.
         destruct (classicT (B = B) ); try contradiction.
@@ -193,23 +188,23 @@ Proof.
         remember (eq_sym _) as He. clear HeqHe.
         dependent destruction He. cbn. constructor; eauto.
         intros. inversion H1. ddestruction.
-        apply H0 in H1. pclearbot. unfold id. right. eapply CIH.
-        red in x1. cbn in x1. inversion x1. ddestruction.
+        apply H0 in H1.  unfold id. eapply CIH. 
+        red in H. cbn in H. inversion H. ddestruction.
         specialize (H0 tt a (rar _ _ _)).
-        specialize (REL0 a). pclearbot.
+        specialize (REL0 a). 
         change (paco2 ?x ?y ?t ?u) with (eq_itree eq t u) in REL0.
         rewrite REL0. apply H0.
       * cbn. constructor; eauto. intros. contradiction.
     + rewrite <- x. cbn. constructor. eapply IHHrutt; eauto.
     + exfalso. symmetry in Heq. apply simpobs in x. apply simpobs in Heq.
       rewrite Heq in x. rewrite bind_vis in x.
-      pinversion x; inv CHECK.
+      sinv x; inv CHECK.
 Qed.
 
 Lemma not_spin_eutt_ret : forall E R (r : R), ~ (@ITree.spin E R ≈ Ret r).
 Proof.
   intros. intros Hcontra. specialize (@spin_infinite E R) as Hdiv.
-  rewrite Hcontra in Hdiv. pinversion Hdiv.
+  rewrite Hcontra in Hdiv. sinv Hdiv.
 Qed.
 
 
@@ -217,64 +212,64 @@ Lemma proper_peel_eutt_l : forall (E : Type -> Type) (R S : Type)
                                   (b b': itrace E R) (t : itree E S),
     (b ≈ b') -> (peel b t ≈ peel b' t).
 Proof.
-  intros E R S. pcofix CIH. intros. unfold peel.
+  intros E R S. coinduction c CIH. intros. unfold peel.
   destruct (observe t).
-  - pfold. red. destruct (observe b); destruct (observe b'); cbn;
+  - step. destruct (observe b); destruct (observe b'); cbn;
       try (destruct e); try (destruct e0); cbn;
       try (constructor; auto; fail).
-  - pfold. punfold H0. red in H0. dependent induction H0.
+  - step. step in H0. red in H0. dependent induction H0.
     + rewrite <- x0. rewrite <- x. red. cbn. constructor.
       right. rewrite x0. eapply CIH. reflexivity.
     + rewrite <- x0. rewrite <- x. red. cbn. constructor. right.
-      pclearbot. eapply CIH. auto.
+       eapply CIH. auto.
     + rewrite <- x0. rewrite <- x. destruct e; cbn.
       * red. cbn. constructor. right. rewrite x. rewrite x0.
-        eapply CIH. pfold. red. rewrite <- x. rewrite <- x0.
+        eapply CIH. step. rewrite <- x. rewrite <- x0.
         constructor. auto.
       * red. cbn. constructor. right. rewrite x0. rewrite x.
-        eapply CIH. pfold. red. rewrite <- x0. rewrite <- x.
+        eapply CIH. step. rewrite <- x0. rewrite <- x.
         constructor. auto.
     + destruct (observe b); destruct (observe b'); dependent destruction x.
       * red. cbn. constructor. right. remember (@go (EvAns E) _ (RetF r0)) as t1.
         assert (RetF r0 = observe t1).
         { rewrite Heqt1. auto. }
-        rewrite H. eapply CIH. rewrite Heqt1. pfold. auto.
-      * red. cbn. constructor. right. eapply CIH.
+        rewrite H. eapply CIH. rewrite Heqt1. step. auto.
+      * red. cbn. constructor. eapply CIH. 
         enough (t2 ≈ Tau t3).
         { rewrite tau_eutt in H. auto. }
-        pfold. auto.
+        step. auto.
       * red. destruct e; cbn.
         ++ constructor. right.
            remember (@go (EvAns E) _ (VisF (evans A ev ans) k )  ) as t1.
            assert (VisF (evans A ev ans) k  = observe t1).
            { rewrite Heqt1. auto. }
-           rewrite H. eapply CIH. subst. pfold. auto.
+           rewrite H. eapply CIH. subst. step. auto.
         ++ constructor. right.
            remember (go (VisF (evempty A Hempty ev) k )  ) as t1.
            assert (VisF (evempty A Hempty ev) k = observe t1 ).
            { subst. auto. }
-           rewrite H. eapply CIH. subst. pfold. auto.
+           rewrite H. eapply CIH. subst. step. auto.
     + destruct (observe b); destruct (observe b'); dependent destruction x.
       * red. cbn. constructor. right. remember (@go (EvAns E) _ (RetF r0)) as t2.
         assert (RetF r0 = observe t2).
         { subst. auto. }
-        rewrite H. eapply CIH. rewrite Heqt2. pfold. auto.
-      * red. cbn. constructor. right. eapply CIH.
+        rewrite H. eapply CIH. rewrite Heqt2. step. auto.
+      * red. cbn. constructor. eapply CIH. 
         enough (Tau t1 ≈ t3).
         { rewrite tau_eutt in H. auto. }
-        pfold. auto.
+        step. auto.
       * red. destruct e; cbn.
         ++ constructor. right.
            remember (@go (EvAns E) _ (VisF (evans A ev ans) k )  ) as t2.
            assert (VisF (evans A ev ans) k  = observe t2).
            { subst. auto. }
-           rewrite H. eapply CIH. subst. pfold. auto.
+           rewrite H. eapply CIH. subst. step. auto.
         ++ constructor. right.
            remember (go (VisF (evempty A Hempty ev) k )  ) as t2.
            assert (VisF (evempty A Hempty ev) k = observe t2 ).
            { subst. auto. }
-           rewrite H. eapply CIH. subst. pfold. auto.
-  - pfold. punfold H0. red in H0. dependent induction H0.
+           rewrite H. eapply CIH. subst. step. auto.
+  - step. step in H0. red in H0. dependent induction H0.
     + rewrite <- x0. rewrite <- x. red. cbn. constructor.
       left. apply pacobot2.
       enough (@ITree.spin (EvAns E) S  ≈ ITree.spin); auto.
@@ -283,13 +278,13 @@ Proof.
       remember (go (VisF e k) ) as t0.
       assert (VisF e k = observe t0).
       { subst. auto. }
-      rewrite H. eapply CIH. pclearbot. auto.
+      rewrite H. eapply CIH.  auto.
     + rewrite <- x0. rewrite <- x. red. destruct e; cbn.
       * unfold observe. cbn. unfold peel_vis.
         destruct (classicT (A = X) ).
         ++ unfold eq_rect_r, eq_rect. remember (eq_sym e) as He.
            dependent destruction He. cbn. constructor. intros.
-           right. eapply CIH. pclearbot. auto with itree.
+           eapply CIH.   auto with itree.
         ++ cbn. constructor. left. apply pacobot2.
            enough (@ITree.spin (EvAns E) S ≈ ITree.spin ); auto.
            reflexivity.
@@ -303,7 +298,7 @@ Proof.
         rewrite H. eapply CIH.
         enough (t1 ≈ Tau t0).
         { rewrite tau_eutt in H1. auto. }
-        pfold; auto.
+        step; auto.
       * cbn. constructor; eauto. rewrite <- Heq. eapply IHeqitF; eauto.
         rewrite Heq. auto.
     + rewrite <- x. red. destruct (observe b) eqn : Heq.
@@ -315,7 +310,7 @@ Proof.
         rewrite H. eapply CIH.
         enough (Tau t0 ≈ t2).
         { rewrite tau_eutt in H1. auto. }
-        pfold; auto.
+        step; auto.
       * cbn. constructor; eauto. rewrite <- Heq. eapply IHeqitF; eauto.
         rewrite Heq. auto.
 Qed.
@@ -326,23 +321,23 @@ Lemma proper_peel_eutt_r : forall (E : Type -> Type) (R S : Type)
                                   (b: itrace E R) (t t': itree E S),
     (t ≈ t') -> (peel b t ≈ peel b t').
 Proof.
-  intros E R S. pcofix CIH. intros.
-  pfold. red. unfold peel. destruct (observe b) eqn : Heqb.
-  - punfold H0. red in H0. dependent induction H0.
+  intros E R S. coinduction c CIH. intros.
+  step. unfold peel. destruct (observe b) eqn : Heqb.
+  - step in H0. red in H0. dependent induction H0.
     + rewrite <- x. rewrite <- x0.  cbn. constructor. auto.
     + rewrite <- x. rewrite <- x0. cbn. constructor. right. rewrite <- Heqb.
-      eapply CIH. pclearbot. auto.
+      eapply CIH.  auto.
     + rewrite <- x0. rewrite <- x. cbn. constructor.
       left. apply paco2_eqit_refl.
     + rewrite <- x.  cbn. constructor; auto. eapply IHeqitF; eauto.
     + rewrite <- x. cbn. constructor; auto. eapply IHeqitF; eauto.
-  - punfold H0. red in H0. dependent induction H0.
+  - step in H0. red in H0. dependent induction H0.
     + rewrite <- x. rewrite <- x0. cbn. constructor. auto.
     + rewrite <- x0. rewrite <- x. cbn. constructor. right.
-      pclearbot. eapply CIH; auto.
+       eapply CIH; auto.
     + rewrite <- x0. rewrite <- x. cbn. constructor. right.
       rewrite x0. rewrite x. eapply CIH.
-      pfold. red. rewrite <- x0. rewrite <- x.
+      step. rewrite <- x0. rewrite <- x.
       constructor. auto.
     + rewrite <- x. destruct (observe t') eqn : Heqt'.
       * cbn.  constructor; auto. clear IHeqitF.
@@ -357,9 +352,9 @@ Proof.
       * cbn. constructor. right. eapply CIH; eauto.
         enough (t1 ≈ Tau t2).
         { rewrite tau_eutt in H. auto. }
-        pfold. auto.
-      * cbn. constructor. rewrite <- Heqt'. right. eapply CIH.
-        pfold. red. rewrite Heqt'. auto.
+        step. auto.
+      * cbn. constructor. rewrite <- Heqt'. eapply CIH. 
+        step. rewrite Heqt'. auto.
     + rewrite <- x. destruct (observe t).
       * cbn. constructor; auto. clear IHeqitF.
         dependent induction H0.
@@ -369,21 +364,21 @@ Proof.
            ** constructor; auto. eapply IHeqitF; eauto.
            ** destruct e; cbn; try (constructor; auto; rewrite <- Heqt1; eapply IHeqitF; eauto).
       * cbn. constructor. right. eapply CIH; eauto.
-        rewrite <- tau_eutt at 1. pfold. auto.
+        rewrite <- tau_eutt at 1. step. auto.
       * cbn. constructor. right. remember ((Vis e k) ) as t1.
         assert (VisF e k = observe t1).
         { subst. auto. }
-        rewrite H. eapply CIH. subst. pfold. auto.
-  - punfold H0. red in H0. dependent induction H0.
+        rewrite H. eapply CIH. subst. step. auto.
+  - step in H0. red in H0. dependent induction H0.
     + rewrite <- x. rewrite <- x0. destruct e; cbn; constructor; auto.
     + rewrite <- x. rewrite <- x0. destruct e; cbn; constructor; right; rewrite <- Heqb;
-        eapply CIH; pclearbot; eauto.
+        eapply CIH;  eauto.
     + rewrite <- x. rewrite <- x0. destruct e0; cbn.
       * unfold observe. cbn. unfold peel_vis.
         destruct (classicT (A = u) ).
         ++ unfold eq_rect_r, eq_rect. remember (eq_sym e0) as He.
            dependent destruction He. cbn. constructor. intros.
-           right. eapply CIH. pclearbot. auto with itree.
+           eapply CIH.   auto with itree.
         ++ cbn. constructor. left. apply paco2_eqit_refl.
       * constructor. contradiction.
     + rewrite <- x. destruct (observe t'); destruct e; cbn.
@@ -393,17 +388,17 @@ Proof.
       * constructor; auto. clear IHeqitF. dependent induction H0.
         ++ rewrite <- x. cbn. constructor; auto.
         ++ rewrite <- x. cbn. constructor; eauto.
-      * constructor. rewrite <- Heqb. right. eapply CIH.
-        setoid_rewrite <- tau_eutt at 2. pfold. auto.
-      * rewrite <- Heqb. constructor. right. eapply CIH.
-        setoid_rewrite <- tau_eutt at 2. pfold. auto.
+      * constructor. rewrite <- Heqb. eapply CIH. 
+        setoid_rewrite <- tau_eutt at 2. step. auto.
+      * rewrite <- Heqb. constructor. eapply CIH. 
+        setoid_rewrite <- tau_eutt at 2. step. auto.
       * constructor; auto. clear IHeqitF.
         dependent induction H0.
         ++ rewrite <- x. unfold observe. cbn.
            unfold peel_vis. destruct (classicT (A = X0) ).
            ** unfold eq_rect_r, eq_rect.
               remember (eq_sym e) as He. dependent destruction He.
-              cbn. constructor. intros. right. pclearbot. eapply CIH; eauto with itree.
+              cbn. constructor. intros. right.  eapply CIH; eauto with itree.
            ** cbn. constructor. left. apply paco2_eqit_refl.
         ++ rewrite <- x. cbn. constructor; auto; eapply IHeqitF; eauto.
       * constructor; auto. clear IHeqitF.
@@ -418,16 +413,16 @@ Proof.
         ++ rewrite <- x. cbn. constructor; auto.
         ++ rewrite <- x. cbn. constructor; eauto.
       * constructor. right. rewrite <- Heqb. eapply CIH; eauto. rewrite <- tau_eutt.
-        pfold. auto.
+        step. auto.
       * constructor. rewrite <- Heqb. right. eapply CIH; eauto. rewrite <- tau_eutt.
-        pfold. auto.
+        step. auto.
       * constructor; auto. clear IHeqitF. dependent induction H0.
         ++ rewrite <- x. unfold observe. cbn.
            unfold peel_vis.
            destruct (classicT (A = X0) ).
            ** unfold eq_rect_r, eq_rect.
               remember (eq_sym e) as He. dependent destruction He.
-              cbn. constructor. intros. right. pclearbot. eapply CIH; apply REL.
+              cbn. constructor. intros. right.  eapply CIH; apply REL.
            ** cbn. constructor. left. apply paco2_eqit_refl.
         ++ rewrite <- x. cbn. constructor; eauto.
       * constructor; auto. clear IHeqitF. dependent induction H0.
@@ -446,7 +441,7 @@ Lemma not_peel_vis_ret: forall (R : Type) (E : Type -> Type) (S X : Type) (e : E
     ~ (peel t1 (Vis e k) ≈ Ret r).
 Proof.
   intros R E S X e k r t1 Heutt.
-  punfold Heutt. unfold peel in *. red in Heutt. cbn in *.
+  step in Heutt. unfold peel in *. red in Heutt. cbn in *.
   dependent induction  Heutt.
   - destruct (observe t1); cbn in x; try discriminate.
     destruct e0; cbn in *; try discriminate.
@@ -456,7 +451,7 @@ Proof.
     dependent destruction He. discriminate.
   - destruct (observe t1); cbn in x; try discriminate.
     + injection x as Hspin. rewrite Hspin in Heutt.
-      eapply not_spin_eutt_ret. pfold. eauto.
+      eapply not_spin_eutt_ret. step. eauto.
     + injection x as Ht0. eapply IHHeutt; eauto. rewrite Ht0. reflexivity.
     + destruct e0; cbn in *; try discriminate.
       unfold observe in x. cbn in x. unfold peel_vis in *.
@@ -464,7 +459,7 @@ Proof.
       * unfold eq_rect_r, eq_rect in x. remember (eq_sym e0) as He.
         dependent destruction He. discriminate.
       * cbn in x. injection x as Hspin. rewrite Hspin in Heutt.
-        eapply not_spin_eutt_ret. pfold. eauto.
+        eapply not_spin_eutt_ret. step. eauto.
 Qed.
 
 Lemma peel_ret_inv:
@@ -472,7 +467,7 @@ Lemma peel_ret_inv:
     (peel b t ≈ Ret r) -> (t ≈ Ret r).
 Proof.
   intros R r E S b t H. unfold peel in H.
-  punfold H. red in H. cbn in H. pfold. red. cbn.
+  step in H. red in H. cbn in H. step. cbn.
   dependent induction H.
   - unfold peel in x. destruct (observe b); destruct (observe t); cbn in *;
       dependent destruction x; try (constructor; auto; fail).
@@ -486,19 +481,19 @@ Proof.
       * discriminate.
   - destruct (observe b); destruct (observe t); cbn in x; dependent destruction x.
     + constructor; auto. eapply IHeqitF with (b := Ret r0); eauto.
-    + exfalso. eapply not_spin_eutt_ret. pfold. eauto.
+    + exfalso. eapply not_spin_eutt_ret. step. eauto.
     + constructor; auto. eapply IHeqitF; eauto.
     + exfalso. destruct (observe t0).
       * cbn in H. eapply not_spin_eutt_ret.
-        inv  H. pfold. eauto.
+        inv  H. step. eauto.
       * cbn in H. inv H. eapply not_peel_vis_ret.
-        pfold. eauto.
+        step. eauto.
       * destruct e0.
         ++ clear IHeqitF. unfold observe in H. cbn in H. unfold peel_vis in H.
            destruct (classicT (A = X) ).
            ** unfold eq_rect_r, eq_rect in H. remember (eq_sym e0) as He.
               dependent destruction He. inv H.
-           ** eapply not_spin_eutt_ret. pfold. eauto.
+           ** eapply not_spin_eutt_ret. step. eauto.
         ++ cbn in H. inv H.
     + destruct e; cbn in x; try discriminate.
     + constructor; auto. eapply IHeqitF with (b := Vis e k); eauto. cbn.
@@ -510,7 +505,7 @@ Proof.
         dependent destruction He. discriminate.
       * injection x as Hspin. cbn in Hspin. exfalso.
         assert (t1 ≈ Ret r).
-        { pfold. auto. }
+        { step. auto. }
         rewrite Hspin in H0. eapply not_spin_eutt_ret; eauto.
 Qed.
 
@@ -533,8 +528,8 @@ Lemma eqitF_mon:
 Proof.
   intros E R r t1 t0' REL.
   induction REL; constructor; eauto.
-  - pclearbot. left. apply pacobot2; auto.
-  - pclearbot. intros. left. apply pacobot2; auto.
+  -  left. apply pacobot2; auto.
+  -  intros. left. apply pacobot2; auto.
 Qed.
 
 Lemma eqitF_observe_peel_cont_vis:
@@ -555,7 +550,7 @@ Proof.
   destruct (classicT (A = X) ).
   - unfold eq_rect_r, eq_rect. remember (eq_sym e0) as He.
     dependent destruction He. cbn. constructor.
-    intros. right. pclearbot. eapply CIH. auto with itree.
+    intros. right.  eapply CIH. auto with itree.
   - cbn. apply eqitF_r_refl.
 Qed.
 
@@ -565,47 +560,47 @@ Lemma proper_peel_cont_eutt_l : forall (E : Type -> Type) (R S : Type)
     (b ≈ b') -> (peel_cont b t s ≈ peel_cont b' t s).
 Proof.
   intros E R S. unfold peel_cont. intros b b' t _.
-  revert b b' t. pcofix CIH. intros. pfold. punfold H0. red in H0.
+  revert b b' t. coinduction c CIH. intros. step. step in H0. red in H0.
   destruct (observe t) eqn : Heqt.
   - red. destruct (observe b') eqn : Hb; destruct (observe b) eqn : Hb'; inversion H0; cbn;
       try (constructor; auto; fail);
       try (constructor; auto; eapply eqitF_mon; eauto; fail);
       try (destruct e; cbn);
       try (constructor; auto; eapply eqitF_mon; eauto; fail).
-    + constructor. pclearbot. left. apply pacobot2; auto.
+    + constructor.  left. apply pacobot2; auto.
     + subst. ddestruction. subst. cbn. constructor. intros. left. inv H0.
-      ddestruction. subst. pclearbot. apply pacobot2; auto.
+      ddestruction. subst.  apply pacobot2; auto.
     + ddestruction. subst. ddestruction. subst. cbn. constructor; auto. intros [].
   (*looks like I didn't actually need to induct here ... *)
   - dependent induction H0; try clear IHeqitF.
     + rewrite <- x0. rewrite <- x. red. cbn. constructor. right.
-      rewrite x. eapply CIH; eauto. pfold. red. rewrite <- x. constructor; auto.
+      rewrite x. eapply CIH; eauto. step. rewrite <- x. constructor; auto.
     + rewrite <- x0. rewrite <- x. red. cbn. constructor. right.
-      eapply CIH. pclearbot. auto.
+      eapply CIH.  auto.
     + rewrite <- x0. rewrite <- x. red. destruct e; cbn; constructor; right.
-      * rewrite x. rewrite x0. eapply CIH; eauto. pfold. red.
+      * rewrite x. rewrite x0. eapply CIH; eauto. step. red.
         rewrite <- x0. rewrite <- x. constructor. auto.
-      * rewrite x. rewrite x0. eapply CIH; eauto. pfold. red.
+      * rewrite x. rewrite x0. eapply CIH; eauto. step. red.
         rewrite <- x0. rewrite <- x. constructor. auto.
     + rewrite <- x. red. cbn.
       destruct (observe b') eqn : Heqb'; cbn.
       * constructor. right. rewrite <- Heqb'. eapply CIH.
         symmetry in Heqb'. apply simpobs in Heqb'. rewrite Heqb'.
-        pfold. auto.
-      * constructor. right. eapply CIH. setoid_rewrite <- tau_eutt at 2.
-        pfold. auto.
+        step. auto.
+      * constructor. eapply CIH.  setoid_rewrite <- tau_eutt at 2.
+        step. auto.
       * constructor. right. rewrite <- Heqb'. eapply CIH.
-        symmetry in Heqb'. apply simpobs in Heqb'. rewrite Heqb'. pfold. auto.
+        symmetry in Heqb'. apply simpobs in Heqb'. rewrite Heqb'. step. auto.
     + rewrite <- x. red. cbn. destruct (observe b) eqn : Heqb; cbn.
       * constructor; auto. right. rewrite <- Heqb. eapply CIH.
-        pfold. red. rewrite Heqb. auto.
-      * constructor. right. eapply CIH. rewrite <- tau_eutt at 1. pfold. auto.
-      * constructor. right. rewrite <- Heqb. eapply CIH. pfold.
+        step. rewrite Heqb. auto.
+      * constructor. eapply CIH.  rewrite <- tau_eutt at 1. step. auto.
+      * constructor. right. rewrite <- Heqb. eapply CIH. step.
         red. rewrite Heqb. auto.
   - red. dependent induction H0; cbn.
-    +  rewrite <- x0. rewrite <- x. cbn. constructor. left. pfold. apply eqitF_r_refl.
+    +  rewrite <- x0. rewrite <- x. cbn. constructor. left. step. apply eqitF_r_refl.
     + rewrite <- x0. rewrite <- x. cbn. constructor. right. rewrite <- Heqt. eapply CIH.
-      pclearbot. auto.
+       auto.
     + rewrite <- x. rewrite <- x0. destruct e; cbn; try (apply eqitF_observe_peel_cont_vis; auto).
       apply eqitF_r_refl.
     + rewrite <- x. cbn. constructor; eauto.
@@ -615,19 +610,19 @@ Qed.
 Lemma peel_cont_ret_inv : forall E R S (b : itrace E R) (t : itree E S) (s : S),
     t ≈ Ret s -> (peel_cont_ (observe b) (observe t) ≈ b).
 Proof.
-  intros E R S. pcofix CIH. intros. punfold H0. red in H0. cbn in H0. dependent induction H0; subst.
-  - rewrite <- x. cbn. pfold. red. cbn. apply eqitF_r_refl.
+  intros E R S. coinduction c CIH. intros. step in H0. red in H0. cbn in H0. dependent induction H0; subst.
+  - rewrite <- x. cbn. step. cbn. apply eqitF_r_refl.
   - rewrite <- x. destruct (observe b) eqn : Hb.
-    + pfold. red. cbn. constructor; auto.
+    + step. cbn. constructor; auto.
 
       specialize (IHeqitF r CIH (Ret r0) t1 s ); auto.
       assert (S = S). auto. apply IHeqitF in H; auto. rewrite Hb.
-      punfold H.
-    + pfold. red. rewrite Hb. cbn.   constructor. right. eapply CIH with (s := s).
-      pfold. auto.
-    + pfold. red. rewrite Hb. cbn. rewrite <- Hb. constructor; auto.
+      step in H.
+    + step. rewrite Hb. cbn.   constructor. right. eapply CIH with (s := s).
+      step. auto.
+    + step. rewrite Hb. cbn. rewrite <- Hb. constructor; auto.
       specialize (IHeqitF r CIH b t1 s ); auto.
-      assert (S = S). auto. apply IHeqitF in H; auto. punfold H.
+      assert (S = S). auto. apply IHeqitF in H; auto. step in H.
 Qed.
 
 Lemma proper_peel_cont_eutt_r : forall (E : Type -> Type) (R S : Type)
@@ -635,16 +630,16 @@ Lemma proper_peel_cont_eutt_r : forall (E : Type -> Type) (R S : Type)
     (t ≈ t') -> (peel_cont b t s ≈ peel_cont b t' s).
 Proof.
   intros E R S. unfold peel_cont. intros b t t' _.
-  revert b t t'. pcofix CIH. intros. pfold. punfold H0. red in H0. dependent induction H0.
+  revert b t t'. coinduction c CIH. intros. step. step in H0. red in H0. dependent induction H0.
   - rewrite <- x. rewrite <- x0. red. cbn. apply eqitF_r_refl.
   - rewrite <- x. rewrite <- x0. red. destruct (observe b) eqn : Heqb; cbn.
-    + constructor. right. rewrite <- Heqb. eapply CIH. pclearbot. auto.
-    + constructor. right. eapply CIH. pclearbot. auto.
-    + constructor. right. rewrite <- Heqb. eapply CIH; pclearbot; auto.
-  - rewrite <- x. rewrite <- x0. pclearbot. destruct (observe b) eqn : Heqb; red; cbn.
+    + constructor. right. rewrite <- Heqb. eapply CIH.  auto.
+    + constructor. eapply CIH.   auto.
+    + constructor. right. rewrite <- Heqb. eapply CIH;  auto.
+  - rewrite <- x. rewrite <- x0.  destruct (observe b) eqn : Heqb; red; cbn.
     + apply eqitF_r_refl.
-    + constructor. rewrite x. rewrite x0. right. eapply CIH.
-      pfold. red. rewrite <- x. rewrite <- x0. constructor. intros.
+    + constructor. rewrite x. rewrite x0. eapply CIH. 
+      step. rewrite <- x. rewrite <- x0. constructor. intros.
       left. auto.
     + destruct e0; cbn.
       * unfold observe. cbn. unfold peel_cont_vis.
@@ -657,11 +652,11 @@ Proof.
     + constructor; eauto. rewrite <- Heqb. eapply IHeqitF; eauto.
     + cbn. destruct (observe t') eqn : Heqt'; cbn.
       * constructor. left. apply pacobot2.
-        eapply peel_cont_ret_inv with (s := r0). pfold. auto.
+        eapply peel_cont_ret_inv with (s := r0). step. auto.
       * constructor. right. eapply CIH; eauto. setoid_rewrite <- tau_eutt at 2.
-        pfold. auto.
+        step. auto.
       * constructor. right. rewrite <- Heqt'. eapply CIH.
-        pfold. red. rewrite Heqt'. auto.
+        step. rewrite Heqt'. auto.
     + rewrite <- Heqb. constructor; auto. eapply IHeqitF; eauto.
   - rewrite <- x. destruct (observe b) eqn : Heqb; red; cbn.
     + constructor; auto. rewrite <- Heqb. eapply IHeqitF; eauto.
@@ -669,10 +664,10 @@ Proof.
       * constructor. left. apply pacobot2.
         enough (t0 ≈ peel_cont_ (observe t0) (observe t2) ). auto.
         symmetry.
-        eapply peel_cont_ret_inv with (s := r0). symmetry. pfold. auto.
-      * constructor. right. eapply CIH. rewrite <- tau_eutt at 1. pfold. auto.
+        eapply peel_cont_ret_inv with (s := r0). symmetry. step. auto.
+      * constructor. eapply CIH.  rewrite <- tau_eutt at 1. step. auto.
       * constructor. right. rewrite <- Heqt. eapply CIH.
-        pfold. red. rewrite Heqt. auto.
+        step. rewrite Heqt. auto.
     + rewrite <- Heqb. constructor; auto. eapply IHeqitF; eauto.
 Qed.
 
@@ -685,7 +680,7 @@ Qed.
 Lemma peel_cont_bind : forall (E : Type -> Type) (R S : Type) (b : itrace E S) (t : itree E R) (f : R -> itree E S),
     b ⊑ ITree.bind t f -> (ITree.bind (peel b t) (peel_cont b t) ≈ b).
 Proof.
-  intros E R S. pcofix CIH. intros. punfold H0. pfold. red. red in H0. cbn in *.
+  intros E R S. coinduction c CIH. intros. step in H0. step. red in H0. cbn in *.
   unfold ITree.bind in H0. unfold ITree.bind. cbn in *.
   unfold observe at 1. cbn.
  *)
@@ -695,18 +690,18 @@ Lemma vis_refine_peel : forall (E : Type -> Type) (R S A : Type) (e : E A) (a : 
     (peel (Vis (evans _ e a) k1) (Vis e k2) ≈ Vis (evans _ e a) k3) ->
     (k3 tt ≈ peel (k1 tt) (k2 a)).
 Proof.
-  intros E R S A. (* pcofix CIH. *) intros e a k1 k2 k3 Hpeel.
-  unfold peel in *. cbn in *. punfold Hpeel.
+  intros E R S A. (* coinduction c CIH. *) intros e a k1 k2 k3 Hpeel.
+  unfold peel in *. cbn in *. step in Hpeel.
   red in Hpeel. cbn in *. cbn in Hpeel.
   unfold observe in Hpeel. cbn in Hpeel.
   unfold peel_vis in Hpeel.
   assert (A = A). auto.
   destruct (classicT (A = A) ); try contradiction. unfold eq_rect_r, eq_rect in Hpeel.
   remember (eq_sym e0) as He. dependent destruction He. cbn in *.
-  clear HeqHe e0 H. pfold. red. cbn. inv Hpeel. ddestruction.
-  pclearbot. specialize (REL tt).
+  clear HeqHe e0 H. step. cbn. inv Hpeel. ddestruction.
+   specialize (REL tt).
   assert (peel_ (observe (k1 tt)) (observe (k2 a)) ≈ k3 tt ). auto.
-  symmetry in H. punfold H.
+  symmetry in H. step in H.
 Qed.
 
 Lemma vis_refine_peel_cont :  forall (E : Type -> Type) (R S A : Type) (e : E A) (a : A)
@@ -714,13 +709,13 @@ Lemma vis_refine_peel_cont :  forall (E : Type -> Type) (R S A : Type) (e : E A)
     (peel_cont_ (VisF (evans _ e a) k1) (VisF e k2) ≈ t) ->
     (t ≈ peel_cont_ (observe (k1 tt)) (observe (k2 a))).
 Proof.
-  intros E R S A e a k1 k2 t Hpeelcont. punfold Hpeelcont. red in Hpeelcont.
+  intros E R S A e a k1 k2 t Hpeelcont. step in Hpeelcont. red in Hpeelcont.
   unfold observe in Hpeelcont at 1. cbn in *. unfold peel_cont_vis in *.
   assert (A = A); auto. destruct (classicT (A = A) ); try contradiction.
   unfold eq_rect_r, eq_rect in *. remember (eq_sym e0) as He.
   dependent destruction He. cbn in *. symmetry.
   assert (Tau (peel_cont_ (observe (k1 tt)) (observe (k2 a) ) )  ≈ t ).
-  { pfold. auto. }
+  { step. auto. }
   rewrite tau_eutt in H0. auto.
 Qed.
 
@@ -728,7 +723,7 @@ Lemma spin_not_vis : forall (E : Type -> Type) (R A : Type)
                             (e : E A) (k : A -> itree E R),
     ~ ITree.spin ≈ Vis e k.
 Proof.
-  intros E R A e k Hcontra. punfold Hcontra. red in Hcontra. cbn in *.
+  intros E R A e k Hcontra. step in Hcontra. red in Hcontra. cbn in *.
   dependent induction Hcontra.
   eapply IHHcontra; eauto.
 Qed.
@@ -754,7 +749,7 @@ Lemma vis_peel_l : forall (E : Type -> Type) (R S A : Type) (e : E A) (a : A)
     (peel b t ≈ Vis (evans _ e a) k) -> exists k', (b ≈ Vis (evans _ e a) k').
 Proof.
   intros E R S A e a b t f k Href Hpeel.
-  punfold Hpeel. red in Hpeel. cbn in Hpeel. dependent induction Hpeel.
+  step in Hpeel. red in Hpeel. cbn in Hpeel. dependent induction Hpeel.
   - unfold peel in x.
     destruct (observe b) eqn : Heqb; destruct (observe t) eqn : Heqt; try destruct e0; cbn in *;
       dependent destruction x. unfold observe in x. cbn in x.
@@ -765,7 +760,7 @@ Proof.
       symmetry in Heqb. symmetry in Heqt. apply simpobs in Heqb. apply simpobs in Heqt.
       rewrite Heqb in Href. rewrite Heqt in Href.
       rewrite bind_vis in Href.
-      punfold Href. red in Href. cbn in *. inv Href.
+      step in Href. red in Href. cbn in *. inv Href.
       ddestruction. subst. inv H1. auto.
     }
     destruct (classicT (A0 = X0)); try (exfalso; auto; fail).
@@ -778,7 +773,7 @@ Proof.
     + symmetry in Heqt. apply simpobs in Heqt. rewrite Heqt in Href.
       rewrite tau_eutt in Href. eapply IHHpeel in Href; eauto. unfold peel.
       rewrite Heqb. auto.
-    + exfalso. eapply spin_not_vis. pfold. eauto.
+    + exfalso. eapply spin_not_vis. step. eauto.
     + symmetry in Heqb. symmetry in Heqt. apply simpobs in Heqt.
       apply simpobs in Heqb. setoid_rewrite Heqb. setoid_rewrite tau_eutt.
       rewrite Heqb in Href. rewrite Heqt in Href. repeat rewrite tau_eutt in Href.
@@ -795,7 +790,7 @@ Proof.
     + unfold observe in x. cbn in x. unfold peel_vis in x.
       symmetry in Heqb. symmetry in Heqt. apply simpobs in Heqt.
       apply simpobs in Heqb. rewrite Heqb in Href. rewrite Heqt in Href.
-      rewrite bind_vis in Href. punfold Href. red in Href. cbn in *.
+      rewrite bind_vis in Href. step in Href. red in Href. cbn in *.
       inv Href. ddestruction. subst. inv H1. subst; ddestruction; subst.
       assert (A0 = A0); auto. destruct (classicT (A0 = A0) ); try contradiction.
       unfold eq_rect_r, eq_rect in *. remember (eq_sym e0) as He.
@@ -809,7 +804,7 @@ Lemma vis_peel_r : forall (E : Type -> Type) (R S A : Type) (e : E A) (a : A)
 Proof.
   intros E R S A e a b t f k Href Hpeel.
   eapply vis_peel_l in Hpeel as Hpeell; eauto. destruct Hpeell as [k' Hb].
-  rewrite Hb in Href. rewrite Hb in Hpeel. clear Hb b. punfold Hpeel. red in Hpeel. cbn in *.
+  rewrite Hb in Href. rewrite Hb in Hpeel. clear Hb b. step in Hpeel. red in Hpeel. cbn in *.
   unfold peel in Hpeel. cbn in *. dependent induction Hpeel.
   - destruct (observe t) eqn : Heqt; dependent destruction x.
     symmetry in Heqt. apply simpobs in Heqt. setoid_rewrite Heqt.
@@ -817,7 +812,7 @@ Proof.
       cbn in *; try discriminate.
     unfold eq_rect_r, eq_rect in x. remember (eq_sym e1) as He.
     dependent destruction He. cbn in *. exists k0.
-    rewrite Heqt in Href. rewrite bind_vis in Href. punfold Href. red in Href.
+    rewrite Heqt in Href. rewrite bind_vis in Href. step in Href. red in Href.
     cbn in *. inv Href. ddestruction; subst. inv H1. ddestruction; subst. reflexivity.
   - destruct (observe t) eqn : Heqt; cbn in *; dependent destruction x.
     + symmetry in Heqt. apply simpobs in Heqt. rewrite Heqt in Href. rewrite tau_eutt in Href.
@@ -827,7 +822,7 @@ Proof.
       * unfold eq_rect_r, eq_rect in x. remember (eq_sym e1) as He. dependent destruction He.
         cbn in *. discriminate.
       * cbn in x. injection x as Ht1. rewrite Ht1 in Hpeel.
-        exfalso. eapply spin_not_vis. pfold. eauto.
+        exfalso. eapply spin_not_vis. step. eauto.
 Qed.
 
 Lemma peel_cont_vis_eutt: forall (R : Type) (r : R) (E : Type -> Type) (S A : Type) (ev : E A)
@@ -835,7 +830,7 @@ Lemma peel_cont_vis_eutt: forall (R : Type) (r : R) (E : Type -> Type) (S A : Ty
     (peel_cont (Vis (evans A ev ans) kb) (Vis ev kt) r ≈ peel_cont (kb tt) (kt ans) r).
 Proof.
   intros R r E S A ev ans kb kt.
-  pfold. cbn. red. unfold observe at 1. cbn in *. unfold peel_cont_vis.
+  step. cbn. red. unfold observe at 1. cbn in *. unfold peel_cont_vis.
   assert (A = A); auto. destruct (classicT (A = A)); try contradiction.
   unfold eq_rect_r, eq_rect. remember (eq_sym e) as He.
   dependent destruction He. cbn. constructor; auto. unfold peel_cont.
@@ -865,10 +860,10 @@ Proof.
     rewrite Hkb in H1. rewrite Htk in H1.
     apply vis_refine_peel in H1 as Hk.
     rewrite peel_cont_vis_eutt. apply IHmay_converge; auto.
-    + rewrite bind_vis in Hrutt. punfold Hrutt. red in Hrutt. cbn in *.
+    + rewrite bind_vis in Hrutt. step in Hrutt. red in Hrutt. cbn in *.
       inv Hrutt. ddestruction; subst.
       assert (RAnsRef E unit A (evans A ev ans) tt ev ans ); auto with itree.
-      apply H8 in H. pclearbot. auto.
+      apply H8 in H.  auto.
     + destruct b. symmetry. auto.
 Qed.
 
@@ -895,20 +890,20 @@ Proof.
   apply trace_refine_ret_inv_r in Hrutt. constructor.
   assert (exists s, t0 ≈ Ret s).
   {
-    punfold Hrutt. red in Hrutt. dependent induction Hrutt.
+    step in Hrutt. red in Hrutt. dependent induction Hrutt.
     - unfold observe in x. cbn in *. destruct (observe t0) eqn : Ht0; cbn in *; try discriminate.
-      exists r1. pfold. red. rewrite Ht0. cbn. auto with itree.
+      exists r1. step. rewrite Ht0. cbn. auto with itree.
     - unfold observe in x. cbn in *. destruct (observe t0) eqn : Ht0; cbn in *; try discriminate.
-      + exists r1. pfold. red. rewrite Ht0. cbn. auto with itree.
+      + exists r1. step. rewrite Ht0. cbn. auto with itree.
       + injection x as Ht1. symmetry in Ht0. apply simpobs in Ht0.
         apply eq_sub_eutt in Ht0 as Ht0'. setoid_rewrite Ht0'.
         setoid_rewrite tau_eutt. eapply IHHrutt; eauto.
         rewrite Ht1. eauto. subst. cbn. unfold ITree.bind. reflexivity.
   }
-  destruct H as [s Ht0]. punfold Ht0. red in Ht0. cbn in Ht0.
+  destruct H as [s Ht0]. step in Ht0. red in Ht0. cbn in Ht0.
   clear Heqt Hrutt.
   dependent induction Ht0.
-  - rewrite <- x. cbn. punfold Heqb. red in Heqb. cbn in *. inv Heqb; try inv CHECK.
+  - rewrite <- x. cbn. step in Heqb. red in Heqb. cbn in *. inv Heqb; try inv CHECK.
     rewrite H0. auto with itree.
   - rewrite <- x. cbn. constructor. eapply IHHt0; eauto.
 Qed.
@@ -930,13 +925,13 @@ Lemma trace_prefix_vis_evans: forall (E : Type -> Type) (R S : Type) (r : itrace
                   (observe (peel_ (VisF (evans A0 ev ans) k) (observe t0))) (VisF (evans A0 ev ans) k).
 Proof.
   intros E R S r A0 ev ans k k' t0 f Hk' Ht0 CIH.
-  punfold Ht0. red in Ht0. cbn in *. dependent induction Ht0.
+  step in Ht0. red in Ht0. cbn in *. dependent induction Ht0.
   - rewrite <- x. unfold observe. cbn. unfold peel_vis.
     assert (A0 = A0); auto. destruct (classicT (A0 = A0)); try contradiction.
     unfold eq_rect_r, eq_rect. remember (eq_sym e) as He.
-    dependent destruction He. cbn. constructor. right. eapply CIH.
+    dependent destruction He. cbn. constructor. eapply CIH. 
     assert (RAnsRef E unit A0 (evans A0 ev ans) tt ev ans); auto with itree.
-    apply Hk' in H0. pclearbot. assert (k1 ans ≈ k' ans); try apply REL.
+    apply Hk' in H0.  assert (k1 ans ≈ k' ans); try apply REL.
     rewrite H1. eauto.
   - rewrite <- x. cbn. constructor. eapply IHHt0; eauto.
 Qed.
@@ -974,7 +969,7 @@ Lemma trace_prefix_peel_ret_vis:  forall (E : Type -> Type) (R S : Type)
                   (VisF (evans A0 ev ans) k).
 Proof.
   intros E R S r A0 ev ans k t0 s Ht0.
-  punfold Ht0. red in Ht0. cbn in *. dependent induction Ht0.
+  step in Ht0. red in Ht0. cbn in *. dependent induction Ht0.
   - rewrite <- x. cbn. remember (go (VisF (evans A0 ev ans) k ) ) as t.
     enough (trace_prefixF (upaco2 trace_prefix_ r) (RetF s) (observe t) ).
     { subst. auto. }
@@ -994,7 +989,7 @@ Lemma trace_prefix_peel_ret_vis_empty: forall (E : Type -> Type) (R S : Type)
                   (VisF (evempty A0 Hempty ev) k).
 Proof.
   intros E R S r A0 Hempty ev k t0 s Ht0.
-  punfold Ht0. red in Ht0. cbn in *. dependent induction Ht0.
+  step in Ht0. red in Ht0. cbn in *. dependent induction Ht0.
   - rewrite <- x. cbn. remember (go (VisF (evempty A0 Hempty ev) k ) ) as t.
     enough (trace_prefixF (upaco2 trace_prefix_ r) (RetF s) (observe t) ).
     { subst. auto. }
@@ -1007,18 +1002,18 @@ Lemma trace_prefix_peel : forall (E : Type -> Type) (S R : Type) (b : itrace E R
     b ⊑ ITree.bind t f ->
     trace_prefix (peel b t) b.
 Proof.
-  intros E S R. pcofix CIH. intros b t f Href. pfold. red. unfold peel.
+  intros E S R. coinduction c CIH. intros b t f Href. step. unfold peel.
   destruct (observe b) eqn : Heqb; destruct (observe t) eqn : Heqt; cbn.
   - rewrite <- Heqb. auto with itree.
   - eapply trace_prefix_tau_ret; eauto.
   - symmetry in Heqb. symmetry in Heqt. apply simpobs in Heqb. apply simpobs in Heqt.
     rewrite Heqb in Href. rewrite Heqt in Href. rewrite bind_vis in Href.
-    pinversion Href.
+    sinv Href.
   - rewrite <- Heqb. auto with itree.
-  - constructor. right. eapply CIH. symmetry in Heqb. symmetry in Heqt.
+  - constructor. eapply CIH.  symmetry in Heqb. symmetry in Heqt.
     apply simpobs in Heqb. apply simpobs in Heqt. rewrite Heqb in Href. rewrite Heqt in Href.
     repeat rewrite tau_eutt in Href. eauto.
-  - constructor. rewrite <- Heqt. right. eapply CIH.
+  - constructor. rewrite <- Heqt. eapply CIH. 
     symmetry in Heqb. apply simpobs in Heqb. rewrite Heqb in Href.
     rewrite tau_eutt in Href. eauto.
   - destruct e; cbn; rewrite <- Heqb; auto with itree.
@@ -1029,14 +1024,14 @@ Proof.
     rewrite tau_eutt in Hvis.
     assert ((exists B, exists k', exists (e1 : E B) , t0 ≈ Vis e1 k') \/ exists s, t0 ≈ Ret s).
     {
-      punfold Hvis. red in Hvis. clear Heqb Heqt.
+      step in Hvis. red in Hvis. clear Heqb Heqt.
       dependent induction Hvis.
       - unfold observe in x. cbn in *. destruct (observe t0) eqn : Heqt0; try discriminate.
-        + right. exists r0. pfold. red. cbn. rewrite Heqt0. auto with itree.
+        + right. exists r0. step. cbn. rewrite Heqt0. auto with itree.
         + cbn in x. left. exists X0. exists k2. exists e1. symmetry in Heqt0.
           apply simpobs in Heqt0. rewrite Heqt0. reflexivity.
       - unfold observe in x. cbn in *. destruct (observe t0) eqn : Heqt0; try discriminate.
-        + right. exists r0. pfold. red. cbn. rewrite Heqt0. auto with itree.
+        + right. exists r0. step. cbn. rewrite Heqt0. auto with itree.
         + injection x as Ht1. symmetry in Heqt0. apply simpobs in Heqt0.
           setoid_rewrite Heqt0. setoid_rewrite tau_eutt. eapply IHHvis; eauto.
           rewrite Ht1. auto.
@@ -1044,10 +1039,10 @@ Proof.
     destruct H as [ [B [k' [e1 Ht0] ] ] | [s Ht0] ].
     + rewrite Heqt in Href. rewrite tau_eutt in Href.
       rewrite Ht0 in Href. rewrite bind_vis in Href.
-      pinversion Href. subst; ddestruction; subst.
-      rewrite Ht0 in Hvis. rewrite bind_vis in Hvis. pinversion Hvis.
+      sinv Href. subst; ddestruction; subst.
+      rewrite Ht0 in Hvis. rewrite bind_vis in Hvis. sinv Hvis.
       subst; ddestruction; subst. clear Heqt Heqb.
-      punfold Ht0. red in Ht0. cbn in *.
+      step in Ht0. red in Ht0. cbn in *.
       destruct e.
       * inv H1. ddestruction; subst. cbn. constructor.
         eapply trace_prefix_vis_evans; eauto with itree.
@@ -1060,15 +1055,15 @@ Proof.
   - destruct e; cbn; [ | constructor ].
     symmetry in Heqt. apply simpobs in Heqt. rewrite Heqt in Href.
     rewrite bind_vis in Href. symmetry in Heqb. apply simpobs in Heqb.
-    rewrite Heqb in Href. pinversion Href. subst; ddestruction; subst.
+    rewrite Heqb in Href. sinv Href. subst; ddestruction; subst.
     inversion H1. ddestruction; subst.
     unfold observe at 1. cbn. unfold peel_vis. assert (A = A); auto.
     destruct (classicT (A = A) ); try contradiction.
     unfold eq_rect_r, eq_rect. remember (eq_sym e) as He.
-    dependent destruction He. cbn. constructor. right. eapply CIH.
+    dependent destruction He. cbn. constructor. eapply CIH. 
     ddestruction; subst.
     assert (RAnsRef E unit A (evans A ev ans) tt ev ans ); auto with itree.
-    apply H6 in H0. pclearbot. eauto.
+    apply H6 in H0.  eauto.
 Qed.
 
 Lemma peel_bind : forall (E : Type -> Type) (S R : Type) (b : itrace E R) (t : itree E S)
@@ -1092,12 +1087,12 @@ Lemma bind_peel_ret_tau_aux:
     Ret r0 ⊑ ITree.bind t0 f -> exists r : R, t0 ≈ Ret r.
 Proof.
   intros E S R f r0 t0 Hrutt.
-  punfold Hrutt. red in Hrutt. cbn in *. dependent induction Hrutt.
+  step in Hrutt. red in Hrutt. cbn in *. dependent induction Hrutt.
   - unfold ITree.bind in x. unfold observe in x at 1. cbn in *.
     destruct (observe t0) eqn : Ht0; try discriminate.
-    exists r. pfold. red. rewrite Ht0. constructor. auto.
+    exists r. step. rewrite Ht0. constructor. auto.
   - unfold observe in x. cbn in x. destruct (observe t0) eqn : Ht0; try discriminate.
-    + exists r. pfold. red. rewrite Ht0. constructor. auto.
+    + exists r. step. rewrite Ht0. constructor. auto.
     + symmetry in Ht0. apply simpobs in Ht0. setoid_rewrite Ht0. setoid_rewrite tau_eutt.
       cbn in x. injection x as Ht2. eapply IHHrutt; auto.
       subst. reflexivity.
@@ -1122,9 +1117,9 @@ Proof.
   intros. rewrite bind_trigger in H0. apply trace_refine_vis in H0 as Hvis.
   destruct Hvis as [X [e' [k' Hbvis] ] ]. setoid_rewrite Hbvis.
   rewrite Hbvis in H0.
-  punfold H0. red in H0. cbn in *. inv H0. ddestruction. subst. inv H3; ddestruction; subst.
-  - exists a. exists k'. split; try reflexivity. pclearbot.
+  step in H0. red in H0. cbn in *. inv H0. ddestruction. subst. inv H3; ddestruction; subst.
+  - exists a. exists k'. split; try reflexivity. 
     assert (RAnsRef E unit A (evans A e a) tt e a ); auto with itree.
-    apply H8 in H0. pclearbot. auto.
+    apply H8 in H0.  auto.
   - destruct H as [a _]. contradiction.
 Qed.

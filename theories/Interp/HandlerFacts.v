@@ -1,6 +1,6 @@
 (** * Theorems for [ITree.Interp.Handler] *)
-(* RTODO: investigate very slow compilation time for this file *)
 (* begin hide *)
+(* RTODO: investigate very slow compilation time for this file *)
 From Stdlib Require Import
      Setoid
      Morphisms
@@ -150,7 +150,7 @@ Proof.
   (* eutt needs to be transparent for coinductive unfolding to work *)
   Local Transparent eutt.
 
-  revert t; bcoinduction; intros t.
+  revert t; coinduction; intros t.
   rewrite (itree_eta t).
   destruct (observe t).
   - rewrite unfold_interp_mrec. bcbn. 
@@ -166,10 +166,11 @@ Proof.
     destruct e; bcbn.
     + rewrite interp_tau.
       rewrite 2 interp_mrec_bind, interp_bind.
-      subst h; bcbn.
+      subst h. 
+      bcbn.    
       rewrite interp_trigger.
-      rewrite unfold_interp_mrec; bcbn.
-      rewrite interp_mrec_trigger; bcbn.
+      rewrite unfold_interp_mrec.  bcbn. 
+      rewrite interp_mrec_trigger. bcbn. 
       unfold Recursion.mrec.
       rewrite !interp_tau.
       rewrite (unfold_interp_mrec _ _ (Tau _)); bcbn.
@@ -223,7 +224,7 @@ Theorem interleaved_mrec : forall t1 t2,
     Recursion.interp_mrec (cat f (case_ g inr_)) t1
   ≈ Recursion.interp_mrec (cat g (case_ f inr_)) t2.
 Proof with eauto with itree. 
-  bcoinduction; intros.
+  coinduction; intros.
   induction H.
   - rewrite 2 unfold_interp_mrec; bcbn. reflexivity.  
   - rewrite (itree_eta t); destruct (observe t).
@@ -325,7 +326,7 @@ Proof.
   }
   Local Transparent eutt. 
 
-  revert t. bcoinduction; intros. 
+  revert t. coinduction; intros. 
   rewrite (itree_eta t); destruct (observe t); bcbn.
   all: rewrite (unfold_interp_mrec _ _ (go _)), unfold_interp; bcbn.
   1,2: rewrite unfold_interp_mrec; bcbn.

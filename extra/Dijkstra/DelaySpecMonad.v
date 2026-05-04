@@ -204,7 +204,7 @@ Notation "x =[ g ]=> y" := (iter_arrow_rel g x y) (at level 70) : delayspec_scop
 Lemma iter_inl_spin : forall (A B : Type) (g : A -> Delay (A + B) ) (a : A),
     not_wf_from (iter_arrow_rel g) a -> ITree.iter g a ≈ ITree.spin.
 Proof.
-  intros A B g. bcoinduction. intros. red in H; sinv H; try apply not_wf_F_mono'.
+  intros A B g. coinduction. intros. red in H; sinv H; try apply not_wf_F_mono'.
   setoid_rewrite unfold_iter_ktree. unfold iter_arrow_rel in Hrel. apply eutt_ret_euttge in Hrel.
   rewrite Hrel. rewrite bind_ret_l. rewrite unfold_spin. etau.
 Qed.

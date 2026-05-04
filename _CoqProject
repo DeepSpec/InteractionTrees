@@ -82,8 +82,8 @@ extra/IForest.v
 
 extra/ITrace/ITraceDefinition.v
 extra/ITrace/ITraceFacts.v
-# extra/ITrace/ITracePrefix.v
-# extra/ITrace/ITraceBind.v
+extra/ITrace/ITracePrefix.v
+extra/ITrace/ITraceBind.v
 # extra/ITrace/ITracePreds.v
 
 extra/Dijkstra/DijkstraMonad.v

@@ -9,6 +9,7 @@ From Stdlib Require Import
      Relations.Relations.
 
 From ITree Require Import
+     Basics.Utils 
      Basics.Basics
      Basics.CategoryOps
      Basics.CategoryTheory
@@ -20,7 +21,8 @@ From ITree Require Import
      Core.ITreeMonad
      Core.KTree
      Eq.Shallow
-     Eq.Eqit.
+     Eq.Eqit
+     .
 
 Import CatNotations.
 Local Open Scope itree_scope.
@@ -37,7 +39,6 @@ Ltac unfold_ktree :=
     lift_ktree_; cbn.
 
 (** ** [ITree.aloop] *)
-From Coinduction Require Import all. 
 
 
 From Corelib Require Import Program.Tactics. 
@@ -59,11 +60,10 @@ Lemma bind_iter {E A B C} (f : A -> itree E (A + B)) (g : B -> itree E (B + C))
        | inl a => ITree.map inl (f a)
        | inr b => ITree.map (bimap inr (id_ _)) (g b)
        end) (inl x).
-Proof. 
+Proof.
+  coinduction. 
   (* this proof should follow from the facts about elem *)
-  bcoinduction c CIH. intros.
-  intros. 
-
+  intros.
   (* Unset Printing Notations.  *)
   (* these rewrites must go through *)
   (* need eq_itree proper up to everything *)
@@ -75,7 +75,7 @@ Proof.
     eapply CIH. 
   - rewrite bind_ret_l, tau_euttge.
   (* question: why doesn't accumulate acc work? *)
-    do 2 step. revert b. bcoinduction c' CIH'. intros. 
+    do 2 step. revert b. coinduction. intros. 
     rewrite !unfold_iter.
     rewrite bind_map.
     ebind. 
@@ -83,6 +83,7 @@ Proof.
     + now taus.
     + reflexivity.
 Qed.  
+
 
 Lemma eq_itree_iter' {E I1 I2 R1 R2}
       (RI : I1 -> I2 -> Prop)
@@ -94,7 +95,7 @@ Lemma eq_itree_iter' {E I1 I2 R1 R2}
   : forall (i1 : I1) (i2 : I2) (RI_i : RI i1 i2),
     @eq_itree E _ _ RR (ITree.iter body1 i1) (ITree.iter body2 i2).
 Proof.
-  bcoinduction c CIH. intros. 
+  coinduction c cih. intros. 
   specialize (eutt_body i1 i2 RI_i).
   do 2 rewrite unfold_iter.
   eapply eqit_bind_chain. 
@@ -112,7 +113,7 @@ Lemma eutt_iter' {E I1 I2 R1 R2}
   : forall (i1 : I1) (i2 : I2) (RI_i : RI i1 i2),
     @eutt E _ _ RR (ITree.iter body1 i1) (ITree.iter body2 i2).
 Proof.
-  bcoinduction c CIH. intros. 
+  coinduction c CIH. intros. 
   specialize (eutt_body i1 i2 RI_i).
   do 2 rewrite unfold_iter.
   ebind.
@@ -131,7 +132,7 @@ Lemma eutt_iter'' {E I1 I2 R1 R2}
   : forall (i1 : I1) (i2 : I2) (RI_i : RI1 i1 i2),
     @eutt E _ _ RR (ITree.iter body1 i1) (ITree.iter body2 i2).
 Proof.
-  bcoinduction c CIH. intros. 
+  coinduction c CIH. intros. 
   specialize (eutt_body i1 i2 RI_i).
   do 2 rewrite unfold_iter.
   ebind. 
@@ -215,7 +216,7 @@ Qed.
 Proof.
   repeat intro. unfold_ktree.
   revert a0.
-  bcoinduction c' CIH. intros. 
+  coinduction c' CIH. intros. 
   rewrite 2 unfold_iter_ktree.
   rewrite !bind_bind.
   ebind. 
@@ -245,7 +246,7 @@ Lemma iter_dinatural_ktree {E A B C}
      end).
 Proof.
   revert A B C f g a0. 
-  bcoinduction c CIH. intros. 
+  coinduction c CIH. intros. 
   rewrite unfold_iter_ktree.
   rewrite bind_bind.
   ebind. 
@@ -297,7 +298,7 @@ Lemma iter_codiagonal_ktree {E A B} (f : ktree E A (A + (A + B))) (a0 : A)
        end)) a0.
 Proof.
   revert a0.
-  bcoinduction c CIH. intros. 
+  coinduction c CIH. intros. 
   rewrite unfold_iter_ktree.
   rewrite (unfold_iter_ktree (fun _ => _ _ _)).
   rewrite unfold_iter_ktree, !bind_bind.
@@ -348,7 +349,7 @@ Proof.
   (* We move to the eworld *)
   repeat red. 
   (* First coinductive point in the simulation: at the entry point of the iteration over f *)
-  bcoinduction c' CIH. intros.   
+  coinduction c' CIH. intros.   
   rewrite bind_ret_l.
   (* We unfold one step on both sides *)
   rewrite unfold_iter. 
@@ -375,7 +376,7 @@ Proof.
     rewrite tau_euttge.
     do 2 step. 
     generalize xb.
-    bcoinduction c'' CIH'. intros. 
+    coinduction c'' CIH'. intros. 
     (* We unfold a new step of computation *)
     rewrite 2 unfold_iter. 
     rewrite !bind_bind.

@@ -332,28 +332,28 @@ Proof.
   red in Hlog. apply H. clear H. subst. cbn. red. split; intros.
   - unfold append in *. rewrite bind_ret_l in H. rewrite bind_ret_l.
     unfold decide_ex in *.
-    generalize dependent b. pcofix CIH. intros b Hb Hdiv.
-    pfold. red.
+    generalize dependent b. coinduction c CIH. intros b Hb Hdiv.
+    step. red.
     rewrite unfold_iter in Hb at 1. rewrite bind_bind in Hb.
     apply bind_trigger_refine in Hb as Hb'; try (exists true; auto).
     basic_solve. destruct a.
     + rewrite bind_ret_l in H0. cbn in H0. rewrite tau_eutt in H0.
-      punfold H. red in H. cbn in H. clear Hb.
+      step in H. red in H. cbn in H. clear Hb.
       enough (paco1 (trace_forall_ (is_bool true) (fun _ => True) ) r b).
-      { punfold H1. }
+      { step in H1. }
       dependent induction H.
-      *  pfold. red. rewrite <- x. constructor; auto with itree. intros.
-        destruct a. right. pclearbot. eapply CIH.
+      *  step. rewrite <- x. constructor; auto with itree. intros.
+        destruct a. right.  eapply CIH.
         ++ assert (k1 tt ≈ k' tt)%itree; try apply REL.
            rewrite H. auto.
-        ++ apply simpobs in x. rewrite x in Hdiv. pinversion Hdiv.
+        ++ apply simpobs in x. rewrite x in Hdiv. sinv Hdiv.
            ddestruction. apply H1.
-      *  pfold. red. rewrite <- x. constructor. left.  eapply IHeqitF; eauto.
+      *  step. rewrite <- x. constructor. left.  eapply IHeqitF; eauto.
          apply simpobs in x. rewrite x in Hdiv. rewrite tau_eutt in Hdiv. auto.
    + rewrite bind_ret_l in H0. cbn in H0. apply trace_refine_ret_inv_l in H0.
-     rewrite H in Hdiv. pinversion Hdiv. ddestruction.
+     rewrite H in Hdiv. sinv Hdiv. ddestruction.
      specialize (H2 tt).
-     rewrite H0 in H2. pinversion H2.
+     rewrite H0 in H2. sinv H2.
   - red. rewrite append_nil. rewrite append_nil in H. unfold decide_ex in *.
     induction H.
     + exfalso. rewrite H in H0. rewrite unfold_iter in H0.
@@ -365,17 +365,17 @@ Proof.
         clear IHmay_converge. rewrite unfold_iter in H0. rewrite bind_bind in H0.
         rewrite H in H0. eapply bind_trigger_refine in H0; try (exists true; auto).
         basic_solve.
-        pinversion H0. ddestruction.
+        sinv H0. ddestruction.
         assert (k tt ≈ k' tt)%itree; try apply REL. rewrite bind_ret_l in H2.
         cbn in *. rewrite tau_eutt in H2. rewrite H3. auto.
       * clear IHmay_converge. rewrite unfold_iter in H0. rewrite bind_bind in H0.
         rewrite H in H0. eapply bind_trigger_refine in H0; try (exists true; auto).
         basic_solve.
-        pinversion H0. ddestruction.
+        sinv H0. ddestruction.
         rewrite bind_ret_l in H2. cbn in H2.
         apply trace_refine_ret_inv_l in H2.
         eapply front_and_last_base with (r := tt); eauto with itree.
-        pfold. red. cbn. constructor. intros. left.
+        step. cbn. constructor. intros. left.
         rewrite <- H2. destruct v. auto.
   Qed.
 

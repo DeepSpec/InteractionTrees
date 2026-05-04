@@ -116,7 +116,7 @@ Instance eq_itree_interp {E F}
             interp.
 Proof.
   intros f g Hfg T.
-  bcoinduction c CIH. intros. 
+  coinduction c CIH. intros. 
   rewrite 2 unfold_interp.
   step in H. 
 
@@ -145,7 +145,7 @@ Instance eutt_interp (E F : Type -> Type)
 Proof.
   repeat red.
   intros until T.
-  bcoinduction. intros.
+  coinduction. intros.
   rewrite !unfold_interp. step in H0. 
   induction H0; intros; subst; cbn; eauto with itree; to_mon.   
   eapply eqit_bind_chain. 
@@ -164,7 +164,7 @@ Instance euttge_interp (E F : Type -> Type)
 Proof.
   repeat red.
   intros until T.
-  bcoinduction. intros.
+  coinduction. intros.
   rewrite !unfold_interp. step in H0. 
   induction H0; intros; subst; cbn; try easy; eauto with itree; to_mon.
   eapply eqit_bind_chain. 
@@ -179,7 +179,7 @@ Instance eutt_interp' {E F : Type -> Type} {R : Type} (RR: R -> R -> Prop) (f : 
          (@interp E (itree F) _ _ _ f R).
 Proof.
   repeat red.
-  bcoinduction. intros.
+  coinduction. intros.
   rewrite !unfold_interp.
   step in H.
   induction H; cbn; try easy; eauto with itree; to_mon. 
@@ -220,7 +220,7 @@ Lemma interp_bind {E F R S}
     interp f (ITree.bind t k)
   ≅ ITree.bind (interp f t) (fun r => interp f (k r)).
 Proof.
-  revert R t k. bcoinduction; intros. 
+  revert R t k. coinduction; intros. 
   rewrite unfold_bind, (unfold_interp t).
   destruct (observe t); cbn; to_mon. 
   - rewrite bind_ret_l. apply reflexivity.
@@ -237,7 +237,7 @@ Qed.
 Lemma interp_id_h {A R} (t : itree A R)
   : interp (id_ A) t ≳ t.
 Proof.
-  revert t. bcoinduction. intros.
+  revert t. coinduction. intros.
   rewrite (itree_eta t), unfold_interp.
   destruct (observe t); cbn.  
   - reflexivity. 
@@ -249,7 +249,7 @@ Qed.
 Lemma interp_trigger_h {E R} (t : itree E R) :
   interp ITree.trigger t ≈ t.
 Proof.
-  revert t. bcoinduction. intros.
+  revert t. coinduction. intros.
   rewrite unfold_interp. rewrite (itree_eta t) at 2.
   destruct (observe t); cbn; eauto with itree. 
   constructor; intro. fold_subst. 
@@ -264,7 +264,7 @@ Theorem interp_interp {E F G R} (f : E ~> itree F) (g : F ~> itree G) :
       interp g (interp f t)
     ≅ interp (fun _ e => interp g (f _ e)) t.
 Proof.
-  bcoinduction. intros. 
+  coinduction. intros. 
   rewrite 2 (unfold_interp t).
   destruct (observe t); cbn; eauto with itree. 
   to_mon. rewrite interp_bind. ebind. intros; subst.  
@@ -275,7 +275,7 @@ Lemma interp_translate {E F G} (f : E ~> F) (g : F ~> itree G) {R} (t : itree E 
   interp g (translate f t) ≅ interp (fun _ e => g _ (f _ e)) t.
 Proof.
   revert t.  
-  bcoinduction. 
+  coinduction. 
   intros t.
   rewrite !unfold_interp. unfold _interp.
   rewrite unfold_translate_. unfold translateF.
@@ -288,7 +288,7 @@ Qed.
 Lemma translate_to_interp {E F R} (f : E ~> F) (t : itree E R) :
   translate f t ≈ interp (fun _ e => ITree.trigger (f _ e)) t.
 Proof.
-  revert t. bcoinduction. intros.
+  revert t. coinduction. intros.
   rewrite unfold_translate.
   rewrite unfold_interp.
   destruct (observe t); cbn; eauto with itree. 
@@ -301,7 +301,7 @@ Lemma interp_forever {E F} (f : E ~> itree F) {R S}
   : interp f (ITree.forever t)
   ≅ @ITree.forever F R S (interp f t).
 Proof.
-  bcoinduction. 
+  coinduction. 
   rewrite (unfold_forever t).
   rewrite (unfold_forever (interp _ _)).
   rewrite interp_bind.
@@ -318,7 +318,7 @@ Lemma interp_iter' {E F} (f : E ~> itree F) {I A}
     interp f (ITree.iter t i)
   ≅ ITree.iter t' i.
 Proof.
-  bcoinduction; intros i. 
+  coinduction; intros i. 
   rewrite 2 unfold_iter.
   rewrite interp_bind.
   ebind. 
@@ -343,7 +343,7 @@ Lemma interp_iter'_eutt {E F} (f: E ~> itree F) {I A}
     (Heq: forall i, interp f (t i) ≈ t' i):
   forall i, interp f (ITree.iter t i) ≈ ITree.iter t' i.
 Proof.
-  bcoinduction; intros i. 
+  coinduction; intros i. 
   rewrite 2 unfold_iter.
   rewrite interp_bind.
   ebind. 

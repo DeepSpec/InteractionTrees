@@ -254,11 +254,11 @@ Abort.
                               monotonici B (_iter f a).
     Proof.
       unfold monotonici. intros. generalize dependent a.
-      pcofix CIH. pfold. intros. punfold H1.
+      coinduction c CIH. step. intros. step in H1.
       red. red in H1. inversion H1; simpl in *.
       constructor. destruct (f a) as [fa Hfa] eqn : Heq. simpl in *.
       refine (Hfa _ _ _ _ _ H0). intros t. intros. inversion H2; subst; eauto with itree.
-      pclearbot. eapply cont_a; eauto with itree.
+       eapply cont_a; eauto with itree.
     Qed.
 
   Definition iterp {A B} (body : A -> PureITreeSpec (A + B) ) (init : A) : PureITreeSpec B :=
@@ -370,13 +370,13 @@ Abort.
     intros A B f a.
     constructor.
     (*this case went through without even needing coinduction???*)
-    - intros. red. repeat red in H. punfold H. destruct H.
+    - intros. red. repeat red in H. step in H. destruct H.
       cbn. unfold bindpi, _bindpi. destruct (f a) as [fa Hfa]; simpl in *.
       eapply Hfa; eauto. intros t ?Ht. inversion Ht; eauto.
       + left. exists (inr b). split; auto.
-      + left. exists (inl a'). split; auto. pclearbot. auto.
+      + left. exists (inl a'). split; auto.  auto.
     (*very suspicious that I no longer need to coinduct, I think I will move this onto a refactor branch to experiment on*)
-    - revert a. (* pcofix CIH. *) intros. cbn in H. pfold. unfold bindpi, _bindpi in H.
+    - revert a. (* coinduction c CIH. *) intros. cbn in H. step. unfold bindpi, _bindpi in H.
       constructor. destruct (f a) as [fa Hfa]; simpl in *. eapply Hfa; try apply H.
       intros t ?Ht. simpl in Ht. basic_solve; auto.
       + eapply cont_a; try apply H0. cbn in H1.
@@ -387,8 +387,8 @@ Abort.
   Instance PureITreeIterNatural : IterNatural (Kleisli PureITreeSpec) sum.
   Proof.
     intros A B C. intros. constructor.
-    - intros. generalize dependent a. pcofix CIH. intros. pfold. repeat red in H.
-      punfold H0. destruct H0.
+    - intros. generalize dependent a. coinduction c CIH. intros. step. repeat red in H.
+      step in H0. destruct H0.
       destruct (f a) as [fa Hfa] eqn : Heq. simpl in *. constructor.
       cbn. rewrite Heq. simpl. unfold _bindpi. eapply Hfa; eauto.
       intros t ?Ht. basic_solve.
@@ -400,10 +400,10 @@ Abort.
         * right. split; auto. eapply inf_tau; try apply spin_div. eapply Hp; eauto. symmetry. apply div_spin_eutt. auto.
       + left. exists (inl a'). split; auto. cbn. unfold _bindpi, _retpi, id. left. exists a'.
         split; try reflexivity. eapply cont_a; try reflexivity. right. apply CIH; auto.
-    - intros. generalize dependent a. pcofix CIH. intros. pfold. red.
+    - intros. generalize dependent a. coinduction c CIH. intros. step. red.
       repeat red in H0.
       constructor.
-      destruct (f a) as [fa Hfa] eqn : Heq. simpl in *. punfold H0. destruct H0. simpl in H.
+      destruct (f a) as [fa Hfa] eqn : Heq. simpl in *. step in H0. destruct H0. simpl in H.
       cbn in H. unfold bindpi, _bindpi in H. rewrite Heq in H. simpl in *. eapply Hfa; try apply H.
       intros t ?. simpl in *. basic_solve.
       + cbn in H1. unfold _bindpi, _retpi in H1. basic_solve. unfold id in *. basic_solve.
@@ -422,18 +422,18 @@ Abort.
     intros A B C. intros. constructor.
     (* can't coinduct in this case it seems, fingers crossed I don't need to *)
     - intros. cbn. unfold bindpi, _bindpi. destruct (f a) as [fa Hfa] eqn : Heq. simpl.
-      cbn in H. punfold H. destruct H. cbn in H. unfold bindpi, _bindpi in H. rewrite Heq in H. simpl in *.
+      cbn in H. step in H. destruct H. cbn in H. unfold bindpi, _bindpi in H. rewrite Heq in H. simpl in *.
       eapply Hfa; try apply H. intros t ?. simpl in H0.
       basic_solve; auto.
       + rename a0 into b. left. exists (inl b). split; auto. cbn. cbn in H1. clear H. clear H0.
-        generalize dependent b. pcofix CIH.
-        intros. pfold. constructor. cbn. unfold bindpi, _bindpi.
+        generalize dependent b. coinduction c CIH.
+        intros. step. constructor. cbn. unfold bindpi, _bindpi.
         destruct (g b) as [gb Hgb] eqn : ?Heq. simpl in *. eapply Hgb; try apply H1.
         intros ?t ?Ht. basic_solve.
         * right. split; auto. apply inf_tau; auto. apply spin_div.
         * rename b0 into c. left. exists (inr c). split; auto. cbn. unfold _retpi.
           eapply term_b; eauto. reflexivity.
-        * left. exists (inl a'). split; auto. cbn. punfold Hcorec. destruct Hcorec. cbn in H.
+        * left. exists (inl a'). split; auto. cbn. step in Hcorec. destruct Hcorec. cbn in H.
           unfold bindpi, _bindpi in H. destruct (f a') as [fa' Hfa'] eqn :?Heq. simpl in *.
           eapply Hfa'; try apply H. intros ?t ?Ht. simpl in *. basic_solve.
           -- cbn in H2. rename a0 into b'. eapply cont_a; eauto. auto.
@@ -442,12 +442,12 @@ Abort.
           -- apply inf_tau; auto.
       + cbn in H1. unfold _retpi in H1. basic_solve. rename b into c. left.
         exists (inr c). auto.
-  - intros. generalize dependent a. pcofix CIH.
-    intros. pfold. constructor. cbn. cbn in H0. unfold bindpi, _bindpi in *.
+  - intros. generalize dependent a. coinduction c CIH.
+    intros. step. constructor. cbn. cbn in H0. unfold bindpi, _bindpi in *.
     destruct (f a) as [fa Hfa] eqn : Heq. simpl in *. eapply Hfa; try apply H0.
     intros t ?. simpl in *. basic_solve.
     + rename a0 into b. left. exists (inl b). split; auto. cbn. cbn in H1. red in H1.
-      punfold H1. destruct H1. cbn in H1. unfold bindpi, _bindpi in H1. destruct (g b) as [gb Hgb] eqn : ?Heq.
+      step in H1. destruct H1. cbn in H1. unfold bindpi, _bindpi in H1. destruct (g b) as [gb Hgb] eqn : ?Heq.
       simpl in *. eapply Hgb; try apply H1. intros ?t ?Ht. simpl in *. clear H1.
       basic_solve.
       * cbn in H2. eapply cont_a; try apply H1. right. apply CIH. cbn.
@@ -466,8 +466,8 @@ Abort.
   Instance PureITreeIterCodiagonal : IterCodiagonal (Kleisli PureITreeSpec) sum.
   Proof.
     intros A B f. constructor.
-    - intros. generalize dependent a. pcofix CIH. intros. cbn in H0. punfold H0.
-      pfold. destruct H0. constructor. cbn in H. cbn. punfold H.  destruct H.
+    - intros. generalize dependent a. coinduction c CIH. intros. cbn in H0. step in H0.
+      step. destruct H0. constructor. cbn in H. cbn. step in H.  destruct H.
       unfold bindpi, _bindpi. destruct (f a) as [fa Hfa] eqn : Heq. simpl in *. eapply Hfa; try apply H.
       intros t ?. simpl in *. basic_solve.
       + right. split; auto.
@@ -476,30 +476,30 @@ Abort.
       + left. exists (inr (inl a0) ). clear H. split; auto. cbn. unfold _retpi.
         eapply cont_a; unfold id; try reflexivity. right. apply CIH. apply Hcorec.
       + left. exists (inl a'). split; auto. cbn. unfold _retpi.
-        eapply cont_a; try reflexivity. clear H. right. apply CIH. red. pfold.
-        red. constructor. punfold Hcorec. red in Hcorec. destruct Hcorec. destruct (f a') as [fa' Hfa'] eqn : ?Heq.
-        simpl in *. red. pfold. constructor. rewrite Heq0. simpl in *.
+        eapply cont_a; try reflexivity. clear H. right. apply CIH. red. step.
+        red. constructor. step in Hcorec. red in Hcorec. destruct Hcorec. destruct (f a') as [fa' Hfa'] eqn : ?Heq.
+        simpl in *. red. step. constructor. rewrite Heq0. simpl in *.
         eapply Hfa'; try apply H. clear H. intros ?t ?Ht. auto.
-    - intros. punfold H. generalize dependent a. pcofix CIH. intros. cbn in H0. pfold. constructor.
-      destruct H0. cbn in H. cbn.  unfold bindpi, _bindpi in H. pfold. constructor.
+    - intros. step in H. generalize dependent a. coinduction c CIH. intros. cbn in H0. step. constructor.
+      destruct H0. cbn in H. cbn.  unfold bindpi, _bindpi in H. step. constructor.
       destruct (f a) as [fa Hfa] eqn : Heq. simpl in *. eapply Hfa; try apply H.
       rename H into Ha.
       intros t ?. simpl in *. basic_solve.
       + cbn in H0. unfold _retpi in H0. basic_solve. eapply cont_a; try apply H.
         clear H.  left.
         generalize dependent a0.
-        pcofix CIH'. intros. pfold. constructor. clear Ha. punfold Hcorec.
+        coinduction c CIH'. intros. step. constructor. clear Ha. step in Hcorec.
         destruct Hcorec. cbn in H. unfold bindpi, _bindpi in H. simpl in *.
         destruct (f a0) as [fa0 Hfa0] eqn : ?Heq. simpl in *. eapply Hfa0; try apply H.
         clear H. intros ?t ?Ht. simpl in *. basic_solve.
         * cbn in H0. unfold _retpi in H0. basic_solve. eapply cont_a; try apply H. auto.
         * cbn in H0. unfold _retpi in H0. basic_solve. eapply term_b; try apply H. eapply cont_a; try reflexivity.
-          right. apply CIH. punfold Hcorec.
+          right. apply CIH. step in Hcorec.
         * cbn in H0. unfold _retpi, id in H0. basic_solve. eapply term_b; try apply H.
           eapply term_b; try reflexivity. auto.
         * apply inf_tau; auto.
       + cbn in H0. unfold _retpi, id in H0. basic_solve. eapply term_b; try apply H. eapply cont_a; try reflexivity.
-        right. apply CIH. punfold Hcorec.
+        right. apply CIH. step in Hcorec.
       + cbn in H0. unfold _retpi, id in H0. basic_solve. eapply term_b; try apply H. eapply term_b; try reflexivity.
         auto.
       + apply inf_tau; auto.
@@ -510,7 +510,7 @@ Abort.
             (p : itree void1 B -> Prop) (Hp : resp_eutt void1 B p),
      proj1_sig (obsip B (iter f a)) p Hp -> proj1_sig (iterp (fun x => obsip _ (f x) ) a) p Hp.
   Proof.
-    intros. generalize dependent a. pcofix CIH. intros. pfold. constructor.
+    intros. generalize dependent a. coinduction c CIH. intros. step. constructor.
     cbn. red.
     simpl. specialize (unfold_iter_ktree f a) as Hunfold.
     cbn in H0. red in H0. symmetry in Hunfold. eapply Hp in H0;
@@ -535,7 +535,7 @@ Abort.
       proj1_sig (iterp (fun x => obsip _ (f x) ) a) p Hp -> proj1_sig (obsip B (iter f a)) p Hp.
   Proof.
     intros. cbn. red. cbn in H. red in H. cbn in H.
-    punfold H. destruct H. cbn in H. red in H.
+    step in H. destruct H. cbn in H. red in H.
     basic_solve; auto.
     - apply div_spin_eutt in Ht as H1. eapply Hp; eauto.
       specialize (unfold_iter_ktree f a) as Hunfold. rewrite Hunfold. rewrite H1.
@@ -560,7 +560,7 @@ Abort.
     exists 0. assert (resp_eutt _ _ (fun _  : itree void1 nat => False) ).
     { intros t1 t2. tauto. } exists H.
     split; auto.
-    pcofix CIH. pfold. constructor. cbn. red. eapply cont_a; eauto. reflexivity.
+    coinduction c CIH. step. constructor. cbn. red. eapply cont_a; eauto. reflexivity.
   Qed.
 
   Lemma iter_too_big : ~  forall A B (f : A -> itree void1 (A + B) ) (a : A)
@@ -579,7 +579,7 @@ Abort.
     intros. constructor.
     -  apply obsip_pres_iter_right.
     - intros. cbn. red. cbn in H. unfold obsip, _obsip in H. simpl in H.
-      red in H. punfold H. destruct H. simpl in *.
+      red in H. step in H. destruct H. simpl in *.
       cbn in H.
   Abort.
 *)

@@ -34,23 +34,23 @@ Proof.
   - rewrite Heq.
     assert (pi_eqit_secure Label priv (case_rel Rinv RS) true b2 l (Ret r1) (Ret s) ).
     rewrite <- Heq. auto.
-    pinversion H. subst. inv H2.
+    sinv H. subst. inv H2.
     + rewrite bind_ret_l. gstep. constructor; auto.
       gfinal. left. eapply CIH; eauto.
     + rewrite bind_ret_l. gstep. constructor. auto.
   - rewrite Heq. rewrite bind_tau. gstep. constructor; auto.
     gfinal. left. eapply CIH'.
     assert (pi_eqit_secure Label priv (case_rel Rinv RS) true b2 l (Tau t0) (Ret s)).
-    rewrite <- Heq. auto. pinversion H. rewrite <- itree_eta. auto.
+    rewrite <- Heq. auto. sinv H. rewrite <- itree_eta. auto.
   - destruct (classic (leq (priv _ e) l ) ).
     + exfalso. apply HRinv in Hr0.
       assert (pi_eqit_secure Label priv (case_rel Rinv RS) true b2 l (Vis e k) (Ret s) ).
       { rewrite <- Heq. auto. }
-      pinversion H0; subst. ddestruction. subst. contradiction.
+      sinv H0; subst. ddestruction. subst. contradiction.
     + rewrite Heq. rewrite bind_vis.
       gstep. constructor; auto. intros x. gfinal. left. eapply CIH'.
       assert ( pi_eqit_secure Label priv (case_rel Rinv RS) true b2 l (Vis e k) (Ret s)) .
-      rewrite <- Heq. auto. pinversion H0; subst; ddestruction; subst.
+      rewrite <- Heq. auto. sinv H0; subst; ddestruction; subst.
       rewrite <- itree_eta. apply H2.
 Qed.
 
@@ -70,9 +70,9 @@ Lemma pi_eqit_secure_trans_ret E R1 R2 R3 Label priv l b1 b2
   pi_eqit_secure Label priv (rcompose RR1 RR2) b1 b2 l t1 t3.
 Proof.
   revert t1 t3. ginit. gcofix CIH.
-  intros. pinversion H0; subst; try inv CHECK; use_simpobs.
+  intros. sinv H0; subst; try inv CHECK; use_simpobs.
   - rewrite H. generalize dependent t3. gcofix CIH'. intros t3 Ht3.
-    pinversion Ht3; use_simpobs.
+    sinv Ht3; use_simpobs.
     + rewrite H2. gstep. constructor; auto. econstructor; eauto.
     + rewrite H2. gstep. constructor; auto. gfinal. left. eapply CIH'.
       symmetry in H1. use_simpobs. rewrite H1 in H4. auto.
@@ -90,7 +90,7 @@ Lemma pi_eqit_secure_pub_vis E R1 R2 RR Label priv l b1 b2 A (e : E A)
   (forall a, pi_eqit_secure Label priv RR b1 b2 l (k1 a) (k2 a) ) ->
   pi_eqit_secure Label priv RR b1 b2 l (Vis e k1) (Vis e k2).
 Proof.
-  intros. pfold. constructor; auto. left. apply H0.
+  intros. step. constructor; auto. left. apply H0.
 Qed.
 
 Lemma pi_eqit_secure_priv_vislr E R1 R2 RR Label priv l b1 b2 A B (e1 : E A) (e2 : E B)
@@ -99,7 +99,7 @@ Lemma pi_eqit_secure_priv_vislr E R1 R2 RR Label priv l b1 b2 A B (e1 : E A) (e2
   (forall a b, pi_eqit_secure Label priv RR b1 b2 l (k1 a) (k2 b) ) ->
   pi_eqit_secure Label priv RR b1 b2 l (Vis e1 k1) (Vis e2 k2).
 Proof.
-  intros. pfold. constructor; auto. left. apply H1.
+  intros. step. constructor; auto. left. apply H1.
 Qed.
 
 Lemma pi_eqit_secure_priv_visl E R1 R2 RR Label priv l b2 A (e1 : E A)
@@ -108,7 +108,7 @@ Lemma pi_eqit_secure_priv_visl E R1 R2 RR Label priv l b2 A (e1 : E A)
   (forall a, pi_eqit_secure Label priv RR true b2 l (k1 a) t2 ) ->
   pi_eqit_secure Label priv RR true b2 l (Vis e1 k1) t2.
 Proof.
-  intros. pfold. constructor; auto. left. apply H0.
+  intros. step. constructor; auto. left. apply H0.
 Qed.
 
 Lemma pi_eqit_secure_priv_visr E R1 R2 RR Label priv l b1 A (e1 : E A)
@@ -117,7 +117,7 @@ Lemma pi_eqit_secure_priv_visr E R1 R2 RR Label priv l b1 A (e1 : E A)
   (forall a, pi_eqit_secure Label priv RR b1 true l t1 (k2 a) ) ->
   pi_eqit_secure Label priv RR b1 true l t1 (Vis e1 k2).
 Proof.
-  intros. pfold. constructor; auto. left. apply H0.
+  intros. step. constructor; auto. left. apply H0.
 Qed.
 
 Lemma pi_secure_eqit_bind'
@@ -135,7 +135,7 @@ Lemma pi_secure_eqit_bind'
 Proof.
   intros. revert H0. generalize dependent t2. generalize dependent t1.
   gcofix CIH. intros t1 t2 Ht12.
-  pinversion Ht12; use_simpobs.
+  sinv Ht12; use_simpobs.
   - rewrite H0, H1. repeat rewrite bind_ret_l. gfinal. right. eapply paco2_mon; try apply CIH0.
     auto.
   - rewrite H0, H1. repeat rewrite bind_tau. gstep. constructor. gfinal. left. eapply CIH.
@@ -148,11 +148,11 @@ Proof.
     rewrite H0. auto.
   - rewrite H0, H1. repeat rewrite bind_vis. gstep. constructor; auto.
     intros. gfinal. left. eapply CIH; eauto. apply H2.
-  - rewrite H0, H1. rewrite bind_vis, bind_tau. gstep. red. cbn. unpriv_pi.
+  - rewrite H0, H1. rewrite bind_vis, bind_tau. gstep. cbn. unpriv_pi.
     gfinal. left. eapply CIH; eauto. apply H2.
-  - rewrite H0, H1. rewrite bind_vis, bind_tau. gstep. red. cbn. unpriv_pi.
+  - rewrite H0, H1. rewrite bind_vis, bind_tau. gstep. cbn. unpriv_pi.
     gfinal. left. eapply CIH; eauto. apply H2.
-  - rewrite H0, H1. repeat rewrite bind_vis. gstep. red. cbn. unpriv_pi.
+  - rewrite H0, H1. repeat rewrite bind_vis. gstep. cbn. unpriv_pi.
     gfinal. left. eapply CIH. apply H2.
   - rewrite H0. rewrite bind_vis. gstep. constructor; auto. gfinal.
     left. eapply CIH. apply simpobs in H1. rewrite <- itree_eta in H1. rewrite H1.

@@ -186,28 +186,4 @@ Tactic Notation "hinduction" hyp(IND) "before" hyp(H)
   := move IND before H; revert_until IND; induction IND.
 
 (* ----------------------------------------------------------------- *)
-(** Shared scaffolding for relations defined as [gfp xxx_mon]. Each
-    file still writes its own one-line [step] / [unstep] / [coinduction]
-    notations (since those shadow the generic [step] / [unstep] Ltacs
-    above when parsed via a higher-order notation), but pulls these
-    helpers in to avoid re-deriving them per file. *)
-
-(** Run [tac] under leading ∀'s, putting them back afterwards.
-    Needed for pattern-matching tactics that must fire on bodies
-    beneath quantifiers (e.g. [change]-style [to_mon] rewrites). *)
-Ltac under_forall' tac :=
-  let dummy := fresh "dummy" in
-  assert (dummy : True) by constructor;
-  intros; tac; revert_until dummy; clear dummy.
-
-Ltac revert_one :=
-  match goal with [ H : _ |- _ ] => revert H end.
-
-(** Intro leading ∀'s, run [unf], revert. Gets a quantified goal
-    into the [gfp _] shape expected by [coinduction R H]. *)
-Ltac unfold_coind_with unf :=
-  first [ intros ?; unfold_coind_with unf; revert_one | unf ].
-
-(** The ITree-specific [to_mon_4cases_with] macro lives in
-    [theories/Eq/Eqit.v], where [observe] and [go] are in scope. *)
-
+ 

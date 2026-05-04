@@ -28,15 +28,15 @@ Lemma eqit_bind_shalt_aux1:
       paco2 (secure_eqit_ Label priv RS b1 b2 l id) bot2 (ITree.bind t1 k1) (ITree.bind t2 k2).
 Proof.
   intros E S2 S1 R1 R2 RR RS b1 b2 Label priv l k1 k2 A e k0 t2 SECCHECK SIZECHECK H0 t1 Heqot1.
-  pstep. red. unfold ITree.bind at 1, observe at 1. cbn. rewrite <- Heqot1.
+  pstep. unfold ITree.bind at 1, observe at 1. cbn. rewrite <- Heqot1.
   cbn. rewrite itree_eta' at 1. pstep_reverse.
-  generalize dependent t2. pcofix CIH. intros t2 Ht2.
+  generalize dependent t2. coinduction c CIH. intros t2 Ht2.
   pstep. red.
-  punfold Ht2. red in Ht2.
+  step in Ht2. red in Ht2.
   unfold ITree.bind at 1. unfold observe at 2. cbn in *.
   inv Ht2; ddestruction; subst; try contra_size; try contradiction; try rewrite <- H; cbn;
-  try unpriv_halt; right; eapply CIH;  pclearbot; eauto;
-  try (pfold; rewrite H in H1; apply H1).
+  try unpriv_halt; right; eapply CIH;   eauto;
+  try (step; rewrite H in H1; apply H1).
   contra_size.
 Qed.
 
@@ -53,15 +53,15 @@ Lemma eqit_bind_shalt_aux2:
     paco2 (secure_eqit_ Label priv RS b1 b2 l id) bot2 (ITree.bind t1 k1) (ITree.bind t2 k2).
 Proof.
   intros E S2 S1 R1 R2 RR RS b1 b2 Label priv l k1 k2 A e k0 t1 t2 SECCHECK SIZECHECK H0 Heqot1.
-  pstep. red. unfold ITree.bind at 2, observe at 2. cbn. rewrite <- Heqot1.
+  pstep. unfold ITree.bind at 2, observe at 2. cbn. rewrite <- Heqot1.
   cbn. rewrite itree_eta'. pstep_reverse.
-  generalize dependent t1. pcofix CIH. intros t1 Ht1.
+  generalize dependent t1. coinduction c CIH. intros t1 Ht1.
   pstep. red.
-  punfold Ht1. red in Ht1.
+  step in Ht1. red in Ht1.
   unfold ITree.bind at 1, observe at 1. cbn in *.
   inv Ht1; ddestruction; subst; try contra_size; try contradiction; cbn;
-  try unpriv_halt; try contra_size; try (right; eapply CIH; pclearbot; eauto).
-  pfold. rewrite H0 in H1. auto. apply H1.
+  try unpriv_halt; try contra_size; try (right; eapply CIH;  eauto).
+  step. rewrite H0 in H1. auto. apply H1.
 Qed.
 
 Lemma secure_eqit_bind' : forall E R1 R2 S1 S2 (RR : R1 -> R2 -> Prop) (RS : S1 -> S2 -> Prop)
@@ -71,51 +71,51 @@ Lemma secure_eqit_bind' : forall E R1 R2 S1 S2 (RR : R1 -> R2 -> Prop) (RS : S1 
     eqit_secure Label priv RR b1 b2 l t1 t2 ->
     paco2 (secure_eqit_ Label priv RS b1 b2 l id) r (ITree.bind t1 k1) (ITree.bind t2 k2).
 Proof.
-  intros. revert H0. revert t1 t2. pcofix CIH. intros t1 t2 Ht12.
-  punfold Ht12. red in Ht12.
+  intros. revert H0. revert t1 t2. coinduction c CIH. intros t1 t2 Ht12.
+  step in Ht12. red in Ht12.
   genobs t1 ot1. genobs t2 ot2.
   hinduction Ht12 before r; intros; eauto.
-  - pstep. red. unfold ITree.bind, observe. unfold observe. cbn.
+  - pstep. unfold ITree.bind, observe. unfold observe. cbn.
     rewrite <- Heqot1. rewrite <- Heqot2. pstep_reverse.
     eapply paco2_mon; eauto.
-  - pstep. red. unfold ITree.bind, observe. unfold observe. cbn.
-    rewrite <- Heqot1. rewrite <- Heqot2. cbn. constructor. right. eapply CIH. pclearbot.
+  - pstep. unfold ITree.bind, observe. unfold observe. cbn.
+    rewrite <- Heqot1. rewrite <- Heqot2. cbn. constructor. eapply CIH.  
     auto.
-  - pstep. red. unfold ITree.bind at 1, observe at 1. cbn.
+  - pstep. unfold ITree.bind at 1, observe at 1. cbn.
     rewrite <- Heqot1. cbn. constructor; auto. pstep_reverse.
-  - pstep. red. unfold ITree.bind at 2, observe at 2. cbn.
+  - pstep. unfold ITree.bind at 2, observe at 2. cbn.
     rewrite <- Heqot2. cbn. constructor; auto. pstep_reverse.
-  - pstep. red. unfold ITree.bind, observe. unfold observe. cbn.
-    rewrite <- Heqot1. rewrite <- Heqot2. cbn. pclearbot.
+  - pstep. unfold ITree.bind, observe. unfold observe. cbn.
+    rewrite <- Heqot1. rewrite <- Heqot2. cbn. 
     constructor; auto. right. eapply CIH; eauto. apply H.
-  - pstep. red. unfold ITree.bind, observe. unfold observe. cbn.
+  - pstep. unfold ITree.bind, observe. unfold observe. cbn.
     rewrite <- Heqot1. rewrite <- Heqot2. cbn. unpriv_co.
-    right. pclearbot. eapply CIH; apply H.
-  - pstep. red. unfold ITree.bind, observe. unfold observe. cbn.
+    right.  eapply CIH; apply H.
+  - pstep. unfold ITree.bind, observe. unfold observe. cbn.
     rewrite <- Heqot1. rewrite <- Heqot2. cbn. unpriv_co.
-    right. pclearbot. eapply CIH; apply H.
-  - pstep. red. unfold ITree.bind, observe. unfold observe. cbn.
+    right.  eapply CIH; apply H.
+  - pstep. unfold ITree.bind, observe. unfold observe. cbn.
     rewrite <- Heqot1. rewrite <- Heqot2. cbn. unpriv_co.
-    right. pclearbot. eapply CIH; apply H.
-  - pstep. red. unfold ITree.bind at 1, observe at 1. cbn.
+    right.  eapply CIH; apply H.
+  - pstep. unfold ITree.bind at 1, observe at 1. cbn.
     rewrite <- Heqot1. cbn. unpriv_ind. pstep_reverse; try eapply H0; eauto.
-  - pstep. red. unfold ITree.bind at 2, observe at 2. cbn.
+  - pstep. unfold ITree.bind at 2, observe at 2. cbn.
     rewrite <- Heqot2. cbn. unpriv_ind. pstep_reverse; try eapply H0; eauto.
-  - pclearbot.
+  - 
     eapply paco2_mon with (r := bot2); intros; try contradiction.
-    eapply eqit_bind_shalt_aux1; eauto. pfold. red. rewrite <- Heqot2.
+    eapply eqit_bind_shalt_aux1; eauto. step. rewrite <- Heqot2.
     cbn. unpriv_halt. left. eauto.
-  - pclearbot.
+  - 
     eapply paco2_mon with (r := bot2); intros; try contradiction.
-    eapply eqit_bind_shalt_aux2; eauto. pfold. red. cbn. rewrite <- Heqot1.
+    eapply eqit_bind_shalt_aux2; eauto. step. cbn. rewrite <- Heqot1.
     unpriv_halt. left. eauto.
-  - pclearbot.
+  - 
     eapply paco2_mon with (r := bot2); intros; try contradiction.
     eapply eqit_bind_shalt_aux1 with (A := A); eauto.
-    pfold. red. rewrite <- Heqot2. cbn. unpriv_halt.
-  - pclearbot.
+    step. rewrite <- Heqot2. cbn. unpriv_halt.
+  - 
     eapply paco2_mon with (r := bot2); intros; try contradiction.
-    eapply eqit_bind_shalt_aux2; eauto. pfold. red. cbn. rewrite <- Heqot1.
+    eapply eqit_bind_shalt_aux2; eauto. step. cbn. rewrite <- Heqot1.
     unpriv_halt.
 Qed.
 
@@ -157,12 +157,12 @@ Lemma iter_bind_shalt_aux1:
                          end)).
 Proof.
   intros E B2 B1 A1 A2 RA RB b1 b2 Label priv l body1 body2 r A e k1 t0 SECCHECK SIZECHECK H.
-  generalize dependent t0. pcofix CIH. intros t0 Ht0.
-  pstep. red. cbn. unfold observe. cbn. punfold Ht0.
-  red in Ht0. cbn in *. inv Ht0; inv_vis_secure; cbn; pclearbot; unpriv_halt; try contra_size;
+  generalize dependent t0. coinduction c CIH. intros t0 Ht0.
+  pstep. cbn. unfold observe. cbn. step in Ht0.
+  red in Ht0. cbn in *. inv Ht0; inv_vis_secure; cbn;  unpriv_halt; try contra_size;
     right; eauto.
   eapply CIH; eauto.
-  rewrite H in H1. pfold. red. auto.
+  rewrite H in H1. step. auto.
 Qed.
 
 Lemma iter_bind_shalt_aux2:
@@ -192,12 +192,12 @@ Lemma iter_bind_shalt_aux2:
                                 end))).
 Proof.
   intros E B2 B1 A1 A2 RA RB b1 b2 Label priv l body1 body2 r A e t0 k2 SECCHECK SIZECHECK H.
-  generalize dependent t0. pcofix CIH. intros t0 Ht0.
-  pstep. red. cbn. unfold observe. cbn. punfold Ht0.
-  red in Ht0. cbn in *. inv Ht0; inv_vis_secure; cbn; pclearbot; unpriv_halt; try contra_size;
+  generalize dependent t0. coinduction c CIH. intros t0 Ht0.
+  pstep. cbn. unfold observe. cbn. step in Ht0.
+  red in Ht0. cbn in *. inv Ht0; inv_vis_secure; cbn;  unpriv_halt; try contra_size;
   try (right; eauto).
   eapply CIH; eauto.
-  rewrite H0 in H1. pfold. red. auto.
+  rewrite H0 in H1. step. auto.
 Qed.
 
 Lemma iter_bind_aux:
@@ -223,12 +223,12 @@ Lemma iter_bind_aux:
                          end)).
 Proof.
   intros E B2 B1 A1 A2 RA RB b1 b2 Label priv l body1 body2 r t1 t2 H CIH0.
-  generalize dependent t2. revert t1. pcofix CIH1.
-  intros t1 t2 Ht12. punfold Ht12. pstep. red.
+  generalize dependent t2. revert t1. coinduction c CIH1.
+  intros t1 t2 Ht12. step in Ht12. pstep. red.
   unfold observe. cbn.
-  hinduction Ht12 before r; intros; cbn; eauto; pclearbot;
+  hinduction Ht12 before r; intros; cbn; eauto; 
   try (unpriv_co; fail);
-  try (constructor; auto; pclearbot; right; eapply CIH1; eauto with itree; fail).
+  try (constructor; auto;  right; eapply CIH1; eauto with itree; fail).
   - inv H; cbn; eauto with itree.
   - unpriv_ind. unfold observe at 1. cbn. eapply H0; eauto with itree.
   - unpriv_ind. unfold observe at 3. cbn. eapply H0; eauto with itree.
@@ -252,32 +252,32 @@ Proof.
   guclo eqit_bind_clo. *)
 
   (* look into the more general secure_eqitC closure, see if that is weakly compatible, *)
-  pcofix CIH.
+  coinduction c CIH.
   intros a1 a2 Ha. specialize (Hbody a1 a2 Ha) as Hbodya.
-  punfold Hbodya. red in Hbodya. pfold. red.
+  step in Hbodya. red in Hbodya. step. red.
   unfold observe. (* write lemmas for unfolding the observe of iter *) cbn.
   hinduction Hbodya before r; intros; cbn; auto with itree.
   - inv H; cbn; eauto with itree.
-  - cbn. pclearbot. constructor.
+  - cbn.  constructor.
     left. eapply iter_bind_aux; eauto.
-  - constructor; auto. pclearbot. left. eapply iter_bind_aux; eauto.
-  - unpriv_co. pclearbot. left. eapply iter_bind_aux; eauto.
-  -  unpriv_co. pclearbot. left. eapply iter_bind_aux; eauto.
-  - unpriv_co. pclearbot. left. eapply iter_bind_aux; eauto.
+  - constructor; auto.  left. eapply iter_bind_aux; eauto.
+  - unpriv_co.  left. eapply iter_bind_aux; eauto.
+  -  unpriv_co.  left. eapply iter_bind_aux; eauto.
+  - unpriv_co.  left. eapply iter_bind_aux; eauto.
   - unpriv_ind. (* here is  where it gets bad, I am pretty sure H0 does match up but could
                   take very particular *) unfold observe at 1. cbn.
     eauto.
   - unpriv_ind. unfold observe at 3. cbn. eauto.
-  - pclearbot. unpriv_halt.
+  -  unpriv_halt.
     left. eapply iter_bind_shalt_aux1; eauto.
-  - unpriv_halt. pclearbot. left. eapply iter_bind_shalt_aux2; eauto.
-  - unpriv_halt. pclearbot. specialize (H b). left.
+  - unpriv_halt.  left. eapply iter_bind_shalt_aux2; eauto.
+  - unpriv_halt.  specialize (H b). left.
     eapply iter_bind_shalt_aux1; eauto.
-  - unpriv_halt. pclearbot. specialize (H a). left. eapply iter_bind_shalt_aux2; eauto.
+  - unpriv_halt.  specialize (H a). left. eapply iter_bind_shalt_aux2; eauto.
 Qed.
 
 Lemma secure_eqit_ret : forall (E : Type -> Type) Label priv l b1 b2 (R1 R2 : Type) (RR : R1 -> R2 -> Prop) (r1 : R1) (r2 : R2),
     RR r1 r2 -> @eqit_secure E R1 R2 Label priv RR b1 b2 l (Ret r1) (Ret r2).
 Proof.
-  intros. pfold. constructor. auto.
+  intros. step. constructor. auto.
 Qed.

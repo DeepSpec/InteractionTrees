@@ -151,10 +151,10 @@ Definition halt : itree E R := Vis HaltE (fun _ => Tau Tau ...)
 
   Lemma refl_counter_counter : ~ eqit_secure NatPreorder priv_counter eq true true 0 refl_counter refl_counter.
     Proof.
-      intro Hcontra. punfold Hcontra; try eapply secure_eqit_mono; eauto.
+      intro Hcontra. step in Hcontra; try eapply secure_eqit_mono; eauto.
       red in Hcontra. cbn in *. inv Hcontra; ddestruction; subst.
       - cbv in SECCHECK. inv SECCHECK.
-      - specialize (H0 true false). pclearbot. pinversion H0; try eapply secure_eqit_mono; eauto.
+      - specialize (H0 true false).  sinv H0; try eapply secure_eqit_mono; eauto.
         discriminate.
       - rewrite H3 in H0. clear H3. specialize (H0 true). cbn in *.
         inv H0; ddestruction; subst. specialize (H2 false). rewrite H in H2.
@@ -169,13 +169,13 @@ Definition halt : itree E R := Vis HaltE (fun _ => Tau Tau ...)
 
     Lemma halt_not_ret : forall A (a : A) k, ~ eqit_secure NatPreorder priv_counter eq true true 0 (Vis Halt k) (Ret a).
     Proof.
-      intros. intro Hcontra. pinversion Hcontra. ddestruction; subst.
+      intros. intro Hcontra. sinv Hcontra. ddestruction; subst.
       inv SIZECHECK. contradiction.
     Qed.
 
     Lemma halt_spin : eqit_secure NatPreorder priv_counter eq true true 0 (trigger Halt) (ITree.spin).
     Proof.
-      pcofix CIH. pfold. red. cbn. eapply EqVisUnprivHaltLTauR.
+      coinduction c CIH. step. cbn. eapply EqVisUnprivHaltLTauR.
       - intro. inv H.
       - constructor. intros; contradiction.
       - right. apply CIH.
@@ -188,10 +188,10 @@ Definition halt : itree E R := Vis HaltE (fun _ => Tau Tau ...)
     (* b := SecretFlip; if b then return tt else PublicOut; return tt*)
     Lemma refl_counter2_counter : ~ eqit_secure NatPreorder priv_counter eq true true 0 refl_counter2 refl_counter2.
       Proof.
-        unfold refl_counter2. intro Hcontra. punfold Hcontra; try eapply secure_eqit_mono; eauto.
+        unfold refl_counter2. intro Hcontra. step in Hcontra; try eapply secure_eqit_mono; eauto.
         red in Hcontra. cbn in Hcontra. inv Hcontra; ddestruction; subst; try (inv SIZECHECK; apply H; constructor; fail).
         - inv SECCHECK.
-        - specialize (H0 true false). pclearbot. punfold H0; try eapply secure_eqit_mono; eauto.
+        - specialize (H0 true false).  step in H0; try eapply secure_eqit_mono; eauto.
           red in H0. cbn in *. inv H0; ddestruction; subst.
           cbn in *. apply SECCHECK; auto.
         - rewrite H3 in H0; clear H3. specialize (H0 true). cbn in *.
@@ -271,30 +271,30 @@ Ltac ne A := let Hne := fresh "H" in assert (Hne : nonempty A); eauto; inv Hne.
 Lemma eqit_secure_sym : forall b1 b2 E R1 R2 RR Label priv l (t1 : itree E R1) (t2 : itree E R2),
     eqit_secure Label priv RR b1 b2 l t1 t2 -> eqit_secure Label priv (flip RR) b2 b1 l t2 t1.
 Proof.
-  intros b1 b2 E R1 R2 RR Label priv l. pcofix CIH.
-  intros t1 t2 Hsec. pfold. red. punfold Hsec. red in Hsec.
-  hinduction Hsec before r; intros; eauto with itree; pclearbot;
+  intros b1 b2 E R1 R2 RR Label priv l. coinduction c CIH.
+  intros t1 t2 Hsec. step. step in Hsec. red in Hsec.
+  hinduction Hsec before r; intros; eauto with itree; 
   try (unpriv_co; right; apply CIH; apply H);
   try unpriv_halt.
   - constructor; auto. intros. right. apply CIH; apply H.
-  - constructor; auto. right. eapply CIH. apply H.
-  - constructor; auto. right. eapply CIH. apply H.
+  - constructor; auto. eapply CIH.  apply H.
+  - constructor; auto. eapply CIH.  apply H.
   - specialize (H a). remember (k2 a) as t. clear Heqt k2.
      left.
-     intros. pfold. red. cbn. punfold H. red in H. cbn in H.
-     inv H; ddestruction; subst; try contra_size; try contradiction; pclearbot; eauto with itree;
+     intros. step. cbn. step in H. red in H. cbn in H.
+     inv H; ddestruction; subst; try contra_size; try contradiction;  eauto with itree;
      try (unpriv_halt; fail).
      + constructor; auto. right. eapply CIH; eauto. apply H2.
-     + unpriv_halt. right. eapply CIH. apply H1.
-     + unpriv_halt. right. eapply CIH. apply H1.
+     + unpriv_halt. eapply CIH.  apply H1.
+     + unpriv_halt. eapply CIH.  apply H1.
   - specialize (H b). remember (k1 b) as t. clear Heqt k1.
      left.
-     intros. pfold. red. cbn. punfold H. red in H. cbn in H.
-     inv H; ddestruction; subst; try contra_size; try contradiction; pclearbot; eauto with itree;
+     intros. step. cbn. step in H. red in H. cbn in H.
+     inv H; ddestruction; subst; try contra_size; try contradiction;  eauto with itree;
      try (unpriv_halt; fail).
      + constructor; auto. right. eapply CIH; eauto. apply H2.
      + unpriv_halt. right. inv SIZECHECK0. contradiction.
-     + unpriv_halt. right. eapply CIH. apply H2.
+     + unpriv_halt. eapply CIH.  apply H2.
 Qed.
 
 Lemma secure_eqit_mon : forall E (b1 b2 b3 b4 : bool) R1 R2 RR1 RR2 Label priv l
@@ -302,10 +302,10 @@ Lemma secure_eqit_mon : forall E (b1 b2 b3 b4 : bool) R1 R2 RR1 RR2 Label priv l
     (b1 -> b3) -> (b2 -> b4) -> (RR1 <2= RR2) ->
     eqit_secure Label priv RR1 b1 b2 l t1 t2 -> eqit_secure Label priv RR2 b3 b4 l t1 t2.
 Proof.
-  intros. generalize dependent t2. revert t1. pcofix CIH.
+  intros. generalize dependent t2. revert t1. coinduction c CIH.
   intros t1 t2 Ht12. pstep. red.
-  punfold Ht12. red in Ht12.
-  hinduction Ht12 before r; intros; eauto; pclearbot;
+  step in Ht12. red in Ht12.
+  hinduction Ht12 before r; intros; eauto; 
   try (unpriv_co; right; apply CIH; try red; eauto; fail);
   try (unpriv_halt; try contra_size; right; apply CIH; try red; eauto; fail).
   all : (constructor; auto; right;  eauto; apply CIH; apply H2).

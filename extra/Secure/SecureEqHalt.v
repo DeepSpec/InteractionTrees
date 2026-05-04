@@ -173,30 +173,30 @@ Ltac gfinal_with H := gfinal; left; apply H.
 Lemma eqit_secure_sym : forall b1 b2 E R1 R2 RR Label priv l (t1 : itree E R1) (t2 : itree E R2),
     eqit_secure Label priv RR b1 b2 l t1 t2 -> eqit_secure Label priv (flip RR) b2 b1 l t2 t1.
 Proof.
-  intros b1 b2 E R1 R2 RR Label priv l. pcofix CIH.
-  intros t1 t2 Hsec. pfold. red. punfold Hsec. red in Hsec.
-  hinduction Hsec before r; intros; eauto with itree; pclearbot;
+  intros b1 b2 E R1 R2 RR Label priv l. coinduction c CIH.
+  intros t1 t2 Hsec. step. step in Hsec. red in Hsec.
+  hinduction Hsec before r; intros; eauto with itree; 
   try (unpriv_co; right; apply CIH; apply H);
   try unpriv_halt.
   - constructor; auto with itree. intros. right. apply CIH; apply H.
   - specialize (H a). remember (k2 a) as t. clear Heqt k2.
      left.
-     intros. pfold. red. cbn. punfold H. red in H. cbn in H.
-     inv H; ddestruction; subst; try contra_size; try contradiction; pclearbot; eauto;
+     intros. step. cbn. step in H. red in H. cbn in H.
+     inv H; ddestruction; subst; try contra_size; try contradiction;  eauto;
      try (unpriv_halt; fail).
-     +  unpriv_halt. right. apply CIH. pfold. auto.
+     +  unpriv_halt. right. apply CIH. step. auto.
      + rewrite H0. rewrite H0 in H2. unpriv_halt.
-       right. apply CIH. pfold. apply H2.
+       right. apply CIH. step. apply H2.
      + unpriv_halt. right. apply CIH. apply H1.
      + unpriv_halt. right. apply CIH. apply H1.
   - specialize (H b). remember (k1 b) as t. clear Heqt k1.
      left.
-     intros. pfold. red. cbn. punfold H. red in H. cbn in H.
-     inv H; ddestruction; subst; try contra_size; try contradiction; pclearbot; eauto;
+     intros. step. cbn. step in H. red in H. cbn in H.
+     inv H; ddestruction; subst; try contra_size; try contradiction;  eauto;
      try (unpriv_halt; fail).
-     +  unpriv_halt. right. apply CIH. pfold. auto.
+     +  unpriv_halt. right. apply CIH. step. auto.
      + rewrite H1. rewrite H1 in H2. unpriv_halt.
-       right. apply CIH. pfold. apply H2.
+       right. apply CIH. step. apply H2.
      + unpriv_halt. inv SIZECHECK0. contradiction.
      + unpriv_halt. right. apply CIH. apply H2.
 Qed.
@@ -206,10 +206,10 @@ Lemma secure_eqit_mon : forall E (b1 b2 b3 b4 : bool) R1 R2 RR1 RR2 Label priv l
     (b1 -> b3) -> (b2 -> b4) -> (RR1 <2= RR2) ->
     eqit_secure Label priv RR1 b1 b2 l t1 t2 -> eqit_secure Label priv RR2 b3 b4 l t1 t2.
 Proof.
-  intros. generalize dependent t2. revert t1. pcofix CIH.
+  intros. generalize dependent t2. revert t1. coinduction c CIH.
   intros t1 t2 Ht12. pstep. red.
-  punfold Ht12. red in Ht12.
-  hinduction Ht12 before r; intros; eauto; pclearbot;
+  step in Ht12. red in Ht12.
+  hinduction Ht12 before r; intros; eauto; 
   try (unpriv_co; right; apply CIH; try red; eauto; fail);
   try (unpriv_halt; try contra_size; right; apply CIH; try red; eauto; fail).
   constructor; auto. right.  eauto. apply CIH; apply H2.

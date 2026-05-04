@@ -47,15 +47,15 @@ Lemma trace_forall_proper_aux: forall (E : Type -> Type) (R : Type) (PE : forall
                                  (PR : R -> Prop) (b1 b2 : itree (EvAns E) R),
     (b1 ≈ b2) -> trace_forall PE PR b1 -> trace_forall PE PR b2.
 Proof.
-  intros E R PE PR. pcofix CIH. intros b1 b2 Heutt Hforall.
-  pfold. red. punfold Hforall. red in Hforall.
-  punfold Heutt. red in Heutt. induction Heutt; subst; auto.
+  intros E R PE PR. coinduction c CIH. intros b1 b2 Heutt Hforall.
+  step. step in Hforall. red in Hforall.
+  step in Heutt. red in Heutt. induction Heutt; subst; auto.
   - inv Hforall. auto with itree.
-  - inv Hforall. pclearbot. constructor. right. eapply CIH; eauto.
-  - inv Hforall. ddestruction. subst. pclearbot.
+  - inv Hforall.  constructor. right. eapply CIH; eauto.
+  - inv Hforall. ddestruction. subst. 
     constructor; auto. intros. right. eapply CIH; eauto with itree. apply H3.
-  - apply IHHeutt. inv Hforall. pclearbot. punfold H0.
-  - constructor. left. pfold. red. apply IHHeutt. auto.
+  - apply IHHeutt. inv Hforall.  step in H0.
+  - constructor. left. step. apply IHHeutt. auto.
 Qed.
 
 #[global] Instance trace_forall_proper_eutt {E R PE PR} : Proper (eutt eq ==> iff) (@trace_forall E R PE PR).
@@ -67,7 +67,7 @@ Qed.
 
 Lemma forall_spin : forall E R PE PR, trace_forall PE PR (@ITree.spin (EvAns E) R).
 Proof.
-  intros. pcofix CIH. pfold. red. cbn. constructor.
+  intros. coinduction c CIH. step. cbn. constructor.
   right. auto.
 Qed.
 
@@ -155,9 +155,9 @@ Section StateMachine.
   Lemma state_machine_proper_aux : forall PEv PRet (t1 t2 : itrace E R),
       (t1 ≈ t2) -> state_machine PEv PRet t1 -> state_machine PEv PRet t2.
   Proof.
-    pcofix CIH. intros PEV PREt t1 t2 Heutt Hsm. pfold. red.
-    punfold Hsm; try apply monotone_state_machine.
-    punfold Heutt. red in Heutt. red in Hsm.
+    coinduction c CIH. intros PEV PREt t1 t2 Heutt Hsm. step. red.
+    step in Hsm; try apply monotone_state_machine.
+    step in Heutt. red in Heutt. red in Hsm.
     induction Hsm.
     - remember (RetF r0) as ot1. induction Heutt; subst; auto with itree; try discriminate.
       injection Heqot1; intros; subst; auto with itree.
@@ -165,7 +165,7 @@ Section StateMachine.
       rewrite tau_eutt in H. auto.
     - remember (VisF (evans A e a) k ) as ot1. induction Heutt; subst; auto with itree; try discriminate.
       injection Heqot1; intros; subst. dependent destruction H1.
-      subst. constructor; auto. right. pclearbot. eapply CIH; eauto with itree.
+      subst. constructor; auto. right.  eapply CIH; eauto with itree.
   Qed.
 
   #[global] Instance state_machine_proper_eutt {PEv PRet} : Proper (eutt eq ==> iff) (@state_machine PEv PRet).

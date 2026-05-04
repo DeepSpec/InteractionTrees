@@ -190,7 +190,7 @@ Section PrintMults.
     2 : destruct ev; assert void; try apply Hempty; try constructor; contradiction.
     assert (A = nat).
     {
-      destruct ev; auto. cbn in *. pinversion Href. ddestruction; subst.
+      destruct ev; auto. cbn in *. sinv Href. ddestruction; subst.
       cbn in *. inversion H1; auto.
     }
     subst. rename ans into n. exists n.
@@ -199,14 +199,14 @@ Section PrintMults.
     exists k0. split.
     {
       simpl in Href. clear Henv. unf_res.
-      pinversion Href. ddestruction; subst. inversion H1. ddestruction; subst. reflexivity.
+      sinv Href. ddestruction; subst. inversion H1. ddestruction; subst. reflexivity.
     }
     clear Hp p Hbhd b.
     assert (k0 tt ⊑ kp n).
-    { clear Heqkp. pinversion Href. ddestruction; subst.
+    { clear Heqkp. sinv Href. ddestruction; subst.
       unfold resum, ReSum_id, id_, Id_IFun in *. inversion H1. ddestruction; subst.
       assert (RAnsRef IO unit nat (evans nat Read n) tt Read n); auto with itree.
-      apply H6 in H. pclearbot. auto.
+      apply H6 in H.  auto.
     }
     clear Href ev. subst. rewrite bind_ret_l in H. simpl in *. rewrite interp_state_bind in H.
     rewrite interp_state_trigger in H. simpl in *. rewrite bind_ret_l in H.
@@ -231,11 +231,11 @@ Section PrintMults.
     generalize dependent tr.
     generalize dependent next_to_write.
 
-    pcofix CIH.
+    coinduction c CIH.
     (*This coinductive hypothesis looks good*)
     intros.
     rename H1 into HX.
-    pfold. red.
+    step. red.
     (*should be able to learn that observe tr is what we need*)
 
     (*This block shows how to proceed through the loop body*)
@@ -254,13 +254,13 @@ Section PrintMults.
     rewrite bind_vis in H.
     setoid_rewrite bind_ret_l in H.
     unf_res.
-    punfold H. red in H. cbn in *.
+    step in H. red in H. cbn in *.
     dependent induction H.
     2:{ rewrite <- x. constructor; auto. eapply IHruttF; eauto; reflexivity. }
     inversion H; ddestruction; subst; ddestruction; try contradiction.
     subst. specialize (H0 tt tt).
     destruct a.
-    prove_arg H0; auto with itree. pclearbot.
+    prove_arg H0; auto with itree. 
     match type of H0 with
       paco2 _ bot2 ?tr ?t => assert (Hk1 : tr ⊑ t); auto end.
     rewrite <- x. constructor; auto.

@@ -426,7 +426,7 @@ Qed.
 Lemma Leaf_interp_subtree_inv {E F R} (h: E ~> itree F) (t u: itree E R):
   subtree u t -> has_post (interp h u) (fun x : R => x ∈ t).
 Proof.
-  revert t u. unfold has_post. bcoinduction c CIH; intros * Hsub.
+  revert t u. unfold has_post. coinduction c CIH; intros * Hsub.
   rewrite (itree_eta u) in Hsub.
   rewrite unfold_interp.
   desobs u Hu; clear u Hu; cbn.
@@ -441,7 +441,7 @@ Lemma Leaf_interp_state_subtree_inv {E F S R} (h: E ~> Monads.stateT S (itree F)
   (t u: itree E R) (s: S):
   subtree u t -> has_post (interp_state h u s) (fun x => snd x ∈ t).
 Proof.
-  revert t u s. unfold has_post. bcoinduction c CIH; intros * Hsub.
+  revert t u s. unfold has_post. coinduction c CIH; intros * Hsub.
   rewrite (itree_eta u) in Hsub.
   rewrite unfold_interp_state.
   desobs u Hu; clear u Hu; cbn.

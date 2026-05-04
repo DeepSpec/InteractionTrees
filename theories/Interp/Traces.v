@@ -82,20 +82,20 @@ Proof.
   red. intros. red in H0. remember (observe t1).
   generalize dependent t1. generalize dependent t2.
   induction H0; intros; try solve [constructor].
-  - sstep in H. rewrite <- Heqi in H.
+  - step in H. rewrite <- Heqi in H.
     remember (RetF _). remember (observe t2).
     generalize dependent t2.
     induction H; intros; try inv Heqi0; red; rewrite <- Heqi1; constructor.
     eapply IHsuttF; eauto.
   - apply IHis_traceF with (t1:=t); auto.
     apply sutt_inv_tau_left. red. red in H. rewrite <- Heqi in H. auto.
-  - sstep in H. rewrite <- Heqi in H.
+  - step in H. rewrite <- Heqi in H.
     remember (VisF _ _). remember (observe t2).
     generalize dependent t2.
     induction H; intros; try discriminate.
     + inv_Vis. subst. red. rewrite <- Heqi1. constructor.
     + red. rewrite <- Heqi1. constructor. eapply IHsuttF; eauto.
-  - sstep in H. rewrite <- Heqi in H.
+  - step in H. rewrite <- Heqi in H.
     remember (VisF _ _). remember (observe t2).
     generalize dependent t2.
     induction H; intros; try discriminate.
@@ -130,7 +130,7 @@ Qed.
 Lemma trace_incl_sutt : forall {E R} (t1 t2 : itree E R),
     trace_incl t1 t2 -> sutt eq t1 t2.
 Proof.
-  intros E R. scoinduction c CIH. intros t1 t2 Hincl.
+  intros E R. coinduction c CIH. intros t1 t2 Hincl.
   unfold trace_incl in *. unfold is_trace in *.
   destruct (observe t1).
   - assert (H : is_traceF (RetF r : itreeF E R (itree E R)) (TRet r)) by constructor.
@@ -179,7 +179,7 @@ Proof.
   - apply trace_incl_sutt; auto.
   - apply trace_incl_sutt in H0. clear H.
     generalize dependent t1. generalize dependent t2.
-    scoinduction c CIH. intros t1 t2 H0. sstep in H0.
+    coinduction c CIH. intros t1 t2 H0. step in H0.
     induction H0; constructor; eauto with itree.
     apply (CIH t0 (go ot2)). apply EQTAUS.
 Qed.

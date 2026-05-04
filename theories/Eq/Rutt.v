@@ -175,11 +175,6 @@ end.
 
 Tactic Notation "to_rmon" "in" ident(h) := to_rmon_in h.
 
-#[local] Ltac runfold_coind := unfold_coind_with runfold.
-Tactic Notation "rcoinduction" simple_intropattern(R) simple_intropattern(H) :=
-  runfold_coind; coinduction R H; rcbn; refold.
-
-
 #[global] Hint Constructors ruttF : itree.
 #[global] Hint Unfold rutt_ : itree.
 #[global] Hint Unfold rutt_mon : itree.

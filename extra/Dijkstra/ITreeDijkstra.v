@@ -613,15 +613,15 @@ step on gfp can reduce.
       equivE t1 t2.
   Proof.
     intros E1 E2 R. coinduction c CIH.
-    intros t1 t2 Hev1 Hev2 Heutt. pfold. red.
-    step in Heutt. unfold_eqit. dependent induction Heutt; subst.
+    intros t1 t2 Hev1 Hev2 Heutt. icbn.
+    step in Heutt. dependent induction Heutt; subst.
     - unfold remove_events in x0, x.
       destruct (observe t1); destruct (observe t2); try discriminate.
-      constructor. cbn in *. injection x0. injection x. intros. subst. auto.
+      constructor. cbn in *. inv x0; inv x. 
     - unfold remove_events in x0, x.
       destruct (observe t1) eqn : Heq1; destruct (observe t2) eqn : Heq2; try discriminate.
       + cbn in *. constructor.
-        injection x0. injection x. intros. subst. pclearbot.
+        inv x0. inv x. intros.  
         apply CIH; auto.
         * specialize (itree_eta t1) as Ht1. rewrite Heq1 in Ht1.
           assert (t ≈ t1).
@@ -669,8 +669,8 @@ step on gfp can reduce.
       eqitE RR t1 t2 -> eqitE RR (@remove_events E1 E3 R1 t1) (@remove_events E2 E4 R2 t2).
   Proof.
     intros E1 E2 E3 E4 R1 R2 RR. coinduction c CIH. intros.
-    step in H0. red in H0. icbn. unfold remove_events.
-    induction H0; cbn; auto with itree.
+    step in H. icbn. unfold remove_events.
+    induction H; cbn; auto with itree.
     constructor. apply CIH; auto.
   Qed.
 
@@ -702,13 +702,12 @@ step on gfp can reduce.
       equivE t1 t2 -> equivE t2 t1.
   Proof.
     intros E1 E2 R. coinduction c CIH. intros.
-    step in H0. red in H0. pfold. red.
-    induction H0; eauto with itree.
-    constructor. apply CIH; auto.
+    step in H. icbn. 
+    induction H; eauto with itree.
   Qed.
 
 
-  Instance proper_eutt_equivE_imp {E1 E2} {R} : Proper (eutt eq ==> (eutt eq) ==> impl) (@equivE E1 E2 R).
+  Instance proper_eutt_equivE_imp {E1 E2} {R} : Proper (eutt eq ==> (eutt eq) ==> Basics.impl) (@equivE E1 E2 R).
   Proof.
     intros t1 t2 Ht12 t3 t4 Ht34. intro.
     apply eqitE_imp_eventlessl in H as Ht1.
@@ -734,7 +733,7 @@ step on gfp can reduce.
 
   (*could also use an eventless predicate*)
 
-  (*gets the idea across, obviously I want to pacoize this*)
+
   (*this is a key part of an effect observation from *)
   CoInductive itree_includes' {R : Type} : itree E R -> stream Ev -> Delay R -> Prop :=
     | includes_base (t : itree E R) (d : Delay R) : equivE t d -> itree_includes' t Nil d
@@ -749,8 +748,18 @@ step on gfp can reduce.
         Vis e k ≈ t ->
         F (k a) s d -> itree_includesF F t (Cons (ev A e a) s) (Tau d).
 
+  Hint Constructors itree_includesF : itree. 
+
+  Lemma itree_includes_mono {R} : Proper (leq ==> leq) (@itree_includesF R).
+  Proof. 
+    repeat intro. induction H0; eauto with itree. 
+    econstructor; eauto. now apply H. 
+  Qed. 
+
+  Definition itree_includes_mon {R} := Build_mon (@itree_includes_mono R).   
+
   Definition itree_includes {R : Type} : itree E R -> stream Ev -> Delay R -> Prop :=
-    paco3 (@itree_includesF R) bot3.
+    gfp (@itree_includes_mon R).
 
 End ITreeDijkstra.
 
@@ -790,7 +799,7 @@ Section RetBindCounter.
          *)
 
   Program Definition w : ITreeSpec Sound unit := fun p => p (Vis Ring (fun _ => Ret tt) ).
-  (*This proof is hideous for a few reasons but it is a good start,
+  (* This proof is hideous for a few reasons but it is a good start,
     and great confirmation that our whole IBranch excursion wasn't a
     soul crushing waste of time
    *)

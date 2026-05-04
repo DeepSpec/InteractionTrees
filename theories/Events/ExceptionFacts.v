@@ -53,7 +53,7 @@ Qed.
 Global Instance proper_eqitree_try_catch {E Err R} : Proper (eq_itree eq ==> pointwise_relation Err (eq_itree eq) ==> eq_itree eq) (@try_catch Err R E).
 Proof.
   intros t1 t2 Ht k1 k2 Hk. red in Hk. generalize dependent t2. revert t1.
-  bcoinduction. intros. unfold try_catch.  setoid_rewrite unfold_iter_ktree.
+  coinduction. intros. unfold try_catch.  setoid_rewrite unfold_iter_ktree.
   sinv Ht. 
   - repeat rewrite bind_ret_l. eret. 
   - repeat rewrite bind_ret_l. etau.  
@@ -67,7 +67,7 @@ Qed.
 Global Instance proper_eutt_try_catch {E Err R} : Proper (eutt eq ==> pointwise_relation Err (eutt eq) ==> eutt eq) (@try_catch Err R E).
 Proof.
   intros t1 t2 Ht k1 k2 Hk. red in Hk. generalize dependent t2. revert t1.
-  bcoinduction. intros. unfold try_catch. setoid_rewrite unfold_iter_ktree.
+  coinduction. intros. unfold try_catch. setoid_rewrite unfold_iter_ktree.
   step in Ht. 
   hinduction Ht before c; intros; subst; eauto.
   - repeat rewrite bind_ret_l. eret. 
@@ -86,7 +86,7 @@ Qed.
 Global Instance proper_eqitree_throw_prefix_false {E Err R} : Proper (eqit false false eq ==> eqit false false eq) (@throw_prefix Err R E).
 Proof.
   intros t1 t2 Ht. generalize dependent t2. revert t1.
-  bcoinduction. intros. unfold throw_prefix. setoid_rewrite unfold_iter_ktree.
+  coinduction. intros. unfold throw_prefix. setoid_rewrite unfold_iter_ktree.
   step in Ht. inv Ht.
   - repeat rewrite bind_ret_l. bcbn. eret.
   - destruct e.
@@ -98,7 +98,7 @@ Qed.
 Global Instance proper_eutt_throw_prefix {E Err R} : Proper (eutt eq ==> eutt eq) (@throw_prefix Err R E).
 Proof.
   intros t1 t2 Ht. generalize dependent t2. revert t1.
-  bcoinduction. intros. unfold throw_prefix. setoid_rewrite unfold_iter_ktree.
+  coinduction. intros. unfold throw_prefix. setoid_rewrite unfold_iter_ktree.
   step in Ht. hinduction Ht before c; intros; subst; eauto.
   - repeat rewrite bind_ret_l. bcbn. eret.
   - destruct e.
@@ -143,7 +143,7 @@ Qed.
 Lemma try_catch_throw_prefix_nop : forall E Err R  kcatch (ttry : itree (exceptE Err +' E) R),
     try_catch (throw_prefix ttry) kcatch ≈ throw_prefix ttry.
 Proof. 
-  intros E Err R kcatch. bcoinduction. intros.
+  intros E Err R kcatch. coinduction. intros.
   destruct (observe ttry) eqn : Heq; symmetry in Heq; apply simpobs in Heq.
   - rewrite Heq. rewrite throw_prefix_ret. rewrite try_catch_ret. reflexivity.
   - rewrite Heq. rewrite throw_prefix_tau. rewrite try_catch_tau. etau.
@@ -160,7 +160,7 @@ Lemma throw_prefix_bind_decomp : forall E Err R (t : itree (exceptE Err +' E) R 
                                     | inl a => Ret a
                                     end).
 Proof.
-  intros E Err R. bcoinduction. intros.
+  intros E Err R. coinduction. intros.
   destruct (observe t) eqn : Heq; symmetry in Heq; apply simpobs in Heq.
   - rewrite Heq. rewrite throw_prefix_ret. rewrite bind_ret_l. eret. 
   - rewrite Heq. rewrite throw_prefix_tau. rewrite bind_tau. etau.
@@ -178,7 +178,7 @@ Lemma try_catch_to_throw_prefix : forall E Err R (ttry : itree (exceptE Err +' E
                                                             | inl a => Ret a
                                                             end).
 Proof.
-  intros. revert ttry. bcoinduction. 
+  intros. revert ttry. coinduction. 
   intros. destruct (observe ttry) eqn : Heq; symmetry in Heq; apply simpobs in Heq.
   - rewrite Heq. rewrite try_catch_ret. rewrite throw_prefix_ret. rewrite bind_ret_l. 
     eret. 
@@ -194,7 +194,7 @@ Qed.
 Lemma throw_prefix_of_try_catch :  forall E Err R (ttry : itree (exceptE Err +' E) R  ) (kcatch : Err -> itree (exceptE Err +' E) R),
     throw_prefix (try_catch ttry kcatch) ≈ try_catch (ITree.bind ttry (fun r => Ret (inl r)) ) (fun e => throw_prefix (kcatch e) ).
 Proof.
-  intros. revert ttry. bcoinduction. 
+  intros. revert ttry. coinduction. 
   intros. destruct (observe ttry) eqn : Heq; symmetry in Heq; apply simpobs in Heq.
   - rewrite Heq. rewrite bind_ret_l. repeat rewrite try_catch_ret. rewrite throw_prefix_ret.
     eret. 
@@ -215,7 +215,7 @@ Lemma throw_prefix_bind : forall E Err R S (t : itree (exceptE Err +' E) R ) (k 
                                   | inl r' => throw_prefix (k r') 
                                   | inr e => Ret (inr e) end ).
 Proof.
-  intros. revert t. bcoinduction. 
+  intros. revert t. coinduction. 
   intros. destruct (observe t) eqn : Heq; symmetry in Heq; apply simpobs in Heq.
   - rewrite Heq. rewrite throw_prefix_ret. repeat rewrite bind_ret_l.
     reflexivity. 
@@ -235,7 +235,7 @@ Lemma throw_prefix_iter : forall E Err A B (body : A -> itree (exceptE Err +' E)
                                                              | inl (inr b) => Ret (inr (inl b))
                                                              | inr e => Ret (inr (inr e)) end)  init.
 Proof.
-  intros E Err A B. bcoinduction. intros.
+  intros E Err A B. coinduction. intros.
   setoid_rewrite unfold_iter_ktree at 2 3.
   destruct (observe (body init) ) eqn : Heq; symmetry in Heq; apply simpobs in Heq.
   - rewrite Heq at 1. rewrite bind_ret_l. setoid_rewrite bind_bind. 

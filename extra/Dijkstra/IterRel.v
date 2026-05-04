@@ -3,6 +3,7 @@ From Coinduction Require Import all.
 
 From ITree Require Import 
 Axioms
+Eq.Eqit
 Utils. 
 
 Create HintDb not_wf.
@@ -40,7 +41,7 @@ Definition not_wf_F_mon :=
   Lemma neg_wf_from_not_wf_from_l : forall (a : A),
       ~(wf_from a) -> not_wf_from a.
   Proof.
-    unfold not_wf_from. coinduction c CIH. intros. destruct (classic (exists a', r a a' /\ ~ ( wf_from a') )).
+      coinduction c CIH. intros. destruct (classic (exists a', r a a' /\ ~ ( wf_from a') )).
     - destruct H0 as [a' [Hr Hwf] ]. econstructor; eauto.
     - assert (forall a', ~ r a a' \/ wf_from a').
       {

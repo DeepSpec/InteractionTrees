@@ -172,8 +172,6 @@ Definition interp_iforest {E F} (h_spec : E ~> iforest F) :
 #[local] Ltac iunfold_in h := unfold euttge, eq_itree, eutt, eqit, interp_iforest in h.
 #[local] Ltac iunfold_all := unfold euttge, eq_itree, eutt, eqit, interp_iforest in *.
 
-#[local] Ltac iunfold_coind := unfold_coind_with iunfold.
-
 #[local] Ltac refold :=
   repeat match goal with
   | |- context[gfp (@eqit_mon ?E ?b1 ?b2)] =>
@@ -288,14 +286,14 @@ Definition interp_iforest {E F} (h_spec : E ~> iforest F) :
 #[local] Tactic Notation "icoinduction" simple_intropattern(R) simple_intropattern(H) :=
   iunfold_coind; coinduction R H; icbn.
 
-#[local] Tactic Notation "bcoinduction" simple_intropattern(R) simple_intropattern(H) :=
+#[local] Tactic Notation "coinduction" simple_intropattern(R) simple_intropattern(H) :=
   icoinduction R H;
   to_mon.
 
-#[local] Tactic Notation "bcoinduction" :=
+#[local] Tactic Notation "coinduction" :=
   let c := fresh "c" in
   let CIH := fresh "CIH" in
-  bcoinduction c CIH.
+  coinduction c CIH.
 
 #[local] Ltac bcbn :=
   cbn[eqit_mon body eqit_ interp_iforest_mon interp_iforest_];
@@ -453,7 +451,7 @@ Lemma interp_iforest_correct_exec:
 Proof.
   intros.
   revert t t' H1.
-  bcoinduction.
+  coinduction.
   intros t t' eq.
   unfold interp, Basics.iter, MonadIter_itree.
   rewrite (itree_eta t) in eq.

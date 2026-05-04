@@ -145,7 +145,7 @@ Global Instance interp_fail_eq_itree {X E F} {R : X -> X -> Prop} (h : E ~> fail
   Proper (eq_itree R ==> eq_itree (option_rel R)) (@interp_fail _ _ _ _ _ h X).
 Proof.
   repeat red. 
-  bcoinduction. 
+  coinduction. 
   intros s t EQ.
   rewrite 2 unfold_interp_fail.
   step in EQ. 
@@ -167,7 +167,7 @@ Global Instance interp_fail_eutt {X E F R} (h : E ~> failT (itree F)) :
   Proper (eutt R ==> eutt (option_rel R)) (@interp_fail _ _ _ _ _ h X).
 Proof.
   repeat red. 
-  bcoinduction. 
+  coinduction. 
   intros s t EQ.
   rewrite 2 unfold_interp_fail.
   step in EQ. 
@@ -242,7 +242,7 @@ Lemma interp_fail_bind : forall {X Y E F} (t : itree _ X) (k : X -> itree _ Y) (
                 ITree.bind (interp_fail h t)
                 (fun mx => match mx with | None => ret None | Some x => interp_fail h (k x) end).
 Proof.
-  intros X Y E F; bcoinduction; intros.
+  intros X Y E F; coinduction; intros.
   rewrite unfold_bind.
   rewrite (unfold_interp_fail h t).
   destruct (observe t) eqn:EQ; bcbn.
@@ -265,7 +265,7 @@ Lemma interp_failure_bind' : forall {X Y E F} (t : itree _ X) (k : X -> itree _ 
 Proof.
   intros X Y E F.
   cbn.
-  bcoinduction; intros.  
+  coinduction; intros.  
   rewrite unfold_bind, (unfold_interp_fail _ t).
   destruct (observe t) eqn:EQ; bcbn.
   - rewrite bind_ret_l. reflexivity. 
