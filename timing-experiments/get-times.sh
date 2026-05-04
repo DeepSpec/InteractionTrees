@@ -1,9 +1,9 @@
 #!/bin/bash -e
 #
-# Purpose:
+# Purpose: Prints the sum total time of all measured commands in a .v.timing file.
 # 
 
-## Usage:
+## Usage: ./get-times.sh <file.v.timing>. 
 ## 
 ## 
 ## author: rab
@@ -18,4 +18,4 @@ if [[ "$#" -ne "$NUM_ARGS" ]]; then
     exit 1
 fi
 
-grep -oe ".\.[0-9]* secs" "$1" | ./sum-times.sh -
+grep -oe ".\.[0-9]* secs" "$1" | awk '{ sum += $1 } END { print sum }' 
