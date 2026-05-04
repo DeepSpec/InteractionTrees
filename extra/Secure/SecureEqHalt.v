@@ -7,15 +7,10 @@ From ITree Require Import
 
 From ITree.Extra Require Export Secure.Labels.
 
-From Paco Require Import paco.
-
 Import Monads.
 Import MonadNotation.
 Local Open Scope monad_scope.
 
-Ltac pmonauto_itree :=
-  let IN := fresh "IN" in
-  try (repeat intro; destruct IN; eauto with paco itree; fail).
 
 (* will need more propositional constraints on Preorders *)
 
@@ -26,57 +21,54 @@ Section SecureUntimed.
   Context (RR : R1 -> R2 -> Prop).
 
   Coercion is_true : bool >-> Sortclass.
-  Inductive secure_eqitF (b1 b2 : bool) (l : L) vclo (sim : itree E R1 -> itree E R2 -> Prop) : itree' E R1 -> itree' E R2 -> Prop :=
+  Inductive secure_eqitF (b1 b2 : bool) (l : L) (sim : itree E R1 -> itree E R2 -> Prop) : itree' E R1 -> itree' E R2 -> Prop :=
 
     (* eqitF constructors *)
-    | secEqRet r1 r2 : RR r1 r2 -> secure_eqitF b1 b2 l vclo sim (RetF r1) (RetF r2)
-    | secEqTau t1 t2 : sim t1 t2 -> secure_eqitF b1 b2 l vclo sim (TauF t1) (TauF t2)
-    | secEqTauL t1 ot2 (CHECK : b1) : secure_eqitF b1 b2 l vclo sim (observe t1) ot2 -> secure_eqitF b1 b2 l vclo sim (TauF t1) ot2
-    | secEqTauR ot1 t2 (CHECK : b2) : secure_eqitF b1 b2 l vclo sim ot1 (observe t2) -> secure_eqitF b1 b2 l vclo sim ot1 (TauF t2)
+    | secEqRet r1 r2 : RR r1 r2 -> secure_eqitF b1 b2 l sim (RetF r1) (RetF r2)
+    | secEqTau t1 t2 : sim t1 t2 -> secure_eqitF b1 b2 l sim (TauF t1) (TauF t2)
+    | secEqTauL t1 ot2 (CHECK : b1) : secure_eqitF b1 b2 l sim (observe t1) ot2 -> secure_eqitF b1 b2 l sim (TauF t1) ot2
+    | secEqTauR ot1 t2 (CHECK : b2) : secure_eqitF b1 b2 l sim ot1 (observe t2) -> secure_eqitF b1 b2 l sim ot1 (TauF t2)
     (* info_flow protecting coinductive constructors *)
     | EqVisPriv {A} (e : E A) k1 k2 (SECCHECK : leq (priv A e) l) :
-        ((forall a, vclo sim (k1 a) (k2 a) : Prop)) -> secure_eqitF b1 b2 l vclo sim (VisF e k1) (VisF e k2)
+        ((forall a, sim (k1 a) (k2 a) : Prop)) -> secure_eqitF b1 b2 l sim (VisF e k1) (VisF e k2)
     | EqVisUnPrivTauLCo {A} (e : E A) k1 t2 (SECCHECK : ~ leq (priv A e) l) (SIZECHECK : nonempty A) :
-        (forall a, vclo sim (k1 a) t2) -> secure_eqitF b1 b2 l vclo sim (VisF e k1) (TauF t2)
+        (forall a, sim (k1 a) t2) -> secure_eqitF b1 b2 l sim (VisF e k1) (TauF t2)
     | EqVisUnPrivTauRCo {A} (e : E A) t1 k2 (SECCHECK : ~ leq (priv A e) l) (SIZECHECK : nonempty A) :
-        (forall a, vclo sim t1 (k2 a)) -> secure_eqitF b1 b2 l vclo sim (TauF t1) (VisF e k2)
+        (forall a, sim t1 (k2 a)) -> secure_eqitF b1 b2 l sim (TauF t1) (VisF e k2)
     | EqVisUnPrivVisCo {A B} (e1 : E A) (e2 : E B) k1 k2 (SECCHECK1 : ~ leq (priv A e1) l) (SECCHECK2 : ~ leq (priv B e2) l)
         (SIZECHECK1 : nonempty A ) (SIZECHECK2 : nonempty B) :
-        (forall a b, vclo sim (k1 a) (k2 b)) -> secure_eqitF b1 b2 l vclo sim (VisF e1 k1) (VisF e2 k2)
+        (forall a b, sim (k1 a) (k2 b)) -> secure_eqitF b1 b2 l sim (VisF e1 k1) (VisF e2 k2)
     (* info_flow protecting inductive constructors *)
     | EqVisUnPrivLInd {A} (e : E A) k1 t2 (CHECK : b1) (SECCHECK : ~ leq (priv A e) l) (SIZECHECK : nonempty A) :
-        (forall a, secure_eqitF b1 b2 l vclo sim (observe (k1 a)) (observe t2) ) ->
-        secure_eqitF b1 b2 l vclo sim (VisF e k1) (observe t2)
+        (forall a, secure_eqitF b1 b2 l sim (observe (k1 a)) (observe t2) ) ->
+        secure_eqitF b1 b2 l sim (VisF e k1) (observe t2)
     | EqVisUnPrivRInd {A} (e : E A) t1 k2 (CHECK : b2) (SECCHECK : ~ leq (priv A e) l) (SIZECHECK : nonempty A) :
-        (forall a, secure_eqitF b1 b2 l vclo sim (observe t1) (observe (k2 a) )) ->
-        secure_eqitF b1 b2 l vclo sim (observe t1) (VisF e k2)
+        (forall a, secure_eqitF b1 b2 l sim (observe t1) (observe (k2 a) )) ->
+        secure_eqitF b1 b2 l sim (observe t1) (VisF e k2)
     (* info_flow protecting constructors for halting events, should capture the notion that a secret halt means
        that either it halted or it is performing some secret or silent computation and you can't tell which *)
     | EqVisUnprivHaltLTauR {A} (e : E A) k1 t2 (SECCHECK : ~ leq (priv A e) l ) (SIZECHECK : empty A) :
-        sim (Vis e k1) t2 -> secure_eqitF b1 b2 l vclo sim (VisF e k1) (TauF t2)
+        sim (Vis e k1) t2 -> secure_eqitF b1 b2 l sim (VisF e k1) (TauF t2)
     | EqVisUnprivHaltRTauL {A} (e : E A) t1 k2 (SECCHECK : ~ leq (priv A e) l ) (SIZECHECK : empty A) :
-        sim t1 (Vis e k2) -> secure_eqitF b1 b2  l vclo sim (TauF t1) (VisF e k2)
+        sim t1 (Vis e k2) -> secure_eqitF b1 b2  l sim (TauF t1) (VisF e k2)
     | EqVisUnprivHaltLVisR {A B} (e1 : E A) (e2 : E B) k1 k2 (SECCHECK1 : ~ leq (priv A e1) l) (SECCHECK2 : ~ leq (priv B e2) l)
             (SIZECHECK : empty A) :
-      (forall b, vclo sim (Vis e1 k1) (k2 b) ) -> secure_eqitF b1 b2 l vclo sim (VisF e1 k1) (VisF e2 k2)
+      (forall b, sim (Vis e1 k1) (k2 b) ) -> secure_eqitF b1 b2 l sim (VisF e1 k1) (VisF e2 k2)
     | EqVisUnprivHaltRVisL {A B} (e1 : E A) (e2 : E B) k1 k2 (SECCHECK1 : ~ leq (priv A e1) l) (SECCHECK2 : ~ leq (priv B e2) l)
             (SIZECHECK : empty B) :
-        (forall a, vclo sim (k1 a) (Vis e2 k2)) -> secure_eqitF b1 b2 l vclo sim (VisF e1 k1) (VisF e2 k2)
+        (forall a, sim (k1 a) (Vis e2 k2)) -> secure_eqitF b1 b2 l sim (VisF e1 k1) (VisF e2 k2)
   .
 
   Hint Constructors secure_eqitF : itree.
 
-  Definition secure_eqit_ (b1 b2 : bool) (l : L) vclo (sim : itree E R1 -> itree E R2 -> Prop) : itree E R1 -> itree E R2 -> Prop :=
-    fun t1 t2 => secure_eqitF b1 b2 l vclo sim (observe t1) (observe t2).
+  Definition secure_eqit_ (b1 b2 : bool) (l : L) (sim : itree E R1 -> itree E R2 -> Prop) : itree E R1 -> itree E R2 -> Prop :=
+    fun t1 t2 => secure_eqitF b1 b2 l sim (observe t1) (observe t2).
 
   Hint Unfold secure_eqit_ : itree.
 
-  Lemma secure_eqitF_mono b1 b2 l x0 x1 vclo vclo' sim sim'
-        (IN: secure_eqitF b1 b2 l vclo sim x0 x1)
-        (MON: monotone2 vclo)
-        (LEc: vclo <3= vclo')
-        (LE: sim <2= sim'):
-    secure_eqitF b1 b2 l vclo' sim' x0 x1.
+  Lemma secure_eqitF_mono b1 b2 l sim :
+  Proper (leq ==> leq) 
+    (secure_eqitF b1 b2 l sim).
   Proof.
     intros. induction IN; eauto with itree.
   Qed.
@@ -114,7 +106,7 @@ End SecureUntimed.
 Definition NatPreorder : Preorder :=
   {|
   L := nat;
-  leq := fun n m => n <= m
+  leq := fun n m => Nat.leq n m
   |}.
 
 Ltac unpriv_co := try apply EqVisUnPrivVisCo;
