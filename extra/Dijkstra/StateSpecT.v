@@ -170,8 +170,7 @@ Section LoopInvarSpecific.
     intros. unfold MonadIter_stateT0.
     apply iter_inl_spin. (*seems to require some coinduciton*)
     generalize dependent a. generalize dependent s.
-    (* RTODO improve with tactics *)
-    unfold not_wf_from at -1. coinduction c CIH.  
+    coinduction c CIH.  
     intros. red in H; sinv H; try apply not_wf_F_mono'. 
     apply not_wf with (a' := a'); eauto.
     - red in Hrel. destruct a' as [s' a']. simpl. red. simpl. rewrite Hrel.

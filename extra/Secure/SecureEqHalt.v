@@ -1,3 +1,7 @@
+From Stdlib Require Import PeanoNat. 
+
+From Coinduction Require all. (* don't import; library's leq clashes with Preorder leq *)
+
 From ITree Require Import
      Basics.Utils
      Axioms
@@ -6,6 +10,7 @@ From ITree Require Import
 .
 
 From ITree.Extra Require Export Secure.Labels.
+
 
 Import Monads.
 Import MonadNotation.
@@ -66,26 +71,18 @@ Section SecureUntimed.
 
   Hint Unfold secure_eqit_ : itree.
 
-  Lemma secure_eqitF_mono b1 b2 l sim :
-  Proper (leq ==> leq) 
-    (secure_eqitF b1 b2 l sim).
+
+  Lemma secure_eqitF_mono b1 b2 l :
+  Proper (Coinduction.lattice.leq ==> Coinduction.lattice.leq) 
+    (secure_eqit_ b1 b2 l).
   Proof.
-    intros. induction IN; eauto with itree.
+    intros!. red; red in H0. 
+    induction H0; try solve [constructor; intros; eauto with itree; now apply H].
   Qed.
 
-  Lemma secure_eqit_mono b1 b2 l vclo (MON: monotone2 vclo) : monotone2 (secure_eqit_ b1 b2 l vclo).
-  Proof.
-    do 2 red. intros; eapply secure_eqitF_mono; eauto.
-  Qed.
+  Definition secure_eqit_mon b1 b2 l := Build_mon (secure_eqitF_mono b1 b2 l).
 
-  Hint Resolve secure_eqit_mono : paco.
-
-  Definition eqit_secure b1 b2 l := paco2 (secure_eqit_ b1 b2 l id) bot2.
-
-  (* want and eqitC_secure which could help prove some interesting stuff
-
-   *)
-
+  Definition eqit_secure b1 b2 l := gfp (secure_eqit_mon b1 b2 l).
 
   (*
     Note that this is not reflexive (think it is symmetric and transitive)
@@ -99,14 +96,12 @@ Section SecureUntimed.
 
 End SecureUntimed.
 
-#[global] Hint Resolve secure_eqit_mono : paco.
-
 #[global] Hint Constructors secure_eqitF : itree.
 
 Definition NatPreorder : Preorder :=
   {|
   L := nat;
-  leq := fun n m => Nat.leq n m
+  leq := fun n m => Nat.le n m
   |}.
 
 Ltac unpriv_co := try apply EqVisUnPrivVisCo;
@@ -132,6 +127,15 @@ Section eqit_secureC.
   (* might not be the order I eventually want but whatever*)
   Context {E: Type -> Type} {R1 R2 : Type} (RR : R1 -> R2 -> Prop).
   Context (Label : Preorder) (priv : forall A, E A -> L) (l : L).
+
+Lemma eqit_secure_trans t1 t2 t1' t2' RR1 RR2
+      (EQVl: eqit_secure Label priv RR1 b1 b1' l t1 t1')
+      (EQVr: eqit_secure Label priv RR2 b2 b2' l t2 t2')
+      (REL: r t1' t2')
+      (LERR1: forall x x' y, RR1 x x' -> RR x' y -> RR x y)
+      (LERR2: forall x y y', RR2 y y' -> RR x y' -> RR x y) :
+      eqit_secure Label priv RR b1 b2' l t1 t2.
+
 
 
   Variant eqit_secure_trans_clo (b1 b2 b1' b2' : bool) (r : itree E R1 -> itree E R2 -> Prop) :

@@ -21,6 +21,8 @@ Import Monads.
 Import MonadNotation.
 Local Open Scope monad_scope.
 
+#[local] Tactic Notation "step" := ITree.Basics.Utils.step. 
+
 (* Contains the proof of peel_lemma which allows us
    to decompose a trace of bind t f into a head that refines t and a tail
    that refines f *)
@@ -553,17 +555,13 @@ Lemma proper_peel_cont_eutt_l : forall (E : Type -> Type) (R S : Type)
     (b ≈ b') -> (peel_cont b t s ≈ peel_cont b' t s).
 Proof.
   intros E R S. unfold peel_cont. intros b b' t _.
-  revert b b' t. coinduction c CIH. intros. step in H. 
+  revert b b' t. icoinduction c CIH. intros. step in H. 
   destruct (observe t) eqn : Heqt.
   (* todo: this *)
-  fail. 
-  - destruct (observe b') eqn : Hb; destruct (observe b) eqn : Hb'; inversion H; cbn;
-      try (constructor; auto; fail);
-      try (constructor; auto; eapply eqitF_mon; eauto; fail);
-      try (destruct e; cbn);
-      try (constructor; auto; eapply eqitF_mon; eauto; fail).
-    + taul. to_mon. now do 2 step. 
-    + subst. ddestruction. subst. cbn. constructor. intros. idtac. inv H.
+  - destruct (observe b') eqn : Hb; destruct (observe b) eqn : Hb'; inv H; cbn;
+      try solve [to_mon; constructor; eauto; now do 2 step]. 
+    + taus. 
+      + subst. ddestruction. subst. cbn. constructor. intros. idtac. inv H.
       ddestruction. subst. to_mon. now do 2 step.
     + ddestruction. subst. ddestruction. subst. cbn. constructor; auto.
       now do 2 ITree.Basics.Utils.step.
