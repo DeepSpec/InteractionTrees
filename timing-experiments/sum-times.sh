@@ -18,4 +18,5 @@ if [[ "$#" -ne "$NUM_ARGS" ]]; then
     exit 1
 fi
 
-grep -oe ".\.[0-9]* secs" "$1" | sort -n -k2 -r 
+echo -n "$(basename $1): " 
+grep -Hoe ".\.[0-9]* secs" "$1" | awk '{ split($1,a,":"); sum += a[2] } END { print sum } ' 

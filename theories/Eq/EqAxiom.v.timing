@@ -1,0 +1,7 @@
+Chars 263 - 328 [From~ITree~Require~Import~Core...] 0.039 secs (0.031u,0.007s)
+Chars 492 - 604 [Axiom~~~(bisimulation_is_eq~:~...] 0. secs (0.u,0.s)
+Chars 606 - 666 [Lemma~itree_eta_~{E}~{R}~(t~:~...] 0. secs (0.u,0.s)
+Chars 667 - 673 [Proof.] 0. secs (0.u,0.s)
+Chars 676 - 701 [apply~bisimulation_is_eq.] 0. secs (0.u,0.s)
+Chars 702 - 718 [apply~itree_eta.] 0. secs (0.u,0.s)
+Chars 719 - 723 [Qed.] 0. secs (0.u,0.s)

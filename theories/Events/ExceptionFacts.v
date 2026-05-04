@@ -58,7 +58,8 @@ Proof.
   - repeat rewrite bind_ret_l. eret. 
   - repeat rewrite bind_ret_l. etau.  
   - destruct e.
-    + destruct e. cbn. rewrite 2 bind_map. rewrite 2 bind_ret_r. 
+    + destruct e. bcbn. 
+     rewrite 2 bind_map. rewrite 2 bind_ret_r. 
       step. apply Hk. 
     + cbn. evis. do 2 setoid_rewrite bind_ret_l.  
       step. etau.
