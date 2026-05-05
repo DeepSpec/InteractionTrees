@@ -7,6 +7,9 @@
 (** The main additions in this file are compatibility with [eutt], morphisms
   wrt. [REv] and [RAns], and an up-to principle. *)
 
+(* begin hide *)
+From Coinduction Require Import all. 
+
 From Stdlib Require Import
   Program
   Setoid
@@ -20,6 +23,8 @@ From ITree Require Import
   Basics.HeterogeneousRelations
   Eq.Rutt
   Props.Leaf.
+
+(* end hide *)
 
 (* Extra construction lemmas *)
 

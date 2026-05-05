@@ -1,29 +1,30 @@
 (* Rtodo: automatic to_mon for rewriting *)
 
 (** * Facts about [aloop] and [loop] *)
-
 (* begin hide *)
+
+From Coinduction Require Import all. 
+
 From Stdlib Require Import
      Classes.Morphisms
      Setoids.Setoid
      Relations.Relations.
 
 From ITree Require Import
-     Basics.Utils 
-     Basics.Basics
-     Basics.CategoryOps
-     Basics.CategoryTheory
-     Basics.CategoryKleisli
-     Basics.CategoryKleisliFacts
-     Basics.Function
-     Basics.HeterogeneousRelations
-     Core.ITreeDefinition
-     Core.ITreeMonad
-     Core.KTree
-     Eq.Shallow
-     Eq.Eqit
-     .
-
+      Basics.Utils 
+      Basics.Basics
+      Basics.CategoryOps
+      Basics.CategoryTheory
+      Basics.CategoryKleisli
+      Basics.CategoryKleisliFacts
+      Basics.Function
+      Basics.HeterogeneousRelations
+      Core.ITreeDefinition
+      Core.ITreeMonad
+      Core.KTree
+      Eq.Shallow
+      Eq.Eqit
+      .
 Import CatNotations.
 Local Open Scope itree_scope.
 Local Open Scope cat_scope.
@@ -74,6 +75,7 @@ Proof.
   - rewrite bind_tau. taus.
     eapply CIH. 
   - rewrite bind_ret_l, tau_euttge.
+    
   (* question: why doesn't accumulate acc work? *)
     do 2 step. revert b. coinduction. intros. 
     rewrite !unfold_iter.

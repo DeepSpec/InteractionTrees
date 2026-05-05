@@ -1,6 +1,9 @@
 (** * Theorems about State effects *)
 
 (* begin hide *)
+
+From Coinduction Require Import all. 
+
 From Stdlib Require Import Program.Tactics Morphisms.
 
 

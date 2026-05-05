@@ -1,3 +1,5 @@
+From Coinduction Require Import all.
+
 From Stdlib Require Import
      Morphisms
 .
@@ -10,7 +12,6 @@ From ITree Require Import
      Props.Infinite
 .
 
-From Coinduction Require Import all.
 
 Import Monads.
 Import MonadNotation.

@@ -1,3 +1,5 @@
+From Coinduction Require Import all. 
+
 From Stdlib Require Import
      Morphisms
 .
@@ -21,7 +23,7 @@ Import Monads.
 Import MonadNotation.
 Local Open Scope monad_scope.
 
-#[local] Tactic Notation "step" := ITree.Basics.Utils.step. 
+#[local] Tactic Notation "simple_step" := ITree.Basics.Utils.step. 
 
 (* Contains the proof of peel_lemma which allows us
    to decompose a trace of bind t f into a head that refines t and a tail
@@ -127,7 +129,7 @@ Proof.
   - dependent induction Hrutt.
     + exfalso. symmetry in Heq. apply simpobs in Heq. apply simpobs in x.
       rewrite Heq in x. rewrite bind_tau in x. sinv x.
-    + rewrite <- x0. cbn. constructor. eapply CIH.
+    + simpobs. cbn. constructor. eapply CIH.
        symmetry in Heq. apply simpobs in x0.
       apply simpobs in x. apply simpobs in Heq.
       apply eq_sub_eutt in x0. apply eq_sub_eutt in Heq.
@@ -136,7 +138,7 @@ Proof.
     + exfalso. symmetry in Heq. apply simpobs in Heq.
       apply simpobs in x.
       rewrite Heq in x. rewrite bind_tau in x. sinv x.
-    + rewrite <- x. cbn. constructor. eapply CIH.
+    + simpobs. cbn. constructor. eapply CIH.
       clear IHHrutt. symmetry in Heq. apply simpobs in Heq.
       apply eq_sub_eutt in Heq. rewrite tau_eutt in Heq.
       rewrite <- Heq. step. auto.
@@ -180,7 +182,7 @@ Proof.
     + exfalso. symmetry in Heq. apply simpobs in Heq. apply simpobs in x.
       rewrite Heq in x. rewrite bind_vis in x.
       sinv x; inv CHECK.
-    + rewrite <- x0.
+    + simpobs.
       symmetry in Heq. apply simpobs in Heq. apply simpobs in x.
       rewrite Heq in x. rewrite bind_vis in x. step in x; inversion x. 
       ddestruction. inversion H; ddestruction.
@@ -196,7 +198,7 @@ Proof.
         specialize (REL0 a). 
         rewrite REL0. apply H0.
       * cbn. constructor; eauto. intros. contradiction.
-    + rewrite <- x. cbn. constructor. eapply IHHrutt; eauto.
+    + simpobs. cbn. constructor. eapply IHHrutt; eauto.
     + exfalso. symmetry in Heq. apply simpobs in x. apply simpobs in Heq.
       rewrite Heq in x. rewrite bind_vis in x.
       sinv x.
@@ -219,19 +221,17 @@ Proof.
       try (destruct e); try (destruct e0); cbn;
       try (constructor; auto; fail).
   - step in H. dependent induction H.
-    + rewrite <- x0. rewrite <- x. cbn. constructor.
-      rewrite x0. eapply CIH. reflexivity.
-    + rewrite <- x0. rewrite <- x. cbn. constructor. 
-       eapply CIH. auto.
-    + rewrite <- x0. rewrite <- x. destruct e; cbn.
-      * cbn. constructor. rewrite x. rewrite x0.
-        eapply CIH. step. rewrite <- x. rewrite <- x0.
-        constructor. auto.
-      * cbn. constructor. rewrite x0. rewrite x.
-        eapply CIH. step. rewrite <- x0. rewrite <- x.
-        constructor. auto.
+    + simpobs. reflexivity. 
+    + simpobs. cbn. etau. 
+    + simpobs. destruct e; cbn.
+      * constructor. rewrite x, x0.
+        eapply CIH. step. simpobs.
+        evis. 
+      * constructor. rewrite x, x0.
+        eapply CIH. step. simpobs.
+        evis. 
     + destruct (observe b); destruct (observe b'); dependent destruction x.
-      *  cbn. constructor. remember (@go (EvAns E) _ (RetF r)) as t1.
+      * cbn. constructor. remember (@go (EvAns E) _ (RetF r)) as t1.
         assert (RetF r = observe t1).
         { rewrite Heqt1. auto. }
         rewrite H0. eapply CIH. rewrite Heqt1. step. auto.
@@ -271,13 +271,13 @@ Proof.
            { subst. auto. }
            rewrite H0. eapply CIH. subst. step. auto.
   - step in H. dependent induction H.
-    + rewrite <- x0. rewrite <- x. reflexivity.
-    + rewrite <- x. rewrite <- x0. cbn. constructor.
+    + simpobs. reflexivity.
+    + simpobs. cbn. constructor.
       remember (go (VisF e k) ) as t0.
       assert (VisF e k = observe t0).
       { subst. auto. }
       rewrite H. eapply CIH.  auto.
-    + rewrite <- x0. rewrite <- x. destruct e; cbn.
+    + simpobs. destruct e; cbn.
       * unfold observe. cbn. unfold peel_vis.
         destruct (classicT (A = X) ).
         ++ unfold eq_rect_r, eq_rect. remember (eq_sym e) as He.
@@ -285,7 +285,7 @@ Proof.
            eapply CIH.   auto with itree.
         ++ reflexivity.
       * constructor. contradiction.
-    + rewrite <- x. destruct (observe b') eqn : Heq.
+    + simpobs. destruct (observe b') eqn : Heq.
       * rewrite <- Heq. cbn. constructor; auto. eapply IHeqitF; eauto. rewrite Heq. auto.
       * cbn. constructor.
         remember (go (VisF e k) ) as t2.
@@ -297,7 +297,7 @@ Proof.
         step; auto.
       * cbn. constructor; eauto. rewrite <- Heq. eapply IHeqitF; eauto.
         rewrite Heq. auto.
-    + rewrite <- x. destruct (observe b) eqn : Heq.
+    + simpobs. destruct (observe b) eqn : Heq.
       * rewrite <- Heq. cbn. constructor; auto. eapply IHeqitF; eauto. rewrite Heq. auto.
       * cbn. constructor.
         remember (go (VisF e k) ) as t1.
@@ -320,26 +320,25 @@ Proof.
   intros E R S. coinduction c CIH. intros.
   unfold peel. destruct (observe b) eqn : Heqb.
   - step in H. dependent induction H.
-    + rewrite <- x. rewrite <- x0. reflexivity.
-    + rewrite <- x. rewrite <- x0. cbn. constructor. rewrite <- Heqb.
+    + simpobs. reflexivity.
+    + simpobs. cbn. constructor. rewrite <- Heqb.
       eapply CIH.  auto.
-    + rewrite <- x0. rewrite <- x. cbn. reflexivity.
-    + rewrite <- x. cbn. constructor; auto. eapply IHeqitF; eauto.
-    + rewrite <- x. cbn. constructor; auto. eapply IHeqitF; eauto.
+    + simpobs. cbn. reflexivity.
+    + simpobs. cbn. constructor; auto. eapply IHeqitF; eauto.
+    + simpobs. cbn. constructor; auto. eapply IHeqitF; eauto.
   - step in H. dependent induction H.
-    + rewrite <- x. rewrite <- x0. cbn. constructor. auto.
-    + rewrite <- x0. rewrite <- x. cbn. constructor.
-       eapply CIH; auto.
-    + rewrite <- x0. rewrite <- x. cbn. constructor.
-      rewrite x0. rewrite x. eapply CIH.
-      step. rewrite <- x0. rewrite <- x.
+    + simpobs. cbn. constructor. auto.
+    + simpobs. cbn. etau. 
+    + simpobs. cbn. constructor.
+      rewrite x, x0.   eapply CIH.
+      step. simpobs. 
       constructor. auto.
-    + rewrite <- x. destruct (observe t') eqn : Heqt'.
+    + simpobs. destruct (observe t') eqn : Heqt'.
       * cbn.  constructor; auto. clear IHeqitF.
         dependent induction H.
-        ++ rewrite <- x. destruct (observe t0); cbn; try (constructor; auto; fail).
+        ++ simpobs. destruct (observe t0); cbn; try (constructor; auto; fail).
            destruct e; cbn; constructor; auto.
-        ++ rewrite <- x. cbn. destruct (observe t2) eqn : Heqt2; cbn.
+        ++ simpobs. cbn. destruct (observe t2) eqn : Heqt2; cbn.
            ** constructor; eauto. rewrite <- Heqt2.  eapply IHeqitF; eauto.
            ** constructor; auto. eapply IHeqitF; eauto.
            ** destruct e; cbn;
@@ -350,11 +349,11 @@ Proof.
         step. auto.
       * cbn. constructor. rewrite <- Heqt'. eapply CIH. 
         step. rewrite Heqt'. auto.
-    + rewrite <- x. destruct (observe t).
+    + simpobs. destruct (observe t).
       * cbn. constructor; auto. clear IHeqitF.
         dependent induction H.
-        ++ rewrite <- x. destruct (observe t0); try (destruct e); cbn; constructor; auto.
-        ++ rewrite <- x. destruct (observe t1) eqn : Heqt1; cbn.
+        ++ simpobs. destruct (observe t0); try (destruct e); cbn; constructor; auto.
+        ++ simpobs. destruct (observe t1) eqn : Heqt1; cbn.
            ** constructor; auto. rewrite <- Heqt1. eapply IHeqitF; eauto.
            ** constructor; auto. eapply IHeqitF; eauto.
            ** destruct e; cbn; try (constructor; auto; rewrite <- Heqt1; eapply IHeqitF; eauto).
@@ -365,10 +364,10 @@ Proof.
         { subst. auto. }
         rewrite H0. eapply CIH. subst. step. auto.
   - step in H. dependent induction H.
-    + rewrite <- x. rewrite <- x0. destruct e; cbn; constructor; auto.
-    + rewrite <- x. rewrite <- x0. destruct e; cbn; constructor; rewrite <- Heqb;
+    + simpobs. destruct e; cbn; constructor; auto.
+    + simpobs. destruct e; cbn; constructor; rewrite <- Heqb;
         eapply CIH;  eauto.
-    + rewrite <- x. rewrite <- x0. destruct e0; cbn.
+    + simpobs. destruct e0; cbn.
       * unfold observe. cbn. unfold peel_vis.
         destruct (classicT (A = u) ).
         ++ unfold eq_rect_r, eq_rect. remember (eq_sym e0) as He.
@@ -376,53 +375,53 @@ Proof.
            eapply CIH.   auto with itree.
         ++ cbn. reflexivity. 
       * constructor. contradiction.
-    + rewrite <- x. destruct (observe t'); destruct e; cbn.
+    + simpobs. destruct (observe t'); destruct e; cbn.
       * constructor; auto. clear IHeqitF. dependent induction H.
-        ++ rewrite <- x. cbn. constructor; auto.
-        ++ rewrite <- x. cbn. constructor; eauto.
+        ++ simpobs. cbn. constructor; auto.
+        ++ simpobs. cbn. constructor; eauto.
       * constructor; auto. clear IHeqitF. dependent induction H.
-        ++ rewrite <- x. cbn. constructor; auto.
-        ++ rewrite <- x. cbn. constructor; eauto.
+        ++ simpobs. cbn. constructor; auto.
+        ++ simpobs. cbn. constructor; eauto.
       * constructor. rewrite <- Heqb. eapply CIH. 
         setoid_rewrite <- tau_eutt at 2. step. auto.
       * rewrite <- Heqb. constructor. eapply CIH. 
         setoid_rewrite <- tau_eutt at 2. step. auto.
       * constructor; auto. clear IHeqitF.
         dependent induction H.
-        ++ rewrite <- x. unfold observe. cbn.
+        ++ simpobs. unfold observe. cbn.
            unfold peel_vis. destruct (classicT (A = X0) ).
            ** unfold eq_rect_r, eq_rect.
               remember (eq_sym e) as He. dependent destruction He.
               cbn. constructor. intros. idtac.  eapply CIH; eauto with itree.
            ** cbn. reflexivity. 
-        ++ rewrite <- x. cbn. constructor; auto; eapply IHeqitF; eauto.
+        ++ simpobs. cbn. constructor; auto; eapply IHeqitF; eauto.
       * constructor; auto. clear IHeqitF.
         dependent induction H.
-        ++ rewrite <- x. cbn. constructor. contradiction.
-        ++ rewrite <- x. cbn. constructor; auto; eapply IHeqitF; eauto.
-    + rewrite <- x. cbn. destruct (observe t) eqn : Heqt; destruct e; cbn.
+        ++ simpobs. cbn. constructor. contradiction.
+        ++ simpobs. cbn. constructor; auto; eapply IHeqitF; eauto.
+    + simpobs. cbn. destruct (observe t) eqn : Heqt; destruct e; cbn.
       * constructor; auto. clear IHeqitF. dependent induction H.
-        ++ rewrite <- x. cbn. constructor; auto.
-        ++ rewrite <- x. cbn. constructor; eauto.
+        ++ simpobs. cbn. constructor; auto.
+        ++ simpobs. cbn. constructor; eauto.
       * constructor; auto. clear IHeqitF. dependent induction H.
-        ++ rewrite <- x. cbn. constructor; auto.
-        ++ rewrite <- x. cbn. constructor; eauto.
+        ++ simpobs. cbn. constructor; auto.
+        ++ simpobs. cbn. constructor; eauto.
       * constructor. idtac. rewrite <- Heqb. eapply CIH; eauto. rewrite <- tau_eutt.
         step. auto.
       * constructor. rewrite <- Heqb. idtac. eapply CIH; eauto. rewrite <- tau_eutt.
         step. auto.
       * constructor; auto. clear IHeqitF. dependent induction H.
-        ++ rewrite <- x. unfold observe. cbn.
+        ++ simpobs. unfold observe. cbn.
            unfold peel_vis.
            destruct (classicT (A = X0) ).
            ** unfold eq_rect_r, eq_rect.
               remember (eq_sym e) as He. dependent destruction He.
               cbn. constructor. intros. idtac.  eapply CIH; apply REL.
            ** cbn. reflexivity. 
-        ++ rewrite <- x. cbn. constructor; eauto.
+        ++ simpobs. cbn. constructor; eauto.
       * constructor; auto. clear IHeqitF. dependent induction H.
-        ++ rewrite <- x. cbn. constructor. contradiction.
-        ++ rewrite <- x. cbn. constructor; eauto.
+        ++ simpobs. cbn. constructor. contradiction.
+        ++ simpobs. cbn. constructor; eauto.
 Qed.
 
 #[global] Instance proper_eutt_peel {E R S} : Proper (eutt eq ==> eutt eq ==> eutt eq) (@peel E R S).
@@ -558,26 +557,21 @@ Proof.
   revert b b' t. icoinduction c CIH. intros. step in H. 
   destruct (observe t) eqn : Heqt.
   (* todo: this *)
-  - destruct (observe b') eqn : Hb; destruct (observe b) eqn : Hb'; inv H; cbn;
+  - destruct (observe b') eqn : Hb; destruct (observe b) eqn : Hb'; inversion H; subst; cbn;
       try solve [to_mon; constructor; eauto; now do 2 step]. 
-    + taus. 
-      + subst. ddestruction. subst. cbn. constructor. intros. idtac. inv H.
-      ddestruction. subst. to_mon. now do 2 step.
-    + ddestruction. subst. ddestruction. subst. cbn. constructor; auto.
-      now do 2 ITree.Basics.Utils.step.
-    +   
+    + taus. now do 2 Utils.step.  
+      + ddestruction. constructor. intros. inv H. 
+      ddestruction. do 2 Utils.step. apply REL0. 
   (*looks like I didn't actually need to induct here ... *)
-  - dependent induction H0; try clear IHeqitF.
-    + rewrite <- x0. rewrite <- x. red. cbn. constructor. idtac.
-      rewrite x. eapply CIH; eauto. step. rewrite <- x. constructor; auto.
-    + rewrite <- x0. rewrite <- x. red. cbn. constructor. idtac.
-      eapply CIH.  auto.
-    + rewrite <- x0. rewrite <- x. red. destruct e; cbn; constructor; idtac.
-      * rewrite x. rewrite x0. eapply CIH; eauto. step. red.
-        rewrite <- x0. rewrite <- x. constructor. auto.
-      * rewrite x. rewrite x0. eapply CIH; eauto. step. red.
-        rewrite <- x0. rewrite <- x. constructor. auto.
-    + rewrite <- x. red. cbn.
+  - dependent induction H; try clear IHeqitF.
+    + simpobs. cbn. etau.    
+    + simpobs. cbn. etau. 
+    + simpobs. destruct e; cbn; constructor. 
+      * simpobs. rewrite x, x0. eapply CIH; eauto. step.
+        simpobs. constructor. auto.
+      * rewrite x, x0. eapply CIH; eauto. step. 
+        simpobs. constructor. auto.
+    + simpobs.  cbn.
       destruct (observe b') eqn : Heqb'; cbn.
       * constructor. idtac. rewrite <- Heqb'. eapply CIH.
         symmetry in Heqb'. apply simpobs in Heqb'. rewrite Heqb'.
@@ -586,38 +580,36 @@ Proof.
         step. auto.
       * constructor. idtac. rewrite <- Heqb'. eapply CIH.
         symmetry in Heqb'. apply simpobs in Heqb'. rewrite Heqb'. step. auto.
-    + rewrite <- x. red. cbn. destruct (observe b) eqn : Heqb; cbn.
+    + simpobs. cbn. destruct (observe b) eqn : Heqb; cbn.
       * constructor; auto. idtac. rewrite <- Heqb. eapply CIH.
         step. rewrite Heqb. auto.
       * constructor. eapply CIH.  rewrite <- tau_eutt at 1. step. auto.
       * constructor. idtac. rewrite <- Heqb. eapply CIH. step.
-        red. rewrite Heqb. auto.
-  - red. dependent induction H0; cbn.
-    +  rewrite <- x0. rewrite <- x. cbn. constructor. idtac. step. apply eqitF_r_refl.
-    + rewrite <- x0. rewrite <- x. cbn. constructor. idtac. rewrite <- Heqt. eapply CIH.
+        rewrite Heqb. auto.
+  - dependent induction H; cbn.
+    +  simpobs. simpobs. cbn. reflexivity. 
+    + simpobs. simpobs. cbn. constructor. idtac. rewrite <- Heqt. eapply CIH.
        auto.
-    + rewrite <- x. rewrite <- x0. destruct e; cbn; try (apply eqitF_observe_peel_cont_vis; auto).
-      apply eqitF_r_refl.
-    + rewrite <- x. cbn. constructor; eauto.
-    + rewrite <- x. cbn. constructor; eauto.
+    + simpobs. destruct e; cbn; try (apply eqitF_observe_peel_cont_vis; auto).
+      reflexivity. 
+    + simpobs. cbn. constructor; eauto.
+    + simpobs. cbn. constructor; eauto.
 Qed.
 
 Lemma peel_cont_ret_inv : forall E R S (b : itrace E R) (t : itree E S) (s : S),
     t ≈ Ret s -> (peel_cont_ (observe b) (observe t) ≈ b).
 Proof.
-  intros E R S. coinduction c CIH. intros. step in H. cbn in H0. dependent induction H0; subst.
-  - rewrite <- x. cbn. step. cbn. apply eqitF_r_refl.
-  - rewrite <- x. destruct (observe b) eqn : Hb.
-    + step. cbn. constructor; auto.
-
-      specialize (IHeqitF r CIH (Ret r0) t1 s ); auto.
-      assert (S = S). auto. apply IHeqitF in H; auto. rewrite Hb.
-      step in H.
-    + step. rewrite Hb. cbn.   constructor. idtac. eapply CIH with (s := s).
+  intros E R S. coinduction c CIH. intros. step in H. cbn in H. dependent induction H; subst.
+  - simpobs. cbn. reflexivity. 
+  - simpobs. destruct (observe b) eqn : Hb.
+    + cbn. taul. simpobs. to_mon. 
+      rewrite <- itree_eta. 
+      specialize (IHeqitF CIH (Ret r) t1 s ); auto.
+    + cbn. rewrite Hb. taus. eapply CIH with (s := s).
       step. auto.
-    + step. rewrite Hb. cbn. rewrite <- Hb. constructor; auto.
-      specialize (IHeqitF r CIH b t1 s ); auto.
-      assert (S = S). auto. apply IHeqitF in H; auto. step in H.
+    + cbn. rewrite Hb. taul. rewrite <- Hb. 
+      specialize (IHeqitF CIH b t1 s ); auto.
+      assert (S = S). auto. apply IHeqitF; auto.
 Qed.
 
 Lemma proper_peel_cont_eutt_r : forall (E : Type -> Type) (R S : Type)
@@ -625,41 +617,42 @@ Lemma proper_peel_cont_eutt_r : forall (E : Type -> Type) (R S : Type)
     (t ≈ t') -> (peel_cont b t s ≈ peel_cont b t' s).
 Proof.
   intros E R S. unfold peel_cont. intros b t t' _.
-  revert b t t'. coinduction c CIH. intros. step. step in H. dependent induction H0.
-  - rewrite <- x. rewrite <- x0. red. cbn. apply eqitF_r_refl.
-  - rewrite <- x. rewrite <- x0. red. destruct (observe b) eqn : Heqb; cbn.
-    + constructor. idtac. rewrite <- Heqb. eapply CIH.  auto.
-    + constructor. eapply CIH.   auto.
-    + constructor. idtac. rewrite <- Heqb. eapply CIH;  auto.
-  - rewrite <- x. rewrite <- x0.  destruct (observe b) eqn : Heqb; red; cbn.
-    + apply eqitF_r_refl.
-    + constructor. rewrite x. rewrite x0. eapply CIH. 
-      step. rewrite <- x. rewrite <- x0. constructor. intros.
-      idtac. auto.
+  revert b t t'. coinduction c CIH. intros. step in H. dependent induction H.
+  - simpobs. reflexivity. 
+  - simpobs. destruct (observe b) eqn : Heqb; cbn.
+    + cbn. taus. rewrite <- Heqb. eapply CIH. auto.
+    + etau. 
+    + constructor. rewrite <- Heqb. eapply CIH; auto.
+  - simpobs.  destruct (observe b) eqn : Heqb; red; cbn.
+    + reflexivity. 
+    + constructor. rewrite x, x0. eapply CIH. 
+      step. simpobs. constructor. intros.
+      auto.
     + destruct e0; cbn.
       * unfold observe. cbn. unfold peel_cont_vis.
-        destruct (classicT (A = u) ); try apply eqitF_r_refl.
+        destruct (classicT (A = u) ); try reflexivity.
         unfold eq_rect_r, eq_rect. remember (eq_sym e0) as He.
         dependent destruction He. cbn. constructor. intros. idtac.
         eapply CIH. auto with itree.
-      * apply eqitF_r_refl.
-  - rewrite <- x. destruct (observe b) eqn : Heqb; red; cbn.
+      * reflexivity. 
+  - simpobs. destruct (observe b) eqn : Heqb; red; cbn.
     + constructor; eauto. rewrite <- Heqb. eapply IHeqitF; eauto.
     + cbn. destruct (observe t') eqn : Heqt'; cbn.
-      * constructor. idtac. apply pacobot2.
-        eapply peel_cont_ret_inv with (s := r0). step. auto.
-      * constructor. idtac. eapply CIH; eauto. setoid_rewrite <- tau_eutt at 2.
+      * constructor.  Utils.step.  
+        unstep in H. eapply peel_cont_ret_inv with (b := t0) in H. step.
+        rewrite H. reflexivity. 
+      * constructor. eapply CIH; eauto. setoid_rewrite <- tau_eutt at 2.
         step. auto.
       * constructor. idtac. rewrite <- Heqt'. eapply CIH.
         step. rewrite Heqt'. auto.
     + rewrite <- Heqb. constructor; auto. eapply IHeqitF; eauto.
-  - rewrite <- x. destruct (observe b) eqn : Heqb; red; cbn.
+  - simpobs. destruct (observe b) eqn : Heqb; red; cbn.
     + constructor; auto. rewrite <- Heqb. eapply IHeqitF; eauto.
     + destruct (observe t) eqn : Heqt; cbn.
-      * constructor. idtac. apply pacobot2.
+      * constructor. idtac. Utils.step. 
         enough (t0 ≈ peel_cont_ (observe t0) (observe t2) ). auto.
         symmetry.
-        eapply peel_cont_ret_inv with (s := r0). symmetry. step. auto.
+        eapply peel_cont_ret_inv in H. symmetry. step. auto.
       * constructor. eapply CIH.  rewrite <- tau_eutt at 1. step. auto.
       * constructor. idtac. rewrite <- Heqt. eapply CIH.
         step. rewrite Heqt. auto.
@@ -898,9 +891,9 @@ Proof.
   destruct H as [s Ht0]. step in Ht0. red in Ht0. cbn in Ht0.
   clear Heqt Hrutt.
   dependent induction Ht0.
-  - rewrite <- x. cbn. step in Heqb. red in Heqb. cbn in *. inv Heqb; try inv CHECK.
+  - simpobs. cbn. step in Heqb. red in Heqb. cbn in *. inv Heqb; try inv CHECK.
     rewrite H0. auto with itree.
-  - rewrite <- x. cbn. constructor. eapply IHHt0; eauto.
+  - simpobs. cbn. constructor. eapply IHHt0; eauto.
 Qed.
 
 Lemma trace_prefix_vis_evans: forall (E : Type -> Type) (R S : Type) (r : itrace E S -> itrace E R -> Prop)
@@ -921,14 +914,14 @@ Lemma trace_prefix_vis_evans: forall (E : Type -> Type) (R S : Type) (r : itrace
 Proof.
   intros E R S r A0 ev ans k k' t0 f Hk' Ht0 CIH.
   step in Ht0. red in Ht0. cbn in *. dependent induction Ht0.
-  - rewrite <- x. unfold observe. cbn. unfold peel_vis.
+  - simpobs. unfold observe. cbn. unfold peel_vis.
     assert (A0 = A0); auto. destruct (classicT (A0 = A0)); try contradiction.
     unfold eq_rect_r, eq_rect. remember (eq_sym e) as He.
     dependent destruction He. cbn. constructor. eapply CIH. 
     assert (RAnsRef E unit A0 (evans A0 ev ans) tt ev ans); auto with itree.
     apply Hk' in H0.  assert (k1 ans ≈ k' ans); try apply REL.
     rewrite H1. eauto.
-  - rewrite <- x. cbn. constructor. eapply IHHt0; eauto.
+  - simpobs. cbn. constructor. eapply IHHt0; eauto.
 Qed.
 
 Lemma trace_prefix_vis_evempty: forall (E : Type -> Type) (R S : Type)
@@ -947,8 +940,8 @@ Proof.
   intros E R S r A0 Hempty ev k A e0 t0 k' Ht0.
   cbn. constructor.
   dependent induction Ht0.
-  - rewrite <- x. cbn. constructor.
-  - rewrite <- x. cbn. constructor. eapply IHHt0; eauto.
+  - simpobs. cbn. constructor.
+  - simpobs. cbn. constructor. eapply IHHt0; eauto.
 Qed.
 
 
@@ -965,11 +958,11 @@ Lemma trace_prefix_peel_ret_vis:  forall (E : Type -> Type) (R S : Type)
 Proof.
   intros E R S r A0 ev ans k t0 s Ht0.
   step in Ht0. red in Ht0. cbn in *. dependent induction Ht0.
-  - rewrite <- x. cbn. remember (go (VisF (evans A0 ev ans) k ) ) as t.
+  - simpobs. cbn. remember (go (VisF (evans A0 ev ans) k ) ) as t.
     enough (trace_prefixF (upaco2 trace_prefix_ r) (RetF s) (observe t) ).
     { subst. auto. }
     constructor.
-  - rewrite <- x. cbn. constructor. eapply IHHt0; eauto.
+  - simpobs. cbn. constructor. eapply IHHt0; eauto.
 Qed.
 
 Lemma trace_prefix_peel_ret_vis_empty: forall (E : Type -> Type) (R S : Type)
@@ -985,11 +978,11 @@ Lemma trace_prefix_peel_ret_vis_empty: forall (E : Type -> Type) (R S : Type)
 Proof.
   intros E R S r A0 Hempty ev k t0 s Ht0.
   step in Ht0. red in Ht0. cbn in *. dependent induction Ht0.
-  - rewrite <- x. cbn. remember (go (VisF (evempty A0 Hempty ev) k ) ) as t.
+  - simpobs. cbn. remember (go (VisF (evempty A0 Hempty ev) k ) ) as t.
     enough (trace_prefixF (upaco2 trace_prefix_ r) (RetF s) (observe t) ).
     { subst. auto. }
     constructor.
-  - rewrite <- x. cbn. constructor. eapply IHHt0; eauto.
+  - simpobs. cbn. constructor. eapply IHHt0; eauto.
 Qed.
 
 Lemma trace_prefix_peel : forall (E : Type -> Type) (S R : Type) (b : itrace E R) (t : itree E S)

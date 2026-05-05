@@ -1,6 +1,8 @@
 (** * Theorems for [ITree.Interp.Handler] *)
 (* begin hide *)
 (* RTODO: investigate very slow compilation time for this file *)
+
+From Coinduction Require Import all. 
 From Stdlib Require Import
      Setoid
      Morphisms
@@ -345,7 +347,7 @@ Proof.
     taus. 
     rewrite tau_euttge. setoid_rewrite tau_euttge.
     rewrite <- interp_mrec_bind, <- interp_bind.
-    auto with paco.
+    auto.
   - rewrite bind_trigger.
     setoid_rewrite tau_euttge.
     rewrite 2 unfold_interp_mrec; bcbn.

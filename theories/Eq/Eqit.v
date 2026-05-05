@@ -28,7 +28,7 @@ From Stdlib Require Import
      Morphisms
      Relations.
 
-From Coinduction Require Export all.
+From Coinduction Require Import all.
 
 (* important: Basics.Utils must come after Coinduction, as it 
 re-implements several tactics. *)
@@ -350,7 +350,7 @@ Tactic Notation "iunfold" "in" ident(h) := iunfold_in h.
 Tactic Notation "iunfold" "in" "*" := iunfold_all.
 
 (* RTODO possible fix here: with body vs elem *)
-Tactic Notation "step" := 
+#[global] Ltac step := 
 (match goal with 
 | |- context[elem _] => idtac 
 | |- _ => 

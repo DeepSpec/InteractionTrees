@@ -4,6 +4,9 @@
     - [any_infinite]: there exists an infinite branch. *)
 
 (* begin hide *)
+
+From Coinduction Require Import all. 
+
 From Stdlib Require Import
      Setoid
      Morphisms

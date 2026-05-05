@@ -1,6 +1,8 @@
 (** * Theorems about Failure effects *)
 
 (* begin hide *)
+From Coinduction Require Import all. 
+
 From Stdlib Require Import
      Morphisms.
 

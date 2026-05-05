@@ -1,6 +1,7 @@
 (** * Leaves of an Interaction Tree *)
-
 (* begin hide *)
+From Coinduction Require Import all. 
+
 From ITree Require Import
      Basics.Utils
      Basics.HeterogeneousRelations

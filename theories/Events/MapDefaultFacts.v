@@ -1,6 +1,8 @@
 (** * Mutable map whose lookup operation provides a default value.*)
 
 (* begin hide *)
+From Coinduction Require Import all. 
+
 Set Implicit Arguments.
 Set Contextual Implicit.
 
