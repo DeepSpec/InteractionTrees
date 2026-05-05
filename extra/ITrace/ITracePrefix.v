@@ -128,7 +128,7 @@ Lemma trace_prefix_proper_l : forall E R S (b1 b2 : itrace E R) (b : itrace E S)
 Proof.
   intros E R S. pcofix CIH. intros b1 b2 b Heutt Hbp.
   pfold. red. punfold Heutt. red in Heutt. punfold Hbp. red in Hbp.
-  dependent induction Heutt.
+  dependent induction Heutt generalizing b1 b2 b.
   - rewrite <- x. constructor.
   - rewrite <- x. rewrite <- x0 in Hbp. clear x0 x. pclearbot.
     destruct (observe b) eqn : Heqb.
@@ -138,7 +138,7 @@ Proof.
         punfold H. red in H. cbn in *. dependent induction H.
         ++ rewrite <- x. apply trace_prefix_ret.
         ++ rewrite <- x. constructor. eapply IHeqitF; eauto.
-      * eapply IHtrace_prefixF; auto.
+      * eapply IHtrace_prefixF; auto; eauto. (* if we directly eauto something gets unified in an undesired way *)
         apply simpobs in x. assert (m1 ≈ m2); auto.
         rewrite x in H. rewrite tau_eutt in H. auto.
     + constructor. right. eapply CIH; eauto. eapply trace_prefix_tau_inv; eauto.
