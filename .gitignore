@@ -56,3 +56,5 @@ tutorial/imp_test.mli
 rocq_mcp_cache_8675_.v
 rocq_mcp_cache_85046_.v
 .Makefile.d
+Makefile.conf
+Makefile
