@@ -1,6 +1,6 @@
 Chars 657 - 699 [From~Stdlib~Require~Import~Mor...] 0.004 secs (0.002u,0.001s)
 Chars 701 - 750 [From~ExtLib~Require~Import~Str...] 0. secs (0.u,0.s)
-Chars 752 - 860 [From~ITree~Require~Import~Basi...] 0.003 secs (0.002u,0.s)
+Chars 752 - 860 [From~ITree~Require~Import~Basi...] 0.003 secs (0.003u,0.s)
 Chars 877 - 909 [Implicit~Type~m~:~Type~->~Type.] 0. secs (0.u,0.s)
 Chars 910 - 938 [Implicit~Types~a~b~c~:~Type.] 0. secs (0.u,0.s)
 Chars 940 - 984 [Definition~Kleisli~m~a~b~:~Typ...] 0. secs (0.u,0.s)

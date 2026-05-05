@@ -17,6 +17,7 @@ Import Monads.
 Import MonadNotation.
 #[local] Open Scope monad_scope.
 
+
 Lemma try_catch_ret : forall E Err R r (kcatch : Err -> itree (exceptE Err +' E) R),
     try_catch (Ret r) kcatch ≅ Ret r.
 Proof.
@@ -45,69 +46,65 @@ Lemma try_catch_ev : forall E A Err R (ev: E A) k (kcatch : Err -> itree (except
     try_catch (Vis (inr1 ev) k ) kcatch ≅ Vis (inr1 ev) (fun x => Tau (try_catch (k x) kcatch) ).
 Proof.
   intros. unfold try_catch. unfold iter, Iter_Kleisli, Basics.iter, MonadIter_itree.
-  rewrite unfold_iter. cbn. unfold ITree.map at 3.
-  setoid_rewrite bind_bind. rewrite bind_trigger. cbn.
-  setoid_rewrite bind_ret_l. reflexivity.
+  rewrite unfold_iter. cbn. 
+  rewrite bind_map. rewrite bind_trigger. reflexivity.  
 Qed.
 
 Global Instance proper_eqitree_try_catch {E Err R} : Proper (eq_itree eq ==> pointwise_relation Err (eq_itree eq) ==> eq_itree eq) (@try_catch Err R E).
 Proof.
-  intros t1 t2 Ht k1 k2 Hk. red in Hk. generalize dependent t2. revert t1.
-  coinduction. intros. unfold try_catch.  setoid_rewrite unfold_iter_ktree.
+  intros t1 t2 Ht k1 k2 Hk. red in Hk. revert t1 t2 Ht. 
+  coinduction. intros. unfold try_catch. setoid_rewrite unfold_iter_ktree.
   sinv Ht. 
-  - repeat rewrite bind_ret_l. eret. 
-  - repeat rewrite bind_ret_l. etau.  
+  - cbn. reflexivity. 
+  - cbn. etau. 
   - destruct e.
     + destruct e. bcbn. 
-     rewrite 2 bind_map. rewrite 2 bind_ret_r. 
+      rewrite 2 bind_map. rewrite 2 bind_ret_r. 
       step. apply Hk. 
-    + cbn. evis. do 2 setoid_rewrite bind_ret_l.  
-      step. etau.
+    + cbn. evis. step. cbn. etau. 
 Qed.
 
 Global Instance proper_eutt_try_catch {E Err R} : Proper (eutt eq ==> pointwise_relation Err (eutt eq) ==> eutt eq) (@try_catch Err R E).
 Proof.
-  intros t1 t2 Ht k1 k2 Hk. red in Hk. generalize dependent t2. revert t1.
+  intros t1 t2 Ht k1 k2 Hk. red in Hk. revert t1 t2 Ht. 
   coinduction. intros. unfold try_catch. setoid_rewrite unfold_iter_ktree.
   step in Ht. 
   hinduction Ht before c; intros; subst; eauto.
-  - repeat rewrite bind_ret_l. eret. 
-  - repeat rewrite bind_ret_l. etau.  
+  - cbn. reflexivity. 
+  - cbn. etau.  
   - destruct e.
   (* RTODO: make cbn work here *)
-    + destruct e. bcbn. rewrite 2 bind_map. rewrite 2 bind_ret_r. 
+    + destruct e. bcbn.
+      rewrite 2 bind_map. rewrite 2 bind_ret_r. 
       step. apply Hk. 
-    + bcbn. evis. do 2 setoid_rewrite bind_ret_l.  
-      step. etau. 
-  - rewrite bind_ret_l. rewrite tau_euttge. rewrite unfold_iter_ktree. eapply IHHt; eauto.
-  - rewrite bind_ret_l. rewrite tau_euttge. rewrite unfold_iter_ktree. eapply IHHt; eauto.
+    + bcbn. evis. step. cbn. etau. 
+  - cbn. taul. eapply IHHt; eauto.
+  - cbn. taur. eapply IHHt; eauto.
 Qed.
 
 
 Global Instance proper_eqitree_throw_prefix_false {E Err R} : Proper (eqit false false eq ==> eqit false false eq) (@throw_prefix Err R E).
 Proof.
-  intros t1 t2 Ht. generalize dependent t2. revert t1.
+  intros t1 t2 Ht. revert t1 t2 Ht. 
   coinduction. intros. unfold throw_prefix. setoid_rewrite unfold_iter_ktree.
-  step in Ht. inv Ht.
-  - repeat rewrite bind_ret_l. bcbn. eret.
+  sinv Ht.
+  - cbn. etau.
   - destruct e.
-    + destruct e. bcbn. eret.
-    + setoid_rewrite bind_map. rewrite 2 bind_trigger.
-      evis. step. bcbn. etau. 
+    + destruct e. cbn. reflexivity. 
+    + cbn. evis. step. cbn. etau. 
 Qed.
 
 Global Instance proper_eutt_throw_prefix {E Err R} : Proper (eutt eq ==> eutt eq) (@throw_prefix Err R E).
 Proof.
-  intros t1 t2 Ht. generalize dependent t2. revert t1.
+  intros t1 t2 Ht. revert t1 t2 Ht. 
   coinduction. intros. unfold throw_prefix. setoid_rewrite unfold_iter_ktree.
   step in Ht. hinduction Ht before c; intros; subst; eauto.
-  - repeat rewrite bind_ret_l. bcbn. eret.
+  - cbn. etau.
   - destruct e.
-    + destruct e. bcbn. eret.
-    + setoid_rewrite bind_map. rewrite 2 bind_trigger.
-      evis. step. bcbn. etau. 
-  - bcbn. rewrite tau_euttge. rewrite unfold_iter_ktree. eapply IHHt; eauto.
-  - bcbn. rewrite tau_euttge. rewrite unfold_iter_ktree. eapply IHHt; eauto.
+    + destruct e. cbn. reflexivity. 
+    + cbn. evis. step. cbn. etau. 
+  - cbn. taul. eapply IHHt; eauto.
+  - cbn. taur. eapply IHHt; eauto.
 Qed.
 
 Global Instance proper_eqitree_throw_prefix {E Err R b} : Proper (eqit b b eq ==> eqit b b eq) (@throw_prefix Err R E).
@@ -137,7 +134,7 @@ Qed.
 Definition throw_prefix_ev : forall X E Err R k  (e : E X) , 
     throw_prefix ((Vis (inr1 e) k : itree (exceptE Err +' E) R )) ≅ Vis (inr1 e) (fun x => Tau (throw_prefix (k x)) ).
 Proof.
-  intros. setoid_rewrite unfold_iter_ktree at 1. cbn. rewrite bind_map.
+  intros. setoid_rewrite unfold_iter_ktree at 1. cbn. rewrite bind_map. 
   rewrite bind_trigger. apply eqit_Vis. intros. reflexivity.
 Qed.
 
@@ -243,25 +240,25 @@ Proof.
     rewrite Heq at 1. rewrite throw_prefix_ret. rewrite bind_ret_l.
     destruct r; rewrite bind_ret_l.
     + rewrite throw_prefix_tau. etau. 
-    + rewrite throw_prefix_ret. eret. 
+    + rewrite throw_prefix_ret. reflexivity. 
   - rewrite Heq at 1. setoid_rewrite bind_bind. rewrite Heq at 1.
     rewrite throw_prefix_tau. repeat rewrite bind_tau. rewrite throw_prefix_tau.
     etau. setoid_rewrite throw_prefix_bind at 1. ebind; intros; subst. 
     destruct u2 as [ [ a | b] | e ].
     + rewrite bind_ret_l. rewrite throw_prefix_tau. step; etau. 
-    + rewrite bind_ret_l. rewrite throw_prefix_ret. step; eret. 
+    + rewrite bind_ret_l. rewrite throw_prefix_ret. reflexivity. 
     + rewrite bind_ret_l. step; eret. 
   - rewrite Heq at 1. setoid_rewrite bind_bind. rewrite Heq at 1.
     destruct e.
     + destruct e. rewrite bind_vis. rewrite throw_prefix_exc.
       setoid_rewrite throw_prefix_exc. repeat rewrite bind_ret_l.
-      eret. 
+      reflexivity. 
     + rewrite bind_vis. rewrite throw_prefix_ev. setoid_rewrite throw_prefix_ev.
       rewrite bind_vis. setoid_rewrite bind_tau. evis. step; etau. 
       rewrite throw_prefix_bind. ebind; intros; subst. 
       destruct u2 as [ [ a | b] | e' ].
       * rewrite bind_ret_l. rewrite throw_prefix_tau. step; etau. 
       * rewrite bind_ret_l. rewrite throw_prefix_ret.
-        step; eret. 
-      * rewrite bind_ret_l. step; eret. 
+        reflexivity. 
+      * rewrite bind_ret_l. reflexivity. 
 Qed.

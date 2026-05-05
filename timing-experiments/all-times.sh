@@ -18,7 +18,7 @@ if [[ "$#" -ne "$NUM_ARGS" ]]; then
     exit 1
 fi
 
-BUILD_DIR="/Users/rogerab/home/learning-sandbox/learning/rocq/coinduction/InteractionTrees"
+BUILD_DIR=".."
 TIMING_DIR="$BUILD_DIR/timing-experiments"
 
 make -C "$BUILD_DIR" clean

@@ -1,5 +1,5 @@
-Chars 0 - 87 [From~ITree~Require~Import~ITre...] 0.167 secs (0.147u,0.02s)
-Chars 90 - 120 [From~Paco~Require~Import~paco.] 0.005 secs (0.005u,0.s)
+Chars 0 - 87 [From~ITree~Require~Import~ITre...] 0.226 secs (0.199u,0.027s)
+Chars 90 - 120 [From~Paco~Require~Import~paco.] 0.008 secs (0.007u,0.001s)
 Chars 122 - 136 [Import~Monads.] 0. secs (0.u,0.s)
 Chars 137 - 158 [Import~MonadNotation.] 0. secs (0.u,0.s)
 Chars 159 - 188 [#[local]~Open~Scope~monad_scope.] 0. secs (0.u,0.s)
