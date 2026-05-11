@@ -246,7 +246,7 @@ Qed.
 
   Definition _iter {A B} :=
     fun (f : A -> PureITreeSpec (A + B) ) (a : A) (p : itree void1 B -> Prop) (Hp : resp_eutt p) =>
-      gfp (@iter_mon A B f p Hp).
+      (gfp (@iter_mon A B f p Hp)) a.
 
 (* Lemma fix_monotinici_next : False. 
   fail "next task: fix monotinici definitions". 
@@ -256,11 +256,10 @@ Abort.  *)
                               monotonici B (_iter f a).
     Proof.
       unfold monotonici. intros. generalize dependent a.
-      coinduction c CIH. step. intros. step in H1.
-      red. red in H1. inversion H1; simpl in *.
+      coinduction c CIH; intros. step in H0.
+      inv H0. 
       constructor. destruct (f a) as [fa Hfa] eqn : Heq. simpl in *.
-      refine (Hfa _ _ _ _ _ H0). intros t. intros. inversion H2; subst; eauto with itree.
-       eapply cont_a; eauto with itree.
+      refine (Hfa _ _ _ _ _ H1). intros t. intros. inv H0; eauto with itree. 
     Qed.
 
   Definition iterp {A B} (body : A -> PureITreeSpec (A + B) ) (init : A) : PureITreeSpec B :=
@@ -302,7 +301,7 @@ Abort.  *)
       refine (Hw _ _ _ _ _ H).
       intros. destruct H0.
       + destruct H0 as [a [ Hvala Hpa]  ].
-        eapply Hp; eauto. symmetry. auto.
+        eapply Hp; eauto. now rewrite <- Hvala. 
       + destruct H0. apply div_spin_eutt in H0. eapply Hp; eauto.
     - simpl. intros. unfold _bindpi.
       refine (Hw _ _ _ _ _ H). intros. unfold _retpi.
@@ -615,11 +614,11 @@ Abort.  *)
     - specialize (eutt_reta_or_div t) as Hor. destruct Hor.
       + destruct H0 as [a Hreta ]. left. exists a. split; auto.
         eapply Hp; eauto. specialize (bind_ret_l a f) as H1. rewrite <- H1.
-        rewrite Hreta. reflexivity.
+        now rewrite Hreta. 
       + right. split; auto. apply div_spin_eutt in H0. rewrite (spin_bind f), <- H0; apply H.
     - destruct H.
       + destruct H as [a [Hreta Hpfa] ]. specialize (bind_ret_l a f) as H1.
-        eapply Hp; eauto.  rewrite <- H1. rewrite Hreta. reflexivity.
+        eapply Hp; eauto. now rewrite <- Hreta, H1. 
       + destruct H. apply div_spin_eutt in H.
         rewrite H, <- spin_bind. apply H0.
   Qed.
@@ -628,12 +627,12 @@ Abort.  *)
   Proof.
     split; intros; unfold obsip, _obsip in *; simpl in *.
     - intros p Hp. simpl. split; intros; eapply Hp; eauto.
-      symmetry. auto.
+      now rewrite <- H. 
     - set (fun t => t ≈ t1) as p.
       assert (Hp : resp_eutt p).
       + intros t3 t4. unfold p. split; intros.
-        * rewrite <- H1. symmetry. auto.
-        * rewrite H0. auto.
+        * rewrite <- H1. now symmetry. 
+        * now rewrite H0. 
       + specialize (H p Hp). simpl in *. unfold p in H. symmetry. apply H. reflexivity.
   Qed.
 
