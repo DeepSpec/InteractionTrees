@@ -88,13 +88,13 @@ extra/ITrace/ITracePreds.v
 extra/Dijkstra/DijkstraMonad.v
 extra/Dijkstra/IterRel.v
 extra/Dijkstra/PureITreeBasics.v
-# extra/Dijkstra/PureITreeDijkstra.v
+extra/Dijkstra/PureITreeDijkstra.v
 extra/Dijkstra/DelaySpecMonad.v
 extra/Dijkstra/StateSpecT.v
 extra/Dijkstra/StateDelaySpec.v
-# extra/Dijkstra/TracesIT.v
+extra/Dijkstra/TracesIT.v
 extra/Dijkstra/ITreeDijkstra.v
-# extra/Dijkstra/StateIOTrace.v
+extra/Dijkstra/StateIOTrace.v
 
 extra/Secure/Labels.v
 extra/Secure/StrongBisimProper.v
