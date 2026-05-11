@@ -73,7 +73,6 @@ Proof.
   - cbn. reflexivity. 
   - cbn. etau.  
   - destruct e.
-  (* RTODO: make cbn work here *)
     + destruct e. bcbn.
       rewrite 2 bind_map. rewrite 2 bind_ret_r. 
       step. apply Hk. 

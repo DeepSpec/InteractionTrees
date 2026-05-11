@@ -2,7 +2,6 @@
 RTODOS:
 - rename and redo sections
 - organize file 
-- remove add parametric morphism 
 *)
 
 (** * Strong bisimulation *)
@@ -1063,65 +1062,15 @@ assert (Hfalse : euttge (E := fun _ => Empty_set) (R1 := unit) (R2 := unit) eq
   step in Hfalse. inv Hfalse. 
 Qed.  
 
-(* RTODO: see if this is true *)
 Lemma euttge_proper_flip_euttgeC {E R1 R2} 
   (RR : R1 -> R2 -> Prop) (c : euttgeC) :
   Proper (euttge (E := E) eq ==> flip (euttge eq) ==> flip impl) (elem c _ _ RR).
-Proof with eauto with itree.
-  unfold Proper, respectful, flip, impl.
-  tower induction.
-  clear c; intros c IH x x' EQx y y' EQy; step in EQx; step in EQy.
-    intros EQ. icbn in *. 
-    genobs x' ox'; genobs y' oy'.
-    (* [hinduction] is not sufficient here, because [move] is unable to pass
-         through [ox] to reach [x] *)
-    revert x x' y y' Heqox' Heqoy' EQx EQy.
-    induction EQ; intros.
-    + clear x' y' Heqox' Heqoy'.
-      genobs x ox.
-      genret r1 or1.
-      revert x Heqox.
-      hinduction EQx before ox; try easy.
-      * intros; subst; inv Heqor1. clear x Heqox.
-        genobs y oy; genret r2 or2.
-        revert y Heqoy.
-        hinduction EQy before oy; try easy.
-        subst; intros [=<-] ??...
-      * intros; subst; taul; eapply IHEQx...
-    + clear x' y' Heqox' Heqoy'.
-      genobs x ox.
-      gentau m1 om1.
-      revert x Heqox.
-      hinduction EQx before ox; try easy.
-      * intros [=<-] ? ??.
-        clear x Heqox.
-        genobs y oy; gentau m2 om2.
-        revert y Heqoy.
-        hinduction EQy before om2; try easy.
-        intros [=<-] ??...
-        intros [=<-] ??.
-        taul. subst. step. 
-        (* unusable IHEQy: 
-        IHEQy : ⊙ t1 = TauF t1 -> forall y : itree E R, 
-                ot2 = ⊙ y -> TauF m0 {[≳⟨eq⟩]} ot2 *)
-        admit. 
-      * intros; subst; taul; eapply IHEQx...
-    + clear x' y' Heqox' Heqoy'.
-      genobs x ox.
-      genvis e k1 ot1.
-      revert x Heqox.
-      hinduction EQx before ox; try easy.
-      intros. inv_Vis. 
-      apply eqitF_inv_VisF_l in EQy. break EQy; try easy; break H. 
-      simpobs...
-      intros. taul. eapply IHEQx; eauto.  
-    + edestruct euttge_tau_r_inv; [step; eauto |].
-      simpobs.
-      taul.
-      eapply IHEQ; eauto.
-      assert (euttge eq (Tau x0) (Tau t1)) by (now step).
-      unstep; eapply euttge_tau_inv; eauto.
-    + easy. 
+  (* FALSE: *)
+  (*   
+   τ 1  [≳⟨RR⟩]  τ 1
+   ≳             ≳
+   1   [≳⟨RR⟩]   τ 1 
+  *)
 Abort. 
 
 (* The correct instance: first arg uses [euttge eq], second uses [eq_itree eq].
@@ -1290,6 +1239,7 @@ Proof.
     + now eapply IHINL.
     + taur. eapply IHINR; eauto. 
 Qed.
+
 Arguments eqit_trans {E R1 R2 R3} [RR1 RR2 b1 b2 t1 t2 t3].
 (* We can now package the instances for the top level relations:
    two equivalences and a preorder as expected.
@@ -1430,10 +1380,7 @@ Goal eutt RR u v.
 Abort. 
 
   #[local] Parameter (EQUIV : u ≈⟨RR⟩ v).
-
-  (* TODO: have tests work with a relation on leaves.
-     Currently fails, need better instance
-   *) 
+ 
   (* Test for rewrites in [eutt]: [eq_itree eq], [] *)
   Goal t ≈⟨RR⟩ w -> t ≈⟨RR⟩ w.
     intros H.
@@ -1454,19 +1401,17 @@ Abort.
     assumption. 
   Qed.
 
-  (* RTODO: next *)
   Definition VE := fun _ : Type => Empty_set. 
   #[local] Parameter (EQUIV_tt : eutt (E:= VE) eq (Ret tt) (Ret tt)).
   Goal eutt (E:= VE) eq (Ret tt) (Ret tt). 
     step.  
-    (* THIS SHOULD WORK *)
+    (* This should work *)
     unstep. 
     assert (eutt (E:= VE) eq (Ret tt) (Ret tt)). 
     step.
     (* we should be able to fold into observe form *)
-    rewrite observing_observe.  
+    rewrite observing_observe.
 Abort. 
-   (* RTODO: These *)
   Goal t ≅ u -> t ≅ u.
     intros H.
     rewrite EQ1.
@@ -1474,20 +1419,17 @@ Abort.
     symmetry.
     symmetry in H.
     reflexivity.
-  Qed.
+Qed. 
    (* 2. next: this: euttge RR is proper wrt eq_itree RR - make sure this works *)
   Goal t ≅ u -> v ≅⟨flip RR⟩ u -> t ≳⟨RR⟩ v -> t ≳⟨RR⟩ v.
     intros EQ1 EQ2' H.
     rewrite EQ1.
     rewrite EQ2.
     apply eqit_flip in EQ2'.
-    rewrite EQ2 in EQ2'. 
-    (* eapply (eqit_mono RR RR false false); eauto.  *)
-    (* next todo: get this to work *)
-    Fail rewrite EQ2'.  
-    Fail rewrite <- EQ2'.  
+    rewrite EQ2 in EQ2'.
+    eapply (eqit_mono RR RR false false); eauto. 
      (* TO FIX: only going through subrelation is insuficient *)
-  Admitted.
+Qed. 
 
   (* Test [coinduction] tactic, notations  *)
   Goal u ≈ t -> t ≈ u.
@@ -1496,7 +1438,7 @@ Abort.
     step. 
     rewrite H. 
     reflexivity. 
-Qed. 
+Qed.  
 End Tests.
 
 #[global] Hint Resolve Reflexive_eqit : reflexivity.
@@ -1677,7 +1619,7 @@ Proof.
 Qed.
 
 (** *** Transitivity properties *)
-
+(* TOUR *)
 #[global] Instance eqitgen_cong_eqit {E R1 R2 RR1 RR2 RS} b1 b2
        (LERR1: forall x x' y, (RR1 x x': Prop) -> (RS x' y: Prop) -> RS x y)
        (LERR2: forall x y y', (RR2 y y': Prop) -> RS x y' -> RS x y) : 
@@ -1754,16 +1696,9 @@ Lemma tau_eutt_RR_l : forall E R (RR : relation R) (HRR: Reflexive RR) (HRT: Tra
 Proof.
   intros.
   split; intros H.
-  - eapply transitivity. 2 : { apply H. }
+  - eapply transitivity. 2 : apply H. 
     apply eqit_Tau_r. reflexivity.
-  - step. econstructor. auto. now step in H. 
-Qed.
-
-Lemma tau_eqit_RR_l : forall E R (RR : relation R) (HRR: Reflexive RR) (HRT: Transitive RR) (t s : itree E R),
-    eqit true false RR t s -> eqit true false RR (Tau t) s.
-Proof.
-  intros.
-  step. econstructor. auto. now step in H. 
+  - step. taul. now step in H. 
 Qed.
 
 Lemma tau_eutt_RR_r : forall E R (RR : relation R) (HRR: Reflexive RR) (HRT: Transitive RR) (t s : itree E R),
@@ -1773,7 +1708,7 @@ Proof.
   split; intros H.
   - eapply transitivity. apply H.
     apply eqit_Tau_l. reflexivity.
-  - step. econstructor. auto. now step in H.
+  - step. taur. now step in H.
 Qed.
 
 Lemma eutt_inv_Ret_l {E R} (r1: R) (t2: itree E R):
@@ -1900,8 +1835,8 @@ Lemma eqit_Ret b1 b2 (r1 : R1) (r2 : R2) :
   RR r1 r2 <-> @eqit E b1 b2 _ _ RR (Ret r1) (Ret r2).
 Proof.
   split; intros H.
-  - step. constructor; auto.
-  - step in H. inversion H; subst; auto.
+  - step. now constructor.
+  - sinv H. 
 Qed.
 
 (** *** "Up-to" principles for coinduction. *)
@@ -1975,7 +1910,7 @@ Qed.
 End eqit_h.
 
 Ltac eret := constructor; eauto with itree. 
-Ltac etau := taus; eauto with itree.  
+Ltac etau := constructor; eauto with itree. 
 Ltac evis := constructor; intros; eauto with itree. 
 Ltac ebind := eapply eqit_bind_chain; eauto with itree.  
 
@@ -2011,27 +1946,6 @@ Proof.
   eapply eqit_bind'; eauto.
 Qed.
 
-(* RTODO: want
-
-Proper (eutt ==> pointwise_chain ==> chain) bind 
-
-want something finer-grained- eutt lifts a relation 
-
-Choose any postcondition SS. eutt over SS, pointwise_chain over SS. 
-
-we want to pull this out. 
-
-(* 
-[shelved]. trans true false elem c
-[done]1. remove dep. induction 
-2. consider coinduction library fix- mwe at least 
-[with yannick] 3. think about removing bind_clo and replacing with proper instance
-3.a very strong bespoke proper instance- pull out R1 R2 RR etc. 
-
-*)
-
-forall t u SS, (elem c SS t u ==> forall x y, SS x y -> elem c (k x) (g y) -> elem c (bind t k) bind u g)
-*)
 
 #[global] Instance eqit_subst {E R S} b1 b2 :
   Proper (pointwise_relation _ (eqit b1 b2 eq) ==> eqit b1 b2 eq ==>

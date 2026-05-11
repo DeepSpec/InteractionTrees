@@ -83,12 +83,12 @@ extra/ITrace/ITraceDefinition.v
 extra/ITrace/ITraceFacts.v
 extra/ITrace/ITracePrefix.v
 extra/ITrace/ITraceBind.v
-# extra/ITrace/ITracePreds.v
+extra/ITrace/ITracePreds.v
 
 extra/Dijkstra/DijkstraMonad.v
 extra/Dijkstra/IterRel.v
 extra/Dijkstra/PureITreeBasics.v
-# extra/Dijkstra/PureITreeDijkstra.v
+extra/Dijkstra/PureITreeDijkstra.v
 extra/Dijkstra/DelaySpecMonad.v
 extra/Dijkstra/StateSpecT.v
 extra/Dijkstra/StateDelaySpec.v

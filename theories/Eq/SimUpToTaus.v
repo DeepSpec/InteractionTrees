@@ -66,35 +66,6 @@ End SUTT.
 Global Hint Constructors suttF : itree.
 Global Hint Unfold sutt : itree.
 
-(** Sutt-specific tactics, analogous to the eqit-specific tactics in [Eq.Eqit]. *)
-
-(* RTODO remove *)
-
-(* #[local] Ltac sunfold    := unfold sutt.
-#[local] Ltac sunfold_in h := unfold sutt in h.
-
-#[local] Ltac scbn    := cbn [sutt_mon body].
-#[local] Ltac scbn_in h := cbn [sutt_mon body] in h.
-
-Ltac fold_sutt :=
-  match goal with
-  | |- context[@suttF ?E ?R1 ?R2 ?RR] =>
-      change (@suttF E R1 R2 RR) with (body (@sutt_mon E R1 R2 RR))
-  end.
-Ltac fold_sutt_in h :=
-  match type of h with
-  | context[@suttF ?E ?R1 ?R2 ?RR] =>
-      change (@suttF E R1 R2 RR) with (body (@sutt_mon E R1 R2 RR)) in h
-  end. *)
-
-(* Tactic Notation "step" := sunfold; step; scbn.
-Tactic Notation "step" "in" ident(h) := sunfold_in h; step in h; scbn_in h.
-
-Tactic Notation "sunstep" := fold_sutt; unstep.
-Tactic Notation "sunstep" "in" ident(h) := fold_sutt_in h; unstep in h. *)
-
-(* [coinduction] unfolds [sutt] in the conclusion only, then applies coinduction. *)
-
 Section SUTT_rel.
 
 Context {E : Type -> Type} {R : Type} (RR : R -> R -> Prop).

@@ -1,3 +1,5 @@
+From Coinduction Require Import all. 
+
 From Stdlib Require Import
      Morphisms.
 
@@ -21,25 +23,6 @@ Import MonadNotation.
 
 #[local] Open Scope monad_scope.
 #[local] Open Scope delayspec_scope.
-
-  #[local] Tactic Notation "step" :=
-  match goal with 
-  | |- context [@body _] => step 
-  | |- context [@elem _] => step 
-  | |- _ => (* gfp case *) repeat red; step 
-  end.
-
-#[local] Tactic Notation "step" "in" ident(h) :=
-  repeat red in h; step in h;
-  match type of h with
-  | context [@body _] => repeat red in h
-  | _ => idtac
-  end.
-
-#[local] Tactic Notation "coinduction" simple_intropattern(c)
-  simple_intropattern(CIH) := 
-  repeat red; coinduction c CIH. 
-
 
 
 Section ITreeDijkstra.

@@ -1,3 +1,4 @@
+From Coinduction Require Import all. 
 From Stdlib Require Import
      Morphisms
 .
@@ -12,8 +13,6 @@ From ITree.Extra Require Import
      ITrace.ITraceFacts
      ITrace.ITraceBind
 .
-
-From Paco Require Import paco.
 
 Import Monads.
 Import MonadNotation.
@@ -34,28 +33,32 @@ Variant trace_forallF {E : Type -> Type} {R : Type} (F : itrace E R -> Prop)
 Definition trace_forall_ {E R} PE PR F (b : itrace E R) :=
   trace_forallF F PE PR (observe b).
 
-Lemma trace_forall_monot {E R} PE PR : monotone1 (@trace_forall_ E R PE PR).
+Lemma trace_forall_mono {E R} PE PR : Proper (leq ==> leq) (@trace_forall_ E R PE PR).
 Proof.
-  repeat intro. red in IN. red. induction IN; auto with itree.
+  repeat intro. red in H0. red. induction H0; 
+  constructor; intros; auto; now apply H. 
 Qed.
 
-#[global] Hint Resolve trace_forall_monot : paco.
+Definition trace_forall_mon {E R} PE PR := Build_mon (@trace_forall_mono E R PE PR).
 
-Definition trace_forall {E R} PE PR := paco1 (@trace_forall_ E R PE PR) bot1.
+
+Definition trace_forall {E R} PE PR := gfp (@trace_forall_mon E R PE PR).
 
 Lemma trace_forall_proper_aux: forall (E : Type -> Type) (R : Type) (PE : forall A : Type, EvAns E A -> Prop)
                                  (PR : R -> Prop) (b1 b2 : itree (EvAns E) R),
     (b1 ≈ b2) -> trace_forall PE PR b1 -> trace_forall PE PR b2.
 Proof.
-  intros E R PE PR. coinduction c CIH. intros b1 b2 Heutt Hforall.
-  step. step in Hforall. red in Hforall.
-  step in Heutt. red in Heutt. induction Heutt; subst; auto.
+  intros E R PE PR. icoinduction c CIH. intros b1 b2 Heutt Hforall.
+  step in Hforall.
+  step in Heutt. induction Heutt; subst; auto. 
   - inv Hforall. auto with itree.
-  - inv Hforall.  constructor. right. eapply CIH; eauto.
+  - inv Hforall.  constructor. eapply CIH; eauto.
   - inv Hforall. ddestruction. subst. 
-    constructor; auto. intros. right. eapply CIH; eauto with itree. apply H3.
-  - apply IHHeutt. inv Hforall.  step in H0.
-  - constructor. left. step. apply IHHeutt. auto.
+    constructor; auto. intros. eapply CIH. 
+    apply REL. 
+    apply H3.
+  - apply IHHeutt. inv Hforall. now step in H0.
+  - constructor. Utils.step. apply IHHeutt. auto.
 Qed.
 
 #[global] Instance trace_forall_proper_eutt {E R PE PR} : Proper (eutt eq ==> iff) (@trace_forall E R PE PR).
@@ -67,8 +70,8 @@ Qed.
 
 Lemma forall_spin : forall E R PE PR, trace_forall PE PR (@ITree.spin (EvAns E) R).
 Proof.
-  intros. coinduction c CIH. step. cbn. constructor.
-  right. auto.
+  intros. icoinduction c CIH. cbn. constructor.
+  auto. 
 Qed.
 
 Inductive trace_inf_oftenF {E : Type -> Type} {R : Type} (PE : forall A, EvAns E A -> Prop)
@@ -86,14 +89,16 @@ Inductive trace_inf_oftenF {E : Type -> Type} {R : Type} (PE : forall A, EvAns E
 Definition trace_inf_often_ {E R} PE F (b : itrace E R) :=
   trace_inf_oftenF PE F (observe b).
 
-Lemma trace_inf_often_monot {E R} PE : monotone1 (@trace_inf_often_ E R PE).
+Lemma trace_inf_often_mono {E R} PE : Proper (leq ==> leq) (@trace_inf_often_ E R PE).
 Proof.
-  repeat intro. red in IN. red. induction IN; auto with itree.
+  repeat intro. red in H0. red. induction H0.
+  1-2: now constructor.
+  constructor 3; auto. now apply H. 
 Qed.
 
-#[global] Hint Resolve trace_inf_often_monot : paco.
+Definition trace_inf_often_mon {E R} PE := Build_mon (@trace_inf_often_mono E R PE).
 
-Definition trace_inf_often {E R} PE := paco1 (@trace_inf_often_ E R PE) bot1.
+Definition trace_inf_often {E R} PE := gfp (@trace_inf_often_mon E R PE).
 
 Inductive front_and_last {E : Type -> Type} {R : Type} (PEF : forall A, EvAns E A -> Prop)
           (PEL : forall A, EvAns E A -> Prop) (PR : R -> Prop) : itrace E R -> Prop :=
@@ -101,7 +106,6 @@ Inductive front_and_last {E : Type -> Type} {R : Type} (PEF : forall A, EvAns E 
   b ≈ Vis e (fun u => Ret r) -> PEL unit e -> PR r -> front_and_last PEF PEL PR b
 | front_and_last_cons (e : EvAns E unit) (k : unit -> itrace E R) (b : itree (EvAns E) R ) :
   b ≈ Vis e k -> PEF unit e -> front_and_last PEF PEL PR (k tt) -> front_and_last PEF PEL PR b
-
 .
 
 Lemma fal_proper_aux: forall (E : Type -> Type) (R : Type) (PEF PEL : forall A : Type, EvAns E A -> Prop)
@@ -145,32 +149,36 @@ Section StateMachine.
   Definition state_machine_ F PEv PRet (tr : itrace E R) :=
     state_machineF PEv PRet F (observe tr).
 
-  Lemma monotone_state_machine : monotone3 state_machine_.
+  Lemma state_machine_mono : Proper (leq ==> leq) state_machine_.
   Proof.
-    red. intros. red. red in IN. induction IN; auto with itree.
+    intros!. red. red in H0. induction H0; auto with itree.
+    constructor; auto. now apply H. 
   Qed.
-  Hint Resolve trace_inf_often_monot : paco.
-  Definition state_machine PEv PRet (tr : itrace E R) :  Prop := paco3 (state_machine_) bot3 PEv PRet tr.
+
+  Definition state_machine_mon := Build_mon (state_machine_mono).
+
+  Definition state_machine := gfp (state_machine_mon).
 
   Lemma state_machine_proper_aux : forall PEv PRet (t1 t2 : itrace E R),
       (t1 ≈ t2) -> state_machine PEv PRet t1 -> state_machine PEv PRet t2.
   Proof.
-    coinduction c CIH. intros PEV PREt t1 t2 Heutt Hsm. step. red.
+    icoinduction c CIH. intros PEV PREt t1 t2 Heutt Hsm. 
     step in Hsm; try apply monotone_state_machine.
-    step in Heutt. red in Heutt. red in Hsm.
+    step in Heutt.
     induction Hsm.
-    - remember (RetF r0) as ot1. induction Heutt; subst; auto with itree; try discriminate.
+    - remember (RetF r) as ot1. induction Heutt; subst; auto with itree; try discriminate.
       injection Heqot1; intros; subst; auto with itree.
-    - apply IHHsm. pstep_reverse. assert (Tau t ≈ t2); auto with itree.
+    - apply IHHsm. unstep. assert (Tau t ≈ t2) by now step. 
       rewrite tau_eutt in H. auto.
     - remember (VisF (evans A e a) k ) as ot1. induction Heutt; subst; auto with itree; try discriminate.
       injection Heqot1; intros; subst. dependent destruction H1.
-      subst. constructor; auto. right.  eapply CIH; eauto with itree.
+      subst. constructor; auto. eapply CIH; try apply REL; eauto. 
   Qed.
 
   #[global] Instance state_machine_proper_eutt {PEv PRet} : Proper (eutt eq ==> iff) (@state_machine PEv PRet).
   Proof.
-    intros t1 t2 Heutt. split; intros; try eapply state_machine_proper_aux; eauto; symmetry; auto.
+    intros t1 t2 Heutt. assert (Heutt2 : t2 ≈ t1) by now symmetry.
+     split; intros; eapply state_machine_proper_aux; eauto. 
   Qed.
 
 End StateMachine.

@@ -1,3 +1,5 @@
+From Coinduction Require Import all. 
+
 From ExtLib Require Import
      Structures.Monad.
 
@@ -240,17 +242,17 @@ Hint Constructors iterF : itree.
     eapply cont_a; eauto. now apply H. 
 Qed.
 
-Lemma do_iter_mon_next : False. 
-fail "next todo: iter_mon". 
-Abort. 
+  Definition iter_mon {A B} body p Hp := Build_mon (@iter_mono A B body p Hp).  
 
   Definition _iter {A B} :=
     fun (f : A -> PureITreeSpec (A + B) ) (a : A) (p : itree void1 B -> Prop) (Hp : resp_eutt p) =>
-      gfp (fun (F : A -> Prop) a => @iter_ A B F f a p Hp ) a.
+      gfp (@iter_mon A B f p Hp).
 
+Lemma fix_monotinici_next : False. 
+  fail "next task: fix monotinici definitions". 
+Abort. 
 
-
-  Lemma iter_monot : forall A B (f : A -> PureITreeSpec (A + B) ) (a : A),
+      Lemma iter_monot : forall A B (f : A -> PureITreeSpec (A + B) ) (a : A),
                               monotonici B (_iter f a).
     Proof.
       unfold monotonici. intros. generalize dependent a.

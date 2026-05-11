@@ -125,20 +125,6 @@ Ltac saturate H :=
                                         clear H; crunch
           end.
 
-(* RTODO: Deprecate these *)
-
-Lemma pacobot1 (T0 : Type) (gf : rel1 T0 -> rel1 T0) (r : rel1 T0)
-  : paco1 gf bot1 <1= paco1 gf r.
-Proof.
-  intros x0 H. apply (paco1_mon _ H); contradiction.
-Qed.
-
-Lemma pacobot2 (T0 : Type) (T1 : T0 -> Type) (gf : rel2 T0 T1 -> rel2 T0 T1) (r : rel2 T0 T1)
-  : paco2 gf bot2 <2= paco2 gf r.
-Proof.
-  intros x0 x1 H. eapply (paco2_mon _ H); contradiction.
-Qed.
-
 (* [coinduction]-like tactics  *)
 
 (* Until https://github.com/damien-pous/coinduction/pull/22 gets merge *)

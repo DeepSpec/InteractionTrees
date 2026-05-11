@@ -124,8 +124,7 @@ Proof.
   unfold eq_Handler, i_pointwise in Hfg. 
   rewrite Hfg. 
   to_mon. 
-  (* RTODO: fix ebind so it works with eqitF *)
-  ebind. intros ??[=<-]. taus; eauto with itree. 
+  ebind. intros ??[=<-]. etau. 
 Qed.
 
 #[global]

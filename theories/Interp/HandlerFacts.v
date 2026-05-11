@@ -1,6 +1,5 @@
 (** * Theorems for [ITree.Interp.Handler] *)
 (* begin hide *)
-(* RTODO: investigate very slow compilation time for this file *)
 
 From Coinduction Require Import all. 
 From Stdlib Require Import

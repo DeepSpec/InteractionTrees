@@ -1,5 +1,3 @@
-(* Rtodo: automatic to_mon for rewriting *)
-
 (** * Facts about [aloop] and [loop] *)
 (* begin hide *)
 
