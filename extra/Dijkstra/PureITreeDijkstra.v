@@ -22,7 +22,7 @@ Section PureITree.
   Definition PureITree A := itree void1 A.
 
   (*Morally, this is the type of pure itree specifcations. A sigma of this with a monotonicity requiremnet is used
-    in order to proved the ordered monad law*)
+    in order to prove the ordered monad law*)
   Definition _PureITreeSpec A := forall (p : itree void1 A -> Prop), resp_eutt p -> Prop.
 
 
@@ -248,9 +248,9 @@ Qed.
     fun (f : A -> PureITreeSpec (A + B) ) (a : A) (p : itree void1 B -> Prop) (Hp : resp_eutt p) =>
       gfp (@iter_mon A B f p Hp).
 
-Lemma fix_monotinici_next : False. 
+(* Lemma fix_monotinici_next : False. 
   fail "next task: fix monotinici definitions". 
-Abort. 
+Abort.  *)
 
       Lemma iter_monot : forall A B (f : A -> PureITreeSpec (A + B) ) (a : A),
                               monotonici B (_iter f a).

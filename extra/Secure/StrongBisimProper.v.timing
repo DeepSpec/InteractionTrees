@@ -1,5 +1,5 @@
-Chars 0 - 37 [From~Stdlib~Require~Import~Mor...] 0.003 secs (0.002u,0.001s)
-Chars 39 - 109 [From~ITree~Require~Import~ITre...] 0.215 secs (0.19u,0.024s)
+Chars 0 - 37 [From~Stdlib~Require~Import~Mor...] 0.004 secs (0.002u,0.001s)
+Chars 39 - 109 [From~ITree~Require~Import~ITre...] 0.224 secs (0.194u,0.029s)
 Chars 111 - 141 [From~Paco~Require~Import~paco.] 0.008 secs (0.007u,0.001s)
 Chars 234 - 379 [#[global]~Instance~strong_bisi...] 0.001 secs (0.u,0.s)
 Chars 380 - 386 [Proof.] 0. secs (0.u,0.s)

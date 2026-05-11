@@ -88,7 +88,7 @@ extra/ITrace/ITracePreds.v
 extra/Dijkstra/DijkstraMonad.v
 extra/Dijkstra/IterRel.v
 extra/Dijkstra/PureITreeBasics.v
-extra/Dijkstra/PureITreeDijkstra.v
+# extra/Dijkstra/PureITreeDijkstra.v
 extra/Dijkstra/DelaySpecMonad.v
 extra/Dijkstra/StateSpecT.v
 extra/Dijkstra/StateDelaySpec.v

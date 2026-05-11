@@ -1,4 +1,4 @@
-Chars 34 - 88 [From~Stdlib~Require~Import~Set...] 0.007 secs (0.004u,0.002s)
+Chars 34 - 88 [From~Stdlib~Require~Import~Set...] 0.008 secs (0.005u,0.002s)
 Chars 90 - 133 [From~ITree~Require~Import~Cate...] 0.001 secs (0.u,0.s)
 Chars 135 - 155 [Import~CatNotations.] 0. secs (0.u,0.s)
 Chars 156 - 183 [#[local]~Open~Scope~cat_scope.] 0. secs (0.u,0.s)

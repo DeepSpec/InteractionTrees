@@ -1,5 +1,5 @@
 Chars 111 - 153 [From~Stdlib~Require~Import~Mor...] 0.004 secs (0.002u,0.001s)
-Chars 155 - 364 [From~ITree~Require~Import~Basi...] 0.054 secs (0.044u,0.009s)
+Chars 155 - 364 [From~ITree~Require~Import~Basi...] 0.054 secs (0.043u,0.01s)
 Chars 382 - 414 [Implicit~Type~E~:~Type~->~Type.] 0. secs (0.u,0.s)
 Chars 415 - 441 [Implicit~Types~a~b~:~Type.] 0. secs (0.u,0.s)
 Chars 443 - 483 [Notation~ktree~E:=~(Kleisli~(i...] 0. secs (0.u,0.s)

@@ -267,7 +267,7 @@ Proof.
   intros * Hrutt Heutt; revert t1 t1' Heutt t2 Hrutt.
   coinduction c CIH; icbn; intros t1 t1' Heutt t2 Hrutt.
   step in Hrutt.
-  rewrite (itree_eta t1') in *.
+  rewrite (itree_eta t1') in Heutt.
   remember (observe t1) as ot1 eqn:Hot1.
   remember (observe t2) as ot2 eqn:Hot2.
   move Hrutt before CIH; revert_until Hrutt.

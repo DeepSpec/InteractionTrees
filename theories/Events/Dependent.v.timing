@@ -1,6 +1,6 @@
-Chars 611 - 718 [From~ITree~Require~Import~Basi...] 0.043 secs (0.035u,0.008s)
+Chars 611 - 718 [From~ITree~Require~Import~Basi...] 0.049 secs (0.039u,0.009s)
 Chars 720 - 748 [Import~Basics.Basics.Monads.] 0. secs (0.u,0.s)
 Chars 765 - 852 [Variant~depE~{I~:~Type}~(F~:~I...] 0. secs (0.u,0.s)
 Chars 854 - 876 [Arguments~Dep~{I~F}~&.] 0. secs (0.u,0.s)
-Chars 878 - 970 [Definition~dep~{I}~{F}~{E}~`{d...] 0. secs (0.u,0.s)
+Chars 878 - 970 [Definition~dep~{I}~{F}~{E}~`{d...] 0.001 secs (0.u,0.s)
 Chars 972 - 1102 [Definition~undep~{I}~{F}~(f~:~...] 0. secs (0.u,0.s)
