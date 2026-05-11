@@ -1,3 +1,5 @@
+From Coinduction Require Import all. 
+
 From Stdlib Require Import
      Arith
      String.
@@ -7,8 +9,6 @@ From ExtLib Require Import
      Structures.Monad
      Core.RelDec
      Data.Map.FMapAList.
-
-From Paco Require Import paco.
 
 From ITree Require Import
      Axioms
@@ -78,12 +78,12 @@ Section PrintMults.
   Definition wnm_ev (next : nat) A  (io : IO A) (_ : A) : forall B, IO B -> B -> Prop :=
     match io with
     | Write n => write_next_mult (next + n)
-    | Read => bot3 end.
+    | Read => (fun _ _ _  => False) end.
 
   Variant writes_n (n : nat) : forall A, IO A -> A -> Prop :=
     | wn : writes_n n unit (Write n) tt.
 
-  Definition mults_n {R : Type} (n : nat) (tr : itrace IO R) := state_machine (wnm_ev n) bot4 (writes_n 0) bot1 tr.
+  Definition mults_n {R : Type} (n : nat) (tr : itrace IO R) := state_machine (wnm_ev n) (fun _ _ _ _ => False) (writes_n 0) (fun _ => False) tr.
 
   CoFixpoint mults_of_n_from_m {R : Type} (n m : nat) : itrace IO R:=
     Vis (evans unit (Write m) tt) (fun _ => mults_of_n_from_m n (n + m) ).
@@ -235,11 +235,9 @@ Section PrintMults.
     (*This coinductive hypothesis looks good*)
     intros.
     rename H1 into HX.
-    step. red.
     (*should be able to learn that observe tr is what we need*)
 
     (*This block shows how to proceed through the loop body*)
-    rename H0 into H.
     unfold Basics.iter, MonadIter_stateT0, Basics.iter, MonadIter_itree in H.
     rewrite unfold_iter in H.
     match type of H with _ ⊑ ITree.bind _ ?k0 => remember k0 as k end.
@@ -254,18 +252,18 @@ Section PrintMults.
     rewrite bind_vis in H.
     setoid_rewrite bind_ret_l in H.
     unf_res.
-    step in H. red in H. cbn in *.
+    step in H. cbn in *.
     dependent induction H.
-    2:{ rewrite <- x. constructor; auto. eapply IHruttF; eauto; reflexivity. }
+    2: { simpobs. constructor; auto. eapply IHruttF; eauto; reflexivity. }
     inversion H; ddestruction; subst; ddestruction; try contradiction.
     subst. specialize (H0 tt tt).
     destruct a.
     prove_arg H0; auto with itree. 
     match type of H0 with
-      paco2 _ bot2 ?tr ?t => assert (Hk1 : tr ⊑ t); auto end.
-    rewrite <- x. constructor; auto.
+      gfp _ _ ?tr ?t => assert (Hk1 : tr ⊑ t) by auto end.
+    simpobs. constructor; auto.
     intros [].
-    clear x tr. right.
+    clear x tr. 
     remember (lookup_default X 0 si) as n.
     remember (lookup_default Y 0 si) as m.
     eapply CIH with (Maps.add Y (n + m) si); try apply lookup_eq.
