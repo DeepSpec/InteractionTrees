@@ -187,7 +187,7 @@ Lemma pi_eqit_secure_mixed_trans b1 b2 E R1 R2 R3 (RR1 : R1 -> R2 -> Prop) (RR2 
 Proof.
   coinduction c CIH. intros t1 t2 t3 Hsec Heq. step in Heq.
   red in Heq. step in Hsec. red in Hsec. step. red.
-  hinduction Heq before r; intros; try inv CHECK; 
+  hinduction Heq before r; intros; 
   - inv Hsec; eauto with itree; unpriv_pi; 
     + rewrite itree_eta'. constructor; auto with itree. right. eapply CIH; eauto.
       step. rewrite H0. constructor. auto.
@@ -245,7 +245,7 @@ Proof.
   econstructor. pmonauto_itree.
   intros. destruct PR.
   step in EQVl. step in EQVr. unfold_eqit. red in REL. red.
-  hinduction REL before r; intros; clear t1' t2'; try inv CHECK.
+  hinduction REL before r; intros; clear t1' t2'.
   - genobs_clear t1 ot1. genobs_clear t2 ot2.
     remember (RetF r1) as x.
     hinduction EQVl before r; intros; inv Heqx; eauto.
@@ -256,43 +256,43 @@ Proof.
     + rewrite itree_eta'. constructor; auto. cbn. gstep. cbn.
       eauto.
   - remember (TauF t1) as y.
-    hinduction EQVl before r; intros; inv Heqy; try inv CHECK; subst; eauto.
+    hinduction EQVl before r; intros; inv Heqy; subst; eauto.
     + remember (TauF t2) as x.
-      hinduction EQVr before r; intros; inv Heqx; try inv CHECK; subst; eauto.
+      hinduction EQVr before r; intros; inv Heqx; subst; eauto.
        constructor. gclo. econstructor; eauto with paco.
       
       remember (TauF m1) as ot1. rewrite itree_eta' at 1.
       constructor; auto. rewrite Heqot1. gstep. cbn. eauto.
     + constructor; auto. gstep. eapply IHEQVl; eauto.
-  - inv EQVl;  try inv CHECK.
+  - inv EQVl. 
     + constructor; auto. gclo. econstructor; eauto with paco itree.
     + constructor; auto. gclo. econstructor; eauto with paco itree.
       apply eqit_inv_Tau_r. step. auto.
-  - inv EQVr;  try inv CHECK.
+  - inv EQVr.
     + constructor; auto. gclo. econstructor; eauto with paco itree.
     + constructor; auto. gclo. econstructor; eauto with paco itree.
       apply eqit_inv_Tau_r. step. auto.
   - remember (VisF e k1) as x.
-    hinduction EQVl before r; intros; inv Heqx; try inv CHECK; eauto.
+    hinduction EQVl before r; intros; inv Heqx; eauto.
     + ddestruction. subst. remember (VisF e0 k3) as y.
-      hinduction EQVr before r; intros; inv Heqy; try inv CHECK; eauto.
+      hinduction EQVr before r; intros; inv Heqy; eauto.
       * ddestruction. subst. constructor; auto.
         intros. apply gpaco2_clo.  econstructor; eauto with itree. apply H.
       *  remember (VisF e0 k1) as ovis. rewrite itree_eta' at 1.
         constructor; auto. rewrite Heqovis. gstep. eapply IHEQVr; eauto with itree.
     + constructor; auto. gstep. eapply IHEQVl; eauto.
   - remember (VisF e k1) as x.
-    hinduction EQVl before r; intros; inv Heqx; try inv CHECK; subst; eauto.
+    hinduction EQVl before r; intros; inv Heqx; subst; eauto.
     + ddestruction. subst.  remember (TauF t2) as y.
-      hinduction EQVr before r; intros; inv Heqy; try inv CHECK; subst;  eauto.
+      hinduction EQVr before r; intros; inv Heqy; subst;  eauto.
       * unpriv_pi. gclo. econstructor; cycle -1; eauto with paco itree. gfinal. left. apply H.
       * remember (VisF e0 k1) as ovis. rewrite itree_eta' at 1. constructor; auto.
         rewrite Heqovis. gstep. eapply IHEQVr; eauto.
     + constructor; auto. gstep. eapply IHEQVl; eauto.
   - remember (TauF t1) as x.
-    hinduction EQVl before r; intros; inv Heqx; try inv CHECK; subst; eauto.
+    hinduction EQVl before r; intros; inv Heqx; subst; eauto.
     + remember (VisF e k2) as y.
-      hinduction EQVr before r; intros; inv Heqy; try inv CHECK; subst; eauto.
+      hinduction EQVr before r; intros; inv Heqy; subst; eauto.
       * ddestruction. subst.
          unpriv_pi. gclo. econstructor; cycle -1; eauto with paco itree.
         gfinal. left. apply H.
@@ -300,27 +300,27 @@ Proof.
         gstep. rewrite Heqotm1. red. eapply IHEQVr; eauto.
    + constructor; auto. gstep. eapply IHEQVl; eauto.
   - remember (VisF e1 k1) as x.
-    hinduction EQVl before r; intros; inv Heqx; try inv CHECK; subst; eauto.
+    hinduction EQVl before r; intros; inv Heqx; subst; eauto.
     + ddestruction. subst. remember (VisF e2 k3) as y.
-      hinduction EQVr before r; intros; inv Heqy; try inv CHECK; subst; eauto.
+      hinduction EQVr before r; intros; inv Heqy; subst; eauto.
       * ddestruction. subst. unpriv_pi. gclo. 
         econstructor; eauto with paco itree. gfinal. left. apply H.
       * remember (VisF e1 k1) as ovis. rewrite itree_eta' at 1.
         constructor; auto. rewrite Heqovis. gstep. eapply IHEQVr; eauto.
     + remember (VisF e2 k2) as x.
-      hinduction EQVr before r; intros; inv Heqx; try inv CHECK; subst; eauto.
+      hinduction EQVr before r; intros; inv Heqx; subst; eauto.
       * ddestruction. subst.  unpriv_pi.
          gclo. eapply eqit_trans_clo_intro with (t1' := Vis e1 k0); eauto with paco itree.
          gstep. cbn. unpriv_pi. gfinal. left. apply H.
        * remember (TauF t3) as ott3. rewrite itree_eta' at 1. constructor; auto.
          rewrite Heqott3. gstep. eapply IHEQVr; eauto.
   - remember (VisF e k1) as x.
-    hinduction EQVl before r; intros; inv Heqx; try inv CHECK; eauto.
+    hinduction EQVl before r; intros; inv Heqx; eauto.
     + ddestruction. subst.  unpriv_pi.
       gclo. econstructor; eauto with paco itree. gfinal. left. apply H.
     + constructor; auto. gstep. eapply IHEQVl; eauto.
   - remember (VisF e k2) as x.
-    hinduction EQVr before r; intros; inv Heqx; try inv CHECK; eauto.
+    hinduction EQVr before r; intros; inv Heqx; eauto.
     + ddestruction. subst.  unpriv_pi.
       gclo. econstructor; eauto with paco itree. gfinal. left. apply H.
     + constructor; auto. gstep. eapply IHEQVr; eauto.

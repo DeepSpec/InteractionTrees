@@ -273,7 +273,7 @@ because we can destruct itree'.
 #[local] Ltac iunfold_all  := unfold euttge, eq_itree, eutt, eqit in *.
 
 Ltac icbn := repeat red. 
-Ltac icbn_in h := cbn [eqit_mon body eqit_] in h.
+Ltac icbn_in h := repeat red in h.
 
 Ltac refold :=
   repeat match goal with
@@ -340,7 +340,7 @@ Ltac to_mon_in h :=
 
 (** --- Orchestration via the [Utils.v] generics. --- *)
 
-#[local] Tactic Notation "icbn" "in" ident(h) := icbn_in h.
+Tactic Notation "icbn" "in" ident(h) := icbn_in h.
 #[local] Tactic Notation "icbn" "in" "*" := cbn [eqit_mon body eqit_] in *.
 
 Tactic Notation "refold" "in" ident(h) := refold_in h.
@@ -1363,6 +1363,9 @@ Module Tests.
   #[local] Parameter (GT : v ≳ w).
   #[local] Parameter (GT2 : w ≳ v).
 
+  (* RTODO: something sus is going on here. 
+  
+  cbn breaks step. that shouldn't happen. *)
 Goal eutt RR u v.
     rewrite EQUIV2.
     rewrite <- EQ2.
@@ -1370,8 +1373,9 @@ Goal eutt RR u v.
     rewrite <- EQ1.
     exact EQ1. 
     rewrite EQ2, <- EQ2. 
-    exact EQ2.
-    step.
+    exact EQ2. 
+    step. 
+    (* cbn. *)
     step. 
     rewrite <- EQ1. 
     rewrite <- GT. 
@@ -1547,7 +1551,7 @@ Qed.
 Lemma eqitree_inv_Tau_r {E R} (t t' : itree E R) :
   t ≅ Tau t' -> exists t0, observe t = TauF t0 /\ t0 ≅ t'.
 Proof.
-  intros; sinv H; try inv CHECK; eauto.
+  intros; sinv H; eauto.
 Qed.
 
 Lemma eqit_inv_Ret {E R1 R2 RR} b1 b2 r1 r2 :

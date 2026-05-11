@@ -115,10 +115,10 @@ Ltac unpriv_ind := try apply EqVisUnPrivLInd;
 
 Ltac unpriv_halt :=
   match goal with
-  | [  Hemp : empty ?A |- secure_eqitF _ _ _ _ _ _ _ _ (@VisF _ _ _ ?A _ _) _ ] =>
+  | [  Hemp : empty ?A |- secure_eqitF _ _ _ _ _ _ _ (@VisF _ _ _ ?A _ _) _ ] =>
     try apply EqVisUnprivHaltLTauR; try apply EqVisUnprivHaltLVisR; auto with itree; intros
 
-  | [  Hemp : empty ?A |- secure_eqitF _ _ _ _ _ _ _ _ _ (@VisF _ _ _ ?A _ _)  ] =>
+  | [  Hemp : empty ?A |- secure_eqitF _ _ _ _ _ _ _ _ (@VisF _ _ _ ?A _ _)  ] =>
     try apply EqVisUnprivHaltRTauL; try apply EqVisUnprivHaltRVisL; auto with itree; intros end.
 
 Section SecureUntimedUnReflexive.
@@ -174,10 +174,8 @@ Proof.
   try (unpriv_co; apply CIH; apply H);
   try unpriv_halt.
   - constructor; auto with itree. intros. apply CIH; apply H.
-  - eapply EqVisUnprivHaltRVisL; eauto.
-    intros. eapply CIH. apply H. 
-  - eapply EqVisUnprivHaltLVisR; eauto.
-    intros. eapply CIH. apply H. 
+  - eapply CIH. apply H. 
+  - eapply CIH. apply H. 
 Qed. 
 
 Lemma secure_eqit_mono : forall E (b1 b2 b3 b4 : bool) R1 R2 RR1 RR2 Label priv l
@@ -194,10 +192,6 @@ Proof.
   eauto with itree. 
   - constructor; auto. now apply H2. 
   - constructor; intros; eauto. eapply CIH. apply H. 
-  - eapply EqVisUnprivHaltLVisR; eauto.
-    intros. eapply CIH. apply H. 
-  - eapply EqVisUnprivHaltRVisL; eauto.
-    intros. eapply CIH. apply H. 
 Qed.
 
 End SecureUntimedUnReflexive.

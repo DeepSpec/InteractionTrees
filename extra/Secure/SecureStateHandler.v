@@ -212,7 +212,7 @@ Proof.
   - rewrite Heqot. step; constructor. left. eapply IHHt; eauto.
   - eapply IHHt; eauto. assert (ITree.spin ≅ t2).
     { clear IHHt Ht. generalize dependent t2. coinduction c CIH'.
-      intros. step in Heqotspin. red in Heqotspin.  cbn in *. inversion Heqotspin; try inv CHECK0.
+      intros. step in Heqotspin. red in Heqotspin.  cbn in *. inversion Heqotspin0.
       subst.  eapply paco2_mon; eauto; intros; try contradiction. }
     apply EqAxiom.bisimulation_is_eq in H. subst; auto.
   - rewrite Heqot. step. constructor; auto. right. eapply CIH; eauto.  rewrite Heqotspin.

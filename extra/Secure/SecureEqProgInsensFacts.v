@@ -70,7 +70,7 @@ Lemma pi_eqit_secure_trans_ret E R1 R2 R3 Label priv l b1 b2
   pi_eqit_secure Label priv (rcompose RR1 RR2) b1 b2 l t1 t3.
 Proof.
   revert t1 t3. ginit. gcofix CIH.
-  intros. sinv H0; subst; try inv CHECK; use_simpobs.
+  intros. sinv H0; subst; use_simpobs.
   - rewrite H. generalize dependent t3. gcofix CIH'. intros t3 Ht3.
     sinv Ht3; use_simpobs.
     + rewrite H2. gstep. constructor; auto. econstructor; eauto.

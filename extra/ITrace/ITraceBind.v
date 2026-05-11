@@ -103,7 +103,7 @@ Qed.
 Lemma peel_t_ret : forall E R S (b : itrace E S) (t : itree E R) r, t ≅ Ret r -> (peel b t ≅ Ret r).
 Proof.
   intros.  unfold peel.
-  sinv H; subst; try inv CHECK.
+  sinv H; subst.
   destruct (observe b); cbn; auto.
   - step. cbn. constructor. auto.
   - step. cbn. constructor; auto.
@@ -888,7 +888,7 @@ Proof.
   destruct H as [s Ht0]. step in Ht0. cbn in Ht0.
   clear Heqt Hrutt.
   dependent induction Ht0.
-  - simpobs. cbn. step in Heqb. cbn in *. inv Heqb; try inv CHECK.
+  - simpobs. cbn. step in Heqb. cbn in *. inv Heqb.
     rewrite H0. auto with itree.
   - simpobs. cbn. constructor. eapply IHHt0; eauto.
 Qed.
