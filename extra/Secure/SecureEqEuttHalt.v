@@ -1,3 +1,5 @@
+From Coinduction Require Import all. 
+
 From Stdlib Require Import Morphisms.
 
 From ITree Require Import
@@ -10,8 +12,6 @@ From ITree.Extra Require Import
      Secure.SecureEqHalt
 .
 
-From Paco Require Import paco.
-
 Import Monads.
 Import MonadNotation.
 Local Open Scope monad_scope.
@@ -19,12 +19,12 @@ Local Open Scope monad_scope.
 Lemma tau_eqit_secure : forall E R1 R2 Label priv l RR (t1 : itree E R1) (t2 : itree E R2),
     eqit_secure Label priv RR true true l (Tau t1) t2 -> eqit_secure Label priv RR true true l t1 t2.
 Proof.
-  intros E R1 R2 Label priv l RR.  intros t1 t2 Hsec. pstep. red.
-  step in Hsec. red in Hsec. cbn in *. remember (TauF t1) as x.
-  hinduction Hsec before priv; intros;  inv Heqx;  try inv CHECK; auto with itree.
-  - constructor; auto. pstep_reverse.
-  - unpriv_ind. pstep_reverse.
-  - step in H.
+  intros E R1 R2 Label priv l RR.  intros t1 t2 Hsec. step. 
+  step in Hsec. cbn in *. remember (TauF t1) as x.
+  hinduction Hsec before priv; intros; inv Heqx; eauto with itree.
+  - constructor; auto. now unstep. 
+  - unpriv_ind. now unstep. 
+  - now step in H.
 Qed.
 
 Lemma unpriv_e_eqit_secure : forall E A R1 R2 Label priv l RR (e : E A) (k : A -> itree E R1)
@@ -34,74 +34,73 @@ Lemma unpriv_e_eqit_secure : forall E A R1 R2 Label priv l RR (e : E A) (k : A -
     forall a, eqit_secure Label priv RR true true l (k a) t.
 Proof.
   intros. generalize dependent t. rename H into Hunpriv. generalize dependent a.
-  intros. step in H0. red in H0. cbn in *. step. red.
+  intros. step in H0. cbn in *. step. 
   remember (VisF e k) as x. genobs_clear t ot.
   hinduction H0 before l; intros; try inv Heqx;
     ddestruction; subst; try contradiction; try contra_size; auto.
   - constructor; auto. eapply IHsecure_eqitF; eauto.
-  -  constructor; auto. pstep_reverse.
-  - unpriv_ind. pstep_reverse.  apply H.
+  -  constructor; auto. now unstep. 
+  - unpriv_ind. unstep.  apply H.
   - unpriv_ind. eapply H0; eauto.
-  -  rewrite itree_eta'. pstep_reverse.
+  -  rewrite itree_eta'. now unstep.
 Qed.
 
 
 (* reformat this lemma? useful but unclear *)
 Lemma eses_aux1: forall (E : Type -> Type) (R2 R1 : Type) (Label : Preorder)
                     (priv : forall A : Type, E A -> L) (l : L) (RR : R1 -> R2 -> Prop)
-                    (r : itree E R1 -> itree E R2 -> Prop) (m1 m2 : itree E R1),
+                    (m1 m2 : itree E R1),
               m1 ≈ m2 ->
                (forall (t1 t1' : itree E R1) (t2 : itree E R2),
-                   t1 ≈ t1' -> eqit_secure Label priv RR true true l t1 t2 -> r t1' t2) ->
+                   t1 ≈ t1' -> eqit_secure Label priv RR true true l t1 t2 -> eqit_secure Label priv RR true true l t1' t2) ->
                forall (X : Type) (e : E X) (k : X -> itree E R2),
-                 secure_eqitF Label priv RR true true l id
-                              (upaco2 (secure_eqit_ Label priv RR true true l id) bot2) (observe m1)
+                 secure_eqitF Label priv RR true true l 
+                              (eqit_secure Label priv RR true true l) (observe m1)
                               (VisF e k) ->
                  leq (priv X e) l ->
-                 secure_eqitF Label priv RR true true l id
-                              (upaco2 (secure_eqit_ Label priv RR true true l id) r) (observe m2)
+                 secure_eqitF Label priv RR true true l
+                              (eqit_secure Label priv RR true true l) (observe m2)
                               (VisF e k).
 Proof.
-  intros E R2 R1 Label priv l RR r m1 m2 REL CIH X e k Hsec SECCHECK.
-  remember (VisF e k) as x. step in REL. red in REL. rewrite Heqx.
-  hinduction Hsec before r; intros; try inv Heqx; ddestruction; subst; try contradiction; auto.
+  intros E R2 R1 Label priv l RR m1 m2 REL CIH X e k Hsec SECCHECK.
+  remember (VisF e k) as x. step in REL. rewrite Heqx.
+  hinduction Hsec before E; intros; try inv Heqx; ddestruction; subst; try contradiction; auto.
   - eapply IHHsec; eauto.
-    pstep_reverse. setoid_rewrite <- tau_eutt at 1. step. auto.
+    unstep. setoid_rewrite <- tau_eutt at 1. step. auto.
   -  remember (VisF e0 k1) as y.
-    hinduction REL before r; intros; try inv Heqy; ddestruction; subst; auto.
-    + constructor; auto. right. eapply CIH; eauto; try apply H.
+    hinduction REL before CIH; intros; try inv Heqy; ddestruction; subst; auto.
+    + constructor; auto. intros. eapply CIH; try apply H.
        apply REL.
     + constructor; eauto.
   - rewrite H2. remember (VisF e k1) as y.
-    hinduction REL before r; intros; try inv Heqy; ddestruction; subst; auto.
-    +  rewrite <- H2. unpriv_ind. rewrite H2. eapply H0; eauto.
-      Unshelve. all: auto. pstep_reverse.
+    hinduction REL before e; intros; try inversion Heqy. ddestruction.
+    + rewrite <- H2. unpriv_ind.  rewrite H2. eapply H0; eauto.
+      Unshelve. all: auto. now unstep. 
     + constructor; auto. eapply IHREL; eauto.
 Qed.
 
 Lemma eses_aux2:
 forall (E : Type -> Type) (R2 R1 : Type) (Label : Preorder)
-    (priv : forall A : Type, E A -> L) (l : L) (RR : R1 -> R2 -> Prop)
-    (r : itree E R1 -> itree E R2 -> Prop) (m1 m2 : itree E R1) (r0 : R2),
+    (priv : forall A : Type, E A -> L) (l : L) (RR : R1 -> R2 -> Prop) (m1 m2 : itree E R1) (r0 : R2),
   m1 ≈ m2 ->
-  secure_eqitF Label priv RR true true l id
-    (upaco2 (secure_eqit_ Label priv RR true true l id) bot2) (observe m1)
+  secure_eqitF Label priv RR true true l
+    (eqit_secure Label priv RR true true l) (observe m1)
     (RetF r0) ->
-  secure_eqitF Label priv RR true true l id
-    (upaco2 (secure_eqit_ Label priv RR true true l id) r) (observe m2)
+  secure_eqitF Label priv RR true true l 
+    (eqit_secure Label priv RR true true l) (observe m2)
     (RetF r0).
 Proof.
-  intros E R2 R1 Label priv l RR r m1 m2 r0 Heutt Hsec.
-  step in Heutt. red in Heutt. remember (RetF r0) as x.
-  rewrite Heqx. hinduction Hsec before r; intros; inv Heqx; auto with itree.
+  intros E R2 R1 Label priv l RR m1 m2 r0 Heutt Hsec.
+  step in Heutt. remember (RetF r0) as x.
+  rewrite Heqx. hinduction Hsec before E; intros; inv Heqx; auto with itree.
   - remember (RetF r1) as y.
-    hinduction Heutt before r; intros; inv Heqy; auto with itree.
+    hinduction Heutt before E; intros; inv Heqy; auto with itree.
     constructor; auto. eapply IHHeutt; eauto.
-  - eapply IHHsec; eauto. pstep_reverse. rewrite <- tau_eutt at 1. step. auto.
+  - eapply IHHsec; eauto. unstep. rewrite <- tau_eutt at 1. step. auto.
   - remember (VisF e k1) as y.
-    hinduction Heutt before r; intros; inv Heqy; ddestruction; subst; auto.
+    hinduction Heutt before E; intros; inv Heqy; ddestruction; subst; auto.
     +  unpriv_ind. rewrite H2. eapply H0; eauto.
-        pstep_reverse.
+        now unstep.
     + constructor; auto. eapply IHHeutt; eauto.
 Qed.
 
@@ -144,7 +143,7 @@ Proof.
            apply eqit_secure_sym.
            eapply unpriv_e_eqit_secure; eauto.
            apply eqit_secure_sym. step. auto.
-  -  rewrite itree_eta' at 1. pstep_reverse.
+  -  rewrite itree_eta' at 1. unstep.
     assert (eqit_secure Label priv RR true true l (Vis e k1) t2 ).
     { step; auto. }
     clear Hsec. rename H into Hsec.
@@ -189,7 +188,7 @@ Proof.
                   (* eapply unpriv_e_eqit_secure; eauto. *)
                   do 2 (eapply unpriv_e_eqit_secure; eauto; apply eqit_secure_sym).
                   step. auto.
-  - eapply IHHeutt; eauto. pstep_reverse.
+  - eapply IHHeutt; eauto. unstep.
     apply tau_eqit_secure. step. auto.
 Qed.
 
@@ -205,25 +204,25 @@ Proof.
   intros. step in H. red in H. cbn in *. pstep. red.
   remember (TauF t0) as x. remember (TauF t4) as y.
   hinduction H before b2; intros;  try discriminate.
-  - inv Heqx; inv Heqy.  pstep_reverse.
+  - inv Heqx; inv Heqy.  unstep.
   - inv Heqx. inv H; eauto with itree.
-    +  unpriv_ind. pstep_reverse.
+    +  unpriv_ind. unstep.
     + unpriv_ind. rewrite H1 in H2.
       specialize (H2 a). genobs (k1 a) ok1. clear Heqok1.
       remember (TauF t4) as y.
       hinduction H2 before b2; intros; inv Heqy; try inv CHECK; eauto with itree.
-      *  constructor; auto; pstep_reverse.
-      *  unpriv_ind. pstep_reverse.
+      *  constructor; auto; unstep.
+      *  unpriv_ind. unstep.
       *  step in H.
     +  step in H2.
   - inv Heqy. inv H; eauto with itree.
-    +  unpriv_ind. pstep_reverse.
+    +  unpriv_ind. unstep.
     + rewrite H0 in H2. unpriv_ind. specialize (H2 a).
       genobs (k2 a) ok2. clear Heqok2.
       remember (TauF t0) as y.
       hinduction H2 before b2; intros; inv Heqy; try inv CHECK; eauto with itree.
-      *  constructor; auto. pstep_reverse.
-      * unpriv_ind.  pstep_reverse.
+      *  constructor; auto. unstep.
+      * unpriv_ind.  unstep.
       *  step in H.
     +  step in H2.
 Qed.
@@ -244,16 +243,16 @@ Proof.
     remember (VisF e k) as y. step. clear IHHsec.
     hinduction Hsec before b2; intros; inv Heqy; ddestruction;  subst;
     try contradiction; try contra_size; eauto with itree.
-    + constructor; auto.  pstep_reverse.
-    + unpriv_ind.  pstep_reverse.
+    + constructor; auto.  unstep.
+    + unpriv_ind.  unstep.
     +  specialize (H a). step in H.
   - inv Heqx. inv Heqy. ddestruction; subst.  apply H.
   - inv Heqx. inv Heqy. ddestruction; subst. rewrite H2 in H.
     clear H0. clear H2 t1. remember (TauF t3) as x.
     step. specialize (H a).
     hinduction H before b2; intros; inv Heqx; try contra_size; eauto with itree.
-    +  constructor; auto. pstep_reverse.
-    +  unpriv_ind. pstep_reverse.
+    +  constructor; auto. unstep.
+    +  unpriv_ind. unstep.
     +  step in H.
   -   inv Heqx. inv Heqy. ddestruction; subst. contra_size.
 Qed.
@@ -273,8 +272,8 @@ Proof.
   - inv Heqx. inv CHECK. remember (VisF e k) as y. step. clear IHHsec.
     hinduction Hsec before b1; intros; inv Heqy; ddestruction; subst;
     try contradiction; eauto with itree.
-    + constructor; auto with itree.  pstep_reverse.
-    + unpriv_ind.  pstep_reverse.
+    + constructor; auto with itree.  unstep.
+    + unpriv_ind.  unstep.
     + contra_size.
     + contra_size.
     +  specialize (H a). step in H.
@@ -282,8 +281,8 @@ Proof.
   - inv Heqx. inv Heqy. ddestruction; subst.  rewrite H2 in H. inv CHECK.
     specialize (H a). step. remember (TauF t3) as y.
     hinduction H before b2; intros; inv Heqy; try contra_size; eauto with itree.
-    +  constructor; auto. pstep_reverse.
-    +  unpriv_ind. pstep_reverse.
+    +  constructor; auto. unstep.
+    +  unpriv_ind. unstep.
     +  step in H.
   - inv Heqx. inv Heqy. ddestruction; subst. contra_size.
 Qed.
@@ -305,14 +304,14 @@ Proof.
   remember (VisF e0 k) as y.
   hinduction H1 before l; intros; try discriminate.
   - inv Heqx. inv Heqy. ddestruction; subst. contradiction.
-  -  inv Heqx. inv Heqy. ddestruction; subst. pstep_reverse.
+  -  inv Heqx. inv Heqy. ddestruction; subst. unstep.
   - inv Heqx. ddestruction; subst. inv CHECK. clear H0.
     specialize (H a).
     rewrite Heqy in H. clear Heqy. remember (VisF e1 k) as y.
     hinduction H before l; intros; inv Heqy; ddestruction; subst; try contradiction;
     try contra_size; eauto with itree.
-    +  constructor; auto. pstep_reverse.
-    + unpriv_ind.  pstep_reverse.
+    +  constructor; auto. unstep.
+    + unpriv_ind.  unstep.
     +  specialize (H a0). step in H.
 
   - inv Heqy.  ddestruction; subst. inv CHECK. clear H0.
@@ -320,8 +319,8 @@ Proof.
     remember (VisF e0 k0) as y.
     hinduction H before b1; intros; inv Heqy; ddestruction; subst; try contradiction;
     try contra_size; eauto with itree.
-    +  constructor; auto. pstep_reverse.
-    +  unpriv_ind. pstep_reverse.
+    +  constructor; auto. unstep.
+    +  unpriv_ind. unstep.
     +  specialize (H a). step in H.
   - inv Heqx; inv Heqy; ddestruction; subst. contra_size.
   - inv Heqx; inv Heqy; ddestruction; subst. contra_size.
@@ -353,7 +352,7 @@ Lemma eqit_secure_private_VisL:
         eqit_secure Label priv RR2 true b2 l (k2 a) t) ->
         eqit_secure Label priv RR2 true b2 l (Vis e k2) t .
 Proof.
-  intros. step. cbn. unpriv_ind. pstep_reverse. apply H1.
+  intros. step. cbn. unpriv_ind. unstep. apply H1.
 Qed.
 
 Lemma eqit_secure_private_VisR:
@@ -366,7 +365,7 @@ Lemma eqit_secure_private_VisR:
         eqit_secure Label priv RR2 b1 true l t (k2 a)) ->
         eqit_secure Label priv RR2 b1 true l t (Vis e k2).
 Proof.
-  intros. step. cbn. unpriv_ind. pstep_reverse. apply H1.
+  intros. step. cbn. unpriv_ind. unstep. apply H1.
 Qed.
 
 Lemma eqit_secure_public_Vis :  forall (E : Type -> Type) (R1 R2 : Type) (Label : Preorder) (priv : forall x : Type, E x -> L)
@@ -405,17 +404,17 @@ Proof.
   - eapply IHHt23; eauto.
     remember (TauF t1) as y.
     hinduction H before r; intros; inv Heqy; try inv CHECK; eauto with itree.
-    +  constructor; auto. pstep_reverse.
-    +  unpriv_ind. pstep_reverse.
+    +  constructor; auto. unstep.
+    +  unpriv_ind. unstep.
     +  step in H.
   - assert (Hne : nonempty A). { eauto. } (* add the condition that lets us assume this*)
     inv Hne. eapply (H0 a); eauto.
     remember (VisF e k1) as y.
     hinduction H1 before r; intros; inv Heqy; try inv CHECK; ddestruction; subst;
     try contradiction; try contra_size; eauto with itree.
-    +  constructor; auto. pstep_reverse.
-    +  unpriv_ind. pstep_reverse.
-    +  rewrite itree_eta' at 1. pstep_reverse.
+    +  constructor; auto. unstep.
+    +  unpriv_ind. unstep.
+    +  rewrite itree_eta' at 1. unstep.
 Qed.
 
 Lemma eqit_secure_trans_aux2:
@@ -442,8 +441,8 @@ Proof.
   ddestruction; subst; try contradiction; eauto.
   - eapply IHHt23; eauto. clear IHHt23. remember (TauF t1) as y.
     hinduction Ht before r; intros; inv Heqy; try inv CHECK; eauto with itree.
-    +  constructor; auto. pstep_reverse.
-    +  unpriv_ind. pstep_reverse.
+    +  constructor; auto. unstep.
+    +  unpriv_ind. unstep.
     +  step in H.
   -  remember (VisF e0 k1) as y.
     hinduction Ht before r; intros; inv Heqy; try inv CHECK;
@@ -456,9 +455,9 @@ Proof.
     remember (VisF e k1) as y.
     hinduction Ht before r; intros; inv Heqy; try inv CHECK; ddestruction; subst;
     try contradiction; try contra_size; eauto with itree.
-    +  constructor; auto. pstep_reverse.
-    +  unpriv_ind. pstep_reverse.
-    +  rewrite itree_eta' at 1. pstep_reverse.
+    +  constructor; auto. unstep.
+    +  unpriv_ind. unstep.
+    +  rewrite itree_eta' at 1. unstep.
 
 Qed.
 
@@ -566,7 +565,7 @@ Proof.
     + apply H1.
   - inv SIZECHECK.  eapply H0; eauto. Unshelve. all : auto.
     inv Ht2; ddestruction; subst; try contra_size; try contradiction;  eauto.
-    rewrite itree_eta' at 1. pstep_reverse.
+    rewrite itree_eta' at 1. unstep.
   - unpriv_halt. right. eapply CIH; eauto. step. apply Ht2.
     step. apply H.
   -  unpriv_halt. right. eapply CIH; eauto. step. auto.
@@ -632,15 +631,15 @@ Proof.
       * inv Ht23. inv CHECK. rewrite itree_eta' at 1.
         assert (eqit_secure Label priv (rcompose RR1 RR2) true b2 l (Tau t0) (Ret r0)  ).
         { step. cbn. rewrite itree_eta' at 1. eapply eqit_secure_trans_aux1; eauto.
-          step. constructor; auto. pstep_reverse. }
-        rewrite itree_eta'. pstep_reverse. eapply paco2_mon; eauto.
+          step. constructor; auto. unstep. }
+        rewrite itree_eta'. unstep. eapply paco2_mon; eauto.
         intros; contradiction.
       * destruct (classic (leq (priv _ e) l ) ).
         -- inv Ht23; ddestruction; subst; try contradiction; try inv CHECK.
            constructor; auto. eapply eqit_secure_trans_aux2; eauto.
         -- destruct (classic_empty X).
            ++ rewrite itree_eta'. rewrite itree_eta' at 1.
-              pstep_reverse.
+              unstep.
               eapply paco2_mon with (r := bot2); intros; try contradiction.
               eapply secret_halt_trans_3 with (t2 := Tau t3); eauto.
               ** step. constructor. left. auto.
@@ -651,8 +650,8 @@ Proof.
   - apply IHHt12; auto.
     remember (TauF t0) as y.
     hinduction Ht23 before r; intros; inv Heqy; try inv CHECK; eauto with itree.
-    +  constructor; auto. pstep_reverse.
-    +  unpriv_ind. pstep_reverse.
+    +  constructor; auto. unstep.
+    +  unpriv_ind. unstep.
     +  step in H.
   -  remember (VisF e k2) as x.
     hinduction Ht23 before r; intros; inv Heqx; try inv CHECK; ddestruction; subst;
@@ -672,8 +671,8 @@ Proof.
         clear IHHt23. remember (TauF t) as y.
         step. red.
         hinduction Ht23 before r; intros; inv Heqy; try inv CHECK; eauto with itree.
-        --  constructor; auto. pstep_reverse.
-        --  unpriv_ind. pstep_reverse.
+        --  constructor; auto. unstep.
+        --  unpriv_ind. unstep.
         --  step in H.
       * destruct (classic (leq (priv _ e0) l ) ).
         -- rewrite itree_eta'. unpriv_ind. cbn.
@@ -681,16 +680,16 @@ Proof.
            clear Heqt a k1. eapply eqit_secure_trans_aux2; eauto.
         -- destruct (classic_empty X).
            ++ rewrite itree_eta'. unpriv_ind.
-              pstep_reverse. apply paco2_mon with (r := bot2); intros; try contradiction.
+              unstep. apply paco2_mon with (r := bot2); intros; try contradiction.
               eapply secret_halt_trans_3; eauto. apply H.
               step. auto.
            ++ unpriv_co. right. eapply CIH0. apply H.
               clear IHHt23. pstep. remember (VisF e0 k) as y.
               hinduction Ht23 before r; intros; inv Heqy; try inv CHECK;
                 ddestruction; subst; try contradiction; try contra_size; eauto with itree.
-              **  constructor; auto. pstep_reverse.
-              ** unpriv_ind.  pstep_reverse.
-              **  rewrite itree_eta' at 1. pstep_reverse.
+              **  constructor; auto. unstep.
+              ** unpriv_ind.  unstep.
+              **  rewrite itree_eta' at 1. unstep.
     + constructor; auto. eapply IHHt23; eauto.
     +  unpriv_co. right. eapply CIH0; try apply H0. apply H.
     + rewrite itree_eta' at 1. unpriv_ind. eapply H0; eauto.
@@ -718,7 +717,7 @@ Proof.
            constructor; auto. rewrite H5. eapply eqit_secure_trans_aux2; eauto.
            rewrite <- H5. apply H2. Unshelve. all : auto.
         -- destruct (classic_empty X).
-           ++ rewrite itree_eta'. rewrite itree_eta' at 1. pstep_reverse.
+           ++ rewrite itree_eta'. rewrite itree_eta' at 1. unstep.
               eapply paco2_mon with (r := bot2); intros; try contradiction.
               eapply secret_halt_trans_3 with (t2 := Vis e k2); eauto.
               ** step. cbn. unpriv_co.
@@ -750,11 +749,11 @@ Proof.
         clear Heqok2 H1 k2.
         remember (TauF t) as y.
         hinduction H before r; intros; inv Heqy; try inv CHECK; auto.
-        -- constructor; auto.  pstep_reverse.
+        -- constructor; auto.  unstep.
         -- constructor; eauto.
-        --  unpriv_ind. pstep_reverse.
+        --  unpriv_ind. unstep.
         -- unpriv_ind. eapply H0; eauto.
-        --  rewrite itree_eta' at 1. pstep_reverse.
+        --  rewrite itree_eta' at 1. unstep.
       * inv SIZECHECK2.
         destruct (classic (leq (priv _ e) l ) ).
         -- rewrite itree_eta'. unpriv_ind.
@@ -769,9 +768,9 @@ Proof.
               clear Heqok2.
               hinduction H before r; intros; inv Heqy; try inv CHECK;
                 ddestruction; subst; try contradiction; try contra_size; eauto with itree.
-              **  constructor; auto. pstep_reverse.
-              ** unpriv_ind.  pstep_reverse.
-              **  rewrite itree_eta' at 1. pstep_reverse.
+              **  constructor; auto. unstep.
+              ** unpriv_ind.  unstep.
+              **  rewrite itree_eta' at 1. unstep.
     + rewrite itree_eta' at 1. unpriv_ind. eapply H0; eauto.
     +  inv SIZECHECK2. unpriv_halt. right. eapply CIH0; eauto. apply H0.
       apply H. Unshelve. auto.
@@ -779,12 +778,12 @@ Proof.
     ddestruction; subst; try contradiction; try contra_size;  auto.
     + constructor; auto. eapply IHHt23; eauto.
     + constructor; auto.  assert (Hne : nonempty A0); eauto. inv Hne. eapply H0; eauto.
-      pstep_reverse. Unshelve. auto.
+      unstep. Unshelve. auto.
     + unpriv_ind. assert (Hne : nonempty A0); eauto. inv Hne. eapply H0; eauto.
-       pstep_reverse. Unshelve. auto.
+       unstep. Unshelve. auto.
     + assert (Hne : nonempty A0). { eauto. } inv Hne. eauto. Unshelve.  auto.
     + unpriv_ind. eauto.
-    +  rewrite itree_eta'. pstep_reverse.
+    +  rewrite itree_eta'. unstep.
       apply paco2_mon with (r := bot2); intros; try contradiction.
       inv SIZECHECK0.
       eapply secret_halt_trans_3 with (t2 := k0 a); eauto.
@@ -795,7 +794,7 @@ Proof.
     hinduction Ht23 before r; intros; inv Heqy; subst; eauto with itree; 
     + unpriv_halt. right. eapply CIH0; eauto.
     + clear IHHt23. rewrite itree_eta'. rewrite itree_eta' at 1.
-      pstep_reverse. apply paco2_mon with (r := bot2); intros; try contradiction.
+      unstep. apply paco2_mon with (r := bot2); intros; try contradiction.
       eapply secret_halt_trans_2; eauto. step. auto.
     + unpriv_halt. right. eapply CIH0; eauto. apply H.
     + rewrite itree_eta' at 1. unpriv_ind. eapply H0; eauto.
@@ -812,7 +811,7 @@ Proof.
       * unpriv_co. right. eapply CIH0; eauto. apply H1.
     +  unpriv_halt. right. eapply CIH0; eauto.
       step. cbn. unpriv_halt. contra_size.
- -  rewrite itree_eta' at 1. pstep_reverse.
+ -  rewrite itree_eta' at 1. unstep.
    apply paco2_mon with (r := bot2); intros; try contradiction.
    eapply secret_halt_trans_2 with (t2 := Vis e2 k2); eauto.
    + step. cbn. unpriv_halt.
@@ -855,7 +854,7 @@ Proof.
   intros t1 t1' t2 Heq Hsec. pstep. red.
   step in Heq. red in Heq. step in Hsec. red in Hsec.
   inv Heq; try inv CHECK.
-  - rewrite <- H0 in Hsec. rewrite itree_eta' at 1. pstep_reverse.
+  - rewrite <- H0 in Hsec. rewrite itree_eta' at 1. unstep.
     eapply paco2_mon with (r := bot2); intros; try contradiction. step.
     red. cbn. remember (RetF r2) as x. clear H H0.
     hinduction Hsec before r; intros; inv Heqx; eauto with itree.

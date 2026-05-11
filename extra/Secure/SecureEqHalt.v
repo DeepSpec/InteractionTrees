@@ -1,6 +1,6 @@
-From Stdlib Require Import PeanoNat. 
+From Coinduction Require Import all. (* import for CompleteLattice instances; Preorder's leq is re-imported below via Labels and wins as the unqualified name *)
+From Stdlib Require Import Morphisms PeanoNat. 
 
-From Coinduction Require all. (* don't import; library's leq clashes with Preorder leq *)
 
 From ITree Require Import
      Basics.Utils
@@ -72,8 +72,8 @@ Section SecureUntimed.
   Hint Unfold secure_eqit_ : itree.
 
 
-  Lemma secure_eqitF_mono b1 b2 l :
-  Proper (Coinduction.lattice.leq ==> Coinduction.lattice.leq) 
+Lemma secure_eqitF_mono b1 b2 l :
+  Proper (respectful Coinduction.lattice.leq Coinduction.lattice.leq) 
     (secure_eqit_ b1 b2 l).
   Proof.
     intros!. red; red in H0. 
@@ -128,7 +128,7 @@ Section eqit_secureC.
   Context {E: Type -> Type} {R1 R2 : Type} (RR : R1 -> R2 -> Prop).
   Context (Label : Preorder) (priv : forall A, E A -> L) (l : L).
 
-Lemma eqit_secure_trans t1 t2 t1' t2' RR1 RR2
+(* Lemma eqit_secure_trans b1 b1' b2 b2' r t1 t2 t1' t2' RR1 RR2
       (EQVl: eqit_secure Label priv RR1 b1 b1' l t1 t1')
       (EQVr: eqit_secure Label priv RR2 b2 b2' l t2 t2')
       (REL: r t1' t2')
@@ -159,56 +159,45 @@ Lemma eqit_secure_trans t1 t2 t1' t2' RR1 RR2
     eqit_secureC b1 b2 r2 t1 t2.
   Proof.
     destruct IN; eauto with itree.
-  Qed.
+  Qed. *)
 
 End eqit_secureC.
 
 
-Ltac gfinal_with H := gfinal; left; apply H.
-
+(* TOUR: This proof *)
 Lemma eqit_secure_sym : forall b1 b2 E R1 R2 RR Label priv l (t1 : itree E R1) (t2 : itree E R2),
-    eqit_secure Label priv RR b1 b2 l t1 t2 -> eqit_secure Label priv (flip RR) b2 b1 l t2 t1.
+    eqit_secure Label priv RR b1 b2 l t1 t2 -> eqit_secure Label priv (Basics.flip RR) b2 b1 l t2 t1.
 Proof.
-  intros b1 b2 E R1 R2 RR Label priv l. coinduction c CIH.
-  intros t1 t2 Hsec. step. step in Hsec. red in Hsec.
-  hinduction Hsec before r; intros; eauto with itree; 
-  try (unpriv_co; right; apply CIH; apply H);
+  intros b1 b2 E R1 R2 RR Label priv l. icoinduction c CIH.
+  intros t1 t2 Hsec. step in Hsec.
+  hinduction Hsec before c; intros; eauto with itree; 
+  try (unpriv_co; apply CIH; apply H);
   try unpriv_halt.
-  - constructor; auto with itree. intros. right. apply CIH; apply H.
-  - specialize (H a). remember (k2 a) as t. clear Heqt k2.
-     left.
-     intros. step. cbn. step in H. red in H. cbn in H.
-     inv H; ddestruction; subst; try contra_size; try contradiction;  eauto;
-     try (unpriv_halt; fail).
-     +  unpriv_halt. right. apply CIH. step. auto.
-     + rewrite H0. rewrite H0 in H2. unpriv_halt.
-       right. apply CIH. step. apply H2.
-     + unpriv_halt. right. apply CIH. apply H1.
-     + unpriv_halt. right. apply CIH. apply H1.
-  - specialize (H b). remember (k1 b) as t. clear Heqt k1.
-     left.
-     intros. step. cbn. step in H. red in H. cbn in H.
-     inv H; ddestruction; subst; try contra_size; try contradiction;  eauto;
-     try (unpriv_halt; fail).
-     +  unpriv_halt. right. apply CIH. step. auto.
-     + rewrite H1. rewrite H1 in H2. unpriv_halt.
-       right. apply CIH. step. apply H2.
-     + unpriv_halt. inv SIZECHECK0. contradiction.
-     + unpriv_halt. right. apply CIH. apply H2.
-Qed.
+  - constructor; auto with itree. intros. apply CIH; apply H.
+  - eapply EqVisUnprivHaltRVisL; eauto.
+    intros. eapply CIH. apply H. 
+  - eapply EqVisUnprivHaltLVisR; eauto.
+    intros. eapply CIH. apply H. 
+Qed. 
 
-Lemma secure_eqit_mon : forall E (b1 b2 b3 b4 : bool) R1 R2 RR1 RR2 Label priv l
+Lemma secure_eqit_mono : forall E (b1 b2 b3 b4 : bool) R1 R2 RR1 RR2 Label priv l
       (t1 : itree E R1) (t2 : itree E R2),
-    (b1 -> b3) -> (b2 -> b4) -> (RR1 <2= RR2) ->
+    (b1 -> b3) -> (b2 -> b4) -> (RR1 <= RR2) ->
     eqit_secure Label priv RR1 b1 b2 l t1 t2 -> eqit_secure Label priv RR2 b3 b4 l t1 t2.
 Proof.
   intros. generalize dependent t2. revert t1. coinduction c CIH.
-  intros t1 t2 Ht12. pstep. red.
-  step in Ht12. red in Ht12.
-  hinduction Ht12 before r; intros; eauto; 
-  try (unpriv_co; right; apply CIH; try red; eauto; fail);
-  try (unpriv_halt; try contra_size; right; apply CIH; try red; eauto; fail).
-  constructor; auto. right.  eauto. apply CIH; apply H2.
+  intros t1 t2 Ht12. icbn. 
+  step in Ht12.
+  hinduction Ht12 before l; intros; 
+  try (unpriv_co; apply CIH; try red; eauto; fail);
+  try (unpriv_halt; try contra_size; apply CIH; try red; eauto; fail); 
+  eauto with itree. 
+  - constructor; auto. now apply H2. 
+  - constructor; intros; eauto. eapply CIH. apply H. 
+  - eapply EqVisUnprivHaltLVisR; eauto.
+    intros. eapply CIH. apply H. 
+  - eapply EqVisUnprivHaltRVisL; eauto.
+    intros. eapply CIH. apply H. 
 Qed.
 
 End SecureUntimedUnReflexive.

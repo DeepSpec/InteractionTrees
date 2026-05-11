@@ -90,17 +90,17 @@ Proof.
   intros E S R t1 b2 Heutt r X e k H0 CIH.
   dependent induction H0.
   - rewrite <- x0 in Heutt. dependent induction Heutt.
-    + rewrite <- x. apply trace_prefix_ret.
-    + rewrite <- x. constructor. eapply IHHeutt; eauto.
+    + simpobs. apply trace_prefix_ret.
+    + simpobs. constructor. eapply IHHeutt; eauto.
   - eapply IHtrace_prefixF. 3: reflexivity. all: eauto. 
     apply simpobs in x. assert (t1 ≈ b2) by now step.
     rewrite x in H. rewrite tau_eutt in H. now step in H.
   - rewrite <- x in Heutt. dependent induction Heutt.
-    + rewrite <- x. constructor.
-    + rewrite <- x. constructor. eapply IHHeutt; eauto.
+    + simpobs. constructor.
+    + simpobs. constructor. eapply IHHeutt; eauto.
   - rewrite <- x in Heutt. dependent induction Heutt.
-    + rewrite <- x. constructor. eapply CIH; eauto with itree.
-    + rewrite <- x. constructor. eapply IHHeutt; eauto.
+    + simpobs. constructor. eapply CIH; eauto with itree.
+    + simpobs. constructor. eapply IHHeutt; eauto.
 Qed.
 
 Lemma trace_prefix_tau_inv:
@@ -114,13 +114,13 @@ Proof.
   - auto.
   - step. clear IHHbp. dependent induction Hbp.
     + rewrite <- x0. auto with itree.
-    + rewrite <- x. constructor. now step in H.
-    + rewrite <- x. constructor. eapply IHHbp; eauto.
+    + simpobs. constructor. now step in H.
+    + simpobs. constructor. eapply IHHbp; eauto.
     + auto.
   - step. clear IHHbp. dependent induction Hbp.
-    + rewrite <- x. constructor. now step in H.
+    + simpobs. constructor. now step in H.
     + auto.
-    + rewrite <- x. constructor. eapply IHHbp; eauto.
+    + simpobs. constructor. eapply IHHbp; eauto.
 Qed.
 
 Lemma trace_prefix_proper_l : forall E R S (b1 b2 : itrace E R) (b : itrace E S),
@@ -129,15 +129,15 @@ Proof.
   intros E R S. icoinduction c CIH. intros b1 b2 b Heutt Hbp.
   step in Heutt. step in Hbp.
   dependent induction Heutt.
-  - rewrite <- x. constructor.
-  - rewrite <- x. rewrite <- x0 in Hbp. clear x0 x.
+  - simpobs. constructor.
+  - simpobs. clear x0 x.
     destruct (observe b) eqn : Heqb.
     + inv Hbp. constructor. dependent induction  H0.
       * apply simpobs in x0. assert (m1 ≈ m2); auto.
         rewrite x0 in H. clear x x0 Heqb CIH REL.
         step in H. cbn in *. dependent induction H.
-        ++ rewrite <- x. apply trace_prefix_ret.
-        ++ rewrite <- x. constructor. eapply IHeqitF; eauto.
+        ++ simpobs. apply trace_prefix_ret.
+        ++ simpobs. constructor. eapply IHeqitF; eauto.
       * eapply IHtrace_prefixF. 5: reflexivity. all: auto.
         apply simpobs in x. assert (m1 ≈ m2); auto.
         rewrite x in H. rewrite tau_eutt in H. auto.
@@ -146,8 +146,8 @@ Proof.
       * apply simpobs in x0. assert (m1 ≈ m2); auto.
         rewrite x0 in H. step in H. cbn in *.
         dependent induction H.
-        ++ rewrite <- x. apply trace_prefix_ret.
-        ++ rewrite <- x. constructor. eapply IHeqitF; try apply x0; eauto. 
+        ++ simpobs. apply trace_prefix_ret.
+        ++ simpobs. constructor. eapply IHeqitF; try apply x0; eauto. 
            assert (m1 ≈ m2); auto.
            sinv x0. apply simpobs in x, H2. 
             rewrite x, H2, tau_eutt in H0.
@@ -159,36 +159,36 @@ Proof.
         rewrite x in H0.
         step in H0. cbn in *.
         dependent induction H0.
-        ++ rewrite <- x. constructor.
-        ++ rewrite <- x. constructor. eapply IHeqitF; try apply x0; eauto.
+        ++ simpobs. constructor.
+        ++ simpobs. constructor. eapply IHeqitF; try apply x0; eauto.
            assert (m1 ≈ m2); auto.
            apply simpobs in x. rewrite x in H1. rewrite tau_eutt in H1. auto.
       *  apply simpobs in x. assert (m1 ≈ m2); auto.
         rewrite x in H0. step in H0. cbn in *.
         dependent induction H0.
-        ++ rewrite <- x. constructor. eapply CIH; try apply REL0; eauto. 
-        ++ rewrite <- x. constructor. eapply IHeqitF; try apply x0; eauto.
+        ++ simpobs. constructor. eapply CIH; try apply REL0; eauto. 
+        ++ simpobs. constructor. eapply IHeqitF; try apply x0; eauto.
            assert (m1 ≈ m2); auto.
            apply simpobs in x. rewrite x in H1. rewrite tau_eutt in H1. auto.
-  - rewrite <- x. rewrite <- x0 in Hbp. clear x x0. 
+  - simpobs. clear x x0. 
     dependent induction Hbp.
-    + rewrite <- x. constructor. eapply IHHbp; eauto.
-    + rewrite <- x. constructor.
-    + rewrite <- x.  constructor. eapply CIH; try apply REL; eauto with itree.
+    + simpobs. constructor. eapply IHHbp; eauto.
+    + simpobs. constructor.
+    + simpobs.  constructor. eapply CIH; try apply REL; eauto with itree.
   - rewrite <- x in Hbp.
     destruct (observe b) eqn : Heqb.
     + clear IHHeutt. inv Hbp. clear Heqb x.
       dependent induction H0.
       * rewrite <- x0 in Heutt. clear CIH x0 x.
         dependent induction  Heutt.
-        ++ rewrite <- x. apply trace_prefix_ret.
-        ++ rewrite <- x. constructor. eapply IHHeutt; eauto.
+        ++ simpobs. apply trace_prefix_ret.
+        ++ simpobs. constructor. eapply IHHeutt; eauto.
       * eapply IHtrace_prefixF. 4: reflexivity. all: auto.
         assert (t1 ≈ b2) by now step. 
         apply simpobs in x. rewrite x in H. rewrite tau_eutt in H. now step in H.
     + constructor. eapply IHHeutt; eauto. unstep. eapply trace_prefix_tau_inv; eauto.
     + clear IHHeutt. inv Hbp. eapply trace_prefix_proper_aux_vis; eauto.
-  - rewrite <- x. constructor. eapply IHHeutt; eauto.
+  - simpobs. constructor. eapply IHHeutt; eauto.
 Qed.
 
 Lemma trace_prefixF_tau_inv_r:
@@ -202,8 +202,8 @@ Proof.
   intros E S R t1 b Hbp.
   dependent induction  Hbp.
   - rewrite <- x0. apply trace_prefix_ret.
-  -  rewrite <- x. constructor. now step in H.
-  - rewrite <- x. constructor. eapply IHHbp; eauto.
+  -  simpobs. constructor. now step in H.
+  - simpobs. constructor. eapply IHHbp; eauto.
   - auto.
 Qed.
 
@@ -231,11 +231,11 @@ Proof.
     assert (Tau bs ≈ m2) by now step. 
     rewrite tau_eutt in H. now step in H.
   - rewrite <- x in REL. dependent induction REL.
-    + rewrite <- x. constructor.
-    + rewrite <- x. constructor. eapply IHREL; eauto.
+    + simpobs. constructor.
+    + simpobs. constructor. eapply IHREL; eauto.
   -  rewrite <- x in REL. dependent induction REL.
-    + rewrite <- x. constructor. eapply CIH; try apply REL; eauto with itree.
-    + rewrite <- x. constructor. eapply IHREL; eauto.
+    + simpobs. constructor. eapply CIH; try apply REL; eauto with itree.
+    + simpobs. constructor. eapply IHREL; eauto.
 Qed.
 
 Lemma trace_prefix_proper_r : forall E R S (b : itrace E R) (b1 b2 : itrace E S),
@@ -244,21 +244,21 @@ Proof.
   intros E R S. icoinduction c CIH. intros b b1 b2 Heutt Hbp.
   step in Heutt. step in Hbp. 
   dependent induction Heutt.
-  - rewrite <- x. rewrite <- x0 in Hbp. clear x0 x. induction Hbp; auto with itree.
+  - simpobs. clear x0 x. induction Hbp; auto with itree.
     +  constructor. eapply CIH; eauto.
     + constructor. now do 2 ITree.Basics.Utils.step. 
-  -  rewrite <- x0 in Hbp. rewrite <- x. clear x0 x.
+  -  rewrite <- x0 in Hbp. simpobs. clear x0 x.
     destruct (observe b).
     + apply trace_prefix_ret.
     + constructor. eapply CIH; eauto. apply trace_prefix_tau_inv. auto.
     + inv Hbp. constructor. eapply trace_prefixF_vis_l; eauto.
-  - rewrite <- x. rewrite <- x0 in Hbp.  clear x x0. dependent induction Hbp.
+  - simpobs. clear x x0. dependent induction Hbp.
     + rewrite <- x0. apply trace_prefix_ret.
-    + rewrite <- x. constructor. eapply IHHbp; eauto.
-    + rewrite <- x. constructor.
-    + rewrite <- x. constructor. eapply CIH; try apply REL; eauto with itree.
+    + simpobs. constructor. eapply IHHbp; eauto.
+    + simpobs. constructor.
+    + simpobs. constructor. eapply CIH; try apply REL; eauto with itree.
   - eapply IHHeutt; auto. rewrite <- x in Hbp. eapply trace_prefixF_tau_inv_r; eauto.
-  - rewrite <- x. constructor. eapply IHHeutt; eauto.
+  - simpobs. constructor. eapply IHHeutt; eauto.
 Qed.
 
 #[global] Instance trace_prefix_proper {E R S} : Proper (eutt eq ==> eutt eq ==> iff) (@trace_prefix E R S).
