@@ -16,6 +16,17 @@ Import Monads.
 Import MonadNotation.
 Local Open Scope monad_scope.
 
+Lemma tau_eqit_secure : forall E R1 R2 Label priv l RR (t1 : itree E R1) (t2 : itree E R2) r,
+    secure_eqit_mon Label priv RR true true l r (Tau t1) t2 -> secure_eqit_mon Label priv RR true true l r t1 t2.
+Proof.
+  intros E R1 R2 Label priv l RR.  intros t1 t2 r Hsec.
+  icbn; icbn in Hsec; cbn in *. remember (TauF t1) as x.
+  hinduction Hsec before priv; intros; inv Heqx; eauto with itree.
+  - constructor; auto. now unstep. 
+  - unpriv_ind. now unstep. 
+  - now step in H.
+Qed.
+
 Lemma tau_eqit_secure : forall E R1 R2 Label priv l RR (t1 : itree E R1) (t2 : itree E R2),
     eqit_secure Label priv RR true true l (Tau t1) t2 -> eqit_secure Label priv RR true true l t1 t2.
 Proof.
@@ -132,8 +143,26 @@ Proof.
 Qed.
 
 Definition classic_empty := Secure.Labels.classic_empty.
+(* #[global] Instance eutt_secure_secure_eqit_mon 
+    (c : Chain (secure_eqit_mon Label priv RR true true l)): 
+    Proper (eutt eq ==> eq ==> Basics.flip Basics.impl)
+     (elem c).
+Proof.
+  do 5 red. tower induction; subst. 
+  clear c. intros c. intros CIH t1 t1' Heutt t2 _ <- Hsec. 
+  step in Heutt. icbn; icbn in Hsec.  
+  hinduction Heutt before E; intros; subst; auto with itree.
+  (* - remember (RetF r2) as x. hinduction Hsec before E; intros; try inv Heqx; auto with itree.
+    + constructor; auto. eapply IHHsec; eauto.
+    + unpriv_ind. eapply H0; eauto. *)
+  - genobs t2 ot2. clear Heqot2. 
+    assert (Ht2 : (exists m3, ot2 = TauF m3) \/ (forall m3, ot2 <> TauF m3) ).
+    { destruct ot2; eauto; right; repeat intro; discriminate. }
+    (* because of the extra inductive cases this is not enough *)
+    destruct Ht2 as [ [m3 Hm3] | Ht2 ].
+    + subst.  constructor. eapply CIH; eauto. *)
 
-(*tomorrow start on the transitivity proof *)
+
 Lemma eutt_secure_eqit_secure : forall E Label priv l R1 R2 RR (t1 t1': itree E R1) (t2 : itree E R2),
     t1 ≈ t1' -> eqit_secure Label priv RR true true l t1 t2 ->
     eqit_secure Label priv RR true true l t1' t2.

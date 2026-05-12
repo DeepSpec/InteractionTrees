@@ -800,17 +800,6 @@ Section eqit_inv.
       1: apply eqit_inv_Tau_l; step; unfold observe, _observe; assumption.
   Qed.
 
-Lemma eqit_inv_Tau_var (m1 : itree E R1) z :
-  forall (om1 : itree' E R1),
-    observe m1 = om1 ->
-    eqitF RR true false sim om1 z ->
-    @eqitF _ R1 R2 RR true false sim (TauF m1) z.
-Proof.
-  intros om1 Heq H2.
-  (* Now om2 is a variable — we can use plain induction *)
-  induction H2; taul; simpobs; eauto with itree. 
-Qed. 
-
 End eqit_inv.
 
 Ltac genret r or := remember (RetF r) as or.
@@ -871,23 +860,6 @@ end.
 Ltac tower_induction := apply tower; [inf_closed_auto|].
 Tactic Notation "tower" "induction" := tower_induction. 
 
-(* for meeting *)
- (* learned a lot from this. 
-    1 interesting difference is your induction on eqit_mon ... ̇c,
-     rather than on {≳}.
-    another is the strong IH. 
-    a third is use of certain interesting automation, which I'd like to learn
-    finally, edestructing a lemma. seems quite cool. 
-    
-    we will talk next steps at our meeting: 
-    1. where to go in this file: notation, tactic naming, etc. 
-      imo we should name things exactly as they will be in your 
-      coinduction library PR, so that they are easy to fix.
-    2. onwards: we want this proof but with euttgeC, no? 
-       finally, will we use uptotaus, or just move on to the next
-       part in ktrees? 
-    3. finally, thanks! 
-     *)
 #[global] Instance euttge_proper_euttC {E R1 R2}
   (RR : R1 -> R2 -> Prop) (c : euttC):
   Proper (euttge (E := E) eq ==> euttge eq ==> flip impl) (elem c _ _ RR).
@@ -963,7 +935,8 @@ Qed.
 (* here chain_b lifts b to elements of the chain... *)
 #[global] Instance euttge_proper_euttC_mon {E R1 R2}
   (RR : R1 -> R2 -> Prop) (c : euttC):
-  Proper ((euttge (E := E) eq) ==> (euttge eq) ==> flip impl)  (eqit_mon true true (elem c) R1 R2 RR).
+  Proper ((euttge (E := E) eq) ==> (euttge eq) ==> flip impl) 
+         (eqit_mon true true (elem c) R1 R2 RR).
 Proof.
   eapply euttge_proper_euttC with (c := chain_b c); eauto.  
 Qed. 
@@ -971,7 +944,8 @@ Qed.
 (* ... and chain_gfp lifts the gfp. *)
 #[global] Instance euttge_proper_eutt  {E R1 R2}
   (RR : R1 -> R2 -> Prop) (c : Chain (@eqit_mon E true true)):
-  Proper ((euttge (E := E) eq) ==> (euttge eq) ==> flip impl)  (eutt RR). 
+  Proper ((euttge (E := E) eq) ==> (euttge eq) ==> flip impl)  
+         (eutt RR). 
 Proof.
   eapply euttge_proper_euttC with (c := (chain_gfp (eqit_mon true true))); eauto.  
 Qed. 
@@ -1051,7 +1025,7 @@ Lemma not_euttge_proper_euttgeC :
   Proper (euttge (E := E) eq ==> euttge eq ==> flip impl) (elem c _ _ RR)).
   unfold Proper, respectful, flip, impl. 
   intro. 
-assert (Hfalse : euttge (E := fun _ => Empty_set) (R1 := unit) (R2 := unit) eq
+assert (Hfalse : euttge (E := fun _ => False) (R1 := unit) (R2 := unit) eq
                     (Ret tt) (Tau (Ret tt))).
   { eapply H with (x := Ret tt) (y := Ret tt).
   (* ^ this works because the canonical chain structure uses chain_gfp
@@ -2663,7 +2637,7 @@ Proof.
     now rewrite <- Heq at 2.
   - constructor. intros v. eapply eqit_inv_Vis in Heq.
     specialize (REL v). eapply CIH. now rewrite <- Heq at 2.
-  - taul. taur. apply IHHeutt. rewrite <- (itree_eta t1).   
+  - taul; taur. apply IHHeutt. rewrite <- (itree_eta t1).   
     now rewrite tau_euttge in Heq. 
   - apply IHHeutt. rewrite <- (itree_eta).   
     now rewrite tau_euttge in Heq. 
