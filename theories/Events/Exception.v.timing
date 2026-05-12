@@ -1,6 +1,6 @@
-Chars 43 - 75 [From~ITree~Require~Import~ITree.] 0.062 secs (0.049u,0.012s)
+Chars 43 - 75 [From~ITree~Require~Import~ITree.] 0.069 secs (0.05u,0.016s)
 Chars 77 - 100 [Set~Implicit~Arguments.] 0. secs (0.u,0.s)
 Chars 156 - 237 [Variant~exceptE~(Err~:~Type)~:...] 0. secs (0.u,0.s)
 Chars 341 - 503 [Definition~throw~{Err~:~Type}~...] 0.001 secs (0.001u,0.s)
-Chars 505 - 1188 [Definition~try_catch~{Err~R~:~...] 0.025 secs (0.023u,0.002s)
+Chars 505 - 1188 [Definition~try_catch~{Err~R~:~...] 0.026 secs (0.022u,0.003s)
 Chars 1190 - 1772 [Definition~throw_prefix~{Err~R...] 0.003 secs (0.003u,0.s)

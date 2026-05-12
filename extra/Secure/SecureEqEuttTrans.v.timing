@@ -1,0 +1,7 @@
+Chars 0 - 65 [From~ITree~Require~Import~Axio...] 0.303 secs (0.198u,0.036s)
+Chars 67 - 154 [From~ITree.Extra~Require~Impor...] 0.008 secs (0.006u,0.001s)
+Chars 156 - 186 [From~Paco~Require~Import~paco.] 0.008 secs (0.007u,0.001s)
+Chars 188 - 202 [Import~Monads.] 0. secs (0.u,0.s)
+Chars 203 - 224 [Import~MonadNotation.] 0. secs (0.u,0.s)
+Chars 225 - 254 [#[local]~Open~Scope~monad_scope.] 0. secs (0.u,0.s)
+Chars 257 - 966 [Lemma~eses_aux3~:~~~forall~(E~...] 0.001 secs (0.001u,0.s)

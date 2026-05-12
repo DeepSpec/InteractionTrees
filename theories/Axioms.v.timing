@@ -1,4 +1,4 @@
-Chars 145 - 272 [From~Stdlib~Require~Import~Log...] 0.137 secs (0.121u,0.015s)
+Chars 145 - 272 [From~Stdlib~Require~Import~Log...] 0.184 secs (0.125u,0.025s)
 Chars 319 - 366 [From~Stdlib~Require~Export~Pro...] 0.001 secs (0.001u,0.s)
 Chars 368 - 391 [Set~Implicit~Arguments.] 0. secs (0.u,0.s)
 Chars 490 - 599 [Ltac~~ddestruction~:=~~~repeat...] 0. secs (0.u,0.s)
