@@ -279,28 +279,28 @@ Proof.
   icoinduction c CIH.
   intros a1 a2 Ha. specialize (Hbody a1 a2 Ha) as Hbodya.
   step in Hbodya.
+  unfold observe.
    (* write lemmas for unfolding the observe of iter *) cbn.
-  to_mon_s. rewrite 2unfold_iter. icbn. rewrite observe_bind. 
-   
   hinduction Hbodya before E; intros; cbn; auto with itree.
-  fail. 
-  - inv H. cbn; eauto with itree. 
-  - cbn.  constructor.
-    left. eapply iter_bind_aux; eauto.
-  - constructor; auto.  left. eapply iter_bind_aux; eauto.
-  - unpriv_co.  left. eapply iter_bind_aux; eauto.
-  -  unpriv_co.  left. eapply iter_bind_aux; eauto.
-  - unpriv_co.  left. eapply iter_bind_aux; eauto.
+  - inv H; cbn; eauto with itree. 
+  - cbn.  constructor. do 2 step. 
+    eapply iter_bind_aux; eauto.
+  - constructor; auto. intro. do 2 step. eapply iter_bind_aux; eauto.
+      apply H. 
+  - unpriv_co.  do 2 step.
+    eapply iter_bind_aux; eauto. apply H. 
+  - unpriv_co. do 2 step. eapply iter_bind_aux; eauto. apply H. 
+  - unpriv_co.  do 2 step. eapply iter_bind_aux; eauto. apply H. 
   - unpriv_ind. (* here is  where it gets bad, I am pretty sure H0 does match up but could
                   take very particular *) unfold observe at 1. cbn.
     eauto.
   - unpriv_ind. unfold observe at 3. cbn. eauto.
-  -  unpriv_halt.
-    left. eapply iter_bind_shalt_aux1; eauto.
-  - unpriv_halt.  left. eapply iter_bind_shalt_aux2; eauto.
-  - unpriv_halt.  specialize (H b). left.
-    eapply iter_bind_shalt_aux1; eauto.
-  - unpriv_halt.  specialize (H a). left. eapply iter_bind_shalt_aux2; eauto.
+  -  unpriv_halt. do 2 step. 
+      eapply iter_bind_shalt_aux1; eauto. intros; apply RA; auto.  
+  - unpriv_halt. do 2 step.  eapply iter_bind_shalt_aux2; eauto.
+  - unpriv_halt.  specialize (H b). do 2 step. 
+    eapply iter_bind_shalt_aux1; eauto. intros; apply RA; auto.  
+  - unpriv_halt.  specialize (H a). do 2 step. eapply iter_bind_shalt_aux2; eauto.
 Qed.
 
 Lemma secure_eqit_ret : forall (E : Type -> Type) Label priv l b1 b2 (R1 R2 : Type) (RR : R1 -> R2 -> Prop) (r1 : R1) (r2 : R2),
