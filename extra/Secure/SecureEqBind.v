@@ -278,11 +278,13 @@ Proof.
   (* look into the more general secure_eqitC closure, see if that is weakly compatible, *)
   icoinduction c CIH.
   intros a1 a2 Ha. specialize (Hbody a1 a2 Ha) as Hbodya.
-  step in Hbodya. 
+  step in Hbodya.
    (* write lemmas for unfolding the observe of iter *) cbn.
-   rewrite unfold_iter.   
+  to_mon_s. rewrite 2unfold_iter. icbn. rewrite observe_bind. 
+   
   hinduction Hbodya before E; intros; cbn; auto with itree.
-  - inv H; cbn; eauto with itree.
+  fail. 
+  - inv H. cbn; eauto with itree. 
   - cbn.  constructor.
     left. eapply iter_bind_aux; eauto.
   - constructor; auto.  left. eapply iter_bind_aux; eauto.

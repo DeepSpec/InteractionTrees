@@ -16,16 +16,60 @@ Import Monads.
 Import MonadNotation.
 Local Open Scope monad_scope.
 
-Lemma tau_eqit_secure : forall E R1 R2 Label priv l RR (t1 : itree E R1) (t2 : itree E R2) r,
-    secure_eqit_mon Label priv RR true true l r (Tau t1) t2 -> secure_eqit_mon Label priv RR true true l r t1 t2.
-Proof.
-  intros E R1 R2 Label priv l RR.  intros t1 t2 r Hsec.
-  icbn; icbn in Hsec; cbn in *. remember (TauF t1) as x.
-  hinduction Hsec before priv; intros; inv Heqx; eauto with itree.
-  - constructor; auto. now unstep. 
-  - unpriv_ind. now unstep. 
-  - now step in H.
-Qed.
+
+
+#[local] Ltac taul := apply secEqTauL; [auto|].
+#[local] Ltac taur := apply secEqTauR; [auto|].
+
+#[global] Instance euttge_proper_secureC {E R1 R2} b1 b2 Label priv (RR : R1 -> R2 -> Prop) l
+  (c : Chain (secure_eqit_mon Label priv RR b1 b2 l)) : 
+  Proper (eq_itree (E := E) eq ==> eq_itree eq ==> Basics.flip Basics.impl) (elem c).
+Proof with eauto with itree.
+  unfold Proper, respectful, Basics.flip, Basics.impl.
+  tower induction.
+  clear c; intros c IH x x' EQx y y' EQy; step in EQx; step in EQy.
+    intros EQ. icbn; icbn in EQ; cbn in *. 
+    genobs x' ox'; genobs y' oy'.
+    (* [hinduction] is not sufficient here, because [move] is unable to pass
+         through [ox] to reach [x] *)
+    revert x x' y y' Heqox' Heqoy' EQx EQy.
+    induction EQ; intros.
+    + clear x' y' Heqox' Heqoy'.
+      genobs x ox.
+      genret r1 or1.
+      revert x Heqox.
+      hinduction EQx before ox; try easy.
+      * intros; subst; inv Heqor1. clear x Heqox.
+        genobs y oy; genret r2 or2.
+        revert y Heqoy.
+        hinduction EQy before oy; try easy.
+        subst; intros [=<-] ??...
+    + inv EQx; inv EQy. constructor. eapply IH; eauto. 
+    + inv EQx. taul. eapply IHEQ; eauto. now unstep. 
+    + inv EQy. taur. eapply IHEQ; eauto. now unstep.
+    + inv EQx; inv EQy. ddestruction; subst; try contradiction; try contra_size; eauto with itree.
+    + inv EQx; inv EQy. ddestruction; subst; try contradiction; try contra_size; eauto with itree.
+    + inv EQx; inv EQy. ddestruction; subst; try contradiction; try contra_size; eauto with itree.
+    + inv EQx; inv EQy. ddestruction; subst; try contradiction; try contra_size; eauto with itree.
+    + inv EQx; ddestruction. constructor; auto. intros. 
+      eapply H0; eauto. now unstep. 
+    + inv EQy; ddestruction. constructor; auto. intros. 
+      eapply H0; eauto. now unstep. 
+    + inv EQx; inv EQy; ddestruction; subst; try easy.  
+      constructor 11; eauto. eapply IH. 
+      2, 3: eauto. step. constructor. auto. 
+    + inv EQx; inv EQy; ddestruction; subst; try easy.  
+      constructor 12; eauto. eapply IH. 
+      1, 3: eauto. step. constructor. auto. 
+    + inv EQx; inv EQy; ddestruction; subst; try easy.  
+      constructor 13; eauto. intro. eapply IH.
+      3: apply H. step; now constructor. apply REL0. 
+    + inv EQx; inv EQy; ddestruction; subst; try easy.  
+      constructor 14; eauto. intro. eapply IH.
+      3: apply H. apply REL.
+       step; now constructor. 
+Qed. 
+
 
 Lemma tau_eqit_secure : forall E R1 R2 Label priv l RR (t1 : itree E R1) (t2 : itree E R2),
     eqit_secure Label priv RR true true l (Tau t1) t2 -> eqit_secure Label priv RR true true l t1 t2.
@@ -819,10 +863,17 @@ Proof.
               specialize (H a). clear Heqot2. genobs (k2 a) ok2.
               clear Heqok2.
               hinduction H before E; intros; inv Heqy;
-                ddestruction; subst; try contradiction; try contra_size; eauto with itree.
-              **  constructor; auto. now unstep. 
-              ** unpriv_ind.  now unstep. 
-              **  rewrite itree_eta' at 1. now unstep. 
+                ddestruction; subst; try contradiction; try contra_size.
+              **  constructor; auto. 
+                  eapply IHsecure_eqitF. 
+                  13: exact H1. all: eauto.
+              **  constructor; auto. now unstep.
+              ** unpriv_ind.  now unstep.
+              ** apply EqVisUnPrivLInd; auto. 
+                  intro. eapply H0. 
+                  13: exact H1. all: eauto. 
+              ** eauto with itree.   
+              **  rewrite itree_eta' at 1. now unstep.
     + rewrite itree_eta' at 1. unpriv_ind. eapply H0; eauto.
     +  inv SIZECHECK2. unpriv_halt. eapply CIH0; eauto. apply H0.
       apply H. Unshelve. auto.
@@ -994,3 +1045,38 @@ Proof.
     { intros. inv H4. }
     eapply eqit_secure_trans; eauto.
 Qed.
+
+
+
+
+(* Lemma tau_secure_eqit_mon : forall E R1 R2 Label priv l RR (t1 : itree E R1) (t2 : itree E R2)
+    (c : Chain (secure_eqit_mon Label priv RR true true l)), 
+    secure_eqit_mon Label priv RR true true l (elem c) (Tau t1) t2 -> secure_eqit_mon Label priv RR true true l (elem c) t1 t2.
+Proof.
+  intros E R1 R2 Label priv l RR.  intros t1 t2 c Hsec.
+  icbn; icbn in Hsec; cbn in *. remember (TauF t1) as x.
+  hinduction Hsec before priv; intros; inversion Heqx; subst; eauto with itree.
+  - constructor; auto. now unstep. 
+  - unpriv_ind. now unstep. 
+  - now step in H.
+Qed. *)
+
+
+(* #[global] Instance eutt_secure_secure_eqit_mon {E : Type -> Type} {R1 R2 : Type} {RR : R1 -> R2 -> Prop} {Label priv l} 
+    (c : Chain (secure_eqit_mon Label priv RR true true l)): 
+    Proper (@eq_itree E _ _ eq ==> eq ==> Basics.flip Basics.impl)
+     (elem c).
+Proof.
+  do 5 red. tower induction; subst. 
+  clear c. intros c. intros CIH t1 t1' Heutt t2 _ <- Hsec. 
+  step in Heutt. icbn; icbn in Hsec.  
+  hinduction Heutt before E; intros; subst; auto with itree.
+  (* - remember (RetF r2) as x. hinduction Hsec before E; intros; try inv Heqx; auto with itree.
+    + constructor; auto. eapply IHHsec; eauto.
+    + unpriv_ind. eapply H0; eauto. *)
+  - genobs t2 ot2. clear Heqot2. 
+    assert (Ht2 : (exists m3, ot2 = TauF m3) \/ (forall m3, ot2 <> TauF m3) ).
+    { destruct ot2; eauto; right; repeat intro; discriminate. }
+    (* because of the extra inductive cases this is not enough *)
+    destruct Ht2 as [ [m3 Hm3] | Ht2 ].
+    + subst.  constructor. eapply CIH; eauto. *)
