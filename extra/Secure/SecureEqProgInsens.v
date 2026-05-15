@@ -1,3 +1,4 @@
+From Coinduction Require Import all.
 From Stdlib Require Import Morphisms.
 
 From ITree Require Import
@@ -9,7 +10,6 @@ From ITree.Extra Require Import
      Secure.SecureEqHalt
 .
 
-From Paco Require Import paco.
 
 Import Monads.
 Import MonadNotation.

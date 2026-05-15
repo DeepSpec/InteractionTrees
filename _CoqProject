@@ -107,4 +107,4 @@ extra/Secure/SecureEqBind.v
 extra/Secure/SecureEqProgInsens.v
 extra/Secure/SecureEqProgInsensFacts.v
 extra/Secure/SecureStateHandler.v
-# extra/Secure/SecureStateHandlerPi.v
+extra/Secure/SecureStateHandlerPi.v
