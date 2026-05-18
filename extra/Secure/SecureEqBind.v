@@ -148,7 +148,7 @@ Lemma iter_bind_shalt_aux1:
   forall (E : Type -> Type) (B2 B1 A1 A2 : Type) (RA : A1 -> A2 -> Prop)
     (RB : B1 -> B2 -> Prop) (b1 b2 : bool) (Label : Preorder)
     (priv : forall A : Type, E A -> L) (l : L) (body1 : A1 -> itree E (A1 + B1))
-    (body2 : A2 -> itree E (A2 + B2)) (r : itree E B1 -> itree E B2 -> Prop)
+    (body2 : A2 -> itree E (A2 + B2)) 
     (A : Type) (e : E A) (k1 : A -> itree E (A1 + B1)) (t0 : itree E (A2 + B2)),
     ~ leq (priv A e) l ->
     empty A ->
@@ -170,7 +170,7 @@ Lemma iter_bind_shalt_aux1:
                          | inr r0 => Ret r0
                          end)).
 Proof.
-  intros E B2 B1 A1 A2 RA RB b1 b2 Label priv l body1 body2 r A e k1 t0 SECCHECK SIZECHECK H.
+  intros E B2 B1 A1 A2 RA RB b1 b2 Label priv l body1 body2 A e k1 t0 SECCHECK SIZECHECK H.
   generalize dependent t0. coinduction c CIH. intros t0 Ht0.
   icbn. step in Ht0. rewrite observe_bind.   
    cbn in *. inv Ht0; inv_vis_secure; cbn;  unpriv_halt; try contra_size;
@@ -187,7 +187,6 @@ Lemma iter_bind_shalt_aux2:
     (RB : B1 -> B2 -> Prop) (b1 b2 : bool) (Label : Preorder)
     (priv : forall A : Type, E A -> L) (l : L) (body1 : A1 -> itree E (A1 + B1))
     (body2 : A2 -> itree E (A2 + B2)) 
-    (* (r : itree E B1 -> itree E B2 -> Prop) *)
     (A : Type) (e : E A) (t0 : itree E (A1 + B1)) (k2 : A -> itree E (A2 + B2)),
     ~ leq (priv A e) l ->
     empty A ->
@@ -227,11 +226,12 @@ Lemma iter_bind_aux:
     (RB : B1 -> B2 -> Prop) (b1 b2 : bool) (Label : Preorder)
     (priv : forall A : Type, E A -> L) (l : L) (body1 : A1 -> itree E (A1 + B1))
     (body2 : A2 -> itree E (A2 + B2)) 
-    (r : itree E B1 -> itree E B2 -> Prop)
+    (c : Chain (secure_eqit_mon Label priv RB b1 b2 l))
     (t1 : itree E (A1 + B1)) (t2 : itree E (A2 + B2)),
     eqit_secure Label priv (HeterogeneousRelations.sum_rel RA RB) b1 b2 l t1 t2 ->
-    (forall (a1 : A1) (a2 : A2), RA a1 a2 -> r (ITree.iter body1 a1) (ITree.iter body2 a2)) ->
-    eqit_secure Label priv RB b1 b2 l 
+    (forall (a1 : A1) (a2 : A2)
+    , RA a1 a2 -> elem c (ITree.iter body1 a1) (ITree.iter body2 a2)) ->
+    elem c
           (ITree.bind t1
                       (fun lr : A1 + B1 =>
                          match lr with
@@ -245,23 +245,36 @@ Lemma iter_bind_aux:
                          | inr r0 => Ret r0
                          end)).
 Proof.
-Admitted.
-  (* intros E B2 B1 A1 A2 RA RB b1 b2 Label priv l body1 body2 r t1 t2 H CIH0.
-  generalize dependent t2. revert t1. coinduction c CIH1.
-  intros t1 t2 Ht12. step in Ht12. pstep. red.
-   cbn.
-  hinduction Ht12 before r; intros; cbn; eauto; 
+  intros E B2 B1 A1 A2 RA RB b1 b2 Label priv l body1 body2 c. 
+  tower induction. clear c; intros c CIH t1 t2 Ht12 Hbody. step in Ht12. 
+  icbn. 
+  unfold observe. cbn. 
+  hinduction Ht12 before E; intros; simpobs; cbn; eauto; 
   try (unpriv_co; fail);
   try (constructor; auto;  right; eapply CIH1; eauto with itree; fail).
   - inv H; cbn; eauto with itree.
-  - unpriv_ind. unfold observe at 1. cbn. eapply H0; eauto with itree.
-  - unpriv_ind. unfold observe at 3. cbn. eapply H0; eauto with itree.
-  - unpriv_halt. left. eapply iter_bind_shalt_aux1; eauto with itree.
-  - unpriv_halt. left. eapply iter_bind_shalt_aux2; eauto with itree.
-  - unpriv_halt. specialize (H b). left. eapply iter_bind_shalt_aux1; eauto with itree.
-  - unpriv_halt. specialize (H a). left. eapply iter_bind_shalt_aux2; eauto with itree.
-Qed. *)
+    constructor. now step; apply Hbody. 
+  - constructor; auto. eapply CIH; eauto with itree.
+    intros. now step; apply Hbody. 
+  - constructor; auto. unfold observe at 1. cbn. eapply IHHt12; eauto with itree. 
+  - constructor; auto. unfold observe at 1. cbn. eapply IHHt12; eauto with itree. 
+  - constructor; auto. intro. 
+    eapply CIH; intros. apply H.
+    now step; apply Hbody.
 
+  - unpriv_co. eapply CIH; intros. apply H.
+      now step; apply Hbody.
+  - unpriv_co. eapply CIH; intros. apply H.
+      now step; apply Hbody.
+  - unpriv_co. eapply CIH; intros. apply H. 
+      now step; apply Hbody.
+  - unpriv_ind. unfold observe at 1. cbn. eapply H0; eauto with itree.
+  - unpriv_ind. unfold observe at 3. cbn. apply H0; eauto with itree.
+  - unpriv_halt. do 2 step. eapply iter_bind_shalt_aux1; eauto with itree.
+  - unpriv_halt. do 2 step. eapply iter_bind_shalt_aux2; eauto with itree.
+  - unpriv_halt. specialize (H b). do 2 step. eapply iter_bind_shalt_aux1; eauto with itree.
+  - unpriv_halt. specialize (H a). do 2 step. eapply iter_bind_shalt_aux2; eauto with itree.
+Qed. 
 
 Lemma secure_eqit_iter : forall E A1 A2 B1 B2 (RA : A1 -> A2 -> Prop) (RB : B1 -> B2 -> Prop)
                            b1 b2 Label priv l
@@ -283,23 +296,23 @@ Proof.
    (* write lemmas for unfolding the observe of iter *) cbn.
   hinduction Hbodya before E; intros; cbn; auto with itree.
   - inv H; cbn; eauto with itree. 
-  - cbn.  constructor. do 2 step. 
-    eapply iter_bind_aux; eauto.
-  - constructor; auto. intro. do 2 step. eapply iter_bind_aux; eauto.
+  - cbn.  constructor. 
+    eapply iter_bind_aux; eauto. 
+  - constructor; auto. intro. eapply iter_bind_aux; eauto.
       apply H. 
-  - unpriv_co.  do 2 step.
+  - unpriv_co.  
     eapply iter_bind_aux; eauto. apply H. 
-  - unpriv_co. do 2 step. eapply iter_bind_aux; eauto. apply H. 
-  - unpriv_co.  do 2 step. eapply iter_bind_aux; eauto. apply H. 
+  - unpriv_co. eapply iter_bind_aux; eauto. apply H. 
+  - unpriv_co. eapply iter_bind_aux; eauto. apply H. 
   - unpriv_ind. (* here is  where it gets bad, I am pretty sure H0 does match up but could
                   take very particular *) unfold observe at 1. cbn.
     eauto.
   - unpriv_ind. unfold observe at 3. cbn. eauto.
   -  unpriv_halt. do 2 step. 
-      eapply iter_bind_shalt_aux1; eauto. intros; apply RA; auto.  
+      eapply iter_bind_shalt_aux1; eauto. 
   - unpriv_halt. do 2 step.  eapply iter_bind_shalt_aux2; eauto.
   - unpriv_halt.  specialize (H b). do 2 step. 
-    eapply iter_bind_shalt_aux1; eauto. intros; apply RA; auto.  
+    eapply iter_bind_shalt_aux1; eauto. 
   - unpriv_halt.  specialize (H a). do 2 step. eapply iter_bind_shalt_aux2; eauto.
 Qed.
 
