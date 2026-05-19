@@ -1,4 +1,4 @@
-Chars 611 - 718 [From~ITree~Require~Import~Basi...] 0.049 secs (0.037u,0.011s)
+Chars 611 - 718 [From~ITree~Require~Import~Basi...] 0.031 secs (0.025u,0.006s)
 Chars 720 - 748 [Import~Basics.Basics.Monads.] 0. secs (0.u,0.s)
 Chars 765 - 852 [Variant~depE~{I~:~Type}~(F~:~I...] 0. secs (0.u,0.s)
 Chars 854 - 876 [Arguments~Dep~{I~F}~&.] 0. secs (0.u,0.s)

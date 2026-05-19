@@ -1,4 +1,4 @@
-Chars 125 - 194 [From~ITree~Require~Import~Basi...] 0.005 secs (0.004u,0.001s)
+Chars 125 - 194 [From~ITree~Require~Import~Basi...] 0.003 secs (0.002u,0.001s)
 Chars 196 - 216 [Import~CatNotations.] 0. secs (0.u,0.s)
 Chars 217 - 247 [#[local]~Open~Scope~cat_scope.] 0. secs (0.u,0.s)
 Chars 297 - 342 [Definition~Fun~(A~B~:~Type)~:~...] 0. secs (0.u,0.s)

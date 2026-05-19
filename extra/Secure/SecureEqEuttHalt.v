@@ -732,7 +732,6 @@ Proof.
       * destruct (classic (leq (priv _ e) l ) ).
         -- inv Ht23; ddestruction; subst; try contradiction.
            constructor; auto. inv CHECK. 
-           (* RTODO fix stepping without eta' *)
            eapply eqit_secure_trans_aux2; eauto.
         -- destruct (classic_empty X).
            ++ rewrite itree_eta'. rewrite itree_eta' at 1.
@@ -798,15 +797,13 @@ Proof.
     + subst. constructor. eapply CIH0; try apply H.
       Unshelve. all: auto.
       eapply eqit_secure_TauRVisL; eauto. step. auto.
-       (* should be fine but new lemma, also shelved goal *)
     +
       destruct ot3; try (exfalso; eapply Ht4;  eauto; fail  ).
       * inv Ht23; inv CHECK. ddestruction. clear CIH0.
         constructor; auto. rewrite H4. eapply eqit_secure_trans_aux1; try apply H.
-        rewrite <- H4. apply H1. Unshelve. auto. (* shelved goal*)
+        rewrite <- H4. apply H1. Unshelve. auto.
       * constructor. eapply CIH0; try apply H.
         eapply eqit_secure_TauRVisL; eauto. step. auto.
-        (* same goal as last admit *)
       * destruct (classic (leq (priv _ e0) l ) ).
         -- inv Ht23; ddestruction; subst; try contradiction.
            constructor; auto. rewrite H5. inv CHECK. 
@@ -822,7 +819,6 @@ Proof.
               assert (eqit_secure Label priv RR2 b1 b2 l (Vis e k2) (Vis e0 k) ).
               step. auto. eapply eqit_secure_VisLR; eauto.
   -  remember (VisF e2 k2) as x.
-    (* maybe need to separate the inductive and coinductive progress cases? *)
     hinduction Ht23 before E; intros; inv Heqx; try contradiction;
     try contra_size;
     ddestruction; subst; auto.
@@ -846,8 +842,8 @@ Proof.
         remember (TauF t) as y.
         hinduction H before E; intros; inv Heqy; auto.
         -- constructor; auto.  now unstep. 
-        -- constructor; eauto.
-        --  unpriv_ind. now unstep. 
+        -- apply secEqTauL; eauto. 
+        -- unpriv_ind. now unstep. 
         -- unpriv_ind. eapply H0 with (c:=c); eauto. 
         --  rewrite itree_eta' at 1. now unstep. 
       * inv SIZECHECK2.

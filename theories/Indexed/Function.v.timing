@@ -1,4 +1,4 @@
-Chars 245 - 350 [From~ITree~Require~Import~Basi...] 0.015 secs (0.011u,0.003s)
+Chars 245 - 350 [From~ITree~Require~Import~Basi...] 0.01 secs (0.007u,0.002s)
 Chars 352 - 378 [Set~Universe~Polymorphism.] 0. secs (0.u,0.s)
 Chars 428 - 482 [Definition~IFun~(E~F~:~Type~->...] 0. secs (0.u,0.s)
 Chars 545 - 610 [Definition~apply_IFun~{E}~{F}~...] 0. secs (0.u,0.s)
