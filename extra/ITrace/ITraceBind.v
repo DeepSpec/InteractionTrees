@@ -530,23 +530,23 @@ Lemma eqitF_observe_peel_cont_vis:
   forall (E : Type -> Type) (R S A : Type) (ev : E A) (ans : A)
          (k1 k2 : unit -> itree (EvAns E) R),
     (forall v : unit, eutt eq (k1 v) (k2 v)) ->
-    forall r : itree (EvAns E) R -> itree (EvAns E) R -> Prop,
+    forall c : Chain (eqit_mon true true),
       (forall (b b' : itrace E R) (t : itree E S),
           (b ≈ b') ->
-          r (peel_cont_ (observe b) (observe t)) (peel_cont_ (observe b') (observe t))) ->
+          elem c _ _ eq (peel_cont_ (observe b) (observe t)) (peel_cont_ (observe b') (observe t))) ->
       forall (X : Type) (e : E X) (k : X -> itree E S),
-        eqitF eq true true (r)
-              (observe (peel_cont_ (VisF (evans A ev ans) k1) (VisF e k)))
-              (observe (peel_cont_ (VisF (evans A ev ans) k2) (VisF e k))).
+        eqit_mon true true (elem c) _ _ eq
+              ((peel_cont_ (VisF (evans A ev ans) k1) (VisF e k)))
+              ((peel_cont_ (VisF (evans A ev ans) k2) (VisF e k))).
 Proof.
-  intros E R S A ev ans k1 k2 REL r CIH X e k.
+  intros E R S A ev ans k1 k2 REL c CIH X e k. icbn. 
   unfold observe. cbn. unfold peel_cont_vis.
   destruct (classicT (A = X) ).
   - unfold eq_rect_r, eq_rect. remember (eq_sym e0) as He.
     dependent destruction He. cbn. constructor.
     intros.  eapply CIH. auto with itree.
-  - cbn. taus.
-Admitted. 
+  - cbn. taus. reflexivity. 
+Qed.  
 
 
 Lemma proper_peel_cont_eutt_l : forall (E : Type -> Type) (R S : Type)
