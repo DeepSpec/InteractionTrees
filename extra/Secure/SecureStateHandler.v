@@ -1,4 +1,5 @@
 From Stdlib Require Import Morphisms.
+From Coinduction Require Import all.
 
 From ITree Require Import
      Basics.HeterogeneousRelations
@@ -15,8 +16,6 @@ From ITree.Extra Require Import
      Secure.SecureEqEuttHalt
      Secure.StrongBisimProper
 .
-
-From Paco Require Import paco.
 
 Import Monads.
 Import MonadNotation.
@@ -70,24 +69,37 @@ Variant diverges_with' {E : Type -> Type} (P : forall A, E A -> Prop) (A : Type)
 Definition diverges_with_  {E} (P : forall A, E A -> Prop) {A : Type} (F : itree E A -> Prop) :  itree E A -> Prop :=
   fun t => diverges_with' P A F (observe t).
 
-Definition diverges_with {E} (P : forall A, E A -> Prop) {A : Type} : itree E A -> Prop := paco1 (@diverges_with_ E P A) bot1.
-
 Hint Constructors diverges_with' : itree.
 Hint Unfold diverges_with_ : itree.
 
-Lemma mono_diverges_with (E : Type -> Type) P A : monotone1 (@diverges_with_ E P A).
+Lemma diverges_with_mono (E : Type -> Type) P A :
+  Proper (respectful Coinduction.lattice.leq Coinduction.lattice.leq)
+    (@diverges_with_ E P A).
 Proof.
-  red. intros. red. inversion IN; auto with itree.
+  intros F G HFG t Ht. red; red in Ht.
+  inversion Ht; subst.
+  - apply diverges_tau. apply HFG. auto.
+  - apply diverges_vis; auto. intros a; apply HFG; auto.
 Qed.
 
-Hint Resolve mono_diverges_with : paco.
+Definition diverges_with_mon {E} (P : forall A, E A -> Prop) (A : Type) :
+  mon (itree E A -> Prop) := Build_mon (diverges_with_mono E P A).
+
+Definition diverges_with {E} (P : forall A, E A -> Prop) {A : Type} : itree E A -> Prop :=
+  gfp (diverges_with_mon P A).
 
 #[global] Instance proper_diverges_with {E A} {P : forall A, E A -> Prop} : Proper (eq_itree eq ==> iff ) (@diverges_with E P A).
 Proof.
   do 2 red. intros t1 t2 Heq. apply EqAxiom.bisimulation_is_eq in Heq. subst; tauto.
 Qed.
 
-#[global] Instance proper_diverges_with_r  {E A r} {P : forall A, E A -> Prop} : Proper (eq_itree eq ==> iff ) (paco1 (@diverges_with_ E P A) r ).
+(* The paco-era [proper_diverges_with_r] was a Proper instance for
+   [paco1 ... r] (a partial fixpoint). The coinduction analog is a
+   Proper for [elem c] (a chain element). Provided in chain form so it
+   applies inside [coinduction c CIH] proofs. *)
+#[global] Instance proper_diverges_with_elem {E A} {P : forall A, E A -> Prop}
+  (c : Chain (@diverges_with_mon E P A)) :
+  Proper (eq_itree eq ==> iff) (elem c).
 Proof.
   do 2 red. intros t1 t2 Heq. apply EqAxiom.bisimulation_is_eq in Heq. subst; tauto.
 Qed.
@@ -101,11 +113,16 @@ Qed.
 Lemma diverges_with_bind : forall E (P : forall A, E A -> Prop) (A B : Type) (k : A -> itree E B) (t : itree E A) ,
     diverges_with P t -> diverges_with P (ITree.bind t k).
 Proof.
-  intros P A B k. coinduction c CIH. intros.
-  step. unfold observe. cbn.
-  sinv H0; cbn.
-  - constructor; eauto.
-  - constructor; intros; eauto. right. eapply CIH; eauto. apply H1.
+  intros E P A B k. coinduction c CIH. intros t Hdiv.
+  step in Hdiv. cbn in Hdiv. inversion Hdiv; subst.
+  - (* Tau case *)
+    apply simpobs in H. rewrite H.
+    rewrite bind_tau. apply diverges_tau. apply CIH; auto.
+  - (* Vis case *)
+    apply simpobs in H. rewrite H.
+    rewrite bind_vis. cbn.
+    apply diverges_vis; auto.
+    intros a. apply CIH. apply H0.
 Qed.
 
 Lemma diverges_with_halt : forall E (A B : Type) (e : E A) (k : A -> itree E B) (P : forall A, E A -> Prop),
@@ -347,7 +364,7 @@ Proof.
       eapply H0; eauto. simpl. etransitivity; eauto.
     + rewrite bind_tau. pstep. constructor 4; auto. pstep_reverse.
     + rewrite bind_vis. pstep. destruct H3. constructor 10; auto. intros. pstep_reverse.
-  - 
+  -
     rewrite Heqot1. rewrite interp_state_vis.
     rewrite Heqot2. rewrite interp_state_tau.
     pose proof Hhandler as Hhandler'.
@@ -356,7 +373,7 @@ Proof.
     + eapply diverges_with_bind; eauto.
     + step. constructor. left. eapply diverge_with_respectful_handler; eauto.
       eapply diverges_secure_equiv_halt_r; eauto.
-  - 
+  -
     rewrite Heqot1. rewrite interp_state_tau.
     rewrite Heqot2. rewrite interp_state_vis.
     pose proof Hhandler as Hhandler'.

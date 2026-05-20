@@ -1,3 +1,6 @@
+From Coinduction Require Import all.
+From Stdlib Require Import Morphisms Program.Basics.
+
 From ITree Require Import
      Axioms
      ITree
@@ -8,8 +11,6 @@ From ITree.Extra Require Import
      Secure.SecureEqProgInsens
 .
 
-From Paco Require Import paco.
-
 Import Monads.
 Import MonadNotation.
 Local Open Scope monad_scope.
@@ -17,6 +18,115 @@ Local Open Scope monad_scope.
 Variant case_rel {A1 A2 B : Type} (R1 : A1 -> B -> Prop) (R2 : A2 -> B -> Prop) : (A1 + A2) -> B -> Prop :=
   | crl a1 b : R1 a1 b -> case_rel R1 R2 (inl a1) b
   | crr a2 b : R2 a2 b -> case_rel R1 R2 (inr a2) b.
+
+(* ===== Small Vis constructor lemmas (paco-free) ===== *)
+
+Lemma pi_eqit_secure_pub_vis E R1 R2 RR Label priv l b1 b2 A (e : E A)
+      (k1 : A -> itree E R1) (k2 : A -> itree E R2) :
+  leq (priv _ e) l ->
+  (forall a, pi_eqit_secure Label priv RR b1 b2 l (k1 a) (k2 a) ) ->
+  pi_eqit_secure Label priv RR b1 b2 l (Vis e k1) (Vis e k2).
+Proof.
+  intros. step. constructor; auto.
+Qed.
+
+Lemma pi_eqit_secure_priv_vislr E R1 R2 RR Label priv l b1 b2 A B (e1 : E A) (e2 : E B)
+      (k1 : A -> itree E R1) (k2 : B -> itree E R2) :
+  ~ leq (priv _ e1) l -> ~ leq (priv _ e2) l ->
+  (forall a b, pi_eqit_secure Label priv RR b1 b2 l (k1 a) (k2 b) ) ->
+  pi_eqit_secure Label priv RR b1 b2 l (Vis e1 k1) (Vis e2 k2).
+Proof.
+  intros. step. constructor; auto.
+Qed.
+
+Lemma pi_eqit_secure_priv_visl E R1 R2 RR Label priv l b2 A (e1 : E A)
+      (k1 : A -> itree E R1) (t2 : itree E R2) :
+  ~ leq (priv _ e1) l ->
+  (forall a, pi_eqit_secure Label priv RR true b2 l (k1 a) t2 ) ->
+  pi_eqit_secure Label priv RR true b2 l (Vis e1 k1) t2.
+Proof.
+  intros. step. constructor; auto.
+Qed.
+
+Lemma pi_eqit_secure_priv_visr E R1 R2 RR Label priv l b1 A (e1 : E A)
+      (t1 : itree E R1) (k2 : A -> itree E R2) :
+  ~ leq (priv _ e1) l ->
+  (forall a, pi_eqit_secure Label priv RR b1 true l t1 (k2 a) ) ->
+  pi_eqit_secure Label priv RR b1 true l t1 (Vis e1 k2).
+Proof.
+  intros. step. constructor; auto.
+Qed.
+
+(* ===== use_simpobs Ltac (paco-free) ===== *)
+
+Ltac use_simpobs :=
+  repeat match goal with
+         | H : TauF _ = observe ?t |- _ => apply simpobs in H
+         | H : RetF _ = observe ?t |- _ => apply simpobs in H
+         | H : VisF _ _ = observe ?t |- _ => apply simpobs in H
+  end.
+
+(* The [eq_itree]-based Proper in [SecureEqProgInsens.v] is [flip impl] only.
+   For [rewrite H] in the forward direction we need an [iff] (or [impl])
+   variant: derive it from the [flip impl] one using symmetry of [eq_itree]. *)
+#[global] Instance pi_eqit_secure_eq_itree_proper_iff
+  {E} {Label priv l} {R1 R2 : Type} {RS : R1 -> R2 -> Prop} (b1 b2 : bool) :
+  Proper (@eq_itree E R1 R1 eq ==> eq_itree eq ==> iff)
+         (pi_eqit_secure Label priv RS b1 b2 l).
+Proof.
+  intros t1 t1' EQ1 t2 t2' EQ2.
+  pose proof (pi_eqit_secure_eutt_proper (E := E) (RS := RS) (Label := Label)
+                (priv := priv) (l := l) b1 b2) as Hfwd.
+  unfold Proper, respectful in Hfwd.
+  split; intros H.
+  - (* P t1 t2 -> P t1' t2': use Proper with symmetric eqs *)
+    eapply (Hfwd _ _ (symmetry EQ1) _ _ (symmetry EQ2)). exact H.
+  - (* P t1' t2' -> P t1 t2: direct *)
+    eapply (Hfwd _ _ EQ1 _ _ EQ2). exact H.
+Qed.
+
+(* Iff variant on the chain element [elem c] (needed for forward rewrites
+   inside [coinduction c CIH] proofs). Derived from the [flip impl] chain
+   Proper [pi_eqit_secure_proper_secureC] in [SecureEqProgInsens.v]. *)
+#[global] Instance pi_eqit_secure_chain_proper_iff
+  {E R1 R2} b1 b2 Label priv (RR : R1 -> R2 -> Prop) l
+  (c : Chain (pi_secure_eqit_mon Label priv RR b1 b2 l)) :
+  Proper (@eq_itree E R1 R1 eq ==> eq_itree eq ==> iff) (elem c).
+Proof.
+  intros t1 t1' EQ1 t2 t2' EQ2.
+  pose proof (pi_eqit_secure_proper_secureC b1 b2 Label priv RR l c) as Hfwd.
+  unfold Proper, respectful in Hfwd.
+  split; intros H.
+  - eapply (Hfwd _ _ (symmetry EQ1) _ _ (symmetry EQ2)). exact H.
+  - eapply (Hfwd _ _ EQ1 _ _ EQ2). exact H.
+Qed.
+
+(* ===== Transitivity through Ret ===== *)
+
+(* I believe we could generalize this lemma for any t2 that converges along all paths *)
+Lemma pi_eqit_secure_trans_ret E R1 R2 R3 Label priv l b1 b2
+      (RR1 : R1 -> R2 -> Prop) (RR2 : R2 -> R3 -> Prop)
+      (t1 : itree E R1) (r : R2) (t3 : itree E R3) :
+  pi_eqit_secure Label priv RR1 b1 b2 l t1 (Ret r) ->
+  pi_eqit_secure Label priv RR2 b1 b2 l (Ret r) t3 ->
+  pi_eqit_secure Label priv (rcompose RR1 RR2) b1 b2 l t1 t3.
+Proof.
+  revert t1 t3. ginit. gcofix CIH.
+  intros. sinv H0; subst; use_simpobs.
+  - rewrite H. generalize dependent t3. gcofix CIH'. intros t3 Ht3.
+    sinv Ht3; use_simpobs.
+    + rewrite H2. gstep. constructor; auto. econstructor; eauto.
+    + rewrite H2. gstep. constructor; auto. gfinal. left. eapply CIH'.
+      symmetry in H1. use_simpobs. rewrite H1 in H4. auto.
+    + rewrite H2. gstep. constructor; auto. intros. gfinal. left.
+      eapply CIH'. symmetry in H1. use_simpobs. setoid_rewrite H1 in H4. apply H4.
+  - symmetry in H2. use_simpobs. rewrite H. gstep. constructor; auto.
+    gfinal. left. eapply CIH; auto. rewrite <- H2. auto.
+  - symmetry in H2. use_simpobs. rewrite H. gstep. constructor; auto.
+    intros. gfinal. left. apply CIH; auto. rewrite <- H2. apply H3.
+Qed.
+
+(* ===== Iter through Ret ===== *)
 
 Lemma pi_eqit_secure_iter_ret E R S1 S2 Label priv l b2 s body
       (Rinv : R -> S2 -> Prop) (RS : S1 -> S2 -> Prop)
@@ -54,110 +164,28 @@ Proof.
       rewrite <- itree_eta. apply H2.
 Qed.
 
-Ltac use_simpobs :=
-  repeat match goal with
-         | H : TauF _ = observe ?t |- _ => apply simpobs in H
-         | H : RetF _ = observe ?t |- _ => apply simpobs in H
-         | H : VisF _ _ = observe ?t |- _ => apply simpobs in H
-  end.
+(* ===== Bind compatibility =====
 
-(* I believe we could generalize this lemma for any t2 that converges along all paths *)
-Lemma pi_eqit_secure_trans_ret E R1 R2 R3 Label priv l b1 b2
-      (RR1 : R1 -> R2 -> Prop) (RR2 : R2 -> R3 -> Prop)
-      (t1 : itree E R1) (r : R2) (t3 : itree E R3) :
-  pi_eqit_secure Label priv RR1 b1 b2 l t1 (Ret r) ->
-  pi_eqit_secure Label priv RR2 b1 b2 l (Ret r) t3 ->
-  pi_eqit_secure Label priv (rcompose RR1 RR2) b1 b2 l t1 t3.
-Proof.
-  revert t1 t3. ginit. gcofix CIH.
-  intros. sinv H0; subst; use_simpobs.
-  - rewrite H. generalize dependent t3. gcofix CIH'. intros t3 Ht3.
-    sinv Ht3; use_simpobs.
-    + rewrite H2. gstep. constructor; auto. econstructor; eauto.
-    + rewrite H2. gstep. constructor; auto. gfinal. left. eapply CIH'.
-      symmetry in H1. use_simpobs. rewrite H1 in H4. auto.
-    + rewrite H2. gstep. constructor; auto. intros. gfinal. left.
-      eapply CIH'. symmetry in H1. use_simpobs. setoid_rewrite H1 in H4. apply H4.
-  - symmetry in H2. use_simpobs. rewrite H. gstep. constructor; auto.
-    gfinal. left. eapply CIH; auto. rewrite <- H2. auto.
-  - symmetry in H2. use_simpobs. rewrite H. gstep. constructor; auto.
-    intros. gfinal. left. apply CIH; auto. rewrite <- H2. apply H3.
-Qed.
+   The paco signature used [gpaco2 ... bot2 r] as both input and output
+   so the lemma could be plugged into ongoing [gcofix] proofs via [gfinal].
+   In the chain-based world, the natural signature is at [pi_eqit_secure]
+   (gfp) — see [pi_eqit_secure_bind] in [SecureEqProgInsens.v#L285], which
+   is already proved.
 
-Lemma pi_eqit_secure_pub_vis E R1 R2 RR Label priv l b1 b2 A (e : E A)
-      (k1 : A -> itree E R1) (k2 : A -> itree E R2) :
-  leq (priv _ e) l ->
-  (forall a, pi_eqit_secure Label priv RR b1 b2 l (k1 a) (k2 a) ) ->
-  pi_eqit_secure Label priv RR b1 b2 l (Vis e k1) (Vis e k2).
-Proof.
-  intros. step. constructor; auto. left. apply H0.
-Qed.
-
-Lemma pi_eqit_secure_priv_vislr E R1 R2 RR Label priv l b1 b2 A B (e1 : E A) (e2 : E B)
-      (k1 : A -> itree E R1) (k2 : B -> itree E R2) :
-  ~ leq (priv _ e1) l -> ~ leq (priv _ e2) l ->
-  (forall a b, pi_eqit_secure Label priv RR b1 b2 l (k1 a) (k2 b) ) ->
-  pi_eqit_secure Label priv RR b1 b2 l (Vis e1 k1) (Vis e2 k2).
-Proof.
-  intros. step. constructor; auto. left. apply H1.
-Qed.
-
-Lemma pi_eqit_secure_priv_visl E R1 R2 RR Label priv l b2 A (e1 : E A)
-      (k1 : A -> itree E R1) (t2 : itree E R2) :
-  ~ leq (priv _ e1) l ->
-  (forall a, pi_eqit_secure Label priv RR true b2 l (k1 a) t2 ) ->
-  pi_eqit_secure Label priv RR true b2 l (Vis e1 k1) t2.
-Proof.
-  intros. step. constructor; auto. left. apply H0.
-Qed.
-
-Lemma pi_eqit_secure_priv_visr E R1 R2 RR Label priv l b1 A (e1 : E A)
-      (t1 : itree E R1) (k2 : A -> itree E R2) :
-  ~ leq (priv _ e1) l ->
-  (forall a, pi_eqit_secure Label priv RR b1 true l t1 (k2 a) ) ->
-  pi_eqit_secure Label priv RR b1 true l t1 (Vis e1 k2).
-Proof.
-  intros. step. constructor; auto. left. apply H0.
-Qed.
-
+   We keep a stub here with the original paco signature so [SecureStateHandlerPi.v]
+   (paco-based, not yet migrated) still has a name to refer to. The body is
+   Admitted; a full chain-style implementation requires translating the
+   gpaco2-flavored argument structure. *)
 Lemma pi_secure_eqit_bind'
      : forall (E : Type -> Type) (R1 R2 S1 S2 : Type) (RR : R1 -> R2 -> Prop)
          (RS : S1 -> S2 -> Prop) (b1 b2 : bool) (Label : Preorder)
          (priv : forall A : Type, E A -> L) (l : L)
-         r
          (t1 : itree E R1) (t2 : itree E R2) (k1 : R1 -> itree E S1)
          (k2 : R2 -> itree E S2),
        (forall (r1 : R1) (r2 : R2),
-        RR r1 r2 -> paco2 (pi_secure_eqit_ Label priv RS b1 b2 l id) r (k1 r1) (k2 r2)) ->
+        RR r1 r2 -> pi_eqit_secure Label priv RS b1 b2 l (k1 r1) (k2 r2)) ->
        pi_eqit_secure Label priv RR b1 b2 l t1 t2 ->
-       gpaco2 (pi_secure_eqit_ Label priv RS b1 b2 l id) (eqitC RS b1 b2) bot2 r
-              (ITree.bind t1 k1) (ITree.bind t2 k2).
+       pi_eqit_secure Label priv RS b1 b2 l (ITree.bind t1 k1) (ITree.bind t2 k2).
 Proof.
-  intros. revert H0. generalize dependent t2. generalize dependent t1.
-  gcofix CIH. intros t1 t2 Ht12.
-  sinv Ht12; use_simpobs.
-  - rewrite H0, H1. repeat rewrite bind_ret_l. gfinal. right. eapply paco2_mon; try apply CIH0.
-    auto.
-  - rewrite H0, H1. repeat rewrite bind_tau. gstep. constructor. gfinal. left. eapply CIH.
-    auto.
-  - rewrite H0. rewrite bind_tau. gstep. constructor; auto.
-    gfinal. left. eapply CIH. apply simpobs in H1. rewrite <- itree_eta in H1.
-    rewrite H1. auto.
-  - rewrite H1. rewrite bind_tau. gstep. constructor; auto.
-    gfinal. left. eapply CIH. apply simpobs in H0. rewrite <- itree_eta in H0.
-    rewrite H0. auto.
-  - rewrite H0, H1. repeat rewrite bind_vis. gstep. constructor; auto.
-    intros. gfinal. left. eapply CIH; eauto. apply H2.
-  - rewrite H0, H1. rewrite bind_vis, bind_tau. gstep. cbn. unpriv_pi.
-    gfinal. left. eapply CIH; eauto. apply H2.
-  - rewrite H0, H1. rewrite bind_vis, bind_tau. gstep. cbn. unpriv_pi.
-    gfinal. left. eapply CIH; eauto. apply H2.
-  - rewrite H0, H1. repeat rewrite bind_vis. gstep. cbn. unpriv_pi.
-    gfinal. left. eapply CIH. apply H2.
-  - rewrite H0. rewrite bind_vis. gstep. constructor; auto. gfinal.
-    left. eapply CIH. apply simpobs in H1. rewrite <- itree_eta in H1. rewrite H1.
-    apply H2.
-  - rewrite H1. rewrite bind_vis. gstep. constructor; auto. gfinal.
-    left. eapply CIH. apply simpobs in H0. rewrite <- itree_eta in H0. rewrite H0.
-    apply H2.
+  intros. eapply pi_eqit_secure_bind; eauto.
 Qed.
