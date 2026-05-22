@@ -75,7 +75,7 @@ Ltac use_simpobs :=
          (pi_eqit_secure Label priv RS b1 b2 l).
 Proof.
   intros t1 t1' EQ1 t2 t2' EQ2.
-  pose proof (pi_eqit_secure_eutt_proper (E := E) (RS := RS) (Label := Label)
+  pose proof (pi_eqit_secure_eq_itree_proper (E := E) (RS := RS) (Label := Label)
                 (priv := priv) (l := l) b1 b2) as Hfwd.
   unfold Proper, respectful in Hfwd.
   split; intros H.

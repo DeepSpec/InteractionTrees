@@ -229,7 +229,7 @@ Ltac inv_eq_itree :=
 #[local] Ltac taul ::= eapply pisecEqTauL; [auto|].
 #[local] Ltac taur ::= eapply pisecEqTauR; [auto|].
 
-#[global] Instance pi_eqit_secure_proper_secureC {E R1 R2}  Label priv (RR : R1 -> R2 -> Prop) l
+(* #[global] Instance pi_eqit_secure_proper_secureC {E R1 R2}  Label priv (RR : R1 -> R2 -> Prop) l
   (c : Chain (pi_secure_eqit_mon Label priv RR true true l)) :
   Proper (euttge (E := E) eq ==> euttge eq ==> flip impl) (elem c).
 Proof with eauto with itree. 
@@ -309,19 +309,31 @@ Proof with eauto with itree.
         apply eq_inv_VisF_weak in Heqot1 as (-> & ? & ?); cbn in *; subst.
         clear x Heqox.
         genobs y oy; genvis e k0 ot2.
-        revert y Heqoy. remember (TauF t2).
+        revert y Heqoy.  
+        remember (TauF t2).
         hinduction EQy before oy; intros; subst; try easy.
         -- inv Heqi. constructor 6; intros; auto.  eapply IH. apply REL. apply REL0. apply H.  
-        -- constructor; auto. intros. step. eapply IHEQy; eauto. 
-        now step; eapply IHEQy.
+        -- rewrite itree_eta' at 1. taur. 
+        step. eapply IHEQy; eauto. 
       * intros; subst; taul; step; eapply IHEQx...
-    + edestruct euttge_tau_r_inv; [step; eauto |].
-      simpobs.
-      taur.
-      eapply IH. unstep in EQx. apply EQx. 
-      assert (euttge eq (Tau x0) (Tau t2)) by (now step).
-      unstep; eapply euttge_tau_inv; eauto.
-Qed. 
+    + clear x' y' Heqox' Heqoy'.
+      genobs y oy.
+      genvis e k2 ot2.
+      revert y Heqoy.
+      hinduction EQy before oy; try easy.
+      * intros.
+        apply eq_inv_VisF_weak in Heqot2 as (-> & ? & ?); cbn in *; subst.
+        clear y Heqoy.
+        genobs x ox; genvis e k1 ot2.
+        revert x Heqox.  
+        remember (TauF t1).
+        hinduction EQx before ox; intros; subst; try easy.
+        -- inv Heqi. constructor 7; intros; auto.  eapply IH. apply REL. apply REL0. apply H.  
+        -- rewrite itree_eta'. taul. 
+        step. eapply IHEQx; eauto. 
+      * intros; subst; taur; step; eapply IHEQy...
+    + 
+Qed.  *)
 
 
 (* Chain-level congruence: rewriting under [eq_itree eq] on either side of a
