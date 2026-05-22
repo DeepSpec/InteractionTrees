@@ -19,7 +19,7 @@ Variant case_rel {A1 A2 B : Type} (R1 : A1 -> B -> Prop) (R2 : A2 -> B -> Prop) 
   | crl a1 b : R1 a1 b -> case_rel R1 R2 (inl a1) b
   | crr a2 b : R2 a2 b -> case_rel R1 R2 (inr a2) b.
 
-(* ===== Small Vis constructor lemmas (paco-free) ===== *)
+(* ===== Vis lemmas ===== *)
 
 Lemma pi_eqit_secure_pub_vis E R1 R2 RR Label priv l b1 b2 A (e : E A)
       (k1 : A -> itree E R1) (k2 : A -> itree E R2) :
@@ -57,7 +57,7 @@ Proof.
   intros. step. constructor; auto.
 Qed.
 
-(* ===== use_simpobs Ltac (paco-free) ===== *)
+(* ===== use_simpobs Ltac ===== *)
 
 Ltac use_simpobs :=
   repeat match goal with
@@ -111,19 +111,20 @@ Lemma pi_eqit_secure_trans_ret E R1 R2 R3 Label priv l b1 b2
   pi_eqit_secure Label priv RR2 b1 b2 l (Ret r) t3 ->
   pi_eqit_secure Label priv (rcompose RR1 RR2) b1 b2 l t1 t3.
 Proof.
-  revert t1 t3. ginit. gcofix CIH.
-  intros. sinv H0; subst; use_simpobs.
-  - rewrite H. generalize dependent t3. gcofix CIH'. intros t3 Ht3.
+  revert t1 t3. coinduction c CIH. 
+  intros. sinv H; subst; use_simpobs.
+  - step. rewrite H1. generalize dependent t3. icoinduction c' CIH'. intros t3 Ht3.
+  cbn. 
     sinv Ht3; use_simpobs.
-    + rewrite H2. gstep. constructor; auto. econstructor; eauto.
-    + rewrite H2. gstep. constructor; auto. gfinal. left. eapply CIH'.
-      symmetry in H1. use_simpobs. rewrite H1 in H4. auto.
-    + rewrite H2. gstep. constructor; auto. intros. gfinal. left.
-      eapply CIH'. symmetry in H1. use_simpobs. setoid_rewrite H1 in H4. apply H4.
-  - symmetry in H2. use_simpobs. rewrite H. gstep. constructor; auto.
-    gfinal. left. eapply CIH; auto. rewrite <- H2. auto.
-  - symmetry in H2. use_simpobs. rewrite H. gstep. constructor; auto.
-    intros. gfinal. left. apply CIH; auto. rewrite <- H2. apply H3.
+    + constructor; auto. econstructor; eauto.
+    + rewrite itree_eta' at 1. constructor; auto. eapply CIH'.
+      symmetry in H. use_simpobs. now rewrite H in H2. 
+    + rewrite itree_eta' at 1. constructor; auto. intros.
+      eapply CIH'. symmetry in H. use_simpobs. setoid_rewrite H in H2. apply H2.
+  - symmetry in H2. use_simpobs. rewrite H1. constructor; auto.
+    eapply CIH; auto. rewrite <- H2. auto.
+  - symmetry in H2. use_simpobs. rewrite H1. constructor; auto.
+    intros. apply CIH; auto. rewrite <- H2. apply H3.
 Qed.
 
 (* ===== Iter through Ret ===== *)
@@ -136,20 +137,22 @@ Lemma pi_eqit_secure_iter_ret E R S1 S2 Label priv l b2 s body
   Rinv r s ->
   @pi_eqit_secure E S1 S2 Label priv RS true b2 l (ITree.iter body r) (Ret s).
 Proof.
-  ginit. gcofix CIH. intros r0 Hr0. setoid_rewrite unfold_iter.
-  assert (pi_eqit_secure Label priv (case_rel Rinv RS) true b2 l (body r0) (Ret s)).
-  auto. remember (body r0) as t. clear Heqt. generalize dependent t.
-  gcofix CIH'. intros t Ht.
+  coinduction. intros r0 Hr0. setoid_rewrite unfold_iter.
+  assert (pi_eqit_secure Label priv (case_rel Rinv RS) true b2 l (body r0) (Ret s))
+  by auto. 
+  remember (body r0) as t. clear Heqt. step. generalize dependent t.
+  coinduction c' CIH'. intros t Ht.
   destruct (observe t) eqn : Heq; symmetry in Heq; apply simpobs in Heq.
   - rewrite Heq.
-    assert (pi_eqit_secure Label priv (case_rel Rinv RS) true b2 l (Ret r1) (Ret s) ).
-    rewrite <- Heq. auto.
+    assert (pi_eqit_secure Label priv (case_rel Rinv RS) true b2 l (Ret r) (Ret s) )
+    by now 
+    rewrite <- Heq.
     sinv H. subst. inv H2.
-    + rewrite bind_ret_l. gstep. constructor; auto.
-      gfinal. left. eapply CIH; eauto.
-    + rewrite bind_ret_l. gstep. constructor. auto.
-  - rewrite Heq. rewrite bind_tau. gstep. constructor; auto.
-    gfinal. left. eapply CIH'.
+    + rewrite bind_ret_l. constructor; auto.
+      rewrite unfold_iter. eapply CIH'; eauto.
+    + rewrite bind_ret_l. constructor. auto.
+  - rewrite Heq. rewrite bind_tau. constructor; auto.
+    eapply CIH'.
     assert (pi_eqit_secure Label priv (case_rel Rinv RS) true b2 l (Tau t0) (Ret s)).
     rewrite <- Heq. auto. sinv H. rewrite <- itree_eta. auto.
   - destruct (classic (leq (priv _ e) l ) ).
@@ -158,7 +161,7 @@ Proof.
       { rewrite <- Heq. auto. }
       sinv H0; subst. ddestruction. subst. contradiction.
     + rewrite Heq. rewrite bind_vis.
-      gstep. constructor; auto. intros x. gfinal. left. eapply CIH'.
+      constructor; auto. intros x. eapply CIH'.
       assert ( pi_eqit_secure Label priv (case_rel Rinv RS) true b2 l (Vis e k) (Ret s)) .
       rewrite <- Heq. auto. sinv H0; subst; ddestruction; subst.
       rewrite <- itree_eta. apply H2.
@@ -166,16 +169,7 @@ Qed.
 
 (* ===== Bind compatibility =====
 
-   The paco signature used [gpaco2 ... bot2 r] as both input and output
-   so the lemma could be plugged into ongoing [gcofix] proofs via [gfinal].
-   In the chain-based world, the natural signature is at [pi_eqit_secure]
-   (gfp) — see [pi_eqit_secure_bind] in [SecureEqProgInsens.v#L285], which
-   is already proved.
-
-   We keep a stub here with the original paco signature so [SecureStateHandlerPi.v]
-   (paco-based, not yet migrated) still has a name to refer to. The body is
-   Admitted; a full chain-style implementation requires translating the
-   gpaco2-flavored argument structure. *)
+    This is already proved of the chain; here just instantiated at the gfp.  *)
 Lemma pi_secure_eqit_bind'
      : forall (E : Type -> Type) (R1 R2 S1 S2 : Type) (RR : R1 -> R2 -> Prop)
          (RS : S1 -> S2 -> Prop) (b1 b2 : bool) (Label : Preorder)

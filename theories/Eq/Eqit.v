@@ -393,7 +393,12 @@ Tactic Notation "icoinduction"
 Ltac sinv H := repeat red in H; step in H; inv H.
 
 
+Ltac simpobs_subst := step; simpobs; unstep. 
 
+Ltac apply_foralls :=
+  repeat match goal with
+  | w : ?A, H : forall _ : ?A, _ |- _ => apply (H w)
+  end.
 
 (* [solve_eqitF] tries to solve a goal with a variant of [eqitF] by
    simplifiying, rewriting, and trying to apply assumptions. *)

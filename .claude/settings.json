@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(.venv/bin/python -c ' *)",
+      "Bash(awk 'NR>=345 && /Qed\\\\.|Admitted\\\\./{print NR\": \"$0; exit}' extra/Secure/SecureStateHandler.v)",
+      "Bash(awk 'NR>458' extra/Secure/SecureStateHandler.v)",
+      "Bash(cp /tmp/interp_good.txt /tmp/interp13g1.txt)"
+    ]
+  }
+}

@@ -172,4 +172,3 @@ Tactic Notation "hinduction" hyp(IND) "before" hyp(H)
   := move IND before H; revert_until IND; induction IND.
 
 (* ----------------------------------------------------------------- *)
- 

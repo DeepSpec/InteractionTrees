@@ -21,20 +21,60 @@ Local Open Scope monad_scope.
 #[local] Ltac taul := apply secEqTauL; [auto|].
 #[local] Ltac taur := apply secEqTauR; [auto|].
 
-#[global] Instance euttge_proper_secureC {E R1 R2} b1 b2 Label priv (RR : R1 -> R2 -> Prop) l
+#[global] Instance eq_itree_proper_secureC {E R1 R2} b1 b2 Label priv (RR : R1 -> R2 -> Prop) l
   (c : Chain (secure_eqit_mon Label priv RR b1 b2 l)) : 
-  Proper (eq_itree (E := E) eq ==> eq_itree eq ==> Basics.flip Basics.impl) (elem c).
-Proof with eauto with itree.
-  unfold Proper, respectful, Basics.flip, Basics.impl.
-  tower induction.
-  clear c; intros c IH x x' EQx y y' EQy; step in EQx; step in EQy.
-    intros EQ. icbn; icbn in EQ; cbn in *. 
-    genobs x' ox'; genobs y' oy'.
-    (* [hinduction] is not sufficient here, because [move] is unable to pass
-         through [ox] to reach [x] *)
-    revert x x' y y' Heqox' Heqoy' EQx EQy.
-    induction EQ; intros.
-    + clear x' y' Heqox' Heqoy'.
+  Proper (eq_itree (E := E) eq ==> eq_itree eq ==> iff) (elem c).
+  Proof with eauto with itree.
+  unfold Proper, respectful; split; 
+  rename H into EQx; rename H0 into EQy;
+  rename x0 into x'; rename y0 into y'. 
+  all: revert x y EQx x' y' EQy. 
+  all: tower induction; 
+       clear c; intros c IH x x' EQx y y' EQy EQ; step in EQx; step in EQy.
+  all: icbn; icbn in EQ; cbn in *. 
+  1: genobs x ox; genobs y oy; 
+    revert x x' y y' Heqox Heqoy EQx EQy.
+  2: genobs x' ox'; genobs y' oy'; 
+      revert x x' y y' Heqox' Heqoy' EQx EQy.
+  all: induction EQ; intros. 
+  5-8, 19-22 : inv EQx; inv EQy; ddestruction; subst; try contradiction; try contra_size; eauto with itree.
+  
+    + clear x y Heqox Heqoy.
+      genobs x' ox'.
+      genret r1 or1.
+      revert x' Heqox'.
+      hinduction EQx before ox'; try easy.
+      * intros; subst; inv Heqor1. clear x' Heqox'.
+        genobs y' oy'; genret r2 or2.
+        revert y' Heqoy'.
+        hinduction EQy before oy'; try easy.
+        subst; intros [=<-] ??...
+  (* the 2 proof bodies are identical from here.
+     some automation above with the 5-8, 19-22 line, 
+     and more could be done, though it really wants
+     for better parallel machinery. just synced lines would be good. *)
+    + inv EQx; inv EQy. constructor. eapply IH; eauto. 
+    + inv EQx. taul. eapply IHEQ; eauto. now unstep. 
+    + inv EQy. taur. eapply IHEQ; eauto. now unstep.
+    + inv EQx; ddestruction. constructor; auto. intros. 
+      eapply H0; eauto. now unstep. 
+    + inv EQy; ddestruction. constructor; auto. intros. 
+      eapply H0; eauto. now unstep. 
+    + inv EQx; inv EQy; ddestruction; subst; try easy.  
+      constructor 11; eauto. eapply IH. 
+      2, 3: eauto. step. constructor. auto. 
+    + inv EQx; inv EQy; ddestruction; subst; try easy.  
+      constructor 12; eauto. eapply IH. 
+      1, 3: eauto. step. constructor. auto. 
+    + inv EQx; inv EQy; ddestruction; subst; try easy.  
+      constructor 13; eauto. intro. eapply IH.
+      3: apply H. step; now constructor. apply REL0. 
+    + inv EQx; inv EQy; ddestruction; subst; try easy.  
+      constructor 14; eauto. intro. eapply IH.
+      3: apply H. apply REL.
+       step; now constructor. 
+
+  + clear x' y' Heqox' Heqoy'.
       genobs x ox.
       genret r1 or1.
       revert x Heqox.
@@ -47,10 +87,6 @@ Proof with eauto with itree.
     + inv EQx; inv EQy. constructor. eapply IH; eauto. 
     + inv EQx. taul. eapply IHEQ; eauto. now unstep. 
     + inv EQy. taur. eapply IHEQ; eauto. now unstep.
-    + inv EQx; inv EQy. ddestruction; subst; try contradiction; try contra_size; eauto with itree.
-    + inv EQx; inv EQy. ddestruction; subst; try contradiction; try contra_size; eauto with itree.
-    + inv EQx; inv EQy. ddestruction; subst; try contradiction; try contra_size; eauto with itree.
-    + inv EQx; inv EQy. ddestruction; subst; try contradiction; try contra_size; eauto with itree.
     + inv EQx; ddestruction. constructor; auto. intros. 
       eapply H0; eauto. now unstep. 
     + inv EQy; ddestruction. constructor; auto. intros. 
@@ -70,6 +106,13 @@ Proof with eauto with itree.
        step; now constructor. 
 Qed. 
 
+#[global] Instance eq_itree_proper_secureC_mon {E R1 R2} b1 b2 Label priv (RR : R1 -> R2 -> Prop) l
+  (c : Chain (secure_eqit_mon Label priv RR b1 b2 l)) :
+  Proper (eq_itree (E := E) eq ==> eq_itree eq ==> Basics.flip Basics.impl)
+         (secure_eqit_mon Label priv RR b1 b2 l (elem c)).
+Proof.
+  repeat intro. eapply eq_itree_proper_secureC with (c := chain_b c); eauto.
+Qed.
 
 Lemma tau_eqit_secure : forall E R1 R2 Label priv l RR (t1 : itree E R1) (t2 : itree E R2),
     eqit_secure Label priv RR true true l (Tau t1) t2 -> eqit_secure Label priv RR true true l t1 t2.

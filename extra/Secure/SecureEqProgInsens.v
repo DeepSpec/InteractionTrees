@@ -225,10 +225,108 @@ Ltac inv_eq_itree :=
   | [ H : eqitF _ false false _ (VisF _ _) _ |- _ ] => inv H
   | [ H : eqitF _ false false _ _ (VisF _ _) |- _ ] => inv H
   end. 
+
+#[local] Ltac taul ::= eapply pisecEqTauL; [auto|].
+#[local] Ltac taur ::= eapply pisecEqTauR; [auto|].
+
+#[global] Instance pi_eqit_secure_proper_secureC {E R1 R2}  Label priv (RR : R1 -> R2 -> Prop) l
+  (c : Chain (pi_secure_eqit_mon Label priv RR true true l)) :
+  Proper (euttge (E := E) eq ==> euttge eq ==> flip impl) (elem c).
+Proof with eauto with itree. 
+   unfold Proper, respectful, flip, impl.
+  tower induction.
+  clear c; intros c IH x x' EQx y y' EQy; step in EQx; step in EQy.
+    intros EQ. icbn; icbn in EQ. 
+    genobs x' ox'; genobs y' oy'.
+    (* [hinduction] is not sufficient here, because [move] is unable to pass
+         through [ox] to reach [x] *)
+    revert x x' y y' Heqox' Heqoy' EQx EQy.
+    induction EQ; intros.
+    + clear x' y' Heqox' Heqoy'.
+      genobs x ox.
+      genret r1 or1.
+      revert x Heqox.
+      hinduction EQx before ox; try easy.
+      * intros; subst; inv Heqor1. clear x Heqox.
+        genobs y oy; genret r2 or2.
+        revert y Heqoy.
+        hinduction EQy before oy; try easy.
+        subst; intros [=<-] ??...
+        intros. rewrite itree_eta' at 1; taur. step. eapply IHEQy; eauto. 
+      * intros; subst. taul. step. eapply IHEQx... 
+    + clear x' y' Heqox' Heqoy'.
+      genobs x ox.
+      gentau t1 om1.
+      revert x Heqox.
+      hinduction EQx before ox; try easy.
+      * intros [=<-] ? ??.
+        clear x Heqox.
+        genobs y oy; gentau t2 om2.
+        revert y Heqoy.
+        hinduction EQy before oy; try easy.
+        intros [=<-] ??...
+        intros. rewrite itree_eta' at 1.  
+        taur.
+        now step; eapply IHEQy.
+      * intros; subst; taul; step; eapply IHEQx...
+     + edestruct euttge_tau_r_inv; [step; eauto |].
+      simpobs.
+      taul.
+      eapply IH.
+      assert (euttge eq (Tau x0) (Tau t1)) by (now step).
+      eapply euttge_tau_inv; eauto. unstep in EQy. apply EQy. assumption. 
+
+    + edestruct euttge_tau_r_inv; [step; eauto |].
+      simpobs.
+      taur.
+      eapply IH. 
+      unstep in EQx. apply EQx. 
+      assert (euttge eq (Tau x0) (Tau t2)) by (now step).
+      eapply euttge_tau_inv; eauto.
+      assumption. 
+    + clear x' y' Heqox' Heqoy'.
+      genobs x ox.
+      genvis e k1 ot1.
+      revert x Heqox.
+      hinduction EQx before ox; try easy.
+      * intros.
+        apply eq_inv_VisF_weak in Heqot1 as (-> & ? & ?); cbn in *; subst.
+        clear x Heqox.
+        genobs y oy; genvis e k2 ot2.
+        revert y Heqoy.
+        hinduction EQy before oy; try easy.
+        intros; apply eq_inv_VisF_weak in Heqot2 as (-> & ? & ?); cbn in *; subst; eauto with itree.
+        intros.
+        rewrite itree_eta' at 1. taur.
+        now step; eapply IHEQy.
+      * intros; subst; taul; step; eapply IHEQx...
+     + clear x' y' Heqox' Heqoy'.
+      genobs x ox.
+      genvis e k1 ot1.
+      revert x Heqox.
+      hinduction EQx before ox; try easy.
+      * intros.
+        apply eq_inv_VisF_weak in Heqot1 as (-> & ? & ?); cbn in *; subst.
+        clear x Heqox.
+        genobs y oy; genvis e k0 ot2.
+        revert y Heqoy. remember (TauF t2).
+        hinduction EQy before oy; intros; subst; try easy.
+        -- inv Heqi. constructor 6; intros; auto.  eapply IH. apply REL. apply REL0. apply H.  
+        -- constructor; auto. intros. step. eapply IHEQy; eauto. 
+        now step; eapply IHEQy.
+      * intros; subst; taul; step; eapply IHEQx...
+    + edestruct euttge_tau_r_inv; [step; eauto |].
+      simpobs.
+      taur.
+      eapply IH. unstep in EQx. apply EQx. 
+      assert (euttge eq (Tau x0) (Tau t2)) by (now step).
+      unstep; eapply euttge_tau_inv; eauto.
+Qed. 
+
+
 (* Chain-level congruence: rewriting under [eq_itree eq] on either side of a
    chain element.  This replaces the paco-style [pi_eqit_secureC_wcompat_id]
-   (weak compatibility of the [eqitC] up-to-eutt closure).  Template:
-   [euttge_proper_secureC] in [SecureEqEuttHalt.v]. *)
+   (weak compatibility of the [eqitC] up-to-eq_itree closure).  *)
 #[global] Instance pi_eqit_secure_proper_secureC {E R1 R2} b1 b2 Label priv (RR : R1 -> R2 -> Prop) l
   (c : Chain (pi_secure_eqit_mon Label priv RR b1 b2 l)) :
   Proper (eq_itree (E := E) eq ==> eq_itree eq ==> flip impl) (elem c).
@@ -248,10 +346,8 @@ Proof.
   - ddestruction. unpriv_pi. eapply CIH. step; apply H12. apply REL. apply H.
 Qed. 
 
-(* ... lift to the gfp via [chain_gfp]: this is the [Proper] instance the
-   downstream chain-style [rewrite]s depend on, replacing the paco
-   [geuttgen_cong_*] gpaco instances. *)
-#[global] Instance pi_eqit_secure_eutt_proper {E} {Label priv l} {R1 R2 : Type} {RS : R1 -> R2 -> Prop} (b1 b2 : bool) :
+
+#[global] Instance pi_eqit_secure_eq_itree_proper {E} {Label priv l} {R1 R2 : Type} {RS : R1 -> R2 -> Prop} (b1 b2 : bool) :
    Proper (@eq_itree E R1 R1 eq ==> eq_itree eq ==> flip impl)
           (pi_eqit_secure Label priv RS b1 b2 l).
 Proof.
@@ -259,7 +355,7 @@ Proof.
     (c := chain_gfp (pi_secure_eqit_mon Label priv RS b1 b2 l)).
 Qed.
 
-Global Instance pi_eqit_secure_eq_itree_proper {E} {Label priv l} {R1 R2 : Type} {RS : R1 -> R2 -> Prop} (b1 b2 : bool) :
+Global Instance pi_eqit_secure_eutt_proper {E} {Label priv l} {R1 R2 : Type} {RS : R1 -> R2 -> Prop} (b1 b2 : bool) :
    Proper (@eutt E R1 R1 eq ==> eutt eq ==> flip impl)
           (pi_eqit_secure Label priv RS true true l).
 Proof.
@@ -283,35 +379,39 @@ Proof.
 Qed.
 
 Lemma pi_eqit_secure_bind E Label priv l b1 b2 R1 R2 S1 S2 (RR : R1 -> R2 -> Prop) (RS : S1 -> S2 -> Prop) k1 k2 :
-  forall (t1 : itree E R1) (t2 : itree E R2),
-    (forall (r1 : R1) (r2 : R2), RR r1 r2 -> pi_eqit_secure Label priv RS b1 b2 l (k1 r1) (k2 r2) ) ->
+  forall (t1 : itree E R1) (t2 : itree E R2)
+  (c : Chain (pi_secure_eqit_mon Label priv RS b1 b2 l)),
+    (forall (r1 : R1) (r2 : R2), RR r1 r2 -> elem c (k1 r1) (k2 r2) ) ->
     pi_eqit_secure Label priv RR b1 b2 l t1 t2 ->
-    pi_eqit_secure Label priv RS b1 b2 l (ITree.bind t1 k1) (ITree.bind t2 k2).
+    elem c (ITree.bind t1 k1) (ITree.bind t2 k2).
 Proof.
-  icoinduction c CIH. intros ?? Hk1k2 Ht1t2.
-  step in Ht1t2.
-  genobs t1 Hot1. 
-  genobs t2 Hot2. 
-  hinduction Ht1t2 before c; intros.
-  - rewrite 2observe_bind. simpobs. step. apply Hk1k2. apply H. 
-  - rewrite 2observe_bind. simpobs. etau. 
-  - rewrite observe_bind. simpobs. taul.  
-    eapply CIH; intros; auto. step. simpobs. now unstep. 
-  - rewrite (observe_bind t3). simpobs. taur.
-    eapply CIH; intros; auto. step. simpobs. now unstep.
-  - rewrite 2observe_bind. simpobs. constructor; auto. intros. 
-    eapply CIH; intros; auto. step. simpobs. now unstep.
-  - rewrite 2observe_bind. simpobs. unpriv_pi. 
-    eapply CIH; intros; auto. step. simpobs. now unstep.
-  - rewrite 2observe_bind. simpobs. unpriv_pi. 
-    eapply CIH; intros; auto. step. simpobs. now unstep.
-  - rewrite 2observe_bind. simpobs. unpriv_pi. 
-    eapply CIH; intros; auto. step. simpobs. now unstep.
-  -  rewrite observe_bind. simpobs. unpriv_pi. 
-    eapply CIH; intros; auto. step. simpobs. now unstep.
-  - rewrite (observe_bind t2). simpobs. unpriv_pi. 
-    eapply CIH; intros; auto. step. simpobs. now unstep.
-Qed. 
+  #[local] Ltac by_coinduction CIH := eapply CIH; intros; 
+                                      try solve [now simpobs_subst]; 
+                                      solve [now step; apply_foralls].
+  intros t1 t2 c. revert t1 t2. tower induction.
+  clear c; intros c CIH t1 t2 Hk1k2 Ht1t2.
+  step in Ht1t2. genobs t1 ot1. genobs t2 ot2; icbn. 
+  hinduction Ht1t2 before c; intros. 
+  - rewrite 2 observe_bind. simpobs. now apply Hk1k2.
+  - rewrite 2 observe_bind. simpobs. etau. 
+    by_coinduction CIH. 
+  - rewrite observe_bind. simpobs. apply pisecEqTauL; auto.
+    by_coinduction CIH.
+  - rewrite (observe_bind t3). simpobs. etau. 
+    by_coinduction CIH. 
+  - rewrite 2 observe_bind. simpobs. apply piEqVisPriv; auto. intros a.
+    by_coinduction CIH. 
+  - rewrite 2 observe_bind. simpobs. apply piEqVisUnPrivTauLCo; auto. intros a.
+    by_coinduction CIH. 
+  - rewrite 2 observe_bind. simpobs. apply piEqVisUnPrivTauRCo; auto. intros a.
+    by_coinduction CIH. 
+  - rewrite 2 observe_bind. simpobs. apply piEqVisUnPrivVisCo; auto. intros a b.
+    by_coinduction CIH. 
+  - rewrite observe_bind. simpobs. apply piEqVisUnPrivLInd; auto. intros a.
+    by_coinduction CIH. 
+  - rewrite (observe_bind t2). simpobs. apply piEqVisUnPrivRInd; auto. intros a.
+    by_coinduction CIH. 
+Qed.
 
 Lemma pi_eqit_secure_iter_bind_aux:
   forall (E : Type -> Type) (B2 B1 A1 A2 : Type) (RA : A1 -> A2 -> Prop)
@@ -340,23 +440,18 @@ Proof.
   tower induction. clear c; intros c CIH Hbody t1 t2 Ht12. step in Ht12. 
   icbn. genobs t1 ot1. genobs t2 ot2.
   hinduction Ht12 before E; intros. 
-  #[local] Ltac by_coinduction CIH := 
-  eapply CIH; intros; 
-  try solve [now step; simpobs; unstep]; 
-  match goal with
-  | |- elem _ _ _ => Utils.step 
-  end; auto. 
+  #[local] Ltac break_observe := unfold observe; cbn; simpobs; cbn. 
   (* QUESTION: why does 'now step; apply Hbody' instead of auto fail? *)
   #[local] Ltac pi_solve CIH := constructor; auto; intros; by_coinduction CIH.
-  - unfold observe; cbn; simpobs. inv H; cbn; eauto with itree.
+  - break_observe. inv H; cbn; eauto with itree.
     constructor. now step; apply Hbody. 
-  - unfold observe; cbn; simpobs. pi_solve CIH.
+  - break_observe. pi_solve CIH.
   - unfold observe at 1; cbn; simpobs. pi_solve CIH.
   - unfold observe at 2; cbn; simpobs. pi_solve CIH.
-  - unfold observe; cbn; simpobs. pi_solve CIH.
-  - unfold observe; cbn; simpobs. pi_solve CIH.
-  - unfold observe; cbn; simpobs. pi_solve CIH.
-  - unfold observe; cbn; simpobs. pi_solve CIH.
+  - break_observe. pi_solve CIH.
+  - break_observe. pi_solve CIH.
+  - break_observe. pi_solve CIH.
+  - break_observe. pi_solve CIH.
   - unfold observe at 1; cbn; simpobs. pi_solve CIH.
   - unfold observe at 2; cbn; simpobs. pi_solve CIH.
 Qed. 
@@ -365,9 +460,44 @@ Qed.
 Lemma secure_eqit_iter E A1 A2 B1 B2 (RA : A1 -> A2 -> Prop) (RB : B1 -> B2 -> Prop)
                            b1 b2 Label priv l
                            (body1 : A1 -> itree E (A1 + B1) ) (body2 : A2 -> itree E (A2 + B2) ):
-  (forall a1 a2, RA a1 a2 -> pi_eqit_secure Label priv (HeterogeneousRelations.sum_rel RA RB) b1 b2 l (body1 a1) (body2 a2) ) ->
                            forall (a1 : A1) (a2 : A2), RA a1 a2 ->
+  (forall a1 a2, RA a1 a2 -> pi_eqit_secure Label priv (HeterogeneousRelations.sum_rel RA RB) b1 b2 l (body1 a1) (body2 a2) ) ->
     pi_eqit_secure Label priv RB b1 b2 l (ITree.iter body1 a1) (ITree.iter body2 a2).
 Proof.
-  (* TODO(paco->coinduction): fill in (template: secure_eqit_iter in SecureEqBind.v). *)
-Admitted.
+  intros. rename H0 into Hbody. generalize dependent a2. revert a1.
+  icoinduction c CIH.
+  intros a1 a2 Ha. specialize (Hbody a1 a2 Ha) as Hbodya.
+  step in Hbodya.
+  remember (observe (body1 a1)).
+  remember (observe (body2 a2)).
+  hinduction Hbodya before E; intros; cbn; auto with itree.
+  - break_observe. inv H; cbn; eauto with itree. 
+  - break_observe. constructor. 
+    eapply pi_eqit_secure_iter_bind_aux; eauto.
+    (* taul, taur hard *)
+  - unfold observe at 1; cbn; simpobs. constructor; auto. ITree.fold_subst.
+    rewrite unfold_iter. eapply pi_eqit_secure_iter_bind_aux; eauto. 
+    now simpobs_subst.   
+  - unfold observe at 2; cbn; simpobs. constructor; auto. ITree.fold_subst.
+    rewrite unfold_iter. eapply pi_eqit_secure_iter_bind_aux; eauto. 
+    now simpobs_subst.   
+  - break_observe. constructor; auto. intro. eapply pi_eqit_secure_iter_bind_aux; eauto. apply H. 
+  - break_observe. constructor; intros; auto. eapply pi_eqit_secure_iter_bind_aux; intros. 
+    apply CIH; eauto. apply H. 
+  - break_observe. constructor; intros; auto. eapply pi_eqit_secure_iter_bind_aux; eauto. 
+    apply H. 
+  - break_observe. constructor; intros; auto. eapply pi_eqit_secure_iter_bind_aux; eauto. 
+    apply H. 
+  - unfold observe at 1; cbn; simpobs; cbn. constructor; intros; auto. 
+    rewrite unfold_iter. 
+    eapply pi_eqit_secure_iter_bind_aux; eauto. now simpobs_subst. 
+  - unfold observe at 2; cbn; simpobs; cbn. constructor; intros; auto. 
+    rewrite unfold_iter. 
+    eapply pi_eqit_secure_iter_bind_aux; eauto. now simpobs_subst. 
+Qed. 
+
+Lemma secure_eqit_ret : forall (E : Type -> Type) Label priv l b1 b2 (R1 R2 : Type) (RR : R1 -> R2 -> Prop) (r1 : R1) (r2 : R2),
+    RR r1 r2 -> @eqit_secure E R1 R2 Label priv RR b1 b2 l (Ret r1) (Ret r2).
+Proof.
+  intros. step. constructor. auto.
+Qed.

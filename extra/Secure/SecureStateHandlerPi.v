@@ -1,3 +1,4 @@
+From Coinduction Require Import all. 
 From Stdlib Require Import Morphisms.
 From ITree Require Import
      Axioms
@@ -21,8 +22,6 @@ From ITree.Extra Require Import
 Import Monads.
 Import MonadNotation.
 Local Open Scope monad_scope.
-
-From Paco Require Import paco.
 
 Section GeneralStateHandler.
 
@@ -54,8 +53,7 @@ Definition secure_in_empty_context  {R} (m : stateT S (itree E2) R) :=
 Lemma diverges_with_spin : forall E A P,
     diverges_with P (@ITree.spin E A).
 Proof.
-  intros. coinduction c CIH. step. cbn. constructor.
-  right; auto.
+  intros. icoinduction c CIH. cbn. etau. 
 Qed.
 
 Lemma pi_eqit_secure_silent_divergel : forall A B RR (t1 : itree E2 A) (t2 : itree E2 B),
@@ -63,15 +61,14 @@ Lemma pi_eqit_secure_silent_divergel : forall A B RR (t1 : itree E2 A) (t2 : itr
     pi_eqit_secure Label priv2 RR true true l t1 t2.
 Proof.
   intros A B RR. coinduction c CIH. intros.
-  step in H0. all : try apply mono_diverges_with. red in H0.
-  inversion H0; use_simpobs; try rewrite H; try rewrite H3.
-  - step. constructor; auto. right.  eapply CIH; eauto.
+  step in H. all : try apply mono_diverges_with. 
+  inversion H; use_simpobs; try rewrite H0; try rewrite H1.
+  - etau. 
   - destruct (classic_empty B0).
-    + eapply paco2_mon with (r := bot2); intros; try contradiction.
+    + step. 
       apply pi_eqit_secure_sym.
       apply pi_eqit_secure_private_halt; auto.
-    + step. cbn. constructor; auto. right.  eapply CIH; eauto.
-      apply H1.
+    + icbn. evis. eapply CIH; eauto. apply H1.
  Qed.
 
 Lemma pi_eqit_secure_silent_diverger : forall A B RR (t1 : itree E2 A) (t2 : itree E2 B),
@@ -87,9 +84,8 @@ Lemma silent_terminates_eqit_secure_ret : forall R (m : stateT S (itree E2) R), 
 Proof.
   red. intros. specialize (H0 s1).
   cbn. induction H0.
-  - step; constructor. split; try constructor. cbn. etransitivity; eauto. symmetry. auto.
-  - step; constructor; auto.
-    left. eapply IHterminates; auto.
+  - step; constructor. split; try constructor. cbn. etransitivity; [symmetry|]; eauto.
+  - step; constructor; auto. apply IHterminates; auto. 
   - apply pi_eqit_secure_priv_visl; auto. destruct H3. auto.
 Qed.
 
@@ -103,14 +99,13 @@ Variant handler_respects_priv (A : Type) (e : E1 A) : Prop :=
 
 Context (Hhandler : forall A (e : E1 A), handler_respects_priv A e).
 
-Hint Resolve mono_diverges_with : paco.
 (*
 Lemma diverge_with_respectful_handler : forall (R : Type) (t : itree E1 R),
     diverges_with (fun _ e => ~ leq (priv1 _ e) l ) t ->
     forall s, diverges_with (fun _ e => ~ leq (priv2 _ e) l) (interp_state handler t s).
 Proof.
   intro R. coinduction c CIH. intros t Hdiv s. sinv Hdiv; use_simpobs.
-  - rewrite H. rewrite interp_state_tau. step. constructor. right. eapply CIH; eauto.
+  - rewrite H. rewrite interp_state_tau. step. constructor. eapply CIH; eauto.
   - rewrite H. rewrite interp_state_vis.
     destruct (classic_empty B).
     + specialize (Hhandler _ e). destruct Hhandler; try contradiction; try contra_size.
@@ -118,7 +113,7 @@ Proof.
       intros; contradiction.
     + specialize (Hhandler _ e). destruct Hhandler; try contradiction; try contra_size.
       specialize (FINCHECK s). induction FINCHECK.
-      * rewrite bind_ret_l. cbn. step. constructor. right. eapply CIH; eauto. apply H0.
+      * rewrite bind_ret_l. cbn. step. constructor. eapply CIH; eauto. apply H0.
       * rewrite bind_tau. step. constructor. left. eapply IHFINCHECK; eauto.
       * destruct H5. rewrite bind_vis. step. constructor; auto. left. eapply H4; eauto.
 Qed.
@@ -126,117 +121,188 @@ Qed.
 Lemma diverges_with_bind : forall E R S P (t : itree E R) (k : R -> itree E S),
     diverges_with P t -> diverges_with P (ITree.bind t k).
 Proof.
-  intros E R1 R2 P. coinduction c CIH.
-  intros t k Ht. step in Ht. step. red.
-  unfold observe. cbn. red in Ht. inv Ht.
-  - cbn. constructor. right.  eapply CIH; eauto.
-  -  cbn. constructor; auto. right. eapply CIH; eauto. apply H0.
+  intros E R1 R2 P. icoinduction c CIH.
+  intros t k Ht. step in Ht. 
+  unfold observe. inv Ht; cbn; simpobs. 
+  - etau.
+  - evis. eapply CIH; eauto. apply H0.
 Qed.
 
 Lemma interp_pi_eqit_secure_state : forall (R1 R2 : Type) (RR : R1 -> R2 -> Prop) (t1 : itree E1 R1) (t2 : itree E1 R2),
     pi_eqit_secure Label priv1 RR true true l t1 t2 ->
     state_pi_eqit_secure true true RR (interp_state handler t1) (interp_state handler t2).
 Proof.
-  intros R1 R2 RR. ginit. gcofix CIH. intros t1 t2 Ht s1 s2 Hs. step in Ht.
-  red in Ht.
+
+  intros R1 R2 RR. coinduction c CIH. intros t1 t2 Ht s1 s2 Hs. step in Ht.
   inv Ht; intros; use_simpobs.
-  - rewrite H, H0. repeat rewrite interp_state_ret. gstep. constructor.
-    split; auto.
-  - rewrite H, H0. repeat rewrite interp_state_tau. gstep. constructor.
-    gfinal. left.  apply CIH; auto.
-  -  rewrite H. rewrite interp_state_tau. gstep. constructor; auto.
-    gfinal. left. eapply CIH; eauto. apply simpobs in H0. rewrite <- itree_eta in H0.
+  - rewrite H, H0. repeat rewrite interp_state_ret. eret. 
+  - rewrite H, H0. repeat rewrite interp_state_tau. etau. 
+  - rewrite H. rewrite interp_state_tau. etau. 
+    eapply CIH; eauto. apply simpobs in H0. rewrite <- itree_eta in H0.
     rewrite H0. auto.
-  -  rewrite H0. rewrite interp_state_tau. gstep. constructor; auto.
-    gfinal. left. eapply CIH; eauto. apply simpobs in H. rewrite <- itree_eta in H.
+  - rewrite H0. rewrite interp_state_tau. etau. 
+    eapply CIH; eauto. apply simpobs in H. rewrite <- itree_eta in H.
     rewrite H. auto.
-  -  rewrite H, H0.
+  - rewrite H, H0.
     repeat rewrite interp_state_vis.
     specialize (Hhandler A e). inv Hhandler; try contradiction.
-    eapply pi_secure_eqit_bind'; eauto.
+    eapply pi_eqit_secure_bind; eauto.
     intros. destruct H2; destruct r1; destruct r2; cbn in *; subst.
-    step. constructor. right. eapply CIH; eauto. apply H1.
+    constructor. eapply CIH; eauto. apply H1.
   - rewrite H, H0.  rewrite interp_state_tau.
-    gstep. constructor; auto. rewrite interp_state_vis.
+    constructor; auto. rewrite interp_state_vis.
     specialize (Hhandler A e). inv Hhandler; try contradiction.
     red in RESCHECK. apply RESCHECK in Hs as He.
     remember (handler A e s1) as t3. clear Heqt3.
-    cbn in He. generalize dependent t3. gcofix CIH'.
-    intros t3 Ht3. sinv Ht3; use_simpobs; subst.
-    + destruct H4. cbn in *. destruct r1. cbn in *.
-      rewrite H2. rewrite bind_ret_l. gstep. constructor; auto.
-      gfinal. left. eapply CIH'0. eapply CIH; eauto. cbn. apply H1.
-    + rewrite H2. rewrite bind_tau. gstep; constructor; auto.
-      gfinal. left. eapply CIH'; eauto. symmetry in H3. use_simpobs.
+    generalize dependent t3. accumulate CIH'. 
+    intros t3 Ht3. cbn in Ht3. sinv Ht3; use_simpobs; subst.
+    + destruct H4. destruct r1. cbn in *|-.
+      rewrite H2. rewrite bind_ret_l. constructor; auto.
+      eapply CIH; eauto. cbn. apply H1.
+    + rewrite H2. rewrite bind_tau. constructor; auto.
+      eapply CIH'; eauto. symmetry in H3. use_simpobs.
       rewrite <- H3. auto.
-    + rewrite H2. rewrite bind_vis. gstep. constructor; auto.
-      intros. gfinal. left. eapply CIH'; eauto. symmetry in H3.
+    + rewrite H2. rewrite bind_vis. constructor; auto.
+      intros. eapply CIH'; eauto. symmetry in H3.
       use_simpobs. rewrite <- H3. apply H4.
  - rewrite H, H0.  rewrite interp_state_tau.
-    gstep. constructor; auto. rewrite interp_state_vis.
+    constructor; auto. rewrite interp_state_vis.
     specialize (Hhandler A e). inv Hhandler; try contradiction.
     red in RESCHECK. symmetry in Hs. apply RESCHECK in Hs as He.
     remember (handler A e s2) as t3. clear Heqt3.
-    cbn in He. generalize dependent t3. gcofix CIH'.
+    cbn in He. generalize dependent t3. accumulate CIH'.
     intros t3 Ht3. sinv Ht3; use_simpobs; subst.
-    + destruct H4. cbn in *. destruct r1. cbn in *.
-      rewrite H2. rewrite bind_ret_l. gstep. constructor; auto.
-      gfinal. left. eapply CIH'0. eapply CIH; eauto. cbn. apply H1.
+    + destruct H4. destruct r1. cbn in *|-.
+      rewrite H2. rewrite bind_ret_l. constructor; auto.
+      eapply CIH; eauto. cbn. apply H1.
       symmetry. auto.
-    + rewrite H2. rewrite bind_tau. gstep; constructor; auto.
-      gfinal. left. eapply CIH'; eauto. symmetry in H3. use_simpobs.
+    + rewrite H2. rewrite bind_tau. constructor; auto.
+      eapply CIH'; eauto. symmetry in H3. use_simpobs.
       rewrite <- H3. auto.
-    + rewrite H2. rewrite bind_vis. gstep. constructor; auto.
-      intros. gfinal. left. eapply CIH'; eauto. symmetry in H3.
+    + rewrite H2. rewrite bind_vis. constructor; auto.
+      intros. eapply CIH'; eauto. symmetry in H3.
       use_simpobs. rewrite <- H3. apply H4.
  -  rewrite H, H0. repeat rewrite interp_state_vis.
    specialize (Hhandler A e1) as He1. specialize (Hhandler B e2) as He2.
    inv He1; inv He2; try contradiction.
-   eapply pi_secure_eqit_bind' with (RR := prod_rel RS top2); eauto.
-   + intros [? ?] [? ?] [? ?]. cbn in *. pstep. constructor.
-     right. eapply CIH; eauto. apply H1.
-   + cbn in *. apply pi_eqit_secure_RR_imp with
+   eapply pi_eqit_secure_bind with (RR := prod_rel RS top2); eauto.
+   + intros [? ?] [? ?] [? ?]. constructor.
+     eapply CIH; eauto. apply H1.
+   + apply pi_eqit_secure_RR_imp with
                    (RR1 := rcompose (prod_rel RS (@top2 A unit)) (prod_rel RS top2) ).
      { intros. inv H2. destruct REL1. destruct REL2. split; auto.
        etransitivity; eauto. }
-     eapply pi_eqit_secure_trans_ret; eauto.
+     cbn in *. eapply pi_eqit_secure_trans_ret; eauto.
      apply pi_eqit_secure_sym. apply pi_eqit_secure_RR_imp with
                                    (RR1 := prod_rel RS top2).
-     { intros. inv H2. split; auto. symmetry. auto.  }
+     { intros. inv H2.  }
      eapply RESCHECK0. reflexivity.
- - apply simpobs in H0. rewrite <- itree_eta in H0. rewrite H0.
-   rewrite H. rewrite interp_state_vis.
+ - apply simpobs in H0. rewrite <- itree_eta in H0. 
+   rewrite H. rewrite H0. rewrite interp_state_vis.
    specialize (Hhandler A e). inv Hhandler; try contradiction.
    red in RESCHECK. apply RESCHECK in Hs as He.
     remember (handler A e s1) as t3. clear Heqt3.
-    cbn in He. generalize dependent t3. gcofix CIH'.
+    (* TOUR: PROBLEM
+    The proof we want: 
+    cbn in He. generalize dependent t3. accumluate CIH'.
     intros t3 Ht3. sinv Ht3; use_simpobs; subst.
     + destruct H4. cbn in *. destruct r1. cbn in *.
       rewrite H2. rewrite bind_ret_l. gstep. constructor; auto.
-      gfinal. left. eapply CIH; eauto. cbn. apply H1.
+      eapply CIH; eauto. cbn. apply H1.
     + rewrite H2. rewrite bind_tau. gstep; constructor; auto.
-      gfinal. left. eapply CIH'; eauto. symmetry in H3. use_simpobs.
+      eapply CIH'; eauto. symmetry in H3. use_simpobs.
       rewrite <- H3. auto.
     + rewrite H2. rewrite bind_vis. gstep. constructor; auto.
-      intros. gfinal. left. eapply CIH'; eauto. symmetry in H3.
+      intros. eapply CIH'; eauto. symmetry in H3.
       use_simpobs. rewrite <- H3. apply H4.
- - apply simpobs in H. rewrite <- itree_eta in H. rewrite H.
-    rewrite H0. rewrite interp_state_vis.
-   specialize (Hhandler A e). inv Hhandler; try contradiction.
-    red in RESCHECK. symmetry in Hs. apply RESCHECK in Hs as He.
-    remember (handler A e s2) as t3. clear Heqt3.
-    cbn in He. generalize dependent t3. gcofix CIH'.
-    intros t3 Ht3. sinv Ht3; use_simpobs; subst.
-    + destruct H4. cbn in *. destruct r1. cbn in *.
-      rewrite H2. rewrite bind_ret_l. gstep. constructor; auto.
-      gfinal. left. cbn. eapply CIH; eauto. cbn. apply H1.
-      symmetry. auto.
-    + rewrite H2. rewrite bind_tau. gstep; constructor; auto.
-      gfinal. left. eapply CIH'; eauto. symmetry in H3. use_simpobs.
-      rewrite <- H3. auto.
-    + rewrite H2. rewrite bind_vis. gstep. constructor; auto.
-      intros. gfinal. left. eapply CIH'; eauto. symmetry in H3.
-      use_simpobs. rewrite <- H3. apply H4.
-Qed.
 
+      or coinduction instead of accumulate. problem: 
+      we are at b (elem c), not elem c, so we cannot use accumulate. 
+    *)
+    cbn in *|-. step in He. 
+    remember (observe (Ret (s2, tt))).
+    icbn. rewrite observe_bind. 
+    hinduction He before CIH; intros; try easy.
+    + inv H. inv Heqi. cbn in *. constructor; auto. cbn. 
+    eapply CIH; eauto. simpobs_subst. apply H1.  
+    + constructor 3; auto. step in H. rewrite Heqi in H. clear Heqi. 
+    generalize dependent t1. 
+    accumulate CIH'. 
+    intros t1 H. icbn.
+      rewrite observe_bind. inv H. 
+      * constructor; auto. 
+        inv H5. cbn in *. 
+        eapply CIH; eauto. apply H1. 
+      * constructor; auto. eapply CIH'. rewrite <- H4. rewrite <- itree_eta'. now unstep.  
+      * constructor; auto; intro. eapply CIH'; eauto. rewrite <- H4. rewrite <- itree_eta'. now unstep.  
+    + constructor 9; auto. intros.
+      rename t4 into t5. 
+      remember (k1 a) as t4.
+      specialize (H a). step in H. 
+      rewrite <- Heqt4 in H. clear Heqt4. 
+      generalize dependent t4. 
+      accumulate CIH'. 
+      intros t4 H.
+      icbn. rewrite observe_bind. 
+      dependent induction H; simpobs; try easy. 
+      * constructor; auto. 
+        inv H. inv Heqi. cbn in *. 
+        eapply CIH; eauto. apply H1. 
+      * constructor; auto. eapply CIH'. unstep. apply H.  
+      * constructor; auto; intro. eapply CIH'. unstep. apply H. 
+      
+ - apply simpobs in H. rewrite <- itree_eta in H. 
+   rewrite H0. rewrite H. rewrite interp_state_vis.
+   specialize (Hhandler A e). inv Hhandler; try contradiction.
+   red in RESCHECK. symmetry in Hs. apply RESCHECK in Hs as He.
+    remember (handler A e s1) as t3. clear Heqt3.
+    (* TOUR: PROBLEM
+    The proof we want: 
+    cbn in He. generalize dependent t3. accumluate CIH'.
+    intros t3 Ht3. sinv Ht3; use_simpobs; subst.
+    + destruct H4. cbn in *. destruct r1. cbn in *.
+      rewrite H2. rewrite bind_ret_l. gstep. constructor; auto.
+      eapply CIH; eauto. cbn. apply H1.
+    + rewrite H2. rewrite bind_tau. gstep; constructor; auto.
+      eapply CIH'; eauto. symmetry in H3. use_simpobs.
+      rewrite <- H3. auto.
+    + rewrite H2. rewrite bind_vis. gstep. constructor; auto.
+      intros. eapply CIH'; eauto. symmetry in H3.
+      use_simpobs. rewrite <- H3. apply H4.
+
+      or coinduction instead of accumulate. problem: 
+      we are at b (elem c), not elem c, so we cannot use accumulate. 
+    *)
+    cbn in *|-. step in He. 
+    remember (observe (Ret (s1, tt))).
+    icbn. rewrite observe_bind. 
+    hinduction He before CIH; intros; try easy.
+    + inv H. inv Heqi. cbn in *. constructor; auto. cbn. 
+    eapply CIH; eauto. simpobs_subst. apply H1. now symmetry.   
+    + constructor 4; auto. step in H. rewrite Heqi in H. clear Heqi. 
+    generalize dependent t1. 
+    accumulate CIH'. 
+    intros t1 H. icbn.
+      rewrite observe_bind. inv H. 
+      * constructor; auto. 
+        inv H5. cbn in *. 
+        eapply CIH; eauto. apply H1. now symmetry.  
+      * constructor; auto. eapply CIH'. rewrite <- H4. rewrite <- itree_eta'. now unstep.  
+      * constructor; auto; intro. eapply CIH'; eauto. rewrite <- H4. rewrite <- itree_eta'. now unstep.  
+    + constructor 10; auto. intros.
+      rename t4 into t5. 
+      remember (k1 a) as t4.
+      specialize (H a). step in H. 
+      rewrite <- Heqt4 in H. clear Heqt4. 
+      generalize dependent t4. 
+      accumulate CIH'. 
+      intros t4 H.
+      icbn. rewrite observe_bind. 
+      dependent induction H; simpobs; try easy. 
+      * constructor; auto. 
+        inv H. inv Heqi. cbn in *. 
+        eapply CIH; eauto. apply H1. now symmetry.  
+      * constructor; auto. eapply CIH'. unstep. apply H.  
+      * constructor; auto; intro. eapply CIH'. unstep. apply H. 
+Qed. 
 End GeneralStateHandler.

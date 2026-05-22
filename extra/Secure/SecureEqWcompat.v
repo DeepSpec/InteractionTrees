@@ -79,11 +79,6 @@ Ltac resolve_sizes :=
   end;
   try contra_size.
 
-Ltac apply_foralls :=
-  repeat match goal with
-  | w : ?A, H : forall _ : ?A, _ |- _ => apply (H w)
-  end.
-
 (* Close a halting [Vis]/[Vis] obligation, at either the [gfp]
    ([eqit_secure]) or chain ([elem c]) level: step into the halting
    constructor, then finish by the empty-index contradiction or the body
@@ -197,6 +192,15 @@ Tactic Notation "smart_constructor" tactic3(conclude) :=
             | fail 1 "smart_constructor: ?/Vis unsolved" ]
   | |- _ => idtac
   end.
+
+(* #[global] Instance eqit_secure_proper_chain
+  {E R1 R2} (RR : R1 -> R2 -> Prop) Label priv l (b1 b2 : bool)
+  (c : Chain (secure_eqit_mon (E := E) Label priv RR b1 b2 l)) :
+  Proper (eqit_secure Label priv eq false false l ==>
+          eqit_secure Label priv eq false false l ==>
+          flip impl) (elem c).
+Proof. *)
+
 
 #[global] Instance eqit_secure_proper_chain
   {E R1 R2} (RR : R1 -> R2 -> Prop) Label priv l (b1 b2 : bool)

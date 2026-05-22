@@ -68,70 +68,44 @@ Proof.
   - apply H1.  
 Qed.
 
-#[local] Ltac to_mon_s := 
+Ltac to_mon_s := 
 match goal with 
 | |- secure_eqitF ?Label ?priv ?RR ?b1 ?b2 ?l ?sim (observe ?t1) (observe ?t2) =>
   change (secure_eqit_mon Label priv RR b1 b2 l sim t1 t2)
   end.
 
-Lemma secure_eqit_bind' : forall E R1 R2 S1 S2 (RR : R1 -> R2 -> Prop) (RS : S1 -> S2 -> Prop)
-                           b1 b2 Label priv l
-    (t1 : itree E R1) (t2 : itree E R2) (k1 : R1 -> itree E S1) (k2 : R2 -> itree E S2),
-    (forall r1 r2, RR r1 r2 -> eqit_secure Label priv RS b1 b2 l (k1 r1) (k2 r2) ) ->
-    eqit_secure Label priv RR b1 b2 l t1 t2 ->
-    eqit_secure Label priv RS b1 b2 l (ITree.bind t1 k1) (ITree.bind t2 k2).
+
+Lemma secure_eqit_bind_chain :
+  forall {E R1 R2 S1 S2} (RR : R1 -> R2 -> Prop) (RS : S1 -> S2 -> Prop)
+    b1 b2 (Lab : Preorder) (pr : forall A, E A -> L) (lev : L)
+    (c : Chain (secure_eqit_mon Lab pr RS b1 b2 lev))
+    (t1 : itree E R1) (t2 : itree E R2)
+    (k1 : R1 -> itree E S1) (k2 : R2 -> itree E S2),
+    eqit_secure Lab pr RR b1 b2 lev t1 t2 ->
+    (forall r1 r2, RR r1 r2 -> elem c (k1 r1) (k2 r2)) ->
+    elem c (ITree.bind t1 k1) (ITree.bind t2 k2).
 Proof.
-  intros. revert H0. revert t1 t2. icoinduction c CIH. intros t1 t2 Ht12.
-  step in Ht12.
-  genobs t1 ot1. genobs t2 ot2.
-  hinduction Ht12 before E; intros.
-  - unfold ITree.bind, observe; cbn. 
-    simpobs. step. now apply H0. 
-  - unfold ITree.bind, observe. 
-    cbn; simpobs; cbn. 
- constructor. now eapply CIH.  
-  - unfold ITree.bind at 1, observe at 1. 
-    cbn; simpobs; cbn. 
- constructor; auto.
-    apply IHHt12; eauto.  
-  - unfold ITree.bind at 2, observe at 2. 
-    cbn; simpobs; cbn. 
- constructor; auto. apply IHHt12; eauto.
-  - unfold ITree.bind, observe. 
-    cbn; simpobs; cbn.
-    evis.  
-    eapply CIH, H.
-  - unfold ITree.bind, observe. 
-    cbn; simpobs; cbn. 
-    unpriv_co.
-    eapply CIH, H.
-  - unfold ITree.bind, observe. 
-    cbn; simpobs; cbn. 
-    unpriv_co.
-    eapply CIH, H.
-  - unfold ITree.bind, observe. 
-    cbn; simpobs; cbn. 
-    unpriv_co.
-    eapply CIH, H.
-  - unfold ITree.bind at 1, observe at 1. 
-    cbn. rewrite <- Heqot1. cbn. 
-    unpriv_ind. eapply H0; eauto.
-  - unfold ITree.bind at 2, observe at 2. 
-    cbn; rewrite <- Heqot2; cbn. 
-    unpriv_ind. eapply H0; eauto. 
-  - step. 
-    eapply eqit_bind_shalt_aux1; eauto. step. simpobs.
-    cbn. unpriv_halt. eauto.
-  - step. 
-    eapply eqit_bind_shalt_aux2; eauto. step. cbn. simpobs.
-    unpriv_halt. eauto.
-  - step. 
-    eapply eqit_bind_shalt_aux1 with (A := A); eauto.
-    step. simpobs. cbn. unpriv_halt.
-  - step. 
-    eapply eqit_bind_shalt_aux2; eauto. step. cbn. simpobs.
-    unpriv_halt.
+  intros E R1 R2 S1 S2 RR RS b1 b2 Lab pr lev c.
+  tower induction.
+  intros x IH t1 t2 k1 k2 Hsec Hcont.
+  step in Hsec. genobs t1 ot1. genobs t2 ot2.
+  hinduction Hsec before x; intros.
+  - apply simpobs in Heqot1. apply simpobs in Heqot2. rewrite Heqot1, Heqot2. repeat rewrite bind_ret_l. now apply Hcont.
+  - apply simpobs in Heqot1. apply simpobs in Heqot2. rewrite Heqot1, Heqot2. repeat rewrite bind_tau. constructor. eapply IH; [apply H | intros rr1 rr2 HRR; apply (b_chain x); now apply Hcont].
+  - apply simpobs in Heqot1. rewrite Heqot1. rewrite bind_tau. constructor; auto. eapply IHHsec; eauto.
+  - apply simpobs in Heqot2. rewrite Heqot2. rewrite bind_tau. constructor; auto. eapply IHHsec; eauto.
+  - apply simpobs in Heqot1. apply simpobs in Heqot2. rewrite Heqot1, Heqot2. repeat rewrite bind_vis. constructor; auto. intros a. eapply IH; [apply H | intros rr1 rr2 HRR; apply (b_chain x); now apply Hcont].
+  - apply simpobs in Heqot1. apply simpobs in Heqot2. rewrite Heqot1, Heqot2. rewrite bind_vis, bind_tau. unpriv_co. eapply IH; [apply H | intros rr1 rr2 HRR; apply (b_chain x); now apply Hcont].
+  - apply simpobs in Heqot1. apply simpobs in Heqot2. rewrite Heqot1, Heqot2. rewrite bind_tau, bind_vis. unpriv_co. eapply IH; [apply H | intros rr1 rr2 HRR; apply (b_chain x); now apply Hcont].
+  - apply simpobs in Heqot1. apply simpobs in Heqot2. rewrite Heqot1, Heqot2. repeat rewrite bind_vis. unpriv_co. eapply IH; [apply H | intros rr1 rr2 HRR; apply (b_chain x); now apply Hcont].
+  - apply simpobs in Heqot1. rewrite Heqot1. rewrite bind_vis. unpriv_ind. eapply H0; eauto.
+  - apply simpobs in Heqot2. rewrite Heqot2. rewrite bind_vis. unpriv_ind. eapply H0; eauto.
+  - apply (gfp_bchain x). eapply eqit_bind_shalt_aux1; eauto. step. rewrite <- Heqot2. cbn. unpriv_halt. eauto.
+  - apply (gfp_bchain x). eapply eqit_bind_shalt_aux2; eauto. step. rewrite <- Heqot1. cbn. unpriv_halt. eauto.
+  - apply (gfp_bchain x). eapply eqit_bind_shalt_aux1 with (e := e1); eauto. step. rewrite <- Heqot2. cbn. unpriv_halt.
+  - apply (gfp_bchain x). eapply eqit_bind_shalt_aux2 with (e := e2); eauto. step. rewrite <- Heqot1. cbn. unpriv_halt.
 Qed.
+
 
 Lemma secure_eqit_bind : forall E R1 R2 S1 S2 (RR : R1 -> R2 -> Prop) (RS : S1 -> S2 -> Prop)
                            b1 b2 Label priv l
@@ -140,9 +114,8 @@ Lemma secure_eqit_bind : forall E R1 R2 S1 S2 (RR : R1 -> R2 -> Prop) (RS : S1 -
     eqit_secure Label priv RR b1 b2 l t1 t2 ->
     eqit_secure Label priv RS b1 b2 l (ITree.bind t1 k1) (ITree.bind t2 k2).
 Proof.
-  intros.
-  eapply secure_eqit_bind'; eauto.
-Qed.
+  intros. eapply secure_eqit_bind_chain; eauto. 
+Qed. 
 
 Lemma iter_bind_shalt_aux1:
   forall (E : Type -> Type) (B2 B1 A1 A2 : Type) (RA : A1 -> A2 -> Prop)
@@ -296,7 +269,7 @@ Proof.
    (* write lemmas for unfolding the observe of iter *) cbn.
   hinduction Hbodya before E; intros; cbn; auto with itree.
   - inv H; cbn; eauto with itree. 
-  - cbn.  constructor. 
+  - cbn. constructor. 
     eapply iter_bind_aux; eauto. 
   - constructor; auto. intro. eapply iter_bind_aux; eauto.
       apply H. 
