@@ -18,7 +18,6 @@ From ITree Require Import
      Basics.HeterogeneousRelations
      ITree
      ITreeFacts
-     Eq.Paco2
      Events.State
      Events.StateFacts
      Events.MapDefault.

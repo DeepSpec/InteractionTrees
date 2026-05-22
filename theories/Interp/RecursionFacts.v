@@ -131,7 +131,7 @@ Proof.
   rewrite <- (tau_eutt (interp _ _)).
   revert_until T. coinduction. intros.
   rewrite unfold_interp_mrec, unfold_interp.
-  destruct (observe c0); [| |destruct e]; simpl; eauto with paco.
+  destruct (observe c0); [| |destruct e]; simpl; eauto.
   - now taur. 
   - taus. apply CIH. 
   - taus. rewrite interp_mrec_bind. unfold mrec.
@@ -198,9 +198,9 @@ Proof.
   3: { destruct e; constructor. 
     + apply CIH. ebind. apply Hfg.  
       intros ? _ []. apply REL. 
-    + intros; step; taus. eauto with paco itree.
+    + intros; step; taus. eauto with itree.
   }
-  1,2: constructor; auto with paco itree.
+  1,2: constructor; auto with itree.
   all: to_mon; rewrite unfold_interp_mrec, tau_euttge; auto.
 Qed.
 
@@ -242,9 +242,9 @@ Proof.
   3: { destruct e; constructor. 
     + apply CIH. ebind. apply Hfg.  
       intros ? _ []. apply REL. 
-    + intros; step; taus. eauto with paco itree.
+    + intros; step; taus. eauto with itree.
   }
-  1,2: constructor; auto with paco itree.
+  1,2: constructor; auto with itree.
   all: to_mon; rewrite unfold_interp_mrec, tau_euttge; auto.
 Qed.
 

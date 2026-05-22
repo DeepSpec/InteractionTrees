@@ -4,7 +4,21 @@
       "Bash(.venv/bin/python -c ' *)",
       "Bash(awk 'NR>=345 && /Qed\\\\.|Admitted\\\\./{print NR\": \"$0; exit}' extra/Secure/SecureStateHandler.v)",
       "Bash(awk 'NR>458' extra/Secure/SecureStateHandler.v)",
-      "Bash(cp /tmp/interp_good.txt /tmp/interp13g1.txt)"
+      "Bash(cp /tmp/interp_good.txt /tmp/interp13g1.txt)",
+      "Bash(make -C /Users/rogerab/home/learning-sandbox/learning/rocq/coinduction/InteractionTrees hoare_example/ImpHoare.vo -j4)",
+      "Bash(make ImpHoare.vo -j4)",
+      "Bash(coqc -Q ../theories/ ITree -Q ../extra ITree.Extra -R . hoare ImpHoare.v)",
+      "Bash(awk 'NR>=420 && NR<=487 && /^Lemma|^Theorem|^Definition|^Proof/' ImpHoare.v)",
+      "Bash(awk -F: '$1<=486')",
+      "Bash(.venv/bin/python3 -)",
+      "Bash(cp /tmp/ImpHoare_probe.v ImpHoare_probe.v)",
+      "Bash(coqc -Q ../theories/ ITree -Q ../extra ITree.Extra -R . hoare ImpHoare_probe.v)",
+      "Bash(/Users/rogerab/claude/rocq-proving/.venv/bin/python -)",
+      "Bash(perl -i -pe 's/sinv H0\\\\. discriminate\\\\./sinv H0; try discriminate./g' ImpHoare.v)",
+      "Bash(git log *)"
+    ],
+    "additionalDirectories": [
+      "/Users/rogerab/claude/rocq-proving"
     ]
   }
 }

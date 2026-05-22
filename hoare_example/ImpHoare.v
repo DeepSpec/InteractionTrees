@@ -1,6 +1,8 @@
+From Coinduction Require Import all. 
 From Stdlib Require Import
      Arith Lia (* nia *)
      Morphisms
+     Program.Basics
 .
 
 From ExtLib Require Import
@@ -14,6 +16,7 @@ From ITree Require Import
      Events.MapDefault
      Events.State
      Events.StateFacts
+     HeterogeneousRelations
      Props.Infinite.
 
 From ITree.Extra Require Import
@@ -25,7 +28,6 @@ From ITree.Extra Require Import
      Dijkstra.StateDelaySpec
 .
 
-From Paco Require Import paco.
 
 From hoare Require Import Imp.
 
@@ -335,7 +337,7 @@ Proof.
       eapply Hp; try apply H0. unfold CategoryOps.iter, Iter_Kleisli, Basics.iter.
       unfold body. symmetry. auto.
     }
-    enough ((p \1/ any_infinite) (CategoryOps.iter body tt s) ).
+    enough ((Disj_unary _ p any_infinite) (CategoryOps.iter body tt s) ).
     {
       destruct H0; auto. unfold p. auto.
     }
@@ -358,7 +360,7 @@ Proof.
         eapply Hq.
         -- cbn. rewrite H1. setoid_rewrite bind_bind. setoid_rewrite bind_ret_l.
            simpl. tau_steps. reflexivity.
-        -- unfold q. left. exists s. right. split; auto. reflexivity.
+        -- unfold q. left. exists s. right. split; auto.
       * do 2 red in H1. unfold interp_imp, interp_map in H1.
         eapply Hq.
         -- cbn. rewrite H1. setoid_rewrite bind_bind. setoid_rewrite bind_ret_l.
@@ -404,22 +406,22 @@ Proof.
       -- cbn.  rewrite H0. setoid_rewrite bind_ret_l.
          do 2 red in H1. unfold interp_imp, interp_map in H1. rewrite H1.
          setoid_rewrite bind_bind. setoid_rewrite bind_ret_l. simpl. tau_steps. reflexivity.
-      -- left. exists s0. right. split; auto. reflexivity.
+      -- left. exists s0. right. split; auto; reflexivity.
     * eapply Hq.
       -- cbn.  rewrite H0. setoid_rewrite bind_ret_l.
          do 2 red in H1. unfold interp_imp, interp_map in H1. rewrite H1.
          setoid_rewrite bind_bind. setoid_rewrite bind_ret_l. simpl. tau_steps. reflexivity.
-      -- left. exists s0. right. split; auto. reflexivity.
+      -- left. exists s0. right. split; auto; reflexivity.
     * do 2 red in H1. do 2 red in H2. rewrite H1 in H2.
       apply eutt_inv_Ret in H2. injection H2. discriminate.
     * do 2 red in H1. do 2 red in H2. rewrite H1 in H2.
       apply eutt_inv_Ret in H2. injection H2. discriminate.
     * eapply Hq.
       -- cbn.  rewrite H0. setoid_rewrite bind_ret_l.  reflexivity.
-      -- left. exists s0. right. split; auto. reflexivity.
+      -- left. exists s0. right. split; auto; reflexivity.
     * eapply Hq.
       -- cbn.  rewrite H0. setoid_rewrite bind_ret_l.  reflexivity.
-      -- left. exists s0. right. split; auto. reflexivity.
+      -- left. exists s0. right. split; auto; reflexivity.
     * right. cbn. apply div_spin_eutt in H0. rewrite H0. rewrite <- spin_bind.
       apply spin_infinite.
    - set (fun (t : Delay (env * unit)) =>
@@ -451,7 +453,7 @@ Proof.
       {
         unfold p in H0. basic_solve; auto. sinv H0.
       }
-      enough ((p \1/ any_infinite) (CategoryOps.iter body tt s ) ).
+      enough ((Disj_unary _ p any_infinite) (CategoryOps.iter body tt s ) ).
       {
         destruct H0.
         - eapply Hp; try apply H0. rewrite <- Heutt. reflexivity.
@@ -483,7 +485,7 @@ Proof.
           eapply Hq.
           -- setoid_rewrite bind_bind. rewrite H0. setoid_rewrite bind_ret_l.
              simpl. cbn. tau_steps. reflexivity.
-          -- unfold q. left. exists s. split; auto. right. reflexivity.
+          -- unfold q. left. exists s. split; auto; try (right; reflexivity).
       + red. intros. unfold p. unfold q in H0. basic_solve.
         * cbn in H0.
           destruct (eutt_reta_or_div t); basic_solve.
@@ -535,7 +537,7 @@ Proof.
         -- unfold q. left. exists s''. split; try (right; reflexivity). unfold q in Ht.
            basic_solve.
            ++ rewrite H3 in H0. basic_solve. auto. sinv H0. injection REL; intros; subst; auto.
-           ++ rewrite H3 in H0. basic_solve. sinv H0. discriminate.
+           ++ rewrite H3 in H0. basic_solve. sinv H0; try discriminate.
            ++ rewrite <- H0 in H3. sinv H3.
         -- rewrite <- H0. setoid_rewrite bind_ret_l.
            setoid_rewrite bind_bind.
@@ -553,7 +555,7 @@ Proof.
           reflexivity.
        -- unfold q. left. exists s''. split; try (right; reflexivity).
           unfold q in Ht. basic_solve.
-          ++ rewrite H1 in H0. basic_solve. sinv H0. discriminate.
+          ++ rewrite H1 in H0. basic_solve. sinv H0; try discriminate.
           ++ rewrite H1 in H0. basic_solve. sinv H0; injection REL; intros; subst; auto.
           ++ rewrite <- H0 in H1. sinv H1.
      * clear Ht. unfold q. right. apply div_spin_eutt in H0.
@@ -938,10 +940,10 @@ Section SQRTEx.
       apply iter_inl_spin_state.
       apply ( diverge_if_not_square_nat_sqrt_aux) in H. unfold state_iter_arrow_rel.
       simpl. unfold body_arrow in H. simpl in *. generalize dependent s. coinduction c CIH. intros.
-      sinv H0; try apply not_wf_F_mono'.
-      step. eapply not_wf with (a' := (a',tt)).
+      sinv H; try apply not_wf_F_mono'.
+      eapply not_wf with (a' := (a',tt)).
       - symmetry. auto.
-      - right. auto.
+      - apply CIH; auto.
     Qed.
 
     (*maybe there is a better way to do it, prove that if the body can't prove a a spin,
@@ -980,7 +982,7 @@ Section SQRTEx.
 
 
   Lemma prepost1_holds_nat_sqrt_loop :
-    verify_cond env (encode_dyn env ((pre1 /1\ fun s => lookup_default i 0 s = 0), post1) )
+    verify_cond env (encode_dyn env ((Conj_unary _ pre1 (fun s => lookup_default i 0 s = 0), post1) ))
                 (denote_imp (WHILE (~ i * i  = n) DO i ::= i + 1 END)%imp ).
   Proof.
     rewrite compile_nat_sqrt_body.
@@ -1008,7 +1010,7 @@ Section SQRTEx.
         * exists s0. split; auto. left. rewrite H. auto.
         * exists s0. split; auto. right. rewrite H. auto.
     }
-    match goal with |- p ?t => enough ((p \1/ any_infinite) t)  end.
+    match goal with |- p ?t => enough ((Disj_unary _ p any_infinite) t)  end.
     - destruct H; auto. exfalso.
       specialize (converge_if_square_nat_sqrt s Hi0 Hpre) as Hconv.
       basic_solve.
@@ -1061,7 +1063,7 @@ Section SQRTEx.
                 ** unfold get, inc_var. rewrite lookup_neq; auto.
          * eapply Hq.
            -- rewrite H. simpl. rewrite bind_ret_l. cbn. reflexivity.
-           -- red. exists s0. split; auto. right. split; auto. reflexivity.
+           -- red. exists s0. split; auto; try (right; split; auto; reflexivity).
   Qed.
 
 

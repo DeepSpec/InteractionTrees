@@ -27,7 +27,6 @@ Import Monads.
 Import MonadNotation.
 Local Open Scope monad_scope.
 
-(* ===== Small helper lemma (paco-free, kept verbatim from prior file) ===== *)
 
 Lemma eqit_secure_shalt_refl : forall E R1 R2 b1 b2 (RR : R1 -> R2 -> Prop) Label priv l A (e : E A) k1 k2,
     (~ leq (priv _ e) l) -> empty A ->
@@ -65,9 +64,7 @@ Ltac contra_leq :=
   | [ Hleq : leq ?a ?b, Hnleq : ~ leq ?a ?b |- _ ] => contradiction
   end.
 
-(* Decide the size of every event index appearing in the goal classically
-   (paco's [find_size] preprocessing) so the shape-directed
-   [smart_constructor] always has the [empty]/[nonempty] facts it needs. *)
+(* Decide the size of every event index appearing in the goal classically. *)
 Ltac resolve_sizes :=
   repeat match goal with
   | |- context [ @VisF _ _ _ ?A _ _ ] =>
@@ -100,9 +97,7 @@ Ltac sec_hyp :=
 Ltac sec_fin := solve [ sec_hyp | secure_halt_refl ].
 
 (* Deep halt/halt subcases: no hypothesis pins the [CIH] intermediate, but it
-   can be taken to be the concrete halting [Vis] already on the other side —
-   a reflexive halt bridge.  Mirrors paco's explicit
-   [econstructor 1 with (t1' := Vis e k)]. *)
+   can be taken to be the concrete halting [Vis] already on the other side. *)
 Ltac sec_reflexive :=
   match goal with
   | |- eqit_secure _ _ _ _ _ _ ?X ?Y =>

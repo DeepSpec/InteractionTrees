@@ -244,7 +244,7 @@ Proof.
   step in H0. repeat red in H0. 
   genobs_clear t2 ot2.
   hinduction H before CIH; intros; clear t1; subst; eauto.
-  - remember (RetF r2) as ot1. hinduction H0 before CIH; intros; inv Heqot1; eauto with paco.
+  - remember (RetF r2) as ot1. hinduction H0 before CIH; intros; inv Heqot1; eauto.
     + constructor; auto.
     + constructor. eauto.
   - remember (TauF m1) as otm1.

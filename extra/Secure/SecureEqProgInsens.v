@@ -335,10 +335,6 @@ Proof with eauto with itree.
     + 
 Qed.  *)
 
-
-(* Chain-level congruence: rewriting under [eq_itree eq] on either side of a
-   chain element.  This replaces the paco-style [pi_eqit_secureC_wcompat_id]
-   (weak compatibility of the [eqitC] up-to-eq_itree closure).  *)
 #[global] Instance pi_eqit_secure_proper_secureC {E R1 R2} b1 b2 Label priv (RR : R1 -> R2 -> Prop) l
   (c : Chain (pi_secure_eqit_mon Label priv RR b1 b2 l)) :
   Proper (eq_itree (E := E) eq ==> eq_itree eq ==> flip impl) (elem c).

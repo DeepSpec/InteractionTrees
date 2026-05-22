@@ -1,5 +1,5 @@
 (* begin hide *)
-Require Import Psatz.
+From Stdlib Require Import Psatz.
 
 From Stdlib Require Import
      Lists.List
@@ -140,7 +140,6 @@ Proof.
     unfold rel_asm.
     eapply interp_map_proper; try typeclasses eauto; auto.
     eapply interp_map_proper; try typeclasses eauto; auto.
-    reflexivity.
   }
   intros.
   destruct H as [J1 [J2 J3]]; subst.

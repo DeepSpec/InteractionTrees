@@ -503,29 +503,6 @@ Proof.
         rewrite Hspin in H0. eapply not_spin_eutt_ret; eauto.
 Qed.
 
-(* Lemma eqitF_r_refl: forall (E : Type -> Type) (R: Type) r
-                           (ot: itree' E R),
-    eqitF eq true true id (upaco2 (eqit_ eq true true id) r)
-          ot ot.
-Proof.
-  intros E R r ot.
-  destruct ot; constructor; auto.
-  - apply pacobot2, reflexivity.
-  - apply pacobot2, reflexivity.
-Qed. *)
-
-(* Lemma eqitF_mon:
-  forall (E : Type -> Type) (R : Type) (r : itree (EvAns E) R -> itree (EvAns E) R -> Prop)
-         (t1 : itree' (EvAns E) R) (t0 : itree' (EvAns E) R),
-    eqitF eq true true id (upaco2 (eqit_ eq true true id) bot2) t1 t0 ->
-    eqitF eq true true id (upaco2 (eqit_ eq true true id) r) t1 t0.
-Proof.
-  intros E R r t1 t0' REL.
-  induction REL; constructor; eauto.
-  -  apply pacobot2; auto.
-  -  intros. apply pacobot2; auto.
-Qed. *)
-
 Lemma eqitF_observe_peel_cont_vis:
   forall (E : Type -> Type) (R S A : Type) (ev : E A) (ans : A)
          (k1 k2 : unit -> itree (EvAns E) R),

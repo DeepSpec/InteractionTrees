@@ -1052,9 +1052,6 @@ Lemma euttge_proper_flip_euttgeC {E R1 R2}
   *)
 Abort. 
 
-(* The correct instance: first arg uses [euttge eq], second uses [eq_itree eq].
-   Since euttgeC has b2=false, the right argument cannot skip taus, so we need
-   strong bisimulation (eq_itree eq) there, not euttge eq. *)
 #[global] Instance euttge_eq_proper_euttgeC {E R1 R2}
   (RR : R1 -> R2 -> Prop) (c : euttgeC):
   Proper (euttge (E := E) eq ==> eq_itree eq ==> flip impl) (elem c _ _ RR).
@@ -2526,6 +2523,15 @@ Instance eutt_cong_eq {E R1 R2 RR}:
 Proof.
   intros!. now rewrite H, H0.
 Qed.
+
+#[global]
+Instance eutt_cong_ {E R1 R2 RR}:
+  Proper (eq_itree eq ==> eq_itree eq ==> flip impl)
+         (@eqit E true true R1 R2 RR).
+Proof.
+  intros!. now rewrite H, H0.
+Qed.
+
 
 
 (* Specialization of [eutt_bind_eutt] to the recurrent case where [UU := eq]

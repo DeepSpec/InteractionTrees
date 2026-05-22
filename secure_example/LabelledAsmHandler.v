@@ -19,8 +19,6 @@ Import Monads.
 Import MonadNotation.
 Local Open Scope monad_scope.
 
-From Paco Require Import paco.
-
 (* Note that this definition sets considers all registers to be private *)
 
 Definition priv_asm (priv : privacy_map sensitivity_lat) (A : Type) (e : (Reg +' Memory +' (IOE sensitivity_lat)) A ) :=

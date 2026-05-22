@@ -107,9 +107,9 @@ Section Proper.
     rewrite !unfold_interpret_state. subst.
     step in H0. repeat red in H0. unfold interpret_stateF.
     destruct (observe x); inv H0; try discriminate;  simpl;
-      try (gstep; constructor; eauto with paco; fail).
+      try (gstep; constructor; eauto; fail).
     ddestruction.
-    destruct e; gstep; econstructor; eauto with paco itree.
+    destruct e; gstep; econstructor; eauto with itree.
   Qed.
 
   End Proper.
@@ -275,7 +275,7 @@ Proof.
   step in H0. repeat red in H0.
   destruct (observe t); cbn.
   - rewrite !bind_ret_l. gfinal. right.
-    eapply paco2_mon_bot; eauto with paco. apply INV.
+    eapply paco2_mon_bot; eauto. apply INV.
   - rewrite !bind_tau. gstep. econstructor.
     gbase. eapply CIH; auto.
     inversion H0. subst.  assumption.
