@@ -99,25 +99,7 @@ Variant handler_respects_priv (A : Type) (e : E1 A) : Prop :=
 
 Context (Hhandler : forall A (e : E1 A), handler_respects_priv A e).
 
-(*
-Lemma diverge_with_respectful_handler : forall (R : Type) (t : itree E1 R),
-    diverges_with (fun _ e => ~ leq (priv1 _ e) l ) t ->
-    forall s, diverges_with (fun _ e => ~ leq (priv2 _ e) l) (interp_state handler t s).
-Proof.
-  intro R. coinduction c CIH. intros t Hdiv s. sinv Hdiv; use_simpobs.
-  - rewrite H. rewrite interp_state_tau. step. constructor. eapply CIH; eauto.
-  - rewrite H. rewrite interp_state_vis.
-    destruct (classic_empty B).
-    + specialize (Hhandler _ e). destruct Hhandler; try contradiction; try contra_size.
-      specialize (DIVCHECK s). eapply paco1_mon with (r:= bot1). eapply diverges_with_bind; eauto.
-      intros; contradiction.
-    + specialize (Hhandler _ e). destruct Hhandler; try contradiction; try contra_size.
-      specialize (FINCHECK s). induction FINCHECK.
-      * rewrite bind_ret_l. cbn. step. constructor. eapply CIH; eauto. apply H0.
-      * rewrite bind_tau. step. constructor. left. eapply IHFINCHECK; eauto.
-      * destruct H5. rewrite bind_vis. step. constructor; auto. left. eapply H4; eauto.
-Qed.
-*)
+
 Lemma diverges_with_bind : forall E R S P (t : itree E R) (k : R -> itree E S),
     diverges_with P t -> diverges_with P (ITree.bind t k).
 Proof.

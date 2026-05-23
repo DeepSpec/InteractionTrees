@@ -145,7 +145,7 @@ Definition one_loop_tree : itree nd unit :=
     else
       trigger (Call tt))%itree tt.
 
-Import Coq.Classes.Morphisms.
+Import Stdlib.Classes.Morphisms.
 
 Lemma eval_skip: rec eval_def skip ≈ Ret tt.
 Proof.
@@ -155,24 +155,23 @@ Qed.
 (* SAZ: the [~] notation for eutt wasn't working here. *)
 Lemma eval_one_loop : eval one_loop ≈ one_loop_tree.
 Proof.
-  setoid_rewrite rec_as_interp.
-  setoid_rewrite interp_bind.
-  setoid_rewrite interp_vis.
-  setoid_rewrite tau_eutt.
-  setoid_rewrite interp_ret.
-  setoid_rewrite bind_bind.
-  setoid_rewrite bind_ret_l.
-  setoid_rewrite bind_vis.
-  step. 
-  evis. intros.
-  setoid_rewrite bind_ret_l.
-  destruct v.
-  - setoid_rewrite interp_ret. apply reflexivity.
-  - setoid_rewrite interp_bind.
-    setoid_rewrite interp_recursive_call.
-    setoid_rewrite eval_skip.
-    setoid_rewrite bind_ret_l.
-    eauto.
+  coinduction c CIH.
+  unfold eval, one_loop, one_loop_tree, rec, mrec.
+  rewrite 2 unfold_interp_mrec. cbn.
+  constructor. intros x.
+  rewrite 2 tau_euttge.  
+  destruct x.
+  - rewrite 2 unfold_interp_mrec. cbn. reflexivity.
+  - ITree.fold_subst. 
+    rewrite 2 bind_ret_. 
+    rewrite interp_mrec_bind.  
+    rewrite unfold_interp_mrec. cbn. 
+    rewrite tau_euttge. 
+    rewrite bind_ret_.
+    rewrite <- interp_mrec_bind. 
+    rewrite bind_ret_.  
+    rewrite 2 interp_mrec_trigger. 
+    eapply CIH.  
 Qed.
 
 End Tree.

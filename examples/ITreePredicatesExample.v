@@ -5,13 +5,14 @@
 (* TODO: this infrastructure should be generalized and integrated into
    the library. *)
 
+From Coinduction Require Import all. 
+
 Set Implicit Arguments.
 Set Contextual Implicit.
 
 From Stdlib Require Import
      Morphisms.
 
-From Paco Require Import paco.
 
 From ExtLib Require Import
      Monads.
@@ -19,10 +20,7 @@ From ExtLib Require Import
 From ITree Require Import
      Axioms
      ITree
-     ITreeFacts
-     Eq.Paco2.
-
-From Paco Require Import paco.
+     ITreeFacts.
 
 Import ITreeNotations.
 
@@ -94,22 +92,25 @@ Section Proper.
   Local Open Scope signature_scope.
 
 
-  (* SAZ: This proof is a bit annoying.  We can only rewrite under the "upto" paco2 predicate
+  (* 
+  TOUR: This proof is now nice! 
+  Old: 
+  SAZ: This proof is a bit annoying.  We can only rewrite under the "upto" paco2 predicate
      (see the eq_itree_paco instance in Eq), which means we have to introduce names, start the upto proof,
      do the rewrite, and then regeneralize for the CIH.  It would be nicer if we could rewrite under (paco2 _ r).
    *)
   Instance proper_interpret_state {S R} : Proper ((@eq_itree (stateE S) R _ eq) ==> (@eq S) ==> (@eq_itree void1 (S * R) _ eq)) interpret_state.
   Proof.
-    ginit. gcofix CIH.
+    coinduction. 
     intros x y H0 x2 y0 H1.
     rewrite (itree_eta (interpret_state x x2)).
     rewrite (itree_eta (interpret_state y y0)).
     rewrite !unfold_interpret_state. subst.
     step in H0. repeat red in H0. unfold interpret_stateF.
     destruct (observe x); inv H0; try discriminate;  simpl;
-      try (gstep; constructor; eauto; fail).
+      try (constructor; eauto).
     ddestruction.
-    destruct e; gstep; econstructor; eauto with itree.
+    destruct e; econstructor; eauto with itree.
   Qed.
 
   End Proper.
@@ -170,6 +171,8 @@ Definition NoGets_ {S R} (rec : itree (stateE S) R -> Prop) (t : itree (stateE S
   NoGetsF rec (observe t).
 
 
+  (* RTODO: Rewrite all this *)
+  (* TOUR: all of this greivance no longer applies! *)
 (* Next, we need to prove that [NoGets_] is a monotone function on relations,
    which means that paco can take its greatest fixpoint.  Monotonicity of
    [NoGets_] depends on monotonicity of [NoGetsF].
@@ -189,26 +192,29 @@ Definition NoGets_ {S R} (rec : itree (stateE S) R -> Prop) (t : itree (stateE S
    that it isn't an instance of monotone1.
 *)
 
-Lemma monotone_NoGetsF : forall {S R} t (r r' : itree (stateE S) R -> Prop)
-  (IN: NoGetsF r t) (LE: forall y, r y -> r' y), NoGetsF r' t.
+Lemma NoGetsF_mono : forall {S R},
+  Proper (leq ==> leq) (@NoGets_ S R). 
 Proof.
-  pmonauto.
+  repeat intro. red. induction H0; constructor; now apply H.
 Qed.
 
-(* SAZ: we need to do a couple of reductions to expose the structure of
+Definition NoGets_mon S R := Build_mon (@NoGetsF_mono S R). 
+
+(* TOUR: No need! *)
+(* (* SAZ: we need to do a couple of reductions to expose the structure of
    the lemma so that pmonauto can work.  Note that [cbn] and [simple]
    don't work here because they don't unfold the definitions.  *)
 Lemma monotone_NoGets_ : forall {S R}, monotone1 (@NoGets_ S R).
 Proof.
   do 2 red. pmonauto.
 Qed.
-Global Hint Resolve monotone_NoGets_ : paco.
+Global Hint Resolve monotone_NoGets_ : paco. *)
 
 (* Finally, we can define the [NoGets] predicate by simply applying paco1
    starting from bot1 (the least prediate).  We would use paco2 and bot2 for a
    binary relation, paco3 and bot3 for ternary, etc. *)
 
-Definition NoGets {S R} : itree (stateE S) R -> Prop := paco1 NoGets_ bot1.
+Definition NoGets {S R} : itree (stateE S) R -> Prop := gfp (@NoGets_mon S R).
 
 
 (* Using a coinductive predicate -------------------------------------------- *)
@@ -234,23 +240,20 @@ Lemma state_independent : forall {S R} (t:itree (stateE S) R)
     forall s s', ('(s,x) <- interpret_state t s ;; ret x) ≅ ('(s,x) <- interpret_state t s' ;; ret x).
 Proof.
   intros S R.
-  ginit. gcofix CIH.
+  coinduction. 
   intros t H0 s s'.
   rewrite (itree_eta (interpret_state t s)).
   rewrite (itree_eta (interpret_state t s')).
   rewrite !unfold_interpret_state.
   unfold interpret_stateF.
-  step in H0. repeat red in H0.
+  step in H0.  
   destruct (observe t); cbn.
-  - rewrite !bind_ret_l. gstep. econstructor. eauto.
-  - rewrite !bind_tau. gstep. econstructor.
-    gbase. eapply CIH.
+  - reflexivity. 
+  - taus. eapply CIH. 
     inversion H0. subst.  assumption.
   - destruct e; cbn.
     + (* e is Get, which is ruled out by the NoGets predicate *) inversion H0.
-    + rewrite !bind_tau.
-      gstep. econstructor. gbase. eapply CIH.
-      inversion H0. ddestruction.  assumption.
+    + reflexivity. 
 Qed.
 
 
@@ -266,7 +269,7 @@ Lemma state_independent_k : forall {S R U} (t:itree (stateE S) R)
     forall s s', (sx <- interpret_state t s ;; (k sx)) ≅ (sx <- interpret_state t s' ;; (k sx)).
 Proof.
   intros S R U.
-  ginit. gcofix CIH.
+  coinduction. 
   intros t H0 k INV s s'.
   rewrite (itree_eta (interpret_state t s)).
   rewrite (itree_eta (interpret_state t s')).
@@ -274,16 +277,13 @@ Proof.
   unfold interpret_stateF.
   step in H0. repeat red in H0.
   destruct (observe t); cbn.
-  - rewrite !bind_ret_l. gfinal. right.
-    eapply paco2_mon_bot; eauto. apply INV.
-  - rewrite !bind_tau. gstep. econstructor.
-    gbase. eapply CIH; auto.
-    inversion H0. subst.  assumption.
+  - rewrite !bind_ret_l. step. apply INV.
+  - constructor.
+    eapply CIH; auto.
+    inversion H0. subst. assumption.
   - destruct e; cbn.
     + (* e is Get, which is ruled out by the NoGets predicate *) inversion H0.
-    + rewrite !bind_tau.
-      gstep. econstructor. gbase. eapply CIH; auto.
-      inversion H0. ddestruction.  assumption.
+    + reflexivity.
 Qed.
 
 Theorem state_independent': forall {S R} (t:itree (stateE S) R)
@@ -292,6 +292,4 @@ Theorem state_independent': forall {S R} (t:itree (stateE S) R)
 Proof.
   intros S R t H s s'.
   eapply state_independent_k; eauto.
-  intros.
-  reflexivity.
 Qed.

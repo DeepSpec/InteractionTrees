@@ -15,7 +15,15 @@
       "Bash(coqc -Q ../theories/ ITree -Q ../extra ITree.Extra -R . hoare ImpHoare_probe.v)",
       "Bash(/Users/rogerab/claude/rocq-proving/.venv/bin/python -)",
       "Bash(perl -i -pe 's/sinv H0\\\\. discriminate\\\\./sinv H0; try discriminate./g' ImpHoare.v)",
-      "Bash(git log *)"
+      "Bash(git log *)",
+      "Bash(coqc -Q ../theories ITree -R . ITreeExamples Nimp.v)",
+      "Bash(grep -v \"deprecated\\\\|zoxide\\\\|Please\\\\|If the\\\\|https\\\\|Disable\\\\|^$\")",
+      "Bash(grep -rn 'Lemma __TRACKED_VAR__ \\\\|Lemma __TRACKED_VAR__:\\\\|Lemma __TRACKED_VAR__{' theories/)",
+      "Bash(sed -n '212,216p' theories/Interp/RecursionFacts.v)",
+      "Bash(sed -n '92,95p' theories/Interp/InterpFacts.v)",
+      "Bash(sed -n '84,87p' theories/Interp/InterpFacts.v)",
+      "Bash(sed -n '1583,1586p' theories/Eq/Eqit.v)",
+      "Bash(sed -n '222,232p' theories/Interp/RecursionFacts.v)"
     ],
     "additionalDirectories": [
       "/Users/rogerab/claude/rocq-proving"
