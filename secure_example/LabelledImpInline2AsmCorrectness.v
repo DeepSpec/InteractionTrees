@@ -553,7 +553,7 @@ Section Linking.
       setoid_rewrite unfold_iter_ktree. cbn. repeat rewrite bind_bind.
       repeat setoid_rewrite bind_ret_l. cbn. rewrite split_fin_sum_L. cbn.
       rewrite bind_bind. setoid_rewrite bind_ret_l. cbn.
-      match goal with |- eqit eq true true (ITree.bind _ ?k ) _ => remember k as k_id  end.
+      match goal with |- eqit true true eq (ITree.bind _ ?k ) _ => remember k as k_id  end.
       assert (HK : forall r, k_id r ≈ Ret r ).
       {
         subst. intros. destruct (split_fin_sum _ _ r) as [d | c] eqn : Heqr .
@@ -761,13 +761,13 @@ Proof.
  - repeat setoid_rewrite bind_ret_l. cbn. unfold id.
    unfold merge, case_, Case_sub, case_, Case_Kleisli, case_sum, to_bif, ToBifunctor_Fun_fin.
    cbn. setoid_rewrite <- bind_ret_r at 4. eapply eqit_bind' with (RR := eq).
-   + match goal with |- eqit eq true true (denote_asm c ?f1) (denote_asm c (?f2) ) => assert (HH : f1 = f2) end.
+   + match goal with |- eqit true true eq (denote_asm c ?f1) (denote_asm c (?f2) ) => assert (HH : f1 = f2) end.
    { apply unique_fin. auto. }
    timeout 5 rewrite HH. reflexivity.
    + intros; subst. destruct r2. cbn. apply eqit_Ret. apply unique_fin. cbn. lia.
  - repeat setoid_rewrite bind_ret_l. cbn. setoid_rewrite <- bind_ret_r at 4.
    eapply eqit_bind' with (RR := eq).
-   + match goal with |- eqit eq true true (denote_asm c ?f1) (denote_asm c (?f2) ) => assert (HH : f1 = f2) end.
+   + match goal with |- eqit true true eq (denote_asm c ?f1) (denote_asm c (?f2) ) => assert (HH : f1 = f2) end.
      { apply unique_fin. auto. }
      rewrite HH. reflexivity.
    + intros; subst. apply eqit_Ret. apply unique_fin. destruct r2. cbn. lia.
@@ -1206,7 +1206,7 @@ Section Correctness.
 
   Lemma exception_to_sum_correct_instr_aux:
     forall i : instr,
-      eqit (fun (x : unit + sensitivity) (_ : unit) => x = inl tt) true true
+      eqit true true (fun (x : unit + sensitivity) (_ : unit) => x = inl tt)
            (throw_prefix (E := E2) (denote_instr i)) (denote_instr i).
   Proof.
     intros i. destruct i; cbn; repeat setoid_rewrite throw_prefix_bind;
@@ -1275,9 +1275,9 @@ Section Correctness.
   Proof.
     intros. rewrite <- bind_ret_r. apply eqit_flip in H. eapply eqit_bind'; eauto.
     intros. red in H0. destruct r2 as [ ? | [ | ] ]; cbn.
-    - setoid_rewrite (unique_fin _ r1 f0); auto. reflexivity.
-    - setoid_rewrite (unique_fin _ r1 (fS f0)); auto. reflexivity.
-    - setoid_rewrite (unique_fin _ r1 (fS (fS f0))); auto. reflexivity.
+    - setoid_rewrite (unique_fin _ r1 f0); auto; try reflexivity.
+    - setoid_rewrite (unique_fin _ r1 (fS f0)); auto; try reflexivity.
+    - setoid_rewrite (unique_fin _ r1 (fS (fS f0))); auto; try reflexivity.
   Qed.
 
   Lemma exception_to_sum_correct_eutt_eq (p : asm 1 1) :

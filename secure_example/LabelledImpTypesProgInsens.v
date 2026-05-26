@@ -68,7 +68,7 @@ Definition state_equiv {E R} (m1 m2 : stateT map (itree E) R) := forall (σ : ma
 Global Instance proper_eutt_pi_secure_eutt  {E R1 R2 RR Label priv l} : Proper (@eutt E R1 R1 eq ==> @eutt E R2 R2 eq ==> Basics.flip Basics.impl)
                                                                (pi_eqit_secure Label priv RR true true l).
 Proof.
-  eapply pi_eqit_secure_eq_itree_proper. all : apply true.
+  eapply pi_eqit_secure_eutt_proper. all : apply true.
 Qed.
 
 Global Instance proper_eq_itree_secure_eutt  {E R1 R2 RR Label priv l} : Proper (@eq_itree E R1 R1 eq ==> @eq_itree E R2 R2 eq ==> Basics.flip Basics.impl)
@@ -82,7 +82,7 @@ Global Instance proper_state_equiv_label_state_sec_eutt {R1 R2 RR priv l} : Prop
 Proof.
   repeat intro. split.
   - intros. do 2 red in H1. do 2 red. intros. red in H0. specialize (H0 σ2). red in H.
-    specialize (H σ1). eapply proper_eutt_pi_secure_eutt; eauto. symmetry. auto. symmetry. auto.
+    specialize (H σ1). eapply proper_eutt_pi_secure_eutt; [ symmetry; apply H | symmetry; apply H0 | apply H1; auto ].
   - intros. intros. do 2 red in H1. do 2 red. intros. red in H0. specialize (H0 σ2). red in H.
     specialize (H σ1).  eapply proper_eutt_pi_secure_eutt; eauto.
 Qed.
@@ -243,14 +243,14 @@ Proof.
   specialize (Hs1 observer). inv Hs1.
   - left; auto. unfold sem_stmt, interp_imp.
     cbn. do 2 red. intros σ1 σ2 Hσ. setoid_rewrite interp_state_bind.
-    eapply pi_eqit_secure_bind; eauto. intros [σ3 [] ] [σ4 [] ] [Hσ' _ ].
+    eapply pi_secure_eqit_bind'; eauto. intros [σ3 [] ] [σ4 [] ] [Hσ' _ ].
     specialize (Hs2 observer). inv Hs2; eauto. cbn. do 2 red in H2. cbn in H2.
     eapply pi_sem_stmt_ret_aux; eauto.
   - right; auto. cbn in H0. unfold sem_stmt, interp_imp. cbn.
     do 2 red. intros σ1 σ2 Hσ.
     setoid_rewrite <- bind_ret_r with (s := Ret (σ2, tt) ).
     setoid_rewrite interp_state_bind.
-    eapply pi_eqit_secure_bind; eauto.
+    eapply pi_secure_eqit_bind'; eauto.
     intros [σ3 [] ] [σ4 [] ] [Hσ' _ ].
     specialize (Hs2 observer). inv Hs2; eauto.
     + exfalso. apply H. eapply leq_trans_lat; eauto.
@@ -267,7 +267,7 @@ Proof.
   - left; auto. unfold sem_throw_stmt, interp_imp. cbn. do 2 red.
     intros σ1 σ2 Hσ. setoid_rewrite throw_prefix_bind.
     setoid_rewrite interp_state_bind.
-    eapply pi_eqit_secure_bind; eauto.
+    eapply pi_secure_eqit_bind'; eauto.
     intros [σ3 r1] [σ4 r2] [Hσ' Hr]. inv Hr.
     + specialize (Hs2 observer). inv Hs2; eauto.
       * cbn.
@@ -290,7 +290,7 @@ Proof.
       |- pi_eqit_secure _ _ _ _ _ _ _ ?t => assert (t ≈ ITree.bind (Ret (σ4,tt) ) (fun '(σ',x) => Ret (σ', inr lpriv) )) end.
         rewrite bind_ret_l. reflexivity.
         rewrite H7. rewrite <- bind_ret_r.
-        eapply pi_eqit_secure_bind; eauto.
+        eapply pi_secure_eqit_bind'; eauto.
         intros [σ5 r3] [σ6 r4] [Hσ'' Hr']; inv Hr'.
         -- cbn in H8. subst. apply pi_eqit_secure_ret. split; auto.
            constructor; auto. eapply leq_trans_lat; eauto. apply leq_join_l; auto.
@@ -306,7 +306,7 @@ Proof.
         |- pi_eqit_secure _ _ _ _ _ _ ?t _ => assert (t ≈ ITree.bind (Ret (σ3,tt) ) (fun '(σ',x) => Ret (σ', inr lpriv) )) end.
         rewrite bind_ret_l. reflexivity. rewrite H7.
         setoid_rewrite <- bind_ret_r at 4.
-        apply pi_eqit_secure_sym. symmetry in Hσ'. eapply pi_eqit_secure_bind; eauto.
+        apply pi_eqit_secure_sym. symmetry in Hσ'. eapply pi_secure_eqit_bind'; eauto.
         intros [σ5 r3] [σ6 [] ] [Hσ'' Hr']; inv Hr'.
         -- cbn in H8. subst. apply pi_eqit_secure_ret. split; auto. symmetry. auto.
            constructor; auto. eapply leq_trans_lat; eauto. apply leq_join_l; auto.
@@ -316,7 +316,7 @@ Proof.
   - right; auto. intros σ1 σ2 Hσ. unfold sem_throw_stmt, interp_imp.
     cbn. setoid_rewrite throw_prefix_bind. setoid_rewrite interp_state_bind.
     cbn in H0. rewrite <- bind_ret_r with (s := Ret (σ2, tt) ).
-    eapply pi_eqit_secure_bind; eauto. intros [σ3 r1] [σ4 [] ] [Hσ' Hr]. inv Hr.
+    eapply pi_secure_eqit_bind'; eauto. intros [σ3 r1] [σ4 [] ] [Hσ' Hr]. inv Hr.
     -- cbn in H1. subst. cbn. specialize (Hs2 observer). inv Hs2.
        ++ exfalso. apply H. eapply leq_trans_lat; eauto. apply leq_join_l; auto.
        ++ cbn in H2. eapply lower_lexn_sound'; eauto. apply leq_join_r; auto.
@@ -335,7 +335,7 @@ Proof.
   inv Hs1; inv Hs1t; try contradiction.
   - left; auto. unfold sem_stmt, interp_imp. do 2 red. intros σ1 σ2 Hσ.
     cbn. setoid_rewrite try_catch_to_throw_prefix.
-    setoid_rewrite interp_state_bind. eapply pi_eqit_secure_bind; eauto.
+    setoid_rewrite interp_state_bind. eapply pi_secure_eqit_bind'; eauto.
     intros [σ3 r1 ] [σ4 r2 ] [Hσ' Hr] ; inv Hr; cbn.
     + setoid_rewrite interp_state_ret. apply pi_eqit_secure_ret. split; auto.
     + specialize (Hs2 observer). inv Hs2; eauto. do 2 red in H8.
@@ -345,14 +345,14 @@ Proof.
         eapply leq_trans_lat; auto. apply leq_join_r; auto. eauto.
       * apply pi_eqit_secure_sym. do 2 red in H8.
         apply pi_eqit_secure_RR_imp with (RR1 := product_rel (labelled_equiv Γ observer) top2).
-        { intros [? [] ] [? [] ] ? . inv H9. split; auto. symmetry. auto. }
+        { intros [? [] ] [? [] ] ? . inv H9; split; auto; try (symmetry; auto). }
         cbn in H8. setoid_rewrite interp_state_ret. eapply H8. symmetry. auto.
     + specialize (Hs2 observer). inv Hs2.
       * exfalso. apply H4. eapply leq_trans_lat; eauto.
         eapply leq_trans_lat; auto. apply leq_join_r; auto. eauto.
       * do 2 red in H8.
         apply pi_eqit_secure_RR_imp with (RR1 := product_rel (labelled_equiv Γ observer) top2).
-        { intros [? [] ] [? [] ] ? . inv H9. split; auto. }
+        { intros [? [] ] [? [] ] ? . inv H9; split; auto. }
         cbn in H8. setoid_rewrite interp_state_ret. eapply H8. auto.
   - right; auto. unfold sem_stmt, interp_imp. do 2 red. intros σ1 σ2 Hσ.
     cbn. setoid_rewrite try_catch_to_throw_prefix.
@@ -361,9 +361,9 @@ Proof.
       |- pi_eqit_secure _ _ _ _ _ _ _ ?t => assert (t ≈ ITree.bind (Ret (σ2,tt) ) (fun x => Ret x)) end.
     rewrite bind_ret_r. reflexivity. rewrite H3.
     setoid_rewrite interp_state_bind. cbn in H2.
-    eapply pi_eqit_secure_bind; eauto.
+    eapply pi_secure_eqit_bind'; eauto.
     intros [σ3 r1] [σ4 [] ] [Hσ' Hr]; inv Hr.
-    + tau_steps. apply pi_eqit_secure_ret. split; auto. cbv. auto.
+    + tau_steps. apply pi_eqit_secure_ret. split; auto; cbv; auto.
     + specialize (Hs2 observer). inv Hs2; eauto.
       * exfalso. apply H. eapply leq_trans_lat; eauto. apply leq_join_l; auto.
       * cbn in H8. eauto.
@@ -381,7 +381,7 @@ Proof.
     setoid_rewrite try_catch_to_throw_prefix.
     setoid_rewrite throw_prefix_bind.
     repeat setoid_rewrite interp_state_bind. setoid_rewrite bind_bind.
-    eapply pi_eqit_secure_bind; eauto.
+    eapply pi_secure_eqit_bind'; eauto.
     intros [σ3 r1] [σ4 r2] [Hσ' Hr]; inv Hr; cbn;
       try setoid_rewrite throw_prefix_ret; try setoid_rewrite interp_state_ret;
         try setoid_rewrite bind_ret_l; cbn.
@@ -397,7 +397,7 @@ Proof.
         match goal with
         |- pi_eqit_secure _ _ _ _ _ _ _ ?t => assert (t ≈ ITree.bind (Ret (σ3, tt) ) (fun '(σ, x) => Ret (σ, inl x) ) ) end.
         rewrite bind_ret_l. reflexivity. rewrite H9.
-        rewrite <- bind_ret_r. symmetry in Hσ'. eapply pi_eqit_secure_bind; eauto.
+        rewrite <- bind_ret_r. symmetry in Hσ'. eapply pi_secure_eqit_bind'; eauto.
         intros [σ5 r] [σ6 [] ] Hr. inv Hr. inv H11.
         -- apply pi_eqit_secure_ret. split. symmetry. auto. cbn in H12. subst.
            constructor.
@@ -410,7 +410,7 @@ Proof.
          match goal with
         |- pi_eqit_secure _ _ _ _ _ _ _ ?t => assert (t ≈ ITree.bind (Ret (σ4, tt) ) (fun '(σ, x) => Ret (σ, inl x) ) ) end.
         rewrite bind_ret_l. reflexivity. rewrite H9. cbn in H8.
-        rewrite <- bind_ret_r. eapply pi_eqit_secure_bind; eauto.
+        rewrite <- bind_ret_r. eapply pi_secure_eqit_bind'; eauto.
         intros [σ5 r] [σ6 [] ] Hr. inv Hr. inv H11.
         -- cbn in H12. subst. apply pi_eqit_secure_ret. constructor.
            auto. constructor.
@@ -423,7 +423,7 @@ Proof.
     rewrite bind_bind.
     setoid_rewrite <- bind_ret_r with (s := Ret (σ2, tt) ).
     cbn in H2.
-    eapply pi_eqit_secure_bind; eauto.
+    eapply pi_secure_eqit_bind'; eauto.
     intros [σ3 r1] [σ4 r2] [Hσ' Hr]; inv Hr.
     + rewrite throw_prefix_ret, interp_state_ret, bind_ret_l. cbn.
       rewrite interp_state_ret. apply pi_eqit_secure_ret. split; auto.
@@ -453,11 +453,11 @@ Proof.
   specialize (expr_only_ret' Labels e σ3) as [n Hn]. setoid_rewrite Hn.
   rewrite bind_ret_l. destruct n.
   + cbn. rewrite interp_state_ret, bind_ret_l. cbn. apply pi_eqit_secure_ret.
-    constructor. split; auto. cbv. auto.
+    constructor. split; auto; cbv; auto.
   + cbn. rewrite interp_state_bind. rewrite bind_bind.
     rewrite <- (bind_ret_r (Ret (σ2, tt))).
     cbn in H0.
-    eapply pi_eqit_secure_bind; eauto.
+    eapply pi_secure_eqit_bind'; eauto.
     intros [σ4 [] ] [σ5 [] ] [Hσ' _ ]. rewrite interp_state_ret, bind_ret_l. cbn.
     apply pi_eqit_secure_ret. constructor. split; auto.
 Qed.
@@ -492,7 +492,7 @@ Proof.
   + rewrite throw_prefix_bind. rewrite interp_state_bind. rewrite bind_bind.
     rewrite <- (bind_ret_r (Ret (σ2, tt))).
     cbn in H0.
-    eapply pi_eqit_secure_bind; eauto.
+    eapply pi_secure_eqit_bind'; eauto.
     intros [σ4 r1] [σ5 r2] [Hσ' Hr]; inv Hr.
     * cbn in H. subst. tau_steps. apply pi_eqit_secure_ret.
       constructor; auto. split; auto. destruct r2. auto.
@@ -509,21 +509,20 @@ Proof.
   - left. eapply leq_trans_lat; try apply H; auto. apply leq_join_l; auto.
     do 2 red. intros σ1 σ2 Hσ. unfold sem_stmt, interp_imp. cbn.
     specialize (@interp_state_iter') as Hisi. red in Hisi. setoid_rewrite Hisi.
-    apply secure_eqit_iter with (RA := product_rel (labelled_equiv Γ observer) eq );
-      auto.
-    clear σ1 σ2 Hσ. intros [σ1 [] ] [σ2 [] ] [Hσ _ ].
-    cbn. setoid_rewrite interp_state_bind. repeat rewrite bind_bind.
-    eapply pi_eqit_secure_bind; eauto.
-    intros [σ3 v1] [σ4 v2] [Hσ' Hv]; cbn in Hv; subst. cbn.
-    destruct v2.
-    + setoid_rewrite interp_state_ret. setoid_rewrite bind_ret_l.
-      cbn. apply pi_eqit_secure_ret. constructor. split; auto.
-    + setoid_rewrite interp_state_bind. setoid_rewrite bind_bind.
-      eapply pi_eqit_secure_bind; eauto.
-      intros [σ5 [] ] [σ6 [] ] [Hσ'' _ ]. setoid_rewrite interp_state_ret.
-      setoid_rewrite bind_ret_l. cbn. apply pi_eqit_secure_ret.
-      constructor; split; auto.
+    apply secure_eqit_iter with (RA := product_rel (labelled_equiv Γ observer) eq ).
     + split; auto.
+    + clear σ1 σ2 Hσ. intros [σ1 [] ] [σ2 [] ] [Hσ _ ].
+      cbn. setoid_rewrite interp_state_bind. repeat rewrite bind_bind.
+      eapply pi_secure_eqit_bind'; eauto.
+      intros [σ3 v1] [σ4 v2] [Hσ' Hv]; cbn in Hv; subst. cbn.
+      destruct v2.
+      ++ setoid_rewrite interp_state_ret. setoid_rewrite bind_ret_l.
+         cbn. apply pi_eqit_secure_ret. constructor. split; auto.
+      ++ setoid_rewrite interp_state_bind. setoid_rewrite bind_bind.
+         eapply pi_secure_eqit_bind'; eauto.
+         intros [σ5 [] ] [σ6 [] ] [Hσ'' _ ]. setoid_rewrite interp_state_ret.
+         setoid_rewrite bind_ret_l. cbn. apply pi_eqit_secure_ret.
+         constructor; split; auto.
   - exfalso. apply H1.
     eapply leq_trans_lat with (l2 := join le lexn); eauto.
     apply leq_join_l; auto.
@@ -552,19 +551,19 @@ Proof.
     do 2 red. intros σ1 σ2 Hσ. unfold sem_throw_stmt, interp_imp. cbn.
     setoid_rewrite throw_prefix_iter.
     specialize (@interp_state_iter') as Hisi. red in Hisi. setoid_rewrite Hisi.
-    eapply secure_eqit_iter with (RA := product_rel (labelled_equiv Γ observer) eq ); auto.
+    eapply secure_eqit_iter with (RA := product_rel (labelled_equiv Γ observer) eq ). 1: split; auto.
     intros [σ3 [] ] [σ4 [] ] [Hσ' _ ]. cbn. setoid_rewrite throw_prefix_bind.
     repeat setoid_rewrite interp_state_bind. repeat rewrite bind_bind.
     setoid_rewrite throw_prefix_denote_expr. setoid_rewrite interp_state_bind.
     setoid_rewrite bind_bind.
-    eapply pi_eqit_secure_bind; eauto. intros [σ5 v1] [σ6 v2] [Hσ'' Hv]; cbn in Hv; subst.
+    eapply pi_secure_eqit_bind'; eauto. intros [σ5 v1] [σ6 v2] [Hσ'' Hv]; cbn in Hv; subst.
     setoid_rewrite interp_state_ret. setoid_rewrite bind_ret_l. cbn.
     destruct v2; cbn.
     + setoid_rewrite throw_prefix_ret. tau_steps.
       apply pi_eqit_secure_ret. constructor. split; auto. constructor.
     + setoid_rewrite throw_prefix_bind. setoid_rewrite interp_state_bind.
       setoid_rewrite bind_bind.
-      eapply pi_eqit_secure_bind; eauto.
+      eapply pi_secure_eqit_bind'; eauto.
       intros [σ7 r1] [σ8 r2] [Hσ''' Hr]. cbn in Hr. inv Hr.
       * setoid_rewrite throw_prefix_ret. tau_steps.
         apply pi_eqit_secure_ret. constructor. split; auto.
@@ -580,7 +579,6 @@ Proof.
         eapply leq_trans_lat; try apply H; auto.
         eapply leq_trans_lat with (l2 := join le lexn); eauto.
         apply leq_join_r; auto. apply leq_join_r; auto.
-    + split; auto.
   - exfalso. apply H1. eapply leq_trans_lat; eauto.
     eapply leq_trans_lat with (l2 := join le lexn); auto.
     apply leq_join_l; auto. apply leq_join_r; auto.
@@ -611,7 +609,7 @@ Proof.
     apply leq_join_l; auto.
     intros σ1 σ2 Hσ. unfold sem_stmt, interp_imp.
     cbn. setoid_rewrite interp_state_bind.
-    eapply pi_eqit_secure_bind; eauto.
+    eapply pi_secure_eqit_bind'; eauto.
     intros [σ3 v1] [σ4 v2] [Hσ' Hv]; cbn in Hv; subst.
     destruct v2; cbn; eauto.
   - exfalso. apply H3. eapply leq_trans_lat; eauto.
@@ -652,7 +650,7 @@ Proof.
     rewrite throw_prefix_denote_expr.
     repeat setoid_rewrite interp_state_bind.
     repeat setoid_rewrite bind_bind.
-    eapply pi_eqit_secure_bind; eauto.
+    eapply pi_secure_eqit_bind'; eauto.
     intros [σ3 v1] [σ4 v2] [Hσ' Hv]; cbn in Hv; subst.
     setoid_rewrite interp_state_ret. setoid_rewrite bind_ret_l.
     cbn. destruct v2; eauto.
@@ -709,7 +707,7 @@ Proof.
     + right; auto.
       exists 0. do 2 red. intros. cbn.
       specialize (expr_only_ret' Labels e σ1) as [n Hn]. rewrite Hn.
-      apply pi_eqit_secure_ret. split; auto. cbv. auto.
+      apply pi_eqit_secure_ret. split; auto; cbv; auto.
   - case_leq l2 observer.
     + left; auto. exfalso. apply H. eapply leq_trans_lat; eauto.
     + right; auto.
@@ -731,7 +729,7 @@ Proof.
   - left. eapply leq_trans_lat; eauto.
     do 2 red in H0. do 2 red. intros. unfold sem_stmt.
     cbn. unfold interp_imp.
-    setoid_rewrite interp_state_bind. eapply pi_eqit_secure_bind; eauto.
+    setoid_rewrite interp_state_bind. eapply pi_secure_eqit_bind'; eauto.
     intros [σ3 v1] [σ4 v2] [Hσ Hv]; cbn in Hv; subst.
     setoid_rewrite interp_state_trigger. cbn. apply pi_eqit_secure_ret.
     split; auto. cbn. eapply update_labelled_equiv_visible; auto.
@@ -773,7 +771,7 @@ Proof.
     setoid_rewrite throw_prefix_denote_expr.
     setoid_rewrite interp_state_bind.
     setoid_rewrite interp_state_bind. repeat rewrite bind_bind.
-    eapply pi_eqit_secure_bind; eauto.
+    eapply pi_secure_eqit_bind'; eauto.
     intros [σ3 v1] [σ4 v2] [Hσ Hv]; cbn in Hv; subst.
     setoid_rewrite interp_state_ret. setoid_rewrite bind_ret_l. cbn.
     setoid_rewrite throw_prefix_ev.
@@ -822,7 +820,7 @@ Proof.
   - left. eapply leq_trans_lat; eauto.
     unfold sem_stmt, interp_imp. intros σ1 σ2 Hσ.
     cbn. setoid_rewrite interp_state_bind.
-    eapply pi_eqit_secure_bind; eauto.
+    eapply pi_secure_eqit_bind'; eauto.
     intros [σ3 v1] [σ4 v4] [Hσ' Hv]; cbn in Hv; subst.
     cbn. setoid_rewrite interp_state_trigger. cbn.
     setoid_rewrite bind_trigger. apply pi_eqit_secure_pub_vis.
@@ -840,7 +838,7 @@ Proof.
       specialize (expr_only_ret' Labels e σ1) as [n1 Hn1]. setoid_rewrite Hn1.
       rewrite bind_ret_l. rewrite interp_state_trigger. cbn. rewrite bind_trigger.
       apply pi_eqit_secure_priv_visl; auto. intros [].
-      apply pi_eqit_secure_ret. split; auto. cbv. auto.
+      apply pi_eqit_secure_ret. split; auto; cbv; auto.
 Qed.
 
 Lemma print_well_typed_correct' pc le lp e :
@@ -861,7 +859,7 @@ Proof.
     cbn. setoid_rewrite throw_prefix_bind. setoid_rewrite interp_state_bind.
     setoid_rewrite throw_prefix_denote_expr. setoid_rewrite interp_state_bind.
     repeat rewrite bind_bind.
-    eapply pi_eqit_secure_bind; eauto.
+    eapply pi_secure_eqit_bind'; eauto.
     intros [σ3 v1] [σ4 v4] [Hσ' Hv]; cbn in Hv; subst.
     setoid_rewrite interp_state_ret. setoid_rewrite bind_ret_l.
     cbn. setoid_rewrite throw_prefix_ev. setoid_rewrite interp_state_vis.
@@ -910,7 +908,7 @@ Proof.
     split; auto.
   - right; auto. do 2 red. unfold sem_stmt. intros σ1 σ2 Hσ.
     cbn. setoid_rewrite interp_state_ret. apply pi_eqit_secure_ret.
-    split; auto. cbv. auto.
+    split; auto; cbv; auto.
 Qed.
 
 Lemma skip_well_typed_correct' pc :

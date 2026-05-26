@@ -1,3 +1,4 @@
+From Coinduction Require Import all. 
 From Stdlib Require Import Program.Basics Morphisms.
 
 From ITree Require Import
@@ -107,27 +108,22 @@ Lemma compile_preserves_ps_ni : forall (c : stmt _),
              eqit_secure _ (priv_exc_io _) (product_rel asm_eq eq) true true l
              (interp_asm (denote_asm (compile c) f0) σ1) ((interp_asm (denote_asm (compile c) f0)) σ2).
 Proof.
-  intros c Hsecc [regs1 mem1] [regs2 mem2]. intros Hasmeq.
-  assert (labelled_equiv _ Γ l mem1 mem1). reflexivity.
-  assert (labelled_equiv _ Γ l mem2 mem2). reflexivity.
-  specialize (compile_correct c) as Heutt. do 2 red in Heutt.
-  assert (Renv mem1 mem1). reflexivity.
-  assert (Renv mem2 mem2). reflexivity.
+  intros c Hsecc [regs1 mem1] [regs2 mem2] Hasmeq.
   do 2 red in Hsecc.
-  assert (Hmem12 : labelled_equiv _ Γ l mem1 mem2). auto.
+  assert (Hmem12 : labelled_equiv _ Γ l mem1 mem2) by auto.
   specialize (Hsecc mem1 mem2 Hmem12) as Hsecc'.
-  specialize (Heutt mem1 mem1 regs1 H1) as Heutt1.
-  specialize (Heutt mem2 mem2 regs2 H2) as Heutt2.
-  specialize (eutt_secure_eqit_secure) as Htrans.
-  eapply Htrans in Heutt1 as Heutt1'; eauto.
-  eapply Htrans in Heutt2 as Heutt2'; eauto.
-  eapply Htrans in Hsecc'; eauto.
-  apply eqit_secure_sym in Hsecc'.
-  eapply Htrans in Hsecc'; eauto.
-  apply eqit_secure_sym in Hsecc'.
-  eapply SecureEqEuttHalt.eqit_secure_RR_imp; try apply Hsecc'; eauto.
-  intros.
-  apply state_rel_aux'; auto.
+  specialize (compile_correct c) as Heutt. do 2 red in Heutt.
+  assert (HRenv1 : Renv mem1 mem1) by reflexivity.
+  assert (HRenv2 : Renv mem2 mem2) by reflexivity.
+  specialize (Heutt mem1 mem1 regs1 HRenv1) as Heutt1.
+  specialize (Heutt mem2 mem2 regs2 HRenv2) as Heutt2.
+  pose proof (eutt_secure_eqit_secure _ _ _ _ _ _ _
+                (product_rel (labelled_equiv sensitivity_lat Γ l) (@eq unit))
+                _ _ _ _ Hsecc' Heutt2) as Hcomp1.
+  apply eqit_secure_sym in Hcomp1.
+  pose proof (eutt_secure_eqit_secure _ _ _ _ _ _ _ _ _ _ _ _ Hcomp1 Heutt1) as Hcomp2.
+  apply eqit_secure_sym in Hcomp2.
+  eapply SecureEqEuttHalt.eqit_secure_RR_imp; [ apply state_rel_aux' | apply Hcomp2 ].
 Qed.
 
 
@@ -164,27 +160,22 @@ Lemma compile_preserves_pi_ni : forall (c : stmt _),
              pi_eqit_secure _ (priv_exc_io _) (product_rel asm_eq eq) true true l
              (interp_asm (denote_asm (compile c) f0) σ1) ((interp_asm (denote_asm (compile c) f0)) σ2).
 Proof.
-  intros c Hsecc [regs1 mem1] [regs2 mem2]. intros Hasmeq.
-  assert (labelled_equiv _ Γ l mem1 mem1). reflexivity.
-  assert (labelled_equiv _ Γ l mem2 mem2). reflexivity.
-  specialize (compile_correct c) as Heutt. do 2 red in Heutt.
-  assert (Renv mem1 mem1). reflexivity.
-  assert (Renv mem2 mem2). reflexivity.
+  intros c Hsecc [regs1 mem1] [regs2 mem2] Hasmeq.
   do 2 red in Hsecc.
-  assert (Hmem12 : labelled_equiv _ Γ l mem1 mem2). auto.
+  assert (Hmem12 : labelled_equiv _ Γ l mem1 mem2) by auto.
   specialize (Hsecc mem1 mem2 Hmem12) as Hsecc'.
-  specialize (Heutt mem1 mem1 regs1 H1) as Heutt1.
-  specialize (Heutt mem2 mem2 regs2 H2) as Heutt2.
-  specialize (pi_eqit_secure_mixed_trans) as Htrans.
-  eapply Htrans in Heutt1 as Heutt1'; eauto.
-  eapply Htrans in Heutt2 as Heutt2'; eauto.
-  eapply Htrans in Hsecc'; eauto.
-  apply pi_eqit_secure_sym in Hsecc'.
-  eapply Htrans in Hsecc'; eauto.
-  apply pi_eqit_secure_sym in Hsecc'.
-  eapply pi_eqit_secure_RR_imp; try apply Hsecc'; eauto.
-  intros.
-  apply state_rel_aux'; auto.
+  specialize (compile_correct c) as Heutt. do 2 red in Heutt.
+  assert (HRenv1 : Renv mem1 mem1) by reflexivity.
+  assert (HRenv2 : Renv mem2 mem2) by reflexivity.
+  specialize (Heutt mem1 mem1 regs1 HRenv1) as Heutt1.
+  specialize (Heutt mem2 mem2 regs2 HRenv2) as Heutt2.
+  pose proof (pi_eqit_secure_mixed_trans _ _ _ _ _ _
+                (product_rel (labelled_equiv sensitivity_lat Γ l) (@eq unit))
+                _ _ _ _ _ _ _ Hsecc' Heutt2) as Hcomp1.
+  apply pi_eqit_secure_sym in Hcomp1.
+  pose proof (pi_eqit_secure_mixed_trans _ _ _ _ _ _ _ _ _ _ _ _ _ _ Hcomp1 Heutt1) as Hcomp2.
+  apply pi_eqit_secure_sym in Hcomp2.
+  eapply pi_eqit_secure_RR_imp; [ apply state_rel_aux' | apply Hcomp2 ].
 Qed.
 
 

@@ -88,7 +88,7 @@ Global Instance proper_state_equiv_label_state_sec_eutt {R1 R2 RR priv l} : Prop
 Proof.
   repeat intro. split.
   - intros. do 2 red in H1. do 2 red. intros. red in H0. specialize (H0 σ2). red in H.
-    specialize (H σ1). eapply proper_eutt_secure_eutt; eauto. symmetry. auto. symmetry. auto.
+  specialize (H σ1). eapply proper_eutt_secure_eutt; eauto. rewrite <- H, <- H0. apply H1; eauto.   
   - intros. intros. do 2 red in H1. do 2 red. intros. red in H0. specialize (H0 σ2). red in H.
     specialize (H σ1).  eapply proper_eutt_secure_eutt; eauto.
 Qed.
@@ -198,7 +198,7 @@ Proof.
     cbn in *. etransitivity; eauto. destruct REL1. destruct REL2.  cbn in *. etransitivity; eauto. }
   eapply eqit_secure_trans; eauto. eapply eqit_secure_sym.
   apply eqit_secure_RR_imp with (RR1 := Rst).
-  { intros. split. 2 : cbv; auto. unfold Rst in PR. destruct PR.
+  { intros x0 x1 PR. split. 2 : cbv; auto. unfold Rst in PR. destruct PR.
     symmetry. auto. destruct x0. destruct x1. unfold Rst in *. destruct PR. symmetry. auto. }
   assert (eqit_secure _ (priv_exc_io Labels) Rst true true observer (Ret (s2, r2) ) (Ret (s2,r1))).
   { apply secure_eqit_ret. unfold Rst in *. split; auto; cbv; auto. symmetry. auto. }
@@ -206,7 +206,7 @@ Proof.
   { intros [? ?] [? ?] [? ?]. destruct r3. cbn in *. unfold Rst in *.
     split. 2 : cbv; auto. destruct REL1 as [REL1 _]. destruct REL2 as [REL2 _].
     cbn in *. etransitivity; eauto. destruct REL1. destruct REL2. etransitivity; eauto. }
-  eapply eqit_secure_trans; try apply Hr2; eauto. reflexivity.
+  eapply eqit_secure_trans; try apply Hr2; eauto.
 Qed.
 
 Lemma state_secure_eutt_throw_ret_aux:
@@ -267,7 +267,7 @@ Lemma state_secure_eutt_ret_aux:
                   (interp_state (handle_imp _) t2 σ2).
 Proof.
   intros R t1 t2 observer r1 r2 Hr1 Hr2 s1 s2 Hs12.
-  eapply state_secure_eutt_equiv_ret_aux; eauto. 2: cbv; auto.
+  eapply state_secure_eutt_equiv_ret_aux; eauto.
   constructor; constructor.
 Qed.
 
@@ -906,7 +906,7 @@ Proof.
     split; auto.
   - right; auto. unfold sem_stmt, interp_imp. do 2 red. intros.
     cbn. setoid_rewrite interp_state_ret. apply secure_eqit_ret; auto.
-    split; auto. cbv. auto.
+    split; auto; cbv; auto.
 Qed.
 
 Lemma well_typed_skip' pc : secure_throw_stmt pc Skip.
@@ -1028,8 +1028,7 @@ Proof.
       intros. setoid_rewrite interp_state_ret. apply secure_eqit_ret.
       split; auto.
     + right; auto. exists 0. unfold sem_expr. cbn. unfold interp_imp. do 2 red.
-      intros. setoid_rewrite interp_state_ret. apply secure_eqit_ret. split; auto.
-      cbv. auto.
+      intros. setoid_rewrite interp_state_ret. apply secure_eqit_ret. split; auto; cbv; auto.
   - inv Htype.
     assert (well_typed_expr l e1 ). eapply well_typed_expr_upward_close; eauto.
     eapply leq_trans_lat with (l2 := join l1 l2); auto. apply leq_join_l; auto.
