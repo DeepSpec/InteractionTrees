@@ -74,7 +74,7 @@ Proof.
   intros x y H.
   rewrite itree_eta, (itree_eta (translate h y)), !unfold_translate, <-!itree_eta.
   punfold H. gstep. red in H |- *.
-  destruct (observe x); dependent destruction H; try discriminate;
+  destruct (observe x); dependent destruction H; try discriminate + contradiction;
     pclearbot; simpobs; simpl; eauto 7 with paco itree.
 Qed.
 
@@ -91,7 +91,7 @@ Qed.
 End TranslateFacts.
 
 Lemma translate_bind : forall {E F R S} (h : E ~> F) (t : itree E S) (k : S -> itree E R),
-    translate h (x <- t ;; k x) ≅ (x <- (translate h t) ;; translate h (k x)).
+    translate h (x ← t ; k x) ≅ (x ← (translate h t) ; translate h (k x)).
 Proof.
   intros E F R S h t k.
   revert S t k.
@@ -177,7 +177,7 @@ Proof.
   ginit. pcofix CIH; rename r into rr; intros l r Hlr.
   rewrite 2 unfold_translate.
   punfold Hlr; red in Hlr.
-  destruct Hlr; cbn; try discriminate; pclearbot.
+  destruct Hlr; cbn; try discriminate + contradiction; pclearbot.
   - gstep. constructor; auto.
   - gstep. constructor; auto with paco.
   - rewrite Hfg. gstep. constructor; red; auto with paco itree.

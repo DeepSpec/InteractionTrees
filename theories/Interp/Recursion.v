@@ -73,7 +73,7 @@ Definition interp_mrec {D E : Type -> Type}
       match observe t with
       | RetF r => Ret (inr r)
       | TauF t => Ret (inl t)
-      | VisF (inl1 d) k => Ret (inl (ctx _ d >>= k))
+      | VisF (inl1 d) k => Ret (inl (ctx _ d ≫= k))
       | VisF (inr1 e) k => Vis e (fun x => Ret (inl (k x)))
       end).
 

@@ -18,14 +18,10 @@
 From Coq Require Import
      Morphisms.
 
-From ExtLib Require Import
-     Structures.Monad.
-
 From ITree Require Import
      Basics.Basics
      Basics.CategoryOps
-     Basics.Function
-     Basics.Monad.
+     Basics.Function.
 (* end hide *)
 
 Implicit Types m : Type -> Type.
@@ -39,12 +35,12 @@ Definition Kleisli_arrow {m a b} : (a -> m b) -> Kleisli m a b := fun f => f.
 Definition Kleisli_apply {m a b} : Kleisli m a b -> (a -> m b) := fun f => f.
 
 
-Definition pure {m} `{Monad m} {a b} (f : a -> b) : Kleisli m a b :=
-  fun x => ret (f x).
+Definition pure {m} `{MRet m} {a b} (f : a -> b) : Kleisli m a b :=
+  fun x => mret (f x).
 
 Section Instances.
   Context {m : Type -> Type}.
-  Context `{Monad m}.
+  Context `{MRet m, MBind m}.
   Context `{Eq1 m}.
 
   #[global] Instance Eq2_Kleisli : Eq2 (Kleisli m) :=
@@ -52,11 +48,11 @@ Section Instances.
 
   #[global] Instance Cat_Kleisli : Cat (Kleisli m) :=
     fun _ _ _ u v x =>
-      bind (u x) (fun y => v y).
+      u x ≫= (fun y => v y).
 
   Definition map {a b c} (g:b -> c) (ab : Kleisli m a b) : Kleisli m a c :=
      cat ab (pure g).
-  
+
   #[global] Instance Initial_Kleisli : Initial (Kleisli m) void :=
     fun _ v => match v : void with end.
 

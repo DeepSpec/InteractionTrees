@@ -30,10 +30,6 @@
  *)
 
 (* begin hide *)
-From ExtLib Require Import
-     Structures.Functor
-     Structures.Monad.
-
 From ITree Require Import
      Basics.Basics
      Core.ITreeDefinition
@@ -76,17 +72,17 @@ Arguments translate {E F} & h [T].
     [itree E ~> M] for any monad [M] with a loop operator. *)
 
 Definition interp {E M : Type -> Type}
-           {FM : Functor M} {MM : Monad M} {IM : MonadIter M}
+           {FM : FMap M} {RM : MRet M} {BM : MBind M} {IM : MonadIter M}
            (h : E ~> M) :
   itree E ~> M := fun R =>
   iter (fun t =>
     match observe t with
-    | RetF r => ret (inr r)
-    | TauF t => ret (inl t)
+    | RetF r => mret (inr r)
+    | TauF t => mret (inl t)
     | VisF e k => fmap (fun x => inl (k x)) (h _ e)
     end).
 (* TODO: this does a map, and aloop does a bind. We could fuse those
    by giving aloop a continuation to compose its bind with.
    (coyoneda...) *)
 
-Arguments interp {E M FM MM IM} & h [T].
+Arguments interp {E M FM RM BM IM} & h [T].

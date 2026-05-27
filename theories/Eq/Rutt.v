@@ -19,9 +19,6 @@ From Coq Require Import
      Morphisms
 .
 
-From ExtLib Require Import
-     Structures.Monad.
-
 From ITree Require Import
      Basics.Utils
      Axioms
@@ -32,8 +29,6 @@ From ITree Require Import
 
 From Paco Require Import paco.
 
-Import Monads.
-Import MonadNotation.
 Local Open Scope monad_scope.
 
 Section RuttF.
@@ -167,22 +162,24 @@ Lemma rutt_inv_Ret_l r1 t2:
   rutt REv RAns RR (Ret r1) t2 -> exists r2, t2 ≳ Ret r2 /\ RR r1 r2.
 Proof.
   intros Hrutt; punfold Hrutt; red in Hrutt; cbn in Hrutt.
-  setoid_rewrite (itree_eta t2). remember (RetF r1) as ot1; revert Heqot1.
+  remember (observe t2) as ot2 eqn:EQ2; remember (RetF r1) as ot1 eqn:EQ1; revert t2 EQ1 EQ2.
   induction Hrutt; intros; try discriminate.
-  - inversion Heqot1; subst. exists r2. split; [reflexivity|auto].
-  - destruct (IHHrutt Heqot1) as [r2 [H1 H2]]. exists r2; split; auto.
-    rewrite <- itree_eta in H1. now rewrite tau_euttge.
+  - inversion EQ1; subst. exists r2. split; [|auto]. rewrite itree_eta, <- EQ2; reflexivity.
+  - destruct (IHHrutt t2 EQ1 eq_refl) as [r2 [H1 H2]]. exists r2; split; auto.
+    rewrite (itree_eta t0), <- EQ2.
+    rewrite tau_euttge. auto.
 Qed.
 
 Lemma rutt_inv_Ret_r t1 r2:
   rutt REv RAns RR t1 (Ret r2) -> exists r1, t1 ≳ Ret r1 /\ RR r1 r2.
 Proof.
   intros Hrutt; punfold Hrutt; red in Hrutt; cbn in Hrutt.
-  setoid_rewrite (itree_eta t1). remember (RetF r2) as ot2; revert Heqot2.
+  remember (observe t1) as ot1 eqn:EQ1; remember (RetF r2) as ot2 eqn:EQ2; revert t1 EQ1 EQ2.
   induction Hrutt; intros; try discriminate.
-  - inversion Heqot2; subst. exists r1. split; [reflexivity|auto].
-  - destruct (IHHrutt Heqot2) as [r1 [H1 H2]]. exists r1; split; auto.
-    rewrite <- itree_eta in H1. now rewrite tau_euttge.
+  - inversion EQ2; subst. exists r1. split; [|auto]. rewrite (itree_eta t1), <- EQ1. reflexivity.
+  - destruct (IHHrutt _ eq_refl EQ2) as [r1 [H1 H2]]. exists r1; split; auto.
+    rewrite (itree_eta t0), <- EQ1.
+    now rewrite tau_euttge.
 Qed.
 
 Lemma rutt_inv_Tau_l t1 t2 :

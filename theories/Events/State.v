@@ -3,10 +3,6 @@
 (** Events to read and update global state. *)
 
 (* begin hide *)
-From ExtLib Require Import
-     Structures.Functor
-     Structures.Monad.
-
 From ITree Require Import
      Basics.Basics
      Basics.CategoryOps
@@ -17,8 +13,6 @@ From ITree Require Import
      Core.Subevent
      Interp.Interp.
 
-Import ITree.Basics.Basics.Monads.
-
 Local Open Scope itree_scope.
 (* end hide *)
 
@@ -27,11 +21,11 @@ Local Open Scope itree_scope.
    [itree E ~> stateT S (itree F)]. *)
 
 Definition interp_state {E M S}
-           {FM : Functor M} {MM : Monad M}
+           {FM : FMap M} {RM : MRet M} {BM : MBind M}
            {IM : MonadIter M} (h : E ~> stateT S M) :
   itree E ~> stateT S M := interp h.
 
-Arguments interp_state {E M S FM MM IM} h [T].
+Arguments interp_state {E M S FM RM BM IM} h [T].
 
 Section State.
 
