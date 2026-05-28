@@ -106,8 +106,8 @@ Section Proper.
     rewrite (itree_eta (interpret_state x x2)).
     rewrite (itree_eta (interpret_state y y0)).
     rewrite !unfold_interpret_state. subst.
-    step in H0. repeat red in H0. unfold interpret_stateF.
-    destruct (observe x); inv H0; try discriminate;  simpl;
+    step in H0. unfold interpret_stateF.
+    destruct (observe x); inv H0; try discriminate; simpl;
       try (constructor; eauto).
     ddestruction.
     destruct e; econstructor; eauto with itree.

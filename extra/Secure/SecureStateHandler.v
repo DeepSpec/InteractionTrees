@@ -190,7 +190,6 @@ Proof.
     with (diverges_with (fun (A : Type) (e : E2 A) => ~ leq (priv2 A e) l) t) in H2. 
     generalize dependent t. coinduction c' CIH'. intros.
       sinv H2; use_simpobs.
-      (* TOUR: Why does rewrite H1 not work here? *)
       * rewrite H1. icbn; cbn. 
       unpriv_halt.  
       * rewrite H1. icbn; cbn. unpriv_halt. eapply CIH'; eauto. apply H7. 
