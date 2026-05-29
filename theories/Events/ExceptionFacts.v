@@ -82,7 +82,7 @@ Proof.
 Qed.
 
 
-Global Instance proper_eqitree_throw_prefix_false {E Err R} : Proper (eqit false false eq ==> eqit false false eq) (@throw_prefix Err R E).
+Global Instance proper_eqitree_throw_prefix_false {E Err R} : Proper (eqit eq false false ==> eqit eq false false) (@throw_prefix Err R E).
 Proof.
   intros t1 t2 Ht. revert t1 t2 Ht. 
   coinduction. intros. unfold throw_prefix. setoid_rewrite unfold_iter_ktree.
@@ -106,7 +106,7 @@ Proof.
   - cbn. taur. eapply IHHt; eauto.
 Qed.
 
-Global Instance proper_eqitree_throw_prefix {E Err R b} : Proper (eqit b b eq ==> eqit b b eq) (@throw_prefix Err R E).
+Global Instance proper_eqitree_throw_prefix {E Err R b} : Proper (eqit eq b b ==> eqit eq b b) (@throw_prefix Err R E).
 Proof.
   destruct b; [apply proper_eutt_throw_prefix | apply proper_eqitree_throw_prefix_false].
 Qed.

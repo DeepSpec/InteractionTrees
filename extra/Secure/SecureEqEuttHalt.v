@@ -1038,7 +1038,7 @@ Qed.
 
 
 Global Instance proper_eqit_secure_eqit {E} {R1 R2 : Type} {b} {RR : R1 -> R2 -> Prop} {Label priv l} :
-       Proper (eqit b b eq ==> eqit b b eq ==> iff) (@eqit_secure E R1 R2 Label priv RR b b l).
+       Proper (eqit eq b b ==> eqit eq b b ==> iff) (@eqit_secure E R1 R2 Label priv RR b b l).
 Proof.
   repeat intro. destruct b; split; intros.
   - eapply eutt_secure_eqit_secure; eauto.

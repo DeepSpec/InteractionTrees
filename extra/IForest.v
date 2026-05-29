@@ -174,8 +174,8 @@ Definition interp_iforest {E F} (h_spec : E ~> iforest F) :
 
 #[local] Ltac refold :=
   repeat match goal with
-  | |- context[gfp (@eqit_mon ?E ?b1 ?b2)] =>
-      fold (@eqit E b1 b2);
+  | |- context[gfp (@eqit_mon ?E ?b1 ?b2) ?R1 ?R2 ?RR] =>
+      fold (@eqit E R1 R2 RR b1 b2);
       try fold (@eq_itree E _ _);
       try fold (@euttge E _ _);
       try fold (@eutt E _ _)
@@ -185,8 +185,8 @@ Definition interp_iforest {E F} (h_spec : E ~> iforest F) :
 
 #[local] Ltac refold_in h :=
   match type of h with
-  | context[gfp (@eqit_mon ?E ?b1 ?b2)] =>
-      fold (@eqit E b1 b2) in h;
+  | context[gfp (@eqit_mon ?E ?b1 ?b2) ?R1 ?R2 ?RR] =>
+      fold (@eqit E R1 R2 RR b1 b2) in h;
       try fold (@eq_itree E _ _) in h;
       try fold (@euttge E _ _) in h;
       try fold (@eutt E _ _) in h
@@ -698,9 +698,9 @@ Definition iter_cont {I E R} (step' : I -> itree E (I + R)) :
 
 Lemma eqit_Leaf_bind' {E} {R} {T} b1 b2
     (t1 t2: itree E T) (k1 k2: T -> itree E R) :
-    eqit b1 b2 eq t1 t2 ->
-    (forall r, Leaf r t1 -> eqit b1 b2 eq (k1 r) (k2 r)) ->
-  eqit b1 b2 eq (ITree.bind t1 k1) (ITree.bind t2 k2).
+    eqit eq b1 b2 t1 t2 ->
+    (forall r, Leaf r t1 -> eqit eq b1 b2 (k1 r) (k2 r)) ->
+  eqit eq b1 b2 (ITree.bind t1 k1) (ITree.bind t2 k2).
 Proof.
   intros. eapply eqit_clo_bind_gen; eauto. intros; subst. 
   eapply H0. eauto. 
@@ -708,9 +708,9 @@ Qed.
 
 Lemma eqit_Leaf_bind'' {E} {R S} {T} (RS : R -> S -> Prop) b1 b2
     (t1 t2: itree E T) (k1: T -> itree E R) (k2 : T -> itree E S) :
-    eqit b1 b2 eq t1 t2 ->
-    (forall r, Leaf r t1 -> eqit b1 b2 RS (k1 r) (k2 r)) ->
-  eqit b1 b2 RS (ITree.bind t1 k1) (ITree.bind t2 k2).
+    eqit eq b1 b2 t1 t2 ->
+    (forall r, Leaf r t1 -> eqit RS b1 b2 (k1 r) (k2 r)) ->
+  eqit RS b1 b2 (ITree.bind t1 k1) (ITree.bind t2 k2).
 Proof.
   intros. eapply eqit_clo_bind_gen; eauto. intros; subst. 
   eapply H0. eauto. 

@@ -54,7 +54,20 @@
       "Bash(grep -nB 1 -A 4 \"Lemma eqit_secure_RR_imp\" /Users/rogerab/home/learning-sandbox/learning/rocq/coinduction/InteractionTrees/extra/Secure/SecureEqEuttHalt.v)",
       "Bash(grep -nB 1 -A 6 \"Lemma compile_correct\\\\|state_invariant \" /Users/rogerab/home/learning-sandbox/learning/rocq/coinduction/InteractionTrees/secure_example/LabelledImp2AsmCorrectness.v)",
       "Bash(grep -nB 2 -A 8 \"^Theorem compile_correct\\\\|^Lemma compile_correct\\\\| compile_correct \" /Users/rogerab/home/learning-sandbox/learning/rocq/coinduction/InteractionTrees/secure_example/LabelledImp2AsmCorrectness.v)",
-      "Bash(grep -nB 2 -A 6 \"^ Definition equivalent\\\\|equivalent.*stmt\\\\|equivalent \" /Users/rogerab/home/learning-sandbox/learning/rocq/coinduction/InteractionTrees/secure_example/LabelledImp2AsmCorrectness.v)"
+      "Bash(grep -nB 2 -A 6 \"^ Definition equivalent\\\\|equivalent.*stmt\\\\|equivalent \" /Users/rogerab/home/learning-sandbox/learning/rocq/coinduction/InteractionTrees/secure_example/LabelledImp2AsmCorrectness.v)",
+      "Bash(coqc -Q theories ITree theories/Eq/Eqit.v)",
+      "Bash(echo \"EXIT: $?\")",
+      "Bash(awk 'NR>=1429 && /^Section |^End |^Module /{print NR\": \"$0}' theories/Eq/Eqit.v)",
+      "Bash(coqc:*)",
+      "Bash(make:*)",
+      "Bash(grep:*)",
+      "Bash(cat:*)",
+      "Bash(head:*)",
+      "Bash(wc:*)",
+      "Bash(ls:*)",
+      "Bash(awk:*)",
+      "Edit(//Users/rogerab/home/learning-sandbox/learning/rocq/coinduction/InteractionTrees/**)",
+      "Write(//Users/rogerab/home/learning-sandbox/learning/rocq/coinduction/InteractionTrees/**)"
     ],
     "additionalDirectories": [
       "/Users/rogerab/claude/rocq-proving"

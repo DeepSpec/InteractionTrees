@@ -173,7 +173,7 @@ Qed.
 
 Lemma pi_eqit_secure_mixed_trans b1 b2 E R1 R2 R3 (RR1 : R1 -> R2 -> Prop) (RR2 : R2 -> R3 -> Prop)
       Label priv l : forall (t1 : itree E R1) t2 t3,
-    pi_eqit_secure Label priv RR1 b1 b2 l t1 t2 -> eqit b1 b2 RR2 t2 t3 ->
+    pi_eqit_secure Label priv RR1 b1 b2 l t1 t2 -> eqit RR2 b1 b2 t2 t3 ->
     pi_eqit_secure Label priv (rcompose RR1 RR2) b1 b2 l t1 t3.
 Proof.
   coinduction c CIH. intros t1 t2 t3 Hsec Heq.
