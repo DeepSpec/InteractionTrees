@@ -840,11 +840,8 @@ Proof.
     unstep.
     eapply IHEQ; eauto.
 Qed.
-
-
 Ltac inf_closed_forall_auto := 
 repeat match goal with 
-
 | [|- inf_closed (fun _ => forall _, _)] => 
   apply inf_closed_all; intro
   end. 
@@ -852,15 +849,15 @@ repeat match goal with
 Ltac inf_closed_impl_auto := 
 repeat match goal with 
 | [|- inf_closed (fun _ => _ -> _)] => 
-  apply inf_closed_impl; intros!; 
-  match goal with [H : _ <= _ |- _] => apply H; auto end
-  end. 
+  apply inf_closed_impl; [intros!|]; 
+  apply_leq; firstorder end. 
 
-
+Ltac inf_closed_final_auto := 
+solve [repeat intro; try solve [firstorder]; try apply_leq ; firstorder]. 
 
 Ltac inf_closed_auto := 
 repeat match goal with 
-| [|- inf_closed _] => (inf_closed_forall_auto || inf_closed_impl_auto)
+| [|- inf_closed _] => (inf_closed_forall_auto || inf_closed_impl_auto || inf_closed_final_auto)
 end. 
 
 Ltac tower_induction := apply tower; [inf_closed_auto|].
@@ -1836,9 +1833,7 @@ elem c _ _ UU t1 t2 ->
 elem c _ _ RR (ITree.bind t1 k1) (ITree.bind t2 k2).
 Proof. 
   revert_until U2. 
-  tower induction. 
-  - intros. 
-  eapply H0; eauto.   
+  tower induction.
  - intros. 
   icbn in *. 
   genobs t1 ot1.  

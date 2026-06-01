@@ -212,8 +212,8 @@ Proof.
   intros E R1 R2 RR U1 U2.
   intros UU b1 b2 c t1 t2 k1 k2.
   revert UU t1 t2 k1 k2.
+(* TOUR: EXPERIMENT: Why is this inf-closed? *)
   tower induction.
-  { intros. unfold Datatypes.id. apply H0; auto. }
   intros x IH.
   intros UU t1 t2 k1 k2 EQT EQKL.
   cbn [eqit_mon body] in *.

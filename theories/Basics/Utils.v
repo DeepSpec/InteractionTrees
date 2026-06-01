@@ -169,4 +169,6 @@ Tactic Notation "unstep" "in" ident(h) := unstep_in h.
 Tactic Notation "hinduction" hyp(IND) "before" hyp(H)
   := move IND before H; revert_until IND; induction IND.
 
+Ltac apply_leq := match goal with [H : _ <= _ |- _] => apply H end. 
+
 (* ----------------------------------------------------------------- *)

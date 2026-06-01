@@ -350,9 +350,8 @@ Qed.
        :
   Proper (eq_itree eq ==> iff) (elem c t).
 Proof.
-  repeat red. revert t. 
-  tower induction. 
-  { split. all: repeat intro; apply H; auto. }
+  repeat red. revert t.
+  tower induction.   
     split.
   - intros HI.
     repeat red; repeat red in HI.  
@@ -378,7 +377,6 @@ Qed.
 Proof.
   repeat red. revert t. 
   tower induction. 
-  { split. all: repeat intro; apply H; auto. }
     split.
   - intros HI.
     repeat red; repeat red in HI.  
@@ -419,7 +417,6 @@ Qed.
   Proper (eq_itree eq ==> eq ==> iff) (elem c).
 Proof.
   repeat red. tower induction. 
-  { split. all: repeat intro; apply H; auto. }
     split.
   - intros HI.
     repeat red; repeat red in HI. 
