@@ -134,11 +134,7 @@ Section eqit.
   (** [eqitF] and [eqit_] are both monotone. *)
 
   Lemma eqitF_mono b1 b2 : Proper (leq ==> leq) (eqit_ b1 b2).
-  Proof.
-    intros sim sim' Hsim R1 R2 RR x0 x1.
-    unfold eqit_. intros IN.
-    induction IN; auto with mono itree. 
-  Qed.
+  Proof. monauto. Qed. 
 
   (* The monotone relation `b`. `eqit` is `gfp b`. *)
 

@@ -34,9 +34,7 @@ Definition trace_forall_ {E R} PE PR F (b : itrace E R) :=
   trace_forallF F PE PR (observe b).
 
 Lemma trace_forall_mono {E R} PE PR : Proper (leq ==> leq) (@trace_forall_ E R PE PR).
-Proof.
-  repeat intro. red in H0. red. induction H0; auto with mono itree. 
-Qed.
+Proof. monauto. Qed.
 
 Definition trace_forall_mon {E R} PE PR := Build_mon (@trace_forall_mono E R PE PR).
 
@@ -89,9 +87,7 @@ Definition trace_inf_often_ {E R} PE F (b : itrace E R) :=
   trace_inf_oftenF PE F (observe b).
 
 Lemma trace_inf_often_mono {E R} PE : Proper (leq ==> leq) (@trace_inf_often_ E R PE).
-Proof.
-  repeat intro. red in H0. red. induction H0; auto with mono itree. 
-Qed.
+Proof. monauto. Qed.
 
 Definition trace_inf_often_mon {E R} PE := Build_mon (@trace_inf_often_mono E R PE).
 
@@ -147,9 +143,7 @@ Section StateMachine.
     state_machineF PEv PRet F (observe tr).
 
   Lemma state_machine_mono : Proper (leq ==> leq) state_machine_.
-  Proof.
-    intros!. red. red in H0. induction H0; auto with mono itree.
-  Qed.
+  Proof. monauto. Qed.
 
   Definition state_machine_mon := Build_mon (state_machine_mono).
 

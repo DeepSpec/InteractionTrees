@@ -38,10 +38,7 @@ Definition any_infinite_ {E X} sim :=
 
 Lemma any_infinite__mono {E X} : 
 Proper (leq ==> leq) (@any_infinite_ E X).
-Proof. 
-  repeat red; intros. 
-  induction H0; eauto with mono itree.  
-Qed. 
+Proof. monauto. Qed. 
 
 Definition any_infinite_mon {E X} : mon (itree E X -> Prop) := 
    {| body := @any_infinite_ E X ; Hbody := any_infinite__mono |}.
@@ -108,10 +105,7 @@ Proof.
 Qed.
 
 Lemma all_infinite__mono {E A} : Proper (leq ==> leq) (@all_infinite_ E A).
-Proof.
-  repeat red; intros sim sim' LE t IN.
-  unfold all_infinite_ in *. eapply all_infiniteF_mono; eauto.
-Qed.
+Proof. monauto. Qed.
 
 Definition all_infinite_mon {E A} : mon (itree E A -> Prop) :=
   {| body := @all_infinite_ E A ; Hbody := all_infinite__mono |}.

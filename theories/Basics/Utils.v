@@ -169,11 +169,28 @@ Tactic Notation "unstep" "in" ident(h) := unstep_in h.
 Tactic Notation "hinduction" hyp(IND) "before" hyp(H)
   := move IND before H; revert_until IND; induction IND.
 
-  (* RTODO use this *)
 Ltac apply_leq := match goal with [H : _ <= _ |- _] => intros; apply H end. 
+
+(* nonlinear pattern works here *)
+Ltac induct_on_premise := match goal with 
+| H: context [?rel _] |- context [?rel ] => induction H
+end. 
 
 Create HintDb mono. 
 
 Global Hint Extern 4 => apply_leq : mono.
 
+Ltac monauto := (solve [
+(* break `Proper`, introduce names and premises` *)
+cbv; 
+intros; 
+(* find hypothesis matching goal and proceed by cases *)
+induct_on_premise; 
+(* break down each case as necessary. `solve` will backtrack in a helpful way.  *)
+try econstructor; 
+(* use monotonicity fact itself: [sim] <= [sim'] *)
+try apply_leq; 
+eauto] || fail "`monauto` could not solve this goal."). 
+
+(* TODO: let user add a tactic db here *)
 (* ----------------------------------------------------------------- *)

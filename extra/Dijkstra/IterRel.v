@@ -20,11 +20,8 @@ Section IterRel.
     | not_wf (a' : A) (Hrel : r a a') (Hcorec : F a') .
   Hint Constructors not_wf_F : not_wf.
 
-  Lemma not_wf_F_mono : Proper (leq ==> leq)
-        not_wf_F. 
-  Proof.
-    repeat red. intros; inv H0. eauto with mono not_wf.  
-  Qed.
+  Lemma not_wf_F_mono : Proper (leq ==> leq) not_wf_F. 
+  Proof. monauto. Qed.
 
 Definition not_wf_F_mon := 
 {| body := not_wf_F ; Hbody := not_wf_F_mono |}.

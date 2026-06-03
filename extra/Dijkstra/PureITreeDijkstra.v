@@ -232,9 +232,8 @@ Hint Constructors iterF : itree.
   Hint Unfold iter_ : itree.
 
   Lemma iter_mono {A B} body p Hp :
-  Proper (leq ==> leq)
-  (fun sim a => @iter_ A B sim body a p Hp).
-  Proof.
+  Proper (leq ==> leq) (fun sim a => @iter_ A B sim body a p Hp).
+  Proof. 
     repeat red. intros. 
     induction H0; constructor. 
     destruct (body a) as [fa Hfa] eqn : Heq. simpl in *.

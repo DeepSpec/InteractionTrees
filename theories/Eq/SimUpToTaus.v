@@ -48,10 +48,7 @@ Inductive suttF (sutt: itree' E R1 -> itree' E R2 -> Prop) :
 Hint Constructors suttF : itree.
 
 Lemma suttF_mono : Proper (leq ==> leq) suttF.
-Proof.
-  repeat intro.
-  induction H0; eauto with mono itree.
-Qed.
+Proof. monauto. Qed.
 
 Definition sutt_mon := {| body := suttF ; Hbody := suttF_mono |}.
 

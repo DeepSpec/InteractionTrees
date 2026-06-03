@@ -67,9 +67,7 @@ Section RuttF.
       ruttF RR (sim RR) (observe t1) (observe t2).
 
   Lemma rutt_mono : Proper (leq ==> leq) rutt_.
-  Proof.
-    repeat intro. unfold rutt_ in *. induction H0; eauto with mono itree.
-  Qed.
+  Proof. monauto. Qed.
 
   Definition rutt_mon : mon ((R1 -> R2 -> Prop) -> itree E1 R1 -> itree E2 R2 -> Prop) :=
     {| body := rutt_ ; Hbody := rutt_mono |}. 
