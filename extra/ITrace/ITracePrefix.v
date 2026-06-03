@@ -44,8 +44,7 @@ Definition trace_prefix_ {E R S} F (br : itrace E R) (bs : itrace E S) := trace_
 
 Lemma trace_prefix_mono {E R S} : Proper (leq ==> leq) (@trace_prefix_ E R S).
 Proof.
-  repeat intro. red. red in H0. induction H0; eauto with itree; 
-  constructor; now apply H. 
+  repeat intro. red. red in H0. induction H0; eauto with mono itree. 
 Qed.
 
 Definition trace_prefix_mon {E R S} := Build_mon (@trace_prefix_mono E R S).

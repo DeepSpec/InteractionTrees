@@ -23,8 +23,7 @@ Section IterRel.
   Lemma not_wf_F_mono : Proper (leq ==> leq)
         not_wf_F. 
   Proof.
-    repeat red. intros; inv H0. 
-    econstructor; eauto. now apply H.  
+    repeat red. intros; inv H0. eauto with mono not_wf.  
   Qed.
 
 Definition not_wf_F_mon := 

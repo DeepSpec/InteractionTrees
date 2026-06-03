@@ -50,9 +50,7 @@ Hint Constructors suttF : itree.
 Lemma suttF_mono : Proper (leq ==> leq) suttF.
 Proof.
   repeat intro.
-  induction H0; eauto with itree.
-  constructor; intro; apply H, SUTTK.
-  constructor; apply H, EQTAUS.
+  induction H0; eauto with mono itree.
 Qed.
 
 Definition sutt_mon := {| body := suttF ; Hbody := suttF_mono |}.
@@ -208,7 +206,7 @@ Proof.
     intros ?? ?. now apply (gfp_chain c).
   - simpl. econstructor. intros. apply CIH; eauto with itree.
   - constructor. eauto.
-  - constructor.
+  - constructor.  
     change (elem c (observe (ITree.bind t0 s1)) (observe (ITree.bind (go ot2) s2))).
     apply CIH; auto.
 Qed.

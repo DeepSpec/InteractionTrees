@@ -39,8 +39,8 @@ Definition any_infinite_ {E X} sim :=
 Lemma any_infinite__mono {E X} : 
 Proper (leq ==> leq) (@any_infinite_ E X).
 Proof. 
-  repeat red; intros. induction H0; 
-   econstructor; eapply H; eauto. 
+  repeat red; intros. 
+  induction H0; eauto with mono itree.  
 Qed. 
 
 Definition any_infinite_mon {E X} : mon (itree E X -> Prop) := 

@@ -41,11 +41,10 @@ Proof.
   inversion Hdiv; subst.
   - unfold bind, Monad_itree.
     rewrite observe_bind. rewrite <- H. cbn. apply EqTau.
-    change (ITree.subst f t0) with (ITree.bind t0 f).
     apply CIH. auto.
   - unfold bind, Monad_itree.
     rewrite observe_bind. rewrite <- H. cbn. apply EqVis.
-    intros v. change (ITree.subst f (k v)) with (ITree.bind (k v) f).
+    intros v. 
     apply CIH. apply H0.
 Qed.   
 

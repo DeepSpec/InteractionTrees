@@ -351,7 +351,11 @@ Qed.
   Proper (eq_itree eq ==> iff) (elem c t).
 Proof.
   repeat red. revert t.
-  tower induction.   
+  (* apply tower.
+  inf_closed_forall_auto.
+  intros T HT. split. repeat intro. apply HT. apply H0. 
+  apply H, H0.     *)
+  tower induction.    
     split.
   - intros HI.
     repeat red; repeat red in HI.  

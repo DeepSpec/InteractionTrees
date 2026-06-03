@@ -211,8 +211,19 @@ Lemma eqit_clo_bind_gen :
 Proof.
   intros E R1 R2 RR U1 U2.
   intros UU b1 b2 c t1 t2 k1 k2.
-  revert UU t1 t2 k1 k2.
+  revert UU t1 t2 k1 k2. 
 (* TOUR: EXPERIMENT: Why is this inf-closed? *)
+(* EXPERIMENT ZONE *)
+(* apply tower.  
+Ltac all := inf_closed_forall_auto. 
+Ltac impl := inf_closed_impl_auto. 
+all. 
+repeat 
+  (apply inf_closed_impl; [intros!; apply_leq; firstorder|]).
+  (* it seems the `Proper` subproofs are always true.  *)
+  repeat intro; apply H; firstorder. 
+  impl.  *)
+(* END *)
   tower induction.
   intros x IH.
   intros UU t1 t2 k1 k2 EQT EQKL.

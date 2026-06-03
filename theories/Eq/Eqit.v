@@ -137,9 +137,7 @@ Section eqit.
   Proof.
     intros sim sim' Hsim R1 R2 RR x0 x1.
     unfold eqit_. intros IN.
-    induction IN; constructor; auto.
-    - apply Hsim; auto.
-    - intros ?; apply Hsim; auto.
+    induction IN; auto with mono itree. 
   Qed.
 
   (* The monotone relation `b`. `eqit` is `gfp b`. *)
@@ -164,7 +162,7 @@ Section eqit.
 End eqit.
 Arguments eqit_ {E} b1 b2 sim R1 R2 RR t1 t2/.
 Arguments eqit {E R1 R2} RR b1 b2 _ _.
-Arguments eqit_mon {E} b1 b2.
+Arguments eqit_mon {E} b1 b2. 
 
 
 (** Notation of [eqit] and [eqitF]. You can write
@@ -172,8 +170,8 @@ Arguments eqit_mon {E} b1 b2.
     [≈] using [[\approx]]
     [≳] using [[\gtrsim]]
     in tex-mode.
-    
     *)
+
     (* eq_itree and relative functions *)
     (* gfp *)
     Infix "≅⟨ R ⟩"   := (eq_itree R) (at level 70) : type_scope.
@@ -188,6 +186,8 @@ Arguments eqit_mon {E} b1 b2.
     Infix "[≅⟨ R ⟩]" := (@elem _ _ (eqit_mon false false) _ _ _ R) (at level 70) : type_scope.
     Infix "[≅]" := (@elem _ _ (eqit_mon false false) _ _ _ eq) (at level 70) : type_scope.
 
+    (* eutt and relative functions *)
+    (* gfp *)
     Infix "≈⟨ R ⟩" := (eutt R) (at level 70) : type_scope.
     Infix "≈" := (eutt eq) (at level 70) : type_scope.
     (* b (gfp) *)
@@ -200,6 +200,8 @@ Arguments eqit_mon {E} b1 b2.
     Infix "[≈⟨ R ⟩]" := (@elem _ _ (eqit_mon true true) _ _ _ R) (at level 70) : type_scope.
     Infix "[≈]" := (@elem _ _ (eqit_mon true true) _ _ _ eq) (at level 70) : type_scope.
 
+    (* euttge and relative functions *)
+    (* gfp *)
     Infix "≳⟨ R ⟩" := (euttge R) (at level 70) : type_scope.
     Infix "≳"   := (euttge eq) (at level 70) : type_scope.
     (* b (gfp) *)
@@ -231,50 +233,25 @@ Arguments eqit_mon {E} b1 b2.
     #[global] Hint Unfold euttge : itree.
     
 (** Tactics *)
-(* RTODO Clean this up massively *)
 
 (** --- Per-relation hooks for the [eqit] family. --- *)
-
-
-(* Here we go: 
-stepping means 
-
-b gfp -> gfp 
-
-gfp to b gfp in goal 
-b gfp to gfp in ctx 
-
-elem to b elem to (gfp to b gfp) in goal 
-
-b elem to elem in ctx 
-
-unstepping is redundant as the (gfp == b gfp) loop 
-is closed 
-
-for b gfp -> gfp, we should be fine at F 
-for gfp -> b gfp we are fine at F 
-
-for b elem to elem in ctx, we need better tactic support
-for b elem to gfp b in goal, we might be fine 
-for F elem vs b elem - test 
-for elem upwards, we are fine 
-
-we need a tactic for stepping to F, and we need 
-one for stepping to b 
-
-why do we need forced itrees (itree') in eqitF?
-
-because we can destruct itree'.
-
-*)
 
 #[local] Ltac iunfold      := unfold euttge, eq_itree, eutt, eqit.
 #[local] Ltac iunfold_in h := unfold euttge, eq_itree, eutt, eqit in h.
 #[local] Ltac iunfold_all  := unfold euttge, eq_itree, eutt, eqit in *.
 
+(* Unfolding tactics for bisimulations. *)
+(* Generally, these are used to go from [eqit_mon] to [eqitF]. *)
+(* Sometimes you will call these manually. *)
 Ltac icbn := repeat red. 
 Ltac icbn_in h := repeat red in h.
 
+(* Used to refold eqit; useful for automation: 
+   sometimes [auto] will not recognize that [eqit] should solve
+   a goal of the shape [gfp (eqit_mon)], 
+   though they are isomorphic up to unfolding. *)
+
+(* Typically, you will not invoke these tactics manually. *)
 Ltac refold :=
   repeat match goal with
   | |- context[gfp (@eqit_mon ?E ?b1 ?b2) ?R1 ?R2 ?RR] =>
@@ -293,8 +270,15 @@ Ltac refold_in h :=
       try fold (@eutt E _ _) in h
   end.
 
+(* Change [eqitF] to [eqit_mon]. It is a bit complex due to constructors
+   not using [observe] at all times. *)
+
+(* RAB : it would be a nice feature to have _all_ [observe] instances
+   be canonical; i.e. not to have both (observe (Ret r)) and (RetF r).
+   
+   *)
 Ltac to_mon_core :=
-match goal with
+cbn; match goal with
 | |- context[@eqitF ?E ?R1 ?R2 ?RR ?b1 ?b2 (?f ?R1 ?R2 ?RR)
                    (observe ?t1) (observe ?t2)] =>
       change (eqitF RR b1 b2 (f R1 R2 RR)
@@ -320,13 +304,14 @@ match goal with
                     t1 (go (con a)))
 end.
 
+(* A trick to make [to_mon] work under [forall]. *)
 Ltac to_mon := 
-let dummy := fresh "dummy" in   
-assert (dummy : True) by constructor; 
+let guard := fresh "guard" in   
+assert (guard : True) by constructor; 
           intros; 
           to_mon_core; 
-          revert_until dummy; 
-          clear dummy. 
+          revert_until guard; 
+          clear guard. 
 
 Ltac to_mon_in h :=
   match type of h with
@@ -420,6 +405,22 @@ Ltac taul := apply EqTauL; [auto|].
 Ltac taur := apply EqTauR; [auto|]. 
 Ltac taus := apply EqTau. 
 
+(* inf_closed automation *)
+Ltac inf_closed_forall_auto := 
+  repeat (apply inf_closed_all; intro). 
+
+Ltac inf_closed_impl_auto := 
+  repeat (apply inf_closed_impl; [intros!; apply_leq; firstorder|]). 
+
+Ltac inf_closed_final_auto := 
+solve [repeat intro; try solve [firstorder]; try apply_leq ; firstorder]. 
+
+Ltac inf_closed_auto := 
+repeat (inf_closed_forall_auto || inf_closed_impl_auto || inf_closed_final_auto). 
+
+Ltac tower_induction := apply tower; [inf_closed_auto|].
+Tactic Notation "tower" "induction" := tower_induction. 
+
 
 Module step_notation_tests. 
   #[local] Parameter E : Type -> Type.
@@ -500,7 +501,7 @@ Lemma eqitF_inv_VisF_weak {E R1 R2} (RR : R1 -> R2 -> Prop) {b1 b2 sim}
     X1 (e1 : E X1) (k1 : X1 -> _) X2 (e2 : E X2) (k2 : X2 -> _)
   : eqitF RR b1 b2 sim (VisF e1 k1) (VisF e2 k2) ->
     exists p : X1 = X2, eqeq E p e1 e2 /\ pweqeq sim p k1 k2.
-Proof.
+Proof. 
   refine (fun H =>
     match H in eqitF _ _ _ _ t1 t2 return
       match t1, t2 return Prop with
@@ -840,28 +841,6 @@ Proof.
     unstep.
     eapply IHEQ; eauto.
 Qed.
-Ltac inf_closed_forall_auto := 
-repeat match goal with 
-| [|- inf_closed (fun _ => forall _, _)] => 
-  apply inf_closed_all; intro
-  end. 
-
-Ltac inf_closed_impl_auto := 
-repeat match goal with 
-| [|- inf_closed (fun _ => _ -> _)] => 
-  apply inf_closed_impl; [intros!|]; 
-  apply_leq; firstorder end. 
-
-Ltac inf_closed_final_auto := 
-solve [repeat intro; try solve [firstorder]; try apply_leq ; firstorder]. 
-
-Ltac inf_closed_auto := 
-repeat match goal with 
-| [|- inf_closed _] => (inf_closed_forall_auto || inf_closed_impl_auto || inf_closed_final_auto)
-end. 
-
-Ltac tower_induction := apply tower; [inf_closed_auto|].
-Tactic Notation "tower" "induction" := tower_induction. 
 
 #[global] Instance euttge_proper_euttC {E R1 R2}
   (RR : R1 -> R2 -> Prop) (c : euttC):
@@ -2499,14 +2478,14 @@ Section eutt_facts.
 
 #[global]
 Instance eutt_cong_eutt {E R1 R2 RR} :
-  Proper (eutt eq ==> eutt eq ==> flip impl) (@eutt E R1 R2 RR).
+  Proper (eutt eq ==> eutt eq ==> iff) (@eutt E R1 R2 RR).
 Proof.
   intros!. now rewrite H, H0.
 Qed.
 
 #[global]
 Instance eutt_cong_euttge {E R1 R2 RR}:
-  Proper (euttge eq ==> euttge eq ==> flip impl)
+  Proper (euttge eq ==> euttge eq ==> iff)
          (@eqit E R1 R2 RR true true).
 Proof.
   intros!. now rewrite H, H0.
@@ -2514,15 +2493,7 @@ Qed.
 
 #[global]
 Instance eutt_cong_eq {E R1 R2 RR}:
-  Proper (eq_itree eq ==> eq_itree eq ==> flip impl)
-         (@eqit E R1 R2 RR true true).
-Proof.
-  intros!. now rewrite H, H0.
-Qed.
-
-#[global]
-Instance eutt_cong_ {E R1 R2 RR}:
-  Proper (eq_itree eq ==> eq_itree eq ==> flip impl)
+  Proper (eq_itree eq ==> eq_itree eq ==> iff)
          (@eqit E R1 R2 RR true true).
 Proof.
   intros!. now rewrite H, H0.

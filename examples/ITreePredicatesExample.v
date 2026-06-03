@@ -195,7 +195,7 @@ Definition NoGets_ {S R} (rec : itree (stateE S) R -> Prop) (t : itree (stateE S
 Lemma NoGetsF_mono : forall {S R},
   Proper (leq ==> leq) (@NoGets_ S R). 
 Proof.
-  repeat intro. red. induction H0; constructor; now apply H.
+  repeat intro. red. induction H0; auto with mono itree. 
 Qed.
 
 Definition NoGets_mon S R := Build_mon (@NoGetsF_mono S R). 

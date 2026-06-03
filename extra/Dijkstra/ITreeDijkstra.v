@@ -199,9 +199,8 @@ Section ITreeDijkstra.
 
   Lemma is_inf_mono {A} : Proper (leq ==> leq) (@is_inf_ A). 
   Proof. 
-    intros!. 
-    inv H0. red. rewrite <- H1. econstructor.
-    now apply H.  
+    intros!. red. 
+    inv H0; auto with mono itree.
   Qed. 
 
   Definition is_inf_mon A : mon (stream A -> Prop) := 
@@ -229,9 +228,7 @@ Section ITreeDijkstra.
 
   Lemma bisim_mono {A} : Proper (leq ==> leq) (@bisim_ A). 
   Proof. 
-    intros!. red. inv H0. 
-    - constructor. 
-    - constructor. now apply H. 
+    intros!. red. inv H0; auto with mono itree. 
   Qed. 
   
   Definition bisim_mon {A} : mon (stream A -> stream A -> Prop) := 
@@ -308,8 +305,7 @@ step on gfp can reduce.
 
   Lemma forall_stream_mono (A : Type) (P : A -> Prop) : Proper (leq ==> leq) (forall_stream_ P).
   Proof.
-    repeat red. intros. red in H0. destruct H0; auto with itree.
-    constructor; auto. now apply H. 
+    repeat red. intros. red in H0. destruct H0; auto with mono itree.
   Qed.
 
   Definition forall_stream_mon A P := Build_mon (forall_stream_mono A P). 
@@ -328,8 +324,7 @@ step on gfp can reduce.
 
   Lemma inf_many_mono (A : Type) (P : A -> Prop) : Proper (leq ==> leq) (inf_many_ P).
   Proof.
-    repeat red. intros. red in H0. induction H0; auto with itree.
-    apply cons_found; auto. now apply H. 
+    repeat red. intros. red in H0. induction H0; auto with mono itree.
   Qed.
 
   Definition inf_many_mon A P := Build_mon (inf_many_mono A P). 
@@ -385,8 +380,7 @@ step on gfp can reduce.
   Lemma eqitE_mono {E1 E2 R1 R2 RR} : Proper (leq ==> leq)  (@eqitE_ E1 E2 R1 R2 RR).
     Proof.
       repeat red. intros. rename x into t1. rename y into t2.
-      induction H0; eauto with itree.
-      constructor. now apply H. 
+      induction H0; eauto with mono itree.
     Qed.
 
   Definition eqitE_mon {E1 E2 R1 R2 RR} := Build_mon (@eqitE_mono E1 E2 R1 R2 RR).
@@ -408,8 +402,7 @@ step on gfp can reduce.
   
   Lemma eventless_mono {E1 R} : Proper (leq ==> leq) (@eventless_ E1 R).
   Proof.
-    repeat red. intros. red in H0. inversion H0; auto with itree.
-    constructor. now apply H.  
+    repeat red. intros. red in H0. inversion H0; auto with mono itree.
   Qed.
 
   Definition eventless_mon {E1 R} := Build_mon (@eventless_mono E1 R).
@@ -735,8 +728,7 @@ step on gfp can reduce.
 
   Lemma itree_includes_mono {R} : Proper (leq ==> leq) (@itree_includesF R).
   Proof. 
-    repeat intro. induction H0; eauto with itree. 
-    econstructor; eauto. now apply H. 
+    repeat intro. induction H0; eauto with mono itree. 
   Qed. 
 
   Definition itree_includes_mon {R} := Build_mon (@itree_includes_mono R).   
