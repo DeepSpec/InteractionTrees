@@ -247,10 +247,6 @@ Qed.
     fun (f : A -> PureITreeSpec (A + B) ) (a : A) (p : itree void1 B -> Prop) (Hp : resp_eutt p) =>
       (gfp (@iter_mon A B f p Hp)) a.
 
-(* Lemma fix_monotinici_next : False. 
-  fail "next task: fix monotinici definitions". 
-Abort.  *)
-
       Lemma iter_monot : forall A B (f : A -> PureITreeSpec (A + B) ) (a : A),
                               monotonici B (_iter f a).
     Proof.
