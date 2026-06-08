@@ -183,9 +183,7 @@ Create HintDb mono.
 
 Global Hint Extern 4 => apply_leq : mono.
 
-Ltac monauto := 
-  match goal with |- Proper (leq _ leq) _ => 
-(solve [
+Ltac monauto := (solve [
 (* break `Proper`, introduce names and premises` *)
 cbv; 
 intros; 
@@ -195,10 +193,7 @@ induct_on_premise;
 try econstructor; 
 (* use monotonicity fact itself: [sim] <= [sim'] *)
 try apply_leq; 
-eauto] || fail "`monauto` could not solve this goal.")
-
-| _ => fail "monauto only works on goals of the shape `Proper (leq ==> leq) rel`." 
-end. 
+eauto] || fail "`monauto` could not solve this goal."). 
 
 (* TODO: let user add a tactic db here *)
 (* ----------------------------------------------------------------- *)
