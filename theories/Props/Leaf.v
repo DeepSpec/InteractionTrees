@@ -225,7 +225,7 @@ repeat
   impl.  *)
 (* END *)
   tower induction.
-  intros x IH.
+  intros IH.
   intros UU t1 t2 k1 k2 EQT EQKL.
   cbn [eqit_mon body] in *.
   unfold eqit_ in *.

@@ -144,7 +144,7 @@ Qed.
   Proper (eq_itree eq ==> eq_itree eq ==> iff) (elem c RR).
 Proof.
   split; revert_until c; tower induction;
-  intros x IH t1 t1' Ht1 t2 t2' Ht2;
+  intros IH t1 t1' Ht1 t2 t2' Ht2;
   step in Ht1; step in Ht2; rcbn; intros Hrutt;
   genobs t1' ot1'; genobs t2' ot2';
   move Hrutt before IH; revert_until Hrutt;
@@ -192,7 +192,7 @@ Qed.
 Proof.
   unfold Proper, respectful, flip, impl.
   tower induction.
-  clear c; intros c IH x x' EQx y y' EQy; step in EQx; step in EQy.
+  intros IH x x' EQx y y' EQy; step in EQx; step in EQy.
   rcbn; intros EQ.
   genobs x' ox'; genobs y' oy'.
   revert x x' y y' Heqox' Heqoy' EQx EQy.

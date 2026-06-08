@@ -339,7 +339,7 @@ Qed.  *)
   (c : Chain (pi_secure_eqit_mon Label priv RR b1 b2 l)) :
   Proper (eq_itree (E := E) eq ==> eq_itree eq ==> flip impl) (elem c).
 Proof.
-  do 5 red. tower induction. clear c. intros c CIH t1 t2 H12 t3 t4 H34 Hpi.
+  do 5 red. tower induction. intros CIH t1 t2 H12 t3 t4 H34 Hpi.
   icbn; icbn in Hpi. step in H12; step in H34. 
   induction Hpi; inv_eq_itree.
   (* ret and coinductive cases are simple *)
@@ -397,7 +397,7 @@ Proof.
                                       try solve [now simpobs_subst]; 
                                       solve [now step; apply_foralls].
   intros t1 t2 c. revert t1 t2. tower induction.
-  clear c; intros c CIH t1 t2 Hk1k2 Ht1t2.
+  intros CIH t1 t2 Hk1k2 Ht1t2.
   step in Ht1t2. genobs t1 ot1. genobs t2 ot2; icbn. 
   hinduction Ht1t2 before c; intros. 
   - rewrite 2 observe_bind. simpobs. now apply Hk1k2.
@@ -445,7 +445,7 @@ Lemma pi_eqit_secure_iter_bind_aux:
                             end)).
 Proof.
   intros E B2 B1 A1 A2 RA RB b1 b2 Label priv l body1 body2 c. 
-  tower induction. clear c; intros c CIH Hbody t1 t2 Ht12. step in Ht12. 
+  tower induction. intros CIH Hbody t1 t2 Ht12. step in Ht12. 
   icbn. genobs t1 ot1. genobs t2 ot2.
   hinduction Ht12 before E; intros. 
   #[local] Ltac break_observe := unfold observe; cbn; simpobs; cbn. 

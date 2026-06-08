@@ -169,7 +169,10 @@ Tactic Notation "unstep" "in" ident(h) := unstep_in h.
 Tactic Notation "hinduction" hyp(IND) "before" hyp(H)
   := move IND before H; revert_until IND; induction IND.
 
-Ltac apply_leq := match goal with [H : _ <= _ |- _] => intros; apply H end. 
+Ltac apply_leq := match goal with 
+  | [H : _ <= _ |- _]=> intros; apply H 
+  | [H : leq _ _ |- _]=> intros; apply H 
+end.
 
 (* nonlinear pattern works here *)
 Ltac induct_on_premise := match goal with 
@@ -180,7 +183,9 @@ Create HintDb mono.
 
 Global Hint Extern 4 => apply_leq : mono.
 
-Ltac monauto := (solve [
+Ltac monauto := 
+  match goal with |- Proper (leq _ leq) _ => 
+(solve [
 (* break `Proper`, introduce names and premises` *)
 cbv; 
 intros; 
@@ -190,7 +195,31 @@ induct_on_premise;
 try econstructor; 
 (* use monotonicity fact itself: [sim] <= [sim'] *)
 try apply_leq; 
-eauto] || fail "`monauto` could not solve this goal."). 
+eauto] || fail "`monauto` could not solve this goal.")
+
+| _ => fail "monauto only works on goals of the shape `Proper (leq ==> leq) rel`." 
+end. 
 
 (* TODO: let user add a tactic db here *)
 (* ----------------------------------------------------------------- *)
+
+(* inf_closed automation *)
+Ltac inf_closed_forall_auto :=
+  repeat (apply inf_closed_all; intro).
+
+Ltac inf_closed_impl_auto :=
+  repeat (apply inf_closed_impl; [intros!; apply_leq; firstorder|]).
+
+Ltac inf_closed_final_auto :=
+  solve [repeat intro; try solve [firstorder]; try apply_leq ; firstorder].
+
+Ltac inf_closed_auto :=
+  repeat (inf_closed_forall_auto || inf_closed_impl_auto || inf_closed_final_auto).
+
+(* tower induction always leaves the goal with the form `forall _ : Chain, ...` ; 
+   match on this type and clear the old Chain *) 
+Ltac clear_old_chain := match goal with 
+  | c : ?T |- forall _ : ?T, _ => clear c; intro c end.
+
+Ltac tower_induction := apply tower; [inf_closed_auto|clear_old_chain].
+Tactic Notation "tower" "induction" := tower_induction.

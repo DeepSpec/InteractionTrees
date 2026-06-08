@@ -87,23 +87,23 @@ Lemma secure_eqit_bind_chain :
 Proof.
   intros E R1 R2 S1 S2 RR RS b1 b2 Lab pr lev c.
   tower induction.
-  intros x IH t1 t2 k1 k2 Hsec Hcont.
+  intros IH t1 t2 k1 k2 Hsec Hcont.
   step in Hsec. genobs t1 ot1. genobs t2 ot2.
-  hinduction Hsec before x; intros.
+  hinduction Hsec before IH; intros.
   - apply simpobs in Heqot1. apply simpobs in Heqot2. rewrite Heqot1, Heqot2. repeat rewrite bind_ret_l. now apply Hcont.
-  - apply simpobs in Heqot1. apply simpobs in Heqot2. rewrite Heqot1, Heqot2. repeat rewrite bind_tau. constructor. eapply IH; [apply H | intros rr1 rr2 HRR; apply (b_chain x); now apply Hcont].
+  - apply simpobs in Heqot1. apply simpobs in Heqot2. rewrite Heqot1, Heqot2. repeat rewrite bind_tau. constructor. eapply IH; [apply H | intros rr1 rr2 HRR; apply (b_chain c); now apply Hcont].
   - apply simpobs in Heqot1. rewrite Heqot1. rewrite bind_tau. constructor; auto. eapply IHHsec; eauto.
   - apply simpobs in Heqot2. rewrite Heqot2. rewrite bind_tau. constructor; auto. eapply IHHsec; eauto.
-  - apply simpobs in Heqot1. apply simpobs in Heqot2. rewrite Heqot1, Heqot2. repeat rewrite bind_vis. constructor; auto. intros a. eapply IH; [apply H | intros rr1 rr2 HRR; apply (b_chain x); now apply Hcont].
-  - apply simpobs in Heqot1. apply simpobs in Heqot2. rewrite Heqot1, Heqot2. rewrite bind_vis, bind_tau. unpriv_co. eapply IH; [apply H | intros rr1 rr2 HRR; apply (b_chain x); now apply Hcont].
-  - apply simpobs in Heqot1. apply simpobs in Heqot2. rewrite Heqot1, Heqot2. rewrite bind_tau, bind_vis. unpriv_co. eapply IH; [apply H | intros rr1 rr2 HRR; apply (b_chain x); now apply Hcont].
-  - apply simpobs in Heqot1. apply simpobs in Heqot2. rewrite Heqot1, Heqot2. repeat rewrite bind_vis. unpriv_co. eapply IH; [apply H | intros rr1 rr2 HRR; apply (b_chain x); now apply Hcont].
+  - apply simpobs in Heqot1. apply simpobs in Heqot2. rewrite Heqot1, Heqot2. repeat rewrite bind_vis. constructor; auto. intros a. eapply IH; [apply H | intros rr1 rr2 HRR; apply (b_chain c); now apply Hcont].
+  - apply simpobs in Heqot1. apply simpobs in Heqot2. rewrite Heqot1, Heqot2. rewrite bind_vis, bind_tau. unpriv_co. eapply IH; [apply H | intros rr1 rr2 HRR; apply (b_chain c); now apply Hcont].
+  - apply simpobs in Heqot1. apply simpobs in Heqot2. rewrite Heqot1, Heqot2. rewrite bind_tau, bind_vis. unpriv_co. eapply IH; [apply H | intros rr1 rr2 HRR; apply (b_chain c); now apply Hcont].
+  - apply simpobs in Heqot1. apply simpobs in Heqot2. rewrite Heqot1, Heqot2. repeat rewrite bind_vis. unpriv_co. eapply IH; [apply H | intros rr1 rr2 HRR; apply (b_chain c); now apply Hcont].
   - apply simpobs in Heqot1. rewrite Heqot1. rewrite bind_vis. unpriv_ind. eapply H0; eauto.
   - apply simpobs in Heqot2. rewrite Heqot2. rewrite bind_vis. unpriv_ind. eapply H0; eauto.
-  - apply (gfp_bchain x). eapply eqit_bind_shalt_aux1; eauto. step. rewrite <- Heqot2. cbn. unpriv_halt. eauto.
-  - apply (gfp_bchain x). eapply eqit_bind_shalt_aux2; eauto. step. rewrite <- Heqot1. cbn. unpriv_halt. eauto.
-  - apply (gfp_bchain x). eapply eqit_bind_shalt_aux1 with (e := e1); eauto. step. rewrite <- Heqot2. cbn. unpriv_halt.
-  - apply (gfp_bchain x). eapply eqit_bind_shalt_aux2 with (e := e2); eauto. step. rewrite <- Heqot1. cbn. unpriv_halt.
+  - apply (gfp_bchain c). eapply eqit_bind_shalt_aux1; eauto. step. rewrite <- Heqot2. cbn. unpriv_halt. eauto.
+  - apply (gfp_bchain c). eapply eqit_bind_shalt_aux2; eauto. step. rewrite <- Heqot1. cbn. unpriv_halt. eauto.
+  - apply (gfp_bchain c). eapply eqit_bind_shalt_aux1 with (e := e1); eauto. step. rewrite <- Heqot2. cbn. unpriv_halt.
+  - apply (gfp_bchain c). eapply eqit_bind_shalt_aux2 with (e := e2); eauto. step. rewrite <- Heqot1. cbn. unpriv_halt.
 Qed.
 
 
@@ -219,7 +219,7 @@ Lemma iter_bind_aux:
                          end)).
 Proof.
   intros E B2 B1 A1 A2 RA RB b1 b2 Label priv l body1 body2 c. 
-  tower induction. clear c; intros c CIH t1 t2 Ht12 Hbody. step in Ht12. 
+  tower induction. intros CIH t1 t2 Ht12 Hbody. step in Ht12. 
   icbn. 
   unfold observe. cbn. 
   hinduction Ht12 before E; intros; simpobs; cbn; eauto; 

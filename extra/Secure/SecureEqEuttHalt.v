@@ -30,7 +30,7 @@ Local Open Scope monad_scope.
   rename x0 into x'; rename y0 into y'. 
   all: revert x y EQx x' y' EQy. 
   all: tower induction; 
-       clear c; intros c IH x x' EQx y y' EQy EQ; step in EQx; step in EQy.
+       intros IH x x' EQx y y' EQy EQ; step in EQx; step in EQy.
   all: icbn; icbn in EQ; cbn in *. 
   1: genobs x ox; genobs y oy; 
     revert x x' y y' Heqox Heqoy EQx EQy.

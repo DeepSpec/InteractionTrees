@@ -414,7 +414,10 @@ solve [repeat intro; try solve [firstorder]; try apply_leq ; firstorder].
 Ltac inf_closed_auto := 
 repeat (inf_closed_forall_auto || inf_closed_impl_auto || inf_closed_final_auto). 
 
-Ltac tower_induction := apply tower; [inf_closed_auto|].
+Ltac clear_old_chain := match goal with | c : ?T |- forall _ : ?T, _ 
+ => clear c; intro c end. 
+
+Ltac tower_induction := apply tower; [inf_closed_auto|clear_old_chain].
 Tactic Notation "tower" "induction" := tower_induction. 
 
 
@@ -844,7 +847,7 @@ Qed.
 Proof with eauto with itree.
   unfold Proper, respectful, flip, impl.
   tower induction.
-  clear c; intros c IH x x' EQx y y' EQy; step in EQx; step in EQy.
+  intros IH x x' EQx y y' EQy; step in EQx; step in EQy.
     intros EQ. icbn in *. 
     genobs x' ox'; genobs y' oy'.
     (* [hinduction] is not sufficient here, because [move] is unable to pass
@@ -1031,7 +1034,7 @@ Abort.
 Proof with eauto with itree.
   unfold Proper, respectful, flip, impl.
   tower induction.
-  clear c; intros c IH x x' EQx y y' EQy; step in EQx; step in EQy.
+  intros IH x x' EQx y y' EQy; step in EQx; step in EQy.
     intros EQ. icbn in *. 
     genobs x' ox'; genobs y' oy'.
     revert x x' y y' Heqox' Heqoy' EQx EQy.
@@ -2438,6 +2441,8 @@ End eqit_elem.
 
 Section eutt_facts. 
 
+  (* rtodo: rewrite comments *)
+
 (** * Equivalence up to taus *)
 
 (** Abbreviated as [eutt]. *)
@@ -2482,7 +2487,7 @@ Qed.
 #[global]
 Instance eutt_cong_euttge {E R1 R2 RR}:
   Proper (euttge eq ==> euttge eq ==> iff)
-         (@eqit E R1 R2 RR true true).
+         (@eutt E R1 R2 RR).
 Proof.
   intros!. now rewrite H, H0.
 Qed.
@@ -2490,7 +2495,7 @@ Qed.
 #[global]
 Instance eutt_cong_eq {E R1 R2 RR}:
   Proper (eq_itree eq ==> eq_itree eq ==> iff)
-         (@eqit E R1 R2 RR true true).
+         (@eutt E R1 R2 RR).
 Proof.
   intros!. now rewrite H, H0.
 Qed.
