@@ -188,12 +188,12 @@ Ltac monauto := (solve [
 cbv; 
 intros; 
 (* find hypothesis matching goal and proceed by cases *)
-induct_on_premise; 
+solve [induct_on_premise; 
 (* break down each case as necessary. `solve` will backtrack in a helpful way.  *)
 try econstructor; 
 (* use monotonicity fact itself: [sim] <= [sim'] *)
 try apply_leq; 
-eauto] || fail "`monauto` could not solve this goal."). 
+eauto]] || fail "`monauto` could not solve this goal."). 
 
 (* TODO: let user add a tactic db here *)
 (* ----------------------------------------------------------------- *)
