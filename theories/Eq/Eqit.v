@@ -22,8 +22,6 @@ From Coq Require Import
      Morphisms
      Relations.
 
-From Paco Require Import paco.
-
 From ITree Require Import
      Basics.Basics
      Basics.Utils
@@ -32,14 +30,9 @@ From ITree Require Import
      Eq.Paco2
      Eq.Shallow.
 
+From Coinduction Require Import all.
+
 Local Open Scope itree_scope.
-
-(* TODO: Send to paco *)
-#[global] Instance Symmetric_bot2 (A : Type) : @Symmetric A bot2.
-Proof. auto. Qed.
-
-#[global] Instance Transitive_bot2 (A : Type) : @Transitive A bot2.
-Proof. auto. Qed.
 (* end hide *)
 
 (** ** Coinductive reasoning with Paco *)
@@ -87,57 +80,49 @@ Section eqit.
       pattern-matching is not allowed on [itree].
    *)
 
-  Inductive eqitF (b1 b2: bool) vclo (sim : itree E R1 -> itree E R2 -> Prop) :
+  Inductive eqitF (b1 b2: bool) (sim : itree E R1 -> itree E R2 -> Prop) :
     itree' E R1 -> itree' E R2 -> Prop :=
   | EqRet r1 r2
        (REL: RR r1 r2):
-     eqitF b1 b2 vclo sim (RetF r1) (RetF r2)
+     eqitF b1 b2 sim (RetF r1) (RetF r2)
   | EqTau m1 m2
         (REL: sim m1 m2):
-      eqitF b1 b2 vclo sim (TauF m1) (TauF m2)
+      eqitF b1 b2 sim (TauF m1) (TauF m2)
   | EqVis {u} (e : E u) k1 k2
-        (REL: forall v, vclo sim (k1 v) (k2 v) : Prop):
-      eqitF b1 b2 vclo sim (VisF e k1) (VisF e k2)
+        (REL: forall v, sim (k1 v) (k2 v) : Prop):
+      eqitF b1 b2 sim (VisF e k1) (VisF e k2)
   | EqTauL t1 ot2
         (CHECK: b1)
-        (REL: eqitF b1 b2 vclo sim (observe t1) ot2):
-      eqitF b1 b2 vclo sim (TauF t1) ot2
+        (REL: eqitF b1 b2 sim (observe t1) ot2):
+      eqitF b1 b2 sim (TauF t1) ot2
   | EqTauR ot1 t2
         (CHECK: b2)
-        (REL: eqitF b1 b2 vclo sim ot1 (observe t2)):
-      eqitF b1 b2 vclo sim ot1 (TauF t2)
+        (REL: eqitF b1 b2 sim ot1 (observe t2)):
+      eqitF b1 b2 sim ot1 (TauF t2)
   .
   Hint Constructors eqitF : itree.
 
-  Definition eqit_ b1 b2 vclo sim :
+  Definition eqit_ b1 b2 sim :
     itree E R1 -> itree E R2 -> Prop :=
-    fun t1 t2 => eqitF b1 b2 vclo sim (observe t1) (observe t2).
+    fun t1 t2 => eqitF b1 b2 sim (observe t1) (observe t2).
   Hint Unfold eqit_ : itree.
 
   (** [eqitF] and [eqit_] are both monotone. *)
 
-  Lemma eqitF_mono b1 b2 x0 x1 vclo vclo' sim sim'
-        (IN: eqitF b1 b2 vclo sim x0 x1)
-        (MON: monotone2 vclo)
-        (LEc: vclo <3= vclo')
-        (LE: sim <2= sim'):
-    eqitF b1 b2 vclo' sim' x0 x1.
+  Lemma eqitF_mono b1 b2 : Proper (leq ==> leq) (eqit_ b1 b2).
   Proof.
-    intros. induction IN; eauto with itree.
+    intros sim sim' Hsim x0 x1.
+    unfold eqit_. intros IN.
+    induction IN; constructor; auto.
+    - apply Hsim; auto.
+    - intros ?; apply Hsim; auto.
   Qed.
 
-  Lemma eqit__mono b1 b2 vclo (MON: monotone2 vclo) : monotone2 (eqit_ b1 b2 vclo).
-  Proof. do 2 red. intros. eapply eqitF_mono; eauto. Qed.
-
-  Hint Resolve eqit__mono : paco.
-
-  Lemma eqit_idclo_mono: monotone2 (@id (itree E R1 -> itree E R2 -> Prop)).
-  Proof. unfold id. eauto. Qed.
-
-  Hint Resolve eqit_idclo_mono : paco.
+  Definition eqit_mon b1 b2 : mon (itree E R1 -> itree E R2 -> Prop) :=
+    {| body := eqit_ b1 b2 ; Hbody := eqitF_mono b1 b2 |}.
 
   Definition eqit b1 b2 : itree E R1 -> itree E R2 -> Prop :=
-    paco2 (eqit_ b1 b2 id) bot2.
+    gfp (eqit_mon b1 b2).
 
   (** Strong bisimulation on itrees. If [eqit RR t1 t2],
       we say that [t1] and [t2] are (strongly) bisimilar. As hinted
@@ -155,117 +140,87 @@ End eqit.
 (* begin hide *)
 #[global] Hint Constructors eqitF : itree.
 #[global] Hint Unfold eqit_ : itree.
-#[global] Hint Resolve eqit__mono : paco.
-#[global] Hint Resolve eqit_idclo_mono : paco.
 #[global] Hint Unfold eqit : itree.
 #[global] Hint Unfold eq_itree : itree.
 #[global] Hint Unfold eutt : itree.
 #[global] Hint Unfold euttge : itree.
-#[global] Hint Unfold id : itree.
 
-Lemma eqitF_inv_VisF_r {E R1 R2} (RR : R1 -> R2 -> Prop) {b1 b2 vclo sim}
+Lemma eqitF_inv_VisF_r {E R1 R2} (RR : R1 -> R2 -> Prop) {b1 b2 sim}
     t1 X2 (e2 : E X2) (k2 : X2 -> _)
-  : eqitF RR b1 b2 vclo sim t1 (VisF e2 k2) ->
-    (exists k1, t1 = VisF e2 k1 /\ forall v, vclo sim (k1 v) (k2 v)) \/
-    (b1 /\ exists t1', t1 = TauF t1' /\ eqitF RR b1 b2 vclo sim (observe t1') (VisF e2 k2)).
+  : eqitF RR b1 b2 sim t1 (VisF e2 k2) ->
+    (exists k1, t1 = VisF e2 k1 /\ forall v, sim (k1 v) (k2 v)) \/
+    (b1 /\ exists t1', t1 = TauF t1' /\ eqitF RR b1 b2 sim (observe t1') (VisF e2 k2)).
 Proof.
   refine (fun H =>
-    match H in eqitF _ _ _ _ _ _ t2 return
+    match H in eqitF _ _ _ _ _ t2 return
       match t2 return Prop with
       | VisF e2 k2 => _
       | _ => True
       end
     with
-    | EqVis _ _ _ _ _ _ _ _ _ => _
+    | EqVis _ _ _ _ _ _ _ _ => _
     | _ => _
     end); try exact I.
   - left; eauto.
   - destruct i0; eauto.
 Qed.
 
-Lemma eqitF_inv_VisF_weak {E R1 R2} (RR : R1 -> R2 -> Prop) {b1 b2 vclo sim}
+Lemma eqitF_inv_VisF_weak {E R1 R2} (RR : R1 -> R2 -> Prop) {b1 b2 sim}
     X1 (e1 : E X1) (k1 : X1 -> _) X2 (e2 : E X2) (k2 : X2 -> _)
-  : eqitF RR b1 b2 vclo sim (VisF e1 k1) (VisF e2 k2) ->
-    exists p : X1 = X2, eqeq E p e1 e2 /\ pweqeq (vclo sim) p k1 k2.
+  : eqitF RR b1 b2 sim (VisF e1 k1) (VisF e2 k2) ->
+    exists p : X1 = X2, eqeq E p e1 e2 /\ pweqeq sim p k1 k2.
 Proof.
   refine (fun H =>
-    match H in eqitF _ _ _ _ _ t1 t2 return
+    match H in eqitF _ _ _ _ t1 t2 return
       match t1, t2 return Prop with
       | VisF e1 k1, VisF e2 k2 => _
       | _, _ => True
       end with
-    | EqVis _ _ _ _ _ _ _ _ _ => _
+    | EqVis _ _ _ _ _ _ _ _ => _
     | _ => _
     end); try exact I.
   - exists eq_refl; cbn; eauto.
   - destruct i; exact I.
 Qed.
 
-Lemma eqitF_inv_VisF {E R1 R2} (RR : R1 -> R2 -> Prop) {b1 b2 vclo sim}
+Lemma eqitF_inv_VisF {E R1 R2} (RR : R1 -> R2 -> Prop) {b1 b2 sim}
     X (e : E X) (k1 : X -> _) (k2 : X -> _)
-  : eqitF RR b1 b2 vclo sim (VisF e k1) (VisF e k2) ->
-    forall x, vclo sim (k1 x) (k2 x).
+  : eqitF RR b1 b2 sim (VisF e k1) (VisF e k2) ->
+    forall x, sim (k1 x) (k2 x).
 Proof.
   intros H. dependent destruction H. assumption.
 Qed.
 
-Lemma eqitF_VisF_gen {E R1 R2} {RR : R1 -> R2 -> Prop} {b1 b2 vclo sim}
+Lemma eqitF_VisF_gen {E R1 R2} {RR : R1 -> R2 -> Prop} {b1 b2 sim}
     {X1 X2} (p : X1 = X2) (e1 : E X1) (k1 : X1 -> _) (e2 : E X2) (k2 : X2 -> _)
-  : eqeq E p e1 e2 -> pweqeq (vclo sim) p k1 k2 ->
-    eqitF RR b1 b2 vclo sim (VisF e1 k1) (VisF e2 k2).
+  : eqeq E p e1 e2 -> pweqeq sim p k1 k2 ->
+    eqitF RR b1 b2 sim (VisF e1 k1) (VisF e2 k2).
 Proof.
   destruct p; intros <-; cbn; constructor; auto.
 Qed.
 
 Ltac unfold_eqit :=
-  (try match goal with [|- eqit_ _ _ _ _ _ _ _ ] => red end);
-  (repeat match goal with [H: eqit_ _ _ _ _ _ _ _ |- _ ] => red in H end).
-
-Lemma fold_eqitF:
-  forall {E R1 R2} (RR: R1 -> R2 -> Prop) b1 b2 (t1 : itree E R1) (t2 : itree E R2) ot1 ot2,
-    eqitF RR b1 b2 id (upaco2 (eqit_ RR b1 b2 id) bot2) ot1 ot2 ->
-    ot1 = observe t1 ->
-    ot2 = observe t2 ->
-    eqit RR b1 b2 t1 t2.
-Proof.
-  intros * eq -> ->; pfold; auto.
-Qed.
-
-(* Tactic to fold eqitF automatically by expanding observe if needed *)
-Tactic Notation "fold_eqitF" hyp(H) :=
-  try punfold H;
-  try red in H;
-  match type of H with
-  | eqitF ?_RR ?_B1 ?_B2 id (upaco2 (eqit_ ?_RR ?_B1 ?_B2 id) bot2) ?_OT1 ?_OT2 =>
-      match _OT1 with
-      | observe _ => idtac
-      | ?_OT1 => change _OT1 with (observe (go _OT1)) in H
-      end;
-      match _OT2 with
-      | observe _ => idtac
-      | ?_OT2 => change _OT2 with (observe (go _OT2)) in H
-      end;
-      eapply fold_eqitF in H; [| eauto | eauto]
-  end.
+  (try match goal with [|- eqit_ _ _ _ _ _ _ ] => red end);
+  (repeat match goal with [H: eqit_ _ _ _ _ _ _ |- _ ] => red in H end).
 
 #[global] Instance eqitF_Proper_R {E : Type -> Type} {R1 R2:Type} :
-  Proper ((@eq_rel R1 R2) ==> eq ==> eq ==> (eq_rel ==> eq_rel) ==> eq_rel ==> eq_rel)
+  Proper ((@eq_rel R1 R2) ==> eq ==> eq ==> eq_rel ==> eq_rel)
     (@eqitF E R1 R2).
 Proof.
   repeat red.
   intros. subst. split; unfold subrelationH; intros.
   - induction H0; auto with itree.
     econstructor. apply H. assumption.
-    econstructor. apply H3. assumption.
-    econstructor. intros. specialize (REL v). specialize (H2 x3 y3). apply H2 in H3. apply H3. assumption.
+    econstructor. apply H2. assumption.
+    econstructor. intros. specialize (REL v). apply H2. auto.
   - induction H0; auto with itree.
     econstructor. apply H. assumption.
-    econstructor. apply H3. assumption.
-    econstructor. intros. specialize (REL v). specialize (H2 x3 y3). apply H2 in H3. apply H3. assumption.
+    econstructor. apply H2. assumption.
+    econstructor. intros. specialize (REL v). apply H2. auto.
 Qed.
 
 #[global] Instance eqitF_Proper_R2 {E : Type -> Type} {R1 R2:Type} :
-  Proper ((@eq_rel R1 R2) ==> eq ==> eq ==> eq ==> eq ==> eq ==> eq ==> iff)
+  Proper ((@eq_rel R1 R2) ==> eq ==> eq ==> eq ==> eq ==> eq ==> iff)
          (@eqitF E R1 R2).
 Proof.
   repeat red.
@@ -282,7 +237,10 @@ Proof with auto with itree.
   repeat red.
   intros. subst.
   split.
-  -  revert_until y1. pcofix CIH. intros.
+  - revert_until y1. unfold eqit at 2. coinduction R CIH. intros.
+Admitted.
+(*
+    step.
      pstep. punfold H0. red in H0. red.
      hinduction H0 before CIH; intros...
      + apply EqRet. apply H. assumption.
@@ -337,7 +295,7 @@ Proof.
 Qed.
 
 #[global] Hint Unfold flip : itree.
-
+*)
 (* end hide *)
 
 (** A notation of [eq_itree eq]. You can write [≅] using [[\cong]] in
@@ -348,6 +306,8 @@ Infix "≅" := (eq_itree eq) (at level 70) : type_scope.
 Infix "≈" := (eutt eq) (at level 70) : type_scope.
 
 Infix "≳" := (euttge eq) (at level 70) : type_scope.
+
+(*
 
 (* TODO: Find a way to not clobber the export [type_scope]? *)
 
@@ -451,6 +411,8 @@ End eqit_closure.
 Arguments eqit_clo_trans : clear implicits.
 #[global] Hint Constructors eqit_trans_clo : itree.
 
+*)
+
 (** ** Properties of relations *)
 
 (** Instances stating that we have equivalence relations. *)
@@ -462,38 +424,39 @@ Section eqit_gen.
 Context {E : Type -> Type} {R: Type} (RR : R -> R -> Prop).
 
 #[global] Instance Reflexive_eqitF b1 b2 (sim : itree E R -> itree E R -> Prop)
-: Reflexive RR -> Reflexive sim -> Reflexive (eqitF RR b1 b2 id sim).
+: Reflexive RR -> Reflexive sim -> Reflexive (eqitF RR b1 b2 sim).
 Proof.
   red. destruct x; constructor; eauto with itree.
 Qed.
 
 #[global] Instance Symmetric_eqitF b (sim : itree E R -> itree E R -> Prop)
-: Symmetric RR -> Symmetric sim -> Symmetric (eqitF RR b b id sim).
+: Symmetric RR -> Symmetric sim -> Symmetric (eqitF RR b b sim).
 Proof.
   red. induction 3; constructor; subst; eauto.
-  intros. apply H0. apply (REL v).
 Qed.
 
 #[global] Instance Reflexive_eqit_ b1 b2 (sim : itree E R -> itree E R -> Prop)
-: Reflexive RR -> Reflexive sim -> Reflexive (eqit_ RR b1 b2 id sim).
+: Reflexive RR -> Reflexive sim -> Reflexive (eqit_ RR b1 b2 sim).
 Proof. repeat red. intros. reflexivity. Qed.
 
 #[global] Instance Symmetric_eqit_ b (sim : itree E R -> itree E R -> Prop)
-: Symmetric RR -> Symmetric sim -> Symmetric (eqit_ RR b b id sim).
+: Symmetric RR -> Symmetric sim -> Symmetric (eqit_ RR b b sim).
 Proof. repeat red; symmetry; auto. Qed.
 
 (** *** [eqit] is an equivalence relation *)
 
+(*
 #[global] Instance Reflexive_eqit_gen b1 b2 (r rg: itree E R -> itree E R -> Prop) :
   Reflexive RR -> Reflexive (gpaco2 (eqit_ RR b1 b2 id) (eqitC RR b1 b2) r rg).
 Proof.
   pcofix CIH. gstep; intros.
   repeat red. destruct (observe x); eauto with paco itree.
 Qed.
+*)
 
 #[global] Instance Reflexive_eqit b1 b2 : Reflexive RR -> Reflexive (@eqit E _ _ RR b1 b2).
 Proof.
-  red; intros. ginit. apply Reflexive_eqit_gen; eauto.
+  red; intros. unfold eqit. coinduction c CIH. step.
 Qed.
 
 #[global] Instance Symmetric_eqit b : Symmetric RR -> Symmetric (@eqit E _ _ RR b b).
