@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Interaction Trees</title>
+  <meta name="description" content="Homepage of the Interaction Trees project">
+  <!-- TODO: OpenGraph -->
+  <!-- TODO: favicon -->
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<h1 id="interaction-trees">Interaction Trees</h1>
+<h2 id="source-code">Library</h2>
+<div class="level-2">
+<h3>
+<a class="github" href="https://github.com/DeepSpec/InteractionTrees">Source Code</a>
+</h3>
+<h3>Documentation</h3>
+<ul class="doclist">
+  <li><a href="./master/toc.html">Development version (master branch)</a></li>
+  <li><a href="./5.0.0/toc.html">Version 5.0.0</a></li>
+</ul>
+<!-- TODO: Features -->
+<!-- TODO: Connected projects (coq-itree-io, coq-ffi) -->
+</div>
+<h2 id="the-interaction-trees-academic-universe">The Interaction Trees Academic Universe</h2>
+<div class="level-2">
+<p>List of publications about or closely related to Interaction Trees.</p>
+<input type="radio" id="notag" name="tag-select"><label for="notag" class="pill notag">show all</label>
+{% for tag in ["coq", "isabelle", "vst", "monads", "coinduction", "testing", "concurrency", "plclub"] %}
+<input type="radio" id="tag-{{tag}}" name="tag-select" class="tag-select">
+<label for="tag-{{tag}}" id="label-{{tag}}" class="pill tag-{{tag}}" title="woop">{{ tag }}</label>
+{% endfor %}
+{%- include "pubs.jingoo" -%}
+{% for y in contents -%}
+<h3>{{ y.year }}</h3>
+<ul>
+{% for pub in y.pubs -%}
+<li class="item-paper{% for tag in pub.tags %} tag-{{ tag }}{% endfor %}">
+  <div class="pub-title"><a href="{{ pub.url }}">{{ pub.title }}</a></div>
+  <div class="pub-authors">by {{ pub.authors }}</div>
+  <div>
+    <span class="pub-conf">{{ pub.conf }}</span>
+    {%- for tag in pub.tags %}
+    <a class="pill tag tag-{{tag}}" href="#label-{{tag}}">{{ tag }}</a>
+    {%- endfor -%}
+  </div>
+</li>
+{% endfor %}
+</ul>
+{% endfor %}
+</div>
+</body>
+</html>
