@@ -212,18 +212,6 @@ Proof.
   intros E R1 R2 RR U1 U2.
   intros UU b1 b2 c t1 t2 k1 k2.
   revert UU t1 t2 k1 k2. 
-(* TOUR: EXPERIMENT: Why is this inf-closed? *)
-(* EXPERIMENT ZONE *)
-(* apply tower.  
-Ltac all := inf_closed_forall_auto. 
-Ltac impl := inf_closed_impl_auto. 
-all. 
-repeat 
-  (apply inf_closed_impl; [intros!; apply_leq; firstorder|]).
-  (* it seems the `Proper` subproofs are always true.  *)
-  repeat intro; apply H; firstorder. 
-  impl.  *)
-(* END *)
   tower induction.
   intros IH.
   intros UU t1 t2 k1 k2 EQT EQKL.
@@ -233,13 +221,11 @@ repeat
   genobs t2 ot2.
   hinduction EQT before RR; intros.
   1-3: rewrite 2 observe_bind; simpobs. 
-  + (* ret *)
-    apply EQKL. 
+  + apply EQKL. 
     * apply LeafRet; auto.
     * apply LeafRet; auto.
     * exact REL.
-  + (* tau *)
-    taus. 
+  + taus. 
     eapply IH.
     * exact REL.
     * intros u1 u2 HL1 HL2 HU.
@@ -247,8 +233,7 @@ repeat
       -- eapply LeafTau; eauto.
       -- eapply LeafTau; eauto.
       -- exact HU.
-  + (* vis *)
-    constructor. intro v.
+  + constructor. intro v.
     eapply IH.
     * apply REL.
     * intros u1 u2 HL1 HL2 HU.
@@ -256,12 +241,10 @@ repeat
       -- eapply LeafVis; eauto.
       -- eapply LeafVis; eauto.
       -- exact HU.
-  + (* taul *)
-    rewrite observe_bind. simpobs.
+  + rewrite observe_bind. simpobs.
     taul.
     eapply IHEQT; eauto with itree.
-  + (* taur *)
-    setoid_rewrite observe_bind at 2. simpobs.
+  + setoid_rewrite observe_bind at 2. simpobs.
     taur.
     eapply IHEQT; eauto with itree.
 Qed.
