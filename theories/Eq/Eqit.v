@@ -1,10 +1,4 @@
-(* 
-RTODOS:
-- rename and redo sections
-- organize file 
-*)
-
-(** * Strong bisimulation *)
+(** * Bisimulation *)
 
 (** Because [itree] is a coinductive type, the naive [eq] relation
     is too strong: most pairs of "morally equivalent" programs
@@ -310,14 +304,31 @@ assert (guard : True) by constructor;
           clear guard. 
 
 Ltac to_mon_in h :=
-  match type of h with
-  | context[@eqitF ?E ?R1 ?R2 ?RR ?b1 ?b2 (?f ?R1 ?R2 ?RR) (observe ?t1) (observe ?t2)] =>
-      change (eqitF RR b1 b2 (f R1 R2 RR) (observe t1) (observe t2))
-        with (eqit_mon b1 b2 f R1 R2 RR t1 t2) in h
-  | context[@eqitF ?E ?R1 ?R2 ?RR ?b1 ?b2 (?f ?R1 ?R2 ?RR) (?c1 ?a1) (?c2 ?a2)] =>
-      change (eqitF RR b1 b2 (f R1 R2 RR) (c1 a1) (c2 a2))
-        with (eqit_mon b1 b2 f R1 R2 RR (go (c1 a1)) (go (c2 a2))) in h
-  end.
+  cbn in h; match type of h with
+| context[@eqitF ?E ?R1 ?R2 ?RR ?b1 ?b2 (?f ?R1 ?R2 ?RR)
+                   (observe ?t1) (observe ?t2)] =>
+      change (eqitF RR b1 b2 (f R1 R2 RR)
+                    (observe t1) (observe t2))
+      with (eqit_mon b1 b2 f R1 R2 RR t1 t2) in h 
+| context[@eqitF ?E ?R1 ?R2 ?RR ?b1 ?b2 (?f ?R1 ?R2 ?RR)
+                   (?con1 ?a1) (?con2 ?a2)] =>
+      change (eqitF RR b1 b2 (f R1 R2 RR)
+                    (con1 a1) (con2 a2))
+      with (eqit_mon b1 b2 f R1 R2 RR
+                    (go (con1 a1)) (go (con2 a2))) in h
+| context[@eqitF ?E ?R1 ?R2 ?RR ?b1 ?b2 (?f ?R1 ?R2 ?RR)
+                   (?con ?a) (observe ?t2)] =>
+      change (eqitF RR b1 b2 (f R1 R2 RR)
+                    (con a) (observe t2))
+      with (eqit_mon b1 b2 f R1 R2 RR
+                    (go (con a)) t2) in h
+| context[@eqitF ?E ?R1 ?R2 ?RR ?b1 ?b2 (?f ?R1 ?R2 ?RR)
+                   (observe ?t1) (?con ?a)] =>
+      change (eqitF RR b1 b2 (f R1 R2 RR)
+                    (observe t1) (con a))
+      with (eqit_mon b1 b2 f R1 R2 RR
+                    t1 (go (con a))) in h
+end.
 
 (** --- Orchestration via the [Utils.v] generics. --- *)
 
@@ -329,7 +340,6 @@ Tactic Notation "to_mon" "in" ident(h) := to_mon_in h.
 Tactic Notation "iunfold" "in" ident(h) := iunfold_in h.
 Tactic Notation "iunfold" "in" "*" := iunfold_all.
 
-(* RTODO possible fix here: with body vs elem *)
 #[global] Ltac step := 
 (match goal with 
 | |- context[elem _] => idtac 
@@ -435,7 +445,6 @@ Module step_notation_tests.
   #[local] Parameter (GT : v ≳ w).
   #[local] Parameter (GT2 : w ≳ v).
 
-  (* RTODO: step better error message *)
 Goal eutt RR u v.
     (* already in the gfp <-> b gfp loop *)
     step. unstep.
@@ -1315,9 +1324,6 @@ Module Tests.
   #[local] Parameter (GT : v ≳ w).
   #[local] Parameter (GT2 : w ≳ v).
 
-  (* RTODO: something sus is going on here. 
-  
-  cbn breaks step. that shouldn't happen. *)
 Goal eutt RR u v.
     rewrite EQUIV2.
     rewrite <- EQ2.
@@ -1327,8 +1333,8 @@ Goal eutt RR u v.
     rewrite EQ2, <- EQ2. 
     exact EQ2. 
     step. 
-    (* cbn. *)
-    step. 
+    unstep. 
+    (* step.  *)
     rewrite <- EQ1. 
     rewrite <- GT. 
     rewrite EQ1.
@@ -1471,6 +1477,8 @@ Proof.
   step. reflexivity.
 Qed.
 
+
+
 (** ** Eta-expansion *)
 
 Lemma itree_eta_ (t : itree E R) : t ≅ go (_observe t).
@@ -1483,6 +1491,13 @@ Lemma itree_eta' (ot : itree' E R) : ot = observe (go ot).
 Proof. reflexivity. Qed.
 
 End eqit_eq.
+
+(* [cbn] that preserves eqit_mon. *)
+Ltac bcbn := cbn; to_mon; 
+repeat match goal with 
+| |- context [{| _observe := observe ?t |}] => rewrite <- (itree_eta t)
+end.  
+
 
 (** *** One-sided inversion *)
 
@@ -1531,7 +1546,6 @@ Proof.
   intros H x; step in H; apply eqitF_inv_VisF with (x := x) in H; auto.
 Qed.
 
-(* Other properties: RTODO sort these *)
 Lemma eutt_inv_Ret {E R} r1 r2 :
   (Ret r1: itree E R) ≈ (Ret r2) -> r1 = r2.
 Proof.
@@ -1969,14 +1983,15 @@ Proof.
   do 2 (etransitivity; eauto).  
 Qed.   
 
+(* TOUR *)
 Lemma bind_ret_r {E R} :
   forall s : itree E R,
     ITree.bind s (fun x => Ret x) ≅ s.
 Proof.
-  unfold eq_itree. intros.
+  unfold eq_itree. intros.  
+  rewrite (itree_eta_ (ITree.bind _ _)), (itree_eta s).
    (* we need to eta-expland first, but we have to be able 
    to reduce later. *)
-  rewrite (itree_eta_ (ITree.bind _ _)), (itree_eta s).
   (* need strong CIH *)
   revert s. 
   icoinduction c CIH. 
@@ -2361,53 +2376,9 @@ Qed.
 Section eqit_elem. 
 (*** *** Properties of the chain. *)
 
-
-(* 
-important: proving rewriting of elem under euttge 
---------
-goal: establish lemmas of toplevel relations that happen to be instantiations 
-of general properties of the corresponding chain. 
-
-1. 
-forall (c : Chain (eqit_mon (RR : R1 -> R2 -> Prop) true false )) 
-Proper (euttge (@eq R1) ==> euttge (@eq R2) ==> [flip] impl) (elem c)
-by subrelation : 
-Proper (eq_itree ==> eq_itree ==> [flip] impl) (elem c)
-
-DONE
-forall (c : Chain (eqit_mon RR false false)), Equivalence RR -> Equivalence c
-(this implies eq_itree is an equivalence relation)
-
-3. 
-we want euttge to be a preorder - is this true? 
-forall (c : Chain (eqit_mon RR true false)), Preorder RR -> Preorder c
-
-*)
-
-(* Rtodo: figure out if this is reasonable *)
-(* Conjecture chain_mono RR1 RR2 b1 b2 b1' b2' : 
-(* we know from JOACHIM PARROW AND TJARK WEBER 2016 that the 
-companion is monotone.  *)
-... 
-*)
-(* Lemma chain_mono {E R1 R2} (RR1 : R1 -> R2 -> Prop) RR2 b1 b2 b1' b2' 
-(c : Chain (@eqit_mon E b1 b2))
-(c' : Chain (@eqit_mon E b1' b2')) : 
-RR1 <= RR2 -> 
-(b1 -> b1') -> 
-(b2 -> b2') -> 
-(elem c R1 R2 RR1) <= (elem c' _ _ RR2).
-Proof. 
-  tower induction.  
-  Search elem. 
-  { intros!. repeat red in H0. eapply H; eauto. apply H1. apply H0. apply H1. }
-  intros!. icbn in *. induction H3.  *)
-
 Context {E : Type -> Type} {R1 R2} {RR : R1 -> R2 -> Prop} {b1 b2 : bool}.
 
 Ltac euttsimpl := unfold eutt, euttge, eq_itree, eqit in *. 
-
-(* we really need euttge trans *)
 
 Lemma Equivalence_elem_ff R RS (c : Chain (@eqit_mon E false false)) :
 Equivalence RS -> Equivalence (elem c R R RS).
@@ -2440,8 +2411,6 @@ u and v are of different types. *)
 End eqit_elem. 
 
 Section eutt_facts. 
-
-  (* rtodo: rewrite comments *)
 
 (** * Equivalence up to taus *)
 
@@ -2624,8 +2593,8 @@ Qed.
 
 End eutt_facts. 
 
-(* RTODO: move these somewhere reasonable *)
-
+(* Finally, recovering rewrites under eqitF. 
+Note: this is somewhat fragile, and can cause performance issues. *)
 #[global] Instance observing_eq_chain E R b1 b2 
   (c : Chain (eqit_mon b1 b2)) : 
   Proper ((@eq_itree E R R eq) ==> @eqitF E R R eq b1 b2 (elem c _ _ eq)) (observe). 
@@ -2640,10 +2609,3 @@ Qed.
 Proof. 
   intros!; now eapply observing_eq_chain.
 Qed. 
-
-Ltac bcbn := cbn; to_mon; 
-repeat match goal with 
-| |- context [{| _observe := observe ?t |}] => rewrite <- (itree_eta t)
-end.  
-
-(* RTODO: Strengthen rewrites *)

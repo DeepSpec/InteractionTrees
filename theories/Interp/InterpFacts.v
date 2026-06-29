@@ -122,8 +122,8 @@ Proof.
 
   destruct H; cbn; subst; try easy; eauto with itree.
   unfold eq_Handler, i_pointwise in Hfg. 
-  rewrite Hfg. 
-  to_mon. 
+  rewrite Hfg.
+  to_mon.  
   ebind. intros ??[=<-]. etau. 
 Qed.
 
