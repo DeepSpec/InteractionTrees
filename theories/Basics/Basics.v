@@ -105,13 +105,13 @@ Polymorphic Class MonadIter (M : Type -> Type) : Type :=
 #[global] Instance MonadIter_stateT {M S} {MM : Monad M} {AM : MonadIter M}
   : MonadIter (stateT S M) :=
   fun _ _ step i => mkStateT (fun s =>
-    iter (fun is =>
-      let i := fst is in
-      let s := snd is in
-      is' <- runStateT (step i) s ;;
-      ret match fst is' with
-          | inl i' => inl (i', snd is')
-          | inr r => inr (r, snd is')
+    iter (fun si =>
+      let i := fst si in
+      let s := snd si in
+      si' <- runStateT (step i) s ;;
+      ret match fst si' with
+          | inl i' => inl (i', snd si')
+          | inr r => inr (r, snd si')
           end) (i, s)).
 
 #[global] Polymorphic Instance MonadIter_stateT0 {M S} {MM : Monad M} {AM : MonadIter M}

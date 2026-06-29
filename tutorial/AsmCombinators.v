@@ -79,10 +79,10 @@ Definition app_bks {A B C D : nat} (ab : bks A B) (cd : bks C D)
     end.
 
 (** Simple combinator to build a [block] from its instructions and branch operation. *)
-Fixpoint after {A: Type} (is : list instr) (bch : branch A) : block A :=
-  match is with
+Fixpoint after {A: Type} (si : list instr) (bch : branch A) : block A :=
+  match si with
   | nil => bbb bch
-  | i :: is => bbi i (after is bch)
+  | i :: si => bbi i (after si bch)
   end.
 
 (* SAZ: rationalize the names of the combinators? *)
