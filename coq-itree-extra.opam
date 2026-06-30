@@ -14,7 +14,7 @@ depends: [
   "dune" {>= "2.6"}
   "coq"
   "coq-ext-lib"
-  "coq-paco"
+  "rocq-coinduction"
   "coq-itree"
 ]
 dev-repo: "git+https://github.com/DeepSpec/InteractionTrees.git"
