@@ -1,11 +1,19 @@
-- [ ] Generally clean up Eqit.v. 
-  - [ ] rename and redo sections
-  - [ ] keep building tests until rewriting robustness is clear
-    - [ ] organize file
-    - [ ] remove add parametric morphism
-- [ ] rest of rtodos 
+Cleanup
+- [ ] CoqProject -> RocqProject (if possible)
+- [ ] coq->rocq otherwise (if possible)
+- [ ] paco out of itreepredicateexamples.v 
+- [ ] 
 
-- [ ] get tutorial building 
+/end 
+
+- [x] Generally clean up Eqit.v. 
+  - [x] rename and redo sections
+  - [x] keep building tests until rewriting robustness is clear
+    - [x] organize file
+    - [x] remove add parametric morphism
+- [x] rest of rtodos 
+
+- [x] get tutorial building 
 - unify how we deal with each node of a tree. 
 
 - rets: a constructor pattern that either concludes or leads to computation.

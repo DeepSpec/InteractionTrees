@@ -314,11 +314,11 @@ Proof.
     rewrite !bind_bind.
     ebind. 
     intros [| []] ? [].
-    + rewrite bind_tau, bind_ret_l. now taus. 
-    + rewrite 2 bind_ret_l. now taus. 
+    + rewrite bind_tau, bind_ret_l. taus; apply acc. 
+    + rewrite 2 bind_ret_l. taus; apply CIH.  
     + rewrite 2 bind_ret_l. reflexivity. 
   - rewrite 2 bind_ret_l.
-    now taus. 
+    taus; apply CIH. 
   - rewrite 2 bind_ret_l.
     reflexivity. 
 Qed.
