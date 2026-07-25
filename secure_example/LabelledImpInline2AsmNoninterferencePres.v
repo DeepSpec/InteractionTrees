@@ -1,4 +1,4 @@
-From Coq Require Import Morphisms Program.Basics.
+From Stdlib Require Import Morphisms Program.Basics.
 
 From ITree Require Import
      ITree
@@ -78,7 +78,7 @@ Proof.
   specialize (eutt_secure_eqit_secure) as Htrans.
   eapply Htrans in Heutt; eauto.
   eapply SecureEqEuttHalt.eqit_secure_RR_imp; try apply Heutt.
-  intros. inv PR. inv REL1. destruct x0. destruct r2. clear Hsecs' Htrans Heutt. cbn in *.
+  intros x0 x1 PR. inv PR. inv REL1. destruct x0. destruct r2. clear Hsecs' Htrans Heutt. cbn in *.
   destruct x1. constructor; auto. constructor; auto. cbn. destruct REL2. cbn in *.
   destruct H1. cbn in *. etransitivity; eauto.
 Qed.
@@ -103,19 +103,14 @@ Proof.
          ).
   {
     eapply SecureEqEuttHalt.eqit_secure_RR_imp with (RR1 := rcompose _ _ ).
-    2 : eapply Htrans; eauto. 2 : eapply Hcomp. 2 : reflexivity.
-    intros. inv PR. inv REL1. inv REL2. inv H1. inv H3. constructor; auto.
+    2 : eapply Htrans; eauto.
+    intros x0 x1 PR. inv PR. inv REL1. inv REL2. inv H1. inv H3. constructor; auto.
     constructor; auto. etransitivity; eauto.
   }
-  eapply Htrans in Hsec''; eauto.
-  2 : {
-    apply eqit_secure_sym. eapply Hcomp. reflexivity.
-  }
-  Unshelve. 2 : apply regs1.
-  eapply SecureEqEuttHalt.eqit_secure_RR_imp; try apply Hsec''.
-  intros. inv PR. inv REL1. inv REL2. inv H1. inv H3. constructor; auto.
-  constructor; auto. etransitivity; eauto. etransitivity; eauto. symmetry. eauto.
-  reflexivity.
+  eapply SecureEqEuttHalt.eqit_secure_RR_imp.
+  2 : { eapply Htrans. apply eqit_secure_sym. eapply Hcomp. reflexivity. apply Hsec''. }
+  intros x0 x1 PR. inv PR. inv REL1. inv REL2. inv H1. inv H3. constructor; auto.
+  constructor; auto. etransitivity. symmetry. eassumption. assumption. 
 Qed.
 
 
@@ -171,8 +166,7 @@ Proof.
   eapply Htrans in Heutt1; eauto. apply pi_eqit_secure_sym.
   eapply pi_eqit_secure_RR_imp; eauto. unfold flip.
   intros. inv H3. inv REL1. inv REL2. inv H3. constructor; auto.
-  constructor; auto. etransitivity; eauto. etransitivity; eauto. symmetry. eauto.
-  reflexivity.
+  constructor; auto. etransitivity. symmetry. eassumption. assumption. 
 Qed.
 
 

@@ -1,6 +1,6 @@
 From ITree Require Import ITree.
 From ITreeTutorial Require Import Imp.
-From Coq Require Import NArith String.
+From Stdlib Require Import NArith String.
 
 Local Open Scope string_scope.
 

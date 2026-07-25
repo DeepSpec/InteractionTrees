@@ -1,10 +1,10 @@
-From Coq Require Import
+From Coinduction Require Import all. 
+
+From Stdlib Require Import
      Morphisms.
 
 From ExtLib Require Import
      Structures.Monad.
-
-From Paco Require Import paco.
 
 From ITree Require Import
      Axioms
@@ -124,7 +124,7 @@ Section TraceSpec.
     - exfalso. assert (may_converge a (↑ log ++ Ret a) ).
       { apply may_converge_append. apply finite_list_to_stream. }
       eapply all_infinite_not_converge; eauto.
-    - left. exists a. exists log. split; auto. reflexivity.
+    - left. exists a. exists log. split; auto.
   Qed.
   Next Obligation.
     rename x into w. red. red. cbn. split; intros; basic_solve.
@@ -156,7 +156,7 @@ Section TraceSpec.
         apply all_infinite_bind. auto.
       + right. split; auto.
         destruct p as [p Hp]. simpl in *. eapply Hp; try apply H1.
-        eapply eutt_clo_bind with (UU := fun a b => False); intuition.
+        eapply eutt_bind_eutt with (UU := fun a b => False); intuition.
         apply noret_bind_nop. auto.
     - eapply apply_monot; try apply H. clear H. simpl. intros.
       basic_solve.
@@ -164,7 +164,7 @@ Section TraceSpec.
       + right. split; auto. right. split.
         * apply all_infinite_bind. auto.
         * destruct p as [p Hp]. simpl in *. eapply Hp; try apply H0.
-          eapply eutt_clo_bind with (UU := fun a b => False); intuition.
+          eapply eutt_bind_eutt with (UU := fun a b => False); intuition.
           apply euttNoRet_sym. apply noret_bind_nop. auto.
    Qed.
   Next Obligation.
@@ -196,7 +196,7 @@ Section TraceSpec.
     enough (↑ log ++ ITree.bind b' g' ≈ ITree.bind (↑ log ++ b') (fun _ => ITree.spin)).
     { rewrite H. auto. }
     unfold append. rewrite bind_bind.
-    eapply eutt_clo_bind with (RR := eq) (UU := eq); try reflexivity.
+    eapply eutt_bind_eutt with (RR := eq) (UU := eq); try reflexivity.
     intros. apply euttNoRet_subrel. eapply euttNoRet_trans with (t2 := b').
     + apply euttNoRet_sym. apply noret_bind_nop. eapply all_infinite_bind_append; eauto.
     + apply noret_bind_nop. eapply all_infinite_bind_append; eauto.
@@ -332,28 +332,26 @@ Proof.
   red in Hlog. apply H. clear H. subst. cbn. red. split; intros.
   - unfold append in *. rewrite bind_ret_l in H. rewrite bind_ret_l.
     unfold decide_ex in *.
-    generalize dependent b. pcofix CIH. intros b Hb Hdiv.
-    pfold. red.
+    generalize dependent b. coinduction c CIH. intros b Hb Hdiv.
     rewrite unfold_iter in Hb at 1. rewrite bind_bind in Hb.
     apply bind_trigger_refine in Hb as Hb'; try (exists true; auto).
     basic_solve. destruct a.
     + rewrite bind_ret_l in H0. cbn in H0. rewrite tau_eutt in H0.
-      punfold H. red in H. cbn in H. clear Hb.
-      enough (paco1 (trace_forall_ (is_bool true) (fun _ => True) ) r b).
-      { punfold H1. }
-      dependent induction H.
-      *  pfold. red. rewrite <- x. constructor; auto with itree. intros.
-        destruct a. right. pclearbot. eapply CIH.
+      step in H. clear Hb.
+      icbn.  
+      dependent induction H; simpobs. 
+      * constructor; auto with itree. intros.
+        destruct a. eapply CIH.
         ++ assert (k1 tt ≈ k' tt)%itree; try apply REL.
-           rewrite H. auto.
-        ++ apply simpobs in x. rewrite x in Hdiv. pinversion Hdiv.
+           now rewrite H. 
+        ++ apply simpobs in x. rewrite x in Hdiv. sinv Hdiv.
            ddestruction. apply H1.
-      *  pfold. red. rewrite <- x. constructor. left.  eapply IHeqitF; eauto.
+      * constructor. Utils.step. eapply IHeqitF; eauto.
          apply simpobs in x. rewrite x in Hdiv. rewrite tau_eutt in Hdiv. auto.
    + rewrite bind_ret_l in H0. cbn in H0. apply trace_refine_ret_inv_l in H0.
-     rewrite H in Hdiv. pinversion Hdiv. ddestruction.
+     rewrite H in Hdiv. sinv Hdiv. ddestruction.
      specialize (H2 tt).
-     rewrite H0 in H2. pinversion H2.
+     rewrite H0 in H2. sinv H2.
   - red. rewrite append_nil. rewrite append_nil in H. unfold decide_ex in *.
     induction H.
     + exfalso. rewrite H in H0. rewrite unfold_iter in H0.
@@ -365,17 +363,17 @@ Proof.
         clear IHmay_converge. rewrite unfold_iter in H0. rewrite bind_bind in H0.
         rewrite H in H0. eapply bind_trigger_refine in H0; try (exists true; auto).
         basic_solve.
-        pinversion H0. ddestruction.
+        sinv H0. ddestruction.
         assert (k tt ≈ k' tt)%itree; try apply REL. rewrite bind_ret_l in H2.
-        cbn in *. rewrite tau_eutt in H2. rewrite H3. auto.
+        cbn in *. rewrite tau_eutt in H2. now rewrite H0. 
       * clear IHmay_converge. rewrite unfold_iter in H0. rewrite bind_bind in H0.
         rewrite H in H0. eapply bind_trigger_refine in H0; try (exists true; auto).
         basic_solve.
-        pinversion H0. ddestruction.
+        sinv H0. ddestruction.
         rewrite bind_ret_l in H2. cbn in H2.
         apply trace_refine_ret_inv_l in H2.
         eapply front_and_last_base with (r := tt); eauto with itree.
-        pfold. red. cbn. constructor. intros. left.
+        step. cbn. constructor. intros.
         rewrite <- H2. destruct v. auto.
   Qed.
 

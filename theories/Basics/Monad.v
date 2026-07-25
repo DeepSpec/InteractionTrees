@@ -1,7 +1,7 @@
 (** * Monad laws and associated typeclasses *)
 
 (* begin hide *)
-From Coq Require Import
+From Stdlib Require Import
      Morphisms.
 
 From ExtLib Require Export

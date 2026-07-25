@@ -1,10 +1,10 @@
 (** * Theorems about Failure effects *)
 
 (* begin hide *)
-From Coq Require Import
-     Morphisms.
+From Coinduction Require Import all. 
 
-From Paco Require Import paco.
+From Stdlib Require Import
+     Morphisms.
 
 From ITree Require Import
      Basics.Utils
@@ -17,8 +17,6 @@ From ITree Require Import
      Core.KTree
      Core.KTreeFacts
      Eq.Eqit
-     Eq.UpToTaus
-     Eq.Paco2
      Indexed.Sum
      Interp.Interp
      Interp.InterpFacts
@@ -101,7 +99,7 @@ Section FailTLaws.
       + eapply eutt_eq_bind; intros []; reflexivity. 
       + rewrite bind_ret_l; reflexivity.
     - repeat intro; cbn.
-      eapply eutt_clo_bind; eauto.
+      eapply eutt_bind_eutt; eauto.
       intros [] [] REL; cbn in *; subst; try contradiction.
       + apply H0.
       + reflexivity.
@@ -139,7 +137,7 @@ Proof.
   cbn; repeat (rewrite ?bind_bind, ?bind_ret_l, ?bind_map; try reflexivity).
   cbn; repeat (rewrite ?bind_bind, ?bind_ret_l, ?bind_map; try reflexivity).
   cbn; repeat (rewrite ?bind_bind, ?bind_ret_l, ?bind_map; try reflexivity).
-  apply eq_itree_clo_bind with (UU := Logic.eq); [reflexivity | intros x ? <-]. 
+  apply eq_itree_bind with (UU := Logic.eq); [reflexivity | intros x ? <-]. 
   destruct x as [x|].
   - rewrite bind_ret_l; reflexivity.
   - rewrite bind_ret_l; reflexivity.
@@ -149,14 +147,13 @@ Global Instance interp_fail_eq_itree {X E F} {R : X -> X -> Prop} (h : E ~> fail
   Proper (eq_itree R ==> eq_itree (option_rel R)) (@interp_fail _ _ _ _ _ h X).
 Proof.
   repeat red. 
-  ginit.
-  pcofix CIH.
+  coinduction. 
   intros s t EQ.
   rewrite 2 unfold_interp_fail.
-  punfold EQ; red in EQ.
-  destruct EQ; cbn; subst; try discriminate; pclearbot; try (gstep; constructor; eauto with paco; fail).
-  guclo eqit_clo_bind; econstructor; [reflexivity | intros x ? <-].
-  destruct x as [x|]; gstep; econstructor; eauto with paco itree.
+  step in EQ. 
+  destruct EQ; cbn; subst; try discriminate; eauto with itree. 
+  to_mon. ebind; intros; subst. destruct u2. 
+  etau. eret. 
 Qed.
 
 (* Convenient special case: [option_rel eq eq] is equivalent to [eq], so we can avoid bothering *)
@@ -172,16 +169,14 @@ Global Instance interp_fail_eutt {X E F R} (h : E ~> failT (itree F)) :
   Proper (eutt R ==> eutt (option_rel R)) (@interp_fail _ _ _ _ _ h X).
 Proof.
   repeat red. 
-  einit.
-  ecofix CIH.
+  coinduction. 
   intros s t EQ.
   rewrite 2 unfold_interp_fail.
-  punfold EQ; red in EQ.
-  induction EQ; intros; cbn; subst; try discriminate; pclearbot; try (estep; constructor; eauto with paco; fail).
-  - ebind; econstructor; [reflexivity |].
-    intros [] [] EQ; inv EQ.
-    + estep; ebase.
-    + eret. 
+  step in EQ. 
+  induction EQ; intros; bcbn; subst; try discriminate. 
+  - eret. 
+  - etau. 
+  - ebind; intros; subst. destruct u2; econstructor; eauto with itree.  
   - rewrite tau_euttge, unfold_interp_fail; eauto.
   - rewrite tau_euttge, unfold_interp_fail; eauto.
 Qed.
@@ -249,21 +244,17 @@ Lemma interp_fail_bind : forall {X Y E F} (t : itree _ X) (k : X -> itree _ Y) (
                 ITree.bind (interp_fail h t)
                 (fun mx => match mx with | None => ret None | Some x => interp_fail h (k x) end).
 Proof.
-  intros X Y E F; ginit; pcofix CIH; intros.
+  intros X Y E F; coinduction; intros.
   rewrite unfold_bind.
   rewrite (unfold_interp_fail h t).
-  destruct (observe t) eqn:EQ; cbn.
-  - rewrite bind_ret_l. apply reflexivity.
-  - cbn. rewrite bind_tau, !interp_fail_tau.
-    gstep. econstructor; eauto with paco.
+  destruct (observe t) eqn:EQ; bcbn.
+  - rewrite bind_ret_l. reflexivity. 
+  - taus. apply CIH. 
   - rewrite bind_bind, interp_fail_vis.
-    guclo eqit_clo_bind; econstructor.
-    reflexivity.
-    intros [] ? <-; cbn.
+    ebind; intros; subst.  
+    destruct u2. 
     + rewrite bind_tau.
-      gstep; constructor.
-      ITree.fold_subst.
-      auto with paco.
+      etau. 
     + rewrite bind_ret_l.
       apply reflexivity.
 Qed.
@@ -276,21 +267,16 @@ Lemma interp_failure_bind' : forall {X Y E F} (t : itree _ X) (k : X -> itree _ 
 Proof.
   intros X Y E F.
   cbn.
-  ginit; pcofix CIH; intros.
-  cbn in *.
+  coinduction; intros.  
   rewrite unfold_bind, (unfold_interp_fail _ t).
-  destruct (observe t) eqn:EQ; cbn.
-  - rewrite bind_ret_l. apply reflexivity.
-  - rewrite bind_tau, !interp_fail_tau.
-    gstep. econstructor; eauto with paco.
+  destruct (observe t) eqn:EQ; bcbn.
+  - rewrite bind_ret_l. reflexivity. 
+  - etau. apply CIH. 
   - rewrite bind_bind, interp_fail_vis.
-    guclo eqit_clo_bind; econstructor.
-    reflexivity.
-    intros [] ? <-; cbn.
+    ebind; intros; subst. 
+    destruct u2. 
     + rewrite bind_tau.
-      gstep; constructor.
-      ITree.fold_subst.
-      auto with paco.
+      etau. 
     + rewrite bind_ret_l.
-      apply reflexivity.
+      reflexivity.
 Qed.

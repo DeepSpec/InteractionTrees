@@ -3,9 +3,11 @@
 (* begin hide *)
 Set Warnings "-notation-overridden".
 
-From Coq Require Import
+From Stdlib Require Import
      Setoid
      Morphisms.
+
+From Coinduction Require Import all. 
 
 From ITree Require Import
      Eq.Shallow.
@@ -269,7 +271,6 @@ End SimpleTheory.
 
 From ITree Require Import
      Eq.Eqit
-     Eq.UpToTaus
      Interp.InterpFacts
      Interp.RecursionFacts.
 
@@ -309,9 +310,8 @@ Proof. intros. subst. reflexivity. Qed.
 
 Lemma eutt_vis {U : Type} (e : E U) (k1 k2 : U -> itree E R)
   : (forall u, k1 u ≈ k2 u) -> Vis e k1 ≈ Vis e k2.
-Proof.
-  intros. ITree.Eq.UpToTaus.einit. ITree.Eq.UpToTaus.evis.
-  intros. ITree.Eq.UpToTaus.efinal. apply H.
+Proof. 
+  intros. apply ITree.Eq.Eqit.eqit_Vis. intros. apply H. 
 Qed.
 
 Lemma eutt_inv_ret (r1 r2 : R)

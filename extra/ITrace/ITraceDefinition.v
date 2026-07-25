@@ -6,8 +6,6 @@ From ITree Require Import
 .
 
 
-From Paco Require Import paco.
-
 Import Monads.
 Import MonadNotation.
 Local Open Scope monad_scope.

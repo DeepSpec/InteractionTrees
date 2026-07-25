@@ -1,4 +1,4 @@
-From Coq Require Import String.
+From Stdlib Require Import String.
 
 Inductive aexp :=
   | AId : string -> aexp

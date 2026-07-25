@@ -1,4 +1,4 @@
-From Coq Require Import
+From Stdlib Require Import
      Morphisms.
 
 From ITree Require Import
@@ -158,7 +158,7 @@ Section Facts.
 
     Global Instance CatIdL_rel: CatIdL relationH.
     Proof.
-      constructor; unfold subrelationH, cat, id_, Cat_rel, Id_rel, rel_compose; intros.
+      constructor; unfold subrelationH, SubRelH_binary, cat, id_, Cat_rel, Id_rel, rel_compose; intros.
       - edestruct H as (B' & EQ & R). rewrite <- EQ in R.
         assumption.
       - exists x. split. reflexivity. assumption.
@@ -166,7 +166,7 @@ Section Facts.
 
     Global Instance CatIdR_rel: CatIdR relationH.
     Proof.
-      constructor; unfold subrelationH, cat, id_, Cat_rel, Id_rel, rel_compose; intros.
+      constructor; unfold subrelationH, SubRelH_binary, cat, id_, Cat_rel, Id_rel, rel_compose; intros.
       - edestruct H as (B' & R & EQ). rewrite EQ in R.
         assumption.
       - exists y. split. assumption. reflexivity.
@@ -174,7 +174,7 @@ Section Facts.
 
     Global Instance CatAssoc_rel: CatAssoc relationH.
     Proof.
-      constructor; unfold subrelationH, cat, id_, Cat_rel, Id_rel, rel_compose;
+      constructor; unfold subrelationH, SubRelH_binary, cat, id_, Cat_rel, Id_rel, rel_compose;
         intros A D H.
       - edestruct H as (C & (B & Rf & Rg) & Rh); clear H.
         exists B. split; [assumption | ].
@@ -189,7 +189,7 @@ Section Facts.
                 (eq2 ==> eq2 ==> eq2) cat.
     Proof.
       intros a b c.
-      constructor; unfold subrelationH, cat, id_, Cat_rel, Id_rel, rel_compose;
+      constructor; unfold subrelationH, SubRelH_binary, cat, id_, Cat_rel, Id_rel, rel_compose;
         intros A C He.
       - edestruct He as (B & Hx & Hx0).
         unfold eq2, Eq2_rel, eq_rel, subrelationH in *.
@@ -331,7 +331,7 @@ Section Facts.
       - cbv; intros ? ? ?; subst; auto.
         destruct x, y.
         cbv; intros. destruct H; cbn in *; subst; auto.
-      - red. intros. destruct x, y. inversion H. subst. repeat constructor.
+      - cbv. intros [? ?] [? ?] H. inversion H. subst. repeat constructor.
     Qed.
 
     Global Instance BimapCat_prod_rel : BimapCat relationH prod.
@@ -539,7 +539,6 @@ Ltac decomp :=
         3 : refine ((inr (inr c0))). intuition; econstructor; auto.
         intuition.
       - exists (inr (inr d0)); intuition; econstructor; auto.
-        split. Unshelve. econstructor. reflexivity. cbn. auto.
      Qed.
 
     Global Instance Monoidal_sum_rel : Monoidal relationH sum void.

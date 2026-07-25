@@ -1,14 +1,13 @@
-From Coq Require Import
+From Stdlib Require Import
      Morphisms.
 
 From ExtLib Require Import
      Structures.Monad.
 
-From Paco Require Import paco.
-
 From ITree Require Import
      ITree
      ITreeFacts
+     HeterogeneousRelations
      Props.Infinite.
 
 From ITree.Extra Require Import
@@ -137,25 +136,26 @@ Section LoopInvarSpecific.
                (Hp : resp_eutt p) (Hq : resp_eutt q) ,
         (q (reassoc (g a s) )) ->
         (q -+> p) -> (forall t, q t -> q (t >>= (iter_lift ( iso_destatify_arrow g)  ))) ->
-         (p \1/ any_infinite) (MonadIter_stateT0 _ _ g a s) .
+         (Disj_unary _ p any_infinite) (MonadIter_stateT0 _ _ g a s) .
   Proof.
     intros.
     set (iso_destatify_arrow g) as g'.
-    enough ((p \1/ any_infinite) (ITree.iter g' (s,a) )).
+    enough ((Disj_unary _ p any_infinite) (ITree.iter g' (s,a) )).
     - assert (ITree.iter g' (s,a) ≈ iter g a s).
       + unfold g', iso_destatify_arrow.
         unfold iter, Iter_Kleisli, Basics.iter, MonadIterDelay, StateIter,
         MonadIter_stateT0, reassoc. unfold Basics.iter.
         unfold MonadIterDelay. eapply eutt_iter. intro.
         destruct a0 as [a' s']. simpl.
-        eapply eutt_clo_bind; try reflexivity. intros.
+        eapply eutt_bind_eutt; try reflexivity. intros.
         subst. destruct u2. simpl. destruct s1; reflexivity.
-      + assert (Hpdiv : resp_eutt (p \1/ any_infinite)).
-        { intros t1 t2 Heutt. split; intros; basic_solve.
-          - left. eapply Hp; eauto. symmetry. auto.
-          - right. rewrite <- Heutt. auto.
-          - left. eapply Hp; eauto.
-          - right. rewrite Heutt. auto.
+      + assert (Hpdiv : resp_eutt (Disj_unary _ p any_infinite)).
+        { intros t1 t2 Heutt. split; intros; 
+        destruct H4. 
+          - left. now rewrite <- Heutt.
+          - right. now rewrite <- Heutt. 
+          - left. now rewrite Heutt. 
+          - right. now rewrite Heutt. 
          }
         eapply Hpdiv; try apply H2. symmetry. auto.
      - eapply loop_invar; eauto.
@@ -170,11 +170,12 @@ Section LoopInvarSpecific.
     intros. unfold MonadIter_stateT0.
     apply iter_inl_spin. (*seems to require some coinduciton*)
     generalize dependent a. generalize dependent s.
-    pcofix CIH. intros. pinversion H0; try apply not_wf_F_mono'. pfold.
+    coinduction c CIH.  
+    intros. red in H; sinv H; try apply not_wf_F_mono'. 
     apply not_wf with (a' := a'); eauto.
     - red in Hrel. destruct a' as [s' a']. simpl. red. simpl. rewrite Hrel.
       rewrite bind_ret_l. simpl. reflexivity.
-    - right. destruct a'. eauto.
+    - destruct a'. eapply CIH; eauto.
   Qed.
 
   Lemma iter_wf_converge_state : forall (A B S : Type)  (g : A -> stateT S Delay (A + B) ) (a : A) (s : S),

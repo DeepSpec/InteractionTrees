@@ -20,7 +20,7 @@
  *)
 
 (* begin hide *)
-From Coq Require Import
+From Stdlib Require Import
      List
      Strings.String
      Program.Basics

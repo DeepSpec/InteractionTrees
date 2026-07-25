@@ -19,7 +19,7 @@
 (* begin hide *)
 From ITreeTutorial Require Import Imp Asm Fin Utils_tutorial AsmCombinators.
 
-From Coq Require Import
+From Stdlib Require Import
      Psatz
      List
      String

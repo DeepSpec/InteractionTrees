@@ -1,6 +1,7 @@
 (** * Leaves of an Interaction Tree *)
-
 (* begin hide *)
+From Coinduction Require Import all. 
+
 From ITree Require Import
      Basics.Utils
      Basics.HeterogeneousRelations
@@ -12,8 +13,7 @@ From ITree Require Import
      Events.StateFacts
      Props.HasPost.
 
-From Paco Require Import paco.
-From Coq Require Import Morphisms Basics Program.Equality.
+From Stdlib Require Import Morphisms Basics Program.Equality.
 Import ITree.
 Import ITreeNotations.
 (* end hide *)
@@ -22,7 +22,7 @@ Import ITreeNotations.
 
 (** The [Leaf a t] predicate expresses that [t] has a [Ret] leaf with
     value [a].
-
+  (* TODO REWRITE THIS WITH NEW THEORY *)
     We provide the elementary structural lemmas to work with this
     predicate, and one main useful result relying on [Leaf]: the
     up-to bind closure [eqit_bind_clo] can be refined such that
@@ -112,22 +112,22 @@ Lemma Leaf_eutt_l {E A B R}:
 Proof.
   intros * EQ FIN;
   revert u EQ.
-  induction FIN; intros u2 EQ.
-  - punfold EQ.
-    red in EQ; rewrite H in EQ; clear H t.
+  induction FIN; intros u2 EQ. 
+  - step in EQ. 
+    rewrite H in EQ; clear H t.
     remember (RetF a); genobs u2 ou.
-    hinduction EQ before R; intros; try now discriminate.
+    hinduction EQ before R; intros; try easy.
     + inv Heqi; eauto with itree.
     + edestruct IHEQ as (b & IN & HR); eauto with itree.
-  - punfold EQ; red in EQ; rewrite H in EQ; clear H t.
+  - step in EQ; rewrite H in EQ; clear H t.
     remember (TauF u); genobs u2 ou2.
-    hinduction EQ before R; intros; try discriminate; pclearbot; inv Heqi.
+    hinduction EQ before R; intros; try easy; inv Heqi.
     + edestruct IHFIN as (? & ? & ?); [ .. | eexists ]; eauto with itree.
-    + eauto with itree.
+    + eapply IHFIN. now step. 
     + edestruct IHEQ as (? & ? & ?); [ .. | eexists ]; eauto with itree.
-  - punfold EQ; red in EQ; rewrite H in EQ; clear H t.
+  - step in EQ; rewrite H in EQ; clear H t.
     remember (VisF e k); genobs u2 ou2.
-    hinduction EQ before R; intros; try discriminate; pclearbot.
+    hinduction EQ before R; intros; try discriminate.
     + revert x FIN IHFIN.
       refine (match Heqi in _ = u return match u with VisF e0 k0 => _ | RetF _ | TauF _ => False end with eq_refl => _ end).
       intros. edestruct IHFIN as (? & ? & ?); [ | eexists ]; eauto with itree.
@@ -179,111 +179,78 @@ Proof.
   revert t k Hequ.
   induction FIN; intros t' k' ->; rename t' into t.
   - unfold observe in H; cbn in H.
-    desobs t EQ; cbn in *; try congruence.
+    desobs t EQ_; cbn in *; try congruence.
     exists r; auto with itree.
   - unfold observe in H; cbn in H.
-    desobs t EQ; cbn in *; try congruence; [ eexists; eauto with itree | ].
+    desobs t EQ_; cbn in *; try congruence; [ eexists; eauto with itree | ].
     inversion H; clear H; symmetry in H1.
     edestruct IHFIN as (? & ? & ?); [ eauto | eexists; eauto with itree ].
   - unfold observe in H; cbn in H.
-    desobs t EQ; cbn in *; try congruence; [ eexists; eauto with itree | ].
+    desobs t EQ_; cbn in *; try congruence; [ eexists; eauto with itree | ].
     revert x FIN IHFIN.
     refine (match H in _ = u return match u with VisF e0 k0 => _ | RetF _ | TauF _ => False end with eq_refl => _ end).
     intros.
     edestruct IHFIN as (? & ? & ?); [ reflexivity | eexists; eauto with itree ].
 Qed.
 
-(** Leaf-aware up-to bind closure
-    This construction generalizes [eqit_bind_clo]: one can
-    indeed provide an arbitrary cut at the relational
-    redicate [RU] of one's choice, but the continuations
-    are only required to be related pointwise at the intersection
-    of [RU] with the respective leaves of the prefixes.
+(** Leaf-aware bind rule for [eqit].
+    Generalizes [eqit_bind_chain]: continuations need only be related
+    pointwise at the intersection of [UU] with the respective leaves
+    of the prefixes.
   *)
-Section LeafBind.
-
-  Context {E : Type -> Type} {R S : Type}.
-
-  Local Open Scope itree.
-
-  Inductive eqit_Leaf_bind_clo b1 b2 (r : itree E R -> itree E S -> Prop) :
-    itree E R -> itree E S -> Prop :=
-  | pbc_intro_h U1 U2 (RU : U1 -> U2 -> Prop)
-                (t1 : itree E U1) (t2 : itree E U2)
-                 (k1 : U1 -> itree E R) (k2 : U2 -> itree E S)
-                (EQV: eqit RU b1 b2 t1 t2)
-                (REL: forall u1 u2,
-                      u1 ∈ t1 -> u2 ∈ t2 -> RU u1 u2 ->
-                      r (k1 u1) (k2 u2))
-      : eqit_Leaf_bind_clo b1 b2 r
-            (ITree.bind t1 k1) (ITree.bind t2 k2)
-    .
-  Hint Constructors eqit_Leaf_bind_clo : itree.
-
-  Lemma eqit_Leaf_clo_bind  (RS : R -> S -> Prop) b1 b2 vclo
-        (MON: monotone2 vclo)
-        (CMP: compose (eqitC RS b1 b2) vclo <3= compose vclo (eqitC RS b1 b2))
-        (ID: id <3= vclo):
-    eqit_Leaf_bind_clo b1 b2 <3= gupaco2 (eqit_ RS b1 b2 vclo) (eqitC RS b1 b2).
-  Proof.
-    gcofix CIH. intros. destruct PR.
-    guclo eqit_clo_trans.
-    econstructor; auto_ctrans_eq; try (rewrite (itree_eta (x <- _;; _ x)), unfold_bind; reflexivity).
-    punfold EQV. unfold_eqit.
-    genobs t1 ot1.
-    genobs t2 ot2.
-    hinduction EQV before CIH; intros; pclearbot.
-    - guclo eqit_clo_trans.
-      econstructor; auto_ctrans_eq; try (rewrite <- !itree_eta; reflexivity).
-      gbase; cbn.
-      apply REL0; auto with itree.
-    - gstep. econstructor.
-      gbase.
-      apply CIH.
-      econstructor; eauto with itree.
-    - gstep. econstructor.
-      intros; apply ID; unfold id.
-      gbase.
-      apply CIH.
-      econstructor; eauto with itree.
-    - destruct b1; try discriminate.
-      guclo eqit_clo_trans.
-      econstructor.
-      3:{ eapply IHEQV; eauto with itree. }
-      3,4:auto_ctrans_eq.
-      2: reflexivity.
-      eapply eqit_Tau_l. rewrite unfold_bind, <-itree_eta. reflexivity.
-    - destruct b2; try discriminate.
-      guclo eqit_clo_trans.
-      econstructor; auto_ctrans_eq; eauto with itree; try reflexivity.
-      eapply eqit_Tau_l. rewrite unfold_bind, <-itree_eta. reflexivity.
-  Qed.
-
-End LeafBind.
-
-(** General cut rule for [eqit]
-    This result generalizes [eqit_clo_bind].  *)
 Lemma eqit_clo_bind_gen :
   forall {E} {R1 R2} (RR : R1 -> R2 -> Prop) {U1 U2} {UU : U1 -> U2 -> Prop}
-          b1 b2
+          b1 b2 (c : Chain (eqit_mon b1 b2))
            (t1 : itree E U1) (t2 : itree E U2)
           (k1 : U1 -> itree E R1) (k2 : U2 -> itree E R2),
-    eqit UU b1 b2 t1 t2 ->
+    elem c _ _ UU t1 t2 ->
     (forall (u1 : U1) (u2 : U2),
       u1 ∈ t1 -> u2 ∈ t2 -> UU u1 u2 ->
-      eqit RR b1 b2 (k1 u1) (k2 u2)) ->
-    eqit RR b1 b2 (x <- t1;; k1 x) (x <- t2;; k2 x).
+      elem c _ _ RR (k1 u1) (k2 u2)) ->
+    elem c _ _ RR (ITree.bind t1 k1) (ITree.bind t2 k2).
 Proof.
-    intros.
-    ginit. guclo (@eqit_Leaf_clo_bind E R1 R2).
-    econstructor; eauto.
-    intros * IN1 IN2 HR.
-    gfinal; right.
-    apply H0; auto.
+  intros E R1 R2 RR U1 U2.
+  intros UU b1 b2 c t1 t2 k1 k2.
+  revert UU t1 t2 k1 k2. 
+  tower induction.
+  intros IH.
+  intros UU t1 t2 k1 k2 EQT EQKL.
+  cbn [eqit_mon body] in *.
+  unfold eqit_ in *.
+  genobs t1 ot1.
+  genobs t2 ot2.
+  hinduction EQT before RR; intros.
+  1-3: rewrite 2 observe_bind; simpobs. 
+  + apply EQKL. 
+    * apply LeafRet; auto.
+    * apply LeafRet; auto.
+    * exact REL.
+  + taus. 
+    eapply IH.
+    * exact REL.
+    * intros u1 u2 HL1 HL2 HU.
+      step. apply EQKL.
+      -- eapply LeafTau; eauto.
+      -- eapply LeafTau; eauto.
+      -- exact HU.
+  + constructor. intro v.
+    eapply IH.
+    * apply REL.
+    * intros u1 u2 HL1 HL2 HU.
+      step. apply EQKL.
+      -- eapply LeafVis; eauto.
+      -- eapply LeafVis; eauto.
+      -- exact HU.
+  + rewrite observe_bind. simpobs.
+    taul.
+    eapply IHEQT; eauto with itree.
+  + setoid_rewrite observe_bind at 2. simpobs.
+    taur.
+    eapply IHEQT; eauto with itree.
 Qed.
 
 (** Specialization of the cut rule to [eutt] *)
-Lemma eutt_clo_bind_gen :
+Lemma eutt_bind_eutt_gen :
   forall {E} {R1 R2} (RR : R1 -> R2 -> Prop) {U1 U2} {UU : U1 -> U2 -> Prop}
            (t1 : itree E U1) (t2 : itree E U2)
           (k1 : U1 -> itree E R1) (k2 : U2 -> itree E R2),
@@ -293,7 +260,7 @@ Lemma eutt_clo_bind_gen :
       eutt RR (k1 u1) (k2 u2)) ->
     eutt RR (x <- t1;; k1 x) (x <- t2;; k2 x).
 Proof.
-  intros *; apply eqit_clo_bind_gen.
+  intros *. unfold eutt. apply eqit_clo_bind_gen.
 Qed.
 
 (** Often useful particular case of identical prefixes *)
@@ -302,7 +269,7 @@ Lemma eutt_eq_bind_gen {E R S T} (RS : R -> S -> Prop)
     (forall u, u ∈ t -> eutt RS (k1 u) (k2 u)) ->
     eutt RS (t >>= k1) (t >>= k2).
 Proof.
-  intros; eapply eutt_clo_bind_gen.
+  intros; eapply eutt_bind_eutt_gen.
   reflexivity.
   intros * IN _ <-; eauto.
 Qed.
@@ -332,16 +299,25 @@ Proof.
   intuition; now subst.
 Qed.
 
+Lemma has_post_of_Leaf {E R} (Q : R -> Prop) :
+  forall (t : itree E R),
+  (forall r, r ∈ t -> Q r) ->
+  t ≈⟨ fun x _ => Q x ⟩ t.
+Proof.
+  icoinduction c CIH. intros t Hpost.
+  setoid_rewrite (itree_eta t) in Hpost.
+  desobs t Ht.
+  - constructor. apply Hpost, Leaf_Ret.
+  - constructor. apply CIH. intros. apply Hpost. apply Leaf_Tau. exact H.
+  - constructor. intros. apply CIH. intros. eapply Hpost. eapply Leaf_Vis. exact H.
+Qed.
+
 Lemma has_post_Leaf_equiv {E R} (t: itree E R) Q:
   has_post t Q <-> (forall r, r ∈ t -> Q r).
 Proof.
-  intuition. eapply has_post_Leaf; eauto.
-  revert t H. pcofix CIH; intros t Hpost. pstep; red.
-  setoid_rewrite (itree_eta t) in Hpost.
-  desobs t Ht; clear t Ht.
-  - constructor. apply Hpost, Leaf_Ret.
-  - constructor. right; apply CIH. intros. apply Hpost, Leaf_Tau, H.
-  - constructor. intros. right. apply CIH. intros. eapply Hpost, Leaf_Vis, H.
+  split.
+  - intros; eapply has_post_Leaf; eauto.
+  - intro Hpost. exact (has_post_of_Leaf Q t Hpost).
 Qed.
 
 (** Leaf-based inversion principles for iter *)
@@ -430,7 +406,7 @@ Proof.
   revert t Ht u Hu; induction Hsub; intros.
   - apply SubtreeRefl. now rewrite Ht, Hu.
   - apply SubtreeTau, IHHsub; auto. apply eqit_Tau, Ht.
-  - eapply SubtreeVis. now rewrite Ht, H. apply IHHsub; auto. reflexivity.
+  - eapply SubtreeVis. now rewrite Ht, H. apply IHHsub; auto.
 Qed.
 
 Lemma subtree_image {E R} (t u: itree E R) x:
@@ -445,30 +421,30 @@ Qed.
 Lemma Leaf_interp_subtree_inv {E F R} (h: E ~> itree F) (t u: itree E R):
   subtree u t -> has_post (interp h u) (fun x : R => x ∈ t).
 Proof.
-  revert t u. ginit. gcofix CIH; intros * Hsub.
+  revert t u. unfold has_post. coinduction c CIH; intros * Hsub.
   rewrite (itree_eta u) in Hsub.
-  rewrite ! unfold_interp.
+  rewrite unfold_interp.
   desobs u Hu; clear u Hu; cbn.
-  - gstep; red. constructor. eapply subtree_image; eauto. apply Leaf_Ret.
-  - gstep; red. constructor. gfinal; left. apply CIH. apply SubtreeTau, Hsub.
-  - guclo eqit_clo_bind; econstructor. reflexivity. intros u _ <-.
-    gstep; red. constructor. gfinal; left. apply CIH. eapply SubtreeVis, Hsub.
-    reflexivity.
+  - constructor. eapply subtree_image; eauto. apply Leaf_Ret.
+  - constructor. apply CIH. apply SubtreeTau, Hsub.
+  - to_mon. eapply eqit_bind_chain. reflexivity.
+    intros u _ <-.
+    taus. apply CIH. eapply SubtreeVis, Hsub. reflexivity.
 Qed.
 
 Lemma Leaf_interp_state_subtree_inv {E F S R} (h: E ~> Monads.stateT S (itree F))
   (t u: itree E R) (s: S):
   subtree u t -> has_post (interp_state h u s) (fun x => snd x ∈ t).
 Proof.
-  revert t u s. ginit. gcofix CIH; intros * Hsub.
+  revert t u s. unfold has_post. coinduction c CIH; intros * Hsub.
   rewrite (itree_eta u) in Hsub.
-  rewrite ! unfold_interp_state.
+  rewrite unfold_interp_state.
   desobs u Hu; clear u Hu; cbn.
-  - gstep; red. constructor. eapply subtree_image; eauto. apply Leaf_Ret.
-  - gstep; red. constructor. gfinal; left. apply CIH. apply SubtreeTau, Hsub.
-  - guclo eqit_clo_bind; econstructor. reflexivity. intros [u1 u2] _ <-; cbn.
-    gstep; red. constructor. gfinal; left. apply CIH. eapply SubtreeVis, Hsub.
-    reflexivity.
+  - constructor. eapply subtree_image; eauto. apply Leaf_Ret.
+  - constructor. apply CIH. apply SubtreeTau, Hsub.
+  - to_mon. eapply eqit_bind_chain. reflexivity.
+    intros [u1 u2] _ <-; cbn.
+    taus. apply CIH. eapply SubtreeVis, Hsub. reflexivity.
 Qed.
 
 End Subtree.

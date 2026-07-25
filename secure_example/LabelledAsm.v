@@ -5,7 +5,7 @@
     by jumps.  *)
 
 (* begin hide *)
-From Coq Require Import Arith String Setoid.
+From Stdlib Require Import Arith String Setoid.
 
   (* SAZ: Should we add ITreeMonad to ITree? *)
 From ITree Require Import

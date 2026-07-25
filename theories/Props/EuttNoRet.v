@@ -1,4 +1,6 @@
-From Coq Require Import
+From Coinduction Require Import all.
+
+From Stdlib Require Import
      Morphisms
 .
 
@@ -6,10 +8,10 @@ From ITree Require Import
      Axioms
      ITree
      ITreeFacts
+     Eq.Shallow
      Props.Infinite
 .
 
-From Paco Require Import paco.
 
 Import Monads.
 Import MonadNotation.
@@ -27,20 +29,23 @@ Definition euttNoRet {E} {A B : Type} (ta : itree E A) (tb : itree E B) :=
 
 Lemma euttNoRet_spin : forall (E : Type -> Type) (A B : Type), @euttNoRet E A B ITree.spin ITree.spin.
 Proof.
-  intros. pcofix CIH. pfold. red. cbn. constructor. right.
-  eauto.
+  intros. unfold euttNoRet. icoinduction c CIH. cbn. constructor. exact CIH.
 Qed.
 
 Lemma noret_bind_nop : forall (E : Type -> Type) (A B : Type) (t : itree E A) (f : A -> itree E B),
     all_infinite t -> euttNoRet t (t >>= f).
 Proof.
-  intros. einit. generalize dependent t. ecofix CIH. intros t Hdivt. pinversion Hdivt.
-  - specialize (itree_eta t) as Ht. rewrite <- H in Ht.
-    cbn. rewrite Ht.
-    assert (ITree.bind (Tau t0) f ≅ Tau (ITree.bind t0 f)); try apply bind_tau.
-    setoid_rewrite H1. etau.
-  - specialize (itree_eta t) as Ht. rewrite <- H in Ht.
-    cbn. rewrite Ht. rewrite bind_vis. evis.
+  intros E A B. unfold euttNoRet. icoinduction c CIH. intros t f Hdiv.
+  apply (gfp_fp all_infinite_mon) in Hdiv.
+  cbn[all_infinite_mon body] in Hdiv. unfold all_infinite_ in Hdiv.
+  inversion Hdiv; subst.
+  - unfold bind, Monad_itree.
+    rewrite observe_bind. rewrite <- H. cbn. apply EqTau.
+    apply CIH. auto.
+  - unfold bind, Monad_itree.
+    rewrite observe_bind. rewrite <- H. cbn. apply EqVis.
+    intros v. 
+    apply CIH. apply H0.
 Qed.   
 
 Lemma euttNoRet_subrel : forall (E : Type -> Type) (A B : Type) (R : A -> B -> Prop) 
@@ -48,66 +53,60 @@ Lemma euttNoRet_subrel : forall (E : Type -> Type) (A B : Type) (R : A -> B -> P
     euttNoRet ta tb -> eutt R ta tb.
 Proof.
   intros.
-  eapply eutt_subrel with (R1 := fun a b => False); tauto.
+  eapply eqit_mono with (b1 := true) (b2 := true) (RR := fun _ _ => False);
+    try (repeat intro; contradiction); auto.
 Qed.
 
 Lemma all_infinite_euttNoRet : forall (E : Type -> Type) (A B : Type) (R : A -> B -> Prop) 
                             (ta : itree E A) (tb : itree E B),
     all_infinite ta -> eutt R ta tb -> euttNoRet ta tb.
 Proof.
-  (* oddly had trouble doing this with euttG, maybe I should reread the gpaco paper*)
-  intros E A B R. pcofix CIH. pstep. intros ta tb Hdiv Heutt.
-  punfold Heutt. unfold_eqit. dependent induction Heutt; pclearbot.
-  - exfalso. clear CIH. specialize (itree_eta ta) as Hta.
-    rewrite <- x0 in Hta. rewrite Hta in Hdiv. pinversion Hdiv.
-  - rewrite <- x0. rewrite <- x. constructor. right.
-    assert (m1 ≈ ta).
-    { specialize (itree_eta ta) as Hta. rewrite <- x0 in Hta.
-      rewrite Hta. rewrite tau_eutt. reflexivity. }
-    assert (m2 ≈ tb).
-    { specialize (itree_eta tb) as Htb. rewrite <- x in Htb.
-      rewrite Htb. rewrite tau_eutt. reflexivity. }
-    apply CIH; auto.
-    rewrite H. auto.
-  - rewrite <- x0. rewrite <- x. constructor.
-    intros. right. apply CIH; auto with itree.
-    specialize (itree_eta ta) as Hta. rewrite <- x0 in Hta.
-    rewrite Hta in Hdiv. pinversion Hdiv.
-    dependent destruction H2. apply H0.
-  - rewrite <- x. constructor; auto. eapply IHHeutt; eauto.
-    assert (t1 ≈ ta).
-    { specialize (itree_eta ta) as Hta. rewrite <- x in Hta.
-      rewrite Hta. rewrite tau_eutt. reflexivity. }
-    rewrite H. auto.
-  - rewrite <- x. constructor; auto.
+  intros E A B R. unfold euttNoRet. icoinduction c CIH. intros ta tb Hdiv Heutt.
+  step in Heutt. cbn[eqit_mon body] in Heutt. unfold eqit_ in Heutt.
+  cbn[eqit_mon body]. unfold eqit_.
+  apply (gfp_fp all_infinite_mon) in Hdiv.
+  cbn[all_infinite_mon body] in Hdiv. unfold all_infinite_ in Hdiv.
+  dependent induction Heutt.
+  - exfalso. rewrite <- x0 in Hdiv. inversion Hdiv.
+  - rewrite <- x0. rewrite <- x. apply EqTau. apply CIH.
+    + rewrite <- x0 in Hdiv. inversion Hdiv; subst. auto.
+    + auto.
+  - rewrite <- x0. rewrite <- x. apply EqVis. intros v. apply CIH.
+    + rewrite <- x0 in Hdiv. inversion Hdiv; subst. ddestruction. apply H0.
+    + apply REL.
+  - rewrite <- x. apply EqTauL; auto. apply IHHeutt; auto.
+    rewrite <- x in Hdiv. inversion Hdiv; subst.
+    apply (gfp_fp all_infinite_mon) in H0.
+    cbn[all_infinite_mon body] in H0. unfold all_infinite_ in H0. exact H0.
+  - rewrite <- x. apply EqTauR; auto.
 Qed.
      
 Lemma euttNoRet_all_infinite : forall (E : Type -> Type) (A B : Type) (t1 : itree E A) (t2 : itree E B),
     euttNoRet t1 t2 -> all_infinite t1.
 Proof.
-  intros A B. pcofix CIH. intros. pfold. red.
-  punfold H0.
-  unfold_eqit.
-  dependent induction H0; try contradiction; pclearbot.
-  - rewrite <- x0. constructor. right. eapply CIH; eauto.
-  - rewrite <- x0. constructor. intros. right. eapply CIH; eauto. eapply REL.
-  - rewrite <- x. constructor. right. eapply CIH with (t2 := t2); eauto. 
-    pfold. auto.
-  -  eapply IHeqitF; eauto.
+  intros E A B. unfold all_infinite. coinduction c CIH. intros t1 t2 H.
+  cbn[all_infinite_mon body]. unfold all_infinite_.
+  unfold euttNoRet in H. step in H. cbn[eqit_mon body] in H. unfold eqit_ in H.
+  dependent induction H; try contradiction.
+  - rewrite <- x0. constructor. apply CIH with (t2 := m2). unfold euttNoRet. auto.
+  - rewrite <- x0. constructor. intros v. apply CIH with (t2 := k2 v).
+    unfold euttNoRet. apply REL.
+  - rewrite <- x. constructor. apply CIH with (t2 := t2). unfold euttNoRet.
+    step. cbn[eqit_mon body]. unfold eqit_. auto.
+  - eapply IHeqitF; eauto.
 Qed.
 
 
 Lemma euttNoRet_sym : forall (E : Type -> Type) (A B : Type) (t1 : itree E A) (t2 : itree E B),
     euttNoRet t1 t2 -> euttNoRet t2 t1.
 Proof.
-  intros E A B. pcofix CIH. intros. pfold. red.
-  punfold H0. unfold_eqit.
-  dependent induction H0; try contradiction; pclearbot.
-  - rewrite <- x0. rewrite <- x. constructor. right. auto.
-  - rewrite <- x0. rewrite <- x. constructor. intros. unfold id.
-    right. apply CIH. apply REL.
-  - rewrite <- x. constructor; auto.
-  - rewrite <- x. constructor; auto.
+  intros E A B. unfold euttNoRet. icoinduction c CIH. intros t1 t2 H.
+  unfold euttNoRet in H. step in H. cbn[eqit_mon body] in H. unfold eqit_ in H.
+  dependent induction H; try contradiction.
+  - rewrite <- x0. rewrite <- x. apply EqTau. apply CIH. auto.
+  - rewrite <- x0. rewrite <- x. apply EqVis. intros v. apply CIH. apply REL.
+  - rewrite <- x. apply EqTauR; auto.
+  - rewrite <- x. apply EqTauL; auto.
 Qed.
 
 Lemma all_infinite_bind : forall (E : Type -> Type) (R U: Type) (t : itree E R) 
@@ -123,8 +122,9 @@ Lemma euttNoRet_trans : forall (E : Type -> Type) (A B C : Type) (t1 : itree E A
     euttNoRet t1 t2 -> euttNoRet t2 t3 -> euttNoRet t1 t3.
 Proof.
   intros. unfold euttNoRet in *.
-  apply eutt_subrel with (R1 := @rcompose A B C (fun a b => False) (fun b c => False) ).
-  - intros. inversion H1; contradiction.
+  eapply eqit_mono with (b1 := true) (b2 := true)
+    (RR := rcompose (fun (_:A)(_:B) => False) (fun (_:B)(_:C) => False)); auto.
+  - intros x y Hc. inversion Hc; contradiction.
   - eapply eqit_trans; eauto.
 Qed.
 

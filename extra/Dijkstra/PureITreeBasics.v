@@ -1,10 +1,8 @@
-From Coq Require Import
+From Stdlib Require Import
      Morphisms.
 
 From ExtLib Require Import
      Structures.Monad.
-
-From Paco Require Import paco.
 
 From ITree Require Import
      Axioms
@@ -23,11 +21,15 @@ Set Implicit Arguments.
 (** The itree Tau (Tau (Tau ...))*)
 #[local] Notation spin := ITree.spin.
 
+#[local] Tactic Notation "step" := repeat red; step. 
+#[local] Tactic Notation "step" "in" ident(h) := repeat red in h; step in h. 
+#[local] Tactic Notation "sinv" ident(h) := step in h; inv h. 
+
 (*this implies that if a spec w accepts spin, then bind w f should too?   *)
 Lemma spin_bind : forall (E : Type -> Type) (A B : Type) (f : A -> itree E B), spin ≈ ITree.bind spin f.
 Proof.
-  intros. pcofix CIH. pfold. unfold bind. simpl. red.
-  cbn. constructor. right. auto.
+  intros. coinduction. simpl.
+  now constructor.
 Qed.
 
 (*Depreacated predicate on itree predicates. Intended to denote that a predicate is invariant wrt adding
@@ -49,23 +51,25 @@ Lemma tau_invar_resp_eutt1: forall (E : Type -> Type) (A : Type) (P : itree E A 
 (*spin is the only divergent itree with the void1 event type,*)
 Lemma div_spin_eutt : forall (A : Type) (t : itree void1 A), any_infinite t -> t ≈ spin.
 Proof.
-  intros A. pcofix CIH. intros. pfold. red. cbn.
+  intros A. coinduction. intros. cbn.
   destruct (observe t) eqn : Heqt.
-  - specialize (itree_eta t) as H. rewrite Heqt in H. rewrite H in H0. pinversion H0.
-  - constructor. right. apply CIH. specialize (itree_eta t) as H. rewrite Heqt in H.
+  - specialize (itree_eta t) as Heta. rewrite Heqt in Heta. rewrite Heta in H. sinv H. 
+  - constructor. apply CIH. specialize (itree_eta t) as Heta. rewrite Heqt in Heta.
     assert (t ≈ Tau t0).
-    + rewrite H. reflexivity.
-    + rewrite <- tau_eutt. rewrite <- H1. auto.
+    + rewrite Heta. reflexivity.
+    + rewrite <- tau_eutt. rewrite <- H0. auto.
   - destruct e.
 Qed.
 
 Lemma eutt_reta_or_div_aux : forall A (t : itree void1 A), ~(exists a, ret a ≈ t) -> any_infinite t.
 Proof.
-  intro A. pcofix CIH. pfold. unfold any_infinite_. intros. destruct (observe t) eqn : Heqt.
-  - exfalso. specialize (itree_eta t) as H. rewrite Heqt in H. apply H0.
-    exists r0. rewrite H. reflexivity.
-  - constructor. right. eapply CIH; eauto. intro. apply H0.
-    destruct H as [a Ha]. exists a. specialize (itree_eta t) as Ht. rewrite Heqt in Ht.
+  intro A. unfold any_infinite, any_infinite_. 
+  coinduction c CIH. 
+  intros. destruct (observe t) eqn : Heqt.
+  - exfalso. specialize (itree_eta t) as Heta. rewrite Heqt in Heta. apply H.
+    exists r. rewrite Heta. reflexivity.
+  - repeat red; simpobs; constructor. eapply CIH; eauto. intro. apply H.
+    destruct H0 as [a Ha]. exists a. specialize (itree_eta t) as Ht. rewrite Heqt in Ht.
     rewrite Ht. rewrite tau_eutt. auto.
   - destruct e.
 Qed.
@@ -79,7 +83,7 @@ Qed.
 
 Lemma ret_not_div : forall (A : Type) (E : Type -> Type) (a : A), ~ (@any_infinite E A (ret a)).
 Proof.
-  intros. intro Hcontra. pinversion Hcontra.
+  intros. intro Hcontra. sinv Hcontra. 
 Qed.
 
 Lemma not_ret_eutt_spin : forall A E (a : A), ~ (Ret a ≈ @spin E A).
@@ -91,20 +95,18 @@ Qed.
 Lemma eutt_ret_euttge : forall (E : Type -> Type) (A : Type) (a : A) (t : itree E A),
       t ≈ Ret a -> t ≳ Ret a.
 Proof.
-  intros. generalize dependent t. pcofix CIH. intros. pfold. red. pinversion H0; subst; auto.
-  - cbn. auto with itree.
-  - cbn. apply EqTauL; auto.
-    genobs t1 ot1. genobs (go (@RetF E A _ a)) ot2.  clear H1.
-    generalize dependent t1. generalize dependent t.
-    induction REL; intros; subst; auto; try discriminate.
-    + constructor. inversion Heqot2. auto.
-    + constructor; auto. eapply IHREL; eauto.
+  intros. generalize dependent t. icoinduction c CIH. intros. sinv H. 
+  - taul. 
+  (* Unset Printing Notations.  *)
+    remember (observe (Ret a)).
+    induction REL; try easy. 
+    + eret. 
+    + taul. now apply IHREL.  
 Qed.
 
 Lemma unfold_spin : forall (E : Type -> Type) (A : Type), (@spin E A) ≅ Tau spin.
 Proof.
-  intros.  pcofix CIH. cbn. pfold. red. cbn. apply EqTau. cbn.
-  left. pcofix CIH'. pfold. red. cbn. auto with itree.
+  intros. step. cbn. reflexivity. 
 Qed.
 
 Lemma burn_eutt_r : forall (A : Type) (t t' : itree void1 A) (n : nat), t≈ t' -> burn n t ≈ t'.

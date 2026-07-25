@@ -1,4 +1,4 @@
-From Coq Require Import Morphisms.
+From Stdlib Require Import Morphisms.
 
 From ITree.Extra Require Import Secure.Labels.
 
@@ -57,14 +57,13 @@ Lemma leq_join_l (Lat : Lattice) {HLat : LatticeLaws Lat}  (l1 l2 : L) :
   leq l1 (join l1 l2).
 Proof.
   cbn. assert (LatticeLaws Lat). auto. destruct HLat. rewrite join_assoc0. rewrite join_idempot; auto.
-  reflexivity.
 Qed.
 
 Lemma leq_join_r (Lat : Lattice) {HLat : LatticeLaws Lat}  (l1 l2 : L) :
   leq l2 (join l1 l2).
 Proof.
   cbn. assert (LatticeLaws Lat). auto. destruct HLat. rewrite join_comm0. rewrite <- join_assoc0.
-  rewrite join_idempot; auto. reflexivity.
+  rewrite join_idempot; auto. 
 Qed.
 
 Lemma leq_refl_lat (Lat : Lattice) {HLat : LatticeLaws Lat} l :

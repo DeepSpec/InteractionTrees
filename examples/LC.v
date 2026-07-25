@@ -1,6 +1,6 @@
 (* Big-step reduction of untyped lambda terms. *)
 
-From Coq Require Import Arith.
+From Stdlib Require Import Arith.
 
 From ExtLib.Structures Require Import
      Monad.

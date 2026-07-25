@@ -14,7 +14,7 @@
    [Fun] and [ktree] on finite types (instead of arbitrary types). *)
 
 (* begin hide *)
-From Coq Require Import
+From Stdlib Require Import
      Arith
      Lia.
 

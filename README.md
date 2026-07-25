@@ -35,7 +35,7 @@ opam install coq-itree
 ### Dependencies
 
 - [coq](https://coq.inria.fr/)
-- [coq-paco](https://github.com/snu-sf/paco)
+- [rocq-coinduction](https://github.com/damien-pous/coinduction)
 - [coq-ext-lib](https://github.com/coq-community/coq-ext-lib)
 
 See [`coq-itree.opam`](./coq-itree.opam) for version details.

@@ -9,7 +9,7 @@ and also to generate documentation.
 Install dependencies with `opam`.
 
 ```
-opam install coq-paco coq-ext-lib dune
+opam install rocq-coinduction coq-ext-lib dune
 ```
 
 Then `dune build` will compile everything: library, tutorial (toy compiler from
@@ -49,7 +49,7 @@ dune runtest
 This uses the same dependencies, minus `dune`.
 
 ```
-opam install coq-paco coq-ext-lib
+opam install rocq-coinduction coq-ext-lib
 ```
 
 Build everything with `make all`.
@@ -163,7 +163,7 @@ for testing.
 - `Eq`: Equational theory of interaction trees.
 
     + `Shallow`: One-step unfolding of cofixpoints.
-    + `Eq`: Strong bisimulation.
+    + `Eqit`: Strong bisimulation.
     + `UpToTaus`: Weak bisimulation.
     + `SimUpToTaus`: Weak simulation.
     + `EqAxiom`: Axiom that strong bisimulation is propositional equality.

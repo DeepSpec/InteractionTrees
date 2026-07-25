@@ -4,12 +4,13 @@
     - [any_infinite]: there exists an infinite branch. *)
 
 (* begin hide *)
-From Coq Require Import
+
+From Coinduction Require Import all. 
+
+From Stdlib Require Import
      Setoid
      Morphisms
      RelationClasses.
-
-From Paco Require Import paco.
 
 From ITree Require Import
      Axioms
@@ -35,61 +36,58 @@ Definition any_infinite_ {E X} sim :=
   fun t1 => @any_infiniteF E X sim (observe t1).
 #[global] Hint Unfold any_infinite_ : itree.
 
-Lemma any_infiniteF_mono {E X} sim sim' x0
-      (IN: any_infiniteF sim x0)
-      (LE: sim <1= sim'):
-  @any_infiniteF E X sim' x0.
-Proof.
-  intros. induction IN; eauto with itree.
-Qed. 
+Lemma any_infinite__mono {E X} : 
+Proper (leq ==> leq) (@any_infinite_ E X).
+Proof. monauto. Qed. 
 
-Lemma any_infiniteF__mono {E X} :
-  monotone1 (@any_infinite_ E X).
-Proof.
-  do 2 red. intros. eapply any_infiniteF_mono; eauto.
-Qed. 
-#[global] Hint Resolve any_infiniteF__mono : paco.
+Definition any_infinite_mon {E X} : mon (itree E X -> Prop) := 
+   {| body := @any_infinite_ E X ; Hbody := any_infinite__mono |}.
 
-Definition any_infinite {E A} : itree E A -> Prop :=
-  paco1 (@any_infinite_ E A) bot1.
+Definition any_infinite {E X} : itree E X -> Prop :=
+  gfp any_infinite_mon.
 
 #[global]
 Instance any_infinite_proper_eutt {E X R} : Proper (eutt R ==> iff) (@any_infinite E X).
 Proof.
-  repeat intro. split.
-  - revert x y H. pcofix CH. intros.
-    punfold H0. unfold_eqit. pfold. red. punfold H1. red in H1.
-    induction H0.
-    + inversion H1.
-    + apply DivTau. inversion H1; subst. right. eapply CH.
-      red in H0. pclearbot. apply REL.
-      pclearbot. apply H0.
-    + inversion H1; subst. dependent destruction H3. eapply DivVis. 
-      pclearbot. right. eapply CH. apply REL. eapply H0.
-    + apply IHeqitF. inversion H1; subst.
-      pclearbot. punfold H2.
-    + econstructor. left. pfold. red.
-      apply IHeqitF. apply H1.
-  - revert x y H. pcofix CH. intros.
-    punfold H0. unfold_eqit. pfold. red. punfold H1. red in H1.
-    induction H0.
-    + inversion H1.
-    + apply DivTau. inversion H1; subst. right. eapply CH.
-      red in H0. pclearbot. apply REL.
-      pclearbot. apply H0.
-    + inversion H1; subst. dependent destruction H3. eapply DivVis.
-      pclearbot. right. eapply CH. apply REL. eapply H0.
-    + econstructor. left. pfold. red.
-      apply IHeqitF. apply H1.
-    + apply IHeqitF. inversion H1; subst.
-      pclearbot. punfold H2.
+  intros t1 t2 Ht. split; intros Hinf.
+  - revert t2 t1 Ht Hinf. unfold any_infinite at 2. coinduction c CIH.
+    intros t2 t1 Ht Hinf. step in Ht. cbn[eqit_mon body] in Ht. unfold eqit_ in Ht.
+    cbn[any_infinite_mon body]. unfold any_infinite_.
+    apply (gfp_fp any_infinite_mon) in Hinf.
+    cbn[any_infinite_mon body] in Hinf. unfold any_infinite_ in Hinf.
+    induction Ht.
+    + inversion Hinf.
+    + inversion Hinf; subst. constructor. eapply CIH; eauto.
+    + inversion Hinf; subst. dependent destruction H2.
+      econstructor. eapply CIH; [apply REL|]. eauto.
+    + apply IHHt. inversion Hinf; subst.
+      apply (gfp_fp any_infinite_mon) in H0.
+      cbn[any_infinite_mon body] in H0. unfold any_infinite_ in H0. exact H0.
+    + constructor. step. cbn[any_infinite_mon body]. unfold any_infinite_.
+      apply IHHt. exact Hinf.
+  - revert t1 t2 Ht Hinf. unfold any_infinite at 2. coinduction c CIH.
+    intros t1 t2 Ht Hinf. step in Ht. cbn[eqit_mon body] in Ht. unfold eqit_ in Ht.
+    cbn[any_infinite_mon body]. unfold any_infinite_.
+    apply (gfp_fp any_infinite_mon) in Hinf.
+    cbn[any_infinite_mon body] in Hinf. unfold any_infinite_ in Hinf.
+    induction Ht.
+    + inversion Hinf.
+    + inversion Hinf; subst. constructor. eapply CIH; eauto.
+    + inversion Hinf; subst. dependent destruction H2.
+      econstructor. eapply CIH; [apply REL|]. eauto.
+    + constructor. step. cbn[any_infinite_mon body]. unfold any_infinite_.
+      apply IHHt. exact Hinf.
+    + apply IHHt. inversion Hinf; subst.
+      apply (gfp_fp any_infinite_mon) in H0.
+      cbn[any_infinite_mon body] in H0. unfold any_infinite_ in H0. exact H0.
 Qed.
 
 Theorem spin_infinite {E A} : @any_infinite E A ITree.spin.
 Proof.
-  unfold any_infinite, ITree.spin.
-  pcofix H. pfold. constructor. right. apply H.
-Qed. 
+  unfold any_infinite. coinduction c CIH.
+  cbn[any_infinite_mon body]. unfold any_infinite_. cbn.
+  constructor. exact CIH.
+Qed.
 
 Variant all_infiniteF {E : Type -> Type} {A : Type} (F : itree E A -> Prop) : itree' E A -> Prop :=
   | MDivTau (t : itree E A) : F t -> all_infiniteF F (TauF t)
@@ -101,19 +99,18 @@ Definition all_infinite_ {E A} (sim : itree E A -> Prop) t := all_infiniteF sim 
 
 Lemma all_infiniteF_mono {E A} (sim sim' : itree E A -> Prop) t
       (IN : all_infiniteF sim t)
-      (LE : sim <1= sim') : all_infiniteF sim' t.
+      (LE : forall x, sim x -> sim' x) : all_infiniteF sim' t.
 Proof.
   induction IN; eauto with itree.
 Qed.
 
-Lemma all_infiniteF_mono' {E A} : monotone1 (@all_infinite_ E A).
-Proof.
-  unfold all_infinite_.
-  red. intros. eapply all_infiniteF_mono; eauto.
-Qed.
-#[global] Hint Resolve all_infiniteF_mono' : paco.
+Lemma all_infinite__mono {E A} : Proper (leq ==> leq) (@all_infinite_ E A).
+Proof. monauto. Qed.
 
-Definition all_infinite {E A} := paco1 (@all_infinite_ E A) bot1.
+Definition all_infinite_mon {E A} : mon (itree E A -> Prop) :=
+  {| body := @all_infinite_ E A ; Hbody := all_infinite__mono |}.
+
+Definition all_infinite {E A} : itree E A -> Prop := gfp (@all_infinite_mon E A).
 
 #[global] Hint Unfold all_infinite : itree.
 
@@ -142,43 +139,50 @@ Ltac contra_void := try match goal with | a : void |- _ => contradiction end.
 #[global]
 Instance eutt_proper_all_infinite {E A R} : Proper (eutt R ==> iff) (@all_infinite E A).
 Proof.
-  intros t1 t2 Ht. split.
-  - revert t1 t2 Ht. pcofix CIH. intros t1 t2 Ht Hdiv.
-    punfold Ht. unfold_eqit. pfold. red. punfold Hdiv. red in Hdiv.
+  intros t1 t2 Ht. split; intros Hinf.
+  - revert t1 t2 Ht Hinf. unfold all_infinite at 2. coinduction c CIH.
+    intros t1 t2 Ht Hinf. step in Ht. cbn[eqit_mon body] in Ht. unfold eqit_ in Ht.
+    cbn[all_infinite_mon body]. unfold all_infinite_.
+    apply (gfp_fp all_infinite_mon) in Hinf.
+    cbn[all_infinite_mon body] in Hinf. unfold all_infinite_ in Hinf.
     induction Ht.
-    + inversion Hdiv.
-    + constructor. inversion Hdiv. subst. right.
-      pclearbot.
-      eapply CIH; eauto.
-    + constructor. inversion Hdiv. subst. ddestruction.
-      subst. intros. right. inversion Hdiv. ddestruction.
-      subst. pclearbot. eapply CIH; auto with itree.
-    + apply IHHt. inversion Hdiv. subst. pclearbot. punfold H0.
-    + constructor. left. pfold. apply IHHt. auto.
-  - revert t1 t2 Ht. pcofix CIH. intros t1 t2 Ht Hdiv.
-    punfold Ht. unfold_eqit. pfold. red. punfold Hdiv. red in Hdiv.
+    + inversion Hinf.
+    + inversion Hinf; subst. constructor. eapply CIH; eauto.
+    + inversion Hinf; subst. dependent destruction H2.
+      econstructor. intros b. eapply CIH; [apply REL|]. apply H0.
+    + apply IHHt. inversion Hinf; subst.
+      apply (gfp_fp all_infinite_mon) in H0.
+      cbn[all_infinite_mon body] in H0. unfold all_infinite_ in H0. exact H0.
+    + constructor. step. cbn[all_infinite_mon body]. unfold all_infinite_.
+      apply IHHt. exact Hinf.
+  - revert t1 t2 Ht Hinf. unfold all_infinite at 2. coinduction c CIH.
+    intros t1 t2 Ht Hinf. step in Ht. cbn[eqit_mon body] in Ht. unfold eqit_ in Ht.
+    cbn[all_infinite_mon body]. unfold all_infinite_.
+    apply (gfp_fp all_infinite_mon) in Hinf.
+    cbn[all_infinite_mon body] in Hinf. unfold all_infinite_ in Hinf.
     induction Ht.
-    + inversion Hdiv.
-    + constructor. inversion Hdiv. subst. right.
-      pclearbot; eauto.
-    + constructor. inversion Hdiv. subst. ddestruction.
-      subst. intros. right. inversion Hdiv. subst. ddestruction.
-      subst. pclearbot. eapply CIH; auto with itree.
-    +  constructor. left. pfold. apply IHHt. auto.
-    +  apply IHHt. inversion Hdiv. subst. pclearbot. punfold H0.
+    + inversion Hinf.
+    + inversion Hinf; subst. constructor. eapply CIH; eauto.
+    + inversion Hinf; subst. dependent destruction H2.
+      econstructor. intros b. eapply CIH; [apply REL|]. apply H0.
+    + constructor. step. cbn[all_infinite_mon body]. unfold all_infinite_.
+      apply IHHt. exact Hinf.
+    + apply IHHt. inversion Hinf; subst.
+      apply (gfp_fp all_infinite_mon) in H0.
+      cbn[all_infinite_mon body] in H0. unfold all_infinite_ in H0. exact H0.
 Qed.
 
 Lemma not_converge_to_all_infinite : forall (E : Type -> Type) (A : Type) (t : itree E A),
     (forall a, ~ may_converge a t) -> all_infinite t.
 Proof.
-  intros E A. pcofix CIH. intros t Hcon. pfold.
-  red. destruct (observe t) eqn : Heq;
-         specialize (itree_eta t) as Ht; rewrite Heq in Ht.
-  - exfalso. apply (Hcon r0). rewrite Ht. constructor. reflexivity.
-  - constructor. right. apply CIH.
-    setoid_rewrite Ht in Hcon. setoid_rewrite tau_eutt in Hcon.
-    auto.
-  - constructor. right. apply CIH.
+  intros E A. unfold all_infinite. coinduction c CIH. intros t Hcon.
+  cbn[all_infinite_mon body]. unfold all_infinite_.
+  destruct (observe t) eqn:Heq;
+    specialize (itree_eta t) as Ht; rewrite Heq in Ht.
+  - exfalso. apply (Hcon r). rewrite Ht. constructor. reflexivity.
+  - constructor. apply CIH.
+    setoid_rewrite Ht in Hcon. setoid_rewrite tau_eutt in Hcon. auto.
+  - constructor. intros b. apply CIH.
     intros a Hcontra. setoid_rewrite Ht in Hcon.
     apply (Hcon a). eapply conv_vis; try reflexivity; eauto.
 Qed.
@@ -195,10 +199,13 @@ Lemma all_infinite_not_converge : forall (E : Type -> Type) (R : Type) (t : itre
     may_converge r t -> ~ all_infinite t.
 Proof.
   intros E R t r Hc Hd. induction Hc.
-  - rewrite H in Hd. pinversion Hd.
-  - apply IHHc. rewrite H in Hd. pinversion Hd.
-    ddestruction. subst.
-    apply H1.
+  - rewrite H in Hd. apply (gfp_fp all_infinite_mon) in Hd.
+    cbn[all_infinite_mon body] in Hd. unfold all_infinite_ in Hd.
+    inversion Hd.
+  - apply IHHc. rewrite H in Hd.
+    apply (gfp_fp all_infinite_mon) in Hd.
+    cbn[all_infinite_mon body] in Hd. unfold all_infinite_ in Hd.
+    inversion Hd. ddestruction. subst. apply H1.
 Qed.
 
 Lemma may_converge_Ret_inv E (A : Type) (a a' : A) : may_converge (E := E) a (Ret a') -> a = a'.
@@ -215,5 +222,8 @@ Ltac inv_infinite_ret := match goal with [ H : any_infiniteF _ (RetF _) |- _  ] 
 Lemma no_infinite_ret (E : Type -> Type) (A : Type) (t: itree E A) (a : A)
   : any_infinite t -> t ≈ Ret a -> False.
 Proof.
-  intros H HContra. rewrite HContra in H. pinversion H.
+  intros H HContra. rewrite HContra in H.
+  apply (gfp_fp any_infinite_mon) in H.
+  cbn[any_infinite_mon body] in H. unfold any_infinite_ in H.
+  inversion H.
 Qed.

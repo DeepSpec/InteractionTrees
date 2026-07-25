@@ -1,6 +1,6 @@
 (** Proofs that the Kleisli category of a monad is in fact a category. *)
 
-From Coq Require Import
+From Stdlib Require Import
      Program
      Setoid
      Morphisms
