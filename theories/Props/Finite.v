@@ -186,12 +186,12 @@ Proof.
   - step in EQ. 
     rewrite H in EQ; clear H.
     remember (RetF a); genobs u2 ou.
-    hinduction EQ before R; intros; try easy; eauto with itree.
+    hinduction EQ before R; intros; try discriminate; eauto with itree.
   - step in EQ; rewrite H in EQ; clear H.
     apply IHFIN. rewrite <- tau_euttge. now step. 
   - step in EQ; rewrite H in EQ; clear H.
     remember (VisF e k); genobs u2 ou2.
-    hinduction EQ before R; intros; try easy.
+    hinduction EQ before R; intros; try discriminate.
     + revert H0 H1.
       refine (match Heqi in _ = u return match u with VisF e0 k0 => _ | _ => False end with eq_refl => _ end).
       eauto with itree.
@@ -227,12 +227,12 @@ Proof.
   induction FIN; intros u2 EQ.
   - step in EQ. rewrite H in EQ; clear H.
     remember (RetF a); genobs u2 ou.
-    hinduction EQ before R; intros; try easy; eauto with itree.
+    hinduction EQ before R; intros; try discriminate; eauto with itree.
   - step in EQ; rewrite H in EQ; clear H.
       apply IHFIN. rewrite <- tau_euttge. now step. 
   - step in EQ; rewrite H in EQ; clear H.
     remember (VisF e k); genobs u2 ou2.
-    hinduction EQ before R; intros; try easy.
+    hinduction EQ before R; intros; try discriminate.
     + revert x FIN IHFIN.
       refine (match Heqi in _ = u return match u with VisF e0 k0 => _ | _ => False end with eq_refl => _ end).
       eauto with itree.

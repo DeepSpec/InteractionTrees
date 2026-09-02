@@ -146,7 +146,7 @@ Proof.
         ++ simpobs. apply trace_prefix_ret.
         ++ simpobs. constructor. eapply IHeqitF; try apply x0; eauto. 
            assert (m1 ≈ m2); auto.
-           sinv x0. apply simpobs in x, H2. 
+           sinv x0; [|easy]. apply simpobs in x, H2. 
             rewrite x, H2, tau_eutt in H0.
             now rewrite <- H0, H2. 
       * eapply IHtrace_prefixF. 4: reflexivity. all: auto.
@@ -328,7 +328,7 @@ Proof.
   step in Hbf. step in Hdiv. induction Hbf.
   - inv Hdiv.
   - constructor. inv Hdiv. apply CIH; auto.
-  - constructor; auto. apply IHHbf. unstep. inv Hdiv. 
+  - constructor; auto. apply IHHbf. unstep. now inv Hdiv. 
   - constructor; auto.
   - constructor. intros [].
   -  constructor. intros. inv Hdiv. ddestruction; subst.

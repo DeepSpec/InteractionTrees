@@ -141,36 +141,18 @@ Ltac fold_rutt_in h :=
 Tactic Notation "runstep" := fold_rutt; unstep.
 Tactic Notation "runstep" "in" ident(h) := fold_rutt_in h; unstep in h.
 
-Ltac to_rmon_core :=
-match goal with
-| |- context[@ruttF ?E1 ?E2 ?R1 ?R2 ?REv ?RAns ?RR (?f ?RR) (observe ?t1) (observe ?t2)] =>
-      change (@ruttF E1 E2 R1 R2 REv RAns RR (f RR) (observe t1) (observe t2))
-      with (@rutt_mon E1 E2 R1 R2 REv RAns f RR t1 t2)
-| |- context[@ruttF ?E1 ?E2 ?R1 ?R2 ?REv ?RAns ?RR (?f ?RR) (?con1 ?a1) (?con2 ?a2)] =>
-      change (@ruttF E1 E2 R1 R2 REv RAns RR (f RR) (con1 a1) (con2 a2))
-      with (@rutt_mon E1 E2 R1 R2 REv RAns f RR (go (con1 a1)) (go (con2 a2)))
-end.
+Lemma rutt_to_mon_obs {E1 E2 R1 R2} REv RAns f (RR : R1 -> R2 -> Prop) t1 t2 :
+  @ruttF E1 E2 R1 R2 REv RAns RR (f RR) (observe t1) (observe t2)
+  = @rutt_mon E1 E2 R1 R2 REv RAns f RR t1 t2.
+Proof. reflexivity. Qed.
 
-Ltac to_rmon :=
-let dummy := fresh "dummy" in
-assert (dummy : True) by constructor;
-          intros;
-          to_rmon_core;
-          revert_until dummy;
-          clear dummy.
+Lemma rutt_to_mon_go {E1 E2 R1 R2} REv RAns f (RR : R1 -> R2 -> Prop) x y :
+  @ruttF E1 E2 R1 R2 REv RAns RR (f RR) x y
+  = @rutt_mon E1 E2 R1 R2 REv RAns f RR (go x) (go y).
+Proof. reflexivity. Qed.
 
-Ltac to_rmon_in h :=
-match type of h with
-| context[@ruttF ?E1 ?E2 ?R1 ?R2 ?REv ?RAns ?RR (?f ?RR) (observe ?t1) (observe ?t2)] =>
-      change (@ruttF E1 E2 R1 R2 REv RAns RR (f RR) (observe t1) (observe t2))
-      with (@rutt_mon E1 E2 R1 R2 REv RAns f RR t1 t2) in h
-| context[@ruttF ?E1 ?E2 ?R1 ?R2 ?REv ?RAns ?RR (?f ?RR) (?con1 ?a1) (?con2 ?a2)] =>
-      change (@ruttF E1 E2 R1 R2 REv RAns RR (f RR) (con1 a1) (con2 a2))
-      with (@rutt_mon E1 E2 R1 R2 REv RAns f RR (go (con1 a1)) (go (con2 a2))) in h
-end.
-
-Tactic Notation "to_rmon" "in" ident(h) := to_rmon_in h.
-
+#[global] Hint Rewrite @rutt_to_mon_obs : to_mon_obs.
+#[global] Hint Rewrite @rutt_to_mon_go  : to_mon_go.
 #[global] Hint Constructors ruttF : itree.
 #[global] Hint Unfold rutt_ : itree.
 #[global] Hint Unfold rutt_mon : itree.
@@ -191,7 +173,7 @@ Proof. intros. rstep. constructor; auto. Qed.
 Lemma rutt_inv_Ret r1 r2:
   rutt REv RAns RR (Ret r1) (Ret r2) -> RR r1 r2.
 Proof.
-  intros. rstep in H. inv H.
+  intros. rstep in H. inv H. assumption. 
 Qed.
 
 Lemma rutt_inv_Ret_l r1 t2:
@@ -224,7 +206,7 @@ Proof.
   intros H. remember (TauF t1) as tt1.
   induction H; try discriminate.
   - inv Heqtt1. constructor. rstep in H. exact H.
-  - inv Heqtt1.
+  - inv Heqtt1. assumption. 
   - constructor. auto.
 Qed.
 
@@ -237,7 +219,7 @@ Proof.
   induction H; try discriminate.
   - inv Heqtt2. constructor. rstep in H. exact H.
   - constructor. auto.
-  - inv Heqtt2.
+  - inv Heqtt2. assumption. 
 Qed.
 
 Lemma rutt_inv_Tau_l t1 t2 :

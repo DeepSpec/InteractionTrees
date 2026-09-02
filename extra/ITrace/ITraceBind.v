@@ -110,6 +110,7 @@ Proof.
   - step. cbn. simpl. destruct e.
     + cbn. constructor. auto.
     + cbn. constructor. auto.
+  - easy.   
 Qed.
 
 (*doing these proofs, may require some techniques you don't really know*)
@@ -128,7 +129,7 @@ Proof.
     destruct e; cbn; constructor; auto.
   - dependent induction Hrutt.
     + exfalso. symmetry in Heq. apply simpobs in Heq. apply simpobs in x.
-      rewrite Heq in x. rewrite bind_tau in x. sinv x.
+      rewrite Heq in x. rewrite bind_tau in x. now sinv x.
     + simpobs. cbn. constructor. eapply CIH.
        symmetry in Heq. apply simpobs in x0.
       apply simpobs in x. apply simpobs in Heq.
@@ -137,7 +138,7 @@ Proof.
       rewrite <- Heq. rewrite x. rewrite tau_eutt. auto.
     + exfalso. symmetry in Heq. apply simpobs in Heq.
       apply simpobs in x.
-      rewrite Heq in x. rewrite bind_tau in x. sinv x.
+      rewrite Heq in x. rewrite bind_tau in x. now sinv x.
     + simpobs. cbn. constructor. eapply CIH.
       clear IHHrutt. symmetry in Heq. apply simpobs in Heq.
       apply eq_sub_eutt in Heq. rewrite tau_eutt in Heq.
@@ -201,13 +202,13 @@ Proof.
     + simpobs. cbn. constructor. eapply IHHrutt; eauto.
     + exfalso. symmetry in Heq. apply simpobs in x. apply simpobs in Heq.
       rewrite Heq in x. rewrite bind_vis in x.
-      sinv x.
+      now sinv x.
 Qed.
 
 Lemma not_spin_eutt_ret : forall E R (r : R), ~ (@ITree.spin E R ≈ Ret r).
 Proof.
   intros. intros Hcontra. specialize (@spin_infinite E R) as Hdiv.
-  rewrite Hcontra in Hdiv. sinv Hdiv.
+  rewrite Hcontra in Hdiv. now sinv Hdiv.
 Qed.
 
 
@@ -726,7 +727,7 @@ Proof.
       rewrite Heqb in Href. rewrite Heqt in Href.
       rewrite bind_vis in Href.
       step in Href. cbn in *. inv Href.
-      ddestruction. subst. inv H1. 
+      ddestruction. subst. now inv H1. 
     }
     destruct (classicT (A0 = X0)); try (exfalso; auto; fail).
     unfold eq_rect_r, eq_rect in x. remember (eq_sym e0) as He.
@@ -865,7 +866,7 @@ Proof.
   destruct H as [s Ht0]. step in Ht0. cbn in Ht0.
   clear Heqt Hrutt.
   dependent induction Ht0.
-  - simpobs. cbn. step in Heqb. cbn in *. inv Heqb.
+  - simpobs. cbn. step in Heqb. cbn in *. inv Heqb; [|easy].
     rewrite H0. auto with itree.
   - simpobs. cbn. constructor. eapply IHHt0; eauto.
 Qed.

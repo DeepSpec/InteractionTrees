@@ -273,7 +273,7 @@ step on gfp can reduce.
     - rewrite <- H1 in H. inv H.
     - inversion H; subst. 
       constructor. eapply CIH; eauto.
-      rewrite <- H3 in H0. inv H0.
+      rewrite <- H3 in H0. now inv H0.
   Qed.
 
   Instance proper_bisim_inf {A} : Proper (@bisim A ==> iff) (is_inf).
@@ -405,7 +405,7 @@ step on gfp can reduce.
     dependent induction Heutt; subst; auto with itree.
     - simpobs. auto with itree.
     - simpobs. constructor. eapply CIH; eauto.
-      inv Hev. 
+     now inv Hev. 
     - simpobs. inv Hev. 
     - simpobs. inv Hev.
       eapply IHHeutt; try apply H0; eauto.
@@ -556,7 +556,7 @@ step on gfp can reduce.
     remember (TauF t1) as ot1. 
     remember (TauF t2) as ot2. 
     revert t1 t2 Heqot1 Heqot2. cbn in H. 
-    induction H; intros t1' t2' Heqot1 Heqot2; try easy; subst.
+    induction H; intros t1' t2' Heqot1 Heqot2; try discriminate; subst.
     - inv Heqot1; inv Heqot2. now step.  
     - inv H; inv Heqot1; simpobs. 
       + constructor. now apply IHeqitEF. 
@@ -579,7 +579,7 @@ step on gfp can reduce.
     step in Heutt. dependent induction Heutt; subst.
     - unfold remove_events in x0, x.
       destruct (observe t1); destruct (observe t2); try discriminate.
-      constructor. cbn in *. inv x0; inv x. 
+      constructor. cbn in *. now inv x0; inv x. 
     - unfold remove_events in x0, x.
       destruct (observe t1) eqn : Heq1; destruct (observe t2) eqn : Heq2; try discriminate.
       + cbn in *. constructor.

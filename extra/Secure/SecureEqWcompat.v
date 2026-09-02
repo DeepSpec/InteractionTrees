@@ -211,39 +211,39 @@ Proof.
   step in Ht1t2; step in Ht3t4.
   revert t1 t3 Ht1t2 Ht3t4. induction Hbt2t4; intros.
   - (* secEqRet *)
-    inv Ht1t2; inv Ht3t4; now constructor.
+    inv Ht1t2; inv Ht3t4; try discriminate; now constructor.
   - (* secEqTau *)
-    inv Ht1t2; inv Ht3t4; ddestruction;  
+    inv Ht1t2; inv Ht3t4; try discriminate; ddestruction;  
       try contra_size; try contra_leq.
     all: smart_constructor (by_coinduction CIH).
   - (* secEqTauL (CHECK : b1) *)
-    inv Ht1t2; ddestruction; try contra_size; try contra_leq.
+    inv Ht1t2; try discriminate; ddestruction; try contra_size; try contra_leq.
     + apply secEqTauL; auto. eapply IHHbt2t4; eauto. now unstep.
     + apply EqVisUnPrivLInd; auto. intros. eapply IHHbt2t4; eauto. now unstep.
     + eapply (IHHbt2t4 (Vis _ _)); eauto. now unstep.
   - (* secEqTauR (CHECK : b2) *)
-    inv Ht3t4; ddestruction;  try contra_size; try contra_leq.
+    inv Ht3t4; try discriminate; ddestruction;  try contra_size; try contra_leq.
     + apply secEqTauR; auto. eapply IHHbt2t4; eauto. now unstep.
     + apply EqVisUnPrivRInd; auto. intros. eapply IHHbt2t4; eauto. now unstep.
     + eapply (IHHbt2t4 _ (Vis _ _)); eauto. now unstep.
   - (* EqVisPriv (priv leq) *)
-    inv Ht1t2; inv Ht3t4; ddestruction; 
+    inv Ht1t2; inv Ht3t4; try discriminate; ddestruction; 
       try contra_size; try contra_leq.
     all: smart_constructor (by_coinduction CIH).
   - (* EqVisUnPrivTauLCo (left vis nonempty, right tau) *)
-    inv Ht1t2; inv Ht3t4; ddestruction; 
+    inv Ht1t2; inv Ht3t4; try discriminate; ddestruction; 
       try contra_size; try contra_leq.
     all: smart_constructor (by_coinduction CIH).
   - (* EqVisUnPrivTauRCo (left tau, right vis nonempty) *)
-    inv Ht1t2; inv Ht3t4; ddestruction; 
+    inv Ht1t2; inv Ht3t4; try discriminate; ddestruction; 
       try contra_size; try contra_leq.
     all: smart_constructor (by_coinduction CIH).
   - (* EqVisUnPrivVisCo (left vis nonempty, right vis nonempty) *)
-    inv Ht1t2; inv Ht3t4; ddestruction; 
+    inv Ht1t2; inv Ht3t4; try discriminate; ddestruction; 
       try contra_size; try contra_leq.
     all: smart_constructor (by_coinduction CIH).
   - (* EqVisUnPrivLInd (CHECK : b1, left vis nonempty inductive) *)
-    inv Ht1t2; ddestruction;  try contra_size; try contra_leq.
+    inv Ht1t2; try discriminate; ddestruction; try contra_size; try contra_leq.
     + (* Ht1t2 = EqVisUnPrivTauRCo : observe t1 = TauF t5 *)
       apply secEqTauL; auto.
       match goal with He : nonempty ?A |- _ => destruct He as [aE] end.
@@ -256,7 +256,7 @@ Proof.
       match goal with He : nonempty ?A |- _ => destruct He as [aE] end.
       eapply (H0 aE (Vis _ _)); eauto. unstep. eauto.
   - (* EqVisUnPrivRInd (CHECK : b2, right vis nonempty inductive) *)
-    inv Ht3t4; ddestruction;  try contra_size; try contra_leq.
+    inv Ht3t4; try discriminate; ddestruction;  try contra_size; try contra_leq.
     + (* Ht3t4 = EqVisUnPrivTauLCo : observe t3 = TauF *)
       apply secEqTauR; auto.
       match goal with He : nonempty ?A |- _ => destruct He as [aE] end.
@@ -269,23 +269,23 @@ Proof.
       match goal with He : nonempty ?A |- _ => destruct He as [aE] end.
       eapply (H0 aE _ (Vis _ _)); eauto. unstep. eauto.
   - (* EqVisUnprivHaltLTauR (left vis empty, right tau) *)
-    inv Ht1t2; inv Ht3t4; ddestruction; 
+    inv Ht1t2; inv Ht3t4; try discriminate; ddestruction; 
       try contra_size; try contra_leq.
     all: resolve_sizes.
     all: smart_constructor (by_coinduction CIH).
   - (* EqVisUnprivHaltRTauL (left tau, right vis empty) *)
-    inv Ht1t2; inv Ht3t4; ddestruction; 
+    inv Ht1t2; inv Ht3t4; try discriminate; ddestruction; 
       try contra_size; try contra_leq.
     all: resolve_sizes.
     all: smart_constructor (by_coinduction CIH).
   - (* EqVisUnprivHaltLVisR (left vis empty, right vis ~leq) *)
-    inv Ht1t2; inv Ht3t4; ddestruction; 
+    inv Ht1t2; inv Ht3t4; try discriminate; ddestruction; 
       try contra_size; 
       try contra_leq.
     all: resolve_sizes.
     all: smart_constructor (by_coinduction CIH).
   - (* EqVisUnprivHaltRVisL (left vis ~leq, right vis empty) *)
-    inv Ht1t2; inv Ht3t4; ddestruction; 
+    inv Ht1t2; inv Ht3t4; try discriminate; ddestruction; 
       try contra_size; try contra_leq.
     all: resolve_sizes.
     all: smart_constructor (by_coinduction CIH).

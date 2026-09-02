@@ -68,11 +68,8 @@ Proof.
   - apply H1.  
 Qed.
 
-Ltac to_mon_s := 
-match goal with 
-| |- secure_eqitF ?Label ?priv ?RR ?b1 ?b2 ?l ?sim (observe ?t1) (observe ?t2) =>
-  change (secure_eqit_mon Label priv RR b1 b2 l sim t1 t2)
-  end.
+
+
 
 
 Lemma secure_eqit_bind_chain :

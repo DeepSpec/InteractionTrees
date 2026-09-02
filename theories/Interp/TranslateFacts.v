@@ -163,7 +163,7 @@ Proof.
   coinduction c CIH. intros. 
   rewrite 2 unfold_translate.
   step in H. 
-  destruct H; cbn; try easy; try rewrite Hfg; eauto with itree. 
+  destruct H; cbn; try discriminate; try rewrite Hfg; eauto with itree. 
 Qed.
 
 #[global]

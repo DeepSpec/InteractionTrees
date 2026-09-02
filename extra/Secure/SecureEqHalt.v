@@ -77,7 +77,7 @@ Lemma secure_eqitF_mono b1 b2 l :
     (secure_eqit_ b1 b2 l).
   Proof.
     intros!. red; red in H0. 
-    induction H0; try solve [constructor; intros; eauto with itree; now apply H].
+    induction H0; try solve [constructor; intros; eauto 4 with itree; now apply H].
   Qed.
 
   Definition secure_eqit_mon b1 b2 l := Build_mon (secure_eqitF_mono b1 b2 l).
@@ -158,7 +158,7 @@ Section eqit_secureC.
     (LE: r1 <2= r2) :
     eqit_secureC b1 b2 r2 t1 t2.
   Proof.
-    destruct IN; eauto with itree.
+    destruct IN; eauto 4 with itree.
   Qed. *)
 
 End eqit_secureC.
@@ -170,7 +170,7 @@ Lemma eqit_secure_sym : forall b1 b2 E R1 R2 RR Label priv l (t1 : itree E R1) (
 Proof.
   intros b1 b2 E R1 R2 RR Label priv l. icoinduction c CIH.
   intros t1 t2 Hsec. step in Hsec.
-  hinduction Hsec before c; intros; eauto with itree; 
+  hinduction Hsec before c; intros; eauto 4 with itree; 
   try (unpriv_co; apply CIH; apply H);
   try unpriv_halt.
   - constructor; auto with itree. intros. apply CIH; apply H.
@@ -189,7 +189,7 @@ Proof.
   hinduction Ht12 before l; intros; 
   try (unpriv_co; apply CIH; try red; eauto; fail);
   try (unpriv_halt; try contra_size; apply CIH; try red; eauto; fail); 
-  eauto with itree. 
+  eauto 4 with itree. 
   - constructor; auto. now apply H2. 
   - constructor; intros; eauto. eapply CIH. apply H. 
 Qed.

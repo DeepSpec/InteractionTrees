@@ -13,9 +13,9 @@ Set Warnings "-future-coercion-class-field".
    https://coq.inria.fr/stdlib/Coq.Relations.Relation_Definitions.html. *)
 (* A categorical account of this file is given in [CategoryRelation.v] *)
 
-#[global] Tactic Notation "intros !" := repeat intro.
-
 Definition relationH (A B : Type) := A -> B -> Prop.
+
+#[global] Tactic Notation "intros !" := repeat intro.
 
 Section RelationH_Operations.
 
@@ -744,13 +744,6 @@ Proof.
   assert (R a b). { specialize (RS b a). apply RS. assumption. }
   specialize (RT a b a). apply RT; auto.
 Qed.
-
-Ltac PER_reflexivityH :=
-  match goal with
-  | [ H : ?R  ?X ?Y |- ?R  ?X ?X ] =>  eapply PER_reflexivityH1; eauto
-  | [ H : ?R  ?Y ?X |- ?R  ?X ?X ] =>  eapply PER_reflexivityH2; eauto
-  end; try apply per_symm ; try apply per_trans.
-
 
 Definition diagonal_prop {A : Type} (P : A -> Prop) : relationH A A :=
   fun x y => (P  x /\ P y).

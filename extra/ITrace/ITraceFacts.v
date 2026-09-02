@@ -55,8 +55,8 @@ Lemma may_converge_trace : forall (E : Type -> Type) (R : Type)
     may_converge r1 b -> may_converge r2 b -> r1 = r2.
 Proof.
   intros. induction H; inv H0. 
-  - rewrite H in H1. sinv H1.
-  - rewrite H in H1. sinv H1.
+  - rewrite H in H1. now sinv H1.
+  - rewrite H in H1. now sinv H1.
   - destruct e. destruct b. apply IHmay_converge.
     + rewrite H in H2. sinv H2. 
     + contra_void. 
@@ -180,7 +180,7 @@ Lemma inv_append_eutt : forall (E : Type -> Type) (R : Type) (r1 r2 : R)
 Proof.
   intros. generalize dependent log2. induction log1; intros.
   - destruct log2.
-    + split; auto. cbn in H. sinv H. 
+    + split; auto. cbn in H. now sinv H. 
     + sinv H.
   - destruct log2.
     + sinv H.
@@ -503,7 +503,7 @@ Proof.
   dependent induction H0.
   - rewrite <- x in H. inv H. 
   - rewrite <- x0. constructor. eapply CIH; eauto.
-    rewrite <- x in H. inv H.
+    rewrite <- x in H. now inv H.
   - rewrite <- x0. rewrite <- x in H. constructor. inv H.
     ddestruction. subst. intros. 
     inv H1; subst; ddestruction; try contradiction. destruct b0.
@@ -546,7 +546,7 @@ Proof.
   - rewrite <- x0 in H. inv H.
   - unfold observe. cbn. rewrite <- x0. rewrite <- x.
     cbn. constructor. apply CIH; auto.
-    rewrite <- x0 in H. inv H. 
+    rewrite <- x0 in H. now inv H. 
   - unfold observe. cbn. rewrite <- x0. rewrite <- x. cbn. constructor; auto.
     intros.
     rewrite <- x0 in H. inv H. ddestruction. subst. 
@@ -570,7 +570,7 @@ Proof.
     rewrite Ht1 in Hr0. rewrite Ht2 in Hr0. 
     assert (Ret r0 ⊑ t1).
     { rewrite Ht1. apply Hr0. step. eret. }
-    rewrite Ht1 in H0. sinv H0. 
+    rewrite Ht1 in H0. now sinv H0. 
   (*Ret Tau *)
   - setoid_rewrite Ht2 in H.
     specialize (H (Ret r) ).

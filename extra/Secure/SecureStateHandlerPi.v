@@ -177,7 +177,7 @@ Proof.
      cbn in *. eapply pi_eqit_secure_trans_ret; eauto.
      apply pi_eqit_secure_sym. apply pi_eqit_secure_RR_imp with
                                    (RR1 := prod_rel RS top2).
-     { intros. inv H2.  }
+     { intros. now inv H2.  }
      eapply RESCHECK0. reflexivity.
  - apply simpobs in H0. rewrite <- itree_eta in H0. 
    rewrite H. rewrite H0. rewrite interp_state_vis.
@@ -204,7 +204,7 @@ Proof.
     cbn in *|-. step in He. 
     remember (observe (Ret (s2, tt))).
     icbn. rewrite observe_bind. 
-    hinduction He before CIH; intros; try easy.
+    hinduction He before CIH; intros; try discriminate.
     + inv H. inv Heqi. cbn in *. constructor; auto. cbn. 
     eapply CIH; eauto. simpobs_subst. apply H1.  
     + constructor 3; auto. step in H. rewrite Heqi in H. clear Heqi. 
@@ -226,7 +226,7 @@ Proof.
       accumulate CIH'. 
       intros t4 H.
       icbn. rewrite observe_bind. 
-      dependent induction H; simpobs; try easy. 
+      dependent induction H; simpobs; try discriminate. 
       * constructor; auto. 
         inv H. inv Heqi. cbn in *. 
         eapply CIH; eauto. apply H1. 
@@ -258,7 +258,7 @@ Proof.
     cbn in *|-. step in He. 
     remember (observe (Ret (s1, tt))).
     icbn. rewrite observe_bind. 
-    hinduction He before CIH; intros; try easy.
+    hinduction He before CIH; intros; try discriminate.
     + inv H. inv Heqi. cbn in *. constructor; auto. cbn. 
     eapply CIH; eauto. simpobs_subst. apply H1. now symmetry.   
     + constructor 4; auto. step in H. rewrite Heqi in H. clear Heqi. 
@@ -280,7 +280,7 @@ Proof.
       accumulate CIH'. 
       intros t4 H.
       icbn. rewrite observe_bind. 
-      dependent induction H; simpobs; try easy. 
+      dependent induction H; simpobs; try discriminate. 
       * constructor; auto. 
         inv H. inv Heqi. cbn in *. 
         eapply CIH; eauto. apply H1. now symmetry.  

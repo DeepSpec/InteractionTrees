@@ -120,7 +120,7 @@ Proof.
   rewrite 2 unfold_interp.
   step in H. 
 
-  destruct H; cbn; subst; try easy; eauto with itree.
+  destruct H; cbn; subst; try discriminate; eauto 4 with itree.
   unfold eq_Handler, i_pointwise in Hfg. 
   rewrite Hfg.
   to_mon.  
@@ -146,10 +146,10 @@ Proof.
   intros until T.
   coinduction. intros.
   rewrite !unfold_interp. step in H0. 
-  induction H0; intros; subst; cbn; eauto with itree; to_mon.   
+  induction H0; intros; subst; cbn; eauto 4 with itree; to_mon.   
   eapply eqit_bind_chain. 
   - do 2 step. apply H. 
-  - intros ??[=<-]. taus; eauto with itree. 
+  - intros ??[=<-]. taus; eauto 4 with itree. 
   - taul. to_mon. rewrite unfold_interp. apply IHeqitF. 
   - taur. to_mon. rewrite unfold_interp. apply IHeqitF. 
 Qed. 
@@ -165,10 +165,10 @@ Proof.
   intros until T.
   coinduction. intros.
   rewrite !unfold_interp. step in H0. 
-  induction H0; intros; subst; cbn; try easy; eauto with itree; to_mon.
+  induction H0; intros; subst; cbn; try discriminate; eauto 4 with itree; to_mon.
   eapply eqit_bind_chain. 
   - do 2 step. apply H. 
-  - intros ??[=<-]. taus; eauto with itree. 
+  - intros ??[=<-]. taus; eauto 4 with itree. 
   - taul. to_mon. rewrite unfold_interp. apply IHeqitF. 
 Qed.
 
@@ -181,8 +181,8 @@ Proof.
   coinduction. intros.
   rewrite !unfold_interp.
   step in H.
-  induction H; cbn; try easy; eauto with itree; to_mon. 
-  - ebind. intros; subst; taus; eauto with itree. 
+  induction H; cbn; try discriminate; eauto 4 with itree; to_mon. 
+  - ebind. intros; subst; taus; eauto 4 with itree. 
   - rewrite unfold_interp. now taul. 
   - rewrite unfold_interp. now taur. 
 Qed.
@@ -250,7 +250,7 @@ Lemma interp_trigger_h {E R} (t : itree E R) :
 Proof.
   revert t. coinduction. intros.
   rewrite unfold_interp. rewrite (itree_eta t) at 2.
-  destruct (observe t); cbn; eauto with itree. 
+  destruct (observe t); cbn; eauto 4 with itree. 
   constructor; intro. fold_subst. 
   rewrite bind_ret_l, tau_euttge.
   apply CIH. 
@@ -265,7 +265,7 @@ Theorem interp_interp {E F G R} (f : E ~> itree F) (g : F ~> itree G) :
 Proof.
   coinduction. intros. 
   rewrite 2 (unfold_interp t).
-  destruct (observe t); cbn; eauto with itree. 
+  destruct (observe t); cbn; eauto 4 with itree. 
   to_mon. rewrite interp_bind. ebind. intros; subst.  
   rewrite interp_tau. taus. apply CIH.   
 Qed.
@@ -290,7 +290,7 @@ Proof.
   revert t. coinduction. intros.
   rewrite unfold_translate.
   rewrite unfold_interp.
-  destruct (observe t); cbn; eauto with itree. 
+  destruct (observe t); cbn; eauto 4 with itree. 
   constructor. intro. fold_subst. 
   rewrite bind_ret_l, tau_euttge. apply CIH. 
 Qed.

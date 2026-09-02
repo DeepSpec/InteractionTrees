@@ -67,7 +67,7 @@ Section SecureProgInsens.
       (pi_secure_eqit_ b1 b2 l).
   Proof.
     intros!. red; red in H0.
-    induction H0; try solve [constructor; intros; eauto with itree; now apply H].
+    induction H0; try solve [constructor; intros; eauto 4 with itree; now apply H].
   Qed.
 
   Definition pi_secure_eqit_mon b1 b2 l := Build_mon (pi_secure_eqitF_mono b1 b2 l).
@@ -119,7 +119,7 @@ Lemma pi_eqit_secure_sym b1 b2 E R1 R2 RR Label priv l : forall (t1 : itree E R1
     pi_eqit_secure Label priv RR b1 b2 l t1 t2 -> pi_eqit_secure Label priv (flip RR) b2 b1 l t2 t1.
 Proof.
   icoinduction c CIH. intros t1 t2 Hsec. step in Hsec.
-  hinduction Hsec before c; intros; eauto with itree;
+  hinduction Hsec before c; intros; eauto 4 with itree;
   try (unpriv_pi; apply CIH; apply H; fail).
   constructor; auto. intros. apply CIH. apply H.
 Qed.
@@ -135,7 +135,7 @@ Proof.
   step in Ht12.
   hinduction Ht12 before l; intros;
   try (unpriv_pi; apply CIH; try red; eauto; fail);
-  eauto with itree.
+  eauto 4 with itree.
   - constructor; auto. now apply H2.
   - constructor; intros; eauto. eapply CIH. apply H.
 Qed.
@@ -163,7 +163,7 @@ Proof.
   intros E R1 b2 R2 RR1 Label priv l. coinduction c CIH.
   intros t1 t2 Htau. step in Htau.
   icbn. cbn in *.
-  inv Htau; eauto with itree.
+  inv Htau; eauto 4 with itree.
   - constructor; auto. apply (gfp_chain c). apply H1.
   - constructor; auto. apply CIH. step. rewrite <- H0. step in H1. apply H1.
   - apply (gfp_bchain c). apply H1.
@@ -179,11 +179,11 @@ Proof.
   coinduction c CIH. intros t1 t2 t3 Hsec Heq.
   step in Heq. step in Hsec. icbn. cbn in *.
   hinduction Heq before c; intros.
-  - inv Hsec; eauto with itree; unpriv_pi.
+  - inv Hsec; eauto 4 with itree; unpriv_pi.
     + rewrite itree_eta'. constructor; auto with itree. eapply CIH; eauto. step. rewrite H0. constructor. auto.
     + rewrite itree_eta'. unpriv_pi. eapply CIH; eauto. apply H1. step. rewrite H0. constructor; auto.
-  - inv Hsec; eauto with itree.
-    + constructor. eapply CIH; eauto with itree. step. rewrite H0. constructor; auto. now step in REL.
+  - inv Hsec; eauto 4 with itree.
+    + constructor. eapply CIH; eauto 4 with itree. step. rewrite H0. constructor; auto. now step in REL.
     + unpriv_pi. eapply CIH; eauto. apply H1.
     + unpriv_pi. eapply CIH. apply H1. step. rewrite H0. apply EqTauL; auto. now step in REL.
   - inv Hsec.
@@ -210,7 +210,7 @@ Lemma pi_eqit_secure_RR_imp b1 b2 E R1 R2 (RR1 : R1 -> R2 -> Prop ) (RR2 : R1 ->
 Proof.
   intros Himp.
   icoinduction c CIH. intros t1 t2 Ht12. step in Ht12.
-  hinduction Ht12 before c; intros; eauto with itree;
+  hinduction Ht12 before c; intros; eauto 4 with itree;
   try ( constructor; auto; intros; eapply CIH; eauto; fail);
   try ( unpriv_pi; intros; eapply CIH; eauto; apply H; fail).
   constructor; auto. intros. eapply CIH. apply H.
@@ -218,12 +218,12 @@ Qed.
 
 Ltac inv_eq_itree := 
   repeat match goal with 
-  | [ H : eqitF _ false false _ (RetF _) _ |- _ ] => inv H
-  | [ H : eqitF _ false false _ _ (RetF _) |- _ ] => inv H
-  | [ H : eqitF _ false false _ (TauF _) _ |- _ ] => inv H
-  | [ H : eqitF _ false false _ _ (TauF _) |- _ ] => inv H
-  | [ H : eqitF _ false false _ (VisF _ _) _ |- _ ] => inv H
-  | [ H : eqitF _ false false _ _ (VisF _ _) |- _ ] => inv H
+  | [ H : eqitF _ false false _ (RetF _) _ |- _ ]   => inv H; try discriminate
+  | [ H : eqitF _ false false _ _ (RetF _) |- _ ]   => inv H; try discriminate
+  | [ H : eqitF _ false false _ (TauF _) _ |- _ ]   => inv H; try discriminate
+  | [ H : eqitF _ false false _ _ (TauF _) |- _ ]   => inv H; try discriminate
+  | [ H : eqitF _ false false _ (VisF _ _) _ |- _ ] => inv H; try discriminate
+  | [ H : eqitF _ false false _ _ (VisF _ _) |- _ ] => inv H; try discriminate
   end. 
 
 #[local] Ltac taul ::= eapply pisecEqTauL; [auto|].
@@ -246,11 +246,11 @@ Proof with eauto with itree.
       genobs x ox.
       genret r1 or1.
       revert x Heqox.
-      hinduction EQx before ox; try easy.
+      hinduction EQx before ox; try discriminate.
       * intros; subst; inv Heqor1. clear x Heqox.
         genobs y oy; genret r2 or2.
         revert y Heqoy.
-        hinduction EQy before oy; try easy.
+        hinduction EQy before oy; try discriminate.
         subst; intros [=<-] ??...
         intros. rewrite itree_eta' at 1; taur. step. eapply IHEQy; eauto. 
       * intros; subst. taul. step. eapply IHEQx... 
@@ -258,12 +258,12 @@ Proof with eauto with itree.
       genobs x ox.
       gentau t1 om1.
       revert x Heqox.
-      hinduction EQx before ox; try easy.
+      hinduction EQx before ox; try discriminate.
       * intros [=<-] ? ??.
         clear x Heqox.
         genobs y oy; gentau t2 om2.
         revert y Heqoy.
-        hinduction EQy before oy; try easy.
+        hinduction EQy before oy; try discriminate.
         intros [=<-] ??...
         intros. rewrite itree_eta' at 1.  
         taur.
@@ -288,14 +288,14 @@ Proof with eauto with itree.
       genobs x ox.
       genvis e k1 ot1.
       revert x Heqox.
-      hinduction EQx before ox; try easy.
+      hinduction EQx before ox; try discriminate.
       * intros.
         apply eq_inv_VisF_weak in Heqot1 as (-> & ? & ?); cbn in *; subst.
         clear x Heqox.
         genobs y oy; genvis e k2 ot2.
         revert y Heqoy.
-        hinduction EQy before oy; try easy.
-        intros; apply eq_inv_VisF_weak in Heqot2 as (-> & ? & ?); cbn in *; subst; eauto with itree.
+        hinduction EQy before oy; try discriminate.
+        intros; apply eq_inv_VisF_weak in Heqot2 as (-> & ? & ?); cbn in *; subst; eauto 4 with itree.
         intros.
         rewrite itree_eta' at 1. taur.
         now step; eapply IHEQy.
@@ -304,14 +304,14 @@ Proof with eauto with itree.
       genobs x ox.
       genvis e k1 ot1.
       revert x Heqox.
-      hinduction EQx before ox; try easy.
+      hinduction EQx before ox; try discriminate.
       * intros.
         apply eq_inv_VisF_weak in Heqot1 as (-> & ? & ?); cbn in *; subst.
         clear x Heqox.
         genobs y oy; genvis e k0 ot2.
         revert y Heqoy.  
         remember (TauF t2).
-        hinduction EQy before oy; intros; subst; try easy.
+        hinduction EQy before oy; intros; subst; try discriminate.
         -- inv Heqi. constructor 6; intros; auto.  eapply IH. apply REL. apply REL0. apply H.  
         -- rewrite itree_eta' at 1. taur. 
         step. eapply IHEQy; eauto. 
@@ -320,14 +320,14 @@ Proof with eauto with itree.
       genobs y oy.
       genvis e k2 ot2.
       revert y Heqoy.
-      hinduction EQy before oy; try easy.
+      hinduction EQy before oy; try discriminate.
       * intros.
         apply eq_inv_VisF_weak in Heqot2 as (-> & ? & ?); cbn in *; subst.
         clear y Heqoy.
         genobs x ox; genvis e k1 ot2.
         revert x Heqox.  
         remember (TauF t1).
-        hinduction EQx before ox; intros; subst; try easy.
+        hinduction EQx before ox; intros; subst; try discriminate.
         -- inv Heqi. constructor 7; intros; auto.  eapply IH. apply REL. apply REL0. apply H.  
         -- rewrite itree_eta'. taul. 
         step. eapply IHEQx; eauto. 
@@ -343,7 +343,7 @@ Proof.
   icbn; icbn in Hpi. step in H12; step in H34. 
   induction Hpi; inv_eq_itree.
   (* ret and coinductive cases are simple *)
-  1,2: eauto with itree. 
+  1,2: eauto 4 with itree. 
   - taul. eapply CIH. apply REL. step; apply H34. assumption. 
   - taur. eapply CIH. step; apply H12. apply REL. assumption. 
   - ddestruction. evis.  
@@ -451,7 +451,7 @@ Proof.
   #[local] Ltac break_observe := unfold observe; cbn; simpobs; cbn. 
   (* QUESTION: why does 'now step; apply Hbody' instead of auto fail? *)
   #[local] Ltac pi_solve CIH := constructor; auto; intros; by_coinduction CIH.
-  - break_observe. inv H; cbn; eauto with itree.
+  - break_observe. inv H; cbn; eauto 4 with itree.
     constructor. now step; apply Hbody. 
   - break_observe. pi_solve CIH.
   - unfold observe at 1; cbn; simpobs. pi_solve CIH.
@@ -479,7 +479,7 @@ Proof.
   remember (observe (body1 a1)).
   remember (observe (body2 a2)).
   hinduction Hbodya before E; intros; cbn; auto with itree.
-  - break_observe. inv H; cbn; eauto with itree. 
+  - break_observe. inv H; cbn; eauto 4 with itree. 
   - break_observe. constructor. 
     eapply pi_eqit_secure_iter_bind_aux; eauto.
     (* taul, taur hard *)

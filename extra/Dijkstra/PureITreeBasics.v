@@ -21,8 +21,6 @@ Set Implicit Arguments.
 (** The itree Tau (Tau (Tau ...))*)
 #[local] Notation spin := ITree.spin.
 
-#[local] Tactic Notation "step" := repeat red; step. 
-#[local] Tactic Notation "step" "in" ident(h) := repeat red in h; step in h. 
 #[local] Tactic Notation "sinv" ident(h) := step in h; inv h. 
 
 (*this implies that if a spec w accepts spin, then bind w f should too?   *)
@@ -95,11 +93,12 @@ Qed.
 Lemma eutt_ret_euttge : forall (E : Type -> Type) (A : Type) (a : A) (t : itree E A),
       t ≈ Ret a -> t ≳ Ret a.
 Proof.
-  intros. generalize dependent t. icoinduction c CIH. intros. sinv H. 
+  intros. generalize dependent t. icoinduction c CIH. intros. sinv H.
+  - reflexivity.  
   - taul. 
   (* Unset Printing Notations.  *)
     remember (observe (Ret a)).
-    induction REL; try easy. 
+    induction REL; try discriminate. 
     + eret. 
     + taul. now apply IHREL.  
 Qed.

@@ -216,8 +216,6 @@ Proof.
 Qed.
 
 (* Derives contradiction from evidence that a return tree is infinite *)
-Ltac inv_infinite_ret := match goal with [ H : any_infiniteF _ (RetF _) |- _  ] => inversion H end.
-
 (* Infinite trees never return a value*)
 Lemma no_infinite_ret (E : Type -> Type) (A : Type) (t: itree E A) (a : A)
   : any_infinite t -> t ≈ Ret a -> False.

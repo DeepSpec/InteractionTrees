@@ -92,6 +92,8 @@ Proof.
     do 2 step. apply REL. 
     + constructor. intro. step. taus. apply CIH.
     apply REL.   
+  - easy. 
+  - easy. 
 Qed.
 
 Theorem interp_mrec_bind {U T} (t : itree _ U) (k : U -> itree _ T) :
@@ -238,7 +240,7 @@ Proof.
   intros f g Hfg R.
   coinduction; intros t1 t2 Ht.
   rewrite 2 unfold_interp_mrec.
-  step in Ht; induction Ht; try easy; cbn. 
+  step in Ht; induction Ht; try discriminate; cbn. 
   3: { destruct e; constructor. 
     + apply CIH. ebind. apply Hfg.  
       intros ? _ []. apply REL. 

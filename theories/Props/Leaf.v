@@ -116,12 +116,12 @@ Proof.
   - step in EQ. 
     rewrite H in EQ; clear H t.
     remember (RetF a); genobs u2 ou.
-    hinduction EQ before R; intros; try easy.
+    hinduction EQ before R; intros; try discriminate.
     + inv Heqi; eauto with itree.
     + edestruct IHEQ as (b & IN & HR); eauto with itree.
   - step in EQ; rewrite H in EQ; clear H t.
     remember (TauF u); genobs u2 ou2.
-    hinduction EQ before R; intros; try easy; inv Heqi.
+    hinduction EQ before R; intros; try discriminate; inv Heqi.
     + edestruct IHFIN as (? & ? & ?); [ .. | eexists ]; eauto with itree.
     + eapply IHFIN. now step. 
     + edestruct IHEQ as (? & ? & ?); [ .. | eexists ]; eauto with itree.

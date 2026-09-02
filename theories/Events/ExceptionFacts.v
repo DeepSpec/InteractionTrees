@@ -62,6 +62,8 @@ Proof.
       rewrite 2 bind_map. rewrite 2 bind_ret_r. 
       step. apply Hk. 
     + cbn. evis. step. cbn. etau. 
+  - inversion CHECK. 
+  - inversion CHECK. 
 Qed.
 
 Global Instance proper_eutt_try_catch {E Err R} : Proper (eutt eq ==> pointwise_relation Err (eutt eq) ==> eutt eq) (@try_catch Err R E).
@@ -87,10 +89,13 @@ Proof.
   intros t1 t2 Ht. revert t1 t2 Ht. 
   coinduction. intros. unfold throw_prefix. setoid_rewrite unfold_iter_ktree.
   sinv Ht.
+  - cbn. eret. 
   - cbn. etau.
   - destruct e.
     + destruct e. cbn. reflexivity. 
-    + cbn. evis. step. cbn. etau. 
+    + cbn. evis. step. cbn. etau.
+  - inversion CHECK.
+  - inversion CHECK.   
 Qed.
 
 Global Instance proper_eutt_throw_prefix {E Err R} : Proper (eutt eq ==> eutt eq) (@throw_prefix Err R E).

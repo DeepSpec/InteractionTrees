@@ -241,7 +241,7 @@ Proof.
   -  rewrite Heqot. constructor. eapply CIH; eauto. rewrite Heqotspin.
     step; constructor; auto. now unstep.
   - rewrite Heqot. constructor. step. eapply IHHt; eauto.
-  - eapply IHHt; eauto. assert (ITree.spin ≅ t2) by sinv Heqotspin. 
+  - eapply IHHt; eauto. assert (ITree.spin ≅ t2) by now sinv Heqotspin. 
     apply EqAxiom.bisimulation_is_eq in H. subst; auto.
   - rewrite Heqot. constructor; auto; intros. eapply CIH; eauto. rewrite Heqotspin.
     step; etau. now unstep. 

@@ -233,10 +233,10 @@ Hint Constructors iterF : itree.
 
   Lemma iter_mono {A B} body p Hp :
   Proper (leq ==> leq) (fun sim a => @iter_ A B sim body a p Hp).
-  Proof. 
+  Proof.  
     repeat red. intros. 
     induction H0; constructor. 
-    destruct (body a) as [fa Hfa] eqn : Heq. simpl in *.
+    destruct (body a) as [fa Hfa] eqn : Heq. simpl in *. 
     refine (Hfa _ _ _ _ _ H0). intros. inversion H1; eauto with itree.
     eapply cont_a; eauto. now apply H. 
 Qed.

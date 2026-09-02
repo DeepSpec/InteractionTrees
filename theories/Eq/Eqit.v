@@ -267,70 +267,18 @@ Ltac refold_in h :=
    be canonical; i.e. not to have both (observe (Ret r)) and (RetF r).
    
    *)
-Ltac to_mon_core :=
-cbn; match goal with
-| |- context[@eqitF ?E ?R1 ?R2 ?RR ?b1 ?b2 (?f ?R1 ?R2 ?RR)
-                   (observe ?t1) (observe ?t2)] =>
-      change (eqitF RR b1 b2 (f R1 R2 RR)
-                    (observe t1) (observe t2))
-      with (eqit_mon b1 b2 f R1 R2 RR t1 t2)
-| |- context[@eqitF ?E ?R1 ?R2 ?RR ?b1 ?b2 (?f ?R1 ?R2 ?RR)
-                   (?con1 ?a1) (?con2 ?a2)] =>
-      change (eqitF RR b1 b2 (f R1 R2 RR)
-                    (con1 a1) (con2 a2))
-      with (eqit_mon b1 b2 f R1 R2 RR
-                    (go (con1 a1)) (go (con2 a2)))
-| |- context[@eqitF ?E ?R1 ?R2 ?RR ?b1 ?b2 (?f ?R1 ?R2 ?RR)
-                   (?con ?a) (observe ?t2)] =>
-      change (eqitF RR b1 b2 (f R1 R2 RR)
-                    (con a) (observe t2))
-      with (eqit_mon b1 b2 f R1 R2 RR
-                    (go (con a)) t2)
-| |- context[@eqitF ?E ?R1 ?R2 ?RR ?b1 ?b2 (?f ?R1 ?R2 ?RR)
-                   (observe ?t1) (?con ?a)] =>
-      change (eqitF RR b1 b2 (f R1 R2 RR)
-                    (observe t1) (con a))
-      with (eqit_mon b1 b2 f R1 R2 RR
-                    t1 (go (con a)))
-end.
+Lemma eqit_to_mon_obs {E R1 R2} b1 b2 f (RR : R1 -> R2 -> Prop) t1 t2 :
+  @eqitF E R1 R2 RR b1 b2 (f R1 R2 RR) (observe t1) (observe t2)
+  = eqit_mon b1 b2 f R1 R2 RR t1 t2.
+Proof. reflexivity. Qed.
 
-(* A trick to make [to_mon] work under [forall]. *)
-Ltac to_mon := 
-let guard := fresh "guard" in   
-assert (guard : True) by constructor; 
-          intros; 
-          to_mon_core; 
-          revert_until guard; 
-          clear guard. 
+Lemma eqit_to_mon_go {E R1 R2} b1 b2 f (RR : R1 -> R2 -> Prop) x y :
+  @eqitF E R1 R2 RR b1 b2 (f R1 R2 RR) x y
+  = eqit_mon b1 b2 f R1 R2 RR (go x) (go y).
+Proof. reflexivity. Qed.
 
-Ltac to_mon_in h :=
-  cbn in h; match type of h with
-| context[@eqitF ?E ?R1 ?R2 ?RR ?b1 ?b2 (?f ?R1 ?R2 ?RR)
-                   (observe ?t1) (observe ?t2)] =>
-      change (eqitF RR b1 b2 (f R1 R2 RR)
-                    (observe t1) (observe t2))
-      with (eqit_mon b1 b2 f R1 R2 RR t1 t2) in h 
-| context[@eqitF ?E ?R1 ?R2 ?RR ?b1 ?b2 (?f ?R1 ?R2 ?RR)
-                   (?con1 ?a1) (?con2 ?a2)] =>
-      change (eqitF RR b1 b2 (f R1 R2 RR)
-                    (con1 a1) (con2 a2))
-      with (eqit_mon b1 b2 f R1 R2 RR
-                    (go (con1 a1)) (go (con2 a2))) in h
-| context[@eqitF ?E ?R1 ?R2 ?RR ?b1 ?b2 (?f ?R1 ?R2 ?RR)
-                   (?con ?a) (observe ?t2)] =>
-      change (eqitF RR b1 b2 (f R1 R2 RR)
-                    (con a) (observe t2))
-      with (eqit_mon b1 b2 f R1 R2 RR
-                    (go (con a)) t2) in h
-| context[@eqitF ?E ?R1 ?R2 ?RR ?b1 ?b2 (?f ?R1 ?R2 ?RR)
-                   (observe ?t1) (?con ?a)] =>
-      change (eqitF RR b1 b2 (f R1 R2 RR)
-                    (observe t1) (con a))
-      with (eqit_mon b1 b2 f R1 R2 RR
-                    t1 (go (con a))) in h
-end.
-
-(** --- Orchestration via the [Utils.v] generics. --- *)
+#[global] Hint Rewrite @eqit_to_mon_obs : to_mon_obs.
+#[global] Hint Rewrite @eqit_to_mon_go  : to_mon_go.
 
 Tactic Notation "icbn" "in" ident(h) := icbn_in h.
 #[local] Tactic Notation "icbn" "in" "*" := cbn [eqit_mon body eqit_] in *.
@@ -542,7 +490,7 @@ Qed.
 Lemma eqitF_flip {E R1 R2} (RR : R1 -> R2 -> Prop) b1 b2 r:
   flip (eqitF (flip RR) b2 b1 (flip r)) <= @eqitF E R1 R2 RR b1 b2 r.
 Proof.
-  intros!; induction H; eauto with itree.
+  intros!; induction H; eauto 4 with itree.
 Qed.
 
 #[global] Instance eqitF_Proper_R {E : Type -> Type} {R1 R2:Type} :
@@ -619,7 +567,7 @@ Proof.
   (* reduce the hypothesis and conclusion to the right form. *)
   step in euv.
   (* do induction and conclude trivially with constructors. *)
-  induction euv; eauto with itree.
+  induction euv; eauto 4 with itree.
 Qed.
 
 Lemma eutt_flip : forall (E : Type -> Type) (A B : Type) (R : A -> B -> Prop)
@@ -642,7 +590,7 @@ Proof.
   intros!. 
   revert a a0 H. 
   icoinduction c CIH; intros.  
-  step in H. induction H; eauto with itree.
+  step in H. induction H; eauto 4 with itree.
   econstructor. now apply LERR.  
 Qed.
 
@@ -668,7 +616,7 @@ Properties of the chains specialize to the relations: the gfp is an element of t
 #[global] Instance Reflexive_eqitF b1 b2 (sim : itree E R -> itree E R -> Prop)
     : Reflexive RR -> Reflexive sim -> Reflexive (eqitF RR b1 b2 sim).
 Proof.
-    red. destruct x; constructor; eauto with itree.
+    red. destruct x; constructor; eauto 4 with itree.
 Qed.
 
   (* We of course exclude the asymmetric case *)
@@ -683,7 +631,7 @@ Qed.
     : Transitive RR -> Transitive sim -> Transitive (eqitF RR false false sim).
 Proof.
     intros ?? t u v EQ1 EQ2.
-    inv EQ1; try now (inv EQ2; eauto with itree).
+    inv EQ1; try now (inv EQ2; eauto 4 with itree).
     apply eqitF_inv_VisF_l in EQ2 as [(? & -> & ?) | [abs _]]; [| easy].
     constructor; eauto.
 Qed. 
@@ -760,6 +708,7 @@ Section eqit_inv.
     remember (observe (Tau t1)).
     induction H; inv Heqi.  
     - step in REL. now taur.
+    - assumption. 
     - taur. now apply IHeqitF. 
   Qed. 
 
@@ -772,7 +721,8 @@ Section eqit_inv.
     remember (observe (Tau t2)).
     induction H; inv Heqi.  
     - step in REL. now taul. 
-    - taul. now apply IHeqitF. 
+    - taul. now apply IHeqitF.
+    - assumption.  
   Qed. 
 
   Lemma eqitF_inv_Tau t1 t2 :
@@ -783,13 +733,15 @@ Section eqit_inv.
     remember (TauF t1) as ot1. 
     remember (TauF t2) as ot2. 
     revert t1 t2 Heqot1 Heqot2.
-    induction H; intros t1' t2' Heqot1 Heqot2; try easy; subst.
+    induction H; intros t1' t2' Heqot1 Heqot2; try discriminate; subst.
     - inv Heqot1; inv Heqot2. now unstep.  
     - inv H; inv Heqot1; simpobs. 
       + taul. now step in REL.  
-      + taul. now apply IHeqitF.  
+      + taul. now apply IHeqitF.
+      + easy.   
     - inv H; inv Heqot2; simpobs. 
       + taur. now step in REL. 
+      + easy. 
       + taur. now apply IHeqitF. 
   Qed. 
 
@@ -839,8 +791,8 @@ Proof.
   step in EQ; cbn in EQ.
   genobs t ot; genobs u ou.
   revert t u Heqot Heqou.
-  induction EQ; intros; try easy.
-  - inv H; inv H0. 
+  induction EQ; intros; try discriminate.
+  - inv H; inv H0. assumption.  
   - inv H; simpobs.
     edestruct euttge_tau_r_inv; [step; eauto |].
     step.
@@ -867,11 +819,11 @@ Proof with eauto with itree.
       genobs x ox.
       genret r1 or1.
       revert x Heqox.
-      hinduction EQx before ox; try easy.
+      hinduction EQx before ox; try discriminate.
       * intros; subst; inv Heqor1. clear x Heqox.
         genobs y oy; genret r2 or2.
         revert y Heqoy.
-        hinduction EQy before oy; try easy.
+        hinduction EQy before oy; try discriminate.
         subst; intros [=<-] ??...
         now intros; taur; eapply IHEQy.
       * intros; subst; taul; eapply IHEQx...
@@ -879,12 +831,12 @@ Proof with eauto with itree.
       genobs x ox.
       gentau m1 om1.
       revert x Heqox.
-      hinduction EQx before ox; try easy.
+      hinduction EQx before ox; try discriminate.
       * intros [=<-] ? ??.
         clear x Heqox.
         genobs y oy; gentau m2 om2.
         revert y Heqoy.
-        hinduction EQy before oy; try easy.
+        hinduction EQy before oy; try discriminate.
         intros [=<-] ??...
         intros.
         taur.
@@ -894,13 +846,13 @@ Proof with eauto with itree.
       genobs x ox.
       genvis e k1 ot1.
       revert x Heqox.
-      hinduction EQx before ox; try easy.
+      hinduction EQx before ox; try discriminate.
       * intros.
         apply eq_inv_VisF_weak in Heqot1 as (-> & ? & ?); cbn in *; subst.
         clear x Heqox.
         genobs y oy; genvis e k2 ot2.
         revert y Heqoy.
-        hinduction EQy before oy; try easy.
+        hinduction EQy before oy; try discriminate.
         intros; apply eq_inv_VisF_weak in Heqot2 as (-> & ? & ?); cbn in *; subst; eauto with itree.
         intros.
         taur.
@@ -987,20 +939,24 @@ Proof with eauto with itree.
   all:
   hinduction H1 before RR; intros.
    (* ret and taus cases *)
-  1-2, 6-7: inv H; inv H0; simpobs; eauto with itree. 
+  1-2: inv H; inv H0; try discriminate; 
+  eauto 4 with itree.
   (* vis *)
-  1,4:
-  genvis e k1 ok1; inv H; simpobs;
-  genvis e k2 ok2; inv H0; simpobs;
-  do 2 inv_Vis; constructor; intros;
-  specialize (REL1 v);
-  specialize (REL0 v);
-  eapply CIH; eauto. 
+  - genvis e k1 ok1; inv H; simpobs; try discriminate. 
+    genvis e k2 ok2; inv H0; simpobs; try discriminate. 
+    do 2 inv_Vis. eauto with itree.
   (* inductive steps *)
-  1,3: 
-  inv H; simpobs; taul; eapply IHeqitF; eauto; now step in REL.
-  1-2: 
-  inv H0; simpobs; taur; eapply IHeqitF; eauto; now step in REL.
+  - inv H; try discriminate; simpobs; taul; eapply IHeqitF; eauto; now step in REL.
+  - inv H0; try discriminate; simpobs; taur; eapply IHeqitF; eauto; now step in REL.
+  - inv H; inv H0; constructor; eauto 4 with itree; easy. 
+  - inv H; inv H0; try discriminate; eauto 4 with itree.  
+  (* vis *)
+  - genvis e k1 ok1; inv H; simpobs; try discriminate. 
+    genvis e k2 ok2; inv H0; simpobs; try discriminate. 
+    do 2 inv_Vis. eauto with itree.
+  (* inductive steps *)
+  - inv H; try discriminate; simpobs; taul; eapply IHeqitF; eauto; now step in REL.
+  - inv H0; try discriminate; simpobs; taur; eapply IHeqitF; eauto; now step in REL.
 Qed.
 
 (* [euttge_proper_euttgeC] with [euttge eq] on BOTH arguments is FALSE.
@@ -1023,7 +979,7 @@ assert (Hfalse : euttge (E := fun _ => False) (R1 := unit) (R2 := unit) eq
     - reflexivity.
     - step. taul. reflexivity.
     - reflexivity. }
-  step in Hfalse. inv Hfalse. 
+  step in Hfalse. inv Hfalse. inversion CHECK. 
 Qed.  
 
 Lemma euttge_proper_flip_euttgeC {E R1 R2} 
@@ -1052,37 +1008,37 @@ Proof with eauto with itree.
       genobs x ox.
       genret r1 or1.
       revert x Heqox.
-      hinduction EQx before ox; try easy.
+      hinduction EQx before ox; try discriminate.
       * intros; subst; inv Heqor1. clear x Heqox.
         genobs y oy; genret r2 or2.
         revert y Heqoy.
-        (* EQy is eq_itree eq (b1=b2=false): EqTauL/EqTauR cases dismissed by [try easy] *)
-        hinduction EQy before oy; try easy.
+        (* EQy is eq_itree eq (b1=b2=false): EqTauL/EqTauR cases dismissed by [try discriminate] *)
+        hinduction EQy before oy; try discriminate.
         subst; intros [=<-] ??...
       * intros; subst; taul; eapply IHEQx...
     + clear x' y' Heqox' Heqoy'.
       genobs x ox.
       gentau m1 om1.
       revert x Heqox.
-      hinduction EQx before ox; try easy.
+      hinduction EQx before ox; try discriminate.
       * intros [=<-] ? ??.
         clear x Heqox.
         genobs y oy; gentau m2 om2.
         revert y Heqoy.
-        hinduction EQy before oy; try easy.
+        hinduction EQy before oy; try discriminate.
         intros [=<-] ??...
       * intros; subst; taul; eapply IHEQx...
     + clear x' y' Heqox' Heqoy'.
       genobs x ox.
       genvis e k1 ot1.
       revert x Heqox.
-      hinduction EQx before ox; try easy.
+      hinduction EQx before ox; try discriminate.
       * intros.
         apply eq_inv_VisF_weak in Heqot1 as (-> & ? & ?); cbn in *; subst.
         clear x Heqox.
         genobs y oy; genvis e k2 ot2.
         revert y Heqoy.
-        hinduction EQy before oy; try easy.
+        hinduction EQy before oy; try discriminate.
         intros; apply eq_inv_VisF_weak in Heqot2 as (-> & ? & ?); cbn in *; subst; eauto with itree.
       * intros; subst; taul; eapply IHEQx...
     + edestruct euttge_tau_r_inv; [step; eauto |].
@@ -1160,7 +1116,7 @@ Proof.
   hinduction INL before CIH; intros; subst. clear t1 t2.
   (* Ret, straightforward *)
   - genret r2 ot.
-    hinduction INR before CIH; intros; inv Heqot; eauto with itree.
+    hinduction INR before CIH; intros; inv Heqot; eauto 4 with itree.
   - genobs t3 ot3. 
     (* need something more: t3 is either a τ node, or it isn't. *)
     assert (DEC: (exists m3, ot3 = TauF m3) \/ (forall m3, ot3 <> TauF m3)).
@@ -1179,24 +1135,24 @@ Proof.
       hinduction REL0 before CIH; intros; try (exfalso; eapply EQ; eauto; fail).
       (* now we can handle each subcase with another layer of induction *)
       * remember (RetF r1) as ot.
-        hinduction REL0 before CIH; intros; inv Heqot; eauto with itree.
+        hinduction REL0 before CIH; intros; inv Heqot; eauto 4 with itree.
       * remember (VisF e k1) as ot.
-        hinduction REL0 before CIH; intros; try discriminate; [ inv_Vis | eauto with itree ].
+        hinduction REL0 before CIH; intros; try discriminate; [ inv_Vis | eauto 4 with itree ].
         econstructor. intros.
         apply (CIH _ _ _ (REL v) (REL0 v)). 
       * eapply IHREL0; eauto.
         destruct b1; inv CHECK0.
         unstep. apply eqit_inv_Tau_r. now step. 
   - remember (VisF e k2) as ot.
-    hinduction INR before CIH; intros; try discriminate; [ inv_Vis | eauto with itree ].
+    hinduction INR before CIH; intros; try discriminate; [ inv_Vis | eauto 4 with itree ].
     econstructor. intros.
     apply (CIH _ _ _ (REL0 v) (REL v)). 
-  - eauto with itree.
+  - eauto 4 with itree.
   - gentau t0 ot.
     genobs t3 ot3. 
     hinduction INR before CIH; intros; try inversion Heqot; subst.
     + eapply (IHINL (Tau m2)).
-      step in REL. eauto with itree.
+      step in REL. eauto 4 with itree.
     + now eapply IHINL.
     + taur. eapply IHINR; eauto. 
 Qed.
@@ -1504,7 +1460,7 @@ end.
 Lemma eqitree_inv_Ret_r {E R} (t : itree E R) r :
   t ≅ (Ret r) -> observe t = RetF r.
 Proof.
-  intros; sinv H.
+  intros; sinv H; easy.
 Qed.
 
 Lemma eqitree_inv_Vis_r {E R U} (t : itree E R) (e : E U) (k : U -> _) :
@@ -1518,13 +1474,13 @@ Qed.
 Lemma eqitree_inv_Tau_r {E R} (t t' : itree E R) :
   t ≅ Tau t' -> exists t0, observe t = TauF t0 /\ t0 ≅ t'.
 Proof.
-  intros; sinv H; eauto.
+  intros; sinv H; try discriminate; eauto.
 Qed.
 
 Lemma eqit_inv_Ret {E R1 R2 RR} b1 b2 r1 r2 :
   @eqit E R1 R2 RR b1 b2 (Ret r1) (Ret r2) -> RR r1 r2.
 Proof.
-  intros. step in H. inv H. 
+  intros. step in H. inv H. auto.  
 Qed.
 
 (* Axiom-free, weaker version of [eqit_inv_vis] *)
@@ -1641,7 +1597,7 @@ intros!; unfold flip, eq_itree in *.
   assert (eqit RR1 b1 b2 x y) by 
   (eapply eqit_mono with (b1:=false) (b2:=false) (RR:=RR1); easy).
   assert (eqit RR2 b1 b2 x0 y0) by 
-  (eapply eqit_mono with (b1:=false) (b2:=false) (RR:=RR2); try easy).  
+  (eapply eqit_mono with (b1:=false) (b2:=false) (RR:=RR2); easy).  
 
   (* first diagonal *)
   specialize (eqit_trans H4 H1) as Hdiag_weak. 
@@ -1689,7 +1645,8 @@ Proof.
   remember (observe (Ret r1)).
   genobs t2 ot2.
   remember {| _observe := ot2 |}.
-  hinduction Heutt before r1; intros; inv Heqi. 
+  hinduction Heutt before r1; intros; inv Heqi.
+  - reflexivity.  
   - rewrite tau_euttge. rewrite itree_eta. now eapply IHHeutt.
 Qed.
 
@@ -1702,6 +1659,7 @@ Proof.
   rewrite itree_eta. 
   remember (observe (Ret r2)); genobs t1 ot1; remember {| _observe := ot1 |}.
   hinduction Heutt before R; intros; inv Heqi. 
+  - reflexivity. 
   - rewrite tau_euttge. rewrite itree_eta. now eapply IHHeutt.
 Qed.
 
@@ -1754,10 +1712,6 @@ Proof.
   reflexivity.
 Qed.
 
-Ltac auto_ctrans :=
-  intros; repeat (match goal with [H: rcompose _ _ _ _ |- _] => destruct H end); subst; eauto.
-Ltac auto_ctrans_eq := try instantiate (1:=eq); auto_ctrans.
-
 Section eqit_h.
 
 Context {E : Type -> Type} {R1 R2 : Type} (RR : R1 -> R2 -> Prop).
@@ -1778,9 +1732,11 @@ Proof.
     + now unstep. 
     + inv H. 
       * taul. eapply IHeqitF; eauto. 
-      * taul. eapply IHeqitF; eauto. 
+      * taul. eapply IHeqitF; eauto.
+      * assumption. 
     + inv H. 
-      * taur. eapply IHeqitF; eauto. 
+      * taur. eapply IHeqitF; eauto.
+      * assumption.  
       * taur. eapply IHeqitF; eauto. 
   - step. now constructor.   
 Qed. 
@@ -1806,7 +1762,7 @@ Lemma eqit_Ret b1 b2 (r1 : R1) (r2 : R2) :
 Proof.
   split; intros H.
   - step. now constructor.
-  - sinv H. 
+  - sinv H. assumption.  
 Qed.
 
 (** *** "Up-to" principles for coinduction. *)
@@ -1830,7 +1786,7 @@ Proof.
   icbn in *. 
   genobs t1 ot1.  
   genobs t2 ot2.
-  hinduction H0 before RR; intros; try easy. 
+  hinduction H0 before RR; intros; try discriminate. 
 (* be careful not to rewrite all here; this will mess up taul and taur cases. *)
   1-3: rewrite 2 observe_bind; simpobs.
   (* ret *)
@@ -1877,10 +1833,10 @@ Qed.
 
 End eqit_h.
 
-Ltac eret := constructor; eauto with itree. 
-Ltac etau := constructor; eauto with itree. 
-Ltac evis := constructor; intros; eauto with itree. 
-Ltac ebind := eapply eqit_bind_chain; eauto with itree.  
+Ltac eret := constructor; eauto 4 with itree. 
+Ltac etau := constructor; eauto 4 with itree. 
+Ltac evis := constructor; intros; eauto 4 with itree. 
+Ltac ebind := eapply eqit_bind_chain; eauto 4 with itree.  
 
 
 Lemma eutt_Tau {E R} (t1 t2 : itree E R):
@@ -2285,7 +2241,7 @@ Proof.
       * step; icbn; inv H0; unfold observe, _observe; rewrite <- Heqtl; now constructor.
     + left; exists t; split.
       * step; icbn; rewrite Ema; constructor; apply reflexivity.
-      * inv Heqtl. inv H0. 
+      * inv Heqtl. inv H0. assumption.  
   - subst.
     unfold observe, _observe in Heqtl; cbn in Heqtl.
     destruct (observe ma) eqn:Ema; try discriminate.
@@ -2332,7 +2288,7 @@ Proof.
   revert Heqx Heqsp.
   induction H; intros EQ1 EQ2; try (now inv EQ1 || now inv EQ2).
   - apply IHeqitF; auto.
-    inv EQ2.
+    inv EQ2. reflexivity. 
 Qed.
 
 Lemma eutt_spin_Ret_abs: forall {E R1 R2} {RR: R1 -> R2 -> Prop} (v: R2),
@@ -2345,7 +2301,7 @@ Proof.
   revert Heqx Heqsp.
   induction H; intros EQ1 EQ2; try (now inv EQ1 || now inv EQ2).
   - apply IHeqitF; auto.
-    inv EQ2.
+    inv EQ2. reflexivity. 
 Qed.
 
 Lemma eutt_Vis_spin_abs: forall {E R1 R2} {RR: R1 -> R2 -> Prop} {X} (e: E X) (k: X -> itree E R1),
@@ -2358,7 +2314,7 @@ Proof.
   revert Heqx Heqsp.
   induction H; intros EQ1 EQ2; try (now inv EQ1 || now inv EQ2).
   - apply IHeqitF; auto.
-    inv EQ2.
+    inv EQ2. reflexivity. 
 Qed.
 
 Lemma eutt_spin_Vis_abs: forall {E R1 R2} {RR: R1 -> R2 -> Prop} {X} (e: E X) (k: X -> itree E R2),
@@ -2371,14 +2327,12 @@ Proof.
   revert Heqx Heqsp.
   induction H; intros EQ1 EQ2; try (now inv EQ1 || now inv EQ2).
   - apply IHeqitF; auto.
-    inv EQ2.
+    inv EQ2. reflexivity. 
 Qed.
 Section eqit_elem. 
 (*** *** Properties of the chain. *)
 
 Context {E : Type -> Type} {R1 R2} {RR : R1 -> R2 -> Prop} {b1 b2 : bool}.
-
-Ltac euttsimpl := unfold eutt, euttge, eq_itree, eqit in *. 
 
 Lemma Equivalence_elem_ff R RS (c : Chain (@eqit_mon E false false)) :
 Equivalence RS -> Equivalence (elem c R R RS).

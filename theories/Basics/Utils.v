@@ -3,26 +3,17 @@
 From Coinduction Require Import all.
 Require Import Program.Tactics.
 
-Ltac inv H := inversion H; clear H; subst; try easy.
+Ltac inv H := inversion H; clear H; subst.
 
 (* [inv], [rewrite_everywhere], [..._except] are general purpose *)
-
-Lemma hexploit_mp: forall P Q: Type, P -> (P -> Q) -> Q.
-Proof. intuition. Defined.
-Ltac hexploit x := eapply hexploit_mp; [eapply x|].
-
-Ltac rewrite_everywhere lem :=
-  progress ((repeat match goal with [H: _ |- _] => rewrite lem in H end); repeat rewrite lem).
 
 Ltac rewrite_everywhere_except lem X :=
   progress ((repeat match goal with [H: _ |- _] =>
                  match H with X => fail 1 | _ => rewrite lem in H end
              end); repeat rewrite lem).
 
-
-Ltac copy h :=
-  let foo := fresh "cpy" in
-  assert (foo := h).
+Ltac rewrite_everywhere lem :=
+  progress ((repeat match goal with [H: _ |- _] => rewrite lem in H end); repeat rewrite lem).
 
 Global Tactic Notation "intros !" := repeat intro.
 
@@ -85,19 +76,6 @@ Ltac appn f :=
     end.
 
 (* eapply by name of the Inductive relation *)
-Ltac eappn f :=
-    match goal with
-    | [ id: f |- _ ] => eapply id
-    | [ id: f _ |- _ ] => eapply id
-    | [ id: f _ _ |- _ ] => eapply id
-    | [ id: f _ _ _ |- _ ] => eapply id
-    | [ id: f _ _ _ _ |- _ ] => eapply id
-    | [ id: f _ _ _ _ _ |- _ ] => eapply id
-    | [ id: f _ _ _ _ _ _ |- _ ] => eapply id
-    | [ id: f _ _ _ _ _ _ _ |- _ ] => eapply id
-    | [ id: f _ _ _ _ _ _ _ _ |- _ ] => eapply id
-    end.
-
 Ltac break H :=
   repeat match type of H with
           | exists X, _  => destruct H
