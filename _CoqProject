@@ -2,6 +2,8 @@
 # PLEASE EDIT _CoqConfig INSTEAD
 
 -Q theories ITree
+-Q ../pous-coinduction/theories Coinduction
+-I ../pous-coinduction/src
 
 theories/Simple.v
 theories/ITree.v
