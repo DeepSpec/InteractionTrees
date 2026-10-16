@@ -1,7 +1,7 @@
 # Interaction Trees
 
 [![project chat](https://img.shields.io/badge/zulip-join_chat-brightgreen.svg)](https://coq.zulipchat.com/#narrow/stream/394939-Interaction-Trees)
-[![BUILD](https://circleci.com/gh/DeepSpec/InteractionTrees.svg?style=shield)](https://circleci/gh/DeepSpec/InteractionTrees)
+[![Docker CI](https://github.com/DeepSpec/InteractionTrees/actions/workflows/docker-action.yml/badge.svg)](https://github.com/DeepSpec/InteractionTrees/actions/workflows/docker-action.yml)
 
 A Library for Representing Recursive and Impure Programs in Coq
 
