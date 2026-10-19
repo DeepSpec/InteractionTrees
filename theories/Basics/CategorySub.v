@@ -3,7 +3,7 @@
 (** The category described by a subset of objects of an existing category. *)
 
 (* begin hide *)
-From Coq Require Import
+From Stdlib Require Import
      Setoid
      Morphisms.
 

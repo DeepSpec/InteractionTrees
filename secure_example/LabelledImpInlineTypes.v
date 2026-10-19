@@ -1,4 +1,4 @@
-From Coq Require Import Morphisms String.
+From Stdlib Require Import Morphisms String.
 
 From ITree Require Import
      ITree
@@ -140,7 +140,7 @@ Proof.
     eapply secure_eqit_bind; try apply IHe1; eauto. intros [? ?] [? ?] [? ?]. inv H1. cbn in *. destruct p; destruct p0. cbn in *.
     eapply secure_eqit_bind; try apply IHe2; eauto. intros. cbn in *.
     setoid_rewrite interp_state_ret. apply secure_eqit_ret; split; auto.
-    split; auto. cbn. inv H1. inv H5. etransitivity; eauto. reflexivity.
+    split; auto. cbn. inv H1. inv H5. etransitivity; eauto. 
   - repeat setoid_rewrite interp_state_bind.
     match goal with |- eqit_secure _ _ _ _ _ _ _ ?t =>
     assert ( t ≈ ITree.bind (Ret (regs2, σ2, n)) (fun st => ITree.bind (Ret (fst st, n) ) (fun st => Ret (fst st,n))  )  ) end.
@@ -149,7 +149,7 @@ Proof.
     eapply secure_eqit_bind; try apply IHe1; eauto. intros [? ?] [? ?] [? ?]. inv H1. cbn in *. destruct p; destruct p0. cbn in *.
     eapply secure_eqit_bind; try apply IHe2; eauto. intros. cbn in *.
     setoid_rewrite interp_state_ret. apply secure_eqit_ret; split; auto.
-    split; auto. cbn. inv H1. inv H5. etransitivity; eauto. reflexivity.
+    split; auto. cbn. inv H1. inv H5. etransitivity; eauto. 
   - repeat setoid_rewrite interp_state_bind.
     match goal with |- eqit_secure _ _ _ _ _ _ _ ?t =>
     assert ( t ≈ ITree.bind (Ret (regs2, σ2, n)) (fun st => ITree.bind (Ret (fst st, n) ) (fun st => Ret (fst st,n))  )  ) end.
@@ -158,7 +158,7 @@ Proof.
     eapply secure_eqit_bind; try apply IHe1; eauto. intros [? ?] [? ?] [? ?]. inv H1. cbn in *. destruct p; destruct p0. cbn in *.
     eapply secure_eqit_bind; try apply IHe2; eauto. intros. cbn in *.
     setoid_rewrite interp_state_ret. apply secure_eqit_ret; split; auto.
-    split; auto. cbn. inv H1. inv H5. etransitivity; eauto. reflexivity.
+    split; auto. cbn. inv H1. inv H5. etransitivity; eauto.
 Qed.
 
 Lemma expr_only_ret e observer:  exists n : value, label_state_sec_eutt Γ observer top2 (sem_expr e) (ret n) .
@@ -210,7 +210,7 @@ Proof.
   }
   eapply eqit_secure_trans; eauto. eapply eqit_secure_sym.
   apply eqit_secure_RR_imp with (RR1 := Rst).
-  { intros. split.
+  { intros ? ? PR. split.
     split; [cbv; auto | unfold Rst in *].
     inv PR. inv H. symmetry. auto. inv PR. symmetry. auto.
   }
@@ -224,7 +224,7 @@ Proof.
     - inv H0. inv H2. cbn in *. etransitivity; eauto.
     - inv H0. inv H2. cbn in *. etransitivity; eauto.
   }
-  eapply eqit_secure_trans; try apply Hr2; eauto. reflexivity.
+  eapply eqit_secure_trans; try apply Hr2; eauto.
 Qed.
 
 Lemma state_secure_eutt_throw_ret_aux:
@@ -264,8 +264,12 @@ Proof.
   eapply eqit_secure_RR_imp with (RR1 := rcompose Rst (rcompose eq (fun x1 x2 => Rst x2 x1)) ).
   { unfold Rst.
     intros [ [? ?] [ [] | ?] ] [ [? ?] [ [] | ?] ]; intro Hrcomp; unfold Rst'.
-    - split. split; auto. cbv. auto. cbn. inv Hrcomp. inv REL1. inv H. inv REL2. inv REL0. etransitivity; eauto.
-      cbn in *. inv H. symmetry. auto. split; constructor.
+    - destruct Hrcomp as [rmid HL HR]. destruct HR as [rmid' Heqmid HR].
+      subst rmid'. destruct rmid as [ [? ?] ?].
+      destruct HL as [ [_ HeqL] _ ]. destruct HR as [ [_ HeqR] _ ].
+      cbn in *.
+      split; [ split; [ cbv; auto | ] | split; constructor ].
+      cbn. etransitivity; eauto. symmetry. auto.
     - inv Hrcomp. inv REL2. inv REL3. inv H0.
     - inv Hrcomp. inv REL2. inv REL3. inv REL1. inv H1. inv H2.
     - inv Hrcomp. inv REL2. inv REL3. inv REL1. inv H1. inv H2.
@@ -291,7 +295,7 @@ Lemma state_secure_eutt_ret_aux:
                   true observer (interp_imp_inline t1 (regs1, σ1))
                   (interp_imp_inline t2 (regs2, σ2))).
 Proof.
-  intros. eapply state_secure_eutt_equiv_ret_aux; eauto. 2 : cbv; auto.
+  intros. eapply state_secure_eutt_equiv_ret_aux; eauto.
   constructor; constructor.
 Qed.
 Notation update := LabelledImp.update.
@@ -434,7 +438,7 @@ Proof.
       reflexivity.
       setoid_rewrite interp_state_bind. setoid_rewrite throw_prefix_denote_expr.
       setoid_rewrite interp_state_bind.
-      eapply secure_eqit_bind; eauto. intros [ [regs3 σ3] v1] [ [regs4 σ4] v2] [ [ _ Hσ] Hr]. cbn in Hr; subst. setoid_rewrite interp_state_ret. apply secure_eqit_ret. split; auto. split; auto. red. auto. cbn. split; auto. constructor.
+      eapply secure_eqit_bind; eauto. intros [ [regs3 σ3] v1] [ [regs4 σ4] v2] [ [ _ Hσ] Hr]. cbn in Hr; subst. setoid_rewrite interp_state_ret. apply secure_eqit_ret. repeat split; cbn; auto.
   - case_leq pc observer.
     + left; auto.
       destruct H0 as [n Hn]. unfold sem_throw_stmt.
@@ -467,7 +471,7 @@ Proof.
       setoid_rewrite throw_prefix_ev. setoid_rewrite interp_state_vis. cbn. rewrite bind_ret_l.
       rewrite interp_state_tau. eapply proper_eutt_secure_eutt; repeat rewrite tau_eutt; try reflexivity.
       setoid_rewrite throw_prefix_ret. setoid_rewrite interp_state_ret. cbn. apply secure_eqit_ret.
-      split; try constructor; auto. cbn. constructor. cbn. apply update_labelled_equiv_invisible; auto.
+      split; try constructor; auto. cbn. apply update_labelled_equiv_invisible; auto.
 Qed.
 
 
@@ -501,7 +505,7 @@ Proof.
     cbn in H2, H3. subst. cbn. eapply proper_eutt_secure_eutt; try apply interp_state_trigger.
     cbn. setoid_rewrite bind_trigger. cbn.
     apply eqit_secure_public_Vis; try apply H.
-    intros []. apply secure_eqit_ret; auto. split; auto. split; auto. cbv; auto.
+    intros []. apply secure_eqit_ret; auto. split; auto. split; auto.
   - case_leq pc observer.
     + left; auto. destruct H0 as [n Hn]. do 2 red in Hn. cbn in Hn.
       unfold sem_stmt. cbn. unfold interp_imp_inline, interp_asm. do 2 red.
@@ -639,7 +643,6 @@ Proof.
     intros [ [ ? σ3] [ [] | ?] ] [ [ ? σ4] [ [] | ? ]] [ [ _ Hσ] Hr] ; inv Hr.
     + cbn. inv Hc2obs; try contradiction. eapply H3; eauto.
     + destruct H4; subst; cbn. setoid_rewrite interp_state_ret. apply secure_eqit_ret. split; try constructor; auto.
-      constructor.
   - right; auto. unfold sem_throw_stmt, interp_imp_inline, interp_asm. cbn. do 2 red. intros.
     setoid_rewrite throw_prefix_bind. setoid_rewrite interp_state_bind.
     inv Hc2obs; try contradiction.

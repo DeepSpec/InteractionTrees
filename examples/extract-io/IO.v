@@ -1,4 +1,4 @@
-From Coq Require Import Arith.
+From Stdlib Require Import Arith.
 From ITree Require Import ITree.
 Import ITreeNotations.
 

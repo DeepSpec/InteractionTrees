@@ -53,7 +53,7 @@ SAZ: This needs to be updated.
 
 (* begin hide *)
 
-From Coq Require Import
+From Stdlib Require Import
      Arith
      String
      Morphisms
@@ -354,7 +354,7 @@ Section Bisimulation.
   Proof.
     repeat intro. unfold interp_imp_inline, interp_asm.
     repeat rewrite interp_state_bind.
-    eapply eutt_clo_bind.
+    eapply eutt_bind_eutt.
     { eapply H; auto. }
     intros [[regs1 mem1] a] [ [regs2 mem2] a'].
     intros Hs. destruct Hs.
@@ -379,7 +379,7 @@ Section Bisimulation.
     2 : { split; auto. }
     destruct H3. destruct j1 as [ [regs1 mem1] a].
     destruct j2 as [ [regs2 mem2] a']. cbn in *.
-    eapply eutt_clo_bind; eauto. intros [ [regs3 mem3] r1] [ [regs4 mem4 ] r2 ] Hs.
+    eapply eutt_bind_eutt; eauto. intros [ [regs3 mem3] r1] [ [regs4 mem4 ] r2 ] Hs.
     red in Hs. cbn in *. destruct Hs as [Hs Hr].
     inv Hr;
     apply eqit_Ret; constructor; split; auto.
@@ -665,9 +665,9 @@ Section Linking.
     rewrite bind_ret_l.
     destruct (label_case x); cbn.
     - rewrite !bind_bind. setoid_rewrite bind_ret_l. setoid_rewrite bind_bind.
-      eapply eutt_clo_bind; try reflexivity. intros; subst.
+      eapply eutt_bind_eutt; try reflexivity. intros; subst.
       repeat rewrite bind_bind.
-      eapply eutt_clo_bind; try reflexivity. intros; subst.
+      eapply eutt_bind_eutt; try reflexivity. intros; subst.
       unfold from_bif, FromBifunctor_ktree_fin; cbn.
       repeat rewrite bind_bind.
       repeat setoid_rewrite bind_ret_l.
@@ -680,7 +680,7 @@ Section Linking.
       + rewrite (relabel_asm_correct _ _ _ _). cbn.
         rewrite bind_ret_l.
         setoid_rewrite bind_bind.
-        eapply eutt_clo_bind; try reflexivity.
+        eapply eutt_bind_eutt; try reflexivity.
         intros ? ? [].
         repeat rewrite bind_ret_l.
         apply eqit_Ret.
@@ -940,12 +940,12 @@ Section Correctness.
       repeat setoid_rewrite interp_state_bind.
 
       (* The Induction hypothesis on [e1] relates the first itrees *)
-      eapply eutt_clo_bind.
+      eapply eutt_bind_eutt.
       { eapply IHe1; assumption. }
       (* We obtain new related environments *)
       intros [ [l_imp' g_imp'] v] [ [g_asm' l'] [] ]    HSIM.
       (* The Induction hypothesis on [e2] relates the second itrees *)
-      eapply eutt_clo_bind.
+      eapply eutt_bind_eutt.
       { eapply IHe2.
         eapply sim_rel_Renv; eassumption. }
       (* And we once again get new related environments *)
@@ -969,12 +969,12 @@ Section Correctness.
       repeat setoid_rewrite interp_state_bind.
 
       (* The Induction hypothesis on [e1] relates the first itrees *)
-      eapply eutt_clo_bind.
+      eapply eutt_bind_eutt.
       { eapply IHe1; assumption. }
       (* We obtain new related environments *)
       intros [ [l_imp' g_imp'] v] [ [g_asm' l'] [] ]    HSIM.
       (* The Induction hypothesis on [e2] relates the second itrees *)
-      eapply eutt_clo_bind.
+      eapply eutt_bind_eutt.
       { eapply IHe2.
         eapply sim_rel_Renv; eassumption. }
       (* And we once again get new related environments *)
@@ -998,12 +998,12 @@ Section Correctness.
       repeat setoid_rewrite interp_state_bind.
 
       (* The Induction hypothesis on [e1] relates the first itrees *)
-      eapply eutt_clo_bind.
+      eapply eutt_bind_eutt.
       { eapply IHe1; assumption. }
       (* We obtain new related environments *)
       intros [ [l_imp' g_imp'] v] [ [g_asm' l'] [] ]    HSIM.
       (* The Induction hypothesis on [e2] relates the second itrees *)
-      eapply eutt_clo_bind.
+      eapply eutt_bind_eutt.
       { eapply IHe2.
         eapply sim_rel_Renv; eassumption. }
       (* And we once again get new related environments *)
@@ -1040,7 +1040,7 @@ Section Correctness.
     (* By correctness of the compilation of expressions,
        we can match the head trees.
      *)
-    eapply eutt_clo_bind.
+    eapply eutt_bind_eutt.
     { eapply compile_expr_correct; eauto. }
 
     (* Once again, we get related environments *)
@@ -1065,7 +1065,7 @@ Section Correctness.
     red. intros. unfold compile_output. unfold interp_imp_inline, interp_asm.
     rewrite denote_list_app.
     do 2 rewrite interp_state_bind.
-    eapply eutt_clo_bind.
+    eapply eutt_bind_eutt.
     { eapply compile_expr_correct; eauto. }
     intros [ [l_imp' g_imp'] v]  [ [g_asm' l'] y] HSIM.
     simpl in HSIM. cbn.
@@ -1107,7 +1107,7 @@ Section Correctness.
     rewrite unfold_iter_ktree.
     rewrite unfold_iter.
     rewrite !bind_bind.
-    eapply eutt_clo_bind. reflexivity.
+    eapply eutt_bind_eutt. reflexivity.
     intros. subst.
     destruct u2 as [[]|[]].
     2 : { force_right. reflexivity. }
@@ -1116,7 +1116,7 @@ Section Correctness.
     apply eutt_iter' with (RI := fun _ r => inl tt = r).
     - intros _ _ [].
       rewrite <- bind_ret_r at 1.
-      eapply eutt_clo_bind; try reflexivity.
+      eapply eutt_bind_eutt; try reflexivity.
       intros [|[]] _ []; apply eqit_Ret; auto; constructor; auto.
     - constructor.
   Qed.
@@ -1154,19 +1154,19 @@ Section Correctness.
       reflexivity.
     - simpl. rewrite bind_bind. setoid_rewrite bind_bind. rewrite throw_prefix_bind.
       rewrite IHe1. rewrite bind_bind. setoid_rewrite bind_ret_l.
-      eapply eutt_clo_bind; try reflexivity. intros; subst.
+      eapply eutt_bind_eutt; try reflexivity. intros; subst.
       rewrite throw_prefix_bind. rewrite IHe2. rewrite bind_bind.
       setoid_rewrite bind_ret_l. setoid_rewrite throw_prefix_ret.
       reflexivity.
     - simpl. rewrite bind_bind. setoid_rewrite bind_bind. rewrite throw_prefix_bind.
       rewrite IHe1. rewrite bind_bind. setoid_rewrite bind_ret_l.
-      eapply eutt_clo_bind; try reflexivity. intros; subst.
+      eapply eutt_bind_eutt; try reflexivity. intros; subst.
       rewrite throw_prefix_bind. rewrite IHe2. rewrite bind_bind.
       setoid_rewrite bind_ret_l. setoid_rewrite throw_prefix_ret.
       reflexivity.
     -  simpl. rewrite bind_bind. setoid_rewrite bind_bind. rewrite throw_prefix_bind.
       rewrite IHe1. rewrite bind_bind. setoid_rewrite bind_ret_l.
-      eapply eutt_clo_bind; try reflexivity. intros; subst.
+      eapply eutt_bind_eutt; try reflexivity. intros; subst.
       rewrite throw_prefix_bind. rewrite IHe2. rewrite bind_bind.
       setoid_rewrite bind_ret_l. setoid_rewrite throw_prefix_ret.
       reflexivity.
@@ -1275,9 +1275,9 @@ Section Correctness.
   Proof.
     intros. rewrite <- bind_ret_r. apply eqit_flip in H. eapply eqit_bind'; eauto.
     intros. red in H0. destruct r2 as [ ? | [ | ] ]; cbn.
-    - setoid_rewrite (unique_fin _ r1 f0); auto. reflexivity.
-    - setoid_rewrite (unique_fin _ r1 (fS f0)); auto. reflexivity.
-    - setoid_rewrite (unique_fin _ r1 (fS (fS f0))); auto. reflexivity.
+    - setoid_rewrite (unique_fin _ r1 f0); auto; try reflexivity.
+    - setoid_rewrite (unique_fin _ r1 (fS f0)); auto; try reflexivity.
+    - setoid_rewrite (unique_fin _ r1 (fS (fS f0))); auto; try reflexivity.
   Qed.
 
   Lemma exception_to_sum_correct_eutt_eq (p : asm 1 1) :
@@ -1347,7 +1347,7 @@ Section Correctness.
       cbn. rewrite throw_prefix_bind. rewrite <- fold_to_itree'.
       rewrite throw_prefix_denote_expr. rewrite bind_bind. setoid_rewrite bind_ret_l.
       red. intros. unfold interp_imp_inline, interp_asm. do 2 rewrite interp_state_bind.
-      eapply eutt_clo_bind.
+      eapply eutt_bind_eutt.
       { eapply compile_expr_correct; eauto. }
       intros. destruct u1 as [ [reg0 mem0] v]. destruct u2 as [ [reg mem] ?  ]. destruct u.
       cbn. assert (Htmp : reg 0 = v).
@@ -1376,7 +1376,7 @@ Section Correctness.
         repeat rewrite bind_bind. setoid_rewrite bind_bind. setoid_rewrite bind_ret_l.
         red. intros.
         unfold interp_imp_inline, interp_asm.
-        do 2 rewrite interp_state_bind. eapply eutt_clo_bind.
+        do 2 rewrite interp_state_bind. eapply eutt_bind_eutt.
         {  eapply compile_expr_correct; auto. }
         intros [ [reg0 mem0] v] [ [reg mem] [] ]. cbn.
         intros [HRenv [ Hreg0  ? ] ].
@@ -1390,7 +1390,7 @@ Section Correctness.
         * repeat setoid_rewrite bind_bind. setoid_rewrite throw_prefix_bind.
           setoid_rewrite bind_bind. rewrite bind_trigger. rewrite interp_state_vis.
           cbn. setoid_rewrite bind_ret_l. rewrite tau_eutt. cbn. unfold get_reg, tmp_if. rewrite Hreg0.
-          setoid_rewrite bind_bind. do 2 rewrite interp_state_bind. eapply eutt_clo_bind.
+          setoid_rewrite bind_bind. do 2 rewrite interp_state_bind. eapply eutt_bind_eutt.
           { apply IHs; auto. }
           intros [ [reg'0 mem'0 ] [ [] | [ | ] ] ] [ [reg' mem' ] l' ] Hst.
           -- cbn. setoid_rewrite bind_ret_l. setoid_rewrite throw_prefix_ret.

@@ -23,6 +23,7 @@ theories/Basics/CategoryKleisliFacts.v
 theories/Basics/Function.v
 theories/Basics/FunctionFacts.v
 
+theories/Core/Utils.v
 theories/Core/ITreeDefinition.v
 theories/Core/KTree.v
 theories/Core/KTreeFacts.v
@@ -30,13 +31,10 @@ theories/Core/Subevent.v
 theories/Core/ITreeMonad.v
 
 theories/Eq.v
-theories/Eq/Paco2.v
 theories/Eq/Shallow.v
 theories/Eq/Eqit.v
-theories/Eq/UpToTaus.v
 theories/Eq/SimUpToTaus.v
 theories/Eq/EqAxiom.v
-theories/Eq/EuttExtras.v
 theories/Eq/Rutt.v
 theories/Eq/RuttFacts.v
 

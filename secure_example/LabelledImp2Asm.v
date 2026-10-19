@@ -17,7 +17,7 @@
 *)
 
 (* begin hide *)
-From Coq Require Import List.
+From Stdlib Require Import List.
 Import ListNotations.
 
 From ITree Require Import ITree.

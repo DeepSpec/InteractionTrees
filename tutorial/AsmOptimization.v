@@ -1,7 +1,7 @@
 (* begin hide *)
-Require Import Psatz.
+From Stdlib Require Import Psatz.
 
-From Coq Require Import
+From Stdlib Require Import
      Lists.List
      Strings.String
      Morphisms
@@ -135,12 +135,11 @@ Proof.
   intros t mem1 mem2 regs1 regs2 H1 H2.
   rewrite interp_asm_bind.
   rewrite <- bind_ret_r at 1.
-  apply (@eutt_clo_bind _ _ _ _ _ _ rel_asm).
+  apply (@eutt_bind_eutt _ _ _ _ _ _ rel_asm).
   { unfold interp_asm.
     unfold rel_asm.
     eapply interp_map_proper; try typeclasses eauto; auto.
     eapply interp_map_proper; try typeclasses eauto; auto.
-    reflexivity.
   }
   intros.
   destruct H as [J1 [J2 J3]]; subst.
@@ -331,7 +330,7 @@ Lemma ph_blk_append_correct {E} {HasExit : Exit -< E} :
     specialize H with (i:=i).
     pose proof (H E tt) as H2.
     do 2 rewrite interp_asm_bind.
-    eapply eutt_clo_bind.
+    eapply eutt_bind_eutt.
     apply H2; auto.
     intros.
     destruct H0 as [J1 [J2 J3]].
@@ -406,9 +405,9 @@ Proof.
   unfold interp_asm, interp_map.
   repeat setoid_rewrite interp_bind.
   repeat rewrite interp_state_bind.
-  apply (@eutt_clo_bind _ _ _ _ _ _ rel_asm).
+  apply (@eutt_bind_eutt _ _ _ _ _ _ rel_asm).
 
-  { apply (@eutt_clo_bind _ _ _ _ _ _ rel_asm).
+  { apply (@eutt_bind_eutt _ _ _ _ _ _ rel_asm).
     -  unfold inr_, Inr_Kleisli, lift_ktree_.
        unfold ret, Monad_itree.
        repeat rewrite interp_ret.
@@ -441,12 +440,12 @@ Proof.
   intros j1 j2 [K1 [K2 ->]]; cbn.
   rewrite !interp_bind, !interp_state_bind, !bind_bind. (* Slow! *)
 
-  apply (@eutt_clo_bind _ _ _ _ _ _ rel_asm);
+  apply (@eutt_bind_eutt _ _ _ _ _ _ rel_asm);
     [|intros ? ? [? [? ->]]]; cbn.
   { refine (peephole_block_correct _ _ _ _ _ _ _ _ _ _ _ _); eauto. }
 
   unfold CategorySub.to_bif, ToBifunctor_ktree_fin.
-  apply (@eutt_clo_bind _ _ _ _ _ _ rel_asm);
+  apply (@eutt_bind_eutt _ _ _ _ _ _ rel_asm);
     [|intros ? ? [? [? ->]]]; cbn.
   {
     rewrite bind_ret_l.

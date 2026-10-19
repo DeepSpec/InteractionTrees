@@ -1,7 +1,10 @@
-From Coq Require Import Arith Lia.
-From Paco Require Import paco.
+From Stdlib Require Import Arith Lia.
+From Coinduction Require Import all. 
 
-From ITree Require Import Axioms.
+From ITree Require Import 
+Axioms
+Eq.Eqit
+Utils. 
 
 Create HintDb not_wf.
 
@@ -17,21 +20,14 @@ Section IterRel.
     | not_wf (a' : A) (Hrel : r a a') (Hcorec : F a') .
   Hint Constructors not_wf_F : not_wf.
 
-  Lemma not_wf_F_mono sim sim' a
-        (IN : not_wf_F sim a)
-        (LE : sim <1= sim') : not_wf_F sim' a.
-  Proof.
-    destruct IN. eauto with not_wf.
-  Qed.
+  Lemma not_wf_F_mono : Proper (leq ==> leq) not_wf_F. 
+  Proof. monauto. Qed.
 
-  Lemma not_wf_F_mono' : monotone1 not_wf_F.
-  Proof.
-    red. intros. eapply not_wf_F_mono; eauto.
-  Qed.
-  Hint Resolve not_wf_F_mono' : paco.
+Definition not_wf_F_mon := 
+{| body := not_wf_F ; Hbody := not_wf_F_mono |}.
 
   Definition not_wf_from : A -> Prop :=
-    paco1 not_wf_F bot1.
+    gfp not_wf_F_mon.
 
   Inductive wf_from (a : A) : Prop :=
     | base : (forall a', ~ (r a a')) -> wf_from a
@@ -41,25 +37,25 @@ Section IterRel.
   Lemma neg_wf_from_not_wf_from_l : forall (a : A),
       ~(wf_from a) -> not_wf_from a.
   Proof.
-    pcofix CIH. intros. pfold. destruct (classic (exists a', r a a' /\ ~ ( wf_from a') )).
-    - destruct H as [a' [Hr Hwf] ]. econstructor; eauto.
+      coinduction c CIH. intros. destruct (classic (exists a', r a a' /\ ~ ( wf_from a') )).
+    - destruct H0 as [a' [Hr Hwf] ]. econstructor; eauto.
     - assert (forall a', ~ r a a' \/ wf_from a').
       {
         intros.
         destruct (classic (r a a')); auto. destruct (classic (wf_from a')); auto.
-        exfalso. apply H. exists a'. auto.
+        exfalso. apply H0. exists a'. auto.
       }
-      clear H.
-      exfalso. apply H0. clear H0. apply step. intros. destruct (H1 a'); auto with not_wf.
+      clear H0.
+      exfalso. apply H. clear H. apply step. intros. destruct (H1 a'); auto with not_wf.
   Qed.
 
   Lemma neg_wf_from_not_wf_from_r : forall (a : A),
       not_wf_from a -> ~ (wf_from a).
-  Proof.
-    intros. intro Hcontra. punfold H.  inversion H. pclearbot. clear H. generalize dependent a'.
+      Proof.
+      intros. intro Hcontra. repeat red in H. step in H. inversion H. clear H. generalize dependent a'.
     induction Hcontra; intros.
     - apply H in Hrel. auto.
-    - punfold Hcorec. inversion Hcorec. pclearbot. specialize (H0 a' Hrel a'0 Hrel0).
+    - step in Hcorec. inversion Hcorec. specialize (H0 a' Hrel a'0 Hrel0).
       auto.
   Qed.
 
@@ -79,10 +75,12 @@ Section IterRel.
     P a -> (forall a1 a2, P a1 -> r a1 a2 -> P a2 ) -> (forall a, P a -> r a (f a)) ->
     not_wf_from a.
   Proof.
-    intros. generalize dependent a. pcofix CIH. intros. pfold.
+    intros. generalize dependent a. unfold not_wf_from.
+    coinduction c CIH. 
+    intros. 
     apply not_wf with (a' := f a).
     - auto using H1.
-    - right. apply CIH. eapply H0; eauto.
+    - apply CIH. eapply H0; eauto.
   Qed.
 
   Lemma intro_wf : forall (P : A-> Prop) (m : A -> nat) (a : A),
@@ -122,10 +120,10 @@ Qed.
 Lemma wf_from_gt : forall (n : nat), wf_from (fun n0 n1 => n0 > n1) n.
 Proof.
   intros.
-  enough (forall n', n' <= n -> wf_from (fun n0 n1 => n0 > n1) n' ); auto.
+  enough (forall n', le n' n -> wf_from (fun n0 n1 => n0 > n1) n' ); auto.
   induction n; intros.
   - assert (n' = 0); try lia. subst. apply base. intros. lia.
-  - apply step. intros n'' Hn''. assert (n'' <= n); try lia. auto.
+  - apply step. intros n'' Hn''. assert (le n'' n); try lia. auto.
 Qed.
 (*induct on f a*)
 Lemma no_inf_dec_seq_aux : forall  (r : nat -> nat -> Prop) (n: nat),
@@ -146,7 +144,7 @@ Proof.
   intros A r f inv a Hinv Hgt Ha.
   remember (f a) as n0.
   generalize dependent a.
-  enough (forall a, f a <= n0 -> inv a -> wf_from r a).
+  enough (forall a, le (f a) n0 -> inv a -> wf_from r a).
   {
     intros. apply H. lia. auto.
   }

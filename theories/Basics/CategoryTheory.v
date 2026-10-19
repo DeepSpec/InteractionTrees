@@ -4,7 +4,7 @@
     operations, this module describes their properties. *)
 
 (* begin hide *)
-From Coq Require Import Setoid Morphisms.
+From Stdlib Require Import Setoid Morphisms.
 
 From ITree.Basics Require Import
      CategoryOps

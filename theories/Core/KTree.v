@@ -3,7 +3,7 @@
 (** The Kleisli category of ITrees. *)
 
 (* begin hide *)
-From Coq Require Import
+From Stdlib Require Import
      Morphisms.
 
 From ITree Require Import
@@ -15,7 +15,8 @@ From ITree Require Import
      Basics.Function
      Core.ITreeDefinition
      Eq.Eqit
-     Eq.UpToTaus.
+     .
+
 (* end hide *)
 
 Implicit Types E : Type -> Type.

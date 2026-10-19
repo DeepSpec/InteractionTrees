@@ -9,8 +9,7 @@ From ITree Require Import
      Leaf.
 From ITree.Events Require Import Nondeterminism Exception. (* For counterexamples *)
 
-From Paco Require Import paco.
-From Coq Require Import Morphisms Basics Program.Equality.
+From Stdlib Require Import Morphisms Basics Program.Equality.
 Import ITree.
 Import ITreeNotations.
 Import LeafNotations.
@@ -184,16 +183,15 @@ Proof.
   intros * EQ FIN;
   revert u EQ.
   induction FIN; intros u2 EQ.
-  - punfold EQ.
-    red in EQ; rewrite H in EQ; clear H.
+  - step in EQ. 
+    rewrite H in EQ; clear H.
     remember (RetF a); genobs u2 ou.
-    hinduction EQ before R; intros; try discriminate; eauto with itree.
-  - punfold EQ; red in EQ; rewrite H in EQ; clear H.
-    remember (TauF u); genobs u2 ou2.
-    hinduction EQ before R; intros; try discriminate; pclearbot; inv Heqi; eauto with itree.
-  - punfold EQ; red in EQ; rewrite H in EQ; clear H.
+    hinduction EQ before R; intros; try easy; eauto with itree.
+  - step in EQ; rewrite H in EQ; clear H.
+    apply IHFIN. rewrite <- tau_euttge. now step. 
+  - step in EQ; rewrite H in EQ; clear H.
     remember (VisF e k); genobs u2 ou2.
-    hinduction EQ before R; intros; try discriminate; pclearbot.
+    hinduction EQ before R; intros; try easy.
     + revert H0 H1.
       refine (match Heqi in _ = u return match u with VisF e0 k0 => _ | _ => False end with eq_refl => _ end).
       eauto with itree.
@@ -227,16 +225,14 @@ Proof.
   intros * EQ FIN;
   revert u EQ.
   induction FIN; intros u2 EQ.
-  - punfold EQ.
-    red in EQ; rewrite H in EQ; clear H.
+  - step in EQ. rewrite H in EQ; clear H.
     remember (RetF a); genobs u2 ou.
-    hinduction EQ before R; intros; try discriminate; eauto with itree.
-  - punfold EQ; red in EQ; rewrite H in EQ; clear H.
-    remember (TauF u); genobs u2 ou2.
-    hinduction EQ before R; intros; try discriminate; pclearbot; inv Heqi; eauto with itree.
-  - punfold EQ; red in EQ; rewrite H in EQ; clear H.
+    hinduction EQ before R; intros; try easy; eauto with itree.
+  - step in EQ; rewrite H in EQ; clear H.
+      apply IHFIN. rewrite <- tau_euttge. now step. 
+  - step in EQ; rewrite H in EQ; clear H.
     remember (VisF e k); genobs u2 ou2.
-    hinduction EQ before R; intros; try discriminate; pclearbot.
+    hinduction EQ before R; intros; try easy.
     + revert x FIN IHFIN.
       refine (match Heqi in _ = u return match u with VisF e0 k0 => _ | _ => False end with eq_refl => _ end).
       eauto with itree.
@@ -368,17 +364,17 @@ Proof.
   revert t k Hequ.
   induction FIN; intros t' k' ->; rename t' into t.
   - unfold observe in H; cbn in H.
-    desobs t EQ; cbn in *; try congruence.
+    desobs t teq; cbn in *; try congruence.
     split; eauto with itree.
   - unfold observe in H; cbn in H.
-    desobs t EQ; cbn in *; try congruence.
+    desobs t teq; cbn in *; try congruence.
     split; eauto with itree.
     inversion H; clear H; symmetry in H1.
     edestruct IHFIN as (? & ? & ? & ?).
     apply H1.
     split; eauto with itree.
   - unfold observe in H; cbn in H.
-    desobs t EQ; cbn in *; try congruence.
+    desobs t teq; cbn in *; try congruence.
     split; eauto with itree.
     revert x FIN IHFIN.
     refine (match H in _ = u return match u with VisF e0 k0 => _ | _ => False end with eq_refl => _ end).
@@ -499,7 +495,7 @@ Module Counterexamples.
 
 (** * Counterexamples *)
 
-(** Counterexamples to statements that could be expected to be true at firt glance. *)
+(** Counterexamples to statements that could be expected to be true at first glance. *)
 
 (** [all_finite] does _not_ entail [any_finite].
 

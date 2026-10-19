@@ -14,7 +14,6 @@ From ITree Require Export
      Core.ITreeDefinition
      Core.KTree
      Core.Subevent
-     Eq.UpToTaus
      Indexed.Function
      Indexed.Sum
      Interp.Interp

@@ -2,8 +2,6 @@ From ExtLib Require Import
      Data.List
      Structures.Monad.
 
-From Paco Require Import paco.
-
 From ITree Require Import
      ITree
      ITreeFacts

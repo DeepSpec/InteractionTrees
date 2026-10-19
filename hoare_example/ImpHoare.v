@@ -1,6 +1,8 @@
-From Coq Require Import
+From Coinduction Require Import all. 
+From Stdlib Require Import
      Arith Lia (* nia *)
      Morphisms
+     Program.Basics
 .
 
 From ExtLib Require Import
@@ -14,6 +16,7 @@ From ITree Require Import
      Events.MapDefault
      Events.State
      Events.StateFacts
+     HeterogeneousRelations
      Props.Infinite.
 
 From ITree.Extra Require Import
@@ -25,7 +28,6 @@ From ITree.Extra Require Import
      Dijkstra.StateDelaySpec
 .
 
-From Paco Require Import paco.
 
 From hoare Require Import Imp.
 
@@ -223,7 +225,7 @@ Qed.
 Definition state_eq2 {E : Type -> Type} {A B S : Type} (k1 k2 : A -> stateT S (itree E) B ) : Prop :=
   forall a, state_eq (k1 a)  (k2 a).
 
-Lemma eq_itree_clo_bind {E : Type -> Type} {R1 R2 : Type} :
+Lemma eq_itree_bind {E : Type -> Type} {R1 R2 : Type} :
   forall (RR : R1 -> R2 -> Prop) (U1 U2 : Type) (UU : U1 -> U2 -> Prop)
          (t1 : itree E U1) (t2 : itree E U2)
          (k1 : U1 -> itree E R1) (k2 : U2 -> itree E R2),
@@ -239,7 +241,7 @@ Global Instance bind_state_eq2 {E : Type -> Type} {A B S : Type} {m : stateT S (
   Proper (@state_eq2 E A B S ==> @state_eq E S B) (bind m).
 Proof.
   repeat intro. unfold state_eq2, state_eq in H. cbn.
-  eapply eq_itree_clo_bind; try reflexivity. intros. subst.
+  eapply eq_itree_bind; try reflexivity. intros. subst.
   destruct u2 as [s' a]. simpl. rewrite H. reflexivity.
 Qed.
 
@@ -268,7 +270,7 @@ Proof.
     fold (run_state_itree s while_denote1). fold (run_state_itree s while_denote2).
     unfold while_denote1. unfold while_denote2. rewrite H. reflexivity.
  - rewrite interp_bind. rewrite interp_state_bind_state.
-   clear s. intro s. eapply eq_itree_clo_bind; try reflexivity.
+   clear s. intro s. eapply eq_itree_bind; try reflexivity.
    intros. subst. destruct u2 as [s' b0 ]. simpl. destruct b0.
    + rewrite interp_bind. rewrite interp_state_bind.
      unfold interp_imp, interp_map. reflexivity.
@@ -328,14 +330,14 @@ Proof.
     }
    enough (p (Ret (s',tt) ) ).
     {
-      unfold p in H0. basic_solve; auto. pinversion H0.
+      unfold p in H0. basic_solve; auto. sinv H0.
     }
     enough (p (CategoryOps.iter body tt s) ).
     {
       eapply Hp; try apply H0. unfold CategoryOps.iter, Iter_Kleisli, Basics.iter.
       unfold body. symmetry. auto.
     }
-    enough ((p \1/ any_infinite) (CategoryOps.iter body tt s) ).
+    enough ((Disj_unary _ p any_infinite) (CategoryOps.iter body tt s) ).
     {
       destruct H0; auto. unfold p. auto.
     }
@@ -358,7 +360,7 @@ Proof.
         eapply Hq.
         -- cbn. rewrite H1. setoid_rewrite bind_bind. setoid_rewrite bind_ret_l.
            simpl. tau_steps. reflexivity.
-        -- unfold q. left. exists s. right. split; auto. reflexivity.
+        -- unfold q. left. exists s. right. split; auto.
       * do 2 red in H1. unfold interp_imp, interp_map in H1.
         eapply Hq.
         -- cbn. rewrite H1. setoid_rewrite bind_bind. setoid_rewrite bind_ret_l.
@@ -382,7 +384,7 @@ Proof.
        exists s0. split; auto. symmetry. auto.
      * right. destruct (eutt_reta_or_div t); basic_solve; auto.
        cbn in H0. rewrite <- H1 in H0. setoid_rewrite bind_ret_l in H0.
-       pinversion H0.
+       sinv H0.
   + unfold q.
     unfold DelaySpecMonad.iter_lift, iso_destatify_arrow, reassoc.
     basic_solve; try (destruct (classic_bool b s0) );
@@ -404,22 +406,22 @@ Proof.
       -- cbn.  rewrite H0. setoid_rewrite bind_ret_l.
          do 2 red in H1. unfold interp_imp, interp_map in H1. rewrite H1.
          setoid_rewrite bind_bind. setoid_rewrite bind_ret_l. simpl. tau_steps. reflexivity.
-      -- left. exists s0. right. split; auto. reflexivity.
+      -- left. exists s0. right. split; auto; reflexivity.
     * eapply Hq.
       -- cbn.  rewrite H0. setoid_rewrite bind_ret_l.
          do 2 red in H1. unfold interp_imp, interp_map in H1. rewrite H1.
          setoid_rewrite bind_bind. setoid_rewrite bind_ret_l. simpl. tau_steps. reflexivity.
-      -- left. exists s0. right. split; auto. reflexivity.
+      -- left. exists s0. right. split; auto; reflexivity.
     * do 2 red in H1. do 2 red in H2. rewrite H1 in H2.
       apply eutt_inv_Ret in H2. injection H2. discriminate.
     * do 2 red in H1. do 2 red in H2. rewrite H1 in H2.
       apply eutt_inv_Ret in H2. injection H2. discriminate.
     * eapply Hq.
       -- cbn.  rewrite H0. setoid_rewrite bind_ret_l.  reflexivity.
-      -- left. exists s0. right. split; auto. reflexivity.
+      -- left. exists s0. right. split; auto; reflexivity.
     * eapply Hq.
       -- cbn.  rewrite H0. setoid_rewrite bind_ret_l.  reflexivity.
-      -- left. exists s0. right. split; auto. reflexivity.
+      -- left. exists s0. right. split; auto; reflexivity.
     * right. cbn. apply div_spin_eutt in H0. rewrite H0. rewrite <- spin_bind.
       apply spin_infinite.
    - set (fun (t : Delay (env * unit)) =>
@@ -449,14 +451,14 @@ Proof.
 
       enough (p (Ret (s',tt))).
       {
-        unfold p in H0. basic_solve; auto. pinversion H0.
+        unfold p in H0. basic_solve; auto. sinv H0.
       }
-      enough ((p \1/ any_infinite) (CategoryOps.iter body tt s ) ).
+      enough ((Disj_unary _ p any_infinite) (CategoryOps.iter body tt s ) ).
       {
         destruct H0.
         - eapply Hp; try apply H0. rewrite <- Heutt. reflexivity.
         - unfold CategoryOps.iter, Iter_Kleisli, Basics.iter in H0.
-          unfold body in H0. rewrite Heutt in H0. pinversion H0.
+          unfold body in H0. rewrite Heutt in H0. sinv H0.
       }
       eapply Hloop; eauto.
       + unfold reassoc. unfold body. destruct (classic_bool b s).
@@ -483,7 +485,7 @@ Proof.
           eapply Hq.
           -- setoid_rewrite bind_bind. rewrite H0. setoid_rewrite bind_ret_l.
              simpl. cbn. tau_steps. reflexivity.
-          -- unfold q. left. exists s. split; auto. right. reflexivity.
+          -- unfold q. left. exists s. split; auto; try (right; reflexivity).
       + red. intros. unfold p. unfold q in H0. basic_solve.
         * cbn in H0.
           destruct (eutt_reta_or_div t); basic_solve.
@@ -500,7 +502,7 @@ Proof.
            rewrite <- spin_bind in H0. symmetry in H0. apply not_ret_eutt_spin in H0. auto.
       * cbn in H0. right. destruct (eutt_reta_or_div t); auto.
         basic_solve. rewrite <- H1 in H0. setoid_rewrite bind_ret_l in H0.
-        pinversion H0.
+        sinv H0.
     + unfold DelaySpecMonad.iter_lift, iso_destatify_arrow, reassoc.
       intros t Ht. cbn.
       destruct (eutt_reta_or_div t);
@@ -518,10 +520,10 @@ Proof.
         -- destruct a as [s3 [] ]. unfold q in Ht. basic_solve.
            ++ rewrite  H3 in H0. basic_solve.
               unfold q. left. exists s3. split; try (left; reflexivity). symmetry in H2.
-              cbn in H0. pinversion H0. subst. injection REL; intros; subst.
+              cbn in H0. sinv H0. subst. injection REL; intros; subst.
               eapply H; eauto.
-           ++ rewrite H3 in H0. cbn in *; basic_solve; pinversion H0; try discriminate; basic_solve.
-           ++ rewrite <- H0 in H3. pinversion H3.
+           ++ rewrite H3 in H0. cbn in *; basic_solve; sinv H0; try discriminate; basic_solve.
+           ++ rewrite <- H0 in H3. sinv H3.
         -- rewrite <- H0. setoid_rewrite bind_ret_l. setoid_rewrite bind_bind.
            do 2 red in H1. unfold interp_imp, interp_map in H1. rewrite H1.
            setoid_rewrite bind_ret_l. simpl. apply div_spin_eutt in H2.
@@ -534,9 +536,9 @@ Proof.
            tau_steps. reflexivity.
         -- unfold q. left. exists s''. split; try (right; reflexivity). unfold q in Ht.
            basic_solve.
-           ++ rewrite H3 in H0. basic_solve. auto. pinversion H0. injection REL; intros; subst; auto.
-           ++ rewrite H3 in H0. basic_solve. pinversion H0. discriminate.
-           ++ rewrite <- H0 in H3. pinversion H3.
+           ++ rewrite H3 in H0. basic_solve. auto. sinv H0. injection REL; intros; subst; auto.
+           ++ rewrite H3 in H0. basic_solve. sinv H0; try discriminate.
+           ++ rewrite <- H0 in H3. sinv H3.
         -- rewrite <- H0. setoid_rewrite bind_ret_l.
            setoid_rewrite bind_bind.
            do 2 red in H1. unfold interp_imp, interp_map in H1.
@@ -545,17 +547,17 @@ Proof.
         -- unfold q. left. exists s''.
            split; try (right; reflexivity). unfold q in Ht.
            basic_solve.
-           ++ rewrite H3 in H0. basic_solve. pinversion H0; injection REL; intros; subst; auto.
-           ++ rewrite H3 in H0. basic_solve. pinversion H0; discriminate.
-           ++ rewrite <- H0 in H3. pinversion H3.
+           ++ rewrite H3 in H0. basic_solve. sinv H0; injection REL; intros; subst; auto.
+           ++ rewrite H3 in H0. basic_solve. sinv H0; discriminate.
+           ++ rewrite <- H0 in H3. sinv H3.
      * destruct b0 as [s'' [] ]. eapply Hq.
        -- rewrite <- H0. setoid_rewrite bind_ret_l.
           reflexivity.
        -- unfold q. left. exists s''. split; try (right; reflexivity).
           unfold q in Ht. basic_solve.
-          ++ rewrite H1 in H0. basic_solve. pinversion H0. discriminate.
-          ++ rewrite H1 in H0. basic_solve. pinversion H0; injection REL; intros; subst; auto.
-          ++ rewrite <- H0 in H1. pinversion H1.
+          ++ rewrite H1 in H0. basic_solve. sinv H0; try discriminate.
+          ++ rewrite H1 in H0. basic_solve. sinv H0; injection REL; intros; subst; auto.
+          ++ rewrite <- H0 in H1. sinv H1.
      * clear Ht. unfold q. right. apply div_spin_eutt in H0.
        rewrite H0. rewrite <- spin_bind. apply spin_infinite.
 
@@ -564,7 +566,7 @@ Qed.
 Lemma denote_imp_bind : forall (c1 c2 : com), state_eq (denote_imp (c1 ;;; c2)) (denote_imp c1 ;; denote_imp c2).
 Proof.
   intros. intro. cbn. unfold denote_imp. simpl. setoid_rewrite interp_imp_bind.
-  eapply eq_itree_clo_bind; try reflexivity. intros. subst. destruct u2. reflexivity.
+  eapply eq_itree_bind; try reflexivity. intros. subst. destruct u2. reflexivity.
 Qed.
 
 Definition state_eq_eutt {R S : Type} {E : Type -> Type} (m0 m1 : stateT S (itree E) R) :Prop :=
@@ -720,7 +722,7 @@ Global Instance state_eutt_bind_r {A B S : Type} {E : Type -> Type}
 Proof.
   repeat intro. rename x into k0. rename y into k1. rename H into Heutt.
   red. red. red in Heutt. red in Heutt. cbn.
-  eapply eutt_clo_bind; try reflexivity. intros. subst. destruct u2 as [s' a]. simpl.
+  eapply eutt_bind_eutt; try reflexivity. intros. subst. destruct u2 as [s' a]. simpl.
   rewrite Heutt. reflexivity.
 Qed.
 
@@ -729,7 +731,7 @@ Global Instance state_eutt_bind_l' {A B S : Type} {E : Type -> Type} :
 Proof.
   unfold Proper, respectful, pointwise_relation. intros m0 m1 Hmeutt k0 k1 Hkeutt.
   intro. cbn. red in Hmeutt. rewrite Hmeutt.
-  eapply eutt_clo_bind; try reflexivity. intros. subst. destruct u2 as [s' a].
+  eapply eutt_bind_eutt; try reflexivity. intros. subst. destruct u2 as [s' a].
   simpl. red in Hkeutt. rewrite Hkeutt. reflexivity.
 Qed.
 
@@ -887,8 +889,8 @@ Section SQRTEx.
     eapply intro_not_wf with (P := fun s => lookup_default n 0 s = n0) (f := fun s => inc_var i s); auto.
     - intros s0 s1 Hinv Heval. unfold body_arrow in Heval. simpl in Heval.
       rewrite Hinv in Heval. eqbdestruct (lookup_default i 0 s0 * lookup_default i 0 s0) n0.
-      + simpl in *. basic_solve. pinversion Heval; discriminate.
-      + simpl in Heval. basic_solve. pinversion Heval. injection REL; intros; subst. unfold inc_var. rewrite lookup_neq; auto.
+      + simpl in *. basic_solve. sinv Heval; discriminate.
+      + simpl in Heval. basic_solve. sinv Heval. injection REL; intros; subst. unfold inc_var. rewrite lookup_neq; auto.
     - intros s' Hinv. unfold body_arrow. simpl. rewrite Hinv.
       eqbdestruct (lookup_default i 0 s' * lookup_default i 0 s') n0; simpl.
       + exfalso. eapply H; apply Heq.
@@ -909,14 +911,14 @@ Section SQRTEx.
       unfold body_arrow in Heutt. simpl in Heutt.
       destruct Hs1 as [Hsqrt1 Hconst].
       eqbdestruct (lookup_default i 0 s1 * lookup_default i 0 s1) (lookup_default n 0 s1);
-        simpl in *; basic_solve; pinversion Heutt; try discriminate; injection REL; intros; subst.
+        simpl in *; basic_solve; sinv Heutt; try discriminate; injection REL; intros; subst.
       split.
       + unfold inc_var. rewrite lookup_eq.
         nia.
       + unfold inc_var. rewrite lookup_neq; auto.
     - intros s1 s2 Hs1 Heutt. unfold body_arrow in Heutt. simpl in *.
       eqbdestruct (lookup_default i 0 s1 * lookup_default i 0 s1) (lookup_default n 0 s1); simpl in *;
-        pinversion Heutt; try discriminate; injection REL; intros; subst.
+        sinv Heutt; try discriminate; injection REL; intros; subst.
         unfold inc_var. rewrite lookup_eq. nia.
     - split; nia.
  Qed.
@@ -937,11 +939,11 @@ Section SQRTEx.
       rewrite compile_nat_sqrt_body. unfold run_state_itree.
       apply iter_inl_spin_state.
       apply ( diverge_if_not_square_nat_sqrt_aux) in H. unfold state_iter_arrow_rel.
-      simpl. unfold body_arrow in H. simpl in *. generalize dependent s. pcofix CIH. intros.
-      pinversion H0; try apply not_wf_F_mono'.
-      pfold. eapply not_wf with (a' := (a',tt)).
+      simpl. unfold body_arrow in H. simpl in *. generalize dependent s. coinduction c CIH. intros.
+      sinv H; try apply not_wf_F_mono'.
+      eapply not_wf with (a' := (a',tt)).
       - symmetry. auto.
-      - right. auto.
+      - apply CIH; auto.
     Qed.
 
     (*maybe there is a better way to do it, prove that if the body can't prove a a spin,
@@ -980,7 +982,7 @@ Section SQRTEx.
 
 
   Lemma prepost1_holds_nat_sqrt_loop :
-    verify_cond env (encode_dyn env ((pre1 /1\ fun s => lookup_default i 0 s = 0), post1) )
+    verify_cond env (encode_dyn env ((Conj_unary _ pre1 (fun s => lookup_default i 0 s = 0), post1) ))
                 (denote_imp (WHILE (~ i * i  = n) DO i ::= i + 1 END)%imp ).
   Proof.
     rewrite compile_nat_sqrt_body.
@@ -1008,13 +1010,13 @@ Section SQRTEx.
         * exists s0. split; auto. left. rewrite H. auto.
         * exists s0. split; auto. right. rewrite H. auto.
     }
-    match goal with |- p ?t => enough ((p \1/ any_infinite) t)  end.
+    match goal with |- p ?t => enough ((Disj_unary _ p any_infinite) t)  end.
     - destruct H; auto. exfalso.
       specialize (converge_if_square_nat_sqrt s Hi0 Hpre) as Hconv.
       basic_solve.
       match type of Hconv with ?m s ≈ _ => fold (run_state_itree s m) in Hconv end.
       rewrite compile_nat_sqrt_body in Hconv. unfold run_state_itree in Hconv. rewrite Hconv in H.
-      pinversion H.
+      sinv H.
     - eapply loop_invar_state with (q := q); eauto.
       (*Establishment*)
       + unfold reassoc. simpl. rewrite Hi0. simpl.
@@ -1061,7 +1063,7 @@ Section SQRTEx.
                 ** unfold get, inc_var. rewrite lookup_neq; auto.
          * eapply Hq.
            -- rewrite H. simpl. rewrite bind_ret_l. cbn. reflexivity.
-           -- red. exists s0. split; auto. right. split; auto. reflexivity.
+           -- red. exists s0. split; auto; try (right; split; auto; reflexivity).
   Qed.
 
 

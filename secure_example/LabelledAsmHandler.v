@@ -1,4 +1,4 @@
-From Coq Require Import
+From Stdlib Require Import
      List
      Morphisms.
 
@@ -18,8 +18,6 @@ From SecureExample Require Import
 Import Monads.
 Import MonadNotation.
 Local Open Scope monad_scope.
-
-From Paco Require Import paco.
 
 (* Note that this definition sets considers all registers to be private *)
 

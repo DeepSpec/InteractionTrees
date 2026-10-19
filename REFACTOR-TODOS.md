@@ -1,0 +1,33 @@
+Cleanup
+- [ ] CoqProject -> RocqProject (if possible)
+- [ ] coq->rocq otherwise (if possible)
+- [ ] paco out of itreepredicateexamples.v 
+- [ ] 
+
+/end 
+
+- [x] Generally clean up Eqit.v. 
+  - [x] rename and redo sections
+  - [x] keep building tests until rewriting robustness is clear
+    - [x] organize file
+    - [x] remove add parametric morphism
+- [x] rest of rtodos 
+
+- [x] get tutorial building 
+- unify how we deal with each node of a tree. 
+
+- rets: a constructor pattern that either concludes or leads to computation.
+- taus: coinductive conclusion. 
+- single tau: simple inductive conclusion. 
+- vis: this is the tricky one, and the strongest reason for a unified front. 
+there is some inv_Vis, some dependent destruction, some vis_gen... we need a 
+single pipeline for concluding proofs about vis nodes. 
+    - the 'refine match' pattern that appears here is not lovely either. 
+      See Finite.v. 
+
+- [ ] Get "MWE ITree library" for RIP volume
+      - want highlights of itrees 
+NEXT: 
+- [ ] Gather and organize knowledge for talk and RIP presentation about 
+      how one would teach the essentials of itrees. 
+- [ ] 

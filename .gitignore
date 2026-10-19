@@ -32,7 +32,7 @@ deps.dot
 .coqdeps.d
 Makefile.coq
 Makefile.coq.conf
-/_CoqProject
+# /_CoqProject
 examples/_CoqProject
 tutorial/_CoqProject
 _CoqPath
@@ -52,3 +52,9 @@ tutorial/imp_test.mli
 *.native
 
 *.install
+.mcp.json
+rocq_mcp_cache_8675_.v
+rocq_mcp_cache_85046_.v
+.Makefile.d
+Makefile.conf
+Makefile

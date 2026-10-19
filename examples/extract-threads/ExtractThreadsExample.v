@@ -1,4 +1,4 @@
-From Coq Require ExtrOcamlBasic ExtrOcamlString.
+From Stdlib Require ExtrOcamlBasic ExtrOcamlString.
 
 From ITreeExamples Require Import MultiThreadedPrinting.
 

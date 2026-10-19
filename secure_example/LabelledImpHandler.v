@@ -90,7 +90,7 @@ Proof.
         setoid_rewrite bind_trigger. apply eqit_secure_public_Vis. cbv. auto.
         intros [].
       * eapply respect_private_e. cbv. auto. constructor. intros [].
-        intros. setoid_rewrite bind_trigger. pfold. constructor. intros [].
+        intros. setoid_rewrite bind_trigger. step. constructor. intros [].
         cbv. auto.
     + destruct (priv_map x) eqn : Hl.
       * apply respect_public'. cbv. rewrite Hl. auto.

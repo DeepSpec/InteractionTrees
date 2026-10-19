@@ -113,7 +113,7 @@ Class Initial (i : obj) :=
   empty : forall a, C i a.
 
 (** If there is a terminal object [t], its terminal morphisms are written
-    [one : C a i]. *)
+    [one : C a t]. *)
 Class Terminal (t : obj) :=
   one : forall a, C a t.
 

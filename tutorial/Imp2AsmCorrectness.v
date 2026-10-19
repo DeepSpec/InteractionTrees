@@ -54,7 +54,7 @@ SAZ: This needs to be updated.
 (* begin hide *)
 From ITreeTutorial Require Import Imp Asm Utils_tutorial AsmCombinators Imp2Asm Fin KTreeFin.
 
-From Coq Require Import
+From Stdlib Require Import
      Psatz
      Strings.String
      List
@@ -360,7 +360,7 @@ Section Bisimulation.
     repeat intro.
     rewrite interp_asm_bind.
     rewrite interp_imp_bind.
-    eapply eutt_clo_bind.
+    eapply eutt_bind_eutt.
     { eapply H; auto. }
     intros.
     destruct u1 as [? ?].
@@ -395,7 +395,7 @@ Section Bisimulation.
     rewrite interp_state_bind, bind_bind.
     setoid_rewrite interp_state_ret.
     setoid_rewrite bind_ret_l. cbn.
-    apply (@eutt_clo_bind _ _ _ _ _ _ (state_invariant (sum_rel R S))).
+    apply (@eutt_bind_eutt _ _ _ _ _ _ (state_invariant (sum_rel R S))).
     - auto.
     - intros ? ? [? []]; cbn; apply eqit_Ret; constructor; split; auto.
     - constructor; auto.
@@ -547,9 +547,9 @@ Section Linking.
     rewrite bind_ret_l.
     destruct (label_case x); cbn.
     - rewrite !bind_bind. setoid_rewrite bind_ret_l.
-      eapply eutt_clo_bind; try reflexivity. intros; subst.
+      eapply eutt_bind_eutt; try reflexivity. intros; subst.
       rewrite bind_bind.
-      eapply eutt_clo_bind; try reflexivity. intros; subst.
+      eapply eutt_bind_eutt; try reflexivity. intros; subst.
       unfold from_bif, FromBifunctor_ktree_fin; cbn.
       setoid_rewrite bind_ret_l.
       destruct u0.
@@ -561,7 +561,7 @@ Section Linking.
       + rewrite (relabel_asm_correct _ _ _ _). cbn.
         rewrite bind_ret_l.
         setoid_rewrite bind_bind.
-        eapply eutt_clo_bind; try reflexivity.
+        eapply eutt_bind_eutt; try reflexivity.
         intros ? ? [].
         repeat rewrite bind_ret_l.
         apply eqit_Ret.
@@ -634,14 +634,14 @@ Section Correctness.
       rewrite interp_imp_bind.
 
       (* The Induction hypothesis on [e1] relates the first itrees *)
-      eapply eutt_clo_bind.
+      eapply eutt_bind_eutt.
       { eapply IHe1; assumption. }
       (* We obtain new related environments *)
       intros [g_imp' v] [g_asm' [l' []]] HSIM.
       (* The Induction hypothesis on [e2] relates the second itrees *)
       rewrite interp_asm_bind.
       rewrite interp_imp_bind.
-      eapply eutt_clo_bind.
+      eapply eutt_bind_eutt.
       { eapply IHe2.
         eapply sim_rel_Renv; eassumption. }
       (* And we once again get new related environments *)
@@ -662,14 +662,14 @@ Section Correctness.
       rewrite interp_imp_bind.
 
       (* The Induction hypothesis on [e1] relates the first itrees *)
-      eapply eutt_clo_bind.
+      eapply eutt_bind_eutt.
       { eapply IHe1; assumption. }
       (* We obtain new related environments *)
       intros [g_imp' v] [g_asm' [l' []]] HSIM.
       (* The Induction hypothesis on [e2] relates the second itrees *)
       rewrite interp_asm_bind.
       rewrite interp_imp_bind.
-      eapply eutt_clo_bind.
+      eapply eutt_bind_eutt.
       { eapply IHe2.
         eapply sim_rel_Renv; eassumption. }
       (* And we once again get new related environments *)
@@ -690,14 +690,14 @@ Section Correctness.
       rewrite interp_imp_bind.
 
       (* The Induction hypothesis on [e1] relates the first itrees *)
-      eapply eutt_clo_bind.
+      eapply eutt_bind_eutt.
       { eapply IHe1; assumption. }
       (* We obtain new related environments *)
       intros [g_imp' v] [g_asm' [l' []]] HSIM.
       (* The Induction hypothesis on [e2] relates the second itrees *)
       rewrite interp_asm_bind.
       rewrite interp_imp_bind.
-      eapply eutt_clo_bind.
+      eapply eutt_bind_eutt.
       { eapply IHe2.
         eapply sim_rel_Renv; eassumption. }
       (* And we once again get new related environments *)
@@ -731,7 +731,7 @@ Section Correctness.
     (* By correctness of the compilation of expressions,
        we can match the head trees.
      *)
-    eapply eutt_clo_bind.
+    eapply eutt_bind_eutt.
     { eapply compile_expr_correct; eauto. }
 
     (* Once again, we get related environments *)
@@ -782,7 +782,7 @@ Section Correctness.
     rewrite bind_ret_l, tau_eutt.
     rewrite unfold_iter_ktree.
     rewrite !bind_bind.
-    eapply eutt_clo_bind. reflexivity.
+    eapply eutt_bind_eutt. reflexivity.
     intros. subst.
     destruct u2 as [[]|[]].
     2 : { force_right. reflexivity. }
@@ -791,7 +791,7 @@ Section Correctness.
     apply eutt_iter' with (RI := fun _ r => inl tt = r).
     - intros _ _ [].
       rewrite <- bind_ret_r at 1.
-      eapply eutt_clo_bind; try reflexivity.
+      eapply eutt_bind_eutt; try reflexivity.
       intros [|[]] _ []; apply eqit_Ret; auto; constructor; auto.
     - constructor.
   Qed.
@@ -867,7 +867,7 @@ Section Correctness.
       repeat intro.
       rewrite interp_asm_bind.
       rewrite interp_imp_bind.
-      eapply eutt_clo_bind.
+      eapply eutt_bind_eutt.
       { apply compile_expr_correct; auto. }
 
       (* We get in return [sim_rel] related environments *)
@@ -923,7 +923,7 @@ Section Correctness.
       rewrite !interp_asm_bind.
       rewrite !bind_bind.
 
-      eapply eutt_clo_bind.
+      eapply eutt_bind_eutt.
       { apply compile_expr_correct; auto. }
 
       intros [g_imp' v] [g_asm' [l' x]] HSIM.
@@ -952,7 +952,7 @@ Section Correctness.
         rewrite !interp_asm_bind.
         rewrite !interp_imp_bind.
         rewrite !bind_bind.
-        eapply eutt_clo_bind.
+        eapply eutt_bind_eutt.
         { eapply IHs; auto. }
         intros [g_imp'' v''] [g_asm'' [l'' x']] [HSIM' ?].
         force_right; force_left.

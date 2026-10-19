@@ -3,7 +3,7 @@
 (** Other ITree modules should import this to avoid accidentally using more
    axioms elsewhere. *)
 
-From Coq Require Import
+From Stdlib Require Import
   Logic.Classical_Prop
   Logic.ClassicalChoice
   Logic.EqdepFacts
@@ -11,7 +11,7 @@ From Coq Require Import
 .
 
 (* Must be imported to use [ddestruction] *)
-From Coq Require Export
+From Stdlib Require Export
   Program.Equality
 .
 
@@ -32,7 +32,7 @@ Definition choice := ClassicalChoice.choice.
 
 Definition functional_extensionality := @FunctionalExtensionality.functional_extensionality.
 
-(* From Coq.Logic.ChoiceFacts *)
+(* From Stdlib.Logic.ChoiceFacts *)
 Definition GuardedFunctionalChoice_on {A B} :=
   forall P : A -> Prop, forall R : A -> B -> Prop,
     inhabited B ->

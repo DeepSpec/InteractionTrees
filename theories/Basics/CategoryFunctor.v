@@ -1,6 +1,6 @@
 (** * Definition of a functor *)
 
-From Coq Require Import
+From Stdlib Require Import
      Setoid
      Morphisms.
 

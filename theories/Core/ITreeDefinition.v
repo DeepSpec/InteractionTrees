@@ -4,10 +4,9 @@
 Require Import ExtLib.Structures.Functor.
 Require Import ExtLib.Structures.Applicative.
 Require Import ExtLib.Structures.Monad.
-Require Import Program.Tactics.
 
 From ITree Require Import Basics.
-
+From ITree Require Export Basics.Utils. 
 Set Implicit Arguments.
 Set Contextual Implicit.
 Set Primitive Projections.
@@ -278,28 +277,26 @@ End ITreeNotations.
 
 (** ** Tactics *)
 
-(* [inv], [rewrite_everywhere], [..._except] are general purpose *)
-
-Lemma hexploit_mp: forall P Q: Type, P -> (P -> Q) -> Q.
-Proof. intuition. Defined.
-Ltac hexploit x := eapply hexploit_mp; [eapply x|].
-
-Tactic Notation "hinduction" hyp(IND) "before" hyp(H)
-  := move IND before H; revert_until IND; induction IND.
-
-Ltac rewrite_everywhere lem :=
-  progress ((repeat match goal with [H: _ |- _] => rewrite lem in H end); repeat rewrite lem).
-
-Ltac rewrite_everywhere_except lem X :=
-  progress ((repeat match goal with [H: _ |- _] =>
-                 match H with X => fail 1 | _ => rewrite lem in H end
-             end); repeat rewrite lem).
-
 Ltac genobs x ox := remember (observe x) as ox.
 Ltac genobs_clear x ox := genobs x ox; match goal with [H: ox = observe x |- _] => clear H x end.
-Ltac simpobs := repeat match goal with [H: _ = observe _ |- _] =>
-                    rewrite_everywhere_except (@eq_sym _ _ _ H) H
-                end.
+Ltac simpobs :=
+  repeat match goal with
+  (* would be nice to 'eliminate' any 
+      obs-obs cases from the sarch, but not sure how.
+      maybe backtracking works here? *)
+  (* don't loop on the obs-obs case *)
+  | H : observe _ = observe _ |- _ =>
+    rewrite <- H in *; clear H 
+  | H : _ = observe _ |- _ =>
+    rewrite <- H in *
+  | H : observe _ = _ |- _ =>
+    rewrite H in *
+  | H : _ = _observe _ |- _ =>
+        rewrite <- H in *
+  | H : _observe _ = _ |- _ =>
+    rewrite H in *
+  end.
+(* wishing for an or pattern... *)
 Ltac desobs t H := destruct (observe t) eqn:H.
 
 (** ** Compute with fuel *)

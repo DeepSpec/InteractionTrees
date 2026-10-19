@@ -3,10 +3,10 @@
 (** Not specific to itrees. *)
 
 (* begin hide *)
-From Coq Require
+From Stdlib Require
      Ensembles.
 
-From Coq Require Import
+From Stdlib Require Import
      RelationClasses.
 
 From ExtLib Require Import
@@ -38,6 +38,7 @@ Notation "E ~> F" := (forall T, E T -> F T)
   (at level 99, right associativity, only parsing) : type_scope.
 (* The same level as [->]. *)
 (* This might actually not be such a good idea. *)
+(* TODO: Determine if this is, or not, a good idea. *)
 
 (** Identity morphism. *)
 Definition idM {E : Type -> Type} : E ~> E := fun _ e => e.
@@ -166,6 +167,7 @@ Inductive iter_Prop {R I : Type} (step : I -> I + R -> Prop) (i : I) (r : R)
 #[global] Polymorphic Instance MonadIter_Prop : MonadIter Ensembles.Ensemble := @iter_Prop.
 
 (* Elementary constructs for predicates. To be moved in their own file eventually *)
+(* TODO: Make the file to move these into. *)
 Definition equiv_pred {A : Type} (R S: A -> Prop): Prop :=
   forall a, R a <-> S a.
 

@@ -12,7 +12,7 @@
   (depends
     (coq (>= 8.14))
     (coq-ext-lib (>= 0.11.1))
-    (coq-paco (>= 4.2.1)))
+    (rocq-coinduction (>= 1.21)))
   (tags ("org:deepspec"))
   (authors
     "Li-yao Xia"
@@ -30,7 +30,7 @@
   (depends
     coq
     coq-ext-lib
-    coq-paco
+    rocq-coinduction
     coq-itree)
   (tags ("org:deepspec"))
   (authors

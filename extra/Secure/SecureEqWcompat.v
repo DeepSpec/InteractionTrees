@@ -1,5 +1,19 @@
-From Coq Require Import Morphisms.
+(* Chain-based congruence for [eqit_secure].
 
+   This currently exports:
+
+   - The Ltac utilities used by downstream files
+     ([inv_vis_secure], [clear_trivial], [find_size], [produce_elem], [spew]).
+   - The small helper [eqit_secure_shalt_refl].
+   - A chain-level [Proper] instance [eqit_secure_proper_chain] for rewriting
+     under [eqit_secure ... eq] on either side of [elem c]. 
+
+   At the gfp level, [SecureEqEuttHalt.v] already provides:
+   - [proper_eqit_secure_eqit] — rewrite under [eqit b b eq] (eq_itree / eutt).
+   - [proper_eqit_secure_eqit_secure] — rewrite under [eqit_secure ... eq]. *)
+
+From Stdlib Require Import Morphisms Program.Basics.
+From Coinduction Require Import all.
 From ITree Require Import
      Axioms
      ITree
@@ -7,155 +21,28 @@ From ITree Require Import
 
 From ITree.Extra Require Import
      Secure.SecureEqHalt
-.
-
-From Paco Require Import paco.
+     Secure.SecureEqEuttHalt.
 
 Import Monads.
 Import MonadNotation.
 Local Open Scope monad_scope.
 
 
-Lemma eqit_secureC_wcompat_id :  forall b1 b2 E R1 R2 (RR : R1 -> R2 -> Prop )
-      Label priv l
-, wcompatible2 (@secure_eqit_ E R1 R2 Label priv RR b1 b2 l id)
-                                         (eqitC RR b1 b2) .
-Proof.
-  econstructor. pmonauto_itree.
-  intros. destruct PR.
-  punfold EQVl. punfold EQVr. unfold_eqit. red in REL. red.
-  hinduction REL before r; intros; clear t1' t2'; try inv CHECK.
-  - genobs_clear t1 ot1. genobs_clear t2 ot2.
-    remember (RetF r1) as x.
-    hinduction EQVl before r; intros; inv Heqx; eauto with itree.
-    remember (RetF r3) as y.
-    hinduction EQVr before r; intros; inv Heqy; eauto with itree.
-  - remember (TauF t1) as y.
-    hinduction EQVl before r; intros; inv Heqy; try inv CHECK; subst; eauto with itree.
-    remember (TauF t2) as x.
-    hinduction EQVr before r; intros; inv Heqx; try inv CHECK; subst; eauto with itree.
-    pclearbot. constructor. gclo. econstructor; eauto with paco.
-  - eapply IHREL; eauto.
-    remember (TauF t1) as x.
-    hinduction EQVl before r; intros; inv Heqx; try inv CHECK; eauto with itree.
-    constructor; auto. pclearbot. pstep_reverse.
-  - eapply IHREL; eauto.
-    remember (TauF t2) as x.
-    hinduction EQVr before r; intros; inv Heqx; try inv CHECK; eauto with itree.
-    constructor; auto. pclearbot. pstep_reverse.
-  - remember (VisF e k1) as x.
-    hinduction EQVl before r; intros; inv Heqx; try inv CHECK; eauto with itree.
-    ddestruction. subst. remember (VisF e0 k3) as y.
-    hinduction EQVr before r; intros; inv Heqy; try inv CHECK; eauto with itree.
-    ddestruction. subst. constructor; auto.
-    intros. apply gpaco2_clo. pclearbot. econstructor; eauto with itree. apply H.
-  - remember (VisF e k1) as x.
-    hinduction EQVl before r; intros; inv Heqx; try inv CHECK; subst; eauto with itree.
-    ddestruction. subst. pclearbot. remember (TauF t2) as y.
-    hinduction EQVr before r; intros; inv Heqy; try inv CHECK; subst; eauto with itree.
-    pclearbot.
-    unpriv_co. gclo. econstructor; eauto with paco itree. gfinal.
-    left. apply H.
-  - remember (TauF t1) as x.
-    hinduction EQVl before r; intros; inv Heqx; try inv CHECK; subst; eauto with itree.
-    remember (VisF e k2) as y.
-    hinduction EQVr before r; intros; inv Heqy; try inv CHECK; subst; eauto with itree.
-    ddestruction. subst.
-    pclearbot. unpriv_co. gclo. econstructor; eauto with paco itree.
-    gfinal. left. apply H.
-  - remember (VisF e1 k1) as x.
-    hinduction EQVl before r; intros; inv Heqx; try inv CHECK; subst; eauto with itree.
-    ddestruction. subst. remember (VisF e2 k3) as y.
-    hinduction EQVr before r; intros; inv Heqy; try inv CHECK; subst; eauto with itree.
-    ddestruction. subst. unpriv_co. gclo. pclearbot.
-    econstructor; eauto with itree paco. gfinal. left. apply H.
-  - remember (VisF e k1) as x.
-    hinduction EQVl before r; intros; inv Heqx; try inv CHECK; eauto with itree.
-    ddestruction. subst. pclearbot. unpriv_ind.
-    eapply H0; eauto. pstep_reverse.
-  - remember (VisF e k2) as x.
-    hinduction EQVr before r; intros; inv Heqx; try inv CHECK; eauto with itree.
-    ddestruction. subst. pclearbot. unpriv_ind.
-    eapply H0; eauto. pstep_reverse.
-  - remember (VisF e k1) as x.
-    hinduction EQVl before r; intros; inv Heqx; try inv CHECK; eauto with itree.
-    ddestruction. subst. remember (TauF t2) as y.
-    hinduction EQVr before r; intros; inv Heqy; try inv CHECK; eauto with itree.
-    pclearbot. unpriv_halt. gclo. econstructor; eauto with paco.
-    pfold. constructor. red; auto.
-  - remember (VisF e k2) as x.
-    hinduction EQVr before r; intros; inv Heqx; try inv CHECK; eauto with itree.
-    ddestruction. subst. remember (TauF t1) as y.
-    hinduction EQVl before r; intros; inv Heqy; try inv CHECK; eauto with itree.
-    pclearbot. unpriv_halt. gclo. econstructor; eauto with paco.
-    pfold. constructor. red; auto.
-  - remember (VisF e1 k1) as x.
-    hinduction EQVl before r; intros; inv Heqx; try inv CHECK; try contra_size; eauto with itree.
-    ddestruction. subst. remember (VisF e2 k3) as y.
-    hinduction EQVr before r; intros; inv Heqy; try inv CHECK; eauto with itree.
-    ddestruction. subst. unpriv_halt. pclearbot.
-    gclo. econstructor 1 with (t1' := Vis e1 k0); eauto with paco itree.
-    + pfold. constructor; left; auto.
-    + gfinal. left. apply H.
-  - remember (VisF e1 k1) as x.
-    hinduction EQVl before r; intros; inv Heqx; try inv CHECK; try contra_size; eauto with itree.
-    ddestruction. subst. remember (VisF e2 k3) as y.
-    hinduction EQVr before r; intros; inv Heqy; try inv CHECK; eauto with itree.
-    ddestruction. subst. unpriv_halt. pclearbot.
-    gclo. econstructor 1 with (t2' := Vis e2 k4); eauto with paco itree.
-    + pfold. constructor. left. auto.
-    + gfinal. left. apply H.
-Qed.
-
-#[export] Hint Resolve eqit_secureC_mon : paco.
-
 Lemma eqit_secure_shalt_refl : forall E R1 R2 b1 b2 (RR : R1 -> R2 -> Prop) Label priv l A (e : E A) k1 k2,
     (~ leq (priv _ e) l) -> empty A ->
     eqit_secure Label priv RR b1 b2 l (Vis e k1) (Vis e k2).
 Proof.
-  intros. pfold. red. cbn. unpriv_halt. contra_size.
+  intros. step. cbn. unpriv_halt. contra_size.
 Qed.
 
-Ltac inv_vis_secure := ddestruction; subst;
+(* ===== Generic Ltac utilities (also used by downstream files) ===== *)
+
+Ltac inv_vis_secure := ddestruction;
    try contradiction; try contra_size.
+
 Ltac clear_trivial :=
   repeat match goal with
   | H : empty ?A, H' : forall a : ?A, ?P |- _ => clear H' end.
-Ltac eqit_secureC_halt_cases E := repeat (pclearbot; clear_trivial; match goal with
-     | |- _ (TauF _ ) (TauF _) => constructor; gclo; pclearbot
-     | |- eqit_secureC ?RR ?Label ?priv ?l ?b1 ?b2 _ ?t1 ?t2 => econstructor; clear_trivial; eauto with paco
-     | H : secure_eqitF ?Label ?priv ?RR ?b1 ?b2 ?l _ _ (observe ?t1) _ |- eqit_secure ?Label ?priv ?RR ?b1 ?b2 ?l ?t1 ?t2 => pfold; eauto with itree
-     |  H : nonempty ?A |- _ _ (@VisF _ _ _ ?A ?e _ ) => unpriv_co; gclo ; pclearbot
-     |  H : nonempty ?A |- _  (@VisF _ _ _ ?A ?e _ ) _ => unpriv_co; gclo ; pclearbot
-     |  H : empty ?A |- _ _ (@VisF _ _ _ ?A ?e _ ) => unpriv_halt; gclo ; pclearbot
-     |  H : empty ?A |- _ (@VisF _ _ _ ?A ?e _ ) _ => unpriv_halt; gclo ; pclearbot
-     | |- eqit_secureC ?RR ?Label ?priv ?l ?b1 ?b2 _ ?t1 ?t2 => econstructor; eauto with paco
-
-     | H : forall a, secure_eqitF ?Label ?priv ?RR ?b1 ?b2 ?l _ _ _ (observe ?t2),
-       H1 : observe ?t2 = VisF ?e ?k |- eqit_secure _ _ _ _ _ _ _ (Vis ?e ?k) =>
-       rewrite H1 in H; pfold; apply H
-     |  HA : empty ?A, HB : empty ?B, ev1 : E ?A |-
-                       eqit_secure _ _ _ _ _ _ (go (@VisF _ _ _ ?A _ _ )) (go (@VisF _ _ _ ?B _ _ ))
-                       => pfold; red; cbn; unpriv_halt; try contra_size
-     |  H : forall a : ?A, paco2 _ bot2 (?k a) ?t |- eqit_secure _ _ _ _ _ _ (?k ?a) (?t)  => red; eauto with itree
-     |  H : forall a : ?A, paco2 _ bot2 ?t (?k a) |- eqit_secure _ _ _ _ _ _ ?t (?k ?a)   => red; eauto with itree
-     |  H : forall (a : ?A) (b : ?B), paco2 _ bot2 (?k1 a) (?k2 b) |-
-                                                                        eqit_secure _ _ _ _ _ _ (?k1 ?a) (?k2 ?b)   => red; eauto with itree
-     | H : _ (observe ?t) (VisF ?e1 ?k1) |- _ ?t ?t1 => rewrite itree_eta' in H; apply H
-     | a : ?A, H : empty ?A |- _ => contra_size
-     | a : ?A |- nonempty ?A => constructor; auto
-     | HA : empty ?A, HB : empty ?B, Heq : observe ?t = (@VisF _ _ _ ?A _ _)   |-
-         gpaco2 _ _ _ _ (?t ) (go (@VisF _ _ _ ?B _ _))  => gfinal; right; pstep; red; cbn; rewrite Heq; unpriv_halt
-     | HA : empty ?A, HB : empty ?B |-
-         gpaco2 _ _ _ _ (go (@VisF _ _ _ ?A _ _) ) (go (@VisF _ _ _ ?B _ _))  => gfinal; right; pstep; red; cbn; unpriv_halt
-     | H : forall (a : ?A), _ (observe (?k a) ) observe (?t), Heq : observe ?t = VisF ?e ?k1 |-
-        eqit_secure _ _ _ _ _ _ (?k ?a) _ => rewrite itree_eta' in Heq; rewrite Heq in H; pfold; apply H
-     | H : forall a : ?A, ?P (observe (?k a) ) (observe ?t), Heq : observe ?t = VisF ?e ?k2 |-
-                                                        eqit_secure _ _ _ _ _ _ (?k ?a) _ =>
-                                          rewrite itree_eta' in Heq; rewrite Heq in H; pfold; apply H
-  end;
-  clear_trivial)
-.
 
 Ltac find_size A :=
   match goal with
@@ -163,236 +50,245 @@ Ltac find_size A :=
   | H : empty A |- _ => idtac
   | |- _ => destruct (classic_empty A); try contra_size end.
 
-
 Ltac produce_elem H A := inv H; assert (nonempty A); try (constructor; auto with itree; fail).
 
-Ltac fold_secure :=
-  change (paco2 (_ ?LB ?priv ?RR ?b ?fls ?l _) ?a) with (eqit_secure LB priv RR b fls l) in *.
-
-(* Specialize some hypothesis with the assumption x *)
+(* Specialize every [forall _ : (type of x), _] hypothesis with [x]. *)
 Ltac spew x :=
   let T := type of x in
   repeat lazymatch goal with
   | [ H0 : forall (_ : T), _ |- _ ] => specialize (H0 x)
   end.
 
-Lemma eqit_secureC_wcompat_id' :  forall b1 b2 E R1 R2 (RR : R1 -> R2 -> Prop )
-      Label priv l,
-    wcompatible2 (@secure_eqit_ E R1 R2 Label priv RR b1 b2 l id)
-                                         (eqit_secureC RR Label priv l b1 b2) .
-Proof.
-  econstructor.
-  { red. intros. eauto with paco. }
-  intros. dependent destruction PR.
-  punfold EQVl. punfold EQVr. red in EQVl. red in EQVr. red in REL. red.
-  hinduction REL before r; intros; clear t1' t2'; try inv CHECK.
-  - remember (RetF r1) as x. hinduction EQVl before r; intros; subst; try inv Heqx; eauto with itree.
-    remember (RetF r3) as y. hinduction EQVr before r; intros; subst; try inv Heqy; eauto with itree.
-    rewrite itree_eta' at 1. unpriv_ind. eapply H0; eauto.
-  - remember (TauF t1) as x. hinduction EQVl before r; intros; subst; try inv Heqx;
-    try inv CHECK; eauto with itree.
-    + remember (TauF t4) as y. pclearbot.
-      (* think I might have a lead on the problem, should H0 have vclo not id here?*)
-      hinduction EQVr before r; intros; subst; try inv Heqy;
-      try inv CHECK; pclearbot; try fold_secure; eauto with itree.
-      * constructor. gclo. econstructor; eauto. gfinal; eauto.
-      * unpriv_co. gclo. econstructor; eauto. gfinal; eauto.
-      * rewrite itree_eta' at 1. unpriv_ind. eauto.
-      * unpriv_halt. gclo. econstructor; eauto. gfinal; eauto.
-    + remember (TauF t3) as y. pclearbot.
-      hinduction EQVr before r; intros; subst; try inv Heqy;
-      try inv CHECK; pclearbot; repeat fold_secure; eauto with itree.
-      * unpriv_co. gclo. econstructor; eauto. gfinal; eauto.
-      * unpriv_co. gclo. econstructor; eauto. gfinal; eauto.
-      * rewrite itree_eta' at 1. unpriv_ind. eauto.
-      * unpriv_halt. gclo. econstructor; eauto. gfinal; eauto.
-   + remember (TauF t3) as y. pclearbot.
-      hinduction EQVr before r; intros; subst; try inv Heqy;
-      try inv CHECK; pclearbot; repeat fold_secure; eauto with itree.
-      * unpriv_halt. gclo. econstructor; eauto. gfinal; eauto.
-      * unpriv_halt. gclo. econstructor; eauto. gfinal; eauto.
-      * rewrite itree_eta' at 1. unpriv_ind. eauto.
-      * unpriv_halt. contra_size.
- - eapply IHREL; eauto.
-   remember (TauF t1) as y. hinduction EQVl before r; intros; inv Heqy; try inv CHECK; eauto with itree.
-   + constructor; auto. pclearbot. pstep_reverse.
-   + unpriv_ind. pclearbot. pstep_reverse.
-   + pclearbot. punfold H.
- - eapply IHREL; eauto.
-   remember (TauF t2) as y. hinduction EQVr before r; intros; inv Heqy; try inv CHECL; eauto with itree.
-   + constructor; auto. pclearbot. pstep_reverse.
-   + unpriv_ind. pclearbot. pstep_reverse.
-   + pclearbot. punfold H.
- - remember (VisF e k1) as x.
-   hinduction EQVl before r; intros; inv Heqx; try inv CHECK; inv_vis_secure; eauto with itree.
-   remember (VisF e0 k3) as y.
-   hinduction EQVr before r; intros; inv Heqy; try inv CHECK; inv_vis_secure; eauto with itree.
-   + pclearbot. constructor; auto. intros. gclo. econstructor; eauto.
-     apply H0. apply H. gfinal; left; apply H1.
-   + rewrite itree_eta' at 1. unpriv_ind. eapply H0; eauto.
- - unfold id in H. remember (VisF e k1) as x.
-   hinduction EQVl before r; intros; inv Heqx; try inv CHECK; inv_vis_secure; eauto with itree.
-   + pclearbot. remember (TauF t2) as y.
-     hinduction EQVr before r; intros; inv Heqy; try inv CHECK; repeat fold_secure; eauto with itree.
-     * constructor. gclo. pclearbot. inv SIZECHECK. spew a. econstructor; eauto. gfinal; eauto.
-     * unpriv_co. gclo. pclearbot. inv SIZECHECK0. spew a0; spew a. econstructor; eauto.
-       gfinal; eauto.
-     * rewrite itree_eta' at 1. unpriv_ind. eauto.
-     * unpriv_halt. pclearbot. inv SIZECHECK0.
-       gclo. spew a. econstructor; eauto. gfinal; eauto.
-   + pclearbot. pclearbot. inv SIZECHECK. remember (TauF t2) as y.
-     hinduction EQVr before r; intros; inv Heqy; try inv CHECK; repeat fold_secure; eauto with itree.
-     * unpriv_co. gclo. pclearbot. spew a0. spew a. econstructor; eauto. gfinal; eauto.
-     * unpriv_co. gclo. pclearbot. fold_secure. spew a0; spew a. econstructor; eauto. gfinal; eauto.
-     * rewrite itree_eta' at 1. unpriv_ind. eauto.
-     * pclearbot. unpriv_halt. gclo. spew a0. spew a. econstructor; eauto. gfinal; eauto.
-  + pclearbot. inv SIZECHECK0. remember (TauF t2) as y.
-     hinduction EQVr before r; intros; inv Heqy; try inv CHECK; repeat fold_secure; eauto with itree.
-     * unpriv_halt. gclo. pclearbot. spew a; econstructor; eauto.
-       gfinal; eauto.
-     * unpriv_halt. gclo. pclearbot. fold_secure. spew a. econstructor; eauto. gfinal; eauto.
-     * rewrite itree_eta' at 1. unpriv_ind. eauto.
-     * pclearbot. unpriv_halt. contra_size.
- - unfold id in H. remember (VisF e k2) as x.
-   hinduction EQVr before r; intros; inv Heqx; try inv CHECK; inv_vis_secure; eauto with itree.
-   + pclearbot. remember (TauF t0) as y.
-     hinduction EQVl before r; intros; inv Heqy; try inv CHECK; eauto with itree; repeat fold_secure.
-     * constructor. gclo. pclearbot. fold_secure. inv SIZECHECK.
-       spew a; econstructor; eauto. gfinal; eauto.
-     * unpriv_co. gclo. pclearbot. fold_secure. inv SIZECHECK0. spew a; spew a0. econstructor; eauto.
-       gfinal; eauto.
-     * rewrite itree_eta'. unpriv_ind. eauto.
-     * unpriv_halt. pclearbot. inv SIZECHECK0.
-       gclo. spew a; econstructor; eauto. gfinal; eauto.
-   + pclearbot. pclearbot. inv SIZECHECK. remember (TauF t1) as y.
-     hinduction EQVl before r; intros; inv Heqy; try inv CHECK; repeat fold_secure; eauto with itree.
-     * unpriv_co. gclo. pclearbot. spew a0; spew a. econstructor; eauto. gfinal; eauto.
-     * unpriv_co. gclo. pclearbot. spew b; spew a; spew a0; econstructor; eauto.
-       gfinal; eauto.
-     * rewrite itree_eta'. unpriv_ind. eauto.
-     * pclearbot. unpriv_halt. gclo. spew a. econstructor; eauto. gfinal; eauto.
-  + pclearbot. inv SIZECHECK0. remember (TauF t1) as y.
-     hinduction EQVl before r; intros; inv Heqy; try inv CHECK; eauto with itree.
-     * unpriv_halt. gclo. pclearbot. fold_secure. spew a. econstructor; eauto.
-       gfinal; eauto.
-     * unpriv_halt. gclo. pclearbot. fold_secure. spew a. econstructor; eauto.
-       gfinal; eauto.
-     * rewrite itree_eta'. unpriv_ind. eauto.
-     * pclearbot. unpriv_halt. contra_size.
- - unfold id in H. remember (VisF e2 k2) as x.
-   hinduction EQVr before r; intros; inv Heqx; try inv CHECK; inv_vis_secure; eauto with itree; pclearbot; fold_secure.
-   1: inv SIZECHECK1; inv SIZECHECK2; remember (VisF e1 k1) as y.
-   2: inv SIZECHECK0; inv SIZECHECK3; remember (VisF e0 k0) as y.
-   3: inv SIZECHECK1; inv SIZECHECK2; remember (VisF e0 k0) as y.
-   all: spew a; spew a0.
-   all: hinduction EQVl before r; intros; inv Heqy; try inv CHECK; inv_vis_secure; subst;
-     eauto with itree; try (eqit_secureC_halt_cases E; fail).
-   all: rewrite itree_eta'; unpriv_ind; auto with itree; eauto.
- - inv SIZECHECK. eapply H0; eauto. Unshelve. all : auto.
-   remember (VisF e k1) as x. clear H0.
-   hinduction EQVl before r; intros; inv Heqx; inv_vis_secure; try inv CHECK; pclearbot; eauto with itree.
-   + constructor; auto. pstep_reverse.
-   + unpriv_ind. pstep_reverse.
-   + rewrite itree_eta' at 1 . pstep_reverse.
- - inv SIZECHECK. eapply (H0 a); eauto.
-   remember (VisF e k2) as x. clear H0.
-   hinduction EQVr before r; intros; inv Heqx; inv_vis_secure; try inv CHECK; pclearbot; eauto with itree.
-   + constructor; auto. pstep_reverse.
-   + unpriv_ind. pstep_reverse.
-   + rewrite itree_eta' at 1 . pstep_reverse.
- - remember (TauF t2) as x.
-   hinduction EQVr before r; intros; inv Heqx; try inv CHECK; pclearbot; eauto with itree;
-   inv EQVl; inv_vis_secure; eqit_secureC_halt_cases E.
-   + pclearbot. find_size A0; eqit_secureC_halt_cases E.
-   + pclearbot. find_size A1; eqit_secureC_halt_cases E.
- - remember (TauF t1) as x.
-   hinduction  EQVl before r; intros; inv Heqx; try inv CHECK; pclearbot; eauto with itree;
-   inv EQVr; inv_vis_secure;
-   eqit_secureC_halt_cases E.
-   + find_size A0; eqit_secureC_halt_cases E.
-   + find_size A1; eqit_secureC_halt_cases E.
- - unfold id in H. remember (VisF e2 k2) as x.
-   hinduction EQVr before r; intros; inv Heqx; try inv CHECK; inv_vis_secure;  pclearbot; eauto with itree;
-   inv EQVl; inv_vis_secure;
-   (* maybe I should just write a new one *)
-   do 2 (
-   repeat match goal with | H : nonempty ?A |- _ => inv H end;
-   match goal with
-   | e1 : E ?A, e2 : E ?B, e3 : E ?C, e4 : E ?D |- _ =>
-     find_size A ; find_size B; find_size C ; find_size D ; try contra_size
-   | e1 : E ?A, e2 : E ?B, e3 : E ?C |- _ =>
-     find_size A ; find_size B; find_size C ; try contra_size
-   | e1 : E ?A, e2 : E ?B |- _ =>
-      find_size A ; find_size B; try contra_size
-   | e1 : E ?A |- _ =>
-     find_size A ; try contra_size
-   end);
-   eqit_secureC_halt_cases E; try (eapply eqit_secure_shalt_refl; eauto); eqit_secureC_halt_cases E;
-   try apply H3; try apply H; eqit_secureC_halt_cases E.
-   Unshelve. all : auto.
- - unfold id in H. remember (VisF e1 k1) as x.
-   hinduction EQVl before r; intros; inv Heqx; try inv CHECK; inv_vis_secure; pclearbot; eauto with itree;
-     inv EQVr; inv_vis_secure;
-       do 2 (
-            repeat match goal with | H : nonempty ?A |- _ => inv H end;
-            match goal with
-            | e1 : E ?A, e2 : E ?B, e3 : E ?C, e4 : E ?D |- _ =>
-              find_size A ; find_size B; find_size C ; find_size D ; try contra_size
-            | e1 : E ?A, e2 : E ?B, e3 : E ?C |- _ =>
-              find_size A ; find_size B; find_size C ; try contra_size
-            | e1 : E ?A, e2 : E ?B |- _ =>
-              find_size A ; find_size B; try contra_size
-            | e1 : E ?A |- _ =>
-              find_size A ; try contra_size
-            end);
-       eqit_secureC_halt_cases E; try (eapply eqit_secure_shalt_refl; eauto); eqit_secureC_halt_cases E;
-   try apply H3; try apply H; eqit_secureC_halt_cases E.
-   Unshelve. all: auto.
-Qed.
+Ltac contra_leq :=
+  match goal with
+  | [ Hleq : leq ?a ?b, Hnleq : ~ leq ?a ?b |- _ ] => contradiction
+  end.
 
-#[export] Hint Resolve eqit_secureC_wcompat_id : paco.
+(* Decide the size of every event index appearing in the goal classically. *)
+Ltac resolve_sizes :=
+  repeat match goal with
+  | |- context [ @VisF _ _ _ ?A _ _ ] =>
+      lazymatch goal with
+      | _ : empty A |- _ => fail
+      | _ : nonempty A |- _ => fail
+      | _ => destruct (classic_empty A)
+      end
+  end;
+  try contra_size.
 
-#[global] Instance geuttgen_cong_secure_eqit {E} {Label priv l} {R1 R2 : Type} {RR1 : R1 -> R1 -> Prop}
-    {RR2 : R2 -> R2 -> Prop} {RS : R1 -> R2 -> Prop} (b1 b2 : bool) {r rg} :
-    (forall (x x' : R1) (y : R2), (RR1 x x' : Prop) -> (RS x' y : Prop) -> RS x y) ->
-    (forall (x : R1) (y y' : R2), (RR2 y y' : Prop) -> RS x y' -> RS x y) ->
-    Proper (@eq_itree E R1 R1 RR1 ==> eq_itree RR2 ==> flip impl)
-           (gpaco2 (secure_eqit_ Label priv RS b1 b2 l id) (eqitC RS b1 b2) r rg ).
-Proof.
-  repeat intro. gclo. econstructor; eauto.
-  - eapply eqit_mon, H1; eauto; discriminate.
-  - eapply eqit_mon, H2; eauto; discriminate.
-Qed.
+(* Close a halting [Vis]/[Vis] obligation, at either the [gfp]
+   ([eqit_secure]) or chain ([elem c]) level: step into the halting
+   constructor, then finish by the empty-index contradiction or the body
+   hypothesis.  More general than [eqit_secure_shalt_refl] (the two events
+   need not coincide). *)
+Ltac secure_halt_refl :=
+  solve [ step; cbn; unpriv_halt; intros;
+          repeat match goal with He : nonempty ?A |- _ =>
+                   let w := fresh "wit" in destruct He as [w] end;
+          first [ contra_size
+                | solve [ apply_foralls; eauto with itree ]
+                | solve [ eauto with itree ] ] ].
 
-#[global] Instance geuttgen_cong_secure_eqit' {E} {Label priv l} {R1 R2 : Type} {RR1 : R1 -> R1 -> Prop}
-    {RR2 : R2 -> R2 -> Prop} {RS : R1 -> R2 -> Prop} (b1 b2 : bool) {r rg} :
-    (forall (x x' : R1) (y : R2), (RR1 x x' : Prop) -> (RS x' y : Prop) -> RS x y) ->
-    (forall (x : R1) (y y' : R2), (RR2 y y' : Prop) -> RS x y' -> RS x y) ->
-    Proper (@eqit_secure E R1 R1 Label priv RR1 false false l ==>
-             eqit_secure Label priv RR2 false false l ==> flip impl)
-           (gpaco2 (secure_eqit_ Label priv RS b1 b2 l id) (eqit_secureC RS Label priv l b1 b2) r rg ).
-Proof.
-  repeat intro. gclo. econstructor; eauto.
-  - eapply secure_eqit_mon, H1; eauto. intros; discriminate.
-  - eapply secure_eqit_mon, H2; eauto. intros; discriminate.
-Qed.
+Ltac sec_hyp :=
+  first [ eassumption
+        | solve [ apply_foralls; first [ eassumption | eauto with itree ] ]
+        | solve [ eauto with itree ] ].
 
-#[global] Instance geutt_cong_euttge:
-  forall {E : Type -> Type} Label priv l b1 b2 {R1 R2 : Type} {RR1 : R1 -> R1 -> Prop}
-    {RR2 : R2 -> R2 -> Prop} {RS : R1 -> R2 -> Prop}
-    (r rg : forall x : itree E R1, (fun _ : itree E R1 => itree E R2) x -> Prop),
-  (forall (x x' : R1) (y : R2), (RR1 x x' : Prop) -> (RS x' y : Prop) -> RS x y) ->
-  (forall (x : R1) (y y' : R2), (RR2 y y' : Prop) -> RS x y' -> RS x y) ->
-  Proper (euttge RR1 ==> euttge RR2 ==> flip impl)
-    (gpaco2 (secure_eqit_ Label priv RS b1 b2 l id) (eqitC RS true true) r rg).
-Proof.
-  repeat intro. gclo. econstructor; eauto.
-Qed.
+Ltac sec_fin := solve [ sec_hyp | secure_halt_refl ].
 
-#[global] Instance geutt_eq_cong_euttge:
-  forall {E : Type -> Type} Label priv l b1 b2 {R1 R2 : Type} r rg RS ,
-    Proper ( @euttge E R1 R1 eq ==> @euttge E R2 R2 eq ==> flip impl)
-           (gpaco2 (secure_eqit_ Label priv RS b1 b2 l id) (eqitC RS true true) r rg ).
+(* Deep halt/halt subcases: no hypothesis pins the [CIH] intermediate, but it
+   can be taken to be the concrete halting [Vis] already on the other side. *)
+Ltac sec_reflexive :=
+  match goal with
+  | |- eqit_secure _ _ _ _ _ _ ?X ?Y =>
+      first [ is_evar Y; unify Y X | is_evar X; unify X Y ]
+  end;
+  secure_halt_refl.
+
+(* [eapply CIH] leaves [eqit_secure x ?y], [eqit_secure x0 ?y0],
+   [elem c ?y ?y0].  Pin the shared evars from a concrete hypothesis before
+   any [secure_halt_refl] (running it on an evar goal would invent and shelve
+   a spurious event).  The body hypothesis (premise 3) or the [eqit_secure]
+   hypotheses (premises 1/2) provide the pinning; try both orders. *)
+Ltac by_coinduction CIH :=
+  first
+  [ (eapply CIH;
+     [ first [ sec_hyp | sec_reflexive ]
+     | first [ sec_hyp | sec_reflexive ]
+     | sec_fin ])
+  | (eapply CIH;
+     only 3: (solve [ eassumption | apply_foralls; eassumption ]);
+     sec_fin) ].
+
+(* ===== Smart constructor for [secure_eqitF] =====
+
+   [smart_constructor conclude] inspects the goal shape (Ret/Tau/Vis on each
+   side) and the context (for [leq]/[~ leq]/[nonempty]/[empty] facts), then
+   tries the [secure_eqitF] constructors that are compatible with that shape,
+   in a sensible order.  For each candidate it [eapply]s the constructor,
+   discharges the side-conditions ([SECCHECK]/[SIZECHECK]/[CHECK]) from the
+   context, and runs [conclude] on the remaining relational premise(s).  If
+   that whole sequence does not close the goal it backtracks and tries the
+   next constructor; if none work it leaves the goal untouched (never fails). *)
+
+(* Discharge one subgoal produced by a [secure_eqitF] constructor: trivial
+   side-conditions by [assumption]/[reflexivity]/[contra_size]/[auto]; the
+   relational premise(s) by [conclude] (after [intros]). *)
+Tactic Notation "sec_side" tactic3(conclude) :=
+  first [ assumption
+        | reflexivity
+        | contra_size
+        | solve [ econstructor; eassumption ]   (* [nonempty A] from a witness *)
+        | solve [ auto ]
+        | solve [ intros;
+                  repeat match goal with He : nonempty ?A |- _ =>
+                           let w := fresh "wit" in destruct He as [w] end;
+                  first [ contra_size | conclude ] ] ].
+
+Tactic Notation "smart_constructor" tactic3(conclude) :=
+  lazymatch goal with
+  | |- @secure_eqitF _ _ _ _ _ _ _ _ _ _ (RetF _) (RetF _) =>
+      first [ solve [ eapply secEqRet;             sec_side conclude ]
+            | fail 1 "smart_constructor: Ret/Ret unsolved" ]
+  | |- @secure_eqitF _ _ _ _ _ _ _ _ _ _ (TauF _) (TauF _) =>
+      first [ solve [ eapply secEqTau;             sec_side conclude ]
+            | solve [ eapply secEqTauL;            sec_side conclude ]
+            | solve [ eapply secEqTauR;            sec_side conclude ]
+            | fail 1 "smart_constructor: Tau/Tau unsolved" ]
+  | |- @secure_eqitF _ _ _ _ _ _ _ _ _ _ (VisF _ _) (VisF _ _) =>
+      first [ solve [ eapply EqVisPriv;            sec_side conclude ]
+            | solve [ eapply EqVisUnPrivVisCo;     sec_side conclude ]
+            | solve [ eapply EqVisUnprivHaltLVisR; sec_side conclude ]
+            | solve [ eapply EqVisUnprivHaltRVisL; sec_side conclude ]
+            | solve [ eapply EqVisUnPrivLInd;      sec_side conclude ]
+            | solve [ eapply EqVisUnPrivRInd;      sec_side conclude ]
+            | fail 1 "smart_constructor: Vis/Vis unsolved" ]
+  | |- @secure_eqitF _ _ _ _ _ _ _ _ _ _ (VisF _ _) (TauF _) =>
+      first [ solve [ eapply EqVisUnPrivTauLCo;    sec_side conclude ]
+            | solve [ eapply EqVisUnprivHaltLTauR; sec_side conclude ]
+            | solve [ eapply secEqTauR;            sec_side conclude ]
+            | solve [ eapply secEqTauL;            sec_side conclude ]
+            | solve [ eapply EqVisUnPrivLInd;      sec_side conclude ]
+            | fail 1 "smart_constructor: Vis/Tau unsolved" ]
+  | |- @secure_eqitF _ _ _ _ _ _ _ _ _ _ (TauF _) (VisF _ _) =>
+      first [ solve [ eapply EqVisUnPrivTauRCo;    sec_side conclude ]
+            | solve [ eapply EqVisUnprivHaltRTauL; sec_side conclude ]
+            | solve [ eapply secEqTauL;            sec_side conclude ]
+            | solve [ eapply secEqTauR;            sec_side conclude ]
+            | solve [ eapply EqVisUnPrivRInd;      sec_side conclude ]
+            | fail 1 "smart_constructor: Tau/Vis unsolved" ]
+  | |- @secure_eqitF _ _ _ _ _ _ _ _ _ _ (VisF _ _) _ =>
+      first [ solve [ eapply EqVisUnPrivLInd;      sec_side conclude ]
+            | solve [ eapply secEqTauR;            sec_side conclude ]
+            | fail 1 "smart_constructor: Vis/? unsolved" ]
+  | |- @secure_eqitF _ _ _ _ _ _ _ _ _ _ _ (VisF _ _) =>
+      first [ solve [ eapply EqVisUnPrivRInd;      sec_side conclude ]
+            | solve [ eapply secEqTauL;            sec_side conclude ]
+            | fail 1 "smart_constructor: ?/Vis unsolved" ]
+  | |- _ => idtac
+  end.
+
+(* #[global] Instance eqit_secure_proper_chain
+  {E R1 R2} (RR : R1 -> R2 -> Prop) Label priv l (b1 b2 : bool)
+  (c : Chain (secure_eqit_mon (E := E) Label priv RR b1 b2 l)) :
+  Proper (eqit_secure Label priv eq false false l ==>
+          eqit_secure Label priv eq false false l ==>
+          flip impl) (elem c).
+Proof. *)
+
+
+#[global] Instance eqit_secure_proper_chain
+  {E R1 R2} (RR : R1 -> R2 -> Prop) Label priv l (b1 b2 : bool)
+  (c : Chain (secure_eqit_mon (E := E) Label priv RR b1 b2 l)) :
+  Proper (eqit_secure Label priv eq false false l ==>
+          eqit_secure Label priv eq false false l ==>
+          flip impl) (elem c).
 Proof.
-  repeat intro. eapply geutt_cong_euttge; eauto; intros; subst; auto.
+  unfold Proper, respectful, flip, impl.
+  tower induction.
+  intros CIH t1 t2 Ht1t2 t3 t4 Ht3t4 Hbt2t4.
+  icbn; icbn in Hbt2t4.
+  step in Ht1t2; step in Ht3t4.
+  revert t1 t3 Ht1t2 Ht3t4. induction Hbt2t4; intros.
+  - (* secEqRet *)
+    inv Ht1t2; inv Ht3t4; now constructor.
+  - (* secEqTau *)
+    inv Ht1t2; inv Ht3t4; ddestruction;  
+      try contra_size; try contra_leq.
+    all: smart_constructor (by_coinduction CIH).
+  - (* secEqTauL (CHECK : b1) *)
+    inv Ht1t2; ddestruction; try contra_size; try contra_leq.
+    + apply secEqTauL; auto. eapply IHHbt2t4; eauto. now unstep.
+    + apply EqVisUnPrivLInd; auto. intros. eapply IHHbt2t4; eauto. now unstep.
+    + eapply (IHHbt2t4 (Vis _ _)); eauto. now unstep.
+  - (* secEqTauR (CHECK : b2) *)
+    inv Ht3t4; ddestruction;  try contra_size; try contra_leq.
+    + apply secEqTauR; auto. eapply IHHbt2t4; eauto. now unstep.
+    + apply EqVisUnPrivRInd; auto. intros. eapply IHHbt2t4; eauto. now unstep.
+    + eapply (IHHbt2t4 _ (Vis _ _)); eauto. now unstep.
+  - (* EqVisPriv (priv leq) *)
+    inv Ht1t2; inv Ht3t4; ddestruction; 
+      try contra_size; try contra_leq.
+    all: smart_constructor (by_coinduction CIH).
+  - (* EqVisUnPrivTauLCo (left vis nonempty, right tau) *)
+    inv Ht1t2; inv Ht3t4; ddestruction; 
+      try contra_size; try contra_leq.
+    all: smart_constructor (by_coinduction CIH).
+  - (* EqVisUnPrivTauRCo (left tau, right vis nonempty) *)
+    inv Ht1t2; inv Ht3t4; ddestruction; 
+      try contra_size; try contra_leq.
+    all: smart_constructor (by_coinduction CIH).
+  - (* EqVisUnPrivVisCo (left vis nonempty, right vis nonempty) *)
+    inv Ht1t2; inv Ht3t4; ddestruction; 
+      try contra_size; try contra_leq.
+    all: smart_constructor (by_coinduction CIH).
+  - (* EqVisUnPrivLInd (CHECK : b1, left vis nonempty inductive) *)
+    inv Ht1t2; ddestruction;  try contra_size; try contra_leq.
+    + (* Ht1t2 = EqVisUnPrivTauRCo : observe t1 = TauF t5 *)
+      apply secEqTauL; auto.
+      match goal with He : nonempty ?A |- _ => destruct He as [aE] end.
+      eapply (H0 aE); eauto. unstep. eauto.
+    + (* Ht1t2 = EqVisUnPrivVisCo : observe t1 = VisF, nonempty *)
+      apply EqVisUnPrivLInd; auto. intros.
+      match goal with He : nonempty ?A |- _ => destruct He as [aE] end.
+      eapply (H0 aE); eauto. unstep. eauto.
+    + (* Ht1t2 = EqVisUnprivHaltLVisR : observe t1 = VisF, A empty *)
+      match goal with He : nonempty ?A |- _ => destruct He as [aE] end.
+      eapply (H0 aE (Vis _ _)); eauto. unstep. eauto.
+  - (* EqVisUnPrivRInd (CHECK : b2, right vis nonempty inductive) *)
+    inv Ht3t4; ddestruction;  try contra_size; try contra_leq.
+    + (* Ht3t4 = EqVisUnPrivTauLCo : observe t3 = TauF *)
+      apply secEqTauR; auto.
+      match goal with He : nonempty ?A |- _ => destruct He as [aE] end.
+      eapply (H0 aE); eauto. unstep. eauto.
+    + (* Ht3t4 = EqVisUnPrivVisCo : observe t3 = VisF, nonempty *)
+      apply EqVisUnPrivRInd; auto. intros.
+      match goal with He : nonempty ?A |- _ => destruct He as [aE] end.
+      eapply (H0 aE); eauto. unstep. eauto.
+    + (* Ht3t4 = EqVisUnprivHaltRVisL : observe t3 = VisF, B empty *)
+      match goal with He : nonempty ?A |- _ => destruct He as [aE] end.
+      eapply (H0 aE _ (Vis _ _)); eauto. unstep. eauto.
+  - (* EqVisUnprivHaltLTauR (left vis empty, right tau) *)
+    inv Ht1t2; inv Ht3t4; ddestruction; 
+      try contra_size; try contra_leq.
+    all: resolve_sizes.
+    all: smart_constructor (by_coinduction CIH).
+  - (* EqVisUnprivHaltRTauL (left tau, right vis empty) *)
+    inv Ht1t2; inv Ht3t4; ddestruction; 
+      try contra_size; try contra_leq.
+    all: resolve_sizes.
+    all: smart_constructor (by_coinduction CIH).
+  - (* EqVisUnprivHaltLVisR (left vis empty, right vis ~leq) *)
+    inv Ht1t2; inv Ht3t4; ddestruction; 
+      try contra_size; 
+      try contra_leq.
+    all: resolve_sizes.
+    all: smart_constructor (by_coinduction CIH).
+  - (* EqVisUnprivHaltRVisL (left vis ~leq, right vis empty) *)
+    inv Ht1t2; inv Ht3t4; ddestruction; 
+      try contra_size; try contra_leq.
+    all: resolve_sizes.
+    all: smart_constructor (by_coinduction CIH).
+  Unshelve.
+  all: assumption. 
 Qed.

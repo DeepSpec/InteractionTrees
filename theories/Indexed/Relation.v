@@ -1,7 +1,7 @@
 (** * Relations on indexed types *)
 
 (* begin hide *)
-From Coq Require Import
+From Stdlib Require Import
      Relations
      Setoid.
 
