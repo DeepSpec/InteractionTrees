@@ -49,14 +49,14 @@ _CoqProject: $(COQPATHFILE) _CoqProject.itree _CoqProject.extra Makefile
 	@ echo "# Generating _CoqProject"
 	@ rm -f _CoqProject
 	@ echo "# THIS IS AN AUTOMATICALLY GENERATED FILE" >> _CoqProject
-	@ echo "# PLEASE EDIT _CoqConfig INSTEAD" >> _CoqProject
+	@ echo "# PLEASE EDIT _CoqProject.itree or _CoqPRoject.extra INSTEAD" >> _CoqProject
 	@ echo >> _CoqProject
 ifneq ("$(COQPATHFILE)","")
 	@ echo "# including: _CoqPath"
 	@ cat _CoqPath >> _CoqProject
 	@ echo >> _CoqProject
 endif
-	@ echo "# including: _CoqConfig"
+	@ echo "# including: _CoqProject.itree _CoqProject.extra"
 	@ cat _CoqProject.itree _CoqProject.extra >> _CoqProject
 
 COQDEP=coqdep
@@ -64,6 +64,4 @@ DEPS_DOT=deps.dot
 DEPS_OUT=deps.jpg
 
 depgraph:
-	$(COQDEP) -dumpgraph $(DEPS_DOT) $(shell cat _CoqConfig) > /dev/null 2>&1
-	sed 's%\("theories/\([^"]*\)/\([^"/]*\)"\[label="\)%\1\2/\\n%' -i $(DEPS_DOT)
-	dot $(DEPS_DOT) -Tjpg -o$(DEPS_OUT)
+	sh depgraph.sh
