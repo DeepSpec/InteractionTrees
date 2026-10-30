@@ -1,7 +1,7 @@
 (** * Exception event *)
 
 (* begin hide *)
-From ITree Require Import ITree.
+From ITree Require Import Basics.Basics Core.ITreeDefinition Core.Subevent Indexed.Sum.
 
 Set Implicit Arguments.
 (* end hide *)
