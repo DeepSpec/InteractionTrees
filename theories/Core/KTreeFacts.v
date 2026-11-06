@@ -40,17 +40,6 @@ Ltac unfold_ktree :=
 (** ** [ITree.aloop] *)
 
 
-From Corelib Require Import Program.Tactics. 
-
-Ltac under_forall' tac := 
-let dummy := fresh "dummy" in   
-assert (dummy : True) by constructor; 
-          intros; 
-          tac; 
-          revert_until dummy; 
-          clear dummy. 
-Ltac to_mon := under_forall' to_mon_core. 
-
 Lemma bind_iter {E A B C} (f : A -> itree E (A + B)) (g : B -> itree E (B + C))
   : forall x,
     (ITree.bind (ITree.iter f x) (ITree.iter g))

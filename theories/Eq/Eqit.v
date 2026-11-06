@@ -205,9 +205,9 @@ Arguments eqit_mon {E} b1 b2.
     Infix "[≳]" := (@elem _ _ (eqit_mon true false) _ _ _ eq) (at level 70) : type_scope.
 
     (* chains *)
-    Notation euttC := (Chain (eqit_mon true true)).
-    Notation euttgeC := (Chain (eqit_mon true false)).
-    Notation eq_itreeC := (Chain (eqit_mon false false)).
+    Notation euttChain := (Chain (eqit_mon true true)).
+    Notation euttgeChain := (Chain (eqit_mon true false)).
+    Notation eq_itreeChain := (Chain (eqit_mon false false)).
     
     (* makes [observe] a bit nicer to look at *)
     Notation "⊙ x" := (observe x) (only printing, at level 10).
@@ -284,7 +284,6 @@ Tactic Notation "icbn" "in" ident(h) := icbn_in h.
 #[local] Tactic Notation "icbn" "in" "*" := cbn [eqit_mon body eqit_] in *.
 
 Tactic Notation "refold" "in" ident(h) := refold_in h.
-Tactic Notation "to_mon" "in" ident(h) := to_mon_in h.
 Tactic Notation "iunfold" "in" ident(h) := iunfold_in h.
 Tactic Notation "iunfold" "in" "*" := iunfold_all.
 
@@ -802,8 +801,8 @@ Proof.
     eapply IHEQ; eauto.
 Qed.
 
-#[global] Instance euttge_proper_euttC {E R1 R2}
-  (RR : R1 -> R2 -> Prop) (c : euttC):
+#[global] Instance euttge_proper_euttChain {E R1 R2}
+  (RR : R1 -> R2 -> Prop) (c : euttChain):
   Proper (euttge (E := E) eq ==> euttge eq ==> flip impl) (elem c _ _ RR).
 Proof with eauto with itree.
   unfold Proper, respectful, flip, impl.
@@ -875,12 +874,12 @@ Qed.
 
 
 (* here chain_b lifts b to elements of the chain... *)
-#[global] Instance euttge_proper_euttC_mon {E R1 R2}
-  (RR : R1 -> R2 -> Prop) (c : euttC):
+#[global] Instance euttge_proper_euttChain_mon {E R1 R2}
+  (RR : R1 -> R2 -> Prop) (c : euttChain):
   Proper ((euttge (E := E) eq) ==> (euttge eq) ==> flip impl) 
          (eqit_mon true true (elem c) R1 R2 RR).
 Proof.
-  eapply euttge_proper_euttC with (c := chain_b c); eauto.  
+  eapply euttge_proper_euttChain with (c := chain_b c); eauto.  
 Qed. 
 
 (* ... and chain_gfp lifts the gfp. *)
@@ -889,7 +888,7 @@ Qed.
   Proper ((euttge (E := E) eq) ==> (euttge eq) ==> flip impl)  
          (eutt RR). 
 Proof.
-  eapply euttge_proper_euttC with (c := (chain_gfp (eqit_mon true true))); eauto.  
+  eapply euttge_proper_euttChain with (c := (chain_gfp (eqit_mon true true))); eauto.  
 Qed. 
 
 Lemma eq_subH_euttge {E R1 R2} (RR : R1 -> R2 -> Prop):
@@ -916,8 +915,8 @@ Proof. now apply eqit_mono. Qed.
   subrelation (@eq_itree E _ _ RR) (eutt RR).
 Proof. now apply eqit_mono. Qed.
 
-#[global] Instance eq_proper_euttC {E R1 R2}
-  (RR : R1 -> R2 -> Prop) (c : euttC):
+#[global] Instance eq_proper_euttChain {E R1 R2}
+  (RR : R1 -> R2 -> Prop) (c : euttChain):
   Proper (eq_itree (E := E) eq ==> eq_itree eq ==> iff) (elem c _ _ RR).
 Proof. 
   split; intro. 
@@ -925,7 +924,7 @@ Proof.
   all: 
   apply eq_sub_euttge with (RR := eq) in H;
   apply eq_sub_euttge with (RR := eq) in H0;
-  eapply euttge_proper_euttC; eauto.
+  eapply euttge_proper_euttChain; eauto.
 Qed.
 
 #[global] Instance eq_proper_eqit {E R1 R2 b1 b2}
@@ -959,15 +958,15 @@ Proof with eauto with itree.
   - inv H0; try discriminate; simpobs; taur; eapply IHeqitF; eauto; now step in REL.
 Qed.
 
-(* [euttge_proper_euttgeC] with [euttge eq] on BOTH arguments is FALSE.
+(* [euttge_proper_euttgeChain] with [euttge eq] on BOTH arguments is FALSE.
    Counterexample: c = chain_gfp (eqit_mon eq true false) so ̇c = euttge eq.
    Take x = x' = Ret tt, y = Tau (Ret tt), y' = Ret tt.
    Then euttge eq (Ret tt) (Ret tt) ✓, euttge eq (Tau (Ret tt)) (Ret tt) ✓ (EqTauL),
    and ̇c (Ret tt) (Ret tt) = euttge eq (Ret tt) (Ret tt) ✓,
    but ̇c (Ret tt) (Tau (Ret tt)) = euttge eq (Ret tt) (Tau (Ret tt)) is FALSE
    because b2=false means the right side cannot skip taus. *)
-Lemma not_euttge_proper_euttgeC :
-~ (forall E R1 R2 (RR : R1 -> R2 -> Prop) (c : euttgeC),
+Lemma not_euttge_proper_euttgeChain :
+~ (forall E R1 R2 (RR : R1 -> R2 -> Prop) (c : euttgeChain),
   Proper (euttge (E := E) eq ==> euttge eq ==> flip impl) (elem c _ _ RR)).
   unfold Proper, respectful, flip, impl. 
   intro. 
@@ -982,8 +981,8 @@ assert (Hfalse : euttge (E := fun _ => False) (R1 := unit) (R2 := unit) eq
   step in Hfalse. inv Hfalse. inversion CHECK. 
 Qed.  
 
-Lemma euttge_proper_flip_euttgeC {E R1 R2} 
-  (RR : R1 -> R2 -> Prop) (c : euttgeC) :
+Lemma euttge_proper_flip_euttgeChain {E R1 R2} 
+  (RR : R1 -> R2 -> Prop) (c : euttgeChain) :
   Proper (euttge (E := E) eq ==> flip (euttge eq) ==> flip impl) (elem c _ _ RR).
   (* FALSE: *)
   (*   
@@ -993,8 +992,8 @@ Lemma euttge_proper_flip_euttgeC {E R1 R2}
   *)
 Abort. 
 
-#[global] Instance euttge_eq_proper_euttgeC {E R1 R2}
-  (RR : R1 -> R2 -> Prop) (c : euttgeC):
+#[global] Instance euttge_eq_proper_euttgeChain {E R1 R2}
+  (RR : R1 -> R2 -> Prop) (c : euttgeChain):
   Proper (euttge (E := E) eq ==> eq_itree eq ==> flip impl) (elem c _ _ RR).
 Proof with eauto with itree.
   unfold Proper, respectful, flip, impl.
@@ -1048,11 +1047,11 @@ Proof with eauto with itree.
       assert (euttge eq (Tau x0) (Tau t1)) by (now step).
       unstep; eapply euttge_tau_inv; eauto.
     + easy. 
-    (* no EqTauR block: euttgeC has b2=false *)
+    (* no EqTauR block: euttgeChain has b2=false *)
 Qed.
 
-#[global] Instance eq_proper_euttgeC {E R1 R2}
-  (RR : R1 -> R2 -> Prop) (c : euttgeC):
+#[global] Instance eq_proper_euttgeChain {E R1 R2}
+  (RR : R1 -> R2 -> Prop) (c : euttgeChain):
   Proper (eq_itree (E := E) eq ==> eq_itree eq ==> iff) (elem c _ _ RR).
 Proof.
   split; intro.
@@ -1060,16 +1059,16 @@ Proof.
        need t2 ≳ t1 (reverse) and s2 ≅ s1 (reverse) *)
     symmetry in H; apply eq_sub_euttge with (RR := eq) in H.
     symmetry in H0.
-    eapply euttge_eq_proper_euttgeC; eauto.
+    eapply euttge_eq_proper_euttgeChain; eauto.
   - (* backward: t1 ≅ t2, s1 ≅ s2, ̇c t2 s2 → ̇c t1 s1:
        need t1 ≳ t2 and s1 ≅ s2 (direct) *)
     apply eq_sub_euttge with (RR := eq) in H.
-    eapply euttge_eq_proper_euttgeC; eauto.
+    eapply euttge_eq_proper_euttgeChain; eauto.
 Qed.
 
 
-#[global] Instance eq_proper_eq_itreeC {E R1 R2}
-  (RR : R1 -> R2 -> Prop) (c : eq_itreeC):
+#[global] Instance eq_proper_eq_itreeChain {E R1 R2}
+  (RR : R1 -> R2 -> Prop) (c : eq_itreeChain):
   Proper (eq_itree (E := E) eq ==> eq_itree eq ==> iff) (elem c _ _ RR).
 Proof. 
   split; revert_until c; tower induction; intros!;
@@ -1283,7 +1282,7 @@ Module Tests.
 Goal eutt RR u v.
     rewrite EQUIV2.
     rewrite <- EQ2.
-    eapply eq_proper_euttC.
+    eapply eq_proper_euttChain.
     rewrite <- EQ1.
     exact EQ1. 
     rewrite EQ2, <- EQ2. 
@@ -1821,7 +1820,7 @@ Proof.
 Qed. 
 
 Lemma eutt_bind_b {U1 U2 UU} t1 t2 k1 k2
-      (c : euttC)
+      (c : euttChain)
       (EQT: @eutt E U1 U2 UU t1 t2)
       (EQK: forall u1 u2, UU u1 u2 -> eutt RR (k1 u1) (k2 u2)):
   eqit_mon true true (elem c) _ _ RR (ITree.bind t1 k1) (ITree.bind t2 k2).

@@ -229,17 +229,6 @@ Section eqit_secureC.
 
 End eqit_secureC.
 
-
-
-Ltac unpriv_co := try apply EqVisUnPrivVisCo;
-                  try apply EqVisUnPrivTauLCo;
-                  try apply EqVisUnPrivTauRCo;
-                  auto with itree; intros.
-
-Ltac unpriv_ind := try apply EqVisUnPrivLInd;
-                   try apply EqVisUnPrivRInd;
-                   auto with itree; intros.
-
 Ltac unpriv_halt :=
   match goal with
   | [  Hemp : empty ?A |- secure_eqitF _ _ _ _ _ _ _ _ (@VisF _ _ _ ?A _ _) _ ] =>

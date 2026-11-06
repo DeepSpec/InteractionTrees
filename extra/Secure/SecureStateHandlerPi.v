@@ -11,7 +11,7 @@ From ITree Require Import
 From ITree.Extra Require Import
      Secure.SecureEqHalt
      Secure.SecureEqEuttHalt
-     Secure.SecureEqWcompat
+     Secure.SecureEqProper
      Secure.SecureEqBind
      Secure.SecureEqProgInsens
      Secure.SecureEqProgInsensFacts

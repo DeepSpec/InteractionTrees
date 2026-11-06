@@ -229,7 +229,7 @@ Ltac inv_eq_itree :=
 #[local] Ltac taul ::= eapply pisecEqTauL; [auto|].
 #[local] Ltac taur ::= eapply pisecEqTauR; [auto|].
 
-(* #[global] Instance pi_eqit_secure_proper_secureC {E R1 R2}  Label priv (RR : R1 -> R2 -> Prop) l
+(* #[global] Instance pi_eqit_secure_proper_secureChain {E R1 R2}  Label priv (RR : R1 -> R2 -> Prop) l
   (c : Chain (pi_secure_eqit_mon Label priv RR true true l)) :
   Proper (euttge (E := E) eq ==> euttge eq ==> flip impl) (elem c).
 Proof with eauto with itree. 
@@ -335,7 +335,7 @@ Proof with eauto with itree.
     + 
 Qed.  *)
 
-#[global] Instance pi_eqit_secure_proper_secureC {E R1 R2} b1 b2 Label priv (RR : R1 -> R2 -> Prop) l
+#[global] Instance pi_eqit_secure_proper_secureChain {E R1 R2} b1 b2 Label priv (RR : R1 -> R2 -> Prop) l
   (c : Chain (pi_secure_eqit_mon Label priv RR b1 b2 l)) :
   Proper (eq_itree (E := E) eq ==> eq_itree eq ==> flip impl) (elem c).
 Proof.
@@ -359,7 +359,7 @@ Qed.
    Proper (@eq_itree E R1 R1 eq ==> eq_itree eq ==> flip impl)
           (pi_eqit_secure Label priv RS b1 b2 l).
 Proof.
-  eapply pi_eqit_secure_proper_secureC with
+  eapply pi_eqit_secure_proper_secureChain with
     (c := chain_gfp (pi_secure_eqit_mon Label priv RS b1 b2 l)).
 Qed.
 

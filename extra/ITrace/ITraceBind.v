@@ -833,10 +833,6 @@ Proof.
 Qed.
 
 
-Ltac fold_peel_cont r := match goal with |- context [peel_cont_ (observe ?b) (observe ?t) ] =>
-                                           assert (Hfpc : forall r, peel_cont_ (observe b) (observe t) = peel_cont b t r ); auto; rewrite (Hfpc r);
-                                           clear Hfpc end.
-
 Lemma trace_prefix_tau_ret:
   forall (E : Type -> Type) (R S : Type) (r : itrace E S -> itrace E R -> Prop)
          (b : itrace E R) (t : itree E S) (f : S -> itree E R) (r0 : R),

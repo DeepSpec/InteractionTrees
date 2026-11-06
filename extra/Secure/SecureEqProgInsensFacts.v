@@ -87,14 +87,14 @@ Qed.
 
 (* Iff variant on the chain element [elem c] (needed for forward rewrites
    inside [coinduction c CIH] proofs). Derived from the [flip impl] chain
-   Proper [pi_eqit_secure_proper_secureC] in [SecureEqProgInsens.v]. *)
+   Proper [pi_eqit_secure_proper_secureChain] in [SecureEqProgInsens.v]. *)
 #[global] Instance pi_eqit_secure_chain_proper_iff
   {E R1 R2} b1 b2 Label priv (RR : R1 -> R2 -> Prop) l
   (c : Chain (pi_secure_eqit_mon Label priv RR b1 b2 l)) :
   Proper (@eq_itree E R1 R1 eq ==> eq_itree eq ==> iff) (elem c).
 Proof.
   intros t1 t1' EQ1 t2 t2' EQ2.
-  pose proof (pi_eqit_secure_proper_secureC b1 b2 Label priv RR l c) as Hfwd.
+  pose proof (pi_eqit_secure_proper_secureChain b1 b2 Label priv RR l c) as Hfwd.
   unfold Proper, respectful in Hfwd.
   split; intros H.
   - eapply (Hfwd _ _ (symmetry EQ1) _ _ (symmetry EQ2)). exact H.

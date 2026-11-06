@@ -215,7 +215,6 @@ Proof.
   - apply eqit_inv in H0; cbn in H0; contradiction.
 Qed.
 
-(* Derives contradiction from evidence that a return tree is infinite *)
 (* Infinite trees never return a value*)
 Lemma no_infinite_ret (E : Type -> Type) (A : Type) (t: itree E A) (a : A)
   : any_infinite t -> t ≈ Ret a -> False.

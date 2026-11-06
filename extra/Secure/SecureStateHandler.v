@@ -15,7 +15,7 @@ From ITree.Extra Require Import
      Secure.SecureEqBind
      Secure.SecureEqEuttHalt
      Secure.StrongBisimProper
-     Secure.SecureEqWcompat
+     Secure.SecureEqProper
 .
 
 Import Monads.

@@ -139,7 +139,7 @@ Proof.
       intros. specialize (H0 a b H2). now apply CIH.
 Qed.
 
-#[global] Instance eq_proper_ruttC {E1 E2 R1 R2 REv RAns}
+#[global] Instance eq_proper_ruttChain {E1 E2 R1 R2 REv RAns}
   (RR : R1 -> R2 -> Prop) (c : Chain (@rutt_mon E1 E2 R1 R2 REv RAns)):
   Proper (eq_itree eq ==> eq_itree eq ==> iff) (elem c RR).
 Proof.
@@ -173,7 +173,7 @@ Qed.
   Proper (eq_itree eq ==> eq_itree eq ==> iff) (@rutt E1 E2 R1 R2 REv RAns RR).
 Proof.
   unfold rutt. intros t1 t1' Ht1 t2 t2' Ht2.
-  apply eq_proper_ruttC; auto.
+  apply eq_proper_ruttChain; auto.
 Qed.
 
 #[global] Instance rutt_Proper_R2 {E1 E2 R1 R2}:
@@ -188,7 +188,7 @@ Proof.
   rewrite Ht1, Ht2. apply rutt_Proper_R; auto.
 Qed.
 
-#[global] Instance euttge_proper_ruttC {E1 E2 R1 R2 REv RAns}
+#[global] Instance euttge_proper_ruttChain {E1 E2 R1 R2 REv RAns}
   (RR : R1 -> R2 -> Prop) (c : Chain (@rutt_mon E1 E2 R1 R2 REv RAns)):
   Proper (euttge eq ==> euttge eq ==> flip impl) (elem c RR).
 Proof.
@@ -257,7 +257,7 @@ Qed.
   Proper (euttge eq ==> euttge eq ==> flip impl) (@rutt E1 E2 R1 R2 REv RAns RR).
 Proof.
   unfold rutt. intros t1 t1' Ht1 t2 t2' Ht2.
-  apply euttge_proper_ruttC; auto.
+  apply euttge_proper_ruttChain; auto.
 Qed.
 
 Lemma rutt_cong_eutt {E1 E2 R1 R2}:
@@ -311,7 +311,7 @@ Proof.
         ** apply EqTauL. apply IHIHHeutt'; auto.
       * (* m1 = Tau m1_body *)
         apply (IHIHHeutt' m1_body m2); auto.
-        apply ruttF_inv_tau_l in H. exact H.
+        unstep. apply rutt_inv_Tau_l. now rstep.
       * (* m1 = Vis e1 k1 *)
         remember (VisF e1 k1) as oVisL eqn:HoVisL.
         clear Hobs_m1 m1 IHIHHeutt'.

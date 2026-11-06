@@ -25,7 +25,7 @@ extra/Secure/SecureEqHalt.v
 extra/Secure/SecureEqHaltProgInsens.v
 extra/Secure/SecureEqEuttHalt.v
 extra/Secure/SecureEqEuttTrans.v
-extra/Secure/SecureEqWcompat.v
+extra/Secure/SecureEqProper.v
 extra/Secure/SecureEqBind.v
 extra/Secure/SecureEqProgInsens.v
 extra/Secure/SecureEqProgInsensFacts.v

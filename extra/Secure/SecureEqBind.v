@@ -8,7 +8,7 @@ From ITree Require Import
 From ITree.Extra Require Import
     
      Secure.SecureEqHalt
-     Secure.SecureEqWcompat
+     Secure.SecureEqProper
      Secure.SecureEqEuttHalt
 .
 
@@ -255,9 +255,6 @@ Lemma secure_eqit_iter : forall E A1 A2 B1 B2 (RA : A1 -> A2 -> Prop) (RB : B1 -
     eqit_secure Label priv RB b1 b2 l (ITree.iter body1 a1) (ITree.iter body2 a2).
 Proof.
   intros. rename H0 into Hbody. generalize dependent a2. revert a1.
-  (* gcofix CIH. intros. setoid_rewrite unfold_iter.
-  guclo eqit_bind_clo. *)
-
   (* look into the more general secure_eqitC closure, see if that is weakly compatible, *)
   icoinduction c CIH.
   intros a1 a2 Ha. specialize (Hbody a1 a2 Ha) as Hbodya.

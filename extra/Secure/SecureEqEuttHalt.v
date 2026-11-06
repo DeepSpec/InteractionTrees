@@ -22,7 +22,7 @@ Local Open Scope monad_scope.
 #[local] Ltac taur := apply secEqTauR; [auto|].
 #[local] Ltac inv_e H := inv H; try discriminate. 
 
-#[global] Instance eq_itree_proper_secureC {E R1 R2} b1 b2 Label priv (RR : R1 -> R2 -> Prop) l
+#[global] Instance eq_itree_proper_secureChain {E R1 R2} b1 b2 Label priv (RR : R1 -> R2 -> Prop) l
   (c : Chain (secure_eqit_mon Label priv RR b1 b2 l)) : 
   Proper (eq_itree (E := E) eq ==> eq_itree eq ==> iff) (elem c).
   Proof with eauto with itree.
@@ -107,12 +107,12 @@ Local Open Scope monad_scope.
        step; now constructor. 
 Qed. 
 
-#[global] Instance eq_itree_proper_secureC_mon {E R1 R2} b1 b2 Label priv (RR : R1 -> R2 -> Prop) l
+#[global] Instance eq_itree_proper_secureChain_mon {E R1 R2} b1 b2 Label priv (RR : R1 -> R2 -> Prop) l
   (c : Chain (secure_eqit_mon Label priv RR b1 b2 l)) :
   Proper (eq_itree (E := E) eq ==> eq_itree eq ==> Basics.flip Basics.impl)
          (secure_eqit_mon Label priv RR b1 b2 l (elem c)).
 Proof.
-  repeat intro. eapply eq_itree_proper_secureC with (c := chain_b c); eauto.
+  repeat intro. eapply eq_itree_proper_secureChain with (c := chain_b c); eauto.
 Qed.
 
 Lemma tau_eqit_secure : forall E R1 R2 Label priv l RR (t1 : itree E R1) (t2 : itree E R2),
